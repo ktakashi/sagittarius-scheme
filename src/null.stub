@@ -1,0 +1,517 @@
+;; -*- scheme -*-
+#!compatible ;; for ypsilon
+(library null
+    (export values
+	    + +. - -. * *. / /.
+	    = < <= > >= eq? eqv? equal?
+	    ;; apply
+	    apply vm/apply
+
+	    ;; io
+	    display newline write write/ss
+	    flush-output-port current-output-port
+	    open-file-input-port open-file-output-port
+	    close-input-port close-output-port
+	    format read 
+	    error
+
+	    ;; transcoder
+	    native-transcoder
+
+	    ;; list 
+	    cons car cdr acons cons*
+	    list length append append! reverse
+	    memq memv member assq assv assoc
+	    list->vector list-transpose+
+
+	    set-car! set-cdr!
+
+	    ;; string
+	    string-length number->string string-append
+	    string->symbol
+
+	    ;; vector
+	    vector? vector vector-set! vector-ref
+	    vector-length make-vector
+	    
+
+	    ;; conditions
+	    integer? number? exact? inexact? pair?
+	    null? list? zero? eof-object?
+	    keyword?
+	    not and
+
+	    ;; hashtable
+	    make-eq-hashtable hashtable-ref
+	    hashtable-set! hashtable->alist
+	    hashtable-keys hashtable-values
+
+	    ;; call/cc
+	    call/cc call-with-current-continuation
+
+	    ;; misc
+	    unbound undefined undefined? add-load-path
+	    gensym)
+    (import :none)
+;; for Ypsilon
+#!compatible
+  (decl-code
+   (.include <sagittarius/instruction.h>))
+
+  (define-c-proc values (:rest rest) ::Object
+    (let ((len (Sg_Length rest)))
+      (cond ((== len 1) (result (SG_CAR rest)))
+	    (else
+	     (let ((v (Sg_MakeValues len))
+		   (i::int 0))
+	       (dolist (e rest)
+		 (set! (SG_VALUES_ELEMENT v i) e)
+		 (set! i (+ i 1)))
+	       (result v))))))
+
+  ;; arithmetic
+  (define-c-proc + (:rest rest::Object) ::Object
+    (cond ((not (SG_PAIRP rest)) (result (SG_MAKE_INT 0)))
+	  ((not (SG_NUMBERP (SG_CAR rest)))
+	   (Sg_Error "number required, but got %S" (SG_CAR rest))
+	   (result SG_UNDEF))		; dummy
+	  (else (let ((r::SgObject (SG_CAR rest)))
+		  (dolist (v (SG_CDR rest)) (set! r (Sg_Add r v)))
+		  (result r)))))
+  (define-c-proc +. (:rest rest::Object) ::Object
+    (let ((a (Sg_MakeFlonum 0.0)))
+      (dolist (x rest) (set! a (Sg_Add a (Sg_Inexact x))))
+      (result a)))
+
+  (define-c-proc * (:rest rest::Object) ::Object
+    (cond ((not (SG_PAIRP rest)) (result (SG_MAKE_INT 1)))
+	  ((not (SG_NUMBERP (SG_CAR rest)))
+	   (Sg_Error "number required, but got %S" (SG_CAR rest))
+	   (result SG_UNDEF))		; dummy
+	  (else (let ((r::SgObject (SG_CAR rest)))
+		  (dolist (v (SG_CDR rest)) (set! r (Sg_Mul r v)))
+		  (result r)))))
+  (define-c-proc *. (:rest rest::Object) ::Object
+    (let ((a (Sg_MakeFlonum 0.0)))
+      (dolist (x rest) (set! a (Sg_Mul a (Sg_Inexact x))))
+      (result a)))
+
+  (define-c-proc - (arg1 :rest rest::Object) ::Object
+    (if (SG_NULLP rest)
+	(result (Sg_Negate arg1))
+	(begin (dolist (v rest) (set! arg1 (Sg_Sub arg1 v)))
+	       (result arg1))))
+  (define-c-proc -. (arg1 :rest rest::Object) ::Object
+    (cond ((SG_NULLP rest) (result (Sg_Negate (Sg_Inexact arg1))))
+	  (else (dolist (x rest) (set! arg1 (Sg_Sub arg1 (Sg_Inexact x))))
+		(result arg1))))
+
+  (define-c-proc / (arg1 :rest rest::Object) ::Object
+    (if (SG_NULLP rest)
+	(result (Sg_Inverse arg1))
+	(begin (dolist (v rest) (set! arg1 (Sg_Div arg1 v)))
+	       (result arg1))))
+  (define-c-proc /. (arg1 :rest rest::Object) ::Object
+    (cond ((SG_NULLP rest) (result (Sg_Inverse (Sg_Inexact arg1))))
+	  (else (dolist (x rest) (set! arg1 (Sg_Div arg1 (Sg_Inexact x))))
+		(result arg1))))
+
+  ;; arithmetic compare
+  (define-cgen-stmt (aref args index)
+    (dispatch `(argumentRef ,args ,index)))
+
+  (define-cgen-stmt numcmp
+    ((_ op compar)
+     (dispatch 
+      `(begin 
+	 (result FALSE)
+	 (loop (cond ((not (,op (,compar arg0 arg1) 0)) (break))
+		     ((SG_NULLP rest) (result TRUE) (break))
+		     (else (set! arg0 arg1)
+			   (set! arg1 (SG_CAR rest))
+			   (set! rest (SG_CDR rest)))))))))
+
+  (define-c-proc = (arg0 arg1 :rest rest) ::boolean
+    (result (numcmp == Sg_NumEq)))
+
+  (define-c-proc < (arg0 arg1 :rest rest) ::boolean
+    (result (numcmp < Sg_NumCmp)))
+  (define-c-proc <= (arg0 arg1 :rest rest) ::boolean
+    (result (numcmp <= Sg_NumCmp)))
+  (define-c-proc > (arg0 arg1 :rest rest) ::boolean
+    (result (numcmp > Sg_NumCmp)))
+  (define-c-proc >= (arg0 arg1 :rest rest) ::boolean
+    (result (numcmp >= Sg_NumCmp)))
+
+  (define-c-proc zero? (arg0) ::boolean
+    (result (and (SG_REALP arg0) (== (Sg_Sign arg0) 0))))
+
+  (define-c-proc integer? (o) ::boolean
+    (result (Sg_IntegerP o)))
+
+  (define-c-proc number? (o) ::boolean
+    (result (SG_NUMBERP o)))
+
+  (define-c-proc exact? (o) ::boolean
+    (result (Sg_ExactP o)))
+
+  ;; compare
+  (define-c-proc eq? (a b) (inline EQ) ::boolean
+    (result (SG_EQ a b)))
+
+  (define-c-proc eqv? (a b) (inline EQV) ::boolean
+    (result (Sg_EqvP a b)))
+
+  (define-c-proc equal? (a b) ::boolean
+    (result (Sg_EqualP a b)))
+
+  ;; apply
+  (define-c-proc apply (proc::Procedure arg1 :rest rest) ::Object
+    (let ((head::SgObject '()) (tail::SgObject '()))
+      (cond ((SG_NULLP rest) (result (Sg_Apply proc arg1)))
+	    (else 
+	     (set! head (Sg_Cons arg1 '()))
+	     (set! tail head)
+	     (dopairs (cp rest)
+	       (when (SG_NULLP (SG_CDR cp))
+		 (SG_APPEND head tail (SG_CAR cp))
+		 (break))
+	       (unless (SG_PAIRP (SG_CDR cp))
+		 (Sg_Error "improper list not allowed: %S" (SG_CDR cp)))
+	       (SG_APPEND1 head tail (SG_CAR cp)))
+	     (result (Sg_Apply proc head))))))
+
+  (define-c-proc vm/apply (code :rest rest) ::Object
+    (result (Sg_VMApply code rest)))
+
+  ;; io
+  (define-c-proc newline (:optional (p (Sg_CurrentOutputPort))) ::void
+    (Sg_Printf p "\n"))
+
+  (define-c-proc display (o :optional (p (Sg_CurrentOutputPort))) ::void
+    (Sg_Write o p SG_WRITE_DISPLAY))
+
+  (define-c-proc write (o :optional (p (Sg_CurrentOutputPort))) ::void
+    (Sg_Write o p SG_WRITE_WRITE))
+
+  (define-c-proc write/ss (o :optional (p (Sg_CurrentOutputPort))) ::void
+    (Sg_Write o p SG_WRITE_SHARED))
+
+  (define-c-proc format (p :rest rest) ::Object
+    (cond ((SG_PORTP p)
+	   (let ((fmt::SgString* (SG_CAR rest))
+		 (objs (SG_CDR rest)))
+	     (Sg_Format p fmt objs FALSE)
+	     (result SG_UNDEF)))
+	  ((SG_BOOLP p)
+	   (let ((fmt::SgString* (SG_CAR rest))
+		 (objs (SG_CDR rest)))
+	     (if (SG_FALSEP p)
+		 (let ((out (Sg_MakeStringOutputPort 16)))
+		   (Sg_Format out fmt objs FALSE)
+		   (result (Sg_GetStringFromStringPort out)))
+		 (let ((out (Sg_CurrentOutputPort)))
+		   (Sg_Format out fmt objs FALSE)
+		   (result SG_UNDEF)))))
+	  ((SG_STRINGP p)
+	   (let ((out (Sg_MakeStringOutputPort 16)))
+	     (Sg_Format out p rest FALSE)
+	     (result (Sg_GetStringFromStringPort out))))))
+
+  (define-c-proc open-file-input-port (file::String 
+				       :optional option
+				                 (mode::Symbol 'block)
+				                 (transcoder::Transcoder #f))
+                                       ::Object
+    ;; we can ignore option
+    (let ((fo (Sg_OpenFile file SG_READ)))
+    ;; TODO mode check
+      (if (SG_FALSEP transcoder)
+	  (result (Sg_MakeFileBinaryInputPort fo))
+	  (let ((in (Sg_MakeFileBinaryInputPort fo)))
+	    (result (Sg_MakeTranscodedInputPort in transcoder))))))
+	
+
+  (define-cgen-stmt logor
+    ((_ v1 v2 . more)
+     (begin
+       (format #t "~a | ~a" v1 v2)
+       (if (null? more)
+	   #t
+	   (let loop ((more more))
+	     (unless (null? more)
+	       (format #t " | ~a" (car more))
+	       (loop (cdr more))))))))
+
+  (define-c-proc open-file-output-port (file::String 
+					:optional (option #f)
+					          (mode::Symbol 'block)
+						  (transcoder::Transcoder #f))
+                                       ::Object
+    (let ((fo SG_UNDEF)
+	  (isFileExist::int (Sg_FileExistP file))
+	  (openFlags::int (logor SG_WRITE SG_CREATE)))
+      (cond ((SG_FALSEP option)
+	     (if isFileExist
+		 (Sg_Error "file already exists %S" file))
+	     (set! fo (Sg_OpenFile file openFlags))
+	     (result (Sg_MakeFileBinaryOutputPort fo)))
+	    (else
+	     (unless (SG_INSTANCEP option)
+	       (Sg_Error "invalid file options %S" option))
+	     (let ((isEmpty::int (SG_NULLP (Sg_GenericRef option 'options)))
+		   (noCreate (Sg_Memq 'no-create (Sg_GenericRef option 'options)))
+		   (noTruncate (Sg_Memq 'no-truncate (Sg_GenericRef option 'options)))
+		   (noFail (Sg_Memq 'no-fail (Sg_GenericRef option 'options))))
+	       (cond ((and isFileExist isEmpty)
+		      (Sg_Error "file already exists %S" file))
+		     ((and (not (SG_FALSEP noCreate))
+			   (not (SG_FALSEP noTruncate)))
+		      (if (not isFileExist)
+			  (Sg_Error "file-options no-create: file not exist %S" file)))
+		     ((not (SG_FALSEP noCreate))
+		      (if isFileExist
+			  (set! openFlags (logor SG_TRUNCATE openFlags))
+			  (Sg_Error "file-options no-create: file not exist %S" file)))
+		     ((and (not (SG_FALSEP noFail))
+			   (not (SG_FALSEP noTruncate)))
+		      (if (not isFileExist)
+			  (set! openFlags (logor SG_TRUNCATE openFlags))))
+		     ((not (SG_FALSEP noFail))
+		      (set! openFlags (logor SG_TRUNCATE openFlags)))
+		     ((not (SG_FALSEP noTruncate))
+		      (if isFileExist
+			  (Sg_Error "file-options no-truncate: file not exist %S" file)
+			  (set! openFlags (logor SG_TRUNCATE openFlags)))))
+	       (set! fo (Sg_OpenFile file openFlags))
+	       (if (SG_FALSEP transcoder)
+		   (result (Sg_MakeFileBinaryOutputPort fo))
+		   (let ((out (Sg_MakeFileBinaryOutputPort fo)))
+		     (result (Sg_MakeTranscodedOutputPort out transcoder)))))))))
+  
+  (define-c-proc close-input-port (p::Port) ::void
+    (if (not (SG_INPORTP p))
+	(Sg_Error "input port required, but got %S" p))
+    (Sg_ClosePort p))
+
+  (define-c-proc close-output-port (p::Port) ::void
+    (if (not (SG_OUTPORTP p))
+	(Sg_Error "output port required, but got %S" p))
+    (Sg_ClosePort p))
+
+  (define-c-proc read (:optional (p (Sg_CurrentInputPort))) ::Object
+    (if (not (SG_INPORTP p))
+	(Sg_Error "input port required, but got %S" p))
+    (result (Sg_Read p FALSE)))
+
+  (define-c-proc error (who msg :rest irritant) ::void
+    (Sg_Error "%S %S %S" who msg irritant))
+
+  ;; transcoder
+  (define-c-proc native-transcoder () ::Object
+    (result (Sg_MakeNativeTranscoder)))
+
+  ;; list
+  (define-c-proc cons (o1 o2) (inline CONS) ::Object
+    (result (Sg_Cons o1 o2)))
+
+  (define-c-proc car (o) (inline CAR) ::Object
+    (unless (SG_PAIRP o)
+      (Sg_Error "pair required, but got %S" o))
+    (result (SG_CAR o)))
+
+  (define-c-proc cdr (o) (inline CDR) ::Object
+    (unless (SG_PAIRP o)
+      (Sg_Error "pair required, but got %S" o))
+    (result (SG_CDR o)))
+
+  (define-c-proc acons (a b alist) ::Object
+    (result (Sg_Acons a b alist)))
+
+  (define-c-proc cons* (:rest rest) ::Object
+    (let ((h '()) (t '()))
+      (when (SG_PAIRP rest)
+	(dopairs (cp rest)
+	  (unless (SG_PAIRP (SG_CDR cp))
+	    (if (SG_NULLP h)
+		(set! h (SG_CAR cp))
+		(SG_SET_CDR t (SG_CAR cp)))
+	    (break))
+	  (SG_APPEND1 h t (SG_CAR cp))))
+      (result h)))
+
+  (define-c-proc list (:rest rest) (inline LIST) ::Object
+    (result rest))
+
+  (define-c-proc length (lst) ::fixnum
+    (result (Sg_Length lst)))
+
+  (define-c-proc append (:rest lst) ::Object
+    (result (Sg_Append lst)))
+
+  (define-c-proc append! (:rest lst) ::Object
+    (let ((h '()) (t '()))
+      (dopairs (cp lst)
+	(when (and (not (SG_PAIRP (SG_CAR cp)))
+		   (SG_NULLP (SG_CDR cp)))
+	  (if (SG_NULLP h)
+	      (set! h (SG_CAR cp))
+	      (SG_SET_CDR t (SG_CAR cp)))
+	  (break))
+	(SG_APPEND h t (SG_CAR cp)))
+      (result h)))
+
+  (define-c-proc memq (arg0 arg1) ::Object
+    (result (Sg_Memq arg0 arg1)))
+
+  (define-c-proc memv (arg0 arg1) ::Object
+    (result (Sg_Memv arg0 arg1)))
+
+  (define-c-proc assq (obj alist) ::Object
+    (result (Sg_Assq obj alist)))
+
+  (define-c-proc assv (obj alist) ::Object
+    (result (Sg_Assv obj alist)))
+
+  (define-c-proc reverse (lst) ::Object
+    (result (Sg_Reverse lst)))
+
+  (define-c-proc set-car! (o v) ::void
+    (SG_SET_CAR o v))
+
+  (define-c-proc set-cdr! (o v) ::void
+    (SG_SET_CDR o v))
+
+  (define-cgen-stmt do-transpose
+    ((_ tmp)
+     (dispatch
+      `(let ((h '())(t '())
+	     (count::int (Sg_Length tmp))
+	     (argv (Sg_ListToVector tmp 0 -1))
+	     (lst0 (Sg_VectorRef argv 0 #f)))
+	 (dolist (l lst0)
+	   (let ((elt (Sg_Cons l '()))
+		 (elt_tail elt)
+		 (n 1))
+	     (while (< n count)
+	       (SG_SET_CDR elt_tail (Sg_Cons (SG_CAR (Sg_VectorRef argv n #f)) '()))
+	       (set! elt_tail (SG_CDR elt_tail))
+	       (Sg_VectorSet argv n (SG_CDR (Sg_VectorRef argv n #f)))
+	       (set! n (+ n 1)))
+	     (SG_APPEND1 h t elt)))
+	 (result h)))))
+
+  (define-c-proc list-transpose+ (lst0 :rest rest) ::Object
+    (cond ((not (SG_LISTP lst0)) (result #f))
+	  (else
+	   (let ((each_len::int (Sg_Length lst0)))
+	     (dolist (x rest)
+	       (if (SG_LISTP x)
+		   (unless (not (== (Sg_Length x) each_len))
+		     (result #f))
+		   (result #f)))
+	     (let ((tmp (Sg_Cons lst0 rest)))
+	       (do-transpose tmp))))))
+
+  ;; string
+  (define-c-proc string-length (s::String) ::fixnum
+    (result s->size))
+
+  (define-c-proc string-append (:rest rest) ::Object
+    (result (Sg_StringAppend rest)))
+
+  (define-c-proc number->string (z::number
+				 :optional (radix::fixnum 10)
+				           (precision::fixnum 1)) ::Object
+    ;; ignore precision
+    (result (Sg_NumberToString z radix FALSE)))
+
+  (define-c-proc string->symbol (z::String) ::Object
+    (result (Sg_Intern z)))
+
+  (define-c-proc symbol->string (z::Symbol) ::Object
+    (result z->name))
+
+  ;; vector
+  (define-c-proc vector (:rest rest::Object) (inline VECTOR) ::Object
+    (result (Sg_ListToVector rest 0 -1)))
+
+  (define-c-proc make-vector (size::fixnum :optional (fill SG_UNDEF)) ::Object
+    (result (Sg_MakeVector size fill)))
+
+  (define-c-proc vector-length (vec::Vector) (inline VEC_LEN) ::fixnum
+    (result (SG_VECTOR_SIZE vec)))
+
+  (define-c-proc vector-ref (vec::Vector i::fixnum) ::Object
+    (result (Sg_VectorRef vec i SG_UNDEF)))
+
+  (define-c-proc vector-set! (vec::Vector i::fixnum obj::Object) ::Object
+    (result (Sg_VectorSet vec i obj)))
+  
+  (define-c-proc list->vector (arg0::Object) ::Object
+    (result (Sg_ListToVector arg0 0 -1)))
+
+  ;; conditions
+  (define-c-proc vector? (arg0::Object) (inline VECTORP) ::boolean
+    (result (SG_VECTORP arg0)))
+
+  (define-c-proc null? (arg0::Object) (inline NULLP) ::boolean
+    (result (SG_NULLP arg0)))
+
+  (define-c-proc list? (arg0::Object) ::boolean
+    (result (SG_PROPER_LISTP arg0)))
+
+  (define-c-proc symbol? (arg0::Object) ::boolean
+    (result (SG_SYMBOLP arg0)))
+
+  (define-c-proc pair? (arg0::Object) ::boolean
+    (result (SG_PAIRP arg0)))
+
+  (define-c-proc eof-object? (o) ::boolean
+    (result (SG_EOFP o)))
+
+  (define-c-proc keyword? (o) ::boolean
+    (result (SG_KEYWORDP o)))
+
+  (define-c-proc not (arg0) ::boolean
+    (result (SG_FALSEP arg0)))
+
+  ;; hashtable
+  (define-c-proc make-eq-hashtable () ::Object
+    (result (Sg_MakeHashTableSimple SG_HASH_EQ 200)))
+
+  (define-c-proc hashtable-ref (ht::HashTable key fallback) ::Object
+    (result (Sg_HashTableRef ht key fallback)))
+
+  (define-c-proc hashtable-set! (ht::HashTable key value) ::void
+    (result (Sg_HashTableSet ht key value 0)))
+
+  (define-c-proc hashtable-keys (ht::HashTable) ::Object
+    (result (Sg_HashTableKeys ht)))
+
+  (define-c-proc hashtable-values (ht::HashTable) ::Object
+    (result (Sg_HashTableValues ht)))
+
+  ;; call/cc
+  (define-c-proc call/cc (proc::Procedure) ::Object
+    (result (Sg_VMCallCc proc)))
+  
+  (define-c-proc call-with-current-continuation (proc::Procedure) ::Object
+    (result (Sg_VMCallCc proc)))
+
+  ;; misc
+  (define-c-proc unbound () ::Object
+    (result SG_UNBOUND))
+
+  (define-c-proc undefined () ::Object
+    (result SG_UNDEF))
+
+  (define-c-proc undefined? (o) ::boolean
+    (result (SG_UNDEFP o)))
+
+  (define-c-proc add-load-path (path::String) ::Object
+    (result (Sg_AddLoadPath path)))
+
+  (define-c-proc gensym (:optional (prefix::String NULL)) ::Object
+    (result (Sg_Gensym prefix)))
+  )

@@ -1,0 +1,7 @@
+;; -*- scheme -*-
+(library (sagittarius vm debug)
+    (export vm-dump-code)
+    (import :none)
+  (define-c-proc vm-dump-code (cb::CodeBuilder) ::Object
+    (Sg_VMDumpCode cb)
+    (result SG_UNDEF)))

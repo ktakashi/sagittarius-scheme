@@ -1,0 +1,34 @@
+;; -*- scheme -*-
+(library (sagittarius compiler procedure)
+      (export procedure-name procedure-inliner
+	      procedure-inliner-set! procedure-reqargs
+	      procedure-optional procedure-body
+	      procedure? inline?
+	      find-procedure)
+      (import :none)
+
+    (define-c-proc procedure-name (arg0::Procedure) ::Object
+      (result (SG_PROCEDURE_NAME arg0)))
+
+    (define-c-proc procedure-inliner (arg0::Procedure) ::Object
+      (result (SG_PROCEDURE_INLINER arg0)))
+
+    (define-c-proc procedure-inliner-set! (arg0::Procedure arg1::Object) ::Object
+      (set! (SG_PROCEDURE_INLINER arg0) arg1)
+      (result SG_UNDEF))
+
+    (define-c-proc procedure-reqargs (arg0::Procedure) ::fixnum
+      (result (SG_PROCEDURE_REQUIRED arg0)))
+
+    (define-c-proc procedure-optional (arg0::Procedure) ::boolean
+      (result (SG_PROCEDURE_OPTIONAL arg0)))
+
+    (define-c-proc procedure? (arg0::Object) ::boolean
+      (result (SG_PROCEDUREP arg0)))
+
+    (define-c-proc inline? (arg0::Object) ::boolean
+      (result (and (SG_PROCEDUREP arg0)
+		   (not (SG_FALSEP (SG_PROCEDURE_INLINER arg0))))))
+
+    (define-c-proc find-procedure (name::Symbol lib::Object) ::Object
+      (result (Sg_FindBinding lib name))))

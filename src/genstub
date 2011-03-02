@@ -1,0 +1,8 @@
+;; -*- Scheme -*-
+(import (rnrs)
+	(sagittarius cgen))
+(cgen "proclib.stub")
+(cgen "null.stub")
+(cgen "vmlib.stub")
+(cgen "vmdebug.stub")
+(cgen "extlib.stub")

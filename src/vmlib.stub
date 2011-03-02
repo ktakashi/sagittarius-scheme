@@ -1,0 +1,229 @@
+;; -*- scheme -*-
+(library (sagittarius vm)
+    (export insn-name
+	    ;; identifier
+	    make-identifier id-name id-name-set!
+	    id-envs id-envs-set! id-library
+	    id-library-set!
+	    copy-identifier
+	    identifier-binding-eqv?
+	    
+	    ;; syntax
+	    make-syntax syntax? syntax-name syntax-proc
+	    builtin-syntax? user-defined-syntax?
+	    unwrap-syntax ;; should this be here?
+
+	    ;; macro
+	    make-macro macro-name macro-transformer
+	    macro-data macro-library macro?
+	    make-macro-transformer %internal-macro-expand
+	    call-macro-expander
+
+	    ;; library
+	    make-library library? library-name library-imported
+	    library-imported-set! library-exported library-exported-set!
+	    library-table #;%set-library %insert-binding find-library
+	    find-binding vm-current-library
+
+	    ;; code-builder
+	    make-code-builder cb-emit0! cb-emit1! cb-emit2! cb-emit0i!
+	    cb-emit1i! cb-emit2i! cb-emit0o! cb-emit0oi! cb-emit1oi!
+	    cb-label-set! cb-emit-closure! code-builder-finish-builder
+
+	    ;; misc
+	    %map-cons
+	    make-toplevel-closure
+	    pass3/let-frame-size pass3/frame-size
+	    )
+    (import :none)
+;; for Ypsilon
+#!compatible
+  (decl-code
+   (.include <sagittarius/instruction.h>))
+
+  (define-c-proc insn-name (insn::fixnum) ::Object
+    (let ((info::InsnInfo* (Sg_LookupInsnName insn)))
+      (result (Sg_MakeStringC info->name))))
+
+  ;; identifier
+  (define-c-proc make-identifier (name::Symbol envs library::Library) ::Object
+    (result (Sg_MakeIdentifier name envs library)))
+
+  (define-c-proc id-name (id::Identifier) ::Object
+    (result (SG_IDENTIFIER_NAME id)))
+
+  (define-c-proc id-envs (id::Identifier) ::Object
+    (result (SG_IDENTIFIER_ENVS id)))
+
+  (define-c-proc id-library (id::Identifier) ::Object
+    (result (SG_IDENTIFIER_LIBRARY id)))
+
+  (define-c-proc copy-identifier (id::Identifier) ::Object
+    (result (Sg_CopyIdentifier id)))
+
+  ;; syntax
+  (define-c-proc make-syntax (name::Symbol proc :optional (userDefined::boolean FALSE)) ::Object
+    (result (Sg_MakeSyntax name proc userDefined)))
+
+  (define-c-proc syntax-name (arg0::Syntax) ::Object
+    (result (SG_SYNTAX_NAME arg0)))
+
+  (define-c-proc syntax-proc (arg0::Syntax) ::Object
+    (result (SG_SYNTAX_PROC arg0)))
+
+  (define-c-proc syntax? (arg0) ::boolean
+    (result (SG_SYNTAXP arg0)))
+
+  (define-c-proc builtin-syntax? (s) ::boolean
+    (result (SG_BUILTIN_SYNTXP s)))
+
+  (define-c-proc user-defined-syntax? (s) ::boolean
+    (result (SG_USER_DEFINED_SYNTXP s)))
+
+  (define-c-proc unwrap-syntax (form) ::Object
+    (result (Sg_UnwrapSyntax form)))
+
+  ;; macro
+  (define-c-proc macro? (obj) ::boolean
+    (result (SG_MACROP obj)))
+
+  (define-c-proc make-macro (name transformer data :optional (maybe_library #f)) ::Object
+    (result (Sg_MakeMacro name transformer data maybe_library)))
+
+  (define-c-proc make-macro-transformer (name proc library) ::Object
+    (result (Sg_MakeMacroTransformer name proc library)))
+
+  (define-c-proc call-macro-expander (macro::Macro expr p1env) ::Object
+    (let ((applyArgs::SgObject (SG_LIST4 macro expr p1env macro->data)))
+      (result (Sg_Apply macro->transformer applyArgs))))
+
+  (define-c-proc %internal-macro-expand (expr p1env onceP::boolean) ::Object
+    (result (Sg_MacroExpand expr p1env onceP)))
+
+  ;; library
+  (define-c-proc make-library (name) ::Object
+    (result (Sg_MakeLibrary name)))
+
+  (define-c-proc library? (arg0::Object) ::boolean
+    (result (SG_LIBRARYP arg0)))
+
+  (define-c-proc library-name (arg0::Library) ::Object
+    (result (SG_LIBRARY_NAME arg0)))
+
+  (define-c-proc library-imported (arg0::Library) ::Object
+    (result (SG_LIBRARY_IMPORTED arg0)))
+
+  (define-c-proc library-imported-set! (arg0::Library arg1::Object) ::void
+    (set! (SG_LIBRARY_IMPORTED arg0) arg1))
+
+  (define-c-proc library-exported (arg0::Library) ::Object
+    (result (SG_LIBRARY_IMPORTED arg0)))
+
+  (define-c-proc library-exported-set! (arg0::Library arg1::Object) ::void
+    (set! (SG_LIBRARY_EXPORTED arg0) arg1))
+
+  #;(define-c-proc %set-library (arg0::Library) ::void
+    (Sg_SetLibrary arg0))
+
+  (define-c-proc find-library (arg0 createp::boolean) ::Object
+    (result (Sg_FindLibrary arg0 createp)))
+
+  (define-c-proc %insert-binding (libname name::Symbol value) ::void
+    (let ((lib::SgObject (Sg_FindLibrary libname TRUE)))
+      (Sg_InsertBinding lib name value)))
+
+  (define-c-proc find-binding (arg0::Object arg1::Symbol) ::Object
+    (result (Sg_FindBinding arg0 arg1)))
+
+  (define-c-proc load-library (to from) ::void
+    ;; TODO name mismatch.
+    (Sg_ImportLibrary to from))
+
+  (define-c-proc vm-current-library (:rest name) ::Object
+    (let ((vm::SgVM* (Sg_VM)))
+      (if (SG_NULLP name)
+	  (result vm->currentLibrary)
+	  (begin
+	    (set! vm->currentLibrary (SG_CAR name))
+	    ; dummy
+	    (result SG_UNDEF)))))
+
+  (define-c-proc make-code-builder () ::Object
+    (result (Sg_MakeCodeBuilder 2)))
+
+  (define-c-proc cb-emit0! (cb::CodeBuilder insn::fixnum) ::void
+    (Sg_CodeBuilderEmit cb insn ARGUMENT0 0 0 SG_UNDEF))
+
+  (define-c-proc cb-emit1! (cb::CodeBuilder insn::fixnum arg0::fixnum) ::void
+    (Sg_CodeBuilderEmit cb insn ARGUMENT0 arg0 0 SG_UNDEF))
+
+  (define-c-proc cb-emit2! (cb::CodeBuilder insn::fixnum arg0::fixnum arg1::fixnum) ::void
+    (Sg_CodeBuilderEmit cb insn ARGUMENT0 arg0 arg1 SG_UNDEF))
+
+  (define-c-proc cb-emit0i! (cb::CodeBuilder insn::fixnum src) ::void    
+    (Sg_CodeBuilderEmit cb insn ARGUMENT0 0 0 SG_UNDEF)
+    (Sg_CodeBuilderAddSrc cb insn src))
+
+  (define-c-proc cb-emit1i! (cb::CodeBuilder insn::fixnum arg0::fixnum src) ::void
+    (Sg_CodeBuilderEmit cb insn ARGUMENT0 arg0 0 SG_UNDEF)
+    (Sg_CodeBuilderAddSrc cb insn src))
+
+  (define-c-proc cb-emit2i! (cb::CodeBuilder insn::fixnum arg0::fixnum arg1::fixnum src) ::void
+    (Sg_CodeBuilderEmit cb insn ARGUMENT0 arg0 arg1 SG_UNDEF)
+    (Sg_CodeBuilderAddSrc cb insn src))
+
+  (define-c-proc cb-emit0o! (cb::CodeBuilder insn::fixnum obj) ::void
+    (Sg_CodeBuilderEmit cb insn ARGUMENT1 0 0 obj))
+
+  (define-c-proc cb-emit0oi! (cb::CodeBuilder insn::fixnum obj src) ::void
+    (Sg_CodeBuilderEmit cb insn ARGUMENT1 0 0 obj)
+    (Sg_CodeBuilderAddSrc cb insn src))
+
+  (define-c-proc cb-emit1oi! (cb::CodeBuilder insn::fixnum arg0::fixnum obj src) ::void
+    (Sg_CodeBuilderEmit cb insn ARGUMENT1 arg0 0 obj)
+    (Sg_CodeBuilderAddSrc cb insn src))
+
+  (define-c-proc cb-label-set! (cb::CodeBuilder label) ::void
+    (Sg_CodeBuilderLabelSet cb label))
+
+  (define-c-proc cb-emit-closure! (cb::CodeBuilder 
+				   insn::fixnum
+				   lambda_cb::CodeBuilder
+				   name 
+				   req_argc::fixnum
+				   opt::boolean
+				   freec::fixnum
+				   max_stack::fixnum
+				   src) ::void
+    (set! (SG_CODE_BUILDER_NAME lambda_cb) name)
+    (set! (SG_CODE_BUILDER_ARGC lambda_cb) req_argc)
+    (set! (SG_CODE_BUILDER_OPTIONAL lambda_cb) opt)
+    (set! (SG_CODE_BUILDER_FREEC lambda_cb) freec)
+    (set! (SG_CODE_BUILDER_MAX_STACK lambda_cb) max_stack)
+    (Sg_CodeBuilderFlush lambda_cb)
+    (Sg_CodeBuilderEmit cb insn ARGUMENT1 0 0 lambda_cb)
+    (Sg_CodeBuilderAddSrc lambda_cb insn src))
+
+  (define-c-proc code-builder-finish-builder (cb::CodeBuilder need_halt::boolean) ::Object
+    (result (Sg_CodeBuilderFinishBuilder cb need_halt)))
+
+  ;; misc
+  ;; (%map-cons l1 l2) = (map cons l1 l2)
+  (define-c-proc %map-cons (l1 l2) ::Object
+    (let ((h SG_NIL) (t SG_NIL))
+      (while (and (SG_PAIRP l1) (SG_PAIRP l2))
+	(SG_APPEND1 h t (Sg_Cons (SG_CAR l1) (SG_CAR l2)))
+	(set! l1 (SG_CDR l1))
+	(set! l2 (SG_CDR l2)))
+      (result h)))
+
+  (define-c-proc make-toplevel-closure (cb::CodeBuilder) ::Object
+    ;; topleve closure should not have any free variables
+    (result (Sg_MakeClosure cb NULL)))
+
+  (define-c-proc pass3/frame-size () ::fixnum
+    (result SG_FRAME_SIZE))
+
+  (define-c-proc pass3/let-frame-size () ::fixnum
+    (result SG_LET_FRAME_SIZE))
+)
