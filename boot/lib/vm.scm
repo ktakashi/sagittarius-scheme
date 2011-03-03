@@ -219,6 +219,7 @@
   (if (null? user-defined?)
       (vector 'type:syntax name proc #f)
       (vector 'type:syntax name proc #t)))
+
 (define (syntax? s)
   (and (vector? s) 
        (eq? (vector-ref s 0) 'type:syntax)))

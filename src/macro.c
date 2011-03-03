@@ -132,7 +132,8 @@ static SgObject macro_expand_rec(SgObject form, SgObject p1env, int onceP)
       return Sg_Cons(macro_expand_rec(SG_CAR(expr), p1env, onceP),
 		     macro_expand_rec(SG_CDR(expr), p1env, onceP));
     } else {
-      SgObject g = SG_FALSE, mac = SG_FALSE, sym = SG_CAR(expr);
+      SgObject g = SG_FALSE, mac = SG_FALSE, syn = SG_FALSE,
+	sym = SG_CAR(expr);
       if (SG_IDENTIFIERP(sym)) {
 	g = Sg_FindBinding(SG_IDENTIFIER_LIBRARY(sym),
 			   SG_IDENTIFIER_NAME(sym));
@@ -140,6 +141,7 @@ static SgObject macro_expand_rec(SgObject form, SgObject p1env, int onceP)
 	g = Sg_FindBinding(Sg_VMCurrentLibrary(), sym);
       }
       if (SG_MACROP(g)) mac = g;
+      if (SG_USER_DEFINED_SYNTXP(g)) syn = g;
       if (!SG_FALSEP(mac)) {
 	SgObject applyArgs = SG_LIST4(mac, expr, p1env, SG_MACRO(mac)->data);
 	SgObject ret = Sg_Apply(SG_MACRO(mac)->transformer, applyArgs);
@@ -147,6 +149,18 @@ static SgObject macro_expand_rec(SgObject form, SgObject p1env, int onceP)
 	  return ret;
 	} else {
 	  return macro_expand_rec(ret, p1env, onceP);
+	}
+      } else if (!SG_FALSEP(syn)) {
+	SgObject expanded = Sg_Apply(SG_SYNTAX(syn)->proc, SG_LIST1(expr));
+	if (SG_MACROP(expanded)) {
+	  SgObject applyArgs = SG_LIST4(expanded, expr, p1env,
+					SG_MACRO(expanded)->data);
+	  SgObject ret = Sg_Apply(SG_MACRO(expanded)->transformer, applyArgs);
+	  if (onceP) {
+	    return ret;
+	  } else {
+	    return macro_expand_rec(ret, p1env, onceP);
+	  }
 	}
       } else {
 	return Sg_Cons(SG_CAR(expr), macro_expand_rec(SG_CDR(expr), p1env, onceP));

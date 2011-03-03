@@ -1,21 +1,20 @@
 ;; -*- scheme -*-
 ;; This file is a part of Sagittarius Scheme system.
-(library (core syntax-rules)
-    (export syntax-rules)
+(library (core syntax-case)
+    (export syntax-case syntax)
     (import null
 	    (sagittarius)
 	    (core base)
 	    (core syntax helper))
 
-  ;; from MIT scheme
-  (define-syntax syntax-rules
+  (define-syntax syntax-case
     (er-macro-transformer
      (lambda (form rename compare)
-       (let ((keywords (cadr form))
-	     (clauses (cddr form)))
-	 (expand form #f keywords clauses
-		 rename compare
-		 generate-match generate-output)))))
+       (let ((ref      (cadr form))
+	     (keywords (caddr form))
+	     (clauses (cdddr form)))
+	 (expand form ref keywords clauses
+		 rename compare generate-match generate-output)))))
 
   (define (generate-match rename compare keywords r-rename r-compare
 			  pattern expression)

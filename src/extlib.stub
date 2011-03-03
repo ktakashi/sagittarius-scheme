@@ -1,6 +1,8 @@
 ;; -*- scheme -*-
 (library (sagittarius) ;; redefine but no problem
     (export identifier?
+	    ;; sucks!!
+	    make-syntax-object
 	    ;; generics
 	    make-generic
 	    register-generic
@@ -16,6 +18,9 @@
   ;; for library dependency
   (define-c-proc identifier? (id) ::boolean
     (result (SG_IDENTIFIERP id)))
+
+  (define-c-proc make-syntax-object (datum id) ::Object
+    (result (Sg_MakeSyntax datum id TRUE)))
 
   ;; generics
   (define-c-proc make-generic (name::Symbol printer ctr :rest fields) ::Object

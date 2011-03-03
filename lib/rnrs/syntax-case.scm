@@ -8,10 +8,12 @@
 	    syntax->datum datum->syntax generate-temporaries
 	    with-syntax quasisyntax unsyntax unsyntax-splicing
 	    syntax-violation)
-    (import null (sagittarius vm))
+    (import null
+	    (sagittarius)
+	    (core syntax-case))
 
 ) ; [end]
 ;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix
-;; End
+;; End:

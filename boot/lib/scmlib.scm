@@ -50,6 +50,9 @@
 (define (any pred ls)
   (if (pair? ls) (if (pred (car ls)) (car ls) (any pred (cdr ls))) #f))
 
+(define (call-with-values producer consumer)
+  (receive vals (producer) (apply consumer vals)))
+
 ;; from chibi scheme
 (define (map-onto proc ls init)
   (let lp ((ls ls) (res init))
@@ -63,7 +66,6 @@
         (if (every pair? lists)
             (lp (map cdr lists) (apply kons (map-onto car lists (list acc))))
             acc))))
-
 
 ;; from Ypsilon
 (define wrong-type-argument-message

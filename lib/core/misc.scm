@@ -1,11 +1,14 @@
 ;; -*- scheme -*-
 (library (core misc)
-    (export call-with-values)
+    (export unique-id-list?)
     (import null
 	    (sagittarius)
-	    (core syntax-rules)
 	    (core base))
-  (define call-with-values
-    (lambda (producer consumer)
-      (receive vals (producer) (apply consumer vals))))
+  (define (unique-id-list? lst)
+    (and (list? lst)
+	 (not (let loop ((lst lst))
+		(and (pair? lst)
+		     (or (not (symbol? (car lst)))
+			 (memq (car lst) (cdr lst))
+			 (loop (cdr lst))))))))
 )

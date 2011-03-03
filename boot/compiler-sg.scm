@@ -1931,7 +1931,13 @@
       (cond
        ((macro? gloc) (pass1 (call-macro-expander gloc form p1env) p1env))
        ((builtin-syntax? gloc) ((syntax-proc gloc) form p1env))
-       ((user-defined-syntax? gloc) (pass1 ((syntax-proc gloc) form) p1env))
+       ((user-defined-syntax? gloc)
+        (let
+         ((r ((syntax-proc gloc) form)))
+         (if
+          (macro? r)
+          (pass1 (call-macro-expander r form p1env) p1env)
+          (pass1 r p1env))))
        ((inline? gloc) (pass1/expand-inliner id gloc))
        (else (pass1/call form ($gref id) (cdr form) p1env)))
       (pass1/call form ($gref id) (cdr form) p1env)))))

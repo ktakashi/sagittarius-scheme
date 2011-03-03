@@ -1688,7 +1688,10 @@
 		 ((syntax-proc gloc) form p1env))
 		((user-defined-syntax? gloc)
 		 ;; correct?
-		 (pass1 ((syntax-proc gloc) form) p1env))
+		 (let ((r ((syntax-proc gloc) form)))
+		   (if (macro? r)
+		       (pass1 (call-macro-expander r form p1env) p1env)
+		       (pass1 r p1env))))
 		((inline? gloc)
 		 (pass1/expand-inliner id gloc))
 		(else
@@ -3362,4 +3365,4 @@
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix
-;; End
+;; End:

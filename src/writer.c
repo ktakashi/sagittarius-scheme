@@ -453,7 +453,13 @@ static void write_subr(SgSubr *s, SgPort *port, SgWriteContext *ctx)
 static void write_syntax(SgSyntax *s, SgPort *port, SgWriteContext *ctx)
 {
   Sg_PutuzUnsafe(port, UC("#<syntax "));
-  write_symbol(s->name, port, ctx);
+  if (SG_SYMBOLP(s->name)) {
+    write_symbol(s->name, port, ctx);
+  } else if (SG_IDENTIFIERP(s->name)) {
+    write_symbol(SG_IDENTIFIER(s->name)->name, port, ctx);
+  } else {
+    write_ss_rec(s->name, port, ctx);
+  }
   Sg_PutcUnsafe(port, '>');
 }
 

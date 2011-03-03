@@ -1154,12 +1154,16 @@
 (define *insn* "insn.scm")
 ;; syntax-rules
 (define *struct-lib* "../lib/core/struct.scm")
+(define *misc-lib* "../lib/core/misc.scm")
+(define *synhelp-lib* "../lib/core/syntax/helper.scm")
 (define *synrule-lib* "../lib/core/syntax-rules.scm")
 
 (define *builtin-libraries* 
   `((,*base-lib* (core base) (null) #t)
     (,*ext-lib* (sagittarius) (null) #f)
     (,*struct-lib* #f () #f)
+    (,*misc-lib* #f () #f)
+    (,*synhelp-lib* #f () #f)
     (,*synrule-lib* #f () #f)
     (,*match-lib* (sagittarius compiler match)
 		  (null (core base)
