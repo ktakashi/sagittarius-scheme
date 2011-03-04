@@ -1350,12 +1350,20 @@
       (smatch cls
 	(() ($undef))
 	;; (else . exprs)
-	((((? (lambda (x) (eq? 'else x)) -) exprs ___) . rest)
+	((((? (lambda (x)
+		;; TODO not so good
+		(if (identifier? x)
+		    (eq? 'else (id-name x))
+		    (eq? 'else x))) -) exprs ___) . rest)
 	 (unless (null? rest)
 	   (error 'syntax-error "'else' clause followed by more clauses"  form))
 	 ($seq (imap (lambda (expr) (pass1 expr p1env)) exprs)))
 	;; (test => proc)
-	(((test (? (lambda (x) (eq? '=> x)) -) proc) . rest)
+	(((test (? (lambda (x)
+		     ;; TODO not so good
+		     (if (identifier? x)
+			 (eq? '=> (id-name x))
+			 (eq? '=> x))) -) proc) . rest)
 	 (let ((test (pass1 test p1env))
 	       (tmp (make-lvar 'tmp)))
 	   (lvar-initval-set! tmp test)
@@ -1740,6 +1748,10 @@
        (else 
 	(pass1/call form (pass1 (car form) (p1env-sans-name p1env))
 		    (cdr form) p1env))))
+     ((user-defined-syntax? form)
+      ;; assume it's defined make-syntax-object
+      ;; TODO this actually should not be here for toplevel or non-macro (syntax ...)
+      (pass1 (syntax-name form) p1env))
      ((variable? form)
       (let ((r (p1env-lookup p1env form LEXICAL)))
 	(cond ((lvar? r) ($lref r))

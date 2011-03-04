@@ -123,7 +123,7 @@ SgObject Sg_VectorCopy(SgVector *vec, int start, int end, SgObject fill)
   SgVector *v = NULL;
   if (end < 0) end = len;
   if (end < start) {
-    Sg_Error(UC("vector-cpy: start (%d) is greater then end (%d)"), start, end);
+    Sg_Error(UC("vector-copy: start (%d) is greater then end (%d)"), start, end);
   } else if (end == start) {
     v = make_vector(0);
   } else {

@@ -37,6 +37,7 @@
 #include "sagittarius/symbol.h"
 #include "sagittarius/subr.h"
 #include "sagittarius/vm.h"
+#include "sagittarius/builtin-symbols.h"
 
 SgObject Sg_MakeSyntax(SgSymbol *name, SgObject proc, int userDefined)
 {
@@ -137,6 +138,9 @@ static SgObject macro_expand_rec(SgObject form, SgObject p1env, int onceP)
       if (SG_IDENTIFIERP(sym)) {
 	g = Sg_FindBinding(SG_IDENTIFIER_LIBRARY(sym),
 			   SG_IDENTIFIER_NAME(sym));
+      } else if (SG_EQ(sym, SG_SYMBOL_QUOTE)) {
+	/* 'macro case. we need to avoid expantion for this. */
+	return expr;
       } else if (SG_SYMBOLP(sym)) {
 	g = Sg_FindBinding(Sg_VMCurrentLibrary(), sym);
       }
@@ -151,16 +155,21 @@ static SgObject macro_expand_rec(SgObject form, SgObject p1env, int onceP)
 	  return macro_expand_rec(ret, p1env, onceP);
 	}
       } else if (!SG_FALSEP(syn)) {
-	SgObject expanded = Sg_Apply(SG_SYNTAX(syn)->proc, SG_LIST1(expr));
-	if (SG_MACROP(expanded)) {
-	  SgObject applyArgs = SG_LIST4(expanded, expr, p1env,
-					SG_MACRO(expanded)->data);
-	  SgObject ret = Sg_Apply(SG_MACRO(expanded)->transformer, applyArgs);
-	  if (onceP) {
-	    return ret;
-	  } else {
-	    return macro_expand_rec(ret, p1env, onceP);
+	if (SG_PROCEDUREP(SG_SYNTAX(syn)->proc)) {
+	  SgObject expanded = Sg_Apply(SG_SYNTAX(syn)->proc, SG_LIST1(expr));
+	  if (SG_MACROP(expanded)) {
+	    SgObject applyArgs = SG_LIST4(expanded, expr, p1env,
+					  SG_MACRO(expanded)->data);
+	    SgObject ret = Sg_Apply(SG_MACRO(expanded)->transformer, applyArgs);
+	    if (onceP) {
+	      return ret;
+	    } else {
+	      return macro_expand_rec(ret, p1env, onceP);
+	    }
 	  }
+	} else {
+	  /* syntax that made by (syntax a) */
+	  return Sg_Cons(SG_CAR(expr), macro_expand_rec(SG_CDR(expr), p1env, onceP));
 	}
       } else {
 	return Sg_Cons(SG_CAR(expr), macro_expand_rec(SG_CDR(expr), p1env, onceP));

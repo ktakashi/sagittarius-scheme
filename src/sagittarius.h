@@ -50,6 +50,7 @@
 #include <sagittarius/closure.h>
 #include <sagittarius/code.h>
 #include <sagittarius/codec.h>
+#include <sagittarius/compare.h>
 #include <sagittarius/error.h>
 #include <sagittarius/file.h>
 #include <sagittarius/generic.h>

@@ -33,7 +33,7 @@
 	    ;; vector
 	    vector? vector vector-set! vector-ref
 	    vector-length make-vector
-	    
+	    vector->list
 
 	    ;; conditions
 	    integer? number? exact? inexact? pair?
@@ -392,7 +392,7 @@
 	 (dolist (l lst0)
 	   (let ((elt (Sg_Cons l '()))
 		 (elt_tail elt)
-		 (n 1))
+		 (n::int 1))
 	     (while (< n count)
 	       (SG_SET_CDR elt_tail (Sg_Cons (SG_CAR (Sg_VectorRef argv n #f)) '()))
 	       (set! elt_tail (SG_CDR elt_tail))
@@ -433,7 +433,7 @@
     (result z->name))
 
   ;; vector
-  (define-c-proc vector (:rest rest::Object) (inline VECTOR) ::Object
+  (define-c-proc vector (:rest rest) (inline VECTOR) ::Object
     (result (Sg_ListToVector rest 0 -1)))
 
   (define-c-proc make-vector (size::fixnum :optional (fill SG_UNDEF)) ::Object
@@ -445,10 +445,13 @@
   (define-c-proc vector-ref (vec::Vector i::fixnum) ::Object
     (result (Sg_VectorRef vec i SG_UNDEF)))
 
-  (define-c-proc vector-set! (vec::Vector i::fixnum obj::Object) ::Object
+  (define-c-proc vector-set! (vec::Vector i::fixnum obj) ::Object
     (result (Sg_VectorSet vec i obj)))
+
+  (define-c-proc vector->list (vec::Vector :optional (start::fixnum 0) (end::fixnum -1)) ::Object
+    (result (Sg_VectorToList vec start end)))
   
-  (define-c-proc list->vector (arg0::Object) ::Object
+  (define-c-proc list->vector (arg0) ::Object
     (result (Sg_ListToVector arg0 0 -1)))
 
   ;; conditions

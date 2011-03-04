@@ -141,6 +141,33 @@
 (print test)
 (test 'a)
 
-(display (%macroexpand
+#;(display (%macroexpand
 (print (pair? '()))
 ))
+
+(define t '(fuga (hoge 1 2 3)))
+(print 
+ (let loop ((v (list->vector t))
+	    (r (make-vector (+ (length t) 1)))
+	    (i 0))
+   (vector-set! r 0 'list)
+   (if (= i (vector-length v))
+       (vector->list r)
+       (let ((val (vector-ref v i)))
+	 (cond ((pair? val)
+		(vector-set! r (+ i 1)
+			     (loop (list->vector val)
+				   (make-vector (+ (length val) 1))
+				   0))
+		(loop v r (+ i 1)))
+	       ((or (identifier? val)
+		    (symbol? val))
+		(vector-set! r (+ i 1)
+			     `',val)
+		(loop v r (+ i 1)))
+	       (else
+		(vector-set! r (+ i 1)
+			     val)
+		(loop v r (+ i 1)))))))
+)
+

@@ -1094,5 +1094,5 @@ SgObject Sg_Vsprintf(const SgChar *fmt, va_list args, int sharedp)
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

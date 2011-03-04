@@ -12,9 +12,11 @@
 	    syntax
 	    id-memq variable? zero-or-more? expand
 	    optimized-cons optimized-append
+	    add-control! generate-ellipsis
 	    parse-pattern)
     (import null
 	    (sagittarius)
+	    (sagittarius vm)
 	    (core base)
 	    (core misc)
 	    (core struct))
@@ -34,7 +36,7 @@
     (sids ellipsis-sids set-ellipsis-sids!))
 
   ;; TODO it's just a stub implementation
-  (define-syntax syntax
+  #;(define-syntax syntax
     (er-macro-transformer
      (lambda (form rename compare)
        (or (= (length form) 2)
@@ -50,6 +52,24 @@
 			(else
 			 form)))))
 	 `',r))))
+  (define-syntax syntax
+    (er-macro-transformer
+     (lambda (form rename compare)
+       #;(define (search-symbol form)
+	 (let loop ((form form))
+	   (cond ((null? form) 'dummy)
+		 ((pair? form)
+		  (let ((s (loop (cadr form))))
+		    (if (symbol? s)
+			s
+			(loop (cdr form)))))
+		 ((symbol? form) form)
+		 (else #f))))
+       (or (= (length form) 2)
+	   (error 'syntax "expected exactly one datum" form))
+       (make-syntax-object (cadr form) (rename 'dummy))
+       #;(let ((s (search-symbol (cadr form))))
+       (make-syntax-object (cadr form) (rename s))))))
 
   (define (variable? o)
     (or (identifier? o)
@@ -81,7 +101,7 @@
   ;;    gen-match  -- pattern match generator
   ;;    gen-output -- template generator
   (define (expand form ref keywords clauses
-		  rename compare gen-match gen-output)
+		  rename compare gen-output)
     (unless (unique-id-list? keywords)
       (error 'syntax-rules "duplicate literals" keywords))
     (let ((r-form (rename 'form))
@@ -96,10 +116,10 @@
 		  (let ((sids (parse-pattern rename compare keywords
 					     pattern r-form)))
 		    `(,(rename 'if)
-		      ,(gen-match rename compare keywords
+		      ,(generate-match rename compare keywords
 				  r-rename r-compare
 				  pattern r-form)
-		      ,(gen-output rename compare r-rename
+		      ,(gen-output ref rename compare r-form r-rename
 				   sids (cadar clauses))
 		      ,(loop (cdr clauses)))))
 		`(,(rename 'begin)
@@ -138,6 +158,71 @@
 		   control))
 	    (else sids))))
 
+  (define (generate-match rename compare keywords r-rename r-compare
+			  pattern expression)
+    (letrec ((loop (lambda (pattern expression)
+		     (cond ((variable? pattern)
+			    (if (id-memq pattern keywords)
+				(let ((temp (rename 'temp)))
+				  `(,(rename 'let) ((,temp ,expression))
+				    (,(rename 'if) (,(rename 'or)
+						    (,(rename 'symbol?) ,temp)
+						    (,(rename 'identifier?) ,temp))
+				     (,r-compare ,temp
+						 (,r-rename 
+						  (,(rename 'quote) ,pattern)))
+				     #f)))
+				`#t))
+			   ((and (zero-or-more? pattern rename compare)
+				 (null? (cddr expression)))
+			    #;`(,(rename 'if) (,(rename 'null?) ,expression)
+			    #f
+			    ,(do-list (car pattern) expression))
+			    (do-list (car pattern) expression))
+			   ((pair? pattern)
+			    (let ((generate-pair
+				   (lambda (expression)
+				     (conjunction 
+				      `(,(rename 'pair?) ,expression)
+				      (conjunction 
+				       (loop (car pattern)
+					     `(,(rename 'car) ,expression))
+				       (loop (cdr pattern)
+					     `(,(rename 'cdr) ,expression)))))))
+			      (if (variable? expression)
+				  (generate-pair expression)
+				  (let ((temp (rename 'temp)))
+				    `(,(rename 'let) ((,temp ,expression))
+				      ,(generate-pair temp))))))
+			   ((vector? pattern)
+			    (loop (vector->list pattern) expression))
+			   ((null? pattern)
+			    `(,(rename 'null?) ,expression))
+			   (else
+			    `(,(rename 'equal?) ,expression
+			      (,(rename 'quote) ,pattern))))))
+	     (do-list (lambda (pattern expression)
+			(let ((r-loop (rename 'loop))
+			      (r-l (rename 'l)))
+			  `(,(rename 'letrec) 
+			    ((,r-loop
+			      (,(rename 'lambda) (,r-l)
+			       (,(rename 'if) (,(rename 'null?) ,r-l)
+				#t
+				,(conjunction
+				  `(,(rename 'pair?) ,r-l)
+				  (conjunction
+				   (loop pattern
+					 `(,(rename 'car) ,r-l))
+				   `(,r-loop (,(rename 'cdr) ,r-l))))))))
+			    (,r-loop ,expression)))))
+	     (conjunction (lambda (predicate consequent)
+			    (cond ((eq? predicate #t) consequent)
+				  ((eq? consequent #t) predicate)
+				  (else `(,(rename 'if) ,predicate
+					  ,consequent #f))))))
+      (loop pattern expression)))
+
   (define (optimized-cons rename compare a d)
     (cond ((and (pair? d)
 		(compare (car d) (rename 'quote))
@@ -161,4 +246,37 @@
 	x
 	`(,(rename 'append) ,x ,y)))
 
+  (define (add-control! sid ellipses)
+    (let loop ((sid sid) (ellipses ellipses))
+      (let ((control (sid-control sid)))
+	(when control
+	  (if (pair? ellipses)
+	      (let ((sids (ellipsis-sids (car ellipses))))
+		(cond ((not (memq control sids))
+		       (set-ellipsis-sids! (car ellipses)
+					   (cons control sids)))
+		      ((not (eq? control (car sids)))
+		       (error 'syntax-rules "illegal control/ellipsis combination" control sids))))
+	      (error 'syntax-rules "missing ellipsis in expression" #f))
+	  (loop control (cdr ellipses))))))
+
+  (define (generate-ellipsis rename ellipsis body)
+    (let ((sids (ellipsis-sids ellipsis)))
+      (if (pair? sids)
+	  (let ((name (sid-name (car sids)))
+		(expression (sid-expression (car sids))))
+	    (cond ((and (null? (cdr sids))
+			(eq? body name))
+		   expression)
+		  ((and (null? (cdr sids))
+			(pair? body)
+			(eq? (cadr body) name)
+			(null? (cddr body)))
+		   `(,(rename 'map) ,(car body) ,expression))
+		  (else
+		   `(,(rename 'map) (,(rename 'lambda)
+				     ,(map sid-name sids)
+				     ,body)
+		     ,@(map sid-expression sids)))))
+	  (error 'syntax-rules "missing ellipsis in expanstion."))))
 )
