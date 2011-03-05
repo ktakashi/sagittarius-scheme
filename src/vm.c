@@ -258,7 +258,7 @@ int Sg_Load(SgString *path)
   TRY_VM(vm) {
     return Sg_LoadUnsafe(path);
   CATCH_VM(vm)
-    default_error_handler(vm->error);
+    default_error_handler(Sg_VM()->error);
     exit(-1);			/* on repl it's not smart */
     return -1;
   }

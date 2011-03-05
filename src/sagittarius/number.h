@@ -55,8 +55,8 @@ struct SgBignumRec
   SG_SET_HEADER_ATTRIBUTE(obj, SG_MAKEBITS((sign & 0x3), BIGNUM_SIGN_SHIFT))
 #define SG_BIGNUM_SET_COUNT(obj, count)					\
   (SG_HDR(obj) = (MAKE_HDR_VALUE(TC_BIGNUM)				\
-		  | SG_MAKEBITS(count, BIGNUM_COUNT_SHIFT)		\
-		  | SG_HDR(obj) & SG_MAKEBITS(3, BIGNUM_SIGN_SHIFT)))
+		  | (SG_MAKEBITS(count, BIGNUM_COUNT_SHIFT))		\
+		  | (SG_HDR(obj) & SG_MAKEBITS(3, BIGNUM_SIGN_SHIFT))))
 
 #define SG_BIGNUM_SET_ZERO(obj) SG_SET_HEADER(obj, TC_BIGNUM);
 
@@ -173,5 +173,5 @@ SG_CDECL_END
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */
