@@ -137,9 +137,19 @@
 
 (define-syntax test
   (lambda (x)
-    (display x)(newline)))
-(print test)
-(test 'a)
+    (let ((dict (make-eq-hashtable))
+	  (form (car x))
+	  (env  (cdr x)))
+      (define (rename s) (er-rename s env dict))
+      `(,(rename 'let) ()
+	(,(rename 'display) ',form)))))
+(define-syntax fuga
+  (lambda (x)
+    (test a)))
+(print fuga)
+(print (%macroexpand
+(fuga)
+))
 
 #;(display (%macroexpand
 (print (pair? '()))

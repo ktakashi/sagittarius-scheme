@@ -746,8 +746,6 @@
 		    ,HALT))
 	 (cb (make-code-builder)))
     (code-builder-code-set! cb code-c)
-(when (vm-debug-step)
-  (vm-dump-code code))
     (let ((cl (make-closure cb 0)))
       (fluid-let ((*stack* (make-vector 1000)))
 	(VM code-c 0 cl cl 0 0)))))
@@ -1159,7 +1157,7 @@
 (define *synrule-lib* "../lib/core/syntax-rules.scm")
 
 (define *builtin-libraries* 
-  `((,*base-lib* (core base) (null) #t)
+  `((,*base-lib* (core base) (null (sagittarius)) #t)
     (,*ext-lib* (sagittarius) (null) #f)
     (,*struct-lib* #f () #f)
     (,*misc-lib* #f () #f)
@@ -1218,9 +1216,9 @@ lc: compile builtin libraries
 		      (library-exported-set! lib #f)))
 		  (load-file path '() name import #f)))
 	      *builtin-libraries*)
-    ;(vm-debug-step #t)
+    #;(vm-debug-step #t)
     (load-file (cadr args) (cddr args) #f #f #t))))
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix
-;; End
+;; End:

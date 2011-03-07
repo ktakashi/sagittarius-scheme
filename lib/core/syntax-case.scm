@@ -16,7 +16,7 @@
 	     (clauses (cdddr form)))
 	 (expand form ref keywords clauses
 		 rename compare generate-output)))))
-
+    
   (define (generate-output ref rename compare 
 			   r-form r-rename sids template)
     (define (inner)

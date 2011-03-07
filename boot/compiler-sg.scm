@@ -1085,8 +1085,11 @@
 (define
  pass1/eval-macro-rhs
  (lambda
-  (who expr p1env)
-  (let ((transformer (compile expr p1env))) (vm/apply transformer))))
+  (who name expr p1env)
+  (let*
+   ((transformer (compile-w/o-halt expr p1env))
+    (macro (make-macro-transformer name transformer (p1env-library p1env))))
+   macro)))
 
 (define-pass1-syntax
  (define-syntax form p1env)
@@ -1095,17 +1098,14 @@
  (smatch
   form
   ((- name expr)
-   (let*
-    ((p1env (p1env-add-name p1env (variable-name name)))
-     (transformer (pass1/eval-macro-rhs 'define-syntax expr p1env)))
-    (cond
-     ((macro? transformer)
-      (%insert-binding (p1env-library p1env) name transformer))
-     ((closure? transformer)
-      (let
-       ((s (make-syntax name transformer #t)))
-       (%insert-binding (p1env-library p1env) name s)))
-     (else (error 'syntax-error "given expression is not supported" form)))
+   (let
+    ((transformer
+      (pass1/eval-macro-rhs
+       'define-syntax
+       (variable-name name)
+       expr
+       (p1env-add-name p1env (variable-name name)))))
+    (%insert-binding (p1env-library p1env) name transformer)
     ($undef)))
   (- (error 'syntax-error "malformed define-syntax" form))))
 
@@ -1122,6 +1122,7 @@
         (n x)
         (pass1/eval-macro-rhs
          'let-syntax
+         (variable-name n)
          x
          (p1env-add-name p1env (variable-name n))))
        name
@@ -1144,6 +1145,7 @@
         (n x)
         (pass1/eval-macro-rhs
          'letrec-syntax
+         (variable-name n)
          x
          (p1env-add-name newenv (variable-name n))))
        name
@@ -1151,40 +1153,6 @@
     (for-each set-cdr! (cdar (p1env-frames newenv)) trans)
     (pass1/body body newenv)))
   (- (error 'syntax-error "malformed let-syntax" form))))
-
-(define-pass1-syntax
- (er-macro-transformer form p1env)
- :sagittarius
- (smatch
-  form
-  ((- expr)
-   (let
-    ((ert (make-toplevel-closure (compile-w/o-halt expr p1env))))
-    ($const
-     (make-macro-transformer
-      (p1env-exp-name p1env)
-      (compile-w/o-halt
-       `(lambda
-        (form p1env)
-        (let
-         ((dict (make-eq-hashtable)))
-         (vm/apply
-          ,ert
-          form
-          (lambda (s) (er-rename s p1env dict))
-          (lambda
-           (a b)
-           (or
-            (eq? a b)
-            (cond
-             ((and (symbol? a) (identifier? b))
-              (eq? (er-rename a p1env dict) b))
-             ((and (identifier? a) (symbol? b))
-              (eq? a (er-rename b p1env dict)))
-             (else #f)))))))
-       p1env)
-      (p1env-library p1env)))))
-  (- (error 'syntax-error "malformed er-macro-transformer" form))))
 
 (define
  er-rename
@@ -1213,7 +1181,7 @@
    symid)))
 
 (let
- ((lib (ensure-library-name :sagittarius)))
+ ((lib (ensure-library-name :null)))
  (%insert-binding lib 'er-rename er-rename))
 (define-pass1-syntax
  (%macroexpand form p1env)
@@ -1530,26 +1498,12 @@
    (smatch
     cls
     (() ($undef))
-    ((((?
-        (lambda
-         (x)
-         (if (identifier? x) (eq? 'else (id-name x)) (eq? 'else x)))
-        -)
-       exprs
-       ___)
-      .
-      rest)
+    ((((? (lambda (x) (global-eq? x 'else p1env)) -) exprs ___) . rest)
      (unless
       (null? rest)
       (error 'syntax-error "'else' clause followed by more clauses" form))
      ($seq (imap (lambda (expr) (pass1 expr p1env)) exprs)))
-    (((test
-       (?
-        (lambda (x) (if (identifier? x) (eq? '=> (id-name x)) (eq? '=> x)))
-        -)
-       proc)
-      .
-      rest)
+    (((test (? (lambda (x) (global-eq? x '=> p1env)) -) proc) . rest)
      (let
       ((test (pass1 test p1env)) (tmp (make-lvar 'tmp)))
       (lvar-initval-set! tmp test)
@@ -1930,6 +1884,11 @@
   (head p1env)
   (and (variable? head) (p1env-lookup p1env head SYNTAX))))
 
+(define (call-syntax-handler s expr p1env)
+  (cond
+   ((builtin-syntax? s) ((syntax-proc s) expr p1env))
+   (else (error 'call-syntax-handler "bug?"))))
+
 (define
  pass1
  (lambda
@@ -1944,14 +1903,7 @@
       gloc
       (cond
        ((macro? gloc) (pass1 (call-macro-expander gloc form p1env) p1env))
-       ((builtin-syntax? gloc) ((syntax-proc gloc) form p1env))
-       ((user-defined-syntax? gloc)
-        (let
-         ((r ((syntax-proc gloc) form)))
-         (if
-          (macro? r)
-          (pass1 (call-macro-expander r form p1env) p1env)
-          (pass1 r p1env))))
+       ((syntax? gloc) (call-syntax-handler gloc form p1env))
        ((inline? gloc) (pass1/expand-inliner id gloc))
        (else (pass1/call form ($gref id) (cdr form) p1env)))
       (pass1/call form ($gref id) (cdr form) p1env)))))
@@ -2002,7 +1954,7 @@
        (cond
         ((identifier? obj) (pass1/global-call obj))
         ((lvar? obj) (pass1/call form ($lref obj) (cdr form) p1env))
-        ((syntax? obj) ((syntax-proc obj) form p1env))
+        ((syntax? obj) (call-syntax-handler obj form p1env))
         ((macro? obj) (pass1 (call-macro-expander obj form p1env) p1env))
         (else (error 'pass1 "[internal] unknown resolution of head:" obj)))))
      (else
@@ -2011,7 +1963,6 @@
        (pass1 (car form) (p1env-sans-name p1env))
        (cdr form)
        p1env))))
-   ((user-defined-syntax? form) (pass1 (syntax-name form) p1env))
    ((variable? form)
     (let
      ((r (p1env-lookup p1env form LEXICAL)))

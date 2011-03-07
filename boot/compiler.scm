@@ -861,9 +861,6 @@
 ;; load expander here for macro...
 (cond-expand
  (gauche
-  (load "macro/types.scm")
-  (load "macro/utils.scm")
-  (load "macro/expander.scm")
   ;; dispatch methods.
   ;; all methods have to have the same signature.
   (define-macro (define-pass1-syntax formals library . body)
@@ -1019,12 +1016,11 @@
 
 ;; --------------- define-syntax related
 (define pass1/eval-macro-rhs
-  (lambda (who expr p1env)
-    (let ((transformer (compile expr p1env)))
-      ;; this returns compiled code with {const <macro> halt}
-      ;; so let's get value from compiled code with vm/apply
-      ;; TODO check type
-      (vm/apply transformer))))
+  (lambda (who name expr p1env)
+    (let* ((transformer (compile-w/o-halt expr p1env))
+	   (macro (make-macro-transformer name transformer
+					  (p1env-library p1env))))
+      macro)))
 
 ;; We need to replace this implementation to the one from MIT scheme.
 ;; it's in test/syntax-rules.scm. 
@@ -1036,26 +1032,21 @@
 				   (p1env-frames p1env))))
     (- (error 'syntax-error "malformed syntax-rules" form))))
 
-;; define-syntax must support two type of syntaxes. one is for 
-;; er-macro-transformer other one is for syntax-case(sucks!!). syntax-case
-;; requires syntax information for its argument.
-;; ex (define-syntax hoge (lambda (x) (syntax-case x () ...)))
-;; so let's separate the path if the return value of pass1/eval-macro-rhs
-;; is macro then it's from er-macro-transformer, if it's a closure, then
-;; it's like (define-syntax hoge (lambda (x) ...)) case.
+;;
+;; define-syntax.
+;;  defined syntax must return lambda which take one argument, and returns
+;;  lambda which takes 2 argument which are expression and p1env.
+;;  And it will wrap that lambda as syntax.
 (define-pass1-syntax (define-syntax form p1env) :null
   (check-toplevel form p1env)
   (smatch form
     ((- name expr)
-     (let*((p1env (p1env-add-name p1env (variable-name name)))
-	   (transformer (pass1/eval-macro-rhs 'define-syntax expr p1env))) ;; todo
-       (cond ((macro? transformer)
-	      (%insert-binding (p1env-library p1env) name transformer))
-	     ((closure? transformer)
-	      (let ((s (make-syntax name transformer #t)))
-		(%insert-binding (p1env-library p1env) name s)))
-	     (else
-	      (error 'syntax-error "given expression is not supported" form)))
+     (let ((transformer (pass1/eval-macro-rhs 
+			 'define-syntax
+			 (variable-name name)
+			 expr
+			 (p1env-add-name p1env (variable-name name)))))
+       (%insert-binding (p1env-library p1env) name transformer)
        ($undef)))
     (- (error 'syntax-error "malformed define-syntax" form))))
 
@@ -1065,6 +1056,7 @@
      (let* ((trans (map (lambda (n x)
 			  (pass1/eval-macro-rhs
 			   'let-syntax
+			   (variable-name n)
 			   x (p1env-add-name p1env (variable-name n))))
 			name trans-spec))
 	    (newenv (p1env-extend p1env (%map-cons name trans) SYNTAX)))
@@ -1080,6 +1072,7 @@
 	    (trans (map (lambda (n x)
 			  (pass1/eval-macro-rhs
 			   'letrec-syntax
+			   (variable-name n)
 			   x (p1env-add-name newenv (variable-name n))))
 			name trans-spec)))
        (for-each set-cdr!
@@ -1087,36 +1080,6 @@
        (pass1/body body newenv)))
     (-
      (error 'syntax-error "malformed let-syntax" form))))
-
-;; er-macro-transformer
-(define-pass1-syntax (er-macro-transformer form p1env) :sagittarius
-  (smatch form
-    ((- expr)
-     (let ((ert (make-toplevel-closure (compile-w/o-halt expr p1env))))
-       ($const (make-macro-transformer
-		(p1env-exp-name p1env)
-		(compile-w/o-halt
-		 `(lambda (form p1env)
-		    (let ((dict (make-eq-hashtable)))
-		      (vm/apply
-		       ,ert
-		       form
-		       (lambda (s) (er-rename s p1env dict)) ; rename
-			; compare
-		       (lambda (a b)
-			 (or (eq? a b) ;; symbol & symbol or id & id
-			     (cond ((and (symbol? a)
-					 (identifier? b))
-				    (eq? (er-rename a p1env dict)
-					 b))
-				   ((and (identifier? a)
-					 (symbol? b))
-				    (eq? a
-					 (er-rename b p1env dict)))
-				   (else #f)))))))
-		 p1env)
-		(p1env-library p1env)))))
-    (- (error 'syntax-error "malformed er-macro-transformer" form))))
 
 ;; 'rename' procedure - we just return a resolved identifier
 (define er-rename
@@ -1135,11 +1098,12 @@
 		id)))
 	symid)))
 
-;; we need to export er-rename
+
+;; we need to export er-macro-transformer and er-rename
 (cond-expand
  (gauche #f)
  (sagittarius
-  (let ((lib (ensure-library-name :sagittarius)))
+  (let ((lib (ensure-library-name :null)))
     (%insert-binding lib 'er-rename er-rename))))
 
 (define-pass1-syntax (%macroexpand form p1env) :sagittarius
@@ -1350,20 +1314,12 @@
       (smatch cls
 	(() ($undef))
 	;; (else . exprs)
-	((((? (lambda (x)
-		;; TODO not so good
-		(if (identifier? x)
-		    (eq? 'else (id-name x))
-		    (eq? 'else x))) -) exprs ___) . rest)
+	((((? (lambda (x) (global-eq? x 'else p1env)) -) exprs ___) . rest)
 	 (unless (null? rest)
 	   (error 'syntax-error "'else' clause followed by more clauses"  form))
 	 ($seq (imap (lambda (expr) (pass1 expr p1env)) exprs)))
 	;; (test => proc)
-	(((test (? (lambda (x)
-		     ;; TODO not so good
-		     (if (identifier? x)
-			 (eq? '=> (id-name x))
-			 (eq? '=> x))) -) proc) . rest)
+	(((test (? (lambda (x) (global-eq? x '=> p1env)) -) proc) . rest)
 	 (let ((test (pass1 test p1env))
 	       (tmp (make-lvar 'tmp)))
 	   (lvar-initval-set! tmp test)
@@ -1672,6 +1628,15 @@
     (and (variable? head)
 	 (p1env-lookup p1env head SYNTAX))))
 
+;; should not be here but, for now.
+(define (call-syntax-handler s expr p1env)
+  (cond ((builtin-syntax? s)
+	 ((syntax-proc s) expr p1env))
+	#;((user-defined-syntax? s)
+	 (pass1 (vm/apply (syntax-proc s) (cons expr p1env)) p1env))
+	(else
+	 (error 'call-syntax-handler "bug?"))))
+
 ;; Pass1: translate program to IForm.
 ;; This stage assumes the given program already expanded to core form
 ;; which hash only 'begin', 'quote', 'define', 'set!', 'lambda', 'let',
@@ -1691,15 +1656,8 @@
 	      (cond 
 		((macro? gloc)
 		 (pass1 (call-macro-expander gloc form p1env) p1env))
-		;; call-syntax-handler
-		((builtin-syntax? gloc)
-		 ((syntax-proc gloc) form p1env))
-		((user-defined-syntax? gloc)
-		 ;; correct?
-		 (let ((r ((syntax-proc gloc) form)))
-		   (if (macro? r)
-		       (pass1 (call-macro-expander r form p1env) p1env)
-		       (pass1 r p1env))))
+		((syntax? gloc)
+		 (call-syntax-handler gloc form p1env))
 		((inline? gloc)
 		 (pass1/expand-inliner id gloc))
 		(else
@@ -1738,8 +1696,7 @@
 		    (pass1/call form ($lref obj) (cdr form) p1env))
 		   ((syntax? obj)
 		    ;; locally rebound syntax
-		    ;; call-syntax-handler
-		    ((syntax-proc obj) form p1env))
+		    (call-syntax-handler obj form p1env))
 		   ((macro? obj) ;; local macro
 		    (pass1 (call-macro-expander obj form p1env) p1env))
 		   (else
@@ -1748,7 +1705,7 @@
        (else 
 	(pass1/call form (pass1 (car form) (p1env-sans-name p1env))
 		    (cdr form) p1env))))
-     ((user-defined-syntax? form)
+     #;((user-defined-syntax? form)
       ;; assume it's defined make-syntax-object
       ;; TODO this actually should not be here for toplevel or non-macro (syntax ...)
       (pass1 (syntax-name form) p1env))

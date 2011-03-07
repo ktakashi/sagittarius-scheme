@@ -53,6 +53,23 @@
 (define (call-with-values producer consumer)
   (receive vals (producer) (apply consumer vals)))
 
+;; er-macro-transformer
+(define er-macro-transformer
+  (lambda (f)
+    (lambda (expr)
+      (let ((dict (make-eq-hashtable)))
+	(define (rename s) (er-rename s (cdr expr) dict))
+	(define (compare a b)
+	  (or (eq? a b)
+	      (cond ((and (symbol? a)
+			  (identifier? b))
+		     (eq? (rename a) b))
+		    ((and (identifier? a)
+			  (symbol? b))
+		     (eq? a (rename b)))
+		    (else #f))))
+	(f (car expr) rename compare)))))
+
 ;; from chibi scheme
 (define (map-onto proc ls init)
   (let lp ((ls ls) (res init))
@@ -121,7 +138,6 @@
               (else
                (assertion-violation 'for-each "expected same length proper lists" (cons* proc lst1 lst2)))))))
 
-
 (define fold-left
   (lambda (proc seed lst1 . lst2)
     ;; shift down
@@ -173,4 +189,4 @@
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix
-;; End
+;; End:

@@ -71,6 +71,7 @@ void Sg_Init()
 
   Sg__InitInstruction();
   Sg__Initnull();
+  Sg__Init_sagittarius();
   Sg__Init_sagittarius_vm();
   Sg__Init_sagittarius_vm_debug();
 
@@ -79,8 +80,6 @@ void Sg_Init()
   Sg__Init_sagittarius_compiler_procedure();
   Sg__Init_sagittarius_compiler();
 
-  Sg__Init_sagittarius();
-
   /* generic initialization must be after the libraries initialization */
   Sg__InitFile();
 
@@ -88,14 +87,29 @@ void Sg_Init()
   Sg_ImportLibrary(Sg_VM()->currentLibrary, SG_OBJ(SG_INTERN("null")));
   Sg_ImportLibrary(Sg_VM()->currentLibrary, SG_OBJ(SG_INTERN("(sagittarius)")));
 #if 1
-  Sg_ImportLibrary(SG_OBJ(SG_INTERN("(sagittarius compiler)")), SG_OBJ(SG_INTERN("null")));
-  Sg_ImportLibrary(SG_OBJ(SG_INTERN("(sagittarius compiler)")), SG_OBJ(SG_INTERN("(sagittarius)")));
+  Sg_ImportLibrary(SG_OBJ(SG_INTERN("(sagittarius compiler)")),
+		   SG_OBJ(SG_INTERN("null")));
+  Sg_ImportLibrary(SG_OBJ(SG_INTERN("(sagittarius compiler)")),
+		   SG_OBJ(SG_INTERN("(sagittarius)")));
 #endif
+
+  /* 
+     we need extra treatment for er-rename. it's defined after the 
+     initialization of compiler, so we need to export it to (core base) which 
+     defines er-macro-transformer
+   */
+  {
+    SgLibrary *core_base_lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(core base)"), FALSE));
+    Sg_InsertBinding(core_base_lib,
+		     SG_INTERN("er-rename"),
+		     Sg_FindBinding(SG_INTERN("null"), SG_INTERN("er-rename")));
+  }
+
 }
 
 /*
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

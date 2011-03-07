@@ -35,6 +35,7 @@
 #include "sagittarius/pair.h"
 #include "sagittarius/vector.h"
 #include "sagittarius/symbol.h"
+#include "sagittarius/code.h"
 #include "sagittarius/subr.h"
 #include "sagittarius/vm.h"
 #include "sagittarius/builtin-symbols.h"
@@ -112,7 +113,7 @@ static SgObject macro_tranform(SgObject *args, int argc, void *data_)
   p1env = args[2];
   data = args[3];
 
-  return Sg_VMApply(data, SG_LIST2(form, p1env));
+  return Sg_VMApply(data, SG_LIST1(Sg_Cons(form, p1env)));
 }
 
 static SG_DEFINE_SUBR(macro_tranform_Stub, 2, 0, macro_tranform, SG_FALSE, NULL);
@@ -155,17 +156,12 @@ static SgObject macro_expand_rec(SgObject form, SgObject p1env, int onceP)
 	  return macro_expand_rec(ret, p1env, onceP);
 	}
       } else if (!SG_FALSEP(syn)) {
-	if (SG_PROCEDUREP(SG_SYNTAX(syn)->proc)) {
-	  SgObject expanded = Sg_Apply(SG_SYNTAX(syn)->proc, SG_LIST1(expr));
-	  if (SG_MACROP(expanded)) {
-	    SgObject applyArgs = SG_LIST4(expanded, expr, p1env,
-					  SG_MACRO(expanded)->data);
-	    SgObject ret = Sg_Apply(SG_MACRO(expanded)->transformer, applyArgs);
-	    if (onceP) {
-	      return ret;
-	    } else {
-	      return macro_expand_rec(ret, p1env, onceP);
-	    }
+	if (SG_CODE_BUILDERP(SG_SYNTAX(syn)->proc)) {
+	  SgObject ret = Sg_VMApply(SG_SYNTAX(syn)->proc, SG_LIST1(expr));
+	  if (onceP) {
+	    return ret;
+	  } else {
+	    return macro_expand_rec(ret, p1env, onceP);
 	  }
 	} else {
 	  /* syntax that made by (syntax a) */
@@ -195,5 +191,5 @@ SgObject Sg_UnwrapSyntax(SgObject form)
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

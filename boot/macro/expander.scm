@@ -537,47 +537,10 @@
     (let ((r (syntax-rules-expand form p1env data)))
       r)))
 
-;; for er-macro-transformer
-(define macro-transform
-  (lambda (self form p1env data)
-    (let ((r (vm/apply data form p1env)))
-      r)))
-
-(define make-macro-transformer
-  (lambda (name proc library)
-    (make-macro name macro-transform proc library)))
-
 
 ;; macrexpand
-(define %internal-macro-expand
-  (lambda (expr p1env once?)
-    (let loop ((expr expr))
-      (cond ((null? expr) '())
-	    ((not (pair? expr)) expr)
-	    ;; ((xx ...) ...)
-	    ((pair? (car expr))
-	     (cons (loop (car expr))
-		   (loop (cdr expr))))
-	    (else
-	     (let ((g #f)
-		   (mac #f)
-		   (sym (car expr)))
-	       (cond ((identifier? sym)
-		      (set! g (find-binding (id-library sym)
-					    (id-name sym))))
-		     ((symbol? sym)
-		      (set! g (find-binding (vm-current-library)
-					    sym))))
-	       (if (macro? g)
-		   (set! mac g))
-	       (if mac
-		   ;; expand and continue
-		   (if once?
-		       (call-macro-expander mac expr p1env)
-		       (loop (call-macro-expander mac expr p1env)))
-		   ;; symbol
-		   (cons (car expr) (loop (cdr expr))))))))))
+
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix
-;; End
+;; End:

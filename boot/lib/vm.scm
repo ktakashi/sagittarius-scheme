@@ -302,6 +302,45 @@
   ((macro-transformer macro) macro expr p1env (macro-data macro)))
 (define (unbound) (if #f #f))
 
+;; for er-macro-transformer
+(define macro-transform
+  (lambda (self form p1env data)
+    (vm/apply data (cons form p1env))))
+
+(define make-macro-transformer
+  (lambda (name proc library)
+    (make-macro name macro-transform proc library)))
+
+(define %internal-macro-expand
+  (lambda (expr p1env once?)
+    (let loop ((expr expr))
+      (cond ((null? expr) '())
+	    ((not (pair? expr)) expr)
+	    ;; ((xx ...) ...)
+	    ((pair? (car expr))
+	     (cons (loop (car expr))
+		   (loop (cdr expr))))
+	    (else
+	     (let ((g #f)
+		   (mac #f)
+		   (sym (car expr)))
+	       (cond ((identifier? sym)
+		      (set! g (find-binding (id-library sym)
+					    (id-name sym))))
+		     ((symbol? sym)
+		      (set! g (find-binding (vm-current-library)
+					    sym))))
+	       (if (macro? g)
+		   (set! mac g))
+	       (if mac
+		   ;; expand and continue
+		   (if once?
+		       (call-macro-expander mac expr p1env)
+		       (loop (call-macro-expander mac expr p1env)))
+		   ;; symbol
+		   (cons (car expr) (loop (cdr expr))))))))))
+
+
 (define (%map-cons l1 l2) (map cons l1 l2))
 ;(define LEXICAL 0)
 ;(define SYNTAX 1)
@@ -701,4 +740,4 @@
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix
-;; End
+;; End:
