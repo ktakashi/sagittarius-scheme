@@ -19,8 +19,8 @@
   (define-c-proc identifier? (id) ::boolean
     (result (SG_IDENTIFIERP id)))
 
-  (define-c-proc make-syntax-object (datum id) ::Object
-    (result (Sg_MakeSyntax datum id TRUE)))
+  (define-c-proc make-syntax-object (datum) ::Object
+    (result (Sg_MakeSyntax datum #f TRUE)))
 
   ;; generics
   (define-c-proc make-generic (name::Symbol printer ctr :rest fields) ::Object
@@ -42,6 +42,6 @@
     (result (Sg_CreateInstance g)))
 
   ;; closure?
-  (define-c-proc closure? (cl) ::Object
+  (define-c-proc closure? (cl) ::boolean
     (result (SG_CLOSUREP cl)))
 )

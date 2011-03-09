@@ -3,6 +3,7 @@
     (export with-syntax)
     (import null 
 	    (sagittarius)
+	    (core syntax helper)
 	    (core syntax-case))
   (define-syntax with-syntax
     (lambda (x)

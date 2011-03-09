@@ -110,6 +110,18 @@ SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeInteger(long x);
 SG_EXTERN SgObject Sg_MakeIntegerU(unsigned long x);
+SG_EXTERN SgObject Sg_MakeIntegerFromS64(int64_t x);
+SG_EXTERN SgObject Sg_MakeIntegerFromU64(uint64_t x);
+
+#if SIZEOF_LONG >= 8
+/* if intptr_t is 64 bit, then there is no reason not to fit (u)int32_t */
+#define Sg_MakeIntegerFromS32 SG_MAKE_INT
+#define Sg_MakeIntegerFromU32 SG_MAKE_INT
+#else
+#define Sg_MakeIntegerFromS32 Sg_MakeInteger
+#define Sg_MakeIntegerFromU32 Sg_MakeIntegerU
+#endif
+
 SG_EXTERN SgObject Sg_MakeRational(SgObject numerator, SgObject denominator);
 SG_EXTERN SgObject Sg_MakeFlonum(double d);
 SG_EXTERN SgObject Sg_MakeComplex(SgObject real, SgObject imag);

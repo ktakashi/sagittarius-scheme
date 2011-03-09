@@ -16,7 +16,7 @@
 	    parse-pattern)
     (import null
 	    (sagittarius)
-	    #;(sagittarius vm)
+	    (sagittarius vm)
 	    (core base)
 	    (core misc)
 	    (core struct))
@@ -52,25 +52,14 @@
 			(else
 			 form)))))
 	 `',r))))
+
   (define-syntax syntax
     (er-macro-transformer
      (lambda (form rename compare)
-       #;(define (search-symbol form)
-	 (let loop ((form form))
-	   (cond ((null? form) 'dummy)
-		 ((pair? form)
-		  (let ((s (loop (cadr form))))
-		    (if (symbol? s)
-			s
-			(loop (cdr form)))))
-		 ((symbol? form) form)
-		 (else #f))))
        (or (= (length form) 2)
 	   (error 'syntax "expected exactly one datum" form))
-       (make-syntax-object (cadr form) (rename 'dummy))
-       #;(let ((s (search-symbol (cadr form))))
-       (make-syntax-object (cadr form) (rename s))))))
-
+       `(make-syntax-object (,(rename 'quote) ,(cadr form))))))
+  
   (define (variable? o)
     (or (identifier? o)
 	(symbol? o)))
@@ -93,39 +82,37 @@
   ;; 
   ;; param:
   ;;    form   	   -- original form of macro itself
-  ;;    ref    	   -- reference for target form(for syntax-case's 'x')
+  ;;    who        -- caller
   ;;    keyword    -- keywords for macro(literals)
   ;;    clauses    -- patterns and templates
   ;;    rename     -- rename procedure from er-macro-transformer
   ;;    compare    -- compare procedure from er-macro-transformer
   ;;    gen-match  -- pattern match generator
   ;;    gen-output -- template generator
-  (define (expand form ref keywords clauses
+  (define (expand form who keywords clauses
 		  rename compare gen-output)
     (unless (unique-id-list? keywords)
-      (error 'syntax-rules "duplicate literals" keywords))
+      (error who "duplicate literals" keywords))
     (let ((r-form (rename 'form))
 	  (r-rename (rename 'rename))
 	  (r-compare (rename 'compare)))
-      `(,(rename 'er-macro-transformer)
-	(,(rename 'lambda)
-	 (,r-form ,r-rename ,r-compare)
-	 ,(let loop ((clauses clauses))
-	    (if (pair? clauses)
-		(let ((pattern (caar clauses)))
-		  (let ((sids (parse-pattern rename compare keywords
-					     pattern r-form)))
-		    `(,(rename 'if)
-		      ,(generate-match rename compare keywords
-				  r-rename r-compare
-				  pattern r-form)
-		      ,(gen-output ref rename compare r-form r-rename
-				   sids (cadar clauses))
-		      ,(loop (cdr clauses)))))
-		`(,(rename 'begin)
-		  (,(rename 'error)
-		   (,(rename 'quote) 'syntax-rules)
-		   "no expansion for" (,(rename 'unwrap-syntax) ,r-form)))))))))
+      (let loop ((clauses clauses))
+	(if (pair? clauses)
+	    (let ((pattern (caar clauses)))
+	      (let ((sids (parse-pattern rename compare keywords
+					 pattern r-form)))
+		`(,(rename 'if)
+		  ,(generate-match rename compare keywords
+				   r-rename r-compare
+				   pattern r-form)
+		  ,(gen-output form rename compare
+			       r-form r-rename sids (cadar clauses))
+		  ,(loop (cdr clauses)))))
+	    `(,(rename 'begin)
+	      (,(rename 'error)
+	       (,(rename 'quote) ,who)
+	       "no expansion for" (,(rename 'unwrap-syntax) 
+				   (,(rename 'car) ,r-form))))))))
 
   (define (parse-pattern rename compare keywords pattern expression)
     (let loop ((pattern pattern)
@@ -260,23 +247,4 @@
 	      (error 'syntax-rules "missing ellipsis in expression" #f))
 	  (loop control (cdr ellipses))))))
 
-  (define (generate-ellipsis rename ellipsis body)
-    (let ((sids (ellipsis-sids ellipsis)))
-      (if (pair? sids)
-	  (let ((name (sid-name (car sids)))
-		(expression (sid-expression (car sids))))
-	    (cond ((and (null? (cdr sids))
-			(eq? body name))
-		   expression)
-		  ((and (null? (cdr sids))
-			(pair? body)
-			(eq? (cadr body) name)
-			(null? (cddr body)))
-		   `(,(rename 'map) ,(car body) ,expression))
-		  (else
-		   `(,(rename 'map) (,(rename 'lambda)
-				     ,(map sid-name sids)
-				     ,body)
-		     ,@(map sid-expression sids)))))
-	  (error 'syntax-rules "missing ellipsis in expanstion."))))
 )

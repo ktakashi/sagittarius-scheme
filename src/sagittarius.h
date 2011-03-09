@@ -47,6 +47,7 @@
 #include <sagittarius/sagittariusdefs.h>
 /* sagittarius scheme types */
 #include <sagittarius/bignum.h>
+#include <sagittarius/bytevector.h>
 #include <sagittarius/closure.h>
 #include <sagittarius/code.h>
 #include <sagittarius/codec.h>

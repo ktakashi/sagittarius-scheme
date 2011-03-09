@@ -33,6 +33,7 @@
 #include "sagittarius/codec.h"
 #include "sagittarius/port.h"
 #include "sagittarius/error.h"
+#include "sagittarius/string.h"
 #include "sagittarius/unicode.h"
 
 static int putUtf8Char(SgObject self, SgPort *port, SgChar c, ErrorHandlingMode mode)
@@ -77,7 +78,7 @@ SgObject Sg_MakeUtf8Codec()
   SG_SET_HEADER(z, TC_CODEC);
   z->putChar = putUtf8Char;
   z->getChar = getUtf8Char;
-  z->name = UC("utf8-codec"); /* it won't be modified so just static.*/
+  z->name = Sg_MakeString(UC("utf8-codec"), SG_LITERAL_STRING);
   z->endian = NO_BOM;
   return SG_OBJ(z);
 }
@@ -153,7 +154,7 @@ SgObject Sg_MakeUtf16Codec(Endianness endian)
   SG_SET_HEADER(z, TC_CODEC);
   z->putChar = putUtf16Char;
   z->getChar = getUtf16Char;
-  z->name = UC("utf16-codec"); /* it won't be modified so just static.*/
+  z->name = Sg_MakeString(UC("utf16-codec"), SG_LITERAL_STRING);
   z->endian = endian;
   return SG_OBJ(z);
 }
@@ -166,7 +167,7 @@ SgObject Sg_MakeUtf32Codec(Endianness endian)
   z->putChar = putUtf32Char;
   z->getChar = getUtf32Char;
   */
-  z->name = UC("utf32-codec"); /* it won't be modified so just static.*/
+  z->name = Sg_MakeString(UC("utf32-codec"), SG_LITERAL_STRING);
   z->endian = endian;
   return SG_OBJ(z);
 }
@@ -179,12 +180,12 @@ SgObject Sg_MakeLatin1Codec()
   z->putChar = putLatin1Char;
   z->getChar = getLatin1Char;
   */
-  z->name = "latin1-codec"; /* it won't be modified so just static.*/
+  z->name = Sg_MakeString(UC("latin1-codec"), SG_LITERAL_STRING);
   return SG_OBJ(z);
 }
 /*
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

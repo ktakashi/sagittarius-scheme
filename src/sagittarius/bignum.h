@@ -41,12 +41,13 @@ SG_CDECL_BEGIN
 SG_EXTERN SgObject Sg_MakeBignumFromSI(long value);
 SG_EXTERN SgObject Sg_MakeBignumFromUI(unsigned long value);
 SG_EXTERN SgObject Sg_MakeBignumFromS64(int64_t value);
+SG_EXTERN SgObject Sg_MakeBignumFromU64(uint64_t value);
 SG_EXTERN SgObject Sg_MakeBignumFromDouble(double value);
 SG_EXTERN SgObject Sg_MakeBignumWithSize(int size, unsigned long init);
 SG_EXTERN SgObject Sg_BignumCopy(SgBignum *b);
 SG_EXTERN SgObject Sg_NormalizeBignum(SgBignum *b);
 SG_EXTERN int      Sg_BignumCmp(SgBignum *lhs, SgBignum *rhs);
-SG_EXTERN int32_t  Sg_BignumToInt32(SgBignum *b);
+
 SG_EXTERN double   Sg_BignumToDouble(SgBignum *b);
 SG_EXTERN SgObject Sg_BignumToInteger(SgBignum *b);
 SG_EXTERN long          Sg_BignumToSI(SgBignum *b, int clamp, int *oor);
@@ -57,6 +58,19 @@ SG_EXTERN int      Sg_BignumAbsCmp(SgBignum *bx, SgBignum *by);
 SG_EXTERN int      Sg_BignumCmp3U(SgBignum *bx, SgBignum *off, SgBignum *by);
 
 SG_EXTERN SgObject Sg_BignumToString(SgBignum *b, int radix, int use_upper);
+
+/* i don't want to think about 128 bit CPU */
+#if SIZEOF_LONG >= 8
+SG_EXTERN int32_t  Sg_BignumToS32(SgBignum *b, int clamp, int *oor);
+SG_EXTERN uint32_t Sg_BignumToU32(SgBignum *b, int clamp, int *oor);
+#define Sg_BignumToS64 Sg_BignumToSI
+#define Sg_BignumToU64 Sg_BignumToUI
+#else
+#define Sg_BignumToS32 Sg_BignumToSI
+#define Sg_BignumToU32 Sg_BignumToUI
+SG_EXTERN int64_t  Sg_BignumToS64(SgBignum *b, int clamp, int *oor);
+SG_EXTERN uint64_t Sg_BignumToU64(SgBignum *b, int clamp, int *oor);
+#endif
 
 /* bignum arithmatics */
 SG_EXTERN SgObject Sg_BignumAsh(SgBignum *b, int count);

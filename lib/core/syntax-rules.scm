@@ -4,6 +4,7 @@
     (export syntax-rules)
     (import null
 	    (sagittarius)
+	    (sagittarius vm)
 	    (core base)
 	    (core syntax helper))
 
@@ -12,11 +13,17 @@
     (er-macro-transformer
      (lambda (form rename compare)
        (let ((keywords (cadr form))
-	     (clauses (cddr form)))
-	 (expand form #f keywords clauses
-		 rename compare generate-output)))))
+	     (clauses (cddr form))
+	     (r-form (rename 'form))
+	     (r-rename (rename 'rename))
+	     (r-compare (rename 'compare)))
+	 `(,(rename 'er-macro-transformer)
+	   (,(rename 'lambda)
+	    (,r-form ,r-rename ,r-compare)
+	    ,(expand form 'syntax-rules keywords clauses
+		     rename compare generate-output)))))))
 
-  (define (generate-output ref rename compare 
+  (define (generate-output oform rename compare
 			   r-form r-rename sids template)
     (let loop ((template template)
 	       (ellipses '()))
@@ -47,4 +54,25 @@
 	     (loop (vector->list template) ellipses))
 	    (else
 	     `(,(rename 'quote) ,template)))))
+
+  (define (generate-ellipsis rename ellipsis body)
+    (let ((sids (ellipsis-sids ellipsis)))
+      (if (pair? sids)
+	  (let ((name (sid-name (car sids)))
+		(expression (sid-expression (car sids))))
+	    (cond ((and (null? (cdr sids))
+			(eq? body name))
+		   expression)
+		  ((and (null? (cdr sids))
+			(pair? body)
+			(eq? (cadr body) name)
+			(null? (cddr body)))
+		   `(,(rename 'map) ,(car body) ,expression))
+		  (else
+		   `(,(rename 'map) (,(rename 'lambda)
+				     ,(map sid-name sids)
+				     ,body)
+		     ,@(map sid-expression sids)))))
+	  (error 'syntax-rules "missing ellipsis in expanstion."))))
+
   )

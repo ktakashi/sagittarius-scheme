@@ -693,6 +693,18 @@ SgObject Sg_MakeIntegerU(unsigned long x)
   }
 }
 
+SgObject Sg_MakeIntegerFromS64(int64_t x)
+{
+  if ((x <= INT_MAX) && (x >= INT_MIN)) return SG_MAKE_INT(x);
+  return Sg_MakeBignumFromS64(x);
+}
+
+SgObject Sg_MakeIntegerFromU64(uint64_t x)
+{
+  if (x <= INT_MAX) return SG_MAKE_INT(x);
+  return Sg_MakeBignumFromU64(x);
+}
+
 static void range_err(SgObject obj, int clamp, int *oor)
 {
   if (clamp == SG_CLAMP_NONE && oor != NULL) {

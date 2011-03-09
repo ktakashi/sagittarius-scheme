@@ -30,6 +30,21 @@
      (cdr body))
     (k k))
 
+  ;; -
+  ;; (- a b c) -> a - b - c
+  (define (sub body dispatch k)
+    (or (>= (length (cdr body)) 2)
+	(error '+
+	       (format "wrong number of arg for + (required at least 2, but got ~a)"
+		       (length (cdr body)))))
+    (for-each1-with-index
+     (lambda (i arg)
+       (display arg)
+       (unless (= i (- (length (cdr body)) 1))
+	 (display "-")))
+     (cdr body))
+    (k k))
+
   ;; result
   ;; set expression to SG_RETURN
   (define (result body dispatch k)
@@ -247,6 +262,22 @@
   (register-and/or and-proc &&)
   (register-and/or or-proc ||)
 
+  ;; %
+  ;; remainder
+  (define (remainder-proc body dispatch k)
+    (let ((a (cadr body))
+	  (b (caddr body)))
+      (format #t "(~a % ~b)" a b)
+    (k k)))
+
+  ;; cast
+  (define (cast body dispatch k)
+    (let ((type (cadr body))
+	  (expr (caddr body)))
+      (format #t "(~a)" type)
+      (dispatch expr dispatch k)
+      (k k)))
+
   (define (init *dispatch-table*)
     (hashtable-set! *dispatch-table* 'quote quote-proc)
     (hashtable-set! *dispatch-table* 'result result)
@@ -265,6 +296,8 @@
     (hashtable-set! *dispatch-table* 'loop loop)
     (hashtable-set! *dispatch-table* 'break break)
     (hashtable-set! *dispatch-table* '+ add)
+    (hashtable-set! *dispatch-table* '- sub)
+    (hashtable-set! *dispatch-table* '% remainder-proc)
     (hashtable-set! *dispatch-table* '== num-eq)
     (hashtable-set! *dispatch-table* '< num-lt)
     (hashtable-set! *dispatch-table* '<= num-le)
@@ -272,4 +305,5 @@
     (hashtable-set! *dispatch-table* '>= num-ge)
     (hashtable-set! *dispatch-table* 'and and-proc)
     (hashtable-set! *dispatch-table* 'or or-proc)
+    (hashtable-set! *dispatch-table* 'cast cast)
     (hashtable-set! *dispatch-table* 'let let-proc)))

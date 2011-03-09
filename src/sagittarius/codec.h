@@ -48,7 +48,7 @@ struct SgCodecRec
   SG_HEADER;
   int    (*putChar)(SgObject, SgPort*, SgChar, ErrorHandlingMode);
   SgChar (*getChar)(SgObject, SgPort*, ErrorHandlingMode, int);
-  SgChar *name;
+  SgString  *name;
   Endianness endian;
 };
 

@@ -112,6 +112,8 @@ struct SgSubrRec
   }									\
   var = cast(tmp);
 
+#define argumentAsByteVector(index, tmp, var)				\
+  castArgumentType(index, tmp, var, bytevector, SG_BVECTORP, SG_BVECTOR)
 #define argumentAsProcedure(index, tmp, var)				\
   castArgumentType(index, tmp, var, procudure, SG_PROCEDUREP, SG_PROCEDURE)
 #define argumentAsPort(index, tmp, var)				\

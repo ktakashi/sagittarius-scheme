@@ -9,8 +9,7 @@ static SgObject _sagittarius_vm_debug_vm_dump_code(SgObject *args, int argc, voi
   checkArgumentLength(1);
   argumentAsCodeBuilder(0, cb_scm, cb);
   {
-    SgObject SG_RETURN;
-Sg_VMDumpCode(cb);
+SgObject SG_RETURN = SG_UNDEF;Sg_VMDumpCode(cb);
 SG_RETURN = SG_UNDEF;
 ;
     return SG_RETURN;

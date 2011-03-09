@@ -346,20 +346,23 @@
   (define (resolve-c-body body type/names return)
     (define (return-type)
       (case return
-	((Object void) 'SgObject)
-	((boolean fixnum char) 'int)
+	((Object void) 
+	 (format #t "SgObject SG_RETURN = SG_UNDEF;"))
+	((boolean fixnum char)
+	 (format #t "int SG_RETURN;"))
 	(else (error 'resolve-c-body "invalid return type"  return))))
     (define (return-value)
       (case return
 	((Object) 'SG_RETURN)
-	((void)   'SG_UNDEF)
+	((void)   'SG_RETURN)
 	((boolean) "SG_MAKE_BOOL(SG_RETURN)")
 	((fixnum) "SG_MAKE_INT(SG_RETURN)")
 	((char)  "SG_MAKE_CHAR(SG_RETURN)")
 	(else (error 'resolve-c-body "invalid return type"  return))))
 
     (format #t "  {~%")
-    (format #t "    ~s SG_RETURN;~%" (return-type))
+    (return-type)
+    ;;(format #t "    ~s SG_RETURN = SG_UNDEF;~%" (return-type))
     (for-each (lambda (body)
 		(dispatch-method body dispatch-method (lambda (k) k))
 		(display ";")(newline))
@@ -396,12 +399,12 @@
   (define-syntax define-cgen-stmt
     (syntax-rules ()
       ;; recursion
-      ((_ "clauses" op clauses (:where defs ...))
+      ((_ "clauses" op clauses ("where" defs ...))
        (define-cgen-macro (op form)
 	 defs ...
 	 (match form . clauses)))
       ((_ "clauses" op clauses ())
-       (define-cgen-stmt "clauses" op clauses (:where)))
+       (define-cgen-stmt "clauses" op clauses ("where")))
       ((_ "clauses" op (clause ...) (x . y))
        (define-cgen-stmt "clauses" op (clause ... x) y))
       ;; entry
@@ -442,7 +445,7 @@
 		   (body-impl name args insn return c-body))
 		  (('define-c-proc name args return . c-body)
 		   (body-impl name args #f return c-body))
-		  (('define-cgen-stmt name form)
+		  (('define-cgen-stmt name . form)
 		   (eval body (environment '(rnrs (6))
 					   '(sagittarius cgen)
 					   '(sagittarius format))))))

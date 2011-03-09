@@ -152,6 +152,31 @@ SgObject Sg_MakeBignumFromUI(unsigned long value)
   return SG_OBJ(b);
 }
 
+SgObject Sg_MakeBignumFromU64(uint64_t value)
+{
+  if (value) {
+#if SIZEOF_LONG >= 8
+    SgBignum *ans = make_bignum(1);
+    SG_BIGNUM_SET_SIGN(ans, 1);
+    ans->elements[0] = value;
+    return ans;
+#else
+    SgBignum *ans;
+    if ((value >> WORD_BITS) != 0) {
+      ans = make_bignum(2);
+      ans->elements[0] = value & SG_ULONG_MAX;
+      ans->elements[1] = value >> WORD_BITS;
+    } else {
+      ans = make_bignum(1);
+      ans->elements[0] = value;
+    }
+    SG_BIGNUM_SET_SIGN(ans, 1);
+    return ans;
+#endif
+  }
+  return make_bignum(0);
+}
+
 SgObject Sg_MakeBignumFromS64(int64_t value)
 {
   if (value) {
@@ -423,6 +448,119 @@ unsigned long Sg_BignumToUI(SgBignum *b, int clamp, int *oor)
   }
   return 0;
 }
+
+#if SIZEOF_LONG >= 8
+int32_t  Sg_BignumToS32(SgBignum *b, int clamp, int *oor)
+{
+  if (clamp == SG_CLAMP_NONE && oor != NULL) *oor = FALSE;
+  if (SG_BIGNUM_GET_SIGN(b) >= 0) {
+    if (b->elements[0] > INT32_MAX || SG_BIGNUM_GET_COUNT(b) >= 2) {
+      if (clamp & SG_CLAMP_HI) return INT32_MAX;
+      else goto err;
+    } else {
+      return (int32_t)b->elements[0];
+    }
+  } else {
+    if (b->elements[0] > (uint32_t)INT32_MAX + 1 || SG_BIGNUM_GET_COUNT(b) >= 2) {
+      if (clamp & SG_CLAMP_LO) return INT32_MIN;
+      else goto err;
+    } else {
+      return -(int32_t)b->elements[0];
+    }
+  }
+ err:
+  if (clamp == SG_CLAMP_NONE && oor != NULL) *oor = TRUE;
+  else {
+    Sg_Error(UC("argument out of range: %S"), SG_OBJ(b));
+  }
+  return 0;  
+}
+
+uint32_t Sg_BignumToU32(SgBignum *b, int clamp, int *oor)
+{
+  if (clamp == SG_CLAMP_NONE && oor != NULL) *oor = FALSE;
+  if (SG_BIGNUM_GET_SIGN(b) > 0) {
+    if (b->elements[0] <= UINT32_MAX) {
+      return (uint32_t)b->elements[0];
+    } else {
+      if (!(clamp & SG_CLAMP_HI)) goto err;
+      return UINT32_MAX;
+    }
+  } else {
+    if (clamp & SG_CLAMP_LO) return 0;
+    else goto err;
+  }
+ err:
+  if (clamp == SG_CLAMP_NONE && oor != NULL) *oor = TRUE;
+  else {
+    Sg_Error(UC("argument out of range: %S"), SG_OBJ(b));
+  }
+  return 0;
+}
+
+#else
+int64_t  Sg_BignumToS64(SgBignum *b, int clamp, int *oor)
+{
+  int64_t r = 0;
+  if (clamp == SG_CLAMP_NONE && oor != NULL) *oor = FALSE;
+  if (SG_BIGNUM_GET_SIGN(b) > 0) {
+    if (SG_BIGNUM_GET_COUNT(b) == 1) {
+      r = b->elements[0];
+    } else if (SG_BIGNUM_GET_COUNT(b) > 2 || b->elements[1] > LONG_MAX) {
+      if (!(clamp & SG_CLAMP_HI)) goto err;
+      r = (((int64_t)LONG_MAX) << 32) + (int64_t)ULONG_MAX;
+    } else {
+      r = ((int64_t)b->elements[1] << 32) + (uint64_t)b->elements[0];
+    }
+  } else {
+    if (SG_BIGNUM_GET_COUNT(b) == 1) {
+      r = b->elements[0];
+    } else if (SG_BIGNUM_GET_COUNT(b) > 2 || b->elements[1] > LONG_MAX) {
+      if (!(clamp & SG_CLAMP_HI)) goto err;
+      r = (((int64_t)LONG_MAX + 1) << 32);
+    } else {
+      r = -(int64_t)(((int64_t)b->elements[1] << 32) + (uint64_t)b->elements[0]);
+    }
+  }
+  return r;
+ err:
+  if (clamp == SG_CLAMP_NONE && oor != NULL) {
+    *oor = TRUE;
+  } else {
+    Sg_Error(UC("argument out of range: %S"), SG_OBJ(b));
+  }
+  return r;
+}
+
+uint64_t Sg_BignumToU64(SgBignum *b, int clamp, int *oor)
+{
+  uint64_t r = 0;
+  if (clamp == SG_CLAMP_NONE && oor != NULL) *oor = FALSE;
+  if (SG_BIGNUM_GET_SIGN(b) > 0) {
+    if (SG_BIGNUM_GET_COUNT(b) > 2) {
+      if (!(clamp & SG_CLAMP_HI)) goto err;
+      r = (((uint64_t)ULONG_MAX) << 32) + (uint64_t)ULONG_MAX;
+
+    } else if (SG_BIGNUM_GET_COUNT(b) == 2) {
+      r = (((uint64_t)b->elements[1]) << 32) + (uint64_t)b->elements[0];
+    } else {
+      r = (uint64_t)b->elements[0];
+    }
+  } else {
+    if (!(clamp & SG_CLAMP_LO)) goto err;
+  }
+  return r;
+ err:
+  if (clamp == SG_CLAMP_NONE && oor != NULL) {
+    *oor = TRUE;
+  } else {
+    Sg_Error(UC("argument out of range: %S"), SG_OBJ(b));
+  }
+  return r;
+}
+
+#endif
+
 
 int Sg_BignumBitSize(SgBignum *b)
 {

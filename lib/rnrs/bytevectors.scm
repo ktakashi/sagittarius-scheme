@@ -23,9 +23,8 @@
 	    string->utf16 utf16->string
 	    string->utf32 utf32->string)
     (import null)
-
 ) ; [end]
 ;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix
-;; End
+;; End:
