@@ -59,10 +59,15 @@ typedef enum {
 #define SG_STRING(obj)         	((SgString*)(obj))
 #define SG_LITERAL_STRINGP(obj) (SG_STRINGP(obj) && (SG_HDR(obj) & STRING_LITERAL_BIT))
 
+#define SG_STRING_SIZE(obj)     (SG_STRING(obj)->size)
+#define SG_STRING_VALUE(obj)    (SG_STRING(obj)->value)
+#define SG_STRING_VALUE_AT(obj, index)    (SG_STRING(obj)->value[index])
+
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeStringC(const char *value);
 SG_EXTERN SgObject Sg_MakeString(const SgChar *value, SgStringType flag);
+SG_EXTERN SgObject Sg_ReserveString(size_t size);
 
 SG_EXTERN SgObject Sg_ListToString(SgObject obj);
 
@@ -86,5 +91,5 @@ SG_CDECL_END
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

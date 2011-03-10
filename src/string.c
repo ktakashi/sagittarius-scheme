@@ -91,6 +91,13 @@ SgObject Sg_MakeStringC(const char *value)
   return SG_OBJ(z);
 }
 
+SgObject Sg_ReserveString(size_t size)
+{
+  SgString *z = make_string(size);
+  memset(z->value, 0, size);
+  return SG_OBJ(z);
+}
+
 static int string_equal(SgChar *s1, int size1, SgChar *s2, int size2)
 {
   if (size1 != size2) return FALSE;

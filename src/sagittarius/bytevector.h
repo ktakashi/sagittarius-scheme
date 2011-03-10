@@ -58,6 +58,8 @@ SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeByteVector(size_t size, int fill);
 
+SG_EXTERN SgObject Sg_MakeByteVectorFromU8Array(const uint8_t *buf, size_t size);
+
 SG_EXTERN SgObject Sg_NativeEndianness();
 SG_EXTERN int      Sg_ByteVectorEqP(SgByteVector *bv1, SgByteVector *bv2);
 SG_EXTERN SgObject Sg_ByteVectorCopy(SgByteVector *src);

@@ -62,6 +62,14 @@ SgObject Sg_MakeByteVector(size_t size, int fill)
   return SG_OBJ(b);
 }
 
+SgObject Sg_MakeByteVectorFromU8Array(const uint8_t *buf, size_t size)
+{
+  SgByteVector *z;
+  z = make_bytevector(size);
+  memcpy(z->elements, buf, size);
+  return SG_OBJ(z);
+}
+
 int Sg_ByteVectorEqP(SgByteVector *bv1, SgByteVector *bv2)
 {
   if (SG_BVECTOR_SIZE(bv1) == SG_BVECTOR_SIZE(bv2)) {

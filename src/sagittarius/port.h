@@ -46,18 +46,11 @@ typedef struct SgBinaryPortRec
   int     type;
   union {
     SgFile        *file;   /* file port */
-    /* input byte buffer */
+    /* use bytevector for buffer */
     struct {
-      const uint8_t *bytes;
-      int            index;
-      int            size;
-    } ibuf;
-    /* output byte buffer */
-    struct {
-      uint8_t *buffer;		/* buffer */
-      int      index;		/* position */
-      int      size;		/* current size */
-    } obuf;
+      SgByteVector *bvec;
+      int           index;
+    } buffer;
   } src;
 } SgBinaryPort;
 
@@ -80,21 +73,11 @@ typedef struct SgTextualPortRec
       SgPort       *port;
     } transcoded;
     /* string port uses string as src */
-    /*
-      both in and out string port look super similar.
-      maybe i can merge it someday.
-     */
     struct {
-      const SgChar *start;
-      int           index;
-      int           size;
-      int           lineNo;
-    } instr;              /* string input port*/
-    struct {
-      SgChar *buffer;
-      int     index;
-      int     size;
-    } outstr;
+      SgString *str;
+      int       index;
+      int       lineNo; 	/* for input */
+    } buffer;
   } src;
 } SgTextualPort;
 

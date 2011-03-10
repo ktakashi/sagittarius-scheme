@@ -37,6 +37,7 @@
 #include "sagittarius/code.h"
 #include "sagittarius/closure.h"
 #include "sagittarius/subr.h"
+#include "sagittarius/file.h"
 #include "sagittarius/transcoder.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/keyword.h"
@@ -571,6 +572,55 @@ static void write_bytevector(SgByteVector *b, SgPort *port, SgWriteContext *ctx)
   Sg_PutcUnsafe(port, ')');
 }
 
+static void write_port(SgPort *p, SgPort *port, SgWriteContext *ctx)
+{
+  SgObject file = SG_FALSE;
+  Sg_PutuzUnsafe(port, UC("#<port "));
+  if (SG_BINARY_PORTP(p)) {
+    switch (SG_BINARY_PORT(p)->type) {
+    case SG_FILE_BINARY_PORT_TYPE:
+      Sg_PutuzUnsafe(port, UC("file"));
+      break;
+    case SG_BYTE_ARRAY_BINARY_PORT_TYPE:
+      Sg_PutuzUnsafe(port, UC("bytearray"));
+      break;
+    default:
+      /* never happen */
+      Sg_PutuzUnsafe(port, UC("unknown"));
+    }
+    Sg_PutuzUnsafe(port, UC("-binary"));
+  } else if (SG_TEXTUAL_PORTP(p)) {
+    switch (SG_TEXTUAL_PORT(p)->type) {
+    case SG_TRANSCODED_TEXTUAL_PORT_TYPE:
+      Sg_PutuzUnsafe(port, UC("transcoded"));
+      break;
+    case SG_STRING_TEXTUAL_PORT_TYPE:
+      Sg_PutuzUnsafe(port, UC("string"));
+      break;
+    default:
+      /* never happen */
+      Sg_PutuzUnsafe(port, UC("unknown"));
+    }
+    Sg_PutuzUnsafe(port, UC("-textual"));
+  } else {
+    /* never happen */
+    Sg_PutuzUnsafe(port, UC("-unknown"));
+  }
+  if (SG_INPORTP(p)) {
+    Sg_PutuzUnsafe(port, UC("-input-port"));
+  } else if (SG_OUTPORTP(p)) {
+    Sg_PutuzUnsafe(port, UC("-output-port"));
+  } else {
+    /* TODO in/out port */
+  }
+  file = Sg_FileName(p);
+  if (!SG_FALSEP(file)) {
+    Sg_PutcUnsafe(port, ' ');
+    Sg_PutuzUnsafe(port, SG_FILE(file)->name);
+  }
+  Sg_PutcUnsafe(port, '>');
+}
+
 #define SPBUFSIZ  50
 #define CASE_ITAG(obj, str)				\
   case SG_ITAG(obj): Sg_PutuzUnsafe(port, str); break;
@@ -590,7 +640,7 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
   SgHashTable *ht = ctx->table;
 
   if (ctx->flags & WRITE_LIMITED) {
-    if (SG_TEXTUAL_PORT(port)->src.outstr.index >= ctx->limit) return;
+    if (SG_TEXTUAL_PORT(port)->src.buffer.index >= ctx->limit) return;
   }
 
   if (!SG_PTRP(obj)) {
@@ -742,6 +792,8 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
     write_instance(SG_INSTANCE(obj), port, ctx);
   } else if (SG_BVECTORP(obj)) {
     write_bytevector(SG_BVECTOR(obj), port, ctx);
+  } else if (SG_PORTP(obj)) {
+    write_port(SG_PORT(obj), port, ctx);
   } else {
     Sg_PutuzUnsafe(port, UC("#<unknown datum>"));
   }

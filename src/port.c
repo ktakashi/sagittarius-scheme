@@ -32,6 +32,7 @@
 #include <string.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/port.h"
+#include "sagittarius/bytevector.h"
 #include "sagittarius/file.h"
 #include "sagittarius/transcoder.h"
 #include "sagittarius/string.h"
@@ -163,43 +164,45 @@ SgObject Sg_MakeFileBinaryOutputPort(SgFile *file)
   return SG_OBJ(z);
 }
 
-static int byteArrayClose(SgObject self)
+/*****
+   ByteArray port
+ */
+static int byte_array_close(SgObject self)
 {
   SG_PORT(self)->closed = TRUE;
   return TRUE;
 }
 
-static int byteArrayOpen(SgObject self)
+static int byte_array_open(SgObject self)
 {
   return TRUE;
 }
 
-static int getByteArrayU8(SgObject self)
+static int get_byte_array_u8(SgObject self)
 {
-  int index = SG_BINARY_PORT(self)->src.ibuf.index;
-  int size =  SG_BINARY_PORT(self)->src.ibuf.size;
+  int index = SG_BINARY_PORT(self)->src.buffer.index;
+  int size =  SG_BVECTOR_SIZE(SG_BINARY_PORT(self)->src.buffer.bvec);
   if (index >= size) return EOF;
-  return SG_BINARY_PORT(self)->src.ibuf.bytes[SG_BINARY_PORT(self)->src.ibuf.index++];
+  return Sg_ByteVectorU8Ref(SG_BINARY_PORT(self)->src.buffer.bvec,
+			    SG_BINARY_PORT(self)->src.buffer.index++);
 }
 
 static int64_t byte_array_read_u8_ahead(SgObject self, uint8_t *buf, int64_t size)
 {
   SgBinaryPort *bp = SG_BINARY_PORT(self);
-  int bindex = bp->src.ibuf.index;
-  int bsize = bp->src.ibuf.size;
+  SgByteVector *bvec = bp->src.buffer.bvec;
+  int bsize = SG_BVECTOR_SIZE(bvec);
+  int bindex = bp->src.buffer.index;
   int rest = bsize - bindex;
   int i, read_size = (rest >= size) ? size : rest;
 
   for (i = 0; i < read_size; i++) {
-    buf[i] = bp->src.ibuf.bytes[bindex + i];
+    buf[i] = Sg_ByteVectorU8Ref(bvec, bindex + i);
   }
 
   return read_size;
 }
 
-/* 
-   ByteArray port
- */
 SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size)
 {
   /* TODO is buffer mode correct? */
@@ -208,13 +211,12 @@ SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size)
 
   z->closed = FALSE;
   z->flush = NULL;
-  z->close = byteArrayClose;
+  z->close = byte_array_close;
   /* initialize binary input port */
-  b->src.ibuf.bytes = src;
-  b->src.ibuf.size = size;
-  b->src.ibuf.index = 0;
-  b->open = byteArrayOpen;
-  b->getU8 = getByteArrayU8;
+  b->src.buffer.bvec = SG_BVECTOR(Sg_MakeByteVectorFromU8Array(src, size));
+  b->src.buffer.index = 0;
+  b->open = byte_array_open;
+  b->getU8 = get_byte_array_u8;
   b->readU8Ahead = byte_array_read_u8_ahead;
   b->putU8 = NULL;
   b->putU8Array = NULL;
@@ -230,15 +232,16 @@ static int obyte_array_close(SgObject self)
 {
   SG_PORT(self)->closed = TRUE;
   /* gc friendliness */
-  SG_BINARY_PORT(self)->src.obuf.buffer = NULL;
+  SG_BINARY_PORT(self)->src.buffer.bvec = NULL;
   return TRUE;
 }
 
 static int64_t put_byte_array_u8_array(SgObject self, uint8_t *buf, int64_t size)
 {
   SgBinaryPort *bp = SG_BINARY_PORT(self);
-  int current_size = bp->src.obuf.size;
-  int current_index = bp->src.obuf.index;
+  SgByteVector *bvec = bp->src.buffer.bvec;
+  int current_size = SG_BVECTOR_SIZE(bvec);
+  int current_index = bp->src.buffer.index;
   int i;
 
   if (current_index + size >= current_size) {
@@ -247,15 +250,15 @@ static int64_t put_byte_array_u8_array(SgObject self, uint8_t *buf, int64_t size
       overflow. Why not allocate bigger to avoid memory allocating?
      */
     int new_size = current_size + size + INCREASE_BUFFER_SIZE;
-    uint8_t *tmp = SG_NEW_ATOMIC2(uint8_t*, sizeof(uint8_t) * new_size);
-    memcpy(tmp, bp->src.obuf.buffer, current_index);
-    bp->src.obuf.buffer = tmp;
-    bp->src.obuf.size = new_size;
+    SgByteVector *tmp = Sg_MakeByteVector(new_size, 0);
+    Sg_ByteVectorCopyX(bvec, 0, tmp, 0, current_index);
+    bp->src.buffer.bvec = tmp;
+    bvec = tmp;			/* for convenience */
   }
   for (i = 0; i < size; i++) {
-    bp->src.obuf.buffer[bp->src.obuf.index + i] = buf[i];
+    Sg_ByteVectorU8Set(bvec, current_index + i, buf[i]);
   }
-  bp->src.obuf.index += size;
+  bp->src.buffer.index += size;
   return size;
 }
 
@@ -276,11 +279,9 @@ SgObject Sg_MakeByteArrayOutputPort(int size)
   z->flush = NULL;
   z->close = obyte_array_close;
   /* initialize binary output port */
-  buffer = SG_NEW_ATOMIC2(uint8_t*, sizeof(uint8_t) * actual_size);
-  b->src.obuf.buffer = buffer;
-  b->src.obuf.size = actual_size;
-  b->src.obuf.index = 0;
-  b->open = byteArrayOpen;
+  b->src.buffer.bvec = SG_BVECTOR(Sg_MakeByteVector(actual_size, 0));
+  b->src.buffer.index = 0;
+  b->open = byte_array_open;
   b->getU8 = NULL;
   b->putU8 = put_byte_array_u8;
   b->putU8Array = put_byte_array_u8_array;
@@ -300,10 +301,15 @@ uint8_t* Sg_GetByteArrayFromBinaryPort(SgPort *port)
     Sg_Error(UC("byte array port required"));
   }
 
-  r = SG_NEW_ATOMIC2(uint8_t*, sizeof(uint8_t) * bp->src.obuf.index);
-  memcpy(r, bp->src.obuf.buffer, bp->src.obuf.index);
+  r = SG_NEW_ATOMIC2(uint8_t*, sizeof(uint8_t) * bp->src.buffer.index);
+  memcpy(r, SG_BVECTOR_ELEMENTS(bp->src.buffer.bvec), bp->src.buffer.index);
   return r;
 }
+
+
+/*****
+   Transcoded port
+ */
 
 /* look ahead char is common for all textual ports */
 static SgChar lookAheadChar(SgObject self)
@@ -396,6 +402,10 @@ SgObject Sg_MakeTranscodedOutputPort(SgPort *port, SgTranscoder *transcoder)
   return SG_OBJ(z);
 }
 
+/*****
+   Transcoded port
+ */
+
 /* String output port */
 
 static void string_port_flush(SgObject self)
@@ -412,57 +422,62 @@ static int string_iport_close(SgObject self)
 static int string_oport_close(SgObject self)
 {
   SG_PORT(self)->closed = TRUE;
-  SG_TEXTUAL_PORT(self)->src.outstr.buffer = NULL;
+  SG_TEXTUAL_PORT(self)->src.buffer.str = NULL;
   return TRUE;
 }
 
 static void string_oport_putchar(SgObject self, SgChar c)
 {
   SgTextualPort *tp = SG_TEXTUAL_PORT(self);
-  int current_size = tp->src.outstr.size;
-  int current_index = tp->src.outstr.index;
+  SgString *str = tp->src.buffer.str;
+  int current_size = SG_STRING_SIZE(str);
+  int current_index = tp->src.buffer.index;
 
   if (current_index + 1 >= current_size) {
     int new_size = current_size + INCREASE_BUFFER_SIZE, i;
-    SgChar *tmp = SG_NEW_ATOMIC2(SgChar*, sizeof(SgChar) * new_size);
-    memset(tmp, 0, new_size * sizeof(SgChar));
-    memcpy(tmp, tp->src.outstr.buffer, current_index * sizeof(SgChar));
-    tp->src.outstr.buffer = tmp;
-    tp->src.outstr.size = new_size;
+    SgString *tmp = Sg_ReserveString(new_size);
+    memcpy(SG_STRING_VALUE(tmp), SG_STRING_VALUE(str),
+	   current_index * sizeof(SgChar));
+    tp->src.buffer.str = tmp;
+    str = tmp;
   }
-  tp->src.outstr.buffer[current_index] = c;
-  tp->src.outstr.index++;
+  SG_STRING_VALUE_AT(str, current_index) = c;
+  tp->src.buffer.index++;
 }
 
 static SgChar string_iport_getchar(SgObject self)
 {
   SgChar ch;
-  int size = SG_TEXTUAL_PORT(self)->src.instr.size;
-  int index = SG_TEXTUAL_PORT(self)->src.instr.index;
+  SgString *str = SG_TEXTUAL_PORT(self)->src.buffer.str;
+  int size = SG_STRING_SIZE(str);
+  int index = SG_TEXTUAL_PORT(self)->src.buffer.index;
   if (size == index) {
     return EOF;
   }
-  ch = SG_TEXTUAL_PORT(self)->src.instr.start[index];
+  ch = SG_STRING_VALUE_AT(str, index);
   if (ch == '\n') {
-    SG_TEXTUAL_PORT(self)->src.instr.lineNo++;
+    SG_TEXTUAL_PORT(self)->src.buffer.lineNo++;
   }
-  SG_TEXTUAL_PORT(self)->src.instr.index++;
+  SG_TEXTUAL_PORT(self)->src.buffer.index++;
   return ch;
 }
 
 static void string_iport_ungetchar(SgObject self, SgChar c)
 {
   if (EOF == c) return;
-  SG_TEXTUAL_PORT(self)->src.instr.index--;
+  SG_TEXTUAL_PORT(self)->src.buffer.index--;
 }
 
 static int string_iport_getlineno(SgObject self)
 {
-  return SG_TEXTUAL_PORT(self)->src.instr.lineNo;
+  return SG_TEXTUAL_PORT(self)->src.buffer.lineNo;
 }
 
 static SgChar string_iport_look_aheadchar(SgObject self)
 {
+  SgString *str = SG_TEXTUAL_PORT(self)->src.buffer.str;
+  int current_index = SG_TEXTUAL_PORT(self)->src.buffer.index;
+  return SG_STRING_VALUE_AT(str, current_index + 1);
 }
 
 
@@ -470,18 +485,15 @@ SgObject Sg_MakeStringOutputPort(int bufferSize)
 {
   SgPort *z = make_port(SG_OUTPUT_PORT, SG_TEXTUAL_PORT_TYPE, SG_NONE);
   SgTextualPort *t = make_textual_port(SG_STRING_TEXTUAL_PORT_TYPE);
-  SgChar *buffer;
   int size = (bufferSize > 0) ? bufferSize : DEFAULT_BUFFER_SIZE;
 
   z->closed = FALSE;
   z->flush = string_port_flush;
   z->close = string_oport_close;
 
-  buffer = SG_NEW_ATOMIC2(SgChar*, sizeof(SgChar)*size);
-  memset(buffer, 0, sizeof(SgChar)*size);
-  t->src.outstr.buffer = buffer;
-  t->src.outstr.size = size;
-  t->src.outstr.index = 0;
+  t->src.buffer.str = Sg_ReserveString(size);
+  t->src.buffer.index = 0;
+  t->src.buffer.lineNo = -1;
   t->getChar = NULL;
   t->unGetChar = NULL;
   t->getLineNo = NULL;
@@ -501,10 +513,9 @@ SgObject Sg_MakeStringInputPort(SgString *s, int private)
   z->flush = string_port_flush;
   z->close = string_iport_close;
 
-  t->src.instr.start = s->value;
-  t->src.instr.index = 0;
-  t->src.instr.size  = s->size;
-  t->src.instr.lineNo  = 1;
+  t->src.buffer.str = s;
+  t->src.buffer.index = 0;
+  t->src.buffer.lineNo  = 1;
 
   t->getChar = string_iport_getchar;
   t->unGetChar = string_iport_ungetchar;
@@ -519,13 +530,17 @@ SgObject Sg_MakeStringInputPort(SgString *s, int private)
 SgObject Sg_GetStringFromStringPort(SgPort *port)
 {
   SgTextualPort *tp = SG_TEXTUAL_PORT(port);
-  SgObject *s;
   if (tp->type != SG_STRING_TEXTUAL_PORT_TYPE) {
     Sg_Error(UC("string textual port required"));
   }
-  /* input string could do it also, so i don't check direction */
-  s = Sg_MakeString(tp->src.outstr.buffer, SG_LITERAL_STRING);
-  return s;
+  if (SG_INPORTP(port)) {
+    /* TODO should this return from current index? */
+    return tp->src.buffer.str;
+  } else {
+    SgString *ret = Sg_CopyString(tp->src.buffer.str);
+    SG_STRING_SIZE(ret) = tp->src.buffer.index;
+    return ret;
+  }
 }
 
 void Sg_ClosePort(SgPort *port)

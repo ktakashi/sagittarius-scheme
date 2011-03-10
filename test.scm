@@ -1,7 +1,7 @@
 ;(import (sagittarius compiler))
 (import (rnrs))
 
-(define v #(1 #f #f))
+(define v '#(1 #f #f))
 (vector? v)
 (vector-ref v 0)
 (vector-set! v 1 2)
@@ -88,8 +88,8 @@
 (print (/ 1 2))
 (print (+ 10000000000 10000000000))
 
-(define v #(1 2 3))
-(define v2 #(1 2 3))
+(define v '#(1 2 3))
+(define v2 '#(1 2 3))
 (print (vector? v))
 (print v)
 (print (eqv? v v2))
@@ -151,3 +151,7 @@
 (print 1.539989614439558e-36)
 (print (bytevector-ieee-single-ref #vu8(1 2 3 4) 0 'little))
 (print (bytevector-ieee-double-ref #vu8(1 2 3 4 5 6 7 8) 0 'little))
+
+(let ((in (open-file-input-port "test.scm" (file-options no-truncate) 'block (native-transcoder))))
+  (print in)
+  (close-input-port in))
