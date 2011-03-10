@@ -322,7 +322,7 @@ int Sg_BignumCmp3U(SgBignum *bx, SgBignum *off, SgBignum *by)
     }
     if (osize == ysize) {
       if (off->elements[osize - 1] > by->elements[ysize - 1]) return 1;
-      if (off->elements[osize - 1] > by->elements[ysize - 1] - 1) return -1;
+      if (off->elements[osize - 1] < by->elements[ysize - 1] - 1) return -1;
     }
   } else {
     /* xsize == ysize */
@@ -875,7 +875,7 @@ static SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
 static SgBignum* bignum_mul(SgBignum *bx, SgBignum *by)
 {
   unsigned int i;
-  SgBignum *br = make_bignum(SG_BIGNUM_GET_SIGN(bx) + SG_BIGNUM_GET_SIGN(by));
+  SgBignum *br = make_bignum(SG_BIGNUM_GET_COUNT(bx) + SG_BIGNUM_GET_COUNT(by));
   for (i = 0; i < SG_BIGNUM_GET_COUNT(by); i++) {
     bignum_mul_word(br, bx, by->elements[i], i);
   }
@@ -1000,7 +1000,7 @@ static SgBignum* bignum_gdiv(SgBignum *dividend, SgBignum *divisor,
     }
     SETDIGIT(quotient, j, qq);
   }
-  bignum_lshift(u, u, d);
+  bignum_rshift(u, u, d);
   return u;
 }
 
@@ -1033,7 +1033,7 @@ SgObject Sg_BignumDivRem(SgBignum *a, SgBignum *b)
   q = make_bignum(SG_BIGNUM_GET_COUNT(a) - SG_BIGNUM_GET_COUNT(b) + 1);
   r = bignum_gdiv(a, b, q);
   SG_BIGNUM_SET_SIGN(q, SG_BIGNUM_GET_SIGN(a) * SG_BIGNUM_GET_SIGN(b));
-  SG_BIGNUM_SET_SIGN(q, SG_BIGNUM_GET_SIGN(a));
+  SG_BIGNUM_SET_SIGN(r, SG_BIGNUM_GET_SIGN(a));
   return Sg_Cons(Sg_NormalizeBignum(q), Sg_NormalizeBignum(r));
 }
 

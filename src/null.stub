@@ -51,10 +51,10 @@
 	    bytevector-ieee-single-set! bytevector-ieee-single-native-set!
 	    bytevector-ieee-double-ref bytevector-ieee-double-native-ref
 	    bytevector-ieee-double-set! bytevector-ieee-double-native-set!
-	    bytevector-uint-ref bytevector-sint-ref
-	    bytevector-uint-set!  bytevector-sint-set!
-	    bytevector->uint-list bytevector->sint-list
-	    uint-list->bytevector sint-list->bytevector
+	    ;;bytevector-uint-ref bytevector-sint-ref
+	    ;;bytevector-uint-set!  bytevector-sint-set!
+	    ;;bytevector->uint-list bytevector->sint-list
+	    ;;uint-list->bytevector sint-list->bytevector
 	    string->utf8 utf8->string
 	    string->utf16 utf16->string
 	    string->utf32 utf32->string
@@ -480,20 +480,24 @@
 
   ;; byte-vector
 #|
-endianness native-endianness bytevector=?
-bytevector-copy! bytevector-copy
-bytevector-ieee-single-ref bytevector-ieee-single-native-ref
-bytevector-ieee-single-set! bytevector-ieee-single-native-set!
-bytevector-ieee-double-ref bytevector-ieee-double-native-ref
-bytevector-ieee-double-set! bytevector-ieee-double-native-set!
-bytevector-uint-ref bytevector-sint-ref
-bytevector-uint-set!  bytevector-sint-set!
-bytevector->uint-list bytevector->sint-list
-uint-list->bytevector sint-list->bytevector
 string->utf8 utf8->string
 string->utf16 utf16->string
 string->utf32 utf32->string
 |#
+  (define-c-proc native-endianness () ::Object
+    (result (Sg_NativeEndianness)))
+
+  (define-c-proc bytevector=? (bv1::ByteVector bv2::ByteVector) ::boolean
+    (result (Sg_ByteVectorEqP bv1 bv2)))
+
+  (define-c-proc bytevector-copy (src::ByteVector) ::Object
+    (result (Sg_ByteVectorCopy src)))
+
+  (define-c-proc bytevector-copy! (src::ByteVector sstart::fixnum
+				   dst::ByteVector dstart::fixnum
+				   k::fixnum) ::void
+    (Sg_ByteVectorCopyX src sstart dst dstart k))
+
   (define-c-proc make-bytevector (len::fixnum :optional (fill::fixnum 0)) ::Object
     (result (Sg_MakeByteVector len fill)))
 
@@ -795,7 +799,77 @@ string->utf32 utf32->string
 	     (Sg_ByteVectorS64LittleSet bv index value))
 	    (else
 	     (Sg_Error "unsupported endianness %S" endian)))))
+  ;; ieee util
+  (define-cgen-stmt check-real
+    ((_ o)
+     (dispatch
+      `(unless (SG_REALP ,o)
+	 (Sg_Error "real number required, but got %S" ,o)))))
 
+  ;; ieee-single
+  (define-c-proc bytevector-ieee-single-native-ref (bv::ByteVector index::fixnum) ::Object
+    (bv-check-index bv index 3)
+    (bv-check-align index 4)
+    (result (Sg_MakeFlonum (Sg_ByteVectorIEEESingleNativeRef bv index))))
+
+  (define-c-proc bytevector-ieee-single-ref (bv::ByteVector index::fixnum endian::Symbol) ::Object
+    (bv-check-index bv index 3)
+    (cond ((SG_EQ endian 'big)
+	   (result (Sg_MakeFlonum (Sg_ByteVectorIEEESingleBigRef bv index))))
+	  ((SG_EQ endian 'little)
+	   (result (Sg_MakeFlonum (Sg_ByteVectorIEEESingleLittleRef bv index))))
+	  (else
+	   (Sg_Error "unsupported endianness %S" endian))))
+  
+  (define-c-proc bytevector-ieee-single-native-set! (bv::ByteVector index::fixnum v::number) ::void
+    (bv-check-index bv index 3)
+    (bv-check-align index 4)
+    (check-real v)
+    (let ((value::double (Sg_GetDouble v)))
+      (Sg_ByteVectorIEEESingleNativeSet bv index (cast float value))))
+
+  (define-c-proc bytevector-ieee-single-set! (bv::ByteVector index::fixnum v::number endian::Symbol) ::void
+    (bv-check-index bv index 3)
+    (check-real v)
+    (let ((value::double (Sg_GetDouble v)))
+      (cond ((SG_EQ endian 'big)
+	     (Sg_ByteVectorIEEESingleBigSet bv index (cast float value)))
+	    ((SG_EQ endian 'little)
+	     (Sg_ByteVectorIEEESingleLittleSet bv index (cast float value)))
+	    (else
+	     (Sg_Error "unsupported endianness %S" endian)))))
+  ;; ieee-double
+  (define-c-proc bytevector-ieee-double-native-ref (bv::ByteVector index::fixnum) ::Object
+    (bv-check-index bv index 7)
+    (bv-check-align index 8)
+    (result (Sg_MakeFlonum (Sg_ByteVectorIEEEDoubleNativeRef bv index))))
+
+  (define-c-proc bytevector-ieee-double-ref (bv::ByteVector index::fixnum endian::Symbol) ::Object
+    (bv-check-index bv index 7)
+    (cond ((SG_EQ endian 'big)
+	   (result (Sg_MakeFlonum (Sg_ByteVectorIEEEDoubleBigRef bv index))))
+	  ((SG_EQ endian 'little)
+	   (result (Sg_MakeFlonum (Sg_ByteVectorIEEEDoubleLittleRef bv index))))
+	  (else
+	   (Sg_Error "unsupported endianness %S" endian))))
+  
+  (define-c-proc bytevector-ieee-double-native-set! (bv::ByteVector index::fixnum v::number) ::void
+    (bv-check-index bv index 7)
+    (bv-check-align index 8)
+    (check-real v)
+    (let ((value::double (Sg_GetDouble v)))
+      (Sg_ByteVectorIEEEDoubleNativeSet bv index value)))
+
+  (define-c-proc bytevector-ieee-double-set! (bv::ByteVector index::fixnum v::number endian::Symbol) ::void
+    (bv-check-index bv index 7)
+    (check-real v)
+    (let ((value::double (Sg_GetDouble v)))
+      (cond ((SG_EQ endian 'big)
+	     (Sg_ByteVectorIEEEDoubleBigSet bv index value))
+	    ((SG_EQ endian 'little)
+	     (Sg_ByteVectorIEEEDoubleLittleSet bv index value))
+	    (else
+	     (Sg_Error "unsupported endianness %S" endian)))))
   
   ;; conditions
   (define-c-proc vector? (arg0::Object) (inline VECTORP) ::boolean

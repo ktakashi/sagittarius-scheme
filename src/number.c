@@ -179,12 +179,12 @@ static int64_t decode_double(double n, int *exp, int *sign)
   if (isnan(n)) {
     *exp = 972;
     *sign = 1;
-    return 0x18000000000000LL; // (uint64_t)0x180000 << 32;
+    return 0x18000000000000LL; /* (uint64_t)0x180000 << 32; */
   }
   if (isinf(n)) {
     *exp = 972;
     *sign = sign_bits ? -1 : 1;
-    return 0x10000000000000LL; // (uint64_t)0x100000 << 32;
+    return 0x10000000000000LL; /* (uint64_t)0x100000 << 32; */
   }
   ASSERT(exp_bits != 0x7ff);
   *exp = (exp_bits ? (int)exp_bits - 1023 : -1022) - 52;
@@ -482,7 +482,7 @@ static SgObject read_real(const SgChar **strp, int *lenp,
     (*strp)++; (*lenp)--;
     lensave = *lenp;
     fraction = read_uint(strp, lenp, ctx, intpart);
-    fracdigs = lensave = *lenp;
+    fracdigs = lensave - *lenp;
   } else {
     fraction = intpart;
   }
@@ -964,7 +964,7 @@ SgObject Sg_DecodeFlonum(double d, int *exp, int *sign)
   SgObject f;
   int exp0, sign0;
   int64_t mant = decode_double(d, &exp0, &sign0);
-  f = bn_demote(Sg_MakeBignumFromS64(mant));
+  f = int64_to_integer(mant);
   *exp = exp0;
   *sign = sign0;
   return f;
@@ -2442,7 +2442,7 @@ static void double_print(char *buf, int buflen, double val, int plus_sign)
     if (est >= 0) {
       s = Sg_Mul(s, Sg_Expt(SG_MAKE_INT(10), SG_MAKE_INT(est)));
     } else {
-      SgObject scale = Sg_Mul(s, Sg_Expt(SG_MAKE_INT(10), SG_MAKE_INT(-est)));
+      SgObject scale = Sg_Expt(SG_MAKE_INT(10), SG_MAKE_INT(-est));
       r = Sg_Mul(r, scale);
       mm = Sg_Mul(mm, scale);
     }
@@ -2500,13 +2500,18 @@ static void double_print(char *buf, int buflen, double val, int plus_sign)
 	  break;
 	}
       } else {
-	tc3 = numcmp3(r, r, s);
-	if ((round && tc3 <= 0) || (!round && tc3 < 0)) {
+	if (!tc2) {
 	  *buf++ = (char)SG_INT_VALUE(q) + '0';
 	  break;
 	} else {
-	  *buf++ = (char)SG_INT_VALUE(q) + '1';
-	  break;
+	  tc3 = numcmp3(r, r, s);
+	  if ((round && tc3 <= 0) || (!round && tc3 < 0)) {
+	    *buf++ = (char)SG_INT_VALUE(q) + '0';
+	    break;
+	  } else {
+	    *buf++ = (char)SG_INT_VALUE(q) + '1';
+	    break;
+	  }
 	}
       }
     }

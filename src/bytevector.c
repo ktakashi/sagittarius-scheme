@@ -36,6 +36,7 @@
 #include "sagittarius/number.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/error.h"
+#include "sagittarius/symbol.h"
 
 SgByteVector* make_bytevector(size_t size)
 {
@@ -59,6 +60,52 @@ SgObject Sg_MakeByteVector(size_t size, int fill)
     b->elements[i] = fill;
   }
   return SG_OBJ(b);
+}
+
+int Sg_ByteVectorEqP(SgByteVector *bv1, SgByteVector *bv2)
+{
+  if (SG_BVECTOR_SIZE(bv1) == SG_BVECTOR_SIZE(bv2)) {
+    return memcmp(SG_BVECTOR_ELEMENTS(bv1),
+		  SG_BVECTOR_ELEMENTS(bv2),
+		  SG_BVECTOR_SIZE(bv1)) == 0;
+  } else {
+    return FALSE;
+  }
+}
+
+SgObject Sg_ByteVectorCopy(SgByteVector *src)
+{
+  SgByteVector *dst = make_bytevector(SG_BVECTOR_SIZE(src));
+  memcpy(SG_BVECTOR_ELEMENTS(dst), SG_BVECTOR_ELEMENTS(src), SG_BVECTOR_SIZE(src));
+  return SG_OBJ(dst);
+}
+
+void Sg_ByteVectorCopyX(SgByteVector *src, int srcStart,
+			SgByteVector *dst, int dstStart,
+			int k)
+{
+  int srcLen = SG_BVECTOR_SIZE(src);
+  int dstLen = SG_BVECTOR_SIZE(dst);
+  if ((srcStart <= srcStart + k) &&
+      (srcStart + k <= srcLen) &&
+      (0 <= dstStart) &&
+      (dstStart <= dstStart + k) &&
+      (dstStart + k <= dstLen)) {
+    memmove(SG_BVECTOR_ELEMENTS(dst) + dstStart,
+	    SG_BVECTOR_ELEMENTS(src) + srcStart,
+	    k);
+  } else {
+    Sg_Error(UC("bytevector-copy!: invalid range"));
+  }
+}
+
+SgObject Sg_NativeEndianness()
+{
+#if WORDS_BIGENDIAN
+  return SG_INTERN("big");
+#else
+  return SG_INTERN("little");
+#endif
 }
 
 static inline size_t nbits32(uint32_t x) {

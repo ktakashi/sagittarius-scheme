@@ -147,3 +147,7 @@
 (print (bytevector-u16-ref #vu8(#xFF #xFF) 0 'little))
 (print (bytevector-u32-ref #vu8(#xFF #xFF #xFF #xFF) 0 'little))
 (print (bytevector-u64-ref #vu8(#xFF #xFF #xFF #xFF #xFF #xFF #xFF #xFF) 0 'little))
+(print (native-endianness))
+(print 1.539989614439558e-36)
+(print (bytevector-ieee-single-ref #vu8(1 2 3 4) 0 'little))
+(print (bytevector-ieee-double-ref #vu8(1 2 3 4 5 6 7 8) 0 'little))

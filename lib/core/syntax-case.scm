@@ -7,7 +7,7 @@
 	    (sagittarius vm)
 	    (sagittarius compiler)
 	    (core base)
-	    (core syntax match)
+	    ;(core syntax match)
 	    (core syntax helper))
 
   ;;
@@ -65,17 +65,17 @@
 						 ellipses))))
 		(loop (cddr template) ellipses)))
 	      ((pair? template)
-	       (if (compare (car template) 'syntax)
-		   (expand-syntax template)
+	       ;(if (compare (car template) 'syntax)
+		   ;(expand-syntax template)
 		   (cons (loop (car template) ellipses)
-			 (loop (cdr template) ellipses))))
+			 (loop (cdr template) ellipses)));)
 	      ((vector? template)
 	       (loop (vector->list template) ellipses))
 	      (else
 	       template))))
     (let ((r (inner)))
 	  r))
-
+#|
   (define (expand-syntax form)
     (smatch form
       ((- template)
@@ -145,7 +145,7 @@
        `(list->vector ,(process-template ts dim ellipses-quoted?)))
       (other
        `(quote ,(expand other)))))
-
+|#
   (define (generate-ellipsis rename ellipsis body)
     (let ((sids (ellipsis-sids ellipsis))
 	  (r-map (rename 'map)))

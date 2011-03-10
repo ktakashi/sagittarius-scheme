@@ -58,6 +58,12 @@ SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeByteVector(size_t size, int fill);
 
+SG_EXTERN SgObject Sg_NativeEndianness();
+SG_EXTERN int      Sg_ByteVectorEqP(SgByteVector *bv1, SgByteVector *bv2);
+SG_EXTERN SgObject Sg_ByteVectorCopy(SgByteVector *src);
+SG_EXTERN void     Sg_ByteVectorCopyX(SgByteVector *src, int srcStart,
+				      SgByteVector *dst, int dstStart,
+				      int size);
 SG_EXTERN SgObject Sg_ListToByteVector(SgObject lst, size_t bitCount, int signP);
 SG_EXTERN SgObject Sg_ByteVectorToList(SgByteVector *bv, size_t bitCount, int signP);
 SG_EXTERN void     Sg_ByteVectorFill(SgByteVector *bv, int value);
