@@ -9,6 +9,8 @@
 
 	    ;; io
 	    display newline write write/ss
+	    ;; ports
+	    port? input-port? output-port?
 	    flush-output-port current-output-port
 	    open-file-input-port open-file-output-port
 	    close-input-port close-output-port
@@ -19,7 +21,7 @@
 	    native-transcoder
 
 	    ;; list 
-	    cons car cdr acons cons*
+	    cons car cdr caar cadr cdar cddr acons cons*
 	    list length append append! reverse
 	    memq memv member assq assv assoc
 	    list->vector list-transpose+
@@ -33,10 +35,11 @@
 	    ;; vector
 	    vector? vector vector-set! vector-ref
 	    vector-length make-vector
-	    vector->list
+	    vector->list vector-fill!
 
 	    ;; byte-vector
-	    endianness native-endianness
+	    ;;endianness
+	    native-endianness
 	    bytevector? make-bytevector bytevector-length bytevector=?
 	    bytevector-fill! bytevector-copy! bytevector-copy
 	    bytevector-u8-ref bytevector-s8-ref bytevector-u8-set! bytevector-s8-set!
@@ -60,7 +63,8 @@
 	    string->utf32 utf32->string
 
 	    ;; conditions
-	    integer? number? exact? inexact? pair?
+	    integer? number? exact? inexact? pair? real?
+	    complex?
 	    null? list? zero? eof-object?
 	    keyword?
 	    not and
@@ -176,8 +180,17 @@
   (define-c-proc number? (o) ::boolean
     (result (SG_NUMBERP o)))
 
+  (define-c-proc real? (o) ::boolean
+    (result (SG_REALP o)))
+
+  (define-c-proc complex? (o) ::boolean
+    (result (SG_COMPLEXP o)))
+
   (define-c-proc exact? (o) ::boolean
     (result (Sg_ExactP o)))
+
+  (define-c-proc inexact? (o) ::boolean
+    (result (Sg_InexactP o)))
 
   ;; compare
   (define-c-proc eq? (a b) (inline EQ) ::boolean
@@ -210,7 +223,7 @@
 
   ;; io
   (define-c-proc newline (:optional (p (Sg_CurrentOutputPort))) ::void
-    (Sg_Printf p "\n"))
+    (Sg_Putc p #\linefeed))
 
   (define-c-proc display (o :optional (p (Sg_CurrentOutputPort))) ::void
     (Sg_Write o p SG_WRITE_DISPLAY))
@@ -241,6 +254,14 @@
 	   (let ((out (Sg_MakeStringOutputPort 16)))
 	     (Sg_Format out p rest FALSE)
 	     (result (Sg_GetStringFromStringPort out))))))
+
+  ;; port
+  (define-c-proc port? (obj) ::boolean
+    (result (SG_PORTP obj)))
+  (define-c-proc input-port? (obj) ::boolean
+    (result (SG_INPORTP obj)))
+  (define-c-proc output-port? (obj) ::boolean
+    (result (SG_OUTPORTP obj)))
 
   (define-c-proc open-file-input-port (file::String 
 				       :optional option
@@ -349,6 +370,26 @@
       (Sg_Error "pair required, but got %S" o))
     (result (SG_CDR o)))
 
+  (define-c-proc caar (o) ::Object
+    (unless (SG_PAIRP o)
+      (Sg_Error "pair required, but got %S" o))
+    (result (SG_CAAR o)))
+
+  (define-c-proc cadr (o) ::Object
+    (unless (SG_PAIRP o)
+      (Sg_Error "pair required, but got %S" o))
+    (result (SG_CADR o)))
+
+  (define-c-proc cdar (o) ::Object
+    (unless (SG_PAIRP o)
+      (Sg_Error "pair required, but got %S" o))
+    (result (SG_CDAR o)))
+
+  (define-c-proc cddr (o) ::Object
+    (unless (SG_PAIRP o)
+      (Sg_Error "pair required, but got %S" o))
+    (result (SG_CDDR o)))
+
   (define-c-proc acons (a b alist) ::Object
     (result (Sg_Acons a b alist)))
 
@@ -412,15 +453,16 @@
       `(let ((h '())(t '())
 	     (count::int (Sg_Length ,lst))
 	     (argv (Sg_ListToVector ,lst 0 -1))
-	     (lst0 (Sg_VectorRef argv 0 #f)))
+	     (lst0 (SG_VECTOR_ELEMENT argv 0)))
 	 (dolist (l lst0)
 	   (let ((elt (Sg_Cons l '()))
 		 (elt_tail elt)
 		 (n::int 1))
 	     (while (< n count)
-	       (SG_SET_CDR elt_tail (Sg_Cons (SG_CAR (Sg_VectorRef argv n #f)) '()))
+	       (SG_SET_CDR elt_tail (Sg_Cons (SG_CAR (SG_VECTOR_ELEMENT argv n)) '()))
 	       (set! elt_tail (SG_CDR elt_tail))
-	       (Sg_VectorSet argv n (SG_CDR (Sg_VectorRef argv n #f)))
+	       (set! (SG_VECTOR_ELEMENT argv n)
+		     (SG_CDR (SG_VECTOR_ELEMENT argv n)))
 	       (set! n (+ n 1)))
 	     (SG_APPEND1 h t elt)))
 	 (result h)))))
@@ -466,17 +508,28 @@
   (define-c-proc vector-length (vec::Vector) (inline VEC_LEN) ::fixnum
     (result (SG_VECTOR_SIZE vec)))
 
-  (define-c-proc vector-ref (vec::Vector i::fixnum) ::Object
-    (result (Sg_VectorRef vec i SG_UNDEF)))
-
-  (define-c-proc vector-set! (vec::Vector i::fixnum obj) ::Object
-    (result (Sg_VectorSet vec i obj)))
+  (define-c-proc vector-ref (vec::Vector i::fixnum :optional fallback) ::Object
+    (cond ((or (< i 0)
+	       (>= i (SG_VECTOR_SIZE vec)))
+	   (when (SG_UNBOUNDP fallback)
+	     (Sg_Error "vector-ref index out of range: %S" i))
+	   (result fallback))
+	  (else (result (SG_VECTOR_ELEMENT vec i)))))
+     
+  (define-c-proc vector-set! (vec::Vector i::fixnum obj) ::void
+    (cond ((or (< i 0)
+	       (>= i (SG_VECTOR_SIZE vec)))
+	   (Sg_Error "vector-ref index out of range: %S" i))
+	  (else (set! (SG_VECTOR_ELEMENT vec i) obj))))
 
   (define-c-proc vector->list (vec::Vector :optional (start::fixnum 0) (end::fixnum -1)) ::Object
     (result (Sg_VectorToList vec start end)))
   
   (define-c-proc list->vector (arg0) ::Object
     (result (Sg_ListToVector arg0 0 -1)))
+
+  (define-c-proc vector-fill! (vec::Vector fill) ::Object
+    (Sg_VectorFill vec fill 0 -1))
 
   ;; byte-vector
 #|

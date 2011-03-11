@@ -139,6 +139,7 @@ SG_EXTERN SgObject Sg_HashTableRef(SgHashTable *table, SgObject key, SgObject fa
 SG_EXTERN SgObject Sg_HashTableSet(SgHashTable *table, SgObject key, SgObject value, int flags);
 SG_EXTERN SgObject Sg_HashTableDelete(SgHashTable *table, SgObject key);
 
+SG_EXTERN SgObject Sg_HashTableAddAll(SgHashTable *dst, SgHashTable *src);
 SG_EXTERN SgObject Sg_HashTableKeys(SgHashTable *table);
 SG_EXTERN SgObject Sg_HashTableValues(SgHashTable *table);
 /* status for hash table */
@@ -152,5 +153,5 @@ SG_CDECL_END
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

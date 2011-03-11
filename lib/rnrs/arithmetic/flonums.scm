@@ -48,10 +48,10 @@
 	    fixnum->flonum
 	    &no-infinities make-no-infinities-violation no-infinities-violation?
 	    &no-nans make-no-nans-violation no-nans-violation?)
-    (import null)
+    (import (core))
 
 ) ; [end]
 ;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix
-;; End
+;; End:

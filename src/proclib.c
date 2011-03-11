@@ -128,20 +128,20 @@ static SG_DEFINE_SUBR(_sagittarius_compiler_procedure_find_procedure_Stub, 2, 0,
 void Sg__Init_sagittarius_compiler_procedure()
 {
   SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC("(sagittarius compiler procedure)"), SG_LITERAL_STRING)), TRUE);
-  SG_PROCEDURE_NAME(&_sagittarius_compiler_procedure_find_procedure_Stub) = Sg_MakeString(UC("find-procedure"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("find-procedure"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_compiler_procedure_find_procedure_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_compiler_procedure_procedure3f_Stub) = Sg_MakeString(UC("procedure?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("procedure?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_compiler_procedure_procedure3f_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_compiler_procedure_procedure_inliner_set21_Stub) = Sg_MakeString(UC("procedure-inliner-set!"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("procedure-inliner-set!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_compiler_procedure_procedure_inliner_set21_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_compiler_procedure_procedure_inliner_Stub) = Sg_MakeString(UC("procedure-inliner"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("procedure-inliner"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_compiler_procedure_procedure_inliner_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_compiler_procedure_inline3f_Stub) = Sg_MakeString(UC("inline?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("inline?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_compiler_procedure_inline3f_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_compiler_procedure_procedure_optional_Stub) = Sg_MakeString(UC("procedure-optional"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("procedure-optional"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_compiler_procedure_procedure_optional_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_compiler_procedure_procedure_reqargs_Stub) = Sg_MakeString(UC("procedure-reqargs"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("procedure-reqargs"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_compiler_procedure_procedure_reqargs_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_compiler_procedure_procedure_name_Stub) = Sg_MakeString(UC("procedure-name"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("procedure-name"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_compiler_procedure_procedure_name_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_compiler_procedure_inline3f_Stub) = Sg_MakeString(UC("inline?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("inline?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_compiler_procedure_inline3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_compiler_procedure_find_procedure_Stub) = Sg_MakeString(UC("find-procedure"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("find-procedure"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_compiler_procedure_find_procedure_Stub));
 }

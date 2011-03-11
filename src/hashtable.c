@@ -519,6 +519,17 @@ SgObject Sg_HashTableDelete(SgHashTable *table, SgObject key)
   else return SG_UNBOUND;
 }
 
+SgObject Sg_HashTableAddAll(SgHashTable *dst, SgHashTable *src)
+{
+  SgObject keys = Sg_HashTableKeys(src);
+  SgObject cp, key;
+  SG_FOR_EACH(cp, keys) {
+    key = SG_CAR(cp);
+    Sg_HashTableSet(dst, key, Sg_HashTableRef(src, key, SG_UNBOUND), 0);
+  }
+  return keys;
+}
+
 SgObject Sg_HashTableKeys(SgHashTable *table)
 {
   SgHashIter itr;
@@ -562,5 +573,5 @@ unsigned int round2up(unsigned int val)
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

@@ -8,7 +8,7 @@
 	    syntax->datum datum->syntax generate-temporaries
 	    with-syntax quasisyntax unsyntax unsyntax-splicing
 	    syntax-violation)
-    (import null
+    (import (core)
 	    (sagittarius)
 	    (core syntax-case)
 	    (core with-syntax))

@@ -485,6 +485,9 @@ static SgObject read_real(const SgChar **strp, int *lenp,
     fracdigs = lensave - *lenp;
   } else {
     fraction = intpart;
+    if (ctx->exactness == NOEXACT) {
+      return intpart;
+    }
   }
 
   if (SG_FALSEP(intpart)) {
@@ -627,8 +630,13 @@ static SgObject read_number(const SgChar *str, int len, int radix, int strict)
   if (*str == '+' || *str == '-') {
     if (len == 1) return SG_FALSE;
     if (len == 2 && (str[1] == 'i' || str[1] == 'I')) {
-      return Sg_MakeComplex(Sg_MakeFlonum(0.0),
-			    Sg_MakeFlonum((*str == '+') ? 1.0 : -1.0));
+      if (IS_INEXACT(&ctx)) {
+	return Sg_MakeComplex(Sg_MakeFlonum(0.0),
+			      Sg_MakeFlonum((*str == '+') ? 1.0 : -1.0));
+      } else {
+	return Sg_MakeComplex(SG_MAKE_INT(0),
+			      SG_MAKE_INT((*str == '+') ? 1 : -1));
+      }
     }
     sign_seen = TRUE;
   }
@@ -654,8 +662,13 @@ static SgObject read_number(const SgChar *str, int len, int radix, int strict)
     if (len <= 1) {
       return SG_FALSE;
     } else if (len == 2 && (str[1] == 'i' || str[1] == 'I')) {
-      return Sg_MakeComplex(realpart,
-			    Sg_MakeFlonum((*str == '+') ? 1.0 : -1.0));
+      if (IS_INEXACT(&ctx)) {
+	return Sg_MakeComplex(realpart,
+			      Sg_MakeFlonum((*str == '+') ? 1.0 : -1.0));
+      } else {
+	return Sg_MakeComplex(realpart,
+			      SG_MAKE_INT((*str == '+') ? 1 : -1));
+      }
     } else {
       SgObject imagpart = read_real(&str, &len, &ctx);
       if (SG_FALSEP(imagpart) || len != 1 || *str != 'i') {
@@ -669,7 +682,10 @@ static SgObject read_number(const SgChar *str, int len, int radix, int strict)
     /* '+' <ureal> 'i' or '-' <ureal> 'i' */
     if (!sign_seen || len != 1) return SG_FALSE;
     if (Sg_Sign(realpart) == 0) return realpart;
-    else return Sg_MakeComplex(Sg_MakeFlonum(0.0), realpart);
+    else {
+      if (IS_INEXACT(&ctx)) return Sg_MakeComplex(Sg_MakeFlonum(0.0), realpart);
+      else return Sg_MakeComplex(SG_MAKE_INT(0), realpart);
+    }
   default:
     return SG_FALSE;
   }
@@ -686,7 +702,7 @@ SgObject Sg_MakeInteger(long x)
 
 SgObject Sg_MakeIntegerU(unsigned long x)
 {
-  if (x <= (unsigned long)SG_INT_MIN) {
+  if (x <= (unsigned long)SG_INT_MAX) {
     return SG_MAKE_INT(x);
   } else {
     return Sg_MakeBignumFromUI(x);
@@ -2610,5 +2626,5 @@ void Sg__InitNumber()
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

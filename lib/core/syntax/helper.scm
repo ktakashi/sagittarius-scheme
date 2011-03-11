@@ -16,7 +16,7 @@
 	    parse-pattern)
     (import null
 	    (sagittarius)
-	    (sagittarius vm)
+	    ;(sagittarius vm)
 	    (core base)
 	    (core misc)
 	    (core struct))

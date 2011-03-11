@@ -465,5 +465,5 @@ int SG_EqualM(SgObject x, SgObject y, int mode)
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

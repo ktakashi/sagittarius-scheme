@@ -174,9 +174,16 @@ SgObject Sg_MakeTranscoder(SgCodec *codec, EolStyle eolStyle, ErrorHandlingMode 
   return SG_OBJ(z);
 }
 
+/* compatible with ASCII */
+SgObject Sg_MakeNativeTranscoder()
+{
+  return Sg_MakeTranscoder(Sg_MakeUtf8Codec(), Sg_NativeEol(), SG_RAISE_ERROR);
+}
+
+
 /*
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

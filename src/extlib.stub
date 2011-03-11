@@ -13,6 +13,9 @@
 
 	    ;; closure
 	    closure?
+
+	    ;; vector
+	    vector-copy
 	    )
     (import :null)
   ;; for library dependency
@@ -44,4 +47,10 @@
   ;; closure?
   (define-c-proc closure? (cl) ::boolean
     (result (SG_CLOSUREP cl)))
+
+  ;; vector
+  (define-c-proc vector-copy (vec::Vector :optional (start::fixnum 0)
+					            (end::fixnum -1)
+						    fill) ::Object
+    (result (Sg_VectorCopy vec start end fill)))
 )

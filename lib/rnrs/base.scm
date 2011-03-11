@@ -1,6 +1,9 @@
 ;; -*- scheme -*-
 (library (rnrs base (6))
     (export
+     ;; misc
+     er-macro-transformer
+     ;; base
      define define-syntax
      quote lambda if set! cond case and or
      let let* letrec letrec* let-values let*-values
@@ -41,7 +44,8 @@
      error assertion-violation
      apply call-with-current-continuation call/cc
      values call-with-values dynamic-wind)
-    (import null
+    ;; TODO use import only
+    (import (core)
 	    (core base)
 	    (core misc)
 	    (core syntax-rules))
@@ -49,4 +53,4 @@
 ;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix
-;; End
+;; End:

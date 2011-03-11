@@ -251,7 +251,7 @@
 			      ((string? object)
 			       (format out "STRINGW(~s);~%" object))
 			      ((keyword? object)
-			       (format out "KEYWORDW(\"~s\");~%" object))
+			       (format out "KEYWORDW(\"~a\");~%" object))
 			      ((pair? object)
 			       (format out "~a;~%" (code-make-pair object)))
 			      ((code-builder? object)

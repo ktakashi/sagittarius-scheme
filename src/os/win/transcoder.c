@@ -38,11 +38,6 @@ SgObject Sg_MakeNativeConsoleTranscoder()
   return Sg_MakeTranscoder(Sg_MakeUtf16Codec(UTF_16LE), Sg_NativeEol(), SG_RAISE_ERROR);
 }
 
-SgObject Sg_MakeNativeTranscoder()
-{
-  return Sg_MakeTranscoder(Sg_MakeUtf8Codec(), Sg_NativeEol(), SG_RAISE_ERROR);
-}
-
 EolStyle Sg_NativeEol()
 {
   return CRLF;
@@ -52,5 +47,5 @@ EolStyle Sg_NativeEol()
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

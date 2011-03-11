@@ -259,8 +259,8 @@
   (register-number-compare num-gt >)
   (register-number-compare num-ge >=)
   
-  (register-and/or and-proc &&)
-  (register-and/or or-proc ||)
+  (register-and/or and-proc "&&")
+  (register-and/or or-proc "||")
 
   ;; %
   ;; remainder

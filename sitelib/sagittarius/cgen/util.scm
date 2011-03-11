@@ -38,7 +38,7 @@
 		    (args (cdr body)))
 	   (unless (null? args)
 	     (unless first
-	       (format #t " ~s " 'op))
+	       (format #t " ~a " op))
 	     (dispatch (car args) dispatch k)
 	     (loop #f (cdr args))))
 	 (display ")")))))

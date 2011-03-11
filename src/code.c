@@ -72,7 +72,7 @@ static void push(SgCodeBuilder *cb, SgWord word)
   if (length >= cb->actualSize) {
     /* todo how much should i expand? */
     int nextSize = length * 2;
-    SgWord *next = SG_NEW2(SgWord *, sizeof(SgWord) * nextSize);
+    SgWord *next = SG_NEW_ARRAY(SgWord, nextSize);
     memset(next, NOP, nextSize * sizeof(SgWord));
     memcpy(next, cb->code, cb->size * sizeof(SgWord));
     cb->code = NULL;		/* gc friendliness */
@@ -205,7 +205,7 @@ SgCodeBuilder* Sg_MakeCodeBuilder(int size)
   SgWord *code = NULL;
   SG_SET_HEADER(cb, TC_CODE_BUILDER);
   if (size > 0) {
-    code = SG_NEW2(SgWord *, sizeof(SgWord) * size);
+    code = SG_NEW_ARRAY(SgWord, size);
   }
   SG_CODE_BUILDER_INIT(cb, code, SG_FALSE, 0, FALSE, 0, 0, size);
   INIT_CODE_PACKET(cb->packet, -1, EMPTY, SG_UNDEF, SG_UNDEF, SG_UNDEF);
@@ -280,7 +280,7 @@ static void finish_builder_rec(SgCodeBuilder *cb)
     o = SG_INT_VALUE(op);
     code[o] = SG_WORD(SG_MAKE_INT(d - o));
   }
-  ret = SG_NEW2(SgWord*, sizeof(SgWord) * size);
+  ret = SG_NEW_ARRAY(SgWord, size);
   for (i = 0; i < size; i++) {
     SgWord o = code[i];
     /* assume there is no invalid insn here. */

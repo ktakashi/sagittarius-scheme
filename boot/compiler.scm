@@ -1469,6 +1469,14 @@
 	       (values ex renames))
 	      ((symbol? (car spec))
 	       (loop (cdr spec) (cons (car spec) ex) renames))
+	      ((keyword? (car spec))
+	       (case (car spec)
+		 ((:all)
+		  (loop (cdr spec) (cons (car spec) ex) renames))
+		 (else
+		  (error 'syntax-error
+			 (format "unsupported export keyword ~s" (car spec))
+			 oform))))
 	      ((and (pair? (car spec))
 		    (eq? (caar spec) 'rename))
 	       ;; r6rs spec says rename must be (original renamed)

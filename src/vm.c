@@ -382,7 +382,7 @@ SgObject Sg_CallClosureByName(SgObject name, SgObject code)
   vm->callClosureByNameCode[3] = SG_WORD(code);
   vm->callClosureByNameCode[5] = SG_WORD(SG_NIL);
   vm->callClosureByNameCode[7] = SG_WORD(name);
-  return evaluate_safe(vm->callClosureByNameCode, 8, FALSE);
+  return evaluate_safe(vm->callClosureByNameCode, 8, TRUE);
 }
 
 SgObject Sg_Apply(SgObject proc, SgObject args)
@@ -783,6 +783,30 @@ static inline SgObject* shift_args(SgObject *fp, int m, SgObject *sp)
     }						\
   }
 
+static inline void print_stack(SgVM *vm)
+{
+  /* print stack */
+  SgObject *stack = vm->stack;
+  int i = 1;
+  Sg_Printf(Sg_StandardErrorPort(), UC("("));
+  while (stack != SP(vm)) {
+    if (i != 1) Sg_Printf(Sg_StandardErrorPort(), UC(" "));
+    if (*stack == 0) {
+      Sg_Printf(Sg_StandardErrorPort(), UC("[%d]:0x0"), i);
+    } else if (SG_PAIRP(*stack)) {
+      if (vm->stack <= *stack || *stack <= vm->stack) {
+	Sg_Printf(Sg_StandardErrorPort(), UC("[%d]:#<sp>"), i);
+      } else {
+	Sg_Printf(Sg_StandardErrorPort(), UC("[%d]:%#20S"), i, *stack);
+      }
+    } else {
+      Sg_Printf(Sg_StandardErrorPort(), UC("[%d]:%#S"), i, *stack);
+    }
+    i++, stack++;
+  }
+  Sg_Printf(Sg_StandardErrorPort(), UC(")"));
+}
+
 static inline void trace_log(SgWord *code, SgWord insn)
 {
   SgVM *vm = Sg_VM();
@@ -814,32 +838,9 @@ static inline void trace_log(SgWord *code, SgWord insn)
   Sg_Printf(Sg_StandardErrorPort(), UC("fp: %d\n"), (FP(vm) == 0) ? 0 : FP(vm) - vm->stack);
   Sg_Printf(Sg_StandardErrorPort(), UC("sp: %d\n"), SP(vm) - vm->stack);
 
-  {
-    /* print stack */
-    SgObject *stack = vm->stack;
-    int i = 1;
-    Sg_Printf(Sg_StandardErrorPort(), UC("("));
-    while (stack != SP(vm)) {
-      if (i != 1) Sg_Printf(Sg_StandardErrorPort(), UC(" "));
-      if (*stack == 0) {
-	Sg_Printf(Sg_StandardErrorPort(), UC("[%d]:0x0"), i);
-      } else if (SG_PAIRP(*stack)) {
-	if (vm->stack <= *stack || *stack <= vm->stack) {
-	  Sg_Printf(Sg_StandardErrorPort(), UC("[%d]:#<sp>"), i);
-	} else {
-	  Sg_Printf(Sg_StandardErrorPort(), UC("[%d]:%#20S"), i, *stack);
-	}
-      } else {
-	Sg_Printf(Sg_StandardErrorPort(), UC("[%d]:%#S"), i, *stack);
-      }
-      i++, stack++;
-    }
-    Sg_Printf(Sg_StandardErrorPort(), UC(")"));
-  }
-
+  print_stack(vm);
   Sg_Printf(Sg_StandardErrorPort(), UC("\n\n"));
 }
-
 
 SgObject run_loop(SgWord *code, jmp_buf returnPoint, int compilerp)
 {

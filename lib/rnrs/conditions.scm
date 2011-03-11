@@ -17,10 +17,10 @@
 	    &lexical make-lexical-violation lexical-violation?
 	    &syntax make-syntax-violation syntax-violation? syntax-violation-form syntax-violation-subform
 	    &undefined make-undefined-violation undefined-violation?)
-    (import null)
+    (import (core))
 
 ) ; [end]
 ;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix
-;; End
+;; End:

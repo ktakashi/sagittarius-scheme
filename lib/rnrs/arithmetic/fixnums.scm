@@ -45,10 +45,10 @@
 	    fxarithmetic-shift-right
 	    fxrotate-bit-field
 	    fxreverse-bit-field)
-    (import null)
+    (import (core))
 
 ) ; [end]
 ;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix
-;; End
+;; End:

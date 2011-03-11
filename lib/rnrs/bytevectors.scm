@@ -22,7 +22,7 @@
 	    string->utf8 utf8->string
 	    string->utf16 utf16->string
 	    string->utf32 utf32->string)
-    (import null)
+    (import (core))
 ) ; [end]
 ;; end of file
 ;; Local Variables:

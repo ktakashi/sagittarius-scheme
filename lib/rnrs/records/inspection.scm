@@ -10,10 +10,10 @@
 	    record-type-opaque?
 	    record-type-field-names
 	    record-field-mutable?)
-    (import null)
+    (import (core))
 
 ) ; [end]
 ;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix
-;; End
+;; End:

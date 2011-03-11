@@ -85,10 +85,10 @@
 	    make-custom-textual-output-port
 	    make-custom-binary-input/output-port
 	    make-custom-textual-input/output-port)
-    (import null)
+    (import (core))
 
 ) ; [end]
 ;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix
-;; End
+;; End:

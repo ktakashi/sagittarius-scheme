@@ -199,7 +199,7 @@
 					    (cons (get-type name/type)
 						  (list (car name/type)
 							(if (string=? (get-type name/type) "Object")
-							    'SG_UNDEF
+							    'SG_UNBOUND
 							    (begin
 							      (warn (format "~a should have default value: ~s"
 									    (get-type name/type)
@@ -339,6 +339,8 @@
 	   (format #t "SG_MAKE_BOOL(~s)" (if body 'TRUE 'FALSE)))
 	  ((string? body)
 	   (format #t "UC(~s)" body))
+	  ((char? body)
+	   (format #t "~a" (char->integer body)))
 	  (else
 	   (format #t "~s" body))))
 

@@ -35,6 +35,7 @@
 #include "sagittarius/file.h"
 #include "sagittarius/hashtable.h"
 #include "sagittarius/string.h"
+#include "sagittarius/keyword.h"
 #include "sagittarius/number.h"
 #include "sagittarius/symbol.h"
 #include "sagittarius/writer.h"
@@ -238,9 +239,21 @@ void Sg_ImportLibrary(SgObject to, SgObject from)
 {
   SgLibrary *tolib, *fromlib;
   SgObject exportSpec, keys, key;
+  SgObject allKeyword = Sg_MakeKeyword(Sg_MakeString(UC("all"), SG_LITERAL_STRING));
   ENSURE_LIBRARY(to, tolib);
   ENSURE_LIBRARY(from, fromlib);
   exportSpec = SG_LIBRARY_EXPORTED(fromlib);
+
+  /* resolve :all keyword first */
+  if (!SG_FALSEP(exportSpec) && 
+      !SG_FALSEP(Sg_Memq(allKeyword, SG_CAR(exportSpec)))) {
+    SgObject imported = Sg_HashTableAddAll(SG_LIBRARY_TABLE(tolib),
+					   SG_LIBRARY_TABLE(fromlib));
+    SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, SG_LIST1(imported),
+					  SG_LIBRARY_IMPORTED(tolib));
+    return;
+  }
+
   SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, exportSpec,
 					SG_LIBRARY_IMPORTED(tolib));
   if (SG_NULLP(tolib->generics)) {

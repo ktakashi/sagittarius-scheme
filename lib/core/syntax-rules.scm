@@ -1,10 +1,10 @@
 ;; -*- scheme -*-
 ;; This file is a part of Sagittarius Scheme system.
 (library (core syntax-rules)
-    (export syntax-rules)
+    (export syntax-rules er-macro-transformer)
     (import null
 	    (sagittarius)
-	    (sagittarius vm)
+	    ;(sagittarius vm)
 	    (core base)
 	    (core syntax helper))
 
