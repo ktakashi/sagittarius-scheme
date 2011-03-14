@@ -1260,9 +1260,9 @@ SgObject run_loop(SgWord *code, jmp_buf returnPoint, int compilerp)
 	if (val1 > 0) {
 	  int i, n;
 	  n = val1 - 1;
-	  Sg_VectorSet(v, n, AC(vm));
+	  SG_VECTOR_ELEMENT(v, n) = AC(vm);
 	  for (i = 0; i < n; i++) {
-	    Sg_VectorSet(v, n - i - 1, INDEX(SP(vm), i));
+	    SG_VECTOR_ELEMENT(v, n - i - 1) = INDEX(SP(vm), i);
 	  }
 	  SP(vm) -= n;
 	}
@@ -1283,7 +1283,7 @@ SgObject run_loop(SgWord *code, jmp_buf returnPoint, int compilerp)
 	if (!SG_INTP(AC(vm))) {
 	  Sg_Error(UC("vector-ref: fixnum required, but got %S"), AC(vm));
 	}
-	AC(vm) = Sg_VectorRef(INDEX(SP(vm), 0), SG_INT_VALUE(AC(vm)), SG_UNDEF);
+	AC(vm) = SG_VECTOR_ELEMENT(INDEX(SP(vm), 0), SG_INT_VALUE(AC(vm)));
 	SP(vm) -= 1;
 	NEXT;
       }
@@ -1294,7 +1294,7 @@ SgObject run_loop(SgWord *code, jmp_buf returnPoint, int compilerp)
 	if (!SG_INTP(INDEX(SP(vm), 0))) {
 	  Sg_Error(UC("vector-set!: fixnum required, but got %S"), INDEX(SP(vm), 0));
 	}
-	Sg_VectorSet(INDEX(SP(vm), 1), SG_INT_VALUE(INDEX(SP(vm), 0)), AC(vm));
+	SG_VECTOR_ELEMENT(INDEX(SP(vm), 1), SG_INT_VALUE(INDEX(SP(vm), 0))) = AC(vm);
 	AC(vm) = SG_UNDEF;
 	SP(vm) -= 2;
 	NEXT;
@@ -1311,6 +1311,22 @@ SgObject run_loop(SgWord *code, jmp_buf returnPoint, int compilerp)
 	  SP(vm) -= val1 - 1;
 	}
 	AC(vm) = ret;
+	NEXT;
+      }
+      CASE(VALUES) {
+	SgObject v;
+	INSN_VAL1(val1, c);
+	v = Sg_MakeValues(val1);
+	if (val1 > 0) {
+	  int i, n;
+	  n = val1 - 1;
+	  SG_VALUES_ELEMENT(v, n) = AC(vm);
+	  for (i = 0; i < n; i++) {
+	    SG_VALUES_ELEMENT(v, n - i - 1) = INDEX(SP(vm), i);
+	  }
+	  SP(vm) -= n;
+	}
+	AC(vm) = v;
 	NEXT;
       }
       /* TODO add caar, cadr so on */

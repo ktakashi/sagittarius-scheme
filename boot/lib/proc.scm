@@ -107,6 +107,8 @@
 (declare-procedure vector-length (x) (:inline VEC_LEN) :null vector-length)
 (declare-procedure vector-ref (v i) (:inline -1) :null vector-ref)
 (declare-procedure vector-set! (vec i v) (:inline -1) :null vector-set!)
+;; values
+(declare-procedure values rest (:inline VALUES) :null values)
 
 (declare-procedure apply (a . b) (:inline APPLY) :null apply)
 ;;;; end of file

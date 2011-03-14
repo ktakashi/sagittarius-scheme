@@ -34,6 +34,7 @@
 #include "sagittarius/identifier.h"
 #include "sagittarius/number.h"
 #include "sagittarius/pair.h"
+#include "sagittarius/bytevector.h"
 #include "sagittarius/string.h"
 #include "sagittarius/vector.h"
 #include "sagittarius/hashtable.h"
@@ -192,7 +193,17 @@ static SgObject pre_p(SgObject x, SgObject y, SgObject k)
       return SG_FALSE;
     }
   }
-  /* TODO byte vector */
+
+  if (SG_BVECTORP(x)) {
+    if (!SG_BVECTORP(y)) {
+      return SG_FALSE;
+    }
+    if (Sg_ByteVectorEqP(x, y)) {
+      return k;
+    } else {
+      return SG_FALSE;
+    }
+  }
   if (Sg_EqvP(x, y)) {
     return k;
   } else {
@@ -251,7 +262,17 @@ static SgObject fast_p(SgHashTable **pht, SgObject x, SgObject y, SgObject k, st
       return SG_FALSE;
     }
   }
-  /* TODO byte vector */
+
+  if (SG_BVECTORP(x)) {
+    if (!SG_BVECTORP(y)) {
+      return SG_FALSE;
+    }
+    if (Sg_ByteVectorEqP(x, y)) {
+      return k;
+    } else {
+      return SG_FALSE;
+    }
+  }
   if (Sg_EqvP(x, y)) {
     return k;
   } else {
@@ -386,7 +407,17 @@ static SgObject slow_p(SgHashTable **pht, SgObject x, SgObject y, SgObject k, st
       return SG_FALSE;
     }
   }
-  /* TODO byte vector */
+  if (SG_BVECTORP(x)) {
+    if (!SG_BVECTORP(y)) {
+      return SG_FALSE;
+    }
+    if (Sg_ByteVectorEqP(x, y)) {
+      return k;
+    } else {
+      return SG_FALSE;
+    }
+  }
+
   if (Sg_EqvP(x, y)) {
     return k;
   } else {

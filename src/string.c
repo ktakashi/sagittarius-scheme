@@ -172,7 +172,7 @@ SgObject Sg_ListToString(SgObject chars)
     ch = SG_CHAR_VALUE(SG_CAR(cp));
     len++;
   }
-  bufp = buf = SG_NEW2(SgChar *, len + 1);
+  bufp = buf = SG_NEW_ATOMIC2(SgChar *, len + 1);
   SG_FOR_EACH(cp, chars) {
     ch = SG_CHAR_VALUE(SG_CAR(cp));
     *bufp++ = ch;

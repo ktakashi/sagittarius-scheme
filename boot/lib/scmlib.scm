@@ -1,7 +1,7 @@
-(define (caar x) (car (car x)))
-(define (cadr x) (car (cdr x)))
-(define (cdar x) (cdr (car x)))
-(define (cddr x) (cdr (cdr x)))
+;(define (caar x) (car (car x)))
+;(define (cadr x) (car (cdr x)))
+;(define (cdar x) (cdr (car x)))
+;(define (cddr x) (cdr (cdr x)))
 (define (caaar x) (car (car (car x))))
 (define (caadr x) (car (car (cdr x))))
 (define (cadar x) (car (cdr (car x))))
@@ -185,6 +185,18 @@
                => (lambda (lst) (fold-right-n proc seed lst)))
               (else
                (assertion-violation 'fold-right "expected same length proper lists" (cons* proc seed lst1 lst2)))))))
+
+;;;;
+;; ports
+
+;; string ports
+(define open-string-output-port
+  (lambda ()
+    (let* ((port (open-output-string))
+	   (proc (lambda () (let ((s (get-output-string port)))
+			      (set-port-position! port 0)
+			      s))))
+      (values port proc))))
 
 ;;;; end of file
 ;; Local Variables:

@@ -41,12 +41,6 @@ enum OpenMode {
   SG_TRUNCATE  = 0x00000020
 };
 
-typedef enum  {
-  SG_BEGIN,
-  SG_CURRENT,
-  SG_END
-} Whence;
-
 struct SgFileRec
 {
   SG_HEADER;

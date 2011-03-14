@@ -117,9 +117,13 @@ SG_EXTERN SgObject Sg_MakeIntegerFromU64(uint64_t x);
 /* if intptr_t is 64 bit, then there is no reason not to fit (u)int32_t */
 #define Sg_MakeIntegerFromS32 SG_MAKE_INT
 #define Sg_MakeIntegerFromU32 SG_MAKE_INT
+#define Sg_GetIntegerS64Clamp Sg_GetIntegerClamp
+#define Sg_GetIntegerU64Clamp Sg_GetUIntegerClamp
 #else
 #define Sg_MakeIntegerFromS32 Sg_MakeInteger
 #define Sg_MakeIntegerFromU32 Sg_MakeIntegerU
+SG_EXTERN int64_t  Sg_GetIntegerS64Clamp(SgObject obj, int clamp, int *oor);
+SG_EXTERN uint64_t Sg_GetIntegerU64Clamp(SgObject obj, int clamp, int *oor);
 #endif
 
 SG_EXTERN SgObject Sg_MakeRational(SgObject numerator, SgObject denominator);

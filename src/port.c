@@ -203,6 +203,28 @@ static int64_t byte_array_read_u8_ahead(SgObject self, uint8_t *buf, int64_t siz
   return read_size;
 }
 
+SgObject Sg_MakeByteVectorInputPort(SgByteVector *bv, int offset)
+{
+  /* TODO is buffer mode correct? */
+  SgPort *z = make_port(SG_INPUT_PORT, SG_BINARY_PORT_TYPE, SG_NONE);
+  SgBinaryPort *b = make_binary_port(SG_BYTE_ARRAY_BINARY_PORT_TYPE);
+
+  z->closed = FALSE;
+  z->flush = NULL;
+  z->close = byte_array_close;
+  /* initialize binary input port */
+  b->src.buffer.bvec = bv;
+  b->src.buffer.index = offset;
+  b->open = byte_array_open;
+  b->getU8 = get_byte_array_u8;
+  b->readU8Ahead = byte_array_read_u8_ahead;
+  b->putU8 = NULL;
+  b->putU8Array = NULL;
+  /* set binary input port */
+  z->impl.bport = b;
+  return SG_OBJ(z);
+}
+
 SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size)
 {
   /* TODO is buffer mode correct? */
@@ -301,7 +323,7 @@ uint8_t* Sg_GetByteArrayFromBinaryPort(SgPort *port)
     Sg_Error(UC("byte array port required"));
   }
 
-  r = SG_NEW_ATOMIC2(uint8_t*, sizeof(uint8_t) * bp->src.buffer.index);
+  r = SG_NEW2(uint8_t*, sizeof(uint8_t) * bp->src.buffer.index);
   memcpy(r, SG_BVECTOR_ELEMENTS(bp->src.buffer.bvec), bp->src.buffer.index);
   return r;
 }
@@ -527,6 +549,24 @@ SgObject Sg_MakeStringInputPort(SgString *s, int private)
   return SG_OBJ(z); 
 }
 
+SgObject Sg_GetByteVectorFromBinaryPort(SgPort *port)
+{
+  SgBinaryPort *bp = SG_BINARY_PORT(port);
+  if (bp->type == SG_FILE_BINARY_PORT_TYPE) {
+    /* TODO file size */
+  } else if (bp->type == SG_BYTE_ARRAY_BINARY_PORT_TYPE) {
+    if (SG_INPORTP(port)) {
+      /* TODO should I re-create it? */
+      return SG_OBJ(bp->src.buffer.bvec);
+    } else {
+      /* recreate */
+      SgByteVector *bv = Sg_MakeByteVector(bp->src.buffer.index, 0);
+      Sg_ByteVectorCopyX(bp->src.buffer.bvec, 0, bv, 0, bp->src.buffer.index);
+      return SG_OBJ(bv);
+    }
+  }
+}
+
 SgObject Sg_GetStringFromStringPort(SgPort *port)
 {
   SgTextualPort *tp = SG_TEXTUAL_PORT(port);
@@ -577,6 +617,15 @@ SgObject Sg_StandardErrorPort()
 }
 
 /* TODO port lock */
+SgChar Sg_Getc(SgPort *port)
+{
+  SgChar ch;
+  SG_PORT_LOCK(port);
+  ch = Sg_GetcUnsafe(port);
+  SG_PORT_UNLOCK(port);
+  return ch;
+}
+
 void Sg_Putc(SgPort *port, SgChar ch)
 {
   SG_PORT_LOCK(port);
@@ -629,8 +678,8 @@ void Sg_PutsUnsafe(SgPort *port, SgString *str)
   int i, size;
 
   ASSERT(SG_TEXTUAL_PORTP(port));
-  p = (str)->value;
-  size = (str)->size;
+  p = SG_STRING_VALUE(str);
+  size = SG_STRING_SIZE(str);
   for (i = 0; i < size; i++) Sg_PutcUnsafe(port, p[i]);
 }
 
@@ -650,6 +699,123 @@ SgChar Sg_PeekcUnsafe(SgPort *port)
 {
   ASSERT(SG_TEXTUAL_PORTP(port));
   return SG_TEXTUAL_PORT(port)->lookAheadChar(port);
+}
+
+int Sg_HasPortPosition(SgPort *port)
+{
+  if (SG_BINARY_PORTP(port)) {
+    return TRUE;
+  } else if (SG_TEXTUAL_PORTP(port)) {
+    switch (SG_TEXTUAL_PORT(port)->type) {
+    case SG_TRANSCODED_TEXTUAL_PORT_TYPE:
+      return FALSE;
+    case SG_STRING_TEXTUAL_PORT_TYPE:
+      return TRUE;
+    default:
+      Sg_Error(UC("unknown textual port type. may be bug? %S"), port);
+    }
+  } else {
+    /* custom port */
+    /* TODO */
+    return FALSE;
+  }
+  Sg_Error(UC("port required, but got %S"), port);
+  return FALSE;			/* dummy */
+}
+
+int Sg_HasSetPortPosition(SgPort *port)
+{
+  if (SG_BINARY_PORTP(port)) {
+    return TRUE;
+  } else if (SG_TEXTUAL_PORTP(port)) {
+    switch (SG_TEXTUAL_PORT(port)->type) {
+    case SG_TRANSCODED_TEXTUAL_PORT_TYPE:
+      return FALSE;
+    case SG_STRING_TEXTUAL_PORT_TYPE:
+      return TRUE;
+    default:
+      Sg_Error(UC("unknown textual port type. may be bug? %S"), port);
+    }
+  } else {
+    /* custom port */
+    /* TODO */
+    return FALSE;
+  }
+  Sg_Error(UC("port required, but got %S"), port);
+  return FALSE;			/* dummy */
+}
+
+int64_t Sg_PortPosition(SgPort *port)
+{
+  if (SG_BINARY_PORTP(port)) {
+    off_t pos;
+    switch (SG_BINARY_PORT(port)->type) {
+    case SG_FILE_BINARY_PORT_TYPE:
+      pos = SG_BINARY_PORT(port)->src.file->tell(SG_BINARY_PORT(port)->src.file);
+      break;
+    case SG_BYTE_ARRAY_BINARY_PORT_TYPE:
+      pos = (off_t)SG_BINARY_PORT(port)->src.buffer.index;
+      break;
+    default:
+      Sg_Error(UC("unknown binary port type. may be bug? %S"), port);
+    }
+    return (int64_t)pos;
+  } else if (SG_TEXTUAL_PORTP(port)) {
+    off_t pos;
+    switch (SG_TEXTUAL_PORT(port)->type) {
+    case SG_TRANSCODED_TEXTUAL_PORT_TYPE:
+      Sg_Error(UC("transcoded textual port does not support port-position")); 
+      break;
+    case SG_STRING_TEXTUAL_PORT_TYPE:
+      pos = (off_t)SG_TEXTUAL_PORT(port)->src.buffer.index;
+      break;
+    default:
+      Sg_Error(UC("unknown textual port type. may be bug? %S"), port);
+    }
+    return (int64_t)pos;
+  } else {
+    /* custom port */
+    /* TODO */
+    Sg_Error(UC("custom port is not supported yet."));
+  }
+  Sg_Error(UC("port required, but got %S"), port);
+  return (int64_t)-1;		/* dummy */
+}
+
+void Sg_SetPortPosition(SgPort *port, int64_t offset)
+{
+  if (SG_OUTPORTP(port)) port->flush(port);
+  if (SG_BINARY_PORTP(port)) {
+    switch (SG_BINARY_PORT(port)->type) {
+    case SG_FILE_BINARY_PORT_TYPE:
+      SG_BINARY_PORT(port)->src.file->seek(SG_BINARY_PORT(port)->src.file,
+					   offset, SG_BEGIN);
+      break;
+    case SG_BYTE_ARRAY_BINARY_PORT_TYPE:
+      SG_BINARY_PORT(port)->src.buffer.index = offset;
+      break;
+    default:
+      Sg_Error(UC("unknown binary port type. may be bug? %S"), port);
+    }
+    return;
+  } else if (SG_TEXTUAL_PORTP(port)) {
+    switch (SG_TEXTUAL_PORT(port)->type) {
+    case SG_TRANSCODED_TEXTUAL_PORT_TYPE:
+      Sg_Error(UC("transcoded textual port does not support port-position")); 
+      break;
+    case SG_STRING_TEXTUAL_PORT_TYPE:
+      SG_TEXTUAL_PORT(port)->src.buffer.index = offset;
+      break;
+    default:
+      Sg_Error(UC("unknown textual port type. may be bug? %S"), port);
+    }
+    return;
+  } else {
+    /* custom port */
+    /* TODO */
+    Sg_Error(UC("custom port is not supported yet."));
+  }
+  Sg_Error(UC("port required, but got %S"), port);
 }
 
 int Sg_LineNo(SgPort *port)
@@ -686,5 +852,5 @@ SgObject Sg_FileName(SgPort *port)
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

@@ -156,6 +156,7 @@ SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeFileBinaryInputPort(SgFile *file);
 SG_EXTERN SgObject Sg_MakeFileBinaryOutputPort(SgFile *file);
+SG_EXTERN SgObject Sg_MakeByteVectorInputPort(SgByteVector *bv, int offset);
 SG_EXTERN SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size);
 /* should it take buffer as argument? */
 SG_EXTERN SgObject Sg_MakeByteArrayOutputPort(int bufferSize);
@@ -165,6 +166,7 @@ SG_EXTERN SgObject Sg_MakeStringOutputPort(int bufferSize);
 SG_EXTERN SgObject Sg_MakeStringInputPort(SgString *in, int privatep);
 
 SG_EXTERN uint8_t* Sg_GetByteArrayFromBinaryPort(SgPort *port);
+SG_EXTERN SgObject Sg_GetByteVectorFromBinaryPort(SgPort *port);
 SG_EXTERN SgObject Sg_GetStringFromStringPort(SgPort *port);
 
 SG_EXTERN void     Sg_ClosePort(SgPort *port);
@@ -174,6 +176,7 @@ SG_EXTERN SgObject Sg_StandardInputPort();
 SG_EXTERN SgObject Sg_StandardErrorPort();
 
 /* utility methods */
+SG_EXTERN SgChar   Sg_Getc(SgPort *port);
 SG_EXTERN void     Sg_Putc(SgPort *port, SgChar ch);
 SG_EXTERN void     Sg_Putz(SgPort *port, const char *str);
 SG_EXTERN void     Sg_Putuz(SgPort *port, const SgChar *str);
@@ -190,6 +193,12 @@ SG_EXTERN SgChar   Sg_GetcUnsafe(SgPort *port);
 SG_EXTERN void     Sg_UngetcUnsafe(SgPort *port, SgChar ch);
 SG_EXTERN SgChar   Sg_PeekcUnsafe(SgPort *port);
 
+/* seek/tell */
+SG_EXTERN int      Sg_HasPortPosition(SgPort *port);
+SG_EXTERN int      Sg_HasSetPortPosition(SgPort *port);
+SG_EXTERN int64_t  Sg_PortPosition(SgPort *port);
+SG_EXTERN void     Sg_SetPortPosition(SgPort *port, int64_t offset);
+
 SG_EXTERN int      Sg_LineNo(SgPort *port);
 SG_EXTERN SgObject Sg_FileName(SgPort *port);
 
@@ -201,5 +210,5 @@ SG_CDECL_END
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

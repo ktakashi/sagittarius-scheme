@@ -84,6 +84,7 @@
 (define-inst CDR 0 0 #t) ;"///< cdr")
 (define-inst CONS 0 0 #t)
 (define-inst LIST 1 0 #t)
+(define-inst VALUES 1 0 #t)
 (define-inst EQ 0 0 #t) ;"///< eq?")
 (define-inst EQV 0 0 #t) ;"///< eqv?")
 (define-inst NULLP 0 0 #t)

@@ -62,6 +62,10 @@ SG_EXTERN SgObject Sg_MakeUtf16Codec(Endianness endian);
 SG_EXTERN SgObject Sg_MakeUtf32Codec(Endianness endian);
 SG_EXTERN SgObject Sg_MakeLatin1Codec();
 
+/* check BOM */
+SG_EXTERN Endianness Sg_Utf16CheckBOM(SgByteVector *bv);
+SG_EXTERN Endianness Sg_Utf32CheckBOM(SgByteVector *bv);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_CODEC_H_ */
@@ -70,5 +74,5 @@ SG_CDECL_END
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

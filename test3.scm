@@ -1,6 +1,10 @@
-(display 1.539989614439558e-36)(newline)
-(display 5.447603722011605e-270)(newline)
-(let ((a 5.447603722011605e-270)
+
+(string->utf8 "abc")
+(utf8->string #vu8(97 98 99))
+
+;(display 1.539989614439558e-36)(newline)
+;(display 5.447603722011605e-270)(newline)
+#;(let ((a 5.447603722011605e-270)
       (b 1.539989614439558e-36))
   (write/ss a)(newline)
   (write/ss b)(newline))

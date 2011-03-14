@@ -66,9 +66,14 @@ SG_EXTERN SgObject Sg_ByteVectorCopy(SgByteVector *src);
 SG_EXTERN void     Sg_ByteVectorCopyX(SgByteVector *src, int srcStart,
 				      SgByteVector *dst, int dstStart,
 				      int size);
+SG_EXTERN void     Sg_ByteVectorFill(SgByteVector *bv, int value);
+
+/* converter */
 SG_EXTERN SgObject Sg_ListToByteVector(SgObject lst, size_t bitCount, int signP);
 SG_EXTERN SgObject Sg_ByteVectorToList(SgByteVector *bv, size_t bitCount, int signP);
-SG_EXTERN void     Sg_ByteVectorFill(SgByteVector *bv, int value);
+SG_EXTERN SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder, size_t start, int size);
+SG_EXTERN SgObject Sg_StringToByteVector(SgString *s, SgTranscoder *transcoder, size_t start, int size);
+
 /* u/s8 accessor */
 SG_EXTERN uint8_t  Sg_ByteVectorU8Ref(SgByteVector *bv, size_t index);
 SG_EXTERN void     Sg_ByteVectorU8Set(SgByteVector *bv, size_t index, uint8_t value);

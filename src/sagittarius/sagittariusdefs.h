@@ -291,6 +291,13 @@ typedef enum {
   E_NONE
 } EolStyle;
 
+typedef enum  {
+  SG_BEGIN,
+  SG_CURRENT,
+  SG_END
+} Whence;
+
+
 /*
   ex)
   bvector:

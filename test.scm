@@ -14,6 +14,7 @@
      (begin
        (display o1)
        (print o2 ...)))))
+
 (run-test
 
  (define v (vector 1 #f #f))
@@ -111,6 +112,9 @@
  (assert-equal? 1.539989614439558e-36 (bytevector-ieee-single-ref #vu8(1 2 3 4) 0 'little))
  (assert-equal? 5.447603722011605e-270 (bytevector-ieee-double-ref #vu8(1 2 3 4 5 6 7 8) 0 'little))
  
+ (assert-equal? "abc" (utf8->string #vu8(97 98 99)))
+ (assert-equal? #vu8(97 98 99) (string->utf8 "abc"))
+
  (let ((in (open-file-input-port "test.scm" (file-options no-truncate) 'block (native-transcoder))))
    (assert-true? (port? in))
    (assert-true? (input-port? in))

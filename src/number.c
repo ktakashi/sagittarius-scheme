@@ -804,6 +804,91 @@ unsigned long Sg_GetUIntegerClamp(SgObject obj, int clamp, int *oor)
   return 0;
 }
 
+#if SIZEOF_LONG < 8
+#define SG_SET_INT64_MAX(v64)  \
+    ((v64) = ((((int64_t)LONG_MAX)<<32) + (int64_t)ULONG_MAX))
+#define SG_SET_INT64_MIN(v64)  \
+    ((v64) = (((int64_t)LONG_MAX + 1) << 32))
+#define SG_SET_UINT64_MAX(v64) \
+    ((v64) = ((((uint64_t)ULONG_MAX) << 32) + (uint64_t)ULONG_MAX))
+
+int64_t  Sg_GetIntegerS64Clamp(SgObject obj, int clamp, int *oor)
+{
+  int64_t r = 0;
+  if (clamp == SG_CLAMP_NONE && oor != NULL) *oor = FALSE;
+  if (SG_INTP(obj)) return (int64_t)SG_INT_VALUE(obj);
+  if (SG_BIGNUMP(obj)) {
+    return Sg_BignumToS64(SG_BIGNUM(obj), clamp, oor);
+  }
+  if (SG_RATIONALP(obj)) {
+    obj = Sg_Inexact(obj);
+    /* fall through */
+  }
+  if (SG_FLONUMP(obj)) {
+    int64_t maxval, minval;
+    double v;
+    SG_SET_INT64_MAX(maxval);
+    SG_SET_INT64_MIN(minval);
+    v = SG_FLONUM(obj)->value;
+    if (v > (double)maxval) {
+      if (!(clamp & SG_CLAMP_HI)) goto err;
+      return maxval;
+    } else if (v < (double)minval) {
+      if (!(clamp & SG_CLAMP_LO)) goto err;
+      return minval;
+    } else {
+      return (int64_t)v;
+    }
+  }
+ err:
+  range_err(obj, clamp, oor);
+  return r;
+}
+
+uint64_t Sg_GetIntegerU64Clamp(SgObject obj, int clamp, int *oor)
+{
+  uint64_t r = 0;
+  if (clamp == SG_CLAMP_NONE && oor != NULL) *oor = FALSE;
+  if (SG_INTP(obj)) {
+    long v = SG_INT_VALUE(obj);
+    if (v < 0) {
+      if (!(clamp & SG_CLAMP_LO)) goto err;
+      return 0;
+    } else {
+      return (uint64_t)v;
+    }
+  }
+  if (SG_BIGNUMP(obj)) {
+    return Sg_BignumToU64(SG_BIGNUM(obj), clamp, oor);
+  }
+  if (SG_RATIONALP(obj)) {
+    obj = Sg_Inexact(obj);
+    /* fall through */
+  }
+  if (SG_FLONUMP(obj)) {
+    double v = SG_FLONUM(obj)->value;
+    int64_t maxval;
+    if (v < 0) {
+      if (!(clamp & SG_CLAMP_LO)) goto err;
+      return 0;
+    }
+
+    SG_SET_UINT64_MAX(maxval);
+
+    if (v > (double)maxval) {
+      if (!(clamp & SG_CLAMP_HI)) goto err;
+      return maxval;
+    } else {
+      return (int64_t)v;
+    }
+  }
+ err:
+  range_err(obj, clamp, oor);
+  return r;
+}
+#endif
+
+
 static SgRational* make_rational(SgObject nume, SgObject deno)
 {
   SgRational *z;

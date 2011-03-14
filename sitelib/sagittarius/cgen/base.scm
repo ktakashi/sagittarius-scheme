@@ -24,7 +24,7 @@
 		       (length (cdr body)))))
     (for-each1-with-index
      (lambda (i arg)
-       (display arg)
+       (dispatch arg dispatch k)
        (unless (= i (- (length (cdr body)) 1))
 	 (display "+")))
      (cdr body))
@@ -34,12 +34,12 @@
   ;; (- a b c) -> a - b - c
   (define (sub body dispatch k)
     (or (>= (length (cdr body)) 2)
-	(error '+
+	(error '-
 	       (format "wrong number of arg for + (required at least 2, but got ~a)"
 		       (length (cdr body)))))
     (for-each1-with-index
      (lambda (i arg)
-       (display arg)
+       (dispatch arg dispatch k)
        (unless (= i (- (length (cdr body)) 1))
 	 (display "-")))
      (cdr body))

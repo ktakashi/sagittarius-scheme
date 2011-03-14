@@ -35,13 +35,15 @@
 #include "sagittarius/bignum.h"
 #include "sagittarius/number.h"
 #include "sagittarius/pair.h"
+#include "sagittarius/port.h"
+#include "sagittarius/string.h"
 #include "sagittarius/error.h"
 #include "sagittarius/symbol.h"
 
 SgByteVector* make_bytevector(size_t size)
 {
   SgByteVector *z = SG_NEW_ATOMIC2(SgByteVector *, 
-				   sizeof(SgByteVector) + sizeof(uint8_t)*(size - 1));
+			    sizeof(SgByteVector) + sizeof(uint8_t)*(size - 1));
   SG_SET_HEADER(z, TC_BVECTOR);
   z->size = size;
   return z;
@@ -292,6 +294,53 @@ void Sg_ByteVectorFill(SgByteVector *bv, int value)
   }
   memset(SG_BVECTOR_ELEMENTS(bv), value, SG_BVECTOR_SIZE(bv));
 }
+
+SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder, size_t start, int size)
+{
+  SgPort *accum;
+  SgPort *bin;
+  SgPort *tin;
+  int i;
+
+  if (size < 0) {
+    size = SG_BVECTOR_SIZE(bv);
+  } else {
+    if (size > (SG_BVECTOR_SIZE(bv) - start)) {
+      Sg_Error(UC("out of range %d"), size);
+    }
+  }
+  bin = Sg_MakeByteVectorInputPort(bv, start);
+  tin = Sg_MakeTranscodedInputPort(bin, transcoder);
+  accum = Sg_MakeStringOutputPort(size);
+  for (i = start; i < size; i++) {
+    Sg_Putc(accum, Sg_Getc(tin));
+  }
+  return Sg_GetStringFromStringPort(accum);
+}
+
+SgObject Sg_StringToByteVector(SgString *s, SgTranscoder *transcoder, size_t start, int size)
+{
+  SgPort* accum;
+  SgPort* out;
+  int i;
+  
+  if (size < 0) {
+    size = SG_STRING_SIZE(s);
+  } else {
+    if (size > (SG_STRING_SIZE(s) - start)) {
+      Sg_Error(UC("out of range %d"), size);
+    }
+  }
+
+  accum = Sg_MakeByteArrayOutputPort(size);
+  out = Sg_MakeTranscodedOutputPort(accum, transcoder);
+  for (i = start; i < SG_STRING_SIZE(s); i++) {
+    /* TODO try catch */
+    Sg_Putc(out, SG_STRING_VALUE_AT(s, i));
+  }
+  return Sg_GetByteVectorFromBinaryPort(accum);
+}
+
 
 /* u/s8 accessor */
 uint8_t Sg_ByteVectorU8Ref(SgByteVector *bv, size_t index)

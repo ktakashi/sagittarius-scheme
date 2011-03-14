@@ -729,6 +729,18 @@
 			    (loop (+ i 1) (cons (index s i)
 						ret))))
 	     c f (- s n))))
+      ((VALUES)
+       (let* ((val1 (insn-value1 insn))
+	      (n (- val1 1)))
+	 (if (> val1 0)
+	   (let ((lst (let loop ((i 0)
+				 (ret (list a)))
+			(if (= n i)
+			    ret
+			    (loop (+ i 1) (cons (index s i)
+						ret))))))
+	     (VM x (skip) (make-values lst) c f (- s n)))
+	   (VM x (skip) (make-values '()) c f (- s n)))))
       (else
        (errorf "invalid vm instruction: ~s[~a]" (lookup-insn-name it) it))))))
 
@@ -990,7 +1002,7 @@
 ;(add-namespace! +)
 ;(add-namespace! *)
 ;(add-namespace! /)
-(add-namespace! values o (lambda a (make-values a)))
+;(add-namespace! values o (lambda a (make-values a)))
 (add-namespace! display (o))
 (add-namespace! newline ())
 (add-namespace! print o) ;; vm-dump-code
@@ -1008,6 +1020,10 @@
 ;(add-namespace! car (p))
 ;(add-namespace! cdr (p))
 ;(add-namespace! cons (a b))
+(add-namespace! caar (p))
+(add-namespace! cadr (p))
+(add-namespace! cdar (p))
+(add-namespace! cddr (p))
 (add-namespace! vector->list (v))
 (add-namespace! set-cdr! (p o))
 (add-namespace! integer? (o))

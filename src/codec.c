@@ -31,6 +31,7 @@
  */
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/codec.h"
+#include "sagittarius/bytevector.h"
 #include "sagittarius/port.h"
 #include "sagittarius/error.h"
 #include "sagittarius/string.h"
@@ -183,6 +184,46 @@ SgObject Sg_MakeLatin1Codec()
   z->name = Sg_MakeString(UC("latin1-codec"), SG_LITERAL_STRING);
   return SG_OBJ(z);
 }
+
+
+Endianness Sg_Utf16CheckBOM(SgByteVector *bv)
+{
+  if (SG_BVECTOR_SIZE(bv) >= 2) {
+    if (SG_BVECTOR_ELEMENT(bv, 0) == 0xFE
+	&& SG_BVECTOR_ELEMENT(bv, 1) == 0xFF) {
+      return UTF_16BE;
+    } else if (SG_BVECTOR_ELEMENT(bv, 0) == 0xFF
+	       && SG_BVECTOR_ELEMENT(bv, 1) == 0xFE) {
+      return UTF_16LE;
+    } else {
+      return NO_BOM;
+    }
+  } else {
+    return NO_BOM;
+  }
+}
+
+Endianness Sg_Utf32CheckBOM(SgByteVector *bv)
+{
+  if (SG_BVECTOR_SIZE(bv) >= 4) {
+    if (SG_BVECTOR_ELEMENT(bv, 0) == 0x00
+	&& SG_BVECTOR_ELEMENT(bv, 1) == 0x00
+	&& SG_BVECTOR_ELEMENT(bv, 2) == 0xFE
+	&& SG_BVECTOR_ELEMENT(bv, 3) == 0xFF) {
+      return UTF_32BE;
+    } else if (SG_BVECTOR_ELEMENT(bv, 0) == 0xFF
+	       && SG_BVECTOR_ELEMENT(bv, 1) == 0xFE
+	       && SG_BVECTOR_ELEMENT(bv, 2) == 0x00
+	       && SG_BVECTOR_ELEMENT(bv, 3) == 0x00) {
+      return UTF_32LE;
+    } else {
+      return NO_BOM;
+    }
+  } else {
+    return NO_BOM;
+  }
+}
+
 /*
   end of file
   Local Variables:

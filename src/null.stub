@@ -222,16 +222,16 @@
     (result (Sg_VMApply code rest)))
 
   ;; io
-  (define-c-proc newline (:optional (p (Sg_CurrentOutputPort))) ::void
+  (define-c-proc newline (:optional (p::Port (Sg_CurrentOutputPort))) ::void
     (Sg_Putc p #\linefeed))
 
-  (define-c-proc display (o :optional (p (Sg_CurrentOutputPort))) ::void
+  (define-c-proc display (o :optional (p::Port (Sg_CurrentOutputPort))) ::void
     (Sg_Write o p SG_WRITE_DISPLAY))
 
-  (define-c-proc write (o :optional (p (Sg_CurrentOutputPort))) ::void
+  (define-c-proc write (o :optional (p::Port (Sg_CurrentOutputPort))) ::void
     (Sg_Write o p SG_WRITE_WRITE))
 
-  (define-c-proc write/ss (o :optional (p (Sg_CurrentOutputPort))) ::void
+  (define-c-proc write/ss (o :optional (p::Port (Sg_CurrentOutputPort))) ::void
     (Sg_Write o p SG_WRITE_SHARED))
 
   (define-c-proc format (p :rest rest) ::Object
@@ -263,6 +263,24 @@
   (define-c-proc output-port? (obj) ::boolean
     (result (SG_OUTPORTP obj)))
 
+  (define-c-proc open-output-string () ::Object
+    (result (Sg_MakeStringOutputPort 32)))
+
+  (define-c-proc get-output-string (p::Port) ::Object
+    (result (Sg_GetStringFromStringPort p)))
+
+  (define-c-proc port-has-port-position? (p::Port) ::boolean
+    (result (Sg_HasPortPosition p)))
+
+  (define-c-proc port-has-set-port-position!? (p::Port) ::boolean
+    (result (Sg_HasSetPortPosition p)))
+
+  (define-c-proc port-position (p::Port) ::Object
+    (result (Sg_MakeIntegerFromS64 (Sg_PortPosition p))))
+
+  (define-c-proc set-port-position! (p::Port off::number) ::void
+    (Sg_SetPortPosition p (Sg_GetIntegerU64Clamp off SG_CLAMP_NONE NULL)))
+
   (define-c-proc open-file-input-port (file::String 
 				       :optional option
 				                 (mode::Symbol 'block)
@@ -275,7 +293,6 @@
 	  (result (Sg_MakeFileBinaryInputPort fo))
 	  (let ((in (Sg_MakeFileBinaryInputPort fo)))
 	    (result (Sg_MakeTranscodedInputPort in transcoder))))))
-	
 
   (define-cgen-stmt logor
     ((_ v1 v2 . more)
@@ -923,6 +940,56 @@ string->utf32 utf32->string
 	     (Sg_ByteVectorIEEEDoubleLittleSet bv index value))
 	    (else
 	     (Sg_Error "unsupported endianness %S" endian)))))
+
+  ;; converter
+  ;; utf8 <-> string
+  (define-c-proc utf8->string (bv::ByteVector) ::Object
+    (let ((transcoder (Sg_MakeTranscoder (Sg_MakeUtf8Codec) LF SG_REPLACE_ERROR)))
+      (result (Sg_ByteVectorToString bv transcoder 0 -1))))
+
+  (define-c-proc string->utf8 (s::String) ::Object
+    (let ((transcoder (Sg_MakeTranscoder (Sg_MakeUtf8Codec) LF SG_REPLACE_ERROR)))
+      (result (Sg_StringToByteVector s transcoder 0 -1))))
+
+  ;; utf16 <-> string
+  (define-c-proc utf16->string (bv::ByteVector endian::Symbol :optional mandatory) ::Object
+    (let ((endianness::Endianness NO_BOM)
+	  (skipBOM::int FALSE))
+      (when (SG_UNBOUNDP mandatory)
+	(set! endianness (Sg_Utf16CheckBOM bv))
+	(if (not (== endianness NO_BOM))
+	    (set! skipBOM TRUE)))
+      (when (or (not (SG_FALSEP mandatory))
+		(== endianness  NO_BOM))
+	(cond ((SG_EQ endian 'little)
+	       (set! endianness UTF_16LE))
+	      ((SG_EQ endian 'big)
+	       (set! endianness UTF_16BE))
+	      (else
+	       (Sg_Error "endianness should be little or big (%S)" endian))))
+      (let ((skipSize::int 0)
+	    (codec SG_UNDEF)
+	    (transcoder SG_UNDEF))
+	(if skipBOM
+	    (set! skipSize 2))
+	(set! codec (Sg_MakeUtf16Codec endianness))
+	(set! transcoder (Sg_MakeTranscoder codec LF SG_REPLACE_ERROR))
+	;; TODO guard
+	(result (Sg_ByteVectorToString bv transcoder skipSize (- (SG_BVECTOR_SIZE bv) skipSize))))))
+
+  (define-c-proc string->utf16 (s::String :optional (endian::Symbol SG_UNBOUND)) ::Object
+    (let ((endianness::Endianness UTF_16BE))
+      (if (not (SG_UNBOUNDP endian))
+	  (cond ((SG_EQ endian 'little)
+		 (set! endianness UTF_16LE))
+		((SG_EQ endian 'big)
+		 (set! endianness UTF_16BE))
+		(else
+		 (Sg_Error "endianness should be little or big (%S)"  endian))))
+      (result (Sg_StringToByteVector s (Sg_MakeTranscoder (Sg_MakeUtf16Codec endianness)
+							  LF
+							  SG_REPLACE_ERROR)
+				     0 -1))))
   
   ;; conditions
   (define-c-proc vector? (arg0::Object) (inline VECTORP) ::boolean
@@ -952,6 +1019,9 @@ string->utf32 utf32->string
   ;; hashtable
   (define-c-proc make-eq-hashtable () ::Object
     (result (Sg_MakeHashTableSimple SG_HASH_EQ 200)))
+
+  (define-c-proc make-eqv-hashtable () ::Object
+    (result (Sg_MakeHashTableSimple SG_HASH_EQV 200)))
 
   (define-c-proc hashtable-ref (ht::HashTable key fallback) ::Object
     (result (Sg_HashTableRef ht key fallback)))
