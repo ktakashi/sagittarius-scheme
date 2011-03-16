@@ -81,19 +81,21 @@ typedef enum {
   EQ = 0x3d,
   EQV = 0x3e,
   NULLP = 0x3f,
-  VECTOR = 0x40,
-  VECTORP = 0x41,
-  VEC_LEN = 0x42,
-  VEC_REF = 0x43,
-  VEC_SET = 0x44,
-  LREF_PUSH = 0x45,
-  FREF_PUSH = 0x46,
-  GREF_PUSH = 0x47,
-  CONST_PUSH = 0x48,
-  CONSTI_PUSH = 0x49,
-  GREF_CALL = 0x4a,
-  GREF_TAIL_CALL = 0x4b,
-  INSTRUCTION_COUNT = 76, /** number of instructions */
+  PAIRP = 0x40,
+  SYMBOLP = 0x41,
+  VECTOR = 0x42,
+  VECTORP = 0x43,
+  VEC_LEN = 0x44,
+  VEC_REF = 0x45,
+  VEC_SET = 0x46,
+  LREF_PUSH = 0x47,
+  FREF_PUSH = 0x48,
+  GREF_PUSH = 0x49,
+  CONST_PUSH = 0x4a,
+  CONSTI_PUSH = 0x4b,
+  GREF_CALL = 0x4c,
+  GREF_TAIL_CALL = 0x4d,
+  INSTRUCTION_COUNT = 78, /** number of instructions */
 } Instruction;
 
 typedef struct InsnInfoRec InsnInfo;
@@ -103,8 +105,8 @@ struct InsnInfoRec
   int         number;
   int         instValues;
   int         argc;
-  int         label;
   int         hasSrc;
+  int         label;
 };
 #define INSN(o)            ((o) & INSN_MASK)
 #define INSN_VAL1(v, insn) ((v) = ((int)(insn)) >> INSN_VALUE1_SHIFT)

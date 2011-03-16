@@ -120,6 +120,9 @@ static SG_DEFINE_SUBR(macro_tranform_Stub, 2, 0, macro_tranform, SG_FALSE, NULL)
 
 SgObject Sg_MakeMacroTransformer(SgObject name, SgObject proc, SgObject library)
 {
+  if (SG_FALSEP(SG_PROCEDURE_NAME(&macro_tranform_Stub))) {
+    SG_PROCEDURE_NAME(&macro_tranform_Stub) = Sg_MakeString(UC("macro-transform"), SG_LITERAL_STRING);
+  }
   return Sg_MakeMacro(name, &macro_tranform_Stub, proc, library);
 }
 

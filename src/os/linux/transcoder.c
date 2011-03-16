@@ -1,6 +1,6 @@
-// -*- C -*-
+/* -*- C -*- */
 /*
- * stub.h
+ * transcoder.c
  *
  *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
  *
@@ -29,22 +29,23 @@
  *
  *  $Id: $
  */
-#ifndef SAGITTARIUS_STUB_H_
-#define SAGITTARIUS_STUB_H_
+#define LIBSAGITTARIUS_BODY
+#include <sagittarius/transcoder.h>
+#include <sagittarius/codec.h>
 
-#include "sagittariusdefs.h"
+SgObject Sg_MakeNativeConsoleTranscoder()
+{
+  return Sg_MakeTranscoder(Sg_MakeUtfuCodec(), Sg_NativeEol(), SG_RAISE_ERROR);
+}
 
-SG_CDECL_BEGIN
-
-SG_EXTERN void Sg_Init();
-
-SG_CDECL_END
-
-#endif /* SAGITTARIUS_STUB_H_ */
+EolStyle Sg_NativeEol()
+{
+  return LF;
+}
 
 /*
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

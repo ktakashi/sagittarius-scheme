@@ -31,7 +31,6 @@
  */
 #include <string.h>
 #include "sagittarius.h"
-#include "sagittarius/stub.h"
 
 /* getopt from mosh */
 struct option

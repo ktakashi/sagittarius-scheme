@@ -38,17 +38,6 @@
 #include "sagittarius/writer.h"
 #include "sagittarius/vm.h"
 
-void Sg_Panic(const char* msg, ...)
-{
-  va_list args;
-  va_start(args, msg);
-  vfprintf(stderr, msg, args);
-  va_end(args);
-  fputc('\n', stderr);
-  fflush(stderr);
-  exit(-1);
-}
-
 void Sg_Error(const SgChar* fmt, ...)
 {
   va_list ap;
@@ -121,5 +110,5 @@ void Sg_WrongNumberOfArgumentsBetweenViolation(SgObject who, int startCounts, in
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

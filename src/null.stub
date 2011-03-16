@@ -86,7 +86,7 @@
   (decl-code
    (.include <sagittarius/instruction.h>))
 
-  (define-c-proc values (:rest rest) ::Object
+  (define-c-proc values (:rest rest) (inline VALUES) ::Object
     (let ((len (Sg_Length rest)))
       (cond ((== len 1) (result (SG_CAR rest)))
 	    (else
@@ -297,12 +297,12 @@
   (define-cgen-stmt logor
     ((_ v1 v2 . more)
      (begin
-       (format #t "~a | ~a" v1 v2)
+       ((renderer) (format "~a | ~a" v1 v2))
        (if (null? more)
 	   #t
 	   (let loop ((more more))
 	     (unless (null? more)
-	       (format #t " | ~a" (car more))
+	       ((renderer) format " | ~a" (car more))
 	       (loop (cdr more))))))))
 
   (define-c-proc open-file-output-port (file::String 

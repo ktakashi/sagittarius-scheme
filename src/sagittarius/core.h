@@ -1,8 +1,8 @@
-/* -*- C -*- */
+// -*- C -*-
 /*
- * vm.c
+ * stub.h
  *
- *   Copyright (c) 2011  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -29,43 +29,39 @@
  *
  *  $Id: $
  */
-#define LIBSAGITTARIUS_BODY
-#include "sagittarius/instruction.h"
-#include "sagittarius/pair.h"
-#include "sagittarius/string.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/vm.h"
-#include "sagittarius/library.h"
-InsnInfo* Sg_LookupInsnName(Instruction insn)
-{
-  InsnInfo *info = NULL;
-#define DEFINSN(name,  val, argc, src, label)			\
-  static InsnInfo SG_CPP_CAT(name, _INSN) = {#name, name, val, argc, src, label};
-#include "vminsn.c"
-#undef DEFINSN
+#ifndef SAGITTARIUS_STUB_H_
+#define SAGITTARIUS_STUB_H_
 
-  switch (insn) {
-#define DEFINSN(name,  val, argc, src, label)		\
-    case name : info = & SG_CPP_CAT(name, _INSN); break;
-#include "vminsn.c"
-#undef DEFINSN
-  }
-  return info;
-}
+#include "sagittariusdefs.h"
 
-void Sg__InitInstruction()
-{
-  SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius vm instruction)"), TRUE);
-#define DEFINSN(name, val, argc, src, label)		\
-  Sg_InsertBinding(lib, SG_INTERN(#name), SG_MAKE_INT(name));
-#include "vminsn.c"
-#undef DEFINSN
-}
+/* finalizer proc */
+typedef void (*SgFinalizerProc)(SgObject z, void *data);
+
+SG_CDECL_BEGIN
+
+SG_EXTERN void Sg_Init();
+
+SG_EXTERN void Sg_Exit(int code);
+SG_EXTERN void Sg_Cleanup();
+SG_EXTERN void Sg_Panic(const char* msg, ...);
+SG_EXTERN void Sg_Abort(const char* msg);
+/* gc wrappers */
+SG_EXTERN void Sg_GC();
+SG_EXTERN void Sg_RegisterFinalizer(SgObject z, SgFinalizerProc finalizer, void *data);
+SG_EXTERN void Sg_UnregisterFinalizer(SgObject z);
+SG_EXTERN void Sg_RegisterDL(void *data_start, void *data_end,
+			     void *bss_start, void *bss_end);
+
+/* experimental */
+SG_EXTERN void Sg_AddGCRoots(void *start, void *end);
+
+SG_CDECL_END
+
+#endif /* SAGITTARIUS_STUB_H_ */
+
 /*
   end of file
   Local Variables:
   coding: utf-8-unix
   End:
 */
-
-

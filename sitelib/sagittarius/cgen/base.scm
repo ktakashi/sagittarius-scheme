@@ -1,18 +1,68 @@
 ;; -*- scheme -*-
 (library (sagittarius cgen base)
-    (export init)
+    (export init
+	    warn
+	    generate-renderer
+	    set-renderer!
+	    renderer
+	    dispatch
+	    dispatch-method
+	    add-dispatch
+	    define-cgen-stmt define-cgen-macro register-macro!)
     (import (rnrs (6))
+	    (rnrs eval (6))
 	    (only (srfi :13) string-index string-index-right)
 	    (only (srfi :8) receive)
 	    (match)
 	    (sagittarius cgen util)
 	    (sagittarius format))
+#!compatible
+  (define *dispatch-table* #f)
+
+  (define (warn msg)
+    (display msg (current-error-port))
+    (newline (current-error-port))
+    (flush-output-port (current-error-port)))
+
+  ;; for define-cgen-stmt and macro
+  (define (dispatch body)
+    (dispatch-method body dispatch-method (lambda (k) k)))
+
+  (define (dispatch-method body dispatch k)
+    (cond ((pair? body)
+	   (let* ((head   (car body))
+		  (method (hashtable-ref *dispatch-table* head resolve-call)))
+	     (method body dispatch k)))
+	  ((boolean? body)
+	   ((renderer) (format "SG_MAKE_BOOL(~s)" (if body 'TRUE 'FALSE))))
+	  ((string? body)
+	   ((renderer) (format "UC(~s)" body)))
+	  ((char? body)
+	   ((renderer) (format "~a" (char->integer body))))
+	  (else
+	   ((renderer) (format "~s" body)))))
+
+  ;; generic method
+  ;; assume if there is no registered dispatcher
+  ;; it's function or macro call.
+  (define (resolve-call body dispatch k)
+    (let ((name (car body)))
+      ((renderer) (format "~a(" name))
+      (let loop ((args (cdr body))
+		 (i 0))
+	(unless (null? args)
+	  (unless (zero? i)
+	    ((renderer) ", "))
+	  (dispatch (car args) dispatch k)
+	  (loop (cdr args) (+ i 1))))
+      ((renderer) (format ")"))))
+
 
   ;; quote
   (define (quote-proc body dispatch k)
     (if (null? (cadr body))
-	(format #t "SG_NIL")
-	(format #t "SG_INTERN(~s)" (format "~s" (cadr body))))
+	((renderer) (format "SG_NIL"))
+	((renderer) (format "SG_INTERN(~s)" (format "~s" (cadr body)))))
     (k k))
 
   ;; +
@@ -26,7 +76,7 @@
      (lambda (i arg)
        (dispatch arg dispatch k)
        (unless (= i (- (length (cdr body)) 1))
-	 (display "+")))
+	 ((renderer) "+")))
      (cdr body))
     (k k))
 
@@ -41,7 +91,7 @@
      (lambda (i arg)
        (dispatch arg dispatch k)
        (unless (= i (- (length (cdr body)) 1))
-	 (display "-")))
+	 ((renderer) "-")))
      (cdr body))
     (k k))
 
@@ -52,9 +102,9 @@
 	(error 'result 
 	       (format "wrong number of argument for result (required 1, but got ~a)"
 		       (length body))))
-    (format #t "SG_RETURN = ")
+    ((renderer) (format "SG_RETURN = "))
     (dispatch (cadr body) dispatch k)
-    (display ";")(newline)
+    ((renderer) ";")((renderer) "\n")
     (k k))
 
   ;; set!
@@ -65,9 +115,8 @@
 	       (format "wrong number of argument for set! (required 2, but got ~a)"
 		       (length body))))
     (dispatch (cadr body) dispatch k)
-    (display "=")
+    ((renderer) "=")
     (dispatch (caddr body) dispatch k)
-    (display ";")(newline)
     (k k))
 
   ;; let
@@ -87,37 +136,37 @@
     (define (resolve-variable vars exprs)
       (for-each (lambda (var expr)
 		  (receive (name type) (resolve-type-name var)
-		    (format #t "  ~s ~s = " type name)
+		    ((renderer) (format "  ~s ~s = " type name))
 		    (dispatch expr dispatch k)
-		    (display ";")(newline)))
+		    ((renderer) ";")((renderer) "\n")))
 		vars exprs))
 		    
-    (format #t "{~%")
+    ((renderer) (format "{~%"))
     (match body
       ((_ () body ...)
        (for-each (lambda (b)
 		   (dispatch b dispatch k)
-		   (display ";")(newline))
+		   ((renderer) ";")((renderer) "\n"))
 		 body))
       ((_ ((var expr) ...) body ...)
        (resolve-variable var expr)
        (for-each (lambda (b)
 		   (dispatch b dispatch k)
-		   (display ";")(newline))
+		   ((renderer) ";")((renderer) "\n"))
 		 body))
       ((_ name ((var expr) ...) body ...) 
        (error 'let "named let is not supported" body))
       (else
        (error 'let
 	      "malformed let" body)))
-    (format #t "}~%")
+    ((renderer) (format "}~%"))
     (k k))
 
   ;; begin
   (define (begin-proc body dispatch k)
     (for-each (lambda (b)
 		(dispatch b dispatch k)
-		(display ";"))
+		((renderer) ";"))
 	      (cdr body))
     (k k))
 
@@ -125,13 +174,13 @@
   (define (if-proc body dispatch k)
     (match body
       ((_ test then . else)
-       (display "if (")(dispatch test dispatch k) (display ") {")(newline)
-       (dispatch then dispatch k)(display ";")
-       (display "}")(newline)
+       ((renderer) "if (")(dispatch test dispatch k) ((renderer) ") {")((renderer) "\n")
+       (dispatch then dispatch k)((renderer) ";")
+       ((renderer) "}")((renderer) "\n")
        (unless (null? else)
-	 (display " else {")(newline)
-	 (dispatch (car else) dispatch k)(display ";")
-	 (display "}")(newline)))))
+	 ((renderer) " else {")((renderer) "\n")
+	 (dispatch (car else) dispatch k)((renderer) ";")
+	 ((renderer) "}")((renderer) "\n")))))
 
   ;; cond
   (define (cond-proc body dispatch k)
@@ -142,22 +191,22 @@
 	 (unless (null? rest)
 	   (error 'cond "'else' clause followed by more clauses" body))
 	 (unless begin?			; should i use like this? just in case
-	   (format #t " else "))
-	 (format #t "{~%")
+	   ((renderer) (format " else ")))
+	 ((renderer) (format "{~%"))
 	 (for-each (lambda (expr)
 		     (dispatch expr dispatch k)
-		     (display ";")(newline))
+		     ((renderer) ";")((renderer) "\n"))
 		   exprs)
-	 (format #t "}~%"))
+	 ((renderer) (format "}~%")))
 	(((test . exprs) . rest)
 	 (unless begin?
-	   (format #t " else "))
-	 (display "if (") (dispatch test dispatch k) (display ") {")(newline)
+	   ((renderer) (format " else ")))
+	 ((renderer) "if (") (dispatch test dispatch k) ((renderer) ") {")((renderer) "\n")
 	 (for-each (lambda (expr)
 		     (dispatch expr dispatch k)
-		     (display ";")(newline))
+		     ((renderer) ";")((renderer) "\n"))
 		   exprs)
-	 (display "}")(newline)
+	 ((renderer) "}")((renderer) "\n")
 	 (process-clauses rest #f))
 	(_ (error 'cond "bad clause in cond" body))))
 	 
@@ -185,34 +234,34 @@
   (define (not-proc body dispatch k)
     (unless (= (length body) 2)
       (error 'not (format "not takes one argument but got ~a" (length body)) body))
-    (display "!") (dispatch (cadr body) dispatch k))
+    ((renderer) "!") (dispatch (cadr body) dispatch k))
 
   ;; for-each
   (define (for-each-proc body dispatch k)
     (let ((tmp (gen-temporary)))
       (match body
 	((_ ('lambda (var) . body) list-expr)
-	 (format #t "{~% SgObject ~s;~%" tmp)
-	 (format #t "SG_FOR_EACH(~s, " tmp) (dispatch list-expr dispatch k)
-	 (display ") {")(newline)
+	 ((renderer) (format "{~% SgObject ~s;~%" tmp))
+	 ((renderer) (format "SG_FOR_EACH(~s, " tmp)) (dispatch list-expr dispatch k)
+	 ((renderer) ") {")((renderer) "\n")
 	 (let ((v (string->symbol (string-append (symbol->string var)
 						 "::SgObject"))))
 	   (dispatch `(let ((,v (SG_CAR ,tmp)))
 			,@body) dispatch k))
-	 (display "}")(newline)
-	 (display "}")(newline)
+	 ((renderer) "}")((renderer) "\n")
+	 ((renderer) "}")((renderer) "\n")
 	 (k k)))))
 
   ;; pair-for-each
   (define (pair-for-each body dispatch k)
     (match body
       ((_ ('lambda (var) . b) list-expr)
-       (format #t "{~% SgObject ~s;~%" var)
-       (format #t "SG_FOR_EACH(~s, " var) (dispatch list-expr dispatch k)
-       (display ") {")(newline)
+       ((renderer) (format "{~% SgObject ~s;~%" var))
+       ((renderer) (format "SG_FOR_EACH(~s, " var)) (dispatch list-expr dispatch k)
+       ((renderer) ") {")((renderer) "\n")
        (dispatch `(begin ,@b) dispatch k)
-       (display "}")(newline)
-       (display "}")(newline)
+       ((renderer) "}")((renderer) "\n")
+       ((renderer) "}")((renderer) "\n")
        (k k))))
   
   ;; dolist
@@ -233,25 +282,25 @@
   (define (while-proc body dispatch k)
     (match body
       ((_ test . body)
-       (display "while(")
+       ((renderer) "while(")
        (dispatch test dispatch k)
-       (display ")")
-       (display "{")(newline)
+       ((renderer) ")")
+       ((renderer) "{")((renderer) "\n")
        (dispatch `(begin ,@body) dispatch k)
-       (display "}")(newline)
+       ((renderer) "}")((renderer) "\n")
        (k k))
       (else
        (error 'while "invalid while format" body))))
 
   ;; simple loop
   (define (loop body dispatch k)
-    (format #t "while (TRUE) {~%")
+    ((renderer) (format "while (TRUE) {~%"))
     (dispatch (cadr body) dispatch k)
-    (format #t "}~%"))
+    ((renderer) (format "}~%")))
   (define (break body dispatch k)
     (or (= (length body) 1)
-	(error 'break ("1 argument required but got ~s" (length body)) body))
-    (display "break;")(newline))
+	(error 'break (format "1 argument required but got ~s" (length body)) body))
+    ((renderer) "break;")((renderer) "\n"))
     
   (register-number-compare num-eq ==)
   (register-number-compare num-lt <)
@@ -267,18 +316,98 @@
   (define (remainder-proc body dispatch k)
     (let ((a (cadr body))
 	  (b (caddr body)))
-      (format #t "(~a % ~b)" a b)
+      ((renderer) (format "(~a % ~b)" a b))
     (k k)))
 
   ;; cast
   (define (cast body dispatch k)
     (let ((type (cadr body))
 	  (expr (caddr body)))
-      (format #t "(~a)" type)
+      ((renderer) (format "(~a)" type))
       (dispatch expr dispatch k)
       (k k)))
 
-  (define (init *dispatch-table*)
+  ;; ->
+  (define (ref-> body dispatch k)
+    (let ((instance (cadr body))
+	  (prop (caddr body)))
+      (dispatch instance dispatch k)
+      ((renderer) (format "->"))
+      (dispatch prop dispatch k)
+      (k k)))
+
+  ;; arrayref
+  (define (aref body dispatch k)
+    (let ((array (cadr body))
+	  (index (caddr body)))
+      (dispatch array dispatch k)
+      ((renderer) (format "["))
+      (dispatch index dispatch k)
+      ((renderer) (format "]"))
+      (k k)))
+
+  ;; plugin
+  (define (register-macro! name expander)
+    (hashtable-set! *dispatch-table* name expander))
+  
+  (define (cgen-lookup-macro name)
+    (hashtable-ref *dispatch-table* name #f))
+
+  (define-syntax define-cgen-macro
+    (syntax-rules ()
+      ((_ (op form) . body)
+       (register-macro! 'op (lambda (form dispatch k) . body)))
+      ((_ op op2)
+       (register-macro! 'op (or (cgen-lookup-macro 'op2)
+				(error 'define-cgen-macro "unknown cgen macro" 'op2))))))
+
+  (define-syntax define-cgen-stmt
+    (syntax-rules ()
+      ;; recursion
+      ((_ "clauses" op clauses ("where" defs ...))
+       (define-cgen-macro (op form)
+	 defs ...
+	 (match form . clauses)))
+      ((_ "clauses" op clauses ())
+       (define-cgen-stmt "clauses" op clauses ("where")))
+      ((_ "clauses" op (clause ...) (x . y))
+       (define-cgen-stmt "clauses" op (clause ... x) y))
+      ;; entry
+      ((_ (op . args) . body)		; single pattern case
+       (define-cgen-stmt "clauses" op (((_ . args) . body)) ()))
+      ((_ op (pat . body) . clauses)	; (pat . body) rules out a single symbol
+       (define-cgen-stmt "clauses" op ((pat . body)) clauses))
+      ((_ op . clauses)
+       (define-cgen-stmt "clauses" op () clauses))))
+
+  (define (def-stmt body dispatch k)
+    (eval body (environment '(rnrs (6))
+			    '(sagittarius cgen)
+			    '(sagittarius format)
+			    '(sagittarius cgen base)))
+    (k k))
+  
+  (define (def-decl body dispatch k)
+    (define (resolve-decl decl-body)
+      (for-each (lambda (b)
+		  (let ((key (car b)))
+		    (case key
+		      ((.include)
+		       (let loop ((files (cdr b)))
+			 (unless (null? files)
+			   ((renderer) (format "#include ~s~%" (car files)))
+			   (loop (cdr files))))))))
+		decl-body))
+    (resolve-decl (cdr body)))
+
+  (define (add-dispatch key proc)
+    (hashtable-set! *dispatch-table* key proc))
+
+  (define (init)
+    (set! *dispatch-table* (make-eq-hashtable))
+    (set-renderer! (generate-renderer))
+    (hashtable-set! *dispatch-table* 'define-cgen-stmt def-stmt)
+    (hashtable-set! *dispatch-table* 'decl-code def-decl)
     (hashtable-set! *dispatch-table* 'quote quote-proc)
     (hashtable-set! *dispatch-table* 'result result)
     (hashtable-set! *dispatch-table* 'set! set!-proc)
@@ -306,4 +435,6 @@
     (hashtable-set! *dispatch-table* 'and and-proc)
     (hashtable-set! *dispatch-table* 'or or-proc)
     (hashtable-set! *dispatch-table* 'cast cast)
+    (hashtable-set! *dispatch-table* '-> ref->)
+    (hashtable-set! *dispatch-table* 'arrayref aref)
     (hashtable-set! *dispatch-table* 'let let-proc)))

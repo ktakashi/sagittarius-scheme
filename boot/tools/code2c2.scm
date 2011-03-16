@@ -82,6 +82,21 @@
       (format out "        -0x~8'0X          /* ~6a (~s) */,~%" (abs insn) i (car info))
       (format out "        0x~8'0X           /* ~6a (~s) */,~%" (abs insn) i (car info))))
 
+(define (decode-start-comment sym)
+  (if sym
+      (let* ((s (string-copy (symbol->string sym)))
+	     (len (string-length s)))
+	(let loop ((i 0))
+	  (unless (= i len)
+	    (if (and (char=? (string-ref s i) #\/)
+		     (not (>= (+ i 1) len))
+		     (char=? (string-ref s (+ i 1)) #\*))
+		(string-set! s (+ i 1) #\@))
+	    (loop (+ i 1))))
+	(string->symbol s))
+      sym))
+
+
 (define (object? o)
   (or (identifier? o)
       (pair? o)
@@ -179,13 +194,17 @@
     (define (write-cb cb)
       (let ((code (array-data (code-builder-code cb)))
 	    (clen (array-length (code-builder-code cb))))
-	(format out "    SG_STATIC_CODE_BUILDER(&sg__wc.w[~a], NULL, ~s, ~s, ~s, ~s, ~s),~%"
+	(format out "    SG_STATIC_CODE_BUILDER(&sg__wc.w[~a], NULL, ~s, ~s, ~s, ~s, ~s), /* ~s */~%"
 		offset
 		(code-builder-argc cb)
 		(if (code-builder-optional? cb) 'TRUE 'FALSE)
 		(code-builder-freec cb)
 		(code-builder-maxstack cb)
-		(array-length (code-builder-code cb)))
+		(array-length (code-builder-code cb))
+		(decode-start-comment
+		 (if (identifier? (code-builder-name cb))
+		     (id-name (code-builder-name cb))
+		     (code-builder-name cb))))
 	(set! offset (+ offset (array-length (code-builder-code cb))))))
     (for-each (lambda (lst)
 		(let ((cb (car lst)))

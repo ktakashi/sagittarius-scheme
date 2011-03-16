@@ -158,6 +158,10 @@ struct SgVMRec
   SgLibrary   *currentLibrary;
   /* dynamic winders */
   SgObject    dynamicWinders;
+
+  /* gc related */
+  int finalizerPending;
+  int attentionRequest;
 };
 
 /*
@@ -214,6 +218,9 @@ SG_EXTERN SgObject Sg_VMCurrentLibrary();
 /* exception */
 SG_EXTERN SgObject Sg_GetStackTrace();
 SG_EXTERN void     Sg_ThrowException(SgObject exception);
+
+/* finalizer */
+SG_EXTERN SgObject Sg_VMFinalizerRun(SgVM *vm);
 
 SG_CDECL_END
 

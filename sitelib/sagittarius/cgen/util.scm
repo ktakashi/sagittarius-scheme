@@ -2,12 +2,31 @@
 (library (sagittarius cgen util)
     (export for-each1-with-index string-split alpha alpha-num
 	    c-identifier register-number-compare
-	    register-and/or
+	    register-and/or set-renderer! generate-renderer renderer
+	    acons
 	    gen-temporary)
     (import (rnrs (6))
 	    (only (srfi :13) string-tokenize)
 	    (only (srfi :14) string->char-set)
 	    (sagittarius format))
+  ;; TODO remove
+  (define-syntax acons
+    (syntax-rules ()
+      ((_ a b alist)
+       (cons (cons a b) alist))))
+
+  (define *renderer* #f)
+  
+  (define (set-renderer! renderer)
+    (set! *renderer* renderer))
+
+  (define (renderer) *renderer*)
+
+  (define (generate-renderer . user-renderer)
+    (lambda (x)
+      (if (null? user-renderer)
+	  (display x)
+	  ((car user-renderer) x))))
 
   (define for-each1-with-index
     (lambda (proc lst)
@@ -24,24 +43,24 @@
       ((_ name op)
        (define (name body dispatch k)
 	 (or (= (length body) 3)
-	     (error 'break ("3 argument required but got ~s" (length body)) body))
+	     (error 'break (format "3 argument required but got ~s" (length body)) body))
 	 (dispatch (cadr body) dispatch k)
-	 (format #t " ~s " 'op)
+	 ((renderer) (format " ~s " 'op))
 	 (dispatch (caddr body) dispatch k)))))
 
   (define-syntax register-and/or
     (syntax-rules ()
       ((_ name op)
        (define (name body dispatch k)
-	 (display "(")
+	 ((renderer) "(")
 	 (let loop ((first #t)
 		    (args (cdr body)))
 	   (unless (null? args)
 	     (unless first
-	       (format #t " ~a " op))
+	       ((renderer) (format " ~a " op)))
 	     (dispatch (car args) dispatch k)
 	     (loop #f (cdr args))))
-	 (display ")")))))
+	 ((renderer) ")")))))
 
 
   (define alpha        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")

@@ -33,6 +33,7 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/vm.h"
 #include "sagittarius/code.h"
+#include "sagittarius/core.h"
 #include "sagittarius/closure.h"
 #include "sagittarius/error.h"
 #include "sagittarius/file.h"
@@ -48,6 +49,7 @@
 #include "sagittarius/instruction.h"
 #include "sagittarius/writer.h"
 #include "sagittarius/number.h"
+#include "sagittarius/macro.h"
 #include "sagittarius/values.h"
 #include "sagittarius/vector.h"
 #include "sagittarius/compare.h"
@@ -104,6 +106,9 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->stack = SG_NEW_ARRAY(SgObject, SG_VM_STACK_SIZE);
   v->sp = v->fp = v->stack;
   v->stackEnd = v->stack + SG_VM_STACK_SIZE;
+
+  v->attentionRequest = FALSE;
+  v->finalizerPending = FALSE;
 #if 0
   /* initialize stack record */
   CSR(v) = SG_NEW(StackRecord);
@@ -135,6 +140,7 @@ SgVM* Sg_VM()
 }
 
 #define Sg_VM() theVM
+
 
 static inline void save_registers(Registers *r)
 {
@@ -628,12 +634,6 @@ SgObject evaluate_safe(SgWord *code, int codeSize, int compilerp)
   return ret;
 }
 
-#define SWITCH(val)        switch (val)
-#define CASE(insn)         case insn :
-#define NEXT               break;
-#define DEFAULT            default:
-
-
 static inline void make_call_frame(SgVM *vm, SgWord *pc)
 {
   PUSH(SP(vm), SG_OBJ(pc));
@@ -842,6 +842,30 @@ static inline void trace_log(SgWord *code, SgWord insn)
   Sg_Printf(Sg_StandardErrorPort(), UC("\n\n"));
 }
 
+
+#ifdef __GNUC__
+# define SWITCH(val)        goto *dispatch_table[val];
+# define CASE(insn)         SG_CPP_CAT(LABEL_, insn) :
+# define DISPATCH            /* empty */
+# define NEXT							\
+  do {								\
+    if (vm->attentionRequest) goto process_queue;		\
+    c = (SgWord)FETCH_OPERAND(PC(vm));				\
+    if ((vm->flags & SG_LOG_LEVEL_MASK) >= SG_TRACE_LEVEL	\
+	&& !compilerp) {					\
+      trace_log(code, c);					\
+    }								\
+    goto *dispatch_table[INSN(c)];				\
+  } while (0)
+# define DEFAULT            LABEL_DEFAULT :
+#else
+# define SWITCH(val)        switch (val)
+# define CASE(insn)         case insn :
+# define NEXT               goto dispatch;
+# define DISPATCH           dispatch:
+# define DEFAULT            default:
+#endif
+
 SgObject run_loop(SgWord *code, jmp_buf returnPoint, int compilerp)
 {
   SgVM *vm = Sg_VM();
@@ -849,491 +873,39 @@ SgObject run_loop(SgWord *code, jmp_buf returnPoint, int compilerp)
   vm->callCode[0] = SG_WORD(CALL);
   vm->callCode[1] = SG_WORD(HALT);
 
+#ifdef __GNUC__
+  static void *dispatch_table[256] = {
+#define DEFINSN(insn, vals, argc, src, label) && SG_CPP_CAT(LABEL_, insn),
+#include "vminsn.c"
+#undef DEFINSN
+  };
+#endif	/* __GNUMC__ */
+
   /* PC(vm) = code; */
   AC(vm) = SG_UNDEF;
   for (;;) {
     SgWord c = (SgWord)FETCH_OPERAND(PC(vm));
     int val1, val2;
 
+    DISPATCH;
+
     if ((vm->flags & SG_LOG_LEVEL_MASK) >= SG_TRACE_LEVEL && !compilerp) {
       trace_log(code, c);
     }
 
     SWITCH(INSN(c)) {
-      CASE(HALT) {
-	return AC(vm);
-      }
-      CASE(NOP) {
-	NEXT;
-      }
-      CASE(UNDEF) {
-	AC(vm) = SG_UNDEF;
-	NEXT;
-      }
-      CASE(FRAME) {
-	/* Sould it be word? */
-	SgObject n = FETCH_OPERAND(PC(vm));
-	int skipSize;
-	ASSERT(SG_INTP(n));
-	skipSize = SG_INT_VALUE(n);
-	make_call_frame(vm, PC(vm) + skipSize - 1);
-	NEXT;
-      }
-      CASE(LET_FRAME) {
-	/* TODO expand stack */
-	INSN_VAL1(val1, c);
-	PUSH(SP(vm), DC(vm));
-	PUSH(SP(vm), FP(vm));
-	NEXT;
-      }
-      CASE(POP_LET_FRAME) {
-	INSN_VAL1(val1, c);
-	SP(vm) = discard_let_frame(vm, val1);
-	NEXT;
-      }
-      CASE(DISPLAY) {
-	SgObject new_c;
-	INSN_VAL1(val1, c);
-	new_c = make_display(val1, SP(vm));
-	SG_CLOSURE(new_c)->prev = DC(vm);
-	DC(vm) = new_c;
-	SP(vm) = SP(vm) - val1;
-	NEXT;
-      }
-      CASE(ENTER) {
-	INSN_VAL1(val1, c);
-	FP(vm) = SP(vm) - val1;
-	NEXT;
-      }
-      CASE(LEAVE) {
-	SgObject *sp = FP(vm);
-	FP(vm) = (SgObject*)INDEX(sp, 0);
-	DC(vm) = INDEX(sp, 1);
-	SP(vm) = sp - SG_LET_FRAME_SIZE;
-	NEXT;
-      }
-      CASE(BOX) {
-	INSN_VAL1(val1, c);
-	INDEX_SET(SP(vm), val1, make_box(INDEX(SP(vm), val1)));
-	NEXT;
-      }
-      CASE(UNBOX) {
-	ASSERT(SG_BOXP(AC(vm)));
-	AC(vm) = SG_BOX(AC(vm))->value;
-	NEXT;
-      }
-      CASE(DEFINE) {
-	SgObject var = FETCH_OPERAND(PC(vm));
-	ASSERT(SG_IDENTIFIERP(var));
-	Sg_InsertBinding(SG_IDENTIFIER(var)->library, SG_IDENTIFIER(var)->name, AC(vm));
-	AC(vm) = SG_UNDEF;
-	NEXT;
-      }
-      /* TODO box, unbox here*/
-      CASE(CONST) {
-	CONST_INSN(vm);
-	NEXT;
-      }
-      CASE(PUSH) {
-	PUSH_INSN(vm);
-	NEXT;
-      }
-      CASE(CONST_PUSH) {
-	CONST_INSN(vm);
-	PUSH_INSN(vm);
-	NEXT;
-      }
-      /* TODO add fref */
-      CASE(LREF) {
-	LREF_INSN(vm, c);
-	NEXT;
-      }
-      CASE(LREF_PUSH) {
-	LREF_INSN(vm, c);
-	PUSH_INSN(vm);
-	NEXT;
-      }
-      CASE(FREF) {
-	FREF_INSN(vm, c);
-	NEXT;
-      }
-      CASE(FREF_PUSH) {
-	FREF_INSN(vm, c);
-	PUSH_INSN(vm);
-	NEXT;
-      }
-      CASE(GREF) {
-	GREF_INSN(vm);
-	NEXT;
-      }
-      CASE(GREF_PUSH) {
-	GREF_INSN(vm);
-	PUSH_INSN(vm);
-	NEXT;
-      }
-      CASE(LSET) {
-	INSN_VAL1(val1, c);
-	SG_BOX(REFER_LOCAL(vm, val1))->value = AC(vm);
-	NEXT;
-      }
-      CASE(FSET) {
-	INSN_VAL1(val1, c);
-	SG_BOX(INDEX_CLOSURE(vm, val1))->value = AC(vm);
-	NEXT;
-      }
-      CASE(GSET) {
-	SgObject var = FETCH_OPERAND(PC(vm));
-	ASSERT(SG_IDENTIFIERP(var));
-	Sg_InsertBinding(SG_IDENTIFIER_LIBRARY(var), SG_IDENTIFIER_NAME(var), AC(vm));
-	NEXT;
-      }
-      CASE(TEST) {
-	SgObject n = FETCH_OPERAND(PC(vm));
-	ASSERT(SG_INTP(n));
-	if (SG_FALSEP(AC(vm))) {
-	  PC(vm) += SG_INT_VALUE(n) - 1;
-	}
-	NEXT;
-      }
-      CASE(BNEQ) {
-	BRANCH_TEST2(SG_EQ);
-	NEXT;
-      }
-      CASE(BNEQV) {
-	BRANCH_TEST2(Sg_EqvP);
-	NEXT;
-      }
-      CASE(BNNUME) {
-	BRANCH_TEST2(Sg_NumEq);
-	NEXT;
-      }
-      CASE(BNLE) {
-	BRANCH_TEST2(Sg_NumLe);
-	NEXT;
-      }
-      CASE(BNLT) {
-	BRANCH_TEST2(Sg_NumLt);
-	NEXT;
-      }
-      CASE(BNGE) {
-	BRANCH_TEST2(Sg_NumGe);
-	NEXT;
-      }
-      CASE(BNGT) {
-	BRANCH_TEST2(Sg_NumGt);
-	NEXT;
-      }
-      CASE(BNNULL) {
-	BRANCH_TEST1(SG_NULLP);
-	NEXT;
-      }
-      CASE(JUMP) {
-	SgObject n = FETCH_OPERAND(PC(vm));
-	ASSERT(SG_INTP(n));
-	PC(vm) += SG_INT_VALUE(n) - 1;
-	NEXT;
-      }
-      CASE(MARK) {
-	SG_CLOSURE(DC(vm))->mark = FP(vm);
-	NEXT;
-      }
-      CASE(SHIFTJ) {
-	int i;
-
-	INSN_VAL2(val1, val2, c);
-	for (i = val2; ; i--) {
-	  if (i <= 0 && SG_CLOSURE(DC(vm))->mark) break;
-	  DC(vm) = SG_CLOSURE(DC(vm))->prev;
-	}
-	ASSERT(SG_CLOSUREP(DC(vm)));
-	FP(vm) = SG_CLOSURE(DC(vm))->mark;
-	SP(vm) = shift_args(FP(vm), val1, SP(vm));
-	NEXT;
-      }
-      CASE(RECEIVE) {
-	int i;
-	int numValues = 0;
-	INSN_VAL2(val1, val2, c);
-	if (!SG_VALUESP(AC(vm))) {
-	  numValues = 1;
-	} else {
-	  numValues = SG_VALUES(AC(vm))->size;
-	}
-	if (numValues < val1) {
-	  Sg_Error(UC("received fewer values than expected"));
-	}
-	if ((val2 == 0) && (numValues > val1)) {
-	  Sg_Error(UC("received more values than expected"));
-	}
-	if (val2 == 0) {
-	  /* (receive (a b c) ...) */
-	  if (val1 == 1) {
-	    /* (values 'a) creates non values object */
-	    PUSH(SP(vm), AC(vm));
-	  } else if (val1 > 0) {
-	    for (i = 0; i < val1; i++) {
-	      PUSH(SP(vm), SG_VALUES_ELEMENT(AC(vm), i));
-	    }
-	  }
-	} else if (val1 == 0) {
-	  /* (receive a ...) */
-	  SgObject h = SG_NIL, t = SG_NIL;
-	  if (numValues == 1) {
-	    /* (values 'a) creates non values object */
-	    SG_APPEND1(h, t, AC(vm));
-	  } else {
-	    for (i = 0; i < numValues; i++) {
-	      SG_APPEND1(h, t, SG_VALUES_ELEMENT(AC(vm), i));
-	    }
-	  }
-	  PUSH(SP(vm), h);
-	} else {
-	  /* (receive (a b . c) ...) */
-	  SgObject h = SG_NIL, t = SG_NIL;
-	  for (i = 0; ; i++) {
-	    if (i < val1) {
-	      PUSH(SP(vm), SG_VALUES_ELEMENT(AC(vm), i));
-	    } else if (i < SG_VALUES(AC(vm))->size) {
-	      SG_APPEND1(h, t, SG_VALUES_ELEMENT(AC(vm), i));
-	    } else {
-	      PUSH(SP(vm), h);
-	      break;
-	    }
-	  }
-	}
-	NEXT;
-      }
-      CASE(CLOSURE) {
-	SgObject cb = FETCH_OPERAND(PC(vm));
-	if (!SG_CODE_BUILDERP(cb)) {
-	  Sg_Error(UC("code-builder required, but got %S"), cb);
-	}
-	AC(vm) = Sg_MakeClosure(cb, SP(vm) - SG_CODE_BUILDER(cb)->freec);
-	SP(vm) -= SG_CODE_BUILDER(cb)->freec;
-	NEXT;
-      }
-      CASE(CALL) {
-	#include "vmcall.c"
-	NEXT;
-      }
-      CASE(TAIL_CALL) {
-	TAIL_CALL_INSN(vm, c);
-	#include "vmcall.c"
-	NEXT;
-      }
-      CASE(GREF_CALL) {
-	GREF_INSN(vm);
-	#include "vmcall.c"
-	NEXT;
-      }
-      CASE(GREF_TAIL_CALL) {
-	GREF_INSN(vm);
-	TAIL_CALL_INSN(vm, c);
-	#include "vmcall.c"
-	NEXT;
-      }
-      CASE(LOCAL_CALL) {
-	LOCAL_CALL_INSN(vm, c);
-	NEXT;
-      }
-      CASE(LOCAL_TAIL_CALL) {
-	TAIL_CALL_INSN(vm, c);
-	LOCAL_CALL_INSN(vm, c);
-	NEXT;
-      }
-      CASE(APPLY) {
-	SgObject args = POP(SP(vm));
-	if (SG_NULLP(args)) {
-	  vm->callCode[0] = MERGE_INSN_VALUE1(CALL, 0);
-	  PC(vm) = vm->callCode;
-	} else {
-	  int length, shiftLen;
-	  SgObject *sp;
-	  if (!SG_PAIRP(args)) {
-	    Sg_AssertionViolation(SG_INTERN("apply"), SG_INTERN("bug?"), AC(vm));
-	    NEXT;
-	  }
-	  length = Sg_Length(args);
-	  shiftLen = length > 1 ? length - 1: 0;
-	  sp = SP(vm) + shiftLen + 1;
-	  pair_args_to_stack(SP(vm), 0, args);
-	  vm->callCode[0] = MERGE_INSN_VALUE1(CALL, length);
-	  PC(vm) = vm->callCode;
-	  SP(vm) = sp;
-	}
-	NEXT;
-      }
-      CASE(RET) {
-	SgObject *sp = FP(vm);
-	PC(vm) = INDEX(sp, 3);
-	DC(vm) = INDEX(sp, 2);
-	CL(vm) = INDEX(sp, 1);
-	FP(vm) = INDEX(sp, 0);
-	SP(vm) = sp - SG_FRAME_SIZE;
-	NEXT;
-      }
-      /* builtin procedures */
-      CASE(EQ) {
-	BUILTIN_TWO_ARGS_COMPARE(vm, SG_EQ);
-	NEXT;
-      }
-      CASE(EQV) {
-	BUILTIN_TWO_ARGS_COMPARE(vm, Sg_EqvP);
-	NEXT;
-      }
-      CASE(NUM_EQ) {
-	BUILTIN_TWO_ARGS_COMPARE(vm, Sg_NumEq);
-	NEXT;
-      }
-      CASE(NUM_LT) {
-	BUILTIN_TWO_ARGS_COMPARE(vm, Sg_NumLt);
-	NEXT;
-      }
-      CASE(NUM_LE) {
-	BUILTIN_TWO_ARGS_COMPARE(vm, Sg_NumLe);
-	NEXT;
-      }
-      CASE(NUM_GT) {
-	BUILTIN_TWO_ARGS_COMPARE(vm, Sg_NumGt);
-	NEXT;
-      }
-      CASE(NUM_GE) {
-	BUILTIN_TWO_ARGS_COMPARE(vm, Sg_NumGe);
-	NEXT;
-      }
-      CASE(ADD) {
-	BUILTIN_TWO_ARGS(vm, Sg_Add);
-	NEXT;
-      }
-      /* TODO merge value */
-      CASE(ADDI) {
-	BUILTIN_ONE_ARG_WITH_INSN_VALUE(vm, Sg_Add, c);
-	NEXT;
-      }
-      CASE(SUB) {
-	BUILTIN_TWO_ARGS(vm, Sg_Sub);
-	NEXT;
-      }
-      CASE(MUL) {
-	BUILTIN_TWO_ARGS(vm, Sg_Mul);
-	NEXT;
-      }
-      CASE(DIV) {
-	BUILTIN_TWO_ARGS(vm, Sg_Div);
-	NEXT;
-      }
-      CASE(NEG) {
-	BUILTIN_ONE_ARG(vm, Sg_Negate);
-	NEXT;
-      }
-      CASE(CAR) {
-	if (!SG_PAIRP(AC(vm))) {
-	  Sg_Error(UC("car: pair required, but got %S"), AC(vm));
-	}
-	BUILTIN_ONE_ARG(vm, SG_CAR);
-	NEXT;
-      }
-      CASE(CDR) {
-	if (!SG_PAIRP(AC(vm))) {
-	  Sg_Error(UC("cdr: pair required, but got %S"), AC(vm));
-	}
-	BUILTIN_ONE_ARG(vm, SG_CDR);
-	NEXT;
-      }
-      CASE(CONS) {
-	BUILTIN_TWO_ARGS(vm, Sg_Cons);
-	NEXT;
-      }
-      CASE(NULLP) {
-	AC(vm) = SG_MAKE_BOOL(SG_NULLP(AC(vm)));
-	NEXT;
-      }
-      CASE(VECTORP) {
-	AC(vm) = SG_MAKE_BOOL(SG_VECTORP(AC(vm)));
-	NEXT;
-      }
-      /* vector */
-      CASE(VECTOR) {
-	SgObject v;
-	INSN_VAL1(val1, c);
-	v = Sg_MakeVector(val1, SG_UNDEF);
-	if (val1 > 0) {
-	  int i, n;
-	  n = val1 - 1;
-	  SG_VECTOR_ELEMENT(v, n) = AC(vm);
-	  for (i = 0; i < n; i++) {
-	    SG_VECTOR_ELEMENT(v, n - i - 1) = INDEX(SP(vm), i);
-	  }
-	  SP(vm) -= n;
-	}
-	AC(vm) = v;
-	NEXT;
-      }
-      CASE(VEC_LEN) {
-	if (!SG_VECTORP(AC(vm))) {
-	  Sg_Error(UC("vector-length: vector required, but got %S"), AC(vm));
-	}
-	AC(vm) = SG_MAKE_INT(SG_VECTOR_SIZE(AC(vm)));
-	NEXT;
-      }
-      CASE(VEC_REF) {
-	if (!SG_VECTORP(INDEX(SP(vm), 0))) {
-	  Sg_Error(UC("vector-ref: vector required, but got %S"), INDEX(SP(vm), 0));
-	}
-	if (!SG_INTP(AC(vm))) {
-	  Sg_Error(UC("vector-ref: fixnum required, but got %S"), AC(vm));
-	}
-	AC(vm) = SG_VECTOR_ELEMENT(INDEX(SP(vm), 0), SG_INT_VALUE(AC(vm)));
-	SP(vm) -= 1;
-	NEXT;
-      }
-      CASE(VEC_SET) {
-	if (!SG_VECTORP(INDEX(SP(vm), 1))) {
-	  Sg_Error(UC("vector-set!: vector required, but got %S"), INDEX(SP(vm), 1));
-	}
-	if (!SG_INTP(INDEX(SP(vm), 0))) {
-	  Sg_Error(UC("vector-set!: fixnum required, but got %S"), INDEX(SP(vm), 0));
-	}
-	SG_VECTOR_ELEMENT(INDEX(SP(vm), 1), SG_INT_VALUE(INDEX(SP(vm), 0))) = AC(vm);
-	AC(vm) = SG_UNDEF;
-	SP(vm) -= 2;
-	NEXT;
-      }
-      CASE(LIST) {
-	int i;
-	SgObject ret = SG_NIL;
-	INSN_VAL1(val1, c);
-	if (val1 > 0) {
-	  ret = Sg_Cons(AC(vm), ret);
-	  for (i = 0; i < val1 - 1; i++) {
-	    ret = Sg_Cons(INDEX(SP(vm), i), ret);
-	  }
-	  SP(vm) -= val1 - 1;
-	}
-	AC(vm) = ret;
-	NEXT;
-      }
-      CASE(VALUES) {
-	SgObject v;
-	INSN_VAL1(val1, c);
-	v = Sg_MakeValues(val1);
-	if (val1 > 0) {
-	  int i, n;
-	  n = val1 - 1;
-	  SG_VALUES_ELEMENT(v, n) = AC(vm);
-	  for (i = 0; i < n; i++) {
-	    SG_VALUES_ELEMENT(v, n - i - 1) = INDEX(SP(vm), i);
-	  }
-	  SP(vm) -= n;
-	}
-	AC(vm) = v;
-	NEXT;
-      }
-      /* TODO add caar, cadr so on */
+#define VM_LOOP
+#include "vminsn.c"
+#undef VM_LOOP
       DEFAULT {
 	Sg_Panic("unknown instruction appeard. %08x", c);
       }
     }
+  process_queue:
+    /* just stub */
+    if (vm->finalizerPending) Sg_VMFinalizerRun(vm);
+    NEXT;
+
   }
   return SG_UNDEF;		/* dummy */
 }

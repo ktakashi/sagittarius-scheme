@@ -29,9 +29,18 @@
  *
  *  $Id: $
  */
+#include <string.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius.h"
-#include "sagittarius/stub.h"
+#include "sagittarius/core.h"
+#include "sagittarius/vm.h"
+
+static void finalizable();
+static void* oom_handler(size_t bytes)
+{
+  Sg_Panic("out of memory (%lu). aborting...", bytes);
+  return NULL;			/* dummy */
+}
 
 extern void Sg__InitSymbol();
 extern void Sg__InitNumber();
@@ -55,7 +64,16 @@ extern void Sg__Init_sagittarius_compiler();
 
 void Sg_Init()
 {
+#ifdef USE_BOEHM_GC
   GC_INIT();
+  GC_oom_fn = oom_handler;
+  GC_finalize_on_demand = TRUE;
+  GC_finalizer_notifier = finalizable;
+#else
+  /* do nothing for now*/
+#endif
+
+
   /* order is important especially libraries */
   Sg__InitString();		/* string must be before symbol */
   Sg__InitSymbol();
@@ -106,6 +124,101 @@ void Sg_Init()
   }
 
 }
+/* GC related */
+void Sg_RegisterFinalizer(SgObject z, SgFinalizerProc finalizer, void *data)
+{
+#ifdef USE_BOEHM_GC
+  GC_finalization_proc ofn; void *ocd;
+  GC_REGISTER_FINALIZER_NO_ORDER(z, (GC_finalization_proc)finalizer,
+				 data, &ofn, &ocd);
+#else
+  /* for now do nothing */
+#endif
+}
+
+void Sg_UnregisterFinalizer(SgObject z)
+{
+#ifdef USE_BOEHM_GC
+  GC_finalization_proc ofn; void *ocd;
+  GC_REGISTER_FINALIZER_NO_ORDER(z, (GC_finalization_proc)NULL, NULL,
+				 &ofn, &ocd);
+#else
+  /* for now do nothing */
+#endif
+}
+
+void finalizable()
+{
+  SgVM *vm = Sg_VM();
+  vm->finalizerPending = TRUE;
+  vm->attentionRequest = TRUE;
+}
+
+SgObject Sg_VMFinalizerRun(SgVM *vm)
+{
+  /* for future we want to use own gc implementation */
+#ifdef USE_BOEHM_GC
+  GC_invoke_finalizers();
+  vm->finalizerPending = FALSE;
+  return SG_UNDEF;
+#else
+  return SG_UNDEF;
+#endif
+}
+
+void Sg_RegisterDL(void *data_start, void *data_end,
+		   void *bss_start, void *bss_end)
+{
+  if (data_start < data_end) {
+    Sg_AddGCRoots(data_start, data_end);
+  }
+  if (bss_start < bss_end) {
+    Sg_AddGCRoots(bss_start, bss_end);
+  }
+}
+
+void Sg_AddGCRoots(void *start, void *end)
+{
+#ifdef USE_BOEHM_GC
+  GC_add_roots(start, end);
+#else
+  /* do nothing for now */
+#endif
+}
+
+/* exit related */
+#define EXIT_CODE(code) ((code)&0xFF)
+
+void Sg_Exit(int code)
+{
+  Sg_Cleanup();
+  exit(EXIT_CODE(code));
+}
+
+void Sg_Cleanup()
+{
+  /* for now do nothing */
+  return;
+}
+
+void Sg_Panic(const char* msg, ...)
+{
+  va_list args;
+  va_start(args, msg);
+  vfprintf(stderr, msg, args);
+  va_end(args);
+  fputc('\n', stderr);
+  fflush(stderr);
+  _exit(EXIT_CODE(1));
+}
+
+void Sg_Abort(const char* msg)
+{
+  int size = (int)strlen(msg);
+  write(2, msg, size);
+  _exit(EXIT_CODE(1));
+}
+
 
 /*
   end of file

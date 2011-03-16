@@ -32,14 +32,12 @@ SET(SAGITTARIUS_LIB_SOURCE
   writer.c         compiler.c
   closure.c        instruction.c
   code.c           macro.c
-  vm.c
+  vm.c             core.c
   # libraries
   proclib.c        null.c
   vmlib.c          vmdebug.c
   compiler-aux.c   lib_scmlib.c
   extlib.c
-  # this needs to be removed
-  stub.c
 )
 
 ADD_LIBRARY(sagittarius SHARED 

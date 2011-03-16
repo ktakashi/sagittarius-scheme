@@ -36,7 +36,6 @@
 
 SG_CDECL_BEGIN
 
-SG_EXTERN void Sg_Panic(const char* msg, ...);
 SG_EXTERN void Sg_Error(const SgChar* msg, ...);
 SG_EXTERN void Sg_ReadError(const SgChar* msg, ...);
 

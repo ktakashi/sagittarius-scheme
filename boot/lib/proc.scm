@@ -99,8 +99,11 @@
 (declare-procedure cons (a b) (:inline CONS) :null cons)
 (declare-procedure acons (a b c) (:inline -1) :null acons)
 
-;; null?
+;; conditions
 (declare-procedure null? (x) (:inline NULLP) :null null?)
+(declare-procedure pair? (x) (:inline PAIRP) :null pair?)
+(declare-procedure symbol? (x) (:inline SYMBOLP) :null symbol?)
+
 ;; vector
 (declare-procedure vector rest (:inline VECTOR) :null vector)
 (declare-procedure vector? (x) (:inline VECTORP) :null vector?)

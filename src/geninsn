@@ -1,0 +1,4 @@
+;; -*- scheme -*-
+(import (rnrs)
+	(sagittarius cgen vminsn))
+(gen-insn "../boot/instructions.scm")

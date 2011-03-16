@@ -100,8 +100,6 @@ static SgBignum* bignum_clear(SgBignum *b)
   return b;
 }
 
-#define BIGNUM_SIZE(size) (sizeof(SgBignum)+((size)-1)*sizeof(long))
-
 static SgBignum* make_bignum(int size)
 {
   SgBignum *b;
