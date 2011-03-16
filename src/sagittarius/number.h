@@ -159,6 +159,11 @@ SG_EXTERN int      Sg_OddP(SgObject obj);
 SG_EXTERN SgObject Sg_Inverse(SgObject obj);
 
 SG_EXTERN SgObject Sg_Ash(SgObject x, int count);
+SG_EXTERN SgObject Sg_LogNot(SgObject x);
+SG_EXTERN SgObject Sg_LogAnd(SgObject x, SgObject y);
+SG_EXTERN SgObject Sg_LogIor(SgObject x, SgObject y);
+SG_EXTERN SgObject Sg_LogXor(SgObject x, SgObject y);
+
 SG_EXTERN SgObject Sg_Add(SgObject x, SgObject y);
 SG_EXTERN SgObject Sg_Sub(SgObject x, SgObject y);
 SG_EXTERN SgObject Sg_Mul(SgObject x, SgObject y);

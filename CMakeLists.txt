@@ -73,7 +73,8 @@ CONFIGURE_FILE(cmake/config-cmake.h.in ${PROJECT_SOURCE_DIR}/src/sagittarius/con
 ADD_DEFINITIONS(-DHAVE_CONFIG_H)
 
 # TODO check if it's ok
-SET(CMAKE_C_FLAGS "-W -Wall -O0 -g3 -gdwarf-2")
+#SET(CMAKE_C_FLAGS "-W -Wall -O0 -g3 -gdwarf-2")
+SET(CMAKE_C_FLAGS "-W -Wall -O2 -g")
 
 SET(SAGITTARIUS_INCLUDE_DIR ${SAGITTARIUS_INCLUDE_DIR} 
   ${PROJECT_SOURCE_DIR}/src ${TAURUS_INCLUDE_DIR})

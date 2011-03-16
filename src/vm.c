@@ -537,8 +537,6 @@ SgObject Sg_AddLoadPath(SgString *path)
 /* returns alist of stack trace. */
 SgObject Sg_GetStackTrace()
 {
-  static const int FP_OFFSET_IN_FRAME = 1;
-  static const int CLOSURE_OFFSET_IN_FRAME = 2;
   SgVM *vm = Sg_VM();
   SgObject r = SG_NIL;
   SgObject cur = SG_NIL;
@@ -874,7 +872,7 @@ SgObject run_loop(SgWord *code, jmp_buf returnPoint, int compilerp)
   vm->callCode[1] = SG_WORD(HALT);
 
 #ifdef __GNUC__
-  static void *dispatch_table[256] = {
+  static void *dispatch_table[INSTRUCTION_COUNT] = {
 #define DEFINSN(insn, vals, argc, src, label) && SG_CPP_CAT(LABEL_, insn),
 #include "vminsn.c"
 #undef DEFINSN
