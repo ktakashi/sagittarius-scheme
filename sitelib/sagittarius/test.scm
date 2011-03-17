@@ -28,8 +28,8 @@
   (define (report-failed who msg)
     (receive (out proc) (open-string-output-port)
       (display "    " out)
-      (display who out)
-      (display ":" out)
+      (display 'case out)
+      (display ": " out)
       (display msg out)
       (push-error (proc))))
 
@@ -49,27 +49,30 @@
 	 (or (and (equal? e a)
 		  (report-success))
 	     (report-failed 'assert-equal
-			    (format "~s expected but got ~s" e a)))))))
+			    (format "~s: expected ~s but got ~s"
+				    '(assert-equal? expected actual) e a)))))))
   
   (define-syntax assert-true?
     (syntax-rules ()
       ((_ test)
        (begin
 	 (reporter 'test '() "is true")
-	 (or (or test
-		 (report-success))
+	 (or (and test
+		  (report-success))
 	     (report-failed 'assert-true
-			    (format "~a returns false" 'test)))))))
+			    (format "~s: returned false"
+				    '(assert-true? test))))))))
 
   (define-syntax assert-false?
     (syntax-rules ()
       ((_ test)
        (begin
 	 (reporter 'test '() "is false")
-	 (or (or (not test)
-		 (report-success))
+	 (or (and (not test)
+		  (report-success))
 	     (report-failed 'assert-true
-			    (format "~a returns false" 'test)))))))
+			    (format "~s: returned true"
+				    '(assert-false? test))))))))
 
   (define-syntax run-test-aux
     (syntax-rules ()
