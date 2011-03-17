@@ -115,6 +115,63 @@
  (assert-equal? "abc" (utf8->string #vu8(97 98 99)))
  (assert-equal? #vu8(97 98 99) (string->utf8 "abc"))
 
+ ;; bitwise
+ (assert-equal? 32 (bitwise-arithmetic-shift 1 5))
+ (assert-equal? 32 (bitwise-arithmetic-shift-left 1 5))
+ (assert-equal? 1 (bitwise-arithmetic-shift-right 32 5))
+
+ (assert-equal? #x200000000 (bitwise-arithmetic-shift 1 33))
+ (assert-equal? #x200000000 (bitwise-arithmetic-shift-left 1 33))
+ (assert-equal? 1 (bitwise-arithmetic-shift-right #x200000000 33))
+
+ (assert-equal? 3 (bitwise-bit-count 7))
+ (assert-equal? 1 (bitwise-bit-count #x200000000))
+ (assert-equal? 1 (bitwise-length 1))
+ (assert-equal? 34 (bitwise-length #x200000000))
+
+ (assert-equal? 1 (bitwise-and 1 1))
+ (assert-equal? #x200000000 (bitwise-and #x200000000 #x200000000))
+ (assert-equal? 0 (bitwise-and #x100000000 #x200000000))
+
+ (assert-equal? 3 (bitwise-ior 1 2))
+ (assert-equal? 2 (bitwise-ior 2 2))
+ (assert-equal? #x200000000 (bitwise-ior #x200000000 #x200000000))
+ (assert-equal? #x300000000 (bitwise-ior #x100000000 #x200000000))
+
+ (assert-equal? 0 (bitwise-xor 1 1))
+ (assert-equal? 1 (bitwise-xor 1 0))
+ (assert-equal? 1 (bitwise-xor 0 1))
+ (assert-equal? 0 (bitwise-xor 0 0))
+ (assert-equal? 0 (bitwise-xor #x100000000 #x100000000))
+ (assert-equal? #x100000000 (bitwise-xor #x100000000 0))
+ (assert-equal? #x100000000 (bitwise-xor 0 #x100000000))
+
+ (assert-equal? 2 (bitwise-if 1 2 3))
+ (assert-equal? 1 (bitwise-first-bit-set 2))
+ (assert-equal? 0 (bitwise-first-bit-set 7))
+ 
+ (assert-equal? 0 (bitwise-bit-field 1 2 3))
+ (assert-equal? 1 (bitwise-bit-field 7 2 3))
+
+ ;; base arith
+ (assert-equal? 5 (max 5 4 3 2 1))
+ (assert-equal? 1 (min 5 4 3 2 1))
+
+ (assert-equal? 500 (abs -500))
+
+ (assert-equal? 2.0 (round 1.6))
+ (assert-equal? 2.0 (round 1.5))
+ (assert-equal? 1.0 (round 1.4))
+ (assert-equal? 2.0 (round 2.5))
+
+ (assert-equal? 2.0 (ceiling 1.1))
+ (assert-equal? 1.0 (ceiling 1.0))
+
+ (assert-equal? 2.0 (floor 2.0))
+ (assert-equal? 1.0 (floor 1.9))
+
+ (assert-equal? 1.0 (truncate 1.9))
+
  #;(let ((in (open-file-input-port "test.scm" (file-options no-truncate) 'block (native-transcoder))))
    (assert-true? (port? in))
    (assert-true? (input-port? in))

@@ -53,7 +53,9 @@ SG_EXTERN SgObject Sg_BignumToInteger(SgBignum *b);
 SG_EXTERN long          Sg_BignumToSI(SgBignum *b, int clamp, int *oor);
 SG_EXTERN unsigned long Sg_BignumToUI(SgBignum *b, int clamp, int *oor);
 
+SG_EXTERN int      Sg_BignumBitCount(SgBignum *b);
 SG_EXTERN int      Sg_BignumBitSize(SgBignum *b);
+SG_EXTERN int      Sg_BignumFirstBitSet(SgBignum *b);
 SG_EXTERN int      Sg_BignumAbsCmp(SgBignum *bx, SgBignum *by);
 SG_EXTERN int      Sg_BignumCmp3U(SgBignum *bx, SgBignum *off, SgBignum *by);
 
@@ -73,9 +75,13 @@ SG_EXTERN uint64_t Sg_BignumToU64(SgBignum *b, int clamp, int *oor);
 #endif
 
 /* bignum arithmatics */
+SG_EXTERN SgObject Sg_BignumComplement(SgBignum *bx);
 SG_EXTERN SgObject Sg_BignumAsh(SgBignum *b, int count);
 SG_EXTERN SgObject Sg_BignumShiftLeft(SgBignum *b, int count);
 SG_EXTERN SgObject Sg_BignumShiftRight(SgBignum *b, int count);
+SG_EXTERN SgObject Sg_BignumLogAnd(SgBignum *x, SgBignum *y);
+SG_EXTERN SgObject Sg_BignumLogIor(SgBignum *x, SgBignum *y);
+SG_EXTERN SgObject Sg_BignumLogXor(SgBignum *x, SgBignum *y);
 SG_EXTERN SgObject Sg_BignumAdd(SgBignum *a, SgBignum *b);
 SG_EXTERN SgObject Sg_BignumAddSI(SgBignum *a, long b);
 SG_EXTERN SgObject Sg_BignumSub(SgBignum *a, SgBignum *b);

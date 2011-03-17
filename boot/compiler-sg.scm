@@ -1893,11 +1893,6 @@
   (head p1env)
   (and (variable? head) (p1env-lookup p1env head SYNTAX))))
 
-(define (call-syntax-handler s expr p1env)
-  (cond
-   ((builtin-syntax? s) ((syntax-proc s) expr p1env))
-   (else (error 'call-syntax-handler "bug?"))))
-
 (define
  pass1
  (lambda

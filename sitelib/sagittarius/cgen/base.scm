@@ -336,6 +336,13 @@
       (dispatch prop dispatch k)
       (k k)))
 
+  ;; &
+  (define (deref& body dispatch k)
+    (let ((instance (cadr body)))
+      ((renderer) "&")
+      (dispatch instance dispatch k)
+      (k k)))
+
   ;; arrayref
   (define (aref body dispatch k)
     (let ((array (cadr body))

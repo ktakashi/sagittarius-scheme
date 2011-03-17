@@ -35,6 +35,7 @@
 #include "sagittarius/writer.h"
 #include "sagittarius/port.h"
 #include "sagittarius/code.h"
+#include "sagittarius/core.h"
 #include "sagittarius/closure.h"
 #include "sagittarius/subr.h"
 #include "sagittarius/file.h"

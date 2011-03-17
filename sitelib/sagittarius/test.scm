@@ -6,7 +6,7 @@
 	    assert-false?
 	    run-test run-test-aux
 	    reporter report-tests
-	    report-failed)
+	    report-failed report-success)
     (import (rnrs)
 	    (core)
 	    (sagittarius)
@@ -31,7 +31,11 @@
       (display who out)
       (display ":" out)
       (display msg out)
-      (push-report (proc))))
+      (push-error (proc))))
+
+  (define (report-success)
+    (push-success #t)
+    #t)
 
   (define (report-tests)
     (show-report))
@@ -42,7 +46,8 @@
        (let ((e expected)
 	     (a actual))
 	 (reporter 'expected 'actual 'equals)
-	 (or (equal? e a)
+	 (or (and (equal? e a)
+		  (report-success))
 	     (report-failed 'assert-equal
 			    (format "~s expected but got ~s" e a)))))))
   
@@ -51,7 +56,8 @@
       ((_ test)
        (begin
 	 (reporter 'test '() "is true")
-	 (or test
+	 (or (or test
+		 (report-success))
 	     (report-failed 'assert-true
 			    (format "~a returns false" 'test)))))))
 
@@ -60,7 +66,8 @@
       ((_ test)
        (begin
 	 (reporter 'test '() "is false")
-	 (or (not test)
+	 (or (or (not test)
+		 (report-success))
 	     (report-failed 'assert-true
 			    (format "~a returns false" 'test)))))))
 
@@ -75,9 +82,7 @@
 	 test
 	 (run-test-aux more ...)))
       ((_)
-       (begin
-	 (display "test finished")(newline)
-	 (report-tests)))))
+       (report-tests))))
 
   (define-syntax run-test
     (er-macro-transformer

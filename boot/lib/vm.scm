@@ -234,6 +234,12 @@
   (and (syntax? s)
        (vector-ref s 3)))
 
+(define (call-syntax-handler s expr p1env)
+  (cond ((builtin-syntax? s)
+	 ((syntax-proc s) expr p1env))
+	(else
+	 (error 'call-syntax-handler "bug?"))))
+
 (define unwrap-syntax
   (lambda (form)
     (define rec

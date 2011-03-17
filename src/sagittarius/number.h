@@ -95,8 +95,9 @@ struct SgFlonumRec
 #define SG_FLONUM(obj)    ((SgFlonum*)(obj))
 
 /* number type check */
-#define SG_REALP(obj)     ((SG_INTP(obj)) || (SG_FLONUMP(obj)) || (SG_BIGNUMP(obj)) || (SG_RATIONALP(obj)))
-#define SG_NUMBERP(obj)   (SG_REALP(obj) || SG_COMPLEXP(obj))
+#define SG_EXACT_INTP(obj) ((SG_INTP(obj)) || (SG_BIGNUMP(obj)))
+#define SG_REALP(obj)      ((SG_EXACT_INTP(obj)) || (SG_FLONUMP(obj)) || (SG_RATIONALP(obj)))
+#define SG_NUMBERP(obj)    (SG_REALP(obj) || SG_COMPLEXP(obj))
 
 enum ScmClampMode {
   SG_CLAMP_ERROR = 0,       /* throws an error when out-of-range */
@@ -142,6 +143,8 @@ SG_EXTERN SgObject Sg_ReduceRational(SgObject rational);
 
 /* converter */
 SG_EXTERN double   Sg_RationalToDouble(SgRational *r);
+SG_EXTERN SgObject Sg_Numerator(SgObject x);
+SG_EXTERN SgObject Sg_Denominator(SgObject x);
 
 SG_EXTERN SgObject Sg_StringToNumber(SgString *str, int radix, int strict);
 SG_EXTERN SgObject Sg_NumberToString(SgObject num, int radix, int use_upper);
@@ -155,6 +158,9 @@ SG_EXTERN SgObject Sg_Inexact(SgObject obj);
 SG_EXTERN int      Sg_ExactP(SgObject obj);
 SG_EXTERN int      Sg_InexactP(SgObject obj);
 SG_EXTERN int      Sg_OddP(SgObject obj);
+SG_EXTERN int      Sg_FiniteP(SgObject obj);
+SG_EXTERN int      Sg_InfiniteP(SgObject obj);
+SG_EXTERN int      Sg_NanP(SgObject obj);
 
 SG_EXTERN SgObject Sg_Inverse(SgObject obj);
 
@@ -163,6 +169,9 @@ SG_EXTERN SgObject Sg_LogNot(SgObject x);
 SG_EXTERN SgObject Sg_LogAnd(SgObject x, SgObject y);
 SG_EXTERN SgObject Sg_LogIor(SgObject x, SgObject y);
 SG_EXTERN SgObject Sg_LogXor(SgObject x, SgObject y);
+SG_EXTERN int      Sg_BitCount(SgObject x);
+SG_EXTERN int      Sg_BitSize(SgObject x);
+SG_EXTERN int      Sg_FirstBitSet(SgObject x);
 
 SG_EXTERN SgObject Sg_Add(SgObject x, SgObject y);
 SG_EXTERN SgObject Sg_Sub(SgObject x, SgObject y);
@@ -178,6 +187,15 @@ SG_EXTERN int      Sg_Sign(SgObject obj);
 SG_EXTERN SgObject Sg_Gcd(SgObject x, SgObject y);
 SG_EXTERN SgObject Sg_Magnitude(SgObject obj);
 SG_EXTERN SgObject Sg_Log(SgObject obj);
+SG_EXTERN void     Sg_MinMax(SgObject arg0, SgObject args, SgObject *min, SgObject *max);
+
+enum SgRoundMode {
+  SG_ROUND_FLOOR,
+  SG_ROUND_CEIL,
+  SG_ROUND_TRUNC,
+  SG_ROUND_ROUND
+};
+SG_EXTERN SgObject Sg_Round(SgObject num, int mode);
 
 SG_EXTERN int      Sg_NumEq(SgObject x, SgObject y);
 SG_EXTERN int      Sg_NumCmp(SgObject x, SgObject y);

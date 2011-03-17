@@ -2,9 +2,21 @@
 #!compatible ;; for ypsilon
 (library null
     (export values
-	    ;; arithmetic
+	    ;; base arithmetic
 	    + +. - -. * *. / /.
 	    = < <= > >=
+	    
+	    zero? positive? negative? odd? even?
+	    finite? infinite? nan?
+	    max min abs div-and-mod div mod
+	    div0-and-mod0 div0 mod0 gcc lcm
+	    numerator denominator floor ceiling
+	    truncate round rationalize exp log
+	    sin cos tan asin acos atan sqrt
+	    exact-integer-sqrt expt
+	    make-rectangular make-polar
+	    real-part imag-part magnitude angle
+
 	    bitwise-not
 	    bitwise-and
 	    bitwise-ior
@@ -20,8 +32,9 @@
 	    bitwise-arithmetic-shift
 	    bitwise-arithmetic-shift-left
 	    bitwise-arithmetic-shift-right
-	    bitwise-rotate-bit-field
-	    bitwise-reverse-bit-field
+	    ;; in scmlib.scm
+	    ;;bitwise-rotate-bit-field
+	    ;;bitwise-reverse-bit-field
 
 	    ;; apply
 	    apply vm/apply
@@ -85,7 +98,7 @@
 	    eq? eqv? equal?
 	    integer? number? exact? inexact? pair? real?
 	    complex?
-	    null? list? zero? eof-object?
+	    null? list? eof-object?
 	    keyword?
 	    not and
 
@@ -163,6 +176,66 @@
     (cond ((SG_NULLP rest) (result (Sg_Inverse (Sg_Inexact arg1))))
 	  (else (dolist (x rest) (set! arg1 (Sg_Div arg1 (Sg_Inexact x))))
 		(result arg1))))
+  ;; base arithmetic
+  (define-c-proc zero? (arg0::number) ::boolean
+    (result (and (SG_REALP arg0) (== (Sg_Sign arg0) 0))))
+
+  (define-c-proc positive? (x::number) ::boolean
+    (result (Sg_PositiveP x)))
+
+  (define-c-proc negative? (x::number) ::boolean
+    (result (Sg_NegativeP x)))
+
+  (define-c-proc odd? (x::number) ::boolean
+    (result (Sg_OddP x)))
+
+  (define-c-proc even? (x::number) ::boolean
+    (result (not (Sg_OddP x))))
+
+  (define-c-proc finite? (x::number) ::boolean
+    (result (Sg_FiniteP x)))
+
+  (define-c-proc infinite? (x::number) ::boolean
+    (result (Sg_InfiniteP x)))
+
+  (define-c-proc nan? (x::number) ::boolean
+    (result (Sg_NanP x)))
+    
+  (define-c-proc max (arg0 :rest rest) ::Object
+    (Sg_MinMax arg0 rest NULL (& SG_RETURN)))
+
+  (define-c-proc min (arg0 :rest rest) ::Object
+    (Sg_MinMax arg0 rest (& SG_RETURN) NULL))
+
+  (define-c-proc abs (x::number) ::Object
+    (result (Sg_Abs x)))
+
+  (define-c-proc numerator (x::number) ::Object
+    (result (Sg_Numerator x)))
+
+  (define-c-proc denominator (x::number) ::Object
+    (result (Sg_Denominator x)))
+
+  (define-c-proc floor (x::number) ::Object
+    (result (Sg_Round x SG_ROUND_FLOOR)))
+
+  (define-c-proc ceiling (x::number) ::Object
+    (result (Sg_Round x SG_ROUND_CEIL)))
+
+  (define-c-proc truncate (x::number) ::Object
+    (result (Sg_Round x SG_ROUND_TRUNC)))
+
+  (define-c-proc round (x::number) ::Object
+    (result (Sg_Round x SG_ROUND_ROUND)))
+#|
+  div-and-mod div mod
+  div0-and-mod0 div0 mod0 gcc lcm
+  rationalize exp log
+  sin cos tan asin acos atan sqrt
+  exact-integer-sqrt expt
+  make-rectangular make-polar
+  real-part imag-part magnitude angle
+|#
   ;; arithmetic bitwise
   (define-c-proc bitwise-not (ei::number) ::Object
     (when (Sg_Exact ei)
@@ -171,9 +244,10 @@
 
   (define-cgen-stmt logop
     ((_ fn x y rest)
-     `(let ((r (,fn ,x ,y)))
-	(for-each (lambda (v) (set! r (,fn r v))) ,rest)
-	(result r))))
+     (dispatch
+      `(let ((r (,fn ,x ,y)))
+	 (for-each (lambda (v) (set! r (,fn r v))) ,rest)
+	 (result r)))))
 
   (define-c-proc bitwise-and (ei :rest rest) ::Object
     (if (SG_NULLP rest)
@@ -200,13 +274,13 @@
     (result (logif ei1 ei2 ei3)))
 
   (define-c-proc bitwise-bit-count (ei::number) ::fixnum
-    (result (Sg_LogCount ei)))
+    (result (Sg_BitCount ei)))
 
-  (define-c-proc bitwise-length (ei::number) ::Object
-    (result (Sg_LogLength ei)))
+  (define-c-proc bitwise-length (ei::number) ::fixnum
+    (result (Sg_BitSize ei)))
 
-  (define-c-proc bitwise-first-bit-set (ei::number) ::Object
-    (result (Sg_LogFirstBitSet ei)))
+  (define-c-proc bitwise-first-bit-set (ei::number) ::fixnum
+    (result (Sg_FirstBitSet ei)))
 
   (define-c-proc bitwise-bit-set? (ei1::number ei2::fixnum) ::boolean
     (result (not (Sg_ZeroP (Sg_LogAnd (Sg_Ash (SG_MAKE_INT 1) ei2) ei1)))))
@@ -219,7 +293,7 @@
     (when (> ei2 ei3)
       (Sg_Error "2nd parameter must be less than or equal to 3rd parameter %S %d %d" ei1 ei2 ei3))
     (let ((mask (Sg_LogNot (Sg_Ash (SG_MAKE_INT -1) ei3))))
-      (result (Sg_Ash (Sg_LogAnd ei1 mask) ei2))))
+      (result (Sg_Ash (Sg_LogAnd ei1 mask) (- 0 ei2)))))
 
   (define-c-proc bitwise-copy-bit-field (ei1::number ei2::fixnum ei3::fixnum ei4::number) ::Object
     (let ((to ei1)
@@ -239,12 +313,6 @@
 
   (define-c-proc bitwise-arithmetic-shift-right (ei1::number ei2::fixnum) ::Object
     (result (Sg_Ash ei1 (- 0 ei2))))
-
-  (define-c-proc bitwise-rotate-bit-field (ei1::number ei2::number ei3::number ei4::number) ::Object
-    (result SG_UNDEF))
-  
-  (define-c-proc bitwise-reverse-bit-field (ei1::number ei2::number ei3::number ei4::number) ::Object
-    (result SG_UNDEF))
 
   ;; arithmetic compare
   (define-cgen-stmt (aref args index)
@@ -272,9 +340,6 @@
     (result (numcmp > Sg_NumCmp)))
   (define-c-proc >= (arg0 arg1 :rest rest) ::boolean
     (result (numcmp >= Sg_NumCmp)))
-
-  (define-c-proc zero? (arg0) ::boolean
-    (result (and (SG_REALP arg0) (== (Sg_Sign arg0) 0))))
 
   (define-c-proc integer? (o) ::boolean
     (result (Sg_IntegerP o)))

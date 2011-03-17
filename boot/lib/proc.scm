@@ -103,6 +103,7 @@
 (declare-procedure null? (x) (:inline NULLP) :null null?)
 (declare-procedure pair? (x) (:inline PAIRP) :null pair?)
 (declare-procedure symbol? (x) (:inline SYMBOLP) :null symbol?)
+(declare-procedure not (x) (:inline NOT) :null not)
 
 ;; vector
 (declare-procedure vector rest (:inline VECTOR) :null vector)

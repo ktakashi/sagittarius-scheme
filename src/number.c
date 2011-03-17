@@ -38,9 +38,12 @@
 #include "sagittarius/bignum.h"
 #include "sagittarius/string.h"
 #include "sagittarius/pair.h"
+#include "sagittarius/core.h"
 #include "sagittarius/unicode.h"
 #include "sagittarius/error.h"
 #include "sagittarius/numconst.h"
+#include "sagittarius/arith.h"
+#include "sagittarius/bits.h"
 
 struct numread_packet {
     const SgChar *buffer;       /* original buffer */
@@ -1101,6 +1104,23 @@ double Sg_RationalToDouble(SgRational *obj)
   return nume / deno;
 }
 
+SgObject Sg_Numerator(SgObject x)
+{
+  if (SG_RATIONALP(x)) return SG_RATIONAL(x)->numerator;
+  if (SG_NUMBERP(x)) return x;
+  Sg_Error(UC("number required, but got %S"), x);
+  return SG_UNDEF;
+}
+
+SgObject Sg_Denominator(SgObject x)
+{
+  if (SG_RATIONALP(x)) return SG_RATIONAL(x)->denominator;
+  if (SG_EXACT_INTP(x)) return SG_MAKE_INT(1);
+  if (SG_NUMBERP(x)) return Sg_MakeFlonum(1.0);
+  Sg_Error(UC("number required, but got %S"), x);
+  return SG_UNDEF;
+}
+
 SgObject Sg_StringToNumber(SgString *str, int radix, int strict)
 {
   return read_number(str->value, str->size, radix, strict);
@@ -1155,7 +1175,40 @@ int Sg_OddP(SgObject obj)
   return FALSE;			/* dummy */
 }
 
+int Sg_FiniteP(SgObject obj)
+{
+  return !Sg_InfiniteP(obj) && !Sg_NanP(obj);
+}
 
+int Sg_InfiniteP(SgObject obj)
+{
+  if (SG_FLONUMP(obj)) {
+    double v = SG_FLONUM(obj)->value;
+    return isinf(v);
+  } else if (SG_COMPLEXP(obj)) {
+    SgObject r = SG_COMPLEX(obj)->real;
+   SgObject i = SG_COMPLEX(obj)->imag;
+    return Sg_InfiniteP(r) || Sg_InfiniteP(i);
+  } else if (!SG_NUMBERP(obj)) {
+    Sg_Error(UC("number required, but got %S"), obj);
+  }
+  return FALSE;
+}
+
+int Sg_NanP(SgObject obj)
+{
+  if (SG_FLONUMP(obj)) {
+    double v = SG_FLONUM(obj)->value;
+    return isnan(v);
+  } else if (SG_COMPLEXP(obj)) {
+    SgObject r = SG_COMPLEX(obj)->real;
+   SgObject i = SG_COMPLEX(obj)->imag;
+    return Sg_NanP(r) || Sg_NanP(i);
+  } else if (!SG_NUMBERP(obj)) {
+    Sg_Error(UC("number required, but got %S"), obj);
+  }
+  return FALSE;
+}
 
 SgObject Sg_Negate(SgObject obj)
 {
@@ -1360,6 +1413,112 @@ SgObject Sg_Ash(SgObject x, int count)
   }
   Sg_Error(UC("exact integer required, but got %S"), x);
   return SG_UNDEF;		/* dummy */
+}
+
+SgObject Sg_LogNot(SgObject x)
+{
+  if (!SG_EXACT_INTP(x)) Sg_Error(UC("exact integer required, but got %S"), x);
+  if (SG_INTP(x)) {
+    /* this won't cause an overflow */
+    return SG_MAKE_INT(~SG_INT_VALUE(x));
+  } else {
+    return Sg_Negate(Sg_BignumAddSI(SG_BIGNUM(x), 1));
+  }
+}
+
+SgObject Sg_LogAnd(SgObject x, SgObject y)
+{
+  if (!SG_EXACT_INTP(x)) Sg_Error(UC("exact integer required, but got %S"), x);
+  if (!SG_EXACT_INTP(y)) Sg_Error(UC("exact integer required, but got %S"), y);
+  if (SG_INTP(x)) {
+    if (SG_INTP(y)) {
+      return SG_MAKE_INT(SG_INT_VALUE(x) & SG_INT_VALUE(y));
+    } else if (SG_INT_VALUE(x) >= 0 && SG_BIGNUM_GET_SIGN(y) >= 0) {
+      return Sg_MakeInteger(SG_INT_VALUE(x) & SG_BIGNUM(y)->elements[0]);
+    }
+    x = Sg_MakeBignumFromSI(SG_INT_VALUE(x));
+  } else if (SG_INTP(y)) {
+    if (SG_INT_VALUE(y) >= 0 && SG_BIGNUM_GET_SIGN(x) >= 0) {
+      return Sg_MakeInteger(SG_INT_VALUE(y) & SG_BIGNUM(x)->elements[0]);
+    }
+    y = Sg_MakeBignumFromSI(SG_INT_VALUE(y));
+  }
+  return Sg_BignumLogAnd(SG_BIGNUM(x), SG_BIGNUM(y));
+}
+
+SgObject Sg_LogIor(SgObject x, SgObject y)
+{
+  if (!SG_EXACT_INTP(x)) Sg_Error(UC("exact integer required, but got %S"), x);
+  if (!SG_EXACT_INTP(y)) Sg_Error(UC("exact integer required, but got %S"), y);
+  if (SG_INTP(x)) {
+    if (SG_INTP(y)) {
+      return SG_MAKE_INT(SG_INT_VALUE(x) | SG_INT_VALUE(y));
+    } else {
+      x = Sg_MakeBignumFromSI(SG_INT_VALUE(x));
+    }
+  } else {
+    if (SG_INTP(y)) y = Sg_MakeBignumFromSI(SG_INT_VALUE(y));
+  }
+  return Sg_BignumLogIor(SG_BIGNUM(x), SG_BIGNUM(y));
+}
+
+SgObject Sg_LogXor(SgObject x, SgObject y)
+{
+  if (!SG_EXACT_INTP(x)) Sg_Error(UC("exact integer required, but got %S"), x);
+  if (!SG_EXACT_INTP(y)) Sg_Error(UC("exact integer required, but got %S"), y);
+  if (SG_INTP(x)) {
+    if (SG_INTP(y)) {
+      return SG_MAKE_INT(SG_INT_VALUE(x) ^ SG_INT_VALUE(y));
+    } else {
+      x = Sg_MakeBignumFromSI(SG_INT_VALUE(x));
+    }
+  } else {
+    if (SG_INTP(y)) y = Sg_MakeBignumFromSI(SG_INT_VALUE(y));
+  }
+  return Sg_BignumLogXor(SG_BIGNUM(x), SG_BIGNUM(y));
+}
+
+int Sg_BitCount(SgObject x)
+{
+  if (!SG_EXACT_INTP(x)) Sg_Error(UC("exact integer required, but got %S"), x);
+  if (SG_INTP(x)) {
+    intptr_t n = SG_INT_VALUE(x);
+    if (n > 0) {
+      return nbits(n);
+    } else {
+      return ~nbits(n);
+    }
+  } else {
+    return Sg_BignumBitCount(SG_BIGNUM(x));
+  }
+}
+
+int Sg_BitSize(SgObject x)
+{
+  if (!SG_EXACT_INTP(x)) Sg_Error(UC("exact integer required, but got %S"), x);
+  if (SG_INTP(x)) {
+    intptr_t n = SG_INT_VALUE(x), n2;
+    if (n == 0) return SG_MAKE_INT(0);
+    n2 = (n < 0) ? ~n : n;
+    return WORD_BITS - nlz(n2);
+  } else {
+    return Sg_BignumBitSize(SG_BIGNUM(x));
+  }  
+}
+
+int Sg_FirstBitSet(SgObject x)
+{
+  if (!SG_EXACT_INTP(x)) Sg_Error(UC("exact integer required, but got %S"), x);
+  if (SG_INTP(x)) {
+    intptr_t n = SG_INT_VALUE(x);
+    int bit;
+    if (n == 0) return SG_MAKE_INT(-1);
+    bit = 0;
+    bit += ntz(n);
+    return bit;
+  } else {
+    return Sg_BignumFirstBitSet(SG_BIGNUM(x));
+  }
 }
 
 SgObject Sg_Add(SgObject x, SgObject y)
@@ -2078,12 +2237,13 @@ SgObject Sg_Expt(SgObject x, SgObject y)
     }
     if (SG_BIGNUMP(y)) {
       if (!Sg_ExactP(x)) {
-	Sg_Error(UC("exact integer required, but got %S"), x);
+	Sg_Error(UC("exact number required, but got %S"), x);
       }
       if (SG_REALP(y)) {
 	double n = Sg_BignumToDouble(SG_BIGNUM(y));
 	return Sg_MakeFlonum(pow(Sg_GetDouble(x), n));
       }
+      return Sg_Exp(Sg_Mul(y, Sg_Log(x)));
     }
     if (SG_RATIONALP(y)) {
       double n = Sg_GetDouble(y);
@@ -2471,6 +2631,123 @@ SgObject Sg_Log(SgObject obj)
   }
   Sg_Error(UC("number required, but got %S"), obj);
   return SG_UNDEF;		/* dummy */
+}
+
+void Sg_MinMax(SgObject arg0, SgObject args, SgObject *min, SgObject *max)
+{
+  int inexact = Sg_InexactP(arg0);
+  SgObject mi = arg0;
+  SgObject ma = arg0;
+
+  for (;;) {
+    if (!SG_REALP(arg0))
+      Sg_Error(UC("real number required, but got %S"), arg0);
+    if (SG_NULLP(args)) {
+      if (min) {
+	if (inexact && Sg_ExactP(mi)) {
+	  *min = Sg_Inexact(mi);
+	} else {
+	  *min = mi;
+	}
+      }
+      if (max) {
+	if (inexact && Sg_ExactP(mi)) {
+	  *max = Sg_Inexact(ma);
+	} else {
+	  *max = ma;
+	}
+      }
+      return;
+    }
+    if (Sg_InexactP(SG_CAR(args))) inexact = TRUE;
+    if (min && Sg_NumCmp(mi, SG_CAR(args)) > 0) {
+      mi = SG_CAR(args);
+    }
+    if (max && Sg_NumCmp(ma, SG_CAR(args)) < 0) {
+      ma = SG_CAR(args);
+    }
+    args = SG_CDR(args);
+  }
+}
+
+static inline double roundeven(double v)
+{
+  double r;
+  double frac = modf(v, &r);
+  if (v > 0.0) {
+    if (frac > 0.5) r += 1.0;
+    else if (frac == 0.5) {
+      if (fmod(r, 2.0) != 0.0) r += 1.0;
+    }
+  } else {
+    if (frac < 0.5) r -= 1.0;
+    else if (frac == -0.5) {
+      if (fmod(r, 2.0) != 0.0) r -= 1.0;
+    }
+  }
+  return r;
+}
+
+SgObject Sg_Round(SgObject num, int mode)
+{
+  if (SG_EXACT_INTP(num)) return num;
+  if (SG_RATIONALP(num)) {
+    int offset = 0;
+    SgObject rem;
+    SgObject quot = Sg_Quotient(SG_RATIONAL(num)->numerator,
+				SG_RATIONAL(num)->denominator, &rem);
+    /* this shouldn't happen but just in case */
+    if (SG_EQ(rem, SG_MAKE_INT(0))) return quot;
+    switch (mode) {
+    case SG_ROUND_FLOOR:
+      offset = (Sg_Sign(num) < 0) ? -1 : 0;
+      break;
+    case SG_ROUND_CEIL:
+      offset = (Sg_Sign(num) < 0) ? 0 : 1;
+      break;
+    case SG_ROUND_TRUNC:
+      offset = 0;
+      break;
+    case SG_ROUND_ROUND: {
+      SgObject rem2 = Sg_Mul(Sg_Abs(rem), SG_MAKE_INT(2));
+      int cmp = Sg_NumCmp(SG_RATIONAL(num)->denominator, &rem2);
+      if (cmp > 0) {
+	/* NUM is closer to zero than halfway */
+	offset = 0;
+      } else if (cmp < 0) {
+	/* NUM is further from zero than halfway */
+	offset = (Sg_Sign(num) < 0) ? -1 : 1;
+      } else {
+	/* NUM is exactly the halfway. We round to even */
+	if (Sg_OddP(quot)) {
+	  offset = (Sg_Sign(num) < 0) ? -1 : 1;
+	} else {
+	  offset = 0;
+	}
+      }
+    }
+    default:
+      Sg_Panic("something screwed up");
+    }
+    if (offset == 0) return quot;
+    else return Sg_Add(quot, SG_MAKE_INT(offset));
+  }
+  if (SG_FLONUMP(num)) {
+    double r = 0.0, v;
+    v = SG_FLONUM(num)->value;
+    switch (mode) {
+    case SG_ROUND_FLOOR: r = floor(v); break;
+    case SG_ROUND_CEIL: r = ceil(v); break;
+    case SG_ROUND_TRUNC:
+      r = (v < 0.0) ? ceil(v) : floor(v); break;
+    case SG_ROUND_ROUND: r = roundeven(v); break;
+    default:
+      Sg_Panic("something screwed up");
+    }
+    return Sg_MakeFlonum(r);
+  }
+  Sg_Error(UC("real number required, but got %S"), num);
+  return SG_UNDEF;
 }
 
 /* from gauche */

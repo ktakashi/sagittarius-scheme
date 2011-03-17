@@ -656,6 +656,8 @@
        ;; I don't use arg0... do i still need this?
        (return))
       ;; builtin procedures
+      ((NOT)
+       (VM x (skip) (not a) c f s))
       ((EQ)
        (VM x (skip) (eq? (index s 0) a) c f (- s 1)))
       ((EQV)
@@ -1050,7 +1052,7 @@
 ;(add-namespace! eq? (a b))
 ;(add-namespace! eqv? (a b))
 (add-namespace! equal? (a b))
-(add-namespace! not (o))
+;(add-namespace! not (o))
 (add-namespace! assq (a b))
 (add-namespace! assv (a b))
 (add-namespace! memq (a b))

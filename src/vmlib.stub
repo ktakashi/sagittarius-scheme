@@ -12,6 +12,7 @@
 	    make-syntax syntax? syntax-name syntax-proc
 	    builtin-syntax? user-defined-syntax?
 	    unwrap-syntax ;; should this be here?
+	    call-syntax-handler
 
 	    ;; macro
 	    make-macro macro-name macro-transformer
@@ -83,6 +84,12 @@
   (define-c-proc unwrap-syntax (form) ::Object
     (result (Sg_UnwrapSyntax form)))
 
+  (define-c-proc call-syntax-handler (s::Syntax expr p1env) ::Object
+    (cond ((SG_BUILTIN_SYNTXP s)
+	   (result (Sg_Apply (SG_SYNTAX_PROC s) (SG_LIST2 expr p1env))))
+	  (else
+	   (Sg_Error "call-syntax-handler: bug?"))))
+
   ;; macro
   (define-c-proc macro? (obj) ::boolean
     (result (SG_MACROP obj)))
@@ -94,7 +101,7 @@
     (result (Sg_MakeMacroTransformer name proc library)))
 
   (define-c-proc call-macro-expander (macro::Macro expr p1env) ::Object
-    (let ((applyArgs::SgObject (SG_LIST4 macro expr p1env macro->data)))
+    (let ((applyArgs (SG_LIST4 macro expr p1env macro->data)))
       (result (Sg_Apply macro->transformer applyArgs))))
 
   (define-c-proc %internal-macro-expand (expr p1env onceP::boolean) ::Object

@@ -25,7 +25,7 @@ SET(SAGITTARIUS_LIB_SOURCE
   vector.c         number.c
   values.c         file.c
   bytevector.c     subr.c
-  generic.c
+  generic.c        bits.c
   unicode.c        bignum.c
   ucs4.cpp         library.c
   keyword.c        identifier.c

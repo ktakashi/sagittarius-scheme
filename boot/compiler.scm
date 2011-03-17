@@ -1636,15 +1636,6 @@
     (and (variable? head)
 	 (p1env-lookup p1env head SYNTAX))))
 
-;; should not be here but, for now.
-(define (call-syntax-handler s expr p1env)
-  (cond ((builtin-syntax? s)
-	 ((syntax-proc s) expr p1env))
-	#;((user-defined-syntax? s)
-	 (pass1 (vm/apply (syntax-proc s) (cons expr p1env)) p1env))
-	(else
-	 (error 'call-syntax-handler "bug?"))))
-
 ;; Pass1: translate program to IForm.
 ;; This stage assumes the given program already expanded to core form
 ;; which hash only 'begin', 'quote', 'define', 'set!', 'lambda', 'let',
