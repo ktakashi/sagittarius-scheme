@@ -555,6 +555,477 @@ SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_Round(x, SG_ROUND_ROUND);
 }
 static SG_DEFINE_SUBR(nullround_Stub, 1, 0, nullround, SG_FALSE, NULL);
 
+static SgObject nulldiv(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("div");
+  SgObject x_scm;
+  SgObject x;
+  SgObject y_scm;
+  SgObject y;
+  checkArgumentLength(2);
+  argumentAsNumber(0, x_scm, x);
+  argumentAsNumber(1, y_scm, y);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_IntegerDiv(x, y);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nulldiv_Stub, 2, 0, nulldiv, SG_FALSE, NULL);
+
+static SgObject nullmod(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("mod");
+  SgObject x_scm;
+  SgObject x;
+  SgObject y_scm;
+  SgObject y;
+  checkArgumentLength(2);
+  argumentAsNumber(0, x_scm, x);
+  argumentAsNumber(1, y_scm, y);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_IntegerMod(x, y);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullmod_Stub, 2, 0, nullmod, SG_FALSE, NULL);
+
+static SgObject nulldiv0(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("div0");
+  SgObject x_scm;
+  SgObject x;
+  SgObject y_scm;
+  SgObject y;
+  checkArgumentLength(2);
+  argumentAsNumber(0, x_scm, x);
+  argumentAsNumber(1, y_scm, y);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_IntegerDiv0(x, y);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nulldiv0_Stub, 2, 0, nulldiv0, SG_FALSE, NULL);
+
+static SgObject nullmod0(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("mod0");
+  SgObject x_scm;
+  SgObject x;
+  SgObject y_scm;
+  SgObject y;
+  checkArgumentLength(2);
+  argumentAsNumber(0, x_scm, x);
+  argumentAsNumber(1, y_scm, y);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_IntegerMod0(x, y);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullmod0_Stub, 2, 0, nullmod0, SG_FALSE, NULL);
+
+static SgObject null25gcd(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("%gcd");
+  SgObject x_scm;
+  SgObject x;
+  SgObject y_scm;
+  SgObject y;
+  checkArgumentLength(2);
+  argumentAsNumber(0, x_scm, x);
+  argumentAsNumber(1, y_scm, y);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_Gcd(x, y);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(null25gcd_Stub, 2, 0, null25gcd, SG_FALSE, NULL);
+
+static SgObject nullexp(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("exp");
+  SgObject x_scm;
+  SgObject x;
+  checkArgumentLength(1);
+  argumentAsNumber(0, x_scm, x);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_Exp(x);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullexp_Stub, 1, 0, nullexp, SG_FALSE, NULL);
+
+static SgObject nullexpt(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("expt");
+  SgObject x_scm;
+  SgObject x;
+  SgObject y_scm;
+  SgObject y;
+  checkArgumentLength(2);
+  argumentAsNumber(0, x_scm, x);
+  argumentAsNumber(1, y_scm, y);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_Expt(x, y);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullexpt_Stub, 2, 0, nullexpt, SG_FALSE, NULL);
+
+static SgObject nulllog(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("log");
+  SgObject x_scm;
+  SgObject x;
+  SgObject base_scm;
+  SgObject base;
+  checkArgumentLengthBetween(1, 2);
+  argumentAsNumber(0, x_scm, x);
+  if (argc >= 2) {
+    argumentAsNumber(1, base_scm, base);
+  } else {
+    base = SG_UNBOUND;
+  }
+
+  {
+SgObject SG_RETURN = SG_UNDEF;if (SG_UNBOUNDP(base)) {
+SG_RETURN = Sg_Log(x);
+;}
+ else {
+SG_RETURN = Sg_Div(Sg_Log(x), Sg_Log(base));
+;}
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nulllog_Stub, 1, 1, nulllog, SG_FALSE, NULL);
+
+static SgObject nullmake_rectangular(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("make-rectangular");
+  SgObject a_scm;
+  SgObject a;
+  SgObject b_scm;
+  SgObject b;
+  checkArgumentLength(2);
+  argumentAsNumber(0, a_scm, a);
+  argumentAsNumber(1, b_scm, b);
+  {
+SgObject SG_RETURN = SG_UNDEF;if (!SG_REALP(a)) {
+Sg_Error(UC("real number required but got %S"), a);;}
+;
+if (!SG_REALP(b)) {
+Sg_Error(UC("real number required but got %S"), b);;}
+;
+SG_RETURN = Sg_MakeComplex(a, b);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullmake_rectangular_Stub, 2, 0, nullmake_rectangular, SG_FALSE, NULL);
+
+static SgObject nullmake_polar(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("make-polar");
+  SgObject r_scm;
+  SgObject r;
+  SgObject t_scm;
+  SgObject t;
+  checkArgumentLength(2);
+  argumentAsNumber(0, r_scm, r);
+  argumentAsNumber(1, t_scm, t);
+  {
+SgObject SG_RETURN = SG_UNDEF;if (!SG_REALP(r)) {
+Sg_Error(UC("real number required but got %S"), r);;}
+;
+if (!SG_REALP(t)) {
+Sg_Error(UC("real number required but got %S"), t);;}
+;
+SG_RETURN = Sg_MakeComplexPolar(r, t);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullmake_polar_Stub, 2, 0, nullmake_polar, SG_FALSE, NULL);
+
+static SgObject nullreal_part(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("real-part");
+  SgObject r_scm;
+  SgObject r;
+  checkArgumentLength(1);
+  argumentAsNumber(0, r_scm, r);
+  {
+SgObject SG_RETURN = SG_UNDEF;if (SG_COMPLEXP(r)) {
+SG_RETURN = SG_COMPLEX(r)->real;
+;
+}
+ else if (SG_REALP(r)) {
+SG_RETURN = SG_MAKE_INT(0);
+;
+}
+ else {
+Sg_Error(UC("number required, but got %S"), r);
+}
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullreal_part_Stub, 1, 0, nullreal_part, SG_FALSE, NULL);
+
+static SgObject nullimag_part(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("imag-part");
+  SgObject r_scm;
+  SgObject r;
+  checkArgumentLength(1);
+  argumentAsNumber(0, r_scm, r);
+  {
+SgObject SG_RETURN = SG_UNDEF;if (SG_COMPLEXP(r)) {
+SG_RETURN = SG_COMPLEX(r)->imag;
+;
+}
+ else if (SG_REALP(r)) {
+SG_RETURN = SG_MAKE_INT(0);
+;
+}
+ else {
+Sg_Error(UC("number required, but got %S"), r);
+}
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullimag_part_Stub, 1, 0, nullimag_part, SG_FALSE, NULL);
+
+static SgObject nullmagnitude(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("magnitude");
+  SgObject n_scm;
+  SgObject n;
+  checkArgumentLength(1);
+  argumentAsNumber(0, n_scm, n);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_Magnitude(n);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullmagnitude_Stub, 1, 0, nullmagnitude, SG_FALSE, NULL);
+
+static SgObject nullangle(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("angle");
+  SgObject n_scm;
+  SgObject n;
+  checkArgumentLength(1);
+  argumentAsNumber(0, n_scm, n);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_Angle(n);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullangle_Stub, 1, 0, nullangle, SG_FALSE, NULL);
+
+static SgObject nullsin(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("sin");
+  SgObject n_scm;
+  SgObject n;
+  checkArgumentLength(1);
+  argumentAsNumber(0, n_scm, n);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_Sin(n);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullsin_Stub, 1, 0, nullsin, SG_FALSE, NULL);
+
+static SgObject nullcos(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("cos");
+  SgObject n_scm;
+  SgObject n;
+  checkArgumentLength(1);
+  argumentAsNumber(0, n_scm, n);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_Cos(n);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullcos_Stub, 1, 0, nullcos, SG_FALSE, NULL);
+
+static SgObject nulltan(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("tan");
+  SgObject n_scm;
+  SgObject n;
+  checkArgumentLength(1);
+  argumentAsNumber(0, n_scm, n);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_Tan(n);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nulltan_Stub, 1, 0, nulltan, SG_FALSE, NULL);
+
+static SgObject nullasin(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("asin");
+  SgObject n_scm;
+  SgObject n;
+  checkArgumentLength(1);
+  argumentAsNumber(0, n_scm, n);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_Asin(n);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullasin_Stub, 1, 0, nullasin, SG_FALSE, NULL);
+
+static SgObject nullacos(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("acos");
+  SgObject n_scm;
+  SgObject n;
+  checkArgumentLength(1);
+  argumentAsNumber(0, n_scm, n);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_Acos(n);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullacos_Stub, 1, 0, nullacos, SG_FALSE, NULL);
+
+static SgObject nullatan(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("atan");
+  SgObject n_scm;
+  SgObject n;
+  checkArgumentLength(1);
+  argumentAsNumber(0, n_scm, n);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_Atan(n);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullatan_Stub, 1, 0, nullatan, SG_FALSE, NULL);
+
+static SgObject nullsqrt(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("sqrt");
+  SgObject n_scm;
+  SgObject n;
+  checkArgumentLength(1);
+  argumentAsNumber(0, n_scm, n);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_Sqrt(n);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullsqrt_Stub, 1, 0, nullsqrt, SG_FALSE, NULL);
+
+static SgObject nullexact_integer_sqrt(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("exact-integer-sqrt");
+  SgObject n_scm;
+  SgObject n;
+  checkArgumentLength(1);
+  argumentAsNumber(0, n_scm, n);
+  {
+SgObject SG_RETURN = SG_UNDEF;if ((Sg_NegativeP(n) || !SG_EXACT_INTP(n))) {
+Sg_Error(UC("non-negative exact integer required, but got %S"), n);;}
+;
+SG_RETURN = Sg_ExactIntegerSqrt(n);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullexact_integer_sqrt_Stub, 1, 0, nullexact_integer_sqrt, SG_FALSE, NULL);
+
+static SgObject nullquotient(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("quotient");
+  SgObject n1_scm;
+  SgObject n1;
+  SgObject n2_scm;
+  SgObject n2;
+  checkArgumentLength(2);
+  argumentAsNumber(0, n1_scm, n1);
+  argumentAsNumber(1, n2_scm, n2);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_Quotient(n1, n2, NULL);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullquotient_Stub, 2, 0, nullquotient, SG_FALSE, NULL);
+
+static SgObject nullremainder(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("remainder");
+  SgObject n1_scm;
+  SgObject n1;
+  SgObject n2_scm;
+  SgObject n2;
+  checkArgumentLength(2);
+  argumentAsNumber(0, n1_scm, n1);
+  argumentAsNumber(1, n2_scm, n2);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_Modulo(n1, n2, TRUE);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullremainder_Stub, 2, 0, nullremainder, SG_FALSE, NULL);
+
+static SgObject nullmodulo(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("modulo");
+  SgObject n1_scm;
+  SgObject n1;
+  SgObject n2_scm;
+  SgObject n2;
+  checkArgumentLength(2);
+  argumentAsNumber(0, n1_scm, n1);
+  argumentAsNumber(1, n2_scm, n2);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_Modulo(n1, n2, FALSE);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullmodulo_Stub, 2, 0, nullmodulo, SG_FALSE, NULL);
+
+static SgObject nullinteger_length(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("integer-length");
+  SgObject n_scm;
+  SgObject n;
+  checkArgumentLength(1);
+  argumentAsNumber(0, n_scm, n);
+  {
+int SG_RETURN;SG_RETURN = Sg_IntegerLength(n);
+;
+    return SG_MAKE_INT(SG_RETURN);
+  }
+}
+static SG_DEFINE_SUBR(nullinteger_length_Stub, 1, 0, nullinteger_length, SG_FALSE, NULL);
+
 static SgObject nullbitwise_not(SgObject *args, int argc, void *data_)
 {
   DeclareProcedureName("bitwise-not");
@@ -2301,6 +2772,35 @@ SgObject SG_RETURN = SG_UNDEF;SG_RETURN = z->name;
 }
 static SG_DEFINE_SUBR(nullsymbol_3estring_Stub, 1, 0, nullsymbol_3estring, SG_FALSE, NULL);
 
+static SgObject nullstring_3elist(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("string->list");
+  SgObject s_scm;
+  SgString *s;
+  checkArgumentLength(1);
+  argumentAsString(0, s_scm, s);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_StringToList(s);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nullstring_3elist_Stub, 1, 0, nullstring_3elist, SG_FALSE, NULL);
+
+static SgObject nulllist_3estring(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("list->string");
+  SgObject o;
+  checkArgumentLength(1);
+  argumentRef(0, o);
+  {
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_ListToString(o);
+;
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(nulllist_3estring_Stub, 1, 0, nulllist_3estring, SG_FALSE, NULL);
+
 static SgObject nullvector(SgObject *args, int argc, void *data_)
 {
   DeclareProcedureName("vector");
@@ -3187,7 +3687,7 @@ static SgObject nullbytevector_s32_native_ref(SgObject *args, int argc, void *da
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
   {
-int SG_RETURN;{
+SgObject SG_RETURN = SG_UNDEF;{
   int len = SG_BVECTOR_SIZE(bv);
 if (!(len > 3 && index < len-3)) {
 Sg_Error(UC("index out of range"), index);;}
@@ -3199,7 +3699,7 @@ Sg_Error(UC("index not aligned %S"), index);;}
 ;
 SG_RETURN = Sg_MakeIntegerFromS32(Sg_ByteVectorS32NativeRef(bv, index));
 ;
-    return SG_MAKE_INT(SG_RETURN);
+    return SG_RETURN;
   }
 }
 static SG_DEFINE_SUBR(nullbytevector_s32_native_ref_Stub, 2, 0, nullbytevector_s32_native_ref, SG_FALSE, NULL);
@@ -3262,7 +3762,7 @@ static SgObject nullbytevector_s32_ref(SgObject *args, int argc, void *data_)
   argumentAsFixnum(1, index_scm, index);
   argumentAsSymbol(2, endian_scm, endian);
   {
-int SG_RETURN;{
+SgObject SG_RETURN = SG_UNDEF;{
   int len = SG_BVECTOR_SIZE(bv);
 if (!(len > 3 && index < len-3)) {
 Sg_Error(UC("index out of range"), index);;}
@@ -3281,7 +3781,7 @@ SG_RETURN = Sg_MakeIntegerFromS32(Sg_ByteVectorS32LittleRef(bv, index));
 Sg_Error(UC("unsupported endianness %S"), endian);
 }
 ;
-    return SG_MAKE_INT(SG_RETURN);
+    return SG_RETURN;
   }
 }
 static SG_DEFINE_SUBR(nullbytevector_s32_ref_Stub, 3, 0, nullbytevector_s32_ref, SG_FALSE, NULL);
@@ -3519,7 +4019,7 @@ static SgObject nullbytevector_s64_native_ref(SgObject *args, int argc, void *da
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
   {
-int SG_RETURN;{
+SgObject SG_RETURN = SG_UNDEF;{
   int len = SG_BVECTOR_SIZE(bv);
 if (!(len > 7 && index < len-7)) {
 Sg_Error(UC("index out of range"), index);;}
@@ -3531,7 +4031,7 @@ Sg_Error(UC("index not aligned %S"), index);;}
 ;
 SG_RETURN = Sg_MakeIntegerFromS64(Sg_ByteVectorS64NativeRef(bv, index));
 ;
-    return SG_MAKE_INT(SG_RETURN);
+    return SG_RETURN;
   }
 }
 static SG_DEFINE_SUBR(nullbytevector_s64_native_ref_Stub, 2, 0, nullbytevector_s64_native_ref, SG_FALSE, NULL);
@@ -3594,7 +4094,7 @@ static SgObject nullbytevector_s64_ref(SgObject *args, int argc, void *data_)
   argumentAsFixnum(1, index_scm, index);
   argumentAsSymbol(2, endian_scm, endian);
   {
-int SG_RETURN;{
+SgObject SG_RETURN = SG_UNDEF;{
   int len = SG_BVECTOR_SIZE(bv);
 if (!(len > 7 && index < len-7)) {
 Sg_Error(UC("index out of range"), index);;}
@@ -3613,7 +4113,7 @@ SG_RETURN = Sg_MakeIntegerFromS64(Sg_ByteVectorS64LittleRef(bv, index));
 Sg_Error(UC("unsupported endianness %S"), endian);
 }
 ;
-    return SG_MAKE_INT(SG_RETURN);
+    return SG_RETURN;
   }
 }
 static SG_DEFINE_SUBR(nullbytevector_s64_ref_Stub, 3, 0, nullbytevector_s64_ref, SG_FALSE, NULL);
@@ -4417,370 +4917,426 @@ static SG_DEFINE_SUBR(nullgensym_Stub, 0, 1, nullgensym, SG_FALSE, NULL);
 void Sg__Initnull()
 {
   SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC("null"), SG_LITERAL_STRING)), TRUE);
-  SG_PROCEDURE_NAME(&nullappend21_Stub) = Sg_MakeString(UC("append!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("append!"), SG_LITERAL_STRING)), SG_OBJ(&nullappend21_Stub));
-  SG_PROCEDURE_NAME(&nullwrite_Stub) = Sg_MakeString(UC("write"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("write"), SG_LITERAL_STRING)), SG_OBJ(&nullwrite_Stub));
-  SG_PROCEDURE_NAME(&nullgensym_Stub) = Sg_MakeString(UC("gensym"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("gensym"), SG_LITERAL_STRING)), SG_OBJ(&nullgensym_Stub));
-  SG_PROCEDURE_NAME(&nullhashtable_values_Stub) = Sg_MakeString(UC("hashtable-values"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-values"), SG_LITERAL_STRING)), SG_OBJ(&nullhashtable_values_Stub));
-  SG_PROCEDURE_NAME(&nullnull3f_Stub) = Sg_MakeString(UC("null?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("null?"), SG_LITERAL_STRING)), SG_OBJ(&nullnull3f_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_not_Stub) = Sg_MakeString(UC("bitwise-not"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-not"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_not_Stub));
-  SG_PROCEDURE_NAME(&nullstring_3eutf16_Stub) = Sg_MakeString(UC("string->utf16"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string->utf16"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_3eutf16_Stub));
-  SG_PROCEDURE_NAME(&nullequal3f_Stub) = Sg_MakeString(UC("equal?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("equal?"), SG_LITERAL_STRING)), SG_OBJ(&nullequal3f_Stub));
-  SG_PROCEDURE_NAME(&nullcaar_Stub) = Sg_MakeString(UC("caar"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("caar"), SG_LITERAL_STRING)), SG_OBJ(&nullcaar_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_copy_bit_field_Stub) = Sg_MakeString(UC("bitwise-copy-bit-field"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-copy-bit-field"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_copy_bit_field_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s32_set21_Stub) = Sg_MakeString(UC("bytevector-s32-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s32-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s32_set21_Stub));
-  SG_PROCEDURE_NAME(&nulllist3f_Stub) = Sg_MakeString(UC("list?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("list?"), SG_LITERAL_STRING)), SG_OBJ(&nulllist3f_Stub));
-  SG_PROCEDURE_NAME(&nulllist_transpose2b_Stub) = Sg_MakeString(UC("list-transpose+"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("list-transpose+"), SG_LITERAL_STRING)), SG_OBJ(&nulllist_transpose2b_Stub));
-  SG_PROCEDURE_NAME(&nullport_position_Stub) = Sg_MakeString(UC("port-position"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("port-position"), SG_LITERAL_STRING)), SG_OBJ(&nullport_position_Stub));
-  SG_PROCEDURE_NAME(&nullvector_Stub) = Sg_MakeString(UC("vector"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector"), SG_LITERAL_STRING)), SG_OBJ(&nullvector_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_bit_count_Stub) = Sg_MakeString(UC("bitwise-bit-count"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-bit-count"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_bit_count_Stub));
-  SG_PROCEDURE_NAME(&nulldenominator_Stub) = Sg_MakeString(UC("denominator"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("denominator"), SG_LITERAL_STRING)), SG_OBJ(&nulldenominator_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u8_set21_Stub) = Sg_MakeString(UC("bytevector-u8-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u8-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u8_set21_Stub));
-  SG_PROCEDURE_NAME(&nullnative_endianness_Stub) = Sg_MakeString(UC("native-endianness"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("native-endianness"), SG_LITERAL_STRING)), SG_OBJ(&nullnative_endianness_Stub));
-  SG_PROCEDURE_NAME(&nullround_Stub) = Sg_MakeString(UC("round"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("round"), SG_LITERAL_STRING)), SG_OBJ(&nullround_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u16_native_set21_Stub) = Sg_MakeString(UC("bytevector-u16-native-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u16-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u16_native_set21_Stub));
-  SG_PROCEDURE_NAME(&nullvector_set21_Stub) = Sg_MakeString(UC("vector-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullvector_set21_Stub));
-  SG_PROCEDURE_NAME(&null3e_Stub) = Sg_MakeString(UC(">"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC(">"), SG_LITERAL_STRING)), SG_OBJ(&null3e_Stub));
-  SG_PROCEDURE_NAME(&nullopen_file_input_port_Stub) = Sg_MakeString(UC("open-file-input-port"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("open-file-input-port"), SG_LITERAL_STRING)), SG_OBJ(&nullopen_file_input_port_Stub));
-  SG_PROCEDURE_NAME(&nullformat_Stub) = Sg_MakeString(UC("format"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("format"), SG_LITERAL_STRING)), SG_OBJ(&nullformat_Stub));
-  SG_PROCEDURE_NAME(&nullunbound_Stub) = Sg_MakeString(UC("unbound"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("unbound"), SG_LITERAL_STRING)), SG_OBJ(&nullunbound_Stub));
-  SG_PROCEDURE_NAME(&nullpositive3f_Stub) = Sg_MakeString(UC("positive?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("positive?"), SG_LITERAL_STRING)), SG_OBJ(&nullpositive3f_Stub));
   SG_PROCEDURE_NAME(&nullassv_Stub) = Sg_MakeString(UC("assv"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("assv"), SG_LITERAL_STRING)), SG_OBJ(&nullassv_Stub));
-  SG_PROCEDURE_NAME(&null_2e_Stub) = Sg_MakeString(UC("-."), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("-."), SG_LITERAL_STRING)), SG_OBJ(&null_2e_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s32_native_ref_Stub) = Sg_MakeString(UC("bytevector-s32-native-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s32-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s32_native_ref_Stub));
-  SG_PROCEDURE_NAME(&nullundefined_Stub) = Sg_MakeString(UC("undefined"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("undefined"), SG_LITERAL_STRING)), SG_OBJ(&nullundefined_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_copy21_Stub) = Sg_MakeString(UC("bytevector-copy!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-copy!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_copy21_Stub));
-  SG_PROCEDURE_NAME(&null2f2e_Stub) = Sg_MakeString(UC("/."), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("/."), SG_LITERAL_STRING)), SG_OBJ(&null2f2e_Stub));
-  SG_PROCEDURE_NAME(&nullceiling_Stub) = Sg_MakeString(UC("ceiling"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("ceiling"), SG_LITERAL_STRING)), SG_OBJ(&nullceiling_Stub));
-  SG_PROCEDURE_NAME(&nulldisplay_Stub) = Sg_MakeString(UC("display"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("display"), SG_LITERAL_STRING)), SG_OBJ(&nulldisplay_Stub));
-  SG_PROCEDURE_NAME(&nulleqv3f_Stub) = Sg_MakeString(UC("eqv?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("eqv?"), SG_LITERAL_STRING)), SG_OBJ(&nulleqv3f_Stub));
   SG_PROCEDURE_NAME(&nullacons_Stub) = Sg_MakeString(UC("acons"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("acons"), SG_LITERAL_STRING)), SG_OBJ(&nullacons_Stub));
-  SG_PROCEDURE_NAME(&nullhashtable_keys_Stub) = Sg_MakeString(UC("hashtable-keys"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-keys"), SG_LITERAL_STRING)), SG_OBJ(&nullhashtable_keys_Stub));
-  SG_PROCEDURE_NAME(&nullopen_output_string_Stub) = Sg_MakeString(UC("open-output-string"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("open-output-string"), SG_LITERAL_STRING)), SG_OBJ(&nullopen_output_string_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_if_Stub) = Sg_MakeString(UC("bitwise-if"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-if"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_if_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_ieee_single_native_ref_Stub) = Sg_MakeString(UC("bytevector-ieee-single-native-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-single-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_single_native_ref_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s8_set21_Stub) = Sg_MakeString(UC("bytevector-s8-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s8-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s8_set21_Stub));
-  SG_PROCEDURE_NAME(&nullsymbol3f_Stub) = Sg_MakeString(UC("symbol?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("symbol?"), SG_LITERAL_STRING)), SG_OBJ(&nullsymbol3f_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s32_ref_Stub) = Sg_MakeString(UC("bytevector-s32-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s32-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s32_ref_Stub));
-  SG_PROCEDURE_NAME(&nullu8_list_3ebytevector_Stub) = Sg_MakeString(UC("u8-list->bytevector"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("u8-list->bytevector"), SG_LITERAL_STRING)), SG_OBJ(&nullu8_list_3ebytevector_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_copy_Stub) = Sg_MakeString(UC("bytevector-copy"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-copy"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_copy_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u16_ref_Stub) = Sg_MakeString(UC("bytevector-u16-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u16-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u16_ref_Stub));
-  SG_PROCEDURE_NAME(&nullmake_bytevector_Stub) = Sg_MakeString(UC("make-bytevector"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-bytevector"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_bytevector_Stub));
-  SG_PROCEDURE_NAME(&nullinexact3f_Stub) = Sg_MakeString(UC("inexact?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("inexact?"), SG_LITERAL_STRING)), SG_OBJ(&nullinexact3f_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_length_Stub) = Sg_MakeString(UC("bitwise-length"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-length"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_length_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u64_native_ref_Stub) = Sg_MakeString(UC("bytevector-u64-native-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u64-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u64_native_ref_Stub));
-  SG_PROCEDURE_NAME(&nullexact3f_Stub) = Sg_MakeString(UC("exact?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("exact?"), SG_LITERAL_STRING)), SG_OBJ(&nullexact3f_Stub));
-  SG_PROCEDURE_NAME(&nullerror_Stub) = Sg_MakeString(UC("error"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("error"), SG_LITERAL_STRING)), SG_OBJ(&nullerror_Stub));
-  SG_PROCEDURE_NAME(&nullassq_Stub) = Sg_MakeString(UC("assq"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("assq"), SG_LITERAL_STRING)), SG_OBJ(&nullassq_Stub));
-  SG_PROCEDURE_NAME(&null3c_Stub) = Sg_MakeString(UC("<"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("<"), SG_LITERAL_STRING)), SG_OBJ(&null3c_Stub));
-  SG_PROCEDURE_NAME(&nullreverse_Stub) = Sg_MakeString(UC("reverse"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("reverse"), SG_LITERAL_STRING)), SG_OBJ(&nullreverse_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_ieee_double_native_ref_Stub) = Sg_MakeString(UC("bytevector-ieee-double-native-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-double-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_double_native_ref_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s64_native_ref_Stub) = Sg_MakeString(UC("bytevector-s64-native-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s64-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s64_native_ref_Stub));
-  SG_PROCEDURE_NAME(&nullnegative3f_Stub) = Sg_MakeString(UC("negative?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("negative?"), SG_LITERAL_STRING)), SG_OBJ(&nullnegative3f_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s16_ref_Stub) = Sg_MakeString(UC("bytevector-s16-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s16-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s16_ref_Stub));
-  SG_PROCEDURE_NAME(&nullcar_Stub) = Sg_MakeString(UC("car"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("car"), SG_LITERAL_STRING)), SG_OBJ(&nullcar_Stub));
+  SG_PROCEDURE_NAME(&nullformat_Stub) = Sg_MakeString(UC("format"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("format"), SG_LITERAL_STRING)), SG_OBJ(&nullformat_Stub));
   SG_PROCEDURE_NAME(&nullkeyword3f_Stub) = Sg_MakeString(UC("keyword?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("keyword?"), SG_LITERAL_STRING)), SG_OBJ(&nullkeyword3f_Stub));
-  SG_PROCEDURE_NAME(&nulladd_load_path_Stub) = Sg_MakeString(UC("add-load-path"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("add-load-path"), SG_LITERAL_STRING)), SG_OBJ(&nulladd_load_path_Stub));
-  SG_PROCEDURE_NAME(&nullhashtable_ref_Stub) = Sg_MakeString(UC("hashtable-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullhashtable_ref_Stub));
-  SG_PROCEDURE_NAME(&nullinput_port3f_Stub) = Sg_MakeString(UC("input-port?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("input-port?"), SG_LITERAL_STRING)), SG_OBJ(&nullinput_port3f_Stub));
-  SG_PROCEDURE_NAME(&nulleq3f_Stub) = Sg_MakeString(UC("eq?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("eq?"), SG_LITERAL_STRING)), SG_OBJ(&nulleq3f_Stub));
-  SG_PROCEDURE_NAME(&nullset_cdr21_Stub) = Sg_MakeString(UC("set-cdr!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-cdr!"), SG_LITERAL_STRING)), SG_OBJ(&nullset_cdr21_Stub));
-  SG_PROCEDURE_NAME(&nullinfinite3f_Stub) = Sg_MakeString(UC("infinite?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("infinite?"), SG_LITERAL_STRING)), SG_OBJ(&nullinfinite3f_Stub));
-  SG_PROCEDURE_NAME(&nullvector_length_Stub) = Sg_MakeString(UC("vector-length"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector-length"), SG_LITERAL_STRING)), SG_OBJ(&nullvector_length_Stub));
-  SG_PROCEDURE_NAME(&nullutf8_3estring_Stub) = Sg_MakeString(UC("utf8->string"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("utf8->string"), SG_LITERAL_STRING)), SG_OBJ(&nullutf8_3estring_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_ieee_double_native_set21_Stub) = Sg_MakeString(UC("bytevector-ieee-double-native-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-double-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_double_native_set21_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u16_set21_Stub) = Sg_MakeString(UC("bytevector-u16-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u16-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u16_set21_Stub));
-  SG_PROCEDURE_NAME(&nulllist_3evector_Stub) = Sg_MakeString(UC("list->vector"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("list->vector"), SG_LITERAL_STRING)), SG_OBJ(&nulllist_3evector_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_ior_Stub) = Sg_MakeString(UC("bitwise-ior"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-ior"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_ior_Stub));
-  SG_PROCEDURE_NAME(&nullfinite3f_Stub) = Sg_MakeString(UC("finite?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("finite?"), SG_LITERAL_STRING)), SG_OBJ(&nullfinite3f_Stub));
-  SG_PROCEDURE_NAME(&nullclose_output_port_Stub) = Sg_MakeString(UC("close-output-port"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("close-output-port"), SG_LITERAL_STRING)), SG_OBJ(&nullclose_output_port_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_first_bit_set_Stub) = Sg_MakeString(UC("bitwise-first-bit-set"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-first-bit-set"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_first_bit_set_Stub));
   SG_PROCEDURE_NAME(&nullstring_3esymbol_Stub) = Sg_MakeString(UC("string->symbol"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string->symbol"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_3esymbol_Stub));
-  SG_PROCEDURE_NAME(&null2a_Stub) = Sg_MakeString(UC("*"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("*"), SG_LITERAL_STRING)), SG_OBJ(&null2a_Stub));
-  SG_PROCEDURE_NAME(&null3d_Stub) = Sg_MakeString(UC("="), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("="), SG_LITERAL_STRING)), SG_OBJ(&null3d_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_ieee_single_set21_Stub) = Sg_MakeString(UC("bytevector-ieee-single-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-single-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_single_set21_Stub));
-  SG_PROCEDURE_NAME(&null2b2e_Stub) = Sg_MakeString(UC("+."), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("+."), SG_LITERAL_STRING)), SG_OBJ(&null2b2e_Stub));
-  SG_PROCEDURE_NAME(&nullappend_Stub) = Sg_MakeString(UC("append"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("append"), SG_LITERAL_STRING)), SG_OBJ(&nullappend_Stub));
-  SG_PROCEDURE_NAME(&nullread_Stub) = Sg_MakeString(UC("read"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("read"), SG_LITERAL_STRING)), SG_OBJ(&nullread_Stub));
-  SG_PROCEDURE_NAME(&nullvm2fapply_Stub) = Sg_MakeString(UC("vm/apply"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vm/apply"), SG_LITERAL_STRING)), SG_OBJ(&nullvm2fapply_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s16_native_ref_Stub) = Sg_MakeString(UC("bytevector-s16-native-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s16-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s16_native_ref_Stub));
-  SG_PROCEDURE_NAME(&nullport_has_set_port_position213f_Stub) = Sg_MakeString(UC("port-has-set-port-position!?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("port-has-set-port-position!?"), SG_LITERAL_STRING)), SG_OBJ(&nullport_has_set_port_position213f_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_bit_field_Stub) = Sg_MakeString(UC("bitwise-bit-field"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-bit-field"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_bit_field_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_3eu8_list_Stub) = Sg_MakeString(UC("bytevector->u8-list"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector->u8-list"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_3eu8_list_Stub));
-  SG_PROCEDURE_NAME(&nullcdr_Stub) = Sg_MakeString(UC("cdr"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cdr"), SG_LITERAL_STRING)), SG_OBJ(&nullcdr_Stub));
-  SG_PROCEDURE_NAME(&nullcons_Stub) = Sg_MakeString(UC("cons"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cons"), SG_LITERAL_STRING)), SG_OBJ(&nullcons_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s64_set21_Stub) = Sg_MakeString(UC("bytevector-s64-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s64-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s64_set21_Stub));
-  SG_PROCEDURE_NAME(&nullclose_input_port_Stub) = Sg_MakeString(UC("close-input-port"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("close-input-port"), SG_LITERAL_STRING)), SG_OBJ(&nullclose_input_port_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_arithmetic_shift_Stub) = Sg_MakeString(UC("bitwise-arithmetic-shift"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-arithmetic-shift"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_arithmetic_shift_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_arithmetic_shift_left_Stub) = Sg_MakeString(UC("bitwise-arithmetic-shift-left"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-arithmetic-shift-left"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_arithmetic_shift_left_Stub));
-  SG_PROCEDURE_NAME(&null2f_Stub) = Sg_MakeString(UC("/"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("/"), SG_LITERAL_STRING)), SG_OBJ(&null2f_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u32_ref_Stub) = Sg_MakeString(UC("bytevector-u32-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u32-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u32_ref_Stub));
-  SG_PROCEDURE_NAME(&nullvector_ref_Stub) = Sg_MakeString(UC("vector-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullvector_ref_Stub));
-  SG_PROCEDURE_NAME(&nullnumerator_Stub) = Sg_MakeString(UC("numerator"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("numerator"), SG_LITERAL_STRING)), SG_OBJ(&nullnumerator_Stub));
-  SG_PROCEDURE_NAME(&nullsymbol_3estring_Stub) = Sg_MakeString(UC("symbol->string"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("symbol->string"), SG_LITERAL_STRING)), SG_OBJ(&nullsymbol_3estring_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_copy21_Stub) = Sg_MakeString(UC("bytevector-copy!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-copy!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_copy21_Stub));
   SG_PROCEDURE_NAME(&nullstring_append_Stub) = Sg_MakeString(UC("string-append"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string-append"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_append_Stub));
-  SG_PROCEDURE_NAME(&null__Stub) = Sg_MakeString(UC("-"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("-"), SG_LITERAL_STRING)), SG_OBJ(&null__Stub));
-  SG_PROCEDURE_NAME(&nullnative_transcoder_Stub) = Sg_MakeString(UC("native-transcoder"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("native-transcoder"), SG_LITERAL_STRING)), SG_OBJ(&nullnative_transcoder_Stub));
-  SG_PROCEDURE_NAME(&nulleven3f_Stub) = Sg_MakeString(UC("even?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("even?"), SG_LITERAL_STRING)), SG_OBJ(&nulleven3f_Stub));
-  SG_PROCEDURE_NAME(&nullport_has_port_position3f_Stub) = Sg_MakeString(UC("port-has-port-position?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("port-has-port-position?"), SG_LITERAL_STRING)), SG_OBJ(&nullport_has_port_position3f_Stub));
-  SG_PROCEDURE_NAME(&nullvalues_Stub) = Sg_MakeString(UC("values"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("values"), SG_LITERAL_STRING)), SG_OBJ(&nullvalues_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u64_native_set21_Stub) = Sg_MakeString(UC("bytevector-u64-native-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u64-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u64_native_set21_Stub));
-  SG_PROCEDURE_NAME(&nullvector3f_Stub) = Sg_MakeString(UC("vector?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector?"), SG_LITERAL_STRING)), SG_OBJ(&nullvector3f_Stub));
-  SG_PROCEDURE_NAME(&nullmake_eqv_hashtable_Stub) = Sg_MakeString(UC("make-eqv-hashtable"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-eqv-hashtable"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_eqv_hashtable_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_bit_set3f_Stub) = Sg_MakeString(UC("bitwise-bit-set?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-bit-set?"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_bit_set3f_Stub));
-  SG_PROCEDURE_NAME(&nulllength_Stub) = Sg_MakeString(UC("length"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("length"), SG_LITERAL_STRING)), SG_OBJ(&nulllength_Stub));
-  SG_PROCEDURE_NAME(&nullundefined3f_Stub) = Sg_MakeString(UC("undefined?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("undefined?"), SG_LITERAL_STRING)), SG_OBJ(&nullundefined3f_Stub));
-  SG_PROCEDURE_NAME(&nullnot_Stub) = Sg_MakeString(UC("not"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("not"), SG_LITERAL_STRING)), SG_OBJ(&nullnot_Stub));
-  SG_PROCEDURE_NAME(&nullcddr_Stub) = Sg_MakeString(UC("cddr"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cddr"), SG_LITERAL_STRING)), SG_OBJ(&nullcddr_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_ieee_double_ref_Stub) = Sg_MakeString(UC("bytevector-ieee-double-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-double-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_double_ref_Stub));
-  SG_PROCEDURE_NAME(&nulleof_object3f_Stub) = Sg_MakeString(UC("eof-object?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("eof-object?"), SG_LITERAL_STRING)), SG_OBJ(&nulleof_object3f_Stub));
-  SG_PROCEDURE_NAME(&nullget_output_string_Stub) = Sg_MakeString(UC("get-output-string"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-output-string"), SG_LITERAL_STRING)), SG_OBJ(&nullget_output_string_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_ieee_single_native_set21_Stub) = Sg_MakeString(UC("bytevector-ieee-single-native-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-single-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_single_native_set21_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector3f_Stub) = Sg_MakeString(UC("bytevector?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector?"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector3f_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_arithmetic_shift_right_Stub) = Sg_MakeString(UC("bitwise-arithmetic-shift-right"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-arithmetic-shift-right"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_arithmetic_shift_right_Stub));
-  SG_PROCEDURE_NAME(&nullnumber_3estring_Stub) = Sg_MakeString(UC("number->string"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("number->string"), SG_LITERAL_STRING)), SG_OBJ(&nullnumber_3estring_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u32_set21_Stub) = Sg_MakeString(UC("bytevector-u32-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u32-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u32_set21_Stub));
-  SG_PROCEDURE_NAME(&nullvector_3elist_Stub) = Sg_MakeString(UC("vector->list"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector->list"), SG_LITERAL_STRING)), SG_OBJ(&nullvector_3elist_Stub));
-  SG_PROCEDURE_NAME(&nulltruncate_Stub) = Sg_MakeString(UC("truncate"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("truncate"), SG_LITERAL_STRING)), SG_OBJ(&nulltruncate_Stub));
-  SG_PROCEDURE_NAME(&null2b_Stub) = Sg_MakeString(UC("+"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("+"), SG_LITERAL_STRING)), SG_OBJ(&null2b_Stub));
-  SG_PROCEDURE_NAME(&nullzero3f_Stub) = Sg_MakeString(UC("zero?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zero?"), SG_LITERAL_STRING)), SG_OBJ(&nullzero3f_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u32_native_ref_Stub) = Sg_MakeString(UC("bytevector-u32-native-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u32-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u32_native_ref_Stub));
-  SG_PROCEDURE_NAME(&nullodd3f_Stub) = Sg_MakeString(UC("odd?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odd?"), SG_LITERAL_STRING)), SG_OBJ(&nullodd3f_Stub));
-  SG_PROCEDURE_NAME(&nullpair3f_Stub) = Sg_MakeString(UC("pair?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pair?"), SG_LITERAL_STRING)), SG_OBJ(&nullpair3f_Stub));
-  SG_PROCEDURE_NAME(&nullset_port_position21_Stub) = Sg_MakeString(UC("set-port-position!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-port-position!"), SG_LITERAL_STRING)), SG_OBJ(&nullset_port_position21_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s32_native_set21_Stub) = Sg_MakeString(UC("bytevector-s32-native-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s32-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s32_native_set21_Stub));
-  SG_PROCEDURE_NAME(&nullhashtable_set21_Stub) = Sg_MakeString(UC("hashtable-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullhashtable_set21_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector3d3f_Stub) = Sg_MakeString(UC("bytevector=?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector=?"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector3d3f_Stub));
-  SG_PROCEDURE_NAME(&nullvector_fill21_Stub) = Sg_MakeString(UC("vector-fill!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector-fill!"), SG_LITERAL_STRING)), SG_OBJ(&nullvector_fill21_Stub));
-  SG_PROCEDURE_NAME(&nulllist_Stub) = Sg_MakeString(UC("list"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("list"), SG_LITERAL_STRING)), SG_OBJ(&nulllist_Stub));
-  SG_PROCEDURE_NAME(&nullmin_Stub) = Sg_MakeString(UC("min"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("min"), SG_LITERAL_STRING)), SG_OBJ(&nullmin_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u16_native_ref_Stub) = Sg_MakeString(UC("bytevector-u16-native-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u16-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u16_native_ref_Stub));
-  SG_PROCEDURE_NAME(&nullcdar_Stub) = Sg_MakeString(UC("cdar"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cdar"), SG_LITERAL_STRING)), SG_OBJ(&nullcdar_Stub));
-  SG_PROCEDURE_NAME(&nullmax_Stub) = Sg_MakeString(UC("max"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("max"), SG_LITERAL_STRING)), SG_OBJ(&nullmax_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s8_ref_Stub) = Sg_MakeString(UC("bytevector-s8-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s8-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s8_ref_Stub));
-  SG_PROCEDURE_NAME(&nullport3f_Stub) = Sg_MakeString(UC("port?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("port?"), SG_LITERAL_STRING)), SG_OBJ(&nullport3f_Stub));
-  SG_PROCEDURE_NAME(&nullstring_3eutf8_Stub) = Sg_MakeString(UC("string->utf8"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string->utf8"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_3eutf8_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s16_native_set21_Stub) = Sg_MakeString(UC("bytevector-s16-native-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s16-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s16_native_set21_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_length_Stub) = Sg_MakeString(UC("bytevector-length"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-length"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_length_Stub));
-  SG_PROCEDURE_NAME(&nullset_car21_Stub) = Sg_MakeString(UC("set-car!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-car!"), SG_LITERAL_STRING)), SG_OBJ(&nullset_car21_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_ieee_single_ref_Stub) = Sg_MakeString(UC("bytevector-ieee-single-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-single-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_single_ref_Stub));
-  SG_PROCEDURE_NAME(&nullopen_file_output_port_Stub) = Sg_MakeString(UC("open-file-output-port"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("open-file-output-port"), SG_LITERAL_STRING)), SG_OBJ(&nullopen_file_output_port_Stub));
-  SG_PROCEDURE_NAME(&nullcomplex3f_Stub) = Sg_MakeString(UC("complex?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("complex?"), SG_LITERAL_STRING)), SG_OBJ(&nullcomplex3f_Stub));
-  SG_PROCEDURE_NAME(&nullfloor_Stub) = Sg_MakeString(UC("floor"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("floor"), SG_LITERAL_STRING)), SG_OBJ(&nullfloor_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s64_ref_Stub) = Sg_MakeString(UC("bytevector-s64-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s64-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s64_ref_Stub));
-  SG_PROCEDURE_NAME(&nullmake_vector_Stub) = Sg_MakeString(UC("make-vector"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-vector"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_vector_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_and_Stub) = Sg_MakeString(UC("bitwise-and"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-and"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_and_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u32_native_set21_Stub) = Sg_MakeString(UC("bytevector-u32-native-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u32-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u32_native_set21_Stub));
-  SG_PROCEDURE_NAME(&nullabs_Stub) = Sg_MakeString(UC("abs"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("abs"), SG_LITERAL_STRING)), SG_OBJ(&nullabs_Stub));
-  SG_PROCEDURE_NAME(&nullnan3f_Stub) = Sg_MakeString(UC("nan?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("nan?"), SG_LITERAL_STRING)), SG_OBJ(&nullnan3f_Stub));
-  SG_PROCEDURE_NAME(&null3e3d_Stub) = Sg_MakeString(UC(">="), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC(">="), SG_LITERAL_STRING)), SG_OBJ(&null3e3d_Stub));
-  SG_PROCEDURE_NAME(&nullreal3f_Stub) = Sg_MakeString(UC("real?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("real?"), SG_LITERAL_STRING)), SG_OBJ(&nullreal3f_Stub));
-  SG_PROCEDURE_NAME(&nullwrite2fss_Stub) = Sg_MakeString(UC("write/ss"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("write/ss"), SG_LITERAL_STRING)), SG_OBJ(&nullwrite2fss_Stub));
-  SG_PROCEDURE_NAME(&nullcall2fcc_Stub) = Sg_MakeString(UC("call/cc"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("call/cc"), SG_LITERAL_STRING)), SG_OBJ(&nullcall2fcc_Stub));
-  SG_PROCEDURE_NAME(&nullutf16_3estring_Stub) = Sg_MakeString(UC("utf16->string"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("utf16->string"), SG_LITERAL_STRING)), SG_OBJ(&nullutf16_3estring_Stub));
-  SG_PROCEDURE_NAME(&null2a2e_Stub) = Sg_MakeString(UC("*."), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("*."), SG_LITERAL_STRING)), SG_OBJ(&null2a2e_Stub));
-  SG_PROCEDURE_NAME(&nullnewline_Stub) = Sg_MakeString(UC("newline"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("newline"), SG_LITERAL_STRING)), SG_OBJ(&nullnewline_Stub));
-  SG_PROCEDURE_NAME(&nullmemv_Stub) = Sg_MakeString(UC("memv"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("memv"), SG_LITERAL_STRING)), SG_OBJ(&nullmemv_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_ieee_double_set21_Stub) = Sg_MakeString(UC("bytevector-ieee-double-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-double-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_double_set21_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s64_native_set21_Stub) = Sg_MakeString(UC("bytevector-s64-native-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s64-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s64_native_set21_Stub));
-  SG_PROCEDURE_NAME(&nullcall_with_current_continuation_Stub) = Sg_MakeString(UC("call-with-current-continuation"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("call-with-current-continuation"), SG_LITERAL_STRING)), SG_OBJ(&nullcall_with_current_continuation_Stub));
-  SG_PROCEDURE_NAME(&nullnumber3f_Stub) = Sg_MakeString(UC("number?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("number?"), SG_LITERAL_STRING)), SG_OBJ(&nullnumber3f_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_copy_bit_Stub) = Sg_MakeString(UC("bitwise-copy-bit"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-copy-bit"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_copy_bit_Stub));
-  SG_PROCEDURE_NAME(&nullcadr_Stub) = Sg_MakeString(UC("cadr"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cadr"), SG_LITERAL_STRING)), SG_OBJ(&nullcadr_Stub));
-  SG_PROCEDURE_NAME(&nullmake_eq_hashtable_Stub) = Sg_MakeString(UC("make-eq-hashtable"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-eq-hashtable"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_eq_hashtable_Stub));
-  SG_PROCEDURE_NAME(&nulloutput_port3f_Stub) = Sg_MakeString(UC("output-port?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("output-port?"), SG_LITERAL_STRING)), SG_OBJ(&nulloutput_port3f_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s16_set21_Stub) = Sg_MakeString(UC("bytevector-s16-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s16-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s16_set21_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_fill21_Stub) = Sg_MakeString(UC("bytevector-fill!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-fill!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_fill21_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u8_ref_Stub) = Sg_MakeString(UC("bytevector-u8-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u8-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u8_ref_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u64_set21_Stub) = Sg_MakeString(UC("bytevector-u64-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u64-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u64_set21_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_ior_Stub) = Sg_MakeString(UC("bitwise-ior"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-ior"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_ior_Stub));
+  SG_PROCEDURE_NAME(&nullset_cdr21_Stub) = Sg_MakeString(UC("set-cdr!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-cdr!"), SG_LITERAL_STRING)), SG_OBJ(&nullset_cdr21_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u16_ref_Stub) = Sg_MakeString(UC("bytevector-u16-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u16-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u16_ref_Stub));
   SG_PROCEDURE_NAME(&nullinteger3f_Stub) = Sg_MakeString(UC("integer?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("integer?"), SG_LITERAL_STRING)), SG_OBJ(&nullinteger3f_Stub));
-  SG_PROCEDURE_NAME(&nullstring_length_Stub) = Sg_MakeString(UC("string-length"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string-length"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_length_Stub));
-  SG_PROCEDURE_NAME(&nullapply_Stub) = Sg_MakeString(UC("apply"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("apply"), SG_LITERAL_STRING)), SG_OBJ(&nullapply_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_xor_Stub) = Sg_MakeString(UC("bitwise-xor"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-xor"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_xor_Stub));
-  SG_PROCEDURE_NAME(&nullmemq_Stub) = Sg_MakeString(UC("memq"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("memq"), SG_LITERAL_STRING)), SG_OBJ(&nullmemq_Stub));
+  SG_PROCEDURE_NAME(&nullappend_Stub) = Sg_MakeString(UC("append"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("append"), SG_LITERAL_STRING)), SG_OBJ(&nullappend_Stub));
+  SG_PROCEDURE_NAME(&nullpositive3f_Stub) = Sg_MakeString(UC("positive?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("positive?"), SG_LITERAL_STRING)), SG_OBJ(&nullpositive3f_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_ieee_single_set21_Stub) = Sg_MakeString(UC("bytevector-ieee-single-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-single-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_single_set21_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u16_native_set21_Stub) = Sg_MakeString(UC("bytevector-u16-native-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u16-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u16_native_set21_Stub));
+  SG_PROCEDURE_NAME(&null3e3d_Stub) = Sg_MakeString(UC(">="), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC(">="), SG_LITERAL_STRING)), SG_OBJ(&null3e3d_Stub));
+  SG_PROCEDURE_NAME(&nullcar_Stub) = Sg_MakeString(UC("car"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("car"), SG_LITERAL_STRING)), SG_OBJ(&nullcar_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s32_native_ref_Stub) = Sg_MakeString(UC("bytevector-s32-native-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s32-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s32_native_ref_Stub));
+  SG_PROCEDURE_NAME(&nullquotient_Stub) = Sg_MakeString(UC("quotient"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("quotient"), SG_LITERAL_STRING)), SG_OBJ(&nullquotient_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u64_native_ref_Stub) = Sg_MakeString(UC("bytevector-u64-native-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u64-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u64_native_ref_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s8_set21_Stub) = Sg_MakeString(UC("bytevector-s8-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s8-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s8_set21_Stub));
+  SG_PROCEDURE_NAME(&nullnull3f_Stub) = Sg_MakeString(UC("null?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("null?"), SG_LITERAL_STRING)), SG_OBJ(&nullnull3f_Stub));
+  SG_PROCEDURE_NAME(&nullstring_3eutf16_Stub) = Sg_MakeString(UC("string->utf16"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string->utf16"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_3eutf16_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s64_native_set21_Stub) = Sg_MakeString(UC("bytevector-s64-native-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s64-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s64_native_set21_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s32_set21_Stub) = Sg_MakeString(UC("bytevector-s32-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s32-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s32_set21_Stub));
+  SG_PROCEDURE_NAME(&nulldenominator_Stub) = Sg_MakeString(UC("denominator"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("denominator"), SG_LITERAL_STRING)), SG_OBJ(&nulldenominator_Stub));
+  SG_PROCEDURE_NAME(&null25gcd_Stub) = Sg_MakeString(UC("%gcd"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("%gcd"), SG_LITERAL_STRING)), SG_OBJ(&null25gcd_Stub));
+  SG_PROCEDURE_NAME(&nullmin_Stub) = Sg_MakeString(UC("min"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("min"), SG_LITERAL_STRING)), SG_OBJ(&nullmin_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector3f_Stub) = Sg_MakeString(UC("bytevector?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector?"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector3f_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_ieee_double_set21_Stub) = Sg_MakeString(UC("bytevector-ieee-double-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-double-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_double_set21_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_3eu8_list_Stub) = Sg_MakeString(UC("bytevector->u8-list"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector->u8-list"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_3eu8_list_Stub));
+  SG_PROCEDURE_NAME(&nulleqv3f_Stub) = Sg_MakeString(UC("eqv?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("eqv?"), SG_LITERAL_STRING)), SG_OBJ(&nulleqv3f_Stub));
+  SG_PROCEDURE_NAME(&nullmake_rectangular_Stub) = Sg_MakeString(UC("make-rectangular"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-rectangular"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_rectangular_Stub));
+  SG_PROCEDURE_NAME(&nulloutput_port3f_Stub) = Sg_MakeString(UC("output-port?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("output-port?"), SG_LITERAL_STRING)), SG_OBJ(&nulloutput_port3f_Stub));
+  SG_PROCEDURE_NAME(&nulleq3f_Stub) = Sg_MakeString(UC("eq?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("eq?"), SG_LITERAL_STRING)), SG_OBJ(&nulleq3f_Stub));
+  SG_PROCEDURE_NAME(&nulldisplay_Stub) = Sg_MakeString(UC("display"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("display"), SG_LITERAL_STRING)), SG_OBJ(&nulldisplay_Stub));
+  SG_PROCEDURE_NAME(&nullmemv_Stub) = Sg_MakeString(UC("memv"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("memv"), SG_LITERAL_STRING)), SG_OBJ(&nullmemv_Stub));
+  SG_PROCEDURE_NAME(&nullnot_Stub) = Sg_MakeString(UC("not"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("not"), SG_LITERAL_STRING)), SG_OBJ(&nullnot_Stub));
+  SG_PROCEDURE_NAME(&nullread_Stub) = Sg_MakeString(UC("read"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("read"), SG_LITERAL_STRING)), SG_OBJ(&nullread_Stub));
+  SG_PROCEDURE_NAME(&nullcons_Stub) = Sg_MakeString(UC("cons"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cons"), SG_LITERAL_STRING)), SG_OBJ(&nullcons_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_arithmetic_shift_left_Stub) = Sg_MakeString(UC("bitwise-arithmetic-shift-left"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-arithmetic-shift-left"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_arithmetic_shift_left_Stub));
   SG_PROCEDURE_NAME(&null3c3d_Stub) = Sg_MakeString(UC("<="), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("<="), SG_LITERAL_STRING)), SG_OBJ(&null3c3d_Stub));
+  SG_PROCEDURE_NAME(&nullcadr_Stub) = Sg_MakeString(UC("cadr"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cadr"), SG_LITERAL_STRING)), SG_OBJ(&nullcadr_Stub));
+  SG_PROCEDURE_NAME(&nullu8_list_3ebytevector_Stub) = Sg_MakeString(UC("u8-list->bytevector"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("u8-list->bytevector"), SG_LITERAL_STRING)), SG_OBJ(&nullu8_list_3ebytevector_Stub));
+  SG_PROCEDURE_NAME(&nullodd3f_Stub) = Sg_MakeString(UC("odd?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odd?"), SG_LITERAL_STRING)), SG_OBJ(&nullodd3f_Stub));
+  SG_PROCEDURE_NAME(&nullget_output_string_Stub) = Sg_MakeString(UC("get-output-string"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-output-string"), SG_LITERAL_STRING)), SG_OBJ(&nullget_output_string_Stub));
+  SG_PROCEDURE_NAME(&nullnan3f_Stub) = Sg_MakeString(UC("nan?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("nan?"), SG_LITERAL_STRING)), SG_OBJ(&nullnan3f_Stub));
+  SG_PROCEDURE_NAME(&nullvector_Stub) = Sg_MakeString(UC("vector"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector"), SG_LITERAL_STRING)), SG_OBJ(&nullvector_Stub));
+  SG_PROCEDURE_NAME(&nulldiv_Stub) = Sg_MakeString(UC("div"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("div"), SG_LITERAL_STRING)), SG_OBJ(&nulldiv_Stub));
+  SG_PROCEDURE_NAME(&nullfloor_Stub) = Sg_MakeString(UC("floor"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("floor"), SG_LITERAL_STRING)), SG_OBJ(&nullfloor_Stub));
+  SG_PROCEDURE_NAME(&nullvector_length_Stub) = Sg_MakeString(UC("vector-length"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector-length"), SG_LITERAL_STRING)), SG_OBJ(&nullvector_length_Stub));
+  SG_PROCEDURE_NAME(&nullexp_Stub) = Sg_MakeString(UC("exp"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("exp"), SG_LITERAL_STRING)), SG_OBJ(&nullexp_Stub));
+  SG_PROCEDURE_NAME(&nullport_position_Stub) = Sg_MakeString(UC("port-position"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("port-position"), SG_LITERAL_STRING)), SG_OBJ(&nullport_position_Stub));
+  SG_PROCEDURE_NAME(&nulltan_Stub) = Sg_MakeString(UC("tan"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("tan"), SG_LITERAL_STRING)), SG_OBJ(&nulltan_Stub));
+  SG_PROCEDURE_NAME(&nullmagnitude_Stub) = Sg_MakeString(UC("magnitude"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("magnitude"), SG_LITERAL_STRING)), SG_OBJ(&nullmagnitude_Stub));
+  SG_PROCEDURE_NAME(&nullsqrt_Stub) = Sg_MakeString(UC("sqrt"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("sqrt"), SG_LITERAL_STRING)), SG_OBJ(&nullsqrt_Stub));
+  SG_PROCEDURE_NAME(&nulllength_Stub) = Sg_MakeString(UC("length"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("length"), SG_LITERAL_STRING)), SG_OBJ(&nulllength_Stub));
+  SG_PROCEDURE_NAME(&nullset_port_position21_Stub) = Sg_MakeString(UC("set-port-position!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-port-position!"), SG_LITERAL_STRING)), SG_OBJ(&nullset_port_position21_Stub));
+  SG_PROCEDURE_NAME(&nullcall_with_current_continuation_Stub) = Sg_MakeString(UC("call-with-current-continuation"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("call-with-current-continuation"), SG_LITERAL_STRING)), SG_OBJ(&nullcall_with_current_continuation_Stub));
+  SG_PROCEDURE_NAME(&nullsymbol3f_Stub) = Sg_MakeString(UC("symbol?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("symbol?"), SG_LITERAL_STRING)), SG_OBJ(&nullsymbol3f_Stub));
+  SG_PROCEDURE_NAME(&nullwrite_Stub) = Sg_MakeString(UC("write"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("write"), SG_LITERAL_STRING)), SG_OBJ(&nullwrite_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_copy_bit_field_Stub) = Sg_MakeString(UC("bitwise-copy-bit-field"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-copy-bit-field"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_copy_bit_field_Stub));
+  SG_PROCEDURE_NAME(&nullmodulo_Stub) = Sg_MakeString(UC("modulo"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("modulo"), SG_LITERAL_STRING)), SG_OBJ(&nullmodulo_Stub));
+  SG_PROCEDURE_NAME(&nullremainder_Stub) = Sg_MakeString(UC("remainder"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("remainder"), SG_LITERAL_STRING)), SG_OBJ(&nullremainder_Stub));
+  SG_PROCEDURE_NAME(&nullhashtable_set21_Stub) = Sg_MakeString(UC("hashtable-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullhashtable_set21_Stub));
+  SG_PROCEDURE_NAME(&nulllist_3evector_Stub) = Sg_MakeString(UC("list->vector"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("list->vector"), SG_LITERAL_STRING)), SG_OBJ(&nulllist_3evector_Stub));
+  SG_PROCEDURE_NAME(&nullhashtable_ref_Stub) = Sg_MakeString(UC("hashtable-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullhashtable_ref_Stub));
+  SG_PROCEDURE_NAME(&nullcdar_Stub) = Sg_MakeString(UC("cdar"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cdar"), SG_LITERAL_STRING)), SG_OBJ(&nullcdar_Stub));
+  SG_PROCEDURE_NAME(&nullopen_file_output_port_Stub) = Sg_MakeString(UC("open-file-output-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("open-file-output-port"), SG_LITERAL_STRING)), SG_OBJ(&nullopen_file_output_port_Stub));
+  SG_PROCEDURE_NAME(&nullimag_part_Stub) = Sg_MakeString(UC("imag-part"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("imag-part"), SG_LITERAL_STRING)), SG_OBJ(&nullimag_part_Stub));
+  SG_PROCEDURE_NAME(&nullnegative3f_Stub) = Sg_MakeString(UC("negative?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("negative?"), SG_LITERAL_STRING)), SG_OBJ(&nullnegative3f_Stub));
+  SG_PROCEDURE_NAME(&nullset_car21_Stub) = Sg_MakeString(UC("set-car!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-car!"), SG_LITERAL_STRING)), SG_OBJ(&nullset_car21_Stub));
+  SG_PROCEDURE_NAME(&nullvm2fapply_Stub) = Sg_MakeString(UC("vm/apply"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vm/apply"), SG_LITERAL_STRING)), SG_OBJ(&nullvm2fapply_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_and_Stub) = Sg_MakeString(UC("bitwise-and"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-and"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_and_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_ieee_single_ref_Stub) = Sg_MakeString(UC("bytevector-ieee-single-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-single-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_single_ref_Stub));
+  SG_PROCEDURE_NAME(&nullnumber3f_Stub) = Sg_MakeString(UC("number?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("number?"), SG_LITERAL_STRING)), SG_OBJ(&nullnumber3f_Stub));
+  SG_PROCEDURE_NAME(&nullvector_fill21_Stub) = Sg_MakeString(UC("vector-fill!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector-fill!"), SG_LITERAL_STRING)), SG_OBJ(&nullvector_fill21_Stub));
+  SG_PROCEDURE_NAME(&nullvector3f_Stub) = Sg_MakeString(UC("vector?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector?"), SG_LITERAL_STRING)), SG_OBJ(&nullvector3f_Stub));
+  SG_PROCEDURE_NAME(&nullwrite2fss_Stub) = Sg_MakeString(UC("write/ss"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("write/ss"), SG_LITERAL_STRING)), SG_OBJ(&nullwrite2fss_Stub));
+  SG_PROCEDURE_NAME(&nullnative_endianness_Stub) = Sg_MakeString(UC("native-endianness"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("native-endianness"), SG_LITERAL_STRING)), SG_OBJ(&nullnative_endianness_Stub));
+  SG_PROCEDURE_NAME(&null_2e_Stub) = Sg_MakeString(UC("-."), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("-."), SG_LITERAL_STRING)), SG_OBJ(&null_2e_Stub));
+  SG_PROCEDURE_NAME(&nulllist_transpose2b_Stub) = Sg_MakeString(UC("list-transpose+"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("list-transpose+"), SG_LITERAL_STRING)), SG_OBJ(&nulllist_transpose2b_Stub));
+  SG_PROCEDURE_NAME(&nullvector_3elist_Stub) = Sg_MakeString(UC("vector->list"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector->list"), SG_LITERAL_STRING)), SG_OBJ(&nullvector_3elist_Stub));
+  SG_PROCEDURE_NAME(&null2b_Stub) = Sg_MakeString(UC("+"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("+"), SG_LITERAL_STRING)), SG_OBJ(&null2b_Stub));
+  SG_PROCEDURE_NAME(&nullerror_Stub) = Sg_MakeString(UC("error"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("error"), SG_LITERAL_STRING)), SG_OBJ(&nullerror_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u16_native_ref_Stub) = Sg_MakeString(UC("bytevector-u16-native-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u16-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u16_native_ref_Stub));
+  SG_PROCEDURE_NAME(&nullnumerator_Stub) = Sg_MakeString(UC("numerator"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("numerator"), SG_LITERAL_STRING)), SG_OBJ(&nullnumerator_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s16_native_set21_Stub) = Sg_MakeString(UC("bytevector-s16-native-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s16-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s16_native_set21_Stub));
+  SG_PROCEDURE_NAME(&nullreal_part_Stub) = Sg_MakeString(UC("real-part"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("real-part"), SG_LITERAL_STRING)), SG_OBJ(&nullreal_part_Stub));
+  SG_PROCEDURE_NAME(&nullapply_Stub) = Sg_MakeString(UC("apply"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("apply"), SG_LITERAL_STRING)), SG_OBJ(&nullapply_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u32_native_set21_Stub) = Sg_MakeString(UC("bytevector-u32-native-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u32-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u32_native_set21_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u8_ref_Stub) = Sg_MakeString(UC("bytevector-u8-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u8-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u8_ref_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s64_set21_Stub) = Sg_MakeString(UC("bytevector-s64-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s64-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s64_set21_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s64_native_ref_Stub) = Sg_MakeString(UC("bytevector-s64-native-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s64-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s64_native_ref_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s16_set21_Stub) = Sg_MakeString(UC("bytevector-s16-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s16-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s16_set21_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_ieee_single_native_ref_Stub) = Sg_MakeString(UC("bytevector-ieee-single-native-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-single-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_single_native_ref_Stub));
   SG_PROCEDURE_NAME(&nullbytevector_u64_ref_Stub) = Sg_MakeString(UC("bytevector-u64-ref"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u64-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u64_ref_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_ieee_double_ref_Stub) = Sg_MakeString(UC("bytevector-ieee-double-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-double-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_double_ref_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_length_Stub) = Sg_MakeString(UC("bytevector-length"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-length"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_length_Stub));
+  SG_PROCEDURE_NAME(&nullmod0_Stub) = Sg_MakeString(UC("mod0"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("mod0"), SG_LITERAL_STRING)), SG_OBJ(&nullmod0_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_ieee_double_native_set21_Stub) = Sg_MakeString(UC("bytevector-ieee-double-native-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-double-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_double_native_set21_Stub));
+  SG_PROCEDURE_NAME(&nullstring_3eutf8_Stub) = Sg_MakeString(UC("string->utf8"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string->utf8"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_3eutf8_Stub));
+  SG_PROCEDURE_NAME(&nulladd_load_path_Stub) = Sg_MakeString(UC("add-load-path"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("add-load-path"), SG_LITERAL_STRING)), SG_OBJ(&nulladd_load_path_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector3d3f_Stub) = Sg_MakeString(UC("bytevector=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector=?"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector3d3f_Stub));
+  SG_PROCEDURE_NAME(&nullinfinite3f_Stub) = Sg_MakeString(UC("infinite?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("infinite?"), SG_LITERAL_STRING)), SG_OBJ(&nullinfinite3f_Stub));
+  SG_PROCEDURE_NAME(&nulleof_object3f_Stub) = Sg_MakeString(UC("eof-object?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("eof-object?"), SG_LITERAL_STRING)), SG_OBJ(&nulleof_object3f_Stub));
+  SG_PROCEDURE_NAME(&nullequal3f_Stub) = Sg_MakeString(UC("equal?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("equal?"), SG_LITERAL_STRING)), SG_OBJ(&nullequal3f_Stub));
+  SG_PROCEDURE_NAME(&nullnewline_Stub) = Sg_MakeString(UC("newline"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("newline"), SG_LITERAL_STRING)), SG_OBJ(&nullnewline_Stub));
+  SG_PROCEDURE_NAME(&nullexact3f_Stub) = Sg_MakeString(UC("exact?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("exact?"), SG_LITERAL_STRING)), SG_OBJ(&nullexact3f_Stub));
   SG_PROCEDURE_NAME(&nullcons2a_Stub) = Sg_MakeString(UC("cons*"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cons*"), SG_LITERAL_STRING)), SG_OBJ(&nullcons2a_Stub));
+  SG_PROCEDURE_NAME(&null2a2e_Stub) = Sg_MakeString(UC("*."), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("*."), SG_LITERAL_STRING)), SG_OBJ(&null2a2e_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u8_set21_Stub) = Sg_MakeString(UC("bytevector-u8-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u8-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u8_set21_Stub));
+  SG_PROCEDURE_NAME(&null3d_Stub) = Sg_MakeString(UC("="), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("="), SG_LITERAL_STRING)), SG_OBJ(&null3d_Stub));
+  SG_PROCEDURE_NAME(&nullcdr_Stub) = Sg_MakeString(UC("cdr"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cdr"), SG_LITERAL_STRING)), SG_OBJ(&nullcdr_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_arithmetic_shift_right_Stub) = Sg_MakeString(UC("bitwise-arithmetic-shift-right"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-arithmetic-shift-right"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_arithmetic_shift_right_Stub));
+  SG_PROCEDURE_NAME(&nullzero3f_Stub) = Sg_MakeString(UC("zero?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zero?"), SG_LITERAL_STRING)), SG_OBJ(&nullzero3f_Stub));
+  SG_PROCEDURE_NAME(&nullcddr_Stub) = Sg_MakeString(UC("cddr"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cddr"), SG_LITERAL_STRING)), SG_OBJ(&nullcddr_Stub));
+  SG_PROCEDURE_NAME(&nullsin_Stub) = Sg_MakeString(UC("sin"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("sin"), SG_LITERAL_STRING)), SG_OBJ(&nullsin_Stub));
+  SG_PROCEDURE_NAME(&nulleven3f_Stub) = Sg_MakeString(UC("even?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("even?"), SG_LITERAL_STRING)), SG_OBJ(&nulleven3f_Stub));
+  SG_PROCEDURE_NAME(&nullopen_output_string_Stub) = Sg_MakeString(UC("open-output-string"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("open-output-string"), SG_LITERAL_STRING)), SG_OBJ(&nullopen_output_string_Stub));
+  SG_PROCEDURE_NAME(&nullmod_Stub) = Sg_MakeString(UC("mod"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("mod"), SG_LITERAL_STRING)), SG_OBJ(&nullmod_Stub));
+  SG_PROCEDURE_NAME(&null__Stub) = Sg_MakeString(UC("-"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("-"), SG_LITERAL_STRING)), SG_OBJ(&null__Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u32_set21_Stub) = Sg_MakeString(UC("bytevector-u32-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u32-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u32_set21_Stub));
+  SG_PROCEDURE_NAME(&nulldiv0_Stub) = Sg_MakeString(UC("div0"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("div0"), SG_LITERAL_STRING)), SG_OBJ(&nulldiv0_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_length_Stub) = Sg_MakeString(UC("bitwise-length"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-length"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_length_Stub));
+  SG_PROCEDURE_NAME(&nullceiling_Stub) = Sg_MakeString(UC("ceiling"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("ceiling"), SG_LITERAL_STRING)), SG_OBJ(&nullceiling_Stub));
+  SG_PROCEDURE_NAME(&nulllog_Stub) = Sg_MakeString(UC("log"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("log"), SG_LITERAL_STRING)), SG_OBJ(&nulllog_Stub));
+  SG_PROCEDURE_NAME(&nullhashtable_values_Stub) = Sg_MakeString(UC("hashtable-values"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-values"), SG_LITERAL_STRING)), SG_OBJ(&nullhashtable_values_Stub));
+  SG_PROCEDURE_NAME(&nullacos_Stub) = Sg_MakeString(UC("acos"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("acos"), SG_LITERAL_STRING)), SG_OBJ(&nullacos_Stub));
+  SG_PROCEDURE_NAME(&nulllist3f_Stub) = Sg_MakeString(UC("list?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("list?"), SG_LITERAL_STRING)), SG_OBJ(&nulllist3f_Stub));
+  SG_PROCEDURE_NAME(&nullexpt_Stub) = Sg_MakeString(UC("expt"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("expt"), SG_LITERAL_STRING)), SG_OBJ(&nullexpt_Stub));
+  SG_PROCEDURE_NAME(&nullreverse_Stub) = Sg_MakeString(UC("reverse"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("reverse"), SG_LITERAL_STRING)), SG_OBJ(&nullreverse_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_if_Stub) = Sg_MakeString(UC("bitwise-if"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-if"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_if_Stub));
+  SG_PROCEDURE_NAME(&nullangle_Stub) = Sg_MakeString(UC("angle"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("angle"), SG_LITERAL_STRING)), SG_OBJ(&nullangle_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_first_bit_set_Stub) = Sg_MakeString(UC("bitwise-first-bit-set"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-first-bit-set"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_first_bit_set_Stub));
+  SG_PROCEDURE_NAME(&nullclose_input_port_Stub) = Sg_MakeString(UC("close-input-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("close-input-port"), SG_LITERAL_STRING)), SG_OBJ(&nullclose_input_port_Stub));
+  SG_PROCEDURE_NAME(&nullassq_Stub) = Sg_MakeString(UC("assq"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("assq"), SG_LITERAL_STRING)), SG_OBJ(&nullassq_Stub));
+  SG_PROCEDURE_NAME(&null2b2e_Stub) = Sg_MakeString(UC("+."), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("+."), SG_LITERAL_STRING)), SG_OBJ(&null2b2e_Stub));
+  SG_PROCEDURE_NAME(&nullnative_transcoder_Stub) = Sg_MakeString(UC("native-transcoder"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("native-transcoder"), SG_LITERAL_STRING)), SG_OBJ(&nullnative_transcoder_Stub));
+  SG_PROCEDURE_NAME(&nullmake_eqv_hashtable_Stub) = Sg_MakeString(UC("make-eqv-hashtable"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-eqv-hashtable"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_eqv_hashtable_Stub));
+  SG_PROCEDURE_NAME(&nullmake_eq_hashtable_Stub) = Sg_MakeString(UC("make-eq-hashtable"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-eq-hashtable"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_eq_hashtable_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_copy_Stub) = Sg_MakeString(UC("bytevector-copy"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-copy"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_copy_Stub));
+  SG_PROCEDURE_NAME(&nullclose_output_port_Stub) = Sg_MakeString(UC("close-output-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("close-output-port"), SG_LITERAL_STRING)), SG_OBJ(&nullclose_output_port_Stub));
+  SG_PROCEDURE_NAME(&nullexact_integer_sqrt_Stub) = Sg_MakeString(UC("exact-integer-sqrt"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("exact-integer-sqrt"), SG_LITERAL_STRING)), SG_OBJ(&nullexact_integer_sqrt_Stub));
+  SG_PROCEDURE_NAME(&nullstring_3elist_Stub) = Sg_MakeString(UC("string->list"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string->list"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_3elist_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_xor_Stub) = Sg_MakeString(UC("bitwise-xor"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-xor"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_xor_Stub));
+  SG_PROCEDURE_NAME(&nullreal3f_Stub) = Sg_MakeString(UC("real?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("real?"), SG_LITERAL_STRING)), SG_OBJ(&nullreal3f_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s16_ref_Stub) = Sg_MakeString(UC("bytevector-s16-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s16-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s16_ref_Stub));
+  SG_PROCEDURE_NAME(&nullundefined_Stub) = Sg_MakeString(UC("undefined"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("undefined"), SG_LITERAL_STRING)), SG_OBJ(&nullundefined_Stub));
+  SG_PROCEDURE_NAME(&nullinteger_length_Stub) = Sg_MakeString(UC("integer-length"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("integer-length"), SG_LITERAL_STRING)), SG_OBJ(&nullinteger_length_Stub));
+  SG_PROCEDURE_NAME(&nullstring_length_Stub) = Sg_MakeString(UC("string-length"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string-length"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_length_Stub));
+  SG_PROCEDURE_NAME(&nullsymbol_3estring_Stub) = Sg_MakeString(UC("symbol->string"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("symbol->string"), SG_LITERAL_STRING)), SG_OBJ(&nullsymbol_3estring_Stub));
+  SG_PROCEDURE_NAME(&nullmake_vector_Stub) = Sg_MakeString(UC("make-vector"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-vector"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_vector_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_bit_field_Stub) = Sg_MakeString(UC("bitwise-bit-field"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-bit-field"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_bit_field_Stub));
+  SG_PROCEDURE_NAME(&nullcomplex3f_Stub) = Sg_MakeString(UC("complex?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("complex?"), SG_LITERAL_STRING)), SG_OBJ(&nullcomplex3f_Stub));
+  SG_PROCEDURE_NAME(&nullinexact3f_Stub) = Sg_MakeString(UC("inexact?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("inexact?"), SG_LITERAL_STRING)), SG_OBJ(&nullinexact3f_Stub));
+  SG_PROCEDURE_NAME(&nullport3f_Stub) = Sg_MakeString(UC("port?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("port?"), SG_LITERAL_STRING)), SG_OBJ(&nullport3f_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s16_native_ref_Stub) = Sg_MakeString(UC("bytevector-s16-native-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s16-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s16_native_ref_Stub));
+  SG_PROCEDURE_NAME(&nulltruncate_Stub) = Sg_MakeString(UC("truncate"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("truncate"), SG_LITERAL_STRING)), SG_OBJ(&nulltruncate_Stub));
+  SG_PROCEDURE_NAME(&nullmake_polar_Stub) = Sg_MakeString(UC("make-polar"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-polar"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_polar_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u32_native_ref_Stub) = Sg_MakeString(UC("bytevector-u32-native-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u32-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u32_native_ref_Stub));
+  SG_PROCEDURE_NAME(&nullnumber_3estring_Stub) = Sg_MakeString(UC("number->string"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("number->string"), SG_LITERAL_STRING)), SG_OBJ(&nullnumber_3estring_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s32_native_set21_Stub) = Sg_MakeString(UC("bytevector-s32-native-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s32-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s32_native_set21_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s8_ref_Stub) = Sg_MakeString(UC("bytevector-s8-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s8-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s8_ref_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s32_ref_Stub) = Sg_MakeString(UC("bytevector-s32-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s32-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s32_ref_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u64_native_set21_Stub) = Sg_MakeString(UC("bytevector-u64-native-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u64-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u64_native_set21_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u32_ref_Stub) = Sg_MakeString(UC("bytevector-u32-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u32-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u32_ref_Stub));
+  SG_PROCEDURE_NAME(&nullvector_set21_Stub) = Sg_MakeString(UC("vector-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullvector_set21_Stub));
+  SG_PROCEDURE_NAME(&nullmax_Stub) = Sg_MakeString(UC("max"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("max"), SG_LITERAL_STRING)), SG_OBJ(&nullmax_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u64_set21_Stub) = Sg_MakeString(UC("bytevector-u64-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u64-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u64_set21_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_ieee_double_native_ref_Stub) = Sg_MakeString(UC("bytevector-ieee-double-native-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-double-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_double_native_ref_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_fill21_Stub) = Sg_MakeString(UC("bytevector-fill!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-fill!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_fill21_Stub));
+  SG_PROCEDURE_NAME(&null3e_Stub) = Sg_MakeString(UC(">"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC(">"), SG_LITERAL_STRING)), SG_OBJ(&null3e_Stub));
+  SG_PROCEDURE_NAME(&nullutf8_3estring_Stub) = Sg_MakeString(UC("utf8->string"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("utf8->string"), SG_LITERAL_STRING)), SG_OBJ(&nullutf8_3estring_Stub));
+  SG_PROCEDURE_NAME(&null2f_Stub) = Sg_MakeString(UC("/"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("/"), SG_LITERAL_STRING)), SG_OBJ(&null2f_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_bit_set3f_Stub) = Sg_MakeString(UC("bitwise-bit-set?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-bit-set?"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_bit_set3f_Stub));
+  SG_PROCEDURE_NAME(&null2f2e_Stub) = Sg_MakeString(UC("/."), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("/."), SG_LITERAL_STRING)), SG_OBJ(&null2f2e_Stub));
+  SG_PROCEDURE_NAME(&nullunbound_Stub) = Sg_MakeString(UC("unbound"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("unbound"), SG_LITERAL_STRING)), SG_OBJ(&nullunbound_Stub));
+  SG_PROCEDURE_NAME(&nullinput_port3f_Stub) = Sg_MakeString(UC("input-port?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("input-port?"), SG_LITERAL_STRING)), SG_OBJ(&nullinput_port3f_Stub));
+  SG_PROCEDURE_NAME(&nullport_has_set_port_position213f_Stub) = Sg_MakeString(UC("port-has-set-port-position!?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("port-has-set-port-position!?"), SG_LITERAL_STRING)), SG_OBJ(&nullport_has_set_port_position213f_Stub));
+  SG_PROCEDURE_NAME(&nullmemq_Stub) = Sg_MakeString(UC("memq"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("memq"), SG_LITERAL_STRING)), SG_OBJ(&nullmemq_Stub));
+  SG_PROCEDURE_NAME(&nullvector_ref_Stub) = Sg_MakeString(UC("vector-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullvector_ref_Stub));
+  SG_PROCEDURE_NAME(&nullpair3f_Stub) = Sg_MakeString(UC("pair?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pair?"), SG_LITERAL_STRING)), SG_OBJ(&nullpair3f_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_ieee_single_native_set21_Stub) = Sg_MakeString(UC("bytevector-ieee-single-native-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-single-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_single_native_set21_Stub));
+  SG_PROCEDURE_NAME(&nullcall2fcc_Stub) = Sg_MakeString(UC("call/cc"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("call/cc"), SG_LITERAL_STRING)), SG_OBJ(&nullcall2fcc_Stub));
+  SG_PROCEDURE_NAME(&null3c_Stub) = Sg_MakeString(UC("<"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("<"), SG_LITERAL_STRING)), SG_OBJ(&null3c_Stub));
+  SG_PROCEDURE_NAME(&nullcaar_Stub) = Sg_MakeString(UC("caar"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("caar"), SG_LITERAL_STRING)), SG_OBJ(&nullcaar_Stub));
+  SG_PROCEDURE_NAME(&nullundefined3f_Stub) = Sg_MakeString(UC("undefined?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("undefined?"), SG_LITERAL_STRING)), SG_OBJ(&nullundefined3f_Stub));
+  SG_PROCEDURE_NAME(&nulllist_3estring_Stub) = Sg_MakeString(UC("list->string"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("list->string"), SG_LITERAL_STRING)), SG_OBJ(&nulllist_3estring_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_arithmetic_shift_Stub) = Sg_MakeString(UC("bitwise-arithmetic-shift"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-arithmetic-shift"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_arithmetic_shift_Stub));
+  SG_PROCEDURE_NAME(&null2a_Stub) = Sg_MakeString(UC("*"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("*"), SG_LITERAL_STRING)), SG_OBJ(&null2a_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s64_ref_Stub) = Sg_MakeString(UC("bytevector-s64-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s64-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s64_ref_Stub));
+  SG_PROCEDURE_NAME(&nullabs_Stub) = Sg_MakeString(UC("abs"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("abs"), SG_LITERAL_STRING)), SG_OBJ(&nullabs_Stub));
+  SG_PROCEDURE_NAME(&nullround_Stub) = Sg_MakeString(UC("round"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("round"), SG_LITERAL_STRING)), SG_OBJ(&nullround_Stub));
+  SG_PROCEDURE_NAME(&nullcos_Stub) = Sg_MakeString(UC("cos"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cos"), SG_LITERAL_STRING)), SG_OBJ(&nullcos_Stub));
+  SG_PROCEDURE_NAME(&nullatan_Stub) = Sg_MakeString(UC("atan"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("atan"), SG_LITERAL_STRING)), SG_OBJ(&nullatan_Stub));
+  SG_PROCEDURE_NAME(&nulllist_Stub) = Sg_MakeString(UC("list"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("list"), SG_LITERAL_STRING)), SG_OBJ(&nulllist_Stub));
+  SG_PROCEDURE_NAME(&nullport_has_port_position3f_Stub) = Sg_MakeString(UC("port-has-port-position?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("port-has-port-position?"), SG_LITERAL_STRING)), SG_OBJ(&nullport_has_port_position3f_Stub));
+  SG_PROCEDURE_NAME(&nullgensym_Stub) = Sg_MakeString(UC("gensym"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("gensym"), SG_LITERAL_STRING)), SG_OBJ(&nullgensym_Stub));
+  SG_PROCEDURE_NAME(&nullmake_bytevector_Stub) = Sg_MakeString(UC("make-bytevector"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-bytevector"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_bytevector_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_copy_bit_Stub) = Sg_MakeString(UC("bitwise-copy-bit"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-copy-bit"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_copy_bit_Stub));
+  SG_PROCEDURE_NAME(&nullasin_Stub) = Sg_MakeString(UC("asin"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("asin"), SG_LITERAL_STRING)), SG_OBJ(&nullasin_Stub));
+  SG_PROCEDURE_NAME(&nullappend21_Stub) = Sg_MakeString(UC("append!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("append!"), SG_LITERAL_STRING)), SG_OBJ(&nullappend21_Stub));
+  SG_PROCEDURE_NAME(&nullfinite3f_Stub) = Sg_MakeString(UC("finite?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("finite?"), SG_LITERAL_STRING)), SG_OBJ(&nullfinite3f_Stub));
+  SG_PROCEDURE_NAME(&nullopen_file_input_port_Stub) = Sg_MakeString(UC("open-file-input-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("open-file-input-port"), SG_LITERAL_STRING)), SG_OBJ(&nullopen_file_input_port_Stub));
+  SG_PROCEDURE_NAME(&nullhashtable_keys_Stub) = Sg_MakeString(UC("hashtable-keys"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-keys"), SG_LITERAL_STRING)), SG_OBJ(&nullhashtable_keys_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u16_set21_Stub) = Sg_MakeString(UC("bytevector-u16-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u16-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u16_set21_Stub));
+  SG_PROCEDURE_NAME(&nullutf16_3estring_Stub) = Sg_MakeString(UC("utf16->string"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("utf16->string"), SG_LITERAL_STRING)), SG_OBJ(&nullutf16_3estring_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_not_Stub) = Sg_MakeString(UC("bitwise-not"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-not"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_not_Stub));
+  SG_PROCEDURE_NAME(&nullvalues_Stub) = Sg_MakeString(UC("values"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("values"), SG_LITERAL_STRING)), SG_OBJ(&nullvalues_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_bit_count_Stub) = Sg_MakeString(UC("bitwise-bit-count"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-bit-count"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_bit_count_Stub));
 }

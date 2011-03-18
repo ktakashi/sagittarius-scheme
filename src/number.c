@@ -44,6 +44,7 @@
 #include "sagittarius/numconst.h"
 #include "sagittarius/arith.h"
 #include "sagittarius/bits.h"
+#include "sagittarius/values.h"
 
 struct numread_packet {
     const SgChar *buffer;       /* original buffer */
@@ -345,7 +346,7 @@ static SgObject read_uint(const SgChar **strp, int *lenp,
 
   if (!SG_FALSEP(initval)) {
     if (SG_INTP(initval)) {
-      if ((unsigned long)SG_INT_VALUE(initval) > limit) {
+      if ((uintptr_t)SG_INT_VALUE(initval) > limit) {
 	value_big = Sg_MakeBignumWithSize(4, SG_INT_VALUE(initval));
       } else {
 	value_int = SG_INT_VALUE(initval);
@@ -853,7 +854,7 @@ uint64_t Sg_GetIntegerU64Clamp(SgObject obj, int clamp, int *oor)
   uint64_t r = 0;
   if (clamp == SG_CLAMP_NONE && oor != NULL) *oor = FALSE;
   if (SG_INTP(obj)) {
-    long v = SG_INT_VALUE(obj);
+    intptr_t v = SG_INT_VALUE(obj);
     if (v < 0) {
       if (!(clamp & SG_CLAMP_LO)) goto err;
       return 0;
@@ -1030,7 +1031,7 @@ SgObject Sg_MakeFlonum(double d)
   return SG_OBJ(f);
 }
 
-SgObject Sg_MakeComplex(SgObject real, SgObject imag)
+static inline SgObject make_complex(SgObject real, SgObject imag)
 {
   ASSERT(!SG_COMPLEXP(real));
   ASSERT(!SG_COMPLEXP(imag));
@@ -1038,7 +1039,17 @@ SgObject Sg_MakeComplex(SgObject real, SgObject imag)
   SG_SET_HEADER(c, TC_COMPLEX);
   c->real = real;
   c->imag = imag;
-  return SG_OBJ(c);
+  return SG_OBJ(c);  
+}
+
+SgObject Sg_MakeComplex(SgObject real, SgObject imag)
+{
+  if (Sg_ZeroP(imag)) return real;
+  else if (SG_FLONUMP(real) || SG_FLONUMP(imag)) {
+    return make_complex(Sg_Inexact(real), Sg_Inexact(imag));
+  }
+  else
+    return make_complex(real, imag);
 }
 
 SgObject Sg_MakeComplexPolar(SgObject magnitude, SgObject angle)
@@ -1377,6 +1388,37 @@ SgObject Sg_Inverse(SgObject obj)
   return SG_UNDEF;		/* dummy */
 }
 
+static inline int integer_length_rec(SgObject n)
+{
+  int n2;
+  int n3;
+  if (SG_INTP(n)) {
+    switch (SG_INT_VALUE(n)) {
+    case 0: case -1:
+      return 0;
+    case 1: case -2:
+      return 1;
+    case 2: case 3: case -3: case -4:
+      return 2;
+    case 4: case 5: case 6: case 7:
+    case -5: case -6: case -7: case -8:
+      return 3;
+    }
+    /* fall through */
+  }
+  n2 = integer_length_rec(Sg_Ash(n, -4));
+  n3 = Sg_Add(SG_MAKE_INT(4),
+	      SG_MAKE_INT(n2));
+  ASSERT(SG_INTP(n3));
+  return SG_INT_VALUE(n3);
+}
+
+int Sg_IntegerLength(SgObject n)
+{
+  if (!Sg_IntegerP(n)) Sg_Error(UC("integer required, but got %S"), n);
+  return integer_length_rec(n);
+}
+
 SgObject Sg_Ash(SgObject x, int count)
 {
   if (SG_INTP(x)) {
@@ -1498,7 +1540,7 @@ int Sg_BitSize(SgObject x)
   if (!SG_EXACT_INTP(x)) Sg_Error(UC("exact integer required, but got %S"), x);
   if (SG_INTP(x)) {
     intptr_t n = SG_INT_VALUE(x), n2;
-    if (n == 0) return SG_MAKE_INT(0);
+    if (n == 0) return 0;
     n2 = (n < 0) ? ~n : n;
     return WORD_BITS - nlz(n2);
   } else {
@@ -1512,7 +1554,7 @@ int Sg_FirstBitSet(SgObject x)
   if (SG_INTP(x)) {
     intptr_t n = SG_INT_VALUE(x);
     int bit;
-    if (n == 0) return SG_MAKE_INT(-1);
+    if (n == 0) return -1;
     bit = 0;
     bit += ntz(n);
     return bit;
@@ -1525,7 +1567,7 @@ SgObject Sg_Add(SgObject x, SgObject y)
 {
   if (SG_INTP(x)) {
     if (SG_INTP(y)) {
-      long r = SG_INT_VALUE(x) + SG_INT_VALUE(y);
+      intptr_t r = SG_INT_VALUE(x) + SG_INT_VALUE(y);
       return Sg_MakeInteger(r);
     }
     if (SG_BIGNUMP(y)) {
@@ -1625,7 +1667,7 @@ SgObject Sg_Sub(SgObject x, SgObject y)
 {
   if (SG_INTP(x)) {
     if (SG_INTP(y)) {
-      long r = SG_INT_VALUE(x) - SG_INT_VALUE(y);
+      intptr_t r = SG_INT_VALUE(x) - SG_INT_VALUE(y);
       return Sg_MakeInteger(r);
     }
     if (SG_BIGNUMP(y)) {
@@ -1724,9 +1766,9 @@ SgObject Sg_Mul(SgObject x, SgObject y)
 {
   if (SG_INTP(x)) {
     if (SG_INTP(y)) {
-      long v0 = SG_INT_VALUE(x);
-      long v1 = SG_INT_VALUE(y);
-      long k = v0 * v1;
+      intptr_t v0 = SG_INT_VALUE(x);
+      intptr_t v1 = SG_INT_VALUE(y);
+      intptr_t k = v0 * v1;
       if ((v1 != 0 && k / v1 != v0) || !(k >= SG_INT_MIN && k <= SG_INT_MAX)) {
 	SgObject big = Sg_MakeBignumFromSI(v0);
 	return Sg_BignumMulSI(SG_BIGNUM(big), v1);
@@ -2028,7 +2070,7 @@ SgObject Sg_Quotient(SgObject x, SgObject y, SgObject *rem)
   if (SG_BIGNUMP(x)) {
   bignum_again:
     if (SG_INTP(y)) {
-      long r;
+      intptr_t r;
       SgObject q = Sg_BignumDivSI(SG_BIGNUM(x), SG_INT_VALUE(y), &r);
       if (rem) *rem = SG_MAKE_INT(r);
       return q;
@@ -2111,7 +2153,7 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
   if (SG_INTP(x)) {
   fixnum_again:
     if (SG_INTP(y)) {
-      long r;
+      intptr_t r;
       if (SG_INT_VALUE(y) == 0) goto div_by_zero;
       r = SG_INT_VALUE(x) % SG_INT_VALUE(y);
       if (!remp && r) {
@@ -2140,7 +2182,7 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
   if (SG_BIGNUMP(x)) {
   bignum_again:
     if (SG_INTP(y)) {
-      long iy = SG_INT_VALUE(y);
+      intptr_t iy = SG_INT_VALUE(y);
       long rem;
       Sg_BignumDivSI(SG_BIGNUM(x), iy, &rem);
       if (!remp
@@ -2287,6 +2329,118 @@ SgObject Sg_Exp(SgObject obj)
   return SG_UNDEF;		/* dummy */
 }
 
+SgObject Sg_Sin(SgObject obj)
+{
+  if (SG_INTP(obj)) {
+    if (obj == SG_MAKE_INT(0)) return obj;
+    return Sg_MakeFlonum(sin((double)SG_INT_VALUE(obj)));
+  }
+  if (SG_COMPLEXP(obj)) {
+    double real = Sg_GetDouble(SG_COMPLEX(obj)->real);
+    double imag = Sg_GetDouble(SG_COMPLEX(obj)->imag);
+    double e = exp(imag);
+    double f = 1.0 / e;
+    return Sg_MakeComplex(Sg_MakeFlonum(0.5 * sin(real) * (e + f)),
+			  Sg_MakeFlonum(0.5 * cos(real) * (e - f)));
+  }
+  if (SG_REALP(obj)) return Sg_MakeFlonum(Sg_GetDouble(obj));
+  Sg_Error(UC("number required, but got %S"), obj);
+  return SG_UNDEF;		/* dummy */
+}
+
+SgObject Sg_Cos(SgObject obj)
+{
+  if (SG_INTP(obj)) {
+    if (obj == SG_MAKE_INT(0)) return SG_MAKE_INT(1);
+    return Sg_MakeFlonum(cos((double)SG_INT_VALUE(obj)));
+  }
+  if (SG_COMPLEXP(obj)) {
+    double real = Sg_GetDouble(SG_COMPLEX(obj)->real);
+    double imag = Sg_GetDouble(SG_COMPLEX(obj)->imag);
+    double e = exp(imag);
+    double f = 1.0 / e;
+    return Sg_MakeComplex(Sg_MakeFlonum(0.5 * cos(real) * (e + f)),
+			  Sg_MakeFlonum(0.5 * sin(real) * (e - f)));
+  }
+  if (SG_REALP(obj)) return Sg_MakeFlonum(cos(Sg_GetDouble(obj)));
+  Sg_Error(UC("number required, but got %S"), obj);
+  return SG_UNDEF;		/* dummy */
+}
+
+SgObject Sg_Tan(SgObject obj)
+{
+  if (SG_INTP(obj)) {
+    if (obj == SG_MAKE_INT(0)) return obj;
+    return Sg_MakeFlonum(tan((double)SG_INT_VALUE(obj)));
+  }
+  if (SG_COMPLEXP(obj)) {
+    double real = Sg_GetDouble(SG_COMPLEX(obj)->real);
+    double imag = Sg_GetDouble(SG_COMPLEX(obj)->imag);
+    double e = exp(imag);
+    double f = 1.0 / e;
+    double d = cos(2.0 * real) + 0.5 * (e + f);
+    return Sg_MakeComplex(Sg_MakeFlonum(sin(2.0 * real) / d),
+			  Sg_MakeFlonum(0.5 * (e - f) / d));
+  }
+  if (SG_REALP(obj)) return Sg_MakeFlonum(tan(Sg_GetDouble(obj)));
+  Sg_Error(UC("number required, but got %S"), obj);
+}
+
+SgObject Sg_Asin(SgObject obj)
+{
+  SgComplex *cn;
+  SgObject ans;
+  if (SG_REALP(obj) || (SG_COMPLEXP(obj) && Sg_ZeroP(SG_COMPLEX(obj)->imag))) {
+    double x = Sg_GetDouble(obj);
+    if (x >= -1.0 && x <= 1.0) return Sg_MakeFlonum(asin(Sg_GetDouble(obj)));
+    if (x < 0.0) return Sg_Negate(Sg_Asin(Sg_MakeFlonum(-x)));
+    cn = Sg_MakeComplex(Sg_MakeFlonum(0.0), Sg_MakeFlonum(x));
+  } else {
+    ASSERT(SG_COMPLEXP(obj));
+    if (Sg_PositiveP(SG_COMPLEX(obj)->imag)) return Sg_Negate(Sg_Asin(Sg_Negate(obj)));
+    cn = Sg_MakeComplex(Sg_Negate(SG_COMPLEX(obj)->imag), SG_COMPLEX(obj)->real);
+  }
+  ans = Sg_Log(Sg_Add(Sg_Sqrt(Sg_Sub(SG_MAKE_INT(1), Sg_Mul(obj, obj))),
+		      cn));
+  if (SG_COMPLEXP(ans)) {
+    return Sg_MakeComplex(Sg_MakeFlonum(Sg_GetDouble(SG_COMPLEX(ans)->imag)),
+			  Sg_MakeFlonum(-Sg_GetDouble(SG_COMPLEX(ans)->real)));
+  }
+  return Sg_MakeComplex(Sg_MakeFlonum(0.0), Sg_MakeFlonum(-Sg_GetDouble(ans)));
+	       
+}
+
+SgObject Sg_Acos(SgObject obj)
+{
+  if (SG_REALP(obj) || (SG_COMPLEXP(obj) && Sg_ZeroP(SG_COMPLEX(obj)->imag))) {
+    double x = Sg_GetDouble(obj);
+    if (x >= -1.0 && x <= 1.0) return Sg_MakeFlonum(acos(Sg_GetDouble(obj)));
+  }
+  return Sg_Sub(Sg_MakeFlonum(M_PI / 2.0), Sg_Asin(obj));
+}
+
+SgObject Sg_Atan(SgObject obj)
+{
+  if (SG_INTP(obj)) {
+    if (obj == SG_MAKE_INT(0)) return obj;
+    return Sg_MakeFlonum(atan((double)SG_INT_VALUE(obj)));
+  }
+  if (SG_COMPLEXP(obj)) {
+    SgComplex *cn = Sg_MakeComplex(Sg_Negate(SG_COMPLEX(obj)->imag),
+				   SG_COMPLEX(obj)->real);
+    SgObject ans = Sg_Log(Sg_Div(Sg_Add(SG_MAKE_INT(1), cn),
+				 Sg_Sub(SG_MAKE_INT(1), cn)));
+    if (SG_COMPLEXP(ans)) {
+      return Sg_MakeComplex(Sg_MakeFlonum(0.5 * Sg_GetDouble(SG_COMPLEX(ans)->imag)),
+			    Sg_MakeFlonum(-0.5 * Sg_GetDouble(SG_COMPLEX(ans)->real)));
+    }
+    return Sg_MakeComplex(Sg_MakeFlonum(0.0),
+			  Sg_MakeFlonum(-0.5 * Sg_GetDouble(ans)));
+  }
+  if (SG_REALP(obj)) return Sg_MakeFlonum(atan(Sg_GetDouble(obj)));
+  Sg_Error(UC("number required, but got %S"), obj);
+  return SG_UNDEF;
+}
 
 int Sg_NumEq(SgObject x, SgObject y)
 {
@@ -2307,7 +2461,7 @@ int Sg_NumCmp(SgObject x, SgObject y)
   SgObject badnum;
   if (SG_INTP(x)) {
     if (SG_INTP(y)) {
-      long r = SG_INT_VALUE(x) - SG_INT_VALUE(y);
+      intptr_t r = SG_INT_VALUE(x) - SG_INT_VALUE(y);
       if (r < 0) return -1;
       if (r > 0) return 1;
       return 0;
@@ -2427,7 +2581,7 @@ int Sg_NumLe(SgObject x, SgObject y)
 SgObject Sg_Abs(SgObject obj)
 {
   if (SG_INTP(obj)) {
-    long v = SG_INT_VALUE(obj);
+    intptr_t v = SG_INT_VALUE(obj);
     if (v < 0) obj = SG_MAKE_INT(-v);
   } else if (SG_BIGNUMP(obj)) {
     if (SG_BIGNUM_GET_SIGN(obj) < 0) {
@@ -2456,7 +2610,7 @@ SgObject Sg_Abs(SgObject obj)
 SgObject Sg_Sqrt(SgObject obj)
 {
   if (SG_INTP(obj)) {
-    long value = SG_INT_VALUE(obj);
+    intptr_t value = SG_INT_VALUE(obj);
     if (value == 0) return SG_MAKE_INT(0);
     if (value > 0) {
       double root = sqrt((double)value);
@@ -2514,13 +2668,64 @@ SgObject Sg_Sqrt(SgObject obj)
     s = sqrt(m / (x * x + y * y));
     Sg_MakeComplex(Sg_MakeFlonum(x * s), Sg_MakeFlonum(y * s));
   }
-  Sg_Error(UC("number requried but got %S"), obj);
+  Sg_Error(UC("number requried, but got %S"), obj);
   return SG_UNDEF;		/* dummy */
+}
+
+static inline SgObject exact_integer_sqrt(SgObject k)
+{
+  SgObject ik = Sg_Sqrt(k);
+  if (Sg_FiniteP(ik)) {
+    return Sg_Exact(Sg_Round(ik, SG_ROUND_FLOOR));
+  } else {
+    int len = Sg_IntegerLength(k);
+    SgObject quo = Sg_Quotient(SG_MAKE_INT(k), SG_MAKE_INT(2), NULL);
+    ASSERT(SG_INTP(quo));
+    return Sg_Ash(SG_MAKE_INT(1), SG_INT_VALUE(quo));
+  }
+}
+
+SgObject Sg_ExactIntegerSqrt(SgObject k)
+{
+  double d;
+  SgObject ans;
+
+  if (!SG_EXACT_INTP(k)) Sg_Error(UC("exact integer required, but got %S"), k);
+
+  d = Sg_GetDouble(k);
+  ans = Sg_MakeValues(2);
+  if (d < iexpt_2n53) {
+    double t = floor(sqrt(d));
+    SgObject s = Sg_Exact(Sg_MakeFlonum(t));
+    SG_VALUES_ELEMENT(ans, 0) = s;
+    SG_VALUES_ELEMENT(ans, 1) = Sg_Sub(k, Sg_Mul(s, s));
+    return ans;
+  } else {
+    SgObject s = exact_integer_sqrt(k);
+    SgObject s2 = Sg_Mul(s, s);
+    while (TRUE) {
+      if (Sg_NumCmp(k, s2) < 0) {
+	s = Sg_Quotient(Sg_Add(s2, k), Sg_Mul(SG_MAKE_INT(2), s), NULL);
+	continue;
+      } else {
+	SgObject s2p = Sg_Add(Sg_Add(s2, Sg_Mul(SG_MAKE_INT(2), s)),
+			      SG_MAKE_INT(1));
+	if (Sg_NumCmp(k, s2p) < 0) {
+	  SG_VALUES_ELEMENT(ans, 0) = s;
+	  SG_VALUES_ELEMENT(ans, 1) = Sg_Sub(k, s2);
+	  return ans;
+	} else {
+	  s = Sg_Quotient(Sg_Add(s2, k), Sg_Mul(SG_MAKE_INT(2), s), NULL);
+	  continue;
+	}
+      }
+    }
+  }
 }
 
 int Sg_Sign(SgObject obj)
 {
-  long r = 0;
+  intptr_t r = 0;
   if (SG_INTP(obj)) {
     r = SG_INT_VALUE(obj);
     if (r > 0) r = 1;
@@ -2540,28 +2745,85 @@ int Sg_Sign(SgObject obj)
   return r;
 }
 
+static inline unsigned long gcd_fixfix(unsigned long x, unsigned long y)
+{
+  while (y > 0) {
+    unsigned long r = x % y;
+    x = y;
+    y = r;
+  }
+  return x;
+}
+
+static inline double gcd_floflo(double x, double y)
+{
+  if (x < 0) x = -x;
+  if (y < 0) y = -y;
+  if (x < y) { double t = x; x = y; y = t; }
+
+  while (y > 0.0) {
+    double r = fmod(x, y);
+    x = y;
+    y = r;
+  }
+  return x;
+}
+
+static unsigned long gcd_bigfix(SgBignum *x, unsigned long y)
+{
+  long rem;
+  Sg_BignumDivSI(x, (signed long)y, &rem);
+  if (rem < 0) rem = -rem;
+  return gcd_fixfix(y, (unsigned long)rem);
+}
+
 SgObject Sg_Gcd(SgObject x, SgObject y)
 {
-  /*
   int ox = FALSE, oy = FALSE;
   long ix, iy;
   unsigned long ux, uy, ur;
-  */
   if (!Sg_IntegerP(x)) {
     Sg_Error(UC("integer required, but got %S"), x);
   }
   if (!Sg_IntegerP(y)) {
     Sg_Error(UC("integer required, but got %S"), y);
   }
-  /* 
+
   if (SG_FLONUMP(x) || SG_FLONUMP(y)) {
     return Sg_MakeFlonum(gcd_floflo(Sg_GetDouble(x), Sg_GetDouble(y)));
   }
-  */
+
   if (SG_MAKE_INT(0) == x) return y;
   if (SG_MAKE_INT(0) == y) return x;
   
-  /* TODO optimize gcd like Gauche */
+  ix = Sg_GetIntegerClamp(x, SG_CLAMP_NONE, &ox);
+  iy = Sg_GetIntegerClamp(y, SG_CLAMP_NONE, &oy);
+
+  if (!ox && !oy) {
+    ux = (ix < 0) ? - ix : ix;
+    uy = (iy < 0) ? - iy : iy;
+    if (ux >= uy) {
+      ur = gcd_fixfix(ux, uy);
+    } else {
+      ur = gcd_fixfix(uy, ux);
+    }
+    return Sg_MakeIntegerU(ur);
+  }
+
+  if (!oy && iy != LONG_MIN) {
+    ASSERT(SG_BIGNUMP(x));
+    uy = (iy < 0) ? -iy : iy;
+    ur = gcd_bigfix(SG_BIGNUM(x), uy);
+    return Sg_MakeIntegerU(ur);
+  }
+
+  if (!ox && ix != LONG_MIN) {
+    ASSERT(SG_BIGNUMP(y));
+    ux = (ix < 0) ? -ix : ix;
+    ur = gcd_bigfix(SG_BIGNUM(y), ux);
+    return Sg_MakeIntegerU(ur);
+  }
+
   x = Sg_Abs(x);
   y = Sg_Abs(y);
   if (Sg_NumCmp(x, y) < 0) { SgObject t = x; x = y; y = t; }
@@ -2601,12 +2863,28 @@ SgObject Sg_Magnitude(SgObject z)
   return SG_UNDEF;		/* dummy */
 }
 
+SgObject Sg_Angle(SgObject obj)
+{
+  if (SG_COMPLEXP(obj)) {
+    double real = Sg_GetDouble(SG_COMPLEX(obj)->real);
+    double imag = Sg_GetDouble(SG_COMPLEX(obj)->imag);
+    return Sg_MakeFlonum(atan2(imag, real));
+  }
+  if (SG_REALP(obj)) {
+    if (Sg_NegativeP(obj)) return Sg_MakeFlonum(atan2(0.0, -1.0)); /* pi */
+    if (SG_FLONUMP(obj)) return Sg_MakeFlonum(0.0);
+    return SG_MAKE_INT(0);
+  }
+  Sg_Error(UC("number required, bot got %S"), obj);
+  return SG_UNDEF;		/* dummy */
+}
+
 SgObject Sg_Log(SgObject obj)
 {
   double real;
   double imag;
   if (SG_INTP(obj)) {
-    long value = SG_INT_VALUE(obj);
+    intptr_t value = SG_INT_VALUE(obj);
     if (value > 0) {
       if (value == 1) return SG_MAKE_INT(0);
       return Sg_MakeFlonum(log((double)value));
@@ -2669,6 +2947,67 @@ void Sg_MinMax(SgObject arg0, SgObject args, SgObject *min, SgObject *max)
     args = SG_CDR(args);
   }
 }
+
+SgObject Sg_IntegerDiv(SgObject x, SgObject y)
+{
+  if (!SG_REALP(x) || !SG_REALP(y)) Sg_Error(UC("real number required, but got %S and %S"), x, y);
+  if (!Sg_FiniteP(x) || Sg_NanP(x)) Sg_Error(UC("dividend must be neither infinite nor NaN: %S"), x);
+  if (Sg_ZeroP(y)) Sg_Error(UC("undefined for 0"));
+  
+  if (SG_INTP(x)) {
+    if (SG_INTP(y)) {
+      intptr_t xx = SG_INT_VALUE(x);
+      intptr_t yy = SG_INT_VALUE(y);
+      intptr_t div;
+      if (x == 0) {
+	div = 0;
+      } else if (xx > 0) {
+	div = xx / yy;
+      } else if (yy > 0) {
+	div = (xx - yy + 1) / yy;
+      } else {
+	div = (xx + yy + 1) / yy;
+      }
+      return Sg_MakeInteger(div);
+    }
+  }
+  if (SG_FLONUMP(x) || SG_FLONUMP(y)) {
+    double xx = Sg_GetDouble(x);
+    double yy = Sg_GetDouble(y);
+    return Sg_MakeFlonum((yy > 0.0) ? floor(xx / yy) : - floor(xx / -yy));
+  }
+  if (Sg_PositiveP(x)) return Sg_Round(Sg_Div(x, y), SG_ROUND_FLOOR);
+  return Sg_Negate(Sg_Round(Sg_Div(x, Sg_Negate(y)), SG_ROUND_FLOOR));
+}
+
+SgObject Sg_IntegerDiv0(SgObject x, SgObject y)
+{
+  if (!SG_REALP(x) || !SG_REALP(y)) Sg_Error(UC("real number required, but got %S and %S"), x, y);
+  if (!Sg_FiniteP(x) || Sg_NanP(x)) Sg_Error(UC("dividend must be neither infinite nor NaN: %S"), x);
+  if (Sg_ZeroP(y)) Sg_Error(UC("undefined for 0"));
+
+  SgObject div = Sg_IntegerDiv(x, y);
+  SgObject mod = Sg_Sub(x, Sg_Mul(div, y));
+  if (Sg_NumCmp(mod, Sg_Magnitude(Sg_Div(y, SG_MAKE_INT(2)))) < 0) return div;
+  if (Sg_PositiveP(y)) return Sg_Add(div, SG_MAKE_INT(1));
+  return Sg_Sub(div, SG_MAKE_INT(1));
+  
+}
+
+SgObject Sg_IntegerMod(SgObject x, SgObject y)
+{
+  SgObject d = Sg_IntegerDiv(x, y);
+  SgObject m = Sg_Mul(d, y);
+  return Sg_Sub(x, m);
+}
+
+SgObject Sg_IntegerMod0(SgObject x, SgObject y)
+{
+  SgObject d = Sg_IntegerDiv0(x, y);
+  SgObject m = Sg_Mul(d, y);
+  return Sg_Sub(x, m);
+}
+
 
 static inline double roundeven(double v)
 {
@@ -2754,7 +3093,7 @@ SgObject Sg_Round(SgObject num, int mode)
 static inline int numcmp3(SgObject x, SgObject d, SgObject y)
 {
   if (SG_INTP(x) && SG_INTP(d) && SG_INTP(y)) {
-    long xd = SG_INT_VALUE(x) + SG_INT_VALUE(d);
+    intptr_t xd = SG_INT_VALUE(x) + SG_INT_VALUE(d);
     if (xd < SG_INT_VALUE(y)) return -1;
     if (xd > SG_INT_VALUE(y)) return 1;
     else return 0;
@@ -2919,13 +3258,13 @@ SgObject Sg_NumberToString(SgObject obj, int radix, int use_upper)
 
   if (SG_INTP(obj)) {
     char *pbuf = buf;
-    long value = SG_INT_VALUE(obj);
+    intptr_t value = SG_INT_VALUE(obj);
     if (value < 0) {
       *pbuf++ = '-';
       value = -value;
     }
     if (radix == 10) {
-      snprintf(pbuf, FLT_BUF - 1, "%ld", value);
+      snprintf(pbuf, FLT_BUF - 1, "%ld" , value);
     } else if (radix == 16) {
       snprintf(pbuf, FLT_BUF - 1, (use_upper ? "%lX" : "%lx"), value);
     } else if (radix == 8) {

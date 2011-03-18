@@ -9,13 +9,17 @@
 	    zero? positive? negative? odd? even?
 	    finite? infinite? nan?
 	    max min abs div-and-mod div mod
-	    div0-and-mod0 div0 mod0 gcc lcm
+	    div0-and-mod0 div0 mod0 %gcd
 	    numerator denominator floor ceiling
 	    truncate round rationalize exp log
 	    sin cos tan asin acos atan sqrt
 	    exact-integer-sqrt expt
 	    make-rectangular make-polar
 	    real-part imag-part magnitude angle
+	    ;; for comaptibility
+	    quotient remainder modulo
+	    ;; misc
+	    integer-length
 
 	    bitwise-not
 	    bitwise-and
@@ -62,7 +66,7 @@
 
 	    ;; string
 	    string-length number->string string-append
-	    string->symbol
+	    string->symbol string->list list->string
 
 	    ;; vector
 	    vector? vector vector-set! vector-ref
@@ -227,15 +231,112 @@
 
   (define-c-proc round (x::number) ::Object
     (result (Sg_Round x SG_ROUND_ROUND)))
+
+  (define-c-proc div (x::number y::number) ::Object
+    (result (Sg_IntegerDiv x y)))
+
+  (define-c-proc mod (x::number y::number) ::Object
+    (result (Sg_IntegerMod x y)))
+
+  (define-c-proc div0 (x::number y::number) ::Object
+    (result (Sg_IntegerDiv0 x y)))
+
+  (define-c-proc mod0 (x::number y::number) ::Object
+    (result (Sg_IntegerMod0 x y)))
+
+  ;; takes 2. r6rs implementation is in scmlib.scm
+  (define-c-proc %gcd (x::number y::number) ::Object
+    (result (Sg_Gcd x y)))
+
+  (define-c-proc exp (x::number) ::Object
+    (result (Sg_Exp x)))
+
+  (define-c-proc expt (x::number y::number) ::Object
+    (result (Sg_Expt x y)))
+
+  (define-c-proc log (x::number :optional (base::number SG_UNBOUND)) ::Object
+    (if (SG_UNBOUNDP base)
+	(result (Sg_Log x))
+	(result (Sg_Div (Sg_Log x) (Sg_Log base)))))
+
+  (define-c-proc make-rectangular (a::number b::number) ::Object
+    (unless (SG_REALP a)
+      (Sg_Error "real number required but got %S" a))
+    (unless (SG_REALP b)
+      (Sg_Error "real number required but got %S" b))
+    (result (Sg_MakeComplex a b)))
+
+  (define-c-proc make-polar (r::number t::number) ::Object
+    (unless (SG_REALP r)
+      (Sg_Error "real number required but got %S" r))
+    (unless (SG_REALP t)
+      (Sg_Error "real number required but got %S" t))
+    (result (Sg_MakeComplexPolar r t)))
+
+  (define-c-proc real-part (r::number) ::Object
+    (cond ((SG_COMPLEXP r)
+	   (result (-> (SG_COMPLEX r) real)))
+	  ((SG_REALP r)
+	   (result (SG_MAKE_INT 0)))
+	  (else
+	   ;; never happen
+	   (Sg_Error "number required, but got %S" r))))
+
+  (define-c-proc imag-part (r::number) ::Object
+    (cond ((SG_COMPLEXP r)
+	   (result (-> (SG_COMPLEX r) imag)))
+	  ((SG_REALP r)
+	   (result (SG_MAKE_INT 0)))
+	  (else
+	   (Sg_Error "number required, but got %S" r))))
+
+  (define-c-proc magnitude (n::number) ::Object
+    (result (Sg_Magnitude n)))
+
+  (define-c-proc angle (n::number) ::Object
+    (result (Sg_Angle n)))
+
+  (define-c-proc sin (n::number) ::Object
+    (result (Sg_Sin n)))
+
+  (define-c-proc cos (n::number) ::Object
+    (result (Sg_Cos n)))
+
+  (define-c-proc tan (n::number) ::Object
+    (result (Sg_Tan n)))
+
+  (define-c-proc asin (n::number) ::Object
+    (result (Sg_Asin n)))
+
+  (define-c-proc acos (n::number) ::Object
+    (result (Sg_Acos n)))
+
+  (define-c-proc atan (n::number) ::Object
+    (result (Sg_Atan n)))
+
+  (define-c-proc sqrt (n::number) ::Object
+    (result (Sg_Sqrt n)));
+
+  (define-c-proc exact-integer-sqrt (n::number) ::Object
+    (when (or (Sg_NegativeP n)
+	      (not (SG_EXACT_INTP n)))
+      (Sg_Error "non-negative exact integer required, but got %S" n))
+    (result (Sg_ExactIntegerSqrt n)))
 #|
-  div-and-mod div mod
-  div0-and-mod0 div0 mod0 gcc lcm
-  rationalize exp log
-  sin cos tan asin acos atan sqrt
-  exact-integer-sqrt expt
-  make-rectangular make-polar
-  real-part imag-part magnitude angle
+  rationalize
 |#
+  (define-c-proc quotient (n1::number n2::number) ::Object
+    (result (Sg_Quotient n1 n2 NULL)))
+
+  (define-c-proc remainder (n1::number n2::number) ::Object
+    (result (Sg_Modulo n1 n2 TRUE)))
+
+  (define-c-proc modulo (n1::number n2::number) ::Object
+    (result (Sg_Modulo n1 n2 FALSE)))
+
+  (define-c-proc integer-length (n::number) ::fixnum
+    (result (Sg_IntegerLength n)))
+
   ;; arithmetic bitwise
   (define-c-proc bitwise-not (ei::number) ::Object
     (when (Sg_Exact ei)
@@ -680,7 +781,13 @@
     (result (Sg_Intern z)))
 
   (define-c-proc symbol->string (z::Symbol) ::Object
-    (result z->name))
+    (result (-> z name)))
+
+  (define-c-proc string->list (s::String) ::Object
+    (result (Sg_StringToList s)))
+
+  (define-c-proc list->string (o) ::Object
+    (result (Sg_ListToString o)))
 
   ;; vector
   (define-c-proc vector (:rest rest) (inline VECTOR) ::Object
@@ -902,7 +1009,7 @@ string->utf32 utf32->string
 	    (else
 	     (Sg_Error "unsupported endianness %S" endian)))))
   ;; s32
-  (define-c-proc bytevector-s32-native-ref (bv::ByteVector index::fixnum) ::fixnum
+  (define-c-proc bytevector-s32-native-ref (bv::ByteVector index::fixnum) ::Object
     (bv-check-index bv index 3)
     (bv-check-align index 4)
     (result (Sg_MakeIntegerFromS32 (Sg_ByteVectorS32NativeRef bv index))))
@@ -920,7 +1027,7 @@ string->utf32 utf32->string
 	     (Sg_Error "exact integer required, but got %S" v)))
       (Sg_ByteVectorS32NativeSet bv index value)))
 
-  (define-c-proc bytevector-s32-ref (bv::ByteVector index::fixnum endian::Symbol) ::fixnum
+  (define-c-proc bytevector-s32-ref (bv::ByteVector index::fixnum endian::Symbol) ::Object
     (bv-check-index bv index 3)
     (cond ((SG_EQ endian 'big)
 	   (result (Sg_MakeIntegerFromS32 (Sg_ByteVectorS32BigRef bv index))))
@@ -992,7 +1099,7 @@ string->utf32 utf32->string
 	    (else
 	     (Sg_Error "unsupported endianness %S" endian)))))
   ;; s64
-  (define-c-proc bytevector-s64-native-ref (bv::ByteVector index::fixnum) ::fixnum
+  (define-c-proc bytevector-s64-native-ref (bv::ByteVector index::fixnum) ::Object
     (bv-check-index bv index 7)
     (bv-check-align index 8)
     (result (Sg_MakeIntegerFromS64 (Sg_ByteVectorS64NativeRef bv index))))
@@ -1010,7 +1117,7 @@ string->utf32 utf32->string
 	     (Sg_Error "exact integer required, but got %S" v)))
       (Sg_ByteVectorS64NativeSet bv index value)))
 
-  (define-c-proc bytevector-s64-ref (bv::ByteVector index::fixnum endian::Symbol) ::fixnum
+  (define-c-proc bytevector-s64-ref (bv::ByteVector index::fixnum endian::Symbol) ::Object
     (bv-check-index bv index 7)
     (cond ((SG_EQ endian 'big)
 	   (result (Sg_MakeIntegerFromS64 (Sg_ByteVectorS64BigRef bv index))))

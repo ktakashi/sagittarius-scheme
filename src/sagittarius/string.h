@@ -69,6 +69,7 @@ SG_EXTERN SgObject Sg_MakeStringC(const char *value);
 SG_EXTERN SgObject Sg_MakeString(const SgChar *value, SgStringType flag);
 SG_EXTERN SgObject Sg_ReserveString(size_t size);
 
+SG_EXTERN SgObject Sg_StringToList(SgString *s);
 SG_EXTERN SgObject Sg_ListToString(SgObject obj);
 
 /* compare */

@@ -1190,7 +1190,8 @@ static void bn_sqrt(SgBignum *bn)
 
   while (TRUE) {
     tmp = Sg_Quotient(bn, s, NULL);
-    tmp = Sg_BignumAdd(workpad, s);
+    /* tmp = Sg_BignumAdd(workpad, s); */
+    tmp = bignum_add(workpad, s);
     bignum_rshift(workpad, tmp, 1);
     Sg_NormalizeBignum(workpad);
     if (Sg_BignumCmp(workpad, s) >= 0) {

@@ -172,6 +172,64 @@
 
  (assert-equal? 1.0 (truncate 1.9))
 
+ (assert-equal? 15 (gcd 15 30 45))
+ (assert-equal? 40 (lcm 4 5 8))
+
+ (assert-equal? 12 (div 123 10))
+ (assert-equal? 3 (mod 123 10))
+
+ (assert-equal? -12 (div 123 -10))
+ (assert-equal? 3 (mod 123 -10))
+
+ (assert-equal? -13 (div -123 10))
+ (assert-equal? 7 (mod -123 10))
+
+ (assert-equal? 13 (div -123 -10))
+ (assert-equal? 7 (mod -123 -10))
+
+ (assert-equal? 15 (div 123/7 10/9))
+ (assert-equal? 19/21 (mod 123/7 10/9))
+ ;; 123/7 = 10/9 * 15 + 19/21
+
+ (assert-equal? 3.0 (div 14.625 3.75))
+ (assert-equal? 3.375 (mod 14.625 3.75))
+ ;; 14.625 = 3.75 * 3.0 + 3.375
+
+ (assert-equal? 12 (div0 123 10))
+ (assert-equal? 3(mod0 123 10))
+
+ (assert-equal? 13 (div0 127 10))
+ (assert-equal? -3 (mod0 127 10))
+
+ (assert-equal? -13 (div0 127 -10))
+ (assert-equal? -3 (mod0 127 -10))
+
+ (assert-equal? -13 (div0 -127 10))
+ (assert-equal? 3 (mod0 -127 10))
+
+ (assert-equal? 13 (div0 -127 -10))
+ (assert-equal? 3 (mod0 -127 -10))
+
+ (assert-equal? 1.9477340410546757 (exp 2/3))
+ (assert-equal? 81 (expt 3 4))
+
+ (assert-equal? 3.0 (log 8 2))
+ (assert-equal? 6.907755278982137 (log 1000))
+
+ (assert-equal? 1+1i (make-rectangular 1 1))
+ (assert-equal? 1.0+1.0i (make-rectangular 1.0 1.0))
+
+ (assert-equal? 1.4142135623730951 (sqrt 2))
+ (assert-equal? 0.0+1.4142135623730951i (sqrt -2))
+ (assert-equal? 16 (sqrt 256))
+ (assert-equal? 16.0 (sqrt 256.0))
+ (assert-equal? 9/13 (sqrt 81/169))
+
+ (print 782763574)
+ (receive (r i) (exact-integer-sqrt 782763574)
+   (assert-equal? 27977 r)
+   (assert-equal? 51045 i))
+
  #;(let ((in (open-file-input-port "test.scm" (file-options no-truncate) 'block (native-transcoder))))
    (assert-true? (port? in))
    (assert-true? (input-port? in))

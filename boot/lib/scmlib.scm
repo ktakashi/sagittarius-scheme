@@ -1,7 +1,3 @@
-;(define (caar x) (car (car x)))
-;(define (cadr x) (car (cdr x)))
-;(define (cdar x) (cdr (car x)))
-;(define (cddr x) (cdr (cdr x)))
 (define (caaar x) (car (car (car x))))
 (define (caadr x) (car (car (cdr x))))
 (define (cadar x) (car (cdr (car x))))
@@ -27,22 +23,58 @@
 (define (cdddar x) (cdr (cdr (cdr (car x)))))
 (define (cddddr x) (cdr (cdr (cdr (cdr x)))))
 
+;;;;;
+;; arithmetic
+(define gcd
+  (lambda args
+    (define recn
+      (lambda (arg args)
+	(if (null? args)
+	    arg
+	    (recn (%gcd arg (car args)) (cdr args)))))
+    (let ((args (map (lambda (arg)
+		       (unless (integer? arg)
+			 (error 'gcd "integer required, but got" arg))
+		       (abs arg))
+		     args)))
+      (cond ((null? args) 0)
+	    ((null? (cdr args)) (car args))
+	    (else (recn (car args) (cdr args)))))))
+
+(define lcm
+  (lambda args
+    (define lcm2
+      (lambda (u v)
+	(let ((g (%gcd u v)))
+	  (if (zero? u) 0 (* (quotient u g) v)))))
+    (define recn
+      (lambda (arg args)
+	(if (null? args)
+	    arg
+	    (recn (lcm2 arg (car args)) (cdr args)))))
+    (let ((args (map (lambda (arg)
+		       (unless (integer? arg)
+			 (error 'lcm "integer required, but got" arg))
+		       (abs arg))
+		     args)))
+      (cond ((null? args) 1)
+	    ((null? (cdr args)) (car args))
+	    (else (recn (car args) (cdr args)))))))
+
+(define (div-and-mod x y)
+  (let ((d (div x y))
+	(m (mod x y)))
+    (values d m)))
+
+(define (div0-and-mod0 x y)
+  (let ((d0 (div0 x y))
+	(m0 (mod0 x y)))
+    (values d0 m0)))
+
 (define (list-tail ls k)
   (if (eq? k 0)
       ls
       (list-tail (cdr ls) (- k 1))))
-
-(define (max x . rest)
-  (let lp ((hi x) (ls rest))
-    (if (null? ls)
-        hi
-        (lp (if (> (car ls) hi) (car ls) hi) (cdr ls)))))
-
-(define (min x . rest)
-  (let lp ((lo x) (ls rest))
-    (if (null? ls)
-        lo
-        (lp (if (< (car ls) lo) (car ls) lo) (cdr ls)))))
 
 (define (hashtable-for-each proc ht)
   (for-each proc (hashtable-keys ht) (hashtable-values ht)))
@@ -185,6 +217,19 @@
                => (lambda (lst) (fold-right-n proc seed lst)))
               (else
                (assertion-violation 'fold-right "expected same length proper lists" (cons* proc seed lst1 lst2)))))))
+
+(define (vector-map proc vec1 . vec2)
+  (list->vector
+   (apply map proc (vector->list vec1)
+	  (map vector->list vec2))))
+
+(define (vector-for-each proc vec1 . vec2)
+  (apply for-each proc (vector->list vec1)
+	 (map vector->list vec2)))
+
+(define (string-for-each proc str1 . str2)
+  (apply for-each proc (string->list str1)
+	 (map string->list str2)))
 
 ;;;;
 ;; ports

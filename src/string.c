@@ -158,6 +158,18 @@ SgObject Sg_StringAppend(SgObject args)
   return SG_OBJ(r);
 }
 
+SgObject Sg_StringToList(SgString *s)
+{
+  int size = SG_STRING_SIZE(s), i;
+  const SgChar *buf = SG_STRING_VALUE(s);
+  SgObject h = SG_NIL, t = SG_NIL;
+
+  for (i = 0; i < size; i++) {
+    SG_APPEND1(h, t, SG_MAKE_CHAR(buf[i]));
+  }
+  return h;
+}
+
 SgObject Sg_ListToString(SgObject chars)
 {
   SgObject cp;
@@ -238,5 +250,5 @@ void Sg__InitString()
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

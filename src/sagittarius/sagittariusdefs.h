@@ -366,8 +366,9 @@ typedef enum  {
 #define SG_INT_VALUE(obj)  (((signed long int)SG_WORD(obj)) >> 2)
 #define SG_MAKE_INT(obj)   SG_OBJ(((intptr_t)(obj) << 2) + 1)
 #define SG_UINTP(obj)      (SG_INTP(obj) && ((signed long int)SG_WORD(obj) >= 0))
-#define SG_INT_MAX         (INTPTR_MAX / 2)
-#define SG_INT_MIN         (INTPTR_MIN / 2)
+#define SG_INT_SIZE        (SIZEOF_LONG * 8 - 3)
+#define SG_INT_MAX         ((1L << SG_INT_SIZE) - 1)
+#define SG_INT_MIN         (-SG_INT_MAX - 1)
 
 #define SG_CHAR(obj)       ((SgChar)(obj))
 #define SG_CHARP(obj)      (SG_TAG2(obj) == 2)

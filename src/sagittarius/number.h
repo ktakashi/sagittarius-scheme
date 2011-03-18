@@ -164,6 +164,7 @@ SG_EXTERN int      Sg_NanP(SgObject obj);
 
 SG_EXTERN SgObject Sg_Inverse(SgObject obj);
 
+SG_EXTERN int      Sg_IntegerLength(SgObject n);
 SG_EXTERN SgObject Sg_Ash(SgObject x, int count);
 SG_EXTERN SgObject Sg_LogNot(SgObject x);
 SG_EXTERN SgObject Sg_LogAnd(SgObject x, SgObject y);
@@ -181,13 +182,25 @@ SG_EXTERN SgObject Sg_Quotient(SgObject x, SgObject y, SgObject *remp);
 SG_EXTERN SgObject Sg_Modulo(SgObject x, SgObject y, int reminderp);
 SG_EXTERN SgObject Sg_Expt(SgObject x, SgObject y);
 SG_EXTERN SgObject Sg_Exp(SgObject obj);
+SG_EXTERN SgObject Sg_Sin(SgObject obj);
+SG_EXTERN SgObject Sg_Cos(SgObject obj);
+SG_EXTERN SgObject Sg_Tan(SgObject obj);
+SG_EXTERN SgObject Sg_Asin(SgObject obj);
+SG_EXTERN SgObject Sg_Acos(SgObject obj);
+SG_EXTERN SgObject Sg_Atan(SgObject obj);
 SG_EXTERN SgObject Sg_Abs(SgObject obj);
 SG_EXTERN SgObject Sg_Sqrt(SgObject obj);
+SG_EXTERN SgObject Sg_ExactIntegerSqrt(SgObject obj);
 SG_EXTERN int      Sg_Sign(SgObject obj);
 SG_EXTERN SgObject Sg_Gcd(SgObject x, SgObject y);
 SG_EXTERN SgObject Sg_Magnitude(SgObject obj);
+SG_EXTERN SgObject Sg_Angle(SgObject obj);
 SG_EXTERN SgObject Sg_Log(SgObject obj);
 SG_EXTERN void     Sg_MinMax(SgObject arg0, SgObject args, SgObject *min, SgObject *max);
+SG_EXTERN SgObject Sg_IntegerDiv(SgObject x, SgObject y);
+SG_EXTERN SgObject Sg_IntegerDiv0(SgObject x, SgObject y);
+SG_EXTERN SgObject Sg_IntegerMod(SgObject x, SgObject y);
+SG_EXTERN SgObject Sg_IntegerMod0(SgObject x, SgObject y);
 
 enum SgRoundMode {
   SG_ROUND_FLOOR,
