@@ -60,48 +60,47 @@ typedef struct RegistersRec
   int       fpOffset;
 } Registers;
 
-#if 0
-/*
-  Stack record.
-
-  A stack record contains
-  1. a pointer to the base of the stack segment
-  2. a pointer to the next stack record
-  3. the size of the stack segment
-  4. the return address for the top most frame
-  
-  reference "Representing Control in the Presence of First-Class Continuations"
-  by Robert Hieb, R. Kent Dybvig, Carl Bruggeman
- */
-typedef struct StackRecordRec  StackRecord;
-struct StackRecordRec
-{
-  SgObject     *base;
-  StackRecord  *prev;
-  size_t        segmentSize;
-  SgObject     *fp;		/* return address of the top most frame */
-};
-#endif
-
 typedef struct StackRec
 {
   int      size;
   SgObject stack[1];
 } Stack;
 
+/* continuation frame */
+typedef struct SgContFrameRec
+{
+  struct SgContFrameRec *prev; 	/* previous frame */
+  int            size;		/* size of argument frame */
+  SgWord        *pc;		/* next PC */
+  SgObject       cl;		/* cl register value */
+  SgObject       dc;		/* dc register value */
+  SgObject      *fp;		/* fp register value */
+} SgContFrame;
+
+#define CONT_FRAME_SIZE (sizeof(SgContFrame)/sizeof(SgObject))
+
+typedef SgObject SgCContinuationProc(SgObject result, void **data);
+
+
 struct SgContinucationRec
 {
   SG_HEADER;
-
-  Stack    *stack;
+  Stack       *stack;
+  SgContFrame *cont;
   SgObject     winders;
-#if 0
-  StackRecord *record;
-#endif
 };
 
 #define SG_CONTINUATION(obj)  ((SgContinucation*)obj)
 #define SG_CONTINUATIONP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_CONTINUATION))
+
+
+
+typedef enum {
+  COMPILING,
+  COMPILED,
+  RUNNING,
+  FINISHED
+} VMState;
 
 struct SgVMRec
 {
@@ -115,6 +114,9 @@ struct SgVMRec
   SgObject *fp;			/* frame pointer */
   SgObject *sp;			/* stack pointer */
 
+  SgContFrame  *cont;     	/* saved continuation frame */
+
+  VMState state;
   /*
     default reader macro symbols
    */
@@ -128,9 +130,6 @@ struct SgVMRec
     TODO: if we use child vm, do I need to create a new stack or
     share this?
    */
-#if 0
-  StackRecord *currentStackRecord;
-#endif
 
   SgObject  *stack;		/* for convenient */
   SgObject  *stackEnd;
@@ -188,8 +187,28 @@ typedef enum {
 
 #define SG_VM_LIBRARIES(vm)         ((vm)->libraries)
 
+
+#define PC(vm)             (vm)->pc
+#define AC(vm)             (vm)->ac
+#define DC(vm)             (vm)->dc
+#define CL(vm)             (vm)->cl
+#define FP(vm)             (vm)->fp
+#define SP(vm)             (vm)->sp
+#define CONT(vm)           (vm)->cont
+
+#define INDEX(sp, n)        (*((sp) - (n) - 1))
+#define INDEX_SET(sp, n, v) (*((sp) - (n) - 1) = (v))
+#define PUSH(sp, o)         (*(sp)++ = (o))
+#define POP(sp)             (*(--(sp)))
+
+
+#define SG_CCONT_DATA_SIZE 6
+
+#define IN_STACK_P(ptr, vm)				\
+  ((uintptr_t)((ptr) - vm->stack) < SG_VM_STACK_SIZE)
+
 #define SG_LET_FRAME_SIZE           2
-#define SG_FRAME_SIZE               4
+#define SG_FRAME_SIZE               CONT_FRAME_SIZE
 
 SG_CDECL_BEGIN
 
@@ -199,14 +218,20 @@ SG_EXTERN int      Sg_LoadUnsafe(SgString *path);
 SG_EXTERN SgObject Sg_Compile(SgObject o);
 SG_EXTERN SgObject Sg_CallClosureByName(SgObject name, SgObject code);
 SG_EXTERN SgObject Sg_Apply(SgObject proc, SgObject args);
+SG_EXTERN SgObject Sg_VMApply0(SgObject proc);
+SG_EXTERN SgObject Sg_VMApply1(SgObject proc, SgObject arg);
 SG_EXTERN SgObject Sg_VMApply(SgObject proc, SgObject args);
-SG_EXTERN SgObject Sg_VMCallCc(SgObject proc);
+SG_EXTERN SgObject Sg_VMCallCC(SgObject proc);
 SG_EXTERN SgVM*    Sg_VM();	/* get vm */
 SG_EXTERN SgObject Sg_FindBinding(SgObject library, SgSymbol *name);
 SG_EXTERN void     Sg_InsertBinding(SgLibrary *library, SgSymbol *name, SgObject value);
 SG_EXTERN void     Sg_VMDumpCode(SgCodeBuilder *cb);
 
 SG_EXTERN SgObject Sg_AddLoadPath(SgString *path);
+
+/* dynamic-wind */
+SG_EXTERN void     Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize);
+SG_EXTERN SgObject Sg_VMDynamicWind(SgObject before, SgObject thunk, SgObject after);
 
 /* IO */
 SG_EXTERN SgObject Sg_CurrentOutputPort();
@@ -217,7 +242,8 @@ SG_EXTERN SgObject Sg_VMCurrentLibrary();
 
 /* exception */
 SG_EXTERN SgObject Sg_GetStackTrace();
-SG_EXTERN void     Sg_ThrowException(SgObject exception);
+SG_EXTERN void     Sg_VMThrowException(SgObject exception);
+SG_EXTERN void     Sg_VMDefaultExceptionHandler(SgObject exception);
 
 /* finalizer */
 SG_EXTERN SgObject Sg_VMFinalizerRun(SgVM *vm);

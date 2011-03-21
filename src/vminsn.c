@@ -464,15 +464,7 @@ NEXT;
 }
 
 CASE(RET) {
-{
-  SgObject* sp = FP(vm);
-PC(vm)=INDEX(sp, 3);
-DC(vm)=INDEX(sp, 2);
-CL(vm)=INDEX(sp, 1);
-FP(vm)=INDEX(sp, 0);
-SP(vm)=sp-SG_FRAME_SIZE;
-}
-;
+RET_INSN();
 NEXT;
 }
 
@@ -490,6 +482,7 @@ NEXT;
 
 CASE(LET_FRAME) {
 INSN_VAL1(val1, c);
+CHECK_STACK(val1, vm);
 PUSH(SP(vm), DC(vm));
 PUSH(SP(vm), FP(vm));
 NEXT;

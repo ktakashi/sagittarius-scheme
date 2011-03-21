@@ -113,6 +113,7 @@
 
 	    ;; call/cc
 	    call/cc call-with-current-continuation
+	    dynamic-wind
 
 	    ;; misc
 	    unbound undefined undefined? add-load-path
@@ -1311,10 +1312,13 @@ string->utf32 utf32->string
 
   ;; call/cc
   (define-c-proc call/cc (proc::Procedure) ::Object
-    (result (Sg_VMCallCc proc)))
+    (result (Sg_VMCallCC proc)))
   
   (define-c-proc call-with-current-continuation (proc::Procedure) ::Object
-    (result (Sg_VMCallCc proc)))
+    (result (Sg_VMCallCC proc)))
+
+  (define-c-proc dynamic-wind (before thunk after) ::Object
+    (result (Sg_VMDynamicWind before thunk after)))
 
   ;; misc
   (define-c-proc unbound () ::Object

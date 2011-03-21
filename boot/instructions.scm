@@ -653,7 +653,8 @@ CASE(LSET) {
       }
 |#
 (define-inst RET (0 0 #f)
-  (let ((sp::SgObject* (FP vm)))
+  (RET_INSN)
+  #;(let ((sp::SgObject* (FP vm)))
     (set! (PC vm) (INDEX sp 3))
     (set! (DC vm) (INDEX sp 2))
     (set! (CL vm) (INDEX sp 1))
@@ -688,8 +689,8 @@ CASE(LSET) {
       }
 |#
 (define-inst LET_FRAME (1 0 #t)
-  ;; TODO expand stack
   (INSN_VAL1 val1 c)
+  (CHECK_STACK val1 vm)
   (PUSH (SP vm) (DC vm))
   (PUSH (SP vm) (FP vm)))
 

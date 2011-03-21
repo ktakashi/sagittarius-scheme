@@ -49,7 +49,7 @@ void Sg_Error(const SgChar* fmt, ...)
   va_end(ap);
   /* TODO I think we need error type to catch */
   errObj = Sg_GetStringFromStringPort(err);
-  Sg_ThrowException(errObj);
+  Sg_VMThrowException(errObj);
 }
 
 void Sg_ReadError(const SgChar* fmt, ...)
@@ -64,7 +64,7 @@ void Sg_ReadError(const SgChar* fmt, ...)
 
   /* TODO I think we need error type to catch */
   errObj = Sg_GetStringFromStringPort(err);
-  Sg_ThrowException(errObj);
+  Sg_VMThrowException(errObj);
 }
 
 void Sg_AssertionViolation(SgObject who, SgObject message, SgObject irritants)

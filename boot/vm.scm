@@ -83,9 +83,6 @@
   (frees '())
   mark)
 
-(define (make-closure-from-code-builder code)
-  (make-closure code 0))
-
 (define (make-closure code s)
   (let* ((raw-code  (array-data (code-builder-code code)))
 	 (reqargs   (code-builder-argc code))
@@ -937,9 +934,8 @@
                          (car (drop args (- (length args) 1))))])
     (fluid-let ((*stack* (make-vector 1000)))
       (VM `#(,FRAME
-	     7
-	     ,CONST ,adjusted_args
-	     ,PUSH
+	     6
+	     ,CONST_PUSH ,adjusted_args
 	     ,CONST ,proc
 	     ,APPLY
 	     ,HALT)
@@ -986,7 +982,7 @@
 			    ,proc)))))
 
 ;; for debug
-(add-namespace! make-closure-from-code-builder (c))
+;(add-namespace! make-closure-from-code-builder (c))
 (add-namespace! make-empty-closure ())
 (add-namespace! VM (x pc ac cl fp sp))
 
@@ -1049,6 +1045,7 @@
 (add-namespace! append! o)
 (add-namespace! reverse (o))
 (add-namespace! apply (proc l1 . rest) apply-proc)
+(add-namespace! apply-proc (proc l1 . rest))
 ;(add-namespace! eq? (a b))
 ;(add-namespace! eqv? (a b))
 (add-namespace! equal? (a b))

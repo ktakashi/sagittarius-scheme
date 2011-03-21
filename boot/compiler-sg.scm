@@ -1087,7 +1087,7 @@
  (lambda
   (who name expr p1env)
   (let*
-   ((transformer (compile-w/o-halt expr p1env))
+   ((transformer (make-toplevel-closure (compile expr p1env)))
     (macro (make-macro-transformer name transformer (p1env-library p1env))))
    macro)))
 

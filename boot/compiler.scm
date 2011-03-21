@@ -1017,20 +1017,10 @@
 ;; --------------- define-syntax related
 (define pass1/eval-macro-rhs
   (lambda (who name expr p1env)
-    (let* ((transformer (compile-w/o-halt expr p1env))
+    (let* ((transformer (make-toplevel-closure (compile expr p1env)))
 	   (macro (make-macro-transformer name transformer
 					  (p1env-library p1env))))
       macro)))
-
-;; We need to replace this implementation to the one from MIT scheme.
-;; it's in test/syntax-rules.scm. 
-#;(define-pass1-syntax (syntax-rules form p1env) :null
-  (smatch form
-    ((- (literal ___) rule ___)
-     ($const (compile-syntax-rules (p1env-exp-name p1env) literal rule
-				   (p1env-library p1env)
-				   (p1env-frames p1env))))
-    (- (error 'syntax-error "malformed syntax-rules" form))))
 
 ;;
 ;; define-syntax.

@@ -111,9 +111,10 @@ static SgObject macro_tranform(SgObject *args, int argc, void *data_)
   macro = args[0];
   form = args[1];
   p1env = args[2];
-  data = args[3];
+  /* TODO it's kinda waste of time if we compute each time. */
+  data = Sg_Apply(args[3], SG_NIL);
 
-  return Sg_VMApply(data, SG_LIST1(Sg_Cons(form, p1env)));
+  return Sg_Apply(data, SG_LIST1(Sg_Cons(form, p1env)));
 }
 
 static SG_DEFINE_SUBR(macro_tranform_Stub, 2, 0, macro_tranform, SG_FALSE, NULL);

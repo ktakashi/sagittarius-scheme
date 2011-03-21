@@ -92,9 +92,9 @@ static inline SgObject make_box(SgObject value)
   return SG_OBJ(b);
 }
 
-static SgObject evaluate_unsafe(SgWord *compiledCode, int size, int compilerp);
-static SgObject evaluate_safe(SgWord *compiledCode, int size, int compilerp);
-static SgObject run_loop(SgWord *code, jmp_buf returnPoint, int compilerp);
+static SgObject evaluate_unsafe(SgWord *compiledCode, int size);
+static SgObject evaluate_safe(SgWord *compiledCode, int size);
+static SgObject run_loop(SgWord *code, jmp_buf returnPoint);
 
 SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 {
@@ -109,14 +109,8 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 
   v->attentionRequest = FALSE;
   v->finalizerPending = FALSE;
-#if 0
-  /* initialize stack record */
-  CSR(v) = SG_NEW(StackRecord);
-  CSR_BASE(v) = v->stack;
-  CSR_PREV(v) = NULL; /* TODO correct? */
-  CSR_SEG_SIZE(v) = SG_VM_STACK_SIZE;
-  CSR_FP(v) = v->fp;
-#endif 
+
+  v->dynamicWinders = SG_NIL;
 
   v->currentInputPort = Sg_MakeTranscodedInputPort(Sg_StandardInputPort(),
 						   /* TODO check utf16 */
@@ -164,7 +158,7 @@ static inline void restore_registers(Registers *r)
   vm->fp = vm->stack + r->fpOffset;
 }
 
-static inline void default_error_handler(SgObject exception)
+static inline void report_error(SgObject exception)
 {
   static const int MAX_STACK_TRACE = 20;
   SgObject error = SG_NIL, stackTrace = SG_NIL;;
@@ -246,12 +240,16 @@ int Sg_LoadUnsafe(SgString *path)
   
   /* TODO should it like this? */
   for (o = Sg_Read(tport, TRUE); o != SG_EOF; o = Sg_Read(tport, TRUE)) {
+    Sg_VM()->state = COMPILING;
     SgObject compiled = Sg_Compile(o);
+    Sg_VM()->state = COMPILED;
     ASSERT(SG_CODE_BUILDERP(compiled));
     if ((Sg_VM()->flags & SG_LOG_LEVEL_MASK) >= SG_DEBUG_LEVEL) {
       Sg_VMDumpCode(SG_CODE_BUILDER(compiled));
     }
-    evaluate_unsafe(SG_CODE_BUILDER(compiled)->code, SG_CODE_BUILDER(compiled)->size, FALSE);
+    Sg_VM()->state = RUNNING;
+    evaluate_unsafe(SG_CODE_BUILDER(compiled)->code, SG_CODE_BUILDER(compiled)->size);
+    Sg_VM()->state = FINISHED;
   }
 
   restore_registers(&r);
@@ -264,7 +262,7 @@ int Sg_Load(SgString *path)
   TRY_VM(vm) {
     return Sg_LoadUnsafe(path);
   CATCH_VM(vm)
-    default_error_handler(Sg_VM()->error);
+    Sg_VMDefaultExceptionHandler(Sg_VM()->error);
     exit(-1);			/* on repl it's not smart */
     return -1;
   }
@@ -381,6 +379,34 @@ SgObject Sg_Compile(SgObject o)
   return compiled;
 }
 
+
+/* TODO check stack expantion */
+#define CHECK_STACK(size, vm)	/* dummy */
+
+void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
+{
+  int i;
+  SgContFrame *cc;
+  SgObject *s;
+  SgVM *vm = Sg_VM();
+
+  CHECK_STACK(CONT_FRAME_SIZE + datasize, vm);
+  s = SP(vm);
+  cc = (SgContFrame*)s;
+  s += CONT_FRAME_SIZE;
+  cc->prev = CONT(vm);
+  cc->size = datasize;
+  cc->pc = (SgWord*)after;
+  cc->fp = NULL;
+  cc->cl = CL(vm);
+  FP(vm) = s;
+  for (i = 0; i < datasize; i++) {
+    PUSH(s, SG_OBJ(data[i]));
+  }
+  CONT(vm) = cc;
+  SP(vm) = s;
+}
+
 /* This is just for compiler... */
 SgObject Sg_CallClosureByName(SgObject name, SgObject code)
 {
@@ -388,7 +414,7 @@ SgObject Sg_CallClosureByName(SgObject name, SgObject code)
   vm->callClosureByNameCode[3] = SG_WORD(code);
   vm->callClosureByNameCode[5] = SG_WORD(SG_NIL);
   vm->callClosureByNameCode[7] = SG_WORD(name);
-  return evaluate_safe(vm->callClosureByNameCode, 8, TRUE);
+  return evaluate_safe(vm->callClosureByNameCode, 8);
 }
 
 SgObject Sg_Apply(SgObject proc, SgObject args)
@@ -396,58 +422,106 @@ SgObject Sg_Apply(SgObject proc, SgObject args)
   SgVM *vm = Sg_VM();
   vm->applyCode[3] = SG_WORD(args);
   vm->applyCode[5] = SG_WORD(proc);
-  return evaluate_safe(vm->applyCode, 8, FALSE);
+  return evaluate_safe(vm->applyCode, 8);
 }
+
+static SgWord apply_callN[2] = {
+  MERGE_INSN_VALUE1(APPLY, 2),
+  RET
+};
 
 SgObject Sg_VMApply(SgObject proc, SgObject args)
 {
-  int size, i, index;
-  SgWord *code, *org;
+  int argc = Sg_Length(args);
+  int reqstack;
+  SgObject cp;
+  SgVM *vm = Sg_VM();
 
-  if (SG_CLOSUREP(proc)) {
-    size = SG_CODE_BUILDER(SG_CLOSURE(proc)->code)->size;
-    org = SG_CODE_BUILDER(SG_CLOSURE(proc)->code)->code;
-    if ((Sg_VM()->flags & SG_LOG_LEVEL_MASK) >= SG_DEBUG_LEVEL) {
-      Sg_VMDumpCode(SG_CLOSURE(proc)->code);
-    }
-  } else if (SG_CODE_BUILDERP(proc)) {
-    size = SG_CODE_BUILDER(proc)->size;
-    org = SG_CODE_BUILDER(proc)->code;
-    if ((Sg_VM()->flags & SG_LOG_LEVEL_MASK) >= SG_DEBUG_LEVEL) {
-      Sg_VMDumpCode(proc);
-    }
-  } else {
-    Sg_Error(UC("closure or code-builder required, but got %S"), proc);
-  }
-  code = SG_NEW_ARRAY(SgWord, sizeof(SgWord) * (size + 6));
-  code[0] = SG_WORD(FRAME);
-  code[1] = SG_WORD(SG_MAKE_INT(size + 4));
-  code[2] = SG_WORD(CONST_PUSH);
-  code[3] = SG_WORD(args);
-  for (i = 0, index = 4; i < size; i++, index++) {
-    code[index] = org[i];
-  }
-  code[index++] = SG_WORD(APPLY);
-  code[index++] = SG_WORD(HALT);
-  /* this must be called from only compiler.scm */
-  return evaluate_safe(code, size + 6, TRUE);
+  if (argc < 0) Sg_Error(UC("improper list not allowed: %S"), args);
+  /* TODO should we check tail posision? */
+  reqstack = SG_FRAME_SIZE + 1;
+  CHECK_STACK(reqstack, vm);
+  PUSH(SP(vm), args);
+  PC(vm) = apply_callN;
+  return Sg_CopyList(args);
 }
 
-#define PC(vm)             (vm)->pc
-#define AC(vm)             (vm)->ac
-#define DC(vm)             (vm)->dc
-#define CL(vm)             (vm)->cl
-#define FP(vm)             (vm)->fp
-#define SP(vm)             (vm)->sp
+static SgWord apply_calls[][2] = {
+  { MERGE_INSN_VALUE1(CALL, 0), RET },
+  { MERGE_INSN_VALUE1(CALL, 1), RET }
+};
+
+SgObject Sg_VMApply0(SgObject proc)
+{
+  Sg_VM()->pc = apply_calls[0];
+  return proc;
+}
+
+SgObject Sg_VMApply1(SgObject proc, SgObject arg)
+{
+  SgVM *vm = Sg_VM();
+  CHECK_STACK(1, vm);
+  PUSH(SP(vm), arg);
+  vm->pc = apply_calls[1];
+  return proc;
+}
+
+static SgCContinuationProc dynamic_wind_before_cc;
+static SgCContinuationProc dynamic_wind_body_cc;
+static SgCContinuationProc dynamic_wind_after_cc;
+
+SgObject Sg_VMDynamicWind(SgObject before, SgObject thunk, SgObject after)
+{
+  void *data[3];
+  /* TODO should we check type? */
+  data[0] = (void*)before;
+  data[1] = (void*)thunk;
+  data[2] = (void*)after;
+  
+  Sg_VMPushCC(dynamic_wind_before_cc, data, 3);
+  return Sg_VMApply0(before);
+}
+
+static SgObject dynamic_wind_before_cc(SgObject result, void **data)
+{
+  SgObject before = SG_OBJ(data[0]);
+  SgObject body = SG_OBJ(data[1]);
+  SgObject after = SG_OBJ(data[2]);
+  SgObject prev;
+  void *d[2];
+  SgVM *vm = Sg_VM();
+  
+  prev = vm->dynamicWinders;
+  d[0] = (void*)after;
+  d[1] = (void*)prev;
+  vm->dynamicWinders = Sg_Acons(before, after, prev);
+  Sg_VMPushCC(dynamic_wind_body_cc, d, 2);
+  return Sg_VMApply0(body);
+}
+
+static SgObject dynamic_wind_body_cc(SgObject result, void **data)
+{
+  SgObject after = SG_OBJ(data[0]);
+  SgObject prev = SG_OBJ(data[1]);
+  void *d[3];
+  SgVM *vm = Sg_VM();
+  
+  vm->dynamicWinders = prev;
+  d[0] = (void*)result;
+  d[1] = (void*)AC(vm);
+  Sg_VMPushCC(dynamic_wind_after_cc, d, 2);
+  return Sg_VMApply0(after);
+}
+
+static SgObject dynamic_wind_after_cc(SgObject result, void **data)
+{
+  SgObject ac = SG_OBJ(data[0]);
+  return ac;
+}
+
+#define SKIP(vm, n)        (PC(vm) += (n))
 #define FETCH_OPERAND(pc)  SG_OBJ((*(pc)++))
 #define PEEK_OPERAND(pc)   SG_OBJ((*(pc)))
-#define SKIP(vm, n)        (PC(vm) += (n))
-
-
-#define INDEX(sp, n)        (*((sp) - (n) - 1))
-#define INDEX_SET(sp, n, v) (*((sp) - (n) - 1) = (v))
-#define PUSH(sp, o)         (*(sp)++ = (o))
-#define POP(sp)             (*(--(sp)))
 
 #define REFER_LOCAL(vm, n)   *(FP(vm) + n)
 #define INDEX_CLOSURE(vm, n) (SG_CLOSURE(DC(vm))->frees[n])
@@ -475,53 +549,115 @@ static inline SgContinuation* make_continuation(Stack *s)
   SG_SET_HEADER(c, TC_CONTINUATION);
   c->stack = s;
   c->winders = vm->dynamicWinders;
+  c->cont = vm->cont;
   return c;
 }
 
 static SgWord return_code[1] = {SG_WORD(RET)};
 
-static SgObject throw_continuation(SgObject *args, int argc, void *data)
-{
-  SgContinuation *c = (SgContinuation*)data;
-  SgVM *vm = Sg_VM();
+#define PC_TO_RETURN return_code
 
+static SgObject throw_continuation_cc(SgObject, void **);
+
+static SgObject throw_continuation_body(SgObject handlers,
+					SgContinuation *c,
+					SgObject args)
+{
+  SgVM *vm = Sg_VM();
+  int argc;
   /* (if (not (eq? new (current-dynamic-winders))) perform-dynamic-wind) */
-  if (vm->dynamicWinders != c->winders) {
+  if (SG_PAIRP(handlers)) {
+    SgObject handler, chain;
+    void *data[3];
+    ASSERT(SG_PAIRP(SG_CAR(handlers)));
+    handler = SG_CAAR(handlers);
+    chain = SG_CDAR(handlers);
+    data[0] = (void*)SG_CDR(handlers);
+    data[1] = (void*)c;
+    data[2] = (void*)args;
+    Sg_VMPushCC(throw_continuation_cc, data, 3);
+    vm->dynamicWinders = chain;
+    return Sg_VMApply0(handler);
   }
+  argc = Sg_Length(args);
+  
   /* store arguments of the continuation to ac */
   if (argc == 0) {
     /* does this happen? */
     vm->ac = SG_UNDEF;
   } else if (argc > 1) {
     SgValues *v = Sg_MakeValues(argc);
-    int i;
-    for (i = 0; i < argc; i++) {
-      v->elements[i] = args[i];
+    int i = 0;
+    SgObject cp;
+    SG_FOR_EACH(cp, args) {
+      v->elements[i++] = SG_CAR(cp);
     }
     vm->ac = v;
   } else {
-    vm->ac = args[0];
+    vm->ac = args;
   }
   /* restore stack */
+
   vm->sp = vm->stack + restore_stack(c->stack, vm->stack);
   vm->fp = vm->sp - argc;
+
+  vm->cont = c->cont;
   vm->pc = return_code;
+  vm->dynamicWinders = handlers;
+
   return vm->ac;
 }
+static SgObject throw_continuation_cc(SgObject result, void **data)
+{
+  SgObject handlers = SG_OBJ(data[0]);
+  SgContinuation *c = (SgContinuation*)data[1];
+  SgObject args = SG_OBJ(data[2]);
+  return throw_continuation_body(handlers, c, args);
+}
 
-SgObject Sg_VMCallCc(SgObject proc)
+static SgObject throw_continuation_calculate_handlers(SgContinuation *c,
+						      SgVM *vm)
+{
+  SgObject target = Sg_Reverse(c->winders);
+  SgObject current = vm->dynamicWinders;
+  SgObject h = SG_NIL, t = SG_NIL, p;
+
+  SG_FOR_EACH(p, current) {
+    ASSERT(SG_PAIRP(SG_CAR(p)));
+    if (!SG_FALSEP(Sg_Memq(SG_CAR(p), target))) break;
+    SG_APPEND1(h, t, Sg_Cons(SG_CDAR(p), SG_CDR(p)));
+  }
+  SG_FOR_EACH(p, target) {
+    SgObject chain;
+    ASSERT(SG_PAIRP(SG_CAR(p)));
+    if (!SG_FALSEP(Sg_Memq(SG_CAR(p), current))) break;
+    chain = Sg_Memq(SG_CAR(p), c->winders);
+    ASSERT(SG_PAIRP(chain));
+    SG_APPEND1(h, t, Sg_Cons(SG_CAAR(p), SG_CDR(chain)));
+  }
+  return h;
+}
+
+static SgObject throw_continuation(SgObject *argframes, int argc, void *data)
+{
+  SgContinuation *c = (SgContinuation*)data;
+  SgVM *vm = Sg_VM();
+  SgObject args = argframes[0];
+  SgObject handlers_to_call = throw_continuation_calculate_handlers(c, vm);
+  return throw_continuation_body(handlers_to_call, c, args);
+}
+
+SgObject Sg_VMCallCC(SgObject proc)
 {
   Stack *stack = save_stack();
   SgContinuation *cont = make_continuation(stack);
-  SgObject contproc = Sg_MakeSubr(throw_continuation, cont, 0, 1,
-				  Sg_MakeString(UC("continucation"),
-						SG_LITERAL_STRING));
+  SgObject contproc;
   SgVM *vm = Sg_VM();
-  
-  vm->callCode[0] = MERGE_INSN_VALUE1(TAIL_CALL, 1);
-  PUSH(SP(vm), contproc);
-  PC(vm) = vm->callCode;
-  return proc;
+
+  contproc = Sg_MakeSubr(throw_continuation, cont, 0, 1,
+			 Sg_MakeString(UC("continucation"),
+				       SG_LITERAL_STRING));
+  return Sg_VMApply1(proc, contproc);
 }
 
 /* given load path must be unshifted.
@@ -591,7 +727,7 @@ SgObject Sg_GetStackTrace()
   return cur;
 }
 
-void Sg_ThrowException(SgObject exception)
+void Sg_VMThrowException(SgObject exception)
 {
   SgVM *vm = Sg_VM();
   SgObject stackTrace = Sg_GetStackTrace();
@@ -600,8 +736,27 @@ void Sg_ThrowException(SgObject exception)
   longjmp(vm->returnPoint, -1);
 }
 
+#ifndef EX_SOFTWARE
+/* SRFI-22 requires this. */
+#define EX_SOFTWARE 70
+#endif
+
+/* default exception handler */
+void Sg_VMDefaultExceptionHandler(SgObject e)
+{
+  SgVM *vm = Sg_VM();
+  SgObject hp;
+  SG_FOR_EACH(hp, vm->dynamicWinders) {
+    SgObject proc = SG_CDAR(hp);
+    vm->dynamicWinders = SG_CDR(hp);
+    Sg_Apply(proc, SG_NIL);
+  }
+  report_error(e);
+  exit(EX_SOFTWARE);
+}
+
 /* private methods */
-SgObject evaluate_unsafe(SgWord *code, int codeSize, int compilerp)
+SgObject evaluate_unsafe(SgWord *code, int codeSize)
 {
   SgVM *vm = Sg_VM();
 
@@ -613,19 +768,19 @@ SgObject evaluate_unsafe(SgWord *code, int codeSize, int compilerp)
   /*  vm->fp = 0; */
 
   /* TODO direct thread code */
-  return run_loop(code, NULL, compilerp);
+  return run_loop(code, NULL);
 }
 
-SgObject evaluate_safe(SgWord *code, int codeSize, int compilerp)
+SgObject evaluate_safe(SgWord *code, int codeSize)
 {
   Registers r;
   SgVM *vm = Sg_VM();
   SgObject ret = SG_UNDEF;
   save_registers(&r);
   TRY_VM(vm) {
-    ret = evaluate_unsafe(code, codeSize, compilerp);
+    ret = evaluate_unsafe(code, codeSize);
   CATCH_VM(vm)
-    default_error_handler(vm->error);
+    Sg_VMDefaultExceptionHandler(vm->error);
     exit(-1);			/* on repl it's not smart */
   }
   restore_registers(&r);
@@ -634,10 +789,24 @@ SgObject evaluate_safe(SgWord *code, int codeSize, int compilerp)
 
 static inline void make_call_frame(SgVM *vm, SgWord *pc)
 {
+  SgObject *s = SP(vm);
+  SgContFrame *cc = (SgContFrame*)s;
+  cc->size = -1;		/* dummy */
+  cc->pc = pc;
+  cc->cl = CL(vm);
+  cc->dc = DC(vm);
+  cc->fp = FP(vm);
+  cc->prev = CONT(vm);
+  s += CONT_FRAME_SIZE;
+  SP(vm) = s;
+  CONT(vm) = cc;
+#if 0
   PUSH(SP(vm), SG_OBJ(pc));
   PUSH(SP(vm), DC(vm));
   PUSH(SP(vm), CL(vm));
   PUSH(SP(vm), SG_OBJ(FP(vm)));
+#endif
+  
 }
 
 static inline SgObject* discard_let_frame(SgVM *vm, int n)
@@ -781,6 +950,64 @@ static inline SgObject* shift_args(SgObject *fp, int m, SgObject *sp)
     }						\
   }
 
+#define CALL_CCONT(p, v, d) p(v, d)
+
+#define POP_CONT()							\
+  do {									\
+    if (CONT(vm)->fp == NULL) {						\
+      void *data__[SG_CCONT_DATA_SIZE];					\
+      SgObject v__ = AC(vm);						\
+      SgCContinuationProc *after__;					\
+      void **d__ = data__;						\
+      void **s__ = (void**)((SgObject*)CONT(vm) + CONT_FRAME_SIZE);	\
+      int i__ = CONT(vm)->size;						\
+      while (i__-- > 0) {						\
+	*d__++ = *s__++;						\
+      }									\
+      after__ = ((SgCContinuationProc*)CONT(vm)->pc);			\
+      if (IN_STACK_P((SgObject*)CONT(vm), vm)) {			\
+	SP(vm) = (SgObject*)CONT(vm);					\
+      }									\
+      FP(vm) = SP(vm);							\
+      PC(vm) = PC_TO_RETURN;						\
+      CL(vm) = CONT(vm)->cl;						\
+      DC(vm) = CONT(vm)->dc;						\
+      CONT(vm) = CONT(vm)->prev;					\
+      AC(vm) = CALL_CCONT(after__, v__, data__);			\
+    } else if (IN_STACK_P((SgObject*)CONT(vm), vm)) {			\
+      SgContFrame *cont__ = CONT(vm);					\
+      FP(vm) = cont__->fp;						\
+      PC(vm) = cont__->pc;						\
+      CL(vm) = cont__->cl;						\
+      DC(vm) = cont__->dc;						\
+      SP(vm) = cont__;							\
+      CONT(vm) = cont__->prev;						\
+    } else {								\
+      int size__ = CONT(vm)->size;					\
+      FP(vm) = SP(vm) = vm->stack;					\
+      PC(vm) = CONT(vm)->pc;						\
+      CL(vm) = CONT(vm)->cl;						\
+      DC(vm) = CONT(vm)->dc;						\
+      if (CONT(vm)->fp && size__) {					\
+	SgObject *s__ = CONT(vm)->fp, *d__ = SP(vm);			\
+	SP(vm) += size__;						\
+	while (size__-- > 0) {						\
+	  *d__++ = *s__++;						\
+	}								\
+      }									\
+      CONT(vm) = CONT(vm)->prev;					\
+    }									\
+  } while (0)
+
+
+#define RET_INSN()				\
+  do {						\
+    if (CONT(vm) == NULL) {			\
+      break;					\
+    }						\
+    POP_CONT();					\
+  } while (0)
+
 static inline void print_stack(SgVM *vm)
 {
   /* print stack */
@@ -850,7 +1077,7 @@ static inline void trace_log(SgWord *code, SgWord insn)
     if (vm->attentionRequest) goto process_queue;		\
     c = (SgWord)FETCH_OPERAND(PC(vm));				\
     if ((vm->flags & SG_LOG_LEVEL_MASK) >= SG_TRACE_LEVEL	\
-	&& !compilerp) {					\
+	&& vm->state == RUNNING) {				\
       trace_log(code, c);					\
     }								\
     goto *dispatch_table[INSN(c)];				\
@@ -864,7 +1091,7 @@ static inline void trace_log(SgWord *code, SgWord insn)
 # define DEFAULT            default:
 #endif
 
-SgObject run_loop(SgWord *code, jmp_buf returnPoint, int compilerp)
+SgObject run_loop(SgWord *code, jmp_buf returnPoint)
 {
   SgVM *vm = Sg_VM();
   
@@ -887,7 +1114,7 @@ SgObject run_loop(SgWord *code, jmp_buf returnPoint, int compilerp)
 
     DISPATCH;
 
-    if ((vm->flags & SG_LOG_LEVEL_MASK) >= SG_TRACE_LEVEL && !compilerp) {
+    if ((vm->flags & SG_LOG_LEVEL_MASK) >= SG_TRACE_LEVEL && vm->state == RUNNING) {
       trace_log(code, c);
     }
 

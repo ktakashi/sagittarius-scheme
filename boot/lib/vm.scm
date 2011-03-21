@@ -308,10 +308,14 @@
   ((macro-transformer macro) macro expr p1env (macro-data macro)))
 (define (unbound) (if #f #f))
 
+(define (make-toplevel-closure cb)
+  (make-closure cb 0))
+
 ;; for er-macro-transformer
 (define macro-transform
   (lambda (self form p1env data)
-    (vm/apply data (cons form p1env))))
+    (let ((expander (apply-proc data '())))
+      (apply-proc expander (list (cons form p1env))))))
 
 (define make-macro-transformer
   (lambda (name proc library)
@@ -351,9 +355,6 @@
 ;(define LEXICAL 0)
 ;(define SYNTAX 1)
 ;(define PATTERN 2)
-;; for now just stub
-(define (make-toplevel-closure code)
-  (make-closure-from-code-builder code))
 
 ;; this needs to be in C++. I don't want to double manage these values.
 (define (pass3/let-frame-size) 2)
