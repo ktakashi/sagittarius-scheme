@@ -1371,10 +1371,10 @@ string->utf32 utf32->string
   (define-c-proc rtd-fields (rtd) ::Object
     (result (Sg_RtdFields rtd)))
 
-  (define-c-proc rtd-inherited-field-count (rtd) ::Object
+  (define-c-proc rtd-inherited-field-count (rtd) ::fixnum
     (result (Sg_RtdInheritedFieldCount rtd)))
 
-  (define-c-proc rtd-total-field-count (rtd) ::Object
+  (define-c-proc rtd-total-field-count (rtd) ::fixnum
     (result (Sg_RtdTotalFieldCount rtd)))
 
   (define-c-proc rcd-protocol (rcd) ::Object
