@@ -68,16 +68,9 @@ static SgVM *theVM;
   copy_jmp_buf(vm->returnPoint, org);		\
   } else {
 
-#if 0
-/* for convenience
-   currentStackRecord accesser
- */
-#define CSR(vm)      	 ((vm)->currentStackRecord)
-#define CSR_BASE(vm) 	 (CSR(vm)->base)
-#define CSR_PREV(vm) 	 (CSR(vm)->prev)
-#define CSR_SEG_SIZE(vm) (CSR(vm)->segmentSize)
-#define CSR_FP(vm)       (CSR(vm)->fp)
-#endif
+
+static SgSubr default_exception_handler_rec;
+#define DEFAULT_EXCEPTION_HANDLER SG_OBJ(&default_exception_handler_rec)
 
 static inline void copy_jmp_buf(jmp_buf dst, jmp_buf src)
 {
@@ -111,6 +104,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->finalizerPending = FALSE;
 
   v->dynamicWinders = SG_NIL;
+  v->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
 
   v->currentInputPort = Sg_MakeTranscodedInputPort(Sg_StandardInputPort(),
 						   /* TODO check utf16 */
@@ -168,6 +162,7 @@ static inline void report_error(SgObject exception)
     stackTrace = SG_CDR(exception);
   } else {
     error = exception;
+    stackTrace = Sg_GetStackTrace();
   }
   Sg_Printf(Sg_StandardErrorPort(),
 	    UC("*error* %A\n"
@@ -426,10 +421,15 @@ SgObject Sg_Apply(SgObject proc, SgObject args)
 }
 
 static SgWord apply_callN[2] = {
-  MERGE_INSN_VALUE1(APPLY, 2),
+  APPLY,
   RET
 };
 
+/*
+  VMApply families.
+
+  NB: make sure before call these functions, we need to call Sg_VMPushCC.
+ */
 SgObject Sg_VMApply(SgObject proc, SgObject args)
 {
   int argc = Sg_Length(args);
@@ -466,6 +466,27 @@ SgObject Sg_VMApply1(SgObject proc, SgObject arg)
   return proc;
 }
 
+/*
+  dynamic-wind
+  memo:
+  about cont(call) frame.
+  in sagittarius scheme, a call frame and cont frame are the same. we push
+  call/cont frame when closure was called and dynamic-wind was called. the
+  structure of call/cont frame is like this:
+  +-----------+ <- sp
+  | arg 0 - n |
+  +-----------+ <- current fp
+  |   size    |
+  |    fp     | the order of frame structure does not matter(see vm.h)
+  |    cl     |
+  |    dc     |
+  |    pc     |
+  |   prev    |
+  +-----------+
+  the difference between Sg_VMPushCC and make_call_frame is how to treat
+  fp when a frame was made and size. Sg_VMPushCC sets fp when it's called but,
+  make_call_frame does not.
+ */
 static SgCContinuationProc dynamic_wind_before_cc;
 static SgCContinuationProc dynamic_wind_body_cc;
 static SgCContinuationProc dynamic_wind_after_cc;
@@ -517,6 +538,24 @@ static SgObject dynamic_wind_after_cc(SgObject result, void **data)
 {
   SgObject ac = SG_OBJ(data[0]);
   return ac;
+}
+
+/* 
+   with-expantion-handler
+ */
+
+static SgObject install_xhandler(SgObject *args, int argc, void *data)
+{
+  Sg_VM()->exceptionHandler = SG_OBJ(data);
+  return SG_UNDEF;
+}
+
+SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk)
+{
+  SgObject current = Sg_VM()->exceptionHandler;
+  SgObject before = Sg_MakeSubr(install_xhandler, handler, 0, 0, SG_FALSE);
+  SgObject after  = Sg_MakeSubr(install_xhandler, current, 0, 0, SG_FALSE);
+  return Sg_VMDynamicWind(before, thunk, after);
 }
 
 #define SKIP(vm, n)        (PC(vm) += (n))
@@ -676,7 +715,7 @@ SgObject Sg_GetStackTrace()
   SgVM *vm = Sg_VM();
   SgObject r = SG_NIL;
   SgObject cur = SG_NIL;
-  SgObject *fp = FP(vm);
+  SgContFrame *cont = CONT(vm);
   SgObject cl = CL(vm);
   int i;
   if (!cl) {
@@ -705,21 +744,21 @@ SgObject Sg_GetStackTrace()
       ASSERT(FALSE);
     }
     cur = Sg_Acons(SG_MAKE_INT(i), r, cur);
-    if (fp > vm->stack) {
+    if (cont > vm->stack) {
 
-      SgObject *nextFp;
-      cl = INDEX(fp, 1);
+      SgContFrame *nextCont;
+      cl = cont->cl;
       if (!SG_PROCEDUREP(cl)) {
 	break;
       }
-      nextFp = INDEX(fp, 0);
-      if (!SG_PTRP(nextFp)) {
+      nextCont = cont->prev;
+      if (!SG_PTRP(nextCont)) {
 	break;
       }
-      if (nextFp < vm->stack || vm->stackEnd < nextFp) {
+      if (nextCont < vm->stack || vm->stackEnd < nextCont) {
 	break;
       }
-      fp = nextFp;
+      cont = nextCont;
     } else {
       break;
     }
@@ -727,13 +766,26 @@ SgObject Sg_GetStackTrace()
   return cur;
 }
 
-void Sg_VMThrowException(SgObject exception)
+SgObject Sg_VMThrowException(SgVM *vm, SgObject exception)
 {
-  SgVM *vm = Sg_VM();
+  if (vm->exceptionHandler != DEFAULT_EXCEPTION_HANDLER) {
+    vm->ac = Sg_Apply(vm->exceptionHandler, SG_LIST1(exception));
+#if 0
+    if (SG_SERIOUS_CONDITION_P(exception)) {
+      Sg_VMDefaultExceptionHandler(exception);
+    }
+#endif
+    return vm->ac;
+  }
+  Sg_VMDefaultExceptionHandler(exception);
+  return SG_UNDEF;
+
+#if 0
   SgObject stackTrace = Sg_GetStackTrace();
   /* TODO get stack trace */
   vm->error = Sg_Cons(exception, stackTrace);
   longjmp(vm->returnPoint, -1);
+#endif
 }
 
 #ifndef EX_SOFTWARE
@@ -754,6 +806,18 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
   report_error(e);
   exit(EX_SOFTWARE);
 }
+
+static SgObject default_exception_handler_body(SgObject *args,
+					       int argc, void *data)
+{
+  ASSERT(argc == 1);
+  Sg_VMDefaultExceptionHandler(args[0]);
+  return SG_UNDEF;
+}
+
+static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
+		      default_exception_handler_body,
+		      SG_FALSE, NULL);
 
 /* private methods */
 SgObject evaluate_unsafe(SgWord *code, int codeSize)
@@ -1180,6 +1244,9 @@ void Sg__InitVM()
   /* load path */
   rootVM->loadPath = SG_LIST2(Sg_MakeString(UC(SAGITTARIUS_SITE_LIB_PATH), SG_LITERAL_STRING),
 			      Sg_MakeString(UC(SAGITTARIUS_SHARE_LIB_PATH), SG_LITERAL_STRING));
+
+  SG_PROCEDURE_NAME(&default_exception_handler_rec) = Sg_MakeString(UC("default-exception-handler"),
+								    SG_LITERAL_STRING);
 }
 
 /*

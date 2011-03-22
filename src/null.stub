@@ -41,7 +41,7 @@
 	    ;;bitwise-reverse-bit-field
 
 	    ;; apply
-	    apply vm/apply
+	    apply
 
 	    ;; io
 	    display newline write write/ss
@@ -113,7 +113,20 @@
 
 	    ;; call/cc
 	    call/cc call-with-current-continuation
-	    dynamic-wind
+	    dynamic-wind with-exception-handler
+
+	    ;; record
+	    make-record-type
+	    record-type-rtd record-type-rcd
+	    make-record-type-descriptor
+	    make-record-constructor-descriptor
+	    record-type-descriptor?
+	    record-constructor-descriptor?
+	    record-constructor
+	    ;; record helpers
+	    rtd-parent rtd-fields
+	    rtd-inherited-field-count rtd-total-field-count
+	    rcd-protocol rcd-parent
 
 	    ;; misc
 	    unbound undefined undefined? add-load-path
@@ -487,7 +500,7 @@
 	       (SG_APPEND1 head tail (SG_CAR cp)))
 	     (result (Sg_Apply proc head))))))
 
-  (define-c-proc vm/apply (code :rest rest) ::Object
+  #;(define-c-proc vm/apply (code :rest rest) ::Object
     (result (Sg_VMApply code rest)))
 
   ;; io
@@ -1319,6 +1332,56 @@ string->utf32 utf32->string
 
   (define-c-proc dynamic-wind (before thunk after) ::Object
     (result (Sg_VMDynamicWind before thunk after)))
+
+  (define-c-proc current-exception-handler () ::Object
+    (result (-> (Sg_VM) exceptionHandler)))
+
+  (define-c-proc with-exception-handler (handler thunk) ::Object
+    (result (Sg_VMWithExceptionHandler handler thunk)))
+
+  ;; record
+  (define-c-proc make-record-type (name::Symbol rtd rcd) ::Object
+    (result (Sg_MakeRecordType name rtd rcd)))
+
+  (define-c-proc record-type-rtd (rt::RecordType) ::Object
+    (result (SG_RECORD_TYPE_RTD rt)))
+
+  (define-c-proc record-type-rcd (rt::RecordType) ::Object
+    (result (SG_RECORD_TYPE_RCD rt)))
+
+  (define-c-proc make-record-type-descriptor
+    (name::Symbol parent uid sealedP::boolean opaqueP::boolean fields::Vector) ::Object
+    (result (Sg_MakeRecordTypeDescriptor name parent uid sealedP opaqueP fields)))
+
+  (define-c-proc make-record-constructor-descriptor (rtd parent protocol) ::Object
+    (result (Sg_MakeRecordConstructorDescriptor rtd parent protocol)))
+
+  (define-c-proc record-type-descriptor? (o) ::boolean
+    (result (Sg_RecordTypeDescriptorP o)))
+
+  (define-c-proc record-constructor-descriptor? (o) ::boolean
+    (result (Sg_RecordConstructorDescriptorP o)))
+
+  (define-c-proc record-constructor (rcd) ::Object
+    (result (Sg_RecordConstructor rcd)))
+
+  (define-c-proc rtd-parent (rtd) ::Object
+    (result (Sg_RtdParent rtd)))
+
+  (define-c-proc rtd-fields (rtd) ::Object
+    (result (Sg_RtdFields rtd)))
+
+  (define-c-proc rtd-inherited-field-count (rtd) ::Object
+    (result (Sg_RtdInheritedFieldCount rtd)))
+
+  (define-c-proc rtd-total-field-count (rtd) ::Object
+    (result (Sg_RtdTotalFieldCount rtd)))
+
+  (define-c-proc rcd-protocol (rcd) ::Object
+    (result (Sg_RcdProtocol rcd)))
+
+  (define-c-proc rcd-parent (rcd) ::Object
+    (result (Sg_RcdParent rcd)))
 
   ;; misc
   (define-c-proc unbound () ::Object

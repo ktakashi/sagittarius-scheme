@@ -806,18 +806,6 @@
       (for-each (lambda (lv a) (lvar-initval-set! lv a)) lvars args)
       ($let src 'let lvars args ($lambda-body iform)))))
 
-;; from srfi-1 split-at but for later I rename it.
-;; I will make it compiler procedure and export for srfi-1.
-;; later it needs to be separated.
-(define %split-at
-  (lambda (x k)
-    (let recur ((lis x) (k k))
-      (if (zero? k)
-	  (values '() lis)
-	  (receive (prefix suffix)
-	      (recur (cdr lis) (- k 1))
-	    (values (cons (car lis) prefix) suffix))))))
-
 ;; Adjust argmuent list according to reqargs and optarg count.
 ;; Used in procedure inlining and local call optimization.
 (define adjust-arglist
@@ -828,7 +816,7 @@
 		     name reqargs (length iargs))))
     (if (zero? optarg)
 	iargs
-	(receive (reqs opts) (%split-at iargs reqargs)
+	(receive (reqs opts) (split-at iargs reqargs)
 	  (append! reqs (list ($list #f opts)))))))
 
 (define parse-lambda-vars

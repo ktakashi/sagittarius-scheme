@@ -47,6 +47,7 @@ extern void Sg__InitNumber();
 extern void Sg__InitString();
 extern void Sg__InitKeyword();
 extern void Sg__InitFile();
+extern void Sg__InitRecord();
 extern void Sg__InitReader();
 extern void Sg__InitVM();
 
@@ -100,6 +101,7 @@ void Sg_Init()
 
   /* generic initialization must be after the libraries initialization */
   Sg__InitFile();
+  Sg__InitRecord();
 
   /* TODO should this be here? */
   Sg_ImportLibrary(Sg_VM()->currentLibrary, SG_OBJ(SG_INTERN("null")));

@@ -65,6 +65,7 @@
 #include <sagittarius/pair.h>
 #include <sagittarius/port.h>
 #include <sagittarius/reader.h>
+#include <sagittarius/record.h>
 #include <sagittarius/string.h>
 #include <sagittarius/symbol.h>
 #include <sagittarius/subr.h>

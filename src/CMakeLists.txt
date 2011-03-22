@@ -33,6 +33,7 @@ SET(SAGITTARIUS_LIB_SOURCE
   closure.c        instruction.c
   code.c           macro.c
   vm.c             core.c
+  record.c
   # libraries
   proclib.c        null.c
   vmlib.c          vmdebug.c

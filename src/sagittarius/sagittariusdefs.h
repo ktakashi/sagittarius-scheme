@@ -217,6 +217,7 @@ typedef struct SgPairRec       	   SgPair;
 typedef struct SgPortRec       	   SgPort;
 typedef struct SgProcedureRec  	   SgProcedure;
 typedef struct SgRationalRec   	   SgRational;
+typedef struct SgRecordTypeRec     SgRecordType;
 typedef struct SgStringRec     	   SgString;
 typedef struct SgSubrRec     	   SgSubr;
 typedef struct SgSymbolRec     	   SgSymbol;
@@ -262,6 +263,7 @@ enum {
 
   TC_SYNTAX,
   TC_MACRO,
+  TC_RECORD_TYPE,
 
   TC_COMPLEX,
   TC_RATIONAL,
@@ -399,5 +401,5 @@ do {									\
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

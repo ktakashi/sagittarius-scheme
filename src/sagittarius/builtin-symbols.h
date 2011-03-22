@@ -51,4 +51,6 @@ SG_EXTERN SgSymbol Sg_BuiltinSymbols[];
 #define SG_SYMBOL_MACROEXPAND_1 SG_OBJ(&Sg_BuiltinSymbols[46])
 #define SG_SYMBOL_MACROEXPAND SG_OBJ(&Sg_BuiltinSymbols[47])
 #define SG_SYMBOL_FILE_OPTIONS SG_OBJ(&Sg_BuiltinSymbols[48])
+#define SG_SYMBOL_RTD SG_OBJ(&Sg_BuiltinSymbols[49])
+#define SG_SYMBOL_RCD SG_OBJ(&Sg_BuiltinSymbols[50])
 #endif /* BUILTIN_SYMBOL_H__ */

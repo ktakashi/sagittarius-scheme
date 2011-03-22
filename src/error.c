@@ -49,7 +49,7 @@ void Sg_Error(const SgChar* fmt, ...)
   va_end(ap);
   /* TODO I think we need error type to catch */
   errObj = Sg_GetStringFromStringPort(err);
-  Sg_VMThrowException(errObj);
+  Sg_VMThrowException(Sg_VM(), errObj);
 }
 
 void Sg_ReadError(const SgChar* fmt, ...)
@@ -64,7 +64,7 @@ void Sg_ReadError(const SgChar* fmt, ...)
 
   /* TODO I think we need error type to catch */
   errObj = Sg_GetStringFromStringPort(err);
-  Sg_VMThrowException(errObj);
+  Sg_VMThrowException(Sg_VM(), errObj);
 }
 
 void Sg_AssertionViolation(SgObject who, SgObject message, SgObject irritants)
@@ -106,6 +106,14 @@ void Sg_WrongNumberOfArgumentsBetweenViolation(SgObject who, int startCounts, in
 				startCounts, endCounts, gotCounts);
   Sg_AssertionViolation(who, message, irritants);
 }
+
+
+/* raise */
+SgObject Sg_Raise(SgObject condition)
+{
+  return Sg_VMThrowException(Sg_VM(), condition);
+}
+
 /*
   end of file
   Local Variables:

@@ -55,6 +55,7 @@
 #include "sagittarius/generic.h"
 #include "sagittarius/bytevector.h"
 #include "sagittarius/vm.h"
+#include "sagittarius/record.h"
 #include "sagittarius/builtin-symbols.h"
 
 #define WRITE_LIMITED  0x10
@@ -622,6 +623,18 @@ static void write_port(SgPort *p, SgPort *port, SgWriteContext *ctx)
   Sg_PutcUnsafe(port, '>');
 }
 
+static void write_record_type(SgRecordType *rt, SgPort *port, SgWriteContext *ctx)
+{
+  SgWriteContext rtctx;
+  Sg_PutuzUnsafe(port, UC("#<record-type "));
+  write_symbol(rt->name, port, ctx);
+  Sg_PutcUnsafe(port, ' ');
+  write_ss(rt->rtd, port, &rtctx);
+  Sg_PutcUnsafe(port, ' ');
+  write_ss_rec(rt->rcd, port, &rtctx);
+  Sg_PutcUnsafe(port, '>');
+}
+
 #define SPBUFSIZ  50
 #define CASE_ITAG(obj, str)				\
   case SG_ITAG(obj): Sg_PutuzUnsafe(port, str); break;
@@ -755,11 +768,10 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
     Sg_PutuzUnsafe(port, UC("#("));
     len = SG_VECTOR(obj)->size;
     elts = SG_VECTOR(obj)->elements;
-    for (i = 0; i < len - 1; i++) {
+    for (i = 0; i < len; i++) {
+      if (i != 0) Sg_PutcUnsafe(port, ' ');
       write_ss_rec(elts[i], port, ctx);
-      Sg_PutcUnsafe(port, ' ');
     }
-    write_ss_rec(elts[i], port, ctx);
     Sg_PutcUnsafe(port, ')');
   } else if (SG_STRINGP(obj)) {
     write_string(SG_STRING(obj), port, ctx);
@@ -795,6 +807,8 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
     write_bytevector(SG_BVECTOR(obj), port, ctx);
   } else if (SG_PORTP(obj)) {
     write_port(SG_PORT(obj), port, ctx);
+  } else if (SG_RECORD_TYPEP(obj)) {
+    write_record_type(SG_RECORD_TYPE(obj), port, ctx);
   } else {
     Sg_PutuzUnsafe(port, UC("#<unknown datum>"));
   }
@@ -840,6 +854,11 @@ static void write_walk(SgObject obj, SgWriteContext *ctx)
 	elt = SG_VECTOR_ELEMENT(obj, i);
 	if (SG_PTRP(elt)) write_walk(elt, ctx);
       }
+      return;
+    }
+    if (SG_RECORD_TYPEP(obj)) {
+      REGISTER(SG_RECORD_TYPE_RTD(obj));
+      REGISTER(SG_RECORD_TYPE_RCD(obj));
       return;
     }
     if (SG_SYMBOLP(obj)) {

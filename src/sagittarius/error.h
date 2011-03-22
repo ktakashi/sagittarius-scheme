@@ -50,6 +50,8 @@ SG_EXTERN void Sg_WrongNumberOfArgumentsAtLeastViolation(SgObject who, int requi
 SG_EXTERN void Sg_WrongNumberOfArgumentsBetweenViolation(SgObject who, int startCounts, int endCounts,
 							 int gotCounts, SgObject irritants);
 
+/* exceptions */
+SG_EXTERN SgObject Sg_Raise(SgObject condition);
 
 SG_CDECL_END
 
@@ -59,5 +61,5 @@ SG_CDECL_END
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

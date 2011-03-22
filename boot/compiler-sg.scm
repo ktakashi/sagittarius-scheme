@@ -854,21 +854,6 @@
    ($let src 'let lvars args ($lambda-body iform)))))
 
 (define
- %split-at
- (lambda
-  (x k)
-  (let
-   recur
-   ((lis x) (k k))
-   (if
-    (zero? k)
-    (values '() lis)
-    (receive
-     (prefix suffix)
-     (recur (cdr lis) (- k 1))
-     (values (cons (car lis) prefix) suffix))))))
-
-(define
  adjust-arglist
  (lambda
   (reqargs optarg iargs name)
@@ -886,7 +871,7 @@
    iargs
    (receive
     (reqs opts)
-    (%split-at iargs reqargs)
+    (split-at iargs reqargs)
     (append! reqs (list ($list #f opts)))))))
 
 (define

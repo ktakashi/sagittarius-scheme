@@ -243,6 +243,65 @@
 			      s))))
       (values port proc))))
 
+
+;;;;
+;; record
+;; NB: these functions are just for my lazyness.
+;;     it's kinda hard to implement in C. so we just lookup this in C.
+;; from Ypsilon
+(define make-nested-conser
+  (lambda (desc rtd argc)
+    ((rcd-protocol desc)
+     ((let loop ((desc desc))
+        (cond ((rcd-parent desc)
+               => (lambda (parent)
+                    (lambda extra-field-values
+                      (lambda protocol-args
+                        (lambda this-field-values
+                          (apply ((rcd-protocol parent)
+                                  (apply (loop parent)
+                                         (append this-field-values extra-field-values)))
+                                 protocol-args))))))
+              (else
+               (lambda extra-field-values
+                 (lambda this-field-values
+                   (let ((field-values (append this-field-values extra-field-values)))
+                     (if (= (length field-values) argc)
+                         (apply tuple rtd field-values)
+                         (assertion-violation "record constructor" "wrong number of arguments" field-values))))))))))))
+
+(define make-simple-conser
+  (lambda (desc rtd argc)
+    ((rcd-protocol desc)
+     (lambda field-values
+       (if (= (length field-values) argc)
+           (apply tuple rtd field-values)
+           (assertion-violation "record constructor" "wrong number of arguments" field-values))))))
+
+(define default-protocol
+  (lambda (rtd)
+    (let ((parent (rtd-parent rtd)))
+      (if parent
+          (let ((parent-field-count (rtd-total-field-count parent)))
+            (lambda (p)
+              (lambda field-values
+                (receive (parent-field-values this-field-values) (split-at field-values parent-field-count)
+                  (apply (apply p parent-field-values) this-field-values)))))
+          (lambda (p)
+            (lambda field-values
+              (apply p field-values)))))))
+
+
+;; from srfi-1 split-at
+(define split-at
+  (lambda (x k)
+    (let recur ((lis x) (k k))
+      (if (zero? k)
+	  (values '() lis)
+	  (receive (prefix suffix)
+	      (recur (cdr lis) (- k 1))
+	    (values (cons (car lis) prefix) suffix))))))
+
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix

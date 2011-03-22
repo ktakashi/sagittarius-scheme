@@ -108,9 +108,11 @@
     (%macroexpand-1       SG_SYMBOL_MACROEXPAND_1)
     (%macroexpand         SG_SYMBOL_MACROEXPAND)
     (file-options         SG_SYMBOL_FILE_OPTIONS) ; not so smart...
+    (record-type-descriptor SG_SYMBOL_RTD)
+    (record-constructor-descriptor SG_SYMBOL_RCD)
     ;; add later
     ))
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix
-;; End
+;; End:
