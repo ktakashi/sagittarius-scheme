@@ -103,6 +103,15 @@ SG_EXTERN SgObject Sg_RetrieveGeneric(SgSymbol *name);
 /* simple accessor */
 SG_EXTERN SgObject Sg_GenericRef(SgObject obj, SgObject name);
 SG_EXTERN void     Sg_GenericSet(SgObject obj, SgObject name, SgObject value);
+SG_EXTERN int      Sg_GenericHasField(SgObject obj, SgObject name);
+
+/*
+  for record, we need a vector like object. for now we expand instance type for this.
+ */
+SG_EXTERN SgObject Sg_MakeTuple(int size, SgObject fill, SgObject printer);
+SG_EXTERN void     Sg_TupleListSet(SgObject tuple, SgObject lst);
+SG_EXTERN void     Sg_TupleSet(SgObject tuple, int i, SgObject value);
+SG_EXTERN SgObject Sg_TupleRef(SgObject tuple, int i, SgObject fallback);
 
 SG_CDECL_END
 

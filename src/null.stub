@@ -120,13 +120,23 @@
 	    record-type-rtd record-type-rcd
 	    make-record-type-descriptor
 	    make-record-constructor-descriptor
+	    record? record-rtd
 	    record-type-descriptor?
 	    record-constructor-descriptor?
 	    record-constructor
+	    record-accessor record-predicate record-mutator
+	    record-type-name record-type-parent
+	    record-type-uid record-type-generative?
+	    record-type-opaque? record-type-sealed?
+	    record-type-field-names
+	    record-field-mutable?
 	    ;; record helpers
-	    rtd-parent rtd-fields
+	    rtd-fields
 	    rtd-inherited-field-count rtd-total-field-count
+	    rtd-ancestor?
 	    rcd-protocol rcd-parent
+	    ;; tuple for record helper
+	    make-tuple tuple-list-set! tuple-ref ruple-set!
 
 	    ;; misc
 	    unbound undefined undefined? add-load-path
@@ -136,6 +146,22 @@
 #!compatible
   (decl-code
    (.include <sagittarius/instruction.h>))
+
+  (define-cgen-stmt assertion-violation
+    ((_ who msg)
+     (dispatch
+      `(Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) '())))
+    ((_ who msg irritants)
+     (dispatch
+      `(Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,irritants))))
+
+  (define-cgen-stmt wrong-type-of-argument-violation
+    ((_ who msg got)
+     (dispatch
+      `(Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got '())))
+    ((_ who msg got irritants)
+     (dispatch
+      `(Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got ,irritants))))
 
   (define-c-proc values (:rest rest) (inline VALUES) ::Object
     (let ((len (Sg_Length rest)))
@@ -275,16 +301,16 @@
 
   (define-c-proc make-rectangular (a::number b::number) ::Object
     (unless (SG_REALP a)
-      (Sg_Error "real number required but got %S" a))
+      (wrong-type-of-argument-violation 'make-rectangular "real number required" a (SG_LIST2 a b)))
     (unless (SG_REALP b)
-      (Sg_Error "real number required but got %S" b))
+      (wrong-type-of-argument-violation 'make-rectangular "real number required" b (SG_LIST2 a b)))
     (result (Sg_MakeComplex a b)))
 
   (define-c-proc make-polar (r::number t::number) ::Object
     (unless (SG_REALP r)
-      (Sg_Error "real number required but got %S" r))
+      (wrong-type-of-argument-violation 'make-polar "real number required" r (SG_LIST2 r t)))
     (unless (SG_REALP t)
-      (Sg_Error "real number required but got %S" t))
+      (wrong-type-of-argument-violation 'make-polar "real number required" t (SG_LIST2 r t)))
     (result (Sg_MakeComplexPolar r t)))
 
   (define-c-proc real-part (r::number) ::Object
@@ -294,7 +320,7 @@
 	   (result (SG_MAKE_INT 0)))
 	  (else
 	   ;; never happen
-	   (Sg_Error "number required, but got %S" r))))
+	   (wrong-type-of-argument-violation 'real-part "number required" r))))
 
   (define-c-proc imag-part (r::number) ::Object
     (cond ((SG_COMPLEXP r)
@@ -302,7 +328,7 @@
 	  ((SG_REALP r)
 	   (result (SG_MAKE_INT 0)))
 	  (else
-	   (Sg_Error "number required, but got %S" r))))
+	   (wrong-type-of-argument-violation 'imag-part "number required" r))))
 
   (define-c-proc magnitude (n::number) ::Object
     (result (Sg_Magnitude n)))
@@ -334,7 +360,7 @@
   (define-c-proc exact-integer-sqrt (n::number) ::Object
     (when (or (Sg_NegativeP n)
 	      (not (SG_EXACT_INTP n)))
-      (Sg_Error "non-negative exact integer required, but got %S" n))
+      (wrong-type-of-argument-violation 'exact-integer-sqrt "non-negative exact integer required" n))
     (result (Sg_ExactIntegerSqrt n)))
 #|
   rationalize
@@ -354,7 +380,7 @@
   ;; arithmetic bitwise
   (define-c-proc bitwise-not (ei::number) ::Object
     (when (Sg_Exact ei)
-      (Sg_Error "exact integer required, but got %S" ei))
+      (wrong-type-of-argument-violation 'bitwise-not "exact integer required" ei))
     (result (Sg_LogNot ei)))
 
   (define-cgen-stmt logop
@@ -1356,6 +1382,12 @@ string->utf32 utf32->string
   (define-c-proc make-record-constructor-descriptor (rtd parent protocol) ::Object
     (result (Sg_MakeRecordConstructorDescriptor rtd parent protocol)))
 
+  (define-c-proc record? (o) ::boolean
+    (result (Sg_RecordP o)))
+
+  (define-c-proc record-rtd (o) ::Object
+    (result (Sg_RecordRtd o)))
+
   (define-c-proc record-type-descriptor? (o) ::boolean
     (result (Sg_RecordTypeDescriptorP o)))
 
@@ -1365,23 +1397,114 @@ string->utf32 utf32->string
   (define-c-proc record-constructor (rcd) ::Object
     (result (Sg_RecordConstructor rcd)))
 
-  (define-c-proc rtd-parent (rtd) ::Object
+  (define-c-proc record-accessor (rtd k::fixnum) ::Object
+    (unless (Sg_RecordTypeDescriptorP rtd)
+      (wrong-type-of-argument-violation 'record-accessor "record-type-descriptor" rtd (SG_LIST2 rtd (SG_MAKE_INT k))))
+    (unless (and (< -1 k)
+		 (< k (Sg_Length (Sg_RtdFields rtd))))
+      (assertion-violation 'record-accessor "field index out of range"))
+    (result (Sg_RecordAccessor rtd k)))
+
+  (define-c-proc record-predicate (rtd) ::Object
+    (unless (Sg_RecordTypeDescriptorP rtd)
+      (wrong-type-of-argument-violation 'record-predicate "record-type-descriptor" rtd))
+    (result (Sg_RecordPredicate rtd)))
+
+  (define-c-proc record-mutator (rtd k::fixnum) ::Object
+    (unless (Sg_RecordTypeDescriptorP rtd)
+      (wrong-type-of-argument-violation 'record-mutator "record-type-descriptor" rtd (SG_LIST2 rtd (SG_MAKE_INT k))))
+    (unless (and (< -1 k)
+		 (< k (Sg_Length (Sg_RtdFields rtd))))
+      (assertion-violation 'record-mutator "field index out of range" (SG_LIST2 rtd (SG_MAKE_INT k))))
+    (when (SG_FALSEP (SG_CAR (Sg_ListRef (Sg_RtdFields rtd) k SG_UNBOUND)))
+      (assertion-violation 'record-mutator "specified field is immutable" (SG_LIST2 rtd (SG_MAKE_INT k))))
+    (result (Sg_RecordMutator rtd k)))
+
+  (define-c-proc record-type-name (rtd) ::Object
+    (unless (Sg_RecordTypeDescriptorP rtd)
+      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
+    (result (Sg_RtdName rtd)))
+
+  (define-c-proc record-type-parent (rtd) ::Object
+    (unless (Sg_RecordTypeDescriptorP rtd)
+      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
     (result (Sg_RtdParent rtd)))
 
+  (define-c-proc record-type-uid (rtd) ::Object
+    (unless (Sg_RecordTypeDescriptorP rtd)
+      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
+    (result (Sg_RtdUid rtd)))
+
+  (define-c-proc record-type-generative? (rtd) ::boolean
+    (unless (Sg_RecordTypeDescriptorP rtd)
+      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
+    (result (not (SG_FALSEP (Sg_RtdUid rtd)))))
+
+  (define-c-proc record-type-opaque? (rtd) ::boolean
+    (unless (Sg_RecordTypeDescriptorP rtd)
+      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
+    (result (Sg_RtdOpaqueP rtd)))
+
+  (define-c-proc record-type-sealed? (rtd) ::boolean
+    (unless (Sg_RecordTypeDescriptorP rtd)
+	(wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
+    (result (Sg_RtdSealedP rtd)))
+  ;; for convenience, it returns list
   (define-c-proc rtd-fields (rtd) ::Object
+    (unless (Sg_RecordTypeDescriptorP rtd)
+      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
     (result (Sg_RtdFields rtd)))
 
+  (define-c-proc record-type-field-names (rtd) ::Object
+    (unless (Sg_RecordTypeDescriptorP rtd)
+      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
+    (let ((fields (Sg_RtdFields rtd))
+	  (h '())
+	  (t '()))
+      (dolist (field fields)
+	(SG_APPEND1 h t field))
+      (result (Sg_ListToVector h 0 -1))))
+
+  (define-c-proc record-field-mutable? (rtd k::fixnum) ::Object
+    (unless (Sg_RecordTypeDescriptorP rtd)
+      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
+    (result (SG_CAR (Sg_ListRef (Sg_RtdFields rtd) k SG_UNBOUND))))
+
   (define-c-proc rtd-inherited-field-count (rtd) ::fixnum
+    (unless (Sg_RecordTypeDescriptorP rtd)
+      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
     (result (Sg_RtdInheritedFieldCount rtd)))
 
   (define-c-proc rtd-total-field-count (rtd) ::fixnum
+    (unless (Sg_RecordTypeDescriptorP rtd)
+      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
     (result (Sg_RtdTotalFieldCount rtd)))
+
+  (define-c-proc rtd-ancestor? (parent rtd) ::boolean
+    (unless (Sg_RecordTypeDescriptorP rtd)
+      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd (SG_LIST2 parent rtd)))
+    (unless (Sg_RecordTypeDescriptorP parent)
+      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" parent (SG_LIST2 parent rtd)))
+    (result (Sg_RtdAncestorP parent rtd)))
 
   (define-c-proc rcd-protocol (rcd) ::Object
     (result (Sg_RcdProtocol rcd)))
 
   (define-c-proc rcd-parent (rcd) ::Object
     (result (Sg_RcdParent rcd)))
+
+  ;; tuple of record helper
+  (define-c-proc make-tuple (size::fixnum printer) ::Object
+    (result (Sg_MakeTuple size SG_UNDEF printer)))
+
+  (define-c-proc tuple-list-set! (tuple lst) ::void
+    (Sg_TupleListSet tuple lst))
+
+  (define-c-proc tuple-ref (tuple i::fixnum) ::Object
+    (result (Sg_TupleRef tuple i SG_FALSE)))
+
+  (define-c-proc ruple-set! (tuple i::fixnum value) ::void
+    (Sg_TupleSet tuple i value))
 
   ;; misc
   (define-c-proc unbound () ::Object

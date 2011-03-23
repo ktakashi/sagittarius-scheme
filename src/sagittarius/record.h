@@ -70,6 +70,9 @@ struct SgRecordTypeRec {
 #define SG_RECORD_TYPE_RTD(obj) (SG_RECORD_TYPE(obj)->rtd)
 #define SG_RECORD_TYPE_RCD(obj) (SG_RECORD_TYPE(obj)->rcd)
 
+#define SG_STATIC_RECORD_TYPE(name_, rtd_, rcd_)	\
+  {MAKE_HDR_VALUE(TC_RECORD_TYPE), name_, rtd_, rcd_}
+
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeRecordType(SgObject name, SgObject rtd, SgObject rcd);
@@ -82,13 +85,19 @@ SG_EXTERN SgObject Sg_RecordAccessor(SgObject rtd, int k);
 SG_EXTERN SgObject Sg_RecordMutator(SgObject rtd, int k);
 
 /* predicates */
+SG_EXTERN int      Sg_RecordP(SgObject obj);
 SG_EXTERN int      Sg_RecordTypeDescriptorP(SgObject obj);
 SG_EXTERN int      Sg_RecordConstructorDescriptorP(SgObject obj);
 
 /* accessor */
-/* TODO these accessor is only for (core base), so i don't want it to be public */
+SG_EXTERN SgObject Sg_RecordRtd(SgObject record);
+SG_EXTERN SgObject Sg_RtdName(SgObject rtd);
 SG_EXTERN SgObject Sg_RtdParent(SgObject rtd);
+SG_EXTERN SgObject Sg_RtdUid(SgObject rtd);
 SG_EXTERN SgObject Sg_RtdFields(SgObject rtd);
+SG_EXTERN int      Sg_RtdOpaqueP(SgObject rtd);
+SG_EXTERN int      Sg_RtdSealedP(SgObject rtd);
+SG_EXTERN int      Sg_RtdAncestorP(SgObject parent, SgObject rtd);
 SG_EXTERN SgObject Sg_RcdParent(SgObject rcd);
 SG_EXTERN SgObject Sg_RcdProtocol(SgObject rcd);
 

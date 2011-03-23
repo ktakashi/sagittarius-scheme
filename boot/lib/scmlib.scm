@@ -248,39 +248,63 @@
 ;; record
 ;; NB: these functions are just for my lazyness.
 ;;     it's kinda hard to implement in C. so we just lookup this in C.
+(define record-printer
+  (lambda (inst . port)
+    (let ((p (if (null? port)
+		 (current-output-port)
+		 (car port)))
+	  (rtd (tuple-ref inst 0)))
+      (format p "#<record ~s ~a~a~a>"
+	      (record-type-name rtd)
+	      (if (record-type-opaque? rtd) "opaque " "")
+	      (if (record-type-sealed? rtd) "sealed " "")
+	      rtd))))
+
 ;; from Ypsilon
 (define make-nested-conser
   (lambda (desc rtd argc)
     ((rcd-protocol desc)
      ((let loop ((desc desc))
-        (cond ((rcd-parent desc)
-               => (lambda (parent)
-                    (lambda extra-field-values
-                      (lambda protocol-args
-                        (lambda this-field-values
-                          (apply ((rcd-protocol parent)
-                                  (apply (loop parent)
-                                         (append this-field-values extra-field-values)))
-                                 protocol-args))))))
-              (else
-               (lambda extra-field-values
-                 (lambda this-field-values
-                   (let ((field-values (append this-field-values extra-field-values)))
-                     (if (= (length field-values) argc)
-                         (apply tuple rtd field-values)
-                         (assertion-violation "record constructor" "wrong number of arguments" field-values))))))))))))
+	(cond ((rcd-parent desc)
+	       => (lambda (parent)
+		    (lambda extra-field-values
+		      (lambda protocol-args
+			(lambda this-field-values
+			  (apply ((rcd-protocol parent)
+				  (apply (loop parent)
+					 (append this-field-values extra-field-values)))
+				 protocol-args))))))
+	      (else
+	       (lambda extra-field-values
+		 (lambda this-field-values
+		   (let ((field-values (append this-field-values extra-field-values)))
+		     (if (= (length field-values) argc)
+			 (let ((tuple (make-tuple (+ (length field-values) 1) record-printer))
+			       (all-valeus (append (list rtd) field-values)))
+			   (tuple-list-set! tuple all-valeus)
+			   tuple)
+			 (assertion-violation "record constructor" "wrong number of arguments" field-values))))))))))))
 
 (define make-simple-conser
   (lambda (desc rtd argc)
-    ((rcd-protocol desc)
-     (lambda field-values
-       (if (= (length field-values) argc)
-           (apply tuple rtd field-values)
-           (assertion-violation "record constructor" "wrong number of arguments" field-values))))))
+    (let ((generic (apply make-generic 
+			  (record-type-name rtd)
+			  record-printer
+			  #f
+			  'rtd
+			  (map cdr (rtd-fields rtd)))))
+      ((rcd-protocol desc)
+       (lambda field-values
+	 (if (= (length field-values) argc)
+	     (let ((tuple (make-tuple (+ (length field-values) 1) record-printer))
+		   (all-valeus (append (list rtd) field-values)))
+	       (tuple-list-set! tuple all-valeus)
+	       tuple)
+	     (assertion-violation "record constructor" "wrong number of arguments" field-values)))))))
 
 (define default-protocol
   (lambda (rtd)
-    (let ((parent (rtd-parent rtd)))
+    (let ((parent (record-type-parent rtd)))
       (if parent
           (let ((parent-field-count (rtd-total-field-count parent)))
             (lambda (p)

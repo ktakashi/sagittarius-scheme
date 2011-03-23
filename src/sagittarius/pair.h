@@ -123,6 +123,7 @@ SG_EXTERN SgObject Sg_ReverseX(SgObject list);
 SG_EXTERN SgObject Sg_Reverse(SgObject list);
 SG_EXTERN SgObject Sg_LastPair(SgObject list);
 SG_EXTERN SgObject Sg_ListTail(SgObject list, int i, SgObject fallback);
+SG_EXTERN SgObject Sg_ListRef(SgObject list, int i, SgObject fallback);
 
 SG_EXTERN SgObject Sg_Memq(SgObject obj, SgObject list);
 SG_EXTERN SgObject Sg_Memv(SgObject obj, SgObject list);

@@ -269,7 +269,22 @@ SgObject Sg_ListTail(SgObject list, int i, SgObject fallback)
   }
   return list;
  err:
-  if (SG_EQ(fallback, SG_UNBOUND)) Sg_Error(UC("argument out of range: %d"), i);
+  if (SG_UNBOUNDP(fallback)) Sg_Error(UC("argument out of range: %d"), i);
+  return fallback;
+}
+
+SgObject Sg_ListRef(SgObject list, int i, SgObject fallback)
+{
+  int k;
+  if (i < 0) goto err;
+  for (k = 0; k < i; k++) {
+    if (!SG_PAIRP(list)) goto err;
+    list = SG_CDR(list);
+  }
+  if (!SG_PAIRP(list)) goto err;
+  return SG_CAR(list);
+ err:
+  if (SG_UNBOUNDP(fallback)) Sg_Error(UC("argument out of range: %d"), i);
   return fallback;
 }
 
@@ -337,5 +352,5 @@ SgObject Sg_Assoc(SgObject obj, SgObject alist)
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

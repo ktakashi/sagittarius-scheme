@@ -35,6 +35,8 @@
 #include "sagittarius/hashtable.h"
 #include "sagittarius/library.h"
 #include "sagittarius/pair.h"
+#include "sagittarius/symbol.h"
+#include "sagittarius/vector.h"
 #include "sagittarius/vm.h"
 
 static SgGeneric* make_generic()
@@ -106,4 +108,53 @@ void Sg_GenericSet(SgObject obj, SgObject name, SgObject value)
   }
 
   Sg_HashTableSet(SG_INSTANCE(obj)->values, name, value, 0);
+}
+
+int Sg_GenericHasField(SgObject obj, SgObject name)
+{
+  if (!SG_INSTANCEP(obj)) {
+    Sg_Error(UC("generic instance required, but got  %S"), obj);
+  }
+  return !SG_FALSEP(Sg_Memq(name, SG_INSTANCE(obj)->generic->fields));
+}
+
+static SgInstance* make_tuple(int size, SgObject fill, SgObject printer)
+{
+  SgGeneric *g = make_generic();
+  SgInstance *i = SG_NEW(SgInstance);
+  SG_SET_HEADER(i, TC_INSTANCE);
+  g->name = SG_INTERN("tuple");
+  g->printer = printer;
+  g->constructor = SG_FALSE;
+  g->fields = SG_NIL;
+  g->parents = SG_NIL;
+  i->generic = g;
+  i->values = Sg_MakeVector(size, fill);
+  return i;
+}
+
+SgObject Sg_MakeTuple(int size, SgObject fill, SgObject printer)
+{
+  return make_tuple(size, fill, printer);
+}
+
+void Sg_TupleListSet(SgObject tuple, SgObject lst)
+{
+  int i;
+  SgObject cp = lst;
+  SgVector *vec = SG_VECTOR(SG_INSTANCE(tuple)->values);
+  for (i = 0, cp = lst; i < SG_VECTOR_SIZE(vec) && SG_PAIRP(cp); i++, cp = SG_CDR(cp)) {
+    SG_VECTOR_ELEMENT(vec, i) = SG_CAR(cp);
+  }
+}
+
+void Sg_TupleSet(SgObject tuple, int i, SgObject value)
+{
+  SgVector *vec = SG_VECTOR(SG_INSTANCE(tuple)->values);
+  SG_VECTOR_ELEMENT(vec, i) = value;
+}
+
+SgObject Sg_TupleRef(SgObject tuple, int i, SgObject fallback)
+{
+  return Sg_VectorRef(SG_INSTANCE(tuple)->values, i, fallback);
 }
