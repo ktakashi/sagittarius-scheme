@@ -78,11 +78,25 @@ SgObject Sg_CreateInstance(SgGeneric *generic)
   return make_instance(generic);
 }
 
-SgObject Sg_RetrieveGeneric(SgSymbol *name)
+/* duplicated macro... ugly */
+#define ENSURE_LIBRARY(o, e)						\
+  if (SG_LIBRARYP(o)) {							\
+    e = SG_LIBRARY(o);							\
+  } else {								\
+    e = Sg_FindLibrary((o), FALSE);					\
+  }
+
+
+SgObject Sg_RetrieveGeneric(SgSymbol *name, SgObject maybeLibrary)
 {
-  /* TODO should this method takes library as an argument? */
-  SgVM *vm = Sg_VM();
-  SgObject ret = Sg_Assq(name, vm->currentLibrary->generics);
+  SgLibrary *lib;
+  SgObject ret;
+  ENSURE_LIBRARY(maybeLibrary, lib);
+  /* if it's not library, gets current library */
+  if (!SG_LIBRARYP(lib)) {
+    lib = Sg_VM()->currentLibrary;
+  }
+  ret = Sg_Assq(name, lib->generics);
   if (SG_FALSEP(ret) || !SG_GENERICP(SG_CDR(ret))) {
     Sg_Error(UC("%S is not registered as generic class."), name);
   }
@@ -157,4 +171,9 @@ void Sg_TupleSet(SgObject tuple, int i, SgObject value)
 SgObject Sg_TupleRef(SgObject tuple, int i, SgObject fallback)
 {
   return Sg_VectorRef(SG_INSTANCE(tuple)->values, i, fallback);
+}
+
+int Sg_TupleSize(SgObject tuple)
+{
+  return SG_VECTOR_SIZE(SG_INSTANCE(tuple)->values);
 }

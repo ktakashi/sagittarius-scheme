@@ -51,7 +51,7 @@ SG_EXTERN void Sg_WrongNumberOfArgumentsBetweenViolation(SgObject who, int start
 							 int gotCounts, SgObject irritants);
 
 /* exceptions */
-SG_EXTERN SgObject Sg_Raise(SgObject condition);
+SG_EXTERN SgObject Sg_Raise(SgObject condition, int continuableP);
 
 SG_CDECL_END
 

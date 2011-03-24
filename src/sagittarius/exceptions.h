@@ -64,14 +64,19 @@ SG_EXTERN SgObject Sg_SimpleConditions(SgObject obj);
 SG_EXTERN SgObject Sg_CompoundConditionComponent(SgObject obj);
 
 /* predicate */
-SG_EXTERN SgObject Sg_CompoundConditionP(SgObject obj);
-SG_EXTERN SgObject Sg_SimpleConditionP(SgObject obj);
-SG_EXTERN SgObject Sg_CondidionP(SgObject obj);
+SG_EXTERN int      Sg_CompoundConditionP(SgObject obj);
+SG_EXTERN int      Sg_SimpleConditionP(SgObject obj);
+SG_EXTERN int      Sg_ConditionP(SgObject obj);
 
 /* generator */
 SG_EXTERN SgObject Sg_ConditionPredicate(SgObject rtd);
 SG_EXTERN SgObject Sg_ConditionAccessor(SgObject rtd, SgObject proc);
 
+/* for c use constructor */
+SG_EXTERN SgObject Sg_MakeNonContinuableViolation();
+SG_EXTERN SgObject Sg_MakeWhoCondition(SgObject who);
+SG_EXTERN SgObject Sg_MakeMessageCondition(SgObject msg);
+SG_EXTERN SgObject Sg_MakeIrritantsCondition(SgObject irritants);
 
 SG_CDECL_END
 

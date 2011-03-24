@@ -37,6 +37,8 @@
 	   (format "SG_MAKE_BOOL(~s)" (if p 'TRUE 'FALSE)))
 	  ((number? p)
 	   (format "SG_MAKE_INT(~s)" p))
+	  ((keyword? p)
+	   (format "KEYWORD(\"~a\")" p))
 	  ((pair? p)
 	   (let ((r
 		  (format "Sg_Cons(~a, ~a)"

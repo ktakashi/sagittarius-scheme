@@ -50,8 +50,10 @@
 	    flush-output-port current-output-port
 	    open-file-input-port open-file-output-port
 	    close-input-port close-output-port
-	    format read 
-	    error
+	    format read
+
+	    ;; error
+	    error raise raise-continuable
 
 	    ;; transcoder
 	    native-transcoder
@@ -60,7 +62,7 @@
 	    cons car cdr caar cadr cdar cddr acons cons*
 	    list length append append! reverse
 	    memq memv member assq assv assoc
-	    list->vector list-transpose+
+	    list->vector list-transpose+ list-tail
 
 	    set-car! set-cdr!
 
@@ -114,6 +116,11 @@
 	    ;; call/cc
 	    call/cc call-with-current-continuation
 	    dynamic-wind with-exception-handler
+
+	    ;; conditions
+	    condition simple-conditions compound-condition-component
+	    compound-condition? simple-condition? condition?
+	    condition-predicate condition-accessor
 
 	    ;; record
 	    make-record-type
@@ -175,10 +182,10 @@
 	       (result v))))))
 
   ;; arithmetic
-  (define-c-proc + (:rest rest::Object) ::Object
+  (define-c-proc + (:rest rest) ::Object
     (cond ((not (SG_PAIRP rest)) (result (SG_MAKE_INT 0)))
 	  ((not (SG_NUMBERP (SG_CAR rest)))
-	   (Sg_Error "number required, but got %S" (SG_CAR rest))
+	   (wrong-type-of-argument-violation '+ "number" (SG_CAR rest) rest)
 	   (result SG_UNDEF))		; dummy
 	  (else (let ((r::SgObject (SG_CAR rest)))
 		  (dolist (v (SG_CDR rest)) (set! r (Sg_Add r v)))
@@ -191,7 +198,7 @@
   (define-c-proc * (:rest rest::Object) ::Object
     (cond ((not (SG_PAIRP rest)) (result (SG_MAKE_INT 1)))
 	  ((not (SG_NUMBERP (SG_CAR rest)))
-	   (Sg_Error "number required, but got %S" (SG_CAR rest))
+	   (wrong-type-of-argument-violation '+ "number" (SG_CAR rest) rest)
 	   (result SG_UNDEF))		; dummy
 	  (else (let ((r::SgObject (SG_CAR rest)))
 		  (dolist (v (SG_CDR rest)) (set! r (Sg_Mul r v)))
@@ -432,7 +439,8 @@
 
   (define-c-proc bitwise-bit-field (ei1::number ei2::fixnum ei3::fixnum) ::Object
     (when (> ei2 ei3)
-      (Sg_Error "2nd parameter must be less than or equal to 3rd parameter %S %d %d" ei1 ei2 ei3))
+      (assertion-violation 'bitwise-bit-field "2nd parameter must be less than or equal to 3rd parameter"
+			   (SG_LIST3 ei1 ei2 ei3)))
     (let ((mask (Sg_LogNot (Sg_Ash (SG_MAKE_INT -1) ei3))))
       (result (Sg_Ash (Sg_LogAnd ei1 mask) (- 0 ei2)))))
 
@@ -522,7 +530,7 @@
 		 (SG_APPEND head tail (SG_CAR cp))
 		 (break))
 	       (unless (SG_PAIRP (SG_CDR cp))
-		 (Sg_Error "improper list not allowed: %S" (SG_CDR cp)))
+		 (assertion-violation 'apply "improper list not allowed" (SG_CDR cp)))
 	       (SG_APPEND1 head tail (SG_CAR cp)))
 	     (result (Sg_Apply proc head))))))
 
@@ -623,26 +631,26 @@
 	  (openFlags::int (logor SG_WRITE SG_CREATE)))
       (cond ((SG_FALSEP option)
 	     (if isFileExist
-		 (Sg_Error "file already exists %S" file))
+		 (assertion-violation 'open-file-output-port "file already exists" file))
 	     (set! fo (Sg_OpenFile file openFlags))
 	     (result (Sg_MakeFileBinaryOutputPort fo)))
 	    (else
 	     (unless (SG_INSTANCEP option)
-	       (Sg_Error "invalid file options %S" option))
+	       (assertion-violation 'open-file-output-port "invalid file options" option))
 	     (let ((isEmpty::int (SG_NULLP (Sg_GenericRef option 'options)))
 		   (noCreate (Sg_Memq 'no-create (Sg_GenericRef option 'options)))
 		   (noTruncate (Sg_Memq 'no-truncate (Sg_GenericRef option 'options)))
 		   (noFail (Sg_Memq 'no-fail (Sg_GenericRef option 'options))))
 	       (cond ((and isFileExist isEmpty)
-		      (Sg_Error "file already exists %S" file))
+		      (assertion-violation 'open-file-output-port "file already exists" file))
 		     ((and (not (SG_FALSEP noCreate))
 			   (not (SG_FALSEP noTruncate)))
 		      (if (not isFileExist)
-			  (Sg_Error "file-options no-create: file not exist %S" file)))
+			  (assertion-violation 'open-file-output-port "file-options no-create: file not exist" file)))
 		     ((not (SG_FALSEP noCreate))
 		      (if isFileExist
 			  (set! openFlags (logor SG_TRUNCATE openFlags))
-			  (Sg_Error "file-options no-create: file not exist %S" file)))
+			  (assertion-violation 'open-file-output-port "file-options no-create: file not exist" file)))
 		     ((and (not (SG_FALSEP noFail))
 			   (not (SG_FALSEP noTruncate)))
 		      (if (not isFileExist)
@@ -651,7 +659,7 @@
 		      (set! openFlags (logor SG_TRUNCATE openFlags)))
 		     ((not (SG_FALSEP noTruncate))
 		      (if isFileExist
-			  (Sg_Error "file-options no-truncate: file not exist %S" file)
+			  (assertion-violation 'open-file-output-port "File-options no-truncate: file not exist" file)
 			  (set! openFlags (logor SG_TRUNCATE openFlags)))))
 	       (set! fo (Sg_OpenFile file openFlags))
 	       (if (SG_FALSEP transcoder)
@@ -661,21 +669,27 @@
   
   (define-c-proc close-input-port (p::Port) ::void
     (if (not (SG_INPORTP p))
-	(Sg_Error "input port required, but got %S" p))
+	(wrong-type-of-argument-violation 'close-input-port "input port" p))
     (Sg_ClosePort p))
 
   (define-c-proc close-output-port (p::Port) ::void
     (if (not (SG_OUTPORTP p))
-	(Sg_Error "output port required, but got %S" p))
+	(wrong-type-of-argument-violation 'close-output-port "output port" p))
     (Sg_ClosePort p))
 
   (define-c-proc read (:optional (p (Sg_CurrentInputPort))) ::Object
     (if (not (SG_INPORTP p))
-	(Sg_Error "input port required, but got %S" p))
+	(wrong-type-of-argument-violation 'read "input port" p))
     (result (Sg_Read p FALSE)))
 
   (define-c-proc error (who msg :rest irritant) ::void
     (Sg_Error "%S %S %S" who msg irritant))
+
+  (define-c-proc raise (condition) ::Object
+    (result (Sg_Raise condition FALSE)))
+ 
+  (define-c-proc raise-continuable (condition) ::Object
+    (result (Sg_Raise condition TRUE)))
 
   ;; transcoder
   (define-c-proc native-transcoder () ::Object
@@ -687,32 +701,32 @@
 
   (define-c-proc car (o) (inline CAR) ::Object
     (unless (SG_PAIRP o)
-      (Sg_Error "pair required, but got %S" o))
+      (wrong-type-of-argument-violation 'car "pair" o))
     (result (SG_CAR o)))
 
   (define-c-proc cdr (o) (inline CDR) ::Object
     (unless (SG_PAIRP o)
-      (Sg_Error "pair required, but got %S" o))
+      (wrong-type-of-argument-violation 'cdr "pair" o))
     (result (SG_CDR o)))
 
   (define-c-proc caar (o) ::Object
     (unless (SG_PAIRP o)
-      (Sg_Error "pair required, but got %S" o))
+      (wrong-type-of-argument-violation 'caar "pair" o))
     (result (SG_CAAR o)))
 
   (define-c-proc cadr (o) ::Object
     (unless (SG_PAIRP o)
-      (Sg_Error "pair required, but got %S" o))
+      (wrong-type-of-argument-violation 'cadr "pair" o))
     (result (SG_CADR o)))
 
   (define-c-proc cdar (o) ::Object
     (unless (SG_PAIRP o)
-      (Sg_Error "pair required, but got %S" o))
+      (wrong-type-of-argument-violation 'cdar "pair" o))
     (result (SG_CDAR o)))
 
   (define-c-proc cddr (o) ::Object
     (unless (SG_PAIRP o)
-      (Sg_Error "pair required, but got %S" o))
+      (wrong-type-of-argument-violation 'cddr "pair" o))
     (result (SG_CDDR o)))
 
   (define-c-proc acons (a b alist) ::Object
@@ -804,6 +818,9 @@
 	     (let ((tmp (Sg_Cons lst0 rest)))
 	       (do-transpose tmp))))))
 
+  (define-c-proc list-tail (lst k::fixnum :optional fallback) ::Object
+    (result (Sg_ListTail lst k fallback)))
+
   ;; string
   (define-c-proc string-length (s::String) ::fixnum
     (result s->size))
@@ -843,14 +860,14 @@
     (cond ((or (< i 0)
 	       (>= i (SG_VECTOR_SIZE vec)))
 	   (when (SG_UNBOUNDP fallback)
-	     (Sg_Error "vector-ref index out of range: %S" i))
+	     (assertion-violation 'vector-ref "index out of range" i))
 	   (result fallback))
 	  (else (result (SG_VECTOR_ELEMENT vec i)))))
      
   (define-c-proc vector-set! (vec::Vector i::fixnum obj) ::void
     (cond ((or (< i 0)
 	       (>= i (SG_VECTOR_SIZE vec)))
-	   (Sg_Error "vector-ref index out of range: %S" i))
+	   (assertion-violation 'vector-ref "index out of range" i))
 	  (else (set! (SG_VECTOR_ELEMENT vec i) obj))))
 
   (define-c-proc vector->list (vec::Vector :optional (start::fixnum 0) (end::fixnum -1)) ::Object
@@ -904,13 +921,13 @@ string->utf32 utf32->string
     ((_ bv index)
      (dispatch
       `(unless (> (SG_BVECTOR_SIZE ,bv) ,index)
-	 (Sg_Error "index out of range" ,index))))
+	 (assertion-violation 'bytevector "index out of range" ,index))))
     ((_ bv index offset)
      (dispatch
       `(let ((len::int (SG_BVECTOR_SIZE ,bv)))
 	 (unless (and (> len ,offset)
 		      (< ,index (- len ,offset)))
-	   (Sg_Error "index out of range" ,index))))))
+	   (assertion-violation 'bytevector "index out of range" ,index))))))
 
   (define-c-proc bytevector-u8-ref (bv::ByteVector index::fixnum) ::fixnum
     (bv-check-index bv index)
@@ -919,7 +936,7 @@ string->utf32 utf32->string
   (define-c-proc bytevector-u8-set! (bv::ByteVector index::fixnum value::fixnum) ::void
     (bv-check-index bv index)
     (unless (SG_IS_OCTET value)
-      (Sg_Error "value out of range. must be 0 <= value <= 255 (%d)" value))
+      (assertion-violation 'bytevector-u8-set! "value out of range. must be 0 <= value <= 255" value))
     (Sg_ByteVectorU8Set bv index value))
 
   (define-c-proc bytevector-s8-ref (bv::ByteVector index::fixnum) ::fixnum
@@ -929,21 +946,21 @@ string->utf32 utf32->string
   (define-c-proc bytevector-s8-set! (bv::ByteVector index::fixnum value::fixnum) ::void
     (bv-check-index bv index)
     (unless (SG_IS_BYTE value)
-      (Sg_Error "value out of range. must be -127 <= value <= 128 (%d)" value))
+      (assertion-violation 'bytevector-s8-set! "value out of range. must be -127 <= value <= 128" value))
     (Sg_ByteVectorS8Set bv index value))
 
   (define-cgen-stmt bv-check-align
     ((_ index align)
      (dispatch
       `(unless (== (% ,index ,align) 0)
-	 (Sg_Error "index not aligned %S" ,index)))))
+	 (assertion-violation 'bytevector "index not aligned" ,index)))))
 
   (define-cgen-stmt bv-check-value
     ((_ value min max)
      (dispatch
       `(unless (and (<= ,min ,value)
 		    (<= ,value ,max))
-	 (Sg_Error "value out of range %S" ,value)))))
+	 (assertion-violation 'bytevector "value out of range %S" ,value)))))
   ;; u16
   (define-c-proc bytevector-u16-native-ref (bv::ByteVector index::fixnum) ::fixnum
     (bv-check-index bv index 1)
@@ -962,7 +979,7 @@ string->utf32 utf32->string
 	  ((SG_EQ endian 'little)
 	   (result (Sg_ByteVectorU16LittleRef bv index)))
 	  (else
-	   (Sg_Error "unsupported endianness %S" endian))))
+	   (assertion-violation 'bytevector-u16-ref "unsupported endianness" endian))))
 
   (define-c-proc bytevector-u16-set! (bv::ByteVector index::fixnum value::fixnum endian::Symbol) ::void
     (bv-check-index bv index 1)
@@ -972,7 +989,8 @@ string->utf32 utf32->string
 	  ((SG_EQ endian 'little)
 	   (Sg_ByteVectorU16LittleSet bv index value))
 	  (else
-	   (Sg_Error "unsupported endianness %S" endian))))
+	   (assertion-violation 'bytevector-u16-set! "unsupported endianness" endian))))
+
   ;; s16
   (define-c-proc bytevector-s16-native-ref (bv::ByteVector index::fixnum) ::fixnum
     (bv-check-index bv index 1)
@@ -991,7 +1009,7 @@ string->utf32 utf32->string
 	  ((SG_EQ endian 'little)
 	   (result (Sg_ByteVectorS16LittleRef bv index)))
 	  (else
-	   (Sg_Error "unsupported endianness %S" endian))))
+	   (assertion-violation 'bytevector-s16-ref "unsupported endianness" endian))))
 
   (define-c-proc bytevector-s16-set! (bv::ByteVector index::fixnum value::fixnum endian::Symbol) ::void
     (bv-check-index bv index 1)
@@ -1001,7 +1019,7 @@ string->utf32 utf32->string
 	  ((SG_EQ endian 'little)
 	   (Sg_ByteVectorS16LittleSet bv index value))
 	  (else
-	   (Sg_Error "unsupported endianness %S" endian))))
+	   (assertion-violation 'bytevector-s16-set! "unsupported endianness" endian))))
 
   ;; u32
   (define-c-proc bytevector-u32-native-ref (bv::ByteVector index::fixnum) ::Object
@@ -1014,12 +1032,12 @@ string->utf32 utf32->string
     (let ((value::uint32_t 0))
       (cond ((SG_INTP v)
 	     (when (< (SG_INT_VALUE v) 0)
-	       (Sg_Error "value out of range %S" v))
+	       (assertion-violation 'bytevector-u32-native-set! "value out of range" v))
 	     (set! value (cast uint32_t (SG_INT_VALUE v))))
 	    ((SG_BIGNUMP v)
 	     (set! value (Sg_BignumToU32 v SG_CLAMP_NONE NULL)))
 	    (else
-	     (Sg_Error "exact integer required, but got %S" v)))
+	     (wrong-type-of-argument-violation 'bytevector-u32-native-set! "exact integer" v)))
       (Sg_ByteVectorU32NativeSet bv index value)))
 
   (define-c-proc bytevector-u32-ref (bv::ByteVector index::fixnum endian::Symbol) ::Object
@@ -1029,25 +1047,25 @@ string->utf32 utf32->string
 	  ((SG_EQ endian 'little)
 	   (result (Sg_MakeIntegerFromU32 (Sg_ByteVectorU32LittleRef bv index))))
 	  (else
-	   (Sg_Error "unsupported endianness %S" endian))))
+	   (assertion-violation 'bytevector-u32-ref "unsupported endianness" endian))))
 
   (define-c-proc bytevector-u32-set! (bv::ByteVector index::fixnum v::number endian::Symbol) ::void
     (bv-check-index bv index 3)
     (let ((value::uint32_t 0))
       (cond ((SG_INTP v)
 	     (when (< (SG_INT_VALUE v) 0)
-	       (Sg_Error "value out of range %S" v))
+	       (assertion-violation 'bytevector-u32-set! "value out of range" v))
 	     (set! value (cast uint32_t (SG_INT_VALUE v))))
 	    ((SG_BIGNUMP v)
 	     (set! value (Sg_BignumToU32 v SG_CLAMP_NONE NULL)))
 	    (else
-	     (Sg_Error "exact integer required, but got %S" v)))
+	     (wrong-type-of-argument-violation 'bytevector-u32-set! "exact integer" v)))
       (cond ((SG_EQ endian 'big)
 	     (Sg_ByteVectorU32BigSet bv index value))
 	    ((SG_EQ endian 'little)
 	     (Sg_ByteVectorU32LittleSet bv index value))
 	    (else
-	     (Sg_Error "unsupported endianness %S" endian)))))
+	     (assertion-violation 'bytevector-u32-set! "unsupported endianness" endian)))))
   ;; s32
   (define-c-proc bytevector-s32-native-ref (bv::ByteVector index::fixnum) ::Object
     (bv-check-index bv index 3)
@@ -1059,12 +1077,12 @@ string->utf32 utf32->string
     (let ((value::int32_t 0))
       (cond ((SG_INTP v)
 	     (when (< (SG_INT_VALUE v) 0)
-	       (Sg_Error "value out of range %S" v))
+	       (assertion-violation 'bytevector-s32-native-set! "value out of range" v))
 	     (set! value (cast int32_t (SG_INT_VALUE v))))
 	    ((SG_BIGNUMP v)
 	     (set! value (Sg_BignumToS32 v SG_CLAMP_NONE NULL)))
 	    (else
-	     (Sg_Error "exact integer required, but got %S" v)))
+	     (wrong-type-of-argument-violation 'bytevector-s32-native-set! "exact integer" v)))
       (Sg_ByteVectorS32NativeSet bv index value)))
 
   (define-c-proc bytevector-s32-ref (bv::ByteVector index::fixnum endian::Symbol) ::Object
@@ -1074,25 +1092,25 @@ string->utf32 utf32->string
 	  ((SG_EQ endian 'little)
 	   (result (Sg_MakeIntegerFromS32 (Sg_ByteVectorS32LittleRef bv index))))
 	  (else
-	   (Sg_Error "unsupported endianness %S" endian))))
+	   (assertion-violation 'bytevector-s32-ref "unsupported endianness" endian))))
 
   (define-c-proc bytevector-s32-set! (bv::ByteVector index::fixnum v::number endian::Symbol) ::void
     (bv-check-index bv index 3)
     (let ((value::int32_t 0))
       (cond ((SG_INTP v)
 	     (when (< (SG_INT_VALUE v) 0)
-	       (Sg_Error "value out of range %S" v))
+	       (assertion-violation 'bytevector-s32-set! "value out of range" v))
 	     (set! value (cast int32_t (SG_INT_VALUE v))))
 	    ((SG_BIGNUMP v)
 	     (set! value (Sg_BignumToS32 v SG_CLAMP_NONE NULL)))
 	    (else
-	     (Sg_Error "exact integer required, but got %S" v)))
+	     (wrong-type-of-argument-violation 'bytevector-s32-set! "exact integer" v)))
       (cond ((SG_EQ endian 'big)
 	     (Sg_ByteVectorS32BigSet bv index value))
 	    ((SG_EQ endian 'little)
 	     (Sg_ByteVectorS32LittleSet bv index value))
 	    (else
-	     (Sg_Error "unsupported endianness %S" endian)))))
+	     (assertion-violation 'bytevector-s32-set! "unsupported endianness" endian)))))
   ;; u64
   (define-c-proc bytevector-u64-native-ref (bv::ByteVector index::fixnum) ::Object
     (bv-check-index bv index 7)
@@ -1104,12 +1122,12 @@ string->utf32 utf32->string
     (let ((value::uint64_t 0))
       (cond ((SG_INTP v)
 	     (when (< (SG_INT_VALUE v) 0)
-	       (Sg_Error "value out of range %S" v))
+	       (assertion-violation 'bytevector-u64-native-set! "value out of range" v))
 	     (set! value (cast uint64_t (SG_INT_VALUE v))))
 	    ((SG_BIGNUMP v)
 	     (set! value (Sg_BignumToU64 v SG_CLAMP_NONE NULL)))
 	    (else
-	     (Sg_Error "exact integer required, but got %S" v)))
+	     (wrong-type-of-argument-violation 'bytevector-u64-native-set! "exact integer" v)))
       (Sg_ByteVectorU64NativeSet bv index value)))
 
   (define-c-proc bytevector-u64-ref (bv::ByteVector index::fixnum endian::Symbol) ::Object
@@ -1119,25 +1137,25 @@ string->utf32 utf32->string
 	  ((SG_EQ endian 'little)
 	   (result (Sg_MakeIntegerFromU64 (Sg_ByteVectorU64LittleRef bv index))))
 	  (else
-	   (Sg_Error "unsupported endianness %S" endian))))
+	   (assertion-violation 'bytevector-u64-ref "unsupported endianness" endian))))
 
   (define-c-proc bytevector-u64-set! (bv::ByteVector index::fixnum v::number endian::Symbol) ::void
     (bv-check-index bv index 7)
     (let ((value::uint64_t 0))
       (cond ((SG_INTP v)
 	     (when (< (SG_INT_VALUE v) 0)
-	       (Sg_Error "value out of range %S" v))
+	       (assertion-violation 'bytevector-u64-set!  "value out of range" v))
 	     (set! value (cast uint64_t (SG_INT_VALUE v))))
 	    ((SG_BIGNUMP v)
 	     (set! value (Sg_BignumToU64 v SG_CLAMP_NONE NULL)))
 	    (else
-	     (Sg_Error "exact integer required, but got %S" v)))
+	     (wrong-type-of-argument-violation 'bytevector-u64-set! "exact integer" v)))
       (cond ((SG_EQ endian 'big)
 	     (Sg_ByteVectorU64BigSet bv index value))
 	    ((SG_EQ endian 'little)
 	     (Sg_ByteVectorU64LittleSet bv index value))
 	    (else
-	     (Sg_Error "unsupported endianness %S" endian)))))
+	     (assertion-violation 'bytevector-u64-set! "unsupported endianness" endian)))))
   ;; s64
   (define-c-proc bytevector-s64-native-ref (bv::ByteVector index::fixnum) ::Object
     (bv-check-index bv index 7)
@@ -1149,12 +1167,12 @@ string->utf32 utf32->string
     (let ((value::int64_t 0))
       (cond ((SG_INTP v)
 	     (when (< (SG_INT_VALUE v) 0)
-	       (Sg_Error "value out of range %S" v))
+	       (assertion-violation 'bytevector-s64-native-set! "value out of range" v))
 	     (set! value (cast int64_t (SG_INT_VALUE v))))
 	    ((SG_BIGNUMP v)
 	     (set! value (Sg_BignumToS64 v SG_CLAMP_NONE NULL)))
 	    (else
-	     (Sg_Error "exact integer required, but got %S" v)))
+	     (wrong-type-of-argument-violation 'bytevector-s64-native-set! "exact integer" v)))
       (Sg_ByteVectorS64NativeSet bv index value)))
 
   (define-c-proc bytevector-s64-ref (bv::ByteVector index::fixnum endian::Symbol) ::Object
@@ -1164,31 +1182,31 @@ string->utf32 utf32->string
 	  ((SG_EQ endian 'little)
 	   (result (Sg_MakeIntegerFromS64 (Sg_ByteVectorS64LittleRef bv index))))
 	  (else
-	   (Sg_Error "unsupported endianness %S" endian))))
+	   (assertion-violation 'bytevector-s64-ref "unsupported endianness" endian))))
 
   (define-c-proc bytevector-s64-set! (bv::ByteVector index::fixnum v::number endian::Symbol) ::void
     (bv-check-index bv index 7)
     (let ((value::int64_t 0))
       (cond ((SG_INTP v)
 	     (when (< (SG_INT_VALUE v) 0)
-	       (Sg_Error "value out of range %S" v))
+	       (assertion-violation 'bytevector-s64-set! "value out of range" v))
 	     (set! value (cast int64_t (SG_INT_VALUE v))))
 	    ((SG_BIGNUMP v)
 	     (set! value (Sg_BignumToS64 v SG_CLAMP_NONE NULL)))
 	    (else
-	     (Sg_Error "exact integer required, but got %S" v)))
+	     (wrong-type-of-argument-violation 'bytevector-s64-set! "exact integer" v)))
       (cond ((SG_EQ endian 'big)
 	     (Sg_ByteVectorS64BigSet bv index value))
 	    ((SG_EQ endian 'little)
 	     (Sg_ByteVectorS64LittleSet bv index value))
 	    (else
-	     (Sg_Error "unsupported endianness %S" endian)))))
+	     (assertion-violation 'bytevector-s64-set! "unsupported endianness" endian)))))
   ;; ieee util
   (define-cgen-stmt check-real
     ((_ o)
      (dispatch
       `(unless (SG_REALP ,o)
-	 (Sg_Error "real number required, but got %S" ,o)))))
+	 (wrong-type-of-argument-violation 'bytevector "real number" ,o)))))
 
   ;; ieee-single
   (define-c-proc bytevector-ieee-single-native-ref (bv::ByteVector index::fixnum) ::Object
@@ -1203,7 +1221,7 @@ string->utf32 utf32->string
 	  ((SG_EQ endian 'little)
 	   (result (Sg_MakeFlonum (Sg_ByteVectorIEEESingleLittleRef bv index))))
 	  (else
-	   (Sg_Error "unsupported endianness %S" endian))))
+	   (assertion-violation 'bytevector-ieee-single-ref "unsupported endianness" endian))))
   
   (define-c-proc bytevector-ieee-single-native-set! (bv::ByteVector index::fixnum v::number) ::void
     (bv-check-index bv index 3)
@@ -1221,7 +1239,7 @@ string->utf32 utf32->string
 	    ((SG_EQ endian 'little)
 	     (Sg_ByteVectorIEEESingleLittleSet bv index (cast float value)))
 	    (else
-	     (Sg_Error "unsupported endianness %S" endian)))))
+	     (assertion-violation 'bytevector-ieee-single-set! "unsupported endianness" endian)))))
   ;; ieee-double
   (define-c-proc bytevector-ieee-double-native-ref (bv::ByteVector index::fixnum) ::Object
     (bv-check-index bv index 7)
@@ -1235,7 +1253,7 @@ string->utf32 utf32->string
 	  ((SG_EQ endian 'little)
 	   (result (Sg_MakeFlonum (Sg_ByteVectorIEEEDoubleLittleRef bv index))))
 	  (else
-	   (Sg_Error "unsupported endianness %S" endian))))
+	   (assertion-violation 'bytevector-ieee-double-ref "unsupported endianness" endian))))
   
   (define-c-proc bytevector-ieee-double-native-set! (bv::ByteVector index::fixnum v::number) ::void
     (bv-check-index bv index 7)
@@ -1253,7 +1271,7 @@ string->utf32 utf32->string
 	    ((SG_EQ endian 'little)
 	     (Sg_ByteVectorIEEEDoubleLittleSet bv index value))
 	    (else
-	     (Sg_Error "unsupported endianness %S" endian)))))
+	     (assertion-violation 'bytevector-ieee-double-set! "unsupported endianness" endian)))))
 
   ;; converter
   ;; utf8 <-> string
@@ -1280,7 +1298,7 @@ string->utf32 utf32->string
 	      ((SG_EQ endian 'big)
 	       (set! endianness UTF_16BE))
 	      (else
-	       (Sg_Error "endianness should be little or big (%S)" endian))))
+	       (assertion-violation 'bytevector-ieee-double-set! "endianness should be little or big" endian))))
       (let ((skipSize::int 0)
 	    (codec SG_UNDEF)
 	    (transcoder SG_UNDEF))
@@ -1299,7 +1317,7 @@ string->utf32 utf32->string
 		((SG_EQ endian 'big)
 		 (set! endianness UTF_16BE))
 		(else
-		 (Sg_Error "endianness should be little or big (%S)"  endian))))
+		 (assertion-violation 'bytevector-ieee-double-set! "endianness should be little or big"  endian))))
       (result (Sg_StringToByteVector s (Sg_MakeTranscoder (Sg_MakeUtf16Codec endianness)
 							  LF
 							  SG_REPLACE_ERROR)
@@ -1364,6 +1382,31 @@ string->utf32 utf32->string
 
   (define-c-proc with-exception-handler (handler thunk) ::Object
     (result (Sg_VMWithExceptionHandler handler thunk)))
+
+  ;; conditions
+  (define-c-proc condition (:rest components) ::Object
+    (result (Sg_Condition components)))
+
+  (define-c-proc simple-conditions (obj) ::Object
+    (result (Sg_SimpleConditions obj)))
+
+  (define-c-proc compound-condition-component (obj) ::Object
+    (result (Sg_CompoundConditionComponent obj)))
+
+  (define-c-proc compound-condition? (obj) ::boolean
+    (result (Sg_CompoundConditionP obj)))
+
+  (define-c-proc simple-condition? (obj) ::boolean
+    (result (Sg_SimpleConditionP obj)))
+  
+  (define-c-proc condition? (obj) ::boolean
+    (result (Sg_ConditionP obj)))
+
+  (define-c-proc condition-predicate (rtd) ::Object
+    (result (Sg_ConditionPredicate rtd)))
+
+  (define-c-proc condition-accessor (rtd proc) ::Object
+    (result (Sg_ConditionAccessor rtd proc)))
 
   ;; record
   (define-c-proc make-record-type (name::Symbol rtd rcd) ::Object

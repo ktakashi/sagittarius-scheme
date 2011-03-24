@@ -900,7 +900,8 @@
 			       (import (caddr builtin-info))
 			       (can-be-c? (cadddr builtin-info)))
 			   (when can-be-c?
-			     (let* ((form (construct-library path name import))
+			     (let* ((form (if name (construct-library path name import)
+					      (car (file->sexp-list path))))
 				    (outpath (string-append dir "/"
 							    (library-path->path path)
 							    ".c"))
@@ -908,7 +909,7 @@
 				    (c (compile form '())))
 			       (print (format "generating compiled library (in: ~s, out ~s)"
 					      path outpath))
-			       (code->c c (format "~s" name) out)
+			       (code->c c (format "~s" (if name name (cadr form))) out)
 			       (close-output-port out)))))
 		       *builtin-libraries*)))
 			     
@@ -1168,6 +1169,8 @@
 (define *ext-lib* "lib/ext.scm")
 (define *vm-lib* "lib/vm.scm")
 (define *vm-debug* "lib/debug.scm")
+(define *exc-lib* "lib/exceptions.scm")
+(define *arith-lib* "lib/arith.scm")
 (define *insn* "insn.scm")
 ;; syntax-rules
 (define *struct-lib* "../lib/core/struct.scm")
@@ -1205,7 +1208,11 @@
 		      (sagittarius compiler match)
 		      (sagittarius compiler util)
 		      (sagittarius vm)
-		      (sagittarius vm instruction)) #f)))
+		      (sagittarius vm instruction)) #f)
+    ;; these are only for performance
+    (,*exc-lib* #f () #t)
+    (,*arith-lib* #f () #t)))
+  
     
 
 (define (main args)

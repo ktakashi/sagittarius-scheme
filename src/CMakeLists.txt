@@ -33,12 +33,13 @@ SET(SAGITTARIUS_LIB_SOURCE
   closure.c        instruction.c
   code.c           macro.c
   vm.c             core.c
-  record.c
+  record.c         exceptions.c
   # libraries
   proclib.c        null.c
   vmlib.c          vmdebug.c
   compiler-aux.c   lib_scmlib.c
-  extlib.c
+  extlib.c         lib_exceptions.c
+  lib_arith.c
 )
 
 ADD_LIBRARY(sagittarius SHARED 

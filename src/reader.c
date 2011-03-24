@@ -547,7 +547,7 @@ SgObject read_list(SgPort *port, SgReaderContext *ctx, int bracketedp, int vecto
       SgVM *vm = Sg_VM();
       SgObject generic = Sg_Memq(token, vm->defaultConstructors);
       if (!SG_FALSEP(generic)) {
-	generic = Sg_RetrieveGeneric(SG_CAR(generic));
+	generic = Sg_RetrieveGeneric(SG_CAR(generic), SG_FALSE);
 	SgObject args = read_list(port, ctx, bracketedp, vectorp);
 	SgObject ret = Sg_Apply(SG_GENERIC_READER(generic), args);
 	return ret;

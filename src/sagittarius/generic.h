@@ -99,7 +99,7 @@ SG_EXTERN SgObject Sg_MakeGeneric(SgSymbol *name, SgObject printer,
 				  SgObject constructor, SgObject fields);
 SG_EXTERN void     Sg_RegisterGeneric(SgSymbol *name, SgGeneric *generic, SgObject library);
 SG_EXTERN SgObject Sg_CreateInstance(SgGeneric *generic);
-SG_EXTERN SgObject Sg_RetrieveGeneric(SgSymbol *name);
+SG_EXTERN SgObject Sg_RetrieveGeneric(SgSymbol *name, SgObject maybeLibrary);
 /* simple accessor */
 SG_EXTERN SgObject Sg_GenericRef(SgObject obj, SgObject name);
 SG_EXTERN void     Sg_GenericSet(SgObject obj, SgObject name, SgObject value);
@@ -112,6 +112,7 @@ SG_EXTERN SgObject Sg_MakeTuple(int size, SgObject fill, SgObject printer);
 SG_EXTERN void     Sg_TupleListSet(SgObject tuple, SgObject lst);
 SG_EXTERN void     Sg_TupleSet(SgObject tuple, int i, SgObject value);
 SG_EXTERN SgObject Sg_TupleRef(SgObject tuple, int i, SgObject fallback);
+SG_EXTERN int      Sg_TupleSize(SgObject tuple);
 
 SG_CDECL_END
 

@@ -61,7 +61,7 @@ static inline SgObject make_rtd(SgObject name, SgObject parent, SgObject uid,
 			 int sealedP, int opaqueP, SgObject fields)
 {
   SgObject generic, rtd;
-  generic = Sg_RetrieveGeneric(SG_SYMBOL_RTD);
+  generic = Sg_RetrieveGeneric(SG_SYMBOL_RTD, SG_INTERN("null"));
   rtd =  Sg_CreateInstance(SG_GENERIC(generic));
   Sg_GenericSet(rtd, SG_INTERN("name"), name);
   Sg_GenericSet(rtd, SG_INTERN("parent"), parent);
@@ -96,16 +96,21 @@ static SgObject print_rtd(SgObject *args, int argc, void *data)
   }
   argumentAsInstance(0, i_scm, i);
   Sg_Putuz(p, UC("#<rtd "));
+
   Sg_Write(RTD_NAME(i), p, SG_WRITE_DISPLAY);
   Sg_Putc(p, ' ');
   Sg_Write(RTD_PARENT(i), p, SG_WRITE_DISPLAY);
-  Sg_Putc(p, ' ');
-  Sg_Write(RTD_UID(i), p, SG_WRITE_DISPLAY);
-  Sg_Putc(p, ' ');
-  Sg_Write(RTD_SEALED(i), p, SG_WRITE_DISPLAY);
-  Sg_Putc(p, ' ');
-  Sg_Write(RTD_OPAQUE(i), p, SG_WRITE_DISPLAY);
-  Sg_Putc(p, ' ');
+
+  if (!SG_FALSEP(RTD_UID(i))) {
+    Sg_Putc(p, ' ');
+    Sg_Write(RTD_UID(i), p, SG_WRITE_DISPLAY);
+  }
+  if (RTD_SEALEDP(i)) {
+    Sg_Putuz(p, UC(" sealed"));
+  }
+  if (RTD_OPAQUEP(i)) {
+    Sg_Putuz(p, UC(" opaque"));
+  }
   //Sg_Write(RTD_FIELDS(i), p, SG_WRITE_DISPLAY);
   Sg_Putc(p, '>');
   return SG_UNDEF;
@@ -125,7 +130,7 @@ static inline SgObject make_rcd(SgObject rtd, SgObject protocol,
 				int custom_protocolP, SgObject parent)
 {
   SgObject generic, rcd;
-  generic = Sg_RetrieveGeneric(SG_SYMBOL_RCD);
+  generic = Sg_RetrieveGeneric(SG_SYMBOL_RCD, SG_INTERN("null"));
   rcd =  Sg_CreateInstance(SG_GENERIC(generic));
   Sg_GenericSet(rcd, SG_INTERN("rtd"), rtd);
   Sg_GenericSet(rcd, SG_INTERN("protocol"), protocol);
@@ -156,8 +161,9 @@ static SgObject print_rcd(SgObject *args, int argc, void *data)
   Sg_Putuz(p, UC("#<rcd "));
   Sg_Write(RCD_RTD(i), p, SG_WRITE_DISPLAY);
   Sg_Putc(p, ' ');
-  Sg_Write(RCD_CUSTOM(i), p, SG_WRITE_DISPLAY);
-  Sg_Putc(p, ' ');
+  if (RCD_CUSTOMP(i)) {
+    Sg_Putuz(p, UC("custom "));
+  }
   Sg_Write(RCD_PROTOCOL(i), p, SG_WRITE_DISPLAY);
   Sg_Putc(p, ' ');
   Sg_Write(RCD_PARENT(i), p, SG_WRITE_DISPLAY);

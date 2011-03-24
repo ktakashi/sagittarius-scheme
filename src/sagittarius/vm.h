@@ -159,6 +159,7 @@ struct SgVMRec
   SgObject    dynamicWinders;
   /* exception handler */
   SgObject    exceptionHandler;
+  SgObject    parentExHandler;
 
   /* gc related */
   int finalizerPending;
@@ -244,7 +245,7 @@ SG_EXTERN SgObject Sg_VMCurrentLibrary();
 
 /* exception */
 SG_EXTERN SgObject Sg_GetStackTrace();
-SG_EXTERN SgObject Sg_VMThrowException(SgVM *vm, SgObject exception);
+SG_EXTERN SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP);
 SG_EXTERN void     Sg_VMDefaultExceptionHandler(SgObject exception);
 SG_EXTERN SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk);
 

@@ -70,8 +70,13 @@ struct SgRecordTypeRec {
 #define SG_RECORD_TYPE_RTD(obj) (SG_RECORD_TYPE(obj)->rtd)
 #define SG_RECORD_TYPE_RCD(obj) (SG_RECORD_TYPE(obj)->rcd)
 
-#define SG_STATIC_RECORD_TYPE(name_, rtd_, rcd_)	\
-  {MAKE_HDR_VALUE(TC_RECORD_TYPE), name_, rtd_, rcd_}
+#define SG_INIT_RECORD_TYPE(rt, name_, rtd_, rcd_)	\
+  do {							\
+    SG_SET_HEADER((rt), TC_RECORD_TYPE);		\
+    (rt)->name = name_;					\
+    (rt)->rtd = rtd_;					\
+    (rt)->rcd = rcd_;					\
+  } while (0)
 
 SG_CDECL_BEGIN
 

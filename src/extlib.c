@@ -110,15 +110,22 @@ static SgObject _sagittarius_retrieve_generic(SgObject *args, int argc, void *da
   DeclareProcedureName("retrieve-generic");
   SgObject name_scm;
   SgSymbol *name;
-  checkArgumentLength(1);
+  SgObject maybeLibrary;
+  checkArgumentLengthBetween(1, 2);
   argumentAsSymbol(0, name_scm, name);
+  if (argc >= 2) {
+    argumentRef(1, maybeLibrary);
+  } else {
+    maybeLibrary = SG_MAKE_BOOL(FALSE);
+  }
+
   {
-SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_RetrieveGeneric(name);
+SgObject SG_RETURN = SG_UNDEF;SG_RETURN = Sg_RetrieveGeneric(name, maybeLibrary);
 ;
     return SG_RETURN;
   }
 }
-static SG_DEFINE_SUBR(_sagittarius_retrieve_generic_Stub, 1, 0, _sagittarius_retrieve_generic, SG_FALSE, NULL);
+static SG_DEFINE_SUBR(_sagittarius_retrieve_generic_Stub, 1, 1, _sagittarius_retrieve_generic, SG_FALSE, NULL);
 
 static SgObject _sagittarius_create_instance(SgObject *args, int argc, void *data_)
 {
@@ -190,24 +197,24 @@ static SG_DEFINE_SUBR(_sagittarius_vector_copy_Stub, 1, 3, _sagittarius_vector_c
 void Sg__Init_sagittarius()
 {
   SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC("(sagittarius)"), SG_LITERAL_STRING)), TRUE);
-  SG_PROCEDURE_NAME(&_sagittarius_retrieve_generic_Stub) = Sg_MakeString(UC("retrieve-generic"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("retrieve-generic"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_retrieve_generic_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_generic_set21_Stub) = Sg_MakeString(UC("generic-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("generic-set!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_generic_set21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_make_generic_Stub) = Sg_MakeString(UC("make-generic"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-generic"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_make_generic_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vector_copy_Stub) = Sg_MakeString(UC("vector-copy"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector-copy"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vector_copy_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_make_syntax_object_Stub) = Sg_MakeString(UC("make-syntax-object"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-syntax-object"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_make_syntax_object_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_create_instance_Stub) = Sg_MakeString(UC("create-instance"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("create-instance"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_create_instance_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_generic_ref_Stub) = Sg_MakeString(UC("generic-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("generic-ref"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_generic_ref_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_register_generic_Stub) = Sg_MakeString(UC("register-generic"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("register-generic"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_register_generic_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_identifier3f_Stub) = Sg_MakeString(UC("identifier?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("identifier?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_identifier3f_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_closure3f_Stub) = Sg_MakeString(UC("closure?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("closure?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_closure3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_create_instance_Stub) = Sg_MakeString(UC("create-instance"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("create-instance"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_create_instance_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_generic_set21_Stub) = Sg_MakeString(UC("generic-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("generic-set!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_generic_set21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_make_generic_Stub) = Sg_MakeString(UC("make-generic"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-generic"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_make_generic_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_generic_ref_Stub) = Sg_MakeString(UC("generic-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("generic-ref"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_generic_ref_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_make_syntax_object_Stub) = Sg_MakeString(UC("make-syntax-object"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-syntax-object"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_make_syntax_object_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_retrieve_generic_Stub) = Sg_MakeString(UC("retrieve-generic"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("retrieve-generic"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_retrieve_generic_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vector_copy_Stub) = Sg_MakeString(UC("vector-copy"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector-copy"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vector_copy_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_register_generic_Stub) = Sg_MakeString(UC("register-generic"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("register-generic"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_register_generic_Stub));
 }

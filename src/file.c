@@ -46,7 +46,7 @@
 static SgObject make_file_options()
 {
   SgObject generic;
-  generic = Sg_RetrieveGeneric(SG_INTERN("file-options"));
+  generic = Sg_RetrieveGeneric(SG_INTERN("file-options"), SG_FALSE);
   return Sg_CreateInstance(SG_GENERIC(generic));
 }
 

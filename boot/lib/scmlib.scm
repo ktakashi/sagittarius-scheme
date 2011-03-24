@@ -23,59 +23,6 @@
 (define (cdddar x) (cdr (cdr (cdr (car x)))))
 (define (cddddr x) (cdr (cdr (cdr (cdr x)))))
 
-;;;;;
-;; arithmetic
-(define gcd
-  (lambda args
-    (define recn
-      (lambda (arg args)
-	(if (null? args)
-	    arg
-	    (recn (%gcd arg (car args)) (cdr args)))))
-    (let ((args (map (lambda (arg)
-		       (unless (integer? arg)
-			 (error 'gcd "integer required, but got" arg))
-		       (abs arg))
-		     args)))
-      (cond ((null? args) 0)
-	    ((null? (cdr args)) (car args))
-	    (else (recn (car args) (cdr args)))))))
-
-(define lcm
-  (lambda args
-    (define lcm2
-      (lambda (u v)
-	(let ((g (%gcd u v)))
-	  (if (zero? u) 0 (* (quotient u g) v)))))
-    (define recn
-      (lambda (arg args)
-	(if (null? args)
-	    arg
-	    (recn (lcm2 arg (car args)) (cdr args)))))
-    (let ((args (map (lambda (arg)
-		       (unless (integer? arg)
-			 (error 'lcm "integer required, but got" arg))
-		       (abs arg))
-		     args)))
-      (cond ((null? args) 1)
-	    ((null? (cdr args)) (car args))
-	    (else (recn (car args) (cdr args)))))))
-
-(define (div-and-mod x y)
-  (let ((d (div x y))
-	(m (mod x y)))
-    (values d m)))
-
-(define (div0-and-mod0 x y)
-  (let ((d0 (div0 x y))
-	(m0 (mod0 x y)))
-    (values d0 m0)))
-
-(define (list-tail ls k)
-  (if (eq? k 0)
-      ls
-      (list-tail (cdr ls) (- k 1))))
-
 (define (hashtable-for-each proc ht)
   (for-each proc (hashtable-keys ht) (hashtable-values ht)))
 
@@ -315,6 +262,15 @@
             (lambda field-values
               (apply p field-values)))))))
 
+;;;;;
+;; errors
+;; from Ypsilon
+(define filter
+  (lambda (pred lst)
+    (let loop ((lst lst))
+      (cond ((null? lst) '())
+            ((pred (car lst)) (cons (car lst) (loop (cdr lst))))
+            (else (loop (cdr lst)))))))
 
 ;; from srfi-1 split-at
 (define split-at

@@ -48,6 +48,7 @@ extern void Sg__InitString();
 extern void Sg__InitKeyword();
 extern void Sg__InitFile();
 extern void Sg__InitRecord();
+extern void Sg__InitConsitions();
 extern void Sg__InitReader();
 extern void Sg__InitVM();
 
@@ -62,6 +63,9 @@ extern void Sg__Initnull();
 extern void Sg__Init_core_base();
 extern void Sg__Init_sagittarius_compiler_util();
 extern void Sg__Init_sagittarius_compiler();
+/* these must be the last */
+extern void Sg__Init_core_exceptions();
+extern void Sg__Init_core_arithmetic();
 
 void Sg_Init()
 {
@@ -102,11 +106,18 @@ void Sg_Init()
   /* generic initialization must be after the libraries initialization */
   Sg__InitFile();
   Sg__InitRecord();
+  Sg__InitConsitions();
+
+  /* even these files need to be ordered */
+  Sg__Init_core_exceptions();
+  Sg__Init_core_arithmetic();
 
   /* TODO should this be here? */
   Sg_ImportLibrary(Sg_VM()->currentLibrary, SG_OBJ(SG_INTERN("null")));
   Sg_ImportLibrary(Sg_VM()->currentLibrary, SG_OBJ(SG_INTERN("(sagittarius)")));
+
 #if 1
+  /* why do we need thig? */
   Sg_ImportLibrary(SG_OBJ(SG_INTERN("(sagittarius compiler)")),
 		   SG_OBJ(SG_INTERN("null")));
   Sg_ImportLibrary(SG_OBJ(SG_INTERN("(sagittarius compiler)")),

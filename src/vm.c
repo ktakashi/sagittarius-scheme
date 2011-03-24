@@ -54,6 +54,7 @@
 #include "sagittarius/vector.h"
 #include "sagittarius/compare.h"
 #include "sagittarius/system.h"
+#include "sagittarius/exceptions.h"
 
 static SgVM *rootVM = NULL;
 /* TODO multi thread */
@@ -104,6 +105,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->finalizerPending = FALSE;
 
   v->dynamicWinders = SG_NIL;
+  v->parentExHandler = SG_FALSE;
   v->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
 
   v->currentInputPort = Sg_MakeTranscodedInputPort(Sg_StandardInputPort(),
@@ -546,15 +548,44 @@ static SgObject dynamic_wind_after_cc(SgObject result, void **data)
 
 static SgObject install_xhandler(SgObject *args, int argc, void *data)
 {
-  Sg_VM()->exceptionHandler = SG_OBJ(data);
+  Sg_VM()->exceptionHandler = SG_CAR(SG_OBJ(data));
+  Sg_VM()->parentExHandler = SG_CDR(SG_OBJ(data));
   return SG_UNDEF;
+}
+
+/*
+  trick to avoid infinite loop in with-exception-handler.
+  before running the given user defined handler, we need to exchange
+  current and parent handlers.
+  (with-exception-handler
+     ;; this is handler 1
+    (lambda (con)
+      (raise con) ;; here if we have the same handler 1, it will be
+                  ;; infinite loop. so we need to lookup parent handler.
+      42)
+    (lambda ()
+      (+ (raise-continuable
+          (condition
+    	(make-warning)
+    	(make-serious-condition)
+    	(make-message-condition
+    	 "should be a number")))
+         23)
+ */
+static SgObject handler_body(SgObject *args, int argc, void *data)
+{
+  Sg_VM()->exceptionHandler = Sg_VM()->parentExHandler;
+  Sg_VM()->parentExHandler = SG_CAR(SG_OBJ(data));
+  return Sg_Apply(SG_CDR(SG_OBJ(data)), SG_LIST1(args[0]));
 }
 
 SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk)
 {
   SgObject current = Sg_VM()->exceptionHandler;
-  SgObject before = Sg_MakeSubr(install_xhandler, handler, 0, 0, SG_FALSE);
-  SgObject after  = Sg_MakeSubr(install_xhandler, current, 0, 0, SG_FALSE);
+  SgObject parent = Sg_VM()->parentExHandler;
+  SgObject handle_body = Sg_MakeSubr(handler_body, Sg_Cons(current, handler), 1, 0, SG_FALSE);
+  SgObject before = Sg_MakeSubr(install_xhandler, Sg_Cons(handle_body, current), 0, 0, SG_FALSE);
+  SgObject after  = Sg_MakeSubr(install_xhandler, Sg_Cons(current, parent), 0, 0, SG_FALSE);
   return Sg_VMDynamicWind(before, thunk, after);
 }
 
@@ -766,26 +797,28 @@ SgObject Sg_GetStackTrace()
   return cur;
 }
 
-SgObject Sg_VMThrowException(SgVM *vm, SgObject exception)
+SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
 {
   if (vm->exceptionHandler != DEFAULT_EXCEPTION_HANDLER) {
-    vm->ac = Sg_Apply(vm->exceptionHandler, SG_LIST1(exception));
-#if 0
-    if (SG_SERIOUS_CONDITION_P(exception)) {
-      Sg_VMDefaultExceptionHandler(exception);
+    if (continuableP) {
+      vm->ac = Sg_Apply(vm->exceptionHandler, SG_LIST1(exception));
+      return vm->ac;
+    } else {
+      Sg_Apply(vm->exceptionHandler, SG_LIST1(exception));
+      if (!SG_FALSEP(vm->parentExHandler)) {
+	return Sg_Apply(vm->parentExHandler, 
+			Sg_Condition(SG_LIST4(Sg_MakeNonContinuableViolation(),
+					      Sg_MakeWhoCondition(SG_INTERN("raise")),
+					      Sg_MakeMessageCondition(Sg_MakeString(UC("returned from non-continuable exception"),
+										    SG_LITERAL_STRING)),
+					      Sg_MakeIrritantsCondition(SG_LIST1(exception)))));
+      }
+      vm->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
+      Sg_Error(UC("error in raise: returned from non-continuable exception\n\nirritants:\n%A"), exception);
     }
-#endif
-    return vm->ac;
   }
   Sg_VMDefaultExceptionHandler(exception);
-  return SG_UNDEF;
-
-#if 0
-  SgObject stackTrace = Sg_GetStackTrace();
-  /* TODO get stack trace */
-  vm->error = Sg_Cons(exception, stackTrace);
-  longjmp(vm->returnPoint, -1);
-#endif
+  return SG_UNDEF;		/* dummy */
 }
 
 #ifndef EX_SOFTWARE

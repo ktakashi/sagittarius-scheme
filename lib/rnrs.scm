@@ -49,6 +49,28 @@
      #;(rnrs unicode (6))
 
      #;(rnrs bytevectors (6))
+     endianness native-endianness
+     bytevector? make-bytevector bytevector-length bytevector=?
+     bytevector-fill! bytevector-copy! bytevector-copy
+     bytevector-u8-ref bytevector-s8-ref bytevector-u8-set! bytevector-s8-set!
+     bytevector->u8-list u8-list->bytevector
+     bytevector-u16-ref bytevector-s16-ref bytevector-u16-native-ref bytevector-s16-native-ref
+     bytevector-u16-set! bytevector-s16-set! bytevector-u16-native-set! bytevector-s16-native-set!
+     bytevector-u32-ref bytevector-s32-ref bytevector-u32-native-ref bytevector-s32-native-ref
+     bytevector-u32-set! bytevector-s32-set! bytevector-u32-native-set! bytevector-s32-native-set!
+     bytevector-u64-ref bytevector-s64-ref bytevector-u64-native-ref bytevector-s64-native-ref
+     bytevector-u64-set! bytevector-s64-set! bytevector-u64-native-set! bytevector-s64-native-set!
+     bytevector-ieee-single-ref bytevector-ieee-single-native-ref
+     bytevector-ieee-single-set! bytevector-ieee-single-native-set!
+     bytevector-ieee-double-ref bytevector-ieee-double-native-ref
+     bytevector-ieee-double-set! bytevector-ieee-double-native-set!
+     bytevector-uint-ref bytevector-sint-ref
+     bytevector-uint-set!  bytevector-sint-set!
+     bytevector->uint-list bytevector->sint-list
+     uint-list->bytevector sint-list->bytevector
+     string->utf8 utf8->string
+     string->utf16 utf16->string
+     string->utf32 utf32->string
 
      #;(rnrs lists (6))
      find for-all exists
@@ -71,8 +93,26 @@
      #;(rnrs records inspection (6))
 
      #;(rnrs exceptions (6))
+     with-exception-handler guard raise raise-continuable
 
      #;(rnrs conditions (6))
+     &condition
+     condition simple-conditions condition?
+     condition-predicate condition-accessor
+     define-condition-type
+     &message make-message-condition message-condition? condition-message
+     &warning make-warning warning?
+     &serious make-serious-condition serious-condition?
+     &error make-error error?
+     &violation make-violation violation?
+     &assertion make-assertion-violation assertion-violation?
+     &irritants make-irritants-condition irritants-condition? condition-irritants
+     &who make-who-condition who-condition? condition-who
+     &non-continuable make-non-continuable-violation non-continuable-violation?
+     &implementation-restriction make-implementation-restriction-violation implementation-restriction-violation?
+     &lexical make-lexical-violation lexical-violation?
+     &syntax make-syntax-violation syntax-violation? syntax-violation-form syntax-violation-subform
+     &undefined make-undefined-violation undefined-violation?
 
      #;(rnrs io ports (6))
      &i/o make-i/o-error i/o-error?
@@ -209,6 +249,23 @@
      #;(rnrs arithmetic flonums (6))
 
      #;(rnrs arithmetic bitwise (6))
+     bitwise-not
+     bitwise-and
+     bitwise-ior
+     bitwise-xor
+     bitwise-if
+     bitwise-bit-count
+     bitwise-length
+     bitwise-first-bit-set
+     bitwise-bit-set?
+     bitwise-copy-bit
+     bitwise-bit-field
+     bitwise-copy-bit-field
+     bitwise-arithmetic-shift
+     bitwise-arithmetic-shift-left
+     bitwise-arithmetic-shift-right
+     bitwise-rotate-bit-field
+     bitwise-reverse-bit-field
 
      #;(rnrs syntax-case (6))
      syntax-case syntax

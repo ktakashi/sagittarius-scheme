@@ -38,8 +38,8 @@
   (define-c-proc generic-set! (g name::Symbol value) ::void
     (Sg_GenericSet g name value))
 
-  (define-c-proc retrieve-generic (name::Symbol) ::Object
-    (result (Sg_RetrieveGeneric name)))
+  (define-c-proc retrieve-generic (name::Symbol :optional (maybeLibrary #f)) ::Object
+    (result (Sg_RetrieveGeneric name maybeLibrary)))
 
   (define-c-proc create-instance (g::Generic) ::Object
     (result (Sg_CreateInstance g)))

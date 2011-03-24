@@ -36,6 +36,7 @@
 #include "sagittarius/port.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/writer.h"
+#include "sagittarius/symbol.h"
 #include "sagittarius/vm.h"
 
 void Sg_Error(const SgChar* fmt, ...)
@@ -49,7 +50,7 @@ void Sg_Error(const SgChar* fmt, ...)
   va_end(ap);
   /* TODO I think we need error type to catch */
   errObj = Sg_GetStringFromStringPort(err);
-  Sg_VMThrowException(Sg_VM(), errObj);
+  Sg_VMThrowException(Sg_VM(), errObj, FALSE);
 }
 
 void Sg_ReadError(const SgChar* fmt, ...)
@@ -64,16 +65,13 @@ void Sg_ReadError(const SgChar* fmt, ...)
 
   /* TODO I think we need error type to catch */
   errObj = Sg_GetStringFromStringPort(err);
-  Sg_VMThrowException(Sg_VM(), errObj);
+  Sg_VMThrowException(Sg_VM(), errObj, FALSE);
 }
 
 void Sg_AssertionViolation(SgObject who, SgObject message, SgObject irritants)
 {
-  /* TODO raise error */
-  /*
-    Sg_Error(UC("%A: %A, irritants %S"), who, message, irritants);
-  */
-  Sg_Error(UC("%A: %A"), who, message);
+  SgObject proc = Sg_FindBinding(SG_INTERN("(core exceptions)"), SG_INTERN("assertion-violation"));
+  Sg_Apply(proc, SG_LIST3(who, message, irritants));
 }
 
 void Sg_WrongTypeOfArgumentViolation(SgObject who, SgObject requiredType,
@@ -109,9 +107,9 @@ void Sg_WrongNumberOfArgumentsBetweenViolation(SgObject who, int startCounts, in
 
 
 /* raise */
-SgObject Sg_Raise(SgObject condition)
+SgObject Sg_Raise(SgObject condition, int continuableP)
 {
-  return Sg_VMThrowException(Sg_VM(), condition);
+  return Sg_VMThrowException(Sg_VM(), condition, continuableP);
 }
 
 /*
