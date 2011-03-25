@@ -49,6 +49,14 @@
 		    (else #f))))
 	(f (car expr) rename compare)))))
 
+;; print
+(define (print . args)
+  (for-each (lambda (arg)
+	      (display arg))
+	    args)
+  (newline))
+
+
 ;; from chibi scheme
 (define (map-onto proc ls init)
   (let lp ((ls ls) (res init))

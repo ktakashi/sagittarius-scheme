@@ -91,10 +91,14 @@ SgObject Sg_MakeStringC(const char *value)
   return SG_OBJ(z);
 }
 
-SgObject Sg_ReserveString(size_t size)
+SgObject Sg_ReserveString(size_t size, SgChar fill)
 {
   SgString *z = make_string(size);
-  memset(z->value, 0, size);
+  int i;
+  for (i = 0; i < size; i++) {
+    z->value[i] = fill;
+  }
+  
   return SG_OBJ(z);
 }
 

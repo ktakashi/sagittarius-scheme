@@ -100,6 +100,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->stack = SG_NEW_ARRAY(SgObject, SG_VM_STACK_SIZE);
   v->sp = v->fp = v->stack;
   v->stackEnd = v->stack + SG_VM_STACK_SIZE;
+  v->cont = NULL;
 
   v->attentionRequest = FALSE;
   v->finalizerPending = FALSE;
@@ -141,6 +142,7 @@ static inline void save_registers(Registers *r)
   r->pc = vm->pc;
   r->spOffset = vm->sp - vm->stack;
   r->fpOffset = vm->fp - vm->stack;
+  r->cont = vm->cont;
 }
 
 static inline void restore_registers(Registers *r)
@@ -152,6 +154,7 @@ static inline void restore_registers(Registers *r)
   vm->pc = r->pc;
   vm->sp = vm->stack + r->spOffset;
   vm->fp = vm->stack + r->fpOffset;
+  vm->cont = r->cont;
 }
 
 static inline void report_error(SgObject exception)
@@ -167,8 +170,9 @@ static inline void report_error(SgObject exception)
     stackTrace = Sg_GetStackTrace();
   }
   Sg_Printf(Sg_StandardErrorPort(),
-	    UC("*error* %A\n"
-	       "stack trace:\n"), error);
+	    UC("*error*\n"
+	       "%A\n"
+	       "stack trace:\n"), Sg_DescribeCondition(error));
   stackTrace = Sg_ReverseX(stackTrace);
   SG_FOR_EACH(cur, stackTrace) {
     SgObject obj, index, proc,
@@ -235,6 +239,10 @@ int Sg_LoadUnsafe(SgString *path)
   bport = Sg_MakeFileBinaryInputPort(file);
   tport = Sg_MakeTranscodedInputPort(bport, Sg_MakeNativeTranscoder());
   
+  if ((Sg_VM()->flags & SG_LOG_LEVEL_MASK) >= SG_INFO_LEVEL) {
+    Sg_Printf(Sg_StandardOutputPort(), UC("loading %S\n"), path);
+  }
+
   /* TODO should it like this? */
   for (o = Sg_Read(tport, TRUE); o != SG_EOF; o = Sg_Read(tport, TRUE)) {
     Sg_VM()->state = COMPILING;
@@ -748,6 +756,7 @@ SgObject Sg_GetStackTrace()
   SgObject cur = SG_NIL;
   SgContFrame *cont = CONT(vm);
   SgObject cl = CL(vm);
+  SgObject prev = SG_UNDEF;
   int i;
   if (!cl) {
     /* before running */
@@ -757,6 +766,10 @@ SgObject Sg_GetStackTrace()
     if (SG_PROCEDUREP(cl)) {
       SgObject name = SG_PROCEDURE_NAME(cl);
       SgObject src = SG_NIL;
+      if (Sg_EqvP(name, prev)) {
+	goto next_cont;
+      }
+      prev = name;
       switch (SG_PROCEDURE_TYPE(cl)) {
       case SG_PROC_SUBR:
 	r = SG_LIST3(SG_INTERN("*cproc*"), name, src);
@@ -775,6 +788,7 @@ SgObject Sg_GetStackTrace()
       ASSERT(FALSE);
     }
     cur = Sg_Acons(SG_MAKE_INT(i), r, cur);
+  next_cont:
     if (cont > vm->stack) {
 
       SgContFrame *nextCont;

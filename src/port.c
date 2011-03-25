@@ -457,7 +457,7 @@ static void string_oport_putchar(SgObject self, SgChar c)
 
   if (current_index + 1 >= current_size) {
     int new_size = current_size + INCREASE_BUFFER_SIZE, i;
-    SgString *tmp = Sg_ReserveString(new_size);
+    SgString *tmp = Sg_ReserveString(new_size, ' ');
     memcpy(SG_STRING_VALUE(tmp), SG_STRING_VALUE(str),
 	   current_index * sizeof(SgChar));
     tp->src.buffer.str = tmp;
@@ -513,7 +513,7 @@ SgObject Sg_MakeStringOutputPort(int bufferSize)
   z->flush = string_port_flush;
   z->close = string_oport_close;
 
-  t->src.buffer.str = Sg_ReserveString(size);
+  t->src.buffer.str = Sg_ReserveString(size, ' ');
   t->src.buffer.index = 0;
   t->src.buffer.lineNo = -1;
   t->getChar = NULL;

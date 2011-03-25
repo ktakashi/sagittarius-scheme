@@ -28,10 +28,20 @@ do_stub()
     cd ../
 }
 
+show_usage()
+{
+    echo "usage: $0 compiler|library|stub|all"
+    echo "    compiler: generate compiler.c"
+    echo "    library:  generate compiled libraries"
+    echo "    stub:     generate stub files"
+    echo "    all:      generate do everything above"
+    echo "  These can be combined and if you did not specify this script"
+    echo "  runs every thing"
+}
 
 param="$@"
 
-if [ $param != "" ] 
+if [ "$param" != "" ] 
 then
     for buf in $param
     do
@@ -45,19 +55,17 @@ then
 	    stub)
 		do_stub
 		;;
+	    all)
+		echo "generate all."
+		do_compile
+		do_library
+		do_stub
+		;;
 	    *)
-		echo "usage: $0 compiler|library|stub"
-		echo "    compiler: generate compiler.c"
-		echo "    library:  generate compiled libraries"
-		echo "    stub:     generate stub files"
-		echo "  These can be combined and if you did not specify this script"
-		echo "  runs every thing"
+		show_usage
 		;;
 	esac
     done
 else
-    echo "generate all."
-    do_compile
-    do_library
-    do_stub
+    show_usage
 fi

@@ -68,9 +68,14 @@ void Sg_ReadError(const SgChar* fmt, ...)
   Sg_VMThrowException(Sg_VM(), errObj, FALSE);
 }
 
+void Sg_SyntaxError(SgObject form, SgObject irritants)
+{
+  Sg_Error(UC("syntax-error: %S, irritants %S"), form, irritants);
+}
+
 void Sg_AssertionViolation(SgObject who, SgObject message, SgObject irritants)
 {
-  SgObject proc = Sg_FindBinding(SG_INTERN("(core exceptions)"), SG_INTERN("assertion-violation"));
+  SgObject proc = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("assertion-violation"));
   Sg_Apply(proc, SG_LIST3(who, message, irritants));
 }
 

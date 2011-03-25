@@ -2,19 +2,7 @@
 (import (rnrs)
 	(sagittarius test))
 
-(define-syntax print
-  (syntax-rules ()
-    ((_)
-     (newline))
-    ((_ o)
-     (begin
-       (display o)
-       (print)))
-    ((_ o1 o2 ...)
-     (begin
-       (display o1)
-       (print o2 ...)))))
-
+(print "test start")
 (run-test
 
  (define v (vector 1 #f #f))

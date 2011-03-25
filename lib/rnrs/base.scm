@@ -47,6 +47,7 @@
     ;; TODO use import only
     (import (core)
 	    (core base)
+	    (core arithmetic)
 	    (core misc)
 	    (core syntax-rules))
 ) ;[end]

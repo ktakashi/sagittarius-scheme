@@ -20,10 +20,12 @@
 	    (core base)
 	    (core misc)
 	    (core struct))
+
   (define-struct <sid>
     (make-sid name expression control)
     sid?
-    #f
+    (lambda (i p)
+      (format p "#<sid ~a ~a>" (sid-name i) (sid-control i)))
     (name sid-name)
     (expression sid-expression)
     (control sid-control)
@@ -123,12 +125,24 @@
 	     (if (id-memq pattern keywords)
 		 sids
 		 (cons (make-sid pattern expression control) sids)))
+	    ;; (p ...)
 	    ((and (zero-or-more? pattern rename compare)
 		  (null? (cddr pattern)))
 	     (let ((variable (gensym "control")))
 	       (loop (car pattern)
 		     variable
 		     sids
+		     (make-sid variable expression control))))
+	    ;; (p ... (e ...))
+	    ((and (zero-or-more? pattern rename compare)
+		  (not (null? (cddr pattern))))
+	     (let ((variable (gensym "control")))
+	       (loop (car pattern)
+		     variable
+		     (loop (cddr pattern)
+			   `(,(rename 'cddr) ,expression)
+			   sids
+			   control)
 		     (make-sid variable expression control))))
 	    ((pair? pattern)
 	     (loop (car pattern)
@@ -161,11 +175,29 @@
 				     #f)))
 				`#t))
 			   ((and (zero-or-more? pattern rename compare)
+				 (null? (cddr pattern))
 				 (null? (cddr expression)))
-			    #;`(,(rename 'if) (,(rename 'null?) ,expression)
-			    #f
-			    ,(do-list (car pattern) expression))
-			    (do-list (car pattern) expression))
+			    `(,(rename 'if) (,(rename 'null?) ,expression)
+			      #f
+			      ,(do-list (car pattern) expression)))
+			    ;(do-list (car pattern) expression))
+			   ((and (zero-or-more? pattern rename compare)
+				 (not (null? (cddr pattern)))
+				 (null? (cddr expression)))
+			    (let ((generate-pair
+				   (lambda (expression)
+				     (conjunction 
+				      `(,(rename 'pair?) ,expression)
+				      (conjunction 
+				       (do-list (car pattern) expression)
+				       (loop (cddr pattern)
+					     `(,(rename 'cddr) ,expression)))))))
+			      ;(print (caddr pattern)","expression)
+			      (if (variable? expression)
+				  (generate-pair expression)
+				  (let ((temp (rename 'temp)))
+				    `(,(rename 'let) ((,temp ,expression))
+				      ,(generate-pair temp))))))
 			   ((pair? pattern)
 			    (let ((generate-pair
 				   (lambda (expression)

@@ -61,11 +61,11 @@
 	(format #t "         (export compile compile-w/o-halt compile-p1 compile-p2 compile-p3~%")
 	(format #t "                 ensure-library-name)~%")
 	(format #t "         (import null (core base) ~%")
-	(format #t "                      (:only (core syntax-rules) :compile)~%")
+	(format #t "                      (for (core syntax-rules) expand)~%")
 	(format #t "                      (sagittarius vm)~%")
 	(format #t "                      (sagittarius vm instruction)~%")
 	(format #t "                      (sagittarius vm debug)~%")
-	(format #t "                      (:only (sagittarius compiler match) :compile)~%")
+	(format #t "                      (for (sagittarius compiler match) expand)~%")
 	(format #t "                      (sagittarius compiler util)~%")
 	(format #t "                      (sagittarius compiler procedure))~%") ;; TODO change import library
 	(let loop ((obj (read)))

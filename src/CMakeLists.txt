@@ -38,7 +38,7 @@ SET(SAGITTARIUS_LIB_SOURCE
   proclib.c        null.c
   vmlib.c          vmdebug.c
   compiler-aux.c   lib_scmlib.c
-  extlib.c         lib_exceptions.c
+  extlib.c         lib_errors.c
   lib_arith.c
 )
 

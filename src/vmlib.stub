@@ -101,8 +101,8 @@
     (result (Sg_MakeMacroTransformer name proc library)))
 
   (define-c-proc call-macro-expander (macro::Macro expr p1env) ::Object
-    (let ((applyArgs (SG_LIST4 macro expr p1env macro->data)))
-      (result (Sg_Apply macro->transformer applyArgs))))
+    (let ((applyArgs (SG_LIST4 macro expr p1env (-> macro data))))
+      (result (Sg_Apply (-> macro transformer) applyArgs))))
 
   (define-c-proc %internal-macro-expand (expr p1env onceP::boolean) ::Object
     (result (Sg_MacroExpand expr p1env onceP)))
@@ -111,7 +111,7 @@
   (define-c-proc make-library (name) ::Object
     (result (Sg_MakeLibrary name)))
 
-  (define-c-proc library? (arg0::Object) ::boolean
+  (define-c-proc library? (arg0) ::boolean
     (result (SG_LIBRARYP arg0)))
 
   (define-c-proc library-name (arg0::Library) ::Object
@@ -120,13 +120,13 @@
   (define-c-proc library-imported (arg0::Library) ::Object
     (result (SG_LIBRARY_IMPORTED arg0)))
 
-  (define-c-proc library-imported-set! (arg0::Library arg1::Object) ::void
+  (define-c-proc library-imported-set! (arg0::Library arg1) ::void
     (set! (SG_LIBRARY_IMPORTED arg0) arg1))
 
   (define-c-proc library-exported (arg0::Library) ::Object
     (result (SG_LIBRARY_IMPORTED arg0)))
 
-  (define-c-proc library-exported-set! (arg0::Library arg1::Object) ::void
+  (define-c-proc library-exported-set! (arg0::Library arg1) ::void
     (set! (SG_LIBRARY_EXPORTED arg0) arg1))
 
   #;(define-c-proc %set-library (arg0::Library) ::void
@@ -139,7 +139,7 @@
     (let ((lib::SgObject (Sg_FindLibrary libname TRUE)))
       (Sg_InsertBinding lib name value)))
 
-  (define-c-proc find-binding (arg0::Object arg1::Symbol) ::Object
+  (define-c-proc find-binding (arg0 arg1::Symbol) ::Object
     (result (Sg_FindBinding arg0 arg1)))
 
   (define-c-proc load-library (to from) ::void

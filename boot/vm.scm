@@ -747,7 +747,7 @@
       (else
        (errorf "invalid vm instruction: ~s[~a]" (lookup-insn-name it) it))))))
 
-(define (vm/apply code . args)
+#;(define (vm/apply code . args)
   (let* ((code-c `#(,FRAME ,(+ (vector-length
 				(if (code-builder? code)
 				    (array-data (code-builder-code code))
@@ -1014,6 +1014,7 @@
 (add-namespace! current-output-port ())
 (add-namespace! format (fmt . o))
 (add-namespace! list o)
+(add-namespace! list-tail (o))
 ;(add-namespace! vector? (o))
 ;(add-namespace! vector o)
 (add-namespace! make-vector (n))
@@ -1065,7 +1066,7 @@
 (add-namespace! hashtable->alist (h) hash-table->alist)
 (add-namespace! hashtable-keys (h) hash-table-keys)
 (add-namespace! hashtable-values (h) hash-table-values)
-(add-namespace! vm/apply (c . a))
+;(add-namespace! vm/apply (c . a))
 (add-namespace! er-rename (a b c))
 (add-namespace! identifier? (i))
 ;(add-namespace! symbol? (s))
@@ -1169,7 +1170,7 @@
 (define *ext-lib* "lib/ext.scm")
 (define *vm-lib* "lib/vm.scm")
 (define *vm-debug* "lib/debug.scm")
-(define *exc-lib* "lib/exceptions.scm")
+(define *exc-lib* "lib/errors.scm")
 (define *arith-lib* "lib/arith.scm")
 (define *insn* "insn.scm")
 ;; syntax-rules
@@ -1181,19 +1182,24 @@
 (define *builtin-libraries* 
   `((,*base-lib* (core base) (null (sagittarius)) #t)
     (,*ext-lib* (sagittarius) (null) #f)
+    ;; these are only for performance
+    ;; in these libraries there are no syntax-rules, so we can import here
+    (,*exc-lib* #f () #t)
+    (,*arith-lib* #f () #t)
+    ;;
     (,*struct-lib* #f () #f)
     (,*misc-lib* #f () #f)
     (,*synhelp-lib* #f () #f)
     (,*synrule-lib* #f () #f)
     (,*match-lib* (sagittarius compiler match)
 		  (null (core base)
-			(:only (core syntax-rules) :compile)
+			(for (core syntax-rules) expand)
 			(sagittarius)) #f)
     (,*compaux* (sagittarius compiler util)
 		(null (core base) 
-		      (:only (core syntax-rules) :compile)
+		      (for (core syntax-rules) expand)
 		      (sagittarius)
-		      (:only (sagittarius compiler match) :compile))
+		      (for (sagittarius compiler match) expand))
 		#t)
     (,*insn* (sagittarius vm instruction)
 	     (null (sagittarius)) #f)
@@ -1209,9 +1215,7 @@
 		      (sagittarius compiler util)
 		      (sagittarius vm)
 		      (sagittarius vm instruction)) #f)
-    ;; these are only for performance
-    (,*exc-lib* #f () #t)
-    (,*arith-lib* #f () #t)))
+    ))
   
     
 

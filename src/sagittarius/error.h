@@ -38,6 +38,7 @@ SG_CDECL_BEGIN
 
 SG_EXTERN void Sg_Error(const SgChar* msg, ...);
 SG_EXTERN void Sg_ReadError(const SgChar* msg, ...);
+SG_EXTERN void Sg_SyntaxError(SgObject form, SgObject irritants);
 
 SG_EXTERN void Sg_AssertionViolation(SgObject who, SgObject message, SgObject irritants);
 

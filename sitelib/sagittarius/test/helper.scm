@@ -8,7 +8,6 @@
 	    generate-reporter)
     (import (rnrs)
 	    (core))
-
   (define current-reporter
     (let ((dict (make-eqv-hashtable)))
       (lambda (id . rep)

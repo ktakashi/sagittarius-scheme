@@ -29,9 +29,9 @@
   (define hashtable-contains? hash-table-exists?)
   (define hashtable-keys hash-table-keys)
   (define hashtable-for-each (lambda (proc ht) (hash-table-for-each ht proc)))
-  (define (syntax-error form)
-    (error "syntax-error:" form))
-  (define (error who msg . irritants)
+  (define (syntax-error form . irritants)
+    (errorf "syntax-error: ~s, irritants ~s" form irritants))
+  (define (scheme-error who msg . irritants)
     (errorf "error ~s: ~s, irritants ~s" who msg irritants))
   (define hashtable->alist hash-table->alist)
   (define (flush-output-port p) (flush))
@@ -396,7 +396,7 @@
 	   ((has-tag? iform $IT) cnt)
 	   ((has-tag? iform $LIST) (sum-items (+ cnt 1) ($*-arg0 iform)))
 	   (else
-	    (error 'iform-count-size-upto 
+	    (scheme-error 'iform-count-size-upto 
 		   "[internal error] iform-count-size-upto: unknown iform tag:"
 		   (iform-tag iform)))
 	   ))))
@@ -627,7 +627,7 @@
 	  (for-each (lambda (elt) (nl (+ ind 2)) (rec (+ ind 2) elt))
 		    ($list-args iform)))
 	 (else 
-	  (error 'pp-iform "unknown tag:" (iform-tag iform)))
+	  (scheme-error 'pp-iform "unknown tag:" (iform-tag iform)))
 	 )))
     (rec 0 iform)
     (newline)))
@@ -642,7 +642,7 @@
     (cond ((symbol? arg) arg)
 	  ((identifier? arg) (id-name arg))
 	  ((lvar? arg) (lvar-name arg))
-	  (else (error 'variable-name "variable required but got:" arg)))))
+	  (else (scheme-error 'variable-name "variable required but got:" arg)))))
 
 ;; I don't think I need this for now, but maybe later.
 (define id->bound-gloc
@@ -666,11 +666,11 @@
 		     ((library? thing) thing)
 		     ((symbol? thing) (find-library thing create?))
 		     (else
-		      (error 'ensure-library
+		      (scheme-error 'ensure-library
 			     (format "~a requires a library name or a library, but got: ~s"
 				     name thing))))))
       (or mod
-	  (error 'ensure-library
+	  (scheme-error 'ensure-library
 		 (format "~a: no such library: ~s" name thing))))))
 
 
@@ -701,7 +701,7 @@
 (define check-toplevel
   (lambda (form p1env)
     (unless (p1env-toplevel? p1env)
-      (error 'syntax-error "the form can appear only in the toplevel:" form))))
+      (syntax-error "the form can appear only in the toplevel:" form))))
 
 (define p1env-lookup
   (lambda (p1env name lookup-as)
@@ -811,7 +811,7 @@
 (define adjust-arglist
   (lambda (reqargs optarg iargs name)
     (unless (argcount-ok? iargs reqargs (> optarg 0))
-      (error 'adjust-arglist
+      (scheme-error 'adjust-arglist
 	     (format "wrong number of arguments: ~s requires ~a, but got ~a"
 		     name reqargs (length iargs))))
     (if (zero? optarg)
@@ -896,7 +896,7 @@
 (define-pass1-syntax (quote form p1env) :null
   (smatch form
     ((- obj) (pass1/quote obj))
-    (else (error 'syntax-error "malformed quote:" form))))
+    (else (syntax-error "malformed quote:" form))))
 
 ;;  based on bdc-scheme start
 ;;  Copyright (c) 1996-2002 Brian D. Carlstrom
@@ -906,7 +906,7 @@
     (cond ((eq? mode 'quote) (list 'quote arg))
 	  ((eq? mode 'unquote) arg)
 	  ((eq? mode 'unquote-splicing)
-	   (error 'quasiquote ",@ in invalid context" arg))
+	   (scheme-error 'quasiquote ",@ in invalid context" arg))
 	  (else (cons mode arg)))))
 (define descend-quasiquote
   (lambda (x level return)
@@ -975,7 +975,7 @@
 (define-pass1-syntax (quasiquote form p1env) :null
   (smatch form
     ((- obj) (pass1 (pass1/quasiquote (cadr form) 0) p1env))
-    (- (error 'syntax-error "malformed quasiquote" form))))
+    (- (syntax-error "malformed quasiquote" form))))
 
 
 (define pass1/define
@@ -987,13 +987,13 @@
 			(,lambda. ,args ,@body))
 		     oform flags module p1env))
       ((- name expr)
-       (unless (variable? name) (error 'syntax-error "malformed define" oform))
+       (unless (variable? name) (syntax-error "malformed define" oform))
        (let ((p1env (p1env-add-name p1env (variable-name name))))
 	 ($define oform
 		  flags
 		  (make-identifier (unwrap-syntax name) '() module)
 		  (pass1 (caddr form) (p1env-add-name p1env name)))))
-      (- (error 'syntax-error "malformed define" oform)))))
+      (- (syntax-error "malformed define" oform)))))
 
 (define-pass1-syntax (define form p1env) :null
   (pass1/define form form '() (p1env-library p1env) p1env))
@@ -1026,7 +1026,7 @@
 			 (p1env-add-name p1env (variable-name name)))))
        (%insert-binding (p1env-library p1env) name transformer)
        ($undef)))
-    (- (error 'syntax-error "malformed define-syntax" form))))
+    (- (syntax-error "malformed define-syntax" form))))
 
 (define-pass1-syntax (let-syntax form p1env) :null
   (smatch form
@@ -1040,7 +1040,7 @@
 	    (newenv (p1env-extend p1env (%map-cons name trans) SYNTAX)))
        (pass1/body body newenv)))
     (else
-     (error 'syntax-error "malformed let-syntax" form))))
+     (syntax-error "malformed let-syntax" form))))
 
 (define-pass1-syntax (letrec-syntax form p1env) :null
   (smatch form
@@ -1057,13 +1057,13 @@
 		 (cdar (p1env-frames newenv)) trans)
        (pass1/body body newenv)))
     (-
-     (error 'syntax-error "malformed let-syntax" form))))
+     (syntax-error "malformed let-syntax" form))))
 
 ;; 'rename' procedure - we just return a resolved identifier
 (define er-rename
   (lambda (symid p1env dict)
     (unless (variable? symid)
-      (error 'er-macro-transformer "rename procrdure requires a symbol or an identifier, but got " symid))
+      (scheme-error 'er-macro-transformer "rename procrdure requires a symbol or an identifier, but got " symid))
     (if (symbol? symid)
 	(or (hashtable-ref dict symid #f)
 	    (let ((var (p1env-lookup p1env symid SYNTAX)))
@@ -1087,12 +1087,12 @@
 (define-pass1-syntax (%macroexpand form p1env) :sagittarius
   (smatch form
     ((- expr) ($const (%internal-macro-expand expr p1env #f)))
-    (- (error 'syntax-error "malformed %macroexpand" form))))
+    (- (syntax-error "malformed %macroexpand" form))))
 
 (define-pass1-syntax (%macroexpand-1 form p1env) :sagittarius
   (smatch form
     ((- expr) ($const (%internal-macro-expand expr p1env #t)))
-    (- (error 'syntax-error "malformed %macroexpand" form))))
+    (- (syntax-error "malformed %macroexpand" form))))
 
 
 (define pass1/lambda
@@ -1114,7 +1114,7 @@
 (define-pass1-syntax (lambda form p1env) :null
   (smatch form
     ((- formals . body) (pass1/lambda form formals body p1env #f))
-    (- (error 'syntax-error "malformed lambda" form))))
+    (- (syntax-error "malformed lambda" form))))
 
 (define-pass1-syntax (receive form p1env) :sagittarius
   (smatch form
@@ -1124,7 +1124,7 @@
 	      (newenv (p1env-extend p1env (%map-cons args lvars) LEXICAL)))
 	 ($receive form reqargs opt lvars (pass1 expr p1env)
 		   (pass1/body body newenv)))))
-    (- (error 'syntax-error "malformed receive" form))))
+    (- (syntax-error "malformed receive" form))))
 
 ;; let related
 (define-pass1-syntax (let form p1env) :null
@@ -1142,7 +1142,7 @@
 		  expr lvars)
 	     (pass1/body body newenv))))
     ((- name ((var expr) ___) body ___)
-     (unless (variable? name) (error 'syntax-error "bad name for named let" name))
+     (unless (variable? name) (syntax-error "bad name for named let" name))
      (let ((lvar (make-lvar name))
 	   (args (map make-lvar+ var))
 	   (argenv (p1env-sans-name p1env)))
@@ -1156,7 +1156,7 @@
 	       (list lmda)
 	       ($call form ($lref lvar)
 		      (map (lambda (exp) (pass1 exp argenv)) expr))))))
-    (- (error 'syntax-error "malformed let:" form))))
+    (- (syntax-error "malformed let:" form))))
 
 (define-pass1-syntax (let* form p1env) :null
   (smatch form
@@ -1174,7 +1174,7 @@
 	     (lvar-initval-set! lv iexpr)
 	     ($let src 'let (list lv) (list iexpr)
 		   (loop (cdr vars) (cdr inits) newenv #f))))))
-    (- (error 'syntax-error "malformed let*" form))))
+    (- (syntax-error "malformed let*" form))))
 
 (define-pass1-syntax (letrec form p1env) :null
   (pass1/letrec form p1env 'letrec))
@@ -1197,7 +1197,7 @@
 			iexpr))
 		    lvars expr)
 	       (pass1/body body newenv))))
-      (else (error 'syntax-error (format "malformed ~a: ~s" name form))))))
+      (else (syntax-error (format "malformed ~a: ~s" name form))))))
 
 (define-pass1-syntax (do form p1env) :null
   (smatch form
@@ -1222,7 +1222,7 @@
 					       (smatch x
 						 ((() arg) ($lref arg))
 						 (((expr) -) (pass1 expr newenv))
-						 (- (error 'syntax-error "bad update expr in do" form))))
+						 (- (syntax-error "bad update expr in do" form))))
 					     update args)))))
 			  #f)))
        (lvar-initval-set! tmp clo)
@@ -1233,7 +1233,7 @@
 		    ($lref tmp)
 		    (map (lambda (x) (pass1 x (p1env-sans-name p1env))) init)))))
     (-
-     (error 'syntax-error "malformed do" form))))
+     (syntax-error "malformed do" form))))
 
 ;; test related expressions
 (define-pass1-syntax (if form p1env) :null
@@ -1244,7 +1244,7 @@
     ((- test then)
      ($if form (pass1 test (p1env-sans-name p1env))
 	  (pass1 then p1env) ($undef)))
-    (- (error 'syntax-error "malformed if" form))))
+    (- (syntax-error "malformed if" form))))
 
 (define-pass1-syntax (or form p1env) :null
   (define rec
@@ -1254,7 +1254,7 @@
 	((expr) (pass1 expr p1env))
 	((expr . more)
 	 ($if #f (pass1 expr (p1env-sans-name p1env)) ($it) (rec more)))
-	(_ (error 'syntax-error "malformed or" form)))))
+	(_ (syntax-error "malformed or" form)))))
   (rec (cdr form)))
 
 (define-pass1-syntax (and form p1env) :null
@@ -1265,7 +1265,7 @@
 	((expr) (pass1 expr p1env))
 	((expr . more)
 	 ($if #f (pass1 expr (p1env-sans-name p1env)) (rec more) ($it)))
-	(- (error 'syntax-error "malformed and" form)))))
+	(- (syntax-error "malformed and" form)))))
   (rec (cdr form)))
 
 (define-pass1-syntax (when form p1env) :null
@@ -1275,7 +1275,7 @@
        ($if form (pass1 test p1env)
 	    ($seq (imap (lambda (b) (pass1 b p1env)) body))
 	    ($undef))))
-    (- (error 'syntax-error "malformed when" form))))
+    (- (syntax-error "malformed when" form))))
 
 (define-pass1-syntax (unless form p1env) :null
   (smatch form
@@ -1284,7 +1284,7 @@
        ($if form (pass1 test p1env)
 	    ($undef)
 	    ($seq (imap (lambda (b) (pass1 b p1env)) body)))))
-    (- (error 'syntax-error "malformed unless" form))))
+    (- (syntax-error "malformed unless" form))))
 
 (define-pass1-syntax (cond form p1env) :null
   (define process-clauses
@@ -1294,7 +1294,7 @@
 	;; (else . exprs)
 	((((? (lambda (x) (global-eq? x 'else p1env)) -) exprs ___) . rest)
 	 (unless (null? rest)
-	   (error 'syntax-error "'else' clause followed by more clauses"  form))
+	   (syntax-error "'else' clause followed by more clauses"  form))
 	 ($seq (imap (lambda (expr) (pass1 expr p1env)) exprs)))
 	;; (test => proc)
 	(((test (? (lambda (x) (global-eq? x '=> p1env)) -) proc) . rest)
@@ -1322,11 +1322,11 @@
 	      (pass1 test (p1env-sans-name p1env))
 	      ($seq (imap (lambda (expr) (pass1 expr p1env)) exprs))
 	      (process-clauses rest)))
-	(- (error 'syntax-error "bad clause in cond" form)))))
+	(- (syntax-error "bad clause in cond" form)))))
   (smatch form
-    ((-) (error 'syntax-error "at least one clause is required for cond" form))
+    ((-) (syntax-error "at least one clause is required for cond" form))
     ((- clause ___) (process-clauses clause))
-    (else (error 'syntax-error "malformed cond" form))))
+    (else (syntax-error "malformed cond" form))))
 
 (define-pass1-syntax (case form p1env) :null
   (define expand-clauses
@@ -1344,27 +1344,27 @@
 			    ,@(cdar clauses))
 			  (loop (cdr clauses)))))))))
   (smatch form
-    ((-) (error 'syntax-error "at least one clause is required for case" form))
+    ((-) (syntax-error "at least one clause is required for case" form))
     ((- pred clauses ___)
      (let* ((tmp (gensym))
 	    (expanded-clauses (expand-clauses clauses tmp)))
        (let ((expr `(let ((,tmp ,pred))
 		      (cond ,@expanded-clauses))))
        (pass1 expr p1env))))
-    (- (error 'syntax-error "malformed case" form))))
+    (- (syntax-error "malformed case" form))))
 
 ;; set!
 (define-pass1-syntax (set! form p1env) :null
   (smatch form
     ((- name expr)
      (unless (variable? name)
-       (error 'syntax-error "malformed set!" form))
+       (syntax-error "malformed set!" form))
      (let ((var (p1env-lookup p1env name LEXICAL))
 	   (val (pass1 expr p1env)))
        (if (lvar? var)
 	   ($lset var val)
 	   ($gset (ensure-identifier var p1env) val))))
-    (- (error 'syntax-error "malformed set!" form))))
+    (- (syntax-error "malformed set!" form))))
 
 ;; begin
 (define-pass1-syntax (begin form p1env) :null
@@ -1390,20 +1390,26 @@
        ;; TODO naive implementation
        ;; needs to be validated
        (or (= (length etc) 1)
-	   (error 'syntax-error "prefix must have only one symbol:" oform))
+	   (syntax-error "prefix must have only one symbol:" oform))
        (import-rename to from (car etc) #t))
       ((for)
-       ;; TODO how to solve import phase
-       (load-library to from))
-      ((:only)
+       (cond ((memq 'expand etc)
+	      ;; this actually for generating compiled library,
+	      ;; so that we don't have to load libraries which needed only for
+	      ;; macro expantion.
+	      (library-transient-set! from #t)
+	      (load-library to from))
+	     (else
+	      (load-library to from))))
+      #;((:only)
        (case (car etc)
 	 ((:compile)
 	  (load-library to from)
 	  (library-transient-set! from #t))
 	 (else
-	  (error 'syntax-error "malformed import spec" oform))))
+	  (syntax-error "malformed import spec" oform))))
       (else
-       (error 'syntax-error "malformed import spec:" oform)))))
+       (syntax-error "malformed import spec:" oform)))))
 
 (define pass1/import
   (lambda (oform form p1env)
@@ -1452,7 +1458,7 @@
 		 ((:all)
 		  (loop (cdr spec) (cons (car spec) ex) renames))
 		 (else
-		  (error 'syntax-error
+		  (syntax-error
 			 (format "unsupported export keyword ~s" (car spec))
 			 oform))))
 	      ((and (pair? (car spec))
@@ -1473,9 +1479,9 @@
 				   (caar rename)
 				   r)))
 		       (else
-			(error 'syntax-error "malformed rename clause in export spec" oform)))))
+			(syntax-error "malformed rename clause in export spec" oform)))))
 	      (else
-	       (error 'syntax-error "unknown object appeared in export spec" (car spec))))))
+	       (syntax-error "unknown object appeared in export spec" (car spec))))))
     (receive (exports renames) (parse-export (cdr export))
       (library-exported-set! (p1env-library newenv)
 			     (cons exports renames)))))
@@ -1488,7 +1494,7 @@
   (define check
     (lambda (tag clause name)
       (or (eq? (car clause) tag)
-	  (error 'syntax-error
+	  (syntax-error
 		 (format "malformed ~s clause in library ~s"
 			 tag name)
 		 clause))))
@@ -1511,7 +1517,7 @@
 			 (list ($undef))))))
 	   ;;(vm-current-library save) ;; restore current library
 	 r)))
-    (- (error 'syntax-error "malformed library" form))))
+    (- (syntax-error "malformed library" form))))
 
 
 (define pass1/body
@@ -1527,7 +1533,7 @@
 		  (cond 
 		   (head
 		    (unless (list? args)
-		      (error 'syntax-error "proper list required for function application or macro use" (caar exprs)))
+		      (syntax-error "proper list required for function application or macro use" (caar exprs)))
 		    (cond ((lvar? head)
 			   (pass1/body-finish intdefs exprs p1env))
 			  ((macro? head)
@@ -1539,7 +1545,7 @@
 					(((name . formals) . body)
 					 `(,name (,lambda. ,formals ,@body) . ,src))
 					((var init) `(,var ,init . ,src))
-					(- (error 'syntax-error "malformed internal define" (caar exprs))))))
+					(- (syntax-error "malformed internal define" (caar exprs))))))
 			     (pass1/body-rec rest (cons def intdefs) p1env)))
 			  ((global-eq? head 'begin p1env)
 			   (pass1/body-rec (append (imap (lambda (x) (cons x src)) args) rest)
@@ -1550,7 +1556,7 @@
 				 (pass1/body-macro-expand-rec gloc exprs intdefs p1env)
 				 (pass1/body-finish intdefs exprs p1env))))
 			  (else
-			   (error 'pass1/body "[internal] pass1/body" head))))
+			   (scheme-error 'pass1/body "[internal] pass1/body" head))))
 		   (else #f))))
 	   (pass1/body-finish intdefs exprs p1env)))
       (- (pass1/body-finish intdefs exprs p1env)))))
@@ -1650,7 +1656,7 @@
 		 (let ((nargs (length (cdr form)))
 		       (opt?   (procedure-optional proc)))
 		   (unless (argcount-ok? (cdr form) (procedure-reqargs proc) opt?)
-		     (error 'pass1/expand-inliner
+		     (scheme-error 'pass1/expand-inliner
 			    (format "wrong number of arguments: ~a requires ~a, but got ~a"
 				    (variable-name name) (procedure-reqargs proc) nargs)
 			    form))
@@ -1664,7 +1670,7 @@
     (cond
      ((pair? form)
       (unless (list? form)
-	(error 'pass1 "proper list required for function application or macro use" form))
+	(scheme-error 'pass1 "proper list required for function application or macro use" form))
       (cond
        ((pass1/lookup-head (car form) p1env)
 	=> (lambda (obj)
@@ -1677,7 +1683,7 @@
 		   ((macro? obj) ;; local macro
 		    (pass1 (call-macro-expander obj form p1env) p1env))
 		   (else
-		    (error 'pass1 "[internal] unknown resolution of head:" obj)))))
+		    (scheme-error 'pass1 "[internal] unknown resolution of head:" obj)))))
        ;; TODO there must be top-level-subr, if i make them...
        (else 
 	(pass1/call form (pass1 (car form) (p1env-sans-name p1env))
@@ -1691,7 +1697,7 @@
 	(cond ((lvar? r) ($lref r))
 	      ((identifier? r)
 	       ($gref r))
-	      (else (error 'pass1 "[internal] p1env-lookup returned weird obj:" r)))))
+	      (else (scheme-error 'pass1 "[internal] p1env-lookup returned weird obj:" r)))))
      (else
       ($const form)))))
 
@@ -1738,7 +1744,7 @@
 			(zero? (lvar-set-count ($lref-lvar initval))))
 		   ;; dereference
 		   (when (eq? iform initval)
-		      (error 'pass2/$LREF "circular reference appeared in letrec binding" (lvar-name lvar)))
+		      (scheme-error 'pass2/$LREF "circular reference appeared in letrec binding" (lvar-name lvar)))
 		   (lvar-ref--! lvar)
 		   (lvar-ref++! ($lref-lvar initval))
 		   ($lref-lvar-set! iform ($lref-lvar initval))
@@ -2393,7 +2399,7 @@
 	      ((has-tag? i $LIST)
 	       ($append-map1 (lambda (fm) (rec fm l labels-seen)) ($*-args i)))
 	      (else
-	       (error 'pass3/find-free "unknown iform:" (iform-tag i))))))
+	       (scheme-error 'pass3/find-free "unknown iform:" (iform-tag i))))))
     (uniq (rec iform locals '()))))
 
 (define pass3/find-sets
@@ -2439,7 +2445,7 @@
 	      ((has-tag? i $LIST)
 	       ($append-map1 (lambda (arg) (rec arg labels-seen)) ($*-args i)))
 	      (else
-	       (error 'pass3/find-sets "unknown iform:" (iform-tag i))))))
+	       (scheme-error 'pass3/find-sets "unknown iform:" (iform-tag i))))))
     (uniq (rec iform '()))))
 
 (define pass3/collect-free
@@ -2464,7 +2470,7 @@
 	      (cond ((null? free)
 		     ;; never happen, maybe...
 		     ;(return-global cb (lvar-name lvar) lvar))
-		     (error 'pass3/symbol-lookup "bug? Unknown lvar:" (lvar-name lvar)))
+		     (scheme-error 'pass3/symbol-lookup "bug? Unknown lvar:" (lvar-name lvar)))
 		    ((eq? (car free) lvar)
 		     (return-free cb n lvar))
 		    (else
@@ -3218,7 +3224,7 @@
     (smatch form
       ((- arg)
        ($asm form `(,NUM_EQ) `(,(pass1 arg p1env) ,($const 0))))
-      (- (error 'zero? "wrong number of arguments" form)))))
+      (- (scheme-error 'zero? "wrong number of arguments" form)))))
 
 ;; vector
 (define-builtin-inliner vector-ref :null
@@ -3227,7 +3233,7 @@
       ((- vec ind)
        (asm-arg2 form `(,VEC_REF) vec ind p1env))
       (-
-       (error 'vector-ref "wrong number of arguments" form)))))
+       (scheme-error 'vector-ref "wrong number of arguments" form)))))
 
 (define-builtin-inliner vector-set! :null
   (lambda (form p1env)
@@ -3237,7 +3243,7 @@
 				,(pass1 ind p1env)
 				,(pass1 val p1env))))
       (-
-       (error 'vector-set! "wrong number of arguments" form)))))
+       (scheme-error 'vector-set! "wrong number of arguments" form)))))
 
 (define-builtin-inliner acons :null
   (lambda (form p1env)
@@ -3247,7 +3253,7 @@
 						  ,(pass1 b p1env)))
 			     ,(pass1 c p1env))))
       (-
-       (error 'acons "wrong number of arguments" form)))))
+       (scheme-error 'acons "wrong number of arguments" form)))))
 
 (define integer-fits-insn-arg?
   (lambda (obj)

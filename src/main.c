@@ -184,7 +184,6 @@ int main(int argc, char **argv)
 {
   int opt;
   int optionIndex = 0;
-  char *debugLevel = NULL;
   SgVM *vm;
 
   static struct option long_options[] = {

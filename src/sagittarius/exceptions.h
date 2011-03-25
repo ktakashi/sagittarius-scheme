@@ -78,6 +78,8 @@ SG_EXTERN SgObject Sg_MakeWhoCondition(SgObject who);
 SG_EXTERN SgObject Sg_MakeMessageCondition(SgObject msg);
 SG_EXTERN SgObject Sg_MakeIrritantsCondition(SgObject irritants);
 
+SG_EXTERN SgObject Sg_DescribeCondition(SgObject con);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_EXCEPTIONS_H_ */

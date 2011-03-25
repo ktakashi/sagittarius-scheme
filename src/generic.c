@@ -91,7 +91,11 @@ SgObject Sg_RetrieveGeneric(SgSymbol *name, SgObject maybeLibrary)
 {
   SgLibrary *lib;
   SgObject ret;
-  ENSURE_LIBRARY(maybeLibrary, lib);
+  if (!SG_FALSEP(maybeLibrary)) {
+    ENSURE_LIBRARY(maybeLibrary, lib);
+  } else {
+    lib = SG_FALSE;
+  }
   /* if it's not library, gets current library */
   if (!SG_LIBRARYP(lib)) {
     lib = Sg_VM()->currentLibrary;

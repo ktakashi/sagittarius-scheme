@@ -50,16 +50,6 @@ struct SgBoxRec
 #define SG_BOX(obj)  ((SgBox*)(obj))
 #define SG_BOXP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_BOX))
 
-typedef struct RegistersRec
-{
-  SgWord   *pc;
-  SgObject  ac;
-  SgObject  cl;
-  SgObject  dc;
-  int       spOffset;
-  int       fpOffset;
-} Registers;
-
 typedef struct StackRec
 {
   int      size;
@@ -78,6 +68,18 @@ typedef struct SgContFrameRec
 } SgContFrame;
 
 #define CONT_FRAME_SIZE (sizeof(SgContFrame)/sizeof(SgObject))
+
+typedef struct RegistersRec
+{
+  SgWord   *pc;
+  SgObject  ac;
+  SgObject  cl;
+  SgObject  dc;
+  int       spOffset;
+  int       fpOffset;
+  SgContFrame *cont;
+} Registers;
+
 
 typedef SgObject SgCContinuationProc(SgObject result, void **data);
 

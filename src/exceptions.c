@@ -228,6 +228,12 @@ SgObject Sg_MakeIrritantsCondition(SgObject irritants)
   return Sg_Apply(make_irritants_condition, SG_LIST1(irritants));
 }
 
+SgObject Sg_DescribeCondition(SgObject con)
+{
+  SgObject proc = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("describe-condition"));
+  return Sg_Apply(proc, SG_LIST1(con));
+}
+
 
 /* standard conditions */
 DEF_RECORD_TYPE(message);

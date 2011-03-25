@@ -1,11 +1,17 @@
 ;; -*- scheme -*-
 ;; This file is a part of Sagittarius Scheme system.
 (library (core syntax-rules)
-    (export syntax-rules er-macro-transformer)
+    (export syntax-rules 
+	    er-macro-transformer
+	    syntax-rules2)
     (import null
 	    (sagittarius)
-	    ;(sagittarius vm)
+	    (sagittarius vm)
 	    (core base)
+	    (core errors)
+	    (pp)
+	    ;(core syntax pattern)
+	    ;(core syntax template)
 	    (core syntax helper))
 
   ;; from MIT scheme
@@ -17,11 +23,14 @@
 	     (r-form (rename 'form))
 	     (r-rename (rename 'rename))
 	     (r-compare (rename 'compare)))
+	 (let ((r 
 	 `(,(rename 'er-macro-transformer)
 	   (,(rename 'lambda)
 	    (,r-form ,r-rename ,r-compare)
 	    ,(expand form 'syntax-rules keywords clauses
-		     rename compare generate-output)))))))
+		     rename compare generate-output)))))
+	   (pretty-print (unwrap-syntax r))
+	   r)))))
 
   (define (generate-output oform rename compare
 			   r-form r-rename sids template)
@@ -73,6 +82,6 @@
 				     ,(map sid-name sids)
 				     ,body)
 		     ,@(map sid-expression sids)))))
-	  (error 'syntax-rules "missing ellipsis in expanstion."))))
+	  (assertion-violation 'syntax-rules "missing ellipsis in expansion." (list rename ellipsis body)))))
 
   )

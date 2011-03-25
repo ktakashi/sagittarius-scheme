@@ -64,7 +64,7 @@ extern void Sg__Init_core_base();
 extern void Sg__Init_sagittarius_compiler_util();
 extern void Sg__Init_sagittarius_compiler();
 /* these must be the last */
-extern void Sg__Init_core_exceptions();
+extern void Sg__Init_core_errors();
 extern void Sg__Init_core_arithmetic();
 
 void Sg_Init()
@@ -109,7 +109,7 @@ void Sg_Init()
   Sg__InitConsitions();
 
   /* even these files need to be ordered */
-  Sg__Init_core_exceptions();
+  Sg__Init_core_errors();
   Sg__Init_core_arithmetic();
 
   /* TODO should this be here? */

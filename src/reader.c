@@ -91,15 +91,6 @@ static int delimited(SgChar c)
   return DELIMITER_CHARP(c);
 }
 
-static int compare_cstr_ucs4str(const char* cstr, const SgChar* ustr)
-{
-  int len = strlen(cstr), i, ret;
-  for (i = 0; i < len; i++) {
-    ret &= (cstr[i] == ustr[i]);
-  }
-  return ret;
-}
-
 static SgSharedRef* make_shared_ref(int mark)
 {
   SgSharedRef *z = SG_NEW(SgSharedRef);
@@ -419,7 +410,7 @@ SgObject read_char(SgPort *port, SgReaderContext *ctx)
     }
     if (buf[1] == 0) return SG_MAKE_CHAR(buf[0]);
     for (i = 0; i < array_sizeof(s_char_name); i++) {
-      if (compare_cstr_ucs4str(s_char_name[i].name, buf)) return SG_MAKE_CHAR(s_char_name[i].code);
+      if (ustrcmp(buf, s_char_name[i].name) == 0) return SG_MAKE_CHAR(s_char_name[i].code);
     }
     n = Sg_ConvertUtf8ToUcs4((uint8_t*)buf, &ucs4, SG_ERROR_HANDLING_MODE(port));
     if (n > 0 && buf[n] == 0) return SG_MAKE_CHAR(ucs4);
@@ -599,6 +590,7 @@ SgObject read_string(SgPort *port, SgReaderContext *ctx)
 	Sg_UngetcUnsafe(port, c);
 	continue;
       }
+      Sg_UngetcUnsafe(port, c);
       c = read_escape_sequence(port, ctx);
       buf[i++] = c;
       continue;
@@ -673,7 +665,7 @@ SgObject read_token(SgPort *port, SgReaderContext *ctx)
       if (SG_SYMBOLP(desc)) {
 	SgString *tag = SG_SYMBOL(desc)->name;
 	/* TODO add flags */
-	if (compare_cstr_ucs4str("r6rs", tag->value) == 0) {
+	if (ustrcmp(tag->value, "r6rs") == 0) {
 	}
       }
       goto top;

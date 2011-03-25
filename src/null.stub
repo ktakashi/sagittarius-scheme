@@ -53,7 +53,8 @@
 	    format read
 
 	    ;; error
-	    error raise raise-continuable
+	    syntax-error
+	    scheme-error raise raise-continuable
 
 	    ;; transcoder
 	    native-transcoder
@@ -62,11 +63,12 @@
 	    cons car cdr caar cadr cdar cddr acons cons*
 	    list length append append! reverse
 	    memq memv member assq assv assoc
-	    list->vector list-transpose+ list-tail
+	    list->vector list-transpose+ list-tail last-pair
 
 	    set-car! set-cdr!
 
 	    ;; string
+	    string?
 	    string-length number->string string-append
 	    string->symbol string->list list->string
 
@@ -105,7 +107,7 @@
 	    integer? number? exact? inexact? pair? real?
 	    complex?
 	    null? list? eof-object?
-	    keyword?
+	    keyword? boolean?
 	    not and
 
 	    ;; hashtable
@@ -677,13 +679,24 @@
 	(wrong-type-of-argument-violation 'close-output-port "output port" p))
     (Sg_ClosePort p))
 
+  (define-c-proc current-output-port (:optional (p::Port SG_UNBOUND)) ::Object
+    (let ((vm::SgVM* (Sg_VM)))
+      (if (SG_UNBOUNDP p)
+	  (result (-> vm currentOutputPort))
+	  (begin
+	    (set! (-> vm currentOutputPort) p)
+	    (result SG_UNDEF)))))
+
   (define-c-proc read (:optional (p (Sg_CurrentInputPort))) ::Object
     (if (not (SG_INPORTP p))
 	(wrong-type-of-argument-violation 'read "input port" p))
     (result (Sg_Read p FALSE)))
 
-  (define-c-proc error (who msg :rest irritant) ::void
+  (define-c-proc scheme-error (who msg :rest irritant) ::void
     (Sg_Error "%S %S %S" who msg irritant))
+
+  (define-c-proc syntax-error (form :rest irritant) ::void
+    (Sg_SyntaxError form irritant))
 
   (define-c-proc raise (condition) ::Object
     (result (Sg_Raise condition FALSE)))
@@ -821,7 +834,18 @@
   (define-c-proc list-tail (lst k::fixnum :optional fallback) ::Object
     (result (Sg_ListTail lst k fallback)))
 
+  (define-c-proc last-pair (lst) ::Object
+    (result (Sg_LastPair lst)))
+
   ;; string
+  (define-c-proc string? (s) ::boolean
+    (result (SG_STRINGP s)))
+
+  (define-c-proc make-string (k::fixnum c) ::Object
+    (unless (SG_CHARP c)
+      (wrong-type-of-argument-violation 'make-string "char" c (SG_LIST2 k c)))
+    (result (Sg_ReserveString k (SG_CHAR_VALUE c))))
+
   (define-c-proc string-length (s::String) ::fixnum
     (result s->size))
 
@@ -1344,6 +1368,9 @@ string->utf32 utf32->string
 
   (define-c-proc keyword? (o) ::boolean
     (result (SG_KEYWORDP o)))
+
+  (define-c-proc boolean? (o) ::boolean
+    (result (SG_BOOLP o)))
 
   (define-c-proc not (arg0) ::boolean
     (result (SG_FALSEP arg0)))
