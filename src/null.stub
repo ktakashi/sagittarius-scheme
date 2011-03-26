@@ -71,6 +71,7 @@
 	    string?
 	    string-length number->string string-append
 	    string->symbol string->list list->string
+	    substring
 
 	    ;; vector
 	    vector? vector vector-set! vector-ref
@@ -841,7 +842,7 @@
   (define-c-proc string? (s) ::boolean
     (result (SG_STRINGP s)))
 
-  (define-c-proc make-string (k::fixnum c) ::Object
+  (define-c-proc make-string (k::fixnum :optional (c (SG_MAKE_CHAR #\space))) ::Object
     (unless (SG_CHARP c)
       (wrong-type-of-argument-violation 'make-string "char" c (SG_LIST2 k c)))
     (result (Sg_ReserveString k (SG_CHAR_VALUE c))))
@@ -857,6 +858,50 @@
 				           (precision::fixnum 1)) ::Object
     ;; ignore precision
     (result (Sg_NumberToString z radix FALSE)))
+
+  (define-c-proc substring (s::String start::fixnum end::fixnum) ::Object
+    (when (< start 0)
+      (wrong-type-of-argument-violation 'substring "non negative exact integer"
+					(SG_MAKE_INT start)
+					(SG_LIST3 s (SG_MAKE_INT start) (SG_MAKE_INT end))))
+    (when (< end 0)
+      (wrong-type-of-argument-violation 'substring "non negative exact integer"
+					(SG_MAKE_INT end)
+					(SG_LIST3 s (SG_MAKE_INT start) (SG_MAKE_INT end))))
+    (when (< end start)
+      (assertion-violation 'substring "end index is smaller than start index"
+			   (SG_LIST3 s (SG_MAKE_INT start) (SG_MAKE_INT end))))
+    (when (< (SG_STRING_SIZE s) end)
+      (assertion-violation 'substring "end index out of bounds"
+			   (SG_LIST3 s (SG_MAKE_INT start) (SG_MAKE_INT end))))
+    (result (Sg_Substring s start end)))
+
+  (define-c-proc string-ref (s::String k::fixnum) ::Object
+    (when (< k 0)
+      (wrong-type-of-argument-violation 'string-ref "non negative exact integer"
+					(SG_MAKE_INT k)
+					(SG_LIST2 s (SG_MAKE_INT k))))
+    (when (> k (SG_STRING_SIZE s))
+      (assertion-violation 'string-ref "index out of bounds"
+			   (SG_LIST2 s (SG_MAKE_INT k))))
+    (result (SG_MAKE_CHAR (SG_STRING_VALUE_AT s k))))
+
+  (define-c-proc string-set! (s::String k::fixnum c) ::void
+    (when (< k 0)
+      (wrong-type-of-argument-violation 'string-set! "non negative exact integer"
+					(SG_MAKE_INT k)
+					(SG_LIST3 s (SG_MAKE_INT k) c)))
+    (when (> k (SG_STRING_SIZE s))
+      (assertion-violation 'string-set! "index out of bounds"
+			   (SG_LIST3 s (SG_MAKE_INT k) c)))
+    (unless (SG_CHARP c)
+      (wrong-type-of-argument-violation 'string-set! "character"
+					c
+					(SG_LIST3 s (SG_MAKE_INT k) c)))
+    (when (SG_LITERAL_STRINGP s)
+      (assertion-violation 'string-set! "attempted to modify an immutable string"
+			   s))
+    (set! (SG_STRING_VALUE_AT s k) (SG_CHAR_VALUE c)))
 
   (define-c-proc string->symbol (z::String) ::Object
     (result (Sg_Intern z)))

@@ -205,6 +205,14 @@ SgObject Sg_CopyString(SgString *a)
   return SG_OBJ(s);
 }
 
+SgChar Sg_StringRef(SgString *s, int k)
+{
+  if (k > SG_STRING_SIZE(s) || k < 0) {
+    Sg_Error(UC("string-ref: index out of bounds. %S %d"), s, k);
+  }
+  return SG_STRING_VALUE_AT(s, k);
+}
+
 SgObject Sg_Substring(SgString *x, int start, int end)
 {
   int len = x->size;
@@ -215,6 +223,14 @@ SgObject Sg_Substring(SgString *x, int start, int end)
   memcpy(ret->value, x->value, (end - start) * sizeof(SgChar));
   ret->value[end-start] = 0;
   return ret;
+}
+
+void Sg_StringSet(SgString *s, int k, SgChar c)
+{
+  if (SG_LITERAL_STRINGP(s)) {
+    Sg_Error(UC("attemped to modify a immutable string %S"), s);
+  }
+  SG_STRING_VALUE_AT(s, k) = c;
 }
 
 

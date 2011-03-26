@@ -81,8 +81,10 @@ SG_EXTERN SgObject Sg_StringAppendC(SgString *a, const SgChar *s, int size);
 SG_EXTERN SgObject Sg_StringAppend(SgObject args);
 SG_EXTERN SgObject Sg_CopyString(SgString *a);
 
+SG_EXTERN SgChar   Sg_StringRef(SgString *s, int k);
 /* modify */
 SG_EXTERN SgObject Sg_Substring(SgString *x, int start, int end);
+SG_EXTERN void     Sg_StringSet(SgString *s, int k, SgChar c);
 
 SG_CDECL_END
 
