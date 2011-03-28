@@ -56,6 +56,7 @@
 #include "sagittarius/bytevector.h"
 #include "sagittarius/vm.h"
 #include "sagittarius/record.h"
+#include "sagittarius/port.h"
 #include "sagittarius/builtin-symbols.h"
 
 #define WRITE_LIMITED  0x10
@@ -175,7 +176,134 @@ int Sg_WriteLimited(SgObject obj, SgObject port, int mode, int width)
     args = SG_CDR(args);						\
     argcount++;								\
   } while(0)
+
 #define MAX_PARAMS 5
+
+static void format_pad(SgPort *out, SgString *str,
+		       int mincol, int colinc, SgChar padchar,
+		       int rightalign)
+{
+  int padcount = mincol - SG_STRING_SIZE(str);
+  int i;
+
+  if (padcount > 0) {
+    if (colinc > 1) {
+      padcount = ((padcount + colinc - 1) / colinc) * colinc;
+    }
+    if (rightalign) {
+      for (i = 0; i < padcount; i++) Sg_PutcUnsafe(out, padchar);
+    }
+    Sg_PutsUnsafe(out, str);
+    if (!rightalign) {
+      for (i = 0; i < padcount; i++) Sg_PutcUnsafe(out, padchar);
+    }
+  } else {
+    Sg_PutsUnsafe(out, str);
+  }
+}
+
+/* ~s and ~a writer */
+static void format_sexp(SgPort *out, SgObject arg,
+			SgObject *params, int nparams,
+			int rightalign, int dots, int mode)
+{
+  int mincol = 0, colinc = 1, minpad = 0, maxcol = -1, nwritten = 0, i;
+  SgChar padchar = ' ';
+  SgObject tmpout;
+  SgString *tmpstr;
+  
+  if (nparams > 0 && SG_INTP(params[0])) mincol = SG_INT_VALUE(params[0]);
+  if (nparams > 1 && SG_INTP(params[1])) colinc = SG_CHAR_VALUE(params[1]);
+  if (nparams > 2 && SG_INTP(params[2])) minpad = SG_CHAR_VALUE(params[2]);
+  if (nparams > 3 && SG_CHARP(params[3])) padchar = SG_CHAR_VALUE(params[3]);
+  if (nparams > 4 && SG_INTP(params[4])) maxcol = SG_INT_VALUE(params[4]);
+
+  tmpout = Sg_MakeStringOutputPort((maxcol > 0) ? maxcol
+				   : (minpad > 0) ? minpad
+				   : 0);
+  if (minpad > 0 && rightalign) {
+    for (i = 0; i < minpad; i++) Sg_PutcUnsafe(tmpout, padchar);
+  }
+  if (maxcol > 0) {
+    nwritten = Sg_WriteLimited(arg, tmpout, mode, maxcol);
+  } else {
+    Sg_Write(arg, tmpout, mode);
+  }
+  if (minpad > 0 && !rightalign) {
+    for (i = 0; i < minpad; i++) Sg_PutcUnsafe(tmpout, padchar);
+  }
+  tmpstr = SG_STRING(Sg_GetStringFromStringPort(tmpout));
+
+  if (maxcol > 0 && nwritten < 0) {
+    const SgChar *s = SG_STRING_VALUE(tmpstr);
+    int size = SG_STRING_SIZE(tmpstr);
+    if (dots && maxcol > 4) {
+      for (i = 0; i < size - 4; i++) {
+	Sg_PutcUnsafe(out, *s++);
+      }
+      Sg_PutuzUnsafe(out, UC(" ..."));
+    } else {
+      for (i = 0; i < size; i++) {
+	Sg_PutcUnsafe(out, *s++);
+      }
+    }
+  } else {
+    format_pad(out, tmpstr, mincol, colinc, padchar, rightalign);
+  }
+}
+
+/* ~d, ~b, ~o and ~x */
+static void format_integer(SgPort *out, SgObject arg, SgObject *params, int nparams,
+			   int radix, int delimited, int alwayssign, int use_upper)
+{
+  int mincol = 0, commainterval = 3;
+  SgChar padchar = ' ', commachar = ',';
+  SgObject str;
+  if (!Sg_IntegerP(arg)) {
+    SgWriteContext ictx;
+    ictx.mode = SG_WRITE_DISPLAY;
+    ictx.flags = 0;
+    format_write(arg, out, &ictx, FALSE);
+    return;
+  }
+  if (SG_FLONUMP(arg)) arg = Sg_Exact(arg);
+  if (nparams > 0 && SG_INTP(params[0])) mincol = SG_INT_VALUE(params[0]);
+  if (nparams > 1 && SG_CHARP(params[1])) padchar = SG_CHAR_VALUE(params[1]);
+  if (nparams > 2 && SG_CHARP(params[2])) commachar = SG_CHAR_VALUE(params[2]);
+  if (nparams > 3 && SG_INTP(params[3])) commainterval = SG_INT_VALUE(params[3]);
+  str = Sg_NumberToString(arg, radix, use_upper);
+  if (alwayssign && SG_STRING_VALUE_AT(str, 0) != '-') {
+    str = Sg_StringAppend2(Sg_MakeString(UC("+"), SG_LITERAL_STRING),
+			   str);
+  }
+  if (delimited && commainterval) {
+    int i;
+    const SgChar *ptr = SG_STRING_VALUE(str);
+    unsigned int num_digits = SG_STRING_SIZE(str), colcnt;
+    SgObject strout = Sg_MakeStringOutputPort(num_digits + (num_digits % commainterval));
+
+    if (*ptr == '-' || *ptr == '+') {
+      Sg_PutcUnsafe(strout, *ptr);
+      ptr++;
+      num_digits--;
+    }
+    colcnt = num_digits % commainterval;
+    if (colcnt != 0) {
+      for (i = 0; i < colcnt; i++) {
+	Sg_Putc(strout, *(ptr + i));
+      }
+    }
+    while (colcnt < num_digits) {
+      if (colcnt != 0) Sg_PutcUnsafe(strout, commachar);
+      for (i = 0; i < commainterval; i++) {
+	Sg_Putc(strout, *(ptr + colcnt + i));
+      }
+      colcnt += commainterval;
+    }
+    str = Sg_GetStringFromStringPort(strout);
+  }
+  format_pad(out, SG_STRING(str), mincol, 1, padchar, TRUE);
+}
 
 static void format_proc(SgPort *port, SgString *fmt, SgObject args, int sharedp)
 {
@@ -213,6 +341,8 @@ static void format_proc(SgPort *port, SgString *fmt, SgObject args, int sharedp)
       Sg_PutcUnsafe(port, ch);
       continue;
     }
+    numParams = 0;
+    atflag = colonflag = FALSE;
     for (;;) {
       ch = Sg_GetcUnsafe(fmtstr);
       switch (ch) {
@@ -225,16 +355,119 @@ static void format_proc(SgPort *port, SgString *fmt, SgObject args, int sharedp)
 	break;
       case 's': case 'S':
 	NEXT_ARG(arg, args);
-	format_write(arg, port, &sctx, sharedp);
+	if (numParams == 0) {
+	  format_write(arg, port, &sctx, sharedp);
+	} else {
+	  format_sexp(port, arg, params, numParams, atflag, colonflag,
+		      sharedp ? SG_WRITE_SHARED : SG_WRITE_WRITE);
+	}
 	break;
       case 'a': case 'A':
 	NEXT_ARG(arg, args);
-	format_write(arg, port, &actx, sharedp);
+	if (numParams == 0) {
+	  format_write(arg, port, &actx, sharedp);
+	} else {
+	  format_sexp(port, arg, params, numParams, atflag, colonflag,
+		      SG_WRITE_DISPLAY);
+	}
 	break;
       case 'd': case 'D':
 	NEXT_ARG(arg, args);
-	format_write(arg, port, &actx, sharedp);
+	if (numParams == 0 && !atflag && !colonflag) {
+	  format_write(arg, port, &actx, FALSE);
+	} else {
+	  format_integer(port, arg, params, numParams, 10,
+			 colonflag, atflag, FALSE);
+	}
 	break;
+      case 'b': case 'B':
+	NEXT_ARG(arg, args);
+	if (numParams == 0 && !atflag && !colonflag) {
+	  if (Sg_IntegerP(arg)) {
+	    format_write(Sg_NumberToString(arg, 2, FALSE), port, &actx, FALSE);
+	  } else {
+	    format_write(arg, port, &actx, FALSE);
+	  }
+	} else {
+	  format_integer(port, arg, params, numParams, 2,
+			 colonflag, atflag, FALSE);
+	}
+	break;
+      case 'o': case 'O':
+	NEXT_ARG(arg, args);
+	if (numParams == 0 && !atflag && !colonflag) {
+	  if (Sg_IntegerP(arg)) {
+	    format_write(Sg_NumberToString(arg, 8, FALSE), port, &actx, FALSE);
+	  } else {
+	    format_write(arg, port, &actx, FALSE);
+	  }
+	} else {
+	  format_integer(port, arg, params, numParams, 8,
+			 colonflag, atflag, FALSE);
+	}
+	break;
+      case 'x': case 'X':
+	NEXT_ARG(arg, args);
+	if (numParams == 0 && !atflag && !colonflag) {
+	  if (Sg_IntegerP(arg)) {
+	    format_write(Sg_NumberToString(arg, 16, ch == 'X'), port, &actx, FALSE);
+	  } else {
+	    format_write(arg, port, &actx, FALSE);
+	  }
+	} else {
+	  format_integer(port, arg, params, numParams, 16,
+			 colonflag, atflag, ch == 'X');
+	}
+	break;
+      case '@':
+	if (atflag) {
+	  Sg_Error(UC("too many @-flag for formatting directive: %S"), fmt);
+	}
+	atflag = TRUE;
+	continue;
+      case ':':
+	if (colonflag) {
+	  Sg_Error(UC("too many :-flag for formatting directive: %S"), fmt);
+	}
+	colonflag = TRUE;
+	continue;
+      case '\'':
+	if (atflag || colonflag) goto badfmt;
+	if (numParams >= MAX_PARAMS) goto badfmt;
+	ch = Sg_GetcUnsafe(fmtstr);
+	if (ch == EOF) goto badfmt;
+	params[numParams++] = SG_MAKE_CHAR(ch);
+	ch = Sg_GetcUnsafe(fmtstr);
+	if (ch != ',') Sg_UngetcUnsafe(fmtstr, ch);
+	continue;
+      case '0': case '1': case '2': case '3': case '4':
+      case '5': case '6': case '7': case '8': case '9':
+      case '-': case '+':
+	if (atflag || colonflag || numParams >= MAX_PARAMS) {
+	  goto badfmt;
+	} else {
+	  int sign = (ch == '-') ? -1 : 1;
+	  unsigned long value = isdigit(ch) ? (ch - '0') : 0;
+	  for (;;) {
+	    ch = Sg_GetcUnsafe(fmtstr);
+	    /* TODO check valid character */
+	    if (!isdigit(ch)) {
+	      if (ch != ',') Sg_UngetcUnsafe(fmtstr, ch);
+	      params[numParams++] = Sg_MakeInteger(sign * value);
+	      break;
+	    }
+	    /* TODO check over flow */
+	    value = value * 10 + (ch - '0');
+	  }
+	}
+	continue;
+      case ',':
+	if (atflag || colonflag || numParams >= MAX_PARAMS) {
+	  goto badfmt;
+	} else {
+	  params[numParams++] = SG_FALSE;
+	  continue;
+	}
       default:
 	Sg_PutcUnsafe(port, ch);
 	break;
@@ -242,7 +475,7 @@ static void format_proc(SgPort *port, SgString *fmt, SgObject args, int sharedp)
       break;
     }
   }
-
+ badfmt:
   Sg_Error(UC("illegal format string: %S"), fmt);
   return;
 }
