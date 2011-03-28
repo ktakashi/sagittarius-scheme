@@ -114,7 +114,7 @@
 	      (,(rename 'error)
 	       (,(rename 'quote) ,who)
 	       "no expansion for" (,(rename 'unwrap-syntax) 
-				   (,(rename 'car) ,r-form))))))))
+				   ,r-form)))))))
 
   (define (parse-pattern rename compare keywords pattern expression)
     (let loop ((pattern pattern)
@@ -134,7 +134,7 @@
 		     sids
 		     (make-sid variable expression control))))
 	    ;; (p ... (e ...))
-	    ((and (zero-or-more? pattern rename compare)
+	    #;((and (zero-or-more? pattern rename compare)
 		  (not (null? (cddr pattern))))
 	     (let ((variable (gensym "control")))
 	       (loop (car pattern)
@@ -177,11 +177,11 @@
 			   ((and (zero-or-more? pattern rename compare)
 				 (null? (cddr pattern))
 				 (null? (cddr expression)))
-			    `(,(rename 'if) (,(rename 'null?) ,expression)
+			    #;`(,(rename 'if) (,(rename 'null?) ,expression)
 			      #f
-			      ,(do-list (car pattern) expression)))
-			    ;(do-list (car pattern) expression))
-			   ((and (zero-or-more? pattern rename compare)
+			      ,(do-list (car pattern) expression))
+			    (do-list (car pattern) expression))
+			   #;((and (zero-or-more? pattern rename compare)
 				 (not (null? (cddr pattern)))
 				 (null? (cddr expression)))
 			    (let ((generate-pair

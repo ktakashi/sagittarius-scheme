@@ -6,10 +6,10 @@
 	    syntax-rules2)
     (import null
 	    (sagittarius)
-	    (sagittarius vm)
+	    ;;(sagittarius vm)
 	    (core base)
 	    (core errors)
-	    (pp)
+	    ;;(pp)
 	    ;(core syntax pattern)
 	    ;(core syntax template)
 	    (core syntax helper))
@@ -23,14 +23,11 @@
 	     (r-form (rename 'form))
 	     (r-rename (rename 'rename))
 	     (r-compare (rename 'compare)))
-	 (let ((r 
 	 `(,(rename 'er-macro-transformer)
 	   (,(rename 'lambda)
 	    (,r-form ,r-rename ,r-compare)
 	    ,(expand form 'syntax-rules keywords clauses
-		     rename compare generate-output)))))
-	   (pretty-print (unwrap-syntax r))
-	   r)))))
+		     rename compare generate-output)))))))
 
   (define (generate-output oform rename compare
 			   r-form r-rename sids template)

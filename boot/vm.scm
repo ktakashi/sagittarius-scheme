@@ -1173,7 +1173,8 @@
 (define *exc-lib* "lib/errors.scm")
 (define *arith-lib* "lib/arith.scm")
 (define *insn* "insn.scm")
-;; syntax-rules
+;; sagittarius core libraries
+(define *core-lib* "../lib/core.scm")
 (define *struct-lib* "../lib/core/struct.scm")
 (define *misc-lib* "../lib/core/misc.scm")
 (define *synhelp-lib* "../lib/core/syntax/helper.scm")
@@ -1181,6 +1182,7 @@
 
 (define *builtin-libraries* 
   `((,*base-lib* (core base) (null (sagittarius)) #t)
+    (,*core-lib* #f () #f)
     (,*ext-lib* (sagittarius) (null) #f)
     ;; these are only for performance
     ;; in these libraries there are no syntax-rules, so we can import here

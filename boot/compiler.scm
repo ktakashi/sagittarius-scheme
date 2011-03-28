@@ -1771,18 +1771,18 @@
   (lambda (iform penv tail?)
     iform))
 
-(define pass2/$IF
-  (lambda (iform penv tail?)
-    (let ((if-test ($if-test iform)))
-      (cond ((has-tag? if-test $CONST)
-	     (if ($const-value if-test)
-		 ($seq (list if-test (pass2/rec ($if-then iform) penv tail?)))
-		 ($seq (list if-test (pass2/rec ($if-else iform) penv tail?)))))
-	    (else
-	     (let ((test-c (pass2/rec ($if-test iform) penv #f))
-		   (then-c (pass2/rec ($if-then iform) penv tail?))
-		   (else-c (pass2/rec ($if-else iform) penv tail?)))
-	       ($if ($*-src iform) test-c then-c else-c)))))))
+;;(define pass2/$IF
+;;  (lambda (iform penv tail?)
+;;    (let ((if-test ($if-test iform)))
+;;      (cond ((has-tag? if-test $CONST)
+;;	     (if ($const-value if-test)
+;;		 ($seq (list if-test (pass2/rec ($if-then iform) penv tail?)))
+;;		 ($seq (list if-test (pass2/rec ($if-else iform) penv tail?)))))
+;;	    (else
+;;	     (let ((test-c (pass2/rec ($if-test iform) penv #f))
+;;		   (then-c (pass2/rec ($if-then iform) penv tail?))
+;;		   (else-c (pass2/rec ($if-else iform) penv tail?)))
+;;	       ($if ($*-src iform) test-c then-c else-c)))))))
 
 ;; i don't do this
 ;; If optimization:
@@ -1805,74 +1805,73 @@
 ;;    => ($if <t0> ($const #f) ($if <e0> <then> ($it)))
 ;;     if <else> == ($it)
 
-;;(define pass2/$IF
-;;  (lambda (iform penv tail?)
-;;    (let ((test (pass2/rec ($if-test iform) penv #f)))
-;;      (or (and
-;;	   (has-tag? test $IF)
-;;	   (let ((test-then ($if-then test))
-;;		 (test-else ($if-else test)))
-;;	     (cond ((has-tag? test-then $IT)
-;;		    (receive (l0 l1)
-;;			(pass2/label-or-dup
-;;			 (pass2/rec ($if-then iform) penv tail?))
-;;		      (pass2/update-if iform ($if-test test)
-;;				       l0
-;;				       (pass2/rec ($if #f
-;;						       test-else
-;;						       l1
-;;						       ($if-else iform))
-;;						  penv tail?))))
-;;		   ((or (has-tag? test-else $IT)
-;;			(and (has-tag? test-else $CONST)
-;;			     (not ($const-value test-else))))
-;;		    (receive (l0 l1)
-;;			(pass2/label-or-dup
-;;			 (pass2/rec ($if-else iform) penv tail?))
-;;		      (pass2/update-if iform ($if-else test)
-;;				       (pass2/rec ($if #f
-;;						       test-then
-;;						       ($if-then iform)
-;;						       l0)
-;;						  penv tail?)
-;;				       l1)))
-;;		   ((and (has-tag? test-then $CONST)
-;;			 (not ($const-value test-then)))
-;;		    (receive (l0 l1)
-;;			(pass2/label-or-dup
-;;			 (pass2/rec ($if-else iform) penv tail?))
-;;		      (pass2/update-if iform ($if-test test)
-;;				       (if (has-tag? l0 $IT)
-;;					   ($const-f)
-;;					   l0)
-;;				       (pass2/rec ($if #f
-;;						       test-else
-;;						       ($if-then iform)
-;;						       l1)
-;;						  penv tail?))))
-;;		   (else #f))))
-;;       ;;default case
-;;       (pass2/update-if iform
-;;			test
-;;			(pass2/rec ($if-then iform) penv tail?)
-;;			(pass2/rec ($if-else iform) penv tail?))))))
-;;
-;;(define pass2/label-or-dup
-;;  (lambda (iform)
-;;    (if (memv (iform-tag iform) `(,$LREF ,$CONST ,$IT))
-;;	(values iform (iform-copy iform '()))
-;;	(let ((lab ($label #f #f iform)))
-;;	  (values lab lab)))))
-;;
-;;(define pass2/update-if
-;;  (lambda (iform new-test new-then new-else)
-;;    (if (eq? new-then new-else)
-;;	($seq (list new-test new-then))
-;;	(begin
-;;	  ($if-test-set! iform new-test)
-;;	  ($if-then-set! iform new-then)
-;;	  ($if-else-set! iform new-else)
-;;	  iform))))
+(define pass2/$IF
+  (lambda (iform penv tail?)
+    (let ((test (pass2/rec ($if-test iform) penv #f)))
+      (or (and
+	   (has-tag? test $IF)
+	   (let ((test-then ($if-then test))
+		 (test-else ($if-else test)))
+	     (cond ((has-tag? test-then $IT)
+		    (receive (l0 l1) (pass2/label-or-dup
+				      (pass2/rec ($if-then iform) penv tail?))
+		      (pass2/update-if iform ($if-test test)
+				       l0
+				       (pass2/rec ($if #f
+						       test-else
+						       l1
+						       ($if-else iform))
+						  penv tail?))))
+		   ((or (has-tag? test-else $IT)
+			(and (has-tag? test-else $CONST)
+			     (not ($const-value test-else))))
+		    (receive (l0 l1)
+			(pass2/label-or-dup
+			 (pass2/rec ($if-else iform) penv tail?))
+		      (pass2/update-if iform ($if-test test)
+				       (pass2/rec ($if #f
+						       test-then
+						       ($if-then iform)
+						       l0)
+						  penv tail?)
+				       l1)))
+		   ((and (has-tag? test-then $CONST)
+			 (not ($const-value test-then)))
+		    (receive (l0 l1)
+			(pass2/label-or-dup
+			 (pass2/rec ($if-else iform) penv tail?))
+		      (pass2/update-if iform ($if-test test)
+				       (if (has-tag? l0 $IT)
+					   ($const-f)
+					   l0)
+				       (pass2/rec ($if #f
+						       test-else
+						       ($if-then iform)
+						       l1)
+						  penv tail?))))
+		   (else #f))))
+       ;;default case
+       (pass2/update-if iform
+			test
+			(pass2/rec ($if-then iform) penv tail?)
+			(pass2/rec ($if-else iform) penv tail?))))))
+
+(define pass2/label-or-dup
+  (lambda (iform)
+    (if (memv (iform-tag iform) `(,$LREF ,$CONST ,$IT))
+	(values iform (iform-copy iform '()))
+	(let ((lab ($label #f #f iform)))
+	  (values lab lab)))))
+
+(define pass2/update-if
+  (lambda (iform new-test new-then new-else)
+    (if (eq? new-then new-else)
+	($seq (list new-test new-then))
+	(begin
+	  ($if-test-set! iform new-test)
+	  ($if-then-set! iform new-then)
+	  ($if-else-set! iform new-else)
+	  iform))))
 
 ;; Let optimization
 ;;
@@ -2530,6 +2529,13 @@
 				  (cb-emit1! cb BOX index)))
 			    vars)))
 
+(define pass3/ensure-label
+  (lambda (cb label-node)
+    (or ($label-label label-node)
+	(let ((lab (make-new-label)))
+	  ($label-label-set! label-node lab)
+	  lab))))
+
 (define pass3/$UNDEF
   (lambda (iform cb renv ctx)
     (cb-emit0! cb UNDEF)
@@ -2617,6 +2623,11 @@
 		      (pass3/branch-on-arg2 iform BNGT cb renv ctx))
 		     (else
 		      (pass3/branch-on-false iform cb renv ctx)))))
+	    ((has-tag? test $CONST)
+	     (pass3/rec (if ($const-value test)
+			    (if (has-tag? ($if-then iform) $IT) test ($if-then iform))
+			    (if (has-tag? ($if-else iform) $IT) test ($if-else iform)))
+			cb renv ctx))
 	    (else
 	     (pass3/branch-on-false iform cb renv ctx))))))
 
@@ -2848,15 +2859,12 @@
 (define pass3/$LABEL
   (lambda (iform cb renv ctx)
     (let ((label ($label-label iform)))
-      (cond
-       (label
-	(cb-emit0o! cb JUMP label)
-	0)
-       (else
-	;; never come here?
-	(label-label-set! iform #f)
-	(cb-label-set! cb iform) ;; set label
-	(pass3/rec cb ($label-body iform) cb renv ctx))))))
+      (cond (label
+	     (cb-emit0o! cb JUMP label)
+	     0)
+	    (else 
+	     (cb-label-set! cb (pass3/ensure-label cb iform)) ;; set label
+	     (pass3/rec ($label-body iform) cb renv ctx))))))
 
 (define pass3/$SEQ
   (lambda (iform cb renv ctx)
@@ -2939,9 +2947,9 @@
 	      (cb-emit1! cb ENTER nargs))
 	  ;; set mark
 	  (cb-emit0! cb MARK)
-	  (cb-label-set! cb label)
+	  (cb-label-set! cb (pass3/ensure-label cb label))
 	  (pass3/make-boxes cb sets vars)
-	  ($label-label-set! label #t)
+	  ;($label-label-set! label #t)
 	  (let ((body-size (pass3/rec body cb
 				      (make-new-renv renv vars free sets vars need-display?)
 				      ctx)))
@@ -2961,8 +2969,8 @@
 		   nargs
 		   (- (renv-display renv) 
 		      (renv-display ($call-renv ($call-proc iform))) 1))
-	($label-label-set! label #f)
-	(cb-emit0o! cb JUMP label)
+	;;($label-label-set! label #t)
+	(cb-emit0o! cb JUMP (pass3/ensure-label cb label))
 	ret))))
 
 ;; Head-heavy call

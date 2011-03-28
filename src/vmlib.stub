@@ -11,7 +11,6 @@
 	    ;; syntax
 	    make-syntax syntax? syntax-name syntax-proc
 	    builtin-syntax? user-defined-syntax?
-	    unwrap-syntax ;; should this be here?
 	    call-syntax-handler
 
 	    ;; macro
@@ -80,9 +79,6 @@
 
   (define-c-proc user-defined-syntax? (s) ::boolean
     (result (SG_USER_DEFINED_SYNTXP s)))
-
-  (define-c-proc unwrap-syntax (form) ::Object
-    (result (Sg_UnwrapSyntax form)))
 
   (define-c-proc call-syntax-handler (s::Syntax expr p1env) ::Object
     (cond ((SG_BUILTIN_SYNTXP s)
