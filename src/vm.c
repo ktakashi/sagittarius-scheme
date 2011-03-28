@@ -55,6 +55,7 @@
 #include "sagittarius/compare.h"
 #include "sagittarius/system.h"
 #include "sagittarius/exceptions.h"
+#include "sagittarius/profiler.h"
 
 static SgVM *rootVM = NULL;
 /* TODO multi thread */

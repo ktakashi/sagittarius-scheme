@@ -16,6 +16,10 @@
 
 	    ;; vector
 	    vector-copy
+
+	    ;; profiler
+	    profiler-start profiler-stop profiler-reset
+	    profiler-raw-result
 	    )
     (import :null)
   ;; for library dependency
@@ -53,4 +57,14 @@
 					            (end::fixnum -1)
 						    fill) ::Object
     (result (Sg_VectorCopy vec start end fill)))
+
+  (define-c-proc profiler-start () ::void
+    (Sg_ProfilerStart))
+  (define-c-proc profiler-stop () ::fixnum
+    (result (Sg_ProfilerStop)))
+  (define-c-proc profiler-reset () ::void
+    (Sg_ProfilerReset))
+
+  (define-c-proc profiler-raw-result () ::Object
+    (result (Sg_ProfilerRawResult)))
 )

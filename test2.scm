@@ -1,11 +1,12 @@
-(define (test)
-  (lambda (a)
-    (lambda b
-      (cond ((null? b)
-	     => (lambda (t)
-		  (or a
-		      t)))
-	    (else
-	     (display 'hoge))))))
-(display (((test) #f)))
-  
+(import (sagittarius vm profiler))
+(define (tak x y z)
+  (if (> x y)
+      (tak (tak (- x 1) y z)
+	   (tak (- y 1) z x)
+	   (tak (- z 1) x y))
+      y))
+(profiler-start)
+(tak 12 6 0)
+(profiler-stop)
+;(print (profiler-get-result))
+(profiler-show #f 'time 50)

@@ -703,30 +703,7 @@
     (unless (p1env-toplevel? p1env)
       (syntax-error "the form can appear only in the toplevel:" form))))
 
-(define p1env-lookup
-  (lambda (p1env name lookup-as)
-    (let ((name-ident? (identifier? name))
-	  (frames (p1env-frames p1env))
-	  (ret #f))
-      (let loop ((fp frames))
-	(cond ((pair? fp)
-	       (when (and name-ident?
-			  (eq? (id-envs name) fp))
-		 (set! name-ident? #f) ;; given name is no longer identifier
-		 (set! name (id-name name)))
-	       (when (> (caar fp) lookup-as)
-		 (loop (cdr fp)))
-	       (let loop2 ((tmp (cdar fp)))
-		 (if (pair? tmp)
-		     (let ((vp (car tmp)))
-		       (if (eq? name (car vp))
-			   (cdr vp)
-			   (loop2 (cdr tmp))))
-		     (loop (cdr fp)))))
-	      (else
-	       (if (symbol? name)
-		   (make-identifier name '() (p1env-library p1env))
-		   name)))))))
+;; p1env-lookup -> moved to (sagittarius vm) library
 
 (define p1env-add-name
   (lambda (p1env name)

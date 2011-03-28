@@ -40,6 +40,7 @@
     SG_SUBR_RETURN_CODE(AC(vm))[0] = SG_WORD(RET);
     CL(vm) = AC(vm);
     FP(vm) = SP(vm) - argc;
+    SG_PROF_COUNT_CALL(vm, AC(vm));
     AC(vm) = SG_SUBR_FUNC(AC(vm))(SP(vm) - argc, argc, SG_SUBR_DATA(AC(vm)));
   } else if (SG_CLOSUREP(AC(vm))) {
     SgClosure *c = SG_CLOSURE(AC(vm));
@@ -77,6 +78,7 @@
       Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),
 					 required, argc, args);
     }
+    SG_PROF_COUNT_CALL(vm, CL(vm));
   } else {
     Sg_Error(UC("apply: invalid application, %S"), AC(vm));
   }

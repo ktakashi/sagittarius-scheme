@@ -311,9 +311,9 @@
     (define (return-type)
       (case return
 	((Object void) 
-	 ((base:renderer) (format "SgObject SG_RETURN = SG_UNDEF;")))
+	 ((base:renderer) (format "SgObject SG_RETURN = SG_UNDEF;~%")))
 	((boolean fixnum char)
-	 ((base:renderer) (format "int SG_RETURN;")))
+	 ((base:renderer) (format "int SG_RETURN;~%")))
 	(else (error 'resolve-c-body "invalid return type"  return))))
     (define (return-value)
       (case return
@@ -323,16 +323,16 @@
 	((fixnum) "SG_MAKE_INT(SG_RETURN)")
 	((char)  "SG_MAKE_CHAR(SG_RETURN)")
 	(else (error 'resolve-c-body "invalid return type"  return))))
-
-    ((base:renderer) (format "  {~%"))
+    (renderer-no-indent #f)
+    (renderer-indent-incl!)
+    ((base:renderer) (format "{~%"))
+    (renderer-indent-incl!)
     (return-type)
-    ;;((base:renderer) (format "    ~s SG_RETURN = SG_UNDEF;~%" (return-type)))
-    (for-each (lambda (body)
-		(base:dispatch-method body base:dispatch-method (lambda (k) k))
-		((base:renderer) ";")((base:renderer) "\n"))
-	      body)
-    ((base:renderer) (format "    return ~a;~%" (return-value)))
-    ((base:renderer) (format "  }~%")))
+    (base:dispatch-method `(begin ,@body) base:dispatch-method (lambda (k) k))
+    ((base:renderer) (format "return ~a;~%" (return-value)))
+    (renderer-indent-decl!)
+    ((base:renderer) (format "}~%"))
+    (renderer-indent-decl!))
 
   (define (resolve-decl decl-body)
     (for-each (lambda (body)
@@ -346,9 +346,7 @@
 	      decl-body))
 
   (define (resolve-body)
-    (for-each (lambda (body)
-		(base:dispatch-method body base:dispatch-method (lambda (k) k)))
-	      *c-proc-defs*))
+    (base:dispatch-method `(begin ,@*c-proc-defs*) base:dispatch-method (lambda (k) k)))
 
   (define (def-c-proc body dispatch k)
     (define (body-impl name args inliner return c-body)
@@ -360,7 +358,6 @@
 	(resolve-args args 'declare)
 	(resolve-args args 'check)
 	(resolve-c-body c-body type/names (resolve-return return)))
-      
       ((base:renderer) (format "}~%"))
       ((base:renderer) (format "static SG_DEFINE_SUBR(~a, ~a, ~a, ~a, ~a, NULL);~%~%"
 			       (resolve-name name 'stub)

@@ -44,8 +44,8 @@
 	 (if (> (length *return*) 1)
 	     (base:warn (format "more then one return keyword(~s)" *return*)))
 	 (set! *insn-bodies* (acons name body *insn-bodies*))
-	 ;((renderer) (format "label_~a:~%" name))
 	 ((renderer) (format "CASE(~a) {~%" name))
+	 (renderer-indent-incl!)
 	 (cond ((memq name *return*)
 		((renderer) "return AC(vm);"))
 	       ((assq name *combined-insns*)
@@ -56,18 +56,13 @@
 				     (or b
 					 (error 'define-insn
 						"invalid combined instruction" info))
-				     (for-each (lambda (b2)
-						 (dispatch b2 dispatch k)
-						 ((renderer) (format ";~%")))
-					       (cdr b))))
+				     (dispatch `(begin ,@(cdr b)) dispatch k)))
 				 names))
 		     ((renderer) "NEXT;")))
 	       (else
-		(for-each (lambda (b)
-			    (dispatch b dispatch k)
-			    ((renderer) (format ";~%")))
-			  body)
+		(dispatch `(begin ,@body) dispatch k)
 		((renderer) "NEXT;")))
+	 (renderer-indent-decl!)
 	 ((renderer) (format "~%}~%~%"))))
       (else
        (error 'define-inst "no match form" body))))

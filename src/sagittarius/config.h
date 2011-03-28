@@ -15,6 +15,9 @@
 #define HAVE_LIMITS_H
 #define HAVE_STDARG_H
 #define HAVE_SETJMP_H
+#define HAVE_SYS_TIME_H
+#define HAVE_TIME_H
+#define HAVE_SIGNAL_H
 
 /* #undef HAVE_ALLOCA */
 
@@ -28,6 +31,7 @@
 #define SIZEOF_DOUBLE 8
 #define SIZEOF_WCHAR_T 2
 
+#define SAGITTARIUS_PROFILE
 
 #ifdef _MSC_VER
     #define INT8_MIN            _I8_MIN

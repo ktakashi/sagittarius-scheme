@@ -199,6 +199,9 @@ static void format_proc(SgPort *port, SgString *fmt, SgObject args, int sharedp)
   actx.sharedId = 0;
 
   for (;;) {
+    int atflag, colonflag;
+    SgObject params[MAX_PARAMS];
+    int numParams;
     ch = Sg_GetcUnsafe(fmtstr);
     if (ch == EOF) {
       if (!backtracked && !SG_NULLP(args)) {

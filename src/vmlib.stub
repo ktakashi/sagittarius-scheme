@@ -32,7 +32,7 @@
 
 	    ;; misc
 	    %map-cons
-	    make-toplevel-closure
+	    make-toplevel-closure p1env-lookup
 	    pass3/let-frame-size pass3/frame-size
 	    )
     (import :none)
@@ -223,6 +223,26 @@
   (define-c-proc make-toplevel-closure (cb::CodeBuilder) ::Object
     ;; topleve closure should not have any free variables
     (result (Sg_MakeClosure cb NULL)))
+
+  ;; for better performance.
+  ;; NB: we skip some test, because we assume the frame is well-formed.
+  (define-c-proc p1env-lookup (p1env::Vector name lookup_as) ::Object
+    (let ((name_identp::int (SG_IDENTIFIERP name))
+	  (frames (SG_VECTOR_ELEMENT p1env 1)))
+      (dopairs (fp frames)
+	(when (and name_identp
+		   (== (SG_IDENTIFIER_ENVS name) fp))
+	  ;; strip identifier if we're in the same env
+	  (set! name (SG_OBJ (SG_IDENTIFIER_NAME name))))
+	(when (> (SG_CAAR fp) lookup_as)
+	  (continue))
+	(dolist (vp (SG_CDAR fp))
+	  (when (SG_EQ name (SG_CAR vp)) (return (SG_CDR vp)))))
+      (if (SG_SYMBOLP name)
+	  (let ((lib (SG_VECTOR_ELEMENT p1env 0)))
+	    (result (Sg_MakeIdentifier (SG_SYMBOL name) '() (SG_LIBRARY lib))))
+	  (result name))))
+
 
   (define-c-proc pass3/frame-size () ::fixnum
     (result SG_FRAME_SIZE))

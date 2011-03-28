@@ -96,6 +96,7 @@ struct SgContinucationRec
 #define SG_CONTINUATIONP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_CONTINUATION))
 
 
+typedef struct SgVMProfilerRec SgVMProfiler;
 
 typedef enum {
   COMPILING,
@@ -118,7 +119,6 @@ struct SgVMRec
 
   SgContFrame  *cont;     	/* saved continuation frame */
 
-  VMState state;
   /*
     default reader macro symbols
    */
@@ -140,6 +140,7 @@ struct SgVMRec
   SgPort    *currentOutputPort;
   SgPort    *currentInputPort;
   SgPort    *currentErrorPort;
+  SgPort    *logPort;
 
   /* closure */
   SgObject   closureForEvaluate; /* closure for evaluate */
@@ -166,6 +167,11 @@ struct SgVMRec
   /* gc related */
   int finalizerPending;
   int attentionRequest;
+
+  /* statistics */
+  VMState state;
+  int profilerRunning;
+  SgVMProfiler *profiler;
 };
 
 /*
@@ -191,7 +197,6 @@ typedef enum {
 #define SG_VM_IS_SET_FLAG(vm, flag) (((vm)->flags & (flag)) == 1)
 
 #define SG_VM_LIBRARIES(vm)         ((vm)->libraries)
-
 
 #define PC(vm)             (vm)->pc
 #define AC(vm)             (vm)->ac
@@ -257,7 +262,6 @@ SG_EXTERN SgObject Sg_VMFinalizerRun(SgVM *vm);
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_VM_H_ */
-
 /*
   end of file
   Local Variables:
