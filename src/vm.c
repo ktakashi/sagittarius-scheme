@@ -912,13 +912,6 @@ static inline void make_call_frame(SgVM *vm, SgWord *pc)
   s += CONT_FRAME_SIZE;
   SP(vm) = s;
   CONT(vm) = cc;
-#if 0
-  PUSH(SP(vm), SG_OBJ(pc));
-  PUSH(SP(vm), DC(vm));
-  PUSH(SP(vm), CL(vm));
-  PUSH(SP(vm), SG_OBJ(FP(vm)));
-#endif
-  
 }
 
 static inline SgObject* discard_let_frame(SgVM *vm, int n)

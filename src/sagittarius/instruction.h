@@ -5,7 +5,8 @@
 
 #include "sagittariusdefs.h"
 #define INSN_MASK 0xFF
-#define INSN_VALUE_MASK 0xFFF
+#define INSN_VALUE1_MASK  0xFFF
+#define INSN_VALUE2_MASK  ((1 << (sizeof(intptr_t) * 8)) - 1)
 #define INSN_VALUE1_SHIFT 8
 #define INSN_VALUE2_SHIFT 20
 /**
@@ -112,8 +113,8 @@ struct InsnInfoRec
 #define INSN_VAL1(v, insn) ((v) = ((int)(insn)) >> INSN_VALUE1_SHIFT)
 #define INSN_VAL2(v1, v2, insn)	\
   do {				\
-    (v1) = ((((int)(insn)) >> INSN_VALUE1_SHIFT) & INSN_VALUE_MASK);	\
-    (v2) = ((((int)(insn)) >> INSN_VALUE2_SHIFT) & INSN_VALUE_MASK);	\
+    (v1) = ((((int)(insn)) >> INSN_VALUE1_SHIFT) & INSN_VALUE1_MASK);	\
+    (v2) = ((((int)(insn)) >> INSN_VALUE2_SHIFT) & INSN_VALUE2_MASK);	\
   } while (0)
 #define MERGE_INSN_VALUE1(insn, value)      \
   ((insn) | ((value) << INSN_VALUE1_SHIFT))

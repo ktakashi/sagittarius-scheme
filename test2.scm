@@ -1,3 +1,4 @@
+#|
 (import (sagittarius vm profiler))
 (import (core syntax pattern)
 	(core base)
@@ -35,3 +36,7 @@
 (profiler-stop)
 
 (profiler-show #f 'time 50)
+|#
+(let loop ((i 0))
+  (unless (= i 10)
+    (loop (+ i 1))))

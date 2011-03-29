@@ -61,5 +61,5 @@ SgObject Sg_MakeClosure(SgObject code,
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

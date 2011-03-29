@@ -36,20 +36,21 @@
 
 typedef SgObject SgSubrProc(SgObject *args, int argc, void *user_data);
 
+
+typedef enum {
+  SG_PROC_SUBR,
+  SG_PROC_CLOSURE
+} SgProcedureType;
+
 /* TODO think about it...*/
 struct SgProcedureRec
 {
   SG_HEADER;
   unsigned int required : 16;
   unsigned int optional : 8;
-  unsigned int type     : 2;	/* SgProcedureType */
+  SgProcedureType type;
   SgObject     name;
   SgObject     inliner;		/* #f, or instruction */
-};
-
-enum SgProcedureType {
-  SG_PROC_SUBR,
-  SG_PROC_CLOSURE
 };
 
 #define SG_PROCEDURE(obj)          ((SgProcedure*)(obj))
