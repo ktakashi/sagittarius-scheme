@@ -4,7 +4,7 @@
     (import (core)
 	    (core base)
 	    (core errors)
-	    (trace)
+	    ;;(trace)
 	    (sagittarius))
 
   (define (id-memq id lst)
@@ -48,25 +48,28 @@
 	    (else ans))))
 
   ;; this returns pattern alist of variable name and its depth.
-  (define (collect-vars-ranks pat lites depth ranks rename compare)
-    (define (rec pat lites depth ranks)
+  ;; we also need expression for template, so result alist will
+  ;; be like this:
+  ;; ((pvar expr . rank) ...)
+  (define (collect-vars-ranks pat tmpl lites depth ranks rename compare)
+    (define (rec pat expr lites depth ranks)
       (cond ((compare pat (rename '_)) ranks)
 	    ((variable? pat)
 	     (if (id-memq pat lites)
 		 ranks
-		 (acons pat depth ranks)))
+		 (acons pat (cons expr depth) ranks)))
 	    ((ellipsis-pair? pat rename compare)
-	     (rec (cddr pat) lites depth
+	     (rec (cddr pat) `(,(rename 'cddr) ,expr) lites depth
 		  (if (variable? (car pat))
-		      (acons (car pat) (+ depth 1) ranks)
-		      (rec (car pat) lites (+ depth 1) ranks))))
+		      (acons (car pat) (cons expr (+ depth 1)) ranks)
+		      (rec (car pat) `(,(rename 'car) ,expr) lites (+ depth 1) ranks))))
 	    ((pair? pat)
-	     (rec (cdr pat) lites depth
-		  (rec (car pat) lites depth ranks)))
+	     (rec (cdr pat) `(,(rename 'cdr) ,expr) lites depth
+		  (rec (car pat) `(,(rename 'car) ,expr) lites depth ranks)))
 	    ((vector? pat)
-	     (rec (vector->list pat) lites depth ranks))
+	     (rec (vector->list pat) expr lites depth ranks))
 	    (else ranks)))
-    (rec pat lites depth ranks))
+    (rec pat tmpl lites depth ranks))
 
   (define (check-pattern pat lites rename compare)
     (let ((ellipsis (rename '...)))
@@ -164,11 +167,13 @@
 		   `#t))
 	      ;; TODO
 	      ((ellipsis-pair? pattern rename compare)
-	       `(,_if (,_and ,(null? (cddr pattern))
-			     (,_list? ,expr))
-		      (,_or ,(symbol? (car pattern))
-			    ,(do-list (car pattern) expr))
-		      ,(do-list-n pattern expr)))
+	       (if (null? (cddr pattern))
+		   `(,_if (,_list? ,expr)
+			  ,(if (symbol? (car pattern))
+			       #t
+			       (do-list (car pattern) expr))
+			  ,(do-list-n pattern expr))
+		   (do-list-n pattern expr)))
 	      ((pair? pattern)
 	       (let ((generate-pair (lambda (expr)
 				      (conjunction

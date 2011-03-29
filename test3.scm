@@ -1,8 +1,11 @@
 (import (core syntax pattern)
 	(core syntax template)
 	(core base)
+	(sagittarius misc)
 	(pp)
 	(sagittarius vm))
+
+(output-port-width (current-output-port) 150)
 
 (define-syntax syntax-rules
   (er-macro-transformer
@@ -17,7 +20,8 @@
 			(let ((pat (caar clauses))
 			      (template (cadar clauses)))
 			  (check-pattern pat literal rename compare)
-			  (let ((ranks (collect-vars-ranks pat literal 0 '() rename compare)))
+			  (let ((ranks (collect-vars-ranks pat (rename 'form) literal 0 '() rename compare)))
+			    ;(print ranks)
 			    (check-template template ranks rename compare)
 			    `(,(rename 'if)
 			      ,(generate-match pat literal rename compare (rename 'form))

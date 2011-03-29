@@ -2,9 +2,8 @@
 (library (slib qp)
     (export qp qpn qpr)
     (import (core)
-	    (core base))
-
-(define (output-port-width . arg) 79)	; for now. maybe we want to move it somewhere
+	    (core base)
+	    (sagittarius misc))
 
 ;;;; "qp.scm" Print finite length representation for any Scheme object.
 ;;; Copyright (C) 1991, 1992, 1993, 1995, 2003 Aubrey Jaffer

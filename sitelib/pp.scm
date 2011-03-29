@@ -2,8 +2,35 @@
 (library (pp)
     (export :all)
     (import (core)
-	    (core base))
+	    (core base)
+	    (sagittarius misc))
+; File: "pp.scm"   (c) 1991, Marc Feeley
 
+; 'generic-write' is a procedure that transforms a Scheme data value (or
+; Scheme program expression) into its textual representation.  The interface
+; to the procedure is sufficiently general to easily implement other useful
+; formatting procedures such as pretty printing, output to a string and
+; truncated output.
+;
+; Parameters:
+;
+;   OBJ       Scheme data value to transform.
+;   DISPLAY?  Boolean, controls whether characters and strings are quoted.
+;   WIDTH     Extended boolean, selects format:
+;               #f = single line format
+;               integer > 0 = pretty-print (value = max nb of chars per line)
+;   OUTPUT    Procedure of 1 argument of string type, called repeatedly
+;               with successive substrings of the textual representation.
+;               This procedure can return #f to stop the transformation.
+;
+; The value returned by 'generic-write' is undefined.
+;
+; Examples:
+;
+;   (write obj)   = (generic-write obj #f #f display-string)
+;   (display obj) = (generic-write obj #t #f display-string)
+;
+; where display-string = (lambda (s) (for-each write-char (string->list s)) #t)
 (define (generic-write obj display? width output)
   (define (read-macro? l)
     (define (length1? l) (and (pair? l) (null? (cdr l))))
@@ -281,10 +308,12 @@
 
 (define (pretty-print obj . opt)
   (let ((port (if (pair? opt) (car opt) (current-output-port))))
-    (generic-write obj #f 79 (lambda (s) (display s port) #t))))
+    (generic-write obj #f (output-port-width port)
+		   (lambda (s) (display s port) #t))))
 
 (define (pretty-print-to-string obj)
   (let ((result '()))
-    (generic-write obj #f 79 (lambda (str) (set! result (cons str result)) #t))
+    (generic-write obj #f (output-port-width port)
+		   (lambda (str) (set! result (cons str result)) #t))
     (reverse-string-append result)))
 )

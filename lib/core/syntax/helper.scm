@@ -133,17 +133,7 @@
 		     variable
 		     sids
 		     (make-sid variable expression control))))
-	    ;; (p ... (e ...))
-	    #;((and (zero-or-more? pattern rename compare)
-		  (not (null? (cddr pattern))))
-	     (let ((variable (gensym "control")))
-	       (loop (car pattern)
-		     variable
-		     (loop (cddr pattern)
-			   `(,(rename 'cddr) ,expression)
-			   sids
-			   control)
-		     (make-sid variable expression control))))
+	    
 	    ((pair? pattern)
 	     (loop (car pattern)
 		   `(,(rename 'car) ,expression)
