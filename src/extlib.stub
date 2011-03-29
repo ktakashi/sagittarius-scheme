@@ -17,6 +17,9 @@
 	    ;; vector
 	    vector-copy
 
+	    ;; misc
+	    variable?
+
 	    ;; profiler
 	    profiler-start profiler-stop profiler-reset
 	    profiler-raw-result
@@ -58,6 +61,12 @@
 						    fill) ::Object
     (result (Sg_VectorCopy vec start end fill)))
 
+  ;; misc
+  (define-c-proc variable? (o) ::boolean
+    (result (or (SG_SYMBOLP o)
+		(SG_IDENTIFIERP o))))
+
+  ;; profiler
   (define-c-proc profiler-start () ::void
     (Sg_ProfilerStart))
   (define-c-proc profiler-stop () ::fixnum

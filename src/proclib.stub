@@ -3,7 +3,7 @@
       (export procedure-name procedure-inliner
 	      procedure-inliner-set! procedure-reqargs
 	      procedure-optional procedure-body
-	      procedure? inline?
+	      inline?
 	      find-procedure)
       (import :none)
 
@@ -22,9 +22,6 @@
 
     (define-c-proc procedure-optional (arg0::Procedure) ::boolean
       (result (SG_PROCEDURE_OPTIONAL arg0)))
-
-    (define-c-proc procedure? (arg0::Object) ::boolean
-      (result (SG_PROCEDUREP arg0)))
 
     (define-c-proc inline? (arg0::Object) ::boolean
       (result (and (SG_PROCEDUREP arg0)

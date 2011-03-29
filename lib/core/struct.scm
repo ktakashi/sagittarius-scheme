@@ -2,7 +2,7 @@
 ;; This file is a part of Sagittarius Scheme system.
 (library (core struct)
     (export define-struct)
-    (import null
+    (import (core)
 	    (core base)
 	    (sagittarius))
 ;; TODO improve

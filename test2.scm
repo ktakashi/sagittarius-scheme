@@ -1,4 +1,3 @@
-#|
 (import (sagittarius vm profiler))
 (import (core syntax pattern)
 	(core base)
@@ -33,10 +32,10 @@
      (list 'a 'b 'c))))
 
 (print (check-pattern 'a 'b '(c d)))
+(let loop ((i 0))
+  (unless (= i 100000)
+    (check-pattern 'a 'b '(c d))
+    (loop (+ i 1))))
 (profiler-stop)
 
 (profiler-show #f 'time 50)
-|#
-(let loop ((i 0))
-  (unless (= i 10)
-    (loop (+ i 1))))

@@ -48,6 +48,7 @@
 	    ;; ports
 	    port? input-port? output-port?
 	    flush-output-port current-output-port
+	    current-error-port
 	    open-file-input-port open-file-output-port
 	    close-input-port close-output-port
 	    format read
@@ -64,8 +65,12 @@
 	    list length append append! reverse
 	    memq memv member assq assv assoc
 	    list->vector list-transpose+ list-tail last-pair
+	    list-ref
 
 	    set-car! set-cdr!
+
+	    ;; char
+	    char?
 
 	    ;; string
 	    string?
@@ -106,7 +111,7 @@
 	    ;; conditions
 	    eq? eqv? equal?
 	    integer? number? exact? inexact? pair? real?
-	    complex?
+	    complex? procedure?
 	    null? list? eof-object?
 	    keyword? boolean?
 	    not and
@@ -688,6 +693,14 @@
 	    (set! (-> vm currentOutputPort) p)
 	    (result SG_UNDEF)))))
 
+  (define-c-proc current-error-port (:optional (p::Port SG_UNBOUND)) ::Object
+    (let ((vm::SgVM* (Sg_VM)))
+      (if (SG_UNBOUNDP p)
+	  (result (-> vm currentErrorPort))
+	  (begin
+	    (set! (-> vm currentErrorPort) p)
+	    (result SG_UNDEF)))))
+
   (define-c-proc read (:optional (p (Sg_CurrentInputPort))) ::Object
     (if (not (SG_INPORTP p))
 	(wrong-type-of-argument-violation 'read "input port" p))
@@ -837,6 +850,13 @@
 
   (define-c-proc last-pair (lst) ::Object
     (result (Sg_LastPair lst)))
+
+  (define-c-proc list-ref (lst k::fixnum :optional fallback) ::Object
+    (result (Sg_ListRef lst k fallback)))
+
+  ;; char
+  (define-c-proc char? (o) ::boolean
+    (result (SG_CHARP o)))
 
   ;; string
   (define-c-proc string? (s) ::boolean
@@ -1416,6 +1436,10 @@ string->utf32 utf32->string
 
   (define-c-proc boolean? (o) ::boolean
     (result (SG_BOOLP o)))
+
+  (define-c-proc procedure? (arg0) ::boolean
+    (result (SG_PROCEDUREP arg0)))
+
 
   (define-c-proc not (arg0) ::boolean
     (result (SG_FALSEP arg0)))

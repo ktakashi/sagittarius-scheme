@@ -4,12 +4,8 @@
     (import (core)
 	    (core base)
 	    (core errors)
-	    ;(core syntax helper)
+	    (trace)
 	    (sagittarius))
-
-  (define (variable? o)
-    (or (identifier? o)
-	(symbol? o)))
 
   (define (id-memq id lst)
     (if (identifier? id)
@@ -121,7 +117,7 @@
 	  (_pair? (rename 'pair?)) (_temp (rename 'temp))
 	  (_vector? (rename 'vector?)) (_equal? (rename 'equal?))
 	  (_or (rename 'or))    (_symbol? (rename 'symbol?))
-	  (_list? (rename 'list?))
+	  (_list? (rename 'list?)) (_> (rename '>))
 	  (_and (rename 'and))   (_n (rename 'n))
 	  (_- (rename '-))      (_= (rename '=))
 	  (_identifier? (rename 'identifier?))
@@ -130,7 +126,7 @@
 	(cond ((eq? predicate #t) consequent)
 	      ((eq? consequent #t) predicate)
 	      (else `(,_if ,predicate
-			,consequent #f))))
+			   ,consequent #f))))
       ;; match ellipsis
       (define (do-list pattern expr)
 	`(,_letrec ((,_loop (,_lambda (,_l)
@@ -147,27 +143,32 @@
 				      ,(conjunction
 					`(,_pair? ,_l)
 					(conjunction
-					 (loop pattern
+					 (loop (car pattern)
 					       `(,_car ,_l))
-					 `(,_loop (,(rename 'list-tail) ,_l ,_n) (,_- ,_n 1))))))))
-	     (print (,_quote do-list) ,expr)
-	     (,_loop ,expr (,_- (,(rename 'count-pair) ,expr)
-				,(count-pair pattern)))))
+					 `(,_loop (,_cdr ,_l) (,_- ,_n 1)))))))
+		    (,_n (,_- (,(rename 'count-pair) ,expr)
+			      ,(count-pair (cddr pattern)))))
+	     (,_if (,_= ,_n 0)
+		   ,(loop (cddr pattern) expr)
+		   (,_and (,_> ,_n 0)
+			  (,_loop ,expr ,_n)
+			  ,(loop (cddr pattern) `(,(rename 'list-tail) ,expr ,_n))))))
       (define (loop pattern expr)
 	(cond ((variable? pattern) ;; pattern variable
 	       (if (id-memq pattern literals)
 		   `(,_let ((,_temp ,expr))
 		       (,_if (,_or (,_symbol? ,_temp)
 				   (,_identifier? ,_temp))
-			     (,_compare ,temp (,_rename (,quote ,pattern)))
+			     (,_compare ,_temp (,_rename (,_quote ,pattern)))
 			     #f))
 		   `#t))
 	      ;; TODO
 	      ((ellipsis-pair? pattern rename compare)
 	       `(,_if (,_and ,(null? (cddr pattern))
 			     (,_list? ,expr))
-		      ,(do-list (car pattern) expr)
-		      ,(do-list-n (car pattern) expr)))
+		      (,_or ,(symbol? (car pattern))
+			    ,(do-list (car pattern) expr))
+		      ,(do-list-n pattern expr)))
 	      ((pair? pattern)
 	       (let ((generate-pair (lambda (expr)
 				      (conjunction
@@ -189,6 +190,7 @@
 	       `(,_null? ,expr))
 	      (else
 	       `(_equal? ,expr (,_quote ,pattern)))))
+      ;;(trace loop do-list do-list-n conjunction)
       (loop pattern expr)))
 
   (define (count-pair p)
