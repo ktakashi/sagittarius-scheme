@@ -20,17 +20,17 @@
 
   ;; (p ... ...)
   (define (ellipsis-splicing-pair? form rename compare)
-    (let ((ellipis (rename '...)))
+    (let ((ellipsis (rename '...)))
       (and (pair? form)
 	   (pair? (cdr form))
-	   (compare (cadr form) ellipis)
+	   (compare (cadr form) ellipsis)
 	   (pair? (cddr form))
-	   (compare (caddr form) ellipis))))
+	   (compare (caddr form) ellipsis))))
 
   ;; (... p)
-  (define (ellipis-quote? form rename compare)
+  (define (ellipsis-quote? form rename compare)
     (and (pair? form)
-	 (compare (car form) (renp ame '...))
+	 (compare (car form) (rename '...))
 	 (pair? (cdr form))
 	 (null? (cddr form))))
 

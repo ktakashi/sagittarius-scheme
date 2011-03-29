@@ -70,7 +70,7 @@
 	    set-car! set-cdr!
 
 	    ;; char
-	    char?
+	    char? char=?
 
 	    ;; string
 	    string?
@@ -739,21 +739,29 @@
   (define-c-proc caar (o) ::Object
     (unless (SG_PAIRP o)
       (wrong-type-of-argument-violation 'caar "pair" o))
+    (unless (SG_PAIRP (SG_CAR o))
+      (wrong-type-of-argument-violation 'cadr "pair" o))
     (result (SG_CAAR o)))
 
   (define-c-proc cadr (o) ::Object
     (unless (SG_PAIRP o)
+      (wrong-type-of-argument-violation 'cadr "pair" o))
+    (unless (SG_PAIRP (SG_CDR o))
       (wrong-type-of-argument-violation 'cadr "pair" o))
     (result (SG_CADR o)))
 
   (define-c-proc cdar (o) ::Object
     (unless (SG_PAIRP o)
       (wrong-type-of-argument-violation 'cdar "pair" o))
+    (unless (SG_PAIRP (SG_CAR o))
+      (wrong-type-of-argument-violation 'cadr "pair" o))
     (result (SG_CDAR o)))
 
   (define-c-proc cddr (o) ::Object
     (unless (SG_PAIRP o)
       (wrong-type-of-argument-violation 'cddr "pair" o))
+    (unless (SG_PAIRP (SG_CDR o))
+      (wrong-type-of-argument-violation 'cadr "pair" o))
     (result (SG_CDDR o)))
 
   (define-c-proc acons (a b alist) ::Object
@@ -857,6 +865,16 @@
   ;; char
   (define-c-proc char? (o) ::boolean
     (result (SG_CHARP o)))
+
+  (define-c-proc char=? (c :rest rest) ::boolean
+    (unless (SG_CHARP c)
+      (wrong-type-of-argument-violation 'char=? "char" c (SG_LIST2 c rest)))
+    (dolist (r rest)
+      (unless (SG_CHARP r)
+	(wrong-type-of-argument-violation 'char=? "char" r (SG_LIST2 c rest)))
+      (when (SG_EQ c r)
+	(return SG_TRUE)))
+    (result FALSE))
 
   ;; string
   (define-c-proc string? (s) ::boolean
