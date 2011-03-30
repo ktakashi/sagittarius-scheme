@@ -57,3 +57,5 @@ ENDIF()
 
 ADD_EXECUTABLE(sash main.c)
 TARGET_LINK_LIBRARIES(sash sagittarius)
+
+INSTALL(TARGETS sagittarius sash DESTINATION bin)
