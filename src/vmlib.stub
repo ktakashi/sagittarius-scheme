@@ -32,7 +32,7 @@
 
 	    ;; misc
 	    %map-cons
-	    make-toplevel-closure p1env-lookup
+	    make-toplevel-closure p1env-lookup p1env-toplevel?
 	    pass3/let-frame-size pass3/frame-size
 	    )
     (import :none)
@@ -243,6 +243,10 @@
 	    (result (Sg_MakeIdentifier (SG_SYMBOL name) '() (SG_LIBRARY lib))))
 	  (result name))))
 
+  (define-c-proc p1env-toplevel? (p1env) ::boolean
+    (result TRUE)
+    (dolist (fp (SG_VECTOR_ELEMENT p1env 1))
+      (if (== (SG_CAR fp) (SG_MAKE_INT 0)) (result FALSE))))
 
   (define-c-proc pass3/frame-size () ::fixnum
     (result SG_FRAME_SIZE))

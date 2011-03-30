@@ -5,6 +5,11 @@
     (and (vector? id)
 	 (eq? (vector-ref id 0) '.identifier))))
 
+(define variable?
+  (lambda (o)
+    (or (symbol? o)
+	(identifier? o))))
+
 ;; generics for stub
 (define (make-generic name prn ctr . fields)
   (vector '.generic name prn ctr fields))

@@ -4,11 +4,15 @@
     (export assert-equal?
 	    assert-true?
 	    assert-false?
+	    generate-reporter
+	    current-reporter
 	    run-test run-test-aux
 	    reporter report-tests
 	    report-failed report-success)
     (import (rnrs)
 	    (core)
+	    (core base)
+	    (core exceptions)
 	    (sagittarius)
 	    (sagittarius test helper))
 
@@ -88,12 +92,31 @@
        (report-tests))))
 
   (define-syntax run-test
-    (er-macro-transformer
+    (syntax-rules ()
+      ((_ tests ...)
+       (dynamic-wind
+	   (lambda ()
+	     (current-reporter 0 (generate-reporter)))
+	   (lambda ()
+	     (guard (e
+		     ((condition? e)
+		      (report-failed 'exception
+				     (describe-condition e)
+				     #f))
+		     #;(else
+		      (report-failed "unexpected error"
+				     (describe-condition e)
+				     #f)))
+	       (run-test-aux tests ...)))
+	   (lambda ()
+	     (print 'done)))))
+
+
+    #;(er-macro-transformer
      (lambda (form rename compare)
        (let ((reporter (generate-reporter))
 	     (tests   (cdr form)))
 	 (current-reporter 0 reporter)
 	 `(begin
 	    (run-test-aux ,@tests))))))
-
 )

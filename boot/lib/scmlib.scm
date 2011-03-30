@@ -404,6 +404,13 @@
     (cons (car lis)
           (recur (cdr lis) (- k 1))))))
 
+(define (drop lis k)
+  (or (integer? k)
+      (assertion-violation (wrong-type-argument-message 'drop "integer" k 2)))
+  (let iter ((lis lis) (k k))
+    (if (zero? k) lis (iter (cdr lis) (- k 1)))))
+
+
 (define list-head take)
 ;;;; end of file
 ;; Local Variables:

@@ -32,6 +32,10 @@
 		   (make-identifier name '() (vector-ref p1env 0))
 		   name)))))))
 
+(define p1env-toplevel?
+  (lambda (p1env)
+    (not (any (lambda (frame) (eqv? (car frame) LEXICAL))
+	      (vector-ref p1env 1)))))
 
 ;;==========================================================================
 ;; Identifiers:

@@ -1178,6 +1178,8 @@
 (define *struct-lib* "../lib/core/struct.scm")
 (define *misc-lib* "../lib/core/misc.scm")
 (define *synhelp-lib* "../lib/core/syntax/helper.scm")
+(define *synpat-lib* "../lib/core/syntax/pattern.scm")
+(define *syntmp-lib* "../lib/core/syntax/template.scm")
 (define *synrule-lib* "../lib/core/syntax-rules.scm")
 
 (define *builtin-libraries* 
@@ -1192,6 +1194,8 @@
     (,*struct-lib* #f () #f)
     (,*misc-lib* #f () #f)
     (,*synhelp-lib* #f () #f)
+    (,*synpat-lib* #f () #f)
+    (,*syntmp-lib* #f () #f)
     (,*synrule-lib* #f () #f)
     (,*match-lib* (sagittarius compiler match)
 		  (null (core base)

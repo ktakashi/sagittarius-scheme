@@ -682,7 +682,7 @@ static SgObject throw_continuation_body(SgObject handlers,
 
   vm->cont = c->cont;
   vm->pc = return_code;
-  vm->dynamicWinders = handlers;
+  vm->dynamicWinders = c->winders;
 
   return vm->ac;
 }
@@ -720,9 +720,12 @@ static SgObject throw_continuation_calculate_handlers(SgContinuation *c,
 static SgObject throw_continuation(SgObject *argframes, int argc, void *data)
 {
   SgContinuation *c = (SgContinuation*)data;
-  SgVM *vm = Sg_VM();
-  SgObject args = argframes[0];
-  SgObject handlers_to_call = throw_continuation_calculate_handlers(c, vm);
+  SgObject args = SG_NIL, t = SG_NIL;
+  SgObject handlers_to_call = throw_continuation_calculate_handlers(c, Sg_VM());
+  int i;
+  for (i = 0; i < argc; i++) {
+    SG_APPEND1(args, t, argframes[i]);
+  }
   return throw_continuation_body(handlers_to_call, c, args);
 }
 
@@ -731,7 +734,6 @@ SgObject Sg_VMCallCC(SgObject proc)
   Stack *stack = save_stack();
   SgContinuation *cont = make_continuation(stack);
   SgObject contproc;
-  SgVM *vm = Sg_VM();
 
   contproc = Sg_MakeSubr(throw_continuation, cont, 0, 1,
 			 Sg_MakeString(UC("continucation"),

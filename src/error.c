@@ -48,9 +48,10 @@ void Sg_Error(const SgChar* fmt, ...)
   va_start(ap, fmt);
   Sg_Vprintf(err, fmt, ap, FALSE);
   va_end(ap);
-  /* TODO I think we need error type to catch */
+  /* TODO I think we need an error type to catch */
   errObj = Sg_GetStringFromStringPort(err);
-  Sg_VMThrowException(Sg_VM(), errObj, FALSE);
+  /* should continuable be true? */
+  Sg_VMThrowException(Sg_VM(), errObj, TRUE);
 }
 
 void Sg_ReadError(const SgChar* fmt, ...)
@@ -63,9 +64,10 @@ void Sg_ReadError(const SgChar* fmt, ...)
   Sg_Vprintf(err, fmt, ap, FALSE);
   va_end(ap);
 
-  /* TODO I think we need error type to catch */
+  /* TODO I think we need an error type to catch */
   errObj = Sg_GetStringFromStringPort(err);
-  Sg_VMThrowException(Sg_VM(), errObj, FALSE);
+  /* should continuable be true? */
+  Sg_VMThrowException(Sg_VM(), errObj, TRUE);
 }
 
 void Sg_SyntaxError(SgObject form, SgObject irritants)

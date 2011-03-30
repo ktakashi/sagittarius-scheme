@@ -127,62 +127,56 @@ SgObject Sg_MakeMacroTransformer(SgObject name, SgObject proc, SgObject library)
   return Sg_MakeMacro(name, &macro_tranform_Stub, proc, library);
 }
 
-static SgObject macro_expand_rec(SgObject form, SgObject p1env, int onceP)
+static SgObject macro_expand_cc(SgObject result, void **data)
 {
-  SgObject expr;
-  SG_FOR_EACH(expr, form) {
-    if (SG_NULLP(expr)) return SG_NIL;
-    else if (!SG_PAIRP(expr)) return expr;
-    else if (SG_PAIRP(SG_CAR(expr))) {
-      /* ((xx ...) ...) */
-      return Sg_Cons(macro_expand_rec(SG_CAR(expr), p1env, onceP),
-		     macro_expand_rec(SG_CDR(expr), p1env, onceP));
+  SgObject env = SG_OBJ(data[0]);
+  return Sg_MacroExpand(result, env, FALSE);
+}
+
+SgObject Sg_MacroExpand(SgObject expr, SgObject p1env, int onceP)
+{
+  SgObject sym, op;
+  SgMacro *mac;
+
+  if (!SG_PAIRP(expr)) return expr;
+  op = SG_CAR(expr);
+  if (SG_MACROP(op)) {
+    mac = SG_MACRO(op);
+  } else if (!SG_SYMBOLP(op) && !SG_IDENTIFIERP(op)) {
+    return expr;
+  } else {
+    mac = NULL;
+    sym = op;
+    if (SG_MACROP(sym)) {
+      /* never happen i guess */
+      mac = SG_MACRO(sym);
     } else {
-      SgObject g = SG_FALSE, mac = SG_FALSE, syn = SG_FALSE,
-	sym = SG_CAR(expr);
+      SgObject g = NULL;
       if (SG_IDENTIFIERP(sym)) {
 	g = Sg_FindBinding(SG_IDENTIFIER_LIBRARY(sym),
 			   SG_IDENTIFIER_NAME(sym));
-      } else if (SG_EQ(sym, SG_SYMBOL_QUOTE)) {
-	/* 'macro case. we need to avoid expantion for this. */
-	return expr;
       } else if (SG_SYMBOLP(sym)) {
-	g = Sg_FindBinding(Sg_VMCurrentLibrary(), sym);
+	g = Sg_FindBinding(Sg_VM()->currentLibrary,
+			   sym);
+			   
       }
-      if (SG_MACROP(g)) mac = g;
-      if (SG_USER_DEFINED_SYNTXP(g)) syn = g;
-      if (!SG_FALSEP(mac)) {
-	SgObject applyArgs = SG_LIST4(mac, expr, p1env, SG_MACRO(mac)->data);
-	SgObject ret = Sg_Apply(SG_MACRO(mac)->transformer, applyArgs);
-	if (onceP) {
-	  return ret;
-	} else {
-	  return macro_expand_rec(ret, p1env, onceP);
+      if (g) {
+	if (SG_MACROP(g)) {
+	  mac = SG_MACRO(g);
 	}
-      } else if (!SG_FALSEP(syn)) {
-	if (SG_CODE_BUILDERP(SG_SYNTAX(syn)->proc)) {
-	  SgObject ret = Sg_VMApply(SG_SYNTAX(syn)->proc, SG_LIST1(expr));
-	  if (onceP) {
-	    return ret;
-	  } else {
-	    return macro_expand_rec(ret, p1env, onceP);
-	  }
-	} else {
-	  /* syntax that made by (syntax a) */
-	  return Sg_Cons(SG_CAR(expr), macro_expand_rec(SG_CDR(expr), p1env, onceP));
-	}
-      } else {
-	return Sg_Cons(SG_CAR(expr), macro_expand_rec(SG_CDR(expr), p1env, onceP));
       }
     }
   }
+  if (mac) {
+    if (!onceP) {
+      void *data[1];
+      data[0] = p1env;
+      Sg_VMPushCC(macro_expand_cc, data, 1);
+    }
+    expr = Sg_Apply(mac->transformer, SG_LIST4(mac, expr, p1env, mac->data));
+  }
   /* not pair or null */
-  return form;
-}
-
-SgObject Sg_MacroExpand(SgObject form, SgObject p1env, int onceP)
-{
-  return macro_expand_rec(form, p1env, onceP);
+  return expr;
 }
 
 /* convert all identifier to symbol */

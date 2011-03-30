@@ -1,10 +1,16 @@
 ;; -*- scheme -*-
 (library (core syntax pattern)
-    (export :all)
+    (export ellipsis-pair?
+	    ellipsis-splicing-pair?
+	    ellipsis-quote?
+	    collect-sids
+	    check-pattern
+	    generate-match)
     (import (core)
 	    (core base)
 	    (core errors)
 	    ;;(trace)
+	    (core syntax helper)
 	    (sagittarius))
 
   (define (id-memq id lst)
@@ -35,7 +41,7 @@
 	 (null? (cddr form))))
 
   ;; exclude '...
-  (define (collect-unique-ids expr rename compare)
+  #;(define (collect-unique-ids expr rename compare)
     (let loop ((lst expr) (ans '()))
       (cond ((pair? lst)
 	     (loop (cdr lst)
@@ -47,29 +53,68 @@
 	     (loop (vector->list lst) ans))
 	    (else ans))))
 
-  ;; this returns pattern alist of variable name and its depth.
-  ;; we also need expression for template, so result alist will
-  ;; be like this:
-  ;; ((pvar expr . rank) ...)
-  (define (collect-vars-ranks pat tmpl lites depth ranks rename compare)
-    (define (rec pat expr lites depth ranks)
-      (cond ((compare pat (rename '_)) ranks)
+  ;; we use sid to keep pattern variable information.
+  ;; it contains variable name, form expression which we need when generate
+  ;; template matching, and control which is the name of template matching.
+  ;; this sid stuffs are from MIT scheme
+  (define (collect-sids pat expr lites rename compare)
+    (define _car (rename 'car))
+    (define _cdr (rename 'cdr))
+    (define _cadr (rename 'cadr))
+    (define _cddr (rename 'cddr))
+    (define _let (rename 'let))
+    (define _loop (rename 'loop))
+    (define _pair? (rename 'pair?))
+    (define _null? (rename 'null?))
+    (define _lst (rename 'lst))
+    (define _cond (rename 'cond))
+    (define _else (rename 'else))
+    (define _and (rename 'and))
+    (define _syntax-violation (rename 'syntax-violation))
+    (define (rec pat expr depth sids control)
+      (cond ((compare pat (rename '_)) sids)
 	    ((variable? pat)
 	     (if (id-memq pat lites)
-		 ranks
-		 (acons pat (cons expr depth) ranks)))
+		 sids
+		 (cons (make-sid pat expr depth control) sids)))
+	    ;; (p ...)
 	    ((ellipsis-pair? pat rename compare)
-	     (rec (cddr pat) `(,(rename 'cddr) ,expr) lites depth
-		  (if (variable? (car pat))
-		      (acons (car pat) (cons expr (+ depth 1)) ranks)
-		      (rec (car pat) `(,(rename 'car) ,expr) lites (+ depth 1) ranks))))
+	     ;; correct?
+	     (let ((var (gensym "control")))
+	       ;; we want to assosiate a control to ellipsis
+	       ;; (a p1 ... (b p2 ...)) in this case both p1 and p2 must have
+	       ;; control. so we also need to check cddr of this pattern
+	       (rec (cddr pat)
+		    (if (null? (cddr pat))
+			`(,_cddr ,expr) ;; '()
+			`(,_let ,_loop ((,_lst (,_cdr ,expr)))
+			   (,_cond ((,_null? ,_lst) ;; should not happend, i guess
+				    (,_syntax-violation "syntax template"
+							"invalid syntax"
+							,expr))
+				   ((,_and (,_pair? (,_cdr ,_lst))
+					   (,_pair? (,_cadr ,_lst)));; we need from here
+				    (,_cdr ,_lst))
+				   (,_else
+				    (,_loop (,_cdr ,_lst))))))
+		    depth
+		    (rec (car pat)
+			 var
+			 (+ depth 1)
+			 sids
+			 (make-sid var (if (null? (cddr pat))
+					   expr
+					   `(,(rename 'take) ,expr (,(rename '-) (,(rename 'length) ,expr) 1)))
+				   (+ depth 1) control))
+		    control)))
 	    ((pair? pat)
-	     (rec (cdr pat) `(,(rename 'cdr) ,expr) lites depth
-		  (rec (car pat) `(,(rename 'car) ,expr) lites depth ranks)))
+	     (rec (cdr pat) `(,_cdr ,expr) depth
+		  (rec (car pat) `(,_car ,expr) depth sids control)
+		  control))
 	    ((vector? pat)
-	     (rec (vector->list pat) expr lites depth ranks))
-	    (else ranks)))
-    (rec pat tmpl lites depth ranks))
+	     (rec (vector->list pat) expr depth sids control))
+	    (else sids)))
+    (rec pat expr 0 '() #f))
 
   (define (check-pattern pat lites rename compare)
     (let ((ellipsis (rename '...)))
@@ -123,7 +168,9 @@
 	  (_list? (rename 'list?)) (_> (rename '>))
 	  (_and (rename 'and))   (_n (rename 'n))
 	  (_- (rename '-))      (_= (rename '=))
+	  (_+ (rename '+))
 	  (_identifier? (rename 'identifier?))
+	  (_count-pair (rename 'count-pair))
 	  (_rename (rename 'rename)) (_compare (rename 'compare)))
       (define (conjunction predicate consequent)
 	(cond ((eq? predicate #t) consequent)
@@ -149,7 +196,13 @@
 					 (loop (car pattern)
 					       `(,_car ,_l))
 					 `(,_loop (,_cdr ,_l) (,_- ,_n 1)))))))
-		    (,_n (,_- (,(rename 'count-pair) ,expr)
+		    ;; TODO: this is ugly, we need to find something else.
+		    (,_count-pair (,_lambda (,_l)
+				      (,_let ,_loop ((,_l ,_l) (,_n 0))
+					 (,_if (,_pair? ,_l)
+					       (,_loop (,_cdr ,_l) (,_+ ,_n 1))
+					       ,_n))))
+		    (,_n (,_- (,_count-pair ,expr)
 			      ,(count-pair (cddr pattern)))))
 	     (,_if (,_= ,_n 0)
 		   ,(loop (cddr pattern) expr)
@@ -188,13 +241,13 @@
 		     `(,_let ((,_temp ,expr))
 			 ,(generate-pair _temp)))))
 	      ((vector? pattern)
-	       `(_if (,_vector? ,expr)
+	       `(,_if (,_vector? ,expr)
 		     ,(loop (vector->list pattern) expr)
 		     #f))
 	      ((null? pattern)
 	       `(,_null? ,expr))
 	      (else
-	       `(_equal? ,expr (,_quote ,pattern)))))
+	       `(,_equal? ,expr (,_quote ,pattern)))))
       ;;(trace loop do-list do-list-n conjunction)
       (loop pattern expr)))
 

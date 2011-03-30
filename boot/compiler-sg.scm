@@ -692,13 +692,6 @@
  current-proc)
 
 (define
- p1env-toplevel?
- (lambda
-  (p1env)
-  (not
-   (any (lambda (frame) (eqv? (car frame) LEXICAL)) (p1env-frames p1env)))))
-
-(define
  check-toplevel
  (lambda
   (form p1env)
