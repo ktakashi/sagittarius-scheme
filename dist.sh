@@ -21,6 +21,7 @@ cp -r test/ ${DIST_NAME}
 cp -r unicode/ ${DIST_NAME}
 cp -r autogen.sh ${DIST_NAME}
 cp -r geninsn.sh ${DIST_NAME}
+cp -r cmake_uninstall.cmake.in ${DIST_NAME}
 cp -r CMakeLists.txt ${DIST_NAME}
 cp -r README ${DIST_NAME}
 cp -r Copyright ${DIST_NAME}
