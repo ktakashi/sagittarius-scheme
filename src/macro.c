@@ -139,6 +139,10 @@ SgObject Sg_MacroExpand(SgObject expr, SgObject p1env, int onceP)
   SgMacro *mac;
 
   if (!SG_PAIRP(expr)) return expr;
+  if (SG_PAIRP(SG_CAR(expr))) {
+    return Sg_Cons(Sg_MacroExpand(SG_CAR(expr), p1env, onceP),
+		   Sg_MacroExpand(SG_CDR(expr), p1env, onceP));
+  }
   op = SG_CAR(expr);
   if (SG_MACROP(op)) {
     mac = SG_MACRO(op);

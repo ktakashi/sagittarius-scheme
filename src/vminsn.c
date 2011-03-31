@@ -413,7 +413,7 @@ CASE(APPLY) {
   {
     SgObject args = POP(SP(vm));
     if (SG_NULLP(args)) {
-      vm      ->      callCode      [      0      ]=MERGE_INSN_VALUE1(CALL, 0);
+      vm->callCode[0]=MERGE_INSN_VALUE1(CALL, 0);
       PC(vm)=vm->callCode;
     } else {
       {
@@ -431,7 +431,7 @@ CASE(APPLY) {
 ;
         sp=SP(vm) + shiftLen + 1;
         pair_args_to_stack(SP(vm), 0, args);
-        vm        ->        callCode        [        0        ]=MERGE_INSN_VALUE1(CALL, length);
+        vm->callCode[0]=MERGE_INSN_VALUE1(CALL, length);
         PC(vm)=vm->callCode;
         SP(vm)=sp;
       }

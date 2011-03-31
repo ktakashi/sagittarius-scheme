@@ -152,6 +152,7 @@ int Sg_WriteLimited(SgObject obj, SgObject port, int mode, int width)
   ctx.flags = WRITE_LIMITED;
   ctx.limit = width;
   ctx.sharedId = 0;
+  ctx.table = NULL;
   
   sharedp = SG_WRITE_MODE(&ctx) == SG_WRITE_SHARED;
   format_write(obj, SG_PORT(out), &ctx, sharedp);
@@ -213,8 +214,8 @@ static void format_sexp(SgPort *out, SgObject arg,
   SgString *tmpstr;
   
   if (nparams > 0 && SG_INTP(params[0])) mincol = SG_INT_VALUE(params[0]);
-  if (nparams > 1 && SG_INTP(params[1])) colinc = SG_CHAR_VALUE(params[1]);
-  if (nparams > 2 && SG_INTP(params[2])) minpad = SG_CHAR_VALUE(params[2]);
+  if (nparams > 1 && SG_INTP(params[1])) colinc = SG_INT_VALUE(params[1]);
+  if (nparams > 2 && SG_INTP(params[2])) minpad = SG_INT_VALUE(params[2]);
   if (nparams > 3 && SG_CHARP(params[3])) padchar = SG_CHAR_VALUE(params[3]);
   if (nparams > 4 && SG_INTP(params[4])) maxcol = SG_INT_VALUE(params[4]);
 

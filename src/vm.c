@@ -119,6 +119,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->currentErrorPort = Sg_MakeTranscodedOutputPort(Sg_StandardErrorPort(),
 						    Sg_IsUTF16Console(Sg_StandardError()) ? Sg_MakeNativeConsoleTranscoder()
 						                                           : Sg_MakeNativeTranscoder());
+  v->logPort = v->currentErrorPort;
   /* TODO thread, mutex, etc */
   return v;
 }
@@ -431,6 +432,7 @@ SgObject Sg_Apply(SgObject proc, SgObject args)
   return evaluate_safe(vm->applyCode, 8);
 }
 
+
 static SgWord apply_callN[2] = {
   APPLY,
   RET
@@ -454,7 +456,8 @@ SgObject Sg_VMApply(SgObject proc, SgObject args)
   CHECK_STACK(reqstack, vm);
   PUSH(SP(vm), args);
   PC(vm) = apply_callN;
-  return Sg_CopyList(args);
+  /* return Sg_CopyList(args); */
+  return proc;
 }
 
 static SgWord apply_calls[][2] = {
@@ -625,7 +628,6 @@ static inline SgContinuation* make_continuation(Stack *s)
 {
   SgVM *vm = Sg_VM();
   SgContinuation *c = SG_NEW(SgContinuation);
-  SG_SET_HEADER(c, TC_CONTINUATION);
   c->stack = s;
   c->winders = vm->dynamicWinders;
   c->cont = vm->cont;
@@ -1115,6 +1117,7 @@ static inline SgObject* shift_args(SgObject *fp, int m, SgObject *sp)
     POP_CONT();					\
   } while (0)
 
+#if 0
 static inline void print_stack(SgVM *vm)
 {
   /* print stack */
@@ -1173,7 +1176,103 @@ static inline void trace_log(SgWord *code, SgWord insn)
   print_stack(vm);
   Sg_Printf(Sg_StandardErrorPort(), UC("\n\n"));
 }
+#endif
 
+/*
+  print call frames
+  
+  call frame and let frame model
+  before calling
+  +----------------+ <-- sp 
+  |   arguments    |
+  +----------------+
+  |      size      |
+  |      prev  ----|----------+
+  |       :        |          |
+  |       fp       |          |
+  +----------------+ <-- cont |
+  |   argument n   |          |
+  |       :        |          |
+  |   argument 0   |          |
+  +----------------+ <-- fp   | prev
+  |      size      |          |
+  |       pc       |          |
+  |       cl       |          |
+  |       dc       |          |
+  |       fp       |          |
+  +----------------+ <--------+
+
+  after calling
+  +----------------+ <-- sp 
+  |   arguments    |
+  +----------------+ <-- fp 
+  |      size      |
+  |      prev  ----|----------+
+  |       :        |          |
+  |       fp       |          |
+  +----------------+ <-- cont |
+  |   argument n   |          |
+  |       :        |          |
+  |   argument 0   |          |
+  +----------------+          | prev
+  |      size      |          |
+  |       pc       |          |
+  |       cl       |          |
+  |       dc       |          |
+  |       fp       |          |
+  +----------------+ <--------+
+
+  we can follow the stack with cont register.
+  to avoid segmentation fault, we need to be careful with let frame.
+  so make sure if it's fp or not before touch an stack element.
+ */
+static void print_frames(SgVM *vm)
+{
+  SgContFrame *cont = CONT(vm);
+  SgObject *stack = vm->stack, sp = SP(vm);
+  SgObject *current = sp;
+  SgString *fmt = Sg_MakeString(UC("+   o=~9,,,,9a +~%"), SG_LITERAL_STRING);
+  SgString *clfmt = Sg_MakeString(UC("+   cl=~8,,,,9s +~%"), SG_LITERAL_STRING);
+  SgString *dcfmt = Sg_MakeString(UC("+   dc=~8,,,,9s +~%"), SG_LITERAL_STRING);
+  int something_printed = FALSE;
+  Sg_Printf(vm->logPort, UC("+---------------+ <== sp(0x%x)\n"), sp);
+  /* we print frames from top */
+  current--;
+  while (stack < current && current < sp) {
+    if ((uintptr_t)current == ((uintptr_t)cont + sizeof(SgContFrame))) {
+      /* print call frame */
+      /* frame | frame case*/
+      if (something_printed) {
+	Sg_Format(vm->logPort, fmt, SG_LIST1(*current), TRUE);
+	something_printed = FALSE;
+	Sg_Printf(vm->logPort, UC("+---------------+\n"));
+      }
+      Sg_Printf(vm->logPort, UC("+ size=%8d +\n"), cont->size);
+      Sg_Printf(vm->logPort, UC("+   pc=%8x +\n"), cont->pc);
+      Sg_Format(vm->logPort, clfmt, SG_LIST1(SG_PROCEDURE_NAME(cont->cl)), TRUE);
+      Sg_Format(vm->logPort, dcfmt, SG_LIST1(cont->dc), TRUE);
+      Sg_Printf(vm->logPort, UC("+   fp=%8x +\n"), cont->fp);
+      if (cont == CONT(vm)) {
+	Sg_Printf(vm->logPort, UC("+---------------+ <== cont(0x%x)\n"), cont);
+      } else {
+	Sg_Printf(vm->logPort, UC("+---------------+\n"));
+      }
+      current = cont;
+      cont = cont->prev;
+      continue;
+    }
+    /* this might be fp or pc of let frame */
+    if (stack <= *current && *current <= sp) {
+      Sg_Printf(vm->logPort, UC("+   p=%9x +\n"), *current);
+    } else {
+      /* assume it's an object */
+      Sg_Format(vm->logPort, fmt, SG_LIST1(*current), TRUE);
+    }
+    something_printed = TRUE;
+    current--;
+  }
+  Sg_Write(SG_MAKE_CHAR('\n'), vm->logPort, 1);
+}
 
 #ifdef __GNUC__
 # define SWITCH(val)        goto *dispatch_table[val];
@@ -1183,10 +1282,6 @@ static inline void trace_log(SgWord *code, SgWord insn)
   do {								\
     if (vm->attentionRequest) goto process_queue;		\
     c = (SgWord)FETCH_OPERAND(PC(vm));				\
-    if ((vm->flags & SG_LOG_LEVEL_MASK) >= SG_TRACE_LEVEL	\
-	&& vm->state == RUNNING) {				\
-      trace_log(code, c);					\
-    }								\
     goto *dispatch_table[INSN(c)];				\
   } while (0)
 # define DEFAULT            LABEL_DEFAULT :
@@ -1220,10 +1315,6 @@ SgObject run_loop(SgWord *code, jmp_buf returnPoint)
     int val1, val2;
 
     DISPATCH;
-
-    if ((vm->flags & SG_LOG_LEVEL_MASK) >= SG_TRACE_LEVEL && vm->state == RUNNING) {
-      trace_log(code, c);
-    }
 
     SWITCH(INSN(c)) {
 #define VM_LOOP

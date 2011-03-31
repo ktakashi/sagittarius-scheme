@@ -1386,10 +1386,16 @@
 
 (define pass1/import
   (lambda (oform form p1env)
+    (define import-prefix?
+      (lambda (x)
+	(case x
+	  ((for only except rename prefix) #t)
+	  (else #f))))
+
     (define process-clause
       (lambda (clause)
 	(smatch clause
-	  (((? symbol? sym) (? pair? lib) etc ___)
+	  (((? import-prefix? sym) (? pair? lib) etc ___)
 	   ;; maybe for, only, except, rename or prefix
 	   ;(load-library (p1env-library p1env) lib))
 	   (import-library (p1env-library p1env) 

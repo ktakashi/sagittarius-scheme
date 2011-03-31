@@ -31,8 +31,10 @@
   (define (renderer-indent-decl!)
     (set! *renderer-indent* (substring *renderer-indent* 2 (string-length *renderer-indent*))))
 
-  (define (renderer-no-indent flag)
-    (set! *renderer-no-indent* flag))
+  (define (renderer-no-indent . flag)
+    (if (null? flag)
+	*renderer-no-indent*
+	(set! *renderer-no-indent* (car flag))))
 
   (define (generate-renderer . user-renderer)
     (lambda (x)

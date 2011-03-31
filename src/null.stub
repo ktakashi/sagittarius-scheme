@@ -529,7 +529,7 @@
   ;; apply
   (define-c-proc apply (proc::Procedure arg1 :rest rest) ::Object
     (let ((head::SgObject '()) (tail::SgObject '()))
-      (cond ((SG_NULLP rest) (result (Sg_Apply proc arg1)))
+      (cond ((SG_NULLP rest) (result (Sg_VMApply proc arg1)))
 	    (else 
 	     (set! head (Sg_Cons arg1 '()))
 	     (set! tail head)
@@ -540,7 +540,7 @@
 	       (unless (SG_PAIRP (SG_CDR cp))
 		 (assertion-violation 'apply "improper list not allowed" (SG_CDR cp)))
 	       (SG_APPEND1 head tail (SG_CAR cp)))
-	     (result (Sg_Apply proc head))))))
+	     (result (Sg_VMApply proc head))))))
 
   #;(define-c-proc vm/apply (code :rest rest) ::Object
     (result (Sg_VMApply code rest)))

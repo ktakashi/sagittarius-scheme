@@ -394,10 +394,13 @@
   ;; ->
   (define (ref-> body dispatch k)
     (let ((instance (cadr body))
-	  (prop (caddr body)))
+	  (prop (caddr body))
+	  (save (renderer-no-indent)))
       (dispatch instance dispatch k)
+      (renderer-no-indent #t)
       ((renderer) (format "->"))
       (dispatch prop dispatch k)
+      (renderer-no-indent save)
       (k k)))
 
   ;; &

@@ -258,7 +258,6 @@ enum {
   TC_TRANSCODER,
 
   TC_CLOSURE,
-  TC_CONTINUATION,
   TC_PROCEDURE,
 
   TC_SYNTAX,
@@ -326,7 +325,7 @@ typedef enum  {
 #define SG_PTRP(obj)   (SG_TAG2(obj) == 0)
 
 /* Immediate objects*/
-#define SG_IMMEDIATEP(obj) (SG_TAG8(obj) == 0x0a)
+#define SG_IMMEDIATEP(obj) (SG_TAG8(obj) == 0x0b)
 #define SG_ITAG(obj)       (SG_WORD(obj)>>8)
 /* 
    get header value
@@ -341,7 +340,7 @@ typedef enum  {
 
 #define SG_MAKEBITS(v, shift)   ((intptr_t)(v)<<shift)
 
-#define SG__MAKE_ITAG(num) (((num)<<8) + 0x0a)
+#define SG__MAKE_ITAG(num) (((num)<<8) + 0x0b)
 #define SG_FALSE           SG_OBJ(SG__MAKE_ITAG(0)) /* #f */
 #define SG_TRUE            SG_OBJ(SG__MAKE_ITAG(1)) /* #t */
 #define SG_NIL             SG_OBJ(SG__MAKE_ITAG(2)) /* '() */

@@ -86,7 +86,6 @@ typedef SgObject SgCContinuationProc(SgObject result, void **data);
 
 struct SgContinucationRec
 {
-  SG_HEADER;
   Stack       *stack;
   SgContFrame *cont;
   SgObject     winders;
