@@ -71,6 +71,8 @@ SG_EXTERN SgObject Sg_StandardOut();
 SG_EXTERN SgObject Sg_StandardIn();
 SG_EXTERN SgObject Sg_StandardError();
 
+SG_EXTERN int      Sg_IsUTF16Console(SgObject file);
+
 SG_EXTERN SgObject Sg_MakeFileOptions(SgObject options);
 
 SG_CDECL_END

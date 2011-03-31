@@ -35,7 +35,7 @@
 
 SgObject Sg_MakeNativeConsoleTranscoder()
 {
-  return Sg_MakeTranscoder(Sg_MakeUtfuCodec(), Sg_NativeEol(), SG_RAISE_ERROR);
+  return Sg_MakeTranscoder(Sg_MakeUtf8Codec(), Sg_NativeEol(), SG_RAISE_ERROR);
 }
 
 EolStyle Sg_NativeEol()

@@ -238,7 +238,7 @@ SgObject Sg_OpenFile(SgString *file, int flags)
 {
   SgFile *z = make_file(INVALID_HANDLE_VALUE);
   z->open(z, file->value, flags);
-  if (!z->isOpen(z)) {
+  if (!win_is_open(z)) {
     const int msgSize = 128;
     wchar_t msg[msgSize];
     int size = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -258,26 +258,42 @@ SgObject Sg_OpenFile(SgString *file, int flags)
   return SG_OBJ(z);
 }
 
+static SgFile *stdOut = NULL;
+static SgFile *stdIn = NULL;
+static SgFile *stdError = NULL;
+
 SgObject Sg_StandardOut()
 {
-  SgFile *z = make_file(GetStdHandle(STD_OUTPUT_HANDLE));
-  z->name = UC("stdout");
-  return SG_OBJ(z);
+  if (!stdOut) {
+    stdOut = make_file(GetStdHandle(STD_OUTPUT_HANDLE));
+    stdOut->name = UC("stdout");
+  }
+  return SG_OBJ(stdOut);
 }
 
 SgObject Sg_StandardIn()
 {
-  SgFile *z = make_file(GetStdHandle(STD_INPUT_HANDLE));
-  z->name = UC("stdin");
-  return SG_OBJ(z);
+  if (!stdIn) {
+    stdIn = make_file(GetStdHandle(STD_INPUT_HANDLE));
+    stdIn->name = UC("stdin");
+  }
+  return SG_OBJ(stdIn);
 }
 
 SgObject Sg_StandardError()
 {
-  SgFile *z = make_file(GetStdHandle(STD_ERROR_HANDLE));
-  z->name = UC("stderr");
-  return SG_OBJ(z);
+  if (!stdError) {
+    stdError = make_file(GetStdHandle(STD_ERROR_HANDLE));
+    stdError->name = UC("stderr");
+  }
+  return SG_OBJ(stdError);
 }
+
+int Sg_IsUTF16Console(SgObject file)
+{
+  return GetFileType(SG_FD(file)->desc) == FILE_TYPE_CHAR;
+}
+
 
 /*
   end of file

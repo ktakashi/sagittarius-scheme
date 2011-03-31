@@ -2,17 +2,17 @@
 MESSAGE(STATUS "operating system: ${CMAKE_SYSTEM_NAME}")
 
 IF(CYGWIN)
+  # cygwin is considered as POSIX on sagittarius scheme
   SET(PLATFORM_SOURCE ${PLATFORM_SOURCE}
-    os/win/file.c os/win/transcoder.c
-    #use cygwin path style
-    os/linux/system.c
+    os/posix/file.c os/posix/transcoder.c
+    os/posix/system.c
     )
 ELSEIF(WIN32)
   SET(PLATFORM_SOURCE ${PLATFORM_SOURCE} os/win/file.c os/win/transcoder.c)
 ELSE()
   # TODO add linux and bsd(maybe also apple?)
   # use standard c functionality
-  SET(PLATFORM_SOURCE ${PLATFORM_SOURCE} os/general/file.c)
+  SET(PLATFORM_SOURCE ${PLATFORM_SOURCE} os/posix/file.c os/posix/transcoder.c)
 ENDIF()
 
 SET(SAGITTARIUS_LIB_SOURCE
