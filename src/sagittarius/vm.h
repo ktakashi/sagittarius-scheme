@@ -147,7 +147,6 @@ struct SgVMRec
   /* apply closure code */
   SgWord    *applyCode;
   SgWord    *callCode;
-  SgWord    *callClosureByNameCode;
 
   /* return point */
   jmp_buf    returnPoint;
@@ -225,7 +224,6 @@ SG_EXTERN SgVM*    Sg_NewVM(SgVM *proto, SgObject name);
 SG_EXTERN int      Sg_Load(SgString *path);
 SG_EXTERN int      Sg_LoadUnsafe(SgString *path);
 SG_EXTERN SgObject Sg_Compile(SgObject o);
-SG_EXTERN SgObject Sg_CallClosureByName(SgObject name, SgObject code);
 SG_EXTERN SgObject Sg_Apply(SgObject proc, SgObject args);
 SG_EXTERN SgObject Sg_VMApply0(SgObject proc);
 SG_EXTERN SgObject Sg_VMApply1(SgObject proc, SgObject arg);

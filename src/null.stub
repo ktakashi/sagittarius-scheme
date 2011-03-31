@@ -48,7 +48,7 @@
 	    ;; ports
 	    port? input-port? output-port?
 	    flush-output-port current-output-port
-	    current-error-port
+	    current-error-port current-input-port
 	    open-file-input-port open-file-output-port
 	    close-input-port close-output-port
 	    format read
@@ -699,6 +699,14 @@
 	  (result (-> vm currentErrorPort))
 	  (begin
 	    (set! (-> vm currentErrorPort) p)
+	    (result SG_UNDEF)))))
+
+  (define-c-proc current-input-port (:optional (p::Port SG_UNBOUND)) ::Object
+    (let ((vm::SgVM* (Sg_VM)))
+      (if (SG_UNBOUNDP p)
+	  (result (-> vm currentInputPort))
+	  (begin
+	    (set! (-> vm currentInputPort) p)
 	    (result SG_UNDEF)))))
 
   (define-c-proc read (:optional (p (Sg_CurrentInputPort))) ::Object

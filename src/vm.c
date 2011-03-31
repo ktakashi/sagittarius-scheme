@@ -374,16 +374,15 @@ SgObject Sg_VMCurrentLibrary()
 /* compiler */
 SgObject Sg_Compile(SgObject o)
 {
-  static SgObject name = SG_UNDEF;
+  static SgObject compiler = SG_UNDEF;
   SgObject compiled;
+  /* compiler is initialized after VM. so we need to look it up first */
   /* TODO lock */
-  if (name == SG_UNDEF) {
+  if (SG_UNDEFP(compiler)) {
     SgObject compile_library = Sg_FindLibrary(SG_INTERN("(sagittarius compiler)"), FALSE);
-    name = Sg_MakeIdentifier(SG_INTERN("compile"), SG_NIL, compile_library);
+    compiler = Sg_FindBinding(compile_library, SG_INTERN("compile"));
   }
-  compiled = Sg_CallClosureByName(name, o);
-  /* TODO I think I need to convert compiled code to word array */
-  return compiled;
+  return Sg_Apply(compiler, SG_LIST2(o, SG_NIL));
 }
 
 
@@ -414,16 +413,8 @@ void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
   SP(vm) = s;
 }
 
-/* This is just for compiler... */
-SgObject Sg_CallClosureByName(SgObject name, SgObject code)
-{
-  SgVM *vm = Sg_VM();
-  vm->callClosureByNameCode[3] = SG_WORD(code);
-  vm->callClosureByNameCode[5] = SG_WORD(SG_NIL);
-  vm->callClosureByNameCode[7] = SG_WORD(name);
-  return evaluate_safe(vm->callClosureByNameCode, 8);
-}
 
+/* Apply families */
 SgObject Sg_Apply(SgObject proc, SgObject args)
 {
   SgVM *vm = Sg_VM();
@@ -438,6 +429,14 @@ static SgWord apply_callN[2] = {
   RET
 };
 
+static SgWord apply_calls[][5] = {
+  { MERGE_INSN_VALUE1(CALL, 0), RET },
+  { MERGE_INSN_VALUE1(CALL, 1), RET },
+  { MERGE_INSN_VALUE1(CALL, 2), RET },
+  { MERGE_INSN_VALUE1(CALL, 3), RET },
+  { MERGE_INSN_VALUE1(CALL, 4), RET }
+};
+
 /*
   VMApply families.
 
@@ -447,7 +446,6 @@ SgObject Sg_VMApply(SgObject proc, SgObject args)
 {
   int argc = Sg_Length(args);
   int reqstack;
-  SgObject cp;
   SgVM *vm = Sg_VM();
 
   if (argc < 0) Sg_Error(UC("improper list not allowed: %S"), args);
@@ -459,11 +457,6 @@ SgObject Sg_VMApply(SgObject proc, SgObject args)
   /* return Sg_CopyList(args); */
   return proc;
 }
-
-static SgWord apply_calls[][2] = {
-  { MERGE_INSN_VALUE1(CALL, 0), RET },
-  { MERGE_INSN_VALUE1(CALL, 1), RET }
-};
 
 SgObject Sg_VMApply0(SgObject proc)
 {
@@ -1309,7 +1302,6 @@ SgObject run_loop(SgWord *code, jmp_buf returnPoint)
 #endif	/* __GNUMC__ */
 
   /* PC(vm) = code; */
-  AC(vm) = SG_UNDEF;
   for (;;) {
     SgWord c = (SgWord)FETCH_OPERAND(PC(vm));
     int val1, val2;
@@ -1335,21 +1327,10 @@ SgObject run_loop(SgWord *code, jmp_buf returnPoint)
 
 void Sg__InitVM()
 {  
-  SgWord *callClosureByNameCode = SG_NEW_ARRAY(SgWord, 9);
   SgWord *callCode = SG_NEW_ARRAY(SgWord, 2);
   SgWord *applyCode = SG_NEW_ARRAY(SgWord,  8);
 
   SgCodeBuilder *closureForEvaluateCode = Sg_MakeCodeBuilder(-1);
-
-  callClosureByNameCode[0] = SG_WORD(FRAME);
-  callClosureByNameCode[1] = SG_WORD(SG_MAKE_INT(7));
-  callClosureByNameCode[2] = SG_WORD(CONST_PUSH);
-  callClosureByNameCode[3] = SG_WORD(SG_UNDEF);
-  callClosureByNameCode[4] = SG_WORD(CONST_PUSH);
-  callClosureByNameCode[5] = SG_WORD(SG_UNDEF);
-  callClosureByNameCode[6] = SG_WORD(MERGE_INSN_VALUE1(GREF_CALL, 2));
-  callClosureByNameCode[7] = SG_WORD(SG_UNDEF);
-  callClosureByNameCode[8] = SG_WORD(HALT);
 
   applyCode[0] = SG_WORD(FRAME);
   applyCode[1] = SG_WORD(SG_MAKE_INT(6));
@@ -1362,7 +1343,6 @@ void Sg__InitVM()
 
   /* TODO multi thread and etc */
   rootVM = theVM = Sg_NewVM(NULL, Sg_MakeString(UC("root"), SG_LITERAL_STRING));
-  rootVM->callClosureByNameCode = callClosureByNameCode;
   rootVM->applyCode = applyCode;
   rootVM->callCode = callCode;
   rootVM->libraries = Sg_MakeHashTableSimple(SG_HASH_EQ, 64);

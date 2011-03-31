@@ -1,7 +1,7 @@
 ;; -*- Scheme -*-
 (library (core syntax match)
     (export smatch smatcher)
-    (import null
+    (import (core)
 	    (core base)
 	    (core syntax-rules)
 	    (sagittarius))

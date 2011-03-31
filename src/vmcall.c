@@ -44,7 +44,6 @@
     SG_SUBR_RETURN_CODE(AC(vm))[0] = SG_WORD(RET);
     CL(vm) = AC(vm);
     FP(vm) = SP(vm) - argc;
-    CONT(vm)->size = argc;
     SG_PROF_COUNT_CALL(vm, AC(vm));
     AC(vm) = SG_SUBR_FUNC(AC(vm))(SP(vm) - argc, argc, SG_SUBR_DATA(AC(vm)));
   } else if (SG_CLOSUREP(AC(vm))) {
@@ -72,10 +71,8 @@
 	Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),
 					   required - 1, argc, SG_UNDEF);
       }
-      CONT(vm)->size = required;
     } else if (required == argc) {
       FP(vm) = SP(vm) - argc;
-      CONT(vm)->size = argc;
     } else {
       SgObject args = SG_NIL;
       int i;
