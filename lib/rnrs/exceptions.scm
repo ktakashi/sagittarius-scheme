@@ -2,7 +2,7 @@
 (library (rnrs exceptions (6))
     (export with-exception-handler guard raise raise-continuable)
     (import (core)
-	    #;(core exceptions))
+	    (core exceptions))
 
 ) ; [end]
 ;; end of file
