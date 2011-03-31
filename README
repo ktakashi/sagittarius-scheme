@@ -1,0 +1,27 @@
+#
+#  Sagittarius Scheme System
+#
+
+* What is this?
+  This is a Scheme implementation which trys to support R6RS specification.
+
+* How to build and install?
+  You need CMake(higher than 2.8.2) to build Sagittarus. You can get it from
+  http://www.cmake.org/
+  Currently I only check on Cygwin so there might be alot of problems to build
+  other POSIX environemnt.
+  Just type this on your console.
+
+  % cmake .
+  % make
+  % make install
+
+  I did not provide any test or check target yet.
+
+* How to develop it?
+  You need Gauche (R5RS Scheme implementation made by Shiro Kawai) and Ypsilon
+  (R6RS Scheme implementation made by Yoshikatu Fujita), if you want to develop
+  compiler.scm or base libraries which are provided by Scheme and stub files.
+  There are some convenient scripts on the same level as this file. autogen.sh
+  and geninsn.sh. These scripts creates compiler, vm instruction, base library,
+  and c proceduers. For more detail, see the files.
