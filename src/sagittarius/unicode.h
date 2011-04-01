@@ -42,8 +42,8 @@ SG_EXTERN int Sg_Ucs4WhiteSpace(SgChar c);
 SG_EXTERN int Sg_Ucs4IntralineWhiteSpace(SgChar c);
 SG_EXTERN int Sg_ConvertUcs4ToUtf8(SgChar c, uint8_t utf8[4], ErrorHandlingMode mode);
 SG_EXTERN int Sg_ConvertUcs4ToUtf16(SgChar c, uint8_t utf8[4], ErrorHandlingMode mode, int littelp);
-SG_EXTERN int Sg_ConvertUtf8ToUcs4(uint8_t utf8[4], SgChar *ucs4, ErrorHandlingMode mode);
-SG_EXTERN int Sg_ConvertUtf16ToUcs4(uint8_t utf8[4], SgChar *ucs4, ErrorHandlingMode mode, int littelp);
+SG_EXTERN SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode);
+SG_EXTERN SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode, SgCodec *codec, int checkBOMNow);
 SG_EXTERN SgChar Sg_EnsureUcs4(SgChar c);
 
 /* string convertion */

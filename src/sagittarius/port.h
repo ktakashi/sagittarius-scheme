@@ -40,7 +40,9 @@ typedef struct SgBinaryPortRec
   int  (*open)(SgObject);
   /* read/write methods */
   int     (*getU8)(SgObject);
-  int64_t (*readU8Ahead)(SgObject, uint8_t*, int64_t);
+#if 0
+  int64_t (*readU8)(SgObject self, uint8_t *buf, int64_t size)
+#endif
   int64_t (*putU8)(SgObject, uint8_t);
   int64_t (*putU8Array)(SgObject, uint8_t*, int64_t);
   int     type;
@@ -176,6 +178,7 @@ SG_EXTERN SgObject Sg_StandardInputPort();
 SG_EXTERN SgObject Sg_StandardErrorPort();
 
 /* utility methods */
+SG_EXTERN int      Sg_GetU8(SgPort *port);
 SG_EXTERN SgChar   Sg_Getc(SgPort *port);
 SG_EXTERN void     Sg_Putc(SgPort *port, SgChar ch);
 SG_EXTERN void     Sg_Putz(SgPort *port, const char *str);
@@ -190,6 +193,7 @@ SG_EXTERN void     Sg_PutzUnsafe(SgPort *port, const char *str);
 SG_EXTERN void     Sg_PutuzUnsafe(SgPort *port, const SgChar *str);
 SG_EXTERN void     Sg_PutsUnsafe(SgPort *port, SgString *str);
 SG_EXTERN SgChar   Sg_GetcUnsafe(SgPort *port);
+SG_EXTERN int      Sg_GetU8Unsafe(SgPort *port);
 SG_EXTERN void     Sg_UngetcUnsafe(SgPort *port, SgChar ch);
 SG_EXTERN SgChar   Sg_PeekcUnsafe(SgPort *port);
 

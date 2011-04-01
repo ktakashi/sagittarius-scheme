@@ -179,57 +179,82 @@ int Sg_ConvertUcs4ToUtf16(SgChar ucs4, uint8_t utf8[4], ErrorHandlingMode mode, 
   }
 }
 
-#define decodeError(ignore)						\
+#define decodeError()							\
   if (mode == SG_RAISE_ERROR) {						\
     Sg_Error(UC("Invalid encode %s:%x\n"),  UC(__FILE__), __LINE__);	\
   } else if (mode == SG_REPLACE_ERROR) {				\
-    *ucs4 = 0xFFFD;							\
-    return 2;								\
+    return 0xFFFD;							\
   } else {								\
     ASSERT(mode == SG_IGNORE_ERROR);					\
-    return (ignore);							\
+    goto retry;								\
   }
 
-int Sg_ConvertUtf8ToUcs4(uint8_t utf8[4], SgChar *ucs4, ErrorHandlingMode mode)
+static inline int isUtf8Tail(uint8_t b)
 {
-  SgChar sv;
-
-  if (utf8[0] < 0x80) {
-    sv = utf8[0];
-    if (sv >= 0x80) { decodeError(-1); }
-    *ucs4 = sv;
-    return 1;
-  } else if (utf8[0] < 0xc2) {
-    decodeError(-1);
-  } else if (utf8[0] < 0xe0) {
-    if ((utf8[1] < 0x80) | (utf8[1] > 0xbf)) { decodeError(-2); }
-    sv = ((utf8[0] & 0x1f) << 6) + (utf8[1] & 0x3f);
-    if ((sv < 0x80) | (sv > 0x7FF)) { decodeError(-2); }
-    *ucs4 = sv;
-    return 2;
-  } else if (utf8[0] < 0xf0) {
-    if ((utf8[1] < 0x80) | (utf8[1] > 0xbf)) { decodeError(-2); }
-    if ((utf8[2] < 0x80) | (utf8[2] > 0xbf)) { decodeError(-3); }
-    sv = ((utf8[0] & 0x0f) << 12) + ((utf8[1] & 0x3f) << 6) + (utf8[2] & 0x3f);
-    if ((sv < 0x800) | (sv > 0xFFFF)) { decodeError(-3); }
-    if ((sv >= 0xD800) & (sv <= 0xDFFF)) { decodeError(-3); }
-    *ucs4 = sv;
-    return 3;
-  } else if (utf8[0] < 0xf8) {
-    if ((utf8[1] < 0x80) | (utf8[1] > 0xbf)) { decodeError(-2); }
-    if ((utf8[2] < 0x80) | (utf8[2] > 0xbf)) { decodeError(-3); }
-    if ((utf8[3] < 0x80) | (utf8[3] > 0xbf)) { decodeError(-4); }
-    sv = ((utf8[0] & 0x07) << 18) + ((utf8[1] & 0x3f) << 12) + ((utf8[2] & 0x3f) << 6) + (utf8[3] & 0x3f);
-    if ((sv < 0x10000) | (sv > 0x10FFFF)) { decodeError(-4); }
-    *ucs4 = sv;
-    return 4;
-  } else {
-    decodeError(-1);
-  }
-  return 0;			/* dummy */
+    return (0x80 <= b && b <= 0xbf);
 }
 
-int Sg_ConvertUtf16ToUcs4(uint8_t utf8[4], SgChar *ucs4, ErrorHandlingMode mode, int littlep)
+SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
+{
+  SgChar sv;
+  int f;
+  uint8_t first;
+
+ retry:
+  ASSERT(SG_BINARY_PORTP(port));
+
+  f = Sg_GetU8(port);
+  if (f == EOF) return EOF;
+  first = (uint8_t)(f & 0xff);
+
+  // UTF8-1(ascii) = %x00-7F
+  if (first < 0x80) {
+    return first;
+    // UTF8-2 = %xC2-DF UTF8-tail
+  } else if (0xc2 <= first && first <= 0xdf) {
+    uint8_t second = Sg_GetU8(port);
+    if (isUtf8Tail(second)) {
+      return ((first & 0x1f) << 6) | (second & 0x3f);
+    } else {
+      decodeError();
+    }
+    // UTF8-3 = %xE0 %xA0-BF UTF8-tail / %xE1-EC 2( UTF8-tail ) /
+    //          %xED %x80-9F UTF8-tail / %xEE-EF 2( UTF8-tail )
+  } else if (0xe0 <= first && first <= 0xef) {
+    uint8_t second = Sg_GetU8(port);
+    uint8_t third =  Sg_GetU8(port);
+    if (!isUtf8Tail(third)) {
+      decodeError();
+    } else if ((0xe0 == first && 0xa0 <= second && second <= 0xbf)    ||
+	       (0xed == first && 0x80 <= second && second <= 0x9f)    ||
+	       (0xe1 <= first && first <= 0xec && isUtf8Tail(second)) ||
+	       ((0xee == first || 0xef == first) && isUtf8Tail(second))) {
+      return ((first & 0xf) << 12) | ((second & 0x3f) << 6) | (third & 0x3f);
+    } else {
+      decodeError();
+    }
+    // UTF8-4 = %xF0 %x90-BF 2( UTF8-tail ) / %xF1-F3 3( UTF8-tail ) /
+    //          %xF4 %x80-8F 2( UTF8-tail )
+  } else if (0xf0 <= first && first <= 0xf4) {
+    uint8_t second = Sg_GetU8(port);
+    uint8_t third =  Sg_GetU8(port);
+    uint8_t fourth = Sg_GetU8(port);
+    if (!isUtf8Tail(third) || !isUtf8Tail(fourth)) {
+      decodeError();
+    } else if ((0xf0 == first && 0x90 <= second && second <= 0xbf)     ||
+	       (0xf4 == first && 0x80 <= second && second <= 0x8f)     ||
+	       (0xf1 <= first && first <= 0xf3 && isUtf8Tail(second))) {
+      return ((first & 0x7) << 18) | ((second & 0x3f) << 12) | ((third & 0x3f) << 6) | fourth;
+    } else {
+      decodeError();
+    }
+  } else {
+    decodeError();
+  }
+  return ' ';
+}
+
+SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode, SgCodec *codec, int checkBOMNow)
 {
   uint16_t hi;
   uint16_t lo;
@@ -240,22 +265,41 @@ int Sg_ConvertUtf16ToUcs4(uint8_t utf8[4], SgChar *ucs4, ErrorHandlingMode mode,
   uint16_t val1, val2;
   int a, b, c, d;
 
-  a = utf8[0];
-  b = utf8[1];
-  val1 = littlep ? ((b << 8) | a) : ((a << 8) | b);
+#define isLittleEndian(c) (SG_CODEC(c)->endian == UTF_16LE)
+ retry:
+  /* TODO assert */
+  a = Sg_GetU8(port);
+  b = Sg_GetU8(port);
+
+  if (a == EOF) return EOF;
+  if (b == EOF) decodeError();
+
+  if (checkBOMNow && codec->endian == UTF_16CHECK_BOM) {
+    if (a == 0xFE && b == 0xFF) {
+      SG_CODEC(c)->endian == UTF_16BE;
+      return Sg_ConvertUtf16ToUcs4(port, mode, codec, FALSE);
+    } else if (a == 0xFF && b == 0xFE) {
+      SG_CODEC(c)->endian == UTF_16LE;
+      return Sg_ConvertUtf16ToUcs4(port, mode, codec, FALSE);
+    } else {
+      SG_CODEC(c)->endian == UTF_16BE;
+      /* correct? */
+    }
+  }
+
+  val1 = isLittleEndian(codec) ? ((b << 8) | a) : ((a << 8) | b);
   if (val1 < 0xD800 || val1 > 0xDFFF) {
-    *ucs4 = val1;
-    return 2;
+    return val1;
   }
-  c = utf8[2];
+  c = Sg_GetU8(port);
   if (EOF == c) {
-    decodeError(-3);
+    decodeError();
   }
-  d = utf8[3];
+  d = Sg_GetU8(port);
   if (EOF == d) {
-    decodeError(-4);
+    decodeError();
   }
-  val2 = littlep ? ((d << 8) | c) : ((c << 8) | d);
+  val2 = isLittleEndian(codec) ? ((d << 8) | c) : ((c << 8) | d);
   // http://unicode.org/faq/utf_bom.html#utf16-3
   hi = val1;
   lo = val2;
@@ -263,8 +307,7 @@ int Sg_ConvertUtf16ToUcs4(uint8_t utf8[4], SgChar *ucs4, ErrorHandlingMode mode,
   W = (hi >> 6) & ((1 << 5) - 1);
   U = W + 1;
   C = U << 16 | X;
-  *ucs4 = c;
-  return 4;
+  return C;
 }
 
 SgChar Sg_EnsureUcs4(SgChar c)

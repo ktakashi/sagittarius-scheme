@@ -392,9 +392,8 @@ SgObject read_char(SgPort *port, SgReaderContext *ctx)
     if (c == EOF || delimited(c)) return SG_MAKE_CHAR('x');
     return SG_MAKE_CHAR(read_hex_scalar_value(port, ctx));
   } else {
-    SgChar buf[32];
-    int i, n;
-    SgChar ucs4;
+    SgChar buf[16];
+    int i;
     if (c == '(') {
       c = Sg_PeekcUnsafe(port);
       if (c == EOF || delimited(c)) return SG_MAKE_CHAR('(');
@@ -412,8 +411,7 @@ SgObject read_char(SgPort *port, SgReaderContext *ctx)
     for (i = 0; i < array_sizeof(s_char_name); i++) {
       if (ustrcmp(buf, s_char_name[i].name) == 0) return SG_MAKE_CHAR(s_char_name[i].code);
     }
-    n = Sg_ConvertUtf8ToUcs4((uint8_t*)buf, &ucs4, SG_ERROR_HANDLING_MODE(port));
-    if (n > 0 && buf[n] == 0) return SG_MAKE_CHAR(ucs4);
+    /* I assume this is not happen */
     lexical_error(port, ctx, UC("invalid lexical syntax #\\%s"), buf);
   }
   return SG_UNDEF; /* dummy */

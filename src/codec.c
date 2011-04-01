@@ -47,30 +47,7 @@ static int putUtf8Char(SgObject self, SgPort *port, SgChar c, ErrorHandlingMode 
 
 static SgChar getUtf8Char(SgObject self, SgPort *port, ErrorHandlingMode mode, int checkBOM)
 {
-  uint8_t buf[4];
-  int read_size;
-  int ucs4_size, i;
-  SgChar ucs4;
-
- retry:
-  read_size = SG_BINARY_PORT(port)->readU8Ahead(port, buf, array_sizeof(buf));
-  if (read_size <= 0) return EOF;
-
-  ucs4_size = Sg_ConvertUtf8ToUcs4(buf, &ucs4, mode);
-  if (ucs4_size < 0) {
-    /* decode error replace */
-    int i, failed_count = abs(ucs4_size);
-    for (i = 0; i < failed_count; i++) {
-      /* throw away failed byte */
-      SG_BINARY_PORT(port)->getU8(port);
-    }
-    goto retry;
-  }
-  for (i = 0; i < ucs4_size; i++) {
-    /* throw away the actual size of utt8 */
-    SG_BINARY_PORT(port)->getU8(port);
-  }
-  return ucs4;
+  return Sg_ConvertUtf8ToUcs4(port, mode);
 }
 
 SgObject Sg_MakeUtf8Codec()
@@ -94,57 +71,7 @@ static int putUtf16Char(SgObject self, SgPort *port, SgChar c, ErrorHandlingMode
 
 static SgChar getUtf16Char(SgObject self, SgPort *port, ErrorHandlingMode mode, int checkBOM)
 {
-  uint8_t buf[4];
-  int read_size;
-  int ucs4_size;
-  int ucs4;
-  int i;
-#define isLittleEndian(c) (SG_CODEC(c)->endian == UTF_16LE)
-
- retry:
-  read_size = SG_BINARY_PORT(port)->readU8Ahead(port, buf, 2);
-  if (read_size == 0) {
-    return EOF;
-  }
-  if (read_size == 1) {
-    if (mode == SG_RAISE_ERROR) {
-      Sg_Error(UC("invalud utf-16 byte sequence"));
-    } else if (mode == SG_REPLACE_ERROR) {
-        return 0xFFFD;
-    } else {
-      ASSERT(mode == SG_IGNORE_ERROR);
-      goto retry;
-    }
-  }
-  if (checkBOM && SG_CODEC(self)->endian == UTF_16CHECK_BOM) {
-    if (buf[0] == 0xFE && buf[1] == 0xFF) {
-      SG_CODEC(self)->endian = UTF_16BE;
-      return getUtf16Char(self, port, mode, FALSE);
-    } else if (buf[0] == 0xFF && buf[1] == 0xFE) {
-      SG_CODEC(self)->endian = UTF_16LE;
-      return getUtf16Char(self, port, mode, FALSE);
-    } else {
-      SG_CODEC(self)->endian = UTF_16BE; /* correct? */
-    }
-  }
-  
-  /* read again */
-  read_size = SG_BINARY_PORT(port)->readU8Ahead(port, buf, array_sizeof(buf));
-  ucs4_size = Sg_ConvertUtf16ToUcs4(buf, &ucs4, mode, isLittleEndian(self));
-    if (ucs4_size < 0) {
-    /* decode error replace */
-    int failed_count = abs(ucs4_size);
-    for (i = 0; i < failed_count; i++) {
-      /* throw away failed byte */
-      SG_BINARY_PORT(port)->getU8(port);
-    }
-    goto retry;
-  }
-  for (i = 0; i < ucs4_size; i++) {
-    /* throw away the actual size of utt8 */
-    SG_BINARY_PORT(port)->getU8(port);
-  }
-  return ucs4;
+  return Sg_ConvertUtf16ToUcs4(port, mode, SG_CODEC(self), checkBOM);
 }
 
 SgObject Sg_MakeUtf16Codec(Endianness endian)

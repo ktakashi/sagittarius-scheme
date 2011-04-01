@@ -94,7 +94,7 @@ static int getFileU8(SgObject self)
   }
   return buf;
 }
-
+#if 0
 static int64_t file_read_u8_ahead(SgObject self, uint8_t *buf, int64_t size)
 {
   off_t save = SG_PORT_FILE(self)->tell(SG_PORT_FILE(self));
@@ -102,6 +102,7 @@ static int64_t file_read_u8_ahead(SgObject self, uint8_t *buf, int64_t size)
   SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), save, SG_BEGIN);
   return read_size;
 }
+#endif
 
 SgObject Sg_MakeFileBinaryInputPort(SgFile *file)
 {
@@ -118,7 +119,6 @@ SgObject Sg_MakeFileBinaryInputPort(SgFile *file)
   b->src.file = file;
   b->open = fileOpen;
   b->getU8 = getFileU8;
-  b->readU8Ahead = file_read_u8_ahead;
   b->putU8 = NULL;
   b->putU8Array = NULL;
   /* set binary input port */
@@ -186,7 +186,7 @@ static int get_byte_array_u8(SgObject self)
   return Sg_ByteVectorU8Ref(SG_BINARY_PORT(self)->src.buffer.bvec,
 			    SG_BINARY_PORT(self)->src.buffer.index++);
 }
-
+#if 0
 static int64_t byte_array_read_u8_ahead(SgObject self, uint8_t *buf, int64_t size)
 {
   SgBinaryPort *bp = SG_BINARY_PORT(self);
@@ -202,6 +202,7 @@ static int64_t byte_array_read_u8_ahead(SgObject self, uint8_t *buf, int64_t siz
 
   return read_size;
 }
+#endif
 
 SgObject Sg_MakeByteVectorInputPort(SgByteVector *bv, int offset)
 {
@@ -217,7 +218,6 @@ SgObject Sg_MakeByteVectorInputPort(SgByteVector *bv, int offset)
   b->src.buffer.index = offset;
   b->open = byte_array_open;
   b->getU8 = get_byte_array_u8;
-  b->readU8Ahead = byte_array_read_u8_ahead;
   b->putU8 = NULL;
   b->putU8Array = NULL;
   /* set binary input port */
@@ -239,7 +239,6 @@ SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size)
   b->src.buffer.index = 0;
   b->open = byte_array_open;
   b->getU8 = get_byte_array_u8;
-  b->readU8Ahead = byte_array_read_u8_ahead;
   b->putU8 = NULL;
   b->putU8Array = NULL;
   /* set binary input port */
@@ -617,6 +616,15 @@ SgObject Sg_StandardErrorPort()
 }
 
 /* TODO port lock */
+int Sg_GetU8(SgPort *port)
+{
+  int b;
+  SG_PORT_LOCK(port);
+  b = Sg_GetU8Unsafe(port);
+  SG_PORT_UNLOCK(port);
+  return b;
+}
+
 SgChar Sg_Getc(SgPort *port)
 {
   SgChar ch;
@@ -681,6 +689,12 @@ void Sg_PutsUnsafe(SgPort *port, SgString *str)
   p = SG_STRING_VALUE(str);
   size = SG_STRING_SIZE(str);
   for (i = 0; i < size; i++) Sg_PutcUnsafe(port, p[i]);
+}
+
+int Sg_GetU8Unsafe(SgPort *port)
+{
+  ASSERT(SG_BINARY_PORTP(port));
+  return SG_BINARY_PORT(port)->getU8(port);
 }
 
 SgChar Sg_GetcUnsafe(SgPort *port)
