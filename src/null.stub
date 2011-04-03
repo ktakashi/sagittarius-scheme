@@ -41,7 +41,7 @@
 	    ;;bitwise-reverse-bit-field
 
 	    ;; apply
-	    apply
+	    apply eval
 
 	    ;; io
 	    display newline write write/ss
@@ -542,8 +542,8 @@
 	       (SG_APPEND1 head tail (SG_CAR cp)))
 	     (result (Sg_VMApply proc head))))))
 
-  #;(define-c-proc vm/apply (code :rest rest) ::Object
-    (result (Sg_VMApply code rest)))
+  (define-c-proc eval (sexp env) ::Object
+    (result (Sg_VMEval sexp env)))
 
   ;; io
   (define-c-proc newline (:optional (p::Port (Sg_CurrentOutputPort))) ::void

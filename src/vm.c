@@ -386,6 +386,47 @@ SgObject Sg_Compile(SgObject o)
 }
 
 
+static SgObject eval_before(SgObject *args, int argc, void *data)
+{
+  /* TODO get library names and import it to empty library */
+  return SG_UNDEF;
+}
+
+static SgObject eval_body(SgObject *args, int argc, void *data)
+{
+  SgObject sexp = (SgObject)data;
+  SgObject compiled = Sg_Compile(sexp);
+  return evaluate_safe(SG_CODE_BUILDER(compiled)->code,
+		       SG_CODE_BUILDER(compiled)->size);
+}
+
+static SgObject eval_after(SgObject *args, int argc, void *data)
+{
+  /* TODO restore current library */
+  return SG_UNDEF;
+}
+
+/* for now it's really naive implementation
+   simply like this
+   (define (eval sexp env)
+     (let (((saved vm-current-library env)))
+       (dynamic-wind
+         (lambda () (set! (vm-current-library env)))
+         (lambda ()
+           (let ((compiled (compile sexp '()))
+  	       (cl (make-toplevel-closure compiled)))
+             (cl)))
+         (lambda () (set! (vm-current-library saved))))))
+ */
+SgObject Sg_VMEval(SgObject sexp, SgObject env)
+{
+  SgObject library = Sg_VM()->currentLibrary;
+  SgObject before = Sg_MakeSubr(eval_before, env, 1, 0, SG_FALSE);
+  SgObject body = Sg_MakeSubr(eval_body, sexp, 1, 0, SG_FALSE);
+  SgObject after = Sg_MakeSubr(eval_after, env, 1, 0, SG_FALSE);
+  return Sg_VMDynamicWind(before, body, after);
+}
+
 /* TODO check stack expantion */
 #define CHECK_STACK(size, vm)	/* dummy */
 
@@ -1265,6 +1306,11 @@ static void print_frames(SgVM *vm)
     current--;
   }
   Sg_Write(SG_MAKE_CHAR('\n'), vm->logPort, 1);
+}
+
+void Sg_VMPrintFrame()
+{
+  print_frames(Sg_VM());
 }
 
 #ifdef __GNUC__

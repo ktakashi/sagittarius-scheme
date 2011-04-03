@@ -34,6 +34,7 @@
 	    %map-cons
 	    make-toplevel-closure p1env-lookup p1env-toplevel?
 	    pass3/let-frame-size pass3/frame-size
+	    print-stack-frames
 	    )
     (import :none)
 ;; for Ypsilon
@@ -253,4 +254,7 @@
 
   (define-c-proc pass3/let-frame-size () ::fixnum
     (result SG_LET_FRAME_SIZE))
+
+  (define-c-proc print-stack-frames () ::void
+    (Sg_VMPrintFrame))
 )

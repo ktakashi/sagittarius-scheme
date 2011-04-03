@@ -190,6 +190,7 @@ int main(int argc, char **argv)
     {"loadpath", optional_argument, 0, 'L'},
     {"help", 0, 0, 'h'},
     {"debug-exec", optional_argument, 0, 'd'},
+    {"logport", optional_argument, 0, 'p'},
     {0, 0, 0, 0}
    };
 
@@ -198,7 +199,7 @@ int main(int argc, char **argv)
   Sg_Init();
   vm = Sg_VM();
 
-  while ((opt = getopt_long(argc, argv, "L:hd", long_options, &optionIndex)) != -1) {
+  while ((opt = getopt_long(argc, argv, "L:hdp:", long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 'd':
       if (strcmp("trace", optarg) == 0) {
@@ -212,6 +213,13 @@ int main(int argc, char **argv)
     case 'L':
       Sg_AddLoadPath(Sg_MakeStringC(optarg));
       break;
+    case 'p':
+      {
+	SgObject log = Sg_OpenFile(Sg_MakeStringC(optarg), SG_CREATE | SG_TRUNCATE);
+	SgObject bp = Sg_MakeFileBinaryOutputPort(SG_FILE(log));
+	vm->logPort = Sg_MakeTranscodedOutputPort(bp, Sg_MakeNativeTranscoder());
+	break;
+      }
     default:
       fprintf(stderr, "invalid option %C", opt);
       /* TODO show usage */

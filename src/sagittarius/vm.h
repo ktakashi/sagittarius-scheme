@@ -236,6 +236,9 @@ SG_EXTERN void     Sg_VMDumpCode(SgCodeBuilder *cb);
 
 SG_EXTERN SgObject Sg_AddLoadPath(SgString *path);
 
+/* eval */
+SG_EXTERN SgObject Sg_VMEval(SgObject sexp, SgObject env);
+
 /* dynamic-wind */
 SG_EXTERN void     Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize);
 SG_EXTERN SgObject Sg_VMDynamicWind(SgObject before, SgObject thunk, SgObject after);
@@ -255,6 +258,9 @@ SG_EXTERN SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk);
 
 /* finalizer */
 SG_EXTERN SgObject Sg_VMFinalizerRun(SgVM *vm);
+
+/* debuging */
+SG_EXTERN void     Sg_VMPrintFrame();
 
 SG_CDECL_END
 
