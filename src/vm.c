@@ -111,13 +111,13 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
 
   v->currentInputPort = Sg_MakeTranscodedInputPort(Sg_StandardInputPort(),
-						   Sg_IsUTF16Console(Sg_StandardIn()) ? Sg_MakeNativeConsoleTranscoder()
-						                                      : Sg_MakeNativeTranscoder());
+						    Sg_IsUTF16Console(Sg_StandardIn()) ? Sg_MakeNativeConsoleTranscoder()
+						                                       : Sg_MakeNativeTranscoder());
   v->currentOutputPort = Sg_MakeTranscodedOutputPort(Sg_StandardOutputPort(),
 						     Sg_IsUTF16Console(Sg_StandardOut()) ? Sg_MakeNativeConsoleTranscoder()
 						                                         : Sg_MakeNativeTranscoder());
   v->currentErrorPort = Sg_MakeTranscodedOutputPort(Sg_StandardErrorPort(),
-						    Sg_IsUTF16Console(Sg_StandardError()) ? Sg_MakeNativeConsoleTranscoder()
+						     Sg_IsUTF16Console(Sg_StandardError()) ? Sg_MakeNativeConsoleTranscoder()
 						                                           : Sg_MakeNativeTranscoder());
   v->logPort = v->currentErrorPort;
   /* TODO thread, mutex, etc */
@@ -238,7 +238,7 @@ int Sg_LoadUnsafe(SgString *path)
   }
 
   file = Sg_OpenFile(path, SG_READ);
-  bport = Sg_MakeFileBinaryInputPort(file);
+  bport = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_BLOCK);
   tport = Sg_MakeTranscodedInputPort(bport, Sg_MakeNativeTranscoder());
   
   if ((Sg_VM()->flags & SG_LOG_LEVEL_MASK) >= SG_INFO_LEVEL) {

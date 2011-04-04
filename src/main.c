@@ -216,7 +216,7 @@ int main(int argc, char **argv)
     case 'p':
       {
 	SgObject log = Sg_OpenFile(Sg_MakeStringC(optarg), SG_CREATE | SG_TRUNCATE);
-	SgObject bp = Sg_MakeFileBinaryOutputPort(SG_FILE(log));
+	SgObject bp = Sg_MakeFileBinaryOutputPort(SG_FILE(log), SG_BUFMODE_BLOCK);
 	vm->logPort = Sg_MakeTranscodedOutputPort(bp, Sg_MakeNativeTranscoder());
 	break;
       }
@@ -233,6 +233,7 @@ int main(int argc, char **argv)
   } else {
     fprintf(stderr, "not supported yet!\n");
   }
+  Sg_FlushAllPort(TRUE);
   return 0;
 }
 /*

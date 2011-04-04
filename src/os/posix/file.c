@@ -136,8 +136,9 @@ static off_t posix_tell(SgObject self)
 
 static int64_t posix_read(SgObject self, uint8_t *buf, int64_t size)
 {
-  int64_t result;
+  int64_t result = 0;
   ASSERT(posix_is_open(self));
+  errno = 0;
   do {
     result = read(SG_FD(self)->fd, buf, size);
   } while (result < 0 && errno == EINTR);

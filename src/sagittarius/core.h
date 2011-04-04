@@ -51,6 +51,8 @@ SG_EXTERN void Sg_RegisterFinalizer(SgObject z, SgFinalizerProc finalizer, void 
 SG_EXTERN void Sg_UnregisterFinalizer(SgObject z);
 SG_EXTERN void Sg_RegisterDL(void *data_start, void *data_end,
 			     void *bss_start, void *bss_end);
+SG_EXTERN void Sg_RegisterDisappearingLink(void **p, void *value);
+SG_EXTERN void Sg_UnregisterDisappearingLink(void **p);
 
 /* experimental */
 SG_EXTERN void Sg_AddGCRoots(void *start, void *end);

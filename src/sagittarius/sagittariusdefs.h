@@ -238,12 +238,12 @@ typedef struct SgVMRec             SgVM;
 
 enum {
   /* primitive */
-  TC_FLONUM  = 0x00,
-  TC_BVECTOR = 0x01,
+  TC_FLONUM,
+  TC_BVECTOR,
 
-  TC_BIGNUM  = 0x02,
-  TC_SYMBOL  = 0x03,
-  TC_STRING  = 0x04,
+  TC_BIGNUM,
+  TC_SYMBOL,
+  TC_STRING,
   TC_KEYWORD,
   TC_BOX,
 
@@ -272,6 +272,9 @@ enum {
   TC_GENERIC,
   TC_INSTANCE,
   TC_VM,
+
+  /* weak objects */
+  TC_WEAK_VECTOR,
 
   TC_MASKBITS = 0x3f
 };

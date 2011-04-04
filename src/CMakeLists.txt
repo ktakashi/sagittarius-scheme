@@ -34,7 +34,7 @@ SET(SAGITTARIUS_LIB_SOURCE
   code.c           macro.c
   vm.c             core.c
   record.c         exceptions.c
-  profiler.c
+  profiler.c       weak.c
   # libraries
   proclib.c        null.c
   vmlib.c          vmdebug.c

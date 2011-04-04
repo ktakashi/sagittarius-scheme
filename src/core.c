@@ -50,6 +50,7 @@ extern void Sg__InitFile();
 extern void Sg__InitRecord();
 extern void Sg__InitConsitions();
 extern void Sg__InitReader();
+extern void Sg__InitPort();
 extern void Sg__InitVM();
 
 /* stub files */
@@ -86,6 +87,8 @@ void Sg_Init()
   Sg__InitKeyword();
 
   Sg__InitVM();
+  /* port must be after VM to replace std ports. */
+  Sg__InitPort();
   /* initialize default reader macro */
   Sg__InitReader();
 
@@ -138,6 +141,15 @@ void Sg_Init()
 
 }
 /* GC related */
+void Sg_GC()
+{
+#ifdef USE_BOEHM_GC
+  GC_gcollect();
+#else
+  /* for now do nothing */
+#endif
+}
+
 void Sg_RegisterFinalizer(SgObject z, SgFinalizerProc finalizer, void *data)
 {
 #ifdef USE_BOEHM_GC
@@ -155,6 +167,24 @@ void Sg_UnregisterFinalizer(SgObject z)
   GC_finalization_proc ofn; void *ocd;
   GC_REGISTER_FINALIZER_NO_ORDER(z, (GC_finalization_proc)NULL, NULL,
 				 &ofn, &ocd);
+#else
+  /* for now do nothing */
+#endif
+}
+
+void Sg_RegisterDisappearingLink(void **p, void *value)
+{
+#ifdef USE_BOEHM_GC
+  GC_general_register_disappearing_link(p, value);
+#else
+  /* for now do nothing */
+#endif
+}
+
+void Sg_UnregisterDisappearingLink(void **p)
+{
+#ifdef USE_BOEHM_GC
+  GC_unregister_disappearing_link(p);
 #else
   /* for now do nothing */
 #endif

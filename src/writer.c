@@ -31,6 +31,7 @@
  */
 #include <string.h>
 #include <stdarg.h>
+#include <ctype.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/writer.h"
 #include "sagittarius/port.h"

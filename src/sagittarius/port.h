@@ -45,6 +45,8 @@ typedef struct SgBinaryPortRec
 #endif
   int64_t (*putU8)(SgObject, uint8_t);
   int64_t (*putU8Array)(SgObject, uint8_t*, int64_t);
+  /* this is private method */
+  int64_t (*bufferWriter)(SgObject, uint8_t *, int64_t);
   int     type;
   union {
     SgFile        *file;   /* file port */
@@ -54,6 +56,16 @@ typedef struct SgBinaryPortRec
       int           index;
     } buffer;
   } src;
+  /*
+    This is an ugly solution to avoid mis reading.
+    first we use primaryBuffer, then if it's full, it will switch to
+    previousBuffer
+   */
+  uint8_t *buffer;		/* buffer */
+  int64_t  bufferSize;		/* buffer size */
+  int64_t  bufferIndex;		/* buffer index */
+  int64_t  position;		/* current position */
+  int      dirty;		/* for output port, dirty flag */
 } SgBinaryPort;
 
 typedef struct SgTextualPortRec
@@ -121,9 +133,9 @@ enum SgPortType {
 };
 
 enum SgBufferMode {
-  SG_NONE = 0x01,
-  SG_LINE = 0x02,
-  SG_BLOCK = 0x03
+  SG_BUFMODE_NONE = 0x01,
+  SG_BUFMODE_LINE = 0x02,
+  SG_BUFMODE_BLOCK = 0x03
 };
 
 enum SgBinaryPortType {
@@ -144,6 +156,7 @@ enum SgTextualPortType {
 
 #define SG_BINARY_PORTP(obj)  (SG_PORTP(obj) && SG_PORT(obj)->type == SG_BINARY_PORT_TYPE)
 #define SG_BINARY_PORT(obj)   (SG_PORT(obj)->impl.bport)
+
 #define SG_TEXTUAL_PORTP(obj) (SG_PORTP(obj) && SG_PORT(obj)->type == SG_TEXTUAL_PORT_TYPE)
 #define SG_TEXTUAL_PORT(obj)  (SG_PORT(obj)->impl.tport)
 #define SG_ERROR_HANDLING_MODE(obj)		\
@@ -156,8 +169,8 @@ enum SgTextualPortType {
 
 SG_CDECL_BEGIN
 
-SG_EXTERN SgObject Sg_MakeFileBinaryInputPort(SgFile *file);
-SG_EXTERN SgObject Sg_MakeFileBinaryOutputPort(SgFile *file);
+SG_EXTERN SgObject Sg_MakeFileBinaryInputPort(SgFile *file, int bufferMode);
+SG_EXTERN SgObject Sg_MakeFileBinaryOutputPort(SgFile *file, int bufferMode);
 SG_EXTERN SgObject Sg_MakeByteVectorInputPort(SgByteVector *bv, int offset);
 SG_EXTERN SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size);
 /* should it take buffer as argument? */
@@ -178,6 +191,8 @@ SG_EXTERN SgObject Sg_StandardInputPort();
 SG_EXTERN SgObject Sg_StandardErrorPort();
 
 /* utility methods */
+SG_EXTERN void     Sg_FlushPort(SgPort *port);
+SG_EXTERN void     Sg_FlushAllPort(int exitting);
 SG_EXTERN int      Sg_GetU8(SgPort *port);
 SG_EXTERN SgChar   Sg_Getc(SgPort *port);
 SG_EXTERN void     Sg_Putc(SgPort *port, SgChar ch);

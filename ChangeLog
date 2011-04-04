@@ -1,0 +1,4 @@
+2011-04-04  Takashi Kato  <t.kato@bellid.com>
+
+	* Sagittarius (C function) : file binary in/out port supported buffer mode.
+

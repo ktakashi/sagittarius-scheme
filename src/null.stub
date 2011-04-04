@@ -611,11 +611,14 @@
 				                 (transcoder::Transcoder #f))
                                        ::Object
     ;; we can ignore option
-    (let ((fo (Sg_OpenFile file SG_READ)))
-    ;; TODO mode check
+    (let ((fo (Sg_OpenFile file SG_READ))
+	  (bufferMode::int SG_BUFMODE_BLOCK))
+      ;; we only support 'block or none for now.
+      (if (SG_EQ mode 'none)
+	  (set! bufferMode SG_BUFMODE_NONE))
       (if (SG_FALSEP transcoder)
-	  (result (Sg_MakeFileBinaryInputPort fo))
-	  (let ((in (Sg_MakeFileBinaryInputPort fo)))
+	  (result (Sg_MakeFileBinaryInputPort fo bufferMode))
+	  (let ((in (Sg_MakeFileBinaryInputPort fo bufferMode)))
 	    (result (Sg_MakeTranscodedInputPort in transcoder))))))
 
   (define-cgen-stmt logor
@@ -636,12 +639,17 @@
                                        ::Object
     (let ((fo SG_UNDEF)
 	  (isFileExist::int (Sg_FileExistP file))
-	  (openFlags::int (logor SG_WRITE SG_CREATE)))
+	  (openFlags::int (logor SG_WRITE SG_CREATE))
+	  (bufferMode::int SG_BUFMODE_BLOCK))
+      (cond ((SG_EQ mode 'none)
+	     (set! bufferMode SG_BUFMODE_NONE))
+	    ((SG_EQ mode 'line)
+	     (set! bufferMode SG_BUFMODE_LINE)))
       (cond ((SG_FALSEP option)
 	     (if isFileExist
 		 (assertion-violation 'open-file-output-port "file already exists" file))
 	     (set! fo (Sg_OpenFile file openFlags))
-	     (result (Sg_MakeFileBinaryOutputPort fo)))
+	     (result (Sg_MakeFileBinaryOutputPort fo bufferMode)))
 	    (else
 	     (unless (SG_INSTANCEP option)
 	       (assertion-violation 'open-file-output-port "invalid file options" option))
@@ -671,8 +679,8 @@
 			  (set! openFlags (logor SG_TRUNCATE openFlags)))))
 	       (set! fo (Sg_OpenFile file openFlags))
 	       (if (SG_FALSEP transcoder)
-		   (result (Sg_MakeFileBinaryOutputPort fo))
-		   (let ((out (Sg_MakeFileBinaryOutputPort fo)))
+		   (result (Sg_MakeFileBinaryOutputPort fo bufferMode))
+		   (let ((out (Sg_MakeFileBinaryOutputPort fo bufferMode)))
 		     (result (Sg_MakeTranscodedOutputPort out transcoder)))))))))
   
   (define-c-proc close-input-port (p::Port) ::void
@@ -684,6 +692,9 @@
     (if (not (SG_OUTPORTP p))
 	(wrong-type-of-argument-violation 'close-output-port "output port" p))
     (Sg_ClosePort p))
+
+  (define-c-proc flush-output-port (p::Port) ::void
+    (Sg_FlushPort p))
 
   (define-c-proc current-output-port (:optional (p::Port SG_UNBOUND)) ::Object
     (let ((vm::SgVM* (Sg_VM)))
