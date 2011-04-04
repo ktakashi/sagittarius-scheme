@@ -171,12 +171,14 @@ SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeFileBinaryInputPort(SgFile *file, int bufferMode);
 SG_EXTERN SgObject Sg_MakeFileBinaryOutputPort(SgFile *file, int bufferMode);
+SG_EXTERN SgObject Sg_MakeFileBinaryInputOutputPort(SgFile *file, int bufferMode);
 SG_EXTERN SgObject Sg_MakeByteVectorInputPort(SgByteVector *bv, int offset);
 SG_EXTERN SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size);
 /* should it take buffer as argument? */
 SG_EXTERN SgObject Sg_MakeByteArrayOutputPort(int bufferSize);
 SG_EXTERN SgObject Sg_MakeTranscodedInputPort(SgPort *port, SgTranscoder *transcoder);
 SG_EXTERN SgObject Sg_MakeTranscodedOutputPort(SgPort *port, SgTranscoder *transcoder);
+SG_EXTERN SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port, SgTranscoder *transcoder);
 SG_EXTERN SgObject Sg_MakeStringOutputPort(int bufferSize);
 SG_EXTERN SgObject Sg_MakeStringInputPort(SgString *in, int privatep);
 

@@ -1,5 +1,10 @@
 2011-04-04  Takashi Kato  <ktakashi@ymail.com>
 
+	* Sagittarius (Scheme function): added input/output port for file binary
+	port and transcoded textual port.
+
+	* Sagittarius (C function): fixed gc finalizer related bug.
+
 	* Sagittarius (C function): added weak hash table. (From Gauche)
 
 	* Sagittarius (C function): file binary in/out port supported buffer mode.

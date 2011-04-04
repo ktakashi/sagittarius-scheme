@@ -211,6 +211,7 @@ static inline void report_error(SgObject exception)
 	      index, SG_CAR(proc), SG_CADR(proc),
 	      Sg_UnwrapSyntax(src), file, line);
   }
+  Sg_FlushAllPort(FALSE);
 }
 
 int Sg_LoadUnsafe(SgString *path)
@@ -242,7 +243,7 @@ int Sg_LoadUnsafe(SgString *path)
   tport = Sg_MakeTranscodedInputPort(bport, Sg_MakeNativeTranscoder());
   
   if ((Sg_VM()->flags & SG_LOG_LEVEL_MASK) >= SG_INFO_LEVEL) {
-    Sg_Printf(Sg_StandardOutputPort(), UC("loading %S\n"), path);
+    Sg_Printf(vm->logPort, UC("loading %S\n"), path);
   }
 
   /* TODO should it like this? */
@@ -269,8 +270,6 @@ int Sg_Load(SgString *path)
   TRY_VM(vm) {
     return Sg_LoadUnsafe(path);
   CATCH_VM(vm)
-    Sg_VMDefaultExceptionHandler(Sg_VM()->error);
-    exit(-1);			/* on repl it's not smart */
     return -1;
   }
 }
@@ -289,55 +288,56 @@ void Sg_InsertBinding(SgLibrary *library, SgSymbol *name, SgObject value)
 
 static void vm_dump_code_rec(SgCodeBuilder *cb, int indent)
 {
+  SgVM *vm = Sg_VM();
   int i, size = cb->size, ind;
   InsnInfo *info;
   SgWord *code = cb->code;
 
   for (ind = 0; ind < indent; ind++) {
-    Sg_Write(SG_MAKE_CHAR(' '), Sg_CurrentOutputPort(), SG_WRITE_DISPLAY);
+    Sg_Write(SG_MAKE_CHAR(' '), vm->logPort, SG_WRITE_DISPLAY);
   }
-  Sg_Printf(Sg_CurrentOutputPort(), UC("size: %d\n"), size);
+  Sg_Printf(vm->logPort, UC("size: %d\n"), size);
   for (i = 0; i < size;) {
     info = Sg_LookupInsnName(INSN(code[i]));
     for (ind = 0; ind < indent; ind++) {
-      Sg_Write(SG_MAKE_CHAR(' '), Sg_CurrentOutputPort(), SG_WRITE_DISPLAY);
+      Sg_Write(SG_MAKE_CHAR(' '), vm->logPort, SG_WRITE_DISPLAY);
     }
-    Sg_Printf(Sg_CurrentOutputPort(), UC("%A"), Sg_MakeStringC(info->name));
+    Sg_Printf(vm->logPort, UC("%A"), Sg_MakeStringC(info->name));
     if (info->instValues != 0) {
       int val1, val2;
-      Sg_Printf(Sg_CurrentOutputPort(), UC("("));
+      Sg_Printf(vm->logPort, UC("("));
       switch (info->instValues) {
       case 1:
 	INSN_VAL1(val1, code[i]);
-	Sg_Printf(Sg_CurrentOutputPort(), UC("%d"), val1);
+	Sg_Printf(vm->logPort, UC("%d"), val1);
 	break;
       case 2:
 	INSN_VAL2(val1, val2, code[i]);
-	Sg_Printf(Sg_CurrentOutputPort(), UC("%d %d"), val1, val2);
+	Sg_Printf(vm->logPort, UC("%d %d"), val1, val2);
       }
-      Sg_Printf(Sg_CurrentOutputPort(), UC(")"));
+      Sg_Printf(vm->logPort, UC(")"));
     }
     if (info->argc != 0) {
       /* for now we argument could be only one */
       SgObject arg = SG_OBJ(code[i + 1]);
       if (SG_CODE_BUILDERP(arg)) {
-	Sg_Printf(Sg_CurrentOutputPort(), UC(" %S\n"), arg);
+	Sg_Printf(vm->logPort, UC(" %S\n"), arg);
 	vm_dump_code_rec(SG_CODE_BUILDER(arg), indent + 2);
       } else {
-	Sg_Printf(Sg_CurrentOutputPort(), UC(" %#S"), arg);
+	Sg_Printf(vm->logPort, UC(" %#S"), arg);
       }
     }
     if (info->hasSrc) {
       if (SG_PAIRP(cb->src)) {
 	SgObject src = Sg_Assv(SG_MAKE_INT(i), cb->src);
 	if (SG_FALSEP(src)) {
-	  Sg_Printf(Sg_CurrentOutputPort(), UC(" ;; #f"));
+	  Sg_Printf(vm->logPort, UC(" ;; #f"));
 	} else {
-	  Sg_Printf(Sg_CurrentOutputPort(), UC(" ;; %#20S"), SG_CDR(src));
+	  Sg_Printf(vm->logPort, UC(" ;; %#20S"), SG_CDR(src));
 	}
       }
     }
-    Sg_Printf(Sg_CurrentOutputPort(), UC("\n"));
+    Sg_Printf(vm->logPort, UC("\n"));
     i += 1 + info->argc;
   }
 }
@@ -890,6 +890,8 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
     Sg_Apply(proc, SG_NIL);
   }
   report_error(e);
+  /* jump */
+  longjmp(vm->returnPoint, -1);
   exit(EX_SOFTWARE);
 }
 
@@ -930,8 +932,7 @@ SgObject evaluate_safe(SgWord *code, int codeSize)
   TRY_VM(vm) {
     ret = evaluate_unsafe(code, codeSize);
   CATCH_VM(vm)
-    Sg_VMDefaultExceptionHandler(vm->error);
-    exit(-1);			/* on repl it's not smart */
+    exit(EX_SOFTWARE);
   }
   restore_registers(&r);
   return ret;
@@ -1015,6 +1016,26 @@ static inline SgObject* shift_args(SgObject *fp, int m, SgObject *sp)
   return fp + m;
 }
 
+static SgObject process_queued_requests_cc(SgObject result, void **data)
+{
+  SgVM *vm = Sg_VM();
+  vm->ac = data[0];
+  return vm->ac;
+}
+
+static void process_queued_requests(SgVM *vm)
+{
+  void *data[1];
+  
+  /* preserve the current continuation */
+  data[0] = (void*)vm->ac;
+
+  Sg_VMPushCC(process_queued_requests_cc, data, 1);
+  
+  vm->attentionRequest = FALSE;
+  if (vm->finalizerPending) Sg_VMFinalizerRun(vm);
+}
+
 #define CONST_INSN(vm)				\
   AC(vm) = FETCH_OPERAND(PC(vm))
 #define PUSH_INSN(vm)				\
@@ -1093,6 +1114,21 @@ static inline SgObject* shift_args(SgObject *fp, int m, SgObject *sp)
     }						\
   }
 
+#define PUSH_CONT(next_pc)				\
+  do {							\
+    SgContFrame *newcont = (SgContFrame*)SP(vm);	\
+    newcont->prev = CONT(vm);				\
+    newcont->fp = FP(vm);				\
+    newcont->size = (int)(SP(vm) - FP(vm));		\
+    newcont->pc = next_pc;				\
+    newcont->cl = CL(vm);				\
+    newcont->dc = DC(vm);				\
+    CONT(vm) = newcont;					\
+    SP(vm) += CONT_FRAME_SIZE;				\
+    FP(vm) = SP(vm);					\
+  } while (0)
+  
+
 #define CALL_CCONT(p, v, d) p(v, d)
 
 #define POP_CONT()							\
@@ -1151,66 +1187,6 @@ static inline SgObject* shift_args(SgObject *fp, int m, SgObject *sp)
     POP_CONT();					\
   } while (0)
 
-#if 0
-static inline void print_stack(SgVM *vm)
-{
-  /* print stack */
-  SgObject *stack = vm->stack;
-  int i = 1;
-  Sg_Printf(Sg_StandardErrorPort(), UC("("));
-  while (stack != SP(vm)) {
-    if (i != 1) Sg_Printf(Sg_StandardErrorPort(), UC(" "));
-    if (*stack == 0) {
-      Sg_Printf(Sg_StandardErrorPort(), UC("[%d]:0x0"), i);
-    } else if (SG_PAIRP(*stack)) {
-      if (vm->stack <= *stack || *stack <= vm->stack) {
-	Sg_Printf(Sg_StandardErrorPort(), UC("[%d]:#<sp>"), i);
-      } else {
-	Sg_Printf(Sg_StandardErrorPort(), UC("[%d]:%#20S"), i, *stack);
-      }
-    } else {
-      Sg_Printf(Sg_StandardErrorPort(), UC("[%d]:%#S"), i, *stack);
-    }
-    i++, stack++;
-  }
-  Sg_Printf(Sg_StandardErrorPort(), UC(")"));
-}
-
-static inline void trace_log(SgWord *code, SgWord insn)
-{
-  SgVM *vm = Sg_VM();
-  InsnInfo *info = Sg_LookupInsnName(INSN(insn));
-  Sg_Printf(Sg_StandardErrorPort(), UC("pc: %x\n"), PC(vm) - code);
-  Sg_Printf(Sg_StandardErrorPort(), UC("insn: %A"), Sg_MakeStringC(info->name));
-  if (info->instValues != 0) {
-    int val1, val2;
-    Sg_Printf(Sg_StandardErrorPort(), UC("("));
-    switch (info->instValues) {
-    case 1:
-      INSN_VAL1(val1, insn);
-      Sg_Printf(Sg_StandardErrorPort(), UC("%d"), val1);
-      break;
-    case 2:
-      INSN_VAL2(val1, val2, insn);
-      Sg_Printf(Sg_StandardErrorPort(), UC("%d %d"), val1, val2);
-    }
-    Sg_Printf(Sg_CurrentOutputPort(), UC(")"));
-  }
-  if (info->argc != 0) {
-    SgObject arg = PEEK_OPERAND(PC(vm));
-    Sg_Printf(Sg_StandardErrorPort(), UC(" %#A"), arg);
-  }
-  Sg_Printf(Sg_StandardErrorPort(), UC("\n"));
-  Sg_Printf(Sg_StandardErrorPort(), UC("ac: %#S\n"), AC(vm));
-  Sg_Printf(Sg_StandardErrorPort(), UC("cl: %#S\n"), CL(vm));
-  Sg_Printf(Sg_StandardErrorPort(), UC("dc: %#S\n"), DC(vm));
-  Sg_Printf(Sg_StandardErrorPort(), UC("fp: %d\n"), (FP(vm) == 0) ? 0 : FP(vm) - vm->stack);
-  Sg_Printf(Sg_StandardErrorPort(), UC("sp: %d\n"), SP(vm) - vm->stack);
-
-  print_stack(vm);
-  Sg_Printf(Sg_StandardErrorPort(), UC("\n\n"));
-}
-#endif
 
 /*
   print call frames
@@ -1363,8 +1339,10 @@ SgObject run_loop(SgWord *code, jmp_buf returnPoint)
       }
     }
   process_queue:
-    /* just stub */
-    if (vm->finalizerPending) Sg_VMFinalizerRun(vm);
+    CHECK_STACK(CONT_FRAME_SIZE, vm);
+    PUSH_CONT(PC(vm));
+    process_queued_requests(vm);
+    POP_CONT();
     NEXT;
 
   }

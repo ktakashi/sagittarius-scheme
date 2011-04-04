@@ -216,7 +216,7 @@ int main(int argc, char **argv)
     case 'p':
       {
 	SgObject log = Sg_OpenFile(Sg_MakeStringC(optarg), SG_CREATE | SG_TRUNCATE);
-	SgObject bp = Sg_MakeFileBinaryOutputPort(SG_FILE(log), SG_BUFMODE_BLOCK);
+	SgObject bp = Sg_MakeFileBinaryOutputPort(SG_FILE(log), SG_BUFMODE_NONE);
 	vm->logPort = Sg_MakeTranscodedOutputPort(bp, Sg_MakeNativeTranscoder());
 	break;
       }

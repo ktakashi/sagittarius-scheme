@@ -50,7 +50,9 @@
 	    flush-output-port current-output-port
 	    current-error-port current-input-port
 	    open-file-input-port open-file-output-port
+	    open-file-input/output-port
 	    close-input-port close-output-port
+	    close-port
 	    format read
 
 	    ;; error
@@ -682,6 +684,57 @@
 		   (result (Sg_MakeFileBinaryOutputPort fo bufferMode))
 		   (let ((out (Sg_MakeFileBinaryOutputPort fo bufferMode)))
 		     (result (Sg_MakeTranscodedOutputPort out transcoder)))))))))
+
+  (define-c-proc open-file-input/output-port (file::String 
+					      :optional (option #f)
+					                (mode::Symbol 'block)
+							(transcoder::Transcoder #f))
+					     ::Object
+    (let ((fo SG_UNDEF)
+	  (isFileExist::int (Sg_FileExistP file))
+	  (openFlags::int (logor SG_WRITE SG_CREATE))
+	  (bufferMode::int SG_BUFMODE_BLOCK))
+      (cond ((SG_EQ mode 'none)
+	     (set! bufferMode SG_BUFMODE_NONE))
+	    ((SG_EQ mode 'line)
+	     (set! bufferMode SG_BUFMODE_LINE)))
+      (cond ((SG_FALSEP option)
+	     (if isFileExist
+		 (assertion-violation 'open-file-input/output-port "file already exists" file))
+	     (set! fo (Sg_OpenFile file openFlags))
+	     (result (Sg_MakeFileBinaryInputOutputPort fo bufferMode)))
+	    (else
+	     (unless (SG_INSTANCEP option)
+	       (assertion-violation 'open-file-output-port "invalid file options" option))
+	     (let ((isEmpty::int (SG_NULLP (Sg_GenericRef option 'options)))
+		   (noCreate (Sg_Memq 'no-create (Sg_GenericRef option 'options)))
+		   (noTruncate (Sg_Memq 'no-truncate (Sg_GenericRef option 'options)))
+		   (noFail (Sg_Memq 'no-fail (Sg_GenericRef option 'options))))
+	       (cond ((and isFileExist isEmpty)
+		      (assertion-violation 'open-file-input/output-port "file already exists" file))
+		     ((and (not (SG_FALSEP noCreate))
+			   (not (SG_FALSEP noTruncate)))
+		      (if (not isFileExist)
+			  (assertion-violation 'open-file-input/output-port "file-options no-create: file not exist" file)))
+		     ((not (SG_FALSEP noCreate))
+		      (if isFileExist
+			  (set! openFlags (logor SG_TRUNCATE openFlags))
+			  (assertion-violation 'open-file-input/output-port "file-options no-create: file not exist" file)))
+		     ((and (not (SG_FALSEP noFail))
+			   (not (SG_FALSEP noTruncate)))
+		      (if (not isFileExist)
+			  (set! openFlags (logor SG_TRUNCATE openFlags))))
+		     ((not (SG_FALSEP noFail))
+		      (set! openFlags (logor SG_TRUNCATE openFlags)))
+		     ((not (SG_FALSEP noTruncate))
+		      (if isFileExist
+			  (assertion-violation 'open-file-input/output-port "File-options no-truncate: file not exist" file)
+			  (set! openFlags (logor SG_TRUNCATE openFlags)))))
+	       (set! fo (Sg_OpenFile file openFlags))
+	       (if (SG_FALSEP transcoder)
+		   (result (Sg_MakeFileBinaryInputOutputPort fo bufferMode))
+		   (let ((out (Sg_MakeFileBinaryInputOutputPort fo bufferMode)))
+		     (result (Sg_MakeTranscodedInputOutputPort out transcoder)))))))))
   
   (define-c-proc close-input-port (p::Port) ::void
     (if (not (SG_INPORTP p))
@@ -691,6 +744,9 @@
   (define-c-proc close-output-port (p::Port) ::void
     (if (not (SG_OUTPORTP p))
 	(wrong-type-of-argument-violation 'close-output-port "output port" p))
+    (Sg_ClosePort p))
+
+  (define-c-proc close-port (p::Port) ::void
     (Sg_ClosePort p))
 
   (define-c-proc flush-output-port (p::Port) ::void

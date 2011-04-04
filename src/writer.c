@@ -73,7 +73,7 @@ void Sg_Write(SgObject obj, SgObject p, int mode)
   SgWriteContext ctx;
   SgPort *port;
 
-  if (!SG_OUTPORTP(p)) {
+  if (!SG_OUTPORTP(p) && !SG_INOUTPORTP(p)) {
     Sg_Error(UC("output port required, but got %S"), p);
   }
   if (!SG_TEXTUAL_PORTP(p)) {
@@ -104,7 +104,7 @@ int Sg_WriteCircular(SgObject obj, SgObject port, int mode, int width)
   SgObject out;
   int nc, sharedp = FALSE;
 
-  if (!SG_OUTPORTP(port)) {
+  if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
   }
   out = Sg_MakeStringOutputPort(0);
@@ -145,7 +145,7 @@ int Sg_WriteLimited(SgObject obj, SgObject port, int mode, int width)
   SgObject out;
   int nc, sharedp = FALSE;
 
-  if (!SG_OUTPORTP(port)) {
+  if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
   }
   out = Sg_MakeStringOutputPort(0);
@@ -486,7 +486,7 @@ void Sg_Format(SgPort *port, SgString *fmt, SgObject args, int ss)
 {
   SgPort *out;
   /* TODO lock */
-  if (!SG_OUTPORTP(port)) {
+  if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
   }
   if (!SG_TEXTUAL_PORTP(port)) {
@@ -1306,7 +1306,7 @@ void Sg_Vprintf(SgPort *port, const SgChar *fmt, va_list sp, int sharedp)
   SgPort *out;
   const SgChar *fmtp = fmt;
   int c;
-  if (!SG_OUTPORTP(port)) {
+  if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
   }
   if (!SG_TEXTUAL_PORTP(port)) {

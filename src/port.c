@@ -462,6 +462,38 @@ SgObject Sg_MakeFileBinaryOutputPort(SgFile *file, int bufferMode)
   return SG_OBJ(z);
 }
 
+/* input/output port
+   this port is just combination of in and out port.
+ */
+SgObject Sg_MakeFileBinaryInputOutputPort(SgFile *file, int bufferMode)
+{
+  SgPort *z = make_port(SG_IN_OUT_PORT, SG_BINARY_PORT_TYPE, bufferMode);
+  SgBinaryPort *b = make_binary_port(SG_FILE_BINARY_PORT_TYPE);
+  /* file must be opened before this method is called. */
+  ASSERT(file->isOpen(file));
+
+  z->closed = FALSE;
+  z->flush = file_flush;
+  z->close = file_close;
+
+  b->src.file = file;
+  b->open = file_open;
+  b->getU8 = file_get_u8;
+  b->putU8 = file_put_u8;
+  b->putU8Array = file_put_u8_array;
+  if (bufferMode != SG_BUFMODE_NONE) {
+    b->buffer = SG_NEW_ATOMIC2(uint8_t *, PORT_DEFAULT_BUF_SIZE);
+    b->bufferWriter = (bufferMode == SG_BUFMODE_BLOCK) ? file_write_to_block_buffer
+                                                       : file_write_to_line_buffer;
+    register_buffered_port(z);
+  } else {
+    b->bufferWriter = NULL;
+  }
+
+  z->impl.bport = b;
+  return SG_OBJ(z);
+}
+
 /*****
    ByteArray port
  */
@@ -715,6 +747,27 @@ SgObject Sg_MakeTranscodedOutputPort(SgPort *port, SgTranscoder *transcoder)
   t->unGetChar = NULL;
   t->getLineNo = NULL;
   t->lookAheadChar = NULL;
+  t->putChar = transPutChar;
+
+  z->impl.tport = t;
+  return SG_OBJ(z);
+}
+
+SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port, SgTranscoder *transcoder)
+{
+  SgPort *z = make_port(SG_IN_OUT_PORT, SG_TEXTUAL_PORT_TYPE, -1);
+  SgTextualPort *t = make_textual_port(SG_TRANSCODED_TEXTUAL_PORT_TYPE);
+
+  z->closed = FALSE;
+  z->flush = transFlush;
+  z->close = transClose;
+
+  t->src.transcoded.transcoder = transcoder;
+  t->src.transcoded.port = port;
+  t->getChar = transGetChar;
+  t->unGetChar = transUnGetChar;
+  t->getLineNo = transGetLineNo;
+  t->lookAheadChar = lookAheadChar;
   t->putChar = transPutChar;
 
   z->impl.tport = t;
@@ -1210,7 +1263,7 @@ void Sg__InitPort()
 
   sg_stdin = Sg_MakeFileBinaryInputPort(Sg_StandardIn(), SG_BUFMODE_BLOCK);
   sg_stdout = Sg_MakeFileBinaryOutputPort(Sg_StandardOut(), SG_BUFMODE_BLOCK);
-  sg_stderr = Sg_MakeFileBinaryOutputPort(Sg_StandardError(), SG_BUFMODE_BLOCK);
+  sg_stderr = Sg_MakeFileBinaryOutputPort(Sg_StandardError(), SG_BUFMODE_NONE);
 
   vm->currentInputPort = Sg_MakeTranscodedInputPort(sg_stdin,
 						    Sg_IsUTF16Console(Sg_StandardIn()) ? Sg_MakeNativeConsoleTranscoder()
