@@ -1,4 +1,6 @@
-2011-04-04  Takashi Kato  <t.kato@bellid.com>
+2011-04-04  Takashi Kato  <ktakashi@ymail.com>
 
-	* Sagittarius (C function) : file binary in/out port supported buffer mode.
+	* Sagittarius (C function): added weak hash table. (From Gauche)
+
+	* Sagittarius (C function): file binary in/out port supported buffer mode.
 
