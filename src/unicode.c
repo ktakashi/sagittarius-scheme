@@ -203,7 +203,7 @@ SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
  retry:
   ASSERT(SG_BINARY_PORTP(port));
 
-  f = Sg_GetU8(port);
+  f = Sg_Getb(port);
   if (f == EOF) return EOF;
   first = (uint8_t)(f & 0xff);
 
@@ -212,7 +212,7 @@ SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
     return first;
     // UTF8-2 = %xC2-DF UTF8-tail
   } else if (0xc2 <= first && first <= 0xdf) {
-    uint8_t second = Sg_GetU8(port);
+    uint8_t second = Sg_Getb(port);
     if (isUtf8Tail(second)) {
       return ((first & 0x1f) << 6) | (second & 0x3f);
     } else {
@@ -221,8 +221,8 @@ SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
     // UTF8-3 = %xE0 %xA0-BF UTF8-tail / %xE1-EC 2( UTF8-tail ) /
     //          %xED %x80-9F UTF8-tail / %xEE-EF 2( UTF8-tail )
   } else if (0xe0 <= first && first <= 0xef) {
-    uint8_t second = Sg_GetU8(port);
-    uint8_t third =  Sg_GetU8(port);
+    uint8_t second = Sg_Getb(port);
+    uint8_t third =  Sg_Getb(port);
     if (!isUtf8Tail(third)) {
       decodeError();
     } else if ((0xe0 == first && 0xa0 <= second && second <= 0xbf)    ||
@@ -236,9 +236,9 @@ SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
     // UTF8-4 = %xF0 %x90-BF 2( UTF8-tail ) / %xF1-F3 3( UTF8-tail ) /
     //          %xF4 %x80-8F 2( UTF8-tail )
   } else if (0xf0 <= first && first <= 0xf4) {
-    uint8_t second = Sg_GetU8(port);
-    uint8_t third =  Sg_GetU8(port);
-    uint8_t fourth = Sg_GetU8(port);
+    uint8_t second = Sg_Getb(port);
+    uint8_t third =  Sg_Getb(port);
+    uint8_t fourth = Sg_Getb(port);
     if (!isUtf8Tail(third) || !isUtf8Tail(fourth)) {
       decodeError();
     } else if ((0xf0 == first && 0x90 <= second && second <= 0xbf)     ||
@@ -268,8 +268,8 @@ SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode, SgCodec *code
 #define isLittleEndian(c) (SG_CODEC(c)->endian == UTF_16LE)
  retry:
   /* TODO assert */
-  a = Sg_GetU8(port);
-  b = Sg_GetU8(port);
+  a = Sg_Getb(port);
+  b = Sg_Getb(port);
 
   if (a == EOF) return EOF;
   if (b == EOF) decodeError();
@@ -291,11 +291,11 @@ SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode, SgCodec *code
   if (val1 < 0xD800 || val1 > 0xDFFF) {
     return val1;
   }
-  c = Sg_GetU8(port);
+  c = Sg_Getb(port);
   if (EOF == c) {
     decodeError();
   }
-  d = Sg_GetU8(port);
+  d = Sg_Getb(port);
   if (EOF == d) {
     decodeError();
   }

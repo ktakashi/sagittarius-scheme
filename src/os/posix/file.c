@@ -167,6 +167,18 @@ static int64_t posix_write(SgObject self, uint8_t *buf, int64_t size)
   return result;
 }
 
+static int64_t posix_size(SgObject self)
+{
+  struct stat st;
+  const int result = fstat(SG_FD(self)->fd, &st);
+  setLastError(self);
+  if (result != 0) {
+    return -1;
+  } else {
+    st.st_size;
+  }
+}
+
 static SgFile* make_file(int handle)
 {
   SgFile *file = SG_NEW(SgFile);
@@ -178,6 +190,7 @@ static SgFile* make_file(int handle)
   file->write = posix_write;
   file->seek = posix_seek;
   file->tell = posix_tell;
+  file->size = posix_size;
   file->isOpen = posix_is_open;
   file->open = posix_open;
   file->close = posix_close;

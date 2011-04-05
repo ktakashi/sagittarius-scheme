@@ -73,7 +73,8 @@ SG_EXTERN SgObject Sg_StringToList(SgString *s);
 SG_EXTERN SgObject Sg_ListToString(SgObject obj);
 
 /* compare */
-SG_EXTERN int Sg_StringEqual(SgString *s1, SgString *s2);
+SG_EXTERN int 	   Sg_StringEqual(SgString *s1, SgString *s2);
+SG_EXTERN int 	   Sg_StringCompare(SgString *s1, SgString *s2);
 
 /* concat */
 SG_EXTERN SgObject Sg_StringAppend2(SgString *a, SgString *b);

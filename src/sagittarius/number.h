@@ -161,6 +161,9 @@ SG_EXTERN int      Sg_OddP(SgObject obj);
 SG_EXTERN int      Sg_FiniteP(SgObject obj);
 SG_EXTERN int      Sg_InfiniteP(SgObject obj);
 SG_EXTERN int      Sg_NanP(SgObject obj);
+SG_EXTERN int      Sg_RealValuedP(SgObject n);
+SG_EXTERN int      Sg_RationalValuedP(SgObject n);
+SG_EXTERN int      Sg_IntegerValuedP(SgObject n);
 
 SG_EXTERN SgObject Sg_Inverse(SgObject obj);
 
@@ -188,6 +191,7 @@ SG_EXTERN SgObject Sg_Tan(SgObject obj);
 SG_EXTERN SgObject Sg_Asin(SgObject obj);
 SG_EXTERN SgObject Sg_Acos(SgObject obj);
 SG_EXTERN SgObject Sg_Atan(SgObject obj);
+SG_EXTERN SgObject Sg_Atan2(SgObject x, SgObject y);
 SG_EXTERN SgObject Sg_Abs(SgObject obj);
 SG_EXTERN SgObject Sg_Sqrt(SgObject obj);
 SG_EXTERN SgObject Sg_ExactIntegerSqrt(SgObject obj);

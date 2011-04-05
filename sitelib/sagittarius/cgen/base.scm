@@ -272,7 +272,11 @@
   (define (not-proc body dispatch k)
     (unless (= (length body) 2)
       (error 'not (format "not takes one argument but got ~a" (length body)) body))
-    ((renderer) "!") (dispatch (cadr body) dispatch k))
+    ((renderer) "!(") (dispatch (cadr body) dispatch k)
+    (let ((save (renderer-no-indent)))
+      (renderer-no-indent #t)((renderer) ")")
+      (renderer-no-indent save)))
+
 
   ;; for-each
   (define (for-each-proc body dispatch k)

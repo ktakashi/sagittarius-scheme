@@ -1221,6 +1221,35 @@ int Sg_NanP(SgObject obj)
   return FALSE;
 }
 
+int Sg_RealValuedP(SgObject n)
+{
+  if (SG_REALP(n)) return TRUE;
+  if (SG_COMPLEXP(n)) {
+    return Sg_ZeroP(SG_COMPLEX(n)->imag);
+  }
+  return FALSE;
+}
+
+int Sg_RationalValuedP(SgObject n)
+{
+  if (SG_RATIONALP(n)) return TRUE;
+  if (SG_COMPLEXP(n)) {
+    return Sg_ZeroP(SG_COMPLEX(n)->imag) &&
+      SG_RATIONALP(SG_COMPLEX(n)->real);
+  }
+  return FALSE;
+}
+
+int Sg_IntegerValuedP(SgObject n)
+{
+  if (Sg_IntegerP(n)) return TRUE;
+  if (SG_COMPLEXP(n)) {
+    return Sg_ZeroP(SG_COMPLEX(n)->imag) &&
+      Sg_IntegerValuedP(SG_COMPLEX(n)->real);
+  }
+  return FALSE;
+}
+
 SgObject Sg_Negate(SgObject obj)
 {
   if (SG_INTP(obj)) {
@@ -2440,6 +2469,12 @@ SgObject Sg_Atan(SgObject obj)
   if (SG_REALP(obj)) return Sg_MakeFlonum(atan(Sg_GetDouble(obj)));
   Sg_Error(UC("number required, but got %S"), obj);
   return SG_UNDEF;
+}
+
+SgObject Sg_Atan2(SgObject x, SgObject y)
+{
+  if (SG_EQ(x, SG_MAKE_INT(0))) return x;
+  return Sg_MakeFlonum(atan2(Sg_GetDouble(x), Sg_GetDouble(y)));
 }
 
 int Sg_NumEq(SgObject x, SgObject y)

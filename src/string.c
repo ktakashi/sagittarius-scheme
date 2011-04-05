@@ -119,6 +119,34 @@ int Sg_StringEqual(SgString *s1, SgString *s2)
   return string_equal(s1->value, s1->size, s2->value, s2->size);
 }
 
+static inline int string_compare_rec(SgString *s1, SgString *s2, int len)
+{
+  int i;
+  for (i = 0; i < len; i++) {
+    if (SG_STRING_VALUE_AT(s1, i) > SG_STRING_VALUE_AT(s2, i)) {
+      return 1;
+    } else if (SG_STRING_VALUE_AT(s1, i) < SG_STRING_VALUE_AT(s2, i)) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+int Sg_StringCompare(SgString *s1, SgString *s2)
+{
+  int s1_len = SG_STRING_SIZE(s1);
+  int s2_len = SG_STRING_SIZE(s2);
+  int len = (s1_len > s2_len) ? s2_len : s1_len;
+  int result = string_compare_rec(s1, s2, len);
+  if (result == 0) {
+    if (s1_len == s2_len) return 0;
+    else if (s1_len > s2_len) return 1;
+    else return -1;
+  } else {
+    return result;
+  }
+}
+
 SgObject Sg_StringAppend2(SgString *a, SgString *b)
 {
   SgString *z = make_string(a->size + b->size);

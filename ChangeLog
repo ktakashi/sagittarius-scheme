@@ -1,3 +1,7 @@
+2011-04-05  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/null.stub (rnrs base): (rnrs base (6)) procedures are implemented.
+
 2011-04-04  Takashi Kato  <ktakashi@ymail.com>
 
 	* Sagittarius (Scheme function): added input/output port for file binary

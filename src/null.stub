@@ -1,26 +1,90 @@
 ;; -*- scheme -*-
 #!compatible ;; for ypsilon
 (library null
-    (export values
-	    ;; base arithmetic
-	    + +. - -. * *. / /.
-	    = < <= > >=
+    (export ;; R6RS (rnrs base (6))
+	    ;; 11.1 base type
+	    boolean? pair? symbol?
+	    number? char? string?
+	    vector? procedure? null?
+
+	    ;; 11.5 equivalence predicates
+	    eqv? eq? equal?
 	    
-	    zero? positive? negative? odd? even?
-	    finite? infinite? nan?
-	    max min abs div-and-mod div mod
-	    div0-and-mod0 div0 mod0 %gcd
-	    numerator denominator floor ceiling
-	    truncate round rationalize exp log
-	    sin cos tan asin acos atan sqrt
-	    exact-integer-sqrt expt
+	    ;; 11.7.4 numerical operations
+	    ;; 11.7.4.1 numerical type predicates
+	    complex? real? rational? integer?
+	    real-valued? rational-valued?
+	    integer-valued? exact? inexact?
+	    ;; 11.7.4.2 generic conversions
+	    inexact exact
+	    ;; 11.7.4.3 arithmetic operations
+	    = < > <= >=
+	    zero? positive? negative? odd?
+	    even? finite? infinite? nan?
+	    max min
+	    + +. - -. * *. / /. ;; added special operation from Gauche
+	    abs div-and-mod div mod
+	    div0-and-mod0 div0 mod0
+	    %gcd ;; real r6rs implementation is in scmlib.scm
+	    numerator denominator 
+	    floor ceiling truncate round
+	    rationalize
+	    exp log sin cos tan asin acos atan
+	    sqrt exact-integer-sqrt expt
 	    make-rectangular make-polar
 	    real-part imag-part magnitude angle
-	    ;; for comaptibility
+	    ;; for r5rs comaptibility
 	    quotient remainder modulo
 	    ;; misc
 	    integer-length
+	    ;; 11.7.4.4 numerical input and output
+	    number->string string->number
 
+	    ;; 11.8 booleans
+	    not boolean=?
+
+	    ;; 11.9 pairs and lists
+	    cons car cdr caar cadr cdar cddr
+	    list? list length append reverse
+	    list-tail list-ref
+	    ;; map for-each ;; these are in scmlib.scm
+	    acons cons* append! ;; misc
+	    list-transpose+ last-pair
+
+	    ;; 11.10 symbols
+	    symbol->string symbol=? string->symbol
+
+	    ;; 11.11 characters
+	    char->integer integer->char
+	    char=? char<? char>? char<=? char>=?
+	    
+	    ;; 11.12 strings
+	    make-string string string-length string-ref
+	    string=? string<? string>? string<=? string>=? 
+	    substring string-append string->list
+	    list->string string-copy
+	    ;; string-for-each ;; this is in scmlib.scm
+
+	    ;; 11.13 vectors
+	    make-vector vector vector-length
+	    vector-ref vector-set!
+	    vector->list list->vector
+	    vector-fill!
+	    ;; vector-map vector-for-each ;; these are in scmlib.scm
+
+	    ;; 11.14 errors and violations
+	    ;; error assertion-violation ;; these are in exception.c
+	    syntax-error
+	    scheme-error
+
+	    ;; 11.15 control features
+	    apply call-with-current-continuation call/cc
+	    values
+	    ;; call-with-values ;; this is in scmlib.scm
+	    dynamic-wind
+
+	    ;; standard libraries
+	    raise raise-continuable
 	    bitwise-not
 	    bitwise-and
 	    bitwise-ior
@@ -41,49 +105,109 @@
 	    ;;bitwise-reverse-bit-field
 
 	    ;; apply
-	    apply eval
+	     eval
 
 	    ;; io
 	    display newline write write/ss
-	    ;; ports
-	    port? input-port? output-port?
-	    flush-output-port current-output-port
-	    current-error-port current-input-port
-	    open-file-input-port open-file-output-port
-	    open-file-input/output-port
-	    close-input-port close-output-port
+
+	    ;; 8.2.3 buffer mode
+	    buffer-mode?
+
+	    ;; 8.2.5 transcoders
+	    latin-1-codec
+	    utf-8-codec
+	    utf-16-codec
+	    native-eol-style
+	    ;;; conditions are in exception.c
+	    make-transcoder
+	    native-transcoder
+	    transcoder-codec
+	    transcoder-eol-style
+	    transcoder-error-handling-mode
+	    bytevector->string
+	    string->bytevector
+
+	    ;; 8.2.6 input port and output port
+	    port?
+	    port-transcoder
+	    textual-port?
+	    transcoded-port
+	    port-has-port-position?
+	    port-position
+	    port-has-set-port-position!?
+	    set-port-position
 	    close-port
+	    call-with-port
+
+	    close-input-port close-output-port
+
 	    format read
 
-	    ;; error
-	    syntax-error
-	    scheme-error raise raise-continuable
+	    ;; 8.2.7 input port
+	    input-port?
+	    port-eof?
+	    open-file-input-port
+	    open-bytevector-input-port
+	    open-string-input-port
+	    standard-input-port
+	    current-input-port
+	    make-custom-binary-input-port
+	    make-custom-textual-input-port
+
+	    ;; 8.2.8 binary input
+	    get-u8
+	    lookahead-u8
+	    get-bytevector-n
+	    get-bytevector-n!
+	    get-bytevector-some
+	    get-bytevector-all
+
+	    ;; 8.2.9 textual port
+	    get-char
+	    lookahead-char
+	    get-string-n
+	    get-string-n!
+	    get-string-all
+	    get-line
+	    get-dutum
+
+	    ;; 8.2.10 output port
+	    output-port?
+	    flush-output-port
+	    output-port-buffer-mode
+	    open-file-output-port
+	    open-bytevector-output-port
+	    call-with-bytevector-output-port
+	    ;; open-string-output-port ;; in scheme
+	    call-with-string-output-port
+	    standard-output-port
+	    standard-error-port
+	    current-output-port
+	    current-error-port
+	    make-custom-binary-output-port
+
+	    ;; 8.2.11 binary output
+	    put-u8
+	    put-bytevector
+
+	    ;; 8.2.12 textual output port
+	    put-char
+	    put-string
+	    put-datum
+
+	    ;; 8.2.13 input/output port
+	    open-file-input/output-port
+	    make-custom-binary-input/output-port
+	    make-custom-textual-input/output-port
 
 	    ;; transcoder
 	    native-transcoder
 
 	    ;; list 
-	    cons car cdr caar cadr cdar cddr acons cons*
-	    list length append append! reverse
 	    memq memv member assq assv assoc
-	    list->vector list-transpose+ list-tail last-pair
-	    list-ref
-
+	    list->vector 
 	    set-car! set-cdr!
 
-	    ;; char
-	    char? char=?
-
-	    ;; string
-	    string?
-	    string-length number->string string-append
-	    string->symbol string->list list->string
-	    substring
-
-	    ;; vector
-	    vector? vector vector-set! vector-ref
-	    vector-length make-vector
-	    vector->list vector-fill!
 
 	    ;; byte-vector
 	    ;;endianness
@@ -111,21 +235,17 @@
 	    string->utf32 utf32->string
 
 	    ;; conditions
-	    eq? eqv? equal?
-	    integer? number? exact? inexact? pair? real?
-	    complex? procedure?
-	    null? list? eof-object?
-	    keyword? boolean?
-	    not and
+	    eof-object?
+	    keyword?
+	    and
 
 	    ;; hashtable
 	    make-eq-hashtable hashtable-ref
 	    hashtable-set! hashtable->alist
 	    hashtable-keys hashtable-values
 
-	    ;; call/cc
-	    call/cc call-with-current-continuation
-	    dynamic-wind with-exception-handler
+	    ;; guard?
+	    with-exception-handler
 
 	    ;; conditions
 	    condition simple-conditions compound-condition-component
@@ -180,16 +300,156 @@
      (dispatch
       `(Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got ,irritants))))
 
-  (define-c-proc values (:rest rest) (inline VALUES) ::Object
-    (let ((len (Sg_Length rest)))
-      (cond ((== len 1) (result (SG_CAR rest)))
-	    (else
-	     (let ((v (Sg_MakeValues len))
-		   (i::int 0))
-	       (dolist (e rest)
-		 (set! (SG_VALUES_ELEMENT v i) e)
-		 (set! i (+ i 1)))
-	       (result v))))))
+  ;; x=? macro
+  (define-cgen-stmt x=?
+    ((_ checker compare name first second rest)
+     (dispatch
+      `(begin
+	 (,checker ,name ,first)
+	 (,checker ,name ,second)
+	 (cond ((SG_NULLP ,rest)
+		(result (,compare ,first ,second)))
+	       ((not (,compare ,first ,second))
+		(result FALSE))
+	       (else
+		(let ((prev ,second))
+		  (dolist (p ,rest)
+		    (,checker ,name p)
+		    (unless (,compare prev p)
+		      (return SG_FALSE))
+		    (set! prev p))
+		  (result TRUE))))))))
+
+  ;; 11.1 base type
+  (define-c-proc boolean? (o) ::boolean
+    (result (SG_BOOLP o)))
+
+  (define-c-proc pair? (arg0::Object) ::boolean
+    (result (SG_PAIRP arg0)))
+
+  (define-c-proc symbol? (arg0::Object) ::boolean
+    (result (SG_SYMBOLP arg0)))
+
+  (define-c-proc number? (o) ::boolean
+    (result (SG_NUMBERP o)))
+
+  (define-c-proc char? (o) ::boolean
+    (result (SG_CHARP o)))
+
+  (define-c-proc string? (s) ::boolean
+    (result (SG_STRINGP s)))
+
+  (define-c-proc vector? (arg0::Object) (inline VECTORP) ::boolean
+    (result (SG_VECTORP arg0)))
+
+  (define-c-proc procedure? (arg0) ::boolean
+    (result (SG_PROCEDUREP arg0)))
+
+  (define-c-proc null? (arg0::Object) (inline NULLP) ::boolean
+    (result (SG_NULLP arg0)))
+
+  ;; 11.5 equivalence predicates
+  (define-c-proc eq? (a b) (inline EQ) ::boolean
+    (result (SG_EQ a b)))
+
+  (define-c-proc eqv? (a b) (inline EQV) ::boolean
+    (result (Sg_EqvP a b)))
+
+  (define-c-proc equal? (a b) ::boolean
+    (result (Sg_EqualP a b)))
+
+
+  ;; 11.7.4.1 numerical type predicates
+  (define-c-proc complex? (o) ::boolean
+    (result (SG_COMPLEXP o)))
+
+  (define-c-proc real? (o) ::boolean
+    (result (SG_REALP o)))
+
+  (define-c-proc rational? (o) ::boolean
+    (result (SG_RATIONALP o)))
+
+  (define-c-proc integer? (o) ::boolean
+    (result (Sg_IntegerP o)))
+
+  (define-c-proc real-valued? (o) ::boolean
+    (result (Sg_RealValuedP o)))
+
+  (define-c-proc rational-valued? (o) ::boolean
+    (result (Sg_RationalValuedP o)))
+
+  (define-c-proc integer-valued? (o) ::boolean
+    (result (Sg_IntegerValuedP o)))
+
+  (define-c-proc exact? (o) ::boolean
+    (result (Sg_ExactP o)))
+
+  (define-c-proc inexact? (o) ::boolean
+    (result (Sg_InexactP o)))
+
+  ;; 11.7.4.2 generic conversions
+  (define-c-proc inexact (z::number) ::Object
+    (result (Sg_Inexact z)))
+
+  (define-c-proc exact (z::number) ::Object
+    (result (Sg_Exact z)))
+
+  ;; 11.7.4.3 arithmetic operations
+  (define-cgen-stmt (aref args index)
+    (dispatch `(argumentRef ,args ,index)))
+
+  (define-cgen-stmt numcmp
+    ((_ op compar)
+     (dispatch 
+      `(begin 
+	 (result FALSE)
+	 (loop (cond ((not (,op (,compar arg0 arg1) 0)) (break))
+		     ((SG_NULLP rest) (result TRUE) (break))
+		     (else (set! arg0 arg1)
+			   (set! arg1 (SG_CAR rest))
+			   (set! rest (SG_CDR rest)))))))))
+  ;; = < > <= >=
+  (define-c-proc = (arg0 arg1 :rest rest) ::boolean
+    (result (numcmp == Sg_NumEq)))
+  (define-c-proc < (arg0 arg1 :rest rest) ::boolean
+    (result (numcmp < Sg_NumCmp)))
+  (define-c-proc <= (arg0 arg1 :rest rest) ::boolean
+    (result (numcmp <= Sg_NumCmp)))
+  (define-c-proc > (arg0 arg1 :rest rest) ::boolean
+    (result (numcmp > Sg_NumCmp)))
+  (define-c-proc >= (arg0 arg1 :rest rest) ::boolean
+    (result (numcmp >= Sg_NumCmp)))
+
+  (define-c-proc zero? (arg0::number) ::boolean
+    (result (and (SG_REALP arg0) (== (Sg_Sign arg0) 0))))
+
+  (define-c-proc positive? (x::number) ::boolean
+    (result (Sg_PositiveP x)))
+
+  (define-c-proc negative? (x::number) ::boolean
+    (result (Sg_NegativeP x)))
+
+  (define-c-proc odd? (x::number) ::boolean
+    (result (Sg_OddP x)))
+
+  (define-c-proc even? (x::number) ::boolean
+    (result (not (Sg_OddP x))))
+
+  (define-c-proc finite? (x::number) ::boolean
+    (result (Sg_FiniteP x)))
+
+  (define-c-proc infinite? (x::number) ::boolean
+    (result (Sg_InfiniteP x)))
+
+  (define-c-proc nan? (x::number) ::boolean
+    (result (Sg_NanP x)))
+    
+  (define-c-proc max (arg0 :rest rest) ::Object
+    (Sg_MinMax arg0 rest NULL (& SG_RETURN)))
+
+  (define-c-proc min (arg0 :rest rest) ::Object
+    (Sg_MinMax arg0 rest (& SG_RETURN) NULL))
+
 
   ;; arithmetic
   (define-c-proc + (:rest rest) ::Object
@@ -238,36 +498,6 @@
 	  (else (dolist (x rest) (set! arg1 (Sg_Div arg1 (Sg_Inexact x))))
 		(result arg1))))
   ;; base arithmetic
-  (define-c-proc zero? (arg0::number) ::boolean
-    (result (and (SG_REALP arg0) (== (Sg_Sign arg0) 0))))
-
-  (define-c-proc positive? (x::number) ::boolean
-    (result (Sg_PositiveP x)))
-
-  (define-c-proc negative? (x::number) ::boolean
-    (result (Sg_NegativeP x)))
-
-  (define-c-proc odd? (x::number) ::boolean
-    (result (Sg_OddP x)))
-
-  (define-c-proc even? (x::number) ::boolean
-    (result (not (Sg_OddP x))))
-
-  (define-c-proc finite? (x::number) ::boolean
-    (result (Sg_FiniteP x)))
-
-  (define-c-proc infinite? (x::number) ::boolean
-    (result (Sg_InfiniteP x)))
-
-  (define-c-proc nan? (x::number) ::boolean
-    (result (Sg_NanP x)))
-    
-  (define-c-proc max (arg0 :rest rest) ::Object
-    (Sg_MinMax arg0 rest NULL (& SG_RETURN)))
-
-  (define-c-proc min (arg0 :rest rest) ::Object
-    (Sg_MinMax arg0 rest (& SG_RETURN) NULL))
-
   (define-c-proc abs (x::number) ::Object
     (result (Sg_Abs x)))
 
@@ -347,6 +577,12 @@
 	  (else
 	   (wrong-type-of-argument-violation 'imag-part "number required" r))))
 
+  (define-cgen-stmt check-real
+    ((_ name n)
+     (dispatch
+      `(unless (Sg_RealValuedP ,n)
+	 (wrong-type-of-argument-violation ',name "real number" ,n)))))
+
   (define-c-proc magnitude (n::number) ::Object
     (result (Sg_Magnitude n)))
 
@@ -354,25 +590,37 @@
     (result (Sg_Angle n)))
 
   (define-c-proc sin (n::number) ::Object
+    (check-real sin n)
     (result (Sg_Sin n)))
 
   (define-c-proc cos (n::number) ::Object
+    (check-real cos n)
     (result (Sg_Cos n)))
 
   (define-c-proc tan (n::number) ::Object
+    (check-real tan n)
     (result (Sg_Tan n)))
 
   (define-c-proc asin (n::number) ::Object
+    (check-real asin n)
     (result (Sg_Asin n)))
 
   (define-c-proc acos (n::number) ::Object
+    (check-real acos n)
     (result (Sg_Acos n)))
 
-  (define-c-proc atan (n::number) ::Object
-    (result (Sg_Atan n)))
+  (define-c-proc atan (n::number :optional (n2::number SG_UNBOUND)) ::Object
+    (check-real atan n)
+    (cond ((SG_UNBOUNDP n2)
+	   (when (Sg_ZeroP n)
+	     (assertion-violation 'atan "division by zero" n))
+	   (result (Sg_Atan n)))
+	  (else
+	   (check-real atan n2)
+	   (result (Sg_Atan2 n n2)))))
 
   (define-c-proc sqrt (n::number) ::Object
-    (result (Sg_Sqrt n)));
+    (result (Sg_Sqrt n)))
 
   (define-c-proc exact-integer-sqrt (n::number) ::Object
     (when (or (Sg_NegativeP n)
@@ -382,6 +630,7 @@
 #|
   rationalize
 |#
+  ;; r5rs compatible
   (define-c-proc quotient (n1::number n2::number) ::Object
     (result (Sg_Quotient n1 n2 NULL)))
 
@@ -393,6 +642,390 @@
 
   (define-c-proc integer-length (n::number) ::fixnum
     (result (Sg_IntegerLength n)))
+
+  ;; 11.7.4.4 numerical input and output
+  (define-c-proc number->string (z::number
+				 :optional (radix::fixnum 10)
+				           (precision::fixnum 1)) ::Object
+    ;; ignore precision
+    (result (Sg_NumberToString z radix FALSE)))
+
+  (define-c-proc string->number (s::String :optional (radix::fixnum 10)) ::Object
+    (result (Sg_StringToNumber s radix FALSE)))
+
+  ;; 11.8 booleans
+  (define-c-proc not (arg0) ::boolean
+    (result (SG_FALSEP arg0)))
+
+  (define-cgen-stmt check-boolean
+    ((_ name b)
+     (dispatch
+      `(unless (SG_BOOLP ,b)
+	 (wrong-type-of-argument-violation ',name "boolean" ,b)))))
+
+  (define-c-proc boolean=? (b1 b2 :rest rest) ::boolean
+    (x=? check-boolean SG_EQ boolean=? b1 b2 rest))
+
+  ;; 11.9 pairs and lists
+  (define-c-proc cons (o1 o2) (inline CONS) ::Object
+    (result (Sg_Cons o1 o2)))
+
+  (define-c-proc car (o) (inline CAR) ::Object
+    (unless (SG_PAIRP o)
+      (wrong-type-of-argument-violation 'car "pair" o))
+    (result (SG_CAR o)))
+
+  (define-c-proc cdr (o) (inline CDR) ::Object
+    (unless (SG_PAIRP o)
+      (wrong-type-of-argument-violation 'cdr "pair" o))
+    (result (SG_CDR o)))
+
+  (define-c-proc caar (o) ::Object
+    (unless (SG_PAIRP o)
+      (wrong-type-of-argument-violation 'caar "pair" o))
+    (unless (SG_PAIRP (SG_CAR o))
+      (wrong-type-of-argument-violation 'cadr "pair" o))
+    (result (SG_CAAR o)))
+
+  (define-c-proc cadr (o) ::Object
+    (unless (SG_PAIRP o)
+      (wrong-type-of-argument-violation 'cadr "pair" o))
+    (unless (SG_PAIRP (SG_CDR o))
+      (wrong-type-of-argument-violation 'cadr "pair" o))
+    (result (SG_CADR o)))
+
+  (define-c-proc cdar (o) ::Object
+    (unless (SG_PAIRP o)
+      (wrong-type-of-argument-violation 'cdar "pair" o))
+    (unless (SG_PAIRP (SG_CAR o))
+      (wrong-type-of-argument-violation 'cadr "pair" o))
+    (result (SG_CDAR o)))
+
+  (define-c-proc cddr (o) ::Object
+    (unless (SG_PAIRP o)
+      (wrong-type-of-argument-violation 'cddr "pair" o))
+    (unless (SG_PAIRP (SG_CDR o))
+      (wrong-type-of-argument-violation 'cadr "pair" o))
+    (result (SG_CDDR o)))
+
+  (define-c-proc list? (arg0::Object) ::boolean
+    (result (SG_PROPER_LISTP arg0)))
+
+  (define-c-proc list (:rest rest) (inline LIST) ::Object
+    (result rest))
+
+  (define-c-proc length (lst) ::fixnum
+    (result (Sg_Length lst)))
+
+  (define-c-proc append (:rest lst) ::Object
+    (result (Sg_Append lst)))
+
+  (define-c-proc reverse (lst) ::Object
+    (result (Sg_Reverse lst)))
+
+  (define-c-proc list-tail (lst k::fixnum :optional fallback) ::Object
+    (result (Sg_ListTail lst k fallback)))
+
+  (define-c-proc list-ref (lst k::fixnum :optional fallback) ::Object
+    (result (Sg_ListRef lst k fallback)))
+  ;; list miscs
+  (define-c-proc acons (a b alist) ::Object
+    (result (Sg_Acons a b alist)))
+
+  (define-c-proc cons* (:rest rest) ::Object
+    (let ((h '()) (t '()))
+      (when (SG_PAIRP rest)
+	(dopairs (cp rest)
+	  (unless (SG_PAIRP (SG_CDR cp))
+	    (if (SG_NULLP h)
+		(set! h (SG_CAR cp))
+		(SG_SET_CDR t (SG_CAR cp)))
+	    (break))
+	  (SG_APPEND1 h t (SG_CAR cp))))
+      (result h)))
+
+  (define-c-proc append! (:rest lst) ::Object
+    (let ((h '()) (t '()))
+      (dopairs (cp lst)
+	(when (and (not (SG_PAIRP (SG_CAR cp)))
+		   (SG_NULLP (SG_CDR cp)))
+	  (if (SG_NULLP h)
+	      (set! h (SG_CAR cp))
+	      (SG_SET_CDR t (SG_CAR cp)))
+	  (break))
+	(SG_APPEND h t (SG_CAR cp)))
+      (result h)))
+
+  (define-cgen-stmt do-transpose
+    ((_ lst)
+     (dispatch
+      `(let ((h '())(t '())
+	     (count::int (Sg_Length ,lst))
+	     (argv (Sg_ListToVector ,lst 0 -1))
+	     (lst0 (SG_VECTOR_ELEMENT argv 0)))
+	 (dolist (l lst0)
+	   (let ((elt (Sg_Cons l '()))
+		 (elt_tail elt)
+		 (n::int 1))
+	     (while (< n count)
+	       (SG_SET_CDR elt_tail (Sg_Cons (SG_CAR (SG_VECTOR_ELEMENT argv n)) '()))
+	       (set! elt_tail (SG_CDR elt_tail))
+	       (set! (SG_VECTOR_ELEMENT argv n)
+		     (SG_CDR (SG_VECTOR_ELEMENT argv n)))
+	       (set! n (+ n 1)))
+	     (SG_APPEND1 h t elt)))
+	 (result h)))))
+
+  (define-c-proc list-transpose+ (lst0 :rest rest) ::Object
+    (cond ((not (SG_LISTP lst0)) (result #f))
+	  (else
+	   (let ((each_len::int (Sg_Length lst0)))
+	     (dolist (x rest)
+	       (if (SG_LISTP x)
+		   (unless (not (== (Sg_Length x) each_len))
+		     (result #f))
+		   (result #f)))
+	     (let ((tmp (Sg_Cons lst0 rest)))
+	       (do-transpose tmp))))))
+
+  (define-c-proc last-pair (lst) ::Object
+    (result (Sg_LastPair lst)))
+
+  ;; 11.10 symbols
+  (define-c-proc symbol->string (z::Symbol) ::Object
+    (result (Sg_CopyString (-> z name))))
+
+  (define-cgen-stmt check-symbol
+    ((_ name s)
+     (dispatch
+      `(unless (SG_SYMBOLP ,s)
+	 (wrong-type-of-argument-violation ',name "symbol" ,s)))))
+
+  (define-c-proc symbol=? (s1::Symbol s2::Symbol :rest rest) ::boolean
+    (x=? check-symbol SG_EQ symbol=? s1 s2 rest))
+
+  (define-c-proc string->symbol (z::String) ::Object
+    (result (Sg_Intern z)))
+
+  ;; 11.11 characters
+  (define-cgen-stmt check-char
+    ((_ name c)
+     (dispatch
+      `(unless (SG_CHARP ,c)
+	 (wrong-type-of-argument-violation ',name "char" ,c)))))
+
+  (define-c-proc char->integer (c) ::Object
+    (check-char char->integer c)
+    (result (SG_MAKE_INT (SG_CHAR_VALUE c))))
+
+  (define-c-proc integer->char (ch::fixnum) ::Object
+    (unless (and (<= 0 ch)
+		 (<= ch #xD7FF))
+      (assertion-violation 'integer->char "code point out of range" ch))
+    (unless (and (<= #xE000 ch)
+		 (<= ch #x10FFFF))
+      (assertion-violation 'integer->char "code point out of range" ch))
+    (result (SG_MAKE_CHAR ch)))
+
+  (define-c-proc char=? (c1 c2 :rest rest) ::boolean
+    (x=? check-char SG_EQ char=? c1 c2 rest))
+
+  (define-c-proc char<? (c1 c2 :rest rest) ::boolean
+    (x=? check-char >= char<? c1 c2 rest))
+
+  (define-c-proc char>? (c1 c2 :rest rest) ::boolean
+    (x=? check-char <= char<? c1 c2 rest))
+
+  (define-c-proc char<=? (c1 c2 :rest rest) ::boolean
+    (x=? check-char > char<? c1 c2 rest))
+
+  (define-c-proc char>=? (c1 c2 :rest rest) ::boolean
+    (x=? check-char < char<? c1 c2 rest))
+
+  ;; 11.12 strings
+  (define-cgen-stmt check-string
+    ((_ name s)
+     (dispatch
+      `(unless (SG_STRINGP ,s)
+	 (wrong-type-of-argument-violation ',name "string" ,s)))))
+
+  (define-c-proc make-string (k::fixnum :optional (c (SG_MAKE_CHAR #\space))) ::Object
+    (unless (SG_CHARP c)
+      (wrong-type-of-argument-violation 'make-string "char" c (SG_LIST2 k c)))
+    (result (Sg_ReserveString k (SG_CHAR_VALUE c))))
+
+  (define-c-proc string (:rest rest) ::Object
+    (result (Sg_ListToString rest)))
+
+  (define-c-proc string-length (s::String) ::fixnum
+    (result s->size))
+
+  (define-c-proc string-ref (s::String k::fixnum) ::Object
+    (when (< k 0)
+      (wrong-type-of-argument-violation 'string-ref "non negative exact integer"
+					(SG_MAKE_INT k)
+					(SG_LIST2 s (SG_MAKE_INT k))))
+    (when (> k (SG_STRING_SIZE s))
+      (assertion-violation 'string-ref "index out of bounds"
+			   (SG_LIST2 s (SG_MAKE_INT k))))
+    (result (SG_MAKE_CHAR (SG_STRING_VALUE_AT s k))))
+
+  ;; string compares
+  (define-c-proc string=? (s1::String s2::String :rest rest) ::boolean
+    (x=? check-string Sg_StringEqual string=? s1 s2 rest))
+
+  (define-cgen-stmt string-compare
+    ((_ compare value name first second rest)
+     (dispatch
+      `(begin
+	 (cond ((SG_NULLP ,rest)
+		(result (,compare (Sg_StringCompare ,first ,second) ,value)))
+	       ((not (,compare (Sg_StringCompare ,first ,second) ,value))
+		(result FALSE))
+	       (else
+		(let ((prev ,second))
+		  (dolist (p ,rest)
+		    (check-string ,name p)
+		    (unless (,compare (Sg_StringCompare prev p) ,value)
+		      (return SG_FALSE))
+		    (set! prev p))
+		  (result TRUE))))))))
+
+  (define-c-proc string<? (s1::String s2::String :rest rest) ::boolean
+    (string-compare == -1 string<? s1 s2 rest))
+
+  (define-c-proc string>? (s1::String s2::String :rest rest) ::boolean
+    (string-compare == 1 string>? s1 s2 rest))
+
+  (define-c-proc string<=? (s1::String s2::String :rest rest) ::boolean
+    (string-compare <= 0 string<=? s1 s2 rest))
+
+  (define-c-proc string>=? (s1::String s2::String :rest rest) ::boolean
+    (string-compare >= 0 string>=? s1 s2 rest))
+
+  (define-c-proc substring (s::String start::fixnum end::fixnum) ::Object
+    (when (< start 0)
+      (wrong-type-of-argument-violation 'substring "non negative exact integer"
+					(SG_MAKE_INT start)
+					(SG_LIST3 s (SG_MAKE_INT start) (SG_MAKE_INT end))))
+    (when (< end 0)
+      (wrong-type-of-argument-violation 'substring "non negative exact integer"
+					(SG_MAKE_INT end)
+					(SG_LIST3 s (SG_MAKE_INT start) (SG_MAKE_INT end))))
+    (when (< end start)
+      (assertion-violation 'substring "end index is smaller than start index"
+			   (SG_LIST3 s (SG_MAKE_INT start) (SG_MAKE_INT end))))
+    (when (< (SG_STRING_SIZE s) end)
+      (assertion-violation 'substring "end index out of bounds"
+			   (SG_LIST3 s (SG_MAKE_INT start) (SG_MAKE_INT end))))
+    (result (Sg_Substring s start end)))
+
+  (define-c-proc string-append (:rest rest) ::Object
+    (result (Sg_StringAppend rest)))
+
+  (define-c-proc string-set! (s::String k::fixnum c) ::void
+    (when (< k 0)
+      (wrong-type-of-argument-violation 'string-set! "non negative exact integer"
+					(SG_MAKE_INT k)
+					(SG_LIST3 s (SG_MAKE_INT k) c)))
+    (when (> k (SG_STRING_SIZE s))
+      (assertion-violation 'string-set! "index out of bounds"
+			   (SG_LIST3 s (SG_MAKE_INT k) c)))
+    (unless (SG_CHARP c)
+      (wrong-type-of-argument-violation 'string-set! "character"
+					c
+					(SG_LIST3 s (SG_MAKE_INT k) c)))
+    (when (SG_LITERAL_STRINGP s)
+      (assertion-violation 'string-set! "attempted to modify an immutable string"
+			   s))
+    (set! (SG_STRING_VALUE_AT s k) (SG_CHAR_VALUE c)))
+
+  (define-c-proc string->list (s::String) ::Object
+    (result (Sg_StringToList s)))
+
+  (define-c-proc list->string (o) ::Object
+    (result (Sg_ListToString o)))
+
+  (define-c-proc string-copy (s::String) ::Object
+    (result (Sg_CopyString s)))
+
+  ;; 11.13 vectors
+  (define-c-proc make-vector (size::fixnum :optional (fill SG_UNDEF)) ::Object
+    (result (Sg_MakeVector size fill)))
+
+  (define-c-proc vector (:rest rest) (inline VECTOR) ::Object
+    (result (Sg_ListToVector rest 0 -1)))
+
+  (define-c-proc vector-length (vec::Vector) (inline VEC_LEN) ::fixnum
+    (result (SG_VECTOR_SIZE vec)))
+
+  (define-c-proc vector-ref (vec::Vector i::fixnum :optional fallback) ::Object
+    (cond ((or (< i 0)
+	       (>= i (SG_VECTOR_SIZE vec)))
+	   (when (SG_UNBOUNDP fallback)
+	     (assertion-violation 'vector-ref "index out of range" i))
+	   (result fallback))
+	  (else (result (SG_VECTOR_ELEMENT vec i)))))
+     
+  (define-c-proc vector-set! (vec::Vector i::fixnum obj) ::void
+    (cond ((or (< i 0)
+	       (>= i (SG_VECTOR_SIZE vec)))
+	   (assertion-violation 'vector-ref "index out of range" i))
+	  (else (set! (SG_VECTOR_ELEMENT vec i) obj))))
+
+  (define-c-proc vector->list (vec::Vector :optional (start::fixnum 0) (end::fixnum -1)) ::Object
+    (result (Sg_VectorToList vec start end)))
+  
+  (define-c-proc list->vector (arg0) ::Object
+    (result (Sg_ListToVector arg0 0 -1)))
+
+  (define-c-proc vector-fill! (vec::Vector fill) ::Object
+    (Sg_VectorFill vec fill 0 -1))
+
+  ;; 11.14 errors and violations
+  ;; we might remove this
+  (define-c-proc scheme-error (who msg :rest irritant) ::void
+    (Sg_Error "%S %S %S" who msg irritant))
+
+  (define-c-proc syntax-error (form :rest irritant) ::void
+    (Sg_SyntaxError form irritant))
+
+  ;; 11.15 control features
+  (define-c-proc apply (proc::Procedure arg1 :rest rest) ::Object
+    (let ((head::SgObject '()) (tail::SgObject '()))
+      (cond ((SG_NULLP rest) (result (Sg_VMApply proc arg1)))
+	    (else 
+	     (set! head (Sg_Cons arg1 '()))
+	     (set! tail head)
+	     (dopairs (cp rest)
+	       (when (SG_NULLP (SG_CDR cp))
+		 (SG_APPEND head tail (SG_CAR cp))
+		 (break))
+	       (unless (SG_PAIRP (SG_CDR cp))
+		 (assertion-violation 'apply "improper list not allowed" (SG_CDR cp)))
+	       (SG_APPEND1 head tail (SG_CAR cp)))
+	     (result (Sg_VMApply proc head))))))
+
+  ;; call/cc
+  (define-c-proc call/cc (proc::Procedure) ::Object
+    (result (Sg_VMCallCC proc)))
+  
+  (define-c-proc call-with-current-continuation (proc::Procedure) ::Object
+    (result (Sg_VMCallCC proc)))
+
+  (define-c-proc values (:rest rest) (inline VALUES) ::Object
+    (let ((len (Sg_Length rest)))
+      (cond ((== len 1) (result (SG_CAR rest)))
+	    (else
+	     (let ((v (Sg_MakeValues len))
+		   (i::int 0))
+	       (dolist (e rest)
+		 (set! (SG_VALUES_ELEMENT v i) e)
+		 (set! i (+ i 1)))
+	       (result v))))))
+
+  (define-c-proc dynamic-wind (before thunk after) ::Object
+    (result (Sg_VMDynamicWind before thunk after)))
 
   ;; arithmetic bitwise
   (define-c-proc bitwise-not (ei::number) ::Object
@@ -473,76 +1106,8 @@
   (define-c-proc bitwise-arithmetic-shift-right (ei1::number ei2::fixnum) ::Object
     (result (Sg_Ash ei1 (- 0 ei2))))
 
-  ;; arithmetic compare
-  (define-cgen-stmt (aref args index)
-    (dispatch `(argumentRef ,args ,index)))
 
-  (define-cgen-stmt numcmp
-    ((_ op compar)
-     (dispatch 
-      `(begin 
-	 (result FALSE)
-	 (loop (cond ((not (,op (,compar arg0 arg1) 0)) (break))
-		     ((SG_NULLP rest) (result TRUE) (break))
-		     (else (set! arg0 arg1)
-			   (set! arg1 (SG_CAR rest))
-			   (set! rest (SG_CDR rest)))))))))
-
-  (define-c-proc = (arg0 arg1 :rest rest) ::boolean
-    (result (numcmp == Sg_NumEq)))
-
-  (define-c-proc < (arg0 arg1 :rest rest) ::boolean
-    (result (numcmp < Sg_NumCmp)))
-  (define-c-proc <= (arg0 arg1 :rest rest) ::boolean
-    (result (numcmp <= Sg_NumCmp)))
-  (define-c-proc > (arg0 arg1 :rest rest) ::boolean
-    (result (numcmp > Sg_NumCmp)))
-  (define-c-proc >= (arg0 arg1 :rest rest) ::boolean
-    (result (numcmp >= Sg_NumCmp)))
-
-  (define-c-proc integer? (o) ::boolean
-    (result (Sg_IntegerP o)))
-
-  (define-c-proc number? (o) ::boolean
-    (result (SG_NUMBERP o)))
-
-  (define-c-proc real? (o) ::boolean
-    (result (SG_REALP o)))
-
-  (define-c-proc complex? (o) ::boolean
-    (result (SG_COMPLEXP o)))
-
-  (define-c-proc exact? (o) ::boolean
-    (result (Sg_ExactP o)))
-
-  (define-c-proc inexact? (o) ::boolean
-    (result (Sg_InexactP o)))
-
-  ;; compare
-  (define-c-proc eq? (a b) (inline EQ) ::boolean
-    (result (SG_EQ a b)))
-
-  (define-c-proc eqv? (a b) (inline EQV) ::boolean
-    (result (Sg_EqvP a b)))
-
-  (define-c-proc equal? (a b) ::boolean
-    (result (Sg_EqualP a b)))
-
-  ;; apply
-  (define-c-proc apply (proc::Procedure arg1 :rest rest) ::Object
-    (let ((head::SgObject '()) (tail::SgObject '()))
-      (cond ((SG_NULLP rest) (result (Sg_VMApply proc arg1)))
-	    (else 
-	     (set! head (Sg_Cons arg1 '()))
-	     (set! tail head)
-	     (dopairs (cp rest)
-	       (when (SG_NULLP (SG_CDR cp))
-		 (SG_APPEND head tail (SG_CAR cp))
-		 (break))
-	       (unless (SG_PAIRP (SG_CDR cp))
-		 (assertion-violation 'apply "improper list not allowed" (SG_CDR cp)))
-	       (SG_APPEND1 head tail (SG_CAR cp)))
-	     (result (Sg_VMApply proc head))))))
+  
 
   (define-c-proc eval (sexp env) ::Object
     (result (Sg_VMEval sexp env)))
@@ -781,12 +1346,6 @@
 	(wrong-type-of-argument-violation 'read "input port" p))
     (result (Sg_Read p FALSE)))
 
-  (define-c-proc scheme-error (who msg :rest irritant) ::void
-    (Sg_Error "%S %S %S" who msg irritant))
-
-  (define-c-proc syntax-error (form :rest irritant) ::void
-    (Sg_SyntaxError form irritant))
-
   (define-c-proc raise (condition) ::Object
     (result (Sg_Raise condition FALSE)))
  
@@ -796,84 +1355,6 @@
   ;; transcoder
   (define-c-proc native-transcoder () ::Object
     (result (Sg_MakeNativeTranscoder)))
-
-  ;; list
-  (define-c-proc cons (o1 o2) (inline CONS) ::Object
-    (result (Sg_Cons o1 o2)))
-
-  (define-c-proc car (o) (inline CAR) ::Object
-    (unless (SG_PAIRP o)
-      (wrong-type-of-argument-violation 'car "pair" o))
-    (result (SG_CAR o)))
-
-  (define-c-proc cdr (o) (inline CDR) ::Object
-    (unless (SG_PAIRP o)
-      (wrong-type-of-argument-violation 'cdr "pair" o))
-    (result (SG_CDR o)))
-
-  (define-c-proc caar (o) ::Object
-    (unless (SG_PAIRP o)
-      (wrong-type-of-argument-violation 'caar "pair" o))
-    (unless (SG_PAIRP (SG_CAR o))
-      (wrong-type-of-argument-violation 'cadr "pair" o))
-    (result (SG_CAAR o)))
-
-  (define-c-proc cadr (o) ::Object
-    (unless (SG_PAIRP o)
-      (wrong-type-of-argument-violation 'cadr "pair" o))
-    (unless (SG_PAIRP (SG_CDR o))
-      (wrong-type-of-argument-violation 'cadr "pair" o))
-    (result (SG_CADR o)))
-
-  (define-c-proc cdar (o) ::Object
-    (unless (SG_PAIRP o)
-      (wrong-type-of-argument-violation 'cdar "pair" o))
-    (unless (SG_PAIRP (SG_CAR o))
-      (wrong-type-of-argument-violation 'cadr "pair" o))
-    (result (SG_CDAR o)))
-
-  (define-c-proc cddr (o) ::Object
-    (unless (SG_PAIRP o)
-      (wrong-type-of-argument-violation 'cddr "pair" o))
-    (unless (SG_PAIRP (SG_CDR o))
-      (wrong-type-of-argument-violation 'cadr "pair" o))
-    (result (SG_CDDR o)))
-
-  (define-c-proc acons (a b alist) ::Object
-    (result (Sg_Acons a b alist)))
-
-  (define-c-proc cons* (:rest rest) ::Object
-    (let ((h '()) (t '()))
-      (when (SG_PAIRP rest)
-	(dopairs (cp rest)
-	  (unless (SG_PAIRP (SG_CDR cp))
-	    (if (SG_NULLP h)
-		(set! h (SG_CAR cp))
-		(SG_SET_CDR t (SG_CAR cp)))
-	    (break))
-	  (SG_APPEND1 h t (SG_CAR cp))))
-      (result h)))
-
-  (define-c-proc list (:rest rest) (inline LIST) ::Object
-    (result rest))
-
-  (define-c-proc length (lst) ::fixnum
-    (result (Sg_Length lst)))
-
-  (define-c-proc append (:rest lst) ::Object
-    (result (Sg_Append lst)))
-
-  (define-c-proc append! (:rest lst) ::Object
-    (let ((h '()) (t '()))
-      (dopairs (cp lst)
-	(when (and (not (SG_PAIRP (SG_CAR cp)))
-		   (SG_NULLP (SG_CDR cp)))
-	  (if (SG_NULLP h)
-	      (set! h (SG_CAR cp))
-	      (SG_SET_CDR t (SG_CAR cp)))
-	  (break))
-	(SG_APPEND h t (SG_CAR cp)))
-      (result h)))
 
   (define-c-proc memq (arg0 arg1) ::Object
     (result (Sg_Memq arg0 arg1)))
@@ -887,179 +1368,13 @@
   (define-c-proc assv (obj alist) ::Object
     (result (Sg_Assv obj alist)))
 
-  (define-c-proc reverse (lst) ::Object
-    (result (Sg_Reverse lst)))
-
   (define-c-proc set-car! (o v) ::void
     (SG_SET_CAR o v))
 
   (define-c-proc set-cdr! (o v) ::void
     (SG_SET_CDR o v))
 
-  (define-cgen-stmt do-transpose
-    ((_ lst)
-     (dispatch
-      `(let ((h '())(t '())
-	     (count::int (Sg_Length ,lst))
-	     (argv (Sg_ListToVector ,lst 0 -1))
-	     (lst0 (SG_VECTOR_ELEMENT argv 0)))
-	 (dolist (l lst0)
-	   (let ((elt (Sg_Cons l '()))
-		 (elt_tail elt)
-		 (n::int 1))
-	     (while (< n count)
-	       (SG_SET_CDR elt_tail (Sg_Cons (SG_CAR (SG_VECTOR_ELEMENT argv n)) '()))
-	       (set! elt_tail (SG_CDR elt_tail))
-	       (set! (SG_VECTOR_ELEMENT argv n)
-		     (SG_CDR (SG_VECTOR_ELEMENT argv n)))
-	       (set! n (+ n 1)))
-	     (SG_APPEND1 h t elt)))
-	 (result h)))))
 
-  (define-c-proc list-transpose+ (lst0 :rest rest) ::Object
-    (cond ((not (SG_LISTP lst0)) (result #f))
-	  (else
-	   (let ((each_len::int (Sg_Length lst0)))
-	     (dolist (x rest)
-	       (if (SG_LISTP x)
-		   (unless (not (== (Sg_Length x) each_len))
-		     (result #f))
-		   (result #f)))
-	     (let ((tmp (Sg_Cons lst0 rest)))
-	       (do-transpose tmp))))))
-
-  (define-c-proc list-tail (lst k::fixnum :optional fallback) ::Object
-    (result (Sg_ListTail lst k fallback)))
-
-  (define-c-proc last-pair (lst) ::Object
-    (result (Sg_LastPair lst)))
-
-  (define-c-proc list-ref (lst k::fixnum :optional fallback) ::Object
-    (result (Sg_ListRef lst k fallback)))
-
-  ;; char
-  (define-c-proc char? (o) ::boolean
-    (result (SG_CHARP o)))
-
-  (define-c-proc char=? (c :rest rest) ::boolean
-    (unless (SG_CHARP c)
-      (wrong-type-of-argument-violation 'char=? "char" c (SG_LIST2 c rest)))
-    (dolist (r rest)
-      (unless (SG_CHARP r)
-	(wrong-type-of-argument-violation 'char=? "char" r (SG_LIST2 c rest)))
-      (when (SG_EQ c r)
-	(return SG_TRUE)))
-    (result FALSE))
-
-  ;; string
-  (define-c-proc string? (s) ::boolean
-    (result (SG_STRINGP s)))
-
-  (define-c-proc make-string (k::fixnum :optional (c (SG_MAKE_CHAR #\space))) ::Object
-    (unless (SG_CHARP c)
-      (wrong-type-of-argument-violation 'make-string "char" c (SG_LIST2 k c)))
-    (result (Sg_ReserveString k (SG_CHAR_VALUE c))))
-
-  (define-c-proc string-length (s::String) ::fixnum
-    (result s->size))
-
-  (define-c-proc string-append (:rest rest) ::Object
-    (result (Sg_StringAppend rest)))
-
-  (define-c-proc number->string (z::number
-				 :optional (radix::fixnum 10)
-				           (precision::fixnum 1)) ::Object
-    ;; ignore precision
-    (result (Sg_NumberToString z radix FALSE)))
-
-  (define-c-proc substring (s::String start::fixnum end::fixnum) ::Object
-    (when (< start 0)
-      (wrong-type-of-argument-violation 'substring "non negative exact integer"
-					(SG_MAKE_INT start)
-					(SG_LIST3 s (SG_MAKE_INT start) (SG_MAKE_INT end))))
-    (when (< end 0)
-      (wrong-type-of-argument-violation 'substring "non negative exact integer"
-					(SG_MAKE_INT end)
-					(SG_LIST3 s (SG_MAKE_INT start) (SG_MAKE_INT end))))
-    (when (< end start)
-      (assertion-violation 'substring "end index is smaller than start index"
-			   (SG_LIST3 s (SG_MAKE_INT start) (SG_MAKE_INT end))))
-    (when (< (SG_STRING_SIZE s) end)
-      (assertion-violation 'substring "end index out of bounds"
-			   (SG_LIST3 s (SG_MAKE_INT start) (SG_MAKE_INT end))))
-    (result (Sg_Substring s start end)))
-
-  (define-c-proc string-ref (s::String k::fixnum) ::Object
-    (when (< k 0)
-      (wrong-type-of-argument-violation 'string-ref "non negative exact integer"
-					(SG_MAKE_INT k)
-					(SG_LIST2 s (SG_MAKE_INT k))))
-    (when (> k (SG_STRING_SIZE s))
-      (assertion-violation 'string-ref "index out of bounds"
-			   (SG_LIST2 s (SG_MAKE_INT k))))
-    (result (SG_MAKE_CHAR (SG_STRING_VALUE_AT s k))))
-
-  (define-c-proc string-set! (s::String k::fixnum c) ::void
-    (when (< k 0)
-      (wrong-type-of-argument-violation 'string-set! "non negative exact integer"
-					(SG_MAKE_INT k)
-					(SG_LIST3 s (SG_MAKE_INT k) c)))
-    (when (> k (SG_STRING_SIZE s))
-      (assertion-violation 'string-set! "index out of bounds"
-			   (SG_LIST3 s (SG_MAKE_INT k) c)))
-    (unless (SG_CHARP c)
-      (wrong-type-of-argument-violation 'string-set! "character"
-					c
-					(SG_LIST3 s (SG_MAKE_INT k) c)))
-    (when (SG_LITERAL_STRINGP s)
-      (assertion-violation 'string-set! "attempted to modify an immutable string"
-			   s))
-    (set! (SG_STRING_VALUE_AT s k) (SG_CHAR_VALUE c)))
-
-  (define-c-proc string->symbol (z::String) ::Object
-    (result (Sg_Intern z)))
-
-  (define-c-proc symbol->string (z::Symbol) ::Object
-    (result (-> z name)))
-
-  (define-c-proc string->list (s::String) ::Object
-    (result (Sg_StringToList s)))
-
-  (define-c-proc list->string (o) ::Object
-    (result (Sg_ListToString o)))
-
-  ;; vector
-  (define-c-proc vector (:rest rest) (inline VECTOR) ::Object
-    (result (Sg_ListToVector rest 0 -1)))
-
-  (define-c-proc make-vector (size::fixnum :optional (fill SG_UNDEF)) ::Object
-    (result (Sg_MakeVector size fill)))
-
-  (define-c-proc vector-length (vec::Vector) (inline VEC_LEN) ::fixnum
-    (result (SG_VECTOR_SIZE vec)))
-
-  (define-c-proc vector-ref (vec::Vector i::fixnum :optional fallback) ::Object
-    (cond ((or (< i 0)
-	       (>= i (SG_VECTOR_SIZE vec)))
-	   (when (SG_UNBOUNDP fallback)
-	     (assertion-violation 'vector-ref "index out of range" i))
-	   (result fallback))
-	  (else (result (SG_VECTOR_ELEMENT vec i)))))
-     
-  (define-c-proc vector-set! (vec::Vector i::fixnum obj) ::void
-    (cond ((or (< i 0)
-	       (>= i (SG_VECTOR_SIZE vec)))
-	   (assertion-violation 'vector-ref "index out of range" i))
-	  (else (set! (SG_VECTOR_ELEMENT vec i) obj))))
-
-  (define-c-proc vector->list (vec::Vector :optional (start::fixnum 0) (end::fixnum -1)) ::Object
-    (result (Sg_VectorToList vec start end)))
-  
-  (define-c-proc list->vector (arg0) ::Object
-    (result (Sg_ListToVector arg0 0 -1)))
-
-  (define-c-proc vector-fill! (vec::Vector fill) ::Object
-    (Sg_VectorFill vec fill 0 -1))
 
   ;; byte-vector
 #|
@@ -1506,36 +1821,11 @@ string->utf32 utf32->string
 				     0 -1))))
   
   ;; conditions
-  (define-c-proc vector? (arg0::Object) (inline VECTORP) ::boolean
-    (result (SG_VECTORP arg0)))
-
-  (define-c-proc null? (arg0::Object) (inline NULLP) ::boolean
-    (result (SG_NULLP arg0)))
-
-  (define-c-proc list? (arg0::Object) ::boolean
-    (result (SG_PROPER_LISTP arg0)))
-
-  (define-c-proc symbol? (arg0::Object) ::boolean
-    (result (SG_SYMBOLP arg0)))
-
-  (define-c-proc pair? (arg0::Object) ::boolean
-    (result (SG_PAIRP arg0)))
-
   (define-c-proc eof-object? (o) ::boolean
     (result (SG_EOFP o)))
 
   (define-c-proc keyword? (o) ::boolean
     (result (SG_KEYWORDP o)))
-
-  (define-c-proc boolean? (o) ::boolean
-    (result (SG_BOOLP o)))
-
-  (define-c-proc procedure? (arg0) ::boolean
-    (result (SG_PROCEDUREP arg0)))
-
-
-  (define-c-proc not (arg0) ::boolean
-    (result (SG_FALSEP arg0)))
 
   ;; hashtable
   (define-c-proc make-eq-hashtable () ::Object
@@ -1555,16 +1845,6 @@ string->utf32 utf32->string
 
   (define-c-proc hashtable-values (ht::HashTable) ::Object
     (result (Sg_HashTableValues ht)))
-
-  ;; call/cc
-  (define-c-proc call/cc (proc::Procedure) ::Object
-    (result (Sg_VMCallCC proc)))
-  
-  (define-c-proc call-with-current-continuation (proc::Procedure) ::Object
-    (result (Sg_VMCallCC proc)))
-
-  (define-c-proc dynamic-wind (before thunk after) ::Object
-    (result (Sg_VMDynamicWind before thunk after)))
 
   (define-c-proc current-exception-handler () ::Object
     (result (-> (Sg_VM) exceptionHandler)))

@@ -40,9 +40,9 @@ typedef struct SgBinaryPortRec
   int  (*open)(SgObject);
   /* read/write methods */
   int     (*getU8)(SgObject);
-#if 0
-  int64_t (*readU8)(SgObject self, uint8_t *buf, int64_t size)
-#endif
+  int     (*lookAheadU8)(SgObject);
+  int64_t (*readU8)(SgObject self, uint8_t *buf, int64_t size);
+  int64_t (*readU8All)(SgObject, uint8_t **);
   int64_t (*putU8)(SgObject, uint8_t);
   int64_t (*putU8Array)(SgObject, uint8_t*, int64_t);
   /* this is private method */
@@ -57,9 +57,9 @@ typedef struct SgBinaryPortRec
     } buffer;
   } src;
   /*
-    This is an ugly solution to avoid mis reading.
-    first we use primaryBuffer, then if it's full, it will switch to
-    previousBuffer
+    these properties are only used for file-binary in/out port.
+    so actualy it should be in src union, but it's really tiring task
+    to do. for now I just put like this. 
    */
   uint8_t *buffer;		/* buffer */
   int64_t  bufferSize;		/* buffer size */
@@ -156,6 +156,9 @@ enum SgTextualPortType {
 
 #define SG_BINARY_PORTP(obj)  (SG_PORTP(obj) && SG_PORT(obj)->type == SG_BINARY_PORT_TYPE)
 #define SG_BINARY_PORT(obj)   (SG_PORT(obj)->impl.bport)
+/* for less confusing, we defined macro */
+#define SG_PORT_HAS_U8_AHEAD(port) (SG_BINARY_PORT(port)->dirty != EOF)
+#define SG_PORT_U8_AHEAD(port)     (SG_BINARY_PORT(port)->dirty)
 
 #define SG_TEXTUAL_PORTP(obj) (SG_PORTP(obj) && SG_PORT(obj)->type == SG_TEXTUAL_PORT_TYPE)
 #define SG_TEXTUAL_PORT(obj)  (SG_PORT(obj)->impl.tport)
@@ -172,10 +175,13 @@ SG_CDECL_BEGIN
 SG_EXTERN SgObject Sg_MakeFileBinaryInputPort(SgFile *file, int bufferMode);
 SG_EXTERN SgObject Sg_MakeFileBinaryOutputPort(SgFile *file, int bufferMode);
 SG_EXTERN SgObject Sg_MakeFileBinaryInputOutputPort(SgFile *file, int bufferMode);
+/* Sg_MakeByteVectorInputPort is just for bytevector->string to avoid an allocation.
+   so we don't provide output and input/output port for it.
+ */
 SG_EXTERN SgObject Sg_MakeByteVectorInputPort(SgByteVector *bv, int offset);
 SG_EXTERN SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size);
-/* should it take buffer as argument? */
 SG_EXTERN SgObject Sg_MakeByteArrayOutputPort(int bufferSize);
+
 SG_EXTERN SgObject Sg_MakeTranscodedInputPort(SgPort *port, SgTranscoder *transcoder);
 SG_EXTERN SgObject Sg_MakeTranscodedOutputPort(SgPort *port, SgTranscoder *transcoder);
 SG_EXTERN SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port, SgTranscoder *transcoder);
@@ -195,7 +201,9 @@ SG_EXTERN SgObject Sg_StandardErrorPort();
 /* utility methods */
 SG_EXTERN void     Sg_FlushPort(SgPort *port);
 SG_EXTERN void     Sg_FlushAllPort(int exitting);
-SG_EXTERN int      Sg_GetU8(SgPort *port);
+SG_EXTERN int      Sg_Getb(SgPort *port);
+SG_EXTERN int64_t  Sg_Readb(SgPort *port, uint8_t *buf, int64_t size);
+SG_EXTERN int64_t  Sg_ReadbAll(SgPort *port, uint8_t **buf);
 SG_EXTERN SgChar   Sg_Getc(SgPort *port);
 SG_EXTERN void     Sg_Putc(SgPort *port, SgChar ch);
 SG_EXTERN void     Sg_Putz(SgPort *port, const char *str);
@@ -210,7 +218,9 @@ SG_EXTERN void     Sg_PutzUnsafe(SgPort *port, const char *str);
 SG_EXTERN void     Sg_PutuzUnsafe(SgPort *port, const SgChar *str);
 SG_EXTERN void     Sg_PutsUnsafe(SgPort *port, SgString *str);
 SG_EXTERN SgChar   Sg_GetcUnsafe(SgPort *port);
-SG_EXTERN int      Sg_GetU8Unsafe(SgPort *port);
+SG_EXTERN int      Sg_GetbUnsafe(SgPort *port);
+SG_EXTERN int64_t  Sg_ReadbUnsafe(SgPort *port, uint8_t *buf, int64_t size);
+SG_EXTERN int64_t  Sg_ReadbAllUnsafe(SgPort *port, uint8_t **buf);
 SG_EXTERN void     Sg_UngetcUnsafe(SgPort *port, SgChar ch);
 SG_EXTERN SgChar   Sg_PeekcUnsafe(SgPort *port);
 

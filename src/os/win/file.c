@@ -211,6 +211,18 @@ static int win_close(SgObject self)
   return FALSE;
 }
 
+static int64_t win_size(SgObject self)
+{
+  LARGE_INTEGER size;
+  int isOK = GetFileSizeEx(SG_FD(self)->desc, &size);
+  setLastError(self);
+  if (isOK) {
+    return size.QuadPart;
+  } else {
+    return -1;
+  }
+}
+
 static SgFile* make_file(HANDLE hd)
 {
   SgFile *z = SG_NEW(SgFile);
@@ -222,6 +234,7 @@ static SgFile* make_file(HANDLE hd)
   z->write = win_write;
   z->seek = win_seek;
   z->tell = win_tell;
+  z->size = win_size;
   z->isOpen = win_is_open;
   z->open = win_open;
   z->close = win_close;
