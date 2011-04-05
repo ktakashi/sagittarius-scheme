@@ -255,6 +255,21 @@ DEF_RECORD_TYPE(undefined);
 
 DEF_RECORD_TYPE2(non, continuable);
 DEF_RECORD_TYPE2(implementation, restriction);
+DEF_RECORD_TYPE2(no, infinities);
+DEF_RECORD_TYPE2(no, nans);
+
+/* &i/o conditions */
+static SgRecordType io_type;			 /* &i/o */
+static SgRecordType io_read_type;		 /* &i/o-read */
+static SgRecordType io_write_type;		 /* &i/o-write */
+static SgRecordType io_invalid_position_type;    /* &i/o-invalid-position */
+static SgRecordType io_filename_type;		 /* &i/o-filename */
+static SgRecordType io_file_protection_type;	 /* &i/o-file-protection */
+static SgRecordType io_file_is_read_only_type;   /* &i/o-file-is-read-only */
+static SgRecordType io_file_does_not_exist_type; /* &i/o-file-does-not-exist */
+static SgRecordType io_port_type;		 /* &i/o-port */
+static SgRecordType io_decoding_type;		 /* &i/o-decoding */
+static SgRecordType io_encoding_type;		 /* &i/o-encoding */
 
 void Sg__InitConsitions()
 {
@@ -420,5 +435,123 @@ void Sg__InitConsitions()
 			       make-implementation-restriction-violation?,
 			       implementation-restriction-violation?);
   }
-
+  {
+    /* no-infinities */
+    INTERN_CONDITION_WITH_CNAME(&C_COND_NAME2(no, infinities),
+				&no-infinities,
+				&C_COND_NAME2(implementation, restriction),
+				nullvec);
+    INTERN_CTR_PRED_WITH_CNAME(&C_COND_NAME2(no, infinities),
+			       &no-infinities,
+			       make-no-infinities-violation,
+			       no-infinities-violation?);
+  }
+  {
+    /* no-nans */
+    INTERN_CONDITION_WITH_CNAME(&C_COND_NAME2(no, nans),
+				&no-nans,
+				&C_COND_NAME2(implementation, restriction),
+				nullvec);
+    INTERN_CTR_PRED_WITH_CNAME(&C_COND_NAME2(no, nans),
+			       &no-nans,
+			       make-no-nans-violation,
+			       no-nans-violation?);
+  }
+  /* &i/o related */
+  {
+    /* &i/o */
+    INTERN_CONDITION_WITH_CNAME(&io_type, &i/o, &C_COND_NAME(violation), nullvec);
+    INTERN_CTR_PRED_WITH_CNAME(&io_type, &i/o,
+			       make-i/o-error,
+			       i/o-error?);
+  }
+  {
+    /* &i/o-read */
+    INTERN_CONDITION_WITH_CNAME(&io_read_type, &i/o-read, &io_type, nullvec);
+    INTERN_CTR_PRED_WITH_CNAME(&io_read_type, &i/o-read,
+			       make-i/o-read-error,
+			       i/o-read-error?);
+  }
+  {
+    /* &i/o-write */
+    INTERN_CONDITION_WITH_CNAME(&io_write_type, &i/o-write, &io_type, nullvec);
+    INTERN_CTR_PRED_WITH_CNAME(&io_write_type, &i/o-write,
+			       make-i/o-write-error,
+			       i/o-write-error?);
+  }
+  {
+    /* &i/o-invalid-position */
+    SgObject fields = Sg_MakeVector(1, SG_LIST2(SG_INTERN("immutable"), SG_INTERN("position")));
+    DeclareAccessor();
+    INTERN_CONDITION_WITH_CNAME(&io_invalid_position_type, &i/o-invalid-position, &io_type, fields);
+    INTERN_CTR_PRED_WITH_CNAME(&io_invalid_position_type, &i/o-invalid-position,
+			       make-i/o-invalid-position-error,
+			       i/o-invalid-position-error?);
+    INTERN_ACCE(&io_invalid_position, &i/o-invalid-position-position, 0);
+    INTERN_COND_ACCE(&io_invalid_position, i/o-error-position);
+  }
+  {
+    /* &i/o-filename */
+    SgObject fields = Sg_MakeVector(1, SG_LIST2(SG_INTERN("immutable"), SG_INTERN("filename")));
+    DeclareAccessor();
+    INTERN_CONDITION_WITH_CNAME(&io_filename_type, &i/o-filename, &io_type, fields);
+    INTERN_CTR_PRED_WITH_CNAME(&io_filename_type, &i/o-filename,
+			       make-i/o-filename-error,
+			       i/o-filename-error?);
+    INTERN_ACCE(&io_filename, &i/o-filename-filename, 0);
+    INTERN_COND_ACCE(&io_filename, i/o-error-filename);
+  }
+  {
+    /* &i/o-file-protection */
+    INTERN_CONDITION_WITH_CNAME(&io_file_protection_type, &i/o-file-protection,
+				&io_filename_type, nullvec);
+    INTERN_CTR_PRED_WITH_CNAME(&io_file_protection_type, &i/o-file-protection,
+			       make-i/o-file-protection-error,
+			       i/o-file-protection-error?);
+  }
+  {
+    /* &i/o-file-is-read-only */
+    INTERN_CONDITION_WITH_CNAME(&io_file_is_read_only_type, &i/o-file-is-read-only,
+				&io_file_protection_type, nullvec);
+    INTERN_CTR_PRED_WITH_CNAME(&io_file_is_read_only_type, &i/o-file-is-read-only,
+			       make-i/o-file-protection-error,
+			       i/o-file-is-read-only-error?);
+  }
+  {
+    /* &i/o-file-does-not-exist */
+    INTERN_CONDITION_WITH_CNAME(&io_file_does_not_exist_type, &i/o-file-does-not-exist,
+				&io_filename_type, nullvec);
+    INTERN_CTR_PRED_WITH_CNAME(&io_file_does_not_exist_type, &i/o-file-does-not-exist,
+			       make-i/o-file-does-not-exist-error,
+			       i/o-file-does-not-exist-error?);
+  }
+  {
+    /* &i/o-port */
+    SgObject fields = Sg_MakeVector(1, SG_LIST2(SG_INTERN("immutable"), SG_INTERN("port")));
+    DeclareAccessor();
+    INTERN_CONDITION_WITH_CNAME(&io_port_type, &i/o-port, &io_type, fields);
+    INTERN_CTR_PRED_WITH_CNAME(&io_port_type, &i/o-port,
+			       make-i/o-port-error,
+			       i/o-port-error?);
+    INTERN_ACCE(&io_port, &i/o-port-port, 0);
+    INTERN_COND_ACCE(&io_port, i/o-error-port);
+  }
+  {
+    /* &i/o-decoding */
+    INTERN_CONDITION_WITH_CNAME(&io_decoding_type, &i/o-decoding, &io_port_type, nullvec);
+    INTERN_CTR_PRED_WITH_CNAME(&io_decoding_type, &i/o-decoding,
+			       make-i/o-decoding-error,
+			       i/o-decoding-error?);
+  }
+  {
+    /* &i/o-encoding */
+    SgObject fields = Sg_MakeVector(1, SG_LIST2(SG_INTERN("immutable"), SG_INTERN("char")));
+    DeclareAccessor();
+    INTERN_CONDITION_WITH_CNAME(&io_encoding_type, &i/o-encoding, &io_port_type, fields);
+    INTERN_CTR_PRED_WITH_CNAME(&io_encoding_type, &i/o-encoding,
+			       make-i/o-encoding-error,
+			       i/o-encoding-error?);
+    INTERN_ACCE(&io_encoding, &i/o-encoding-char, 0);
+    INTERN_COND_ACCE(&io_encoding, i/o-encoding-error-char);
+  }
 }

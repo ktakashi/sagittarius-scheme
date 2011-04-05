@@ -59,7 +59,6 @@
 	    args)
   (newline))
 
-
 ;; from chibi scheme
 (define (map-onto proc ls init)
   (let lp ((ls ls) (res init))
@@ -412,6 +411,7 @@
 
 
 (define list-head take)
+
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix

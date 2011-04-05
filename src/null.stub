@@ -73,7 +73,8 @@
 	    ;; vector-map vector-for-each ;; these are in scmlib.scm
 
 	    ;; 11.14 errors and violations
-	    ;; error assertion-violation ;; these are in exception.c
+	    ;; error  ;; this in exception.c
+	    assertion-violation ;; it's kinda ugly to define twice
 	    syntax-error
 	    scheme-error
 
@@ -324,10 +325,10 @@
   (define-c-proc boolean? (o) ::boolean
     (result (SG_BOOLP o)))
 
-  (define-c-proc pair? (arg0::Object) ::boolean
+  (define-c-proc pair? (arg0::Object) (inline PAIRP) ::boolean
     (result (SG_PAIRP arg0)))
 
-  (define-c-proc symbol? (arg0::Object) ::boolean
+  (define-c-proc symbol? (arg0::Object) (inline SYMBOLP) ::boolean
     (result (SG_SYMBOLP arg0)))
 
   (define-c-proc number? (o) ::boolean
@@ -983,6 +984,9 @@
     (Sg_VectorFill vec fill 0 -1))
 
   ;; 11.14 errors and violations
+  (define-c-proc assertion-violation (who message :rest irritants) ::void
+    (Sg_AssertionViolation who message irritants))
+
   ;; we might remove this
   (define-c-proc scheme-error (who msg :rest irritant) ::void
     (Sg_Error "%S %S %S" who msg irritant))

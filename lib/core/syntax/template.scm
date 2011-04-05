@@ -1,6 +1,7 @@
 (library (core syntax template)
     (export generate-output)
     (import (core)
+	    (core base)
 	    (core errors)
 	    (core syntax pattern)
 	    (core syntax helper)
