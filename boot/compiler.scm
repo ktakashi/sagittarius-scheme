@@ -632,11 +632,7 @@
     (rec 0 iform)
     (newline)))
 
-;; 
-(define variable?
-  (lambda (v)
-    (or (symbol? v)
-	(identifier? v))))
+
 (define variable-name
   (lambda (arg)
     (cond ((symbol? arg) arg)

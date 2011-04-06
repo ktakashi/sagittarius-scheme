@@ -54,6 +54,10 @@ struct SgTranscoderRec
 
 #define SG_TRANSCODERP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_TRANSCODER))
 #define SG_TRANSCODER(obj)  ((SgTranscoder*)obj)
+/* accessor */
+#define SG_TRANSCODER_CODEC(obj)     (SG_TRANSCODER(obj)->codec)
+#define SG_TRANSCODER_EOL_STYLE(obj) (SG_TRANSCODER(obj)->eolStyle)
+
 
 SG_CDECL_BEGIN
 
@@ -71,5 +75,5 @@ SG_CDECL_END
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

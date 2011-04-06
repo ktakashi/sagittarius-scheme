@@ -1132,6 +1132,41 @@ SgObject Sg_Denominator(SgObject x)
   return SG_UNDEF;
 }
 
+static inline SgObject rationalize_rec(SgObject bottom, SgObject top)
+{
+  if (Sg_NumCmp(bottom, top) == 0) return bottom;
+  else {
+    SgObject x = Sg_Round(bottom, SG_ROUND_CEIL);
+    if (Sg_NumCmp(x, top) < 0) return x;
+    else {
+      SgObject one = SG_MAKE_INT(1);
+      SgObject a = Sg_Sub(x, one);
+      return Sg_Add(a, Sg_Div(one,
+			      rationalize_rec(Sg_Div(one,
+						     Sg_Sub(top, a)),
+					      Sg_Div(one,
+						     Sg_Sub(bottom, a)))));
+    }
+  }
+}
+
+SgObject Sg_Rationalize(SgObject x, SgObject e)
+{
+  if (Sg_InfiniteP(e)) {
+    if (Sg_InfiniteP(x)) return Sg_MakeFlonum(NAN);
+    else return Sg_MakeFlonum(0.0);
+  } else if (Sg_ZeroP(x)) return x;
+  else if (Sg_NumCmp(x, e) == 0) return Sg_Sub(x, e);
+  else if (Sg_NegativeP(x)) return Sg_Negate(Sg_Rationalize(Sg_Negate(x), e));
+  else {
+    SgObject bottom, top;
+    e = Sg_Abs(e);
+    bottom = Sg_Sub(x, e);
+    top = Sg_Add(x, e);
+    return rationalize_rec(bottom, top);
+  }
+}
+
 SgObject Sg_StringToNumber(SgString *str, int radix, int strict)
 {
   return read_number(str->value, str->size, radix, strict);

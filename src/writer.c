@@ -36,6 +36,7 @@
 #include "sagittarius/writer.h"
 #include "sagittarius/port.h"
 #include "sagittarius/code.h"
+#include "sagittarius/codec.h"
 #include "sagittarius/core.h"
 #include "sagittarius/closure.h"
 #include "sagittarius/subr.h"
@@ -815,6 +816,7 @@ static void write_bytevector(SgByteVector *b, SgPort *port, SgWriteContext *ctx)
 static void write_port(SgPort *p, SgPort *port, SgWriteContext *ctx)
 {
   SgObject file = SG_FALSE;
+  SgObject transcoder = SG_FALSE;
   Sg_PutuzUnsafe(port, UC("#<port "));
   if (SG_BINARY_PORTP(p)) {
     switch (SG_BINARY_PORT(p)->type) {
@@ -857,6 +859,11 @@ static void write_port(SgPort *p, SgPort *port, SgWriteContext *ctx)
   if (!SG_FALSEP(file)) {
     Sg_PutcUnsafe(port, ' ');
     Sg_PutuzUnsafe(port, SG_FILE(file)->name);
+  }
+  transcoder = Sg_PortTranscoder(port);
+  if (!SG_FALSEP(transcoder)) {
+    Sg_PutcUnsafe(port, ' ');
+    Sg_PutsUnsafe(port, SG_CODEC_NAME(SG_TRANSCODER_CODEC(transcoder)));
   }
   Sg_PutcUnsafe(port, '>');
 }

@@ -54,6 +54,9 @@ struct SgCodecRec
 
 #define SG_CODECP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_CODEC))
 #define SG_CODEC(obj)  ((SgCodec*)obj)
+/* accessor */
+#define SG_CODEC_NAME(obj)   (SG_CODEC(obj)->name)
+#define SG_CODEC_ENDIAN(obj) (SG_CODEC(obj)->endian)
 
 SG_CDECL_BEGIN
 

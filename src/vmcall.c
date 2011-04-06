@@ -34,9 +34,11 @@
 {
   int argc;
   INSN_VAL1(argc, c);
-  if ((vm->flags & SG_TRACE_LEVEL) && vm->state == RUNNING) {
+  if ((vm->flags & SG_DEBUG_LEVEL) && vm->state == RUNNING) {
     Sg_Printf(vm->logPort, UC("calling %S\n"), AC(vm));
-    print_frames(vm);
+    if ((vm->flags & SG_TRACE_LEVEL) && vm->state == RUNNING) {
+      print_frames(vm);
+    }
   }
   if (SG_SUBRP(AC(vm))) {
     CL(vm) = AC(vm);

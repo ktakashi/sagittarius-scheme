@@ -145,6 +145,7 @@ SG_EXTERN SgObject Sg_ReduceRational(SgObject rational);
 SG_EXTERN double   Sg_RationalToDouble(SgRational *r);
 SG_EXTERN SgObject Sg_Numerator(SgObject x);
 SG_EXTERN SgObject Sg_Denominator(SgObject x);
+SG_EXTERN SgObject Sg_Rationalize(SgObject x, SgObject e);
 
 SG_EXTERN SgObject Sg_StringToNumber(SgString *str, int radix, int strict);
 SG_EXTERN SgObject Sg_NumberToString(SgObject num, int radix, int use_upper);

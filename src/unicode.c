@@ -37,24 +37,25 @@
 #include "sagittarius/transcoder.h"
 #include "sagittarius/codec.h"
 #include "sagittarius/string.h"
+#include "sagittarius/symbol.h"
 
 #include "../unicode/lexeme.inc"
 
-int Sg_Ucs4Constituent(SgChar c)
+int Sg_Ucs4ConstituentP(SgChar c)
 {
   int offset = c / 8;
   int bit = 1 << (c & 7);
   return (constituent[offset] & bit) != 0;
 }
 
-int Sg_Ucs4Subsequent(SgChar c)
+int Sg_Ucs4SubsequentP(SgChar c)
 {
   int offset = c / 8;
   int bit = 1 << (c & 7);
   return (subsequent[offset] & bit) != 0;
 }
 
-int Sg_Ucs4WhiteSpace(SgChar c)
+int Sg_Ucs4WhiteSpaceP(SgChar c)
 {
   if (c == 0x0020) return TRUE;                   //; White_Space # Zs       SPACE
   if (c >= 0x0009 && c <= 0x000d) return TRUE;    //; White_Space # Cc   [5] <control-0009>..<control-000D>
@@ -75,7 +76,7 @@ int Sg_Ucs4WhiteSpace(SgChar c)
   return FALSE;
 }
 
-int Sg_Ucs4IntralineWhiteSpace(SgChar c)
+int Sg_Ucs4IntralineWhiteSpaceP(SgChar c)
 {
   if (c == 0x0020) return TRUE;                   //; White_Space # Zs       SPACE
   if (c == 0x0009) return TRUE;                   //; White_Space # Cc   [5] <control-0009>
@@ -406,9 +407,188 @@ size_t ustrlen(const SgChar *value)
   return count;
 }
 
+#define CASE_OFFSET 0x20
+
+/* 
+#include "../unicode/case-folding.inc"
+ */
+#include "../unicode/general-category-1.inc"
+#include "../unicode/general-category-2.inc"
+#include "../unicode/numeric-property.inc"
+#include "../unicode/other-alphabetic.inc"
+#include "../unicode/other-lowercase.inc"
+#include "../unicode/other-uppercase.inc"
+#include "../unicode/simple-lowercase.inc"
+#include "../unicode/simple-titlecase.inc"
+#include "../unicode/simple-uppercase.inc"
+/*
+#include "../unicode/special-casing-lower.inc"
+#include "../unicode/special-casing-title.inc"
+#include "../unicode/special-casing-upper.inc"
+*/
+#include "../unicode/canonical-class.inc"
+/*
+#include "../unicode/decompose.inc"
+ */
+#include "../unicode/compose.inc"
+#include "../unicode/compatibility.inc"
+
+static SgChar simple_uppercase(SgChar ch)
+{
+  const int size = array_sizeof(s_simple_uppercase);
+  int i;
+  for (i = 0; i < size; i++) {
+    if (s_simple_uppercase[i].in == ch) {
+      return s_simple_uppercase[i].out;
+    }
+  }
+  return ch;
+}
+
+static SgChar simple_lowercase(SgChar ch)
+{
+  const int size = array_sizeof(s_simple_lowercase);
+  int i;
+  for (i = 0; i < size; i++) {
+    if (s_simple_lowercase[i].in == ch) {
+      return s_simple_lowercase[i].out;
+    }
+  }
+  return ch;
+}
+
+static SgChar simple_titlecase(SgChar ch)
+{
+  const int size = array_sizeof(s_simple_titlecase);
+  int i;
+  for (i = 0; i < size; i++) {
+    if (s_simple_titlecase[i].in == ch) {
+      return s_simple_titlecase[i].out;
+    }
+  }
+  return simple_uppercase(ch);
+}
+
+SgChar Sg_CharUpCase(SgChar ch)
+{
+  if (ch < 'a') return ch;
+  else if (ch > 'z') return simple_uppercase(ch);
+  else return ch - CASE_OFFSET;
+}
+
+SgChar Sg_CharDownCase(SgChar ch)
+{
+  if (ch < 'A') return ch;
+  else if (ch <= 'Z') return ch + CASE_OFFSET;
+  else if (ch > 'z') return simple_lowercase(ch);
+  else return ch;
+}
+
+SgChar Sg_CharTitleCase(SgChar ch)
+{
+  return simple_titlecase(ch);
+}
+
+SgChar Sg_CharFoldCase(SgChar ch)
+{
+  if (ch <= 'z') return Sg_CharDownCase(ch);
+  else if (ch == 0x130 ||
+	   ch == 0x131) return ch;
+  else return Sg_CharDownCase(Sg_CharUpCase(ch));
+}
+
+int Sg_AlphabeticP(SgChar ch)
+{
+  return FALSE;
+}
+
+int Sg_NumericP(SgChar ch)
+{
+  return FALSE;
+}
+
+int Sg_UpperCaseP(SgChar ch)
+{
+  return FALSE;
+}
+
+int Sg_LowerCaseP(SgChar ch)
+{
+  return FALSE;
+}
+
+int Sg_TitleCaseP(SgChar ch)
+{
+  return FALSE;
+}
+
+GeneralCategory Sg_CharGeneralCategory(SgChar ch)
+{
+  const int cate1_size = array_sizeof(s_general_category_1);
+  const int cate2_size = array_sizeof(s_general_category_2);
+  int i;
+  for (i = 0; i < cate1_size; i++) {
+    if (s_general_category_1[i].in == ch) return s_general_category_1[i].out;
+  }
+  for (i = 0; i < cate2_size; i++) {
+    if (s_general_category_2[i].in == ch) return s_general_category_2[i].out;
+  }
+  if (0x3400 <= ch && ch <= 0x4DB5) return Lo;
+  else if (0x4E00 <= ch && ch <= 0x9FBB) return Lo;
+  else if (0xAC00 <= ch && ch <= 0xD7A3) return Lo;
+  else if (0xD800 <= ch && ch <= 0xDB7F) return Cs;
+  else if (0xDB80 <= ch && ch <= 0xDBFF) return Cs;
+  else if (0xDC00 <= ch && ch <= 0xDFFF) return Cs;
+  else if (0xE000 <= ch && ch <= 0xF8FF) return Co;
+  else if (0x20000 <= ch && ch <= 0x2A6D6) return Lo;
+  else if (0xF0000 <= ch && ch <= 0xFFFFD) return Co;
+  else if (0x100000 <= ch && ch <= 0x10FFFD) return Co;
+  else Cn;
+}
+
+SgObject Sg_CategroyToSymbol(GeneralCategory cate)
+{
+#define CASE_INTERN(c)			\
+  case c : return SG_INTERN(#c)
+  switch (cate) {
+  CASE_INTERN(Lu);
+  CASE_INTERN(Ll);
+  CASE_INTERN(Lt);
+  CASE_INTERN(Lm);
+  CASE_INTERN(Lo);
+  CASE_INTERN(Mn);
+  CASE_INTERN(Mc);
+  CASE_INTERN(Me);
+  CASE_INTERN(Nd);
+  CASE_INTERN(Nl);
+  CASE_INTERN(No);
+  CASE_INTERN(Ps);
+  CASE_INTERN(Pe);
+  CASE_INTERN(Pi);
+  CASE_INTERN(Pf);
+  CASE_INTERN(Pd);
+  CASE_INTERN(Pc);
+  CASE_INTERN(Po);
+  CASE_INTERN(Sc);
+  CASE_INTERN(Sm);
+  CASE_INTERN(Sk);
+  CASE_INTERN(So);
+  CASE_INTERN(Zs);
+  CASE_INTERN(Zp);
+  CASE_INTERN(Zl);
+  CASE_INTERN(Cc);
+  CASE_INTERN(Cf);
+  CASE_INTERN(Cs);
+  CASE_INTERN(Co);
+  CASE_INTERN(Cn);
+  }
+  /* never happen */
+  return SG_INTERN("Cn");
+}
+
 /*
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

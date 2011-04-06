@@ -252,7 +252,7 @@ int Sg_LoadUnsafe(SgString *path)
     SgObject compiled = Sg_Compile(o);
     Sg_VM()->state = COMPILED;
     ASSERT(SG_CODE_BUILDERP(compiled));
-    if ((Sg_VM()->flags & SG_LOG_LEVEL_MASK) >= SG_DEBUG_LEVEL) {
+    if ((Sg_VM()->flags & SG_LOG_LEVEL_MASK) >= SG_TRACE_LEVEL) {
       Sg_VMDumpCode(SG_CODE_BUILDER(compiled));
     }
     Sg_VM()->state = RUNNING;

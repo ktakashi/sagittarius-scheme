@@ -398,6 +398,8 @@ SgObject Sg_MakeFileBinaryInputPort(SgFile *file, int bufferMode)
   z->closed = FALSE;
   z->flush = NULL;
   z->close = file_close;
+  /* set binary input port */
+  z->impl.bport = b;
   /* initialize binary input port */
   b->src.file = file;
   b->open = file_open;
@@ -410,10 +412,10 @@ SgObject Sg_MakeFileBinaryInputPort(SgFile *file, int bufferMode)
   b->bufferWriter = NULL;
   if (bufferMode != SG_BUFMODE_NONE) {
     b->buffer = SG_NEW_ATOMIC2(uint8_t *, PORT_DEFAULT_BUF_SIZE);
+  } else {
+    /* reset ahead u8 */
+    SG_PORT_U8_AHEAD(z) = EOF;
   }
-
-  /* set binary input port */
-  z->impl.bport = b;
   return SG_OBJ(z);
 }
 
@@ -542,6 +544,7 @@ SgObject Sg_MakeFileBinaryInputOutputPort(SgFile *file, int bufferMode)
   z->closed = FALSE;
   z->flush = file_flush;
   z->close = file_close;
+  z->impl.bport = b;
 
   b->src.file = file;
   b->open = file_open;
@@ -558,9 +561,9 @@ SgObject Sg_MakeFileBinaryInputOutputPort(SgFile *file, int bufferMode)
     register_buffered_port(z);
   } else {
     b->bufferWriter = NULL;
+    SG_PORT_U8_AHEAD(z) = EOF;
   }
 
-  z->impl.bport = b;
   return SG_OBJ(z);
 }
 
@@ -1364,6 +1367,22 @@ SgObject Sg_FileName(SgPort *port)
   return SG_FALSE;
 }
 
+SgObject Sg_PortTranscoder(SgObject port)
+{
+  if (SG_BINARY_PORTP(port)) return SG_FALSE;
+  else if (SG_TEXTUAL_PORTP(port)) {
+    if (SG_TEXTUAL_PORT(port)->type == SG_TRANSCODED_TEXTUAL_PORT_TYPE) {
+      return SG_TEXTUAL_PORT(port)->src.transcoded.transcoder;
+    } else {
+      /* String port doesn't have transcoder */
+      return SG_FALSE;
+    }
+  } else {
+    /* TODO custom port */
+    return SG_FALSE;
+  }
+}
+
 /* standard ports */
 static SgObject sg_stdin  = SG_UNBOUND;
 static SgObject sg_stdout = SG_UNBOUND;
@@ -1391,8 +1410,8 @@ void Sg__InitPort()
   /* TODO lock */
   active_buffered_ports.ports = SG_WEAK_VECTOR(Sg_MakeWeakVector(PORT_VECTOR_SIZE));
 
-  sg_stdin = Sg_MakeFileBinaryInputPort(Sg_StandardIn(), SG_BUFMODE_BLOCK);
-  sg_stdout = Sg_MakeFileBinaryOutputPort(Sg_StandardOut(), SG_BUFMODE_BLOCK);
+  sg_stdin = Sg_MakeFileBinaryInputPort(Sg_StandardIn(), SG_BUFMODE_NONE);
+  sg_stdout = Sg_MakeFileBinaryOutputPort(Sg_StandardOut(), SG_BUFMODE_LINE);
   sg_stderr = Sg_MakeFileBinaryOutputPort(Sg_StandardError(), SG_BUFMODE_NONE);
 
   vm->currentInputPort = Sg_MakeTranscodedInputPort(sg_stdin,

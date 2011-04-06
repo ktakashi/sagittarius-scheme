@@ -1,3 +1,9 @@
+2011-04-06  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/number.c, src/number.h (rationalize): added rationalize.
+
+	* src/unicode.c, src/unicode.h (rnrs unicode): added char related unicode function.
+
 2011-04-05  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/null.stub (rnrs base): (rnrs base (6)) procedures are implemented.

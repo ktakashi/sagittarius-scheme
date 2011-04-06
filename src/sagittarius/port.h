@@ -198,6 +198,9 @@ SG_EXTERN SgObject Sg_StandardOutputPort();
 SG_EXTERN SgObject Sg_StandardInputPort();
 SG_EXTERN SgObject Sg_StandardErrorPort();
 
+/* accessor */
+SG_EXTERN SgObject Sg_PortTranscoder(SgObject port);
+
 /* utility methods */
 SG_EXTERN void     Sg_FlushPort(SgPort *port);
 SG_EXTERN void     Sg_FlushAllPort(int exitting);

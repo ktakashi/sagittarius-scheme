@@ -86,7 +86,7 @@ static int convert_hex_char_to_int(SgChar c)
 
 static int delimited(SgChar c)
 {
-  if (Sg_Ucs4WhiteSpace(c)) return TRUE;
+  if (Sg_Ucs4WhiteSpaceP(c)) return TRUE;
   if (c > 127) return FALSE;
   return DELIMITER_CHARP(c);
 }
@@ -263,12 +263,12 @@ static SgObject read_symbol(SgPort *port, SgReaderContext *ctx)
     if (c > 127) {
       Sg_EnsureUcs4(c);
       if (i == 0) {
-	if (Sg_Ucs4Constituent(c)) {
+	if (Sg_Ucs4ConstituentP(c)) {
 	  buf[i++] = c;
 	  continue;
 	}
       } else {
-	if (Sg_Ucs4Subsequent(c)) {
+	if (Sg_Ucs4SubsequentP(c)) {
 	  buf[i++] = c;
 	  continue;
 	}
@@ -570,21 +570,21 @@ SgObject read_string(SgPort *port, SgReaderContext *ctx)
     }
     if (c == '\\') {
       c = Sg_GetcUnsafe(port);
-      if (Sg_Ucs4IntralineWhiteSpace(c)) {
+      if (Sg_Ucs4IntralineWhiteSpaceP(c)) {
 	do {
 	  c = Sg_GetcUnsafe(port);
 	  if (c == EOF) lexical_error(port, ctx, UC("unexpected end-of-file while reading intraline whitespace"));
-	} while (Sg_Ucs4IntralineWhiteSpace(c));
+	} while (Sg_Ucs4IntralineWhiteSpaceP(c));
 	/* internal line feed is LF*/
 	if (c != LF) {
 	  lexical_error(port, ctx, UC("unexpected character %U while reading intraline whitespace"), c);
 	}
-	do { c = Sg_GetcUnsafe(port); } while (Sg_Ucs4IntralineWhiteSpace(c));
+	do { c = Sg_GetcUnsafe(port); } while (Sg_Ucs4IntralineWhiteSpaceP(c));
 	Sg_UngetcUnsafe(port, c);
 	continue;
       }
       if (c == LF) {
-	do { c = Sg_GetcUnsafe(port); } while (Sg_Ucs4IntralineWhiteSpace(c));
+	do { c = Sg_GetcUnsafe(port); } while (Sg_Ucs4IntralineWhiteSpaceP(c));
 	Sg_UngetcUnsafe(port, c);
 	continue;
       }
@@ -624,7 +624,7 @@ SgObject read_token(SgPort *port, SgReaderContext *ctx)
  top:
   c = Sg_GetcUnsafe(port);
   if (c == EOF) return SG_EOF;
-  if (Sg_Ucs4WhiteSpace(c)) goto top;
+  if (Sg_Ucs4WhiteSpaceP(c)) goto top;
   parsing_line(ctx, Sg_LineNo(port));
   if (c < 128 && isdigit(c)) {
     Sg_UngetcUnsafe(port, c);

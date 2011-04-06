@@ -34,14 +34,48 @@
 
 #include "sagittariusdefs.h"
 
+typedef enum {
+  Lu,
+  Ll,
+  Lt,
+  Lm,
+  Lo,
+  Mn,
+  Mc,
+  Me,
+  Nd,
+  Nl,
+  No,
+  Ps,
+  Pe,
+  Pi,
+  Pf,
+  Pd,
+  Pc,
+  Po,
+  Sc,
+  Sm,
+  Sk,
+  So,
+  Zs,
+  Zp,
+  Zl,
+  Cc,
+  Cf,
+  Cs,
+  Co,
+  Cn
+} GeneralCategory;
+
+
 SG_CDECL_BEGIN
 
-SG_EXTERN int Sg_Ucs4Constituent(SgChar c);
-SG_EXTERN int Sg_Ucs4Subsequent(SgChar c);
-SG_EXTERN int Sg_Ucs4WhiteSpace(SgChar c);
-SG_EXTERN int Sg_Ucs4IntralineWhiteSpace(SgChar c);
-SG_EXTERN int Sg_ConvertUcs4ToUtf8(SgChar c, uint8_t utf8[4], ErrorHandlingMode mode);
-SG_EXTERN int Sg_ConvertUcs4ToUtf16(SgChar c, uint8_t utf8[4], ErrorHandlingMode mode, int littelp);
+SG_EXTERN int 	 Sg_Ucs4ConstituentP(SgChar c);
+SG_EXTERN int 	 Sg_Ucs4SubsequentP(SgChar c);
+SG_EXTERN int 	 Sg_Ucs4WhiteSpaceP(SgChar c);
+SG_EXTERN int 	 Sg_Ucs4IntralineWhiteSpaceP(SgChar c);
+SG_EXTERN int 	 Sg_ConvertUcs4ToUtf8(SgChar c, uint8_t utf8[4], ErrorHandlingMode mode);
+SG_EXTERN int 	 Sg_ConvertUcs4ToUtf16(SgChar c, uint8_t utf8[4], ErrorHandlingMode mode, int littelp);
 SG_EXTERN SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode);
 SG_EXTERN SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode, SgCodec *codec, int checkBOMNow);
 SG_EXTERN SgChar Sg_EnsureUcs4(SgChar c);
@@ -50,6 +84,22 @@ SG_EXTERN SgChar Sg_EnsureUcs4(SgChar c);
 SG_EXTERN SgObject Sg_Utf8sToUtf32s(const char *s, int len);
 SG_EXTERN SgObject Sg_Utf16sToUtf32s(const char *s, int len);
 SG_EXTERN char*    Sg_Utf32sToUtf8s(SgString *s);
+
+/* char case */
+SG_EXTERN SgChar   Sg_CharUpCase(SgChar ch);
+SG_EXTERN SgChar   Sg_CharDownCase(SgChar ch);
+SG_EXTERN SgChar   Sg_CharTitleCase(SgChar ch);
+SG_EXTERN SgChar   Sg_CharFoldCase(SgChar ch);
+
+/* char condition */
+SG_EXTERN int      Sg_AlphabeticP(SgChar ch);
+SG_EXTERN int      Sg_NumericP(SgChar ch);
+SG_EXTERN int      Sg_UpperCaseP(SgChar ch);
+SG_EXTERN int      Sg_LowerCaseP(SgChar ch);
+SG_EXTERN int      Sg_TitleCaseP(SgChar ch);
+
+SG_EXTERN GeneralCategory Sg_CharGeneralCategory(SgChar ch);
+SG_EXTERN SgObject Sg_CategroyToSymbol(GeneralCategory cate);
 
 /* These are not a part of method for sagittarius scheme object. */
 SG_EXTERN size_t ustrcspn(const SgChar *s1, const char *s2);

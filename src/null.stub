@@ -85,6 +85,16 @@
 	    dynamic-wind
 
 	    ;; standard libraries
+	    ;; 1 Unicode
+	    ;; 1.1 characters
+	    char-upcase char-downcase char-titlecase char-foldcase
+	    ;; char-ci related are in scmlib.scm(but not yet)
+	    ;; these are not yet
+	    char-alphabetic? char-numeric? char-whitespace?
+	    char-upper-case? char-lower-case? char-title-case?
+	    char-general-category
+	    
+
 	    raise raise-continuable
 	    bitwise-not
 	    bitwise-and
@@ -396,6 +406,12 @@
     (result (Sg_Exact z)))
 
   ;; 11.7.4.3 arithmetic operations
+  (define-cgen-stmt check-real
+    ((_ name o)
+     (dispatch
+      `(unless (SG_REALP ,o)
+	 (wrong-type-of-argument-violation ',name "real number" ,o)))))
+
   (define-cgen-stmt (aref args index)
     (dispatch `(argumentRef ,args ,index)))
 
@@ -578,7 +594,7 @@
 	  (else
 	   (wrong-type-of-argument-violation 'imag-part "number required" r))))
 
-  (define-cgen-stmt check-real
+  (define-cgen-stmt check-real-valued
     ((_ name n)
      (dispatch
       `(unless (Sg_RealValuedP ,n)
@@ -591,33 +607,33 @@
     (result (Sg_Angle n)))
 
   (define-c-proc sin (n::number) ::Object
-    (check-real sin n)
+    (check-real-valued sin n)
     (result (Sg_Sin n)))
 
   (define-c-proc cos (n::number) ::Object
-    (check-real cos n)
+    (check-real-valued cos n)
     (result (Sg_Cos n)))
 
   (define-c-proc tan (n::number) ::Object
-    (check-real tan n)
+    (check-real-valued tan n)
     (result (Sg_Tan n)))
 
   (define-c-proc asin (n::number) ::Object
-    (check-real asin n)
+    (check-real-valued asin n)
     (result (Sg_Asin n)))
 
   (define-c-proc acos (n::number) ::Object
-    (check-real acos n)
+    (check-real-valued acos n)
     (result (Sg_Acos n)))
 
   (define-c-proc atan (n::number :optional (n2::number SG_UNBOUND)) ::Object
-    (check-real atan n)
+    (check-real-valued atan n)
     (cond ((SG_UNBOUNDP n2)
 	   (when (Sg_ZeroP n)
 	     (assertion-violation 'atan "division by zero" n))
 	   (result (Sg_Atan n)))
 	  (else
-	   (check-real atan n2)
+	   (check-real-valued atan n2)
 	   (result (Sg_Atan2 n n2)))))
 
   (define-c-proc sqrt (n::number) ::Object
@@ -628,9 +644,12 @@
 	      (not (SG_EXACT_INTP n)))
       (wrong-type-of-argument-violation 'exact-integer-sqrt "non-negative exact integer required" n))
     (result (Sg_ExactIntegerSqrt n)))
-#|
-  rationalize
-|#
+
+  (define-c-proc rationalize (x::number e::number) ::Object
+    (check-real rationalize x)
+    (check-real rationalize e)
+    (result (Sg_Rationalize x e)))
+
   ;; r5rs compatible
   (define-c-proc quotient (n1::number n2::number) ::Object
     (result (Sg_Quotient n1 n2 NULL)))
@@ -1030,6 +1049,35 @@
 
   (define-c-proc dynamic-wind (before thunk after) ::Object
     (result (Sg_VMDynamicWind before thunk after)))
+
+  ;; standard libraries
+  ;; 1 Unicode
+  ;; 1.1 characters
+  (define-cgen-stmt check-char
+    ((_ name c)
+     (dispatch
+      `(unless (SG_CHARP ,c)
+	 (wrong-type-of-argument-violation ',name "character" ,c)))))
+
+  (define-c-proc char-upcase (c) ::Object
+    (check-char char-upcase c)
+    (result (SG_MAKE_CHAR (Sg_CharUpCase (SG_CHAR_VALUE c)))))
+
+  (define-c-proc char-downcase (c) ::Object
+    (check-char char-downcase c)
+    (result (SG_MAKE_CHAR (Sg_CharDownCase (SG_CHAR_VALUE c)))))
+
+  (define-c-proc char-titlecase (c) ::Object
+    (check-char char-titlecase c)
+    (result (SG_MAKE_CHAR (Sg_CharTitleCase (SG_CHAR_VALUE c)))))
+
+  (define-c-proc char-foldcase (c) ::Object
+    (check-char char-foldcase c)
+    (result (SG_MAKE_CHAR (Sg_CharFoldCase (SG_CHAR_VALUE c)))))
+
+  (define-c-proc char-general-category (c) ::Object
+    (check-char char-general-category c)
+    (result (Sg_CategroyToSymbol (Sg_CharGeneralCategory (SG_CHAR_VALUE c)))))
 
   ;; arithmetic bitwise
   (define-c-proc bitwise-not (ei::number) ::Object
@@ -1703,12 +1751,6 @@ string->utf32 utf32->string
 	    (else
 	     (assertion-violation 'bytevector-s64-set! "unsupported endianness" endian)))))
   ;; ieee util
-  (define-cgen-stmt check-real
-    ((_ o)
-     (dispatch
-      `(unless (SG_REALP ,o)
-	 (wrong-type-of-argument-violation 'bytevector "real number" ,o)))))
-
   ;; ieee-single
   (define-c-proc bytevector-ieee-single-native-ref (bv::ByteVector index::fixnum) ::Object
     (bv-check-index bv index 3)
@@ -1727,13 +1769,13 @@ string->utf32 utf32->string
   (define-c-proc bytevector-ieee-single-native-set! (bv::ByteVector index::fixnum v::number) ::void
     (bv-check-index bv index 3)
     (bv-check-align index 4)
-    (check-real v)
+    (check-real bytevector-ieee-single-native-set! v)
     (let ((value::double (Sg_GetDouble v)))
       (Sg_ByteVectorIEEESingleNativeSet bv index (cast float value))))
 
   (define-c-proc bytevector-ieee-single-set! (bv::ByteVector index::fixnum v::number endian::Symbol) ::void
     (bv-check-index bv index 3)
-    (check-real v)
+    (check-real bytevector-ieee-single-set! v)
     (let ((value::double (Sg_GetDouble v)))
       (cond ((SG_EQ endian 'big)
 	     (Sg_ByteVectorIEEESingleBigSet bv index (cast float value)))
@@ -1759,13 +1801,13 @@ string->utf32 utf32->string
   (define-c-proc bytevector-ieee-double-native-set! (bv::ByteVector index::fixnum v::number) ::void
     (bv-check-index bv index 7)
     (bv-check-align index 8)
-    (check-real v)
+    (check-real bytevector-ieee-double-native-set! v)
     (let ((value::double (Sg_GetDouble v)))
       (Sg_ByteVectorIEEEDoubleNativeSet bv index value)))
 
   (define-c-proc bytevector-ieee-double-set! (bv::ByteVector index::fixnum v::number endian::Symbol) ::void
     (bv-check-index bv index 7)
-    (check-real v)
+    (check-real bytevector-ieee-double-set! v)
     (let ((value::double (Sg_GetDouble v)))
       (cond ((SG_EQ endian 'big)
 	     (Sg_ByteVectorIEEEDoubleBigSet bv index value))
