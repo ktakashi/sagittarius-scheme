@@ -1,5 +1,4 @@
-
-// -*- C -*-
+/*  -*- C -*- */
 /*
  * unicode.c
  *
@@ -197,7 +196,6 @@ static inline int isUtf8Tail(uint8_t b)
 
 SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
 {
-  SgChar sv;
   int f;
   uint8_t first;
 
@@ -273,17 +271,19 @@ SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode, SgCodec *code
   b = Sg_Getb(port);
 
   if (a == EOF) return EOF;
-  if (b == EOF) decodeError();
+  if (b == EOF) {
+    decodeError();
+  }
 
   if (checkBOMNow && codec->endian == UTF_16CHECK_BOM) {
     if (a == 0xFE && b == 0xFF) {
-      SG_CODEC(c)->endian == UTF_16BE;
+      SG_CODEC(codec)->endian = UTF_16BE;
       return Sg_ConvertUtf16ToUcs4(port, mode, codec, FALSE);
     } else if (a == 0xFF && b == 0xFE) {
-      SG_CODEC(c)->endian == UTF_16LE;
+      SG_CODEC(codec)->endian = UTF_16LE;
       return Sg_ConvertUtf16ToUcs4(port, mode, codec, FALSE);
     } else {
-      SG_CODEC(c)->endian == UTF_16BE;
+      SG_CODEC(codec)->endian = UTF_16BE;
       /* correct? */
     }
   }
@@ -409,9 +409,6 @@ size_t ustrlen(const SgChar *value)
 
 #define CASE_OFFSET 0x20
 
-/* 
-#include "../unicode/case-folding.inc"
- */
 #include "../unicode/general-category-1.inc"
 #include "../unicode/general-category-2.inc"
 #include "../unicode/numeric-property.inc"
@@ -421,52 +418,46 @@ size_t ustrlen(const SgChar *value)
 #include "../unicode/simple-lowercase.inc"
 #include "../unicode/simple-titlecase.inc"
 #include "../unicode/simple-uppercase.inc"
-/*
-#include "../unicode/special-casing-lower.inc"
-#include "../unicode/special-casing-title.inc"
-#include "../unicode/special-casing-upper.inc"
-*/
 #include "../unicode/canonical-class.inc"
-/*
-#include "../unicode/decompose.inc"
- */
 #include "../unicode/compose.inc"
 #include "../unicode/compatibility.inc"
 
-static SgChar simple_uppercase(SgChar ch)
-{
-  const int size = array_sizeof(s_simple_uppercase);
-  int i;
-  for (i = 0; i < size; i++) {
-    if (s_simple_uppercase[i].in == ch) {
-      return s_simple_uppercase[i].out;
-    }
-  }
-  return ch;
-}
+#include "../unicode/case-folding.inc"
+#include "../unicode/special-casing-lower.inc"
+#include "../unicode/special-casing-title.inc"
+#include "../unicode/special-casing-upper.inc"
+#include "../unicode/decompose.inc"
 
-static SgChar simple_lowercase(SgChar ch)
-{
-  const int size = array_sizeof(s_simple_lowercase);
-  int i;
-  for (i = 0; i < size; i++) {
-    if (s_simple_lowercase[i].in == ch) {
-      return s_simple_lowercase[i].out;
-    }
+#define DECLAR_SIMPLE_CASE(name)				\
+  static SgChar name (SgChar ch)				\
+  {								\
+    const int size = array_sizeof(SG_CPP_CAT(s_, name));	\
+    int i;							\
+    for (i = 0; i < size; i++) {				\
+      if (SG_CPP_CAT(s_, name)[i].in == ch) {			\
+	return SG_CPP_CAT(s_, name)[i].out;			\
+      }								\
+    }								\
+    return ch;							\
   }
-  return ch;
-}
 
-static SgChar simple_titlecase(SgChar ch)
+DECLAR_SIMPLE_CASE(simple_uppercase);
+DECLAR_SIMPLE_CASE(simple_lowercase);
+DECLAR_SIMPLE_CASE(simple_titlecase);
+
+static int other_alphabetic_property_p(SgChar ch)
 {
-  const int size = array_sizeof(s_simple_titlecase);
-  int i;
-  for (i = 0; i < size; i++) {
-    if (s_simple_titlecase[i].in == ch) {
-      return s_simple_titlecase[i].out;
+  if (0x345 <= ch && ch <= 0x10A0F) {
+    const int size = array_sizeof(s_other_alphabetic);
+    int i;
+    for (i = 0; i < size; i++) {
+      if (s_other_alphabetic[i].in <= ch &&
+	  s_other_alphabetic[i].out <= ch) {
+	return TRUE;
+      }
     }
   }
-  return simple_uppercase(ch);
+  return FALSE;
 }
 
 SgChar Sg_CharUpCase(SgChar ch)
@@ -497,29 +488,67 @@ SgChar Sg_CharFoldCase(SgChar ch)
   else return Sg_CharDownCase(Sg_CharUpCase(ch));
 }
 
-int Sg_AlphabeticP(SgChar ch)
+int Sg_CharAlphabeticP(SgChar ch)
 {
-  return FALSE;
+  if ('a' <= ch && ch <= 'z') return TRUE;
+  else if ('A' <= ch && ch <= 'Z') return TRUE;
+  else if (0x80 <= ch) {
+    switch (Sg_CharGeneralCategory(ch)) {
+    case Lu: case Ll: case Lt: case Lm: case Lo: case Nl:
+      return TRUE;
+    case Mn: case Mc: case So:
+      return other_alphabetic_property_p(ch);
+    default:
+      return FALSE;
+    }
+  }
+  else return FALSE;
 }
 
-int Sg_NumericP(SgChar ch)
+int Sg_CharNumericP(SgChar ch)
 {
-  return FALSE;
+  if ('0' <= ch && ch <= '9') return TRUE;
+  else if (0x80 <= ch) {
+    return Sg_CharGeneralCategory(ch) == Nd;
+  }
+  else return FALSE;
 }
 
-int Sg_UpperCaseP(SgChar ch)
+int Sg_CharUpperCaseP(SgChar ch)
 {
-  return FALSE;
+  if ('A' <= ch && ch <= 'Z') return TRUE;
+  else if (0x80 <= ch) {
+    switch (Sg_CharGeneralCategory(ch)) {
+    case Lu:
+      return TRUE;
+    case Nl: case So:
+      return other_alphabetic_property_p(ch);
+    default:
+      return FALSE;
+    }
+  }
+  else return FALSE;
 }
 
-int Sg_LowerCaseP(SgChar ch)
+int Sg_CharLowerCaseP(SgChar ch)
 {
-  return FALSE;
+  if ('a' <= ch && ch <= 'z') return TRUE;
+  else if (0x80 <= ch) {
+    switch (Sg_CharGeneralCategory(ch)) {
+    case Ll:
+      return TRUE;
+    case Lm: case Mn: case Nl: case So:
+      return other_alphabetic_property_p(ch);
+    default:
+      return FALSE;
+    }
+  }
+  else return FALSE;
 }
 
-int Sg_TitleCaseP(SgChar ch)
+int Sg_CharTitleCaseP(SgChar ch)
 {
-  return FALSE;
+  return Sg_CharGeneralCategory(ch) == Lt;
 }
 
 GeneralCategory Sg_CharGeneralCategory(SgChar ch)
@@ -543,13 +572,14 @@ GeneralCategory Sg_CharGeneralCategory(SgChar ch)
   else if (0x20000 <= ch && ch <= 0x2A6D6) return Lo;
   else if (0xF0000 <= ch && ch <= 0xFFFFD) return Co;
   else if (0x100000 <= ch && ch <= 0x10FFFD) return Co;
-  else Cn;
+  else return Cn;
 }
 
 SgObject Sg_CategroyToSymbol(GeneralCategory cate)
 {
 #define CASE_INTERN(c)			\
   case c : return SG_INTERN(#c)
+
   switch (cate) {
   CASE_INTERN(Lu);
   CASE_INTERN(Ll);
@@ -584,6 +614,231 @@ SgObject Sg_CategroyToSymbol(GeneralCategory cate)
   }
   /* never happen */
   return SG_INTERN("Cn");
+}
+
+#define DECLARE_SPECIAL_CASING(name)				\
+  static int name (SgChar ch)					\
+  {								\
+    const int size = array_sizeof(SG_CPP_CAT(s_, name));	\
+    int i;							\
+    for (i = 0; i < size; i++) {				\
+      if (SG_CPP_CAT(s_, name)[i].in == ch) return i;		\
+    }								\
+    return -1;							\
+  }
+
+DECLARE_SPECIAL_CASING(special_casing_upper);
+DECLARE_SPECIAL_CASING(special_casing_lower);
+DECLARE_SPECIAL_CASING(special_casing_title);
+DECLARE_SPECIAL_CASING(case_folding);
+
+static int final_sigma_p(int index, SgString *in, SgPort *out)
+{
+  SgChar ch;
+  int size = SG_STRING_SIZE(in);
+  if (size <= index + 1) {
+    return Sg_PortPosition(out) != 0;
+  }
+  ch = SG_STRING_VALUE_AT(in, index + 1);
+  if (Sg_CharAlphabeticP(ch)) return FALSE;
+  else if (Sg_Ucs4WhiteSpaceP(ch)) return TRUE;
+  else if (Sg_CharGeneralCategory(ch) == Pd) return TRUE;
+  else {
+    int i = index;
+    for (; i < size; i++) {
+      ch = SG_STRING_VALUE_AT(in, i);
+      if (Sg_CharAlphabeticP(ch)) return FALSE;
+      else if (Sg_Ucs4WhiteSpaceP(ch)) return TRUE;
+      else if (Sg_CharGeneralCategory(ch) == Pd) return TRUE;
+    }
+    return Sg_PortPosition(out) != 0;
+  }
+}
+
+SgObject Sg_StringUpCase(SgString *str)
+{
+  int i, size = SG_STRING_SIZE(str);
+  SgObject out = Sg_MakeStringOutputPort(size);
+  SgObject newS;
+
+  for (i = 0; i < size; i++) {
+    int r = special_casing_upper(SG_STRING_VALUE_AT(str, i));
+    if (r >= 0) {
+      const int up_size = array_sizeof(s_special_casing_upper[r].out);
+      int j;
+      for (j = 0; j < up_size; j++) {
+	if (s_special_casing_upper[r].out[j] == 0) break;
+	Sg_PutcUnsafe(out, Sg_CharUpCase(s_special_casing_upper[r].out[j]));
+      } 
+    } else {
+      Sg_PutcUnsafe(out, Sg_CharUpCase(SG_STRING_VALUE_AT(str, i)));
+    }
+  }
+  newS = Sg_GetStringFromStringPort(out);
+  if (Sg_StringEqual(str, newS)) {
+    newS = NULL;
+    return str;
+  } else {
+    return newS;
+  }
+}
+
+SgObject Sg_StringDownCase(SgString *str)
+{
+  int i, size = SG_STRING_SIZE(str);
+  SgObject out = Sg_MakeStringOutputPort(size);
+  SgObject newS;
+  SgChar ch, lastCh = ' ';
+  for (i = 0; i < size; i++, lastCh = ch) {
+    ch = SG_STRING_VALUE_AT(str, i);
+    int r;
+    if (ch == 0x03A3) { 	/* greek capital letter sigma */
+      if (Sg_Ucs4WhiteSpaceP(lastCh)) {
+	Sg_PutcUnsafe(out, 0x03C3);
+      } else {
+	if (final_sigma_p(i, str, out)) {
+	  Sg_PutcUnsafe(out, 0x03C2); /* greek small letter final sigma */
+	} else {
+	  Sg_PutcUnsafe(out, 0x03C3); /* greek small letter sigma */
+	}
+      }
+    } else {
+      r = special_casing_lower(ch);
+      if (r >= 0) {
+	const int up_size = array_sizeof(s_special_casing_lower[r].out);
+	int j;
+	for (j = 0; j < up_size; j++) {
+	  if (s_special_casing_lower[r].out[j] == 0) break;
+	  Sg_PutcUnsafe(out, Sg_CharDownCase(s_special_casing_lower[r].out[j]));
+	} 
+      } else {
+	Sg_PutcUnsafe(out, Sg_CharDownCase(ch));
+      }
+    }
+  }
+  newS = Sg_GetStringFromStringPort(out);
+  if (Sg_StringEqual(str, newS)) {
+    newS = NULL;
+    return str;
+  } else {
+    return newS;
+  }
+}
+
+static int titlecase_first_char(int index, SgString *in, SgPort *out);
+
+static int downcase_subsequence(int index, SgString *in, SgPort *out)
+{
+  int i, size = SG_STRING_SIZE(in);
+  SgChar ch;
+  for (i = index; i < size; i++) {
+    ch = SG_STRING_VALUE_AT(in, i);
+    switch (Sg_CharGeneralCategory(ch)) {
+      case Ll: case Lu: case Lt:
+	Sg_PutcUnsafe(out, Sg_CharDownCase(ch));
+	break;
+    case Po: case Pf:
+      if (ch == 0x0027 ||	/* mid letter # Po apostrophe */
+	  ch == 0x003A ||	/* mid letter # Po colon */
+	  ch == 0x00B7 ||	/* mid letter # Po middle dot */
+	  ch == 0x05F4 ||	/* mid letter # Po hebrew punctuation gershayim */
+	  ch == 0x2019 ||	/* mid letter # Po right single quotation mark */
+	  ch == 0x2027) {	/* mid letter # Po hyphenation point */
+	Sg_PutcUnsafe(out, ch);
+      } else {
+	Sg_PutcUnsafe(out, ch);
+	i += titlecase_first_char(++i, in, out);
+      }
+      break;
+    case Nd:
+      Sg_PutcUnsafe(out, ch);
+      break;
+    default:
+      Sg_PutcUnsafe(out, ch);
+      i += titlecase_first_char(++i, in, out);
+    }
+  }
+  return i - index;
+}
+
+static int titlecase_first_char(int index, SgString *in, SgPort *out)
+{
+  int i, size = SG_STRING_SIZE(in);
+  SgChar ch;
+  for (i = index; i < size; i++) {
+    ch = SG_STRING_VALUE_AT(in, i);
+    switch (Sg_CharGeneralCategory(ch)) {
+    case Ll: case Lu: case Lt:
+      Sg_PutcUnsafe(out, Sg_CharTitleCase(ch));
+      i += downcase_subsequence(++i, in, out);
+      break;
+    default:
+      Sg_PutcUnsafe(out, ch);
+      break;
+    }
+  }
+  return i - index;
+}
+
+SgObject Sg_StringTitleCase(SgString *str)
+{
+  int size = SG_STRING_SIZE(str);
+  SgObject out = Sg_MakeStringOutputPort(size);
+  SgObject newS;
+
+  titlecase_first_char(0, str, SG_PORT(out));
+
+  newS = Sg_GetStringFromStringPort(out);
+  if (Sg_StringEqual(str, newS)) {
+    newS = NULL;
+    return str;
+  } else {
+    return newS;
+  }
+}
+
+SgObject Sg_StringFoldCase(SgString *str)
+{
+  int i, size = SG_STRING_SIZE(str);
+  SgObject out = Sg_MakeStringOutputPort(size);
+  SgObject newS;
+
+  for (i = 0; i < size; i++) {
+    int r = case_folding(SG_STRING_VALUE_AT(str, i));
+    if (r >= 0) {
+      const int up_size = array_sizeof(s_case_folding[r].out);
+      int j;
+      for (j = 0; j < up_size; j++) {
+	if (s_case_folding[r].out[j] == 0) break;
+	Sg_PutcUnsafe(out, s_case_folding[r].out[j]);
+      } 
+    } else {
+      Sg_PutcUnsafe(out, SG_STRING_VALUE_AT(str, i));
+    }
+  }
+  newS = Sg_GetStringFromStringPort(out);
+  if (Sg_StringEqual(str, newS)) {
+    newS = NULL;
+    return str;
+  } else {
+    return newS;
+  }
+}
+
+SgObject Sg_StringNormalizeNfd(SgString *str)
+{
+}
+
+SgObject Sg_StringNormalizeNfkd(SgString *str)
+{
+}
+
+SgObject Sg_StringNormalizeNfc(SgString *str)
+{
+}
+
+SgObject Sg_StringNormalizeNfkc(SgString *str)
+{
 }
 
 /*

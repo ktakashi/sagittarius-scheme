@@ -1,4 +1,4 @@
-// -*- C -*-
+/* -*- C -*- */
 /*
  * codec.h
  *
@@ -40,6 +40,7 @@ typedef enum {
   UTF_16CHECK_BOM,
   UTF_32BE,
   UTF_32LE,
+  UTF_32USE_NATIVE_ENDIAN,
   NO_BOM,
 } Endianness;
 

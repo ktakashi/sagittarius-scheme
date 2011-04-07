@@ -87,16 +87,97 @@ SgObject Sg_MakeUtf16Codec(Endianness endian)
   return SG_OBJ(z);
 }
 
+
+#define decodeError()							\
+  if (mode == SG_RAISE_ERROR) {						\
+    Sg_Error(UC("Invalid encode for utf-32 %s:%x\n"),  UC(__FILE__), __LINE__);	\
+  } else if (mode == SG_REPLACE_ERROR) {				\
+    return 0xFFFD;							\
+  } else {								\
+    ASSERT(mode == SG_IGNORE_ERROR);					\
+    goto retry;								\
+  }
+
+
+static int put_utf32_char(SgObject self, SgPort *port, SgChar c, ErrorHandlingMode mode)
+{
+  uint8_t buf[4];
+  if (SG_CODEC_ENDIAN(self) == UTF32_LE) {
+    buf[0] = u;
+    buf[1] = u >> 8;
+    buf[2] = u >> 16;
+    buf[3] = u >> 24;
+  } else {
+    buf[0] = u >> 24;
+    buf[1] = u >> 16;
+    buf[2] = u >> 8;
+    buf[3] = u;
+  }
+  return (int)(SG_BINARY_PORT(port)->putU8Array(port, buf, size));
+}
+
+static SgChar get_utf32_char(SgObject self, SgPort *port, ErrorHandlingMode mode, int checkBOM)
+{
+  int a, b, c, d;
+  a = Sg_Getb(port);
+  if (a == EOF) return EOF;
+  b = Sg_Getb(port);
+  if (b == EOF) {
+    decodeError();
+  }
+  c = Sg_Getb(port);
+  if (c == EOF) {
+    decodeError();
+  }
+  d = Sg_Getb(port);
+  if (d == EOF) {
+    decodeError();
+  }
+  if (SG_CODEC_ENDIAN(self) == UTF32_LE) {
+    return
+      ((uint8_t)a)       |
+      ((uint8_t)b) << 8  |
+      ((uint8_t)c) << 16 |
+      ((uint8_t)d) << 24;
+  } else {
+    return
+      ((uint8_t)d)       |
+      ((uint8_t)c) << 8  |
+      ((uint8_t)b) << 16 |
+      ((uint8_t)a) << 24;
+  }
+}
+
 SgObject Sg_MakeUtf32Codec(Endianness endian)
 {
   SgCodec* z = SG_NEW(SgCodec);
   SG_SET_HEADER(z, TC_CODEC);
-  /* later
-  z->putChar = putUtf32Char;
-  z->getChar = getUtf32Char;
-  */
-  z->name = Sg_MakeString(UC("utf32-codec"), SG_LITERAL_STRING);
-  z->endian = endian;
+  if (endian == UTF_32USE_NATIVE_ENDIAN) {
+#if WORDS_BIGENDIAN
+    z->endian = UTF32_BE;
+#else
+    z->endian = UTF32_LE;
+#endif
+    z->name = Sg_MakeString(UC("utf32-codec"), SG_LITERAL_STRING);
+  } else {
+    ASSERT(endian == UTF32_LE || endian == UTF32_BE);
+#if WORDS_BIGENDIAN
+    if (endian == UTF32_BE) {
+      z->name = Sg_MakeString(UC("utf32-codec"), SG_LITERAL_STRING);
+    } else {
+      z->name = Sg_MakeString(UC("utf32-codec(little)"), SG_LITERAL_STRING);
+    }
+#else
+    if (endian == UTF32_BE) {
+      z->name = Sg_MakeString(UC("utf32-codec(big)"), SG_LITERAL_STRING);
+    } else {
+      z->name = Sg_MakeString(UC("utf32-codec"), SG_LITERAL_STRING);
+    }
+#endif
+    z->endian = endian;
+  }
+  z->putChar = put_utf32_char;
+  z->getChar = get_utf32_char;
   return SG_OBJ(z);
 }
 

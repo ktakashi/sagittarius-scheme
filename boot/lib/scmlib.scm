@@ -412,6 +412,18 @@
 
 (define list-head take)
 
+;;;;
+;; standard libraries
+
+;; 1 Unicode
+;; 1.1 characters
+;; from Ypsilon
+(define char-ci=? (lambda lst (apply char=? (map char-foldcase lst))))
+(define char-ci<? (lambda lst (apply char<? (map char-foldcase lst))))
+(define char-ci>? (lambda lst (apply char>? (map char-foldcase lst))))
+(define char-ci<=? (lambda lst (apply char<=? (map char-foldcase lst))))
+(define char-ci>=? (lambda lst (apply char>=? (map char-foldcase lst))))
+
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix

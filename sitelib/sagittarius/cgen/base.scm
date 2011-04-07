@@ -104,9 +104,11 @@
 	(error 'result 
 	       (format "wrong number of argument for result (required 1, but got ~a)"
 		       (length body))))
-    ((renderer) (format "SG_RETURN = "))
+    ((renderer) (format "SG_RETURN = ("))
     (renderer-no-indent #t)
     (dispatch (cadr body) dispatch k)
+    (renderer-no-indent #t)
+    ((renderer) ")")
     (renderer-no-indent #f)
     (k k))
 

@@ -1,3 +1,9 @@
+2011-04-07  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/codec.c (utf32): added utf-32 codec implementation.
+
+	* src/unicode.c (rnrs unicode): added string-**case function.
+
 2011-04-06  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/number.c, src/number.h (rationalize): added rationalize.

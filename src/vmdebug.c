@@ -11,7 +11,7 @@ static SgObject _sagittarius_vm_debug_vm_dump_code(SgObject *args, int argc, voi
   {
     SgObject SG_RETURN = SG_UNDEF;
     Sg_VMDumpCode(cb);
-    SG_RETURN = SG_UNDEF;
+    SG_RETURN = (SG_UNDEF);
     return SG_RETURN;
   }
 }

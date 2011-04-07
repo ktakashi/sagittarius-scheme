@@ -88,12 +88,16 @@
 	    ;; 1 Unicode
 	    ;; 1.1 characters
 	    char-upcase char-downcase char-titlecase char-foldcase
-	    ;; char-ci related are in scmlib.scm(but not yet)
-	    ;; these are not yet
+	    ;; char-ci related are in scmlib.scm
 	    char-alphabetic? char-numeric? char-whitespace?
 	    char-upper-case? char-lower-case? char-title-case?
 	    char-general-category
-	    
+	    ;; 1.2 strings
+	    string-upcase string-downcase string-titlecase
+	    string-foldcase
+	    ;; string-ci related are in scmlib.scm(but not yet)
+	    string-normalize-nfd string-normalize-nfkd
+	    string-normalize-nfc string-normalize-nfkc
 
 	    raise raise-continuable
 	    bitwise-not
@@ -418,24 +422,27 @@
   (define-cgen-stmt numcmp
     ((_ op compar)
      (dispatch 
-      `(begin 
-	 (result FALSE)
-	 (loop (cond ((not (,op (,compar arg0 arg1) 0)) (break))
-		     ((SG_NULLP rest) (result TRUE) (break))
-		     (else (set! arg0 arg1)
-			   (set! arg1 (SG_CAR rest))
-			   (set! rest (SG_CDR rest)))))))))
+      `(loop (cond ((not (,op (,compar arg0 arg1) 0)) (break))
+		   ((SG_NULLP rest) (result TRUE) (break))
+		   (else (set! arg0 arg1)
+			 (set! arg1 (SG_CAR rest))
+			 (set! rest (SG_CDR rest))))))))
   ;; = < > <= >=
   (define-c-proc = (arg0 arg1 :rest rest) ::boolean
-    (result (numcmp == Sg_NumEq)))
+    (result FALSE)
+    (numcmp == Sg_NumEq))
   (define-c-proc < (arg0 arg1 :rest rest) ::boolean
-    (result (numcmp < Sg_NumCmp)))
+    (result FALSE)
+    (numcmp < Sg_NumCmp))
   (define-c-proc <= (arg0 arg1 :rest rest) ::boolean
-    (result (numcmp <= Sg_NumCmp)))
+    (result FALSE)
+    (numcmp <= Sg_NumCmp))
   (define-c-proc > (arg0 arg1 :rest rest) ::boolean
-    (result (numcmp > Sg_NumCmp)))
+    (result FALSE)
+    (numcmp > Sg_NumCmp))
   (define-c-proc >= (arg0 arg1 :rest rest) ::boolean
-    (result (numcmp >= Sg_NumCmp)))
+    (result FALSE)
+    (numcmp >= Sg_NumCmp))
 
   (define-c-proc zero? (arg0::number) ::boolean
     (result (and (SG_REALP arg0) (== (Sg_Sign arg0) 0))))
@@ -850,17 +857,36 @@
   (define-c-proc char=? (c1 c2 :rest rest) ::boolean
     (x=? check-char SG_EQ char=? c1 c2 rest))
 
+  (define-cgen-stmt char<>=?
+    ((_ compare name first second rest)
+     (dispatch
+      `(begin
+	 (check-char ,name ,first)
+	 (check-char ,name ,second)
+	 (cond ((SG_NULLP ,rest)
+		(result (not (,compare ,first ,second))))
+	       ((not (,compare ,first ,second))
+		(result FALSE))
+	       (else
+		(let ((prev ,second))
+		  (dolist (p ,rest)
+		    (check-char ,name p)
+		    (unless (,compare prev p)
+		      (return SG_FALSE))
+		    (set! prev p))
+		  (result TRUE))))))))
+
   (define-c-proc char<? (c1 c2 :rest rest) ::boolean
-    (x=? check-char >= char<? c1 c2 rest))
+    (char<>=? >= char<? c1 c2 rest))
 
   (define-c-proc char>? (c1 c2 :rest rest) ::boolean
-    (x=? check-char <= char<? c1 c2 rest))
+    (char<>=? <= char>? c1 c2 rest))
 
   (define-c-proc char<=? (c1 c2 :rest rest) ::boolean
-    (x=? check-char > char<? c1 c2 rest))
+    (char<>=? > char<=? c1 c2 rest))
 
   (define-c-proc char>=? (c1 c2 :rest rest) ::boolean
-    (x=? check-char < char<? c1 c2 rest))
+    (char<>=? < char>=? c1 c2 rest))
 
   ;; 11.12 strings
   (define-cgen-stmt check-string
@@ -1078,6 +1104,43 @@
   (define-c-proc char-general-category (c) ::Object
     (check-char char-general-category c)
     (result (Sg_CategroyToSymbol (Sg_CharGeneralCategory (SG_CHAR_VALUE c)))))
+
+  (define-c-proc char-alphabetic? (c) ::boolean
+    (check-char char-alphabetic? c)
+    (result (Sg_CharAlphabeticP (SG_CHAR_VALUE c))))
+
+  (define-c-proc char-numeric? (c) ::boolean
+    (check-char char-numeric? c)
+    (result (Sg_CharNumericP (SG_CHAR_VALUE c))))
+
+  (define-c-proc char-whitespace? (c) ::boolean
+    (check-char char-whitespace? c)
+    (result (Sg_Ucs4WhiteSpaceP (SG_CHAR_VALUE c))))
+
+  (define-c-proc char-upper-case? (c) ::boolean
+    (check-char char-upper-case? c)
+    (result (Sg_CharUpperCaseP (SG_CHAR_VALUE c))))
+
+  (define-c-proc char-lower-case? (c) ::boolean
+    (check-char char-lower-case? c)
+    (result (Sg_CharLowerCaseP (SG_CHAR_VALUE c))))
+
+  (define-c-proc char-title-case? (c) ::boolean
+    (check-char char-title-case? c)
+    (result (Sg_CharTitleCaseP (SG_CHAR_VALUE c))))
+
+  ;; 1.2 strings
+  (define-c-proc string-upcase (s::String) ::Object
+    (result (Sg_StringUpCase s)))
+
+  (define-c-proc string-downcase (s::String) ::Object
+    (result (Sg_StringDownCase s)))
+
+  (define-c-proc string-titlecase (s::String) ::Object
+    (result (Sg_StringTitleCase s)))
+
+  (define-c-proc string-foldcase (s::String) ::Object
+    (result (Sg_StringFoldCase s)))
 
   ;; arithmetic bitwise
   (define-c-proc bitwise-not (ei::number) ::Object

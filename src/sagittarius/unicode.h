@@ -92,11 +92,22 @@ SG_EXTERN SgChar   Sg_CharTitleCase(SgChar ch);
 SG_EXTERN SgChar   Sg_CharFoldCase(SgChar ch);
 
 /* char condition */
-SG_EXTERN int      Sg_AlphabeticP(SgChar ch);
-SG_EXTERN int      Sg_NumericP(SgChar ch);
-SG_EXTERN int      Sg_UpperCaseP(SgChar ch);
-SG_EXTERN int      Sg_LowerCaseP(SgChar ch);
-SG_EXTERN int      Sg_TitleCaseP(SgChar ch);
+SG_EXTERN int      Sg_CharAlphabeticP(SgChar ch);
+SG_EXTERN int      Sg_CharNumericP(SgChar ch);
+SG_EXTERN int      Sg_CharUpperCaseP(SgChar ch);
+SG_EXTERN int      Sg_CharLowerCaseP(SgChar ch);
+SG_EXTERN int      Sg_CharTitleCaseP(SgChar ch);
+
+/* string */
+SG_EXTERN SgObject Sg_StringUpCase(SgString *str);
+SG_EXTERN SgObject Sg_StringDownCase(SgString *str);
+SG_EXTERN SgObject Sg_StringTitleCase(SgString *str);
+SG_EXTERN SgObject Sg_StringFoldCase(SgString *str);
+
+SG_EXTERN SgObject Sg_StringNormalizeNfd(SgString *str);
+SG_EXTERN SgObject Sg_StringNormalizeNfkd(SgString *str);
+SG_EXTERN SgObject Sg_StringNormalizeNfc(SgString *str);
+SG_EXTERN SgObject Sg_StringNormalizeNfkc(SgString *str);
 
 SG_EXTERN GeneralCategory Sg_CharGeneralCategory(SgChar ch);
 SG_EXTERN SgObject Sg_CategroyToSymbol(GeneralCategory cate);
