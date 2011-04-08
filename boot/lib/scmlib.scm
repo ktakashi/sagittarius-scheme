@@ -889,6 +889,18 @@
 
       (sort! 0 (- n 1)))))
 
+;;;;
+;; 8 I/O
+;; 8.2.6 input port and output port
+;; from Ypsilon
+(define call-with-port
+  (lambda (port proc)
+    (call-with-values
+     (lambda () (proc port))
+     (lambda args
+       (close-port port)
+       (apply values args)))))
+
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix

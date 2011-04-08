@@ -216,9 +216,11 @@ SG_EXTERN SgObject Sg_PortTranscoder(SgObject port);
 SG_EXTERN void     Sg_FlushPort(SgPort *port);
 SG_EXTERN void     Sg_FlushAllPort(int exitting);
 SG_EXTERN int      Sg_Getb(SgPort *port);
+SG_EXTERN int      Sg_Peekb(SgPort *port);
 SG_EXTERN int64_t  Sg_Readb(SgPort *port, uint8_t *buf, int64_t size);
 SG_EXTERN int64_t  Sg_ReadbAll(SgPort *port, uint8_t **buf);
 SG_EXTERN SgChar   Sg_Getc(SgPort *port);
+SG_EXTERN SgChar   Sg_Peekc(SgPort *port);
 SG_EXTERN void     Sg_Putc(SgPort *port, SgChar ch);
 SG_EXTERN void     Sg_Putz(SgPort *port, const char *str);
 SG_EXTERN void     Sg_Putuz(SgPort *port, const SgChar *str);
@@ -236,6 +238,7 @@ SG_EXTERN int      Sg_GetbUnsafe(SgPort *port);
 SG_EXTERN int64_t  Sg_ReadbUnsafe(SgPort *port, uint8_t *buf, int64_t size);
 SG_EXTERN int64_t  Sg_ReadbAllUnsafe(SgPort *port, uint8_t **buf);
 SG_EXTERN void     Sg_UngetcUnsafe(SgPort *port, SgChar ch);
+SG_EXTERN int      Sg_PeekbUnsafe(SgPort *port);
 SG_EXTERN SgChar   Sg_PeekcUnsafe(SgPort *port);
 
 /* seek/tell */

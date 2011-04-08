@@ -1110,6 +1110,15 @@ int Sg_Getb(SgPort *port)
   return b;
 }
 
+int Sg_Peekb(SgPort *port)
+{
+  int b;
+  SG_PORT_LOCK(port);
+  b = Sg_PeekbUnsafe(port);
+  SG_PORT_UNLOCK(port);
+  return b;
+}
+
 int64_t Sg_Readb(SgPort *port, uint8_t *buf, int64_t size)
 {
   int64_t ret;
@@ -1133,6 +1142,15 @@ SgChar Sg_Getc(SgPort *port)
   SgChar ch;
   SG_PORT_LOCK(port);
   ch = Sg_GetcUnsafe(port);
+  SG_PORT_UNLOCK(port);
+  return ch;
+}
+
+SgChar Sg_Peekc(SgPort *port)
+{
+  SgChar ch;
+  SG_PORT_LOCK(port);
+  ch = Sg_PeekcUnsafe(port);
   SG_PORT_UNLOCK(port);
   return ch;
 }
@@ -1222,6 +1240,12 @@ void Sg_UngetcUnsafe(SgPort *port, SgChar ch)
 {
   ASSERT(SG_TEXTUAL_PORTP(port));
   SG_TEXTUAL_PORT(port)->unGetChar(port, ch);
+}
+
+int Sg_PeekbUnsafe(SgPort *port)
+{
+  ASSERT(SG_BINARY_PORTP(port));
+  return SG_BINARY_PORT(port)->lookAheadU8(port);
 }
 
 SgChar Sg_PeekcUnsafe(SgPort *port)
