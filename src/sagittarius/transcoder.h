@@ -57,6 +57,7 @@ struct SgTranscoderRec
 /* accessor */
 #define SG_TRANSCODER_CODEC(obj)     (SG_TRANSCODER(obj)->codec)
 #define SG_TRANSCODER_EOL_STYLE(obj) (SG_TRANSCODER(obj)->eolStyle)
+#define SG_TRANSCODER_MODE(obj)      (SG_TRANSCODER(obj)->mode)
 
 
 SG_CDECL_BEGIN

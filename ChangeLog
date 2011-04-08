@@ -1,3 +1,22 @@
+2011-04-08  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/bytevector.c (Sg_ByteVectorToString): fixed over reading from
+	bytevector.
+
+	* src/null.stub (rnrs bytevectors): added utf32<->string functions.
+
+	* boot/lib/scmlib.scm (rnrs unicode): added string-ci related functions.
+	(rnrs bytevectors): added bytevector-uint related
+	functions.
+	(rnrs lists): added for-all etc.
+	(rnrs sorting): added sort functions.
+
+	* src/unicode.c (rnrs unicode): added string-normalize related functions.
+
+	* src/null.stub (rnrs io ports): added some port related functions.
+
+	* src/sagittarius/subr.h (argumentAsCodec): added check macro for codec.
+
 2011-04-07  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/codec.c (utf32): added utf-32 codec implementation.

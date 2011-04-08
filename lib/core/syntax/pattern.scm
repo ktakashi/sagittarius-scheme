@@ -104,7 +104,7 @@
 			 sids
 			 (make-sid var (if (null? (cddr pat))
 					   expr
-					   `(,(rename 'take) ,expr (,(rename '-) (,(rename 'length) ,expr) 1)))
+					   `(,(rename 'list-head) ,expr (,(rename '-) (,(rename 'length) ,expr) 1)))
 				   (+ depth 1) control))
 		    control)))
 	    ((pair? pat)

@@ -1048,6 +1048,16 @@ void Sg_ClosePort(SgPort *port)
   port->close(port);
 }
 
+/* this doesn't close port, just pseudo.
+   on C level we don't check if a port was closed or not.
+   but on Scheme level we need to do it.
+ */
+void Sg_PseudoClosePort(SgPort *port)
+{
+  ASSERT(SG_BINARY_PORTP(port));
+  SG_BINARY_PORT(port)->closed = SG_BPORT_PSEUDO;
+}
+
 void Sg_FlushPort(SgPort *port)
 {
   if (SG_PORT(port)->flush) {

@@ -143,6 +143,8 @@ struct SgSubrRec
   castArgumentType(index, tmp, var, instance, SG_INSTANCEP, SG_INSTANCE)
 #define argumentAsTranscoder(index, tmp, var)				\
   castArgumentType(index, tmp, var, transcoder, SG_TRANSCODERP, SG_TRANSCODER)
+#define argumentAsCodec(index, tmp, var)				\
+  castArgumentType(index, tmp, var, codec, SG_CODECP, SG_CODEC)
 #define argumentAsNumber(index, tmp, var)				\
   castArgumentType(index, tmp, var, number, SG_NUMBERP, SG_OBJ)
 #define argumentAsGeneric(index, tmp, var)				\

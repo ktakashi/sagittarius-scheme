@@ -7,7 +7,8 @@
 	    string-upcase string-downcase string-titlecase string-foldcase
 	    string-ci=? string-ci<? string-ci>? string-ci<=? string-ci>=?
 	    string-normalize-nfd  string-normalize-nfkd string-normalize-nfc string-normalize-nfkc)
-    (import (core))
+    (import (core)
+	    (core base))
   ) ; [end]
 ;; end of file
 ;; Local Variables:

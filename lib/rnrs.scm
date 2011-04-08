@@ -47,6 +47,13 @@
      values call-with-values dynamic-wind
 
      #;(rnrs unicode (6))
+     char-upcase char-downcase char-titlecase char-foldcase
+     char-ci=? char-ci<? char-ci>? char-ci<=? char-ci>=?
+     char-alphabetic? char-numeric? char-whitespace? char-upper-case? char-lower-case? char-title-case?
+     char-general-category
+     string-upcase string-downcase string-titlecase string-foldcase
+     string-ci=? string-ci<? string-ci>? string-ci<=? string-ci>=?
+     string-normalize-nfd  string-normalize-nfkd string-normalize-nfc string-normalize-nfkc
 
      #;(rnrs bytevectors (6))
      endianness native-endianness
@@ -89,8 +96,25 @@
      #;(rnrs records syntactic (6))
 
      #;(rnrs records procedural (6))
+     make-record-type-descriptor
+     record-type-descriptor?
+     make-record-constructor-descriptor
+     record-constructor
+     record-predicate
+     record-accessor
+     record-mutator
 
      #;(rnrs records inspection (6))
+     record?
+     record-rtd
+     record-type-name
+     record-type-parent
+     record-type-uid
+     record-type-generative?
+     record-type-sealed?
+     record-type-opaque?
+     record-type-field-names
+     record-field-mutable?
 
      #;(rnrs exceptions (6))
      with-exception-handler guard raise raise-continuable

@@ -22,7 +22,14 @@
 	    string->utf8 utf8->string
 	    string->utf16 utf16->string
 	    string->utf32 utf32->string)
-    (import (core))
+    (import (core)
+	    (core base)
+	    (core syntax-rules))
+  (define-syntax endianness
+    (syntax-rules (big little native)
+      ((_ big)    'big)
+      ((_ little) 'little)
+      ((_ native) (native-endianness))))
 ) ; [end]
 ;; end of file
 ;; Local Variables:

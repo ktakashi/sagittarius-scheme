@@ -48,6 +48,7 @@ typedef struct SgBinaryPortRec
   /* this is private method */
   int64_t (*bufferWriter)(SgObject, uint8_t *, int64_t);
   int     type;
+  int     closed;		/* it may have, closed pseudo_closed or open */
   union {
     SgFile        *file;   /* file port */
     /* use bytevector for buffer */
@@ -103,11 +104,11 @@ typedef struct SgCustomPortRec
 struct SgPortRec
 {
   SG_HEADER;
-  unsigned int direction : 3; /* in, out or in/out*/
-  unsigned int type      : 3; /* binary, textual, or custom */
-  unsigned int bufferMode: 3; /* none, line, or block*/
-  unsigned int closed 	 : 1;
-  unsigned int error  	 : 1;
+  unsigned int direction   : 3; /* in, out or in/out*/
+  unsigned int type        : 3; /* binary, textual, or custom */
+  unsigned int bufferMode  : 3; /* none, line, or block*/
+  unsigned int closed 	   : 1;
+  unsigned int error  	   : 1;
 
   /* common methods */
   void (*flush)(SgObject);
@@ -143,6 +144,12 @@ enum SgBinaryPortType {
   SG_BYTE_ARRAY_BINARY_PORT_TYPE
 };
 
+enum SgBinaryPortClosedType {
+  SG_BPORT_OPEN,
+  SG_BPORT_PSEUDO,
+  SG_BPORT_CLOSED
+};
+
 enum SgTextualPortType {
   SG_TRANSCODED_TEXTUAL_PORT_TYPE,
   SG_STRING_TEXTUAL_PORT_TYPE,
@@ -162,6 +169,9 @@ enum SgTextualPortType {
 
 #define SG_TEXTUAL_PORTP(obj) (SG_PORTP(obj) && SG_PORT(obj)->type == SG_TEXTUAL_PORT_TYPE)
 #define SG_TEXTUAL_PORT(obj)  (SG_PORT(obj)->impl.tport)
+
+#define SG_TRANSCODED_TEXTUAL_PORT_TRANSCODER(obj)	\
+  SG_TEXTUAL_PORT(obj)->src.transcoded.transcoder
 #define SG_ERROR_HANDLING_MODE(obj)		\
   SG_TEXTUAL_PORT(obj)->src.transcoded.transcoder->mode
 #define SG_CUSTOM_PORTP(obj)  (SG_PORTP(obj) && SG_PORT(obj)->type == SG_CUSTOM_PORT_TYPE)
@@ -193,6 +203,7 @@ SG_EXTERN SgObject Sg_GetByteVectorFromBinaryPort(SgPort *port);
 SG_EXTERN SgObject Sg_GetStringFromStringPort(SgPort *port);
 
 SG_EXTERN void     Sg_ClosePort(SgPort *port);
+SG_EXTERN void     Sg_PseudoClosePort(SgPort *port);
 
 SG_EXTERN SgObject Sg_StandardOutputPort();
 SG_EXTERN SgObject Sg_StandardInputPort();

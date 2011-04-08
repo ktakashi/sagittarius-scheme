@@ -99,10 +99,10 @@ SgObject Sg_MakeUtf16Codec(Endianness endian)
   }
 
 
-static int put_utf32_char(SgObject self, SgPort *port, SgChar c, ErrorHandlingMode mode)
+static int put_utf32_char(SgObject self, SgPort *port, SgChar u, ErrorHandlingMode mode)
 {
   uint8_t buf[4];
-  if (SG_CODEC_ENDIAN(self) == UTF32_LE) {
+  if (SG_CODEC_ENDIAN(self) == UTF_32LE) {
     buf[0] = u;
     buf[1] = u >> 8;
     buf[2] = u >> 16;
@@ -113,12 +113,13 @@ static int put_utf32_char(SgObject self, SgPort *port, SgChar c, ErrorHandlingMo
     buf[2] = u >> 8;
     buf[3] = u;
   }
-  return (int)(SG_BINARY_PORT(port)->putU8Array(port, buf, size));
+  return (int)(SG_BINARY_PORT(port)->putU8Array(port, buf, 4));
 }
 
 static SgChar get_utf32_char(SgObject self, SgPort *port, ErrorHandlingMode mode, int checkBOM)
 {
   int a, b, c, d;
+ retry:
   a = Sg_Getb(port);
   if (a == EOF) return EOF;
   b = Sg_Getb(port);
@@ -133,7 +134,7 @@ static SgChar get_utf32_char(SgObject self, SgPort *port, ErrorHandlingMode mode
   if (d == EOF) {
     decodeError();
   }
-  if (SG_CODEC_ENDIAN(self) == UTF32_LE) {
+  if (SG_CODEC_ENDIAN(self) == UTF_32LE) {
     return
       ((uint8_t)a)       |
       ((uint8_t)b) << 8  |
@@ -154,21 +155,21 @@ SgObject Sg_MakeUtf32Codec(Endianness endian)
   SG_SET_HEADER(z, TC_CODEC);
   if (endian == UTF_32USE_NATIVE_ENDIAN) {
 #if WORDS_BIGENDIAN
-    z->endian = UTF32_BE;
+    z->endian = UTF_32BE;
 #else
-    z->endian = UTF32_LE;
+    z->endian = UTF_32LE;
 #endif
     z->name = Sg_MakeString(UC("utf32-codec"), SG_LITERAL_STRING);
   } else {
-    ASSERT(endian == UTF32_LE || endian == UTF32_BE);
+    ASSERT(endian == UTF_32LE || endian == UTF_32BE);
 #if WORDS_BIGENDIAN
-    if (endian == UTF32_BE) {
+    if (endian == UTF_32BE) {
       z->name = Sg_MakeString(UC("utf32-codec"), SG_LITERAL_STRING);
     } else {
       z->name = Sg_MakeString(UC("utf32-codec(little)"), SG_LITERAL_STRING);
     }
 #else
-    if (endian == UTF32_BE) {
+    if (endian == UTF_32BE) {
       z->name = Sg_MakeString(UC("utf32-codec(big)"), SG_LITERAL_STRING);
     } else {
       z->name = Sg_MakeString(UC("utf32-codec"), SG_LITERAL_STRING);

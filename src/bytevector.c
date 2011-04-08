@@ -283,6 +283,7 @@ SgObject Sg_ByteVectorToList(SgByteVector *bv, size_t bitCount, int signP)
     ret = Sg_Cons(ref, ret);
     i += (bitCount >> 3);
   }
+  ret = Sg_ReverseX(ret);
   return ret;
 }
 
@@ -300,6 +301,7 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder, size_
   SgPort *accum;
   SgPort *bin;
   SgPort *tin;
+  SgChar ch;
   int i;
 
   if (size < 0) {
@@ -312,8 +314,8 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder, size_
   bin = Sg_MakeByteVectorInputPort(bv, start);
   tin = Sg_MakeTranscodedInputPort(bin, transcoder);
   accum = Sg_MakeStringOutputPort(size);
-  for (i = start; i < size; i++) {
-    Sg_Putc(accum, Sg_Getc(tin));
+  while ((ch = Sg_Getc(tin)) != EOF) {
+    Sg_Putc(accum, ch);
   }
   return Sg_GetStringFromStringPort(accum);
 }
