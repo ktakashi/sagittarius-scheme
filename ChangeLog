@@ -1,6 +1,7 @@
 2011-04-11    <ktakashi@ymail.com>
 
 	* boot/lib/scmlib.scm (rnrs io port): implemented open-bytevector-output-port
+	(rnrs io port): added call-with-string/bytevector-output-port.
 
 	* src/null.stub (rnrs io port): implemented most of port functions.
 	custom ports are not implemented yet.

@@ -888,7 +888,8 @@
        (close-port port)
        (apply values args)))))
 
-;; 8.2.11 output port
+
+;; 8.2.10 output port
 (define open-bytevector-output-port 
   (lambda maybe-transcoder
     (when (> (length maybe-transcoder) 1)
@@ -909,6 +910,22 @@
     (let* ((port (open-output-string))
 	   (proc (lambda () (get-output-string port))))
       (values port proc))))
+
+(define call-with-bytevector-output-port
+  (lambda (proc . maybe-transcoder)
+    (receive (port extractor) (apply open-bytevector-output-port transcoder)
+      (dynamic-wind
+	  (lambda () #f)
+	  (lambda () (proc port) (extractor))
+	  (lambda () (close-port port))))))
+
+(define call-with-string-output-port
+  (lambda (proc)
+    (receive (port extractor) (open-string-output-port)
+      (dynamic-wind
+	  (lambda () #f)
+	  (lambda () (proc port) (extractor))
+	  (lambda () (close-port port))))))
 
 ;;;; end of file
 ;; Local Variables:
