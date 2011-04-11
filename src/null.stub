@@ -215,10 +215,16 @@
 	    flush-output-port
 	    output-port-buffer-mode
 	    open-file-output-port
-	    open-bytevector-output-port
-	    call-with-bytevector-output-port
-	    ;; open-string-output-port ;; in scheme
-	    call-with-string-output-port
+	    ;; these functions are in scmlib.scm
+	    ;; open-bytevector-output-port
+	    ;; call-with-bytevector-output-port
+	    ;; open-string-output-port
+	    ;; call-with-string-output-port
+	    ;; to implement above we provide these
+	    open-output-bytevector
+	    get-output-bytevector
+	    open-output-string
+	    get-output-string
 	    standard-output-port
 	    standard-error-port
 	    current-output-port
@@ -431,9 +437,6 @@
      (dispatch
       `(unless (SG_REALP ,o)
 	 (wrong-type-of-argument-violation ',name "real number" ,o)))))
-
-  (define-cgen-stmt (aref args index)
-    (dispatch `(argumentRef ,args ,index)))
 
   (define-cgen-stmt numcmp
     ((_ op compar)
@@ -1845,6 +1848,23 @@
     (result (SG_EOFP o)))
 
   ;; 8.2.6 input port and output port
+  ;; check utility for opened port
+  (define-cgen-stmt check-port-open
+    ((_ name p)
+     (dispatch
+      `(when (Sg_PortClosedP ,p)
+	 (wrong-type-of-argument-violation ',name
+					   "opened port"
+					   ,p)))))
+
+  (define-cgen-stmt check-binary-port
+    ((_ name p)
+     (dispatch
+      `(unless (SG_BINARY_PORTP ,p)
+	 (wrong-type-of-argument-violation ',name
+					   "binary-port"
+					   ,p)))))
+
   (define-c-proc port? (obj) ::boolean
     (result (SG_PORTP obj)))
 
@@ -1867,11 +1887,8 @@
     (result (SG_BINARY_PORTP p)))
 
   (define-c-proc transcoded-port (p::Port t::Transcoder) ::Object
-    (unless (SG_BINARY_PORTP p)
-      (wrong-type-of-argument-violation 'transcoded-port
-					"binary-port"
-					p
-					(SG_LIST2 p t)))
+    (check-binary-port transcoded-port p)
+    (check-port-open transcoded-port p)
     (Sg_PseudoClosePort p)
     (cond ((SG_EQ (-> p direction) SG_INPUT_PORT)
 	   (result (Sg_MakeTranscodedInputPort p t)))
@@ -1891,17 +1908,29 @@
     (result (Sg_HasSetPortPosition p)))
 
   (define-c-proc port-position (p::Port) ::Object
+    (check-port-open port-position p)
     (result (Sg_MakeIntegerFromS64 (Sg_PortPosition p))))
 
   (define-c-proc set-port-position! (p::Port off::number) ::void
+    (check-port-open set-port-position! p)
     (Sg_SetPortPosition p (Sg_GetIntegerU64Clamp off SG_CLAMP_NONE NULL)))
 
   (define-c-proc close-port (p::Port) ::void
     (Sg_ClosePort p))
 
   ;; 8.2.7 input port
+  (define-cgen-stmt check-input-port
+    ((_ name p)
+     (dispatch
+      `(unless (or (SG_INPORTP ,p)
+		   (SG_INOUTPORTP ,p))
+	 (wrong-type-of-argument-violation ',name
+					   "input port"
+					   ,p)))))
+
   (define-c-proc input-port? (obj) ::boolean
-    (result (SG_INPORTP obj)))
+    (result (or (SG_INPORTP obj)
+		(SG_INOUTPORTP obj))))
 
   (define-c-proc port-eof? (p::Port) ::boolean
     (cond ((SG_BINARY_PORTP p)
@@ -1933,40 +1962,39 @@
 	    (result (Sg_MakeTranscodedInputPort in transcoder))))))
 
   (define-c-proc open-bytevector-input-port
-    (bv::ByteVector :optional (t::Transcoder SG_UNBOUND)) ::Object
-    (cond ((SG_UNBOUNDP t)
-	   (result (Sg_MakeByteVectorInputPort bv 0)))
-	  (else
-	   (let ((bp (Sg_MakeByteVectorInputPort bv 0)))
-	     (result (Sg_MakeTranscodedInputPort bp t))))))
+    (bv::ByteVector :optional (t::Transcoder #f)) ::Object
+    (let ((bp (Sg_MakeByteVectorInputPort bv 0)))
+      (if (SG_FALSEP t)
+	  (result bp)
+	  (result (Sg_MakeTranscodedInputPort bp t)))))
 
   (define-c-proc open-string-input-port (s::String) ::Object
     (result (Sg_MakeStringInputPort s FALSE)))
+
+  (define-c-proc standard-input-port () ::Object
+    (result (Sg_StandardInputPort)))
 
   (define-c-proc current-input-port (:optional (p::Port SG_UNBOUND)) ::Object
     (let ((vm::SgVM* (Sg_VM)))
       (if (SG_UNBOUNDP p)
 	  (result (-> vm currentInputPort))
 	  (begin
+	    (check-input-port current-input-port p)
 	    (set! (-> vm currentInputPort) p)
 	    (result SG_UNDEF)))))
   ;; TODO custom ports
 
   ;; 8.2.8 binary input
-  (define-cgen-stmt check-binary-port
-    ((_ name p)
-     (dispatch
-      `(unless (SG_BINARY_PORTP ,p)
-	 (wrong-type-of-argument-violation ',name
-					   "binary-port"
-					   ,p)))))
-
   (define-c-proc get-u8 (p::Port) ::Object
+    (check-port-open get-u8 p)
     (check-binary-port get-u8 p)
+    (check-input-port get-u8 p)
     (result (SG_MAKE_INT (Sg_Getb p))))
   
   (define-c-proc lookahead-u8 (p::Port) ::Object
+    (check-port-open lookahead-u8 p)
     (check-binary-port lookahead-u8 p)
+    (check-input-port lookahead-u8 p)
     (result (SG_MAKE_INT (Sg_Peekb p))))
 
   (define-cgen-stmt check-non-negative-fixnum
@@ -1992,9 +2020,10 @@
 			      "out of range"
 			      ,t)))))
 
-
   (define-c-proc get-bytevector-n (p::Port count::fixnum) ::Object
+    (check-port-open get-bytevector-n p)
     (check-binary-port get-bytevector-n p)
+    (check-input-port get-bytevector-n p)
     (check-non-negative-fixnum get-bytevector-n count)
     (let ((buf::uint8_t* (SG_NEW_ATOMIC2 uint8_t* count))
 	  (res::int64_t (Sg_Readb p buf count)))
@@ -2004,7 +2033,9 @@
 
   (define-c-proc get-bytevector-n!
     (p::Port bv::ByteVector start::fixnum count::fixnum) ::Object
+    (check-port-open get-bytevector-n! p)
     (check-binary-port get-bytevector-n! p)
+    (check-input-port get-bytevector-n! p)
     (check-non-negative-fixnum get-bytevector-n! start)
     (check-non-negative-fixnum get-bytevector-n! count)
     (check-fixnum-range get-bytevector-n! (SG_BVECTOR_SIZE bv)
@@ -2020,7 +2051,9 @@
 
   ;; TODO this allocates memory twice.
   (define-c-proc get-bytevector-some (p::Port) ::Object
+    (check-port-open get-bytevector-some p)
     (check-binary-port get-bytevector-some p)
+    (check-input-port get-bytevector-some p)
     (let ((buf::uint8_t* (SG_NEW_ATOMIC2 uint8_t* 512)) ;; some
 	  (res::int64_t (Sg_Readb p buf 512)))
       (if (== res 0)
@@ -2028,7 +2061,9 @@
 	  (result (Sg_MakeByteVectorFromU8Array buf res)))))
 
   (define-c-proc get-bytevector-all (p::Port) ::Object
+    (check-port-open get-bytevector-all p)
     (check-binary-port get-bytevector-all p)
+    (check-input-port get-bytevector-all p)
     ;; TODO we need to get the rest size to reduce memory allocation.
     ;; but for now I implement like this
     (let ((buf::uint8_t* NULL)
@@ -2047,22 +2082,144 @@
 					   ,p)))))
 
   (define-c-proc get-char (p::Port) ::Object
+    (check-port-open get-char p)
     (check-textual-port get-char p)
+    (check-input-port get-char p)
     (result (SG_MAKE_CHAR (Sg_Getc p))))
 
   (define-c-proc lookahead-char (p::Port) ::Object
+    (check-port-open lookahead-char p)
     (check-textual-port lookahead-char p)
+    (check-input-port lookahead-char p)
     (result (SG_MAKE_CHAR (Sg_Peekc p))))
 
+  ;; TODO this implementation might waste some memory
+  ;; when the port doesn't have enough character
+  (define-c-proc get-string-n (p::Port count::fixnum) ::Object
+    (check-port-open get-string-n p)
+    (check-textual-port get-string-n p)
+    (check-input-port get-string-n p)
+    (check-non-negative-fixnum get-string-n count)
+    (let ((ch::SgChar (Sg_Peekc p)))
+      (cond ((== ch EOF)
+	     (result SG_EOF))
+	    (else
+	     ;; TODO it's not *RIGHT* implementation
+	     ;; we should use string-output-port as buffer
+	     ;; but this is match faster (i guess...)
+	     (let ((buf::SgChar* (SG_NEW_ATOMIC2 SgChar* count))
+		   (i::int 0)
+		   (ret (Sg_MakeEmptyString)))
+	       (loop 
+		(cond ((== i count)
+		       (break))
+		      (else
+		       (set! (arrayref buf i) (Sg_Getc p))
+		       (set! i (+ i 1)))))
+	       (set! (SG_STRING_SIZE ret) i)
+	       (set! (SG_STRING_VALUE ret) buf)
+	       (result ret))))))
+
+  (define-c-proc get-string-n! (p::Port s::String start::fixnum count::fixnum) ::Object
+    (check-port-open get-string-n! p)
+    (check-textual-port get-string-n! p)
+    (check-input-port get-string-n! p)
+    (check-non-negative-fixnum get-string-n! start)
+    (check-non-negative-fixnum get-string-n! count)
+    (check-fixnum-range get-string-n! (SG_STRING_SIZE s)
+			(+ start count) >)
+    ;; string must not be literal
+    (when (SG_LITERAL_STRINGP s)
+      (assertion-violation 'get-string-n!
+			   "attempt to modify a literal string"
+			   s))
+    (let ((ch::SgChar (Sg_Peekc p)))
+      (cond ((== ch EOF)
+	     (result SG_EOF))
+	    (else
+	     (let ((buf::SgChar* (SG_STRING_VALUE s))
+		   (i::int 0))
+	       (loop 
+		(cond ((== i count)
+		       (break))
+		      (else
+		       (set! (arrayref buf (+ i start)) (Sg_Getc p))
+		       (set! i (+ i 1)))))
+	       (result (SG_MAKE_INT i)))))))
+
+  (define-c-proc get-string-all (p::Port) ::Object
+    (check-port-open get-string-all p)
+    (check-textual-port get-string-all p)
+    (check-input-port get-string-all p)
+    (let ((ch::SgChar (Sg_Peekc p)))
+      (cond ((== ch EOF)
+	     (result SG_EOF))
+	    (else
+	     ;; TODO how much should we allocate as default size?
+	     (let ((buf (Sg_MakeStringOutputPort 512)))
+	       (loop
+		(let ((c::SgChar (Sg_Getc p)))
+		  (cond ((== c EOF)
+			 (break))
+			(else
+			 (Sg_PutcUnsafe buf c)))))
+	       (result (Sg_GetStringFromStringPort buf)))))))
+
+  (define-c-proc get-line (p::Port) ::Object
+    (check-port-open get-line p)
+    (check-textual-port get-line p)
+    (check-input-port get-line p)
+    (let ((ch::SgChar (Sg_Peekc p)))
+      (cond ((== ch EOF)
+	     (result SG_EOF))
+	    (else
+	     ;; TODO how much should we allocate as default size?
+	     (let ((buf (Sg_MakeStringOutputPort 512)))
+	       (loop
+		(let ((c::SgChar (Sg_Getc p)))
+		  ;; transcoder return LF as eol.
+		  ;; TODO string-port doesn't have any indication for eol
+		  (cond ((== c LF)
+			 (break))
+			(else
+			 (Sg_PutcUnsafe buf c)))))
+	       (result (Sg_GetStringFromStringPort buf)))))))
+
+  (define-c-proc get-dutum (p::Port) ::Object
+    (check-port-open get-dutum p)
+    (check-textual-port get-datum p)
+    (check-input-port get-dutum p)
+    ;; TODO should get-datum read shared-object too?
+    (result (Sg_Read p FALSE)))
+
+  ;; 8.2.10 output port
+  (define-cgen-stmt check-output-port
+    ((_ name p)
+     (dispatch
+      `(unless (or (SG_OUTPORTP ,p)
+		   (SG_INOUTPORTP ,p))
+	 (wrong-type-of-argument-violation ',name
+					   "output port"
+					   ,p)))))
+
   (define-c-proc output-port? (obj) ::boolean
-    (result (SG_OUTPORTP obj)))
+    (result (or (SG_OUTPORTP obj)
+		(SG_INOUTPORTP obj))))
 
-  (define-c-proc open-output-string () ::Object
-    (result (Sg_MakeStringOutputPort 32)))
+  (define-c-proc flush-output-port (p::Port) ::void
+    (Sg_FlushPort p))
 
-  (define-c-proc get-output-string (p::Port) ::Object
-    (result (Sg_GetStringFromStringPort p)))
-
+  (define-c-proc output-port-buffer-mode (p::Port) ::Object
+    (cond ((SG_EQ (-> p bufferMode) SG_BUFMODE_NONE)
+	   (result 'none))
+	  ((SG_EQ (-> p bufferMode) SG_BUFMODE_LINE)
+	   (result 'line))
+	  ((SG_EQ (-> p bufferMode) SG_BUFMODE_BLOCK)
+	   (result 'block))
+	  (else
+	   (assertion-violation 'output-port-buffer-mode
+				"port has invalid buffer mode. may be bug?"
+				p))))
 
   (define-cgen-stmt logor
     ((_ v1 v2 . more)
@@ -2126,6 +2283,139 @@
 		   (let ((out (Sg_MakeFileBinaryOutputPort fo bufferMode)))
 		     (result (Sg_MakeTranscodedOutputPort out transcoder)))))))))
 
+  (define-c-proc open-output-bytevector (:optional (t::Transcoder #f)) ::Object
+    ;; TODO how much should I reserve for intial buffer?
+    ;; for now use default.
+    (let ((bp (Sg_MakeByteArrayOutputPort -1)))
+      (if (SG_FALSEP t)
+	  (result bp)
+	  (result (Sg_MakeTranscodedOutputPort bp t)))))
+
+  (define-c-proc get-output-bytevector (p::Port) ::Object
+    (check-port-open get-output-bytevector p)
+    (check-output-port get-output-bytevector p)
+    ;; I'm not quite sure if I should reset the port position
+    ;; if it's textual port.
+    (cond ((SG_BINARY_PORTP p)
+	   (result (Sg_GetByteVectorFromBinaryPort p))
+	   (Sg_SetPortPosition p 0))
+	  (else
+	   (result (Sg_GetByteVectorFromBinaryPort 
+		    (-> (SG_TEXTUAL_PORT p) src.transcoded.port)))
+	   (Sg_SetPortPosition (-> (SG_TEXTUAL_PORT p) src.transcoded.port)  0)
+	   ;; we also need to reset transcoder's buffer position,
+	   ;; but we don't reset buffer.
+	   (set! (-> (SG_TRANSCODED_TEXTUAL_PORT_TRANSCODER p)
+		     bufferPosition) 0))))
+	  
+  
+  ;; these functions are for open-string-output-port
+  (define-c-proc open-output-string () ::Object
+    (result (Sg_MakeStringOutputPort 32)))
+
+  (define-c-proc get-output-string (p::Port) ::Object
+    (check-port-open get-output-string p)
+    (check-output-port get-output-string p)
+    (check-textual-port get-output-string p)
+    (unless (SG_EQ (-> (SG_TEXTUAL_PORT p) type)
+		   SG_STRING_TEXTUAL_PORT_TYPE)
+      (wrong-type-of-argument-violation 'get-output-string
+					"string port"
+					p))
+    (result (Sg_GetStringFromStringPort p))
+    (Sg_SetPortPosition p 0))
+
+  (define-c-proc standard-output-port () ::Object
+    (result (Sg_StandardOutputPort)))
+
+  (define-c-proc standard-error-port () ::Object
+    (result (Sg_StandardErrorPort)))
+
+  (define-c-proc current-output-port (:optional (p::Port SG_UNBOUND)) ::Object
+    (let ((vm::SgVM* (Sg_VM)))
+      (if (SG_UNBOUNDP p)
+	  (result (-> vm currentOutputPort))
+	  (begin
+	    (check-output-port current-output-port p)
+	    (set! (-> vm currentOutputPort) p)
+	    (result SG_UNDEF)))))
+
+  (define-c-proc current-error-port (:optional (p::Port SG_UNBOUND)) ::Object
+    (let ((vm::SgVM* (Sg_VM)))
+      (if (SG_UNBOUNDP p)
+	  (result (-> vm currentErrorPort))
+	  (begin
+	    (check-output-port current-error-port p)
+	    (set! (-> vm currentErrorPort) p)
+	    (result SG_UNDEF)))))
+  ;; TODO custom ports
+
+  ;; 8.2.11 binary output
+  (define-c-proc put-u8 (p::Port octet::fixnum) ::void
+    (check-port-open put-u8 p)
+    (check-binary-port put-u8 p)
+    (check-output-port put-u8 p)
+    (check-fixnum-range put-u8 octet 0 255 <= <=)
+    (Sg_Putb p octet))
+
+  (define-c-proc put-bytevector
+    (p::Port bv::ByteVector
+     :optional (start::fixnum 0)
+               (count::fixnum (- (SG_BVECTOR_SIZE bv)
+				 start)))
+    ::void
+    (check-port-open put-bytevector p)
+    (check-binary-port put-bytevector p)
+    (check-output-port put-bytevector p)
+    (check-non-negative-fixnum put-bytevector start)
+    (check-non-negative-fixnum put-bytevector count)
+    (unless (and (< start (SG_BVECTOR_SIZE bv))
+		 (<= count (- (SG_BVECTOR_SIZE bv) start)))
+      (assertion-violation 'put-bytevector
+			   "invalid range"))
+    (Sg_Writeb p (SG_BVECTOR_ELEMENTS bv) start count))
+
+  ;; 8.2.13 textual output
+  (define-c-proc put-char (p::Port ch) ::void
+    (check-port-open put-char p)
+    (check-output-port put-char p)
+    (check-textual-port put-char p)
+    (check-char put-char ch)
+    (Sg_Putc p (SG_CHAR_VALUE ch)))
+
+  (define-c-proc put-string
+    (p::Port s::String
+     :optional (start::fixnum 0)
+               (count::fixnum (- (SG_STRING_SIZE s)
+				 start)))
+    ::void
+    (check-port-open put-string p)
+    (check-output-port put-string p)
+    (check-textual-port put-string p)
+    (check-non-negative-fixnum put-string start)
+    (check-non-negative-fixnum put-string count)
+    (unless (and (< start (SG_STRING_SIZE s))
+		 (<= count (- (SG_STRING_SIZE s) start)))
+      (assertion-violation 'put-string
+			   "invalid range"))
+    ;; TODO not so pretty
+    (SG_PORT_LOCK p)
+    (let ((i::int start))
+      (loop
+       (cond ((== i count)
+	      (break))
+	     (else
+	      (Sg_PutcUnsafe p (SG_STRING_VALUE_AT s i))
+	      (set! i (+ i 1))))))
+    (SG_PORT_UNLOCK p))
+
+  (define-c-proc put-datum (p::Port datum) ::void
+    (check-port-open put-datum p)
+    (check-output-port put-datum p)
+    (check-textual-port put-datum p)
+    (Sg_Write p datum SG_WRITE_WRITE))
+
+  ;; 8.2.13 input output ports
   (define-c-proc open-file-input/output-port (file::String 
 					      :optional (option #f)
 					                (mode::Symbol 'block)
@@ -2176,7 +2466,8 @@
 		   (result (Sg_MakeFileBinaryInputOutputPort fo bufferMode))
 		   (let ((out (Sg_MakeFileBinaryInputOutputPort fo bufferMode)))
 		     (result (Sg_MakeTranscodedInputOutputPort out transcoder)))))))))
-  
+
+  ;; misc
   (define-c-proc close-input-port (p::Port) ::void
     (if (not (SG_INPORTP p))
 	(wrong-type-of-argument-violation 'close-input-port "input port" p))
@@ -2187,27 +2478,9 @@
 	(wrong-type-of-argument-violation 'close-output-port "output port" p))
     (Sg_ClosePort p))
 
-  (define-c-proc flush-output-port (p::Port) ::void
-    (Sg_FlushPort p))
-
-  (define-c-proc current-output-port (:optional (p::Port SG_UNBOUND)) ::Object
-    (let ((vm::SgVM* (Sg_VM)))
-      (if (SG_UNBOUNDP p)
-	  (result (-> vm currentOutputPort))
-	  (begin
-	    (set! (-> vm currentOutputPort) p)
-	    (result SG_UNDEF)))))
-
-  (define-c-proc current-error-port (:optional (p::Port SG_UNBOUND)) ::Object
-    (let ((vm::SgVM* (Sg_VM)))
-      (if (SG_UNBOUNDP p)
-	  (result (-> vm currentErrorPort))
-	  (begin
-	    (set! (-> vm currentErrorPort) p)
-	    (result SG_UNDEF)))))
-
-  
-
+  (define-c-proc port-closed? (p::Port) ::boolean
+    (result (Sg_PortClosedP p)))
+ 
   (define-c-proc read (:optional (p (Sg_CurrentInputPort))) ::Object
     (if (not (SG_INPORTP p))
 	(wrong-type-of-argument-violation 'read "input port" p))

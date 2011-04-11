@@ -95,21 +95,8 @@
 	 (map string->list str2)))
 
 ;;;;
-;; ports
-
-;; string ports
-(define open-string-output-port
-  (lambda ()
-    (let* ((port (open-output-string))
-	   (proc (lambda () (let ((s (get-output-string port)))
-			      (set-port-position! port 0)
-			      s))))
-      (values port proc))))
-
-
-;;;;
 ;; record
-;; NB: these functions are just for my lazyness.
+;; NB: this functions is because of my lazyness.
 ;;     it's kinda hard to implement in C. so we just lookup this in C.
 (define record-printer
   (lambda (inst . port)
@@ -900,6 +887,28 @@
      (lambda args
        (close-port port)
        (apply values args)))))
+
+;; 8.2.11 output port
+(define open-bytevector-output-port 
+  (lambda maybe-transcoder
+    (when (> (length maybe-transcoder) 1)
+      (assertion-violation 'open-bytevector-output-port
+			   (format 
+			    "wrong number of argument: expected between 0 and 1, but got ~a"
+			    (length maybe-transcoder))
+			   maybe-transcoder))
+    (let ((transcoder (if (null? maybe-transcoder)
+			  #f
+			  (car maybe-transcoder))))
+      (let* ((port (open-output-bytevector transcoder))
+	     (proc (lambda () (get-output-bytevector port))))
+	(values port proc)))))
+
+(define open-string-output-port
+  (lambda ()
+    (let* ((port (open-output-string))
+	   (proc (lambda () (get-output-string port))))
+      (values port proc))))
 
 ;;;; end of file
 ;; Local Variables:

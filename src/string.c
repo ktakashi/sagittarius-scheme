@@ -102,6 +102,15 @@ SgObject Sg_ReserveString(size_t size, SgChar fill)
   return SG_OBJ(z);
 }
 
+SgObject Sg_MakeEmptyString()
+{
+  SgString *z = SG_NEW(SgString);
+  SG_SET_HEADER(z, TC_STRING);
+  z->size = 0;
+  z->value = NULL;
+  return SG_OBJ(z);
+}
+
 static int string_equal(SgChar *s1, int size1, SgChar *s2, int size2)
 {
   if (size1 != size2) return FALSE;

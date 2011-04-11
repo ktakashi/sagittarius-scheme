@@ -204,6 +204,7 @@ SG_EXTERN SgObject Sg_GetStringFromStringPort(SgPort *port);
 
 SG_EXTERN void     Sg_ClosePort(SgPort *port);
 SG_EXTERN void     Sg_PseudoClosePort(SgPort *port);
+SG_EXTERN int      Sg_PortClosedP(SgPort *port);
 
 SG_EXTERN SgObject Sg_StandardOutputPort();
 SG_EXTERN SgObject Sg_StandardInputPort();
@@ -219,6 +220,8 @@ SG_EXTERN int      Sg_Getb(SgPort *port);
 SG_EXTERN int      Sg_Peekb(SgPort *port);
 SG_EXTERN int64_t  Sg_Readb(SgPort *port, uint8_t *buf, int64_t size);
 SG_EXTERN int64_t  Sg_ReadbAll(SgPort *port, uint8_t **buf);
+SG_EXTERN void     Sg_Writeb(SgPort *port, uint8_t *b, int start, int count);
+SG_EXTERN void     Sg_Putb(SgPort *port, uint8_t b);
 SG_EXTERN SgChar   Sg_Getc(SgPort *port);
 SG_EXTERN SgChar   Sg_Peekc(SgPort *port);
 SG_EXTERN void     Sg_Putc(SgPort *port, SgChar ch);
@@ -226,8 +229,8 @@ SG_EXTERN void     Sg_Putz(SgPort *port, const char *str);
 SG_EXTERN void     Sg_Putuz(SgPort *port, const SgChar *str);
 SG_EXTERN void     Sg_Puts(SgPort *port, SgString *str);
 
-/* SG_EXTERN void     Sg_PutbUnsafe(SgPort *port, uint8_t b); */
-
+SG_EXTERN void     Sg_PutbUnsafe(SgPort *port, uint8_t b);
+SG_EXTERN void     Sg_WritebUnsafe(SgPort *port, uint8_t *b, int start, int count);
 SG_EXTERN void     Sg_PutcUnsafe(SgPort *port, SgChar ch);
 SG_EXTERN void     Sg_PutzUnsafe(SgPort *port, const char *str);
 /* is this too similar? */

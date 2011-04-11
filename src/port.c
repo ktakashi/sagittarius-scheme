@@ -718,6 +718,11 @@ static int64_t put_byte_array_u8(SgObject self, uint8_t b)
   return put_byte_array_u8_array(self, &b, 1);
 }
 
+static void flush_byte_array(SgObject self)
+{
+  /* dummy */
+}
+
 SgObject Sg_MakeByteArrayOutputPort(int size)
 {
   SgPort *z = make_port(SG_OUTPUT_PORT, SG_BINARY_PORT_TYPE, SG_BUFMODE_NONE);
@@ -727,7 +732,7 @@ SgObject Sg_MakeByteArrayOutputPort(int size)
   int actual_size = (size > 0) ? size : DEFAULT_BUFFER_SIZE;
 
   z->closed = FALSE;
-  z->flush = NULL;
+  z->flush = flush_byte_array;
   z->close = obyte_array_close;
   /* initialize binary output port */
   b->src.buffer.bvec = SG_BVECTOR(Sg_MakeByteVector(actual_size, 0));
@@ -1058,6 +1063,22 @@ void Sg_PseudoClosePort(SgPort *port)
   SG_BINARY_PORT(port)->closed = SG_BPORT_PSEUDO;
 }
 
+int Sg_PortClosedP(SgPort *port)
+{
+  switch (port->type) {
+  case SG_BINARY_PORT_TYPE:
+    return port->closed || SG_BINARY_PORT(port)->closed;
+  case SG_TEXTUAL_PORT_TYPE:
+    return port->closed;
+  case SG_CUSTOM_PORT_TYPE:
+    /* TODO implement custom port */
+    return port->closed;
+  default:
+    Sg_Panic("unknown port type.");
+  }
+  return FALSE;			/* dummy */
+}
+
 void Sg_FlushPort(SgPort *port)
 {
   if (SG_PORT(port)->flush) {
@@ -1137,6 +1158,20 @@ int64_t Sg_ReadbAll(SgPort *port, uint8_t **buf)
   return ret;
 }
 
+void Sg_Writeb(SgPort *port, uint8_t *b, int start, int count)
+{
+  SG_PORT_LOCK(port);
+  Sg_WritebUnsafe(port, b, start, count);
+  SG_PORT_UNLOCK(port);
+}
+
+void Sg_Putb(SgPort *port, uint8_t b)
+{
+  SG_PORT_LOCK(port);
+  Sg_PutbUnsafe(port, b);
+  SG_PORT_UNLOCK(port);
+}
+
 SgChar Sg_Getc(SgPort *port)
 {
   SgChar ch;
@@ -1181,6 +1216,18 @@ void Sg_Puts(SgPort *port, SgString *str)
   SG_PORT_LOCK(port);
   Sg_PutsUnsafe(port, str);
   SG_PORT_UNLOCK(port);
+}
+
+void Sg_PutbUnsafe(SgPort *port, uint8_t b)
+{
+  ASSERT(SG_BINARY_PORTP(port));
+  SG_BINARY_PORT(port)->putU8(port, b);
+}
+
+void Sg_WritebUnsafe(SgPort *port, uint8_t *b, int start, int count)
+{
+  ASSERT(SG_BINARY_PORTP(port));
+  SG_BINARY_PORT(port)->putU8Array(port, b + start, count);
 }
 
 void Sg_PutcUnsafe(SgPort *port, SgChar ch)

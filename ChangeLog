@@ -1,3 +1,18 @@
+2011-04-11    <ktakashi@ymail.com>
+
+	* boot/lib/scmlib.scm (rnrs io port): implemented open-bytevector-output-port
+
+	* src/null.stub (rnrs io port): implemented most of port functions.
+	custom ports are not implemented yet.
+
+2011-04-09    <ktakashi@ymail.com>
+
+	* sitelib/sagittarius/cgen/base.scm (sagittarius): modified arrayref to
+	output prettier C.
+
+	* src/null.stub (rnrs io port): added get-bytevector related and
+	get-string related functions
+
 2011-04-08  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/bytevector.c (Sg_ByteVectorToString): fixed over reading from

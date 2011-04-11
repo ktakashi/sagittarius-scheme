@@ -23,9 +23,12 @@
 
 (define (repl reader evaluator printer prompter)
   (let loop1 ()
+    (print "loop1 start")
     (and
      (with-exception-handler
-       (lambda (e) (display (describe-condition e)) #t)
+       (lambda (e) 
+	 (print "error:")
+	 (display (describe-condition e)) #t)
        (lambda ()
 	 (prompter)
          (let loop2 ((exp (reader)))

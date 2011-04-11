@@ -54,6 +54,7 @@
 #include <sagittarius/compare.h>
 #include <sagittarius/core.h>
 #include <sagittarius/error.h>
+#include <sagittarius/exceptions.h>
 #include <sagittarius/file.h>
 #include <sagittarius/generic.h>
 #include <sagittarius/hashtable.h>

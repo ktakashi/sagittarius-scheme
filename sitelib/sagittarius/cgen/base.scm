@@ -419,11 +419,14 @@
   ;; arrayref
   (define (aref body dispatch k)
     (let ((array (cadr body))
-	  (index (caddr body)))
+	  (index (caddr body))
+	  (save (renderer-no-indent)))
       (dispatch array dispatch k)
+      (renderer-no-indent #t)
       ((renderer) (format "["))
       (dispatch index dispatch k)
       ((renderer) (format "]"))
+      (renderer-no-indent save)
       (k k)))
 
   ;; plugin
