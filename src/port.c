@@ -1292,7 +1292,7 @@ static void custom_textual_put_char(SgObject self, SgChar ch)
   SgObject s = Sg_MakeString(UC(" "), SG_HEAP_STRING);
   SgObject result;
   SG_STRING_VALUE_AT(s, 0) = ch;
-  result = Sg_Apply(SG_CUSTOM_PORT(self)->read,
+  result = Sg_Apply(SG_CUSTOM_PORT(self)->write,
 		    SG_LIST3(s, start, count));
   if (!SG_INTP(result)) {
     Sg_IOWriteError(SG_INTERN("put-char"),
