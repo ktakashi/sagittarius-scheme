@@ -20,11 +20,23 @@
 	    ;; misc
 	    variable?
 
+	    ;; io
+	    port-closed? format write/ss
+
 	    ;; profiler
 	    profiler-start profiler-stop profiler-reset
 	    profiler-raw-result
 	    )
     (import :null)
+
+  (define-cgen-stmt wrong-type-of-argument-violation
+    ((_ who msg got)
+     (dispatch
+      `(Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got '())))
+    ((_ who msg got irritants)
+     (dispatch
+      `(Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got ,irritants))))
+
   ;; for library dependency
   (define-c-proc identifier? (id) ::boolean
     (result (SG_IDENTIFIERP id)))
@@ -65,6 +77,43 @@
   (define-c-proc variable? (o) ::boolean
     (result (or (SG_SYMBOLP o)
 		(SG_IDENTIFIERP o))))
+  ;; io
+  (define-cgen-stmt check-output-port
+    ((_ name p)
+     (dispatch
+      `(unless (or (SG_OUTPORTP ,p)
+		   (SG_INOUTPORTP ,p))
+	 (wrong-type-of-argument-violation ',name
+					   "output port"
+					   ,p)))))
+  
+  (define-c-proc port-closed? (p::Port) ::boolean
+    (result (Sg_PortClosedP p)))
+
+  (define-c-proc write/ss (o :optional (p::Port (Sg_CurrentOutputPort))) ::void
+    (check-output-port write/ss p)
+    (Sg_Write o p SG_WRITE_SHARED))
+
+  (define-c-proc format (p :rest rest) ::Object
+    (cond ((SG_PORTP p)
+	   (let ((fmt::SgString* (SG_CAR rest))
+		 (objs (SG_CDR rest)))
+	     (Sg_Format p fmt objs FALSE)
+	     (result SG_UNDEF)))
+	  ((SG_BOOLP p)
+	   (let ((fmt::SgString* (SG_CAR rest))
+		 (objs (SG_CDR rest)))
+	     (if (SG_FALSEP p)
+		 (let ((out (Sg_MakeStringOutputPort 16)))
+		   (Sg_Format out fmt objs FALSE)
+		   (result (Sg_GetStringFromStringPort out)))
+		 (let ((out (Sg_CurrentOutputPort)))
+		   (Sg_Format out fmt objs FALSE)
+		   (result SG_UNDEF)))))
+	  ((SG_STRINGP p)
+	   (let ((out (Sg_MakeStringOutputPort 16)))
+	     (Sg_Format out p rest FALSE)
+	     (result (Sg_GetStringFromStringPort out))))))
 
   ;; profiler
   (define-c-proc profiler-start () ::void

@@ -1053,7 +1053,9 @@ static void process_queued_requests(SgVM *vm)
   ASSERT(SG_IDENTIFIERP(var));						\
   value = Sg_FindBinding(SG_IDENTIFIER(var)->library, SG_IDENTIFIER(var)->name); \
   if (SG_FALSEP(value)) {						\
-    Sg_Error(UC("unbound variable %S"), var);				\
+    Sg_AssertionViolation(SG_INTERN("vm"),				\
+			  Sg_MakeString(UC("unbound variable"), SG_LITERAL_STRING), \
+			  var);						\
   }									\
   AC(vm) = value
 

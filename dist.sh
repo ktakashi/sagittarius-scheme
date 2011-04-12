@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # TODO may be get version number somewhere
-export DIST_NAME=sagittarius-0.0.3
+export DIST_NAME=sagittarius-0.0.4
 
 # just in case
 if [ -e ${DIST_NAME} ]; 

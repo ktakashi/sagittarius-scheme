@@ -5,6 +5,21 @@
 ;;     most of macros are also defined in vm.c
 #!compatible
 
+(define-cgen-stmt assertion-violation
+    ((_ who msg)
+     (dispatch
+      `(Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) '())))
+    ((_ who msg irritants)
+     (dispatch
+      `(Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,irritants))))
+
+(define-cgen-stmt wrong-type-of-argument-violation
+    ((_ who msg got)
+     (dispatch
+      `(Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got '())))
+    ((_ who msg got irritants)
+     (dispatch
+      `(Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got ,irritants))))
 
 ;; utility statement.
 (define-cgen-stmt for
@@ -504,10 +519,12 @@ CASE(LSET) {
 	(set! numValues 1)
 	(set! numValues (SG_VALUES_SIZE (AC vm))))
     (if (< numValues val1)
-	(Sg_Error "recieved fewer values than expected"))
+	(assertion-violation 'receive
+			     "recieved fewer values than expected"))
     (if (and (== val2 0)
 	     (> numValues val1))
-	(Sg_Error "recieved more values than expected"))
+	(assertion-violation 'receive
+			     "recieved more values than expected"))
     (cond ((== val2 0)
 	   ;; (receive (a b c) ...)
 	   (cond ((== val1 1)
@@ -552,7 +569,9 @@ CASE(LSET) {
 (define-inst CLOSURE (0 1 #f)
   (let ((cb (FETCH_OPERAND (PC vm))))
     (if (not (SG_CODE_BUILDERP cb))
-	(Sg_Error "code-builder required, but got %S" cb))
+	(wrong-type-of-argument-violation 'closure
+					  "code-builder"
+					  cb))
     (set! (AC vm) (Sg_MakeClosure cb (- (SP vm) (SG_CODE_BUILDER_FREEC cb))))
     (set! (SP vm) (- (SP vm) (SG_CODE_BUILDER_FREEC cb)))))
 
@@ -782,7 +801,7 @@ CASE(LSET) {
 |#
 (define-inst CAR (0 0 #t)
   (if (not (SG_PAIRP (AC vm)))
-      (Sg_Error "car: pair required, but got %S" (AC vm)))
+      (wrong-type-of-argument-violation 'car "pair" (AC vm)))
   (BUILTIN_ONE_ARG vm SG_CAR))
 
 #|
@@ -796,7 +815,7 @@ CASE(LSET) {
 |#
 (define-inst CDR (0 0 #t)
   (if (not (SG_PAIRP (AC vm)))
-      (Sg_Error "cdr: pair required, but got %S" (AC vm)))
+      (wrong-type-of-argument-violation 'cdr "pair" (AC vm)))
   (BUILTIN_ONE_ARG vm SG_CDR))
 
 #|
@@ -953,7 +972,8 @@ CASE(LSET) {
 |#
 (define-inst VEC_LEN (0 0 #t)
   (if (not (SG_VECTORP (AC vm)))
-      (Sg_Error "vector-length: vector required, but got %S" (AC vm)))
+      (wrong-type-of-argument-violation 'vector-length
+					"vector" (AC vm)))
   (set! (AC vm) (SG_MAKE_INT (SG_VECTOR_SIZE (AC vm)))))
 
 #|
@@ -971,9 +991,9 @@ CASE(LSET) {
 |#
 (define-inst VEC_REF (0 0 #t)
   (if (not (SG_VECTORP (INDEX (SP vm) 0)))
-      (Sg_Error "vector-ref: vector required, but got %S" (INDEX (SP vm) 0)))
+      (wrong-type-of-argument-violation 'vector-ref "vector" (INDEX (SP vm) 0)))
   (if (not (SG_INTP (AC vm)))
-      (Sg_Error "vector-ref: fixnum required, but got %S" (AC vm)))
+      (wrong-type-of-argument-violation 'vector-ref "fixnum" (AC vm)))
   (set! (AC vm) (SG_VECTOR_ELEMENT (INDEX (SP vm) 0) (SG_INT_VALUE (AC vm))))
   (set! (SP vm) (- (SP vm) 1)))
 
@@ -993,9 +1013,9 @@ CASE(LSET) {
 |#
 (define-inst VEC_SET (0 0 #t)
   (if (not (SG_VECTORP (INDEX (SP vm) 1)))
-      (Sg_Error "vector-set!: vector required, but got %S" (INDEX (SP vm) 1)))
+      (wrong-type-of-argument-violation 'vector-set! "vector" (INDEX (SP vm) 1)))
   (if (not (SG_INTP (INDEX (SP vm) 0)))
-      (Sg_Error "vector-set!: fixnum required, but got %S" (INDEX (SP vm) 0)))
+      (wrong-type-of-argument-violation 'vector-set! "fixnum" (INDEX (SP vm) 0)))
   (set! (SG_VECTOR_ELEMENT (INDEX (SP vm) 1)
 			   (SG_INT_VALUE (INDEX (SP vm) 0)))
 	(AC vm))

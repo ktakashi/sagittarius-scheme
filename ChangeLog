@@ -1,5 +1,8 @@
 2011-04-12  Takashi Kato  <ktakashi@ymail.com>
 
+	* boot/lib/scmlib.scm (rnrs io simple): all (rnrs io simple) functions
+	are implemented.
+
 	* src/null.stub (rnrs io port): added custom ports.
 
 	* src/port.c (rnrs io port): added Sg_MakeCustomBinaryPort and

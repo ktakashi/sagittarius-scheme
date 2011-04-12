@@ -97,6 +97,9 @@ void Sg_Init()
 
   Sg__InitInstruction();
   Sg__Initnull();
+  /* make-file-options needs to be in (core base) */
+  Sg__InitFile();
+
   Sg__Init_sagittarius();
   Sg__Init_sagittarius_vm();
   Sg__Init_sagittarius_vm_debug();
@@ -107,7 +110,6 @@ void Sg_Init()
   Sg__Init_sagittarius_compiler();
 
   /* generic initialization must be after the libraries initialization */
-  Sg__InitFile();
   Sg__InitRecord();
   Sg__InitConsitions();
 

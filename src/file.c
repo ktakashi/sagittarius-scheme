@@ -41,6 +41,7 @@
 #include "sagittarius/builtin-symbols.h"
 #include "sagittarius/writer.h"
 #include "sagittarius/vm.h"
+#include "sagittarius/library.h"
 
 
 static SgObject make_file_options()
@@ -59,13 +60,35 @@ static SgObject make_file_options()
  */
 static SgObject construct_file_options(SgObject *args, int argc, void *data)
 {
-  DeclareProcedureName("make-file-options"); /* dummy */
-  checkArgumentLength(0);		     /* just make file-options object */
-  return make_file_options();
+  SgObject options, cp;
+  SgObject fileOptions;
+
+  DeclareProcedureName("make-file-options");
+  checkArgumentLengthBetween(0, 3);
+  retrieveOptionalArguments(0, options);
+
+  fileOptions = make_file_options();
+  /* this is just error check. */
+  SG_FOR_EACH(cp, options) {
+    SgObject option = SG_CAR(cp);
+    /* TODO check if it's duplicated or not */
+    if (!SG_EQ(option, SG_INTERN("no-create"))
+	&& !SG_EQ(option, SG_INTERN("no-fail"))
+	&& !SG_EQ(option, SG_INTERN("no-truncate"))) {
+      Sg_Error(UC("invalid file option(s) %S"), options);
+    }
+  }
+  /* actually I should use generic-has-field? method.
+     but I know this object has options fields.
+  */
+  Sg_GenericSet(fileOptions, SG_INTERN("options"), options);
+  return fileOptions;
 }
 
 static SG_DEFINE_SUBR(construct_file_options_stub, 0, 0, construct_file_options, SG_FALSE, NULL);
 
+/* we don't use this anymore */
+#if 0
 /* 
    reader
    (file-options something)
@@ -100,6 +123,8 @@ static SgObject read_file_options(SgObject *args, int argc, void *data)
 }
 
 static SG_DEFINE_SUBR(read_file_options_stub, 0, 1, read_file_options, SG_FALSE, NULL);
+#endif
+
 /*
   printer.
  */
@@ -118,7 +143,7 @@ static SgObject print_file_options(SgObject *args, int argc, void *data)
     p = SG_PORT(Sg_CurrentOutputPort());
   }
   argumentAsInstance(0, i_scm, i);
-  Sg_Putuz(p, UC("(file-options "));
+  Sg_Putuz(p, UC("#<enum file-options "));
   options = Sg_GenericRef(i, SG_INTERN("options"));
   SG_FOR_EACH(option, options) {
     Sg_Write(SG_CAR(option), p, SG_WRITE_DISPLAY);
@@ -126,7 +151,7 @@ static SgObject print_file_options(SgObject *args, int argc, void *data)
       Sg_Putc(p, ' ');
     }
   }
-  Sg_Putc(p, ')');
+  Sg_Putc(p, '>');
   return SG_UNDEF;
 }
 
@@ -136,7 +161,7 @@ static SG_STATIC_GENERIC_INIT(file_options,
 			      SG_SYMBOL_FILE_OPTIONS,
 			      FALSE,
 			      &print_file_options_stub,
-			      &read_file_options_stub,
+			      SG_FALSE,
 			      &construct_file_options_stub);
 
 void Sg__InitFile()
@@ -144,4 +169,7 @@ void Sg__InitFile()
   SgObject fields = SG_LIST1(SG_INTERN("options"));
   file_options.fields = fields;
   Sg_RegisterGeneric(SG_SYMBOL_FILE_OPTIONS, &file_options, SG_INTERN("null"));
+  Sg_InsertBinding(Sg_FindLibrary(SG_INTERN("null"), FALSE),
+		   SG_INTERN("make-file-options"),
+		   &construct_file_options_stub);
 }

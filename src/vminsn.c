@@ -331,18 +331,18 @@ CASE(RECEIVE) {
   {
     int i = 0;
     int numValues = 0;
-    if (!SG_VALUESP(AC(vm))) {
+    if (!(SG_VALUESP(AC(vm)))) {
       numValues=1;
     } else {
       numValues=SG_VALUES_SIZE(AC(vm));
     }
 ;
     if (numValues < val1) {
-      Sg_Error(UC("recieved fewer values than expected"));
+      Sg_AssertionViolation(SG_INTERN("receive"), Sg_MakeString(UC("recieved fewer values than expected"), SG_LITERAL_STRING), SG_NIL);
     }
 ;
     if ((val2 == 0 && numValues > val1)) {
-      Sg_Error(UC("recieved more values than expected"));
+      Sg_AssertionViolation(SG_INTERN("receive"), Sg_MakeString(UC("recieved more values than expected"), SG_LITERAL_STRING), SG_NIL);
     }
 ;
     if (val2 == 0    ) {
@@ -398,8 +398,8 @@ CASE(RECEIVE) {
 CASE(CLOSURE) {
   {
     SgObject cb = FETCH_OPERAND(PC(vm));
-    if (!SG_CODE_BUILDERP(cb)) {
-      Sg_Error(UC("code-builder required, but got %S"), cb);
+    if (!(SG_CODE_BUILDERP(cb))) {
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("closure"), Sg_MakeString(UC("code-builder"), SG_LITERAL_STRING), cb, SG_NIL);
     }
 ;
     AC(vm)=Sg_MakeClosure(cb, SP(vm) - SG_CODE_BUILDER_FREEC(cb));
@@ -420,7 +420,7 @@ CASE(APPLY) {
         int length = 0;
         int shiftLen = 0;
         SgObject* sp = NULL;
-        if (!SG_PAIRP(args)) {
+        if (!(SG_PAIRP(args))) {
           Sg_AssertionViolation(Sg_Intern(Sg_MakeString(UC("apply"), SG_LITERAL_STRING)), Sg_Intern(Sg_MakeString(UC("bug?"), SG_LITERAL_STRING)), AC(vm));
         }
 ;
@@ -541,8 +541,8 @@ CASE(DEFINE) {
 }
 
 CASE(CAR) {
-  if (!SG_PAIRP(AC(vm))) {
-    Sg_Error(UC("car: pair required, but got %S"), AC(vm));
+  if (!(SG_PAIRP(AC(vm)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), AC(vm), SG_NIL);
   }
 ;
   BUILTIN_ONE_ARG(vm, SG_CAR);
@@ -550,8 +550,8 @@ CASE(CAR) {
 }
 
 CASE(CDR) {
-  if (!SG_PAIRP(AC(vm))) {
-    Sg_Error(UC("cdr: pair required, but got %S"), AC(vm));
+  if (!(SG_PAIRP(AC(vm)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), AC(vm), SG_NIL);
   }
 ;
   BUILTIN_ONE_ARG(vm, SG_CDR);
@@ -662,8 +662,8 @@ CASE(VECTORP) {
 }
 
 CASE(VEC_LEN) {
-  if (!SG_VECTORP(AC(vm))) {
-    Sg_Error(UC("vector-length: vector required, but got %S"), AC(vm));
+  if (!(SG_VECTORP(AC(vm)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-length"), Sg_MakeString(UC("vector"), SG_LITERAL_STRING), AC(vm), SG_NIL);
   }
 ;
   AC(vm)=SG_MAKE_INT(SG_VECTOR_SIZE(AC(vm)));
@@ -671,12 +671,12 @@ CASE(VEC_LEN) {
 }
 
 CASE(VEC_REF) {
-  if (!SG_VECTORP(INDEX(SP(vm), 0))) {
-    Sg_Error(UC("vector-ref: vector required, but got %S"), INDEX(SP(vm), 0));
+  if (!(SG_VECTORP(INDEX(SP(vm), 0)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-ref"), Sg_MakeString(UC("vector"), SG_LITERAL_STRING), INDEX(SP(vm), 0), SG_NIL);
   }
 ;
-  if (!SG_INTP(AC(vm))) {
-    Sg_Error(UC("vector-ref: fixnum required, but got %S"), AC(vm));
+  if (!(SG_INTP(AC(vm)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-ref"), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), AC(vm), SG_NIL);
   }
 ;
   AC(vm)=SG_VECTOR_ELEMENT(INDEX(SP(vm), 0), SG_INT_VALUE(AC(vm)));
@@ -685,12 +685,12 @@ CASE(VEC_REF) {
 }
 
 CASE(VEC_SET) {
-  if (!SG_VECTORP(INDEX(SP(vm), 1))) {
-    Sg_Error(UC("vector-set!: vector required, but got %S"), INDEX(SP(vm), 1));
+  if (!(SG_VECTORP(INDEX(SP(vm), 1)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-set!"), Sg_MakeString(UC("vector"), SG_LITERAL_STRING), INDEX(SP(vm), 1), SG_NIL);
   }
 ;
-  if (!SG_INTP(INDEX(SP(vm), 0))) {
-    Sg_Error(UC("vector-set!: fixnum required, but got %S"), INDEX(SP(vm), 0));
+  if (!(SG_INTP(INDEX(SP(vm), 0)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-set!"), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), INDEX(SP(vm), 0), SG_NIL);
   }
 ;
   SG_VECTOR_ELEMENT(INDEX(SP(vm), 1), SG_INT_VALUE(INDEX(SP(vm), 0)))=AC(vm);

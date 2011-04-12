@@ -143,7 +143,7 @@
 	    ;; rest of chapter 7 are in exceptions.c
 
 	    ;; io
-	    display newline write write/ss
+	    write/ss
 	    ;; 8 I/O
 	    ;; 8.1 condition types
 	    ;; i/o condition types are in exception.c
@@ -245,10 +245,18 @@
 	    make-custom-binary-input/output-port
 	    make-custom-textual-input/output-port
 
-	    ;; 8.2.14 extra
-	    close-input-port close-output-port
-	    format read
-
+	    ;; 8.3 simple i/o
+	    ;; these are in scmlib.scm
+	    ;; call-with-input-file
+	    ;; call-with-output-file
+	    ;; with-input-from-file
+	    ;; with-output-to-file
+	    ;; open-input-file
+	    ;; open-output-file
+	    close-input-port
+	    close-output-port
+	    read-char peek-char read
+	    write-char newline display write
 
 	    bitwise-not
 	    bitwise-and
@@ -1695,42 +1703,6 @@
   (define-c-proc raise-continuable (condition) ::Object
     (result (Sg_Raise condition TRUE)))
 
-
-
-  ;; io
-  (define-c-proc newline (:optional (p::Port (Sg_CurrentOutputPort))) ::void
-    (Sg_Putc p #\linefeed))
-
-  (define-c-proc display (o :optional (p::Port (Sg_CurrentOutputPort))) ::void
-    (Sg_Write o p SG_WRITE_DISPLAY))
-
-  (define-c-proc write (o :optional (p::Port (Sg_CurrentOutputPort))) ::void
-    (Sg_Write o p SG_WRITE_WRITE))
-
-  (define-c-proc write/ss (o :optional (p::Port (Sg_CurrentOutputPort))) ::void
-    (Sg_Write o p SG_WRITE_SHARED))
-
-  (define-c-proc format (p :rest rest) ::Object
-    (cond ((SG_PORTP p)
-	   (let ((fmt::SgString* (SG_CAR rest))
-		 (objs (SG_CDR rest)))
-	     (Sg_Format p fmt objs FALSE)
-	     (result SG_UNDEF)))
-	  ((SG_BOOLP p)
-	   (let ((fmt::SgString* (SG_CAR rest))
-		 (objs (SG_CDR rest)))
-	     (if (SG_FALSEP p)
-		 (let ((out (Sg_MakeStringOutputPort 16)))
-		   (Sg_Format out fmt objs FALSE)
-		   (result (Sg_GetStringFromStringPort out)))
-		 (let ((out (Sg_CurrentOutputPort)))
-		   (Sg_Format out fmt objs FALSE)
-		   (result SG_UNDEF)))))
-	  ((SG_STRINGP p)
-	   (let ((out (Sg_MakeStringOutputPort 16)))
-	     (Sg_Format out p rest FALSE)
-	     (result (Sg_GetStringFromStringPort out))))))
-
   ;; 8 I/O
   ;; 8.2 port i/o
   ;; 8.2.3 buffer modes
@@ -2528,7 +2500,7 @@
     (result (Sg_MakeCustomTextualPort id SG_IN_OUT_PORT read write
 				      getter setter close)))
 
-  ;; misc
+  ;; 8.3 simple i/o
   (define-c-proc close-input-port (p::Port) ::void
     (if (not (SG_INPORTP p))
 	(wrong-type-of-argument-violation 'close-input-port "input port" p))
@@ -2539,13 +2511,32 @@
 	(wrong-type-of-argument-violation 'close-output-port "output port" p))
     (Sg_ClosePort p))
 
-  (define-c-proc port-closed? (p::Port) ::boolean
-    (result (Sg_PortClosedP p)))
- 
-  (define-c-proc read (:optional (p (Sg_CurrentInputPort))) ::Object
-    (if (not (SG_INPORTP p))
-	(wrong-type-of-argument-violation 'read "input port" p))
+  (define-c-proc read-char (:optional (p::Port (Sg_CurrentInputPort))) ::Object
+    (check-input-port read-char p)
+    (result (Sg_Getc p)))
+
+  (define-c-proc peek-char (:optional (p::Port (Sg_CurrentInputPort))) ::Object
+    (check-input-port peek-char p)
+    (result (Sg_Peekc p)))
+
+  (define-c-proc read (:optional (p::Port (Sg_CurrentInputPort))) ::Object
+    (check-input-port read p)
     (result (Sg_Read p FALSE)))
+
+  (define-c-proc write-char (ch :optional (p::Port (Sg_CurrentOutputPort))) :void
+    (check-char write-char ch)
+    (check-output-port write-char p)
+    (Sg_Putc p (SG_CHAR_VALUE ch)))
+  
+  (define-c-proc newline (:optional (p::Port (Sg_CurrentOutputPort))) ::void
+    (Sg_Putc p #\linefeed))
+
+  (define-c-proc display (o :optional (p::Port (Sg_CurrentOutputPort))) ::void
+    (Sg_Write o p SG_WRITE_DISPLAY))
+
+  (define-c-proc write (o :optional (p::Port (Sg_CurrentOutputPort))) ::void
+    (Sg_Write o p SG_WRITE_WRITE))
+
 
 
   ;; arithmetic bitwise
