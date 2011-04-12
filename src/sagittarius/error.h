@@ -40,8 +40,11 @@ SG_EXTERN void Sg_Error(const SgChar* msg, ...);
 SG_EXTERN void Sg_ReadError(const SgChar* msg, ...);
 SG_EXTERN void Sg_SyntaxError(SgObject form, SgObject irritants);
 
+SG_EXTERN void Sg_IOReadError(SgObject who, SgObject msg, SgObject port);
+SG_EXTERN void Sg_IOWriteError(SgObject who, SgObject msg, SgObject port);
 SG_EXTERN void Sg_AssertionViolation(SgObject who, SgObject message, SgObject irritants);
 
+/* these are for stub files */
 SG_EXTERN void Sg_WrongTypeOfArgumentViolation(SgObject who, SgObject requiredType,
 					       SgObject gotValue, SgObject irritants);
 SG_EXTERN void Sg_WrongNumberOfArgumentsViolation(SgObject who, int requiredCounts,

@@ -817,7 +817,7 @@ static void write_port(SgPort *p, SgPort *port, SgWriteContext *ctx)
 {
   SgObject file = SG_FALSE;
   SgObject transcoder = SG_FALSE;
-  Sg_PutuzUnsafe(port, UC("#<port "));
+  Sg_PutuzUnsafe(port, UC("#<"));
   if (SG_BINARY_PORTP(p)) {
     switch (SG_BINARY_PORT(p)->type) {
     case SG_FILE_BINARY_PORT_TYPE:
@@ -844,6 +844,19 @@ static void write_port(SgPort *p, SgPort *port, SgWriteContext *ctx)
       Sg_PutuzUnsafe(port, UC("unknown"));
     }
     Sg_PutuzUnsafe(port, UC("-textual"));
+  } else if (SG_CUSTOM_PORTP(p)) {
+    Sg_PutuzUnsafe(port, UC("custom"));
+    switch (SG_CUSTOM_PORT(p)->type) {
+    case SG_BINARY_CUSTOM_PORT_TYPE:
+      Sg_PutuzUnsafe(port, UC("-binary"));
+      break;
+    case SG_TEXTUAL_CUSTOM_PORT_TYPE:
+      Sg_PutuzUnsafe(port, UC("-textual"));
+      break;
+    default:
+      /* never happen */
+      Sg_PutuzUnsafe(port, UC("-unknown"));
+    }
   } else {
     /* never happen */
     Sg_PutuzUnsafe(port, UC("-unknown"));
@@ -852,18 +865,27 @@ static void write_port(SgPort *p, SgPort *port, SgWriteContext *ctx)
     Sg_PutuzUnsafe(port, UC("-input-port"));
   } else if (SG_OUTPORTP(p)) {
     Sg_PutuzUnsafe(port, UC("-output-port"));
-  } else {
-    /* TODO in/out port */
+  } else if (SG_INOUTPORTP(p)) {
+    Sg_PutuzUnsafe(port, UC("-input/output-port"));
   }
+  if (SG_CUSTOM_PORTP(p)) {
+    Sg_PutcUnsafe(port, ' ');
+    Sg_PutsUnsafe(port, SG_CUSTOM_PORT(p)->id);
+  }
+
   file = Sg_FileName(p);
   if (!SG_FALSEP(file)) {
     Sg_PutcUnsafe(port, ' ');
     Sg_PutuzUnsafe(port, SG_FILE(file)->name);
   }
-  transcoder = Sg_PortTranscoder(port);
+  transcoder = Sg_PortTranscoder(p);
   if (!SG_FALSEP(transcoder)) {
     Sg_PutcUnsafe(port, ' ');
     Sg_PutsUnsafe(port, SG_CODEC_NAME(SG_TRANSCODER_CODEC(transcoder)));
+  }
+  if (Sg_PortClosedP(p)) {
+    Sg_PutcUnsafe(port, ' ');
+    Sg_PutuzUnsafe(port, UC("closed"));
   }
   Sg_PutcUnsafe(port, '>');
 }

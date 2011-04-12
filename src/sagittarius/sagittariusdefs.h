@@ -322,13 +322,14 @@ typedef enum  {
 #define SG_TAG1(obj)   (SG_WORD(obj) & 0x01)
 #define SG_TAG2(obj)   (SG_WORD(obj) & 0x03)
 #define SG_TAG3(obj)   (SG_WORD(obj) & 0x07)
+#define SG_TAG4(obj)   (SG_WORD(obj) & 0x0f)
 #define SG_TAG8(obj)   (SG_WORD(obj) & 0xff)
 
 /* check if the object is a pointer */
 #define SG_PTRP(obj)   (SG_TAG2(obj) == 0)
 
 /* Immediate objects*/
-#define SG_IMMEDIATEP(obj) (SG_TAG8(obj) == 0x0b)
+#define SG_IMMEDIATEP(obj) (SG_TAG8(obj) == 0x0a)
 #define SG_ITAG(obj)       (SG_WORD(obj)>>8)
 /* 
    get header value
@@ -343,7 +344,7 @@ typedef enum  {
 
 #define SG_MAKEBITS(v, shift)   ((intptr_t)(v)<<shift)
 
-#define SG__MAKE_ITAG(num) (((num)<<8) + 0x0b)
+#define SG__MAKE_ITAG(num) (((num)<<8) + 0x0a)
 #define SG_FALSE           SG_OBJ(SG__MAKE_ITAG(0)) /* #f */
 #define SG_TRUE            SG_OBJ(SG__MAKE_ITAG(1)) /* #t */
 #define SG_NIL             SG_OBJ(SG__MAKE_ITAG(2)) /* '() */
@@ -375,7 +376,7 @@ typedef enum  {
 #define SG_INT_MIN         (-SG_INT_MAX - 1)
 
 #define SG_CHAR(obj)       ((SgChar)(obj))
-#define SG_CHARP(obj)      (SG_TAG2(obj) == 2)
+#define SG_CHARP(obj)      (SG_TAG4(obj) == 2)
 #define SG_CHAR_VALUE(obj) SG_CHAR(((unsigned long)SG_WORD(obj)) >> 8)
 #define SG_MAKE_CHAR(obj)  SG_OBJ(((uintptr_t)(obj) << 8) + 0x02)
 

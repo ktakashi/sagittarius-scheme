@@ -75,6 +75,18 @@ void Sg_SyntaxError(SgObject form, SgObject irritants)
   Sg_Error(UC("syntax-error: %S, irritants %S"), form, irritants);
 }
 
+void Sg_IOReadError(SgObject who, SgObject msg, SgObject port)
+{
+  SgObject proc = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-read-error"));
+  Sg_Apply(proc, SG_LIST3(who, msg, port));
+}
+
+void Sg_IOWriteError(SgObject who, SgObject msg, SgObject port)
+{
+  SgObject proc = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-write-error"));
+  Sg_Apply(proc, SG_LIST3(who, msg, port));
+}
+
 void Sg_AssertionViolation(SgObject who, SgObject message, SgObject irritants)
 {
   SgObject proc = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("assertion-violation"));

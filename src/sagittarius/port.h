@@ -1,4 +1,4 @@
-// -*- C -*-
+/* -*- C -*- */
 /*
  * port.h
  *
@@ -37,7 +37,7 @@
 typedef struct SgBinaryPortRec
 {
   /* only binary port has open */
-  int  (*open)(SgObject);
+  int     (*open)(SgObject);
   /* read/write methods */
   int     (*getU8)(SgObject);
   int     (*lookAheadU8)(SgObject);
@@ -76,7 +76,7 @@ typedef struct SgTextualPortRec
   SgChar   (*lookAheadChar)(SgObject);
   void     (*unGetChar)(SgObject, SgChar);
   void     (*putChar)(SgObject, SgChar);
-  int     type;
+  int      type;
   /* 
      for string port
      it's better to be union
@@ -98,7 +98,28 @@ typedef struct SgTextualPortRec
 
 typedef struct SgCustomPortRec
 {
-  /** @todo  */
+  SgString *id;			/* id must be string */
+  /* common procs */
+  SgObject  getPosition;	/* get-position */
+  SgObject  setPosition;	/* set-position! */
+  SgObject  close;		/* close */
+  /* for input port */
+  SgObject  read;		/* read */
+  /* for output port */
+  SgObject  write;		/* write */
+
+  /* custom port utility */
+  int       type;		/* port type: binary or textual */
+  /* these are for custom textual port */
+  SgChar   *buffer;		/* custom textual port buffer */
+  int       index;		/* buffer index */
+  int       size;		/* buffer size */
+  int       line;		/* line number */
+  /* We share port interface */
+  union {
+    SgBinaryPort  *bport;
+    SgTextualPort *tport;
+  } impl;
 } SgCustomPort;
 
 struct SgPortRec
@@ -155,6 +176,11 @@ enum SgTextualPortType {
   SG_STRING_TEXTUAL_PORT_TYPE,
 };
 
+enum SgCustomPortType {
+  SG_BINARY_CUSTOM_PORT_TYPE,
+  SG_TEXTUAL_CUSTOM_PORT_TYPE,
+};
+
 #define SG_PORTP(obj) 	      (SG_PTRP(obj) && IS_TYPE(obj, TC_PORT))
 #define SG_PORT(obj)  	      ((SgPort*)obj)
 #define SG_INPORTP(obj)       (SG_PORTP(obj) && SG_PORT(obj)->direction == SG_INPUT_PORT)
@@ -174,6 +200,7 @@ enum SgTextualPortType {
   SG_TEXTUAL_PORT(obj)->src.transcoded.transcoder
 #define SG_ERROR_HANDLING_MODE(obj)		\
   SG_TEXTUAL_PORT(obj)->src.transcoded.transcoder->mode
+
 #define SG_CUSTOM_PORTP(obj)  (SG_PORTP(obj) && SG_PORT(obj)->type == SG_CUSTOM_PORT_TYPE)
 #define SG_CUSTOM_PORT(obj)   (SG_PORT(obj)->impl.cport)
 
@@ -197,6 +224,22 @@ SG_EXTERN SgObject Sg_MakeTranscodedOutputPort(SgPort *port, SgTranscoder *trans
 SG_EXTERN SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port, SgTranscoder *transcoder);
 SG_EXTERN SgObject Sg_MakeStringOutputPort(int bufferSize);
 SG_EXTERN SgObject Sg_MakeStringInputPort(SgString *in, int privatep);
+
+/* custom ports */
+SG_EXTERN SgObject Sg_MakeCustomBinaryPort(SgString *id,
+					   int direction,
+					   SgObject read,
+					   SgObject write,
+					   SgObject getPosition,
+					   SgObject setPosition,
+					   SgObject close);
+SG_EXTERN SgObject Sg_MakeCustomTextualPort(SgString *id,
+					    int direction,
+					    SgObject read,
+					    SgObject write,
+					    SgObject getPosition,
+					    SgObject setPosition,
+					    SgObject close);
 
 SG_EXTERN uint8_t* Sg_GetByteArrayFromBinaryPort(SgPort *port);
 SG_EXTERN SgObject Sg_GetByteVectorFromBinaryPort(SgPort *port);
