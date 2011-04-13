@@ -62,6 +62,7 @@
 	(format #t "                 ensure-library-name)~%")
 	(format #t "         (import null (core base) ~%")
 	(format #t "                      (for (core syntax-rules) expand)~%")
+	(format #t "                      (sagittarius)~%")
 	(format #t "                      (sagittarius vm)~%")
 	(format #t "                      (sagittarius vm instruction)~%")
 	(format #t "                      (sagittarius vm debug)~%")
