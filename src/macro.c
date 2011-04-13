@@ -160,7 +160,7 @@ SgObject Sg_MacroExpand(SgObject expr, SgObject p1env, int onceP)
 	g = Sg_FindBinding(SG_IDENTIFIER_LIBRARY(sym),
 			   SG_IDENTIFIER_NAME(sym));
       } else if (SG_SYMBOLP(sym)) {
-	g = Sg_FindBinding(Sg_VM()->currentLibrary,
+	g = Sg_FindBinding(SG_VECTOR_ELEMENT(p1env, 0),
 			   sym);
 			   
       }

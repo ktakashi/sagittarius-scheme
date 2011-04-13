@@ -1252,6 +1252,11 @@ lc: compile builtin libraries
 		      (library-exported-set! lib #f)))
 		  (load-file path '() name import #f)))
 	      *builtin-libraries*)
+    ;; import (sagittarius) as dummy here
+    (execute '(library (sagittarius)
+		  (export :all)
+		  (import null)) '())
+
     #;(vm-debug-step #t)
     (load-file (cadr args) (cddr args) #f #f #t))))
 ;;;; end of file

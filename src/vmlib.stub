@@ -2,7 +2,7 @@
 (library (sagittarius vm)
     (export insn-name
 	    ;; identifier
-	    make-identifier id-name id-name-set!
+	    make-identifier id-name-set!
 	    id-envs id-envs-set! id-library
 	    id-library-set!
 	    copy-identifier
@@ -35,6 +35,7 @@
 	    make-toplevel-closure p1env-lookup p1env-toplevel?
 	    pass3/let-frame-size pass3/frame-size
 	    print-stack-frames
+	    get-stack-trace-object
 	    )
     (import :none)
 ;; for Ypsilon
@@ -49,9 +50,6 @@
   ;; identifier
   (define-c-proc make-identifier (name::Symbol envs library::Library) ::Object
     (result (Sg_MakeIdentifier name envs library)))
-
-  (define-c-proc id-name (id::Identifier) ::Object
-    (result (SG_IDENTIFIER_NAME id)))
 
   (define-c-proc id-envs (id::Identifier) ::Object
     (result (SG_IDENTIFIER_ENVS id)))
@@ -125,6 +123,9 @@
 
   (define-c-proc library-exported-set! (arg0::Library arg1) ::void
     (set! (SG_LIBRARY_EXPORTED arg0) arg1))
+
+  (define-c-proc library-table (lib::Library) ::Object
+    (result (SG_LIBRARY_TABLE lib)))
 
   #;(define-c-proc %set-library (arg0::Library) ::void
     (Sg_SetLibrary arg0))
@@ -257,4 +258,7 @@
 
   (define-c-proc print-stack-frames () ::void
     (Sg_VMPrintFrame))
+
+  (define-c-proc get-stack-trace-object () ::Object
+    (result (Sg_GetStackTrace)))
 )

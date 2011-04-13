@@ -1,6 +1,7 @@
 ;; -*- scheme -*-
 (library (sagittarius) ;; redefine but no problem
     (export identifier?
+	    id-name
 	    ;; sucks!!
 	    make-syntax-object
 	    ;; generics
@@ -39,7 +40,18 @@
 
   ;; for library dependency
   (define-c-proc identifier? (id) ::boolean
-    (result (SG_IDENTIFIERP id)))
+    (result (or (SG_IDENTIFIERP id)
+		(SG_USER_DEFINED_SYNTXP id))))
+
+  (define-c-proc id-name (id) ::Object
+    (cond ((SG_IDENTIFIERP id)
+	   (result (SG_IDENTIFIER_NAME id)))
+	  ((SG_USER_DEFINED_SYNTXP id)
+	   (result (SG_SYNTAX_NAME id)))
+	  (else
+	   (wrong-type-of-argument-violation 'id-name
+					     "identifier"
+					     id))))
 
   (define-c-proc make-syntax-object (datum) ::Object
     (result (Sg_MakeSyntax datum #f TRUE)))

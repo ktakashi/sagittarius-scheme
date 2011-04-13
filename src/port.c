@@ -1379,8 +1379,9 @@ SgObject Sg_GetStringFromStringPort(SgPort *port)
     /* TODO should this return from current index? */
     return tp->src.buffer.str;
   } else {
-    SgString *ret = Sg_CopyString(tp->src.buffer.str);
-    SG_STRING_SIZE(ret) = tp->src.buffer.index;
+    SgString *ret;
+    SG_STRING_SIZE(tp->src.buffer.str) = tp->src.buffer.index;
+    ret = Sg_CopyString(tp->src.buffer.str);
     return ret;
   }
 }

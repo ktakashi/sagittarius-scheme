@@ -270,6 +270,7 @@ int Sg_Load(SgString *path)
   TRY_VM(vm) {
     return Sg_LoadUnsafe(path);
   CATCH_VM(vm)
+    exit(-1);
     return -1;
   }
 }

@@ -1,3 +1,7 @@
+2011-04-13  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/port.c (Sg_GetStringFromStringPort): fixed retrieving string process.
+
 2011-04-12  Takashi Kato  <ktakashi@ymail.com>
 
 	* boot/lib/scmlib.scm (rnrs io simple): all (rnrs io simple) functions
