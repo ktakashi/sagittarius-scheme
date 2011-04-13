@@ -1244,39 +1244,40 @@ static void print_frames(SgVM *vm)
   SgContFrame *cont = CONT(vm);
   SgObject *stack = vm->stack, sp = SP(vm);
   SgObject *current = sp;
-  SgString *fmt = Sg_MakeString(UC("+   o=~9,,,,9a +~%"), SG_LITERAL_STRING);
-  SgString *clfmt = Sg_MakeString(UC("+   cl=~8,,,,9s +~%"), SG_LITERAL_STRING);
-  SgString *dcfmt = Sg_MakeString(UC("+   dc=~8,,,,9s +~%"), SG_LITERAL_STRING);
+  SgString *fmt = Sg_MakeString(UC("+   o=~39,,,,39a +~%"), SG_LITERAL_STRING);
+  SgString *clfmt = Sg_MakeString(UC("+   cl=~38,,,,39s +~%"), SG_LITERAL_STRING);
+  SgString *dcfmt = Sg_MakeString(UC("+   dc=~38,,,,39s +~%"), SG_LITERAL_STRING);
   int something_printed = FALSE;
-  Sg_Printf(vm->logPort, UC("+---------------+ <== sp(0x%x)\n"), sp);
+  Sg_Printf(vm->logPort, UC("+---------------------------------------------+ <== sp(0x%x)\n"), sp);
   /* we print frames from top */
-  current--;
-  while (stack < current && current < sp) {
-    if ((uintptr_t)current == ((uintptr_t)cont + sizeof(SgContFrame))) {
+  while (stack < current && current <= sp) {
+    if (((uintptr_t)current) == ((uintptr_t)cont + sizeof(SgContFrame))) {
       /* print call frame */
       /* frame | frame case*/
       if (something_printed) {
 	Sg_Format(vm->logPort, fmt, SG_LIST1(*current), TRUE);
 	something_printed = FALSE;
-	Sg_Printf(vm->logPort, UC("+---------------+\n"));
+	Sg_Printf(vm->logPort, UC("+---------------------------------------------+\n"));
       }
-      Sg_Printf(vm->logPort, UC("+ size=%8d +\n"), cont->size);
-      Sg_Printf(vm->logPort, UC("+   pc=%8x +\n"), cont->pc);
+      Sg_Printf(vm->logPort, UC("+ size=%#38d +\n"), cont->size);
+      Sg_Printf(vm->logPort, UC("+   pc=%#38x +\n"), cont->pc);
       Sg_Format(vm->logPort, clfmt, SG_LIST1(SG_PROCEDURE_NAME(cont->cl)), TRUE);
       Sg_Format(vm->logPort, dcfmt, SG_LIST1(cont->dc), TRUE);
-      Sg_Printf(vm->logPort, UC("+   fp=%8x +\n"), cont->fp);
+      Sg_Printf(vm->logPort, UC("+   fp=%#38x +\n"), cont->fp);
       if (cont == CONT(vm)) {
-	Sg_Printf(vm->logPort, UC("+---------------+ <== cont(0x%x)\n"), cont);
+	Sg_Printf(vm->logPort, UC("+---------------------------------------------+ <== cont(0x%x)\n"), cont);
       } else {
-	Sg_Printf(vm->logPort, UC("+---------------+\n"));
+	Sg_Printf(vm->logPort, UC("+---------------------------------------------+\n"));
       }
       current = cont;
       cont = cont->prev;
       continue;
     }
-    /* this might be fp or pc of let frame */
-    if (stack <= *current && *current <= sp) {
-      Sg_Printf(vm->logPort, UC("+   p=%9x +\n"), *current);
+    /* this might be fp or dc of let frame */
+    if ((stack <= *current && *current <= sp)) {
+      Sg_Printf(vm->logPort, UC("+   p=%#39x +\n"), *current);
+    } else if (!(*current)) {
+      Sg_Printf(vm->logPort, UC("+   p=%#39x +\n"), *current);
     } else {
       /* assume it's an object */
       Sg_Format(vm->logPort, fmt, SG_LIST1(*current), TRUE);
@@ -1284,6 +1285,7 @@ static void print_frames(SgVM *vm)
     something_printed = TRUE;
     current--;
   }
+  Sg_Printf(vm->logPort, UC("+---------------------------------------------+ <== bottom(0x%x)\n"), stack);
   Sg_Write(SG_MAKE_CHAR('\n'), vm->logPort, 1);
 }
 
