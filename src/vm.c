@@ -270,6 +270,7 @@ int Sg_Load(SgString *path)
   TRY_VM(vm) {
     return Sg_LoadUnsafe(path);
   CATCH_VM(vm)
+    /* TODO cleanup */
     exit(-1);
     return -1;
   }
@@ -933,6 +934,7 @@ SgObject evaluate_safe(SgWord *code, int codeSize)
   TRY_VM(vm) {
     ret = evaluate_unsafe(code, codeSize);
   CATCH_VM(vm)
+    /* TODO cleanup */
     exit(EX_SOFTWARE);
   }
   restore_registers(&r);
@@ -1267,7 +1269,7 @@ static void print_frames(SgVM *vm)
       if (cont == CONT(vm)) {
 	Sg_Printf(vm->logPort, UC("+---------------------------------------------+ <== cont(0x%x)\n"), cont);
       } else {
-	Sg_Printf(vm->logPort, UC("+---------------------------------------------+\n"));
+	Sg_Printf(vm->logPort, UC("+---------------------------------------------+ <== prev cont(s)\n"));
       }
       current = cont;
       cont = cont->prev;
@@ -1277,6 +1279,7 @@ static void print_frames(SgVM *vm)
     if ((stack <= *current && *current <= sp)) {
       Sg_Printf(vm->logPort, UC("+   p=%#39x +\n"), *current);
     } else if (!(*current)) {
+      /* why does this happen? */
       Sg_Printf(vm->logPort, UC("+   p=%#39x +\n"), *current);
     } else {
       /* assume it's an object */

@@ -1,3 +1,7 @@
+2011-04-14  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/main.c (show_usage): added usage message.
+
 2011-04-13  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/port.c (Sg_GetStringFromStringPort): fixed retrieving string process.

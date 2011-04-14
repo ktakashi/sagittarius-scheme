@@ -77,8 +77,8 @@
 		       (set-ellipsis-sids! (car ellipses)
 					   (cons control sids)))
 		      ((not (eq? control (car sids)))
-		       (error 'syntax-rules "illegal control/ellipsis combination" control sids))))
-	      (error 'syntax-rules "missing ellipsis in expression" sid ellipses))
+		       (error "syntax template" "illegal control/ellipsis combination" control sids))))
+	      (error "syntax template" "missing ellipsis in expression" sid ellipses))
 	  (loop control (cdr ellipses))))))
 
 )

@@ -180,6 +180,31 @@ static int getopt_long(int argc, char **argv, const char *optstring,
   return optopt;
 }
 
+static void show_usage()
+{
+  fprintf(stderr,
+	  "Usage: sash [-hv][-L<path>][--debug-exec=<flags>][--logport=<file>]\n"
+	  "options:\n"
+	  "  -v          Prints version and exits.\n"
+	  "  -h          Prints this usage and exits.\n"
+	  "  -L<path>    Adds <path> to the head of the load path list.\n"
+	  "  --debug-exec=<flags> Sets <flags> for VM debugging.\n"
+	  "    info        Shows loading files.\n"
+	  "    debug       Shows info level + calling function names.\n"
+	  "    trace       Shows info debug + stack frames.\n"
+	  "  --logport=<file>     Sets <file> as log port. This port will be\n"
+	  "                       used for above option's."
+	  );
+  exit(1);
+}
+
+static void version()
+{
+  printf("Sagittarius scheme shell, version %s",
+	 SAGITTARIUS_VERSION);
+  exit(0);
+}
+
 int main(int argc, char **argv)
 {
   int opt;
@@ -189,6 +214,7 @@ int main(int argc, char **argv)
   static struct option long_options[] = {
     {"loadpath", optional_argument, 0, 'L'},
     {"help", 0, 0, 'h'},
+    {"version", 0, 0, 'v'},
     {"debug-exec", optional_argument, 0, 'd'},
     {"logport", optional_argument, 0, 'p'},
     {0, 0, 0, 0}
@@ -199,7 +225,7 @@ int main(int argc, char **argv)
   Sg_Init();
   vm = Sg_VM();
 
-  while ((opt = getopt_long(argc, argv, "L:hdp:", long_options, &optionIndex)) != -1) {
+  while ((opt = getopt_long(argc, argv, "L:hdvp:", long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 'd':
       if (strcmp("trace", optarg) == 0) {
@@ -215,15 +241,21 @@ int main(int argc, char **argv)
       break;
     case 'p':
       {
-	SgObject log = Sg_OpenFile(Sg_MakeStringC(optarg), SG_CREATE | SG_TRUNCATE);
+	SgObject log = Sg_OpenFile(Sg_MakeStringC(optarg), SG_CREATE | SG_WRITE | SG_TRUNCATE);
 	SgObject bp = Sg_MakeFileBinaryOutputPort(SG_FILE(log), SG_BUFMODE_NONE);
 	vm->logPort = Sg_MakeTranscodedOutputPort(bp, Sg_MakeNativeTranscoder());
 	break;
       }
+    case 'v':
+      version();
+      break;
+    case 'h':
+      show_usage();
+      break;
     default:
-      fprintf(stderr, "invalid option %C", opt);
-      /* TODO show usage */
-      exit(-1);
+      fprintf(stderr, "invalid option -- %c\n", opt);
+      show_usage();
+      break;
     }
   }
   if (optind < argc) {
