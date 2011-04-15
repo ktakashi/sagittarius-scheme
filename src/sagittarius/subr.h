@@ -151,6 +151,8 @@ struct SgSubrRec
   castArgumentType(index, tmp, var, generic, SG_GENERICP, SG_GENERIC)
 #define argumentAsRecordType(index, tmp, var)				\
   castArgumentType(index, tmp, var, record-type, SG_RECORD_TYPEP, SG_RECORD_TYPE)
+#define argumentAsSyntaxCase(index, tmp, var)				\
+  castArgumentType(index, tmp, var, record-type, SG_SYNTAX_CASEP, SG_SYNTAX_CASE)
 
 /* for library we need special treat */
 #define argumentAsLibrary(index, tmp, var)				\

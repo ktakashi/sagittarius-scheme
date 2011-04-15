@@ -276,8 +276,7 @@ enum {
   /* weak objects */
   TC_WEAK_VECTOR,
 
-  /* user defined */
-  TC_USER_DEFINED,
+  TC_SYNTAX_CASE,
 
   TC_MASKBITS = 0x3f
 };

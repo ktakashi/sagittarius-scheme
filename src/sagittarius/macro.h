@@ -77,6 +77,9 @@ struct SgSyntaxCaseRec
 				 */
 };
 
+#define SG_SYNTAX_CASE(obj)   ((SgSyntaxCase*)obj)
+#define SG_SYNTAX_CASEP(obj)   (SG_PTRP(obj) && IS_TYPE(obj, TC_SYNTAX_CASE))
+
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeSyntax(SgSymbol *name, SgObject proc, int userDefined);

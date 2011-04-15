@@ -1,4 +1,6 @@
 ;; -*- scheme -*-
+;; for Ypsilon
+#!compatible
 (library (sagittarius vm)
     (export insn-name
 	    ;; identifier
@@ -38,8 +40,6 @@
 	    get-stack-trace-object
 	    )
     (import :none)
-;; for Ypsilon
-#!compatible
   (decl-code
    (.include <sagittarius/instruction.h>))
 

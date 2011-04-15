@@ -192,7 +192,7 @@ SgObject Sg_UnwrapSyntax(SgObject form)
 SgObject Sg_MakeSyntaxCase(SgObject literals, SgObject patterns)
 {
   SgSyntaxCase *z = SG_NEW(SgSyntaxCase);
-  SG_SET_HEADER(z, TC_USER_DEFINED);
+  SG_SET_HEADER(z, TC_SYNTAX_CASE);
   z->literals = literals;
   z->patterns = patterns;
   return SG_OBJ(z);
