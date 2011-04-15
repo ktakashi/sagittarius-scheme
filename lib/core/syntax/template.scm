@@ -6,8 +6,7 @@
 	    (core syntax pattern)
 	    (core syntax helper)
 	    (core misc)
-	    (sagittarius)
-	    (sagittarius vm))
+	    (sagittarius))
   ;; from Ypsilon
   (define parse-ellipsis-splicing
     (lambda (form rename compare)
@@ -18,7 +17,7 @@
 	       (values (list-head form len) tail len))))))
 
   (define generate-output
-    (lambda (template sids rename compare expr in-syntax? macro-expander)
+    (lambda (template sids rename compare expr case?)
       (let ((_cdr (rename 'cdr))       (_car (rename 'car))
 	    (_quote (rename 'quote))   (_lambda (rename 'lambda))
 	    (_null? (rename 'null?))   (_pair? (rename 'pair?))
@@ -63,10 +62,14 @@
 	(define syntax-expression?
 	  (lambda (expr)
 	    (and (pair? expr)
-		 (compare (car expr) (rename 'syntax)))))
+		 (compare (car expr) (rename 'syntax))
+		 (or (= (length expr) 2)
+		     (syntax-violation 'syntax
+				       "expected exactly one datum"
+				       expr)))))
 
 	(define loop
-	  (lambda (tmpl ellipses)
+	  (lambda (tmpl ellipses in-syntax?)
 	    (cond ((variable? tmpl)
 		   (expand-variable tmpl ellipses))
 		  ((ellipsis-quote? tmpl rename compare)
@@ -81,8 +84,9 @@
 							       (generate-ellipsis ellipsis
 										  (loop body
 											(cons ellipsis
-											      ellipses)))))
-				       (loop tail ellipses))))
+											      ellipses)
+											in-syntax?))))
+				       (loop tail ellipses in-syntax?))))
 		  
 		  ;; (p ...)
 		  ((ellipsis-pair? tmpl rename compare)
@@ -91,48 +95,32 @@
 				       (generate-ellipsis ellipsis
 							  (loop (car tmpl)
 								(cons ellipsis
-								      ellipses))))
-				     (loop (cddr tmpl) ellipses)))
+								      ellipses)
+								in-syntax?)))
+				     (loop (cddr tmpl) ellipses in-syntax?)))
 		  ((pair? tmpl)
-		   (cond ((and macro-expander
-			       (variable? (car tmpl))
-			       ;; ex) (with-syntax ((name (datum->syntax #'k 'a))) #`(lambda (name) args ...))
-			       ;;    -> (syntax (syntax-case (datum->syntax #'k 'a) () (name (begin args ...))))
-			       ;; but input expression is still the same, expanded expression can be used
-			       ;; as a template.			  
-			       (macro-expander tmpl expr sids in-syntax?)))
-			 ((and macro-expander ; use this as a flag. not so good
+		   (cond ((and case?
 			       (syntax-expression? tmpl))
-			  (generate-output (cadr tmpl) sids rename compare
-					   `(,_cdr ,expr) #t macro-expander))
-			 ((and macro-expander
-			       (not in-syntax?))
-			  ;; here we need to expand macro
-			  (let lp2 ((tmpl tmpl))
-			    (cond ((variable? tmpl) tmpl)
-				  ((and (pair? tmpl)
-					(variable? (car tmpl))
-					(macro-expander tmpl expr sids in-syntax?))
-				   => (lambda (expanded)
-					(lp2 expanded)))
-				  ((syntax-expression? tmpl)
-				   (generate-output (cadr tmpl) sids rename compare
-						    `(,_cdr ,expr) #t macro-expander))
-				  ((pair? tmpl)
-				   (cons (car tmpl) #;(lp2 (car tmpl))
-					 (lp2 (cdr tmpl))))
-				  (else tmpl))))
+			  (loop (cadr tmpl) ellipses #t))
+			 ((and case?
+			       (not in-syntax?)
+			       (not (syntax-expression? tmpl)))
+			  ;; inside of these non-syntax template, there might be
+			  ;; syntax expressions, so we need to search it.
+			  ;;tmpl
+			  (cons (loop (car tmpl) ellipses #f)
+				(loop (cdr tmpl) ellipses #f)))
 			 (else
 			  (optimized-cons rename compare
-					  (loop (car tmpl) ellipses)
-					  (loop (cdr tmpl) ellipses)))))
+					  (loop (car tmpl) ellipses in-syntax?)
+					  (loop (cdr tmpl) ellipses in-syntax?)))))
 		  ((vector? tmpl)
-		   `(,_list->vector ,(loop (vector->list tmpl) ellipses)))
+		   `(,_list->vector ,(loop (vector->list tmpl) ellipses in-syntax?)))
 		  ((null? tmpl)
 		   `(,_quote ()))
 		  (else 
 		   `(,_quote ,tmpl)))))
-	(loop template '()))))
+	(loop template '() #f))))
 
 )
 ;; end of file

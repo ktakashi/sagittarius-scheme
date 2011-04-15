@@ -40,7 +40,7 @@ SET(SAGITTARIUS_LIB_SOURCE
   vmlib.c          vmdebug.c
   compiler-aux.c   lib_scmlib.c
   extlib.c         lib_errors.c
-  lib_arith.c
+  lib_arith.c      lib_macro.c
 )
 
 ADD_LIBRARY(sagittarius SHARED 

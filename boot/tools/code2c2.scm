@@ -5,6 +5,7 @@
 			 (cond ((char=? c #\space) delim)
 			       ((or (char=? c #\()
 				    (char=? c #\))) #\space)
+			       ((char=? c #\-) delim)
 			       (else c))) lib)))
     (string-trim-both s)))
 (define (library-name->path lib)

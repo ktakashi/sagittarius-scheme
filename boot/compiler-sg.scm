@@ -3,6 +3,7 @@
                  ensure-library-name)
          (import null (core base) 
                       (for (core syntax-rules) expand)
+                      (core syntax-case)
                       (sagittarius)
                       (sagittarius vm)
                       (sagittarius vm instruction)
@@ -1038,6 +1039,24 @@
    ((transformer (make-toplevel-closure (compile expr p1env)))
     (macro (make-macro-transformer name transformer (p1env-library p1env))))
    macro)))
+
+(define-pass1-syntax
+ (syntax-case form p1env)
+ :null
+ (smatch
+  form
+  ((- expr (literal ___) rule ___)
+   (pass1
+    (compile-syntax-case
+     (p1env-exp-name p1env)
+     expr
+     literal
+     rule
+     (p1env-library p1env)
+     (p1env-frames p1env)
+     p1env)
+    p1env))
+  (_ (syntax-error "malformed syntax-case" form))))
 
 (define-pass1-syntax
  (define-syntax form p1env)

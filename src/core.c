@@ -1,4 +1,4 @@
-// -*- C -*-
+/* -*- C -*- */
 /*
  * stub.c
  *
@@ -62,6 +62,7 @@ extern void Sg__InitInstruction();
 /* compiled libraries */
 extern void Sg__Initnull();
 extern void Sg__Init_core_base();
+extern void Sg__Init_core_syntax_case();
 extern void Sg__Init_sagittarius_compiler_util();
 extern void Sg__Init_sagittarius_compiler();
 /* these must be the last */
@@ -105,6 +106,7 @@ void Sg_Init()
   Sg__Init_sagittarius_vm_debug();
 
   Sg__Init_core_base();
+  Sg__Init_core_syntax_case();
   Sg__Init_sagittarius_compiler_util();
   Sg__Init_sagittarius_compiler_procedure();
   Sg__Init_sagittarius_compiler();
@@ -132,13 +134,18 @@ void Sg_Init()
   /* 
      we need extra treatment for er-rename. it's defined after the 
      initialization of compiler, so we need to export it to (core base) which 
-     defines er-macro-transformer
+     defines er-macro-transformer.
+     So is (core syntax-case) library.
    */
   {
     SgLibrary *core_base_lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(core base)"), FALSE));
+    SgLibrary *core_macro_lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(core syntax-case)"), FALSE));
     Sg_InsertBinding(core_base_lib,
 		     SG_INTERN("er-rename"),
 		     Sg_FindBinding(SG_INTERN("null"), SG_INTERN("er-rename")));
+    Sg_InsertBinding(core_macro_lib,
+		     SG_INTERN("compile"),
+		     Sg_FindBinding(SG_INTERN("(sagittarius compiler)"), SG_INTERN("compile")));
   }
 
 }

@@ -1172,6 +1172,7 @@
 (define *vm-debug* "lib/debug.scm")
 (define *exc-lib* "lib/errors.scm")
 (define *arith-lib* "lib/arith.scm")
+(define *macro-lib* "lib/macro.scm")
 (define *insn* "insn.scm")
 ;; sagittarius core libraries
 (define *core-lib* "../lib/core.scm")
@@ -1190,6 +1191,8 @@
     ;; in these libraries there are no syntax-rules, so we can import here
     (,*exc-lib* #f () #t)
     (,*arith-lib* #f () #t)
+    (,*macro-lib* (core syntax-case) (null (core base)
+					   (sagittarius)) #t)
     ;;
     (,*struct-lib* #f () #f)
     (,*misc-lib* #f () #f)

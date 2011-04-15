@@ -32,7 +32,7 @@
 
 	    ;; misc
 	    %map-cons
-	    make-toplevel-closure p1env-lookup p1env-toplevel?
+	    p1env-lookup p1env-toplevel?
 	    pass3/let-frame-size pass3/frame-size
 	    print-stack-frames
 	    get-stack-trace-object
@@ -221,10 +221,6 @@
 	(set! l1 (SG_CDR l1))
 	(set! l2 (SG_CDR l2)))
       (result h)))
-
-  (define-c-proc make-toplevel-closure (cb::CodeBuilder) ::Object
-    ;; topleve closure should not have any free variables
-    (result (Sg_MakeClosure cb NULL)))
 
   ;; for better performance.
   ;; NB: we skip some test, because we assume the frame is well-formed.

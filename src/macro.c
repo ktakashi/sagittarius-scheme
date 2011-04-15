@@ -189,6 +189,15 @@ SgObject Sg_UnwrapSyntax(SgObject form)
   return unwrap_rec(form, SG_NIL);
 }
 
+SgObject Sg_MakeSyntaxCase(SgObject literals, SgObject patterns)
+{
+  SgSyntaxCase *z = SG_NEW(SgSyntaxCase);
+  SG_SET_HEADER(z, TC_USER_DEFINED);
+  z->literals = literals;
+  z->patterns = patterns;
+  return SG_OBJ(z);
+}
+
 /*
   end of file
   Local Variables:
