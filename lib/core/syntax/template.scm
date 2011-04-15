@@ -18,7 +18,7 @@
 	       (values (list-head form len) tail len))))))
 
   (define generate-output
-    (lambda (template sids rename compare expr in-syntax? macro-expander)
+    (lambda (template sids rename compare expr case?)
       (let ((_cdr (rename 'cdr))       (_car (rename 'car))
 	    (_quote (rename 'quote))   (_lambda (rename 'lambda))
 	    (_null? (rename 'null?))   (_pair? (rename 'pair?))
@@ -94,38 +94,9 @@
 								      ellipses))))
 				     (loop (cddr tmpl) ellipses)))
 		  ((pair? tmpl)
-		   (cond ((and macro-expander
-			       (variable? (car tmpl))
-			       ;; ex) (with-syntax ((name (datum->syntax #'k 'a))) #`(lambda (name) args ...))
-			       ;;    -> (syntax (syntax-case (datum->syntax #'k 'a) () (name (begin args ...))))
-			       ;; but input expression is still the same, expanded expression can be used
-			       ;; as a template.			  
-			       (macro-expander tmpl expr sids in-syntax?)))
-			 ((and macro-expander ; use this as a flag. not so good
-			       (syntax-expression? tmpl))
-			  (generate-output (cadr tmpl) sids rename compare
-					   `(,_cdr ,expr) #t macro-expander))
-			 ((and macro-expander
-			       (not in-syntax?))
-			  ;; here we need to expand macro
-			  (let lp2 ((tmpl tmpl))
-			    (cond ((variable? tmpl) tmpl)
-				  ((and (pair? tmpl)
-					(variable? (car tmpl))
-					(macro-expander tmpl expr sids in-syntax?))
-				   => (lambda (expanded)
-					(lp2 expanded)))
-				  ((syntax-expression? tmpl)
-				   (generate-output (cadr tmpl) sids rename compare
-						    `(,_cdr ,expr) #t macro-expander))
-				  ((pair? tmpl)
-				   (cons (car tmpl) #;(lp2 (car tmpl))
-					 (lp2 (cdr tmpl))))
-				  (else tmpl))))
-			 (else
-			  (optimized-cons rename compare
-					  (loop (car tmpl) ellipses)
-					  (loop (cdr tmpl) ellipses)))))
+		   (optimized-cons rename compare
+				   (loop (car tmpl) ellipses)
+				   (loop (cdr tmpl) ellipses)))
 		  ((vector? tmpl)
 		   `(,_list->vector ,(loop (vector->list tmpl) ellipses)))
 		  ((null? tmpl)

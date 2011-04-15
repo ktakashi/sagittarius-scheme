@@ -28,7 +28,7 @@
 		   (eq? (rename a) (rename b)))
 	      #f))
 	(let ((r
-	       (expand-syntax-case expr env '() rename compare #t #f)))
+	       (expand-syntax-case expr rename compare)))
 	  ;;(pretty-print (unwrap-syntax r))
 	  r))))
 
@@ -39,7 +39,8 @@
 	 (syntax-violation 'syntax
 			   "expected exactly one datum"
 			   form))
-       (make-syntax-object (cadr form)))))
+       (cadr form)
+       #;(make-syntax-object (cadr form)))))
 
   (define datum->syntax
     (lambda (id datum)
@@ -76,7 +77,7 @@
 	 (syntax (syntax-case (list in ...) ()
 		   ((out ...) (begin e1 e2 ...))))))))
 
-
+#|
   ;; quasisyntax from
 
   ;;; Portable implementation of syntax-case
@@ -190,6 +191,7 @@
                    #'(syntax x)
                    (with-syntax (((b ...) b*) (x xnew))
                      #'(with-syntax (b ...) (syntax x))))))))))
+|#
   )
 ;; end of file
 ;; Local Variables:

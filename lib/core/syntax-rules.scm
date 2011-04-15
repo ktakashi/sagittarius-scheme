@@ -27,7 +27,7 @@
 		       ;;(check-template template sids rename compare)
 		       `(,(rename 'if)
 			 ,(generate-match pat literal rename compare (rename 'form))
-			 ,(generate-output template sids rename compare (rename 'form) #f #f)
+			 ,(generate-output template sids rename compare (rename 'form) #f)
 			 ,(loop (cdr clauses)))))
 		   `(,(rename 'begin)
 		     (,(rename 'syntax-violation)

@@ -25,7 +25,7 @@
 	      (_cond (rename 'cond))     (_else (rename 'else))
 	      (_expr (rename 'expr))     (_cons (rename 'cons))
 	      (_car (rename 'car))       (_variable? (rename 'variable?))
-	      (_begin (rename 'begin)))
+	      (_begin (rename 'begin))    (_and (rename 'and)))
 	  ;; not use
 	  #;(define expand-macro
 	    (lambda (tmpl expr sids in-syntax?)
@@ -49,18 +49,31 @@
 		  (let ((pat (caar clauses))
 			(template (cdar clauses)))
 		    (check-pattern pat literal rename compare)
-		    (let ((sids (collect-sids pat form literal rename compare)))
-		      ;; TODO
-		      ;; we need to check template since we just output non syntax-expression
-		      ;; but for now
-		      ;;(check-template template sids rename compare)
-		      `(,(rename 'if)
-			,(generate-match pat literal rename compare form)
-			(,_begin ,@(map (lambda (tmpl)
-					  (generate-output tmpl sids rename compare form #t))
-					template))
-			,(loop form (cdr clauses)))))
-		  `(,(rename 'begin)
+		    (let ((sids (collect-sids pat form literal rename compare))
+			  (len  (length template)))
+		      (when (or (> len 2)
+				(< len 1))
+			(syntax-violation 'syntax-case
+					  "a clause must be either (<pattern> <output>) or (<pattern> <fender> <output>)"
+					  clause))
+		      (let ((fender (if (= len 2)
+					(car template)
+					#f))
+			    (output (if (= len 2)
+					(cadr template)
+					(car template))))
+			;; TODO
+			;; we need to check template since we just output non syntax-expression
+			;; but for now
+			;;(check-template template sids rename compare)
+			`(,(rename 'if)
+			  (,_and ,(generate-match pat literal rename compare form)
+				 ,(if fender
+				      (cadr template)
+				      #t))
+			  ,(generate-output output sids rename compare form #t)
+			  ,(loop form (cdr clauses))))))
+		  `(,_begin
 		    (,(rename 'syntax-violation)
 		     (,(rename 'quote) syntax-case)
 			   "invalid syntax"
