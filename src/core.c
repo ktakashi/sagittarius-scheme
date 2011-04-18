@@ -144,8 +144,8 @@ void Sg_Init()
 		     SG_INTERN("er-rename"),
 		     Sg_FindBinding(SG_INTERN("null"), SG_INTERN("er-rename")));
     Sg_InsertBinding(core_macro_lib,
-		     SG_INTERN("compile"),
-		     Sg_FindBinding(SG_INTERN("(sagittarius compiler)"), SG_INTERN("compile")));
+		     SG_INTERN("compile-with-*"),
+		     Sg_FindBinding(SG_INTERN("(sagittarius compiler)"), SG_INTERN("compile-with-*")));
   }
 
 }

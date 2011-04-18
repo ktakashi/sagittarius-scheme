@@ -1,5 +1,5 @@
 (library (sagittarius compiler)
-         (export compile compile-w/o-halt compile-p1 compile-p2 compile-p3
+         (export compile compile-with-* compile-p1 compile-p2 compile-p3
                  ensure-library-name)
          (import null (core base) 
                       (for (core syntax-rules) expand)
@@ -1056,7 +1056,23 @@
      (p1env-frames p1env)
      p1env)
     p1env))
-  (_ (syntax-error "malformed syntax-case" form))))
+  (- (syntax-error "malformed syntax-case" form))))
+
+(define-pass1-syntax
+ (syntax form p1env)
+ :null
+ (smatch
+  form
+  ((- tmpl)
+   (pass1
+    (compile-syntax
+     (p1env-exp-name p1env)
+     tmpl
+     (p1env-library p1env)
+     (p1env-frames p1env)
+     p1env)
+    p1env))
+  (- (syntax-error "malformed syntax: expected exactly one datum" form))))
 
 (define-pass1-syntax
  (define-syntax form p1env)
@@ -2532,10 +2548,10 @@
 (define
  pass3
  (lambda
-  (iform cb renv ctx need-halt?)
+  (iform cb renv ctx last)
   (let
    ((maxstack (pass3/rec iform cb renv ctx)))
-   (code-builder-finish-builder cb need-halt?)
+   (code-builder-finish-builder cb last)
    cb)))
 
 (define
@@ -3873,17 +3889,17 @@
    ((env (cond ((vector? env) env) (else (make-bottom-p1env)))))
    (let
     ((p1 (pass1 (pass0 program env) env)))
-    (pass3 (pass2 p1) (make-code-builder) (make-renv) 'normal/top #t)))))
+    (pass3 (pass2 p1) (make-code-builder) (make-renv) 'normal/top HALT)))))
 
 (define
- compile-w/o-halt
+ compile-with-*
  (lambda
-  (program env)
+  (program env insn)
   (let
    ((env (cond ((vector? env) env) (else (make-bottom-p1env)))))
    (let
     ((p1 (pass1 (pass0 program env) env)))
-    (pass3 (pass2 p1) (make-code-builder) (make-renv) 'normal/top #f)))))
+    (pass3 (pass2 p1) (make-code-builder) (make-renv) 'normal/top insn)))))
 
 (define
  compile-p1

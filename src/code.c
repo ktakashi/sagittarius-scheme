@@ -305,10 +305,13 @@ static void finish_builder_rec(SgCodeBuilder *cb)
   code = NULL;			/* gc friendliness */
 }
 
-SgObject Sg_CodeBuilderFinishBuilder(SgCodeBuilder *cb, int needHaltp)
+SgObject Sg_CodeBuilderFinishBuilder(SgCodeBuilder *cb, int last)
 {
-  if (needHaltp) {
-    Sg_CodeBuilderEmit(cb, HALT, ARGUMENT0, 0, 0, SG_UNDEF);
+  /* we don't check if last is valid insn or not.
+     and it must be non valued and no argument instruction.
+   */
+  if (last != NOP) {
+    Sg_CodeBuilderEmit(cb, last, ARGUMENT0, 0, 0, SG_UNDEF);
   }
   flush(cb);
   finish_builder_rec(cb);

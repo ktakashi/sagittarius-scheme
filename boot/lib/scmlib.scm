@@ -29,7 +29,7 @@
 (define (hashtable-map proc ht)
   (map proc (hashtable-keys ht) (hashtable-values ht)))
 
-(define (any pred ls)
+#;(define (any pred ls)
   (if (pair? ls) (if (pred (car ls)) (car ls) (any pred (cdr ls))) #f))
 
 (define (call-with-values producer consumer)
@@ -51,6 +51,13 @@
 		     (eq? a (rename b)))
 		    (else #f))))
 	(f (car expr) rename compare)))))
+
+(define safe-length
+  (lambda (lst)
+    (let loop ((lst lst) (n 0))
+      (if (pair? lst)
+          (loop (cdr lst) (+ n 1))
+          (or (and (null? lst) n) -1)))))
 
 ;; print
 (define (print . args)

@@ -18,11 +18,14 @@
 	    ;; closure
 	    closure? make-toplevel-closure
 
+	    ;; list
+	    circular-list?
+
 	    ;; vector
 	    vector-copy
 
 	    ;; misc
-	    variable?
+	    variable? arity
 
 	    ;; io
 	    port-closed? format write/ss
@@ -95,6 +98,10 @@
     ;; topleve closure should not have any free variables
     (result (Sg_MakeClosure cb NULL)))
 
+  ;; list
+  (define-c-proc circular-list? (lst) ::boolean
+    (result (SG_CIRCULAR_LISTP lst)))
+
   ;; vector
   (define-c-proc vector-copy (vec::Vector :optional (start::fixnum 0)
 					            (end::fixnum -1)
@@ -105,6 +112,18 @@
   (define-c-proc variable? (o) ::boolean
     (result (or (SG_SYMBOLP o)
 		(SG_IDENTIFIERP o))))
+
+  ;; arity returns pair of required and optional arguments count.
+  ;; returned pair is structured like this : (<required> . <optional>)
+  ;; <required> : # of required arguments
+  ;; <optional> : #t or #f
+  (define-c-proc arity (p::Procedure) ::Object
+    (let ((req (SG_PROCEDURE_REQUIRED p))
+	  (opt (SG_PROCEDURE_OPTIONAL p)))
+      (if (> opt 0)
+	  (result (Sg_Cons (SG_MAKE_INT req) #t))
+	  (result (Sg_Cons (SG_MAKE_INT req) #f)))))
+
   ;; io
   (define-cgen-stmt check-output-port
     ((_ name p)

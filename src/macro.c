@@ -112,6 +112,8 @@ static SgObject macro_tranform(SgObject *args, int argc, void *data_)
   form = args[1];
   p1env = args[2];
   /* TODO it's kinda waste of time if we compute each time. */
+  /* NB: we don't use scheme apply(Sg_VMApply) to get macro transformer, because
+         it contains HALT in it. If we use it, programme will be stopped. */
   data = Sg_Apply(args[3], SG_NIL);
 
   return Sg_Apply(data, SG_LIST1(Sg_Cons(form, p1env)));

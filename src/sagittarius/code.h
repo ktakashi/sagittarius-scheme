@@ -120,7 +120,7 @@ SG_EXTERN void     Sg_CodeBuilderEmit(SgCodeBuilder *cb, SgWord insn, PacketType
 SG_EXTERN void     Sg_CodeBuilderAddSrc(SgCodeBuilder *cb, int insn, SgObject src);
 SG_EXTERN void     Sg_CodeBuilderFlush(SgCodeBuilder *cb);
 SG_EXTERN void     Sg_CodeBuilderLabelSet(SgCodeBuilder *cb, SgObject label);
-SG_EXTERN SgObject Sg_CodeBuilderFinishBuilder(SgCodeBuilder *cb, int needHaltp);
+SG_EXTERN SgObject Sg_CodeBuilderFinishBuilder(SgCodeBuilder *cb, int last);
 SG_EXTERN SgObject Sg_CodeBuilderFullName(SgCodeBuilder *cb);
 SG_EXTERN void     Sg_VMExecute(SgObject toplevel);
 

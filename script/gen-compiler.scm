@@ -58,7 +58,7 @@
     (with-input-from-file file
       (lambda ()
 	(format #t "(library (sagittarius compiler)~%")
-	(format #t "         (export compile compile-w/o-halt compile-p1 compile-p2 compile-p3~%")
+	(format #t "         (export compile compile-with-* compile-p1 compile-p2 compile-p3~%")
 	(format #t "                 ensure-library-name)~%")
 	(format #t "         (import null (core base) ~%")
 	(format #t "                      (for (core syntax-rules) expand)~%")
@@ -87,4 +87,4 @@
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix
-;; End
+;; End:

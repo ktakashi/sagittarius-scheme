@@ -1,7 +1,16 @@
 ;; -*- scheme -*-
 (library (sagittarius vm debug)
-    (export vm-dump-code)
+    (export vm-dump-code
+	    vm-dump-closure)
     (import :none)
   (define-c-proc vm-dump-code (cb::CodeBuilder) ::Object
     (Sg_VMDumpCode cb)
-    (result SG_UNDEF)))
+    (result SG_UNDEF))
+
+  (define-c-proc vm-dump-closure (c::Procedure) ::Object
+    (if (SG_CLOSUREP c)
+	(Sg_VMDumpCode (-> (SG_CLOSURE c) code))
+	(Sg_Printf "subr %S" (SG_PROCEDURE_NAME c)))
+    (result SG_UNDEF))
+)
+

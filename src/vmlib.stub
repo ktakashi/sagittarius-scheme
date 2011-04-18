@@ -209,8 +209,8 @@
     (Sg_CodeBuilderEmit cb insn ARGUMENT1 0 0 lambda_cb)
     (Sg_CodeBuilderAddSrc lambda_cb insn src))
 
-  (define-c-proc code-builder-finish-builder (cb::CodeBuilder need_halt::boolean) ::Object
-    (result (Sg_CodeBuilderFinishBuilder cb need_halt)))
+  (define-c-proc code-builder-finish-builder (cb::CodeBuilder last::fixnum) ::Object
+    (result (Sg_CodeBuilderFinishBuilder cb last)))
 
   ;; misc
   ;; (%map-cons l1 l2) = (map cons l1 l2)
@@ -245,6 +245,30 @@
     (result TRUE)
     (dolist (fp (SG_VECTOR_ELEMENT p1env 1))
       (if (== (SG_CAR fp) (SG_MAKE_INT 0)) (result FALSE))))
+
+  ;; TODO it's almost the same process as p1env-lookup
+  ;; lookup pvar from p1env.
+  ;; when we change the value of PATTERN in macro.scm(for now we don't use it
+  ;; in compiler.scm), it needs to be changed as well.
+  (define-c-proc p1env-pvar-lookup (p1env::Vector name) ::Object
+    (let ((name_identp::int (SG_IDENTIFIERP name))
+	  (frames (SG_VECTOR_ELEMENT p1env 1)))
+      (dopairs (fp frames)
+	(when (and name_identp
+		   (== (SG_IDENTIFIER_ENVS name) fp))
+	  ;; strip identifier if we're in the same env
+	  (set! name (SG_OBJ (SG_IDENTIFIER_NAME name))))
+	(unless (== (SG_CAAR fp) (SG_MAKE_INT 2))
+	  (continue))
+	(dolist (vp (SG_CDAR fp))
+	  (when (SG_EQ name (SG_CAR vp)) (return (SG_CDR vp)))))
+      ;; no variable found in p1env.
+      (if (SG_SYMBOLP name)
+	  (let ((lib (SG_VECTOR_ELEMENT p1env 0)))
+	    (result (Sg_MakeIdentifier (SG_SYMBOL name)
+				       '()
+				       (SG_LIBRARY lib))))
+	  (result name))))
 
   (define-c-proc pass3/frame-size () ::fixnum
     (result SG_FRAME_SIZE))

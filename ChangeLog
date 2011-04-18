@@ -1,3 +1,8 @@
+2011-04-18  Takashi Kato  <ktakashi@ymail.com>
+
+	* boot/lib/macro.scm (syntax-case): Added syntax-case expander.
+	(syntax): Added syntax expander.
+
 2011-04-14  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/main.c (show_usage): added usage message.

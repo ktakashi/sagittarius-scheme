@@ -862,11 +862,11 @@ SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
       Sg_Apply(vm->exceptionHandler, SG_LIST1(exception));
       if (!SG_FALSEP(vm->parentExHandler)) {
 	return Sg_Apply(vm->parentExHandler, 
-			Sg_Condition(SG_LIST4(Sg_MakeNonContinuableViolation(),
-					      Sg_MakeWhoCondition(SG_INTERN("raise")),
-					      Sg_MakeMessageCondition(Sg_MakeString(UC("returned from non-continuable exception"),
-										    SG_LITERAL_STRING)),
-					      Sg_MakeIrritantsCondition(SG_LIST1(exception)))));
+			SG_LIST1(Sg_Condition(SG_LIST4(Sg_MakeNonContinuableViolation(),
+						       Sg_MakeWhoCondition(SG_INTERN("raise")),
+						       Sg_MakeMessageCondition(Sg_MakeString(UC("returned from non-continuable exception"),
+											     SG_LITERAL_STRING)),
+						       Sg_MakeIrritantsCondition(SG_LIST1(exception))))));
       }
       vm->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
       Sg_Error(UC("error in raise: returned from non-continuable exception\n\nirritants:\n%A"), exception);

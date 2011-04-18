@@ -10,7 +10,7 @@
 	    syntax-violation)
     (import (core)
 	    (sagittarius)
-	    (core syntax-case))
+	    (core syntax))
 
 ) ; [end]
 ;; end of file

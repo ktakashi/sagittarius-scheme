@@ -994,7 +994,17 @@
 				 (p1env-library p1env)
 				 (p1env-frames p1env)
 				 p1env) p1env))
-    (_ (syntax-error "malformed syntax-case" form))))
+    (- (syntax-error "malformed syntax-case" form))))
+
+(define-pass1-syntax (syntax form p1env) :null
+  (smatch form
+    ((- tmpl)
+     (pass1 (compile-syntax (p1env-exp-name p1env)
+			    tmpl
+			    (p1env-library p1env)
+			    (p1env-frames p1env)
+			    p1env) p1env))
+    (- (syntax-error "malformed syntax: expected exactly one datum" form))))
 
 ;;
 ;; define-syntax.
@@ -2329,9 +2339,9 @@
      iform cb renv ctx)))
 
 (define pass3
-  (lambda (iform cb renv ctx need-halt?)
+  (lambda (iform cb renv ctx last)
     (let ((maxstack (pass3/rec iform cb renv ctx)))
-      (code-builder-finish-builder cb need-halt?)
+      (code-builder-finish-builder cb last)
       cb)))
 
 (define pass3/exists-in-can-frees?
@@ -3271,10 +3281,10 @@
 	       (make-code-builder)
 	       (make-renv)
 	       'normal/top
-	       #t)))))
+	       HALT)))))
 
-(define compile-w/o-halt
-  (lambda (program env)
+(define compile-with-*
+  (lambda (program env insn)
     (let ((env (cond ((vector? env) env);; must be p1env
 		     (else (make-bottom-p1env))))) ;; TODO add library pattern
       (let ((p1 (pass1 (pass0 program env) env)))
@@ -3282,7 +3292,7 @@
 	       (make-code-builder)
 	       (make-renv)
 	       'normal/top
-	       #f)))))
+	       insn)))))
 
 (cond-expand
  (gauche

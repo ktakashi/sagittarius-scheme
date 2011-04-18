@@ -741,7 +741,7 @@
   (cb-emit0o! cb insn lambda-cb))
 	
 ;; this needs to be moved to C++
-(define (code-builder-finish-builder cb need-halt?)
+(define (code-builder-finish-builder cb last)
   (define (builder-label-def label-defs label)
     (cond ((assq label label-defs)
 	   => cdr)
@@ -771,8 +771,8 @@
 		  (rec (vector-ref code i)))
 	      (loop (+ i 1)))))))
 
-  (when need-halt?
-    (cb-emit0! cb HALT))
+  (unless (= last NOP)
+    (cb-emit0! cb last))
   (cb-flush cb)
   (rec cb)
   cb)
