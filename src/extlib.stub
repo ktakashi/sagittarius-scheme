@@ -4,6 +4,7 @@
 (library (sagittarius) ;; redefine but no problem
     (export identifier?
 	    id-name
+	    id-memq
 	    ;; sucks!!
 	    make-syntax-object
 	    make-syntax-case
@@ -58,6 +59,11 @@
 	   (wrong-type-of-argument-violation 'id-name
 					     "identifier"
 					     id))))
+
+  (define-c-proc id-memq (id lst) ::Object
+    (if (SG_IDENTIFIERP id)
+	(result (Sg_Memq (SG_IDENTIFIER_NAME id) lst))
+	(result (Sg_Memq id lst))))
 
   (define-c-proc make-syntax-object (datum) ::Object
     (result (Sg_MakeSyntax datum #f TRUE)))

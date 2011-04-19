@@ -3,6 +3,7 @@
     (export :all)
     (import (core)
 	    (core base)
+	    (sagittarius)
 	    (sagittarius misc))
 ; File: "pp.scm"   (c) 1991, Marc Feeley
 
@@ -75,7 +76,9 @@
           ((boolean? obj)     (out (if obj "#t" "#f") col))
           ((number? obj)      (out (number->string obj) col))
           ((symbol? obj)      (out (symbol->string obj) col))
-          ((procedure? obj)   (out "#<procedure>" col))
+	  ((identifier? obj)  (out (symbol->string (id-name obj)) col))
+	  ;; for Sagittarius
+          ;;((procedure? obj)   (out "#<procedure>" col))
           ((string? obj)      (if display?
 				  (out obj col)
 				  (let loop ((i 0) (j 0) (col (out "\"" col)))
@@ -98,10 +101,11 @@
 					 ((#\newline) "newline")
 					 (else        (make-string 1 obj)))
 				       (out "#\\" col))))
-          ((input-port? obj)  (out "#<input-port>" col))
-          ((output-port? obj) (out "#<output-port>" col))
-          ((eof-object? obj)  (out "#<eof-object>" col))
-          (else               (out "#<unknown>" col))))
+	  ;; Sagittarius we don't need this
+          ;;((input-port? obj)  (out "#<input-port>" col))
+	  ;;((output-port? obj) (out "#<output-port>" col))
+          ;;((eof-object? obj)  (out "#<eof-object>" col))
+          (else               (out (format "~s" obj) col)))) ; Sagittarius #<unknown> -> obj
  
 
   (define (pp obj col)

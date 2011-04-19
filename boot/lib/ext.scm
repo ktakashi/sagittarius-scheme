@@ -10,6 +10,11 @@
     (or (symbol? o)
 	(identifier? o))))
 
+(define (id-memq id lst)
+    (if (identifier? id)
+	(memq (id-name id) lst)
+	(memq id lst)))
+
 ;; generics for stub
 (define (make-generic name prn ctr . fields)
   (vector '.generic name prn ctr fields))
