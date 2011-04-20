@@ -27,6 +27,8 @@
 
 	    ;; misc
 	    variable? arity
+	    unbound undefined undefined? add-load-path
+	    gensym unwrap-syntax wrap-syntax
 
 	    ;; io
 	    port-closed? format write/ss
@@ -129,6 +131,27 @@
       (if (> opt 0)
 	  (result (Sg_Cons (SG_MAKE_INT req) #t))
 	  (result (Sg_Cons (SG_MAKE_INT req) #f)))))
+
+  (define-c-proc unbound () ::Object
+    (result SG_UNBOUND))
+
+  (define-c-proc undefined () ::Object
+    (result SG_UNDEF))
+
+  (define-c-proc undefined? (o) ::boolean
+    (result (SG_UNDEFP o)))
+
+  (define-c-proc add-load-path (path::String) ::Object
+    (result (Sg_AddLoadPath path)))
+
+  (define-c-proc gensym (:optional (prefix::String NULL)) ::Object
+    (result (Sg_Gensym prefix)))
+
+  (define-c-proc unwrap-syntax (form) ::Object
+    (result (Sg_UnwrapSyntax form)))
+
+  (define-c-proc wrap-syntax (form p1env::Vector) ::Object
+    (result (Sg_WrapSyntax form p1env)))
 
   ;; io
   (define-cgen-stmt check-output-port

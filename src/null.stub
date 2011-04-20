@@ -318,11 +318,7 @@
 	    rtd-ancestor?
 	    rcd-protocol rcd-parent
 	    ;; tuple for record helper
-	    make-tuple tuple-list-set! tuple-ref ruple-set!
-
-	    ;; misc
-	    unbound undefined undefined? add-load-path
-	    gensym unwrap-syntax)
+	    make-tuple tuple-list-set! tuple-ref ruple-set!)
     (import :none)
 ;; for Ypsilon
 #!compatible
@@ -2820,24 +2816,5 @@
 
   (define-c-proc ruple-set! (tuple i::fixnum value) ::void
     (Sg_TupleSet tuple i value))
-
-  ;; misc
-  (define-c-proc unbound () ::Object
-    (result SG_UNBOUND))
-
-  (define-c-proc undefined () ::Object
-    (result SG_UNDEF))
-
-  (define-c-proc undefined? (o) ::boolean
-    (result (SG_UNDEFP o)))
-
-  (define-c-proc add-load-path (path::String) ::Object
-    (result (Sg_AddLoadPath path)))
-
-  (define-c-proc gensym (:optional (prefix::String NULL)) ::Object
-    (result (Sg_Gensym prefix)))
-
-  (define-c-proc unwrap-syntax (form) ::Object
-    (result (Sg_UnwrapSyntax form)))
 
   )

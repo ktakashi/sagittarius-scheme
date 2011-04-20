@@ -34,7 +34,7 @@
 
 	    ;; misc
 	    %map-cons
-	    p1env-lookup p1env-toplevel?
+	    p1env-lookup p1env-toplevel? p1env-pvar-lookup p1env-frame-lookup
 	    pass3/let-frame-size pass3/frame-size
 	    print-stack-frames
 	    get-stack-trace-object
@@ -269,6 +269,9 @@
 				       '()
 				       (SG_LIBRARY lib))))
 	  (result name))))
+
+  (define-c-proc p1env-frame-lookup (p1env::Vector name::Symbol lookup_as::fixnum) ::Object
+    (result (Sg_P1envFrameLookup name p1env lookup_as)))
 
   (define-c-proc pass3/frame-size () ::fixnum
     (result SG_FRAME_SIZE))

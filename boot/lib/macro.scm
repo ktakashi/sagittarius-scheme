@@ -4,7 +4,8 @@
 
 (define extend-env
   (lambda (new old)
-    (acons PATTERN new old)))
+    ;; we need to keep env the same pointer as old.
+    (append! old (list (cons PATTERN new)))))
 
 (define unique-id-list?
   (lambda (lst)
@@ -15,24 +16,37 @@
                          (id-memq (car lst) (cdr lst))
                          (loop (cdr lst)))))))))
 
+(define ellipsis?
+  (lambda (expr)
+    (or (and (symbol? expr)
+	     (eq? expr '...))
+	(and (identifier? expr)
+	     (eq? (id-name expr) '...)))))
+
+(define (bar? expr)
+      (or (and (symbol? expr)
+	       (eq? expr '_))
+	  (and (identifier? expr)
+	       (eq? (id-name expr) '_))))
+
 (define ellipsis-pair?
   (lambda (form)
     (and (pair? form)
          (pair? (cdr form))
-         (eq? (cadr form) '...))))
+         (ellipsis? (cadr form)))))
 
 (define ellipsis-splicing-pair?
   (lambda (form)
     (and (pair? form)
          (pair? (cdr form))
-         (eq? (cadr form) '...)
+         (ellipsis? (cadr form))
          (pair? (cddr form))
-         (eq? (caddr form) '...))))
+         (ellipsis? (caddr form)))))
 
 (define ellipsis-quote?
   (lambda (form)
     (and (pair? form)
-         (eq? (car form) '...)
+         (ellipsis? (car form))
          (pair? (cdr form))
          (null? (cddr form)))))
 
@@ -45,8 +59,8 @@
           (cond ((pair? lst)
                  (loop (cdr lst)
                        (loop (car lst) pool)))
-                ((eq? lst '...) pool)
-                ((eq? lst '_) pool)
+                ((ellipsis? lst) pool)
+                ((bar? lst) pool)
                 ((symbol? lst)
                  (if (memq lst lites)
                      pool
@@ -60,7 +74,7 @@
     (define check-misplaced-ellipsis
       (lambda (pat lites)
         (let loop ((lst pat))
-          (cond ((eq? lst '...)
+          (cond ((ellipsis? lst)
                  (assertion-violation "syntax pattern" "improper use of ellipsis" pat))
                 ((ellipsis-pair? lst)
                  (and (symbol? (car lst))
@@ -68,7 +82,7 @@
                       (assertion-violation "syntax pattern" "ellipsis following literal" pat lst))
                  (let loop ((lst (cddr lst)))
                    (and (pair? lst)
-                        (if (eq? (car lst) '...)
+                        (if (ellipsis? (car lst))
                             (assertion-violation "syntax pattern" "ambiguous use of ellipsis" pat)
                             (loop (cdr lst))))))
                 ((pair? lst)
@@ -82,15 +96,15 @@
 
 
 (define collect-vars-ranks
-  (lambda (pat lites depth ranks)
-    (cond ((eq? pat '_) ranks)
-          ((symbol? pat)
-           (if (memq pat lites)
+  (lambda (pat lites depth ranks)    
+    (cond ((bar? pat) ranks)
+          ((variable? pat)
+           (if (id-memq pat lites)
                ranks
                (acons pat depth ranks)))
           ((ellipsis-pair? pat)
            (collect-vars-ranks (cddr pat) lites depth
-                               (if (symbol? (car pat))
+                               (if (variable? (car pat))
                                    (acons (car pat) (+ depth 1) ranks)
                                    (collect-vars-ranks (car pat) lites (+ depth 1) ranks))))
           ((pair? pat)
@@ -105,7 +119,7 @@
 
     (define parse-pattern
       (lambda (pattern)
-	(let ((ranks   (collect-vars-ranks pattern literals 0 '())))
+	(let ((ranks   (collect-vars-ranks pattern (unwrap-syntax literals) 0 '())))
 	  (check-pattern pattern literals)
 	  (values pattern ranks
 		  (extend-env (map (lambda (a)
@@ -119,9 +133,9 @@
 	(assertion-violation 'syntax-case "invalid literals" expr literals))
     (or (unique-id-list? literals)
 	(assertion-violation 'syntax-case "duplicate literals" expr literals))
-    (and (memq '_ literals)
+    (and (memq '_ (unwrap-syntax literals))
 	 (assertion-violation 'syntax-case "_ in literals" expr literals))
-    (and (memq '... literals)
+    (and (memq '... (unwrap-syntax literals))
 	 (assertion-violation 'syntax-case "... in literals" expr literals))
 
     (let ((processes (map (lambda (clause)
@@ -129,7 +143,6 @@
 				   (receive (pattern ranks env) (parse-pattern (car clause))
 				     ;; i'm not sure if it's ok, but for now we don't have any way to
 				     ;; remember the ranks
-				     (vector-set! p1env 1 env)
 				     `(list ',pattern
 					    ',ranks
 					    #f
@@ -138,7 +151,6 @@
 					      ,(cadr clause)))))
 				  ((= (length clause) 3) ; with fender
 				   (receive (pattern ranks env) (parse-pattern (car clause))
-				     (vector-set! p1env 1 env)
 				     `(list ',pattern
 					    ',ranks
 					    (lambda (,@(map car ranks)
@@ -151,7 +163,10 @@
 							"a clause must be either (<pattern> <expression) or (<pattern> <fender> <expression)"
 							clause))))
 			  rules)))
-      `(match-syntax-case ',literals ,expr ,@processes))))
+      `(match-syntax-case ',literals
+			  ;;(wrap-syntax ,expr ,p1env)
+			  ,expr
+			  ,@processes))))
 
 (define match-ellipsis?
   (lambda (expr pat lites)
@@ -169,18 +184,17 @@
 
 (define match-pattern?
   (lambda (expr pat lites)
-    (define compare
-      (lambda (a b)
-	(or (and (symbol? a)
-		 (identifier? b)
-		 (eq? a (id-name b)))
-	    (and (symbol? b)
-		 (identifier? a)
-		 (eq? b (id-name a))))))
-
-    (cond ((compare pat '_) #t)
+    (define (compare a b)
+      (or (eq? a b)
+	  (and (symbol? a)
+	       (identifier? b)
+	       (eq? a (id-name b)))
+	  (and (symbol? b)
+	       (identifier? a)
+	       (eq? b (id-name a)))))
+    (cond ((bar? pat) #t)
           ((symbol? pat)
-           (cond ((memq pat lites)
+           (cond ((id-memq pat lites)
                   (and (variable? expr)
 		       ;; if we can use compare from er-macro-transformer...
                        (compare pat expr)))
@@ -210,7 +224,7 @@
       (cond ((pair? lst)
              (loop (cdr lst)
                    (loop (car lst) ans)))
-            ((eq? lst '...) ans)
+            ((ellipsis? expr) ans)
             ((variable? lst)
              (if (id-memq lst ans) ans (cons lst ans)))
             ((vector? lst)
@@ -226,7 +240,7 @@
 
 (define bind-var!
   (lambda (pat expr vars)
-    (cond ((eq? pat '_) vars)
+    (cond ((bar? pat) vars)
           (else
            (let ((slot (assq pat vars)))
              (if slot
@@ -264,8 +278,8 @@
 
 (define bind-pattern
   (lambda (expr pat lites vars)
-    (cond ((symbol? pat)
-           (if (memq pat lites)
+    (cond ((variable? pat)
+           (if (id-memq pat lites)
                vars
                (bind-var! pat expr vars)))
           ((ellipsis-pair? pat)
@@ -293,11 +307,13 @@
     ;; however if expression was defined by user or something, it doesn't have
     ;; it. so we need to check if it has ir or not.
     ;; TODO this might be too naive
-    (let ((form (if (= (length expr) -1) (car expr) expr)))
+    (let ((form (if (= (length expr) -1)
+		    (wrap-syntax (car expr) (cdr expr))
+		    expr)))
       (define match
 	(lambda (form pat)
-	  (and (match-pattern? form pat literals)
-	       (bind-pattern form pat literals '()))))
+	  (and (match-pattern? form pat (unwrap-syntax literals))
+	       (bind-pattern form pat (unwrap-syntax literals) '()))))
       ;; for now I don't consider renaming
       (let loop ((lst process))
 	(if (null? lst)
@@ -324,7 +340,10 @@
     (let ((ids (collect-unique-ids tmpl)))
       (let ((ranks (filter values
 			   (map (lambda (id)
-				  (let ((rank (p1env-pvar-lookup p1env id)))
+				  (let ((rank (p1env-pvar-lookup p1env id
+								 #;(if (identifier? id)
+								     (id-name id)
+								     id))))
 				    ;; rank must be number
 				    (and (not (variable? rank))
 					 (cons id rank))))
@@ -332,7 +351,7 @@
 	;; later
 	;;(check-template tmpl ranks)
 	(let ((patvar (map car ranks)))
-	  (if (symbol? tmpl)
+	  (if (variable? tmpl)
 	      (if (null? ranks)
 		  `(expand-syntax ',patvar ',tmpl () () ,p1env)
 		  `(expand-syntax ',patvar ',tmpl (list (cons ',tmpl 0)) vars ,p1env)))
@@ -653,7 +672,7 @@
                 ((vector? tmpl)
                  (list->vector (expand-template (vector->list tmpl) depth vars)))
                 (else tmpl))))
-      (if (and (= (safe-length tmpl) 2) (eq? (car tmpl) '...))
+      (if (and (= (safe-length tmpl) 2) (ellipsis? (car tmpl)))
           (expand-escaped-template (cadr tmpl) 0 vars)
 	  (expand-template tmpl 0 vars)))))
 
