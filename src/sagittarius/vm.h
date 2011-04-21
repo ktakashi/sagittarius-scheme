@@ -127,6 +127,12 @@ struct SgVMRec
    */
   SgObject loadPath;
   /*
+    top level variables.
+    this is just alist.
+    when vm creates a new empty library, this will be loaded.
+   */
+  SgObject toplevelVariables;
+  /*
     Stack:
     TODO: if we use child vm, do I need to create a new stack or
     share this?
@@ -231,7 +237,7 @@ SG_EXTERN SgObject Sg_VMApply(SgObject proc, SgObject args);
 SG_EXTERN SgObject Sg_VMCallCC(SgObject proc);
 SG_EXTERN SgVM*    Sg_VM();	/* get vm */
 SG_EXTERN SgObject Sg_FindBinding(SgObject library, SgSymbol *name);
-SG_EXTERN void     Sg_InsertBinding(SgLibrary *library, SgSymbol *name, SgObject value);
+SG_EXTERN void     Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value);
 SG_EXTERN void     Sg_VMDumpCode(SgCodeBuilder *cb);
 
 SG_EXTERN SgObject Sg_AddLoadPath(SgString *path);
@@ -261,6 +267,9 @@ SG_EXTERN SgObject Sg_VMFinalizerRun(SgVM *vm);
 
 /* debuging */
 SG_EXTERN void     Sg_VMPrintFrame();
+
+/* toplevel variable*/
+SG_EXTERN void     Sg_VMSetToplevelVariable(SgSymbol *name, SgObject value);
 
 SG_CDECL_END
 

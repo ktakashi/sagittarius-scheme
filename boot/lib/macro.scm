@@ -114,6 +114,8 @@
            (collect-vars-ranks (vector->list pat) lites depth ranks))
           (else ranks))))
 
+;; this must be in compiler.scm for global lambda let dynamic-wind
+;; but for now
 (define compile-syntax-case
   (lambda (exp-name expr literals rules library env p1env)
 
@@ -127,7 +129,6 @@
 					   (cdr a)))
 				   ranks)
 			      env)))))
-
     (or (and (list? literals)
 	     (for-all variable? literals))
 	(assertion-violation 'syntax-case "invalid literals" expr literals))
@@ -139,34 +140,36 @@
 	 (assertion-violation 'syntax-case "... in literals" expr literals))
 
     (let ((processes (map (lambda (clause)
-			    (cond ((= (length clause) 2) ; without fender
-				   (receive (pattern ranks env) (parse-pattern (car clause))
-				     ;; i'm not sure if it's ok, but for now we don't have any way to
-				     ;; remember the ranks
-				     `(list ',pattern
-					    ',ranks
-					    #f
-					    (lambda (,@(map car ranks)
-						     . vars)
-					      ,(cadr clause)))))
-				  ((= (length clause) 3) ; with fender
-				   (receive (pattern ranks env) (parse-pattern (car clause))
-				     `(list ',pattern
-					    ',ranks
-					    (lambda (,@(map car ranks)
-						      . vars)
-					      ,(cadr clause))
-					    (lambda (,@(map car ranks)
-						     . vars) ,(caddr clause)))))
-				  (else
-				   (assertion-violation 'syntax-case
-							"a clause must be either (<pattern> <expression) or (<pattern> <fender> <expression)"
-							clause))))
+			    (let ((len (length clause)))
+			      (if (or (= len 2) (= len 3))
+				  (receive (pattern ranks env) (parse-pattern (car clause))
+				    (define construct
+				      (lambda (clause)
+					`(lambda (,@(map car ranks)
+						  . .vars)
+					   (let ((.ranks (append ',ranks .ranks)))
+					     (let ((.save .vars.))
+					       (dynamic-wind
+						   (lambda ()
+						     (set! .vars. (append .vars .vars.))
+						     (set! .vars .vars.))
+						   (lambda () ,clause)
+						   (lambda () (set! .vars. .save))))))))
+				    `(list ',pattern
+					   ',ranks
+					   ,(if (= len 2) ; fender
+						#f
+						(construct (cadr clause)))
+					   ,(construct (if (= len 2)
+							   (cadr clause)
+							   (caddr clause)))))
+				  (assertion-violation 'syntax-case
+						       "a clause must be either (<pattern> <expression) or (<pattern> <fender> <expression)"
+						       clause))))
 			  rules)))
-      `(match-syntax-case ',literals
-			  ;;(wrap-syntax ,expr ,p1env)
-			  ,expr
-			  ,@processes))))
+      `(.match-syntax-case ',literals
+			   ,expr
+			   ,@processes))))
 
 (define match-ellipsis?
   (lambda (expr pat lites)
@@ -307,7 +310,8 @@
     ;; however if expression was defined by user or something, it doesn't have
     ;; it. so we need to check if it has ir or not.
     ;; TODO this might be too naive
-    (let ((form (if (= (length expr) -1)
+    (let ((form (if (and (pair? expr)
+			 (= (length expr) -1))
 		    (wrap-syntax (car expr) (cdr expr))
 		    expr)))
       (define match
@@ -340,10 +344,7 @@
     (let ((ids (collect-unique-ids tmpl)))
       (let ((ranks (filter values
 			   (map (lambda (id)
-				  (let ((rank (p1env-pvar-lookup p1env id
-								 #;(if (identifier? id)
-								     (id-name id)
-								     id))))
+				  (let ((rank (p1env-pvar-lookup p1env id)))
 				    ;; rank must be number
 				    (and (not (variable? rank))
 					 (cons id rank))))
@@ -353,11 +354,11 @@
 	(let ((patvar (map car ranks)))
 	  (if (variable? tmpl)
 	      (if (null? ranks)
-		  `(expand-syntax ',patvar ',tmpl () () ,p1env)
-		  `(expand-syntax ',patvar ',tmpl (list (cons ',tmpl 0)) vars ,p1env)))
+		  `(.expand-syntax ',patvar ',tmpl .ranks .vars ,p1env)
+		  `(.expand-syntax ',patvar ',tmpl (list (cons ',tmpl 0)) .vars ,p1env)))
 	  (if (null? ranks)
-	      `(expand-syntax ',patvar ',tmpl () () ,p1env)
-	      `(expand-syntax ',patvar ',tmpl ',ranks vars ,p1env)))))))
+	      `(.expand-syntax ',patvar ',tmpl .ranks .vars ,p1env)
+	      `(.expand-syntax ',patvar ',tmpl (append ',ranks .ranks) .vars ,p1env)))))))
 
 (define expand-syntax
   (lambda (patvars template ranks vars p1env)
@@ -672,9 +673,42 @@
                 ((vector? tmpl)
                  (list->vector (expand-template (vector->list tmpl) depth vars)))
                 (else tmpl))))
-      (if (and (= (safe-length tmpl) 2) (ellipsis? (car tmpl)))
+      (if (and (= (safe-length tmpl) 2) (eq? (car tmpl) '...))
           (expand-escaped-template (cadr tmpl) 0 vars)
 	  (expand-template tmpl 0 vars)))))
+
+
+;; procedures
+(define syntax->datum
+  (lambda (expr)
+    (let loop ((lst expr))
+      (cond ((pair? lst)
+	     (let ((a (loop (car lst))) (d (loop (cdr lst))))
+	       (cond ((and (eq? a (car lst)) (eq? d (cdr lst))) lst)
+		     (else (cons a d)))))
+	    ((vector? lst)
+	     (list->vector (map loop (vector->list lst))))
+	    ((identifier? lst)
+	     (id-name lst))
+	    (else lst)))))
+
+(define datum->syntax
+  (lambda (template-id datum)
+    (or (identifier? template-id)
+	(assertion-violation 'datum->syntax
+			     (format "expected identifier, but got ~s" template-id)))
+    ;; construct p1env
+    (let ((p1env `#(,(id-library template-id)
+		    ,(id-envs template-id)
+		    'datum->syntax
+		    #f)))
+      (wrap-syntax datum p1env))))
+
+;; toplevel variables
+(set-toplevel-variable! '.match-syntax-case match-syntax-case)
+(set-toplevel-variable! '.expand-syntax expand-syntax)
+(set-toplevel-variable! '.ranks '())
+(set-toplevel-variable! '.vars. '())
 
 ;;;; end of file
 ;; Local Variables:

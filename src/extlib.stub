@@ -5,6 +5,7 @@
     (export identifier?
 	    id-name
 	    id-memq
+	    identifier->symbol
 	    ;; sucks!!
 	    make-syntax-object
 	    make-syntax-case
@@ -61,6 +62,16 @@
 	   (wrong-type-of-argument-violation 'id-name
 					     "identifier"
 					     id))))
+
+  (define-c-proc identifier->symbol (id) ::Object
+    (unless (or (SG_SYMBOLP id)
+		(SG_IDENTIFIERP id))
+      (wrong-type-of-argument-violation 'identifier->symbol
+					"symbol or identifier"
+					id))
+    (if (SG_SYMBOLP id)
+	(result id)
+	(result (SG_IDENTIFIER_NAME id))))
 
   (define-c-proc id-memq (id lst) ::Object
     (if (SG_IDENTIFIERP id)

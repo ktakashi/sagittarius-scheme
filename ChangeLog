@@ -1,3 +1,17 @@
+2011-04-21  Takashi Kato  <ktakashi@ymail.com>
+
+	* sitelib/sagittarius/misc.scm (sagittarius misc): added define-macro.
+
+	* sitelib/sagittarius/aspect.scm (sagittarius aspect): added point-cut.
+
+	* boot/compiler.scm (interesting-to-quasiquote?): fixed mis expanding
+	when macro returned wraped expression.
+
+	* boot/lib/macro.scm (core syntax-case): resolved free pattern variable
+	problem.
+
+	* src/identifier.c (Sg_WrapSyntax): fixed error when vector was given.
+
 2011-04-19  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/pp.scm: removed #<unknown> and added #<unspecified>

@@ -35,6 +35,7 @@
 #include "sagittarius/library.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/vector.h"
+#include "sagittarius/hashtable.h"
 
 static SgObject get_binding_frame(SgObject var, SgObject env)
 {
@@ -80,31 +81,36 @@ static SgObject p1env_lookup(SgObject form, SgVector *p1env, int lookup_as)
   return SG_NIL;
 }
 
-SgObject Sg_P1envFrameLookup(SgObject symbol, SgVector *p1env, int lookup_as)
-{
-  return p1env_lookup(symbol, p1env, lookup_as);
-}
-
-static SgObject wrap_rec(SgObject form, SgVector *p1env)
+static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen)
 {
   if (SG_NULLP(form)) {
     return form;
   } else if (SG_PAIRP(form)) {
-    return Sg_Cons(wrap_rec(SG_CAR(form), p1env),
-		   wrap_rec(SG_CDR(form), p1env));
+    return Sg_Cons(wrap_rec(SG_CAR(form), p1env, seen),
+		   wrap_rec(SG_CDR(form), p1env, seen));
   } else if (SG_VECTORP(form)) {
-    return Sg_VectorToList(wrap_rec(Sg_ListToVector(form, 0, -1), p1env), 0, -1);
+    return Sg_ListToVector(wrap_rec(Sg_VectorToList(form, 0, -1), p1env, seen), 0, -1);
   } else if (SG_SYMBOLP(form)) {
     /* lookup from p1env.
        exists: we need to wrap with the env which contains this symbol.
        not exist: we just need to wrap it.
      */
     /* TODO lexical? */
-    SgObject env = p1env_lookup(form, p1env, 0);
-    if (SG_NULLP(env)) return Sg_MakeIdentifier(form,
-						SG_VECTOR_ELEMENT(p1env, 1),
-						SG_VECTOR_ELEMENT(p1env, 0));
-    else return Sg_MakeIdentifier(form, env, SG_VECTOR_ELEMENT(p1env, 0));
+    SgObject id = Sg_HashTableRef(seen, form, SG_FALSE);
+    if (SG_FALSEP(id)) {
+      SgObject env = p1env_lookup(form, p1env, 0);
+      if (SG_NULLP(env)) {
+	id = Sg_MakeIdentifier(form,
+			       SG_VECTOR_ELEMENT(p1env, 1),
+			       SG_VECTOR_ELEMENT(p1env, 0));
+      } else {
+	id = Sg_MakeIdentifier(form, env, SG_VECTOR_ELEMENT(p1env, 0));
+      }
+      Sg_HashTableSet(seen, form, id, 0);
+      return id;
+    } else {
+      return id;
+    }
 
   } else {
     return form;
@@ -114,11 +120,8 @@ static SgObject wrap_rec(SgObject form, SgVector *p1env)
 /* wrap form to identifier */
 SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env)
 {
-  if (SG_DOTTED_LISTP(form)) {
-    /* unwrap original p1env */
-    form = SG_CAR(form);
-  }
-  return wrap_rec(form, p1env);
+  SgHashTable *seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
+  return wrap_rec(form, p1env, seen);
 }
 
 /*

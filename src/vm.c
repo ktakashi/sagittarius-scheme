@@ -102,6 +102,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->sp = v->fp = v->stack;
   v->stackEnd = v->stack + SG_VM_STACK_SIZE;
   v->cont = NULL;
+  v->ac = SG_NIL;
 
   v->attentionRequest = FALSE;
   v->finalizerPending = FALSE;
@@ -109,6 +110,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->dynamicWinders = SG_NIL;
   v->parentExHandler = SG_FALSE;
   v->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
+  v->toplevelVariables = SG_NIL;
 
   v->currentInputPort = Sg_MakeTranscodedInputPort(Sg_StandardInputPort(),
 						    Sg_IsUTF16Console(Sg_StandardIn()) ? Sg_MakeNativeConsoleTranscoder()
@@ -283,9 +285,21 @@ SgObject Sg_FindBinding(SgObject library, SgSymbol *name)
   else lib = Sg_FindLibrary(library, FALSE);
   return Sg_HashTableRef(SG_LIBRARY_TABLE(lib), name, SG_FALSE);
 }
-void Sg_InsertBinding(SgLibrary *library, SgSymbol *name, SgObject value)
+void Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value)
 {
-  Sg_HashTableSet(SG_LIBRARY_TABLE(library), name, value, 0);
+  if (SG_SYMBOLP(name)) {
+    Sg_HashTableSet(SG_LIBRARY_TABLE(library), name, value, 0);
+  } else if (SG_IDENTIFIERP(name)) {
+    Sg_HashTableSet(SG_LIBRARY_TABLE(library), SG_IDENTIFIER_NAME(name), value, 0);
+  } else {
+    Sg_Error(UC("symbol or identifier required, but got %S"), name);
+  }
+}
+
+void Sg_VMSetToplevelVariable(SgSymbol *name, SgObject value)
+{
+  SgVM *vm = Sg_VM();
+  vm->toplevelVariables = Sg_Acons(name, value, vm->toplevelVariables);
 }
 
 static void vm_dump_code_rec(SgCodeBuilder *cb, int indent)

@@ -43,6 +43,18 @@
 #include "sagittarius/vm.h"
 #include "sagittarius/system.h"
 
+static void load_toplevel_variable(SgLibrary *lib)
+{
+  SgVM *vm = Sg_VM();
+  SgObject tmp, vars;
+  SgHashTable *table = lib->table;
+  SG_FOR_EACH(tmp, vm->toplevelVariables) {
+    /* toplevelVariables is alist */
+    vars = SG_CAR(tmp);
+    Sg_HashTableSet(table, SG_CAR(vars), SG_CDR(vars), 0);
+  }
+}
+
 static SgLibrary* make_library()
 {
   SgLibrary *z = SG_NEW(SgLibrary);
@@ -52,6 +64,7 @@ static SgLibrary* make_library()
   z->exported = SG_FALSE;
   z->generics = SG_NIL;
   z->version = SG_NIL;
+  load_toplevel_variable(z);
   return z;
 }
 

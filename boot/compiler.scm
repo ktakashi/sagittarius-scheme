@@ -933,7 +933,9 @@
 
 (define interesting-to-quasiquote? 
   (lambda (x marker)
-    (and (pair? x) (eq? (car x) marker))))
+    (and (pair? x)
+	 (variable? (car x))
+	 (eq? (variable-name (car x)) marker))))
 
 
 (define pass1/quasiquote

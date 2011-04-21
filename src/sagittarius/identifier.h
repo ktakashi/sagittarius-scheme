@@ -52,7 +52,6 @@ SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeIdentifier(SgSymbol *symbol, SgObject envs, SgLibrary *library);
 SG_EXTERN SgObject Sg_CopyIdentifier(SgIdentifier *id);
-SG_EXTERN SgObject Sg_P1envFrameLookup(SgObject symbol, SgVector *p1env, int lookup_as);
 SG_EXTERN SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env);
 
 SG_CDECL_END

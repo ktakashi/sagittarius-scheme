@@ -1,4 +1,7 @@
 ;; lib/vm.scm
+;; dummy
+(define (set-toplevel-variable! sym val) #f)
+
 ;; this file is the collection of vm procedure.
 ;; these procedure must be written in C++
 (define (insn-name insn)

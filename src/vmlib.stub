@@ -34,14 +34,32 @@
 
 	    ;; misc
 	    %map-cons
-	    p1env-lookup p1env-toplevel? p1env-pvar-lookup p1env-frame-lookup
+	    p1env-lookup p1env-toplevel? p1env-pvar-lookup
 	    pass3/let-frame-size pass3/frame-size
 	    print-stack-frames
 	    get-stack-trace-object
+	    set-toplevel-variable!
 	    )
     (import :none)
   (decl-code
    (.include <sagittarius/instruction.h>))
+
+  (define-cgen-stmt assertion-violation
+    ((_ who msg)
+     (dispatch
+      `(Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) '())))
+    ((_ who msg irritants)
+     (dispatch
+      `(Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,irritants))))
+
+  (define-cgen-stmt wrong-type-of-argument-violation
+    ((_ who msg got)
+     (dispatch
+      `(Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got '())))
+    ((_ who msg got irritants)
+     (dispatch
+      `(Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got ,irritants))))
+
 
   (define-c-proc insn-name (insn::fixnum) ::Object
     (let ((info::InsnInfo* (Sg_LookupInsnName insn)))
@@ -133,7 +151,12 @@
   (define-c-proc find-library (arg0 createp::boolean) ::Object
     (result (Sg_FindLibrary arg0 createp)))
 
-  (define-c-proc %insert-binding (libname name::Symbol value) ::void
+  (define-c-proc %insert-binding (libname name value) ::void
+    (unless (or (SG_SYMBOLP name)
+		(SG_IDENTIFIERP name))
+      (wrong-type-of-argument-violation '%insert-binding
+					"symbol or identifier"
+					name))
     (let ((lib::SgObject (Sg_FindLibrary libname TRUE)))
       (Sg_InsertBinding lib name value)))
 
@@ -270,9 +293,6 @@
 				       (SG_LIBRARY lib))))
 	  (result name))))
 
-  (define-c-proc p1env-frame-lookup (p1env::Vector name::Symbol lookup_as::fixnum) ::Object
-    (result (Sg_P1envFrameLookup name p1env lookup_as)))
-
   (define-c-proc pass3/frame-size () ::fixnum
     (result SG_FRAME_SIZE))
 
@@ -284,4 +304,7 @@
 
   (define-c-proc get-stack-trace-object () ::Object
     (result (Sg_GetStackTrace)))
+
+  (define-c-proc set-toplevel-variable! (s::Symbol obj) ::void
+    (Sg_VMSetToplevelVariable s obj))
 )
