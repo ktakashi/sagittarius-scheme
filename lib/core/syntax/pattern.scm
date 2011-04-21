@@ -40,19 +40,6 @@
 	 (pair? (cdr form))
 	 (null? (cddr form))))
 
-  ;; exclude '...
-  #;(define (collect-unique-ids expr rename compare)
-    (let loop ((lst expr) (ans '()))
-      (cond ((pair? lst)
-	     (loop (cdr lst)
-		   (loop (car lst) ans)))
-	    ((compare lst (rename '...)) ans)
-	    ((variable? lst)
-	     (if (id-memq lst ans) ans (cons lst ans)))
-	    ((vector? lst)
-	     (loop (vector->list lst) ans))
-	    (else ans))))
-
   ;; we use sid to keep pattern variable information.
   ;; it contains variable name, form expression which we need when generate
   ;; template matching, and control which is the name of template matching.

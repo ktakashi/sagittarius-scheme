@@ -26,6 +26,10 @@
 	    ;; vector
 	    vector-copy
 
+	    ;; hashtable
+	    hashtable->alist
+	    hashtable-values
+
 	    ;; misc
 	    variable? arity
 	    unbound undefined undefined? add-load-path
@@ -126,6 +130,13 @@
 					            (end::fixnum -1)
 						    fill) ::Object
     (result (Sg_VectorCopy vec start end fill)))
+
+  ;; hashtable
+  (define-c-proc hashtable-keys (ht::HashTable) ::Object
+    (result (Sg_HashTableKeys ht)))
+
+  (define-c-proc hashtable-values (ht::HashTable) ::Object
+    (result (Sg_HashTableValues ht)))
 
   ;; misc
   (define-c-proc variable? (o) ::boolean

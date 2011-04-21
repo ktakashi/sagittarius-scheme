@@ -35,6 +35,7 @@
 #include "sagittarius/error.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/string.h"
+#include "sagittarius/number.h"
 
 typedef struct EntryRec
 {
@@ -209,6 +210,8 @@ static void hash_core_init(SgHashCore *table,
   table->hasher = hasher;
   table->compare = compare;
   table->data = data;
+  table->generalHasher = SG_UNDEF;
+  table->generalCompare = SG_UNDEF;
   for (i = initSize, table->bucketsLog2Count = 0; i > 1; i /= 2) {
     table->bucketsLog2Count++;
   }
@@ -323,6 +326,19 @@ static Entry* general_access(SgHashCore *table,
   NOTFOUND(table, op, key, hashval, index);
 }
 
+static uint32_t general_hash(const SgHashCore *table, intptr_t key)
+{
+  SgObject hash = Sg_Apply1(table->generalHasher, SG_OBJ(key));
+  return Sg_GetIntegerClamp(hash, SG_CLAMP_NONE, NULL);
+}
+
+static int general_compare(const SgHashCore *table, intptr_t key, intptr_t k2)
+{
+  SgObject ret = Sg_Apply2(table->generalCompare, SG_OBJ(key), SG_OBJ(k2));
+  return !SG_FALSEP(ret);
+}
+
+
 static int hash_core_predef_procs(SgHashType type,
 				  SearchProc **access,
 				  SgHashProc **hasher,
@@ -349,6 +365,11 @@ static int hash_core_predef_procs(SgHashType type,
     *hasher = string_hash;
     *compare = string_compare;
     return TRUE;
+  case SG_HASH_GENERAL:
+    *access = general_access;
+    *hasher = general_hash;
+    *compare = general_compare;
+    return TRUE;
   default:
     return FALSE;
   }
@@ -363,7 +384,7 @@ void Sg_HashCoreInitSimple(SgHashCore *core,
   SgHashProc *hasher = NULL;
   SgHashCompareProc *compare = NULL;
   if (hash_core_predef_procs(type, &access, &hasher, &compare) == FALSE) {
-    Sg_Error(UC("[internal error]: wrong TYPE argument passwd to Sg_HashCoreInitSimple: %d"), type);
+    Sg_Error(UC("[internal error]: wrong TYPE argument passed to Sg_HashCoreInitSimple: %d"), type);
   }
   hash_core_init(core, access, hasher, compare, initSize, data);
 }
@@ -476,6 +497,14 @@ SgObject Sg_MakeHashTable(SgHashProc *hasher, SgHashCompareProc *compre, int ini
   SG_SET_HEADER(z, TC_HASHTABLE);
   Sg_HashCoreInitGeneral(&z->core, hasher, compre, initSize, NULL);
   z->type = SG_HASH_GENERAL;
+  return SG_OBJ(z);
+}
+
+SgObject Sg_MakeHashTableForScheme(SgObject hasher, SgObject compare, int initSize)
+{
+  SgHashTable *z = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_GENERAL, initSize));
+  z->core.generalHasher = hasher;
+  z->core.generalCompare = compare;
   return SG_OBJ(z);
 }
 

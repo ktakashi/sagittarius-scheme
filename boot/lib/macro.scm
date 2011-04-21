@@ -673,7 +673,7 @@
                 ((vector? tmpl)
                  (list->vector (expand-template (vector->list tmpl) depth vars)))
                 (else tmpl))))
-      (if (and (= (safe-length tmpl) 2) (eq? (car tmpl) '...))
+      (if (and (= (safe-length tmpl) 2) (ellipsis? (car tmpl)))
           (expand-escaped-template (cadr tmpl) 0 vars)
 	  (expand-template tmpl 0 vars)))))
 

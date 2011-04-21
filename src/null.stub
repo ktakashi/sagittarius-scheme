@@ -287,10 +287,25 @@
 	    keyword?
 	    and
 
-	    ;; hashtable
-	    make-eq-hashtable hashtable-ref
-	    hashtable-set! hashtable->alist
-	    hashtable-keys hashtable-values
+	    ;; 13 Hashtables
+	    ;; 13.1 constructors
+	    make-eq-hashtable
+	    make-eqv-hashtable
+	    make-hashtable
+
+	    ;; 13.2 procedures
+	    hashtable? hashtable-size
+	    hashtable-ref hashtable-set! hashtable-delete!
+	    hashtable-contains? 
+	    #;hashtable-update! ;; in scmlib.scm
+	    hashtable-copy hashtable-clear! hashtable-keys
+
+	    ;; 13.3 inspection
+	    hashtable-equivalence-function hashtable-hash-function
+	    hashtable-mutable?
+
+	    ;; 13.4 hash functions
+	    equal-hash string-hash string-ci-hash symbol-hash
 
 	    ;; conditions
 	    condition simple-conditions compound-condition-component
@@ -2629,12 +2644,16 @@
   (define-c-proc keyword? (o) ::boolean
     (result (SG_KEYWORDP o)))
 
-  ;; hashtable
-  (define-c-proc make-eq-hashtable () ::Object
-    (result (Sg_MakeHashTableSimple SG_HASH_EQ 200)))
+  ;; 13 Hashtables
+  ;; 13.1 constructors
+  (define-c-proc make-eq-hashtable (:optional (k::fixnum 200)) ::Object
+    (result (Sg_MakeHashTableSimple SG_HASH_EQ k)))
 
-  (define-c-proc make-eqv-hashtable () ::Object
-    (result (Sg_MakeHashTableSimple SG_HASH_EQV 200)))
+  (define-c-proc make-eqv-hashtable (:optional (k::fixnum 200)) ::Object
+    (result (Sg_MakeHashTableSimple SG_HASH_EQV k)))
+
+  (define-c-proc make-hashtable (hasher::Procedure equiv::Procedure :optional (k::fixnum 200)) ::Object
+    (result (Sg_MakeHashTableForScheme hasher equiv k)))
 
   (define-c-proc hashtable-ref (ht::HashTable key fallback) ::Object
     (result (Sg_HashTableRef ht key fallback)))
@@ -2642,11 +2661,6 @@
   (define-c-proc hashtable-set! (ht::HashTable key value) ::void
     (result (Sg_HashTableSet ht key value 0)))
 
-  (define-c-proc hashtable-keys (ht::HashTable) ::Object
-    (result (Sg_HashTableKeys ht)))
-
-  (define-c-proc hashtable-values (ht::HashTable) ::Object
-    (result (Sg_HashTableValues ht)))
 
   (define-c-proc current-exception-handler () ::Object
     (result (-> (Sg_VM) exceptionHandler)))

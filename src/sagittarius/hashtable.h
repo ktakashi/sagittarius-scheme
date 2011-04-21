@@ -60,6 +60,8 @@ struct SgHashCoreRec
   void              *access;
   SgHashProc        *hasher;
   SgHashCompareProc *compare;
+  SgObject generalHasher;	/* for make-hashtable */
+  SgObject generalCompare; 	/* ditto */
   void   *data; 
 };
 
@@ -132,6 +134,7 @@ SG_EXTERN uint32_t Sg_StringHash(SgString *str, uint32_t bound);
 SG_EXTERN SgObject Sg_MakeHashTableSimple(SgHashType type, int initSize);
 /* for c-string. see string.c */
 SG_EXTERN SgObject Sg_MakeHashTable(SgHashProc *hasher, SgHashCompareProc *compre, int initSize);
+SG_EXTERN SgObject Sg_MakeHashTableForScheme(SgObject hasher, SgObject compare, int initSize);
 
 SG_EXTERN SgObject Sg_HashTableCopy(SgHashTable *table);
 

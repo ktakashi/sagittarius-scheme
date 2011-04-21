@@ -145,12 +145,15 @@ static SgObject pre_p(SgObject x, SgObject y, SgObject k)
     if (!SG_PAIRP(y)) {
       return SG_FALSE;
     }
+    if (!SG_INTP(k)) {
+      Sg_Error(UC("[internal error] fixnum required, but got %S"), k);
+    }
     ASSERT(SG_INTP(k));
     if (SG_INT_VALUE(k) <= 0) {
       return k;
     } else {
       SgObject k2 = pre_p(SG_CAR(x), SG_CAR(y), SG_MAKE_INT(SG_INT_VALUE(k) - 1));
-      if (SG_FALSEP(k)) {
+      if (SG_FALSEP(k2)) {
 	return SG_FALSE;
       }
       return pre_p(SG_CDR(x), SG_CDR(y), k2);

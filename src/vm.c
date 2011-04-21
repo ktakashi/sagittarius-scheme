@@ -470,8 +470,41 @@ void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
   SP(vm) = s;
 }
 
-
 /* Apply families */
+static void make_call_frame(SgVM *vm, SgWord *pc);
+static SgWord apply_calls_w_halt[][5] = {
+  { MERGE_INSN_VALUE1(CALL, 0), RET, HALT },
+  { MERGE_INSN_VALUE1(CALL, 1), RET, HALT },
+  { MERGE_INSN_VALUE1(CALL, 2), RET, HALT },
+  { MERGE_INSN_VALUE1(CALL, 3), RET, HALT },
+  { MERGE_INSN_VALUE1(CALL, 4), RET, HALT }
+};
+
+SgObject Sg_Apply0(SgObject proc)
+{
+  SgVM *vm = Sg_VM();
+  make_call_frame(vm, apply_calls_w_halt[0] + 2);
+  return evaluate_safe(apply_calls_w_halt[0], 3);
+}
+
+SgObject Sg_Apply1(SgObject proc, SgObject arg)
+{
+  SgVM *vm = Sg_VM();
+  make_call_frame(vm, apply_calls_w_halt[1] + 2);
+  PUSH(SP(vm), arg);
+  return evaluate_safe(apply_calls_w_halt[1], 3);
+}
+
+SgObject Sg_Apply2(SgObject proc, SgObject arg0, SgObject arg1)
+{
+  SgVM *vm = Sg_VM();
+  make_call_frame(vm, apply_calls_w_halt[1] + 2);
+  PUSH(SP(vm), arg0);
+  PUSH(SP(vm), arg1);
+  return evaluate_safe(apply_calls_w_halt[1], 3);
+}
+
+
 SgObject Sg_Apply(SgObject proc, SgObject args)
 {
   SgVM *vm = Sg_VM();
@@ -929,7 +962,7 @@ SgObject evaluate_unsafe(SgWord *code, int codeSize)
   SgVM *vm = Sg_VM();
 
   SG_CODE_BUILDER(vm->closureForEvaluate)->code = code;
-  vm->ac = vm->closureForEvaluate;
+  /* vm->ac = vm->closureForEvaluate; */
   vm->dc = vm->closureForEvaluate;
   vm->cl = vm->closureForEvaluate;
   vm->pc = code;

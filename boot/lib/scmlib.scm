@@ -29,6 +29,9 @@
 (define (hashtable-map proc ht)
   (map proc (hashtable-keys ht) (hashtable-values ht)))
 
+(define (hashtable->alist ht)
+  (hashtable-map cons ht))
+
 #;(define (any pred ls)
   (if (pair? ls) (if (pred (car ls)) (car ls) (any pred (cdr ls))) #f))
 
