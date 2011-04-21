@@ -6,7 +6,8 @@
 	    (core syntax pattern)
 	    (core syntax helper)
 	    (core misc)
-	    (sagittarius))
+	    (sagittarius)
+	    (sagittarius vm))
   ;; from Ypsilon
   (define parse-ellipsis-splicing
     (lambda (form rename compare)
@@ -62,14 +63,10 @@
 	(define syntax-expression?
 	  (lambda (expr)
 	    (and (pair? expr)
-		 (compare (car expr) (rename 'syntax))
-		 (or (= (length expr) 2)
-		     (syntax-violation 'syntax
-				       "expected exactly one datum"
-				       expr)))))
+		 (compare (car expr) (rename 'syntax)))))
 
 	(define loop
-	  (lambda (tmpl ellipses in-syntax?)
+	  (lambda (tmpl ellipses)
 	    (cond ((variable? tmpl)
 		   (expand-variable tmpl ellipses))
 		  ((ellipsis-quote? tmpl rename compare)
@@ -84,9 +81,8 @@
 							       (generate-ellipsis ellipsis
 										  (loop body
 											(cons ellipsis
-											      ellipses)
-											in-syntax?))))
-				       (loop tail ellipses in-syntax?))))
+											      ellipses)))))
+				       (loop tail ellipses))))
 		  
 		  ;; (p ...)
 		  ((ellipsis-pair? tmpl rename compare)
@@ -95,32 +91,19 @@
 				       (generate-ellipsis ellipsis
 							  (loop (car tmpl)
 								(cons ellipsis
-								      ellipses)
-								in-syntax?)))
-				     (loop (cddr tmpl) ellipses in-syntax?)))
+								      ellipses))))
+				     (loop (cddr tmpl) ellipses)))
 		  ((pair? tmpl)
-		   (cond ((and case?
-			       (syntax-expression? tmpl))
-			  (loop (cadr tmpl) ellipses #t))
-			 ((and case?
-			       (not in-syntax?)
-			       (not (syntax-expression? tmpl)))
-			  ;; inside of these non-syntax template, there might be
-			  ;; syntax expressions, so we need to search it.
-			  ;;tmpl
-			  (cons (loop (car tmpl) ellipses #f)
-				(loop (cdr tmpl) ellipses #f)))
-			 (else
-			  (optimized-cons rename compare
-					  (loop (car tmpl) ellipses in-syntax?)
-					  (loop (cdr tmpl) ellipses in-syntax?)))))
+		   (optimized-cons rename compare
+				   (loop (car tmpl) ellipses)
+				   (loop (cdr tmpl) ellipses)))
 		  ((vector? tmpl)
-		   `(,_list->vector ,(loop (vector->list tmpl) ellipses in-syntax?)))
+		   `(,_list->vector ,(loop (vector->list tmpl) ellipses)))
 		  ((null? tmpl)
 		   `(,_quote ()))
 		  (else 
 		   `(,_quote ,tmpl)))))
-	(loop template '() #f))))
+	(loop template '()))))
 
 )
 ;; end of file
