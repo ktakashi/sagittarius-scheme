@@ -139,13 +139,9 @@ void Sg_Init()
    */
   {
     SgLibrary *core_base_lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(core base)"), FALSE));
-    SgLibrary *core_macro_lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(core syntax-case)"), FALSE));
     Sg_InsertBinding(core_base_lib,
 		     SG_INTERN("er-rename"),
-		     Sg_FindBinding(SG_INTERN("null"), SG_INTERN("er-rename")));
-    Sg_InsertBinding(core_macro_lib,
-		     SG_INTERN("compile-with-*"),
-		     Sg_FindBinding(SG_INTERN("(sagittarius compiler)"), SG_INTERN("compile-with-*")));
+		     Sg_FindBinding(SG_INTERN("null"), SG_INTERN("er-rename"), SG_FALSE));
   }
 
 }

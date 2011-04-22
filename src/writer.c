@@ -59,6 +59,7 @@
 #include "sagittarius/vm.h"
 #include "sagittarius/record.h"
 #include "sagittarius/port.h"
+#include "sagittarius/gloc.h"
 #include "sagittarius/builtin-symbols.h"
 
 #define WRITE_LIMITED  0x10
@@ -902,6 +903,16 @@ static void write_record_type(SgRecordType *rt, SgPort *port, SgWriteContext *ct
   Sg_PutcUnsafe(port, '>');
 }
 
+static void write_gloc(SgGloc *g, SgPort *port, SgWriteContext *ctx)
+{
+  Sg_PutuzUnsafe(port, UC("#<gloc "));
+  write_symbol(g->name, port, ctx);
+  Sg_PutcUnsafe(port, ' ');
+  write_library(g->library, port, ctx);
+  Sg_PutcUnsafe(port, '>');
+}
+
+
 #define SPBUFSIZ  50
 #define CASE_ITAG(obj, str)				\
   case SG_ITAG(obj): Sg_PutuzUnsafe(port, str); break;
@@ -1076,6 +1087,8 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
     write_port(SG_PORT(obj), port, ctx);
   } else if (SG_RECORD_TYPEP(obj)) {
     write_record_type(SG_RECORD_TYPE(obj), port, ctx);
+  } else if (SG_GLOCP(obj)) {
+    write_gloc(SG_GLOC(obj), port, ctx);
   } else {
     Sg_PutuzUnsafe(port, UC("#<unknown datum>"));
   }

@@ -1,6 +1,6 @@
 ;; -*- scheme -*-
 (library (sagittarius aspect)
-    (export point-cut %insert-binding)
+    (export point-cut %insert-binding gloc-set!)
     (import (core)
 	    (core errors)
 	    (sagittarius)
@@ -16,31 +16,29 @@
        (let ((lib   (find-library (cadr form) #f))
 	     (name  (caddr form))
 	     (value (cadddr form)))
-	 (let ((bind (find-binding lib name)))
-	   (or (procedure? bind)
+	 (let ((gloc (find-binding lib name #f)))
+	   (if gloc
+	       (let ((bind (gloc-ref gloc)))
+		 (or (procedure? bind)
+		     (assertion-violation 'point-cut
+					  "target binding is not procedure"
+					  bind
+					  form))
+		 (or (eq? (car value) 'lambda)
+		     (assertion-violation 'point-cut
+					  "replacement value is not procedure"
+					  value
+					  form))
+		 (let ((org (string->symbol (format ".~s-org" name))))
+		   `(begin
+		      (define ,org ,bind)
+		      (define ,name 
+			(lambda ,(cadr value)
+			  (define (proceed)
+			    (,org ,@(cadr value)))
+			  ,@(cddr value)))
+		      (gloc-set! ,gloc ,name))))
 	       (assertion-violation 'point-cut
-				    "target binding is not procedure"
-				    bind
-				    form))
-	   (or (eq? (car value) 'lambda)
-	       (assertion-violation 'point-cut
-				    "replacement value is not procedure"
-				    value
-				    form))
-	   #;(or (equal? (arity bind) (arity value))
-	       (assertion-violation 'point-cut
-				    "argument count is not the same"
-				    `((binding: ,bind) (replacement: ,value))
-				    form))
-	   (let ((org (string->symbol (format ".~s-org" name))))
-	     `(begin
-		(define ,org ,bind)
-		(define ,name 
-		  (lambda ,(cadr value)
-		    (define (proceed)
-		      (,org ,@(cadr value)))
-		    ,@(cddr value)))
-		(%insert-binding ,lib
-				 ',name
-				 ,name))))))))
+				    "unbound variable"
+				    name)))))))
 )

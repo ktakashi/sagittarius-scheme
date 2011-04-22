@@ -1,44 +1,13 @@
 ;; -*- scheme -*-
 (library (core syntax pattern)
-    (export ellipsis-pair?
-	    ellipsis-splicing-pair?
-	    ellipsis-quote?
-	    collect-sids
-	    check-pattern
+    (export collect-sids
 	    generate-match)
     (import (core)
 	    (core base)
 	    (core errors)
-	    ;;(trace)
 	    (core syntax helper)
+	    (core syntax-case)
 	    (sagittarius))
-
-  (define (id-memq id lst)
-    (if (identifier? id)
-	(memq (id-name id) lst)
-	(memq id lst)))
-
-  ;; (p ...)
-  (define (ellipsis-pair? form rename compare)
-    (and (pair? form)
-	 (pair? (cdr form))
-	 (compare (cadr form) (rename '...))))
-
-  ;; (p ... ...)
-  (define (ellipsis-splicing-pair? form rename compare)
-    (let ((ellipsis (rename '...)))
-      (and (pair? form)
-	   (pair? (cdr form))
-	   (compare (cadr form) ellipsis)
-	   (pair? (cddr form))
-	   (compare (caddr form) ellipsis))))
-
-  ;; (... p)
-  (define (ellipsis-quote? form rename compare)
-    (and (pair? form)
-	 (compare (car form) (rename '...))
-	 (pair? (cdr form))
-	 (null? (cddr form))))
 
   ;; we use sid to keep pattern variable information.
   ;; it contains variable name, form expression which we need when generate
@@ -65,7 +34,7 @@
 		 sids
 		 (cons (make-sid pat expr depth control) sids)))
 	    ;; (p ...)
-	    ((ellipsis-pair? pat rename compare)
+	    ((ellipsis-pair? pat)
 	     ;; correct?
 	     (let ((var (gensym "control")))
 	       ;; we want to assosiate a control to ellipsis
@@ -102,45 +71,6 @@
 	     (rec (vector->list pat) expr depth sids control))
 	    (else sids)))
     (rec pat expr 0 '() #f))
-
-  (define (check-pattern pat lites rename compare)
-    (let ((ellipsis (rename '...)))
-      (define (check-duplicate-variable pat lites)
-	(let loop ((lst pat) (pool '()))
-	  (cond ((pair? lst)
-		 (loop (cdr lst)
-		       (loop (car lst) pool)))
-		((compare lst ellipsis) pool)
-		((compare lst (rename '_)) pool)
-		((variable? lst)
-		 (if (id-memq lst lites)
-		     pool
-		     (if (id-memq lst pool)
-			 (syntax-violation "syntax pattern" "duplicate pattern variabl?" pat lst)
-			 (cons lst pool))))
-		((vector? lst)
-		 (loop (vector->list lst) pool))
-		(else pool))))
-      (define (check-misplaced-ellipsis pat lite)
-	(let loop ((lst pat))
-	  (cond ((compare lst ellipsis)
-		 (syntax-violation "syntax pattern" "improper use of ellipsis" pat))
-		((ellipsis-pair? lst rename compare)
-		 (and (variable? (car lst))
-		      (id-memq (car lst) lites)
-		      (syntax-violation "syntax pattern" "ellipsis following literal" pat lst))
-		 (let loop ((lst (cddr lst)))
-		   (and (pair? lst)
-			(if (compare (car lst) ellipsis)
-			    (syntax-violation "syntax pattern" "ambiguous use of ellipsis" pat)
-			    (loop (cdr lst))))))
-		((pair? lst)
-		 (or (loop (car lst)) (loop (cdr lst))))
-		((vector? lst)
-		 (loop (vector->list lst)))
-		(else #f))))
-      (check-misplaced-ellipsis pat lites)
-      (check-duplicate-variable pat lites)))
   
   ;; generate match
   (define (generate-match pattern literals rename compare expr)
@@ -206,7 +136,7 @@
 			     #f))
 		   `#t))
 	      ;; TODO
-	      ((ellipsis-pair? pattern rename compare)
+	      ((ellipsis-pair? pattern)
 	       (if (null? (cddr pattern))
 		   `(,_if (,_list? ,expr)
 			  ,(if (symbol? (car pattern))

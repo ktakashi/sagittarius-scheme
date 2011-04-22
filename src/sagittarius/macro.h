@@ -63,23 +63,6 @@ struct SgMacroRec
 #define SG_MACRO(obj)    ((SgMacro*)(obj))
 #define SG_MACROP(obj)   (SG_PTRP(obj) && IS_TYPE(obj, TC_MACRO))
 
-typedef struct SgSyntaxCaseRec SgSyntaxCase;
-struct SgSyntaxCaseRec
-{
-  SG_HEADER;			/* header type is TC_USER_DEFINED */
-  SgObject literals;
-  SgObject patterns;		/* list of compiled pattern.
-				   the inside is ((<pattern> <fender> <env> k) ...)
-				   <pattern> : pattern it self
-				   <fender>  : fender
-				   <env>     : compile time environment frames
-				   k         : template
-				 */
-};
-
-#define SG_SYNTAX_CASE(obj)   ((SgSyntaxCase*)obj)
-#define SG_SYNTAX_CASEP(obj)   (SG_PTRP(obj) && IS_TYPE(obj, TC_SYNTAX_CASE))
-
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeSyntax(SgSymbol *name, SgObject proc, int userDefined);
@@ -89,8 +72,6 @@ SG_EXTERN SgObject Sg_MakeMacroTransformer(SgObject name, SgObject proc, SgObjec
 
 SG_EXTERN SgObject Sg_UnwrapSyntax(SgObject form);
 SG_EXTERN SgObject Sg_MacroExpand(SgObject form, SgObject p1env, int onceP);
-
-SG_EXTERN SgObject Sg_MakeSyntaxCase(SgObject literals, SgObject patterns);
 
 SG_CDECL_END
 

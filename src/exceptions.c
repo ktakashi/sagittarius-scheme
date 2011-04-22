@@ -43,6 +43,7 @@
 #include "sagittarius/record.h"
 #include "sagittarius/error.h"
 #include "sagittarius/library.h"
+#include "sagittarius/gloc.h"
 
 /* 
    it defines record type for condition.
@@ -230,8 +231,9 @@ SgObject Sg_MakeIrritantsCondition(SgObject irritants)
 
 SgObject Sg_DescribeCondition(SgObject con)
 {
-  SgObject proc = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("describe-condition"));
-  return Sg_Apply(proc, SG_LIST1(con));
+  SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("describe-condition"), SG_FALSE);
+  SgObject proc = SG_GLOC_GET(g);
+  return Sg_Apply1(proc, con);
 }
 
 

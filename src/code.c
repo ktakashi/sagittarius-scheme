@@ -337,7 +337,7 @@ void Sg_VMExecute(SgObject toplevel)
   SgObject proc;
   ASSERT(SG_CODE_BUILDERP(toplevel));
   proc = Sg_MakeClosure(toplevel, NULL);
-  Sg_Apply(proc, SG_NIL);
+  Sg_Apply0(proc);
 }
 /*
   end of file

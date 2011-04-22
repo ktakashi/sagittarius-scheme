@@ -27,6 +27,9 @@
 	    library-table #;%set-library %insert-binding find-library
 	    find-binding vm-current-library
 
+	    ;; gloc
+	    gloc-ref gloc-set! gloc-bound?
+
 	    ;; code-builder
 	    make-code-builder cb-emit0! cb-emit1! cb-emit2! cb-emit0i!
 	    cb-emit1i! cb-emit2i! cb-emit0o! cb-emit0oi! cb-emit1oi!
@@ -39,6 +42,7 @@
 	    print-stack-frames
 	    get-stack-trace-object
 	    set-toplevel-variable!
+	    get-toplevel-variables
 	    )
     (import :none)
   (decl-code
@@ -160,8 +164,8 @@
     (let ((lib::SgObject (Sg_FindLibrary libname TRUE)))
       (Sg_InsertBinding lib name value)))
 
-  (define-c-proc find-binding (arg0 arg1::Symbol) ::Object
-    (result (Sg_FindBinding arg0 arg1)))
+  (define-c-proc find-binding (arg0 arg1::Symbol callback) ::Object
+    (result (Sg_FindBinding arg0 arg1 callback)))
 
   (define-c-proc load-library (to from) ::void
     ;; TODO name mismatch.
@@ -176,6 +180,17 @@
 	    ; dummy
 	    (result SG_UNDEF)))))
 
+  ;; gloc
+  (define-c-proc gloc-ref (g::Gloc) ::Object
+    (result (SG_GLOC_GET g)))
+
+  (define-c-proc gloc-set! (g::Gloc value) ::void
+    (SG_GLOC_SET g value))
+
+  (define-c-proc gloc-bound? (g::Gloc) ::boolean
+    (result (SG_UNBOUNDP (SG_GLOC_GET g))))
+
+  ;; code-builder
   (define-c-proc make-code-builder () ::Object
     (result (Sg_MakeCodeBuilder 2)))
 
@@ -307,4 +322,7 @@
 
   (define-c-proc set-toplevel-variable! (s::Symbol obj) ::void
     (Sg_VMSetToplevelVariable s obj))
+
+  (define-c-proc get-toplevel-variables () ::Object
+    (result (-> (Sg_VM) toplevelVariables)))
 )

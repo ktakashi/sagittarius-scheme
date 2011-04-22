@@ -8,7 +8,6 @@
 	    identifier->symbol
 	    ;; sucks!!
 	    make-syntax-object
-	    make-syntax-case
 	    ;; generics
 	    make-generic
 	    register-generic
@@ -84,15 +83,6 @@
 
   (define-c-proc make-syntax-object (datum) ::Object
     (result (Sg_MakeSyntax datum #f TRUE)))
-
-  (define-c-proc make-syntax-case (literals patterns) ::Object
-    (result (Sg_MakeSyntaxCase literals patterns)))
-
-  (define-c-proc syntax-case-literals (syncase::SyntaxCase) ::Object
-    (result (-> (SG_SYNTAX_CASE syncase) literals)))
-
-  (define-c-proc syntax-case-patterns (syncase::SyntaxCase) ::Object
-    (result (-> (SG_SYNTAX_CASE syncase) patterns)))
 
   ;; generics
   (define-c-proc make-generic (name::Symbol printer ctr :rest fields) ::Object

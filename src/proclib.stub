@@ -7,6 +7,14 @@
 	      find-procedure)
       (import :none)
 
+  (define-cgen-stmt assertion-violation
+    ((_ who msg)
+     (dispatch
+      `(Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) '())))
+    ((_ who msg irritants)
+     (dispatch
+      `(Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,irritants))))
+
     (define-c-proc procedure-name (arg0::Procedure) ::Object
       (result (SG_PROCEDURE_NAME arg0)))
 
@@ -28,4 +36,8 @@
 		   (not (SG_FALSEP (SG_PROCEDURE_INLINER arg0))))))
 
     (define-c-proc find-procedure (name::Symbol lib::Object) ::Object
-      (result (Sg_FindBinding lib name))))
+      (let ((g (Sg_FindBinding lib name SG_UNBOUND)))
+	(if (SG_UNBOUNDP g)
+	    (result SG_FALSE)
+	    (result (SG_GLOC_GET (SG_GLOC g)))))))
+	  

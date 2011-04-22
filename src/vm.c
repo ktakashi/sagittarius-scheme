@@ -56,6 +56,7 @@
 #include "sagittarius/system.h"
 #include "sagittarius/exceptions.h"
 #include "sagittarius/profiler.h"
+#include "sagittarius/gloc.h"
 
 static SgVM *rootVM = NULL;
 /* TODO multi thread */
@@ -278,19 +279,25 @@ int Sg_Load(SgString *path)
   }
 }
 
-SgObject Sg_FindBinding(SgObject library, SgSymbol *name)
+SgObject Sg_FindBinding(SgObject library, SgSymbol *name, SgObject callback)
 {
   SgLibrary *lib;
   if (SG_LIBRARYP(library)) lib = SG_LIBRARY(library);
   else lib = Sg_FindLibrary(library, FALSE);
-  return Sg_HashTableRef(SG_LIBRARY_TABLE(lib), name, SG_FALSE);
+  return Sg_HashTableRef(SG_LIBRARY_TABLE(lib), name, callback);
 }
-void Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value)
+void Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value_or_gloc)
 {
+  SgObject value;
+  if (SG_GLOCP(value_or_gloc)) {
+    value = SG_GLOC_GET(SG_GLOC(value_or_gloc));
+  } else {
+    value = value_or_gloc;
+  }
   if (SG_SYMBOLP(name)) {
-    Sg_HashTableSet(SG_LIBRARY_TABLE(library), name, value, 0);
+    Sg_MakeBinding(library, name, value, 0);
   } else if (SG_IDENTIFIERP(name)) {
-    Sg_HashTableSet(SG_LIBRARY_TABLE(library), SG_IDENTIFIER_NAME(name), value, 0);
+    Sg_MakeBinding(library, SG_IDENTIFIER_NAME(name), value, 0);
   } else {
     Sg_Error(UC("symbol or identifier required, but got %S"), name);
   }
@@ -299,7 +306,9 @@ void Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value)
 void Sg_VMSetToplevelVariable(SgSymbol *name, SgObject value)
 {
   SgVM *vm = Sg_VM();
-  vm->toplevelVariables = Sg_Acons(name, value, vm->toplevelVariables);
+  SgGloc *g = Sg_MakeGloc(name, vm->currentLibrary);
+  SG_GLOC_SET(g, value);
+  vm->toplevelVariables = Sg_Acons(name, g, vm->toplevelVariables);
 }
 
 static void vm_dump_code_rec(SgCodeBuilder *cb, int indent)
@@ -396,9 +405,10 @@ SgObject Sg_Compile(SgObject o)
   /* TODO lock */
   if (SG_UNDEFP(compiler)) {
     SgObject compile_library = Sg_FindLibrary(SG_INTERN("(sagittarius compiler)"), FALSE);
-    compiler = Sg_FindBinding(compile_library, SG_INTERN("compile"));
+    SgGloc *g = Sg_FindBinding(compile_library, SG_INTERN("compile"), SG_FALSE);
+    compiler = SG_GLOC_GET(g);
   }
-  return Sg_Apply(compiler, SG_LIST2(o, SG_NIL));
+  return Sg_Apply2(compiler, o, SG_NIL);
 }
 
 
@@ -484,6 +494,7 @@ SgObject Sg_Apply0(SgObject proc)
 {
   SgVM *vm = Sg_VM();
   make_call_frame(vm, apply_calls_w_halt[0] + 2);
+  AC(vm) = proc;
   return evaluate_safe(apply_calls_w_halt[0], 3);
 }
 
@@ -492,16 +503,18 @@ SgObject Sg_Apply1(SgObject proc, SgObject arg)
   SgVM *vm = Sg_VM();
   make_call_frame(vm, apply_calls_w_halt[1] + 2);
   PUSH(SP(vm), arg);
+  AC(vm) = proc;
   return evaluate_safe(apply_calls_w_halt[1], 3);
 }
 
 SgObject Sg_Apply2(SgObject proc, SgObject arg0, SgObject arg1)
 {
   SgVM *vm = Sg_VM();
-  make_call_frame(vm, apply_calls_w_halt[1] + 2);
+  make_call_frame(vm, apply_calls_w_halt[2] + 2);
   PUSH(SP(vm), arg0);
   PUSH(SP(vm), arg1);
-  return evaluate_safe(apply_calls_w_halt[1], 3);
+  AC(vm) = proc;
+  return evaluate_safe(apply_calls_w_halt[2], 3);
 }
 
 
@@ -881,6 +894,7 @@ SgObject Sg_GetStackTrace()
 
       SgContFrame *nextCont;
       cl = cont->cl;
+      if (!cl) break;
       if (!SG_PROCEDUREP(cl)) {
 	break;
       }
@@ -1099,15 +1113,24 @@ static void process_queued_requests(SgVM *vm)
 
 #define GREF_INSN(vm)							\
   SgObject var = FETCH_OPERAND(PC(vm));					\
-  SgObject value;							\
-  ASSERT(SG_IDENTIFIERP(var));						\
-  value = Sg_FindBinding(SG_IDENTIFIER(var)->library, SG_IDENTIFIER(var)->name); \
-  if (SG_FALSEP(value)) {						\
-    Sg_AssertionViolation(SG_INTERN("vm"),				\
-			  Sg_MakeString(UC("unbound variable"), SG_LITERAL_STRING), \
-			  var);						\
-  }									\
-  AC(vm) = value
+  if (SG_GLOCP(var)) {							\
+    AC(vm) = SG_GLOC_GET(SG_GLOC(var));					\
+  } else {								\
+    SgObject value;							\
+    SgGloc *g;								\
+    ASSERT(SG_IDENTIFIERP(var));					\
+    value = Sg_FindBinding(SG_IDENTIFIER(var)->library,			\
+			   SG_IDENTIFIER(var)->name, SG_UNBOUND);	\
+    if (SG_UNBOUNDP(value)) {						\
+      Sg_AssertionViolation(SG_INTERN("vm"),				\
+			    Sg_Sprintf(UC("unbound variable %S")),	\
+			    var);					\
+    }									\
+    ASSERT(SG_GLOCP(value));						\
+    g = SG_GLOC(value);							\
+    AC(vm) = SG_GLOC_GET(g);						\
+    *(PC(vm) - 1) = SG_WORD(g);						\
+  }
 
 #define TAIL_CALL_INSN(vm, code)			\
   {							\

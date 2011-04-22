@@ -420,7 +420,7 @@
 			    var (stack-trace c))))
 		    
 	 (let ((value ;(namespace-ref (id-name var)))
-		(find-binding (id-library var) (id-name var))))
+		(find-binding (id-library var) (id-name var) #f)))
 	   (or value
 	       (error (format "unbound variable ~s, library ~s~% ~s" (id-name var) (library-name (id-library var)) (stack-trace c))))
 	   (VM x (skip) value c f s))))
@@ -439,7 +439,7 @@
 			    var (stack-trace c))))
 		    
 	 (let ((value ;(namespace-ref (id-name var)))
-		(find-binding (id-library var) (id-name var))))
+		(find-binding (id-library var) (id-name var) #f)))
 	   (or value
 	       (error 'vm (format "unbound variable ~s, library ~s~% ~s" (id-name var) (library-name (id-library var)) (stack-trace c))))
 	   (VM x (skip) value c f (push value s)))))
@@ -592,7 +592,7 @@
 			    var (stack-trace c))))
 	 
 	 (let ((value ;(namespace-ref (id-name var)))
-		(find-binding (id-library var) (id-name var))))
+		(find-binding (id-library var) (id-name var) #f)))
 	   (or value
 	       (error 'vm (format "unbound variable ~s, library ~s~% ~s" (id-name var) (library-name (id-library var)) (stack-trace c))))
 	   (apply-body value argc s))))
@@ -604,7 +604,7 @@
 			    var (stack-trace c))))
 	 
 	 (let ((value ;(namespace-ref (id-name var)))
-		(find-binding (id-library var) (id-name var))))
+		(find-binding (id-library var) (id-name var) #f)))
 	   (or value
 	       (error 'vm (format "unbound variable ~s, library ~s~% ~s" (id-name var) (library-name (id-library var)) (stack-trace c))))
 	   (apply-body value argc (shift-args f argc s)))))
@@ -1160,7 +1160,7 @@
 
 (add-namespace! dump-library-symbols (o . s))
 (add-namespace! vm-current-library o)
-(add-namespace! find-binding (l n))
+(add-namespace! find-binding (l n c))
 (add-namespace! unwrap-syntax (form))
 
 (define *base-lib* "lib/scmlib.scm")

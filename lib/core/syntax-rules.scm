@@ -7,7 +7,7 @@
     (import (core)
 	    (sagittarius)
 	    (core base)
-	    ;;(pp)
+	    (core syntax-case)
 	    (core syntax pattern)
 	    (core syntax template))
 
@@ -22,7 +22,7 @@
 	       (if (pair? clauses)
 		   (let ((pat (caar clauses))
 			 (template (cadar clauses)))
-		     (check-pattern pat literal rename compare)
+		     (check-pattern pat literal)
 		     (let ((sids (collect-sids pat (rename 'form) literal rename compare)))
 		       ;;(check-template template sids rename compare)
 		       `(,(rename 'if)

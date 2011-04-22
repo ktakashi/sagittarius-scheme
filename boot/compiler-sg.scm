@@ -646,8 +646,8 @@
  (lambda
   (id)
   (let
-   ((gloc (find-binding (id-library id) (id-name id))))
-   (if gloc gloc #f))))
+   ((gloc (find-binding (id-library id) (id-name id) #f)))
+   (if (and gloc (gloc-bound? gloc)) gloc #f))))
 
 (define
  global-eq?
@@ -1770,8 +1770,13 @@
            (let
             ((gloc (id->bound-gloc head)))
             (if
-             (macro? gloc)
-             (pass1/body-macro-expand-rec gloc exprs intdefs p1env)
+             gloc
+             (let
+              ((gval (gloc-ref gloc)))
+              (if
+               (macro? gval)
+               (pass1/body-macro-expand-rec gval exprs intdefs p1env)
+               (pass1/body-finish intdefs exprs p1env)))
              (pass1/body-finish intdefs exprs p1env))))
           (else (scheme-error 'pass1/body "[internal] pass1/body" head))))
         (else #f))))
@@ -1875,14 +1880,16 @@
    (lambda
     (id)
     (let*
-     ((lib (id-library id)) (gloc (find-binding lib (id-name id))))
+     ((lib (id-library id)) (gloc (find-binding lib (id-name id) #f)))
      (if
       gloc
-      (cond
-       ((macro? gloc) (pass1 (call-macro-expander gloc form p1env) p1env))
-       ((syntax? gloc) (call-syntax-handler gloc form p1env))
-       ((inline? gloc) (pass1/expand-inliner id gloc))
-       (else (pass1/call form ($gref id) (cdr form) p1env)))
+      (let
+       ((gval (gloc-ref gloc)))
+       (cond
+        ((macro? gval) (pass1 (call-macro-expander gval form p1env) p1env))
+        ((syntax? gval) (call-syntax-handler gval form p1env))
+        ((inline? gval) (pass1/expand-inliner id gval))
+        (else (pass1/call form ($gref id) (cdr form) p1env))))
       (pass1/call form ($gref id) (cdr form) p1env)))))
   (define
    pass1/expand-inliner

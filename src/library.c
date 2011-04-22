@@ -42,6 +42,8 @@
 #include "sagittarius/error.h"
 #include "sagittarius/vm.h"
 #include "sagittarius/system.h"
+#include "sagittarius/gloc.h"
+#include "sagittarius/compare.h"
 
 static void load_toplevel_variable(SgLibrary *lib)
 {
@@ -312,6 +314,37 @@ void Sg_AddGenerics(SgObject lib, SgObject name, SgObject generics)
   l->generics = Sg_Acons(name, generics, l->generics);
 }
 
+SgGloc* Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
+		       SgObject value, int flags)
+{
+  SgGloc *g;
+  SgObject v;
+  SgObject oldval = SG_UNDEF;
+  int prev_const = FALSE;
+  /* TODO lock */
+  v = Sg_HashTableRef(lib->table, SG_OBJ(symbol), SG_FALSE);
+  if (SG_GLOCP(v)) {
+    g = SG_GLOC(v);
+    prev_const = Sg_GlocConstP(g);
+    oldval = SG_GLOC_GET(g);
+  } else {
+    g = SG_GLOC(Sg_MakeGloc(symbol, lib));
+    Sg_HashTableSet(lib->table, SG_OBJ(symbol), SG_OBJ(g), 0);
+    /* TODO refactor export mechanism */
+  }
+  /* TODO unlock */
+
+  SG_GLOC_SET(g, value);
+  /* NB: for now, only TRUE or FALSE */
+  g->constant = flags;
+
+  if (prev_const) {
+    if (prev_const != flags || !Sg_EqualP(value, oldval)) {
+      /* TODO warning */
+    }
+  }
+  return g;
+}
 /*
   end of file
   Local Variables:

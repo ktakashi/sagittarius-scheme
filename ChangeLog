@@ -1,3 +1,7 @@
+2011-04-22  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/gloc.c, src/sagittarius/gloc.h (gloc): added gloc
+
 2011-04-21  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/sagittarius/misc.scm (sagittarius misc): added define-macro.

@@ -44,6 +44,7 @@
 #include "sagittarius/vm.h"
 #include "sagittarius/subr.h"
 #include "sagittarius/port.h"
+#include "sagittarius/gloc.h"
 
 #define L6(a,b,c,d,e,f) Sg_Cons(a, SG_LIST5(b,c,d,e,f))
 #define RTD_P(obj)							\
@@ -256,7 +257,8 @@ SgObject Sg_MakeRecordTypeDescriptor(SgSymbol *name, SgObject parent, SgObject u
 
 static SgObject default_protocol(SgObject rtd)
 {
-  SgObject protocol = Sg_FindBinding(SG_INTERN("(core base)"), SG_INTERN("default-protocol"));
+  SgGloc *g = Sg_FindBinding(SG_INTERN("(core base)"), SG_INTERN("default-protocol"), SG_FALSE);
+  SgObject protocol = SG_GLOC_GET(g);
   return Sg_Apply(protocol, SG_LIST1(rtd));
 }
 
@@ -323,6 +325,7 @@ SgObject Sg_MakeRecordConstructorDescriptor(SgObject rtd, SgObject parent, SgObj
 SgObject Sg_RecordConstructor(SgObject rcd)
 {
   SgObject rtd, proc;
+  SgGloc *g;
   int len;
   if (!RCD_P(rcd)) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-constructor"),
@@ -331,10 +334,12 @@ SgObject Sg_RecordConstructor(SgObject rcd)
   }
   rtd = RCD_RTD(rcd);
   if (!SG_FALSEP(RCD_PARENT(rcd))) {
-    proc = Sg_FindBinding(SG_INTERN("(core base)"), SG_INTERN("make-nested-conser"));
+    g = Sg_FindBinding(SG_INTERN("(core base)"), SG_INTERN("make-nested-conser"), SG_FALSE);
+    proc = SG_GLOC_GET(g);
     len = Sg_RtdTotalFieldCount(rtd);
   } else {
-    proc = Sg_FindBinding(SG_INTERN("(core base)"), SG_INTERN("make-simple-conser"));
+    g = Sg_FindBinding(SG_INTERN("(core base)"), SG_INTERN("make-simple-conser"), SG_FALSE);
+    proc = SG_GLOC_GET(g);
     len = Sg_Length(RTD_FIELDS(rtd));
   }
   return Sg_Apply(proc, SG_LIST3(rcd, rtd, SG_MAKE_INT(len)));

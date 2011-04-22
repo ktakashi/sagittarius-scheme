@@ -138,20 +138,26 @@ CASE(LSET) {
 (define-inst GREF (0 1 #t)
   (GREF_INSN vm))
 
-#|
-      CASE(GSET) {
-	SgObject var = FETCH_OPERAND(PC(vm));
-	ASSERT(SG_IDENTIFIERP(var));
-	Sg_InsertBinding(SG_IDENTIFIER_LIBRARY(var), SG_IDENTIFIER_NAME(var), AC(vm));
-	NEXT;
-      }
-|#
+
 (define-inst GSET (0 1 #t)
   (let ((var (FETCH_OPERAND (PC vm))))
-    (ASSERT (SG_IDENTIFIERP var))
-    (Sg_InsertBinding (SG_IDENTIFIER_LIBRARY var)
-		      (SG_IDENTIFIER_NAME var)
-		      (AC vm))))
+    (ASSERT (or (SG_IDENTIFIERP var)
+		(SG_GLOCP var)))
+    (if (SG_GLOCP var)
+	(SG_GLOC_SET (SG_GLOC var) (AC vm))
+	(let ((oldval (Sg_FindBinding (SG_IDENTIFIER_LIBRARY var)
+				      (SG_IDENTIFIER_NAME var)
+				      SG_UNBOUND)))
+	  (when (SG_UNBOUNDP oldval)
+	    (assertion-violation 'set!
+				 "unbound variable"
+				 (SG_IDENTIFIER_NAME var)))
+	  (let ((g (Sg_MakeBinding (SG_IDENTIFIER_LIBRARY var)
+				   (SG_IDENTIFIER_NAME var)
+				   (AC vm)
+				   0)))
+	    (set! (pointer (- (PC vm) 1)) (SG_WORD g)))))
+    (set! (AC vm) SG_UNDEF)))
 #|
       CASE(PUSH) {
 	PUSH_INSN(vm);
@@ -773,21 +779,14 @@ CASE(LSET) {
     (set! (DC vm) (INDEX sp 1))
     (set! (SP vm) (- sp SG_LET_FRAME_SIZE))))
 
-#|
-      CASE(DEFINE) {
-	SgObject var = FETCH_OPERAND(PC(vm));
-	ASSERT(SG_IDENTIFIERP(var));
-	Sg_InsertBinding(SG_IDENTIFIER(var)->library, SG_IDENTIFIER(var)->name, AC(vm));
-	AC(vm) = SG_UNDEF;
-	NEXT;
-      }
-|#
+
 (define-inst DEFINE (1 1 #t)
   (let ((var (FETCH_OPERAND (PC vm))))
     (ASSERT (SG_IDENTIFIERP var))
-    (Sg_InsertBinding (SG_IDENTIFIER_LIBRARY var)
-		      (SG_IDENTIFIER_NAME var)
-		      (AC vm))
+    (Sg_MakeBinding (SG_IDENTIFIER_LIBRARY var)
+		    (SG_IDENTIFIER_NAME var)
+		    (AC vm)
+		    val1)
     (set! (AC vm) SG_UNDEF)))
 
 #|

@@ -1,6 +1,8 @@
 ;; lib/vm.scm
 ;; dummy
 (define (set-toplevel-variable! sym val) #f)
+(define (gloc-ref g) g)
+(define (gloc-bound? g) #t)
 
 ;; this file is the collection of vm procedure.
 ;; these procedure must be written in C++
@@ -169,12 +171,12 @@
 	 (let ((lib (make-library library)))
 	   (hashtable-set! (library-table lib) name value)))))
 
-(define (find-binding lib name)
+(define (find-binding lib name callback)
   (cond ((library? lib)
-	 (hashtable-ref (library-table lib) name #f))
-	((hashtable-ref #;(vm-libraries) *libraries* lib #f) ;; maybe just a name?
+	 (hashtable-ref (library-table lib) name callback))
+	((hashtable-ref #;(vm-libraries) *libraries* lib callback) ;; maybe just a name?
 	 => (lambda (lib)
-	      (hashtable-ref (library-table lib) name #f)))
+	      (hashtable-ref (library-table lib) name callback)))
 	(else #f)))
 
 ;(define *compiler-library* '(sagittarius compiler))

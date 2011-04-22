@@ -409,11 +409,28 @@
       (renderer-no-indent save)
       (k k)))
 
+  ;; *(pointer)
+  (define (ref* body dispatch k)
+    (let ((instance (cadr body))
+	  (save (renderer-no-indent)))
+      ((renderer) "*(")
+      (renderer-no-indent #t)
+      (dispatch instance dispatch k)
+      (renderer-no-indent #t)
+      ((renderer) ")")
+      (renderer-no-indent save)
+      (k k)))
+
   ;; &
   (define (deref& body dispatch k)
-    (let ((instance (cadr body)))
-      ((renderer) "&")
+    (let ((instance (cadr body))
+	  (save (renderer-no-indent)))
+      ((renderer) "&(")
+      (renderer-no-indent #t)
       (dispatch instance dispatch k)
+      (renderer-no-indent #t)
+      ((renderer) ")")
+      (renderer-no-indent save)
       (k k)))
 
   ;; arrayref
@@ -522,5 +539,6 @@
     (hashtable-set! *dispatch-table* 'or or-proc)
     (hashtable-set! *dispatch-table* 'cast cast)
     (hashtable-set! *dispatch-table* '-> ref->)
+    (hashtable-set! *dispatch-table* 'pointer ref*)
     (hashtable-set! *dispatch-table* 'arrayref aref)
     (hashtable-set! *dispatch-table* 'let let-proc)))

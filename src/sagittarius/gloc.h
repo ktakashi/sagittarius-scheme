@@ -1,6 +1,6 @@
 /* -*- C -*- */
 /*
- * library.h
+ * gloc.h
  *
  *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
  *
@@ -29,47 +29,39 @@
  *
  *  $Id: $
  */
-#ifndef SAGITTARIUS_LIBRARY_H_
-#define SAGITTARIUS_LIBRARY_H_
+#ifndef SAGITTARIUS_GLOC_H_
+#define SAGITTARIUS_GLOC_H_
 
 #include "sagittariusdefs.h"
 
-struct SgLibraryRec
+struct SgGlocRec
 {
   SG_HEADER;
-  SgObject     name;		/* library name */
-  SgObject     imported;	/* imported symbols */
-  SgObject     exported;	/* exported symbold */
-  SgObject     version;		/* library version */
-  SgObject     generics;	/* user defined class */
-  SgHashTable *table;		/* library inside */
+  SgSymbol   *name;
+  SgLibrary  *library;
+  SgObject    value;
+  unsigned int constant : 1;	/* TRUE if this is constant value */
 };
 
-#define SG_LIBRARY(obj)  ((SgLibrary*)(obj))
-#define SG_LIBRARYP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_LIBRARY))
+#define SG_GLOC(obj)  ((SgGloc*)obj)
+#define SG_GLOCP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_GLOC))
 
-#define SG_LIBRARY_NAME(obj)     SG_LIBRARY(obj)->name
-#define SG_LIBRARY_IMPORTED(obj) SG_LIBRARY(obj)->imported
-#define SG_LIBRARY_EXPORTED(obj) SG_LIBRARY(obj)->exported
-#define SG_LIBRARY_TABLE(obj)    SG_LIBRARY(obj)->table
+#define SG_GLOC_GET(gloc)      ((gloc)->value)
+#define SG_GLOC_SET(gloc, val) ((gloc)->value = (val))
 
 SG_CDECL_BEGIN
 
-SG_EXTERN SgObject Sg_MakeLibrary(SgObject name);
-SG_EXTERN SgObject Sg_FindLibrary(SgObject name, int createp);
-SG_EXTERN void     Sg_ImportLibrary(SgObject to, SgObject from);
-SG_EXTERN void     Sg_LibraryExportedSet(SgObject lib, SgObject exportSpec);
-SG_EXTERN void     Sg_AddGenerics(SgObject lib, SgObject name, SgObject generics);
-SG_EXTERN SgObject Sg_SearchLibrary(SgObject lib);
-SG_EXTERN SgGloc*  Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
-				  SgObject value, int flags);
+SG_EXTERN int      Sg_GlocConstP(SgGloc *g);
+
+SG_EXTERN SgObject Sg_MakeGloc(SgSymbol *name, SgLibrary *library);
+
 SG_CDECL_END
 
-#endif /* SAGITTARIUS_LIBRARY_H_ */
-
+#endif /* SAGITTARIUS_GLOC_H_ */
 /*
   end of file
   Local Variables:
   coding: utf-8-unix
   End:
 */
+

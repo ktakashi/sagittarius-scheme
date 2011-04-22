@@ -38,6 +38,7 @@
 #include "sagittarius/code.h"
 #include "sagittarius/subr.h"
 #include "sagittarius/vm.h"
+#include "sagittarius/gloc.h"
 #include "sagittarius/builtin-symbols.h"
 
 SgObject Sg_MakeSyntax(SgSymbol *name, SgObject proc, int userDefined)
@@ -160,13 +161,16 @@ SgObject Sg_MacroExpand(SgObject expr, SgObject p1env, int onceP)
       SgObject g = NULL;
       if (SG_IDENTIFIERP(sym)) {
 	g = Sg_FindBinding(SG_IDENTIFIER_LIBRARY(sym),
-			   SG_IDENTIFIER_NAME(sym));
+			   SG_IDENTIFIER_NAME(sym),
+			   SG_FALSE);
       } else if (SG_SYMBOLP(sym)) {
 	g = Sg_FindBinding(SG_VECTOR_ELEMENT(p1env, 0),
-			   sym);
+			   sym,
+			   SG_FALSE);
 			   
       }
-      if (g) {
+      if (!SG_FALSEP(g)) {
+	SgObject gval = SG_GLOC_GET(SG_GLOC(g));
 	if (SG_MACROP(g)) {
 	  mac = SG_MACRO(g);
 	}
@@ -189,15 +193,6 @@ SgObject Sg_MacroExpand(SgObject expr, SgObject p1env, int onceP)
 SgObject Sg_UnwrapSyntax(SgObject form)
 {
   return unwrap_rec(form, SG_NIL);
-}
-
-SgObject Sg_MakeSyntaxCase(SgObject literals, SgObject patterns)
-{
-  SgSyntaxCase *z = SG_NEW(SgSyntaxCase);
-  SG_SET_HEADER(z, TC_SYNTAX_CASE);
-  z->literals = literals;
-  z->patterns = patterns;
-  return SG_OBJ(z);
 }
 
 /*

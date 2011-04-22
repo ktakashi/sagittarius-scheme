@@ -135,8 +135,26 @@ CASE(GREF) {
 CASE(GSET) {
   {
     SgObject var = FETCH_OPERAND(PC(vm));
-    ASSERT(SG_IDENTIFIERP(var));
-    Sg_InsertBinding(SG_IDENTIFIER_LIBRARY(var), SG_IDENTIFIER_NAME(var), AC(vm));
+    ASSERT((SG_IDENTIFIERP(var) || SG_GLOCP(var))    );
+    if (SG_GLOCP(var)) {
+      SG_GLOC_SET(SG_GLOC(var), AC(vm));
+    } else {
+      {
+        SgObject oldval = Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var), SG_IDENTIFIER_NAME(var), SG_UNBOUND);
+        if (SG_UNBOUNDP(oldval)) {
+          Sg_AssertionViolation(SG_INTERN("set!"), Sg_MakeString(UC("unbound variable"), SG_LITERAL_STRING), SG_IDENTIFIER_NAME(var));
+        }
+;
+        {
+          SgObject g = Sg_MakeBinding(SG_IDENTIFIER_LIBRARY(var), SG_IDENTIFIER_NAME(var), AC(vm), 0);
+          *(PC(vm) - 1)=SG_WORD(g);
+        }
+;
+      }
+;
+    }
+;
+    AC(vm)=SG_UNDEF;
   }
 ;
   NEXT;
@@ -533,7 +551,7 @@ CASE(DEFINE) {
   {
     SgObject var = FETCH_OPERAND(PC(vm));
     ASSERT(SG_IDENTIFIERP(var));
-    Sg_InsertBinding(SG_IDENTIFIER_LIBRARY(var), SG_IDENTIFIER_NAME(var), AC(vm));
+    Sg_MakeBinding(SG_IDENTIFIER_LIBRARY(var), SG_IDENTIFIER_NAME(var), AC(vm), val1);
     AC(vm)=SG_UNDEF;
   }
 ;

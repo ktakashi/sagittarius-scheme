@@ -205,6 +205,7 @@ typedef struct SgCodecRec      	   SgCodec;
 typedef struct SgComplexRec    	   SgComplex;
 typedef struct SgContinucationRec  SgContinuation;
 typedef struct SgGenericRec        SgGeneric;
+typedef struct SgGlocRec           SgGloc;
 typedef struct SgFileRec       	   SgFile;
 typedef struct SgFlonumRec     	   SgFlonum;
 typedef struct SgHashTableRec  	   SgHashTable;
@@ -276,7 +277,7 @@ enum {
   /* weak objects */
   TC_WEAK_VECTOR,
 
-  TC_SYNTAX_CASE,
+  TC_GLOC,
 
   TC_MASKBITS = 0x3f
 };

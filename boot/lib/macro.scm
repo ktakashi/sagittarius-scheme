@@ -652,10 +652,15 @@
                            (expand-template tail depth vars))))
                 ((ellipsis-pair? tmpl)
                  (cond ((symbol? (car tmpl))
-                        (let ((rank (rank-of (car tmpl) ranks)))
+			(let lp ((rank (rank-of (car tmpl) ranks))
+				 (rest (cdr ranks)))
                           (cond ((= rank (+ depth 1))
                                  (append (expand-ellipsis-var (car tmpl) vars)
                                          (expand-template (cddr tmpl) depth vars)))
+				((>= rank 0)
+				 ;; it might be free pattern variable retry
+				 (lp (rank-of (car tmpl) rest)
+				     (cdr rest)))
 				(else
 				 ;; error?
 				 (assertion-violation "syntax template"
@@ -703,6 +708,14 @@
 		    'datum->syntax
 		    #f)))
       (wrap-syntax datum p1env))))
+
+(define generate-temporaries
+  (lambda (obj)
+    (or (list? obj)
+        (assertion-violation 'generate-temporaries
+			     (format "expected list, but got ~s" obj)))
+    (map (lambda (n) (make-identifier (gensym) '() (vm-current-library))) obj)))
+
 
 ;; toplevel variables
 (set-toplevel-variable! '.match-syntax-case match-syntax-case)

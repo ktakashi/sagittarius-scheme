@@ -62,7 +62,7 @@
   (define ellipsis-pair?
     (lambda (pat)
       (and (pair? pat)
-           (variable? (car pat))
+           ;;(variable? (car pat))
            (pair? (cdr pat))
            (ellipsis? (cadr pat)))))
 

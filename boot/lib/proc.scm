@@ -36,7 +36,7 @@
        (procedure-inliner p)))
 
 (define (find-procedure name lib)
-  (find-binding lib name))
+  (find-binding lib name #f))
 
 (cond-expand
  (gauche

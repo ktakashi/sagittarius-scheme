@@ -6,8 +6,8 @@
 	    (core syntax pattern)
 	    (core syntax helper)
 	    (core misc)
-	    (sagittarius)
-	    (sagittarius vm))
+	    (core syntax-case) ;; for ellipsis-pair? so
+	    (sagittarius))
   ;; from Ypsilon
   (define parse-ellipsis-splicing
     (lambda (form rename compare)
@@ -69,12 +69,12 @@
 	  (lambda (tmpl ellipses)
 	    (cond ((variable? tmpl)
 		   (expand-variable tmpl ellipses))
-		  ((ellipsis-quote? tmpl rename compare)
+		  ((ellipsis-quote? tmpl)
 		   `(,_quote ,(if (pair? (cdr tmpl))
 				  (if (pair? (cddr tmpl)) (cddr tmpl) (cadr tmpl))
 				  (cdr tmpl))))
 		  ;; (p ... ...)
-		  ((ellipsis-splicing-pair? tmpl rename compare)
+		  ((ellipsis-splicing-pair? tmpl)
 		   (receive (body tail len) (parse-ellipsis-splicing tmpl rename compare)
 		     (optimized-append (apply optimized-append
 					      rename compare (let ((ellipsis (make-ellipsis '())))
@@ -85,7 +85,7 @@
 				       (loop tail ellipses))))
 		  
 		  ;; (p ...)
-		  ((ellipsis-pair? tmpl rename compare)
+		  ((ellipsis-pair? tmpl)
 		   (optimized-append rename compare
 				     (let ((ellipsis (make-ellipsis '())))
 				       (generate-ellipsis ellipsis

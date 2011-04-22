@@ -38,6 +38,7 @@
 #include "sagittarius/writer.h"
 #include "sagittarius/symbol.h"
 #include "sagittarius/vm.h"
+#include "sagittarius/gloc.h"
 
 void Sg_Error(const SgChar* fmt, ...)
 {
@@ -77,19 +78,22 @@ void Sg_SyntaxError(SgObject form, SgObject irritants)
 
 void Sg_IOReadError(SgObject who, SgObject msg, SgObject port)
 {
-  SgObject proc = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-read-error"));
+  SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-read-error"), SG_FALSE);
+  SgObject proc = SG_GLOC_GET(g);
   Sg_Apply(proc, SG_LIST3(who, msg, port));
 }
 
 void Sg_IOWriteError(SgObject who, SgObject msg, SgObject port)
 {
-  SgObject proc = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-write-error"));
+  SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-write-error"), SG_FALSE);
+  SgObject proc = SG_GLOC_GET(g);
   Sg_Apply(proc, SG_LIST3(who, msg, port));
 }
 
 void Sg_AssertionViolation(SgObject who, SgObject message, SgObject irritants)
 {
-  SgObject proc = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("assertion-violation"));
+  SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("assertion-violation"), SG_FALSE);
+  SgObject proc = SG_GLOC_GET(g);
   Sg_Apply(proc, SG_LIST3(who, message, irritants));
 }
 
