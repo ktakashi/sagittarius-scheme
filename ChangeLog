@@ -1,5 +1,8 @@
 2011-04-22  Takashi Kato  <ktakashi@ymail.com>
 
+	* boot/lib/macro.scm (expand-syntax): fixed unbound variable error, when
+	evaluate (syntax ...) expression in non macro context.
+
 	* src/gloc.c, src/sagittarius/gloc.h (gloc): added gloc
 
 2011-04-21  Takashi Kato  <ktakashi@ymail.com>

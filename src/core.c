@@ -69,6 +69,18 @@ extern void Sg__Init_sagittarius_compiler();
 extern void Sg__Init_core_errors();
 extern void Sg__Init_core_arithmetic();
 
+/* duplicated in library.c */
+static void load_top_level()
+{
+  SgVM *vm = Sg_VM();
+  SgObject tmp, vars;
+  SgHashTable *table = vm->currentLibrary->table;
+  SG_FOR_EACH(tmp, vm->toplevelVariables) {
+    vars = SG_CAR(tmp);
+    Sg_HashTableSet(table, SG_CAR(vars), SG_CDR(vars), 0);
+  }
+}
+
 void Sg_Init()
 {
 #ifdef USE_BOEHM_GC
@@ -119,6 +131,7 @@ void Sg_Init()
   Sg__Init_core_errors();
   Sg__Init_core_arithmetic();
 
+  load_top_level();
   /* TODO should this be here? */
   Sg_ImportLibrary(Sg_VM()->currentLibrary, SG_OBJ(SG_INTERN("null")));
   Sg_ImportLibrary(Sg_VM()->currentLibrary, SG_OBJ(SG_INTERN("(sagittarius)")));

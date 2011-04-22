@@ -74,7 +74,7 @@
                         q
                         (with-syntax ((d dnew)) #'(quasisyntax . d)))))))
           ((unsyntax . d)
-           (not (= n 0))
+	   (not (= n 0))
            (qs #'d (- n 1) b*
                (lambda (b* dnew)
                  (k b*
@@ -90,11 +90,11 @@
                         q
                         (with-syntax ((d dnew)) #'(unsyntax-splicing . d)))))))
           ((unsyntax q)
-           (= n 0)
+	   (= n 0)
            (with-syntax (((t) (generate-temporaries #'(q))))
              (k (cons #'(t q) b*) #'t)))
           (((unsyntax q ...) . d)
-           (= n 0)
+	   (= n 0)
            (qs #'d n b*
                (lambda (b* dnew)
                  (with-syntax (((t ...) (generate-temporaries #'(q ...))))

@@ -94,6 +94,10 @@
      when unless do case-lambda
 
      #;(rnrs records syntactic (6))
+     define-record-type
+     record-type-descriptor
+     record-constructor-descriptor
+     define-record-type-helper0
 
      #;(rnrs records procedural (6))
      make-record-type-descriptor

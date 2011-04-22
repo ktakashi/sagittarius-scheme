@@ -36,32 +36,23 @@
             (reverse cur)
             (itr (+ ind 1) (cons (proc ind (car rest)) cur) (cdr rest))))
         (itr 0 '() lst)))
-; R6RS wrapper for Ypsilon's record
+
+
 (library (rnrs records syntactic (6))
 
   (export define-record-type fields mutable immutable
           parent protocol sealed opaque nongenerative parent-rtd
-          record-type-descriptor record-constructor-descriptor)
+          record-type-descriptor record-constructor-descriptor
+	  define-record-type-helper0)
 
   (import (core)
           (core base)
 	  (rnrs lists)
           (core syntax)
+	  (core syntax-rules)
+	  (core syntax-case)
           (rnrs records syntactic helper)
           (rnrs records syntactic helper counter))
-
-;MOSH
-
-
-  ; from Larceny
-  (define-syntax define-record-type
-    (syntax-rules ()
-     ((_ (rtd-name constructor-name predicate-name) clause ...)
-      (define-record-type-helper0
-       #t rtd-name constructor-name predicate-name clause ...))
-     ((_ rtd-name clause ...)
-      (define-record-type-helper0
-       #f rtd-name #f #f clause ...))))
 
   (define-syntax define-record-type-helper0
     (lambda (x)
@@ -260,6 +251,7 @@
 						      #f
 						      ))
 						 ((mutable)
+						  (print #`(mutable #,(accessor-name)))
 						  #`(mutable
 						      #,(cadr fspec)
 						      #,accessor-name
@@ -307,6 +299,18 @@
            (and parent-rtd-clause (caddr parent-rtd-clause))
 	   )
 	  )))))
+
+  ; from Larceny
+  (define-syntax define-record-type
+    (syntax-rules ()
+     ((_ (rtd-name constructor-name predicate-name) clause ...)
+      (define-record-type-helper0
+       #t rtd-name constructor-name predicate-name clause ...))
+     ((_ rtd-name clause ...)
+      (define-record-type-helper0
+	#f rtd-name #f #f clause ...))))
+
+  
 
   (define-syntax rt-or-rtd->rtd
     (syntax-rules ()
