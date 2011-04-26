@@ -694,7 +694,8 @@
 (define check-toplevel
   (lambda (form p1env)
     (unless (p1env-toplevel? p1env)
-      (syntax-error "the form can appear only in the toplevel:" form))))
+      (syntax-error "the form can appear only in the toplevel:"
+		    (unwrap-syntax form)))))
 
 ;; p1env-lookup -> moved to (sagittarius vm) library
 
@@ -1004,8 +1005,6 @@
     ((- tmpl)
      (pass1 (compile-syntax (p1env-exp-name p1env)
 			    tmpl
-			    (p1env-library p1env)
-			    (p1env-frames p1env)
 			    p1env) p1env))
     (- (syntax-error "malformed syntax: expected exactly one datum" form))))
 
@@ -1552,6 +1551,21 @@
 					((var init) `(,var ,init . ,src))
 					(- (syntax-error "malformed internal define" (caar exprs))))))
 			     (pass1/body-rec rest (cons def intdefs) p1env)))
+			  ;; 11.2.2 syntax definition
+			  ((global-eq? head 'define-syntax p1env)
+			   (smatch args
+			     ((name expr)
+			      (let* ((newenv (p1env-extend p1env `((,name ,expr)) SYNTAX))
+				     (trans (pass1/eval-macro-rhs 'define-syntax
+								  (variable-name name)
+								  expr
+								  (p1env-add-name newenv
+										  (variable-name name)))))
+				(for-each set-cdr!
+					  (cdar (p1env-frames newenv))
+					  (list trans))
+			      (pass1/body-rec rest intdefs newenv)))
+			     (- (syntax-error "malformed internal define-syntax" (caar exprs)))))
 			  ((global-eq? head 'begin p1env)
 			   (pass1/body-rec (append (imap (lambda (x) (cons x src)) args) rest)
 					   intdefs p1env))

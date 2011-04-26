@@ -232,6 +232,7 @@ SgObject Sg_MakeRecordTypeDescriptor(SgSymbol *name, SgObject parent, SgObject u
 			    fields);
     }
   }
+  fieldsImpl = Sg_ReverseX(fieldsImpl);
   rtd = make_rtd(name, parent, uid, sealedP, opaque, fieldsImpl);
   if (SG_FALSEP(uid)) {
     return rtd;

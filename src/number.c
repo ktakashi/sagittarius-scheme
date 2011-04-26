@@ -906,7 +906,6 @@ static SgRational* make_rational(SgObject nume, SgObject deno)
 SgObject Sg_MakeRational(SgObject numerator, SgObject denominator)
 {
   SgRational *z;
-  ASSERT(Sg_NegativeP(denominator) == FALSE);
   if(!Sg_ExactP(numerator)) {
     Sg_Error(UC("numerator must be an exact integer, but got %S"), numerator);
   }
@@ -2029,7 +2028,7 @@ SgObject Sg_Div(SgObject x, SgObject y)
     if (SG_INTP(y)) {
       if (y == SG_MAKE_INT(0)) goto a_normal;
       if (y == SG_MAKE_INT(1)) return x;
-      return Sg_MakeFlonum(SG_FLONUM(x)->value / SG_FLONUM(y)->value);
+      return Sg_MakeFlonum(SG_FLONUM(x)->value / SG_INT_VALUE(y));
     }
     if (SG_BIGNUMP(y) || SG_RATIONALP(y)) {
       return Sg_MakeFlonum(SG_FLONUM(x)->value / Sg_GetDouble(y));

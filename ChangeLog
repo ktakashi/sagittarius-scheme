@@ -1,3 +1,12 @@
+2011-04-26  Takashi Kato  <ktakashi@ymail.com>
+
+	* boot/lib/macro.scm (syntax-case): fixed mis expansion when syntax
+	templates contained vectors.
+
+	* src/record.c (Sg_MakeRecordTypeDescriptor): fixed fields order.
+
+	* src/macro.c (unwrap_rec): fixed unwrapping vector.
+
 2011-04-22  Takashi Kato  <ktakashi@ymail.com>
 
 	* boot/lib/macro.scm (expand-syntax): fixed unbound variable error, when

@@ -124,10 +124,12 @@
 	(let ((ranks   (collect-vars-ranks pattern (unwrap-syntax literals) 0 '())))
 	  (check-pattern pattern literals)
 	  (values pattern ranks
-		  (extend-env (map (lambda (a)
-				     (cons (car a)
-					   (cdr a)))
-				   ranks)
+		  ;; extend p1env frame like this (SYNTAX pattern ((a . 0) ...))
+		  (extend-env (cons (cons pattern 'dummy)
+				    (map (lambda (a)
+					   (cons (car a)
+						 (cdr a)))
+					 ranks))
 			      env)))))
     (or (and (list? literals)
 	     (for-all variable? literals))
@@ -227,7 +229,7 @@
       (cond ((pair? lst)
              (loop (cdr lst)
                    (loop (car lst) ans)))
-            ((ellipsis? expr) ans)
+            ((ellipsis? lst) ans)
             ((variable? lst)
              (if (id-memq lst ans) ans (cons lst ans)))
             ((vector? lst)
@@ -307,12 +309,16 @@
 ;; this needs to be toplevel but how?
 (define match-syntax-case
   (lambda (literals expr . process)
+    ;; TODO this might be still too naive
+    (define p1env?
+      (lambda (env)
+	(and (vector? env)
+	     (library? (vector-ref env 0)))))
     ;; direct expression from define-syntax has p1env, so we need to unwrap it,
     ;; however if expression was defined by user or something, it doesn't have
     ;; it. so we need to check if it has ir or not.
-    ;; TODO this might be too naive
     (let ((form (if (and (pair? expr)
-			 (= (length expr) -1))
+			 (p1env? (cdr expr)))
 		    (wrap-syntax (car expr) (cdr expr))
 		    expr)))
       (define match
@@ -341,7 +347,7 @@
 ;; first compile syntax
 ;; when a form is given, we bind the given variables.
 (define compile-syntax
-  (lambda (exp-name tmpl library env p1env)
+  (lambda (exp-name tmpl p1env)
     (let ((ids (collect-unique-ids tmpl)))
       (let ((ranks (filter values
 			   (map (lambda (id)
@@ -405,7 +411,7 @@
 			    (set! renamed-ids (acons lst id renamed-ids))
 			    id))))
 		  ((vector? lst)
-		   (loop (vector->list lst)))
+		   (list->vector (loop (vector->list lst))))
 		  ((pair? lst)
 		   (cons (loop (car lst))
 			 (loop (cdr lst))))

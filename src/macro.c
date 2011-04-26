@@ -91,11 +91,11 @@ static SgObject unwrap_rec(SgObject form, SgObject history)
       if (elt != *pelt) {
 	SgObject newvec = Sg_MakeVector(len, SG_FALSE);
 	pelt = SG_VECTOR_ELEMENTS(form);
-	for (j = 0; j < i; j++) {
+	for (j = 0; j < i; j++, pelt++) {
 	  SG_VECTOR_ELEMENT(newvec, j) = *pelt;
 	}
 	SG_VECTOR_ELEMENT(newvec, i) = elt;
-	for (; j < len; j++) {
+	for (; j < len; j++, pelt++) {
 	  SG_VECTOR_ELEMENT(newvec, j) = unwrap_rec(*pelt, newh);
 	}
 	return newvec;
@@ -171,8 +171,8 @@ SgObject Sg_MacroExpand(SgObject expr, SgObject p1env, int onceP)
       }
       if (!SG_FALSEP(g)) {
 	SgObject gval = SG_GLOC_GET(SG_GLOC(g));
-	if (SG_MACROP(g)) {
-	  mac = SG_MACRO(g);
+	if (SG_MACROP(gval)) {
+	  mac = SG_MACRO(gval);
 	}
       }
     }

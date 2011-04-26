@@ -12,7 +12,6 @@
     (import (rnrs)
 	    (core)
 	    (core base)
-	    (core exceptions)
 	    (sagittarius)
 	    (sagittarius test helper))
 
@@ -104,9 +103,9 @@
 				     (describe-condition e)
 				     #f))
 		     #;(else
-		      (report-failed "unexpected error"
-				     (describe-condition e)
-				     #f)))
+		     (report-failed "unexpected error"
+		     (describe-condition e)
+		     #f)))
 	       (run-test-aux tests ...)))
 	   (lambda ()
 	     (print 'done)))))
