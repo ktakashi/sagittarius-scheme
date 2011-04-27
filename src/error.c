@@ -52,7 +52,7 @@ void Sg_Error(const SgChar* fmt, ...)
   /* TODO I think we need an error type to catch */
   errObj = Sg_GetStringFromStringPort(err);
   /* should continuable be true? */
-  Sg_VMThrowException(Sg_VM(), errObj, TRUE);
+  Sg_VMThrowException(Sg_VM(), errObj, FALSE);
 }
 
 void Sg_ReadError(const SgChar* fmt, ...)
@@ -68,7 +68,7 @@ void Sg_ReadError(const SgChar* fmt, ...)
   /* TODO I think we need an error type to catch */
   errObj = Sg_GetStringFromStringPort(err);
   /* should continuable be true? */
-  Sg_VMThrowException(Sg_VM(), errObj, TRUE);
+  Sg_VMThrowException(Sg_VM(), errObj, FALSE);
 }
 
 void Sg_SyntaxError(SgObject form, SgObject irritants)

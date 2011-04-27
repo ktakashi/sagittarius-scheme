@@ -2662,9 +2662,6 @@
     (result (Sg_HashTableSet ht key value 0)))
 
 
-  (define-c-proc current-exception-handler () ::Object
-    (result (-> (Sg_VM) exceptionHandler)))
-
   ;; conditions
   (define-c-proc condition (:rest components) ::Object
     (result (Sg_Condition components)))

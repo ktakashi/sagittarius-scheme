@@ -1353,11 +1353,23 @@
 
 ;; set!
 (define-pass1-syntax (set! form p1env) :null
-  (smatch form
+  (smatch form		   
     ((- name expr)
      (unless (variable? name)
        (syntax-error "malformed set!" form))
-     (let ((var (p1env-lookup p1env name LEXICAL))
+     ;; r6rs required this form macro (set! <keyword> <value>)
+     (let ((var (pass1/lookup-head name p1env)))
+       (if (lvar? var)
+	   ($lset var (pass1 expr p1env))
+	   (let ((gloc (find-binding (p1env-library p1env) (id-name var) #f)))
+	     (if gloc
+		  (let ((gval (gloc-ref gloc)))
+		    (cond ((macro? gval)
+			   (pass1 (call-macro-expander gval form p1env) p1env))
+			  (else
+			   ($gset (ensure-identifier var p1env) (pass1 expr p1env)))))
+		  ($gset (ensure-identifier var p1env) (pass1 expr p1env))))))
+     #;(let ((var (p1env-lookup p1env name LEXICAL))
 	   (val (pass1 expr p1env)))
        (if (lvar? var)
 	   ($lset var val)
@@ -1694,32 +1706,34 @@
      ((pair? form)
       (unless (list? form)
 	(scheme-error 'pass1 "proper list required for function application or macro use" form))
-      (cond
-       ((pass1/lookup-head (car form) p1env)
-	=> (lambda (obj)
-	     (cond ((identifier? obj) (pass1/global-call obj))
-		   ((lvar? obj)
-		    (pass1/call form ($lref obj) (cdr form) p1env))
-		   ((syntax? obj)
-		    ;; locally rebound syntax
-		    (call-syntax-handler obj form p1env))
-		   ((macro? obj) ;; local macro
-		    (pass1 (call-macro-expander obj form p1env) p1env))
-		   (else
-		    (scheme-error 'pass1 "[internal] unknown resolution of head:" obj)))))
-       ;; TODO there must be top-level-subr, if i make them...
-       (else 
-	(pass1/call form (pass1 (car form) (p1env-sans-name p1env))
-		    (cdr form) p1env))))
-     #;((user-defined-syntax? form)
-      ;; assume it's defined make-syntax-object
-      ;; TODO this actually should not be here for toplevel or non-macro (syntax ...)
-      (pass1 (syntax-name form) p1env))
+      (cond ((pass1/lookup-head (car form) p1env)
+	     => (lambda (obj)
+		  (cond ((identifier? obj) (pass1/global-call obj))
+			((lvar? obj)
+			 (pass1/call form ($lref obj) (cdr form) p1env))
+			((syntax? obj)
+			 ;; locally rebound syntax
+			 (call-syntax-handler obj form p1env))
+			((macro? obj) ;; local macro
+			 (pass1 (call-macro-expander obj form p1env) p1env))
+			(else
+			 (scheme-error 'pass1 "[internal] unknown resolution of head:" obj)))))
+	    ;; TODO there must be top-level-subr, if i make them...
+	    (else 
+	     (pass1/call form (pass1 (car form) (p1env-sans-name p1env))
+			 (cdr form) p1env))))
      ((variable? form)
       (let ((r (p1env-lookup p1env form LEXICAL)))
 	(cond ((lvar? r) ($lref r))
 	      ((identifier? r)
-	       ($gref r))
+	       (let* ((lib (id-library r))
+		      (gloc (find-binding lib (id-name r) #f)))
+		 (if gloc
+		     (let ((gval (gloc-ref gloc)))
+		       (cond ((macro? gval)
+			      (pass1 (call-macro-expander gval form p1env) p1env))
+			     (else ($gref r))))
+		     ($gref r))))
 	      (else (scheme-error 'pass1 "[internal] p1env-lookup returned weird obj:" r)))))
      (else
       ($const form)))))
@@ -3304,17 +3318,6 @@
 	       'normal/top
 	       HALT)))))
 
-(define compile-with-*
-  (lambda (program env insn)
-    (let ((env (cond ((vector? env) env);; must be p1env
-		     (else (make-bottom-p1env))))) ;; TODO add library pattern
-      (let ((p1 (pass1 (pass0 program env) env)))
-	(pass3 (pass2 p1)
-	       (make-code-builder)
-	       (make-renv)
-	       'normal/top
-	       insn)))))
-
 (cond-expand
  (gauche
   (load "lib/debug.scm"))
@@ -3339,7 +3342,7 @@
 			(make-code-builder)
 			(make-renv)
 			'normal/top
-			#t)))
+			HALT)))
 	(vm-dump-code p3)))))
 
 (define init-compiler

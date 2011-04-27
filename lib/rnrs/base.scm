@@ -101,7 +101,8 @@
          (and (identifier? (syntax id)) 
               (identifier? (syntax var)))
          (syntax 
-          (make-variable-transformer
+	  ;; need to refer toplevel make-variable-transformer
+          (.make-variable-transformer
            (lambda (x)
              (syntax-case x (set!)
                ((set! var val)               (syntax exp2))

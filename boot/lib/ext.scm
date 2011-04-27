@@ -5,6 +5,12 @@
     (and (vector? id)
 	 (eq? (vector-ref id 0) '.identifier))))
 
+(define identifier->symbol
+  (lambda (s)
+    (if (symbol? s)
+	s
+	(id-name s))))
+
 (define variable?
   (lambda (o)
     (or (symbol? o)

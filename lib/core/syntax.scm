@@ -9,6 +9,7 @@
 	    datum->syntax
 	    syntax->datum
 	    generate-temporaries
+	    make-variable-transformer
 	    identifier?
 	    bound-identifier=?
 	    free-identifier=?

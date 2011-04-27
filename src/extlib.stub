@@ -6,8 +6,6 @@
 	    id-name
 	    id-memq
 	    identifier->symbol
-	    ;; sucks!!
-	    make-syntax-object
 	    ;; generics
 	    make-generic
 	    register-generic
@@ -30,6 +28,7 @@
 	    hashtable-values
 
 	    ;; misc
+	    current-exception-handler
 	    variable? arity
 	    unbound undefined undefined? add-load-path
 	    gensym unwrap-syntax wrap-syntax
@@ -81,9 +80,6 @@
 	(result (Sg_Memq (SG_IDENTIFIER_NAME id) lst))
 	(result (Sg_Memq id lst))))
 
-  (define-c-proc make-syntax-object (datum) ::Object
-    (result (Sg_MakeSyntax datum #f TRUE)))
-
   ;; generics
   (define-c-proc make-generic (name::Symbol printer ctr :rest fields) ::Object
     (result (Sg_MakeGeneric name printer ctr fields)))
@@ -127,6 +123,15 @@
 
   (define-c-proc hashtable-values (ht::HashTable) ::Object
     (result (Sg_HashTableValues ht)))
+
+
+  (define-c-proc current-exception-handler (:optional handle) ::Object
+    (if (SG_UNBOUNDP handle)
+	(result (-> (Sg_VM) exceptionHandler))
+	(begin
+	  (set! (-> (Sg_VM) exceptionHandler) handle)
+	  (result SG_UNDEF))))
+
 
   ;; misc
   (define-c-proc variable? (o) ::boolean

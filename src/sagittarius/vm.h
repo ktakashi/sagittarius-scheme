@@ -233,8 +233,13 @@ SG_EXTERN SgObject Sg_Apply(SgObject proc, SgObject args);
 SG_EXTERN SgObject Sg_Apply0(SgObject proc);
 SG_EXTERN SgObject Sg_Apply1(SgObject proc, SgObject arg);
 SG_EXTERN SgObject Sg_Apply2(SgObject proc, SgObject arg0, SgObject arg1);
+SG_EXTERN SgObject Sg_Apply3(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2);
+SG_EXTERN SgObject Sg_Apply4(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2, SgObject arg3);
 SG_EXTERN SgObject Sg_VMApply0(SgObject proc);
 SG_EXTERN SgObject Sg_VMApply1(SgObject proc, SgObject arg);
+SG_EXTERN SgObject Sg_VMApply2(SgObject proc, SgObject arg0, SgObject arg1);
+SG_EXTERN SgObject Sg_VMApply3(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2);
+SG_EXTERN SgObject Sg_VMApply4(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2, SgObject arg3);
 SG_EXTERN SgObject Sg_VMApply(SgObject proc, SgObject args);
 SG_EXTERN SgObject Sg_VMCallCC(SgObject proc);
 SG_EXTERN SgVM*    Sg_VM();	/* get vm */

@@ -1559,11 +1559,20 @@
   ((- name expr)
    (unless (variable? name) (syntax-error "malformed set!" form))
    (let
-    ((var (p1env-lookup p1env name LEXICAL)) (val (pass1 expr p1env)))
+    ((var (pass1/lookup-head name p1env)))
     (if
      (lvar? var)
-     ($lset var val)
-     ($gset (ensure-identifier var p1env) val))))
+     ($lset var (pass1 expr p1env))
+     (let
+      ((gloc (find-binding (p1env-library p1env) (id-name var) #f)))
+      (if
+       gloc
+       (let
+        ((gval (gloc-ref gloc)))
+        (cond
+         ((macro? gval) (pass1 (call-macro-expander gval form p1env) p1env))
+         (else ($gset (ensure-identifier var p1env) (pass1 expr p1env)))))
+       ($gset (ensure-identifier var p1env) (pass1 expr p1env)))))))
   (- (syntax-error "malformed set!" form))))
 
 (define-pass1-syntax
@@ -1966,7 +1975,17 @@
      ((r (p1env-lookup p1env form LEXICAL)))
      (cond
       ((lvar? r) ($lref r))
-      ((identifier? r) ($gref r))
+      ((identifier? r)
+       (let*
+        ((lib (id-library r)) (gloc (find-binding lib (id-name r) #f)))
+        (if
+         gloc
+         (let
+          ((gval (gloc-ref gloc)))
+          (cond
+           ((macro? gval) (pass1 (call-macro-expander gval form p1env) p1env))
+           (else ($gref r))))
+         ($gref r))))
       (else
        (scheme-error
         'pass1
@@ -3911,16 +3930,6 @@
     (pass3 (pass2 p1) (make-code-builder) (make-renv) 'normal/top HALT)))))
 
 (define
- compile-with-*
- (lambda
-  (program env insn)
-  (let
-   ((env (cond ((vector? env) env) (else (make-bottom-p1env)))))
-   (let
-    ((p1 (pass1 (pass0 program env) env)))
-    (pass3 (pass2 p1) (make-code-builder) (make-renv) 'normal/top insn)))))
-
-(define
  compile-p1
  (lambda
   (program)
@@ -3944,7 +3953,7 @@
    ((env (make-bottom-p1env)))
    (let*
     ((p1 (pass1 (pass0 program env) env))
-     (p3 (pass3 (pass2 p1) (make-code-builder) (make-renv) 'normal/top #t)))
+     (p3 (pass3 (pass2 p1) (make-code-builder) (make-renv) 'normal/top HALT)))
     (vm-dump-code p3)))))
 
 (define init-compiler (lambda () #f))

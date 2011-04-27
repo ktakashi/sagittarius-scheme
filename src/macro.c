@@ -115,9 +115,13 @@ static SgObject macro_tranform(SgObject *args, int argc, void *data_)
   /* TODO it's kinda waste of time if we compute each time. */
   /* NB: we don't use scheme apply(Sg_VMApply) to get macro transformer, because
          it contains HALT in it. If we use it, programme will be stopped. */
-  data = Sg_Apply(args[3], SG_NIL);
-
-  return Sg_Apply(data, SG_LIST1(Sg_Cons(form, p1env)));
+  data = Sg_Apply0(args[3]);
+  if (SG_MACROP(data)) {
+    return Sg_Apply4(SG_MACRO(data)->transformer,
+		     data, form, p1env, SG_MACRO(data)->data);
+  } else {
+    return Sg_Apply1(data, Sg_Cons(form, p1env));
+  }
 }
 
 static SG_DEFINE_SUBR(macro_tranform_Stub, 2, 0, macro_tranform, SG_FALSE, NULL);
@@ -183,7 +187,7 @@ SgObject Sg_MacroExpand(SgObject expr, SgObject p1env, int onceP)
       data[0] = p1env;
       Sg_VMPushCC(macro_expand_cc, data, 1);
     }
-    expr = Sg_Apply(mac->transformer, SG_LIST4(mac, expr, p1env, mac->data));
+    expr = Sg_Apply4(mac->transformer, mac, expr, p1env, mac->data);
   }
   /* not pair or null */
   return expr;

@@ -18,16 +18,13 @@
 
 (define ellipsis?
   (lambda (expr)
-    (or (and (symbol? expr)
-	     (eq? expr '...))
-	(and (identifier? expr)
-	     (eq? (id-name expr) '...)))))
+    (and (variable? expr)
+	 (eq? (identifier->symbol expr) '...))))
 
-(define (bar? expr)
-      (or (and (symbol? expr)
-	       (eq? expr '_))
-	  (and (identifier? expr)
-	       (eq? (id-name expr) '_))))
+(define bar?
+  (lambda (expr)
+    (and (variable? expr)
+	 (eq? (identifier->symbol expr) '_))))
 
 (define ellipsis-pair?
   (lambda (form)
@@ -61,8 +58,8 @@
                        (loop (car lst) pool)))
                 ((ellipsis? lst) pool)
                 ((bar? lst) pool)
-                ((symbol? lst)
-                 (if (memq lst lites)
+                ((variable? lst)
+                 (if (id-memq lst lites)
                      pool
                      (if (memq lst pool)
                          (assertion-violation "syntax pattern" "duplicate pattern variables" pat lst)
@@ -77,8 +74,8 @@
           (cond ((ellipsis? lst)
                  (assertion-violation "syntax pattern" "improper use of ellipsis" pat))
                 ((ellipsis-pair? lst)
-                 (and (symbol? (car lst))
-                      (memq (car lst) lites)
+                 (and (variable? (car lst))
+                      (id-memq (car lst) lites)
                       (assertion-violation "syntax pattern" "ellipsis following literal" pat lst))
                  (let loop ((lst (cddr lst)))
                    (and (pair? lst)
@@ -125,11 +122,10 @@
 	  (check-pattern pattern literals)
 	  (values pattern ranks
 		  ;; extend p1env frame like this (SYNTAX pattern ((a . 0) ...))
-		  (extend-env (cons (cons pattern 'dummy)
-				    (map (lambda (a)
-					   (cons (car a)
-						 (cdr a)))
-					 ranks))
+		  (extend-env (map (lambda (a)
+				     (cons (car a)
+					   (cdr a)))
+				   ranks)
 			      env)))))
     (or (and (list? literals)
 	     (for-all variable? literals))
@@ -191,12 +187,8 @@
   (lambda (expr pat lites)
     (define (compare a b)
       (or (eq? a b)
-	  (and (symbol? a)
-	       (identifier? b)
-	       (eq? a (id-name b)))
-	  (and (symbol? b)
-	       (identifier? a)
-	       (eq? b (id-name a)))))
+	  (eq? (identifier->symbol a)
+	       (identifier->symbol b))))
     (cond ((bar? pat) #t)
           ((variable? pat)
            (cond ((id-memq pat lites)
@@ -441,8 +433,8 @@
     (define traverse-escaped
       (lambda (lst depth)
         (let loop ((lst lst) (depth depth))
-          (cond ((symbol? lst)
-                 (< 0 (rank-of lst ranks) depth))
+          (cond ((variable? lst)
+                 (< 0 (rank-of (identifier->symbol lst) ranks) depth))
                 ((pair? lst)
                  (or (loop (car lst) depth)
                      (loop (cdr lst) depth)))
@@ -451,8 +443,8 @@
                 (else #f)))))
 
     (let loop ((lst tmpl) (depth 0))
-      (cond ((symbol? lst)
-             (< 0 (rank-of lst ranks) depth))
+      (cond ((variable? lst)
+             (< 0 (rank-of (identifier->symbol lst) ranks) depth))
             ((ellipsis-quote? lst)
              (traverse-escaped (cadr lst) depth))
             ((ellipsis-splicing-pair? lst)
@@ -475,7 +467,7 @@
     
     (define rewrite-template-ranks-vars
       (lambda (tmpl ranks vars)
-        (let ((moved-ranks (make-core-hashtable)) (moved-vars (make-core-hashtable)))
+        (let ((moved-ranks (make-eq-hashtable)) (moved-vars (make-eq-hashtable)))
 
           (define make-infinite-list
             (lambda (e)
@@ -485,14 +477,14 @@
           (define revealed
             (lambda (name depth)
               (if (< 0 (rank-of name ranks) depth)
-                  (let ((renamed (string->symbol (format "~a:~a" (generate-temporary-symbol) name))))
-                    (or (core-hashtable-ref moved-ranks renamed #f)
+                  (let ((renamed (string->symbol (format "~a:~a" (gensym) name))))
+                    (or (hashtable-ref moved-ranks renamed #f)
                         (let loop ((i (- depth (rank-of name ranks))) (var (subform-of name vars)))
                           (cond ((> i 0)
                                  (loop (- i 1) (list (make-infinite-list (car var)))))
                                 (else
-                                 (core-hashtable-set! moved-ranks renamed depth)
-                                 (core-hashtable-set! moved-vars renamed var)))))
+                                 (hashtable-set! moved-ranks renamed depth)
+                                 (hashtable-set! moved-vars renamed var)))))
                     renamed)
                   name)))
 
@@ -528,8 +520,8 @@
                           (list->vector (loop (vector->list lst) depth)))
                          (else lst)))))
             (values rewrited
-                    (append ranks (core-hashtable->alist moved-ranks))
-                    (append vars (core-hashtable->alist moved-vars)))))))
+                    (append ranks (hashtable->alist moved-ranks))
+                    (append vars (hashtable->alist moved-vars)))))))
 
     (if (contain-rank-moved-var? form ranks vars)
         (rewrite-template-ranks-vars form ranks vars)
@@ -599,7 +591,11 @@
 			    (emit (emit (cadr slot)))
 			    (else (cadr slot)))))
 		(else
-		 (assertion-violation "syntax template"
+		 ;; we don't have any way to detect right pattern and template for now,
+		 ;; so ranks may contains invalid pattern variable name, in that case
+		 ;; we just return template variable as a result.
+		 tmpl
+		 #;(assertion-violation "syntax template"
 				      "subforms have different size of matched input"
 				      `(template: ,template) `(subforms: ,@vars))))))
       (define expand-ellipsis-var
@@ -723,12 +719,19 @@
 			     (format "expected list, but got ~s" obj)))
     (map (lambda (n) (make-identifier (gensym) '() (vm-current-library))) obj)))
 
+(define (make-variable-transformer proc)
+  (make-macro 'variable-transformer
+	      (lambda (m expr p1env data)
+		(proc (wrap-syntax expr p1env)))
+	      '()))
+
 
 ;; toplevel variables
 (set-toplevel-variable! '.match-syntax-case match-syntax-case)
 (set-toplevel-variable! '.expand-syntax expand-syntax)
 (set-toplevel-variable! '.ranks '())
 (set-toplevel-variable! '.vars. '())
+(set-toplevel-variable! '.make-variable-transformer make-variable-transformer)
 
 ;;;; end of file
 ;; Local Variables:

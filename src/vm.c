@@ -254,6 +254,11 @@ int Sg_LoadUnsafe(SgString *path)
     Sg_VM()->state = COMPILING;
     SgObject compiled = Sg_Compile(o);
     Sg_VM()->state = COMPILED;
+    /*
+    if (!SG_CODE_BUILDERP(compiled)) {
+      Sg_Error(UC("compiler returned invalid object. %S"), compiled);
+    }
+    */
     ASSERT(SG_CODE_BUILDERP(compiled));
     if ((Sg_VM()->flags & SG_LOG_LEVEL_MASK) >= SG_TRACE_LEVEL) {
       Sg_VMDumpCode(SG_CODE_BUILDER(compiled));
@@ -517,6 +522,28 @@ SgObject Sg_Apply2(SgObject proc, SgObject arg0, SgObject arg1)
   return evaluate_safe(apply_calls_w_halt[2], 3);
 }
 
+SgObject Sg_Apply3(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2)
+{
+  SgVM *vm = Sg_VM();
+  make_call_frame(vm, apply_calls_w_halt[3] + 2);
+  PUSH(SP(vm), arg0);
+  PUSH(SP(vm), arg1);
+  PUSH(SP(vm), arg2);
+  AC(vm) = proc;
+  return evaluate_safe(apply_calls_w_halt[3], 3);
+}
+
+SgObject Sg_Apply4(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2, SgObject arg3)
+{
+  SgVM *vm = Sg_VM();
+  make_call_frame(vm, apply_calls_w_halt[4] + 2);
+  PUSH(SP(vm), arg0);
+  PUSH(SP(vm), arg1);
+  PUSH(SP(vm), arg2);
+  PUSH(SP(vm), arg3);
+  AC(vm) = proc;
+  return evaluate_safe(apply_calls_w_halt[4], 3);
+}
 
 SgObject Sg_Apply(SgObject proc, SgObject args)
 {
@@ -573,6 +600,39 @@ SgObject Sg_VMApply1(SgObject proc, SgObject arg)
   CHECK_STACK(1, vm);
   PUSH(SP(vm), arg);
   vm->pc = apply_calls[1];
+  return proc;
+}
+
+SgObject Sg_VMApply2(SgObject proc, SgObject arg0, SgObject arg1)
+{
+  SgVM *vm = Sg_VM();
+  CHECK_STACK(2, vm);
+  PUSH(SP(vm), arg0);
+  PUSH(SP(vm), arg1);
+  vm->pc = apply_calls[2];
+  return proc;
+}
+
+SgObject Sg_VMApply3(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2)
+{
+  SgVM *vm = Sg_VM();
+  CHECK_STACK(3, vm);
+  PUSH(SP(vm), arg0);
+  PUSH(SP(vm), arg1);
+  PUSH(SP(vm), arg2);
+  vm->pc = apply_calls[3];
+  return proc;
+}
+
+SgObject Sg_VMApply4(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2, SgObject arg3)
+{
+  SgVM *vm = Sg_VM();
+  CHECK_STACK(4, vm);
+  PUSH(SP(vm), arg0);
+  PUSH(SP(vm), arg1);
+  PUSH(SP(vm), arg2);
+  PUSH(SP(vm), arg3);
+  vm->pc = apply_calls[4];
   return proc;
 }
 
@@ -678,13 +738,13 @@ static SgObject install_xhandler(SgObject *args, int argc, void *data)
     	(make-serious-condition)
     	(make-message-condition
     	 "should be a number")))
-         23)
+         23)))
  */
 static SgObject handler_body(SgObject *args, int argc, void *data)
 {
   Sg_VM()->exceptionHandler = Sg_VM()->parentExHandler;
   Sg_VM()->parentExHandler = SG_CAR(SG_OBJ(data));
-  return Sg_Apply(SG_CDR(SG_OBJ(data)), SG_LIST1(args[0]));
+  return Sg_Apply1(SG_CDR(SG_OBJ(data)), args[0]);
 }
 
 SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk)
@@ -759,7 +819,7 @@ static SgObject throw_continuation_body(SgObject handlers,
   argc = Sg_Length(args);
   
   /* store arguments of the continuation to ac */
-  if (argc == 0) {
+  if (argc < 1) {
     /* does this happen? */
     vm->ac = SG_UNDEF;
   } else if (argc > 1) {
@@ -771,7 +831,7 @@ static SgObject throw_continuation_body(SgObject handlers,
     }
     vm->ac = v;
   } else {
-    vm->ac = args;
+    vm->ac = SG_CAR(args);
   }
   /* restore stack */
 
@@ -950,7 +1010,7 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
   SG_FOR_EACH(hp, vm->dynamicWinders) {
     SgObject proc = SG_CDAR(hp);
     vm->dynamicWinders = SG_CDR(hp);
-    Sg_Apply(proc, SG_NIL);
+    Sg_Apply0(proc);
   }
   report_error(e);
   /* jump */
