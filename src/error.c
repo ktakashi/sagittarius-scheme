@@ -40,6 +40,19 @@
 #include "sagittarius/vm.h"
 #include "sagittarius/gloc.h"
 
+void Sg_Warn(const SgChar* fmt, ...)
+{
+  va_list ap;
+  SgPort *err = Sg_MakeStringOutputPort(0);
+  SgObject errObj;
+  
+  Sg_PutuzUnsafe(err, UC("*warning* "));
+  va_start(ap, fmt);
+  Sg_Vprintf(err, fmt, ap, TRUE);
+  va_end(ap);
+  errObj = Sg_GetStringFromStringPort(err);
+}
+
 void Sg_Error(const SgChar* fmt, ...)
 {
   va_list ap;
@@ -47,7 +60,7 @@ void Sg_Error(const SgChar* fmt, ...)
   SgObject errObj;
   
   va_start(ap, fmt);
-  Sg_Vprintf(err, fmt, ap, FALSE);
+  Sg_Vprintf(err, fmt, ap, TRUE);
   va_end(ap);
   /* TODO I think we need an error type to catch */
   errObj = Sg_GetStringFromStringPort(err);
@@ -62,7 +75,7 @@ void Sg_ReadError(const SgChar* fmt, ...)
   SgObject errObj;
   
   va_start(ap, fmt);
-  Sg_Vprintf(err, fmt, ap, FALSE);
+  Sg_Vprintf(err, fmt, ap, TRUE);
   va_end(ap);
 
   /* TODO I think we need an error type to catch */
@@ -76,25 +89,32 @@ void Sg_SyntaxError(SgObject form, SgObject irritants)
   Sg_Error(UC("syntax-error: %S, irritants %S"), form, irritants);
 }
 
+void Sg_IOFileNotExistError(SgObject who, SgObject msg, SgObject file)
+{
+  SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-file-does-not-exist-error"), SG_FALSE);
+  SgObject proc = SG_GLOC_GET(g);
+  Sg_Apply3(proc, who, msg, file);
+}
+
 void Sg_IOReadError(SgObject who, SgObject msg, SgObject port)
 {
   SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-read-error"), SG_FALSE);
   SgObject proc = SG_GLOC_GET(g);
-  Sg_Apply(proc, SG_LIST3(who, msg, port));
+  Sg_Apply3(proc, who, msg, port);
 }
 
 void Sg_IOWriteError(SgObject who, SgObject msg, SgObject port)
 {
   SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-write-error"), SG_FALSE);
   SgObject proc = SG_GLOC_GET(g);
-  Sg_Apply(proc, SG_LIST3(who, msg, port));
+  Sg_Apply3(proc, who, msg, port);
 }
 
 void Sg_AssertionViolation(SgObject who, SgObject message, SgObject irritants)
 {
   SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("assertion-violation"), SG_FALSE);
   SgObject proc = SG_GLOC_GET(g);
-  Sg_Apply(proc, SG_LIST3(who, message, irritants));
+  Sg_Apply3(proc, who, message, irritants);
 }
 
 void Sg_WrongTypeOfArgumentViolation(SgObject who, SgObject requiredType,
@@ -126,13 +146,6 @@ void Sg_WrongNumberOfArgumentsBetweenViolation(SgObject who, int startCounts, in
   SgObject message = Sg_Sprintf(UC("wrong number of arguments (required beween %d and %d, but got %d)"),
 				startCounts, endCounts, gotCounts);
   Sg_AssertionViolation(who, message, irritants);
-}
-
-
-/* raise */
-SgObject Sg_Raise(SgObject condition, int continuableP)
-{
-  return Sg_VMThrowException(Sg_VM(), condition, continuableP);
 }
 
 /*

@@ -9,20 +9,30 @@
      let let* letrec letrec* let-values let*-values
      begin quasiquote unquote unquote-splicing
      let-syntax letrec-syntax syntax-rules
-     identifier-syntax assert else => ... _
-     eq? eqv? equal? procedure?
+     identifier-syntax assert
+     else => ... _
+     eq?
+     eqv?
+     equal?
+     procedure?
      number? complex? real? rational? integer?
      real-valued? rational-valued? integer-valued?
      exact? inexact?
-     exact inexact
+     inexact exact
      = < > <= >=
      zero? positive? negative? odd? even?
      finite? infinite? nan?
      max min + * - / abs
-     div-add-mod div mod div0-and-mod0 div0 mod0
+     div-and-mod div mod div0-and-mod0 div0 mod0
      gcd lcm numerator denominator
      floor ceiling truncate round
-     rationalize angle
+     rationalize
+     exp log sin cos tan asin acos atan
+     sqrt
+     exact-integer-sqrt
+     expt
+     make-rectangular make-polar real-part imag-part
+     magnitude angle
      number->string string->number
      not boolean? boolean=?
      pair? cons car cdr

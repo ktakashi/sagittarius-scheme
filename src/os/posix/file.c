@@ -39,6 +39,7 @@
 #include "sagittarius/unicode.h"
 #include "sagittarius/string.h"
 #include "sagittarius/error.h"
+#include "sagittarius/symbol.h"
 
 enum {
   INVALID_HANDLE_VALUE = -1,
@@ -209,7 +210,7 @@ SgObject Sg_OpenFile(SgString *file, int flags)
   z->open(z, file->value, flags);
   if (!posix_is_open(z)) {
     SgObject err = get_last_error_message(z);
-    Sg_Error(UC("file open error. %S"), err);
+    return err;
   }
   return SG_OBJ(z);
 }

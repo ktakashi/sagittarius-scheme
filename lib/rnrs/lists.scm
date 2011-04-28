@@ -7,7 +7,8 @@
 	    remp remove remv remq
 	    memp member memv memq
 	    assp assoc assv assq cons*)
-    (import (core))
+    (import (core)
+	    (core base))
 
 ) ; [end]
 ;; end of file

@@ -1057,6 +1057,22 @@
     (-
      (syntax-error "malformed let-syntax" form))))
 
+;; (define-pass1-syntax (er-macro-transformer form p1env) :null
+;;   (smatch form
+;;     ((- expr)
+;;      (let ((ert (make-toplevel-closure (compile expr p1env))))
+;;        ($const (make-macro
+;; 		(p1env-exp-name p1env)
+;; 		(lambda (self form p1env data)
+;; 		  (apply data (list form p1env)))
+;; 		(lambda (form p1env)
+;; 		  (let ((dict (make-eq-hashtable)))
+;; 		    (apply-proc (apply-proc ert '())
+;; 		     (list form
+;; 			   (lambda (s) (er-rename s p1env dict))
+;; 			   (lambda (a b) (eq? a b))))))))))
+;;     (- (syntax-error "malformed er-macro-transformer" form))))
+
 ;; 'rename' procedure - we just return a resolved identifier
 (define er-rename
   (lambda (symid p1env dict)
@@ -1065,11 +1081,11 @@
     (if (symbol? symid)
 	(or (hashtable-ref dict symid #f)
 	    (let ((var (p1env-lookup p1env symid SYNTAX)))
-	      (let ((id (if (identifier? var)
-			    var
-			    (make-identifier symid
-					     (p1env-frames p1env)
-					     (p1env-library p1env)))))
+	      (let ((id (cond ((identifier? var) var)
+			      (else
+			       (make-identifier symid
+						(p1env-frames p1env)
+						(p1env-library p1env))))))
 		(hashtable-set! dict symid id)
 		id)))
 	symid)))
@@ -1781,7 +1797,9 @@
 			(zero? (lvar-set-count ($lref-lvar initval))))
 		   ;; dereference
 		   (when (eq? iform initval)
-		      (scheme-error 'pass2/$LREF "circular reference appeared in letrec binding" (lvar-name lvar)))
+		      (assertion-violation
+		       'pass2/$LREF "circular reference appeared in letrec binding"
+		       (lvar-name lvar)))
 		   (lvar-ref--! lvar)
 		   (lvar-ref++! ($lref-lvar initval))
 		   ($lref-lvar-set! iform ($lref-lvar initval))

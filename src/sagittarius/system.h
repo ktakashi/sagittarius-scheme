@@ -38,6 +38,7 @@ SG_CDECL_BEGIN
 
 /* for cygwin. i don't want to separate win32 and cygwin file.c */
 SG_EXTERN int           Sg_FileExistP(SgString *path);
+SG_EXTERN int           Sg_DeleteFile(SgString *path);
 SG_EXTERN const SgChar* Sg_NativeFileSeparator();
 
 SG_CDECL_END

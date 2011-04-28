@@ -184,7 +184,8 @@ struct SgVMRec
  */
 typedef enum {
   /* reader mode */
-  SG_COMPATIBLE_MODE = 0x00000100,
+  SG_R6RS_MODE       = 0x00000100, /* 00000001 */
+  SG_COMPATIBLE_MODE = 0x00000200, /* 00000010 */
 
   SG_FATAL_LEVEL    = 0x01000000,
   SG_ERROR_LEVEL    = 0x02000000,
@@ -197,7 +198,8 @@ typedef enum {
 } VMFlags;
 
 #define SG_VM_SET_FLAG(vm, flag)    ((vm)->flags = ((vm)->flags | (flag)))
-#define SG_VM_IS_SET_FLAG(vm, flag) (((vm)->flags & (flag)) == 1)
+#define SG_VM_UNSET_FLAG(vm, flag)  ((vm)->flags = ((vm)->flags & (~(flag))))
+#define SG_VM_IS_SET_FLAG(vm, flag) (((vm)->flags & (flag)))
 
 #define SG_VM_LIBRARIES(vm)         ((vm)->libraries)
 
@@ -267,7 +269,9 @@ SG_EXTERN SgObject Sg_VMCurrentLibrary();
 SG_EXTERN SgObject Sg_GetStackTrace();
 SG_EXTERN SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP);
 SG_EXTERN void     Sg_VMDefaultExceptionHandler(SgObject exception);
+#if 0
 SG_EXTERN SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk);
+#endif
 
 /* finalizer */
 SG_EXTERN SgObject Sg_VMFinalizerRun(SgVM *vm);

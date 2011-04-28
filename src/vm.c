@@ -242,6 +242,9 @@ int Sg_LoadUnsafe(SgString *path)
   }
 
   file = Sg_OpenFile(path, SG_READ);
+  if (!SG_FILEP(file)) {
+    Sg_Error(UC("given file was not able to open. %S"), path);
+  }
   bport = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_BLOCK);
   tport = Sg_MakeTranscodedInputPort(bport, Sg_MakeNativeTranscoder());
   
@@ -488,17 +491,25 @@ void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
 /* Apply families */
 static void make_call_frame(SgVM *vm, SgWord *pc);
 static SgWord apply_calls_w_halt[][5] = {
-  { MERGE_INSN_VALUE1(CALL, 0), RET, HALT },
-  { MERGE_INSN_VALUE1(CALL, 1), RET, HALT },
-  { MERGE_INSN_VALUE1(CALL, 2), RET, HALT },
-  { MERGE_INSN_VALUE1(CALL, 3), RET, HALT },
-  { MERGE_INSN_VALUE1(CALL, 4), RET, HALT }
+  { MERGE_INSN_VALUE1(CALL, 0), HALT },
+  { MERGE_INSN_VALUE1(CALL, 1), HALT },
+  { MERGE_INSN_VALUE1(CALL, 2), HALT },
+  { MERGE_INSN_VALUE1(CALL, 3), HALT },
+  { MERGE_INSN_VALUE1(CALL, 4), HALT }
 };
 
+/*
+  instruction images for Sg_Apply(n).
+  frame 1 <-- creates frame
+  push arg * n times
+  -- this is real instruction --
+  CALL(n)
+  HALT
+ */
 SgObject Sg_Apply0(SgObject proc)
 {
   SgVM *vm = Sg_VM();
-  make_call_frame(vm, apply_calls_w_halt[0] + 2);
+  make_call_frame(vm, apply_calls_w_halt[0] + 1);
   AC(vm) = proc;
   return evaluate_safe(apply_calls_w_halt[0], 3);
 }
@@ -506,7 +517,7 @@ SgObject Sg_Apply0(SgObject proc)
 SgObject Sg_Apply1(SgObject proc, SgObject arg)
 {
   SgVM *vm = Sg_VM();
-  make_call_frame(vm, apply_calls_w_halt[1] + 2);
+  make_call_frame(vm, apply_calls_w_halt[1] + 1);
   PUSH(SP(vm), arg);
   AC(vm) = proc;
   return evaluate_safe(apply_calls_w_halt[1], 3);
@@ -515,7 +526,7 @@ SgObject Sg_Apply1(SgObject proc, SgObject arg)
 SgObject Sg_Apply2(SgObject proc, SgObject arg0, SgObject arg1)
 {
   SgVM *vm = Sg_VM();
-  make_call_frame(vm, apply_calls_w_halt[2] + 2);
+  make_call_frame(vm, apply_calls_w_halt[2] + 1);
   PUSH(SP(vm), arg0);
   PUSH(SP(vm), arg1);
   AC(vm) = proc;
@@ -525,7 +536,7 @@ SgObject Sg_Apply2(SgObject proc, SgObject arg0, SgObject arg1)
 SgObject Sg_Apply3(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2)
 {
   SgVM *vm = Sg_VM();
-  make_call_frame(vm, apply_calls_w_halt[3] + 2);
+  make_call_frame(vm, apply_calls_w_halt[3] + 1);
   PUSH(SP(vm), arg0);
   PUSH(SP(vm), arg1);
   PUSH(SP(vm), arg2);
@@ -536,7 +547,7 @@ SgObject Sg_Apply3(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2)
 SgObject Sg_Apply4(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2, SgObject arg3)
 {
   SgVM *vm = Sg_VM();
-  make_call_frame(vm, apply_calls_w_halt[4] + 2);
+  make_call_frame(vm, apply_calls_w_halt[4] + 1);
   PUSH(SP(vm), arg0);
   PUSH(SP(vm), arg1);
   PUSH(SP(vm), arg2);
@@ -713,49 +724,80 @@ static SgObject dynamic_wind_after_cc(SgObject result, void **data)
 /* 
    with-expantion-handler
  */
-
+/*
+;; image of with-exception-handler implementation
+(define with-exception-handler 
+  (lambda (handler thunk)
+    (let ((parent (current-exception-handler)))
+      (let ((parent-save #f)
+	    (current-save #f)
+	    (new-current (lambda (condition)
+			   (let ((current-save2 #f))
+			     (dynamic-wind
+				 (lambda ()
+				   (set! current-save2 (current-exception-handler))
+				   (current-exception-handler parent))
+				 (lambda () (handler condition))
+				 (lambda () (current-exception-handler current-save2)))))))
+	(dynamic-wind
+	    (lambda () 
+	      (set! parent-save (parent-exception-handler))
+	      (set! current-save (current-exception-handler))
+	      (parent-exception-handler parent)
+	      (current-exception-handler new-current))
+	    thunk
+	    (lambda ()
+	      (parent-exception-handler parent-save)
+	      (current-exception-handler current-save)))))))
+ */
+/*
+  I couldn't find any nice way to implement in c...
+ */
+#if 0
 static SgObject install_xhandler(SgObject *args, int argc, void *data)
 {
-  Sg_VM()->exceptionHandler = SG_CAR(SG_OBJ(data));
-  Sg_VM()->parentExHandler = SG_CDR(SG_OBJ(data));
-  return SG_UNDEF;
+  SgVM *vm = Sg_VM();
+  if (SG_PAIRP(SG_OBJ(data))) {
+    vm->parentExHandler = SG_CAR(SG_OBJ(data));
+    vm->exceptionHandler = SG_CDR(SG_OBJ(data));
+  } else {
+    vm->exceptionHandler = SG_OBJ(data);
+  }
+  return vm->ac;
 }
 
-/*
-  trick to avoid infinite loop in with-exception-handler.
-  before running the given user defined handler, we need to exchange
-  current and parent handlers.
-  (with-exception-handler
-     ;; this is handler 1
-    (lambda (con)
-      (raise con) ;; here if we have the same handler 1, it will be
-                  ;; infinite loop. so we need to lookup parent handler.
-      42)
-    (lambda ()
-      (+ (raise-continuable
-          (condition
-    	(make-warning)
-    	(make-serious-condition)
-    	(make-message-condition
-    	 "should be a number")))
-         23)))
- */
+static SgObject handler_runner(SgObject *args, int argc, void *data)
+{
+  SgObject handler = SG_CAR(SG_OBJ(data));
+  SgObject condition = SG_CDR(SG_OBJ(data));
+  return Sg_VMApply1(handler, condition);
+}
+
 static SgObject handler_body(SgObject *args, int argc, void *data)
 {
-  Sg_VM()->exceptionHandler = Sg_VM()->parentExHandler;
-  Sg_VM()->parentExHandler = SG_CAR(SG_OBJ(data));
-  return Sg_Apply1(SG_CDR(SG_OBJ(data)), args[0]);
+  SgVM *vm = Sg_VM();
+  SgObject save = vm->exceptionHandler;
+  SgObject parent = SG_CAR(SG_OBJ(data));
+  SgObject handler = SG_CDR(SG_OBJ(data));
+  SgObject before  = Sg_MakeSubr(install_xhandler, parent, 0, 0, SG_FALSE);
+  SgObject after   = Sg_MakeSubr(install_xhandler, save, 0, 0, SG_FALSE);
+  SgObject thunk   = Sg_MakeSubr(handler_runner, Sg_Cons(handler, args[0]), 0, 0, SG_FALSE);
+  return Sg_VMDynamicWind(before, thunk, after);
 }
 
 SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk)
 {
-  SgObject current = Sg_VM()->exceptionHandler;
-  SgObject parent = Sg_VM()->parentExHandler;
-  SgObject handle_body = Sg_MakeSubr(handler_body, Sg_Cons(current, handler), 1, 0, SG_FALSE);
-  SgObject before = Sg_MakeSubr(install_xhandler, Sg_Cons(handle_body, current), 0, 0, SG_FALSE);
-  SgObject after  = Sg_MakeSubr(install_xhandler, Sg_Cons(current, parent), 0, 0, SG_FALSE);
+  SgVM *vm = Sg_VM();
+  SgObject parent = vm->exceptionHandler;
+  SgObject psave  = vm->parentExHandler;
+  SgObject csave  = vm->exceptionHandler;
+  SgObject new_current = Sg_MakeSubr(handler_body, Sg_Cons(parent, handler), 1, 0, SG_FALSE);
+  SgObject before      = Sg_MakeSubr(install_xhandler, Sg_Cons(parent, new_current), 0, 0, SG_FALSE);
+  SgObject after       = Sg_MakeSubr(install_xhandler, Sg_Cons(psave, csave), 0, 0, SG_FALSE);
   return Sg_VMDynamicWind(before, thunk, after);
 }
+#endif
+
 
 #define SKIP(vm, n)        (PC(vm) += (n))
 #define FETCH_OPERAND(pc)  SG_OBJ((*(pc)++))
@@ -977,10 +1019,10 @@ SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
 {
   if (vm->exceptionHandler != DEFAULT_EXCEPTION_HANDLER) {
     if (continuableP) {
-      vm->ac = Sg_Apply(vm->exceptionHandler, SG_LIST1(exception));
+      vm->ac = Sg_Apply1(vm->exceptionHandler, exception);
       return vm->ac;
     } else {
-      Sg_Apply(vm->exceptionHandler, SG_LIST1(exception));
+      Sg_Apply1(vm->exceptionHandler, exception);
       if (!SG_FALSEP(vm->parentExHandler)) {
 	return Sg_Apply(vm->parentExHandler, 
 			SG_LIST1(Sg_Condition(SG_LIST4(Sg_MakeNonContinuableViolation(),
@@ -1012,6 +1054,7 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
     vm->dynamicWinders = SG_CDR(hp);
     Sg_Apply0(proc);
   }
+  Sg_FlushAllPort(FALSE);
   report_error(e);
   /* jump */
   longjmp(vm->returnPoint, -1);
@@ -1249,7 +1292,7 @@ static void process_queued_requests(SgVM *vm)
     }						\
   }
 
-#define PUSH_CONT(next_pc)				\
+#define PUSH_CONT(vm, next_pc)				\
   do {							\
     SgContFrame *newcont = (SgContFrame*)SP(vm);	\
     newcont->prev = CONT(vm);				\
@@ -1478,7 +1521,7 @@ SgObject run_loop(SgWord *code, jmp_buf returnPoint)
     }
   process_queue:
     CHECK_STACK(CONT_FRAME_SIZE, vm);
-    PUSH_CONT(PC(vm));
+    PUSH_CONT(vm, PC(vm));
     process_queued_requests(vm);
     POP_CONT();
     NEXT;
@@ -1523,6 +1566,7 @@ void Sg__InitVM()
 
   SG_PROCEDURE_NAME(&default_exception_handler_rec) = Sg_MakeString(UC("default-exception-handler"),
 								    SG_LITERAL_STRING);
+
 }
 
 /*

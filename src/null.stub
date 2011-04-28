@@ -138,8 +138,8 @@
 
 	    ;; 7 Exceptions and conditions
 	    ;; 7.1 exceptions
-	    with-exception-handler
-	    raise raise-continuable
+	    ;; with-exception-handler
+	    ;; raise raise-continuable ;; these are in errors.scm
 	    ;; rest of chapter 7 are in exceptions.c
 
 	    ;; io
@@ -258,6 +258,32 @@
 	    read-char peek-char read
 	    write-char newline display write
 
+	    ;; 9 File system
+	    file-exists? delete-file
+
+	    ;; 11 Arithmetic
+	    ;; 11.2 fixnum
+	    fixnum? fixnum-width least-fixnum greatest-fixnum
+	    fx=? fx<? fx>? fx<=? fx>=?
+	    fxzero? fxpositive? fxnegative? fxodd? fxeven?
+	    fxmax fxmin
+	    fx+ fx* fx-
+	    fxdiv fxmod fxdiv-and-mod
+	    fxdiv0 fxmod0 fxdiv0-and-mod0
+	    fx+/carry fx-/carry fx*/carry
+	    fxnot fxand fxior fxxor fxif
+	    fxbit-count fxlength
+	    fxfirst-bit-set
+	    fxbit-set?
+	    fxcopy-bit fxbit-field
+	    fxcopy-bit-field
+	    fxarithmetic-shift
+	    fxarithmetic-shift-left
+	    fxarithmetic-shift-right
+	    fxrotate-bit-field
+	    fxreverse-bit-field
+
+	    ;; 11.4 exact bitwise arithmetic
 	    bitwise-not
 	    bitwise-and
 	    bitwise-ior
@@ -1705,14 +1731,8 @@
 
   ;; 7 Exceptions and conditions
   ;; 7.1 exceptions
-  (define-c-proc with-exception-handler (handler thunk) ::Object
+  #;(define-c-proc with-exception-handler (handler thunk) ::Object
     (result (Sg_VMWithExceptionHandler handler thunk)))
-
-  (define-c-proc raise (condition) ::Object
-    (result (Sg_Raise condition FALSE)))
- 
-  (define-c-proc raise-continuable (condition) ::Object
-    (result (Sg_Raise condition TRUE)))
 
   ;; 8 I/O
   ;; 8.2 port i/o
@@ -1939,6 +1959,9 @@
     ;; we can ignore option
     (let ((fo (Sg_OpenFile file SG_READ))
 	  (bufferMode::int SG_BUFMODE_BLOCK))
+      (unless (SG_FILEP fo)
+	(Sg_IOFileNotExistError 'open-file-input-port fo file)
+	(return SG_UNDEF))
       ;; we only support 'block or none for now.
       (if (SG_EQ mode 'none)
 	  (set! bufferMode SG_BUFMODE_NONE))
@@ -2262,6 +2285,9 @@
 	     (if isFileExist
 		 (assertion-violation 'open-file-output-port "file already exists" file))
 	     (set! fo (Sg_OpenFile file openFlags))
+	     (unless (SG_FILEP fo)
+	       (Sg_IOFileNotExistError 'open-file-output-port fo file)
+	       (return SG_UNDEF))
 	     (result (Sg_MakeFileBinaryOutputPort fo bufferMode)))
 	    (else
 	     (unless (SG_INSTANCEP option)
@@ -2291,6 +2317,9 @@
 			  (assertion-violation 'open-file-output-port "File-options no-truncate: file not exist" file)
 			  (set! openFlags (logor SG_TRUNCATE openFlags)))))
 	       (set! fo (Sg_OpenFile file openFlags))
+	       (unless (SG_FILEP fo)
+		 (Sg_IOFileNotExistError 'open-file-output-port fo file)
+		 (return SG_UNDEF))
 	       (if (SG_FALSEP transcoder)
 		   (result (Sg_MakeFileBinaryOutputPort fo bufferMode))
 		   (let ((out (Sg_MakeFileBinaryOutputPort fo bufferMode)))
@@ -2461,6 +2490,9 @@
 	     (if isFileExist
 		 (assertion-violation 'open-file-input/output-port "file already exists" file))
 	     (set! fo (Sg_OpenFile file openFlags))
+	     (unless (SG_FILEP fo)
+	       (Sg_IOFileNotExistError 'open-file-input/output-port fo file)
+	       (return SG_UNDEF))
 	     (result (Sg_MakeFileBinaryInputOutputPort fo bufferMode)))
 	    (else
 	     (unless (SG_INSTANCEP option)
@@ -2490,6 +2522,9 @@
 			  (assertion-violation 'open-file-input/output-port "File-options no-truncate: file not exist" file)
 			  (set! openFlags (logor SG_TRUNCATE openFlags)))))
 	       (set! fo (Sg_OpenFile file openFlags))
+	       (unless (SG_FILEP fo)
+		 (Sg_IOFileNotExistError 'open-file-input/output-port fo file)
+		 (return SG_UNDEF))
 	       (if (SG_FALSEP transcoder)
 		   (result (Sg_MakeFileBinaryInputOutputPort fo bufferMode))
 		   (let ((out (Sg_MakeFileBinaryInputOutputPort fo bufferMode)))
@@ -2548,7 +2583,26 @@
   (define-c-proc write (o :optional (p::Port (Sg_CurrentOutputPort))) ::void
     (Sg_Write o p SG_WRITE_WRITE))
 
+  ;; 9 file system
+  (define-c-proc file-exists? (filename::String) ::boolean
+    (result (Sg_FileExistP filename)))
 
+  (define-c-proc delete-file (filename::String) ::void
+    (result (Sg_DeleteFile filename)))
+
+  ;; 11 Arithmetic
+  ;; 11.2 fixnum
+  (define-c-proc fixnum? (o) ::boolean
+    (result (SG_INTP o)))
+
+  (define-c-proc fixnum-width () ::fixnum
+    (result SG_INT_SIZE))
+
+  (define-c-proc least-fixnum () ::fixnum
+    (result SG_INT_MIN))
+
+  (define-c-proc greatest-fixnum () ::fixnum
+    (result SG_INT_MAX))
 
   ;; arithmetic bitwise
   (define-c-proc bitwise-not (ei::number) ::Object

@@ -352,7 +352,10 @@
 (define macro-transform
   (lambda (self form p1env data)
     (let ((expander (apply-proc data '())))
-      (apply-proc expander (list (cons form p1env))))))
+      (apply-proc expander (list (cons form p1env)))
+      #;(if (macro? expander)
+	  ((macro-transformer expander) expander form p1env (macro-data expander))
+	  (apply-proc expander (list (cons form p1env)))))))
 
 (define make-macro-transformer
   (lambda (name proc library)

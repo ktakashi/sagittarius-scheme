@@ -34,7 +34,8 @@
 	    newline
 	    display
 	    write)
-    (import (core))
+    (import (core)
+	    (core base))
 
 ) ; [end]
 ;; end of file

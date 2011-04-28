@@ -47,3 +47,8 @@ int Sg_FileExistP(SgString *path)
   char *utf8path = Sg_Utf32sToUtf8s(path);
   return access(utf8path, F_OK) == 0; 
 }
+
+void Sg_DeleteFile(SgString *path)
+{
+  return remove(Sg_Utf32sToUtf8s(path));
+}

@@ -211,22 +211,22 @@ static SgObject make_irritants_condition;
 
 SgObject Sg_MakeNonContinuableViolation()
 {
-  return Sg_Apply(make_non_continuable_violation, SG_NIL);
+  return Sg_Apply0(make_non_continuable_violation);
 }
 
 SgObject Sg_MakeWhoCondition(SgObject who)
 {
-  return Sg_Apply(make_who_condition, SG_LIST1(who));
+  return Sg_Apply1(make_who_condition, who);
 }
 
 SgObject Sg_MakeMessageCondition(SgObject msg)
 {
-  return Sg_Apply(make_message_condition, SG_LIST1(msg));
+  return Sg_Apply1(make_message_condition, msg);
 }
 
 SgObject Sg_MakeIrritantsCondition(SgObject irritants)
 {
-  return Sg_Apply(make_irritants_condition, SG_LIST1(irritants));
+  return Sg_Apply1(make_irritants_condition, irritants);
 }
 
 SgObject Sg_DescribeCondition(SgObject con)
@@ -462,7 +462,7 @@ void Sg__InitConsitions()
   /* &i/o related */
   {
     /* &i/o */
-    INTERN_CONDITION_WITH_CNAME(&io_type, &i/o, &C_COND_NAME(violation), nullvec);
+    INTERN_CONDITION_WITH_CNAME(&io_type, &i/o, &C_COND_NAME(error), nullvec);
     INTERN_CTR_PRED_WITH_CNAME(&io_type, &i/o,
 			       make-i/o-error,
 			       i/o-error?);

@@ -10,20 +10,30 @@
      let let* letrec letrec* let-values let*-values
      begin quasiquote unquote unquote-splicing
      let-syntax letrec-syntax syntax-rules
-     identifier-syntax assert else => ... _
-     eq? eqv? equal? procedure?
+     identifier-syntax assert
+     else => ... _
+     eq?
+     eqv?
+     equal?
+     procedure?
      number? complex? real? rational? integer?
      real-valued? rational-valued? integer-valued?
      exact? inexact?
-     exact inexact
+     inexact exact
      = < > <= >=
      zero? positive? negative? odd? even?
      finite? infinite? nan?
      max min + * - / abs
-     div-add-mod div mod div0-and-mod0 div0 mod0
+     div-and-mod div mod div0-and-mod0 div0 mod0
      gcd lcm numerator denominator
      floor ceiling truncate round
-     rationalize angle
+     rationalize
+     exp log sin cos tan asin acos atan
+     sqrt
+     exact-integer-sqrt
+     expt
+     make-rectangular make-polar real-part imag-part
+     magnitude angle
      number->string string->number
      not boolean? boolean=?
      pair? cons car cdr
@@ -89,6 +99,7 @@
      assp assoc assv assq cons*
 
      #;(rnrs sorting (6))
+     list-sort vector-sort vector-sort!
 
      #;(rnrs control (6))
      when unless do case-lambda
@@ -267,12 +278,58 @@
      write
 
      #;(rnrs files (6))
+     file-exists? delete-file
 
      #;(rnrs enums (6))
 
      #;(rnrs programs (6))
 
      #;(rnrs arithmetic fixnums (6))
+     fixnum?
+     fixnum-width
+     least-fixnum
+     greatest-fixnum
+     fx=?
+     fx<?
+     fx>?
+     fx<=?
+     fx>=?
+     fxzero?
+     fxpositive?
+     fxnegative?
+     fxodd?
+     fxeven?
+     fxmax
+     fxmin
+     fx+
+     fx*
+     fx-
+     fxdiv
+     fxmod
+     fxdiv-and-mod
+     fxdiv0
+     fxmod0
+     fxdiv0-and-mod0
+     fx+/carry
+     fx-/carry
+     fx*/carry
+     fxnot
+     fxand
+     fxior
+     fxxor
+     fxif
+     fxbit-count
+     fxlength
+     fxfirst-bit-set
+     fxbit-set?
+     fxcopy-bit
+     fxbit-field
+     fxcopy-bit-field
+     fxarithmetic-shift
+     fxarithmetic-shift-left
+     fxarithmetic-shift-right
+     fxrotate-bit-field
+     fxreverse-bit-field
 
      #;(rnrs arithmetic flonums (6))
 

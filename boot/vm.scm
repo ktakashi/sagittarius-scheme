@@ -1037,6 +1037,8 @@
 (add-namespace! inexact? (o))
 (add-namespace! char? (o))
 (add-namespace! boolean? (o))
+(add-namespace! odd? (o))
+(add-namespace! even? (o))
 ;(add-namespace! pair? (p))
 (add-namespace! length (p))
 ;(add-namespace! null? (p))

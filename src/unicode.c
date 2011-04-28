@@ -388,6 +388,7 @@ int ustrcmp(const SgChar *s1, const char *s2)
 int ustrncmp(const SgChar *s1,
 	     const char *s2, size_t n)
 {
+#if 0
   register const uint32_t *ss1;
   register const unsigned char *ss2, *t;
   for (ss1 = (const unsigned int *)s1,
@@ -397,6 +398,12 @@ int ustrncmp(const SgChar *s1,
        ss1++, ss2++)
     ;
   return *ss1 - *ss2;
+#endif
+  int i;
+  for(i = 0; i < n; i++) {
+    if(s1[i] ^ s2[i]) return s1[i] - s2[i];
+  }
+  return 0;
 }
 
 

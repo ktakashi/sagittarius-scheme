@@ -489,9 +489,11 @@ static SgObject read_real(const SgChar **strp, int *lenp,
     fracdigs = lensave - *lenp;
   } else {
     fraction = intpart;
+#if 0
     if (ctx->exactness == NOEXACT) {
       return intpart;
     }
+#endif
   }
 
   if (SG_FALSEP(intpart)) {

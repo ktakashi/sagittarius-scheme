@@ -662,8 +662,17 @@ SgObject read_token(SgPort *port, SgReaderContext *ctx)
       SgObject desc = read_symbol(port, ctx);
       if (SG_SYMBOLP(desc)) {
 	SgString *tag = SG_SYMBOL(desc)->name;
-	/* TODO add flags */
 	if (ustrcmp(tag->value, "r6rs") == 0) {
+	  SG_VM_SET_FLAG(Sg_VM(), SG_R6RS_MODE);
+	  SG_VM_UNSET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
+	}
+	if (ustrcmp(tag->value, "compatible") == 0) {
+	  SG_VM_SET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
+	  SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
+	}
+	if (ustrcmp(tag->value, "core") == 0) {
+	  SG_VM_UNSET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
+	  SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
 	}
       }
       goto top;
@@ -749,7 +758,10 @@ SgObject read_token(SgPort *port, SgReaderContext *ctx)
     Sg_UngetcUnsafe(port, c);
     return SG_LIST2(SG_SYMBOL_UNQUOTE, read_expr(port, ctx));
   case ':':
-    return read_keyword(port, ctx);
+    if (!SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE)) {
+      return read_keyword(port, ctx);
+    }
+    /* fall through */
   default:
     Sg_UngetcUnsafe(port, c);
     return read_symbol(port, ctx);

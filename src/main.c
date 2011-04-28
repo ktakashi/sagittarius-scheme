@@ -224,7 +224,7 @@ int main(int argc, char **argv)
   GC_INIT();
   Sg_Init();
   vm = Sg_VM();
-
+  SG_VM_SET_FLAG(vm, SG_R6RS_MODE);
   while ((opt = getopt_long(argc, argv, "L:hdvp:", long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 'd':
@@ -242,8 +242,13 @@ int main(int argc, char **argv)
     case 'p':
       {
 	SgObject log = Sg_OpenFile(Sg_MakeStringC(optarg), SG_CREATE | SG_WRITE | SG_TRUNCATE);
-	SgObject bp = Sg_MakeFileBinaryOutputPort(SG_FILE(log), SG_BUFMODE_NONE);
-	vm->logPort = Sg_MakeTranscodedOutputPort(bp, Sg_MakeNativeTranscoder());
+	SgObject bp;
+	if (!SG_FILEP(log)) {
+	  Sg_Warn(UC("given log log file could not open. log port was not set!"));
+	} else {
+	  bp = Sg_MakeFileBinaryOutputPort(SG_FILE(log), SG_BUFMODE_NONE);
+	  vm->logPort = Sg_MakeTranscodedOutputPort(bp, Sg_MakeNativeTranscoder());
+	}
 	break;
       }
     case 'v':

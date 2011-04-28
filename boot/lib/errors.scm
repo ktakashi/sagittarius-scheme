@@ -44,6 +44,52 @@
           (else
            (format "~a~%" c)))))
 
+(define raise
+  (lambda (c)
+    (cond ((current-exception-handler)
+           => (lambda (proc)
+                (proc c)
+                (cond ((parent-exception-handler)
+                       => (lambda (proc)
+                            (proc (condition (make-non-continuable-violation)
+                                             (make-who-condition 'raise)
+                                             (make-message-condition "returned from non-continuable exception")
+                                             (make-irritants-condition (list c)))))))
+                (scheme-error "error in raise: returned from non-continuable exception~%~%irritants:~%~a" (describe-condition #f c)))))
+    (scheme-error "error in raise: unhandled exception has occurred~%~%irritants:~%~a" (describe-condition #f c))))
+
+(define raise-continuable
+  (lambda (c)
+    (cond ((current-exception-handler)
+           => (lambda (proc) (proc c)))
+          (else
+           (scheme-error "error in raise-continuable: unhandled exception has occurred~%~%irritants:~%~a" (describe-condition #f c))))))
+
+(define with-exception-handler 
+  (lambda (handler thunk)
+    (let ((parent (current-exception-handler)))
+      (let ((parent-save #f)
+	    (current-save #f)
+	    (new-current (lambda (condition)
+			   (let ((current-save2 #f))
+			     (dynamic-wind
+				 (lambda ()
+				   (set! current-save2 (current-exception-handler))
+				   (current-exception-handler parent))
+				 (lambda () (handler condition))
+				 (lambda () (current-exception-handler current-save2)))))))
+	(dynamic-wind
+	    (lambda () 
+	      (set! parent-save (parent-exception-handler))
+	      (set! current-save (current-exception-handler))
+	      (parent-exception-handler parent)
+	      (current-exception-handler new-current))
+	    thunk
+	    (lambda ()
+	      (parent-exception-handler parent-save)
+	      (current-exception-handler current-save)))))))
+
+
 (define assertion-violation
   (lambda (who message . irritants)
     (raise

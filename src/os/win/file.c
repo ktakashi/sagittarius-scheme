@@ -39,6 +39,7 @@
 #include <sagittarius/transcoder.h>
 #include <sagittarius/string.h>
 #include <sagittarius/error.h>
+#include <sagittarius/symbol.h>
 #include <sagittarius/unicode.h>
 
 typedef struct FD_tag
@@ -265,8 +266,7 @@ SgObject Sg_OpenFile(SgString *file, int flags)
         msg[size - 2] = 0;
         size -= 2;
     }
-    
-    Sg_Error(UC("file open error. %S"), utf16ToUtf32(msg));
+    return utf16ToUtf32(msg);
   }
   return SG_OBJ(z);
 }
@@ -306,6 +306,20 @@ int Sg_IsUTF16Console(SgObject file)
 {
   return GetFileType(SG_FD(file)->desc) == FILE_TYPE_CHAR;
 }
+
+/* system.h
+   we need to merge the file.
+ */
+int Sg_FileExistP(SgString *path)
+{
+  return _waccess(utf32ToUtf16(path->value), F_OK) == 0; 
+}
+
+void Sg_DeleteFile(SgString *path)
+{
+  return DeleteFileW(utf32ToUtf16(path->value));
+}
+
 
 
 /*

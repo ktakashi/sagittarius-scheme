@@ -132,6 +132,12 @@
 	  (set! (-> (Sg_VM) exceptionHandler) handle)
 	  (result SG_UNDEF))))
 
+  (define-c-proc parent-exception-handler (:optional handle) ::Object
+    (if (SG_UNBOUNDP handle)
+	(result (-> (Sg_VM) parentExHandler))
+	(begin
+	  (set! (-> (Sg_VM) parentExHandler) handle)
+	  (result SG_UNDEF))))
 
   ;; misc
   (define-c-proc variable? (o) ::boolean

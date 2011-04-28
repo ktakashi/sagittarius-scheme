@@ -1151,10 +1151,13 @@
      ((var (p1env-lookup p1env symid SYNTAX)))
      (let
       ((id
-        (if
-         (identifier? var)
-         var
-         (make-identifier symid (p1env-frames p1env) (p1env-library p1env)))))
+        (cond
+         ((identifier? var) var)
+         (else
+          (make-identifier
+           symid
+           (p1env-frames p1env)
+           (p1env-library p1env))))))
       (hashtable-set! dict symid id)
       id)))
    symid)))
@@ -2032,7 +2035,7 @@
         (zero? (lvar-set-count ($lref-lvar initval))))
        (when
         (eq? iform initval)
-        (scheme-error
+        (assertion-violation
          'pass2/$LREF
          "circular reference appeared in letrec binding"
          (lvar-name lvar)))
