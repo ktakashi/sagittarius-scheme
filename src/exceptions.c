@@ -168,7 +168,7 @@ SgObject Sg_ConditionPredicate(SgObject rtd)
 static SgObject condition_accessor_rec(SgObject *args, int argc, void *data)
 {
   SgObject obj, rtd, proc;
-  DeclareProcedureName("condition-predicate");
+  DeclareProcedureName("condition-accessor");
   checkArgumentLength(1);
   argumentRef(0, obj);
   rtd = SG_CAR(SG_OBJ(data));
@@ -182,7 +182,7 @@ static SgObject condition_accessor_rec(SgObject *args, int argc, void *data)
     SgObject cp;
     SG_FOR_EACH(cp, comp) {
       if (Sg_RtdAncestorP(rtd, Sg_RecordRtd(SG_CAR(cp)))) {
-	return Sg_Apply(proc, cp);
+	return Sg_Apply(proc, SG_LIST1(SG_CAR(cp)));
       }
     }
     /* fall through */

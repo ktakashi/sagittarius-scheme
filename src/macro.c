@@ -51,13 +51,14 @@ SgObject Sg_MakeSyntax(SgSymbol *name, SgObject proc, int userDefined)
   return SG_OBJ(z);
 }
 
-SgObject Sg_MakeMacro(SgObject name, SgObject transformer, void *data, SgObject maybeLibrary)
+SgObject Sg_MakeMacro(SgObject name, SgObject transformer, void *data, SgObject env, SgObject maybeLibrary)
 {
   SgMacro *z = SG_NEW(SgMacro);
   SG_SET_HEADER(z, TC_MACRO);
   z->name = name;
   z->transformer = transformer;
   z->data = data;
+  z->env = env;
   z->maybeLibrary = maybeLibrary;
   return SG_OBJ(z);
 }
@@ -108,30 +109,31 @@ static SgObject unwrap_rec(SgObject form, SgObject history)
 
 static SgObject macro_tranform(SgObject *args, int argc, void *data_)
 {
-  SgObject macro, form, p1env, data;
+  SgObject macro, form, p1env, data, mac_env;
   macro = args[0];
+  ASSERT(SG_MACROP(macro));
   form = args[1];
   p1env = args[2];
   /* TODO it's kinda waste of time if we compute each time. */
   /* NB: we don't use scheme apply(Sg_VMApply) to get macro transformer, because
-         it contains HALT in it. If we use it, programme will be stopped. */
+         it does not contain HALT in it. If we use it, programme won't stop. */
   data = Sg_Apply0(args[3]);
+  mac_env = SG_MACRO(macro)->env;
   if (SG_MACROP(data)) {
-    return Sg_Apply4(SG_MACRO(data)->transformer,
-		     data, form, p1env, SG_MACRO(data)->data);
+    return Sg_Apply4(SG_MACRO(data)->transformer, data, form, p1env, SG_MACRO(data)->data);
   } else {
-    return Sg_Apply1(data, Sg_Cons(form, p1env));
+    return Sg_Apply1(data, Sg_Cons(form, Sg_Cons(p1env, mac_env)));
   }
 }
 
 static SG_DEFINE_SUBR(macro_tranform_Stub, 2, 0, macro_tranform, SG_FALSE, NULL);
 
-SgObject Sg_MakeMacroTransformer(SgObject name, SgObject proc, SgObject library)
+SgObject Sg_MakeMacroTransformer(SgObject name, SgObject proc, SgObject env, SgObject library)
 {
   if (SG_FALSEP(SG_PROCEDURE_NAME(&macro_tranform_Stub))) {
     SG_PROCEDURE_NAME(&macro_tranform_Stub) = Sg_MakeString(UC("macro-transform"), SG_LITERAL_STRING);
   }
-  return Sg_MakeMacro(name, &macro_tranform_Stub, proc, library);
+  return Sg_MakeMacro(name, &macro_tranform_Stub, proc, env, library);
 }
 
 static SgObject macro_expand_cc(SgObject result, void **data)

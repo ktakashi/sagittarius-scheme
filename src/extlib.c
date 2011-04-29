@@ -17,6 +17,27 @@ static SgObject _sagittarius_identifier3f(SgObject *args, int argc, void *data_)
 static SG_DEFINE_SUBR(_sagittarius_identifier3f_Stub, 1, 0, _sagittarius_identifier3f, SG_FALSE, NULL);
 
 ;
+static SgObject _sagittarius_identifier3d3f(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("identifier=?");
+  SgObject use_env;
+  SgObject x;
+  SgObject mac_env;
+  SgObject y;
+  checkArgumentLength(4);
+  argumentRef(0, use_env);
+  argumentRef(1, x);
+  argumentRef(2, mac_env);
+  argumentRef(3, y);
+  {
+    int SG_RETURN;
+    SG_RETURN = (Sg_IdentifierEqP(use_env, x, mac_env, y));
+    return SG_MAKE_BOOL(SG_RETURN);
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_identifier3d3f_Stub, 4, 0, _sagittarius_identifier3d3f, SG_FALSE, NULL);
+
+;
 static SgObject _sagittarius_id_name(SgObject *args, int argc, void *data_)
 {
   DeclareProcedureName("id-name");
@@ -31,6 +52,8 @@ static SgObject _sagittarius_id_name(SgObject *args, int argc, void *data_)
       SG_RETURN = (SG_SYNTAX_NAME(id));
     } else {
       Sg_WrongTypeOfArgumentViolation(SG_INTERN("id-name"), Sg_MakeString(UC("identifier"), SG_LITERAL_STRING), id, SG_NIL);
+      SG_RETURN = (SG_UNDEF);
+;
     }
     
 ;
@@ -50,6 +73,8 @@ static SgObject _sagittarius_identifier_3esymbol(SgObject *args, int argc, void 
     SgObject SG_RETURN = SG_UNDEF;
     if (!((SG_SYMBOLP(id) || SG_IDENTIFIERP(id)))) {
       Sg_WrongTypeOfArgumentViolation(SG_INTERN("identifier->symbol"), Sg_MakeString(UC("symbol or identifier"), SG_LITERAL_STRING), id, SG_NIL);
+      SG_RETURN = (SG_UNDEF);
+;
     }
 ;
     if (SG_SYMBOLP(id)) {
@@ -563,6 +588,8 @@ static SgObject _sagittarius_write2fss(SgObject *args, int argc, void *data_)
     SgObject SG_RETURN = SG_UNDEF;
     if (!((SG_OUTPORTP(p) || SG_INOUTPORTP(p)))) {
       Sg_WrongTypeOfArgumentViolation(SG_INTERN("write/ss"), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
+      SG_RETURN = (SG_UNDEF);
+;
     }
 ;
     Sg_Write(o, p, SG_WRITE_SHARED);
@@ -682,70 +709,72 @@ static SG_DEFINE_SUBR(_sagittarius_profiler_raw_result_Stub, 0, 0, _sagittarius_
 void Sg__Init_sagittarius()
 {
   SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC("(sagittarius)"), SG_LITERAL_STRING)), TRUE);
-  SG_PROCEDURE_NAME(&_sagittarius_generic_set21_Stub) = Sg_MakeString(UC("generic-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("generic-set!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_generic_set21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_current_exception_handler_Stub) = Sg_MakeString(UC("current-exception-handler"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("current-exception-handler"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_current_exception_handler_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_hashtable_keys_Stub) = Sg_MakeString(UC("hashtable-keys"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-keys"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_hashtable_keys_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_variable3f_Stub) = Sg_MakeString(UC("variable?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("variable?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_variable3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_generic_ref_Stub) = Sg_MakeString(UC("generic-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("generic-ref"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_generic_ref_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_arity_Stub) = Sg_MakeString(UC("arity"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("arity"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_arity_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_add_load_path_Stub) = Sg_MakeString(UC("add-load-path"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("add-load-path"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_add_load_path_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_make_toplevel_closure_Stub) = Sg_MakeString(UC("make-toplevel-closure"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-toplevel-closure"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_make_toplevel_closure_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_hashtable_values_Stub) = Sg_MakeString(UC("hashtable-values"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-values"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_hashtable_values_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_id_name_Stub) = Sg_MakeString(UC("id-name"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("id-name"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_id_name_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_profiler_start_Stub) = Sg_MakeString(UC("profiler-start"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("profiler-start"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_profiler_start_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_register_generic_Stub) = Sg_MakeString(UC("register-generic"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("register-generic"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_register_generic_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_unwrap_syntax_Stub) = Sg_MakeString(UC("unwrap-syntax"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("unwrap-syntax"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_unwrap_syntax_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_parent_exception_handler_Stub) = Sg_MakeString(UC("parent-exception-handler"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("parent-exception-handler"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_parent_exception_handler_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_make_generic_Stub) = Sg_MakeString(UC("make-generic"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-generic"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_make_generic_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_format_Stub) = Sg_MakeString(UC("format"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("format"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_format_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_closure3f_Stub) = Sg_MakeString(UC("closure?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("closure?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_closure3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_port_closed3f_Stub) = Sg_MakeString(UC("port-closed?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("port-closed?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_port_closed3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_retrieve_generic_Stub) = Sg_MakeString(UC("retrieve-generic"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("retrieve-generic"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_retrieve_generic_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_profiler_reset_Stub) = Sg_MakeString(UC("profiler-reset"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("profiler-reset"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_profiler_reset_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_id_name_Stub) = Sg_MakeString(UC("id-name"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("id-name"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_id_name_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_add_load_path_Stub) = Sg_MakeString(UC("add-load-path"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("add-load-path"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_add_load_path_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_identifier_3esymbol_Stub) = Sg_MakeString(UC("identifier->symbol"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("identifier->symbol"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_identifier_3esymbol_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_profiler_stop_Stub) = Sg_MakeString(UC("profiler-stop"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("profiler-stop"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_profiler_stop_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_create_instance_Stub) = Sg_MakeString(UC("create-instance"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("create-instance"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_create_instance_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_id_memq_Stub) = Sg_MakeString(UC("id-memq"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("id-memq"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_id_memq_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_profiler_raw_result_Stub) = Sg_MakeString(UC("profiler-raw-result"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("profiler-raw-result"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_profiler_raw_result_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_write2fss_Stub) = Sg_MakeString(UC("write/ss"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("write/ss"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_write2fss_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_gensym_Stub) = Sg_MakeString(UC("gensym"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("gensym"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_gensym_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_undefined3f_Stub) = Sg_MakeString(UC("undefined?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("undefined?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_undefined3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_profiler_raw_result_Stub) = Sg_MakeString(UC("profiler-raw-result"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("profiler-raw-result"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_profiler_raw_result_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_create_instance_Stub) = Sg_MakeString(UC("create-instance"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("create-instance"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_create_instance_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_current_exception_handler_Stub) = Sg_MakeString(UC("current-exception-handler"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("current-exception-handler"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_current_exception_handler_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_profiler_stop_Stub) = Sg_MakeString(UC("profiler-stop"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("profiler-stop"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_profiler_stop_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_write2fss_Stub) = Sg_MakeString(UC("write/ss"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("write/ss"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_write2fss_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_retrieve_generic_Stub) = Sg_MakeString(UC("retrieve-generic"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("retrieve-generic"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_retrieve_generic_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_unwrap_syntax_Stub) = Sg_MakeString(UC("unwrap-syntax"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("unwrap-syntax"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_unwrap_syntax_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_port_closed3f_Stub) = Sg_MakeString(UC("port-closed?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("port-closed?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_port_closed3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_undefined_Stub) = Sg_MakeString(UC("undefined"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("undefined"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_undefined_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_profiler_start_Stub) = Sg_MakeString(UC("profiler-start"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("profiler-start"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_profiler_start_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_wrap_syntax_Stub) = Sg_MakeString(UC("wrap-syntax"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("wrap-syntax"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_wrap_syntax_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_id_memq_Stub) = Sg_MakeString(UC("id-memq"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("id-memq"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_id_memq_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_variable3f_Stub) = Sg_MakeString(UC("variable?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("variable?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_variable3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_identifier3d3f_Stub) = Sg_MakeString(UC("identifier=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("identifier=?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_identifier3d3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_generic_set21_Stub) = Sg_MakeString(UC("generic-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("generic-set!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_generic_set21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_hashtable_keys_Stub) = Sg_MakeString(UC("hashtable-keys"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-keys"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_hashtable_keys_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_closure3f_Stub) = Sg_MakeString(UC("closure?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("closure?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_closure3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_generic_ref_Stub) = Sg_MakeString(UC("generic-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("generic-ref"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_generic_ref_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_hashtable_values_Stub) = Sg_MakeString(UC("hashtable-values"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-values"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_hashtable_values_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_parent_exception_handler_Stub) = Sg_MakeString(UC("parent-exception-handler"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("parent-exception-handler"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_parent_exception_handler_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_make_toplevel_closure_Stub) = Sg_MakeString(UC("make-toplevel-closure"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-toplevel-closure"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_make_toplevel_closure_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_register_generic_Stub) = Sg_MakeString(UC("register-generic"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("register-generic"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_register_generic_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_arity_Stub) = Sg_MakeString(UC("arity"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("arity"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_arity_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_unbound_Stub) = Sg_MakeString(UC("unbound"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("unbound"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_unbound_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_identifier3f_Stub) = Sg_MakeString(UC("identifier?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("identifier?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_identifier3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_undefined_Stub) = Sg_MakeString(UC("undefined"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("undefined"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_undefined_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_gensym_Stub) = Sg_MakeString(UC("gensym"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("gensym"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_gensym_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_wrap_syntax_Stub) = Sg_MakeString(UC("wrap-syntax"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("wrap-syntax"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_wrap_syntax_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_make_generic_Stub) = Sg_MakeString(UC("make-generic"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-generic"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_make_generic_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_format_Stub) = Sg_MakeString(UC("format"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("format"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_format_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_vector_copy_Stub) = Sg_MakeString(UC("vector-copy"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector-copy"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vector_copy_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_circular_list3f_Stub) = Sg_MakeString(UC("circular-list?"), SG_LITERAL_STRING);

@@ -44,7 +44,7 @@ DEFINSN(NUM_GT, 0, 0, TRUE, FALSE)
 DEFINSN(NUM_GE, 0, 0, TRUE, FALSE)
 DEFINSN(RECEIVE, 2, 0, TRUE, FALSE)
 DEFINSN(CLOSURE, 0, 1, FALSE, FALSE)
-DEFINSN(APPLY, 0, 0, FALSE, FALSE)
+DEFINSN(APPLY, 1, 0, FALSE, FALSE)
 DEFINSN(CALL, 1, 0, TRUE, FALSE)
 DEFINSN(LOCAL_CALL, 1, 0, TRUE, FALSE)
 DEFINSN(TAIL_CALL, 1, 0, TRUE, FALSE)
@@ -143,6 +143,8 @@ CASE(GSET) {
         SgObject oldval = Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var), SG_IDENTIFIER_NAME(var), SG_UNBOUND);
         if (SG_UNBOUNDP(oldval)) {
           Sg_AssertionViolation(SG_INTERN("set!"), Sg_MakeString(UC("unbound variable"), SG_LITERAL_STRING), SG_IDENTIFIER_NAME(var));
+          return SG_UNDEF;
+;
         }
 ;
         {
@@ -357,10 +359,14 @@ CASE(RECEIVE) {
 ;
     if (numValues < val1) {
       Sg_AssertionViolation(SG_INTERN("receive"), Sg_MakeString(UC("recieved fewer values than expected"), SG_LITERAL_STRING), SG_NIL);
+      return SG_UNDEF;
+;
     }
 ;
     if ((val2 == 0 && numValues > val1)) {
       Sg_AssertionViolation(SG_INTERN("receive"), Sg_MakeString(UC("recieved more values than expected"), SG_LITERAL_STRING), SG_NIL);
+      return SG_UNDEF;
+;
     }
 ;
     if (val2 == 0    ) {
@@ -418,6 +424,8 @@ CASE(CLOSURE) {
     SgObject cb = FETCH_OPERAND(PC(vm));
     if (!(SG_CODE_BUILDERP(cb))) {
       Sg_WrongTypeOfArgumentViolation(SG_INTERN("closure"), Sg_MakeString(UC("code-builder"), SG_LITERAL_STRING), cb, SG_NIL);
+      return SG_UNDEF;
+;
     }
 ;
     AC(vm)=Sg_MakeClosure(cb, SP(vm) - SG_CODE_BUILDER_FREEC(cb));
@@ -439,7 +447,9 @@ CASE(APPLY) {
         int shiftLen = 0;
         SgObject* sp = NULL;
         if (!(SG_PAIRP(args))) {
-          Sg_AssertionViolation(Sg_Intern(Sg_MakeString(UC("apply"), SG_LITERAL_STRING)), Sg_Intern(Sg_MakeString(UC("bug?"), SG_LITERAL_STRING)), AC(vm));
+          Sg_AssertionViolation(Sg_Intern(Sg_MakeString(UC("apply"), SG_LITERAL_STRING)), Sg_MakeString(Sg_Intern(Sg_MakeString(UC("bug?"), SG_LITERAL_STRING)), SG_LITERAL_STRING), AC(vm));
+          return SG_UNDEF;
+;
         }
 ;
         length=Sg_Length(args);
@@ -561,6 +571,8 @@ CASE(DEFINE) {
 CASE(CAR) {
   if (!(SG_PAIRP(AC(vm)))) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), AC(vm), SG_NIL);
+    return SG_UNDEF;
+;
   }
 ;
   BUILTIN_ONE_ARG(vm, SG_CAR);
@@ -570,6 +582,8 @@ CASE(CAR) {
 CASE(CDR) {
   if (!(SG_PAIRP(AC(vm)))) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), AC(vm), SG_NIL);
+    return SG_UNDEF;
+;
   }
 ;
   BUILTIN_ONE_ARG(vm, SG_CDR);
@@ -682,6 +696,8 @@ CASE(VECTORP) {
 CASE(VEC_LEN) {
   if (!(SG_VECTORP(AC(vm)))) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-length"), Sg_MakeString(UC("vector"), SG_LITERAL_STRING), AC(vm), SG_NIL);
+    return SG_UNDEF;
+;
   }
 ;
   AC(vm)=SG_MAKE_INT(SG_VECTOR_SIZE(AC(vm)));
@@ -691,10 +707,14 @@ CASE(VEC_LEN) {
 CASE(VEC_REF) {
   if (!(SG_VECTORP(INDEX(SP(vm), 0)))) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-ref"), Sg_MakeString(UC("vector"), SG_LITERAL_STRING), INDEX(SP(vm), 0), SG_NIL);
+    return SG_UNDEF;
+;
   }
 ;
   if (!(SG_INTP(AC(vm)))) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-ref"), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), AC(vm), SG_NIL);
+    return SG_UNDEF;
+;
   }
 ;
   AC(vm)=SG_VECTOR_ELEMENT(INDEX(SP(vm), 0), SG_INT_VALUE(AC(vm)));
@@ -705,10 +725,14 @@ CASE(VEC_REF) {
 CASE(VEC_SET) {
   if (!(SG_VECTORP(INDEX(SP(vm), 1)))) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-set!"), Sg_MakeString(UC("vector"), SG_LITERAL_STRING), INDEX(SP(vm), 1), SG_NIL);
+    return SG_UNDEF;
+;
   }
 ;
   if (!(SG_INTP(INDEX(SP(vm), 0)))) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-set!"), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), INDEX(SP(vm), 0), SG_NIL);
+    return SG_UNDEF;
+;
   }
 ;
   SG_VECTOR_ELEMENT(INDEX(SP(vm), 1), SG_INT_VALUE(INDEX(SP(vm), 0)))=AC(vm);

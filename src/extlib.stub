@@ -3,6 +3,7 @@
 #!compatible
 (library (sagittarius) ;; redefine but no problem
     (export identifier?
+	    identifier=?
 	    id-name
 	    id-memq
 	    identifier->symbol
@@ -45,15 +46,22 @@
   (define-cgen-stmt wrong-type-of-argument-violation
     ((_ who msg got)
      (dispatch
-      `(Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got '())))
+      `(begin
+	 (Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got '())
+	 (result SG_UNDEF))))
     ((_ who msg got irritants)
      (dispatch
-      `(Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got ,irritants))))
+      `(begin
+	 (Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got ,irritants)
+	 (result SG_UNDEF)))))
 
   ;; for library dependency
   (define-c-proc identifier? (id) ::boolean
     (result (or (SG_IDENTIFIERP id)
 		(SG_USER_DEFINED_SYNTXP id))))
+  
+  (define-c-proc identifier=? (use_env x mac_env y) ::boolean
+    (result (Sg_IdentifierEqP use_env x mac_env y)))
 
   (define-c-proc id-name (id) ::Object
     (cond ((SG_IDENTIFIERP id)

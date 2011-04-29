@@ -124,6 +124,32 @@ SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env)
   return wrap_rec(form, p1env, seen);
 }
 
+/* originally from chibi scheme */
+int Sg_IdentifierEqP(SgObject e1, SgObject id1, SgObject e2, SgObject id2)
+{
+  SgObject lam1 = SG_FALSE, lam2 = SG_FALSE;
+  ASSERT(SG_VECTORP(e1) && SG_VECTORP(e2));
+  /* strip p1env to frames*/
+  e1 = SG_VECTOR_ELEMENT(e1, 1);
+  e2 = SG_VECTOR_ELEMENT(e2, 1);
+  if (SG_IDENTIFIERP(id1)) {
+    e1 = SG_IDENTIFIER_ENVS(id1);
+    id1 = SG_IDENTIFIER_NAME(id1);
+  }
+  if (SG_IDENTIFIERP(id2)) {
+    e2 = SG_IDENTIFIER_ENVS(id2);
+    id2 = SG_IDENTIFIER_NAME(id2);
+  }
+  lam1 = Sg_Assq(id1, e1);
+  if (!SG_FALSEP(lam1)) {
+    lam1 = SG_CDR(lam1);
+  }
+  lam2 = Sg_Assq(id2, e2);
+  if (!SG_FALSEP(lam2)) {
+    lam2 = SG_CDR(lam2);
+  }
+  return (id1 == id2) && (lam1 == lam2);
+}
 /*
   end of file
   Local Variables:

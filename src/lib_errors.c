@@ -11,42 +11,42 @@
 #define IDENT(x, lib) WORD(Sg_MakeIdentifier(SYMBOL(x), SG_NIL, (lib)))
 static struct sg__wcRec {
   SgCodeBuilder cb[34];
-  SgWord        w[1493];
+  SgWord        w[1439];
 } sg__wc = {
   { /* code builder */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[102], NULL, 1, FALSE, 0, 12, 68), /* describe-condition */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[170], NULL, 1, FALSE, 1, 49, 249), /* #f */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[419], NULL, 2, FALSE, 1, 13, 41), /* loop */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[460], NULL, 1, FALSE, 0, 14, 103), /* raise */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[563], NULL, 1, FALSE, 0, 11, 30), /* raise-continuable */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[593], NULL, 2, FALSE, 0, 13, 44), /* with-exception-handler */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[637], NULL, 1, FALSE, 2, 9, 26), /* new-current */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[663], NULL, 0, FALSE, 2, 5, 9), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[672], NULL, 0, FALSE, 2, 5, 4), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[676], NULL, 0, FALSE, 1, 5, 6), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[682], NULL, 0, FALSE, 4, 5, 19), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[701], NULL, 0, FALSE, 2, 5, 13), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[714], NULL, 3, TRUE, 0, 17, 48), /* assertion-violation */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[762], NULL, 2, TRUE, 0, 15, 48), /* undefined-violation */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[810], NULL, 2, TRUE, 0, 15, 48), /* lexical-violation */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[858], NULL, 4, TRUE, 0, 27, 127), /* syntax-violation */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[985], NULL, 3, TRUE, 0, 17, 48), /* error */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[1033], NULL, 3, TRUE, 0, 17, 52), /* implementation-restriction-violation */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[1085], NULL, 4, TRUE, 0, 18, 55), /* undefined/syntax-violation */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[1140], NULL, 4, TRUE, 0, 18, 55), /* assertion/syntax-violation */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[1195], NULL, 4, TRUE, 0, 18, 53), /* raise-i/o-filename-error */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[1248], NULL, 3, TRUE, 0, 17, 52), /* raise-i/o-error */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[1300], NULL, 5, TRUE, 0, 22, 65), /* raise-misc-i/o-error-with-port */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[1365], NULL, 4, TRUE, 0, 18, 54), /* raise-misc-i/o-error */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[1419], NULL, 3, FALSE, 0, 11, 8), /* raise-i/o-read-error */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[1427], NULL, 3, FALSE, 0, 11, 8), /* raise-i/o-write-error */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[1435], NULL, 3, FALSE, 0, 11, 8), /* raise-i/o-file-protection-error */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[1443], NULL, 3, FALSE, 0, 11, 8), /* raise-i/o-file-is-read-only-error */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[1451], NULL, 3, FALSE, 0, 11, 8), /* raise-i/o-file-already-exists-error */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[1459], NULL, 3, FALSE, 0, 11, 8), /* raise-i/o-file-does-not-exist-error */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[1467], NULL, 4, FALSE, 0, 13, 9), /* raise-i/o-invalid-position-error */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[1476], NULL, 3, FALSE, 0, 11, 8), /* raise-i/o-decoding-error */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[1484], NULL, 4, FALSE, 0, 13, 9), /* raise-i/o-encoding-error */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[460], NULL, 1, FALSE, 0, 13, 110), /* raise */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[570], NULL, 1, FALSE, 0, 12, 35), /* raise-continuable */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[605], NULL, 2, FALSE, 0, 13, 46), /* with-exception-handler */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[651], NULL, 1, FALSE, 2, 9, 27), /* new-current */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[678], NULL, 0, FALSE, 1, 5, 4), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[682], NULL, 0, FALSE, 2, 5, 4), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[686], NULL, 0, FALSE, 1, 5, 4), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[690], NULL, 0, FALSE, 2, 5, 9), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[699], NULL, 0, FALSE, 2, 5, 9), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[708], NULL, 3, TRUE, 0, 16, 44), /* assertion-violation */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[752], NULL, 2, TRUE, 0, 14, 44), /* undefined-violation */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[796], NULL, 2, TRUE, 0, 14, 44), /* lexical-violation */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[840], NULL, 4, TRUE, 0, 26, 123), /* syntax-violation */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[963], NULL, 3, TRUE, 0, 16, 44), /* error */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[1007], NULL, 3, TRUE, 0, 16, 48), /* implementation-restriction-violation */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[1055], NULL, 4, TRUE, 0, 17, 51), /* undefined/syntax-violation */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[1106], NULL, 4, TRUE, 0, 17, 51), /* assertion/syntax-violation */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[1157], NULL, 4, TRUE, 0, 17, 49), /* raise-i/o-filename-error */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[1206], NULL, 3, TRUE, 0, 16, 48), /* raise-i/o-error */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[1254], NULL, 5, TRUE, 0, 21, 61), /* raise-misc-i/o-error-with-port */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[1315], NULL, 4, TRUE, 0, 17, 50), /* raise-misc-i/o-error */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[1365], NULL, 3, FALSE, 0, 11, 8), /* raise-i/o-read-error */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[1373], NULL, 3, FALSE, 0, 11, 8), /* raise-i/o-write-error */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[1381], NULL, 3, FALSE, 0, 11, 8), /* raise-i/o-file-protection-error */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[1389], NULL, 3, FALSE, 0, 11, 8), /* raise-i/o-file-is-read-only-error */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[1397], NULL, 3, FALSE, 0, 11, 8), /* raise-i/o-file-already-exists-error */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[1405], NULL, 3, FALSE, 0, 11, 8), /* raise-i/o-file-does-not-exist-error */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[1413], NULL, 4, FALSE, 0, 13, 9), /* raise-i/o-invalid-position-error */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[1422], NULL, 3, FALSE, 0, 11, 8), /* raise-i/o-decoding-error */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[1430], NULL, 4, FALSE, 0, 13, 9), /* raise-i/o-encoding-error */
   },
   { /* compiled code */
   /*     0 */        0x0000002A           /* 0      (CLOSURE) */,
@@ -520,7 +520,7 @@ static struct sg__wcRec {
   /*   468 */        0x00000135           /* 8      (ENTER) */,
   /*   469 */        0x00000005           /* 9      (LREF) */,
   /*   470 */        0x00000017           /* 10     (TEST) */,
-  /*   471 */        WORD(SG_MAKE_INT(77)),
+  /*   471 */        WORD(SG_MAKE_INT(79)),
   /*   472 */        0x00000031           /* 12     (FRAME) */,
   /*   473 */        WORD(SG_MAKE_INT(4)),
   /*   474 */        0x00000048           /* 14     (FREF_PUSH) */,
@@ -537,11 +537,11 @@ static struct sg__wcRec {
   /*   485 */        0x00000135           /* 25     (ENTER) */,
   /*   486 */        0x00000005           /* 26     (LREF) */,
   /*   487 */        0x00000017           /* 27     (TEST) */,
-  /*   488 */        WORD(SG_MAKE_INT(42)),
+  /*   488 */        WORD(SG_MAKE_INT(39)),
   /*   489 */        0x00000031           /* 29     (FRAME) */,
-  /*   490 */        WORD(SG_MAKE_INT(38)),
+  /*   490 */        WORD(SG_MAKE_INT(35)),
   /*   491 */        0x00000031           /* 31     (FRAME) */,
-  /*   492 */        WORD(SG_MAKE_INT(33)),
+  /*   492 */        WORD(SG_MAKE_INT(30)),
   /*   493 */        0x00000031           /* 33     (FRAME) */,
   /*   494 */        WORD(SG_MAKE_INT(3)),
   /*   495 */        0x0000004C           /* 35     (GREF_CALL) */,
@@ -562,986 +562,932 @@ static struct sg__wcRec {
   /*   510 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
   /*   511 */        0x0000000B           /* 51     (PUSH) */,
   /*   512 */        0x00000031           /* 52     (FRAME) */,
-  /*   513 */        WORD(SG_MAKE_INT(9)),
-  /*   514 */        0x00000031           /* 54     (FRAME) */,
-  /*   515 */        WORD(SG_MAKE_INT(4)),
-  /*   516 */        0x00000048           /* 56     (FREF_PUSH) */,
+  /*   513 */        WORD(SG_MAKE_INT(6)),
+  /*   514 */        0x00000007           /* 54     (FREF) */,
+  /*   515 */        0x0000013B           /* 55     (LIST) */,
+  /*   516 */        0x0000000B           /* 56     (PUSH) */,
   /*   517 */        0x0000014C           /* 57     (GREF_CALL) */,
-  /*   518 */        WORD(SG_UNDEF)  /* identifier#list */,
+  /*   518 */        WORD(SG_UNDEF)  /* identifier#make-irritants-condition */,
   /*   519 */        0x0000000B           /* 59     (PUSH) */,
-  /*   520 */        0x0000014C           /* 60     (GREF_CALL) */,
-  /*   521 */        WORD(SG_UNDEF)  /* identifier#make-irritants-condition */,
+  /*   520 */        0x0000044C           /* 60     (GREF_CALL) */,
+  /*   521 */        WORD(SG_UNDEF)  /* identifier#condition */,
   /*   522 */        0x0000000B           /* 62     (PUSH) */,
-  /*   523 */        0x0000044C           /* 63     (GREF_CALL) */,
-  /*   524 */        WORD(SG_UNDEF)  /* identifier#condition */,
-  /*   525 */        0x0000000B           /* 65     (PUSH) */,
-  /*   526 */        0x00000005           /* 66     (LREF) */,
-  /*   527 */        0x0000012C           /* 67     (CALL) */,
-  /*   528 */        0x00000018           /* 68     (JUMP) */,
-  /*   529 */        WORD(SG_MAKE_INT(2)),
-  /*   530 */        0x00000002           /* 70     (UNDEF) */,
-  /*   531 */        0x00000036           /* 71     (LEAVE) */,
-  /*   532 */        0x00000031           /* 72     (FRAME) */,
-  /*   533 */        WORD(SG_MAKE_INT(13)),
-  /*   534 */        0x0000004A           /* 74     (CONST_PUSH) */,
-  /*   535 */        WORD(SG_UNDEF), /* "error in raise: returned from non-continuable exception~%~%irritants:~%~a" */
-  /*   536 */        0x00000031           /* 76     (FRAME) */,
-  /*   537 */        WORD(SG_MAKE_INT(6)),
-  /*   538 */        0x0000004A           /* 78     (CONST_PUSH) */,
-  /*   539 */        WORD(SG_MAKE_BOOL(FALSE)),
-  /*   540 */        0x00000048           /* 80     (FREF_PUSH) */,
-  /*   541 */        0x0000024C           /* 81     (GREF_CALL) */,
-  /*   542 */        WORD(SG_UNDEF)  /* identifier#describe-condition */,
-  /*   543 */        0x0000000B           /* 83     (PUSH) */,
-  /*   544 */        0x0000024C           /* 84     (GREF_CALL) */,
-  /*   545 */        WORD(SG_UNDEF)  /* identifier#scheme-error */,
-  /*   546 */        0x00000018           /* 86     (JUMP) */,
-  /*   547 */        WORD(SG_MAKE_INT(2)),
-  /*   548 */        0x00000002           /* 88     (UNDEF) */,
-  /*   549 */        0x00000036           /* 89     (LEAVE) */,
-  /*   550 */        0x0000004A           /* 90     (CONST_PUSH) */,
-  /*   551 */        WORD(SG_UNDEF), /* "error in raise: unhandled exception has occurred~%~%irritants:~%~a" */
-  /*   552 */        0x00000031           /* 92     (FRAME) */,
-  /*   553 */        WORD(SG_MAKE_INT(6)),
-  /*   554 */        0x0000004A           /* 94     (CONST_PUSH) */,
-  /*   555 */        WORD(SG_MAKE_BOOL(FALSE)),
-  /*   556 */        0x00000047           /* 96     (LREF_PUSH) */,
-  /*   557 */        0x0000024C           /* 97     (GREF_CALL) */,
-  /*   558 */        WORD(SG_UNDEF)  /* identifier#describe-condition */,
-  /*   559 */        0x0000000B           /* 99     (PUSH) */,
-  /*   560 */        0x0000024D           /* 100    (GREF_TAIL_CALL) */,
-  /*   561 */        WORD(SG_UNDEF)  /* identifier#scheme-error */,
-  /*   562 */        0x00000030           /* 102    (RET) */,
-  /*   563 */        0x00000232           /* 0      (LET_FRAME) */,
-  /*   564 */        0x00000047           /* 1      (LREF_PUSH) */,
-  /*   565 */        0x00000134           /* 2      (DISPLAY) */,
-  /*   566 */        0x00000031           /* 3      (FRAME) */,
-  /*   567 */        WORD(SG_MAKE_INT(3)),
-  /*   568 */        0x0000004C           /* 5      (GREF_CALL) */,
-  /*   569 */        WORD(SG_UNDEF)  /* identifier#current-exception-handler */,
-  /*   570 */        0x0000000B           /* 7      (PUSH) */,
-  /*   571 */        0x00000133           /* 8      (POP_LET_FRAME) */,
-  /*   572 */        0x00000005           /* 9      (LREF) */,
-  /*   573 */        0x00000017           /* 10     (TEST) */,
-  /*   574 */        WORD(SG_MAKE_INT(6)),
-  /*   575 */        0x00000048           /* 12     (FREF_PUSH) */,
-  /*   576 */        0x00000005           /* 13     (LREF) */,
-  /*   577 */        0x0000012E           /* 14     (TAIL_CALL) */,
-  /*   578 */        0x00000018           /* 15     (JUMP) */,
-  /*   579 */        WORD(SG_MAKE_INT(13)),
-  /*   580 */        0x0000004A           /* 17     (CONST_PUSH) */,
-  /*   581 */        WORD(SG_UNDEF), /* "error in raise-continuable: unhandled exception has occurred~%~%irritants:~%~a" */
-  /*   582 */        0x00000031           /* 19     (FRAME) */,
-  /*   583 */        WORD(SG_MAKE_INT(6)),
-  /*   584 */        0x0000004A           /* 21     (CONST_PUSH) */,
-  /*   585 */        WORD(SG_MAKE_BOOL(FALSE)),
-  /*   586 */        0x00000048           /* 23     (FREF_PUSH) */,
-  /*   587 */        0x0000024C           /* 24     (GREF_CALL) */,
-  /*   588 */        WORD(SG_UNDEF)  /* identifier#describe-condition */,
-  /*   589 */        0x0000000B           /* 26     (PUSH) */,
-  /*   590 */        0x0000024D           /* 27     (GREF_TAIL_CALL) */,
-  /*   591 */        WORD(SG_UNDEF)  /* identifier#scheme-error */,
-  /*   592 */        0x00000030           /* 29     (RET) */,
-  /*   593 */        0x00000332           /* 0      (LET_FRAME) */,
-  /*   594 */        0x00000047           /* 1      (LREF_PUSH) */,
-  /*   595 */        0x00000147           /* 2      (LREF_PUSH) */,
-  /*   596 */        0x00000234           /* 3      (DISPLAY) */,
-  /*   597 */        0x00000031           /* 4      (FRAME) */,
-  /*   598 */        WORD(SG_MAKE_INT(3)),
-  /*   599 */        0x0000004C           /* 6      (GREF_CALL) */,
-  /*   600 */        WORD(SG_UNDEF)  /* identifier#current-exception-handler */,
-  /*   601 */        0x0000000B           /* 8      (PUSH) */,
-  /*   602 */        0x00000133           /* 9      (POP_LET_FRAME) */,
-  /*   603 */        0x00000732           /* 10     (LET_FRAME) */,
-  /*   604 */        0x00000047           /* 11     (LREF_PUSH) */,
-  /*   605 */        0x00000048           /* 12     (FREF_PUSH) */,
-  /*   606 */        0x00000047           /* 13     (LREF_PUSH) */,
-  /*   607 */        0x00000148           /* 14     (FREF_PUSH) */,
-  /*   608 */        0x00000434           /* 15     (DISPLAY) */,
-  /*   609 */        0x0000004A           /* 16     (CONST_PUSH) */,
-  /*   610 */        WORD(SG_MAKE_BOOL(FALSE)),
-  /*   611 */        0x0000004A           /* 18     (CONST_PUSH) */,
-  /*   612 */        WORD(SG_MAKE_BOOL(FALSE)),
-  /*   613 */        0x00000047           /* 20     (LREF_PUSH) */,
-  /*   614 */        0x00000048           /* 21     (FREF_PUSH) */,
-  /*   615 */        0x0000002A           /* 22     (CLOSURE) */,
-  /*   616 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   617 */        0x0000000B           /* 24     (PUSH) */,
-  /*   618 */        0x0000020C           /* 25     (BOX) */,
-  /*   619 */        0x0000010C           /* 26     (BOX) */,
-  /*   620 */        0x00000333           /* 27     (POP_LET_FRAME) */,
-  /*   621 */        0x00000047           /* 28     (LREF_PUSH) */,
-  /*   622 */        0x00000147           /* 29     (LREF_PUSH) */,
-  /*   623 */        0x00000148           /* 30     (FREF_PUSH) */,
-  /*   624 */        0x00000247           /* 31     (LREF_PUSH) */,
-  /*   625 */        0x0000002A           /* 32     (CLOSURE) */,
-  /*   626 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   627 */        0x0000000B           /* 34     (PUSH) */,
-  /*   628 */        0x00000248           /* 35     (FREF_PUSH) */,
-  /*   629 */        0x00000047           /* 36     (LREF_PUSH) */,
-  /*   630 */        0x00000147           /* 37     (LREF_PUSH) */,
-  /*   631 */        0x0000002A           /* 38     (CLOSURE) */,
-  /*   632 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   633 */        0x0000000B           /* 40     (PUSH) */,
-  /*   634 */        0x0000034D           /* 41     (GREF_TAIL_CALL) */,
-  /*   635 */        WORD(SG_UNDEF)  /* identifier#dynamic-wind */,
-  /*   636 */        0x00000030           /* 43     (RET) */,
-  /*   637 */        0x00000432           /* 0      (LET_FRAME) */,
-  /*   638 */        0x00000148           /* 1      (FREF_PUSH) */,
-  /*   639 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*   640 */        0x00000048           /* 3      (FREF_PUSH) */,
-  /*   641 */        0x00000334           /* 4      (DISPLAY) */,
-  /*   642 */        0x0000004A           /* 5      (CONST_PUSH) */,
-  /*   643 */        WORD(SG_MAKE_BOOL(FALSE)),
-  /*   644 */        0x0000000C           /* 7      (BOX) */,
-  /*   645 */        0x00000133           /* 8      (POP_LET_FRAME) */,
-  /*   646 */        0x00000047           /* 9      (LREF_PUSH) */,
-  /*   647 */        0x00000248           /* 10     (FREF_PUSH) */,
-  /*   648 */        0x0000002A           /* 11     (CLOSURE) */,
-  /*   649 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   650 */        0x0000000B           /* 13     (PUSH) */,
-  /*   651 */        0x00000148           /* 14     (FREF_PUSH) */,
-  /*   652 */        0x00000048           /* 15     (FREF_PUSH) */,
-  /*   653 */        0x0000002A           /* 16     (CLOSURE) */,
-  /*   654 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   655 */        0x0000000B           /* 18     (PUSH) */,
-  /*   656 */        0x00000047           /* 19     (LREF_PUSH) */,
-  /*   657 */        0x0000002A           /* 20     (CLOSURE) */,
-  /*   658 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   659 */        0x0000000B           /* 22     (PUSH) */,
-  /*   660 */        0x0000034D           /* 23     (GREF_TAIL_CALL) */,
-  /*   661 */        WORD(SG_UNDEF)  /* identifier#dynamic-wind */,
-  /*   662 */        0x00000030           /* 25     (RET) */,
-  /*   663 */        0x00000031           /* 0      (FRAME) */,
-  /*   664 */        WORD(SG_MAKE_INT(3)),
-  /*   665 */        0x0000004C           /* 2      (GREF_CALL) */,
-  /*   666 */        WORD(SG_UNDEF)  /* identifier#current-exception-handler */,
-  /*   667 */        0x00000108           /* 4      (FSET) */,
-  /*   668 */        0x00000048           /* 5      (FREF_PUSH) */,
-  /*   669 */        0x0000014D           /* 6      (GREF_TAIL_CALL) */,
-  /*   670 */        WORD(SG_UNDEF)  /* identifier#current-exception-handler */,
-  /*   671 */        0x00000030           /* 8      (RET) */,
-  /*   672 */        0x00000148           /* 0      (FREF_PUSH) */,
-  /*   673 */        0x00000007           /* 1      (FREF) */,
-  /*   674 */        0x0000012E           /* 2      (TAIL_CALL) */,
-  /*   675 */        0x00000030           /* 3      (RET) */,
-  /*   676 */        0x00000007           /* 0      (FREF) */,
-  /*   677 */        0x0000000D           /* 1      (UNBOX) */,
-  /*   678 */        0x0000000B           /* 2      (PUSH) */,
-  /*   679 */        0x0000014D           /* 3      (GREF_TAIL_CALL) */,
+  /*   523 */        0x00000005           /* 63     (LREF) */,
+  /*   524 */        0x0000012C           /* 64     (CALL) */,
+  /*   525 */        0x00000018           /* 65     (JUMP) */,
+  /*   526 */        WORD(SG_MAKE_INT(2)),
+  /*   527 */        0x00000002           /* 67     (UNDEF) */,
+  /*   528 */        0x00000036           /* 68     (LEAVE) */,
+  /*   529 */        0x00000031           /* 69     (FRAME) */,
+  /*   530 */        WORD(SG_MAKE_INT(18)),
+  /*   531 */        0x0000004A           /* 71     (CONST_PUSH) */,
+  /*   532 */        WORD(SG_UNDEF), /* raise */
+  /*   533 */        0x00000031           /* 73     (FRAME) */,
+  /*   534 */        WORD(SG_MAKE_INT(11)),
+  /*   535 */        0x0000004A           /* 75     (CONST_PUSH) */,
+  /*   536 */        WORD(SG_UNDEF), /* "returned from non-continuable exception~%~%irritants:~%~a" */
+  /*   537 */        0x00000031           /* 77     (FRAME) */,
+  /*   538 */        WORD(SG_MAKE_INT(4)),
+  /*   539 */        0x00000048           /* 79     (FREF_PUSH) */,
+  /*   540 */        0x0000014C           /* 80     (GREF_CALL) */,
+  /*   541 */        WORD(SG_UNDEF)  /* identifier#describe-condition */,
+  /*   542 */        0x0000000B           /* 82     (PUSH) */,
+  /*   543 */        0x0000024C           /* 83     (GREF_CALL) */,
+  /*   544 */        WORD(SG_UNDEF)  /* identifier#format */,
+  /*   545 */        0x0000000B           /* 85     (PUSH) */,
+  /*   546 */        0x0000024C           /* 86     (GREF_CALL) */,
+  /*   547 */        WORD(SG_UNDEF)  /* identifier#scheme-error */,
+  /*   548 */        0x00000018           /* 88     (JUMP) */,
+  /*   549 */        WORD(SG_MAKE_INT(2)),
+  /*   550 */        0x00000002           /* 90     (UNDEF) */,
+  /*   551 */        0x00000036           /* 91     (LEAVE) */,
+  /*   552 */        0x0000004A           /* 92     (CONST_PUSH) */,
+  /*   553 */        WORD(SG_UNDEF), /* raise */
+  /*   554 */        0x00000031           /* 94     (FRAME) */,
+  /*   555 */        WORD(SG_MAKE_INT(11)),
+  /*   556 */        0x0000004A           /* 96     (CONST_PUSH) */,
+  /*   557 */        WORD(SG_UNDEF), /* "unhandled exception has occurred~%~%irritants:~%~a" */
+  /*   558 */        0x00000031           /* 98     (FRAME) */,
+  /*   559 */        WORD(SG_MAKE_INT(4)),
+  /*   560 */        0x00000047           /* 100    (LREF_PUSH) */,
+  /*   561 */        0x0000014C           /* 101    (GREF_CALL) */,
+  /*   562 */        WORD(SG_UNDEF)  /* identifier#describe-condition */,
+  /*   563 */        0x0000000B           /* 103    (PUSH) */,
+  /*   564 */        0x0000024C           /* 104    (GREF_CALL) */,
+  /*   565 */        WORD(SG_UNDEF)  /* identifier#format */,
+  /*   566 */        0x0000000B           /* 106    (PUSH) */,
+  /*   567 */        0x0000024D           /* 107    (GREF_TAIL_CALL) */,
+  /*   568 */        WORD(SG_UNDEF)  /* identifier#scheme-error */,
+  /*   569 */        0x00000030           /* 109    (RET) */,
+  /*   570 */        0x00000232           /* 0      (LET_FRAME) */,
+  /*   571 */        0x00000047           /* 1      (LREF_PUSH) */,
+  /*   572 */        0x00000134           /* 2      (DISPLAY) */,
+  /*   573 */        0x00000031           /* 3      (FRAME) */,
+  /*   574 */        WORD(SG_MAKE_INT(3)),
+  /*   575 */        0x0000004C           /* 5      (GREF_CALL) */,
+  /*   576 */        WORD(SG_UNDEF)  /* identifier#current-exception-handler */,
+  /*   577 */        0x0000000B           /* 7      (PUSH) */,
+  /*   578 */        0x00000133           /* 8      (POP_LET_FRAME) */,
+  /*   579 */        0x00000005           /* 9      (LREF) */,
+  /*   580 */        0x00000017           /* 10     (TEST) */,
+  /*   581 */        WORD(SG_MAKE_INT(6)),
+  /*   582 */        0x00000048           /* 12     (FREF_PUSH) */,
+  /*   583 */        0x00000005           /* 13     (LREF) */,
+  /*   584 */        0x0000012E           /* 14     (TAIL_CALL) */,
+  /*   585 */        0x00000018           /* 15     (JUMP) */,
+  /*   586 */        WORD(SG_MAKE_INT(18)),
+  /*   587 */        0x0000004A           /* 17     (CONST_PUSH) */,
+  /*   588 */        WORD(SG_UNDEF), /* raise-continuable */
+  /*   589 */        0x00000031           /* 19     (FRAME) */,
+  /*   590 */        WORD(SG_MAKE_INT(11)),
+  /*   591 */        0x0000004A           /* 21     (CONST_PUSH) */,
+  /*   592 */        WORD(SG_UNDEF), /* "unhandled exception has occurred~%~%irritants:~%~a" */
+  /*   593 */        0x00000031           /* 23     (FRAME) */,
+  /*   594 */        WORD(SG_MAKE_INT(4)),
+  /*   595 */        0x00000048           /* 25     (FREF_PUSH) */,
+  /*   596 */        0x0000014C           /* 26     (GREF_CALL) */,
+  /*   597 */        WORD(SG_UNDEF)  /* identifier#describe-condition */,
+  /*   598 */        0x0000000B           /* 28     (PUSH) */,
+  /*   599 */        0x0000024C           /* 29     (GREF_CALL) */,
+  /*   600 */        WORD(SG_UNDEF)  /* identifier#format */,
+  /*   601 */        0x0000000B           /* 31     (PUSH) */,
+  /*   602 */        0x0000024D           /* 32     (GREF_TAIL_CALL) */,
+  /*   603 */        WORD(SG_UNDEF)  /* identifier#scheme-error */,
+  /*   604 */        0x00000030           /* 34     (RET) */,
+  /*   605 */        0x00000332           /* 0      (LET_FRAME) */,
+  /*   606 */        0x00000047           /* 1      (LREF_PUSH) */,
+  /*   607 */        0x00000147           /* 2      (LREF_PUSH) */,
+  /*   608 */        0x00000234           /* 3      (DISPLAY) */,
+  /*   609 */        0x00000031           /* 4      (FRAME) */,
+  /*   610 */        WORD(SG_MAKE_INT(3)),
+  /*   611 */        0x0000004C           /* 6      (GREF_CALL) */,
+  /*   612 */        WORD(SG_UNDEF)  /* identifier#current-exception-handler */,
+  /*   613 */        0x0000000B           /* 8      (PUSH) */,
+  /*   614 */        0x00000133           /* 9      (POP_LET_FRAME) */,
+  /*   615 */        0x00000732           /* 10     (LET_FRAME) */,
+  /*   616 */        0x00000047           /* 11     (LREF_PUSH) */,
+  /*   617 */        0x00000048           /* 12     (FREF_PUSH) */,
+  /*   618 */        0x00000047           /* 13     (LREF_PUSH) */,
+  /*   619 */        0x00000148           /* 14     (FREF_PUSH) */,
+  /*   620 */        0x00000434           /* 15     (DISPLAY) */,
+  /*   621 */        0x00000031           /* 16     (FRAME) */,
+  /*   622 */        WORD(SG_MAKE_INT(3)),
+  /*   623 */        0x0000004C           /* 18     (GREF_CALL) */,
+  /*   624 */        WORD(SG_UNDEF)  /* identifier#parent-exception-handler */,
+  /*   625 */        0x0000000B           /* 20     (PUSH) */,
+  /*   626 */        0x00000031           /* 21     (FRAME) */,
+  /*   627 */        WORD(SG_MAKE_INT(3)),
+  /*   628 */        0x0000004C           /* 23     (GREF_CALL) */,
+  /*   629 */        WORD(SG_UNDEF)  /* identifier#current-exception-handler */,
+  /*   630 */        0x0000000B           /* 25     (PUSH) */,
+  /*   631 */        0x00000047           /* 26     (LREF_PUSH) */,
+  /*   632 */        0x00000048           /* 27     (FREF_PUSH) */,
+  /*   633 */        0x0000002A           /* 28     (CLOSURE) */,
+  /*   634 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   635 */        0x0000000B           /* 30     (PUSH) */,
+  /*   636 */        0x00000333           /* 31     (POP_LET_FRAME) */,
+  /*   637 */        0x00000148           /* 32     (FREF_PUSH) */,
+  /*   638 */        0x00000247           /* 33     (LREF_PUSH) */,
+  /*   639 */        0x0000002A           /* 34     (CLOSURE) */,
+  /*   640 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   641 */        0x0000000B           /* 36     (PUSH) */,
+  /*   642 */        0x00000248           /* 37     (FREF_PUSH) */,
+  /*   643 */        0x00000047           /* 38     (LREF_PUSH) */,
+  /*   644 */        0x00000147           /* 39     (LREF_PUSH) */,
+  /*   645 */        0x0000002A           /* 40     (CLOSURE) */,
+  /*   646 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   647 */        0x0000000B           /* 42     (PUSH) */,
+  /*   648 */        0x0000034D           /* 43     (GREF_TAIL_CALL) */,
+  /*   649 */        WORD(SG_UNDEF)  /* identifier#dynamic-wind */,
+  /*   650 */        0x00000030           /* 45     (RET) */,
+  /*   651 */        0x00000432           /* 0      (LET_FRAME) */,
+  /*   652 */        0x00000148           /* 1      (FREF_PUSH) */,
+  /*   653 */        0x00000047           /* 2      (LREF_PUSH) */,
+  /*   654 */        0x00000048           /* 3      (FREF_PUSH) */,
+  /*   655 */        0x00000334           /* 4      (DISPLAY) */,
+  /*   656 */        0x00000031           /* 5      (FRAME) */,
+  /*   657 */        WORD(SG_MAKE_INT(3)),
+  /*   658 */        0x0000004C           /* 7      (GREF_CALL) */,
+  /*   659 */        WORD(SG_UNDEF)  /* identifier#current-exception-handler */,
+  /*   660 */        0x0000000B           /* 9      (PUSH) */,
+  /*   661 */        0x00000133           /* 10     (POP_LET_FRAME) */,
+  /*   662 */        0x00000248           /* 11     (FREF_PUSH) */,
+  /*   663 */        0x0000002A           /* 12     (CLOSURE) */,
+  /*   664 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   665 */        0x0000000B           /* 14     (PUSH) */,
+  /*   666 */        0x00000148           /* 15     (FREF_PUSH) */,
+  /*   667 */        0x00000048           /* 16     (FREF_PUSH) */,
+  /*   668 */        0x0000002A           /* 17     (CLOSURE) */,
+  /*   669 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   670 */        0x0000000B           /* 19     (PUSH) */,
+  /*   671 */        0x00000047           /* 20     (LREF_PUSH) */,
+  /*   672 */        0x0000002A           /* 21     (CLOSURE) */,
+  /*   673 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   674 */        0x0000000B           /* 23     (PUSH) */,
+  /*   675 */        0x0000034D           /* 24     (GREF_TAIL_CALL) */,
+  /*   676 */        WORD(SG_UNDEF)  /* identifier#dynamic-wind */,
+  /*   677 */        0x00000030           /* 26     (RET) */,
+  /*   678 */        0x00000048           /* 0      (FREF_PUSH) */,
+  /*   679 */        0x0000014D           /* 1      (GREF_TAIL_CALL) */,
   /*   680 */        WORD(SG_UNDEF)  /* identifier#current-exception-handler */,
-  /*   681 */        0x00000030           /* 5      (RET) */,
-  /*   682 */        0x00000031           /* 0      (FRAME) */,
-  /*   683 */        WORD(SG_MAKE_INT(3)),
-  /*   684 */        0x0000004C           /* 2      (GREF_CALL) */,
-  /*   685 */        WORD(SG_UNDEF)  /* identifier#parent-exception-handler */,
-  /*   686 */        0x00000308           /* 4      (FSET) */,
-  /*   687 */        0x00000031           /* 5      (FRAME) */,
-  /*   688 */        WORD(SG_MAKE_INT(3)),
-  /*   689 */        0x0000004C           /* 7      (GREF_CALL) */,
-  /*   690 */        WORD(SG_UNDEF)  /* identifier#current-exception-handler */,
-  /*   691 */        0x00000208           /* 9      (FSET) */,
-  /*   692 */        0x00000031           /* 10     (FRAME) */,
-  /*   693 */        WORD(SG_MAKE_INT(4)),
-  /*   694 */        0x00000148           /* 12     (FREF_PUSH) */,
-  /*   695 */        0x0000014C           /* 13     (GREF_CALL) */,
-  /*   696 */        WORD(SG_UNDEF)  /* identifier#parent-exception-handler */,
-  /*   697 */        0x00000048           /* 15     (FREF_PUSH) */,
-  /*   698 */        0x0000014D           /* 16     (GREF_TAIL_CALL) */,
-  /*   699 */        WORD(SG_UNDEF)  /* identifier#current-exception-handler */,
-  /*   700 */        0x00000030           /* 18     (RET) */,
-  /*   701 */        0x00000031           /* 0      (FRAME) */,
-  /*   702 */        WORD(SG_MAKE_INT(6)),
-  /*   703 */        0x00000107           /* 2      (FREF) */,
-  /*   704 */        0x0000000D           /* 3      (UNBOX) */,
-  /*   705 */        0x0000000B           /* 4      (PUSH) */,
-  /*   706 */        0x0000014C           /* 5      (GREF_CALL) */,
-  /*   707 */        WORD(SG_UNDEF)  /* identifier#parent-exception-handler */,
-  /*   708 */        0x00000007           /* 7      (FREF) */,
-  /*   709 */        0x0000000D           /* 8      (UNBOX) */,
-  /*   710 */        0x0000000B           /* 9      (PUSH) */,
-  /*   711 */        0x0000014D           /* 10     (GREF_TAIL_CALL) */,
-  /*   712 */        WORD(SG_UNDEF)  /* identifier#current-exception-handler */,
-  /*   713 */        0x00000030           /* 12     (RET) */,
-  /*   714 */        0x00000031           /* 0      (FRAME) */,
-  /*   715 */        WORD(SG_MAKE_INT(43)),
-  /*   716 */        0x00000049           /* 2      (GREF_PUSH) */,
-  /*   717 */        WORD(SG_UNDEF)  /* identifier#condition */,
-  /*   718 */        0x00000031           /* 4      (FRAME) */,
-  /*   719 */        WORD(SG_MAKE_INT(36)),
-  /*   720 */        0x00000049           /* 6      (GREF_PUSH) */,
-  /*   721 */        WORD(SG_UNDEF)  /* identifier#values */,
-  /*   722 */        0x00000031           /* 8      (FRAME) */,
-  /*   723 */        WORD(SG_MAKE_INT(29)),
-  /*   724 */        0x00000031           /* 10     (FRAME) */,
-  /*   725 */        WORD(SG_MAKE_INT(3)),
-  /*   726 */        0x0000004C           /* 12     (GREF_CALL) */,
-  /*   727 */        WORD(SG_UNDEF)  /* identifier#make-assertion-violation */,
-  /*   728 */        0x0000000B           /* 14     (PUSH) */,
-  /*   729 */        0x00000005           /* 15     (LREF) */,
-  /*   730 */        0x00000017           /* 16     (TEST) */,
-  /*   731 */        WORD(SG_MAKE_INT(6)),
-  /*   732 */        0x00000031           /* 18     (FRAME) */,
-  /*   733 */        WORD(SG_MAKE_INT(4)),
-  /*   734 */        0x00000047           /* 20     (LREF_PUSH) */,
-  /*   735 */        0x0000014C           /* 21     (GREF_CALL) */,
-  /*   736 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
-  /*   737 */        0x0000000B           /* 23     (PUSH) */,
-  /*   738 */        0x00000031           /* 24     (FRAME) */,
-  /*   739 */        WORD(SG_MAKE_INT(4)),
-  /*   740 */        0x00000147           /* 26     (LREF_PUSH) */,
-  /*   741 */        0x0000014C           /* 27     (GREF_CALL) */,
-  /*   742 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
-  /*   743 */        0x0000000B           /* 29     (PUSH) */,
-  /*   744 */        0x00000031           /* 30     (FRAME) */,
-  /*   745 */        WORD(SG_MAKE_INT(4)),
-  /*   746 */        0x00000247           /* 32     (LREF_PUSH) */,
-  /*   747 */        0x0000014C           /* 33     (GREF_CALL) */,
-  /*   748 */        WORD(SG_UNDEF)  /* identifier#make-irritants-condition */,
-  /*   749 */        0x0000000B           /* 35     (PUSH) */,
-  /*   750 */        0x0000044C           /* 36     (GREF_CALL) */,
-  /*   751 */        WORD(SG_UNDEF)  /* identifier#list */,
-  /*   752 */        0x0000000B           /* 38     (PUSH) */,
-  /*   753 */        0x0000024C           /* 39     (GREF_CALL) */,
-  /*   754 */        WORD(SG_UNDEF)  /* identifier#filter */,
-  /*   755 */        0x0000000B           /* 41     (PUSH) */,
-  /*   756 */        0x0000024C           /* 42     (GREF_CALL) */,
-  /*   757 */        WORD(SG_UNDEF)  /* identifier#apply */,
-  /*   758 */        0x0000000B           /* 44     (PUSH) */,
-  /*   759 */        0x0000014D           /* 45     (GREF_TAIL_CALL) */,
-  /*   760 */        WORD(SG_UNDEF)  /* identifier#raise */,
-  /*   761 */        0x00000030           /* 47     (RET) */,
-  /*   762 */        0x00000031           /* 0      (FRAME) */,
-  /*   763 */        WORD(SG_MAKE_INT(43)),
-  /*   764 */        0x00000049           /* 2      (GREF_PUSH) */,
-  /*   765 */        WORD(SG_UNDEF)  /* identifier#condition */,
-  /*   766 */        0x00000031           /* 4      (FRAME) */,
-  /*   767 */        WORD(SG_MAKE_INT(36)),
-  /*   768 */        0x00000049           /* 6      (GREF_PUSH) */,
-  /*   769 */        WORD(SG_UNDEF)  /* identifier#values */,
-  /*   770 */        0x00000031           /* 8      (FRAME) */,
-  /*   771 */        WORD(SG_MAKE_INT(29)),
-  /*   772 */        0x00000031           /* 10     (FRAME) */,
-  /*   773 */        WORD(SG_MAKE_INT(3)),
-  /*   774 */        0x0000004C           /* 12     (GREF_CALL) */,
-  /*   775 */        WORD(SG_UNDEF)  /* identifier#make-undefined-violation */,
-  /*   776 */        0x0000000B           /* 14     (PUSH) */,
-  /*   777 */        0x00000005           /* 15     (LREF) */,
-  /*   778 */        0x00000017           /* 16     (TEST) */,
+  /*   681 */        0x00000030           /* 3      (RET) */,
+  /*   682 */        0x00000148           /* 0      (FREF_PUSH) */,
+  /*   683 */        0x00000007           /* 1      (FREF) */,
+  /*   684 */        0x0000012E           /* 2      (TAIL_CALL) */,
+  /*   685 */        0x00000030           /* 3      (RET) */,
+  /*   686 */        0x00000048           /* 0      (FREF_PUSH) */,
+  /*   687 */        0x0000014D           /* 1      (GREF_TAIL_CALL) */,
+  /*   688 */        WORD(SG_UNDEF)  /* identifier#current-exception-handler */,
+  /*   689 */        0x00000030           /* 3      (RET) */,
+  /*   690 */        0x00000031           /* 0      (FRAME) */,
+  /*   691 */        WORD(SG_MAKE_INT(4)),
+  /*   692 */        0x00000148           /* 2      (FREF_PUSH) */,
+  /*   693 */        0x0000014C           /* 3      (GREF_CALL) */,
+  /*   694 */        WORD(SG_UNDEF)  /* identifier#parent-exception-handler */,
+  /*   695 */        0x00000048           /* 5      (FREF_PUSH) */,
+  /*   696 */        0x0000014D           /* 6      (GREF_TAIL_CALL) */,
+  /*   697 */        WORD(SG_UNDEF)  /* identifier#current-exception-handler */,
+  /*   698 */        0x00000030           /* 8      (RET) */,
+  /*   699 */        0x00000031           /* 0      (FRAME) */,
+  /*   700 */        WORD(SG_MAKE_INT(4)),
+  /*   701 */        0x00000148           /* 2      (FREF_PUSH) */,
+  /*   702 */        0x0000014C           /* 3      (GREF_CALL) */,
+  /*   703 */        WORD(SG_UNDEF)  /* identifier#parent-exception-handler */,
+  /*   704 */        0x00000048           /* 5      (FREF_PUSH) */,
+  /*   705 */        0x0000014D           /* 6      (GREF_TAIL_CALL) */,
+  /*   706 */        WORD(SG_UNDEF)  /* identifier#current-exception-handler */,
+  /*   707 */        0x00000030           /* 8      (RET) */,
+  /*   708 */        0x00000031           /* 0      (FRAME) */,
+  /*   709 */        WORD(SG_MAKE_INT(39)),
+  /*   710 */        0x00000049           /* 2      (GREF_PUSH) */,
+  /*   711 */        WORD(SG_UNDEF)  /* identifier#condition */,
+  /*   712 */        0x00000031           /* 4      (FRAME) */,
+  /*   713 */        WORD(SG_MAKE_INT(32)),
+  /*   714 */        0x00000049           /* 6      (GREF_PUSH) */,
+  /*   715 */        WORD(SG_UNDEF)  /* identifier#values */,
+  /*   716 */        0x00000031           /* 8      (FRAME) */,
+  /*   717 */        WORD(SG_MAKE_INT(3)),
+  /*   718 */        0x0000004C           /* 10     (GREF_CALL) */,
+  /*   719 */        WORD(SG_UNDEF)  /* identifier#make-assertion-violation */,
+  /*   720 */        0x0000000B           /* 12     (PUSH) */,
+  /*   721 */        0x00000005           /* 13     (LREF) */,
+  /*   722 */        0x00000017           /* 14     (TEST) */,
+  /*   723 */        WORD(SG_MAKE_INT(6)),
+  /*   724 */        0x00000031           /* 16     (FRAME) */,
+  /*   725 */        WORD(SG_MAKE_INT(4)),
+  /*   726 */        0x00000047           /* 18     (LREF_PUSH) */,
+  /*   727 */        0x0000014C           /* 19     (GREF_CALL) */,
+  /*   728 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
+  /*   729 */        0x0000000B           /* 21     (PUSH) */,
+  /*   730 */        0x00000031           /* 22     (FRAME) */,
+  /*   731 */        WORD(SG_MAKE_INT(4)),
+  /*   732 */        0x00000147           /* 24     (LREF_PUSH) */,
+  /*   733 */        0x0000014C           /* 25     (GREF_CALL) */,
+  /*   734 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
+  /*   735 */        0x0000000B           /* 27     (PUSH) */,
+  /*   736 */        0x00000031           /* 28     (FRAME) */,
+  /*   737 */        WORD(SG_MAKE_INT(4)),
+  /*   738 */        0x00000247           /* 30     (LREF_PUSH) */,
+  /*   739 */        0x0000014C           /* 31     (GREF_CALL) */,
+  /*   740 */        WORD(SG_UNDEF)  /* identifier#make-irritants-condition */,
+  /*   741 */        0x0000043B           /* 33     (LIST) */,
+  /*   742 */        0x0000000B           /* 34     (PUSH) */,
+  /*   743 */        0x0000024C           /* 35     (GREF_CALL) */,
+  /*   744 */        WORD(SG_UNDEF)  /* identifier#filter */,
+  /*   745 */        0x0000000B           /* 37     (PUSH) */,
+  /*   746 */        0x0000024C           /* 38     (GREF_CALL) */,
+  /*   747 */        WORD(SG_UNDEF)  /* identifier#apply */,
+  /*   748 */        0x0000000B           /* 40     (PUSH) */,
+  /*   749 */        0x0000014D           /* 41     (GREF_TAIL_CALL) */,
+  /*   750 */        WORD(SG_UNDEF)  /* identifier#raise */,
+  /*   751 */        0x00000030           /* 43     (RET) */,
+  /*   752 */        0x00000031           /* 0      (FRAME) */,
+  /*   753 */        WORD(SG_MAKE_INT(39)),
+  /*   754 */        0x00000049           /* 2      (GREF_PUSH) */,
+  /*   755 */        WORD(SG_UNDEF)  /* identifier#condition */,
+  /*   756 */        0x00000031           /* 4      (FRAME) */,
+  /*   757 */        WORD(SG_MAKE_INT(32)),
+  /*   758 */        0x00000049           /* 6      (GREF_PUSH) */,
+  /*   759 */        WORD(SG_UNDEF)  /* identifier#values */,
+  /*   760 */        0x00000031           /* 8      (FRAME) */,
+  /*   761 */        WORD(SG_MAKE_INT(3)),
+  /*   762 */        0x0000004C           /* 10     (GREF_CALL) */,
+  /*   763 */        WORD(SG_UNDEF)  /* identifier#make-undefined-violation */,
+  /*   764 */        0x0000000B           /* 12     (PUSH) */,
+  /*   765 */        0x00000005           /* 13     (LREF) */,
+  /*   766 */        0x00000017           /* 14     (TEST) */,
+  /*   767 */        WORD(SG_MAKE_INT(6)),
+  /*   768 */        0x00000031           /* 16     (FRAME) */,
+  /*   769 */        WORD(SG_MAKE_INT(4)),
+  /*   770 */        0x00000047           /* 18     (LREF_PUSH) */,
+  /*   771 */        0x0000014C           /* 19     (GREF_CALL) */,
+  /*   772 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
+  /*   773 */        0x0000000B           /* 21     (PUSH) */,
+  /*   774 */        0x00000105           /* 22     (LREF) */,
+  /*   775 */        0x00000040           /* 23     (PAIRP) */,
+  /*   776 */        0x00000017           /* 24     (TEST) */,
+  /*   777 */        WORD(SG_MAKE_INT(8)),
+  /*   778 */        0x00000031           /* 26     (FRAME) */,
   /*   779 */        WORD(SG_MAKE_INT(6)),
-  /*   780 */        0x00000031           /* 18     (FRAME) */,
-  /*   781 */        WORD(SG_MAKE_INT(4)),
-  /*   782 */        0x00000047           /* 20     (LREF_PUSH) */,
-  /*   783 */        0x0000014C           /* 21     (GREF_CALL) */,
-  /*   784 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
-  /*   785 */        0x0000000B           /* 23     (PUSH) */,
-  /*   786 */        0x00000105           /* 24     (LREF) */,
-  /*   787 */        0x00000040           /* 25     (PAIRP) */,
-  /*   788 */        0x00000017           /* 26     (TEST) */,
-  /*   789 */        WORD(SG_MAKE_INT(8)),
-  /*   790 */        0x00000031           /* 28     (FRAME) */,
-  /*   791 */        WORD(SG_MAKE_INT(6)),
-  /*   792 */        0x00000105           /* 30     (LREF) */,
-  /*   793 */        0x00000038           /* 31     (CAR) */,
-  /*   794 */        0x0000000B           /* 32     (PUSH) */,
-  /*   795 */        0x0000014C           /* 33     (GREF_CALL) */,
-  /*   796 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
-  /*   797 */        0x0000000B           /* 35     (PUSH) */,
-  /*   798 */        0x0000034C           /* 36     (GREF_CALL) */,
-  /*   799 */        WORD(SG_UNDEF)  /* identifier#list */,
-  /*   800 */        0x0000000B           /* 38     (PUSH) */,
-  /*   801 */        0x0000024C           /* 39     (GREF_CALL) */,
-  /*   802 */        WORD(SG_UNDEF)  /* identifier#filter */,
-  /*   803 */        0x0000000B           /* 41     (PUSH) */,
-  /*   804 */        0x0000024C           /* 42     (GREF_CALL) */,
-  /*   805 */        WORD(SG_UNDEF)  /* identifier#apply */,
-  /*   806 */        0x0000000B           /* 44     (PUSH) */,
-  /*   807 */        0x0000014D           /* 45     (GREF_TAIL_CALL) */,
-  /*   808 */        WORD(SG_UNDEF)  /* identifier#raise */,
-  /*   809 */        0x00000030           /* 47     (RET) */,
-  /*   810 */        0x00000031           /* 0      (FRAME) */,
-  /*   811 */        WORD(SG_MAKE_INT(43)),
-  /*   812 */        0x00000049           /* 2      (GREF_PUSH) */,
-  /*   813 */        WORD(SG_UNDEF)  /* identifier#condition */,
-  /*   814 */        0x00000031           /* 4      (FRAME) */,
-  /*   815 */        WORD(SG_MAKE_INT(36)),
-  /*   816 */        0x00000049           /* 6      (GREF_PUSH) */,
-  /*   817 */        WORD(SG_UNDEF)  /* identifier#values */,
-  /*   818 */        0x00000031           /* 8      (FRAME) */,
-  /*   819 */        WORD(SG_MAKE_INT(29)),
-  /*   820 */        0x00000031           /* 10     (FRAME) */,
-  /*   821 */        WORD(SG_MAKE_INT(3)),
-  /*   822 */        0x0000004C           /* 12     (GREF_CALL) */,
-  /*   823 */        WORD(SG_UNDEF)  /* identifier#make-lexical-violation */,
-  /*   824 */        0x0000000B           /* 14     (PUSH) */,
-  /*   825 */        0x00000005           /* 15     (LREF) */,
-  /*   826 */        0x00000017           /* 16     (TEST) */,
-  /*   827 */        WORD(SG_MAKE_INT(6)),
-  /*   828 */        0x00000031           /* 18     (FRAME) */,
-  /*   829 */        WORD(SG_MAKE_INT(4)),
-  /*   830 */        0x00000047           /* 20     (LREF_PUSH) */,
-  /*   831 */        0x0000014C           /* 21     (GREF_CALL) */,
-  /*   832 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
-  /*   833 */        0x0000000B           /* 23     (PUSH) */,
-  /*   834 */        0x00000105           /* 24     (LREF) */,
-  /*   835 */        0x00000040           /* 25     (PAIRP) */,
-  /*   836 */        0x00000017           /* 26     (TEST) */,
-  /*   837 */        WORD(SG_MAKE_INT(8)),
-  /*   838 */        0x00000031           /* 28     (FRAME) */,
-  /*   839 */        WORD(SG_MAKE_INT(6)),
-  /*   840 */        0x00000105           /* 30     (LREF) */,
-  /*   841 */        0x00000038           /* 31     (CAR) */,
-  /*   842 */        0x0000000B           /* 32     (PUSH) */,
-  /*   843 */        0x0000014C           /* 33     (GREF_CALL) */,
-  /*   844 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
-  /*   845 */        0x0000000B           /* 35     (PUSH) */,
-  /*   846 */        0x0000034C           /* 36     (GREF_CALL) */,
-  /*   847 */        WORD(SG_UNDEF)  /* identifier#list */,
-  /*   848 */        0x0000000B           /* 38     (PUSH) */,
-  /*   849 */        0x0000024C           /* 39     (GREF_CALL) */,
-  /*   850 */        WORD(SG_UNDEF)  /* identifier#filter */,
-  /*   851 */        0x0000000B           /* 41     (PUSH) */,
-  /*   852 */        0x0000024C           /* 42     (GREF_CALL) */,
-  /*   853 */        WORD(SG_UNDEF)  /* identifier#apply */,
-  /*   854 */        0x0000000B           /* 44     (PUSH) */,
-  /*   855 */        0x0000014D           /* 45     (GREF_TAIL_CALL) */,
-  /*   856 */        WORD(SG_UNDEF)  /* identifier#raise */,
-  /*   857 */        0x00000030           /* 47     (RET) */,
-  /*   858 */        0x00000031           /* 0      (FRAME) */,
-  /*   859 */        WORD(SG_MAKE_INT(122)),
-  /*   860 */        0x00000049           /* 2      (GREF_PUSH) */,
-  /*   861 */        WORD(SG_UNDEF)  /* identifier#condition */,
-  /*   862 */        0x00000031           /* 4      (FRAME) */,
-  /*   863 */        WORD(SG_MAKE_INT(115)),
-  /*   864 */        0x00000049           /* 6      (GREF_PUSH) */,
-  /*   865 */        WORD(SG_UNDEF)  /* identifier#values */,
-  /*   866 */        0x00000031           /* 8      (FRAME) */,
-  /*   867 */        WORD(SG_MAKE_INT(108)),
-  /*   868 */        0x00000031           /* 10     (FRAME) */,
-  /*   869 */        WORD(SG_MAKE_INT(11)),
-  /*   870 */        0x00000247           /* 12     (LREF_PUSH) */,
-  /*   871 */        0x00000305           /* 13     (LREF) */,
-  /*   872 */        0x00000040           /* 14     (PAIRP) */,
-  /*   873 */        0x00000017           /* 15     (TEST) */,
-  /*   874 */        WORD(SG_MAKE_INT(3)),
-  /*   875 */        0x00000305           /* 17     (LREF) */,
-  /*   876 */        0x00000038           /* 18     (CAR) */,
-  /*   877 */        0x0000000B           /* 19     (PUSH) */,
-  /*   878 */        0x0000024C           /* 20     (GREF_CALL) */,
-  /*   879 */        WORD(SG_UNDEF)  /* identifier#make-syntax-violation */,
-  /*   880 */        0x0000000B           /* 22     (PUSH) */,
-  /*   881 */        0x00000005           /* 23     (LREF) */,
-  /*   882 */        0x00000017           /* 24     (TEST) */,
-  /*   883 */        WORD(SG_MAKE_INT(8)),
-  /*   884 */        0x00000031           /* 26     (FRAME) */,
-  /*   885 */        WORD(SG_MAKE_INT(4)),
-  /*   886 */        0x00000047           /* 28     (LREF_PUSH) */,
-  /*   887 */        0x0000014C           /* 29     (GREF_CALL) */,
-  /*   888 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
-  /*   889 */        0x00000018           /* 31     (JUMP) */,
-  /*   890 */        WORD(SG_MAKE_INT(76)),
-  /*   891 */        0x00000132           /* 33     (LET_FRAME) */,
-  /*   892 */        0x00000132           /* 34     (LET_FRAME) */,
-  /*   893 */        0x00000031           /* 35     (FRAME) */,
-  /*   894 */        WORD(SG_MAKE_INT(4)),
-  /*   895 */        0x00000247           /* 37     (LREF_PUSH) */,
-  /*   896 */        0x0000014C           /* 38     (GREF_CALL) */,
-  /*   897 */        WORD(SG_UNDEF)  /* identifier#wrapped-syntax-object? */,
-  /*   898 */        0x00000017           /* 40     (TEST) */,
-  /*   899 */        WORD(SG_MAKE_INT(8)),
-  /*   900 */        0x00000031           /* 42     (FRAME) */,
-  /*   901 */        WORD(SG_MAKE_INT(4)),
-  /*   902 */        0x00000247           /* 44     (LREF_PUSH) */,
-  /*   903 */        0x0000014C           /* 45     (GREF_CALL) */,
-  /*   904 */        WORD(SG_UNDEF)  /* identifier#unwrap-syntax */,
-  /*   905 */        0x00000018           /* 47     (JUMP) */,
-  /*   906 */        WORD(SG_MAKE_INT(2)),
-  /*   907 */        0x00000205           /* 49     (LREF) */,
-  /*   908 */        0x0000000B           /* 50     (PUSH) */,
-  /*   909 */        0x00000135           /* 51     (ENTER) */,
-  /*   910 */        0x00000031           /* 52     (FRAME) */,
-  /*   911 */        WORD(SG_MAKE_INT(4)),
-  /*   912 */        0x00000047           /* 54     (LREF_PUSH) */,
-  /*   913 */        0x0000014C           /* 55     (GREF_CALL) */,
-  /*   914 */        WORD(SG_UNDEF)  /* identifier#identifier? */,
-  /*   915 */        0x00000017           /* 57     (TEST) */,
-  /*   916 */        WORD(SG_MAKE_INT(13)),
-  /*   917 */        0x00000031           /* 59     (FRAME) */,
-  /*   918 */        WORD(SG_MAKE_INT(9)),
-  /*   919 */        0x00000031           /* 61     (FRAME) */,
-  /*   920 */        WORD(SG_MAKE_INT(4)),
-  /*   921 */        0x00000047           /* 63     (LREF_PUSH) */,
-  /*   922 */        0x0000014C           /* 64     (GREF_CALL) */,
-  /*   923 */        WORD(SG_UNDEF)  /* identifier#syntax-object-expr */,
-  /*   924 */        0x0000000B           /* 66     (PUSH) */,
-  /*   925 */        0x0000014C           /* 67     (GREF_CALL) */,
-  /*   926 */        WORD(SG_UNDEF)  /* identifier#original-id */,
-  /*   927 */        0x00000018           /* 69     (JUMP) */,
-  /*   928 */        WORD(SG_MAKE_INT(26)),
-  /*   929 */        0x00000005           /* 71     (LREF) */,
-  /*   930 */        0x00000040           /* 72     (PAIRP) */,
-  /*   931 */        0x00000017           /* 73     (TEST) */,
-  /*   932 */        WORD(SG_MAKE_INT(22)),
-  /*   933 */        0x00000031           /* 75     (FRAME) */,
-  /*   934 */        WORD(SG_MAKE_INT(6)),
-  /*   935 */        0x00000005           /* 77     (LREF) */,
-  /*   936 */        0x00000038           /* 78     (CAR) */,
-  /*   937 */        0x0000000B           /* 79     (PUSH) */,
-  /*   938 */        0x0000014C           /* 80     (GREF_CALL) */,
-  /*   939 */        WORD(SG_UNDEF)  /* identifier#identifier? */,
-  /*   940 */        0x00000017           /* 82     (TEST) */,
-  /*   941 */        WORD(SG_MAKE_INT(13)),
-  /*   942 */        0x00000031           /* 84     (FRAME) */,
-  /*   943 */        WORD(SG_MAKE_INT(11)),
-  /*   944 */        0x00000031           /* 86     (FRAME) */,
-  /*   945 */        WORD(SG_MAKE_INT(6)),
-  /*   946 */        0x00000005           /* 88     (LREF) */,
-  /*   947 */        0x00000038           /* 89     (CAR) */,
-  /*   948 */        0x0000000B           /* 90     (PUSH) */,
-  /*   949 */        0x0000014C           /* 91     (GREF_CALL) */,
-  /*   950 */        WORD(SG_UNDEF)  /* identifier#syntax-object-expr */,
-  /*   951 */        0x0000000B           /* 93     (PUSH) */,
-  /*   952 */        0x0000014C           /* 94     (GREF_CALL) */,
-  /*   953 */        WORD(SG_UNDEF)  /* identifier#original-id */,
-  /*   954 */        0x00000036           /* 96     (LEAVE) */,
-  /*   955 */        0x0000000B           /* 97     (PUSH) */,
-  /*   956 */        0x00000135           /* 98     (ENTER) */,
-  /*   957 */        0x00000005           /* 99     (LREF) */,
-  /*   958 */        0x00000017           /* 100    (TEST) */,
-  /*   959 */        WORD(SG_MAKE_INT(6)),
-  /*   960 */        0x00000031           /* 102    (FRAME) */,
-  /*   961 */        WORD(SG_MAKE_INT(4)),
-  /*   962 */        0x00000047           /* 104    (LREF_PUSH) */,
-  /*   963 */        0x0000014C           /* 105    (GREF_CALL) */,
-  /*   964 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
-  /*   965 */        0x00000036           /* 107    (LEAVE) */,
-  /*   966 */        0x0000000B           /* 108    (PUSH) */,
-  /*   967 */        0x00000031           /* 109    (FRAME) */,
-  /*   968 */        WORD(SG_MAKE_INT(4)),
-  /*   969 */        0x00000147           /* 111    (LREF_PUSH) */,
-  /*   970 */        0x0000014C           /* 112    (GREF_CALL) */,
-  /*   971 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
-  /*   972 */        0x0000000B           /* 114    (PUSH) */,
-  /*   973 */        0x0000034C           /* 115    (GREF_CALL) */,
-  /*   974 */        WORD(SG_UNDEF)  /* identifier#list */,
-  /*   975 */        0x0000000B           /* 117    (PUSH) */,
-  /*   976 */        0x0000024C           /* 118    (GREF_CALL) */,
-  /*   977 */        WORD(SG_UNDEF)  /* identifier#filter */,
-  /*   978 */        0x0000000B           /* 120    (PUSH) */,
-  /*   979 */        0x0000024C           /* 121    (GREF_CALL) */,
-  /*   980 */        WORD(SG_UNDEF)  /* identifier#apply */,
-  /*   981 */        0x0000000B           /* 123    (PUSH) */,
-  /*   982 */        0x0000014D           /* 124    (GREF_TAIL_CALL) */,
-  /*   983 */        WORD(SG_UNDEF)  /* identifier#raise */,
-  /*   984 */        0x00000030           /* 126    (RET) */,
-  /*   985 */        0x00000031           /* 0      (FRAME) */,
-  /*   986 */        WORD(SG_MAKE_INT(43)),
-  /*   987 */        0x00000049           /* 2      (GREF_PUSH) */,
-  /*   988 */        WORD(SG_UNDEF)  /* identifier#condition */,
-  /*   989 */        0x00000031           /* 4      (FRAME) */,
-  /*   990 */        WORD(SG_MAKE_INT(36)),
-  /*   991 */        0x00000049           /* 6      (GREF_PUSH) */,
-  /*   992 */        WORD(SG_UNDEF)  /* identifier#values */,
-  /*   993 */        0x00000031           /* 8      (FRAME) */,
-  /*   994 */        WORD(SG_MAKE_INT(29)),
-  /*   995 */        0x00000031           /* 10     (FRAME) */,
-  /*   996 */        WORD(SG_MAKE_INT(3)),
-  /*   997 */        0x0000004C           /* 12     (GREF_CALL) */,
-  /*   998 */        WORD(SG_UNDEF)  /* identifier#make-error */,
-  /*   999 */        0x0000000B           /* 14     (PUSH) */,
-  /*  1000 */        0x00000005           /* 15     (LREF) */,
-  /*  1001 */        0x00000017           /* 16     (TEST) */,
-  /*  1002 */        WORD(SG_MAKE_INT(6)),
-  /*  1003 */        0x00000031           /* 18     (FRAME) */,
-  /*  1004 */        WORD(SG_MAKE_INT(4)),
-  /*  1005 */        0x00000047           /* 20     (LREF_PUSH) */,
-  /*  1006 */        0x0000014C           /* 21     (GREF_CALL) */,
-  /*  1007 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
-  /*  1008 */        0x0000000B           /* 23     (PUSH) */,
-  /*  1009 */        0x00000031           /* 24     (FRAME) */,
-  /*  1010 */        WORD(SG_MAKE_INT(4)),
-  /*  1011 */        0x00000147           /* 26     (LREF_PUSH) */,
-  /*  1012 */        0x0000014C           /* 27     (GREF_CALL) */,
-  /*  1013 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
-  /*  1014 */        0x0000000B           /* 29     (PUSH) */,
-  /*  1015 */        0x00000031           /* 30     (FRAME) */,
-  /*  1016 */        WORD(SG_MAKE_INT(4)),
-  /*  1017 */        0x00000247           /* 32     (LREF_PUSH) */,
-  /*  1018 */        0x0000014C           /* 33     (GREF_CALL) */,
-  /*  1019 */        WORD(SG_UNDEF)  /* identifier#make-irritants-condition */,
-  /*  1020 */        0x0000000B           /* 35     (PUSH) */,
-  /*  1021 */        0x0000044C           /* 36     (GREF_CALL) */,
-  /*  1022 */        WORD(SG_UNDEF)  /* identifier#list */,
-  /*  1023 */        0x0000000B           /* 38     (PUSH) */,
-  /*  1024 */        0x0000024C           /* 39     (GREF_CALL) */,
-  /*  1025 */        WORD(SG_UNDEF)  /* identifier#filter */,
-  /*  1026 */        0x0000000B           /* 41     (PUSH) */,
-  /*  1027 */        0x0000024C           /* 42     (GREF_CALL) */,
-  /*  1028 */        WORD(SG_UNDEF)  /* identifier#apply */,
-  /*  1029 */        0x0000000B           /* 44     (PUSH) */,
-  /*  1030 */        0x0000014D           /* 45     (GREF_TAIL_CALL) */,
-  /*  1031 */        WORD(SG_UNDEF)  /* identifier#raise */,
-  /*  1032 */        0x00000030           /* 47     (RET) */,
-  /*  1033 */        0x00000031           /* 0      (FRAME) */,
-  /*  1034 */        WORD(SG_MAKE_INT(47)),
-  /*  1035 */        0x00000049           /* 2      (GREF_PUSH) */,
-  /*  1036 */        WORD(SG_UNDEF)  /* identifier#condition */,
-  /*  1037 */        0x00000031           /* 4      (FRAME) */,
-  /*  1038 */        WORD(SG_MAKE_INT(40)),
-  /*  1039 */        0x00000049           /* 6      (GREF_PUSH) */,
-  /*  1040 */        WORD(SG_UNDEF)  /* identifier#values */,
-  /*  1041 */        0x00000031           /* 8      (FRAME) */,
-  /*  1042 */        WORD(SG_MAKE_INT(33)),
-  /*  1043 */        0x00000031           /* 10     (FRAME) */,
-  /*  1044 */        WORD(SG_MAKE_INT(3)),
-  /*  1045 */        0x0000004C           /* 12     (GREF_CALL) */,
-  /*  1046 */        WORD(SG_UNDEF)  /* identifier#make-implementation-restriction-violation */,
-  /*  1047 */        0x0000000B           /* 14     (PUSH) */,
-  /*  1048 */        0x00000005           /* 15     (LREF) */,
-  /*  1049 */        0x00000017           /* 16     (TEST) */,
-  /*  1050 */        WORD(SG_MAKE_INT(6)),
-  /*  1051 */        0x00000031           /* 18     (FRAME) */,
-  /*  1052 */        WORD(SG_MAKE_INT(4)),
-  /*  1053 */        0x00000047           /* 20     (LREF_PUSH) */,
-  /*  1054 */        0x0000014C           /* 21     (GREF_CALL) */,
-  /*  1055 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
-  /*  1056 */        0x0000000B           /* 23     (PUSH) */,
-  /*  1057 */        0x00000031           /* 24     (FRAME) */,
-  /*  1058 */        WORD(SG_MAKE_INT(4)),
-  /*  1059 */        0x00000147           /* 26     (LREF_PUSH) */,
-  /*  1060 */        0x0000014C           /* 27     (GREF_CALL) */,
-  /*  1061 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
-  /*  1062 */        0x0000000B           /* 29     (PUSH) */,
-  /*  1063 */        0x00000205           /* 30     (LREF) */,
-  /*  1064 */        0x00000040           /* 31     (PAIRP) */,
-  /*  1065 */        0x00000017           /* 32     (TEST) */,
-  /*  1066 */        WORD(SG_MAKE_INT(6)),
-  /*  1067 */        0x00000031           /* 34     (FRAME) */,
-  /*  1068 */        WORD(SG_MAKE_INT(4)),
-  /*  1069 */        0x00000247           /* 36     (LREF_PUSH) */,
-  /*  1070 */        0x0000014C           /* 37     (GREF_CALL) */,
-  /*  1071 */        WORD(SG_UNDEF)  /* identifier#make-irritants-condition */,
-  /*  1072 */        0x0000000B           /* 39     (PUSH) */,
-  /*  1073 */        0x0000044C           /* 40     (GREF_CALL) */,
-  /*  1074 */        WORD(SG_UNDEF)  /* identifier#list */,
-  /*  1075 */        0x0000000B           /* 42     (PUSH) */,
-  /*  1076 */        0x0000024C           /* 43     (GREF_CALL) */,
-  /*  1077 */        WORD(SG_UNDEF)  /* identifier#filter */,
-  /*  1078 */        0x0000000B           /* 45     (PUSH) */,
-  /*  1079 */        0x0000024C           /* 46     (GREF_CALL) */,
-  /*  1080 */        WORD(SG_UNDEF)  /* identifier#apply */,
-  /*  1081 */        0x0000000B           /* 48     (PUSH) */,
-  /*  1082 */        0x0000014D           /* 49     (GREF_TAIL_CALL) */,
-  /*  1083 */        WORD(SG_UNDEF)  /* identifier#raise */,
-  /*  1084 */        0x00000030           /* 51     (RET) */,
-  /*  1085 */        0x00000031           /* 0      (FRAME) */,
-  /*  1086 */        WORD(SG_MAKE_INT(50)),
-  /*  1087 */        0x00000049           /* 2      (GREF_PUSH) */,
-  /*  1088 */        WORD(SG_UNDEF)  /* identifier#condition */,
-  /*  1089 */        0x00000031           /* 4      (FRAME) */,
-  /*  1090 */        WORD(SG_MAKE_INT(43)),
-  /*  1091 */        0x00000049           /* 6      (GREF_PUSH) */,
-  /*  1092 */        WORD(SG_UNDEF)  /* identifier#values */,
-  /*  1093 */        0x00000031           /* 8      (FRAME) */,
-  /*  1094 */        WORD(SG_MAKE_INT(36)),
-  /*  1095 */        0x00000031           /* 10     (FRAME) */,
-  /*  1096 */        WORD(SG_MAKE_INT(11)),
-  /*  1097 */        0x00000247           /* 12     (LREF_PUSH) */,
-  /*  1098 */        0x00000305           /* 13     (LREF) */,
-  /*  1099 */        0x00000040           /* 14     (PAIRP) */,
-  /*  1100 */        0x00000017           /* 15     (TEST) */,
-  /*  1101 */        WORD(SG_MAKE_INT(3)),
-  /*  1102 */        0x00000305           /* 17     (LREF) */,
-  /*  1103 */        0x00000038           /* 18     (CAR) */,
-  /*  1104 */        0x0000000B           /* 19     (PUSH) */,
-  /*  1105 */        0x0000024C           /* 20     (GREF_CALL) */,
-  /*  1106 */        WORD(SG_UNDEF)  /* identifier#make-syntax-violation */,
-  /*  1107 */        0x0000000B           /* 22     (PUSH) */,
-  /*  1108 */        0x00000031           /* 23     (FRAME) */,
-  /*  1109 */        WORD(SG_MAKE_INT(3)),
-  /*  1110 */        0x0000004C           /* 25     (GREF_CALL) */,
-  /*  1111 */        WORD(SG_UNDEF)  /* identifier#make-undefined-violation */,
-  /*  1112 */        0x0000000B           /* 27     (PUSH) */,
-  /*  1113 */        0x00000005           /* 28     (LREF) */,
-  /*  1114 */        0x00000017           /* 29     (TEST) */,
-  /*  1115 */        WORD(SG_MAKE_INT(6)),
-  /*  1116 */        0x00000031           /* 31     (FRAME) */,
-  /*  1117 */        WORD(SG_MAKE_INT(4)),
-  /*  1118 */        0x00000047           /* 33     (LREF_PUSH) */,
-  /*  1119 */        0x0000014C           /* 34     (GREF_CALL) */,
-  /*  1120 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
-  /*  1121 */        0x0000000B           /* 36     (PUSH) */,
-  /*  1122 */        0x00000031           /* 37     (FRAME) */,
-  /*  1123 */        WORD(SG_MAKE_INT(4)),
-  /*  1124 */        0x00000147           /* 39     (LREF_PUSH) */,
-  /*  1125 */        0x0000014C           /* 40     (GREF_CALL) */,
-  /*  1126 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
-  /*  1127 */        0x0000000B           /* 42     (PUSH) */,
-  /*  1128 */        0x0000044C           /* 43     (GREF_CALL) */,
-  /*  1129 */        WORD(SG_UNDEF)  /* identifier#list */,
-  /*  1130 */        0x0000000B           /* 45     (PUSH) */,
-  /*  1131 */        0x0000024C           /* 46     (GREF_CALL) */,
-  /*  1132 */        WORD(SG_UNDEF)  /* identifier#filter */,
-  /*  1133 */        0x0000000B           /* 48     (PUSH) */,
-  /*  1134 */        0x0000024C           /* 49     (GREF_CALL) */,
-  /*  1135 */        WORD(SG_UNDEF)  /* identifier#apply */,
-  /*  1136 */        0x0000000B           /* 51     (PUSH) */,
-  /*  1137 */        0x0000014D           /* 52     (GREF_TAIL_CALL) */,
-  /*  1138 */        WORD(SG_UNDEF)  /* identifier#raise */,
-  /*  1139 */        0x00000030           /* 54     (RET) */,
-  /*  1140 */        0x00000031           /* 0      (FRAME) */,
-  /*  1141 */        WORD(SG_MAKE_INT(50)),
-  /*  1142 */        0x00000049           /* 2      (GREF_PUSH) */,
-  /*  1143 */        WORD(SG_UNDEF)  /* identifier#condition */,
-  /*  1144 */        0x00000031           /* 4      (FRAME) */,
-  /*  1145 */        WORD(SG_MAKE_INT(43)),
-  /*  1146 */        0x00000049           /* 6      (GREF_PUSH) */,
-  /*  1147 */        WORD(SG_UNDEF)  /* identifier#values */,
-  /*  1148 */        0x00000031           /* 8      (FRAME) */,
-  /*  1149 */        WORD(SG_MAKE_INT(36)),
-  /*  1150 */        0x00000031           /* 10     (FRAME) */,
-  /*  1151 */        WORD(SG_MAKE_INT(11)),
-  /*  1152 */        0x00000247           /* 12     (LREF_PUSH) */,
-  /*  1153 */        0x00000305           /* 13     (LREF) */,
-  /*  1154 */        0x00000040           /* 14     (PAIRP) */,
-  /*  1155 */        0x00000017           /* 15     (TEST) */,
-  /*  1156 */        WORD(SG_MAKE_INT(3)),
-  /*  1157 */        0x00000305           /* 17     (LREF) */,
-  /*  1158 */        0x00000038           /* 18     (CAR) */,
-  /*  1159 */        0x0000000B           /* 19     (PUSH) */,
-  /*  1160 */        0x0000024C           /* 20     (GREF_CALL) */,
-  /*  1161 */        WORD(SG_UNDEF)  /* identifier#make-syntax-violation */,
-  /*  1162 */        0x0000000B           /* 22     (PUSH) */,
-  /*  1163 */        0x00000031           /* 23     (FRAME) */,
-  /*  1164 */        WORD(SG_MAKE_INT(3)),
-  /*  1165 */        0x0000004C           /* 25     (GREF_CALL) */,
-  /*  1166 */        WORD(SG_UNDEF)  /* identifier#make-assertion-violation */,
-  /*  1167 */        0x0000000B           /* 27     (PUSH) */,
-  /*  1168 */        0x00000005           /* 28     (LREF) */,
-  /*  1169 */        0x00000017           /* 29     (TEST) */,
-  /*  1170 */        WORD(SG_MAKE_INT(6)),
-  /*  1171 */        0x00000031           /* 31     (FRAME) */,
-  /*  1172 */        WORD(SG_MAKE_INT(4)),
-  /*  1173 */        0x00000047           /* 33     (LREF_PUSH) */,
-  /*  1174 */        0x0000014C           /* 34     (GREF_CALL) */,
-  /*  1175 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
-  /*  1176 */        0x0000000B           /* 36     (PUSH) */,
-  /*  1177 */        0x00000031           /* 37     (FRAME) */,
-  /*  1178 */        WORD(SG_MAKE_INT(4)),
-  /*  1179 */        0x00000147           /* 39     (LREF_PUSH) */,
-  /*  1180 */        0x0000014C           /* 40     (GREF_CALL) */,
-  /*  1181 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
-  /*  1182 */        0x0000000B           /* 42     (PUSH) */,
-  /*  1183 */        0x0000044C           /* 43     (GREF_CALL) */,
-  /*  1184 */        WORD(SG_UNDEF)  /* identifier#list */,
-  /*  1185 */        0x0000000B           /* 45     (PUSH) */,
-  /*  1186 */        0x0000024C           /* 46     (GREF_CALL) */,
-  /*  1187 */        WORD(SG_UNDEF)  /* identifier#filter */,
-  /*  1188 */        0x0000000B           /* 48     (PUSH) */,
-  /*  1189 */        0x0000024C           /* 49     (GREF_CALL) */,
-  /*  1190 */        WORD(SG_UNDEF)  /* identifier#apply */,
-  /*  1191 */        0x0000000B           /* 51     (PUSH) */,
-  /*  1192 */        0x0000014D           /* 52     (GREF_TAIL_CALL) */,
-  /*  1193 */        WORD(SG_UNDEF)  /* identifier#raise */,
-  /*  1194 */        0x00000030           /* 54     (RET) */,
-  /*  1195 */        0x00000031           /* 0      (FRAME) */,
-  /*  1196 */        WORD(SG_MAKE_INT(48)),
-  /*  1197 */        0x00000049           /* 2      (GREF_PUSH) */,
-  /*  1198 */        WORD(SG_UNDEF)  /* identifier#condition */,
-  /*  1199 */        0x00000031           /* 4      (FRAME) */,
-  /*  1200 */        WORD(SG_MAKE_INT(41)),
-  /*  1201 */        0x00000049           /* 6      (GREF_PUSH) */,
-  /*  1202 */        WORD(SG_UNDEF)  /* identifier#values */,
-  /*  1203 */        0x00000031           /* 8      (FRAME) */,
-  /*  1204 */        WORD(SG_MAKE_INT(34)),
-  /*  1205 */        0x00000031           /* 10     (FRAME) */,
-  /*  1206 */        WORD(SG_MAKE_INT(4)),
-  /*  1207 */        0x00000247           /* 12     (LREF_PUSH) */,
-  /*  1208 */        0x0000014C           /* 13     (GREF_CALL) */,
-  /*  1209 */        WORD(SG_UNDEF)  /* identifier#make-i/o-filename-error */,
-  /*  1210 */        0x0000000B           /* 15     (PUSH) */,
-  /*  1211 */        0x00000005           /* 16     (LREF) */,
-  /*  1212 */        0x00000017           /* 17     (TEST) */,
-  /*  1213 */        WORD(SG_MAKE_INT(6)),
-  /*  1214 */        0x00000031           /* 19     (FRAME) */,
-  /*  1215 */        WORD(SG_MAKE_INT(4)),
-  /*  1216 */        0x00000047           /* 21     (LREF_PUSH) */,
-  /*  1217 */        0x0000014C           /* 22     (GREF_CALL) */,
-  /*  1218 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
-  /*  1219 */        0x0000000B           /* 24     (PUSH) */,
-  /*  1220 */        0x00000031           /* 25     (FRAME) */,
-  /*  1221 */        WORD(SG_MAKE_INT(4)),
-  /*  1222 */        0x00000147           /* 27     (LREF_PUSH) */,
-  /*  1223 */        0x0000014C           /* 28     (GREF_CALL) */,
-  /*  1224 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
-  /*  1225 */        0x0000000B           /* 30     (PUSH) */,
-  /*  1226 */        0x00000305           /* 31     (LREF) */,
-  /*  1227 */        0x00000040           /* 32     (PAIRP) */,
-  /*  1228 */        0x00000017           /* 33     (TEST) */,
-  /*  1229 */        WORD(SG_MAKE_INT(6)),
-  /*  1230 */        0x00000031           /* 35     (FRAME) */,
-  /*  1231 */        WORD(SG_MAKE_INT(4)),
-  /*  1232 */        0x00000347           /* 37     (LREF_PUSH) */,
-  /*  1233 */        0x0000014C           /* 38     (GREF_CALL) */,
-  /*  1234 */        WORD(SG_UNDEF)  /* identifier#make-irritants-condition */,
-  /*  1235 */        0x0000000B           /* 40     (PUSH) */,
-  /*  1236 */        0x0000044C           /* 41     (GREF_CALL) */,
-  /*  1237 */        WORD(SG_UNDEF)  /* identifier#list */,
-  /*  1238 */        0x0000000B           /* 43     (PUSH) */,
-  /*  1239 */        0x0000024C           /* 44     (GREF_CALL) */,
-  /*  1240 */        WORD(SG_UNDEF)  /* identifier#filter */,
-  /*  1241 */        0x0000000B           /* 46     (PUSH) */,
-  /*  1242 */        0x0000024C           /* 47     (GREF_CALL) */,
-  /*  1243 */        WORD(SG_UNDEF)  /* identifier#apply */,
-  /*  1244 */        0x0000000B           /* 49     (PUSH) */,
-  /*  1245 */        0x0000014D           /* 50     (GREF_TAIL_CALL) */,
-  /*  1246 */        WORD(SG_UNDEF)  /* identifier#raise */,
-  /*  1247 */        0x00000030           /* 52     (RET) */,
-  /*  1248 */        0x00000031           /* 0      (FRAME) */,
-  /*  1249 */        WORD(SG_MAKE_INT(47)),
-  /*  1250 */        0x00000049           /* 2      (GREF_PUSH) */,
-  /*  1251 */        WORD(SG_UNDEF)  /* identifier#condition */,
-  /*  1252 */        0x00000031           /* 4      (FRAME) */,
-  /*  1253 */        WORD(SG_MAKE_INT(40)),
-  /*  1254 */        0x00000049           /* 6      (GREF_PUSH) */,
-  /*  1255 */        WORD(SG_UNDEF)  /* identifier#values */,
-  /*  1256 */        0x00000031           /* 8      (FRAME) */,
-  /*  1257 */        WORD(SG_MAKE_INT(33)),
-  /*  1258 */        0x00000031           /* 10     (FRAME) */,
-  /*  1259 */        WORD(SG_MAKE_INT(3)),
-  /*  1260 */        0x0000004C           /* 12     (GREF_CALL) */,
-  /*  1261 */        WORD(SG_UNDEF)  /* identifier#make-i/o-error */,
-  /*  1262 */        0x0000000B           /* 14     (PUSH) */,
-  /*  1263 */        0x00000005           /* 15     (LREF) */,
-  /*  1264 */        0x00000017           /* 16     (TEST) */,
-  /*  1265 */        WORD(SG_MAKE_INT(6)),
-  /*  1266 */        0x00000031           /* 18     (FRAME) */,
-  /*  1267 */        WORD(SG_MAKE_INT(4)),
-  /*  1268 */        0x00000047           /* 20     (LREF_PUSH) */,
-  /*  1269 */        0x0000014C           /* 21     (GREF_CALL) */,
-  /*  1270 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
-  /*  1271 */        0x0000000B           /* 23     (PUSH) */,
-  /*  1272 */        0x00000031           /* 24     (FRAME) */,
+  /*   780 */        0x00000105           /* 28     (LREF) */,
+  /*   781 */        0x00000038           /* 29     (CAR) */,
+  /*   782 */        0x0000000B           /* 30     (PUSH) */,
+  /*   783 */        0x0000014C           /* 31     (GREF_CALL) */,
+  /*   784 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
+  /*   785 */        0x0000033B           /* 33     (LIST) */,
+  /*   786 */        0x0000000B           /* 34     (PUSH) */,
+  /*   787 */        0x0000024C           /* 35     (GREF_CALL) */,
+  /*   788 */        WORD(SG_UNDEF)  /* identifier#filter */,
+  /*   789 */        0x0000000B           /* 37     (PUSH) */,
+  /*   790 */        0x0000024C           /* 38     (GREF_CALL) */,
+  /*   791 */        WORD(SG_UNDEF)  /* identifier#apply */,
+  /*   792 */        0x0000000B           /* 40     (PUSH) */,
+  /*   793 */        0x0000014D           /* 41     (GREF_TAIL_CALL) */,
+  /*   794 */        WORD(SG_UNDEF)  /* identifier#raise */,
+  /*   795 */        0x00000030           /* 43     (RET) */,
+  /*   796 */        0x00000031           /* 0      (FRAME) */,
+  /*   797 */        WORD(SG_MAKE_INT(39)),
+  /*   798 */        0x00000049           /* 2      (GREF_PUSH) */,
+  /*   799 */        WORD(SG_UNDEF)  /* identifier#condition */,
+  /*   800 */        0x00000031           /* 4      (FRAME) */,
+  /*   801 */        WORD(SG_MAKE_INT(32)),
+  /*   802 */        0x00000049           /* 6      (GREF_PUSH) */,
+  /*   803 */        WORD(SG_UNDEF)  /* identifier#values */,
+  /*   804 */        0x00000031           /* 8      (FRAME) */,
+  /*   805 */        WORD(SG_MAKE_INT(3)),
+  /*   806 */        0x0000004C           /* 10     (GREF_CALL) */,
+  /*   807 */        WORD(SG_UNDEF)  /* identifier#make-lexical-violation */,
+  /*   808 */        0x0000000B           /* 12     (PUSH) */,
+  /*   809 */        0x00000005           /* 13     (LREF) */,
+  /*   810 */        0x00000017           /* 14     (TEST) */,
+  /*   811 */        WORD(SG_MAKE_INT(6)),
+  /*   812 */        0x00000031           /* 16     (FRAME) */,
+  /*   813 */        WORD(SG_MAKE_INT(4)),
+  /*   814 */        0x00000047           /* 18     (LREF_PUSH) */,
+  /*   815 */        0x0000014C           /* 19     (GREF_CALL) */,
+  /*   816 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
+  /*   817 */        0x0000000B           /* 21     (PUSH) */,
+  /*   818 */        0x00000105           /* 22     (LREF) */,
+  /*   819 */        0x00000040           /* 23     (PAIRP) */,
+  /*   820 */        0x00000017           /* 24     (TEST) */,
+  /*   821 */        WORD(SG_MAKE_INT(8)),
+  /*   822 */        0x00000031           /* 26     (FRAME) */,
+  /*   823 */        WORD(SG_MAKE_INT(6)),
+  /*   824 */        0x00000105           /* 28     (LREF) */,
+  /*   825 */        0x00000038           /* 29     (CAR) */,
+  /*   826 */        0x0000000B           /* 30     (PUSH) */,
+  /*   827 */        0x0000014C           /* 31     (GREF_CALL) */,
+  /*   828 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
+  /*   829 */        0x0000033B           /* 33     (LIST) */,
+  /*   830 */        0x0000000B           /* 34     (PUSH) */,
+  /*   831 */        0x0000024C           /* 35     (GREF_CALL) */,
+  /*   832 */        WORD(SG_UNDEF)  /* identifier#filter */,
+  /*   833 */        0x0000000B           /* 37     (PUSH) */,
+  /*   834 */        0x0000024C           /* 38     (GREF_CALL) */,
+  /*   835 */        WORD(SG_UNDEF)  /* identifier#apply */,
+  /*   836 */        0x0000000B           /* 40     (PUSH) */,
+  /*   837 */        0x0000014D           /* 41     (GREF_TAIL_CALL) */,
+  /*   838 */        WORD(SG_UNDEF)  /* identifier#raise */,
+  /*   839 */        0x00000030           /* 43     (RET) */,
+  /*   840 */        0x00000031           /* 0      (FRAME) */,
+  /*   841 */        WORD(SG_MAKE_INT(118)),
+  /*   842 */        0x00000049           /* 2      (GREF_PUSH) */,
+  /*   843 */        WORD(SG_UNDEF)  /* identifier#condition */,
+  /*   844 */        0x00000031           /* 4      (FRAME) */,
+  /*   845 */        WORD(SG_MAKE_INT(111)),
+  /*   846 */        0x00000049           /* 6      (GREF_PUSH) */,
+  /*   847 */        WORD(SG_UNDEF)  /* identifier#values */,
+  /*   848 */        0x00000031           /* 8      (FRAME) */,
+  /*   849 */        WORD(SG_MAKE_INT(11)),
+  /*   850 */        0x00000247           /* 10     (LREF_PUSH) */,
+  /*   851 */        0x00000305           /* 11     (LREF) */,
+  /*   852 */        0x00000040           /* 12     (PAIRP) */,
+  /*   853 */        0x00000017           /* 13     (TEST) */,
+  /*   854 */        WORD(SG_MAKE_INT(3)),
+  /*   855 */        0x00000305           /* 15     (LREF) */,
+  /*   856 */        0x00000038           /* 16     (CAR) */,
+  /*   857 */        0x0000000B           /* 17     (PUSH) */,
+  /*   858 */        0x0000024C           /* 18     (GREF_CALL) */,
+  /*   859 */        WORD(SG_UNDEF)  /* identifier#make-syntax-violation */,
+  /*   860 */        0x0000000B           /* 20     (PUSH) */,
+  /*   861 */        0x00000005           /* 21     (LREF) */,
+  /*   862 */        0x00000017           /* 22     (TEST) */,
+  /*   863 */        WORD(SG_MAKE_INT(8)),
+  /*   864 */        0x00000031           /* 24     (FRAME) */,
+  /*   865 */        WORD(SG_MAKE_INT(4)),
+  /*   866 */        0x00000047           /* 26     (LREF_PUSH) */,
+  /*   867 */        0x0000014C           /* 27     (GREF_CALL) */,
+  /*   868 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
+  /*   869 */        0x00000018           /* 29     (JUMP) */,
+  /*   870 */        WORD(SG_MAKE_INT(76)),
+  /*   871 */        0x00000132           /* 31     (LET_FRAME) */,
+  /*   872 */        0x00000132           /* 32     (LET_FRAME) */,
+  /*   873 */        0x00000031           /* 33     (FRAME) */,
+  /*   874 */        WORD(SG_MAKE_INT(4)),
+  /*   875 */        0x00000247           /* 35     (LREF_PUSH) */,
+  /*   876 */        0x0000014C           /* 36     (GREF_CALL) */,
+  /*   877 */        WORD(SG_UNDEF)  /* identifier#wrapped-syntax-object? */,
+  /*   878 */        0x00000017           /* 38     (TEST) */,
+  /*   879 */        WORD(SG_MAKE_INT(8)),
+  /*   880 */        0x00000031           /* 40     (FRAME) */,
+  /*   881 */        WORD(SG_MAKE_INT(4)),
+  /*   882 */        0x00000247           /* 42     (LREF_PUSH) */,
+  /*   883 */        0x0000014C           /* 43     (GREF_CALL) */,
+  /*   884 */        WORD(SG_UNDEF)  /* identifier#unwrap-syntax */,
+  /*   885 */        0x00000018           /* 45     (JUMP) */,
+  /*   886 */        WORD(SG_MAKE_INT(2)),
+  /*   887 */        0x00000205           /* 47     (LREF) */,
+  /*   888 */        0x0000000B           /* 48     (PUSH) */,
+  /*   889 */        0x00000135           /* 49     (ENTER) */,
+  /*   890 */        0x00000031           /* 50     (FRAME) */,
+  /*   891 */        WORD(SG_MAKE_INT(4)),
+  /*   892 */        0x00000047           /* 52     (LREF_PUSH) */,
+  /*   893 */        0x0000014C           /* 53     (GREF_CALL) */,
+  /*   894 */        WORD(SG_UNDEF)  /* identifier#identifier? */,
+  /*   895 */        0x00000017           /* 55     (TEST) */,
+  /*   896 */        WORD(SG_MAKE_INT(13)),
+  /*   897 */        0x00000031           /* 57     (FRAME) */,
+  /*   898 */        WORD(SG_MAKE_INT(9)),
+  /*   899 */        0x00000031           /* 59     (FRAME) */,
+  /*   900 */        WORD(SG_MAKE_INT(4)),
+  /*   901 */        0x00000047           /* 61     (LREF_PUSH) */,
+  /*   902 */        0x0000014C           /* 62     (GREF_CALL) */,
+  /*   903 */        WORD(SG_UNDEF)  /* identifier#syntax-object-expr */,
+  /*   904 */        0x0000000B           /* 64     (PUSH) */,
+  /*   905 */        0x0000014C           /* 65     (GREF_CALL) */,
+  /*   906 */        WORD(SG_UNDEF)  /* identifier#original-id */,
+  /*   907 */        0x00000018           /* 67     (JUMP) */,
+  /*   908 */        WORD(SG_MAKE_INT(26)),
+  /*   909 */        0x00000005           /* 69     (LREF) */,
+  /*   910 */        0x00000040           /* 70     (PAIRP) */,
+  /*   911 */        0x00000017           /* 71     (TEST) */,
+  /*   912 */        WORD(SG_MAKE_INT(22)),
+  /*   913 */        0x00000031           /* 73     (FRAME) */,
+  /*   914 */        WORD(SG_MAKE_INT(6)),
+  /*   915 */        0x00000005           /* 75     (LREF) */,
+  /*   916 */        0x00000038           /* 76     (CAR) */,
+  /*   917 */        0x0000000B           /* 77     (PUSH) */,
+  /*   918 */        0x0000014C           /* 78     (GREF_CALL) */,
+  /*   919 */        WORD(SG_UNDEF)  /* identifier#identifier? */,
+  /*   920 */        0x00000017           /* 80     (TEST) */,
+  /*   921 */        WORD(SG_MAKE_INT(13)),
+  /*   922 */        0x00000031           /* 82     (FRAME) */,
+  /*   923 */        WORD(SG_MAKE_INT(11)),
+  /*   924 */        0x00000031           /* 84     (FRAME) */,
+  /*   925 */        WORD(SG_MAKE_INT(6)),
+  /*   926 */        0x00000005           /* 86     (LREF) */,
+  /*   927 */        0x00000038           /* 87     (CAR) */,
+  /*   928 */        0x0000000B           /* 88     (PUSH) */,
+  /*   929 */        0x0000014C           /* 89     (GREF_CALL) */,
+  /*   930 */        WORD(SG_UNDEF)  /* identifier#syntax-object-expr */,
+  /*   931 */        0x0000000B           /* 91     (PUSH) */,
+  /*   932 */        0x0000014C           /* 92     (GREF_CALL) */,
+  /*   933 */        WORD(SG_UNDEF)  /* identifier#original-id */,
+  /*   934 */        0x00000036           /* 94     (LEAVE) */,
+  /*   935 */        0x0000000B           /* 95     (PUSH) */,
+  /*   936 */        0x00000135           /* 96     (ENTER) */,
+  /*   937 */        0x00000005           /* 97     (LREF) */,
+  /*   938 */        0x00000017           /* 98     (TEST) */,
+  /*   939 */        WORD(SG_MAKE_INT(6)),
+  /*   940 */        0x00000031           /* 100    (FRAME) */,
+  /*   941 */        WORD(SG_MAKE_INT(4)),
+  /*   942 */        0x00000047           /* 102    (LREF_PUSH) */,
+  /*   943 */        0x0000014C           /* 103    (GREF_CALL) */,
+  /*   944 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
+  /*   945 */        0x00000036           /* 105    (LEAVE) */,
+  /*   946 */        0x0000000B           /* 106    (PUSH) */,
+  /*   947 */        0x00000031           /* 107    (FRAME) */,
+  /*   948 */        WORD(SG_MAKE_INT(4)),
+  /*   949 */        0x00000147           /* 109    (LREF_PUSH) */,
+  /*   950 */        0x0000014C           /* 110    (GREF_CALL) */,
+  /*   951 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
+  /*   952 */        0x0000033B           /* 112    (LIST) */,
+  /*   953 */        0x0000000B           /* 113    (PUSH) */,
+  /*   954 */        0x0000024C           /* 114    (GREF_CALL) */,
+  /*   955 */        WORD(SG_UNDEF)  /* identifier#filter */,
+  /*   956 */        0x0000000B           /* 116    (PUSH) */,
+  /*   957 */        0x0000024C           /* 117    (GREF_CALL) */,
+  /*   958 */        WORD(SG_UNDEF)  /* identifier#apply */,
+  /*   959 */        0x0000000B           /* 119    (PUSH) */,
+  /*   960 */        0x0000014D           /* 120    (GREF_TAIL_CALL) */,
+  /*   961 */        WORD(SG_UNDEF)  /* identifier#raise */,
+  /*   962 */        0x00000030           /* 122    (RET) */,
+  /*   963 */        0x00000031           /* 0      (FRAME) */,
+  /*   964 */        WORD(SG_MAKE_INT(39)),
+  /*   965 */        0x00000049           /* 2      (GREF_PUSH) */,
+  /*   966 */        WORD(SG_UNDEF)  /* identifier#condition */,
+  /*   967 */        0x00000031           /* 4      (FRAME) */,
+  /*   968 */        WORD(SG_MAKE_INT(32)),
+  /*   969 */        0x00000049           /* 6      (GREF_PUSH) */,
+  /*   970 */        WORD(SG_UNDEF)  /* identifier#values */,
+  /*   971 */        0x00000031           /* 8      (FRAME) */,
+  /*   972 */        WORD(SG_MAKE_INT(3)),
+  /*   973 */        0x0000004C           /* 10     (GREF_CALL) */,
+  /*   974 */        WORD(SG_UNDEF)  /* identifier#make-error */,
+  /*   975 */        0x0000000B           /* 12     (PUSH) */,
+  /*   976 */        0x00000005           /* 13     (LREF) */,
+  /*   977 */        0x00000017           /* 14     (TEST) */,
+  /*   978 */        WORD(SG_MAKE_INT(6)),
+  /*   979 */        0x00000031           /* 16     (FRAME) */,
+  /*   980 */        WORD(SG_MAKE_INT(4)),
+  /*   981 */        0x00000047           /* 18     (LREF_PUSH) */,
+  /*   982 */        0x0000014C           /* 19     (GREF_CALL) */,
+  /*   983 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
+  /*   984 */        0x0000000B           /* 21     (PUSH) */,
+  /*   985 */        0x00000031           /* 22     (FRAME) */,
+  /*   986 */        WORD(SG_MAKE_INT(4)),
+  /*   987 */        0x00000147           /* 24     (LREF_PUSH) */,
+  /*   988 */        0x0000014C           /* 25     (GREF_CALL) */,
+  /*   989 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
+  /*   990 */        0x0000000B           /* 27     (PUSH) */,
+  /*   991 */        0x00000031           /* 28     (FRAME) */,
+  /*   992 */        WORD(SG_MAKE_INT(4)),
+  /*   993 */        0x00000247           /* 30     (LREF_PUSH) */,
+  /*   994 */        0x0000014C           /* 31     (GREF_CALL) */,
+  /*   995 */        WORD(SG_UNDEF)  /* identifier#make-irritants-condition */,
+  /*   996 */        0x0000043B           /* 33     (LIST) */,
+  /*   997 */        0x0000000B           /* 34     (PUSH) */,
+  /*   998 */        0x0000024C           /* 35     (GREF_CALL) */,
+  /*   999 */        WORD(SG_UNDEF)  /* identifier#filter */,
+  /*  1000 */        0x0000000B           /* 37     (PUSH) */,
+  /*  1001 */        0x0000024C           /* 38     (GREF_CALL) */,
+  /*  1002 */        WORD(SG_UNDEF)  /* identifier#apply */,
+  /*  1003 */        0x0000000B           /* 40     (PUSH) */,
+  /*  1004 */        0x0000014D           /* 41     (GREF_TAIL_CALL) */,
+  /*  1005 */        WORD(SG_UNDEF)  /* identifier#raise */,
+  /*  1006 */        0x00000030           /* 43     (RET) */,
+  /*  1007 */        0x00000031           /* 0      (FRAME) */,
+  /*  1008 */        WORD(SG_MAKE_INT(43)),
+  /*  1009 */        0x00000049           /* 2      (GREF_PUSH) */,
+  /*  1010 */        WORD(SG_UNDEF)  /* identifier#condition */,
+  /*  1011 */        0x00000031           /* 4      (FRAME) */,
+  /*  1012 */        WORD(SG_MAKE_INT(36)),
+  /*  1013 */        0x00000049           /* 6      (GREF_PUSH) */,
+  /*  1014 */        WORD(SG_UNDEF)  /* identifier#values */,
+  /*  1015 */        0x00000031           /* 8      (FRAME) */,
+  /*  1016 */        WORD(SG_MAKE_INT(3)),
+  /*  1017 */        0x0000004C           /* 10     (GREF_CALL) */,
+  /*  1018 */        WORD(SG_UNDEF)  /* identifier#make-implementation-restriction-violation */,
+  /*  1019 */        0x0000000B           /* 12     (PUSH) */,
+  /*  1020 */        0x00000005           /* 13     (LREF) */,
+  /*  1021 */        0x00000017           /* 14     (TEST) */,
+  /*  1022 */        WORD(SG_MAKE_INT(6)),
+  /*  1023 */        0x00000031           /* 16     (FRAME) */,
+  /*  1024 */        WORD(SG_MAKE_INT(4)),
+  /*  1025 */        0x00000047           /* 18     (LREF_PUSH) */,
+  /*  1026 */        0x0000014C           /* 19     (GREF_CALL) */,
+  /*  1027 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
+  /*  1028 */        0x0000000B           /* 21     (PUSH) */,
+  /*  1029 */        0x00000031           /* 22     (FRAME) */,
+  /*  1030 */        WORD(SG_MAKE_INT(4)),
+  /*  1031 */        0x00000147           /* 24     (LREF_PUSH) */,
+  /*  1032 */        0x0000014C           /* 25     (GREF_CALL) */,
+  /*  1033 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
+  /*  1034 */        0x0000000B           /* 27     (PUSH) */,
+  /*  1035 */        0x00000205           /* 28     (LREF) */,
+  /*  1036 */        0x00000040           /* 29     (PAIRP) */,
+  /*  1037 */        0x00000017           /* 30     (TEST) */,
+  /*  1038 */        WORD(SG_MAKE_INT(6)),
+  /*  1039 */        0x00000031           /* 32     (FRAME) */,
+  /*  1040 */        WORD(SG_MAKE_INT(4)),
+  /*  1041 */        0x00000247           /* 34     (LREF_PUSH) */,
+  /*  1042 */        0x0000014C           /* 35     (GREF_CALL) */,
+  /*  1043 */        WORD(SG_UNDEF)  /* identifier#make-irritants-condition */,
+  /*  1044 */        0x0000043B           /* 37     (LIST) */,
+  /*  1045 */        0x0000000B           /* 38     (PUSH) */,
+  /*  1046 */        0x0000024C           /* 39     (GREF_CALL) */,
+  /*  1047 */        WORD(SG_UNDEF)  /* identifier#filter */,
+  /*  1048 */        0x0000000B           /* 41     (PUSH) */,
+  /*  1049 */        0x0000024C           /* 42     (GREF_CALL) */,
+  /*  1050 */        WORD(SG_UNDEF)  /* identifier#apply */,
+  /*  1051 */        0x0000000B           /* 44     (PUSH) */,
+  /*  1052 */        0x0000014D           /* 45     (GREF_TAIL_CALL) */,
+  /*  1053 */        WORD(SG_UNDEF)  /* identifier#raise */,
+  /*  1054 */        0x00000030           /* 47     (RET) */,
+  /*  1055 */        0x00000031           /* 0      (FRAME) */,
+  /*  1056 */        WORD(SG_MAKE_INT(46)),
+  /*  1057 */        0x00000049           /* 2      (GREF_PUSH) */,
+  /*  1058 */        WORD(SG_UNDEF)  /* identifier#condition */,
+  /*  1059 */        0x00000031           /* 4      (FRAME) */,
+  /*  1060 */        WORD(SG_MAKE_INT(39)),
+  /*  1061 */        0x00000049           /* 6      (GREF_PUSH) */,
+  /*  1062 */        WORD(SG_UNDEF)  /* identifier#values */,
+  /*  1063 */        0x00000031           /* 8      (FRAME) */,
+  /*  1064 */        WORD(SG_MAKE_INT(11)),
+  /*  1065 */        0x00000247           /* 10     (LREF_PUSH) */,
+  /*  1066 */        0x00000305           /* 11     (LREF) */,
+  /*  1067 */        0x00000040           /* 12     (PAIRP) */,
+  /*  1068 */        0x00000017           /* 13     (TEST) */,
+  /*  1069 */        WORD(SG_MAKE_INT(3)),
+  /*  1070 */        0x00000305           /* 15     (LREF) */,
+  /*  1071 */        0x00000038           /* 16     (CAR) */,
+  /*  1072 */        0x0000000B           /* 17     (PUSH) */,
+  /*  1073 */        0x0000024C           /* 18     (GREF_CALL) */,
+  /*  1074 */        WORD(SG_UNDEF)  /* identifier#make-syntax-violation */,
+  /*  1075 */        0x0000000B           /* 20     (PUSH) */,
+  /*  1076 */        0x00000031           /* 21     (FRAME) */,
+  /*  1077 */        WORD(SG_MAKE_INT(3)),
+  /*  1078 */        0x0000004C           /* 23     (GREF_CALL) */,
+  /*  1079 */        WORD(SG_UNDEF)  /* identifier#make-undefined-violation */,
+  /*  1080 */        0x0000000B           /* 25     (PUSH) */,
+  /*  1081 */        0x00000005           /* 26     (LREF) */,
+  /*  1082 */        0x00000017           /* 27     (TEST) */,
+  /*  1083 */        WORD(SG_MAKE_INT(6)),
+  /*  1084 */        0x00000031           /* 29     (FRAME) */,
+  /*  1085 */        WORD(SG_MAKE_INT(4)),
+  /*  1086 */        0x00000047           /* 31     (LREF_PUSH) */,
+  /*  1087 */        0x0000014C           /* 32     (GREF_CALL) */,
+  /*  1088 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
+  /*  1089 */        0x0000000B           /* 34     (PUSH) */,
+  /*  1090 */        0x00000031           /* 35     (FRAME) */,
+  /*  1091 */        WORD(SG_MAKE_INT(4)),
+  /*  1092 */        0x00000147           /* 37     (LREF_PUSH) */,
+  /*  1093 */        0x0000014C           /* 38     (GREF_CALL) */,
+  /*  1094 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
+  /*  1095 */        0x0000043B           /* 40     (LIST) */,
+  /*  1096 */        0x0000000B           /* 41     (PUSH) */,
+  /*  1097 */        0x0000024C           /* 42     (GREF_CALL) */,
+  /*  1098 */        WORD(SG_UNDEF)  /* identifier#filter */,
+  /*  1099 */        0x0000000B           /* 44     (PUSH) */,
+  /*  1100 */        0x0000024C           /* 45     (GREF_CALL) */,
+  /*  1101 */        WORD(SG_UNDEF)  /* identifier#apply */,
+  /*  1102 */        0x0000000B           /* 47     (PUSH) */,
+  /*  1103 */        0x0000014D           /* 48     (GREF_TAIL_CALL) */,
+  /*  1104 */        WORD(SG_UNDEF)  /* identifier#raise */,
+  /*  1105 */        0x00000030           /* 50     (RET) */,
+  /*  1106 */        0x00000031           /* 0      (FRAME) */,
+  /*  1107 */        WORD(SG_MAKE_INT(46)),
+  /*  1108 */        0x00000049           /* 2      (GREF_PUSH) */,
+  /*  1109 */        WORD(SG_UNDEF)  /* identifier#condition */,
+  /*  1110 */        0x00000031           /* 4      (FRAME) */,
+  /*  1111 */        WORD(SG_MAKE_INT(39)),
+  /*  1112 */        0x00000049           /* 6      (GREF_PUSH) */,
+  /*  1113 */        WORD(SG_UNDEF)  /* identifier#values */,
+  /*  1114 */        0x00000031           /* 8      (FRAME) */,
+  /*  1115 */        WORD(SG_MAKE_INT(11)),
+  /*  1116 */        0x00000247           /* 10     (LREF_PUSH) */,
+  /*  1117 */        0x00000305           /* 11     (LREF) */,
+  /*  1118 */        0x00000040           /* 12     (PAIRP) */,
+  /*  1119 */        0x00000017           /* 13     (TEST) */,
+  /*  1120 */        WORD(SG_MAKE_INT(3)),
+  /*  1121 */        0x00000305           /* 15     (LREF) */,
+  /*  1122 */        0x00000038           /* 16     (CAR) */,
+  /*  1123 */        0x0000000B           /* 17     (PUSH) */,
+  /*  1124 */        0x0000024C           /* 18     (GREF_CALL) */,
+  /*  1125 */        WORD(SG_UNDEF)  /* identifier#make-syntax-violation */,
+  /*  1126 */        0x0000000B           /* 20     (PUSH) */,
+  /*  1127 */        0x00000031           /* 21     (FRAME) */,
+  /*  1128 */        WORD(SG_MAKE_INT(3)),
+  /*  1129 */        0x0000004C           /* 23     (GREF_CALL) */,
+  /*  1130 */        WORD(SG_UNDEF)  /* identifier#make-assertion-violation */,
+  /*  1131 */        0x0000000B           /* 25     (PUSH) */,
+  /*  1132 */        0x00000005           /* 26     (LREF) */,
+  /*  1133 */        0x00000017           /* 27     (TEST) */,
+  /*  1134 */        WORD(SG_MAKE_INT(6)),
+  /*  1135 */        0x00000031           /* 29     (FRAME) */,
+  /*  1136 */        WORD(SG_MAKE_INT(4)),
+  /*  1137 */        0x00000047           /* 31     (LREF_PUSH) */,
+  /*  1138 */        0x0000014C           /* 32     (GREF_CALL) */,
+  /*  1139 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
+  /*  1140 */        0x0000000B           /* 34     (PUSH) */,
+  /*  1141 */        0x00000031           /* 35     (FRAME) */,
+  /*  1142 */        WORD(SG_MAKE_INT(4)),
+  /*  1143 */        0x00000147           /* 37     (LREF_PUSH) */,
+  /*  1144 */        0x0000014C           /* 38     (GREF_CALL) */,
+  /*  1145 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
+  /*  1146 */        0x0000043B           /* 40     (LIST) */,
+  /*  1147 */        0x0000000B           /* 41     (PUSH) */,
+  /*  1148 */        0x0000024C           /* 42     (GREF_CALL) */,
+  /*  1149 */        WORD(SG_UNDEF)  /* identifier#filter */,
+  /*  1150 */        0x0000000B           /* 44     (PUSH) */,
+  /*  1151 */        0x0000024C           /* 45     (GREF_CALL) */,
+  /*  1152 */        WORD(SG_UNDEF)  /* identifier#apply */,
+  /*  1153 */        0x0000000B           /* 47     (PUSH) */,
+  /*  1154 */        0x0000014D           /* 48     (GREF_TAIL_CALL) */,
+  /*  1155 */        WORD(SG_UNDEF)  /* identifier#raise */,
+  /*  1156 */        0x00000030           /* 50     (RET) */,
+  /*  1157 */        0x00000031           /* 0      (FRAME) */,
+  /*  1158 */        WORD(SG_MAKE_INT(44)),
+  /*  1159 */        0x00000049           /* 2      (GREF_PUSH) */,
+  /*  1160 */        WORD(SG_UNDEF)  /* identifier#condition */,
+  /*  1161 */        0x00000031           /* 4      (FRAME) */,
+  /*  1162 */        WORD(SG_MAKE_INT(37)),
+  /*  1163 */        0x00000049           /* 6      (GREF_PUSH) */,
+  /*  1164 */        WORD(SG_UNDEF)  /* identifier#values */,
+  /*  1165 */        0x00000031           /* 8      (FRAME) */,
+  /*  1166 */        WORD(SG_MAKE_INT(4)),
+  /*  1167 */        0x00000247           /* 10     (LREF_PUSH) */,
+  /*  1168 */        0x0000014C           /* 11     (GREF_CALL) */,
+  /*  1169 */        WORD(SG_UNDEF)  /* identifier#make-i/o-filename-error */,
+  /*  1170 */        0x0000000B           /* 13     (PUSH) */,
+  /*  1171 */        0x00000005           /* 14     (LREF) */,
+  /*  1172 */        0x00000017           /* 15     (TEST) */,
+  /*  1173 */        WORD(SG_MAKE_INT(6)),
+  /*  1174 */        0x00000031           /* 17     (FRAME) */,
+  /*  1175 */        WORD(SG_MAKE_INT(4)),
+  /*  1176 */        0x00000047           /* 19     (LREF_PUSH) */,
+  /*  1177 */        0x0000014C           /* 20     (GREF_CALL) */,
+  /*  1178 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
+  /*  1179 */        0x0000000B           /* 22     (PUSH) */,
+  /*  1180 */        0x00000031           /* 23     (FRAME) */,
+  /*  1181 */        WORD(SG_MAKE_INT(4)),
+  /*  1182 */        0x00000147           /* 25     (LREF_PUSH) */,
+  /*  1183 */        0x0000014C           /* 26     (GREF_CALL) */,
+  /*  1184 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
+  /*  1185 */        0x0000000B           /* 28     (PUSH) */,
+  /*  1186 */        0x00000305           /* 29     (LREF) */,
+  /*  1187 */        0x00000040           /* 30     (PAIRP) */,
+  /*  1188 */        0x00000017           /* 31     (TEST) */,
+  /*  1189 */        WORD(SG_MAKE_INT(6)),
+  /*  1190 */        0x00000031           /* 33     (FRAME) */,
+  /*  1191 */        WORD(SG_MAKE_INT(4)),
+  /*  1192 */        0x00000347           /* 35     (LREF_PUSH) */,
+  /*  1193 */        0x0000014C           /* 36     (GREF_CALL) */,
+  /*  1194 */        WORD(SG_UNDEF)  /* identifier#make-irritants-condition */,
+  /*  1195 */        0x0000043B           /* 38     (LIST) */,
+  /*  1196 */        0x0000000B           /* 39     (PUSH) */,
+  /*  1197 */        0x0000024C           /* 40     (GREF_CALL) */,
+  /*  1198 */        WORD(SG_UNDEF)  /* identifier#filter */,
+  /*  1199 */        0x0000000B           /* 42     (PUSH) */,
+  /*  1200 */        0x0000024C           /* 43     (GREF_CALL) */,
+  /*  1201 */        WORD(SG_UNDEF)  /* identifier#apply */,
+  /*  1202 */        0x0000000B           /* 45     (PUSH) */,
+  /*  1203 */        0x0000014D           /* 46     (GREF_TAIL_CALL) */,
+  /*  1204 */        WORD(SG_UNDEF)  /* identifier#raise */,
+  /*  1205 */        0x00000030           /* 48     (RET) */,
+  /*  1206 */        0x00000031           /* 0      (FRAME) */,
+  /*  1207 */        WORD(SG_MAKE_INT(43)),
+  /*  1208 */        0x00000049           /* 2      (GREF_PUSH) */,
+  /*  1209 */        WORD(SG_UNDEF)  /* identifier#condition */,
+  /*  1210 */        0x00000031           /* 4      (FRAME) */,
+  /*  1211 */        WORD(SG_MAKE_INT(36)),
+  /*  1212 */        0x00000049           /* 6      (GREF_PUSH) */,
+  /*  1213 */        WORD(SG_UNDEF)  /* identifier#values */,
+  /*  1214 */        0x00000031           /* 8      (FRAME) */,
+  /*  1215 */        WORD(SG_MAKE_INT(3)),
+  /*  1216 */        0x0000004C           /* 10     (GREF_CALL) */,
+  /*  1217 */        WORD(SG_UNDEF)  /* identifier#make-i/o-error */,
+  /*  1218 */        0x0000000B           /* 12     (PUSH) */,
+  /*  1219 */        0x00000005           /* 13     (LREF) */,
+  /*  1220 */        0x00000017           /* 14     (TEST) */,
+  /*  1221 */        WORD(SG_MAKE_INT(6)),
+  /*  1222 */        0x00000031           /* 16     (FRAME) */,
+  /*  1223 */        WORD(SG_MAKE_INT(4)),
+  /*  1224 */        0x00000047           /* 18     (LREF_PUSH) */,
+  /*  1225 */        0x0000014C           /* 19     (GREF_CALL) */,
+  /*  1226 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
+  /*  1227 */        0x0000000B           /* 21     (PUSH) */,
+  /*  1228 */        0x00000031           /* 22     (FRAME) */,
+  /*  1229 */        WORD(SG_MAKE_INT(4)),
+  /*  1230 */        0x00000147           /* 24     (LREF_PUSH) */,
+  /*  1231 */        0x0000014C           /* 25     (GREF_CALL) */,
+  /*  1232 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
+  /*  1233 */        0x0000000B           /* 27     (PUSH) */,
+  /*  1234 */        0x00000205           /* 28     (LREF) */,
+  /*  1235 */        0x00000040           /* 29     (PAIRP) */,
+  /*  1236 */        0x00000017           /* 30     (TEST) */,
+  /*  1237 */        WORD(SG_MAKE_INT(6)),
+  /*  1238 */        0x00000031           /* 32     (FRAME) */,
+  /*  1239 */        WORD(SG_MAKE_INT(4)),
+  /*  1240 */        0x00000247           /* 34     (LREF_PUSH) */,
+  /*  1241 */        0x0000014C           /* 35     (GREF_CALL) */,
+  /*  1242 */        WORD(SG_UNDEF)  /* identifier#make-irritants-condition */,
+  /*  1243 */        0x0000043B           /* 37     (LIST) */,
+  /*  1244 */        0x0000000B           /* 38     (PUSH) */,
+  /*  1245 */        0x0000024C           /* 39     (GREF_CALL) */,
+  /*  1246 */        WORD(SG_UNDEF)  /* identifier#filter */,
+  /*  1247 */        0x0000000B           /* 41     (PUSH) */,
+  /*  1248 */        0x0000024C           /* 42     (GREF_CALL) */,
+  /*  1249 */        WORD(SG_UNDEF)  /* identifier#apply */,
+  /*  1250 */        0x0000000B           /* 44     (PUSH) */,
+  /*  1251 */        0x0000014D           /* 45     (GREF_TAIL_CALL) */,
+  /*  1252 */        WORD(SG_UNDEF)  /* identifier#raise */,
+  /*  1253 */        0x00000030           /* 47     (RET) */,
+  /*  1254 */        0x00000031           /* 0      (FRAME) */,
+  /*  1255 */        WORD(SG_MAKE_INT(56)),
+  /*  1256 */        0x00000049           /* 2      (GREF_PUSH) */,
+  /*  1257 */        WORD(SG_UNDEF)  /* identifier#condition */,
+  /*  1258 */        0x00000031           /* 4      (FRAME) */,
+  /*  1259 */        WORD(SG_MAKE_INT(49)),
+  /*  1260 */        0x00000049           /* 6      (GREF_PUSH) */,
+  /*  1261 */        WORD(SG_UNDEF)  /* identifier#values */,
+  /*  1262 */        0x00000031           /* 8      (FRAME) */,
+  /*  1263 */        WORD(SG_MAKE_INT(5)),
+  /*  1264 */        0x00000047           /* 10     (LREF_PUSH) */,
+  /*  1265 */        0x00000447           /* 11     (LREF_PUSH) */,
+  /*  1266 */        0x0000024C           /* 12     (GREF_CALL) */,
+  /*  1267 */        WORD(SG_UNDEF)  /* identifier#apply */,
+  /*  1268 */        0x0000000B           /* 14     (PUSH) */,
+  /*  1269 */        0x00000105           /* 15     (LREF) */,
+  /*  1270 */        0x00000017           /* 16     (TEST) */,
+  /*  1271 */        WORD(SG_MAKE_INT(6)),
+  /*  1272 */        0x00000031           /* 18     (FRAME) */,
   /*  1273 */        WORD(SG_MAKE_INT(4)),
-  /*  1274 */        0x00000147           /* 26     (LREF_PUSH) */,
-  /*  1275 */        0x0000014C           /* 27     (GREF_CALL) */,
-  /*  1276 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
-  /*  1277 */        0x0000000B           /* 29     (PUSH) */,
-  /*  1278 */        0x00000205           /* 30     (LREF) */,
-  /*  1279 */        0x00000040           /* 31     (PAIRP) */,
-  /*  1280 */        0x00000017           /* 32     (TEST) */,
-  /*  1281 */        WORD(SG_MAKE_INT(6)),
-  /*  1282 */        0x00000031           /* 34     (FRAME) */,
-  /*  1283 */        WORD(SG_MAKE_INT(4)),
-  /*  1284 */        0x00000247           /* 36     (LREF_PUSH) */,
-  /*  1285 */        0x0000014C           /* 37     (GREF_CALL) */,
-  /*  1286 */        WORD(SG_UNDEF)  /* identifier#make-irritants-condition */,
-  /*  1287 */        0x0000000B           /* 39     (PUSH) */,
-  /*  1288 */        0x0000044C           /* 40     (GREF_CALL) */,
-  /*  1289 */        WORD(SG_UNDEF)  /* identifier#list */,
-  /*  1290 */        0x0000000B           /* 42     (PUSH) */,
-  /*  1291 */        0x0000024C           /* 43     (GREF_CALL) */,
-  /*  1292 */        WORD(SG_UNDEF)  /* identifier#filter */,
-  /*  1293 */        0x0000000B           /* 45     (PUSH) */,
-  /*  1294 */        0x0000024C           /* 46     (GREF_CALL) */,
-  /*  1295 */        WORD(SG_UNDEF)  /* identifier#apply */,
-  /*  1296 */        0x0000000B           /* 48     (PUSH) */,
-  /*  1297 */        0x0000014D           /* 49     (GREF_TAIL_CALL) */,
-  /*  1298 */        WORD(SG_UNDEF)  /* identifier#raise */,
-  /*  1299 */        0x00000030           /* 51     (RET) */,
-  /*  1300 */        0x00000031           /* 0      (FRAME) */,
-  /*  1301 */        WORD(SG_MAKE_INT(60)),
-  /*  1302 */        0x00000049           /* 2      (GREF_PUSH) */,
-  /*  1303 */        WORD(SG_UNDEF)  /* identifier#condition */,
-  /*  1304 */        0x00000031           /* 4      (FRAME) */,
-  /*  1305 */        WORD(SG_MAKE_INT(53)),
-  /*  1306 */        0x00000049           /* 6      (GREF_PUSH) */,
-  /*  1307 */        WORD(SG_UNDEF)  /* identifier#values */,
-  /*  1308 */        0x00000031           /* 8      (FRAME) */,
-  /*  1309 */        WORD(SG_MAKE_INT(46)),
-  /*  1310 */        0x00000031           /* 10     (FRAME) */,
-  /*  1311 */        WORD(SG_MAKE_INT(5)),
-  /*  1312 */        0x00000047           /* 12     (LREF_PUSH) */,
-  /*  1313 */        0x00000447           /* 13     (LREF_PUSH) */,
-  /*  1314 */        0x0000024C           /* 14     (GREF_CALL) */,
-  /*  1315 */        WORD(SG_UNDEF)  /* identifier#apply */,
-  /*  1316 */        0x0000000B           /* 16     (PUSH) */,
-  /*  1317 */        0x00000105           /* 17     (LREF) */,
-  /*  1318 */        0x00000017           /* 18     (TEST) */,
-  /*  1319 */        WORD(SG_MAKE_INT(6)),
-  /*  1320 */        0x00000031           /* 20     (FRAME) */,
-  /*  1321 */        WORD(SG_MAKE_INT(4)),
-  /*  1322 */        0x00000147           /* 22     (LREF_PUSH) */,
-  /*  1323 */        0x0000014C           /* 23     (GREF_CALL) */,
-  /*  1324 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
-  /*  1325 */        0x0000000B           /* 25     (PUSH) */,
-  /*  1326 */        0x00000031           /* 26     (FRAME) */,
-  /*  1327 */        WORD(SG_MAKE_INT(4)),
-  /*  1328 */        0x00000247           /* 28     (LREF_PUSH) */,
-  /*  1329 */        0x0000014C           /* 29     (GREF_CALL) */,
-  /*  1330 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
-  /*  1331 */        0x0000000B           /* 31     (PUSH) */,
-  /*  1332 */        0x00000305           /* 32     (LREF) */,
-  /*  1333 */        0x00000017           /* 33     (TEST) */,
-  /*  1334 */        WORD(SG_MAKE_INT(6)),
-  /*  1335 */        0x00000031           /* 35     (FRAME) */,
-  /*  1336 */        WORD(SG_MAKE_INT(4)),
-  /*  1337 */        0x00000347           /* 37     (LREF_PUSH) */,
-  /*  1338 */        0x0000014C           /* 38     (GREF_CALL) */,
-  /*  1339 */        WORD(SG_UNDEF)  /* identifier#make-i/o-port-error */,
-  /*  1340 */        0x0000000B           /* 40     (PUSH) */,
-  /*  1341 */        0x00000031           /* 41     (FRAME) */,
-  /*  1342 */        WORD(SG_MAKE_INT(10)),
-  /*  1343 */        0x00000031           /* 43     (FRAME) */,
-  /*  1344 */        WORD(SG_MAKE_INT(5)),
-  /*  1345 */        0x00000347           /* 45     (LREF_PUSH) */,
-  /*  1346 */        0x00000447           /* 46     (LREF_PUSH) */,
-  /*  1347 */        0x0000024C           /* 47     (GREF_CALL) */,
-  /*  1348 */        WORD(SG_UNDEF)  /* identifier#cons* */,
-  /*  1349 */        0x0000000B           /* 49     (PUSH) */,
-  /*  1350 */        0x0000014C           /* 50     (GREF_CALL) */,
-  /*  1351 */        WORD(SG_UNDEF)  /* identifier#make-irritants-condition */,
-  /*  1352 */        0x0000000B           /* 52     (PUSH) */,
-  /*  1353 */        0x0000054C           /* 53     (GREF_CALL) */,
-  /*  1354 */        WORD(SG_UNDEF)  /* identifier#list */,
-  /*  1355 */        0x0000000B           /* 55     (PUSH) */,
-  /*  1356 */        0x0000024C           /* 56     (GREF_CALL) */,
+  /*  1274 */        0x00000147           /* 20     (LREF_PUSH) */,
+  /*  1275 */        0x0000014C           /* 21     (GREF_CALL) */,
+  /*  1276 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
+  /*  1277 */        0x0000000B           /* 23     (PUSH) */,
+  /*  1278 */        0x00000031           /* 24     (FRAME) */,
+  /*  1279 */        WORD(SG_MAKE_INT(4)),
+  /*  1280 */        0x00000247           /* 26     (LREF_PUSH) */,
+  /*  1281 */        0x0000014C           /* 27     (GREF_CALL) */,
+  /*  1282 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
+  /*  1283 */        0x0000000B           /* 29     (PUSH) */,
+  /*  1284 */        0x00000305           /* 30     (LREF) */,
+  /*  1285 */        0x00000017           /* 31     (TEST) */,
+  /*  1286 */        WORD(SG_MAKE_INT(6)),
+  /*  1287 */        0x00000031           /* 33     (FRAME) */,
+  /*  1288 */        WORD(SG_MAKE_INT(4)),
+  /*  1289 */        0x00000347           /* 35     (LREF_PUSH) */,
+  /*  1290 */        0x0000014C           /* 36     (GREF_CALL) */,
+  /*  1291 */        WORD(SG_UNDEF)  /* identifier#make-i/o-port-error */,
+  /*  1292 */        0x0000000B           /* 38     (PUSH) */,
+  /*  1293 */        0x00000031           /* 39     (FRAME) */,
+  /*  1294 */        WORD(SG_MAKE_INT(10)),
+  /*  1295 */        0x00000031           /* 41     (FRAME) */,
+  /*  1296 */        WORD(SG_MAKE_INT(5)),
+  /*  1297 */        0x00000347           /* 43     (LREF_PUSH) */,
+  /*  1298 */        0x00000447           /* 44     (LREF_PUSH) */,
+  /*  1299 */        0x0000024C           /* 45     (GREF_CALL) */,
+  /*  1300 */        WORD(SG_UNDEF)  /* identifier#cons* */,
+  /*  1301 */        0x0000000B           /* 47     (PUSH) */,
+  /*  1302 */        0x0000014C           /* 48     (GREF_CALL) */,
+  /*  1303 */        WORD(SG_UNDEF)  /* identifier#make-irritants-condition */,
+  /*  1304 */        0x0000053B           /* 50     (LIST) */,
+  /*  1305 */        0x0000000B           /* 51     (PUSH) */,
+  /*  1306 */        0x0000024C           /* 52     (GREF_CALL) */,
+  /*  1307 */        WORD(SG_UNDEF)  /* identifier#filter */,
+  /*  1308 */        0x0000000B           /* 54     (PUSH) */,
+  /*  1309 */        0x0000024C           /* 55     (GREF_CALL) */,
+  /*  1310 */        WORD(SG_UNDEF)  /* identifier#apply */,
+  /*  1311 */        0x0000000B           /* 57     (PUSH) */,
+  /*  1312 */        0x0000014D           /* 58     (GREF_TAIL_CALL) */,
+  /*  1313 */        WORD(SG_UNDEF)  /* identifier#raise */,
+  /*  1314 */        0x00000030           /* 60     (RET) */,
+  /*  1315 */        0x00000031           /* 0      (FRAME) */,
+  /*  1316 */        WORD(SG_MAKE_INT(45)),
+  /*  1317 */        0x00000049           /* 2      (GREF_PUSH) */,
+  /*  1318 */        WORD(SG_UNDEF)  /* identifier#condition */,
+  /*  1319 */        0x00000031           /* 4      (FRAME) */,
+  /*  1320 */        WORD(SG_MAKE_INT(38)),
+  /*  1321 */        0x00000049           /* 6      (GREF_PUSH) */,
+  /*  1322 */        WORD(SG_UNDEF)  /* identifier#values */,
+  /*  1323 */        0x00000031           /* 8      (FRAME) */,
+  /*  1324 */        WORD(SG_MAKE_INT(5)),
+  /*  1325 */        0x00000047           /* 10     (LREF_PUSH) */,
+  /*  1326 */        0x00000347           /* 11     (LREF_PUSH) */,
+  /*  1327 */        0x0000024C           /* 12     (GREF_CALL) */,
+  /*  1328 */        WORD(SG_UNDEF)  /* identifier#apply */,
+  /*  1329 */        0x0000000B           /* 14     (PUSH) */,
+  /*  1330 */        0x00000105           /* 15     (LREF) */,
+  /*  1331 */        0x00000017           /* 16     (TEST) */,
+  /*  1332 */        WORD(SG_MAKE_INT(6)),
+  /*  1333 */        0x00000031           /* 18     (FRAME) */,
+  /*  1334 */        WORD(SG_MAKE_INT(4)),
+  /*  1335 */        0x00000147           /* 20     (LREF_PUSH) */,
+  /*  1336 */        0x0000014C           /* 21     (GREF_CALL) */,
+  /*  1337 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
+  /*  1338 */        0x0000000B           /* 23     (PUSH) */,
+  /*  1339 */        0x00000031           /* 24     (FRAME) */,
+  /*  1340 */        WORD(SG_MAKE_INT(4)),
+  /*  1341 */        0x00000247           /* 26     (LREF_PUSH) */,
+  /*  1342 */        0x0000014C           /* 27     (GREF_CALL) */,
+  /*  1343 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
+  /*  1344 */        0x0000000B           /* 29     (PUSH) */,
+  /*  1345 */        0x00000305           /* 30     (LREF) */,
+  /*  1346 */        0x00000040           /* 31     (PAIRP) */,
+  /*  1347 */        0x00000017           /* 32     (TEST) */,
+  /*  1348 */        WORD(SG_MAKE_INT(6)),
+  /*  1349 */        0x00000031           /* 34     (FRAME) */,
+  /*  1350 */        WORD(SG_MAKE_INT(4)),
+  /*  1351 */        0x00000347           /* 36     (LREF_PUSH) */,
+  /*  1352 */        0x0000014C           /* 37     (GREF_CALL) */,
+  /*  1353 */        WORD(SG_UNDEF)  /* identifier#make-irritants-condition */,
+  /*  1354 */        0x0000043B           /* 39     (LIST) */,
+  /*  1355 */        0x0000000B           /* 40     (PUSH) */,
+  /*  1356 */        0x0000024C           /* 41     (GREF_CALL) */,
   /*  1357 */        WORD(SG_UNDEF)  /* identifier#filter */,
-  /*  1358 */        0x0000000B           /* 58     (PUSH) */,
-  /*  1359 */        0x0000024C           /* 59     (GREF_CALL) */,
+  /*  1358 */        0x0000000B           /* 43     (PUSH) */,
+  /*  1359 */        0x0000024C           /* 44     (GREF_CALL) */,
   /*  1360 */        WORD(SG_UNDEF)  /* identifier#apply */,
-  /*  1361 */        0x0000000B           /* 61     (PUSH) */,
-  /*  1362 */        0x0000014D           /* 62     (GREF_TAIL_CALL) */,
+  /*  1361 */        0x0000000B           /* 46     (PUSH) */,
+  /*  1362 */        0x0000014D           /* 47     (GREF_TAIL_CALL) */,
   /*  1363 */        WORD(SG_UNDEF)  /* identifier#raise */,
-  /*  1364 */        0x00000030           /* 64     (RET) */,
-  /*  1365 */        0x00000031           /* 0      (FRAME) */,
-  /*  1366 */        WORD(SG_MAKE_INT(49)),
-  /*  1367 */        0x00000049           /* 2      (GREF_PUSH) */,
-  /*  1368 */        WORD(SG_UNDEF)  /* identifier#condition */,
-  /*  1369 */        0x00000031           /* 4      (FRAME) */,
-  /*  1370 */        WORD(SG_MAKE_INT(42)),
-  /*  1371 */        0x00000049           /* 6      (GREF_PUSH) */,
-  /*  1372 */        WORD(SG_UNDEF)  /* identifier#values */,
-  /*  1373 */        0x00000031           /* 8      (FRAME) */,
-  /*  1374 */        WORD(SG_MAKE_INT(35)),
-  /*  1375 */        0x00000031           /* 10     (FRAME) */,
-  /*  1376 */        WORD(SG_MAKE_INT(5)),
-  /*  1377 */        0x00000047           /* 12     (LREF_PUSH) */,
-  /*  1378 */        0x00000347           /* 13     (LREF_PUSH) */,
-  /*  1379 */        0x0000024C           /* 14     (GREF_CALL) */,
-  /*  1380 */        WORD(SG_UNDEF)  /* identifier#apply */,
-  /*  1381 */        0x0000000B           /* 16     (PUSH) */,
-  /*  1382 */        0x00000105           /* 17     (LREF) */,
-  /*  1383 */        0x00000017           /* 18     (TEST) */,
-  /*  1384 */        WORD(SG_MAKE_INT(6)),
-  /*  1385 */        0x00000031           /* 20     (FRAME) */,
-  /*  1386 */        WORD(SG_MAKE_INT(4)),
-  /*  1387 */        0x00000147           /* 22     (LREF_PUSH) */,
-  /*  1388 */        0x0000014C           /* 23     (GREF_CALL) */,
-  /*  1389 */        WORD(SG_UNDEF)  /* identifier#make-who-condition */,
-  /*  1390 */        0x0000000B           /* 25     (PUSH) */,
-  /*  1391 */        0x00000031           /* 26     (FRAME) */,
-  /*  1392 */        WORD(SG_MAKE_INT(4)),
-  /*  1393 */        0x00000247           /* 28     (LREF_PUSH) */,
-  /*  1394 */        0x0000014C           /* 29     (GREF_CALL) */,
-  /*  1395 */        WORD(SG_UNDEF)  /* identifier#make-message-condition */,
-  /*  1396 */        0x0000000B           /* 31     (PUSH) */,
-  /*  1397 */        0x00000305           /* 32     (LREF) */,
-  /*  1398 */        0x00000040           /* 33     (PAIRP) */,
-  /*  1399 */        0x00000017           /* 34     (TEST) */,
-  /*  1400 */        WORD(SG_MAKE_INT(6)),
-  /*  1401 */        0x00000031           /* 36     (FRAME) */,
-  /*  1402 */        WORD(SG_MAKE_INT(4)),
-  /*  1403 */        0x00000347           /* 38     (LREF_PUSH) */,
-  /*  1404 */        0x0000014C           /* 39     (GREF_CALL) */,
-  /*  1405 */        WORD(SG_UNDEF)  /* identifier#make-irritants-condition */,
-  /*  1406 */        0x0000000B           /* 41     (PUSH) */,
-  /*  1407 */        0x0000044C           /* 42     (GREF_CALL) */,
-  /*  1408 */        WORD(SG_UNDEF)  /* identifier#list */,
-  /*  1409 */        0x0000000B           /* 44     (PUSH) */,
-  /*  1410 */        0x0000024C           /* 45     (GREF_CALL) */,
-  /*  1411 */        WORD(SG_UNDEF)  /* identifier#filter */,
-  /*  1412 */        0x0000000B           /* 47     (PUSH) */,
-  /*  1413 */        0x0000024C           /* 48     (GREF_CALL) */,
-  /*  1414 */        WORD(SG_UNDEF)  /* identifier#apply */,
-  /*  1415 */        0x0000000B           /* 50     (PUSH) */,
-  /*  1416 */        0x0000014D           /* 51     (GREF_TAIL_CALL) */,
-  /*  1417 */        WORD(SG_UNDEF)  /* identifier#raise */,
-  /*  1418 */        0x00000030           /* 53     (RET) */,
-  /*  1419 */        0x00000049           /* 0      (GREF_PUSH) */,
-  /*  1420 */        WORD(SG_UNDEF)  /* identifier#make-i/o-read-error */,
-  /*  1421 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*  1422 */        0x00000147           /* 3      (LREF_PUSH) */,
-  /*  1423 */        0x00000247           /* 4      (LREF_PUSH) */,
-  /*  1424 */        0x0000044D           /* 5      (GREF_TAIL_CALL) */,
-  /*  1425 */        WORD(SG_UNDEF)  /* identifier#raise-misc-i/o-error-with-port */,
-  /*  1426 */        0x00000030           /* 7      (RET) */,
-  /*  1427 */        0x00000049           /* 0      (GREF_PUSH) */,
-  /*  1428 */        WORD(SG_UNDEF)  /* identifier#make-i/o-write-error */,
-  /*  1429 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*  1430 */        0x00000147           /* 3      (LREF_PUSH) */,
-  /*  1431 */        0x00000247           /* 4      (LREF_PUSH) */,
-  /*  1432 */        0x0000044D           /* 5      (GREF_TAIL_CALL) */,
-  /*  1433 */        WORD(SG_UNDEF)  /* identifier#raise-misc-i/o-error-with-port */,
-  /*  1434 */        0x00000030           /* 7      (RET) */,
-  /*  1435 */        0x00000049           /* 0      (GREF_PUSH) */,
-  /*  1436 */        WORD(SG_UNDEF)  /* identifier#make-i/o-file-protection-error */,
-  /*  1437 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*  1438 */        0x00000147           /* 3      (LREF_PUSH) */,
-  /*  1439 */        0x00000247           /* 4      (LREF_PUSH) */,
-  /*  1440 */        0x0000044D           /* 5      (GREF_TAIL_CALL) */,
-  /*  1441 */        WORD(SG_UNDEF)  /* identifier#raise-misc-i/o-error */,
-  /*  1442 */        0x00000030           /* 7      (RET) */,
-  /*  1443 */        0x00000049           /* 0      (GREF_PUSH) */,
-  /*  1444 */        WORD(SG_UNDEF)  /* identifier#make-i/o-file-is-read-only-error */,
-  /*  1445 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*  1446 */        0x00000147           /* 3      (LREF_PUSH) */,
-  /*  1447 */        0x00000247           /* 4      (LREF_PUSH) */,
-  /*  1448 */        0x0000044D           /* 5      (GREF_TAIL_CALL) */,
-  /*  1449 */        WORD(SG_UNDEF)  /* identifier#raise-misc-i/o-error-with-port */,
-  /*  1450 */        0x00000030           /* 7      (RET) */,
-  /*  1451 */        0x00000049           /* 0      (GREF_PUSH) */,
-  /*  1452 */        WORD(SG_UNDEF)  /* identifier#make-i/o-file-already-exists-error */,
-  /*  1453 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*  1454 */        0x00000147           /* 3      (LREF_PUSH) */,
-  /*  1455 */        0x00000247           /* 4      (LREF_PUSH) */,
-  /*  1456 */        0x0000044D           /* 5      (GREF_TAIL_CALL) */,
-  /*  1457 */        WORD(SG_UNDEF)  /* identifier#raise-misc-i/o-error */,
-  /*  1458 */        0x00000030           /* 7      (RET) */,
-  /*  1459 */        0x00000049           /* 0      (GREF_PUSH) */,
-  /*  1460 */        WORD(SG_UNDEF)  /* identifier#make-i/o-file-does-not-exist-error */,
-  /*  1461 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*  1462 */        0x00000147           /* 3      (LREF_PUSH) */,
-  /*  1463 */        0x00000247           /* 4      (LREF_PUSH) */,
-  /*  1464 */        0x0000044D           /* 5      (GREF_TAIL_CALL) */,
-  /*  1465 */        WORD(SG_UNDEF)  /* identifier#raise-misc-i/o-error */,
-  /*  1466 */        0x00000030           /* 7      (RET) */,
-  /*  1467 */        0x00000049           /* 0      (GREF_PUSH) */,
-  /*  1468 */        WORD(SG_UNDEF)  /* identifier#make-i/o-invalid-position-error */,
-  /*  1469 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*  1470 */        0x00000147           /* 3      (LREF_PUSH) */,
-  /*  1471 */        0x00000247           /* 4      (LREF_PUSH) */,
-  /*  1472 */        0x00000347           /* 5      (LREF_PUSH) */,
-  /*  1473 */        0x0000054D           /* 6      (GREF_TAIL_CALL) */,
-  /*  1474 */        WORD(SG_UNDEF)  /* identifier#raise-misc-i/o-error-with-port */,
-  /*  1475 */        0x00000030           /* 8      (RET) */,
-  /*  1476 */        0x00000049           /* 0      (GREF_PUSH) */,
-  /*  1477 */        WORD(SG_UNDEF)  /* identifier#make-i/o-decoding-error */,
-  /*  1478 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*  1479 */        0x00000147           /* 3      (LREF_PUSH) */,
-  /*  1480 */        0x00000247           /* 4      (LREF_PUSH) */,
-  /*  1481 */        0x0000044D           /* 5      (GREF_TAIL_CALL) */,
-  /*  1482 */        WORD(SG_UNDEF)  /* identifier#raise-misc-i/o-error */,
-  /*  1483 */        0x00000030           /* 7      (RET) */,
-  /*  1484 */        0x00000049           /* 0      (GREF_PUSH) */,
-  /*  1485 */        WORD(SG_UNDEF)  /* identifier#make-i/o-encoding-error */,
-  /*  1486 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*  1487 */        0x00000147           /* 3      (LREF_PUSH) */,
-  /*  1488 */        0x00000247           /* 4      (LREF_PUSH) */,
-  /*  1489 */        0x00000347           /* 5      (LREF_PUSH) */,
-  /*  1490 */        0x0000054D           /* 6      (GREF_TAIL_CALL) */,
-  /*  1491 */        WORD(SG_UNDEF)  /* identifier#raise-misc-i/o-error */,
-  /*  1492 */        0x00000030           /* 8      (RET) */,
+  /*  1364 */        0x00000030           /* 49     (RET) */,
+  /*  1365 */        0x00000049           /* 0      (GREF_PUSH) */,
+  /*  1366 */        WORD(SG_UNDEF)  /* identifier#make-i/o-read-error */,
+  /*  1367 */        0x00000047           /* 2      (LREF_PUSH) */,
+  /*  1368 */        0x00000147           /* 3      (LREF_PUSH) */,
+  /*  1369 */        0x00000247           /* 4      (LREF_PUSH) */,
+  /*  1370 */        0x0000044D           /* 5      (GREF_TAIL_CALL) */,
+  /*  1371 */        WORD(SG_UNDEF)  /* identifier#raise-misc-i/o-error-with-port */,
+  /*  1372 */        0x00000030           /* 7      (RET) */,
+  /*  1373 */        0x00000049           /* 0      (GREF_PUSH) */,
+  /*  1374 */        WORD(SG_UNDEF)  /* identifier#make-i/o-write-error */,
+  /*  1375 */        0x00000047           /* 2      (LREF_PUSH) */,
+  /*  1376 */        0x00000147           /* 3      (LREF_PUSH) */,
+  /*  1377 */        0x00000247           /* 4      (LREF_PUSH) */,
+  /*  1378 */        0x0000044D           /* 5      (GREF_TAIL_CALL) */,
+  /*  1379 */        WORD(SG_UNDEF)  /* identifier#raise-misc-i/o-error-with-port */,
+  /*  1380 */        0x00000030           /* 7      (RET) */,
+  /*  1381 */        0x00000049           /* 0      (GREF_PUSH) */,
+  /*  1382 */        WORD(SG_UNDEF)  /* identifier#make-i/o-file-protection-error */,
+  /*  1383 */        0x00000047           /* 2      (LREF_PUSH) */,
+  /*  1384 */        0x00000147           /* 3      (LREF_PUSH) */,
+  /*  1385 */        0x00000247           /* 4      (LREF_PUSH) */,
+  /*  1386 */        0x0000044D           /* 5      (GREF_TAIL_CALL) */,
+  /*  1387 */        WORD(SG_UNDEF)  /* identifier#raise-misc-i/o-error */,
+  /*  1388 */        0x00000030           /* 7      (RET) */,
+  /*  1389 */        0x00000049           /* 0      (GREF_PUSH) */,
+  /*  1390 */        WORD(SG_UNDEF)  /* identifier#make-i/o-file-is-read-only-error */,
+  /*  1391 */        0x00000047           /* 2      (LREF_PUSH) */,
+  /*  1392 */        0x00000147           /* 3      (LREF_PUSH) */,
+  /*  1393 */        0x00000247           /* 4      (LREF_PUSH) */,
+  /*  1394 */        0x0000044D           /* 5      (GREF_TAIL_CALL) */,
+  /*  1395 */        WORD(SG_UNDEF)  /* identifier#raise-misc-i/o-error-with-port */,
+  /*  1396 */        0x00000030           /* 7      (RET) */,
+  /*  1397 */        0x00000049           /* 0      (GREF_PUSH) */,
+  /*  1398 */        WORD(SG_UNDEF)  /* identifier#make-i/o-file-already-exists-error */,
+  /*  1399 */        0x00000047           /* 2      (LREF_PUSH) */,
+  /*  1400 */        0x00000147           /* 3      (LREF_PUSH) */,
+  /*  1401 */        0x00000247           /* 4      (LREF_PUSH) */,
+  /*  1402 */        0x0000044D           /* 5      (GREF_TAIL_CALL) */,
+  /*  1403 */        WORD(SG_UNDEF)  /* identifier#raise-misc-i/o-error */,
+  /*  1404 */        0x00000030           /* 7      (RET) */,
+  /*  1405 */        0x00000049           /* 0      (GREF_PUSH) */,
+  /*  1406 */        WORD(SG_UNDEF)  /* identifier#make-i/o-file-does-not-exist-error */,
+  /*  1407 */        0x00000047           /* 2      (LREF_PUSH) */,
+  /*  1408 */        0x00000147           /* 3      (LREF_PUSH) */,
+  /*  1409 */        0x00000247           /* 4      (LREF_PUSH) */,
+  /*  1410 */        0x0000044D           /* 5      (GREF_TAIL_CALL) */,
+  /*  1411 */        WORD(SG_UNDEF)  /* identifier#raise-misc-i/o-error */,
+  /*  1412 */        0x00000030           /* 7      (RET) */,
+  /*  1413 */        0x00000049           /* 0      (GREF_PUSH) */,
+  /*  1414 */        WORD(SG_UNDEF)  /* identifier#make-i/o-invalid-position-error */,
+  /*  1415 */        0x00000047           /* 2      (LREF_PUSH) */,
+  /*  1416 */        0x00000147           /* 3      (LREF_PUSH) */,
+  /*  1417 */        0x00000247           /* 4      (LREF_PUSH) */,
+  /*  1418 */        0x00000347           /* 5      (LREF_PUSH) */,
+  /*  1419 */        0x0000054D           /* 6      (GREF_TAIL_CALL) */,
+  /*  1420 */        WORD(SG_UNDEF)  /* identifier#raise-misc-i/o-error-with-port */,
+  /*  1421 */        0x00000030           /* 8      (RET) */,
+  /*  1422 */        0x00000049           /* 0      (GREF_PUSH) */,
+  /*  1423 */        WORD(SG_UNDEF)  /* identifier#make-i/o-decoding-error */,
+  /*  1424 */        0x00000047           /* 2      (LREF_PUSH) */,
+  /*  1425 */        0x00000147           /* 3      (LREF_PUSH) */,
+  /*  1426 */        0x00000247           /* 4      (LREF_PUSH) */,
+  /*  1427 */        0x0000044D           /* 5      (GREF_TAIL_CALL) */,
+  /*  1428 */        WORD(SG_UNDEF)  /* identifier#raise-misc-i/o-error */,
+  /*  1429 */        0x00000030           /* 7      (RET) */,
+  /*  1430 */        0x00000049           /* 0      (GREF_PUSH) */,
+  /*  1431 */        WORD(SG_UNDEF)  /* identifier#make-i/o-encoding-error */,
+  /*  1432 */        0x00000047           /* 2      (LREF_PUSH) */,
+  /*  1433 */        0x00000147           /* 3      (LREF_PUSH) */,
+  /*  1434 */        0x00000247           /* 4      (LREF_PUSH) */,
+  /*  1435 */        0x00000347           /* 5      (LREF_PUSH) */,
+  /*  1436 */        0x0000054D           /* 6      (GREF_TAIL_CALL) */,
+  /*  1437 */        WORD(SG_UNDEF)  /* identifier#raise-misc-i/o-error */,
+  /*  1438 */        0x00000030           /* 8      (RET) */,
   }
 };
 
@@ -1549,313 +1495,306 @@ static SgCodeBuilder toplevel_core_errors = SG_STATIC_CODE_BUILDER(&sg__wc.w[0],
 void Sg__Init_core_errors()
 {
   SgLibrary *lib = Sg_FindLibrary(SYMBOL("(core errors)"), TRUE);
-  sg__wc.w[1482] = IDENT("raise-misc-i/o-error", lib);
-  sg__wc.w[1166] = IDENT("make-assertion-violation", lib);
-  sg__wc.w[427] = IDENT("record-type-parent", lib);
-  sg__wc.w[152] = IDENT("format", lib);
-  sg__wc.w[63] = IDENT("raise-misc-i/o-error", lib);
-  sg__wc.w[524] = IDENT("condition", lib);
-  sg__wc.w[13] = WORD(&sg__wc.cb[5]);
-sg__wc.cb[5].name = SYMBOL("with-exception-handler");
-  sg__wc.w[632] = WORD(&sg__wc.cb[11]);
-sg__wc.cb[11].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[765] = IDENT("condition", lib);
-  sg__wc.w[635] = IDENT("dynamic-wind", lib);
-  sg__wc.w[37] = WORD(&sg__wc.cb[17]);
-sg__wc.cb[17].name = SYMBOL("implementation-restriction-violation");
-  sg__wc.w[91] = IDENT("raise-i/o-invalid-position-error", lib);
-  sg__wc.w[1441] = IDENT("raise-misc-i/o-error", lib);
-  sg__wc.w[61] = WORD(&sg__wc.cb[23]);
-sg__wc.cb[23].name = SYMBOL("raise-misc-i/o-error");
-  sg__wc.w[588] = IDENT("describe-condition", lib);
-  sg__wc.w[11] = IDENT("raise-continuable", lib);
-  sg__wc.w[85] = WORD(&sg__wc.cb[29]);
-sg__wc.cb[29].name = SYMBOL("raise-i/o-file-does-not-exist-error");
-  sg__wc.w[1040] = IDENT("values", lib);
-  sg__wc.w[535] = STRINGW("error in raise: returned from non-continuable exception~%~%irritants:~%~a");
-  sg__wc.w[298] = STRINGW(": ~a");
-  sg__wc.w[1022] = IDENT("list", lib);
-  sg__wc.w[1007] = IDENT("make-who-condition", lib);
-  sg__wc.w[1088] = IDENT("condition", lib);
-  sg__wc.w[1261] = IDENT("make-i/o-error", lib);
-  sg__wc.w[1181] = IDENT("make-message-condition", lib);
-  sg__wc.w[1106] = IDENT("make-syntax-violation", lib);
-  sg__wc.w[190] = IDENT("record-type-name", lib);
-  sg__wc.w[1202] = IDENT("values", lib);
-  sg__wc.w[1395] = IDENT("make-message-condition", lib);
-  sg__wc.w[168] = IDENT("format", lib);
-  sg__wc.w[399] = STRINGW("~%     ~a: ~a");
-  sg__wc.w[232] = IDENT("format", lib);
-  sg__wc.w[1444] = IDENT("make-i/o-file-is-read-only-error", lib);
-  sg__wc.w[1234] = IDENT("make-irritants-condition", lib);
-  sg__wc.w[751] = IDENT("list", lib);
-  sg__wc.w[1425] = IDENT("raise-misc-i/o-error-with-port", lib);
-  sg__wc.w[150] = STRINGW("~%   >");
-  sg__wc.w[312] = IDENT("format", lib);
-  sg__wc.w[154] = STRINGW("~a~%");
-  sg__wc.w[501] = SYMBOLW("raise");
-  sg__wc.w[521] = IDENT("make-irritants-condition", lib);
-  sg__wc.w[853] = IDENT("apply", lib);
-  sg__wc.w[888] = IDENT("make-who-condition", lib);
-  sg__wc.w[99] = IDENT("raise-i/o-encoding-error", lib);
-  sg__wc.w[1184] = IDENT("list", lib);
-  sg__wc.w[666] = IDENT("current-exception-handler", lib);
-  sg__wc.w[707] = IDENT("parent-exception-handler", lib);
-  sg__wc.w[1080] = IDENT("apply", lib);
-  sg__wc.w[1276] = IDENT("make-message-condition", lib);
-  sg__wc.w[1405] = IDENT("make-irritants-condition", lib);
-  sg__wc.w[1307] = IDENT("values", lib);
-  sg__wc.w[1190] = IDENT("apply", lib);
-  sg__wc.w[1351] = IDENT("make-irritants-condition", lib);
-  sg__wc.w[483] = IDENT("parent-exception-handler", lib);
-  sg__wc.w[847] = IDENT("list", lib);
-  sg__wc.w[23] = IDENT("undefined-violation", lib);
-  sg__wc.w[1491] = IDENT("raise-misc-i/o-error", lib);
-  sg__wc.w[832] = IDENT("make-who-condition", lib);
-  sg__wc.w[31] = IDENT("syntax-violation", lib);
-  sg__wc.w[106] = IDENT("condition?", lib);
-  sg__wc.w[1460] = IDENT("make-i/o-file-does-not-exist-error", lib);
-  sg__wc.w[79] = IDENT("raise-i/o-file-is-read-only-error", lib);
-  sg__wc.w[861] = IDENT("condition", lib);
-  sg__wc.w[879] = IDENT("make-syntax-violation", lib);
-  sg__wc.w[241] = STRINGW(" ~a");
-  sg__wc.w[1055] = IDENT("make-who-condition", lib);
-  sg__wc.w[9] = WORD(&sg__wc.cb[4]);
-sg__wc.cb[4].name = SYMBOL("raise-continuable");
-  sg__wc.w[1028] = IDENT("apply", lib);
-  sg__wc.w[626] = WORD(&sg__wc.cb[10]);
-sg__wc.cb[10].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[43] = IDENT("undefined/syntax-violation", lib);
-  sg__wc.w[33] = WORD(&sg__wc.cb[16]);
-sg__wc.cb[16].name = SYMBOL("error");
-  sg__wc.w[57] = WORD(&sg__wc.cb[22]);
-sg__wc.cb[22].name = SYMBOL("raise-misc-i/o-error-with-port");
-  sg__wc.w[81] = WORD(&sg__wc.cb[28]);
-sg__wc.cb[28].name = SYMBOL("raise-i/o-file-already-exists-error");
-  sg__wc.w[680] = IDENT("current-exception-handler", lib);
-  sg__wc.w[1363] = IDENT("raise", lib);
-  sg__wc.w[293] = IDENT("format", lib);
-  sg__wc.w[757] = IDENT("apply", lib);
-  sg__wc.w[71] = IDENT("raise-i/o-write-error", lib);
-  sg__wc.w[335] = IDENT("vector->list", lib);
-  sg__wc.w[496] = IDENT("make-non-continuable-violation", lib);
-  sg__wc.w[802] = IDENT("filter", lib);
-  sg__wc.w[926] = IDENT("original-id", lib);
-  sg__wc.w[266] = IDENT("record-accessor", lib);
-  sg__wc.w[1411] = IDENT("filter", lib);
-  sg__wc.w[561] = IDENT("scheme-error", lib);
-  sg__wc.w[1074] = IDENT("list", lib);
-  sg__wc.w[133] = IDENT("simple-conditions", lib);
-  sg__wc.w[1477] = IDENT("make-i/o-decoding-error", lib);
-  sg__wc.w[405] = IDENT("format", lib);
-  sg__wc.w[1132] = IDENT("filter", lib);
-  sg__wc.w[1286] = IDENT("make-irritants-condition", lib);
-  sg__wc.w[1243] = IDENT("apply", lib);
-  sg__wc.w[47] = IDENT("assertion/syntax-violation", lib);
-  sg__wc.w[1237] = IDENT("list", lib);
-  sg__wc.w[1218] = IDENT("make-who-condition", lib);
-  sg__wc.w[727] = IDENT("make-assertion-violation", lib);
-  sg__wc.w[742] = IDENT("make-message-condition", lib);
-  sg__wc.w[1295] = IDENT("apply", lib);
-  sg__wc.w[518] = IDENT("list", lib);
-  sg__wc.w[953] = IDENT("original-id", lib);
-  sg__wc.w[229] = STRINGW("~%    ~a");
-  sg__wc.w[813] = IDENT("condition", lib);
-  sg__wc.w[392] = IDENT("format", lib);
-  sg__wc.w[998] = IDENT("make-error", lib);
-  sg__wc.w[1161] = IDENT("make-syntax-violation", lib);
-  sg__wc.w[178] = IDENT("record-rtd", lib);
-  sg__wc.w[5] = WORD(&sg__wc.cb[3]);
-sg__wc.cb[3].name = SYMBOL("raise");
-  sg__wc.w[658] = WORD(&sg__wc.cb[9]);
-sg__wc.cb[9].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[161] = IDENT("format", lib);
-  sg__wc.w[29] = WORD(&sg__wc.cb[15]);
-sg__wc.cb[15].name = SYMBOL("syntax-violation");
-  sg__wc.w[1354] = IDENT("list", lib);
-  sg__wc.w[53] = WORD(&sg__wc.cb[21]);
-sg__wc.cb[21].name = SYMBOL("raise-i/o-error");
-  sg__wc.w[1143] = IDENT("condition", lib);
-  sg__wc.w[77] = WORD(&sg__wc.cb[27]);
-sg__wc.cb[27].name = SYMBOL("raise-i/o-file-is-read-only-error");
-  sg__wc.w[1420] = IDENT("make-i/o-read-error", lib);
-  sg__wc.w[1348] = IDENT("cons*", lib);
-  sg__wc.w[823] = IDENT("make-lexical-violation", lib);
-  sg__wc.w[1457] = IDENT("raise-misc-i/o-error", lib);
-  sg__wc.w[844] = IDENT("make-message-condition", lib);
-  sg__wc.w[1436] = IDENT("make-i/o-file-protection-error", lib);
-  sg__wc.w[551] = STRINGW("error in raise: unhandled exception has occurred~%~%irritants:~%~a");
-  sg__wc.w[1474] = IDENT("raise-misc-i/o-error-with-port", lib);
-  sg__wc.w[988] = IDENT("condition", lib);
-  sg__wc.w[279] = STRINGW(": ~a");
-  sg__wc.w[1013] = IDENT("make-message-condition", lib);
-  sg__wc.w[39] = IDENT("implementation-restriction-violation", lib);
-  sg__wc.w[1120] = IDENT("make-who-condition", lib);
-  sg__wc.w[19] = IDENT("assertion-violation", lib);
-  sg__wc.w[386] = STRINGW("~%     ~a: ~a");
-  sg__wc.w[717] = IDENT("condition", lib);
-  sg__wc.w[308] = IDENT("record-accessor", lib);
-  sg__wc.w[1485] = IDENT("make-i/o-encoding-error", lib);
-  sg__wc.w[87] = IDENT("raise-i/o-file-does-not-exist-error", lib);
-  sg__wc.w[1417] = IDENT("raise", lib);
-  sg__wc.w[503] = IDENT("make-who-condition", lib);
-  sg__wc.w[769] = IDENT("values", lib);
-  sg__wc.w[923] = IDENT("syntax-object-expr", lib);
-  sg__wc.w[1036] = IDENT("condition", lib);
+  sg__wc.w[612] = IDENT("current-exception-handler", lib);
   sg__wc.w[27] = IDENT("lexical-violation", lib);
-  sg__wc.w[964] = IDENT("make-who-condition", lib);
-  sg__wc.w[977] = IDENT("filter", lib);
-  sg__wc.w[1046] = IDENT("make-implementation-restriction-violation", lib);
-  sg__wc.w[35] = IDENT("error", lib);
-  sg__wc.w[897] = IDENT("wrapped-syntax-object?", lib);
-  sg__wc.w[1138] = IDENT("raise", lib);
-  sg__wc.w[1092] = IDENT("values", lib);
-  sg__wc.w[712] = IDENT("current-exception-handler", lib);
-  sg__wc.w[1408] = IDENT("list", lib);
-  sg__wc.w[1209] = IDENT("make-i/o-filename-error", lib);
-  sg__wc.w[1360] = IDENT("apply", lib);
-  sg__wc.w[221] = IDENT("record-type-field-names", lib);
-  sg__wc.w[1251] = IDENT("condition", lib);
-  sg__wc.w[204] = WORD(&sg__wc.cb[2]);
-sg__wc.cb[2].name = SYMBOL("loop");
-  sg__wc.w[654] = WORD(&sg__wc.cb[8]);
-sg__wc.cb[8].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[808] = IDENT("raise", lib);
-  sg__wc.w[332] = IDENT("record-type-field-names", lib);
-  sg__wc.w[1372] = IDENT("values", lib);
-  sg__wc.w[25] = WORD(&sg__wc.cb[14]);
-sg__wc.cb[14].name = SYMBOL("lexical-violation");
-  sg__wc.w[3] = IDENT("describe-condition", lib);
-  sg__wc.w[950] = IDENT("syntax-object-expr", lib);
-  sg__wc.w[558] = IDENT("describe-condition", lib);
-  sg__wc.w[49] = WORD(&sg__wc.cb[20]);
-sg__wc.cb[20].name = SYMBOL("raise-i/o-filename-error");
-  sg__wc.w[73] = WORD(&sg__wc.cb[26]);
-sg__wc.cb[26].name = SYMBOL("raise-i/o-file-protection-error");
-  sg__wc.w[97] = WORD(&sg__wc.cb[32]);
-sg__wc.cb[32].name = SYMBOL("raise-i/o-encoding-error");
-  sg__wc.w[670] = IDENT("current-exception-handler", lib);
-  sg__wc.w[51] = IDENT("raise-i/o-filename-error", lib);
-  sg__wc.w[1198] = IDENT("condition", lib);
-  sg__wc.w[1315] = IDENT("apply", lib);
-  sg__wc.w[1187] = IDENT("filter", lib);
-  sg__wc.w[1324] = IDENT("make-who-condition", lib);
-  sg__wc.w[55] = IDENT("raise-i/o-error", lib);
-  sg__wc.w[289] = IDENT("record-accessor", lib);
-  sg__wc.w[466] = IDENT("current-exception-handler", lib);
-  sg__wc.w[165] = STRINGW("~a~%");
-  sg__wc.w[1433] = IDENT("raise-misc-i/o-error-with-port", lib);
-  sg__wc.w[569] = IDENT("current-exception-handler", lib);
-  sg__wc.w[784] = IDENT("make-who-condition", lib);
-  sg__wc.w[591] = IDENT("scheme-error", lib);
-  sg__wc.w[939] = IDENT("identifier?", lib);
-  sg__wc.w[508] = STRINGW("returned from non-continuable exception");
-  sg__wc.w[95] = IDENT("raise-i/o-decoding-error", lib);
-  sg__wc.w[1061] = IDENT("make-message-condition", lib);
-  sg__wc.w[144] = IDENT("for-each", lib);
-  sg__wc.w[1025] = IDENT("filter", lib);
-  sg__wc.w[581] = STRINGW("error in raise-continuable: unhandled exception has occurred~%~%irritants:~%~a");
-  sg__wc.w[1255] = IDENT("values", lib);
-  sg__wc.w[1175] = IDENT("make-who-condition", lib);
-  sg__wc.w[1224] = IDENT("make-message-condition", lib);
-  sg__wc.w[7] = IDENT("raise", lib);
-  sg__wc.w[67] = IDENT("raise-i/o-read-error", lib);
-  sg__wc.w[754] = IDENT("filter", lib);
-  sg__wc.w[748] = IDENT("make-irritants-condition", lib);
-  sg__wc.w[1452] = IDENT("make-i/o-file-already-exists-error", lib);
-  sg__wc.w[75] = IDENT("raise-i/o-file-protection-error", lib);
-  sg__wc.w[545] = IDENT("scheme-error", lib);
-  sg__wc.w[983] = IDENT("raise", lib);
-  sg__wc.w[796] = IDENT("make-message-condition", lib);
-  sg__wc.w[1468] = IDENT("make-i/o-invalid-position-error", lib);
-  sg__wc.w[865] = IDENT("values", lib);
-  sg__wc.w[1077] = IDENT("filter", lib);
-  sg__wc.w[649] = WORD(&sg__wc.cb[7]);
-sg__wc.cb[7].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1071] = IDENT("make-irritants-condition", lib);
-  sg__wc.w[140] = WORD(&sg__wc.cb[1]);
-sg__wc.cb[1].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[21] = WORD(&sg__wc.cb[13]);
-sg__wc.cb[13].name = SYMBOL("undefined-violation");
-  sg__wc.w[661] = IDENT("dynamic-wind", lib);
-  sg__wc.w[45] = WORD(&sg__wc.cb[19]);
-sg__wc.cb[19].name = SYMBOL("assertion/syntax-violation");
+  sg__wc.w[547] = IDENT("scheme-error", lib);
+  sg__wc.w[832] = IDENT("filter", lib);
+  sg__wc.w[568] = IDENT("scheme-error", lib);
+  sg__wc.w[1] = WORD(&sg__wc.cb[0]);
+sg__wc.cb[0].name = SYMBOL("describe-condition");
+  sg__wc.w[152] = IDENT("format", lib);
+  sg__wc.w[634] = WORD(&sg__wc.cb[6]);
+sg__wc.cb[6].name = SYMBOL("new-current");
+  sg__wc.w[1217] = IDENT("make-i/o-error", lib);
+  sg__wc.w[17] = WORD(&sg__wc.cb[12]);
+sg__wc.cb[12].name = SYMBOL("assertion-violation");
+  sg__wc.w[1232] = IDENT("make-message-condition", lib);
+  sg__wc.w[41] = WORD(&sg__wc.cb[18]);
+sg__wc.cb[18].name = SYMBOL("undefined/syntax-violation");
+  sg__wc.w[843] = IDENT("condition", lib);
+  sg__wc.w[970] = IDENT("values", lib);
   sg__wc.w[69] = WORD(&sg__wc.cb[25]);
 sg__wc.cb[25].name = SYMBOL("raise-i/o-write-error");
   sg__wc.w[93] = WORD(&sg__wc.cb[31]);
 sg__wc.cb[31].name = SYMBOL("raise-i/o-decoding-error");
-  sg__wc.w[1111] = IDENT("make-undefined-violation", lib);
-  sg__wc.w[1380] = IDENT("apply", lib);
-  sg__wc.w[1389] = IDENT("make-who-condition", lib);
-  sg__wc.w[1303] = IDENT("condition", lib);
-  sg__wc.w[850] = IDENT("filter", lib);
-  sg__wc.w[1292] = IDENT("filter", lib);
-  sg__wc.w[1414] = IDENT("apply", lib);
-  sg__wc.w[122] = STRINGW("  #<condition~%");
-  sg__wc.w[799] = IDENT("list", lib);
+  sg__wc.w[1423] = IDENT("make-i/o-decoding-error", lib);
+  sg__wc.w[232] = IDENT("format", lib);
+  sg__wc.w[124] = IDENT("format", lib);
   sg__wc.w[115] = IDENT("open-string-output-port", lib);
-  sg__wc.w[696] = IDENT("parent-exception-handler", lib);
-  sg__wc.w[1019] = IDENT("make-irritants-condition", lib);
-  sg__wc.w[1270] = IDENT("make-who-condition", lib);
-  sg__wc.w[1126] = IDENT("make-message-condition", lib);
-  sg__wc.w[59] = IDENT("raise-misc-i/o-error-with-port", lib);
-  sg__wc.w[1240] = IDENT("filter", lib);
-  sg__wc.w[1193] = IDENT("raise", lib);
-  sg__wc.w[1449] = IDENT("raise-misc-i/o-error-with-port", lib);
-  sg__wc.w[1339] = IDENT("make-i/o-port-error", lib);
-  sg__wc.w[244] = IDENT("format", lib);
-  sg__wc.w[444] = IDENT("record-type-name", lib);
-  sg__wc.w[805] = IDENT("apply", lib);
-  sg__wc.w[15] = IDENT("with-exception-handler", lib);
-  sg__wc.w[856] = IDENT("raise", lib);
-  sg__wc.w[1031] = IDENT("raise", lib);
-  sg__wc.w[992] = IDENT("values", lib);
-  sg__wc.w[904] = IDENT("unwrap-syntax", lib);
-  sg__wc.w[1135] = IDENT("apply", lib);
-  sg__wc.w[699] = IDENT("current-exception-handler", lib);
-  sg__wc.w[1289] = IDENT("list", lib);
-  sg__wc.w[1129] = IDENT("list", lib);
-  sg__wc.w[1083] = IDENT("raise", lib);
-  sg__wc.w[1] = WORD(&sg__wc.cb[0]);
-sg__wc.cb[0].name = SYMBOL("describe-condition");
-  sg__wc.w[616] = WORD(&sg__wc.cb[6]);
-sg__wc.cb[6].name = SYMBOL("new-current");
-  sg__wc.w[17] = WORD(&sg__wc.cb[12]);
-sg__wc.cb[12].name = SYMBOL("assertion-violation");
-  sg__wc.w[41] = WORD(&sg__wc.cb[18]);
-sg__wc.cb[18].name = SYMBOL("undefined/syntax-violation");
+  sg__wc.w[703] = IDENT("parent-exception-handler", lib);
+  sg__wc.w[274] = IDENT("string?", lib);
+  sg__wc.w[576] = IDENT("current-exception-handler", lib);
+  sg__wc.w[168] = IDENT("format", lib);
+  sg__wc.w[1130] = IDENT("make-assertion-violation", lib);
+  sg__wc.w[1242] = IDENT("make-irritants-condition", lib);
+  sg__wc.w[1145] = IDENT("make-message-condition", lib);
+  sg__wc.w[791] = IDENT("apply", lib);
+  sg__wc.w[1005] = IDENT("raise", lib);
+  sg__wc.w[1366] = IDENT("make-i/o-read-error", lib);
+  sg__wc.w[501] = SYMBOLW("raise");
+  sg__wc.w[532] = SYMBOLW("raise");
+  sg__wc.w[553] = SYMBOLW("raise");
+  sg__wc.w[983] = IDENT("make-who-condition", lib);
+  sg__wc.w[1178] = IDENT("make-who-condition", lib);
+  sg__wc.w[1079] = IDENT("make-undefined-violation", lib);
+  sg__wc.w[55] = IDENT("raise-i/o-error", lib);
+  sg__wc.w[1094] = IDENT("make-message-condition", lib);
+  sg__wc.w[241] = STRINGW(" ~a");
+  sg__wc.w[1437] = IDENT("raise-misc-i/o-error", lib);
+  sg__wc.w[510] = IDENT("make-message-condition", lib);
+  sg__wc.w[784] = IDENT("make-message-condition", lib);
+  sg__wc.w[629] = IDENT("current-exception-handler", lib);
+  sg__wc.w[877] = IDENT("wrapped-syntax-object?", lib);
+  sg__wc.w[676] = IDENT("dynamic-wind", lib);
+  sg__wc.w[715] = IDENT("values", lib);
+  sg__wc.w[1209] = IDENT("condition", lib);
+  sg__wc.w[1113] = IDENT("values", lib);
+  sg__wc.w[597] = IDENT("describe-condition", lib);
+  sg__wc.w[763] = IDENT("make-undefined-violation", lib);
+  sg__wc.w[1062] = IDENT("values", lib);
+  sg__wc.w[1406] = IDENT("make-i/o-file-does-not-exist-error", lib);
+  sg__wc.w[13] = WORD(&sg__wc.cb[5]);
+sg__wc.cb[5].name = SYMBOL("with-exception-handler");
+  sg__wc.w[1379] = IDENT("raise-misc-i/o-error-with-port", lib);
+  sg__wc.w[427] = IDENT("record-type-parent", lib);
+  sg__wc.w[646] = WORD(&sg__wc.cb[11]);
+sg__wc.cb[11].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[61] = WORD(&sg__wc.cb[23]);
+sg__wc.cb[23].name = SYMBOL("raise-misc-i/o-error");
+  sg__wc.w[37] = WORD(&sg__wc.cb[17]);
+sg__wc.cb[17].name = SYMBOL("implementation-restriction-violation");
+  sg__wc.w[1390] = IDENT("make-i/o-file-is-read-only-error", lib);
   sg__wc.w[65] = WORD(&sg__wc.cb[24]);
 sg__wc.cb[24].name = SYMBOL("raise-i/o-read-error");
-  sg__wc.w[721] = IDENT("values", lib);
-  sg__wc.w[274] = IDENT("string?", lib);
   sg__wc.w[89] = WORD(&sg__wc.cb[30]);
 sg__wc.cb[30].name = SYMBOL("raise-i/o-invalid-position-error");
-  sg__wc.w[458] = IDENT("reverse", lib);
-  sg__wc.w[1428] = IDENT("make-i/o-write-error", lib);
-  sg__wc.w[914] = IDENT("identifier?", lib);
-  sg__wc.w[510] = IDENT("make-message-condition", lib);
-  sg__wc.w[1465] = IDENT("raise-misc-i/o-error", lib);
-  sg__wc.w[542] = IDENT("describe-condition", lib);
-  sg__wc.w[124] = IDENT("format", lib);
-  sg__wc.w[600] = IDENT("current-exception-handler", lib);
-  sg__wc.w[690] = IDENT("current-exception-handler", lib);
-  sg__wc.w[1147] = IDENT("values", lib);
-  sg__wc.w[1246] = IDENT("raise", lib);
-  sg__wc.w[1357] = IDENT("filter", lib);
-  sg__wc.w[760] = IDENT("raise", lib);
-  sg__wc.w[1330] = IDENT("make-message-condition", lib);
-  sg__wc.w[736] = IDENT("make-who-condition", lib);
-  sg__wc.w[83] = IDENT("raise-i/o-file-already-exists-error", lib);
-  sg__wc.w[1298] = IDENT("raise", lib);
-  sg__wc.w[817] = IDENT("values", lib);
-  sg__wc.w[1368] = IDENT("condition", lib);
-  sg__wc.w[775] = IDENT("make-undefined-violation", lib);
-  sg__wc.w[980] = IDENT("apply", lib);
-  sg__wc.w[971] = IDENT("make-message-condition", lib);
-  sg__wc.w[371] = IDENT("record-accessor", lib);
-  sg__wc.w[974] = IDENT("list", lib);
-  sg__wc.w[685] = IDENT("parent-exception-handler", lib);
+  sg__wc.w[694] = IDENT("parent-exception-handler", lib);
+  sg__wc.w[133] = IDENT("simple-conditions", lib);
   sg__wc.w[379] = IDENT("string?", lib);
+  sg__wc.w[659] = IDENT("current-exception-handler", lib);
+  sg__wc.w[803] = IDENT("values", lib);
+  sg__wc.w[11] = IDENT("raise-continuable", lib);
+  sg__wc.w[750] = IDENT("raise", lib);
+  sg__wc.w[1050] = IDENT("apply", lib);
+  sg__wc.w[894] = IDENT("identifier?", lib);
+  sg__wc.w[1155] = IDENT("raise", lib);
+  sg__wc.w[728] = IDENT("make-who-condition", lib);
+  sg__wc.w[31] = IDENT("syntax-violation", lib);
+  sg__wc.w[83] = IDENT("raise-i/o-file-already-exists-error", lib);
+  sg__wc.w[951] = IDENT("make-message-condition", lib);
+  sg__wc.w[955] = IDENT("filter", lib);
+  sg__wc.w[1310] = IDENT("apply", lib);
+  sg__wc.w[1201] = IDENT("apply", lib);
+  sg__wc.w[1104] = IDENT("raise", lib);
+  sg__wc.w[1276] = IDENT("make-who-condition", lib);
+  sg__wc.w[1420] = IDENT("raise-misc-i/o-error-with-port", lib);
+  sg__wc.w[75] = IDENT("raise-i/o-file-protection-error", lib);
+  sg__wc.w[1360] = IDENT("apply", lib);
+  sg__wc.w[106] = IDENT("condition?", lib);
+  sg__wc.w[244] = IDENT("format", lib);
+  sg__wc.w[521] = IDENT("condition", lib);
+  sg__wc.w[838] = IDENT("raise", lib);
+  sg__wc.w[312] = IDENT("format", lib);
+  sg__wc.w[816] = IDENT("make-who-condition", lib);
+  sg__wc.w[1018] = IDENT("make-implementation-restriction-violation", lib);
+  sg__wc.w[150] = STRINGW("~%   >");
+  sg__wc.w[1033] = IDENT("make-message-condition", lib);
+  sg__wc.w[755] = IDENT("condition", lib);
+  sg__wc.w[1267] = IDENT("apply", lib);
+  sg__wc.w[1169] = IDENT("make-i/o-filename-error", lib);
+  sg__wc.w[279] = STRINGW(": ~a");
+  sg__wc.w[9] = WORD(&sg__wc.cb[4]);
+sg__wc.cb[4].name = SYMBOL("raise-continuable");
+  sg__wc.w[640] = WORD(&sg__wc.cb[10]);
+sg__wc.cb[10].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[33] = WORD(&sg__wc.cb[16]);
+sg__wc.cb[16].name = SYMBOL("error");
+  sg__wc.w[518] = IDENT("make-irritants-condition", lib);
+  sg__wc.w[57] = WORD(&sg__wc.cb[22]);
+sg__wc.cb[22].name = SYMBOL("raise-misc-i/o-error-with-port");
+  sg__wc.w[144] = IDENT("for-each", lib);
+  sg__wc.w[178] = IDENT("record-rtd", lib);
+  sg__wc.w[399] = STRINGW("~%     ~a: ~a");
+  sg__wc.w[161] = IDENT("format", lib);
+  sg__wc.w[85] = WORD(&sg__wc.cb[29]);
+sg__wc.cb[29].name = SYMBOL("raise-i/o-file-does-not-exist-error");
+  sg__wc.w[1246] = IDENT("filter", lib);
+  sg__wc.w[828] = IDENT("make-message-condition", lib);
+  sg__wc.w[1043] = IDENT("make-irritants-condition", lib);
+  sg__wc.w[557] = STRINGW("unhandled exception has occurred~%~%irritants:~%~a");
+  sg__wc.w[1002] = IDENT("apply", lib);
+  sg__wc.w[1291] = IDENT("make-i/o-port-error", lib);
+  sg__wc.w[1252] = IDENT("raise", lib);
+  sg__wc.w[1431] = IDENT("make-i/o-encoding-error", lib);
+  sg__wc.w[483] = IDENT("parent-exception-handler", lib);
+  sg__wc.w[371] = IDENT("record-accessor", lib);
+  sg__wc.w[293] = IDENT("format", lib);
+  sg__wc.w[544] = IDENT("format", lib);
+  sg__wc.w[706] = IDENT("current-exception-handler", lib);
+  sg__wc.w[1010] = IDENT("condition", lib);
+  sg__wc.w[154] = STRINGW("~a~%");
+  sg__wc.w[680] = IDENT("current-exception-handler", lib);
+  sg__wc.w[603] = IDENT("scheme-error", lib);
+  sg__wc.w[508] = STRINGW("returned from non-continuable exception");
+  sg__wc.w[847] = IDENT("values", lib);
+  sg__wc.w[1257] = IDENT("condition", lib);
+  sg__wc.w[1160] = IDENT("condition", lib);
+  sg__wc.w[974] = IDENT("make-error", lib);
+  sg__wc.w[989] = IDENT("make-message-condition", lib);
+  sg__wc.w[1184] = IDENT("make-message-condition", lib);
+  sg__wc.w[1374] = IDENT("make-i/o-write-error", lib);
+  sg__wc.w[95] = IDENT("raise-i/o-decoding-error", lib);
+  sg__wc.w[1318] = IDENT("condition", lib);
+  sg__wc.w[266] = IDENT("record-accessor", lib);
+  sg__wc.w[496] = IDENT("make-non-continuable-violation", lib);
+  sg__wc.w[405] = IDENT("format", lib);
+  sg__wc.w[565] = IDENT("format", lib);
+  sg__wc.w[884] = IDENT("unwrap-syntax", lib);
+  sg__wc.w[747] = IDENT("apply", lib);
+  sg__wc.w[1152] = IDENT("apply", lib);
+  sg__wc.w[5] = WORD(&sg__wc.cb[3]);
+sg__wc.cb[3].name = SYMBOL("raise");
+  sg__wc.w[673] = WORD(&sg__wc.cb[9]);
+sg__wc.cb[9].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[23] = IDENT("undefined-violation", lib);
+  sg__wc.w[1337] = IDENT("make-who-condition", lib);
+  sg__wc.w[53] = WORD(&sg__wc.cb[21]);
+sg__wc.cb[21].name = SYMBOL("raise-i/o-error");
+  sg__wc.w[961] = IDENT("raise", lib);
+  sg__wc.w[29] = WORD(&sg__wc.cb[15]);
+sg__wc.cb[15].name = SYMBOL("syntax-violation");
+  sg__wc.w[788] = IDENT("filter", lib);
+  sg__wc.w[1403] = IDENT("raise-misc-i/o-error", lib);
+  sg__wc.w[67] = IDENT("raise-i/o-read-error", lib);
+  sg__wc.w[1101] = IDENT("apply", lib);
+  sg__wc.w[81] = WORD(&sg__wc.cb[28]);
+sg__wc.cb[28].name = SYMBOL("raise-i/o-file-already-exists-error");
+  sg__wc.w[1414] = IDENT("make-i/o-invalid-position-error", lib);
+  sg__wc.w[1194] = IDENT("make-irritants-condition", lib);
+  sg__wc.w[1387] = IDENT("raise-misc-i/o-error", lib);
+  sg__wc.w[458] = IDENT("reverse", lib);
+  sg__wc.w[697] = IDENT("current-exception-handler", lib);
+  sg__wc.w[392] = IDENT("format", lib);
+  sg__wc.w[835] = IDENT("apply", lib);
+  sg__wc.w[719] = IDENT("make-assertion-violation", lib);
+  sg__wc.w[906] = IDENT("original-id", lib);
+  sg__wc.w[1213] = IDENT("values", lib);
+  sg__wc.w[734] = IDENT("make-message-condition", lib);
+  sg__wc.w[1125] = IDENT("make-syntax-violation", lib);
+  sg__wc.w[1328] = IDENT("apply", lib);
+  sg__wc.w[933] = IDENT("original-id", lib);
+  sg__wc.w[688] = IDENT("current-exception-handler", lib);
+  sg__wc.w[87] = IDENT("raise-i/o-file-does-not-exist-error", lib);
+  sg__wc.w[966] = IDENT("condition", lib);
+  sg__wc.w[1074] = IDENT("make-syntax-violation", lib);
+  sg__wc.w[1282] = IDENT("make-message-condition", lib);
+  sg__wc.w[229] = STRINGW("~%    ~a");
+  sg__wc.w[79] = IDENT("raise-i/o-file-is-read-only-error", lib);
+  sg__wc.w[39] = IDENT("implementation-restriction-violation", lib);
+  sg__wc.w[541] = IDENT("describe-condition", lib);
+  sg__wc.w[807] = IDENT("make-lexical-violation", lib);
+  sg__wc.w[308] = IDENT("record-accessor", lib);
+  sg__wc.w[1047] = IDENT("filter", lib);
+  sg__wc.w[7] = IDENT("raise", lib);
+  sg__wc.w[1226] = IDENT("make-who-condition", lib);
+  sg__wc.w[59] = IDENT("raise-misc-i/o-error-with-port", lib);
+  sg__wc.w[51] = IDENT("raise-i/o-filename-error", lib);
+  sg__wc.w[592] = STRINGW("unhandled exception has occurred~%~%irritants:~%~a");
+  sg__wc.w[1307] = IDENT("filter", lib);
+  sg__wc.w[204] = WORD(&sg__wc.cb[2]);
+sg__wc.cb[2].name = SYMBOL("loop");
+  sg__wc.w[1198] = IDENT("filter", lib);
+  sg__wc.w[669] = WORD(&sg__wc.cb[8]);
+sg__wc.cb[8].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[47] = IDENT("assertion/syntax-violation", lib);
+  sg__wc.w[25] = WORD(&sg__wc.cb[14]);
+sg__wc.cb[14].name = SYMBOL("lexical-violation");
+  sg__wc.w[63] = IDENT("raise-misc-i/o-error", lib);
+  sg__wc.w[190] = IDENT("record-type-name", lib);
+  sg__wc.w[444] = IDENT("record-type-name", lib);
+  sg__wc.w[49] = WORD(&sg__wc.cb[20]);
+sg__wc.cb[20].name = SYMBOL("raise-i/o-filename-error");
+  sg__wc.w[335] = IDENT("vector->list", lib);
+  sg__wc.w[1249] = IDENT("apply", lib);
+  sg__wc.w[1357] = IDENT("filter", lib);
+  sg__wc.w[77] = WORD(&sg__wc.cb[27]);
+sg__wc.cb[27].name = SYMBOL("raise-i/o-file-is-read-only-error");
+  sg__wc.w[503] = IDENT("make-who-condition", lib);
+  sg__wc.w[562] = IDENT("describe-condition", lib);
+  sg__wc.w[711] = IDENT("condition", lib);
+  sg__wc.w[1109] = IDENT("condition", lib);
+  sg__wc.w[165] = STRINGW("~a~%");
+  sg__wc.w[944] = IDENT("make-who-condition", lib);
+  sg__wc.w[1139] = IDENT("make-who-condition", lib);
+  sg__wc.w[759] = IDENT("values", lib);
+  sg__wc.w[1058] = IDENT("condition", lib);
+  sg__wc.w[1088] = IDENT("make-who-condition", lib);
+  sg__wc.w[1303] = IDENT("make-irritants-condition", lib);
+  sg__wc.w[1428] = IDENT("raise-misc-i/o-error", lib);
+  sg__wc.w[799] = IDENT("condition", lib);
+  sg__wc.w[289] = IDENT("record-accessor", lib);
+  sg__wc.w[903] = IDENT("syntax-object-expr", lib);
+  sg__wc.w[930] = IDENT("syntax-object-expr", lib);
+  sg__wc.w[794] = IDENT("raise", lib);
+  sg__wc.w[958] = IDENT("apply", lib);
+  sg__wc.w[1398] = IDENT("make-i/o-file-already-exists-error", lib);
+  sg__wc.w[35] = IDENT("error", lib);
+  sg__wc.w[1371] = IDENT("raise-misc-i/o-error-with-port", lib);
+  sg__wc.w[868] = IDENT("make-who-condition", lib);
+  sg__wc.w[772] = IDENT("make-who-condition", lib);
+  sg__wc.w[999] = IDENT("filter", lib);
+  sg__wc.w[122] = STRINGW("  #<condition~%");
+  sg__wc.w[995] = IDENT("make-irritants-condition", lib);
+  sg__wc.w[1382] = IDENT("make-i/o-file-protection-error", lib);
+  sg__wc.w[3] = IDENT("describe-condition", lib);
+  sg__wc.w[221] = IDENT("record-type-field-names", lib);
+  sg__wc.w[99] = IDENT("raise-i/o-encoding-error", lib);
+  sg__wc.w[466] = IDENT("current-exception-handler", lib);
+  sg__wc.w[298] = STRINGW(": ~a");
+  sg__wc.w[140] = WORD(&sg__wc.cb[1]);
+sg__wc.cb[1].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[664] = WORD(&sg__wc.cb[7]);
+sg__wc.cb[7].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[21] = WORD(&sg__wc.cb[13]);
+sg__wc.cb[13].name = SYMBOL("undefined-violation");
+  sg__wc.w[45] = WORD(&sg__wc.cb[19]);
+sg__wc.cb[19].name = SYMBOL("assertion/syntax-violation");
+  sg__wc.w[624] = IDENT("parent-exception-handler", lib);
+  sg__wc.w[1014] = IDENT("values", lib);
+  sg__wc.w[73] = WORD(&sg__wc.cb[26]);
+sg__wc.cb[26].name = SYMBOL("raise-i/o-file-protection-error");
+  sg__wc.w[97] = WORD(&sg__wc.cb[32]);
+sg__wc.cb[32].name = SYMBOL("raise-i/o-encoding-error");
+  sg__wc.w[1343] = IDENT("make-message-condition", lib);
+  sg__wc.w[859] = IDENT("make-syntax-violation", lib);
+  sg__wc.w[1411] = IDENT("raise-misc-i/o-error", lib);
+  sg__wc.w[71] = IDENT("raise-i/o-write-error", lib);
+  sg__wc.w[1261] = IDENT("values", lib);
+  sg__wc.w[1164] = IDENT("values", lib);
+  sg__wc.w[1322] = IDENT("values", lib);
+  sg__wc.w[1395] = IDENT("raise-misc-i/o-error-with-port", lib);
+  sg__wc.w[649] = IDENT("dynamic-wind", lib);
+  sg__wc.w[15] = IDENT("with-exception-handler", lib);
+  sg__wc.w[19] = IDENT("assertion-violation", lib);
+  sg__wc.w[588] = SYMBOLW("raise-continuable");
+  sg__wc.w[744] = IDENT("filter", lib);
+  sg__wc.w[386] = STRINGW("~%     ~a: ~a");
+  sg__wc.w[1053] = IDENT("raise", lib);
+  sg__wc.w[1149] = IDENT("filter", lib);
+  sg__wc.w[740] = IDENT("make-irritants-condition", lib);
+  sg__wc.w[919] = IDENT("identifier?", lib);
+  sg__wc.w[1027] = IDENT("make-who-condition", lib);
+  sg__wc.w[43] = IDENT("undefined/syntax-violation", lib);
+  sg__wc.w[600] = IDENT("format", lib);
+  sg__wc.w[1353] = IDENT("make-irritants-condition", lib);
+  sg__wc.w[536] = STRINGW("returned from non-continuable exception~%~%irritants:~%~a");
+  sg__wc.w[1313] = IDENT("raise", lib);
+  sg__wc.w[1098] = IDENT("filter", lib);
+  sg__wc.w[1204] = IDENT("raise", lib);
+  sg__wc.w[91] = IDENT("raise-i/o-invalid-position-error", lib);
+  sg__wc.w[1300] = IDENT("cons*", lib);
+  sg__wc.w[332] = IDENT("record-type-field-names", lib);
+  sg__wc.w[1363] = IDENT("raise", lib);
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(sagittarius)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(core base)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("null")));

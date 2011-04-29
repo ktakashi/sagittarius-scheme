@@ -24,7 +24,9 @@
 	    max min
 	    + +. - -. * *. / /. ;; added special operation from Gauche
 	    abs div-and-mod div mod
-	    div0-and-mod0 div0 mod0
+	    div0 mod0
+	    ;;div0-and-mod0 this is in arith.scm
+	    
 	    %gcd ;; real r6rs implementation is in scmlib.scm
 	    numerator denominator 
 	    floor ceiling truncate round
@@ -369,18 +371,26 @@
   (define-cgen-stmt assertion-violation
     ((_ who msg)
      (dispatch
-      `(Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) '())))
+      `(begin
+	 (Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) '())
+	 (return SG_UNDEF))))
     ((_ who msg irritants)
      (dispatch
-      `(Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,irritants))))
+      `(begin
+	 (Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,irritants)
+	 (return SG_UNDEF)))))
 
   (define-cgen-stmt wrong-type-of-argument-violation
     ((_ who msg got)
      (dispatch
-      `(Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got '())))
+      `(begin
+	 (Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got '())
+	 (return SG_UNDEF))))
     ((_ who msg got irritants)
      (dispatch
-      `(Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got ,irritants))))
+      `(begin
+	 (Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got ,irritants)
+	 (return SG_UNDEF)))))
 
   ;; x=? macro
   (define-cgen-stmt x=?
@@ -595,16 +605,26 @@
   (define-c-proc denominator (x::number) ::Object
     (result (Sg_Denominator x)))
 
+  (define-cgen-stmt check-real-valued
+    ((_ name n)
+     (dispatch
+      `(unless (Sg_RealValuedP ,n)
+	 (wrong-type-of-argument-violation ',name "real number" ,n)))))
+
   (define-c-proc floor (x::number) ::Object
+    (check-real-valued floor x)
     (result (Sg_Round x SG_ROUND_FLOOR)))
 
   (define-c-proc ceiling (x::number) ::Object
+    (check-real-valued ceiling x)
     (result (Sg_Round x SG_ROUND_CEIL)))
 
   (define-c-proc truncate (x::number) ::Object
+    (check-real-valued truncate x)
     (result (Sg_Round x SG_ROUND_TRUNC)))
 
   (define-c-proc round (x::number) ::Object
+    (check-real-valued round x)
     (result (Sg_Round x SG_ROUND_ROUND)))
 
   (define-c-proc div (x::number y::number) ::Object
@@ -613,10 +633,38 @@
   (define-c-proc mod (x::number y::number) ::Object
     (result (Sg_IntegerMod x y)))
 
+  (define-cgen-stmt check-finite
+    ((_ name n)
+     (dispatch
+      `(unless (Sg_FiniteP ,n)
+	 (wrong-type-of-argument-violation ',name "finite" ,n)))))
+
+  (define-cgen-stmt check-not-nan
+    ((_ name n)
+     (dispatch
+      `(when (Sg_NanP ,n)
+	 (wrong-type-of-argument-violation ',name "non nan" ,n)))))
+
+  (define-cgen-stmt check-not-zero
+    ((_ name n)
+     (dispatch
+      `(when (Sg_ZeroP ,n)
+	 (wrong-type-of-argument-violation ',name "not zero" ,n)))))
+
+  (define-cgen-stmt check-integer-arith-argument
+    ((_ name x y)
+     (dispatch
+      `(begin
+	 (check-finite ,name ,x)
+	 (check-not-nan ,name ,x)
+	 (check-not-zero ,name ,y)))))
+
   (define-c-proc div0 (x::number y::number) ::Object
+    (check-integer-arith-argument div0 x y)
     (result (Sg_IntegerDiv0 x y)))
 
   (define-c-proc mod0 (x::number y::number) ::Object
+    (check-integer-arith-argument mod0 x y)
     (result (Sg_IntegerMod0 x y)))
 
   ;; takes 2. r6rs implementation is in scmlib.scm
@@ -627,7 +675,9 @@
     (result (Sg_Exp x)))
 
   (define-c-proc expt (x::number y::number) ::Object
-    (result (Sg_Expt x y)))
+    (if (Sg_ZeroP x)
+	(result SG_UNDEF)
+	(result (Sg_Expt x y))))
 
   (define-c-proc log (x::number :optional (base::number SG_UNBOUND)) ::Object
     (if (SG_UNBOUNDP base)
@@ -663,13 +713,7 @@
 	  ((SG_REALP r)
 	   (result (SG_MAKE_INT 0)))
 	  (else
-	   (wrong-type-of-argument-violation 'imag-part "number required" r))))
-
-  (define-cgen-stmt check-real-valued
-    ((_ name n)
-     (dispatch
-      `(unless (Sg_RealValuedP ,n)
-	 (wrong-type-of-argument-violation ',name "real number" ,n)))))
+	   (wrong-type-of-argument-violation 'imag-part "number required" r))))  
 
   (define-c-proc magnitude (n::number) ::Object
     (result (Sg_Magnitude n)))
@@ -898,12 +942,12 @@
     (result (SG_MAKE_INT (SG_CHAR_VALUE c))))
 
   (define-c-proc integer->char (ch::fixnum) ::Object
-    (unless (and (<= 0 ch)
-		 (<= ch #xD7FF))
-      (assertion-violation 'integer->char "code point out of range" ch))
-    (unless (and (<= #xE000 ch)
-		 (<= ch #x10FFFF))
-      (assertion-violation 'integer->char "code point out of range" ch))
+    (unless (or (and (<= 0 ch)
+		     (<= ch #xD7FF))
+		(and (<= #xE000 ch)
+		     (<= ch #x10FFFF)))
+      (assertion-violation 'integer->char "code point out of range"
+			   (SG_MAKE_INT ch)))
     (result (SG_MAKE_CHAR ch)))
 
   (define-c-proc char=? (c1 c2 :rest rest) ::boolean
@@ -1086,7 +1130,7 @@
 
   ;; we might remove this
   (define-c-proc scheme-error (who msg :rest irritant) ::void
-    (Sg_Error "%S %S %S" who msg irritant))
+    (Sg_Error "%S %A %S" who msg irritant))
 
   (define-c-proc syntax-error (form :rest irritant) ::void
     (Sg_SyntaxError form irritant))
@@ -1103,7 +1147,8 @@
 		 (SG_APPEND head tail (SG_CAR cp))
 		 (break))
 	       (unless (SG_PAIRP (SG_CDR cp))
-		 (assertion-violation 'apply "improper list not allowed" (SG_CDR cp)))
+		 (assertion-violation 'apply "improper list not allowed"
+				      rest))
 	       (SG_APPEND1 head tail (SG_CAR cp)))
 	     (result (Sg_VMApply proc head))))))
 

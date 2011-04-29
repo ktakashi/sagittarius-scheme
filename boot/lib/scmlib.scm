@@ -41,18 +41,16 @@
 ;; er-macro-transformer
 (define er-macro-transformer
   (lambda (f)
+    ;; expression should have use-env and mac-env
+    ;; use-env: eval time environment = expand phase environment
+    ;; mac-env: binging time environment.
     (lambda (expr)
-      (let ((dict (make-eq-hashtable)))
-	(define (rename s) (er-rename s (cdr expr) dict))
+      (let ((dict (make-eq-hashtable))
+	    (use-env&mac-env (cdr expr)))
+	(define (rename s) (er-rename s (cdr use-env&mac-env) dict))
 	(define (compare a b)
-	  (or (eq? a b)
-	      (cond ((and (symbol? a)
-			  (identifier? b))
-		     (eq? (rename a) b))
-		    ((and (identifier? a)
-			  (symbol? b))
-		     (eq? a (rename b)))
-		    (else #f))))
+	  (identifier=? (car use-env&mac-env) a
+			(cdr use-env&mac-env) b))
 	(f (car expr) rename compare)))))
 
 (define safe-length

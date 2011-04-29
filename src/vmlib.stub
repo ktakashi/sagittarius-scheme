@@ -102,11 +102,11 @@
   (define-c-proc macro? (obj) ::boolean
     (result (SG_MACROP obj)))
 
-  (define-c-proc make-macro (name transformer data :optional (maybe_library #f)) ::Object
-    (result (Sg_MakeMacro name transformer data maybe_library)))
+  (define-c-proc make-macro (name transformer data p1env :optional (maybe_library #f)) ::Object
+    (result (Sg_MakeMacro name transformer data p1env maybe_library)))
 
-  (define-c-proc make-macro-transformer (name proc library) ::Object
-    (result (Sg_MakeMacroTransformer name proc library)))
+  (define-c-proc make-macro-transformer (name proc p1env library) ::Object
+    (result (Sg_MakeMacroTransformer name proc p1env library)))
 
   (define-c-proc call-macro-expander (macro::Macro expr p1env) ::Object
     (result (Sg_Apply (-> macro transformer)

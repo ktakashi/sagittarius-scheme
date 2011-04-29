@@ -4,6 +4,13 @@
 (define (gloc-ref g) g)
 (define (gloc-bound? g) #t)
 
+;; for declare-procedure
+(define (parse-type type)
+  (if (and (pair? type)
+	   (= (length type) 2))
+      (cadr type)
+      #f))
+
 ;; this file is the collection of vm procedure.
 ;; these procedure must be written in C++
 (define (insn-name insn)
@@ -100,7 +107,6 @@
   (lambda (id sym env)
     (let ((bf (get-binding-frame sym env)))
       (eq? bf (id-envs id)))))
-
 
 ;; Sagittarius library systam
 ;; Top libraries
@@ -327,18 +333,22 @@
 
 
 
-(define (make-macro name transformer data . maybe-library)
-  (vector 'type:macro name transformer data (if (null? maybe-library)
-						#f
-						(car maybe-library))))
+(define (make-macro name transformer data env . maybe-library)
+  (vector 'type:macro name transformer data env
+	  (if (null? maybe-library)
+	      #f
+	      (car maybe-library))))
+
 (define (macro-name m)
   (vector-ref m 1))
 (define (macro-transformer m)
   (vector-ref m 2))
 (define (macro-data m)
   (vector-ref m 3))
-(define (macro-library m)
+(define (macro-env m)
   (vector-ref m 4))
+(define (macro-library m)
+  (vector-ref m 5))
 (define (macro? m)
   (and (vector? m) (eq? (vector-ref m 0) 'type:macro)))
 (define (call-macro-expander macro expr p1env)
@@ -351,15 +361,16 @@
 ;; for er-macro-transformer
 (define macro-transform
   (lambda (self form p1env data)
-    (let ((expander (apply-proc data '())))
-      (apply-proc expander (list (cons form p1env)))
+    (let ((expander (apply-proc data '()))
+	  (mac-env  (macro-env self)))
+      (apply-proc expander (list (cons form (cons p1env mac-env))))
       #;(if (macro? expander)
 	  ((macro-transformer expander) expander form p1env (macro-data expander))
 	  (apply-proc expander (list (cons form p1env)))))))
 
 (define make-macro-transformer
-  (lambda (name proc library)
-    (make-macro name macro-transform proc library)))
+  (lambda (name proc env library)
+    (make-macro name macro-transform proc env library)))
 
 (define %internal-macro-expand
   (lambda (expr p1env once?)

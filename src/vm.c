@@ -1228,6 +1228,7 @@ static void process_queued_requests(SgVM *vm)
       Sg_AssertionViolation(SG_INTERN("vm"),				\
 			    Sg_Sprintf(UC("unbound variable %S")),	\
 			    var);					\
+      return SG_UNDEF;							\
     }									\
     ASSERT(SG_GLOCP(value));						\
     g = SG_GLOC(value);							\

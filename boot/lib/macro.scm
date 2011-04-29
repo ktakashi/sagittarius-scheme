@@ -309,9 +309,12 @@
     ;; direct expression from define-syntax has p1env, so we need to unwrap it,
     ;; however if expression was defined by user or something, it doesn't have
     ;; it. so we need to check if it has ir or not.
+    ;; expression is (expr . (use-env . mac-env))
     (let ((form (if (and (pair? expr)
-			 (p1env? (cdr expr)))
-		    (wrap-syntax (car expr) (cdr expr))
+			 (pair? (cdr expr))
+			 (p1env? (cadr expr))
+			 (p1env? (cddr expr)))
+		    (wrap-syntax (car expr) (cadr expr))
 		    expr)))
       (define match
 	(lambda (form pat)
@@ -723,7 +726,9 @@
   (make-macro 'variable-transformer
 	      (lambda (m expr p1env data)
 		(proc (wrap-syntax expr p1env)))
-	      '()))
+	      '()
+	      ;; TODO it might be wrong.
+	      `#(,(vm-current-library) () #f #f)))
 
 
 ;; toplevel variables

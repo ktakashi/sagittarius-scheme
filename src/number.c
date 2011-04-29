@@ -3120,7 +3120,7 @@ SgObject Sg_Round(SgObject num, int mode)
       break;
     case SG_ROUND_ROUND: {
       SgObject rem2 = Sg_Mul(Sg_Abs(rem), SG_MAKE_INT(2));
-      int cmp = Sg_NumCmp(SG_RATIONAL(num)->denominator, &rem2);
+      int cmp = Sg_NumCmp(SG_RATIONAL(num)->denominator, rem2);
       if (cmp > 0) {
 	/* NUM is closer to zero than halfway */
 	offset = 0;
@@ -3135,6 +3135,7 @@ SgObject Sg_Round(SgObject num, int mode)
 	  offset = 0;
 	}
       }
+      break;
     }
     default:
       Sg_Panic("something screwed up");
