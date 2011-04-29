@@ -8,18 +8,27 @@
 (define-cgen-stmt assertion-violation
     ((_ who msg)
      (dispatch
-      `(Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) '())))
+      `(begin
+	 (Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) '())
+	 (return SG_UNDEF))))
     ((_ who msg irritants)
      (dispatch
-      `(Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,irritants))))
+      `(begin
+	 (Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,irritants)
+	 (return SG_UNDEF)))))
+      
 
 (define-cgen-stmt wrong-type-of-argument-violation
     ((_ who msg got)
      (dispatch
-      `(Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got '())))
+      `(begin
+	 (Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got '())
+	 (return SG_UNDEF))))
     ((_ who msg got irritants)
      (dispatch
-      `(Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got ,irritants))))
+      `(begin
+	 (Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got ,irritants)
+	 (return SG_UNDEF)))))
 
 ;; utility statement.
 (define-cgen-stmt for
@@ -605,7 +614,7 @@ CASE(LSET) {
 	NEXT;
       }
 |#
-(define-inst APPLY (0 0 #f)
+(define-inst APPLY (1 0 #f)
   (let ((args (POP (SP vm))))
     (cond ((SG_NULLP args)
 	   (set! (-> vm (arrayref callCode 0)) (MERGE_INSN_VALUE1 CALL 0))
@@ -615,9 +624,9 @@ CASE(LSET) {
 		 (shiftLen::int 0)
 		 (sp::SgObject* NULL))
 	     (if (not (SG_PAIRP args))
-		 (Sg_AssertionViolation (Sg_Intern (Sg_MakeString "apply" SG_LITERAL_STRING))
-					(Sg_Intern (Sg_MakeString "bug?" SG_LITERAL_STRING))
-					(AC vm)))
+		 (assertion-violation (Sg_Intern (Sg_MakeString "apply" SG_LITERAL_STRING))
+				      (Sg_Intern (Sg_MakeString "bug?" SG_LITERAL_STRING))
+				      (AC vm)))
 	     (set! length (Sg_Length args))
 	     (if (> length 1)
 		 (set! shiftLen (- length 1)))

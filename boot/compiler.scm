@@ -980,6 +980,7 @@
   (lambda (who name expr p1env)
     (let* ((transformer (make-toplevel-closure (compile expr p1env)))
 	   (macro (make-macro-transformer name transformer
+					  p1env
 					  (p1env-library p1env))))
       macro)))
 
@@ -1057,22 +1058,6 @@
     (-
      (syntax-error "malformed let-syntax" form))))
 
-;; (define-pass1-syntax (er-macro-transformer form p1env) :null
-;;   (smatch form
-;;     ((- expr)
-;;      (let ((ert (make-toplevel-closure (compile expr p1env))))
-;;        ($const (make-macro
-;; 		(p1env-exp-name p1env)
-;; 		(lambda (self form p1env data)
-;; 		  (apply data (list form p1env)))
-;; 		(lambda (form p1env)
-;; 		  (let ((dict (make-eq-hashtable)))
-;; 		    (apply-proc (apply-proc ert '())
-;; 		     (list form
-;; 			   (lambda (s) (er-rename s p1env dict))
-;; 			   (lambda (a b) (eq? a b))))))))))
-;;     (- (syntax-error "malformed er-macro-transformer" form))))
-
 ;; 'rename' procedure - we just return a resolved identifier
 (define er-rename
   (lambda (symid p1env dict)
@@ -1081,11 +1066,11 @@
     (if (symbol? symid)
 	(or (hashtable-ref dict symid #f)
 	    (let ((var (p1env-lookup p1env symid SYNTAX)))
-	      (let ((id (cond ((identifier? var) var)
-			      (else
-			       (make-identifier symid
-						(p1env-frames p1env)
-						(p1env-library p1env))))))
+	      (let ((id (if (identifier? var)
+			    var
+			    (make-identifier symid
+					     (p1env-frames p1env)
+					     (p1env-library p1env)))))
 		(hashtable-set! dict symid id)
 		id)))
 	symid)))
@@ -3093,6 +3078,14 @@
 	(pass3/asm-mul info (car args) (cadr args) cb renv ctx))
        ((DIV)
 	(pass3/asm-div info (car args) (cadr args) cb renv ctx))
+       ((APPLY)
+	(if (tail-context? ctx)
+	    (pass3/asm-generic cb insn args info renv)
+	    (let ((merge-label (make-new-label)))
+	      (cb-emit0o! cb FRAME merge-label)
+	      (let ((d (pass3/asm-generic cb insn args info renv)))
+		(cb-label-set! cb merge-label)
+		(+ (pass3/frame-size) d)))))
        (else
 	(pass3/asm-generic cb insn args info renv))))))
 

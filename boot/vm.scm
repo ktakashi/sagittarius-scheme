@@ -304,8 +304,8 @@
 				 (- s argc)
 				 s))
 			    (else
-			     (errorf "[2]wrang number of arguments for #<closure> (required ~d, got ~d ~a)"
-				     required-length argc (closure-src cl))))))))
+			     (errorf "[2]wrang number of arguments for ~a (required ~d, got ~d)"
+				     (shorten-object cl) required-length argc)))))))
 	    (else
 	     (errorf "invalid application ~s" (shorten-object cl)))))
     (define (debug-insn-print)
@@ -627,8 +627,45 @@
 	       a
 	       (- s argc)
 	       s))))
+      ;; apply stack frame
+      ;; sp >|      |
+      ;;     | argN |
+      ;;     |   :  |
+      ;;     | arg0 |
+      ;; fp >| proc | ac = rest
+      ;; this instruction convert stack layout like this
+      ;; sp >|      |
+      ;;     | rest |
+      ;;     | argN |
+      ;;     |   :  |
+      ;; fp >| arg0 | ac = proc
       ((APPLY)
-       (let ((args (index s 0)))
+       (let* ((rargc (length a))
+	      (nargc (- (insn-value1 insn) 2))
+	      (proc  (index s (if (< nargc 0) 0
+				  nargc))))
+	 (when (< rargc 0)
+	   (errorf "improper list not allowed: ~s" a))
+	 (shift-args (- s (- (insn-value1 insn) 1)) nargc s)
+	 (cond ((= rargc 0)
+		(VM `#(,(merge-insn1 CALL nargc) ,HALT) 0 proc c f (- s 1)))
+	       (else
+		(if (< nargc 0)
+		    (set! s (push (car a) s))
+		    (index-set! s 0 (car a)))
+		;;(print-stack s)
+		;;(print-stack s)
+		(let loop ((s s)
+			   (a (cdr a)))
+		  (if (null? a)
+		      (begin
+			(VM `#(,(merge-insn1 CALL (+ (if (< nargc 0) 0 nargc) rargc)) ,HALT) 0 proc c f s))
+		      (loop (push (car a) s)
+			    (cdr a)))))))
+
+		   
+	 
+       #;(let ((args (index s 0)))
 	 (cond ((null? args) ;; (apply proc '())
 		(VM `#(,CALL ,HALT) 0 a c f (- s 1)))
 	       ((values? args) ;; (call-with-values ...)
@@ -747,24 +784,6 @@
       (else
        (errorf "invalid vm instruction: ~s[~a]" (lookup-insn-name it) it))))))
 
-#;(define (vm/apply code . args)
-  (let* ((code-c `#(,FRAME ,(+ (vector-length
-				(if (code-builder? code)
-				    (array-data (code-builder-code code))
-				    (closure-body-code code))) 5)
-		    ,CONST ,args
-                    ,PUSH
-		    ,@(vector->list (if (code-builder? code)
-				    (array-data (code-builder-code code))
-				    (closure-body-code code)))
-		    ,APPLY
-		    ,HALT))
-	 (cb (make-code-builder)))
-    (code-builder-code-set! cb code-c)
-    (let ((cl (make-closure cb 0)))
-      (fluid-let ((*stack* (make-vector 1000)))
-	(VM code-c 0 cl cl 0 0)))))
-
 ;; for debug
 (define (print-stack s)
   (display "(")
@@ -779,7 +798,7 @@
 
 (define (shorten-object o)
   (cond ((closure? o)
-	 "#<closure #f>")
+	 (format "#<closure ~a>" (shorten-object (closure-src o))))
 	((identifier? o)
 	 (format "#<identifier ~s#~s>" (id-name o) (library-name (id-library o))))
 	((pair? o)
@@ -916,7 +935,14 @@
 	  (else
 	   (error 'execute "invalid option:" o))))))
 
-(define (apply-proc . args)
+;; create stack layout like this
+;;
+;; sp >|      |
+;;     | argN |
+;;     |   :  |
+;;     | arg0 |
+;; fp >| proc | ac = rest
+(define (apply-proc proc . args)
   (let-syntax 
       ((fluid-let
 	   (syntax-rules ()
@@ -928,23 +954,17 @@
 		(receive results (fluid-let ((p e) ...) be ...)
 		  (set! p0 saved)
 		  (apply values results)))))))
-  (let* ([proc (car args)]
-         [args (cdr args)]
-         [adjusted_args (append
-                         (take args (- (length args) 1))
-                         (car (drop args (- (length args) 1))))])
     (fluid-let ((*stack* (make-vector 1000)))
-      (VM `#(,FRAME
-	     6
-	     ,CONST_PUSH ,adjusted_args
-	     ,CONST ,proc
-	     ,APPLY
+      (VM `#(,FRAME 8
+	     ,CONST_PUSH ,proc
+	     ,CONST ,args
+	     ,(merge-insn1 APPLY  (length args))
 	     ,HALT)
 	  0
 	  '()
 	  '()
 	  0
-	  0)))))
+	  0))))
 
 ;; make 'user library before add
 (define (vm-init)
@@ -981,6 +1001,15 @@
 		      `(make-procedure ',name #f ,reqargs ,opt? ,@proc))))
 	  `(%insert-binding ',lib ',name
 			    ,proc)))))
+;; only for apply
+(define-macro (add-namespace-w-inliner! name args inliner . proc)
+  (let ((lib 'null))
+    (receive (reqargs opt?) (parse-args args)
+      (let ((proc (if (null? proc)
+		      `(make-procedure ',name ,inliner ,reqargs ,opt? ,name)
+		      `(make-procedure ',name ,inliner ,reqargs ,opt? ,@proc))))
+	  `(%insert-binding ',lib ',name
+			    ,proc)))))
 
 ;; for debug
 ;(add-namespace! make-closure-from-code-builder (c))
@@ -1013,7 +1042,7 @@
 					(flush)))
 (add-namespace! current-output-port ())
 (add-namespace! format (fmt . o))
-(add-namespace! list o)
+;(add-namespace! list o)
 (add-namespace! list-tail (o))
 ;(add-namespace! vector? (o))
 ;(add-namespace! vector o)
@@ -1048,7 +1077,8 @@
 (add-namespace! append o)
 (add-namespace! append! o)
 (add-namespace! reverse (o))
-(add-namespace! apply (proc l1 . rest) apply-proc)
+;;(add-namespace! apply (proc l1 . rest) apply-proc)
+(add-namespace-w-inliner! apply (proc l1 . rest) APPLY apply-proc)
 (add-namespace! apply-proc (proc l1 . rest))
 ;(add-namespace! eq? (a b))
 ;(add-namespace! eqv? (a b))
@@ -1186,9 +1216,9 @@
 (define *synrule-lib* "../lib/core/syntax-rules.scm")
 
 (define *builtin-libraries* 
-  `((,*base-lib* (core base) (null (sagittarius)) #t)
+  `((,*ext-lib* (sagittarius) (null) #f)
+    (,*base-lib* (core base) (null (sagittarius)) #t)
     (,*core-lib* #f () #f)
-    (,*ext-lib* (sagittarius) (null) #f)
     (,*insn* (sagittarius vm instruction)
 	     (null (sagittarius)) #f)
     (,*vm-lib* (sagittarius vm)
@@ -1264,7 +1294,7 @@ lc: compile builtin libraries
 		  (export :all)
 		  (import null)) '())
 
-    #;(vm-debug-step #t)
+    (vm-debug-step #t)
     (load-file (cadr args) (cddr args) #f #f #t))))
 ;;;; end of file
 ;; Local Variables:

@@ -124,7 +124,7 @@
     ((eqv? insn 40) '(NUM_GE 0 0 #t #f))
     ((eqv? insn 41) '(RECEIVE 2 0 #t #f))
     ((eqv? insn 42) '(CLOSURE 0 1 #f #f))
-    ((eqv? insn 43) '(APPLY 0 0 #f #f))
+    ((eqv? insn 43) '(APPLY 1 0 #f #f))
     ((eqv? insn 44) '(CALL 1 0 #t #f))
     ((eqv? insn 45) '(LOCAL_CALL 1 0 #t #f))
     ((eqv? insn 46) '(TAIL_CALL 1 0 #t #f))

@@ -1041,7 +1041,8 @@
   (who name expr p1env)
   (let*
    ((transformer (make-toplevel-closure (compile expr p1env)))
-    (macro (make-macro-transformer name transformer (p1env-library p1env))))
+    (macro
+     (make-macro-transformer name transformer p1env (p1env-library p1env))))
    macro)))
 
 (define-pass1-syntax
@@ -1151,13 +1152,10 @@
      ((var (p1env-lookup p1env symid SYNTAX)))
      (let
       ((id
-        (cond
-         ((identifier? var) var)
-         (else
-          (make-identifier
-           symid
-           (p1env-frames p1env)
-           (p1env-library p1env))))))
+        (if
+         (identifier? var)
+         var
+         (make-identifier symid (p1env-frames p1env) (p1env-library p1env)))))
       (hashtable-set! dict symid id)
       id)))
    symid)))

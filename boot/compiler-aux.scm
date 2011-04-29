@@ -9,13 +9,6 @@
       (else
        (error "invalid library tag:" tag)))))
 
-;; for declare-procedure
-(define (parse-type type)
-  (if (and (pair? type)
-	   (= (length type) 2))
-      (cadr type)
-      #f))
-
 (define (parse-args vars)
   (let loop ((vars vars)
 	     (n 0))
