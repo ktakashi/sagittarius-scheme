@@ -559,14 +559,14 @@ SgObject Sg_Apply4(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2, S
 SgObject Sg_Apply(SgObject proc, SgObject args)
 {
   SgVM *vm = Sg_VM();
-  vm->applyCode[3] = SG_WORD(args);
-  vm->applyCode[5] = SG_WORD(proc);
+  vm->applyCode[3] = SG_WORD(proc);
+  vm->applyCode[5] = SG_WORD(args);
   return evaluate_safe(vm->applyCode, 8);
 }
 
 
 static SgWord apply_callN[2] = {
-  APPLY,
+  MERGE_INSN_VALUE2(APPLY, 2, 1),
   RET
 };
 
@@ -593,10 +593,10 @@ SgObject Sg_VMApply(SgObject proc, SgObject args)
   /* TODO should we check tail posision? */
   reqstack = SG_FRAME_SIZE + 1;
   CHECK_STACK(reqstack, vm);
-  PUSH(SP(vm), args);
+  PUSH(SP(vm), proc);
   PC(vm) = apply_callN;
   /* return Sg_CopyList(args); */
-  return proc;
+  return Sg_CopyList(args);;
 }
 
 SgObject Sg_VMApply0(SgObject proc)
@@ -1544,7 +1544,7 @@ void Sg__InitVM()
   applyCode[3] = SG_WORD(SG_UNDEF);
   applyCode[4] = SG_WORD(CONST);
   applyCode[5] = SG_WORD(SG_UNDEF);
-  applyCode[6] = SG_WORD(APPLY);
+  applyCode[6] = SG_WORD(MERGE_INSN_VALUE1(APPLY, 2));
   applyCode[7] = SG_WORD(HALT);
 
   /* TODO multi thread and etc */

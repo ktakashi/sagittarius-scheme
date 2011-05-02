@@ -44,7 +44,7 @@ DEFINSN(NUM_GT, 0, 0, TRUE, FALSE)
 DEFINSN(NUM_GE, 0, 0, TRUE, FALSE)
 DEFINSN(RECEIVE, 2, 0, TRUE, FALSE)
 DEFINSN(CLOSURE, 0, 1, FALSE, FALSE)
-DEFINSN(APPLY, 1, 0, FALSE, FALSE)
+DEFINSN(APPLY, 2, 0, FALSE, FALSE)
 DEFINSN(CALL, 1, 0, TRUE, FALSE)
 DEFINSN(LOCAL_CALL, 1, 0, TRUE, FALSE)
 DEFINSN(TAIL_CALL, 1, 0, TRUE, FALSE)
@@ -436,34 +436,46 @@ CASE(CLOSURE) {
 }
 
 CASE(APPLY) {
+  INSN_VAL2(val1, val2, c);
   {
-    SgObject args = POP(SP(vm));
-    if (SG_NULLP(args)) {
+    int rargc = Sg_Length(AC(vm));
+    int nargc = val1 - 2;
+    SgObject proc = INDEX(SP(vm), nargc);
+    SgObject* fp = SP(vm) - val1 - 1;
+    AC(vm)=proc;
+    if (rargc < 0) {
+      Sg_AssertionViolation(SG_INTERN("apply"), Sg_MakeString(UC("improper list not allowed"), SG_LITERAL_STRING), AC(vm));
+      return SG_UNDEF;
+;
+    }
+;
+    shift_args(fp, nargc, SP(vm));
+    if (rargc == 0    ) {
+      if (val1) {
+        SP(vm)=shift_args(FP(vm), nargc, SP(vm));
+      }
+;
+      SP(vm)=SP(vm) - 1;
       vm->callCode[0]=MERGE_INSN_VALUE1(CALL, 0);
       PC(vm)=vm->callCode;
     } else {
+      INDEX_SET(SP(vm), 0, SG_CAR(AC(vm)));
       {
-        int length = 0;
-        int shiftLen = 0;
-        SgObject* sp = NULL;
-        if (!(SG_PAIRP(args))) {
-          Sg_AssertionViolation(Sg_Intern(Sg_MakeString(UC("apply"), SG_LITERAL_STRING)), Sg_MakeString(Sg_Intern(Sg_MakeString(UC("bug?"), SG_LITERAL_STRING)), SG_LITERAL_STRING), AC(vm));
-          return SG_UNDEF;
-;
+        SgObject cgen_1;
+        SG_FOR_EACH(cgen_1,SG_CDR(AC(vm))) {
+          {
+            SgObject v = SG_CAR(cgen_1);
+            PUSH(SP(vm), v);
+          }
         }
-;
-        length=Sg_Length(args);
-        if (length > 1) {
-          shiftLen=length - 1;
-        }
-;
-        sp=SP(vm) + shiftLen + 1;
-        pair_args_to_stack(SP(vm), 0, args);
-        vm->callCode[0]=MERGE_INSN_VALUE1(CALL, length);
-        PC(vm)=vm->callCode;
-        SP(vm)=sp;
       }
 ;
+      if (val1) {
+        SP(vm)=shift_args(FP(vm), nargc + rargc, SP(vm));
+      }
+;
+      vm->callCode[0]=MERGE_INSN_VALUE1(CALL, nargc + rargc);
+      PC(vm)=vm->callCode;
     }
     
 ;

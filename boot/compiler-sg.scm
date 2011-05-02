@@ -3385,6 +3385,17 @@
     ((SUB) (pass3/asm-sub info (car args) (cadr args) cb renv ctx))
     ((MUL) (pass3/asm-mul info (car args) (cadr args) cb renv ctx))
     ((DIV) (pass3/asm-div info (car args) (cadr args) cb renv ctx))
+    ((APPLY)
+     (if
+      (tail-context? ctx)
+      (pass3/asm-generic cb (append insn '(1)) args info renv)
+      (let
+       ((merge-label (make-new-label)))
+       (cb-emit0o! cb FRAME merge-label)
+       (let
+        ((d (pass3/asm-generic cb insn args info renv)))
+        (cb-label-set! cb merge-label)
+        (+ (pass3/frame-size) d)))))
     (else (pass3/asm-generic cb insn args info renv))))))
 
 (define

@@ -590,32 +590,48 @@ CASE(LSET) {
     (set! (AC vm) (Sg_MakeClosure cb (- (SP vm) (SG_CODE_BUILDER_FREEC cb))))
     (set! (SP vm) (- (SP vm) (SG_CODE_BUILDER_FREEC cb)))))
 
-#|
-      CASE(APPLY) {
-	SgObject args = POP(SP(vm));
-	if (SG_NULLP(args)) {
-	  vm->callCode[0] = MERGE_INSN_VALUE1(CALL, 0);
-	  PC(vm) = vm->callCode;
-	} else {
-	  int length, shiftLen;
-	  SgObject *sp;
-	  if (!SG_PAIRP(args)) {
-	    Sg_AssertionViolation(SG_INTERN("apply"), SG_INTERN("bug?"), AC(vm));
-	    NEXT;
-	  }
-	  length = Sg_Length(args);
-	  shiftLen = length > 1 ? length - 1: 0;
-	  sp = SP(vm) + shiftLen + 1;
-	  pair_args_to_stack(SP(vm), 0, args);
-	  vm->callCode[0] = MERGE_INSN_VALUE1(CALL, length);
-	  PC(vm) = vm->callCode;
-	  SP(vm) = sp;
-	}
-	NEXT;
-      }
-|#
-(define-inst APPLY (1 0 #f)
-  (let ((args (POP (SP vm))))
+;; apply stack frame
+;; sp >|      |
+;;     | argN |
+;;     |   :  |
+;;     | arg0 |
+;; fp >| proc | ac = rest
+;; this instruction convert stack layout like this
+;; sp >|      |
+;;     | rest |
+;;     | argN |
+;;     |   :  |
+;; fp >| arg0 | ac = proc
+;; instruction:
+;;   apply argc tail?
+;; if tail? is 1, then we need to shift args. like tail_call
+(define-inst APPLY (2 0 #f)
+  (INSN_VAL2 val1 val2 c)
+  (let ((rargc::int (Sg_Length (AC vm)))
+	(nargc::int (- val1 2))
+	(proc (INDEX (SP vm) nargc))
+	(fp::SgObject* (- (SP vm) (- val1 1))))
+    (set! (AC vm) proc)
+    (when (< rargc 0)
+      (assertion-violation 'apply "improper list not allowed" (AC vm)))
+    (shift_args fp nargc (SP vm))
+    (cond ((== rargc 0)
+	   (when val1
+	     (set! (SP vm) (shift_args (FP vm) nargc (SP vm))))
+	   (set! (SP vm) (- (SP vm) 1))
+	   (set! (-> vm (arrayref callCode 0)) (MERGE_INSN_VALUE1 CALL 0))
+	   (set! (PC vm) (-> vm callCode)))
+	  (else
+	   (INDEX_SET (SP vm) 0 (SG_CAR (AC vm)))
+	   (dolist (v (SG_CDR (AC vm)))
+	     (PUSH (SP vm) v))
+	   (when val1
+	     (set! (SP vm) (shift_args (FP vm) (+ nargc rargc) (SP vm))))
+	   (set! (-> vm (arrayref callCode 0))
+		 (MERGE_INSN_VALUE1 CALL (+ nargc rargc)))
+	   (set! (PC vm) (-> vm callCode)))))
+    
+  #;(let ((args (POP (SP vm))))
     (cond ((SG_NULLP args)
 	   (set! (-> vm (arrayref callCode 0)) (MERGE_INSN_VALUE1 CALL 0))
 	   (set! (PC vm) (-> vm callCode)))

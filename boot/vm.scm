@@ -435,7 +435,7 @@
       ((GREF_PUSH)
        (let ((var (fetch)))
 	 (or (identifier? var)
-	     (error (format "runtime error: GREF instruction requires identifier for ist argument but got: ~s~%~s"
+	     (error (format "runtime error: GREF instruction requires identifier for its argument but got: ~s~%~s"
 			    var (stack-trace c))))
 		    
 	 (let ((value ;(namespace-ref (id-name var)))
@@ -641,29 +641,32 @@
       ;; fp >| arg0 | ac = proc
       ((APPLY)
        (let* ((rargc (length a))
-	      (nargc (- (insn-value1 insn) 2))
-	      (proc  (index s (if (< nargc 0) 0
-				  nargc))))
+	      (nargc (- (insn-value1-with-mask insn) 2))
+	      (tail? (= (insn-value2 insn) 1))
+	      (proc  (index s nargc))
+	      (fp (- s (- (insn-value1-with-mask insn) 1))))
 	 (when (< rargc 0)
 	   (errorf "improper list not allowed: ~s" a))
-	 (shift-args (- s (- (insn-value1 insn) 1)) nargc s)
+	 (shift-args fp nargc s)
 	 (cond ((= rargc 0)
-		(VM `#(,(merge-insn1 CALL nargc) ,HALT) 0 proc c f (- s 1)))
+		(let ((s
+		       (if tail?
+			   (shift-args f (+ nargc rargc) s)
+			   s)))
+		  (VM `#(,(merge-insn1 CALL nargc) ,HALT) 0 proc c f (- s 1))))
 	       (else
-		(if (< nargc 0)
-		    (set! s (push (car a) s))
-		    (index-set! s 0 (car a)))
-		;;(print-stack s)
-		;;(print-stack s)
+		(index-set! s 0 (car a))
 		(let loop ((s s)
 			   (a (cdr a)))
 		  (if (null? a)
 		      (begin
-			(VM `#(,(merge-insn1 CALL (+ (if (< nargc 0) 0 nargc) rargc)) ,HALT) 0 proc c f s))
+			(let ((s (if tail?
+				     (shift-args f (+ nargc rargc) s)
+				     s)))
+			  (VM `#(,(merge-insn1 CALL (+ nargc rargc)) ,HALT)
+			      0 proc c f s)))
 		      (loop (push (car a) s)
 			    (cdr a)))))))
-
-		   
 	 
        #;(let ((args (index s 0)))
 	 (cond ((null? args) ;; (apply proc '())
@@ -685,9 +688,7 @@
 		       (s (+ s shift-len)))
 		  (pair-args->stack s 0 args)
 		  (VM `#(,(merge-insn1 CALL len) ,HALT) 0 a c f s))))))
-		
       ((RET)
-       ;; I don't use arg0... do i still need this?
        (return))
       ;; builtin procedures
       ((NOT)
@@ -955,10 +956,10 @@
 		  (set! p0 saved)
 		  (apply values results)))))))
     (fluid-let ((*stack* (make-vector 1000)))
-      (VM `#(,FRAME 8
+      (VM `#(,FRAME 6
 	     ,CONST_PUSH ,proc
-	     ,CONST ,args
-	     ,(merge-insn1 APPLY  (length args))
+	     ,CONST ,@args
+	     ,(merge-insn1 APPLY 2)
 	     ,HALT)
 	  0
 	  '()
