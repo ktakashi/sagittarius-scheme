@@ -611,25 +611,25 @@ CASE(LSET) {
 	(nargc::int (- val1 2))
 	(proc (INDEX (SP vm) nargc))
 	(fp::SgObject* (- (SP vm) (- val1 1))))
-    (set! (AC vm) proc)
     (when (< rargc 0)
       (assertion-violation 'apply "improper list not allowed" (AC vm)))
     (shift_args fp nargc (SP vm))
     (cond ((== rargc 0)
-	   (when val1
-	     (set! (SP vm) (shift_args (FP vm) nargc (SP vm))))
 	   (set! (SP vm) (- (SP vm) 1))
-	   (set! (-> vm (arrayref callCode 0)) (MERGE_INSN_VALUE1 CALL 0))
+	   (when val2
+	     (set! (SP vm) (shift_args (FP vm) nargc (SP vm))))
+	   (set! (-> vm (arrayref callCode 0)) (MERGE_INSN_VALUE1 CALL nargc))
 	   (set! (PC vm) (-> vm callCode)))
 	  (else
 	   (INDEX_SET (SP vm) 0 (SG_CAR (AC vm)))
 	   (dolist (v (SG_CDR (AC vm)))
 	     (PUSH (SP vm) v))
-	   (when val1
+	   (when val2
 	     (set! (SP vm) (shift_args (FP vm) (+ nargc rargc) (SP vm))))
 	   (set! (-> vm (arrayref callCode 0))
 		 (MERGE_INSN_VALUE1 CALL (+ nargc rargc)))
-	   (set! (PC vm) (-> vm callCode)))))
+	   (set! (PC vm) (-> vm callCode))))
+    (set! (AC vm) proc))
     
   #;(let ((args (POP (SP vm))))
     (cond ((SG_NULLP args)

@@ -74,27 +74,32 @@
 	(error '+
 	       (format "wrong number of arg for + (required at least 2, but got ~a)"
 		       (length (cdr body)))))
+    ((renderer) "(")
     (for-each1-with-index
      (lambda (i arg)
        (dispatch arg dispatch k)
        (unless (= i (- (length (cdr body)) 1))
 	 ((renderer) " + ")))
      (cdr body))
+    ((renderer) ")")
     (k k))
 
   ;; -
   ;; (- a b c) -> a - b - c
+  ;; (- a (- b 1)) -> a - (b - 1)
   (define (sub body dispatch k)
     (or (>= (length (cdr body)) 2)
 	(error '-
 	       (format "wrong number of arg for + (required at least 2, but got ~a)"
 		       (length (cdr body)))))
+    ((renderer) "(")
     (for-each1-with-index
      (lambda (i arg)
        (dispatch arg dispatch k)
        (unless (= i (- (length (cdr body)) 1))
 	 ((renderer) " - ")))
      (cdr body))
+    ((renderer) ")")
     (k k))
 
   ;; result

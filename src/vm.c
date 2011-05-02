@@ -110,7 +110,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 
   v->dynamicWinders = SG_NIL;
   v->parentExHandler = SG_FALSE;
-  v->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
+  v->exceptionHandler = SG_FALSE;
   v->toplevelVariables = SG_NIL;
 
   v->currentInputPort = Sg_MakeTranscodedInputPort(Sg_StandardInputPort(),
@@ -248,7 +248,7 @@ int Sg_LoadUnsafe(SgString *path)
   bport = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_BLOCK);
   tport = Sg_MakeTranscodedInputPort(bport, Sg_MakeNativeTranscoder());
   
-  if ((Sg_VM()->flags & SG_LOG_LEVEL_MASK) >= SG_INFO_LEVEL) {
+  if (SG_VM_LOG_LEVEL(Sg_VM(), SG_INFO_LEVEL)) {
     Sg_Printf(vm->logPort, UC("loading %S\n"), path);
   }
 
@@ -480,6 +480,7 @@ void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
   cc->pc = (SgWord*)after;
   cc->fp = NULL;
   cc->cl = CL(vm);
+  cc->dc = DC(vm);
   FP(vm) = s;
   for (i = 0; i < datasize; i++) {
     PUSH(s, SG_OBJ(data[i]));
@@ -488,72 +489,110 @@ void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
   SP(vm) = s;
 }
 
+#if 0
+/* this version's apply has a bug. */
 /* Apply families */
 static void make_call_frame(SgVM *vm, SgWord *pc);
 static SgWord apply_calls_w_halt[][5] = {
-  { MERGE_INSN_VALUE1(CALL, 0), HALT },
-  { MERGE_INSN_VALUE1(CALL, 1), HALT },
-  { MERGE_INSN_VALUE1(CALL, 2), HALT },
-  { MERGE_INSN_VALUE1(CALL, 3), HALT },
-  { MERGE_INSN_VALUE1(CALL, 4), HALT }
+  { MERGE_INSN_VALUE1(CALL, 0), RET, HALT },
+  { MERGE_INSN_VALUE1(CALL, 1), RET, HALT },
+  { MERGE_INSN_VALUE1(CALL, 2), RET, HALT },
+  { MERGE_INSN_VALUE1(CALL, 3), RET, HALT },
+  { MERGE_INSN_VALUE1(CALL, 4), RET, HALT }
 };
+#endif
 
 /*
-  instruction images for Sg_Apply(n).
-  frame 1 <-- creates frame
-  push arg * n times
-  -- this is real instruction --
-  CALL(n)
-  HALT
+  TODO:
+  convert to direct call.
  */
 SgObject Sg_Apply0(SgObject proc)
 {
+#if 0
   SgVM *vm = Sg_VM();
-  make_call_frame(vm, apply_calls_w_halt[0] + 1);
+  make_call_frame(vm, apply_calls_w_halt[0] + 2);
   AC(vm) = proc;
   return evaluate_safe(apply_calls_w_halt[0], 3);
+#endif
+  return Sg_Apply(proc, SG_NIL);
 }
 
 SgObject Sg_Apply1(SgObject proc, SgObject arg)
 {
+#if 0
   SgVM *vm = Sg_VM();
-  make_call_frame(vm, apply_calls_w_halt[1] + 1);
+  make_call_frame(vm, apply_calls_w_halt[1] + 2);
   PUSH(SP(vm), arg);
   AC(vm) = proc;
   return evaluate_safe(apply_calls_w_halt[1], 3);
+#endif
+  SgPair f;
+  f.car = arg;
+  f.cdr = SG_NIL;
+  return Sg_Apply(proc, &f);
 }
 
 SgObject Sg_Apply2(SgObject proc, SgObject arg0, SgObject arg1)
 {
+#if 0
   SgVM *vm = Sg_VM();
-  make_call_frame(vm, apply_calls_w_halt[2] + 1);
+  make_call_frame(vm, apply_calls_w_halt[2] + 2);
   PUSH(SP(vm), arg0);
   PUSH(SP(vm), arg1);
   AC(vm) = proc;
   return evaluate_safe(apply_calls_w_halt[2], 3);
+#endif
+  SgPair f, s;
+  f.car = arg0;
+  f.cdr = &s;
+  s.car = arg1;
+  s.cdr = SG_NIL;
+  return Sg_Apply(proc, &f);
 }
 
 SgObject Sg_Apply3(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2)
 {
+#if 0
   SgVM *vm = Sg_VM();
-  make_call_frame(vm, apply_calls_w_halt[3] + 1);
+  make_call_frame(vm, apply_calls_w_halt[3] + 2);
   PUSH(SP(vm), arg0);
   PUSH(SP(vm), arg1);
   PUSH(SP(vm), arg2);
   AC(vm) = proc;
   return evaluate_safe(apply_calls_w_halt[3], 3);
+#endif
+  SgPair f, s, t;
+  f.car = arg0;
+  f.cdr = &s;
+  s.car = arg1;
+  s.cdr = &t;
+  t.car = arg2;
+  t.cdr = SG_NIL;
+  return Sg_Apply(proc, &f);
 }
 
 SgObject Sg_Apply4(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2, SgObject arg3)
 {
+#if 0
   SgVM *vm = Sg_VM();
-  make_call_frame(vm, apply_calls_w_halt[4] + 1);
+  make_call_frame(vm, apply_calls_w_halt[4] + 2);
   PUSH(SP(vm), arg0);
   PUSH(SP(vm), arg1);
   PUSH(SP(vm), arg2);
   PUSH(SP(vm), arg3);
   AC(vm) = proc;
   return evaluate_safe(apply_calls_w_halt[4], 3);
+#endif
+  SgPair f, s, t, fo;
+  f.car = arg0;
+  f.cdr = &s;
+  s.car = arg1;
+  s.cdr = &t;
+  t.car = arg2;
+  t.cdr = &fo;
+  fo.car = arg3;
+  fo.cdr = SG_NIL;
+  return Sg_Apply(proc, &f);
 }
 
 SgObject Sg_Apply(SgObject proc, SgObject args)
@@ -750,10 +789,7 @@ static SgObject dynamic_wind_after_cc(SgObject result, void **data)
 	      (parent-exception-handler parent-save)
 	      (current-exception-handler current-save)))))))
  */
-/*
-  I couldn't find any nice way to implement in c...
- */
-#if 0
+
 static SgObject install_xhandler(SgObject *args, int argc, void *data)
 {
   SgVM *vm = Sg_VM();
@@ -770,7 +806,7 @@ static SgObject handler_runner(SgObject *args, int argc, void *data)
 {
   SgObject handler = SG_CAR(SG_OBJ(data));
   SgObject condition = SG_CDR(SG_OBJ(data));
-  return Sg_VMApply1(handler, condition);
+  return Sg_Apply1(handler, condition);
 }
 
 static SgObject handler_body(SgObject *args, int argc, void *data)
@@ -796,7 +832,7 @@ SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk)
   SgObject after       = Sg_MakeSubr(install_xhandler, Sg_Cons(psave, csave), 0, 0, SG_FALSE);
   return Sg_VMDynamicWind(before, thunk, after);
 }
-#endif
+
 
 
 #define SKIP(vm, n)        (PC(vm) += (n))
@@ -1017,21 +1053,21 @@ SgObject Sg_GetStackTrace()
 
 SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
 {
-  if (vm->exceptionHandler != DEFAULT_EXCEPTION_HANDLER) {
+  if (!SG_FALSEP(vm->exceptionHandler)) {
     if (continuableP) {
       vm->ac = Sg_Apply1(vm->exceptionHandler, exception);
       return vm->ac;
     } else {
       Sg_Apply1(vm->exceptionHandler, exception);
       if (!SG_FALSEP(vm->parentExHandler)) {
-	return Sg_Apply(vm->parentExHandler, 
-			SG_LIST1(Sg_Condition(SG_LIST4(Sg_MakeNonContinuableViolation(),
-						       Sg_MakeWhoCondition(SG_INTERN("raise")),
-						       Sg_MakeMessageCondition(Sg_MakeString(UC("returned from non-continuable exception"),
-											     SG_LITERAL_STRING)),
-						       Sg_MakeIrritantsCondition(SG_LIST1(exception))))));
+	return Sg_Apply1(vm->parentExHandler, 
+			 Sg_Condition(SG_LIST4(Sg_MakeNonContinuableViolation(),
+					       Sg_MakeWhoCondition(SG_INTERN("raise")),
+					       Sg_MakeMessageCondition(Sg_MakeString(UC("returned from non-continuable exception"),
+										     SG_LITERAL_STRING)),
+					       Sg_MakeIrritantsCondition(SG_LIST1(exception)))));
       }
-      vm->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
+      vm->exceptionHandler = SG_FALSE;
       Sg_Error(UC("error in raise: returned from non-continuable exception\n\nirritants:\n%A"), exception);
     }
   }
@@ -1437,7 +1473,7 @@ static void print_frames(SgVM *vm)
       }
       Sg_Printf(vm->logPort, UC("+ size=%#38d +\n"), cont->size);
       Sg_Printf(vm->logPort, UC("+   pc=%#38x +\n"), cont->pc);
-      Sg_Format(vm->logPort, clfmt, SG_LIST1(SG_PROCEDURE_NAME(cont->cl)), TRUE);
+      Sg_Format(vm->logPort, clfmt, SG_LIST1(cont->cl), TRUE);
       Sg_Format(vm->logPort, dcfmt, SG_LIST1(cont->dc), TRUE);
       Sg_Printf(vm->logPort, UC("+   fp=%#38x +\n"), cont->fp);
       if (cont == CONT(vm)) {

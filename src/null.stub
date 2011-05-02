@@ -141,7 +141,7 @@
 	    ;; 7 Exceptions and conditions
 	    ;; 7.1 exceptions
 	    ;; with-exception-handler
-	    ;; raise raise-continuable ;; these are in errors.scm
+	    raise raise-continuable
 	    ;; rest of chapter 7 are in exceptions.c
 
 	    ;; io
@@ -627,12 +627,6 @@
     (check-real-valued round x)
     (result (Sg_Round x SG_ROUND_ROUND)))
 
-  (define-c-proc div (x::number y::number) ::Object
-    (result (Sg_IntegerDiv x y)))
-
-  (define-c-proc mod (x::number y::number) ::Object
-    (result (Sg_IntegerMod x y)))
-
   (define-cgen-stmt check-finite
     ((_ name n)
      (dispatch
@@ -658,6 +652,14 @@
 	 (check-finite ,name ,x)
 	 (check-not-nan ,name ,x)
 	 (check-not-zero ,name ,y)))))
+
+  (define-c-proc div (x::number y::number) ::Object
+    (check-integer-arith-argument div x y)
+    (result (Sg_IntegerDiv x y)))
+
+  (define-c-proc mod (x::number y::number) ::Object
+    (check-integer-arith-argument mod x y)
+    (result (Sg_IntegerMod x y)))
 
   (define-c-proc div0 (x::number y::number) ::Object
     (check-integer-arith-argument div0 x y)
@@ -1136,7 +1138,7 @@
     (Sg_SyntaxError form irritant))
 
   ;; 11.15 control features
-  (define-c-proc apply (proc::Procedure arg1 :rest rest) ::Object
+  (define-c-proc apply (proc::Procedure arg1 :rest rest) (inline APPLY) ::Object
     (let ((head::SgObject '()) (tail::SgObject '()))
       (cond ((SG_NULLP rest) (result (Sg_VMApply proc arg1)))
 	    (else 
@@ -1776,8 +1778,14 @@
 
   ;; 7 Exceptions and conditions
   ;; 7.1 exceptions
-  #;(define-c-proc with-exception-handler (handler thunk) ::Object
+  (define-c-proc with-exception-handler (handler thunk) ::Object
     (result (Sg_VMWithExceptionHandler handler thunk)))
+
+  (define-c-proc raise (c) ::void
+    (Sg_Raise c FALSE))
+
+  (define-c-proc raise-continuable (c) ::void
+    (Sg_Raise c TRUE))
 
   ;; 8 I/O
   ;; 8.2 port i/o

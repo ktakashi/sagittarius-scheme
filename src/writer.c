@@ -768,7 +768,7 @@ static void write_instance(SgInstance *i, SgPort *port, SgWriteContext *ctx)
 {
   SgGeneric *generic = i->generic;
   if (!SG_NULLP(generic->printer) && SG_PROCEDUREP(generic->printer)) {
-    Sg_Apply(generic->printer, SG_LIST2(i, port));
+    Sg_Apply2(generic->printer, i, port);
     return;
   } else {
     /* search parent printer */
@@ -783,7 +783,7 @@ static void write_instance(SgInstance *i, SgPort *port, SgWriteContext *ctx)
 	if (!generic->virtual) {
 	  /* non virtual class has to be only one */
 	  if(!SG_NULLP(generic->printer) && SG_PROCEDUREP(generic->printer)) {
-	    Sg_Apply(generic->printer, SG_LIST2(i, port));
+	    Sg_Apply2(generic->printer, i, port);
 	    return;
 	  } else {
 	    parents = generic->parents;

@@ -148,6 +148,11 @@ void Sg_WrongNumberOfArgumentsBetweenViolation(SgObject who, int startCounts, in
   Sg_AssertionViolation(who, message, irritants);
 }
 
+void Sg_Raise(SgObject condition, int continuableP)
+{
+  return Sg_VMThrowException(Sg_VM(), condition, continuableP);
+}
+
 /*
   end of file
   Local Variables:

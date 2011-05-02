@@ -1058,8 +1058,8 @@ static int custom_binary_get_u8(SgObject self)
     return c;
   }
   bv = Sg_MakeByteVector(1, 0);
-  result = Sg_Apply(SG_CUSTOM_PORT(self)->read,
-		    SG_LIST3(bv, start, count));
+  result = Sg_Apply3(SG_CUSTOM_PORT(self)->read,
+		     bv, start, count);
   if (!SG_INTP(result)) {
     Sg_IOReadError(SG_INTERN("get-u8"),
 		   Sg_Sprintf(UC("custom port read! returned invalid value, %S"), result),
@@ -1080,8 +1080,8 @@ static int custom_binary_lookahead_u8(SgObject self)
     return SG_CUSTOM_U8_AHEAD(self);
   }
   bv = Sg_MakeByteVector(1, 0);
-  result = Sg_Apply(SG_CUSTOM_PORT(self)->read,
-		    SG_LIST3(bv, start, count));
+  result = Sg_Apply3(SG_CUSTOM_PORT(self)->read,
+		    bv, start, count);
   if (!SG_INTP(result)) {
     Sg_IOReadError(SG_INTERN("lookahead-u8"),
 		   Sg_Sprintf(UC("custom port read! returned invalid value, %S"), result),
@@ -1127,8 +1127,8 @@ static int64_t custom_binary_put_u8(SgObject self, uint8_t b)
     return SG_CUSTOM_U8_AHEAD(self);
   }
   bv = Sg_MakeByteVector(1, b);
-  result = Sg_Apply(SG_CUSTOM_PORT(self)->write,
-		    SG_LIST3(bv, start, count));
+  result = Sg_Apply3(SG_CUSTOM_PORT(self)->write,
+		    bv, start, count);
   if (!SG_INTP(result)) {
     Sg_IOWriteError(SG_INTERN("put-u8"),
 		    Sg_Sprintf(UC("custom port write! returned invalid value, %S"), result),
@@ -1146,8 +1146,8 @@ static int64_t custom_binary_put_u8_array(SgObject self, uint8_t *v, int64_t siz
      so just use fixnum.
    */
   count = SG_MAKE_INT(size);
-  result = Sg_Apply(SG_CUSTOM_PORT(self)->write,
-		    SG_LIST3(bv, start, count));  
+  result = Sg_Apply3(SG_CUSTOM_PORT(self)->write,
+		    bv, start, count);
   if (!SG_INTP(result)) {
     Sg_IOWriteError(SG_INTERN("put-bytevector"),
 		    Sg_Sprintf(UC("custom port write! returned invalid value, %S"), result),
@@ -1228,8 +1228,8 @@ static SgChar custom_textual_get_char(SgObject self)
   if (SG_CUSTOM_PORT(self)->buffer == NULL || 
       SG_CUSTOM_PORT(self)->index == 0) {
     SgObject s = Sg_MakeString(UC(" "), SG_HEAP_STRING);
-    SgObject result = Sg_Apply(SG_CUSTOM_PORT(self)->read,
-			       SG_LIST3(s, start, count));
+    SgObject result = Sg_Apply3(SG_CUSTOM_PORT(self)->read,
+			       s, start, count);
     if (!SG_INTP(result)) {
       Sg_IOReadError(SG_INTERN("get-char"),
 		     Sg_Sprintf(UC("custom port read! returned invalid value, %S"), result),
@@ -1292,8 +1292,8 @@ static void custom_textual_put_char(SgObject self, SgChar ch)
   SgObject s = Sg_MakeString(UC(" "), SG_HEAP_STRING);
   SgObject result;
   SG_STRING_VALUE_AT(s, 0) = ch;
-  result = Sg_Apply(SG_CUSTOM_PORT(self)->write,
-		    SG_LIST3(s, start, count));
+  result = Sg_Apply3(SG_CUSTOM_PORT(self)->write,
+		    s, start, count);
   if (!SG_INTP(result)) {
     Sg_IOWriteError(SG_INTERN("put-char"),
 		    Sg_Sprintf(UC("custom port write! returned invalid value, %S"), result),
@@ -1789,8 +1789,8 @@ int64_t Sg_PortPosition(SgPort *port)
 			    Sg_Sprintf(UC("expected positionable port, but got %S"), port),
 			    port);
     }
-    return Sg_GetIntegerS64Clamp(Sg_Apply(SG_CUSTOM_PORT(port)->getPosition,
-					  SG_LIST1(port)), SG_CLAMP_NONE, NULL);
+    return Sg_GetIntegerS64Clamp(Sg_Apply1(SG_CUSTOM_PORT(port)->getPosition,
+					  port), SG_CLAMP_NONE, NULL);
   }
   Sg_Error(UC("port required, but got %S"), port);
   return (int64_t)-1;		/* dummy */
@@ -1830,7 +1830,7 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset)
 			    Sg_Sprintf(UC("expected positionable port, but got %S"), port),
 			    port);
     }
-    Sg_Apply(SG_CUSTOM_PORT(port)->getPosition, SG_LIST1(port));
+    Sg_Apply1(SG_CUSTOM_PORT(port)->getPosition, port);
   }
   Sg_Error(UC("port required, but got %S"), port);
 }

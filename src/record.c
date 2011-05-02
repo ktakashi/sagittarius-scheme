@@ -260,7 +260,7 @@ static SgObject default_protocol(SgObject rtd)
 {
   SgGloc *g = Sg_FindBinding(SG_INTERN("(core base)"), SG_INTERN("default-protocol"), SG_FALSE);
   SgObject protocol = SG_GLOC_GET(g);
-  return Sg_Apply(protocol, SG_LIST1(rtd));
+  return Sg_Apply1(protocol, rtd);
 }
 
 SgObject Sg_MakeRecordConstructorDescriptor(SgObject rtd, SgObject parent, SgObject protocol)
@@ -343,7 +343,7 @@ SgObject Sg_RecordConstructor(SgObject rcd)
     proc = SG_GLOC_GET(g);
     len = Sg_Length(RTD_FIELDS(rtd));
   }
-  return Sg_Apply(proc, SG_LIST3(rcd, rtd, SG_MAKE_INT(len)));
+  return Sg_Apply3(proc, rcd, rtd, SG_MAKE_INT(len));
 }
 
 static inline int rtd_ancestor_p(SgObject parent, SgObject rtd)

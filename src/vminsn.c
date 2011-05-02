@@ -149,7 +149,7 @@ CASE(GSET) {
 ;
         {
           SgObject g = Sg_MakeBinding(SG_IDENTIFIER_LIBRARY(var), SG_IDENTIFIER_NAME(var), AC(vm), 0);
-          *(PC(vm) - 1)=SG_WORD(g);
+          *((PC(vm) - 1))=SG_WORD(g);
         }
 ;
       }
@@ -229,7 +229,7 @@ CASE(TEST) {
     SgObject n = FETCH_OPERAND(PC(vm));
     ASSERT(SG_INTP(n));
     if (SG_FALSEP(AC(vm))) {
-      PC(vm)=PC(vm) + SG_INT_VALUE(n) - 1;
+      PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
     }
 ;
   }
@@ -241,7 +241,7 @@ CASE(JUMP) {
   {
     SgObject n = FETCH_OPERAND(PC(vm));
     ASSERT(SG_INTP(n));
-    PC(vm)=PC(vm) + SG_INT_VALUE(n) - 1;
+    PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
   }
 ;
   NEXT;
@@ -251,7 +251,7 @@ CASE(SHIFTJ) {
   INSN_VAL2(val1, val2, c);
   {
     int i = val2;
-    for (;;i=i - 1) {
+    for (;;i=(i - 1)) {
       if ((i <= 0 && SG_CLOSURE(DC(vm))->mark)) {
         break;
       }
@@ -373,7 +373,7 @@ CASE(RECEIVE) {
       if (val1 == 1      ) {
         PUSH(SP(vm), AC(vm));
       } else if (val1 > 0      ) {
-        for (i=0;i < val1;i=i + 1) {
+        for (i=0;i < val1;i=(i + 1)) {
           PUSH(SP(vm), SG_VALUES_ELEMENT(AC(vm), i));
         };
       }      
@@ -385,7 +385,7 @@ CASE(RECEIVE) {
         if (numValues == 1) {
           SG_APPEND1(h, t, AC(vm));
         } else {
-          for (i=0;i < numValues;i=i + 1) {
+          for (i=0;i < numValues;i=(i + 1)) {
             SG_APPEND1(h, t, SG_VALUES_ELEMENT(AC(vm), i));
           };
         }
@@ -397,7 +397,7 @@ CASE(RECEIVE) {
       {
         SgObject h = SG_NIL;
         SgObject t = SG_NIL;
-        for (i=0;;i=i + 1) {
+        for (i=0;;i=(i + 1)) {
           if (i < val1          ) {
             PUSH(SP(vm), SG_VALUES_ELEMENT(AC(vm), i));
           } else if (i < SG_VALUES_SIZE(AC(vm))          ) {
@@ -428,8 +428,8 @@ CASE(CLOSURE) {
 ;
     }
 ;
-    AC(vm)=Sg_MakeClosure(cb, SP(vm) - SG_CODE_BUILDER_FREEC(cb));
-    SP(vm)=SP(vm) - SG_CODE_BUILDER_FREEC(cb);
+    AC(vm)=Sg_MakeClosure(cb, (SP(vm) - SG_CODE_BUILDER_FREEC(cb)));
+    SP(vm)=(SP(vm) - SG_CODE_BUILDER_FREEC(cb));
   }
 ;
   NEXT;
@@ -439,10 +439,9 @@ CASE(APPLY) {
   INSN_VAL2(val1, val2, c);
   {
     int rargc = Sg_Length(AC(vm));
-    int nargc = val1 - 2;
+    int nargc = (val1 - 2);
     SgObject proc = INDEX(SP(vm), nargc);
-    SgObject* fp = SP(vm) - val1 - 1;
-    AC(vm)=proc;
+    SgObject* fp = (SP(vm) - (val1 - 1));
     if (rargc < 0) {
       Sg_AssertionViolation(SG_INTERN("apply"), Sg_MakeString(UC("improper list not allowed"), SG_LITERAL_STRING), AC(vm));
       return SG_UNDEF;
@@ -451,12 +450,12 @@ CASE(APPLY) {
 ;
     shift_args(fp, nargc, SP(vm));
     if (rargc == 0    ) {
-      if (val1) {
+      SP(vm)=(SP(vm) - 1);
+      if (val2) {
         SP(vm)=shift_args(FP(vm), nargc, SP(vm));
       }
 ;
-      SP(vm)=SP(vm) - 1;
-      vm->callCode[0]=MERGE_INSN_VALUE1(CALL, 0);
+      vm->callCode[0]=MERGE_INSN_VALUE1(CALL, nargc);
       PC(vm)=vm->callCode;
     } else {
       INDEX_SET(SP(vm), 0, SG_CAR(AC(vm)));
@@ -470,15 +469,16 @@ CASE(APPLY) {
         }
       }
 ;
-      if (val1) {
-        SP(vm)=shift_args(FP(vm), nargc + rargc, SP(vm));
+      if (val2) {
+        SP(vm)=shift_args(FP(vm), (nargc + rargc), SP(vm));
       }
 ;
-      vm->callCode[0]=MERGE_INSN_VALUE1(CALL, nargc + rargc);
+      vm->callCode[0]=MERGE_INSN_VALUE1(CALL, (nargc + rargc));
       PC(vm)=vm->callCode;
     }
     
 ;
+    AC(vm)=proc;
   }
 ;
   NEXT;
@@ -519,7 +519,7 @@ CASE(FRAME) {
     int skipSize = 0;
     ASSERT(SG_INTP(n));
     skipSize=SG_INT_VALUE(n);
-    make_call_frame(vm, PC(vm) + skipSize - 1);
+    make_call_frame(vm, (PC(vm) + (skipSize - 1)));
   }
 ;
   NEXT;
@@ -546,7 +546,7 @@ CASE(DISPLAY) {
     new_c=make_display(val1, SP(vm));
     SG_CLOSURE(new_c)->prev=DC(vm);
     DC(vm)=new_c;
-    SP(vm)=SP(vm) - val1;
+    SP(vm)=(SP(vm) - val1);
   }
 ;
   NEXT;
@@ -554,7 +554,7 @@ CASE(DISPLAY) {
 
 CASE(ENTER) {
   INSN_VAL1(val1, c);
-  FP(vm)=SP(vm) - val1;
+  FP(vm)=(SP(vm) - val1);
   NEXT;
 }
 
@@ -563,7 +563,7 @@ CASE(LEAVE) {
     SgObject* sp = FP(vm);
     FP(vm)=(SgObject*)INDEX(sp, 0);
     DC(vm)=INDEX(sp, 1);
-    SP(vm)=sp - SG_LET_FRAME_SIZE;
+    SP(vm)=(sp - SG_LET_FRAME_SIZE);
   }
 ;
   NEXT;
@@ -611,14 +611,14 @@ CASE(LIST) {
   INSN_VAL1(val1, c);
   {
     int i = 0;
-    int n = val1 - 1;
+    int n = (val1 - 1);
     SgObject ret = SG_NIL;
     if (val1 > 0) {
       ret=Sg_Cons(AC(vm), ret);
-      for (i=0;i < n;i=i + 1) {
+      for (i=0;i < n;i=(i + 1)) {
         ret=Sg_Cons(INDEX(SP(vm), i), ret);
       };
-      SP(vm)=SP(vm) - n;
+      SP(vm)=(SP(vm) - n);
     }
 ;
     AC(vm)=ret;
@@ -635,12 +635,12 @@ CASE(VALUES) {
       v=Sg_MakeValues(val1);
       {
         int i = 0;
-        int n = val1 - 1;
+        int n = (val1 - 1);
         SG_VALUES_ELEMENT(v, n)=AC(vm);
-        for (i=0;i < n;i=i + 1) {
-          SG_VALUES_ELEMENT(v, n - i - 1)=INDEX(SP(vm), i);
+        for (i=0;i < n;i=(i + 1)) {
+          SG_VALUES_ELEMENT(v, (n - i - 1))=INDEX(SP(vm), i);
         };
-        SP(vm)=SP(vm) - n;
+        SP(vm)=(SP(vm) - n);
       }
 ;
     }
@@ -684,12 +684,12 @@ CASE(VECTOR) {
     if (val1 > 0) {
       {
         int i = 0;
-        int n = val1 - 1;
+        int n = (val1 - 1);
         SG_VECTOR_ELEMENT(v, n)=AC(vm);
-        for (i=0;i < n;i=i + 1) {
-          SG_VECTOR_ELEMENT(v, n - i - 1)=INDEX(SP(vm), i);
+        for (i=0;i < n;i=(i + 1)) {
+          SG_VECTOR_ELEMENT(v, (n - i - 1))=INDEX(SP(vm), i);
         };
-        SP(vm)=SP(vm) - n;
+        SP(vm)=(SP(vm) - n);
       }
 ;
     }
@@ -730,7 +730,7 @@ CASE(VEC_REF) {
   }
 ;
   AC(vm)=SG_VECTOR_ELEMENT(INDEX(SP(vm), 0), SG_INT_VALUE(AC(vm)));
-  SP(vm)=SP(vm) - 1;
+  SP(vm)=(SP(vm) - 1);
   NEXT;
 }
 
@@ -749,7 +749,7 @@ CASE(VEC_SET) {
 ;
   SG_VECTOR_ELEMENT(INDEX(SP(vm), 1), SG_INT_VALUE(INDEX(SP(vm), 0)))=AC(vm);
   AC(vm)=SG_UNDEF;
-  SP(vm)=SP(vm) - 2;
+  SP(vm)=(SP(vm) - 2);
   NEXT;
 }
 

@@ -56,6 +56,8 @@ SG_EXTERN void Sg_WrongNumberOfArgumentsAtLeastViolation(SgObject who, int requi
 SG_EXTERN void Sg_WrongNumberOfArgumentsBetweenViolation(SgObject who, int startCounts, int endCounts,
 							 int gotCounts, SgObject irritants);
 
+SG_EXTERN void Sg_Raise(SgObject condition, int continuableP);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_ERROR_HPP_ */
