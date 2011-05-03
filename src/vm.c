@@ -110,7 +110,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 
   v->dynamicWinders = SG_NIL;
   v->parentExHandler = SG_FALSE;
-  v->exceptionHandler = SG_FALSE;
+  v->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
   v->toplevelVariables = SG_NIL;
 
   v->currentInputPort = Sg_MakeTranscodedInputPort(Sg_StandardInputPort(),
@@ -486,7 +486,7 @@ void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
     PUSH(s, SG_OBJ(data[i]));
   }
   CONT(vm) = cc;
-  SP(vm) = s;
+  FP(vm) = SP(vm) = s;
 }
 
 #if 0
@@ -525,11 +525,12 @@ SgObject Sg_Apply1(SgObject proc, SgObject arg)
   PUSH(SP(vm), arg);
   AC(vm) = proc;
   return evaluate_safe(apply_calls_w_halt[1], 3);
-#endif
   SgPair f;
   f.car = arg;
   f.cdr = SG_NIL;
   return Sg_Apply(proc, &f);
+#endif
+  return Sg_Apply(proc, SG_LIST1(arg));
 }
 
 SgObject Sg_Apply2(SgObject proc, SgObject arg0, SgObject arg1)
@@ -541,13 +542,14 @@ SgObject Sg_Apply2(SgObject proc, SgObject arg0, SgObject arg1)
   PUSH(SP(vm), arg1);
   AC(vm) = proc;
   return evaluate_safe(apply_calls_w_halt[2], 3);
-#endif
   SgPair f, s;
   f.car = arg0;
   f.cdr = &s;
   s.car = arg1;
   s.cdr = SG_NIL;
   return Sg_Apply(proc, &f);
+#endif
+  return Sg_Apply(proc, SG_LIST2(arg0, arg1));
 }
 
 SgObject Sg_Apply3(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2)
@@ -560,7 +562,6 @@ SgObject Sg_Apply3(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2)
   PUSH(SP(vm), arg2);
   AC(vm) = proc;
   return evaluate_safe(apply_calls_w_halt[3], 3);
-#endif
   SgPair f, s, t;
   f.car = arg0;
   f.cdr = &s;
@@ -569,6 +570,8 @@ SgObject Sg_Apply3(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2)
   t.car = arg2;
   t.cdr = SG_NIL;
   return Sg_Apply(proc, &f);
+#endif
+  return Sg_Apply(proc, SG_LIST3(arg0, arg1, arg2));
 }
 
 SgObject Sg_Apply4(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2, SgObject arg3)
@@ -582,7 +585,6 @@ SgObject Sg_Apply4(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2, S
   PUSH(SP(vm), arg3);
   AC(vm) = proc;
   return evaluate_safe(apply_calls_w_halt[4], 3);
-#endif
   SgPair f, s, t, fo;
   f.car = arg0;
   f.cdr = &s;
@@ -593,6 +595,8 @@ SgObject Sg_Apply4(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2, S
   fo.car = arg3;
   fo.cdr = SG_NIL;
   return Sg_Apply(proc, &f);
+#endif
+  return Sg_Apply(proc, SG_LIST4(arg0, arg1, arg2, arg3));
 }
 
 SgObject Sg_Apply(SgObject proc, SgObject args)
@@ -610,11 +614,11 @@ static SgWord apply_callN[2] = {
 };
 
 static SgWord apply_calls[][5] = {
-  { MERGE_INSN_VALUE1(CALL, 0), RET },
-  { MERGE_INSN_VALUE1(CALL, 1), RET },
-  { MERGE_INSN_VALUE1(CALL, 2), RET },
-  { MERGE_INSN_VALUE1(CALL, 3), RET },
-  { MERGE_INSN_VALUE1(CALL, 4), RET }
+  { MERGE_INSN_VALUE1(TAIL_CALL, 0), RET },
+  { MERGE_INSN_VALUE1(TAIL_CALL, 1), RET },
+  { MERGE_INSN_VALUE1(TAIL_CALL, 2), RET },
+  { MERGE_INSN_VALUE1(TAIL_CALL, 3), RET },
+  { MERGE_INSN_VALUE1(TAIL_CALL, 4), RET }
 };
 
 /*
@@ -744,13 +748,12 @@ static SgObject dynamic_wind_body_cc(SgObject result, void **data)
 {
   SgObject after = SG_OBJ(data[0]);
   SgObject prev = SG_OBJ(data[1]);
-  void *d[3];
+  void *d[1];
   SgVM *vm = Sg_VM();
   
   vm->dynamicWinders = prev;
   d[0] = (void*)result;
-  d[1] = (void*)AC(vm);
-  Sg_VMPushCC(dynamic_wind_after_cc, d, 2);
+  Sg_VMPushCC(dynamic_wind_after_cc, d, 1);
   return Sg_VMApply0(after);
 }
 
@@ -761,27 +764,22 @@ static SgObject dynamic_wind_after_cc(SgObject result, void **data)
 }
 
 /* 
-   with-expantion-handler
- */
-/*
+;; with-expantion-handler
 ;; image of with-exception-handler implementation
 (define with-exception-handler 
   (lambda (handler thunk)
     (let ((parent (current-exception-handler)))
-      (let ((parent-save #f)
-	    (current-save #f)
+      (let ((parent-save (parent-exception-handler))
+	    (current-save (current-exception-handler))
 	    (new-current (lambda (condition)
-			   (let ((current-save2 #f))
+			   (let ((current-save2 (current-exception-handler)))
 			     (dynamic-wind
 				 (lambda ()
-				   (set! current-save2 (current-exception-handler))
 				   (current-exception-handler parent))
 				 (lambda () (handler condition))
 				 (lambda () (current-exception-handler current-save2)))))))
 	(dynamic-wind
 	    (lambda () 
-	      (set! parent-save (parent-exception-handler))
-	      (set! current-save (current-exception-handler))
 	      (parent-exception-handler parent)
 	      (current-exception-handler new-current))
 	    thunk
@@ -789,7 +787,6 @@ static SgObject dynamic_wind_after_cc(SgObject result, void **data)
 	      (parent-exception-handler parent-save)
 	      (current-exception-handler current-save)))))))
  */
-
 static SgObject install_xhandler(SgObject *args, int argc, void *data)
 {
   SgVM *vm = Sg_VM();
@@ -815,9 +812,9 @@ static SgObject handler_body(SgObject *args, int argc, void *data)
   SgObject save = vm->exceptionHandler;
   SgObject parent = SG_CAR(SG_OBJ(data));
   SgObject handler = SG_CDR(SG_OBJ(data));
-  SgObject before  = Sg_MakeSubr(install_xhandler, parent, 0, 0, SG_FALSE);
-  SgObject after   = Sg_MakeSubr(install_xhandler, save, 0, 0, SG_FALSE);
-  SgObject thunk   = Sg_MakeSubr(handler_runner, Sg_Cons(handler, args[0]), 0, 0, SG_FALSE);
+  SgObject before  = Sg_MakeSubr(install_xhandler, parent, 0, 0, SG_INTERN("install-xhandler(body-before)"));
+  SgObject after   = Sg_MakeSubr(install_xhandler, save, 0, 0, SG_INTERN("install-xhandler(body-after)"));
+  SgObject thunk   = Sg_MakeSubr(handler_runner, Sg_Cons(handler, args[0]), 0, 0, SG_INTERN("handler-body"));
   return Sg_VMDynamicWind(before, thunk, after);
 }
 
@@ -827,13 +824,11 @@ SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk)
   SgObject parent = vm->exceptionHandler;
   SgObject psave  = vm->parentExHandler;
   SgObject csave  = vm->exceptionHandler;
-  SgObject new_current = Sg_MakeSubr(handler_body, Sg_Cons(parent, handler), 1, 0, SG_FALSE);
-  SgObject before      = Sg_MakeSubr(install_xhandler, Sg_Cons(parent, new_current), 0, 0, SG_FALSE);
-  SgObject after       = Sg_MakeSubr(install_xhandler, Sg_Cons(psave, csave), 0, 0, SG_FALSE);
+  SgObject new_current = Sg_MakeSubr(handler_body, Sg_Cons(parent, handler), 1, 0, SG_INTERN("new-current"));
+  SgObject before      = Sg_MakeSubr(install_xhandler, Sg_Cons(parent, new_current), 0, 0, SG_INTERN("install-xhandler(with-before)"));
+  SgObject after       = Sg_MakeSubr(install_xhandler, Sg_Cons(psave, csave), 0, 0, SG_INTERN("install-xhandler(with-after)"));
   return Sg_VMDynamicWind(before, thunk, after);
 }
-
-
 
 #define SKIP(vm, n)        (PC(vm) += (n))
 #define FETCH_OPERAND(pc)  SG_OBJ((*(pc)++))
@@ -967,10 +962,12 @@ static SgObject throw_continuation(SgObject *argframes, int argc, void *data)
 
 SgObject Sg_VMCallCC(SgObject proc)
 {
-  Stack *stack = save_stack();
-  SgContinuation *cont = make_continuation(stack);
+  Stack *stack;
+  SgContinuation *cont;
   SgObject contproc;
 
+  stack = save_stack();
+  cont = make_continuation(stack);
   contproc = Sg_MakeSubr(throw_continuation, cont, 0, 1,
 			 Sg_MakeString(UC("continucation"),
 				       SG_LITERAL_STRING));
@@ -1053,7 +1050,7 @@ SgObject Sg_GetStackTrace()
 
 SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
 {
-  if (!SG_FALSEP(vm->exceptionHandler)) {
+  if (vm->exceptionHandler != DEFAULT_EXCEPTION_HANDLER) {
     if (continuableP) {
       vm->ac = Sg_Apply1(vm->exceptionHandler, exception);
       return vm->ac;
@@ -1067,7 +1064,7 @@ SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
 										     SG_LITERAL_STRING)),
 					       Sg_MakeIrritantsCondition(SG_LIST1(exception)))));
       }
-      vm->exceptionHandler = SG_FALSE;
+      vm->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
       Sg_Error(UC("error in raise: returned from non-continuable exception\n\nirritants:\n%A"), exception);
     }
   }
@@ -1460,6 +1457,7 @@ static void print_frames(SgVM *vm)
   SgString *clfmt = Sg_MakeString(UC("+   cl=~38,,,,39s +~%"), SG_LITERAL_STRING);
   SgString *dcfmt = Sg_MakeString(UC("+   dc=~38,,,,39s +~%"), SG_LITERAL_STRING);
   int something_printed = FALSE;
+  Sg_Printf(vm->logPort, UC("stack: 0x%x\n"), stack);
   Sg_Printf(vm->logPort, UC("+---------------------------------------------+ <== sp(0x%x)\n"), sp);
   /* we print frames from top */
   while (stack < current && current <= sp) {
@@ -1476,13 +1474,15 @@ static void print_frames(SgVM *vm)
       Sg_Format(vm->logPort, clfmt, SG_LIST1(cont->cl), TRUE);
       Sg_Format(vm->logPort, dcfmt, SG_LIST1(cont->dc), TRUE);
       Sg_Printf(vm->logPort, UC("+   fp=%#38x +\n"), cont->fp);
+      Sg_Printf(vm->logPort, UC("+ prev=%#38x +\n"), cont->prev);
       if (cont == CONT(vm)) {
 	Sg_Printf(vm->logPort, UC("+---------------------------------------------+ <== cont(0x%x)\n"), cont);
-      } else {
-	Sg_Printf(vm->logPort, UC("+---------------------------------------------+ <== prev cont(s)\n"));
+      } else if (cont->prev) {
+	Sg_Printf(vm->logPort, UC("+---------------------------------------------+ <== prev(0x%x)\n"), cont);
       }
       current = cont;
       cont = cont->prev;
+      /* check if prev cont has arg or not. */
       continue;
     }
     /* this might be fp or dc of let frame */

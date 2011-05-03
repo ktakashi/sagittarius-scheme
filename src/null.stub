@@ -141,7 +141,7 @@
 	    ;; 7 Exceptions and conditions
 	    ;; 7.1 exceptions
 	    ;; with-exception-handler
-	    raise raise-continuable
+	    ;; raise raise-continuable
 	    ;; rest of chapter 7 are in exceptions.c
 
 	    ;; io
@@ -1778,6 +1778,7 @@
 
   ;; 7 Exceptions and conditions
   ;; 7.1 exceptions
+#|
   (define-c-proc with-exception-handler (handler thunk) ::Object
     (result (Sg_VMWithExceptionHandler handler thunk)))
 
@@ -1786,7 +1787,7 @@
 
   (define-c-proc raise-continuable (c) ::void
     (Sg_Raise c TRUE))
-
+|#
   ;; 8 I/O
   ;; 8.2 port i/o
   ;; 8.2.3 buffer modes

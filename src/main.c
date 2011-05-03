@@ -264,8 +264,8 @@ int main(int argc, char **argv)
     }
   }
   if (optind < argc) {
-    Sg_ImportLibrary(Sg_VM()->currentLibrary, SG_OBJ(SG_INTERN("(core base)")));
-    Sg_ImportLibrary(Sg_VM()->currentLibrary, SG_OBJ(SG_INTERN("(sagittarius compiler)")));
+    Sg_ImportLibrary(vm->currentLibrary, SG_OBJ(SG_INTERN("(core base)")));
+    Sg_ImportLibrary(vm->currentLibrary, SG_OBJ(SG_INTERN("(sagittarius compiler)")));
     Sg_Load(Sg_MakeStringC(argv[optind]));
   } else {
     fprintf(stderr, "not supported yet!\n");

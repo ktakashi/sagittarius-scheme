@@ -227,6 +227,9 @@ CASE(NEG) {
 CASE(TEST) {
   {
     SgObject n = FETCH_OPERAND(PC(vm));
+    if (!SG_INTP(n)) {
+      Sg_Panic("something wrong. %p", n);
+    }
     ASSERT(SG_INTP(n));
     if (SG_FALSEP(AC(vm))) {
       PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
@@ -629,10 +632,10 @@ CASE(LIST) {
 
 CASE(VALUES) {
   {
-    SgObject v = AC(vm);
+    SgObject v = SG_UNDEF;
     INSN_VAL1(val1, c);
+    v=Sg_MakeValues(val1);
     if (val1 > 1) {
-      v=Sg_MakeValues(val1);
       {
         int i = 0;
         int n = (val1 - 1);

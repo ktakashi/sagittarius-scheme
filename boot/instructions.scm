@@ -898,10 +898,10 @@ CASE(LSET) {
       }
 |#
 (define-inst VALUES (1 0 #t)
-  (let ((v (AC vm)))
+  (let ((v SG_UNDEF))
     (INSN_VAL1 val1 c)
+    (set! v (Sg_MakeValues val1))
     (when (> val1 1)
-      (set! v (Sg_MakeValues val1))
       (let ((i::int 0)
 	    (n::int (- val1 1)))
 	(set! (SG_VALUES_ELEMENT v n) (AC vm))

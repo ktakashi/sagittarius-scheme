@@ -1721,10 +1721,14 @@
     (pass1/import form import newenv)
     (pass1/export form export newenv)
     (let
-     ((r
-       ($seq
-        (append (map (lambda (x) (pass1 x newenv)) body) (list ($undef))))))
-     r)))
+     ((save (vm-current-library)))
+     (vm-current-library current-lib)
+     (let
+      ((r
+        ($seq
+         (append (map (lambda (x) (pass1 x newenv)) body) (list ($undef))))))
+      (vm-current-library save)
+      r))))
   (- (syntax-error "malformed library" form))))
 
 (define

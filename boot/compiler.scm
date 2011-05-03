@@ -1527,13 +1527,13 @@
 	    (newenv      (make-bottom-p1env current-lib)))
        (pass1/import form import newenv)
        (pass1/export form export newenv)
-       ;;(let ((save (vm-current-library))) ;; save current library
-	 ;;(vm-current-library current-lib)
+       (let ((save (vm-current-library))) ;; save current library
+	 (vm-current-library current-lib)
 	 (let ((r ($seq (append
 			 (map (lambda (x) (pass1 x newenv)) body)
 			 (list ($undef))))))
-	   ;;(vm-current-library save) ;; restore current library
-	 r)))
+	   (vm-current-library save) ;; restore current library
+	   r))))
     (- (syntax-error "malformed library" form))))
 
 

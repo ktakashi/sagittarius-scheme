@@ -43,7 +43,7 @@
              (format "~a~%" (proc))))
           (else
            (format "~a~%" c)))))
-#|
+
 (define raise
   (lambda (c)
     (cond ((current-exception-handler)
@@ -90,7 +90,6 @@
 	    (lambda ()
 	      (parent-exception-handler parent-save)
 	      (current-exception-handler current-save)))))))
-|#
 
 (define assertion-violation
   (lambda (who message . irritants)
