@@ -227,9 +227,6 @@ CASE(NEG) {
 CASE(TEST) {
   {
     SgObject n = FETCH_OPERAND(PC(vm));
-    if (!SG_INTP(n)) {
-      Sg_Panic("something wrong. %p", n);
-    }
     ASSERT(SG_INTP(n));
     if (SG_FALSEP(AC(vm))) {
       PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
@@ -522,7 +519,7 @@ CASE(FRAME) {
     int skipSize = 0;
     ASSERT(SG_INTP(n));
     skipSize=SG_INT_VALUE(n);
-    make_call_frame(vm, (PC(vm) + (skipSize - 1)));
+    PUSH_CONT(vm, (PC(vm) + (skipSize - 1)));
   }
 ;
   NEXT;

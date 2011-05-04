@@ -731,7 +731,7 @@ CASE(LSET) {
 	(skipSize::int 0))
     (ASSERT (SG_INTP n))
     (set! skipSize (SG_INT_VALUE n))
-    (make_call_frame vm (+ (PC vm) (- skipSize 1)))))
+    (PUSH_CONT vm (+ (PC vm) (- skipSize 1)))))
 
 #|
       CASE(LET_FRAME) {

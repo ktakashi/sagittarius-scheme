@@ -189,6 +189,7 @@ struct SgSubrRec
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeSubr(SgSubrProc proc, void *data, int required, int optional, SgObject info);
+SG_EXTERN SgObject Sg_NullProc();
 
 SG_CDECL_END
 

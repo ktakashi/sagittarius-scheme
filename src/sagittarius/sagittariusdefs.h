@@ -203,7 +203,6 @@ typedef struct SgClosureRec        SgClosure;
 typedef struct SgCodeBuilderRec	   SgCodeBuilder;
 typedef struct SgCodecRec      	   SgCodec;
 typedef struct SgComplexRec    	   SgComplex;
-typedef struct SgContinucationRec  SgContinuation;
 typedef struct SgGenericRec        SgGeneric;
 typedef struct SgGlocRec           SgGloc;
 typedef struct SgFileRec       	   SgFile;

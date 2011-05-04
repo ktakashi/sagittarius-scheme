@@ -325,21 +325,6 @@ SgObject Sg_CodeBuilderFullName(SgCodeBuilder *cb)
 }
 
 /*
-  This method is for compiled library.
-  compiled library can only have one library on its file.
-  (it may be changed future but for now)
-  Library will be compiled only one compiled code, because
-  one R6RS library is one S-expression.
-  So, just make a closure and apply it with '()
- */
-void Sg_VMExecute(SgObject toplevel)
-{
-  SgObject proc;
-  ASSERT(SG_CODE_BUILDERP(toplevel));
-  proc = Sg_MakeClosure(toplevel, NULL);
-  Sg_Apply0(proc);
-}
-/*
   end of file
   Local Variables:
   coding: utf-8-unix

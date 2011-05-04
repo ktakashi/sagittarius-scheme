@@ -223,9 +223,11 @@ SgObject Sg_FindLibrary(SgObject name, int createp)
       return Sg_MakeLibrary(name);
     } else {
       lib = search_library(SG_CAR(id_version));
+#if 0
       if (SG_FALSEP(lib)) {
 	Sg_Error(UC("no library named %S"), name);
       }
+#endif
     }
   }
   return lib;
@@ -248,6 +250,9 @@ SgObject Sg_SearchLibrary(SgObject lib)
     e = SG_LIBRARY(o);							\
   } else {								\
     e = Sg_FindLibrary((o), FALSE);					\
+    if (SG_FALSEP(e)) {							\
+      Sg_Error(UC("no library named %S"), o);				\
+    }									\
   }
 
 void Sg_ImportLibrary(SgObject to, SgObject from)

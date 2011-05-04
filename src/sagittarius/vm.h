@@ -33,6 +33,7 @@
 #define SAGITTARIUS_VM_H_
 
 #include "sagittariusdefs.h"
+#include "subr.h"		/* for SgSubrProc */
 #ifdef HAVE_SETJMP_H
 # include <setjmp.h>
 #else
@@ -83,15 +84,26 @@ typedef struct RegistersRec
 
 typedef SgObject SgCContinuationProc(SgObject result, void **data);
 
+/*
+  We need to treat c-stack not the same way as Scheme stack, otherwise
+  it'll consume c-stack infinitely.
+ */
+typedef struct SgCStackRec
+{
+  struct SgCStackRec *prev;
+  SgContFrame *cont;
+  jmp_buf      jbuf;
+} SgCStack;
 
-struct SgContinucationRec
+typedef struct SgContinucationRec
 {
   Stack       *stack;
   SgContFrame *cont;
   SgObject     winders;
-};
+  SgCStack    *cstack;
+} SgContinuation;
 
-#define SG_CONTINUATION(obj)  ((SgContinucation*)obj)
+#define SG_CONTINUATION(obj)  ((SgContinuation*)obj)
 #define SG_CONTINUATIONP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_CONTINUATION))
 
 
@@ -102,7 +114,14 @@ typedef enum {
   COMPILED,
   RUNNING,
   FINISHED
-} VMState;
+} SgVMState;
+
+typedef enum {
+  SG_VM_ESCAPE_NONE,
+  SG_VM_ESCAPE_CONT,
+  SG_VM_ESCAPE_ERROR,
+  SG_VM_ESCAPE_EXIT
+} SgVMEscapeReason;
 
 struct SgVMRec
 {
@@ -154,7 +173,10 @@ struct SgVMRec
   SgWord    *callCode;
 
   /* return point */
-  jmp_buf    returnPoint;
+  SgCStack  *cstack;
+  SgContinuation *escapePoint;
+  SgVMEscapeReason escapeReason;
+  void      *escapeData[2];
   /* error */
   SgObject   error;
 
@@ -172,7 +194,7 @@ struct SgVMRec
   int attentionRequest;
 
   /* statistics */
-  VMState state;
+  SgVMState state;
   int profilerRunning;
   SgVMProfiler *profiler;
 };
@@ -230,9 +252,7 @@ typedef enum {
 SG_CDECL_BEGIN
 
 SG_EXTERN SgVM*    Sg_NewVM(SgVM *proto, SgObject name);
-SG_EXTERN int      Sg_Load(SgString *path);
-SG_EXTERN int      Sg_LoadUnsafe(SgString *path);
-SG_EXTERN SgObject Sg_Compile(SgObject o);
+SG_EXTERN SgObject Sg_Compile(SgObject sexp, SgObject env);
 SG_EXTERN SgObject Sg_Apply(SgObject proc, SgObject args);
 SG_EXTERN SgObject Sg_Apply0(SgObject proc);
 SG_EXTERN SgObject Sg_Apply1(SgObject proc, SgObject arg);
@@ -259,6 +279,8 @@ SG_EXTERN SgObject Sg_VMEval(SgObject sexp, SgObject env);
 /* dynamic-wind */
 SG_EXTERN void     Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize);
 SG_EXTERN SgObject Sg_VMDynamicWind(SgObject before, SgObject thunk, SgObject after);
+/* c-friendly wrapper from Gauche */
+SG_EXTERN SgObject Sg_VMDynamicWindC(SgSubrProc *before, SgSubrProc *body, SgSubrProc *after, void *data);
 
 /* IO */
 SG_EXTERN SgObject Sg_CurrentOutputPort();

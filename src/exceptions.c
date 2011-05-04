@@ -231,9 +231,13 @@ SgObject Sg_MakeIrritantsCondition(SgObject irritants)
 
 SgObject Sg_DescribeCondition(SgObject con)
 {
-  SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("describe-condition"), SG_FALSE);
-  SgObject proc = SG_GLOC_GET(g);
-  return Sg_Apply1(proc, con);
+  if (Sg_ConditionP(con)) {
+    SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("describe-condition"), SG_FALSE);
+    SgObject proc = SG_GLOC_GET(g);
+    return Sg_Apply1(proc, con);
+  } else {
+    return con;
+  }
 }
 
 

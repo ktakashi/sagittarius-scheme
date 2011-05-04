@@ -31,6 +31,7 @@
  */
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/subr.h"
+#include "sagittarius/symbol.h"
 
 static SgSubr* make_subr(int req, int opt, SgObject info)
 {
@@ -47,4 +48,18 @@ SgObject Sg_MakeSubr(SgSubrProc proc, void *data, int required, int optional, Sg
   s->data = data;
   s->returnCode[0] = FALSE;
   return SG_OBJ(s);
+}
+
+static SgObject theNullProc = SG_NIL;
+static SgObject null_proc(SgObject *args, int argc, void *data)
+{
+  return SG_UNDEF;
+}
+
+SgObject Sg_NullProc()
+{
+  if (SG_NULLP(theNullProc)) {
+    theNullProc = Sg_MakeSubr(null_proc, NULL, 0, 1, SG_INTERN("nullproc"));
+  }
+  return SG_OBJ(theNullProc);
 }

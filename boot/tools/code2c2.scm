@@ -246,7 +246,7 @@
     (format out "};~%")
 
     (format out "~%")
-    (format out "static SgCodeBuilder ~a = SG_STATIC_CODE_BUILDER(&sg__wc.w[0], NULL, 0, FALSE, 0, ~a, ~a);~%"
+    (format out "static SgCodeBuilder ~a = SG_STATIC_CODE_BUILDER(&sg__wc.w[0], SG_FALSE, 0, FALSE, 0, ~a, ~a);~%"
 	    toplevel-name
 	    (code-builder-maxstack cb)
 	    (array-length (code-builder-code cb)))

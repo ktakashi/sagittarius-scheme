@@ -31,7 +31,8 @@
 	    ;; misc
 	    current-exception-handler
 	    variable? arity
-	    unbound undefined undefined? add-load-path
+	    unbound undefined undefined?
+	    add-load-path load
 	    gensym unwrap-syntax wrap-syntax
 
 	    ;; io
@@ -174,6 +175,9 @@
 
   (define-c-proc add-load-path (path::String) ::Object
     (result (Sg_AddLoadPath path)))
+
+  (define-c-proc load (path::String) ::Object
+    (result (Sg_VMLoad path)))
 
   (define-c-proc gensym (:optional (prefix::String NULL)) ::Object
     (result (Sg_Gensym prefix)))

@@ -62,6 +62,7 @@
 #include <sagittarius/identifier.h>
 #include <sagittarius/keyword.h>
 #include <sagittarius/library.h>
+#include <sagittarius/load.h>
 #include <sagittarius/macro.h>
 #include <sagittarius/number.h>
 #include <sagittarius/pair.h>
