@@ -1,6 +1,7 @@
 2011-05-05  Takashi Kato  <ktakashi@ymail.com>
 
-	* src/vm.c: refactered evaluation routine.
+	* src/vm.c (eval): refactered evaluation routine.
+	(call/cc winders): fixed before thunk was not called.
 
 	* src/load.c, src/sagittarius/load.h: separate files from vm.h and vm.c
 

@@ -370,7 +370,9 @@ SgObject Sg_Eval(SgObject sexp, SgObject env)
   SgObject v = SG_NIL;
   SgVM *vm = theVM;
 
+  vm->state = COMPILING;
   v = Sg_Compile(sexp, env);
+  vm->state = RUNNING;
 
   ASSERT(SG_CODE_BUILDERP(v));
   /* TODO replace and restore current library*/
@@ -922,7 +924,7 @@ static SgObject throw_continuation_calculate_handlers(SgContinuation *c,
   SG_FOR_EACH(p, target) {
     SgObject chain;
     ASSERT(SG_PAIRP(SG_CAR(p)));
-    if (!SG_FALSEP(Sg_Memq(SG_CAR(p), current))) break;
+    if (!SG_FALSEP(Sg_Memq(SG_CAR(p), current))) continue;
     chain = Sg_Memq(SG_CAR(p), c->winders);
     ASSERT(SG_PAIRP(chain));
     SG_APPEND1(h, t, Sg_Cons(SG_CAAR(p), SG_CDR(chain)));
