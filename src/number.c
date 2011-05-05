@@ -411,7 +411,7 @@ static SgObject read_real(const SgChar **strp, int *lenp,
 			  struct numread_packet *ctx)
 {
   int minusp = FALSE, exp_minusp = FALSE, exp_overflow = FALSE;
-  int sign_seen = FALSE;
+  int sign_seen = FALSE, has_fraction = FALSE, has_exponent = FALSE;
   int fracdigs = 0;
   long exponent = 0;
   SgObject intpart, fraction;
@@ -487,13 +487,9 @@ static SgObject read_real(const SgChar **strp, int *lenp,
     lensave = *lenp;
     fraction = read_uint(strp, lenp, ctx, intpart);
     fracdigs = lensave - *lenp;
+    has_fraction = TRUE;
   } else {
     fraction = intpart;
-#if 0
-    if (ctx->exactness == NOEXACT) {
-      return intpart;
-    }
-#endif
   }
 
   if (SG_FALSEP(intpart)) {
@@ -520,6 +516,7 @@ static SgObject read_real(const SgChar **strp, int *lenp,
       }
     }
     if (exp_minusp) exponent = -exponent;
+    has_exponent = TRUE;
   }
   if (exp_overflow && IS_INEXACT(ctx)) {
     if (exp_minusp) {
@@ -534,6 +531,9 @@ static SgObject read_real(const SgChar **strp, int *lenp,
 					  Sg_MakeInteger(exponent - fracdigs)));
     if (minusp) return Sg_Negate(e);
     else        return e;
+  } else if (ctx->exactness == NOEXACT &&
+	     !has_fraction && !has_exponent) {
+    return intpart;
   } else {
     double realnum = Sg_GetDouble(fraction);
     realnum = pow10n(realnum, exponent - fracdigs);
@@ -676,11 +676,13 @@ static SgObject read_number(const SgChar *str, int len, int radix, int strict)
 			      SG_MAKE_INT((*str == '+') ? 1 : -1));
       }
     } else {
-      SgObject imagpart = read_real(&str, &len, &ctx);
+      SgObject imagpart;
+      ctx.exactness = NOEXACT;
+      imagpart = read_real(&str, &len, &ctx);
       if (SG_FALSEP(imagpart) || len != 1 || *str != 'i') {
 	return SG_FALSE;
       }
-      if (Sg_Sign(imagpart) == 0) return realpart;
+      /* if (Sg_Sign(imagpart) == 0) return realpart; */
       return Sg_MakeComplex(realpart, imagpart);
     }
   case 'i':
@@ -1045,7 +1047,7 @@ static inline SgObject make_complex(SgObject real, SgObject imag)
 
 SgObject Sg_MakeComplex(SgObject real, SgObject imag)
 {
-  if (Sg_ZeroP(imag)) return real;
+  if (!SG_FLONUMP(imag) && Sg_ZeroP(imag)) return real;
   else if (SG_FLONUMP(real) || SG_FLONUMP(imag)) {
     return make_complex(Sg_Inexact(real), Sg_Inexact(imag));
   }
@@ -1118,19 +1120,31 @@ double Sg_RationalToDouble(SgRational *obj)
 
 SgObject Sg_Numerator(SgObject x)
 {
-  if (SG_RATIONALP(x)) return SG_RATIONAL(x)->numerator;
-  if (SG_NUMBERP(x)) return x;
-  Sg_Error(UC("number required, but got %S"), x);
-  return SG_UNDEF;
+  int inexact;
+  SgObject obj;
+  if (!SG_NUMBERP(x)) Sg_Error(UC("number required, but got %S"), x);
+  if (SG_FLONUMP(x) && SG_FLONUM(x)->value == 0.0) return x;
+  inexact = SG_FLONUMP(x);
+  obj = Sg_Exact(x);
+  if (SG_RATIONALP(obj)) {
+    if (inexact) return Sg_Inexact(SG_RATIONAL(obj)->numerator);
+    return SG_RATIONAL(obj)->numerator;
+  }
+  return inexact ? Sg_Inexact(obj) : obj;
 }
 
 SgObject Sg_Denominator(SgObject x)
 {
-  if (SG_RATIONALP(x)) return SG_RATIONAL(x)->denominator;
-  if (SG_EXACT_INTP(x)) return SG_MAKE_INT(1);
-  if (SG_NUMBERP(x)) return Sg_MakeFlonum(1.0);
-  Sg_Error(UC("number required, but got %S"), x);
-  return SG_UNDEF;
+  int inexact;
+  SgObject obj;
+  if (!SG_NUMBERP(x)) Sg_Error(UC("number required, but got %S"), x);
+  inexact = SG_FLONUMP(x);
+  obj = Sg_Exact(x);
+  if (SG_RATIONALP(obj)) {
+    if (inexact) return Sg_Inexact(SG_RATIONAL(obj)->denominator);
+    return SG_RATIONAL(obj)->denominator;
+  }
+  return inexact ? Sg_MakeFlonum(1.0) : SG_MAKE_INT(1);
 }
 
 static inline SgObject rationalize_rec(SgObject bottom, SgObject top)
@@ -1200,6 +1214,7 @@ int Sg_IntegerP(SgObject obj)
   if (SG_FLONUMP(obj)) {
     double d = SG_FLONUM(obj)->value;
     double f, i;
+    if (Sg_InfiniteP(obj)) return FALSE;
     if ((f = modf(d, &i)) == 0.0) return TRUE;
     return FALSE;
   }
@@ -1269,6 +1284,12 @@ int Sg_RealValuedP(SgObject n)
 int Sg_RationalValuedP(SgObject n)
 {
   if (SG_RATIONALP(n)) return TRUE;
+  if (SG_EXACT_INTP(n)) return TRUE;
+  if (SG_FLONUMP(n)) {
+    if (Sg_InfiniteP(n)) return FALSE;
+    if (Sg_NanP(n)) return FALSE;
+    return TRUE;
+  }
   if (SG_COMPLEXP(n)) {
     return Sg_ZeroP(SG_COMPLEX(n)->imag) &&
       SG_RATIONALP(SG_COMPLEX(n)->real);
@@ -2327,7 +2348,7 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
 #undef do_complex
 }
 
-SgObject Sg_Expt(SgObject x, SgObject y)
+static SgObject expt_body(SgObject x, SgObject y)
 {
   if (SG_FLONUMP(x) && SG_FLONUM(x)->value == 0.0) {
     if (SG_COMPLEXP(y)) {
@@ -2344,7 +2365,8 @@ SgObject Sg_Expt(SgObject x, SgObject y)
     }
     if (SG_BIGNUMP(y)) {
       if (!Sg_ExactP(x)) {
-	Sg_Error(UC("exact number required, but got %S"), x);
+	/* Sg_Error(UC("exact number required, but got %S"), x); */
+	return SG_UNDEF;
       }
       if (SG_REALP(y)) {
 	double n = Sg_BignumToDouble(SG_BIGNUM(y));
@@ -2372,8 +2394,43 @@ SgObject Sg_Expt(SgObject x, SgObject y)
     return Sg_Exp(Sg_Mul(y, Sg_Log(x)));
   }
  bad_arg:
-  Sg_Error(UC("real number required, but got %S"), y);
+  /* Sg_Error(UC("real number required, but got %S"), y); */
   return SG_UNDEF;		/* dummy */
+}
+
+SgObject Sg_Expt(SgObject x, SgObject y)
+{
+  if (x == SG_MAKE_INT(1)) {
+    if (Sg_ExactP(y)) return SG_MAKE_INT(1);
+    return Sg_MakeFlonum(1.0);
+  }
+  if (x == SG_MAKE_INT(-1) && Sg_ExactP(y)) {
+    if (Sg_OddP(y)) return SG_MAKE_INT(-1);
+    return SG_MAKE_INT(1);
+  }
+  if (x == SG_MAKE_INT(0)) {
+    if (Sg_ZeroP(y)) {
+      if (Sg_ExactP(y)) return SG_MAKE_INT(1);
+      return Sg_MakeFlonum(1.0);
+    }
+    if (Sg_RealValuedP(y)) {
+      if (Sg_NegativeP(y)) return Sg_MakeComplex(SG_NAN, SG_NAN);
+      if (Sg_ExactP(y)) return SG_MAKE_INT(0);
+      return Sg_MakeFlonum(0.0);
+    } else {
+      ASSERT(SG_COMPLEXP(y));
+      if (Sg_PositiveP(SG_COMPLEX(y)->real)) {
+	if (Sg_ExactP(y)) return SG_MAKE_INT(0);
+	return Sg_MakeFlonum(0.0);
+      }
+      return Sg_MakeComplex(SG_NAN, SG_NAN);
+    }
+  }
+  if (Sg_ExactP(x) && SG_BIGNUMP(y)) {
+    Sg_Error(UC("expt: calculated number is too big to fit into memory %S %S"), x, y);
+    return SG_UNDEF;
+  }
+  return expt_body(x, y);
 }
 
 SgObject Sg_Exp(SgObject obj)
@@ -2513,6 +2570,13 @@ SgObject Sg_Atan2(SgObject x, SgObject y)
   return Sg_MakeFlonum(atan2(Sg_GetDouble(x), Sg_GetDouble(y)));
 }
 
+static inline int either_nan_p(SgObject arg0, SgObject arg1)
+{
+  if (SG_FLONUMP(arg0) && isnan(SG_FLONUM(arg0)->value)) return TRUE;
+  if (SG_FLONUMP(arg1) && isnan(SG_FLONUM(arg1)->value)) return TRUE;
+  return FALSE;
+}
+
 int Sg_NumEq(SgObject x, SgObject y)
 {
   if (SG_COMPLEXP(x)) {
@@ -2523,6 +2587,7 @@ int Sg_NumEq(SgObject x, SgObject y)
     return FALSE;
   } else {
     if (SG_COMPLEXP(y)) return FALSE;
+    if (either_nan_p(x, y)) return FALSE;
     return (Sg_NumCmp(x, y) == 0);
   }
 }
@@ -2633,19 +2698,23 @@ int Sg_NumCmp(SgObject x, SgObject y)
 
 int Sg_NumGt(SgObject x, SgObject y)
 {
+  if (either_nan_p(x, y)) return FALSE;
   return (Sg_NumCmp(x, y) > 0);
 }
 int Sg_NumGe(SgObject x, SgObject y)
 {
+  if (either_nan_p(x, y)) return FALSE;
   return (Sg_NumCmp(x, y) >= 0);
 }
 
 int Sg_NumLt(SgObject x, SgObject y)
 {
+  if (either_nan_p(x, y)) return FALSE;
   return (Sg_NumCmp(x, y) < 0);
 }
 int Sg_NumLe(SgObject x, SgObject y)
 {
+  if (either_nan_p(x, y)) return FALSE;
   return (Sg_NumCmp(x, y) <= 0);
 }
 
@@ -2653,7 +2722,9 @@ SgObject Sg_Abs(SgObject obj)
 {
   if (SG_INTP(obj)) {
     intptr_t v = SG_INT_VALUE(obj);
-    if (v < 0) obj = SG_MAKE_INT(-v);
+    if (v < 0) {
+      obj = Sg_MakeInteger(-v);
+    }
   } else if (SG_BIGNUMP(obj)) {
     if (SG_BIGNUM_GET_SIGN(obj) < 0) {
       obj = Sg_BignumCopy(SG_BIGNUM(obj));
@@ -2984,7 +3055,8 @@ SgObject Sg_Log(SgObject obj)
 
 void Sg_MinMax(SgObject arg0, SgObject args, SgObject *min, SgObject *max)
 {
-  int inexact = Sg_InexactP(arg0);
+#define EXACTP(o) (SG_EXACT_INTP(o) || SG_RATIONALP(o))
+  int inexact = !EXACTP(arg0);
   SgObject mi = arg0;
   SgObject ma = arg0;
 
@@ -2993,14 +3065,14 @@ void Sg_MinMax(SgObject arg0, SgObject args, SgObject *min, SgObject *max)
       Sg_Error(UC("real number required, but got %S"), arg0);
     if (SG_NULLP(args)) {
       if (min) {
-	if (inexact && Sg_ExactP(mi)) {
+	if (inexact && EXACTP(mi)) {
 	  *min = Sg_Inexact(mi);
 	} else {
 	  *min = mi;
 	}
       }
       if (max) {
-	if (inexact && Sg_ExactP(mi)) {
+	if (inexact && EXACTP(ma)) {
 	  *max = Sg_Inexact(ma);
 	} else {
 	  *max = ma;
@@ -3008,7 +3080,7 @@ void Sg_MinMax(SgObject arg0, SgObject args, SgObject *min, SgObject *max)
       }
       return;
     }
-    if (Sg_InexactP(SG_CAR(args))) inexact = TRUE;
+    if (!EXACTP(SG_CAR(args))) inexact = TRUE;
     if (min && Sg_NumCmp(mi, SG_CAR(args)) > 0) {
       mi = SG_CAR(args);
     }
@@ -3017,6 +3089,7 @@ void Sg_MinMax(SgObject arg0, SgObject args, SgObject *min, SgObject *max)
     }
     args = SG_CDR(args);
   }
+#undef EXACTP
 }
 
 SgObject Sg_IntegerDiv(SgObject x, SgObject y)
@@ -3030,7 +3103,7 @@ SgObject Sg_IntegerDiv(SgObject x, SgObject y)
       intptr_t xx = SG_INT_VALUE(x);
       intptr_t yy = SG_INT_VALUE(y);
       intptr_t div;
-      if (x == 0) {
+      if (xx == 0) {
 	div = 0;
       } else if (xx > 0) {
 	div = xx / yy;
@@ -3047,7 +3120,7 @@ SgObject Sg_IntegerDiv(SgObject x, SgObject y)
     double yy = Sg_GetDouble(y);
     return Sg_MakeFlonum((yy > 0.0) ? floor(xx / yy) : - floor(xx / -yy));
   }
-  if (Sg_PositiveP(x)) return Sg_Round(Sg_Div(x, y), SG_ROUND_FLOOR);
+  if (Sg_PositiveP(y)) return Sg_Round(Sg_Div(x, y), SG_ROUND_FLOOR);
   return Sg_Negate(Sg_Round(Sg_Div(x, Sg_Negate(y)), SG_ROUND_FLOOR));
 }
 
@@ -3090,7 +3163,7 @@ static inline double roundeven(double v)
       if (fmod(r, 2.0) != 0.0) r += 1.0;
     }
   } else {
-    if (frac < 0.5) r -= 1.0;
+    if (frac < -0.5) r -= 1.0;
     else if (frac == -0.5) {
       if (fmod(r, 2.0) != 0.0) r -= 1.0;
     }

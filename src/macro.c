@@ -109,15 +109,14 @@ static SgObject unwrap_rec(SgObject form, SgObject history)
 
 static SgObject macro_tranform(SgObject *args, int argc, void *data_)
 {
-  SgObject macro, form, p1env, data, mac_env;
+  SgObject macro, form, p1env, mac_env;
+  volatile SgObject data;
   macro = args[0];
   ASSERT(SG_MACROP(macro));
   form = args[1];
   p1env = args[2];
-  /* TODO it's kinda waste of time if we compute each time. */
-  /* NB: we don't use scheme apply(Sg_VMApply) to get macro transformer, because
-         it does not contain HALT in it. If we use it, programme won't stop. */
-  data = Sg_Apply0(args[3]);
+
+  data = Sg_ApplySafe(args[3], SG_NIL);
   mac_env = SG_MACRO(macro)->env;
   if (SG_MACROP(data)) {
     return Sg_Apply4(SG_MACRO(data)->transformer, data, form, p1env, SG_MACRO(data)->data);

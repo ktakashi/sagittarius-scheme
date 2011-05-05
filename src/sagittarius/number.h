@@ -51,8 +51,11 @@ struct SgBignumRec
 #define BIGNUM_COUNT_SHIFT 16
 #define BIGNUM_MAX_DIGITS  ((1UL<<(SIZEOF_INT*CHAR_BIT-2))-1)
 
-#define SG_BIGNUM_SET_SIGN(obj, sign)		\
-  SG_SET_HEADER_ATTRIBUTE(obj, SG_MAKEBITS((sign & 0x3), BIGNUM_SIGN_SHIFT))
+#define SG_BIGNUM_SET_SIGN(obj, sign)					\
+  (SG_HDR(obj) = (MAKE_HDR_VALUE(TC_BIGNUM)				\
+		  | (SG_MAKEBITS((sign & 0x3), BIGNUM_SIGN_SHIFT))	\
+		  | (SG_HDR(obj) & SG_MAKEBITS(0xFFFF, BIGNUM_COUNT_SHIFT))))
+
 #define SG_BIGNUM_SET_COUNT(obj, count)					\
   (SG_HDR(obj) = (MAKE_HDR_VALUE(TC_BIGNUM)				\
 		  | (SG_MAKEBITS(count, BIGNUM_COUNT_SHIFT))		\

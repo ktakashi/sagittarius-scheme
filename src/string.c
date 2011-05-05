@@ -257,7 +257,7 @@ SgObject Sg_Substring(SgString *x, int start, int end)
   SG_CHECK_START_END(start, end, len);
 
   ret = make_string(end - start);
-  memcpy(ret->value, x->value, (end - start) * sizeof(SgChar));
+  memcpy(ret->value, x->value + start, (end - start) * sizeof(SgChar));
   ret->value[end-start] = 0;
   return ret;
 }

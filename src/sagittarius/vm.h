@@ -97,6 +97,7 @@ typedef struct SgCStackRec
 
 typedef struct SgContinucationRec
 {
+  struct SgContinucationRec * prev;
   Stack       *stack;
   SgContFrame *cont;
   SgObject     winders;
@@ -254,6 +255,7 @@ SG_CDECL_BEGIN
 SG_EXTERN SgVM*    Sg_NewVM(SgVM *proto, SgObject name);
 SG_EXTERN SgObject Sg_Compile(SgObject sexp, SgObject env);
 SG_EXTERN SgObject Sg_Apply(SgObject proc, SgObject args);
+SG_EXTERN SgObject Sg_ApplySafe(SgObject proc, SgObject args);
 SG_EXTERN SgObject Sg_Apply0(SgObject proc);
 SG_EXTERN SgObject Sg_Apply1(SgObject proc, SgObject arg);
 SG_EXTERN SgObject Sg_Apply2(SgObject proc, SgObject arg0, SgObject arg1);
@@ -275,6 +277,7 @@ SG_EXTERN SgObject Sg_AddLoadPath(SgString *path);
 
 /* eval */
 SG_EXTERN SgObject Sg_VMEval(SgObject sexp, SgObject env);
+SG_EXTERN SgObject Sg_Eval(SgObject sexp, SgObject env);
 
 /* dynamic-wind */
 SG_EXTERN void     Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize);

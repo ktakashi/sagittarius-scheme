@@ -453,13 +453,14 @@
 
   ;; 11.7.4.1 numerical type predicates
   (define-c-proc complex? (o) ::boolean
-    (result (SG_COMPLEXP o)))
+    (result (SG_NUMBERP o)))
 
   (define-c-proc real? (o) ::boolean
     (result (SG_REALP o)))
 
   (define-c-proc rational? (o) ::boolean
-    (result (SG_RATIONALP o)))
+    (result (or (SG_EXACT_INTP o)
+		(SG_RATIONALP o))))
 
   (define-c-proc integer? (o) ::boolean
     (result (Sg_IntegerP o)))
@@ -586,14 +587,28 @@
 	  (else (dolist (x rest) (set! arg1 (Sg_Sub arg1 (Sg_Inexact x))))
 		(result arg1))))
 
-  (define-c-proc / (arg1 :rest rest::Object) ::Object
+  (define-c-proc / (arg1 :rest rest) ::Object
     (if (SG_NULLP rest)
 	(result (Sg_Inverse arg1))
-	(begin (dolist (v rest) (set! arg1 (Sg_Div arg1 v)))
+	(begin (dolist (v rest)
+		 ;; see comment for DIV on instruction.scm
+		 #;(if (and (SG_VM_IS_SET_FLAG (Sg_VM) SG_R6RS_MODE)
+			  (Sg_ZeroP v))
+		     (assertion-violation '/
+					  "undefined for 0"
+					  (Sg_Cons arg1 rest)))
+		 (set! arg1 (Sg_Div arg1 v)))
 	       (result arg1))))
   (define-c-proc /. (arg1 :rest rest::Object) ::Object
     (cond ((SG_NULLP rest) (result (Sg_Inverse (Sg_Inexact arg1))))
-	  (else (dolist (x rest) (set! arg1 (Sg_Div arg1 (Sg_Inexact x))))
+	  (else (dolist (x rest)
+		  ;; see comment for DIV on instruction.scm
+		  #;(if (and (SG_VM_IS_SET_FLAG (Sg_VM) SG_R6RS_MODE)
+			   (Sg_ZeroP x))
+		      (assertion-violation '/
+					  "undefined for 0"
+					  (Sg_Cons arg1 rest)))
+		  (set! arg1 (Sg_Div arg1 (Sg_Inexact x))))
 		(result arg1))))
   ;; base arithmetic
   (define-c-proc abs (x::number) ::Object
@@ -677,9 +692,7 @@
     (result (Sg_Exp x)))
 
   (define-c-proc expt (x::number y::number) ::Object
-    (if (Sg_ZeroP x)
-	(result SG_UNDEF)
-	(result (Sg_Expt x y))))
+    (result (Sg_Expt x y)))
 
   (define-c-proc log (x::number :optional (base::number SG_UNBOUND)) ::Object
     (if (SG_UNBOUNDP base)
@@ -1163,7 +1176,8 @@
 
   (define-c-proc values (:rest rest) (inline VALUES) ::Object
     (let ((len (Sg_Length rest)))
-      (cond ((== len 1) (result (SG_CAR rest)))
+      (cond ((== len 0) (result (Sg_MakeValues 0)))
+	    ((== len 1) (result (SG_CAR rest)))
 	    (else
 	     (let ((v (Sg_MakeValues len))
 		   (i::int 0))
@@ -1778,7 +1792,6 @@
 
   ;; 7 Exceptions and conditions
   ;; 7.1 exceptions
-#|
   (define-c-proc with-exception-handler (handler thunk) ::Object
     (result (Sg_VMWithExceptionHandler handler thunk)))
 
@@ -1787,7 +1800,7 @@
 
   (define-c-proc raise-continuable (c) ::void
     (Sg_Raise c TRUE))
-|#
+
   ;; 8 I/O
   ;; 8.2 port i/o
   ;; 8.2.3 buffer modes
@@ -2201,7 +2214,8 @@
 		   (i::int 0)
 		   (ret (Sg_MakeEmptyString)))
 	       (loop 
-		(cond ((== i count)
+		(cond ((or (== i count)
+			   (== EOF (Sg_Peekc p)))
 		       (break))
 		      (else
 		       (set! (arrayref buf i) (Sg_Getc p))
@@ -2230,7 +2244,8 @@
 	     (let ((buf::SgChar* (SG_STRING_VALUE s))
 		   (i::int 0))
 	       (loop 
-		(cond ((== i count)
+		(cond ((or (== i count)
+			   (== EOF (Sg_Peekc p)))
 		       (break))
 		      (else
 		       (set! (arrayref buf (+ i start)) (Sg_Getc p))

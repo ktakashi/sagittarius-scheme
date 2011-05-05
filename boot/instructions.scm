@@ -252,22 +252,28 @@ CASE(LSET) {
 (define-inst MULI (1 0 #t)
   (BUILTIN_ONE_ARG_WITH_INSN_VALUE vm Sg_Mul c))
 
-#|
-      CASE(DIV) {
-	BUILTIN_TWO_ARGS(vm, Sg_Div);
-	NEXT;
-      }
-|#
+;;
+;; R6RS requires &assertion exception when divisor was 0.
+;; however on Sagittarius scheme we try to calculate if arguments are known,
+;; such as (/ 0 0) case. In this case and if #!r6rs was set, it'll cause
+;; uncatchable exception. If I can find a nice way to handle compile time
+;; exception, this might be fixed.
 (define-inst DIV (0 0 #t)
+  #;(when (and (SG_VM_IS_SET_FLAG vm SG_R6RS_MODE)
+	     (Sg_ZeroP (AC vm)))
+    (assertion-violation '/
+			 "undefined for 0"
+			 (SG_LIST2 (INDEX (SP vm) 0) (AC vm))))
   (BUILTIN_TWO_ARGS vm Sg_Div))
 
-#|
-      CASE(DIVI) {
-	BUILTIN_ONE_ARG_WITH_INSN_VALUE(vm, Sg_Div, c);
-	NEXT;
-      }
-|#
 (define-inst DIVI (1 0 #t)
+  (INSN_VAL1 val1 c)
+  #;(when (and (SG_VM_IS_SET_FLAG vm SG_R6RS_MODE)
+	     (or (== 0 val1)
+		 (== 0.0 val1))) ;; i don't think we need the one below but just in case.
+    (assertion-violation '/
+			 "undefined for 0"
+			 (SG_LIST2 (AC vm) (SG_MAKE_INT 0))))
   (BUILTIN_ONE_ARG_WITH_INSN_VALUE vm Sg_Div c))
 
 #|
@@ -898,18 +904,20 @@ CASE(LSET) {
       }
 |#
 (define-inst VALUES (1 0 #t)
-  (let ((v SG_UNDEF))
-    (INSN_VAL1 val1 c)
-    (set! v (Sg_MakeValues val1))
-    (when (> val1 1)
-      (let ((i::int 0)
-	    (n::int (- val1 1)))
-	(set! (SG_VALUES_ELEMENT v n) (AC vm))
-	(for (set! i 0) (< i n) (set! i (+ i 1))
-	     (set! (SG_VALUES_ELEMENT v (- n i 1))
-		   (INDEX (SP vm) i)))
-	(set! (SP vm) (- (SP vm) n))))
-    (set! (AC vm) v)))
+  (INSN_VAL1 val1 c)
+  (if (== val1 0)
+      (set! (AC vm) (Sg_MakeValues 0))
+      (let ((v (AC vm)))
+	(when (> val1 1)
+	  (set! v (Sg_MakeValues val1))
+	  (let ((i::int 0)
+		(n::int (- val1 1)))
+	    (set! (SG_VALUES_ELEMENT v n) (AC vm))
+	    (for (set! i 0) (< i n) (set! i (+ i 1))
+		 (set! (SG_VALUES_ELEMENT v (- n i 1))
+		       (INDEX (SP vm) i)))
+	    (set! (SP vm) (- (SP vm) n))))
+	(set! (AC vm) v))))
 
 #|
       CASE(EQ) {

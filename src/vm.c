@@ -132,29 +132,27 @@ SgVM* Sg_VM()
 #define Sg_VM() theVM
 
 
-static inline void save_registers(Registers *r)
-{
-  SgVM *vm = Sg_VM();
-  r->ac = vm->ac;
-  r->dc = vm->dc;
-  r->cl = vm->cl;
-  r->pc = vm->pc;
-  r->spOffset = vm->sp - vm->stack;
-  r->fpOffset = vm->fp - vm->stack;
-  r->cont = vm->cont;
-}
+#define SAVE_REGS(vm, r)			\
+  do {						\
+    (r)->ac = (vm)->ac;				\
+    (r)->dc = (vm)->dc;				\
+    (r)->cl = (vm)->cl;				\
+    (r)->pc = (vm)->pc;				\
+    (r)->spOffset = (vm)->sp - (vm)->stack;	\
+    (r)->fpOffset = (vm)->fp - (vm)->stack;	\
+    (r)->cont = (vm)->cont;			\
+  } while (0)
 
-static inline void restore_registers(Registers *r)
-{
-  SgVM *vm = Sg_VM();
-  vm->ac = r->ac;
-  vm->dc = r->dc;
-  vm->cl = r->cl;
-  vm->pc = r->pc;
-  vm->sp = vm->stack + r->spOffset;
-  vm->fp = vm->stack + r->fpOffset;
-  vm->cont = r->cont;
-}
+#define RESTORE_REGS(vm, r)			\
+  do {						\
+    (vm)->ac = (r)->ac;				\
+    (vm)->dc = (r)->dc;				\
+    (vm)->cl = (r)->cl;				\
+    (vm)->pc = (r)->pc;				\
+    (vm)->sp = (vm)->stack + (r)->spOffset;	\
+    (vm)->fp = (vm)->stack + (r)->fpOffset;	\
+    (vm)->cont = (r)->cont;			\
+  } while (0)
 
 static inline void report_error(SgObject exception)
 {
@@ -344,39 +342,40 @@ SgObject Sg_Compile(SgObject o, SgObject e)
   return Sg_Apply2(compiler, o, e);
 }
 
-
-static SgObject eval_restore_env(SgObject *args, int argc, void *data)
-{
-  theVM->currentLibrary = SG_LIBRARY(data);
-  return SG_UNDEF;
-}
 /* 
    env: library for now.
+   vm-current-library will be given env and after eval, we restore it.
  */
 SgObject Sg_VMEval(SgObject sexp, SgObject env)
 {
   SgObject v = SG_NIL;
-  int restore_library = SG_LIBRARYP(env);
   SgVM *vm = theVM;
 
   v = Sg_Compile(sexp, env);
-  
-  if (restore_library) {
-    SgObject body = Sg_MakeClosure(v,
-				   (vm->stack != SP(vm) && (SP(vm) - SG_CODE_BUILDER_FREEC(v)) > vm->stack)
-				   ? SP(vm) - SG_CODE_BUILDER_FREEC(v)
-				   : NULL);
-    SgObject before = Sg_MakeSubr(eval_restore_env, env, 0, 0, SG_INTERN("eval-before"));
-    SgObject after  = Sg_MakeSubr(eval_restore_env, env, 0, 0, SG_INTERN("eval-after"));
-    return Sg_VMDynamicWind(before, body, after);
-  } else {
-    ASSERT(SG_CODE_BUILDERP(v));
-    SG_CLOSURE(vm->closureForEvaluate)->code = v;
-    vm->cl = vm->closureForEvaluate;
-    vm->dc = vm->closureForEvaluate;
-    vm->pc = SG_CODE_BUILDER(v)->code;
-    return SG_UNDEF;
-  }
+
+  ASSERT(SG_CODE_BUILDERP(v));
+  /* TODO replace and restore current library*/
+  SG_CLOSURE(vm->closureForEvaluate)->code = v;
+  vm->cl = vm->closureForEvaluate;
+  vm->dc = vm->closureForEvaluate;
+  vm->pc = SG_CODE_BUILDER(v)->code;
+  return SG_UNDEF;
+}
+
+/* 
+   env: library for now.
+ */
+SgObject Sg_Eval(SgObject sexp, SgObject env)
+{
+  SgObject v = SG_NIL;
+  SgVM *vm = theVM;
+
+  v = Sg_Compile(sexp, env);
+
+  ASSERT(SG_CODE_BUILDERP(v));
+  /* TODO replace and restore current library*/
+  SG_CLOSURE(vm->closureForEvaluate)->code = v;
+  return evaluate_safe(vm->closureForEvaluate, SG_CODE_BUILDER(v)->code);
 }
 
 /* TODO check stack expantion */
@@ -523,6 +522,17 @@ SgObject Sg_Apply(SgObject proc, SgObject args)
 
   program = (vm->cl) ? vm->cl : vm->closureForEvaluate;
   return evaluate_safe(program, vm->applyCode);
+}
+
+SgObject Sg_ApplySafe(SgObject proc, SgObject args)
+{
+  SgVM *vm = Sg_VM();
+  Registers r;
+  SgObject ret;
+  SAVE_REGS(vm, &r);
+  ret = Sg_Apply(proc, args);
+  RESTORE_REGS(vm, &r);
+  return ret;
 }
 
 static SgWord apply_callN[2] = {
@@ -692,6 +702,7 @@ SgObject Sg_VMDynamicWindC(SgSubrProc *before,
   return Sg_VMDynamicWind(beforeproc, bodyproc, afterproc);
 }
 
+
 /* 
 ;; with-expantion-handler
 ;; image of with-exception-handler implementation
@@ -732,7 +743,7 @@ static SgObject handler_runner(SgObject *args, int argc, void *data)
 {
   SgObject handler = SG_CAR(SG_OBJ(data));
   SgObject condition = SG_CDR(SG_OBJ(data));
-  return Sg_Apply1(handler, condition);
+  return Sg_VMApply1(handler, condition);
 }
 
 static SgObject handler_body(SgObject *args, int argc, void *data)
@@ -759,6 +770,45 @@ SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk)
   return Sg_VMDynamicWind(before, thunk, after);
 }
 
+#if 0
+static SgObject install_ehandler(SgObject *args, int argc, void *data)
+{
+  SgContinuation *c = (SgContinuation*)data;
+  SgVM *vm = Sg_VM();
+  vm->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
+  vm->escapePoint = c;
+  return SG_UNDEF;
+}
+
+static SgObject discard_ehandler(SgObject *args, int argc, void *data)
+{
+  SgContinuation *c = (SgContinuation*)data;
+  SgVM *vm = Sg_VM();
+  vm->escapePoint = c->prev;
+  vm->exceptionHandler = c->xhandler;
+  return SG_UNDEF;
+}
+
+SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk)
+{
+  SgContinuation *c = SG_NEW(SgContinuation);
+  SgObject before, after;
+  SgVM *vm = Sg_VM();
+
+  c->prev = vm->escapePoint;
+  c->ehandler = handler;
+  c->xhandler = vm->exceptionHandler;
+  c->winders = vm->dynamicWinders;
+  c->cstack = vm->cstack;
+  c->cont = vm->cont;
+  
+  vm->escapePoint = c;
+
+  before = Sg_MakeSubr(install_ehandler, c, 0, 0, SG_FALSE);
+  after  = Sg_MakeSubr(discard_ehandler, c, 0, 0, SG_FALSE);
+  return Sg_VMDynamicWind(before, thunk, after);
+}
+#endif
 
 #define SKIP(vm, n)        (PC(vm) += (n))
 #define FETCH_OPERAND(pc)  SG_OBJ((*(pc)++))
@@ -790,6 +840,8 @@ static inline SgContinuation* make_continuation(Stack *s)
   c->stack = s;
   c->winders = vm->dynamicWinders;
   c->cont = vm->cont;
+  c->cstack = vm->cstack;
+  
   return c;
 }
 
@@ -882,11 +934,28 @@ static SgObject throw_continuation(SgObject *argframes, int argc, void *data)
 {
   SgContinuation *c = (SgContinuation*)data;
   SgObject args = SG_NIL, t = SG_NIL;
-  SgObject handlers_to_call = throw_continuation_calculate_handlers(c, Sg_VM());
+  SgObject handlers_to_call;
+  SgVM *vm = Sg_VM();
   int i;
+
   for (i = 0; i < argc; i++) {
     SG_APPEND1(args, t, argframes[i]);
   }
+
+  if (c->cstack && vm->cstack != c->cstack) {
+    SgCStack *cs;
+    for (cs = vm->cstack; cs; cs = cs->prev) {
+      if (c->cstack == cs) break;
+    }
+    if (cs != NULL) {
+      vm->escapeReason = SG_VM_ESCAPE_CONT;
+      vm->escapeData[0] = c;
+      vm->escapeData[1] = args;
+      longjmp(vm->cstack->jbuf, 1);
+    }
+  }
+
+  handlers_to_call = throw_continuation_calculate_handlers(c, vm);
   return throw_continuation_body(handlers_to_call, c, args);
 }
 
@@ -1566,7 +1635,7 @@ SgObject run_loop()
 void Sg__InitVM()
 {  
   SgWord *callCode = SG_NEW_ARRAY(SgWord, 2);
-  SgWord *applyCode = SG_NEW_ARRAY(SgWord,  8);
+  SgWord *applyCode = SG_NEW_ARRAY(SgWord,  7);
 
   SgCodeBuilder *closureForEvaluateCode = Sg_MakeCodeBuilder(-1);
 

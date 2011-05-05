@@ -215,6 +215,7 @@ CASE(DIV) {
 }
 
 CASE(DIVI) {
+  INSN_VAL1(val1, c);
   BUILTIN_ONE_ARG_WITH_INSN_VALUE(vm, Sg_Div, c);
   NEXT;
 }
@@ -628,24 +629,29 @@ CASE(LIST) {
 }
 
 CASE(VALUES) {
-  {
-    SgObject v = SG_UNDEF;
-    INSN_VAL1(val1, c);
-    v=Sg_MakeValues(val1);
-    if (val1 > 1) {
-      {
-        int i = 0;
-        int n = (val1 - 1);
-        SG_VALUES_ELEMENT(v, n)=AC(vm);
-        for (i=0;i < n;i=(i + 1)) {
-          SG_VALUES_ELEMENT(v, (n - i - 1))=INDEX(SP(vm), i);
-        };
-        SP(vm)=(SP(vm) - n);
+  INSN_VAL1(val1, c);
+  if (val1 == 0) {
+    AC(vm)=Sg_MakeValues(0);
+  } else {
+    {
+      SgObject v = AC(vm);
+      if (val1 > 1) {
+        v=Sg_MakeValues(val1);
+        {
+          int i = 0;
+          int n = (val1 - 1);
+          SG_VALUES_ELEMENT(v, n)=AC(vm);
+          for (i=0;i < n;i=(i + 1)) {
+            SG_VALUES_ELEMENT(v, (n - i - 1))=INDEX(SP(vm), i);
+          };
+          SP(vm)=(SP(vm) - n);
+        }
+;
       }
 ;
+      AC(vm)=v;
     }
 ;
-    AC(vm)=v;
   }
 ;
   NEXT;
