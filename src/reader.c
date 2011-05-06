@@ -145,7 +145,7 @@ static SgObject read_bytevector(SgPort *port, SgReaderContext *ctx);
 static SgObject read_char(SgPort *port, SgReaderContext *ctx);
 static SgObject read_list(SgPort *port, SgReaderContext *ctx, int bracketedp, int vectorp);
 static void read_thing(SgPort *port, SgReaderContext *ctx, SgChar *buf, size_t size, SgChar initial);
-static SgObject read_prefixed_number(SgPort *port, SgReaderContext *ctx);
+static SgObject read_prefixed_number(SgChar initial, SgPort *port, SgReaderContext *ctx);
 static void link_graph(SgPort *port, SgReaderContext *ctx, SgObject obj);
 
 static inline SgObject skip_line(SgPort *port, SgReaderContext *ctx)
@@ -336,15 +336,26 @@ SgObject read_number(SgPort *port, SgReaderContext *ctx)
   else return Sg_Intern(str);
 }
 
-SgObject read_prefixed_number(SgPort *port, SgReaderContext *ctx)
+SgObject read_prefixed_number(SgChar initial, SgPort *port, SgReaderContext *ctx)
 {
   SgChar buf[4096];
   SgString *str;
   SgObject num;
-  read_thing(port, ctx, buf, array_sizeof(buf), '#');
+  SgChar c;
+  int offset = 0;
+  buf[offset++] = '#';
+  /* check if it's #%c#%c type or not */
+  c = Sg_PeekcUnsafe(port);
+  if (c == '#') {
+    buf[offset++] = initial;
+    buf[offset++] = c;
+    Sg_GetcUnsafe(port);	/* discard */
+    initial = Sg_GetcUnsafe(port);
+  }
+  read_thing(port, ctx, buf + offset, array_sizeof(buf) - offset, initial);
   str = Sg_MakeString(buf, SG_HEAP_STRING);
   num = Sg_StringToNumber(str, 10, TRUE);
-  if (SG_FALSEP(num)) lexical_error(port, ctx, UC("invalid lexical syntax %S while reading number"), buf);
+  if (SG_FALSEP(num)) lexical_error(port, ctx, UC("invalid lexical syntax %s while reading number"), buf);
   return num;
 }
 
@@ -706,8 +717,8 @@ SgObject read_token(SgPort *port, SgReaderContext *ctx)
     case 'x': case 'X':
     case 'i': case 'I':
     case 'e': case 'E':
-      Sg_UngetcUnsafe(port, c);
-      return read_prefixed_number(port, ctx);
+      /* Sg_UngetcUnsafe(port, c); */
+      return read_prefixed_number(c, port, ctx);
     case '\'':
       return SG_LIST2(SG_SYMBOL_SYNTAX, read_expr(port, ctx));
     case '`':

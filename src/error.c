@@ -118,6 +118,13 @@ void Sg_AssertionViolation(SgObject who, SgObject message, SgObject irritants)
   Sg_Apply3(proc, who, message, irritants);
 }
 
+void Sg_ImplementationRestrictionViolation(SgObject who, SgObject message, SgObject irritants)
+{
+  SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("implementation-restriction-violation"), SG_FALSE);
+  SgObject proc = SG_GLOC_GET(g);
+  Sg_Apply3(proc, who, message, irritants);
+}
+
 void Sg_WrongTypeOfArgumentViolation(SgObject who, SgObject requiredType,
 				     SgObject gotValue, SgObject irritants)
 {

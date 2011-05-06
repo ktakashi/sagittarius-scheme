@@ -3,7 +3,6 @@
 (import (rnrs)
         (tests r6rs test)
         (tests r6rs base)
-
         (tests r6rs reader)
         (tests r6rs unicode)
         (tests r6rs bytevectors)
@@ -13,8 +12,8 @@
         (tests r6rs records syntactic)
         (tests r6rs records procedural)
         (tests r6rs exceptions)
-#|
         (tests r6rs conditions)
+#|
         (tests r6rs io ports)
         (tests r6rs io simple)
         (tests r6rs programs)
@@ -32,10 +31,7 @@
 |#)
 
 (run-base-tests)
-(report-test-results)
-#|
 (run-reader-tests)
-
 (run-unicode-tests)
 (run-bytevectors-tests)
 (run-lists-tests)
@@ -43,10 +39,9 @@
 (run-control-tests)
 (run-records-syntactic-tests)
 (run-records-procedural-tests)
-
 (run-exceptions-tests)
-
 (run-conditions-tests)
+#|
 (run-io-ports-tests)
 (run-io-simple-tests)
 (run-programs-tests)
@@ -61,6 +56,5 @@
 (run-mutable-strings-tests)
 (run-r5rs-tests)
 (run-contrib-tests)
-
-(report-test-results)
 |#
+(report-test-results)

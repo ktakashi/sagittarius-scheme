@@ -37,6 +37,7 @@
   (define bitwise-and logand)
   (define bitwise-arithmatic-shift-left ash)
   (define bitwise-arithmatic-shift ash)
+  (define bytevector? (lambda (o) #f)) ;; dummy for quasiquote
   ))
 
 (define *stack* (make-vector 1000))
@@ -1121,6 +1122,10 @@
 		    (print o))))
 (add-namespace! vm-init ())
 (add-namespace! vm-no-debug-info (o))
+
+(add-namespace! bytevector? (o) (lambda (o) #f)) ;; on scheme vm this will be never #t
+(add-namespace! abs (n) abs)
+(add-namespace! write/ss (o) write/ss)
 
 (define-macro (aif test-form then-form . else-form)
   `(let ((it ,test-form))

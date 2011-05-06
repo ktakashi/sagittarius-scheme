@@ -7,6 +7,10 @@
     ;; we need to keep env the same pointer as old.
     (append! old (list (cons PATTERN new)))))
 
+(define (count-pair p)
+    (let loop ((lst p) (n 0))
+      (if (pair? lst) (loop (cdr lst) (+ n 1)) n)))
+
 (define unique-id-list?
   (lambda (lst)
     (and (list? lst)
@@ -421,6 +425,15 @@
 		  (else
 		   (partial-identifier form))))))))
 
+(define parse-ellipsis-splicing
+    (lambda (form)
+      (let loop ((len 2) (tail (cdddr form)))
+	(cond ((and (pair? tail)
+		    (ellipsis? (car tail)))
+	       (loop (+ len 1) (cdr tail)))
+	      (else
+	       (values (list-head form len) tail len))))))
+
 (define rank-of
   (lambda (name ranks)
     (let ((slot (assq name ranks)))
@@ -653,7 +666,7 @@
                 ((ellipsis-quote? tmpl)
                  (expand-escaped-template (cadr tmpl) depth vars))
                 ((ellipsis-splicing-pair? tmpl)
-                 (reverse (body tail len) (parse-ellipsis-splicing tmpl)
+                 (receive (body tail len) (parse-ellipsis-splicing tmpl)
                    (append (apply append (expand-ellipsis-template body (+ depth 1) vars))
                            (expand-template tail depth vars))))
                 ((ellipsis-pair? tmpl)
@@ -737,6 +750,7 @@
 (set-toplevel-variable! '.ranks '())
 (set-toplevel-variable! '.vars. '())
 (set-toplevel-variable! '.make-variable-transformer make-variable-transformer)
+(set-toplevel-variable! '.count-pair count-pair)
 
 ;;;; end of file
 ;; Local Variables:

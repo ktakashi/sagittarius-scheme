@@ -1,6 +1,9 @@
 ;; lib/vm.scm
 ;; dummy
-(define (set-toplevel-variable! sym val) #f)
+(define *toplevel-variable* '())
+
+(define (set-toplevel-variable! sym val)
+  (set! *toplevel-variable* (acons sym val *toplevel-variable*)))
 (define (gloc-ref g) g)
 (define (gloc-bound? g) #t)
 
@@ -133,6 +136,7 @@
 
 (define (library? lib)
   (and (vector? lib)
+       (> (vector-length lib) 1)
        (eq? (vector-ref lib 0) '.library)))
 (define (library-name lib)
   (vector-ref lib 1))
@@ -162,6 +166,7 @@
 	(if create?
 	    (make-library name)
 	    l))))
+
 (define (%insert-binding library name value)
   (define (add-export lib name)
     (if (library-exported lib)
@@ -179,11 +184,21 @@
 
 (define (find-binding lib name callback)
   (cond ((library? lib)
-	 (hashtable-ref (library-table lib) name callback))
-	((hashtable-ref #;(vm-libraries) *libraries* lib callback) ;; maybe just a name?
+	 (let ((r (hashtable-ref (library-table lib) name #f)))
+	   (if r
+	       r
+	       (cond ((assq name *toplevel-variable*)
+		      => cdr)
+		     (else callback)))))
+	((hashtable-ref *libraries* lib callback) ;; maybe just a name?
 	 => (lambda (lib)
-	      (hashtable-ref (library-table lib) name callback)))
-	(else #f)))
+	      (let ((r (hashtable-ref (library-table lib) name #f)))
+		(if r
+		    r
+		    (cond ((assq name *toplevel-variable*)
+			   => cdr)
+			  (else callback))))))
+	(else callback)))
 
 ;(define *compiler-library* '(sagittarius compiler))
 (define *current-library* 'user)
@@ -302,6 +317,7 @@
 	      ((identifier? form)
 	       (id-name form))
 	      ((and (vector? form)
+		    (> (vector-length form) 1)
 		    (eq? (vector-ref form 0) '.closure))
 	       'closure)
 	      ((library? form)

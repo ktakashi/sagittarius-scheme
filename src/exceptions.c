@@ -272,6 +272,7 @@ static SgRecordType io_invalid_position_type;    /* &i/o-invalid-position */
 static SgRecordType io_filename_type;		 /* &i/o-filename */
 static SgRecordType io_file_protection_type;	 /* &i/o-file-protection */
 static SgRecordType io_file_is_read_only_type;   /* &i/o-file-is-read-only */
+static SgRecordType io_file_already_exists_type; /* &i/o-file-already-exists */
 static SgRecordType io_file_does_not_exist_type; /* &i/o-file-does-not-exist */
 static SgRecordType io_port_type;		 /* &i/o-port */
 static SgRecordType io_decoding_type;		 /* &i/o-decoding */
@@ -438,7 +439,7 @@ void Sg__InitConsitions()
 				nullvec);
     INTERN_CTR_PRED_WITH_CNAME(&C_COND_NAME2(implementation, restriction),
 			       &implementation-restriction,
-			       make-implementation-restriction-violation?,
+			       make-implementation-restriction-violation,
 			       implementation-restriction-violation?);
   }
   {
@@ -520,8 +521,16 @@ void Sg__InitConsitions()
     INTERN_CONDITION_WITH_CNAME(&io_file_is_read_only_type, &i/o-file-is-read-only,
 				&io_file_protection_type, nullvec);
     INTERN_CTR_PRED_WITH_CNAME(&io_file_is_read_only_type, &i/o-file-is-read-only,
-			       make-i/o-file-protection-error,
+			       make-i/o-file-is-read-only-error,
 			       i/o-file-is-read-only-error?);
+  }
+  {
+    /* &i/o-file-already-exists */
+    INTERN_CONDITION_WITH_CNAME(&io_file_already_exists_type, &i/o-file-already-exists,
+				&io_filename_type, nullvec);
+    INTERN_CTR_PRED_WITH_CNAME(&io_file_already_exists_type, &i/o-file-already-exists,
+			       make-i/o-file-already-exists-error,
+			       i/o-file-already-exists-error?);
   }
   {
     /* &i/o-file-does-not-exist */

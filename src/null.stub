@@ -392,6 +392,18 @@
 	 (Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got ,irritants)
 	 (return SG_UNDEF)))))
 
+  (define-cgen-stmt implementation-restriction-violation
+    ((_ who msg)
+     (dispatch
+      `(begin
+	 (Sg_ImplementationRestrictionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) '())
+	 (return SG_UNDEF))))
+    ((_ who msg irritants)
+     (dispatch
+      `(begin
+	 (Sg_ImplementationRestrictionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,irritants)
+	 (return SG_UNDEF)))))
+
   ;; x=? macro
   (define-cgen-stmt x=?
     ((_ checker compare name first second rest)
@@ -459,8 +471,7 @@
     (result (SG_REALP o)))
 
   (define-c-proc rational? (o) ::boolean
-    (result (or (SG_EXACT_INTP o)
-		(SG_RATIONALP o))))
+    (result (Sg_RationalP o)))
 
   (define-c-proc integer? (o) ::boolean
     (result (Sg_IntegerP o)))
@@ -1672,7 +1683,8 @@
 	(set! endianness (Sg_Utf16CheckBOM bv))
 	(if (not (== endianness NO_BOM))
 	    (set! skipBOM TRUE)))
-      (when (or (not (SG_FALSEP mandatory))
+      (when (or (and (not (SG_UNBOUNDP mandatory))
+		     (not (SG_FALSEP mandatory)))
 		(== endianness  NO_BOM))
 	(cond ((SG_EQ endian 'little)
 	       (set! endianness UTF_16LE))
@@ -1726,7 +1738,8 @@
 	(set! endianness (Sg_Utf32CheckBOM bv))
 	(if (not (== endianness NO_BOM))
 	    (set! skipBOM TRUE)))
-      (when (or (SG_FALSEP mandatory)
+      (when (or (and (not (SG_UNBOUNDP mandatory))
+		     (not (SG_FALSEP mandatory)))
 		(== endianness NO_BOM))
 	(cond ((SG_EQ endian 'little)
 	       (set! endianness UTF_32LE))
@@ -1770,7 +1783,7 @@
 					(SG_LIST2 obj alist)))
     (result (Sg_Assv obj alist)))
 
-  (define-c-proc assc (obj alist) ::Object
+  (define-c-proc assoc (obj alist) ::Object
     (unless (SG_LISTP alist)
       (wrong-type-of-argument-violation 'assoc
 					"list"
@@ -2672,6 +2685,247 @@
 
   (define-c-proc greatest-fixnum () ::fixnum
     (result SG_INT_MAX))
+
+  (define-cgen-stmt check-fixnum
+    ((_ name value)
+     (dispatch
+      `(unless (SG_INTP ,value)
+	 (assertion-violation ',name
+			      "fixnum"
+			      ,value)))))
+
+  (define-cgen-stmt fixnum-compare
+    ((_ name compare first second rest)
+     (dispatch
+      `(begin
+	 (unless (,compare ,first ,second)
+	   (return #f))
+	 (let ((prev::int ,second)
+	       (target::int 0))
+	   (dolist (v ,rest)
+	     (unless (SG_INTP v)
+	       (check-fixnum ,name v))
+	     (set! target (SG_INT_VALUE v))
+	     (unless (,compare prev target)
+	       (return #f)))
+	   (result TRUE))))))
+
+  (define-c-proc fx=? (fx1::fixnum fx2::fixnum :rest rest) ::boolean
+    (fixnum-compare fx=? == fx1 fx2 rest))
+
+  (define-c-proc fx<? (fx1::fixnum fx2::fixnum :rest rest) ::boolean
+    (fixnum-compare fx<? < fx1 fx2 rest))
+
+  (define-c-proc fx>? (fx1::fixnum fx2::fixnum :rest rest) ::boolean
+    (fixnum-compare fx>? > fx1 fx2 rest))
+
+  (define-c-proc fx<=? (fx1::fixnum fx2::fixnum :rest rest) ::boolean
+    (fixnum-compare fx<=? <= fx1 fx2 rest))
+
+  (define-c-proc fx>=? (fx1::fixnum fx2::fixnum :rest rest) ::boolean
+    (fixnum-compare fx>=? >= fx1 fx2 rest))
+
+  (define-c-proc fxzero? (fx::fixnum) ::boolean
+    (result (SG_EQ fx 0)))
+
+  (define-c-proc fxpositive? (fx::fixnum) ::boolean
+    (result (> fx  0)))
+
+  (define-c-proc fxnegative? (fx::fixnum) ::boolean
+    (result (< fx 0)))
+
+  (define-c-proc fxodd? (fx::fixnum) ::boolean
+    (result (== (% fx 2) 0)))
+
+  (define-c-proc fxeven? (fx::fixnum) ::boolean
+    (result (== (% fx 2) 1)))
+
+  (define-c-proc fxmax (fx::fixnum :rest rest) ::fixnum
+    (let ((r::int fx))
+      (dolist (v rest)
+	(check-fixnum fxmac v)
+	(if (> (SG_INT_VALUE v) r)
+	    (set! r (SG_INT_VALUE v))))
+      (result r)))
+
+  (define-c-proc fxmin (fx::fixnum :rest rest) ::fixnum
+    (let ((r::int fx))
+      (dolist (v rest)
+	(check-fixnum fxmac v)
+	(if (< (SG_INT_VALUE v) r)
+	    (set! r (SG_INT_VALUE v))))
+      (result r)))
+
+  (define-cgen-stmt fixnum-fits?
+    ((_ fx)
+     (dispatch
+      `(and (<= SG_INT_MIN ,fx)
+	    (<= ,fx SG_INT_MAX)))))
+
+  (define-c-proc fx+ (fx1::fixnum fx2::fixnum) ::fixnum
+    (let ((ret::int (+ fx1 fx2)))
+      (if (fixnum-fits? ret)
+	  (result ret)
+	  (implementation-restriction-violation
+	   'fx+
+	   "sum is not a fixnum"
+	   (SG_LIST2 (SG_MAKE_INT fx1)
+		     (SG_MAKE_INT fx2))))))
+
+  (define-c-proc fx* (fx1::fixnum fx2::fixnum) ::fixnum
+    (let ((ret::int64_t (* fx1 fx2)))
+      (if (fixnum-fits? ret)
+	  (result ret)
+	  (implementation-restriction-violation
+	   'fx*
+	   "product is not a fixnum"
+	   (SG_LIST2 (SG_MAKE_INT fx1)
+		     (SG_MAKE_INT fx2))))))
+
+  (define-c-proc fx- (fx1::fixnum :optional o) ::fixnum
+    (if (SG_UNBOUNDP o)
+	(if (== fx1 SG_INT_MIN)
+	    (implementation-restriction-violation
+	     'fx-
+	     "result is not a fixnum"
+	     (SG_MAKE_INT fx1))
+	    (result (- 0 fx1)))
+	(begin
+	  (check-fixnum fx- o)
+	  (let ((fx2::int (SG_INT_VALUE o))
+		(ret::int (- fx1 fx2)))
+	    (if (fixnum-fits? ret)
+		(result ret)
+		(implementation-restriction-violation
+		 'fx-
+		 "difference is not a fixnum"
+		 (SG_LIST2 (SG_MAKE_INT fx1)
+			   (SG_MAKE_INT fx2))))))))
+  
+  (define-cgen-stmt fixnum-div
+    ((_ ret x y)
+     (dispatch
+      `(cond ((== ,x 0)
+	      (set! ,ret 0))
+	     ((> ,x 0)
+	      (set! ,ret (/ ,x ,y)))
+	     ((> ,y 0)
+	      (set! ,ret (/ (+ (- ,x ,y) 1) ,y)))
+	     (else
+	      (set! ,ret (/ (+ ,x ,y 1) ,y)))))))
+
+  (define-cgen-stmt fixnum-mod
+    ((_ ret x y)
+     (dispatch
+      `(begin
+	 (fixnum-div ,ret ,x ,y)
+	 (set! ,ret (- ,x (* ,ret ,y)))))))
+
+  (define-c-proc fxdiv (fx1::fixnum fx2::fixnum) ::fixnum
+    (if (== fx2 0)
+	(assertion-violation 'fxdiv
+			     "dividing by zero"))
+    (let ((ret::int 0))
+      (fixnum-div ret fx1 fx2)
+      (if (fixnum-fits? ret)
+	  (result ret)
+	  (implementation-restriction-violation
+	   'fxdiv
+	   "result is not a fixnum"
+	   (SG_LIST2 (SG_MAKE_INT fx1)
+		     (SG_MAKE_INT fx2))))))
+
+  (define-c-proc fxmod (fx1::fixnum fx2::fixnum) ::fixnum
+    (if (== fx2 0)
+	(assertion-violation 'fxmod
+			     "dividing by zero"))
+    (let ((ret::int 0))
+      (fixnum-mod ret fx1 fx2)
+      (if (fixnum-fits? ret)
+	  (result ret)
+	  (implementation-restriction-violation
+	   'fxmod
+	   "result is not a fixnum"
+	   (SG_LIST2 (SG_MAKE_INT fx1)
+		     (SG_MAKE_INT fx2))))))
+  
+  (define-cgen-stmt fixnum-div0
+    ((_ ret x y)
+     (let ((d (gen-temporary))
+	   (m (gen-temporary)))
+       (dispatch
+	`(let ((,(string->symbol (format "~a::int" d)) 0)
+	       (,(string->symbol (format "~a::int" m)) 0))
+	   (fixnum-div ,d ,x ,y)
+	   (fixnum-mod ,m ,x ,y)
+	   (cond ((<= ,m (/ (abs ,y) 2))
+		  (set! ,ret ,d))
+		 ((> ,y 0)
+		  (set! ,ret (+ ,d 1)))
+		 (else
+		  (set! ,ret (- ,d 1)))))))))
+
+  (define-cgen-stmt fixnum-mod0
+    ((_ ret x y)
+     (let ((tmp (gen-temporary)))
+       (dispatch
+	`(let ((,(string->symbol (format "~a::int" tmp)) 0))
+	   (fixnum-div0 ,tmp ,x ,y)
+	   (set! ,ret (- ,x (* ,y ,tmp))))))))
+    
+  (define-c-proc fxdiv0 (fx1::fixnum fx2::fixnum) ::fixnum
+    (if (== fx2 0)
+	(assertion-violation 'fxdiv0
+			     "dividing by zero"))
+    (let ((ret::int 0))
+      (fixnum-div0 ret fx1 fx2)
+      (if (fixnum-fits? ret)
+	  (result ret)
+	  (implementation-restriction-violation
+	   'fxdiv0
+	   "result is not a fixnum"
+	   (SG_LIST2 (SG_MAKE_INT fx1)
+		     (SG_MAKE_INT fx2))))))
+
+  (define-c-proc fxmod0 (fx1::fixnum fx2::fixnum) ::fixnum
+    (if (== fx2 0)
+	(assertion-violation 'fxmod0
+			     "dividing by zero"))
+    (let ((ret::int 0))
+      (fixnum-mod0 ret fx1 fx2)
+      (if (fixnum-fits? ret)
+	  (result ret)
+	  (implementation-restriction-violation
+	   'fxmod0
+	   "result is not a fixnum"
+	   (SG_LIST2 (SG_MAKE_INT fx1)
+		     (SG_MAKE_INT fx2))))))
+
+  (define-cgen-stmt fxlogop-helper
+    ((_ op x y)
+     ((renderer) (format "(~a ~a SG_INT_VALUE(~a))" x op y))))
+
+  (define-cgen-stmt fxlogop
+    ((_ name ret op . args)
+     (dispatch
+      `(dolist (v args)
+	 (check-fixnum ,name v)
+	 (set! ,ret (fxlogop-helper ,op ,ret v))))))
+
+  (define-c-proc fxand (:rest rest) ::fixnum
+    (let ((ret::int -1))
+      (fxlogop fxand ret "&" rest)
+      (result ret)))
+
+  (define-c-proc fxior (:rest rest) ::fixnum
+    (let ((ret::int 0))
+      (fxlogop fxior ret "|" rest)
+      (result ret)))
+
+  (define-c-proc fxxor (:rest rest) ::fixnum
+    (let ((ret::int 0))
+      (fxlogop fxxor ret "^" rest)
+      (result ret)))
 
   ;; arithmetic bitwise
   (define-c-proc bitwise-not (ei::number) ::Object

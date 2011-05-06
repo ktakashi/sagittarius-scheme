@@ -1,7 +1,7 @@
 ;; -*- scheme -*-
 (library (rnrs sorting (6))
     (export list-sort vector-sort vector-sort!)
-    (import (core))
+    (import (core base))
 
 ) ; [end]
 ;; end of file

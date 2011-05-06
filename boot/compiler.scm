@@ -872,78 +872,213 @@
 ;;  based on bdc-scheme start
 ;;  Copyright (c) 1996-2002 Brian D. Carlstrom
 ;;
-(define finalize-quasiquote
-  (lambda (mode arg)
-    (cond ((eq? mode 'quote) (list 'quote arg))
-	  ((eq? mode 'unquote) arg)
-	  ((eq? mode 'unquote-splicing)
-	   (scheme-error 'quasiquote ",@ in invalid context" arg))
-	  (else (cons mode arg)))))
-(define descend-quasiquote
-  (lambda (x level return)
-    (cond ((vector? x)
-	   (descend-quasiquote-vector x level return))
-	  ((not (pair? x))
-	   (return 'quote x))
-	  ((interesting-to-quasiquote? x 'quasiquote)
-	   (descend-quasiquote-pair x (+ level 1) return))
-	  ((interesting-to-quasiquote? x 'unquote)
-	   (cond ((= level 0)
-		  (return 'unquote (cadr x)))
-		 (else
-		  (descend-quasiquote-pair x (- level 1) return))))
-	  ((interesting-to-quasiquote? x 'unquote-splicing)
-	   (cond ((= level 0)
-		  (return 'unquote-splicing (cadr x)))
-		 (else
-		  (descend-quasiquote-pair x (- level 1) return))))
-	  (else
-	   (descend-quasiquote-pair x level return)))))
-
-(define descend-quasiquote-pair
-  (lambda (x level return)
-    (descend-quasiquote 
-     (car x) level
-     (lambda (car-mode car-arg)
-       (descend-quasiquote
-	(cdr x) level
-	(lambda (cdr-mode cdr-arg)
-	  (cond ((and (eq? car-mode 'quote) (eq? cdr-mode 'quote))
-		 (return 'quote x))
-		((eq? car-mode 'unquote-splicing)
-		 ;; (,@mumble ...)
-		 (cond ((and (eq? cdr-mode 'quote) (null? cdr-arg))
-			(return 'unquote car-arg))
-		       (else
-			(return 'append
-				(list car-arg (finalize-quasiquote
-					       cdr-mode cdr-arg))))))
-		(else
-		 (return 'cons
-			 (list (finalize-quasiquote car-mode car-arg)
-			       (finalize-quasiquote cdr-mode cdr-arg)))))))))))
-
-(define descend-quasiquote-vector
-  (lambda (x level return)
-    (descend-quasiquote
-     (vector->list x) level
-     (lambda (mode arg)
-       (if (eq? mode 'quote)
-	   (return 'quote x)
-	   (return 'list->vector
-		   (list (finalize-quasiquote mode arg))))))))
-
-(define interesting-to-quasiquote? 
-  (lambda (x marker)
-    (and (pair? x)
-	 (variable? (car x))
-	 (eq? (variable-name (car x)) marker))))
-
-
-(define pass1/quasiquote
-  (lambda (x level)
-    (descend-quasiquote x level finalize-quasiquote)))
+;;(define finalize-quasiquote
+;;  (lambda (mode arg)
+;;    (cond ((eq? mode 'quote) (list 'quote arg))
+;;	  ((eq? mode 'unquote) arg)
+;;	  ((eq? mode 'unquote-splicing)
+;;	   (scheme-error 'quasiquote ",@ in invalid context" arg))
+;;	  (else (cons mode arg)))))
+;;(define descend-quasiquote
+;;  (lambda (x level return)
+;;    (cond ((vector? x)
+;;	   (descend-quasiquote-vector x level return))
+;;	  ((not (pair? x))
+;;	   (return 'quote x))
+;;	  ((interesting-to-quasiquote? x 'quasiquote)
+;;	   (descend-quasiquote-pair x (+ level 1) return))
+;;	  ((interesting-to-quasiquote? x 'unquote)
+;;	   (cond ((= level 0)
+;;		  (return 'unquote (cadr x)))
+;;		 (else
+;;		  (descend-quasiquote-pair x (- level 1) return))))
+;;	  ((interesting-to-quasiquote? x 'unquote-splicing)
+;;	   (cond ((= level 0)
+;;		  (return 'unquote-splicing (cadr x)))
+;;		 (else
+;;		  (descend-quasiquote-pair x (- level 1) return))))
+;;	  (else
+;;	   (descend-quasiquote-pair x level return)))))
+;;
+;;(define descend-quasiquote-pair
+;;  (lambda (x level return)
+;;    (descend-quasiquote 
+;;     (car x) level
+;;     (lambda (car-mode car-arg)
+;;       (descend-quasiquote
+;;	(cdr x) level
+;;	(lambda (cdr-mode cdr-arg)
+;;	  (cond ((and (eq? car-mode 'quote) (eq? cdr-mode 'quote))
+;;		 (return 'quote x))
+;;		((eq? car-mode 'unquote-splicing)
+;;		 ;; (,@mumble ...)
+;;		 (cond ((and (eq? cdr-mode 'quote) (null? cdr-arg))
+;;			(return 'unquote car-arg))
+;;		       (else
+;;			(return 'append
+;;				(list car-arg (finalize-quasiquote
+;;					       cdr-mode cdr-arg))))))
+;;		(else
+;;		 (return 'cons
+;;			 (list (finalize-quasiquote car-mode car-arg)
+;;			       (finalize-quasiquote cdr-mode cdr-arg)))))))))))
+;;
+;;(define descend-quasiquote-vector
+;;  (lambda (x level return)
+;;    (descend-quasiquote
+;;     (vector->list x) level
+;;     (lambda (mode arg)
+;;       (if (eq? mode 'quote)
+;;	   (return 'quote x)
+;;	   (return 'list->vector
+;;		   (list (finalize-quasiquote mode arg))))))))
+;;
+;;(define interesting-to-quasiquote? 
+;;  (lambda (x marker)
+;;    (and (pair? x)
+;;	 (variable? (car x))
+;;	 (eq? (variable-name (car x)) marker))))
+;;
+;;
+;;(define pass1/quasiquote
+;;  (lambda (x level)
+;;    (descend-quasiquote x level finalize-quasiquote)))
 ;; based on bdc-scheme end
+
+;; based on Ypsilon by Yoshikatu Fujita
+(define pass1/quasiquote
+  (lambda (form nest)
+
+    (define quote?
+      (lambda (tag)
+	(and (variable? tag)
+	     (eq? (variable-name tag) 'quote))))
+
+    (define unquote? 
+      (lambda (tag)
+	(and (variable? tag)
+	     (eq? (variable-name tag) 'unquote))))
+    (define quasiquote?
+      (lambda (tag)
+	(and (variable? tag)
+	     (eq? (variable-name tag) 'quasiquote))))
+    (define unquote-splicing?
+      (lambda (tag)
+	(and (variable? tag)
+	     (eq? (variable-name tag) 'unquote-splicing))))
+
+    (define quoted?
+      (lambda (e)
+        (and (pair? e)
+             (pair? (cdr e))
+             (null? (cddr e))
+             (quote? (car e)))))
+
+    (define constant?
+      (lambda (e)
+        (or (boolean? e)
+            (number? e)
+            (char? e)
+            (string? e)
+            (bytevector? e)
+            (quoted? e))))
+
+    (define constant-value
+      (lambda (e)
+        (cond ((quoted? e) (cadr e))
+              (else e))))
+
+    (define null-constant?
+      (lambda (e)
+        (and (quoted? e)
+             (null? (cadr e)))))
+
+    (define emit-append
+      (lambda (body tail)
+        (cond ((null? body) tail)
+              ((null-constant? tail)
+               (if (= (length body) 1) (car body) `(append ,@body)))
+              (else
+               `(append ,@body ,tail)))))
+
+    (define emit-cons*
+      (lambda (body tail)
+        (if (= (length body) 1)
+            (emit-cons (car body) tail)
+            (cond ((null? body) tail)
+                  ((null-constant? tail)
+                   `(list ,@body))
+                  ((and (pair? tail) (eq? (car tail) 'list))
+                   `(list ,@body ,@(cdr tail)))
+                  ((and (pair? tail) (or (eq? (car tail) '.CONS) (eq? (car tail) 'cons*)))
+                   `(cons* ,@body ,@(cdr tail)))
+                  (else
+                   `(cons* ,@body ,tail))))))
+
+    (define emit-cons
+      (lambda (head tail)
+        (if (and (constant? head) (constant? tail))
+            (list 'quote (cons (constant-value head) (constant-value tail)))
+            (cond ((null-constant? tail)
+                   `(list ,head))
+                  ((and (pair? tail) (eq? (car tail) 'list))
+                   `(list ,head ,@(cdr tail)))
+                  ((and (pair? tail) (or (eq? (car tail) '.CONS) (eq? (car tail) 'cons*)))
+                   `(cons* ,head ,@(cdr tail)))
+                  (else
+                   `(cons ,head ,tail))))))
+
+    (define expand-vector
+      (lambda (expr nest)
+        (let ((lst (expand (vector->list expr) nest)))
+          (cond ((null-constant? lst)
+                 `(vector)) ;; we can't use #() for code2c.scm
+                ((constant? lst)
+                 `(quote ,(list->vector (constant-value lst))))
+                ((and (pair? lst) (eq? (car lst) 'list))
+                 `(vector ,@(cdr lst)))
+                (else
+                 `(list->vector ,lst))))))
+    (define expand
+      (lambda (expr nest)
+	(cond ((pair? expr)
+	       (if (= nest 0)
+		   (smatch expr
+		     ((((? unquote? -) e1 ___) . e2)
+		      (emit-cons* e1 (expand e2 0)))
+		     ((((? unquote-splicing? -) e1 ___) . e2)
+		      (emit-append e1 (expand e2 0)))
+		     (((? quasiquote? -) - ___)
+		      (emit-cons (expand (car expr) 1)
+				 (expand (cdr expr) 1)))
+		     (((? unquote? -) e1) e1)
+		     (((? unquote? -) . -)
+		      (syntax-error 'quasiquote "unquote appear in bad context" form expr))
+		     (((? quasiquote? -) . -)
+		      (syntax-error 'quasiquote "nested quasiquote appear in bad context" form expr))
+		     (((? unquote-splicing? -) . -)
+		      (syntax-error 'quasiquote "unquote-splicing appear in bad context" form expr))
+		     (- (emit-cons (expand (car expr) 0)
+				   (expand (cdr expr) 0))))
+		   (let ((tag (car expr)))
+		     (cond ((or (unquote? tag) (unquote-splicing? tag))
+			    (emit-cons `(quote ,tag)
+				       (expand (cdr expr) (- nest 1))))
+			   ((quasiquote? tag)
+			    (emit-cons `(quote ,tag)
+				       (expand (cdr expr) (+ nest 1))))
+			   (else
+			    (emit-cons (expand (car expr) nest)
+				       (expand (cdr expr) nest)))))))
+	      ((vector? expr)
+	       (expand-vector expr nest))
+	      ((symbol? expr)
+	       `(quote ,expr))
+	      ((null? expr)
+	       `(quote ()))
+	      (else expr))))
+    (expand form nest)))
+;; base on Ypsilon end
 
 (define-pass1-syntax (quasiquote form p1env) :null
   (smatch form

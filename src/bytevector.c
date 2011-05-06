@@ -159,10 +159,10 @@ static inline int is_valid_value(intptr_t value, size_t bitCount, int signP)
   }
   /* check max and min value */
   if (signP) {
+    return min <= value && value <= signed_max;
+  } else {
     /* unsigned min is always 0 */
     return 0 <= value && (uintptr_t)value <= unsigned_max;
-  } else {
-    return min <= value && value <= signed_max;
   }
 }
 

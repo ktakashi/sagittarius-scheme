@@ -59,7 +59,8 @@
 	    (core base)
 	    (core arithmetic)
 	    (core misc)
-	    (core syntax-rules))
+	    (core syntax-rules)
+	    (core syntax))
 
   ;; from srfi-11 implentation
   (define-syntax let-values
@@ -97,7 +98,7 @@
        (let-values (?binding0)
 	 (let*-values (?binding1 ...) ?body0 ?body1 ...)))))
 
-  ;; from nmosh
+  ;; from nmosh start
   (define-syntax identifier-syntax
     (lambda (x)
       (syntax-case x (set!)
@@ -119,6 +120,14 @@
                ((id x (... ...))             (syntax (exp1 x (... ...))))
                (id (identifier? (syntax id)) (syntax exp1))))))))))
 
+  (define-syntax unquote
+    (lambda (e)
+      (syntax-violation 'unquote "Invalid expression" e)))
+
+  (define-syntax unquote-splicing
+    (lambda (e)
+      (syntax-violation 'unquote-splicing "Invalid expression" e)))
+  ;; from nmosh end
 ) ;[end]
 ;; end of file
 ;; Local Variables:

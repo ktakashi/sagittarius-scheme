@@ -1,3 +1,21 @@
+2011-05-06  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/exceptions.c (rnrs conditions): added missing condition and fixed
+	some typos.
+
+	* boot/lib/scmlib.scm (list-sort vector-sort vector-sort!): deleted
+	duplicates.
+
+	* src/null.stub (utf16->string utf32->string): fixed endian detection.
+	(assoc): fixed typo (assc -> assoc)
+
+	* src/sagittarius/error.h, src/error.c: added implementation of
+	implementation-restriction-violation
+
+	* src/null.stub (null): added some fixnum arithmetic operations
+
+	* src/reader.c (read_prefixed_number): fixed mis-reading #i#xf/e case.
+
 2011-05-05  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/vm.c (eval): refactered evaluation routine.

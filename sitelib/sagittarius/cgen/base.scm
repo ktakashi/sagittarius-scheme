@@ -90,7 +90,7 @@
   (define (sub body dispatch k)
     (or (>= (length (cdr body)) 2)
 	(error '-
-	       (format "wrong number of arg for + (required at least 2, but got ~a)"
+	       (format "wrong number of arg for - (required at least 2, but got ~a)"
 		       (length (cdr body)))))
     ((renderer) "(")
     (for-each1-with-index
@@ -101,6 +101,41 @@
      (cdr body))
     ((renderer) ")")
     (k k))
+
+  ;; *
+  (define (mul-proc body dispatch k)
+    (or (>= (length (cdr body)) 2)
+	(error '-
+	       (format "wrong number of arg for * (required at least 2, but got ~a)"
+		       (length (cdr body)))))
+    ((renderer) "(")
+    (for-each1-with-index
+     (lambda (i arg)
+       (dispatch arg dispatch k)
+       (unless (= i (- (length (cdr body)) 1))
+	 ((renderer) " * ")))
+     (cdr body))
+    ((renderer) ")")
+    (k k))
+
+  ;; /
+  ;; (/ a b c) -> a / b / c
+  ;; (/ a (/ b 1)) -> a / (b / 1)
+  (define (div-proc body dispatch k)
+    (or (>= (length (cdr body)) 2)
+	(error '-
+	       (format "wrong number of arg for / (required at least 2, but got ~a)"
+		       (length (cdr body)))))
+    ((renderer) "(")
+    (for-each1-with-index
+     (lambda (i arg)
+       (dispatch arg dispatch k)
+       (unless (= i (- (length (cdr body)) 1))
+	 ((renderer) " / ")))
+     (cdr body))
+    ((renderer) ")")
+    (k k))
+
 
   ;; result
   ;; set expression to SG_RETURN
@@ -532,6 +567,8 @@
     (hashtable-set! *dispatch-table* 'break break)
     (hashtable-set! *dispatch-table* '+ add)
     (hashtable-set! *dispatch-table* '- sub)
+    (hashtable-set! *dispatch-table* '* mul-proc)
+    (hashtable-set! *dispatch-table* '/ div-proc)
     (hashtable-set! *dispatch-table* '% remainder-proc)
     (hashtable-set! *dispatch-table* '== num-eq)
     (hashtable-set! *dispatch-table* '< num-lt)

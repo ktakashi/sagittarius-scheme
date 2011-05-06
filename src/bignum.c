@@ -277,12 +277,17 @@ int Sg_BignumCmp(SgBignum *lhs, SgBignum *rhs)
 {
   int lhs_count = SG_BIGNUM_GET_COUNT(lhs);
   int rhs_count = SG_BIGNUM_GET_COUNT(rhs);
+  int lhs_sign = SG_BIGNUM_GET_SIGN(lhs);
+  int rhs_sign = SG_BIGNUM_GET_SIGN(rhs);
   int i;
-  if (lhs_count > rhs_count) return 1;
-  if (lhs_count < rhs_count) return -1;
+
+  if (lhs_sign < rhs_sign) return -1;
+  if (lhs_sign > rhs_sign) return 1;
+  if (lhs_count < rhs_count) return (lhs_sign > 0) ? -1 : 1;
+  if (lhs_count > rhs_count) return (lhs_sign > 0) ? 1 : -1;
   for (i = lhs_count - 1; i >= 0; i--) {
-    if (lhs->elements[i] > rhs->elements[i]) return 1;
-    if (lhs->elements[i] < rhs->elements[i]) return -1;
+    if (lhs->elements[i] < rhs->elements[i]) return (lhs_sign > 0) ? -1 : 1;
+    if (lhs->elements[i] > rhs->elements[i]) return (lhs_sign > 0) ? 1 : -1;
   }
   return 0;
 }

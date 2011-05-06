@@ -200,11 +200,11 @@ static inline void report_error(SgObject exception)
       line = SG_CDR(info);
     }
     Sg_Printf(Sg_StandardErrorPort(),
-	      UC("  [%A] %A: %A\n"
-		 "    src: %#50S\n"
-		 "    file: %S (line %A)\n"),
+	      UC("  [%A] %A: %A (location %S (line %A))\n"
+		 "    src: %#50S\n"),
 	      index, SG_CAR(proc), SG_CADR(proc),
-	      Sg_UnwrapSyntax(src), file, line);
+	      file, line,
+	      Sg_UnwrapSyntax(src));
   }
   Sg_FlushAllPort(FALSE);
 }
@@ -212,10 +212,21 @@ static inline void report_error(SgObject exception)
 SgObject Sg_FindBinding(SgObject library, SgSymbol *name, SgObject callback)
 {
   SgLibrary *lib;
+  SgObject ret;
   if (SG_LIBRARYP(library)) lib = SG_LIBRARY(library);
   else lib = Sg_FindLibrary(library, FALSE);
   if (SG_FALSEP(lib)) return callback;
-  return Sg_HashTableRef(SG_LIBRARY_TABLE(lib), name, callback);
+
+  ret = Sg_HashTableRef(SG_LIBRARY_TABLE(lib), name, SG_UNBOUND);
+  if (SG_UNBOUNDP(ret)) {
+    /* search from toplevel */
+    SgObject gloc = Sg_Assq(name, Sg_VM()->toplevelVariables);
+    if (SG_FALSEP(gloc)) return callback;
+    ASSERT(SG_PAIRP(gloc));
+    ASSERT(SG_GLOCP(SG_CDR(gloc)));
+    return SG_CDR(gloc);
+  }
+  return ret;
 }
 void Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value_or_gloc)
 {

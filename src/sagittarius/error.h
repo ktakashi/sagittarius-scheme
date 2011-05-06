@@ -45,6 +45,7 @@ SG_EXTERN void Sg_IOFileNotExistError(SgObject who, SgObject msg, SgObject file)
 SG_EXTERN void Sg_IOReadError(SgObject who, SgObject msg, SgObject port);
 SG_EXTERN void Sg_IOWriteError(SgObject who, SgObject msg, SgObject port);
 SG_EXTERN void Sg_AssertionViolation(SgObject who, SgObject message, SgObject irritants);
+SG_EXTERN void Sg_ImplementationRestrictionViolation(SgObject who, SgObject message, SgObject irritants);
 
 /* these are for stub files */
 SG_EXTERN void Sg_WrongTypeOfArgumentViolation(SgObject who, SgObject requiredType,

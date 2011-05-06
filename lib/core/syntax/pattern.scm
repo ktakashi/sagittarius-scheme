@@ -87,7 +87,7 @@
 	  (_- (rename '-))      (_= (rename '=))
 	  (_+ (rename '+))
 	  (_identifier? (rename 'identifier?))
-	  (_count-pair (rename 'count-pair))
+	  (_count-pair (rename '.count-pair)) ;; toplevel
 	  (_rename (rename 'rename)) (_compare (rename 'compare)))
       (define (conjunction predicate consequent)
 	(cond ((eq? predicate #t) consequent)
@@ -113,14 +113,9 @@
 					 (loop (car pattern)
 					       `(,_car ,_l))
 					 `(,_loop (,_cdr ,_l) (,_- ,_n 1)))))))
-		    ;; TODO: this is ugly, we need to find something else.
-		    (,_count-pair (,_lambda (,_l)
-				      (,_let ,_loop ((,_l ,_l) (,_n 0))
-					 (,_if (,_pair? ,_l)
-					       (,_loop (,_cdr ,_l) (,_+ ,_n 1))
-					       ,_n))))
+		    
 		    (,_n (,_- (,_count-pair ,expr)
-			      ,(count-pair (cddr pattern)))))
+			      ,(count-pair (cddr pattern))))) ;; original count-pair is in macro.scm
 	     (,_if (,_= ,_n 0)
 		   ,(loop (cddr pattern) expr)
 		   (,_and (,_> ,_n 0)
@@ -167,8 +162,4 @@
 	       `(,_equal? ,expr (,_quote ,pattern)))))
       ;;(trace loop do-list do-list-n conjunction)
       (loop pattern expr)))
-
-  (define (count-pair p)
-    (let loop ((lst p) (n 0))
-      (if (pair? lst) (loop (cdr lst) (+ n 1)) n)))
 )

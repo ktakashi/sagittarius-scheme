@@ -198,11 +198,11 @@ SgObject Sg_MakeLatin1Codec()
 Endianness Sg_Utf16CheckBOM(SgByteVector *bv)
 {
   if (SG_BVECTOR_SIZE(bv) >= 2) {
-    if (SG_BVECTOR_ELEMENT(bv, 0) == 0xFE
-	&& SG_BVECTOR_ELEMENT(bv, 1) == 0xFF) {
+    if (SG_BVECTOR_ELEMENT(bv, 0) == 0xFE &&
+	SG_BVECTOR_ELEMENT(bv, 1) == 0xFF) {
       return UTF_16BE;
-    } else if (SG_BVECTOR_ELEMENT(bv, 0) == 0xFF
-	       && SG_BVECTOR_ELEMENT(bv, 1) == 0xFE) {
+    } else if (SG_BVECTOR_ELEMENT(bv, 0) == 0xFF &&
+	       SG_BVECTOR_ELEMENT(bv, 1) == 0xFE) {
       return UTF_16LE;
     } else {
       return NO_BOM;

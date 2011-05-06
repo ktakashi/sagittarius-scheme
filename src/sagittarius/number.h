@@ -165,6 +165,7 @@ SG_EXTERN int      Sg_OddP(SgObject obj);
 SG_EXTERN int      Sg_FiniteP(SgObject obj);
 SG_EXTERN int      Sg_InfiniteP(SgObject obj);
 SG_EXTERN int      Sg_NanP(SgObject obj);
+SG_EXTERN int      Sg_RationalP(SgObject obj);
 SG_EXTERN int      Sg_RealValuedP(SgObject n);
 SG_EXTERN int      Sg_RationalValuedP(SgObject n);
 SG_EXTERN int      Sg_IntegerValuedP(SgObject n);

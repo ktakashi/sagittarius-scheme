@@ -1272,6 +1272,18 @@ int Sg_NanP(SgObject obj)
   return FALSE;
 }
 
+/* TODO: the name is conflicted */
+int Sg_RationalP(SgObject n)
+{
+  if (SG_EXACT_INTP(n) || SG_RATIONALP(n)) return TRUE;
+  if (SG_FLONUMP(n)) {
+    if (Sg_InfiniteP(n)) return FALSE;
+    if (Sg_NanP(n)) return FALSE;
+    return TRUE;
+  }
+  return FALSE;
+}
+
 int Sg_RealValuedP(SgObject n)
 {
   if (SG_REALP(n)) return TRUE;
@@ -1292,7 +1304,7 @@ int Sg_RationalValuedP(SgObject n)
   }
   if (SG_COMPLEXP(n)) {
     return Sg_ZeroP(SG_COMPLEX(n)->imag) &&
-      SG_RATIONALP(SG_COMPLEX(n)->real);
+      Sg_RationalP(SG_COMPLEX(n)->real);
   }
   return FALSE;
 }

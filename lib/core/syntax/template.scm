@@ -8,15 +8,6 @@
 	    (core misc)
 	    (core syntax-case) ;; for ellipsis-pair? so
 	    (sagittarius))
-  ;; from Ypsilon
-  (define parse-ellipsis-splicing
-    (lambda (form rename compare)
-      (let loop ((len 2) (tail (cdddr form)))
-	(cond ((and (pair? tail) (compare (car tail) (rename '...)))
-	       (loop (+ len 1) (cdr tail)))
-	      (else
-	       (values (list-head form len) tail len))))))
-
   (define generate-output
     (lambda (template sids rename compare expr)
       (let ((_cdr (rename 'cdr))       (_car (rename 'car))
@@ -75,7 +66,7 @@
 				  (cdr tmpl))))
 		  ;; (p ... ...)
 		  ((ellipsis-splicing-pair? tmpl)
-		   (receive (body tail len) (parse-ellipsis-splicing tmpl rename compare)
+		   (receive (body tail len) (parse-ellipsis-splicing tmpl)
 		     (optimized-append (apply optimized-append
 					      rename compare (let ((ellipsis (make-ellipsis '())))
 							       (generate-ellipsis ellipsis

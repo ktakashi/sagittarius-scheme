@@ -3,6 +3,7 @@
 (define identifier?
   (lambda (id)
     (and (vector? id)
+	 (> (vector-length id) 1)
 	 (eq? (vector-ref id 0) '.identifier))))
 
 (define identifier->symbol
