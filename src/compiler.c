@@ -11,7 +11,7 @@
 #define IDENT(x, lib) WORD(Sg_MakeIdentifier(SYMBOL(x), SG_NIL, (lib)))
 static struct sg__wcRec {
   SgCodeBuilder cb[506];
-  SgWord        w[35460];
+  SgWord        w[35480];
 } sg__wc = {
   { /* code builder */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[1935], NULL, 1, FALSE, 0, 15, 46), /* uniq */
@@ -497,28 +497,28 @@ static struct sg__wcRec {
     SG_STATIC_CODE_BUILDER(&sg__wc.w[33936], NULL, 2, FALSE, 2, 12, 17), /* #f */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[33953], NULL, 2, FALSE, 0, 7, 22), /* inliner// */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[33975], NULL, 1, FALSE, 3, 22, 118), /* inline */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[34093], NULL, 0, FALSE, 4, 27, 195), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[34288], NULL, 0, FALSE, 1, 7, 8), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[34296], NULL, 2, FALSE, 2, 12, 17), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[34313], NULL, 2, FALSE, 0, 7, 22), /* inliner//. */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[34335], NULL, 1, FALSE, 3, 22, 118), /* inline */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[34453], NULL, 0, FALSE, 4, 27, 197), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[34650], NULL, 0, FALSE, 1, 7, 8), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[34658], NULL, 2, FALSE, 2, 12, 17), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[34675], NULL, 2, FALSE, 0, 17, 89), /* inliner/zero? */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[34764], NULL, 0, FALSE, 1, 7, 8), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[34772], NULL, 2, FALSE, 0, 20, 111), /* inliner/vector-ref */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[34883], NULL, 0, FALSE, 1, 7, 8), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[34891], NULL, 2, FALSE, 0, 25, 165), /* inliner/vector-set! */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[35056], NULL, 0, FALSE, 1, 7, 8), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[35064], NULL, 2, FALSE, 0, 27, 175), /* inliner/acons */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[35239], NULL, 0, FALSE, 1, 7, 8), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[35247], NULL, 1, FALSE, 0, 10, 22), /* integer-fits-insn-arg? */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[35269], NULL, 2, FALSE, 0, 18, 66), /* compile */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[35335], NULL, 1, FALSE, 0, 10, 25), /* compile-p1 */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[35360], NULL, 1, FALSE, 0, 11, 30), /* compile-p2 */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[35390], NULL, 1, FALSE, 0, 19, 67), /* compile-p3 */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[35457], NULL, 0, FALSE, 0, 4, 3), /* init-compiler */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[34093], NULL, 0, FALSE, 4, 27, 205), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[34298], NULL, 0, FALSE, 1, 7, 8), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[34306], NULL, 2, FALSE, 2, 12, 17), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[34323], NULL, 2, FALSE, 0, 7, 22), /* inliner//. */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[34345], NULL, 1, FALSE, 3, 22, 118), /* inline */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[34463], NULL, 0, FALSE, 4, 27, 207), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[34670], NULL, 0, FALSE, 1, 7, 8), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[34678], NULL, 2, FALSE, 2, 12, 17), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[34695], NULL, 2, FALSE, 0, 17, 89), /* inliner/zero? */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[34784], NULL, 0, FALSE, 1, 7, 8), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[34792], NULL, 2, FALSE, 0, 20, 111), /* inliner/vector-ref */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[34903], NULL, 0, FALSE, 1, 7, 8), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[34911], NULL, 2, FALSE, 0, 25, 165), /* inliner/vector-set! */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[35076], NULL, 0, FALSE, 1, 7, 8), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[35084], NULL, 2, FALSE, 0, 27, 175), /* inliner/acons */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[35259], NULL, 0, FALSE, 1, 7, 8), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[35267], NULL, 1, FALSE, 0, 10, 22), /* integer-fits-insn-arg? */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[35289], NULL, 2, FALSE, 0, 18, 66), /* compile */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[35355], NULL, 1, FALSE, 0, 10, 25), /* compile-p1 */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[35380], NULL, 1, FALSE, 0, 11, 30), /* compile-p2 */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[35410], NULL, 1, FALSE, 0, 19, 67), /* compile-p3 */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[35477], NULL, 0, FALSE, 0, 4, 3), /* init-compiler */
   },
   { /* compiled code */
   /*     0 */        0x00000002           /* 0      (UNDEF) */,
@@ -34629,7 +34629,7 @@ static struct sg__wcRec {
   /* 34105 */        0x00000007           /* 12     (FREF) */,
   /* 34106 */        0x00000040           /* 13     (PAIRP) */,
   /* 34107 */        0x00000017           /* 14     (TEST) */,
-  /* 34108 */        WORD(SG_MAKE_INT(177)),
+  /* 34108 */        WORD(SG_MAKE_INT(187)),
   /* 34109 */        0x00000732           /* 16     (LET_FRAME) */,
   /* 34110 */        0x00000048           /* 17     (FREF_PUSH) */,
   /* 34111 */        0x00000047           /* 18     (LREF_PUSH) */,
@@ -34659,7 +34659,7 @@ static struct sg__wcRec {
   /* 34135 */        0x00000005           /* 42     (LREF) */,
   /* 34136 */        0x00000040           /* 43     (PAIRP) */,
   /* 34137 */        0x00000017           /* 44     (TEST) */,
-  /* 34138 */        WORD(SG_MAKE_INT(143)),
+  /* 34138 */        WORD(SG_MAKE_INT(153)),
   /* 34139 */        0x00000632           /* 46     (LET_FRAME) */,
   /* 34140 */        0x00000047           /* 47     (LREF_PUSH) */,
   /* 34141 */        0x00000648           /* 48     (FREF_PUSH) */,
@@ -34732,1255 +34732,1275 @@ static struct sg__wcRec {
   /* 34208 */        0x00000233           /* 115    (POP_LET_FRAME) */,
   /* 34209 */        0x00000807           /* 116    (FREF) */,
   /* 34210 */        0x00000017           /* 117    (TEST) */,
-  /* 34211 */        WORD(SG_MAKE_INT(66)),
+  /* 34211 */        WORD(SG_MAKE_INT(76)),
   /* 34212 */        0x00000005           /* 119    (LREF) */,
   /* 34213 */        0x00000017           /* 120    (TEST) */,
-  /* 34214 */        WORD(SG_MAKE_INT(24)),
-  /* 34215 */        0x00000707           /* 122    (FREF) */,
-  /* 34216 */        0x00000022           /* 123    (BNNULL) */,
-  /* 34217 */        WORD(SG_MAKE_INT(9)),
-  /* 34218 */        0x00000049           /* 125    (GREF_PUSH) */,
-  /* 34219 */        WORD(SG_UNDEF)  /* identifier#$CONST */,
-  /* 34220 */        0x00000848           /* 127    (FREF_PUSH) */,
-  /* 34221 */        0x00000005           /* 128    (LREF) */,
-  /* 34222 */        0x00000014           /* 129    (DIV) */,
-  /* 34223 */        0x00000242           /* 130    (VECTOR) */,
-  /* 34224 */        0x00000018           /* 131    (JUMP) */,
-  /* 34225 */        WORD(SG_MAKE_INT(11)),
-  /* 34226 */        0x00000848           /* 133    (FREF_PUSH) */,
-  /* 34227 */        0x00000005           /* 134    (LREF) */,
-  /* 34228 */        0x00000014           /* 135    (DIV) */,
-  /* 34229 */        0x0000000B           /* 136    (PUSH) */,
-  /* 34230 */        0x00000607           /* 137    (FREF) */,
-  /* 34231 */        0x0000003A           /* 138    (CONS) */,
+  /* 34214 */        WORD(SG_MAKE_INT(69)),
+  /* 34215 */        0x00000031           /* 122    (FRAME) */,
+  /* 34216 */        WORD(SG_MAKE_INT(3)),
+  /* 34217 */        0x0000004C           /* 124    (GREF_CALL) */,
+  /* 34218 */        WORD(SG_UNDEF)  /* identifier#vm-r6rs-mode? */,
+  /* 34219 */        0x00000017           /* 126    (TEST) */,
+  /* 34220 */        WORD(SG_MAKE_INT(40)),
+  /* 34221 */        0x00000448           /* 128    (FREF_PUSH) */,
+  /* 34222 */        0x00000048           /* 129    (FREF_PUSH) */,
+  /* 34223 */        0x0000002A           /* 130    (CLOSURE) */,
+  /* 34224 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /* 34225 */        0x0000000B           /* 132    (PUSH) */,
+  /* 34226 */        0x00000049           /* 133    (GREF_PUSH) */,
+  /* 34227 */        WORD(SG_UNDEF)  /* identifier#$ASM */,
+  /* 34228 */        0x00000448           /* 135    (FREF_PUSH) */,
+  /* 34229 */        0x00000009           /* 136    (GREF) */,
+  /* 34230 */        WORD(SG_UNDEF)  /* identifier#DIV */,
+  /* 34231 */        0x0000013B           /* 138    (LIST) */,
   /* 34232 */        0x0000000B           /* 139    (PUSH) */,
-  /* 34233 */        0x00000507           /* 140    (FREF) */,
-  /* 34234 */        0x0000000D           /* 141    (UNBOX) */,
-  /* 34235 */        0x0000012F           /* 142    (LOCAL_TAIL_CALL) */,
+  /* 34233 */        0x00000207           /* 140    (FREF) */,
+  /* 34234 */        0x00000017           /* 141    (TEST) */,
+  /* 34235 */        WORD(SG_MAKE_INT(3)),
   /* 34236 */        0x00000018           /* 143    (JUMP) */,
-  /* 34237 */        WORD(SG_MAKE_INT(38)),
-  /* 34238 */        0x00000448           /* 145    (FREF_PUSH) */,
-  /* 34239 */        0x00000048           /* 146    (FREF_PUSH) */,
-  /* 34240 */        0x0000002A           /* 147    (CLOSURE) */,
-  /* 34241 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /* 34237 */        WORD(SG_MAKE_INT(5)),
+  /* 34238 */        0x00000049           /* 145    (GREF_PUSH) */,
+  /* 34239 */        WORD(SG_UNDEF)  /* identifier#$CONST */,
+  /* 34240 */        0x00000807           /* 147    (FREF) */,
+  /* 34241 */        0x00000242           /* 148    (VECTOR) */,
   /* 34242 */        0x0000000B           /* 149    (PUSH) */,
-  /* 34243 */        0x00000049           /* 150    (GREF_PUSH) */,
-  /* 34244 */        WORD(SG_UNDEF)  /* identifier#$ASM */,
-  /* 34245 */        0x00000448           /* 152    (FREF_PUSH) */,
-  /* 34246 */        0x00000009           /* 153    (GREF) */,
-  /* 34247 */        WORD(SG_UNDEF)  /* identifier#DIV */,
-  /* 34248 */        0x0000013B           /* 155    (LIST) */,
-  /* 34249 */        0x0000000B           /* 156    (PUSH) */,
-  /* 34250 */        0x00000207           /* 157    (FREF) */,
-  /* 34251 */        0x00000017           /* 158    (TEST) */,
-  /* 34252 */        WORD(SG_MAKE_INT(3)),
-  /* 34253 */        0x00000018           /* 160    (JUMP) */,
-  /* 34254 */        WORD(SG_MAKE_INT(5)),
-  /* 34255 */        0x00000049           /* 162    (GREF_PUSH) */,
-  /* 34256 */        WORD(SG_UNDEF)  /* identifier#$CONST */,
-  /* 34257 */        0x00000807           /* 164    (FREF) */,
-  /* 34258 */        0x00000242           /* 165    (VECTOR) */,
-  /* 34259 */        0x0000000B           /* 166    (PUSH) */,
-  /* 34260 */        0x00000105           /* 167    (LREF) */,
-  /* 34261 */        0x00000017           /* 168    (TEST) */,
-  /* 34262 */        WORD(SG_MAKE_INT(3)),
-  /* 34263 */        0x00000018           /* 170    (JUMP) */,
-  /* 34264 */        WORD(SG_MAKE_INT(5)),
-  /* 34265 */        0x00000049           /* 172    (GREF_PUSH) */,
-  /* 34266 */        WORD(SG_UNDEF)  /* identifier#$CONST */,
-  /* 34267 */        0x00000005           /* 174    (LREF) */,
+  /* 34243 */        0x00000105           /* 150    (LREF) */,
+  /* 34244 */        0x00000017           /* 151    (TEST) */,
+  /* 34245 */        WORD(SG_MAKE_INT(3)),
+  /* 34246 */        0x00000018           /* 153    (JUMP) */,
+  /* 34247 */        WORD(SG_MAKE_INT(5)),
+  /* 34248 */        0x00000049           /* 155    (GREF_PUSH) */,
+  /* 34249 */        WORD(SG_UNDEF)  /* identifier#$CONST */,
+  /* 34250 */        0x00000005           /* 157    (LREF) */,
+  /* 34251 */        0x00000242           /* 158    (VECTOR) */,
+  /* 34252 */        0x0000023B           /* 159    (LIST) */,
+  /* 34253 */        0x00000442           /* 160    (VECTOR) */,
+  /* 34254 */        0x0000000B           /* 161    (PUSH) */,
+  /* 34255 */        0x00000648           /* 162    (FREF_PUSH) */,
+  /* 34256 */        0x0000034D           /* 163    (GREF_TAIL_CALL) */,
+  /* 34257 */        WORD(SG_UNDEF)  /* identifier#fold */,
+  /* 34258 */        0x00000018           /* 165    (JUMP) */,
+  /* 34259 */        WORD(SG_MAKE_INT(22)),
+  /* 34260 */        0x00000707           /* 167    (FREF) */,
+  /* 34261 */        0x00000022           /* 168    (BNNULL) */,
+  /* 34262 */        WORD(SG_MAKE_INT(9)),
+  /* 34263 */        0x00000049           /* 170    (GREF_PUSH) */,
+  /* 34264 */        WORD(SG_UNDEF)  /* identifier#$CONST */,
+  /* 34265 */        0x00000848           /* 172    (FREF_PUSH) */,
+  /* 34266 */        0x00000005           /* 173    (LREF) */,
+  /* 34267 */        0x00000014           /* 174    (DIV) */,
   /* 34268 */        0x00000242           /* 175    (VECTOR) */,
-  /* 34269 */        0x0000023B           /* 176    (LIST) */,
-  /* 34270 */        0x00000442           /* 177    (VECTOR) */,
-  /* 34271 */        0x0000000B           /* 178    (PUSH) */,
-  /* 34272 */        0x00000648           /* 179    (FREF_PUSH) */,
-  /* 34273 */        0x0000034D           /* 180    (GREF_TAIL_CALL) */,
-  /* 34274 */        WORD(SG_UNDEF)  /* identifier#fold */,
-  /* 34275 */        0x00000018           /* 182    (JUMP) */,
-  /* 34276 */        WORD(SG_MAKE_INT(3)),
-  /* 34277 */        0x00000018           /* 184    (JUMP) */,
-  /* 34278 */        WORD(SG_MAKE_INT(-40)),
-  /* 34279 */        0x00000018           /* 186    (JUMP) */,
-  /* 34280 */        WORD(SG_MAKE_INT(3)),
-  /* 34281 */        0x00000107           /* 188    (FREF) */,
-  /* 34282 */        0x0000002F           /* 189    (LOCAL_TAIL_CALL) */,
+  /* 34269 */        0x00000018           /* 176    (JUMP) */,
+  /* 34270 */        WORD(SG_MAKE_INT(11)),
+  /* 34271 */        0x00000848           /* 178    (FREF_PUSH) */,
+  /* 34272 */        0x00000005           /* 179    (LREF) */,
+  /* 34273 */        0x00000014           /* 180    (DIV) */,
+  /* 34274 */        0x0000000B           /* 181    (PUSH) */,
+  /* 34275 */        0x00000607           /* 182    (FREF) */,
+  /* 34276 */        0x0000003A           /* 183    (CONS) */,
+  /* 34277 */        0x0000000B           /* 184    (PUSH) */,
+  /* 34278 */        0x00000507           /* 185    (FREF) */,
+  /* 34279 */        0x0000000D           /* 186    (UNBOX) */,
+  /* 34280 */        0x0000012F           /* 187    (LOCAL_TAIL_CALL) */,
+  /* 34281 */        0x00000018           /* 188    (JUMP) */,
+  /* 34282 */        WORD(SG_MAKE_INT(3)),
   /* 34283 */        0x00000018           /* 190    (JUMP) */,
-  /* 34284 */        WORD(SG_MAKE_INT(3)),
-  /* 34285 */        0x00000005           /* 192    (LREF) */,
-  /* 34286 */        0x0000002F           /* 193    (LOCAL_TAIL_CALL) */,
-  /* 34287 */        0x00000030           /* 194    (RET) */,
-  /* 34288 */        0x0000004A           /* 0      (CONST_PUSH) */,
-  /* 34289 */        WORD(SG_UNDEF), /* smatch */
-  /* 34290 */        0x0000004A           /* 2      (CONST_PUSH) */,
-  /* 34291 */        WORD(SG_UNDEF), /* "invalid form" */
-  /* 34292 */        0x00000048           /* 4      (FREF_PUSH) */,
-  /* 34293 */        0x0000034D           /* 5      (GREF_TAIL_CALL) */,
-  /* 34294 */        WORD(SG_UNDEF)  /* identifier#error */,
-  /* 34295 */        0x00000030           /* 7      (RET) */,
-  /* 34296 */        0x00000049           /* 0      (GREF_PUSH) */,
-  /* 34297 */        WORD(SG_UNDEF)  /* identifier#$ASM */,
-  /* 34298 */        0x00000148           /* 2      (FREF_PUSH) */,
-  /* 34299 */        0x00000009           /* 3      (GREF) */,
-  /* 34300 */        WORD(SG_UNDEF)  /* identifier#DIV */,
-  /* 34301 */        0x0000013B           /* 5      (LIST) */,
-  /* 34302 */        0x0000000B           /* 6      (PUSH) */,
-  /* 34303 */        0x00000147           /* 7      (LREF_PUSH) */,
-  /* 34304 */        0x00000031           /* 8      (FRAME) */,
-  /* 34305 */        WORD(SG_MAKE_INT(5)),
-  /* 34306 */        0x00000047           /* 10     (LREF_PUSH) */,
-  /* 34307 */        0x00000048           /* 11     (FREF_PUSH) */,
-  /* 34308 */        0x0000024C           /* 12     (GREF_CALL) */,
-  /* 34309 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
-  /* 34310 */        0x0000023B           /* 14     (LIST) */,
-  /* 34311 */        0x00000442           /* 15     (VECTOR) */,
-  /* 34312 */        0x00000030           /* 16     (RET) */,
-  /* 34313 */        0x00000432           /* 0      (LET_FRAME) */,
-  /* 34314 */        0x00000047           /* 1      (LREF_PUSH) */,
-  /* 34315 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /* 34316 */        0x00000147           /* 3      (LREF_PUSH) */,
-  /* 34317 */        0x00000334           /* 4      (DISPLAY) */,
-  /* 34318 */        0x00000002           /* 5      (UNDEF) */,
-  /* 34319 */        0x0000000B           /* 6      (PUSH) */,
-  /* 34320 */        0x0000000C           /* 7      (BOX) */,
-  /* 34321 */        0x00000133           /* 8      (POP_LET_FRAME) */,
-  /* 34322 */        0x00000148           /* 9      (FREF_PUSH) */,
-  /* 34323 */        0x00000048           /* 10     (FREF_PUSH) */,
-  /* 34324 */        0x00000047           /* 11     (LREF_PUSH) */,
-  /* 34325 */        0x0000002A           /* 12     (CLOSURE) */,
-  /* 34326 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /* 34327 */        0x00000006           /* 14     (LSET) */,
-  /* 34328 */        0x00000107           /* 15     (FREF) */,
-  /* 34329 */        0x00000039           /* 16     (CDR) */,
-  /* 34330 */        0x0000000B           /* 17     (PUSH) */,
-  /* 34331 */        0x00000005           /* 18     (LREF) */,
-  /* 34332 */        0x0000000D           /* 19     (UNBOX) */,
-  /* 34333 */        0x0000012F           /* 20     (LOCAL_TAIL_CALL) */,
-  /* 34334 */        0x00000030           /* 21     (RET) */,
-  /* 34335 */        0x00000005           /* 0      (LREF) */,
-  /* 34336 */        0x00000022           /* 1      (BNNULL) */,
-  /* 34337 */        WORD(SG_MAKE_INT(8)),
-  /* 34338 */        0x0000004A           /* 3      (CONST_PUSH) */,
-  /* 34339 */        WORD(SG_UNDEF), /* "procedure requires at least one argument:" */
-  /* 34340 */        0x00000248           /* 5      (FREF_PUSH) */,
-  /* 34341 */        0x0000024D           /* 6      (GREF_TAIL_CALL) */,
-  /* 34342 */        WORD(SG_UNDEF)  /* identifier#error */,
-  /* 34343 */        0x00000018           /* 8      (JUMP) */,
-  /* 34344 */        WORD(SG_MAKE_INT(108)),
-  /* 34345 */        0x00000832           /* 10     (LET_FRAME) */,
-  /* 34346 */        0x00000047           /* 11     (LREF_PUSH) */,
-  /* 34347 */        0x00000148           /* 12     (FREF_PUSH) */,
-  /* 34348 */        0x00000248           /* 13     (FREF_PUSH) */,
-  /* 34349 */        0x00000047           /* 14     (LREF_PUSH) */,
-  /* 34350 */        0x00000148           /* 15     (FREF_PUSH) */,
-  /* 34351 */        0x00000048           /* 16     (FREF_PUSH) */,
-  /* 34352 */        0x00000248           /* 17     (FREF_PUSH) */,
-  /* 34353 */        0x00000734           /* 18     (DISPLAY) */,
-  /* 34354 */        0x00000047           /* 19     (LREF_PUSH) */,
-  /* 34355 */        0x00000248           /* 20     (FREF_PUSH) */,
-  /* 34356 */        0x00000148           /* 21     (FREF_PUSH) */,
-  /* 34357 */        0x00000048           /* 22     (FREF_PUSH) */,
-  /* 34358 */        0x0000002A           /* 23     (CLOSURE) */,
-  /* 34359 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /* 34360 */        0x0000000B           /* 25     (PUSH) */,
-  /* 34361 */        0x00000133           /* 26     (POP_LET_FRAME) */,
-  /* 34362 */        0x00000307           /* 27     (FREF) */,
-  /* 34363 */        0x00000040           /* 28     (PAIRP) */,
-  /* 34364 */        0x00000017           /* 29     (TEST) */,
-  /* 34365 */        WORD(SG_MAKE_INT(85)),
-  /* 34366 */        0x00000632           /* 31     (LET_FRAME) */,
-  /* 34367 */        0x00000348           /* 32     (FREF_PUSH) */,
-  /* 34368 */        0x00000248           /* 33     (FREF_PUSH) */,
-  /* 34369 */        0x00000048           /* 34     (FREF_PUSH) */,
-  /* 34370 */        0x00000047           /* 35     (LREF_PUSH) */,
-  /* 34371 */        0x00000348           /* 36     (FREF_PUSH) */,
-  /* 34372 */        0x00000534           /* 37     (DISPLAY) */,
-  /* 34373 */        0x00000007           /* 38     (FREF) */,
-  /* 34374 */        0x00000038           /* 39     (CAR) */,
-  /* 34375 */        0x0000000B           /* 40     (PUSH) */,
-  /* 34376 */        0x00000133           /* 41     (POP_LET_FRAME) */,
-  /* 34377 */        0x00000632           /* 42     (LET_FRAME) */,
-  /* 34378 */        0x00000047           /* 43     (LREF_PUSH) */,
-  /* 34379 */        0x00000348           /* 44     (FREF_PUSH) */,
-  /* 34380 */        0x00000248           /* 45     (FREF_PUSH) */,
-  /* 34381 */        0x00000148           /* 46     (FREF_PUSH) */,
-  /* 34382 */        0x00000048           /* 47     (FREF_PUSH) */,
-  /* 34383 */        0x00000534           /* 48     (DISPLAY) */,
-  /* 34384 */        0x00000007           /* 49     (FREF) */,
-  /* 34385 */        0x00000039           /* 50     (CDR) */,
-  /* 34386 */        0x0000000B           /* 51     (PUSH) */,
-  /* 34387 */        0x00000133           /* 52     (POP_LET_FRAME) */,
-  /* 34388 */        0x00000005           /* 53     (LREF) */,
-  /* 34389 */        0x00000022           /* 54     (BNNULL) */,
-  /* 34390 */        WORD(SG_MAKE_INT(56)),
-  /* 34391 */        0x00000632           /* 56     (LET_FRAME) */,
-  /* 34392 */        0x00000248           /* 57     (FREF_PUSH) */,
-  /* 34393 */        0x00000348           /* 58     (FREF_PUSH) */,
-  /* 34394 */        0x00000448           /* 59     (FREF_PUSH) */,
-  /* 34395 */        0x00000348           /* 60     (FREF_PUSH) */,
-  /* 34396 */        0x00000434           /* 61     (DISPLAY) */,
-  /* 34397 */        0x00000031           /* 62     (FRAME) */,
-  /* 34398 */        WORD(SG_MAKE_INT(5)),
-  /* 34399 */        0x00000148           /* 64     (FREF_PUSH) */,
-  /* 34400 */        0x00000048           /* 65     (FREF_PUSH) */,
-  /* 34401 */        0x0000024C           /* 66     (GREF_CALL) */,
-  /* 34402 */        WORD(SG_UNDEF)  /* identifier#check-numeric-constant */,
-  /* 34403 */        0x00000229           /* 68     (RECEIVE) */,
-  /* 34404 */        0x00000233           /* 69     (POP_LET_FRAME) */,
-  /* 34405 */        0x00000031           /* 70     (FRAME) */,
-  /* 34406 */        WORD(SG_MAKE_INT(4)),
-  /* 34407 */        0x00000047           /* 72     (LREF_PUSH) */,
-  /* 34408 */        0x0000014C           /* 73     (GREF_CALL) */,
-  /* 34409 */        WORD(SG_UNDEF)  /* identifier#number? */,
-  /* 34410 */        0x00000017           /* 75     (TEST) */,
-  /* 34411 */        WORD(SG_MAKE_INT(11)),
-  /* 34412 */        0x00000049           /* 77     (GREF_PUSH) */,
-  /* 34413 */        WORD(SG_UNDEF)  /* identifier#$CONST */,
-  /* 34414 */        0x00000031           /* 79     (FRAME) */,
-  /* 34415 */        WORD(SG_MAKE_INT(4)),
-  /* 34416 */        0x00000047           /* 81     (LREF_PUSH) */,
-  /* 34417 */        0x0000014C           /* 82     (GREF_CALL) */,
-  /* 34418 */        WORD(SG_UNDEF)  /* identifier#/. */,
-  /* 34419 */        0x00000242           /* 84     (VECTOR) */,
-  /* 34420 */        0x00000018           /* 85     (JUMP) */,
-  /* 34421 */        WORD(SG_MAKE_INT(23)),
-  /* 34422 */        0x00000049           /* 87     (GREF_PUSH) */,
-  /* 34423 */        WORD(SG_UNDEF)  /* identifier#$CALL */,
-  /* 34424 */        0x00000348           /* 89     (FREF_PUSH) */,
-  /* 34425 */        0x00000049           /* 90     (GREF_PUSH) */,
-  /* 34426 */        WORD(SG_UNDEF)  /* identifier#$GREF */,
-  /* 34427 */        0x00000031           /* 92     (FRAME) */,
-  /* 34428 */        WORD(SG_MAKE_INT(6)),
-  /* 34429 */        0x0000004A           /* 94     (CONST_PUSH) */,
-  /* 34430 */        WORD(SG_UNDEF), /* /. */
-  /* 34431 */        0x00000048           /* 96     (FREF_PUSH) */,
-  /* 34432 */        0x0000024C           /* 97     (GREF_CALL) */,
-  /* 34433 */        WORD(SG_UNDEF)  /* identifier#ensure-identifier */,
-  /* 34434 */        0x00000242           /* 99     (VECTOR) */,
-  /* 34435 */        0x0000000B           /* 100    (PUSH) */,
-  /* 34436 */        0x00000105           /* 101    (LREF) */,
-  /* 34437 */        0x0000013B           /* 102    (LIST) */,
-  /* 34438 */        0x0000000B           /* 103    (PUSH) */,
-  /* 34439 */        0x0000004A           /* 104    (CONST_PUSH) */,
-  /* 34440 */        WORD(SG_MAKE_BOOL(FALSE)),
-  /* 34441 */        0x00000003           /* 106    (CONST) */,
-  /* 34442 */        WORD(SG_NIL),
-  /* 34443 */        0x00000642           /* 108    (VECTOR) */,
-  /* 34444 */        0x00000018           /* 109    (JUMP) */,
-  /* 34445 */        WORD(SG_MAKE_INT(3)),
-  /* 34446 */        0x00000107           /* 111    (FREF) */,
-  /* 34447 */        0x0000002F           /* 112    (LOCAL_TAIL_CALL) */,
-  /* 34448 */        0x00000018           /* 113    (JUMP) */,
-  /* 34449 */        WORD(SG_MAKE_INT(3)),
-  /* 34450 */        0x00000005           /* 115    (LREF) */,
-  /* 34451 */        0x0000002F           /* 116    (LOCAL_TAIL_CALL) */,
-  /* 34452 */        0x00000030           /* 117    (RET) */,
-  /* 34453 */        0x00000632           /* 0      (LET_FRAME) */,
-  /* 34454 */        0x00000348           /* 1      (FREF_PUSH) */,
-  /* 34455 */        0x00000248           /* 2      (FREF_PUSH) */,
-  /* 34456 */        0x00000148           /* 3      (FREF_PUSH) */,
-  /* 34457 */        0x00000048           /* 4      (FREF_PUSH) */,
-  /* 34458 */        0x00000348           /* 5      (FREF_PUSH) */,
-  /* 34459 */        0x00000534           /* 6      (DISPLAY) */,
-  /* 34460 */        0x00000048           /* 7      (FREF_PUSH) */,
-  /* 34461 */        0x0000002A           /* 8      (CLOSURE) */,
-  /* 34462 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /* 34463 */        0x0000000B           /* 10     (PUSH) */,
-  /* 34464 */        0x00000133           /* 11     (POP_LET_FRAME) */,
-  /* 34465 */        0x00000007           /* 12     (FREF) */,
-  /* 34466 */        0x00000040           /* 13     (PAIRP) */,
-  /* 34467 */        0x00000017           /* 14     (TEST) */,
-  /* 34468 */        WORD(SG_MAKE_INT(179)),
-  /* 34469 */        0x00000732           /* 16     (LET_FRAME) */,
-  /* 34470 */        0x00000048           /* 17     (FREF_PUSH) */,
-  /* 34471 */        0x00000047           /* 18     (LREF_PUSH) */,
-  /* 34472 */        0x00000348           /* 19     (FREF_PUSH) */,
-  /* 34473 */        0x00000248           /* 20     (FREF_PUSH) */,
-  /* 34474 */        0x00000148           /* 21     (FREF_PUSH) */,
-  /* 34475 */        0x00000048           /* 22     (FREF_PUSH) */,
-  /* 34476 */        0x00000634           /* 23     (DISPLAY) */,
-  /* 34477 */        0x00000007           /* 24     (FREF) */,
-  /* 34478 */        0x00000038           /* 25     (CAR) */,
-  /* 34479 */        0x0000000B           /* 26     (PUSH) */,
-  /* 34480 */        0x00000133           /* 27     (POP_LET_FRAME) */,
-  /* 34481 */        0x00000932           /* 28     (LET_FRAME) */,
-  /* 34482 */        0x00000047           /* 29     (LREF_PUSH) */,
-  /* 34483 */        0x00000348           /* 30     (FREF_PUSH) */,
-  /* 34484 */        0x00000248           /* 31     (FREF_PUSH) */,
-  /* 34485 */        0x00000148           /* 32     (FREF_PUSH) */,
-  /* 34486 */        0x00000448           /* 33     (FREF_PUSH) */,
-  /* 34487 */        0x00000448           /* 34     (FREF_PUSH) */,
-  /* 34488 */        0x00000048           /* 35     (FREF_PUSH) */,
-  /* 34489 */        0x00000734           /* 36     (DISPLAY) */,
-  /* 34490 */        0x00000007           /* 37     (FREF) */,
-  /* 34491 */        0x00000039           /* 38     (CDR) */,
-  /* 34492 */        0x0000000B           /* 39     (PUSH) */,
-  /* 34493 */        0x00000148           /* 40     (FREF_PUSH) */,
-  /* 34494 */        0x00000233           /* 41     (POP_LET_FRAME) */,
-  /* 34495 */        0x00000005           /* 42     (LREF) */,
-  /* 34496 */        0x00000040           /* 43     (PAIRP) */,
-  /* 34497 */        0x00000017           /* 44     (TEST) */,
-  /* 34498 */        WORD(SG_MAKE_INT(145)),
-  /* 34499 */        0x00000632           /* 46     (LET_FRAME) */,
-  /* 34500 */        0x00000047           /* 47     (LREF_PUSH) */,
-  /* 34501 */        0x00000648           /* 48     (FREF_PUSH) */,
-  /* 34502 */        0x00000548           /* 49     (FREF_PUSH) */,
-  /* 34503 */        0x00000448           /* 50     (FREF_PUSH) */,
-  /* 34504 */        0x00000348           /* 51     (FREF_PUSH) */,
-  /* 34505 */        0x00000534           /* 52     (DISPLAY) */,
-  /* 34506 */        0x00000005           /* 53     (LREF) */,
-  /* 34507 */        0x00000038           /* 54     (CAR) */,
-  /* 34508 */        0x0000000B           /* 55     (PUSH) */,
-  /* 34509 */        0x00000133           /* 56     (POP_LET_FRAME) */,
-  /* 34510 */        0x00000732           /* 57     (LET_FRAME) */,
-  /* 34511 */        0x00000348           /* 58     (FREF_PUSH) */,
-  /* 34512 */        0x00000248           /* 59     (FREF_PUSH) */,
-  /* 34513 */        0x00000047           /* 60     (LREF_PUSH) */,
-  /* 34514 */        0x00000148           /* 61     (FREF_PUSH) */,
-  /* 34515 */        0x00000048           /* 62     (FREF_PUSH) */,
-  /* 34516 */        0x00000448           /* 63     (FREF_PUSH) */,
-  /* 34517 */        0x00000634           /* 64     (DISPLAY) */,
-  /* 34518 */        0x00000007           /* 65     (FREF) */,
-  /* 34519 */        0x00000039           /* 66     (CDR) */,
-  /* 34520 */        0x0000000B           /* 67     (PUSH) */,
-  /* 34521 */        0x00000133           /* 68     (POP_LET_FRAME) */,
-  /* 34522 */        0x00000732           /* 69     (LET_FRAME) */,
-  /* 34523 */        0x00000548           /* 70     (FREF_PUSH) */,
-  /* 34524 */        0x00000448           /* 71     (FREF_PUSH) */,
-  /* 34525 */        0x00000348           /* 72     (FREF_PUSH) */,
-  /* 34526 */        0x00000047           /* 73     (LREF_PUSH) */,
-  /* 34527 */        0x00000248           /* 74     (FREF_PUSH) */,
-  /* 34528 */        0x00000148           /* 75     (FREF_PUSH) */,
-  /* 34529 */        0x00000634           /* 76     (DISPLAY) */,
-  /* 34530 */        0x00000047           /* 77     (LREF_PUSH) */,
-  /* 34531 */        0x00000133           /* 78     (POP_LET_FRAME) */,
-  /* 34532 */        0x00000A32           /* 79     (LET_FRAME) */,
-  /* 34533 */        0x00000348           /* 80     (FREF_PUSH) */,
-  /* 34534 */        0x00000448           /* 81     (FREF_PUSH) */,
-  /* 34535 */        0x00000248           /* 82     (FREF_PUSH) */,
-  /* 34536 */        0x00000047           /* 83     (LREF_PUSH) */,
-  /* 34537 */        0x00000148           /* 84     (FREF_PUSH) */,
-  /* 34538 */        0x00000048           /* 85     (FREF_PUSH) */,
-  /* 34539 */        0x00000548           /* 86     (FREF_PUSH) */,
-  /* 34540 */        0x00000448           /* 87     (FREF_PUSH) */,
-  /* 34541 */        0x00000834           /* 88     (DISPLAY) */,
-  /* 34542 */        0x00000031           /* 89     (FRAME) */,
-  /* 34543 */        WORD(SG_MAKE_INT(5)),
-  /* 34544 */        0x00000148           /* 91     (FREF_PUSH) */,
-  /* 34545 */        0x00000048           /* 92     (FREF_PUSH) */,
-  /* 34546 */        0x0000024C           /* 93     (GREF_CALL) */,
-  /* 34547 */        WORD(SG_UNDEF)  /* identifier#check-numeric-constant */,
-  /* 34548 */        0x00000229           /* 95     (RECEIVE) */,
-  /* 34549 */        0x00000233           /* 96     (POP_LET_FRAME) */,
-  /* 34550 */        0x00000B32           /* 97     (LET_FRAME) */,
-  /* 34551 */        0x00000047           /* 98     (LREF_PUSH) */,
-  /* 34552 */        0x00000548           /* 99     (FREF_PUSH) */,
-  /* 34553 */        0x00000448           /* 100    (FREF_PUSH) */,
-  /* 34554 */        0x00000348           /* 101    (FREF_PUSH) */,
-  /* 34555 */        0x00000248           /* 102    (FREF_PUSH) */,
-  /* 34556 */        0x00000048           /* 103    (FREF_PUSH) */,
-  /* 34557 */        0x00000147           /* 104    (LREF_PUSH) */,
-  /* 34558 */        0x00000748           /* 105    (FREF_PUSH) */,
-  /* 34559 */        0x00000048           /* 106    (FREF_PUSH) */,
-  /* 34560 */        0x00000934           /* 107    (DISPLAY) */,
-  /* 34561 */        0x00000031           /* 108    (FRAME) */,
-  /* 34562 */        WORD(SG_MAKE_INT(5)),
-  /* 34563 */        0x00000148           /* 110    (FREF_PUSH) */,
-  /* 34564 */        0x00000048           /* 111    (FREF_PUSH) */,
-  /* 34565 */        0x0000024C           /* 112    (GREF_CALL) */,
-  /* 34566 */        WORD(SG_UNDEF)  /* identifier#check-numeric-constant */,
-  /* 34567 */        0x00000229           /* 114    (RECEIVE) */,
-  /* 34568 */        0x00000233           /* 115    (POP_LET_FRAME) */,
-  /* 34569 */        0x00000807           /* 116    (FREF) */,
-  /* 34570 */        0x00000017           /* 117    (TEST) */,
-  /* 34571 */        WORD(SG_MAKE_INT(68)),
-  /* 34572 */        0x00000005           /* 119    (LREF) */,
-  /* 34573 */        0x00000017           /* 120    (TEST) */,
-  /* 34574 */        WORD(SG_MAKE_INT(24)),
-  /* 34575 */        0x00000707           /* 122    (FREF) */,
-  /* 34576 */        0x00000022           /* 123    (BNNULL) */,
-  /* 34577 */        WORD(SG_MAKE_INT(9)),
-  /* 34578 */        0x00000049           /* 125    (GREF_PUSH) */,
-  /* 34579 */        WORD(SG_UNDEF)  /* identifier#$CONST */,
-  /* 34580 */        0x00000848           /* 127    (FREF_PUSH) */,
-  /* 34581 */        0x00000005           /* 128    (LREF) */,
-  /* 34582 */        0x00000015           /* 129    (DIVI) */,
-  /* 34583 */        0x00000242           /* 130    (VECTOR) */,
-  /* 34584 */        0x00000018           /* 131    (JUMP) */,
-  /* 34585 */        WORD(SG_MAKE_INT(11)),
-  /* 34586 */        0x00000848           /* 133    (FREF_PUSH) */,
-  /* 34587 */        0x00000005           /* 134    (LREF) */,
-  /* 34588 */        0x00000015           /* 135    (DIVI) */,
-  /* 34589 */        0x0000000B           /* 136    (PUSH) */,
-  /* 34590 */        0x00000607           /* 137    (FREF) */,
-  /* 34591 */        0x0000003A           /* 138    (CONS) */,
-  /* 34592 */        0x0000000B           /* 139    (PUSH) */,
-  /* 34593 */        0x00000507           /* 140    (FREF) */,
-  /* 34594 */        0x0000000D           /* 141    (UNBOX) */,
-  /* 34595 */        0x0000012F           /* 142    (LOCAL_TAIL_CALL) */,
-  /* 34596 */        0x00000018           /* 143    (JUMP) */,
-  /* 34597 */        WORD(SG_MAKE_INT(40)),
-  /* 34598 */        0x00000448           /* 145    (FREF_PUSH) */,
-  /* 34599 */        0x00000048           /* 146    (FREF_PUSH) */,
-  /* 34600 */        0x0000002A           /* 147    (CLOSURE) */,
-  /* 34601 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /* 34602 */        0x0000000B           /* 149    (PUSH) */,
-  /* 34603 */        0x00000049           /* 150    (GREF_PUSH) */,
-  /* 34604 */        WORD(SG_UNDEF)  /* identifier#$ASM */,
-  /* 34605 */        0x00000448           /* 152    (FREF_PUSH) */,
-  /* 34606 */        0x00000009           /* 153    (GREF) */,
-  /* 34607 */        WORD(SG_UNDEF)  /* identifier#DIVI */,
-  /* 34608 */        0x0000013B           /* 155    (LIST) */,
-  /* 34609 */        0x0000000B           /* 156    (PUSH) */,
-  /* 34610 */        0x00000207           /* 157    (FREF) */,
-  /* 34611 */        0x00000017           /* 158    (TEST) */,
-  /* 34612 */        WORD(SG_MAKE_INT(3)),
-  /* 34613 */        0x00000018           /* 160    (JUMP) */,
-  /* 34614 */        WORD(SG_MAKE_INT(6)),
-  /* 34615 */        0x00000031           /* 162    (FRAME) */,
-  /* 34616 */        WORD(SG_MAKE_INT(4)),
-  /* 34617 */        0x00000848           /* 164    (FREF_PUSH) */,
-  /* 34618 */        0x0000014C           /* 165    (GREF_CALL) */,
-  /* 34619 */        WORD(SG_UNDEF)  /* identifier#ensure-inexact-const */,
-  /* 34620 */        0x0000000B           /* 167    (PUSH) */,
-  /* 34621 */        0x00000105           /* 168    (LREF) */,
-  /* 34622 */        0x00000017           /* 169    (TEST) */,
-  /* 34623 */        WORD(SG_MAKE_INT(3)),
-  /* 34624 */        0x00000018           /* 171    (JUMP) */,
-  /* 34625 */        WORD(SG_MAKE_INT(6)),
-  /* 34626 */        0x00000031           /* 173    (FRAME) */,
-  /* 34627 */        WORD(SG_MAKE_INT(4)),
-  /* 34628 */        0x00000047           /* 175    (LREF_PUSH) */,
-  /* 34629 */        0x0000014C           /* 176    (GREF_CALL) */,
-  /* 34630 */        WORD(SG_UNDEF)  /* identifier#ensure-inexact-const */,
-  /* 34631 */        0x0000023B           /* 178    (LIST) */,
-  /* 34632 */        0x00000442           /* 179    (VECTOR) */,
-  /* 34633 */        0x0000000B           /* 180    (PUSH) */,
-  /* 34634 */        0x00000648           /* 181    (FREF_PUSH) */,
-  /* 34635 */        0x0000034D           /* 182    (GREF_TAIL_CALL) */,
-  /* 34636 */        WORD(SG_UNDEF)  /* identifier#fold */,
-  /* 34637 */        0x00000018           /* 184    (JUMP) */,
-  /* 34638 */        WORD(SG_MAKE_INT(3)),
-  /* 34639 */        0x00000018           /* 186    (JUMP) */,
-  /* 34640 */        WORD(SG_MAKE_INT(-42)),
-  /* 34641 */        0x00000018           /* 188    (JUMP) */,
-  /* 34642 */        WORD(SG_MAKE_INT(3)),
-  /* 34643 */        0x00000107           /* 190    (FREF) */,
-  /* 34644 */        0x0000002F           /* 191    (LOCAL_TAIL_CALL) */,
-  /* 34645 */        0x00000018           /* 192    (JUMP) */,
-  /* 34646 */        WORD(SG_MAKE_INT(3)),
-  /* 34647 */        0x00000005           /* 194    (LREF) */,
-  /* 34648 */        0x0000002F           /* 195    (LOCAL_TAIL_CALL) */,
-  /* 34649 */        0x00000030           /* 196    (RET) */,
-  /* 34650 */        0x0000004A           /* 0      (CONST_PUSH) */,
-  /* 34651 */        WORD(SG_UNDEF), /* smatch */
-  /* 34652 */        0x0000004A           /* 2      (CONST_PUSH) */,
-  /* 34653 */        WORD(SG_UNDEF), /* "invalid form" */
-  /* 34654 */        0x00000048           /* 4      (FREF_PUSH) */,
-  /* 34655 */        0x0000034D           /* 5      (GREF_TAIL_CALL) */,
-  /* 34656 */        WORD(SG_UNDEF)  /* identifier#error */,
-  /* 34657 */        0x00000030           /* 7      (RET) */,
-  /* 34658 */        0x00000049           /* 0      (GREF_PUSH) */,
-  /* 34659 */        WORD(SG_UNDEF)  /* identifier#$ASM */,
-  /* 34660 */        0x00000148           /* 2      (FREF_PUSH) */,
-  /* 34661 */        0x00000009           /* 3      (GREF) */,
-  /* 34662 */        WORD(SG_UNDEF)  /* identifier#DIVI */,
-  /* 34663 */        0x0000013B           /* 5      (LIST) */,
-  /* 34664 */        0x0000000B           /* 6      (PUSH) */,
-  /* 34665 */        0x00000147           /* 7      (LREF_PUSH) */,
-  /* 34666 */        0x00000031           /* 8      (FRAME) */,
-  /* 34667 */        WORD(SG_MAKE_INT(5)),
-  /* 34668 */        0x00000047           /* 10     (LREF_PUSH) */,
-  /* 34669 */        0x00000048           /* 11     (FREF_PUSH) */,
-  /* 34670 */        0x0000024C           /* 12     (GREF_CALL) */,
-  /* 34671 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
-  /* 34672 */        0x0000023B           /* 14     (LIST) */,
-  /* 34673 */        0x00000442           /* 15     (VECTOR) */,
-  /* 34674 */        0x00000030           /* 16     (RET) */,
-  /* 34675 */        0x00000432           /* 0      (LET_FRAME) */,
-  /* 34676 */        0x00000047           /* 1      (LREF_PUSH) */,
-  /* 34677 */        0x00000147           /* 2      (LREF_PUSH) */,
-  /* 34678 */        0x00000047           /* 3      (LREF_PUSH) */,
-  /* 34679 */        0x00000334           /* 4      (DISPLAY) */,
-  /* 34680 */        0x00000047           /* 5      (LREF_PUSH) */,
-  /* 34681 */        0x0000002A           /* 6      (CLOSURE) */,
-  /* 34682 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /* 34683 */        0x0000000B           /* 8      (PUSH) */,
-  /* 34684 */        0x00000133           /* 9      (POP_LET_FRAME) */,
-  /* 34685 */        0x00000007           /* 10     (FREF) */,
-  /* 34686 */        0x00000040           /* 11     (PAIRP) */,
-  /* 34687 */        0x00000017           /* 12     (TEST) */,
-  /* 34688 */        WORD(SG_MAKE_INT(73)),
-  /* 34689 */        0x00000007           /* 14     (FREF) */,
-  /* 34690 */        0x00000038           /* 15     (CAR) */,
-  /* 34691 */        0x00000632           /* 16     (LET_FRAME) */,
-  /* 34692 */        0x00000048           /* 17     (FREF_PUSH) */,
-  /* 34693 */        0x00000148           /* 18     (FREF_PUSH) */,
-  /* 34694 */        0x00000047           /* 19     (LREF_PUSH) */,
-  /* 34695 */        0x00000048           /* 20     (FREF_PUSH) */,
-  /* 34696 */        0x00000434           /* 21     (DISPLAY) */,
-  /* 34697 */        0x00000007           /* 22     (FREF) */,
-  /* 34698 */        0x00000039           /* 23     (CDR) */,
-  /* 34699 */        0x0000000B           /* 24     (PUSH) */,
-  /* 34700 */        0x00000047           /* 25     (LREF_PUSH) */,
-  /* 34701 */        0x00000233           /* 26     (POP_LET_FRAME) */,
-  /* 34702 */        0x00000005           /* 27     (LREF) */,
-  /* 34703 */        0x00000040           /* 28     (PAIRP) */,
-  /* 34704 */        0x00000017           /* 29     (TEST) */,
-  /* 34705 */        WORD(SG_MAKE_INT(52)),
-  /* 34706 */        0x00000532           /* 31     (LET_FRAME) */,
-  /* 34707 */        0x00000047           /* 32     (LREF_PUSH) */,
-  /* 34708 */        0x00000048           /* 33     (FREF_PUSH) */,
-  /* 34709 */        0x00000248           /* 34     (FREF_PUSH) */,
-  /* 34710 */        0x00000148           /* 35     (FREF_PUSH) */,
-  /* 34711 */        0x00000434           /* 36     (DISPLAY) */,
-  /* 34712 */        0x00000005           /* 37     (LREF) */,
-  /* 34713 */        0x00000038           /* 38     (CAR) */,
-  /* 34714 */        0x0000000B           /* 39     (PUSH) */,
-  /* 34715 */        0x00000133           /* 40     (POP_LET_FRAME) */,
-  /* 34716 */        0x00000632           /* 41     (LET_FRAME) */,
-  /* 34717 */        0x00000248           /* 42     (FREF_PUSH) */,
-  /* 34718 */        0x00000047           /* 43     (LREF_PUSH) */,
-  /* 34719 */        0x00000148           /* 44     (FREF_PUSH) */,
-  /* 34720 */        0x00000048           /* 45     (FREF_PUSH) */,
-  /* 34721 */        0x00000348           /* 46     (FREF_PUSH) */,
-  /* 34722 */        0x00000534           /* 47     (DISPLAY) */,
-  /* 34723 */        0x00000007           /* 48     (FREF) */,
-  /* 34724 */        0x00000039           /* 49     (CDR) */,
-  /* 34725 */        0x0000000B           /* 50     (PUSH) */,
-  /* 34726 */        0x00000133           /* 51     (POP_LET_FRAME) */,
-  /* 34727 */        0x00000005           /* 52     (LREF) */,
-  /* 34728 */        0x00000022           /* 53     (BNNULL) */,
-  /* 34729 */        WORD(SG_MAKE_INT(24)),
-  /* 34730 */        0x00000049           /* 55     (GREF_PUSH) */,
-  /* 34731 */        WORD(SG_UNDEF)  /* identifier#$ASM */,
-  /* 34732 */        0x00000448           /* 57     (FREF_PUSH) */,
-  /* 34733 */        0x00000009           /* 58     (GREF) */,
-  /* 34734 */        WORD(SG_UNDEF)  /* identifier#NUM_EQ */,
-  /* 34735 */        0x0000013B           /* 60     (LIST) */,
-  /* 34736 */        0x0000000B           /* 61     (PUSH) */,
-  /* 34737 */        0x00000031           /* 62     (FRAME) */,
-  /* 34738 */        WORD(SG_MAKE_INT(5)),
-  /* 34739 */        0x00000348           /* 64     (FREF_PUSH) */,
-  /* 34740 */        0x00000248           /* 65     (FREF_PUSH) */,
-  /* 34741 */        0x0000024C           /* 66     (GREF_CALL) */,
-  /* 34742 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
-  /* 34743 */        0x0000000B           /* 68     (PUSH) */,
-  /* 34744 */        0x00000049           /* 69     (GREF_PUSH) */,
-  /* 34745 */        WORD(SG_UNDEF)  /* identifier#$CONST */,
-  /* 34746 */        0x00000003           /* 71     (CONST) */,
-  /* 34747 */        WORD(SG_MAKE_INT(0)),
-  /* 34748 */        0x00000242           /* 73     (VECTOR) */,
-  /* 34749 */        0x0000023B           /* 74     (LIST) */,
-  /* 34750 */        0x00000442           /* 75     (VECTOR) */,
-  /* 34751 */        0x00000018           /* 76     (JUMP) */,
-  /* 34752 */        WORD(SG_MAKE_INT(3)),
-  /* 34753 */        0x00000107           /* 78     (FREF) */,
-  /* 34754 */        0x0000002F           /* 79     (LOCAL_TAIL_CALL) */,
-  /* 34755 */        0x00000018           /* 80     (JUMP) */,
-  /* 34756 */        WORD(SG_MAKE_INT(3)),
-  /* 34757 */        0x00000107           /* 82     (FREF) */,
-  /* 34758 */        0x0000002F           /* 83     (LOCAL_TAIL_CALL) */,
-  /* 34759 */        0x00000018           /* 84     (JUMP) */,
-  /* 34760 */        WORD(SG_MAKE_INT(3)),
-  /* 34761 */        0x00000005           /* 86     (LREF) */,
-  /* 34762 */        0x0000002F           /* 87     (LOCAL_TAIL_CALL) */,
-  /* 34763 */        0x00000030           /* 88     (RET) */,
-  /* 34764 */        0x0000004A           /* 0      (CONST_PUSH) */,
-  /* 34765 */        WORD(SG_UNDEF), /* zero? */
-  /* 34766 */        0x0000004A           /* 2      (CONST_PUSH) */,
-  /* 34767 */        WORD(SG_UNDEF), /* "wrong number of arguments" */
-  /* 34768 */        0x00000048           /* 4      (FREF_PUSH) */,
-  /* 34769 */        0x0000034D           /* 5      (GREF_TAIL_CALL) */,
-  /* 34770 */        WORD(SG_UNDEF)  /* identifier#scheme-error */,
-  /* 34771 */        0x00000030           /* 7      (RET) */,
-  /* 34772 */        0x00000432           /* 0      (LET_FRAME) */,
-  /* 34773 */        0x00000047           /* 1      (LREF_PUSH) */,
-  /* 34774 */        0x00000147           /* 2      (LREF_PUSH) */,
-  /* 34775 */        0x00000047           /* 3      (LREF_PUSH) */,
-  /* 34776 */        0x00000334           /* 4      (DISPLAY) */,
-  /* 34777 */        0x00000047           /* 5      (LREF_PUSH) */,
-  /* 34778 */        0x0000002A           /* 6      (CLOSURE) */,
-  /* 34779 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /* 34780 */        0x0000000B           /* 8      (PUSH) */,
-  /* 34781 */        0x00000133           /* 9      (POP_LET_FRAME) */,
-  /* 34782 */        0x00000007           /* 10     (FREF) */,
-  /* 34783 */        0x00000040           /* 11     (PAIRP) */,
-  /* 34784 */        0x00000017           /* 12     (TEST) */,
-  /* 34785 */        WORD(SG_MAKE_INT(95)),
-  /* 34786 */        0x00000007           /* 14     (FREF) */,
-  /* 34787 */        0x00000038           /* 15     (CAR) */,
-  /* 34788 */        0x00000632           /* 16     (LET_FRAME) */,
-  /* 34789 */        0x00000047           /* 17     (LREF_PUSH) */,
-  /* 34790 */        0x00000048           /* 18     (FREF_PUSH) */,
-  /* 34791 */        0x00000148           /* 19     (FREF_PUSH) */,
-  /* 34792 */        0x00000048           /* 20     (FREF_PUSH) */,
-  /* 34793 */        0x00000434           /* 21     (DISPLAY) */,
-  /* 34794 */        0x00000007           /* 22     (FREF) */,
-  /* 34795 */        0x00000039           /* 23     (CDR) */,
-  /* 34796 */        0x0000000B           /* 24     (PUSH) */,
-  /* 34797 */        0x00000047           /* 25     (LREF_PUSH) */,
-  /* 34798 */        0x00000233           /* 26     (POP_LET_FRAME) */,
-  /* 34799 */        0x00000005           /* 27     (LREF) */,
-  /* 34800 */        0x00000040           /* 28     (PAIRP) */,
-  /* 34801 */        0x00000017           /* 29     (TEST) */,
-  /* 34802 */        WORD(SG_MAKE_INT(74)),
-  /* 34803 */        0x00000532           /* 31     (LET_FRAME) */,
-  /* 34804 */        0x00000047           /* 32     (LREF_PUSH) */,
-  /* 34805 */        0x00000348           /* 33     (FREF_PUSH) */,
-  /* 34806 */        0x00000048           /* 34     (FREF_PUSH) */,
-  /* 34807 */        0x00000148           /* 35     (FREF_PUSH) */,
-  /* 34808 */        0x00000434           /* 36     (DISPLAY) */,
-  /* 34809 */        0x00000005           /* 37     (LREF) */,
-  /* 34810 */        0x00000038           /* 38     (CAR) */,
-  /* 34811 */        0x0000000B           /* 39     (PUSH) */,
-  /* 34812 */        0x00000133           /* 40     (POP_LET_FRAME) */,
-  /* 34813 */        0x00000832           /* 41     (LET_FRAME) */,
-  /* 34814 */        0x00000148           /* 42     (FREF_PUSH) */,
-  /* 34815 */        0x00000047           /* 43     (LREF_PUSH) */,
-  /* 34816 */        0x00000048           /* 44     (FREF_PUSH) */,
-  /* 34817 */        0x00000248           /* 45     (FREF_PUSH) */,
-  /* 34818 */        0x00000248           /* 46     (FREF_PUSH) */,
-  /* 34819 */        0x00000348           /* 47     (FREF_PUSH) */,
-  /* 34820 */        0x00000634           /* 48     (DISPLAY) */,
-  /* 34821 */        0x00000007           /* 49     (FREF) */,
-  /* 34822 */        0x00000039           /* 50     (CDR) */,
-  /* 34823 */        0x0000000B           /* 51     (PUSH) */,
-  /* 34824 */        0x00000148           /* 52     (FREF_PUSH) */,
-  /* 34825 */        0x00000233           /* 53     (POP_LET_FRAME) */,
-  /* 34826 */        0x00000005           /* 54     (LREF) */,
-  /* 34827 */        0x00000040           /* 55     (PAIRP) */,
-  /* 34828 */        0x00000017           /* 56     (TEST) */,
-  /* 34829 */        WORD(SG_MAKE_INT(43)),
-  /* 34830 */        0x00000632           /* 58     (LET_FRAME) */,
-  /* 34831 */        0x00000047           /* 59     (LREF_PUSH) */,
-  /* 34832 */        0x00000548           /* 60     (FREF_PUSH) */,
-  /* 34833 */        0x00000448           /* 61     (FREF_PUSH) */,
-  /* 34834 */        0x00000348           /* 62     (FREF_PUSH) */,
-  /* 34835 */        0x00000148           /* 63     (FREF_PUSH) */,
-  /* 34836 */        0x00000534           /* 64     (DISPLAY) */,
-  /* 34837 */        0x00000005           /* 65     (LREF) */,
-  /* 34838 */        0x00000038           /* 66     (CAR) */,
-  /* 34839 */        0x0000000B           /* 67     (PUSH) */,
-  /* 34840 */        0x00000133           /* 68     (POP_LET_FRAME) */,
-  /* 34841 */        0x00000732           /* 69     (LET_FRAME) */,
-  /* 34842 */        0x00000348           /* 70     (FREF_PUSH) */,
-  /* 34843 */        0x00000248           /* 71     (FREF_PUSH) */,
-  /* 34844 */        0x00000047           /* 72     (LREF_PUSH) */,
-  /* 34845 */        0x00000148           /* 73     (FREF_PUSH) */,
-  /* 34846 */        0x00000048           /* 74     (FREF_PUSH) */,
-  /* 34847 */        0x00000448           /* 75     (FREF_PUSH) */,
-  /* 34848 */        0x00000634           /* 76     (DISPLAY) */,
-  /* 34849 */        0x00000007           /* 77     (FREF) */,
-  /* 34850 */        0x00000039           /* 78     (CDR) */,
-  /* 34851 */        0x0000000B           /* 79     (PUSH) */,
-  /* 34852 */        0x00000133           /* 80     (POP_LET_FRAME) */,
-  /* 34853 */        0x00000005           /* 81     (LREF) */,
-  /* 34854 */        0x00000022           /* 82     (BNNULL) */,
-  /* 34855 */        WORD(SG_MAKE_INT(13)),
-  /* 34856 */        0x00000548           /* 84     (FREF_PUSH) */,
-  /* 34857 */        0x00000009           /* 85     (GREF) */,
-  /* 34858 */        WORD(SG_UNDEF)  /* identifier#VEC_REF */,
-  /* 34859 */        0x0000013B           /* 87     (LIST) */,
-  /* 34860 */        0x0000000B           /* 88     (PUSH) */,
-  /* 34861 */        0x00000448           /* 89     (FREF_PUSH) */,
-  /* 34862 */        0x00000348           /* 90     (FREF_PUSH) */,
-  /* 34863 */        0x00000248           /* 91     (FREF_PUSH) */,
-  /* 34864 */        0x0000054D           /* 92     (GREF_TAIL_CALL) */,
-  /* 34865 */        WORD(SG_UNDEF)  /* identifier#asm-arg2 */,
-  /* 34866 */        0x00000018           /* 94     (JUMP) */,
-  /* 34867 */        WORD(SG_MAKE_INT(3)),
-  /* 34868 */        0x00000107           /* 96     (FREF) */,
-  /* 34869 */        0x0000002F           /* 97     (LOCAL_TAIL_CALL) */,
-  /* 34870 */        0x00000018           /* 98     (JUMP) */,
-  /* 34871 */        WORD(SG_MAKE_INT(3)),
-  /* 34872 */        0x00000107           /* 100    (FREF) */,
-  /* 34873 */        0x0000002F           /* 101    (LOCAL_TAIL_CALL) */,
-  /* 34874 */        0x00000018           /* 102    (JUMP) */,
-  /* 34875 */        WORD(SG_MAKE_INT(3)),
-  /* 34876 */        0x00000307           /* 104    (FREF) */,
-  /* 34877 */        0x0000002F           /* 105    (LOCAL_TAIL_CALL) */,
-  /* 34878 */        0x00000018           /* 106    (JUMP) */,
-  /* 34879 */        WORD(SG_MAKE_INT(3)),
-  /* 34880 */        0x00000005           /* 108    (LREF) */,
-  /* 34881 */        0x0000002F           /* 109    (LOCAL_TAIL_CALL) */,
-  /* 34882 */        0x00000030           /* 110    (RET) */,
-  /* 34883 */        0x0000004A           /* 0      (CONST_PUSH) */,
-  /* 34884 */        WORD(SG_UNDEF), /* vector-ref */
-  /* 34885 */        0x0000004A           /* 2      (CONST_PUSH) */,
-  /* 34886 */        WORD(SG_UNDEF), /* "wrong number of arguments" */
-  /* 34887 */        0x00000048           /* 4      (FREF_PUSH) */,
-  /* 34888 */        0x0000034D           /* 5      (GREF_TAIL_CALL) */,
-  /* 34889 */        WORD(SG_UNDEF)  /* identifier#scheme-error */,
-  /* 34890 */        0x00000030           /* 7      (RET) */,
-  /* 34891 */        0x00000432           /* 0      (LET_FRAME) */,
-  /* 34892 */        0x00000047           /* 1      (LREF_PUSH) */,
-  /* 34893 */        0x00000147           /* 2      (LREF_PUSH) */,
-  /* 34894 */        0x00000047           /* 3      (LREF_PUSH) */,
-  /* 34895 */        0x00000334           /* 4      (DISPLAY) */,
-  /* 34896 */        0x00000047           /* 5      (LREF_PUSH) */,
-  /* 34897 */        0x0000002A           /* 6      (CLOSURE) */,
-  /* 34898 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /* 34899 */        0x0000000B           /* 8      (PUSH) */,
-  /* 34900 */        0x00000133           /* 9      (POP_LET_FRAME) */,
-  /* 34901 */        0x00000007           /* 10     (FREF) */,
-  /* 34902 */        0x00000040           /* 11     (PAIRP) */,
-  /* 34903 */        0x00000017           /* 12     (TEST) */,
-  /* 34904 */        WORD(SG_MAKE_INT(149)),
-  /* 34905 */        0x00000007           /* 14     (FREF) */,
-  /* 34906 */        0x00000038           /* 15     (CAR) */,
-  /* 34907 */        0x00000632           /* 16     (LET_FRAME) */,
-  /* 34908 */        0x00000047           /* 17     (LREF_PUSH) */,
-  /* 34909 */        0x00000048           /* 18     (FREF_PUSH) */,
-  /* 34910 */        0x00000148           /* 19     (FREF_PUSH) */,
-  /* 34911 */        0x00000048           /* 20     (FREF_PUSH) */,
-  /* 34912 */        0x00000434           /* 21     (DISPLAY) */,
-  /* 34913 */        0x00000007           /* 22     (FREF) */,
-  /* 34914 */        0x00000039           /* 23     (CDR) */,
-  /* 34915 */        0x0000000B           /* 24     (PUSH) */,
-  /* 34916 */        0x00000047           /* 25     (LREF_PUSH) */,
-  /* 34917 */        0x00000233           /* 26     (POP_LET_FRAME) */,
-  /* 34918 */        0x00000005           /* 27     (LREF) */,
-  /* 34919 */        0x00000040           /* 28     (PAIRP) */,
-  /* 34920 */        0x00000017           /* 29     (TEST) */,
-  /* 34921 */        WORD(SG_MAKE_INT(128)),
-  /* 34922 */        0x00000532           /* 31     (LET_FRAME) */,
-  /* 34923 */        0x00000047           /* 32     (LREF_PUSH) */,
-  /* 34924 */        0x00000348           /* 33     (FREF_PUSH) */,
-  /* 34925 */        0x00000048           /* 34     (FREF_PUSH) */,
-  /* 34926 */        0x00000148           /* 35     (FREF_PUSH) */,
-  /* 34927 */        0x00000434           /* 36     (DISPLAY) */,
-  /* 34928 */        0x00000005           /* 37     (LREF) */,
-  /* 34929 */        0x00000038           /* 38     (CAR) */,
-  /* 34930 */        0x0000000B           /* 39     (PUSH) */,
-  /* 34931 */        0x00000133           /* 40     (POP_LET_FRAME) */,
-  /* 34932 */        0x00000832           /* 41     (LET_FRAME) */,
-  /* 34933 */        0x00000248           /* 42     (FREF_PUSH) */,
-  /* 34934 */        0x00000148           /* 43     (FREF_PUSH) */,
-  /* 34935 */        0x00000047           /* 44     (LREF_PUSH) */,
-  /* 34936 */        0x00000048           /* 45     (FREF_PUSH) */,
-  /* 34937 */        0x00000248           /* 46     (FREF_PUSH) */,
-  /* 34938 */        0x00000348           /* 47     (FREF_PUSH) */,
-  /* 34939 */        0x00000634           /* 48     (DISPLAY) */,
-  /* 34940 */        0x00000007           /* 49     (FREF) */,
-  /* 34941 */        0x00000039           /* 50     (CDR) */,
-  /* 34942 */        0x0000000B           /* 51     (PUSH) */,
-  /* 34943 */        0x00000148           /* 52     (FREF_PUSH) */,
-  /* 34944 */        0x00000233           /* 53     (POP_LET_FRAME) */,
-  /* 34945 */        0x00000005           /* 54     (LREF) */,
-  /* 34946 */        0x00000040           /* 55     (PAIRP) */,
-  /* 34947 */        0x00000017           /* 56     (TEST) */,
-  /* 34948 */        WORD(SG_MAKE_INT(97)),
-  /* 34949 */        0x00000632           /* 58     (LET_FRAME) */,
-  /* 34950 */        0x00000047           /* 59     (LREF_PUSH) */,
-  /* 34951 */        0x00000148           /* 60     (FREF_PUSH) */,
-  /* 34952 */        0x00000448           /* 61     (FREF_PUSH) */,
-  /* 34953 */        0x00000348           /* 62     (FREF_PUSH) */,
-  /* 34954 */        0x00000248           /* 63     (FREF_PUSH) */,
-  /* 34955 */        0x00000534           /* 64     (DISPLAY) */,
-  /* 34956 */        0x00000005           /* 65     (LREF) */,
-  /* 34957 */        0x00000038           /* 66     (CAR) */,
-  /* 34958 */        0x0000000B           /* 67     (PUSH) */,
-  /* 34959 */        0x00000133           /* 68     (POP_LET_FRAME) */,
-  /* 34960 */        0x00000932           /* 69     (LET_FRAME) */,
-  /* 34961 */        0x00000248           /* 70     (FREF_PUSH) */,
-  /* 34962 */        0x00000148           /* 71     (FREF_PUSH) */,
-  /* 34963 */        0x00000048           /* 72     (FREF_PUSH) */,
-  /* 34964 */        0x00000047           /* 73     (LREF_PUSH) */,
-  /* 34965 */        0x00000348           /* 74     (FREF_PUSH) */,
-  /* 34966 */        0x00000348           /* 75     (FREF_PUSH) */,
-  /* 34967 */        0x00000448           /* 76     (FREF_PUSH) */,
-  /* 34968 */        0x00000734           /* 77     (DISPLAY) */,
-  /* 34969 */        0x00000007           /* 78     (FREF) */,
-  /* 34970 */        0x00000039           /* 79     (CDR) */,
-  /* 34971 */        0x0000000B           /* 80     (PUSH) */,
-  /* 34972 */        0x00000148           /* 81     (FREF_PUSH) */,
-  /* 34973 */        0x00000233           /* 82     (POP_LET_FRAME) */,
-  /* 34974 */        0x00000005           /* 83     (LREF) */,
-  /* 34975 */        0x00000040           /* 84     (PAIRP) */,
-  /* 34976 */        0x00000017           /* 85     (TEST) */,
-  /* 34977 */        WORD(SG_MAKE_INT(64)),
-  /* 34978 */        0x00000732           /* 87     (LET_FRAME) */,
-  /* 34979 */        0x00000047           /* 88     (LREF_PUSH) */,
-  /* 34980 */        0x00000648           /* 89     (FREF_PUSH) */,
-  /* 34981 */        0x00000548           /* 90     (FREF_PUSH) */,
-  /* 34982 */        0x00000448           /* 91     (FREF_PUSH) */,
-  /* 34983 */        0x00000348           /* 92     (FREF_PUSH) */,
-  /* 34984 */        0x00000148           /* 93     (FREF_PUSH) */,
-  /* 34985 */        0x00000634           /* 94     (DISPLAY) */,
-  /* 34986 */        0x00000005           /* 95     (LREF) */,
-  /* 34987 */        0x00000038           /* 96     (CAR) */,
-  /* 34988 */        0x0000000B           /* 97     (PUSH) */,
-  /* 34989 */        0x00000133           /* 98     (POP_LET_FRAME) */,
-  /* 34990 */        0x00000832           /* 99     (LET_FRAME) */,
-  /* 34991 */        0x00000448           /* 100    (FREF_PUSH) */,
-  /* 34992 */        0x00000348           /* 101    (FREF_PUSH) */,
-  /* 34993 */        0x00000248           /* 102    (FREF_PUSH) */,
-  /* 34994 */        0x00000148           /* 103    (FREF_PUSH) */,
-  /* 34995 */        0x00000047           /* 104    (LREF_PUSH) */,
-  /* 34996 */        0x00000048           /* 105    (FREF_PUSH) */,
-  /* 34997 */        0x00000548           /* 106    (FREF_PUSH) */,
-  /* 34998 */        0x00000734           /* 107    (DISPLAY) */,
-  /* 34999 */        0x00000007           /* 108    (FREF) */,
-  /* 35000 */        0x00000039           /* 109    (CDR) */,
-  /* 35001 */        0x0000000B           /* 110    (PUSH) */,
-  /* 35002 */        0x00000133           /* 111    (POP_LET_FRAME) */,
-  /* 35003 */        0x00000005           /* 112    (LREF) */,
-  /* 35004 */        0x00000022           /* 113    (BNNULL) */,
-  /* 35005 */        WORD(SG_MAKE_INT(32)),
-  /* 35006 */        0x00000049           /* 115    (GREF_PUSH) */,
-  /* 35007 */        WORD(SG_UNDEF)  /* identifier#$ASM */,
-  /* 35008 */        0x00000648           /* 117    (FREF_PUSH) */,
-  /* 35009 */        0x00000009           /* 118    (GREF) */,
-  /* 35010 */        WORD(SG_UNDEF)  /* identifier#VEC_SET */,
-  /* 35011 */        0x0000013B           /* 120    (LIST) */,
-  /* 35012 */        0x0000000B           /* 121    (PUSH) */,
-  /* 35013 */        0x00000031           /* 122    (FRAME) */,
-  /* 35014 */        WORD(SG_MAKE_INT(5)),
-  /* 35015 */        0x00000548           /* 124    (FREF_PUSH) */,
-  /* 35016 */        0x00000448           /* 125    (FREF_PUSH) */,
-  /* 35017 */        0x0000024C           /* 126    (GREF_CALL) */,
-  /* 35018 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
-  /* 35019 */        0x0000000B           /* 128    (PUSH) */,
-  /* 35020 */        0x00000031           /* 129    (FRAME) */,
-  /* 35021 */        WORD(SG_MAKE_INT(5)),
-  /* 35022 */        0x00000348           /* 131    (FREF_PUSH) */,
-  /* 35023 */        0x00000448           /* 132    (FREF_PUSH) */,
-  /* 35024 */        0x0000024C           /* 133    (GREF_CALL) */,
-  /* 35025 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
-  /* 35026 */        0x0000000B           /* 135    (PUSH) */,
-  /* 35027 */        0x00000031           /* 136    (FRAME) */,
-  /* 35028 */        WORD(SG_MAKE_INT(5)),
-  /* 35029 */        0x00000248           /* 138    (FREF_PUSH) */,
-  /* 35030 */        0x00000448           /* 139    (FREF_PUSH) */,
-  /* 35031 */        0x0000024C           /* 140    (GREF_CALL) */,
-  /* 35032 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
-  /* 35033 */        0x0000033B           /* 142    (LIST) */,
-  /* 35034 */        0x00000442           /* 143    (VECTOR) */,
-  /* 35035 */        0x00000018           /* 144    (JUMP) */,
-  /* 35036 */        WORD(SG_MAKE_INT(3)),
-  /* 35037 */        0x00000107           /* 146    (FREF) */,
-  /* 35038 */        0x0000002F           /* 147    (LOCAL_TAIL_CALL) */,
-  /* 35039 */        0x00000018           /* 148    (JUMP) */,
-  /* 35040 */        WORD(SG_MAKE_INT(3)),
-  /* 35041 */        0x00000107           /* 150    (FREF) */,
-  /* 35042 */        0x0000002F           /* 151    (LOCAL_TAIL_CALL) */,
-  /* 35043 */        0x00000018           /* 152    (JUMP) */,
-  /* 35044 */        WORD(SG_MAKE_INT(3)),
-  /* 35045 */        0x00000107           /* 154    (FREF) */,
-  /* 35046 */        0x0000002F           /* 155    (LOCAL_TAIL_CALL) */,
-  /* 35047 */        0x00000018           /* 156    (JUMP) */,
-  /* 35048 */        WORD(SG_MAKE_INT(3)),
-  /* 35049 */        0x00000307           /* 158    (FREF) */,
-  /* 35050 */        0x0000002F           /* 159    (LOCAL_TAIL_CALL) */,
-  /* 35051 */        0x00000018           /* 160    (JUMP) */,
-  /* 35052 */        WORD(SG_MAKE_INT(3)),
-  /* 35053 */        0x00000005           /* 162    (LREF) */,
-  /* 35054 */        0x0000002F           /* 163    (LOCAL_TAIL_CALL) */,
-  /* 35055 */        0x00000030           /* 164    (RET) */,
-  /* 35056 */        0x0000004A           /* 0      (CONST_PUSH) */,
-  /* 35057 */        WORD(SG_UNDEF), /* vector-set! */
-  /* 35058 */        0x0000004A           /* 2      (CONST_PUSH) */,
-  /* 35059 */        WORD(SG_UNDEF), /* "wrong number of arguments" */
-  /* 35060 */        0x00000048           /* 4      (FREF_PUSH) */,
-  /* 35061 */        0x0000034D           /* 5      (GREF_TAIL_CALL) */,
-  /* 35062 */        WORD(SG_UNDEF)  /* identifier#scheme-error */,
-  /* 35063 */        0x00000030           /* 7      (RET) */,
-  /* 35064 */        0x00000432           /* 0      (LET_FRAME) */,
-  /* 35065 */        0x00000047           /* 1      (LREF_PUSH) */,
-  /* 35066 */        0x00000147           /* 2      (LREF_PUSH) */,
-  /* 35067 */        0x00000047           /* 3      (LREF_PUSH) */,
-  /* 35068 */        0x00000334           /* 4      (DISPLAY) */,
-  /* 35069 */        0x00000047           /* 5      (LREF_PUSH) */,
-  /* 35070 */        0x0000002A           /* 6      (CLOSURE) */,
-  /* 35071 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /* 35072 */        0x0000000B           /* 8      (PUSH) */,
-  /* 35073 */        0x00000133           /* 9      (POP_LET_FRAME) */,
-  /* 35074 */        0x00000007           /* 10     (FREF) */,
-  /* 35075 */        0x00000040           /* 11     (PAIRP) */,
-  /* 35076 */        0x00000017           /* 12     (TEST) */,
-  /* 35077 */        WORD(SG_MAKE_INT(159)),
-  /* 35078 */        0x00000007           /* 14     (FREF) */,
-  /* 35079 */        0x00000038           /* 15     (CAR) */,
-  /* 35080 */        0x00000632           /* 16     (LET_FRAME) */,
-  /* 35081 */        0x00000047           /* 17     (LREF_PUSH) */,
-  /* 35082 */        0x00000048           /* 18     (FREF_PUSH) */,
-  /* 35083 */        0x00000148           /* 19     (FREF_PUSH) */,
-  /* 35084 */        0x00000048           /* 20     (FREF_PUSH) */,
-  /* 35085 */        0x00000434           /* 21     (DISPLAY) */,
-  /* 35086 */        0x00000007           /* 22     (FREF) */,
-  /* 35087 */        0x00000039           /* 23     (CDR) */,
-  /* 35088 */        0x0000000B           /* 24     (PUSH) */,
-  /* 35089 */        0x00000047           /* 25     (LREF_PUSH) */,
-  /* 35090 */        0x00000233           /* 26     (POP_LET_FRAME) */,
-  /* 35091 */        0x00000005           /* 27     (LREF) */,
-  /* 35092 */        0x00000040           /* 28     (PAIRP) */,
-  /* 35093 */        0x00000017           /* 29     (TEST) */,
-  /* 35094 */        WORD(SG_MAKE_INT(138)),
-  /* 35095 */        0x00000532           /* 31     (LET_FRAME) */,
-  /* 35096 */        0x00000047           /* 32     (LREF_PUSH) */,
-  /* 35097 */        0x00000348           /* 33     (FREF_PUSH) */,
-  /* 35098 */        0x00000048           /* 34     (FREF_PUSH) */,
-  /* 35099 */        0x00000148           /* 35     (FREF_PUSH) */,
-  /* 35100 */        0x00000434           /* 36     (DISPLAY) */,
-  /* 35101 */        0x00000005           /* 37     (LREF) */,
-  /* 35102 */        0x00000038           /* 38     (CAR) */,
-  /* 35103 */        0x0000000B           /* 39     (PUSH) */,
-  /* 35104 */        0x00000133           /* 40     (POP_LET_FRAME) */,
-  /* 35105 */        0x00000832           /* 41     (LET_FRAME) */,
-  /* 35106 */        0x00000248           /* 42     (FREF_PUSH) */,
-  /* 35107 */        0x00000148           /* 43     (FREF_PUSH) */,
-  /* 35108 */        0x00000047           /* 44     (LREF_PUSH) */,
-  /* 35109 */        0x00000048           /* 45     (FREF_PUSH) */,
-  /* 35110 */        0x00000248           /* 46     (FREF_PUSH) */,
-  /* 35111 */        0x00000348           /* 47     (FREF_PUSH) */,
-  /* 35112 */        0x00000634           /* 48     (DISPLAY) */,
-  /* 35113 */        0x00000007           /* 49     (FREF) */,
-  /* 35114 */        0x00000039           /* 50     (CDR) */,
-  /* 35115 */        0x0000000B           /* 51     (PUSH) */,
-  /* 35116 */        0x00000148           /* 52     (FREF_PUSH) */,
-  /* 35117 */        0x00000233           /* 53     (POP_LET_FRAME) */,
-  /* 35118 */        0x00000005           /* 54     (LREF) */,
-  /* 35119 */        0x00000040           /* 55     (PAIRP) */,
-  /* 35120 */        0x00000017           /* 56     (TEST) */,
-  /* 35121 */        WORD(SG_MAKE_INT(107)),
-  /* 35122 */        0x00000632           /* 58     (LET_FRAME) */,
-  /* 35123 */        0x00000047           /* 59     (LREF_PUSH) */,
-  /* 35124 */        0x00000148           /* 60     (FREF_PUSH) */,
-  /* 35125 */        0x00000448           /* 61     (FREF_PUSH) */,
-  /* 35126 */        0x00000348           /* 62     (FREF_PUSH) */,
-  /* 35127 */        0x00000248           /* 63     (FREF_PUSH) */,
-  /* 35128 */        0x00000534           /* 64     (DISPLAY) */,
-  /* 35129 */        0x00000005           /* 65     (LREF) */,
-  /* 35130 */        0x00000038           /* 66     (CAR) */,
-  /* 35131 */        0x0000000B           /* 67     (PUSH) */,
-  /* 35132 */        0x00000133           /* 68     (POP_LET_FRAME) */,
-  /* 35133 */        0x00000932           /* 69     (LET_FRAME) */,
-  /* 35134 */        0x00000248           /* 70     (FREF_PUSH) */,
-  /* 35135 */        0x00000148           /* 71     (FREF_PUSH) */,
-  /* 35136 */        0x00000048           /* 72     (FREF_PUSH) */,
-  /* 35137 */        0x00000047           /* 73     (LREF_PUSH) */,
-  /* 35138 */        0x00000348           /* 74     (FREF_PUSH) */,
-  /* 35139 */        0x00000348           /* 75     (FREF_PUSH) */,
-  /* 35140 */        0x00000448           /* 76     (FREF_PUSH) */,
-  /* 35141 */        0x00000734           /* 77     (DISPLAY) */,
-  /* 35142 */        0x00000007           /* 78     (FREF) */,
-  /* 35143 */        0x00000039           /* 79     (CDR) */,
-  /* 35144 */        0x0000000B           /* 80     (PUSH) */,
-  /* 35145 */        0x00000148           /* 81     (FREF_PUSH) */,
-  /* 35146 */        0x00000233           /* 82     (POP_LET_FRAME) */,
-  /* 35147 */        0x00000005           /* 83     (LREF) */,
-  /* 35148 */        0x00000040           /* 84     (PAIRP) */,
-  /* 35149 */        0x00000017           /* 85     (TEST) */,
-  /* 35150 */        WORD(SG_MAKE_INT(74)),
-  /* 35151 */        0x00000732           /* 87     (LET_FRAME) */,
-  /* 35152 */        0x00000047           /* 88     (LREF_PUSH) */,
-  /* 35153 */        0x00000648           /* 89     (FREF_PUSH) */,
-  /* 35154 */        0x00000548           /* 90     (FREF_PUSH) */,
-  /* 35155 */        0x00000448           /* 91     (FREF_PUSH) */,
-  /* 35156 */        0x00000348           /* 92     (FREF_PUSH) */,
-  /* 35157 */        0x00000148           /* 93     (FREF_PUSH) */,
-  /* 35158 */        0x00000634           /* 94     (DISPLAY) */,
-  /* 35159 */        0x00000005           /* 95     (LREF) */,
-  /* 35160 */        0x00000038           /* 96     (CAR) */,
-  /* 35161 */        0x0000000B           /* 97     (PUSH) */,
-  /* 35162 */        0x00000133           /* 98     (POP_LET_FRAME) */,
-  /* 35163 */        0x00000832           /* 99     (LET_FRAME) */,
-  /* 35164 */        0x00000448           /* 100    (FREF_PUSH) */,
-  /* 35165 */        0x00000348           /* 101    (FREF_PUSH) */,
-  /* 35166 */        0x00000248           /* 102    (FREF_PUSH) */,
-  /* 35167 */        0x00000148           /* 103    (FREF_PUSH) */,
-  /* 35168 */        0x00000047           /* 104    (LREF_PUSH) */,
-  /* 35169 */        0x00000048           /* 105    (FREF_PUSH) */,
-  /* 35170 */        0x00000548           /* 106    (FREF_PUSH) */,
-  /* 35171 */        0x00000734           /* 107    (DISPLAY) */,
-  /* 35172 */        0x00000007           /* 108    (FREF) */,
-  /* 35173 */        0x00000039           /* 109    (CDR) */,
-  /* 35174 */        0x0000000B           /* 110    (PUSH) */,
-  /* 35175 */        0x00000133           /* 111    (POP_LET_FRAME) */,
-  /* 35176 */        0x00000005           /* 112    (LREF) */,
-  /* 35177 */        0x00000022           /* 113    (BNNULL) */,
-  /* 35178 */        WORD(SG_MAKE_INT(42)),
-  /* 35179 */        0x00000049           /* 115    (GREF_PUSH) */,
-  /* 35180 */        WORD(SG_UNDEF)  /* identifier#$ASM */,
-  /* 35181 */        0x00000648           /* 117    (FREF_PUSH) */,
-  /* 35182 */        0x00000009           /* 118    (GREF) */,
-  /* 35183 */        WORD(SG_UNDEF)  /* identifier#CONS */,
-  /* 35184 */        0x0000013B           /* 120    (LIST) */,
-  /* 35185 */        0x0000000B           /* 121    (PUSH) */,
-  /* 35186 */        0x00000049           /* 122    (GREF_PUSH) */,
-  /* 35187 */        WORD(SG_UNDEF)  /* identifier#$ASM */,
-  /* 35188 */        0x0000004A           /* 124    (CONST_PUSH) */,
-  /* 35189 */        WORD(SG_MAKE_BOOL(FALSE)),
-  /* 35190 */        0x00000009           /* 126    (GREF) */,
-  /* 35191 */        WORD(SG_UNDEF)  /* identifier#CONS */,
-  /* 35192 */        0x0000013B           /* 128    (LIST) */,
-  /* 35193 */        0x0000000B           /* 129    (PUSH) */,
-  /* 35194 */        0x00000031           /* 130    (FRAME) */,
-  /* 35195 */        WORD(SG_MAKE_INT(5)),
-  /* 35196 */        0x00000548           /* 132    (FREF_PUSH) */,
-  /* 35197 */        0x00000448           /* 133    (FREF_PUSH) */,
-  /* 35198 */        0x0000024C           /* 134    (GREF_CALL) */,
-  /* 35199 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
-  /* 35200 */        0x0000000B           /* 136    (PUSH) */,
-  /* 35201 */        0x00000031           /* 137    (FRAME) */,
-  /* 35202 */        WORD(SG_MAKE_INT(5)),
-  /* 35203 */        0x00000348           /* 139    (FREF_PUSH) */,
-  /* 35204 */        0x00000448           /* 140    (FREF_PUSH) */,
-  /* 35205 */        0x0000024C           /* 141    (GREF_CALL) */,
-  /* 35206 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
-  /* 35207 */        0x0000023B           /* 143    (LIST) */,
-  /* 35208 */        0x00000442           /* 144    (VECTOR) */,
-  /* 35209 */        0x0000000B           /* 145    (PUSH) */,
-  /* 35210 */        0x00000031           /* 146    (FRAME) */,
-  /* 35211 */        WORD(SG_MAKE_INT(5)),
-  /* 35212 */        0x00000248           /* 148    (FREF_PUSH) */,
-  /* 35213 */        0x00000448           /* 149    (FREF_PUSH) */,
-  /* 35214 */        0x0000024C           /* 150    (GREF_CALL) */,
-  /* 35215 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
-  /* 35216 */        0x0000023B           /* 152    (LIST) */,
-  /* 35217 */        0x00000442           /* 153    (VECTOR) */,
-  /* 35218 */        0x00000018           /* 154    (JUMP) */,
-  /* 35219 */        WORD(SG_MAKE_INT(3)),
-  /* 35220 */        0x00000107           /* 156    (FREF) */,
-  /* 35221 */        0x0000002F           /* 157    (LOCAL_TAIL_CALL) */,
-  /* 35222 */        0x00000018           /* 158    (JUMP) */,
-  /* 35223 */        WORD(SG_MAKE_INT(3)),
-  /* 35224 */        0x00000107           /* 160    (FREF) */,
-  /* 35225 */        0x0000002F           /* 161    (LOCAL_TAIL_CALL) */,
-  /* 35226 */        0x00000018           /* 162    (JUMP) */,
-  /* 35227 */        WORD(SG_MAKE_INT(3)),
-  /* 35228 */        0x00000107           /* 164    (FREF) */,
-  /* 35229 */        0x0000002F           /* 165    (LOCAL_TAIL_CALL) */,
-  /* 35230 */        0x00000018           /* 166    (JUMP) */,
-  /* 35231 */        WORD(SG_MAKE_INT(3)),
-  /* 35232 */        0x00000307           /* 168    (FREF) */,
-  /* 35233 */        0x0000002F           /* 169    (LOCAL_TAIL_CALL) */,
-  /* 35234 */        0x00000018           /* 170    (JUMP) */,
-  /* 35235 */        WORD(SG_MAKE_INT(3)),
-  /* 35236 */        0x00000005           /* 172    (LREF) */,
-  /* 35237 */        0x0000002F           /* 173    (LOCAL_TAIL_CALL) */,
-  /* 35238 */        0x00000030           /* 174    (RET) */,
-  /* 35239 */        0x0000004A           /* 0      (CONST_PUSH) */,
-  /* 35240 */        WORD(SG_UNDEF), /* acons */
-  /* 35241 */        0x0000004A           /* 2      (CONST_PUSH) */,
-  /* 35242 */        WORD(SG_UNDEF), /* "wrong number of arguments" */
-  /* 35243 */        0x00000048           /* 4      (FREF_PUSH) */,
-  /* 35244 */        0x0000034D           /* 5      (GREF_TAIL_CALL) */,
-  /* 35245 */        WORD(SG_UNDEF)  /* identifier#scheme-error */,
-  /* 35246 */        0x00000030           /* 7      (RET) */,
-  /* 35247 */        0x00000031           /* 0      (FRAME) */,
-  /* 35248 */        WORD(SG_MAKE_INT(4)),
-  /* 35249 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /* 35250 */        0x0000014C           /* 3      (GREF_CALL) */,
-  /* 35251 */        WORD(SG_UNDEF)  /* identifier#integer? */,
-  /* 35252 */        0x00000017           /* 5      (TEST) */,
-  /* 35253 */        WORD(SG_MAKE_INT(15)),
-  /* 35254 */        0x00000031           /* 7      (FRAME) */,
-  /* 35255 */        WORD(SG_MAKE_INT(4)),
-  /* 35256 */        0x00000047           /* 9      (LREF_PUSH) */,
-  /* 35257 */        0x0000014C           /* 10     (GREF_CALL) */,
-  /* 35258 */        WORD(SG_UNDEF)  /* identifier#exact? */,
-  /* 35259 */        0x00000017           /* 12     (TEST) */,
-  /* 35260 */        WORD(SG_MAKE_INT(8)),
-  /* 35261 */        0x0000004A           /* 14     (CONST_PUSH) */,
-  /* 35262 */        WORD(SG_MAKE_INT(-524287)),
-  /* 35263 */        0x00000047           /* 16     (LREF_PUSH) */,
-  /* 35264 */        0x0000004A           /* 17     (CONST_PUSH) */,
-  /* 35265 */        WORD(SG_MAKE_INT(524287)),
-  /* 35266 */        0x0000034D           /* 19     (GREF_TAIL_CALL) */,
-  /* 35267 */        WORD(SG_UNDEF)  /* identifier#<= */,
-  /* 35268 */        0x00000030           /* 21     (RET) */,
-  /* 35269 */        0x00000232           /* 0      (LET_FRAME) */,
-  /* 35270 */        0x00000047           /* 1      (LREF_PUSH) */,
-  /* 35271 */        0x00000134           /* 2      (DISPLAY) */,
-  /* 35272 */        0x00000105           /* 3      (LREF) */,
-  /* 35273 */        0x00000043           /* 4      (VECTORP) */,
-  /* 35274 */        0x00000017           /* 5      (TEST) */,
+  /* 34284 */        WORD(SG_MAKE_INT(-63)),
+  /* 34285 */        0x00000018           /* 192    (JUMP) */,
+  /* 34286 */        WORD(SG_MAKE_INT(3)),
+  /* 34287 */        0x00000018           /* 194    (JUMP) */,
+  /* 34288 */        WORD(SG_MAKE_INT(-67)),
+  /* 34289 */        0x00000018           /* 196    (JUMP) */,
+  /* 34290 */        WORD(SG_MAKE_INT(3)),
+  /* 34291 */        0x00000107           /* 198    (FREF) */,
+  /* 34292 */        0x0000002F           /* 199    (LOCAL_TAIL_CALL) */,
+  /* 34293 */        0x00000018           /* 200    (JUMP) */,
+  /* 34294 */        WORD(SG_MAKE_INT(3)),
+  /* 34295 */        0x00000005           /* 202    (LREF) */,
+  /* 34296 */        0x0000002F           /* 203    (LOCAL_TAIL_CALL) */,
+  /* 34297 */        0x00000030           /* 204    (RET) */,
+  /* 34298 */        0x0000004A           /* 0      (CONST_PUSH) */,
+  /* 34299 */        WORD(SG_UNDEF), /* smatch */
+  /* 34300 */        0x0000004A           /* 2      (CONST_PUSH) */,
+  /* 34301 */        WORD(SG_UNDEF), /* "invalid form" */
+  /* 34302 */        0x00000048           /* 4      (FREF_PUSH) */,
+  /* 34303 */        0x0000034D           /* 5      (GREF_TAIL_CALL) */,
+  /* 34304 */        WORD(SG_UNDEF)  /* identifier#error */,
+  /* 34305 */        0x00000030           /* 7      (RET) */,
+  /* 34306 */        0x00000049           /* 0      (GREF_PUSH) */,
+  /* 34307 */        WORD(SG_UNDEF)  /* identifier#$ASM */,
+  /* 34308 */        0x00000148           /* 2      (FREF_PUSH) */,
+  /* 34309 */        0x00000009           /* 3      (GREF) */,
+  /* 34310 */        WORD(SG_UNDEF)  /* identifier#DIV */,
+  /* 34311 */        0x0000013B           /* 5      (LIST) */,
+  /* 34312 */        0x0000000B           /* 6      (PUSH) */,
+  /* 34313 */        0x00000147           /* 7      (LREF_PUSH) */,
+  /* 34314 */        0x00000031           /* 8      (FRAME) */,
+  /* 34315 */        WORD(SG_MAKE_INT(5)),
+  /* 34316 */        0x00000047           /* 10     (LREF_PUSH) */,
+  /* 34317 */        0x00000048           /* 11     (FREF_PUSH) */,
+  /* 34318 */        0x0000024C           /* 12     (GREF_CALL) */,
+  /* 34319 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
+  /* 34320 */        0x0000023B           /* 14     (LIST) */,
+  /* 34321 */        0x00000442           /* 15     (VECTOR) */,
+  /* 34322 */        0x00000030           /* 16     (RET) */,
+  /* 34323 */        0x00000432           /* 0      (LET_FRAME) */,
+  /* 34324 */        0x00000047           /* 1      (LREF_PUSH) */,
+  /* 34325 */        0x00000047           /* 2      (LREF_PUSH) */,
+  /* 34326 */        0x00000147           /* 3      (LREF_PUSH) */,
+  /* 34327 */        0x00000334           /* 4      (DISPLAY) */,
+  /* 34328 */        0x00000002           /* 5      (UNDEF) */,
+  /* 34329 */        0x0000000B           /* 6      (PUSH) */,
+  /* 34330 */        0x0000000C           /* 7      (BOX) */,
+  /* 34331 */        0x00000133           /* 8      (POP_LET_FRAME) */,
+  /* 34332 */        0x00000148           /* 9      (FREF_PUSH) */,
+  /* 34333 */        0x00000048           /* 10     (FREF_PUSH) */,
+  /* 34334 */        0x00000047           /* 11     (LREF_PUSH) */,
+  /* 34335 */        0x0000002A           /* 12     (CLOSURE) */,
+  /* 34336 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /* 34337 */        0x00000006           /* 14     (LSET) */,
+  /* 34338 */        0x00000107           /* 15     (FREF) */,
+  /* 34339 */        0x00000039           /* 16     (CDR) */,
+  /* 34340 */        0x0000000B           /* 17     (PUSH) */,
+  /* 34341 */        0x00000005           /* 18     (LREF) */,
+  /* 34342 */        0x0000000D           /* 19     (UNBOX) */,
+  /* 34343 */        0x0000012F           /* 20     (LOCAL_TAIL_CALL) */,
+  /* 34344 */        0x00000030           /* 21     (RET) */,
+  /* 34345 */        0x00000005           /* 0      (LREF) */,
+  /* 34346 */        0x00000022           /* 1      (BNNULL) */,
+  /* 34347 */        WORD(SG_MAKE_INT(8)),
+  /* 34348 */        0x0000004A           /* 3      (CONST_PUSH) */,
+  /* 34349 */        WORD(SG_UNDEF), /* "procedure requires at least one argument:" */
+  /* 34350 */        0x00000248           /* 5      (FREF_PUSH) */,
+  /* 34351 */        0x0000024D           /* 6      (GREF_TAIL_CALL) */,
+  /* 34352 */        WORD(SG_UNDEF)  /* identifier#error */,
+  /* 34353 */        0x00000018           /* 8      (JUMP) */,
+  /* 34354 */        WORD(SG_MAKE_INT(108)),
+  /* 34355 */        0x00000832           /* 10     (LET_FRAME) */,
+  /* 34356 */        0x00000047           /* 11     (LREF_PUSH) */,
+  /* 34357 */        0x00000148           /* 12     (FREF_PUSH) */,
+  /* 34358 */        0x00000248           /* 13     (FREF_PUSH) */,
+  /* 34359 */        0x00000047           /* 14     (LREF_PUSH) */,
+  /* 34360 */        0x00000148           /* 15     (FREF_PUSH) */,
+  /* 34361 */        0x00000048           /* 16     (FREF_PUSH) */,
+  /* 34362 */        0x00000248           /* 17     (FREF_PUSH) */,
+  /* 34363 */        0x00000734           /* 18     (DISPLAY) */,
+  /* 34364 */        0x00000047           /* 19     (LREF_PUSH) */,
+  /* 34365 */        0x00000248           /* 20     (FREF_PUSH) */,
+  /* 34366 */        0x00000148           /* 21     (FREF_PUSH) */,
+  /* 34367 */        0x00000048           /* 22     (FREF_PUSH) */,
+  /* 34368 */        0x0000002A           /* 23     (CLOSURE) */,
+  /* 34369 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /* 34370 */        0x0000000B           /* 25     (PUSH) */,
+  /* 34371 */        0x00000133           /* 26     (POP_LET_FRAME) */,
+  /* 34372 */        0x00000307           /* 27     (FREF) */,
+  /* 34373 */        0x00000040           /* 28     (PAIRP) */,
+  /* 34374 */        0x00000017           /* 29     (TEST) */,
+  /* 34375 */        WORD(SG_MAKE_INT(85)),
+  /* 34376 */        0x00000632           /* 31     (LET_FRAME) */,
+  /* 34377 */        0x00000348           /* 32     (FREF_PUSH) */,
+  /* 34378 */        0x00000248           /* 33     (FREF_PUSH) */,
+  /* 34379 */        0x00000048           /* 34     (FREF_PUSH) */,
+  /* 34380 */        0x00000047           /* 35     (LREF_PUSH) */,
+  /* 34381 */        0x00000348           /* 36     (FREF_PUSH) */,
+  /* 34382 */        0x00000534           /* 37     (DISPLAY) */,
+  /* 34383 */        0x00000007           /* 38     (FREF) */,
+  /* 34384 */        0x00000038           /* 39     (CAR) */,
+  /* 34385 */        0x0000000B           /* 40     (PUSH) */,
+  /* 34386 */        0x00000133           /* 41     (POP_LET_FRAME) */,
+  /* 34387 */        0x00000632           /* 42     (LET_FRAME) */,
+  /* 34388 */        0x00000047           /* 43     (LREF_PUSH) */,
+  /* 34389 */        0x00000348           /* 44     (FREF_PUSH) */,
+  /* 34390 */        0x00000248           /* 45     (FREF_PUSH) */,
+  /* 34391 */        0x00000148           /* 46     (FREF_PUSH) */,
+  /* 34392 */        0x00000048           /* 47     (FREF_PUSH) */,
+  /* 34393 */        0x00000534           /* 48     (DISPLAY) */,
+  /* 34394 */        0x00000007           /* 49     (FREF) */,
+  /* 34395 */        0x00000039           /* 50     (CDR) */,
+  /* 34396 */        0x0000000B           /* 51     (PUSH) */,
+  /* 34397 */        0x00000133           /* 52     (POP_LET_FRAME) */,
+  /* 34398 */        0x00000005           /* 53     (LREF) */,
+  /* 34399 */        0x00000022           /* 54     (BNNULL) */,
+  /* 34400 */        WORD(SG_MAKE_INT(56)),
+  /* 34401 */        0x00000632           /* 56     (LET_FRAME) */,
+  /* 34402 */        0x00000248           /* 57     (FREF_PUSH) */,
+  /* 34403 */        0x00000348           /* 58     (FREF_PUSH) */,
+  /* 34404 */        0x00000448           /* 59     (FREF_PUSH) */,
+  /* 34405 */        0x00000348           /* 60     (FREF_PUSH) */,
+  /* 34406 */        0x00000434           /* 61     (DISPLAY) */,
+  /* 34407 */        0x00000031           /* 62     (FRAME) */,
+  /* 34408 */        WORD(SG_MAKE_INT(5)),
+  /* 34409 */        0x00000148           /* 64     (FREF_PUSH) */,
+  /* 34410 */        0x00000048           /* 65     (FREF_PUSH) */,
+  /* 34411 */        0x0000024C           /* 66     (GREF_CALL) */,
+  /* 34412 */        WORD(SG_UNDEF)  /* identifier#check-numeric-constant */,
+  /* 34413 */        0x00000229           /* 68     (RECEIVE) */,
+  /* 34414 */        0x00000233           /* 69     (POP_LET_FRAME) */,
+  /* 34415 */        0x00000031           /* 70     (FRAME) */,
+  /* 34416 */        WORD(SG_MAKE_INT(4)),
+  /* 34417 */        0x00000047           /* 72     (LREF_PUSH) */,
+  /* 34418 */        0x0000014C           /* 73     (GREF_CALL) */,
+  /* 34419 */        WORD(SG_UNDEF)  /* identifier#number? */,
+  /* 34420 */        0x00000017           /* 75     (TEST) */,
+  /* 34421 */        WORD(SG_MAKE_INT(11)),
+  /* 34422 */        0x00000049           /* 77     (GREF_PUSH) */,
+  /* 34423 */        WORD(SG_UNDEF)  /* identifier#$CONST */,
+  /* 34424 */        0x00000031           /* 79     (FRAME) */,
+  /* 34425 */        WORD(SG_MAKE_INT(4)),
+  /* 34426 */        0x00000047           /* 81     (LREF_PUSH) */,
+  /* 34427 */        0x0000014C           /* 82     (GREF_CALL) */,
+  /* 34428 */        WORD(SG_UNDEF)  /* identifier#/. */,
+  /* 34429 */        0x00000242           /* 84     (VECTOR) */,
+  /* 34430 */        0x00000018           /* 85     (JUMP) */,
+  /* 34431 */        WORD(SG_MAKE_INT(23)),
+  /* 34432 */        0x00000049           /* 87     (GREF_PUSH) */,
+  /* 34433 */        WORD(SG_UNDEF)  /* identifier#$CALL */,
+  /* 34434 */        0x00000348           /* 89     (FREF_PUSH) */,
+  /* 34435 */        0x00000049           /* 90     (GREF_PUSH) */,
+  /* 34436 */        WORD(SG_UNDEF)  /* identifier#$GREF */,
+  /* 34437 */        0x00000031           /* 92     (FRAME) */,
+  /* 34438 */        WORD(SG_MAKE_INT(6)),
+  /* 34439 */        0x0000004A           /* 94     (CONST_PUSH) */,
+  /* 34440 */        WORD(SG_UNDEF), /* /. */
+  /* 34441 */        0x00000048           /* 96     (FREF_PUSH) */,
+  /* 34442 */        0x0000024C           /* 97     (GREF_CALL) */,
+  /* 34443 */        WORD(SG_UNDEF)  /* identifier#ensure-identifier */,
+  /* 34444 */        0x00000242           /* 99     (VECTOR) */,
+  /* 34445 */        0x0000000B           /* 100    (PUSH) */,
+  /* 34446 */        0x00000105           /* 101    (LREF) */,
+  /* 34447 */        0x0000013B           /* 102    (LIST) */,
+  /* 34448 */        0x0000000B           /* 103    (PUSH) */,
+  /* 34449 */        0x0000004A           /* 104    (CONST_PUSH) */,
+  /* 34450 */        WORD(SG_MAKE_BOOL(FALSE)),
+  /* 34451 */        0x00000003           /* 106    (CONST) */,
+  /* 34452 */        WORD(SG_NIL),
+  /* 34453 */        0x00000642           /* 108    (VECTOR) */,
+  /* 34454 */        0x00000018           /* 109    (JUMP) */,
+  /* 34455 */        WORD(SG_MAKE_INT(3)),
+  /* 34456 */        0x00000107           /* 111    (FREF) */,
+  /* 34457 */        0x0000002F           /* 112    (LOCAL_TAIL_CALL) */,
+  /* 34458 */        0x00000018           /* 113    (JUMP) */,
+  /* 34459 */        WORD(SG_MAKE_INT(3)),
+  /* 34460 */        0x00000005           /* 115    (LREF) */,
+  /* 34461 */        0x0000002F           /* 116    (LOCAL_TAIL_CALL) */,
+  /* 34462 */        0x00000030           /* 117    (RET) */,
+  /* 34463 */        0x00000632           /* 0      (LET_FRAME) */,
+  /* 34464 */        0x00000348           /* 1      (FREF_PUSH) */,
+  /* 34465 */        0x00000248           /* 2      (FREF_PUSH) */,
+  /* 34466 */        0x00000148           /* 3      (FREF_PUSH) */,
+  /* 34467 */        0x00000048           /* 4      (FREF_PUSH) */,
+  /* 34468 */        0x00000348           /* 5      (FREF_PUSH) */,
+  /* 34469 */        0x00000534           /* 6      (DISPLAY) */,
+  /* 34470 */        0x00000048           /* 7      (FREF_PUSH) */,
+  /* 34471 */        0x0000002A           /* 8      (CLOSURE) */,
+  /* 34472 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /* 34473 */        0x0000000B           /* 10     (PUSH) */,
+  /* 34474 */        0x00000133           /* 11     (POP_LET_FRAME) */,
+  /* 34475 */        0x00000007           /* 12     (FREF) */,
+  /* 34476 */        0x00000040           /* 13     (PAIRP) */,
+  /* 34477 */        0x00000017           /* 14     (TEST) */,
+  /* 34478 */        WORD(SG_MAKE_INT(189)),
+  /* 34479 */        0x00000732           /* 16     (LET_FRAME) */,
+  /* 34480 */        0x00000048           /* 17     (FREF_PUSH) */,
+  /* 34481 */        0x00000047           /* 18     (LREF_PUSH) */,
+  /* 34482 */        0x00000348           /* 19     (FREF_PUSH) */,
+  /* 34483 */        0x00000248           /* 20     (FREF_PUSH) */,
+  /* 34484 */        0x00000148           /* 21     (FREF_PUSH) */,
+  /* 34485 */        0x00000048           /* 22     (FREF_PUSH) */,
+  /* 34486 */        0x00000634           /* 23     (DISPLAY) */,
+  /* 34487 */        0x00000007           /* 24     (FREF) */,
+  /* 34488 */        0x00000038           /* 25     (CAR) */,
+  /* 34489 */        0x0000000B           /* 26     (PUSH) */,
+  /* 34490 */        0x00000133           /* 27     (POP_LET_FRAME) */,
+  /* 34491 */        0x00000932           /* 28     (LET_FRAME) */,
+  /* 34492 */        0x00000047           /* 29     (LREF_PUSH) */,
+  /* 34493 */        0x00000348           /* 30     (FREF_PUSH) */,
+  /* 34494 */        0x00000248           /* 31     (FREF_PUSH) */,
+  /* 34495 */        0x00000148           /* 32     (FREF_PUSH) */,
+  /* 34496 */        0x00000448           /* 33     (FREF_PUSH) */,
+  /* 34497 */        0x00000448           /* 34     (FREF_PUSH) */,
+  /* 34498 */        0x00000048           /* 35     (FREF_PUSH) */,
+  /* 34499 */        0x00000734           /* 36     (DISPLAY) */,
+  /* 34500 */        0x00000007           /* 37     (FREF) */,
+  /* 34501 */        0x00000039           /* 38     (CDR) */,
+  /* 34502 */        0x0000000B           /* 39     (PUSH) */,
+  /* 34503 */        0x00000148           /* 40     (FREF_PUSH) */,
+  /* 34504 */        0x00000233           /* 41     (POP_LET_FRAME) */,
+  /* 34505 */        0x00000005           /* 42     (LREF) */,
+  /* 34506 */        0x00000040           /* 43     (PAIRP) */,
+  /* 34507 */        0x00000017           /* 44     (TEST) */,
+  /* 34508 */        WORD(SG_MAKE_INT(155)),
+  /* 34509 */        0x00000632           /* 46     (LET_FRAME) */,
+  /* 34510 */        0x00000047           /* 47     (LREF_PUSH) */,
+  /* 34511 */        0x00000648           /* 48     (FREF_PUSH) */,
+  /* 34512 */        0x00000548           /* 49     (FREF_PUSH) */,
+  /* 34513 */        0x00000448           /* 50     (FREF_PUSH) */,
+  /* 34514 */        0x00000348           /* 51     (FREF_PUSH) */,
+  /* 34515 */        0x00000534           /* 52     (DISPLAY) */,
+  /* 34516 */        0x00000005           /* 53     (LREF) */,
+  /* 34517 */        0x00000038           /* 54     (CAR) */,
+  /* 34518 */        0x0000000B           /* 55     (PUSH) */,
+  /* 34519 */        0x00000133           /* 56     (POP_LET_FRAME) */,
+  /* 34520 */        0x00000732           /* 57     (LET_FRAME) */,
+  /* 34521 */        0x00000348           /* 58     (FREF_PUSH) */,
+  /* 34522 */        0x00000248           /* 59     (FREF_PUSH) */,
+  /* 34523 */        0x00000047           /* 60     (LREF_PUSH) */,
+  /* 34524 */        0x00000148           /* 61     (FREF_PUSH) */,
+  /* 34525 */        0x00000048           /* 62     (FREF_PUSH) */,
+  /* 34526 */        0x00000448           /* 63     (FREF_PUSH) */,
+  /* 34527 */        0x00000634           /* 64     (DISPLAY) */,
+  /* 34528 */        0x00000007           /* 65     (FREF) */,
+  /* 34529 */        0x00000039           /* 66     (CDR) */,
+  /* 34530 */        0x0000000B           /* 67     (PUSH) */,
+  /* 34531 */        0x00000133           /* 68     (POP_LET_FRAME) */,
+  /* 34532 */        0x00000732           /* 69     (LET_FRAME) */,
+  /* 34533 */        0x00000548           /* 70     (FREF_PUSH) */,
+  /* 34534 */        0x00000448           /* 71     (FREF_PUSH) */,
+  /* 34535 */        0x00000348           /* 72     (FREF_PUSH) */,
+  /* 34536 */        0x00000047           /* 73     (LREF_PUSH) */,
+  /* 34537 */        0x00000248           /* 74     (FREF_PUSH) */,
+  /* 34538 */        0x00000148           /* 75     (FREF_PUSH) */,
+  /* 34539 */        0x00000634           /* 76     (DISPLAY) */,
+  /* 34540 */        0x00000047           /* 77     (LREF_PUSH) */,
+  /* 34541 */        0x00000133           /* 78     (POP_LET_FRAME) */,
+  /* 34542 */        0x00000A32           /* 79     (LET_FRAME) */,
+  /* 34543 */        0x00000348           /* 80     (FREF_PUSH) */,
+  /* 34544 */        0x00000448           /* 81     (FREF_PUSH) */,
+  /* 34545 */        0x00000248           /* 82     (FREF_PUSH) */,
+  /* 34546 */        0x00000047           /* 83     (LREF_PUSH) */,
+  /* 34547 */        0x00000148           /* 84     (FREF_PUSH) */,
+  /* 34548 */        0x00000048           /* 85     (FREF_PUSH) */,
+  /* 34549 */        0x00000548           /* 86     (FREF_PUSH) */,
+  /* 34550 */        0x00000448           /* 87     (FREF_PUSH) */,
+  /* 34551 */        0x00000834           /* 88     (DISPLAY) */,
+  /* 34552 */        0x00000031           /* 89     (FRAME) */,
+  /* 34553 */        WORD(SG_MAKE_INT(5)),
+  /* 34554 */        0x00000148           /* 91     (FREF_PUSH) */,
+  /* 34555 */        0x00000048           /* 92     (FREF_PUSH) */,
+  /* 34556 */        0x0000024C           /* 93     (GREF_CALL) */,
+  /* 34557 */        WORD(SG_UNDEF)  /* identifier#check-numeric-constant */,
+  /* 34558 */        0x00000229           /* 95     (RECEIVE) */,
+  /* 34559 */        0x00000233           /* 96     (POP_LET_FRAME) */,
+  /* 34560 */        0x00000B32           /* 97     (LET_FRAME) */,
+  /* 34561 */        0x00000047           /* 98     (LREF_PUSH) */,
+  /* 34562 */        0x00000548           /* 99     (FREF_PUSH) */,
+  /* 34563 */        0x00000448           /* 100    (FREF_PUSH) */,
+  /* 34564 */        0x00000348           /* 101    (FREF_PUSH) */,
+  /* 34565 */        0x00000248           /* 102    (FREF_PUSH) */,
+  /* 34566 */        0x00000048           /* 103    (FREF_PUSH) */,
+  /* 34567 */        0x00000147           /* 104    (LREF_PUSH) */,
+  /* 34568 */        0x00000748           /* 105    (FREF_PUSH) */,
+  /* 34569 */        0x00000048           /* 106    (FREF_PUSH) */,
+  /* 34570 */        0x00000934           /* 107    (DISPLAY) */,
+  /* 34571 */        0x00000031           /* 108    (FRAME) */,
+  /* 34572 */        WORD(SG_MAKE_INT(5)),
+  /* 34573 */        0x00000148           /* 110    (FREF_PUSH) */,
+  /* 34574 */        0x00000048           /* 111    (FREF_PUSH) */,
+  /* 34575 */        0x0000024C           /* 112    (GREF_CALL) */,
+  /* 34576 */        WORD(SG_UNDEF)  /* identifier#check-numeric-constant */,
+  /* 34577 */        0x00000229           /* 114    (RECEIVE) */,
+  /* 34578 */        0x00000233           /* 115    (POP_LET_FRAME) */,
+  /* 34579 */        0x00000807           /* 116    (FREF) */,
+  /* 34580 */        0x00000017           /* 117    (TEST) */,
+  /* 34581 */        WORD(SG_MAKE_INT(78)),
+  /* 34582 */        0x00000005           /* 119    (LREF) */,
+  /* 34583 */        0x00000017           /* 120    (TEST) */,
+  /* 34584 */        WORD(SG_MAKE_INT(71)),
+  /* 34585 */        0x00000031           /* 122    (FRAME) */,
+  /* 34586 */        WORD(SG_MAKE_INT(3)),
+  /* 34587 */        0x0000004C           /* 124    (GREF_CALL) */,
+  /* 34588 */        WORD(SG_UNDEF)  /* identifier#vm-r6rs-mode? */,
+  /* 34589 */        0x00000017           /* 126    (TEST) */,
+  /* 34590 */        WORD(SG_MAKE_INT(42)),
+  /* 34591 */        0x00000448           /* 128    (FREF_PUSH) */,
+  /* 34592 */        0x00000048           /* 129    (FREF_PUSH) */,
+  /* 34593 */        0x0000002A           /* 130    (CLOSURE) */,
+  /* 34594 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /* 34595 */        0x0000000B           /* 132    (PUSH) */,
+  /* 34596 */        0x00000049           /* 133    (GREF_PUSH) */,
+  /* 34597 */        WORD(SG_UNDEF)  /* identifier#$ASM */,
+  /* 34598 */        0x00000448           /* 135    (FREF_PUSH) */,
+  /* 34599 */        0x00000009           /* 136    (GREF) */,
+  /* 34600 */        WORD(SG_UNDEF)  /* identifier#DIVI */,
+  /* 34601 */        0x0000013B           /* 138    (LIST) */,
+  /* 34602 */        0x0000000B           /* 139    (PUSH) */,
+  /* 34603 */        0x00000207           /* 140    (FREF) */,
+  /* 34604 */        0x00000017           /* 141    (TEST) */,
+  /* 34605 */        WORD(SG_MAKE_INT(3)),
+  /* 34606 */        0x00000018           /* 143    (JUMP) */,
+  /* 34607 */        WORD(SG_MAKE_INT(6)),
+  /* 34608 */        0x00000031           /* 145    (FRAME) */,
+  /* 34609 */        WORD(SG_MAKE_INT(4)),
+  /* 34610 */        0x00000848           /* 147    (FREF_PUSH) */,
+  /* 34611 */        0x0000014C           /* 148    (GREF_CALL) */,
+  /* 34612 */        WORD(SG_UNDEF)  /* identifier#ensure-inexact-const */,
+  /* 34613 */        0x0000000B           /* 150    (PUSH) */,
+  /* 34614 */        0x00000105           /* 151    (LREF) */,
+  /* 34615 */        0x00000017           /* 152    (TEST) */,
+  /* 34616 */        WORD(SG_MAKE_INT(3)),
+  /* 34617 */        0x00000018           /* 154    (JUMP) */,
+  /* 34618 */        WORD(SG_MAKE_INT(6)),
+  /* 34619 */        0x00000031           /* 156    (FRAME) */,
+  /* 34620 */        WORD(SG_MAKE_INT(4)),
+  /* 34621 */        0x00000047           /* 158    (LREF_PUSH) */,
+  /* 34622 */        0x0000014C           /* 159    (GREF_CALL) */,
+  /* 34623 */        WORD(SG_UNDEF)  /* identifier#ensure-inexact-const */,
+  /* 34624 */        0x0000023B           /* 161    (LIST) */,
+  /* 34625 */        0x00000442           /* 162    (VECTOR) */,
+  /* 34626 */        0x0000000B           /* 163    (PUSH) */,
+  /* 34627 */        0x00000648           /* 164    (FREF_PUSH) */,
+  /* 34628 */        0x0000034D           /* 165    (GREF_TAIL_CALL) */,
+  /* 34629 */        WORD(SG_UNDEF)  /* identifier#fold */,
+  /* 34630 */        0x00000018           /* 167    (JUMP) */,
+  /* 34631 */        WORD(SG_MAKE_INT(22)),
+  /* 34632 */        0x00000707           /* 169    (FREF) */,
+  /* 34633 */        0x00000022           /* 170    (BNNULL) */,
+  /* 34634 */        WORD(SG_MAKE_INT(9)),
+  /* 34635 */        0x00000049           /* 172    (GREF_PUSH) */,
+  /* 34636 */        WORD(SG_UNDEF)  /* identifier#$CONST */,
+  /* 34637 */        0x00000848           /* 174    (FREF_PUSH) */,
+  /* 34638 */        0x00000005           /* 175    (LREF) */,
+  /* 34639 */        0x00000015           /* 176    (DIVI) */,
+  /* 34640 */        0x00000242           /* 177    (VECTOR) */,
+  /* 34641 */        0x00000018           /* 178    (JUMP) */,
+  /* 34642 */        WORD(SG_MAKE_INT(11)),
+  /* 34643 */        0x00000848           /* 180    (FREF_PUSH) */,
+  /* 34644 */        0x00000005           /* 181    (LREF) */,
+  /* 34645 */        0x00000015           /* 182    (DIVI) */,
+  /* 34646 */        0x0000000B           /* 183    (PUSH) */,
+  /* 34647 */        0x00000607           /* 184    (FREF) */,
+  /* 34648 */        0x0000003A           /* 185    (CONS) */,
+  /* 34649 */        0x0000000B           /* 186    (PUSH) */,
+  /* 34650 */        0x00000507           /* 187    (FREF) */,
+  /* 34651 */        0x0000000D           /* 188    (UNBOX) */,
+  /* 34652 */        0x0000012F           /* 189    (LOCAL_TAIL_CALL) */,
+  /* 34653 */        0x00000018           /* 190    (JUMP) */,
+  /* 34654 */        WORD(SG_MAKE_INT(3)),
+  /* 34655 */        0x00000018           /* 192    (JUMP) */,
+  /* 34656 */        WORD(SG_MAKE_INT(-65)),
+  /* 34657 */        0x00000018           /* 194    (JUMP) */,
+  /* 34658 */        WORD(SG_MAKE_INT(3)),
+  /* 34659 */        0x00000018           /* 196    (JUMP) */,
+  /* 34660 */        WORD(SG_MAKE_INT(-69)),
+  /* 34661 */        0x00000018           /* 198    (JUMP) */,
+  /* 34662 */        WORD(SG_MAKE_INT(3)),
+  /* 34663 */        0x00000107           /* 200    (FREF) */,
+  /* 34664 */        0x0000002F           /* 201    (LOCAL_TAIL_CALL) */,
+  /* 34665 */        0x00000018           /* 202    (JUMP) */,
+  /* 34666 */        WORD(SG_MAKE_INT(3)),
+  /* 34667 */        0x00000005           /* 204    (LREF) */,
+  /* 34668 */        0x0000002F           /* 205    (LOCAL_TAIL_CALL) */,
+  /* 34669 */        0x00000030           /* 206    (RET) */,
+  /* 34670 */        0x0000004A           /* 0      (CONST_PUSH) */,
+  /* 34671 */        WORD(SG_UNDEF), /* smatch */
+  /* 34672 */        0x0000004A           /* 2      (CONST_PUSH) */,
+  /* 34673 */        WORD(SG_UNDEF), /* "invalid form" */
+  /* 34674 */        0x00000048           /* 4      (FREF_PUSH) */,
+  /* 34675 */        0x0000034D           /* 5      (GREF_TAIL_CALL) */,
+  /* 34676 */        WORD(SG_UNDEF)  /* identifier#error */,
+  /* 34677 */        0x00000030           /* 7      (RET) */,
+  /* 34678 */        0x00000049           /* 0      (GREF_PUSH) */,
+  /* 34679 */        WORD(SG_UNDEF)  /* identifier#$ASM */,
+  /* 34680 */        0x00000148           /* 2      (FREF_PUSH) */,
+  /* 34681 */        0x00000009           /* 3      (GREF) */,
+  /* 34682 */        WORD(SG_UNDEF)  /* identifier#DIVI */,
+  /* 34683 */        0x0000013B           /* 5      (LIST) */,
+  /* 34684 */        0x0000000B           /* 6      (PUSH) */,
+  /* 34685 */        0x00000147           /* 7      (LREF_PUSH) */,
+  /* 34686 */        0x00000031           /* 8      (FRAME) */,
+  /* 34687 */        WORD(SG_MAKE_INT(5)),
+  /* 34688 */        0x00000047           /* 10     (LREF_PUSH) */,
+  /* 34689 */        0x00000048           /* 11     (FREF_PUSH) */,
+  /* 34690 */        0x0000024C           /* 12     (GREF_CALL) */,
+  /* 34691 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
+  /* 34692 */        0x0000023B           /* 14     (LIST) */,
+  /* 34693 */        0x00000442           /* 15     (VECTOR) */,
+  /* 34694 */        0x00000030           /* 16     (RET) */,
+  /* 34695 */        0x00000432           /* 0      (LET_FRAME) */,
+  /* 34696 */        0x00000047           /* 1      (LREF_PUSH) */,
+  /* 34697 */        0x00000147           /* 2      (LREF_PUSH) */,
+  /* 34698 */        0x00000047           /* 3      (LREF_PUSH) */,
+  /* 34699 */        0x00000334           /* 4      (DISPLAY) */,
+  /* 34700 */        0x00000047           /* 5      (LREF_PUSH) */,
+  /* 34701 */        0x0000002A           /* 6      (CLOSURE) */,
+  /* 34702 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /* 34703 */        0x0000000B           /* 8      (PUSH) */,
+  /* 34704 */        0x00000133           /* 9      (POP_LET_FRAME) */,
+  /* 34705 */        0x00000007           /* 10     (FREF) */,
+  /* 34706 */        0x00000040           /* 11     (PAIRP) */,
+  /* 34707 */        0x00000017           /* 12     (TEST) */,
+  /* 34708 */        WORD(SG_MAKE_INT(73)),
+  /* 34709 */        0x00000007           /* 14     (FREF) */,
+  /* 34710 */        0x00000038           /* 15     (CAR) */,
+  /* 34711 */        0x00000632           /* 16     (LET_FRAME) */,
+  /* 34712 */        0x00000048           /* 17     (FREF_PUSH) */,
+  /* 34713 */        0x00000148           /* 18     (FREF_PUSH) */,
+  /* 34714 */        0x00000047           /* 19     (LREF_PUSH) */,
+  /* 34715 */        0x00000048           /* 20     (FREF_PUSH) */,
+  /* 34716 */        0x00000434           /* 21     (DISPLAY) */,
+  /* 34717 */        0x00000007           /* 22     (FREF) */,
+  /* 34718 */        0x00000039           /* 23     (CDR) */,
+  /* 34719 */        0x0000000B           /* 24     (PUSH) */,
+  /* 34720 */        0x00000047           /* 25     (LREF_PUSH) */,
+  /* 34721 */        0x00000233           /* 26     (POP_LET_FRAME) */,
+  /* 34722 */        0x00000005           /* 27     (LREF) */,
+  /* 34723 */        0x00000040           /* 28     (PAIRP) */,
+  /* 34724 */        0x00000017           /* 29     (TEST) */,
+  /* 34725 */        WORD(SG_MAKE_INT(52)),
+  /* 34726 */        0x00000532           /* 31     (LET_FRAME) */,
+  /* 34727 */        0x00000047           /* 32     (LREF_PUSH) */,
+  /* 34728 */        0x00000048           /* 33     (FREF_PUSH) */,
+  /* 34729 */        0x00000248           /* 34     (FREF_PUSH) */,
+  /* 34730 */        0x00000148           /* 35     (FREF_PUSH) */,
+  /* 34731 */        0x00000434           /* 36     (DISPLAY) */,
+  /* 34732 */        0x00000005           /* 37     (LREF) */,
+  /* 34733 */        0x00000038           /* 38     (CAR) */,
+  /* 34734 */        0x0000000B           /* 39     (PUSH) */,
+  /* 34735 */        0x00000133           /* 40     (POP_LET_FRAME) */,
+  /* 34736 */        0x00000632           /* 41     (LET_FRAME) */,
+  /* 34737 */        0x00000248           /* 42     (FREF_PUSH) */,
+  /* 34738 */        0x00000047           /* 43     (LREF_PUSH) */,
+  /* 34739 */        0x00000148           /* 44     (FREF_PUSH) */,
+  /* 34740 */        0x00000048           /* 45     (FREF_PUSH) */,
+  /* 34741 */        0x00000348           /* 46     (FREF_PUSH) */,
+  /* 34742 */        0x00000534           /* 47     (DISPLAY) */,
+  /* 34743 */        0x00000007           /* 48     (FREF) */,
+  /* 34744 */        0x00000039           /* 49     (CDR) */,
+  /* 34745 */        0x0000000B           /* 50     (PUSH) */,
+  /* 34746 */        0x00000133           /* 51     (POP_LET_FRAME) */,
+  /* 34747 */        0x00000005           /* 52     (LREF) */,
+  /* 34748 */        0x00000022           /* 53     (BNNULL) */,
+  /* 34749 */        WORD(SG_MAKE_INT(24)),
+  /* 34750 */        0x00000049           /* 55     (GREF_PUSH) */,
+  /* 34751 */        WORD(SG_UNDEF)  /* identifier#$ASM */,
+  /* 34752 */        0x00000448           /* 57     (FREF_PUSH) */,
+  /* 34753 */        0x00000009           /* 58     (GREF) */,
+  /* 34754 */        WORD(SG_UNDEF)  /* identifier#NUM_EQ */,
+  /* 34755 */        0x0000013B           /* 60     (LIST) */,
+  /* 34756 */        0x0000000B           /* 61     (PUSH) */,
+  /* 34757 */        0x00000031           /* 62     (FRAME) */,
+  /* 34758 */        WORD(SG_MAKE_INT(5)),
+  /* 34759 */        0x00000348           /* 64     (FREF_PUSH) */,
+  /* 34760 */        0x00000248           /* 65     (FREF_PUSH) */,
+  /* 34761 */        0x0000024C           /* 66     (GREF_CALL) */,
+  /* 34762 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
+  /* 34763 */        0x0000000B           /* 68     (PUSH) */,
+  /* 34764 */        0x00000049           /* 69     (GREF_PUSH) */,
+  /* 34765 */        WORD(SG_UNDEF)  /* identifier#$CONST */,
+  /* 34766 */        0x00000003           /* 71     (CONST) */,
+  /* 34767 */        WORD(SG_MAKE_INT(0)),
+  /* 34768 */        0x00000242           /* 73     (VECTOR) */,
+  /* 34769 */        0x0000023B           /* 74     (LIST) */,
+  /* 34770 */        0x00000442           /* 75     (VECTOR) */,
+  /* 34771 */        0x00000018           /* 76     (JUMP) */,
+  /* 34772 */        WORD(SG_MAKE_INT(3)),
+  /* 34773 */        0x00000107           /* 78     (FREF) */,
+  /* 34774 */        0x0000002F           /* 79     (LOCAL_TAIL_CALL) */,
+  /* 34775 */        0x00000018           /* 80     (JUMP) */,
+  /* 34776 */        WORD(SG_MAKE_INT(3)),
+  /* 34777 */        0x00000107           /* 82     (FREF) */,
+  /* 34778 */        0x0000002F           /* 83     (LOCAL_TAIL_CALL) */,
+  /* 34779 */        0x00000018           /* 84     (JUMP) */,
+  /* 34780 */        WORD(SG_MAKE_INT(3)),
+  /* 34781 */        0x00000005           /* 86     (LREF) */,
+  /* 34782 */        0x0000002F           /* 87     (LOCAL_TAIL_CALL) */,
+  /* 34783 */        0x00000030           /* 88     (RET) */,
+  /* 34784 */        0x0000004A           /* 0      (CONST_PUSH) */,
+  /* 34785 */        WORD(SG_UNDEF), /* zero? */
+  /* 34786 */        0x0000004A           /* 2      (CONST_PUSH) */,
+  /* 34787 */        WORD(SG_UNDEF), /* "wrong number of arguments" */
+  /* 34788 */        0x00000048           /* 4      (FREF_PUSH) */,
+  /* 34789 */        0x0000034D           /* 5      (GREF_TAIL_CALL) */,
+  /* 34790 */        WORD(SG_UNDEF)  /* identifier#scheme-error */,
+  /* 34791 */        0x00000030           /* 7      (RET) */,
+  /* 34792 */        0x00000432           /* 0      (LET_FRAME) */,
+  /* 34793 */        0x00000047           /* 1      (LREF_PUSH) */,
+  /* 34794 */        0x00000147           /* 2      (LREF_PUSH) */,
+  /* 34795 */        0x00000047           /* 3      (LREF_PUSH) */,
+  /* 34796 */        0x00000334           /* 4      (DISPLAY) */,
+  /* 34797 */        0x00000047           /* 5      (LREF_PUSH) */,
+  /* 34798 */        0x0000002A           /* 6      (CLOSURE) */,
+  /* 34799 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /* 34800 */        0x0000000B           /* 8      (PUSH) */,
+  /* 34801 */        0x00000133           /* 9      (POP_LET_FRAME) */,
+  /* 34802 */        0x00000007           /* 10     (FREF) */,
+  /* 34803 */        0x00000040           /* 11     (PAIRP) */,
+  /* 34804 */        0x00000017           /* 12     (TEST) */,
+  /* 34805 */        WORD(SG_MAKE_INT(95)),
+  /* 34806 */        0x00000007           /* 14     (FREF) */,
+  /* 34807 */        0x00000038           /* 15     (CAR) */,
+  /* 34808 */        0x00000632           /* 16     (LET_FRAME) */,
+  /* 34809 */        0x00000047           /* 17     (LREF_PUSH) */,
+  /* 34810 */        0x00000048           /* 18     (FREF_PUSH) */,
+  /* 34811 */        0x00000148           /* 19     (FREF_PUSH) */,
+  /* 34812 */        0x00000048           /* 20     (FREF_PUSH) */,
+  /* 34813 */        0x00000434           /* 21     (DISPLAY) */,
+  /* 34814 */        0x00000007           /* 22     (FREF) */,
+  /* 34815 */        0x00000039           /* 23     (CDR) */,
+  /* 34816 */        0x0000000B           /* 24     (PUSH) */,
+  /* 34817 */        0x00000047           /* 25     (LREF_PUSH) */,
+  /* 34818 */        0x00000233           /* 26     (POP_LET_FRAME) */,
+  /* 34819 */        0x00000005           /* 27     (LREF) */,
+  /* 34820 */        0x00000040           /* 28     (PAIRP) */,
+  /* 34821 */        0x00000017           /* 29     (TEST) */,
+  /* 34822 */        WORD(SG_MAKE_INT(74)),
+  /* 34823 */        0x00000532           /* 31     (LET_FRAME) */,
+  /* 34824 */        0x00000047           /* 32     (LREF_PUSH) */,
+  /* 34825 */        0x00000348           /* 33     (FREF_PUSH) */,
+  /* 34826 */        0x00000048           /* 34     (FREF_PUSH) */,
+  /* 34827 */        0x00000148           /* 35     (FREF_PUSH) */,
+  /* 34828 */        0x00000434           /* 36     (DISPLAY) */,
+  /* 34829 */        0x00000005           /* 37     (LREF) */,
+  /* 34830 */        0x00000038           /* 38     (CAR) */,
+  /* 34831 */        0x0000000B           /* 39     (PUSH) */,
+  /* 34832 */        0x00000133           /* 40     (POP_LET_FRAME) */,
+  /* 34833 */        0x00000832           /* 41     (LET_FRAME) */,
+  /* 34834 */        0x00000148           /* 42     (FREF_PUSH) */,
+  /* 34835 */        0x00000047           /* 43     (LREF_PUSH) */,
+  /* 34836 */        0x00000048           /* 44     (FREF_PUSH) */,
+  /* 34837 */        0x00000248           /* 45     (FREF_PUSH) */,
+  /* 34838 */        0x00000248           /* 46     (FREF_PUSH) */,
+  /* 34839 */        0x00000348           /* 47     (FREF_PUSH) */,
+  /* 34840 */        0x00000634           /* 48     (DISPLAY) */,
+  /* 34841 */        0x00000007           /* 49     (FREF) */,
+  /* 34842 */        0x00000039           /* 50     (CDR) */,
+  /* 34843 */        0x0000000B           /* 51     (PUSH) */,
+  /* 34844 */        0x00000148           /* 52     (FREF_PUSH) */,
+  /* 34845 */        0x00000233           /* 53     (POP_LET_FRAME) */,
+  /* 34846 */        0x00000005           /* 54     (LREF) */,
+  /* 34847 */        0x00000040           /* 55     (PAIRP) */,
+  /* 34848 */        0x00000017           /* 56     (TEST) */,
+  /* 34849 */        WORD(SG_MAKE_INT(43)),
+  /* 34850 */        0x00000632           /* 58     (LET_FRAME) */,
+  /* 34851 */        0x00000047           /* 59     (LREF_PUSH) */,
+  /* 34852 */        0x00000548           /* 60     (FREF_PUSH) */,
+  /* 34853 */        0x00000448           /* 61     (FREF_PUSH) */,
+  /* 34854 */        0x00000348           /* 62     (FREF_PUSH) */,
+  /* 34855 */        0x00000148           /* 63     (FREF_PUSH) */,
+  /* 34856 */        0x00000534           /* 64     (DISPLAY) */,
+  /* 34857 */        0x00000005           /* 65     (LREF) */,
+  /* 34858 */        0x00000038           /* 66     (CAR) */,
+  /* 34859 */        0x0000000B           /* 67     (PUSH) */,
+  /* 34860 */        0x00000133           /* 68     (POP_LET_FRAME) */,
+  /* 34861 */        0x00000732           /* 69     (LET_FRAME) */,
+  /* 34862 */        0x00000348           /* 70     (FREF_PUSH) */,
+  /* 34863 */        0x00000248           /* 71     (FREF_PUSH) */,
+  /* 34864 */        0x00000047           /* 72     (LREF_PUSH) */,
+  /* 34865 */        0x00000148           /* 73     (FREF_PUSH) */,
+  /* 34866 */        0x00000048           /* 74     (FREF_PUSH) */,
+  /* 34867 */        0x00000448           /* 75     (FREF_PUSH) */,
+  /* 34868 */        0x00000634           /* 76     (DISPLAY) */,
+  /* 34869 */        0x00000007           /* 77     (FREF) */,
+  /* 34870 */        0x00000039           /* 78     (CDR) */,
+  /* 34871 */        0x0000000B           /* 79     (PUSH) */,
+  /* 34872 */        0x00000133           /* 80     (POP_LET_FRAME) */,
+  /* 34873 */        0x00000005           /* 81     (LREF) */,
+  /* 34874 */        0x00000022           /* 82     (BNNULL) */,
+  /* 34875 */        WORD(SG_MAKE_INT(13)),
+  /* 34876 */        0x00000548           /* 84     (FREF_PUSH) */,
+  /* 34877 */        0x00000009           /* 85     (GREF) */,
+  /* 34878 */        WORD(SG_UNDEF)  /* identifier#VEC_REF */,
+  /* 34879 */        0x0000013B           /* 87     (LIST) */,
+  /* 34880 */        0x0000000B           /* 88     (PUSH) */,
+  /* 34881 */        0x00000448           /* 89     (FREF_PUSH) */,
+  /* 34882 */        0x00000348           /* 90     (FREF_PUSH) */,
+  /* 34883 */        0x00000248           /* 91     (FREF_PUSH) */,
+  /* 34884 */        0x0000054D           /* 92     (GREF_TAIL_CALL) */,
+  /* 34885 */        WORD(SG_UNDEF)  /* identifier#asm-arg2 */,
+  /* 34886 */        0x00000018           /* 94     (JUMP) */,
+  /* 34887 */        WORD(SG_MAKE_INT(3)),
+  /* 34888 */        0x00000107           /* 96     (FREF) */,
+  /* 34889 */        0x0000002F           /* 97     (LOCAL_TAIL_CALL) */,
+  /* 34890 */        0x00000018           /* 98     (JUMP) */,
+  /* 34891 */        WORD(SG_MAKE_INT(3)),
+  /* 34892 */        0x00000107           /* 100    (FREF) */,
+  /* 34893 */        0x0000002F           /* 101    (LOCAL_TAIL_CALL) */,
+  /* 34894 */        0x00000018           /* 102    (JUMP) */,
+  /* 34895 */        WORD(SG_MAKE_INT(3)),
+  /* 34896 */        0x00000307           /* 104    (FREF) */,
+  /* 34897 */        0x0000002F           /* 105    (LOCAL_TAIL_CALL) */,
+  /* 34898 */        0x00000018           /* 106    (JUMP) */,
+  /* 34899 */        WORD(SG_MAKE_INT(3)),
+  /* 34900 */        0x00000005           /* 108    (LREF) */,
+  /* 34901 */        0x0000002F           /* 109    (LOCAL_TAIL_CALL) */,
+  /* 34902 */        0x00000030           /* 110    (RET) */,
+  /* 34903 */        0x0000004A           /* 0      (CONST_PUSH) */,
+  /* 34904 */        WORD(SG_UNDEF), /* vector-ref */
+  /* 34905 */        0x0000004A           /* 2      (CONST_PUSH) */,
+  /* 34906 */        WORD(SG_UNDEF), /* "wrong number of arguments" */
+  /* 34907 */        0x00000048           /* 4      (FREF_PUSH) */,
+  /* 34908 */        0x0000034D           /* 5      (GREF_TAIL_CALL) */,
+  /* 34909 */        WORD(SG_UNDEF)  /* identifier#scheme-error */,
+  /* 34910 */        0x00000030           /* 7      (RET) */,
+  /* 34911 */        0x00000432           /* 0      (LET_FRAME) */,
+  /* 34912 */        0x00000047           /* 1      (LREF_PUSH) */,
+  /* 34913 */        0x00000147           /* 2      (LREF_PUSH) */,
+  /* 34914 */        0x00000047           /* 3      (LREF_PUSH) */,
+  /* 34915 */        0x00000334           /* 4      (DISPLAY) */,
+  /* 34916 */        0x00000047           /* 5      (LREF_PUSH) */,
+  /* 34917 */        0x0000002A           /* 6      (CLOSURE) */,
+  /* 34918 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /* 34919 */        0x0000000B           /* 8      (PUSH) */,
+  /* 34920 */        0x00000133           /* 9      (POP_LET_FRAME) */,
+  /* 34921 */        0x00000007           /* 10     (FREF) */,
+  /* 34922 */        0x00000040           /* 11     (PAIRP) */,
+  /* 34923 */        0x00000017           /* 12     (TEST) */,
+  /* 34924 */        WORD(SG_MAKE_INT(149)),
+  /* 34925 */        0x00000007           /* 14     (FREF) */,
+  /* 34926 */        0x00000038           /* 15     (CAR) */,
+  /* 34927 */        0x00000632           /* 16     (LET_FRAME) */,
+  /* 34928 */        0x00000047           /* 17     (LREF_PUSH) */,
+  /* 34929 */        0x00000048           /* 18     (FREF_PUSH) */,
+  /* 34930 */        0x00000148           /* 19     (FREF_PUSH) */,
+  /* 34931 */        0x00000048           /* 20     (FREF_PUSH) */,
+  /* 34932 */        0x00000434           /* 21     (DISPLAY) */,
+  /* 34933 */        0x00000007           /* 22     (FREF) */,
+  /* 34934 */        0x00000039           /* 23     (CDR) */,
+  /* 34935 */        0x0000000B           /* 24     (PUSH) */,
+  /* 34936 */        0x00000047           /* 25     (LREF_PUSH) */,
+  /* 34937 */        0x00000233           /* 26     (POP_LET_FRAME) */,
+  /* 34938 */        0x00000005           /* 27     (LREF) */,
+  /* 34939 */        0x00000040           /* 28     (PAIRP) */,
+  /* 34940 */        0x00000017           /* 29     (TEST) */,
+  /* 34941 */        WORD(SG_MAKE_INT(128)),
+  /* 34942 */        0x00000532           /* 31     (LET_FRAME) */,
+  /* 34943 */        0x00000047           /* 32     (LREF_PUSH) */,
+  /* 34944 */        0x00000348           /* 33     (FREF_PUSH) */,
+  /* 34945 */        0x00000048           /* 34     (FREF_PUSH) */,
+  /* 34946 */        0x00000148           /* 35     (FREF_PUSH) */,
+  /* 34947 */        0x00000434           /* 36     (DISPLAY) */,
+  /* 34948 */        0x00000005           /* 37     (LREF) */,
+  /* 34949 */        0x00000038           /* 38     (CAR) */,
+  /* 34950 */        0x0000000B           /* 39     (PUSH) */,
+  /* 34951 */        0x00000133           /* 40     (POP_LET_FRAME) */,
+  /* 34952 */        0x00000832           /* 41     (LET_FRAME) */,
+  /* 34953 */        0x00000248           /* 42     (FREF_PUSH) */,
+  /* 34954 */        0x00000148           /* 43     (FREF_PUSH) */,
+  /* 34955 */        0x00000047           /* 44     (LREF_PUSH) */,
+  /* 34956 */        0x00000048           /* 45     (FREF_PUSH) */,
+  /* 34957 */        0x00000248           /* 46     (FREF_PUSH) */,
+  /* 34958 */        0x00000348           /* 47     (FREF_PUSH) */,
+  /* 34959 */        0x00000634           /* 48     (DISPLAY) */,
+  /* 34960 */        0x00000007           /* 49     (FREF) */,
+  /* 34961 */        0x00000039           /* 50     (CDR) */,
+  /* 34962 */        0x0000000B           /* 51     (PUSH) */,
+  /* 34963 */        0x00000148           /* 52     (FREF_PUSH) */,
+  /* 34964 */        0x00000233           /* 53     (POP_LET_FRAME) */,
+  /* 34965 */        0x00000005           /* 54     (LREF) */,
+  /* 34966 */        0x00000040           /* 55     (PAIRP) */,
+  /* 34967 */        0x00000017           /* 56     (TEST) */,
+  /* 34968 */        WORD(SG_MAKE_INT(97)),
+  /* 34969 */        0x00000632           /* 58     (LET_FRAME) */,
+  /* 34970 */        0x00000047           /* 59     (LREF_PUSH) */,
+  /* 34971 */        0x00000148           /* 60     (FREF_PUSH) */,
+  /* 34972 */        0x00000448           /* 61     (FREF_PUSH) */,
+  /* 34973 */        0x00000348           /* 62     (FREF_PUSH) */,
+  /* 34974 */        0x00000248           /* 63     (FREF_PUSH) */,
+  /* 34975 */        0x00000534           /* 64     (DISPLAY) */,
+  /* 34976 */        0x00000005           /* 65     (LREF) */,
+  /* 34977 */        0x00000038           /* 66     (CAR) */,
+  /* 34978 */        0x0000000B           /* 67     (PUSH) */,
+  /* 34979 */        0x00000133           /* 68     (POP_LET_FRAME) */,
+  /* 34980 */        0x00000932           /* 69     (LET_FRAME) */,
+  /* 34981 */        0x00000248           /* 70     (FREF_PUSH) */,
+  /* 34982 */        0x00000148           /* 71     (FREF_PUSH) */,
+  /* 34983 */        0x00000048           /* 72     (FREF_PUSH) */,
+  /* 34984 */        0x00000047           /* 73     (LREF_PUSH) */,
+  /* 34985 */        0x00000348           /* 74     (FREF_PUSH) */,
+  /* 34986 */        0x00000348           /* 75     (FREF_PUSH) */,
+  /* 34987 */        0x00000448           /* 76     (FREF_PUSH) */,
+  /* 34988 */        0x00000734           /* 77     (DISPLAY) */,
+  /* 34989 */        0x00000007           /* 78     (FREF) */,
+  /* 34990 */        0x00000039           /* 79     (CDR) */,
+  /* 34991 */        0x0000000B           /* 80     (PUSH) */,
+  /* 34992 */        0x00000148           /* 81     (FREF_PUSH) */,
+  /* 34993 */        0x00000233           /* 82     (POP_LET_FRAME) */,
+  /* 34994 */        0x00000005           /* 83     (LREF) */,
+  /* 34995 */        0x00000040           /* 84     (PAIRP) */,
+  /* 34996 */        0x00000017           /* 85     (TEST) */,
+  /* 34997 */        WORD(SG_MAKE_INT(64)),
+  /* 34998 */        0x00000732           /* 87     (LET_FRAME) */,
+  /* 34999 */        0x00000047           /* 88     (LREF_PUSH) */,
+  /* 35000 */        0x00000648           /* 89     (FREF_PUSH) */,
+  /* 35001 */        0x00000548           /* 90     (FREF_PUSH) */,
+  /* 35002 */        0x00000448           /* 91     (FREF_PUSH) */,
+  /* 35003 */        0x00000348           /* 92     (FREF_PUSH) */,
+  /* 35004 */        0x00000148           /* 93     (FREF_PUSH) */,
+  /* 35005 */        0x00000634           /* 94     (DISPLAY) */,
+  /* 35006 */        0x00000005           /* 95     (LREF) */,
+  /* 35007 */        0x00000038           /* 96     (CAR) */,
+  /* 35008 */        0x0000000B           /* 97     (PUSH) */,
+  /* 35009 */        0x00000133           /* 98     (POP_LET_FRAME) */,
+  /* 35010 */        0x00000832           /* 99     (LET_FRAME) */,
+  /* 35011 */        0x00000448           /* 100    (FREF_PUSH) */,
+  /* 35012 */        0x00000348           /* 101    (FREF_PUSH) */,
+  /* 35013 */        0x00000248           /* 102    (FREF_PUSH) */,
+  /* 35014 */        0x00000148           /* 103    (FREF_PUSH) */,
+  /* 35015 */        0x00000047           /* 104    (LREF_PUSH) */,
+  /* 35016 */        0x00000048           /* 105    (FREF_PUSH) */,
+  /* 35017 */        0x00000548           /* 106    (FREF_PUSH) */,
+  /* 35018 */        0x00000734           /* 107    (DISPLAY) */,
+  /* 35019 */        0x00000007           /* 108    (FREF) */,
+  /* 35020 */        0x00000039           /* 109    (CDR) */,
+  /* 35021 */        0x0000000B           /* 110    (PUSH) */,
+  /* 35022 */        0x00000133           /* 111    (POP_LET_FRAME) */,
+  /* 35023 */        0x00000005           /* 112    (LREF) */,
+  /* 35024 */        0x00000022           /* 113    (BNNULL) */,
+  /* 35025 */        WORD(SG_MAKE_INT(32)),
+  /* 35026 */        0x00000049           /* 115    (GREF_PUSH) */,
+  /* 35027 */        WORD(SG_UNDEF)  /* identifier#$ASM */,
+  /* 35028 */        0x00000648           /* 117    (FREF_PUSH) */,
+  /* 35029 */        0x00000009           /* 118    (GREF) */,
+  /* 35030 */        WORD(SG_UNDEF)  /* identifier#VEC_SET */,
+  /* 35031 */        0x0000013B           /* 120    (LIST) */,
+  /* 35032 */        0x0000000B           /* 121    (PUSH) */,
+  /* 35033 */        0x00000031           /* 122    (FRAME) */,
+  /* 35034 */        WORD(SG_MAKE_INT(5)),
+  /* 35035 */        0x00000548           /* 124    (FREF_PUSH) */,
+  /* 35036 */        0x00000448           /* 125    (FREF_PUSH) */,
+  /* 35037 */        0x0000024C           /* 126    (GREF_CALL) */,
+  /* 35038 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
+  /* 35039 */        0x0000000B           /* 128    (PUSH) */,
+  /* 35040 */        0x00000031           /* 129    (FRAME) */,
+  /* 35041 */        WORD(SG_MAKE_INT(5)),
+  /* 35042 */        0x00000348           /* 131    (FREF_PUSH) */,
+  /* 35043 */        0x00000448           /* 132    (FREF_PUSH) */,
+  /* 35044 */        0x0000024C           /* 133    (GREF_CALL) */,
+  /* 35045 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
+  /* 35046 */        0x0000000B           /* 135    (PUSH) */,
+  /* 35047 */        0x00000031           /* 136    (FRAME) */,
+  /* 35048 */        WORD(SG_MAKE_INT(5)),
+  /* 35049 */        0x00000248           /* 138    (FREF_PUSH) */,
+  /* 35050 */        0x00000448           /* 139    (FREF_PUSH) */,
+  /* 35051 */        0x0000024C           /* 140    (GREF_CALL) */,
+  /* 35052 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
+  /* 35053 */        0x0000033B           /* 142    (LIST) */,
+  /* 35054 */        0x00000442           /* 143    (VECTOR) */,
+  /* 35055 */        0x00000018           /* 144    (JUMP) */,
+  /* 35056 */        WORD(SG_MAKE_INT(3)),
+  /* 35057 */        0x00000107           /* 146    (FREF) */,
+  /* 35058 */        0x0000002F           /* 147    (LOCAL_TAIL_CALL) */,
+  /* 35059 */        0x00000018           /* 148    (JUMP) */,
+  /* 35060 */        WORD(SG_MAKE_INT(3)),
+  /* 35061 */        0x00000107           /* 150    (FREF) */,
+  /* 35062 */        0x0000002F           /* 151    (LOCAL_TAIL_CALL) */,
+  /* 35063 */        0x00000018           /* 152    (JUMP) */,
+  /* 35064 */        WORD(SG_MAKE_INT(3)),
+  /* 35065 */        0x00000107           /* 154    (FREF) */,
+  /* 35066 */        0x0000002F           /* 155    (LOCAL_TAIL_CALL) */,
+  /* 35067 */        0x00000018           /* 156    (JUMP) */,
+  /* 35068 */        WORD(SG_MAKE_INT(3)),
+  /* 35069 */        0x00000307           /* 158    (FREF) */,
+  /* 35070 */        0x0000002F           /* 159    (LOCAL_TAIL_CALL) */,
+  /* 35071 */        0x00000018           /* 160    (JUMP) */,
+  /* 35072 */        WORD(SG_MAKE_INT(3)),
+  /* 35073 */        0x00000005           /* 162    (LREF) */,
+  /* 35074 */        0x0000002F           /* 163    (LOCAL_TAIL_CALL) */,
+  /* 35075 */        0x00000030           /* 164    (RET) */,
+  /* 35076 */        0x0000004A           /* 0      (CONST_PUSH) */,
+  /* 35077 */        WORD(SG_UNDEF), /* vector-set! */
+  /* 35078 */        0x0000004A           /* 2      (CONST_PUSH) */,
+  /* 35079 */        WORD(SG_UNDEF), /* "wrong number of arguments" */
+  /* 35080 */        0x00000048           /* 4      (FREF_PUSH) */,
+  /* 35081 */        0x0000034D           /* 5      (GREF_TAIL_CALL) */,
+  /* 35082 */        WORD(SG_UNDEF)  /* identifier#scheme-error */,
+  /* 35083 */        0x00000030           /* 7      (RET) */,
+  /* 35084 */        0x00000432           /* 0      (LET_FRAME) */,
+  /* 35085 */        0x00000047           /* 1      (LREF_PUSH) */,
+  /* 35086 */        0x00000147           /* 2      (LREF_PUSH) */,
+  /* 35087 */        0x00000047           /* 3      (LREF_PUSH) */,
+  /* 35088 */        0x00000334           /* 4      (DISPLAY) */,
+  /* 35089 */        0x00000047           /* 5      (LREF_PUSH) */,
+  /* 35090 */        0x0000002A           /* 6      (CLOSURE) */,
+  /* 35091 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /* 35092 */        0x0000000B           /* 8      (PUSH) */,
+  /* 35093 */        0x00000133           /* 9      (POP_LET_FRAME) */,
+  /* 35094 */        0x00000007           /* 10     (FREF) */,
+  /* 35095 */        0x00000040           /* 11     (PAIRP) */,
+  /* 35096 */        0x00000017           /* 12     (TEST) */,
+  /* 35097 */        WORD(SG_MAKE_INT(159)),
+  /* 35098 */        0x00000007           /* 14     (FREF) */,
+  /* 35099 */        0x00000038           /* 15     (CAR) */,
+  /* 35100 */        0x00000632           /* 16     (LET_FRAME) */,
+  /* 35101 */        0x00000047           /* 17     (LREF_PUSH) */,
+  /* 35102 */        0x00000048           /* 18     (FREF_PUSH) */,
+  /* 35103 */        0x00000148           /* 19     (FREF_PUSH) */,
+  /* 35104 */        0x00000048           /* 20     (FREF_PUSH) */,
+  /* 35105 */        0x00000434           /* 21     (DISPLAY) */,
+  /* 35106 */        0x00000007           /* 22     (FREF) */,
+  /* 35107 */        0x00000039           /* 23     (CDR) */,
+  /* 35108 */        0x0000000B           /* 24     (PUSH) */,
+  /* 35109 */        0x00000047           /* 25     (LREF_PUSH) */,
+  /* 35110 */        0x00000233           /* 26     (POP_LET_FRAME) */,
+  /* 35111 */        0x00000005           /* 27     (LREF) */,
+  /* 35112 */        0x00000040           /* 28     (PAIRP) */,
+  /* 35113 */        0x00000017           /* 29     (TEST) */,
+  /* 35114 */        WORD(SG_MAKE_INT(138)),
+  /* 35115 */        0x00000532           /* 31     (LET_FRAME) */,
+  /* 35116 */        0x00000047           /* 32     (LREF_PUSH) */,
+  /* 35117 */        0x00000348           /* 33     (FREF_PUSH) */,
+  /* 35118 */        0x00000048           /* 34     (FREF_PUSH) */,
+  /* 35119 */        0x00000148           /* 35     (FREF_PUSH) */,
+  /* 35120 */        0x00000434           /* 36     (DISPLAY) */,
+  /* 35121 */        0x00000005           /* 37     (LREF) */,
+  /* 35122 */        0x00000038           /* 38     (CAR) */,
+  /* 35123 */        0x0000000B           /* 39     (PUSH) */,
+  /* 35124 */        0x00000133           /* 40     (POP_LET_FRAME) */,
+  /* 35125 */        0x00000832           /* 41     (LET_FRAME) */,
+  /* 35126 */        0x00000248           /* 42     (FREF_PUSH) */,
+  /* 35127 */        0x00000148           /* 43     (FREF_PUSH) */,
+  /* 35128 */        0x00000047           /* 44     (LREF_PUSH) */,
+  /* 35129 */        0x00000048           /* 45     (FREF_PUSH) */,
+  /* 35130 */        0x00000248           /* 46     (FREF_PUSH) */,
+  /* 35131 */        0x00000348           /* 47     (FREF_PUSH) */,
+  /* 35132 */        0x00000634           /* 48     (DISPLAY) */,
+  /* 35133 */        0x00000007           /* 49     (FREF) */,
+  /* 35134 */        0x00000039           /* 50     (CDR) */,
+  /* 35135 */        0x0000000B           /* 51     (PUSH) */,
+  /* 35136 */        0x00000148           /* 52     (FREF_PUSH) */,
+  /* 35137 */        0x00000233           /* 53     (POP_LET_FRAME) */,
+  /* 35138 */        0x00000005           /* 54     (LREF) */,
+  /* 35139 */        0x00000040           /* 55     (PAIRP) */,
+  /* 35140 */        0x00000017           /* 56     (TEST) */,
+  /* 35141 */        WORD(SG_MAKE_INT(107)),
+  /* 35142 */        0x00000632           /* 58     (LET_FRAME) */,
+  /* 35143 */        0x00000047           /* 59     (LREF_PUSH) */,
+  /* 35144 */        0x00000148           /* 60     (FREF_PUSH) */,
+  /* 35145 */        0x00000448           /* 61     (FREF_PUSH) */,
+  /* 35146 */        0x00000348           /* 62     (FREF_PUSH) */,
+  /* 35147 */        0x00000248           /* 63     (FREF_PUSH) */,
+  /* 35148 */        0x00000534           /* 64     (DISPLAY) */,
+  /* 35149 */        0x00000005           /* 65     (LREF) */,
+  /* 35150 */        0x00000038           /* 66     (CAR) */,
+  /* 35151 */        0x0000000B           /* 67     (PUSH) */,
+  /* 35152 */        0x00000133           /* 68     (POP_LET_FRAME) */,
+  /* 35153 */        0x00000932           /* 69     (LET_FRAME) */,
+  /* 35154 */        0x00000248           /* 70     (FREF_PUSH) */,
+  /* 35155 */        0x00000148           /* 71     (FREF_PUSH) */,
+  /* 35156 */        0x00000048           /* 72     (FREF_PUSH) */,
+  /* 35157 */        0x00000047           /* 73     (LREF_PUSH) */,
+  /* 35158 */        0x00000348           /* 74     (FREF_PUSH) */,
+  /* 35159 */        0x00000348           /* 75     (FREF_PUSH) */,
+  /* 35160 */        0x00000448           /* 76     (FREF_PUSH) */,
+  /* 35161 */        0x00000734           /* 77     (DISPLAY) */,
+  /* 35162 */        0x00000007           /* 78     (FREF) */,
+  /* 35163 */        0x00000039           /* 79     (CDR) */,
+  /* 35164 */        0x0000000B           /* 80     (PUSH) */,
+  /* 35165 */        0x00000148           /* 81     (FREF_PUSH) */,
+  /* 35166 */        0x00000233           /* 82     (POP_LET_FRAME) */,
+  /* 35167 */        0x00000005           /* 83     (LREF) */,
+  /* 35168 */        0x00000040           /* 84     (PAIRP) */,
+  /* 35169 */        0x00000017           /* 85     (TEST) */,
+  /* 35170 */        WORD(SG_MAKE_INT(74)),
+  /* 35171 */        0x00000732           /* 87     (LET_FRAME) */,
+  /* 35172 */        0x00000047           /* 88     (LREF_PUSH) */,
+  /* 35173 */        0x00000648           /* 89     (FREF_PUSH) */,
+  /* 35174 */        0x00000548           /* 90     (FREF_PUSH) */,
+  /* 35175 */        0x00000448           /* 91     (FREF_PUSH) */,
+  /* 35176 */        0x00000348           /* 92     (FREF_PUSH) */,
+  /* 35177 */        0x00000148           /* 93     (FREF_PUSH) */,
+  /* 35178 */        0x00000634           /* 94     (DISPLAY) */,
+  /* 35179 */        0x00000005           /* 95     (LREF) */,
+  /* 35180 */        0x00000038           /* 96     (CAR) */,
+  /* 35181 */        0x0000000B           /* 97     (PUSH) */,
+  /* 35182 */        0x00000133           /* 98     (POP_LET_FRAME) */,
+  /* 35183 */        0x00000832           /* 99     (LET_FRAME) */,
+  /* 35184 */        0x00000448           /* 100    (FREF_PUSH) */,
+  /* 35185 */        0x00000348           /* 101    (FREF_PUSH) */,
+  /* 35186 */        0x00000248           /* 102    (FREF_PUSH) */,
+  /* 35187 */        0x00000148           /* 103    (FREF_PUSH) */,
+  /* 35188 */        0x00000047           /* 104    (LREF_PUSH) */,
+  /* 35189 */        0x00000048           /* 105    (FREF_PUSH) */,
+  /* 35190 */        0x00000548           /* 106    (FREF_PUSH) */,
+  /* 35191 */        0x00000734           /* 107    (DISPLAY) */,
+  /* 35192 */        0x00000007           /* 108    (FREF) */,
+  /* 35193 */        0x00000039           /* 109    (CDR) */,
+  /* 35194 */        0x0000000B           /* 110    (PUSH) */,
+  /* 35195 */        0x00000133           /* 111    (POP_LET_FRAME) */,
+  /* 35196 */        0x00000005           /* 112    (LREF) */,
+  /* 35197 */        0x00000022           /* 113    (BNNULL) */,
+  /* 35198 */        WORD(SG_MAKE_INT(42)),
+  /* 35199 */        0x00000049           /* 115    (GREF_PUSH) */,
+  /* 35200 */        WORD(SG_UNDEF)  /* identifier#$ASM */,
+  /* 35201 */        0x00000648           /* 117    (FREF_PUSH) */,
+  /* 35202 */        0x00000009           /* 118    (GREF) */,
+  /* 35203 */        WORD(SG_UNDEF)  /* identifier#CONS */,
+  /* 35204 */        0x0000013B           /* 120    (LIST) */,
+  /* 35205 */        0x0000000B           /* 121    (PUSH) */,
+  /* 35206 */        0x00000049           /* 122    (GREF_PUSH) */,
+  /* 35207 */        WORD(SG_UNDEF)  /* identifier#$ASM */,
+  /* 35208 */        0x0000004A           /* 124    (CONST_PUSH) */,
+  /* 35209 */        WORD(SG_MAKE_BOOL(FALSE)),
+  /* 35210 */        0x00000009           /* 126    (GREF) */,
+  /* 35211 */        WORD(SG_UNDEF)  /* identifier#CONS */,
+  /* 35212 */        0x0000013B           /* 128    (LIST) */,
+  /* 35213 */        0x0000000B           /* 129    (PUSH) */,
+  /* 35214 */        0x00000031           /* 130    (FRAME) */,
+  /* 35215 */        WORD(SG_MAKE_INT(5)),
+  /* 35216 */        0x00000548           /* 132    (FREF_PUSH) */,
+  /* 35217 */        0x00000448           /* 133    (FREF_PUSH) */,
+  /* 35218 */        0x0000024C           /* 134    (GREF_CALL) */,
+  /* 35219 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
+  /* 35220 */        0x0000000B           /* 136    (PUSH) */,
+  /* 35221 */        0x00000031           /* 137    (FRAME) */,
+  /* 35222 */        WORD(SG_MAKE_INT(5)),
+  /* 35223 */        0x00000348           /* 139    (FREF_PUSH) */,
+  /* 35224 */        0x00000448           /* 140    (FREF_PUSH) */,
+  /* 35225 */        0x0000024C           /* 141    (GREF_CALL) */,
+  /* 35226 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
+  /* 35227 */        0x0000023B           /* 143    (LIST) */,
+  /* 35228 */        0x00000442           /* 144    (VECTOR) */,
+  /* 35229 */        0x0000000B           /* 145    (PUSH) */,
+  /* 35230 */        0x00000031           /* 146    (FRAME) */,
+  /* 35231 */        WORD(SG_MAKE_INT(5)),
+  /* 35232 */        0x00000248           /* 148    (FREF_PUSH) */,
+  /* 35233 */        0x00000448           /* 149    (FREF_PUSH) */,
+  /* 35234 */        0x0000024C           /* 150    (GREF_CALL) */,
+  /* 35235 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
+  /* 35236 */        0x0000023B           /* 152    (LIST) */,
+  /* 35237 */        0x00000442           /* 153    (VECTOR) */,
+  /* 35238 */        0x00000018           /* 154    (JUMP) */,
+  /* 35239 */        WORD(SG_MAKE_INT(3)),
+  /* 35240 */        0x00000107           /* 156    (FREF) */,
+  /* 35241 */        0x0000002F           /* 157    (LOCAL_TAIL_CALL) */,
+  /* 35242 */        0x00000018           /* 158    (JUMP) */,
+  /* 35243 */        WORD(SG_MAKE_INT(3)),
+  /* 35244 */        0x00000107           /* 160    (FREF) */,
+  /* 35245 */        0x0000002F           /* 161    (LOCAL_TAIL_CALL) */,
+  /* 35246 */        0x00000018           /* 162    (JUMP) */,
+  /* 35247 */        WORD(SG_MAKE_INT(3)),
+  /* 35248 */        0x00000107           /* 164    (FREF) */,
+  /* 35249 */        0x0000002F           /* 165    (LOCAL_TAIL_CALL) */,
+  /* 35250 */        0x00000018           /* 166    (JUMP) */,
+  /* 35251 */        WORD(SG_MAKE_INT(3)),
+  /* 35252 */        0x00000307           /* 168    (FREF) */,
+  /* 35253 */        0x0000002F           /* 169    (LOCAL_TAIL_CALL) */,
+  /* 35254 */        0x00000018           /* 170    (JUMP) */,
+  /* 35255 */        WORD(SG_MAKE_INT(3)),
+  /* 35256 */        0x00000005           /* 172    (LREF) */,
+  /* 35257 */        0x0000002F           /* 173    (LOCAL_TAIL_CALL) */,
+  /* 35258 */        0x00000030           /* 174    (RET) */,
+  /* 35259 */        0x0000004A           /* 0      (CONST_PUSH) */,
+  /* 35260 */        WORD(SG_UNDEF), /* acons */
+  /* 35261 */        0x0000004A           /* 2      (CONST_PUSH) */,
+  /* 35262 */        WORD(SG_UNDEF), /* "wrong number of arguments" */
+  /* 35263 */        0x00000048           /* 4      (FREF_PUSH) */,
+  /* 35264 */        0x0000034D           /* 5      (GREF_TAIL_CALL) */,
+  /* 35265 */        WORD(SG_UNDEF)  /* identifier#scheme-error */,
+  /* 35266 */        0x00000030           /* 7      (RET) */,
+  /* 35267 */        0x00000031           /* 0      (FRAME) */,
+  /* 35268 */        WORD(SG_MAKE_INT(4)),
+  /* 35269 */        0x00000047           /* 2      (LREF_PUSH) */,
+  /* 35270 */        0x0000014C           /* 3      (GREF_CALL) */,
+  /* 35271 */        WORD(SG_UNDEF)  /* identifier#integer? */,
+  /* 35272 */        0x00000017           /* 5      (TEST) */,
+  /* 35273 */        WORD(SG_MAKE_INT(15)),
+  /* 35274 */        0x00000031           /* 7      (FRAME) */,
   /* 35275 */        WORD(SG_MAKE_INT(4)),
-  /* 35276 */        0x00000105           /* 7      (LREF) */,
-  /* 35277 */        0x00000018           /* 8      (JUMP) */,
-  /* 35278 */        WORD(SG_MAKE_INT(5)),
-  /* 35279 */        0x00000031           /* 10     (FRAME) */,
-  /* 35280 */        WORD(SG_MAKE_INT(3)),
-  /* 35281 */        0x0000004C           /* 12     (GREF_CALL) */,
-  /* 35282 */        WORD(SG_UNDEF)  /* identifier#make-bottom-p1env */,
-  /* 35283 */        0x0000000B           /* 14     (PUSH) */,
-  /* 35284 */        0x00000133           /* 15     (POP_LET_FRAME) */,
-  /* 35285 */        0x00000232           /* 16     (LET_FRAME) */,
-  /* 35286 */        0x00000048           /* 17     (FREF_PUSH) */,
-  /* 35287 */        0x00000134           /* 18     (DISPLAY) */,
-  /* 35288 */        0x00000031           /* 19     (FRAME) */,
-  /* 35289 */        WORD(SG_MAKE_INT(11)),
-  /* 35290 */        0x00000031           /* 21     (FRAME) */,
-  /* 35291 */        WORD(SG_MAKE_INT(5)),
-  /* 35292 */        0x00000048           /* 23     (FREF_PUSH) */,
-  /* 35293 */        0x00000047           /* 24     (LREF_PUSH) */,
-  /* 35294 */        0x0000024C           /* 25     (GREF_CALL) */,
-  /* 35295 */        WORD(SG_UNDEF)  /* identifier#pass0 */,
-  /* 35296 */        0x0000000B           /* 27     (PUSH) */,
-  /* 35297 */        0x00000047           /* 28     (LREF_PUSH) */,
-  /* 35298 */        0x0000024C           /* 29     (GREF_CALL) */,
-  /* 35299 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
-  /* 35300 */        0x0000000B           /* 31     (PUSH) */,
-  /* 35301 */        0x00000133           /* 32     (POP_LET_FRAME) */,
-  /* 35302 */        0x00000031           /* 33     (FRAME) */,
-  /* 35303 */        WORD(SG_MAKE_INT(4)),
-  /* 35304 */        0x00000047           /* 35     (LREF_PUSH) */,
-  /* 35305 */        0x0000014C           /* 36     (GREF_CALL) */,
-  /* 35306 */        WORD(SG_UNDEF)  /* identifier#pass2 */,
-  /* 35307 */        0x0000000B           /* 38     (PUSH) */,
-  /* 35308 */        0x00000031           /* 39     (FRAME) */,
-  /* 35309 */        WORD(SG_MAKE_INT(3)),
-  /* 35310 */        0x0000004C           /* 41     (GREF_CALL) */,
-  /* 35311 */        WORD(SG_UNDEF)  /* identifier#make-code-builder */,
-  /* 35312 */        0x0000000B           /* 43     (PUSH) */,
-  /* 35313 */        0x0000004A           /* 44     (CONST_PUSH) */,
-  /* 35314 */        WORD(SG_NIL),
-  /* 35315 */        0x0000004A           /* 46     (CONST_PUSH) */,
-  /* 35316 */        WORD(SG_NIL),
-  /* 35317 */        0x00000031           /* 48     (FRAME) */,
-  /* 35318 */        WORD(SG_MAKE_INT(3)),
-  /* 35319 */        0x0000004C           /* 50     (GREF_CALL) */,
-  /* 35320 */        WORD(SG_UNDEF)  /* identifier#make-eq-hashtable */,
-  /* 35321 */        0x0000000B           /* 52     (PUSH) */,
-  /* 35322 */        0x0000004A           /* 53     (CONST_PUSH) */,
-  /* 35323 */        WORD(SG_NIL),
-  /* 35324 */        0x00000003           /* 55     (CONST) */,
-  /* 35325 */        WORD(SG_MAKE_INT(0)),
-  /* 35326 */        0x00000542           /* 57     (VECTOR) */,
-  /* 35327 */        0x0000000B           /* 58     (PUSH) */,
-  /* 35328 */        0x0000004A           /* 59     (CONST_PUSH) */,
-  /* 35329 */        WORD(SG_UNDEF), /* normal/top */
-  /* 35330 */        0x00000049           /* 61     (GREF_PUSH) */,
-  /* 35331 */        WORD(SG_UNDEF)  /* identifier#HALT */,
-  /* 35332 */        0x0000054D           /* 63     (GREF_TAIL_CALL) */,
-  /* 35333 */        WORD(SG_UNDEF)  /* identifier#pass3 */,
-  /* 35334 */        0x00000030           /* 65     (RET) */,
-  /* 35335 */        0x00000232           /* 0      (LET_FRAME) */,
-  /* 35336 */        0x00000047           /* 1      (LREF_PUSH) */,
-  /* 35337 */        0x00000134           /* 2      (DISPLAY) */,
-  /* 35338 */        0x00000031           /* 3      (FRAME) */,
-  /* 35339 */        WORD(SG_MAKE_INT(3)),
-  /* 35340 */        0x0000004C           /* 5      (GREF_CALL) */,
-  /* 35341 */        WORD(SG_UNDEF)  /* identifier#make-bottom-p1env */,
-  /* 35342 */        0x0000000B           /* 7      (PUSH) */,
-  /* 35343 */        0x00000133           /* 8      (POP_LET_FRAME) */,
-  /* 35344 */        0x00000031           /* 9      (FRAME) */,
-  /* 35345 */        WORD(SG_MAKE_INT(11)),
-  /* 35346 */        0x00000031           /* 11     (FRAME) */,
-  /* 35347 */        WORD(SG_MAKE_INT(5)),
-  /* 35348 */        0x00000048           /* 13     (FREF_PUSH) */,
-  /* 35349 */        0x00000047           /* 14     (LREF_PUSH) */,
-  /* 35350 */        0x0000024C           /* 15     (GREF_CALL) */,
-  /* 35351 */        WORD(SG_UNDEF)  /* identifier#pass0 */,
-  /* 35352 */        0x0000000B           /* 17     (PUSH) */,
-  /* 35353 */        0x00000047           /* 18     (LREF_PUSH) */,
-  /* 35354 */        0x0000024C           /* 19     (GREF_CALL) */,
-  /* 35355 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
-  /* 35356 */        0x0000000B           /* 21     (PUSH) */,
-  /* 35357 */        0x0000014D           /* 22     (GREF_TAIL_CALL) */,
-  /* 35358 */        WORD(SG_UNDEF)  /* identifier#pp-iform */,
-  /* 35359 */        0x00000030           /* 24     (RET) */,
-  /* 35360 */        0x00000232           /* 0      (LET_FRAME) */,
-  /* 35361 */        0x00000047           /* 1      (LREF_PUSH) */,
-  /* 35362 */        0x00000134           /* 2      (DISPLAY) */,
-  /* 35363 */        0x00000031           /* 3      (FRAME) */,
-  /* 35364 */        WORD(SG_MAKE_INT(3)),
-  /* 35365 */        0x0000004C           /* 5      (GREF_CALL) */,
-  /* 35366 */        WORD(SG_UNDEF)  /* identifier#make-bottom-p1env */,
-  /* 35367 */        0x0000000B           /* 7      (PUSH) */,
-  /* 35368 */        0x00000133           /* 8      (POP_LET_FRAME) */,
-  /* 35369 */        0x00000031           /* 9      (FRAME) */,
-  /* 35370 */        WORD(SG_MAKE_INT(16)),
-  /* 35371 */        0x00000031           /* 11     (FRAME) */,
-  /* 35372 */        WORD(SG_MAKE_INT(11)),
-  /* 35373 */        0x00000031           /* 13     (FRAME) */,
-  /* 35374 */        WORD(SG_MAKE_INT(5)),
-  /* 35375 */        0x00000048           /* 15     (FREF_PUSH) */,
-  /* 35376 */        0x00000047           /* 16     (LREF_PUSH) */,
-  /* 35377 */        0x0000024C           /* 17     (GREF_CALL) */,
-  /* 35378 */        WORD(SG_UNDEF)  /* identifier#pass0 */,
-  /* 35379 */        0x0000000B           /* 19     (PUSH) */,
-  /* 35380 */        0x00000047           /* 20     (LREF_PUSH) */,
-  /* 35381 */        0x0000024C           /* 21     (GREF_CALL) */,
-  /* 35382 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
-  /* 35383 */        0x0000000B           /* 23     (PUSH) */,
-  /* 35384 */        0x0000014C           /* 24     (GREF_CALL) */,
-  /* 35385 */        WORD(SG_UNDEF)  /* identifier#pass2 */,
-  /* 35386 */        0x0000000B           /* 26     (PUSH) */,
-  /* 35387 */        0x0000014D           /* 27     (GREF_TAIL_CALL) */,
-  /* 35388 */        WORD(SG_UNDEF)  /* identifier#pp-iform */,
-  /* 35389 */        0x00000030           /* 29     (RET) */,
-  /* 35390 */        0x00000232           /* 0      (LET_FRAME) */,
-  /* 35391 */        0x00000047           /* 1      (LREF_PUSH) */,
-  /* 35392 */        0x00000134           /* 2      (DISPLAY) */,
-  /* 35393 */        0x00000031           /* 3      (FRAME) */,
-  /* 35394 */        WORD(SG_MAKE_INT(3)),
-  /* 35395 */        0x0000004C           /* 5      (GREF_CALL) */,
-  /* 35396 */        WORD(SG_UNDEF)  /* identifier#make-bottom-p1env */,
-  /* 35397 */        0x0000000B           /* 7      (PUSH) */,
-  /* 35398 */        0x00000133           /* 8      (POP_LET_FRAME) */,
-  /* 35399 */        0x00000232           /* 9      (LET_FRAME) */,
-  /* 35400 */        0x00000048           /* 10     (FREF_PUSH) */,
-  /* 35401 */        0x00000134           /* 11     (DISPLAY) */,
-  /* 35402 */        0x00000031           /* 12     (FRAME) */,
-  /* 35403 */        WORD(SG_MAKE_INT(11)),
-  /* 35404 */        0x00000031           /* 14     (FRAME) */,
-  /* 35405 */        WORD(SG_MAKE_INT(5)),
-  /* 35406 */        0x00000048           /* 16     (FREF_PUSH) */,
-  /* 35407 */        0x00000047           /* 17     (LREF_PUSH) */,
-  /* 35408 */        0x0000024C           /* 18     (GREF_CALL) */,
-  /* 35409 */        WORD(SG_UNDEF)  /* identifier#pass0 */,
-  /* 35410 */        0x0000000B           /* 20     (PUSH) */,
-  /* 35411 */        0x00000047           /* 21     (LREF_PUSH) */,
-  /* 35412 */        0x0000024C           /* 22     (GREF_CALL) */,
-  /* 35413 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
-  /* 35414 */        0x0000000B           /* 24     (PUSH) */,
-  /* 35415 */        0x00000133           /* 25     (POP_LET_FRAME) */,
-  /* 35416 */        0x00000132           /* 26     (LET_FRAME) */,
-  /* 35417 */        0x00000031           /* 27     (FRAME) */,
-  /* 35418 */        WORD(SG_MAKE_INT(33)),
-  /* 35419 */        0x00000031           /* 29     (FRAME) */,
-  /* 35420 */        WORD(SG_MAKE_INT(4)),
-  /* 35421 */        0x00000047           /* 31     (LREF_PUSH) */,
-  /* 35422 */        0x0000014C           /* 32     (GREF_CALL) */,
-  /* 35423 */        WORD(SG_UNDEF)  /* identifier#pass2 */,
-  /* 35424 */        0x0000000B           /* 34     (PUSH) */,
-  /* 35425 */        0x00000031           /* 35     (FRAME) */,
-  /* 35426 */        WORD(SG_MAKE_INT(3)),
-  /* 35427 */        0x0000004C           /* 37     (GREF_CALL) */,
-  /* 35428 */        WORD(SG_UNDEF)  /* identifier#make-code-builder */,
-  /* 35429 */        0x0000000B           /* 39     (PUSH) */,
-  /* 35430 */        0x0000004A           /* 40     (CONST_PUSH) */,
-  /* 35431 */        WORD(SG_NIL),
-  /* 35432 */        0x0000004A           /* 42     (CONST_PUSH) */,
-  /* 35433 */        WORD(SG_NIL),
-  /* 35434 */        0x00000031           /* 44     (FRAME) */,
-  /* 35435 */        WORD(SG_MAKE_INT(3)),
-  /* 35436 */        0x0000004C           /* 46     (GREF_CALL) */,
-  /* 35437 */        WORD(SG_UNDEF)  /* identifier#make-eq-hashtable */,
-  /* 35438 */        0x0000000B           /* 48     (PUSH) */,
-  /* 35439 */        0x0000004A           /* 49     (CONST_PUSH) */,
-  /* 35440 */        WORD(SG_NIL),
-  /* 35441 */        0x00000003           /* 51     (CONST) */,
-  /* 35442 */        WORD(SG_MAKE_INT(0)),
-  /* 35443 */        0x00000542           /* 53     (VECTOR) */,
-  /* 35444 */        0x0000000B           /* 54     (PUSH) */,
-  /* 35445 */        0x0000004A           /* 55     (CONST_PUSH) */,
-  /* 35446 */        WORD(SG_UNDEF), /* normal/top */
-  /* 35447 */        0x00000049           /* 57     (GREF_PUSH) */,
-  /* 35448 */        WORD(SG_UNDEF)  /* identifier#HALT */,
-  /* 35449 */        0x0000054C           /* 59     (GREF_CALL) */,
-  /* 35450 */        WORD(SG_UNDEF)  /* identifier#pass3 */,
-  /* 35451 */        0x0000000B           /* 61     (PUSH) */,
-  /* 35452 */        0x00000133           /* 62     (POP_LET_FRAME) */,
-  /* 35453 */        0x00000047           /* 63     (LREF_PUSH) */,
-  /* 35454 */        0x0000014D           /* 64     (GREF_TAIL_CALL) */,
-  /* 35455 */        WORD(SG_UNDEF)  /* identifier#vm-dump-code */,
-  /* 35456 */        0x00000030           /* 66     (RET) */,
-  /* 35457 */        0x00000003           /* 0      (CONST) */,
-  /* 35458 */        WORD(SG_MAKE_BOOL(FALSE)),
-  /* 35459 */        0x00000030           /* 2      (RET) */,
+  /* 35276 */        0x00000047           /* 9      (LREF_PUSH) */,
+  /* 35277 */        0x0000014C           /* 10     (GREF_CALL) */,
+  /* 35278 */        WORD(SG_UNDEF)  /* identifier#exact? */,
+  /* 35279 */        0x00000017           /* 12     (TEST) */,
+  /* 35280 */        WORD(SG_MAKE_INT(8)),
+  /* 35281 */        0x0000004A           /* 14     (CONST_PUSH) */,
+  /* 35282 */        WORD(SG_MAKE_INT(-524287)),
+  /* 35283 */        0x00000047           /* 16     (LREF_PUSH) */,
+  /* 35284 */        0x0000004A           /* 17     (CONST_PUSH) */,
+  /* 35285 */        WORD(SG_MAKE_INT(524287)),
+  /* 35286 */        0x0000034D           /* 19     (GREF_TAIL_CALL) */,
+  /* 35287 */        WORD(SG_UNDEF)  /* identifier#<= */,
+  /* 35288 */        0x00000030           /* 21     (RET) */,
+  /* 35289 */        0x00000232           /* 0      (LET_FRAME) */,
+  /* 35290 */        0x00000047           /* 1      (LREF_PUSH) */,
+  /* 35291 */        0x00000134           /* 2      (DISPLAY) */,
+  /* 35292 */        0x00000105           /* 3      (LREF) */,
+  /* 35293 */        0x00000043           /* 4      (VECTORP) */,
+  /* 35294 */        0x00000017           /* 5      (TEST) */,
+  /* 35295 */        WORD(SG_MAKE_INT(4)),
+  /* 35296 */        0x00000105           /* 7      (LREF) */,
+  /* 35297 */        0x00000018           /* 8      (JUMP) */,
+  /* 35298 */        WORD(SG_MAKE_INT(5)),
+  /* 35299 */        0x00000031           /* 10     (FRAME) */,
+  /* 35300 */        WORD(SG_MAKE_INT(3)),
+  /* 35301 */        0x0000004C           /* 12     (GREF_CALL) */,
+  /* 35302 */        WORD(SG_UNDEF)  /* identifier#make-bottom-p1env */,
+  /* 35303 */        0x0000000B           /* 14     (PUSH) */,
+  /* 35304 */        0x00000133           /* 15     (POP_LET_FRAME) */,
+  /* 35305 */        0x00000232           /* 16     (LET_FRAME) */,
+  /* 35306 */        0x00000048           /* 17     (FREF_PUSH) */,
+  /* 35307 */        0x00000134           /* 18     (DISPLAY) */,
+  /* 35308 */        0x00000031           /* 19     (FRAME) */,
+  /* 35309 */        WORD(SG_MAKE_INT(11)),
+  /* 35310 */        0x00000031           /* 21     (FRAME) */,
+  /* 35311 */        WORD(SG_MAKE_INT(5)),
+  /* 35312 */        0x00000048           /* 23     (FREF_PUSH) */,
+  /* 35313 */        0x00000047           /* 24     (LREF_PUSH) */,
+  /* 35314 */        0x0000024C           /* 25     (GREF_CALL) */,
+  /* 35315 */        WORD(SG_UNDEF)  /* identifier#pass0 */,
+  /* 35316 */        0x0000000B           /* 27     (PUSH) */,
+  /* 35317 */        0x00000047           /* 28     (LREF_PUSH) */,
+  /* 35318 */        0x0000024C           /* 29     (GREF_CALL) */,
+  /* 35319 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
+  /* 35320 */        0x0000000B           /* 31     (PUSH) */,
+  /* 35321 */        0x00000133           /* 32     (POP_LET_FRAME) */,
+  /* 35322 */        0x00000031           /* 33     (FRAME) */,
+  /* 35323 */        WORD(SG_MAKE_INT(4)),
+  /* 35324 */        0x00000047           /* 35     (LREF_PUSH) */,
+  /* 35325 */        0x0000014C           /* 36     (GREF_CALL) */,
+  /* 35326 */        WORD(SG_UNDEF)  /* identifier#pass2 */,
+  /* 35327 */        0x0000000B           /* 38     (PUSH) */,
+  /* 35328 */        0x00000031           /* 39     (FRAME) */,
+  /* 35329 */        WORD(SG_MAKE_INT(3)),
+  /* 35330 */        0x0000004C           /* 41     (GREF_CALL) */,
+  /* 35331 */        WORD(SG_UNDEF)  /* identifier#make-code-builder */,
+  /* 35332 */        0x0000000B           /* 43     (PUSH) */,
+  /* 35333 */        0x0000004A           /* 44     (CONST_PUSH) */,
+  /* 35334 */        WORD(SG_NIL),
+  /* 35335 */        0x0000004A           /* 46     (CONST_PUSH) */,
+  /* 35336 */        WORD(SG_NIL),
+  /* 35337 */        0x00000031           /* 48     (FRAME) */,
+  /* 35338 */        WORD(SG_MAKE_INT(3)),
+  /* 35339 */        0x0000004C           /* 50     (GREF_CALL) */,
+  /* 35340 */        WORD(SG_UNDEF)  /* identifier#make-eq-hashtable */,
+  /* 35341 */        0x0000000B           /* 52     (PUSH) */,
+  /* 35342 */        0x0000004A           /* 53     (CONST_PUSH) */,
+  /* 35343 */        WORD(SG_NIL),
+  /* 35344 */        0x00000003           /* 55     (CONST) */,
+  /* 35345 */        WORD(SG_MAKE_INT(0)),
+  /* 35346 */        0x00000542           /* 57     (VECTOR) */,
+  /* 35347 */        0x0000000B           /* 58     (PUSH) */,
+  /* 35348 */        0x0000004A           /* 59     (CONST_PUSH) */,
+  /* 35349 */        WORD(SG_UNDEF), /* normal/top */
+  /* 35350 */        0x00000049           /* 61     (GREF_PUSH) */,
+  /* 35351 */        WORD(SG_UNDEF)  /* identifier#HALT */,
+  /* 35352 */        0x0000054D           /* 63     (GREF_TAIL_CALL) */,
+  /* 35353 */        WORD(SG_UNDEF)  /* identifier#pass3 */,
+  /* 35354 */        0x00000030           /* 65     (RET) */,
+  /* 35355 */        0x00000232           /* 0      (LET_FRAME) */,
+  /* 35356 */        0x00000047           /* 1      (LREF_PUSH) */,
+  /* 35357 */        0x00000134           /* 2      (DISPLAY) */,
+  /* 35358 */        0x00000031           /* 3      (FRAME) */,
+  /* 35359 */        WORD(SG_MAKE_INT(3)),
+  /* 35360 */        0x0000004C           /* 5      (GREF_CALL) */,
+  /* 35361 */        WORD(SG_UNDEF)  /* identifier#make-bottom-p1env */,
+  /* 35362 */        0x0000000B           /* 7      (PUSH) */,
+  /* 35363 */        0x00000133           /* 8      (POP_LET_FRAME) */,
+  /* 35364 */        0x00000031           /* 9      (FRAME) */,
+  /* 35365 */        WORD(SG_MAKE_INT(11)),
+  /* 35366 */        0x00000031           /* 11     (FRAME) */,
+  /* 35367 */        WORD(SG_MAKE_INT(5)),
+  /* 35368 */        0x00000048           /* 13     (FREF_PUSH) */,
+  /* 35369 */        0x00000047           /* 14     (LREF_PUSH) */,
+  /* 35370 */        0x0000024C           /* 15     (GREF_CALL) */,
+  /* 35371 */        WORD(SG_UNDEF)  /* identifier#pass0 */,
+  /* 35372 */        0x0000000B           /* 17     (PUSH) */,
+  /* 35373 */        0x00000047           /* 18     (LREF_PUSH) */,
+  /* 35374 */        0x0000024C           /* 19     (GREF_CALL) */,
+  /* 35375 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
+  /* 35376 */        0x0000000B           /* 21     (PUSH) */,
+  /* 35377 */        0x0000014D           /* 22     (GREF_TAIL_CALL) */,
+  /* 35378 */        WORD(SG_UNDEF)  /* identifier#pp-iform */,
+  /* 35379 */        0x00000030           /* 24     (RET) */,
+  /* 35380 */        0x00000232           /* 0      (LET_FRAME) */,
+  /* 35381 */        0x00000047           /* 1      (LREF_PUSH) */,
+  /* 35382 */        0x00000134           /* 2      (DISPLAY) */,
+  /* 35383 */        0x00000031           /* 3      (FRAME) */,
+  /* 35384 */        WORD(SG_MAKE_INT(3)),
+  /* 35385 */        0x0000004C           /* 5      (GREF_CALL) */,
+  /* 35386 */        WORD(SG_UNDEF)  /* identifier#make-bottom-p1env */,
+  /* 35387 */        0x0000000B           /* 7      (PUSH) */,
+  /* 35388 */        0x00000133           /* 8      (POP_LET_FRAME) */,
+  /* 35389 */        0x00000031           /* 9      (FRAME) */,
+  /* 35390 */        WORD(SG_MAKE_INT(16)),
+  /* 35391 */        0x00000031           /* 11     (FRAME) */,
+  /* 35392 */        WORD(SG_MAKE_INT(11)),
+  /* 35393 */        0x00000031           /* 13     (FRAME) */,
+  /* 35394 */        WORD(SG_MAKE_INT(5)),
+  /* 35395 */        0x00000048           /* 15     (FREF_PUSH) */,
+  /* 35396 */        0x00000047           /* 16     (LREF_PUSH) */,
+  /* 35397 */        0x0000024C           /* 17     (GREF_CALL) */,
+  /* 35398 */        WORD(SG_UNDEF)  /* identifier#pass0 */,
+  /* 35399 */        0x0000000B           /* 19     (PUSH) */,
+  /* 35400 */        0x00000047           /* 20     (LREF_PUSH) */,
+  /* 35401 */        0x0000024C           /* 21     (GREF_CALL) */,
+  /* 35402 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
+  /* 35403 */        0x0000000B           /* 23     (PUSH) */,
+  /* 35404 */        0x0000014C           /* 24     (GREF_CALL) */,
+  /* 35405 */        WORD(SG_UNDEF)  /* identifier#pass2 */,
+  /* 35406 */        0x0000000B           /* 26     (PUSH) */,
+  /* 35407 */        0x0000014D           /* 27     (GREF_TAIL_CALL) */,
+  /* 35408 */        WORD(SG_UNDEF)  /* identifier#pp-iform */,
+  /* 35409 */        0x00000030           /* 29     (RET) */,
+  /* 35410 */        0x00000232           /* 0      (LET_FRAME) */,
+  /* 35411 */        0x00000047           /* 1      (LREF_PUSH) */,
+  /* 35412 */        0x00000134           /* 2      (DISPLAY) */,
+  /* 35413 */        0x00000031           /* 3      (FRAME) */,
+  /* 35414 */        WORD(SG_MAKE_INT(3)),
+  /* 35415 */        0x0000004C           /* 5      (GREF_CALL) */,
+  /* 35416 */        WORD(SG_UNDEF)  /* identifier#make-bottom-p1env */,
+  /* 35417 */        0x0000000B           /* 7      (PUSH) */,
+  /* 35418 */        0x00000133           /* 8      (POP_LET_FRAME) */,
+  /* 35419 */        0x00000232           /* 9      (LET_FRAME) */,
+  /* 35420 */        0x00000048           /* 10     (FREF_PUSH) */,
+  /* 35421 */        0x00000134           /* 11     (DISPLAY) */,
+  /* 35422 */        0x00000031           /* 12     (FRAME) */,
+  /* 35423 */        WORD(SG_MAKE_INT(11)),
+  /* 35424 */        0x00000031           /* 14     (FRAME) */,
+  /* 35425 */        WORD(SG_MAKE_INT(5)),
+  /* 35426 */        0x00000048           /* 16     (FREF_PUSH) */,
+  /* 35427 */        0x00000047           /* 17     (LREF_PUSH) */,
+  /* 35428 */        0x0000024C           /* 18     (GREF_CALL) */,
+  /* 35429 */        WORD(SG_UNDEF)  /* identifier#pass0 */,
+  /* 35430 */        0x0000000B           /* 20     (PUSH) */,
+  /* 35431 */        0x00000047           /* 21     (LREF_PUSH) */,
+  /* 35432 */        0x0000024C           /* 22     (GREF_CALL) */,
+  /* 35433 */        WORD(SG_UNDEF)  /* identifier#pass1 */,
+  /* 35434 */        0x0000000B           /* 24     (PUSH) */,
+  /* 35435 */        0x00000133           /* 25     (POP_LET_FRAME) */,
+  /* 35436 */        0x00000132           /* 26     (LET_FRAME) */,
+  /* 35437 */        0x00000031           /* 27     (FRAME) */,
+  /* 35438 */        WORD(SG_MAKE_INT(33)),
+  /* 35439 */        0x00000031           /* 29     (FRAME) */,
+  /* 35440 */        WORD(SG_MAKE_INT(4)),
+  /* 35441 */        0x00000047           /* 31     (LREF_PUSH) */,
+  /* 35442 */        0x0000014C           /* 32     (GREF_CALL) */,
+  /* 35443 */        WORD(SG_UNDEF)  /* identifier#pass2 */,
+  /* 35444 */        0x0000000B           /* 34     (PUSH) */,
+  /* 35445 */        0x00000031           /* 35     (FRAME) */,
+  /* 35446 */        WORD(SG_MAKE_INT(3)),
+  /* 35447 */        0x0000004C           /* 37     (GREF_CALL) */,
+  /* 35448 */        WORD(SG_UNDEF)  /* identifier#make-code-builder */,
+  /* 35449 */        0x0000000B           /* 39     (PUSH) */,
+  /* 35450 */        0x0000004A           /* 40     (CONST_PUSH) */,
+  /* 35451 */        WORD(SG_NIL),
+  /* 35452 */        0x0000004A           /* 42     (CONST_PUSH) */,
+  /* 35453 */        WORD(SG_NIL),
+  /* 35454 */        0x00000031           /* 44     (FRAME) */,
+  /* 35455 */        WORD(SG_MAKE_INT(3)),
+  /* 35456 */        0x0000004C           /* 46     (GREF_CALL) */,
+  /* 35457 */        WORD(SG_UNDEF)  /* identifier#make-eq-hashtable */,
+  /* 35458 */        0x0000000B           /* 48     (PUSH) */,
+  /* 35459 */        0x0000004A           /* 49     (CONST_PUSH) */,
+  /* 35460 */        WORD(SG_NIL),
+  /* 35461 */        0x00000003           /* 51     (CONST) */,
+  /* 35462 */        WORD(SG_MAKE_INT(0)),
+  /* 35463 */        0x00000542           /* 53     (VECTOR) */,
+  /* 35464 */        0x0000000B           /* 54     (PUSH) */,
+  /* 35465 */        0x0000004A           /* 55     (CONST_PUSH) */,
+  /* 35466 */        WORD(SG_UNDEF), /* normal/top */
+  /* 35467 */        0x00000049           /* 57     (GREF_PUSH) */,
+  /* 35468 */        WORD(SG_UNDEF)  /* identifier#HALT */,
+  /* 35469 */        0x0000054C           /* 59     (GREF_CALL) */,
+  /* 35470 */        WORD(SG_UNDEF)  /* identifier#pass3 */,
+  /* 35471 */        0x0000000B           /* 61     (PUSH) */,
+  /* 35472 */        0x00000133           /* 62     (POP_LET_FRAME) */,
+  /* 35473 */        0x00000047           /* 63     (LREF_PUSH) */,
+  /* 35474 */        0x0000014D           /* 64     (GREF_TAIL_CALL) */,
+  /* 35475 */        WORD(SG_UNDEF)  /* identifier#vm-dump-code */,
+  /* 35476 */        0x00000030           /* 66     (RET) */,
+  /* 35477 */        0x00000003           /* 0      (CONST) */,
+  /* 35478 */        WORD(SG_MAKE_BOOL(FALSE)),
+  /* 35479 */        0x00000030           /* 2      (RET) */,
   }
 };
 
@@ -35988,181 +36008,589 @@ static SgCodeBuilder toplevel_sagittarius_compiler = SG_STATIC_CODE_BUILDER(&sg_
 void Sg__Init_sagittarius_compiler()
 {
   SgLibrary *lib = Sg_FindLibrary(SYMBOL("(sagittarius compiler)"), TRUE);
-  sg__wc.w[17707] = IDENT("ensure-identifier", lib);
-  sg__wc.w[3744] = IDENT("fold-right", lib);
-  sg__wc.w[1922] = WORD(&sg__wc.cb[502]);
-sg__wc.cb[502].name = SYMBOL("compile-p2");
-  sg__wc.w[1300] = IDENT("pass3/let", lib);
-  sg__wc.w[26227] = IDENT("pass3/branch-on-arg2", lib);
-  sg__wc.w[8227] = IDENT("pass1", lib);
-  sg__wc.w[8392] = WORD(Sg_Cons(SYMBOL("const"), SG_NIL));
-  sg__wc.w[11101] = IDENT("syntax-error", lib);
-  sg__wc.w[10044] = IDENT("map", lib);
-  sg__wc.w[10050] = IDENT("map", lib);
-  sg__wc.w[1736] = SYMBOLW("<=");
-  sg__wc.w[5744] = WORD(Sg_Cons(SYMBOL("sagittarius"), Sg_Cons(SYMBOL("compiler"), SG_NIL)));
-  sg__wc.w[228] = WORD(&sg__wc.cb[55]);
-sg__wc.cb[55].name = SYMBOL("syntax/quote");
-  sg__wc.w[1100] = IDENT("pass2/$RECEIVE", lib);
-  sg__wc.w[1861] = WORD(&sg__wc.cb[495]);
-sg__wc.cb[495].name = SYMBOL("inliner/vector-set!");
-  sg__wc.w[20568] = IDENT("reverse", lib);
-  sg__wc.w[18806] = IDENT("keyword?", lib);
-  sg__wc.w[15384] = IDENT("pass1", lib);
-  sg__wc.w[20361] = IDENT("make-lvar+", lib);
-  sg__wc.w[15708] = IDENT("pass1", lib);
-  sg__wc.w[13859] = IDENT("length", lib);
-  sg__wc.w[35382] = IDENT("pass1", lib);
-  sg__wc.w[20910] = SYMBOLW("pass1/expand-inliner");
-  sg__wc.w[8387] = IDENT("pass1/define", lib);
-  sg__wc.w[7485] = IDENT("reverse", lib);
-  sg__wc.w[198] = WORD(&sg__wc.cb[48]);
-sg__wc.cb[48].name = SYMBOL("parse-lambda-vars");
-  sg__wc.w[34359] = WORD(&sg__wc.cb[488]);
-sg__wc.cb[488].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1198] = WORD(&sg__wc.cb[384]);
-sg__wc.cb[384].name = SYMBOL("pass3/collect-free");
-  sg__wc.w[20929] = IDENT("format", lib);
-  sg__wc.w[27260] = IDENT("append", lib);
-  sg__wc.w[24675] = IDENT("reverse", lib);
-  sg__wc.w[1050] = IDENT("pass2/$SEQ", lib);
-  sg__wc.w[19677] = IDENT("pass1/body-macro-expand-rec", lib);
-  sg__wc.w[13485] = IDENT("list", lib);
-  sg__wc.w[25354] = IDENT("reverse", lib);
-  sg__wc.w[24136] = IDENT("append", lib);
-  sg__wc.w[23955] = IDENT("pass3/exists-in-can-frees?", lib);
-  sg__wc.w[922] = IDENT("pass1/body", lib);
-  sg__wc.w[3607] = IDENT("$LIST", lib);
-  sg__wc.w[174] = WORD(&sg__wc.cb[41]);
-sg__wc.cb[41].name = SYMBOL("make-bottom-p1env");
-  sg__wc.w[1186] = WORD(&sg__wc.cb[379]);
-sg__wc.cb[379].name = SYMBOL("pass3/exists-in-can-frees?");
-  sg__wc.w[16317] = STRINGW("bad clause in cond");
-  sg__wc.w[32128] = IDENT("ensure-inexact-const", lib);
-  sg__wc.w[27191] = IDENT("pass3/rec", lib);
-  sg__wc.w[25132] = IDENT("reverse", lib);
-  sg__wc.w[23160] = IDENT("expand-inlined-procedure", lib);
-  sg__wc.w[22953] = IDENT("$SEQ", lib);
-  sg__wc.w[10687] = IDENT("$RECEIVE", lib);
-  sg__wc.w[154] = WORD(&sg__wc.cb[36]);
-sg__wc.cb[36].name = SYMBOL("p1env-extend");
-  sg__wc.w[10653] = IDENT("make-lvar+", lib);
-  sg__wc.w[3230] = IDENT("iform-copy", lib);
-  sg__wc.w[33879] = WORD(&sg__wc.cb[480]);
-sg__wc.cb[480].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1162] = WORD(&sg__wc.cb[372]);
-sg__wc.cb[372].name = SYMBOL("renv-copy");
-  sg__wc.w[6324] = IDENT("variable-name", lib);
-  sg__wc.w[6622] = IDENT("variable-name", lib);
-  sg__wc.w[6973] = IDENT("variable-name", lib);
-  sg__wc.w[35180] = IDENT("$ASM", lib);
-  sg__wc.w[27153] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[20153] = SYMBOLW("pass1/body");
-  sg__wc.w[5570] = IDENT("scheme-error", lib);
-  sg__wc.w[28367] = IDENT("cb-label-set!", lib);
-  sg__wc.w[133] = WORD(&sg__wc.cb[31]);
-sg__wc.cb[31].name = SYMBOL("id->bound-gloc");
-  sg__wc.w[30854] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[25706] = IDENT("cb-emit0!", lib);
-  sg__wc.w[1133] = WORD(&sg__wc.cb[365]);
-sg__wc.cb[365].name = SYMBOL("bottom-context?");
-  sg__wc.w[15419] = IDENT("pass1", lib);
-  sg__wc.w[33305] = WORD(&sg__wc.cb[473]);
-sg__wc.cb[473].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[23876] = IDENT("hashtable-set!", lib);
-  sg__wc.w[28584] = IDENT("make-new-label", lib);
-  sg__wc.w[1156] = IDENT("renv-add-can-free1", lib);
-  sg__wc.w[3805] = WORD(&sg__wc.cb[24]);
-sg__wc.cb[24].name = SYMBOL("rec");
-  sg__wc.w[32873] = WORD(&sg__wc.cb[468]);
-sg__wc.cb[468].name = SYMBOL("inline");
-  sg__wc.w[1072] = WORD(&sg__wc.cb[360]);
-sg__wc.cb[360].name = SYMBOL("pass2/narg-inliner");
-  sg__wc.w[976] = WORD(&sg__wc.cb[331]);
-sg__wc.cb[331].name = SYMBOL("pass2/$LREF");
-  sg__wc.w[8194] = IDENT("$DEFINE", lib);
-  sg__wc.w[4172] = IDENT("display", lib);
-  sg__wc.w[32605] = IDENT("$ASM", lib);
-  sg__wc.w[21381] = IDENT("$CONST", lib);
-  sg__wc.w[113] = WORD(&sg__wc.cb[17]);
-sg__wc.cb[17].name = SYMBOL("iform-copy");
-  sg__wc.w[21290] = IDENT("*pass2-dispatch-table*", lib);
-  sg__wc.w[948] = WORD(&sg__wc.cb[324]);
-sg__wc.cb[324].name = SYMBOL("pass1/call");
-  sg__wc.w[19629] = IDENT("list?", lib);
-  sg__wc.w[15234] = IDENT("p1env-sans-name", lib);
+  sg__wc.w[1512] = IDENT("procedure-inliner-set!", lib);
+  sg__wc.w[17827] = IDENT("import-only", lib);
+  sg__wc.w[1160] = IDENT("renv-add-can-free2", lib);
+  sg__wc.w[15954] = WORD(&sg__wc.cb[257]);
+sg__wc.cb[257].name = SG_MAKE_BOOL(FALSE);
   sg__wc.w[6107] = SYMBOLW("cons*");
   sg__wc.w[6119] = SYMBOLW("cons*");
   sg__wc.w[7663] = SYMBOLW("cons*");
   sg__wc.w[7679] = SYMBOLW("cons*");
   sg__wc.w[7687] = SYMBOLW("cons*");
-  sg__wc.w[10787] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
-  sg__wc.w[29020] = IDENT("cb-emit1!", lib);
-  sg__wc.w[27281] = IDENT("reverse", lib);
-  sg__wc.w[19921] = IDENT("SYNTAX", lib);
-  sg__wc.w[12540] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
-  sg__wc.w[71] = WORD(&sg__wc.cb[10]);
-sg__wc.cb[10].name = SYMBOL("$const-nil");
-  sg__wc.w[8268] = IDENT("pass1/define", lib);
-  sg__wc.w[31000] = IDENT("$CONST", lib);
-  sg__wc.w[22844] = IDENT("adjust-arglist", lib);
-  sg__wc.w[928] = WORD(&sg__wc.cb[317]);
-sg__wc.cb[317].name = SYMBOL("pass1/body-macro-expand-rec");
-  sg__wc.w[7023] = STRINGW("unquote-splicing appear in bad context");
-  sg__wc.w[33285] = IDENT("$CONST", lib);
-  sg__wc.w[1040] = WORD(&sg__wc.cb[352]);
-sg__wc.cb[352].name = SYMBOL("pass2/$RECEIVE");
-  sg__wc.w[17732] = IDENT("pass1", lib);
-  sg__wc.w[15531] = IDENT("list", lib);
-  sg__wc.w[14616] = IDENT("reverse", lib);
-  sg__wc.w[3871] = IDENT("format", lib);
-  sg__wc.w[18628] = IDENT("list", lib);
-  sg__wc.w[17887] = SYMBOLW("expand");
-  sg__wc.w[39] = WORD(&sg__wc.cb[5]);
-sg__wc.cb[5].name = SYMBOL("lvar-ref++!");
   sg__wc.w[4964] = IDENT("display", lib);
-  sg__wc.w[34671] = IDENT("pass1", lib);
-  sg__wc.w[19430] = WORD(&sg__wc.cb[310]);
-sg__wc.cb[310].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[15877] = STRINGW("at least one clause is required for cond");
-  sg__wc.w[16963] = WORD(&sg__wc.cb[265]);
-sg__wc.cb[265].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[17677] = IDENT("gloc-ref", lib);
-  sg__wc.w[16356] = IDENT("p1env-sans-name", lib);
-  sg__wc.w[15249] = IDENT("$it", lib);
-  sg__wc.w[439] = IDENT("er-rename", lib);
-  sg__wc.w[30520] = IDENT("max", lib);
-  sg__wc.w[1020] = WORD(&sg__wc.cb[342]);
-sg__wc.cb[342].name = SYMBOL("pass2/classify-calls");
+  sg__wc.w[20834] = IDENT("call-syntax-handler", lib);
+  sg__wc.w[12728] = WORD(&sg__wc.cb[186]);
+sg__wc.cb[186].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[208] = IDENT("global-id", lib);
+  sg__wc.w[5943] = IDENT("number?", lib);
+  sg__wc.w[32743] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[1438] = IDENT("*pass3-dispatch-table*", lib);
+  sg__wc.w[25802] = IDENT("UNBOX", lib);
+  sg__wc.w[16115] = WORD(&sg__wc.cb[250]);
+sg__wc.cb[250].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[10678] = IDENT("%map-cons", lib);
+  sg__wc.w[31109] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[29817] = IDENT("FRAME", lib);
+  sg__wc.w[25860] = IDENT("GREF", lib);
+  sg__wc.w[19629] = IDENT("list?", lib);
+  sg__wc.w[20284] = IDENT("caar", lib);
+  sg__wc.w[1956] = IDENT("memq", lib);
+  sg__wc.w[23178] = IDENT("$LREF", lib);
+  sg__wc.w[22868] = WORD(&sg__wc.cb[350]);
+sg__wc.cb[350].name = SYMBOL("inline-it");
+  sg__wc.w[27047] = IDENT("cb-emit1!", lib);
+  sg__wc.w[26157] = IDENT("NUM_EQ", lib);
+  sg__wc.w[956] = WORD(&sg__wc.cb[326]);
+sg__wc.cb[326].name = SYMBOL("pass1");
+  sg__wc.w[15091] = IDENT("syntax-error", lib);
+  sg__wc.w[13944] = IDENT("$CALL", lib);
+  sg__wc.w[3199] = IDENT("$LAMBDA", lib);
+  sg__wc.w[10128] = IDENT("identifier?", lib);
+  sg__wc.w[7373] = SYMBOLW("append");
+  sg__wc.w[7379] = SYMBOLW("append");
+  sg__wc.w[28565] = IDENT("pass3/normal-call", lib);
+  sg__wc.w[940] = WORD(&sg__wc.cb[321]);
+sg__wc.cb[321].name = SYMBOL("pass1/body-rest");
+  sg__wc.w[11191] = IDENT("map", lib);
+  sg__wc.w[5600] = IDENT("append!", lib);
+  sg__wc.w[34909] = IDENT("scheme-error", lib);
+  sg__wc.w[1524] = SYMBOLW("-");
+  sg__wc.w[26905] = IDENT("length", lib);
+  sg__wc.w[21844] = IDENT("pass2/rec", lib);
+  sg__wc.w[25663] = IDENT("memq", lib);
+  sg__wc.w[19213] = IDENT("syntax-error", lib);
+  sg__wc.w[12190] = WORD(&sg__wc.cb[177]);
+sg__wc.cb[177].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[29889] = IDENT("pass3/emit-asm!", lib);
+  sg__wc.w[17775] = IDENT("reverse", lib);
+  sg__wc.w[32500] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[28348] = IDENT("JUMP", lib);
+  sg__wc.w[1028] = WORD(&sg__wc.cb[347]);
+sg__wc.cb[347].name = SYMBOL("pass2/local-call-embedder");
+  sg__wc.w[17805] = IDENT("$seq", lib);
+  sg__wc.w[26813] = IDENT("pass3/find-sets", lib);
+  sg__wc.w[17226] = STRINGW("malformed case");
+  sg__wc.w[11900] = WORD(&sg__wc.cb[170]);
+sg__wc.cb[170].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[1633] = IDENT("find-procedure", lib);
+  sg__wc.w[1508] = IDENT("find-procedure", lib);
+  sg__wc.w[28005] = IDENT("append", lib);
+  sg__wc.w[17315] = IDENT("caar", lib);
+  sg__wc.w[5592] = IDENT("$LIST", lib);
+  sg__wc.w[1616] = WORD(&sg__wc.cb[481]);
+sg__wc.cb[481].name = SYMBOL("inliner//");
+  sg__wc.w[926] = IDENT("pass1/body-rec", lib);
+  sg__wc.w[19651] = IDENT("lvar?", lib);
+  sg__wc.w[16184] = IDENT("$IF", lib);
+  sg__wc.w[24533] = IDENT("reverse", lib);
+  sg__wc.w[11670] = WORD(&sg__wc.cb[166]);
+sg__wc.cb[166].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[35353] = IDENT("pass3", lib);
+  sg__wc.w[4962] = STRINGW(")");
+  sg__wc.w[33409] = WORD(&sg__wc.cb[474]);
+sg__wc.cb[474].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[22387] = WORD(&sg__wc.cb[343]);
+sg__wc.cb[343].name = SYMBOL("loop");
+  sg__wc.w[990] = IDENT("pass2/$GSET", lib);
+  sg__wc.w[18074] = IDENT("memv", lib);
+  sg__wc.w[17977] = SYMBOLW("smatch");
+  sg__wc.w[22634] = SYMBOLW("smatch");
+  sg__wc.w[30388] = SYMBOLW("smatch");
+  sg__wc.w[32042] = SYMBOLW("smatch");
+  sg__wc.w[32434] = SYMBOLW("smatch");
+  sg__wc.w[32836] = SYMBOLW("smatch");
+  sg__wc.w[33252] = SYMBOLW("smatch");
+  sg__wc.w[33582] = SYMBOLW("smatch");
+  sg__wc.w[33929] = SYMBOLW("smatch");
+  sg__wc.w[34299] = SYMBOLW("smatch");
+  sg__wc.w[34671] = SYMBOLW("smatch");
+  sg__wc.w[336] = SYMBOLW("syntax-case");
+  sg__wc.w[340] = SYMBOLW("syntax-case");
+  sg__wc.w[27699] = IDENT("pass3/find-free", lib);
+  sg__wc.w[27625] = IDENT("tail-context?", lib);
+  sg__wc.w[1084] = IDENT("pass2/$LREF", lib);
+  sg__wc.w[11418] = WORD(&sg__wc.cb[159]);
+sg__wc.cb[159].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[10638] = IDENT("parse-lambda-args", lib);
+  sg__wc.w[763] = SYMBOLW("unless");
+  sg__wc.w[767] = SYMBOLW("unless");
+  sg__wc.w[11311] = IDENT("$CALL", lib);
+  sg__wc.w[1342] = WORD(&sg__wc.cb[421]);
+sg__wc.cb[421].name = SYMBOL("all-args-simple?");
+  sg__wc.w[996] = WORD(&sg__wc.cb[336]);
+sg__wc.cb[336].name = SYMBOL("pass2/$IF");
+  sg__wc.w[2935] = IDENT("$GREF", lib);
+  sg__wc.w[32885] = WORD(&sg__wc.cb[467]);
+sg__wc.cb[467].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[22754] = IDENT("lvar-ref--!", lib);
+  sg__wc.w[19485] = WORD(&sg__wc.cb[313]);
+sg__wc.cb[313].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[13083] = IDENT("pass1", lib);
+  sg__wc.w[10913] = WORD(&sg__wc.cb[152]);
+sg__wc.cb[152].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[28699] = IDENT("LOCAL_CALL", lib);
+  sg__wc.w[32454] = WORD(&sg__wc.cb[460]);
+sg__wc.cb[460].name = SYMBOL("fold--");
+  sg__wc.w[31611] = IDENT("$CONST", lib);
+  sg__wc.w[1314] = WORD(&sg__wc.cb[414]);
+sg__wc.cb[414].name = SYMBOL("pass3/$SEQ");
+  sg__wc.w[984] = WORD(&sg__wc.cb[333]);
+sg__wc.cb[333].name = SYMBOL("pass2/$GREF");
+  sg__wc.w[34307] = IDENT("$ASM", lib);
+  sg__wc.w[10506] = WORD(&sg__wc.cb[145]);
+sg__wc.cb[145].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[8709] = IDENT("list", lib);
+  sg__wc.w[29657] = IDENT("NUM_GE", lib);
+  sg__wc.w[1286] = WORD(&sg__wc.cb[407]);
+sg__wc.cb[407].name = SYMBOL("pass3/emit-then-else");
+  sg__wc.w[21861] = IDENT("$LREF", lib);
+  sg__wc.w[1491] = WORD(&sg__wc.cb[453]);
+sg__wc.cb[453].name = SYMBOL("inliner/+.");
+  sg__wc.w[29616] = IDENT("cadr", lib);
+  sg__wc.w[25278] = IDENT("memq", lib);
+  sg__wc.w[10170] = WORD(&sg__wc.cb[138]);
+sg__wc.cb[138].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[27552] = IDENT("pass3/make-boxes", lib);
+  sg__wc.w[14001] = IDENT("$CALL", lib);
+  sg__wc.w[12540] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
+  sg__wc.w[35219] = IDENT("pass1", lib);
+  sg__wc.w[12746] = IDENT("reverse", lib);
+  sg__wc.w[4090] = STRINGW("label#~a");
+  sg__wc.w[1697] = IDENT("NUM_LT", lib);
+  sg__wc.w[1460] = WORD(&sg__wc.cb[446]);
+sg__wc.cb[446].name = SYMBOL("ensure-inexact-const");
+  sg__wc.w[22320] = IDENT("pass2/local-call-embedder", lib);
+  sg__wc.w[615] = IDENT("%insert-binding", lib);
+  sg__wc.w[19448] = IDENT("reverse", lib);
+  sg__wc.w[11300] = IDENT("$LET", lib);
+  sg__wc.w[9790] = WORD(&sg__wc.cb[131]);
+sg__wc.cb[131].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[35271] = IDENT("integer?", lib);
+  sg__wc.w[26411] = IDENT("max", lib);
   sg__wc.w[21757] = IDENT("pass2/label-or-dup", lib);
-  sg__wc.w[16711] = WORD(&sg__wc.cb[258]);
-sg__wc.cb[258].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[26989] = IDENT("cb-emit1!", lib);
+  sg__wc.w[20410] = IDENT("map", lib);
+  sg__wc.w[18980] = IDENT("syntax-error", lib);
+  sg__wc.w[4856] = IDENT("scheme-error", lib);
+  sg__wc.w[31285] = IDENT("PUSH", lib);
+  sg__wc.w[1242] = WORD(&sg__wc.cb[396]);
+sg__wc.cb[396].name = SYMBOL("pass3/$DEFINE");
+  sg__wc.w[31954] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[1440] = WORD(&sg__wc.cb[439]);
+sg__wc.cb[439].name = SYMBOL("pass3/compile-args");
+  sg__wc.w[20807] = IDENT("macro?", lib);
+  sg__wc.w[9532] = WORD(&sg__wc.cb[124]);
+sg__wc.cb[124].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[4578] = STRINGW(")");
+  sg__wc.w[2082] = IDENT("$LREF", lib);
+  sg__wc.w[4172] = IDENT("display", lib);
+  sg__wc.w[33914] = IDENT("fold", lib);
+  sg__wc.w[1218] = WORD(&sg__wc.cb[389]);
+sg__wc.cb[389].name = SYMBOL("pass3/return-assign-free");
+  sg__wc.w[2240] = IDENT("$LSET", lib);
+  sg__wc.w[29962] = IDENT("PUSH", lib);
+  sg__wc.w[170] = WORD(&sg__wc.cb[40]);
+sg__wc.cb[40].name = SYMBOL("p1env-swap-library");
+  sg__wc.w[30051] = IDENT("pass3/emit-asm!", lib);
+  sg__wc.w[9169] = WORD(&sg__wc.cb[117]);
+sg__wc.cb[117].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[35378] = IDENT("pp-iform", lib);
+  sg__wc.w[34629] = IDENT("fold", lib);
+  sg__wc.w[29875] = IDENT("length", lib);
+  sg__wc.w[24124] = IDENT("append", lib);
+  sg__wc.w[28674] = IDENT("length", lib);
+  sg__wc.w[1194] = WORD(&sg__wc.cb[382]);
+sg__wc.cb[382].name = SYMBOL("pass3/find-sets");
+  sg__wc.w[21047] = IDENT("pass1/call", lib);
+  sg__wc.w[8387] = IDENT("pass1/define", lib);
+  sg__wc.w[141] = WORD(&sg__wc.cb[33]);
+sg__wc.cb[33].name = SYMBOL("ensure-library");
+  sg__wc.w[35265] = IDENT("scheme-error", lib);
+  sg__wc.w[8365] = IDENT("reverse", lib);
+  sg__wc.w[30699] = IDENT("PUSH", lib);
+  sg__wc.w[1170] = WORD(&sg__wc.cb[375]);
+sg__wc.cb[375].name = SYMBOL("hashtable-set-true!");
+  sg__wc.w[16665] = IDENT("pass1", lib);
+  sg__wc.w[1713] = IDENT("ensure-library-name", lib);
+  sg__wc.w[32933] = IDENT("error", lib);
+  sg__wc.w[1359] = WORD(&sg__wc.cb[428]);
+sg__wc.cb[428].name = SYMBOL("pass3/$IT");
+  sg__wc.w[1312] = IDENT("pass3/$LABEL", lib);
+  sg__wc.w[4394] = WORD(&sg__wc.cb[26]);
+sg__wc.cb[26].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[35091] = WORD(&sg__wc.cb[498]);
+sg__wc.cb[498].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[9641] = IDENT("syntax-error", lib);
+  sg__wc.w[25643] = IDENT("pass3/return-assign-local", lib);
+  sg__wc.w[1145] = WORD(&sg__wc.cb[368]);
+sg__wc.cb[368].name = SYMBOL("stmt-context");
+  sg__wc.w[21537] = IDENT("$IF", lib);
+  sg__wc.w[20854] = IDENT("procedure-inliner", lib);
+  sg__wc.w[17909] = IDENT("load-library", lib);
+  sg__wc.w[125] = WORD(&sg__wc.cb[21]);
+sg__wc.cb[21].name = SYMBOL("pp-iform");
+  sg__wc.w[1811] = WORD(&sg__wc.cb[491]);
+sg__wc.cb[491].name = SYMBOL("inliner/zero?");
+  sg__wc.w[34436] = IDENT("$GREF", lib);
+  sg__wc.w[31322] = IDENT("max", lib);
+  sg__wc.w[13859] = IDENT("length", lib);
+  sg__wc.w[31592] = IDENT("number?", lib);
+  sg__wc.w[29533] = IDENT("$LREF", lib);
+  sg__wc.w[17600] = STRINGW("malformed set!");
+  sg__wc.w[32213] = IDENT("ensure-inexact-const", lib);
+  sg__wc.w[1117] = WORD(&sg__wc.cb[361]);
+sg__wc.cb[361].name = SYMBOL("make-new-label");
+  sg__wc.w[21365] = IDENT("$CONST", lib);
+  sg__wc.w[21090] = IDENT("syntax?", lib);
+  sg__wc.w[3895] = IDENT("$UNDEF", lib);
+  sg__wc.w[10411] = IDENT("p1env-extend/proc", lib);
+  sg__wc.w[27539] = IDENT("make-new-renv", lib);
+  sg__wc.w[10797] = IDENT("list", lib);
+  sg__wc.w[9256] = IDENT("variable-name", lib);
+  sg__wc.w[26406] = IDENT("pass3/rec", lib);
+  sg__wc.w[25446] = IDENT("cb-emit0!", lib);
+  sg__wc.w[1900] = IDENT("ensure-library-name", lib);
+  sg__wc.w[1048] = WORD(&sg__wc.cb[354]);
+sg__wc.cb[354].name = SYMBOL("pass2/$SEQ");
+  sg__wc.w[31100] = IDENT("ADDI", lib);
+  sg__wc.w[5015] = SYMBOLW("variable-name");
+  sg__wc.w[34230] = IDENT("DIV", lib);
+  sg__wc.w[1499] = SYMBOLW("+.");
+  sg__wc.w[32224] = SYMBOLW("+.");
+  sg__wc.w[31648] = IDENT("$CONST", lib);
+  sg__wc.w[26483] = IDENT("pass3/emit-then-else", lib);
+  sg__wc.w[23920] = IDENT("pass3/rec", lib);
+  sg__wc.w[31586] = IDENT("undefined", lib);
+  sg__wc.w[23440] = IDENT("lvar-ref--!", lib);
+  sg__wc.w[21631] = IDENT("$IT", lib);
+  sg__wc.w[43] = WORD(&sg__wc.cb[6]);
+sg__wc.cb[6].name = SYMBOL("lvar-ref--!");
+  sg__wc.w[25795] = IDENT("hashtable-ref", lib);
+  sg__wc.w[21030] = IDENT("pass1/call", lib);
+  sg__wc.w[3491] = IDENT("reverse", lib);
+  sg__wc.w[25840] = IDENT("pass3/compile-assign", lib);
+  sg__wc.w[13175] = IDENT("map", lib);
+  sg__wc.w[13181] = IDENT("map", lib);
+  sg__wc.w[9246] = IDENT("variable-name", lib);
+  sg__wc.w[29163] = IDENT("normal-context", lib);
+  sg__wc.w[2980] = IDENT("$CONST", lib);
+  sg__wc.w[4580] = IDENT("display", lib);
+  sg__wc.w[6] = WORD(&sg__wc.cb[1]);
+sg__wc.cb[1].name = SYMBOL("$for-each1-with-rindex");
+  sg__wc.w[28995] = IDENT("pass3/compile-args", lib);
+  sg__wc.w[1115] = IDENT("*pass2-dispatch-table*", lib);
+  sg__wc.w[1920] = IDENT("compile-p1", lib);
+  sg__wc.w[29228] = IDENT("tail-context?", lib);
+  sg__wc.w[8912] = STRINGW("malformed syntax: expected exactly one datum");
+  sg__wc.w[1916] = IDENT("compile", lib);
+  sg__wc.w[33590] = IDENT("$ASM", lib);
+  sg__wc.w[32409] = IDENT("$ASM", lib);
+  sg__wc.w[1320] = IDENT("pass3/$CALL", lib);
+  sg__wc.w[27448] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[5828] = IDENT("pass1/quote", lib);
+  sg__wc.w[25324] = IDENT("$LIST", lib);
+  sg__wc.w[15373] = IDENT("p1env-sans-name", lib);
+  sg__wc.w[726] = IDENT("make-syntax", lib);
+  sg__wc.w[10802] = IDENT("reverse", lib);
+  sg__wc.w[8392] = WORD(Sg_Cons(SYMBOL("const"), SG_NIL));
+  sg__wc.w[33549] = IDENT("$CONST", lib);
+  sg__wc.w[29466] = IDENT("length", lib);
+  sg__wc.w[453] = SYMBOLW("er-rename");
+  sg__wc.w[446] = IDENT("ensure-library-name", lib);
+  sg__wc.w[22953] = IDENT("$SEQ", lib);
   sg__wc.w[272] = IDENT("%insert-binding", lib);
-  sg__wc.w[7027] = IDENT("syntax-error", lib);
-  sg__wc.w[20933] = IDENT("scheme-error", lib);
-  sg__wc.w[22190] = IDENT("$LREF", lib);
-  sg__wc.w[22103] = IDENT("$seq", lib);
-  sg__wc.w[992] = WORD(&sg__wc.cb[335]);
-sg__wc.cb[335].name = SYMBOL("pass2/$CONST");
-  sg__wc.w[20800] = IDENT("gloc-ref", lib);
-  sg__wc.w[20722] = IDENT("scheme-error", lib);
+  sg__wc.w[5050] = IDENT("gloc-bound?", lib);
+  sg__wc.w[28590] = IDENT("tail-context?", lib);
+  sg__wc.w[17128] = STRINGW("at least one clause is required for case");
+  sg__wc.w[3039] = IDENT("$LET", lib);
+  sg__wc.w[3385] = IDENT("$SEQ", lib);
+  sg__wc.w[32200] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[26439] = IDENT("pass3/rec", lib);
+  sg__wc.w[21591] = IDENT("pass2/rec", lib);
+  sg__wc.w[20083] = IDENT("identifier?", lib);
+  sg__wc.w[527] = IDENT("%insert-binding", lib);
+  sg__wc.w[34053] = IDENT("$CONST", lib);
+  sg__wc.w[25779] = IDENT("pass3/compile-refer", lib);
+  sg__wc.w[25195] = IDENT("append", lib);
+  sg__wc.w[2792] = STRINGW("[internal error] iform-count-size-upto: unknown iform tag:");
+  sg__wc.w[1110] = IDENT("pass2/$IT", lib);
+  sg__wc.w[21885] = IDENT("$LABEL", lib);
+  sg__wc.w[18633] = IDENT("reverse", lib);
+  sg__wc.w[380] = SYMBOLW("define-syntax");
+  sg__wc.w[384] = SYMBOLW("define-syntax");
+  sg__wc.w[9012] = SYMBOLW("define-syntax");
+  sg__wc.w[19823] = SYMBOLW("define-syntax");
+  sg__wc.w[19936] = SYMBOLW("define-syntax");
+  sg__wc.w[10683] = IDENT("p1env-extend", lib);
+  sg__wc.w[23143] = IDENT("$LAMBDA", lib);
+  sg__wc.w[14757] = IDENT("pass1", lib);
+  sg__wc.w[4436] = IDENT("insn-name", lib);
+  sg__wc.w[4843] = IDENT("for-each", lib);
+  sg__wc.w[2704] = IDENT("$ASM", lib);
+  sg__wc.w[31167] = IDENT("SUB", lib);
+  sg__wc.w[26631] = IDENT("pass3/letrec", lib);
+  sg__wc.w[26472] = IDENT("pass3/rec", lib);
+  sg__wc.w[225] = IDENT("pass1/quote", lib);
+  sg__wc.w[412] = IDENT("%insert-binding", lib);
+  sg__wc.w[33855] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[23574] = IDENT("$LABEL", lib);
+  sg__wc.w[17697] = IDENT("pass1", lib);
+  sg__wc.w[10687] = IDENT("$RECEIVE", lib);
+  sg__wc.w[32517] = IDENT("$CONST", lib);
+  sg__wc.w[27732] = IDENT("make-code-builder", lib);
+  sg__wc.w[21433] = IDENT("assertion-violation", lib);
+  sg__wc.w[34352] = IDENT("error", lib);
+  sg__wc.w[28140] = IDENT("DISPLAY", lib);
+  sg__wc.w[18072] = WORD(Sg_Cons(SYMBOL("for"), Sg_Cons(SYMBOL("only"), Sg_Cons(SYMBOL("except"), Sg_Cons(SYMBOL("rename"), Sg_Cons(SYMBOL("prefix"), SG_NIL))))));
+  sg__wc.w[27870] = IDENT("CLOSURE", lib);
+  sg__wc.w[21626] = IDENT("pass2/update-if", lib);
+  sg__wc.w[19643] = IDENT("caar", lib);
+  sg__wc.w[8802] = WORD(&sg__wc.cb[109]);
+sg__wc.cb[109].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[8893] = IDENT("compile-syntax", lib);
+  sg__wc.w[1090] = IDENT("pass2/$GSET", lib);
+  sg__wc.w[4160] = IDENT("$SEQ", lib);
+  sg__wc.w[34679] = IDENT("$ASM", lib);
+  sg__wc.w[22334] = IDENT("iform-count-size-upto", lib);
+  sg__wc.w[20158] = IDENT("scheme-error", lib);
+  sg__wc.w[3599] = IDENT("$LIST", lib);
+  sg__wc.w[21715] = IDENT("$CONST", lib);
+  sg__wc.w[17831] = SYMBOLW("rename");
+  sg__wc.w[18870] = SYMBOLW("rename");
+  sg__wc.w[8509] = WORD(&sg__wc.cb[102]);
+sg__wc.cb[102].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[4812] = IDENT("display", lib);
+  sg__wc.w[30654] = IDENT("pass3/rec", lib);
+  sg__wc.w[14007] = IDENT("$lref", lib);
+  sg__wc.w[2277] = IDENT("$GSET", lib);
+  sg__wc.w[8289] = WORD(&sg__wc.cb[95]);
+sg__wc.cb[95].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[7470] = WORD(Sg_Cons(SYMBOL("e1"), SG_NIL));
+  sg__wc.w[35340] = IDENT("make-eq-hashtable", lib);
+  sg__wc.w[719] = SYMBOLW("and");
+  sg__wc.w[723] = SYMBOLW("and");
+  sg__wc.w[115] = IDENT("iform-copy", lib);
+  sg__wc.w[1832] = IDENT("procedure-inliner-set!", lib);
+  sg__wc.w[2080] = IDENT("lvar-ref++!", lib);
+  sg__wc.w[254] = WORD(&sg__wc.cb[88]);
+sg__wc.cb[88].name = SYMBOL("syntax/quasiquote");
+  sg__wc.w[31359] = IDENT("cb-emit0!", lib);
+  sg__wc.w[26609] = IDENT("cb-label-set!", lib);
+  sg__wc.w[11870] = IDENT("reverse", lib);
+  sg__wc.w[21104] = IDENT("macro?", lib);
+  sg__wc.w[17755] = IDENT("syntax-error", lib);
+  sg__wc.w[23834] = IDENT("make-eq-hashtable", lib);
+  sg__wc.w[16203] = IDENT("$it", lib);
+  sg__wc.w[15618] = WORD(&sg__wc.cb[243]);
+sg__wc.cb[243].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[12349] = IDENT("pass1/body", lib);
+  sg__wc.w[10072] = IDENT("variable?", lib);
+  sg__wc.w[29850] = IDENT("pass3/frame-size", lib);
+  sg__wc.w[20324] = IDENT("pass1/body-rest", lib);
+  sg__wc.w[19163] = WORD(&sg__wc.cb[308]);
+sg__wc.cb[308].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[16320] = IDENT("syntax-error", lib);
+  sg__wc.w[3195] = IDENT("iform-copy-zip-lvs", lib);
+  sg__wc.w[33] = IDENT("make-lvar+", lib);
+  sg__wc.w[1006] = IDENT("pass2/update-if", lib);
+  sg__wc.w[15518] = WORD(&sg__wc.cb[239]);
+sg__wc.cb[239].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[111] = IDENT("iform-count-size-upto", lib);
+  sg__wc.w[7796] = IDENT("list", lib);
+  sg__wc.w[29244] = IDENT("cb-emit0o!", lib);
   sg__wc.w[872] = WORD(&sg__wc.cb[301]);
 sg__wc.cb[301].name = SYMBOL("pass1/export");
-  sg__wc.w[31350] = IDENT("pass3/rec", lib);
-  sg__wc.w[4128] = STRINGW("($label #~a");
+  sg__wc.w[14421] = IDENT("map", lib);
+  sg__wc.w[14427] = IDENT("map", lib);
+  sg__wc.w[3469] = IDENT("iform-copy", lib);
+  sg__wc.w[10370] = IDENT("$LAMBDA", lib);
+  sg__wc.w[25593] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[246] = IDENT("%insert-binding", lib);
+  sg__wc.w[6682] = WORD(&sg__wc.cb[73]);
+sg__wc.cb[73].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[2605] = IDENT("$SEQ", lib);
+  sg__wc.w[11423] = IDENT("map", lib);
+  sg__wc.w[11429] = IDENT("map", lib);
+  sg__wc.w[21275] = STRINGW("[internal] p1env-lookup returned weird obj:");
+  sg__wc.w[17336] = SYMBOLW("eqv?");
+  sg__wc.w[9153] = IDENT("syntax-error", lib);
+  sg__wc.w[23845] = IDENT("hashtable-for-each", lib);
+  sg__wc.w[22281] = IDENT("length", lib);
+  sg__wc.w[18615] = WORD(&sg__wc.cb[297]);
+sg__wc.cb[297].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[6800] = WORD(&sg__wc.cb[66]);
+sg__wc.cb[66].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[20146] = IDENT("pass1/body-finish", lib);
+  sg__wc.w[19677] = IDENT("pass1/body-macro-expand-rec", lib);
+  sg__wc.w[32995] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[26835] = IDENT("reverse", lib);
+  sg__wc.w[23160] = IDENT("expand-inlined-procedure", lib);
+  sg__wc.w[18333] = WORD(&sg__wc.cb[290]);
+sg__wc.cb[290].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[4849] = STRINGW("unknown tag:");
+  sg__wc.w[34597] = IDENT("$ASM", lib);
   sg__wc.w[20901] = IDENT("argcount-ok?", lib);
-  sg__wc.w[29317] = IDENT("length", lib);
-  sg__wc.w[18557] = WORD(&sg__wc.cb[296]);
-sg__wc.cb[296].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[5871] = WORD(&sg__wc.cb[59]);
+sg__wc.cb[59].name = SYMBOL("constant?");
+  sg__wc.w[236] = SYMBOLW("quote");
+  sg__wc.w[240] = SYMBOLW("quote");
+  sg__wc.w[5927] = SYMBOLW("quote");
+  sg__wc.w[5997] = SYMBOLW("quote");
+  sg__wc.w[6289] = SYMBOLW("quote");
+  sg__wc.w[6359] = SYMBOLW("quote");
+  sg__wc.w[6471] = SYMBOLW("quote");
+  sg__wc.w[6535] = SYMBOLW("quote");
+  sg__wc.w[17338] = SYMBOLW("quote");
+  sg__wc.w[17371] = SYMBOLW("quote");
+  sg__wc.w[14636] = WORD(&sg__wc.cb[224]);
+sg__wc.cb[224].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[5331] = IDENT("vm-current-library", lib);
+  sg__wc.w[26192] = IDENT("BNLT", lib);
+  sg__wc.w[8807] = IDENT("map", lib);
+  sg__wc.w[8813] = IDENT("map", lib);
+  sg__wc.w[156] = IDENT("p1env-extend", lib);
+  sg__wc.w[29131] = IDENT("length", lib);
+  sg__wc.w[18003] = WORD(&sg__wc.cb[283]);
+sg__wc.cb[283].name = SYMBOL("loop");
+  sg__wc.w[135] = IDENT("id->bound-gloc", lib);
+  sg__wc.w[8194] = IDENT("$DEFINE", lib);
+  sg__wc.w[206] = WORD(&sg__wc.cb[52]);
+sg__wc.cb[52].name = SYMBOL("global-id");
+  sg__wc.w[9030] = IDENT("p1env-add-name", lib);
+  sg__wc.w[30736] = IDENT("max", lib);
+  sg__wc.w[24082] = IDENT("append", lib);
+  sg__wc.w[22675] = IDENT("for-each", lib);
+  sg__wc.w[14764] = IDENT("pass1", lib);
+  sg__wc.w[13678] = WORD(&sg__wc.cb[217]);
+sg__wc.cb[217].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[402] = SYMBOLW("let-syntax");
+  sg__wc.w[406] = SYMBOLW("let-syntax");
+  sg__wc.w[9241] = SYMBOLW("let-syntax");
+  sg__wc.w[33364] = IDENT("$CONST", lib);
+  sg__wc.w[30897] = IDENT("pass3/rec", lib);
+  sg__wc.w[17693] = IDENT("call-macro-expander", lib);
+  sg__wc.w[821] = WORD(&sg__wc.cb[276]);
+sg__wc.cb[276].name = SYMBOL("syntax/set!");
+  sg__wc.w[33837] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[1070] = IDENT("pass2/$IT", lib);
+  sg__wc.w[8352] = IDENT("map", lib);
+  sg__wc.w[8358] = IDENT("map", lib);
+  sg__wc.w[190] = WORD(&sg__wc.cb[45]);
+sg__wc.cb[45].name = SYMBOL("expand-inlined-procedure");
+  sg__wc.w[22759] = SYMBOLW("embed");
+  sg__wc.w[28497] = SYMBOLW("embed");
+  sg__wc.w[22701] = IDENT("adjust-arglist", lib);
+  sg__wc.w[22188] = IDENT("$CONST", lib);
+  sg__wc.w[13957] = WORD(&sg__wc.cb[210]);
+sg__wc.cb[210].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[29539] = IDENT("memv", lib);
+  sg__wc.w[21322] = IDENT("pass2/rec", lib);
+  sg__wc.w[20722] = IDENT("scheme-error", lib);
+  sg__wc.w[795] = IDENT("%insert-binding", lib);
+  sg__wc.w[751] = IDENT("%insert-binding", lib);
   sg__wc.w[12263] = STRINGW("malformed let*");
-  sg__wc.w[8256] = IDENT("lambda.", lib);
-  sg__wc.w[446] = IDENT("ensure-library-name", lib);
-  sg__wc.w[4255] = IDENT("format", lib);
+  sg__wc.w[7801] = IDENT("reverse", lib);
+  sg__wc.w[4006] = IDENT("map", lib);
+  sg__wc.w[1292] = IDENT("pass3/$LET", lib);
+  sg__wc.w[13414] = WORD(&sg__wc.cb[203]);
+sg__wc.cb[203].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[4189] = STRINGW(")");
+  sg__wc.w[1853] = IDENT("find-procedure", lib);
+  sg__wc.w[24711] = SYMBOLW("pass3/find-free");
+  sg__wc.w[6544] = WORD(Sg_Cons(SYMBOL("quote"), Sg_Cons(SG_NIL, SG_NIL)));
+  sg__wc.w[27153] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[16963] = WORD(&sg__wc.cb[265]);
+sg__wc.cb[265].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[180] = IDENT("formals->list", lib);
+  sg__wc.w[13112] = WORD(&sg__wc.cb[196]);
+sg__wc.cb[196].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[2944] = IDENT("$GSET", lib);
+  sg__wc.w[26700] = IDENT("append", lib);
+  sg__wc.w[30846] = IDENT("ADDI", lib);
+  sg__wc.w[26418] = IDENT("PUSH", lib);
+  sg__wc.w[34058] = IDENT("/", lib);
+  sg__wc.w[16834] = WORD(&sg__wc.cb[260]);
+sg__wc.cb[260].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[31719] = IDENT("$ASM", lib);
+  sg__wc.w[16895] = WORD(Sg_Cons(SYMBOL("exprs"), SG_NIL));
+  sg__wc.w[16671] = IDENT("$lref", lib);
+  sg__wc.w[640] = WORD(&sg__wc.cb[189]);
+sg__wc.cb[189].name = SYMBOL("pass1/letrec");
+  sg__wc.w[5752] = IDENT("identifier?", lib);
+  sg__wc.w[34762] = IDENT("pass1", lib);
+  sg__wc.w[28143] = IDENT("cb-emit1!", lib);
+  sg__wc.w[13036] = IDENT("p1env-extend", lib);
   sg__wc.w[30597] = IDENT("EQ", lib);
-  sg__wc.w[25054] = IDENT("$IF", lib);
-  sg__wc.w[15912] = WORD(&sg__wc.cb[248]);
-sg__wc.cb[248].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[960] = WORD(&sg__wc.cb[327]);
+sg__wc.cb[327].name = SYMBOL("pass2/rec");
+  sg__wc.w[16299] = WORD(&sg__wc.cb[253]);
+sg__wc.cb[253].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[28530] = IDENT("$LET", lib);
+  sg__wc.w[20651] = IDENT("reverse", lib);
+  sg__wc.w[18937] = IDENT("cadar", lib);
+  sg__wc.w[12479] = WORD(&sg__wc.cb[182]);
+sg__wc.cb[182].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[5570] = IDENT("scheme-error", lib);
+  sg__wc.w[23898] = IDENT("hashtable-set-true!", lib);
+  sg__wc.w[1044] = WORD(&sg__wc.cb[353]);
+sg__wc.cb[353].name = SYMBOL("pass2/$LABEL");
+  sg__wc.w[31410] = IDENT("PUSH", lib);
+  sg__wc.w[1405] = IDENT("pass3/$DEFINE", lib);
+  sg__wc.w[20632] = IDENT("$CALL", lib);
+  sg__wc.w[18739] = IDENT("reverse", lib);
+  sg__wc.w[17903] = IDENT("load-library", lib);
+  sg__wc.w[777] = WORD(&sg__wc.cb[246]);
+sg__wc.cb[246].name = SYMBOL("syntax/cond");
+  sg__wc.w[697] = SYMBOLW("or");
+  sg__wc.w[701] = SYMBOLW("or");
+  sg__wc.w[10083] = STRINGW("rename procrdure requires a symbol or an identifier, but got ");
+  sg__wc.w[1480] = IDENT("ensure-library-name", lib);
+  sg__wc.w[11273] = IDENT("length", lib);
+  sg__wc.w[29007] = IDENT("POP_LET_FRAME", lib);
+  sg__wc.w[12952] = IDENT("format", lib);
+  sg__wc.w[1361] = IDENT("pass3/$IT", lib);
+  sg__wc.w[7877] = IDENT("pass1/quasiquote", lib);
+  sg__wc.w[31015] = IDENT("integer-fits-insn-arg?", lib);
+  sg__wc.w[22950] = IDENT("$SEQ", lib);
+  sg__wc.w[948] = WORD(&sg__wc.cb[324]);
+sg__wc.cb[324].name = SYMBOL("pass1/call");
+  sg__wc.w[13475] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
+  sg__wc.w[35207] = IDENT("$ASM", lib);
+  sg__wc.w[1562] = IDENT("procedure-inliner-set!", lib);
+  sg__wc.w[21170] = IDENT("p1env-lookup", lib);
+  sg__wc.w[895] = IDENT("%insert-binding", lib);
+  sg__wc.w[31275] = IDENT("normal-context", lib);
+  sg__wc.w[29335] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[24841] = IDENT("$RECEIVE", lib);
+  sg__wc.w[12333] = WORD(&sg__wc.cb[180]);
+sg__wc.cb[180].name = SYMBOL("loop");
+  sg__wc.w[31073] = IDENT("integer-fits-insn-arg?", lib);
+  sg__wc.w[25007] = IDENT("append", lib);
+  sg__wc.w[998] = IDENT("pass2/$IF", lib);
+  sg__wc.w[19462] = IDENT("list", lib);
+  sg__wc.w[32220] = IDENT("$GREF", lib);
+  sg__wc.w[17072] = WORD(Sg_Cons(SYMBOL("clause"), SG_NIL));
+  sg__wc.w[704] = IDENT("make-syntax", lib);
+  sg__wc.w[30730] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[10883] = WORD(&sg__wc.cb[173]);
+sg__wc.cb[173].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[32841] = IDENT("error", lib);
+  sg__wc.w[31304] = IDENT("pass3/rec", lib);
+  sg__wc.w[26032] = IDENT("NOT", lib);
+  sg__wc.w[17684] = IDENT("macro?", lib);
+  sg__wc.w[1684] = IDENT("ensure-library-name", lib);
+  sg__wc.w[3633] = IDENT("reverse", lib);
+  sg__wc.w[34102] = WORD(&sg__wc.cb[484]);
+sg__wc.cb[484].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[29846] = IDENT("cb-label-set!", lib);
+  sg__wc.w[28557] = IDENT("pass3/head-heavy-call", lib);
+  sg__wc.w[10968] = WORD(&sg__wc.cb[169]);
+sg__wc.cb[169].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[30474] = IDENT("max", lib);
+  sg__wc.w[20744] = IDENT("identifier?", lib);
+  sg__wc.w[30689] = IDENT("normal-context", lib);
+  sg__wc.w[29476] = IDENT("TAIL_CALL", lib);
+  sg__wc.w[5176] = IDENT("p1env-toplevel?", lib);
   sg__wc.w[2023] = SYMBOLW("lvar");
   sg__wc.w[2043] = SYMBOLW("lvar");
   sg__wc.w[3707] = SYMBOLW("lvar");
@@ -36170,332 +36598,2818 @@ sg__wc.cb[248].name = SG_MAKE_BOOL(FALSE);
   sg__wc.w[12360] = SYMBOLW("lvar");
   sg__wc.w[13767] = SYMBOLW("lvar");
   sg__wc.w[16609] = SYMBOLW("lvar");
-  sg__wc.w[346] = IDENT("%insert-binding", lib);
-  sg__wc.w[34426] = IDENT("$GREF", lib);
-  sg__wc.w[640] = WORD(&sg__wc.cb[189]);
-sg__wc.cb[189].name = SYMBOL("pass1/letrec");
-  sg__wc.w[277] = IDENT("pass1/define", lib);
-  sg__wc.w[1687] = IDENT("find-procedure", lib);
-  sg__wc.w[31819] = IDENT("$CONST", lib);
-  sg__wc.w[29297] = IDENT("pass3/compile-args", lib);
-  sg__wc.w[22154] = IDENT("zero?", lib);
-  sg__wc.w[18283] = WORD(&sg__wc.cb[289]);
-sg__wc.cb[289].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[18884] = IDENT("cdar", lib);
-  sg__wc.w[12479] = WORD(&sg__wc.cb[182]);
-sg__wc.cb[182].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[5167] = IDENT("format", lib);
-  sg__wc.w[23845] = IDENT("hashtable-for-each", lib);
-  sg__wc.w[970] = IDENT("pass2/$UNDEF", lib);
-  sg__wc.w[18074] = IDENT("memv", lib);
-  sg__wc.w[18036] = WORD(&sg__wc.cb[284]);
-sg__wc.cb[284].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[15723] = IDENT("$seq", lib);
-  sg__wc.w[24760] = IDENT("$LET", lib);
-  sg__wc.w[16910] = IDENT("reverse", lib);
-  sg__wc.w[15171] = IDENT("pass1", lib);
-  sg__wc.w[5072] = IDENT("p1env-lookup", lib);
-  sg__wc.w[1637] = IDENT("procedure-inliner-set!", lib);
-  sg__wc.w[12284] = WORD(&sg__wc.cb[179]);
-sg__wc.cb[179].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[35206] = IDENT("pass1", lib);
-  sg__wc.w[28248] = IDENT("POP_LET_FRAME", lib);
-  sg__wc.w[28565] = IDENT("pass3/normal-call", lib);
-  sg__wc.w[17510] = WORD(&sg__wc.cb[277]);
-sg__wc.cb[277].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[32091] = WORD(&sg__wc.cb[455]);
-sg__wc.cb[455].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[31134] = IDENT("pass3/rec", lib);
-  sg__wc.w[23669] = IDENT("bottom-context?", lib);
-  sg__wc.w[12096] = WORD(&sg__wc.cb[174]);
-sg__wc.cb[174].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[5564] = IDENT("length", lib);
-  sg__wc.w[7796] = IDENT("list", lib);
-  sg__wc.w[3176] = IDENT("$LAMBDA", lib);
-  sg__wc.w[30766] = IDENT("cb-emit0!", lib);
-  sg__wc.w[15404] = IDENT("reverse", lib);
-  sg__wc.w[12542] = IDENT("map", lib);
-  sg__wc.w[12548] = IDENT("map", lib);
-  sg__wc.w[31865] = WORD(&sg__wc.cb[452]);
-sg__wc.cb[452].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[25738] = IDENT("memq", lib);
-  sg__wc.w[15806] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
-  sg__wc.w[11794] = WORD(&sg__wc.cb[167]);
-sg__wc.cb[167].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[33559] = IDENT("$CONST", lib);
-  sg__wc.w[27037] = IDENT("tail-context?", lib);
-  sg__wc.w[26786] = IDENT("pass3/find-free", lib);
-  sg__wc.w[26117] = IDENT("BNNULL", lib);
-  sg__wc.w[23096] = IDENT("pass2/rec", lib);
-  sg__wc.w[17982] = IDENT("error", lib);
-  sg__wc.w[1407] = IDENT("pass3/$LREF", lib);
-  sg__wc.w[593] = IDENT("%insert-binding", lib);
-  sg__wc.w[9848] = WORD(&sg__wc.cb[132]);
-sg__wc.cb[132].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1119] = IDENT("make-new-label", lib);
-  sg__wc.w[17775] = IDENT("reverse", lib);
-  sg__wc.w[10681] = IDENT("LEXICAL", lib);
-  sg__wc.w[31456] = IDENT("pass1", lib);
-  sg__wc.w[605] = SYMBOLW("letrec");
-  sg__wc.w[609] = SYMBOLW("letrec");
-  sg__wc.w[12760] = SYMBOLW("letrec");
+  sg__wc.w[33619] = WORD(&sg__wc.cb[477]);
+sg__wc.cb[477].name = SYMBOL("inline");
+  sg__wc.w[32591] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[23348] = IDENT("pass2/rec", lib);
+  sg__wc.w[1050] = IDENT("pass2/$SEQ", lib);
+  sg__wc.w[22420] = WORD(&sg__wc.cb[344]);
+sg__wc.cb[344].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[29382] = IDENT("tail-context?", lib);
+  sg__wc.w[25098] = IDENT("append", lib);
+  sg__wc.w[21769] = IDENT("$IT", lib);
+  sg__wc.w[3012] = IDENT("iform-copy", lib);
+  sg__wc.w[2092] = IDENT("$LSET", lib);
   sg__wc.w[11609] = WORD(&sg__wc.cb[162]);
 sg__wc.cb[162].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[24030] = IDENT("reverse", lib);
-  sg__wc.w[17492] = IDENT("reverse", lib);
-  sg__wc.w[1684] = IDENT("ensure-library-name", lib);
-  sg__wc.w[11191] = IDENT("map", lib);
-  sg__wc.w[416] = WORD(&sg__wc.cb[125]);
-sg__wc.cb[125].name = SYMBOL("syntax/letrec-syntax");
+  sg__wc.w[32902] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[29605] = IDENT("EQV", lib);
+  sg__wc.w[26818] = IDENT("append", lib);
+  sg__wc.w[10422] = IDENT("pass1/body", lib);
+  sg__wc.w[262] = SYMBOLW("quasiquote");
+  sg__wc.w[266] = SYMBOLW("quasiquote");
+  sg__wc.w[6353] = SYMBOLW("quasiquote");
+  sg__wc.w[6703] = SYMBOLW("quasiquote");
+  sg__wc.w[6909] = SYMBOLW("quasiquote");
+  sg__wc.w[7021] = SYMBOLW("quasiquote");
+  sg__wc.w[7032] = SYMBOLW("quasiquote");
+  sg__wc.w[7043] = SYMBOLW("quasiquote");
+  sg__wc.w[33049] = WORD(&sg__wc.cb[470]);
+sg__wc.cb[470].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[30970] = IDENT("ADD", lib);
+  sg__wc.w[1008] = WORD(&sg__wc.cb[339]);
+sg__wc.cb[339].name = SYMBOL("pass2/$LET");
+  sg__wc.w[30090] = IDENT("PUSH", lib);
+  sg__wc.w[19838] = WORD(&sg__wc.cb[316]);
+sg__wc.cb[316].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[16627] = IDENT("$LET", lib);
+  sg__wc.w[3976] = STRINGW(")");
+  sg__wc.w[11121] = WORD(&sg__wc.cb[155]);
+sg__wc.cb[155].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[10044] = IDENT("map", lib);
+  sg__wc.w[10050] = IDENT("map", lib);
+  sg__wc.w[4328] = IDENT("$CALL", lib);
+  sg__wc.w[29862] = IDENT("pass3/asm-generic", lib);
+  sg__wc.w[1326] = WORD(&sg__wc.cb[417]);
+sg__wc.cb[417].name = SYMBOL("pass3/embed-call");
+  sg__wc.w[20136] = IDENT("pass1/body-finish", lib);
+  sg__wc.w[13941] = IDENT("pass1/body", lib);
+  sg__wc.w[9048] = IDENT("$UNDEF", lib);
+  sg__wc.w[4463] = IDENT("display", lib);
+  sg__wc.w[32549] = WORD(&sg__wc.cb[463]);
+sg__wc.cb[463].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[25731] = SYMBOLW("const");
+  sg__wc.w[17714] = IDENT("pass1", lib);
+  sg__wc.w[30002] = IDENT("max", lib);
+  sg__wc.w[19430] = WORD(&sg__wc.cb[310]);
+sg__wc.cb[310].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[10726] = WORD(&sg__wc.cb[148]);
+sg__wc.cb[148].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[35203] = IDENT("CONS", lib);
+  sg__wc.w[33009] = IDENT("$CALL", lib);
+  sg__wc.w[15658] = IDENT("p1env-sans-name", lib);
+  sg__wc.w[32079] = WORD(&sg__wc.cb[456]);
+sg__wc.cb[456].name = SYMBOL("inline");
+  sg__wc.w[1298] = WORD(&sg__wc.cb[410]);
+sg__wc.cb[410].name = SYMBOL("pass3/let");
+  sg__wc.w[21863] = IDENT("$CONST", lib);
+  sg__wc.w[7023] = STRINGW("unquote-splicing appear in bad context");
+  sg__wc.w[31178] = IDENT("max", lib);
+  sg__wc.w[28321] = IDENT("cb-emit0!", lib);
+  sg__wc.w[26239] = IDENT("$CONST", lib);
+  sg__wc.w[504] = WORD(&sg__wc.cb[141]);
+sg__wc.cb[141].name = SYMBOL("pass1/lambda");
+  sg__wc.w[10240] = STRINGW("malformed %macroexpand");
+  sg__wc.w[31825] = IDENT("$CALL", lib);
+  sg__wc.w[10697] = IDENT("pass1", lib);
+  sg__wc.w[7362] = IDENT("length", lib);
+  sg__wc.w[9703] = IDENT("p1env-extend", lib);
+  sg__wc.w[1270] = WORD(&sg__wc.cb[403]);
+sg__wc.cb[403].name = SYMBOL("pass3/branch-core");
+  sg__wc.w[5070] = IDENT("LEXICAL", lib);
+  sg__wc.w[31698] = WORD(&sg__wc.cb[449]);
+sg__wc.cb[449].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[26067] = IDENT("pass3/$IF", lib);
+  sg__wc.w[15808] = IDENT("map", lib);
+  sg__wc.w[15814] = IDENT("map", lib);
+  sg__wc.w[9896] = WORD(&sg__wc.cb[134]);
+sg__wc.cb[134].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[5183] = STRINGW("the form can appear only in the toplevel:");
+  sg__wc.w[33940] = IDENT("MULI", lib);
   sg__wc.w[1452] = WORD(&sg__wc.cb[442]);
 sg__wc.cb[442].name = SYMBOL("gen-inliner-arg2");
-  sg__wc.w[11137] = WORD(&sg__wc.cb[157]);
-sg__wc.cb[157].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[1002] = IDENT("pass2/label-or-dup", lib);
-  sg__wc.w[24362] = IDENT("$IF", lib);
-  sg__wc.w[9206] = WORD(&sg__wc.cb[118]);
-sg__wc.cb[118].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1254] = WORD(&sg__wc.cb[399]);
+sg__wc.cb[399].name = SYMBOL("pass3/$GREF");
+  sg__wc.w[29789] = WORD(Sg_Cons(SG_MAKE_INT(1), SG_NIL));
+  sg__wc.w[9604] = WORD(&sg__wc.cb[127]);
+sg__wc.cb[127].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[11246] = IDENT("%map-cons", lib);
+  sg__wc.w[593] = IDENT("%insert-binding", lib);
+  sg__wc.w[1230] = WORD(&sg__wc.cb[392]);
+sg__wc.cb[392].name = SYMBOL("pass3/make-boxes");
+  sg__wc.w[182] = WORD(&sg__wc.cb[43]);
+sg__wc.cb[43].name = SYMBOL("parse-lambda-args");
+  sg__wc.w[11339] = IDENT("pass1", lib);
   sg__wc.w[1387] = WORD(&sg__wc.cb[435]);
 sg__wc.cb[435].name = SYMBOL("pass3/asm-add");
-  sg__wc.w[930] = IDENT("pass1/body-macro-expand-rec", lib);
-  sg__wc.w[553] = WORD(&sg__wc.cb[150]);
-sg__wc.cb[150].name = SYMBOL("syntax/let");
-  sg__wc.w[8709] = IDENT("list", lib);
+  sg__wc.w[29622] = IDENT("pass3/asm-eqv", lib);
+  sg__wc.w[18975] = STRINGW("unknown object appeared in export spec");
+  sg__wc.w[17890] = IDENT("memq", lib);
+  sg__wc.w[28002] = IDENT("pass3/find-free", lib);
+  sg__wc.w[974] = IDENT("pass2/$DEFINE", lib);
+  sg__wc.w[12948] = STRINGW("malformed ~a: ~s");
+  sg__wc.w[9283] = WORD(&sg__wc.cb[120]);
+sg__wc.cb[120].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[26222] = IDENT("BNGT", lib);
+  sg__wc.w[5072] = IDENT("p1env-lookup", lib);
+  sg__wc.w[1202] = WORD(&sg__wc.cb[385]);
+sg__wc.cb[385].name = SYMBOL("pass3/symbol-lookup");
+  sg__wc.w[25110] = IDENT("append", lib);
+  sg__wc.w[154] = WORD(&sg__wc.cb[36]);
+sg__wc.cb[36].name = SYMBOL("p1env-extend");
+  sg__wc.w[28202] = IDENT("normal-context", lib);
+  sg__wc.w[19435] = IDENT("map", lib);
+  sg__wc.w[19441] = IDENT("map", lib);
+  sg__wc.w[627] = SYMBOLW("letrec*");
+  sg__wc.w[631] = SYMBOLW("letrec*");
+  sg__wc.w[12767] = SYMBOLW("letrec*");
+  sg__wc.w[7786] = WORD(Sg_Cons(SYMBOL("e1"), SG_NIL));
+  sg__wc.w[8930] = WORD(&sg__wc.cb[113]);
+sg__wc.cb[113].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[28068] = IDENT("LET_FRAME", lib);
+  sg__wc.w[1182] = WORD(&sg__wc.cb[378]);
+sg__wc.cb[378].name = SYMBOL("pass3");
+  sg__wc.w[14901] = IDENT("$UNDEF", lib);
+  sg__wc.w[5035] = IDENT("id-name", lib);
+  sg__wc.w[4835] = WORD(&sg__wc.cb[29]);
+sg__wc.cb[29].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1363] = WORD(&sg__wc.cb[429]);
+sg__wc.cb[429].name = SYMBOL("%pass3/builtin-nargs");
+  sg__wc.w[1108] = IDENT("pass2/$ASM", lib);
+  sg__wc.w[20698] = IDENT("p1env-lookup", lib);
+  sg__wc.w[20601] = IDENT("pass1", lib);
+  sg__wc.w[1918] = WORD(&sg__wc.cb[501]);
+sg__wc.cb[501].name = SYMBOL("compile-p1");
+  sg__wc.w[839] = IDENT("%insert-binding", lib);
+  sg__wc.w[17131] = IDENT("syntax-error", lib);
+  sg__wc.w[21217] = IDENT("id-name", lib);
+  sg__wc.w[4081] = IDENT("assq", lib);
+  sg__wc.w[30369] = IDENT("cb-emit2i!", lib);
+  sg__wc.w[1354] = WORD(&sg__wc.cb[424]);
+sg__wc.cb[424].name = SYMBOL("pass3/emit-asm!");
+  sg__wc.w[25645] = IDENT("pass3/return-assign-free", lib);
+  sg__wc.w[1158] = WORD(&sg__wc.cb[371]);
+sg__wc.cb[371].name = SYMBOL("renv-add-can-free2");
+  sg__wc.w[34799] = WORD(&sg__wc.cb[494]);
+sg__wc.cb[494].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[23557] = IDENT("pass2/rec", lib);
+  sg__wc.w[25635] = IDENT("pass3/return-refer-free", lib);
+  sg__wc.w[30452] = IDENT("pass3/rec", lib);
+  sg__wc.w[1129] = WORD(&sg__wc.cb[364]);
+sg__wc.cb[364].name = SYMBOL("tail-context?");
+  sg__wc.w[113] = WORD(&sg__wc.cb[17]);
+sg__wc.cb[17].name = SYMBOL("iform-copy");
+  sg__wc.w[34336] = WORD(&sg__wc.cb[487]);
+sg__wc.cb[487].name = SYMBOL("inline");
+  sg__wc.w[29096] = IDENT("cb-emit0!", lib);
+  sg__wc.w[26253] = IDENT("$IT", lib);
+  sg__wc.w[20095] = IDENT("id->bound-gloc", lib);
+  sg__wc.w[5005] = IDENT("lvar?", lib);
+  sg__wc.w[26747] = IDENT("renv-add-can-free2", lib);
+  sg__wc.w[21068] = IDENT("lvar?", lib);
+  sg__wc.w[9851] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
+  sg__wc.w[28458] = IDENT("stmt-context", lib);
+  sg__wc.w[861] = IDENT("%insert-binding", lib);
+  sg__wc.w[2967] = IDENT("iform-copy", lib);
+  sg__wc.w[1260] = IDENT("pass3/$GSET", lib);
+  sg__wc.w[1131] = IDENT("tail-context?", lib);
+  sg__wc.w[1060] = WORD(&sg__wc.cb[357]);
+sg__wc.cb[357].name = SYMBOL("pass2/self-recursing?");
+  sg__wc.w[22994] = IDENT("pass2/rec", lib);
+  sg__wc.w[106] = IDENT("$it", lib);
+  sg__wc.w[34754] = IDENT("NUM_EQ", lib);
+  sg__wc.w[34304] = IDENT("error", lib);
+  sg__wc.w[20981] = IDENT("pass1", lib);
+  sg__wc.w[57] = WORD(&sg__wc.cb[9]);
+sg__wc.cb[9].name = SYMBOL("$lset");
+  sg__wc.w[4748] = IDENT("display", lib);
+  sg__wc.w[1340] = IDENT("pass3/normal-call", lib);
+  sg__wc.w[29020] = IDENT("cb-emit1!", lib);
+  sg__wc.w[27210] = IDENT("cb-emit0!", lib);
+  sg__wc.w[15723] = IDENT("$seq", lib);
+  sg__wc.w[11713] = IDENT("%map-cons", lib);
+  sg__wc.w[12425] = IDENT("pass1", lib);
+  sg__wc.w[24128] = IDENT("$SEQ", lib);
+  sg__wc.w[16662] = IDENT("p1env-sans-name", lib);
+  sg__wc.w[11252] = IDENT("p1env-extend/name", lib);
+  sg__wc.w[870] = IDENT("pass1/import", lib);
+  sg__wc.w[13009] = IDENT("make-lvar+", lib);
+  sg__wc.w[424] = SYMBOLW("letrec-syntax");
+  sg__wc.w[428] = SYMBOLW("letrec-syntax");
+  sg__wc.w[9748] = SYMBOLW("letrec-syntax");
+  sg__wc.w[1415] = IDENT("pass3/$CONST", lib);
+  sg__wc.w[28886] = IDENT("renv-copy", lib);
+  sg__wc.w[25864] = IDENT("cb-emit0oi!", lib);
+  sg__wc.w[22018] = IDENT("pass2/remove-unused-lvars", lib);
+  sg__wc.w[21696] = IDENT("pass2/update-if", lib);
+  sg__wc.w[35045] = IDENT("pass1", lib);
+  sg__wc.w[954] = IDENT("pass1/lookup-head", lib);
+  sg__wc.w[18157] = IDENT("keyword?", lib);
+  sg__wc.w[11855] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
+  sg__wc.w[188] = IDENT("argcount-ok?", lib);
+  sg__wc.w[3245] = IDENT("$RECEIVE", lib);
+  sg__wc.w[5846] = IDENT("syntax-error", lib);
+  sg__wc.w[31732] = IDENT("$CONST", lib);
+  sg__wc.w[524] = IDENT("make-syntax", lib);
+  sg__wc.w[21016] = IDENT("undefined?", lib);
+  sg__wc.w[14611] = IDENT("list", lib);
   sg__wc.w[4993] = IDENT("identifier?", lib);
-  sg__wc.w[25506] = SYMBOLW("pass3/symbol-lookup");
+  sg__wc.w[1765] = SYMBOLW(">");
+  sg__wc.w[31403] = IDENT("pass3/rec", lib);
+  sg__wc.w[29926] = IDENT("pass3/emit-asm!", lib);
+  sg__wc.w[28079] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[25444] = IDENT("PUSH", lib);
+  sg__wc.w[25437] = IDENT("pass3/compile-refer", lib);
+  sg__wc.w[13584] = IDENT("syntax-error", lib);
+  sg__wc.w[20690] = IDENT("variable?", lib);
+  sg__wc.w[18312] = IDENT("import-library", lib);
+  sg__wc.w[3698] = IDENT("reverse", lib);
+  sg__wc.w[25647] = IDENT("pass3/symbol-lookup", lib);
+  sg__wc.w[24941] = IDENT("$LAMBDA", lib);
+  sg__wc.w[24007] = IDENT("append", lib);
+  sg__wc.w[14771] = IDENT("pass1", lib);
+  sg__wc.w[22084] = IDENT("append!", lib);
+  sg__wc.w[1268] = IDENT("pass3/$IF", lib);
+  sg__wc.w[24960] = IDENT("$LSET", lib);
+  sg__wc.w[1272] = IDENT("pass3/branch-core", lib);
+  sg__wc.w[23794] = IDENT("append", lib);
+  sg__wc.w[20607] = IDENT("$CALL", lib);
+  sg__wc.w[26544] = IDENT("$IT", lib);
+  sg__wc.w[33559] = IDENT("$CONST", lib);
+  sg__wc.w[31247] = IDENT("MUL", lib);
+  sg__wc.w[785] = SYMBOLW("cond");
+  sg__wc.w[789] = SYMBOLW("cond");
+  sg__wc.w[17291] = SYMBOLW("cond");
+  sg__wc.w[4322] = STRINGW(")");
+  sg__wc.w[1417] = IDENT("pass3/$IF", lib);
+  sg__wc.w[21278] = IDENT("scheme-error", lib);
+  sg__wc.w[11857] = IDENT("map", lib);
+  sg__wc.w[11863] = IDENT("map", lib);
+  sg__wc.w[9741] = IDENT("for-each", lib);
+  sg__wc.w[243] = IDENT("make-syntax", lib);
+  sg__wc.w[1716] = IDENT("find-procedure", lib);
+  sg__wc.w[30536] = IDENT("LIST", lib);
+  sg__wc.w[29010] = IDENT("cb-emit1!", lib);
+  sg__wc.w[25970] = IDENT("pass3/branch-core", lib);
+  sg__wc.w[13990] = IDENT("$LET", lib);
+  sg__wc.w[33492] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[5188] = IDENT("unwrap-syntax", lib);
+  sg__wc.w[29201] = IDENT("JUMP", lib);
+  sg__wc.w[1216] = IDENT("pass3/return-refer-free", lib);
+  sg__wc.w[34691] = IDENT("pass1", lib);
+  sg__wc.w[33195] = IDENT("SUBI", lib);
+  sg__wc.w[1188] = IDENT("pass3/exists-in-can-frees?", lib);
+  sg__wc.w[15636] = STRINGW("malformed unless");
+  sg__wc.w[3528] = IDENT("$ASM", lib);
+  sg__wc.w[3427] = IDENT("iform-copy", lib);
+  sg__wc.w[5432] = IDENT("reverse", lib);
+  sg__wc.w[1857] = IDENT("procedure-inliner-set!", lib);
+  sg__wc.w[21450] = IDENT("lvar-ref++!", lib);
+  sg__wc.w[18305] = IDENT("ensure-library", lib);
+  sg__wc.w[18536] = IDENT("import-library", lib);
+  sg__wc.w[8638] = WORD(&sg__wc.cb[105]);
+sg__wc.cb[105].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[3891] = IDENT("format", lib);
+  sg__wc.w[30894] = IDENT("normal-context", lib);
+  sg__wc.w[35475] = IDENT("vm-dump-code", lib);
+  sg__wc.w[1462] = IDENT("ensure-inexact-const", lib);
+  sg__wc.w[21463] = IDENT("pass2/$LREF", lib);
+  sg__wc.w[17656] = IDENT("id-name", lib);
+  sg__wc.w[9853] = IDENT("map", lib);
+  sg__wc.w[9859] = IDENT("map", lib);
+  sg__wc.w[33510] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[31240] = IDENT("pass3/rec", lib);
+  sg__wc.w[10337] = IDENT("parse-lambda-vars", lib);
+  sg__wc.w[5514] = IDENT("for-each", lib);
+  sg__wc.w[33934] = IDENT("error", lib);
+  sg__wc.w[21511] = IDENT("pass2/rec", lib);
+  sg__wc.w[20117] = IDENT("macro?", lib);
+  sg__wc.w[302] = WORD(&sg__wc.cb[98]);
+sg__wc.cb[98].name = SYMBOL("syntax/define-constant");
+  sg__wc.w[31287] = IDENT("cb-emit0!", lib);
+  sg__wc.w[1869] = SYMBOLW("vector-set!");
+  sg__wc.w[35077] = SYMBOLW("vector-set!");
+  sg__wc.w[773] = IDENT("%insert-binding", lib);
+  sg__wc.w[6235] = SYMBOLW("unquote");
+  sg__wc.w[6283] = SYMBOLW("unquote");
+  sg__wc.w[6771] = SYMBOLW("unquote");
+  sg__wc.w[6840] = SYMBOLW("unquote");
+  sg__wc.w[29210] = IDENT("cb-emit0o!", lib);
+  sg__wc.w[16905] = IDENT("list", lib);
+  sg__wc.w[7925] = WORD(&sg__wc.cb[91]);
+sg__wc.cb[91].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[29627] = IDENT("NUM_EQ", lib);
+  sg__wc.w[29376] = IDENT("make-new-label", lib);
+  sg__wc.w[1082] = IDENT("pass2/$DEFINE", lib);
+  sg__wc.w[7485] = IDENT("reverse", lib);
+  sg__wc.w[34576] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[18529] = IDENT("ensure-library", lib);
+  sg__wc.w[9545] = IDENT("list", lib);
+  sg__wc.w[9344] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
+  sg__wc.w[1742] = IDENT("ensure-library-name", lib);
+  sg__wc.w[30506] = IDENT("PUSH", lib);
+  sg__wc.w[27011] = IDENT("cb-emit0!", lib);
+  sg__wc.w[7512] = WORD(&sg__wc.cb[84]);
+sg__wc.cb[84].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[15055] = IDENT("$IF", lib);
+  sg__wc.w[7881] = IDENT("pass1", lib);
+  sg__wc.w[20717] = SYMBOLW("pass1");
+  sg__wc.w[21121] = SYMBOLW("pass1");
+  sg__wc.w[21273] = SYMBOLW("pass1");
+  sg__wc.w[33204] = IDENT("$CONST", lib);
+  sg__wc.w[13034] = IDENT("LEXICAL", lib);
+  sg__wc.w[7271] = WORD(&sg__wc.cb[79]);
+sg__wc.cb[79].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[34588] = IDENT("vm-r6rs-mode?", lib);
+  sg__wc.w[30701] = IDENT("cb-emit0!", lib);
+  sg__wc.w[221] = IDENT("ensure-identifier", lib);
+  sg__wc.w[35315] = IDENT("pass0", lib);
+  sg__wc.w[26202] = IDENT("NUM_GE", lib);
+  sg__wc.w[1078] = IDENT("pass2/$LIST", lib);
+  sg__wc.w[18620] = IDENT("map", lib);
+  sg__wc.w[18626] = IDENT("map", lib);
+  sg__wc.w[2469] = IDENT("$LAMBDA", lib);
+  sg__wc.w[19022] = WORD(&sg__wc.cb[304]);
+sg__wc.cb[304].name = SYMBOL("check");
+  sg__wc.w[17632] = IDENT("pass1", lib);
+  sg__wc.w[4248] = IDENT("id-name", lib);
+  sg__wc.w[4292] = IDENT("id-name", lib);
+  sg__wc.w[4780] = IDENT("id-name", lib);
+  sg__wc.w[317] = IDENT("make-syntax", lib);
+  sg__wc.w[5040] = IDENT("find-binding", lib);
+  sg__wc.w[15269] = WORD(&sg__wc.cb[235]);
+sg__wc.cb[235].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[4830] = IDENT("format", lib);
+  sg__wc.w[7179] = WORD(&sg__wc.cb[76]);
+sg__wc.cb[76].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[1328] = IDENT("pass3/embed-call", lib);
+  sg__wc.w[23216] = IDENT("expand-inlined-procedure", lib);
+  sg__wc.w[22829] = IDENT("lvar-ref--!", lib);
+  sg__wc.w[19351] = IDENT("pass1", lib);
+  sg__wc.w[29774] = IDENT("APPLY", lib);
+  sg__wc.w[21126] = IDENT("scheme-error", lib);
+  sg__wc.w[18721] = WORD(&sg__wc.cb[300]);
+sg__wc.cb[300].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[15260] = IDENT("syntax-error", lib);
+  sg__wc.w[10408] = IDENT("LEXICAL", lib);
+  sg__wc.w[23482] = IDENT("reverse", lib);
+  sg__wc.w[1042] = IDENT("pass2/$RECEIVE", lib);
+  sg__wc.w[18409] = IDENT("reverse", lib);
+  sg__wc.w[17087] = IDENT("reverse", lib);
+  sg__wc.w[6955] = WORD(&sg__wc.cb[69]);
+sg__wc.cb[69].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[19954] = IDENT("p1env-add-name", lib);
+  sg__wc.w[16198] = IDENT("pass1", lib);
+  sg__wc.w[15138] = WORD(&sg__wc.cb[232]);
+sg__wc.cb[232].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[14313] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
+  sg__wc.w[12422] = IDENT("p1env-add-name", lib);
+  sg__wc.w[26943] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[20306] = IDENT("cdar", lib);
+  sg__wc.w[21802] = IDENT("pass2/rec", lib);
+  sg__wc.w[18455] = WORD(&sg__wc.cb[293]);
+sg__wc.cb[293].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[4764] = STRINGW("($gset ~a");
+  sg__wc.w[10081] = SYMBOLW("er-macro-transformer");
+  sg__wc.w[19921] = IDENT("SYNTAX", lib);
+  sg__wc.w[14940] = WORD(&sg__wc.cb[227]);
+sg__wc.cb[227].name = SYMBOL("rec");
+  sg__wc.w[6170] = WORD(&sg__wc.cb[62]);
+sg__wc.cb[62].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[3648] = IDENT("iform-copy", lib);
+  sg__wc.w[9737] = IDENT("cdar", lib);
+  sg__wc.w[4361] = STRINGW("($call ");
+  sg__wc.w[1421] = IDENT("pass3/$LAMBDA", lib);
+  sg__wc.w[19302] = IDENT("vm-current-library", lib);
+  sg__wc.w[18149] = WORD(&sg__wc.cb[286]);
+sg__wc.cb[286].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[13917] = IDENT("pass1", lib);
+  sg__wc.w[4128] = STRINGW("($label #~a");
+  sg__wc.w[24770] = IDENT("append", lib);
+  sg__wc.w[807] = SYMBOLW("case");
+  sg__wc.w[811] = SYMBOLW("case");
+  sg__wc.w[10494] = STRINGW("malformed lambda");
+  sg__wc.w[228] = WORD(&sg__wc.cb[55]);
+sg__wc.cb[55].name = SYMBOL("syntax/quote");
+  sg__wc.w[346] = IDENT("%insert-binding", lib);
+  sg__wc.w[11283] = IDENT("pass1/body", lib);
+  sg__wc.w[20800] = IDENT("gloc-ref", lib);
+  sg__wc.w[13563] = WORD(&sg__wc.cb[220]);
+sg__wc.cb[220].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[28526] = IDENT("bottom-context?", lib);
+  sg__wc.w[1156] = IDENT("renv-add-can-free1", lib);
+  sg__wc.w[1018] = IDENT("pass2/optimize-closure", lib);
+  sg__wc.w[10042] = WORD(Sg_Cons(SYMBOL("name"), Sg_Cons(SYMBOL("trans-spec"), SG_NIL)));
+  sg__wc.w[35402] = IDENT("pass1", lib);
+  sg__wc.w[34623] = IDENT("ensure-inexact-const", lib);
+  sg__wc.w[17808] = SYMBOLW("all");
+  sg__wc.w[18188] = SYMBOLW("all");
+  sg__wc.w[864] = WORD(&sg__wc.cb[279]);
+sg__wc.cb[279].name = SYMBOL("import-library");
+  sg__wc.w[15965] = IDENT("global-eq?", lib);
+  sg__wc.w[3770] = IDENT("cdr", lib);
+  sg__wc.w[14013] = WORD(&sg__wc.cb[213]);
+sg__wc.cb[213].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[7027] = IDENT("syntax-error", lib);
+  sg__wc.w[5970] = IDENT("bytevector?", lib);
+  sg__wc.w[198] = WORD(&sg__wc.cb[48]);
+sg__wc.cb[48].name = SYMBOL("parse-lambda-vars");
+  sg__wc.w[21076] = IDENT("$lref", lib);
+  sg__wc.w[1912] = IDENT("integer-fits-insn-arg?", lib);
+  sg__wc.w[27080] = IDENT("make-new-renv", lib);
+  sg__wc.w[17266] = WORD(&sg__wc.cb[272]);
+sg__wc.cb[272].name = SYMBOL("loop");
+  sg__wc.w[16317] = STRINGW("bad clause in cond");
+  sg__wc.w[13508] = WORD(&sg__wc.cb[206]);
+sg__wc.cb[206].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[7034] = STRINGW("nested quasiquote appear in bad context");
+  sg__wc.w[4218] = IDENT("format", lib);
+  sg__wc.w[6324] = IDENT("variable-name", lib);
+  sg__wc.w[6622] = IDENT("variable-name", lib);
+  sg__wc.w[6973] = IDENT("variable-name", lib);
+  sg__wc.w[2923] = IDENT("$lset", lib);
+  sg__wc.w[29499] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[799] = WORD(&sg__wc.cb[268]);
+sg__wc.cb[268].name = SYMBOL("syntax/case");
+  sg__wc.w[20628] = IDENT("p1env-sans-name", lib);
+  sg__wc.w[13218] = WORD(&sg__wc.cb[199]);
+sg__wc.cb[199].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[26560] = IDENT("cb-label-set!", lib);
+  sg__wc.w[1176] = IDENT("pass3/add-sets", lib);
+  sg__wc.w[976] = WORD(&sg__wc.cb[331]);
+sg__wc.cb[331].name = SYMBOL("pass2/$LREF");
+  sg__wc.w[16892] = WORD(&sg__wc.cb[261]);
+sg__wc.cb[261].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[31807] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[21424] = SYMBOLW("pass2/$LREF");
+  sg__wc.w[792] = IDENT("make-syntax", lib);
+  sg__wc.w[12912] = WORD(&sg__wc.cb[192]);
+sg__wc.cb[192].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1119] = IDENT("make-new-label", lib);
+  sg__wc.w[23540] = IDENT("reverse", lib);
+  sg__wc.w[27567] = IDENT("cb-emit1!", lib);
+  sg__wc.w[16068] = WORD(&sg__wc.cb[256]);
+sg__wc.cb[256].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[682] = IDENT("make-syntax", lib);
+  sg__wc.w[479] = IDENT("%insert-binding", lib);
+  sg__wc.w[1423] = IDENT("pass3/$RECEIVE", lib);
+  sg__wc.w[14231] = IDENT("pass1", lib);
+  sg__wc.w[12585] = WORD(&sg__wc.cb[185]);
+sg__wc.cb[185].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[7695] = IDENT("append", lib);
+  sg__wc.w[4191] = IDENT("display", lib);
+  sg__wc.w[22844] = IDENT("adjust-arglist", lib);
+  sg__wc.w[4195] = IDENT("$LREF", lib);
+  sg__wc.w[34885] = IDENT("asm-arg2", lib);
   sg__wc.w[24792] = IDENT("reverse", lib);
-  sg__wc.w[21139] = IDENT("p1env-sans-name", lib);
+  sg__wc.w[15997] = WORD(&sg__wc.cb[249]);
+sg__wc.cb[249].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[6327] = SYMBOLW("unquote-splicing");
+  sg__wc.w[6625] = SYMBOLW("unquote-splicing");
+  sg__wc.w[6976] = SYMBOLW("unquote-splicing");
+  sg__wc.w[31742] = IDENT("$CONST", lib);
+  sg__wc.w[29297] = IDENT("pass3/compile-args", lib);
+  sg__wc.w[27009] = IDENT("UNDEF", lib);
+  sg__wc.w[5020] = IDENT("scheme-error", lib);
+  sg__wc.w[12762] = IDENT("pass1/letrec", lib);
+  sg__wc.w[3171] = IDENT("iform-copy", lib);
+  sg__wc.w[1032] = WORD(&sg__wc.cb[349]);
+sg__wc.cb[349].name = SYMBOL("pass2/local-call-inliner");
+  sg__wc.w[17719] = IDENT("$GSET", lib);
+  sg__wc.w[11150] = IDENT("variable?", lib);
+  sg__wc.w[11718] = IDENT("p1env-extend", lib);
+  sg__wc.w[31722] = IDENT("ADD", lib);
+  sg__wc.w[24413] = IDENT("$ASM", lib);
+  sg__wc.w[952] = WORD(&sg__wc.cb[325]);
+sg__wc.cb[325].name = SYMBOL("pass1/lookup-head");
+  sg__wc.w[23165] = IDENT("pass2/rec", lib);
+  sg__wc.w[13795] = IDENT("make-lvar+", lib);
+  sg__wc.w[12396] = IDENT("p1env-extend", lib);
+  sg__wc.w[8227] = IDENT("pass1", lib);
+  sg__wc.w[1786] = IDENT("gen-inliner-arg2", lib);
+  sg__wc.w[20914] = STRINGW("wrong number of arguments: ~a requires ~a, but got ~a");
+  sg__wc.w[3978] = IDENT("display", lib);
+  sg__wc.w[30625] = IDENT("normal-context", lib);
+  sg__wc.w[29241] = IDENT("FRAME", lib);
+  sg__wc.w[25656] = IDENT("$for-each1-with-rindex", lib);
+  sg__wc.w[936] = WORD(&sg__wc.cb[320]);
+sg__wc.cb[320].name = SYMBOL("pass1/body-init");
+  sg__wc.w[3982] = IDENT("$RECEIVE", lib);
+  sg__wc.w[172] = IDENT("p1env-swap-library", lib);
+  sg__wc.w[4232] = STRINGW("($gref ~a)");
+  sg__wc.w[30520] = IDENT("max", lib);
+  sg__wc.w[1244] = IDENT("pass3/$DEFINE", lib);
+  sg__wc.w[16359] = IDENT("pass1", lib);
+  sg__wc.w[2909] = IDENT("iform-copy-lvar", lib);
+  sg__wc.w[10157] = IDENT("hashtable-set!", lib);
   sg__wc.w[3446] = IDENT("$CALL", lib);
+  sg__wc.w[269] = IDENT("make-syntax", lib);
+  sg__wc.w[27778] = IDENT("pass3/collect-free", lib);
+  sg__wc.w[21052] = IDENT("$GREF", lib);
+  sg__wc.w[575] = WORD(&sg__wc.cb[176]);
+sg__wc.cb[176].name = SYMBOL("syntax/let*");
+  sg__wc.w[10298] = IDENT("$CONST", lib);
+  sg__wc.w[1612] = IDENT("procedure-inliner-set!", lib);
+  sg__wc.w[1352] = IDENT("pass3/asm-generic", lib);
+  sg__wc.w[25633] = IDENT("pass3/return-refer-local", lib);
+  sg__wc.w[22671] = WORD(&sg__wc.cb[346]);
+sg__wc.cb[346].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[5587] = IDENT("split-at", lib);
+  sg__wc.w[29583] = IDENT("EQ", lib);
+  sg__wc.w[12] = IDENT("LEXICAL", lib);
+  sg__wc.w[33879] = WORD(&sg__wc.cb[480]);
+sg__wc.cb[480].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[35038] = IDENT("pass1", lib);
+  sg__wc.w[34187] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[25217] = IDENT("reverse", lib);
+  sg__wc.w[12046] = WORD(Sg_Cons(SYMBOL("var"), Sg_Cons(SYMBOL("expr"), SG_NIL)));
+  sg__wc.w[11731] = WORD(&sg__wc.cb[165]);
+sg__wc.cb[165].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[35235] = IDENT("pass1", lib);
+  sg__wc.w[922] = IDENT("pass1/body", lib);
+  sg__wc.w[33305] = WORD(&sg__wc.cb[473]);
+sg__wc.cb[473].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1020] = WORD(&sg__wc.cb[342]);
+sg__wc.cb[342].name = SYMBOL("pass2/classify-calls");
+  sg__wc.w[20401] = WORD(&sg__wc.cb[319]);
+sg__wc.cb[319].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[7241] = IDENT("list", lib);
+  sg__wc.w[3994] = STRINGW("($receive ~a");
+  sg__wc.w[11360] = WORD(&sg__wc.cb[158]);
+sg__wc.cb[158].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[1637] = IDENT("procedure-inliner-set!", lib);
+  sg__wc.w[9227] = IDENT("%map-cons", lib);
+  sg__wc.w[37] = IDENT("lvar?", lib);
+  sg__wc.w[30661] = IDENT("EQV", lib);
+  sg__wc.w[1338] = WORD(&sg__wc.cb[420]);
+sg__wc.cb[420].name = SYMBOL("pass3/normal-call");
+  sg__wc.w[3665] = IDENT("$IT", lib);
+  sg__wc.w[32856] = WORD(&sg__wc.cb[466]);
+sg__wc.cb[466].name = SYMBOL("fold--");
+  sg__wc.w[992] = WORD(&sg__wc.cb[335]);
+sg__wc.cb[335].name = SYMBOL("pass2/$CONST");
+  sg__wc.w[20279] = STRINGW("malformed internal define-syntax");
+  sg__wc.w[152] = IDENT("p1env-add-name", lib);
+  sg__wc.w[31252] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[16977] = STRINGW("malformed cond");
+  sg__wc.w[10822] = WORD(&sg__wc.cb[151]);
+sg__wc.cb[151].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[24] = IDENT("pass0", lib);
+  sg__wc.w[1784] = IDENT("NUM_GE", lib);
+  sg__wc.w[29708] = IDENT("SUB", lib);
+  sg__wc.w[21701] = IDENT("$CONST", lib);
+  sg__wc.w[17982] = IDENT("error", lib);
+  sg__wc.w[16648] = IDENT("$lref", lib);
+  sg__wc.w[4271] = STRINGW("($define ~a ~a");
+  sg__wc.w[1516] = WORD(&sg__wc.cb[459]);
+sg__wc.cb[459].name = SYMBOL("inliner/-");
+  sg__wc.w[1310] = WORD(&sg__wc.cb[413]);
+sg__wc.cb[413].name = SYMBOL("pass3/$LABEL");
+  sg__wc.w[27557] = IDENT("tail-context?", lib);
+  sg__wc.w[25506] = SYMBOLW("pass3/symbol-lookup");
+  sg__wc.w[25397] = IDENT("scheme-error", lib);
+  sg__wc.w[980] = WORD(&sg__wc.cb[332]);
+sg__wc.cb[332].name = SYMBOL("pass2/$LSET");
+  sg__wc.w[216] = IDENT("lambda.", lib);
+  sg__wc.w[3953] = IDENT("format", lib);
+  sg__wc.w[5118] = IDENT("library?", lib);
+  sg__wc.w[26601] = IDENT("pass3/rec", lib);
+  sg__wc.w[20287] = IDENT("syntax-error", lib);
+  sg__wc.w[531] = WORD(&sg__wc.cb[144]);
+sg__wc.cb[144].name = SYMBOL("syntax/receive");
+  sg__wc.w[15531] = IDENT("list", lib);
+  sg__wc.w[637] = IDENT("%insert-binding", lib);
+  sg__wc.w[29763] = IDENT("cadr", lib);
+  sg__wc.w[1282] = WORD(&sg__wc.cb[406]);
+sg__wc.cb[406].name = SYMBOL("pass3/branch-on-false");
+  sg__wc.w[23876] = IDENT("hashtable-set!", lib);
+  sg__wc.w[17845] = SYMBOLW("prefix");
+  sg__wc.w[1932] = IDENT("init-compiler", lib);
+  sg__wc.w[1608] = IDENT("find-procedure", lib);
+  sg__wc.w[31865] = WORD(&sg__wc.cb[452]);
+sg__wc.cb[452].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[35405] = IDENT("pass2", lib);
+  sg__wc.w[34636] = IDENT("$CONST", lib);
+  sg__wc.w[1208] = IDENT("pass3/return-refer-local", lib);
+  sg__wc.w[24219] = IDENT("$LSET", lib);
+  sg__wc.w[12075] = IDENT("pass1/body", lib);
+  sg__wc.w[461] = WORD(&sg__wc.cb[137]);
+sg__wc.cb[137].name = SYMBOL("syntax/%macroexpand");
+  sg__wc.w[19660] = IDENT("pass1/body-finish", lib);
+  sg__wc.w[12731] = WORD(Sg_Cons(SYMBOL("var"), Sg_Cons(SYMBOL("expr"), SG_NIL)));
+  sg__wc.w[1456] = WORD(&sg__wc.cb[445]);
+sg__wc.cb[445].name = SYMBOL("check-numeric-constant");
+  sg__wc.w[30635] = IDENT("PUSH", lib);
+  sg__wc.w[25262] = IDENT("append", lib);
+  sg__wc.w[22065] = IDENT("$SEQ", lib);
+  sg__wc.w[30608] = IDENT("max", lib);
+  sg__wc.w[1168] = IDENT("eq-hashtable-copy", lib);
+  sg__wc.w[9673] = WORD(&sg__wc.cb[130]);
+sg__wc.cb[130].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[35443] = IDENT("pass2", lib);
+  sg__wc.w[31035] = IDENT("pass3/rec", lib);
+  sg__wc.w[25903] = IDENT("cb-emit0oi!", lib);
+  sg__wc.w[1238] = WORD(&sg__wc.cb[395]);
+sg__wc.cb[395].name = SYMBOL("pass3/$UNDEF");
+  sg__wc.w[1088] = IDENT("pass2/$GREF", lib);
+  sg__wc.w[17635] = IDENT("$lset", lib);
+  sg__wc.w[4154] = STRINGW(")");
+  sg__wc.w[3176] = IDENT("$LAMBDA", lib);
+  sg__wc.w[1649] = SYMBOLW("/.");
+  sg__wc.w[34440] = SYMBOLW("/.");
+  sg__wc.w[33380] = IDENT("ensure-identifier", lib);
+  sg__wc.w[1407] = IDENT("pass3/$LREF", lib);
+  sg__wc.w[1399] = WORD(&sg__wc.cb[438]);
+sg__wc.cb[438].name = SYMBOL("pass3/asm-div");
+  sg__wc.w[2920] = IDENT("iform-copy", lib);
+  sg__wc.w[9389] = WORD(&sg__wc.cb[123]);
+sg__wc.cb[123].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[1435] = IDENT("pass3/$LIST", lib);
+  sg__wc.w[23712] = IDENT("append", lib);
+  sg__wc.w[22103] = IDENT("$seq", lib);
+  sg__wc.w[1379] = WORD(&sg__wc.cb[433]);
+sg__wc.cb[433].name = SYMBOL("pass3/asm-numeq");
+  sg__wc.w[1214] = WORD(&sg__wc.cb[388]);
+sg__wc.cb[388].name = SYMBOL("pass3/return-refer-free");
+  sg__wc.w[166] = WORD(&sg__wc.cb[39]);
+sg__wc.cb[39].name = SYMBOL("p1env-sans-name");
+  sg__wc.w[4621] = IDENT("display", lib);
+  sg__wc.w[19327] = IDENT("map", lib);
+  sg__wc.w[9116] = WORD(&sg__wc.cb[116]);
+sg__wc.cb[116].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[26501] = IDENT("make-new-label", lib);
+  sg__wc.w[21168] = IDENT("LEXICAL", lib);
+  sg__wc.w[23969] = WORD(&sg__wc.cb[381]);
+sg__wc.cb[381].name = SYMBOL("rec");
+  sg__wc.w[17603] = IDENT("syntax-error", lib);
+  sg__wc.w[14195] = IDENT("pass1", lib);
+  sg__wc.w[4828] = STRINGW("($list ");
+  sg__wc.w[137] = WORD(&sg__wc.cb[32]);
+sg__wc.cb[32].name = SYMBOL("global-eq?");
+  sg__wc.w[1930] = WORD(&sg__wc.cb[504]);
+sg__wc.cb[504].name = SYMBOL("init-compiler");
+  sg__wc.w[30463] = IDENT("length", lib);
+  sg__wc.w[19433] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
+  sg__wc.w[5917] = IDENT("variable?", lib);
+  sg__wc.w[20734] = IDENT("pass1/lookup-head", lib);
+  sg__wc.w[866] = IDENT("import-library", lib);
+  sg__wc.w[5452] = IDENT("length", lib);
+  sg__wc.w[28439] = IDENT("max", lib);
+  sg__wc.w[23841] = WORD(&sg__wc.cb[374]);
+sg__wc.cb[374].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[30819] = IDENT("integer-fits-insn-arg?", lib);
+  sg__wc.w[30271] = WORD(&sg__wc.cb[427]);
+sg__wc.cb[427].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[17876] = IDENT("import-rename", lib);
+  sg__wc.w[4179] = WORD(&sg__wc.cb[25]);
+sg__wc.cb[25].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1886] = WORD(&sg__wc.cb[497]);
+sg__wc.cb[497].name = SYMBOL("inliner/acons");
+  sg__wc.w[29797] = IDENT("pass3/asm-generic", lib);
+  sg__wc.w[1583] = IDENT("find-procedure", lib);
+  sg__wc.w[16345] = IDENT("$IF", lib);
+  sg__wc.w[3884] = STRINGW("($const ~s)");
+  sg__wc.w[31143] = IDENT("cb-emit0!", lib);
+  sg__wc.w[30804] = IDENT("$CONST", lib);
+  sg__wc.w[1141] = WORD(&sg__wc.cb[367]);
+sg__wc.cb[367].name = SYMBOL("normal-context");
+  sg__wc.w[121] = WORD(&sg__wc.cb[20]);
+sg__wc.cb[20].name = SYMBOL("iform-copy-lvar");
+  sg__wc.w[34594] = WORD(&sg__wc.cb[490]);
+sg__wc.cb[490].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[26227] = IDENT("pass3/branch-on-arg2", lib);
+  sg__wc.w[1072] = WORD(&sg__wc.cb[360]);
+sg__wc.cb[360].name = SYMBOL("pass2/narg-inliner");
+  sg__wc.w[35319] = IDENT("pass1", lib);
+  sg__wc.w[2140] = WORD(&sg__wc.cb[15]);
+sg__wc.cb[15].name = SYMBOL("rec");
+  sg__wc.w[29651] = IDENT("NUM_LT", lib);
+  sg__wc.w[23445] = IDENT("$UNDEF", lib);
+  sg__wc.w[946] = IDENT("pass1/body-1", lib);
+  sg__wc.w[28493] = IDENT("pass3/local-call", lib);
+  sg__wc.w[16798] = IDENT("pass1", lib);
+  sg__wc.w[1533] = IDENT("find-procedure", lib);
+  sg__wc.w[30981] = IDENT("max", lib);
+  sg__wc.w[26172] = IDENT("NUM_LE", lib);
+  sg__wc.w[23221] = IDENT("pass2/rec", lib);
+  sg__wc.w[15880] = IDENT("syntax-error", lib);
+  sg__wc.w[5770] = IDENT("$CONST", lib);
+  sg__wc.w[2506] = IDENT("$RECEIVE", lib);
+  sg__wc.w[23997] = IDENT("$LET", lib);
+  sg__wc.w[26432] = IDENT("cadr", lib);
+  sg__wc.w[21907] = IDENT("$seq", lib);
+  sg__wc.w[19592] = IDENT("assq", lib);
+  sg__wc.w[31131] = IDENT("normal-context", lib);
+  sg__wc.w[20925] = IDENT("procedure-reqargs", lib);
+  sg__wc.w[10243] = IDENT("syntax-error", lib);
+  sg__wc.w[1369] = IDENT("pass3/$LIST", lib);
+  sg__wc.w[4410] = IDENT("$ASM", lib);
+  sg__wc.w[39] = WORD(&sg__wc.cb[5]);
+sg__wc.cb[5].name = SYMBOL("lvar-ref++!");
+  sg__wc.w[30161] = IDENT("cb-emit0i!", lib);
+  sg__wc.w[15962] = SYMBOLW("else");
+  sg__wc.w[17310] = SYMBOLW("else");
+  sg__wc.w[1907] = IDENT("procedure-inliner-set!", lib);
+  sg__wc.w[23413] = IDENT("pass2/self-recursing?", lib);
+  sg__wc.w[3871] = IDENT("format", lib);
+  sg__wc.w[2] = WORD(&sg__wc.cb[0]);
+sg__wc.cb[0].name = SYMBOL("uniq");
+  sg__wc.w[1670] = IDENT("gen-inliner-arg2", lib);
+  sg__wc.w[30862] = IDENT("$CONST", lib);
+  sg__wc.w[27976] = IDENT("renv-add-can-free2", lib);
+  sg__wc.w[27863] = IDENT("RET", lib);
+  sg__wc.w[18850] = IDENT("format", lib);
+  sg__wc.w[12172] = IDENT("reverse", lib);
+  sg__wc.w[3063] = IDENT("$LET", lib);
+  sg__wc.w[35226] = IDENT("pass1", lib);
+  sg__wc.w[2640] = IDENT("$CALL", lib);
+  sg__wc.w[29269] = IDENT("normal-context", lib);
+  sg__wc.w[27599] = IDENT("make-new-renv", lib);
+  sg__wc.w[18394] = WORD(Sg_Cons(SYMBOL("etc"), SG_NIL));
+  sg__wc.w[17229] = IDENT("syntax-error", lib);
+  sg__wc.w[3762] = IDENT("assq", lib);
+  sg__wc.w[3905] = STRINGW("($const #<undef>)");
+  sg__wc.w[8400] = IDENT("pass1/define", lib);
+  sg__wc.w[22154] = IDENT("zero?", lib);
+  sg__wc.w[21244] = IDENT("macro?", lib);
+  sg__wc.w[3284] = IDENT("$receive-optarg", lib);
+  sg__wc.w[28549] = IDENT("all-args-simple?", lib);
+  sg__wc.w[13080] = IDENT("p1env-add-name", lib);
+  sg__wc.w[1825] = IDENT("ensure-library-name", lib);
+  sg__wc.w[31435] = IDENT("$ASM", lib);
+  sg__wc.w[11221] = IDENT("LEXICAL", lib);
+  sg__wc.w[1296] = IDENT("pass3/letrec", lib);
+  sg__wc.w[26783] = IDENT("renv-add-can-free2", lib);
+  sg__wc.w[28364] = IDENT("pass3/ensure-label", lib);
+  sg__wc.w[21426] = STRINGW("circular reference appeared in letrec binding");
+  sg__wc.w[17732] = IDENT("pass1", lib);
+  sg__wc.w[10052] = IDENT("list", lib);
+  sg__wc.w[4055] = IDENT("display", lib);
+  sg__wc.w[27208] = IDENT("LEAVE", lib);
+  sg__wc.w[23600] = SYMBOLW("normal/top");
+  sg__wc.w[23648] = SYMBOLW("normal/top");
+  sg__wc.w[23663] = SYMBOLW("normal/top");
+  sg__wc.w[26343] = SYMBOLW("normal/top");
+  sg__wc.w[26437] = SYMBOLW("normal/top");
+  sg__wc.w[28652] = SYMBOLW("normal/top");
+  sg__wc.w[29295] = SYMBOLW("normal/top");
+  sg__wc.w[29444] = SYMBOLW("normal/top");
+  sg__wc.w[29915] = SYMBOLW("normal/top");
+  sg__wc.w[29953] = SYMBOLW("normal/top");
+  sg__wc.w[29985] = SYMBOLW("normal/top");
+  sg__wc.w[30040] = SYMBOLW("normal/top");
+  sg__wc.w[30081] = SYMBOLW("normal/top");
+  sg__wc.w[30450] = SYMBOLW("normal/top");
+  sg__wc.w[30497] = SYMBOLW("normal/top");
+  sg__wc.w[30588] = SYMBOLW("normal/top");
+  sg__wc.w[30652] = SYMBOLW("normal/top");
+  sg__wc.w[30716] = SYMBOLW("normal/top");
+  sg__wc.w[30782] = SYMBOLW("normal/top");
+  sg__wc.w[30961] = SYMBOLW("normal/top");
+  sg__wc.w[31158] = SYMBOLW("normal/top");
+  sg__wc.w[31238] = SYMBOLW("normal/top");
+  sg__wc.w[31302] = SYMBOLW("normal/top");
+  sg__wc.w[31401] = SYMBOLW("normal/top");
+  sg__wc.w[35349] = SYMBOLW("normal/top");
+  sg__wc.w[35466] = SYMBOLW("normal/top");
+  sg__wc.w[9150] = STRINGW("malformed let-syntax");
+  sg__wc.w[33634] = IDENT("ensure-inexact-const", lib);
+  sg__wc.w[27032] = IDENT("pass3/make-boxes", lib);
+  sg__wc.w[22914] = IDENT("iform-copy", lib);
+  sg__wc.w[13950] = IDENT("$lref", lib);
+  sg__wc.w[1074] = IDENT("pass2/narg-inliner", lib);
+  sg__wc.w[3379] = IDENT("iform-copy", lib);
+  sg__wc.w[11765] = IDENT("pass1", lib);
+  sg__wc.w[35211] = IDENT("CONS", lib);
+  sg__wc.w[17661] = IDENT("find-binding", lib);
+  sg__wc.w[1555] = IDENT("ensure-library-name", lib);
+  sg__wc.w[31567] = IDENT("asm-arg2", lib);
+  sg__wc.w[1112] = IDENT("pass2/$LIST", lib);
+  sg__wc.w[14315] = IDENT("map", lib);
+  sg__wc.w[14321] = IDENT("map", lib);
+  sg__wc.w[288] = SYMBOLW("define");
+  sg__wc.w[292] = SYMBOLW("define");
+  sg__wc.w[8253] = SYMBOLW("define");
+  sg__wc.w[19700] = SYMBOLW("define");
+  sg__wc.w[1903] = IDENT("find-procedure", lib);
+  sg__wc.w[3816] = IDENT("newline", lib);
+  sg__wc.w[35416] = IDENT("make-bottom-p1env", lib);
+  sg__wc.w[1419] = IDENT("pass3/$LET", lib);
+  sg__wc.w[28903] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[9728] = IDENT("set-cdr!", lib);
+  sg__wc.w[27260] = IDENT("append", lib);
+  sg__wc.w[634] = IDENT("make-syntax", lib);
+  sg__wc.w[1668] = IDENT("NUM_EQ", lib);
   sg__wc.w[32488] = IDENT("fold", lib);
-  sg__wc.w[31586] = IDENT("undefined", lib);
-  sg__wc.w[8838] = WORD(&sg__wc.cb[111]);
-sg__wc.cb[111].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1359] = WORD(&sg__wc.cb[428]);
-sg__wc.cb[428].name = SYMBOL("pass3/$IT");
+  sg__wc.w[1212] = IDENT("pass3/return-assign-local", lib);
+  sg__wc.w[9866] = IDENT("reverse", lib);
+  sg__wc.w[1429] = IDENT("pass3/$CALL", lib);
+  sg__wc.w[26137] = IDENT("pass3/branch-on-arg2", lib);
+  sg__wc.w[33140] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[20935] = IDENT("$ASM", lib);
+  sg__wc.w[14616] = IDENT("reverse", lib);
+  sg__wc.w[22709] = SYMBOLW("local");
+  sg__wc.w[23452] = SYMBOLW("local");
+  sg__wc.w[28484] = SYMBOLW("local");
+  sg__wc.w[19338] = IDENT("$seq", lib);
+  sg__wc.w[29395] = IDENT("FRAME", lib);
+  sg__wc.w[13374] = IDENT("list", lib);
+  sg__wc.w[3307] = IDENT("iform-copy", lib);
+  sg__wc.w[29317] = IDENT("length", lib);
+  sg__wc.w[1034] = IDENT("pass2/local-call-inliner", lib);
+  sg__wc.w[7045] = STRINGW("unquote appear in bad context");
+  sg__wc.w[19638] = STRINGW("proper list required for function application or macro use");
+  sg__wc.w[18926] = IDENT("cadar", lib);
+  sg__wc.w[10622] = STRINGW("malformed receive");
+  sg__wc.w[25704] = IDENT("UNDEF", lib);
+  sg__wc.w[22332] = IDENT("SMALL_LAMBDA_SIZE", lib);
+  sg__wc.w[33370] = IDENT("$CALL", lib);
+  sg__wc.w[19985] = IDENT("pass1/body-rec", lib);
+  sg__wc.w[15639] = IDENT("syntax-error", lib);
+  sg__wc.w[8744] = WORD(&sg__wc.cb[108]);
+sg__wc.cb[108].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[23943] = IDENT("memq", lib);
+  sg__wc.w[21038] = IDENT("$GREF", lib);
+  sg__wc.w[8350] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
+  sg__wc.w[25884] = IDENT("normal-context", lib);
+  sg__wc.w[74] = IDENT("$const-nil", lib);
+  sg__wc.w[25828] = IDENT("pass3/rec", lib);
+  sg__wc.w[8224] = IDENT("p1env-add-name", lib);
+  sg__wc.w[8446] = WORD(&sg__wc.cb[101]);
+sg__wc.cb[101].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[27494] = IDENT("cb-emit1!", lib);
+  sg__wc.w[27374] = IDENT("pass3/find-sets", lib);
+  sg__wc.w[8032] = WORD(&sg__wc.cb[94]);
+sg__wc.cb[94].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[35331] = IDENT("make-code-builder", lib);
+  sg__wc.w[34682] = IDENT("DIVI", lib);
+  sg__wc.w[17623] = IDENT("lvar?", lib);
+  sg__wc.w[14218] = STRINGW("bad update expr in do");
+  sg__wc.w[33897] = IDENT("ensure-inexact-const", lib);
+  sg__wc.w[27856] = IDENT("pass3/rec", lib);
+  sg__wc.w[16076] = SYMBOLW("=>");
+  sg__wc.w[19293] = IDENT("pass1/export", lib);
+  sg__wc.w[7783] = WORD(&sg__wc.cb[87]);
+sg__wc.cb[87].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[28106] = IDENT("pass3/collect-free", lib);
+  sg__wc.w[24350] = IDENT("$GREF", lib);
+  sg__wc.w[20517] = IDENT("pass1/body-1", lib);
+  sg__wc.w[439] = IDENT("er-rename", lib);
+  sg__wc.w[25332] = IDENT("append", lib);
+  sg__wc.w[24644] = IDENT("$LIST", lib);
+  sg__wc.w[5394] = IDENT("reverse", lib);
+  sg__wc.w[34612] = IDENT("ensure-inexact-const", lib);
+  sg__wc.w[31463] = IDENT("pass1", lib);
+  sg__wc.w[15669] = IDENT("pass1", lib);
+  sg__wc.w[15602] = WORD(&sg__wc.cb[242]);
+sg__wc.cb[242].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[31443] = IDENT("pass1", lib);
+  sg__wc.w[31090] = IDENT("normal-context", lib);
+  sg__wc.w[19323] = WORD(&sg__wc.cb[307]);
+sg__wc.cb[307].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[14228] = IDENT("p1env-sans-name", lib);
+  sg__wc.w[7228] = WORD(&sg__wc.cb[77]);
+sg__wc.cb[77].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[4205] = STRINGW("($lref ~a)");
+  sg__wc.w[4680] = IDENT("display", lib);
+  sg__wc.w[21222] = IDENT("find-binding", lib);
+  sg__wc.w[15460] = WORD(&sg__wc.cb[238]);
+sg__wc.cb[238].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[9033] = IDENT("pass1/eval-macro-rhs", lib);
+  sg__wc.w[1442] = IDENT("pass3/compile-args", lib);
+  sg__wc.w[2893] = IDENT("$LSET", lib);
+  sg__wc.w[17343] = IDENT("caaar", lib);
+  sg__wc.w[4222] = IDENT("$GREF", lib);
+  sg__wc.w[24632] = IDENT("$UNDEF", lib);
+  sg__wc.w[6750] = WORD(&sg__wc.cb[72]);
+sg__wc.cb[72].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[29196] = IDENT("cb-emit2!", lib);
+  sg__wc.w[24877] = IDENT("$SEQ", lib);
+  sg__wc.w[1164] = IDENT("renv-copy", lib);
+  sg__wc.w[11249] = IDENT("LEXICAL", lib);
+  sg__wc.w[431] = IDENT("make-syntax", lib);
+  sg__wc.w[32906] = IDENT("$ASM", lib);
+  sg__wc.w[20581] = IDENT("pass1/body-1", lib);
+  sg__wc.w[18557] = WORD(&sg__wc.cb[296]);
+sg__wc.cb[296].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[4377] = IDENT("string-length", lib);
+  sg__wc.w[6731] = WORD(&sg__wc.cb[65]);
+sg__wc.cb[65].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1236] = IDENT("pass3/ensure-label", lib);
+  sg__wc.w[18867] = IDENT("caar", lib);
+  sg__wc.w[32776] = IDENT("$ASM", lib);
+  sg__wc.w[31050] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[30764] = IDENT("PUSH", lib);
+  sg__wc.w[18283] = WORD(&sg__wc.cb[289]);
+sg__wc.cb[289].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[9027] = IDENT("variable-name", lib);
+  sg__wc.w[4698] = IDENT("$LSET", lib);
+  sg__wc.w[31214] = IDENT("pass3/rec", lib);
+  sg__wc.w[19210] = STRINGW("malformed library");
+  sg__wc.w[176] = IDENT("make-bottom-p1env", lib);
+  sg__wc.w[5867] = WORD(&sg__wc.cb[58]);
+sg__wc.cb[58].name = SYMBOL("quoted?");
+  sg__wc.w[310] = SYMBOLW("define-constant");
+  sg__wc.w[314] = SYMBOLW("define-constant");
+  sg__wc.w[35375] = IDENT("pass1", lib);
+  sg__wc.w[24748] = IDENT("$CONST", lib);
+  sg__wc.w[667] = WORD(&sg__wc.cb[223]);
+sg__wc.cb[223].name = SYMBOL("syntax/if");
+  sg__wc.w[25410] = IDENT("reverse", lib);
+  sg__wc.w[8268] = IDENT("pass1/define", lib);
+  sg__wc.w[17947] = WORD(&sg__wc.cb[282]);
+sg__wc.cb[282].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[202] = WORD(&sg__wc.cb[51]);
+sg__wc.cb[51].name = SYMBOL("pass1/find-symbol-in-lvars");
+  sg__wc.w[5767] = IDENT("make-identifier", lib);
+  sg__wc.w[14310] = WORD(&sg__wc.cb[216]);
+sg__wc.cb[216].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1728] = IDENT("gen-inliner-arg2", lib);
+  sg__wc.w[21123] = STRINGW("[internal] unknown resolution of head:");
+  sg__wc.w[17474] = WORD(&sg__wc.cb[275]);
+sg__wc.cb[275].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[32047] = IDENT("error", lib);
+  sg__wc.w[186] = WORD(&sg__wc.cb[44]);
+sg__wc.cb[44].name = SYMBOL("argcount-ok?");
+  sg__wc.w[8714] = IDENT("reverse", lib);
+  sg__wc.w[13717] = WORD(&sg__wc.cb[209]);
+sg__wc.cb[209].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[27999] = IDENT("renv-add-can-free2", lib);
+  sg__wc.w[27143] = IDENT("LSET", lib);
+  sg__wc.w[13881] = IDENT("$it", lib);
+  sg__wc.w[4552] = IDENT("display", lib);
+  sg__wc.w[1192] = IDENT("pass3/find-free", lib);
+  sg__wc.w[1038] = IDENT("pass2/$LAMBDA", lib);
+  sg__wc.w[24362] = IDENT("$IF", lib);
+  sg__wc.w[21660] = IDENT("pass2/rec", lib);
+  sg__wc.w[19963] = IDENT("set-cdr!", lib);
+  sg__wc.w[12843] = WORD(&sg__wc.cb[202]);
+sg__wc.cb[202].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[27811] = IDENT("pass3/make-boxes", lib);
+  sg__wc.w[2090] = IDENT("lvar-set++!", lib);
+  sg__wc.w[20349] = IDENT("map", lib);
+  sg__wc.w[16947] = WORD(&sg__wc.cb[264]);
+sg__wc.cb[264].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[29747] = IDENT("pass3/asm-mul", lib);
+  sg__wc.w[28408] = IDENT("pass3/rec", lib);
+  sg__wc.w[25388] = SYMBOLW("pass3/find-sets");
+  sg__wc.w[12989] = WORD(&sg__wc.cb[195]);
+sg__wc.cb[195].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[35326] = IDENT("pass2", lib);
+  sg__wc.w[32108] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[31032] = IDENT("normal-context", lib);
+  sg__wc.w[29675] = IDENT("cadr", lib);
+  sg__wc.w[16651] = IDENT("$CALL", lib);
+  sg__wc.w[16727] = WORD(&sg__wc.cb[259]);
+sg__wc.cb[259].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[571] = IDENT("%insert-binding", lib);
+  sg__wc.w[13366] = IDENT("map", lib);
+  sg__wc.w[13372] = IDENT("map", lib);
+  sg__wc.w[619] = WORD(&sg__wc.cb[188]);
+sg__wc.cb[188].name = SYMBOL("syntax/letrec*");
+  sg__wc.w[546] = IDENT("make-syntax", lib);
+  sg__wc.w[4] = IDENT("uniq", lib);
+  sg__wc.w[8815] = IDENT("list", lib);
+  sg__wc.w[26639] = IDENT("pass3/let", lib);
+  sg__wc.w[21441] = IDENT("lvar-ref--!", lib);
+  sg__wc.w[15257] = STRINGW("malformed and");
+  sg__wc.w[320] = IDENT("%insert-binding", lib);
+  sg__wc.w[1433] = IDENT("pass3/$IT", lib);
+  sg__wc.w[28229] = IDENT("cb-emit2i!", lib);
+  sg__wc.w[24409] = IDENT("append", lib);
+  sg__wc.w[16283] = WORD(&sg__wc.cb[252]);
+sg__wc.cb[252].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[13393] = IDENT("pass1/body", lib);
+  sg__wc.w[15523] = IDENT("map", lib);
+  sg__wc.w[15529] = IDENT("map", lib);
+  sg__wc.w[12300] = WORD(&sg__wc.cb[181]);
+sg__wc.cb[181].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[35287] = IDENT("<=", lib);
+  sg__wc.w[1040] = WORD(&sg__wc.cb[352]);
+sg__wc.cb[352].name = SYMBOL("pass2/$RECEIVE");
+  sg__wc.w[21998] = IDENT("pass2/rec", lib);
+  sg__wc.w[16606] = IDENT("pass1", lib);
+  sg__wc.w[164] = IDENT("p1env-extend/proc", lib);
+  sg__wc.w[1002] = IDENT("pass2/label-or-dup", lib);
+  sg__wc.w[1726] = IDENT("NUM_LE", lib);
+  sg__wc.w[21594] = IDENT("pass2/label-or-dup", lib);
+  sg__wc.w[15803] = WORD(&sg__wc.cb[245]);
+sg__wc.cb[245].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[5934] = IDENT("boolean?", lib);
+  sg__wc.w[19330] = IDENT("$UNDEF", lib);
+  sg__wc.w[4678] = STRINGW(")");
+  sg__wc.w[18884] = IDENT("cdar", lib);
+  sg__wc.w[15171] = IDENT("pass1", lib);
+  sg__wc.w[13012] = IDENT("map", lib);
+  sg__wc.w[5575] = IDENT("zero?", lib);
+  sg__wc.w[26207] = IDENT("BNGE", lib);
+  sg__wc.w[26187] = IDENT("NUM_LT", lib);
+  sg__wc.w[25166] = IDENT("$DEFINE", lib);
+  sg__wc.w[944] = WORD(&sg__wc.cb[323]);
+sg__wc.cb[323].name = SYMBOL("pass1/body-1");
+  sg__wc.w[17707] = IDENT("ensure-identifier", lib);
+  sg__wc.w[506] = IDENT("pass1/lambda", lib);
+  sg__wc.w[1413] = IDENT("pass3/$GSET", lib);
+  sg__wc.w[13932] = IDENT("$seq", lib);
+  sg__wc.w[31350] = IDENT("pass3/rec", lib);
+  sg__wc.w[1393] = IDENT("pass3/asm-sub", lib);
+  sg__wc.w[24837] = IDENT("append", lib);
+  sg__wc.w[962] = IDENT("pass2/rec", lib);
+  sg__wc.w[12284] = WORD(&sg__wc.cb[179]);
+sg__wc.cb[179].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[4112] = IDENT("length", lib);
+  sg__wc.w[3269] = IDENT("$RECEIVE", lib);
+  sg__wc.w[29362] = IDENT("cb-label-set!", lib);
+  sg__wc.w[1220] = IDENT("pass3/return-assign-free", lib);
+  sg__wc.w[6232] = IDENT("variable-name", lib);
+  sg__wc.w[6280] = IDENT("variable-name", lib);
+  sg__wc.w[6768] = IDENT("variable-name", lib);
+  sg__wc.w[6837] = IDENT("variable-name", lib);
+  sg__wc.w[29173] = IDENT("SHIFTJ", lib);
+  sg__wc.w[25738] = IDENT("memq", lib);
+  sg__wc.w[8915] = IDENT("syntax-error", lib);
+  sg__wc.w[33882] = IDENT("$ASM", lib);
+  sg__wc.w[30937] = IDENT("pass3/rec", lib);
+  sg__wc.w[21847] = IDENT("pass2/update-if", lib);
+  sg__wc.w[6127] = SYMBOLW("cons");
+  sg__wc.w[10867] = WORD(&sg__wc.cb[172]);
+sg__wc.cb[172].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[4605] = IDENT("display", lib);
+  sg__wc.w[34600] = IDENT("DIVI", lib);
+  sg__wc.w[26217] = IDENT("NUM_GT", lib);
+  sg__wc.w[33999] = WORD(&sg__wc.cb[483]);
+sg__wc.cb[483].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[30083] = IDENT("pass3/rec", lib);
+  sg__wc.w[23331] = IDENT("reverse", lib);
+  sg__wc.w[21832] = IDENT("pass2/rec", lib);
+  sg__wc.w[11852] = WORD(&sg__wc.cb[168]);
+sg__wc.cb[168].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[4459] = IDENT("for-each", lib);
+  sg__wc.w[15068] = IDENT("pass1", lib);
+  sg__wc.w[22297] = IDENT("pass2/classify-calls", lib);
+  sg__wc.w[3845] = IDENT("display", lib);
+  sg__wc.w[1591] = WORD(&sg__wc.cb[476]);
+sg__wc.cb[476].name = SYMBOL("inliner/*.");
+  sg__wc.w[11466] = WORD(&sg__wc.cb[161]);
+sg__wc.cb[161].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[32138] = IDENT("ensure-inexact-const", lib);
+  sg__wc.w[8434] = IDENT("make-macro-transformer", lib);
+  sg__wc.w[1350] = WORD(&sg__wc.cb[423]);
+sg__wc.cb[423].name = SYMBOL("pass3/asm-generic");
+  sg__wc.w[1004] = WORD(&sg__wc.cb[338]);
+sg__wc.cb[338].name = SYMBOL("pass2/update-if");
+  sg__wc.w[2769] = IDENT("$*-arg0", lib);
+  sg__wc.w[4954] = IDENT("string-length", lib);
+  sg__wc.w[8250] = IDENT("syntax-error", lib);
+  sg__wc.w[32952] = WORD(&sg__wc.cb[469]);
+sg__wc.cb[469].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[20192] = WORD(&sg__wc.cb[315]);
+sg__wc.cb[315].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[11060] = WORD(&sg__wc.cb[154]);
+sg__wc.cb[154].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[4692] = STRINGW("($it)");
+  sg__wc.w[30877] = IDENT("integer-fits-insn-arg?", lib);
+  sg__wc.w[29166] = IDENT("pass3/compile-args", lib);
+  sg__wc.w[4369] = IDENT("display", lib);
+  sg__wc.w[32115] = IDENT("ADDI", lib);
+  sg__wc.w[1322] = WORD(&sg__wc.cb[416]);
+sg__wc.cb[416].name = SYMBOL("pass3/local-call");
+  sg__wc.w[469] = SYMBOLW("%macroexpand");
+  sg__wc.w[473] = SYMBOLW("%macroexpand");
+  sg__wc.w[32471] = WORD(&sg__wc.cb[462]);
+sg__wc.cb[462].name = SYMBOL("inline");
+  sg__wc.w[27316] = IDENT("pass3/find-free", lib);
+  sg__wc.w[5516] = IDENT("$LET", lib);
+  sg__wc.w[26718] = IDENT("reverse", lib);
+  sg__wc.w[25753] = IDENT("DEFINE", lib);
+  sg__wc.w[10600] = WORD(&sg__wc.cb[147]);
+sg__wc.cb[147].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[9017] = IDENT("variable-name", lib);
+  sg__wc.w[30912] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[13873] = IDENT("pass1", lib);
+  sg__wc.w[457] = IDENT("%insert-binding", lib);
+  sg__wc.w[1605] = IDENT("ensure-library-name", lib);
+  sg__wc.w[1294] = WORD(&sg__wc.cb[409]);
+sg__wc.cb[409].name = SYMBOL("pass3/letrec");
+  sg__wc.w[19619] = IDENT("pass1/lookup-head", lib);
+  sg__wc.w[6015] = IDENT("cadr", lib);
+  sg__wc.w[6038] = IDENT("cadr", lib);
+  sg__wc.w[6491] = IDENT("cadr", lib);
+  sg__wc.w[8550] = IDENT("syntax-error", lib);
+  sg__wc.w[32091] = WORD(&sg__wc.cb[455]);
+sg__wc.cb[455].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[13854] = SYMBOLW("do-body");
+  sg__wc.w[10252] = WORD(&sg__wc.cb[140]);
+sg__wc.cb[140].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[5553] = SYMBOLW("adjust-arglist");
+  sg__wc.w[22639] = IDENT("error", lib);
+  sg__wc.w[1266] = WORD(&sg__wc.cb[402]);
+sg__wc.cb[402].name = SYMBOL("pass3/$IF");
   sg__wc.w[18194] = IDENT("import-library", lib);
-  sg__wc.w[10433] = WORD(&sg__wc.cb[143]);
-sg__wc.cb[143].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1499] = SYMBOLW("+.");
-  sg__wc.w[32224] = SYMBOLW("+.");
-  sg__wc.w[19263] = IDENT("ensure-library", lib);
+  sg__wc.w[14017] = IDENT("map", lib);
+  sg__wc.w[1736] = SYMBOLW("<=");
+  sg__wc.w[31669] = WORD(&sg__wc.cb[448]);
+sg__wc.cb[448].name = SYMBOL("fold-+");
+  sg__wc.w[27491] = IDENT("DISPLAY", lib);
+  sg__wc.w[22748] = IDENT("adjust-arglist", lib);
+  sg__wc.w[32507] = IDENT("SUB", lib);
+  sg__wc.w[1389] = IDENT("pass3/asm-add", lib);
+  sg__wc.w[9620] = WORD(&sg__wc.cb[133]);
+sg__wc.cb[133].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[4603] = STRINGW(")");
+  sg__wc.w[31448] = IDENT("$ASM", lib);
+  sg__wc.w[1448] = WORD(&sg__wc.cb[441]);
+sg__wc.cb[441].name = SYMBOL("asm-arg2");
+  sg__wc.w[1250] = WORD(&sg__wc.cb[398]);
+sg__wc.cb[398].name = SYMBOL("pass3/$LSET");
+  sg__wc.w[16897] = IDENT("map", lib);
+  sg__wc.w[16903] = IDENT("map", lib);
+  sg__wc.w[4170] = STRINGW("($seq");
+  sg__wc.w[32227] = IDENT("ensure-identifier", lib);
+  sg__wc.w[9568] = WORD(&sg__wc.cb[126]);
+sg__wc.cb[126].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[31607] = IDENT("pass1", lib);
+  sg__wc.w[31316] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[4255] = IDENT("format", lib);
+  sg__wc.w[1226] = WORD(&sg__wc.cb[391]);
+sg__wc.cb[391].name = SYMBOL("pass3/compile-assign");
+  sg__wc.w[22100] = IDENT("append", lib);
+  sg__wc.w[21663] = IDENT("pass2/label-or-dup", lib);
+  sg__wc.w[178] = WORD(&sg__wc.cb[42]);
+sg__wc.cb[42].name = SYMBOL("formals->list");
+  sg__wc.w[2889] = IDENT("$lref", lib);
+  sg__wc.w[1383] = WORD(&sg__wc.cb[434]);
+sg__wc.cb[434].name = SYMBOL("pass3/asm-numcmp");
+  sg__wc.w[10325] = IDENT("syntax-error", lib);
+  sg__wc.w[16379] = IDENT("reverse", lib);
+  sg__wc.w[9185] = WORD(&sg__wc.cb[119]);
+sg__wc.cb[119].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[10789] = IDENT("map", lib);
+  sg__wc.w[10795] = IDENT("map", lib);
+  sg__wc.w[1198] = WORD(&sg__wc.cb[384]);
+sg__wc.cb[384].name = SYMBOL("pass3/collect-free");
+  sg__wc.w[21779] = IDENT("$const-f", lib);
+  sg__wc.w[11736] = IDENT("map", lib);
+  sg__wc.w[150] = WORD(&sg__wc.cb[35]);
+sg__wc.cb[35].name = SYMBOL("p1env-add-name");
+  sg__wc.w[25668] = IDENT("BOX", lib);
+  sg__wc.w[653] = SYMBOLW("do");
+  sg__wc.w[657] = SYMBOLW("do");
+  sg__wc.w[372] = WORD(&sg__wc.cb[112]);
+sg__wc.cb[112].name = SYMBOL("syntax/define-syntax");
+  sg__wc.w[24159] = IDENT("reverse", lib);
+  sg__wc.w[3132] = IDENT("reverse", lib);
+  sg__wc.w[8187] = IDENT("variable-name", lib);
+  sg__wc.w[28969] = IDENT("cb-emit1!", lib);
+  sg__wc.w[1178] = WORD(&sg__wc.cb[377]);
+sg__wc.cb[377].name = SYMBOL("pass3/rec");
+  sg__wc.w[4561] = WORD(&sg__wc.cb[28]);
+sg__wc.cb[28].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[29036] = IDENT("pass3/ensure-label", lib);
+  sg__wc.w[1914] = WORD(&sg__wc.cb[500]);
+sg__wc.cb[500].name = SYMBOL("compile");
+  sg__wc.w[1427] = IDENT("pass3/$SEQ", lib);
+  sg__wc.w[12266] = IDENT("syntax-error", lib);
+  sg__wc.w[29546] = IDENT("all-args-simple?", lib);
+  sg__wc.w[19684] = IDENT("syntax?", lib);
+  sg__wc.w[1154] = WORD(&sg__wc.cb[370]);
+sg__wc.cb[370].name = SYMBOL("renv-add-can-free1");
+  sg__wc.w[18821] = KEYWORDW("all");
+  sg__wc.w[1836] = WORD(&sg__wc.cb[493]);
+sg__wc.cb[493].name = SYMBOL("inliner/vector-ref");
+  sg__wc.w[20020] = IDENT("global-eq?", lib);
+  sg__wc.w[16980] = IDENT("syntax-error", lib);
+  sg__wc.w[1125] = WORD(&sg__wc.cb[363]);
+sg__wc.cb[363].name = SYMBOL("stmt-context?");
+  sg__wc.w[17239] = IDENT("gensym", lib);
+  sg__wc.w[2146] = WORD(&sg__wc.cb[16]);
+sg__wc.cb[16].name = SYMBOL("rec-list");
+  sg__wc.w[29653] = IDENT("NUM_LE", lib);
+  sg__wc.w[20391] = IDENT("$LET", lib);
+  sg__wc.w[17701] = IDENT("$GSET", lib);
+  sg__wc.w[97] = IDENT("$IT", lib);
+  sg__wc.w[21865] = IDENT("$IT", lib);
+  sg__wc.w[33355] = IDENT("number?", lib);
+  sg__wc.w[27057] = IDENT("cb-emit1!", lib);
+  sg__wc.w[25625] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[1056] = WORD(&sg__wc.cb[356]);
+sg__wc.cb[356].name = SYMBOL("pass2/head-lref");
+  sg__wc.w[103] = WORD(&sg__wc.cb[13]);
+sg__wc.cb[13].name = SYMBOL("$it");
+  sg__wc.w[29594] = IDENT("cadr", lib);
+  sg__wc.w[1026] = IDENT("pass2/local-call-optimizer", lib);
+  sg__wc.w[3442] = IDENT("$seq", lib);
+  sg__wc.w[29769] = IDENT("pass3/asm-div", lib);
+  sg__wc.w[7906] = IDENT("check-toplevel", lib);
+  sg__wc.w[35468] = IDENT("HALT", lib);
+  sg__wc.w[20335] = IDENT("reverse", lib);
+  sg__wc.w[52] = WORD(&sg__wc.cb[8]);
+sg__wc.cb[8].name = SYMBOL("$lref");
+  sg__wc.w[11197] = IDENT("p1env-sans-name", lib);
+  sg__wc.w[5059] = IDENT("variable?", lib);
+  sg__wc.w[1749] = IDENT("procedure-inliner-set!", lib);
+  sg__wc.w[1687] = IDENT("find-procedure", lib);
+  sg__wc.w[21787] = IDENT("$IF", lib);
+  sg__wc.w[25609] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[1844] = SYMBOLW("vector-ref");
+  sg__wc.w[34904] = SYMBOLW("vector-ref");
+  sg__wc.w[1450] = IDENT("asm-arg2", lib);
+  sg__wc.w[30801] = IDENT("max", lib);
+  sg__wc.w[33694] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[33540] = IDENT("MUL", lib);
+  sg__wc.w[31223] = IDENT("cb-emit0!", lib);
+  sg__wc.w[5111] = IDENT("find-library", lib);
+  sg__wc.w[11722] = IDENT("$LET", lib);
+  sg__wc.w[28319] = IDENT("LEAVE", lib);
+  sg__wc.w[21491] = IDENT("pass2/rec", lib);
+  sg__wc.w[9359] = IDENT("reverse", lib);
+  sg__wc.w[1240] = IDENT("pass3/$UNDEF", lib);
+  sg__wc.w[21149] = IDENT("pass1/call", lib);
+  sg__wc.w[491] = SYMBOLW("%macroexpand-1");
+  sg__wc.w[495] = SYMBOLW("%macroexpand-1");
+  sg__wc.w[3821] = IDENT("newline", lib);
+  sg__wc.w[33348] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[22821] = IDENT("for-each", lib);
+  sg__wc.w[20442] = IDENT("p1env-add-name", lib);
+  sg__wc.w[11612] = WORD(Sg_Cons(SYMBOL("var"), Sg_Cons(SYMBOL("expr"), SG_NIL)));
+  sg__wc.w[21257] = IDENT("pass1", lib);
+  sg__wc.w[17332] = IDENT("length", lib);
+  sg__wc.w[2167] = IDENT("$DEFINE", lib);
+  sg__wc.w[3345] = IDENT("$LABEL", lib);
+  sg__wc.w[34227] = IDENT("$ASM", lib);
+  sg__wc.w[29511] = IDENT("cb-label-set!", lib);
+  sg__wc.w[25023] = IDENT("$GSET", lib);
+  sg__wc.w[17487] = IDENT("list", lib);
+  sg__wc.w[28654] = IDENT("pass3/rec", lib);
+  sg__wc.w[28506] = IDENT("pass3/embed-call", lib);
+  sg__wc.w[24720] = IDENT("scheme-error", lib);
+  sg__wc.w[31715] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[27392] = IDENT("length", lib);
+  sg__wc.w[24675] = IDENT("reverse", lib);
+  sg__wc.w[590] = IDENT("make-syntax", lib);
+  sg__wc.w[1092] = IDENT("pass2/$CONST", lib);
+  sg__wc.w[2570] = IDENT("$LABEL", lib);
+  sg__wc.w[2886] = IDENT("iform-copy-lvar", lib);
+  sg__wc.w[4053] = STRINGW(")");
+  sg__wc.w[1336] = IDENT("pass3/head-heavy-call", lib);
+  sg__wc.w[26090] = IDENT("$ASM", lib);
+  sg__wc.w[11716] = IDENT("LEXICAL", lib);
+  sg__wc.w[3328] = IDENT("assq", lib);
+  sg__wc.w[192] = IDENT("expand-inlined-procedure", lib);
+  sg__wc.w[3034] = IDENT("iform-copy", lib);
+  sg__wc.w[1875] = IDENT("ensure-library-name", lib);
+  sg__wc.w[1377] = IDENT("pass3/asm-eqv", lib);
+  sg__wc.w[1030] = IDENT("pass2/local-call-embedder", lib);
+  sg__wc.w[13040] = IDENT("$LET", lib);
+  sg__wc.w[958] = IDENT("pass1", lib);
+  sg__wc.w[4939] = IDENT("format", lib);
+  sg__wc.w[204] = IDENT("pass1/find-symbol-in-lvars", lib);
+  sg__wc.w[27907] = IDENT("cb-emit-closure!", lib);
+  sg__wc.w[21139] = IDENT("p1env-sans-name", lib);
+  sg__wc.w[19471] = IDENT("pass1/body-rec", lib);
+  sg__wc.w[17725] = IDENT("ensure-identifier", lib);
+  sg__wc.w[4156] = IDENT("display", lib);
+  sg__wc.w[1284] = IDENT("pass3/branch-on-false", lib);
+  sg__wc.w[21117] = IDENT("pass1", lib);
+  sg__wc.w[20785] = IDENT("find-binding", lib);
+  sg__wc.w[13851] = IDENT("$LAMBDA", lib);
+  sg__wc.w[23012] = IDENT("pass2/rec", lib);
+  sg__wc.w[33949] = IDENT("pass1", lib);
+  sg__wc.w[30666] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[23905] = IDENT("*pass3-dispatch-table*", lib);
+  sg__wc.w[11622] = IDENT("list", lib);
+  sg__wc.w[18960] = IDENT("syntax-error", lib);
+  sg__wc.w[18618] = WORD(Sg_Cons(SYMBOL("etc"), SG_NIL));
+  sg__wc.w[295] = IDENT("make-syntax", lib);
+  sg__wc.w[4461] = STRINGW(")");
+  sg__wc.w[27696] = IDENT("renv-add-can-free2", lib);
+  sg__wc.w[31258] = IDENT("max", lib);
+  sg__wc.w[27865] = IDENT("cb-emit0!", lib);
+  sg__wc.w[5095] = IDENT("id-envs", lib);
+  sg__wc.w[13962] = IDENT("map", lib);
+  sg__wc.w[26448] = IDENT("pass3/emit-then-else", lib);
+  sg__wc.w[16079] = IDENT("global-eq?", lib);
+  sg__wc.w[13188] = IDENT("reverse", lib);
+  sg__wc.w[29421] = IDENT("pass3/compile-args", lib);
+  sg__wc.w[23629] = SYMBOLW("normal/bottom");
+  sg__wc.w[23659] = SYMBOLW("normal/bottom");
+  sg__wc.w[25724] = SYMBOLW("normal/bottom");
+  sg__wc.w[27134] = SYMBOLW("normal/bottom");
   sg__wc.w[8582] = WORD(&sg__wc.cb[104]);
 sg__wc.cb[104].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[1342] = WORD(&sg__wc.cb[421]);
-sg__wc.cb[421].name = SYMBOL("all-args-simple?");
-  sg__wc.w[13962] = IDENT("map", lib);
-  sg__wc.w[437] = WORD(&sg__wc.cb[136]);
-sg__wc.cb[136].name = SYMBOL("er-rename");
-  sg__wc.w[934] = IDENT("pass1/body-finish", lib);
-  sg__wc.w[8416] = IDENT("make-toplevel-closure", lib);
-  sg__wc.w[3059] = IDENT("iform-copy-zip-lvs", lib);
-  sg__wc.w[25637] = IDENT("pass3/symbol-lookup", lib);
+  sg__wc.w[17492] = IDENT("reverse", lib);
+  sg__wc.w[1224] = IDENT("pass3/compile-refer", lib);
+  sg__wc.w[21237] = IDENT("gloc-ref", lib);
+  sg__wc.w[15662] = IDENT("$IF", lib);
+  sg__wc.w[7788] = IDENT("map", lib);
+  sg__wc.w[7794] = IDENT("map", lib);
+  sg__wc.w[29644] = IDENT("pass3/asm-numeq", lib);
+  sg__wc.w[28892] = IDENT("LET_FRAME", lib);
+  sg__wc.w[25102] = IDENT("$ASM", lib);
   sg__wc.w[280] = WORD(&sg__wc.cb[97]);
 sg__wc.cb[97].name = SYMBOL("syntax/define");
-  sg__wc.w[31410] = IDENT("PUSH", lib);
-  sg__wc.w[1314] = WORD(&sg__wc.cb[414]);
-sg__wc.cb[414].name = SYMBOL("pass3/$SEQ");
-  sg__wc.w[15518] = WORD(&sg__wc.cb[239]);
-sg__wc.cb[239].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[7246] = IDENT("reverse", lib);
-  sg__wc.w[15119] = IDENT("$CONST", lib);
-  sg__wc.w[10081] = SYMBOLW("er-macro-transformer");
-  sg__wc.w[27552] = IDENT("pass3/make-boxes", lib);
-  sg__wc.w[20020] = IDENT("global-eq?", lib);
-  sg__wc.w[4467] = IDENT("$LET", lib);
+  sg__wc.w[33537] = IDENT("$ASM", lib);
+  sg__wc.w[28367] = IDENT("cb-label-set!", lib);
+  sg__wc.w[25910] = IDENT("stmt-context?", lib);
+  sg__wc.w[13490] = IDENT("reverse", lib);
+  sg__wc.w[4531] = IDENT("string-length", lib);
+  sg__wc.w[29046] = IDENT("pass3/make-boxes", lib);
+  sg__wc.w[455] = IDENT("er-rename", lib);
+  sg__wc.w[212] = SYMBOLW("lambda");
+  sg__wc.w[517] = SYMBOLW("lambda");
+  sg__wc.w[521] = SYMBOLW("lambda");
+  sg__wc.w[33005] = IDENT("ensure-inexact-const", lib);
+  sg__wc.w[1431] = IDENT("pass3/$ASM", lib);
+  sg__wc.w[31058] = IDENT("$CONST", lib);
+  sg__wc.w[27198] = IDENT("tail-context?", lib);
+  sg__wc.w[26036] = IDENT("$IF", lib);
   sg__wc.w[275] = WORD(&sg__wc.cb[90]);
 sg__wc.cb[90].name = SYMBOL("pass1/define");
-  sg__wc.w[33373] = IDENT("$GREF", lib);
-  sg__wc.w[1286] = WORD(&sg__wc.cb[407]);
-sg__wc.cb[407].name = SYMBOL("pass3/emit-then-else");
-  sg__wc.w[22950] = IDENT("$SEQ", lib);
-  sg__wc.w[13881] = IDENT("$it", lib);
-  sg__wc.w[26570] = IDENT("JUMP", lib);
+  sg__wc.w[21267] = IDENT("$GREF", lib);
+  sg__wc.w[21253] = IDENT("call-macro-expander", lib);
+  sg__wc.w[17853] = IDENT("length", lib);
+  sg__wc.w[27717] = IDENT("pass3/find-sets", lib);
+  sg__wc.w[25825] = IDENT("normal-context", lib);
+  sg__wc.w[22190] = IDENT("$LREF", lib);
+  sg__wc.w[10497] = IDENT("syntax-error", lib);
+  sg__wc.w[11627] = IDENT("reverse", lib);
+  sg__wc.w[6214] = WORD(&sg__wc.cb[83]);
+sg__wc.cb[83].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[15877] = STRINGW("at least one clause is required for cond");
+  sg__wc.w[25585] = IDENT("LSET", lib);
+  sg__wc.w[31703] = IDENT("fold", lib);
+  sg__wc.w[23027] = IDENT("pass2/rec", lib);
+  sg__wc.w[6604] = WORD(&sg__wc.cb[78]);
+sg__wc.cb[78].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[33192] = IDENT("$ASM", lib);
+  sg__wc.w[26177] = IDENT("BNLE", lib);
+  sg__wc.w[25766] = IDENT("cb-emit1oi!", lib);
+  sg__wc.w[15554] = WORD(&sg__wc.cb[241]);
+sg__wc.cb[241].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[15434] = IDENT("$seq", lib);
+  sg__wc.w[29222] = IDENT("make-new-label", lib);
+  sg__wc.w[4684] = IDENT("$IT", lib);
+  sg__wc.w[3412] = IDENT("reverse", lib);
+  sg__wc.w[899] = WORD(&sg__wc.cb[303]);
+sg__wc.cb[303].name = SYMBOL("syntax/library");
+  sg__wc.w[8247] = STRINGW("malformed define");
+  sg__wc.w[30944] = IDENT("PUSH", lib);
+  sg__wc.w[733] = WORD(&sg__wc.cb[234]);
+sg__wc.cb[234].name = SYMBOL("syntax/when");
+  sg__wc.w[7125] = WORD(&sg__wc.cb[75]);
+sg__wc.cb[75].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[1276] = IDENT("pass3/branch-on-arg1", lib);
+  sg__wc.w[17477] = WORD(Sg_Cons(SYMBOL("clauses"), SG_NIL));
+  sg__wc.w[35457] = IDENT("make-eq-hashtable", lib);
+  sg__wc.w[20897] = IDENT("procedure-reqargs", lib);
+  sg__wc.w[20413] = IDENT("map", lib);
+  sg__wc.w[19941] = IDENT("variable-name", lib);
+  sg__wc.w[18663] = WORD(&sg__wc.cb[299]);
+sg__wc.cb[299].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[14323] = IDENT("list", lib);
+  sg__wc.w[6936] = WORD(&sg__wc.cb[68]);
+sg__wc.cb[68].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[387] = IDENT("make-syntax", lib);
+  sg__wc.w[15106] = WORD(&sg__wc.cb[231]);
+sg__wc.cb[231].name = SYMBOL("rec");
+  sg__wc.w[1425] = IDENT("pass3/$LABEL", lib);
+  sg__wc.w[18943] = IDENT("caar", lib);
+  sg__wc.w[16409] = IDENT("$seq", lib);
+  sg__wc.w[298] = IDENT("%insert-binding", lib);
+  sg__wc.w[1086] = IDENT("pass2/$LSET", lib);
+  sg__wc.w[1022] = IDENT("pass2/classify-calls", lib);
+  sg__wc.w[18059] = WORD(&sg__wc.cb[292]);
+sg__wc.cb[292].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[9722] = IDENT("map", lib);
+  sg__wc.w[3607] = IDENT("$LIST", lib);
+  sg__wc.w[689] = WORD(&sg__wc.cb[226]);
+sg__wc.cb[226].name = SYMBOL("syntax/or");
+  sg__wc.w[5884] = WORD(&sg__wc.cb[61]);
+sg__wc.cb[61].name = SYMBOL("expand");
+  sg__wc.w[35371] = IDENT("pass0", lib);
+  sg__wc.w[26579] = IDENT("cb-label-set!", lib);
+  sg__wc.w[25569] = IDENT("LREF", lib);
+  sg__wc.w[13581] = STRINGW("malformed do");
+  sg__wc.w[27018] = IDENT("cb-emit0!", lib);
+  sg__wc.w[20472] = IDENT("$seq", lib);
+  sg__wc.w[21182] = IDENT("$lref", lib);
+  sg__wc.w[20183] = IDENT("pass1/body-finish", lib);
+  sg__wc.w[18126] = WORD(&sg__wc.cb[285]);
+sg__wc.cb[285].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[17880] = SYMBOLW("for");
+  sg__wc.w[15816] = IDENT("list", lib);
+  sg__wc.w[14953] = IDENT("$const-f", lib);
+  sg__wc.w[2405] = IDENT("$LET", lib);
+  sg__wc.w[223] = WORD(&sg__wc.cb[54]);
+sg__wc.cb[54].name = SYMBOL("pass1/quote");
+  sg__wc.w[30544] = IDENT("%pass3/builtin-nargs", lib);
+  sg__wc.w[19335] = IDENT("append", lib);
+  sg__wc.w[14416] = WORD(&sg__wc.cb[219]);
+sg__wc.cb[219].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[12394] = IDENT("LEXICAL", lib);
+  sg__wc.w[26496] = IDENT("make-new-label", lib);
+  sg__wc.w[26305] = IDENT("pass3/branch-on-false", lib);
+  sg__wc.w[24620] = IDENT("$IT", lib);
+  sg__wc.w[8699] = WORD(Sg_Cons(SYMBOL("rule"), SG_NIL));
+  sg__wc.w[4324] = IDENT("display", lib);
+  sg__wc.w[33701] = IDENT("number?", lib);
+  sg__wc.w[25011] = IDENT("$LREF", lib);
+  sg__wc.w[1143] = IDENT("normal-context", lib);
+  sg__wc.w[19309] = IDENT("vm-current-library", lib);
+  sg__wc.w[843] = WORD(&sg__wc.cb[278]);
+sg__wc.cb[278].name = SYMBOL("syntax/begin");
+  sg__wc.w[1288] = IDENT("pass3/emit-then-else", lib);
+  sg__wc.w[25671] = IDENT("cb-emit1!", lib);
+  sg__wc.w[14116] = WORD(&sg__wc.cb[212]);
+sg__wc.cb[212].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[194] = WORD(&sg__wc.cb[47]);
+sg__wc.cb[47].name = SYMBOL("adjust-arglist");
+  sg__wc.w[32890] = IDENT("fold", lib);
+  sg__wc.w[29980] = IDENT("cadr", lib);
+  sg__wc.w[33602] = IDENT("pass1", lib);
+  sg__wc.w[30249] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[25944] = IDENT("$CONST", lib);
+  sg__wc.w[17192] = WORD(&sg__wc.cb[271]);
+sg__wc.cb[271].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[5775] = IDENT("unwrap-syntax", lib);
+  sg__wc.w[1574] = SYMBOLW("*");
+  sg__wc.w[33377] = SYMBOLW("*");
+  sg__wc.w[7472] = IDENT("map", lib);
+  sg__wc.w[7478] = IDENT("map", lib);
+  sg__wc.w[29781] = IDENT("tail-context?", lib);
+  sg__wc.w[645] = WORD(&sg__wc.cb[205]);
+sg__wc.cb[205].name = SYMBOL("syntax/do");
+  sg__wc.w[6428] = IDENT("vector->list", lib);
+  sg__wc.w[1658] = IDENT("find-procedure", lib);
+  sg__wc.w[26515] = IDENT("cb-emit0oi!", lib);
+  sg__wc.w[17069] = WORD(&sg__wc.cb[267]);
+sg__wc.cb[267].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[168] = IDENT("p1env-sans-name", lib);
+  sg__wc.w[3673] = IDENT("$it", lib);
+  sg__wc.w[3937] = IDENT("length", lib);
+  sg__wc.w[29000] = IDENT("tail-context?", lib);
+  sg__wc.w[17815] = IDENT("load-library", lib);
+  sg__wc.w[12928] = WORD(&sg__wc.cb[198]);
+sg__wc.cb[198].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[13031] = IDENT("%map-cons", lib);
+  sg__wc.w[972] = WORD(&sg__wc.cb[330]);
+sg__wc.cb[330].name = SYMBOL("pass2/$DEFINE");
+  sg__wc.w[20820] = IDENT("pass1", lib);
+  sg__wc.w[770] = IDENT("make-syntax", lib);
+  sg__wc.w[35408] = IDENT("pp-iform", lib);
+  sg__wc.w[12873] = WORD(&sg__wc.cb[191]);
+sg__wc.cb[191].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[11159] = STRINGW("bad name for named let");
+  sg__wc.w[1549] = SYMBOLW("-.");
+  sg__wc.w[33016] = SYMBOLW("-.");
+  sg__wc.w[32017] = IDENT("$ASM", lib);
+  sg__wc.w[27349] = IDENT("renv-add-can-free2", lib);
+  sg__wc.w[21201] = IDENT("id-library", lib);
+  sg__wc.w[13061] = IDENT("pass1/body", lib);
+  sg__wc.w[4694] = IDENT("display", lib);
+  sg__wc.w[968] = WORD(&sg__wc.cb[329]);
+sg__wc.cb[329].name = SYMBOL("pass2/$UNDEF");
+  sg__wc.w[16496] = WORD(&sg__wc.cb[255]);
+sg__wc.cb[255].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[33232] = IDENT("$CONST", lib);
+  sg__wc.w[26345] = IDENT("pass3/rec", lib);
+  sg__wc.w[12245] = WORD(&sg__wc.cb[184]);
+sg__wc.cb[184].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[4131] = IDENT("format", lib);
+  sg__wc.w[34790] = IDENT("scheme-error", lib);
+  sg__wc.w[30393] = IDENT("error", lib);
+  sg__wc.w[29752] = IDENT("DIV", lib);
+  sg__wc.w[18185] = IDENT("ensure-library", lib);
+  sg__wc.w[33979] = STRINGW("procedure requires at least one argument:");
+  sg__wc.w[34349] = STRINGW("procedure requires at least one argument:");
+  sg__wc.w[15912] = WORD(&sg__wc.cb[248]);
+sg__wc.cb[248].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[20427] = IDENT("pass1/body-init", lib);
+  sg__wc.w[28377] = IDENT("pass3/rec", lib);
+  sg__wc.w[9745] = IDENT("pass1/body", lib);
+  sg__wc.w[30784] = IDENT("pass3/rec", lib);
+  sg__wc.w[214] = IDENT("global-id", lib);
+  sg__wc.w[9753] = IDENT("variable-name", lib);
+  sg__wc.w[29491] = IDENT("CALL", lib);
+  sg__wc.w[18854] = IDENT("syntax-error", lib);
+  sg__wc.w[26573] = IDENT("cb-emit0o!", lib);
+  sg__wc.w[1256] = IDENT("pass3/$GREF", lib);
+  sg__wc.w[21189] = IDENT("identifier?", lib);
+  sg__wc.w[20666] = IDENT("pass1", lib);
+  sg__wc.w[358] = SYMBOLW("syntax");
+  sg__wc.w[362] = SYMBOLW("syntax");
+  sg__wc.w[34310] = IDENT("DIV", lib);
+  sg__wc.w[27037] = IDENT("tail-context?", lib);
+  sg__wc.w[2752] = IDENT("$LIST", lib);
+  sg__wc.w[88] = IDENT("$const-f", lib);
+  sg__wc.w[22817] = WORD(&sg__wc.cb[348]);
+sg__wc.cb[348].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1248] = IDENT("pass3/$LREF", lib);
+  sg__wc.w[12154] = WORD(&sg__wc.cb[175]);
+sg__wc.cb[175].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[31456] = IDENT("pass1", lib);
+  sg__wc.w[34878] = IDENT("VEC_REF", lib);
+  sg__wc.w[1641] = WORD(&sg__wc.cb[486]);
+sg__wc.cb[486].name = SYMBOL("inliner//.");
+  sg__wc.w[131] = IDENT("variable-name", lib);
+  sg__wc.w[12434] = IDENT("$LET", lib);
+  sg__wc.w[5843] = STRINGW("malformed quote:");
+  sg__wc.w[31828] = IDENT("$GREF", lib);
+  sg__wc.w[27802] = IDENT("length", lib);
+  sg__wc.w[25932] = IDENT("$IT", lib);
+  sg__wc.w[986] = IDENT("pass2/$GREF", lib);
+  sg__wc.w[15119] = IDENT("$CONST", lib);
+  sg__wc.w[8158] = IDENT("variable?", lib);
+  sg__wc.w[33593] = IDENT("MUL", lib);
+  sg__wc.w[28212] = IDENT("RECEIVE", lib);
+  sg__wc.w[27281] = IDENT("reverse", lib);
+  sg__wc.w[35079] = STRINGW("wrong number of arguments");
+  sg__wc.w[33754] = WORD(&sg__wc.cb[479]);
+sg__wc.cb[479].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[30573] = IDENT("cb-emit0!", lib);
+  sg__wc.w[27016] = IDENT("PUSH", lib);
+  sg__wc.w[14091] = IDENT("$lref", lib);
+  sg__wc.w[21623] = IDENT("pass2/rec", lib);
+  sg__wc.w[11654] = WORD(&sg__wc.cb[164]);
+sg__wc.cb[164].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[33272] = WORD(&sg__wc.cb[472]);
+sg__wc.cb[472].name = SYMBOL("inline");
+  sg__wc.w[1016] = WORD(&sg__wc.cb[341]);
+sg__wc.cb[341].name = SYMBOL("pass2/optimize-closure");
+  sg__wc.w[4402] = IDENT("for-each", lib);
+  sg__wc.w[8217] = IDENT("caddr", lib);
+  sg__wc.w[26122] = IDENT("pass3/branch-on-arg1", lib);
+  sg__wc.w[932] = WORD(&sg__wc.cb[318]);
+sg__wc.cb[318].name = SYMBOL("pass1/body-finish");
+  sg__wc.w[11137] = WORD(&sg__wc.cb[157]);
+sg__wc.cb[157].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[20300] = IDENT("call-macro-expander", lib);
+  sg__wc.w[17677] = IDENT("gloc-ref", lib);
+  sg__wc.w[15354] = IDENT("syntax-error", lib);
+  sg__wc.w[539] = SYMBOLW("receive");
+  sg__wc.w[543] = SYMBOLW("receive");
+  sg__wc.w[30602] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[1334] = WORD(&sg__wc.cb[419]);
+sg__wc.cb[419].name = SYMBOL("pass3/head-heavy-call");
+  sg__wc.w[685] = IDENT("%insert-binding", lib);
+  sg__wc.w[1541] = WORD(&sg__wc.cb[465]);
+sg__wc.cb[465].name = SYMBOL("inliner/-.");
+  sg__wc.w[988] = WORD(&sg__wc.cb[334]);
+sg__wc.cb[334].name = SYMBOL("pass2/$GSET");
+  sg__wc.w[12550] = IDENT("list", lib);
+  sg__wc.w[1232] = IDENT("pass3/make-boxes", lib);
+  sg__wc.w[1080] = IDENT("pass2/$UNDEF", lib);
+  sg__wc.w[21376] = IDENT("lvar-ref--!", lib);
+  sg__wc.w[924] = WORD(&sg__wc.cb[312]);
+sg__wc.cb[312].name = SYMBOL("pass1/body-rec");
+  sg__wc.w[15536] = IDENT("reverse", lib);
+  sg__wc.w[6064] = IDENT("cadr", lib);
+  sg__wc.w[6453] = IDENT("cadr", lib);
+  sg__wc.w[7353] = IDENT("cadr", lib);
+  sg__wc.w[7616] = IDENT("cadr", lib);
+  sg__wc.w[553] = WORD(&sg__wc.cb[150]);
+sg__wc.cb[150].name = SYMBOL("syntax/let");
+  sg__wc.w[1300] = IDENT("pass3/let", lib);
+  sg__wc.w[32257] = WORD(&sg__wc.cb[458]);
+sg__wc.cb[458].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1365] = IDENT("%pass3/builtin-nargs", lib);
+  sg__wc.w[1306] = WORD(&sg__wc.cb[412]);
+sg__wc.cb[412].name = SYMBOL("pass3/$RECEIVE");
+  sg__wc.w[17841] = IDENT("import-rename", lib);
+  sg__wc.w[34412] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[34557] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[10433] = WORD(&sg__wc.cb[143]);
+sg__wc.cb[143].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[22040] = IDENT("$seq", lib);
+  sg__wc.w[1278] = WORD(&sg__wc.cb[405]);
+sg__wc.cb[405].name = SYMBOL("pass3/branch-on-arg2");
+  sg__wc.w[23669] = IDENT("bottom-context?", lib);
+  sg__wc.w[23655] = IDENT("bottom-context?", lib);
+  sg__wc.w[11743] = IDENT("pass1/body", lib);
+  sg__wc.w[2314] = IDENT("$IF", lib);
+  sg__wc.w[31764] = WORD(&sg__wc.cb[451]);
+sg__wc.cb[451].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[4619] = STRINGW("($if ");
+  sg__wc.w[29996] = IDENT("pass3/emit-asm!", lib);
+  sg__wc.w[29272] = IDENT("pass3/rec", lib);
+  sg__wc.w[437] = WORD(&sg__wc.cb[136]);
+sg__wc.cb[136].name = SYMBOL("er-rename");
+  sg__wc.w[2952] = IDENT("$GSET", lib);
+  sg__wc.w[35351] = IDENT("HALT", lib);
+  sg__wc.w[31477] = WORD(&sg__wc.cb[444]);
+sg__wc.cb[444].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1373] = IDENT("pass3/asm-eq", lib);
+  sg__wc.w[22004] = IDENT("pass2/optimize-closure", lib);
+  sg__wc.w[18724] = WORD(Sg_Cons(SYMBOL("clauses"), SG_NIL));
+  sg__wc.w[4406] = IDENT("display", lib);
+  sg__wc.w[4251] = IDENT("format", lib);
+  sg__wc.w[4295] = IDENT("format", lib);
+  sg__wc.w[4783] = IDENT("format", lib);
+  sg__wc.w[33908] = IDENT("ensure-inexact-const", lib);
+  sg__wc.w[32504] = IDENT("$ASM", lib);
+  sg__wc.w[30058] = IDENT("max", lib);
+  sg__wc.w[1280] = IDENT("pass3/branch-on-arg2", lib);
+  sg__wc.w[26142] = IDENT("EQV", lib);
+  sg__wc.w[13477] = IDENT("map", lib);
+  sg__wc.w[13483] = IDENT("map", lib);
+  sg__wc.w[9717] = WORD(&sg__wc.cb[129]);
+sg__wc.cb[129].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[9535] = WORD(Sg_Cons(SYMBOL("name"), Sg_Cons(SYMBOL("trans-spec"), SG_NIL)));
+  sg__wc.w[15377] = IDENT("$IF", lib);
+  sg__wc.w[1234] = WORD(&sg__wc.cb[394]);
+sg__wc.cb[394].name = SYMBOL("pass3/ensure-label");
+  sg__wc.w[1395] = WORD(&sg__wc.cb[437]);
+sg__wc.cb[437].name = SYMBOL("pass3/asm-mul");
+  sg__wc.w[30854] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[27543] = IDENT("pass3/compile-args", lib);
+  sg__wc.w[9132] = WORD(&sg__wc.cb[122]);
+sg__wc.cb[122].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[17864] = STRINGW("prefix must have only one symbol:");
+  sg__wc.w[1807] = IDENT("procedure-inliner-set!", lib);
+  sg__wc.w[31221] = IDENT("PUSH", lib);
+  sg__wc.w[1375] = WORD(&sg__wc.cb[432]);
+sg__wc.cb[432].name = SYMBOL("pass3/asm-eqv");
+  sg__wc.w[28991] = IDENT("make-new-renv", lib);
+  sg__wc.w[1210] = WORD(&sg__wc.cb[387]);
+sg__wc.cb[387].name = SYMBOL("pass3/return-assign-local");
+  sg__wc.w[21261] = IDENT("$GREF", lib);
+  sg__wc.w[162] = WORD(&sg__wc.cb[38]);
+sg__wc.cb[38].name = SYMBOL("p1env-extend/proc");
+  sg__wc.w[28248] = IDENT("POP_LET_FRAME", lib);
+  sg__wc.w[675] = SYMBOLW("if");
+  sg__wc.w[679] = SYMBOLW("if");
+  sg__wc.w[9080] = WORD(&sg__wc.cb[115]);
+sg__wc.cb[115].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1308] = IDENT("pass3/$RECEIVE", lib);
+  sg__wc.w[19263] = IDENT("ensure-library", lib);
+  sg__wc.w[17899] = IDENT("library-transient-set!", lib);
+  sg__wc.w[25266] = IDENT("$LABEL", lib);
+  sg__wc.w[24713] = STRINGW("unknown iform:");
+  sg__wc.w[1190] = WORD(&sg__wc.cb[380]);
+sg__wc.cb[380].name = SYMBOL("pass3/find-free");
+  sg__wc.w[13485] = IDENT("list", lib);
+  sg__wc.w[133] = WORD(&sg__wc.cb[31]);
+sg__wc.cb[31].name = SYMBOL("id->bound-gloc");
+  sg__wc.w[1926] = WORD(&sg__wc.cb[503]);
+sg__wc.cb[503].name = SYMBOL("compile-p3");
+  sg__wc.w[1757] = IDENT("gen-inliner-arg2", lib);
+  sg__wc.w[30904] = IDENT("ADDI", lib);
+  sg__wc.w[28876] = IDENT("length", lib);
+  sg__wc.w[28606] = IDENT("cb-emit0o!", lib);
+  sg__wc.w[1046] = IDENT("pass2/$LABEL", lib);
+  sg__wc.w[148] = IDENT("check-toplevel", lib);
+  sg__wc.w[5150] = IDENT("scheme-error", lib);
+  sg__wc.w[3874] = IDENT("$CONST", lib);
+  sg__wc.w[30183] = WORD(&sg__wc.cb[426]);
+sg__wc.cb[426].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[29094] = IDENT("LEAVE", lib);
+  sg__wc.w[1166] = WORD(&sg__wc.cb[373]);
+sg__wc.cb[373].name = SYMBOL("eq-hashtable-copy");
+  sg__wc.w[21177] = IDENT("lvar?", lib);
+  sg__wc.w[14879] = IDENT("$IF", lib);
+  sg__wc.w[3805] = WORD(&sg__wc.cb[24]);
+sg__wc.cb[24].name = SYMBOL("rec");
+  sg__wc.w[34918] = WORD(&sg__wc.cb[496]);
+sg__wc.cb[496].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[31134] = IDENT("pass3/rec", lib);
+  sg__wc.w[30836] = IDENT("normal-context", lib);
+  sg__wc.w[22037] = IDENT("append!", lib);
+  sg__wc.w[63] = IDENT("$CONST", lib);
+  sg__wc.w[22560] = SYMBOLW("dissolved");
+  sg__wc.w[22770] = SYMBOLW("dissolved");
+  sg__wc.w[22880] = SYMBOLW("dissolved");
+  sg__wc.w[13769] = SYMBOLW("do-proc");
+  sg__wc.w[13829] = SYMBOLW("do-proc");
+  sg__wc.w[29838] = IDENT("pass3/asm-generic", lib);
+  sg__wc.w[1137] = WORD(&sg__wc.cb[366]);
+sg__wc.cb[366].name = SYMBOL("top-context?");
+  sg__wc.w[4429] = STRINGW("($asm ~a");
+  sg__wc.w[3738] = WORD(&sg__wc.cb[19]);
+sg__wc.cb[19].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[34423] = IDENT("$CONST", lib);
+  sg__wc.w[34472] = WORD(&sg__wc.cb[489]);
+sg__wc.cb[489].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[30409] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[1771] = IDENT("ensure-library-name", lib);
+  sg__wc.w[31347] = IDENT("normal-context", lib);
+  sg__wc.w[29810] = IDENT("make-new-label", lib);
+  sg__wc.w[25986] = IDENT("pass3/$IF", lib);
+  sg__wc.w[4443] = IDENT("format", lib);
+  sg__wc.w[1068] = WORD(&sg__wc.cb[359]);
+sg__wc.cb[359].name = SYMBOL("pass2/$IT");
+  sg__wc.w[10057] = IDENT("reverse", lib);
+  sg__wc.w[30571] = IDENT("PUSH", lib);
+  sg__wc.w[23612] = SYMBOLW("stmt/top");
+  sg__wc.w[23641] = SYMBOLW("stmt/top");
+  sg__wc.w[23677] = SYMBOLW("stmt/top");
+  sg__wc.w[23295] = IDENT("pass2/rec", lib);
+  sg__wc.w[109] = WORD(&sg__wc.cb[14]);
+sg__wc.cb[14].name = SYMBOL("iform-count-size-upto");
+  sg__wc.w[1587] = IDENT("procedure-inliner-set!", lib);
+  sg__wc.w[30946] = IDENT("cb-emit0!", lib);
+  sg__wc.w[27136] = IDENT("pass3/rec", lib);
+  sg__wc.w[21097] = IDENT("call-syntax-handler", lib);
+  sg__wc.w[15002] = IDENT("pass1", lib);
+  sg__wc.w[5163] = STRINGW("~a: no such library: ~s");
+  sg__wc.w[85] = WORD(&sg__wc.cb[11]);
+sg__wc.cb[11].name = SYMBOL("$const-f");
+  sg__wc.w[20043] = IDENT("reverse", lib);
+  sg__wc.w[34042] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[1058] = IDENT("pass2/head-lref", lib);
+  sg__wc.w[3744] = IDENT("fold-right", lib);
+  sg__wc.w[33937] = IDENT("$ASM", lib);
+  sg__wc.w[4354] = STRINGW("($call[~a] ");
+  sg__wc.w[35] = WORD(&sg__wc.cb[4]);
+sg__wc.cb[4].name = SYMBOL("lvar?");
+  sg__wc.w[1882] = IDENT("procedure-inliner-set!", lib);
+  sg__wc.w[1755] = IDENT("NUM_GT", lib);
+  sg__wc.w[27564] = IDENT("POP_LET_FRAME", lib);
+  sg__wc.w[1123] = IDENT("normal-context?", lib);
+  sg__wc.w[20273] = IDENT("caar", lib);
+  sg__wc.w[77] = IDENT("$CONST", lib);
+  sg__wc.w[30963] = IDENT("pass3/rec", lib);
+  sg__wc.w[28719] = IDENT("cb-label-set!", lib);
+  sg__wc.w[16514] = IDENT("reverse", lib);
+  sg__wc.w[10405] = IDENT("%map-cons", lib);
+  sg__wc.w[33711] = IDENT("ensure-inexact-const", lib);
+  sg__wc.w[938] = IDENT("pass1/body-init", lib);
+  sg__wc.w[8413] = IDENT("compile", lib);
+  sg__wc.w[29342] = IDENT("CALL", lib);
+  sg__wc.w[26403] = IDENT("normal-context", lib);
+  sg__wc.w[1152] = IDENT("make-new-renv", lib);
+  sg__wc.w[663] = IDENT("%insert-binding", lib);
+  sg__wc.w[20] = IDENT("PATTERN", lib);
+  sg__wc.w[184] = IDENT("parse-lambda-args", lib);
+  sg__wc.w[20885] = IDENT("procedure-optional", lib);
+  sg__wc.w[19957] = IDENT("pass1/eval-macro-rhs", lib);
+  sg__wc.w[33567] = IDENT("fold", lib);
+  sg__wc.w[1304] = IDENT("pass3/$LAMBDA", lib);
+  sg__wc.w[25920] = IDENT("CONST", lib);
+  sg__wc.w[8190] = IDENT("p1env-add-name", lib);
+  sg__wc.w[1894] = SYMBOLW("acons");
+  sg__wc.w[35260] = SYMBOLW("acons");
+  sg__wc.w[343] = IDENT("make-syntax", lib);
+  sg__wc.w[1662] = IDENT("procedure-inliner-set!", lib);
+  sg__wc.w[14922] = STRINGW("malformed if");
+  sg__wc.w[24597] = IDENT("memq", lib);
+  sg__wc.w[9861] = IDENT("list", lib);
+  sg__wc.w[25515] = IDENT("scheme-error", lib);
+  sg__wc.w[32598] = IDENT("$CONST", lib);
+  sg__wc.w[29084] = IDENT("tail-context?", lib);
+  sg__wc.w[25690] = IDENT("make-new-label", lib);
+  sg__wc.w[1135] = IDENT("bottom-context?", lib);
+  sg__wc.w[25601] = IDENT("FREF", lib);
+  sg__wc.w[19011] = IDENT("pass1/import", lib);
+  sg__wc.w[28261] = IDENT("cb-emit1!", lib);
+  sg__wc.w[5629] = IDENT("reverse", lib);
+  sg__wc.w[8922] = IDENT("check-toplevel", lib);
+  sg__wc.w[1530] = IDENT("ensure-library-name", lib);
+  sg__wc.w[829] = SYMBOLW("set!");
+  sg__wc.w[833] = SYMBOLW("set!");
+  sg__wc.w[14419] = WORD(Sg_Cons(SYMBOL("expr"), SG_NIL));
+  sg__wc.w[4299] = IDENT("format", lib);
+  sg__wc.w[23096] = IDENT("pass2/rec", lib);
+  sg__wc.w[19693] = IDENT("pass1/body-finish", lib);
+  sg__wc.w[9068] = STRINGW("malformed define-syntax");
+  sg__wc.w[23985] = IDENT("$CONST", lib);
+  sg__wc.w[21113] = IDENT("call-macro-expander", lib);
+  sg__wc.w[20364] = IDENT("map", lib);
+  sg__wc.w[30934] = IDENT("normal-context", lib);
+  sg__wc.w[1184] = IDENT("pass3", lib);
+  sg__wc.w[20536] = IDENT("p1env-sans-name", lib);
+  sg__wc.w[19345] = IDENT("vm-current-library", lib);
+  sg__wc.w[18806] = IDENT("keyword?", lib);
+  sg__wc.w[12056] = IDENT("list", lib);
+  sg__wc.w[24302] = IDENT("memq", lib);
+  sg__wc.w[23757] = IDENT("append", lib);
+  sg__wc.w[21805] = IDENT("pass2/update-if", lib);
+  sg__wc.w[25300] = IDENT("$IT", lib);
+  sg__wc.w[29917] = IDENT("pass3/rec", lib);
+  sg__wc.w[28465] = IDENT("max", lib);
+  sg__wc.w[568] = IDENT("make-syntax", lib);
+  sg__wc.w[4484] = STRINGW("($let~a (");
+  sg__wc.w[1411] = IDENT("pass3/$GREF", lib);
+  sg__wc.w[28692] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[9769] = IDENT("pass1/eval-macro-rhs", lib);
+  sg__wc.w[22346] = IDENT("pass2/local-call-inliner", lib);
+  sg__wc.w[11317] = IDENT("$lref", lib);
+  sg__wc.w[3454] = IDENT("$CALL", lib);
+  sg__wc.w[1928] = IDENT("compile-p3", lib);
+  sg__wc.w[34676] = IDENT("error", lib);
+  sg__wc.w[20420] = IDENT("pass1/body-rest", lib);
+  sg__wc.w[3854] = STRINGW("~a[~a;~a]");
+  sg__wc.w[26932] = IDENT("LET_FRAME", lib);
+  sg__wc.w[8525] = WORD(&sg__wc.cb[107]);
+sg__wc.cb[107].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[20127] = IDENT("pass1/body-macro-expand-rec", lib);
+  sg__wc.w[17913] = STRINGW("malformed import spec:");
+  sg__wc.w[25887] = IDENT("pass3/rec", lib);
+  sg__wc.w[24510] = IDENT("append", lib);
+  sg__wc.w[14898] = IDENT("pass1", lib);
+  sg__wc.w[328] = WORD(&sg__wc.cb[100]);
+sg__wc.cb[100].name = SYMBOL("syntax/syntax-case");
+  sg__wc.w[23894] = IDENT("eq-hashtable-copy", lib);
+  sg__wc.w[20966] = IDENT("reverse", lib);
+  sg__wc.w[5905] = IDENT("cddr", lib);
+  sg__wc.w[18957] = STRINGW("malformed rename clause in export spec");
+  sg__wc.w[409] = IDENT("make-syntax", lib);
+  sg__wc.w[5147] = IDENT("format", lib);
+  sg__wc.w[8016] = WORD(&sg__wc.cb[93]);
+sg__wc.cb[93].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[26350] = IDENT("max", lib);
+  sg__wc.w[10148] = IDENT("make-identifier", lib);
+  sg__wc.w[12061] = IDENT("reverse", lib);
+  sg__wc.w[10681] = IDENT("LEXICAL", lib);
+  sg__wc.w[196] = IDENT("adjust-arglist", lib);
+  sg__wc.w[3147] = IDENT("iform-copy", lib);
+  sg__wc.w[13054] = IDENT("map", lib);
+  sg__wc.w[3101] = SYMBOLW("rec");
+  sg__wc.w[4502] = SYMBOLW("rec");
+  sg__wc.w[11303] = SYMBOLW("rec");
+  sg__wc.w[13043] = SYMBOLW("rec");
+  sg__wc.w[13993] = SYMBOLW("rec");
+  sg__wc.w[20395] = SYMBOLW("rec");
+  sg__wc.w[22598] = SYMBOLW("rec");
+  sg__wc.w[23424] = SYMBOLW("rec");
+  sg__wc.w[26623] = SYMBOLW("rec");
+  sg__wc.w[7725] = WORD(&sg__wc.cb[86]);
+sg__wc.cb[86].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[11421] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
+  sg__wc.w[34249] = IDENT("$CONST", lib);
+  sg__wc.w[32096] = IDENT("fold", lib);
+  sg__wc.w[28251] = IDENT("cb-emit1!", lib);
   sg__wc.w[23617] = SYMBOLW("tail");
   sg__wc.w[23636] = SYMBOLW("tail");
   sg__wc.w[27854] = SYMBOLW("tail");
-  sg__wc.w[10411] = IDENT("p1env-extend/proc", lib);
-  sg__wc.w[11188] = IDENT("make-lvar+", lib);
-  sg__wc.w[32439] = IDENT("error", lib);
-  sg__wc.w[29466] = IDENT("length", lib);
-  sg__wc.w[18867] = IDENT("caar", lib);
+  sg__wc.w[16763] = STRINGW("'else' clause followed by more clauses");
+  sg__wc.w[14429] = IDENT("list", lib);
+  sg__wc.w[4507] = STRINGW("rec");
+  sg__wc.w[32128] = IDENT("ensure-inexact-const", lib);
+  sg__wc.w[19199] = STRINGW("malformed ~s clause in library ~s");
+  sg__wc.w[15404] = IDENT("reverse", lib);
+  sg__wc.w[7409] = WORD(&sg__wc.cb[81]);
+sg__wc.cb[81].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[25354] = IDENT("reverse", lib);
+  sg__wc.w[21142] = IDENT("pass1", lib);
+  sg__wc.w[7647] = IDENT("append", lib);
+  sg__wc.w[4357] = IDENT("format", lib);
+  sg__wc.w[29025] = IDENT("MARK", lib);
+  sg__wc.w[19277] = IDENT("make-bottom-p1env", lib);
+  sg__wc.w[16813] = IDENT("$seq", lib);
+  sg__wc.w[15437] = IDENT("$UNDEF", lib);
+  sg__wc.w[12167] = IDENT("list", lib);
+  sg__wc.w[4816] = IDENT("$LIST", lib);
+  sg__wc.w[1196] = IDENT("pass3/find-sets", lib);
+  sg__wc.w[19147] = WORD(&sg__wc.cb[306]);
+sg__wc.cb[306].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[15333] = WORD(&sg__wc.cb[237]);
+sg__wc.cb[237].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[11266] = IDENT("$LAMBDA", lib);
+  sg__wc.w[3506] = IDENT("iform-copy", lib);
+  sg__wc.w[1344] = IDENT("all-args-simple?", lib);
+  sg__wc.w[858] = IDENT("make-syntax", lib);
+  sg__wc.w[30839] = IDENT("pass3/rec", lib);
+  sg__wc.w[6819] = WORD(&sg__wc.cb[71]);
+sg__wc.cb[71].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[6459] = WORD(Sg_Cons(SYMBOL("vector"), SG_NIL));
+  sg__wc.w[8805] = WORD(Sg_Cons(SYMBOL("literal"), SG_NIL));
+  sg__wc.w[30628] = IDENT("pass3/rec", lib);
+  sg__wc.w[26786] = IDENT("pass3/find-free", lib);
+  sg__wc.w[5567] = IDENT("format", lib);
+  sg__wc.w[2997] = IDENT("$IF", lib);
+  sg__wc.w[1778] = IDENT("procedure-inliner-set!", lib);
+  sg__wc.w[25979] = IDENT("$it", lib);
+  sg__wc.w[18918] = IDENT("caar", lib);
+  sg__wc.w[18507] = WORD(&sg__wc.cb[295]);
+sg__wc.cb[295].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[642] = IDENT("pass1/letrec", lib);
+  sg__wc.w[8820] = IDENT("reverse", lib);
+  sg__wc.w[17979] = STRINGW("invalid form");
+  sg__wc.w[22636] = STRINGW("invalid form");
+  sg__wc.w[30390] = STRINGW("invalid form");
+  sg__wc.w[32044] = STRINGW("invalid form");
+  sg__wc.w[32436] = STRINGW("invalid form");
+  sg__wc.w[32838] = STRINGW("invalid form");
+  sg__wc.w[33254] = STRINGW("invalid form");
+  sg__wc.w[33584] = STRINGW("invalid form");
+  sg__wc.w[33931] = STRINGW("invalid form");
+  sg__wc.w[34301] = STRINGW("invalid form");
+  sg__wc.w[34673] = STRINGW("invalid form");
+  sg__wc.w[17384] = IDENT("cdar", lib);
+  sg__wc.w[15020] = WORD(&sg__wc.cb[229]);
+sg__wc.cb[229].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[6659] = WORD(&sg__wc.cb[64]);
+sg__wc.cb[64].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[32605] = IDENT("$ASM", lib);
+  sg__wc.w[30042] = IDENT("pass3/rec", lib);
+  sg__wc.w[20780] = IDENT("id-name", lib);
+  sg__wc.w[18267] = WORD(&sg__wc.cb[288]);
+sg__wc.cb[288].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[27355] = IDENT("append", lib);
+  sg__wc.w[15821] = IDENT("reverse", lib);
+  sg__wc.w[249] = WORD(&sg__wc.cb[57]);
+sg__wc.cb[57].name = SYMBOL("pass1/quasiquote");
+  sg__wc.w[20919] = IDENT("variable-name", lib);
+  sg__wc.w[14598] = WORD(&sg__wc.cb[222]);
+sg__wc.cb[222].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[434] = IDENT("%insert-binding", lib);
+  sg__wc.w[28283] = IDENT("make-new-renv", lib);
+  sg__wc.w[24745] = IDENT("uniq", lib);
+  sg__wc.w[17926] = WORD(&sg__wc.cb[281]);
+sg__wc.cb[281].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[5650] = WORD(&sg__wc.cb[50]);
+sg__wc.cb[50].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[308] = WORD(Sg_Cons(SYMBOL("sagittarius"), SG_NIL));
+  sg__wc.w[467] = WORD(Sg_Cons(SYMBOL("sagittarius"), SG_NIL));
+  sg__wc.w[489] = WORD(Sg_Cons(SYMBOL("sagittarius"), SG_NIL));
+  sg__wc.w[537] = WORD(Sg_Cons(SYMBOL("sagittarius"), SG_NIL));
+  sg__wc.w[31000] = IDENT("$CONST", lib);
+  sg__wc.w[30692] = IDENT("pass3/rec", lib);
+  sg__wc.w[28461] = IDENT("pass3/rec", lib);
+  sg__wc.w[14252] = WORD(&sg__wc.cb[215]);
+sg__wc.cb[215].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[4095] = IDENT("format", lib);
+  sg__wc.w[1385] = IDENT("pass3/asm-numcmp", lib);
+  sg__wc.w[21156] = IDENT("variable?", lib);
+  sg__wc.w[16499] = WORD(Sg_Cons(SYMBOL("exprs"), SG_NIL));
+  sg__wc.w[4574] = IDENT("for-each", lib);
+  sg__wc.w[17416] = WORD(&sg__wc.cb[274]);
+sg__wc.cb[274].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[4514] = IDENT("format", lib);
+  sg__wc.w[22248] = IDENT("zero?", lib);
+  sg__wc.w[3950] = IDENT("map", lib);
+  sg__wc.w[30725] = IDENT("NUM_EQ", lib);
+  sg__wc.w[26127] = IDENT("EQ", lib);
+  sg__wc.w[13662] = WORD(&sg__wc.cb[208]);
+sg__wc.cb[208].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[20346] = IDENT("car", lib);
+  sg__wc.w[24086] = IDENT("$RECEIVE", lib);
+  sg__wc.w[19951] = IDENT("variable-name", lib);
+  sg__wc.w[12827] = WORD(&sg__wc.cb[201]);
+sg__wc.cb[201].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1707] = SYMBOLW("<");
+  sg__wc.w[29398] = IDENT("cb-emit0o!", lib);
+  sg__wc.w[14603] = IDENT("map", lib);
+  sg__wc.w[14609] = IDENT("map", lib);
+  sg__wc.w[33587] = IDENT("error", lib);
+  sg__wc.w[20816] = IDENT("call-macro-expander", lib);
+  sg__wc.w[20110] = IDENT("gloc-ref", lib);
+  sg__wc.w[16928] = WORD(&sg__wc.cb[263]);
+sg__wc.cb[263].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[8701] = IDENT("map", lib);
+  sg__wc.w[8707] = IDENT("map", lib);
+  sg__wc.w[1401] = IDENT("pass3/asm-div", lib);
+  sg__wc.w[1397] = IDENT("pass3/asm-mul", lib);
+  sg__wc.w[13049] = WORD(&sg__wc.cb[194]);
+sg__wc.cb[194].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[54] = IDENT("$lref", lib);
+  sg__wc.w[7899] = IDENT("syntax-error", lib);
+  sg__wc.w[1774] = IDENT("find-procedure", lib);
+  sg__wc.w[33257] = IDENT("error", lib);
+  sg__wc.w[9763] = IDENT("variable-name", lib);
+  sg__wc.w[16711] = WORD(&sg__wc.cb[258]);
+sg__wc.cb[258].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[9537] = IDENT("map", lib);
+  sg__wc.w[9543] = IDENT("map", lib);
+  sg__wc.w[30757] = IDENT("pass3/rec", lib);
+  sg__wc.w[597] = WORD(&sg__wc.cb[187]);
+sg__wc.cb[187].name = SYMBOL("syntax/letrec");
+  sg__wc.w[7246] = IDENT("reverse", lib);
+  sg__wc.w[7671] = IDENT("append", lib);
+  sg__wc.w[19443] = IDENT("list", lib);
+  sg__wc.w[16233] = WORD(&sg__wc.cb[251]);
+sg__wc.cb[251].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[15521] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
+  sg__wc.w[1454] = IDENT("gen-inliner-arg2", lib);
+  sg__wc.w[1036] = WORD(&sg__wc.cb[351]);
+sg__wc.cb[351].name = SYMBOL("pass2/$LAMBDA");
+  sg__wc.w[3312] = IDENT("$LABEL", lib);
+  sg__wc.w[28684] = IDENT("LOCAL_TAIL_CALL", lib);
+  sg__wc.w[3023] = IDENT("iform-copy", lib);
+  sg__wc.w[34751] = IDENT("$ASM", lib);
+  sg__wc.w[21282] = IDENT("$CONST", lib);
+  sg__wc.w[11436] = IDENT("reverse", lib);
+  sg__wc.w[9354] = IDENT("list", lib);
+  sg__wc.w[5139] = SYMBOLW("ensure-library");
+  sg__wc.w[5159] = SYMBOLW("ensure-library");
+  sg__wc.w[15088] = STRINGW("malformed or");
+  sg__wc.w[3582] = IDENT("iform-copy", lib);
+  sg__wc.w[10704] = IDENT("pass1/body", lib);
+  sg__wc.w[1487] = IDENT("procedure-inliner-set!", lib);
+  sg__wc.w[20484] = WORD(&sg__wc.cb[322]);
+sg__wc.cb[322].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1655] = IDENT("ensure-library-name", lib);
+  sg__wc.w[32364] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[31093] = IDENT("pass3/rec", lib);
+  sg__wc.w[28931] = IDENT("pass3/collect-free", lib);
+  sg__wc.w[26443] = IDENT("max", lib);
+  sg__wc.w[20764] = IDENT("id-library", lib);
+  sg__wc.w[15419] = IDENT("pass1", lib);
+  sg__wc.w[10098] = IDENT("hashtable-ref", lib);
+  sg__wc.w[9238] = IDENT("pass1/body", lib);
+  sg__wc.w[35082] = IDENT("scheme-error", lib);
+  sg__wc.w[29484] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[4467] = IDENT("$LET", lib);
+  sg__wc.w[15249] = IDENT("$it", lib);
+  sg__wc.w[11101] = IDENT("syntax-error", lib);
+  sg__wc.w[1819] = SYMBOLW("zero?");
+  sg__wc.w[34785] = SYMBOLW("zero?");
+  sg__wc.w[12229] = WORD(&sg__wc.cb[178]);
+sg__wc.cb[178].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[29073] = IDENT("make-new-renv", lib);
+  sg__wc.w[24652] = IDENT("append", lib);
+  sg__wc.w[22261] = IDENT("$LAMBDA", lib);
+  sg__wc.w[1100] = IDENT("pass2/$RECEIVE", lib);
+  sg__wc.w[20456] = IDENT("pass1", lib);
+  sg__wc.w[16] = IDENT("SYNTAX", lib);
+  sg__wc.w[32779] = IDENT("SUB", lib);
+  sg__wc.w[1446] = IDENT("asm-arg1", lib);
+  sg__wc.w[12043] = WORD(&sg__wc.cb[171]);
+sg__wc.cb[171].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[4787] = IDENT("format", lib);
+  sg__wc.w[1409] = IDENT("pass3/$LSET", lib);
+  sg__wc.w[30467] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[25706] = IDENT("cb-emit0!", lib);
+  sg__wc.w[13364] = WORD(Sg_Cons(SYMBOL("var"), Sg_Cons(SYMBOL("expr"), SG_NIL)));
+  sg__wc.w[32112] = IDENT("$ASM", lib);
+  sg__wc.w[24280] = IDENT("$LREF", lib);
+  sg__wc.w[907] = SYMBOLW("library");
+  sg__wc.w[911] = SYMBOLW("library");
+  sg__wc.w[19259] = SYMBOLW("library");
+  sg__wc.w[5503] = IDENT("adjust-arglist", lib);
+  sg__wc.w[33966] = WORD(&sg__wc.cb[482]);
+sg__wc.cb[482].name = SYMBOL("inline");
+  sg__wc.w[1348] = IDENT("pass3/$ASM", lib);
+  sg__wc.w[26866] = IDENT("append", lib);
+  sg__wc.w[660] = IDENT("make-syntax", lib);
+  sg__wc.w[11794] = WORD(&sg__wc.cb[167]);
+sg__wc.cb[167].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[26420] = IDENT("cb-emit0!", lib);
+  sg__wc.w[25637] = IDENT("pass3/symbol-lookup", lib);
+  sg__wc.w[21692] = IDENT("pass2/rec", lib);
+  sg__wc.w[18404] = IDENT("list", lib);
+  sg__wc.w[5143] = STRINGW("~a requires a library name or a library, but got: ~s");
+  sg__wc.w[33534] = WORD(&sg__wc.cb[475]);
+sg__wc.cb[475].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1147] = IDENT("stmt-context", lib);
+  sg__wc.w[22134] = IDENT("reverse", lib);
+  sg__wc.w[11076] = WORD(&sg__wc.cb[160]);
+sg__wc.cb[160].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[35429] = IDENT("pass0", lib);
+  sg__wc.w[19006] = IDENT("check-toplevel", lib);
+  sg__wc.w[13972] = IDENT("$seq", lib);
+  sg__wc.w[561] = SYMBOLW("let");
+  sg__wc.w[565] = SYMBOLW("let");
+  sg__wc.w[3093] = SYMBOLW("let");
+  sg__wc.w[4493] = SYMBOLW("let");
+  sg__wc.w[5519] = SYMBOLW("let");
+  sg__wc.w[11725] = SYMBOLW("let");
+  sg__wc.w[12437] = SYMBOLW("let");
+  sg__wc.w[16632] = SYMBOLW("let");
+  sg__wc.w[17284] = SYMBOLW("let");
+  sg__wc.w[1346] = WORD(&sg__wc.cb[422]);
+sg__wc.cb[422].name = SYMBOL("pass3/$ASM");
+  sg__wc.w[23926] = IDENT("code-builder-finish-builder", lib);
+  sg__wc.w[1000] = WORD(&sg__wc.cb[337]);
+sg__wc.cb[337].name = SYMBOL("pass2/label-or-dup");
+  sg__wc.w[14888] = IDENT("p1env-sans-name", lib);
+  sg__wc.w[12555] = IDENT("reverse", lib);
+  sg__wc.w[32873] = WORD(&sg__wc.cb[468]);
+sg__wc.cb[468].name = SYMBOL("inline");
+  sg__wc.w[930] = IDENT("pass1/body-macro-expand-rec", lib);
+  sg__wc.w[16356] = IDENT("p1env-sans-name", lib);
+  sg__wc.w[10992] = WORD(&sg__wc.cb[153]);
+sg__wc.cb[153].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[45] = IDENT("lvar-ref--!", lib);
+  sg__wc.w[4752] = IDENT("$GSET", lib);
+  sg__wc.w[35302] = IDENT("make-bottom-p1env", lib);
+  sg__wc.w[34319] = IDENT("pass1", lib);
+  sg__wc.w[28435] = IDENT("pass3/rec", lib);
+  sg__wc.w[19725] = WORD(&sg__wc.cb[314]);
+sg__wc.cb[314].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[19599] = IDENT("pass1/body-finish", lib);
+  sg__wc.w[9638] = STRINGW("malformed let-syntax");
+  sg__wc.w[29791] = IDENT("append", lib);
+  sg__wc.w[1318] = WORD(&sg__wc.cb[415]);
+sg__wc.cb[415].name = SYMBOL("pass3/$CALL");
+  sg__wc.w[1127] = IDENT("stmt-context?", lib);
+  sg__wc.w[22943] = IDENT("expand-inlined-procedure", lib);
+  sg__wc.w[32483] = WORD(&sg__wc.cb[461]);
+sg__wc.cb[461].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[32922] = IDENT("ensure-inexact-const", lib);
+  sg__wc.w[3923] = STRINGW("($lambda[~a;~a] ~a");
+  sg__wc.w[10584] = WORD(&sg__wc.cb[146]);
+sg__wc.cb[146].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[200] = IDENT("parse-lambda-vars", lib);
+  sg__wc.w[6070] = SYMBOLW("list");
+  sg__wc.w[6083] = SYMBOLW("list");
+  sg__wc.w[6087] = SYMBOLW("list");
+  sg__wc.w[6510] = SYMBOLW("list");
+  sg__wc.w[7622] = SYMBOLW("list");
+  sg__wc.w[7635] = SYMBOLW("list");
+  sg__wc.w[7639] = SYMBOLW("list");
+  sg__wc.w[1290] = WORD(&sg__wc.cb[408]);
+sg__wc.cb[408].name = SYMBOL("pass3/$LET");
+  sg__wc.w[325] = IDENT("pass1/eval-macro-rhs", lib);
+  sg__wc.w[127] = IDENT("pp-iform", lib);
+  sg__wc.w[32062] = WORD(&sg__wc.cb[454]);
+sg__wc.cb[454].name = SYMBOL("fold-+");
+  sg__wc.w[483] = WORD(&sg__wc.cb[139]);
+sg__wc.cb[139].name = SYMBOL("syntax/%macroexpand-1");
+  sg__wc.w[35448] = IDENT("make-code-builder", lib);
+  sg__wc.w[1102] = IDENT("pass2/$LABEL", lib);
+  sg__wc.w[29655] = IDENT("NUM_GT", lib);
+  sg__wc.w[27635] = IDENT("LEAVE", lib);
+  sg__wc.w[1262] = WORD(&sg__wc.cb[401]);
+sg__wc.cb[401].name = SYMBOL("pass3/$CONST");
+  sg__wc.w[25899] = IDENT("GSET", lib);
+  sg__wc.w[23278] = IDENT("reverse", lib);
+  sg__wc.w[1466] = WORD(&sg__wc.cb[447]);
+sg__wc.cb[447].name = SYMBOL("inliner/+");
+  sg__wc.w[31425] = IDENT("max", lib);
+  sg__wc.w[26182] = IDENT("pass3/branch-on-arg2", lib);
+  sg__wc.w[9848] = WORD(&sg__wc.cb[132]);
+sg__wc.cb[132].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[31311] = IDENT("DIV", lib);
+  sg__wc.w[30104] = IDENT("max", lib);
+  sg__wc.w[13865] = IDENT("$IF", lib);
+  sg__wc.w[1246] = WORD(&sg__wc.cb[397]);
+sg__wc.cb[397].name = SYMBOL("pass3/$LREF");
+  sg__wc.w[20592] = IDENT("$seq", lib);
+  sg__wc.w[1444] = WORD(&sg__wc.cb[440]);
+sg__wc.cb[440].name = SYMBOL("asm-arg1");
+  sg__wc.w[24760] = IDENT("$LET", lib);
+  sg__wc.w[942] = IDENT("pass1/body-rest", lib);
+  sg__wc.w[13183] = IDENT("list", lib);
+  sg__wc.w[416] = WORD(&sg__wc.cb[125]);
+sg__wc.cb[125].name = SYMBOL("syntax/letrec-syntax");
+  sg__wc.w[1745] = IDENT("find-procedure", lib);
+  sg__wc.w[24585] = IDENT("$LABEL", lib);
+  sg__wc.w[729] = IDENT("%insert-binding", lib);
+  sg__wc.w[8] = IDENT("$for-each1-with-rindex", lib);
+  sg__wc.w[33172] = IDENT("$CONST", lib);
+  sg__wc.w[1222] = WORD(&sg__wc.cb[390]);
+sg__wc.cb[390].name = SYMBOL("pass3/compile-refer");
+  sg__wc.w[1803] = IDENT("find-procedure", lib);
+  sg__wc.w[30637] = IDENT("cb-emit0!", lib);
+  sg__wc.w[21414] = IDENT("zero?", lib);
+  sg__wc.w[174] = WORD(&sg__wc.cb[41]);
+sg__wc.cb[41].name = SYMBOL("make-bottom-p1env");
+  sg__wc.w[1828] = IDENT("find-procedure", lib);
+  sg__wc.w[6521] = SYMBOLW("list->vector");
+  sg__wc.w[9206] = WORD(&sg__wc.cb[118]);
+sg__wc.cb[118].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[33718] = IDENT("$GREF", lib);
+  sg__wc.w[25508] = STRINGW("bug? Unknown lvar:");
+  sg__wc.w[24500] = IDENT("$CALL", lib);
+  sg__wc.w[20562] = IDENT("pass1/body-1", lib);
+  sg__wc.w[20268] = STRINGW("malformed internal define");
+  sg__wc.w[3265] = IDENT("iform-copy-zip-lvs", lib);
+  sg__wc.w[5438] = IDENT("length", lib);
+  sg__wc.w[24733] = WORD(&sg__wc.cb[383]);
+sg__wc.cb[383].name = SYMBOL("rec");
+  sg__wc.w[748] = IDENT("make-syntax", lib);
+  sg__wc.w[146] = WORD(&sg__wc.cb[34]);
+sg__wc.cb[34].name = SYMBOL("check-toplevel");
+  sg__wc.w[34906] = STRINGW("wrong number of arguments");
+  sg__wc.w[33373] = IDENT("$GREF", lib);
+  sg__wc.w[23955] = IDENT("pass3/exists-in-can-frees?", lib);
+  sg__wc.w[17353] = IDENT("cdar", lib);
+  sg__wc.w[8838] = WORD(&sg__wc.cb[111]);
+sg__wc.cb[111].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[4259] = IDENT("$DEFINE", lib);
+  sg__wc.w[25994] = IDENT("$IT", lib);
+  sg__wc.w[15693] = IDENT("reverse", lib);
+  sg__wc.w[2741] = IDENT("$IT", lib);
+  sg__wc.w[1174] = WORD(&sg__wc.cb[376]);
+sg__wc.cb[376].name = SYMBOL("pass3/add-sets");
+  sg__wc.w[13827] = IDENT("LEXICAL", lib);
+  sg__wc.w[119] = IDENT("iform-copy-zip-lvs", lib);
+  sg__wc.w[7896] = STRINGW("malformed quasiquote");
+  sg__wc.w[9232] = IDENT("p1env-extend", lib);
+  sg__wc.w[4451] = WORD(&sg__wc.cb[27]);
+sg__wc.cb[27].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[59] = IDENT("$lset", lib);
+  sg__wc.w[1910] = WORD(&sg__wc.cb[499]);
+sg__wc.cb[499].name = SYMBOL("integer-fits-insn-arg?");
+  sg__wc.w[20933] = IDENT("scheme-error", lib);
+  sg__wc.w[1624] = SYMBOLW("/");
+  sg__wc.w[34070] = SYMBOLW("/");
+  sg__wc.w[29207] = IDENT("pass3/ensure-label", lib);
+  sg__wc.w[24030] = IDENT("reverse", lib);
+  sg__wc.w[1150] = WORD(&sg__wc.cb[369]);
+sg__wc.cb[369].name = SYMBOL("make-new-renv");
+  sg__wc.w[3795] = WORD(&sg__wc.cb[22]);
+sg__wc.cb[22].name = SYMBOL("nl");
+  sg__wc.w[34702] = WORD(&sg__wc.cb[492]);
+sg__wc.cb[492].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[33725] = IDENT("ensure-identifier", lib);
+  sg__wc.w[32724] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[1474] = SYMBOLW("+");
+  sg__wc.w[31832] = SYMBOLW("+");
+  sg__wc.w[29686] = IDENT("ADD", lib);
+  sg__wc.w[28241] = IDENT("tail-context?", lib);
+  sg__wc.w[1104] = IDENT("pass2/$SEQ", lib);
+  sg__wc.w[34257] = IDENT("fold", lib);
+  sg__wc.w[32020] = IDENT("ADD", lib);
+  sg__wc.w[27313] = IDENT("renv-add-can-free2", lib);
+  sg__wc.w[26478] = IDENT("TEST", lib);
+  sg__wc.w[15351] = STRINGW("malformed when");
+  sg__wc.w[1121] = WORD(&sg__wc.cb[362]);
+sg__wc.cb[362].name = SYMBOL("normal-context?");
+  sg__wc.w[22337] = IDENT("SMALL_LAMBDA_SIZE", lib);
+  sg__wc.w[8617] = IDENT("pass1", lib);
+  sg__wc.w[8170] = IDENT("syntax-error", lib);
+  sg__wc.w[32756] = IDENT("$CONST", lib);
+  sg__wc.w[29027] = IDENT("cb-emit0!", lib);
+  sg__wc.w[5079] = IDENT("identifier?", lib);
+  sg__wc.w[34264] = IDENT("$CONST", lib);
+  sg__wc.w[22789] = IDENT("$LABEL", lib);
+  sg__wc.w[15806] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
+  sg__wc.w[26789] = IDENT("append", lib);
+  sg__wc.w[3567] = IDENT("reverse", lib);
+  sg__wc.w[24318] = IDENT("pass3/exists-in-can-frees?", lib);
+  sg__wc.w[1052] = WORD(&sg__wc.cb[355]);
+sg__wc.cb[355].name = SYMBOL("pass2/$CALL");
+  sg__wc.w[91] = WORD(&sg__wc.cb[12]);
+sg__wc.cb[12].name = SYMBOL("$seq");
+  sg__wc.w[30718] = IDENT("pass3/rec", lib);
+  sg__wc.w[26750] = IDENT("pass3/find-free", lib);
+  sg__wc.w[32909] = IDENT("SUBI", lib);
+  sg__wc.w[28205] = IDENT("pass3/rec", lib);
+  sg__wc.w[47] = WORD(&sg__wc.cb[7]);
+sg__wc.cb[7].name = SYMBOL("lvar-set++!");
+  sg__wc.w[2927] = IDENT("$GREF", lib);
+  sg__wc.w[31357] = IDENT("PUSH", lib);
+  sg__wc.w[34419] = IDENT("number?", lib);
+  sg__wc.w[21562] = IDENT("$IT", lib);
+  sg__wc.w[5170] = IDENT("scheme-error", lib);
+  sg__wc.w[32217] = IDENT("$CALL", lib);
+  sg__wc.w[23079] = IDENT("reverse", lib);
+  sg__wc.w[19207] = IDENT("syntax-error", lib);
+  sg__wc.w[583] = SYMBOLW("let*");
+  sg__wc.w[587] = SYMBOLW("let*");
+  sg__wc.w[34765] = IDENT("$CONST", lib);
+  sg__wc.w[23852] = IDENT("hashtable-set!", lib);
+  sg__wc.w[20361] = IDENT("make-lvar+", lib);
+  sg__wc.w[22] = WORD(&sg__wc.cb[2]);
+sg__wc.cb[2].name = SYMBOL("pass0");
+  sg__wc.w[24421] = IDENT("append", lib);
+  sg__wc.w[19778] = IDENT("lambda.", lib);
+  sg__wc.w[11223] = IDENT("p1env-extend", lib);
+  sg__wc.w[17368] = SYMBOLW("memv");
+  sg__wc.w[10086] = IDENT("scheme-error", lib);
+  sg__wc.w[33219] = IDENT("$ASM", lib);
+  sg__wc.w[29157] = IDENT("renv-copy", lib);
+  sg__wc.w[31972] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[13379] = IDENT("reverse", lib);
+  sg__wc.w[5133] = IDENT("find-library", lib);
+  sg__wc.w[1106] = IDENT("pass2/$CALL", lib);
+  sg__wc.w[20316] = IDENT("pass1/body-rec", lib);
+  sg__wc.w[28061] = IDENT("length", lib);
+  sg__wc.w[22518] = SYMBOLW("tail-rec");
+  sg__wc.w[23420] = SYMBOLW("tail-rec");
+  sg__wc.w[12542] = IDENT("map", lib);
+  sg__wc.w[12548] = IDENT("map", lib);
+  sg__wc.w[501] = IDENT("%insert-binding", lib);
+  sg__wc.w[31211] = IDENT("normal-context", lib);
+  sg__wc.w[26152] = IDENT("pass3/branch-on-arg2", lib);
+  sg__wc.w[27054] = IDENT("ENTER", lib);
+  sg__wc.w[26235] = IDENT("pass3/branch-on-false", lib);
+  sg__wc.w[24873] = IDENT("append", lib);
+  sg__wc.w[12955] = IDENT("syntax-error", lib);
+  sg__wc.w[5557] = STRINGW("wrong number of arguments: ~s requires ~a, but got ~a");
+  sg__wc.w[24136] = IDENT("append", lib);
+  sg__wc.w[34239] = IDENT("$CONST", lib);
+  sg__wc.w[31141] = IDENT("PUSH", lib);
+  sg__wc.w[21677] = IDENT("$IF", lib);
+  sg__wc.w[21021] = IDENT("$GREF", lib);
+  sg__wc.w[7578] = IDENT("length", lib);
+  sg__wc.w[33222] = IDENT("SUBI", lib);
+  sg__wc.w[28196] = IDENT("make-new-renv", lib);
+  sg__wc.w[23605] = SYMBOLW("stmt/bottom");
+  sg__wc.w[23622] = SYMBOLW("stmt/bottom");
+  sg__wc.w[23673] = SYMBOLW("stmt/bottom");
+  sg__wc.w[13824] = IDENT("%map-cons", lib);
+  sg__wc.w[11762] = IDENT("p1env-add-name", lib);
+  sg__wc.w[2799] = IDENT("scheme-error", lib);
+  sg__wc.w[31626] = IDENT("number?", lib);
+  sg__wc.w[11614] = IDENT("map", lib);
+  sg__wc.w[11620] = IDENT("map", lib);
+  sg__wc.w[29697] = IDENT("cadr", lib);
+  sg__wc.w[1252] = IDENT("pass3/$LSET", lib);
+  sg__wc.w[19646] = IDENT("syntax-error", lib);
+  sg__wc.w[32608] = IDENT("NEG", lib);
+  sg__wc.w[25390] = STRINGW("unknown iform:");
+  sg__wc.w[19203] = IDENT("format", lib);
+  sg__wc.w[11327] = IDENT("map", lib);
+  sg__wc.w[6317] = IDENT("variable?", lib);
+  sg__wc.w[6615] = IDENT("variable?", lib);
+  sg__wc.w[6966] = IDENT("variable?", lib);
+  sg__wc.w[9550] = IDENT("reverse", lib);
+  sg__wc.w[9071] = IDENT("syntax-error", lib);
+  sg__wc.w[34063] = IDENT("$CALL", lib);
+  sg__wc.w[26132] = IDENT("BNEQ", lib);
+  sg__wc.w[12769] = IDENT("pass1/letrec", lib);
+  sg__wc.w[2972] = IDENT("$CONST", lib);
+  sg__wc.w[29955] = IDENT("pass3/rec", lib);
+  sg__wc.w[17329] = IDENT("caar", lib);
+  sg__wc.w[28833] = IDENT("pass3/find-free", lib);
+  sg__wc.w[17074] = IDENT("map", lib);
+  sg__wc.w[17080] = IDENT("map", lib);
+  sg__wc.w[20929] = IDENT("format", lib);
+  sg__wc.w[27191] = IDENT("pass3/rec", lib);
+  sg__wc.w[1558] = IDENT("find-procedure", lib);
+  sg__wc.w[22128] = IDENT("reverse", lib);
+  sg__wc.w[21533] = IDENT("pass2/rec", lib);
+  sg__wc.w[29703] = IDENT("pass3/asm-add", lib);
+  sg__wc.w[1180] = IDENT("pass3/rec", lib);
+  sg__wc.w[29681] = IDENT("pass3/asm-numcmp", lib);
+  sg__wc.w[25617] = IDENT("FSET", lib);
+  sg__wc.w[1850] = IDENT("ensure-library-name", lib);
+  sg__wc.w[23690] = IDENT("pass3/add-sets", lib);
+  sg__wc.w[35262] = STRINGW("wrong number of arguments");
+  sg__wc.w[33012] = IDENT("$GREF", lib);
+  sg__wc.w[2840] = IDENT("$DEFINE", lib);
+  sg__wc.w[5744] = WORD(Sg_Cons(SYMBOL("sagittarius"), Sg_Cons(SYMBOL("compiler"), SG_NIL)));
+  sg__wc.w[8613] = IDENT("compile-syntax-case", lib);
+  sg__wc.w[34787] = STRINGW("wrong number of arguments");
+  sg__wc.w[33159] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[25054] = IDENT("$IF", lib);
+  sg__wc.w[20276] = IDENT("syntax-error", lib);
+  sg__wc.w[35361] = IDENT("make-bottom-p1env", lib);
+  sg__wc.w[1505] = IDENT("ensure-library-name", lib);
+  sg__wc.w[3907] = IDENT("format", lib);
+  sg__wc.w[24907] = IDENT("reverse", lib);
+  sg__wc.w[20841] = IDENT("inline?", lib);
+  sg__wc.w[12048] = IDENT("map", lib);
+  sg__wc.w[12054] = IDENT("map", lib);
+  sg__wc.w[350] = WORD(&sg__wc.cb[110]);
+sg__wc.cb[110].name = SYMBOL("syntax/syntax");
+  sg__wc.w[3336] = IDENT("cdr", lib);
+  sg__wc.w[7387] = IDENT("append", lib);
+  sg__wc.w[28762] = IDENT("length", lib);
+  sg__wc.w[1096] = IDENT("pass2/$LET", lib);
+  sg__wc.w[8566] = WORD(&sg__wc.cb[103]);
+sg__wc.cb[103].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[27637] = IDENT("cb-emit0!", lib);
+  sg__wc.w[17916] = IDENT("syntax-error", lib);
+  sg__wc.w[1599] = SYMBOLW("*.");
+  sg__wc.w[33722] = SYMBOLW("*.");
+  sg__wc.w[368] = IDENT("%insert-binding", lib);
+  sg__wc.w[30561] = IDENT("normal-context", lib);
+  sg__wc.w[32530] = IDENT("error", lib);
+  sg__wc.w[8347] = WORD(&sg__wc.cb[96]);
+sg__wc.cb[96].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[33885] = IDENT("MULI", lib);
+  sg__wc.w[26972] = IDENT("pass3/collect-free", lib);
+  sg__wc.w[978] = IDENT("pass2/$LREF", lib);
+  sg__wc.w[5400] = IDENT("length", lib);
+  sg__wc.w[11162] = IDENT("syntax-error", lib);
+  sg__wc.w[7819] = WORD(&sg__wc.cb[89]);
+sg__wc.cb[89].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[7233] = IDENT("map", lib);
+  sg__wc.w[7239] = IDENT("map", lib);
+  sg__wc.w[35433] = IDENT("pass1", lib);
+  sg__wc.w[24480] = IDENT("$DEFINE", lib);
+  sg__wc.w[32816] = IDENT("$CONST", lib);
+  sg__wc.w[20568] = IDENT("reverse", lib);
+  sg__wc.w[11431] = IDENT("list", lib);
+  sg__wc.w[7467] = WORD(&sg__wc.cb[82]);
+sg__wc.cb[82].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[35200] = IDENT("$ASM", lib);
+  sg__wc.w[21879] = IDENT("iform-copy", lib);
+  sg__wc.w[15745] = WORD(&sg__wc.cb[244]);
+sg__wc.cb[244].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[10115] = IDENT("p1env-lookup", lib);
+  sg__wc.w[19372] = WORD(&sg__wc.cb[309]);
+sg__wc.cb[309].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[34433] = IDENT("$CALL", lib);
+  sg__wc.w[30499] = IDENT("pass3/rec", lib);
+  sg__wc.w[27898] = IDENT("pass3/frame-size", lib);
+  sg__wc.w[18999] = IDENT("library-exported-set!", lib);
+  sg__wc.w[755] = WORD(&sg__wc.cb[240]);
+sg__wc.cb[240].name = SYMBOL("syntax/unless");
+  sg__wc.w[31819] = IDENT("$CONST", lib);
+  sg__wc.w[10224] = IDENT("%internal-macro-expand", lib);
+  sg__wc.w[5961] = IDENT("string?", lib);
+  sg__wc.w[10483] = IDENT("pass1/lambda", lib);
+  sg__wc.w[877] = WORD(&sg__wc.cb[302]);
+sg__wc.cb[302].name = SYMBOL("syntax/import");
+  sg__wc.w[6343] = IDENT("variable?", lib);
+  sg__wc.w[6693] = IDENT("variable?", lib);
+  sg__wc.w[6899] = IDENT("variable?", lib);
+  sg__wc.w[10216] = IDENT("$CONST", lib);
+  sg__wc.w[29719] = IDENT("cadr", lib);
+  sg__wc.w[6103] = SYMBOLW(".CONS");
+  sg__wc.w[7659] = SYMBOLW(".CONS");
+  sg__wc.w[7109] = WORD(&sg__wc.cb[74]);
+sg__wc.cb[74].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[5191] = IDENT("syntax-error", lib);
+  sg__wc.w[28258] = IDENT("ENTER", lib);
+  sg__wc.w[1264] = IDENT("pass3/$CONST", lib);
+  sg__wc.w[4187] = IDENT("for-each", lib);
+  sg__wc.w[24195] = IDENT("$LAMBDA", lib);
+  sg__wc.w[1098] = IDENT("pass2/$LAMBDA", lib);
+  sg__wc.w[20879] = IDENT("length", lib);
+  sg__wc.w[18111] = IDENT("$UNDEF", lib);
+  sg__wc.w[17300] = IDENT("pass1", lib);
+  sg__wc.w[17963] = WORD(&sg__wc.cb[298]);
+sg__wc.cb[298].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[17790] = IDENT("pass1", lib);
+  sg__wc.w[6869] = WORD(&sg__wc.cb[67]);
+sg__wc.cb[67].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[2216] = IDENT("$GREF", lib);
+  sg__wc.w[26162] = IDENT("BNNUME", lib);
+  sg__wc.w[15384] = IDENT("pass1", lib);
+  sg__wc.w[711] = WORD(&sg__wc.cb[230]);
+sg__wc.cb[230].name = SYMBOL("syntax/and");
+  sg__wc.w[1204] = IDENT("pass3/symbol-lookup", lib);
+  sg__wc.w[41] = IDENT("lvar-ref++!", lib);
+  sg__wc.w[18902] = IDENT("append", lib);
+  sg__wc.w[18391] = WORD(&sg__wc.cb[291]);
+sg__wc.cb[291].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[14801] = WORD(&sg__wc.cb[225]);
+sg__wc.cb[225].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[5876] = WORD(&sg__wc.cb[60]);
+sg__wc.cb[60].name = SYMBOL("emit-cons");
+  sg__wc.w[1537] = IDENT("procedure-inliner-set!", lib);
+  sg__wc.w[20827] = IDENT("syntax?", lib);
+  sg__wc.w[15237] = IDENT("pass1", lib);
+  sg__wc.w[4710] = STRINGW("($lset ~a");
+  sg__wc.w[4059] = IDENT("$LABEL", lib);
+  sg__wc.w[29725] = IDENT("pass3/asm-sub", lib);
+  sg__wc.w[27411] = IDENT("length", lib);
+  sg__wc.w[18036] = WORD(&sg__wc.cb[284]);
+sg__wc.cb[284].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[219] = WORD(&sg__wc.cb[53]);
+sg__wc.cb[53].name = SYMBOL("ensure-identifier");
+  sg__wc.w[14358] = WORD(&sg__wc.cb[218]);
+sg__wc.cb[218].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[11098] = STRINGW("malformed let:");
+  sg__wc.w[2114] = IDENT("$SEQ", lib);
+  sg__wc.w[2989] = IDENT("$IF", lib);
+  sg__wc.w[33982] = IDENT("error", lib);
+  sg__wc.w[32527] = STRINGW("procedure requires at least one argument:");
+  sg__wc.w[32930] = STRINGW("procedure requires at least one argument:");
+  sg__wc.w[27574] = IDENT("ENTER", lib);
+  sg__wc.w[26297] = IDENT("pass3/rec", lib);
+  sg__wc.w[1062] = IDENT("pass2/self-recursing?", lib);
+  sg__wc.w[22359] = IDENT("pass2/local-call-optimizer", lib);
+  sg__wc.w[17510] = WORD(&sg__wc.cb[277]);
+sg__wc.cb[277].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[7038] = IDENT("syntax-error", lib);
+  sg__wc.w[34073] = IDENT("ensure-identifier", lib);
+  sg__wc.w[26360] = IDENT("pass3/emit-then-else", lib);
+  sg__wc.w[14036] = WORD(&sg__wc.cb[211]);
+sg__wc.cb[211].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[5509] = WORD(&sg__wc.cb[46]);
+sg__wc.cb[46].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[11865] = IDENT("list", lib);
+  sg__wc.w[917] = IDENT("%insert-binding", lib);
+  sg__wc.w[17148] = WORD(&sg__wc.cb[270]);
+sg__wc.cb[270].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[13472] = WORD(&sg__wc.cb[204]);
+sg__wc.cb[204].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[26885] = IDENT("length", lib);
+  sg__wc.w[970] = IDENT("pass2/$UNDEF", lib);
+  sg__wc.w[17011] = WORD(&sg__wc.cb[266]);
+sg__wc.cb[266].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[4404] = STRINGW(")");
+  sg__wc.w[20708] = IDENT("list?", lib);
+  sg__wc.w[13170] = WORD(&sg__wc.cb[197]);
+sg__wc.cb[197].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1924] = IDENT("compile-p2", lib);
+  sg__wc.w[31042] = IDENT("SUBI", lib);
+  sg__wc.w[23457] = IDENT("memq", lib);
+  sg__wc.w[23073] = IDENT("pass2/rec", lib);
+  sg__wc.w[25312] = IDENT("$UNDEF", lib);
+  sg__wc.w[1054] = IDENT("pass2/$CALL", lib);
+  sg__wc.w[8256] = IDENT("lambda.", lib);
+  sg__wc.w[32412] = IDENT("ADDI", lib);
+  sg__wc.w[12782] = WORD(&sg__wc.cb[190]);
+sg__wc.cb[190].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[12157] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
+  sg__wc.w[8167] = STRINGW("malformed define");
+  sg__wc.w[964] = WORD(&sg__wc.cb[328]);
+sg__wc.cb[328].name = SYMBOL("pass2");
+  sg__wc.w[16438] = WORD(&sg__wc.cb[254]);
+sg__wc.cb[254].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[13831] = IDENT("p1env-extend/proc", lib);
+  sg__wc.w[12537] = WORD(&sg__wc.cb[183]);
+sg__wc.cb[183].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[32788] = IDENT("$CONST", lib);
+  sg__wc.w[24444] = IDENT("reverse", lib);
+  sg__wc.w[814] = IDENT("make-syntax", lib);
+  sg__wc.w[15845] = WORD(&sg__wc.cb[247]);
+sg__wc.cb[247].name = SYMBOL("process-clauses");
+  sg__wc.w[605] = SYMBOLW("letrec");
+  sg__wc.w[609] = SYMBOLW("letrec");
+  sg__wc.w[12760] = SYMBOLW("letrec");
+  sg__wc.w[8203] = IDENT("unwrap-syntax", lib);
+  sg__wc.w[1989] = IDENT("length", lib);
+  sg__wc.w[23593] = SYMBOLW("norma/bottom");
+  sg__wc.w[14925] = IDENT("syntax-error", lib);
+  sg__wc.w[7480] = IDENT("list", lib);
+  sg__wc.w[277] = IDENT("pass1/define", lib);
+  sg__wc.w[549] = IDENT("%insert-binding", lib);
+  sg__wc.w[1403] = IDENT("pass3/$UNDEF", lib);
+  sg__wc.w[30590] = IDENT("pass3/rec", lib);
+  sg__wc.w[29446] = IDENT("pass3/rec", lib);
+  sg__wc.w[17819] = SYMBOLW("only");
+  sg__wc.w[5086] = IDENT("id-name", lib);
+  sg__wc.w[3059] = IDENT("iform-copy-zip-lvs", lib);
+  sg__wc.w[2228] = IDENT("$CONST", lib);
+  sg__wc.w[21061] = IDENT("pass1/call", lib);
+  sg__wc.w[19972] = IDENT("cdar", lib);
+  sg__wc.w[28519] = IDENT("pass3/jump-call", lib);
+  sg__wc.w[23982] = IDENT("uniq", lib);
+  sg__wc.w[28707] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[21083] = IDENT("pass1/call", lib);
+  sg__wc.w[18396] = IDENT("map", lib);
+  sg__wc.w[18402] = IDENT("map", lib);
+  sg__wc.w[476] = IDENT("make-syntax", lib);
+  sg__wc.w[34206] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[2790] = SYMBOLW("iform-count-size-upto");
+  sg__wc.w[12096] = WORD(&sg__wc.cb[174]);
+sg__wc.cb[174].name = SYMBOL("match-tail#(sagittarius compiler)");
+  sg__wc.w[3536] = IDENT("$ASM", lib);
+  sg__wc.w[1139] = IDENT("top-context?", lib);
+  sg__wc.w[34224] = WORD(&sg__wc.cb[485]);
+sg__wc.cb[485].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[28309] = IDENT("tail-context?", lib);
+  sg__wc.w[10322] = STRINGW("malformed %macroexpand");
+  sg__wc.w[19978] = IDENT("for-each", lib);
+  sg__wc.w[6225] = IDENT("variable?", lib);
+  sg__wc.w[6273] = IDENT("variable?", lib);
+  sg__wc.w[6761] = IDENT("variable?", lib);
+  sg__wc.w[6830] = IDENT("variable?", lib);
+  sg__wc.w[30672] = IDENT("max", lib);
+  sg__wc.w[4243] = STRINGW("~a");
+  sg__wc.w[4287] = STRINGW("~a");
+  sg__wc.w[4775] = STRINGW("~a");
+  sg__wc.w[33651] = WORD(&sg__wc.cb[478]);
+sg__wc.cb[478].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1024] = WORD(&sg__wc.cb[345]);
+sg__wc.cb[345].name = SYMBOL("pass2/local-call-optimizer");
+  sg__wc.w[15234] = IDENT("p1env-sans-name", lib);
+  sg__wc.w[10952] = WORD(&sg__wc.cb[163]);
+sg__wc.cb[163].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[4746] = STRINGW(")");
+  sg__wc.w[20296] = IDENT("caar", lib);
+  sg__wc.w[1566] = WORD(&sg__wc.cb[471]);
+sg__wc.cb[471].name = SYMBOL("inliner/*");
+  sg__wc.w[1012] = WORD(&sg__wc.cb[340]);
+sg__wc.cb[340].name = SYMBOL("pass2/remove-unused-lvars");
+  sg__wc.w[21290] = IDENT("*pass2-dispatch-table*", lib);
+  sg__wc.w[444] = KEYWORDW("null");
+  sg__wc.w[1478] = KEYWORDW("null");
+  sg__wc.w[1503] = KEYWORDW("null");
+  sg__wc.w[1528] = KEYWORDW("null");
+  sg__wc.w[1553] = KEYWORDW("null");
+  sg__wc.w[1578] = KEYWORDW("null");
+  sg__wc.w[1603] = KEYWORDW("null");
+  sg__wc.w[1628] = KEYWORDW("null");
+  sg__wc.w[1653] = KEYWORDW("null");
+  sg__wc.w[1682] = KEYWORDW("null");
+  sg__wc.w[1711] = KEYWORDW("null");
+  sg__wc.w[1740] = KEYWORDW("null");
+  sg__wc.w[1769] = KEYWORDW("null");
+  sg__wc.w[1798] = KEYWORDW("null");
+  sg__wc.w[1823] = KEYWORDW("null");
+  sg__wc.w[1848] = KEYWORDW("null");
+  sg__wc.w[1873] = KEYWORDW("null");
+  sg__wc.w[1898] = KEYWORDW("null");
+  sg__wc.w[9766] = IDENT("p1env-add-name", lib);
+  sg__wc.w[928] = WORD(&sg__wc.cb[317]);
+sg__wc.cb[317].name = SYMBOL("pass1/body-macro-expand-rec");
+  sg__wc.w[7049] = IDENT("syntax-error", lib);
+  sg__wc.w[11323] = WORD(&sg__wc.cb[156]);
+sg__wc.cb[156].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[28966] = IDENT("DISPLAY", lib);
   sg__wc.w[885] = SYMBOLW("import");
   sg__wc.w[889] = SYMBOLW("import");
   sg__wc.w[18181] = SYMBOLW("import");
   sg__wc.w[18301] = SYMBOLW("import");
   sg__wc.w[18525] = SYMBOLW("import");
   sg__wc.w[19233] = SYMBOLW("import");
-  sg__wc.w[7786] = WORD(Sg_Cons(SYMBOL("e1"), SG_NIL));
+  sg__wc.w[143] = IDENT("ensure-library", lib);
+  sg__wc.w[35027] = IDENT("$ASM", lib);
+  sg__wc.w[30975] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[1330] = WORD(&sg__wc.cb[418]);
+sg__wc.cb[418].name = SYMBOL("pass3/jump-call");
+  sg__wc.w[26570] = IDENT("JUMP", lib);
+  sg__wc.w[34218] = IDENT("vm-r6rs-mode?", lib);
+  sg__wc.w[32633] = WORD(&sg__wc.cb[464]);
+sg__wc.cb[464].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[31160] = IDENT("pass3/rec", lib);
+  sg__wc.w[30092] = IDENT("cb-emit0!", lib);
+  sg__wc.w[25577] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[10306] = IDENT("%internal-macro-expand", lib);
+  sg__wc.w[160] = IDENT("p1env-extend/name", lib);
+  sg__wc.w[35278] = IDENT("exact?", lib);
+  sg__wc.w[920] = WORD(&sg__wc.cb[311]);
+sg__wc.cb[311].name = SYMBOL("pass1/body");
+  sg__wc.w[15672] = IDENT("$UNDEF", lib);
+  sg__wc.w[10784] = WORD(&sg__wc.cb[149]);
+sg__wc.cb[149].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[9262] = IDENT("pass1/eval-macro-rhs", lib);
+  sg__wc.w[32157] = WORD(&sg__wc.cb[457]);
+sg__wc.cb[457].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1302] = WORD(&sg__wc.cb[411]);
+sg__wc.cb[411].name = SYMBOL("pass3/$LAMBDA");
+  sg__wc.w[16394] = IDENT("pass1", lib);
+  sg__wc.w[5738] = IDENT("pass1/find-symbol-in-lvars", lib);
+  sg__wc.w[32803] = IDENT("$ASM", lib);
+  sg__wc.w[17479] = IDENT("map", lib);
+  sg__wc.w[17485] = IDENT("map", lib);
+  sg__wc.w[13798] = IDENT("map", lib);
+  sg__wc.w[509] = WORD(&sg__wc.cb[142]);
+sg__wc.cb[142].name = SYMBOL("syntax/lambda");
+  sg__wc.w[9046] = IDENT("%insert-binding", lib);
+  sg__wc.w[29638] = IDENT("cadr", lib);
+  sg__wc.w[1274] = WORD(&sg__wc.cb[404]);
+sg__wc.cb[404].name = SYMBOL("pass3/branch-on-arg1");
+  sg__wc.w[21381] = IDENT("$CONST", lib);
+  sg__wc.w[35052] = IDENT("pass1", lib);
+  sg__wc.w[31835] = IDENT("ensure-identifier", lib);
+  sg__wc.w[31686] = WORD(&sg__wc.cb[450]);
+sg__wc.cb[450].name = SYMBOL("inline");
+  sg__wc.w[24248] = IDENT("pass3/exists-in-can-frees?", lib);
+  sg__wc.w[21304] = IDENT("pass2/rec", lib);
+  sg__wc.w[817] = IDENT("%insert-binding", lib);
+  sg__wc.w[5544] = IDENT("argcount-ok?", lib);
+  sg__wc.w[30754] = IDENT("normal-context", lib);
+  sg__wc.w[20382] = IDENT("%map-cons", lib);
+  sg__wc.w[10039] = WORD(&sg__wc.cb[135]);
+sg__wc.cb[135].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[365] = IDENT("make-syntax", lib);
+  sg__wc.w[28024] = IDENT("pass3/find-sets", lib);
+  sg__wc.w[26850] = IDENT("pass3/find-sets", lib);
+  sg__wc.w[18726] = IDENT("map", lib);
+  sg__wc.w[18732] = IDENT("map", lib);
+  sg__wc.w[12741] = IDENT("list", lib);
+  sg__wc.w[8547] = STRINGW("malformed syntax-case");
+  sg__wc.w[1699] = IDENT("gen-inliner-arg2", lib);
+  sg__wc.w[31469] = WORD(&sg__wc.cb[443]);
+sg__wc.cb[443].name = SYMBOL("gen-inliner-arg2");
   sg__wc.w[1258] = WORD(&sg__wc.cb[400]);
 sg__wc.cb[400].name = SYMBOL("pass3/$GSET");
-  sg__wc.w[15020] = WORD(&sg__wc.cb[229]);
-sg__wc.cb[229].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[17300] = IDENT("pass1", lib);
-  sg__wc.w[1446] = IDENT("asm-arg1", lib);
-  sg__wc.w[30946] = IDENT("cb-emit0!", lib);
-  sg__wc.w[25726] = IDENT("pass3/rec", lib);
-  sg__wc.w[16895] = WORD(Sg_Cons(SYMBOL("exprs"), SG_NIL));
-  sg__wc.w[13827] = IDENT("LEXICAL", lib);
-  sg__wc.w[4605] = IDENT("display", lib);
-  sg__wc.w[33005] = IDENT("ensure-inexact-const", lib);
-  sg__wc.w[32806] = IDENT("SUB", lib);
+  sg__wc.w[17867] = IDENT("syntax-error", lib);
+  sg__wc.w[1324] = IDENT("pass3/local-call", lib);
+  sg__wc.w[19826] = IDENT("global-eq?", lib);
+  sg__wc.w[9657] = WORD(&sg__wc.cb[128]);
+sg__wc.cb[128].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[29741] = IDENT("cadr", lib);
+  sg__wc.w[29730] = IDENT("MUL", lib);
+  sg__wc.w[1010] = IDENT("pass2/$LET", lib);
+  sg__wc.w[26117] = IDENT("BNNULL", lib);
   sg__wc.w[25652] = WORD(&sg__wc.cb[393]);
 sg__wc.cb[393].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1078] = IDENT("pass2/$LIST", lib);
-  sg__wc.w[20043] = IDENT("reverse", lib);
-  sg__wc.w[14636] = WORD(&sg__wc.cb[224]);
-sg__wc.cb[224].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[35215] = IDENT("pass1", lib);
-  sg__wc.w[2972] = IDENT("$CONST", lib);
-  sg__wc.w[34566] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[7179] = WORD(&sg__wc.cb[76]);
-sg__wc.cb[76].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[1356] = IDENT("pass3/emit-asm!", lib);
-  sg__wc.w[25617] = IDENT("FSET", lib);
-  sg__wc.w[8158] = IDENT("variable?", lib);
-  sg__wc.w[20780] = IDENT("id-name", lib);
-  sg__wc.w[13678] = WORD(&sg__wc.cb[217]);
-sg__wc.cb[217].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[729] = IDENT("%insert-binding", lib);
-  sg__wc.w[13040] = IDENT("$LET", lib);
-  sg__wc.w[21275] = STRINGW("[internal] p1env-lookup returned weird obj:");
-  sg__wc.w[6955] = WORD(&sg__wc.cb[69]);
-sg__wc.cb[69].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[24409] = IDENT("append", lib);
-  sg__wc.w[24124] = IDENT("append", lib);
-  sg__wc.w[1164] = IDENT("renv-copy", lib);
-  sg__wc.w[33908] = IDENT("ensure-inexact-const", lib);
-  sg__wc.w[27349] = IDENT("renv-add-can-free2", lib);
-  sg__wc.w[836] = IDENT("make-syntax", lib);
-  sg__wc.w[13547] = WORD(&sg__wc.cb[207]);
-sg__wc.cb[207].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[457] = IDENT("%insert-binding", lib);
-  sg__wc.w[17819] = SYMBOLW("only");
-  sg__wc.w[9703] = IDENT("p1env-extend", lib);
-  sg__wc.w[28557] = IDENT("pass3/head-heavy-call", lib);
-  sg__wc.w[26443] = IDENT("max", lib);
-  sg__wc.w[32591] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[30508] = IDENT("cb-emit0!", lib);
-  sg__wc.w[28212] = IDENT("RECEIVE", lib);
-  sg__wc.w[22134] = IDENT("reverse", lib);
+  sg__wc.w[1391] = WORD(&sg__wc.cb[436]);
+sg__wc.cb[436].name = SYMBOL("pass3/asm-sub");
+  sg__wc.w[23499] = IDENT("pass2/rec", lib);
+  sg__wc.w[950] = IDENT("pass1/call", lib);
+  sg__wc.w[20076] = IDENT("pass1/body-rec", lib);
+  sg__wc.w[16910] = IDENT("reverse", lib);
+  sg__wc.w[9341] = WORD(&sg__wc.cb[121]);
+sg__wc.cb[121].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1371] = WORD(&sg__wc.cb[431]);
+sg__wc.cb[431].name = SYMBOL("pass3/asm-eq");
+  sg__wc.w[28603] = IDENT("FRAME", lib);
+  sg__wc.w[26989] = IDENT("cb-emit1!", lib);
+  sg__wc.w[1206] = WORD(&sg__wc.cb[386]);
+sg__wc.cb[386].name = SYMBOL("pass3/return-refer-local");
+  sg__wc.w[10113] = IDENT("SYNTAX", lib);
+  sg__wc.w[158] = WORD(&sg__wc.cb[37]);
+sg__wc.cb[37].name = SYMBOL("p1env-extend/name");
+  sg__wc.w[9701] = IDENT("SYNTAX", lib);
+  sg__wc.w[34443] = IDENT("ensure-identifier", lib);
+  sg__wc.w[29964] = IDENT("cb-emit0!", lib);
   sg__wc.w[851] = SYMBOLW("begin");
   sg__wc.w[855] = SYMBOLW("begin");
   sg__wc.w[20017] = SYMBOLW("begin");
-  sg__wc.w[5015] = SYMBOLW("variable-name");
-  sg__wc.w[29741] = IDENT("cadr", lib);
-  sg__wc.w[13361] = WORD(&sg__wc.cb[200]);
-sg__wc.cb[200].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[29917] = IDENT("pass3/rec", lib);
-  sg__wc.w[19951] = IDENT("variable-name", lib);
-  sg__wc.w[11855] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
-  sg__wc.w[8805] = WORD(Sg_Cons(SYMBOL("literal"), SG_NIL));
-  sg__wc.w[10325] = IDENT("syntax-error", lib);
-  sg__wc.w[34206] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[30409] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[1094] = IDENT("pass2/$IF", lib);
-  sg__wc.w[13112] = WORD(&sg__wc.cb[196]);
-sg__wc.cb[196].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[4222] = IDENT("$GREF", lib);
-  sg__wc.w[26609] = IDENT("cb-label-set!", lib);
-  sg__wc.w[17853] = IDENT("length", lib);
-  sg__wc.w[1668] = IDENT("NUM_EQ", lib);
-  sg__wc.w[25994] = IDENT("$IT", lib);
-  sg__wc.w[5438] = IDENT("length", lib);
-  sg__wc.w[2469] = IDENT("$LAMBDA", lib);
-  sg__wc.w[106] = IDENT("$it", lib);
-  sg__wc.w[29421] = IDENT("pass3/compile-args", lib);
-  sg__wc.w[196] = IDENT("adjust-arglist", lib);
-  sg__wc.w[243] = IDENT("make-syntax", lib);
-  sg__wc.w[214] = IDENT("global-id", lib);
-  sg__wc.w[34409] = IDENT("number?", lib);
-  sg__wc.w[29007] = IDENT("POP_LET_FRAME", lib);
-  sg__wc.w[30970] = IDENT("ADD", lib);
-  sg__wc.w[29730] = IDENT("MUL", lib);
-  sg__wc.w[5176] = IDENT("p1env-toplevel?", lib);
-  sg__wc.w[30625] = IDENT("normal-context", lib);
-  sg__wc.w[1344] = IDENT("all-args-simple?", lib);
+  sg__wc.w[394] = WORD(&sg__wc.cb[114]);
+sg__wc.cb[114].name = SYMBOL("syntax/let-syntax");
+  sg__wc.w[27437] = IDENT("LET_FRAME", lib);
+  sg__wc.w[1186] = WORD(&sg__wc.cb[379]);
+sg__wc.cb[379].name = SYMBOL("pass3/exists-in-can-frees?");
+  sg__wc.w[16783] = IDENT("reverse", lib);
+  sg__wc.w[129] = WORD(&sg__wc.cb[30]);
+sg__wc.cb[30].name = SYMBOL("variable-name");
+  sg__wc.w[4723] = IDENT("format", lib);
+  sg__wc.w[1922] = WORD(&sg__wc.cb[502]);
+sg__wc.cb[502].name = SYMBOL("compile-p2");
+  sg__wc.w[1367] = WORD(&sg__wc.cb[430]);
+sg__wc.cb[430].name = SYMBOL("pass3/$LIST");
   sg__wc.w[27750] = IDENT("length", lib);
-  sg__wc.w[33355] = IDENT("number?", lib);
-  sg__wc.w[1328] = IDENT("pass3/embed-call", lib);
-  sg__wc.w[27011] = IDENT("cb-emit0!", lib);
-  sg__wc.w[30393] = IDENT("error", lib);
-  sg__wc.w[25884] = IDENT("normal-context", lib);
-  sg__wc.w[17805] = IDENT("$seq", lib);
-  sg__wc.w[16198] = IDENT("pass1", lib);
-  sg__wc.w[3427] = IDENT("iform-copy", lib);
-  sg__wc.w[34256] = IDENT("$CONST", lib);
-  sg__wc.w[31160] = IDENT("pass3/rec", lib);
-  sg__wc.w[1361] = IDENT("pass3/$IT", lib);
-  sg__wc.w[11221] = IDENT("LEXICAL", lib);
-  sg__wc.w[30506] = IDENT("PUSH", lib);
-  sg__wc.w[29376] = IDENT("make-new-label", lib);
-  sg__wc.w[549] = IDENT("%insert-binding", lib);
-  sg__wc.w[22065] = IDENT("$SEQ", lib);
-  sg__wc.w[29395] = IDENT("FRAME", lib);
-  sg__wc.w[16662] = IDENT("p1env-sans-name", lib);
-  sg__wc.w[23985] = IDENT("$CONST", lib);
-  sg__wc.w[3336] = IDENT("cdr", lib);
-  sg__wc.w[31223] = IDENT("cb-emit0!", lib);
-  sg__wc.w[982] = IDENT("pass2/$LSET", lib);
-  sg__wc.w[1771] = IDENT("ensure-library-name", lib);
-  sg__wc.w[33195] = IDENT("SUBI", lib);
-  sg__wc.w[4090] = STRINGW("label#~a");
-  sg__wc.w[31403] = IDENT("pass3/rec", lib);
-  sg__wc.w[29511] = IDENT("cb-label-set!", lib);
-  sg__wc.w[23690] = IDENT("pass3/add-sets", lib);
-  sg__wc.w[10113] = IDENT("SYNTAX", lib);
-  sg__wc.w[59] = IDENT("$lset", lib);
-  sg__wc.w[6225] = IDENT("variable?", lib);
-  sg__wc.w[6273] = IDENT("variable?", lib);
-  sg__wc.w[6761] = IDENT("variable?", lib);
-  sg__wc.w[6830] = IDENT("variable?", lib);
-  sg__wc.w[35450] = IDENT("pass3", lib);
-  sg__wc.w[33982] = IDENT("error", lib);
-  sg__wc.w[25577] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[612] = IDENT("make-syntax", lib);
-  sg__wc.w[21267] = IDENT("$GREF", lib);
-  sg__wc.w[3195] = IDENT("iform-copy-zip-lvs", lib);
-  sg__wc.w[35448] = IDENT("HALT", lib);
-  sg__wc.w[1458] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[15521] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
-  sg__wc.w[33897] = IDENT("ensure-inexact-const", lib);
-  sg__wc.w[1268] = IDENT("pass3/$IF", lib);
-  sg__wc.w[31214] = IDENT("pass3/rec", lib);
-  sg__wc.w[27009] = IDENT("UNDEF", lib);
-  sg__wc.w[16611] = SYMBOLW("tmp");
-  sg__wc.w[1649] = SYMBOLW("/.");
-  sg__wc.w[34430] = SYMBOLW("/.");
-  sg__wc.w[33012] = IDENT("$GREF", lib);
-  sg__wc.w[28321] = IDENT("cb-emit0!", lib);
-  sg__wc.w[25779] = IDENT("pass3/compile-refer", lib);
-  sg__wc.w[3648] = IDENT("iform-copy", lib);
-  sg__wc.w[4156] = IDENT("display", lib);
-  sg__wc.w[2920] = IDENT("iform-copy", lib);
-  sg__wc.w[7788] = IDENT("map", lib);
-  sg__wc.w[7794] = IDENT("map", lib);
-  sg__wc.w[28692] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[16671] = IDENT("$lref", lib);
-  sg__wc.w[14901] = IDENT("$UNDEF", lib);
-  sg__wc.w[12741] = IDENT("list", lib);
-  sg__wc.w[28519] = IDENT("pass3/jump-call", lib);
-  sg__wc.w[11311] = IDENT("$CALL", lib);
-  sg__wc.w[2405] = IDENT("$LET", lib);
-  sg__wc.w[6731] = WORD(&sg__wc.cb[65]);
-sg__wc.cb[65].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1393] = IDENT("pass3/asm-sub", lib);
-  sg__wc.w[29157] = IDENT("renv-copy", lib);
-  sg__wc.w[9048] = IDENT("$UNDEF", lib);
-  sg__wc.w[1882] = IDENT("procedure-inliner-set!", lib);
-  sg__wc.w[1224] = IDENT("pass3/compile-refer", lib);
-  sg__wc.w[19978] = IDENT("for-each", lib);
-  sg__wc.w[27732] = IDENT("make-code-builder", lib);
-  sg__wc.w[26222] = IDENT("BNGT", lib);
-  sg__wc.w[24533] = IDENT("reverse", lib);
-  sg__wc.w[21879] = IDENT("iform-copy", lib);
-  sg__wc.w[320] = IDENT("%insert-binding", lib);
-  sg__wc.w[942] = IDENT("pass1/body-rest", lib);
-  sg__wc.w[5867] = WORD(&sg__wc.cb[58]);
-sg__wc.cb[58].name = SYMBOL("quoted?");
-  sg__wc.w[12396] = IDENT("p1env-extend", lib);
+  sg__wc.w[3230] = IDENT("iform-copy", lib);
+  sg__wc.w[8360] = IDENT("list", lib);
+  sg__wc.w[30125] = WORD(&sg__wc.cb[425]);
+sg__wc.cb[425].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1162] = WORD(&sg__wc.cb[372]);
+sg__wc.cb[372].name = SYMBOL("renv-copy");
+  sg__wc.w[1076] = IDENT("pass2/narg-inliner", lib);
+  sg__wc.w[3798] = WORD(&sg__wc.cb[23]);
+sg__wc.cb[23].name = SYMBOL("lvar->string");
+  sg__wc.w[1861] = WORD(&sg__wc.cb[495]);
+sg__wc.cb[495].name = SYMBOL("inliner/vector-set!");
+  sg__wc.w[30795] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[28629] = IDENT("pass3/compile-args", lib);
+  sg__wc.w[26212] = IDENT("pass3/branch-on-arg2", lib);
+  sg__wc.w[10656] = IDENT("map", lib);
+  sg__wc.w[251] = IDENT("pass1/quasiquote", lib);
+  sg__wc.w[5372] = IDENT("formals->list", lib);
+  sg__wc.w[29987] = IDENT("pass3/rec", lib);
+  sg__wc.w[24885] = IDENT("append", lib);
+  sg__wc.w[1133] = WORD(&sg__wc.cb[365]);
+sg__wc.cb[365].name = SYMBOL("bottom-context?");
+  sg__wc.w[117] = WORD(&sg__wc.cb[18]);
+sg__wc.cb[18].name = SYMBOL("iform-copy-zip-lvs");
+  sg__wc.w[10355] = IDENT("map", lib);
+  sg__wc.w[34369] = WORD(&sg__wc.cb[488]);
+sg__wc.cb[488].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[16501] = IDENT("map", lib);
+  sg__wc.w[16507] = IDENT("map", lib);
+  sg__wc.w[25185] = IDENT("$CALL", lib);
+  sg__wc.w[1064] = WORD(&sg__wc.cb[358]);
+sg__wc.cb[358].name = SYMBOL("pass2/$ASM");
+  sg__wc.w[5952] = IDENT("char?", lib);
+  sg__wc.w[4609] = IDENT("$IF", lib);
+  sg__wc.w[1316] = IDENT("pass3/$SEQ", lib);
+  sg__wc.w[22140] = IDENT("reverse", lib);
+  sg__wc.w[4847] = SYMBOLW("pp-iform");
+  sg__wc.w[1800] = IDENT("ensure-library-name", lib);
+  sg__wc.w[34428] = IDENT("/.", lib);
+  sg__wc.w[20910] = SYMBOLW("pass1/expand-inliner");
+  sg__wc.w[20719] = STRINGW("proper list required for function application or macro use");
+  sg__wc.w[20071] = IDENT("append", lib);
+  sg__wc.w[29077] = IDENT("pass3/rec", lib);
+  sg__wc.w[71] = WORD(&sg__wc.cb[10]);
+sg__wc.cb[10].name = SYMBOL("$const-nil");
+  sg__wc.w[5924] = IDENT("variable-name", lib);
+  sg__wc.w[35470] = IDENT("pass3", lib);
+  sg__wc.w[31278] = IDENT("pass3/rec", lib);
+  sg__wc.w[1094] = IDENT("pass2/$IF", lib);
+  sg__wc.w[14601] = WORD(Sg_Cons(SYMBOL("var"), Sg_Cons(SYMBOL("init"), Sg_Cons(SYMBOL("update"), SG_NIL))));
+  sg__wc.w[2204] = IDENT("$LREF", lib);
+  sg__wc.w[1356] = IDENT("pass3/emit-asm!", lib);
+  sg__wc.w[28042] = IDENT("length", lib);
+  sg__wc.w[27477] = IDENT("pass3/collect-free", lib);
+  sg__wc.w[28351] = IDENT("cb-emit0o!", lib);
+  sg__wc.w[27044] = IDENT("POP_LET_FRAME", lib);
+  sg__wc.w[26167] = IDENT("pass3/branch-on-arg2", lib);
+  sg__wc.w[31] = WORD(&sg__wc.cb[3]);
+sg__wc.cb[3].name = SYMBOL("make-lvar+");
+  sg__wc.w[934] = IDENT("pass1/body-finish", lib);
+  sg__wc.w[11188] = IDENT("make-lvar+", lib);
+  sg__wc.w[2865] = IDENT("iform-copy", lib);
+  sg__wc.w[6350] = IDENT("variable-name", lib);
+  sg__wc.w[6700] = IDENT("variable-name", lib);
+  sg__wc.w[6906] = IDENT("variable-name", lib);
+  sg__wc.w[390] = IDENT("%insert-binding", lib);
+  sg__wc.w[26274] = IDENT("$IT", lib);
+  sg__wc.w[24581] = IDENT("append", lib);
+  sg__wc.w[4498] = STRINGW("");
+  sg__wc.w[10653] = IDENT("make-lvar+", lib);
+  sg__wc.w[1172] = IDENT("hashtable-set-true!", lib);
+  sg__wc.w[19286] = IDENT("pass1/import", lib);
+  sg__wc.w[15073] = IDENT("$it", lib);
+  sg__wc.w[5029] = IDENT("id-library", lib);
+  sg__wc.w[34066] = IDENT("$GREF", lib);
+  sg__wc.w[31172] = IDENT("cb-emit1i!", lib);
+  sg__wc.w[18845] = STRINGW("unsupported export keyword ~s");
+  sg__wc.w[836] = IDENT("make-syntax", lib);
+  sg__wc.w[3911] = IDENT("$LAMBDA", lib);
+  sg__wc.w[35030] = IDENT("VEC_SET", lib);
+  sg__wc.w[49] = IDENT("lvar-set++!", lib);
+  sg__wc.w[16195] = IDENT("p1env-sans-name", lib);
+  sg__wc.w[11693] = IDENT("map", lib);
+  sg__wc.w[21754] = IDENT("pass2/rec", lib);
+  sg__wc.w[20407] = IDENT("cdr", lib);
+  sg__wc.w[20155] = STRINGW("[internal] pass1/body");
+  sg__wc.w[5017] = STRINGW("variable required but got:");
+  sg__wc.w[14328] = IDENT("reverse", lib);
+  sg__wc.w[29661] = IDENT("memv", lib);
+  sg__wc.w[8897] = IDENT("pass1", lib);
+  sg__wc.w[33019] = IDENT("ensure-identifier", lib);
+  sg__wc.w[25132] = IDENT("reverse", lib);
+  sg__wc.w[19923] = IDENT("p1env-extend", lib);
+  sg__wc.w[26986] = IDENT("DISPLAY", lib);
+  sg__wc.w[28584] = IDENT("make-new-label", lib);
+  sg__wc.w[17752] = STRINGW("malformed set!");
+  sg__wc.w[5167] = IDENT("format", lib);
+  sg__wc.w[35398] = IDENT("pass0", lib);
+  sg__wc.w[4998] = IDENT("id-name", lib);
+  sg__wc.w[26112] = IDENT("NULLP", lib);
+  sg__wc.w[22192] = IDENT("$LAMBDA", lib);
+  sg__wc.w[21345] = IDENT("zero?", lib);
+  sg__wc.w[10625] = IDENT("syntax-error", lib);
+  sg__wc.w[4810] = STRINGW(")");
+  sg__wc.w[29327] = IDENT("TAIL_CALL", lib);
+  sg__wc.w[24330] = IDENT("$GSET", lib);
+  sg__wc.w[18628] = IDENT("list", lib);
+  sg__wc.w[14434] = IDENT("reverse", lib);
   sg__wc.w[234] = SYMBOLW("null");
   sg__wc.w[260] = SYMBOLW("null");
   sg__wc.w[286] = SYMBOLW("null");
@@ -36521,3086 +39435,194 @@ sg__wc.cb[58].name = SYMBOL("quoted?");
   sg__wc.w[849] = SYMBOLW("null");
   sg__wc.w[883] = SYMBOLW("null");
   sg__wc.w[905] = SYMBOLW("null");
-  sg__wc.w[35071] = WORD(&sg__wc.cb[498]);
-sg__wc.cb[498].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[23655] = IDENT("bottom-context?", lib);
-  sg__wc.w[23440] = IDENT("lvar-ref--!", lib);
-  sg__wc.w[20387] = IDENT("p1env-extend", lib);
-  sg__wc.w[202] = WORD(&sg__wc.cb[51]);
-sg__wc.cb[51].name = SYMBOL("pass1/find-symbol-in-lvars");
-  sg__wc.w[25410] = IDENT("reverse", lib);
-  sg__wc.w[20158] = IDENT("scheme-error", lib);
-  sg__wc.w[19210] = STRINGW("malformed library");
-  sg__wc.w[156] = IDENT("p1env-extend", lib);
-  sg__wc.w[1811] = WORD(&sg__wc.cb[491]);
-sg__wc.cb[491].name = SYMBOL("inliner/zero?");
-  sg__wc.w[1210] = WORD(&sg__wc.cb[387]);
-sg__wc.cb[387].name = SYMBOL("pass3/return-assign-local");
-  sg__wc.w[16763] = STRINGW("'else' clause followed by more clauses");
-  sg__wc.w[9017] = IDENT("variable-name", lib);
-  sg__wc.w[14328] = IDENT("reverse", lib);
-  sg__wc.w[5170] = IDENT("scheme-error", lib);
-  sg__wc.w[10148] = IDENT("make-identifier", lib);
-  sg__wc.w[33204] = IDENT("$CONST", lib);
-  sg__wc.w[4723] = IDENT("format", lib);
-  sg__wc.w[186] = WORD(&sg__wc.cb[44]);
-sg__wc.cb[44].name = SYMBOL("argcount-ok?");
-  sg__wc.w[32507] = IDENT("SUB", lib);
-  sg__wc.w[22359] = IDENT("pass2/local-call-optimizer", lib);
-  sg__wc.w[15002] = IDENT("pass1", lib);
-  sg__wc.w[1755] = IDENT("NUM_GT", lib);
-  sg__wc.w[33999] = WORD(&sg__wc.cb[483]);
-sg__wc.cb[483].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[30573] = IDENT("cb-emit0!", lib);
-  sg__wc.w[29382] = IDENT("tail-context?", lib);
-  sg__wc.w[1170] = WORD(&sg__wc.cb[375]);
-sg__wc.cb[375].name = SYMBOL("hashtable-set-true!");
-  sg__wc.w[1006] = IDENT("pass2/update-if", lib);
-  sg__wc.w[295] = IDENT("make-syntax", lib);
-  sg__wc.w[18845] = STRINGW("unsupported export keyword ~s");
-  sg__wc.w[18821] = KEYWORDW("all");
-  sg__wc.w[30846] = IDENT("ADDI", lib);
-  sg__wc.w[27863] = IDENT("RET", lib);
-  sg__wc.w[1248] = IDENT("pass3/$LREF", lib);
-  sg__wc.w[1145] = WORD(&sg__wc.cb[368]);
-sg__wc.cb[368].name = SYMBOL("stmt-context");
-  sg__wc.w[19443] = IDENT("list", lib);
-  sg__wc.w[19203] = IDENT("format", lib);
-  sg__wc.w[4752] = IDENT("$GSET", lib);
-  sg__wc.w[1591] = WORD(&sg__wc.cb[476]);
-sg__wc.cb[476].name = SYMBOL("inliner/*.");
-  sg__wc.w[28506] = IDENT("pass3/embed-call", lib);
-  sg__wc.w[9256] = IDENT("variable-name", lib);
-  sg__wc.w[7647] = IDENT("append", lib);
-  sg__wc.w[26850] = IDENT("pass3/find-sets", lib);
-  sg__wc.w[24480] = IDENT("$DEFINE", lib);
-  sg__wc.w[4451] = WORD(&sg__wc.cb[27]);
-sg__wc.cb[27].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[988] = WORD(&sg__wc.cb[334]);
-sg__wc.cb[334].name = SYMBOL("pass2/$GSET");
-  sg__wc.w[15373] = IDENT("p1env-sans-name", lib);
-  sg__wc.w[13374] = IDENT("list", lib);
-  sg__wc.w[3923] = STRINGW("($lambda[~a;~a] ~a");
-  sg__wc.w[32952] = WORD(&sg__wc.cb[469]);
-sg__wc.cb[469].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1125] = WORD(&sg__wc.cb[363]);
-sg__wc.cb[363].name = SYMBOL("stmt-context?");
-  sg__wc.w[1110] = IDENT("pass2/$IT", lib);
-  sg__wc.w[19277] = IDENT("make-bottom-p1env", lib);
-  sg__wc.w[19242] = SYMBOLW("export");
-  sg__wc.w[18409] = IDENT("reverse", lib);
-  sg__wc.w[121] = WORD(&sg__wc.cb[20]);
-sg__wc.cb[20].name = SYMBOL("iform-copy-lvar");
-  sg__wc.w[7695] = IDENT("append", lib);
-  sg__wc.w[1064] = WORD(&sg__wc.cb[358]);
-sg__wc.cb[358].name = SYMBOL("pass2/$ASM");
-  sg__wc.w[960] = WORD(&sg__wc.cb[327]);
-sg__wc.cb[327].name = SYMBOL("pass2/rec");
-  sg__wc.w[1928] = IDENT("compile-p3", lib);
-  sg__wc.w[30161] = IDENT("cb-emit0i!", lib);
-  sg__wc.w[994] = IDENT("pass2/$CONST", lib);
-  sg__wc.w[2832] = IDENT("$DEFINE", lib);
-  sg__wc.w[103] = WORD(&sg__wc.cb[13]);
-sg__wc.cb[13].name = SYMBOL("$it");
-  sg__wc.w[35455] = IDENT("vm-dump-code", lib);
-  sg__wc.w[33701] = IDENT("number?", lib);
-  sg__wc.w[20628] = IDENT("p1env-sans-name", lib);
-  sg__wc.w[20472] = IDENT("$seq", lib);
-  sg__wc.w[936] = WORD(&sg__wc.cb[320]);
-sg__wc.cb[320].name = SYMBOL("pass1/body-init");
-  sg__wc.w[32471] = WORD(&sg__wc.cb[462]);
-sg__wc.cb[462].name = SYMBOL("inline");
-  sg__wc.w[29980] = IDENT("cadr", lib);
-  sg__wc.w[1052] = WORD(&sg__wc.cb[355]);
-sg__wc.cb[355].name = SYMBOL("pass2/$CALL");
-  sg__wc.w[11300] = IDENT("$LET", lib);
-  sg__wc.w[29000] = IDENT("tail-context?", lib);
-  sg__wc.w[25671] = IDENT("cb-emit1!", lib);
-  sg__wc.w[8350] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
-  sg__wc.w[1188] = IDENT("pass3/exists-in-can-frees?", lib);
-  sg__wc.w[498] = IDENT("make-syntax", lib);
-  sg__wc.w[19485] = WORD(&sg__wc.cb[313]);
-sg__wc.cb[313].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[799] = WORD(&sg__wc.cb[268]);
-sg__wc.cb[268].name = SYMBOL("syntax/case");
-  sg__wc.w[32157] = WORD(&sg__wc.cb[457]);
-sg__wc.cb[457].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[10483] = IDENT("pass1/lambda", lib);
-  sg__wc.w[6] = WORD(&sg__wc.cb[1]);
-sg__wc.cb[1].name = SYMBOL("$for-each1-with-rindex");
-  sg__wc.w[1024] = WORD(&sg__wc.cb[345]);
-sg__wc.cb[345].name = SYMBOL("pass2/local-call-optimizer");
-  sg__wc.w[19163] = WORD(&sg__wc.cb[308]);
-sg__wc.cb[308].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[12046] = WORD(Sg_Cons(SYMBOL("var"), Sg_Cons(SYMBOL("expr"), SG_NIL)));
-  sg__wc.w[25166] = IDENT("$DEFINE", lib);
-  sg__wc.w[23413] = IDENT("pass2/self-recursing?", lib);
-  sg__wc.w[20127] = IDENT("pass1/body-macro-expand-rec", lib);
-  sg__wc.w[16892] = WORD(&sg__wc.cb[261]);
-sg__wc.cb[261].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[12746] = IDENT("reverse", lib);
-  sg__wc.w[33510] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[26172] = IDENT("NUM_LE", lib);
-  sg__wc.w[14315] = IDENT("map", lib);
-  sg__wc.w[14321] = IDENT("map", lib);
-  sg__wc.w[9638] = STRINGW("malformed let-syntax");
-  sg__wc.w[1004] = WORD(&sg__wc.cb[338]);
-sg__wc.cb[338].name = SYMBOL("pass2/update-if");
-  sg__wc.w[19022] = WORD(&sg__wc.cb[304]);
-sg__wc.cb[304].name = SYMBOL("check");
-  sg__wc.w[16438] = WORD(&sg__wc.cb[254]);
-sg__wc.cb[254].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[1912] = IDENT("integer-fits-insn-arg?", lib);
-  sg__wc.w[30725] = IDENT("NUM_EQ", lib);
-  sg__wc.w[7241] = IDENT("list", lib);
-  sg__wc.w[1587] = IDENT("procedure-inliner-set!", lib);
-  sg__wc.w[33348] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[32112] = IDENT("$ASM", lib);
-  sg__wc.w[17909] = IDENT("load-library", lib);
-  sg__wc.w[29846] = IDENT("cb-label-set!", lib);
-  sg__wc.w[22560] = SYMBOLW("dissolved");
-  sg__wc.w[22770] = SYMBOLW("dissolved");
-  sg__wc.w[22880] = SYMBOLW("dissolved");
-  sg__wc.w[1018] = IDENT("pass2/optimize-closure", lib);
-  sg__wc.w[16233] = WORD(&sg__wc.cb[251]);
-sg__wc.cb[251].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[741] = SYMBOLW("when");
-  sg__wc.w[745] = SYMBOLW("when");
-  sg__wc.w[34865] = IDENT("asm-arg2", lib);
-  sg__wc.w[13034] = IDENT("LEXICAL", lib);
-  sg__wc.w[1010] = IDENT("pass2/$LET", lib);
-  sg__wc.w[18059] = WORD(&sg__wc.cb[292]);
-sg__wc.cb[292].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[15745] = WORD(&sg__wc.cb[244]);
-sg__wc.cb[244].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[34767] = STRINGW("wrong number of arguments");
-  sg__wc.w[1014] = IDENT("pass2/remove-unused-lvars", lib);
-  sg__wc.w[12585] = WORD(&sg__wc.cb[185]);
-sg__wc.cb[185].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[33364] = IDENT("$CONST", lib);
-  sg__wc.w[5163] = STRINGW("~a: no such library: ~s");
-  sg__wc.w[34219] = IDENT("$CONST", lib);
-  sg__wc.w[21865] = IDENT("$IT", lib);
-  sg__wc.w[21779] = IDENT("$const-f", lib);
-  sg__wc.w[14017] = IDENT("map", lib);
-  sg__wc.w[20287] = IDENT("syntax-error", lib);
-  sg__wc.w[10683] = IDENT("p1env-extend", lib);
-  sg__wc.w[27491] = IDENT("DISPLAY", lib);
-  sg__wc.w[868] = WORD(&sg__wc.cb[280]);
-sg__wc.cb[280].name = SYMBOL("pass1/import");
-  sg__wc.w[28995] = IDENT("pass3/compile-args", lib);
-  sg__wc.w[26406] = IDENT("pass3/rec", lib);
-  sg__wc.w[3582] = IDENT("iform-copy", lib);
-  sg__wc.w[12190] = WORD(&sg__wc.cb[177]);
-sg__wc.cb[177].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[33711] = IDENT("ensure-inexact-const", lib);
-  sg__wc.w[17208] = WORD(&sg__wc.cb[273]);
-sg__wc.cb[273].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[9745] = IDENT("pass1/body", lib);
-  sg__wc.w[246] = IDENT("%insert-binding", lib);
-  sg__wc.w[1196] = IDENT("pass3/find-sets", lib);
-  sg__wc.w[19778] = IDENT("lambda.", lib);
-  sg__wc.w[12157] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
-  sg__wc.w[34607] = IDENT("DIVI", lib);
-  sg__wc.w[1260] = IDENT("pass3/$GSET", lib);
-  sg__wc.w[22008] = IDENT("for-each", lib);
-  sg__wc.w[21253] = IDENT("call-macro-expander", lib);
-  sg__wc.w[19213] = IDENT("syntax-error", lib);
-  sg__wc.w[11900] = WORD(&sg__wc.cb[170]);
-sg__wc.cb[170].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[33885] = IDENT("MULI", lib);
-  sg__wc.w[30042] = IDENT("pass3/rec", lib);
-  sg__wc.w[27047] = IDENT("cb-emit1!", lib);
-  sg__wc.w[18536] = IDENT("import-library", lib);
-  sg__wc.w[317] = IDENT("make-syntax", lib);
-  sg__wc.w[25300] = IDENT("$IT", lib);
-  sg__wc.w[8] = IDENT("$for-each1-with-rindex", lib);
-  sg__wc.w[2314] = IDENT("$IF", lib);
-  sg__wc.w[31686] = WORD(&sg__wc.cb[450]);
-sg__wc.cb[450].name = SYMBOL("inline");
-  sg__wc.w[25804] = IDENT("cb-emit0!", lib);
-  sg__wc.w[14745] = IDENT("$IF", lib);
-  sg__wc.w[28309] = IDENT("tail-context?", lib);
-  sg__wc.w[25979] = IDENT("$it", lib);
-  sg__wc.w[9657] = WORD(&sg__wc.cb[128]);
-sg__wc.cb[128].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[5059] = IDENT("variable?", lib);
-  sg__wc.w[1456] = WORD(&sg__wc.cb[445]);
-sg__wc.cb[445].name = SYMBOL("check-numeric-constant");
-  sg__wc.w[3698] = IDENT("reverse", lib);
-  sg__wc.w[127] = IDENT("pp-iform", lib);
-  sg__wc.w[135] = IDENT("id->bound-gloc", lib);
-  sg__wc.w[29546] = IDENT("all-args-simple?", lib);
-  sg__wc.w[26866] = IDENT("append", lib);
-  sg__wc.w[9341] = WORD(&sg__wc.cb[121]);
-sg__wc.cb[121].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[34742] = IDENT("pass1", lib);
-  sg__wc.w[1399] = WORD(&sg__wc.cb[438]);
-sg__wc.cb[438].name = SYMBOL("pass3/asm-div");
-  sg__wc.w[23012] = IDENT("pass2/rec", lib);
-  sg__wc.w[29010] = IDENT("cb-emit1!", lib);
-  sg__wc.w[23079] = IDENT("reverse", lib);
-  sg__wc.w[21511] = IDENT("pass2/rec", lib);
-  sg__wc.w[938] = IDENT("pass1/body-init", lib);
-  sg__wc.w[10992] = WORD(&sg__wc.cb[153]);
-sg__wc.cb[153].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[11273] = IDENT("length", lib);
-  sg__wc.w[1894] = SYMBOLW("acons");
-  sg__wc.w[35240] = SYMBOLW("acons");
-  sg__wc.w[26631] = IDENT("pass3/letrec", lib);
-  sg__wc.w[394] = WORD(&sg__wc.cb[114]);
-sg__wc.cb[114].name = SYMBOL("syntax/let-syntax");
-  sg__wc.w[34266] = IDENT("$CONST", lib);
-  sg__wc.w[1371] = WORD(&sg__wc.cb[431]);
-sg__wc.cb[431].name = SYMBOL("pass3/asm-eq");
-  sg__wc.w[10584] = WORD(&sg__wc.cb[146]);
-sg__wc.cb[146].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[35007] = IDENT("$ASM", lib);
-  sg__wc.w[1505] = IDENT("ensure-library-name", lib);
-  sg__wc.w[1670] = IDENT("gen-inliner-arg2", lib);
-  sg__wc.w[25585] = IDENT("LSET", lib);
-  sg__wc.w[8525] = WORD(&sg__wc.cb[107]);
-sg__wc.cb[107].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[31035] = IDENT("pass3/rec", lib);
-  sg__wc.w[1354] = WORD(&sg__wc.cb[424]);
-sg__wc.cb[424].name = SYMBOL("pass3/emit-asm!");
-  sg__wc.w[483] = WORD(&sg__wc.cb[139]);
-sg__wc.cb[139].name = SYMBOL("syntax/%macroexpand-1");
-  sg__wc.w[31715] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[12159] = IDENT("map", lib);
-  sg__wc.w[12165] = IDENT("map", lib);
-  sg__wc.w[328] = WORD(&sg__wc.cb[100]);
-sg__wc.cb[100].name = SYMBOL("syntax/syntax-case");
-  sg__wc.w[9153] = IDENT("syntax-error", lib);
-  sg__wc.w[5372] = IDENT("formals->list", lib);
-  sg__wc.w[26700] = IDENT("append", lib);
-  sg__wc.w[22346] = IDENT("pass2/local-call-inliner", lib);
-  sg__wc.w[16514] = IDENT("reverse", lib);
-  sg__wc.w[15602] = WORD(&sg__wc.cb[242]);
-sg__wc.cb[242].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1326] = WORD(&sg__wc.cb[417]);
-sg__wc.cb[417].name = SYMBOL("pass3/embed-call");
-  sg__wc.w[35341] = IDENT("make-bottom-p1env", lib);
-  sg__wc.w[15065] = IDENT("p1env-sans-name", lib);
-  sg__wc.w[2640] = IDENT("$CALL", lib);
-  sg__wc.w[20885] = IDENT("procedure-optional", lib);
-  sg__wc.w[17916] = IDENT("syntax-error", lib);
-  sg__wc.w[8016] = WORD(&sg__wc.cb[93]);
-sg__wc.cb[93].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1298] = WORD(&sg__wc.cb[410]);
-sg__wc.cb[410].name = SYMBOL("pass3/let");
-  sg__wc.w[15269] = WORD(&sg__wc.cb[235]);
-sg__wc.cb[235].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[6070] = SYMBOLW("list");
-  sg__wc.w[6083] = SYMBOLW("list");
-  sg__wc.w[6087] = SYMBOLW("list");
-  sg__wc.w[6510] = SYMBOLW("list");
-  sg__wc.w[7622] = SYMBOLW("list");
-  sg__wc.w[7635] = SYMBOLW("list");
-  sg__wc.w[7639] = SYMBOLW("list");
-  sg__wc.w[4006] = IDENT("map", lib);
-  sg__wc.w[21537] = IDENT("$IF", lib);
-  sg__wc.w[16798] = IDENT("pass1", lib);
-  sg__wc.w[12266] = IDENT("syntax-error", lib);
-  sg__wc.w[7725] = WORD(&sg__wc.cb[86]);
-sg__wc.cb[86].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[1270] = WORD(&sg__wc.cb[403]);
-sg__wc.cb[403].name = SYMBOL("pass3/branch-core");
-  sg__wc.w[763] = SYMBOLW("unless");
-  sg__wc.w[767] = SYMBOLW("unless");
-  sg__wc.w[15138] = WORD(&sg__wc.cb[232]);
-sg__wc.cb[232].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[29763] = IDENT("cadr", lib);
-  sg__wc.w[30757] = IDENT("pass3/rec", lib);
-  sg__wc.w[26813] = IDENT("pass3/find-sets", lib);
-  sg__wc.w[25643] = IDENT("pass3/return-assign-local", lib);
-  sg__wc.w[5514] = IDENT("for-each", lib);
-  sg__wc.w[9246] = IDENT("variable-name", lib);
-  sg__wc.w[20897] = IDENT("procedure-reqargs", lib);
-  sg__wc.w[15672] = IDENT("$UNDEF", lib);
-  sg__wc.w[7409] = WORD(&sg__wc.cb[81]);
-sg__wc.cb[81].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[1242] = WORD(&sg__wc.cb[396]);
-sg__wc.cb[396].name = SYMBOL("pass3/$DEFINE");
-  sg__wc.w[14801] = WORD(&sg__wc.cb[225]);
-sg__wc.cb[225].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[35299] = IDENT("pass1", lib);
-  sg__wc.w[25011] = IDENT("$LREF", lib);
-  sg__wc.w[13563] = WORD(&sg__wc.cb[220]);
-sg__wc.cb[220].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[8170] = IDENT("syntax-error", lib);
-  sg__wc.w[21090] = IDENT("syntax?", lib);
-  sg__wc.w[7671] = IDENT("append", lib);
-  sg__wc.w[31252] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[29781] = IDENT("tail-context?", lib);
-  sg__wc.w[1312] = IDENT("pass3/$LABEL", lib);
-  sg__wc.w[6750] = WORD(&sg__wc.cb[72]);
-sg__wc.cb[72].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[115] = IDENT("iform-copy", lib);
-  sg__wc.w[9227] = IDENT("%map-cons", lib);
-  sg__wc.w[1844] = SYMBOLW("vector-ref");
-  sg__wc.w[34884] = SYMBOLW("vector-ref");
-  sg__wc.w[32017] = IDENT("$ASM", lib);
-  sg__wc.w[892] = IDENT("make-syntax", lib);
-  sg__wc.w[17082] = IDENT("list", lib);
-  sg__wc.w[770] = IDENT("make-syntax", lib);
-  sg__wc.w[13957] = WORD(&sg__wc.cb[210]);
-sg__wc.cb[210].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[26197] = IDENT("pass3/branch-on-arg2", lib);
-  sg__wc.w[24597] = IDENT("memq", lib);
-  sg__wc.w[20071] = IDENT("append", lib);
-  sg__wc.w[3950] = IDENT("map", lib);
-  sg__wc.w[2167] = IDENT("$DEFINE", lib);
-  sg__wc.w[4746] = STRINGW(")");
-  sg__wc.w[1624] = SYMBOLW("/");
-  sg__wc.w[34070] = SYMBOLW("/");
-  sg__wc.w[35396] = IDENT("make-bottom-p1env", lib);
-  sg__wc.w[26032] = IDENT("NOT", lib);
-  sg__wc.w[1139] = IDENT("top-context?", lib);
-  sg__wc.w[23401] = IDENT("$LAMBDA", lib);
-  sg__wc.w[12762] = IDENT("pass1/letrec", lib);
-  sg__wc.w[6103] = SYMBOLW(".CONS");
-  sg__wc.w[7659] = SYMBOLW(".CONS");
-  sg__wc.w[29163] = IDENT("normal-context", lib);
-  sg__wc.w[20914] = STRINGW("wrong number of arguments: ~a requires ~a, but got ~a");
-  sg__wc.w[19309] = IDENT("vm-current-library", lib);
-  sg__wc.w[160] = IDENT("p1env-extend/name", lib);
-  sg__wc.w[30002] = IDENT("max", lib);
-  sg__wc.w[1086] = IDENT("pass2/$LSET", lib);
-  sg__wc.w[34604] = IDENT("$ASM", lib);
-  sg__wc.w[1907] = IDENT("procedure-inliner-set!", lib);
-  sg__wc.w[9359] = IDENT("reverse", lib);
-  sg__wc.w[1707] = SYMBOLW("<");
-  sg__wc.w[1920] = IDENT("compile-p1", lib);
-  sg__wc.w[35295] = IDENT("pass0", lib);
-  sg__wc.w[27543] = IDENT("pass3/compile-args", lib);
-  sg__wc.w[13218] = WORD(&sg__wc.cb[199]);
-sg__wc.cb[199].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[11266] = IDENT("$LAMBDA", lib);
-  sg__wc.w[1713] = IDENT("ensure-library-name", lib);
-  sg__wc.w[28042] = IDENT("length", lib);
-  sg__wc.w[5592] = IDENT("$LIST", lib);
-  sg__wc.w[33370] = IDENT("$CALL", lib);
-  sg__wc.w[24885] = IDENT("append", lib);
-  sg__wc.w[12912] = WORD(&sg__wc.cb[192]);
-sg__wc.cb[192].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[269] = IDENT("make-syntax", lib);
-  sg__wc.w[29797] = IDENT("pass3/asm-generic", lib);
-  sg__wc.w[29196] = IDENT("cb-emit2!", lib);
-  sg__wc.w[25663] = IDENT("memq", lib);
-  sg__wc.w[19302] = IDENT("vm-current-library", lib);
-  sg__wc.w[10422] = IDENT("pass1/body", lib);
-  sg__wc.w[7034] = STRINGW("nested quasiquote appear in bad context");
-  sg__wc.w[31093] = IDENT("pass3/rec", lib);
-  sg__wc.w[26132] = IDENT("BNEQ", lib);
-  sg__wc.w[5191] = IDENT("syntax-error", lib);
-  sg__wc.w[32530] = IDENT("error", lib);
-  sg__wc.w[10057] = IDENT("reverse", lib);
-  sg__wc.w[3976] = STRINGW(")");
-  sg__wc.w[1435] = IDENT("pass3/$LIST", lib);
-  sg__wc.w[31172] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[28439] = IDENT("max", lib);
-  sg__wc.w[21861] = IDENT("$LREF", lib);
-  sg__wc.w[16195] = IDENT("p1env-sans-name", lib);
-  sg__wc.w[17368] = SYMBOLW("memv");
-  sg__wc.w[4764] = STRINGW("($gset ~a");
-  sg__wc.w[3039] = IDENT("$LET", lib);
-  sg__wc.w[1658] = IDENT("find-procedure", lib);
-  sg__wc.w[2752] = IDENT("$LIST", lib);
-  sg__wc.w[11252] = IDENT("p1env-extend/name", lib);
-  sg__wc.w[26010] = IDENT("$ASM", lib);
-  sg__wc.w[17827] = IDENT("import-only", lib);
-  sg__wc.w[29025] = IDENT("MARK", lib);
-  sg__wc.w[17815] = IDENT("load-library", lib);
-  sg__wc.w[9641] = IDENT("syntax-error", lib);
-  sg__wc.w[28143] = IDENT("cb-emit1!", lib);
-  sg__wc.w[31109] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[30754] = IDENT("normal-context", lib);
-  sg__wc.w[26162] = IDENT("BNNUME", lib);
-  sg__wc.w[20296] = IDENT("caar", lib);
-  sg__wc.w[7470] = WORD(Sg_Cons(SYMBOL("e1"), SG_NIL));
-  sg__wc.w[1819] = SYMBOLW("zero?");
-  sg__wc.w[34765] = SYMBOLW("zero?");
-  sg__wc.w[32500] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[25110] = IDENT("append", lib);
-  sg__wc.w[8217] = IDENT("caddr", lib);
-  sg__wc.w[24941] = IDENT("$LAMBDA", lib);
-  sg__wc.w[1104] = IDENT("pass2/$SEQ", lib);
-  sg__wc.w[21142] = IDENT("pass1", lib);
-  sg__wc.w[4939] = IDENT("format", lib);
-  sg__wc.w[30602] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[18618] = WORD(Sg_Cons(SYMBOL("etc"), SG_NIL));
-  sg__wc.w[15816] = IDENT("list", lib);
-  sg__wc.w[35423] = IDENT("pass2", lib);
-  sg__wc.w[28364] = IDENT("pass3/ensure-label", lib);
-  sg__wc.w[14091] = IDENT("$lref", lib);
-  sg__wc.w[3982] = IDENT("$RECEIVE", lib);
-  sg__wc.w[9211] = IDENT("map", lib);
-  sg__wc.w[29600] = IDENT("pass3/asm-eq", lib);
-  sg__wc.w[3770] = IDENT("cdr", lib);
-  sg__wc.w[13851] = IDENT("$LAMBDA", lib);
-  sg__wc.w[5553] = SYMBOLW("adjust-arglist");
-  sg__wc.w[35251] = IDENT("integer?", lib);
-  sg__wc.w[13584] = IDENT("syntax-error", lib);
-  sg__wc.w[501] = IDENT("%insert-binding", lib);
-  sg__wc.w[35355] = IDENT("pass1", lib);
-  sg__wc.w[1442] = IDENT("pass3/compile-args", lib);
-  sg__wc.w[31167] = IDENT("SUB", lib);
-  sg__wc.w[12769] = IDENT("pass1/letrec", lib);
-  sg__wc.w[1365] = IDENT("%pass3/builtin-nargs", lib);
-  sg__wc.w[29657] = IDENT("NUM_GE", lib);
-  sg__wc.w[21345] = IDENT("zero?", lib);
-  sg__wc.w[19006] = IDENT("check-toplevel", lib);
-  sg__wc.w[12555] = IDENT("reverse", lib);
-  sg__wc.w[29810] = IDENT("make-new-label", lib);
-  sg__wc.w[29039] = IDENT("cb-label-set!", lib);
-  sg__wc.w[5567] = IDENT("format", lib);
-  sg__wc.w[18937] = IDENT("cadar", lib);
-  sg__wc.w[13950] = IDENT("$lref", lib);
-  sg__wc.w[3567] = IDENT("reverse", lib);
-  sg__wc.w[11713] = IDENT("%map-cons", lib);
-  sg__wc.w[28002] = IDENT("pass3/find-free", lib);
-  sg__wc.w[25704] = IDENT("UNDEF", lib);
-  sg__wc.w[25515] = IDENT("scheme-error", lib);
-  sg__wc.w[4461] = STRINGW(")");
-  sg__wc.w[34244] = IDENT("$ASM", lib);
-  sg__wc.w[25007] = IDENT("append", lib);
-  sg__wc.w[22281] = IDENT("length", lib);
-  sg__wc.w[13972] = IDENT("$seq", lib);
-  sg__wc.w[1878] = IDENT("find-procedure", lib);
-  sg__wc.w[29335] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[914] = IDENT("make-syntax", lib);
-  sg__wc.w[32816] = IDENT("$CONST", lib);
-  sg__wc.w[30369] = IDENT("cb-emit2i!", lib);
-  sg__wc.w[24620] = IDENT("$IT", lib);
-  sg__wc.w[5503] = IDENT("adjust-arglist", lib);
-  sg__wc.w[1417] = IDENT("pass3/$IF", lib);
-  sg__wc.w[29697] = IDENT("cadr", lib);
-  sg__wc.w[28261] = IDENT("cb-emit1!", lib);
-  sg__wc.w[4187] = IDENT("for-each", lib);
-  sg__wc.w[5884] = WORD(&sg__wc.cb[61]);
-sg__wc.cb[61].name = SYMBOL("expand");
-  sg__wc.w[380] = SYMBOLW("define-syntax");
-  sg__wc.w[384] = SYMBOLW("define-syntax");
-  sg__wc.w[9012] = SYMBOLW("define-syntax");
-  sg__wc.w[19823] = SYMBOLW("define-syntax");
-  sg__wc.w[19936] = SYMBOLW("define-syntax");
-  sg__wc.w[11223] = IDENT("p1env-extend", lib);
-  sg__wc.w[1918] = WORD(&sg__wc.cb[501]);
-sg__wc.cb[501].name = SYMBOL("compile-p1");
-  sg__wc.w[31143] = IDENT("cb-emit0!", lib);
-  sg__wc.w[1369] = IDENT("pass3/$LIST", lib);
-  sg__wc.w[19433] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
-  sg__wc.w[1204] = IDENT("pass3/symbol-lookup", lib);
-  sg__wc.w[19646] = IDENT("syntax-error", lib);
-  sg__wc.w[7387] = IDENT("append", lib);
-  sg__wc.w[223] = WORD(&sg__wc.cb[54]);
-sg__wc.cb[54].name = SYMBOL("pass1/quote");
-  sg__wc.w[35242] = STRINGW("wrong number of arguments");
-  sg__wc.w[1222] = WORD(&sg__wc.cb[390]);
-sg__wc.cb[390].name = SYMBOL("pass3/compile-refer");
-  sg__wc.w[13031] = IDENT("%map-cons", lib);
-  sg__wc.w[34779] = WORD(&sg__wc.cb[494]);
-sg__wc.cb[494].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[34413] = IDENT("$CONST", lib);
-  sg__wc.w[23898] = IDENT("hashtable-set-true!", lib);
-  sg__wc.w[5738] = IDENT("pass1/find-symbol-in-lvars", lib);
-  sg__wc.w[26142] = IDENT("EQV", lib);
-  sg__wc.w[25753] = IDENT("DEFINE", lib);
-  sg__wc.w[1160] = IDENT("renv-add-can-free2", lib);
-  sg__wc.w[18734] = IDENT("list", lib);
-  sg__wc.w[194] = WORD(&sg__wc.cb[47]);
-sg__wc.cb[47].name = SYMBOL("adjust-arglist");
-  sg__wc.w[24733] = WORD(&sg__wc.cb[383]);
-sg__wc.cb[383].name = SYMBOL("rec");
-  sg__wc.w[17479] = IDENT("map", lib);
-  sg__wc.w[17485] = IDENT("map", lib);
-  sg__wc.w[16627] = IDENT("$LET", lib);
-  sg__wc.w[34326] = WORD(&sg__wc.cb[487]);
-sg__wc.cb[487].name = SYMBOL("inline");
-  sg__wc.w[27198] = IDENT("tail-context?", lib);
-  sg__wc.w[21189] = IDENT("identifier?", lib);
-  sg__wc.w[14007] = IDENT("$lref", lib);
-  sg__wc.w[4810] = STRINGW(")");
-  sg__wc.w[170] = WORD(&sg__wc.cb[40]);
-sg__wc.cb[40].name = SYMBOL("p1env-swap-library");
-  sg__wc.w[29681] = IDENT("pass3/asm-numcmp", lib);
-  sg__wc.w[1182] = WORD(&sg__wc.cb[378]);
-sg__wc.cb[378].name = SYMBOL("pass3");
-  sg__wc.w[23600] = SYMBOLW("normal/top");
-  sg__wc.w[23648] = SYMBOLW("normal/top");
-  sg__wc.w[23663] = SYMBOLW("normal/top");
-  sg__wc.w[26343] = SYMBOLW("normal/top");
-  sg__wc.w[26437] = SYMBOLW("normal/top");
-  sg__wc.w[28652] = SYMBOLW("normal/top");
-  sg__wc.w[29295] = SYMBOLW("normal/top");
-  sg__wc.w[29444] = SYMBOLW("normal/top");
-  sg__wc.w[29915] = SYMBOLW("normal/top");
-  sg__wc.w[29953] = SYMBOLW("normal/top");
-  sg__wc.w[29985] = SYMBOLW("normal/top");
-  sg__wc.w[30040] = SYMBOLW("normal/top");
-  sg__wc.w[30081] = SYMBOLW("normal/top");
-  sg__wc.w[30450] = SYMBOLW("normal/top");
-  sg__wc.w[30497] = SYMBOLW("normal/top");
-  sg__wc.w[30588] = SYMBOLW("normal/top");
-  sg__wc.w[30652] = SYMBOLW("normal/top");
-  sg__wc.w[30716] = SYMBOLW("normal/top");
-  sg__wc.w[30782] = SYMBOLW("normal/top");
-  sg__wc.w[30961] = SYMBOLW("normal/top");
-  sg__wc.w[31158] = SYMBOLW("normal/top");
-  sg__wc.w[31238] = SYMBOLW("normal/top");
-  sg__wc.w[31302] = SYMBOLW("normal/top");
-  sg__wc.w[31401] = SYMBOLW("normal/top");
-  sg__wc.w[35329] = SYMBOLW("normal/top");
-  sg__wc.w[35446] = SYMBOLW("normal/top");
-  sg__wc.w[546] = IDENT("make-syntax", lib);
-  sg__wc.w[33537] = IDENT("$ASM", lib);
-  sg__wc.w[26986] = IDENT("DISPLAY", lib);
-  sg__wc.w[24652] = IDENT("append", lib);
-  sg__wc.w[21244] = IDENT("macro?", lib);
-  sg__wc.w[5035] = IDENT("id-name", lib);
-  sg__wc.w[150] = WORD(&sg__wc.cb[35]);
-sg__wc.cb[35].name = SYMBOL("p1env-add-name");
-  sg__wc.w[208] = IDENT("global-id", lib);
-  sg__wc.w[25656] = IDENT("$for-each1-with-rindex", lib);
-  sg__wc.w[1158] = WORD(&sg__wc.cb[371]);
-sg__wc.cb[371].name = SYMBOL("renv-add-can-free2");
-  sg__wc.w[1131] = IDENT("tail-context?", lib);
-  sg__wc.w[21677] = IDENT("$IF", lib);
-  sg__wc.w[33754] = WORD(&sg__wc.cb[479]);
-sg__wc.cb[479].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[25860] = IDENT("GREF", lib);
-  sg__wc.w[26789] = IDENT("append", lib);
-  sg__wc.w[16501] = IDENT("map", lib);
-  sg__wc.w[16507] = IDENT("map", lib);
-  sg__wc.w[129] = WORD(&sg__wc.cb[30]);
-sg__wc.cb[30].name = SYMBOL("variable-name");
-  sg__wc.w[26835] = IDENT("reverse", lib);
-  sg__wc.w[1129] = WORD(&sg__wc.cb[364]);
-sg__wc.cb[364].name = SYMBOL("tail-context?");
-  sg__wc.w[1127] = IDENT("stmt-context?", lib);
-  sg__wc.w[4095] = IDENT("format", lib);
-  sg__wc.w[33272] = WORD(&sg__wc.cb[472]);
-sg__wc.cb[472].name = SYMBOL("inline");
-  sg__wc.w[35245] = IDENT("scheme-error", lib);
-  sg__wc.w[29675] = IDENT("cadr", lib);
-  sg__wc.w[24713] = STRINGW("unknown iform:");
-  sg__wc.w[21715] = IDENT("$CONST", lib);
-  sg__wc.w[839] = IDENT("%insert-binding", lib);
-  sg__wc.w[719] = SYMBOLW("and");
-  sg__wc.w[723] = SYMBOLW("and");
-  sg__wc.w[4377] = IDENT("string-length", lib);
-  sg__wc.w[990] = IDENT("pass2/$GSET", lib);
-  sg__wc.w[11743] = IDENT("pass1/body", lib);
-  sg__wc.w[3798] = WORD(&sg__wc.cb[23]);
-sg__wc.cb[23].name = SYMBOL("lvar->string");
-  sg__wc.w[32885] = WORD(&sg__wc.cb[467]);
-sg__wc.cb[467].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1068] = WORD(&sg__wc.cb[359]);
-sg__wc.cb[359].name = SYMBOL("pass2/$IT");
-  sg__wc.w[972] = WORD(&sg__wc.cb[330]);
-sg__wc.cb[330].name = SYMBOL("pass2/$DEFINE");
-  sg__wc.w[21097] = IDENT("call-syntax-handler", lib);
-  sg__wc.w[20385] = IDENT("LEXICAL", lib);
-  sg__wc.w[8893] = IDENT("compile-syntax", lib);
-  sg__wc.w[23593] = SYMBOLW("norma/bottom");
-  sg__wc.w[16499] = WORD(Sg_Cons(SYMBOL("exprs"), SG_NIL));
-  sg__wc.w[12733] = IDENT("map", lib);
-  sg__wc.w[12739] = IDENT("map", lib);
-  sg__wc.w[24] = IDENT("pass0", lib);
-  sg__wc.w[2146] = WORD(&sg__wc.cb[16]);
-sg__wc.cb[16].name = SYMBOL("rec-list");
-  sg__wc.w[34058] = IDENT("/", lib);
-  sg__wc.w[28302] = IDENT("pass3/rec", lib);
-  sg__wc.w[1056] = WORD(&sg__wc.cb[356]);
-sg__wc.cb[356].name = SYMBOL("pass2/head-lref");
-  sg__wc.w[944] = WORD(&sg__wc.cb[323]);
-sg__wc.cb[323].name = SYMBOL("pass1/body-1");
-  sg__wc.w[35267] = IDENT("<=", lib);
-  sg__wc.w[28461] = IDENT("pass3/rec", lib);
-  sg__wc.w[25668] = IDENT("BOX", lib);
-  sg__wc.w[3536] = IDENT("$ASM", lib);
-  sg__wc.w[1058] = IDENT("pass2/head-lref", lib);
-  sg__wc.w[17343] = IDENT("caaar", lib);
-  sg__wc.w[57] = WORD(&sg__wc.cb[9]);
-sg__wc.cb[9].name = SYMBOL("$lset");
-  sg__wc.w[29862] = IDENT("pass3/asm-generic", lib);
-  sg__wc.w[1036] = WORD(&sg__wc.cb[351]);
-sg__wc.cb[351].name = SYMBOL("pass2/$LAMBDA");
-  sg__wc.w[19838] = WORD(&sg__wc.cb[316]);
-sg__wc.cb[316].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[14221] = IDENT("syntax-error", lib);
-  sg__wc.w[8209] = IDENT("make-identifier", lib);
-  sg__wc.w[27811] = IDENT("pass3/make-boxes", lib);
-  sg__wc.w[35413] = IDENT("pass1", lib);
-  sg__wc.w[25446] = IDENT("cb-emit0!", lib);
-  sg__wc.w[35] = WORD(&sg__wc.cb[4]);
-sg__wc.cb[4].name = SYMBOL("lvar?");
-  sg__wc.w[1512] = IDENT("procedure-inliner-set!", lib);
-  sg__wc.w[22817] = WORD(&sg__wc.cb[348]);
-sg__wc.cb[348].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[17384] = IDENT("cdar", lib);
-  sg__wc.w[16947] = WORD(&sg__wc.cb[264]);
-sg__wc.cb[264].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[11865] = IDENT("list", lib);
-  sg__wc.w[32220] = IDENT("$GREF", lib);
-  sg__wc.w[14323] = IDENT("list", lib);
-  sg__wc.w[3063] = IDENT("$LET", lib);
-  sg__wc.w[28140] = IDENT("DISPLAY", lib);
-  sg__wc.w[27907] = IDENT("cb-emit-closure!", lib);
-  sg__wc.w[23278] = IDENT("reverse", lib);
-  sg__wc.w[1016] = WORD(&sg__wc.cb[341]);
-sg__wc.cb[341].name = SYMBOL("pass2/optimize-closure");
-  sg__wc.w[15954] = WORD(&sg__wc.cb[257]);
-sg__wc.cb[257].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[10298] = IDENT("$CONST", lib);
-  sg__wc.w[4154] = STRINGW(")");
-  sg__wc.w[31732] = IDENT("$CONST", lib);
-  sg__wc.w[24877] = IDENT("$SEQ", lib);
-  sg__wc.w[14231] = IDENT("pass1", lib);
-  sg__wc.w[34659] = IDENT("$ASM", lib);
-  sg__wc.w[28991] = IDENT("make-new-renv", lib);
-  sg__wc.w[18721] = WORD(&sg__wc.cb[300]);
-sg__wc.cb[300].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[682] = IDENT("make-syntax", lib);
-  sg__wc.w[236] = SYMBOLW("quote");
-  sg__wc.w[240] = SYMBOLW("quote");
-  sg__wc.w[5927] = SYMBOLW("quote");
-  sg__wc.w[5997] = SYMBOLW("quote");
-  sg__wc.w[6289] = SYMBOLW("quote");
-  sg__wc.w[6359] = SYMBOLW("quote");
-  sg__wc.w[6471] = SYMBOLW("quote");
-  sg__wc.w[6535] = SYMBOLW("quote");
-  sg__wc.w[17338] = SYMBOLW("quote");
-  sg__wc.w[17371] = SYMBOLW("quote");
-  sg__wc.w[8187] = IDENT("variable-name", lib);
-  sg__wc.w[30564] = IDENT("pass3/rec", lib);
-  sg__wc.w[21076] = IDENT("$lref", lib);
-  sg__wc.w[45] = IDENT("lvar-ref--!", lib);
-  sg__wc.w[29499] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[23997] = IDENT("$LET", lib);
-  sg__wc.w[22040] = IDENT("$seq", lib);
-  sg__wc.w[18507] = WORD(&sg__wc.cb[295]);
-sg__wc.cb[295].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[15845] = WORD(&sg__wc.cb[247]);
-sg__wc.cb[247].name = SYMBOL("process-clauses");
-  sg__wc.w[3491] = IDENT("reverse", lib);
-  sg__wc.w[402] = SYMBOLW("let-syntax");
-  sg__wc.w[406] = SYMBOLW("let-syntax");
-  sg__wc.w[9241] = SYMBOLW("let-syntax");
-  sg__wc.w[10240] = STRINGW("malformed %macroexpand");
-  sg__wc.w[34630] = IDENT("ensure-inexact-const", lib);
-  sg__wc.w[619] = WORD(&sg__wc.cb[188]);
-sg__wc.cb[188].name = SYMBOL("syntax/letrec*");
-  sg__wc.w[9238] = IDENT("pass1/body", lib);
-  sg__wc.w[21237] = IDENT("gloc-ref", lib);
-  sg__wc.w[5952] = IDENT("char?", lib);
-  sg__wc.w[32803] = IDENT("$ASM", lib);
-  sg__wc.w[29241] = IDENT("FRAME", lib);
-  sg__wc.w[26274] = IDENT("$IT", lib);
-  sg__wc.w[18267] = WORD(&sg__wc.cb[288]);
-sg__wc.cb[288].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1778] = IDENT("procedure-inliner-set!", lib);
-  sg__wc.w[1749] = IDENT("procedure-inliner-set!", lib);
-  sg__wc.w[15088] = STRINGW("malformed or");
-  sg__wc.w[18003] = WORD(&sg__wc.cb[283]);
-sg__wc.cb[283].name = SYMBOL("loop");
-  sg__wc.w[4160] = IDENT("$SEQ", lib);
-  sg__wc.w[2114] = IDENT("$SEQ", lib);
-  sg__wc.w[31131] = IDENT("normal-context", lib);
-  sg__wc.w[9851] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
-  sg__wc.w[1853] = IDENT("find-procedure", lib);
-  sg__wc.w[11870] = IDENT("reverse", lib);
-  sg__wc.w[1462] = IDENT("ensure-inexact-const", lib);
-  sg__wc.w[20834] = IDENT("call-syntax-handler", lib);
-  sg__wc.w[31835] = IDENT("ensure-identifier", lib);
-  sg__wc.w[821] = WORD(&sg__wc.cb[276]);
-sg__wc.cb[276].name = SYMBOL("syntax/set!");
-  sg__wc.w[4787] = IDENT("format", lib);
-  sg__wc.w[32062] = WORD(&sg__wc.cb[454]);
-sg__wc.cb[454].name = SYMBOL("fold-+");
-  sg__wc.w[30104] = IDENT("max", lib);
-  sg__wc.w[1176] = IDENT("pass3/add-sets", lib);
-  sg__wc.w[19462] = IDENT("list", lib);
-  sg__wc.w[22004] = IDENT("pass2/optimize-closure", lib);
-  sg__wc.w[19985] = IDENT("pass1/body-rec", lib);
-  sg__wc.w[10883] = WORD(&sg__wc.cb[173]);
-sg__wc.cb[173].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[74] = IDENT("$const-nil", lib);
-  sg__wc.w[4251] = IDENT("format", lib);
-  sg__wc.w[4295] = IDENT("format", lib);
-  sg__wc.w[4783] = IDENT("format", lib);
-  sg__wc.w[660] = IDENT("make-syntax", lib);
-  sg__wc.w[4580] = IDENT("display", lib);
-  sg__wc.w[32756] = IDENT("$CONST", lib);
-  sg__wc.w[31359] = IDENT("cb-emit0!", lib);
-  sg__wc.w[25802] = IDENT("UNBOX", lib);
-  sg__wc.w[11670] = WORD(&sg__wc.cb[166]);
-sg__wc.cb[166].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[4830] = IDENT("format", lib);
-  sg__wc.w[33540] = IDENT("MUL", lib);
-  sg__wc.w[9790] = WORD(&sg__wc.cb[131]);
-sg__wc.cb[131].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[31669] = WORD(&sg__wc.cb[448]);
-sg__wc.cb[448].name = SYMBOL("fold-+");
-  sg__wc.w[26579] = IDENT("cb-label-set!", lib);
-  sg__wc.w[25601] = IDENT("FREF", lib);
-  sg__wc.w[23445] = IDENT("$UNDEF", lib);
-  sg__wc.w[2277] = IDENT("$GSET", lib);
-  sg__wc.w[17623] = IDENT("lvar?", lib);
-  sg__wc.w[697] = SYMBOLW("or");
-  sg__wc.w[701] = SYMBOLW("or");
-  sg__wc.w[11466] = WORD(&sg__wc.cb[161]);
-sg__wc.cb[161].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[8167] = STRINGW("malformed define");
-  sg__wc.w[29398] = IDENT("cb-emit0o!", lib);
-  sg__wc.w[25932] = IDENT("$IT", lib);
-  sg__wc.w[22518] = SYMBOLW("tail-rec");
-  sg__wc.w[23420] = SYMBOLW("tail-rec");
-  sg__wc.w[962] = IDENT("pass2/rec", lib);
-  sg__wc.w[858] = IDENT("make-syntax", lib);
-  sg__wc.w[479] = IDENT("%insert-binding", lib);
-  sg__wc.w[30897] = IDENT("pass3/rec", lib);
-  sg__wc.w[29996] = IDENT("pass3/emit-asm!", lib);
-  sg__wc.w[27316] = IDENT("pass3/find-free", lib);
-  sg__wc.w[9532] = WORD(&sg__wc.cb[124]);
-sg__wc.cb[124].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1448] = WORD(&sg__wc.cb[441]);
-sg__wc.cb[441].name = SYMBOL("asm-arg2");
-  sg__wc.w[30944] = IDENT("PUSH", lib);
-  sg__wc.w[26472] = IDENT("pass3/rec", lib);
-  sg__wc.w[1080] = IDENT("pass2/$UNDEF", lib);
-  sg__wc.w[11323] = WORD(&sg__wc.cb[156]);
-sg__wc.cb[156].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[23073] = IDENT("pass2/rec", lib);
-  sg__wc.w[9354] = IDENT("list", lib);
-  sg__wc.w[23191] = IDENT("pass2/head-lref", lib);
-  sg__wc.w[22855] = SYMBOLW("jump");
-  sg__wc.w[28510] = SYMBOLW("jump");
-  sg__wc.w[9169] = WORD(&sg__wc.cb[117]);
-sg__wc.cb[117].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1409] = IDENT("pass3/$LSET", lib);
-  sg__wc.w[1383] = WORD(&sg__wc.cb[434]);
-sg__wc.cb[434].name = SYMBOL("pass3/asm-numcmp");
-  sg__wc.w[21957] = IDENT("reverse", lib);
-  sg__wc.w[10678] = IDENT("%map-cons", lib);
-  sg__wc.w[31311] = IDENT("DIV", lib);
-  sg__wc.w[20410] = IDENT("map", lib);
-  sg__wc.w[10784] = WORD(&sg__wc.cb[149]);
-sg__wc.cb[149].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[24350] = IDENT("$GREF", lib);
-  sg__wc.w[20346] = IDENT("car", lib);
-  sg__wc.w[29269] = IDENT("normal-context", lib);
-  sg__wc.w[350] = WORD(&sg__wc.cb[110]);
-sg__wc.cb[110].name = SYMBOL("syntax/syntax");
-  sg__wc.w[30271] = WORD(&sg__wc.cb[427]);
-sg__wc.cb[427].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[13012] = IDENT("map", lib);
-  sg__wc.w[8820] = IDENT("reverse", lib);
-  sg__wc.w[509] = WORD(&sg__wc.cb[142]);
-sg__wc.cb[142].name = SYMBOL("syntax/lambda");
-  sg__wc.w[29622] = IDENT("pass3/asm-eqv", lib);
-  sg__wc.w[27999] = IDENT("renv-add-can-free2", lib);
-  sg__wc.w[22829] = IDENT("lvar-ref--!", lib);
-  sg__wc.w[5005] = IDENT("lvar?", lib);
-  sg__wc.w[26885] = IDENT("length", lib);
-  sg__wc.w[18960] = IDENT("syntax-error", lib);
-  sg__wc.w[17725] = IDENT("ensure-identifier", lib);
-  sg__wc.w[8566] = WORD(&sg__wc.cb[103]);
-sg__wc.cb[103].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[10128] = IDENT("identifier?", lib);
-  sg__wc.w[33634] = IDENT("ensure-inexact-const", lib);
-  sg__wc.w[1381] = IDENT("pass3/asm-numeq", lib);
-  sg__wc.w[1338] = WORD(&sg__wc.cb[420]);
-sg__wc.cb[420].name = SYMBOL("pass3/normal-call");
-  sg__wc.w[29362] = IDENT("cb-label-set!", lib);
-  sg__wc.w[25633] = IDENT("pass3/return-refer-local", lib);
-  sg__wc.w[817] = IDENT("%insert-binding", lib);
-  sg__wc.w[31042] = IDENT("SUBI", lib);
-  sg__wc.w[23216] = IDENT("expand-inlined-procedure", lib);
-  sg__wc.w[21787] = IDENT("$IF", lib);
-  sg__wc.w[168] = IDENT("p1env-sans-name", lib);
-  sg__wc.w[10039] = WORD(&sg__wc.cb[135]);
-sg__wc.cb[135].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1431] = IDENT("pass3/$ASM", lib);
-  sg__wc.w[22320] = IDENT("pass2/local-call-embedder", lib);
-  sg__wc.w[10704] = IDENT("pass1/body", lib);
-  sg__wc.w[33694] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[25278] = IDENT("memq", lib);
-  sg__wc.w[8347] = WORD(&sg__wc.cb[96]);
-sg__wc.cb[96].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1662] = IDENT("procedure-inliner-set!", lib);
-  sg__wc.w[33380] = IDENT("ensure-identifier", lib);
-  sg__wc.w[29655] = IDENT("NUM_GT", lib);
-  sg__wc.w[1310] = WORD(&sg__wc.cb[413]);
-sg__wc.cb[413].name = SYMBOL("pass3/$LABEL");
-  sg__wc.w[26439] = IDENT("pass3/rec", lib);
-  sg__wc.w[15460] = WORD(&sg__wc.cb[238]);
-sg__wc.cb[238].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[262] = SYMBOLW("quasiquote");
-  sg__wc.w[266] = SYMBOLW("quasiquote");
-  sg__wc.w[6353] = SYMBOLW("quasiquote");
-  sg__wc.w[6703] = SYMBOLW("quasiquote");
-  sg__wc.w[6909] = SYMBOLW("quasiquote");
-  sg__wc.w[7021] = SYMBOLW("quasiquote");
-  sg__wc.w[7032] = SYMBOLW("quasiquote");
-  sg__wc.w[7043] = SYMBOLW("quasiquote");
-  sg__wc.w[7819] = WORD(&sg__wc.cb[89]);
-sg__wc.cb[89].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[29594] = IDENT("cadr", lib);
-  sg__wc.w[1282] = WORD(&sg__wc.cb[406]);
-sg__wc.cb[406].name = SYMBOL("pass3/branch-on-false");
-  sg__wc.w[19199] = STRINGW("malformed ~s clause in library ~s");
-  sg__wc.w[15189] = WORD(&sg__wc.cb[233]);
-sg__wc.cb[233].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[14421] = IDENT("map", lib);
-  sg__wc.w[14427] = IDENT("map", lib);
-  sg__wc.w[5746] = IDENT("make-identifier", lib);
-  sg__wc.w[27032] = IDENT("pass3/make-boxes", lib);
-  sg__wc.w[14771] = IDENT("pass1", lib);
-  sg__wc.w[1264] = IDENT("pass3/$CONST", lib);
-  sg__wc.w[1254] = WORD(&sg__wc.cb[399]);
-sg__wc.cb[399].name = SYMBOL("pass3/$GREF");
-  sg__wc.w[14969] = WORD(&sg__wc.cb[228]);
-sg__wc.cb[228].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[8550] = IDENT("syntax-error", lib);
-  sg__wc.w[1098] = IDENT("pass2/$LAMBDA", lib);
-  sg__wc.w[20420] = IDENT("pass1/body-rest", lib);
-  sg__wc.w[7271] = WORD(&sg__wc.cb[79]);
-sg__wc.cb[79].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1230] = WORD(&sg__wc.cb[392]);
-sg__wc.cb[392].name = SYMBOL("pass3/make-boxes");
-  sg__wc.w[667] = WORD(&sg__wc.cb[223]);
-sg__wc.cb[223].name = SYMBOL("syntax/if");
-  sg__wc.w[24318] = IDENT("pass3/exists-in-can-frees?", lib);
-  sg__wc.w[748] = IDENT("make-syntax", lib);
-  sg__wc.w[7896] = STRINGW("malformed quasiquote");
-  sg__wc.w[8922] = IDENT("check-toplevel", lib);
-  sg__wc.w[28351] = IDENT("cb-emit0o!", lib);
-  sg__wc.w[7125] = WORD(&sg__wc.cb[75]);
-sg__wc.cb[75].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[4748] = IDENT("display", lib);
-  sg__wc.w[3895] = IDENT("$UNDEF", lib);
-  sg__wc.w[10306] = IDENT("%internal-macro-expand", lib);
-  sg__wc.w[26905] = IDENT("length", lib);
-  sg__wc.w[18975] = STRINGW("unknown object appeared in export spec");
-  sg__wc.w[16640] = IDENT("$IF", lib);
-  sg__wc.w[16320] = IDENT("syntax-error", lib);
-  sg__wc.w[14310] = WORD(&sg__wc.cb[216]);
-sg__wc.cb[216].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[29962] = IDENT("PUSH", lib);
-  sg__wc.w[21170] = IDENT("p1env-lookup", lib);
-  sg__wc.w[19619] = IDENT("pass1/lookup-head", lib);
-  sg__wc.w[18305] = IDENT("ensure-library", lib);
-  sg__wc.w[6343] = IDENT("variable?", lib);
-  sg__wc.w[6693] = IDENT("variable?", lib);
-  sg__wc.w[6899] = IDENT("variable?", lib);
-  sg__wc.w[6936] = WORD(&sg__wc.cb[68]);
-sg__wc.cb[68].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[34662] = IDENT("DIVI", lib);
-  sg__wc.w[30637] = IDENT("cb-emit0!", lib);
-  sg__wc.w[4954] = IDENT("string-length", lib);
-  sg__wc.w[35032] = IDENT("pass1", lib);
-  sg__wc.w[1549] = SYMBOLW("-.");
-  sg__wc.w[33016] = SYMBOLW("-.");
-  sg__wc.w[29850] = IDENT("pass3/frame-size", lib);
-  sg__wc.w[29653] = IDENT("NUM_LE", lib);
-  sg__wc.w[33] = IDENT("make-lvar+", lib);
-  sg__wc.w[35282] = IDENT("make-bottom-p1env", lib);
-  sg__wc.w[5452] = IDENT("length", lib);
-  sg__wc.w[34656] = IDENT("error", lib);
-  sg__wc.w[13508] = WORD(&sg__wc.cb[206]);
-sg__wc.cb[206].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[3978] = IDENT("display", lib);
-  sg__wc.w[24745] = IDENT("uniq", lib);
-  sg__wc.w[21261] = IDENT("$GREF", lib);
-  sg__wc.w[16345] = IDENT("$IF", lib);
-  sg__wc.w[123] = IDENT("iform-copy-lvar", lib);
-  sg__wc.w[25332] = IDENT("append", lib);
-  sg__wc.w[1172] = IDENT("hashtable-set-true!", lib);
-  sg__wc.w[5086] = IDENT("id-name", lib);
-  sg__wc.w[4694] = IDENT("display", lib);
-  sg__wc.w[27411] = IDENT("length", lib);
-  sg__wc.w[20273] = IDENT("caar", lib);
-  sg__wc.w[13902] = IDENT("reverse", lib);
-  sg__wc.w[34636] = IDENT("fold", lib);
-  sg__wc.w[30608] = IDENT("max", lib);
-  sg__wc.w[21182] = IDENT("$lref", lib);
-  sg__wc.w[15091] = IDENT("syntax-error", lib);
-  sg__wc.w[4369] = IDENT("display", lib);
-  sg__wc.w[4131] = IDENT("format", lib);
-  sg__wc.w[24770] = IDENT("append", lib);
-  sg__wc.w[21450] = IDENT("lvar-ref++!", lib);
-  sg__wc.w[13183] = IDENT("list", lib);
-  sg__wc.w[12989] = WORD(&sg__wc.cb[195]);
-sg__wc.cb[195].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[11627] = IDENT("reverse", lib);
-  sg__wc.w[139] = IDENT("global-eq?", lib);
-  sg__wc.w[28005] = IDENT("append", lib);
-  sg__wc.w[7362] = IDENT("length", lib);
-  sg__wc.w[32020] = IDENT("ADD", lib);
-  sg__wc.w[28465] = IDENT("max", lib);
-  sg__wc.w[19345] = IDENT("vm-current-library", lib);
-  sg__wc.w[814] = IDENT("make-syntax", lib);
-  sg__wc.w[9150] = STRINGW("malformed let-syntax");
-  sg__wc.w[30689] = IDENT("normal-context", lib);
-  sg__wc.w[24421] = IDENT("append", lib);
-  sg__wc.w[35199] = IDENT("pass1", lib);
-  sg__wc.w[29686] = IDENT("ADD", lib);
-  sg__wc.w[29838] = IDENT("pass3/asm-generic", lib);
-  sg__wc.w[6544] = WORD(Sg_Cons(SYMBOL("quote"), Sg_Cons(SG_NIL, SG_NIL)));
-  sg__wc.w[1220] = IDENT("pass3/return-assign-free", lib);
-  sg__wc.w[21805] = IDENT("pass2/update-if", lib);
-  sg__wc.w[21701] = IDENT("$CONST", lib);
-  sg__wc.w[2082] = IDENT("$LREF", lib);
-  sg__wc.w[20785] = IDENT("find-binding", lib);
-  sg__wc.w[20592] = IDENT("$seq", lib);
-  sg__wc.w[17131] = IDENT("syntax-error", lib);
-  sg__wc.w[5040] = IDENT("find-binding", lib);
-  sg__wc.w[9344] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
-  sg__wc.w[14429] = IDENT("list", lib);
-  sg__wc.w[33492] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[26112] = IDENT("NULLP", lib);
-  sg__wc.w[20306] = IDENT("cdar", lib);
-  sg__wc.w[19972] = IDENT("cdar", lib);
-  sg__wc.w[30666] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[29719] = IDENT("cadr", lib);
-  sg__wc.w[20690] = IDENT("variable?", lib);
-  sg__wc.w[15894] = IDENT("$UNDEF", lib);
-  sg__wc.w[663] = IDENT("%insert-binding", lib);
-  sg__wc.w[1438] = IDENT("*pass3-dispatch-table*", lib);
-  sg__wc.w[22248] = IDENT("zero?", lib);
-  sg__wc.w[1562] = IDENT("procedure-inliner-set!", lib);
-  sg__wc.w[424] = SYMBOLW("letrec-syntax");
-  sg__wc.w[428] = SYMBOLW("letrec-syntax");
-  sg__wc.w[9748] = SYMBOLW("letrec-syntax");
-  sg__wc.w[200] = IDENT("parse-lambda-vars", lib);
-  sg__wc.w[31435] = IDENT("$ASM", lib);
-  sg__wc.w[21426] = STRINGW("circular reference appeared in letrec binding");
-  sg__wc.w[20382] = IDENT("%map-cons", lib);
-  sg__wc.w[13393] = IDENT("pass1/body", lib);
-  sg__wc.w[10494] = STRINGW("malformed lambda");
-  sg__wc.w[1691] = IDENT("procedure-inliner-set!", lib);
-  sg__wc.w[188] = IDENT("argcount-ok?", lib);
-  sg__wc.w[28348] = IDENT("JUMP", lib);
-  sg__wc.w[21594] = IDENT("pass2/label-or-dup", lib);
+  sg__wc.w[35386] = IDENT("make-bottom-p1env", lib);
+  sg__wc.w[23140] = IDENT("pass2/rec", lib);
+  sg__wc.w[707] = IDENT("%insert-binding", lib);
   sg__wc.w[14891] = IDENT("pass1", lib);
-  sg__wc.w[35258] = IDENT("exact?", lib);
-  sg__wc.w[34889] = IDENT("scheme-error", lib);
-  sg__wc.w[20696] = IDENT("SYNTAX", lib);
-  sg__wc.w[5143] = STRINGW("~a requires a library name or a library, but got: ~s");
-  sg__wc.w[33192] = IDENT("$ASM", lib);
-  sg__wc.w[14757] = IDENT("pass1", lib);
-  sg__wc.w[31178] = IDENT("max", lib);
-  sg__wc.w[29708] = IDENT("SUB", lib);
-  sg__wc.w[26202] = IDENT("NUM_GE", lib);
-  sg__wc.w[1699] = IDENT("gen-inliner-arg2", lib);
-  sg__wc.w[1655] = IDENT("ensure-library-name", lib);
-  sg__wc.w[17477] = WORD(Sg_Cons(SYMBOL("clauses"), SG_NIL));
-  sg__wc.w[21217] = IDENT("id-name", lib);
-  sg__wc.w[1373] = IDENT("pass3/asm-eq", lib);
-  sg__wc.w[28549] = IDENT("all-args-simple?", lib);
+  sg__wc.w[4009] = IDENT("format", lib);
+  sg__wc.w[8209] = IDENT("make-identifier", lib);
+  sg__wc.w[31653] = IDENT("inexact", lib);
+  sg__wc.w[26147] = IDENT("BNEQV", lib);
+  sg__wc.w[19703] = IDENT("global-eq?", lib);
+  sg__wc.w[17887] = SYMBOLW("expand");
+  sg__wc.w[28855] = IDENT("pass3/find-sets", lib);
+  sg__wc.w[1014] = IDENT("pass2/remove-unused-lvars", lib);
+  sg__wc.w[20385] = IDENT("LEXICAL", lib);
+  sg__wc.w[30564] = IDENT("pass3/rec", lib);
+  sg__wc.w[30508] = IDENT("cb-emit0!", lib);
+  sg__wc.w[29039] = IDENT("cb-label-set!", lib);
+  sg__wc.w[17376] = IDENT("caar", lib);
+  sg__wc.w[14754] = IDENT("p1env-sans-name", lib);
+  sg__wc.w[29535] = IDENT("$CONST", lib);
+  sg__wc.w[22167] = IDENT("zero?", lib);
+  sg__wc.w[6498] = IDENT("list->vector", lib);
+  sg__wc.w[3296] = IDENT("iform-copy", lib);
+  sg__wc.w[33285] = IDENT("$CONST", lib);
+  sg__wc.w[32346] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[27979] = IDENT("pass3/find-free", lib);
+  sg__wc.w[25726] = IDENT("pass3/rec", lib);
   sg__wc.w[1200] = IDENT("pass3/collect-free", lib);
-  sg__wc.w[29484] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[1244] = IDENT("pass3/$DEFINE", lib);
-  sg__wc.w[33140] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[30092] = IDENT("cb-emit0!", lib);
-  sg__wc.w[27313] = IDENT("renv-add-can-free2", lib);
-  sg__wc.w[571] = IDENT("%insert-binding", lib);
-  sg__wc.w[11317] = IDENT("$lref", lib);
-  sg__wc.w[4484] = STRINGW("($let~a (");
-  sg__wc.w[33219] = IDENT("$ASM", lib);
-  sg__wc.w[30474] = IDENT("max", lib);
-  sg__wc.w[390] = IDENT("%insert-binding", lib);
-  sg__wc.w[29955] = IDENT("pass3/rec", lib);
-  sg__wc.w[25910] = IDENT("stmt-context?", lib);
-  sg__wc.w[20183] = IDENT("pass1/body-finish", lib);
-  sg__wc.w[1405] = IDENT("pass3/$DEFINE", lib);
-  sg__wc.w[26235] = IDENT("pass3/branch-on-false", lib);
-  sg__wc.w[773] = IDENT("%insert-binding", lib);
-  sg__wc.w[13379] = IDENT("reverse", lib);
-  sg__wc.w[28629] = IDENT("pass3/compile-args", lib);
-  sg__wc.w[25731] = SYMBOLW("const");
-  sg__wc.w[22701] = IDENT("adjust-arglist", lib);
-  sg__wc.w[6659] = WORD(&sg__wc.cb[64]);
-sg__wc.cb[64].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1930] = WORD(&sg__wc.cb[504]);
-sg__wc.cb[504].name = SYMBOL("init-compiler");
-  sg__wc.w[1558] = IDENT("find-procedure", lib);
-  sg__wc.w[18111] = IDENT("$UNDEF", lib);
-  sg__wc.w[785] = SYMBOLW("cond");
-  sg__wc.w[789] = SYMBOLW("cond");
-  sg__wc.w[17291] = SYMBOLW("cond");
-  sg__wc.w[7881] = IDENT("pass1", lib);
-  sg__wc.w[249] = WORD(&sg__wc.cb[57]);
-sg__wc.cb[57].name = SYMBOL("pass1/quasiquote");
-  sg__wc.w[225] = IDENT("pass1/quote", lib);
-  sg__wc.w[30862] = IDENT("$CONST", lib);
-  sg__wc.w[1226] = WORD(&sg__wc.cb[391]);
-sg__wc.cb[391].name = SYMBOL("pass3/compile-assign");
-  sg__wc.w[20764] = IDENT("id-library", lib);
-  sg__wc.w[4059] = IDENT("$LABEL", lib);
-  sg__wc.w[1886] = WORD(&sg__wc.cb[497]);
-sg__wc.cb[497].name = SYMBOL("inliner/acons");
-  sg__wc.w[28068] = IDENT("LET_FRAME", lib);
-  sg__wc.w[27778] = IDENT("pass3/collect-free", lib);
-  sg__wc.w[1280] = IDENT("pass3/branch-on-arg2", lib);
-  sg__wc.w[16783] = IDENT("reverse", lib);
-  sg__wc.w[77] = IDENT("$CONST", lib);
-  sg__wc.w[4404] = STRINGW(")");
-  sg__wc.w[5111] = IDENT("find-library", lib);
-  sg__wc.w[1605] = IDENT("ensure-library-name", lib);
-  sg__wc.w[17979] = STRINGW("invalid form");
-  sg__wc.w[22636] = STRINGW("invalid form");
-  sg__wc.w[30390] = STRINGW("invalid form");
-  sg__wc.w[32044] = STRINGW("invalid form");
-  sg__wc.w[32436] = STRINGW("invalid form");
-  sg__wc.w[32838] = STRINGW("invalid form");
-  sg__wc.w[33254] = STRINGW("invalid form");
-  sg__wc.w[33584] = STRINGW("invalid form");
-  sg__wc.w[33931] = STRINGW("invalid form");
-  sg__wc.w[34291] = STRINGW("invalid form");
-  sg__wc.w[34653] = STRINGW("invalid form");
-  sg__wc.w[5846] = IDENT("syntax-error", lib);
-  sg__wc.w[5650] = WORD(&sg__wc.cb[50]);
-sg__wc.cb[50].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[34601] = WORD(&sg__wc.cb[490]);
-sg__wc.cb[490].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[30701] = IDENT("cb-emit0!", lib);
-  sg__wc.w[29244] = IDENT("cb-emit0o!", lib);
-  sg__wc.w[28283] = IDENT("make-new-renv", lib);
-  sg__wc.w[1206] = WORD(&sg__wc.cb[386]);
-sg__wc.cb[386].name = SYMBOL("pass3/return-refer-local");
-  sg__wc.w[29725] = IDENT("pass3/asm-sub", lib);
-  sg__wc.w[27210] = IDENT("cb-emit0!", lib);
-  sg__wc.w[24960] = IDENT("$LSET", lib);
-  sg__wc.w[2704] = IDENT("$ASM", lib);
-  sg__wc.w[32933] = IDENT("error", lib);
-  sg__wc.w[182] = WORD(&sg__wc.cb[43]);
-sg__wc.cb[43].name = SYMBOL("parse-lambda-args");
-  sg__wc.w[30536] = IDENT("LIST", lib);
-  sg__wc.w[1284] = IDENT("pass3/branch-on-false", lib);
-  sg__wc.w[21376] = IDENT("lvar-ref--!", lib);
-  sg__wc.w[7801] = IDENT("reverse", lib);
-  sg__wc.w[162] = WORD(&sg__wc.cb[38]);
-sg__wc.cb[38].name = SYMBOL("p1env-extend/proc");
-  sg__wc.w[32409] = IDENT("$ASM", lib);
-  sg__wc.w[1184] = IDENT("pass3", lib);
-  sg__wc.w[9550] = IDENT("reverse", lib);
-  sg__wc.w[33966] = WORD(&sg__wc.cb[482]);
-sg__wc.cb[482].name = SYMBOL("inline");
-  sg__wc.w[30764] = IDENT("PUSH", lib);
-  sg__wc.w[26350] = IDENT("max", lib);
-  sg__wc.w[23841] = WORD(&sg__wc.cb[374]);
-sg__wc.cb[374].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[22821] = IDENT("for-each", lib);
-  sg__wc.w[527] = IDENT("%insert-binding", lib);
-  sg__wc.w[34247] = IDENT("DIV", lib);
-  sg__wc.w[26469] = IDENT("normal-context", lib);
-  sg__wc.w[4361] = STRINGW("($call ");
-  sg__wc.w[30736] = IDENT("max", lib);
-  sg__wc.w[5331] = IDENT("vm-current-library", lib);
-  sg__wc.w[119] = IDENT("iform-copy-zip-lvs", lib);
-  sg__wc.w[1296] = IDENT("pass3/letrec", lib);
-  sg__wc.w[1141] = WORD(&sg__wc.cb[367]);
-sg__wc.cb[367].name = SYMBOL("normal-context");
-  sg__wc.w[33534] = WORD(&sg__wc.cb[475]);
-sg__wc.cb[475].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[20651] = IDENT("reverse", lib);
-  sg__wc.w[9071] = IDENT("syntax-error", lib);
-  sg__wc.w[6235] = SYMBOLW("unquote");
-  sg__wc.w[6283] = SYMBOLW("unquote");
-  sg__wc.w[6771] = SYMBOLW("unquote");
-  sg__wc.w[6840] = SYMBOLW("unquote");
-  sg__wc.w[4394] = WORD(&sg__wc.cb[26]);
-sg__wc.cb[26].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[4552] = IDENT("display", lib);
-  sg__wc.w[1308] = IDENT("pass3/$RECEIVE", lib);
-  sg__wc.w[26540] = IDENT("pass3/rec", lib);
-  sg__wc.w[26448] = IDENT("pass3/emit-then-else", lib);
-  sg__wc.w[984] = WORD(&sg__wc.cb[333]);
-sg__wc.cb[333].name = SYMBOL("pass2/$GREF");
-  sg__wc.w[7877] = IDENT("pass1/quasiquote", lib);
-  sg__wc.w[1121] = WORD(&sg__wc.cb[362]);
-sg__wc.cb[362].name = SYMBOL("normal-context?");
-  sg__wc.w[17226] = STRINGW("malformed case");
-  sg__wc.w[21123] = STRINGW("[internal] unknown resolution of head:");
-  sg__wc.w[11431] = IDENT("list", lib);
-  sg__wc.w[1180] = IDENT("pass3/rec", lib);
-  sg__wc.w[3738] = WORD(&sg__wc.cb[19]);
-sg__wc.cb[19].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[3907] = IDENT("format", lib);
-  sg__wc.w[1060] = WORD(&sg__wc.cb[357]);
-sg__wc.cb[357].name = SYMBOL("pass2/self-recursing?");
-  sg__wc.w[956] = WORD(&sg__wc.cb[326]);
-sg__wc.cb[326].name = SYMBOL("pass1");
-  sg__wc.w[1192] = IDENT("pass3/find-free", lib);
-  sg__wc.w[1022] = IDENT("pass2/classify-calls", lib);
-  sg__wc.w[91] = WORD(&sg__wc.cb[12]);
-sg__wc.cb[12].name = SYMBOL("$seq");
-  sg__wc.w[4998] = IDENT("id-name", lib);
-  sg__wc.w[9853] = IDENT("map", lib);
-  sg__wc.w[9859] = IDENT("map", lib);
-  sg__wc.w[25828] = IDENT("pass3/rec", lib);
-  sg__wc.w[20401] = WORD(&sg__wc.cb[319]);
-sg__wc.cb[319].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[11762] = IDENT("p1env-add-name", lib);
-  sg__wc.w[3854] = STRINGW("~a[~a;~a]");
-  sg__wc.w[32483] = WORD(&sg__wc.cb[461]);
-sg__wc.cb[461].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1048] = WORD(&sg__wc.cb[354]);
-sg__wc.cb[354].name = SYMBOL("pass2/$SEQ");
-  sg__wc.w[21414] = IDENT("zero?", lib);
-  sg__wc.w[27835] = IDENT("make-new-renv", lib);
-  sg__wc.w[35409] = IDENT("pass0", lib);
-  sg__wc.w[30590] = IDENT("pass3/rec", lib);
-  sg__wc.w[1066] = IDENT("pass2/$ASM", lib);
-  sg__wc.w[5770] = IDENT("$CONST", lib);
-  sg__wc.w[4357] = IDENT("format", lib);
-  sg__wc.w[22943] = IDENT("expand-inlined-procedure", lib);
-  sg__wc.w[1032] = WORD(&sg__wc.cb[349]);
-sg__wc.cb[349].name = SYMBOL("pass2/local-call-inliner");
-  sg__wc.w[924] = WORD(&sg__wc.cb[312]);
-sg__wc.cb[312].name = SYMBOL("pass1/body-rec");
-  sg__wc.w[17069] = WORD(&sg__wc.cb[267]);
-sg__wc.cb[267].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[29476] = IDENT("TAIL_CALL", lib);
-  sg__wc.w[24720] = IDENT("scheme-error", lib);
-  sg__wc.w[24500] = IDENT("$CALL", lib);
-  sg__wc.w[23629] = SYMBOLW("normal/bottom");
-  sg__wc.w[23659] = SYMBOLW("normal/bottom");
-  sg__wc.w[25724] = SYMBOLW("normal/bottom");
-  sg__wc.w[27134] = SYMBOLW("normal/bottom");
-  sg__wc.w[5516] = IDENT("$LET", lib);
-  sg__wc.w[2] = WORD(&sg__wc.cb[0]);
-sg__wc.cb[0].name = SYMBOL("uniq");
-  sg__wc.w[19323] = WORD(&sg__wc.cb[307]);
-sg__wc.cb[307].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[13477] = IDENT("map", lib);
-  sg__wc.w[13483] = IDENT("map", lib);
-  sg__wc.w[8413] = IDENT("compile", lib);
-  sg__wc.w[22420] = WORD(&sg__wc.cb[344]);
-sg__wc.cb[344].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[16834] = WORD(&sg__wc.cb[260]);
-sg__wc.cb[260].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[4698] = IDENT("$LSET", lib);
-  sg__wc.w[1832] = IDENT("procedure-inliner-set!", lib);
-  sg__wc.w[32504] = IDENT("$ASM", lib);
-  sg__wc.w[27448] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[21660] = IDENT("pass2/rec", lib);
-  sg__wc.w[17697] = IDENT("pass1", lib);
-  sg__wc.w[2092] = IDENT("$LSET", lib);
-  sg__wc.w[33937] = IDENT("$ASM", lib);
-  sg__wc.w[1152] = IDENT("make-new-renv", lib);
-  sg__wc.w[33855] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[1427] = IDENT("pass3/$SEQ", lib);
-  sg__wc.w[1000] = WORD(&sg__wc.cb[337]);
-sg__wc.cb[337].name = SYMBOL("pass2/label-or-dup");
-  sg__wc.w[899] = WORD(&sg__wc.cb[303]);
-sg__wc.cb[303].name = SYMBOL("syntax/library");
-  sg__wc.w[16299] = WORD(&sg__wc.cb[253]);
-sg__wc.cb[253].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[33725] = IDENT("ensure-identifier", lib);
-  sg__wc.w[21847] = IDENT("pass2/update-if", lib);
-  sg__wc.w[20581] = IDENT("pass1/body-1", lib);
-  sg__wc.w[434] = IDENT("%insert-binding", lib);
-  sg__wc.w[11159] = STRINGW("bad name for named let");
-  sg__wc.w[2927] = IDENT("$GREF", lib);
-  sg__wc.w[22789] = IDENT("$LABEL", lib);
-  sg__wc.w[21869] = IDENT("memv", lib);
-  sg__wc.w[21222] = IDENT("find-binding", lib);
-  sg__wc.w[861] = IDENT("%insert-binding", lib);
-  sg__wc.w[807] = SYMBOLW("case");
-  sg__wc.w[811] = SYMBOLW("case");
-  sg__wc.w[16115] = WORD(&sg__wc.cb[250]);
-sg__wc.cb[250].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1288] = IDENT("pass3/emit-then-else", lib);
-  sg__wc.w[13173] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
-  sg__wc.w[12873] = WORD(&sg__wc.cb[191]);
-sg__wc.cb[191].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1800] = IDENT("ensure-library-name", lib);
-  sg__wc.w[31278] = IDENT("pass3/rec", lib);
-  sg__wc.w[4] = IDENT("uniq", lib);
-  sg__wc.w[29342] = IDENT("CALL", lib);
-  sg__wc.w[18391] = WORD(&sg__wc.cb[291]);
-sg__wc.cb[291].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[29926] = IDENT("pass3/emit-asm!", lib);
-  sg__wc.w[25825] = IDENT("normal-context", lib);
-  sg__wc.w[1030] = IDENT("pass2/local-call-embedder", lib);
-  sg__wc.w[634] = IDENT("make-syntax", lib);
-  sg__wc.w[22261] = IDENT("$LAMBDA", lib);
-  sg__wc.w[19293] = IDENT("pass1/export", lib);
-  sg__wc.w[17899] = IDENT("library-transient-set!", lib);
-  sg__wc.w[12245] = WORD(&sg__wc.cb[184]);
-sg__wc.cb[184].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[4849] = STRINGW("unknown tag:");
-  sg__wc.w[31448] = IDENT("$ASM", lib);
-  sg__wc.w[1092] = IDENT("pass2/$CONST", lib);
-  sg__wc.w[1720] = IDENT("procedure-inliner-set!", lib);
-  sg__wc.w[20879] = IDENT("length", lib);
-  sg__wc.w[17229] = IDENT("syntax-error", lib);
-  sg__wc.w[12300] = WORD(&sg__wc.cb[181]);
-sg__wc.cb[181].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[31742] = IDENT("$CONST", lib);
-  sg__wc.w[29046] = IDENT("pass3/make-boxes", lib);
-  sg__wc.w[21885] = IDENT("$LABEL", lib);
-  sg__wc.w[20719] = STRINGW("proper list required for function application or macro use");
-  sg__wc.w[14601] = WORD(Sg_Cons(SYMBOL("var"), Sg_Cons(SYMBOL("init"), Sg_Cons(SYMBOL("update"), SG_NIL))));
-  sg__wc.w[32412] = IDENT("ADDI", lib);
-  sg__wc.w[864] = WORD(&sg__wc.cb[279]);
-sg__wc.cb[279].name = SYMBOL("import-library");
-  sg__wc.w[7045] = STRINGW("unquote appear in bad context");
-  sg__wc.w[1385] = IDENT("pass3/asm-numcmp", lib);
-  sg__wc.w[25690] = IDENT("make-new-label", lib);
-  sg__wc.w[575] = WORD(&sg__wc.cb[176]);
-sg__wc.cb[176].name = SYMBOL("syntax/let*");
-  sg__wc.w[2799] = IDENT("scheme-error", lib);
-  sg__wc.w[1786] = IDENT("gen-inliner-arg2", lib);
-  sg__wc.w[17266] = WORD(&sg__wc.cb[272]);
-sg__wc.cb[272].name = SYMBOL("loop");
-  sg__wc.w[15965] = IDENT("global-eq?", lib);
-  sg__wc.w[3147] = IDENT("iform-copy", lib);
-  sg__wc.w[35191] = IDENT("CONS", lib);
-  sg__wc.w[1377] = IDENT("pass3/asm-eqv", lib);
-  sg__wc.w[1252] = IDENT("pass3/$LSET", lib);
-  sg__wc.w[19351] = IDENT("pass1", lib);
-  sg__wc.w[14001] = IDENT("$CALL", lib);
-  sg__wc.w[10968] = WORD(&sg__wc.cb[169]);
-sg__wc.cb[169].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[28603] = IDENT("FRAME", lib);
-  sg__wc.w[24748] = IDENT("$CONST", lib);
-  sg__wc.w[17864] = STRINGW("prefix must have only one symbol:");
-  sg__wc.w[7373] = SYMBOLW("append");
-  sg__wc.w[7379] = SYMBOLW("append");
-  sg__wc.w[30544] = IDENT("%pass3/builtin-nargs", lib);
-  sg__wc.w[20391] = IDENT("$LET", lib);
-  sg__wc.w[8360] = IDENT("list", lib);
-  sg__wc.w[1524] = SYMBOLW("-");
-  sg__wc.w[31698] = WORD(&sg__wc.cb[449]);
-sg__wc.cb[449].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[17600] = STRINGW("malformed set!");
-  sg__wc.w[16766] = IDENT("syntax-error", lib);
-  sg__wc.w[11654] = WORD(&sg__wc.cb[164]);
-sg__wc.cb[164].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[6327] = SYMBOLW("unquote-splicing");
-  sg__wc.w[6625] = SYMBOLW("unquote-splicing");
-  sg__wc.w[6976] = SYMBOLW("unquote-splicing");
-  sg__wc.w[28654] = IDENT("pass3/rec", lib);
-  sg__wc.w[25970] = IDENT("pass3/branch-core", lib);
-  sg__wc.w[21168] = IDENT("LEXICAL", lib);
-  sg__wc.w[9604] = WORD(&sg__wc.cb[127]);
-sg__wc.cb[127].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[31477] = WORD(&sg__wc.cb[444]);
-sg__wc.cb[444].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[21974] = IDENT("pass2/rec", lib);
-  sg__wc.w[5183] = STRINGW("the form can appear only in the toplevel:");
-  sg__wc.w[5828] = IDENT("pass1/quote", lib);
-  sg__wc.w[27392] = IDENT("length", lib);
-  sg__wc.w[25840] = IDENT("pass3/compile-assign", lib);
-  sg__wc.w[3673] = IDENT("$it", lib);
   sg__wc.w[1678] = SYMBOLW("=");
-  sg__wc.w[26217] = IDENT("NUM_GT", lib);
-  sg__wc.w[9283] = WORD(&sg__wc.cb[120]);
-sg__wc.cb[120].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[1411] = IDENT("pass3/$GREF", lib);
-  sg__wc.w[1395] = WORD(&sg__wc.cb[437]);
-sg__wc.cb[437].name = SYMBOL("pass3/asm-mul");
-  sg__wc.w[3307] = IDENT("iform-copy", lib);
-  sg__wc.w[10913] = WORD(&sg__wc.cb[152]);
-sg__wc.cb[152].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[29789] = WORD(Sg_Cons(SG_MAKE_INT(1), SG_NIL));
-  sg__wc.w[20364] = IDENT("map", lib);
-  sg__wc.w[17752] = STRINGW("malformed set!");
-  sg__wc.w[8930] = WORD(&sg__wc.cb[113]);
-sg__wc.cb[113].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[6317] = IDENT("variable?", lib);
-  sg__wc.w[6615] = IDENT("variable?", lib);
-  sg__wc.w[6966] = IDENT("variable?", lib);
-  sg__wc.w[1367] = WORD(&sg__wc.cb[430]);
-sg__wc.cb[430].name = SYMBOL("pass3/$LIST");
-  sg__wc.w[10506] = WORD(&sg__wc.cb[145]);
-sg__wc.cb[145].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[4930] = STRINGW("(~a ");
-  sg__wc.w[3345] = IDENT("$LABEL", lib);
-  sg__wc.w[7480] = IDENT("list", lib);
-  sg__wc.w[34619] = IDENT("ensure-inexact-const", lib);
-  sg__wc.w[30981] = IDENT("max", lib);
-  sg__wc.w[18854] = IDENT("syntax-error", lib);
-  sg__wc.w[6521] = SYMBOLW("list->vector");
+  sg__wc.w[21395] = IDENT("$LREF", lib);
+  sg__wc.w[93] = IDENT("$seq", lib);
+  sg__wc.w[7872] = IDENT("cadr", lib);
+  sg__wc.w[29600] = IDENT("pass3/asm-eq", lib);
+  sg__wc.w[28190] = IDENT("hashtable-keys", lib);
+  sg__wc.w[28] = IDENT("SMALL_LAMBDA_SIZE", lib);
+  sg__wc.w[1878] = IDENT("find-procedure", lib);
+  sg__wc.w[32439] = IDENT("error", lib);
   sg__wc.w[8696] = WORD(&sg__wc.cb[106]);
 sg__wc.cb[106].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[10355] = IDENT("map", lib);
-  sg__wc.w[1350] = WORD(&sg__wc.cb[423]);
-sg__wc.cb[423].name = SYMBOL("pass3/asm-generic");
-  sg__wc.w[18529] = IDENT("ensure-library", lib);
-  sg__wc.w[1757] = IDENT("gen-inliner-arg2", lib);
-  sg__wc.w[10170] = WORD(&sg__wc.cb[138]);
-sg__wc.cb[138].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[26192] = IDENT("BNLT", lib);
-  sg__wc.w[18312] = IDENT("import-library", lib);
+  sg__wc.w[28236] = IDENT("pass3/make-boxes", lib);
+  sg__wc.w[25927] = IDENT("cb-emit0o!", lib);
+  sg__wc.w[14221] = IDENT("syntax-error", lib);
+  sg__wc.w[1691] = IDENT("procedure-inliner-set!", lib);
+  sg__wc.w[22008] = IDENT("for-each", lib);
+  sg__wc.w[19815] = IDENT("pass1/body-rec", lib);
+  sg__wc.w[16640] = IDENT("$IF", lib);
+  sg__wc.w[15224] = IDENT("$IF", lib);
+  sg__wc.w[1630] = IDENT("ensure-library-name", lib);
+  sg__wc.w[20387] = IDENT("p1env-extend", lib);
+  sg__wc.w[15894] = IDENT("$UNDEF", lib);
   sg__wc.w[323] = WORD(&sg__wc.cb[99]);
 sg__wc.cb[99].name = SYMBOL("pass1/eval-macro-rhs");
-  sg__wc.w[4402] = IDENT("for-each", lib);
-  sg__wc.w[455] = IDENT("er-rename", lib);
-  sg__wc.w[28251] = IDENT("cb-emit1!", lib);
-  sg__wc.w[23165] = IDENT("pass2/rec", lib);
-  sg__wc.w[9027] = IDENT("variable-name", lib);
-  sg__wc.w[1322] = WORD(&sg__wc.cb[416]);
-sg__wc.cb[416].name = SYMBOL("pass3/local-call");
-  sg__wc.w[15554] = WORD(&sg__wc.cb[241]);
-sg__wc.cb[241].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[8365] = IDENT("reverse", lib);
-  sg__wc.w[27898] = IDENT("pass3/frame-size", lib);
-  sg__wc.w[19651] = IDENT("lvar?", lib);
-  sg__wc.w[17808] = SYMBOLW("all");
-  sg__wc.w[18188] = SYMBOLW("all");
+  sg__wc.w[19667] = IDENT("macro?", lib);
+  sg__wc.w[2832] = IDENT("$DEFINE", lib);
+  sg__wc.w[10787] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
+  sg__wc.w[23401] = IDENT("$LAMBDA", lib);
+  sg__wc.w[17616] = IDENT("pass1/lookup-head", lib);
   sg__wc.w[8063] = WORD(&sg__wc.cb[92]);
 sg__wc.cb[92].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1294] = WORD(&sg__wc.cb[409]);
-sg__wc.cb[409].name = SYMBOL("pass3/letrec");
-  sg__wc.w[24841] = IDENT("$RECEIVE", lib);
-  sg__wc.w[22914] = IDENT("iform-copy", lib);
-  sg__wc.w[733] = WORD(&sg__wc.cb[234]);
-sg__wc.cb[234].name = SYMBOL("syntax/when");
-  sg__wc.w[11718] = IDENT("p1env-extend", lib);
-  sg__wc.w[31275] = IDENT("normal-context", lib);
-  sg__wc.w[30894] = IDENT("normal-context", lib);
-  sg__wc.w[30463] = IDENT("length", lib);
-  sg__wc.w[1090] = IDENT("pass2/$GSET", lib);
+  sg__wc.w[123] = IDENT("iform-copy-lvar", lib);
+  sg__wc.w[498] = IDENT("make-syntax", lib);
+  sg__wc.w[23393] = IDENT("zero?", lib);
+  sg__wc.w[994] = IDENT("pass2/$CONST", lib);
+  sg__wc.w[19242] = SYMBOLW("export");
+  sg__wc.w[29820] = IDENT("cb-emit0o!", lib);
+  sg__wc.w[26010] = IDENT("$ASM", lib);
+  sg__wc.w[25804] = IDENT("cb-emit0!", lib);
+  sg__wc.w[1066] = IDENT("pass2/$ASM", lib);
+  sg__wc.w[12733] = IDENT("map", lib);
+  sg__wc.w[12739] = IDENT("map", lib);
+  sg__wc.w[27835] = IDENT("make-new-renv", lib);
+  sg__wc.w[20861] = IDENT("integer?", lib);
   sg__wc.w[7528] = WORD(&sg__wc.cb[85]);
 sg__wc.cb[85].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[15106] = WORD(&sg__wc.cb[231]);
-sg__wc.cb[231].name = SYMBOL("rec");
-  sg__wc.w[1794] = SYMBOLW(">=");
-  sg__wc.w[32776] = IDENT("$ASM", lib);
-  sg__wc.w[1266] = WORD(&sg__wc.cb[402]);
-sg__wc.cb[402].name = SYMBOL("pass3/$IF");
-  sg__wc.w[2997] = IDENT("$IF", lib);
-  sg__wc.w[4299] = IDENT("format", lib);
-  sg__wc.w[1413] = IDENT("pass3/$GSET", lib);
-  sg__wc.w[17903] = IDENT("load-library", lib);
-  sg__wc.w[12394] = IDENT("LEXICAL", lib);
-  sg__wc.w[9769] = IDENT("pass1/eval-macro-rhs", lib);
-  sg__wc.w[28674] = IDENT("length", lib);
-  sg__wc.w[23331] = IDENT("reverse", lib);
+  sg__wc.w[139] = IDENT("global-eq?", lib);
+  sg__wc.w[27352] = IDENT("pass3/find-free", lib);
+  sg__wc.w[14745] = IDENT("$IF", lib);
+  sg__wc.w[9698] = IDENT("%map-cons", lib);
+  sg__wc.w[26540] = IDENT("pass3/rec", lib);
+  sg__wc.w[1720] = IDENT("procedure-inliner-set!", lib);
+  sg__wc.w[33715] = IDENT("$CALL", lib);
+  sg__wc.w[25042] = IDENT("$GREF", lib);
+  sg__wc.w[22855] = SYMBOLW("jump");
+  sg__wc.w[28510] = SYMBOLW("jump");
+  sg__wc.w[612] = IDENT("make-syntax", lib);
   sg__wc.w[7287] = WORD(&sg__wc.cb[80]);
 sg__wc.cb[80].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[1238] = WORD(&sg__wc.cb[395]);
-sg__wc.cb[395].name = SYMBOL("pass3/$UNDEF");
-  sg__wc.w[23140] = IDENT("pass2/rec", lib);
-  sg__wc.w[93] = IDENT("$seq", lib);
-  sg__wc.w[25569] = IDENT("LREF", lib);
-  sg__wc.w[19448] = IDENT("reverse", lib);
-  sg__wc.w[6604] = WORD(&sg__wc.cb[78]);
-sg__wc.cb[78].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[5752] = IDENT("identifier?", lib);
-  sg__wc.w[14416] = WORD(&sg__wc.cb[219]);
-sg__wc.cb[219].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[29747] = IDENT("pass3/asm-mul", lib);
-  sg__wc.w[25766] = IDENT("cb-emit1oi!", lib);
-  sg__wc.w[21282] = IDENT("$CONST", lib);
-  sg__wc.w[20517] = IDENT("pass1/body-1", lib);
-  sg__wc.w[4112] = IDENT("length", lib);
-  sg__wc.w[6819] = WORD(&sg__wc.cb[71]);
-sg__wc.cb[71].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[30635] = IDENT("PUSH", lib);
-  sg__wc.w[16203] = IDENT("$it", lib);
-  sg__wc.w[13733] = WORD(&sg__wc.cb[214]);
-sg__wc.cb[214].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[3265] = IDENT("iform-copy-zip-lvs", lib);
-  sg__wc.w[21149] = IDENT("pass1/call", lib);
-  sg__wc.w[387] = IDENT("make-syntax", lib);
-  sg__wc.w[5557] = STRINGW("wrong number of arguments: ~s requires ~a, but got ~a");
-  sg__wc.w[29820] = IDENT("cb-emit0o!", lib);
-  sg__wc.w[28024] = IDENT("pass3/find-sets", lib);
-  sg__wc.w[13717] = WORD(&sg__wc.cb[209]);
-sg__wc.cb[209].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[13083] = IDENT("pass1", lib);
-  sg__wc.w[27577] = IDENT("cb-emit1!", lib);
-  sg__wc.w[20324] = IDENT("pass1/body-rest", lib);
-  sg__wc.w[3199] = IDENT("$LAMBDA", lib);
-  sg__wc.w[172] = IDENT("p1env-swap-library", lib);
-  sg__wc.w[29094] = IDENT("LEAVE", lib);
-  sg__wc.w[1272] = IDENT("pass3/branch-core", lib);
-  sg__wc.w[926] = IDENT("pass1/body-rec", lib);
-  sg__wc.w[19471] = IDENT("pass1/body-rec", lib);
-  sg__wc.w[15639] = IDENT("syntax-error", lib);
-  sg__wc.w[33882] = IDENT("$ASM", lib);
-  sg__wc.w[22334] = IDENT("iform-count-size-upto", lib);
-  sg__wc.w[148] = IDENT("check-toplevel", lib);
-  sg__wc.w[1900] = IDENT("ensure-library-name", lib);
-  sg__wc.w[1742] = IDENT("ensure-library-name", lib);
-  sg__wc.w[12843] = WORD(&sg__wc.cb[202]);
-sg__wc.cb[202].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[3245] = IDENT("$RECEIVE", lib);
-  sg__wc.w[2989] = IDENT("$IF", lib);
-  sg__wc.w[1108] = IDENT("pass2/$ASM", lib);
-  sg__wc.w[35428] = IDENT("make-code-builder", lib);
-  sg__wc.w[21117] = IDENT("pass1", lib);
-  sg__wc.w[4678] = STRINGW(")");
-  sg__wc.w[3296] = IDENT("iform-copy", lib);
-  sg__wc.w[22084] = IDENT("append!", lib);
-  sg__wc.w[20155] = STRINGW("[internal] pass1/body");
-  sg__wc.w[8352] = IDENT("map", lib);
-  sg__wc.w[8358] = IDENT("map", lib);
-  sg__wc.w[31247] = IDENT("MUL", lib);
-  sg__wc.w[28966] = IDENT("DISPLAY", lib);
-  sg__wc.w[726] = IDENT("make-syntax", lib);
-  sg__wc.w[12928] = WORD(&sg__wc.cb[198]);
-sg__wc.cb[198].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[27979] = IDENT("pass3/find-free", lib);
-  sg__wc.w[22297] = IDENT("pass2/classify-calls", lib);
-  sg__wc.w[13944] = IDENT("$CALL", lib);
-  sg__wc.w[27618] = IDENT("pass3/rec", lib);
-  sg__wc.w[29077] = IDENT("pass3/rec", lib);
-  sg__wc.w[18633] = IDENT("reverse", lib);
-  sg__wc.w[4531] = IDENT("string-length", lib);
-  sg__wc.w[13798] = IDENT("map", lib);
-  sg__wc.w[29875] = IDENT("length", lib);
-  sg__wc.w[24248] = IDENT("pass3/exists-in-can-frees?", lib);
-  sg__wc.w[30571] = IDENT("PUSH", lib);
-  sg__wc.w[24007] = IDENT("append", lib);
-  sg__wc.w[21754] = IDENT("pass2/rec", lib);
-  sg__wc.w[21631] = IDENT("$IT", lib);
-  sg__wc.w[19207] = IDENT("syntax-error", lib);
-  sg__wc.w[17661] = IDENT("find-binding", lib);
-  sg__wc.w[34066] = IDENT("$GREF", lib);
-  sg__wc.w[28684] = IDENT("LOCAL_TAIL_CALL", lib);
-  sg__wc.w[27574] = IDENT("ENTER", lib);
-  sg__wc.w[16079] = IDENT("global-eq?", lib);
-  sg__wc.w[9545] = IDENT("list", lib);
-  sg__wc.w[28903] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[26818] = IDENT("append", lib);
-  sg__wc.w[17591] = IDENT("variable?", lib);
-  sg__wc.w[20442] = IDENT("p1env-add-name", lib);
-  sg__wc.w[642] = IDENT("pass1/letrec", lib);
-  sg__wc.w[3599] = IDENT("$LIST", lib);
-  sg__wc.w[6232] = IDENT("variable-name", lib);
-  sg__wc.w[6280] = IDENT("variable-name", lib);
-  sg__wc.w[6768] = IDENT("variable-name", lib);
-  sg__wc.w[6837] = IDENT("variable-name", lib);
-  sg__wc.w[1419] = IDENT("pass3/$LET", lib);
-  sg__wc.w[25887] = IDENT("pass3/rec", lib);
-  sg__wc.w[15962] = SYMBOLW("else");
-  sg__wc.w[17310] = SYMBOLW("else");
-  sg__wc.w[9753] = IDENT("variable-name", lib);
-  sg__wc.w[31607] = IDENT("pass1", lib);
-  sg__wc.w[21113] = IDENT("call-macro-expander", lib);
-  sg__wc.w[3937] = IDENT("length", lib);
-  sg__wc.w[15437] = IDENT("$UNDEF", lib);
-  sg__wc.w[32213] = IDENT("ensure-inexact-const", lib);
-  sg__wc.w[28408] = IDENT("pass3/rec", lib);
-  sg__wc.w[12550] = IDENT("list", lib);
-  sg__wc.w[2923] = IDENT("$lset", lib);
-  sg__wc.w[20456] = IDENT("pass1", lib);
-  sg__wc.w[31073] = IDENT("integer-fits-insn-arg?", lib);
-  sg__wc.w[28319] = IDENT("LEAVE", lib);
-  sg__wc.w[10497] = IDENT("syntax-error", lib);
-  sg__wc.w[26297] = IDENT("pass3/rec", lib);
-  sg__wc.w[21609] = IDENT("$IF", lib);
-  sg__wc.w[6350] = IDENT("variable-name", lib);
-  sg__wc.w[6700] = IDENT("variable-name", lib);
-  sg__wc.w[6906] = IDENT("variable-name", lib);
-  sg__wc.w[4243] = STRINGW("~a");
-  sg__wc.w[4287] = STRINGW("~a");
-  sg__wc.w[4775] = STRINGW("~a");
-  sg__wc.w[25098] = IDENT("append", lib);
-  sg__wc.w[23178] = IDENT("$LREF", lib);
-  sg__wc.w[704] = IDENT("make-syntax", lib);
-  sg__wc.w[11765] = IDENT("pass1", lib);
-  sg__wc.w[12948] = STRINGW("malformed ~a: ~s");
-  sg__wc.w[1483] = IDENT("find-procedure", lib);
-  sg__wc.w[23612] = SYMBOLW("stmt/top");
-  sg__wc.w[23641] = SYMBOLW("stmt/top");
-  sg__wc.w[23677] = SYMBOLW("stmt/top");
-  sg__wc.w[32598] = IDENT("$CONST", lib);
-  sg__wc.w[33172] = IDENT("$CONST", lib);
-  sg__wc.w[21068] = IDENT("lvar?", lib);
-  sg__wc.w[34073] = IDENT("ensure-identifier", lib);
-  sg__wc.w[26750] = IDENT("pass3/find-free", lib);
-  sg__wc.w[17616] = IDENT("pass1/lookup-head", lib);
-  sg__wc.w[792] = IDENT("make-syntax", lib);
-  sg__wc.w[4507] = STRINGW("rec");
-  sg__wc.w[24644] = IDENT("$LIST", lib);
-  sg__wc.w[152] = IDENT("p1env-add-name", lib);
-  sg__wc.w[13941] = IDENT("pass1/body", lib);
-  sg__wc.w[143] = IDENT("ensure-library", lib);
-  sg__wc.w[1401] = IDENT("pass3/asm-div", lib);
-  sg__wc.w[29539] = IDENT("memv", lib);
-  sg__wc.w[25927] = IDENT("cb-emit0o!", lib);
-  sg__wc.w[22337] = IDENT("SMALL_LAMBDA_SIZE", lib);
-  sg__wc.w[21663] = IDENT("pass2/label-or-dup", lib);
-  sg__wc.w[6428] = IDENT("vector->list", lib);
-  sg__wc.w[35333] = IDENT("pass3", lib);
-  sg__wc.w[1423] = IDENT("pass3/$RECEIVE", lib);
-  sg__wc.w[21844] = IDENT("pass2/rec", lib);
-  sg__wc.w[32608] = IDENT("NEG", lib);
-  sg__wc.w[28530] = IDENT("$LET", lib);
-  sg__wc.w[28241] = IDENT("tail-context?", lib);
-  sg__wc.w[288] = SYMBOLW("define");
-  sg__wc.w[292] = SYMBOLW("define");
-  sg__wc.w[8253] = SYMBOLW("define");
-  sg__wc.w[19700] = SYMBOLW("define");
-  sg__wc.w[23295] = IDENT("pass2/rec", lib);
-  sg__wc.w[3012] = IDENT("iform-copy", lib);
-  sg__wc.w[5876] = WORD(&sg__wc.cb[60]);
-sg__wc.cb[60].name = SYMBOL("emit-cons");
-  sg__wc.w[29017] = IDENT("ENTER", lib);
-  sg__wc.w[24581] = IDENT("append", lib);
-  sg__wc.w[21177] = IDENT("lvar?", lib);
-  sg__wc.w[5544] = IDENT("argcount-ok?", lib);
-  sg__wc.w[1914] = WORD(&sg__wc.cb[500]);
-sg__wc.cb[500].name = SYMBOL("compile");
-  sg__wc.w[26972] = IDENT("pass3/collect-free", lib);
-  sg__wc.w[15693] = IDENT("reverse", lib);
-  sg__wc.w[14898] = IDENT("pass1", lib);
-  sg__wc.w[11162] = IDENT("syntax-error", lib);
-  sg__wc.w[219] = WORD(&sg__wc.cb[53]);
-sg__wc.cb[53].name = SYMBOL("ensure-identifier");
-  sg__wc.w[10370] = IDENT("$LAMBDA", lib);
-  sg__wc.w[33567] = IDENT("fold", lib);
-  sg__wc.w[20083] = IDENT("identifier?", lib);
-  sg__wc.w[2870] = IDENT("$LREF", lib);
-  sg__wc.w[9262] = IDENT("pass1/eval-macro-rhs", lib);
-  sg__wc.w[1836] = WORD(&sg__wc.cb[493]);
-sg__wc.cb[493].name = SYMBOL("inliner/vector-ref");
-  sg__wc.w[1630] = IDENT("ensure-library-name", lib);
-  sg__wc.w[27856] = IDENT("pass3/rec", lib);
-  sg__wc.w[1218] = WORD(&sg__wc.cb[389]);
-sg__wc.cb[389].name = SYMBOL("pass3/return-assign-free");
-  sg__wc.w[506] = IDENT("pass1/lambda", lib);
-  sg__wc.w[25903] = IDENT("cb-emit0oi!", lib);
-  sg__wc.w[1123] = IDENT("normal-context?", lib);
-  sg__wc.w[5509] = WORD(&sg__wc.cb[46]);
-sg__wc.cb[46].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[34858] = IDENT("VEC_REF", lib);
-  sg__wc.w[1194] = WORD(&sg__wc.cb[382]);
-sg__wc.cb[382].name = SYMBOL("pass3/find-sets");
-  sg__wc.w[21104] = IDENT("macro?", lib);
-  sg__wc.w[15808] = IDENT("map", lib);
-  sg__wc.w[15814] = IDENT("map", lib);
-  sg__wc.w[1641] = WORD(&sg__wc.cb[486]);
-sg__wc.cb[486].name = SYMBOL("inliner//.");
-  sg__wc.w[1480] = IDENT("ensure-library-name", lib);
-  sg__wc.w[1070] = IDENT("pass2/$IT", lib);
-  sg__wc.w[166] = WORD(&sg__wc.cb[39]);
-sg__wc.cb[39].name = SYMBOL("p1env-sans-name");
-  sg__wc.w[3911] = IDENT("$LAMBDA", lib);
-  sg__wc.w[35059] = STRINGW("wrong number of arguments");
-  sg__wc.w[26747] = IDENT("renv-add-can-free2", lib);
-  sg__wc.w[1178] = WORD(&sg__wc.cb[377]);
-sg__wc.cb[377].name = SYMBOL("pass3/rec");
-  sg__wc.w[21257] = IDENT("pass1", lib);
-  sg__wc.w[216] = IDENT("lambda.", lib);
-  sg__wc.w[5139] = SYMBOLW("ensure-library");
-  sg__wc.w[5159] = SYMBOLW("ensure-library");
-  sg__wc.w[4055] = IDENT("display", lib);
-  sg__wc.w[4680] = IDENT("display", lib);
-  sg__wc.w[34241] = WORD(&sg__wc.cb[485]);
-sg__wc.cb[485].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[31287] = IDENT("cb-emit0!", lib);
-  sg__wc.w[29605] = IDENT("EQV", lib);
-  sg__wc.w[12] = IDENT("LEXICAL", lib);
-  sg__wc.w[29272] = IDENT("pass3/rec", lib);
-  sg__wc.w[10083] = STRINGW("rename procrdure requires a symbol or an identifier, but got ");
-  sg__wc.w[34734] = IDENT("NUM_EQ", lib);
-  sg__wc.w[29327] = IDENT("TAIL_CALL", lib);
-  sg__wc.w[26783] = IDENT("renv-add-can-free2", lib);
-  sg__wc.w[10052] = IDENT("list", lib);
-  sg__wc.w[146] = WORD(&sg__wc.cb[34]);
-sg__wc.cb[34].name = SYMBOL("check-toplevel");
-  sg__wc.w[1154] = WORD(&sg__wc.cb[370]);
-sg__wc.cb[370].name = SYMBOL("renv-add-can-free1");
-  sg__wc.w[33651] = WORD(&sg__wc.cb[478]);
-sg__wc.cb[478].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[32138] = IDENT("ensure-inexact-const", lib);
-  sg__wc.w[9766] = IDENT("p1env-add-name", lib);
-  sg__wc.w[4946] = IDENT("display", lib);
-  sg__wc.w[11736] = IDENT("map", lib);
-  sg__wc.w[35018] = IDENT("pass1", lib);
-  sg__wc.w[25986] = IDENT("pass3/$IF", lib);
-  sg__wc.w[4574] = IDENT("for-each", lib);
-  sg__wc.w[4835] = WORD(&sg__wc.cb[29]);
-sg__wc.cb[29].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[7578] = IDENT("length", lib);
-  sg__wc.w[7872] = IDENT("cadr", lib);
-  sg__wc.w[1566] = WORD(&sg__wc.cb[471]);
-sg__wc.cb[471].name = SYMBOL("inliner/*");
-  sg__wc.w[29491] = IDENT("CALL", lib);
-  sg__wc.w[28526] = IDENT("bottom-context?", lib);
-  sg__wc.w[16076] = SYMBOLW("=>");
-  sg__wc.w[14953] = IDENT("$const-f", lib);
-  sg__wc.w[17072] = WORD(Sg_Cons(SYMBOL("clause"), SG_NIL));
-  sg__wc.w[3795] = WORD(&sg__wc.cb[22]);
-sg__wc.cb[22].name = SYMBOL("nl");
-  sg__wc.w[968] = WORD(&sg__wc.cb[329]);
-sg__wc.cb[329].name = SYMBOL("pass2/$UNDEF");
-  sg__wc.w[4429] = STRINGW("($asm ~a");
-  sg__wc.w[32856] = WORD(&sg__wc.cb[466]);
-sg__wc.cb[466].name = SYMBOL("fold--");
-  sg__wc.w[26718] = IDENT("reverse", lib);
-  sg__wc.w[24086] = IDENT("$RECEIVE", lib);
-  sg__wc.w[21278] = IDENT("scheme-error", lib);
-  sg__wc.w[32346] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[1076] = IDENT("pass2/narg-inliner", lib);
-  sg__wc.w[2140] = WORD(&sg__wc.cb[15]);
-sg__wc.cb[15].name = SYMBOL("rec");
-  sg__wc.w[1397] = IDENT("pass3/asm-mul", lib);
-  sg__wc.w[20484] = WORD(&sg__wc.cb[322]);
-sg__wc.cb[322].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[32633] = WORD(&sg__wc.cb[464]);
-sg__wc.cb[464].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[25795] = IDENT("hashtable-ref", lib);
-  sg__wc.w[2967] = IDENT("iform-copy", lib);
-  sg__wc.w[986] = IDENT("pass2/$GREF", lib);
-  sg__wc.w[52] = WORD(&sg__wc.cb[8]);
-sg__wc.cb[8].name = SYMBOL("$lref");
-  sg__wc.w[336] = SYMBOLW("syntax-case");
-  sg__wc.w[340] = SYMBOLW("syntax-case");
-  sg__wc.w[1516] = WORD(&sg__wc.cb[459]);
-sg__wc.cb[459].name = SYMBOL("inliner/-");
-  sg__wc.w[22868] = WORD(&sg__wc.cb[350]);
-sg__wc.cb[350].name = SYMBOL("inline-it");
-  sg__wc.w[20192] = WORD(&sg__wc.cb[315]);
-sg__wc.cb[315].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[17148] = WORD(&sg__wc.cb[270]);
-sg__wc.cb[270].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[33590] = IDENT("$ASM", lib);
-  sg__wc.w[21424] = SYMBOLW("pass2/$LREF");
-  sg__wc.w[20146] = IDENT("pass1/body-finish", lib);
-  sg__wc.w[19338] = IDENT("$seq", lib);
-  sg__wc.w[5400] = IDENT("length", lib);
-  sg__wc.w[1348] = IDENT("pass3/$ASM", lib);
-  sg__wc.w[1046] = IDENT("pass2/$LABEL", lib);
-  sg__wc.w[19029] = IDENT("check-toplevel", lib);
-  sg__wc.w[31] = WORD(&sg__wc.cb[3]);
-sg__wc.cb[3].name = SYMBOL("make-lvar+");
-  sg__wc.w[1028] = WORD(&sg__wc.cb[347]);
-sg__wc.cb[347].name = SYMBOL("pass2/local-call-embedder");
-  sg__wc.w[16928] = WORD(&sg__wc.cb[263]);
-sg__wc.cb[263].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[524] = IDENT("make-syntax", lib);
-  sg__wc.w[26127] = IDENT("EQ", lib);
-  sg__wc.w[1828] = IDENT("find-procedure", lib);
-  sg__wc.w[31425] = IDENT("max", lib);
-  sg__wc.w[27437] = IDENT("LET_FRAME", lib);
-  sg__wc.w[15073] = IDENT("$it", lib);
-  sg__wc.w[637] = IDENT("%insert-binding", lib);
-  sg__wc.w[9763] = IDENT("variable-name", lib);
-  sg__wc.w[5843] = STRINGW("malformed quote:");
-  sg__wc.w[35025] = IDENT("pass1", lib);
-  sg__wc.w[33979] = STRINGW("procedure requires at least one argument:");
-  sg__wc.w[34339] = STRINGW("procedure requires at least one argument:");
-  sg__wc.w[1012] = WORD(&sg__wc.cb[340]);
-sg__wc.cb[340].name = SYMBOL("pass2/remove-unused-lvars");
-  sg__wc.w[16068] = WORD(&sg__wc.cb[256]);
-sg__wc.cb[256].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[35437] = IDENT("make-eq-hashtable", lib);
-  sg__wc.w[31443] = IDENT("pass1", lib);
-  sg__wc.w[3132] = IDENT("reverse", lib);
-  sg__wc.w[3506] = IDENT("iform-copy", lib);
-  sg__wc.w[33257] = IDENT("error", lib);
-  sg__wc.w[30561] = IDENT("normal-context", lib);
-  sg__wc.w[28707] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[31648] = IDENT("$CONST", lib);
-  sg__wc.w[26496] = IDENT("make-new-label", lib);
-  sg__wc.w[22037] = IDENT("append!", lib);
-  sg__wc.w[18663] = WORD(&sg__wc.cb[299]);
-sg__wc.cb[299].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[8699] = WORD(Sg_Cons(SYMBOL("rule"), SG_NIL));
-  sg__wc.w[32217] = IDENT("$CALL", lib);
-  sg__wc.w[23905] = IDENT("*pass3-dispatch-table*", lib);
-  sg__wc.w[21692] = IDENT("pass2/rec", lib);
-  sg__wc.w[310] = SYMBOLW("define-constant");
-  sg__wc.w[314] = SYMBOLW("define-constant");
-  sg__wc.w[28] = IDENT("SMALL_LAMBDA_SIZE", lib);
-  sg__wc.w[26157] = IDENT("NUM_EQ", lib);
-  sg__wc.w[24711] = SYMBOLW("pass3/find-free");
-  sg__wc.w[22018] = IDENT("pass2/remove-unused-lvars", lib);
-  sg__wc.w[21365] = IDENT("$CONST", lib);
-  sg__wc.w[20861] = IDENT("integer?", lib);
-  sg__wc.w[18980] = IDENT("syntax-error", lib);
-  sg__wc.w[9537] = IDENT("map", lib);
-  sg__wc.w[9543] = IDENT("map", lib);
-  sg__wc.w[10243] = IDENT("syntax-error", lib);
-  sg__wc.w[1084] = IDENT("pass2/$LREF", lib);
-  sg__wc.w[18999] = IDENT("library-exported-set!", lib);
-  sg__wc.w[27355] = IDENT("append", lib);
-  sg__wc.w[18491] = WORD(&sg__wc.cb[294]);
-sg__wc.cb[294].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[777] = WORD(&sg__wc.cb[246]);
-sg__wc.cb[246].name = SYMBOL("syntax/cond");
-  sg__wc.w[21021] = IDENT("$GREF", lib);
-  sg__wc.w[3665] = IDENT("$IT", lib);
-  sg__wc.w[3312] = IDENT("$LABEL", lib);
-  sg__wc.w[597] = WORD(&sg__wc.cb[187]);
-sg__wc.cb[187].name = SYMBOL("syntax/letrec");
-  sg__wc.w[31322] = IDENT("max", lib);
-  sg__wc.w[18231] = WORD(&sg__wc.cb[287]);
-sg__wc.cb[287].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[10072] = IDENT("variable?", lib);
-  sg__wc.w[998] = IDENT("pass2/$IF", lib);
-  sg__wc.w[97] = IDENT("$IT", lib);
-  sg__wc.w[21083] = IDENT("pass1/call", lib);
-  sg__wc.w[2506] = IDENT("$RECEIVE", lib);
-  sg__wc.w[29627] = IDENT("NUM_EQ", lib);
-  sg__wc.w[19335] = IDENT("append", lib);
-  sg__wc.w[17947] = WORD(&sg__wc.cb[282]);
-sg__wc.cb[282].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[11622] = IDENT("list", lib);
-  sg__wc.w[365] = IDENT("make-syntax", lib);
-  sg__wc.w[33159] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[31825] = IDENT("$CALL", lib);
-  sg__wc.w[11339] = IDENT("pass1", lib);
-  sg__wc.w[31954] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[15257] = STRINGW("malformed and");
-  sg__wc.w[12434] = IDENT("$LET", lib);
-  sg__wc.w[4189] = STRINGW(")");
-  sg__wc.w[28458] = IDENT("stmt-context", lib);
-  sg__wc.w[23834] = IDENT("make-eq-hashtable", lib);
-  sg__wc.w[18620] = IDENT("map", lib);
-  sg__wc.w[18626] = IDENT("map", lib);
-  sg__wc.w[17474] = WORD(&sg__wc.cb[275]);
-sg__wc.cb[275].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1728] = IDENT("gen-inliner-arg2", lib);
-  sg__wc.w[28258] = IDENT("ENTER", lib);
-  sg__wc.w[1599] = SYMBOLW("*.");
-  sg__wc.w[33722] = SYMBOLW("*.");
-  sg__wc.w[1491] = WORD(&sg__wc.cb[453]);
-sg__wc.cb[453].name = SYMBOL("inliner/+.");
-  sg__wc.w[10867] = WORD(&sg__wc.cb[172]);
-sg__wc.cb[172].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[5905] = IDENT("cddr", lib);
-  sg__wc.w[28236] = IDENT("pass3/make-boxes", lib);
-  sg__wc.w[29638] = IDENT("cadr", lib);
-  sg__wc.w[25944] = IDENT("$CONST", lib);
-  sg__wc.w[16813] = IDENT("$seq", lib);
-  sg__wc.w[2741] = IDENT("$IT", lib);
-  sg__wc.w[2080] = IDENT("lvar-ref++!", lib);
-  sg__wc.w[26067] = IDENT("pass3/$IF", lib);
-  sg__wc.w[10622] = STRINGW("malformed receive");
-  sg__wc.w[11731] = WORD(&sg__wc.cb[165]);
-sg__wc.cb[165].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[20744] = IDENT("identifier?", lib);
-  sg__wc.w[2605] = IDENT("$SEQ", lib);
-  sg__wc.w[9673] = WORD(&sg__wc.cb[130]);
-sg__wc.cb[130].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[32047] = IDENT("error", lib);
-  sg__wc.w[1466] = WORD(&sg__wc.cb[447]);
-sg__wc.cb[447].name = SYMBOL("inliner/+");
-  sg__wc.w[5133] = IDENT("find-library", lib);
-  sg__wc.w[9259] = IDENT("p1env-add-name", lib);
-  sg__wc.w[11076] = WORD(&sg__wc.cb[160]);
-sg__wc.cb[160].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[892] = IDENT("make-syntax", lib);
+  sg__wc.w[5746] = IDENT("make-identifier", lib);
   sg__wc.w[2156] = IDENT("$UNDEF", lib);
-  sg__wc.w[26639] = IDENT("pass3/let", lib);
-  sg__wc.w[26253] = IDENT("$IT", lib);
-  sg__wc.w[17074] = IDENT("map", lib);
-  sg__wc.w[17080] = IDENT("map", lib);
-  sg__wc.w[9389] = WORD(&sg__wc.cb[123]);
-sg__wc.cb[123].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[1444] = WORD(&sg__wc.cb[440]);
-sg__wc.cb[440].name = SYMBOL("asm-arg1");
-  sg__wc.w[1102] = IDENT("pass2/$LABEL", lib);
-  sg__wc.w[11121] = WORD(&sg__wc.cb[155]);
-sg__wc.cb[155].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[25266] = IDENT("$LABEL", lib);
-  sg__wc.w[17841] = IDENT("import-rename", lib);
-  sg__wc.w[24219] = IDENT("$LSET", lib);
-  sg__wc.w[17656] = IDENT("id-name", lib);
-  sg__wc.w[9116] = WORD(&sg__wc.cb[116]);
-sg__wc.cb[116].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[35378] = IDENT("pass0", lib);
-  sg__wc.w[1379] = WORD(&sg__wc.cb[433]);
-sg__wc.cb[433].name = SYMBOL("pass3/asm-numeq");
-  sg__wc.w[13036] = IDENT("p1env-extend", lib);
-  sg__wc.w[28106] = IDENT("pass3/collect-free", lib);
-  sg__wc.w[19327] = IDENT("map", lib);
-  sg__wc.w[10726] = WORD(&sg__wc.cb[148]);
-sg__wc.cb[148].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[10797] = IDENT("list", lib);
-  sg__wc.w[25195] = IDENT("append", lib);
-  sg__wc.w[27054] = IDENT("ENTER", lib);
-  sg__wc.w[26305] = IDENT("pass3/branch-on-false", lib);
-  sg__wc.w[24837] = IDENT("append", lib);
-  sg__wc.w[8802] = WORD(&sg__wc.cb[109]);
-sg__wc.cb[109].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1612] = IDENT("procedure-inliner-set!", lib);
-  sg__wc.w[30183] = WORD(&sg__wc.cb[426]);
-sg__wc.cb[426].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[15260] = IDENT("syntax-error", lib);
-  sg__wc.w[504] = WORD(&sg__wc.cb[141]);
-sg__wc.cb[141].name = SYMBOL("pass1/lambda");
-  sg__wc.w[27018] = IDENT("cb-emit0!", lib);
-  sg__wc.w[22675] = IDENT("for-each", lib);
-  sg__wc.w[2952] = IDENT("$GSET", lib);
-  sg__wc.w[3994] = STRINGW("($receive ~a");
-  sg__wc.w[1726] = IDENT("NUM_LE", lib);
-  sg__wc.w[8509] = WORD(&sg__wc.cb[102]);
-sg__wc.cb[102].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1334] = WORD(&sg__wc.cb[419]);
-sg__wc.cb[419].name = SYMBOL("pass3/head-heavy-call");
-  sg__wc.w[21832] = IDENT("pass2/rec", lib);
-  sg__wc.w[26601] = IDENT("pass3/rec", lib);
-  sg__wc.w[9896] = WORD(&sg__wc.cb[134]);
-sg__wc.cb[134].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[11857] = IDENT("map", lib);
-  sg__wc.w[11863] = IDENT("map", lib);
-  sg__wc.w[8289] = WORD(&sg__wc.cb[95]);
-sg__wc.cb[95].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[1306] = WORD(&sg__wc.cb[412]);
-sg__wc.cb[412].name = SYMBOL("pass3/$RECEIVE");
-  sg__wc.w[20827] = IDENT("syntax?", lib);
-  sg__wc.w[15333] = WORD(&sg__wc.cb[237]);
-sg__wc.cb[237].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[34042] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[32890] = IDENT("fold", lib);
-  sg__wc.w[2980] = IDENT("$CONST", lib);
-  sg__wc.w[4609] = IDENT("$IF", lib);
-  sg__wc.w[254] = WORD(&sg__wc.cb[88]);
-sg__wc.cb[88].name = SYMBOL("syntax/quasiquote");
-  sg__wc.w[3171] = IDENT("iform-copy", lib);
-  sg__wc.w[1278] = WORD(&sg__wc.cb[405]);
-sg__wc.cb[405].name = SYMBOL("pass3/branch-on-arg2");
-  sg__wc.w[9866] = IDENT("reverse", lib);
-  sg__wc.w[20717] = SYMBOLW("pass1");
-  sg__wc.w[21121] = SYMBOLW("pass1");
-  sg__wc.w[21273] = SYMBOLW("pass1");
-  sg__wc.w[3528] = IDENT("$ASM", lib);
-  sg__wc.w[49] = IDENT("lvar-set++!", lib);
-  sg__wc.w[22639] = IDENT("error", lib);
-  sg__wc.w[14925] = IDENT("syntax-error", lib);
-  sg__wc.w[469] = SYMBOLW("%macroexpand");
-  sg__wc.w[473] = SYMBOLW("%macroexpand");
-  sg__wc.w[6214] = WORD(&sg__wc.cb[83]);
-sg__wc.cb[83].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[27625] = IDENT("tail-context?", lib);
-  sg__wc.w[1250] = WORD(&sg__wc.cb[398]);
-sg__wc.cb[398].name = SYMBOL("pass3/$LSET");
-  sg__wc.w[17487] = IDENT("list", lib);
-  sg__wc.w[15434] = IDENT("$seq", lib);
-  sg__wc.w[14940] = WORD(&sg__wc.cb[227]);
-sg__wc.cb[227].name = SYMBOL("rec");
-  sg__wc.w[11098] = STRINGW("malformed let:");
-  sg__wc.w[29791] = IDENT("append", lib);
-  sg__wc.w[21322] = IDENT("pass2/rec", lib);
-  sg__wc.w[18157] = IDENT("keyword?", lib);
-  sg__wc.w[4962] = STRINGW(")");
-  sg__wc.w[2204] = IDENT("$LREF", lib);
-  sg__wc.w[11722] = IDENT("$LET", lib);
-  sg__wc.w[20816] = IDENT("call-macro-expander", lib);
-  sg__wc.w[14598] = WORD(&sg__wc.cb[222]);
-sg__wc.cb[222].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[12167] = IDENT("list", lib);
-  sg__wc.w[9741] = IDENT("for-each", lib);
-  sg__wc.w[30058] = IDENT("max", lib);
-  sg__wc.w[26478] = IDENT("TEST", lib);
-  sg__wc.w[18850] = IDENT("format", lib);
-  sg__wc.w[184] = IDENT("parse-lambda-args", lib);
-  sg__wc.w[33718] = IDENT("$GREF", lib);
-  sg__wc.w[29987] = IDENT("pass3/rec", lib);
-  sg__wc.w[3454] = IDENT("$CALL", lib);
-  sg__wc.w[63] = IDENT("$CONST", lib);
-  sg__wc.w[33940] = IDENT("MULI", lib);
-  sg__wc.w[27016] = IDENT("PUSH", lib);
-  sg__wc.w[16905] = IDENT("list", lib);
-  sg__wc.w[13475] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
-  sg__wc.w[7109] = WORD(&sg__wc.cb[74]);
-sg__wc.cb[74].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[21863] = IDENT("$CONST", lib);
-  sg__wc.w[14252] = WORD(&sg__wc.cb[215]);
-sg__wc.cb[215].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[9046] = IDENT("%insert-binding", lib);
-  sg__wc.w[32096] = IDENT("fold", lib);
-  sg__wc.w[17913] = STRINGW("malformed import spec:");
-  sg__wc.w[707] = IDENT("%insert-binding", lib);
-  sg__wc.w[10638] = IDENT("parse-lambda-args", lib);
-  sg__wc.w[6869] = WORD(&sg__wc.cb[67]);
-sg__wc.cb[67].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[26515] = IDENT("cb-emit0oi!", lib);
-  sg__wc.w[26036] = IDENT("$IF", lib);
-  sg__wc.w[14116] = WORD(&sg__wc.cb[212]);
-sg__wc.cb[212].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[13080] = IDENT("p1env-add-name", lib);
-  sg__wc.w[3023] = IDENT("iform-copy", lib);
-  sg__wc.w[34423] = IDENT("$CALL", lib);
-  sg__wc.w[8807] = IDENT("map", lib);
-  sg__wc.w[8813] = IDENT("map", lib);
-  sg__wc.w[4195] = IDENT("$LREF", lib);
-  sg__wc.w[31100] = IDENT("ADDI", lib);
-  sg__wc.w[24159] = IDENT("reverse", lib);
-  sg__wc.w[645] = WORD(&sg__wc.cb[205]);
-sg__wc.cb[205].name = SYMBOL("syntax/do");
-  sg__wc.w[3469] = IDENT("iform-copy", lib);
-  sg__wc.w[30661] = IDENT("EQV", lib);
-  sg__wc.w[22994] = IDENT("pass2/rec", lib);
-  sg__wc.w[29889] = IDENT("pass3/emit-asm!", lib);
-  sg__wc.w[627] = SYMBOLW("letrec*");
-  sg__wc.w[631] = SYMBOLW("letrec*");
-  sg__wc.w[12767] = SYMBOLW("letrec*");
-  sg__wc.w[37] = IDENT("lvar?", lib);
-  sg__wc.w[21126] = IDENT("scheme-error", lib);
-  sg__wc.w[16184] = IDENT("$IF", lib);
-  sg__wc.w[13414] = WORD(&sg__wc.cb[203]);
-sg__wc.cb[203].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[453] = SYMBOLW("er-rename");
-  sg__wc.w[10697] = IDENT("pass1", lib);
-  sg__wc.w[653] = SYMBOLW("do");
-  sg__wc.w[657] = SYMBOLW("do");
-  sg__wc.w[4692] = STRINGW("($it)");
-  sg__wc.w[8190] = IDENT("p1env-add-name", lib);
-  sg__wc.w[21030] = IDENT("pass1/call", lib);
-  sg__wc.w[54] = IDENT("$lref", lib);
-  sg__wc.w[27136] = IDENT("pass3/rec", lib);
-  sg__wc.w[19643] = IDENT("caar", lib);
-  sg__wc.w[19599] = IDENT("pass1/body-finish", lib);
-  sg__wc.w[8897] = IDENT("pass1", lib);
-  sg__wc.w[8247] = STRINGW("malformed define");
-  sg__wc.w[917] = IDENT("%insert-binding", lib);
-  sg__wc.w[13061] = IDENT("pass1/body", lib);
-  sg__wc.w[10802] = IDENT("reverse", lib);
-  sg__wc.w[30801] = IDENT("max", lib);
-  sg__wc.w[12172] = IDENT("reverse", lib);
-  sg__wc.w[11150] = IDENT("variable?", lib);
-  sg__wc.w[3442] = IDENT("$seq", lib);
-  sg__wc.w[4578] = STRINGW(")");
-  sg__wc.w[30839] = IDENT("pass3/rec", lib);
-  sg__wc.w[26152] = IDENT("pass3/branch-on-arg2", lib);
-  sg__wc.w[14888] = IDENT("p1env-sans-name", lib);
-  sg__wc.w[3328] = IDENT("assq", lib);
-  sg__wc.w[958] = IDENT("pass1", lib);
-  sg__wc.w[13049] = WORD(&sg__wc.cb[194]);
-sg__wc.cb[194].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[25324] = IDENT("$LIST", lib);
-  sg__wc.w[19957] = IDENT("pass1/eval-macro-rhs", lib);
-  sg__wc.w[1633] = IDENT("find-procedure", lib);
-  sg__wc.w[16977] = STRINGW("malformed cond");
-  sg__wc.w[14754] = IDENT("p1env-sans-name", lib);
-  sg__wc.w[4259] = IDENT("$DEFINE", lib);
-  sg__wc.w[4828] = STRINGW("($list ");
-  sg__wc.w[13364] = WORD(Sg_Cons(SYMBOL("var"), Sg_Cons(SYMBOL("expr"), SG_NIL)));
-  sg__wc.w[11249] = IDENT("LEXICAL", lib);
-  sg__wc.w[1857] = IDENT("procedure-inliner-set!", lib);
-  sg__wc.w[23457] = IDENT("memq", lib);
-  sg__wc.w[26411] = IDENT("max", lib);
-  sg__wc.w[13854] = SYMBOLW("do-body");
-  sg__wc.w[29774] = IDENT("APPLY", lib);
-  sg__wc.w[26182] = IDENT("pass3/branch-on-arg2", lib);
-  sg__wc.w[21696] = IDENT("pass2/update-if", lib);
-  sg__wc.w[21395] = IDENT("$LREF", lib);
-  sg__wc.w[19923] = IDENT("p1env-extend", lib);
-  sg__wc.w[19465] = IDENT("map", lib);
-  sg__wc.w[15636] = STRINGW("malformed unless");
-  sg__wc.w[11327] = IDENT("map", lib);
-  sg__wc.w[4410] = IDENT("$ASM", lib);
-  sg__wc.w[22100] = IDENT("append", lib);
-  sg__wc.w[31412] = IDENT("cb-emit0!", lib);
-  sg__wc.w[28590] = IDENT("tail-context?", lib);
-  sg__wc.w[8224] = IDENT("p1env-add-name", lib);
-  sg__wc.w[23920] = IDENT("pass3/rec", lib);
-  sg__wc.w[27539] = IDENT("make-new-renv", lib);
-  sg__wc.w[21562] = IDENT("$IT", lib);
-  sg__wc.w[2228] = IDENT("$CONST", lib);
-  sg__wc.w[33587] = IDENT("error", lib);
-  sg__wc.w[28606] = IDENT("cb-emit0o!", lib);
-  sg__wc.w[22759] = SYMBOLW("embed");
-  sg__wc.w[28497] = SYMBOLW("embed");
-  sg__wc.w[343] = IDENT("make-syntax", lib);
-  sg__wc.w[21591] = IDENT("pass2/rec", lib);
-  sg__wc.w[3412] = IDENT("reverse", lib);
-  sg__wc.w[4463] = IDENT("display", lib);
-  sg__wc.w[491] = SYMBOLW("%macroexpand-1");
-  sg__wc.w[495] = SYMBOLW("%macroexpand-1");
-  sg__wc.w[30499] = IDENT("pass3/rec", lib);
-  sg__wc.w[4191] = IDENT("display", lib);
-  sg__wc.w[1803] = IDENT("find-procedure", lib);
-  sg__wc.w[31090] = IDENT("normal-context", lib);
-  sg__wc.w[30249] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[111] = IDENT("iform-count-size-upto", lib);
-  sg__wc.w[29350] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[19941] = IDENT("variable-name", lib);
-  sg__wc.w[30654] = IDENT("pass3/rec", lib);
-  sg__wc.w[5017] = STRINGW("variable required but got:");
-  sg__wc.w[27208] = IDENT("LEAVE", lib);
-  sg__wc.w[8617] = IDENT("pass1", lib);
-  sg__wc.w[8203] = IDENT("unwrap-syntax", lib);
-  sg__wc.w[20427] = IDENT("pass1/body-init", lib);
-  sg__wc.w[34342] = IDENT("error", lib);
-  sg__wc.w[29817] = IDENT("FRAME", lib);
-  sg__wc.w[25625] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[25444] = IDENT("PUSH", lib);
-  sg__wc.w[16409] = IDENT("$seq", lib);
-  sg__wc.w[5575] = IDENT("zero?", lib);
-  sg__wc.w[1208] = IDENT("pass3/return-refer-local", lib);
-  sg__wc.w[21441] = IDENT("lvar-ref--!", lib);
-  sg__wc.w[25042] = IDENT("$GREF", lib);
-  sg__wc.w[21769] = IDENT("$IT", lib);
-  sg__wc.w[20807] = IDENT("macro?", lib);
-  sg__wc.w[7472] = IDENT("map", lib);
-  sg__wc.w[7478] = IDENT("map", lib);
-  sg__wc.w[5394] = IDENT("reverse", lib);
-  sg__wc.w[28079] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[14879] = IDENT("$IF", lib);
-  sg__wc.w[9232] = IDENT("p1env-extend", lib);
-  sg__wc.w[17719] = IDENT("$GSET", lib);
-  sg__wc.w[16509] = IDENT("list", lib);
-  sg__wc.w[14603] = IDENT("map", lib);
-  sg__wc.w[14609] = IDENT("map", lib);
-  sg__wc.w[4170] = STRINGW("($seq");
-  sg__wc.w[3269] = IDENT("$RECEIVE", lib);
-  sg__wc.w[33009] = IDENT("$CALL", lib);
-  sg__wc.w[31347] = IDENT("normal-context", lib);
-  sg__wc.w[28493] = IDENT("pass3/local-call", lib);
-  sg__wc.w[21463] = IDENT("pass2/$LREF", lib);
-  sg__wc.w[21304] = IDENT("pass2/rec", lib);
-  sg__wc.w[21201] = IDENT("id-library", lib);
-  sg__wc.w[35306] = IDENT("pass2", lib);
-  sg__wc.w[3816] = IDENT("newline", lib);
-  sg__wc.w[33715] = IDENT("$CALL", lib);
-  sg__wc.w[32995] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[15821] = IDENT("reverse", lib);
-  sg__wc.w[23557] = IDENT("pass2/rec", lib);
-  sg__wc.w[23143] = IDENT("$LAMBDA", lib);
-  sg__wc.w[13932] = IDENT("$seq", lib);
-  sg__wc.w[24510] = IDENT("append", lib);
-  sg__wc.w[409] = IDENT("make-syntax", lib);
-  sg__wc.w[6563] = WORD(&sg__wc.cb[63]);
-sg__wc.cb[63].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1926] = WORD(&sg__wc.cb[503]);
-sg__wc.cb[503].name = SYMBOL("compile-p3");
-  sg__wc.w[31626] = IDENT("number?", lib);
-  sg__wc.w[1389] = IDENT("pass3/asm-add", lib);
-  sg__wc.w[3874] = IDENT("$CONST", lib);
-  sg__wc.w[30836] = IDENT("normal-context", lib);
-  sg__wc.w[23499] = IDENT("pass2/rec", lib);
-  sg__wc.w[20279] = STRINGW("malformed internal define-syntax");
-  sg__wc.w[795] = IDENT("%insert-binding", lib);
-  sg__wc.w[7049] = IDENT("syntax-error", lib);
-  sg__wc.w[29084] = IDENT("tail-context?", lib);
-  sg__wc.w[17603] = IDENT("syntax-error", lib);
-  sg__wc.w[15536] = IDENT("reverse", lib);
-  sg__wc.w[5784] = WORD(&sg__wc.cb[56]);
-sg__wc.cb[56].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[23852] = IDENT("hashtable-set!", lib);
-  sg__wc.w[20607] = IDENT("$CALL", lib);
-  sg__wc.w[19954] = IDENT("p1env-add-name", lib);
-  sg__wc.w[35331] = IDENT("HALT", lib);
-  sg__wc.w[34898] = WORD(&sg__wc.cb[496]);
-sg__wc.cb[496].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[17353] = IDENT("cdar", lib);
-  sg__wc.w[16379] = IDENT("reverse", lib);
-  sg__wc.w[8613] = IDENT("compile-syntax-case", lib);
-  sg__wc.w[14195] = IDENT("pass1", lib);
-  sg__wc.w[5611] = WORD(&sg__wc.cb[49]);
-sg__wc.cb[49].name = SYMBOL("loop");
-  sg__wc.w[34462] = WORD(&sg__wc.cb[489]);
-sg__wc.cb[489].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1202] = WORD(&sg__wc.cb[385]);
-sg__wc.cb[385].name = SYMBOL("pass3/symbol-lookup");
-  sg__wc.w[966] = IDENT("pass2", lib);
-  sg__wc.w[4816] = IDENT("$LIST", lib);
-  sg__wc.w[1956] = IDENT("memq", lib);
-  sg__wc.w[32227] = IDENT("ensure-identifier", lib);
-  sg__wc.w[22140] = IDENT("reverse", lib);
-  sg__wc.w[14419] = WORD(Sg_Cons(SYMBOL("expr"), SG_NIL));
-  sg__wc.w[178] = WORD(&sg__wc.cb[42]);
-sg__wc.cb[42].name = SYMBOL("formals->list");
-  sg__wc.w[1190] = WORD(&sg__wc.cb[380]);
-sg__wc.cb[380].name = SYMBOL("pass3/find-free");
-  sg__wc.w[31221] = IDENT("PUSH", lib);
-  sg__wc.w[30904] = IDENT("ADDI", lib);
-  sg__wc.w[30784] = IDENT("pass3/rec", lib);
-  sg__wc.w[1320] = IDENT("pass3/$CALL", lib);
-  sg__wc.w[23605] = SYMBOLW("stmt/bottom");
-  sg__wc.w[23622] = SYMBOLW("stmt/bottom");
-  sg__wc.w[23673] = SYMBOLW("stmt/bottom");
-  sg__wc.w[32724] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[21433] = IDENT("assertion-violation", lib);
-  sg__wc.w[6514] = SYMBOLW("vector");
-  sg__wc.w[34297] = IDENT("$ASM", lib);
-  sg__wc.w[20698] = IDENT("p1env-lookup", lib);
-  sg__wc.w[15354] = IDENT("syntax-error", lib);
-  sg__wc.w[12952] = IDENT("format", lib);
-  sg__wc.w[158] = WORD(&sg__wc.cb[37]);
-sg__wc.cb[37].name = SYMBOL("p1env-extend/name");
-  sg__wc.w[1616] = WORD(&sg__wc.cb[481]);
-sg__wc.cb[481].name = SYMBOL("inliner//");
-  sg__wc.w[1166] = WORD(&sg__wc.cb[373]);
-sg__wc.cb[373].name = SYMBOL("eq-hashtable-copy");
-  sg__wc.w[23221] = IDENT("pass2/rec", lib);
-  sg__wc.w[31357] = IDENT("PUSH", lib);
-  sg__wc.w[1316] = IDENT("pass3/$SEQ", lib);
-  sg__wc.w[26187] = IDENT("NUM_LT", lib);
-  sg__wc.w[20076] = IDENT("pass1/body-rec", lib);
-  sg__wc.w[4843] = IDENT("for-each", lib);
-  sg__wc.w[137] = WORD(&sg__wc.cb[32]);
-sg__wc.cb[32].name = SYMBOL("global-eq?");
-  sg__wc.w[1137] = WORD(&sg__wc.cb[366]);
-sg__wc.cb[366].name = SYMBOL("top-context?");
-  sg__wc.w[298] = IDENT("%insert-binding", lib);
-  sg__wc.w[33409] = WORD(&sg__wc.cb[474]);
-sg__wc.cb[474].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[29446] = IDENT("pass3/rec", lib);
-  sg__wc.w[32527] = STRINGW("procedure requires at least one argument:");
-  sg__wc.w[32930] = STRINGW("procedure requires at least one argument:");
-  sg__wc.w[29027] = IDENT("cb-emit0!", lib);
-  sg__wc.w[17635] = IDENT("$lset", lib);
-  sg__wc.w[568] = IDENT("make-syntax", lib);
-  sg__wc.w[4179] = WORD(&sg__wc.cb[25]);
-sg__wc.cb[25].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[212] = SYMBOLW("lambda");
-  sg__wc.w[517] = SYMBOLW("lambda");
-  sg__wc.w[521] = SYMBOLW("lambda");
-  sg__wc.w[11614] = IDENT("map", lib);
-  sg__wc.w[11620] = IDENT("map", lib);
-  sg__wc.w[980] = WORD(&sg__wc.cb[332]);
-sg__wc.cb[332].name = SYMBOL("pass2/$LSET");
-  sg__wc.w[16665] = IDENT("pass1", lib);
-  sg__wc.w[1117] = WORD(&sg__wc.cb[361]);
-sg__wc.cb[361].name = SYMBOL("make-new-label");
-  sg__wc.w[17790] = IDENT("pass1", lib);
-  sg__wc.w[30467] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[11421] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
-  sg__wc.w[895] = IDENT("%insert-binding", lib);
-  sg__wc.w[117] = WORD(&sg__wc.cb[18]);
-sg__wc.cb[18].name = SYMBOL("iform-copy-zip-lvs");
-  sg__wc.w[5079] = IDENT("identifier?", lib);
-  sg__wc.w[8714] = IDENT("reverse", lib);
-  sg__wc.w[11283] = IDENT("pass1/body", lib);
-  sg__wc.w[952] = WORD(&sg__wc.cb[325]);
-sg__wc.cb[325].name = SYMBOL("pass1/lookup-head");
-  sg__wc.w[3821] = IDENT("newline", lib);
-  sg__wc.w[1541] = WORD(&sg__wc.cb[465]);
-sg__wc.cb[465].name = SYMBOL("inliner/-.");
-  sg__wc.w[29210] = IDENT("cb-emit0o!", lib);
-  sg__wc.w[1096] = IDENT("pass2/$LET", lib);
-  sg__wc.w[14313] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
-  sg__wc.w[15658] = IDENT("p1env-sans-name", lib);
-  sg__wc.w[3284] = IDENT("$receive-optarg", lib);
-  sg__wc.w[85] = WORD(&sg__wc.cb[11]);
-sg__wc.cb[11].name = SYMBOL("$const-f");
-  sg__wc.w[31722] = IDENT("ADD", lib);
-  sg__wc.w[932] = WORD(&sg__wc.cb[318]);
-sg__wc.cb[318].name = SYMBOL("pass1/body-finish");
-  sg__wc.w[3034] = IDENT("iform-copy", lib);
-  sg__wc.w[32454] = WORD(&sg__wc.cb[460]);
-sg__wc.cb[460].name = SYMBOL("fold--");
-  sg__wc.w[30819] = IDENT("integer-fits-insn-arg?", lib);
-  sg__wc.w[1044] = WORD(&sg__wc.cb[353]);
-sg__wc.cb[353].name = SYMBOL("pass2/$LABEL");
-  sg__wc.w[5050] = IDENT("gloc-bound?", lib);
-  sg__wc.w[28969] = IDENT("cb-emit1!", lib);
-  sg__wc.w[20666] = IDENT("pass1", lib);
-  sg__wc.w[1487] = IDENT("procedure-inliner-set!", lib);
-  sg__wc.w[1135] = IDENT("bottom-context?", lib);
-  sg__wc.w[16] = IDENT("SYNTAX", lib);
-  sg__wc.w[43] = WORD(&sg__wc.cb[6]);
-sg__wc.cb[6].name = SYMBOL("lvar-ref--!");
-  sg__wc.w[29583] = IDENT("EQ", lib);
-  sg__wc.w[28886] = IDENT("renv-copy", lib);
-  sg__wc.w[26483] = IDENT("pass3/emit-then-else", lib);
-  sg__wc.w[920] = WORD(&sg__wc.cb[311]);
-sg__wc.cb[311].name = SYMBOL("pass1/body");
-  sg__wc.w[17977] = SYMBOLW("smatch");
-  sg__wc.w[22634] = SYMBOLW("smatch");
-  sg__wc.w[30388] = SYMBOLW("smatch");
-  sg__wc.w[32042] = SYMBOLW("smatch");
-  sg__wc.w[32434] = SYMBOLW("smatch");
-  sg__wc.w[32836] = SYMBOLW("smatch");
-  sg__wc.w[33252] = SYMBOLW("smatch");
-  sg__wc.w[33582] = SYMBOLW("smatch");
-  sg__wc.w[33929] = SYMBOLW("smatch");
-  sg__wc.w[34289] = SYMBOLW("smatch");
-  sg__wc.w[34651] = SYMBOLW("smatch");
-  sg__wc.w[17011] = WORD(&sg__wc.cb[266]);
-sg__wc.cb[266].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[3762] = IDENT("assq", lib);
-  sg__wc.w[3385] = IDENT("$SEQ", lib);
-  sg__wc.w[27057] = IDENT("cb-emit1!", lib);
-  sg__wc.w[1256] = IDENT("pass3/$GREF", lib);
-  sg__wc.w[25635] = IDENT("pass3/return-refer-free", lib);
-  sg__wc.w[5706] = IDENT("reverse", lib);
-  sg__wc.w[1583] = IDENT("find-procedure", lib);
-  sg__wc.w[30692] = IDENT("pass3/rec", lib);
-  sg__wc.w[1433] = IDENT("pass3/$IT", lib);
-  sg__wc.w[21052] = IDENT("$GREF", lib);
-  sg__wc.w[19147] = WORD(&sg__wc.cb[306]);
-sg__wc.cb[306].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[22387] = WORD(&sg__wc.cb[343]);
-sg__wc.cb[343].name = SYMBOL("loop");
-  sg__wc.w[870] = IDENT("pass1/import", lib);
-  sg__wc.w[16727] = WORD(&sg__wc.cb[259]);
-sg__wc.cb[259].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[10098] = IDENT("hashtable-ref", lib);
-  sg__wc.w[9698] = IDENT("%map-cons", lib);
-  sg__wc.w[11197] = IDENT("p1env-sans-name", lib);
-  sg__wc.w[10656] = IDENT("map", lib);
-  sg__wc.w[25437] = IDENT("pass3/compile-refer", lib);
-  sg__wc.w[431] = IDENT("make-syntax", lib);
-  sg__wc.w[26501] = IDENT("make-new-label", lib);
-  sg__wc.w[996] = WORD(&sg__wc.cb[336]);
-sg__wc.cb[336].name = SYMBOL("pass2/$IF");
-  sg__wc.w[877] = WORD(&sg__wc.cb[302]);
-sg__wc.cb[302].name = SYMBOL("syntax/import");
-  sg__wc.w[16283] = WORD(&sg__wc.cb[252]);
-sg__wc.cb[252].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[34886] = STRINGW("wrong number of arguments");
-  sg__wc.w[22754] = IDENT("lvar-ref--!", lib);
-  sg__wc.w[25102] = IDENT("$ASM", lib);
-  sg__wc.w[18615] = WORD(&sg__wc.cb[297]);
-sg__wc.cb[297].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[2889] = IDENT("$lref", lib);
-  sg__wc.w[24907] = IDENT("reverse", lib);
-  sg__wc.w[15997] = WORD(&sg__wc.cb[249]);
-sg__wc.cb[249].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[9861] = IDENT("list", lib);
-  sg__wc.w[1903] = IDENT("find-procedure", lib);
-  sg__wc.w[1765] = SYMBOLW(">");
-  sg__wc.w[20276] = IDENT("syntax-error", lib);
-  sg__wc.w[12782] = WORD(&sg__wc.cb[190]);
-sg__wc.cb[190].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[7233] = IDENT("map", lib);
-  sg__wc.w[7239] = IDENT("map", lib);
-  sg__wc.w[3884] = STRINGW("($const ~s)");
-  sg__wc.w[21061] = IDENT("pass1/call", lib);
-  sg__wc.w[25388] = SYMBOLW("pass3/find-sets");
-  sg__wc.w[21047] = IDENT("pass1/call", lib);
-  sg__wc.w[18333] = WORD(&sg__wc.cb[290]);
-sg__wc.cb[290].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[17684] = IDENT("macro?", lib);
-  sg__wc.w[15618] = WORD(&sg__wc.cb[243]);
-sg__wc.cb[243].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[12731] = WORD(Sg_Cons(SYMBOL("var"), Sg_Cons(SYMBOL("expr"), SG_NIL)));
-  sg__wc.w[10086] = IDENT("scheme-error", lib);
-  sg__wc.w[5924] = IDENT("variable-name", lib);
-  sg__wc.w[21016] = IDENT("undefined?", lib);
-  sg__wc.w[12537] = WORD(&sg__wc.cb[183]);
-sg__wc.cb[183].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[6498] = IDENT("list->vector", lib);
-  sg__wc.w[29644] = IDENT("pass3/asm-numeq", lib);
-  sg__wc.w[907] = SYMBOLW("library");
-  sg__wc.w[911] = SYMBOLW("library");
-  sg__wc.w[19259] = SYMBOLW("library");
-  sg__wc.w[18126] = WORD(&sg__wc.cb[285]);
-sg__wc.cb[285].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[11423] = IDENT("map", lib);
-  sg__wc.w[11429] = IDENT("map", lib);
-  sg__wc.w[1574] = SYMBOLW("*");
-  sg__wc.w[33377] = SYMBOLW("*");
-  sg__wc.w[29752] = IDENT("DIV", lib);
-  sg__wc.w[26360] = IDENT("pass3/emit-then-else", lib);
-  sg__wc.w[14611] = IDENT("list", lib);
-  sg__wc.w[12333] = WORD(&sg__wc.cb[180]);
-sg__wc.cb[180].name = SYMBOL("loop");
-  sg__wc.w[5188] = IDENT("unwrap-syntax", lib);
-  sg__wc.w[8434] = IDENT("make-macro-transformer", lib);
-  sg__wc.w[8915] = IDENT("syntax-error", lib);
-  sg__wc.w[9230] = IDENT("SYNTAX", lib);
-  sg__wc.w[33222] = IDENT("SUBI", lib);
-  sg__wc.w[30051] = IDENT("pass3/emit-asm!", lib);
-  sg__wc.w[1228] = IDENT("pass3/compile-assign", lib);
-  sg__wc.w[1054] = IDENT("pass2/$CALL", lib);
-  sg__wc.w[5934] = IDENT("boolean?", lib);
-  sg__wc.w[10352] = IDENT("make-lvar+", lib);
-  sg__wc.w[35385] = IDENT("pass2", lib);
-  sg__wc.w[32841] = IDENT("error", lib);
-  sg__wc.w[843] = WORD(&sg__wc.cb[278]);
-sg__wc.cb[278].name = SYMBOL("syntax/begin");
-  sg__wc.w[34731] = IDENT("$ASM", lib);
-  sg__wc.w[32079] = WORD(&sg__wc.cb[456]);
-sg__wc.cb[456].name = SYMBOL("inline");
-  sg__wc.w[6064] = IDENT("cadr", lib);
-  sg__wc.w[6453] = IDENT("cadr", lib);
-  sg__wc.w[7353] = IDENT("cadr", lib);
-  sg__wc.w[7616] = IDENT("cadr", lib);
-  sg__wc.w[21907] = IDENT("$seq", lib);
-  sg__wc.w[12154] = WORD(&sg__wc.cb[175]);
-sg__wc.cb[175].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1450] = IDENT("asm-arg2", lib);
-  sg__wc.w[27635] = IDENT("LEAVE", lib);
-  sg__wc.w[17192] = WORD(&sg__wc.cb[271]);
-sg__wc.cb[271].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[15377] = IDENT("$IF", lib);
-  sg__wc.w[11852] = WORD(&sg__wc.cb[168]);
-sg__wc.cb[168].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[17632] = IDENT("pass1", lib);
-  sg__wc.w[978] = IDENT("pass2/$LREF", lib);
-  sg__wc.w[866] = IDENT("import-library", lib);
-  sg__wc.w[12056] = IDENT("list", lib);
-  sg__wc.w[10789] = IDENT("map", lib);
-  sg__wc.w[10795] = IDENT("map", lib);
-  sg__wc.w[3891] = IDENT("format", lib);
-  sg__wc.w[29533] = IDENT("$LREF", lib);
-  sg__wc.w[22188] = IDENT("$CONST", lib);
-  sg__wc.w[19963] = IDENT("set-cdr!", lib);
-  sg__wc.w[18185] = IDENT("ensure-library", lib);
-  sg__wc.w[10952] = WORD(&sg__wc.cb[163]);
-sg__wc.cb[163].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[32364] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[22196] = IDENT("memv", lib);
-  sg__wc.w[3905] = STRINGW("($const #<undef>)");
-  sg__wc.w[35062] = IDENT("scheme-error", lib);
-  sg__wc.w[1352] = IDENT("pass3/asm-generic", lib);
-  sg__wc.w[12425] = IDENT("pass1", lib);
-  sg__wc.w[9568] = WORD(&sg__wc.cb[126]);
-sg__wc.cb[126].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[31469] = WORD(&sg__wc.cb[443]);
-sg__wc.cb[443].name = SYMBOL("gen-inliner-arg2");
-  sg__wc.w[1415] = IDENT("pass3/$CONST", lib);
-  sg__wc.w[3845] = IDENT("display", lib);
-  sg__wc.w[11360] = WORD(&sg__wc.cb[158]);
-sg__wc.cb[158].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[1850] = IDENT("ensure-library-name", lib);
-  sg__wc.w[8547] = STRINGW("malformed syntax-case");
-  sg__wc.w[9185] = WORD(&sg__wc.cb[119]);
-sg__wc.cb[119].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[31719] = IDENT("$ASM", lib);
-  sg__wc.w[1391] = WORD(&sg__wc.cb[436]);
-sg__wc.cb[436].name = SYMBOL("pass3/asm-sub");
-  sg__wc.w[4684] = IDENT("$IT", lib);
-  sg__wc.w[251] = IDENT("pass1/quasiquote", lib);
-  sg__wc.w[30795] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[29173] = IDENT("SHIFTJ", lib);
-  sg__wc.w[10822] = WORD(&sg__wc.cb[151]);
-sg__wc.cb[151].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[358] = SYMBOLW("syntax");
-  sg__wc.w[362] = SYMBOLW("syntax");
-  sg__wc.w[31304] = IDENT("pass3/rec", lib);
-  sg__wc.w[16648] = IDENT("$lref", lib);
-  sg__wc.w[12048] = IDENT("map", lib);
-  sg__wc.w[12054] = IDENT("map", lib);
-  sg__wc.w[372] = WORD(&sg__wc.cb[112]);
-sg__wc.cb[112].name = SYMBOL("syntax/define-syntax");
-  sg__wc.w[1580] = IDENT("ensure-library-name", lib);
-  sg__wc.w[30934] = IDENT("normal-context", lib);
-  sg__wc.w[1363] = WORD(&sg__wc.cb[429]);
-sg__wc.cb[429].name = SYMBOL("%pass3/builtin-nargs");
-  sg__wc.w[531] = WORD(&sg__wc.cb[144]);
-sg__wc.cb[144].name = SYMBOL("syntax/receive");
-  sg__wc.w[204] = IDENT("pass1/find-symbol-in-lvars", lib);
-  sg__wc.w[35351] = IDENT("pass0", lib);
-  sg__wc.w[33019] = IDENT("ensure-identifier", lib);
-  sg__wc.w[27696] = IDENT("renv-add-can-free2", lib);
-  sg__wc.w[20966] = IDENT("reverse", lib);
-  sg__wc.w[3101] = SYMBOLW("rec");
-  sg__wc.w[4502] = SYMBOLW("rec");
-  sg__wc.w[11303] = SYMBOLW("rec");
-  sg__wc.w[13043] = SYMBOLW("rec");
-  sg__wc.w[13993] = SYMBOLW("rec");
-  sg__wc.w[20395] = SYMBOLW("rec");
-  sg__wc.w[22598] = SYMBOLW("rec");
-  sg__wc.w[23424] = SYMBOLW("rec");
-  sg__wc.w[26623] = SYMBOLW("rec");
-  sg__wc.w[9346] = IDENT("map", lib);
-  sg__wc.w[9352] = IDENT("map", lib);
-  sg__wc.w[28435] = IDENT("pass3/rec", lib);
-  sg__wc.w[8638] = WORD(&sg__wc.cb[105]);
-sg__wc.cb[105].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[34579] = IDENT("$CONST", lib);
-  sg__wc.w[1346] = WORD(&sg__wc.cb[422]);
-sg__wc.cb[422].name = SYMBOL("pass3/$ASM");
-  sg__wc.w[9701] = IDENT("SYNTAX", lib);
-  sg__wc.w[11246] = IDENT("%map-cons", lib);
-  sg__wc.w[19660] = IDENT("pass1/body-finish", lib);
-  sg__wc.w[16394] = IDENT("pass1", lib);
-  sg__wc.w[13990] = IDENT("$LET", lib);
-  sg__wc.w[4603] = STRINGW(")");
-  sg__wc.w[461] = WORD(&sg__wc.cb[137]);
-sg__wc.cb[137].name = SYMBOL("syntax/%macroexpand");
-  sg__wc.w[33593] = IDENT("MUL", lib);
-  sg__wc.w[302] = WORD(&sg__wc.cb[98]);
-sg__wc.cb[98].name = SYMBOL("syntax/define-constant");
-  sg__wc.w[20117] = IDENT("macro?", lib);
-  sg__wc.w[17880] = SYMBOLW("for");
-  sg__wc.w[12349] = IDENT("pass1/body", lib);
-  sg__wc.w[10216] = IDENT("$CONST", lib);
-  sg__wc.w[1318] = WORD(&sg__wc.cb[415]);
-sg__wc.cb[415].name = SYMBOL("pass3/$CALL");
-  sg__wc.w[755] = WORD(&sg__wc.cb[240]);
-sg__wc.cb[240].name = SYMBOL("syntax/unless");
-  sg__wc.w[14434] = IDENT("reverse", lib);
-  sg__wc.w[2792] = STRINGW("[internal error] iform-count-size-upto: unknown iform tag:");
-  sg__wc.w[221] = IDENT("ensure-identifier", lib);
-  sg__wc.w[33232] = IDENT("$CONST", lib);
-  sg__wc.w[26943] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[5150] = IDENT("scheme-error", lib);
-  sg__wc.w[1989] = IDENT("length", lib);
-  sg__wc.w[7925] = WORD(&sg__wc.cb[91]);
-sg__wc.cb[91].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[5095] = IDENT("id-envs", lib);
-  sg__wc.w[10337] = IDENT("parse-lambda-vars", lib);
-  sg__wc.w[35366] = IDENT("make-bottom-p1env", lib);
-  sg__wc.w[1403] = IDENT("pass3/$UNDEF", lib);
-  sg__wc.w[1290] = WORD(&sg__wc.cb[408]);
-sg__wc.cb[408].name = SYMBOL("pass3/$LET");
-  sg__wc.w[24128] = IDENT("$SEQ", lib);
-  sg__wc.w[1168] = IDENT("eq-hashtable-copy", lib);
-  sg__wc.w[22332] = IDENT("SMALL_LAMBDA_SIZE", lib);
-  sg__wc.w[11612] = WORD(Sg_Cons(SYMBOL("var"), Sg_Cons(SYMBOL("expr"), SG_NIL)));
-  sg__wc.w[32779] = IDENT("SUB", lib);
-  sg__wc.w[28855] = IDENT("pass3/find-sets", lib);
-  sg__wc.w[21623] = IDENT("pass2/rec", lib);
-  sg__wc.w[21533] = IDENT("pass2/rec", lib);
-  sg__wc.w[4406] = IDENT("display", lib);
-  sg__wc.w[33549] = IDENT("$CONST", lib);
-  sg__wc.w[1112] = IDENT("pass2/$LIST", lib);
-  sg__wc.w[15055] = IDENT("$IF", lib);
-  sg__wc.w[685] = IDENT("%insert-binding", lib);
-  sg__wc.w[7512] = WORD(&sg__wc.cb[84]);
-sg__wc.cb[84].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[35010] = IDENT("VEC_SET", lib);
-  sg__wc.w[32115] = IDENT("ADDI", lib);
-  sg__wc.w[5775] = IDENT("unwrap-syntax", lib);
-  sg__wc.w[6459] = WORD(Sg_Cons(SYMBOL("vector"), SG_NIL));
-  sg__wc.w[539] = SYMBOLW("receive");
-  sg__wc.w[543] = SYMBOLW("receive");
-  sg__wc.w[1262] = WORD(&sg__wc.cb[401]);
-sg__wc.cb[401].name = SYMBOL("pass3/$CONST");
-  sg__wc.w[711] = WORD(&sg__wc.cb[230]);
-sg__wc.cb[230].name = SYMBOL("syntax/and");
-  sg__wc.w[9535] = WORD(Sg_Cons(SYMBOL("name"), Sg_Cons(SYMBOL("trans-spec"), SG_NIL)));
-  sg__wc.w[17329] = IDENT("caar", lib);
-  sg__wc.w[24873] = IDENT("append", lib);
-  sg__wc.w[5767] = IDENT("make-identifier", lib);
-  sg__wc.w[29616] = IDENT("cadr", lib);
-  sg__wc.w[1234] = WORD(&sg__wc.cb[394]);
-sg__wc.cb[394].name = SYMBOL("pass3/ensure-label");
-  sg__wc.w[23894] = IDENT("eq-hashtable-copy", lib);
-  sg__wc.w[1276] = IDENT("pass3/branch-on-arg1", lib);
-  sg__wc.w[18739] = IDENT("reverse", lib);
-  sg__wc.w[5943] = IDENT("number?", lib);
-  sg__wc.w[1807] = IDENT("procedure-inliner-set!", lib);
-  sg__wc.w[34300] = IDENT("DIV", lib);
-  sg__wc.w[7228] = WORD(&sg__wc.cb[77]);
-sg__wc.cb[77].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[13795] = IDENT("make-lvar+", lib);
-  sg__wc.w[29703] = IDENT("pass3/asm-add", lib);
-  sg__wc.w[26212] = IDENT("pass3/branch-on-arg2", lib);
-  sg__wc.w[21626] = IDENT("pass2/update-if", lib);
-  sg__wc.w[14358] = WORD(&sg__wc.cb[218]);
-sg__wc.cb[218].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[9722] = IDENT("map", lib);
-  sg__wc.w[1697] = IDENT("NUM_LT", lib);
-  sg__wc.w[27494] = IDENT("cb-emit1!", lib);
-  sg__wc.w[6888] = WORD(&sg__wc.cb[70]);
-sg__wc.cb[70].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[22167] = IDENT("zero?", lib);
-  sg__wc.w[14013] = WORD(&sg__wc.cb[213]);
-sg__wc.cb[213].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[2840] = IDENT("$DEFINE", lib);
-  sg__wc.w[5600] = IDENT("append!", lib);
-  sg__wc.w[29036] = IDENT("pass3/ensure-label", lib);
-  sg__wc.w[1034] = IDENT("pass2/local-call-inliner", lib);
-  sg__wc.w[1038] = IDENT("pass2/$LAMBDA", lib);
-  sg__wc.w[751] = IDENT("%insert-binding", lib);
-  sg__wc.w[4459] = IDENT("for-each", lib);
-  sg__wc.w[30090] = IDENT("PUSH", lib);
-  sg__wc.w[13662] = WORD(&sg__wc.cb[208]);
-sg__wc.cb[208].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[4498] = STRINGW("");
-  sg__wc.w[4354] = STRINGW("($call[~a] ");
-  sg__wc.w[30877] = IDENT("integer-fits-insn-arg?", lib);
-  sg__wc.w[30672] = IDENT("max", lib);
-  sg__wc.w[2090] = IDENT("lvar-set++!", lib);
-  sg__wc.w[24280] = IDENT("$LREF", lib);
-  sg__wc.w[20601] = IDENT("pass1", lib);
-  sg__wc.w[34294] = IDENT("error", lib);
-  sg__wc.w[675] = SYMBOLW("if");
-  sg__wc.w[679] = SYMBOLW("if");
-  sg__wc.w[34433] = IDENT("ensure-identifier", lib);
-  sg__wc.w[2935] = IDENT("$GREF", lib);
-  sg__wc.w[12827] = WORD(&sg__wc.cb[201]);
-sg__wc.cb[201].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[13054] = IDENT("map", lib);
-  sg__wc.w[31258] = IDENT("max", lib);
-  sg__wc.w[28229] = IDENT("cb-emit2i!", lib);
-  sg__wc.w[31240] = IDENT("pass3/rec", lib);
-  sg__wc.w[1304] = IDENT("pass3/$LAMBDA", lib);
-  sg__wc.w[22748] = IDENT("adjust-arglist", lib);
-  sg__wc.w[16651] = IDENT("$CALL", lib);
-  sg__wc.w[15224] = IDENT("$IF", lib);
-  sg__wc.w[9737] = IDENT("cdar", lib);
-  sg__wc.w[11693] = IDENT("map", lib);
-  sg__wc.w[26147] = IDENT("BNEQV", lib);
-  sg__wc.w[25647] = IDENT("pass3/symbol-lookup", lib);
-  sg__wc.w[9033] = IDENT("pass1/eval-macro-rhs", lib);
-  sg__wc.w[31972] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[13170] = WORD(&sg__wc.cb[197]);
-sg__wc.cb[197].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[30699] = IDENT("PUSH", lib);
-  sg__wc.w[13917] = IDENT("pass1", lib);
-  sg__wc.w[176] = IDENT("make-bottom-p1env", lib);
-  sg__wc.w[1924] = IDENT("compile-p2", lib);
-  sg__wc.w[946] = IDENT("pass1/body-1", lib);
-  sg__wc.w[4081] = IDENT("assq", lib);
-  sg__wc.w[10115] = IDENT("p1env-lookup", lib);
-  sg__wc.w[8701] = IDENT("map", lib);
-  sg__wc.w[8707] = IDENT("map", lib);
-  sg__wc.w[2240] = IDENT("$LSET", lib);
-  sg__wc.w[24444] = IDENT("reverse", lib);
-  sg__wc.w[17890] = IDENT("memq", lib);
-  sg__wc.w[20284] = IDENT("caar", lib);
-  sg__wc.w[20335] = IDENT("reverse", lib);
-  sg__wc.w[17239] = IDENT("gensym", lib);
-  sg__wc.w[20136] = IDENT("pass1/body-finish", lib);
-  sg__wc.w[18943] = IDENT("caar", lib);
-  sg__wc.w[11716] = IDENT("LEXICAL", lib);
-  sg__wc.w[368] = IDENT("%insert-binding", lib);
-  sg__wc.w[30912] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[18926] = IDENT("cadar", lib);
-  sg__wc.w[20110] = IDENT("gloc-ref", lib);
-  sg__wc.w[31058] = IDENT("$CONST", lib);
-  sg__wc.w[12955] = IDENT("syntax-error", lib);
-  sg__wc.w[30628] = IDENT("pass3/rec", lib);
-  sg__wc.w[28876] = IDENT("length", lib);
-  sg__wc.w[25920] = IDENT("CONST", lib);
-  sg__wc.w[25312] = IDENT("$UNDEF", lib);
-  sg__wc.w[31463] = IDENT("pass1", lib);
-  sg__wc.w[1425] = IDENT("pass3/$LABEL", lib);
-  sg__wc.w[27699] = IDENT("pass3/find-free", lib);
-  sg__wc.w[25217] = IDENT("reverse", lib);
-  sg__wc.w[16980] = IDENT("syntax-error", lib);
-  sg__wc.w[15068] = IDENT("pass1", lib);
-  sg__wc.w[29651] = IDENT("NUM_LT", lib);
-  sg__wc.w[25185] = IDENT("$CALL", lib);
-  sg__wc.w[24632] = IDENT("$UNDEF", lib);
-  sg__wc.w[17845] = SYMBOLW("prefix");
-  sg__wc.w[192] = IDENT("expand-inlined-procedure", lib);
-  sg__wc.w[4009] = IDENT("format", lib);
-  sg__wc.w[11436] = IDENT("reverse", lib);
-  sg__wc.w[31592] = IDENT("number?", lib);
-  sg__wc.w[31015] = IDENT("integer-fits-insn-arg?", lib);
-  sg__wc.w[19684] = IDENT("syntax?", lib);
-  sg__wc.w[5118] = IDENT("library?", lib);
   sg__wc.w[11690] = IDENT("make-lvar+", lib);
-  sg__wc.w[34309] = IDENT("pass1", lib);
-  sg__wc.w[1236] = IDENT("pass3/ensure-label", lib);
-  sg__wc.w[17701] = IDENT("$GSET", lib);
-  sg__wc.w[444] = KEYWORDW("null");
-  sg__wc.w[1478] = KEYWORDW("null");
-  sg__wc.w[1503] = KEYWORDW("null");
-  sg__wc.w[1528] = KEYWORDW("null");
-  sg__wc.w[1553] = KEYWORDW("null");
-  sg__wc.w[1578] = KEYWORDW("null");
-  sg__wc.w[1603] = KEYWORDW("null");
-  sg__wc.w[1628] = KEYWORDW("null");
-  sg__wc.w[1653] = KEYWORDW("null");
-  sg__wc.w[1682] = KEYWORDW("null");
-  sg__wc.w[1711] = KEYWORDW("null");
-  sg__wc.w[1740] = KEYWORDW("null");
-  sg__wc.w[1769] = KEYWORDW("null");
-  sg__wc.w[1798] = KEYWORDW("null");
-  sg__wc.w[1823] = KEYWORDW("null");
-  sg__wc.w[1848] = KEYWORDW("null");
-  sg__wc.w[1873] = KEYWORDW("null");
-  sg__wc.w[1898] = KEYWORDW("null");
-  sg__wc.w[1774] = IDENT("find-procedure", lib);
-  sg__wc.w[29222] = IDENT("make-new-label", lib);
-  sg__wc.w[25899] = IDENT("GSET", lib);
-  sg__wc.w[18394] = WORD(Sg_Cons(SYMBOL("etc"), SG_NIL));
-  sg__wc.w[14764] = IDENT("pass1", lib);
-  sg__wc.w[13366] = IDENT("map", lib);
-  sg__wc.w[13372] = IDENT("map", lib);
-  sg__wc.w[29661] = IDENT("memv", lib);
-  sg__wc.w[2216] = IDENT("$GREF", lib);
-  sg__wc.w[13873] = IDENT("pass1", lib);
-  sg__wc.w[20349] = IDENT("map", lib);
-  sg__wc.w[25508] = STRINGW("bug? Unknown lvar:");
-  sg__wc.w[15237] = IDENT("pass1", lib);
-  sg__wc.w[4324] = IDENT("display", lib);
-  sg__wc.w[10042] = WORD(Sg_Cons(SYMBOL("name"), Sg_Cons(SYMBOL("trans-spec"), SG_NIL)));
-  sg__wc.w[10224] = IDENT("%internal-macro-expand", lib);
-  sg__wc.w[33602] = IDENT("pass1", lib);
-  sg__wc.w[32200] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[34049] = IDENT("number?", lib);
-  sg__wc.w[30975] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[27870] = IDENT("CLOSURE", lib);
-  sg__wc.w[20268] = STRINGW("malformed internal define");
-  sg__wc.w[13769] = SYMBOLW("do-proc");
-  sg__wc.w[13829] = SYMBOLW("do-proc");
-  sg__wc.w[950] = IDENT("pass1/call", lib);
-  sg__wc.w[17693] = IDENT("call-macro-expander", lib);
-  sg__wc.w[15880] = IDENT("syntax-error", lib);
-  sg__wc.w[14228] = IDENT("p1env-sans-name", lib);
-  sg__wc.w[13831] = IDENT("p1env-extend/proc", lib);
-  sg__wc.w[35311] = IDENT("make-code-builder", lib);
-  sg__wc.w[33914] = IDENT("fold", lib);
-  sg__wc.w[2769] = IDENT("$*-arg0", lib);
-  sg__wc.w[34547] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[10405] = IDENT("%map-cons", lib);
-  sg__wc.w[6800] = WORD(&sg__wc.cb[66]);
-sg__wc.cb[66].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[20536] = IDENT("p1env-sans-name", lib);
-  sg__wc.w[615] = IDENT("%insert-binding", lib);
-  sg__wc.w[26090] = IDENT("$ASM", lib);
-  sg__wc.w[829] = SYMBOLW("set!");
-  sg__wc.w[833] = SYMBOLW("set!");
-  sg__wc.w[27865] = IDENT("cb-emit0!", lib);
-  sg__wc.w[30083] = IDENT("pass3/rec", lib);
-  sg__wc.w[29096] = IDENT("cb-emit0!", lib);
-  sg__wc.w[25645] = IDENT("pass3/return-assign-free", lib);
-  sg__wc.w[15351] = STRINGW("malformed when");
-  sg__wc.w[5871] = WORD(&sg__wc.cb[59]);
-sg__wc.cb[59].name = SYMBOL("constant?");
-  sg__wc.w[32517] = IDENT("$CONST", lib);
-  sg__wc.w[20316] = IDENT("pass1/body-rec", lib);
-  sg__wc.w[1910] = WORD(&sg__wc.cb[499]);
-sg__wc.cb[499].name = SYMBOL("integer-fits-insn-arg?");
-  sg__wc.w[1745] = IDENT("find-procedure", lib);
-  sg__wc.w[21802] = IDENT("pass2/rec", lib);
-  sg__wc.w[32108] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[29228] = IDENT("tail-context?", lib);
-  sg__wc.w[206] = WORD(&sg__wc.cb[52]);
-sg__wc.cb[52].name = SYMBOL("global-id");
-  sg__wc.w[13581] = STRINGW("malformed do");
-  sg__wc.w[34682] = WORD(&sg__wc.cb[492]);
-sg__wc.cb[492].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1214] = WORD(&sg__wc.cb[388]);
-sg__wc.cb[388].name = SYMBOL("pass3/return-refer-free");
-  sg__wc.w[5587] = IDENT("split-at", lib);
-  sg__wc.w[31032] = IDENT("normal-context", lib);
-  sg__wc.w[13009] = IDENT("make-lvar+", lib);
-  sg__wc.w[4218] = IDENT("format", lib);
-  sg__wc.w[190] = WORD(&sg__wc.cb[45]);
-sg__wc.cb[45].name = SYMBOL("expand-inlined-procedure");
-  sg__wc.w[23969] = WORD(&sg__wc.cb[381]);
-sg__wc.cb[381].name = SYMBOL("rec");
-  sg__wc.w[18724] = WORD(Sg_Cons(SYMBOL("clauses"), SG_NIL));
-  sg__wc.w[2893] = IDENT("$LSET", lib);
-  sg__wc.w[19667] = IDENT("macro?", lib);
-  sg__wc.w[1042] = IDENT("pass2/$RECEIVE", lib);
-  sg__wc.w[20854] = IDENT("procedure-inliner", lib);
-  sg__wc.w[1825] = IDENT("ensure-library-name", lib);
-  sg__wc.w[1784] = IDENT("NUM_GE", lib);
-  sg__wc.w[32788] = IDENT("$CONST", lib);
-  sg__wc.w[30937] = IDENT("pass3/rec", lib);
-  sg__wc.w[29166] = IDENT("pass3/compile-args", lib);
-  sg__wc.w[23393] = IDENT("zero?", lib);
-  sg__wc.w[34102] = WORD(&sg__wc.cb[484]);
-sg__wc.cb[484].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1174] = WORD(&sg__wc.cb[376]);
-sg__wc.cb[376].name = SYMBOL("pass3/add-sets");
-  sg__wc.w[16897] = IDENT("map", lib);
-  sg__wc.w[16903] = IDENT("map", lib);
-  sg__wc.w[34770] = IDENT("scheme-error", lib);
-  sg__wc.w[34187] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[141] = WORD(&sg__wc.cb[33]);
-sg__wc.cb[33].name = SYMBOL("ensure-library");
-  sg__wc.w[1150] = WORD(&sg__wc.cb[369]);
-sg__wc.cb[369].name = SYMBOL("make-new-renv");
-  sg__wc.w[33619] = WORD(&sg__wc.cb[477]);
-sg__wc.cb[477].name = SYMBOL("inline");
-  sg__wc.w[23982] = IDENT("uniq", lib);
-  sg__wc.w[17376] = IDENT("caar", lib);
-  sg__wc.w[1147] = IDENT("stmt-context", lib);
-  sg__wc.w[4561] = WORD(&sg__wc.cb[28]);
-sg__wc.cb[28].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[33049] = WORD(&sg__wc.cb[470]);
-sg__wc.cb[470].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1232] = IDENT("pass3/make-boxes", lib);
-  sg__wc.w[1088] = IDENT("pass2/$GREF", lib);
-  sg__wc.w[15523] = IDENT("map", lib);
-  sg__wc.w[15529] = IDENT("map", lib);
-  sg__wc.w[20095] = IDENT("id->bound-gloc", lib);
-  sg__wc.w[125] = WORD(&sg__wc.cb[21]);
-sg__wc.cb[21].name = SYMBOL("pp-iform");
-  sg__wc.w[9068] = STRINGW("malformed define-syntax");
-  sg__wc.w[25262] = IDENT("append", lib);
-  sg__wc.w[964] = WORD(&sg__wc.cb[328]);
-sg__wc.cb[328].name = SYMBOL("pass2");
-  sg__wc.w[4856] = IDENT("scheme-error", lib);
-  sg__wc.w[109] = WORD(&sg__wc.cb[14]);
-sg__wc.cb[14].name = SYMBOL("iform-count-size-upto");
-  sg__wc.w[28377] = IDENT("pass3/rec", lib);
-  sg__wc.w[940] = WORD(&sg__wc.cb[321]);
-sg__wc.cb[321].name = SYMBOL("pass1/body-rest");
-  sg__wc.w[18902] = IDENT("append", lib);
-  sg__wc.w[6015] = IDENT("cadr", lib);
-  sg__wc.w[6038] = IDENT("cadr", lib);
-  sg__wc.w[6491] = IDENT("cadr", lib);
-  sg__wc.w[32549] = WORD(&sg__wc.cb[463]);
-sg__wc.cb[463].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[26560] = IDENT("cb-label-set!", lib);
-  sg__wc.w[18072] = WORD(Sg_Cons(SYMBOL("for"), Sg_Cons(SYMBOL("only"), Sg_Cons(SYMBOL("except"), Sg_Cons(SYMBOL("rename"), Sg_Cons(SYMBOL("prefix"), SG_NIL))))));
-  sg__wc.w[16359] = IDENT("pass1", lib);
-  sg__wc.w[24984] = IDENT("memq", lib);
-  sg__wc.w[7038] = IDENT("syntax-error", lib);
-  sg__wc.w[47] = WORD(&sg__wc.cb[7]);
-sg__wc.cb[7].name = SYMBOL("lvar-set++!");
-  sg__wc.w[19725] = WORD(&sg__wc.cb[314]);
-sg__wc.cb[314].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[18726] = IDENT("map", lib);
-  sg__wc.w[18732] = IDENT("map", lib);
-  sg__wc.w[17106] = WORD(&sg__wc.cb[269]);
-sg__wc.cb[269].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[32257] = WORD(&sg__wc.cb[458]);
-sg__wc.cb[458].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[19815] = IDENT("pass1/body-rec", lib);
-  sg__wc.w[4205] = STRINGW("($lref ~a)");
-  sg__wc.w[26239] = IDENT("$CONST", lib);
-  sg__wc.w[23926] = IDENT("code-builder-finish-builder", lib);
-  sg__wc.w[22] = WORD(&sg__wc.cb[2]);
-sg__wc.cb[2].name = SYMBOL("pass0");
-  sg__wc.w[35358] = IDENT("pp-iform", lib);
-  sg__wc.w[30452] = IDENT("pass3/rec", lib);
-  sg__wc.w[22671] = WORD(&sg__wc.cb[346]);
-sg__wc.cb[346].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[19372] = WORD(&sg__wc.cb[309]);
-sg__wc.cb[309].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[2944] = IDENT("$GSET", lib);
-  sg__wc.w[15855] = WORD(&sg__wc.cb[262]);
-sg__wc.cb[262].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[16606] = IDENT("pass1", lib);
-  sg__wc.w[28699] = IDENT("LOCAL_CALL", lib);
-  sg__wc.w[27599] = IDENT("make-new-renv", lib);
-  sg__wc.w[1062] = IDENT("pass2/self-recursing?", lib);
-  sg__wc.w[1212] = IDENT("pass3/return-assign-local", lib);
-  sg__wc.w[1008] = WORD(&sg__wc.cb[339]);
-sg__wc.cb[339].name = SYMBOL("pass2/$LET");
+  sg__wc.w[1458] = IDENT("check-numeric-constant", lib);
+  sg__wc.w[29350] = IDENT("cb-emit1i!", lib);
   sg__wc.w[19037] = WORD(&sg__wc.cb[305]);
 sg__wc.cb[305].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[16496] = WORD(&sg__wc.cb[255]);
-sg__wc.cb[255].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[4812] = IDENT("display", lib);
-  sg__wc.w[20632] = IDENT("$CALL", lib);
-  sg__wc.w[19703] = IDENT("global-eq?", lib);
-  sg__wc.w[17315] = IDENT("caar", lib);
-  sg__wc.w[4436] = IDENT("insn-name", lib);
-  sg__wc.w[5961] = IDENT("string?", lib);
-  sg__wc.w[1537] = IDENT("procedure-inliner-set!", lib);
-  sg__wc.w[30963] = IDENT("pass3/rec", lib);
-  sg__wc.w[974] = IDENT("pass2/$DEFINE", lib);
-  sg__wc.w[17963] = WORD(&sg__wc.cb[298]);
-sg__wc.cb[298].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[17714] = IDENT("pass1", lib);
-  sg__wc.w[2886] = IDENT("iform-copy-lvar", lib);
-  sg__wc.w[34274] = IDENT("fold", lib);
-  sg__wc.w[29201] = IDENT("JUMP", lib);
-  sg__wc.w[1106] = IDENT("pass2/$CALL", lib);
-  sg__wc.w[18404] = IDENT("list", lib);
-  sg__wc.w[8400] = IDENT("pass1/define", lib);
-  sg__wc.w[18455] = WORD(&sg__wc.cb[293]);
-sg__wc.cb[293].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[17867] = IDENT("syntax-error", lib);
-  sg__wc.w[15803] = WORD(&sg__wc.cb[245]);
-sg__wc.cb[245].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[20562] = IDENT("pass1/body-1", lib);
-  sg__wc.w[1216] = IDENT("pass3/return-refer-free", lib);
-  sg__wc.w[12728] = WORD(&sg__wc.cb[186]);
-sg__wc.cb[186].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[12075] = IDENT("pass1/body", lib);
-  sg__wc.w[4328] = IDENT("$CALL", lib);
-  sg__wc.w[27567] = IDENT("cb-emit1!", lib);
-  sg__wc.w[23794] = IDENT("append", lib);
-  sg__wc.w[954] = IDENT("pass1/lookup-head", lib);
-  sg__wc.w[18149] = WORD(&sg__wc.cb[286]);
-sg__wc.cb[286].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[34053] = IDENT("$CONST", lib);
-  sg__wc.w[32906] = IDENT("$ASM", lib);
-  sg__wc.w[20919] = IDENT("variable-name", lib);
-  sg__wc.w[20] = IDENT("PATTERN", lib);
-  sg__wc.w[25390] = STRINGW("unknown iform:");
-  sg__wc.w[180] = IDENT("formals->list", lib);
-  sg__wc.w[1608] = IDENT("find-procedure", lib);
-  sg__wc.w[325] = IDENT("pass1/eval-macro-rhs", lib);
-  sg__wc.w[4232] = STRINGW("($gref ~a)");
-  sg__wc.w[17926] = WORD(&sg__wc.cb[281]);
-sg__wc.cb[281].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[35320] = IDENT("make-eq-hashtable", lib);
-  sg__wc.w[28833] = IDENT("pass3/find-free", lib);
-  sg__wc.w[4514] = IDENT("format", lib);
-  sg__wc.w[19286] = IDENT("pass1/import", lib);
-  sg__wc.w[12229] = WORD(&sg__wc.cb[178]);
-sg__wc.cb[178].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[28205] = IDENT("pass3/rec", lib);
-  sg__wc.w[20413] = IDENT("map", lib);
-  sg__wc.w[17416] = WORD(&sg__wc.cb[274]);
-sg__wc.cb[274].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[14218] = STRINGW("bad update expr in do");
-  sg__wc.w[7906] = IDENT("check-toplevel", lib);
-  sg__wc.w[27143] = IDENT("LSET", lib);
-  sg__wc.w[23540] = IDENT("reverse", lib);
-  sg__wc.w[13865] = IDENT("$IF", lib);
-  sg__wc.w[26544] = IDENT("$IT", lib);
-  sg__wc.w[12043] = WORD(&sg__wc.cb[171]);
-sg__wc.cb[171].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[3633] = IDENT("reverse", lib);
-  sg__wc.w[31828] = IDENT("$GREF", lib);
-  sg__wc.w[12061] = IDENT("reverse", lib);
-  sg__wc.w[5029] = IDENT("id-library", lib);
-  sg__wc.w[7899] = IDENT("syntax-error", lib);
-  sg__wc.w[34402] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[17831] = SYMBOLW("rename");
-  sg__wc.w[18870] = SYMBOLW("rename");
-  sg__wc.w[13490] = IDENT("reverse", lib);
-  sg__wc.w[1533] = IDENT("find-procedure", lib);
-  sg__wc.w[31764] = WORD(&sg__wc.cb[451]);
-sg__wc.cb[451].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[29535] = IDENT("$CONST", lib);
-  sg__wc.w[25864] = IDENT("cb-emit0oi!", lib);
-  sg__wc.w[24330] = IDENT("$GSET", lib);
-  sg__wc.w[23482] = IDENT("reverse", lib);
-  sg__wc.w[23027] = IDENT("pass2/rec", lib);
-  sg__wc.w[30730] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[26122] = IDENT("pass3/branch-on-arg1", lib);
-  sg__wc.w[19592] = IDENT("assq", lib);
-  sg__wc.w[2865] = IDENT("iform-copy", lib);
-  sg__wc.w[9717] = WORD(&sg__wc.cb[129]);
-sg__wc.cb[129].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[29207] = IDENT("pass3/ensure-label", lib);
-  sg__wc.w[1460] = WORD(&sg__wc.cb[446]);
-sg__wc.cb[446].name = SYMBOL("ensure-inexact-const");
-  sg__wc.w[21156] = IDENT("variable?", lib);
-  sg__wc.w[17876] = IDENT("import-rename", lib);
-  sg__wc.w[11418] = WORD(&sg__wc.cb[159]);
-sg__wc.cb[159].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[35187] = IDENT("$ASM", lib);
-  sg__wc.w[1292] = IDENT("pass3/$LET", lib);
-  sg__wc.w[6127] = SYMBOLW("cons");
-  sg__wc.w[27802] = IDENT("length", lib);
-  sg__wc.w[26420] = IDENT("cb-emit0!", lib);
-  sg__wc.w[9132] = WORD(&sg__wc.cb[122]);
-sg__wc.cb[122].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[1440] = WORD(&sg__wc.cb[439]);
-sg__wc.cb[439].name = SYMBOL("pass3/compile-args");
-  sg__wc.w[13188] = IDENT("reverse", lib);
-  sg__wc.w[412] = IDENT("%insert-binding", lib);
-  sg__wc.w[41] = IDENT("lvar-ref++!", lib);
-  sg__wc.w[11060] = WORD(&sg__wc.cb[154]);
-sg__wc.cb[154].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[29769] = IDENT("pass3/asm-div", lib);
-  sg__wc.w[21491] = IDENT("pass2/rec", lib);
-  sg__wc.w[5020] = IDENT("scheme-error", lib);
-  sg__wc.w[9080] = WORD(&sg__wc.cb[115]);
-sg__wc.cb[115].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[9728] = IDENT("set-cdr!", lib);
-  sg__wc.w[1375] = WORD(&sg__wc.cb[432]);
-sg__wc.cb[432].name = SYMBOL("pass3/asm-eqv");
-  sg__wc.w[4271] = STRINGW("($define ~a ~a");
-  sg__wc.w[31211] = IDENT("normal-context", lib);
-  sg__wc.w[19826] = IDENT("global-eq?", lib);
-  sg__wc.w[13824] = IDENT("%map-cons", lib);
-  sg__wc.w[590] = IDENT("make-syntax", lib);
-  sg__wc.w[10600] = WORD(&sg__wc.cb[147]);
-sg__wc.cb[147].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[3379] = IDENT("iform-copy", lib);
-  sg__wc.w[31653] = IDENT("inexact", lib);
-  sg__wc.w[8744] = WORD(&sg__wc.cb[108]);
-sg__wc.cb[108].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[30125] = WORD(&sg__wc.cb[425]);
-sg__wc.cb[425].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[10252] = WORD(&sg__wc.cb[140]);
-sg__wc.cb[140].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[4619] = STRINGW("($if ");
-  sg__wc.w[8446] = WORD(&sg__wc.cb[101]);
-sg__wc.cb[101].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[31567] = IDENT("asm-arg2", lib);
-  sg__wc.w[1330] = WORD(&sg__wc.cb[418]);
-sg__wc.cb[418].name = SYMBOL("pass3/jump-call");
-  sg__wc.w[28202] = IDENT("normal-context", lib);
-  sg__wc.w[31611] = IDENT("$CONST", lib);
-  sg__wc.w[27557] = IDENT("tail-context?", lib);
-  sg__wc.w[20981] = IDENT("pass1", lib);
-  sg__wc.w[9620] = WORD(&sg__wc.cb[133]);
-sg__wc.cb[133].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[5970] = IDENT("bytevector?", lib);
-  sg__wc.w[5147] = IDENT("format", lib);
-  sg__wc.w[1530] = IDENT("ensure-library-name", lib);
-  sg__wc.w[26932] = IDENT("LET_FRAME", lib);
-  sg__wc.w[22192] = IDENT("$LAMBDA", lib);
-  sg__wc.w[1875] = IDENT("ensure-library-name", lib);
-  sg__wc.w[34745] = IDENT("$CONST", lib);
-  sg__wc.w[8032] = WORD(&sg__wc.cb[94]);
-sg__wc.cb[94].name = SYMBOL("loop#(sagittarius compiler)");
-  sg__wc.w[1302] = WORD(&sg__wc.cb[411]);
-sg__wc.cb[411].name = SYMBOL("pass3/$LAMBDA");
+  sg__wc.w[1794] = SYMBOLW(">=");
   sg__wc.w[15317] = WORD(&sg__wc.cb[236]);
 sg__wc.cb[236].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[33837] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[1421] = IDENT("pass3/$LAMBDA", lib);
-  sg__wc.w[561] = SYMBOLW("let");
-  sg__wc.w[565] = SYMBOLW("let");
-  sg__wc.w[3093] = SYMBOLW("let");
-  sg__wc.w[4493] = SYMBOLW("let");
-  sg__wc.w[5519] = SYMBOLW("let");
-  sg__wc.w[11725] = SYMBOLW("let");
-  sg__wc.w[12437] = SYMBOLW("let");
-  sg__wc.w[16632] = SYMBOLW("let");
-  sg__wc.w[17284] = SYMBOLW("let");
-  sg__wc.w[7783] = WORD(&sg__wc.cb[87]);
-sg__wc.cb[87].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[31141] = IDENT("PUSH", lib);
-  sg__wc.w[28061] = IDENT("length", lib);
-  sg__wc.w[1274] = WORD(&sg__wc.cb[404]);
-sg__wc.cb[404].name = SYMBOL("pass3/branch-on-arg1");
-  sg__wc.w[22709] = SYMBOLW("local");
-  sg__wc.w[23452] = SYMBOLW("local");
-  sg__wc.w[28484] = SYMBOLW("local");
-  sg__wc.w[4710] = STRINGW("($lset ~a");
-  sg__wc.w[26573] = IDENT("cb-emit0o!", lib);
-  sg__wc.w[26418] = IDENT("PUSH", lib);
-  sg__wc.w[20935] = IDENT("$ASM", lib);
-  sg__wc.w[22128] = IDENT("reverse", lib);
-  sg__wc.w[20925] = IDENT("procedure-reqargs", lib);
-  sg__wc.w[2909] = IDENT("iform-copy-lvar", lib);
-  sg__wc.w[7467] = WORD(&sg__wc.cb[82]);
-sg__wc.cb[82].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1932] = IDENT("init-compiler", lib);
+  sg__wc.w[22196] = IDENT("memv", lib);
+  sg__wc.w[21609] = IDENT("$IF", lib);
+  sg__wc.w[19465] = IDENT("map", lib);
+  sg__wc.w[6888] = WORD(&sg__wc.cb[70]);
+sg__wc.cb[70].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[21869] = IDENT("memv", lib);
+  sg__wc.w[15189] = WORD(&sg__wc.cb[233]);
+sg__wc.cb[233].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[13173] = WORD(Sg_Cons(SYMBOL("body"), SG_NIL));
+  sg__wc.w[32806] = IDENT("SUB", lib);
+  sg__wc.w[16766] = IDENT("syntax-error", lib);
   sg__wc.w[1332] = IDENT("pass3/jump-call", lib);
-  sg__wc.w[1324] = IDENT("pass3/local-call", lib);
-  sg__wc.w[1246] = WORD(&sg__wc.cb[397]);
-sg__wc.cb[397].name = SYMBOL("pass3/$LREF");
-  sg__wc.w[21998] = IDENT("pass2/rec", lib);
-  sg__wc.w[689] = WORD(&sg__wc.cb[226]);
-sg__wc.cb[226].name = SYMBOL("syntax/or");
-  sg__wc.w[32743] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[25397] = IDENT("scheme-error", lib);
-  sg__wc.w[25023] = IDENT("$GSET", lib);
-  sg__wc.w[874] = IDENT("pass1/export", lib);
-  sg__wc.w[5070] = IDENT("LEXICAL", lib);
-  sg__wc.w[33949] = IDENT("pass1", lib);
-  sg__wc.w[27080] = IDENT("make-new-renv", lib);
+  sg__wc.w[18491] = WORD(&sg__wc.cb[294]);
+sg__wc.cb[294].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[9230] = IDENT("SYNTAX", lib);
+  sg__wc.w[14969] = WORD(&sg__wc.cb[228]);
+sg__wc.cb[228].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[6563] = WORD(&sg__wc.cb[63]);
+sg__wc.cb[63].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[2870] = IDENT("$LREF", lib);
+  sg__wc.w[9259] = IDENT("p1env-add-name", lib);
+  sg__wc.w[9211] = IDENT("map", lib);
+  sg__wc.w[18231] = WORD(&sg__wc.cb[287]);
+sg__wc.cb[287].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[20696] = IDENT("SYNTAX", lib);
+  sg__wc.w[16611] = SYMBOLW("tmp");
+  sg__wc.w[15708] = IDENT("pass1", lib);
+  sg__wc.w[741] = SYMBOLW("when");
+  sg__wc.w[745] = SYMBOLW("when");
+  sg__wc.w[5784] = WORD(&sg__wc.cb[56]);
+sg__wc.cb[56].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[26197] = IDENT("pass3/branch-on-arg2", lib);
   sg__wc.w[14464] = WORD(&sg__wc.cb[221]);
 sg__wc.cb[221].name = SYMBOL("match-tail#(sagittarius compiler)");
-  sg__wc.w[26207] = IDENT("BNGE", lib);
-  sg__wc.w[17336] = SYMBOLW("eqv?");
-  sg__wc.w[2570] = IDENT("$LABEL", lib);
-  sg__wc.w[19011] = IDENT("pass1/import", lib);
-  sg__wc.w[6682] = WORD(&sg__wc.cb[73]);
-sg__wc.cb[73].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1508] = IDENT("find-procedure", lib);
-  sg__wc.w[30804] = IDENT("$CONST", lib);
-  sg__wc.w[25593] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[13175] = IDENT("map", lib);
-  sg__wc.w[13181] = IDENT("map", lib);
-  sg__wc.w[18396] = IDENT("map", lib);
-  sg__wc.w[18402] = IDENT("map", lib);
-  sg__wc.w[26345] = IDENT("pass3/rec", lib);
-  sg__wc.w[26177] = IDENT("BNLE", lib);
-  sg__wc.w[14036] = WORD(&sg__wc.cb[211]);
-sg__wc.cb[211].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[31703] = IDENT("fold", lib);
-  sg__wc.w[4621] = IDENT("display", lib);
-  sg__wc.w[23943] = IDENT("memq", lib);
-  sg__wc.w[17128] = STRINGW("at least one clause is required for case");
-  sg__wc.w[27352] = IDENT("pass3/find-free", lib);
-  sg__wc.w[24585] = IDENT("$LABEL", lib);
-  sg__wc.w[24413] = IDENT("$ASM", lib);
-  sg__wc.w[13472] = WORD(&sg__wc.cb[204]);
-sg__wc.cb[204].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[4847] = SYMBOLW("pp-iform");
-  sg__wc.w[1555] = IDENT("ensure-library-name", lib);
-  sg__wc.w[8912] = STRINGW("malformed syntax: expected exactly one datum");
-  sg__wc.w[27637] = IDENT("cb-emit0!", lib);
-  sg__wc.w[25609] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[17087] = IDENT("reverse", lib);
-  sg__wc.w[27564] = IDENT("POP_LET_FRAME", lib);
-  sg__wc.w[34418] = IDENT("/.", lib);
-  sg__wc.w[32909] = IDENT("SUBI", lib);
-  sg__wc.w[1340] = IDENT("pass3/normal-call", lib);
-  sg__wc.w[28931] = IDENT("pass3/collect-free", lib);
-  sg__wc.w[27717] = IDENT("pass3/find-sets", lib);
-  sg__wc.w[1240] = IDENT("pass3/$UNDEF", lib);
-  sg__wc.w[18918] = IDENT("caar", lib);
-  sg__wc.w[28190] = IDENT("hashtable-keys", lib);
-  sg__wc.w[23757] = IDENT("append", lib);
-  sg__wc.w[29073] = IDENT("make-new-renv", lib);
-  sg__wc.w[4053] = STRINGW(")");
-  sg__wc.w[27374] = IDENT("pass3/find-sets", lib);
-  sg__wc.w[15662] = IDENT("$IF", lib);
-  sg__wc.w[1026] = IDENT("pass2/local-call-optimizer", lib);
+  sg__wc.w[6514] = SYMBOLW("vector");
+  sg__wc.w[4930] = STRINGW("(~a ");
+  sg__wc.w[24984] = IDENT("memq", lib);
+  sg__wc.w[1580] = IDENT("ensure-library-name", lib);
+  sg__wc.w[30766] = IDENT("cb-emit0!", lib);
+  sg__wc.w[26469] = IDENT("normal-context", lib);
+  sg__wc.w[966] = IDENT("pass2", lib);
+  sg__wc.w[868] = WORD(&sg__wc.cb[280]);
+sg__wc.cb[280].name = SYMBOL("pass1/import");
+  sg__wc.w[10352] = IDENT("make-lvar+", lib);
+  sg__wc.w[31412] = IDENT("cb-emit0!", lib);
+  sg__wc.w[18734] = IDENT("list", lib);
+  sg__wc.w[13733] = WORD(&sg__wc.cb[214]);
+sg__wc.cb[214].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[12159] = IDENT("map", lib);
+  sg__wc.w[12165] = IDENT("map", lib);
+  sg__wc.w[5611] = WORD(&sg__wc.cb[49]);
+sg__wc.cb[49].name = SYMBOL("loop");
+  sg__wc.w[1483] = IDENT("find-procedure", lib);
+  sg__wc.w[16509] = IDENT("list", lib);
+  sg__wc.w[1381] = IDENT("pass3/asm-numeq", lib);
+  sg__wc.w[1228] = IDENT("pass3/compile-assign", lib);
+  sg__wc.w[21957] = IDENT("reverse", lib);
+  sg__wc.w[17208] = WORD(&sg__wc.cb[273]);
+sg__wc.cb[273].name = SYMBOL("loop#(sagittarius compiler)");
+  sg__wc.w[13902] = IDENT("reverse", lib);
+  sg__wc.w[8416] = IDENT("make-toplevel-closure", lib);
+  sg__wc.w[13547] = WORD(&sg__wc.cb[207]);
+sg__wc.cb[207].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[34049] = IDENT("number?", lib);
+  sg__wc.w[21974] = IDENT("pass2/rec", lib);
+  sg__wc.w[4946] = IDENT("display", lib);
+  sg__wc.w[874] = IDENT("pass1/export", lib);
+  sg__wc.w[17591] = IDENT("variable?", lib);
+  sg__wc.w[17106] = WORD(&sg__wc.cb[269]);
+sg__wc.cb[269].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[13361] = WORD(&sg__wc.cb[200]);
+sg__wc.cb[200].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[5564] = IDENT("length", lib);
+  sg__wc.w[5706] = IDENT("reverse", lib);
+  sg__wc.w[15065] = IDENT("p1env-sans-name", lib);
+  sg__wc.w[27577] = IDENT("cb-emit1!", lib);
+  sg__wc.w[20153] = SYMBOLW("pass1/body");
+  sg__wc.w[19029] = IDENT("check-toplevel", lib);
+  sg__wc.w[15855] = WORD(&sg__wc.cb[262]);
+sg__wc.cb[262].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[9346] = IDENT("map", lib);
+  sg__wc.w[9352] = IDENT("map", lib);
+  sg__wc.w[29017] = IDENT("ENTER", lib);
+  sg__wc.w[982] = IDENT("pass2/$LSET", lib);
+  sg__wc.w[914] = IDENT("make-syntax", lib);
+  sg__wc.w[28302] = IDENT("pass3/rec", lib);
+  sg__wc.w[27618] = IDENT("pass3/rec", lib);
+  sg__wc.w[23191] = IDENT("pass2/head-lref", lib);
+  sg__wc.w[17082] = IDENT("list", lib);
   sg__wc.w[12973] = WORD(&sg__wc.cb[193]);
 sg__wc.cb[193].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[308] = WORD(Sg_Cons(SYMBOL("sagittarius"), SG_NIL));
-  sg__wc.w[467] = WORD(Sg_Cons(SYMBOL("sagittarius"), SG_NIL));
-  sg__wc.w[489] = WORD(Sg_Cons(SYMBOL("sagittarius"), SG_NIL));
-  sg__wc.w[537] = WORD(Sg_Cons(SYMBOL("sagittarius"), SG_NIL));
-  sg__wc.w[1474] = SYMBOLW("+");
-  sg__wc.w[31832] = SYMBOLW("+");
-  sg__wc.w[31316] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[5917] = IDENT("variable?", lib);
-  sg__wc.w[35183] = IDENT("CONS", lib);
-  sg__wc.w[29131] = IDENT("length", lib);
-  sg__wc.w[164] = IDENT("p1env-extend/proc", lib);
-  sg__wc.w[1143] = IDENT("normal-context", lib);
-  sg__wc.w[17332] = IDENT("length", lib);
-  sg__wc.w[17755] = IDENT("syntax-error", lib);
-  sg__wc.w[8815] = IDENT("list", lib);
-  sg__wc.w[32902] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[28892] = IDENT("LET_FRAME", lib);
-  sg__wc.w[20820] = IDENT("pass1", lib);
-  sg__wc.w[31807] = IDENT("check-numeric-constant", lib);
-  sg__wc.w[27044] = IDENT("POP_LET_FRAME", lib);
-  sg__wc.w[31050] = IDENT("cb-emit1i!", lib);
-  sg__wc.w[15669] = IDENT("pass1", lib);
-  sg__wc.w[8250] = IDENT("syntax-error", lib);
-  sg__wc.w[131] = IDENT("variable-name", lib);
-  sg__wc.w[1429] = IDENT("pass3/$CALL", lib);
-  sg__wc.w[12422] = IDENT("p1env-add-name", lib);
-  sg__wc.w[21038] = IDENT("$GREF", lib);
-  sg__wc.w[27477] = IDENT("pass3/collect-free", lib);
-  sg__wc.w[27976] = IDENT("renv-add-can-free2", lib);
-  sg__wc.w[583] = SYMBOLW("let*");
-  sg__wc.w[587] = SYMBOLW("let*");
-  sg__wc.w[5432] = IDENT("reverse", lib);
-  sg__wc.w[34063] = IDENT("$CALL", lib);
-  sg__wc.w[19693] = IDENT("pass1/body-finish", lib);
-  sg__wc.w[1916] = IDENT("compile", lib);
-  sg__wc.w[1082] = IDENT("pass2/$DEFINE", lib);
-  sg__wc.w[19638] = STRINGW("proper list required for function application or macro use");
-  sg__wc.w[30718] = IDENT("pass3/rec", lib);
-  sg__wc.w[1115] = IDENT("*pass2-dispatch-table*", lib);
-  sg__wc.w[33934] = IDENT("error", lib);
-  sg__wc.w[28196] = IDENT("make-new-renv", lib);
-  sg__wc.w[24195] = IDENT("$LAMBDA", lib);
-  sg__wc.w[19330] = IDENT("$UNDEF", lib);
-  sg__wc.w[5629] = IDENT("reverse", lib);
-  sg__wc.w[20407] = IDENT("cdr", lib);
-  sg__wc.w[3953] = IDENT("format", lib);
-  sg__wc.w[1716] = IDENT("find-procedure", lib);
-  sg__wc.w[9030] = IDENT("p1env-add-name", lib);
-  sg__wc.w[26403] = IDENT("normal-context", lib);
-  sg__wc.w[1074] = IDENT("pass2/narg-inliner", lib);
-  sg__wc.w[10157] = IDENT("hashtable-set!", lib);
-  sg__wc.w[10625] = IDENT("syntax-error", lib);
-  sg__wc.w[31285] = IDENT("PUSH", lib);
-  sg__wc.w[1869] = SYMBOLW("vector-set!");
-  sg__wc.w[35057] = SYMBOLW("vector-set!");
-  sg__wc.w[20734] = IDENT("pass1/lookup-head", lib);
-  sg__wc.w[19435] = IDENT("map", lib);
-  sg__wc.w[19441] = IDENT("map", lib);
-  sg__wc.w[18957] = STRINGW("malformed rename clause in export spec");
-  sg__wc.w[29964] = IDENT("cb-emit0!", lib);
-  sg__wc.w[26137] = IDENT("pass3/branch-on-arg2", lib);
-  sg__wc.w[35388] = IDENT("pp-iform", lib);
-  sg__wc.w[28762] = IDENT("length", lib);
-  sg__wc.w[4248] = IDENT("id-name", lib);
-  sg__wc.w[4292] = IDENT("id-name", lib);
-  sg__wc.w[4780] = IDENT("id-name", lib);
-  sg__wc.w[1454] = IDENT("gen-inliner-arg2", lib);
-  sg__wc.w[23712] = IDENT("append", lib);
-  sg__wc.w[23574] = IDENT("$LABEL", lib);
-  sg__wc.w[23348] = IDENT("pass2/rec", lib);
-  sg__wc.w[1336] = IDENT("pass3/head-heavy-call", lib);
-  sg__wc.w[28719] = IDENT("cb-label-set!", lib);
-  sg__wc.w[14922] = STRINGW("malformed if");
-  sg__wc.w[2790] = SYMBOLW("iform-count-size-upto");
-  sg__wc.w[26432] = IDENT("cadr", lib);
-  sg__wc.w[20841] = IDENT("inline?", lib);
-  sg__wc.w[24082] = IDENT("append", lib);
-  sg__wc.w[10408] = IDENT("LEXICAL", lib);
-  sg__wc.w[24302] = IDENT("memq", lib);
-  sg__wc.w[10322] = STRINGW("malformed %macroexpand");
-  sg__wc.w[32922] = IDENT("ensure-inexact-const", lib);
-  sg__wc.w[26167] = IDENT("pass3/branch-on-arg2", lib);
-  sg__wc.w[476] = IDENT("make-syntax", lib);
-  sg__wc.w[4443] = IDENT("format", lib);
-  sg__wc.w[20708] = IDENT("list?", lib);
-  sg__wc.w[20300] = IDENT("call-macro-expander", lib);
-  sg__wc.w[88] = IDENT("$const-f", lib);
-  sg__wc.w[4322] = STRINGW(")");
-  sg__wc.w[6170] = WORD(&sg__wc.cb[62]);
-sg__wc.cb[62].name = SG_MAKE_BOOL(FALSE);
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(sagittarius compiler procedure)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(sagittarius compiler util)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(sagittarius vm debug)")));

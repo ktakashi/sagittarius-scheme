@@ -259,21 +259,18 @@ CASE(LSET) {
 ;; uncatchable exception. If I can find a nice way to handle compile time
 ;; exception, this might be fixed.
 (define-inst DIV (0 0 #t)
-  #;(when (and (SG_VM_IS_SET_FLAG vm SG_R6RS_MODE)
+  (let ((exact (and (Sg_ExactP (INDEX (SP vm) 0))
+		    (Sg_ExactP (AC vm)))))
+  (when (and exact
+	     (SG_VM_IS_SET_FLAG vm SG_R6RS_MODE)
 	     (Sg_ZeroP (AC vm)))
     (assertion-violation '/
 			 "undefined for 0"
 			 (SG_LIST2 (INDEX (SP vm) 0) (AC vm))))
-  (BUILTIN_TWO_ARGS vm Sg_Div))
+  (BUILTIN_TWO_ARGS vm Sg_Div)))
 
 (define-inst DIVI (1 0 #t)
   (INSN_VAL1 val1 c)
-  #;(when (and (SG_VM_IS_SET_FLAG vm SG_R6RS_MODE)
-	     (or (== 0 val1)
-		 (== 0.0 val1))) ;; i don't think we need the one below but just in case.
-    (assertion-violation '/
-			 "undefined for 0"
-			 (SG_LIST2 (AC vm) (SG_MAKE_INT 0))))
   (BUILTIN_ONE_ARG_WITH_INSN_VALUE vm Sg_Div c))
 
 #|

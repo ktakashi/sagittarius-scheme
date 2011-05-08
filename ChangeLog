@@ -1,3 +1,7 @@
+2011-05-07    <ktakashi@ymail.com>
+
+	* src/null.stub (rnrs base): fixed '/' error.
+
 2011-05-06  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/exceptions.c (rnrs conditions): added missing condition and fixed

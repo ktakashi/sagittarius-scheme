@@ -3889,7 +3889,7 @@
             (yval ytree)
             (check-numeric-constant y cenv)
             (if
-             (and xval yval)
+             (and xval yval (not (vm-r6rs-mode?)))
              (if
               (null? more)
               ($const (,op xval yval))

@@ -36,7 +36,7 @@
 	    cb-label-set! cb-emit-closure! code-builder-finish-builder
 
 	    ;; misc
-	    %map-cons
+	    vm-r6rs-mode? %map-cons
 	    p1env-lookup p1env-toplevel? p1env-pvar-lookup
 	    pass3/let-frame-size pass3/frame-size
 	    print-stack-frames
@@ -242,6 +242,9 @@
     (result (Sg_CodeBuilderFinishBuilder cb last)))
 
   ;; misc
+  (define-c-proc vm-r6rs-mode? () ::boolean
+    (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_R6RS_MODE)))
+
   ;; (%map-cons l1 l2) = (map cons l1 l2)
   (define-c-proc %map-cons (l1 l2) ::Object
     (let ((h SG_NIL) (t SG_NIL))

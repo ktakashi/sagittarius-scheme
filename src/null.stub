@@ -562,65 +562,96 @@
 
 
   ;; arithmetic
+  (define-cgen-stmt check-number
+    ((_ name v)
+     (dispatch
+      `(unless (SG_NUMBERP ,v)
+	 (wrong-type-of-argument-violation ',name
+					   "number"
+					   ,v)))))
+
   (define-c-proc + (:rest rest) ::Object
     (cond ((not (SG_PAIRP rest)) (result (SG_MAKE_INT 0)))
 	  ((not (SG_NUMBERP (SG_CAR rest)))
 	   (wrong-type-of-argument-violation '+ "number" (SG_CAR rest) rest)
 	   (result SG_UNDEF))		; dummy
-	  (else (let ((r::SgObject (SG_CAR rest)))
-		  (dolist (v (SG_CDR rest)) (set! r (Sg_Add r v)))
-		  (result r)))))
-  (define-c-proc +. (:rest rest::Object) ::Object
+	  (else 
+	   (let ((r (SG_CAR rest)))
+	     (dolist (v (SG_CDR rest))
+	       (check-number + v)
+	       (set! r (Sg_Add r v)))
+	     (result r)))))
+
+  (define-c-proc +. (:rest rest) ::Object
     (let ((a (Sg_MakeFlonum 0.0)))
-      (dolist (x rest) (set! a (Sg_Add a (Sg_Inexact x))))
+      (dolist (x rest)
+	(check-number +. x)
+	(set! a (Sg_Add a (Sg_Inexact x))))
       (result a)))
 
-  (define-c-proc * (:rest rest::Object) ::Object
+  (define-c-proc * (:rest rest) ::Object
     (cond ((not (SG_PAIRP rest)) (result (SG_MAKE_INT 1)))
 	  ((not (SG_NUMBERP (SG_CAR rest)))
 	   (wrong-type-of-argument-violation '+ "number" (SG_CAR rest) rest)
 	   (result SG_UNDEF))		; dummy
-	  (else (let ((r::SgObject (SG_CAR rest)))
-		  (dolist (v (SG_CDR rest)) (set! r (Sg_Mul r v)))
-		  (result r)))))
-  (define-c-proc *. (:rest rest::Object) ::Object
+	  (else 
+	   (let ((r (SG_CAR rest)))
+	     (dolist (v (SG_CDR rest))
+	       (check-number * v)
+	       (set! r (Sg_Mul r v)))
+	     (result r)))))
+
+  (define-c-proc *. (:rest rest) ::Object
     (let ((a (Sg_MakeFlonum 0.0)))
-      (dolist (x rest) (set! a (Sg_Mul a (Sg_Inexact x))))
+      (dolist (x rest)
+	(check-number *. x)
+	(set! a (Sg_Mul a (Sg_Inexact x))))
       (result a)))
 
-  (define-c-proc - (arg1 :rest rest::Object) ::Object
+  (define-c-proc - (arg1::number :rest rest) ::Object
     (if (SG_NULLP rest)
 	(result (Sg_Negate arg1))
-	(begin (dolist (v rest) (set! arg1 (Sg_Sub arg1 v)))
-	       (result arg1))))
-  (define-c-proc -. (arg1 :rest rest::Object) ::Object
+	(begin 
+	  (dolist (v rest)
+	    (check-number - v)
+	    (set! arg1 (Sg_Sub arg1 v)))
+	  (result arg1))))
+  (define-c-proc -. (arg1::number :rest rest) ::Object
     (cond ((SG_NULLP rest) (result (Sg_Negate (Sg_Inexact arg1))))
-	  (else (dolist (x rest) (set! arg1 (Sg_Sub arg1 (Sg_Inexact x))))
-		(result arg1))))
+	  (else 
+	   (dolist (x rest)
+	     (check-number -. x)
+	     (set! arg1 (Sg_Sub arg1 (Sg_Inexact x))))
+	   (result arg1))))
 
-  (define-c-proc / (arg1 :rest rest) ::Object
+  (define-c-proc / (arg1::number :rest rest) ::Object
     (if (SG_NULLP rest)
 	(result (Sg_Inverse arg1))
-	(begin (dolist (v rest)
-		 ;; see comment for DIV on instruction.scm
-		 #;(if (and (SG_VM_IS_SET_FLAG (Sg_VM) SG_R6RS_MODE)
-			  (Sg_ZeroP v))
-		     (assertion-violation '/
-					  "undefined for 0"
-					  (Sg_Cons arg1 rest)))
-		 (set! arg1 (Sg_Div arg1 v)))
-	       (result arg1))))
-  (define-c-proc /. (arg1 :rest rest::Object) ::Object
-    (cond ((SG_NULLP rest) (result (Sg_Inverse (Sg_Inexact arg1))))
-	  (else (dolist (x rest)
-		  ;; see comment for DIV on instruction.scm
-		  #;(if (and (SG_VM_IS_SET_FLAG (Sg_VM) SG_R6RS_MODE)
-			   (Sg_ZeroP x))
-		      (assertion-violation '/
-					  "undefined for 0"
-					  (Sg_Cons arg1 rest)))
-		  (set! arg1 (Sg_Div arg1 (Sg_Inexact x))))
-		(result arg1))))
+	(let ((exact::int (Sg_ExactP arg1)))
+	  (dolist (v rest)
+	    (check-number / v)
+	    ;; if inexact numbers have already appeared, 
+	    ;; we can skip checking
+	    (when exact
+	      (set! exact (Sg_ExactP v)))
+	    (if (and exact
+		     (SG_VM_IS_SET_FLAG (Sg_VM) SG_R6RS_MODE)
+		     (Sg_ZeroP v))
+		(assertion-violation '/
+				     "undefined for 0"
+				     (Sg_Cons arg1 rest)))
+	    (set! arg1 (Sg_Div arg1 v)))
+	  (result arg1))))
+
+  (define-c-proc /. (arg1::number :rest rest) ::Object
+    (if (SG_NULLP rest)
+	(result (Sg_Inverse (Sg_Inexact arg1)))
+	(begin
+	  (dolist (x rest)
+	    (check-number / x)
+	    (set! arg1 (Sg_Div arg1 (Sg_Inexact x))))
+	  (result arg1))))
+
   ;; base arithmetic
   (define-c-proc abs (x::number) ::Object
     (result (Sg_Abs x)))
@@ -707,7 +738,11 @@
 
   (define-c-proc log (x::number :optional (base::number SG_UNBOUND)) ::Object
     (if (SG_UNBOUNDP base)
-	(result (Sg_Log x))
+	(if (== x (SG_MAKE_INT 0))
+	    (assertion-violation 'log
+				 "undefined for 0"
+				 x)
+	    (result (Sg_Log x)))
 	(result (Sg_Div (Sg_Log x) (Sg_Log base)))))
 
   (define-c-proc make-rectangular (a::number b::number) ::Object
@@ -1019,7 +1054,7 @@
 
   (define-c-proc make-string (k::fixnum :optional (c (SG_MAKE_CHAR #\space))) ::Object
     (unless (SG_CHARP c)
-      (wrong-type-of-argument-violation 'make-string "char" c (SG_LIST2 k c)))
+      (wrong-type-of-argument-violation 'make-string "char" c (SG_LIST2 (SG_MAKE_INT k) c)))
     (result (Sg_ReserveString k (SG_CHAR_VALUE c))))
 
   (define-c-proc string (:rest rest) ::Object
@@ -1131,14 +1166,14 @@
     (cond ((or (< i 0)
 	       (>= i (SG_VECTOR_SIZE vec)))
 	   (when (SG_UNBOUNDP fallback)
-	     (assertion-violation 'vector-ref "index out of range" i))
+	     (assertion-violation 'vector-ref "index out of range" (SG_MAKE_INT i)))
 	   (result fallback))
 	  (else (result (SG_VECTOR_ELEMENT vec i)))))
      
   (define-c-proc vector-set! (vec::Vector i::fixnum obj) ::void
     (cond ((or (< i 0)
 	       (>= i (SG_VECTOR_SIZE vec)))
-	   (assertion-violation 'vector-ref "index out of range" i))
+	   (assertion-violation 'vector-ref "index out of range" (SG_MAKE_INT i)))
 	  (else (set! (SG_VECTOR_ELEMENT vec i) obj))))
 
   (define-c-proc vector->list (vec::Vector :optional (start::fixnum 0) (end::fixnum -1)) ::Object
@@ -1186,7 +1221,7 @@
     (result (Sg_VMCallCC proc)))
 
   (define-c-proc values (:rest rest) (inline VALUES) ::Object
-    (let ((len (Sg_Length rest)))
+    (let ((len::int (Sg_Length rest)))
       (cond ((== len 0) (result (Sg_MakeValues 0)))
 	    ((== len 1) (result (SG_CAR rest)))
 	    (else
@@ -1317,13 +1352,13 @@
     ((_ bv index)
      (dispatch
       `(unless (> (SG_BVECTOR_SIZE ,bv) ,index)
-	 (assertion-violation 'bytevector "index out of range" ,index))))
+	 (assertion-violation 'bytevector "index out of range" (SG_MAKE_INT ,index)))))
     ((_ bv index offset)
      (dispatch
       `(let ((len::int (SG_BVECTOR_SIZE ,bv)))
 	 (unless (and (> len ,offset)
 		      (< ,index (- len ,offset)))
-	   (assertion-violation 'bytevector "index out of range" ,index))))))
+	   (assertion-violation 'bytevector "index out of range" (SG_MAKE_INT ,index)))))))
 
   (define-c-proc bytevector-u8-ref (bv::ByteVector index::fixnum) ::fixnum
     (bv-check-index bv index)
@@ -1332,7 +1367,9 @@
   (define-c-proc bytevector-u8-set! (bv::ByteVector index::fixnum value::fixnum) ::void
     (bv-check-index bv index)
     (unless (SG_IS_OCTET value)
-      (assertion-violation 'bytevector-u8-set! "value out of range. must be 0 <= value <= 255" value))
+      (assertion-violation 'bytevector-u8-set!
+			   "value out of range. must be 0 <= value <= 255"
+			   (SG_MAKE_INT value)))
     (Sg_ByteVectorU8Set bv index value))
 
   (define-c-proc bytevector-s8-ref (bv::ByteVector index::fixnum) ::fixnum
@@ -1342,21 +1379,25 @@
   (define-c-proc bytevector-s8-set! (bv::ByteVector index::fixnum value::fixnum) ::void
     (bv-check-index bv index)
     (unless (SG_IS_BYTE value)
-      (assertion-violation 'bytevector-s8-set! "value out of range. must be -127 <= value <= 128" value))
+      (assertion-violation 'bytevector-s8-set! 
+			   "value out of range. must be -127 <= value <= 128"
+			   (SG_MAKE_INT value)))
     (Sg_ByteVectorS8Set bv index value))
 
   (define-cgen-stmt bv-check-align
     ((_ index align)
      (dispatch
       `(unless (== (% ,index ,align) 0)
-	 (assertion-violation 'bytevector "index not aligned" ,index)))))
+	 (assertion-violation 'bytevector "index not aligned" 
+			      (SG_MAKE_INT ,index))))))
 
   (define-cgen-stmt bv-check-value
     ((_ value min max)
      (dispatch
       `(unless (and (<= ,min ,value)
 		    (<= ,value ,max))
-	 (assertion-violation 'bytevector "value out of range %S" ,value)))))
+	 (assertion-violation 'bytevector "value out of range %S"
+			      (SG_MAKE_INT ,value))))))
   ;; 2.5 operations on 16-bit integers
   ;; u16
   (define-c-proc bytevector-u16-native-ref (bv::ByteVector index::fixnum) ::fixnum
@@ -2690,9 +2731,9 @@
     ((_ name value)
      (dispatch
       `(unless (SG_INTP ,value)
-	 (assertion-violation ',name
-			      "fixnum"
-			      ,value)))))
+	 (wrong-type-of-argument-violation ',name
+					   "fixnum"
+					   ,value)))))
 
   (define-cgen-stmt fixnum-compare
     ((_ name compare first second rest)

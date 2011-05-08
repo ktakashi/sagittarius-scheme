@@ -284,7 +284,9 @@
 		   ((x y . more)
 		    (receive (xval xtree) (check-numeric-constant x cenv)
 		      (receive (yval ytree) (check-numeric-constant y cenv)
-			(if (and xval yval)
+			;; R6RS requires 0/0 &assertion, to avoid compile time
+			;; exception, we check if it's r6rs mode or not.
+			(if (and xval yval (not (vm-r6rs-mode?)))
 			    (if (null? more)
 				($const (,op xval yval))
 				(inline (cons (,op xval yval) more)))

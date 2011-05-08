@@ -45,6 +45,7 @@
 #include "sagittarius/arith.h"
 #include "sagittarius/bits.h"
 #include "sagittarius/values.h"
+#include "sagittarius/vm.h"
 
 struct numread_packet {
     const SgChar *buffer;       /* original buffer */
@@ -460,8 +461,12 @@ static SgObject read_real(const SgChar **strp, int *lenp,
 	  if (IS_EXACT(ctx)) {
 	    return number_read_error("(exact infinity/nan is not supported.)", ctx);
 	  }
-	  if (SG_MAKE_INT(0) == intpart) return SG_NAN;
-	  return minusp ? SG_NEGATIVE_INFINITY : SG_POSITIVE_INFINITY;
+	  if (!SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE)) {
+	    if (SG_MAKE_INT(0) == intpart) return SG_NAN;
+	    return minusp ? SG_NEGATIVE_INFINITY : SG_POSITIVE_INFINITY;
+	  } else {
+	    return SG_FALSE;
+	  }
 	} else {
 	  return SG_FALSE;
 	}

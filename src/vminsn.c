@@ -210,7 +210,17 @@ CASE(MULI) {
 }
 
 CASE(DIV) {
-  BUILTIN_TWO_ARGS(vm, Sg_Div);
+  {
+    SgObject exact = (Sg_ExactP(INDEX(SP(vm), 0)) && Sg_ExactP(AC(vm)))    ;
+    if ((exact && SG_VM_IS_SET_FLAG(vm, SG_R6RS_MODE) && Sg_ZeroP(AC(vm)))) {
+      Sg_AssertionViolation(SG_INTERN("/"), Sg_MakeString(UC("undefined for 0"), SG_LITERAL_STRING), SG_LIST2(INDEX(SP(vm), 0), AC(vm)));
+      return SG_UNDEF;
+;
+    }
+;
+    BUILTIN_TWO_ARGS(vm, Sg_Div);
+  }
+;
   NEXT;
 }
 
