@@ -176,7 +176,7 @@ static int64_t posix_size(SgObject self)
   if (result != 0) {
     return -1;
   } else {
-    st.st_size;
+    return st.st_size;
   }
 }
 

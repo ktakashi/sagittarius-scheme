@@ -31,6 +31,8 @@
  */
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/compare.h"
+#include "sagittarius/codec.h"
+#include "sagittarius/error.h"
 #include "sagittarius/identifier.h"
 #include "sagittarius/number.h"
 #include "sagittarius/pair.h"
@@ -64,6 +66,21 @@ int Sg_EqvP(SgObject x, SgObject y)
       }
     }
     return FALSE;
+  }
+  if (SG_CODECP(x)) {
+    if (SG_CODECP(y)) {
+      /* if these 2 are the same codec, it must use the same putChar and getChar
+	 method.
+       */
+      if ((SG_CODEC(x)->getChar == SG_CODEC(y)->getChar) &&
+	  (SG_CODEC(x)->putChar == SG_CODEC(y)->putChar)) {
+	return TRUE;
+      } else {
+	return FALSE;
+      }
+    } else {
+      return FALSE;
+    }
   }
   return SG_EQ(x, y);
 }

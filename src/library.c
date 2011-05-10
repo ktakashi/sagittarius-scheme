@@ -41,6 +41,7 @@
 #include "sagittarius/writer.h"
 #include "sagittarius/error.h"
 #include "sagittarius/vm.h"
+#include "sagittarius/load.h"
 #include "sagittarius/system.h"
 #include "sagittarius/gloc.h"
 #include "sagittarius/compare.h"

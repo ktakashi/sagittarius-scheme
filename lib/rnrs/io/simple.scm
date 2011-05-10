@@ -35,7 +35,9 @@
 	    display
 	    write)
     (import (core)
-	    (core base))
+	    (core base)
+	    (core errors)
+	    (core io))
 
 ) ; [end]
 ;; end of file

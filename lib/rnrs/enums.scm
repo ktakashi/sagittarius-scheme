@@ -14,7 +14,7 @@
 	    enum-set-complement
 	    enum-set-projection
 	    define-enumeration)
-    (import (core))
+    (import (core enums))
 ) ; [end]
 ;; end of file
 ;; Local Variables:

@@ -86,8 +86,8 @@
 	    make-custom-binary-input/output-port
 	    make-custom-textual-input/output-port)
     (import (core)
-	    (core base))
-
+	    (core base)
+	    (core io))
 ) ; [end]
 ;; end of file
 ;; Local Variables:

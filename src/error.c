@@ -1,4 +1,4 @@
-// -*- C -*-
+/* -*- C -*- */
 /*
  * error.c
  *
@@ -90,11 +90,39 @@ void Sg_SyntaxError(SgObject form, SgObject irritants)
   Sg_Error(UC("syntax-error: %S, irritants %S"), form, irritants);
 }
 
-void Sg_IOFileNotExistError(SgObject who, SgObject msg, SgObject file)
+void Sg_IOError(SgIOErrorType type, SgObject who, SgObject msg, 
+		SgObject file, SgObject port)
 {
-  SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-file-does-not-exist-error"), SG_FALSE);
-  SgObject proc = SG_GLOC_GET(g);
-  Sg_Apply3(proc, who, msg, file);
+  SgGloc *g;
+  SgObject proc;
+  switch (type) {
+  case SG_IO_READ_ERROR:
+    return Sg_IOReadError(who, msg, port);
+  case SG_IO_WRITE_ERROR:
+    return Sg_IOWriteError(who, msg, port);
+  case SG_IO_FILE_NOT_EXIST_ERROR:
+    g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-file-does-not-exist-error"), SG_FALSE);
+    proc = SG_GLOC_GET(g);
+    Sg_Apply3(proc, who, msg, file);
+    break;
+  case SG_IO_FILE_ALREADY_EXIST_ERROR:
+    g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-file-already-exists-error"), SG_FALSE);
+    proc = SG_GLOC_GET(g);
+    Sg_Apply3(proc, who, msg, file);
+    break;
+  case SG_IO_DECODE_ERROR:
+    g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-decoding-error"), SG_FALSE);
+    proc = SG_GLOC_GET(g);
+    Sg_Apply3(proc, who, msg, port);
+    break;
+  case SG_IO_ENCODE_ERROR:
+    g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-encoding-error"), SG_FALSE);
+    proc = SG_GLOC_GET(g);
+    Sg_Apply4(proc, who, msg, port, SG_MAKE_CHAR('?'));
+    break;
+  default:
+    Sg_Error(UC("invalid i/o error type"));
+  }
 }
 
 void Sg_IOReadError(SgObject who, SgObject msg, SgObject port)
@@ -156,7 +184,7 @@ void Sg_WrongNumberOfArgumentsBetweenViolation(SgObject who, int startCounts, in
   Sg_AssertionViolation(who, message, irritants);
 }
 
-void Sg_Raise(SgObject condition, int continuableP)
+SgObject Sg_Raise(SgObject condition, int continuableP)
 {
   return Sg_VMThrowException(Sg_VM(), condition, continuableP);
 }

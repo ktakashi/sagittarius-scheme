@@ -45,7 +45,8 @@
 	    fxarithmetic-shift-right
 	    fxrotate-bit-field
 	    fxreverse-bit-field)
-    (import (core))
+    (import (core)
+	    (core arithmetic))
 
 ) ; [end]
 ;; end of file

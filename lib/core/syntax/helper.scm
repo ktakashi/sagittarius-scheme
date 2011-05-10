@@ -39,11 +39,6 @@
     #f
     (sids ellipsis-sids set-ellipsis-sids!))
 
-  (define (id-memq id lst)
-    (if (identifier? id)
-	(memq (id-name id) lst)
-	(memq id lst)))
-
   (define (optimized-cons rename compare a d)
     (cond ((and (pair? d)
 		(compare (car d) (rename 'quote))

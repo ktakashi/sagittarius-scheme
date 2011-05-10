@@ -368,11 +368,11 @@ static int64_t file_read_u8(SgObject self, uint8_t *buf, int64_t size)
 
 static int64_t file_read_u8_all(SgObject self, uint8_t **buf)
 {
-  int64_t rest_size, result;
+  int64_t rest_size = 0, result = 0;
   uint8_t *dest;
 
   rest_size = SG_PORT_FILE(self)->size(SG_PORT_FILE(self)) - SG_BINARY_PORT(self)->position;
-  if (rest_size == 0) return 0;
+  if (rest_size <= 0) return 0;
 
   dest = SG_NEW_ATOMIC2(uint8_t *, rest_size);
   *buf = dest;
@@ -389,7 +389,7 @@ static int64_t file_read_u8_all(SgObject self, uint8_t **buf)
     result += offset;
   }
   file_forward_position(self, result);
-  return 0;
+  return result;
 }
 
 SgObject Sg_MakeFileBinaryInputPort(SgFile *file, int bufferMode)
@@ -512,7 +512,7 @@ SgObject Sg_MakeFileBinaryOutputPort(SgFile *file, int bufferMode)
   ASSERT(file->isOpen(file));
 
   z->closed = FALSE;
-  z->flush = file_flush;
+  z->flush = file_flush_internal; /* TODO rename. */
   z->close = file_close;
 
   b->src.file = file;
@@ -616,7 +616,7 @@ static int64_t byte_array_read_u8(SgObject self, uint8_t *buf, int64_t size)
   for (i = 0; i < read_size; i++) {
     buf[i] = Sg_ByteVectorU8Ref(bvec, bindex + i);
   }
-  SG_BINARY_PORT(self)->src.buffer.index += size;
+  SG_BINARY_PORT(self)->src.buffer.index += read_size;
   return read_size;
 }
 
@@ -1240,7 +1240,8 @@ static SgChar custom_textual_get_char(SgObject self)
     }
     c = SG_STRING_VALUE_AT(s, 0);
   } else {
-    c = SG_CUSTOM_PORT(self)->buffer[SG_CUSTOM_PORT(self)->index--];
+    c = SG_CUSTOM_PORT(self)->buffer[SG_CUSTOM_PORT(self)->index - 1];
+    SG_CUSTOM_PORT(self)->index--;
   }
   if (c == '\n') SG_CUSTOM_PORT(self)->line++;
   return c;
@@ -1280,9 +1281,6 @@ static void custom_textual_unget_char(SgObject self, SgChar ch)
   ASSERT(SG_CUSTOM_PORT(self)->size != 0);
   ASSERT(size_to_pos(SG_CUSTOM_PORT(self)->size) > SG_CUSTOM_PORT(self)->index);
   SG_CUSTOM_PORT(self)->buffer[SG_CUSTOM_PORT(self)->index++] = ch;
-  if (ch == '\n') {
-    SG_CUSTOM_PORT(self)->index--;
-  }
 }
 
 static void custom_textual_put_char(SgObject self, SgChar ch)
@@ -1784,13 +1782,28 @@ int64_t Sg_PortPosition(SgPort *port)
     }
     return (int64_t)pos;
   } else if (SG_CUSTOM_PORTP(port)) {
+    SgObject ret;
+    int64_t pos;
     if (SG_FALSEP(SG_CUSTOM_PORT(port)->getPosition)) {
       Sg_AssertionViolation(SG_INTERN("port-position"),
 			    Sg_Sprintf(UC("expected positionable port, but got %S"), port),
 			    port);
+      return;
     }
-    return Sg_GetIntegerS64Clamp(Sg_Apply1(SG_CUSTOM_PORT(port)->getPosition,
-					  port), SG_CLAMP_NONE, NULL);
+    ret = Sg_Apply0(SG_CUSTOM_PORT(port)->getPosition);
+    if (!SG_EXACT_INTP(ret)) {
+      Sg_AssertionViolation(SG_INTERN("port-position"),
+			    Sg_Sprintf(UC("invalid result %S from %S"), ret, port),
+			    port);
+      return;
+    }
+    pos = Sg_GetIntegerS64Clamp(ret, SG_CLAMP_NONE, NULL);
+    if (SG_CUSTOM_PORT(port)->type == SG_BINARY_CUSTOM_PORT_TYPE &&
+	SG_CUSTOM_HAS_U8_AHEAD(port)) {
+      return pos - 1;
+    } else {
+      return pos;
+    }
   }
   Sg_Error(UC("port required, but got %S"), port);
   return (int64_t)-1;		/* dummy */
@@ -1798,12 +1811,13 @@ int64_t Sg_PortPosition(SgPort *port)
 
 void Sg_SetPortPosition(SgPort *port, int64_t offset)
 {
-  if (SG_OUTPORTP(port)) port->flush(port);
+  if (SG_OUTPORTP(port) || SG_INOUTPORTP(port)) port->flush(port);
   if (SG_BINARY_PORTP(port)) {
     switch (SG_BINARY_PORT(port)->type) {
     case SG_FILE_BINARY_PORT_TYPE:
       SG_BINARY_PORT(port)->src.file->seek(SG_BINARY_PORT(port)->src.file,
 					   offset, SG_BEGIN);
+      SG_BINARY_PORT(port)->position = offset;
       break;
     case SG_BYTE_ARRAY_BINARY_PORT_TYPE:
       SG_BINARY_PORT(port)->src.buffer.index = offset;
@@ -1829,8 +1843,22 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset)
       Sg_AssertionViolation(SG_INTERN("set-port-position!"),
 			    Sg_Sprintf(UC("expected positionable port, but got %S"), port),
 			    port);
+      return;
     }
-    Sg_Apply1(SG_CUSTOM_PORT(port)->getPosition, port);
+    /* reset cache */
+    switch (SG_CUSTOM_PORT(port)->type) {
+    case SG_BINARY_CUSTOM_PORT_TYPE:
+      SG_CUSTOM_U8_AHEAD(port) = EOF;
+      break;
+    case SG_TEXTUAL_CUSTOM_PORT_TYPE:
+      SG_CUSTOM_PORT(port)->index = 0;
+      break;
+    default:
+      Sg_Error(UC("invalid custom port type"));
+      return;
+    }
+    Sg_Apply1(SG_CUSTOM_PORT(port)->setPosition, Sg_MakeIntegerFromS64(offset));
+    return;
   }
   Sg_Error(UC("port required, but got %S"), port);
 }
@@ -1851,7 +1879,9 @@ SgObject Sg_FileName(SgPort *port)
   if (SG_TEXTUAL_PORTP(port)) {
     if (SG_TEXTUAL_PORT(port)->type == SG_TRANSCODED_TEXTUAL_PORT_TYPE) {
       SgPort *bp = SG_TEXTUAL_PORT(port)->src.transcoded.port;
-      file = SG_BINARY_PORT(bp)->src.file;
+      if (SG_BINARY_PORT(bp)->type == SG_FILE_BINARY_PORT_TYPE) {
+	file = SG_BINARY_PORT(bp)->src.file;
+      }
     }
   } else if (SG_BINARY_PORTP(port)) {
     if (SG_BINARY_PORT(port)->type == SG_FILE_BINARY_PORT_TYPE) {

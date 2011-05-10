@@ -548,9 +548,11 @@ SgObject read_list(SgPort *port, SgReaderContext *ctx, int bracketedp, int vecto
       SgObject generic = Sg_Memq(token, vm->defaultConstructors);
       if (!SG_FALSEP(generic)) {
 	generic = Sg_RetrieveGeneric(SG_CAR(generic), SG_FALSE);
-	SgObject args = read_list(port, ctx, bracketedp, vectorp);
-	SgObject ret = Sg_Apply(SG_GENERIC_READER(generic), args);
-	return ret;
+	if (!SG_FALSEP(SG_GENERIC_READER(generic))) {
+	  SgObject args = read_list(port, ctx, bracketedp, vectorp);
+	  SgObject ret = Sg_Apply(SG_GENERIC_READER(generic), args);
+	  return ret;
+	}
       }
     }
     SG_APPEND1(h, t, token);
@@ -868,8 +870,6 @@ void Sg__InitReader()
 {
   SgVM *vm = Sg_VM();
   /* it must be null. so we don't have to check */
-  vm->defaultConstructors =
-    Sg_Append2(vm->defaultConstructors, SG_LIST1(SG_SYMBOL_FILE_OPTIONS));
 }
 
 /*

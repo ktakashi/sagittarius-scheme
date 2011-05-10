@@ -192,7 +192,7 @@ static inline void report_error(SgObject exception)
       src = SG_CDAR(src);
       info = SG_SOURCE_INFO(src);
     }
-    if (SG_FALSEP(info)) {
+    if (SG_FALSEP(info) || !info) {
       line = SG_INTERN("*unknown*");
       file = SG_INTERN("*unknown*");
     } else {

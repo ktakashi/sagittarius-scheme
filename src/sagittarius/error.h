@@ -34,6 +34,15 @@
 
 #include "sagittariusdefs.h"
 
+typedef enum {
+  SG_IO_READ_ERROR,
+  SG_IO_WRITE_ERROR,
+  SG_IO_FILE_NOT_EXIST_ERROR,
+  SG_IO_FILE_ALREADY_EXIST_ERROR,
+  SG_IO_DECODE_ERROR,
+  SG_IO_ENCODE_ERROR
+} SgIOErrorType;
+
 SG_CDECL_BEGIN
 
 SG_EXTERN void Sg_Warn(const SgChar* msg, ...);
@@ -41,7 +50,9 @@ SG_EXTERN void Sg_Error(const SgChar* msg, ...);
 SG_EXTERN void Sg_ReadError(const SgChar* msg, ...);
 SG_EXTERN void Sg_SyntaxError(SgObject form, SgObject irritants);
 
-SG_EXTERN void Sg_IOFileNotExistError(SgObject who, SgObject msg, SgObject file);
+/* general &i/o exception*/
+SG_EXTERN void Sg_IOError(SgIOErrorType type, SgObject who, SgObject msg, 
+			  SgObject file, SgObject port);
 SG_EXTERN void Sg_IOReadError(SgObject who, SgObject msg, SgObject port);
 SG_EXTERN void Sg_IOWriteError(SgObject who, SgObject msg, SgObject port);
 SG_EXTERN void Sg_AssertionViolation(SgObject who, SgObject message, SgObject irritants);
@@ -57,7 +68,7 @@ SG_EXTERN void Sg_WrongNumberOfArgumentsAtLeastViolation(SgObject who, int requi
 SG_EXTERN void Sg_WrongNumberOfArgumentsBetweenViolation(SgObject who, int startCounts, int endCounts,
 							 int gotCounts, SgObject irritants);
 
-SG_EXTERN void Sg_Raise(SgObject condition, int continuableP);
+SG_EXTERN SgObject Sg_Raise(SgObject condition, int continuableP);
 
 SG_CDECL_END
 

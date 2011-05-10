@@ -820,7 +820,7 @@
 
 (define call-with-bytevector-output-port
   (lambda (proc . maybe-transcoder)
-    (receive (port extractor) (apply open-bytevector-output-port transcoder)
+    (receive (port extractor) (apply open-bytevector-output-port maybe-transcoder)
       (dynamic-wind
 	  (lambda () #f)
 	  (lambda () (proc port) (extractor))
@@ -833,41 +833,6 @@
 	  (lambda () #f)
 	  (lambda () (proc port) (extractor))
 	  (lambda () (close-port port))))))
-
-;; 8.3 simmple i/o
-;; originally from Ypsilon
-(define call-with-input-file
-  (lambda (filename proc)
-    (call-with-port (open-input-file filename) proc)))
-
-(define call-with-output-file
-  (lambda (filename proc)
-    (call-with-port (open-output-file filename) proc)))
-
-(define with-input-from-file
-  (lambda (filename thunk)
-    (let ((port (open-input-file filename)) (save (current-input-port)))
-      (dynamic-wind
-	  (lambda () (current-input-port port))
-	  (lambda () (let ((ans (thunk))) (close-input-port port) ans))
-	  (lambda () (current-input-port save))))))
-
-(define with-output-to-file
-  (lambda (filename thunk)
-    (let ((port (open-output-file filename)) (save (current-output-port)))
-      (dynamic-wind
-	  (lambda () (current-output-port port))
-	  (lambda () (let ((ans (thunk))) (close-output-port port) ans))
-	  (lambda () (current-output-port save))))))
-
-(define open-input-file
-  (lambda (filename)
-    (open-file-input-port filename (make-file-options) 'block (native-transcoder))))
-
-(define open-output-file
-  (lambda (filename)
-    (open-file-output-port filename (make-file-options) 'block (native-transcoder))))
-
 
 ;;;; end of file
 ;; Local Variables:

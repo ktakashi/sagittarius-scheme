@@ -1,3 +1,15 @@
+2011-05-10  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/null.stub, src/port.c (rnrs io ports): make it pass R6RS test
+	suite.
+
+2011-05-09  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/codec.c (latin-1-codec): added implementation.
+
+	* src/record.c (record): fixed record-generative?, record-predicate,
+	record-accessor and record-mutator.
+
 2011-05-07    <ktakashi@ymail.com>
 
 	* src/null.stub (rnrs base): fixed '/' error.

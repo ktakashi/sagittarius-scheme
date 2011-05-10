@@ -35,6 +35,7 @@
 #include "sagittarius/port.h"
 #include "sagittarius/error.h"
 #include "sagittarius/string.h"
+#include "sagittarius/symbol.h"
 #include "sagittarius/unicode.h"
 
 static int putUtf8Char(SgObject self, SgPort *port, SgChar c, ErrorHandlingMode mode)
@@ -88,9 +89,12 @@ SgObject Sg_MakeUtf16Codec(Endianness endian)
 }
 
 
-#define decodeError()							\
+#define decodeError(who)						\
   if (mode == SG_RAISE_ERROR) {						\
-    Sg_Error(UC("Invalid encode for utf-32 %s:%x\n"),  UC(__FILE__), __LINE__);	\
+    Sg_IOError(SG_IO_DECODE_ERROR, who,					\
+	       Sg_Sprintf(UC("invalid encode. %S, %s:%x"),		\
+			  self, UC(__FILE__), __LINE__),		\
+	       SG_UNDEF, port);						\
   } else if (mode == SG_REPLACE_ERROR) {				\
     return 0xFFFD;							\
   } else {								\
@@ -120,19 +124,19 @@ static SgChar get_utf32_char(SgObject self, SgPort *port, ErrorHandlingMode mode
 {
   int a, b, c, d;
  retry:
-  a = Sg_Getb(port);
+  a = Sg_GetbUnsafe(port);
   if (a == EOF) return EOF;
-  b = Sg_Getb(port);
+  b = Sg_GetbUnsafe(port);
   if (b == EOF) {
-    decodeError();
+    decodeError(SG_INTERN("utf32-codec"));
   }
-  c = Sg_Getb(port);
+  c = Sg_GetbUnsafe(port);
   if (c == EOF) {
-    decodeError();
+    decodeError(SG_INTERN("utf32-codec"));
   }
-  d = Sg_Getb(port);
+  d = Sg_GetbUnsafe(port);
   if (d == EOF) {
-    decodeError();
+    decodeError(SG_INTERN("utf32-codec"));
   }
   if (SG_CODEC_ENDIAN(self) == UTF_32LE) {
     return
@@ -182,14 +186,51 @@ SgObject Sg_MakeUtf32Codec(Endianness endian)
   return SG_OBJ(z);
 }
 
+static int put_latin1_char(SgObject self, SgPort *port, SgChar c, ErrorHandlingMode mode)
+{
+  uint8_t buf[1];
+  int size = 0;
+  if (c <= 0xFF) {
+    buf[0] = c;
+    size = 1;
+  } else {
+    if (mode == SG_RAISE_ERROR) {
+      Sg_IOError(SG_IO_ENCODE_ERROR, SG_INTERN("latin-1-codec"),
+		 Sg_Sprintf(UC("Invalid encode for latin-1-codec %s:%x\n"), UC(__FILE__), __LINE__),
+		 SG_UNDEF, port);
+      return 0;
+    } else if (mode == SG_REPLACE_ERROR) {
+      buf[0] = '?';
+      size = 1;
+    } else {
+      ASSERT(mode == SG_IGNORE_ERROR);
+      size = 0;
+    }
+  }
+  return (int)(SG_BINARY_PORT(port)->putU8Array(port, buf, size));
+}
+
+static SgChar get_latin1_char(SgObject self, SgPort *port, ErrorHandlingMode mode, int checkBOM)
+{
+  int f;
+ retry:
+  f = Sg_GetbUnsafe(port);
+  if (f == EOF) return EOF;
+  if (f <= 0xFF) {
+    return (SgChar)f;
+  } else {
+    decodeError(SG_INTERN("latin-1-codec"));
+  }
+  return ' ';
+}
+
 SgObject Sg_MakeLatin1Codec()
 {
   SgCodec* z = SG_NEW(SgCodec);
   SG_SET_HEADER(z, TC_CODEC);
-  /* later
-  z->putChar = putLatin1Char;
-  z->getChar = getLatin1Char;
-  */
+
+  z->putChar = put_latin1_char;
+  z->getChar = get_latin1_char;
   z->name = Sg_MakeString(UC("latin1-codec"), SG_LITERAL_STRING);
   return SG_OBJ(z);
 }

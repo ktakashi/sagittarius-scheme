@@ -354,7 +354,8 @@ static inline int rtd_ancestor_p(SgObject parent, SgObject rtd)
     } else if (SG_FALSEP(rtd)) {
       return FALSE;
     } else {
-      rtd = RTD_PARENT(rtd);
+      if (SG_INSTANCEP(rtd)) rtd = RTD_PARENT(rtd);
+      else return FALSE;
     }
   }
   return FALSE;			/* dummy */
@@ -369,10 +370,8 @@ static SgObject make_predicate_rec(SgObject *args, int argc, void *data)
   checkArgumentLength(1);
   argumentRef(0, obj);
   rtd = (SgObject)data;
-  if (!Sg_RecordP(obj)) {
-    return SG_MAKE_BOOL(FALSE);
-  }
-  obj = Sg_RecordRtd(obj);
+
+  obj = Sg_TupleRef(obj, 0, SG_FALSE);
   pred = (SG_EQ(rtd, obj)) ? TRUE
                            : (rtd_ancestor_p(rtd, obj)) ? TRUE 
                                                         : FALSE;
@@ -395,16 +394,14 @@ static SgObject make_accessor_rec(SgObject *args, int argc, void *data)
   argumentRef(0, obj);
   rtd = SG_CAR(SG_OBJ(data));
   k = SG_CDR(SG_OBJ(data));	/* index */
-  if (!Sg_RecordP(obj)) goto err;
 
-  rec_rtd = Sg_RecordRtd(obj);
+  rec_rtd = Sg_TupleRef(obj, 0, SG_FALSE);
   if (SG_EQ(rtd, rec_rtd)) {
     return Sg_TupleRef(obj, SG_INT_VALUE(k), SG_FALSE);
   } else if (rtd_ancestor_p(rtd, rec_rtd)) {
     return Sg_TupleRef(obj, SG_INT_VALUE(k), SG_FALSE);
   }
-  /* fall through */
- err:
+
   Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-accessor"),
 				  Sg_Sprintf(UC("record of type %A"), RTD_NAME(rtd)),
 				  obj,
@@ -436,9 +433,8 @@ static SgObject make_mutator_rec(SgObject *args, int argc, void *data)
 
   rtd = SG_CAR(SG_OBJ(data));
   k = SG_CDR(SG_OBJ(data));	/* field index */
-  if (!Sg_RecordP(obj)) goto err;
 
-  rec_rtd = Sg_RecordRtd(obj);
+  rec_rtd = Sg_TupleRef(obj, 0, SG_FALSE);
   if (SG_EQ(rtd, rec_rtd)) {
     Sg_TupleSet(obj, SG_INT_VALUE(k), datum);
     return SG_UNDEF;
@@ -446,8 +442,7 @@ static SgObject make_mutator_rec(SgObject *args, int argc, void *data)
     Sg_TupleSet(obj, SG_INT_VALUE(k), datum);
     return SG_UNDEF;
   }
-  /* fall through */
- err:
+
   Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-mutator"),
 				  Sg_Sprintf(UC("record of type %A"), RTD_NAME(rtd)),
 				  obj,

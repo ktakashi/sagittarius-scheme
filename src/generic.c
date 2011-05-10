@@ -174,6 +174,10 @@ void Sg_TupleSet(SgObject tuple, int i, SgObject value)
 
 SgObject Sg_TupleRef(SgObject tuple, int i, SgObject fallback)
 {
+  if (!SG_INSTANCEP(tuple) ||
+      !SG_VECTORP(SG_INSTANCE(tuple)->values)) {
+    return fallback;
+  }
   return Sg_VectorRef(SG_INSTANCE(tuple)->values, i, fallback);
 }
 

@@ -533,7 +533,10 @@ SgObject Sg_HashTableSet(SgHashTable *table, SgObject key, SgObject value, int f
   if (!e) return SG_UNBOUND;
   if (e->value) {
     if (flags & SG_HASH_NO_OVERWRITE) return SG_HASH_ENTRY_VALUE(e);
-    else SG_HASH_ENTRY_SET_VALUE(e, value);
+    else {
+      SG_HASH_ENTRY_SET_VALUE(e, value);
+      return SG_HASH_ENTRY_VALUE(e);
+    }
   } else {
     return SG_HASH_ENTRY_SET_VALUE(e, value);
   }

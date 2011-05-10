@@ -43,7 +43,7 @@
 #include "sagittarius/vm.h"
 #include "sagittarius/library.h"
 
-
+#if 0
 static SgObject make_file_options()
 {
   SgObject generic;
@@ -172,4 +172,11 @@ void Sg__InitFile()
   Sg_InsertBinding(Sg_FindLibrary(SG_INTERN("null"), FALSE),
 		   SG_INTERN("make-file-options"),
 		   &construct_file_options_stub);
+}
+#endif
+
+
+
+void Sg__InitFile()
+{
 }

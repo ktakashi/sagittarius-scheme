@@ -13,13 +13,13 @@
         (tests r6rs records procedural)
         (tests r6rs exceptions)
         (tests r6rs conditions)
-#|
         (tests r6rs io ports)
         (tests r6rs io simple)
         (tests r6rs programs)
         (tests r6rs arithmetic fixnums)
         (tests r6rs arithmetic flonums)
         (tests r6rs arithmetic bitwise)
+#|
         (tests r6rs syntax-case)
         (tests r6rs hashtables)
         (tests r6rs enums)
@@ -41,13 +41,13 @@
 (run-records-procedural-tests)
 (run-exceptions-tests)
 (run-conditions-tests)
-#|
 (run-io-ports-tests)
 (run-io-simple-tests)
 (run-programs-tests)
 (run-arithmetic-fixnums-tests)
 (run-arithmetic-flonums-tests)
 (run-arithmetic-bitwise-tests)
+#|
 (run-syntax-case-tests)
 (run-hashtables-tests)
 (run-enums-tests)

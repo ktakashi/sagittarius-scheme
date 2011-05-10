@@ -37,6 +37,7 @@
 #include "sagittarius/codec.h"
 #include "sagittarius/string.h"
 #include "sagittarius/symbol.h"
+#include "sagittarius/writer.h"
 #include "sagittarius/bytevector.h"
 
 #include "../unicode/lexeme.inc"
@@ -116,7 +117,10 @@ int Sg_ConvertUcs4ToUtf8(SgChar ucs4, uint8_t utf8[4], ErrorHandlingMode mode)
     return 4;
   } else {
     if (mode == SG_RAISE_ERROR) {
-      Sg_Error(UC("%s:%d %x\n"),  UC(__FILE__), __LINE__, ucs4);
+      Sg_IOError(SG_IO_ENCODE_ERROR, SG_INTERN("convert-ucs4-to-utf8"),
+		 Sg_Sprintf(UC("character out of utf8 range %s:%d %x"),
+			    UC(__FILE__), __LINE__, ucs4),
+		 SG_UNDEF, SG_UNDEF);
       return 0;
     } else if (mode == SG_REPLACE_ERROR) {
       utf8[0] = 0xff;
@@ -146,7 +150,10 @@ int Sg_ConvertUcs4ToUtf16(SgChar ucs4, uint8_t utf8[4], ErrorHandlingMode mode, 
 
   if (ucs4 > 0x10FFFF) {
     if (mode == SG_RAISE_ERROR) {
-      Sg_Error(UC("character out of utf16 range %s:%d %x\n"),  UC(__FILE__), __LINE__, ucs4);
+      Sg_IOError(SG_IO_ENCODE_ERROR, SG_INTERN("convert-ucs4-to-utf16"),
+		 Sg_Sprintf(UC("character out of utf16 range %s:%d %x"),
+			    UC(__FILE__), __LINE__, ucs4),
+		 SG_UNDEF, SG_UNDEF);
       return 0;
     } else if (mode == SG_REPLACE_ERROR) {
       utf8[0] = 0xff;
@@ -180,9 +187,12 @@ int Sg_ConvertUcs4ToUtf16(SgChar ucs4, uint8_t utf8[4], ErrorHandlingMode mode, 
   }
 }
 
-#define decodeError()							\
+#define decodeError(who)						\
   if (mode == SG_RAISE_ERROR) {						\
-    Sg_Error(UC("Invalid encode %s:%x\n"),  UC(__FILE__), __LINE__);	\
+    Sg_IOError(SG_IO_DECODE_ERROR, who,					\
+	       Sg_Sprintf(UC("Invalid encode %s:%x\n"),			\
+			  UC(__FILE__), __LINE__),			\
+	       SG_UNDEF, port);						\
   } else if (mode == SG_REPLACE_ERROR) {				\
     return 0xFFFD;							\
   } else {								\
@@ -203,7 +213,7 @@ SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
  retry:
   ASSERT(SG_BINARY_PORTP(port));
 
-  f = Sg_Getb(port);
+  f = Sg_GetbUnsafe(port);
   if (f == EOF) return EOF;
   first = (uint8_t)(f & 0xff);
 
@@ -212,44 +222,44 @@ SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
     return first;
     // UTF8-2 = %xC2-DF UTF8-tail
   } else if (0xc2 <= first && first <= 0xdf) {
-    uint8_t second = Sg_Getb(port);
+    uint8_t second = Sg_GetbUnsafe(port);
     if (isUtf8Tail(second)) {
       return ((first & 0x1f) << 6) | (second & 0x3f);
     } else {
-      decodeError();
+      decodeError(SG_INTERN("convert-utf8-to-ucs4"));
     }
     // UTF8-3 = %xE0 %xA0-BF UTF8-tail / %xE1-EC 2( UTF8-tail ) /
     //          %xED %x80-9F UTF8-tail / %xEE-EF 2( UTF8-tail )
   } else if (0xe0 <= first && first <= 0xef) {
-    uint8_t second = Sg_Getb(port);
-    uint8_t third =  Sg_Getb(port);
+    uint8_t second = Sg_GetbUnsafe(port);
+    uint8_t third =  Sg_GetbUnsafe(port);
     if (!isUtf8Tail(third)) {
-      decodeError();
+      decodeError(SG_INTERN("convert-utf8-to-ucs4"));
     } else if ((0xe0 == first && 0xa0 <= second && second <= 0xbf)    ||
 	       (0xed == first && 0x80 <= second && second <= 0x9f)    ||
 	       (0xe1 <= first && first <= 0xec && isUtf8Tail(second)) ||
 	       ((0xee == first || 0xef == first) && isUtf8Tail(second))) {
       return ((first & 0xf) << 12) | ((second & 0x3f) << 6) | (third & 0x3f);
     } else {
-      decodeError();
+      decodeError(SG_INTERN("convert-utf8-to-ucs4"));
     }
     // UTF8-4 = %xF0 %x90-BF 2( UTF8-tail ) / %xF1-F3 3( UTF8-tail ) /
     //          %xF4 %x80-8F 2( UTF8-tail )
   } else if (0xf0 <= first && first <= 0xf4) {
-    uint8_t second = Sg_Getb(port);
-    uint8_t third =  Sg_Getb(port);
-    uint8_t fourth = Sg_Getb(port);
+    uint8_t second = Sg_GetbUnsafe(port);
+    uint8_t third =  Sg_GetbUnsafe(port);
+    uint8_t fourth = Sg_GetbUnsafe(port);
     if (!isUtf8Tail(third) || !isUtf8Tail(fourth)) {
-      decodeError();
+      decodeError(SG_INTERN("convert-utf8-to-ucs4"));
     } else if ((0xf0 == first && 0x90 <= second && second <= 0xbf)     ||
 	       (0xf4 == first && 0x80 <= second && second <= 0x8f)     ||
 	       (0xf1 <= first && first <= 0xf3 && isUtf8Tail(second))) {
       return ((first & 0x7) << 18) | ((second & 0x3f) << 12) | ((third & 0x3f) << 6) | fourth;
     } else {
-      decodeError();
+      decodeError(SG_INTERN("convert-utf8-to-ucs4"));
     }
   } else {
-    decodeError();
+    decodeError(SG_INTERN("convert-utf8-to-ucs4"));
   }
   return ' ';
 }
@@ -268,12 +278,12 @@ SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode, SgCodec *code
 #define isLittleEndian(c) (SG_CODEC(c)->endian == UTF_16LE)
  retry:
   /* TODO assert */
-  a = Sg_Getb(port);
-  b = Sg_Getb(port);
+  a = Sg_GetbUnsafe(port);
+  b = Sg_GetbUnsafe(port);
 
   if (a == EOF) return EOF;
   if (b == EOF) {
-    decodeError();
+    decodeError(SG_INTERN("convert-utf16-to-ucs4"));
   }
 
   if (checkBOMNow && codec->endian == UTF_16CHECK_BOM) {
@@ -293,13 +303,13 @@ SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode, SgCodec *code
   if (val1 < 0xD800 || val1 > 0xDFFF) {
     return val1;
   }
-  c = Sg_Getb(port);
+  c = Sg_GetbUnsafe(port);
   if (EOF == c) {
-    decodeError();
+    decodeError(SG_INTERN("convert-utf16-to-ucs4"));
   }
-  d = Sg_Getb(port);
+  d = Sg_GetbUnsafe(port);
   if (EOF == d) {
-    decodeError();
+    decodeError(SG_INTERN("convert-utf16-to-ucs4"));
   }
   val2 = isLittleEndian(codec) ? ((d << 8) | c) : ((c << 8) | d);
   // http://unicode.org/faq/utf_bom.html#utf16-3

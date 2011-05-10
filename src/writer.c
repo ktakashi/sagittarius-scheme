@@ -804,13 +804,15 @@ static void write_bytevector(SgByteVector *b, SgPort *port, SgWriteContext *ctx)
   uint8_t *u8 = b->elements;
   char buf[32];
   Sg_PutuzUnsafe(port, UC("#vu8("));
-  for (i = 0; i < size - 1; i++) {
+  if (size != 0) {
+    for (i = 0; i < size - 1; i++) {
+      snprintf(buf, array_sizeof(buf), "%u", u8[i]);
+      Sg_PutzUnsafe(port, buf);
+      Sg_PutcUnsafe(port, ' ');
+    }
     snprintf(buf, array_sizeof(buf), "%u", u8[i]);
     Sg_PutzUnsafe(port, buf);
-    Sg_PutcUnsafe(port, ' ');
   }
-  snprintf(buf, array_sizeof(buf), "%u", u8[i]);
-  Sg_PutzUnsafe(port, buf);
   Sg_PutcUnsafe(port, ')');
 }
 
@@ -912,6 +914,37 @@ static void write_gloc(SgGloc *g, SgPort *port, SgWriteContext *ctx)
   Sg_PutcUnsafe(port, '>');
 }
 
+static void write_transcoder(SgTranscoder *t, SgPort *port, SgWriteContext *ctx)
+{
+  Sg_PutuzUnsafe(port, UC("#<transcoder "));
+  Sg_PutsUnsafe(port, SG_CODEC_NAME(SG_TRANSCODER_CODEC(t)));
+  Sg_PutcUnsafe(port, ' ');
+  switch (t->eolStyle) {
+  case LF:     write_symbol(SG_INTERN("lf"), port, ctx); break;
+  case CR:     write_symbol(SG_INTERN("cr"), port, ctx); break;
+  case NEL:    write_symbol(SG_INTERN("nel"), port, ctx); break;
+  case LS:     write_symbol(SG_INTERN("ls"), port, ctx); break;
+  case CRNEL:  write_symbol(SG_INTERN("crnel"), port, ctx); break;
+  case CRLF:   write_symbol(SG_INTERN("crlf"), port, ctx); break;
+  case E_NONE: write_symbol(SG_INTERN("none"), port, ctx); break;
+  }
+  Sg_PutcUnsafe(port, ' ');
+  
+  switch (t->mode) {
+  case SG_RAISE_ERROR:   write_symbol(SG_INTERN("raise"), port, ctx); break;
+  case SG_REPLACE_ERROR: write_symbol(SG_INTERN("replace"), port, ctx); break;
+  case SG_IGNORE_ERROR:  write_symbol(SG_INTERN("ignore"), port, ctx); break;
+  }
+  Sg_PutcUnsafe(port, '>');
+}
+
+static void write_codec(SgCodec *c, SgPort *port, SgWriteContext *ctx)
+{
+  Sg_PutuzUnsafe(port, UC("#<codec "));
+  Sg_PutsUnsafe(port, SG_CODEC_NAME(c));
+  Sg_PutcUnsafe(port, '>');
+}
+
 
 #define SPBUFSIZ  50
 #define CASE_ITAG(obj, str)				\
@@ -919,10 +952,10 @@ static void write_gloc(SgGloc *g, SgPort *port, SgWriteContext *ctx)
 
 /* character name table (first 33 chars of ASCII)*/
 static const char *char_names[] = {
-    "null",   "x01",   "x02",    "x03",   "x04",   "x05",   "x06",   "x07",
+    "nul",    "x01",   "x02",    "x03",   "x04",   "x05",   "x06",   "x07",
     "x08",    "tab",   "newline","x0b",   "x0c",   "return","x0e",   "x0f",
     "x10",    "x11",   "x12",    "x13",   "x14",   "x15",   "x16",   "x17",
-    "x18",    "x19",   "x1a",    "escape","x1c",   "x1d",   "x1e",   "x1f",
+    "x18",    "x19",   "x1a",    "esc",   "x1c",   "x1d",   "x1e",   "x1f",
     "space"
 };
 
@@ -958,7 +991,7 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
       } else {
 	Sg_PutuzUnsafe(port, UC("#\\"));
 	if (ch <= 0x20)      Sg_PutzUnsafe(port, char_names[ch]);
-	else if (ch == 0x7f) Sg_PutuzUnsafe(port, UC("del"));
+	else if (ch == 0x7f) Sg_PutuzUnsafe(port, UC("delete"));
 	else                 Sg_PutcUnsafe(port, ch);
       }
     } else {
@@ -1089,6 +1122,10 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
     write_record_type(SG_RECORD_TYPE(obj), port, ctx);
   } else if (SG_GLOCP(obj)) {
     write_gloc(SG_GLOC(obj), port, ctx);
+  } else if (SG_TRANSCODERP(obj)) {
+    write_transcoder(SG_TRANSCODER(obj), port, ctx);
+  } else if (SG_CODECP(obj)) {
+    write_codec(SG_CODEC(obj), port, ctx);
   } else {
     Sg_PutuzUnsafe(port, UC("#<unknown datum>"));
   }
