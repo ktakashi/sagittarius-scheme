@@ -575,7 +575,7 @@
       (renderer-no-indent #t)
       (dispatch (car args) dispatch k)
       (renderer-no-indent #t)
-      ((renderer) "|")
+      ((renderer) "&")
       (renderer-no-indent #t)
       (dispatch (cadr args) dispatch k)
       (renderer-no-indent #t)

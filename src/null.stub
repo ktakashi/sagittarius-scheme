@@ -2765,7 +2765,7 @@
     (result (SG_INTP o)))
 
   (define-c-proc fixnum-width () ::fixnum
-    (result SG_INT_SIZE))
+    (result (+ SG_INT_SIZE 1)))
 
   (define-c-proc least-fixnum () ::fixnum
     (result SG_INT_MIN))
@@ -2822,10 +2822,10 @@
     (result (< fx 0)))
 
   (define-c-proc fxodd? (fx::fixnum) ::boolean
-    (result (== (% fx 2) 0)))
+    (result (== (logand fx 1) 1)))
 
   (define-c-proc fxeven? (fx::fixnum) ::boolean
-    (result (== (% fx 2) 1)))
+    (result (== (logand fx 1) 0)))
 
   (define-c-proc fxmax (fx::fixnum :rest rest) ::fixnum
     (let ((r::int fx))
@@ -2993,9 +2993,9 @@
      ((renderer) (format "(~a ~a SG_INT_VALUE(~a))" x op y))))
 
   (define-cgen-stmt fxlogop
-    ((_ name ret op . args)
+    ((_ name ret op args)
      (dispatch
-      `(dolist (v args)
+      `(dolist (v ,args)
 	 (check-fixnum ,name v)
 	 (set! ,ret (fxlogop-helper ,op ,ret v))))))
 

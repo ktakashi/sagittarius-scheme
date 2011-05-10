@@ -2,6 +2,7 @@
 
 	* src/null.stub, src/port.c (rnrs io ports): make it pass R6RS test
 	suite.
+	(fixnum): fixed fxodd? fxeven? fixnum-width, fxand, fxior and fxxor.
 
 2011-05-09  Takashi Kato  <ktakashi@ymail.com>
 
