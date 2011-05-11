@@ -1631,7 +1631,7 @@ int Sg_BitCount(SgObject x)
     if (n > 0) {
       return nbits(n);
     } else {
-      return ~nbits(n);
+      return ~nbits(~n);
     }
   } else {
     return Sg_BignumBitCount(SG_BIGNUM(x));
@@ -1647,7 +1647,8 @@ int Sg_BitSize(SgObject x)
     n2 = (n < 0) ? ~n : n;
     return WORD_BITS - nlz(n2);
   } else {
-    return Sg_BignumBitSize(SG_BIGNUM(x));
+    if (SG_BIGNUM_GET_SIGN(x) > 0) return Sg_BignumBitSize(SG_BIGNUM(x));
+    else return Sg_BitSize(Sg_LogNot(x));
   }  
 }
 

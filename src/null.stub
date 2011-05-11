@@ -263,16 +263,19 @@
 	    ;; 9 File system
 	    file-exists? delete-file
 
+	    ;; 10 Command-line access and exit values
+	    command-line exit
+
 	    ;; 11 Arithmetic
-	    ;; 11.2 fixnum
+	    ;; 11.2 fixnums
 	    fixnum? fixnum-width least-fixnum greatest-fixnum
 	    fx=? fx<? fx>? fx<=? fx>=?
 	    fxzero? fxpositive? fxnegative? fxodd? fxeven?
 	    fxmax fxmin
 	    fx+ fx* fx-
-	    fxdiv fxmod fxdiv-and-mod
-	    fxdiv0 fxmod0 fxdiv0-and-mod0
-	    fx+/carry fx-/carry fx*/carry
+	    fxdiv fxmod ;;fxdiv-and-mod
+	    fxdiv0 fxmod0 ;; fxdiv0-and-mod0
+	    ;;fx+/carry fx-/carry fx*/carry ;; these are in arith.scm
 	    fxnot fxand fxior fxxor fxif
 	    fxbit-count fxlength
 	    fxfirst-bit-set
@@ -282,21 +285,36 @@
 	    fxarithmetic-shift
 	    fxarithmetic-shift-left
 	    fxarithmetic-shift-right
-	    fxrotate-bit-field
+	    ;; fxrotate-bit-field ;; this is in arith.scm
 	    fxreverse-bit-field
 
+	    ;; 11.3 flonums
+	    flonum? real->flonum
+	    fl=? fl<? fl>? fl<=? fl>=?
+	    flinteger? flzero?
+	    flpositive? flnegative?
+	    flodd? fleven?
+	    flfinite? flinfinite?
+	    flnan? flmax flmin
+	    fl+ fl* fl- fl/
+	    fldiv flmod fldiv0 flmod0
+	    ;; fldiv-and-mod fldiv0-and-mod0
+	    flnumerator fldenominator
+	    flfloor flceiling
+	    fltruncate flround
+	    flexp flexpt
+	    fllog flsin
+	    flcos fltan
+	    flasin flacos
+	    flatan flabs
+	    flsqrt fixnum->flonum
+
 	    ;; 11.4 exact bitwise arithmetic
-	    bitwise-not
-	    bitwise-and
-	    bitwise-ior
-	    bitwise-xor
-	    bitwise-if
-	    bitwise-bit-count
-	    bitwise-length
-	    bitwise-first-bit-set
-	    bitwise-bit-set?
-	    bitwise-copy-bit
-	    bitwise-bit-field
+	    bitwise-not bitwise-and bitwise-ior
+	    bitwise-xor bitwise-if
+	    bitwise-bit-count bitwise-length
+	    bitwise-first-bit-set bitwise-bit-set?
+	    bitwise-copy-bit bitwise-bit-field
 	    bitwise-copy-bit-field
 	    bitwise-arithmetic-shift
 	    bitwise-arithmetic-shift-left
@@ -313,7 +331,6 @@
 
 	    ;; conditions
 	    keyword?
-	    and
 
 	    ;; 13 Hashtables
 	    ;; 13.1 constructors
@@ -1356,23 +1373,23 @@
     (result (Sg_ByteVectorToList lst 8 FALSE)))
 
   (define-cgen-stmt bv-check-index
-    ((_ bv index)
+    ((_ name bv index)
      (dispatch
       `(unless (> (SG_BVECTOR_SIZE ,bv) ,index)
-	 (assertion-violation 'bytevector "index out of range" (SG_MAKE_INT ,index)))))
-    ((_ bv index offset)
+	 (assertion-violation ',name "index out of range" (SG_MAKE_INT ,index)))))
+    ((_ name bv index offset)
      (dispatch
       `(let ((len::int (SG_BVECTOR_SIZE ,bv)))
 	 (unless (and (> len ,offset)
 		      (< ,index (- len ,offset)))
-	   (assertion-violation 'bytevector "index out of range" (SG_MAKE_INT ,index)))))))
+	   (assertion-violation ',name "index out of range" (SG_MAKE_INT ,index)))))))
 
   (define-c-proc bytevector-u8-ref (bv::ByteVector index::fixnum) ::fixnum
-    (bv-check-index bv index)
+    (bv-check-index bytevector-u8-ref bv index)
     (result (Sg_ByteVectorU8Ref bv index)))
 
   (define-c-proc bytevector-u8-set! (bv::ByteVector index::fixnum value::fixnum) ::void
-    (bv-check-index bv index)
+    (bv-check-index bytevector-u8-set! bv index)
     (unless (SG_IS_OCTET value)
       (assertion-violation 'bytevector-u8-set!
 			   "value out of range. must be 0 <= value <= 255"
@@ -1380,11 +1397,11 @@
     (Sg_ByteVectorU8Set bv index value))
 
   (define-c-proc bytevector-s8-ref (bv::ByteVector index::fixnum) ::fixnum
-    (bv-check-index bv index)
+    (bv-check-index bytevector-s8-ref bv index)
     (result (Sg_ByteVectorS8Ref bv index)))
 
   (define-c-proc bytevector-s8-set! (bv::ByteVector index::fixnum value::fixnum) ::void
-    (bv-check-index bv index)
+    (bv-check-index bytevector-s8-set! bv index)
     (unless (SG_IS_BYTE value)
       (assertion-violation 'bytevector-s8-set! 
 			   "value out of range. must be -127 <= value <= 128"
@@ -1392,33 +1409,33 @@
     (Sg_ByteVectorS8Set bv index value))
 
   (define-cgen-stmt bv-check-align
-    ((_ index align)
+    ((_ name index align)
      (dispatch
       `(unless (== (% ,index ,align) 0)
-	 (assertion-violation 'bytevector "index not aligned" 
+	 (assertion-violation ',name "index not aligned" 
 			      (SG_MAKE_INT ,index))))))
 
   (define-cgen-stmt bv-check-value
-    ((_ value min max)
+    ((_ name value min max)
      (dispatch
       `(unless (and (<= ,min ,value)
 		    (<= ,value ,max))
-	 (assertion-violation 'bytevector "value out of range %S"
+	 (assertion-violation ',name "value out of range %S"
 			      (SG_MAKE_INT ,value))))))
   ;; 2.5 operations on 16-bit integers
   ;; u16
   (define-c-proc bytevector-u16-native-ref (bv::ByteVector index::fixnum) ::fixnum
-    (bv-check-index bv index 1)
-    (bv-check-align index 2)
+    (bv-check-index bytevector-u16-native-ref bv index 1)
+    (bv-check-align bytevector-u16-native-ref index 2)
     (result (Sg_ByteVectorU16NativeRef bv index)))
 
   (define-c-proc bytevector-u16-native-set! (bv::ByteVector index::fixnum value::fixnum) ::void
-    (bv-check-index bv index 1)
-    (bv-check-value value 0 #xFFFF)
+    (bv-check-index bytevector-u16-native-set! bv index 1)
+    (bv-check-value bytevector-u16-native-set! value 0 #xFFFF)
     (Sg_ByteVectorU16NativeSet bv index value))
 
   (define-c-proc bytevector-u16-ref (bv::ByteVector index::fixnum endian::Symbol) ::fixnum
-    (bv-check-index bv index 1)
+    (bv-check-index bytevector-u16-ref bv index 1)
     (cond ((SG_EQ endian 'big)
 	   (result (Sg_ByteVectorU16BigRef bv index)))
 	  ((SG_EQ endian 'little)
@@ -1427,8 +1444,8 @@
 	   (assertion-violation 'bytevector-u16-ref "unsupported endianness" endian))))
 
   (define-c-proc bytevector-u16-set! (bv::ByteVector index::fixnum value::fixnum endian::Symbol) ::void
-    (bv-check-index bv index 1)
-    (bv-check-value value 0 #xFFFF)
+    (bv-check-index bytevector-u16-set! bv index 1)
+    (bv-check-value bytevector-u16-set! value 0 #xFFFF)
     (cond ((SG_EQ endian 'big)
 	   (Sg_ByteVectorU16BigSet bv index value))
 	  ((SG_EQ endian 'little)
@@ -1438,17 +1455,17 @@
 
   ;; s16
   (define-c-proc bytevector-s16-native-ref (bv::ByteVector index::fixnum) ::fixnum
-    (bv-check-index bv index 1)
-    (bv-check-align index 2)
+    (bv-check-index bytevector-s16-native-ref bv index 1)
+    (bv-check-align bytevector-s16-native-ref index 2)
     (result (Sg_ByteVectorS16NativeRef bv index)))
 
   (define-c-proc bytevector-s16-native-set! (bv::ByteVector index::fixnum value::fixnum) ::void
-    (bv-check-index bv index 1)
-    (bv-check-value value #x-8000 #x7FFF)
+    (bv-check-index bytevector-s16-native-set! bv index 1)
+    (bv-check-value bytevector-s16-native-set! value #x-8000 #x7FFF)
     (Sg_ByteVectorS16NativeSet bv index value))
 
   (define-c-proc bytevector-s16-ref (bv::ByteVector index::fixnum endian::Symbol) ::fixnum
-    (bv-check-index bv index 1)
+    (bv-check-index bytevector-s16-ref bv index 1)
     (cond ((SG_EQ endian 'big)
 	   (result (Sg_ByteVectorS16BigRef bv index)))
 	  ((SG_EQ endian 'little)
@@ -1457,8 +1474,8 @@
 	   (assertion-violation 'bytevector-s16-ref "unsupported endianness" endian))))
 
   (define-c-proc bytevector-s16-set! (bv::ByteVector index::fixnum value::fixnum endian::Symbol) ::void
-    (bv-check-index bv index 1)
-    (bv-check-value value #x-8000 #x7FFF)
+    (bv-check-index bytevector-s16-set! bv index 1)
+    (bv-check-value bytevector-s16-set! value #x-8000 #x7FFF)
     (cond ((SG_EQ endian 'big)
 	   (Sg_ByteVectorS16BigSet bv index value))
 	  ((SG_EQ endian 'little)
@@ -1468,12 +1485,12 @@
   ;; 2.6 operations on 32-bit integers
   ;; u32
   (define-c-proc bytevector-u32-native-ref (bv::ByteVector index::fixnum) ::Object
-    (bv-check-index bv index 3)
-    (bv-check-align index 4)
+    (bv-check-index bytevector-u32-native-ref bv index 3)
+    (bv-check-align bytevector-u32-native-ref index 4)
     (result (Sg_MakeIntegerFromU32 (Sg_ByteVectorU32NativeRef bv index))))
 
   (define-c-proc bytevector-u32-native-set! (bv::ByteVector index::fixnum v::number) ::void
-    (bv-check-index bv index 3)
+    (bv-check-index bytevector-u32-native-set! bv index 3)
     (let ((value::uint32_t 0))
       (cond ((SG_INTP v)
 	     (when (< (SG_INT_VALUE v) 0)
@@ -1486,7 +1503,7 @@
       (Sg_ByteVectorU32NativeSet bv index value)))
 
   (define-c-proc bytevector-u32-ref (bv::ByteVector index::fixnum endian::Symbol) ::Object
-    (bv-check-index bv index 3)
+    (bv-check-index bytevector-u32-ref bv index 3)
     (cond ((SG_EQ endian 'big)
 	   (result (Sg_MakeIntegerFromU32 (Sg_ByteVectorU32BigRef bv index))))
 	  ((SG_EQ endian 'little)
@@ -1495,7 +1512,7 @@
 	   (assertion-violation 'bytevector-u32-ref "unsupported endianness" endian))))
 
   (define-c-proc bytevector-u32-set! (bv::ByteVector index::fixnum v::number endian::Symbol) ::void
-    (bv-check-index bv index 3)
+    (bv-check-index bytevector-u32-set! bv index 3)
     (let ((value::uint32_t 0))
       (cond ((SG_INTP v)
 	     (when (< (SG_INT_VALUE v) 0)
@@ -1513,12 +1530,12 @@
 	     (assertion-violation 'bytevector-u32-set! "unsupported endianness" endian)))))
   ;; s32
   (define-c-proc bytevector-s32-native-ref (bv::ByteVector index::fixnum) ::Object
-    (bv-check-index bv index 3)
-    (bv-check-align index 4)
+    (bv-check-index bytevector-s32-native-ref bv index 3)
+    (bv-check-align bytevector-s32-native-ref index 4)
     (result (Sg_MakeIntegerFromS32 (Sg_ByteVectorS32NativeRef bv index))))
 
   (define-c-proc bytevector-s32-native-set! (bv::ByteVector index::fixnum v::number) ::void
-    (bv-check-index bv index 3)
+    (bv-check-index bytevector-s32-native-set! bv index 3)
     (let ((value::int32_t 0))
       (cond ((SG_INTP v)
 	     (when (< (SG_INT_VALUE v) 0)
@@ -1531,7 +1548,7 @@
       (Sg_ByteVectorS32NativeSet bv index value)))
 
   (define-c-proc bytevector-s32-ref (bv::ByteVector index::fixnum endian::Symbol) ::Object
-    (bv-check-index bv index 3)
+    (bv-check-index bytevector-s32-ref bv index 3)
     (cond ((SG_EQ endian 'big)
 	   (result (Sg_MakeIntegerFromS32 (Sg_ByteVectorS32BigRef bv index))))
 	  ((SG_EQ endian 'little)
@@ -1540,7 +1557,7 @@
 	   (assertion-violation 'bytevector-s32-ref "unsupported endianness" endian))))
 
   (define-c-proc bytevector-s32-set! (bv::ByteVector index::fixnum v::number endian::Symbol) ::void
-    (bv-check-index bv index 3)
+    (bv-check-index bytevector-s32-set! bv index 3)
     (let ((value::int32_t 0))
       (cond ((SG_INTP v)
 	     (when (< (SG_INT_VALUE v) 0)
@@ -1559,12 +1576,12 @@
   ;; 2.7 operations on 64-bit integers
   ;; u64
   (define-c-proc bytevector-u64-native-ref (bv::ByteVector index::fixnum) ::Object
-    (bv-check-index bv index 7)
-    (bv-check-align index 8)
+    (bv-check-index bytevector-u64-native-ref bv index 7)
+    (bv-check-align bytevector-u64-native-ref index 8)
     (result (Sg_MakeIntegerFromU64 (Sg_ByteVectorU64NativeRef bv index))))
 
   (define-c-proc bytevector-u64-native-set! (bv::ByteVector index::fixnum v::number) ::void
-    (bv-check-index bv index 7)
+    (bv-check-index bytevector-u64-native-set! bv index 7)
     (let ((value::uint64_t 0))
       (cond ((SG_INTP v)
 	     (when (< (SG_INT_VALUE v) 0)
@@ -1577,7 +1594,7 @@
       (Sg_ByteVectorU64NativeSet bv index value)))
 
   (define-c-proc bytevector-u64-ref (bv::ByteVector index::fixnum endian::Symbol) ::Object
-    (bv-check-index bv index 7)
+    (bv-check-index bytevector-u64-ref bv index 7)
     (cond ((SG_EQ endian 'big)
 	   (result (Sg_MakeIntegerFromU64 (Sg_ByteVectorU64BigRef bv index))))
 	  ((SG_EQ endian 'little)
@@ -1586,7 +1603,7 @@
 	   (assertion-violation 'bytevector-u64-ref "unsupported endianness" endian))))
 
   (define-c-proc bytevector-u64-set! (bv::ByteVector index::fixnum v::number endian::Symbol) ::void
-    (bv-check-index bv index 7)
+    (bv-check-index bytevector-u64-set! bv index 7)
     (let ((value::uint64_t 0))
       (cond ((SG_INTP v)
 	     (when (< (SG_INT_VALUE v) 0)
@@ -1604,12 +1621,12 @@
 	     (assertion-violation 'bytevector-u64-set! "unsupported endianness" endian)))))
   ;; s64
   (define-c-proc bytevector-s64-native-ref (bv::ByteVector index::fixnum) ::Object
-    (bv-check-index bv index 7)
-    (bv-check-align index 8)
+    (bv-check-index bytevector-s64-native-ref bv index 7)
+    (bv-check-align bytevector-s64-native-ref index 8)
     (result (Sg_MakeIntegerFromS64 (Sg_ByteVectorS64NativeRef bv index))))
 
   (define-c-proc bytevector-s64-native-set! (bv::ByteVector index::fixnum v::number) ::void
-    (bv-check-index bv index 7)
+    (bv-check-index bytevector-s64-native-set! bv index 7)
     (let ((value::int64_t 0))
       (cond ((SG_INTP v)
 	     (when (< (SG_INT_VALUE v) 0)
@@ -1622,7 +1639,7 @@
       (Sg_ByteVectorS64NativeSet bv index value)))
 
   (define-c-proc bytevector-s64-ref (bv::ByteVector index::fixnum endian::Symbol) ::Object
-    (bv-check-index bv index 7)
+    (bv-check-index bytevector-s64-ref bv index 7)
     (cond ((SG_EQ endian 'big)
 	   (result (Sg_MakeIntegerFromS64 (Sg_ByteVectorS64BigRef bv index))))
 	  ((SG_EQ endian 'little)
@@ -1631,7 +1648,7 @@
 	   (assertion-violation 'bytevector-s64-ref "unsupported endianness" endian))))
 
   (define-c-proc bytevector-s64-set! (bv::ByteVector index::fixnum v::number endian::Symbol) ::void
-    (bv-check-index bv index 7)
+    (bv-check-index bytevector-s64-set! bv index 7)
     (let ((value::int64_t 0))
       (cond ((SG_INTP v)
 	     (when (< (SG_INT_VALUE v) 0)
@@ -1650,12 +1667,12 @@
   ;; 2.8 operations on ieee-754 representations
   ;; ieee-single
   (define-c-proc bytevector-ieee-single-native-ref (bv::ByteVector index::fixnum) ::Object
-    (bv-check-index bv index 3)
-    (bv-check-align index 4)
+    (bv-check-index bytevector-ieee-single-native-ref bv index 3)
+    (bv-check-align bytevector-ieee-single-native-ref index 4)
     (result (Sg_MakeFlonum (Sg_ByteVectorIEEESingleNativeRef bv index))))
 
   (define-c-proc bytevector-ieee-single-ref (bv::ByteVector index::fixnum endian::Symbol) ::Object
-    (bv-check-index bv index 3)
+    (bv-check-index bytevector-ieee-single-ref bv index 3)
     (cond ((SG_EQ endian 'big)
 	   (result (Sg_MakeFlonum (Sg_ByteVectorIEEESingleBigRef bv index))))
 	  ((SG_EQ endian 'little)
@@ -1664,14 +1681,14 @@
 	   (assertion-violation 'bytevector-ieee-single-ref "unsupported endianness" endian))))
   
   (define-c-proc bytevector-ieee-single-native-set! (bv::ByteVector index::fixnum v::number) ::void
-    (bv-check-index bv index 3)
-    (bv-check-align index 4)
+    (bv-check-index bytevector-ieee-single-native-set! bv index 3)
+    (bv-check-align bytevector-ieee-single-native-set! index 4)
     (check-real bytevector-ieee-single-native-set! v)
     (let ((value::double (Sg_GetDouble v)))
       (Sg_ByteVectorIEEESingleNativeSet bv index (cast float value))))
 
   (define-c-proc bytevector-ieee-single-set! (bv::ByteVector index::fixnum v::number endian::Symbol) ::void
-    (bv-check-index bv index 3)
+    (bv-check-index bytevector-ieee-single-set! bv index 3)
     (check-real bytevector-ieee-single-set! v)
     (let ((value::double (Sg_GetDouble v)))
       (cond ((SG_EQ endian 'big)
@@ -1682,12 +1699,12 @@
 	     (assertion-violation 'bytevector-ieee-single-set! "unsupported endianness" endian)))))
   ;; ieee-double
   (define-c-proc bytevector-ieee-double-native-ref (bv::ByteVector index::fixnum) ::Object
-    (bv-check-index bv index 7)
-    (bv-check-align index 8)
+    (bv-check-index bytevector-ieee-double-native-ref bv index 7)
+    (bv-check-align bytevector-ieee-double-native-ref index 8)
     (result (Sg_MakeFlonum (Sg_ByteVectorIEEEDoubleNativeRef bv index))))
 
   (define-c-proc bytevector-ieee-double-ref (bv::ByteVector index::fixnum endian::Symbol) ::Object
-    (bv-check-index bv index 7)
+    (bv-check-index bytevector-ieee-double-ref bv index 7)
     (cond ((SG_EQ endian 'big)
 	   (result (Sg_MakeFlonum (Sg_ByteVectorIEEEDoubleBigRef bv index))))
 	  ((SG_EQ endian 'little)
@@ -1696,14 +1713,14 @@
 	   (assertion-violation 'bytevector-ieee-double-ref "unsupported endianness" endian))))
   
   (define-c-proc bytevector-ieee-double-native-set! (bv::ByteVector index::fixnum v::number) ::void
-    (bv-check-index bv index 7)
-    (bv-check-align index 8)
+    (bv-check-index bytevector-ieee-double-native-set! bv index 7)
+    (bv-check-align bytevector-ieee-double-native-set! index 8)
     (check-real bytevector-ieee-double-native-set! v)
     (let ((value::double (Sg_GetDouble v)))
       (Sg_ByteVectorIEEEDoubleNativeSet bv index value)))
 
   (define-c-proc bytevector-ieee-double-set! (bv::ByteVector index::fixnum v::number endian::Symbol) ::void
-    (bv-check-index bv index 7)
+    (bv-check-index bytevector-ieee-double-set! bv index 7)
     (check-real bytevector-ieee-double-set! v)
     (let ((value::double (Sg_GetDouble v)))
       (cond ((SG_EQ endian 'big)
@@ -2759,6 +2776,10 @@
   (define-c-proc delete-file (filename::String) ::void
     (Sg_DeleteFile filename))
 
+  ;; 10 Command-line access and exit values
+  (define-c-proc command-line () ::Object
+    (result (-> (Sg_VM) commandLineArgs)))
+
   ;; 11 Arithmetic
   ;; 11.2 fixnum
   (define-c-proc fixnum? (o) ::boolean
@@ -2790,11 +2811,11 @@
 	 (let ((prev::int ,second)
 	       (target::int 0))
 	   (dolist (v ,rest)
-	     (unless (SG_INTP v)
-	       (check-fixnum ,name v))
+	     (check-fixnum ,name v)
 	     (set! target (SG_INT_VALUE v))
 	     (unless (,compare prev target)
-	       (return #f)))
+	       (return #f))
+	     (set! prev target))
 	   (result TRUE))))))
 
   (define-c-proc fx=? (fx1::fixnum fx2::fixnum :rest rest) ::boolean
@@ -2822,10 +2843,10 @@
     (result (< fx 0)))
 
   (define-c-proc fxodd? (fx::fixnum) ::boolean
-    (result (== (logand fx 1) 1)))
+    (result (== (fxlogand fx 1) 1)))
 
   (define-c-proc fxeven? (fx::fixnum) ::boolean
-    (result (== (logand fx 1) 0)))
+    (result (== (fxlogand fx 1) 0)))
 
   (define-c-proc fxmax (fx::fixnum :rest rest) ::fixnum
     (let ((r::int fx))
@@ -3014,16 +3035,8 @@
       (fxlogop fxxor ret "^" rest)
       (result ret)))
 
-  (define-cgen-stmt fxlognot
-    ((_ x)
-     ((renderer) (format "~~~a" x))))
-
   (define-c-proc fxnot (fx::fixnum) ::fixnum
     (result (fxlognot fx)))
-
-  (define-cgen-stmt fxlogif
-    ((_ x y z)
-     ((renderer) (format "(~a & ~a) | (~~~a & ~a)" x y x z))))
 
   (define-c-proc fxif (fx1::fixnum fx2::fixnum fx3::fixnum) ::fixnum
     (result (fxlogif fx1 fx2 fx3)))
@@ -3041,11 +3054,449 @@
     (result (Sg_FirstBitSet (SG_MAKE_INT fx))))
 
   (define-c-proc fxbit-set? (fx1::fixnum fx2::fixnum) ::boolean
-    (result (logand (ash fx1 (negate fx2)) 1)))
+    (result (fxlogand (ashr fx1 fx2) 1)))
 
-  ;; arithmetic bitwise
+  (define-c-proc fxcopy-bit (fx1::fixnum fx2::fixnum fx3::fixnum) ::fixnum
+    (check-fixnum-range fxcopy-bit fx2 0 SG_INT_SIZE <= <=)
+    (check-fixnum-range fxcopy-bit fx3 0 1 <= <=)
+    (let ((mask::int (ashl 1 fx2)))
+      (result (fxlogif mask (ashl fx3 fx2) fx1))))
+
+  (define-c-proc fxbit-field (fx1::fixnum fx2::fixnum fx3::fixnum) ::fixnum
+    (check-fixnum-range fxbit-field fx2 0 SG_INT_SIZE <= <=)
+    (check-fixnum-range fxbit-field fx3 0 SG_INT_SIZE <= <=)
+    (when (> fx2 fx3)
+      (assertion-violation 'fxbit-field
+			   "out of range"
+			   (SG_LIST3 (SG_MAKE_INT fx1)
+				     (SG_MAKE_INT fx2)
+				     (SG_MAKE_INT fx3))))
+    (let ((mask::int (fxlognot (ashl -1 fx3))))
+      (result (ashr (fxlogand fx1 mask) fx2))))
+
+  (define-c-proc fxcopy-bit-field (fx1::fixnum fx2::fixnum fx3::fixnum fx4::fixnum) ::fixnum
+    (check-fixnum-range fxbit-field fx2 0 SG_INT_SIZE <= <=)
+    (check-fixnum-range fxbit-field fx3 0 SG_INT_SIZE <= <=)
+    (when (> fx2 fx3)
+      (assertion-violation 'fxbit-field
+			   "out of range"
+			   (SG_LIST4 (SG_MAKE_INT fx1) (SG_MAKE_INT fx2)
+				     (SG_MAKE_INT fx3) (SG_MAKE_INT fx4))))
+    (let ((mask1::int (ashl -1 fx2))
+	  (mask2::int (fxlognot (ashl -1 fx3)))
+	  (mask::int (fxlogand mask1 mask2)))
+      (result (fxlogif mask (ashl fx4 fx2) fx1))))
+
+  (define-c-proc fxarithmetic-shift (fx1::fixnum fx2::fixnum) ::fixnum
+    (when (> (abs fx2) SG_INT_SIZE)
+      (assertion-violation 'fxarithmetic-shift "out of range"
+			   (SG_LIST2 (SG_MAKE_INT fx1) (SG_MAKE_INT fx2))))
+    (let ((ret::int 0))
+      (if (>= fx2 0)
+	  (set! ret (ashl fx1 fx2))
+	  (set! ret (ashr fx1 (negate fx2))))
+      (if (fixnum-fits? ret)
+	  (result ret)
+	  (implementation-restriction-violation 'fxarithmetic-shift
+						"result is not a fixnum"
+						(SG_LIST2 (SG_MAKE_INT fx1) (SG_MAKE_INT fx2))))))
+
+  (define-c-proc fxarithmetic-shift-left (fx1::fixnum fx2::fixnum) ::fixnum
+    (check-fixnum-range fxbit-field fx2 0 SG_INT_SIZE <= <=)
+    (let ((ret::int (ashl fx1 fx2)))
+      (if (fixnum-fits? ret)
+	  (result ret)
+	  (implementation-restriction-violation 'fxarithmetic-shift-left
+						"result is not a fixnum"
+						(SG_LIST2 (SG_MAKE_INT fx1) (SG_MAKE_INT fx2))))))
+
+  (define-c-proc fxarithmetic-shift-right (fx1::fixnum fx2::fixnum) ::fixnum
+    (check-fixnum-range fxbit-field fx2 0 SG_INT_SIZE <= <=)
+    (let ((ret::int (ashr fx1 fx2)))
+      (if (fixnum-fits? ret)
+	  (result ret)
+	  (implementation-restriction-violation 'fxarithmetic-shift-left
+						"result is not a fixnum"
+						(SG_LIST2 (SG_MAKE_INT fx1) (SG_MAKE_INT fx2))))))
+
+  (decl-code 
+   (.typedef "unsigned int" "uint"))
+
+  (define-c-proc fxreverse-bit-field (fx1::fixnum fx2::fixnum fx3::fixnum) ::fixnum
+    (check-fixnum-range fxbit-field fx2 0 SG_INT_SIZE <= <=)
+    (check-fixnum-range fxbit-field fx3 0 SG_INT_SIZE <= <=)
+    (when (> fx2 fx3)
+      (assertion-violation 'fxreverse-bit-field "out of range"
+			   (SG_LIST3 (SG_MAKE_INT fx1) (SG_MAKE_INT fx2) (SG_MAKE_INT fx3))))
+    (let ((bits::uint  fx1)
+	  (start::int fx2)
+	  (end::int   (- fx3 1)))
+      (while (< start end)
+	(let ((sbit::int (fxlogand (ashr bits start) 1))
+	      (ebit::int (fxlogand (ashr bits end) 1)))
+	  (set! bits (fxlogand bits (- (cast uint -1) (ashl 1 end))))
+	  (set! bits (fxlogor bits (ashl sbit end)))
+	  (set! bits (fxlogand bits (- (cast uint -1) (ashl 1 start))))
+	  (set! bits (fxlogor bits (ashl ebit start)))
+	  (post++ start)
+	  (post-- end)))
+      (result bits)))
+
+  ;; 11.3 flonums
+  (decl-code
+   (.include <math.h>))
+
+  (define-c-proc flonum? (o) ::boolean
+    (result (SG_FLONUMP o)))
+
+  (define-c-proc real->flonum (n::number) ::Object
+    (check-real-valued real->flonum n)
+    (if (SG_FLONUMP n)
+	(result n)
+	(result (Sg_MakeFlonum (Sg_GetDouble n)))))
+
+  (define-cgen-stmt check-flonum
+    ((_ name v)
+     (dispatch
+      `(unless (SG_FLONUMP ,v)
+	 (wrong-type-of-argument-violation ',name
+					   "flonum"
+					   (SG_LIST1 ,v))))))
+  (define-cgen-stmt flonum-value
+    ((_ fl)
+     (dispatch
+      `(-> (SG_FLONUM ,fl) value))))
+
+  (define-cgen-stmt flonum-compare
+    ((_ name compare first second rest)
+     (dispatch
+      `(begin
+	 (unless (,compare (flonum-value ,first)
+			   (flonum-value ,second))
+	   (return #f))
+	 (let ((prev::double (flonum-value ,second))
+	       (target::double 0.0))
+	   (dolist (v ,rest)
+	     (check-flonum ,name v)
+	     (set! target (flonum-value v))
+	     (unless (,compare prev target)
+	       (return #f))
+	     (set! prev target))
+	   (result TRUE))))))
+
+  (define-c-proc fl=? (fl1::number fl2::number :rest rest) ::boolean
+    (flonum-compare fl=? == fl1 fl2 rest))
+
+  (define-c-proc fl<? (fl1::number fl2::number :rest rest) ::boolean
+    (flonum-compare fl<? < fl1 fl2 rest))
+
+  (define-c-proc fl>? (fl1::number fl2::number :rest rest) ::boolean
+    (flonum-compare fl>? > fl1 fl2 rest))
+
+  (define-c-proc fl<=? (fl1::number fl2::number :rest rest) ::boolean
+    (flonum-compare fl<=? <= fl1 fl2 rest))
+
+  (define-c-proc fl>=? (fl1::number fl2::number :rest rest) ::boolean
+    (flonum-compare fl>=? >= fl1 fl2 rest))
+
+  (define-cgen-stmt flonum-integer?
+    ((_ fl)
+     (dispatch
+      `(cond ((or (isinf (flonum-value ,fl))
+	       (isnan (flonum-value ,fl)))
+	   (result FALSE))
+	  (else
+	   (result (== (flonum-value ,fl) (round (flonum-value ,fl)))))))))
+
+  (define-c-proc flinteger? (fl::number) ::boolean
+    (check-flonum flinteger? fl)
+    (flonum-integer? fl))
+
+  (define-c-proc flzero? (fl::number) ::boolean
+    (check-flonum flzero? fl)
+    (result (== (flonum-value fl) 0.0)))
+  
+  (define-c-proc flpositive? (fl::number) ::boolean
+    (check-flonum flpositive? fl)
+    (result (> (flonum-value fl) 0.0)))
+
+  (define-c-proc flnegative? (fl::number) ::boolean
+    (check-flonum flnegative? fl)
+    (result (< (flonum-value fl) 0.0)))
+
+  (define-c-proc flodd? (fl::number) ::boolean
+    (check-flonum flodd? fl)
+    (flonum-integer? fl)
+    (if SG_RETURN
+	(result (not (== (* (flonum-value fl) 0.5)
+			 (floor (* (flonum-value fl) 0.5)))))
+	(wrong-type-of-argument-violation 'flodd?
+					  "integer flonum"
+					  (SG_LIST1 fl))))
+
+  (define-c-proc fleven? (fl::number) ::boolean
+    (check-flonum fleven? fl)
+    (flonum-integer? fl)
+    (if SG_RETURN
+	(result (== (* (flonum-value fl) 0.5)
+		    (floor (* (flonum-value fl) 0.5))))
+	(wrong-type-of-argument-violation 'fleven?
+					  "integer flonum"
+					  (SG_LIST1 fl))))
+  (define-c-proc flfinite? (fl::number) ::boolean
+    (check-flonum flfinite? fl)
+    (result (not (isinf (flonum-value fl)))))
+
+  (define-c-proc flinfinite? (fl::number) ::boolean
+    (check-flonum flinfinite? fl)
+    (result (isinf (flonum-value fl))))
+
+  (define-c-proc flnan? (fl::number) ::boolean
+    (check-flonum flnan? fl)
+    (result (isnan (flonum-value fl))))
+
+  (define-c-proc flmax (fl::number :rest rest) ::Object
+    (check-flonum flmax fl)
+    (if (isnan (flonum-value fl))
+	(return fl))
+    (let ((max::double (flonum-value fl)))
+      (dolist (v rest)
+	(check-flonum flmax v)
+	(if (isnan (flonum-value v))
+	    (return v))
+	(if (> (flonum-value v) max)
+	    (set! max (flonum-value v))))
+      (result (Sg_MakeFlonum max))))
+
+  (define-c-proc flmin (fl::number :rest rest) ::Object
+    (check-flonum flmin fl)
+    (if (isnan (flonum-value fl))
+	(return fl))
+    (let ((min::double (flonum-value fl)))
+      (dolist (v rest)
+	(check-flonum flmin v)
+	(if (isnan (flonum-value v))
+	    (return v))
+	(if (< (flonum-value v) min)
+	    (set! min (flonum-value v))))
+      (result (Sg_MakeFlonum min))))
+
+  (define-cgen-stmt flonum-op
+    ((_ name op ret first rest)
+     (dispatch
+      `(begin
+	 (set! ,ret (flonum-value ,first))
+	 (dolist (v ,rest)
+	   (check-flonum ,name v)
+	   (set! ,ret (,op ,ret (flonum-value v))))))))
+
+  (define-c-proc fl+ (:rest rest) ::Object
+    (if (SG_NULLP rest)
+	(result (Sg_MakeFlonum 0.0))
+	(let ((len (Sg_Length rest)))
+	  (cond ((== len 1)
+		 (check-flonum fl+ (SG_CAR rest))
+		 (result (SG_CAR rest)))
+		(else
+		 (let ((ret::double 0.0))
+		   (flonum-op fl+ + ret (SG_CAR rest) (SG_CDR rest))
+		   (result (Sg_MakeFlonum ret))))))))
+
+  (define-c-proc fl* (:rest rest) ::Object
+    (if (SG_NULLP rest)
+	(result (Sg_MakeFlonum 1.0))
+	(let ((len (Sg_Length rest)))
+	  (cond ((== len 1)
+		 (check-flonum fl* (SG_CAR rest))
+		 (result (SG_CAR rest)))
+		(else
+		 (let ((ret::double 1.0))
+		   (flonum-op fl* * ret (SG_CAR rest) (SG_CDR rest))
+		   (result (Sg_MakeFlonum ret))))))))
+
+  (define-c-proc fl- (fl::number :rest rest) ::Object
+    (check-flonum fl- fl)
+    (cond ((SG_NULLP rest)
+	   (result (Sg_MakeFlonum (* -1 (flonum-value fl)))))
+	  (else
+	   (let ((ret::double 1.0))
+	     (flonum-op fl- - ret fl rest)
+	     (result (Sg_MakeFlonum ret))))))
+
+  (define-c-proc fl/ (fl::number :rest rest) ::Object
+    (check-flonum fl/ fl)
+    (cond ((SG_NULLP rest)
+	   (if (== (flonum-value fl) 0.0)
+	       (assertion-violation 'fl/ "undefined for 0" (SG_LIST1 fl))
+	       (result (Sg_Div (Sg_MakeFlonum 1.0) fl))))
+	  (else
+	   (let ((ret::double 1.0))
+	     (flonum-op fl/ / ret fl rest)
+	     (result (Sg_MakeFlonum ret))))))
+
+  (define-cgen-stmt flonum-div
+    ((_ ret d1 d2)
+     (dispatch
+      `(if (> ,d2 0.0)
+	   (set! ,ret (floor (/ ,d1 ,d2)))
+	   (set! ,ret (negate (floor (/ ,d1 (negate ,d2)))))))))
+
+  (define-cgen-stmt flonum-mod
+    ((_ ret d1 d2)
+     (dispatch
+      (let ((tmp (gen-temporary)))
+	`(let ((,(string->symbol (format "~a::double" tmp)) 0.0))
+	   (flonum-div ,tmp ,d1 ,d2)
+	   (set! ,ret (- ,d1 (* ,d2 ,tmp))))))))
+
+  (define-c-proc fldiv (fl1::number fl2::number) ::Object
+    (check-flonum fldiv fl1)
+    (check-flonum fldiv fl2)
+    (let ((d1::double (flonum-value fl1))
+	  (d2::double (flonum-value fl2))
+	  (ret::double 0.0))
+      (flonum-div ret d1 d2)
+      (result (Sg_MakeFlonum ret))))
+
+  (define-c-proc flmod (fl1::number fl2::number) ::Object
+    (check-flonum flmod fl1)
+    (check-flonum flmod fl2)
+    (let ((d1::double (flonum-value fl1))
+	  (d2::double (flonum-value fl2))
+	  (ret::double 0.0))
+      (flonum-mod ret d1 d2)
+      (result (Sg_MakeFlonum ret))))
+
+  (define-cgen-stmt flonum-div0
+    ((_ ret d1 d2)
+     (dispatch
+      (let ((div (gen-temporary))
+	    (mod (gen-temporary)))
+	`(let ((,(string->symbol (format "~a::double" div)) 0.0)
+	       (,(string->symbol (format "~a::double" mod)) 0.0))
+	   (flonum-div ,div ,d1 ,d2)
+	   (flonum-mod ,mod ,d1 ,d2)
+	   (cond ((< ,mod (/ (fabs ,d2) 2.0))
+		  (set! ,ret ,div))
+		 ((> ,d2 0.0)
+		  (set! ,ret (+ ,div 1.0)))
+		 (else(set! ,ret (- ,div 1.0)))))))))
+
+  (define-cgen-stmt flonum-mod0
+    ((_ ret d1 d2)
+     (dispatch
+      (let ((div (gen-temporary)))
+	`(let ((,(string->symbol (format "~a::double" div)) 0.0))
+	   (flonum-div0 ,div ,d1 ,d2)
+	   (set! ,ret (- ,d1 (* ,d2 ,div))))))))
+
+  (define-c-proc fldiv0 (fl1::number fl2::number) ::Object
+    (check-flonum fldiv0 fl1)
+    (check-flonum fldiv0 fl2)
+    (let ((d1::double (flonum-value fl1))
+	  (d2::double (flonum-value fl2))
+	  (ret::double 0.0))
+      (flonum-div0 ret d1 d2)
+      (result (Sg_MakeFlonum ret))))
+
+  (define-c-proc flmod0 (fl1::number fl2::number) ::Object
+    (check-flonum flmod0 fl1)
+    (check-flonum flmod0 fl2)
+    (let ((d1::double (flonum-value fl1))
+	  (d2::double (flonum-value fl2))
+	  (ret::double 0.0))
+      (flonum-mod0 ret d1 d2)
+      (result (Sg_MakeFlonum ret))))
+
+  (define-c-proc flnumerator (fl::number) ::Object
+    (check-flonum flnumerator fl)
+    (result (Sg_Numerator fl)))
+
+  (define-c-proc fldenominator (fl::number) ::Object
+    (check-flonum fldenominator fl)
+    (result (Sg_Denominator fl)))
+
+  (define-c-proc flfloor (fl::number) ::Object
+    (check-flonum flfloorr fl)
+    (result (Sg_Round fl SG_ROUND_FLOOR)))
+
+  (define-c-proc flceiling (fl::number) ::Object
+    (check-flonum flceiling fl)
+    (result (Sg_Round fl SG_ROUND_CEIL)))
+
+  (define-c-proc fltruncate (fl::number) ::Object
+    (check-flonum fltruncate fl)
+    (result (Sg_Round fl SG_ROUND_TRUNC)))
+
+  (define-c-proc flround (fl::number) ::Object
+    (check-flonum flround fl)
+    (result (Sg_Round fl SG_ROUND_ROUND)))
+
+  (define-c-proc flexp (fl::number) ::Object
+    (check-flonum flexp fl)
+    (result (Sg_MakeFlonum (exp (flonum-value fl)))))
+
+  (define-c-proc flexpt (fl1::number fl2::number) ::Object
+    (check-flonum flexpt fl1)
+    (check-flonum flexpt fl2)
+    (result (Sg_MakeFlonum (pow (flonum-value fl1) (flonum-value fl2)))))
+
+  (define-c-proc fllog (fl1::number :optional fl2) ::Object
+    (check-flonum fllog fl1)
+    (if (SG_UNBOUNDP fl2)
+	(result (Sg_MakeFlonum (log (flonum-value fl1))))
+	(begin
+	  (check-flonum fllog fl2)
+	  (result (Sg_MakeFlonum (/ (log (flonum-value fl1))
+				    (log (flonum-value fl2))))))))
+  
+  (define-c-proc flsin (fl::number) ::Object
+    (check-flonum flsin fl)
+    (result (Sg_MakeFlonum (sin (flonum-value fl)))))
+
+  (define-c-proc flcos (fl::number) ::Object
+    (check-flonum flcos fl)
+    (result (Sg_MakeFlonum (cos (flonum-value fl)))))
+
+  (define-c-proc fltan (fl::number) ::Object
+    (check-flonum fltan fl)
+    (result (Sg_MakeFlonum (tan (flonum-value fl)))))
+
+  (define-c-proc flasin (fl::number) ::Object
+    (check-flonum flasin fl)
+    (result (Sg_MakeFlonum (asin (flonum-value fl)))))
+
+  (define-c-proc flacos (fl::number) ::Object
+    (check-flonum flacos fl)
+    (result (Sg_MakeFlonum (acos (flonum-value fl)))))
+
+  (define-c-proc flatan (fl1::number :optional fl2) ::Object
+    (check-flonum flatan fl1)
+    (if (SG_UNBOUNDP fl2)
+	(result (Sg_MakeFlonum (atan (flonum-value fl1))))
+	(begin
+	  (check-flonum flatan fl2)
+	  (result (Sg_MakeFlonum (atan2 (flonum-value fl1)
+					(flonum-value fl2)))))))
+
+  (define-c-proc flabs (fl::number) ::Object
+    (check-flonum flabs fl)
+    (result (Sg_MakeFlonum (fabs (flonum-value fl)))))
+
+  (define-c-proc flsqrt (fl::number) ::Object
+    (check-flonum flsqrt fl)
+    (let ((v::double (flonum-value fl)))
+      (if (< v 0.0)
+	  (result (Sg_MakeComplex (Sg_MakeFlonum 0.0)
+				  (Sg_MakeFlonum (sqrt (fabs v)))))
+	  (result (Sg_MakeFlonum (sqrt v))))))
+
+  (define-c-proc fixnum->flonum (fx::fixnum) ::Object
+    (result (Sg_MakeFlonum fx)))
+
+  ;; 11.4 exact bitwise arithmetic
   (define-c-proc bitwise-not (ei::number) ::Object
-    (when (Sg_Exact ei)
+    (unless (Sg_ExactP ei)
       (wrong-type-of-argument-violation 'bitwise-not "exact integer required" ei))
     (result (Sg_LogNot ei)))
 
@@ -3099,7 +3550,7 @@
   (define-c-proc bitwise-bit-field (ei1::number ei2::fixnum ei3::fixnum) ::Object
     (when (> ei2 ei3)
       (assertion-violation 'bitwise-bit-field "2nd parameter must be less than or equal to 3rd parameter"
-			   (SG_LIST3 ei1 ei2 ei3)))
+			   (SG_LIST3 ei1 (SG_MAKE_INT ei2) (SG_MAKE_INT ei3))))
     (let ((mask (Sg_LogNot (Sg_Ash (SG_MAKE_INT -1) ei3))))
       (result (Sg_Ash (Sg_LogAnd ei1 mask) (- 0 ei2)))))
 

@@ -151,6 +151,11 @@ struct SgVMRec
     alist of variable name and gloc.
    */
   SgObject toplevelVariables;
+  /* 
+     command line args.
+     this is a list of args
+   */
+  SgObject commandLineArgs;
   /*
     Stack:
     TODO: if we use child vm, do I need to create a new stack or

@@ -17,7 +17,8 @@
 	    bitwise-arithmetic-shift-right
 	    bitwise-rotate-bit-field
 	    bitwise-reverse-bit-field)
-    (import (core))
+    (import (core)
+	    (core arithmetic))
 
 ) ; [end]
 ;; end of file

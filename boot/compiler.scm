@@ -1340,25 +1340,26 @@
 	    (args (map make-lvar+ var))
 	    (newenv (p1env-extend/proc p1env (%map-cons var args)
 				       LEXICAL 'do-proc))
-	    (clo ($lambda form
-			  'do-body (length var) 0 args
-			  ($if #f
-			       (pass1 test newenv)
-			       (if (null? expr)
-				   ($it)
-				   ($seq (imap (lambda (x) (pass1 x newenv)) expr)))
-			       ($seq
-				(list
-				 (pass1/body body newenv)
-				 ($call form
-					($lref tmp)
-					(map (lambda x
-					       (smatch x
-						 ((() arg) ($lref arg))
-						 (((expr) -) (pass1 expr newenv))
-						 (- (syntax-error "bad update expr in do" form))))
-					     update args)))))
-			  #f)))
+	    (clo ($lambda 
+		  form
+		  'do-body (length var) 0 args
+		  ($if #f
+		       (pass1 test newenv)
+		       (if (null? expr)
+			   ($it)
+			   ($seq (imap (lambda (x) (pass1 x newenv)) expr)))
+		       ($seq
+			(list
+			 (pass1/body body newenv)
+			 ($call form
+				($lref tmp)
+				(map (lambda x
+				       (smatch x
+					 ((() arg) ($lref arg))
+					 (((expr) -) (pass1 expr newenv))
+					 (- (syntax-error "bad update expr in do" form))))
+				     update args)))))
+		  #f)))
        (lvar-initval-set! tmp clo)
        ($let form 'rec
 	     (list tmp)

@@ -48,7 +48,8 @@
 	    fixnum->flonum
 	    &no-infinities make-no-infinities-violation no-infinities-violation?
 	    &no-nans make-no-nans-violation no-nans-violation?)
-    (import (core))
+    (import (core)
+	    (core arithmetic))
 
 ) ; [end]
 ;; end of file

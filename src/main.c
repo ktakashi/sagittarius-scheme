@@ -205,6 +205,16 @@ static void version()
   exit(0);
 }
 
+static SgObject argsToList(int argc, int optind, char** argv)
+{
+  SgObject h = SG_NIL, t = SG_NIL;
+  int i;
+  for (i = optind; i < argc; i++) {
+    SG_APPEND1(h, t, Sg_MakeStringC(argv[i]));
+  }
+  return h;
+}
+
 int main(int argc, char **argv)
 {
   int opt;
@@ -263,6 +273,7 @@ int main(int argc, char **argv)
       break;
     }
   }
+  vm->commandLineArgs = argsToList(argc, optind, argv);
   if (optind < argc) {
     Sg_ImportLibrary(vm->currentLibrary, SG_OBJ(SG_INTERN("(core base)")));
     Sg_ImportLibrary(vm->currentLibrary, SG_OBJ(SG_INTERN("(sagittarius compiler)")));

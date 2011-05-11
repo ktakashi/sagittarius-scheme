@@ -1,3 +1,9 @@
+2011-05-11  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/null.stub (flonum): added flomun operations.
+
+	* sitelib/sagittarius/cgen/base.scm (cgen): fixed remainer proc.
+
 2011-05-10  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/null.stub, src/port.c (rnrs io ports): make it pass R6RS test

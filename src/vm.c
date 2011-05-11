@@ -81,6 +81,7 @@ static inline SgObject make_box(SgObject value)
 static SgObject evaluate_safe(SgObject program, SgWord *compiledCode);
 static SgObject run_loop();
 
+/* TODO if prototype was given copy from it. */
 SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 {
   SgVM *v = SG_NEW(SgVM);
@@ -106,6 +107,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->parentExHandler = SG_FALSE;
   v->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
   v->toplevelVariables = SG_NIL;
+  v->commandLineArgs = SG_NIL;
 
   v->currentInputPort = Sg_MakeTranscodedInputPort(Sg_StandardInputPort(),
 						    Sg_IsUTF16Console(Sg_StandardIn()) ? Sg_MakeNativeConsoleTranscoder()
