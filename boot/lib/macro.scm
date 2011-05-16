@@ -3,9 +3,8 @@
 (define-constant PATTERN 2) ;; the same as compiler.scm
 
 (define extend-env
-  (lambda (new old)
-    ;; we need to keep env the same pointer as old.
-    (append! old (list (cons PATTERN new)))))
+ (lambda (new old)
+   (acons PATTERN new old)))
 
 (define (count-pair p)
     (let loop ((lst p) (n 0))
@@ -119,59 +118,62 @@
 ;; but for now
 (define compile-syntax-case
   (lambda (exp-name expr literals rules library env p1env)
+    (let ((literals (unwrap-syntax literals)))
+      (define parse-pattern
+	(lambda (pattern)
+	  (let ((ranks   (collect-vars-ranks pattern literals 0 '())))
+	    (check-pattern pattern literals)
+	    (values pattern ranks
+		    ;; extend p1env frame like this (SYNTAX pattern ((a . 0) ...))
+		    (map (lambda (a)
+			   (cons (car a)
+				 (cdr a)))
+			 ranks)))))
 
-    (define parse-pattern
-      (lambda (pattern)
-	(let ((ranks   (collect-vars-ranks pattern (unwrap-syntax literals) 0 '())))
-	  (check-pattern pattern literals)
-	  (values pattern ranks
-		  ;; extend p1env frame like this (SYNTAX pattern ((a . 0) ...))
-		  (extend-env (map (lambda (a)
-				     (cons (car a)
-					   (cdr a)))
-				   ranks)
-			      env)))))
-    (or (and (list? literals)
-	     (for-all variable? literals))
-	(assertion-violation 'syntax-case "invalid literals" expr literals))
-    (or (unique-id-list? literals)
-	(assertion-violation 'syntax-case "duplicate literals" expr literals))
-    (and (memq '_ (unwrap-syntax literals))
-	 (assertion-violation 'syntax-case "_ in literals" expr literals))
-    (and (memq '... (unwrap-syntax literals))
-	 (assertion-violation 'syntax-case "... in literals" expr literals))
+      (or (and (list? literals)
+	       (for-all variable? literals))
+	  (assertion-violation 'syntax-case "invalid literals" expr literals))
+      (or (unique-id-list? literals)
+	  (assertion-violation 'syntax-case "duplicate literals" expr literals))
+      (and (memq '_ literals)
+	   (assertion-violation 'syntax-case "_ in literals" expr literals))
+      (and (memq '... literals)
+	   (assertion-violation 'syntax-case "... in literals" expr literals))
 
-    (let ((processes (map (lambda (clause)
-			    (let ((len (length clause)))
-			      (if (or (= len 2) (= len 3))
-				  (receive (pattern ranks env) (parse-pattern (car clause))
-				    (define construct
-				      (lambda (clause)
-					`(lambda (,@(map car ranks)
-						  . .vars)
-					   (let ((.ranks (append ',ranks .ranks)))
-					     (let ((.save .vars.))
-					       (dynamic-wind
-						   (lambda ()
-						     (set! .vars. (append .vars .vars.))
-						     (set! .vars .vars.))
-						   (lambda () ,clause)
-						   (lambda () (set! .vars. .save))))))))
-				    `(list ',pattern
-					   ',ranks
-					   ,(if (= len 2) ; fender
-						#f
-						(construct (cadr clause)))
-					   ,(construct (if (= len 2)
-							   (cadr clause)
-							   (caddr clause)))))
-				  (assertion-violation 'syntax-case
-						       "a clause must be either (<pattern> <expression) or (<pattern> <fender> <expression)"
-						       clause))))
-			  rules)))
-      `(.match-syntax-case ',literals
-			   ,expr
-			   ,@processes))))
+      (letrec ((newenv '())
+	       (processes (map (lambda (clause)
+				 (let ((len (length clause)))
+				   (if (or (= len 2) (= len 3))
+				       (receive (pattern ranks env) (parse-pattern (car clause))
+					 (define construct
+					   (lambda (clause)
+					     `(lambda (,@(map car ranks)
+						       . .vars)
+						(let ((.ranks (append ',ranks .ranks)))
+						  (let ((.save .vars.))
+						    (dynamic-wind
+							(lambda ()
+							  (set! .vars. (append .vars .vars.))
+							  (set! .vars .vars.))
+							(lambda () ,clause)
+							(lambda () (set! .vars. .save))))))))
+					 (set! newenv (append env newenv))
+					 `(list ',pattern
+						',ranks
+						,(if (= len 2) ; fender
+						     #f
+						     (construct (cadr clause)))
+						,(construct (if (= len 2)
+								(cadr clause)
+								(caddr clause)))))
+				       (assertion-violation 'syntax-case
+							    "a clause must be either (<pattern> <expression) or (<pattern> <fender> <expression)"
+							    clause))))
+			       rules)))
+	(values (extend-env newenv env)
+		`(.match-syntax-case ',literals
+				     ,expr
+				     ,@processes))))))
 
 (define match-ellipsis?
   (lambda (expr pat lites)
@@ -322,8 +324,8 @@
 		    expr)))
       (define match
 	(lambda (form pat)
-	  (and (match-pattern? form pat (unwrap-syntax literals))
-	       (bind-pattern form pat (unwrap-syntax literals) '()))))
+	  (and (match-pattern? form pat literals)
+	       (bind-pattern form pat literals '()))))
       ;; for now I don't consider renaming
       (let loop ((lst process))
 	(if (null? lst)
@@ -742,7 +744,6 @@
 	      '()
 	      ;; TODO it might be wrong.
 	      `#(,(vm-current-library) () #f #f)))
-
 
 ;; toplevel variables
 (set-toplevel-variable! '.match-syntax-case match-syntax-case)

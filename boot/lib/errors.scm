@@ -128,9 +128,9 @@
                     (list (make-syntax-violation form (and (pair? subform) (car subform)))
                           (if who
                               (make-who-condition who)
-                              (cond ((let ((obj (if (wrapped-syntax-object? form) (unwrap-syntax form) form)))
-                                       (cond ((identifier? obj) (original-id (syntax-object-expr obj)))
-                                             ((and (pair? obj) (identifier? (car obj))) (original-id (syntax-object-expr (car obj))))
+                              (cond ((let ((obj form))
+                                       (cond ((identifier? obj) (id-name obj))
+                                             ((and (pair? obj) (identifier? (car obj))) (id-name (car obj)))
                                              (else #f)))
                                      => make-who-condition)
                                     (else #f)))

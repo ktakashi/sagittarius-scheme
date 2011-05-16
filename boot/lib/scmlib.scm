@@ -183,7 +183,12 @@
             (else (loop (cdr lst)))))))
 
 
-;; from srfi-1 split-at
+;; from srfi-1 start
+(define (null-list? l)
+  (cond ((pair? l) #f)
+	((null? l) #t)
+	(else (error 'null-list? "argument out of domain" l))))
+
 (define split-at
   (lambda (x k)
     (or (integer? k)
@@ -194,6 +199,23 @@
 	  (receive (prefix suffix)
 	      (recur (cdr lis) (- k 1))
 	    (values (cons (car lis) prefix) suffix))))))
+
+(define (delete x lis . =)
+  (if (null? =)
+      (delete x lis equal?)
+      (filter (lambda (y) (not ((car =) x y))) lis)))
+
+(define (lset-intersection = lis1 . lists)
+  (or (procedure? =)
+      (assertion-violation (wrong-type-argument-message 'lset-intersection
+							"procedure" = 2)))
+  (let ((lists (delete lis1 lists eq?))) ; Throw out any LIS1 vals.
+    (cond ((exists null-list? lists) '())      ; Short cut
+      ((null? lists)          lis1)     ; Short cut
+      (else (filter (lambda (x)
+              (for-all (lambda (lis) (member x lis =)) lists))
+            lis1)))))
+
 
 (define (take lis k)
   (or (integer? k)

@@ -83,7 +83,7 @@
                         q
                         (with-syntax ((d dnew)) #'(unsyntax-splicing . d)))))))
           ((unsyntax q)
-	   (= n 0)
+	   (not (= n 0))
            (with-syntax (((t) (generate-temporaries #'(q))))
              (k (cons #'(t q) b*) #'t)))
           (((unsyntax q ...) . d)

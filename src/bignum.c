@@ -556,7 +556,7 @@ int Sg_BignumBitCount(SgBignum *b)
   if (SG_BIGNUM_GET_SIGN(b) > 0) {
     return Sg_BitsCount1(bits, 0, size);
   } else {
-    return Sg_BitsCount0(bits, 0, size);
+    return ~Sg_BitsCount0(bits, 0, size);
   }
 }
 
@@ -659,9 +659,8 @@ static SgBignum* bignum_rshift(SgBignum *br, SgBignum *bx, int amount)
     SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
   } else {
     unsigned long x;
-    for (i = (int)nwords; i < (int)SG_BIGNUM_GET_COUNT(bx); i++) {
-      x = (bx->elements[i + 1] << (WORD_BITS - nbits))
-	   | (bx->elements[i] >> nbits);
+    for (i = (int)nwords; i < (int)SG_BIGNUM_GET_COUNT(bx) - 1; i++) {
+      x = (bx->elements[i + 1] << (WORD_BITS - nbits)) | (bx->elements[i] >> nbits);
       br->elements[i - nwords] = x;
     }
     br->elements[i - nwords] = bx->elements[i] >> nbits;
@@ -673,7 +672,7 @@ static SgBignum* bignum_rshift(SgBignum *br, SgBignum *bx, int amount)
 
 SgObject Sg_BignumShiftRight(SgBignum *b, int shift)
 {
-  int rsize = SG_BIGNUM_GET_COUNT(b) + shift/WORD_BITS;
+  int rsize = SG_BIGNUM_GET_COUNT(b) + (-shift)/WORD_BITS;
   if (rsize < 1) {
     if (SG_BIGNUM_GET_SIGN(b) < 0) {
       return SG_MAKE_INT(-1);

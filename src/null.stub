@@ -323,6 +323,11 @@
 	    ;;bitwise-rotate-bit-field
 	    ;;bitwise-reverse-bit-field
 
+
+	    ;; 12 Syntax-case
+	    ;; 12.5
+	    identifier? bound-identifier=? free-identifier=?
+	    
 	    ;; apply
 	     eval
 
@@ -3573,6 +3578,21 @@
   (define-c-proc bitwise-arithmetic-shift-right (ei1::number ei2::fixnum) ::Object
     (result (Sg_Ash ei1 (- 0 ei2))))
 
+  ;; 12 syntax-case
+  ;; 12.5 identifier predicates
+  (define-c-proc identifier? (id) ::boolean
+    (result (or (SG_IDENTIFIERP id)
+		(SG_USER_DEFINED_SYNTXP id))))
+
+  (define-c-proc bound-identifier=? (id1::Identifier id2::Identifier) ::boolean
+    (result (and (SG_EQ (SG_IDENTIFIER_NAME id1)
+			(SG_IDENTIFIER_NAME id2))
+		 (SG_EQ (SG_IDENTIFIER_ENVS id1)
+			(SG_IDENTIFIER_ENVS id2)))))
+  ;; TODO dummy
+  (define-c-proc free-identifier=? (id1::Identifier id2::Identifier) ::boolean
+    (result (SG_EQ (SG_IDENTIFIER_NAME id1)
+		   (SG_IDENTIFIER_NAME id2))))
 
   (define-c-proc eval (sexp env) ::Object
     (result (Sg_VMEval sexp env)))
@@ -3634,12 +3654,15 @@
   ;; record
   (define-c-proc make-record-type (name::Symbol rtd rcd) ::Object
     (result (Sg_MakeRecordType name rtd rcd)))
+  (set-toplevel-variable! make-record-type make-record-type)
 
   (define-c-proc record-type-rtd (rt::RecordType) ::Object
     (result (SG_RECORD_TYPE_RTD rt)))
+  (set-toplevel-variable! record-type-rtd record-type-rtd)
 
   (define-c-proc record-type-rcd (rt::RecordType) ::Object
     (result (SG_RECORD_TYPE_RCD rt)))
+  (set-toplevel-variable! record-type-rcd record-type-rcd)
 
   (define-c-proc make-record-type-descriptor
     (name::Symbol parent uid sealedP::boolean opaqueP::boolean fields::Vector) ::Object

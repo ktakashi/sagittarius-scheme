@@ -1,3 +1,7 @@
+2011-05-12  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/library.c (library): implemented efficient import spec resolver.
+
 2011-05-11  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/null.stub (flonum): added flomun operations.

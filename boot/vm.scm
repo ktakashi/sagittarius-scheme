@@ -1126,6 +1126,11 @@
 (add-namespace! bytevector? (o) (lambda (o) #f)) ;; on scheme vm this will be never #t
 (add-namespace! abs (n) abs)
 (add-namespace! write/ss (o) write/ss)
+(add-namespace! procedure? (o)
+		(lambda (p)
+		  (and (vector? p)
+		       (eq? (vector-ref p 0) '.procedure))))
+
 
 (define-macro (aif test-form then-form . else-form)
   `(let ((it ,test-form))

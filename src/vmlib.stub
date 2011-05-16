@@ -36,6 +36,7 @@
 	    cb-label-set! cb-emit-closure! code-builder-finish-builder
 
 	    ;; misc
+	    import-library
 	    vm-r6rs-mode? %map-cons
 	    p1env-lookup p1env-toplevel? p1env-pvar-lookup
 	    pass3/let-frame-size pass3/frame-size
@@ -158,9 +159,8 @@
   (define-c-proc find-binding (arg0 arg1::Symbol callback) ::Object
     (result (Sg_FindBinding arg0 arg1 callback)))
 
-  (define-c-proc load-library (to from) ::void
-    ;; TODO name mismatch.
-    (Sg_ImportLibrary to from))
+  (define-c-proc import-library (to from only except rename prefix transp) ::void
+    (Sg_ImportLibraryFullSpec to from only except rename prefix))
 
   (define-c-proc vm-current-library (:rest name) ::Object
     (let ((vm::SgVM* (Sg_VM)))
@@ -284,16 +284,25 @@
   ;; in compiler.scm), it needs to be changed as well.
   (define-c-proc p1env-pvar-lookup (p1env::Vector name) ::Object
     (let ((name_identp::int (SG_IDENTIFIERP name))
-	  (frames (SG_VECTOR_ELEMENT p1env 1)))
+	  (frames (SG_VECTOR_ELEMENT p1env 1))
+	  ;; for identifier=? we need a size 2 vector.
+	  (dummy_env (Sg_MakeVector 2 SG_UNDEF)))
+      (when name_identp
+	(set! (SG_VECTOR_ELEMENT dummy_env 0) (SG_IDENTIFIER_LIBRARY name))
+	(set! (SG_VECTOR_ELEMENT dummy_env 1) (SG_IDENTIFIER_ENVS name)))
       (dopairs (fp frames)
-	(when (and name_identp
-		   (== (SG_IDENTIFIER_ENVS name) fp))
-	  ;; strip identifier if we're in the same env
-	  (set! name (SG_OBJ (SG_IDENTIFIER_NAME name))))
 	(unless (== (SG_CAAR fp) (SG_MAKE_INT 2))
 	  (continue))
 	(dolist (vp (SG_CDAR fp))
-	  (when (SG_EQ name (SG_CAR vp)) (return (SG_CDR vp)))))
+	  (when (or (and name_identp
+			 ;; global id.
+			 (SG_NULLP (SG_IDENTIFIER_ENVS name))
+			 (SG_EQ (SG_IDENTIFIER_NAME name) (SG_CAR vp)))
+		    (and name_identp
+			 (Sg_IdentifierEqP p1env name
+					   dummy_env (SG_CAR vp)))
+		    (SG_EQ name (SG_CAR vp)))
+	    (return (SG_CDR vp)))))
       ;; no variable found in p1env.
       (if (SG_SYMBOLP name)
 	  (let ((lib (SG_VECTOR_ELEMENT p1env 0)))

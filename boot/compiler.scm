@@ -738,6 +738,13 @@
 		(p1env-exp-name p1env)
 		(p1env-current-proc p1env))))
 
+(define p1env-swap-frame
+  (lambda (p1env frame)
+    (make-p1env (p1env-library p1env)
+		frame
+		(p1env-exp-name p1env)
+		(p1env-current-proc p1env))))
+
 (define make-bottom-p1env
   (lambda maybe-library
     (if (null? maybe-library)
@@ -1129,11 +1136,13 @@
   (smatch form
     ((- expr (literal ___) rule ___)
      ;; compile-syntax-case returns subr.
-     (pass1 (compile-syntax-case (p1env-exp-name p1env)
-				 expr literal rule
-				 (p1env-library p1env)
-				 (p1env-frames p1env)
-				 p1env) p1env))
+     (receive (newframe newexpr)
+	 (compile-syntax-case (p1env-exp-name p1env)
+			      expr literal rule
+			      (p1env-library p1env)
+			      (p1env-frames p1env)
+			      p1env)
+       (pass1 newexpr (p1env-swap-frame p1env newframe))))
     (- (syntax-error "malformed syntax-case" form))))
 
 (define-pass1-syntax (syntax form p1env) :null
@@ -1519,81 +1528,130 @@
 
 
 ;; library related
-;; TODO check exported libraries and import only from it.
-(define import-library
-  (lambda (to from type etc p1env oform)
-    (case type
-      ((all)
-       (load-library to from))
-      ((only)
-       ;; TODO naive implementation
-       ;; needs to be validated
-       (import-only to from etc))
-      ((rename)
-       ;; TODO naive implementation
-       ;; needs to be validated
-       (import-rename to from etc #f))
-      ((prefix)
-       ;; TODO naive implementation
-       ;; needs to be validated
-       (or (= (length etc) 1)
-	   (syntax-error "prefix must have only one symbol:" oform))
-       (import-rename to from (car etc) #t))
-      ((for)
-       (cond ((memq 'expand etc)
-	      ;; this actually for generating compiled library,
-	      ;; so that we don't have to load libraries which needed only for
-	      ;; macro expantion.
-	      (library-transient-set! from #t)
-	      (load-library to from))
-	     (else
-	      (load-library to from))))
-      #;((:only)
-       (case (car etc)
-	 ((:compile)
-	  (load-library to from)
-	  (library-transient-set! from #t))
-	 (else
-	  (syntax-error "malformed import spec" oform))))
-      (else
-       (syntax-error "malformed import spec:" oform)))))
+;;
+;; Import strategy.
+;;  Import clauses are either list of import specs or symbol which is extention
+;;  of Sagittarius Scheme(User can not create a library with symbol. Assume it's
+;;  only null library which is created in C). If it's symbol, then we can just
+;;  import it. If it's a list, we need to parse and analyse it. Basically we
+;;  only need to care about certain keywords, such as only, rename, except and
+;;  prefix as long as Sagittarius is not explicit phasing we can ignore run
+;;  keyword.
+;;  These are the spec for import.
+;;  <library reference>
+;;  (library <library reference>)
+;;  (only <import set> <identifier> ...)
+;;  (except <import set> <identifier> ...)
+;;  (prefix <import set> <identifier>)
+;;  (rename <import set> (<identifier1> <identifier2>) ...)
+;;  
+;;  <import spec> ::= <library reference> | <import set>
+;;  <library reference> ::= (<identifier1> <identifier2> ...)
+;;                        | (<identifier1> <identifier2> ... <version reference>)
+;;                        | <identifier> ;; Sagittarius extention
+;;  <import set> ::= (only <import set> <identifier> ...)
+;;                 | (except <import set> <identifier> ...)
+;;                 | (prefix <import set> <identifier>)
+;;                 | (rename <import set> (<identifier1> <identifier2>) ...)
+;;
+(cond-expand
+ (gauche
+  ;; for generating boot code, we need this to avoid to import unneccessary 
+  ;; libraries.
+  (define check-expand-phase
+    (lambda (phases)
+      (memq 'expand phases))))
+ (sagittarius
+  ;; dummy
+  (define-syntax check-expand-phase
+    (er-macro-transformer
+     (lambda (f r c)
+       '#f)))))
 
 (define pass1/import
   (lambda (oform form p1env)
-    (define import-prefix?
-      (lambda (x)
-	(case x
-	  ((for only except rename prefix) #t)
-	  (else #f))))
+    (define parse-spec
+      (lambda (spec)
+	(let loop ((spec spec))
+	  (smatch spec
+	    (((? (lambda (x) (eq? 'library (variable-name x))) -) ref) ;; library
+	     (values ref '() '() '() #f #f))
+	    (((? (lambda (x) (eq? 'only (variable-name x))) -) set ids ___) ;; only
+	     (receive (ref only except renames prefix trans?)
+		 (parse-spec set)
+	       (values ref (lset-intersection eq? only ids) except renames prefix trans?)))
+	    (((? (lambda (x) (eq? 'except (variable-name x))) -) set ids ___) ;; except
+	     (receive (ref only except renames prefix trans?)
+		 (parse-spec set)
+	       (values ref only (append except ids) renames prefix trans?)))
+	    (((? (lambda (x) (eq? 'prefix (variable-name x))) -) set id) ;; prefix
+	     (receive (ref only except renames prefix trans?)
+		 (parse-spec set)
+	       (define construct-rename
+		 (lambda (prefix prev)
+		   ;; we need to think about how it nested
+		   ;;  case 1 (prefix (rename (only (rnrs) car) (car r-car)) p:)
+		   ;;  case 2 (prefix (only (rename (rnrs) (car r-car)) r-car) p:)
+		   ;;  case 3 (prefix (only (prefix (rnrs) p1:) p1:car) p2:)
+		   (cond ((pair? renames)
+			  ;; import was called like this (prefix (rename (rnrs) (car r-car)) p:)
+			  ;; or like this  (prefix (rename (only (rnrs) car) (car r-car)) p:)
+			  ;; or like this  (prefix (only (rename (rnrs) (car r-car)) r-car) p:)
+			  (map (lambda (rename)
+				 (list (car rename)
+				       (string->symbol (format "~a~a" prefix (cadr rename)))))
+			       renames))
+			 ((pair? only)
+			  ;; import was called like this (prefix (only (rnrs) car) p:)
+			  ;; create new rename
+			  (map (lambda (name)
+				 (list name (string->symbol (format "~a~a" prefix name))))
+			       only)))))
 
-    (define process-clause
-      (lambda (clause)
-	(smatch clause
-	  (((? import-prefix? sym) (? pair? lib) etc ___)
-	   ;; maybe for, only, except, rename or prefix
-	   ;(load-library (p1env-library p1env) lib))
-	   (import-library (p1env-library p1env) 
-			   (ensure-library lib 'import #f)
-			   sym etc p1env oform))
-	  (((? keyword? key) (? pair? lib) etc ___)
-	   ;; for only compile time
-	   ;; TODO this implementation sucks
-	   (import-library (p1env-library p1env)
-			   (ensure-library lib 'import #f)
-			   key etc p1env oform))
-	  (other
-	   ;; assume library name
-	   (import-library (p1env-library p1env)
-			   (ensure-library other 'import #f)
-			   'all '() p1env oform)))))
+	       (if (and (null? only)
+			(null? renames))
+		   ;; simple prefix case
+		   (values ref only except renames (if prefix
+						       (string->symbol (format "~a~a" id prefix))
+						       id)
+			   trans?)
+		   (let ((new-rename (construct-rename id prefix)))
+		     (values ref only except (append renames new-rename) prefix trans?)))))
+	    (((? (lambda (x) (eq? 'rename (variable-name x))) -) set rename-sets ___) ;; rename
+	     (receive (ref only except renames prefix trans?)
+		 (parse-spec set)
+	       (values ref only except (append renames rename-sets) prefix trans?)))
+	    (((? (lambda (x) (eq? 'for (variable-name x))) -) set . etc) ;; for
+	     (receive (ref only except renames prefix trans?)
+		 (parse-spec set)
+	       (values ref only except renames prefix
+		       (check-expand-phase etc))))
+	    (other
+	     ;; assume this is just a name
+	     (values other '() '() '() #f #f))))))
+
+    (define process-spec
+      (lambda (spec)
+	(cond ((symbol? spec)
+	       ;; SHORTCUT if it's symbol, just import is without any information
+	       (import-library (p1env-library p1env)
+			       (ensure-library spec 'import #f)
+			       '() '() '() #f #f))
+	      ((list? spec)
+	       ;; now we need to check above specs
+	       (receive (ref only except renames prefix trans?)
+		   (parse-spec spec)
+		 (import-library (p1env-library p1env)
+				 (ensure-library ref 'import #f)
+				 only except renames prefix trans?)))
+	      (else
+	       (syntax-error "malformed import spec" spec)))))
     (smatch form
-      ((- clauses ___)
-       (let loop ((clauses clauses))
-	 (unless (null? clauses)
-	   ;; add import spec to library
-	   (process-clause (car clauses))
-	   (loop (cdr clauses)))
-	 ($undef))))))
+      ((- import-specs ___)
+       (for-each (lambda (spec)
+		   (process-spec spec))
+		 import-specs)
+       ($undef)))))
 
 ;; added export information in env and library
 (define pass1/export
@@ -1699,10 +1757,15 @@
 					 `(,name (,lambda. ,formals ,@body) . ,src))
 					((var init) `(,var ,init . ,src))
 					(- (syntax-error "malformed internal define" (caar exprs))))))
-			     (pass1/body-rec rest (cons def intdefs) p1env)))
+			     (pass1/body-rec rest (acons def #f intdefs) p1env)))
 			  ;; 11.2.2 syntax definition
 			  ((global-eq? head 'define-syntax p1env)
-			   (smatch args
+			   (let ((def (smatch args
+					((name expr)
+					 `(,name ,expr))
+					(- (syntax-error "malformed internal define-syntax" (caar exprs))))))
+			     (pass1/body-rec rest (acons def #t intdefs) p1env))
+			   #;(smatch args
 			     ((name expr)
 			      (let* ((newenv (p1env-extend p1env `((,name ,expr)) SYNTAX))
 				     (trans (pass1/eval-macro-rhs 'define-syntax
@@ -1713,7 +1776,7 @@
 				(for-each set-cdr!
 					  (cdar (p1env-frames newenv))
 					  (list trans))
-			      (pass1/body-rec rest intdefs newenv)))
+				(pass1/body-rec rest intdefs newenv)))
 			     (- (syntax-error "malformed internal define-syntax" (caar exprs)))))
 			  ((global-eq? head 'begin p1env)
 			   (pass1/body-rec (append (imap (lambda (x) (cons x src)) args) rest)
@@ -1740,17 +1803,41 @@
 	    (cdr exprs)) ; rest
      intdefs p1env)))
 
+;; intdef is alist ((def macro?) ...)
 (define pass1/body-finish
   (lambda (intdefs exprs p1env)
     (if (null? intdefs)
 	(pass1/body-rest exprs p1env)
-	(let* ((intdefs. (reverse intdefs))
-	       (vars (map car intdefs.))
-	       (lvars (map make-lvar+ vars))
-	       (newenv (p1env-extend p1env (%map-cons vars lvars) LEXICAL)))
-	  ($let #f 'rec lvars
-		(map (lambda (lv def) (pass1/body-init lv def newenv)) lvars (map cdr intdefs.))
-		(pass1/body-rest exprs newenv))))))
+	(receive (intdefs. intmacros.)
+	    (let loop ((defs intdefs)
+		       (d* '())
+		       (m* '()))
+	      (cond ((null? defs)
+		     (values d* m*))
+		    ((cdar defs) ;; macro
+		     (loop (cdr defs) d* (cons (caar defs) m*)))
+		    (else ;; internal define
+		     (loop (cdr defs) (cons (caar defs) d*) m*))))
+	  ;; TODO not beautiful
+	  (if (null? intmacros.)
+	      (let* ((vars (map car intdefs.))
+		     (lvars (map make-lvar+ vars))
+		     (newenv (p1env-extend p1env (%map-cons vars lvars) LEXICAL)))
+		($let #f 'rec lvars
+		      (map (lambda (lv def) (pass1/body-init lv def newenv)) lvars (map cdr intdefs.))
+		      (pass1/body-rest exprs newenv)))
+	      (let* ((macenv (p1env-extend p1env intmacros. SYNTAX))
+		     (trans (map (lambda (n&e)
+				   (pass1/eval-macro-rhs 'define-syntax
+							 (variable-name (car n&e))
+							 (cadr n&e)
+							 (p1env-add-name macenv
+									 (variable-name (car n&e)))))
+				 intmacros.)))
+		(for-each set-cdr! (cdar (p1env-frames macenv)) trans)
+		(pass1/body-rec exprs (map (lambda (p)
+					     (cons p #f))
+					   intdefs.) macenv)))))))
 
 (define pass1/body-init
   (lambda (lvar init&src newenv)

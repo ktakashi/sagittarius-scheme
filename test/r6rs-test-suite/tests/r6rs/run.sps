@@ -19,16 +19,17 @@
         (tests r6rs arithmetic fixnums)
         (tests r6rs arithmetic flonums)
         (tests r6rs arithmetic bitwise)
-#|
         (tests r6rs syntax-case)
         (tests r6rs hashtables)
         (tests r6rs enums)
         (tests r6rs eval)
+#|
         (tests r6rs mutable-pairs)
         (tests r6rs mutable-strings)
         (tests r6rs r5rs)
         (tests r6rs contrib)
-|#)
+|#
+)
 
 (run-base-tests)
 (run-reader-tests)
@@ -47,8 +48,8 @@
 (run-arithmetic-fixnums-tests)
 (run-arithmetic-flonums-tests)
 (run-arithmetic-bitwise-tests)
-#|
 (run-syntax-case-tests)
+#|
 (run-hashtables-tests)
 (run-enums-tests)
 (run-eval-tests)

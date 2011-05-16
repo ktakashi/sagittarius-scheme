@@ -57,10 +57,6 @@
 	 (result SG_UNDEF)))))
 
   ;; for library dependency
-  (define-c-proc identifier? (id) ::boolean
-    (result (or (SG_IDENTIFIERP id)
-		(SG_USER_DEFINED_SYNTXP id))))
-  
   (define-c-proc identifier=? (use_env x mac_env y) ::boolean
     (result (Sg_IdentifierEqP use_env x mac_env y)))
 

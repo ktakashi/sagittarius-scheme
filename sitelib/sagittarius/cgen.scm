@@ -68,6 +68,7 @@
   (define *c-proc-defs* #f)
   (define *procedure-subr-map* #f)
   (define *procedure-map* #f)
+  (define *toplevel-variables* '())
 
   (define (init) 
     ;(set! *dispatch-table* (make-eq-hashtable))
@@ -77,7 +78,9 @@
     (set! *c-proc-defs* #f)
     (set! *procedure-subr-map* (make-eq-hashtable))
     (set! *procedure-map* (make-eq-hashtable))
-    (base:add-dispatch 'define-c-proc def-c-proc))
+    (set! *toplevel-variables* '())
+    (base:add-dispatch 'define-c-proc def-c-proc)
+    (base:add-dispatch 'set-toplevel-variable! set-toplevel-variable!))
 
   ;; get information from library
   (define (pre-resolve)
@@ -348,6 +351,9 @@
   (define (resolve-body)
     (base:dispatch-method `(begin ,@*c-proc-defs*) base:dispatch-method (lambda (k) k)))
 
+  (define (add-toplevel-variable! name stub)
+    (set! *toplevel-variables* (acons name stub *toplevel-variables*)))
+
   (define (def-c-proc body dispatch k)
     (define (body-impl name args inliner return c-body)
       ((base:renderer) (format "static SgObject ~a(SgObject *args, int argc, void *data_)~%"
@@ -375,6 +381,16 @@
       (('define-c-proc name args return . c-body)
        (body-impl name args #f return c-body))))
   
+  (define (set-toplevel-variable! body dispatch k)
+    (or (= (length body) 3)
+	(error 'set-toplevel-variable! 
+	       (format "set-toplevel-variable! requires 2 arguments, but got ~a" (length (cdr body)))
+	       body))
+    (let ((name (cadr body))
+	  (value (caddr body)))
+      (add-toplevel-variable! name (resolve-name value 'stub))))
+
+
   (define (generate-init)
     (define (generate-name)
       (cond ((symbol? *library-name*) *library-name*)
@@ -399,6 +415,12 @@
 	 ((base:renderer) (format "  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC(\"~a\"), SG_LITERAL_STRING)), SG_OBJ(&~a));~%"
 			     proc-name subr-name))))
      (vector->list (hashtable-keys *procedure-subr-map*)))
+    (for-each
+     (lambda (p)
+       (let ((name (car p))
+	     (value (cdr p)))
+	 ((base:renderer) (format "  Sg_VMSetToplevelVariable(SG_INTERN(\"~a\"), &~a);~%" name value))))
+     *toplevel-variables*)
     ((base:renderer) (format "}~%")))
 
   ;; entry point and only exported method

@@ -538,11 +538,13 @@ CASE(LSET) {
 	(set! numValues (SG_VALUES_SIZE (AC vm))))
     (if (< numValues val1)
 	(assertion-violation 'receive
-			     "recieved fewer values than expected"))
+			     "recieved fewer values than expected"
+			     (AC vm)))
     (if (and (== val2 0)
 	     (> numValues val1))
 	(assertion-violation 'receive
-			     "recieved more values than expected"))
+			     "recieved more values than expected"
+			     (AC vm)))
     (cond ((== val2 0)
 	   ;; (receive (a b c) ...)
 	   (cond ((== val1 1)

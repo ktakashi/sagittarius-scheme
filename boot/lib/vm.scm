@@ -209,7 +209,34 @@
 	(set! *current-library* (car name)))))
 
 ;; just stub
-(define (load-library to . from)	     
+(define (import-library to from only except rename prefix trans?)
+  (when trans?
+    (library-transient-set! from #t))
+  (let* ((lib (if (library? from)
+		    from
+		    (find-library from #f)))
+	 (export-spec (library-exported lib)))
+    (when (and lib
+	       #;(not (assq lib (library-imported to))))
+      (unless (assq lib (library-imported to))
+	(library-imported-set! to
+			       (acons lib
+				      export-spec
+				      (library-imported to))))
+      (hashtable-for-each
+       (lambda (k v)
+	 (cond ((not export-spec)
+		;; maybe null or user library
+		(hashtable-set! (library-table to) k v))
+	       ((memq k (car export-spec))
+		;; no rename just put
+		(hashtable-set! (library-table to) k v))
+	       ((assq k (cdr export-spec)) =>
+		(lambda (spec)
+		  (hashtable-set! (library-table to) (cdr spec) v)))))
+	 (library-table lib)))))
+;; for vm.scm
+(define (load-library to . from)
   (let loop ((from from))
     (if (null? from)
 	#t
@@ -239,7 +266,7 @@
 	       (library-table lib)))
 	    (loop (cdr from)))))))
 
-(define (import-only to from symbols)
+#;(define (import-only to from symbols)
   (library-imported-set! to
 			 (acons from symbols (library-imported to)))
   (for-each (lambda (sym)
@@ -249,7 +276,7 @@
 					     sym)))
 	    symbols))
 
-(define (import-rename to from rename prefix?)
+#;(define (import-rename to from rename prefix?)
   (define (add-prefix prefix)
     (let ((keys (hashtable-keys (library-table from))))
       (let loop ((keys keys)

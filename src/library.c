@@ -244,11 +244,85 @@ SgObject Sg_SearchLibrary(SgObject lib)
     }									\
   }
 
-void Sg_ImportLibrary(SgObject to, SgObject from)
+static SgObject culculate_imports(SgObject only, SgObject renames)
 {
+  /* 
+     we construct alist for import spec like this.
+     ((key . rename) ...)
+     only: ((key . key) ...))
+   */
+  SgObject cp, first, orig, target, h = SG_NIL, t = SG_NIL;
+
+  if (SG_NULLP(only)) goto next; /* short cut */
+  SG_FOR_EACH(cp, only) {
+    SG_APPEND1(h, t, Sg_Cons(SG_CAR(cp), SG_CAR(cp)));
+  }
+
+ next:
+  if (SG_NULLP(renames)) return h; /* short cut */
+  SG_FOR_EACH(cp, renames) {
+    first = SG_CAR(cp);
+    if (!SG_PROPER_LISTP(first)) {
+      Sg_Error(UC("malformed rename clause %S"), first);
+    }
+    orig = SG_CAR(first);
+    target = Sg_Assq(orig, SG_CDR(cp));
+    if (!SG_FALSEP(target)) {
+      SG_SET_CDR(first, SG_CADR(target));
+      SG_SET_CAR(target, SG_FALSE);
+    }
+    if (!SG_FALSEP(SG_CAR(first))) {
+      SG_APPEND1(h, t, first);
+    }
+  }
+  return h;
+}
+
+static void import_variable(SgLibrary *lib, SgObject key, SgObject value,
+			    SgObject imports, SgObject except, SgObject prefix)
+{
+  SgObject name = key;
+  /* if prefix was not #f, it must be this import spec
+     (only (prefix (rnrs) p:) p:car). first rename key.
+  */
+  if (!SG_FALSEP(prefix)) {
+    name = Sg_Intern(Sg_Sprintf(UC("%A%A"), prefix, key));
+  }
+  if ((SG_NULLP(imports) || !SG_FALSEP(Sg_Assq(key, imports))) &&
+      SG_FALSEP(Sg_Memq(key, except))) {
+    /*
+      memo:
+      ;; key was already renamed: OK
+      (rename (prefix (rnrs) p:) (p:car r-p:car))
+      ;; compiler handle this case: OK
+      (prefix (rename (rnrs) (car r-car)) p:)
+    */
+    if (!SG_NULLP(imports)) {
+      SgObject renamed = Sg_Assq(name, imports);
+      if (!SG_FALSEP(renamed)) {
+	if (!SG_PAIRP(renamed)) {
+	  Sg_Error(UC("invalid rename clause %S"), renamed);
+	  return;
+	}
+	name = SG_CDR(renamed);
+      }
+    }
+    Sg_HashTableSet(SG_LIBRARY_TABLE(lib), name, value, 0); 
+  }
+}
+
+void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
+			      SgObject only, SgObject except,
+			      SgObject renames, SgObject prefix)
+{
+  static SgObject allKeyword = SG_UNDEF;
   SgLibrary *tolib, *fromlib;
-  SgObject exportSpec, keys, key;
-  SgObject allKeyword = Sg_MakeKeyword(Sg_MakeString(UC("all"), SG_LITERAL_STRING));
+  SgObject exportSpec, keys, key, imports;
+  int allP = FALSE;
+
+  if (SG_UNDEFP(allKeyword)) {
+    allKeyword = Sg_MakeKeyword(Sg_MakeString(UC("all"), SG_LITERAL_STRING));
+  }
   ENSURE_LIBRARY(to, tolib);
   ENSURE_LIBRARY(from, fromlib);
   exportSpec = SG_LIBRARY_EXPORTED(fromlib);
@@ -256,13 +330,23 @@ void Sg_ImportLibrary(SgObject to, SgObject from)
   /* resolve :all keyword first */
   if (!SG_FALSEP(exportSpec) && 
       !SG_FALSEP(Sg_Memq(allKeyword, SG_CAR(exportSpec)))) {
-    SgObject imported = Sg_HashTableAddAll(SG_LIBRARY_TABLE(tolib),
-					   SG_LIBRARY_TABLE(fromlib));
-    SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, SG_LIST1(imported),
-					  SG_LIBRARY_IMPORTED(tolib));
-    return;
+    if (SG_NULLP(only) &&
+	SG_NULLP(renames) &&
+	SG_NULLP(except) &&
+	SG_FALSEP(prefix)) {
+      /* SHORTCUT (import (rnrs)) case*/
+      SgObject imported = Sg_HashTableAddAll(SG_LIBRARY_TABLE(tolib),
+					     SG_LIBRARY_TABLE(fromlib));
+      SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, SG_LIST1(imported),
+					    SG_LIBRARY_IMPORTED(tolib));
+      return;
+    } else {
+      allP = TRUE;
+    }
   }
+  imports = culculate_imports(only, renames);
 
+  /* imported alist: ((lib1 . exportSpec) ...) */
   SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, exportSpec,
 					SG_LIBRARY_IMPORTED(tolib));
   if (SG_NULLP(tolib->generics)) {
@@ -275,20 +359,26 @@ void Sg_ImportLibrary(SgObject to, SgObject from)
   SG_FOR_EACH(key, keys) {
     SgObject v = Sg_HashTableRef(SG_LIBRARY_TABLE(fromlib), SG_CAR(key), SG_UNBOUND);
     if (SG_UNBOUNDP(v)) {
-      /* TORO error? */
+      /* TODO error? */
       Sg_Error(UC("target import library does not contain %S"), SG_CAR(key));
     }
     /* TODO no overwrite? */
     if (SG_FALSEP(exportSpec)) {
+      /* this must be C library. */
       Sg_HashTableSet(SG_LIBRARY_TABLE(tolib), SG_CAR(key), v, 0);
-    } else if (!SG_FALSEP(Sg_Memq(SG_CAR(key), SG_CAR(exportSpec)))) {
-      Sg_HashTableSet(SG_LIBRARY_TABLE(tolib), SG_CAR(key), v, 0);
+    } else if (!SG_FALSEP(Sg_Memq(SG_CAR(key), SG_CAR(exportSpec))) ||
+	       allP) {
+      /* key was in non-rename export spec or :all key word */
+      import_variable(tolib, SG_CAR(key), v, imports, except, prefix);
+      /* Sg_HashTableSet(SG_LIBRARY_TABLE(tolib), SG_CAR(key), v, 0); */
     } else {
+      /* renamed export */
       SgObject spec = Sg_Assq(SG_CAR(key), SG_CDR(exportSpec));
       if (SG_FALSEP(spec)) {
 	/* TODO error? */
       } else {
-	Sg_HashTableSet(SG_LIBRARY_TABLE(tolib), SG_CDR(spec), v, 0);
+	import_variable(tolib, SG_CDR(spec), v, imports, except, prefix);
+	/* Sg_HashTableSet(SG_LIBRARY_TABLE(tolib), SG_CDR(spec), v, 0); */
       }
     }
   }

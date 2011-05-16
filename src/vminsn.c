@@ -369,13 +369,13 @@ CASE(RECEIVE) {
     }
 ;
     if (numValues < val1) {
-      Sg_AssertionViolation(SG_INTERN("receive"), Sg_MakeString(UC("recieved fewer values than expected"), SG_LITERAL_STRING), SG_NIL);
+      Sg_AssertionViolation(SG_INTERN("receive"), Sg_MakeString(UC("recieved fewer values than expected"), SG_LITERAL_STRING), AC(vm));
       return SG_UNDEF;
 ;
     }
 ;
     if ((val2 == 0 && numValues > val1)) {
-      Sg_AssertionViolation(SG_INTERN("receive"), Sg_MakeString(UC("recieved more values than expected"), SG_LITERAL_STRING), SG_NIL);
+      Sg_AssertionViolation(SG_INTERN("receive"), Sg_MakeString(UC("recieved more values than expected"), SG_LITERAL_STRING), AC(vm));
       return SG_UNDEF;
 ;
     }

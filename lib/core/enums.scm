@@ -42,19 +42,9 @@
 	    (core base)
 	    (core struct)
 	    (core syntax)
+	    (core syntax-rules)
 	    (core enums helper))
-#|
-  (define enum-set-rtd (make-record-type-descriptor 'enum-set #f 'enum-set-uid #f #f '#((mutable type) (mutable members))))
-  (define enum-set-rcd (make-record-constructor-descriptor enum-set-rtd #f #f))
-  (define make-enum-set (record-constructor enum-set-rcd))
-  (define enum-set-members (record-accessor enum-set-rtd 1)) (define enum-set-type (record-accessor enum-set-rtd 0))
 
-  (define enum-type-rtd (make-record-type-descriptor 'enum-type #f 'enum-type-uid #f #f '#((mutable universe) (mutable indexer))))
-  (define enum-type-rcd (make-record-constructor-descriptor enum-type-rtd #f #f))
-  (define make-enum-type (record-constructor enum-type-rcd))
-  (define enum-type-indexer (record-accessor enum-type-rtd 1))
-  (define enum-type-universe (record-accessor enum-type-rtd 0))
-|#
   ;; from mosh
   (define (make-enumeration-type symbol-list)
     (let ([ht (make-eq-hashtable)])
@@ -179,6 +169,26 @@
 	  (make-enum-set (enum-set-type enum-set2)
 			 (filter (lambda (symbol) (memq symbol universe2)) members1)))))
 
+  (define-syntax define-enumeration
+    (syntax-rules ()
+      ((_ type-name (symbol1 ...) constructor-syntax)
+       (begin
+         (define constructor (enum-set-constructor (make-enumeration '(symbol1 ...))))
+         (define-syntax type-name
+           (lambda (x)
+             (syntax-case x ()
+               ((_ symbol2)
+                (or (memq (syntax->datum (syntax symbol2)) '(symbol1 ...))
+                    (syntax-violation 'type-name "excpectd symbols which belong to the universe" x))
+                (syntax 'symbol2)))))
+         (define-syntax constructor-syntax
+           (lambda (x)
+             (syntax-case x ()
+               ((_ symbol3 (... ...))
+                (or (for-all (lambda (e) (memq e '(symbol1 ...)))
+                             (syntax->datum (syntax (symbol3 (... ...)))))
+                    (syntax-violation 'constructor-syntax "excpectd symbols which belong to the universe" x))
+                (syntax (constructor '(symbol3 (... ...))))))))))))
 ) ; [end]
 ;; end of file
 ;; Local Variables:
