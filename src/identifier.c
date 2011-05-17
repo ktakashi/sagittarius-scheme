@@ -81,15 +81,15 @@ static SgObject p1env_lookup(SgObject form, SgVector *p1env, int lookup_as)
   return SG_NIL;
 }
 
-static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen)
+static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen, int lexicalP)
 {
   if (SG_NULLP(form)) {
     return form;
   } else if (SG_PAIRP(form)) {
-    return Sg_Cons(wrap_rec(SG_CAR(form), p1env, seen),
-		   wrap_rec(SG_CDR(form), p1env, seen));
+    return Sg_Cons(wrap_rec(SG_CAR(form), p1env, seen, lexicalP),
+		   wrap_rec(SG_CDR(form), p1env, seen, lexicalP));
   } else if (SG_VECTORP(form)) {
-    return Sg_ListToVector(wrap_rec(Sg_VectorToList(form, 0, -1), p1env, seen), 0, -1);
+    return Sg_ListToVector(wrap_rec(Sg_VectorToList(form, 0, -1), p1env, seen, lexicalP), 0, -1);
   } else if (SG_SYMBOLP(form)) {
     /* lookup from p1env.
        exists: we need to wrap with the env which contains this symbol.
@@ -99,12 +99,15 @@ static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen)
     SgObject id = Sg_HashTableRef(seen, form, SG_FALSE);
     if (SG_FALSEP(id)) {
       SgObject env = p1env_lookup(form, p1env, 0);
-      if (SG_NULLP(env)) {
+      if (SG_NULLP(env) && !lexicalP) {
 	id = Sg_MakeIdentifier(form,
 			       SG_VECTOR_ELEMENT(p1env, 1),
 			       SG_VECTOR_ELEMENT(p1env, 0));
-      } else {
+      } else if (!SG_NULLP(env)) {
 	id = Sg_MakeIdentifier(form, env, SG_VECTOR_ELEMENT(p1env, 0));
+      } else {
+	/* if it's partial wrap and symbol is not lexical bounded, just return */
+	return form;
       }
       Sg_HashTableSet(seen, form, id, 0);
       return id;
@@ -118,10 +121,13 @@ static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen)
 }
 
 /* wrap form to identifier */
-SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env)
+SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env, SgObject seen, int lexicalP)
 {
-  SgHashTable *seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
-  return wrap_rec(form, p1env, seen);
+  if (!seen) {
+    seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
+  }
+  ASSERT(SG_HASHTABLE_P(seen));
+  return wrap_rec(form, p1env, SG_HASHTABLE(seen), lexicalP);
 }
 
 /* originally from chibi scheme */

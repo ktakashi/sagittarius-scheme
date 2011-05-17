@@ -117,7 +117,7 @@
 ;; this must be in compiler.scm for global lambda let dynamic-wind
 ;; but for now
 (define compile-syntax-case
-  (lambda (exp-name expr literals rules library env p1env)
+(lambda (exp-name expr literals rules library env p1env)
     (let ((literals (unwrap-syntax literals)))
       (define parse-pattern
 	(lambda (pattern)
@@ -148,15 +148,19 @@
 					 (define construct
 					   (lambda (clause)
 					     `(lambda (,@(map car ranks)
-						       . .vars)
+						       use-env . .vars)
 						(let ((.ranks (append ',ranks .ranks)))
-						  (let ((.save .vars.))
+						  (let ((.save .vars.)
+							(.env-save use-env))
 						    (dynamic-wind
 							(lambda ()
 							  (set! .vars. (append .vars .vars.))
-							  (set! .vars .vars.))
+							  (set! .vars .vars.)
+							  (set! .use-env use-env))
 							(lambda () ,clause)
-							(lambda () (set! .vars. .save))))))))
+							(lambda ()
+							  (set! .vars. .save)
+							  (set! .use-env .env-save))))))))
 					 (set! newenv (append env newenv))
 					 `(list ',pattern
 						',ranks
@@ -316,12 +320,14 @@
     ;; however if expression was defined by user or something, it doesn't have
     ;; it. so we need to check if it has ir or not.
     ;; expression is (expr . (use-env . mac-env))
-    (let ((form (if (and (pair? expr)
-			 (pair? (cdr expr))
-			 (p1env? (cadr expr))
-			 (p1env? (cddr expr)))
-		    (wrap-syntax (car expr) (cadr expr))
-		    expr)))
+    (receive (form use-env)
+	(if (and (pair? expr)
+		 (pair? (cdr expr))
+		 (p1env? (cadr expr))
+		 (p1env? (cddr expr)))
+	    (values #;(car expr) (wrap-syntax (car expr) (cadr expr) (make-eq-hashtable) #t)
+				 (cadr expr))
+	    (values expr #f))
       (define match
 	(lambda (form pat)
 	  (and (match-pattern? form pat literals)
@@ -340,8 +346,8 @@
 		(let ((vars (match form pat)))
 		  (if (and vars
 			   (or (not fender)
-			       (apply fender (append (map cadr vars) vars))))
-		      (apply expr (append (map cadr vars) vars))
+			       (apply fender (append (map cadr vars) (list use-env) vars))))
+		      (apply expr (append (map cadr vars) (list use-env) vars))
 		      (loop (cdr lst)))))))))))
 
 ;; syntax
@@ -362,20 +368,21 @@
 	(let ((patvar (map car ranks)))
 	  (if (variable? tmpl)
 	      (if (null? ranks)
-		  `(.expand-syntax ',patvar ',tmpl .ranks () ,p1env)
-		  `(.expand-syntax ',patvar ',tmpl (list (cons ',tmpl 0)) .vars ,p1env)))
+		  `(.expand-syntax ',patvar ',tmpl .ranks () #f ,p1env)
+		  `(.expand-syntax ',patvar ',tmpl (list (cons ',tmpl 0)) .vars use-env ,p1env)))
 	  (if (null? ranks)
-	      `(.expand-syntax ',patvar ',tmpl .ranks () ,p1env)
-	      `(.expand-syntax ',patvar ',tmpl (append ',ranks .ranks) .vars ,p1env)))))))
+	      `(.expand-syntax ',patvar ',tmpl .ranks () #f ,p1env)
+	      `(.expand-syntax ',patvar ',tmpl (append ',ranks .ranks) .vars use-env ,p1env)))))))
 
 (define expand-syntax
-  (lambda (patvars template ranks vars p1env)
-    (let ((frames (vector-ref p1env 1))
-	  (library (vector-ref p1env 0)))
+  (lambda (patvars template ranks vars use-env p1env)
+    (let ((seen (make-eq-hashtable)))
       (define emit
 	(lambda (datum)
 	  (cond ((identifier? datum) datum)
-		((symbol? datum) (make-identifier datum frames library))
+		((and (symbol? datum)
+		      use-env)
+		 (wrap-syntax datum use-env seen))
 		(else datum))))
 
       (define contain-indentifier?
@@ -395,35 +402,45 @@
       (define partial-identifier
 	(lambda (lst)
 	  ;; TODO this is a temporary solution
-	  (define renamed-ids '())
+	  (define renamed-ids (make-eq-hashtable))
 	  (let loop ((lst lst))
 	    (cond ((contain-indentifier? lst)
 		   (cond ((pair? lst)
 			  (let ((a (loop (car lst))) (d (loop (cdr lst))))
 			    (cond ((and (eq? (car lst) a) (eq? (cdr lst) d)) lst)
 				  (else (cons a d)))))
+			 ((and (identifier? lst)
+			       (assq lst vars))
+			  => (lambda (slot)
+			       (emit (cadr slot))))
 			 (else lst)))
 		  ((null? lst) '())
 		  ((symbol? lst)
-		   (cond ((assq lst renamed-ids)
-			  => cdr)
+		   (cond ((hashtable-ref renamed-ids lst #f)
+			  => (lambda (id) id))
+			 ((hashtable-ref seen lst #f)
+			  => (lambda (id) id))
+			 ((assq lst vars)
+			  => (lambda (slot)
+			       (emit (cadr slot))))
 			 (else
-			  (let ((id (make-identifier lst frames library)))
-			    (set! renamed-ids (acons lst id renamed-ids))
-			    id))))
+			  (if use-env
+			      (wrap-syntax lst use-env renamed-ids)
+			      lst))))
 		  ((vector? lst)
 		   (list->vector (loop (vector->list lst))))
 		  ((pair? lst)
 		   (cons (loop (car lst))
 			 (loop (cdr lst))))
 		  (else lst)))))
+
       (if (null? template)
 	  '()
-	  (let ((form (transcribe-template template ranks patvars vars emit)))
+	  (let ((form (transcribe-template template ranks patvars vars use-env emit)))
 	    (cond ((null? form) '())
 		  ((identifier? form) form)
 		  ((symbol? form)
-		   (make-identifier form frames library))
+		   (wrap-syntax form p1env))
 		  (else
 		   (partial-identifier form))))))))
 
@@ -583,7 +600,7 @@
             (or exhausted '()))))))
 
 (define transcribe-template
-  (lambda (template ranks patvars vars emit)
+  (lambda (template ranks patvars vars use-env emit)
     (define remove-duplicates
       (lambda (alist)
 	(or (let loop ((lst alist))
@@ -596,113 +613,115 @@
 		     (loop (cdr lst) acc))
 		    (else
 		     (loop (cdr lst) (cons (car lst) acc))))))))
-    (receive (tmpl ranks vars)
-	(adapt-to-rank-moved-vars template ranks (remove-duplicates vars))
+    (let ((seen (make-eq-hashtable))
+	  ;; creates dummy p1env
+	  (env  (if use-env use-env `#(,(vm-current-library) () #f #f))))
+      (receive (tmpl ranks vars)
+	  (adapt-to-rank-moved-vars template ranks (remove-duplicates vars))
 
-      (define expand-var
-	(lambda (tmpl vars)
-	  (cond ((assq tmpl vars)
-		 => (lambda (slot)
-		      (cond ((null? (cdr slot)) '())
-			    ;; if we don't share this with syntax-rules
-			    ;; we don't have check emit.
-			    (emit (emit (cadr slot)))
-			    (else (cadr slot)))))
-		(else
-		 ;; we don't have any way to detect right pattern and template for now,
-		 ;; so ranks may contains invalid pattern variable name, in that case
-		 ;; we just return template variable as a result.
-		 tmpl
-		 #;(assertion-violation "syntax template"
-				      "subforms have different size of matched input"
-				      `(template: ,template) `(subforms: ,@vars))))))
-      (define expand-ellipsis-var
-	(lambda (tmpl vars)
-	  (cond ((assq tmpl vars)
-		 => (lambda (slot)
-		      (cond ((null? (cdr slot)) '())
-			    ;; if we don't share this with syntax-rules
-			    ;; we don't have check emit.
-			    (emit (map emit (cadr slot)))
-			    (else (cadr slot)))))
-		(else
-		 (assertion-violation "syntax template"
-				      "subforms have different size of matched input"
-				      `(template: ,template) `(subforms: ,@vars))))))
-
-      (define expand-ellipsis-template
-        (lambda (tmpl depth vars)
-          (let loop ((expr '()) (remains (collect-ellipsis-vars tmpl ranks depth vars)))
-            (cond ((pair? remains)
-                   (loop (cons (expand-template tmpl depth remains) expr)
-                         (consume-ellipsis-vars ranks depth remains)))
-                  ((null? remains) '())
-                  ((eq? remains #t) (reverse expr))
-                  (else
-                   (assertion-violation "syntax template"
+	(define expand-var
+	  (lambda (tmpl vars)
+	    (cond ((assq tmpl vars)
+		   => (lambda (slot)
+			(cond ((null? (cdr slot)) '())
+			      ;; if we don't share this with syntax-rules
+			      ;; we don't have check emit.
+			      (emit (emit (cadr slot)))
+			      (else (cadr slot)))))
+		  (else
+		   ;; we don't have any way to detect right pattern and template for now,
+		   ;; so ranks may contains invalid pattern variable name, in that case
+		   ;; we just return template variable as a result.
+		   tmpl
+		   #;(assertion-violation "syntax template"
+		   "subforms have different size of matched input"
+		   `(template: ,template) `(subforms: ,@vars))))))
+	(define expand-ellipsis-var
+	  (lambda (tmpl vars)
+	    (cond ((assq tmpl vars)
+		   => (lambda (slot)
+			(cond ((null? (cdr slot)) '())
+			      ;; if we don't share this with syntax-rules
+			      ;; we don't have check emit.
+			      (emit (map emit (cadr slot)))
+			      (else (cadr slot)))))
+		  (else
+		   (assertion-violation "syntax template"
 					"subforms have different size of matched input"
-                                        `(template: ,template) `(subforms: ,@vars)))))))
+					`(template: ,template) `(subforms: ,@vars))))))
 
-      (define expand-escaped-template
-        (lambda (tmpl depth vars)
-          (cond ((variable? tmpl)
-                 (if (< (rank-of tmpl ranks) 0)
-		     tmpl
-                     (expand-var tmpl vars)))
-                ((pair? tmpl)
-                 (if (and emit (null? (car tmpl)))
-                     (cons '()
-                           (expand-escaped-template (cdr tmpl) depth vars))
-                     (cons (expand-escaped-template (car tmpl) depth vars)
-                           (expand-escaped-template (cdr tmpl) depth vars))))
-                ((vector? tmpl)
-                 (list->vector (expand-escaped-template (vector->list tmpl) depth vars)))
-                (else tmpl))))
+	(define expand-ellipsis-template
+	  (lambda (tmpl depth vars)
+	    (let loop ((expr '()) (remains (collect-ellipsis-vars tmpl ranks depth vars)))
+	      (cond ((pair? remains)
+		     (loop (cons (expand-template tmpl depth remains) expr)
+			   (consume-ellipsis-vars ranks depth remains)))
+		    ((null? remains) '())
+		    ((eq? remains #t) (reverse expr))
+		    (else
+		     (assertion-violation "syntax template"
+					  "subforms have different size of matched input"
+					  `(template: ,template) `(subforms: ,@vars)))))))
 
-      (define expand-template
-        (lambda (tmpl depth vars)
-          (cond ((variable? tmpl)
-                 (if (< (rank-of tmpl ranks) 0)
-		     tmpl
-		     (expand-var tmpl vars)))
-                ((ellipsis-quote? tmpl)
-                 (expand-escaped-template (cadr tmpl) depth vars))
-                ((ellipsis-splicing-pair? tmpl)
-                 (receive (body tail len) (parse-ellipsis-splicing tmpl)
-                   (append (apply append (expand-ellipsis-template body (+ depth 1) vars))
-                           (expand-template tail depth vars))))
-                ((ellipsis-pair? tmpl)
-                 (cond ((variable? (car tmpl))
-			(let lp ((rank (rank-of (car tmpl) ranks))
-				 (rest (cdr ranks)))
-                          (cond ((= rank (+ depth 1))
-                                 (append (expand-ellipsis-var (car tmpl) vars)
-                                         (expand-template (cddr tmpl) depth vars)))
-				((>= rank 0)
-				 ;; it might be free pattern variable retry
-				 (lp (rank-of (car tmpl) rest)
-				     (cdr rest)))
-				(else
-				 ;; error?
-				 (assertion-violation "syntax template"
-						      "missing ellipsis"
-						      template)))))
-                       ((pair? (car tmpl))
-                        (append (expand-ellipsis-template (car tmpl) (+ depth 1) vars)
-                                (expand-template (cddr tmpl) depth vars)))))
-                ((pair? tmpl)
-                 (if (and emit (null? (car tmpl)))
-                     (cons '()
-                           (expand-template (cdr tmpl) depth vars))
-                     (cons (expand-template (car tmpl) depth vars)
-			   (expand-template (cdr tmpl) depth vars))))
-                ((vector? tmpl)
-                 (list->vector (expand-template (vector->list tmpl) depth vars)))
-                (else tmpl))))
-      (if (and (= (safe-length tmpl) 2) (ellipsis? (car tmpl)))
-          (expand-escaped-template (cadr tmpl) 0 vars)
-	  (expand-template tmpl 0 vars)))))
+	(define expand-escaped-template
+	  (lambda (tmpl depth vars)
+	    (cond ((variable? tmpl)
+		   (if (< (rank-of tmpl ranks) 0)
+		       tmpl
+		       (expand-var tmpl vars)))
+		  ((pair? tmpl)
+		   (if (and emit (null? (car tmpl)))
+		       (cons '()
+			     (expand-escaped-template (cdr tmpl) depth vars))
+		       (cons (expand-escaped-template (car tmpl) depth vars)
+			     (expand-escaped-template (cdr tmpl) depth vars))))
+		  ((vector? tmpl)
+		   (list->vector (expand-escaped-template (vector->list tmpl) depth vars)))
+		  (else tmpl))))
 
+	(define expand-template
+	  (lambda (tmpl depth vars)
+	    (cond ((variable? tmpl)
+		   (if (< (rank-of tmpl ranks) 0)
+		       (wrap-syntax tmpl env seen)
+		       (expand-var tmpl vars)))
+		  ((ellipsis-quote? tmpl)
+		   (expand-escaped-template (cadr tmpl) depth vars))
+		  ((ellipsis-splicing-pair? tmpl)
+		   (receive (body tail len) (parse-ellipsis-splicing tmpl)
+		     (append (apply append (expand-ellipsis-template body (+ depth 1) vars))
+			     (expand-template tail depth vars))))
+		  ((ellipsis-pair? tmpl)
+		   (cond ((variable? (car tmpl))
+			  (let lp ((rank (rank-of (car tmpl) ranks))
+				   (rest (cdr ranks)))
+			    (cond ((= rank (+ depth 1))
+				   (append (expand-ellipsis-var (car tmpl) vars)
+					   (expand-template (cddr tmpl) depth vars)))
+				  ((>= rank 0)
+				   ;; it might be free pattern variable retry
+				   (lp (rank-of (car tmpl) rest)
+				       (cdr rest)))
+				  (else
+				   ;; error?
+				   (assertion-violation "syntax template"
+							"missing ellipsis"
+							template)))))
+			 ((pair? (car tmpl))
+			  (append (expand-ellipsis-template (car tmpl) (+ depth 1) vars)
+				  (expand-template (cddr tmpl) depth vars)))))
+		  ((pair? tmpl)
+		   (if (and emit (null? (car tmpl)))
+		       (cons '()
+			     (expand-template (cdr tmpl) depth vars))
+		       (cons (expand-template (car tmpl) depth vars)
+			     (expand-template (cdr tmpl) depth vars))))
+		  ((vector? tmpl)
+		   (list->vector (expand-template (vector->list tmpl) depth vars)))
+		  (else tmpl))))
+	(if (and (= (safe-length tmpl) 2) (ellipsis? (car tmpl)))
+	    (expand-escaped-template (cadr tmpl) 0 vars)
+	  (expand-template tmpl 0 vars))))))
 
 ;; procedures
 (define syntax->datum
@@ -752,6 +771,7 @@
 (set-toplevel-variable! '.vars. '())
 (set-toplevel-variable! '.make-variable-transformer make-variable-transformer)
 (set-toplevel-variable! '.count-pair count-pair)
+(set-toplevel-variable! '.use-env #f)
 
 ;;;; end of file
 ;; Local Variables:

@@ -181,8 +181,8 @@
   (define-c-proc unwrap-syntax (form) ::Object
     (result (Sg_UnwrapSyntax form)))
 
-  (define-c-proc wrap-syntax (form p1env::Vector) ::Object
-    (result (Sg_WrapSyntax form p1env)))
+  (define-c-proc wrap-syntax (form p1env::Vector :optional (seen NULL) (partialP #f)) ::Object
+    (result (Sg_WrapSyntax form p1env seen (not (SG_FALSEP partialP)))))
 
   ;; io
   (define-cgen-stmt check-output-port

@@ -662,14 +662,19 @@ static void write_string(SgString *obj, SgPort *port, SgWriteContext *ctx)
 
 static void write_identifier(SgIdentifier *id, SgPort *port, SgWriteContext *ctx)
 {
-  char buf[50];
   Sg_PutuzUnsafe(port, UC("#<identifier "));
   write_symbol(id->name, port, ctx);
   Sg_PutcUnsafe(port, '#');
   write_symbol(id->library->name, port, ctx);
-  Sg_PutcUnsafe(port, ' ');
-  snprintf(buf, sizeof(buf), "(%p)", id->envs);
-  Sg_PutzUnsafe(port, buf);
+  if (SG_WRITE_MODE(ctx) == SG_WRITE_WRITE) {
+    char buf[50];
+    Sg_PutcUnsafe(port, ' ');
+    snprintf(buf, sizeof(buf), "(%p)", id->envs);
+    Sg_PutzUnsafe(port, buf);
+    snprintf(buf, sizeof(buf), "(%p)", id);
+    Sg_PutcUnsafe(port, ' ');
+    Sg_PutzUnsafe(port, buf);
+  }
   Sg_PutcUnsafe(port, '>');
 }
 

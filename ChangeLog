@@ -1,3 +1,9 @@
+2011-05-17  Takashi Kato  <ktakashi@ymail.com>
+
+	* boot/lib/macro.scm (syntax-case): fixed renaming problem.
+
+	* boot/compiler.scm (pass1/body): refactored for internal macro.
+
 2011-05-12  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/library.c (library): implemented efficient import spec resolver.

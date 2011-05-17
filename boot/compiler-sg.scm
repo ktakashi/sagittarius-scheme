@@ -1840,12 +1840,12 @@
 
 (define
  pass1/body
- (lambda (exprs p1env) (pass1/body-rec (map list exprs) '() p1env)))
+ (lambda (exprs p1env) (pass1/body-rec (map list exprs) '() '() p1env)))
 
 (define
  pass1/body-rec
  (lambda
-  (exprs intdefs p1env)
+  (exprs intdefs intmacros p1env)
   (smatch
    exprs
    ((((op . args) . src) . rest)
@@ -1862,10 +1862,10 @@
            "proper list required for function application or macro use"
            (caar exprs)))
          (cond
-          ((lvar? head) (pass1/body-finish intdefs exprs p1env))
+          ((lvar? head) (pass1/body-finish intdefs intmacros exprs p1env))
           ((macro? head)
-           (pass1/body-macro-expand-rec head exprs intdefs p1env))
-          ((syntax? head) (pass1/body-finish intdefs exprs p1env))
+           (pass1/body-macro-expand-rec head exprs intdefs intmacros p1env))
+          ((syntax? head) (pass1/body-finish intdefs intmacros exprs p1env))
           ((global-eq? head 'define p1env)
            (let
             ((def
@@ -1875,7 +1875,7 @@
                 `(,name (,lambda. ,formals ,@body) unquote src))
                ((var init) `(,var ,init unquote src))
                (- (syntax-error "malformed internal define" (caar exprs))))))
-            (pass1/body-rec rest (acons def #f intdefs) p1env)))
+            (pass1/body-rec rest (cons def intdefs) intmacros p1env)))
           ((global-eq? head 'define-syntax p1env)
            (let
             ((def
@@ -1886,11 +1886,12 @@
                 (syntax-error
                  "malformed internal define-syntax"
                  (caar exprs))))))
-            (pass1/body-rec rest (acons def #t intdefs) p1env)))
+            (pass1/body-rec rest intdefs (cons def intmacros) p1env)))
           ((global-eq? head 'begin p1env)
            (pass1/body-rec
             (append (imap (lambda (x) (cons x src)) args) rest)
             intdefs
+            intmacros
             p1env))
           ((identifier? head)
            (let
@@ -1901,74 +1902,69 @@
               ((gval (gloc-ref gloc)))
               (if
                (macro? gval)
-               (pass1/body-macro-expand-rec gval exprs intdefs p1env)
-               (pass1/body-finish intdefs exprs p1env)))
-             (pass1/body-finish intdefs exprs p1env))))
+               (pass1/body-macro-expand-rec
+                gval
+                exprs
+                intdefs
+                intmacros
+                p1env)
+               (pass1/body-finish intdefs intmacros exprs p1env)))
+             (pass1/body-finish intdefs intmacros exprs p1env))))
           (else (scheme-error 'pass1/body "[internal] pass1/body" head))))
         (else #f))))
-     (pass1/body-finish intdefs exprs p1env)))
-   (- (pass1/body-finish intdefs exprs p1env)))))
+     (pass1/body-finish intdefs intmacros exprs p1env)))
+   (- (pass1/body-finish intdefs intmacros exprs p1env)))))
 
 (define
  pass1/body-macro-expand-rec
  (lambda
-  (mac exprs intdefs p1env)
+  (mac exprs intdefs intmacros p1env)
   (pass1/body-rec
    (acons
     (call-macro-expander mac (caar exprs) p1env)
     (cdar exprs)
     (cdr exprs))
    intdefs
+   intmacros
    p1env)))
 
 (define
  pass1/body-finish
  (lambda
-  (intdefs exprs p1env)
-  (if
-   (null? intdefs)
-   (pass1/body-rest exprs p1env)
-   (receive
-    (intdefs. intmacros.)
-    (let
-     loop
-     ((defs intdefs) (d* '()) (m* '()))
-     (cond
-      ((null? defs) (values d* m*))
-      ((cdar defs) (loop (cdr defs) d* (cons (caar defs) m*)))
-      (else (loop (cdr defs) (cons (caar defs) d*) m*))))
-    (if
-     (null? intmacros.)
-     (let*
-      ((vars (map car intdefs.))
-       (lvars (map make-lvar+ vars))
-       (newenv (p1env-extend p1env (%map-cons vars lvars) LEXICAL)))
-      ($let
-       #f
-       'rec
+  (intdefs intmacros exprs p1env)
+  (cond
+   ((and (null? intdefs) (null? intmacros)) (pass1/body-rest exprs p1env))
+   ((null? intmacros)
+    (let*
+     ((intdefs. (reverse intdefs))
+      (vars (map car intdefs.))
+      (lvars (map make-lvar+ vars))
+      (newenv (p1env-extend p1env (%map-cons vars lvars) LEXICAL)))
+     ($let
+      #f
+      'rec
+      lvars
+      (map
+       (lambda (lv def) (pass1/body-init lv def newenv))
        lvars
+       (map cdr intdefs.))
+      (pass1/body-rest exprs newenv))))
+   (else
+    (let*
+     ((intmacros. (reverse intmacros))
+      (macenv (p1env-extend p1env intmacros. SYNTAX))
+      (trans
        (map
-        (lambda (lv def) (pass1/body-init lv def newenv))
-        lvars
-        (map cdr intdefs.))
-       (pass1/body-rest exprs newenv)))
-     (let*
-      ((macenv (p1env-extend p1env intmacros. SYNTAX))
-       (trans
-        (map
-         (lambda
-          (n&e)
-          (pass1/eval-macro-rhs
-           'define-syntax
-           (variable-name (car n&e))
-           (cadr n&e)
-           (p1env-add-name macenv (variable-name (car n&e)))))
-         intmacros.)))
-      (for-each set-cdr! (cdar (p1env-frames macenv)) trans)
-      (pass1/body-rec
-       exprs
-       (map (lambda (p) (cons p #f)) intdefs.)
-       macenv)))))))
+        (lambda
+         (n&e)
+         (pass1/eval-macro-rhs
+          'define-syntax
+          (variable-name (car n&e))
+          (cadr n&e)
+          (p1env-add-name macenv (variable-name (car n&e)))))
+        intmacros.)))
+     (for-each set-cdr! (cdar (p1env-frames macenv)) trans)
+     (pass1/body-rec exprs intdefs '() macenv))))))
 
 (define
  pass1/body-init
