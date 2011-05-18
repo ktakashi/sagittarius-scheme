@@ -6,7 +6,7 @@
      (let ((x (op arg ...)))
        (smatch x clause ...)))
     ((smatch x)
-     (error 'smatch "invalid form" x))
+     (syntax-error "invalid form" x))
     ((smatch x (pat e ...) clause ...)
      (smatcher "base" pat "done" x (e ...) (lambda () (smatch x clause ...))))))
 

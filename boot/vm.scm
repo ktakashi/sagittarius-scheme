@@ -26,6 +26,9 @@
 
 (cond-expand
  (gauche
+  (define (syntax-error form . irritants)
+    (errorf "syntax-error: ~s, irritants ~s" form irritants))
+
   (add-load-path ".")
   (load "compiler.scm")
   (use pp)
@@ -1098,7 +1101,7 @@
 (add-namespace! hashtable-ref (h k) hash-table-get)
 (add-namespace! hashtable-set! (h k v) hash-table-put!)
 (add-namespace! hashtable->alist (h) hash-table->alist)
-(add-namespace! hashtable-keys (h) hash-table-keys)
+(add-namespace! hashtable-keys-list (h) hash-table-keys)
 (add-namespace! hashtable-values (h) hash-table-values)
 ;(add-namespace! vm/apply (c . a))
 (add-namespace! er-rename (a b c))

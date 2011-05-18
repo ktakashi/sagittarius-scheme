@@ -36,6 +36,10 @@
 #include "sagittarius/pair.h"
 #include "sagittarius/string.h"
 #include "sagittarius/number.h"
+#include "sagittarius/symbol.h"
+#include "sagittarius/keyword.h"
+#include "sagittarius/vector.h"
+#include "sagittarius/vm.h"
 
 typedef struct EntryRec
 {
@@ -69,7 +73,7 @@ static void hash_iter_init(SgHashCore *core, SgHashIter *itr);
   } while (0)
 
 #define SMALL_INT_HASH(result, value)		\
-  (result) = ((val)*2654435761UL)
+  (result) = ((value)*2654435761UL)
 #define ADDRESS_HASH(result, val)				\
   (result) = (uint32_t)((SG_WORD(val) >> 3)*2654435761UL)
 
@@ -89,16 +93,70 @@ uint32_t Sg_EqvHash(SgObject obj)
 {
   /* TODO implement */
   uint32_t hashval;
-  ADDRESS_HASH(hashval, obj);
+  if (SG_NUMBERP(obj)) {
+    if (SG_INTP(obj)) {
+      SMALL_INT_HASH(hashval, SG_INT_VALUE(obj));
+    } else if (SG_BIGNUMP(obj)) {
+      unsigned int i;
+      unsigned long u = 0;
+      int size = SG_BIGNUM_GET_COUNT(obj);
+      for (i = 0; i < size; i++) {
+	u += SG_BIGNUM(obj)->elements[i];
+      }
+      SMALL_INT_HASH(hashval, u);
+    } else if (SG_FLONUMP(obj)) {
+      hashval = (unsigned long)(SG_FLONUM(obj)->value * 2654435761UL);
+    } else if (SG_RATIONALP(obj)) {
+      unsigned long h1 = Sg_EqvHash(SG_RATIONAL(obj)->numerator);
+      unsigned long h2 = Sg_EqvHash(SG_RATIONAL(obj)->denominator);
+      hashval = COMBINE(h1, h2);
+    } else {
+      unsigned long h1 = Sg_EqvHash(SG_COMPLEX(obj)->real);
+      unsigned long h2 = Sg_EqvHash(SG_COMPLEX(obj)->imag);
+      hashval = COMBINE(h1, h2);
+    }
+  } else {
+    ADDRESS_HASH(hashval, obj);
+  }
   return hashval & HASHMASK;
 }
 
 uint32_t Sg_EqualHash(SgObject obj)
 {
-  /* TODO */
   uint32_t hashval;
-  ADDRESS_HASH(hashval, obj);
-  return hashval & HASHMASK;
+  if (!SG_PTRP(obj)) {
+    SMALL_INT_HASH(hashval, (unsigned long)SG_WORD(obj));
+    return hashval;
+  } else if (SG_NUMBERP(obj)) {
+    return Sg_EqvHash(obj);
+  } else if (SG_STRINGP(obj)) {
+    return Sg_StringHash(SG_STRING(obj), 0);
+  } else if (SG_PAIRP(obj)) {
+    unsigned long h = 0, h2;
+    SgObject cp;
+    SG_FOR_EACH(cp, obj) {
+      h2 = Sg_EqualHash(SG_CAR(cp));
+      h = COMBINE(h, h2);
+    }
+    h2 = Sg_EqualHash(cp);
+    h = COMBINE(h, h2);
+    return h;
+  } else if (SG_VECTORP(obj)) {
+    int i, size = SG_VECTOR_SIZE(obj);
+    unsigned long h = 0, h2;
+    for (i = 0; i < size; i++) {
+      h2 = Sg_EqualHash(SG_VECTOR_ELEMENT(obj, i));
+      h = COMBINE(h, h2);
+    }
+    return h;
+  } else if (SG_SYMBOLP(obj)) {
+    return Sg_StringHash(SG_SYMBOL(obj)->name, 0);
+  } else if (SG_KEYWORDP(obj)) {
+    return Sg_StringHash(SG_KEYWORD_NAME(obj), 0);
+  } else {
+    ADDRESS_HASH(hashval, obj);
+    return hashval;
+  }
 }
 
 uint32_t Sg_StringHash(SgString *str, uint32_t bound)
@@ -432,10 +490,36 @@ void Sg_HashCoreCopy(SgHashCore *dst, const SgHashCore *src)
   dst->hasher = src->hasher;
   dst->compare = src->compare;
   dst->access = src->access;
+  dst->generalHasher  =	src->generalHasher;
+  dst->generalCompare =	src->generalCompare;
   dst->data = src->data;
   dst->bucketCount = src->bucketCount;
   dst->bucketsLog2Count = src->bucketsLog2Count;
   dst->entryCount = src->entryCount;
+}
+
+void Sg_HashCoreClear(SgHashCore *ht, int k)
+{
+  int i;
+  for (i = 0; i < ht->bucketCount; i++) {
+    ht->buckets[i] = NULL;
+  }
+  ht->entryCount = 0;
+  /* TODO: do we need this? */
+  if (k > 0) {
+    Entry **b;
+    int i;
+    ht->buckets = NULL;	/* gc friendliness */
+    if (k == 0) k = DEFAULT_BUCKET_COUNT;
+    else k = round2up(k);
+    b = SG_NEW_ARRAY(Entry*, k);
+    ht->buckets = (void**)b;
+    ht->bucketCount = k;
+    for (i = k, ht->bucketsLog2Count = 0; i > 1; i /= 2) {
+      ht->bucketsLog2Count++;
+    }
+    for (i = 0; i < k; i++) ht->buckets[i] = NULL;
+  }
 }
 
 void hash_iter_init(SgHashCore *core, SgHashIter *itr)
@@ -508,12 +592,15 @@ SgObject Sg_MakeHashTableForScheme(SgObject hasher, SgObject compare, int initSi
   return SG_OBJ(z);
 }
 
-SgObject Sg_HashTableCopy(SgHashTable *src)
+SgObject Sg_HashTableCopy(SgHashTable *src, int mutableP)
 {
   SgHashTable *dst = SG_NEW(SgHashTable);
   SG_SET_HEADER(dst, TC_HASHTABLE);
   Sg_HashCoreCopy(SG_HASHTABLE_CORE(dst), SG_HASHTABLE_CORE(src));
   dst->type = src->type;
+  if (!mutableP) {
+    SG_SET_HEADER_ATTRIBUTE(dst, SG_HASHTABLE_IMMUTABLE_BIT);
+  }
   return SG_OBJ(dst);
 }
 
@@ -527,9 +614,16 @@ SgObject Sg_HashTableRef(SgHashTable *table, SgObject key, SgObject fallback)
 
 SgObject Sg_HashTableSet(SgHashTable *table, SgObject key, SgObject value, int flags)
 {
-  SgHashEntry *e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(table),
-				     (intptr_t)key,
-				     (flags & SG_HASH_NO_CREATE) ? SG_HASH_GET: SG_HASH_CREATE);
+  SgHashEntry *e;
+
+  if (SG_IMMUTABLE_HASHTABLE_P(table)) {
+    Sg_Error(UC("attemp to modify immutable hashtable"));
+    return SG_UNDEF;
+  }
+
+  e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(table),
+			(intptr_t)key,
+			(flags & SG_HASH_NO_CREATE) ? SG_HASH_GET: SG_HASH_CREATE);
   if (!e) return SG_UNBOUND;
   if (e->value) {
     if (flags & SG_HASH_NO_OVERWRITE) return SG_HASH_ENTRY_VALUE(e);
@@ -544,17 +638,31 @@ SgObject Sg_HashTableSet(SgHashTable *table, SgObject key, SgObject value, int f
 
 SgObject Sg_HashTableDelete(SgHashTable *table, SgObject key)
 {
-  SgHashEntry *e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(table),
-				     (intptr_t)key,
-				     SG_HASH_DELETE);
+  SgHashEntry *e;
+
+  if (SG_IMMUTABLE_HASHTABLE_P(table)) {
+    Sg_Error(UC("attemp to modify immutable hashtable"));
+    return SG_UNDEF;
+  }
+
+  e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(table),
+			(intptr_t)key,
+			SG_HASH_DELETE);
   if (e && e->value) return SG_HASH_ENTRY_VALUE(e);
   else return SG_UNBOUND;
 }
 
 SgObject Sg_HashTableAddAll(SgHashTable *dst, SgHashTable *src)
 {
-  SgObject keys = Sg_HashTableKeys(src);
+  SgObject keys;
   SgObject cp, key;
+
+  if (SG_IMMUTABLE_HASHTABLE_P(dst)) {
+    Sg_Error(UC("attemp to modify immutable hashtable"));
+    return SG_UNDEF;
+  }
+
+  keys = Sg_HashTableKeys(src);
   SG_FOR_EACH(cp, keys) {
     key = SG_CAR(cp);
     Sg_HashTableSet(dst, key, Sg_HashTableRef(src, key, SG_UNBOUND), 0);

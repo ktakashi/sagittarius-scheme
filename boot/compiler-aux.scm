@@ -219,7 +219,7 @@
 		    `((memv ,tmp ,ilist) ,@body)))
 		 ((else . body)
 		  (or (else? else)
-		      (error "invalid symbol test clause:" clauses))
+		      (syntax-error "invalid symbol test clause" clauses))
 		  `(else ,@body))))
 	     `(let ((,tmp ,obj))
 		(cond ,@(map expand-clause clauses)))))))))

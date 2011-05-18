@@ -1,3 +1,9 @@
+2011-05-18  Takashi Kato  <ktakashi@ymail.com>
+
+	* lib/rnrs/r5rs.scm (rnrs r5rs): added r5rs compatible files.
+
+	* src/null.stub (rnrs hashtables): added hashtable procedures.
+
 2011-05-17  Takashi Kato  <ktakashi@ymail.com>
 
 	* boot/lib/macro.scm (syntax-case): fixed renaming problem.

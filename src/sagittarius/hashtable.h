@@ -72,6 +72,10 @@ struct SgHashIterRec
   void       *next;
 };
 
+/*
+  hashtable header info
+  ........ ........ .....I.. ....0111 : I: immutable
+ */
 struct SgHashTableRec
 {
   SG_HEADER;
@@ -103,6 +107,11 @@ typedef enum {
 #define SG_HASH_ENTRY_VALUE(e) SG_OBJ((e)->value)
 #define SG_HASH_ENTRY_SET_VALUE(e, v)		\
   SG_OBJ((e)->value = (intptr_t)v)
+/* for hashtable-copy */
+#define SG_HASHTABLE_IMMUTABLE_SHIFT   	11
+#define SG_HASHTABLE_IMMUTABLE_BIT     ((uintptr_t)1 << SG_HASHTABLE_IMMUTABLE_SHIFT)
+#define SG_IMMUTABLE_HASHTABLE_P(obj)  (SG_HASHTABLE_P(obj) && (SG_HDR(obj) & SG_HASHTABLE_IMMUTABLE_BIT))
+
 
 SG_CDECL_BEGIN
 /* hash core */
@@ -120,6 +129,8 @@ SG_EXTERN SgHashEntry* Sg_HashCoreSearch(SgHashCore *table, intptr_t key,
 SG_EXTERN void Sg_HashCoreCopy(SgHashCore *dst,
 			       const SgHashCore *src);
 
+SG_EXTERN void Sg_HashCoreClear(SgHashCore *ht, int k);
+
 /* iterator */
 SG_EXTERN void Sg_HashIterInit(SgHashTable *table,
 			       SgHashIter  *itr);
@@ -136,7 +147,7 @@ SG_EXTERN SgObject Sg_MakeHashTableSimple(SgHashType type, int initSize);
 SG_EXTERN SgObject Sg_MakeHashTable(SgHashProc *hasher, SgHashCompareProc *compre, int initSize);
 SG_EXTERN SgObject Sg_MakeHashTableForScheme(SgObject hasher, SgObject compare, int initSize);
 
-SG_EXTERN SgObject Sg_HashTableCopy(SgHashTable *table);
+SG_EXTERN SgObject Sg_HashTableCopy(SgHashTable *table, int mutableP);
 
 SG_EXTERN SgObject Sg_HashTableRef(SgHashTable *table, SgObject key, SgObject fallback);
 SG_EXTERN SgObject Sg_HashTableSet(SgHashTable *table, SgObject key, SgObject value, int flags);

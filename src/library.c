@@ -375,9 +375,9 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
       /* renamed export */
       SgObject spec = Sg_Assq(SG_CAR(key), SG_CDR(exportSpec));
       if (SG_FALSEP(spec)) {
-	/* TODO error? */
+	/* ignore */
       } else {
-	import_variable(tolib, SG_CDR(spec), v, imports, except, prefix);
+	import_variable(tolib, SG_CADR(spec), v, imports, except, prefix);
 	/* Sg_HashTableSet(SG_LIBRARY_TABLE(tolib), SG_CDR(spec), v, 0); */
       }
     }

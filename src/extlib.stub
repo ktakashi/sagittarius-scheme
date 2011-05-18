@@ -24,16 +24,19 @@
 	    ;; vector
 	    vector-copy
 
-	    ;; hashtable
-	    hashtable->alist
-	    hashtable-values
-
 	    ;; misc
 	    current-exception-handler
 	    variable? arity
 	    unbound undefined undefined?
 	    add-load-path load
 	    gensym unwrap-syntax wrap-syntax
+
+	    ;; hashtable
+	    hashtable-keys-list hashtable-values-list
+	    hashtable-values
+	    hashtable-type hashtable-compare hashtable-hasher
+	    ;; extra hashtable
+	    make-equal-hashtable make-string-hashtable
 
 	    ;; io
 	    port-closed? format write/ss
@@ -43,6 +46,18 @@
 	    profiler-raw-result
 	    )
     (import :null)
+
+  (define-cgen-stmt assertion-violation
+    ((_ who msg)
+     (dispatch
+      `(begin
+	 (Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) '())
+	 (return SG_UNDEF))))
+    ((_ who msg irritants)
+     (dispatch
+      `(begin
+	 (Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,irritants)
+	 (return SG_UNDEF)))))
 
   (define-cgen-stmt wrong-type-of-argument-violation
     ((_ who msg got)
@@ -122,14 +137,6 @@
 						    fill) ::Object
     (result (Sg_VectorCopy vec start end fill)))
 
-  ;; hashtable
-  (define-c-proc hashtable-keys (ht::HashTable) ::Object
-    (result (Sg_HashTableKeys ht)))
-
-  (define-c-proc hashtable-values (ht::HashTable) ::Object
-    (result (Sg_HashTableValues ht)))
-
-
   (define-c-proc current-exception-handler (:optional handle) ::Object
     (if (SG_UNBOUNDP handle)
 	(result (-> (Sg_VM) exceptionHandler))
@@ -183,6 +190,45 @@
 
   (define-c-proc wrap-syntax (form p1env::Vector :optional (seen NULL) (partialP #f)) ::Object
     (result (Sg_WrapSyntax form p1env seen (not (SG_FALSEP partialP)))))
+
+  ;; hashtable
+  (define-c-proc make-equal-hashtable (:optional (k::fixnum 200)) ::Object
+    (result (Sg_MakeHashTableSimple SG_HASH_EQUAL k)))
+
+  (define-c-proc make-string-hashtable (:optional (k::fixnum 200)) ::Object
+    (result (Sg_MakeHashTableSimple SG_HASH_STRING k)))
+
+  (define-c-proc hashtable-keys-list (ht::HashTable) ::Object
+    (result (Sg_HashTableKeys ht)))
+
+  (define-c-proc  hashtable-values-list (ht::HashTable) ::Object
+    (result (Sg_HashTableValues ht)))
+
+  (define-c-proc hashtable-type (ht::HashTable) ::Object
+    (cond ((== (-> ht type) SG_HASH_EQ)
+	   (result 'eq))
+	  ((== (-> ht type) SG_HASH_EQV)
+	   (result 'eqv))
+	  ((== (-> ht type) SG_HASH_EQUAL)
+	   (result 'equal))
+	  ((== (-> ht type) SG_HASH_STRING)
+	   (result 'string))
+	  ((== (-> ht type) SG_HASH_GENERAL)
+	   (result 'general))
+	  (else
+	   (assertion-violation 'hashtable-type
+				"invalid hashtable type"
+				ht))))
+
+  (define-c-proc hashtable-compare (ht::HashTable) ::Object
+    (result (-> (SG_HASHTABLE_CORE ht) generalCompare)))
+
+  (define-c-proc hashtable-hasher (ht::HashTable) ::Object
+    (result (-> (SG_HASHTABLE_CORE ht) generalHasher)))
+
+  ;; just for consistancy
+  (define-c-proc hashtable-values (ht::HashTable) ::Object
+    (result (Sg_ListToVector (Sg_HashTableValues ht) 0 -1)))
 
   ;; io
   (define-cgen-stmt check-output-port

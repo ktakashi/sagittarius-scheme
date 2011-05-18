@@ -7,6 +7,7 @@
     (import (core)
 	    (sagittarius)
 	    (core base)
+	    (core errors)
 	    (core syntax-case)
 	    (core syntax pattern)
 	    (core syntax template))

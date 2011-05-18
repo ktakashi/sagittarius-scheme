@@ -283,6 +283,7 @@ SG_EXTERN SgObject Sg_AddLoadPath(SgString *path);
 /* eval */
 SG_EXTERN SgObject Sg_VMEval(SgObject sexp, SgObject env);
 SG_EXTERN SgObject Sg_Eval(SgObject sexp, SgObject env);
+SG_EXTERN SgObject Sg_Environment(SgObject lib, SgObject spec);
 
 /* dynamic-wind */
 SG_EXTERN void     Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize);

@@ -212,7 +212,7 @@
 	       (let inline ((args (cdr form)))
 		 (smatch args
 		   (()
-		    (error "procedure requires at least one argument:" form))
+		    (syntax-error "procedure requires at least one argument" form))
 		   ((x)
 		    (receive (num tree) (check-numeric-constant x cenv)
 		      (if num
@@ -275,7 +275,7 @@
 	       (let inline ((args (cdr form)))
 		 (smatch args
 		   (()
-		    (error "procedure requires at least one argument:" form))
+		    (syntax-error "procedure requires at least one argument" form))
 		   ((x)
 		    (receive (num tree) (check-numeric-constant x cenv)
 		      (if (number? num)

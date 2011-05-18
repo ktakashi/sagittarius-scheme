@@ -328,12 +328,6 @@
 	    ;; 12.5
 	    identifier? bound-identifier=? free-identifier=?
 	    
-	    ;; apply
-	     eval
-
-	    ;; list
-	    set-car! set-cdr!
-
 	    ;; conditions
 	    keyword?
 
@@ -351,11 +345,22 @@
 	    hashtable-copy hashtable-clear! hashtable-keys
 
 	    ;; 13.3 inspection
-	    hashtable-equivalence-function hashtable-hash-function
+	    ;; these are in scmlib.scm
+	    ;;hashtable-equivalence-function hashtable-hash-function
 	    hashtable-mutable?
 
 	    ;; 13.4 hash functions
 	    equal-hash string-hash string-ci-hash symbol-hash
+
+	    ;; 15 composit library
+	    ;; 16 eval
+	    eval
+
+	    ;; 17 mutable pairs
+	    set-car! set-cdr!
+
+	    ;; 18 mutable strings
+	    string-set! string-fill!
 
 	    ;; conditions
 	    condition simple-conditions compound-condition-component
@@ -1154,23 +1159,6 @@
 
   (define-c-proc string-append (:rest rest) ::Object
     (result (Sg_StringAppend rest)))
-
-  (define-c-proc string-set! (s::String k::fixnum c) ::void
-    (when (< k 0)
-      (wrong-type-of-argument-violation 'string-set! "non negative exact integer"
-					(SG_MAKE_INT k)
-					(SG_LIST3 s (SG_MAKE_INT k) c)))
-    (when (> k (SG_STRING_SIZE s))
-      (assertion-violation 'string-set! "index out of bounds"
-			   (SG_LIST3 s (SG_MAKE_INT k) c)))
-    (unless (SG_CHARP c)
-      (wrong-type-of-argument-violation 'string-set! "character"
-					c
-					(SG_LIST3 s (SG_MAKE_INT k) c)))
-    (when (SG_LITERAL_STRINGP s)
-      (assertion-violation 'string-set! "attempted to modify an immutable string"
-			   s))
-    (set! (SG_STRING_VALUE_AT s k) (SG_CHAR_VALUE c)))
 
   (define-c-proc string->list (s::String) ::Object
     (result (Sg_StringToList s)))
@@ -3594,20 +3582,6 @@
     (result (SG_EQ (SG_IDENTIFIER_NAME id1)
 		   (SG_IDENTIFIER_NAME id2))))
 
-  (define-c-proc eval (sexp env) ::Object
-    (result (Sg_VMEval sexp env)))
-
-  (define-c-proc set-car! (o v) ::void
-    (SG_SET_CAR o v))
-
-  (define-c-proc set-cdr! (o v) ::void
-    (SG_SET_CDR o v))
-
-  
-  ;; conditions
-  (define-c-proc keyword? (o) ::boolean
-    (result (SG_KEYWORDP o)))
-
   ;; 13 Hashtables
   ;; 13.1 constructors
   (define-c-proc make-eq-hashtable (:optional (k::fixnum 200)) ::Object
@@ -3619,12 +3593,116 @@
   (define-c-proc make-hashtable (hasher::Procedure equiv::Procedure :optional (k::fixnum 200)) ::Object
     (result (Sg_MakeHashTableForScheme hasher equiv k)))
 
+  ;; 13.2 procedures
+  (define-c-proc hashtable? (o) ::boolean
+    (result (SG_HASHTABLE_P o)))
+
+  (define-c-proc hashtable-size (ht::HashTable) ::fixnum
+    (result (-> (SG_HASHTABLE_CORE ht) entryCount)))
+
   (define-c-proc hashtable-ref (ht::HashTable key fallback) ::Object
     (result (Sg_HashTableRef ht key fallback)))
 
-  (define-c-proc hashtable-set! (ht::HashTable key value) ::void
-    (result (Sg_HashTableSet ht key value 0)))
+  (define-cgen-stmt check-mutable-hashtable
+    ((_ name t)
+     (dispatch
+      `(when (SG_IMMUTABLE_HASHTABLE_P ,t)
+	 (assertion-violation ',name "attemp to modify an immutable hashtable" ,t)))))
 
+  (define-c-proc hashtable-set! (ht::HashTable key value) ::void
+    (check-mutable-hashtable hashtable-set! ht)
+    (Sg_HashTableSet ht key value 0))
+
+  (define-c-proc hashtable-delete! (ht::HashTable key) ::void
+    (check-mutable-hashtable hashtable-set! ht)
+    (Sg_HashTableDelete ht key))
+
+  (define-c-proc hashtable-contains? (ht::HashTable key) ::boolean
+    (let ((r (Sg_HashTableRef ht key SG_UNBOUND)))
+      (result (not (SG_UNBOUNDP r)))))
+
+  (define-c-proc hashtable-copy (ht::HashTable :optional (mutableP::boolean FALSE)) ::Object
+    (result (Sg_HashTableCopy ht mutableP)))
+
+  (define-c-proc hashtable-clear! (ht::HashTable :optional (k::fixnum -1)) ::void
+    (check-mutable-hashtable hashtable-clear! ht)
+    (Sg_HashCoreClear (SG_HASHTABLE_CORE ht) k))
+
+  (define-c-proc hashtable-keys (ht::HashTable) ::Object
+    (result (Sg_ListToVector (Sg_HashTableKeys ht) 0 -1)))
+
+  ;; 13.3 inspection
+  (define-c-proc hashtable-mutable? (ht::HashTable) ::boolean
+    (result (not (SG_IMMUTABLE_HASHTABLE_P ht))))
+
+  ;; 13.4
+  (define-c-proc equal-hash (o) ::fixnum
+    (result (Sg_EqualHash o)))
+
+  ;; for srfi-13 we need to take bound as an argument
+  (define-c-proc string-hash (o::String :optional bound) ::fixnum
+    (let ((modulo::uint32_t 0))
+      (cond ((SG_UNBOUNDP bound) (set! modulo SG_INT_MAX))
+	    ((SG_INTP bound) (set! modulo (SG_INT_VALUE bound)))
+	    ((SG_BIGNUMP bound)
+	     (set! modulo (Sg_BignumToUI (SG_BIGNUM bound) SG_CLAMP_BOTH NULL))))
+      (when (== modulo 0)
+	(assertion-violation 'string-hash
+			     "argument out of domain"
+			     bound))
+      (result (Sg_StringHash o modulo))))
+
+  (define-c-proc string-ci-hash (o::String :optional bound) ::fixnum
+    (let ((modulo::uint32_t 0))
+      (cond ((SG_UNBOUNDP bound) (set! modulo SG_INT_MAX))
+	    ((SG_INTP bound) (set! modulo (SG_INT_VALUE bound)))
+	    ((SG_BIGNUMP bound)
+	     (set! modulo (Sg_BignumToUI (SG_BIGNUM bound) SG_CLAMP_BOTH NULL))))
+      (when (== modulo 0)
+	(assertion-violation 'string-hash
+			     "argument out of domain"
+			     bound))
+      (result (Sg_StringHash (Sg_StringFoldCase o) modulo))))
+
+  (define-c-proc symbol-hash (o::Symbol) ::fixnum
+    (result (Sg_EqHash o)))
+
+  ;; 15 composit library
+  ;; 16 eval
+  (define-c-proc eval (sexp env) ::Object
+    (result (Sg_Eval sexp env)))
+
+  (define-c-proc environment (spec :rest more) ::Object
+    (result (Sg_Environment (Sg_VMCurrentLibrary) (Sg_Cons spec more))))
+
+  ;; 17 mutable pairs
+  (define-c-proc set-car! (o v) ::void
+    (SG_SET_CAR o v))
+
+  (define-c-proc set-cdr! (o v) ::void
+    (SG_SET_CDR o v))
+
+  ;; 18 mutable strings
+  (define-c-proc string-set! (s::String k::fixnum c) ::void
+    (when (< k 0)
+      (wrong-type-of-argument-violation 'string-set! "non negative exact integer"
+					(SG_MAKE_INT k)
+					(SG_LIST3 s (SG_MAKE_INT k) c)))
+    (when (> k (SG_STRING_SIZE s))
+      (assertion-violation 'string-set! "index out of bounds"
+			   (SG_LIST3 s (SG_MAKE_INT k) c)))
+    (unless (SG_CHARP c)
+      (wrong-type-of-argument-violation 'string-set! "character"
+					c
+					(SG_LIST3 s (SG_MAKE_INT k) c)))
+    (when (SG_LITERAL_STRINGP s)
+      (assertion-violation 'string-set! "attempted to modify an immutable string"
+			   s))
+    (set! (SG_STRING_VALUE_AT s k) (SG_CHAR_VALUE c)))
+  
+  ;; conditions
+  (define-c-proc keyword? (o) ::boolean
+    (result (SG_KEYWORDP o)))
 
   ;; conditions
   (define-c-proc condition (:rest components) ::Object

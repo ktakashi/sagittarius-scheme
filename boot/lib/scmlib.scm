@@ -24,10 +24,10 @@
 (define (cddddr x) (cdr (cdr (cdr (cdr x)))))
 
 (define (hashtable-for-each proc ht)
-  (for-each proc (hashtable-keys ht) (hashtable-values ht)))
+  (for-each proc (hashtable-keys-list ht) (hashtable-values-list ht)))
 
 (define (hashtable-map proc ht)
-  (map proc (hashtable-keys ht) (hashtable-values ht)))
+  (map proc (hashtable-keys-list ht) (hashtable-values-list ht)))
 
 (define (hashtable->alist ht)
   (hashtable-map cons ht))
@@ -192,7 +192,8 @@
 (define split-at
   (lambda (x k)
     (or (integer? k)
-	(assertion-violation (wrong-type-argument-message 'split-at "integer" k 2)))
+	(assertion-violation 'split-at
+			     (wrong-type-argument-message "integer" k 2)))
     (let recur ((lis x) (k k))
       (if (zero? k)
 	  (values '() lis)
@@ -207,8 +208,8 @@
 
 (define (lset-intersection = lis1 . lists)
   (or (procedure? =)
-      (assertion-violation (wrong-type-argument-message 'lset-intersection
-							"procedure" = 2)))
+      (assertion-violation 'lset-intersection
+			   (wrong-type-argument-message "procedure" = 2)))
   (let ((lists (delete lis1 lists eq?))) ; Throw out any LIS1 vals.
     (cond ((exists null-list? lists) '())      ; Short cut
       ((null? lists)          lis1)     ; Short cut
@@ -219,7 +220,8 @@
 
 (define (take lis k)
   (or (integer? k)
-      (assertion-violation (wrong-type-argument-message 'take "integer" k 2)))
+      (assertion-violation 'take
+			   (wrong-type-argument-message "integer" k 2)))
   (let recur ((lis lis) (k k))
     (if (zero? k) '()
     (cons (car lis)
@@ -227,7 +229,8 @@
 
 (define (drop lis k)
   (or (integer? k)
-      (assertion-violation (wrong-type-argument-message 'drop "integer" k 2)))
+      (assertion-violation 'drop
+			   (wrong-type-argument-message "integer" k 2)))
   (let iter ((lis lis) (k k))
     (if (zero? k) lis (iter (cdr lis) (- k 1)))))
 
@@ -855,6 +858,45 @@
 	  (lambda () #f)
 	  (lambda () (proc port) (extractor))
 	  (lambda () (close-port port))))))
+
+;;;;;
+;; 13 hashtable
+;; 13.2 procedures
+(define (hashtable-update! ht key proc default)
+  (or (and (hashtable? ht)
+	   (hashtable-mutable? ht))
+      (assertion-violation 'hashtable-update!
+			   (wrong-type-argument-message "mutable hashtable" ht 1)))
+  (hashtable-set! ht key (proc (hashtable-ref ht key default))))
+
+(define (hashtable-entries ht)
+  (or (hashtable? ht)
+      (assertion-violation 'hashtable-entries
+			   (wrong-type-argument-message "hashtable" ht)))
+  (values (hashtable-keys ht) (hashtable-values ht)))
+
+;; 13.3 inspection
+(define (hashtable-equivalence-function ht)
+  (or (hashtable? ht)
+      (assertion-violation 'hashtable-equivalence-function
+			   (wrong-type-argument-message "hashtable" ht)))
+  (case (hashtable-type ht)
+    ((eq)     eq?)
+    ((eqv)    eqv?)
+    ((equal)  equal?)
+    ((string) string=?)
+    ((general) (hashtable-compare ht))))
+
+(define (hashtable-hash-function ht)
+  (or (hashtable? ht)
+      (assertion-violation 'hashtable-hash-function
+			   (wrong-type-argument-message "hashtable" ht)))
+  (case (hashtable-type ht)
+    ((eq)     #f)
+    ((eqv)    #f)
+    ((equal)  equal-hash)
+    ((string) string-hash)
+    ((general) (hashtable-hasher ht))))
 
 ;;;; end of file
 ;; Local Variables:

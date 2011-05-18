@@ -17,7 +17,7 @@
   ()
   ((smatch (op arg |...|) clause |...|)
    (let ((x (op arg |...|))) (smatch x clause |...|)))
-  ((smatch x) (error 'smatch "invalid form" x))
+  ((smatch x) (syntax-error "invalid form" x))
   ((smatch x (pat e |...|) clause |...|)
    (smatcher
     "base"
@@ -1165,7 +1165,7 @@
          (p1env-add-name p1env (variable-name n))))
        name
        trans-spec))
-     (newenv (p1env-extend p1env (%map-cons name trans) SYNTAX)))
+     (newenv (p1env-extend p1env (%map-cons name trans) LEXICAL)))
     (pass1/body body newenv)))
   (else (syntax-error "malformed let-syntax" form))))
 
@@ -1176,7 +1176,7 @@
   form
   ((- ((name trans-spec) ___) body ___)
    (let*
-    ((newenv (p1env-extend p1env (%map-cons name trans-spec) SYNTAX))
+    ((newenv (p1env-extend p1env (%map-cons name trans-spec) LEXICAL))
      (trans
       (map
        (lambda
@@ -1190,7 +1190,7 @@
        trans-spec)))
     (for-each set-cdr! (cdar (p1env-frames newenv)) trans)
     (pass1/body body newenv)))
-  (- (syntax-error "malformed let-syntax" form))))
+  (- (syntax-error "malformed letrec-syntax" form))))
 
 (define
  er-rename
@@ -1643,7 +1643,7 @@
 (define
  pass1/import
  (lambda
-  (oform form p1env)
+  (form tolib)
   (define
    parse-spec
    (lambda
@@ -1733,7 +1733,7 @@
     (cond
      ((symbol? spec)
       (import-library
-       (p1env-library p1env)
+       tolib
        (ensure-library spec 'import #f)
        '()
        '()
@@ -1745,7 +1745,7 @@
        (ref only except renames prefix trans?)
        (parse-spec spec)
        (import-library
-        (p1env-library p1env)
+        tolib
         (ensure-library ref 'import #f)
         only
         except
@@ -1762,7 +1762,7 @@
 (define
  pass1/export
  (lambda
-  (oform export newenv)
+  (export lib)
   (define (parse-export spec)
     (let
      loop
@@ -1777,32 +1777,21 @@
         (else
          (syntax-error
           (format "unsupported export keyword ~s" (car spec))
-          oform))))
+          export))))
       ((and (pair? (car spec)) (eq? (caar spec) 'rename))
-       (let
-        lp
-        ((rename (cdar spec)) (r '()))
-        (cond
-         ((null? rename) (loop (cdr spec) ex (append r renames)))
-         ((and
-           (pair? (car rename))
-           (symbol? (caar rename))
-           (symbol? (cadar rename)))
-          (lp (cdr rename) (acons (cadar rename) (caar rename) r)))
-         (else
-          (syntax-error "malformed rename clause in export spec" oform)))))
+       (loop (cdr spec) ex (append (cdar spec) renames)))
       (else
        (syntax-error "unknown object appeared in export spec" (car spec))))))
   (receive
    (exports renames)
    (parse-export (cdr export))
-   (library-exported-set! (p1env-library newenv) (cons exports renames)))))
+   (library-exported-set! lib (cons exports renames)))))
 
 (define-pass1-syntax
  (import form p1env)
  :null
  (check-toplevel form p1env)
- (pass1/import form form p1env))
+ (pass1/import form (p1env-library p1env)))
 
 (define-pass1-syntax
  (library form p1env)
@@ -1825,8 +1814,8 @@
    (let*
     ((current-lib (ensure-library name 'library #t))
      (newenv (make-bottom-p1env current-lib)))
-    (pass1/import form import newenv)
-    (pass1/export form export newenv)
+    (pass1/import import current-lib)
+    (pass1/export export current-lib)
     (let
      ((save (vm-current-library)))
      (vm-current-library current-lib)
@@ -2105,6 +2094,7 @@
      ((r (p1env-lookup p1env form LEXICAL)))
      (cond
       ((lvar? r) ($lref r))
+      ((macro? r) (pass1 (call-macro-expander r form p1env) p1env))
       ((identifier? r)
        (let*
         ((lib (id-library r)) (gloc (find-binding lib (id-name r) #f)))
@@ -3296,7 +3286,7 @@
          renv
          (renv-locals renv)
          free
-         (hashtable-keys (renv-sets renv))
+         (hashtable-keys-list (renv-sets renv))
          '()
          need-display?)
         (normal-context ctx))))
@@ -3853,7 +3843,7 @@
         ((args (cdr form)))
         (smatch
          args
-         (() (error "procedure requires at least one argument:" form))
+         (() (syntax-error "procedure requires at least one argument" form))
          ((x)
           (receive
            (num tree)
@@ -3950,7 +3940,7 @@
         ((args (cdr form)))
         (smatch
          args
-         (() (error "procedure requires at least one argument:" form))
+         (() (syntax-error "procedure requires at least one argument" form))
          ((x)
           (receive
            (num tree)

@@ -27,7 +27,7 @@
   (define hashtable-set! hash-table-put!)
   (define hashtable-ref hash-table-get)
   (define hashtable-contains? hash-table-exists?)
-  (define hashtable-keys hash-table-keys)
+  (define hashtable-keys-list hash-table-keys)
   (define hashtable-for-each (lambda (proc ht) (hash-table-for-each ht proc)))
   (define (syntax-error form . irritants)
     (errorf "syntax-error: ~s, irritants ~s" form irritants))
@@ -36,6 +36,7 @@
   (define hashtable->alist hash-table->alist)
   (define (flush-output-port p) (flush))
   (define inexact exact->inexact)
+
   ;; load instruction definition
   (load "insn.scm")
   ;; load Vm procedures to run on scheme VM
@@ -1180,7 +1181,8 @@
 			   (variable-name n)
 			   x (p1env-add-name p1env (variable-name n))))
 			name trans-spec))
-	    (newenv (p1env-extend p1env (%map-cons name trans) SYNTAX)))
+	    ;; macro must be lexical
+	    (newenv (p1env-extend p1env (%map-cons name trans) LEXICAL)))
        (pass1/body body newenv)))
     (else
      (syntax-error "malformed let-syntax" form))))
@@ -1189,7 +1191,7 @@
   (smatch form
     ((- ((name trans-spec) ___) body ___)
      (let* ((newenv (p1env-extend p1env
-				  (%map-cons name trans-spec) SYNTAX))
+				  (%map-cons name trans-spec) LEXICAL))
 	    (trans (map (lambda (n x)
 			  (pass1/eval-macro-rhs
 			   'letrec-syntax
@@ -1200,7 +1202,7 @@
 		 (cdar (p1env-frames newenv)) trans)
        (pass1/body body newenv)))
     (-
-     (syntax-error "malformed let-syntax" form))))
+     (syntax-error "malformed letrec-syntax" form))))
 
 ;; 'rename' procedure - we just return a resolved identifier
 (define er-rename
@@ -1569,7 +1571,7 @@
        '#f)))))
 
 (define pass1/import
-  (lambda (oform form p1env)
+  (lambda (form tolib)
     (define parse-spec
       (lambda (spec)
 	(let loop ((spec spec))
@@ -1634,14 +1636,14 @@
       (lambda (spec)
 	(cond ((symbol? spec)
 	       ;; SHORTCUT if it's symbol, just import is without any information
-	       (import-library (p1env-library p1env)
+	       (import-library tolib
 			       (ensure-library spec 'import #f)
 			       '() '() '() #f #f))
 	      ((list? spec)
 	       ;; now we need to check above specs
 	       (receive (ref only except renames prefix trans?)
 		   (parse-spec spec)
-		 (import-library (p1env-library p1env)
+		 (import-library tolib
 				 (ensure-library ref 'import #f)
 				 only except renames prefix trans?)))
 	      (else
@@ -1654,8 +1656,10 @@
        ($undef)))))
 
 ;; added export information in env and library
+;; inside of export spec is like this:
+;;  ((non-renamed symbols) ((org renamed) ...))
 (define pass1/export
-  (lambda (oform export newenv)
+  (lambda (export lib)
     (define (parse-export spec)
       (let loop ((spec spec)
 		 (ex '())
@@ -1671,35 +1675,20 @@
 		 (else
 		  (syntax-error
 			 (format "unsupported export keyword ~s" (car spec))
-			 oform))))
+			 export))))
 	      ((and (pair? (car spec))
 		    (eq? (caar spec) 'rename))
 	       ;; r6rs spec says rename must be (original renamed)
-	       ;; but it's inconvenient for importing so that I
-	       ;; change it like (renamed original)
-	       (let lp ((rename (cdar spec))
-			(r '()))
-		 (cond ((null? rename)
-			(loop (cdr spec) ex (append r renames)))
-		       ;; check if it's (id id) form
-		       ((and (pair? (car rename))
-			     (symbol? (caar rename))
-			     (symbol? (cadar rename)))
-			(lp (cdr rename)
-			    (acons (cadar rename)
-				   (caar rename)
-				   r)))
-		       (else
-			(syntax-error "malformed rename clause in export spec" oform)))))
+	       (loop (cdr spec) ex (append (cdar spec) renames)))
 	      (else
 	       (syntax-error "unknown object appeared in export spec" (car spec))))))
     (receive (exports renames) (parse-export (cdr export))
-      (library-exported-set! (p1env-library newenv)
+      (library-exported-set! lib
 			     (cons exports renames)))))
 
 (define-pass1-syntax (import form p1env) :null
   (check-toplevel form p1env)
-  (pass1/import form form p1env))
+  (pass1/import form (p1env-library p1env)))
 
 (define-pass1-syntax (library form p1env) :null
   (define check
@@ -1719,8 +1708,8 @@
      ;; create a new p1env for this library.
      (let* ((current-lib (ensure-library name 'library #t))
 	    (newenv      (make-bottom-p1env current-lib)))
-       (pass1/import form import newenv)
-       (pass1/export form export newenv)
+       (pass1/import import current-lib)
+       (pass1/export export current-lib)
        (let ((save (vm-current-library))) ;; save current library
 	 (vm-current-library current-lib)
 	 (let ((r ($seq (append
@@ -1929,7 +1918,8 @@
 			 (cdr form) p1env))))
      ((variable? form)
       (let ((r (p1env-lookup p1env form LEXICAL)))
-	(cond ((lvar? r) ($lref r))
+	(cond ((lvar? r)   ($lref r))
+	      ((macro? r)  (pass1 (call-macro-expander r form p1env) p1env))
 	      ((identifier? r)
 	       (let* ((lib (id-library r))
 		      (gloc (find-binding lib (id-name r) #f)))
@@ -3079,7 +3069,7 @@
 	  (cb-emit1! cb DISPLAY free-length))
 	(let ((expr-size (pass3/rec ($receive-expr iform) cb
 				    (make-new-renv renv (renv-locals renv) free
-						   (hashtable-keys (renv-sets renv))
+						   (hashtable-keys-list (renv-sets renv))
 						   '()
 						   need-display?)
 				    (normal-context ctx))))

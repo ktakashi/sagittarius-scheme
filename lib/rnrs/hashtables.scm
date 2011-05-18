@@ -21,7 +21,8 @@
 	    string-hash
 	    string-ci-hash
 	    symbol-hash)
-    (import (core))
+    (import (core)
+	    (core base))
 ) ; [end]
 ;; end of file
 ;; Local Variables:

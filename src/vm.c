@@ -393,6 +393,27 @@ SgObject Sg_Eval(SgObject sexp, SgObject env)
   return evaluate_safe(vm->closureForEvaluate, SG_CODE_BUILDER(v)->code);
 }
 
+static SgObject pass1_import = SG_UNDEF;
+
+SgObject Sg_Environment(SgObject lib, SgObject spec)
+{
+  SgObject cp;
+  if (SG_UNDEFP(pass1_import)) {
+    /* TODO lock */
+    SgLibrary *complib = Sg_FindLibrary(SG_INTERN("(sagittarius compiler)"), FALSE);
+    SgGloc *g = Sg_FindBinding(complib, SG_INTERN("pass1/import"), SG_UNBOUND);
+    if (SG_UNBOUNDP(g)) {
+      /* something wrong */
+      Sg_Panic("pass1/import was not found. loading error?");
+    }
+    pass1_import = SG_GLOC_GET(g);
+  }
+  /* make spec look like import-spec */
+  spec = Sg_Cons(SG_INTERN("import"), spec);
+  Sg_ApplySafe(pass1_import, SG_LIST2(spec, lib));
+  return lib;
+}
+
 /* TODO check stack expantion */
 #define CHECK_STACK(size, vm)	/* dummy */
 

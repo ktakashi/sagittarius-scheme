@@ -256,7 +256,7 @@
 	    (array-length (code-builder-code cb)))
 
     (let* ((name (string->symbol (string-append "Sg__Init_" (library-name->string libname #\_))))
-	   (keys (hashtable-keys objects))
+	   (keys (hashtable-keys-list objects))
 	   (cb-alist (vector-ref cb-info 0))
 	   (lib-info (make-eq-hashtable)))
       (format out "void ~s()~%" name)
