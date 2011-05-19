@@ -211,10 +211,11 @@ static inline void report_error(SgObject exception)
   Sg_FlushAllPort(FALSE);
 }
 
-SgGloc* Sg_FindBinding(SgObject library, SgSymbol *name, SgObject callback)
+SgGloc* Sg_FindBinding(SgObject library, SgObject name, SgObject callback)
 {
   SgLibrary *lib;
   SgObject ret;
+  ASSERT(SG_SYMBOLP(name));
   if (SG_LIBRARYP(library)) lib = SG_LIBRARY(library);
   else lib = Sg_FindLibrary(library, FALSE);
   if (SG_FALSEP(lib)) return callback;
