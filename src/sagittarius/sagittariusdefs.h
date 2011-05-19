@@ -75,6 +75,18 @@
 
 #define array_sizeof(a) ((int)(sizeof(a)/sizeof(a[0])))
 
+
+/* to use limited macros */
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <stdarg.h>
+/* VC does not have inttypes.h */
+#ifndef _MSC_VER
+#include <inttypes.h>
+#endif
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #else
@@ -131,14 +143,6 @@
 #  define WORDS_BIGENDIAN 1
 # endif
 #endif
-
-/* to use limited macros */
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <stdarg.h>
-#include <inttypes.h>
 
 /* GC selector */
 #if defined(USE_BOEHM_GC)

@@ -211,7 +211,7 @@ static inline void report_error(SgObject exception)
   Sg_FlushAllPort(FALSE);
 }
 
-SgObject Sg_FindBinding(SgObject library, SgSymbol *name, SgObject callback)
+SgGloc* Sg_FindBinding(SgObject library, SgSymbol *name, SgObject callback)
 {
   SgLibrary *lib;
   SgObject ret;

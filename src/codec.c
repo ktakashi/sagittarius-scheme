@@ -37,6 +37,7 @@
 #include "sagittarius/string.h"
 #include "sagittarius/symbol.h"
 #include "sagittarius/unicode.h"
+#include "sagittarius/writer.h"
 
 static int putUtf8Char(SgObject self, SgPort *port, SgChar c, ErrorHandlingMode mode)
 {
