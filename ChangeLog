@@ -1,3 +1,8 @@
+2011-05-19  Takashi Kato  <ktakashi@ymail.com>
+
+	* boot/compiler.scm: implemented R6RS let-syntax letrec-syntax and
+	define-syntax.
+
 2011-05-18  Takashi Kato  <ktakashi@ymail.com>
 
 	* lib/rnrs/r5rs.scm (rnrs r5rs): added r5rs compatible files.

@@ -1,6 +1,7 @@
 ;; lib/vm.scm
 ;; dummy
 (define *toplevel-variable* '())
+(define (vm-r6rs-mode?) #f)
 
 (define (set-toplevel-variable! sym val)
   (set! *toplevel-variable* (acons sym val *toplevel-variable*)))

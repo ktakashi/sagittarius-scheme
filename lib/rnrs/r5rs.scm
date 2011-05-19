@@ -1,5 +1,4 @@
 ;; -*- scheme -*-
-#!r6rs
 (library (rnrs r5rs (6))
   (export exact->inexact inexact->exact
           quotient remainder modulo force delay
@@ -68,3 +67,5 @@
                           write display newline write-char
                           ))))
   ) ;[end]
+;; actually this is only for r6rs test suites
+#!r6rs

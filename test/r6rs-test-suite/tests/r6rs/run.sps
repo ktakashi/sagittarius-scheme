@@ -26,9 +26,9 @@
         (tests r6rs mutable-pairs)
         (tests r6rs mutable-strings)
         (tests r6rs r5rs)
-#|
-        (tests r6rs contrib)
-|#
+	;; since Sagittarius scheme's syntax-rules is not
+	;; subset of syntax-case, this test case won't pass.
+        ;;(tests r6rs contrib)
 )
 
 (run-base-tests)
