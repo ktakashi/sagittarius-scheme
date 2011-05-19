@@ -167,7 +167,7 @@ struct SgSubrRec
   var = Sg_ArrayToList(args + (index), argc - (index));
 
 #define DeclareProcedureName(name)					\
-  const SgString *procedureName = SG_STRING(Sg_MakeString(UC(name), SG_LITERAL_STRING));
+  SgString *procedureName = SG_STRING(Sg_MakeString(UC(name), SG_LITERAL_STRING))
 
 #define checkArgumentLength(count)					\
   if (argc != (count)) {						\

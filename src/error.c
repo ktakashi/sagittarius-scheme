@@ -97,9 +97,11 @@ void Sg_IOError(SgIOErrorType type, SgObject who, SgObject msg,
   SgObject proc;
   switch (type) {
   case SG_IO_READ_ERROR:
-    return Sg_IOReadError(who, msg, port);
+    Sg_IOReadError(who, msg, port);
+    break;
   case SG_IO_WRITE_ERROR:
-    return Sg_IOWriteError(who, msg, port);
+    Sg_IOWriteError(who, msg, port);
+    break;
   case SG_IO_FILE_NOT_EXIST_ERROR:
     g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-file-does-not-exist-error"), SG_FALSE);
     proc = SG_GLOC_GET(g);

@@ -85,6 +85,8 @@
 /* VC does not have inttypes.h */
 #ifndef _MSC_VER
 #include <inttypes.h>
+#else
+#define snprintf _snprintf
 #endif
 
 #if __STDC_VERSION__ >= 199901L

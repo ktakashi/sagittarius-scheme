@@ -159,7 +159,7 @@ SgVM* Sg_VM()
 static inline void report_error(SgObject exception)
 {
   static const int MAX_STACK_TRACE = 20;
-  SgObject error = SG_NIL, stackTrace = SG_NIL;;
+  SgObject error = SG_NIL, stackTrace = SG_NIL;
   SgObject cur;
   if (SG_PAIRP(exception)) {
     error = SG_CAR(exception);
@@ -168,7 +168,7 @@ static inline void report_error(SgObject exception)
     error = exception;
     stackTrace = Sg_GetStackTrace();
   }
-  Sg_Printf(Sg_StandardErrorPort(),
+  Sg_Printf(SG_PORT(Sg_StandardErrorPort()),
 	    UC("*error*\n"
 	       "%A\n"
 	       "stack trace:\n"), Sg_DescribeCondition(error));
@@ -179,7 +179,7 @@ static inline void report_error(SgObject exception)
     obj = SG_CAR(cur);
     index = SG_CAR(obj);
     if (SG_INT_VALUE(index) > MAX_STACK_TRACE) {
-      Sg_Printf(Sg_StandardErrorPort(),
+      Sg_Printf(SG_PORT(Sg_StandardErrorPort()),
 		UC("      ... (more stack dump truncated)\n"));
       break;
     }
@@ -1332,7 +1332,7 @@ static inline SgObject* discard_let_frame(SgVM *vm, int n)
 static inline SgObject make_display(int n, SgObject *sp)
 {
   SgClosure *cl = cl = SG_NEW2(SgClosure *,
-			       sizeof(SgClosure) + (sizeof(SgObject) * n));;
+			       sizeof(SgClosure) + (sizeof(SgObject) * n));
   int i;
   SG_SET_HEADER(cl, TC_PROCEDURE);
   SG_PROCEDURE_INIT(cl, 0, FALSE, SG_PROC_CLOSURE, SG_FALSE);
@@ -1457,14 +1457,18 @@ static void process_queued_requests(SgVM *vm)
   }
 
 #define BUILTIN_TWO_ARGS(vm, proc)		\
-  SgObject s = INDEX(SP(vm), 0);		\
-  AC(vm) = proc(s, AC(vm));			\
-	 SP(vm) -= 1;
+  do {									\
+    SgObject s = INDEX(SP(vm), 0);		\
+    AC(vm) = proc(s, AC(vm));			\
+	SP(vm) -= 1;						\
+  } while (0)
 
 #define BUILTIN_TWO_ARGS_COMPARE(vm, proc)	\
-  SgObject s = INDEX(SP(vm), 0);		\
-  AC(vm) = SG_MAKE_BOOL(proc(s, AC(vm)));	\
-	 SP(vm) -= 1;
+  do {										\
+    SgObject s = INDEX(SP(vm), 0);		\
+    AC(vm) = SG_MAKE_BOOL(proc(s, AC(vm)));	\
+    SP(vm) -= 1;							\
+  } while(0)
 
 #define BUILTIN_ONE_ARG(vm, proc)		\
   AC(vm) = proc(AC(vm));

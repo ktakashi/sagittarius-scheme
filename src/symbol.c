@@ -95,7 +95,7 @@ SgObject Sg_Gensym(SgString *prefix)
 void Sg__InitSymbol()
 {
   obtable = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_STRING, 4096));
-  default_prefix = Sg_MakeString(UC("G"), SG_LITERAL_STRING);
+  default_prefix = SG_STRING(Sg_MakeString(UC("G"), SG_LITERAL_STRING));
   init_builtin_symbols();
 }
 

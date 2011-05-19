@@ -47,6 +47,10 @@
 #include "sagittarius/values.h"
 #include "sagittarius/vm.h"
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 struct numread_packet {
     const SgChar *buffer;       /* original buffer */
     int radix;                  /* radix */
@@ -72,6 +76,8 @@ enum { /* used in the exactness flag */
 
 static const int64_t iexpt_2n52 = 0x10000000000000LL; // 2^(53-1)
 static const int64_t iexpt_2n53 = 0x20000000000000LL; // 2^53
+
+static double roundeven(double v);
 
 static inline unsigned long ipow(int r, int n)
 {
@@ -1041,9 +1047,10 @@ SgObject Sg_MakeFlonum(double d)
 
 static inline SgObject make_complex(SgObject real, SgObject imag)
 {
+  SgComplex *c;
   ASSERT(!SG_COMPLEXP(real));
   ASSERT(!SG_COMPLEXP(imag));
-  SgComplex *c = SG_NEW(SgComplex);
+  c = SG_NEW(SgComplex);
   SG_SET_HEADER(c, TC_COMPLEX);
   c->real = real;
   c->imag = imag;
@@ -1062,9 +1069,10 @@ SgObject Sg_MakeComplex(SgObject real, SgObject imag)
 
 SgObject Sg_MakeComplexPolar(SgObject magnitude, SgObject angle)
 {
+  double r, a;
   if (angle == SG_MAKE_INT(0)) return magnitude;
-  double r = Sg_GetDouble(magnitude);
-  double a = Sg_GetDouble(angle);
+  r = Sg_GetDouble(magnitude);
+  a = Sg_GetDouble(angle);
   return Sg_MakeComplex(Sg_MakeFlonum(r * cos(a)), Sg_MakeFlonum(r * sin(a)));
 }
 
@@ -2155,7 +2163,7 @@ SgObject Sg_Quotient(SgObject x, SgObject y, SgObject *rem)
       return SG_MAKE_INT(q);
     }
     if (SG_BIGNUMP(y)) {
-      SgObject qr = Sg_BignumDivRem(Sg_MakeBignumFromSI(SG_INT_VALUE(x)),
+      SgObject qr = Sg_BignumDivRem(SG_BIGNUM(Sg_MakeBignumFromSI(SG_INT_VALUE(x))),
 				    SG_BIGNUM(y));
       if (rem) *rem = SG_CDR(qr);
       return SG_CAR(qr);
@@ -2163,7 +2171,7 @@ SgObject Sg_Quotient(SgObject x, SgObject y, SgObject *rem)
     if (SG_FLONUMP(y)) {
       rx = (double)SG_INT_VALUE(x);
       ry = SG_FLONUM(y)->value;
-      if (ry != round(ry)) goto bad_argy;
+      if (ry != floor(ry)) goto bad_argy;
       goto do_flonum;
     }
     if (SG_COMPLEXP(y)) {
@@ -2187,7 +2195,7 @@ SgObject Sg_Quotient(SgObject x, SgObject y, SgObject *rem)
     if (SG_FLONUMP(y)) {
       rx = Sg_BignumToDouble(SG_BIGNUM(x));
       ry = SG_FLONUM(y)->value;
-      if (ry != round(ry)) goto bad_argy;
+      if (ry != floor(ry)) goto bad_argy;
       goto do_flonum;
     }
     if (SG_COMPLEXP(y)) {
@@ -2200,7 +2208,7 @@ SgObject Sg_Quotient(SgObject x, SgObject y, SgObject *rem)
   }
   if (SG_FLONUMP(x)) {
     rx = SG_FLONUM(x)->value;
-    if (rx != round(rx)) goto bad_arg;
+    if (rx != floor(rx)) goto bad_arg;
   flonum_again:
     if (SG_INTP(y)) {
       ry = (double)SG_INT_VALUE(y);
@@ -2208,7 +2216,7 @@ SgObject Sg_Quotient(SgObject x, SgObject y, SgObject *rem)
       ry = Sg_BignumToDouble(SG_BIGNUM(y));
     } else if (SG_FLONUMP(y)) {
       ry = SG_FLONUM(y)->value;
-      if (ry != round(ry)) goto bad_argy;
+      if (ry != floor(ry)) goto bad_argy;
     } else if (SG_COMPLEXP(y)) {
       do_complex(y, flonum_again);
     } else {
@@ -2218,9 +2226,10 @@ SgObject Sg_Quotient(SgObject x, SgObject y, SgObject *rem)
     {
       double q;
       if (ry == 0.0) goto div_by_zero;
-      q = trunc(rx / ry);
+      q = roundeven(rx / ry);
       if (rem) {
-	double rr = trunc(rx - q*ry);
+	double v = rx - q*ry;
+	double rr = (v < 0.0) ? ceil(v) : floor(v);
 	*rem = Sg_MakeFlonum(rr);
       }
       return Sg_MakeFlonum(q);
@@ -3144,12 +3153,13 @@ SgObject Sg_IntegerDiv(SgObject x, SgObject y)
 
 SgObject Sg_IntegerDiv0(SgObject x, SgObject y)
 {
+  SgObject div, mod;
   if (!SG_REALP(x) || !SG_REALP(y)) Sg_Error(UC("real number required, but got %S and %S"), x, y);
   if (!Sg_FiniteP(x) || Sg_NanP(x)) Sg_Error(UC("dividend must be neither infinite nor NaN: %S"), x);
   if (Sg_ZeroP(y)) Sg_Error(UC("undefined for 0"));
 
-  SgObject div = Sg_IntegerDiv(x, y);
-  SgObject mod = Sg_Sub(x, Sg_Mul(div, y));
+  div = Sg_IntegerDiv(x, y);
+  mod = Sg_Sub(x, Sg_Mul(div, y));
   if (Sg_NumCmp(mod, Sg_Magnitude(Sg_Div(y, SG_MAKE_INT(2)))) < 0) return div;
   if (Sg_PositiveP(y)) return Sg_Add(div, SG_MAKE_INT(1));
   return Sg_Sub(div, SG_MAKE_INT(1));

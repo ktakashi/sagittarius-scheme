@@ -446,7 +446,7 @@ static SgObject slow_p(SgHashTable **pht, SgObject x, SgObject y, SgObject k, st
 }
 
 #ifdef _WIN32
-#define ramdom rand
+#define random rand
 #endif
 static SgObject eP(SgHashTable **pht, SgObject x, SgObject y, SgObject k, struct equal_context *ctx)
 {

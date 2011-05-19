@@ -35,6 +35,7 @@
 #include "sagittarius/hashtable.h"
 #include "sagittarius/unicode.h"
 #include "sagittarius/pair.h"
+#include "sagittarius/error.h"
 
 static SgString* make_string(int size)
 {
@@ -94,7 +95,7 @@ SgObject Sg_MakeStringC(const char *value)
 SgObject Sg_ReserveString(size_t size, SgChar fill)
 {
   SgString *z = make_string(size);
-  int i;
+  size_t i;
   for (i = 0; i < size; i++) {
     z->value[i] = fill;
   }
@@ -293,9 +294,11 @@ static uint32_t string_hash(const SgHashCore *ht, intptr_t key)
 static int string_compare(const SgHashCore *ht, intptr_t key, intptr_t entryKey)
 {
   if (!SG_PTRP(entryKey)) return FALSE;
-  SgChar *s1 = (SgChar*)key, *s2 = (SgChar*)entryKey;
-  int size1 = ustrlen(s1), size2 = ustrlen(s2);
-  return string_equal(s1, size1, s2, size2);
+  else {
+    SgChar *s1 = (SgChar*)key, *s2 = (SgChar*)entryKey;
+    int size1 = ustrlen(s1), size2 = ustrlen(s2);
+    return string_equal(s1, size1, s2, size2);
+  }
 }
 
 void Sg__InitString()

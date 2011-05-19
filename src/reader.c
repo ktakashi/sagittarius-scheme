@@ -186,11 +186,12 @@ static SgObject skip_srfi30(SgPort *port, SgReaderContext *ctx)
 
 static SgChar read_hex_scalar_value(SgPort *port, SgReaderContext *ctx)
 {
+  int n;
   SgChar ucs4 = 0, c = Sg_GetcUnsafe(port);
   if (c == EOF) lexical_error(port, ctx, UC("unexpected end-of-file while reading hex scalar value"));
   if (delimited(c)) lexical_error(port, ctx, UC("expected hex digit, but got %U, while reading hex scalar value"), c);
   Sg_UngetcUnsafe(port, c);
-  int n;
+
   while (TRUE) {
     c = Sg_GetcUnsafe(port);
     if (c == EOF || delimited(c)) {
@@ -455,8 +456,9 @@ SgObject read_bytevector(SgPort *port, SgReaderContext *ctx)
   } while (0)
 
   SgChar buf[16];
+  SgChar c;
   read_thing(port, ctx, buf, array_sizeof(buf), -1);
-  SgChar c = Sg_GetcUnsafe(port);
+  c = Sg_GetcUnsafe(port);
   if (c == '(') {
     int line_begin = Sg_LineNo(port);
     int n;
@@ -851,8 +853,9 @@ static SgReaderContext* make_reader_context(int readSharedObject)
 
 static SgObject read_with_context(SgPort *port, SgReaderContext *ctx)
 {
+  SgObject obj;
   ctx->firstLine = Sg_LineNo(port);
-  SgObject obj = read_expr(port, ctx);
+  obj = read_expr(port, ctx);
   if (SG_EQ(obj, SG_SYMBOL_DOT)) lexical_error(port, ctx, UC("misplaced dot('.')"));
   if (ctx->graph && ctx->graphRef) link_graph(port, ctx, obj);
   parsing_range(ctx, ctx->firstLine, Sg_LineNo(port));
