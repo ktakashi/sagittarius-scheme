@@ -49,6 +49,19 @@
       41  42  43  44  45  46  47  48  49  50  51  #f  #f  #f  #f  #f
       ))
 
+  (define *encode-table*
+    ;;0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15
+    #(#\A #\B #\C #\D #\E #\F #\G #\H #\I #\J #\K #\L #\M #\N #\O #\P
+    ;;16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31
+      #\Q #\R #\S #\T #\U #\V #\W #\X #\Y #\Z #\a #\b #\c #\d #\e #\f
+    ;;32  33  34  35  36  37  38  39  40  41  42  43  44  45  46  47
+      #\g #\h #\i #\j #\k #\l #\m #\n #\o #\p #\q #\r #\s #\t #\u #\v
+    ;;48  49  50  51  52  53  54  55  56  57  58  59  60  61  62  63
+      #\w #\x #\y #\z #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\+ #\/
+    ;;pad
+      #\=
+    ))
+
   (define base64-decode-string 
     (case-lambda
      ((string)
@@ -56,27 +69,42 @@
 	  (assertion-violation 'base64-decode-string
 			       (format "string required, but got ~s" string)
 			       string))
-      (let ((bv (call-with-bytevector-output-port
-		 (lambda (out)
-		   (let ((in (open-bytevector-input-port
-			      (string->bytevector string (native-transcoder)))))
-		     (base64-decode-impl in out)
-		     (close-input-port in))))))
-	(bytevector->string bv (native-transcoder))))
+      (base64-decode (string->bytevector string (native-transcoder))))
      ((string codec)
       (or (and (string? string)
 	       (codec? codec))
 	  (assertion-violation 'base64-decode-string
 			       (format "string and codec required, but got ~s and ~s" string codec)
 			       string codec))
+      (base64-decode (string->bytevector string (make-transcoder codec)) codec))))
+
+  (define base64-decode
+    (case-lambda
+     ((bv)
+      (or (bytevector? bv)
+	  (assertion-violation 'base64-decode
+			       (format "bytevector required, but got ~s" bv)
+			       bv))
+      (let ((r (call-with-bytevector-output-port
+		(lambda (out)
+		  (let ((in (open-bytevector-input-port bv)))
+		    (base64-decode-impl in out)
+		    (close-input-port in))))))
+	(bytevector->string r (native-transcoder))))
+     ((bv codec)
+      (or (and (bytevector? bv)
+	       (codec? codec))
+	  (assertion-violation 'base64-decode
+			       (format "bytevector and codec required, but got ~s and ~s" bv codec)
+			       bv codec))
       (let* ((tr (make-transcoder codec))
-	     (bv (call-with-bytevector-output-port
-		  (lambda (out)
-		    (let ((in (open-bytevector-input-port
-			       (string->bytevector string tr))))
-		      (base64-decode-impl in out)
-		      (close-input-port in))))))
-	(bytevector->string bv tr)))))
+	     (r (call-with-bytevector-output-port
+		 (lambda (out)
+		   (let ((in (open-bytevector-input-port bv)))
+		     (base64-decode-impl in out)
+		     (close-input-port in))))))
+	(bytevector->string r tr)))))
+       
 
   (define (base64-decode-impl in out)
     (let-syntax ((lookup (syntax-rules ()
@@ -112,5 +140,5 @@
 			       (put-u8 out (+ (* hi 64) lo))
 			       (d0 (get-u8 in))))
 	      (else (d2 (get-u8 in) hi))))
-      (d0 (get-u8 in))))
+      (d0 (get-u8 in))))    
 )

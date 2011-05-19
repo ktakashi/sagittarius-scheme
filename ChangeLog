@@ -1,5 +1,7 @@
 2011-05-19  Takashi Kato  <ktakashi@ymail.com>
 
+	* sitelib/rfc/base64.scm: added bytevector interface.
+
 	* src/null.stub (bytevector port): fixed get-u8 and lookahead-u8,
 	when a port reached EOF it returned -1, instead of EOF.
 
