@@ -70,7 +70,7 @@ static SgObject library_name_to_id_version(SgObject name)
     if (len >= 0) {
       SG_FOR_EACH(cp, name) {
 	SgObject o = SG_CAR(cp);
-	if (SG_SYMBOLP(o)) {
+	if (SG_SYMBOLP(o) || SG_KEYWORDP(o)) {
 	  SG_APPEND1(h, t, o);
 	} else if (SG_PAIRP(o) && SG_NULLP(SG_CDR(cp))) {
 	  SgObject num;
@@ -142,7 +142,18 @@ static SgString* library_name_to_path(SgObject name)
    */
   SgObject h = SG_NIL, t = SG_NIL;
   SG_FOR_EACH(item, name) {
-    SG_APPEND1(h, t, SG_SYMBOL(SG_CAR(item))->name);
+    if (SG_SYMBOLP(SG_CAR(item))) {
+      SG_APPEND1(h, t, SG_SYMBOL(SG_CAR(item))->name);
+    } else if (SG_KEYWORDP(SG_CAR(item))) {
+      /* for srfi-97.
+	 NB: when I create srfi library, it must be #!compatible or #!core
+	 or else :1 won't be a keyword.
+       */
+      SgObject o = Sg_Sprintf(UC("%%3a%A"), SG_CAR(item));
+      SG_APPEND1(h, t, o);
+    } else {
+      Sg_Error(UC("library name can contain only symbols or keywords, but got %S"), SG_CAR(item));
+    }
     if (!SG_NULLP(SG_CDR(item))) {
       SG_APPEND1(h, t, Sg_MakeString(separator, SG_LITERAL_STRING));
     }

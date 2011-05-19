@@ -19,7 +19,8 @@
 	    closure? make-toplevel-closure
 
 	    ;; list
-	    circular-list?
+	    circular-list? dotted-list?
+	    reverse!
 
 	    ;; vector
 	    vector-copy
@@ -128,8 +129,14 @@
     (result (Sg_MakeClosure cb NULL)))
 
   ;; list
+  (define-c-proc dotted-list? (lst) ::boolean
+    (result (SG_DOTTED_LISTP lst)))
+
   (define-c-proc circular-list? (lst) ::boolean
     (result (SG_CIRCULAR_LISTP lst)))
+
+  (define-c-proc reverse! (lis) ::Object
+    (result (Sg_ReverseX lis)))
 
   ;; vector
   (define-c-proc vector-copy (vec::Vector :optional (start::fixnum 0)

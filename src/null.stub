@@ -2172,13 +2172,19 @@
     (check-port-open get-u8 p)
     (check-binary-port get-u8 p)
     (check-input-port get-u8 p)
-    (result (SG_MAKE_INT (Sg_Getb p))))
+    (let ((b::int (Sg_Getb p)))
+      (if (== EOF b)
+	  (result SG_EOF)
+	  (result (SG_MAKE_INT b)))))
   
   (define-c-proc lookahead-u8 (p::Port) ::Object
     (check-port-open lookahead-u8 p)
     (check-binary-port lookahead-u8 p)
     (check-input-port lookahead-u8 p)
-    (result (SG_MAKE_INT (Sg_Peekb p))))
+    (let ((b::int (Sg_Peekb p)))
+      (if (== EOF b)
+	  (result SG_EOF)
+	  (result (SG_MAKE_INT b)))))
 
   (define-cgen-stmt check-non-negative-fixnum
     ((_ name n)
