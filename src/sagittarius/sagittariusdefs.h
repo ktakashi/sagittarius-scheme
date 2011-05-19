@@ -87,6 +87,14 @@
 #include <inttypes.h>
 #endif
 
+#if __STDC_VERSION__ >= 199901L
+  /* "inline" is a keyword */
+#else
+# ifndef __cplusplus
+#  define inline /* nothing */
+# endif
+#endif
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #else

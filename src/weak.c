@@ -32,6 +32,7 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/weak.h"
 #include "sagittarius/core.h"
+#include "sagittarius/error.h"
 
 static void weakvector_finalize(SgObject obj, void *data)
 {
