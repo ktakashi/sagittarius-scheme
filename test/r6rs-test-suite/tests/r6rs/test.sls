@@ -11,13 +11,6 @@
           test/unspec-or-exn
           test/unspec-flonum-or-exn
           test/output/unspec
-	  ;; Sagittarius
-	  catch-exns 
-	  capture-output
-	  make-expected-exception
-	  make-multiple-results
-	  make-approx
-	  ;; Sagittarius
           run-test
           report-test-results)
   (import (rnrs))
