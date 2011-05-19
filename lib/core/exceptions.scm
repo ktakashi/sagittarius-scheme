@@ -24,9 +24,10 @@
 		     (let ((var condition))
 		       (cond clause ... (else e1 e2 ...)))))))))
 	    (lambda ()
-	      (call-with-values
-		  (lambda () b1 b2 ...)
-		(lambda args (guard-k (lambda () (apply values args)))))))))))
+	      ;; Sagittarius prefer receive
+	      (receive args
+		  (begin b1 b2 ...)
+		(guard-k (lambda () (apply values args))))))))))
       ((_ (var clause ...) b1 b2 ...)
        ((call/cc
 	 (lambda (guard-k)
@@ -40,7 +41,7 @@
 		       (cond clause ...
 			     (else (handler-k (lambda () (raise-continuable condition))))))))))))
 	    (lambda ()
-	      (call-with-values
-		  (lambda () b1 b2 ...)
-		(lambda args (guard-k (lambda () (apply values args)))))))))))))
+	      (receive args
+		  (begin b1 b2 ...)
+		(guard-k (lambda () (apply values args))))))))))))
 )

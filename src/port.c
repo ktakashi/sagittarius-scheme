@@ -1766,6 +1766,7 @@ int64_t Sg_PortPosition(SgPort *port)
       break;
     default:
       Sg_Error(UC("unknown binary port type. may be bug? %S"), port);
+      return -1;
     }
     return (int64_t)pos;
   } else if (SG_TEXTUAL_PORTP(port)) {
@@ -1773,12 +1774,13 @@ int64_t Sg_PortPosition(SgPort *port)
     switch (SG_TEXTUAL_PORT(port)->type) {
     case SG_TRANSCODED_TEXTUAL_PORT_TYPE:
       Sg_Error(UC("transcoded textual port does not support port-position")); 
-      break;
+      return -1;
     case SG_STRING_TEXTUAL_PORT_TYPE:
       pos = (off_t)SG_TEXTUAL_PORT(port)->src.buffer.index;
       break;
     default:
       Sg_Error(UC("unknown textual port type. may be bug? %S"), port);
+      return -1;
     }
     return (int64_t)pos;
   } else if (SG_CUSTOM_PORTP(port)) {
@@ -1788,14 +1790,14 @@ int64_t Sg_PortPosition(SgPort *port)
       Sg_AssertionViolation(SG_INTERN("port-position"),
 			    Sg_Sprintf(UC("expected positionable port, but got %S"), port),
 			    port);
-      return;
+      return -1;
     }
     ret = Sg_Apply0(SG_CUSTOM_PORT(port)->getPosition);
     if (!SG_EXACT_INTP(ret)) {
       Sg_AssertionViolation(SG_INTERN("port-position"),
 			    Sg_Sprintf(UC("invalid result %S from %S"), ret, port),
 			    port);
-      return;
+      return -1;
     }
     pos = Sg_GetIntegerS64Clamp(ret, SG_CLAMP_NONE, NULL);
     if (SG_CUSTOM_PORT(port)->type == SG_BINARY_CUSTOM_PORT_TYPE &&

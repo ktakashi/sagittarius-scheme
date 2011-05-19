@@ -47,7 +47,6 @@ static void weakvector_finalize(SgObject obj, void *data)
   }
 }
 
-
 SgObject Sg_MakeWeakVector(int size)
 {
   int i;

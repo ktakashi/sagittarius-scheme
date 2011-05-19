@@ -65,11 +65,6 @@ static SgVM *theVM;
 static SgSubr default_exception_handler_rec;
 #define DEFAULT_EXCEPTION_HANDLER SG_OBJ(&default_exception_handler_rec)
 
-static inline void copy_jmp_buf(jmp_buf dst, jmp_buf src)
-{
-  memcpy(dst, src, sizeof(jmp_buf));
-}
-
 static inline SgObject make_box(SgObject value)
 {
   SgBox *b = SG_NEW(SgBox);
@@ -1352,6 +1347,7 @@ static inline SgObject stack_to_pair_args(SgObject *sp, int nargs)
   return args;
 }
 
+#if 0
 static inline void pair_args_to_stack(SgObject *sp, int offset, SgObject args)
 {
   if (SG_NULLP(args)) {
@@ -1363,6 +1359,7 @@ static inline void pair_args_to_stack(SgObject *sp, int offset, SgObject args)
     }
   }
 }
+#endif
 
 /* shift-arg-to-top */
 static inline SgObject* unshift_args(SgObject *sp, int diff)

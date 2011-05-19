@@ -50,5 +50,5 @@ int Sg_FileExistP(SgString *path)
 
 void Sg_DeleteFile(SgString *path)
 {
-  return remove(Sg_Utf32sToUtf8s(path));
+  remove(Sg_Utf32sToUtf8s(path));
 }
