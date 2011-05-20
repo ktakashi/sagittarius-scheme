@@ -789,7 +789,7 @@ static void write_instance(SgInstance *i, SgPort *port, SgWriteContext *ctx)
       /* doesn't have to be, but just in case */
       if (SG_GENERICP(gen)) {
 	generic = SG_GENERIC(gen);
-	if (!generic->virtual) {
+	if (!generic->virtualP) {
 	  /* non virtual class has to be only one */
 	  if(!SG_NULLP(generic->printer) && SG_PROCEDUREP(generic->printer)) {
 	    Sg_Apply2(generic->printer, i, port);

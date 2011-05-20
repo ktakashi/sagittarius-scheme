@@ -90,7 +90,7 @@ SgObject Sg_VMLoad(SgString *path)
       realPath = Sg_StringAppend(SG_LIST3(SG_CAR(dir),
 					  Sg_MakeString(Sg_NativeFileSeparator(), SG_LITERAL_STRING),
 					  path));
-      if (Sg_FileExistP(realPath)) {
+      if (Sg_FileExistP(SG_STRING(realPath))) {
 	path = SG_STRING(realPath);
 	break;
       }
@@ -101,14 +101,14 @@ SgObject Sg_VMLoad(SgString *path)
   if (!SG_FILEP(file)) {
     Sg_Error(UC("given file was not able to open. %S"), path);
   }
-  bport = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_BLOCK);
-  tport = Sg_MakeTranscodedInputPort(bport, Sg_MakeNativeTranscoder());
+  bport = Sg_MakeFileBinaryInputPort(SG_FILE(file), SG_BUFMODE_BLOCK);
+  tport = Sg_MakeTranscodedInputPort(SG_PORT(bport), SG_TRANSCODER(Sg_MakeNativeTranscoder()));
   
   if (SG_VM_LOG_LEVEL(Sg_VM(), SG_INFO_LEVEL)) {
     Sg_Printf(vm->logPort, UC("loading %S\n"), path);
   }
 
-  return Sg_VMLoadFromPort(tport);
+  return Sg_VMLoadFromPort(SG_PORT(tport));
 }
 
 int Sg_Load(SgString *path)

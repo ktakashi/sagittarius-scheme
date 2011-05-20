@@ -168,8 +168,8 @@
   ;; <required> : # of required arguments
   ;; <optional> : #t or #f
   (define-c-proc arity (p::Procedure) ::Object
-    (let ((req (SG_PROCEDURE_REQUIRED p))
-	  (opt (SG_PROCEDURE_OPTIONAL p)))
+    (let ((req::int (SG_PROCEDURE_REQUIRED p))
+	  (opt::int (SG_PROCEDURE_OPTIONAL p)))
       (if (> opt 0)
 	  (result (Sg_Cons (SG_MAKE_INT req) #t))
 	  (result (Sg_Cons (SG_MAKE_INT req) #f)))))

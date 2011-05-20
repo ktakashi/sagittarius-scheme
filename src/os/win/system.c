@@ -29,11 +29,11 @@
  *
  *  $Id: $
  */
-#defien LIBSAGITTARIUS_BODY
+#define LIBSAGITTARIUS_BODY
 #include <sagittarius/file.h>
 
 /* os dependent values */
-SgChar* Sg_NativeFileSeparator()
+const SgChar* Sg_NativeFileSeparator()
 {
   return UC("\\");
 }

@@ -39,11 +39,12 @@
 #include "sagittarius/symbol.h"
 #include "sagittarius/vm.h"
 #include "sagittarius/gloc.h"
+#include "sagittarius/core.h"
 
 void Sg_Warn(const SgChar* fmt, ...)
 {
   va_list ap;
-  SgPort *err = Sg_MakeStringOutputPort(0);
+  SgPort *err = SG_PORT(Sg_MakeStringOutputPort(0));
   SgObject errObj;
   
   Sg_PutuzUnsafe(err, UC("*warning* "));
@@ -57,7 +58,7 @@ void Sg_Warn(const SgChar* fmt, ...)
 void Sg_Error(const SgChar* fmt, ...)
 {
   va_list ap;
-  SgPort *err = Sg_MakeStringOutputPort(0);
+  SgPort *err = SG_PORT(Sg_MakeStringOutputPort(0));
   SgObject errObj;
   
   va_start(ap, fmt);
@@ -72,7 +73,7 @@ void Sg_Error(const SgChar* fmt, ...)
 void Sg_ReadError(const SgChar* fmt, ...)
 {
   va_list ap;
-  SgPort *err = Sg_MakeStringOutputPort(0);
+  SgPort *err = SG_PORT(Sg_MakeStringOutputPort(0));
   SgObject errObj;
   
   va_start(ap, fmt);
@@ -97,9 +98,11 @@ void Sg_IOError(SgIOErrorType type, SgObject who, SgObject msg,
   SgObject proc;
   switch (type) {
   case SG_IO_READ_ERROR:
-    return Sg_IOReadError(who, msg, port);
+    Sg_IOReadError(who, msg, port);
+    break;
   case SG_IO_WRITE_ERROR:
-    return Sg_IOWriteError(who, msg, port);
+    Sg_IOWriteError(who, msg, port);
+    break;
   case SG_IO_FILE_NOT_EXIST_ERROR:
     g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-file-does-not-exist-error"), SG_FALSE);
     proc = SG_GLOC_GET(g);
@@ -128,21 +131,33 @@ void Sg_IOError(SgIOErrorType type, SgObject who, SgObject msg,
 void Sg_IOReadError(SgObject who, SgObject msg, SgObject port)
 {
   SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-read-error"), SG_FALSE);
-  SgObject proc = SG_GLOC_GET(g);
+  SgObject proc;
+  if (SG_FALSEP(SG_OBJ(g))) {
+    Sg_Panic("Initialization was failed.");
+  }
+  proc = SG_GLOC_GET(g);
   Sg_Apply3(proc, who, msg, port);
 }
 
 void Sg_IOWriteError(SgObject who, SgObject msg, SgObject port)
 {
   SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-write-error"), SG_FALSE);
-  SgObject proc = SG_GLOC_GET(g);
+  SgObject proc;
+  if (SG_FALSEP(SG_OBJ(g))) {
+    Sg_Panic("Initialization was failed.");
+  }
+  proc = SG_GLOC_GET(g);
   Sg_Apply3(proc, who, msg, port);
 }
 
 void Sg_AssertionViolation(SgObject who, SgObject message, SgObject irritants)
 {
   SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("assertion-violation"), SG_FALSE);
-  SgObject proc = SG_GLOC_GET(g);
+  SgObject proc;
+  if (SG_FALSEP(SG_OBJ(g))) {
+    Sg_Panic("Initialization was failed.");
+  }
+  proc = SG_GLOC_GET(g);
   Sg_Apply3(proc, who, message, irritants);
 }
 

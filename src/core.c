@@ -267,6 +267,13 @@ void Sg_Abort(const char* msg)
   _exit(EXIT_CODE(1));
 }
 
+/* somehow Visual Studio 2010 requires this to create dll.*/
+#ifdef _MSC_VER
+int main()
+{
+  return 0;
+}
+#endif
 
 /*
   end of file

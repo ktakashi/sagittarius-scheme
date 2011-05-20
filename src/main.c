@@ -60,7 +60,7 @@ static int getopt_long(int argc, char **argv, const char *optstring,
 		   const struct option *longopts, int *longindex)
 {
   static char *place = EMSG; /* option letter processing */
-  char *oli; /* option letter list index */
+  const char *oli; /* option letter list index */
 
   if (optreset || !*place) {
     /* update scanning pointer */
@@ -229,7 +229,7 @@ int main(int argc, char **argv)
     {"logport", optional_argument, 0, 'p'},
     {0, 0, 0, 0}
    };
-
+  
   /* TODO initialize heap size */
   GC_INIT();
   Sg_Init();
@@ -247,17 +247,17 @@ int main(int argc, char **argv)
       }
       break;
     case 'L':
-      Sg_AddLoadPath(Sg_MakeStringC(optarg));
+      Sg_AddLoadPath(SG_STRING(Sg_MakeStringC(optarg)));
       break;
     case 'p':
       {
-	SgObject log = Sg_OpenFile(Sg_MakeStringC(optarg), SG_CREATE | SG_WRITE | SG_TRUNCATE);
+	SgObject log = Sg_OpenFile(SG_STRING(Sg_MakeStringC(optarg)), SG_CREATE | SG_WRITE | SG_TRUNCATE);
 	SgObject bp;
 	if (!SG_FILEP(log)) {
 	  Sg_Warn(UC("given log log file could not open. log port was not set!"));
 	} else {
 	  bp = Sg_MakeFileBinaryOutputPort(SG_FILE(log), SG_BUFMODE_NONE);
-	  vm->logPort = Sg_MakeTranscodedOutputPort(bp, Sg_MakeNativeTranscoder());
+	  vm->logPort = SG_PORT(Sg_MakeTranscodedOutputPort(SG_PORT(bp), SG_TRANSCODER(Sg_MakeNativeTranscoder())));
 	}
 	break;
       }
@@ -277,7 +277,7 @@ int main(int argc, char **argv)
   if (optind < argc) {
     Sg_ImportLibrary(vm->currentLibrary, SG_OBJ(SG_INTERN("(core base)")));
     Sg_ImportLibrary(vm->currentLibrary, SG_OBJ(SG_INTERN("(sagittarius compiler)")));
-    Sg_Load(Sg_MakeStringC(argv[optind]));
+    Sg_Load(SG_STRING(Sg_MakeStringC(argv[optind])));
   } else {
     fprintf(stderr, "not supported yet!\n");
   }

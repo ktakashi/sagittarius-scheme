@@ -409,7 +409,7 @@ int ustrncmp(const SgChar *s1,
     ;
   return *ss1 - *ss2;
 #endif
-  int i;
+  size_t i;
   for(i = 0; i < n; i++) {
     if(s1[i] ^ s2[i]) return s1[i] - s2[i];
   }
@@ -721,13 +721,13 @@ SgObject Sg_StringUpCase(SgString *str)
 
 SgObject Sg_StringDownCase(SgString *str)
 {
-  int i, size = SG_STRING_SIZE(str);
+  int i, size = SG_STRING_SIZE(str), r;
   SgObject out = Sg_MakeStringOutputPort(size);
   SgObject newS;
   SgChar ch, lastCh = ' ';
   for (i = 0; i < size; i++, lastCh = ch) {
     ch = SG_STRING_VALUE_AT(str, i);
-    int r;
+    
     if (ch == 0x03A3) { 	/* greek capital letter sigma */
       if (Sg_Ucs4WhiteSpaceP(lastCh)) {
 	Sg_PutcUnsafe(out, 0x03C3);

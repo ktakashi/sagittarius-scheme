@@ -110,6 +110,11 @@ enum ScmClampMode {
   SG_CLAMP_NONE = 4         /* do not convert when out-of-range */
 };
 
+#ifdef _MSC_VER
+#define isinf(x) (!_finite(x) && !_isnan(x))
+#define isnan(x) _isnan(x)
+#endif
+
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeInteger(long x);

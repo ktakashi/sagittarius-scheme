@@ -110,7 +110,7 @@ static int posix_close(SgObject self)
 }
 
 
-static off_t posix_seek(SgObject self, off_t offset, Whence whence)
+static int64_t posix_seek(SgObject self, int64_t offset, Whence whence)
 {
   int w = SEEK_SET;
   int64_t ret;
@@ -130,7 +130,7 @@ static off_t posix_seek(SgObject self, off_t offset, Whence whence)
   return ret;
 }
 
-static off_t posix_tell(SgObject self)
+static int64_t posix_tell(SgObject self)
 {
   return posix_seek(self, 0, SG_CURRENT);
 }

@@ -259,8 +259,8 @@ CASE(LSET) {
 ;; uncatchable exception. If I can find a nice way to handle compile time
 ;; exception, this might be fixed.
 (define-inst DIV (0 0 #t)
-  (let ((exact (and (Sg_ExactP (INDEX (SP vm) 0))
-		    (Sg_ExactP (AC vm)))))
+  (let ((exact::int (and (Sg_ExactP (INDEX (SP vm) 0))
+			 (Sg_ExactP (AC vm)))))
   (when (and exact
 	     (SG_VM_IS_SET_FLAG vm SG_R6RS_MODE)
 	     (Sg_ZeroP (AC vm)))

@@ -2201,13 +2201,13 @@
 		    (,end-op ,t ,end))
 	 (assertion-violation ',name
 			      "out of range"
-			      ,t))))
+			      (SG_MAKE_INT ,t)))))
     ((_ name t range op)
      (dispatch
       `(unless (,op ,t ,range)
 	 (assertion-violation ',name
 			      "out of range"
-			      ,t)))))
+			      (SG_MAKE_INT ,t))))))
 
   (define-c-proc get-bytevector-n (p::Port count::fixnum) ::Object
     (check-port-open get-bytevector-n p)
@@ -3143,7 +3143,8 @@
 
   ;; 11.3 flonums
   (decl-code
-   (.include <math.h>))
+   (.include <math.h>)
+   (.include <float.h>)) ;; for VC
 
   (define-c-proc flonum? (o) ::boolean
     (result (SG_FLONUMP o)))
@@ -3205,7 +3206,7 @@
 	       (isnan (flonum-value ,fl)))
 	   (result FALSE))
 	  (else
-	   (result (== (flonum-value ,fl) (round (flonum-value ,fl)))))))))
+	   (result (== (flonum-value ,fl) (floor (flonum-value ,fl)))))))))
 
   (define-c-proc flinteger? (fl::number) ::boolean
     (check-flonum flinteger? fl)
@@ -3292,7 +3293,7 @@
   (define-c-proc fl+ (:rest rest) ::Object
     (if (SG_NULLP rest)
 	(result (Sg_MakeFlonum 0.0))
-	(let ((len (Sg_Length rest)))
+	(let ((len::int (Sg_Length rest)))
 	  (cond ((== len 1)
 		 (check-flonum fl+ (SG_CAR rest))
 		 (result (SG_CAR rest)))
@@ -3304,7 +3305,7 @@
   (define-c-proc fl* (:rest rest) ::Object
     (if (SG_NULLP rest)
 	(result (Sg_MakeFlonum 1.0))
-	(let ((len (Sg_Length rest)))
+	(let ((len::int (Sg_Length rest)))
 	  (cond ((== len 1)
 		 (check-flonum fl* (SG_CAR rest))
 		 (result (SG_CAR rest)))

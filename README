@@ -46,6 +46,10 @@
     * I used explorer. So I'm not sure if this works.
   > <your cmake>
   CMake creates VC project files so that you can build it yourself.
+  Note: If you are using VS 2010, you might need add LIBCMT.lib to ignore
+        libraries.
+  Note: If you are using Boehm GC with static link, make sure the project for
+        making exe file must have GC_NOT_DLL preprocessor defined.
 
 * How to develop it?
   You need Gauche (R5RS Scheme implementation made by Shiro Kawai) and Ypsilon
