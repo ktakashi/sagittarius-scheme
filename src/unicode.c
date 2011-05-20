@@ -409,7 +409,7 @@ int ustrncmp(const SgChar *s1,
     ;
   return *ss1 - *ss2;
 #endif
-  int i;
+  size_t i;
   for(i = 0; i < n; i++) {
     if(s1[i] ^ s2[i]) return s1[i] - s2[i];
   }

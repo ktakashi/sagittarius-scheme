@@ -956,9 +956,9 @@ SgObject Sg_ReduceRational(SgObject rational)
   if (denom == SG_MAKE_INT(1)) return numer;
   if (denom == SG_MAKE_INT(0)) {
     int s = Sg_Sign(numer);
-    if (s > 0) return Sg_MakeFlonum(INFINITY);
-    if (s < 0) return Sg_MakeFlonum(-INFINITY);
-    return Sg_MakeFlonum(NAN);
+    if (s > 0) return SG_POSITIVE_INFINITY;
+    if (s < 0) return SG_NEGATIVE_INFINITY;
+    return SG_NAN;
   }
 
   common = Sg_Gcd(numer, denom);
@@ -1181,7 +1181,7 @@ static inline SgObject rationalize_rec(SgObject bottom, SgObject top)
 SgObject Sg_Rationalize(SgObject x, SgObject e)
 {
   if (Sg_InfiniteP(e)) {
-    if (Sg_InfiniteP(x)) return Sg_MakeFlonum(NAN);
+    if (Sg_InfiniteP(x)) return SG_NAN;
     else return Sg_MakeFlonum(0.0);
   } else if (Sg_ZeroP(x)) return x;
   else if (Sg_NumCmp(x, e) == 0) return Sg_Sub(x, e);
@@ -2125,9 +2125,9 @@ SgObject Sg_Div(SgObject x, SgObject y)
  a_normal:
   {
     int s = Sg_Sign(x);
-    if (s == 0) return Sg_MakeFlonum(NAN);
-    if (s < 0)  return Sg_MakeFlonum(-INFINITY);
-    else        return Sg_MakeFlonum(INFINITY);
+    if (s == 0) return SG_NAN;
+    if (s < 0)  return SG_NEGATIVE_INFINITY;
+    else        return SG_POSITIVE_INFINITY;
   }
 }
 
@@ -2284,7 +2284,7 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
     if (SG_FLONUMP(y)) {
       rx = (double)SG_INT_VALUE(x);
       ry = SG_FLONUM(y)->value;
-      if (ry != round(ry)) goto bad_argy;
+      if (ry != floor(ry)) goto bad_argy;
       goto do_flonum;
     }
     if (SG_COMPLEXP(y)) {
@@ -2325,7 +2325,7 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
     if (SG_FLONUMP(y)) {
       rx = Sg_BignumToDouble(SG_BIGNUM(x));
       ry = SG_FLONUM(y)->value;
-      if (ry != round(ry)) goto bad_argy;
+      if (ry != floor(ry)) goto bad_argy;
       goto do_flonum;
     }
     if (SG_COMPLEXP(y)) {
@@ -2337,7 +2337,7 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
     double rem;
     rx = SG_FLONUM(y)->value;
   flonum_again:
-    if (rx != round(rx)) goto bad_arg;
+    if (rx != floor(rx)) goto bad_arg;
     if (SG_INTP(y)) {
       ry = (double)SG_INT_VALUE(y);
     } else if (SG_BIGNUMP(y)) {
@@ -3018,7 +3018,7 @@ SgObject Sg_Magnitude(SgObject z)
       double real = Sg_GetDouble(cn->real);
       double imag = Sg_GetDouble(cn->imag);
       double m;
-      if (isinf(real) || isinf(imag)) return Sg_MakeFlonum(INFINITY);
+      if (isinf(real) || isinf(imag)) return SG_POSITIVE_INFINITY;
       m = sqrt(real * real + imag * imag);
       if (m < DBL_EPSILON || isinf(m)) return Sg_MakeFlonum(imag / sin(atan2(imag, real)));
       return Sg_MakeFlonum(m);
@@ -3475,6 +3475,14 @@ SgObject Sg__ConstObjes[SG_NUM_CONST_OBJS] = {SG_FALSE};
 
 void Sg__InitNumber()
 {
+/* VC does not have these macros. SUCKS!! */
+#ifdef _MSC_VER
+  static double __d0 = 0.0;
+  static double __d1 = 1.0;
+#define INFINITY (__d1/__d0)
+#define NAN      (__d0/__d0)
+#endif
+
   int radix, i;
   unsigned long n;
 
@@ -3491,9 +3499,9 @@ void Sg__InitNumber()
   }
 
   SG_2_52   = Sg_MakeBignumFromS64(iexpt_2n52);
-  SG_POSITIVE_INFINITY = Sg_MakeFlonum(1.0/0.0);
-  SG_NEGATIVE_INFINITY = Sg_MakeFlonum(-1.0/0.0);
-  SG_NAN = Sg_MakeFlonum(0.0/0.0);
+  SG_POSITIVE_INFINITY = Sg_MakeFlonum(INFINITY);
+  SG_NEGATIVE_INFINITY = Sg_MakeFlonum(-INFINITY);
+  SG_NAN = Sg_MakeFlonum(NAN);
 }
   
 /*

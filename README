@@ -45,7 +45,8 @@
   > copy include\* <VC Express include directory>>\include\gc
     * I used explorer. So I'm not sure if this works.
   > <your cmake>
-  CMake creates VC project files so that you can build it yourself.
+  CMake creates VC project files so that you can build it yourself. If you are
+  using VS 2010, you might need add LIBCMT.lib to ignore libraries.
 
 * How to develop it?
   You need Gauche (R5RS Scheme implementation made by Shiro Kawai) and Ypsilon

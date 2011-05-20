@@ -1756,29 +1756,31 @@ int Sg_HasSetPortPosition(SgPort *port)
 int64_t Sg_PortPosition(SgPort *port)
 {
   if (SG_BINARY_PORTP(port)) {
-    off_t pos;
+    int64_t pos;
     switch (SG_BINARY_PORT(port)->type) {
     case SG_FILE_BINARY_PORT_TYPE:
       pos = SG_BINARY_PORT(port)->src.file->tell(SG_BINARY_PORT(port)->src.file);
       break;
     case SG_BYTE_ARRAY_BINARY_PORT_TYPE:
-      pos = (off_t)SG_BINARY_PORT(port)->src.buffer.index;
+      pos = (int64_t)SG_BINARY_PORT(port)->src.buffer.index;
       break;
     default:
       Sg_Error(UC("unknown binary port type. may be bug? %S"), port);
+      return -1;
     }
     return (int64_t)pos;
   } else if (SG_TEXTUAL_PORTP(port)) {
-    off_t pos;
+    int64_t pos;
     switch (SG_TEXTUAL_PORT(port)->type) {
     case SG_TRANSCODED_TEXTUAL_PORT_TYPE:
       Sg_Error(UC("transcoded textual port does not support port-position")); 
       break;
     case SG_STRING_TEXTUAL_PORT_TYPE:
-      pos = (off_t)SG_TEXTUAL_PORT(port)->src.buffer.index;
+      pos = (int64_t)SG_TEXTUAL_PORT(port)->src.buffer.index;
       break;
     default:
       Sg_Error(UC("unknown textual port type. may be bug? %S"), port);
+      return -1;
     }
     return (int64_t)pos;
   } else if (SG_CUSTOM_PORTP(port)) {

@@ -53,6 +53,10 @@ typedef struct FD_tag
 #define SG_FD(o)  ((FD*)(SG_FILE_DEP(o)))
 #define setLastError(file) (SG_FD(file)->lastError = GetLastError())
 
+#define F_OK 0
+#define W_OK 2
+#define R_OK 4
+
 static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
 {
   DWORD readSize;
@@ -83,7 +87,7 @@ static int64_t win_write(SgObject self, uint8_t *buf, int64_t size)
   }
 }
 
-static off_t win_seek(SgObject self, off_t offset, Whence whence)
+static int64_t win_seek(SgObject self, int64_t offset, Whence whence)
 {
   LARGE_INTEGER largePos, resultPos;
   DWORD posMode;
@@ -107,7 +111,7 @@ static off_t win_seek(SgObject self, off_t offset, Whence whence)
   return 0;
 }
 
-static off_t win_tell(SgObject self)
+static int64_t win_tell(SgObject self)
 {
   return win_seek(self, 0, SG_CURRENT);
 }
@@ -250,17 +254,17 @@ SgObject Sg_MakeFile()
 
 SgObject Sg_OpenFile(SgString *file, int flags)
 {
+#define MSG_SIZE 128
   SgFile *z = make_file(INVALID_HANDLE_VALUE);
   z->open(z, file->value, flags);
   if (!win_is_open(z)) {
-    const int msgSize = 128;
-    wchar_t msg[msgSize];
+    wchar_t msg[MSG_SIZE];
     int size = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 			      0, 
 			      SG_FD(z)->lastError,
 			      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 			      msg,
-			      msgSize,
+			      MSG_SIZE,
 			      NULL);
     if (size > 2 && msg[size - 2] == '\r') {
         msg[size - 2] = 0;
@@ -317,7 +321,7 @@ int Sg_FileExistP(SgString *path)
 
 void Sg_DeleteFile(SgString *path)
 {
-  return DeleteFileW(utf32ToUtf16(path->value));
+  DeleteFileW(utf32ToUtf16(path->value));
 }
 
 

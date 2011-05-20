@@ -1649,11 +1649,12 @@ SgObject run_loop()
 #endif	/* __GNUMC__ */
 
   for (;;) {
-    SgWord c = (SgWord)FETCH_OPERAND(PC(vm));
+    SgWord c;
     int val1, val2;
 
     DISPATCH;
 
+	c = (SgWord)FETCH_OPERAND(PC(vm));
     SWITCH(INSN(c)) {
 #define VM_LOOP
 #include "vminsn.c"

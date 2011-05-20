@@ -48,8 +48,8 @@ struct SgFileRec
   const SgChar *name;	    /* file name */
   int64_t (*read)(SgObject self, uint8_t *buf, int64_t size); /* read contents */
   int64_t (*write)(SgObject self, uint8_t *buf, int64_t size); /* write buffer to file */
-  off_t   (*seek)(SgObject self, off_t offset, Whence whence); /* seek */
-  off_t   (*tell)(SgObject self);
+  int64_t (*seek)(SgObject self, int64_t offset, Whence whence); /* seek */
+  int64_t (*tell)(SgObject self);
   int64_t (*size)(SgObject self);
   int     (*isOpen)(SgObject self);
   int     (*open)(SgObject self, const SgChar* path, int flags);

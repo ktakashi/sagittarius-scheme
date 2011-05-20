@@ -46,7 +46,11 @@
 #  define SG_EXTERN extern SG_EXPORT
 # else
 #  define SG_EXPORT  __declspec(dllimport)
-#  define SG_EXTERN extern SG_EXPORT
+#  if defined(__CYGWIN__)
+#    define SG_EXTERN extern SG_EXPORT
+#  else
+#    define SG_EXTERN extern
+#  endif
 # endif
 #else
 # define SG_EXPORT 
@@ -156,6 +160,14 @@
 
 /* GC selector */
 #if defined(USE_BOEHM_GC)
+# if defined(LIBSAGITTARIUS_BODY)
+#  if !defined (GC_DLL)
+#   define GC_DLL		/* for gc.h to handle Win32 crazyness */
+#  endif
+#  if !defined(GC_BUILD)
+#   define GC_BUILD		/* ditto */
+#  endif
+# endif	 /* LIBSAGITTARIUS_BODY */
 # if defined(HAVE_GC_H)
 #  include <gc.h>
 # elif defined(HAVE_GC_GC_H)

@@ -48,7 +48,7 @@ struct SgGenericRec
 {
   SG_HEADER;
   SgSymbol    *name;		/* type name */
-  int          virtual;		/* if this class is virtual.
+  int          virtualP;	/* if this class is virtual.
 				   this is acually for diamond inheritance.
 				 */
   SgObject     printer;		/* serializer, must be closure or subr which

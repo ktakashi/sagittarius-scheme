@@ -8,7 +8,9 @@ IF(CYGWIN)
     os/posix/system.c
     )
 ELSEIF(WIN32)
-  SET(PLATFORM_SOURCE ${PLATFORM_SOURCE} os/win/file.c os/win/transcoder.c)
+  SET(PLATFORM_SOURCE ${PLATFORM_SOURCE}
+    os/win/file.c os/win/transcoder.c
+    os/win/system.c)
 ELSE()
   # TODO add linux and bsd(maybe also apple?)
   # use standard c functionality
@@ -58,5 +60,11 @@ ENDIF()
 
 ADD_EXECUTABLE(sash main.c)
 TARGET_LINK_LIBRARIES(sash sagittarius)
+IF(${LINK_BOEHM_GC})
+  TARGET_LINK_LIBRARIES(sash gc)
+ELSE()
+  TARGET_LINK_LIBRARIES(sash taurus)
+ENDIF()
+
 
 INSTALL(TARGETS sagittarius sash DESTINATION bin)
