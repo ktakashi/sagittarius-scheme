@@ -1,12 +1,17 @@
 #!/bin/sh
 
 # TODO may be get version number somewhere
-export DIST_NAME=sagittarius-0.0.6
+export DIST_NAME=sagittarius-0.0.7
 
 # just in case
 if [ -e ${DIST_NAME} ]; 
 then
     rm -rf ${DIST_NAME}
+fi
+
+if [ -e src/sagittarius/config.h ]; then
+    # this should not be in tar file.
+    rm -f src/sagittarius/config.h
 fi
 
 # copy to tmp directory
