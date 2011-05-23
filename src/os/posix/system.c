@@ -32,9 +32,11 @@
 #include <io.h>
 #include <unistd.h>
 #define LIBSAGITTARIUS_BODY
+#include <sagittarius/system.h>
 #include <sagittarius/file.h>
 #include <sagittarius/unicode.h>
 #include <sagittarius/string.h>
+#include <sagittarius/pair.h>
 
 /* os dependent values */
 const SgChar* Sg_NativeFileSeparator()
@@ -51,4 +53,10 @@ int Sg_FileExistP(SgString *path)
 void Sg_DeleteFile(SgString *path)
 {
   remove(Sg_Utf32sToUtf8s(path));
+}
+
+SgObject Sg_GetDefaultLoadPath()
+{
+  return SG_LIST2(Sg_MakeString(UC(SAGITTARIUS_SITE_LIB_PATH), SG_LITERAL_STRING),
+		  Sg_MakeString(UC(SAGITTARIUS_SHARE_LIB_PATH), SG_LITERAL_STRING));
 }

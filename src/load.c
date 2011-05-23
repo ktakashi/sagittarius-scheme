@@ -86,9 +86,10 @@ SgObject Sg_VMLoad(SgString *path)
 
   if (!Sg_FileExistP(path)) {
     SgObject dir;
+    const SgObject sep = Sg_MakeString(Sg_NativeFileSeparator(), SG_LITERAL_STRING);
     SG_FOR_EACH(dir, vm->loadPath) {
       realPath = Sg_StringAppend(SG_LIST3(SG_CAR(dir),
-					  Sg_MakeString(Sg_NativeFileSeparator(), SG_LITERAL_STRING),
+					  sep,
 					  path));
       if (Sg_FileExistP(SG_STRING(realPath))) {
 	path = SG_STRING(realPath);

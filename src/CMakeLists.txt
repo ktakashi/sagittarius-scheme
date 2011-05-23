@@ -60,7 +60,12 @@ ENDIF()
 
 ADD_EXECUTABLE(sash main.c)
 TARGET_LINK_LIBRARIES(sash sagittarius)
+
 IF(${LINK_BOEHM_GC})
+  # temporary solution for VC
+  IF(WIN32)
+    ADD_DEFINITIONS(-DGC_NOT_DLL)
+  ENDIF()
   TARGET_LINK_LIBRARIES(sash gc)
 ELSE()
   TARGET_LINK_LIBRARIES(sash taurus)

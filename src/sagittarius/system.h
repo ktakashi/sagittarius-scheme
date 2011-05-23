@@ -40,6 +40,7 @@ SG_CDECL_BEGIN
 SG_EXTERN int           Sg_FileExistP(SgString *path);
 SG_EXTERN int           Sg_DeleteFile(SgString *path);
 SG_EXTERN const SgChar* Sg_NativeFileSeparator();
+SG_EXTERN SgObject      Sg_GetDefaultLoadPath();
 
 SG_CDECL_END
 

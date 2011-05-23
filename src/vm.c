@@ -1702,8 +1702,7 @@ void Sg__InitVM()
   rootVM->defaultConstructors = SG_NIL;
 
   /* load path */
-  rootVM->loadPath = SG_LIST2(Sg_MakeString(UC(SAGITTARIUS_SITE_LIB_PATH), SG_LITERAL_STRING),
-			      Sg_MakeString(UC(SAGITTARIUS_SHARE_LIB_PATH), SG_LITERAL_STRING));
+  rootVM->loadPath = Sg_GetDefaultLoadPath();
 
   SG_PROCEDURE_NAME(&default_exception_handler_rec) = Sg_MakeString(UC("default-exception-handler"),
 								    SG_LITERAL_STRING);

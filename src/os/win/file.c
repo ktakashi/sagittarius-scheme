@@ -30,12 +30,14 @@
  *  $Id: $
  */
 #include <windows.h>
+#include <shlwapi.h>
 #include <wchar.h>
 #include <io.h>
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/file.h>
 #include <sagittarius/codec.h>
 #include <sagittarius/port.h>
+#include <sagittarius/pair.h>
 #include <sagittarius/transcoder.h>
 #include <sagittarius/string.h>
 #include <sagittarius/error.h>
@@ -324,6 +326,46 @@ void Sg_DeleteFile(SgString *path)
   DeleteFileW(utf32ToUtf16(path->value));
 }
 
+
+static SgString *win_lib_path = NULL;
+static SgString *win_sitelib_path = NULL;
+
+#define _U(s) SG_CPP_CAT(L, s)
+
+static void initialize_path()
+{
+  wchar_t tmp[MAX_PATH];
+  wchar_t path[MAX_PATH];
+  if (GetModuleFileNameW(NULL, tmp, MAX_PATH)) {
+    if (PathRemoveFileSpecW(tmp)) {
+      PathAddBackslashW(tmp);
+      /* sitelib */
+      swprintf_s(path, MAX_PATH, L"%s%s", tmp, _U(SAGITTARIUS_SITE_LIB_PATH));
+      win_sitelib_path = utf16ToUtf32(path);
+      /* lib */
+      swprintf_s(path, MAX_PATH, L"%s%s", tmp, _U(SAGITTARIUS_SHARE_LIB_PATH));
+      win_lib_path = utf16ToUtf32(path);
+      return;
+    }
+    goto recover;
+  }
+ recover:
+  /* if above failed, we just use directory name as default load path. */
+  /* TODO better solution */
+  win_sitelib_path = SG_STRING(Sg_MakeString(UC(SAGITTARIUS_SITE_LIB_PATH), SG_LITERAL_STRING));
+  win_lib_path = SG_STRING(Sg_MakeString(UC(SAGITTARIUS_SHARE_LIB_PATH), SG_LITERAL_STRING));
+}
+
+
+
+SgObject Sg_GetDefaultLoadPath()
+{
+  if (win_lib_path == NULL || win_sitelib_path == NULL) {
+    initialize_path();
+  }
+  return SG_LIST2(win_sitelib_path, win_lib_path);
+		  
+}
 
 
 /*
