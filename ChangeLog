@@ -1,3 +1,13 @@
+2011-05-23  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/compare.c (equal?): fixed SIGSEGV when lhs was string and lhs
+	was not string.
+
+	* boot/compiler.scm (pass1/quasiquote): fixed when quasiquote got
+	identifire.
+
+	* src/library.c (rename import): fixed not imported bug.
+
 2011-05-19  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/rfc/base64.scm: added bytevector interface.

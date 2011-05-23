@@ -198,7 +198,7 @@
 			      (begin
 				(put-u8 out (char->integer (vector-ref *encode-table* idx)))
 				(let ((col2 (cond ((= col max-col)
-						   (newline out) 0)
+						   (put-u8 out #x0a) 0) ;; newline
 						  (else (+ col 1)))))
 				  (emit* col2 idx2 ...)))))))
       (define (e0 c col)

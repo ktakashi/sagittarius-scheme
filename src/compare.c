@@ -204,7 +204,7 @@ static SgObject pre_p(SgObject x, SgObject y, SgObject k)
     }
   }
   if (SG_STRINGP(x)) {
-    if (!SG_STRING(y)) {
+    if (!SG_STRINGP(y)) {
       return SG_FALSE;
     }
     if (Sg_StringEqual(x, y)) {

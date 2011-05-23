@@ -1046,7 +1046,7 @@
          (else
           (emit-cons (expand (car expr) nest) (expand (cdr expr) nest)))))))
      ((vector? expr) (expand-vector expr nest))
-     ((symbol? expr) `',expr)
+     ((variable? expr) `',expr)
      ((null? expr) `'())
      (else expr))))
   (expand form nest)))

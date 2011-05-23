@@ -108,7 +108,7 @@ static SgSymbol* convert_name_to_symbol(SgObject name)
 {
   if (SG_STRINGP(name)) return Sg_Intern(name);
   else if (SG_SYMBOLP(name)) return SG_SYMBOL(name);
-  else if (SG_PAIRP(name)) return Sg_Intern(Sg_Sprintf(UC("%S"), name));
+  else if (SG_PAIRP(name))  return Sg_Intern(Sg_Sprintf(UC("%L"), name));
   else Sg_Error(UC("invalid library name %S"), name);
   return SG_UNDEF;		/* dummy */
 }
@@ -143,7 +143,13 @@ static SgString* library_name_to_path(SgObject name)
   SgObject h = SG_NIL, t = SG_NIL;
   SG_FOR_EACH(item, name) {
     if (SG_SYMBOLP(SG_CAR(item))) {
-      SG_APPEND1(h, t, SG_SYMBOL(SG_CAR(item))->name);
+      if (SG_SYMBOL(SG_CAR(item))->name->value[0] == ':') {
+	/* keyword but read as symbol */
+	SgObject o = Sg_Sprintf(UC("%%3a%s"), (SG_SYMBOL(SG_CAR(item))->name->value + 1));
+	SG_APPEND1(h, t, o);
+      } else {
+	SG_APPEND1(h, t, SG_SYMBOL(SG_CAR(item))->name);
+      }
     } else if (SG_KEYWORDP(SG_CAR(item))) {
       /* for srfi-97.
 	 NB: when I create srfi library, it must be #!compatible or #!core
@@ -315,7 +321,7 @@ static void import_variable(SgLibrary *lib, SgObject key, SgObject value,
 	  Sg_Error(UC("invalid rename clause %S"), renamed);
 	  return;
 	}
-	name = SG_CDR(renamed);
+	name = SG_CADR(renamed);
       }
     }
     Sg_HashTableSet(SG_LIBRARY_TABLE(lib), name, value, 0); 

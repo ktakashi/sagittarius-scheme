@@ -46,8 +46,7 @@
     append-map append-map! map! pair-for-each filter-map map-in-order
     filter! partition! remove!
     find-tail
-    (rename (exists any)
-	    (for-all every))
+    any exists
     list-index
     take-while drop-while take-while!
     span break span! break!
@@ -71,15 +70,16 @@
     ;; different than R6RS:
     assoc cons* filter find fold-right for-each map member partition remove)
 
-(import 
+  (import 
    (only (rnrs) define-syntax lambda syntax-case and identifier? syntax define syntax-rules ... cons let if not pair? car cdr unless integer? >= quote procedure? do - < case-lambda number? <= + * eq? null? or cond else apply list cadr caddr cadddr cddddr values zero? begin let-values let* append call-with-current-continuation reverse => letrec equal? memq _ length symbol? string? assertion-violation caar when memv list-ref caaaar caaadr caaar caadar caaddr
     caadr caar cadaar cadadr cadar caddar cadddr caddr cadr
     car cdaaar cdaadr cdaar cdadar cdaddr cdadr cdar cddaar
-    cddadr cddar cdddar cddddr cdddr cddr cdr assv assq for-all exists)
-    (only (rnrs mutable-pairs) set-cdr! set-car!)
-    (only (sagittarius) circular-list? dotted-list? reverse!)
-    (only (core) receive last-pair)
-    (only (core base) split-at null-list? delete lset-intersection take drop fold)
+    cddadr cddar cdddar cddddr cdddr cddr cdr assv assq)
+   (rename (rnrs) (for-all every) (exists any))
+   (only (rnrs mutable-pairs) set-cdr! set-car!)
+   (only (sagittarius) circular-list? dotted-list? reverse!)
+   (only (core) receive last-pair)
+   (only (core base) split-at null-list? delete lset-intersection take drop fold)
     )
 
 ;;;

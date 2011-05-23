@@ -195,6 +195,9 @@ struct SgVMRec
   SgObject    exceptionHandler;
   SgObject    parentExHandler;
 
+  /* parameters */
+  SgObject    parameters;
+
   /* gc related */
   int finalizerPending;
   int attentionRequest;

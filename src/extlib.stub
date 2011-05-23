@@ -31,6 +31,7 @@
 	    unbound undefined undefined?
 	    add-load-path load
 	    gensym unwrap-syntax wrap-syntax
+	    current-dynamic-environment
 
 	    ;; hashtable
 	    hashtable-keys-list hashtable-values-list
@@ -197,6 +198,13 @@
 
   (define-c-proc wrap-syntax (form p1env::Vector :optional (seen NULL) (partialP #f)) ::Object
     (result (Sg_WrapSyntax form p1env seen (not (SG_FALSEP partialP)))))
+
+  (define-c-proc current-dynamic-environment (:optional (other::HashTable SG_UNBOUND)) ::Object
+    (if (SG_UNBOUNDP other)
+	(result (-> (Sg_VM) parameters))
+	(begin
+	  (set! (-> (Sg_VM) parameters) other)
+	  (result SG_UNDEF))))
 
   ;; hashtable
   (define-c-proc make-equal-hashtable (:optional (k::fixnum 200)) ::Object

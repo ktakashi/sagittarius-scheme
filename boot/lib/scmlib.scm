@@ -898,6 +898,30 @@
     ((string) string-hash)
     ((general) (hashtable-hasher ht))))
 
+;; parameter
+;; From Ypsilon
+
+(define make-parameter
+  (lambda (init . maybe-filter)
+    (let ((parameter (if (null? maybe-filter)
+                         (parameter-proc-0 (gensym))
+                         (parameter-proc-1 (gensym) (car maybe-filter)))))
+      (begin (parameter init) parameter))))
+
+(define parameter-proc-0
+  (lambda (key)
+    (lambda value
+      (if (null? value)
+          (hashtable-ref  (current-dynamic-environment) key #f)
+          (hashtable-set! (current-dynamic-environment) key (car value))))))
+
+(define parameter-proc-1
+  (lambda (key proc)
+    (lambda value
+      (if (null? value)
+          (hashtable-ref  (current-dynamic-environment) key #f)
+          (hashtable-set! (current-dynamic-environment) key (proc (car value)))))))
+
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix

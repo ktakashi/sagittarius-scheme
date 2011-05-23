@@ -47,10 +47,10 @@ struct SgWriteContextRec
 
 /* Print mode flags */
 enum {
-    SG_WRITE_WRITE = 0,        /* write mode   */
+    SG_WRITE_WRITE   = 0,      /* write mode   */
     SG_WRITE_DISPLAY = 1,      /* display mode */
-    SG_WRITE_SHARED = 2,       /* write/ss mode   */
-    SG_WRITE_WALK = 3,         /* this is a special mode in write/ss */
+    SG_WRITE_SHARED  = 2,      /* write/ss mode   */
+    SG_WRITE_LIBPATH = 3,      /* only for %L */
     SG_WRITE_MODE_MASK = 0x3,
 
 #if 0

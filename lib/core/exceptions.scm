@@ -22,7 +22,8 @@
 		  (guard-k
 		   (lambda ()
 		     (let ((var condition))
-		       (cond clause ... (else e1 e2 ...)))))))))
+		       (cond clause ... 
+			     (else e1 e2 ...)))))))))
 	    (lambda ()
 	      ;; Sagittarius prefer receive
 	      (receive args

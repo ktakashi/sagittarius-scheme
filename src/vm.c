@@ -101,6 +101,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->dynamicWinders = SG_NIL;
   v->parentExHandler = SG_FALSE;
   v->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
+  v->parameters = Sg_MakeHashTableSimple(SG_HASH_EQ, 64);
   v->toplevelVariables = SG_NIL;
   v->commandLineArgs = SG_NIL;
 

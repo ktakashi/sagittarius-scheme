@@ -60,6 +60,7 @@
 #include "sagittarius/record.h"
 #include "sagittarius/port.h"
 #include "sagittarius/gloc.h"
+#include "sagittarius/unicode.h"
 #include "sagittarius/builtin-symbols.h"
 
 #define WRITE_LIMITED  0x10
@@ -526,7 +527,7 @@ static char special[] = {
  /*    !  "  #  $  %  &  '  (  )  *  +  ,  -  .  /  */
     3, 0, 3, 3, 0, 0, 0, 3, 3, 3, 0, 1, 3, 1, 1, 0,
  /* 0  1  2  3  4  5  6  7  8  9  :  ;  <  =  >  ?  */
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 0, 0, 0, 0,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ,3, 0, 0, 0, 0,
  /* @  A  B  C  D  E  F  G  H  I  J  K  L  M  N  O  */
     1, 16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,
  /* P  Q  R  S  T  U  V  W  X  Y  Z  [  \  ]  ^  _  */
@@ -543,6 +544,8 @@ static void write_symbol_name(SgString *snam, SgPort *port, SgWriteContext *ctx,
   int size = snam->size, i;
   int escape = FALSE;
   int spmask = 0x12;
+  int r6rsMode = SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE);
+  int mode = SG_WRITE_MODE(ctx);
 
   if (size == 0) {
     if (!(flags & SG_SYMBOL_WRITER_NOESCAPE_EMPTY)) {
@@ -557,17 +560,18 @@ static void write_symbol_name(SgString *snam, SgPort *port, SgWriteContext *ctx,
   if (*p < 128
       && (special[*p] & 1)
       && (!(flags & SG_SYMBOL_WRITER_NOESCAPE_INITIAL))) {
-    escape = TRUE;
+    /* R6RS does not have '|' */
+    escape = TRUE && (mode != SG_WRITE_LIBPATH);
   } else {
     for (i = 0, q = p; i < size; i++, q++) {
       if (*q < 128
 	  && (special[*q] & spmask)) {
-	escape = TRUE;
+	escape = TRUE && (mode != SG_WRITE_LIBPATH);
 	break;
       }
     }
   }
-  if (escape) {
+  if (escape && !r6rsMode) {
     Sg_PutcUnsafe(port, '|');
     for (q = p; q < p + size; q++) {
       SgChar ch = *q;
@@ -587,7 +591,37 @@ static void write_symbol_name(SgString *snam, SgPort *port, SgWriteContext *ctx,
     Sg_PutcUnsafe(port, '|');
     return;
   } else {
-    Sg_PutsUnsafe(port, snam);
+    if (r6rsMode && (mode != SG_WRITE_LIBPATH)) {
+      for (q = p; q < p + size; q++) {
+	SgChar ch = *q;
+	if ((q == p && Sg_Ucs4ConstituentP(ch)) ||
+	    (q != p && Sg_Ucs4SubsequentP(ch))) {
+	  Sg_PutcUnsafe(port, ch);
+	} else {
+	  char buf[16];
+	  /* ... */
+	  if (q == p) {
+	    if (size == 3) {
+	      if (q[0] == '.' && q[1] == '.' && q[2] == '.') {
+		Sg_PutuzUnsafe(port, UC("..."));
+		return;
+	      }
+	    }
+	    if (size > 2) {
+	      if (q[0] == '-' && q[1] == '>') {
+		Sg_PutuzUnsafe(port, UC("->"));
+		q += 2;
+		continue;
+	      }
+	    }
+	  }
+	  snprintf(buf, sizeof(buf), "\\x%X;", ch);
+	  Sg_PutzUnsafe(port, buf);
+	}
+      }
+    } else {
+      Sg_PutsUnsafe(port, snam);
+    }
   }
 }
 
@@ -1300,11 +1334,13 @@ static void vprintf_proc(SgPort *port, const SgChar *fmt, SgObject args, int sha
 	  Sg_PutzUnsafe(port, buf);
 	  break;
 	}
-      case 'S': case 'A':
+      case 'S': case 'A': case 'L':
 	{
 	  SgWriteContext wctx;
 	  get_value();
-	  mode = (c == 'A') ? SG_WRITE_DISPLAY : SG_WRITE_WRITE;
+	  mode = (c == 'A') ? SG_WRITE_DISPLAY 
+	    : (c == 'L') ? SG_WRITE_LIBPATH
+	    : SG_WRITE_WRITE;
 	  wctx.mode = mode;
 	  wctx.table = NULL;
 	  wctx.flags = 0;
@@ -1444,7 +1480,7 @@ void Sg_Vprintf(SgPort *port, const SgChar *fmt, va_list sp, int sharedp)
 	  SG_APPEND1(h, t, Sg_MakeIntegerU((uintptr_t)value));
 	  break;
 	}
-      case 'S': case 'A':
+      case 'S': case 'A': case 'L':
 	{
 	  SgObject value = va_arg(sp, SgObject);
 	  SG_APPEND1(h, t, value);

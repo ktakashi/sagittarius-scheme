@@ -1077,7 +1077,7 @@
 				       (expand (cdr expr) nest)))))))
 	      ((vector? expr)
 	       (expand-vector expr nest))
-	      ((symbol? expr)
+	      ((variable? expr)
 	       `(quote ,expr))
 	      ((null? expr)
 	       `(quote ()))

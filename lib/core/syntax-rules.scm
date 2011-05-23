@@ -34,5 +34,5 @@
 		     (,(rename 'syntax-violation)
 		      (,(rename 'quote) syntax-rules)
 		      "invalid syntax"
-		      ,(rename 'form)))))))))))
+		      (,(rename 'unwrap-syntax) ,(rename 'form))))))))))))
   )

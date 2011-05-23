@@ -45,7 +45,8 @@
 			`(,_cddr ,expr) ;; '()
 			`(,_let ,_loop ((,_lst (,_cdr ,expr)))
 			   (,_cond ((,_null? ,_lst) ;; should not happend, i guess
-				    (,_syntax-violation "syntax template"
+				    ,expr
+				    #;(,_syntax-violation "syntax template"
 							"invalid syntax"
 							,expr))
 				   ((,_and (,_pair? (,_cdr ,_lst))
