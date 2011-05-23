@@ -2782,6 +2782,17 @@
   (define-c-proc command-line () ::Object
     (result (-> (Sg_VM) commandLineArgs)))
 
+  (define-c-proc exit (:optional obj) ::void
+    ;; TODO thread
+    (if (SG_UNBOUNDP obj)
+	(Sg_Exit EXIT_SUCCESS)
+	(cond ((SG_INTP obj)
+	       (Sg_Exit (SG_INT_VALUE obj)))
+	      ((SG_FALSEP obj)
+	       (Sg_Exit EXIT_FAILURE))
+	      (else
+	       (Sg_Exit EXIT_FAILURE)))))
+
   ;; 11 Arithmetic
   ;; 11.2 fixnum
   (define-c-proc fixnum? (o) ::boolean

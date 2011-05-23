@@ -1,5 +1,9 @@
 2011-05-23  Takashi Kato  <ktakashi@ymail.com>
 
+	* src/null.stub (rnrs): added exit
+
+	* src/core.c: added cleanup implementation(not completed yet)
+
 	* src/compare.c (equal?): fixed SIGSEGV when lhs was string and lhs
 	was not string.
 

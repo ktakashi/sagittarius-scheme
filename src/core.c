@@ -245,7 +245,7 @@ void Sg_Exit(int code)
 
 void Sg_Cleanup()
 {
-  /* for now do nothing */
+  Sg_FlushAllPort(TRUE);
   return;
 }
 
