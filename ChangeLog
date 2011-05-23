@@ -1,5 +1,7 @@
 2011-05-23  Takashi Kato  <ktakashi@ymail.com>
 
+	* CMakeLists.txt: fixed incorrect load path on cygwin.
+
 	* src/null.stub (rnrs): added exit
 
 	* src/core.c: added cleanup implementation(not completed yet)

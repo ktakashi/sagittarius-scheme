@@ -23,7 +23,7 @@ SET(CMAKE_INSTALL_PREFIX ${INSTALL_PREFIX} CACHE INTERNAL "Prefix prepended to i
 #  CACHE STRING "Sagittarius release version string")
 SET(SAGITTARIUS_VERSION "0.0.7" CACHE STRING "Sagittarius release version string" FORCE)
 
-IF(WIN32)
+IF(WIN32 AND NOT CYGWIN)
   # On Windows platform, we resolve library path relatively.
   # Diractory structure must be like this:
   # <install dir>\sash.exe

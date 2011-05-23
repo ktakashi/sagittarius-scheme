@@ -1,10 +1,5 @@
 (import (rnrs)
 	(core errors))
-;; dummy
-(define-syntax environment
-  (syntax-rules ()
-    ((_ _)
-     '())))
 
 (define (default-reader)
   (read (current-input-port)))
@@ -23,22 +18,19 @@
 
 (define (repl reader evaluator printer prompter)
   (let loop1 ()
-    (print "loop1 start")
-    (and
-     (with-exception-handler
-       (lambda (e) 
-	 (print "error:")
-	 (display (describe-condition e)) #t)
-       (lambda ()
-	 (prompter)
-         (let loop2 ((exp (reader)))
-           (if (eof-object? exp)
-               #f
-               (begin
-                 (receive result (evaluator exp (environment '(rnrs)))
-                   (apply printer result)
-		   (prompter))
-                 (loop2 (reader)))))))
-     (loop1))))
+    (call-with-current-continuation
+     (lambda (continue)
+       (with-exception-handler
+	(lambda (e) 
+	  (print "error:")
+	  (display (describe-condition e))
+	  (and (serious-condition? e) (continue)))
+	(lambda ()
+	  (prompter)
+	  (let ((exp (reader)))
+	    (and (eof-object? exp) (exit 0))
+	    (receive result (evaluator exp (environment '(rnrs)))
+	      (apply printer result)))))))
+     (loop1)))
 
 (repl default-reader default-evaluator default-printer default-prompter)
