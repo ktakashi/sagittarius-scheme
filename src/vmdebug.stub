@@ -10,7 +10,7 @@
   (define-c-proc vm-dump-closure (c::Procedure) ::Object
     (if (SG_CLOSUREP c)
 	(Sg_VMDumpCode (-> (SG_CLOSURE c) code))
-	(Sg_Printf "subr %S" (SG_PROCEDURE_NAME c)))
+	(Sg_Printf (-> (Sg_VM) logPort) "subr %S" (SG_PROCEDURE_NAME c)))
     (result SG_UNDEF))
 )
 

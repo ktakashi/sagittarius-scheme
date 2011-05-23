@@ -2533,6 +2533,7 @@ SgObject Sg_Tan(SgObject obj)
   }
   if (SG_REALP(obj)) return Sg_MakeFlonum(tan(Sg_GetDouble(obj)));
   Sg_Error(UC("number required, but got %S"), obj);
+  return SG_UNDEF;		/* dummy */
 }
 
 SgObject Sg_Asin(SgObject obj)

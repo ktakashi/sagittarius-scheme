@@ -321,9 +321,9 @@ int Sg_FileExistP(SgString *path)
   return _waccess(utf32ToUtf16(path->value), F_OK) == 0; 
 }
 
-void Sg_DeleteFile(SgString *path)
+int Sg_DeleteFile(SgString *path)
 {
-  DeleteFileW(utf32ToUtf16(path->value));
+  return DeleteFileW(utf32ToUtf16(path->value));
 }
 
 

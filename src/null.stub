@@ -2168,6 +2168,9 @@
 				      getter setter close)))
 
   ;; 8.2.8 binary input
+  (decl-code
+   (.include <string.h>))
+
   (define-c-proc get-u8 (p::Port) ::Object
     (check-port-open get-u8 p)
     (check-binary-port get-u8 p)
@@ -2192,7 +2195,7 @@
       `(when (< ,n 0)
 	 (wrong-type-of-argument-violation 'name
 					   "non negative exact integer"
-					   ,n)))))
+					   (SG_MAKE_INT ,n))))))
 
   (define-cgen-stmt check-fixnum-range
     ((_ name t start end start-op end-op)
@@ -2738,14 +2741,14 @@
 
   (define-c-proc read-char (:optional (p::Port (Sg_CurrentInputPort))) ::Object
     (check-input-port read-char p)
-    (let ((c (Sg_Getc p)))
+    (let ((c::SgChar (Sg_Getc p)))
       (if (== c EOF)
 	  (result SG_EOF)
 	  (result (SG_MAKE_CHAR c)))))
 
   (define-c-proc peek-char (:optional (p::Port (Sg_CurrentInputPort))) ::Object
     (check-input-port peek-char p)
-    (let ((c (Sg_Peekc p)))
+    (let ((c::SgChar (Sg_Peekc p)))
       (if (== c EOF)
 	  (result SG_EOF)
 	  (result (SG_MAKE_CHAR c)))))

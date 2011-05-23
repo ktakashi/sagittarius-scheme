@@ -50,9 +50,9 @@ int Sg_FileExistP(SgString *path)
   return access(utf8path, F_OK) == 0; 
 }
 
-void Sg_DeleteFile(SgString *path)
+int Sg_DeleteFile(SgString *path)
 {
-  remove(Sg_Utf32sToUtf8s(path));
+  return remove(Sg_Utf32sToUtf8s(path));
 }
 
 SgObject Sg_GetDefaultLoadPath()

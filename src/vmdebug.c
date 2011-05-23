@@ -30,7 +30,7 @@ static SgObject _sagittarius_vm_debug_vm_dump_closure(SgObject *args, int argc, 
     if (SG_CLOSUREP(c)) {
       Sg_VMDumpCode(SG_CLOSURE(c)->code);
     } else {
-      Sg_Printf(UC("subr %S"), SG_PROCEDURE_NAME(c));
+      Sg_Printf(Sg_VM()->logPort, UC("subr %S"), SG_PROCEDURE_NAME(c));
     }
 ;
     SG_RETURN = (SG_UNDEF);
