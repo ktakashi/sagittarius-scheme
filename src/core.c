@@ -135,7 +135,6 @@ void Sg_Init()
      we need extra treatment for er-rename. it's defined after the 
      initialization of compiler, so we need to export it to (core base) which 
      defines er-macro-transformer.
-     So is (core syntax-case) library.
    */
   {
     SgLibrary *core_base_lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(core base)"), FALSE));

@@ -1473,7 +1473,7 @@ static void process_queued_requests(SgVM *vm)
 
 #define BUILTIN_ONE_ARG_WITH_INSN_VALUE(vm, proc, code)		\
   INSN_VAL1(val1, code);					\
-  AC(vm) = proc(AC(vm), SG_MAKE_INT(val1));
+  AC(vm) = proc(SG_MAKE_INT(val1), AC(vm));
 
 #define BRANCH_TEST2(test)			\
   {						\

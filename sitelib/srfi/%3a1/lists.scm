@@ -1064,18 +1064,18 @@
   (check-arg procedure? f map-in-order)
   (if (pair? lists)
       (let recur ((lists (cons lis1 lists)))
-    (receive (cars cdrs) (%cars+cdrs lists)
-      (if (pair? cars)
-          (let ((x (apply f cars)))     ; Do head first,
-        (cons x (recur cdrs)))      ; then tail.
-          '())))
-
+	(receive (cars cdrs) (%cars+cdrs lists)
+	  (if (pair? cars)
+	      (let ((x (apply f cars)))     ; Do head first,
+		(cons x (recur cdrs)))      ; then tail.
+	      '())))
+      
       ;; Fast path.
       (let recur ((lis lis1))
-    (if (null-list? lis) lis
-        (let ((tail (cdr lis))
-          (x (f (car lis))))        ; Do head first,
-          (cons x (recur tail)))))))    ; then tail.
+	(if (null-list? lis) lis
+	    (let ((tail (cdr lis))
+		  (x (f (car lis))))        ; Do head first,
+	      (cons x (recur tail)))))))    ; then tail.
 
 
 ;;; We extend MAP to handle arguments of unequal length.
