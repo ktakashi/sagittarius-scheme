@@ -12,6 +12,21 @@
 	s
 	(id-name s))))
 
+;; duplicated
+(define get-binding-frame
+  (lambda (var env)
+    (let loop ((frame env))
+      (if (pair? frame)
+	  (if (pair? (car frame))
+	      (let loop2 ((fp (cdar frame)))
+		(if (pair? fp)
+		    (if (eq? (caar fp) var)
+			frame
+			(loop2 (cdr fp)))
+		    (loop (cdr frame))))
+	      (loop (cdr frame)))
+	  '()))))
+
 ;; from chibi-scheme
 (define identifier=?
   (lambda (e1 id1 e2 id2)
@@ -29,12 +44,14 @@
       (when (identifier? id2)
 	(set! e2 (id-envs id2))   ;; this is only frames
 	(set! id2 (id-name id2))) ;; symbol name
-      (cond ((assq id1 e1)
+      (cond ((get-binding-frame id1 e1)
 	     => (lambda (cell)
-		  (set! lam1 (cdr cell)))))
-      (cond ((assq id2 e2)
+		  (unless (null? cell)
+		    (set! lam1 cell)))))
+      (cond ((get-binding-frame id2 e2)
 	     => (lambda (cell)
-		  (set! lam2 (cdr cell)))))
+		  (unless (null? cell)
+		    (set! lam2 cell)))))
       (and (eq? id1 id2)
 	   (eq? lam1 lam2)))))
 
@@ -66,3 +83,10 @@
 
 (define (retrieve-generic name)
   #f)
+
+;; dummy dynamic-wind
+(define (dynamic-wind b t a)
+  (b)
+  (let ((r (t)))
+    (a)
+    r))

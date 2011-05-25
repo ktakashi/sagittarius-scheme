@@ -308,6 +308,16 @@
           (else vars))))
 
 
+(cond-expand
+ (gauche
+  (define-macro (apply-ex proc . rest)
+    `(apply-proc ,proc ,@rest)))
+ (sagittarius
+  (define-syntax apply-ex
+    (er-macro-transformer
+     (lambda (f r c)
+       `(apply ,(cadr f) ,@(cddr f)))))))
+
 ;; this needs to be toplevel but how?
 (define match-syntax-case
   (lambda (literals expr . process)
@@ -346,8 +356,8 @@
 		(let ((vars (match form pat)))
 		  (if (and vars
 			   (or (not fender)
-			       (apply fender (append (map cadr vars) (list use-env) vars))))
-		      (apply expr (append (map cadr vars) (list use-env) vars))
+			       (apply-ex fender (append (map cadr vars) (list use-env) vars))))
+		      (apply-ex expr (append (map cadr vars) (list use-env) vars))
 		      (loop (cdr lst)))))))))))
 
 ;; syntax
@@ -360,6 +370,7 @@
 			   (map (lambda (id)
 				  (let ((rank (p1env-pvar-lookup p1env id)))
 				    ;; rank must be number
+				    (print rank)
 				    (and (not (variable? rank))
 					 (cons id rank))))
 				ids))))
@@ -433,7 +444,6 @@
 		   (cons (loop (car lst))
 			 (loop (cdr lst))))
 		  (else lst)))))
-
       (if (null? template)
 	  '()
 	  (let ((form (transcribe-template template ranks patvars vars use-env emit)))

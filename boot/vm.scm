@@ -28,6 +28,8 @@
  (gauche
   (define (syntax-error form . irritants)
     (errorf "syntax-error: ~s, irritants ~s" form irritants))
+  (define (assertion-violation who msg . irr)
+    (errorf "~%who: ~a~%message: ~a~%irritants: ~a" who msg irr))
 
   (add-load-path ".")
   (load "compiler.scm")
@@ -42,6 +44,8 @@
   (define bitwise-arithmatic-shift-left ash)
   (define bitwise-arithmatic-shift ash)
   (define bytevector? (lambda (o) #f)) ;; dummy for quasiquote
+  (define for-all every)
+  (define exists any)
   ))
 
 (define *stack* (make-vector 1000))
@@ -119,6 +123,7 @@
     (closure-frees-set! d v)
     d))
 
+(define org-closure? closure?)
 (define (closure? c)
   (and (vector? c)
        (eq? (vector-ref c 0) '.closure)))
@@ -311,8 +316,11 @@
 			    (else
 			     (errorf "[2]wrang number of arguments for ~a (required ~d, got ~d)"
 				     (shorten-object cl) required-length argc)))))))
+	    ((org-closure? cl)
+	     (let ((p (stack->pair-args s argc)))
+	       (VM `#(,RET ,HALT) 0 (apply cl p) c (- s argc) s)))
 	    (else
-	     (errorf "invalid application ~s" (shorten-object cl)))))
+	     (errorf "[2]invalid application ~s" (shorten-object cl)))))
     (define (debug-insn-print)
       (let* ((insn (next))
 	     (info (lookup-insn-name (get-insn insn)))
@@ -804,7 +812,7 @@
 
 (define (shorten-object o)
   (cond ((closure? o)
-	 (format "#<closure ~a>" (shorten-object (closure-src o))))
+	 (format "#<closure-s ~a>" (shorten-object (closure-src o))))
 	((identifier? o)
 	 (format "#<identifier ~s#~s>" (id-name o) (library-name (id-library o))))
 	((library? o)
@@ -833,6 +841,12 @@
 	 (format "#<code? ~a>" (shorten-object (vector-ref o 0))))
 	(else
 	 o)))
+
+(define (print . args)
+  (for-each (lambda (arg)
+	      (display (shorten-object arg)))
+	    args)
+  (newline))
 
 (define (dbg-print o)
   (define (print-free free)
@@ -1062,7 +1076,7 @@
 (add-namespace! display (o))
 (add-namespace! newline ())
 (add-namespace! print o
-		(lambda args
+		#;(lambda args
 		  (for-each (lambda (arg)
 			      (display (shorten-object arg)))
 			    args)
@@ -1233,6 +1247,18 @@
 (add-namespace! find-binding (l n c))
 (add-namespace! unwrap-syntax (form))
 ;;(add-namespace! transcribe-syntax-rules (form use-env mac-env spec))
+(add-namespace! .match-syntax-case (literals expr . process) match-syntax-case)
+#;(add-namespace! dynamic-wind (before thunk after)
+		(lambda (before thunk after)
+		  (if (vector? before)
+		      (apply-proc before '())
+		      (apply before '()))
+		  (if (vector? thunk)
+		      (apply-proc thunk '())
+		      (apply thunk '()))
+		  (if (vector? after)
+		      (apply-proc after '())
+		      (apply after '()))))
 
 (define *base-lib* "lib/scmlib.scm")
 (define *compaux* "compiler-aux.scm")
@@ -1274,15 +1300,15 @@
 					   (sagittarius vm)
 					   (sagittarius vm instruction)) #t)
     ;;
-    ;;(,*struct-lib* #f () #f)
-    ;;(,*misc-lib* #f () #f)
-    ;;(,*synhelp-lib* #f () #f)
-    ;;(,*synpat-lib* #f () #f)
-    ;;(,*syntmp-lib* #f () #f)
-    ;;(,*synrule-lib* #f () #f)
+    (,*struct-lib* #f () #f)
+    (,*misc-lib* #f () #f)
+    (,*synhelp-lib* #f () #f)
+    (,*synpat-lib* #f () #f)
+    (,*syntmp-lib* #f () #f)
+    (,*synrule-lib* #f () #f)
     (,*match-lib* (sagittarius compiler match)
 		  (null (core base)
-			(core syntax-case)
+			(for (core syntax-rules) expand)
 			(sagittarius)) #f)
     (,*compaux* (sagittarius compiler util)
 		(null (core base) 
@@ -1292,8 +1318,8 @@
 		#t)
     (,*proc-lib* (sagittarius compiler procedure) 
 		 (null (core base) (sagittarius)
-		       #;(core syntax-rules)
-		       (core syntax-case)
+		       (core syntax-rules)
+		       ;;(core syntax-case)
 		       (sagittarius compiler match)
 		       (sagittarius compiler util)
 		       (sagittarius vm)
@@ -1316,7 +1342,7 @@ lc: compile builtin libraries
 ")
   (begin
     (vm-init)
-    (for-each (lambda (builtin-info)
+    #;(for-each (lambda (builtin-info)
 		(let ((path (car builtin-info))
 		      (name (cadr builtin-info))
 		      (import (caddr builtin-info)))

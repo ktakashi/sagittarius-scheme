@@ -42,6 +42,7 @@
   ;; load Vm procedures to run on scheme VM
   (load "lib/ext.scm")
   (load "lib/vm.scm")
+  (load "lib/macro.scm")
   )
  (sagittarius
   ;; sagittarius

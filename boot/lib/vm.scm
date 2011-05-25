@@ -48,6 +48,31 @@
 		   (make-identifier name '() (vector-ref p1env 0))
 		   name)))))))
 
+(define p1env-pvar-lookup
+  (lambda (p1env name)
+    (let ((name-ident? (identifier? name))
+	  (frames (vector-ref p1env 1))
+	  (ret #f)
+	  (dummy #f))
+      (when name-ident?
+	(set! dummy `#(,(id-library name) ,(id-envs name))))
+      (let loop ((fp frames))
+	(cond ((pair? fp)
+	       (when (> (caar fp) 2)
+		 (loop (cdr fp)))
+	       (let loop2 ((tmp (cdar fp)))
+		 (if (pair? tmp)
+		     (let ((vp (car tmp)))
+		       (if (and name-ident?
+				(identifier=? p1env name dummy (car vp)))
+			   (cdr vp)
+			   (loop2 (cdr tmp))))
+		     (loop (cdr fp)))))
+	      (else
+	       (if (symbol? name)
+		   (make-identifier name '() (vector-ref p1env 0))
+		   name)))))))
+
 (define p1env-toplevel?
   (lambda (p1env)
     (not (any (lambda (frame) (eqv? (car frame) LEXICAL))
