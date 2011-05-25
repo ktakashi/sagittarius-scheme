@@ -137,10 +137,14 @@ int Sg_IdentifierEqP(SgObject e1, SgObject id1, SgObject e2, SgObject id2)
   /* short cut */
   if (SG_EQ(id1, id2)) return TRUE;
 
-  ASSERT(SG_VECTORP(e1) && SG_VECTORP(e2));
   /* strip p1env to frames*/
-  e1 = SG_VECTOR_ELEMENT(e1, 1);
-  e2 = SG_VECTOR_ELEMENT(e2, 1);
+  e1 = (SG_VECTORP(e1)) ? SG_VECTOR_ELEMENT(e1, 1)
+    : (SG_PAIRP(e1)) ? e1
+    : SG_NIL;
+  e2 = (SG_VECTORP(e2)) ? SG_VECTOR_ELEMENT(e2, 1)
+    : (SG_PAIRP(e2)) ? e2
+    : SG_NIL;
+
   if (SG_IDENTIFIERP(id1)) {
     e1 = SG_IDENTIFIER_ENVS(id1);
     id1 = SG_IDENTIFIER_NAME(id1);
@@ -149,12 +153,14 @@ int Sg_IdentifierEqP(SgObject e1, SgObject id1, SgObject e2, SgObject id2)
     e2 = SG_IDENTIFIER_ENVS(id2);
     id2 = SG_IDENTIFIER_NAME(id2);
   }
-  lam1 = Sg_Assq(id1, e1);
-  if (!SG_FALSEP(lam1)) {
+  /* lam1 = Sg_Assq(id1, e1); */
+  lam1 = get_binding_frame(id1, e1);
+  if (!SG_NULLP(lam1)) {
     lam1 = SG_CDR(lam1);
   }
-  lam2 = Sg_Assq(id2, e2);
-  if (!SG_FALSEP(lam2)) {
+  /* lam2 = Sg_Assq(id2, e2); */
+  lam2 = get_binding_frame(id2, e2);
+  if (!SG_NULLP(lam2)) {
     lam2 = SG_CDR(lam2);
   }
   return (id1 == id2) && (lam1 == lam2);
