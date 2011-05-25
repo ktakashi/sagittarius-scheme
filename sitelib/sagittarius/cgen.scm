@@ -45,7 +45,9 @@
 	     (base:dispatch dispatch)))
     (import (rnrs (6))
 	    (rnrs eval (6))
-	    (only (srfi :13) string-index string-index-right string-map)
+	    ;; TODO to avoid (sagittarius) library we use (srfi-13) for now.
+	    ;; but we want to use Sagittarius as generator in future.
+	    (only (srfi srfi-13) string-index string-index-right string-map)
 	    (sagittarius format)
 	    (sagittarius cgen util)
 	    (prefix (sagittarius cgen base) base:)

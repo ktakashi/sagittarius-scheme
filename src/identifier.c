@@ -134,6 +134,9 @@ SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env, SgObject seen, int lexica
 int Sg_IdentifierEqP(SgObject e1, SgObject id1, SgObject e2, SgObject id2)
 {
   SgObject lam1 = SG_FALSE, lam2 = SG_FALSE;
+  /* short cut */
+  if (SG_EQ(id1, id2)) return TRUE;
+
   ASSERT(SG_VECTORP(e1) && SG_VECTORP(e2));
   /* strip p1env to frames*/
   e1 = SG_VECTOR_ELEMENT(e1, 1);

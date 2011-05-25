@@ -134,13 +134,6 @@
     (values s0 s1)))
 ;; from Ypsilon end
 ;; rotate
-(define-syntax check-fixnum-bit
-  (syntax-rules ()
-    ((_ name v)
-     (unless (and (<= 0 v)
-		  (<= v (fixnum-width)))
-       (assertion-violation 'name "out of range" v)))))
-
 (define (fxrotate-bit-field fx1 fx2 fx3 fx4)
   (or (fixnum? fx1) (assertion-violation 'fxrotate-bit-field (format "fixnum required, but got ~a" fx1) fx1 fx2 fx3 fx4))
   (or (fixnum? fx2) (assertion-violation 'fxrotate-bit-field (format "fixnum required, but got ~a" fx2) fx1 fx2 fx3 fx4))

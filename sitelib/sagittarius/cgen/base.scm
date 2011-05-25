@@ -11,8 +11,9 @@
 	    define-cgen-stmt define-cgen-macro register-macro!)
     (import (rnrs (6))
 	    (rnrs eval (6))
-	    (only (srfi :13) string-index string-index-right)
-	    (only (srfi :8) receive)
+	    ;; TODO the same as cgen.scm
+	    (only (srfi srfi-13) string-index string-index-right)
+	    (only (srfi srfi-8) receive)
 	    (match)
 	    (sagittarius cgen util)
 	    (sagittarius format))

@@ -211,8 +211,9 @@
 
 ;; just stub
 (define (import-library to from only except rename prefix trans?)
-  (when trans?
-    (library-transient-set! from #t))
+  (if trans?
+      (library-transient-set! from #t)
+      (library-transient-set! from #f))
   (let* ((lib (if (library? from)
 		    from
 		    (find-library from #f)))
@@ -375,7 +376,55 @@
 	      (else form))))
     (rec form '())))
 
-
+(define wrap-syntax
+  (lambda (form p1env . opts)
+    (define env-lookup
+      (lambda (form p1env)
+	(let loop ((frames (vector-ref p1env 1)))
+	  (cond ((null? frames) frames)
+		(else
+		 (let lp ((vtmp (cdar frames)))
+		   (cond ((null? vtmp)
+			  (loop (cdr frames)))
+			 ((eq? form (caar vtmp)) frames)
+			 (else (lp (cdr vtmp))))))))))
+			  
+    (define rec
+      (lambda (form p1env seen partial?)
+	(cond ((null? form) form)
+	      ((pair? form) (cons (rec (car form) p1env seen partial?)
+				  (rec (cdr form) p1env seen partial?)))
+	      ((identifier? form) form)
+	      #;((closure? form) form)
+	      ((procedure? form) form)
+	      ((vector? form)
+	       (list->vector (rec (vector->list form) p1env seen partial?)))
+	      ((symbol? form)
+	       (let ((id (hashtable-ref seen form #f)))
+		 (if id
+		     id
+		     (let ((env (env-lookup form p1env)))
+		       (cond ((and (null? env)
+				   (not partial?))
+			      (set! id (make-identifier form
+							(vector-ref p1env 1)
+							(vector-ref p1env 0)))
+			      (hashtable-set! seen form id)
+			      id)
+			     ((not (null? env))
+			      (set! id (make-identifier form
+							env
+							(vector-ref p1env 0)))
+			      (hashtable-set! seen form id)
+			      id)
+			     (else form))))))
+	      (else form))))
+    (let ((seen (if (null? opts) (make-eq-hashtable) (car opts)))
+	  (partial? (if (or (null? opts)
+			    (null? (cdr opts)))
+			#f
+			(cadr opts))))
+      (rec form p1env seen partial?))))
 
 (define (make-macro name transformer data env . maybe-library)
   (vector 'type:macro name transformer data env

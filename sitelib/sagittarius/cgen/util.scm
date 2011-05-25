@@ -8,8 +8,9 @@
 	    acons
 	    gen-temporary)
     (import (rnrs (6))
-	    (only (srfi :13) string-tokenize)
-	    (only (srfi :14) string->char-set)
+	    ;; TODO the same as cgen.scm
+	    (only (srfi srfi-13) string-tokenize)
+	    (only (srfi srfi-14) string->char-set)
 	    (sagittarius format))
   ;; TODO remove
   (define-syntax acons

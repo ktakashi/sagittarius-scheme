@@ -1,17 +1,37 @@
 ;; because of (array-data) and so...
 (define (vm-dump-code cb . inner)
+
   (define (shorten-object o)
-    (cond ((pair? o)
-	   (let ((s (x->string o)))
-	     (if (> (string-length s) 30)
-		 (substring s 0 30)
-		 o)))
-	  ((identifier? o)
-	   (format "identifier#~s" (id-name o)))
-	  ((vector? o)
-	   (vector-ref o 0))
-	  (else
-	   o)))
+  (cond ((closure? o)
+	 (format "#<closure ~a>" (shorten-object (closure-src o))))
+	((identifier? o)
+	 (format "#<identifier ~s#~s>" (id-name o) (library-name (id-library o))))
+	((library? o)
+	 (format "#<library ~s>" (library-name o)))
+	((pair? o)
+	 (if (and (pair? (car o))
+		  (not (zero? (length o))))
+	     (let loop ((r '())
+			(o o))
+	       (if (null? o)
+		   (reverse r)
+		   (loop (cons (shorten-object (car o)) r)
+			 (cdr o))))
+	     (let ((s (x->string o)))
+	       (if (> (string-length s) 30)
+		   (substring s 0 30)
+		   s))))
+	((box? o)
+	 (format "#<box ~a>"
+		 (shorten-object (unbox o))))
+	((procedure? o)
+	 (format "#<subr ~s>" (procedure-name o)))
+	((macro? o)
+	 (format "#<macro ~s>" (macro-name o)))
+	((vector? o)
+	 (format "#<code? ~a>" (shorten-object (vector-ref o 0))))
+	(else
+	 o)))
   (define label?
     (lambda (l)
       (and (vector? l)
@@ -88,7 +108,7 @@
 				      ((label? arg)
 				       (format #t " #<label> "))
 				      (else
-				       (format #t " ~s" (if (identifier? arg) (id-name arg) (shorten-object arg)))))
+				       (format #t " ~a" (shorten-object arg))))
 			       (loop2 (+ j 1))))))))))))))
 ;;;; end of file
 ;; Local Variables:

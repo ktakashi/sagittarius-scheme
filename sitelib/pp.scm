@@ -1,4 +1,5 @@
 ;; -*- scheme -*-
+#!compatible
 (library (pp)
     (export :all)
     (import (core)
