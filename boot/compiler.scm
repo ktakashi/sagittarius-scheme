@@ -1179,7 +1179,7 @@
 			   (variable-name n)
 			   x (p1env-add-name p1env (variable-name n))))
 			name trans-spec))
-	    ;; macro must be lexical
+	    ;; macro must be lexical. see pass1
 	    (newenv (p1env-extend p1env (%map-cons name trans) LEXICAL)))
        (pass1/body body newenv)))
     (else

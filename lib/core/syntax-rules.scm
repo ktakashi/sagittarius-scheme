@@ -15,7 +15,7 @@
   (define-syntax syntax-rules
     (er-macro-transformer
      (lambda (form rename compare)
-       (let ((literal (cadr form))
+       (let ((literal (unwrap-syntax (cadr form)))
 	     (clauses (cddr form)))
 	 `(,(rename 'er-macro-transformer)
 	   (,(rename 'lambda) (,(rename 'form) ,(rename 'rename) ,(rename 'compare))

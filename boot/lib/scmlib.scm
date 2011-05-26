@@ -423,7 +423,7 @@
 		   (else
 		    (assertion-violation 'find (format "traversal reached to non-pair element ~s" rest) (list pred lst))))))
 	  (else
-	   (assertion-violation 'find (format "expected chain of pairs, but got ~r, as argument 2" lst) (list pred lst))))))
+	   (assertion-violation 'find (format "expected chain of pairs, but got ~s, as argument 2" lst) (list pred lst))))))
 
 (define for-all
   (lambda (pred lst1 . lst2)

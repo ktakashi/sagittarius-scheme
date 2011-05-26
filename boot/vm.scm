@@ -1342,7 +1342,7 @@ lc: compile builtin libraries
 ")
   (begin
     (vm-init)
-    #;(for-each (lambda (builtin-info)
+    (for-each (lambda (builtin-info)
 		(let ((path (car builtin-info))
 		      (name (cadr builtin-info))
 		      (import (caddr builtin-info)))

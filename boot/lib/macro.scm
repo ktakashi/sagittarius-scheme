@@ -117,7 +117,7 @@
 ;; this must be in compiler.scm for global lambda let dynamic-wind
 ;; but for now
 (define compile-syntax-case
-(lambda (exp-name expr literals rules library env p1env)
+  (lambda (exp-name expr literals rules library env p1env)
     (let ((literals (unwrap-syntax literals)))
       (define parse-pattern
 	(lambda (pattern)
@@ -139,12 +139,13 @@
 	   (assertion-violation 'syntax-case "_ in literals" expr literals))
       (and (memq '... literals)
 	   (assertion-violation 'syntax-case "... in literals" expr literals))
-
       (letrec ((newenv '())
 	       (processes (map (lambda (clause)
 				 (let ((len (length clause)))
 				   (if (or (= len 2) (= len 3))
-				       (receive (pattern ranks env) (parse-pattern (car clause))
+				       (receive (pattern ranks env) 
+					   ;; we want pattern variables unique, so wrap with no environment.
+					   (parse-pattern (wrap-syntax (car clause) p1env))
 					 (define construct
 					   (lambda (clause)
 					     `(lambda (,@(map car ranks)
@@ -157,7 +158,7 @@
 							  (set! .vars. (append .vars .vars.))
 							  (set! .vars .vars.)
 							  (set! .use-env use-env))
-							(lambda () ,clause)
+							(lambda () ,(wrap-syntax clause p1env))
 							(lambda ()
 							  (set! .vars. .save)
 							  (set! .use-env .env-save))))))))
@@ -172,7 +173,7 @@
 								(caddr clause)))))
 				       (assertion-violation 'syntax-case
 							    "a clause must be either (<pattern> <expression) or (<pattern> <fender> <expression)"
-							    clause))))
+							    `((clause: ,clause) (form ,exp-name))))))
 			       rules)))
 	(values (extend-env newenv env)
 		`(.match-syntax-case ',literals
@@ -347,7 +348,7 @@
 	(if (null? lst)
 	    (assertion-violation (and (pair? form)
 				      (car form))
-				 "invalid syntax" form)
+				 "invalid syntax" (unwrap-syntax form))
 	    (let ((clause (car lst)))
 	      (let ((pat (car clause))
 		    (patvars (cadr clause))
@@ -370,7 +371,6 @@
 			   (map (lambda (id)
 				  (let ((rank (p1env-pvar-lookup p1env id)))
 				    ;; rank must be number
-				    (print rank)
 				    (and (not (variable? rank))
 					 (cons id rank))))
 				ids))))

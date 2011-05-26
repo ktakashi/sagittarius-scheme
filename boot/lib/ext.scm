@@ -12,6 +12,9 @@
 	s
 	(id-name s))))
 
+(define (id-name id)
+  (vector-ref id 1))
+
 ;; duplicated
 (define get-binding-frame
   (lambda (var env)

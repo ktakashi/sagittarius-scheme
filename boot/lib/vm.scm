@@ -27,6 +27,7 @@
   (lambda (p1env name lookup-as)
     (let ((name-ident? (identifier? name))
 	  (frames (vector-ref p1env 1))
+	  (oname name)
 	  (ret #f))
       (let loop ((fp frames))
 	(cond ((pair? fp)
@@ -39,6 +40,13 @@
 	       (let loop2 ((tmp (cdar fp)))
 		 (if (pair? tmp)
 		     (let ((vp (car tmp)))
+		       #;(when (and (vm-debug-step)
+				  (identifier? oname)
+				  (identifier? (car vp)))
+			 (print (id-name (car vp)) ":"
+				(id-name oname) " "
+				(eq? name (car vp))
+				(cdr vp)))
 		       (if (eq? name (car vp))
 			   (cdr vp)
 			   (loop2 (cdr tmp))))
