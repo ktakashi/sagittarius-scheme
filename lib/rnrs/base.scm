@@ -59,7 +59,6 @@
 	    (core base)
 	    (core arithmetic)
 	    (core misc)
-	    (core syntax-rules)
 	    (core syntax))
 
   ;; from srfi-11 implentation

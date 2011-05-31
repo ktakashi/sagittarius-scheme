@@ -42,7 +42,6 @@
 	    (core base)
 	    (core struct)
 	    (core syntax)
-	    (core syntax-rules)
 	    (core enums helper))
 
   ;; from mosh
@@ -169,6 +168,7 @@
 	  (make-enum-set (enum-set-type enum-set2)
 			 (filter (lambda (symbol) (memq symbol universe2)) members1)))))
 
+  ;; we use er-macro-transformer to implement enumeration
   (define-syntax defset
     (er-macro-transformer
      (lambda (form rename compare)
@@ -200,27 +200,7 @@
 		      #''y
 		      (err)))))))
 	 (defset name ctr symbols)))))
-	       
-  #;(define-syntax define-enumeration
-    (syntax-rules ()
-      ((_ type-name (symbol1 ...) constructor-syntax)
-       (begin
-         (define constructor (enum-set-constructor (make-enumeration '(symbol1 ...))))
-         (define-syntax type-name
-           (lambda (x)
-             (syntax-case x ()
-               ((_ symbol2)
-                (or (memq (syntax->datum (syntax symbol2)) '(symbol1 ...))
-                    (syntax-violation 'type-name "excpectd symbols which belong to the universe" x))
-                (syntax 'symbol2)))))
-         (define-syntax constructor-syntax
-           (lambda (x)
-             (syntax-case x ()
-               ((_ symbol3 (... ...))
-                (or (for-all (lambda (e) (memq e '(symbol1 ...)))
-                             (syntax->datum (syntax (symbol3 (... ...)))))
-                    (syntax-violation 'constructor-syntax "excpectd symbols which belong to the universe" x))
-                (syntax (constructor '(symbol3 (... ...))))))))))))
+  
 ) ; [end]
 ;; end of file
 ;; Local Variables:

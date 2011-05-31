@@ -19,7 +19,7 @@
 	    with-output-to-file)
     (import (core)
 	    (core base)
-	    (core syntax-rules)
+	    (core syntax)
 	    (sagittarius)
 	    (core io helper))
 

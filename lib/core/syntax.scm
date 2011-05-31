@@ -1,6 +1,7 @@
 ;; -*- scheme -*-
 (library (core syntax)
-    (export with-syntax
+    (export syntax-rules
+	    with-syntax
 	    syntax-case
 	    syntax
 	    quasisyntax
@@ -17,8 +18,8 @@
     (import (core)
 	    (core errors)
 	    (core syntax-case)
+	    (core syntax-rules)
 	    (sagittarius))
-
 
   (define-syntax unsyntax
     (lambda (x)
@@ -38,6 +39,22 @@
 	((_ ((p e0) ...) e1 e2 ...)
 	 (syntax (syntax-case (list e0 ...) ()
 		   ((p ...) (let () e1 e2 ...))))))))
+
+  #;(define-syntax syntax-rules
+    (lambda (x)
+      (define clause
+	(lambda (y)
+	  (syntax-case y ()
+	    (((keyword . pattern) template)
+	     (syntax ((dummy . pattern) (syntax template))))
+	    (_
+	     (syntax-violation 'syntax-rules "Invalid expression" x)))))
+      (syntax-case x ()
+	((_ (k ...) cl ...)
+	 (for-all identifier? (syntax (k ...)))
+	 (with-syntax (((cl ...) (map clause (syntax (cl ...)))))
+		      (syntax
+		       (lambda (x) (syntax-case x (k ...) cl ...))))))))
 
   ;; quasisyntax from
 

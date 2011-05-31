@@ -1,5 +1,6 @@
 ;; -*- scheme -*-
 ;; This file is a part of Sagittarius Scheme system.
+;; TODO this implementation is REALLY slow.
 (library (core syntax-rules)
     (export syntax-rules 
 	    er-macro-transformer)

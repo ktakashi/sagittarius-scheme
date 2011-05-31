@@ -7,7 +7,7 @@
     (import (core)
 	    (core base)
 	    (core errors)
-	    (core syntax-rules)
+	    (core syntax)
 	    (sagittarius))
 
   (define-syntax guard

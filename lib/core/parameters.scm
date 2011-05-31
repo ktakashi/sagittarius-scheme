@@ -3,7 +3,7 @@
 (library (core parameters)
   (export make-parameter parameterize)
   (import (core)
-	  (core syntax-rules)
+	  (core syntax)
           (core base))
 
   (define-syntax parameterize-aux
