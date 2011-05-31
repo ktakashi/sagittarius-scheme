@@ -168,8 +168,6 @@
 
 (define-constant SYNTAX 1)
 
-(define-constant PATTERN 2)
-
 (define pass0 (lambda (form env) form))
 
 (define-constant SMALL_LAMBDA_SIZE 12)
@@ -302,6 +300,10 @@
 (define-syntax $*-src (syntax-rules () ((_ iform) (vector-ref iform 1))))
 
 (define-syntax $*-args (syntax-rules () ((_ iform) (vector-ref iform 2))))
+
+(define-syntax $*-arg0 (syntax-rules () ((_ iform) (vector-ref iform 2))))
+
+(define-syntax $*-arg1 (syntax-rules () ((_ iform) (vector-ref iform 3))))
 
 (define-syntax
  $*-args-set!
@@ -909,14 +911,24 @@
    sym-or-id
    (make-identifier sym-or-id '() (p1env-library p1env)))))
 
-(define pass1/quote (lambda (obj) ($const (unwrap-syntax obj))))
+(define
+ pass1/quote
+ (lambda (obj syntax?) ($const (if syntax? obj (unwrap-syntax obj)))))
 
 (define-pass1-syntax
  (quote form p1env)
  :null
  (smatch
   form
-  ((- obj) (pass1/quote obj))
+  ((- obj) (pass1/quote obj #f))
+  (else (syntax-error "malformed quote:" form))))
+
+(define-pass1-syntax
+ (syntax-quote form p1env)
+ :null
+ (smatch
+  form
+  ((- obj) (pass1/quote obj #t))
   (else (syntax-error "malformed quote:" form))))
 
 (define
@@ -975,9 +987,7 @@
       ((null? body) tail)
       ((null-constant? tail) `(list ,@body))
       ((and (pair? tail) (eq? (car tail) 'list)) `(list ,@body ,@(cdr tail)))
-      ((and
-        (pair? tail)
-        (or (eq? (car tail) '|.CONS|) (eq? (car tail) 'cons*)))
+      ((and (pair? tail) (or (eq? (car tail) 'cons) (eq? (car tail) 'cons*)))
        `(cons* ,@body ,@(cdr tail)))
       (else `(cons* ,@body ,tail))))))
   (define
@@ -990,9 +1000,7 @@
      (cond
       ((null-constant? tail) `(list ,head))
       ((and (pair? tail) (eq? (car tail) 'list)) `(list ,head ,@(cdr tail)))
-      ((and
-        (pair? tail)
-        (or (eq? (car tail) '|.CONS|) (eq? (car tail) 'cons*)))
+      ((and (pair? tail) (or (eq? (car tail) 'cons) (eq? (car tail) 'cons*)))
        `(cons* ,head ,@(cdr tail)))
       (else `(cons ,head ,tail))))))
   (define
@@ -1047,7 +1055,7 @@
           (emit-cons (expand (car expr) nest) (expand (cdr expr) nest)))))))
      ((vector? expr) (expand-vector expr nest))
      ((variable? expr) `',expr)
-     ((null? expr) `'())
+     ((null? expr) '())
      (else expr))))
   (expand form nest)))
 

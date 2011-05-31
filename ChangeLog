@@ -1,3 +1,9 @@
+2011-05-30  Takashi Kato  <ktakashi@ymail.com>
+
+	* boot/compiler.scm (syntax-quote): introduced syntax-quote for
+	macro expansion.
+	(pass1/quasiquote): fixed mis porting.
+
 2011-05-24  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/srfi/%3a8/char-set.scm (srfi): srfi-8 has been added.

@@ -1440,32 +1440,38 @@ static void process_queued_requests(SgVM *vm)
     SP(vm) = shift_args(FP(vm), val1, SP(vm));		\
   }
 
-#define LOCAL_CALL_INSN(vm, c)		\
-  {						\
-    SgClosure *cl;				\
-    SgCodeBuilder *cb;				\
-    INSN_VAL1(val1, c);				\
-    ASSERT(SG_CLOSUREP(AC(vm)));		\
-    cl = SG_CLOSURE(AC(vm));			\
-    cb = SG_CODE_BUILDER(cl->code);		\
-    DC(vm) = AC(vm);				\
-    CL(vm) = AC(vm);				\
-    PC(vm) = cb->code;				\
-    FP(vm) = SP(vm) - val1;			\
+#define LOCAL_CALL_INSN(vm, c)						\
+  {									\
+    SgClosure *cl;							\
+    SgCodeBuilder *cb;							\
+    INSN_VAL1(val1, c);							\
+    ASSERT(SG_CLOSUREP(AC(vm)));					\
+    if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL) && vm->state == RUNNING) {	\
+      Sg_Printf(vm->logPort, UC("calling %S\n"), AC(vm));		\
+      if (SG_VM_LOG_LEVEL(vm, SG_TRACE_LEVEL) && vm->state == RUNNING) { \
+	print_frames(vm);						\
+      }									\
+    }									\
+    cl = SG_CLOSURE(AC(vm));						\
+    cb = SG_CODE_BUILDER(cl->code);					\
+    DC(vm) = AC(vm);							\
+    CL(vm) = AC(vm);							\
+    PC(vm) = cb->code;							\
+    FP(vm) = SP(vm) - val1;						\
   }
 
 #define BUILTIN_TWO_ARGS(vm, proc)		\
-  do {									\
+  do {						\
     SgObject s = INDEX(SP(vm), 0);		\
     AC(vm) = proc(s, AC(vm));			\
-	SP(vm) -= 1;						\
+	SP(vm) -= 1;				\
   } while (0)
 
 #define BUILTIN_TWO_ARGS_COMPARE(vm, proc)	\
-  do {										\
+  do {						\
     SgObject s = INDEX(SP(vm), 0);		\
     AC(vm) = SG_MAKE_BOOL(proc(s, AC(vm)));	\
-    SP(vm) -= 1;							\
+    SP(vm) -= 1;				\
   } while(0)
 
 #define BUILTIN_ONE_ARG(vm, proc)		\

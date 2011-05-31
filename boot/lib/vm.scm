@@ -1,7 +1,11 @@
 ;; lib/vm.scm
 ;; dummy
 (define *toplevel-variable* '())
+(define *expand-phase* 0)
 (define (vm-r6rs-mode?) #f)
+(define (vm-macro-expand-phase?)
+  (positive? *expand-phase*))
+
 
 (define (set-toplevel-variable! sym val)
   (set! *toplevel-variable* (acons sym val *toplevel-variable*)))
@@ -40,13 +44,6 @@
 	       (let loop2 ((tmp (cdar fp)))
 		 (if (pair? tmp)
 		     (let ((vp (car tmp)))
-		       #;(when (and (vm-debug-step)
-				  (identifier? oname)
-				  (identifier? (car vp)))
-			 (print (id-name (car vp)) ":"
-				(id-name oname) " "
-				(eq? name (car vp))
-				(cdr vp)))
 		       (if (eq? name (car vp))
 			   (cdr vp)
 			   (loop2 (cdr tmp))))
@@ -361,7 +358,7 @@
 	 (error 'call-syntax-handler "bug?"))))
 
 (define unwrap-syntax
-  (lambda (form)
+  (lambda (form . only-global?)
     (define rec
       (lambda (form history)
 	(cond ((or (fixnum? form)
@@ -407,7 +404,9 @@
 					 (vcopy (+ j 1))))
 				     v)))))))))
 	      (else form))))
-    (rec form '())))
+    (if (null? only-global?)
+	(rec form '())
+	form)))				; for scheme VM we don't do any thing
 
 (define wrap-syntax
   (lambda (form p1env . opts)
@@ -478,7 +477,10 @@
 (define (macro? m)
   (and (vector? m) (eq? (vector-ref m 0) 'type:macro)))
 (define (call-macro-expander macro expr p1env)
-  ((macro-transformer macro) macro expr p1env (macro-data macro)))
+  (set! *expand-phase* (+ *expand-phase* 1))
+  (let ((r ((macro-transformer macro) macro expr p1env (macro-data macro))))
+    (set! *expand-phase* (- *expand-phase* 1))
+    r))
 (define (unbound) (if #f #f))
 
 (define (make-toplevel-closure cb)
@@ -513,12 +515,18 @@
 		   (sym (car expr)))
 	       (cond ((identifier? sym)
 		      (set! g (find-binding (id-library sym)
-					    (id-name sym))))
+					    (id-name sym)
+					    #f)))
 		     ((symbol? sym)
-		      (set! g (find-binding (vm-current-library)
-					    sym))))
+		      (set! g (find-binding (vector-ref p1env 0)
+					    sym
+					    #f))))
 	       (if (macro? g)
-		   (set! mac g))
+		   (set! mac g)
+		   ;; try local macro
+		   (let ((g (p1env-lookup p1env sym SYNTAX)))
+		     (if (macro? g)
+			 (set! mac g))))
 	       (if mac
 		   ;; expand and continue
 		   (if once?
@@ -806,7 +814,20 @@
 	 (code-builder-packet-set! cb packet))))
 
 (define (combine-insn-arg1 cb packet)
-  (cond (else
+  (cond ((= (packet-insn packet) CONST)
+	 (let ((obj (packet-obj packet)))
+	   (cond ((and (integer? obj)
+		       (exact? obj)
+		       (<= #x-7ffff obj #x7ffff))
+		  (cb-flush cb)
+		  (packet-insn-set! packet CONSTI)
+		  (packet-type-set! packet ARGUMENT0)
+		  (packet-arg0-set! packet obj)
+		  (code-builder-packet-set! cb packet))
+		 (else
+		  (cb-flush cb)
+		  (code-builder-packet-set! cb packet)))))
+	(else
 	 (cb-flush cb)
 	 (code-builder-packet-set! cb packet))))
 

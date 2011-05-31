@@ -1,7 +1,7 @@
 ;; -*- scheme -*-
 #!compatible
 (library (pp)
-    (export :all)
+    (export pretty-print pretty-print-to-string)
     (import (core)
 	    (core base)
 	    (sagittarius)

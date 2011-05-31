@@ -41,7 +41,7 @@
 
   (define (optimized-cons rename compare a d)
     (cond ((and (pair? d)
-		(compare (car d) (rename 'quote))
+		(compare (car d) (rename 'syntax-quote))
 		(pair? (cdr d))
 		(null? (cadr d))
 		(null? (cddr d)))
@@ -55,7 +55,7 @@
 
   (define (optimized-append rename compare x y)
     (if (and (pair? y)
-	     (compare (car y) (rename 'quote))
+	     (compare (car y) (rename 'syntax-quote))
 	     (pair? (cdr y))
 	     (null? (cadr y))
 	     (null? (cddr y)))

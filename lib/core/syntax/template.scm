@@ -11,7 +11,8 @@
   (define generate-output
     (lambda (template sids rename compare expr)
       (let ((_cdr (rename 'cdr))       (_car (rename 'car))
-	    (_quote (rename 'quote))   (_lambda (rename 'lambda))
+	    (_quote (rename 'syntax-quote))
+	    (_lambda (rename 'lambda))
 	    (_null? (rename 'null?))   (_pair? (rename 'pair?))
 	    (_map (rename 'map))       (_apply (rename 'apply))	  
 	    (_list->vector (rename 'list->vector))

@@ -169,7 +169,39 @@
 	  (make-enum-set (enum-set-type enum-set2)
 			 (filter (lambda (symbol) (memq symbol universe2)) members1)))))
 
+  (define-syntax defset
+    (er-macro-transformer
+     (lambda (form rename compare)
+       (let ((name (cadr form))
+	     (endname (gensym))
+	     (endsname (caddr form))
+	     (symbols (cdddr form)))
+	 `(begin
+	    (define ,endname (make-enumeration ',@symbols))
+	    (define-syntax ,endsname
+	      (syntax-rules ()
+		((_ sym1 ...)
+		 (begin
+		   ((enum-set-constructor ,endname)
+		    (list (,name sym1) ...)))))))))))
+
   (define-syntax define-enumeration
+    (syntax-rules ()
+      ((_ name symbols ctr)
+       (begin
+	 (define-syntax name
+	   (lambda (x)
+	     (define (err)
+	       (syntax-violation 'name "illigal symbol" (unwrap-syntax (car x))))
+	     (syntax-case x ()
+	       ((_ y)
+		(let ((sym1 (syntax->datum #'y)))
+		  (if (memq sym1 'symbols)
+		      #''y
+		      (err)))))))
+	 (defset name ctr symbols)))))
+	       
+  #;(define-syntax define-enumeration
     (syntax-rules ()
       ((_ type-name (symbol1 ...) constructor-syntax)
        (begin

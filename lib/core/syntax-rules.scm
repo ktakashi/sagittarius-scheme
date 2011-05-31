@@ -2,8 +2,7 @@
 ;; This file is a part of Sagittarius Scheme system.
 (library (core syntax-rules)
     (export syntax-rules 
-	    er-macro-transformer
-	    syntax-rules2)
+	    er-macro-transformer)
     (import (core)
 	    (sagittarius)
 	    (core base)

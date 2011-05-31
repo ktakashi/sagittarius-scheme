@@ -1,6 +1,7 @@
 ;; -*- scheme -*-
 (library (rnrs syntax-case (6))
-    (export make-variable-transformer
+    (export syntax-quote ;; misc
+	    make-variable-transformer
 	    syntax-case
 	    _ ...
 	    syntax

@@ -1,7 +1,7 @@
 ;; -*- scheme -*-
 (library (core misc)
     (export unique-id-list?
-	    safe-length)
+	    #;safe-length)
     (import (core)
 	    (sagittarius)
 	    (core base))
@@ -13,7 +13,7 @@
 			 (memq (car lst) (cdr lst))
 			 (loop (cdr lst))))))))
 
-  (define safe-length
+  #;(define safe-length
     (lambda (lst)
       (let loop ((lst lst) (n 0))
 	(if (pair? lst)

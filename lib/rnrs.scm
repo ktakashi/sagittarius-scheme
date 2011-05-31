@@ -2,7 +2,7 @@
 (library (rnrs (6))
     (export
      ;; misc
-     er-macro-transformer
+     er-macro-transformer syntax-quote
 
      #;(rnrs base (6))
      define define-syntax

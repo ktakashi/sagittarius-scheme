@@ -37,26 +37,28 @@
       (vector-ref id 1))
     (define (id-envs id)
       (vector-ref id 2))
-    ;; strip p1env to frames
-    (set! e1 (vector-ref e1 1))
-    (set! e2 (vector-ref e2 1))
-    (let ((lam1 #f) (lam2 #f))
-      (when (identifier? id1)
-	(set! e1 (id-envs id1))   ;; this is only frames
-	(set! id1 (id-name id1))) ;; symbol name
-      (when (identifier? id2)
-	(set! e2 (id-envs id2))   ;; this is only frames
-	(set! id2 (id-name id2))) ;; symbol name
-      (cond ((get-binding-frame id1 e1)
-	     => (lambda (cell)
-		  (unless (null? cell)
-		    (set! lam1 cell)))))
-      (cond ((get-binding-frame id2 e2)
-	     => (lambda (cell)
-		  (unless (null? cell)
-		    (set! lam2 cell)))))
-      (and (eq? id1 id2)
-	   (eq? lam1 lam2)))))
+    (or (eq? id1 id2) ;; shortcut
+	;; strip p1env to frames
+	(let ()
+	  (set! e1 (vector-ref e1 1))
+	  (set! e2 (vector-ref e2 1))
+	  (let ((lam1 #f) (lam2 #f))
+	    (when (identifier? id1)
+	      (set! e1 (id-envs id1))   ;; this is only frames
+	      (set! id1 (id-name id1))) ;; symbol name
+	    (when (identifier? id2)
+	      (set! e2 (id-envs id2))   ;; this is only frames
+	      (set! id2 (id-name id2))) ;; symbol name
+	    (cond ((get-binding-frame id1 e1)
+		   => (lambda (cell)
+			(unless (null? cell)
+			  (set! lam1 cell)))))
+	    (cond ((get-binding-frame id2 e2)
+		   => (lambda (cell)
+			(unless (null? cell)
+			  (set! lam2 cell)))))
+	    (and (eq? id1 id2)
+		 (eq? lam1 lam2)))))))
 
 (define variable?
   (lambda (o)

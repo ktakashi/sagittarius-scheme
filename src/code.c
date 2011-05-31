@@ -59,6 +59,11 @@
 
 #define EXPAND_SIZE          32
 
+#define SG_INT_FITS_INSN_VALUE(n)				\
+  (((n) <= (1 << (sizeof(SgWord) - INSN_VALUE1_SHIFT))) &&	\
+   ((n) >= ~(1 << (sizeof(SgWord) - INSN_VALUE1_SHIFT))))
+
+
 static SgCodePacket empty_packet = EMPTY_PACKET;
 
 /* TODO define label object or symbol. */
@@ -126,18 +131,14 @@ static void combineInsnArg0(SgCodeBuilder *cb, SgCodePacket *packet)
       cb->packet.insn = CONSTI_PUSH;
       break;
     default:
-      flush(cb);
-      COPY_CODE_PACKET(cb->packet, *packet);
-      break;
+      goto flush;
     }
     break;
   case UNDEF:
     switch (cb->packet.insn) {
     case UNDEF: break;
     default:
-      flush(cb);
-      COPY_CODE_PACKET(cb->packet, *packet);
-      break;
+      goto flush;
     }
     break;
   case CALL:
@@ -148,9 +149,7 @@ static void combineInsnArg0(SgCodeBuilder *cb, SgCodePacket *packet)
       cb->packet.arg0 = packet->arg0;
       break;
     default:
-      flush(cb);
-      COPY_CODE_PACKET(cb->packet, *packet);
-      break;      
+      goto flush;
     }
     break;
   case TAIL_CALL:
@@ -161,12 +160,11 @@ static void combineInsnArg0(SgCodeBuilder *cb, SgCodePacket *packet)
       cb->packet.arg0 = packet->arg0;
       break;
     default:
-      flush(cb);
-      COPY_CODE_PACKET(cb->packet, *packet);
-      break;
+      goto flush;
     }
     break;
   default:
+  flush:
     flush(cb);
     COPY_CODE_PACKET(cb->packet, *packet);
     break;
@@ -176,7 +174,20 @@ static void combineInsnArg0(SgCodeBuilder *cb, SgCodePacket *packet)
 static void combineInsnArg1(SgCodeBuilder *cb, SgCodePacket *packet)
 {
   switch (packet->insn) {
+  case CONST: {
+    SgObject obj = packet->obj;
+    if (SG_INTP(obj) && SG_INT_FITS_INSN_VALUE(SG_INT_VALUE(obj))) {
+      flush(cb);
+      packet->insn = CONSTI;
+      packet->type = ARGUMENT0;
+      packet->arg0 = SG_INT_VALUE(obj);
+      COPY_CODE_PACKET(cb->packet, *packet);
+      break;
+    }
+    goto flush;
+  }
   default:
+  flush:
     flush(cb);
     COPY_CODE_PACKET(cb->packet, *packet);
     break;

@@ -93,7 +93,7 @@
 ;; used by p1env-lookup
 (define-constant LEXICAL 0)
 (define-constant SYNTAX 1)
-(define-constant PATTERN 2)
+;;(define-constant PATTERN 2)
 
 ;;;;;;;;;;;
 ;; pass 0 
@@ -353,6 +353,14 @@
   (syntax-rules ()
     ((_ iform)
      (vector-ref iform 2))))
+(define-syntax $*-arg0
+  (syntax-rules ()
+    ((_ iform)
+     (vector-ref iform 2))))
+(define-syntax $*-arg1
+  (syntax-rules ()
+    ((_ iform)
+     (vector-ref iform 3))))
 (define-syntax $*-args-set!
   (syntax-rules ()
     ((_ iform val)
@@ -867,12 +875,19 @@
 ;; for expantion timing, quote must be first
 ;; quote and quasiquote
 (define pass1/quote
-  (lambda (obj)
-    ($const (unwrap-syntax obj))))
+  (lambda (obj syntax?)
+    ($const (if syntax?
+		obj
+		(unwrap-syntax obj)))))
 
 (define-pass1-syntax (quote form p1env) :null
   (smatch form
-    ((- obj) (pass1/quote obj))
+    ((- obj) (pass1/quote obj #f))
+    (else (syntax-error "malformed quote:" form))))
+
+(define-pass1-syntax (syntax-quote form p1env) :null
+  (smatch form
+    ((- obj) (pass1/quote obj #t))
     (else (syntax-error "malformed quote:" form))))
 
 ;;  based on bdc-scheme start
@@ -1016,7 +1031,7 @@
                    `(list ,@body))
                   ((and (pair? tail) (eq? (car tail) 'list))
                    `(list ,@body ,@(cdr tail)))
-                  ((and (pair? tail) (or (eq? (car tail) '.CONS) (eq? (car tail) 'cons*)))
+                  ((and (pair? tail) (or (eq? (car tail) 'cons) (eq? (car tail) 'cons*)))
                    `(cons* ,@body ,@(cdr tail)))
                   (else
                    `(cons* ,@body ,tail))))))
@@ -1029,7 +1044,7 @@
                    `(list ,head))
                   ((and (pair? tail) (eq? (car tail) 'list))
                    `(list ,head ,@(cdr tail)))
-                  ((and (pair? tail) (or (eq? (car tail) '.CONS) (eq? (car tail) 'cons*)))
+                  ((and (pair? tail) (or (eq? (car tail) 'cons) (eq? (car tail) 'cons*)))
                    `(cons* ,head ,@(cdr tail)))
                   (else
                    `(cons ,head ,tail))))))
@@ -1080,8 +1095,7 @@
 	       (expand-vector expr nest))
 	      ((variable? expr)
 	       `(quote ,expr))
-	      ((null? expr)
-	       `(quote ()))
+	      ((null? expr) '())
 	      (else expr))))
     (expand form nest)))
 ;; base on Ypsilon end
@@ -1904,13 +1918,13 @@
 	      (let ((gval (gloc-ref gloc)))
 		(cond 
 		 ((macro? gval)
-		 (pass1 (call-macro-expander gval form p1env) p1env))
-		((syntax? gval)
-		 (call-syntax-handler gval form p1env))
-		((inline? gval)
-		 (pass1/expand-inliner id gval))
-		(else
-		 (pass1/call form ($gref id) (cdr form) p1env))))
+		  (pass1 (call-macro-expander gval form p1env) p1env))
+		 ((syntax? gval)
+		  (call-syntax-handler gval form p1env))
+		 ((inline? gval)
+		  (pass1/expand-inliner id gval))
+		 (else
+		  (pass1/call form ($gref id) (cdr form) p1env))))
 	      (pass1/call form ($gref id) (cdr form) p1env)))))
     ;; expand inlinable procedure. Inliner may be...
     ;;  - An integer. This must be the VM instruction number.

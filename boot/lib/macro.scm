@@ -140,17 +140,18 @@
       (and (memq '... literals)
 	   (assertion-violation 'syntax-case "... in literals" expr literals))
       (letrec ((newenv '())
+	       (seen (make-eq-hashtable))
 	       (processes (map (lambda (clause)
 				 (let ((len (length clause)))
 				   (if (or (= len 2) (= len 3))
 				       (receive (pattern ranks env) 
 					   ;; we want pattern variables unique, so wrap with no environment.
-					   (parse-pattern (wrap-syntax (car clause) p1env))
+					   (parse-pattern (wrap-syntax (car clause) p1env seen))
 					 (define construct
 					   (lambda (clause)
 					     `(lambda (,@(map car ranks)
 						       use-env . .vars)
-						(let ((.ranks (append ',ranks .ranks)))
+						(let ((.ranks (append (syntax-quote ,ranks) .ranks)))
 						  (let ((.save .vars.)
 							(.env-save use-env))
 						    (dynamic-wind
@@ -158,13 +159,13 @@
 							  (set! .vars. (append .vars .vars.))
 							  (set! .vars .vars.)
 							  (set! .use-env use-env))
-							(lambda () ,(wrap-syntax clause p1env))
+							(lambda () ,(wrap-syntax clause p1env seen))
 							(lambda ()
 							  (set! .vars. .save)
 							  (set! .use-env .env-save))))))))
 					 (set! newenv (append env newenv))
-					 `(list ',pattern
-						',ranks
+					 `(list (syntax-quote ,pattern)
+						(syntax-quote ,ranks)
 						,(if (= len 2) ; fender
 						     #f
 						     (construct (cadr clause)))
@@ -336,8 +337,8 @@
 		 (pair? (cdr expr))
 		 (p1env? (cadr expr))
 		 (p1env? (cddr expr)))
-	    (values #;(car expr) (wrap-syntax (car expr) (cadr expr) (make-eq-hashtable) #t)
-				 (cadr expr))
+	    (values (wrap-syntax (car expr) (cadr expr) (make-eq-hashtable) #t)
+		    (cadr expr))
 	    (values expr #f))
       (define match
 	(lambda (form pat)
@@ -379,11 +380,11 @@
 	(let ((patvar (map car ranks)))
 	  (if (variable? tmpl)
 	      (if (null? ranks)
-		  `(.expand-syntax ',patvar ',tmpl .ranks () #f ,p1env)
-		  `(.expand-syntax ',patvar ',tmpl (list (cons ',tmpl 0)) .vars use-env ,p1env)))
+		  `(.expand-syntax (syntax-quote ,patvar) (syntax-quote ,tmpl) .ranks () #f ,p1env)
+		  `(.expand-syntax (syntax-quote ,patvar) (syntax-quote ,tmpl) (list (cons (syntax-quote ,tmpl) 0)) .vars use-env ,p1env)))
 	  (if (null? ranks)
-	      `(.expand-syntax ',patvar ',tmpl .ranks () #f ,p1env)
-	      `(.expand-syntax ',patvar ',tmpl (append ',ranks .ranks) .vars use-env ,p1env)))))))
+	      `(.expand-syntax (syntax-quote ,patvar) (syntax-quote ,tmpl) .ranks () #f ,p1env)
+	      `(.expand-syntax (syntax-quote ,patvar) (syntax-quote ,tmpl) (append (syntax-quote ,ranks) .ranks) .vars use-env ,p1env)))))))
 
 (define expand-syntax
   (lambda (patvars template ranks vars use-env p1env)
@@ -410,10 +411,18 @@
 			      (loop2 (- i 1))))))
 		  (else
 		   (identifier? lst))))))
+
       (define partial-identifier
 	(lambda (lst)
 	  ;; TODO this is a temporary solution
 	  (define renamed-ids (make-eq-hashtable))
+	  (define id-contains?
+	    (lambda (sets id)
+	      (exists (lambda (var)
+			(and (identifier? var)
+			     (eq? (id-name var) id)
+			     var))
+		      sets)))
 	  (let loop ((lst lst))
 	    (cond ((contain-indentifier? lst)
 		   (cond ((pair? lst)
@@ -431,7 +440,8 @@
 			  => (lambda (id) id))
 			 ((hashtable-ref seen lst #f)
 			  => (lambda (id) id))
-			 ((assq lst vars)
+			 ((let ((var (id-contains? patvars lst)))
+			    (assq var vars))
 			  => (lambda (slot)
 			       (emit (cadr slot))))
 			 (else
@@ -444,6 +454,7 @@
 		   (cons (loop (car lst))
 			 (loop (cdr lst))))
 		  (else lst)))))
+
       (if (null? template)
 	  '()
 	  (let ((form (transcribe-template template ranks patvars vars use-env emit)))
@@ -471,106 +482,6 @@
 (define subform-of
   (lambda (name vars)
     (cdr (assq name vars))))
-
-(define contain-rank-moved-var?
-  (lambda (tmpl ranks vars)
-
-    (define traverse-escaped
-      (lambda (lst depth)
-        (let loop ((lst lst) (depth depth))
-          (cond ((variable? lst)
-                 (< 0 (rank-of (identifier->symbol lst) ranks) depth))
-                ((pair? lst)
-                 (or (loop (car lst) depth)
-                     (loop (cdr lst) depth)))
-                ((vector? lst)
-                 (loop (vector->list lst) depth))
-                (else #f)))))
-
-    (let loop ((lst tmpl) (depth 0))
-      (cond ((variable? lst)
-             (< 0 (rank-of (identifier->symbol lst) ranks) depth))
-            ((ellipsis-quote? lst)
-             (traverse-escaped (cadr lst) depth))
-            ((ellipsis-splicing-pair? lst)
-             (receive (body tail len) (parse-ellipsis-splicing lst)
-               (or (loop body (+ depth 1))
-                   (loop tail depth))))
-            ((ellipsis-pair? lst)
-             (or (loop (car lst) (+ depth 1))
-                 (loop (cddr lst) depth)))
-            ((pair? lst)
-             (or (loop (car lst) depth)
-                 (loop (cdr lst) depth)))
-            ((vector? lst)
-             (loop (vector->list lst) depth))
-            (else #f)))))
-
-
-(define adapt-to-rank-moved-vars
-  (lambda (form ranks vars)
-    
-    (define rewrite-template-ranks-vars
-      (lambda (tmpl ranks vars)
-        (let ((moved-ranks (make-eq-hashtable)) (moved-vars (make-eq-hashtable)))
-
-          (define make-infinite-list
-            (lambda (e)
-              (let ((lst (list e)))
-                (begin (set-cdr! lst lst) lst))))
-
-          (define revealed
-            (lambda (name depth)
-              (if (< 0 (rank-of name ranks) depth)
-                  (let ((renamed (string->symbol (format "~a:~a" (gensym) name))))
-                    (or (hashtable-ref moved-ranks renamed #f)
-                        (let loop ((i (- depth (rank-of name ranks))) (var (subform-of name vars)))
-                          (cond ((> i 0)
-                                 (loop (- i 1) (list (make-infinite-list (car var)))))
-                                (else
-                                 (hashtable-set! moved-ranks renamed depth)
-                                 (hashtable-set! moved-vars renamed var)))))
-                    renamed)
-                  name)))
-
-          (define traverse-escaped
-            (lambda (lst depth)
-              (let loop ((lst lst) (depth depth))
-                (cond ((symbol? lst)
-                       (revealed lst depth))
-                      ((pair? lst)
-                       (cons (loop (car lst) depth)
-                             (loop (cdr lst) depth)))
-                      ((vector? lst)
-                       (list->vector (loop (vector->list lst) depth)))
-                      (else lst)))))
-
-          (let ((rewrited
-                 (let loop ((lst tmpl) (depth 0))
-                   (cond ((symbol? lst)
-                          (revealed lst depth))
-                         ((ellipsis-quote? lst)
-                          (cons (car lst)
-                                (traverse-escaped (cdr lst) depth)))
-                         ((ellipsis-splicing-pair? lst)
-                          (receive (body tail len) (parse-ellipsis-splicing lst)
-                            (append (loop body (+ depth 1)) (cons '... (loop tail depth)))))
-                         ((ellipsis-pair? lst)
-                          (cons (loop (car lst) (+ depth 1))
-                                (cons '... (loop (cddr lst) depth))))
-                         ((pair? lst)
-                          (cons (loop (car lst) depth)
-                                (loop (cdr lst) depth)))
-                         ((vector? lst)
-                          (list->vector (loop (vector->list lst) depth)))
-                         (else lst)))))
-            (values rewrited
-                    (append ranks (hashtable->alist moved-ranks))
-                    (append vars (hashtable->alist moved-vars)))))))
-
-    (if (contain-rank-moved-var? form ranks vars)
-        (rewrite-template-ranks-vars form ranks vars)
-        (values form ranks vars))))
 
 (define collect-ellipsis-vars
   (lambda (tmpl ranks depth vars)
@@ -610,7 +521,7 @@
             (or exhausted '()))))))
 
 (define transcribe-template
-  (lambda (template ranks patvars vars use-env emit)
+  (lambda (tmpl ranks patvars vars use-env emit)
     (define remove-duplicates
       (lambda (alist)
 	(or (let loop ((lst alist))
@@ -626,112 +537,112 @@
     (let ((seen (make-eq-hashtable))
 	  ;; creates dummy p1env
 	  (env  (if use-env use-env `#(,(vm-current-library) () #f #f))))
-      (receive (tmpl ranks vars)
-	  (adapt-to-rank-moved-vars template ranks (remove-duplicates vars))
 
-	(define expand-var
-	  (lambda (tmpl vars)
-	    (cond ((assq tmpl vars)
-		   => (lambda (slot)
-			(cond ((null? (cdr slot)) '())
-			      ;; if we don't share this with syntax-rules
-			      ;; we don't have check emit.
-			      (emit (emit (cadr slot)))
-			      (else (cadr slot)))))
-		  (else
-		   ;; we don't have any way to detect right pattern and template for now,
-		   ;; so ranks may contains invalid pattern variable name, in that case
-		   ;; we just return template variable as a result.
-		   tmpl
-		   #;(assertion-violation "syntax template"
-		   "subforms have different size of matched input"
-		   `(template: ,template) `(subforms: ,@vars))))))
-	(define expand-ellipsis-var
-	  (lambda (tmpl vars)
-	    (cond ((assq tmpl vars)
-		   => (lambda (slot)
-			(cond ((null? (cdr slot)) '())
-			      ;; if we don't share this with syntax-rules
-			      ;; we don't have check emit.
-			      (emit (map emit (cadr slot)))
-			      (else (cadr slot)))))
+      (define expand-var
+	(lambda (tmpl vars)
+	  (cond ((assq tmpl vars)
+		 => (lambda (slot)
+		      (cond ((null? (cdr slot)) '())
+			    ;; if we don't share this with syntax-rules
+			    ;; we don't have check emit.
+			    (emit (emit (cadr slot)))
+			    (else (cadr slot)))))
+		(else
+		 ;; we don't have any way to detect right pattern and template for now,
+		 ;; so ranks may contains invalid pattern variable name, in that case
+		 ;; we just return template variable as a result.
+		 tmpl
+		 #;(assertion-violation "syntax template"
+		 "subforms have different size of matched input"
+		 `(template: ,template) `(subforms: ,@vars))))))
+      (define expand-ellipsis-var
+	(lambda (tmpl vars)
+	  (cond ((assq tmpl vars)
+		 => (lambda (slot)
+		      (cond ((null? (cdr slot)) '())
+			    ;; if we don't share this with syntax-rules
+			    ;; we don't have check emit.
+			    (emit (map emit (cadr slot)))
+			    (else (cadr slot)))))
+		(else
+		 (assertion-violation "syntax template"
+				      "subforms have different size of matched input"
+				      `(template: ,(unwrap-syntax template))
+				      `(subforms: ,@(unwrap-syntax vars)))))))
+
+      (define expand-ellipsis-template
+	(lambda (tmpl depth vars)
+	  (let loop ((expr '()) (remains (collect-ellipsis-vars tmpl ranks depth vars)))
+	    (cond ((pair? remains)
+		   (loop (cons (expand-template tmpl depth remains) expr)
+			 (consume-ellipsis-vars ranks depth remains)))
+		  ((null? remains) '())
+		  ((eq? remains #t) (reverse expr))
 		  (else
 		   (assertion-violation "syntax template"
 					"subforms have different size of matched input"
-					`(template: ,template) `(subforms: ,@vars))))))
+					`(template: ,(unwrap-syntax template))
+					`(subforms: ,@(unwrap-syntax vars))))))))
 
-	(define expand-ellipsis-template
-	  (lambda (tmpl depth vars)
-	    (let loop ((expr '()) (remains (collect-ellipsis-vars tmpl ranks depth vars)))
-	      (cond ((pair? remains)
-		     (loop (cons (expand-template tmpl depth remains) expr)
-			   (consume-ellipsis-vars ranks depth remains)))
-		    ((null? remains) '())
-		    ((eq? remains #t) (reverse expr))
-		    (else
-		     (assertion-violation "syntax template"
-					  "subforms have different size of matched input"
-					  `(template: ,template) `(subforms: ,@vars)))))))
+      (define expand-escaped-template
+	(lambda (tmpl depth vars)
+	  (cond ((variable? tmpl)
+		 (if (< (rank-of tmpl ranks) 0)
+		     tmpl
+		     (expand-var tmpl vars)))
+		((pair? tmpl)
+		 (if (and emit (null? (car tmpl)))
+		     (cons '()
+			   (expand-escaped-template (cdr tmpl) depth vars))
+		     (cons (expand-escaped-template (car tmpl) depth vars)
+			   (expand-escaped-template (cdr tmpl) depth vars))))
+		((vector? tmpl)
+		 (list->vector (expand-escaped-template (vector->list tmpl) depth vars)))
+		(else tmpl))))
 
-	(define expand-escaped-template
-	  (lambda (tmpl depth vars)
-	    (cond ((variable? tmpl)
-		   (if (< (rank-of tmpl ranks) 0)
-		       tmpl
-		       (expand-var tmpl vars)))
-		  ((pair? tmpl)
-		   (if (and emit (null? (car tmpl)))
-		       (cons '()
-			     (expand-escaped-template (cdr tmpl) depth vars))
-		       (cons (expand-escaped-template (car tmpl) depth vars)
-			     (expand-escaped-template (cdr tmpl) depth vars))))
-		  ((vector? tmpl)
-		   (list->vector (expand-escaped-template (vector->list tmpl) depth vars)))
-		  (else tmpl))))
-
-	(define expand-template
-	  (lambda (tmpl depth vars)
-	    (cond ((variable? tmpl)
-		   (if (< (rank-of tmpl ranks) 0)
-		       (wrap-syntax tmpl env seen)
-		       (expand-var tmpl vars)))
-		  ((ellipsis-quote? tmpl)
-		   (expand-escaped-template (cadr tmpl) depth vars))
-		  ((ellipsis-splicing-pair? tmpl)
-		   (receive (body tail len) (parse-ellipsis-splicing tmpl)
-		     (append (apply append (expand-ellipsis-template body (+ depth 1) vars))
-			     (expand-template tail depth vars))))
-		  ((ellipsis-pair? tmpl)
-		   (cond ((variable? (car tmpl))
-			  (let lp ((rank (rank-of (car tmpl) ranks))
-				   (rest (cdr ranks)))
-			    (cond ((= rank (+ depth 1))
-				   (append (expand-ellipsis-var (car tmpl) vars)
-					   (expand-template (cddr tmpl) depth vars)))
-				  ((>= rank 0)
-				   ;; it might be free pattern variable retry
-				   (lp (rank-of (car tmpl) rest)
-				       (cdr rest)))
-				  (else
-				   ;; error?
-				   (assertion-violation "syntax template"
-							"missing ellipsis"
-							template)))))
-			 ((pair? (car tmpl))
-			  (append (expand-ellipsis-template (car tmpl) (+ depth 1) vars)
-				  (expand-template (cddr tmpl) depth vars)))))
-		  ((pair? tmpl)
-		   (if (and emit (null? (car tmpl)))
-		       (cons '()
-			     (expand-template (cdr tmpl) depth vars))
-		       (cons (expand-template (car tmpl) depth vars)
-			     (expand-template (cdr tmpl) depth vars))))
-		  ((vector? tmpl)
-		   (list->vector (expand-template (vector->list tmpl) depth vars)))
-		  (else tmpl))))
-	(if (and (= (safe-length tmpl) 2) (ellipsis? (car tmpl)))
-	    (expand-escaped-template (cadr tmpl) 0 vars)
-	  (expand-template tmpl 0 vars))))))
+      (define expand-template
+	(lambda (tmpl depth vars)
+	  (cond ((variable? tmpl)
+		 (if (< (rank-of tmpl ranks) 0)
+		     (wrap-syntax tmpl env seen)
+		     (expand-var tmpl vars)))
+		((ellipsis-quote? tmpl)
+		 (expand-escaped-template (cadr tmpl) depth vars))
+		((ellipsis-splicing-pair? tmpl)
+		 (receive (body tail len) (parse-ellipsis-splicing tmpl)
+		   (append (apply append (expand-ellipsis-template body (+ depth 1) vars))
+			   (expand-template tail depth vars))))
+		((ellipsis-pair? tmpl)
+		 (cond ((variable? (car tmpl))
+			(let lp ((rank (rank-of (car tmpl) ranks))
+				 (rest (cdr ranks)))
+			  (cond ((= rank (+ depth 1))
+				 (append (expand-ellipsis-var (car tmpl) vars)
+					 (expand-template (cddr tmpl) depth vars)))
+				((>= rank 0)
+				 ;; it might be free pattern variable retry
+				 (lp (rank-of (car tmpl) rest)
+				     (cdr rest)))
+				(else
+				 ;; error?
+				 (assertion-violation "syntax template"
+						      "missing ellipsis"
+						      (unwrap-syntax template))))))
+		       ((pair? (car tmpl))
+			(append (expand-ellipsis-template (car tmpl) (+ depth 1) vars)
+				(expand-template (cddr tmpl) depth vars)))))
+		((pair? tmpl)
+		 (if (and emit (null? (car tmpl)))
+		     (cons '()
+			   (expand-template (cdr tmpl) depth vars))
+		     (cons (expand-template (car tmpl) depth vars)
+			   (expand-template (cdr tmpl) depth vars))))
+		((vector? tmpl)
+		 (list->vector (expand-template (vector->list tmpl) depth vars)))
+		(else tmpl))))
+      (if (and (= (safe-length tmpl) 2) (ellipsis? (car tmpl)))
+	  (expand-escaped-template (cadr tmpl) 0 vars)
+	  (expand-template tmpl 0 vars)))))
 
 ;; procedures
 (define syntax->datum

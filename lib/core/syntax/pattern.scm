@@ -77,7 +77,7 @@
   (define (generate-match pattern literals rename compare expr)
     (let ((_if (rename 'if))    (_loop (rename 'loop))
 	  (_let (rename 'let))  (_cdr (rename 'cdr))
-	  (_car (rename 'car))  (_quote (rename 'quote))
+	  (_car (rename 'car))  (_quote (rename 'syntax-quote))
 	  (_lambda (rename 'lambda)) (_l (rename 'l))
 	  (_letrec (rename 'letrec)) (_null? (rename 'null?))
 	  (_pair? (rename 'pair?)) (_temp (rename 'temp))

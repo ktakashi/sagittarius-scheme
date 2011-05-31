@@ -141,6 +141,30 @@ static SgObject macro_expand_cc(SgObject result, void **data)
   return Sg_MacroExpand(result, env, FALSE);
 }
 
+
+static SgObject p1env_lookup(SgVector *p1env, SgObject name, int lookup_as)
+{
+  int name_identp = SG_IDENTIFIERP(name);
+  SgObject frames = SG_VECTOR_ELEMENT(p1env, 1);
+  SgObject fp, vp, cgen_62;
+  SG_FOR_EACH(fp, frames) {
+    if ((name_identp && SG_IDENTIFIER_ENVS(name) == fp)) {
+      name=SG_OBJ(SG_IDENTIFIER_NAME(name));
+    }
+    if (SG_CAAR(fp) > lookup_as) {
+      continue;
+    }
+    SG_FOR_EACH(cgen_62,SG_CDAR(fp)) {
+      vp = SG_CAR(cgen_62);
+      if (SG_EQ(name, SG_CAR(vp))) {
+	return SG_CDR(vp);
+      }
+    }
+  }
+  return SG_FALSE;
+}
+
+
 SgObject Sg_MacroExpand(SgObject expr, SgObject p1env, int onceP)
 {
   SgObject sym, op;
@@ -178,6 +202,11 @@ SgObject Sg_MacroExpand(SgObject expr, SgObject p1env, int onceP)
 	SgObject gval = SG_GLOC_GET(SG_GLOC(g));
 	if (SG_MACROP(gval)) {
 	  mac = SG_MACRO(gval);
+	}
+      } else {
+	g = p1env_lookup(p1env, sym, SG_MAKE_INT(2));
+	if (SG_MACROP(g)) {
+	  mac = SG_MACRO(g);
 	}
       }
     }
