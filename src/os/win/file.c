@@ -44,6 +44,8 @@
 #include <sagittarius/symbol.h>
 #include <sagittarius/unicode.h>
 
+#pragma comment(lib, "shlwapi.lib")
+
 typedef struct FD_tag
 {
   HANDLE desc;
