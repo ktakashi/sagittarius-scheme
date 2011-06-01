@@ -317,7 +317,7 @@ static void vm_dump_code_rec(SgCodeBuilder *cb, int indent)
 	if (SG_FALSEP(src)) {
 	  Sg_Printf(vm->logPort, UC(" ;; #f"));
 	} else {
-	  Sg_Printf(vm->logPort, UC(" ;; %#20S"), SG_CDR(src));
+	  Sg_Printf(vm->logPort, UC(" ;; %#20S"), Sg_UnwrapSyntax(SG_CDR(src)));
 	}
       }
     }

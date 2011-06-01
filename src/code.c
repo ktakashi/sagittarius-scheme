@@ -60,8 +60,8 @@
 #define EXPAND_SIZE          32
 
 #define SG_INT_FITS_INSN_VALUE(n)				\
-  (((n) <= (1 << (sizeof(SgWord) - INSN_VALUE1_SHIFT))) &&	\
-   ((n) >= ~(1 << (sizeof(SgWord) - INSN_VALUE1_SHIFT))))
+  (((n) <= (1 << ((sizeof(SgWord) << 3) - INSN_VALUE1_SHIFT))) &&	\
+   ((n) >= ~(1 << ((sizeof(SgWord) << 3) - INSN_VALUE1_SHIFT))))
 
 
 static SgCodePacket empty_packet = EMPTY_PACKET;

@@ -1,5 +1,7 @@
 2011-06-01  Takashi Kato  <ktakashi@ymail.com>
 
+	* src/code.c (SG_INT_FITS_INSN_VALUE): fixed condition.
+
 	* lib/core/exceptions.scm (core): fixed exception when internal defines
 	are in guard body.
 
