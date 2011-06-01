@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Sagittarius"
-#define MyAppVersion "0.1.0"
+#define MyAppVersion "0.1.1"
 #define MyAppPublisher "Takashi Kato"
 #define MyAppURL "http://code.google.com/p/sagittarius-scheme/"
 #define MyAppExeName "sash.exe"
@@ -22,7 +22,7 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={pf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 LicenseFile=D:\home\t.kato\projects\sagittarius.win\Copyright
-OutputBaseFilename=setup_sagittarius_0.1.0
+OutputBaseFilename=setup_sagittarius_${#MyAppVersion}
 Compression=lzma
 SolidCompression=yes
 

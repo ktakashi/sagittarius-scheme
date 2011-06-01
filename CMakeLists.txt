@@ -21,7 +21,7 @@ SET(CMAKE_INSTALL_PREFIX ${INSTALL_PREFIX} CACHE INTERNAL "Prefix prepended to i
 
 #SET(SAGITTARIUS_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}"
 #  CACHE STRING "Sagittarius release version string")
-SET(SAGITTARIUS_VERSION "0.1.0" CACHE STRING "Sagittarius release version string" FORCE)
+SET(SAGITTARIUS_VERSION "0.1.1" CACHE STRING "Sagittarius release version string" FORCE)
 
 IF(WIN32 AND NOT CYGWIN)
   # On Windows platform, we resolve library path relatively.
@@ -122,6 +122,10 @@ INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/lib
   DESTINATION share/sagittarius/${SAGITTARIUS_VERSION})
 INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/sitelib
   DESTINATION share/sagittarius/)
+INSTALL(FILES ${PROJECT_SOURCE_DIR}/src/sagittarius.h
+  DESTINATION include/)
+INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/src/sagittarius
+  PUBLIC_HEADER DESTINATION include/)
 
 # uninstall target
 CONFIGURE_FILE(
