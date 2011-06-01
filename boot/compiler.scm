@@ -36,6 +36,8 @@
   (define hashtable->alist hash-table->alist)
   (define (flush-output-port p) (flush))
   (define inexact exact->inexact)
+  (define (source-info form) #f)
+  (define (source-info-set! form info) #f)
 
   ;; load instruction definition
   (load "insn.scm")
@@ -50,6 +52,14 @@
   (include "lib/match.scm")
   #;(include "compiler-aux.scm"))
 )
+
+
+(define-syntax $src
+  (syntax-rules ()
+    ((_ n o)
+     (begin
+       (source-info-set! n (source-info o))
+       n))))
 
 #;(define-syntax acons
   (syntax-rules ()
@@ -1102,7 +1112,7 @@
 
 (define-pass1-syntax (quasiquote form p1env) :null
   (smatch form
-    ((- obj) (pass1 (pass1/quasiquote (cadr form) 0) p1env))
+    ((- obj) (pass1 ($src (pass1/quasiquote (cadr form) 0) form) p1env))
     (- (syntax-error "malformed quasiquote" form))))
 
 
@@ -1112,7 +1122,8 @@
     (smatch form
       ((- (name . args) body ___)
        (pass1/define `(define ,name
-			(,lambda. ,args ,@body))
+			,($src `(,lambda. ,args ,@body)
+			       oform))
 		     oform flags module p1env))
       ((- name expr)
        (unless (variable? name) (syntax-error "malformed define" oform))
@@ -1509,7 +1520,7 @@
 	    (expanded-clauses (expand-clauses clauses tmp)))
        (let ((expr `(let ((,tmp ,pred))
 		      (cond ,@expanded-clauses))))
-       (pass1 expr p1env))))
+       (pass1 ($src expr form) p1env))))
     (- (syntax-error "malformed case" form))))
 
 ;; set!
@@ -1756,8 +1767,9 @@
 			  ((global-eq? head 'define p1env)
 			   (let ((def (smatch args
 					(((name . formals) . body)
-					 `(,name (,lambda. ,formals ,@body) . ,src))
-					((var init) `(,var ,init . ,src))
+					 ($src `(,name (,lambda. ,formals ,@body) . ,src) (caar exprs)))
+					((var init)
+					 ($src `(,var ,init . ,src) (caar exprs)))
 					(- (syntax-error "malformed internal define" (caar exprs))))))
 			     (pass1/body-rec rest (cons def intdefs) intmacros p1env)))
 			  ((global-eq? head 'begin p1env)
@@ -1780,7 +1792,7 @@
 				 ((- ((name trans-spec) ___) body ___)
 				  (let ((type (if (global-eq? head 'letrec-syntax p1env) 'rec 'let)))
 				    (values (cons type (map list name trans-spec)) body))))
-			     (pass1/body-rec `(((,begin. ,@body ,@(map car rest))))
+			     (pass1/body-rec ($src `(((,begin. ,@body ,@(map car rest)))) (caar exprs))
 					     intdefs (cons defs intmacros) p1env)))
 			  ((identifier? head)
 			   (let ((gloc (id->bound-gloc head)))

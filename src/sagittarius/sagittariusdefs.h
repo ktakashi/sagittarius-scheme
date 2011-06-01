@@ -301,6 +301,10 @@ enum {
 
   /* weak objects */
   TC_WEAK_VECTOR,
+  TC_WEAK_HASHTABLE,
+
+  /* for future, but we need this */
+  TC_USER_DEF,
 
   TC_GLOC,
 

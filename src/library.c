@@ -441,7 +441,7 @@ SgGloc* Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
 
   if (prev_const) {
     if (prev_const != flags || !Sg_EqualP(value, oldval)) {
-      Sg_Warn(UC("constant value %S was overwitten by %S"), value, oldval);
+      Sg_Warn(UC("constant value %S was overwitten by %S\n"), value, oldval);
     }
   }
   return g;

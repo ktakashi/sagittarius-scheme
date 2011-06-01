@@ -50,6 +50,7 @@
 #include "sagittarius/generic.h"
 #include "sagittarius/bytevector.h"
 #include "sagittarius/unicode.h"
+#include "sagittarius/weak.h"
 
 static uint8_t CHAR_MAP[] = {
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
@@ -485,7 +486,10 @@ SgObject read_list(SgPort *port, SgReaderContext *ctx, int bracketedp, int vecto
 	lexical_error(port, ctx, UC("bracketed list terminated by parenthesis"));
       }
       if (!SG_NULLP(h)) {
-	SG_SOURCE_INFO(h) = Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin));
+	Sg_WeakHashTableSet(SG_WEAK_HASHTABLE(Sg_VM()->sourceInfos),
+			    h, Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin)),
+			    0);
+	/* SG_SOURCE_INFO(h) = Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin)); */
       }
       return h;
     }
@@ -495,7 +499,10 @@ SgObject read_list(SgPort *port, SgReaderContext *ctx, int bracketedp, int vecto
 	lexical_error(port, ctx, UC("bracketed list terminated by bracket"));
       }
       if (!SG_NULLP(h)) {
-	SG_SOURCE_INFO(h) = Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin));
+	Sg_WeakHashTableSet(SG_WEAK_HASHTABLE(Sg_VM()->sourceInfos),
+			    h, Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin)), 
+			    0);
+	/* SG_SOURCE_INFO(h) = Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin)); */
       }
       return h;
     }
@@ -524,7 +531,10 @@ SgObject read_list(SgPort *port, SgReaderContext *ctx, int bracketedp, int vecto
 	  }
 	  SG_SET_CDR(t, rest);
 	  if (!SG_NULLP(h)) {
-	    SG_SOURCE_INFO(h) = Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin));
+	    Sg_WeakHashTableSet(SG_WEAK_HASHTABLE(Sg_VM()->sourceInfos),
+				h, Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin)),
+				0);
+	    /* SG_SOURCE_INFO(h) = Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin)); */
 	  }	  
 	  return h;
 	}
@@ -535,7 +545,10 @@ SgObject read_list(SgPort *port, SgReaderContext *ctx, int bracketedp, int vecto
 	  }
 	  SG_SET_CDR(t, rest);
 	  if (!SG_NULLP(h)) {
-	    SG_SOURCE_INFO(h) = Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin));
+	    Sg_WeakHashTableSet(SG_WEAK_HASHTABLE(Sg_VM()->sourceInfos),
+				h, Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin)),
+				0);
+	    /* SG_SOURCE_INFO(h) = Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin)); */
 	  }
 	  return h;
 	}

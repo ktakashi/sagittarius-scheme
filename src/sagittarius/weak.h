@@ -34,7 +34,8 @@
 
 #include "sagittariusdefs.h"
 
-typedef struct SgWeakVectorRec {
+typedef struct SgWeakVectorRec
+{
   SG_HEADER;
   int   size;
   void *pointers;		/* opaque */
@@ -43,11 +44,72 @@ typedef struct SgWeakVectorRec {
 #define SG_WEAK_VECTOR(obj)  ((SgWeakVector*)(obj))
 #define SG_WEAK_VECTORP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_WEAK_VECTOR))
 
+/* weak box for weak hashtable */
+typedef struct SgWeakBoxRec SgWeakBox;
+
+#include "hashtable.h"
+
+typedef enum {
+  SG_WEAK_KEY   = (1L<<0),
+  SG_WEAK_VALUE = (1L<<1),
+  SG_WEAK_BOTH  = (SG_WEAK_KEY | SG_WEAK_VALUE)
+} SgWeakness;
+
+typedef struct SgWeakHashTableRec
+{
+  SG_HEADER;
+  SgWeakness  weakness;
+  SgHashType  type;
+  SgHashCore  core;
+  SgObject    defaultValue;
+  SgHashProc        *hasher;
+  SgHashCompareProc *compare;
+  unsigned int goneEntries;
+} SgWeakHashTable;
+
+typedef struct SgWeakHashIterRec
+{
+  SgWeakHashTable *table;
+  SgHashIter iter;
+} SgWeakHashIter;
+
+#define SG_WEAK_HASHTABLE(obj)      ((SgWeakHashTable*)obj)
+#define SG_WEAK_HASHTABLE_P(obj)    (SG_PTRP(obj) && IS_TYPE(obj, TC_WEAK_HASHTABLE))
+#define SG_WEAK_HASHTABLE_CORE(obj) (&SG_WEAK_HASHTABLE(obj)->core)
+
 SG_CDECL_BEGIN
 
+/* weak vector */
 SG_EXTERN SgObject Sg_MakeWeakVector(int size);
 SG_EXTERN SgObject Sg_WeakVectorRef(SgWeakVector *v, int index, SgObject fallback);
 SG_EXTERN SgObject Sg_WeakVectorSet(SgWeakVector *v, int index, SgObject value);
+
+/* weak box */
+SG_EXTERN SgWeakBox* Sg_MakeWeakBox(void *value);
+SG_EXTERN int        Sg_WeakBoxEmptyP(SgWeakBox *wbox);
+SG_EXTERN void       Sg_WeakBoxSet(SgWeakBox *wbox, void *value);
+SG_EXTERN void*      Sg_WeakBoxRef(SgWeakBox *wbox);
+
+/* weak hash */
+SG_EXTERN SgObject Sg_MakeWeakHashTableSimple(SgHashType type,
+					      SgWeakness weakness,
+					      int initSize,
+					      SgObject defaultValue);
+SG_EXTERN SgObject Sg_WeakHashTableCopy(SgWeakHashTable *table);
+SG_EXTERN SgObject Sg_WeakHashTableRef(SgWeakHashTable *table,
+				       SgObject key, SgObject fallback);
+SG_EXTERN SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
+				       SgObject key, SgObject value, int flag);
+SG_EXTERN SgObject Sg_WeakHashTableDelete(SgWeakHashTable *table,
+					  SgObject key);
+SG_EXTERN SgObject Sg_WeakHashTableKeys(SgWeakHashTable *table);
+SG_EXTERN SgObject Sg_WeakHashTableValues(SgWeakHashTable *table);
+
+SG_EXTERN void     Sg_WeakHashIterInit(SgWeakHashIter *iter,
+				       SgWeakHashTable *table);
+SG_EXTERN int      Sg_WeakHashIterNext(SgWeakHashIter *iter,
+				       SgObject *key, SgObject *value);
+
 
 SG_CDECL_END
 

@@ -1,3 +1,10 @@
+2011-06-01  Takashi Kato  <ktakashi@ymail.com>
+
+	* lib/core/exceptions.scm (core): fixed exception when internal defines
+	are in guard body.
+
+	* src/weak.c: introduced weak hashtable.
+
 2011-05-30  Takashi Kato  <ktakashi@ymail.com>
 
 	* boot/compiler.scm (syntax-quote): introduced syntax-quote for

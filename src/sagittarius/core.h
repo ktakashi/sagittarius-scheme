@@ -39,23 +39,24 @@ typedef void (*SgFinalizerProc)(SgObject z, void *data);
 
 SG_CDECL_BEGIN
 
-SG_EXTERN void Sg_Init();
+SG_EXTERN void  Sg_Init();
 
-SG_EXTERN void Sg_Exit(int code);
-SG_EXTERN void Sg_Cleanup();
-SG_EXTERN void Sg_Panic(const char* msg, ...);
-SG_EXTERN void Sg_Abort(const char* msg);
+SG_EXTERN void 	Sg_Exit(int code);
+SG_EXTERN void 	Sg_Cleanup();
+SG_EXTERN void 	Sg_Panic(const char* msg, ...);
+SG_EXTERN void 	Sg_Abort(const char* msg);
 /* gc wrappers */
-SG_EXTERN void Sg_GC();
-SG_EXTERN void Sg_RegisterFinalizer(SgObject z, SgFinalizerProc finalizer, void *data);
-SG_EXTERN void Sg_UnregisterFinalizer(SgObject z);
-SG_EXTERN void Sg_RegisterDL(void *data_start, void *data_end,
-			     void *bss_start, void *bss_end);
-SG_EXTERN void Sg_RegisterDisappearingLink(void **p, void *value);
-SG_EXTERN void Sg_UnregisterDisappearingLink(void **p);
+SG_EXTERN void 	Sg_GC();
+SG_EXTERN void 	Sg_RegisterFinalizer(SgObject z, SgFinalizerProc finalizer, void *data);
+SG_EXTERN void 	Sg_UnregisterFinalizer(SgObject z);
+SG_EXTERN void 	Sg_RegisterDL(void *data_start, void *data_end,
+			      void *bss_start, void *bss_end);
+SG_EXTERN void 	Sg_RegisterDisappearingLink(void **p, void *value);
+SG_EXTERN void 	Sg_UnregisterDisappearingLink(void **p);
+SG_EXTERN void* Sg_GCBase(void *value);
 
 /* experimental */
-SG_EXTERN void Sg_AddGCRoots(void *start, void *end);
+SG_EXTERN void  Sg_AddGCRoots(void *start, void *end);
 
 SG_CDECL_END
 

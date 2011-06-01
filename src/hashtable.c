@@ -456,6 +456,13 @@ void Sg_HashCoreInitGeneral(SgHashCore *core,
   hash_core_init(core, general_access, hasher, compare, initSize, data);
 }
 
+int Sg_HashCoreTypeToProcs(SgHashType type, SgHashProc **hasher,
+			    SgHashCompareProc **compare)
+{
+  SearchProc *access;
+  return hash_core_predef_procs(type, &access, hasher, compare);
+}
+
 SgHashEntry* Sg_HashCoreSearch(SgHashCore *table, intptr_t key,
 			       SgHashOp op)
 {
@@ -536,9 +543,8 @@ void hash_iter_init(SgHashCore *core, SgHashIter *itr)
   itr->next = NULL;
 }
 
-void Sg_HashIterInit(SgHashTable *table, SgHashIter *itr)
+void Sg_HashIterInit(SgHashCore *core, SgHashIter *itr)
 {
-  SgHashCore *core = SG_HASHTABLE_CORE(table);
   hash_iter_init(core, itr);
 }
 
@@ -675,7 +681,7 @@ SgObject Sg_HashTableKeys(SgHashTable *table)
   SgHashIter itr;
   SgHashEntry *e;
   SgObject h = SG_NIL, t = SG_NIL;
-  Sg_HashIterInit(SG_HASHTABLE(table), &itr);
+  Sg_HashIterInit(SG_HASHTABLE_CORE(table), &itr);
   while ((e = Sg_HashIterNext(&itr)) != NULL) {
     SG_APPEND1(h, t, SG_HASH_ENTRY_KEY(e));
   }
@@ -687,7 +693,7 @@ SgObject Sg_HashTableValues(SgHashTable *table)
   SgHashIter itr;
   SgHashEntry *e;
   SgObject h = SG_NIL, t = SG_NIL;
-  Sg_HashIterInit(SG_HASHTABLE(table), &itr);
+  Sg_HashIterInit(SG_HASHTABLE_CORE(table), &itr);
   while ((e = Sg_HashIterNext(&itr)) != NULL) {
     SG_APPEND1(h, t, SG_HASH_ENTRY_VALUE(e));
   }

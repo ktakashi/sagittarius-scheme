@@ -76,6 +76,7 @@
 #include <sagittarius/system.h>
 #include <sagittarius/transcoder.h>
 #include <sagittarius/unicode.h>
+#include <sagittarius/weak.h>
 #include <sagittarius/writer.h>
 #include <sagittarius/values.h>
 #include <sagittarius/vector.h>

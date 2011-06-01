@@ -194,6 +194,16 @@ void Sg_UnregisterDisappearingLink(void **p)
 #endif
 }
 
+void* Sg_GCBase(void *value)
+{
+#ifdef USE_BOEHM_GC
+  return GC_base(value);
+#else
+  /* for now do nothing */
+  return NULL;
+#endif
+}
+
 void finalizable()
 {
   SgVM *vm = Sg_VM();

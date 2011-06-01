@@ -27,7 +27,7 @@
 	    (lambda ()
 	      ;; Sagittarius prefer receive
 	      (receive args
-		  (begin b1 b2 ...)
+		  (let () b1 b2 ...)
 		(guard-k (lambda () (apply values args))))))))))
       ((_ (var clause ...) b1 b2 ...)
        ((call/cc
@@ -43,6 +43,6 @@
 			     (else (handler-k (lambda () (raise-continuable condition))))))))))))
 	    (lambda ()
 	      (receive args
-		  (begin b1 b2 ...)
+		  (let () b1 b2 ...)
 		(guard-k (lambda () (apply values args))))))))))))
 )

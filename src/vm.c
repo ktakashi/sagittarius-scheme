@@ -57,6 +57,7 @@
 #include "sagittarius/exceptions.h"
 #include "sagittarius/profiler.h"
 #include "sagittarius/gloc.h"
+#include "sagittarius/weak.h"
 
 static SgVM *rootVM = NULL;
 /* TODO multi thread */
@@ -102,6 +103,10 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->parentExHandler = SG_FALSE;
   v->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
   v->parameters = Sg_MakeHashTableSimple(SG_HASH_EQ, 64);
+  /* TODO use equal hash for source info might not be good. */
+  v->sourceInfos = Sg_MakeWeakHashTableSimple(SG_HASH_EQUAL, 
+					      SG_WEAK_VALUE, 
+					      64, SG_FALSE);
   v->toplevelVariables = SG_NIL;
   v->commandLineArgs = SG_NIL;
 
@@ -181,28 +186,41 @@ static inline void report_error(SgObject exception)
     }
 
     proc = SG_CDR(obj);		/* (proc name src) */
-    tmp = SG_CAR(SG_CDDR(proc));
-    if (!SG_PAIRP(tmp)) {
-      src = SG_INTERN("*unknown*");
-      info = SG_FALSE;
+    if (SG_EQ(SG_CAR(proc), SG_INTERN("*proc*"))) {
+      tmp = SG_CAR(SG_CDDR(proc));
+      if (!SG_PAIRP(tmp)) {
+	goto no_src;
+      } else {
+	src = Sg_LastPair(tmp);
+	src = SG_CDAR(src);
+	info = Sg_WeakHashTableRef(SG_WEAK_HASHTABLE(Sg_VM()->sourceInfos),
+				   src, SG_FALSE);
+	/* info = SG_SOURCE_INFO(src); */
+      }
+      if (SG_FALSEP(info) || !info) {
+	Sg_Printf(Sg_StandardErrorPort(),
+		  UC("  [%A] %A: %A (location *unknown*)\n"
+		     "    src: %#50S\n"),
+		  index, SG_CAR(proc), SG_CADR(proc),
+		  Sg_UnwrapSyntax(src));
+      } else {
+	file = SG_CAR(info);
+	line = SG_CDR(info);
+	Sg_Printf(Sg_StandardErrorPort(),
+		  UC("  [%A] %A: %A (location %S (line %A))\n"
+		     "    src: %#50S\n"),
+		  index, SG_CAR(proc), SG_CADR(proc),
+		  file, line,
+		  Sg_UnwrapSyntax(src));
+      }
+      
     } else {
-      src = Sg_LastPair(tmp);
-      src = SG_CDAR(src);
-      info = SG_SOURCE_INFO(src);
+    no_src:
+      /* *cproc* does not have any source info */
+      Sg_Printf(Sg_StandardErrorPort(),
+		UC("  [%A] %A: %A \n"),
+		index, SG_CAR(proc), SG_CADR(proc));
     }
-    if (SG_FALSEP(info) || !info) {
-      line = SG_INTERN("*unknown*");
-      file = SG_INTERN("*unknown*");
-    } else {
-      file = SG_CAR(info);
-      line = SG_CDR(info);
-    }
-    Sg_Printf(Sg_StandardErrorPort(),
-	      UC("  [%A] %A: %A (location %S (line %A))\n"
-		 "    src: %#50S\n"),
-	      index, SG_CAR(proc), SG_CADR(proc),
-	      file, line,
-	      Sg_UnwrapSyntax(src));
   }
   Sg_FlushAllPort(FALSE);
 }
@@ -394,7 +412,6 @@ static SgObject pass1_import = SG_UNDEF;
 
 SgObject Sg_Environment(SgObject lib, SgObject spec)
 {
-  SgObject cp;
   if (SG_UNDEFP(pass1_import)) {
     /* TODO lock */
     SgLibrary *complib = Sg_FindLibrary(SG_INTERN("(sagittarius compiler)"), FALSE);

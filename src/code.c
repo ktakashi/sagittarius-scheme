@@ -235,7 +235,7 @@ void Sg_CodeBuilderAddSrc(SgCodeBuilder *cb, int insn, SgObject src)
 {
   /*
     we construct the source info into code-builder:
-    ((index . src) ...) ; alist
+    ((index1 . src1) (index2 . src2) ...) ; alist
    */
   int index = cb->size;
   if (SG_FALSEP(cb->src)) {

@@ -125,6 +125,10 @@
   ((smatcher "done" code vars x (e |...|) fk)
    (code x (lambda vars e |...|) fk))))
 (define-syntax
+ $src
+ (syntax-rules () ((_ n o) (begin (source-info-set! n (source-info o)) n))))
+
+(define-syntax
  imap
  (syntax-rules
   ()
@@ -1064,7 +1068,7 @@
  :null
  (smatch
   form
-  ((- obj) (pass1 (pass1/quasiquote (cadr form) 0) p1env))
+  ((- obj) (pass1 ($src (pass1/quasiquote (cadr form) 0) form) p1env))
   (- (syntax-error "malformed quasiquote" form))))
 
 (define
@@ -1076,7 +1080,7 @@
    form
    ((- (name . args) body ___)
     (pass1/define
-     `(define ,name (,lambda. ,args ,@body))
+     `(define ,name ,($src `(,lambda. ,args ,@body) oform))
      oform
      flags
      module
@@ -1617,7 +1621,7 @@
     ((tmp (gensym)) (expanded-clauses (expand-clauses clauses tmp)))
     (let
      ((expr `(let ((,tmp ,pred)) (cond ,@expanded-clauses))))
-     (pass1 expr p1env))))
+     (pass1 ($src expr form) p1env))))
   (- (syntax-error "malformed case" form))))
 
 (define-pass1-syntax
@@ -1871,8 +1875,10 @@
               (smatch
                args
                (((name . formals) . body)
-                `(,name (,lambda. ,formals ,@body) unquote src))
-               ((var init) `(,var ,init unquote src))
+                ($src
+                 `(,name (,lambda. ,formals ,@body) unquote src)
+                 (caar exprs)))
+               ((var init) ($src `(,var ,init unquote src) (caar exprs)))
                (- (syntax-error "malformed internal define" (caar exprs))))))
             (pass1/body-rec rest (cons def intdefs) intmacros p1env)))
           ((global-eq? head 'begin p1env)
@@ -1910,7 +1916,7 @@
                ((type (if (global-eq? head 'letrec-syntax p1env) 'rec 'let)))
                (values (cons type (map list name trans-spec)) body))))
             (pass1/body-rec
-             `(((,begin. ,@body ,@(map car rest))))
+             ($src `(((,begin. ,@body ,@(map car rest)))) (caar exprs))
              intdefs
              (cons defs intmacros)
              p1env)))

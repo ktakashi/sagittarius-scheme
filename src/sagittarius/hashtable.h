@@ -124,6 +124,8 @@ SG_EXTERN void Sg_HashCoreInitGeneral(SgHashCore *core,
 				      SgHashCompareProc *compare,
 				      unsigned int initSize,
 				      void *data);
+SG_EXTERN int Sg_HashCoreTypeToProcs(SgHashType type, SgHashProc **hasher,
+				     SgHashCompareProc **compare);
 SG_EXTERN SgHashEntry* Sg_HashCoreSearch(SgHashCore *table, intptr_t key,
 					 SgHashOp op);
 SG_EXTERN void Sg_HashCoreCopy(SgHashCore *dst,
@@ -132,8 +134,8 @@ SG_EXTERN void Sg_HashCoreCopy(SgHashCore *dst,
 SG_EXTERN void Sg_HashCoreClear(SgHashCore *ht, int k);
 
 /* iterator */
-SG_EXTERN void Sg_HashIterInit(SgHashTable *table,
-			       SgHashIter  *itr);
+SG_EXTERN void Sg_HashIterInit(SgHashCore *table,
+			       SgHashIter *itr);
 SG_EXTERN SgHashEntry* Sg_HashIterNext(SgHashIter *itr);
 
 /* hasher */
