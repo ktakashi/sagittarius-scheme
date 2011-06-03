@@ -1,0 +1,50 @@
+;; -*- scheme -*-
+(library (sagittarius threads)
+    (export thread?
+	    make-thread
+	    thread-name
+	    thread-specific thread-specific-set!
+	    thread-state
+	    current-thread
+	    thread-base-priority thread-base-priority-set!
+	    thread-priority-boost thread-priority-boost-set!
+	    thread-quantum thread-quantum-set!
+	    thread-start! thread-join! thread-yield! thread-sleep!
+	    thread-terminate!
+
+	    ;; TODO mutex
+	    )
+    (import :none)
+#!compatible
+(decl-code
+ (.include "threads.h"))
+
+;; thread is VM
+(define-c-proc thread? (obj) ::boolean
+  (result (SG_VMP obj)))
+
+(define-c-proc make-thread (thunk::Procedure :optional name) ::Object
+  (if (SG_UNBOUNDP name)
+      (result (Sg_MakeThread thunk (Sg_Gensym (Sg_MakeString "thread-" SG_LITERAL_STRING))))
+      (result (Sg_MakeThread thunk name))))
+
+(define-c-proc thread-name (obj::VM) ::Object
+  (result (-> obj name)))
+
+(define-c-proc thread-specific-set! (obj::VM value) ::void
+  (result (set! (-> obj specific) value)))
+
+(define-c-proc thread-specific (obj::VM) ::Object
+  (result (-> obj specific)))
+
+(define-c-proc thread-state (vm::VM) ::Object
+  (let ((state::int (-> vm state)))
+    (cond ((== SG_VM_NEW state) (result 'new))
+	  ((== SG_VM_RUNNABLE state) (result 'runnable))
+	  ((== SG_VM_STOPPED state) (result 'stopped))
+	  ((== SG_VM_TERMINATED state) (result 'terminated))
+	  (else (Sg_Error "[internal] thread state has invalid value: %d"
+			  state)
+		(result SG_UNDEF)))))
+
+)

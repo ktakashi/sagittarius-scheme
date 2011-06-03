@@ -149,8 +149,9 @@ typedef void (*SgDynLoadInitFn)(void);
 
 static struct
 {
+  SgObject dso_suffix;
   dlobj *dso_list;
-} dynldinfo = { (dlobj*)&dynldinfo, };
+} dynldinfo = { (SgObject)&dynldinfo, };
 
 struct dlobj_initfn_rec
 {
@@ -224,6 +225,7 @@ const char* get_initfn_name(SgObject initfn, SgString *dsopath)
     return Sg_Utf32sToUtf8s(SG_STRING(_initfn));
   } else {
     Sg_Error(UC("derivation is not supported yet."));
+    return "";
   }
 }
 
@@ -293,18 +295,13 @@ static void call_initfn(dlobj *dlo, const char *name)
 /* .dll or .so loader */
 SgObject Sg_DynLoad(SgString *filename, SgObject initfn, unsigned long flags)
 {
-  static SgString *dso_suffix = NULL;
   SgVM *vm = Sg_VM();  
   SgObject spath;
   const char *initname;
   dlobj *dlo;
   INIT_LOCK(dso_lock);
-  if (!dso_suffix) {
-    Sg_LockMutex(&dso_lock);
-    dso_suffix = Sg_MakeString(SHLIB_SO_SUFFIX, SG_LITERAL_STRING);
-    Sg_UnlockMutex(&dso_lock);
-  }
-  spath = Sg_FindFile(filename, vm->loadPath, dso_suffix, TRUE);
+
+  spath = Sg_FindFile(filename, vm->loadPath, dynldinfo.dso_suffix, TRUE);
   if (SG_FALSEP(spath)) {
     Sg_Error(UC("can't find dlopen-able library %S"), filename);
   }
@@ -325,4 +322,10 @@ SgObject Sg_DynLoad(SgString *filename, SgObject initfn, unsigned long flags)
 
   unlock_dlobj(dlo);
   return SG_TRUE;
+}
+
+void Sg__InitLoad()
+{
+  dynldinfo.dso_suffix = Sg_MakeString(UC(SHLIB_SO_SUFFIX), SG_LITERAL_STRING);
+  dynldinfo.dso_list = NULL;
 }

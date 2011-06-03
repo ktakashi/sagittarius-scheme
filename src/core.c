@@ -51,6 +51,7 @@ extern void Sg__InitRecord();
 extern void Sg__InitConsitions();
 extern void Sg__InitReader();
 extern void Sg__InitPort();
+extern void Sg__InitLoad();
 extern void Sg__InitVM();
 
 /* stub files */
@@ -86,6 +87,8 @@ void Sg_Init()
   Sg__InitSymbol();
   Sg__InitNumber();
   Sg__InitKeyword();
+
+  Sg__InitLoad();
 
   Sg__InitVM();
   /* port must be after VM to replace std ports. */

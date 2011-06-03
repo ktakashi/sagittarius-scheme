@@ -52,7 +52,7 @@ void Sg_Warn(const SgChar* fmt, ...)
   Sg_Vprintf(err, fmt, ap, TRUE);
   va_end(ap);
   errObj = Sg_GetStringFromStringPort(err);
-  Sg_Write(errObj, Sg_CurrentErrorPort(), 0);
+  Sg_Printf(Sg_CurrentErrorPort(), UC("%A\n"), errObj);
 }
 
 void Sg_Error(const SgChar* fmt, ...)

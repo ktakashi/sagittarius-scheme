@@ -91,7 +91,8 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   SgVM *v = SG_NEW(SgVM);
   int i;
   SG_SET_HEADER(v, TC_VM);
-  
+ 
+  v->name = name;
   v->threadState = SG_VM_NEW;
   v->stack = SG_NEW_ARRAY(SgObject, SG_VM_STACK_SIZE);
   v->sp = v->fp = v->stack;
@@ -146,6 +147,10 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   SG_INTERNAL_THREAD_INIT(&v->thread);
   Sg_InitMutex(&v->vmlock, FALSE);
   Sg_InitCond(&v->cond);
+  v->inspector = NULL;
+  v->canceller = NULL;
+  v->thunk = NULL;
+  v->specific = SG_FALSE;
   return v;
 }
 
@@ -169,6 +174,16 @@ int Sg_AttachVM(SgVM *vm)
 #endif
   vm->thread = Sg_CurrentThread();
   vm->state = SG_VM_RUNNABLE;
+  return TRUE;
+}
+
+int Sg_SetCurrentVM(SgVM *vm)
+{
+#if _MSC_VER
+  theVM = vm;
+#else
+  if (pthread_setspecific(the_vm_key, vm) != 0) return FALSE;
+#endif
   return TRUE;
 }
 

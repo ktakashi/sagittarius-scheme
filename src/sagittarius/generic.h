@@ -93,6 +93,25 @@ struct SgInstanceRec
 #define SG_STATIC_GENERIC_INIT(cvar, name, virtual, print, read, ctr)	\
   SgGeneric cvar = SG__STATIC_GENERIC_INIT(name, virtual, print, read, ctr)
 
+
+/* I'm not sure if here is good location to put UserDef */
+typedef void SgMetaObjectPrinter(SgPort *p, SgObject self);
+typedef struct SgMetaObjectRec
+{
+  SG_HEADER;
+  SgMetaObjectPrinter *printer;
+} SgMetaObject;
+
+/* this must be used for extension modules.
+   so i think i don't have to consider VC's __impl_ problem.
+ */
+#define SG_META_OBJ(obj)   ((SgMetaObject *)obj)
+#define SG_META_OBJ_P(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_USER_DEF)
+#define SG_DECLARE_META_OBJ(meta) extern SgMetaObject meta
+#define SG_SET_META_OBJ(obj, meta) (SG_HDR(obj) = (meta))
+#define SG_META_OBJ_TYPE(obj, type) (SG_HDR(obj) == (type))
+  
+
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeGeneric(SgSymbol *name, SgObject printer,

@@ -74,6 +74,7 @@
 #include <sagittarius/symbol.h>
 #include <sagittarius/subr.h>
 #include <sagittarius/system.h>
+#include <sagittarius/thread.h>
 #include <sagittarius/transcoder.h>
 #include <sagittarius/unicode.h>
 #include <sagittarius/weak.h>
@@ -88,5 +89,5 @@
   end of file
   Local Variables:
   coding: utf-8-unix
-  End
+  End:
 */

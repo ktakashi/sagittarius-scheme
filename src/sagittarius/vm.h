@@ -145,6 +145,11 @@ struct SgVMRec
   SgInternalCond   cond;
   SgVM *canceller;
   SgVM *inspector;
+  SgObject name;		/* Scheme thread name. */
+  SgObject specific;		/* Scheme thread specific data. */
+  SgProcedure *thunk;		/* Entry point of this VM */
+  SgObject result;		/* thread result */
+  SgObject resultException;	/* thread exception */
 
   unsigned int flags;		/* flags */
   /* Registers */
@@ -250,6 +255,9 @@ typedef enum {
   
 } VMFlags;
 
+#define SG_VM(obj) ((SgVM *)obj)
+#define SG_VMP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_VM))
+
 #define SG_VM_SET_FLAG(vm, flag)    ((vm)->flags = ((vm)->flags | (flag)))
 #define SG_VM_UNSET_FLAG(vm, flag)  ((vm)->flags = ((vm)->flags & (~(flag))))
 #define SG_VM_IS_SET_FLAG(vm, flag) (((vm)->flags & (flag)))
@@ -328,6 +336,7 @@ SG_EXTERN SgObject Sg_VMApply4(SgObject proc, SgObject arg0, SgObject arg1, SgOb
 SG_EXTERN SgObject Sg_VMApply(SgObject proc, SgObject args);
 SG_EXTERN SgObject Sg_VMCallCC(SgObject proc);
 SG_EXTERN SgVM*    Sg_VM();	/* get vm */
+SG_EXTERN int      Sg_SetCurrentVM(SgVM *vm);
 SG_EXTERN int      Sg_AttachVM(SgVM *vm);
 SG_EXTERN SgGloc*  Sg_FindBinding(SgObject library, SgObject name, SgObject callback);
 SG_EXTERN void     Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value);

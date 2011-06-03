@@ -153,6 +153,8 @@ struct SgSubrRec
   castArgumentType(index, tmp, var, record-type, SG_RECORD_TYPEP, SG_RECORD_TYPE)
 #define argumentAsGloc(index, tmp, var)				\
   castArgumentType(index, tmp, var, gloc, SG_GLOCP, SG_GLOC)
+#define argumentAsVM(index, tmp, var)				\
+  castArgumentType(index, tmp, var, gloc, SG_VMP, SG_VM)
 
 /* for library we need special treat */
 #define argumentAsLibrary(index, tmp, var)				\

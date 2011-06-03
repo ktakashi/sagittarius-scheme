@@ -56,7 +56,7 @@ ELSE()
   TARGET_LINK_LIBRARIES(sagittarius taurus)
 ENDIF()
 
-IF(WIN32)
+IF(MSVC)
   SET(PLATFORM_SOURCE_FOR_SASH ${PLATFORM_SOURCE_FOR_SASH}
     ../win/sash.rc)
 ELSE()
@@ -68,7 +68,7 @@ TARGET_LINK_LIBRARIES(sash sagittarius)
 
 IF(${LINK_BOEHM_GC})
   # temporary solution for VC
-  IF(WIN32)
+  IF(MSVC)
     ADD_DEFINITIONS(-DGC_NOT_DLL)
   ENDIF()
   TARGET_LINK_LIBRARIES(sash gc)

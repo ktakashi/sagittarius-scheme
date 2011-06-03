@@ -1,0 +1,4 @@
+;; -*- scheme -*-
+(import (rnrs)
+	(sagittarius cgen))
+(cgen "threads_stub.stub")
