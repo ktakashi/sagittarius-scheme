@@ -32,6 +32,7 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/symbol.h"
 #include "sagittarius/hashtable.h"
+#include "sagittarius/thread.h"
 
 static SgSymbol* make_symbol(SgObject name, int interned)
 {
@@ -44,6 +45,7 @@ static SgSymbol* make_symbol(SgObject name, int interned)
   return z;
 }
 
+static SgInternalMutex obtable_mutax;
 static SgHashTable *obtable = NULL; /* initialized in Sg__InitSymbol() */
 
 SgObject Sg_MakeSymbol(SgString *name, int interned)
@@ -52,8 +54,9 @@ SgObject Sg_MakeSymbol(SgString *name, int interned)
   SgSymbol *sym;
 
   if (interned) {
-    /* TODO mutex*/
+    Sg_LockMutex(&obtable_mutax);
     e = Sg_HashTableRef(obtable, SG_OBJ(name), SG_FALSE);
+    Sg_UnlockMutex(&obtable_mutax);
     if (!SG_FALSEP(e)) return e;
   }
   /* symbol can be literal */
@@ -61,8 +64,9 @@ SgObject Sg_MakeSymbol(SgString *name, int interned)
   sym = make_symbol(sname, interned);
   if (!interned) return SG_OBJ(sym);
 
-  /* TODO mutex */
+  Sg_LockMutex(&obtable_mutax);
   e = Sg_HashTableSet(obtable, SG_OBJ(name), SG_OBJ(sym), SG_HASH_NO_OVERWRITE);
+  Sg_UnlockMutex(&obtable_mutax);
   return e;
 }
 
@@ -94,6 +98,7 @@ SgObject Sg_Gensym(SgString *prefix)
 
 void Sg__InitSymbol()
 {
+  Sg_InitMutex(&obtable_mutax, FALSE);
   obtable = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_STRING, 4096));
   default_prefix = SG_STRING(Sg_MakeString(UC("G"), SG_LITERAL_STRING));
   init_builtin_symbols();

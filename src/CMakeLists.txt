@@ -1,20 +1,18 @@
 # debug
 MESSAGE(STATUS "operating system: ${CMAKE_SYSTEM_NAME}")
 
-IF(CYGWIN)
+# we use posix files for Cygwin
+IF(WIN32 AND NOT CYGWIN)
+  SET(PLATFORM_SOURCE ${PLATFORM_SOURCE}
+    os/win/file.c os/win/transcoder.c
+    os/win/system.c os/win/thread.c)
+  # TODO add linux and bsd(maybe also apple?)
+  # use standard c functionality
+ELSE()
   # cygwin is considered as POSIX on sagittarius scheme
   SET(PLATFORM_SOURCE ${PLATFORM_SOURCE}
     os/posix/file.c os/posix/transcoder.c
-    os/posix/system.c
-    )
-ELSEIF(WIN32)
-  SET(PLATFORM_SOURCE ${PLATFORM_SOURCE}
-    os/win/file.c os/win/transcoder.c
-    os/win/system.c)
-ELSE()
-  # TODO add linux and bsd(maybe also apple?)
-  # use standard c functionality
-  SET(PLATFORM_SOURCE ${PLATFORM_SOURCE} os/posix/file.c os/posix/transcoder.c)
+    os/posix/system.c os/posix/thread.c)
 ENDIF()
 
 SET(SAGITTARIUS_LIB_SOURCE

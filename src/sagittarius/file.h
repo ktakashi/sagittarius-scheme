@@ -76,6 +76,9 @@ SG_EXTERN int      Sg_IsUTF16Console(SgObject file);
 
 SG_EXTERN SgObject Sg_MakeFileOptions(SgObject options);
 
+SG_EXTERN SgObject Sg_FindFile(SgString *name, SgObject loadPaths,
+			       SgString *suffix, int quiet);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_FILE_HPP_ */

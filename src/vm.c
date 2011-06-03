@@ -59,9 +59,17 @@
 #include "sagittarius/gloc.h"
 #include "sagittarius/weak.h"
 
+static SgInternalMutex global_lock;
+
 static SgVM *rootVM = NULL;
-/* TODO multi thread */
-static SgVM *theVM;
+
+#if _MSC_VER
+static __declspec(thread) SgVM *theVM;
+#else
+#include <pthread.h>
+static pthread_key_t the_vm_key;
+#define theVM ((SgVM*)pthread_getspecific(the_vm_key))
+#endif
 
 static SgSubr default_exception_handler_rec;
 #define DEFAULT_EXCEPTION_HANDLER SG_OBJ(&default_exception_handler_rec)
@@ -83,8 +91,8 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   SgVM *v = SG_NEW(SgVM);
   int i;
   SG_SET_HEADER(v, TC_VM);
-
-  v->flags = 0;
+  
+  v->threadState = SG_VM_NEW;
   v->stack = SG_NEW_ARRAY(SgObject, SG_VM_STACK_SIZE);
   v->sp = v->fp = v->stack;
   v->stackEnd = v->stack + SG_VM_STACK_SIZE;
@@ -110,17 +118,34 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->toplevelVariables = SG_NIL;
   v->commandLineArgs = SG_NIL;
 
-  v->currentInputPort = Sg_MakeTranscodedInputPort(Sg_StandardInputPort(),
-						    Sg_IsUTF16Console(Sg_StandardIn()) ? Sg_MakeNativeConsoleTranscoder()
-						                                       : Sg_MakeNativeTranscoder());
-  v->currentOutputPort = Sg_MakeTranscodedOutputPort(Sg_StandardOutputPort(),
-						     Sg_IsUTF16Console(Sg_StandardOut()) ? Sg_MakeNativeConsoleTranscoder()
-						                                         : Sg_MakeNativeTranscoder());
-  v->currentErrorPort = Sg_MakeTranscodedOutputPort(Sg_StandardErrorPort(),
-						     Sg_IsUTF16Console(Sg_StandardError()) ? Sg_MakeNativeConsoleTranscoder()
-						                                           : Sg_MakeNativeTranscoder());
-  v->logPort = v->currentErrorPort;
+  /* from proto */
+  /* if proto was NULL, this will be initialized Sg__InitVM */
+  v->currentLibrary = proto ? proto->currentLibrary: NULL;
+  v->cstack = proto ? proto->cstack : NULL;
+  v->flags = proto? proto->flags : 0;
+  v->currentInputPort = proto 
+    ? proto->currentInputPort
+    :Sg_MakeTranscodedInputPort(Sg_StandardInputPort(),
+				Sg_IsUTF16Console(Sg_StandardIn())
+				? Sg_MakeNativeConsoleTranscoder()
+				: Sg_MakeNativeTranscoder());
+  v->currentOutputPort = proto
+    ? proto->currentOutputPort
+    : Sg_MakeTranscodedOutputPort(Sg_StandardOutputPort(),
+				  Sg_IsUTF16Console(Sg_StandardOut())
+				  ? Sg_MakeNativeConsoleTranscoder()
+				  : Sg_MakeNativeTranscoder());
+  v->currentErrorPort = proto 
+    ? proto->currentErrorPort
+    : Sg_MakeTranscodedOutputPort(Sg_StandardErrorPort(),
+				  Sg_IsUTF16Console(Sg_StandardError())
+				  ? Sg_MakeNativeConsoleTranscoder()
+				  : Sg_MakeNativeTranscoder());
+  v->logPort = proto ? proto->logPort : v->currentErrorPort;
   /* TODO thread, mutex, etc */
+  SG_INTERNAL_THREAD_INIT(&v->thread);
+  Sg_InitMutex(&v->vmlock, FALSE);
+  Sg_InitCond(&v->cond);
   return v;
 }
 
@@ -130,6 +155,21 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 SgVM* Sg_VM()
 {
   return theVM;
+}
+
+int Sg_AttachVM(SgVM *vm)
+{
+  if (SG_INTERNAL_THREAD_INITIALIZED_P(&vm->thread)) return FALSE;
+  if (theVM != NULL) return FALSE;
+
+#if _MSC_VER
+  theVM = vm;
+#else
+  if (pthread_setspecific(the_vm_key, vm) != 0) return FALSE;
+#endif
+  vm->thread = Sg_CurrentThread();
+  vm->state = SG_VM_RUNNABLE;
+  return TRUE;
 }
 
 #define Sg_VM() theVM
@@ -361,11 +401,14 @@ SgObject Sg_Compile(SgObject o, SgObject e)
   static SgObject compiler = SG_UNDEF;
   SgObject compiled;
   /* compiler is initialized after VM. so we need to look it up first */
-  /* TODO lock */
   if (SG_UNDEFP(compiler)) {
-    SgObject compile_library = Sg_FindLibrary(SG_INTERN("(sagittarius compiler)"), FALSE);
-    SgGloc *g = Sg_FindBinding(compile_library, SG_INTERN("compile"), SG_FALSE);
+    SgObject compile_library;
+    SgGloc *g;
+    Sg_LockMutex(&global_lock);
+    compile_library = Sg_FindLibrary(SG_INTERN("(sagittarius compiler)"), FALSE);
+    g = Sg_FindBinding(compile_library, SG_INTERN("compile"), SG_FALSE);
     compiler = SG_GLOC_GET(g);
+    Sg_UnlockMutex(&global_lock);
   }
   return Sg_Apply2(compiler, o, e);
 }
@@ -413,14 +456,17 @@ static SgObject pass1_import = SG_UNDEF;
 SgObject Sg_Environment(SgObject lib, SgObject spec)
 {
   if (SG_UNDEFP(pass1_import)) {
-    /* TODO lock */
-    SgLibrary *complib = Sg_FindLibrary(SG_INTERN("(sagittarius compiler)"), FALSE);
-    SgGloc *g = Sg_FindBinding(complib, SG_INTERN("pass1/import"), SG_UNBOUND);
+    SgLibrary *complib;
+    SgGloc *g;
+    Sg_LockMutex(&global_lock);
+    complib = Sg_FindLibrary(SG_INTERN("(sagittarius compiler)"), FALSE);
+    g = Sg_FindBinding(complib, SG_INTERN("pass1/import"), SG_UNBOUND);
     if (SG_UNBOUNDP(g)) {
       /* something wrong */
       Sg_Panic("pass1/import was not found. loading error?");
     }
     pass1_import = SG_GLOC_GET(g);
+    Sg_UnlockMutex(&global_lock);
   }
   /* make spec look like import-spec */
   spec = Sg_Cons(SG_INTERN("import"), spec);
@@ -1712,7 +1758,19 @@ void Sg__InitVM()
   applyCode[7] = SG_WORD(HALT);
 
   /* TODO multi thread and etc */
+#ifdef _MSC_VER
   rootVM = theVM = Sg_NewVM(NULL, Sg_MakeString(UC("root"), SG_LITERAL_STRING));
+#else
+  if (pthread_key_create(&the_vm_key, NULL) != 0) {
+    Sg_Panic("pthread_key_create failed.");
+  }
+  rootVM = Sg_NewVM(NULL, Sg_MakeString(UC("root"), SG_LITERAL_STRING));
+  if (pthread_setspecific(the_vm_key, rootVM) != 0) {
+    Sg_Panic("pthread_setspecific failed.");
+  }
+#endif
+  rootVM->thread = Sg_CurrentThread();
+  rootVM->threadState = SG_VM_RUNNABLE;
   rootVM->applyCode = applyCode;
   rootVM->callCode = callCode;
   rootVM->libraries = Sg_MakeHashTableSimple(SG_HASH_EQ, 64);
@@ -1730,7 +1788,7 @@ void Sg__InitVM()
 
   SG_PROCEDURE_NAME(&default_exception_handler_rec) = Sg_MakeString(UC("default-exception-handler"),
 								    SG_LITERAL_STRING);
-
+  Sg_InitMutex(&global_lock, TRUE);
 }
 
 /*

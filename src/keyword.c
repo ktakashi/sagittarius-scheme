@@ -33,11 +33,12 @@
 #include "sagittarius/keyword.h"
 #include "sagittarius/hashtable.h"
 #include "sagittarius/string.h"
+#include "sagittarius/thread.h"
 
 static struct
 {
   SgHashTable *table;
-  /* TODO mutex */
+  SgInternalMutex mutex;
 } keywords = { NULL };
 
 
@@ -46,22 +47,29 @@ SgObject Sg_MakeKeyword(SgString *name)
   SgObject r;
   SgKeyword *k;
 
-  /* TODO lock */
+  Sg_LockMutex(&keywords.mutex);
   r = Sg_HashTableRef(keywords.table, name, SG_FALSE);
+  Sg_UnlockMutex(&keywords.mutex);
   
   if (SG_KEYWORDP(r)) return r;
 
   k = SG_NEW(SgKeyword);
   SG_SET_HEADER(k, TC_KEYWORD);
-  /* TODO the string must be literal, should i still copy this? */
-  k->name = SG_STRING(Sg_CopyString(name));
-  /* TODO lock */
+  if (SG_LITERAL_STRINGP(name)) {
+    k->name = name;
+  } else {
+    k->name = SG_STRING(Sg_CopyString(name));
+  }
+
+  Sg_LockMutex(&keywords.mutex);
   r = Sg_HashTableSet(keywords.table, name, SG_OBJ(k), SG_HASH_NO_OVERWRITE);
+  Sg_UnlockMutex(&keywords.mutex);
   return r;
 }
 
 void Sg__InitKeyword()
 {
+  Sg_InitMutex(&keywords.mutex, FALSE);
   keywords.table = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_STRING, 256));
 }
 /*

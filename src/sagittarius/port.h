@@ -33,6 +33,7 @@
 #define SAGITTARIUS_PORT_H_
 
 #include "sagittariusdefs.h"
+#include "thread.h"
 
 typedef struct SgBinaryPortRec
 {
@@ -131,6 +132,8 @@ struct SgPortRec
   unsigned int closed 	   : 1;
   unsigned int error  	   : 1;
 
+  SgInternalMutex lock;
+
   /* common methods */
   void (*flush)(SgObject);
   int  (*close)(SgObject);
@@ -204,8 +207,8 @@ enum SgCustomPortType {
 #define SG_CUSTOM_PORTP(obj)  (SG_PORTP(obj) && SG_PORT(obj)->type == SG_CUSTOM_PORT_TYPE)
 #define SG_CUSTOM_PORT(obj)   (SG_PORT(obj)->impl.cport)
 
-#define SG_PORT_LOCK(port)	/* TODO */
-#define SG_PORT_UNLOCK(port)	/* TODO */
+#define SG_PORT_LOCK(port)	Sg_LockMutex(&port->lock)
+#define SG_PORT_UNLOCK(port)	Sg_UnlockMutex(&port->lock)
 
 SG_CDECL_BEGIN
 

@@ -34,6 +34,7 @@
 
 #include "sagittariusdefs.h"
 #include "subr.h"		/* for SgSubrProc */
+#include "thread.h"
 #ifdef HAVE_SETJMP_H
 # include <setjmp.h>
 #else
@@ -124,9 +125,27 @@ typedef enum {
   SG_VM_ESCAPE_EXIT
 } SgVMEscapeReason;
 
+enum {
+  SG_VM_NEW,			/* This VM is just created and not attached
+				   to the running thread. */
+  SG_VM_RUNNABLE,		/* This VM is attached to a thread which is
+				   runnable or blocked. */
+  SG_VM_STOPPED,		/* The thread attached to this VM is stopped
+				   by the inspector thread for debugging*/
+  SG_VM_TERMINATED		/* The thread attached to this VM is
+				   terminated. */
+};
+
 struct SgVMRec
 {
   SG_HEADER;
+  SgInternalThread thread;	/* the system thread executing this VM. */
+  int threadState;		/* thread state. */
+  SgInternalMutex  vmlock;	/* mutex to be used to lock this VM. */
+  SgInternalCond   cond;
+  SgVM *canceller;
+  SgVM *inspector;
+
   unsigned int flags;		/* flags */
   /* Registers */
   SgWord   *pc;			/* program counter */
@@ -261,6 +280,35 @@ typedef enum {
 #define SG_LET_FRAME_SIZE           2
 #define SG_FRAME_SIZE               CONT_FRAME_SIZE
 
+
+/* from Gauche */
+/* Unwind protect */
+#define SG_UNWIND_PROTECT			\
+  do {						\
+    SgCStack cstack;				\
+    cstack.prev = Sg_VM()->cstack;		\
+    cstack.cont = NULL;				\
+    Sg_VM()->cstack = &cstack;			\
+    if (setjmp(cstack.jbuf) == 0) {
+           
+#define SG_WHEN_ERROR				\
+    } else {
+
+#define SG_NEXT_HANDLER					\
+      do {						\
+	if (Sg_VM()->cstack->prev) {			\
+	  Sg_VM()->cstack = Sg_VM()->cstack->prev;	\
+	  longjmp(Sg_VM()->cstack->jbuf, 1);		\
+	}						\
+	else Sg_Exit(1);				\
+      } while (0)
+
+#define SG_END_PROTECT				\
+    }						\
+    Sg_VM()->cstack = Sg_VM()->cstack->prev;	\
+  } while (0)
+
+
 SG_CDECL_BEGIN
 
 SG_EXTERN SgVM*    Sg_NewVM(SgVM *proto, SgObject name);
@@ -280,6 +328,7 @@ SG_EXTERN SgObject Sg_VMApply4(SgObject proc, SgObject arg0, SgObject arg1, SgOb
 SG_EXTERN SgObject Sg_VMApply(SgObject proc, SgObject args);
 SG_EXTERN SgObject Sg_VMCallCC(SgObject proc);
 SG_EXTERN SgVM*    Sg_VM();	/* get vm */
+SG_EXTERN int      Sg_AttachVM(SgVM *vm);
 SG_EXTERN SgGloc*  Sg_FindBinding(SgObject library, SgObject name, SgObject callback);
 SG_EXTERN void     Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value);
 SG_EXTERN void     Sg_VMDumpCode(SgCodeBuilder *cb);

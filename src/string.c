@@ -36,6 +36,7 @@
 #include "sagittarius/unicode.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/error.h"
+#include "sagittarius/thread.h"
 
 static SgString* make_string(int size)
 {
@@ -54,6 +55,7 @@ static SgString* make_string(int size)
     }									\
   } while (0)
 
+static SgInternalMutex smutex;
 static SgHashTable *stable;
 
 SgObject Sg_MakeString(const SgChar *value, SgStringType flag)
@@ -61,7 +63,9 @@ SgObject Sg_MakeString(const SgChar *value, SgStringType flag)
   SgObject r;
   SgString *z;
   if (flag == SG_LITERAL_STRING) {
+    Sg_LockMutex(&smutex);
     r = Sg_HashTableRef(stable, SG_OBJ(value), SG_FALSE);
+    Sg_UnlockMutex(&smutex);
     if (!SG_FALSEP(r)) {
       return r;
     }
@@ -72,10 +76,11 @@ SgObject Sg_MakeString(const SgChar *value, SgStringType flag)
   z->value[z->size] = 0;
 
   /* store it if it's literal */
-  /* TODO lock */
   if (flag == SG_LITERAL_STRING) {
+    Sg_LockMutex(&smutex);
     SG_SET_HEADER_ATTRIBUTE(z, SG_MAKEBITS(1, STRING_LITERAL_SHIFT));
     r = Sg_HashTableSet(stable, SG_OBJ(value), SG_OBJ(z), SG_HASH_NO_OVERWRITE);
+    Sg_UnlockMutex(&smutex);
   } else {
     r = SG_OBJ(z);
   }
@@ -303,6 +308,7 @@ static int string_compare(const SgHashCore *ht, intptr_t key, intptr_t entryKey)
 
 void Sg__InitString()
 {
+  Sg_InitMutex(&smutex, FALSE);
   stable = Sg_MakeHashTable(string_hash, string_compare, 4096);
 }
 

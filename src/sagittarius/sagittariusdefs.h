@@ -160,6 +160,11 @@
 
 /* GC selector */
 #if defined(USE_BOEHM_GC)
+/* for win32 multi thread. see boehm gc README.win */
+/* TODO 64 bits */
+# ifdef _MSC_VER
+#  define GC_WIN32_THREADS
+# endif	 /* _MSC_VER */
 # if defined(LIBSAGITTARIUS_BODY)
 #  if !defined (GC_DLL)
 #   define GC_DLL		/* for gc.h to handle Win32 crazyness */
@@ -176,9 +181,7 @@
 # define SG_MALLOC(size)        GC_MALLOC(size)
 # define SG_MALLOC_ATOMIC(size) GC_MALLOC_ATOMIC(size)
 #else
-# include <taurus.h>
-# define SG_MALLOC(size)        Ta_malloc(size)
-# define SG_MALLOC_ATOMIC(size) Ta_malloc(size)
+# error "Sagittarius requires Boehm GC for now."
 #endif
 
 #define SG_NEW(type)                ((type*)SG_MALLOC(sizeof(type)))

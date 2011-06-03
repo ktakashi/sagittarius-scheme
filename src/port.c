@@ -84,6 +84,7 @@ static SgPort* make_port(enum SgPortDirection d, enum SgPortType t, enum SgBuffe
   z->direction = d;
   z->type = t;
   z->bufferMode = m;
+  Sg_InitMutex(&z->lock, TRUE);
   /* we only register binary and custom ports to finalizer.
      other has only on memory buffer.
    */
@@ -124,7 +125,7 @@ static SgTextualPort* make_textual_port(enum SgTextualPortType t)
 static struct {
   int dummy;
   SgWeakVector *ports;
-  /* TODO mutex */
+  SgInternalMutex lock;
 } active_buffered_ports = { 1, NULL };
 
 #define PORT_HASH(port)  \
@@ -140,7 +141,7 @@ static void register_buffered_port(SgPort *port)
  retry:
   h = i = (int)PORT_HASH(port);
   c = 0;
-  /* TODO lock */
+  Sg_LockMutex(&active_buffered_ports.lock);
   while (!SG_FALSEP(Sg_WeakVectorRef(active_buffered_ports.ports,
 				     i, SG_FALSE))) {
     i -= ++c; while (i < 0) i += PORT_VECTOR_SIZE;
@@ -154,7 +155,7 @@ static void register_buffered_port(SgPort *port)
   if (!need_gc) {
     Sg_WeakVectorSet(active_buffered_ports.ports, i, SG_OBJ(port));
   }
-
+  Sg_UnlockMutex(&active_buffered_ports.lock);
   if (need_gc) {
     if (tried_gc) {
       Sg_Panic("active buffered port table overflow.");
@@ -1444,7 +1445,7 @@ void Sg_FlushAllPort(int exitting)
   ports = active_buffered_ports.ports;
 
   for (i = 0; i < PORT_VECTOR_SIZE;) {
-    /* TODO lock */
+    Sg_LockMutex(&active_buffered_ports.lock);
     for (; i < PORT_VECTOR_SIZE; i++) {
       p = Sg_WeakVectorRef(ports, i, SG_FALSE);
       if (SG_PORTP(p)) {
@@ -1454,21 +1455,23 @@ void Sg_FlushAllPort(int exitting)
 	break;
       }
     }
+    Sg_UnlockMutex(&active_buffered_ports.lock);
     if (SG_PORTP(p)) {
       if (SG_PORT(p)->flush)	/* I don't think I need this, but just in case */
 	SG_PORT(p)->flush(p);
     }
   }
   if (!exitting && saved) {
-    /* TODO lock */
+    Sg_LockMutex(&active_buffered_ports.lock);
     for (i = 0; i < PORT_VECTOR_SIZE; i++) {
       p = Sg_VectorRef(save, i, SG_FALSE);
       if (SG_PORTP(p)) Sg_WeakVectorSet(ports, i, p);
     }
+    Sg_UnlockMutex(&active_buffered_ports.lock);
   }
 }
 
-/* TODO port lock */
+
 int Sg_Getb(SgPort *port)
 {
   int b;
@@ -1937,7 +1940,7 @@ SgObject Sg_StandardErrorPort()
 void Sg__InitPort()
 {
   SgVM *vm = Sg_VM();
-  /* TODO lock */
+  Sg_InitMutex(&active_buffered_ports.lock, FALSE);
   active_buffered_ports.ports = SG_WEAK_VECTOR(Sg_MakeWeakVector(PORT_VECTOR_SIZE));
 
   sg_stdin = Sg_MakeFileBinaryInputPort(Sg_StandardIn(), SG_BUFMODE_NONE);

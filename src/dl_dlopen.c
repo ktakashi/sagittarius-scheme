@@ -1,6 +1,6 @@
 /* -*- C -*- */
 /*
- * load.h
+ * dl_dlopen.c
  *
  *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
  *
@@ -29,19 +29,26 @@
  *
  *  $Id: $
  */
-#ifndef SAGITTARIUS_LOAD_H_
-#define SAGITTARIUS_LOAD_H_
+#include <dlfcn.h>
 
-#include "sagittariusdefs.h"
+static void* dl_open(const SgString *path)
+{
+  int flags = RTLD_NOW|RTLD_GLOBAL;
+  const char *cpath = Sg_Utf32sToUtf8s(path);
+  return dlopen(cpath, flags);
+}
 
-SG_CDECL_BEGIN
+static const SgString* dl_error()
+{
+  return Sg_MakeStringC(dlerror());
+}
 
-SG_EXTERN int      Sg_Load(SgString *path);
-SG_EXTERN SgObject Sg_VMLoad(SgString *path);
-SG_EXTERN SgObject Sg_VMLoadFromPort(SgPort *port);
+static SgDynLoadInitFn dl_sym(void *handle, const char *name)
+{
+  return (SgDynLoadInitFn)dlsym(handle, name);
+}
 
-SG_EXTERN SgObject Sg_DynLoad(SgString *filename, SgObject initfn, unsigned long flags);
-
-SG_CDECL_END
-
-#endif /* SAGITTARIUS_LOAD_H_ */
+static void dl_close(void *handle)
+{
+  dlclose(handle);
+}

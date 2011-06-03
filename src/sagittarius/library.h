@@ -33,6 +33,7 @@
 #define SAGITTARIUS_LIBRARY_H_
 
 #include "sagittariusdefs.h"
+#include "thread.h"
 
 struct SgLibraryRec
 {
@@ -43,6 +44,7 @@ struct SgLibraryRec
   SgObject     version;		/* library version */
   SgObject     generics;	/* user defined class */
   SgHashTable *table;		/* library inside */
+  SgInternalMutex lock;
 };
 
 #define SG_LIBRARY(obj)  ((SgLibrary*)(obj))

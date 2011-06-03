@@ -44,6 +44,7 @@
 #include "sagittarius/transcoder.h"
 #include "sagittarius/writer.h"
 #include "sagittarius/vm.h"
+#include "sagittarius/thread.h"
 
 static SgObject load_after(SgObject *args, int argc, void *data)
 {
@@ -85,17 +86,11 @@ SgObject Sg_VMLoad(SgString *path)
   SgVM *vm = Sg_VM();
 
   if (!Sg_FileExistP(path)) {
-    SgObject dir;
-    const SgObject sep = Sg_MakeString(Sg_NativeFileSeparator(), SG_LITERAL_STRING);
-    SG_FOR_EACH(dir, vm->loadPath) {
-      realPath = Sg_StringAppend(SG_LIST3(SG_CAR(dir),
-					  sep,
-					  path));
-      if (Sg_FileExistP(SG_STRING(realPath))) {
-	path = SG_STRING(realPath);
-	break;
-      }
+    realPath = Sg_FindFile(path, vm->loadPath, NULL, FALSE);
+    if (SG_FALSEP(realPath)) {
+      Sg_Error(UC("no such file on load-path %S"), path);
     }
+    path = realPath;
   }
 
   file = Sg_OpenFile(path, SG_READ);
@@ -112,11 +107,23 @@ SgObject Sg_VMLoad(SgString *path)
   return Sg_VMLoadFromPort(SG_PORT(tport));
 }
 
+static SgInternalMutex load_lock = { NULL };
+static SgInternalMutex dso_lock = { NULL };
+
+#define INIT_LOCK(lock)				\
+  do {						\
+    if (!(lock).mutex) {			\
+      Sg_InitMutex(&lock, TRUE);		\
+    }						\
+  } while (0)
+
 int Sg_Load(SgString *path)
 {
   static SgObject load_stub = SG_UNDEF;
+  INIT_LOCK(load_lock);
   if (SG_UNDEFP(load_stub)) {
     SgObject gloc;
+    Sg_LockMutex(&load_lock);
     gloc = Sg_FindBinding(SG_INTERN("(sagittarius)"),
 			  SG_INTERN("load"),
 			  SG_UNBOUND);
@@ -124,7 +131,198 @@ int Sg_Load(SgString *path)
       Sg_Panic("load was not found.");
     }
     load_stub = SG_GLOC_GET(SG_GLOC(gloc));
+    Sg_UnlockMutex(&load_lock);
   }
   Sg_Apply1(load_stub, path);
   return 0;
+}
+
+/*
+  DynLoad
+
+  load shared objects
+ */
+
+typedef struct dlobj_rec dlobj;
+typedef struct dlobj_initfn_rec dlobj_initfn;
+typedef void (*SgDynLoadInitFn)(void);
+
+static struct
+{
+  dlobj *dso_list;
+} dynldinfo = { (dlobj*)&dynldinfo, };
+
+struct dlobj_initfn_rec
+{
+  struct dlobj_initfn *next;
+  const char *name;
+  SgDynLoadInitFn fn;
+  int initialized;
+};
+
+struct dlobj_rec
+{
+  dlobj *next;
+  const SgString *path;
+  int loaded;
+  void *handle;
+  SgVM *loader;
+  dlobj_initfn *initfns;
+  SgInternalMutex mutex;
+  SgInternalCond  cv;
+};
+
+
+static dlobj* find_dlobj(SgString *path)
+{
+  dlobj *z = NULL;
+  Sg_LockMutex(&dso_lock);
+  for (z = dynldinfo.dso_list; z; z = z->next) {
+    if (Sg_StringEqual(z->path, path)) break;
+  }
+  if (z == NULL) {
+    z = SG_NEW(dlobj);
+    z->path = path;
+    z->loader = NULL;
+    z->loaded = FALSE;
+    z->initfns = NULL;
+    Sg_InitMutex(&z->mutex, FALSE);
+    Sg_InitCond(&z->cv);
+    z->next = dynldinfo.dso_list;
+    dynldinfo.dso_list = z;
+  }
+  Sg_UnlockMutex(&dso_lock);
+  return z;
+}
+
+static void lock_dlobj(dlobj *dlo)
+{
+  SgVM *vm = Sg_VM();
+  Sg_LockMutex(&dlo->mutex);
+  while (dlo->loader != vm) {
+    if (dlo->loader == NULL) break;
+    Sg_Wait(&dlo->cv, &dlo->mutex);
+  }
+  dlo->loader = vm;
+  Sg_UnlockMutex(&dlo->mutex);
+}
+
+static void unlock_dlobj(dlobj *dlo)
+{
+  Sg_LockMutex(&dlo->mutex);
+  dlo->loader = NULL;
+  Sg_NotifyAll(&dlo->cv);
+  Sg_UnlockMutex(&dlo->mutex);
+}
+
+const char* get_initfn_name(SgObject initfn, SgString *dsopath)
+{
+  /* TODO we might want to derive dynload init function */
+  if (SG_STRINGP(initfn)) {
+    SgObject _initfn = Sg_StringAppend2(SG_STRING(Sg_MakeString(UC("_"), SG_LITERAL_STRING)),
+					SG_STRING(initfn));
+    return Sg_Utf32sToUtf8s(SG_STRING(_initfn));
+  } else {
+    Sg_Error(UC("derivation is not supported yet."));
+  }
+}
+
+#ifdef HAVE_DLFCN_H
+# include "dl_dlopen.c"
+#elif _MSC_VER
+# include "dl_win.c"
+#else
+# include "dl_dummy.c"
+#endif
+
+static void load_dlo(dlobj *dlo)
+{
+  SgVM *vm = Sg_VM();
+  if (SG_VM_LOG_LEVEL(Sg_VM(), SG_INFO_LEVEL)) {
+    Sg_Printf(vm->logPort, UC("Dynamically Loading %S...\n"), dlo->path);
+  }
+  dlo->handle = dl_open(dlo->path);
+  if (dlo->handle == NULL) {
+    const SgString *err = dl_error();
+    if (err == NULL) {
+      Sg_Error("failed to link %S dynamically", dlo->path);
+    } else {
+      Sg_Error("failed to link %S dynamically: %S", dlo->path, err);
+    }
+  }
+  dlo->loaded = TRUE;
+}
+
+static dlobj_initfn* find_initfn(dlobj *dlo, const char *name)
+{
+  dlobj_initfn *fns = dlo->initfns;
+  for (; fns != NULL; fns = fns->next) {
+    if (strcmp(name, fns->name) == 0) return fns;
+  }
+  fns = SG_NEW(dlobj_initfn);
+  fns->name = name;
+  fns->fn = NULL;
+  fns->initialized = FALSE;
+  fns->next = dlo->initfns;
+  dlo->initfns = fns;
+  return fns;
+}
+
+static void call_initfn(dlobj *dlo, const char *name)
+{
+  dlobj_initfn *ifn = find_initfn(dlo, name);
+  
+  if (ifn->initialized) return;
+  if (!ifn->fn) {
+    ifn->fn = dl_sym(dlo->handle, name + 1);
+    if (ifn->fn == NULL) {
+      ifn->fn = (void(*)(void))dl_sym(dlo->handle, name);
+      if (ifn->fn == NULL) {
+	dl_close(dlo->handle);
+	dlo->handle = NULL;
+	Sg_Error(UC("dynamic linking of %S failed: "
+		    "couldn't find initialization function %S"),
+		 dlo->path, Sg_MakeStringC(name));
+      }
+    }
+  }
+  ifn->fn();
+  ifn->initialized = TRUE;
+}
+
+/* .dll or .so loader */
+SgObject Sg_DynLoad(SgString *filename, SgObject initfn, unsigned long flags)
+{
+  static SgString *dso_suffix = NULL;
+  SgVM *vm = Sg_VM();  
+  SgObject spath;
+  const char *initname;
+  dlobj *dlo;
+  INIT_LOCK(dso_lock);
+  if (!dso_suffix) {
+    Sg_LockMutex(&dso_lock);
+    dso_suffix = Sg_MakeString(SHLIB_SO_SUFFIX, SG_LITERAL_STRING);
+    Sg_UnlockMutex(&dso_lock);
+  }
+  spath = Sg_FindFile(filename, vm->loadPath, dso_suffix, TRUE);
+  if (SG_FALSEP(spath)) {
+    Sg_Error(UC("can't find dlopen-able library %S"), filename);
+  }
+  initname = get_initfn_name(initfn, SG_STRING(spath));
+  dlo = find_dlobj(spath);
+
+  lock_dlobj(dlo);
+  if (!dlo->loaded) {
+    SG_UNWIND_PROTECT { load_dlo(dlo); }
+    SG_WHEN_ERROR{ unlock_dlobj(dlo); SG_NEXT_HANDLER; }
+    SG_END_PROTECT;
+  }
+  ASSERT(dlo->loaded);
+
+  SG_UNWIND_PROTECT { call_initfn(dlo, initname); }
+  SG_WHEN_ERROR{ unlock_dlobj(dlo); SG_NEXT_HANDLER; }
+  SG_END_PROTECT;
+
+  unlock_dlobj(dlo);
+  return SG_TRUE;
 }

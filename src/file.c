@@ -42,6 +42,7 @@
 #include "sagittarius/writer.h"
 #include "sagittarius/vm.h"
 #include "sagittarius/library.h"
+#include "sagittarius/system.h"
 
 #if 0
 static SgObject make_file_options()
@@ -175,7 +176,31 @@ void Sg__InitFile()
 }
 #endif
 
-
+SgObject Sg_FindFile(SgString *path, SgObject loadPaths,
+		     SgString *suffix, int quiet)
+{
+  SgObject dir;
+  SgObject realPath;
+  const SgObject sep = Sg_MakeString(Sg_NativeFileSeparator(), SG_LITERAL_STRING);
+  SG_FOR_EACH(dir, loadPaths) {
+    if (suffix) {
+      realPath = Sg_StringAppend(SG_LIST4(SG_CAR(dir),
+					  sep,
+					  path,
+					  suffix));
+    } else {
+      realPath = Sg_StringAppend(SG_LIST3(SG_CAR(dir),
+					  sep,
+					  path));
+    }
+    if (Sg_FileExistP(SG_STRING(realPath))) {
+      return realPath;
+    } else if (!quiet) {
+      Sg_Error(UC("given file was not found %S"), path);
+    }
+  }
+  return SG_FALSE;
+}
 
 void Sg__InitFile()
 {

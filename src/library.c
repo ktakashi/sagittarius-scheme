@@ -45,6 +45,7 @@
 #include "sagittarius/system.h"
 #include "sagittarius/gloc.h"
 #include "sagittarius/compare.h"
+#include "sagittarius/thread.h"
 
 
 static SgLibrary* make_library()
@@ -56,6 +57,7 @@ static SgLibrary* make_library()
   z->exported = SG_FALSE;
   z->generics = SG_NIL;
   z->version = SG_NIL;
+  Sg_InitMutex(&z->lock, FALSE);
   return z;
 }
 
@@ -115,14 +117,25 @@ static SgSymbol* convert_name_to_symbol(SgObject name)
 
 SgObject Sg_MakeLibrary(SgObject name)
 {
+  static SgInternalMutex mutex = { NULL };
   SgLibrary *z = make_library();
   SgVM *vm = Sg_VM();
   /* TODO if it's from Sg_FindLibrary, this is processed twice. */
   SgObject id_version = library_name_to_id_version(name);
+
+  /* This method is called in Sg_Init() to create builtin libraries.
+     So we don't have to consider mutlti thread to create mutex.
+   */
+  if (!mutex.mutex) {
+    Sg_InitMutex(&mutex, TRUE);
+  }
+
   z->name = convert_name_to_symbol(SG_CAR(id_version));
   z->version = SG_CDR(id_version);
-  /* TODO lock */
+
+  Sg_LockMutex(&mutex);
   Sg_HashTableSet(SG_VM_LIBRARIES(vm), z->name, z, SG_HASH_NO_OVERWRITE);
+  Sg_UnlockMutex(&mutex);
   return SG_OBJ(z);
 }
 
@@ -422,7 +435,7 @@ SgGloc* Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
   SgObject v;
   SgObject oldval = SG_UNDEF;
   int prev_const = FALSE;
-  /* TODO lock */
+  Sg_LockMutex(&lib->lock);
   v = Sg_HashTableRef(lib->table, SG_OBJ(symbol), SG_FALSE);
   if (SG_GLOCP(v)) {
     g = SG_GLOC(v);
@@ -433,7 +446,7 @@ SgGloc* Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
     Sg_HashTableSet(lib->table, SG_OBJ(symbol), SG_OBJ(g), 0);
     /* TODO refactor export mechanism */
   }
-  /* TODO unlock */
+  Sg_UnlockMutex(&lib->lock);
 
   SG_GLOC_SET(g, value);
   /* NB: for now, only TRUE or FALSE */

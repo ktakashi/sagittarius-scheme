@@ -92,12 +92,13 @@ void Sg_Write(SgObject obj, SgObject p, int mode)
   ctx.flags = 0;
   ctx.sharedId = 0;
 
-  /* TODO port lock */
+  SG_PORT_LOCK(port);
   if (SG_WRITE_MODE(&ctx) == SG_WRITE_SHARED) {
     write_ss(obj, port, &ctx);
   } else {
     write_ss_rec(obj, port, &ctx);
   }
+  SG_PORT_UNLOCK(port);
 }
 
 int Sg_WriteCircular(SgObject obj, SgObject port, int mode, int width)
@@ -122,8 +123,9 @@ int Sg_WriteCircular(SgObject obj, SgObject port, int mode, int width)
   ctx.sharedId = 0;
 
   if (width <= 0) {
-    /* TODO lock */
+    SG_PORT_LOCK(SG_PORT(port));
     format_write(obj, SG_PORT(port), &ctx, TRUE);
+    SG_PORT_UNLOCK(SG_PORT(port));
     return 0;
   }
 
@@ -488,7 +490,7 @@ static void format_proc(SgPort *port, SgString *fmt, SgObject args, int sharedp)
 void Sg_Format(SgPort *port, SgString *fmt, SgObject args, int ss)
 {
   SgPort *out;
-  /* TODO lock */
+
   if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
   }
@@ -500,7 +502,9 @@ void Sg_Format(SgPort *port, SgString *fmt, SgObject args, int ss)
     /* for now I assume it's a textual port */
     out = SG_PORT(port);
   }
+  SG_PORT_LOCK(out);
   format_proc(out, fmt, args, ss);
+  SG_PORT_UNLOCK(out);
 }
 
 void Sg_Printf(SgPort *port, const SgChar *fmt, ...)
@@ -1494,8 +1498,9 @@ void Sg_Vprintf(SgPort *port, const SgChar *fmt, va_list sp, int sharedp)
       break;
     }
   }
-  /* TODO lock the port */
+  SG_PORT_LOCK(out);
   vprintf_proc(out, fmt, h, sharedp);
+  SG_PORT_UNLOCK(out);
 }
 
 SgObject Sg_Sprintf(const SgChar *fmt, ...)
