@@ -95,22 +95,37 @@ struct SgInstanceRec
 
 
 /* I'm not sure if here is good location to put UserDef */
-typedef void SgMetaObjectPrinter(SgPort *p, SgObject self);
+typedef void SgMetaObjectPrinter(SgPort *p, SgObject self, SgWriteContext *ctx);
 typedef struct SgMetaObjectRec
 {
-  SG_HEADER;
+  /* for now only printer */
   SgMetaObjectPrinter *printer;
 } SgMetaObject;
 
+typedef struct SgMetaHeaderRec
+{
+  SG_HEADER;
+  SgMetaObject *meta;
+} SgMetaHeader;
+
+#define SG_META_HEADER SgMetaHeader hdr
+#define SG_METAHDR(obj) ((SgMetaHeader *)obj)
 /* this must be used for extension modules.
    so i think i don't have to consider VC's __impl_ problem.
  */
 #define SG_META_OBJ(obj)   ((SgMetaObject *)obj)
-#define SG_META_OBJ_P(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_USER_DEF)
-#define SG_DECLARE_META_OBJ(meta) extern SgMetaObject meta
-#define SG_SET_META_OBJ(obj, meta) (SG_HDR(obj) = (meta))
-#define SG_META_OBJ_TYPE(obj, type) (SG_HDR(obj) == (type))
-  
+#define SG_META_OBJ_P(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_USER_DEF))
+#define SG_DECLARE_META_OBJ(meta)   extern SgMetaObject meta
+#define SG_SET_META_OBJ(obj, meta_)		\
+  do {						\
+    SG_SET_HEADER(obj, TC_USER_DEF);		\
+    SG_METAHDR(obj)->meta = (meta_);		\
+  } while (0)
+
+#define SG_GET_META_OBJ(obj)          (SG_METAHDR(obj)->meta)
+#define SG_META_OBJ_TYPE_P(obj, type) (SG_HDR(obj) == (type))
+#define SG_INIT_META_OBJ(name, printer)		\
+  SgMetaObject (name) = { (printer) }
 
 SG_CDECL_BEGIN
 

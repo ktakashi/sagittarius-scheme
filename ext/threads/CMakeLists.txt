@@ -3,7 +3,7 @@
 # Build file for threads
 
 ADD_LIBRARY(sagittarius--threads MODULE
-  threads.c threads_stub.c)
+  threads.c threads_stub.c mutex.c)
 
 SET_TARGET_PROPERTIES(sagittarius--threads PROPERTIES PREFIX "")
 

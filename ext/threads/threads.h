@@ -36,7 +36,7 @@
 
 typedef struct SgConditionVariableRec
 {
-  SG_HEADER;
+  SG_META_HEADER;
   SgInternalCond cv;
   SgObject name;
   SgObject specific;
@@ -45,11 +45,11 @@ typedef struct SgConditionVariableRec
 SG_DECLARE_META_OBJ(Sg_ConditionVariableMeta);
 #define SG_META_CONDITION_VARIABLE (&Sg_ConditionVariableMeta)
 #define SG_CONDITION_VARIABLE(obj) ((SgConditionVariable *)obj)
-#define SG_CONDITION_VARIABLE_P(obj) SG_META_OBJ_TYPE(obj, SG_META_CONDITION_VARIABLE)
+#define SG_CONDITION_VARIABLE_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_CONDITION_VARIABLE)
 
 typedef struct SgMutexRec
 {
-  SG_HEADER;
+  SG_META_HEADER;
   SgInternalMutex mutex;
   SgInternalCond  cv;
   SgObject name;
@@ -59,9 +59,9 @@ typedef struct SgMutexRec
 } SgMutex;
 
 SG_DECLARE_META_OBJ(Sg_MutexMeta);
-#define SG_META_MUTEX     (&Sg_Meta_Mutex)
+#define SG_META_MUTEX     (&Sg_MutexMeta)
 #define SG_MUTEX(obj)     ((SgMutex *)obj)
-#define SG_MUTEX_P(obj)   SG_META_OBJ_TYPE(obj, SG_META_MUTEX)
+#define SG_MUTEX_P(obj)   SG_META_OBJ_TYPE_P(obj, SG_META_MUTEX)
 
 SG_CDECL_BEGIN
 /*
@@ -81,6 +81,7 @@ SgObject Sg_ConditionVariableSignal(SgConditionVariable *cond);
 SgObject Sg_ConditionVariableBroadcast(SgConditionVariable *cond);
 
 SgObject Sg_MakeMutex(SgObject name);
+SgObject Sg_MutexState(SgMutex *mutex);
 SgObject Sg_MutexLock(SgMutex *mutex, SgObject timeout, SgVM *owner);
 SgObject Sg_MutexUnlock(SgMutex *mutex, SgConditionVariable *cv, SgObject timeout);
 

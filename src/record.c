@@ -202,12 +202,14 @@ SgObject Sg_MakeRecordTypeDescriptor(SgSymbol *name, SgObject parent, SgObject u
 	Sg_AssertionViolation(SG_INTERN("make-record-type-descriptor"),
 					Sg_MakeString(UC("attempt to extend a sealed record-type"), SG_LITERAL_STRING),
 					parent);
+	return SG_UNDEF;	/* dummy */
       }
     } else {
       Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-record-type-descriptor"),
 				      Sg_MakeString(UC("record-type-descriptor or #f"), SG_LITERAL_STRING),
 				      parent,
 				      L6(name, parent, uid, SG_MAKE_BOOL(sealedP), SG_MAKE_BOOL(opaqueP), fields));
+      return SG_UNDEF;	/* dummy */
     }
   }
   opaque = (opaqueP) ? opaqueP
@@ -230,6 +232,7 @@ SgObject Sg_MakeRecordTypeDescriptor(SgSymbol *name, SgObject parent, SgObject u
       Sg_AssertionViolation(SG_INTERN("make-record-type-descriptor"),
 			    Sg_MakeString(UC("malformed field specifiers"), SG_LITERAL_STRING),
 			    fields);
+      return SG_UNDEF;	/* dummy */
     }
   }
   fieldsImpl = Sg_ReverseX(fieldsImpl);
@@ -248,6 +251,7 @@ SgObject Sg_MakeRecordTypeDescriptor(SgSymbol *name, SgObject parent, SgObject u
 			      Sg_MakeString(UC("mismatched subsequent call for nongenerative record-type"),
 					    SG_LITERAL_STRING),
 			      L6(name, parent, uid, SG_MAKE_BOOL(sealedP), SG_MAKE_BOOL(opaqueP), fields));
+	return SG_UNDEF;	/* dummy */
       }
     } else {
       Sg_HashTableSet(nongeneratove_record_types, uid, rtd, 0);

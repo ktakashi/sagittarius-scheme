@@ -791,7 +791,25 @@ static void write_code_builder(SgCodeBuilder *cb, SgPort *port, SgWriteContext *
 static void write_hashtable(SgHashTable *ht, SgPort *port, SgWriteContext *ctx)
 {
   Sg_PutuzUnsafe(port, UC("#<hashtable "));
-  /* TODO maybe type or something? */
+  switch (ht->type) {
+  case SG_HASH_EQ:
+    Sg_PutuzUnsafe(port, UC("eq?"));
+    break;
+  case SG_HASH_EQV:
+    Sg_PutuzUnsafe(port, UC("eqv?"));
+    break;
+  case SG_HASH_EQUAL:
+    Sg_PutuzUnsafe(port, UC("equal?"));
+    break;
+  case SG_HASH_STRING:
+    Sg_PutuzUnsafe(port, UC("string=?"));
+    break;
+  case SG_HASH_GENERAL:
+    Sg_Write(port, SG_HASHTABLE_CORE(ht)->generalHasher, SG_WRITE_MODE(ctx));
+    Sg_PutcUnsafe(port, ' ');
+    Sg_Write(port, SG_HASHTABLE_CORE(ht)->generalCompare, SG_WRITE_MODE(ctx));
+    break;
+  }
   Sg_PutcUnsafe(port, '>');
 }
 
@@ -994,6 +1012,15 @@ static void write_codec(SgCodec *c, SgPort *port, SgWriteContext *ctx)
   Sg_PutcUnsafe(port, '>');
 }
 
+static void write_meta_obj(SgObject *m, SgPort *port, SgWriteContext *ctx)
+{
+  if (SG_GET_META_OBJ(m)->printer) {
+    SG_GET_META_OBJ(m)->printer(port, m, ctx);
+  } else {
+    Sg_PutuzUnsafe(port, UC("#<ext-obj>"));
+  }
+}
+
 
 #define SPBUFSIZ  50
 #define CASE_ITAG(obj, str)				\
@@ -1076,6 +1103,7 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
       }
     }
   }
+
   if (SG_PAIRP(obj)) {
     /* special case for quote etc */
     if (SG_PAIRP(SG_CDR(obj)) && SG_NULLP(SG_CDDR(obj))) {
@@ -1175,6 +1203,8 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
     write_transcoder(SG_TRANSCODER(obj), port, ctx);
   } else if (SG_CODECP(obj)) {
     write_codec(SG_CODEC(obj), port, ctx);
+  } else if (SG_META_OBJ_P(obj)) {
+    write_meta_obj(obj, port, ctx);
   } else {
     Sg_PutuzUnsafe(port, UC("#<unknown datum>"));
   }

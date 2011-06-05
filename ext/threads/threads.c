@@ -114,9 +114,11 @@ SgObject Sg_ThreadTerminate(SgVM *vm)
 }
 
 extern void Sg__Init_sagittarius_threads();
+extern void Sg__InitMutex();
 
 void Sg__Init_threads()
 {
+  Sg__InitMutex();
   Sg__Init_sagittarius_threads();
   SG_PROCEDURE_NAME(&thread_error_handler_STUB)
     = Sg_MakeString(UC("thread-exception-handler"), SG_LITERAL_STRING);
