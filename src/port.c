@@ -218,6 +218,8 @@ static int file_close(SgObject self)
 static void file_flush_internal(SgObject self)
 {
   uint8_t *buf = SG_BINARY_PORT(self)->buffer;
+  /* for shared buffered port such as stdout */
+  SG_PORT_LOCK(SG_PORT(self));
   while (SG_BINARY_PORT(self)->bufferIndex > 0) {
     int64_t written_size = SG_PORT_FILE(self)->write(SG_PORT_FILE(self),
 						     buf,
@@ -229,6 +231,7 @@ static void file_flush_internal(SgObject self)
   ASSERT(SG_BINARY_PORT(self)->bufferIndex == 0);
   SG_BINARY_PORT(self)->bufferIndex = 0;
   SG_BINARY_PORT(self)->bufferSize = 0;
+  SG_PORT_UNLOCK(SG_PORT(self));
 }
 
 static void file_flush(SgObject self)
@@ -513,7 +516,7 @@ SgObject Sg_MakeFileBinaryOutputPort(SgFile *file, int bufferMode)
   ASSERT(file->isOpen(file));
 
   z->closed = FALSE;
-  z->flush = file_flush_internal; /* TODO rename. */
+  z->flush = file_flush; /* TODO rename. */
   z->close = file_close;
 
   b->src.file = file;
@@ -1943,7 +1946,7 @@ void Sg__InitPort()
   Sg_InitMutex(&active_buffered_ports.lock, FALSE);
   active_buffered_ports.ports = SG_WEAK_VECTOR(Sg_MakeWeakVector(PORT_VECTOR_SIZE));
 
-  sg_stdin = Sg_MakeFileBinaryInputPort(Sg_StandardIn(), SG_BUFMODE_NONE);
+  sg_stdin  = Sg_MakeFileBinaryInputPort(Sg_StandardIn(), SG_BUFMODE_NONE);
   sg_stdout = Sg_MakeFileBinaryOutputPort(Sg_StandardOut(), SG_BUFMODE_LINE);
   sg_stderr = Sg_MakeFileBinaryOutputPort(Sg_StandardError(), SG_BUFMODE_NONE);
 

@@ -146,10 +146,10 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->flags = proto? proto->flags : 0;
   v->currentInputPort = proto 
     ? proto->currentInputPort
-    :Sg_MakeTranscodedInputPort(Sg_StandardInputPort(),
-				Sg_IsUTF16Console(Sg_StandardIn())
-				? Sg_MakeNativeConsoleTranscoder()
-				: Sg_MakeNativeTranscoder());
+    : Sg_MakeTranscodedInputPort(Sg_StandardInputPort(),
+				 Sg_IsUTF16Console(Sg_StandardIn())
+				 ? Sg_MakeNativeConsoleTranscoder()
+				 : Sg_MakeNativeTranscoder());
   v->currentOutputPort = proto
     ? proto->currentOutputPort
     : Sg_MakeTranscodedOutputPort(Sg_StandardOutputPort(),
