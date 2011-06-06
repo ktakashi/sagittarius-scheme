@@ -32,6 +32,7 @@
 	    add-load-path load
 	    gensym unwrap-syntax wrap-syntax
 	    current-dynamic-environment
+	    add-dynamic-load-path
 	    load-dynamic-library
 
 	    ;; hashtable
@@ -206,6 +207,9 @@
 	(begin
 	  (set! (-> (Sg_VM) parameters) other)
 	  (result SG_UNDEF))))
+
+  (define-c-proc add-dynamic-load-path (path::String) ::Object
+    (result (Sg_AddDynamicLoadPath path)))
 
   (define-c-proc load-dynamic-library (name::String :optional init) ::Object
     (result (Sg_DynLoad name init 0)))

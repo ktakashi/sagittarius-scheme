@@ -90,8 +90,28 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 {
   SgVM *v = SG_NEW(SgVM);
   int i;
+  SgWord *callCode = SG_NEW_ARRAY(SgWord, 2);
+  SgWord *applyCode = SG_NEW_ARRAY(SgWord,  7);
+
+  SgCodeBuilder *closureForEvaluateCode = Sg_MakeCodeBuilder(-1);
   SG_SET_HEADER(v, TC_VM);
+
+  applyCode[0] = SG_WORD(FRAME);
+  applyCode[1] = SG_WORD(SG_MAKE_INT(6));
+  applyCode[2] = SG_WORD(CONST_PUSH);
+  applyCode[3] = SG_WORD(SG_UNDEF);
+  applyCode[4] = SG_WORD(CONST);
+  applyCode[5] = SG_WORD(SG_UNDEF);
+  applyCode[6] = SG_WORD(MERGE_INSN_VALUE1(APPLY, 2));
+  applyCode[7] = SG_WORD(HALT);
+
+  v->applyCode = applyCode;
+  v->callCode = callCode;
  
+  closureForEvaluateCode->src = Sg_MakeString(UC("<top-level>"), SG_LITERAL_STRING);
+  closureForEvaluateCode->name = SG_INTERN("closure-for-evaluate-code");
+  v->closureForEvaluate = Sg_MakeClosure(closureForEvaluateCode, NULL);
+
   v->name = name;
   v->threadState = SG_VM_NEW;
   v->stack = SG_NEW_ARRAY(SgObject, SG_VM_STACK_SIZE);
@@ -151,6 +171,8 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->canceller = NULL;
   v->thunk = NULL;
   v->specific = SG_FALSE;
+  v->result = SG_UNDEF;
+  v->resultException = SG_UNDEF;
   return v;
 }
 
@@ -1094,6 +1116,13 @@ SgObject Sg_AddLoadPath(SgString *path)
   return vm->loadPath;
 }
 
+SgObject Sg_AddDynamicLoadPath(SgString *path)
+{
+  SgVM *vm = Sg_VM();
+  vm->dynamicLoadPath = Sg_Append2X(SG_LIST1(path), vm->dynamicLoadPath);
+  return vm->dynamicLoadPath;
+}
+
 /* returns alist of stack trace. */
 SgObject Sg_GetStackTrace()
 {
@@ -1758,20 +1787,6 @@ SgObject run_loop()
 
 void Sg__InitVM()
 {  
-  SgWord *callCode = SG_NEW_ARRAY(SgWord, 2);
-  SgWord *applyCode = SG_NEW_ARRAY(SgWord,  7);
-
-  SgCodeBuilder *closureForEvaluateCode = Sg_MakeCodeBuilder(-1);
-
-  applyCode[0] = SG_WORD(FRAME);
-  applyCode[1] = SG_WORD(SG_MAKE_INT(6));
-  applyCode[2] = SG_WORD(CONST_PUSH);
-  applyCode[3] = SG_WORD(SG_UNDEF);
-  applyCode[4] = SG_WORD(CONST);
-  applyCode[5] = SG_WORD(SG_UNDEF);
-  applyCode[6] = SG_WORD(MERGE_INSN_VALUE1(APPLY, 2));
-  applyCode[7] = SG_WORD(HALT);
-
   /* TODO multi thread and etc */
 #ifdef _MSC_VER
   rootVM = theVM = Sg_NewVM(NULL, Sg_MakeString(UC("root"), SG_LITERAL_STRING));
@@ -1786,20 +1801,15 @@ void Sg__InitVM()
 #endif
   rootVM->thread = Sg_CurrentThread();
   rootVM->threadState = SG_VM_RUNNABLE;
-  rootVM->applyCode = applyCode;
-  rootVM->callCode = callCode;
   rootVM->libraries = Sg_MakeHashTableSimple(SG_HASH_EQ, 64);
   rootVM->currentLibrary = Sg_FindLibrary(SG_INTERN("user"), TRUE);
-
-  closureForEvaluateCode->src = Sg_MakeString(UC("<top-level>"), SG_LITERAL_STRING);
-  closureForEvaluateCode->name = SG_INTERN("closure-for-evaluate-code");
-  rootVM->closureForEvaluate = Sg_MakeClosure(closureForEvaluateCode, NULL);
 
   /* initialization is not here. in reader.c */
   rootVM->defaultConstructors = SG_NIL;
 
   /* load path */
   rootVM->loadPath = Sg_GetDefaultLoadPath();
+  rootVM->dynamicLoadPath = Sg_GetDefaultDynamicLoadPath();
 
   SG_PROCEDURE_NAME(&default_exception_handler_rec) = Sg_MakeString(UC("default-exception-handler"),
 								    SG_LITERAL_STRING);

@@ -98,6 +98,10 @@ void Sg_Init()
 
   /* (sagittarius) library is not provided by file. so create it here */
   Sg_FindLibrary(SG_INTERN("(sagittarius)"), TRUE);
+  /* for (core syntax-case) we need compler library to create global id.
+     so create it here
+   */
+  Sg_FindLibrary(SG_INTERN("(sagittarius compiler)"), TRUE);
 
   Sg__InitInstruction();
   Sg__Initnull();
@@ -127,7 +131,7 @@ void Sg_Init()
   Sg_ImportLibrary(Sg_VM()->currentLibrary, SG_OBJ(SG_INTERN("(sagittarius)")));
 
 #if 1
-  /* why do we need thig? */
+  /* why do we need this? */
   Sg_ImportLibrary(SG_OBJ(SG_INTERN("(sagittarius compiler)")),
 		   SG_OBJ(SG_INTERN("null")));
   Sg_ImportLibrary(SG_OBJ(SG_INTERN("(sagittarius compiler)")),

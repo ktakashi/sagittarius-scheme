@@ -183,17 +183,18 @@ static int getopt_long(int argc, char **argv, const char *optstring,
 static void show_usage()
 {
   fprintf(stderr,
-	  "Usage: sash [-hv][-L<path>][--debug-exec=<flags>][--logport=<file>]\n"
+	  "Usage: sash [-hv][-L<path>][-D<path>][--debug-exec=<flags>][-p<file> or --logport=<file>]\n"
 	  "options:\n"
 	  "  -v          Prints version and exits.\n"
 	  "  -h          Prints this usage and exits.\n"
 	  "  -L<path>    Adds <path> to the head of the load path list.\n"
+	  "  -D<path>    Adds <path> to the head of the dynamic load path list.\n"
 	  "  --debug-exec=<flags> Sets <flags> for VM debugging.\n"
 	  "    info        Shows loading files.\n"
 	  "    debug       Shows info level + calling function names.\n"
 	  "    trace       Shows info debug + stack frames.\n"
-	  "  --logport=<file>     Sets <file> as log port. This port will be\n"
-	  "                       used for above option's."
+	  "  -p<file> --logport=<file> Sets <file> as log port. This port will be\n"
+	  "                            used for above option's."
 	  );
   exit(1);
 }
@@ -223,6 +224,7 @@ int main(int argc, char **argv)
 
   static struct option long_options[] = {
     {"loadpath", optional_argument, 0, 'L'},
+    {"dynloadpath", optional_argument, 0, 'D'},
     {"help", 0, 0, 'h'},
     {"version", 0, 0, 'v'},
     {"debug-exec", optional_argument, 0, 'd'},
@@ -235,7 +237,7 @@ int main(int argc, char **argv)
   Sg_Init();
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_R6RS_MODE);
-  while ((opt = getopt_long(argc, argv, "L:hdvp:", long_options, &optionIndex)) != -1) {
+  while ((opt = getopt_long(argc, argv, "L:D:hdvp:", long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 'd':
       if (strcmp("trace", optarg) == 0) {
@@ -248,6 +250,9 @@ int main(int argc, char **argv)
       break;
     case 'L':
       Sg_AddLoadPath(SG_STRING(Sg_MakeStringC(optarg)));
+      break;
+    case 'D':
+      Sg_AddDynamicLoadPath(SG_STRING(Sg_MakeStringC(optarg)));
       break;
     case 'p':
       {

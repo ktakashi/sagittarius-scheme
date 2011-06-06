@@ -41,6 +41,8 @@ SG_EXTERN int           Sg_FileExistP(SgString *path);
 SG_EXTERN int           Sg_DeleteFile(SgString *path);
 SG_EXTERN const SgChar* Sg_NativeFileSeparator();
 SG_EXTERN SgObject      Sg_GetDefaultLoadPath();
+SG_EXTERN SgObject      Sg_GetDefaultDynamicLoadPath();
+SG_EXTERN void          Sg_YieldCPU();
 
 SG_CDECL_END
 

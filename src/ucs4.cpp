@@ -1,4 +1,4 @@
-// -*- C++ -*-
+/* -*- C++ -*- */
 /*
  * ucs4.cpp
  *
@@ -33,7 +33,7 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/sagittariusdefs.h"
 
-#if SIZEOF_WCHAT_T < 4
+#if SIZEOF_WCHAR_T < 4
 // for now, it's really corner-cutting
 // from Mosh
 #include <map>

@@ -331,6 +331,7 @@ int Sg_DeleteFile(SgString *path)
 
 static SgString *win_lib_path = NULL;
 static SgString *win_sitelib_path = NULL;
+static SgString *win_dynlib_path = NULL;
 
 #define _U(s) SG_CPP_CAT(L, s)
 
@@ -347,6 +348,9 @@ static void initialize_path()
       /* lib */
       swprintf_s(path, MAX_PATH, L"%s%s", tmp, _U(SAGITTARIUS_SHARE_LIB_PATH));
       win_lib_path = utf16ToUtf32(path);
+      /* module */
+      swprintf_s(path, MAX_PATH, L"%s%s", tmp, _U(SAGITTARIUS_DYNLIB_PATH));
+      win_dynlib_path = utf16ToUtf32(path);
       return;
     }
     goto recover;
@@ -356,19 +360,32 @@ static void initialize_path()
   /* TODO better solution */
   win_sitelib_path = SG_STRING(Sg_MakeString(UC(SAGITTARIUS_SITE_LIB_PATH), SG_LITERAL_STRING));
   win_lib_path = SG_STRING(Sg_MakeString(UC(SAGITTARIUS_SHARE_LIB_PATH), SG_LITERAL_STRING));
+  win_dynlib_path = SG_STRING(Sg_MakeString(UC(SAGITTARIUS_DYNLIB_PATH), SG_LITERAL_STRING));
 }
 
 
 
 SgObject Sg_GetDefaultLoadPath()
 {
-  if (win_lib_path == NULL || win_sitelib_path == NULL) {
+  if (win_lib_path == NULL ||
+      win_sitelib_path == NULL ||
+      win_dynlib_path == NULL) {
     initialize_path();
   }
   return SG_LIST2(win_sitelib_path, win_lib_path);
 		  
 }
 
+SgObject Sg_GetDefaultDynamicLoadPath()
+{
+  /* this must be initialized when vm is being created. */
+  if (win_lib_path == NULL ||
+      win_sitelib_path == NULL ||
+      win_dynlib_path == NULL) {
+    initialize_path();
+  }
+  return SG_LIST1(Sg_MakeString(UC(SAGITTARIUS_DYNLIB_PATH), SG_LITERAL_STRING));
+}
 
 /*
   end of file

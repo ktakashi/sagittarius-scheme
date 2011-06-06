@@ -66,13 +66,33 @@
   (result (-> obj specific)))
 
 (define-c-proc thread-state (vm::VM) ::Object
-  (let ((state::int (-> vm state)))
+  (let ((state::int (-> vm threadState)))
     (cond ((== SG_VM_NEW state) (result 'new))
 	  ((== SG_VM_RUNNABLE state) (result 'runnable))
 	  ((== SG_VM_STOPPED state) (result 'stopped))
 	  ((== SG_VM_TERMINATED state) (result 'terminated))
 	  (else (Sg_Error "[internal] thread state has invalid value: %d" state)
 		(result SG_UNDEF)))))
+
+(define-c-proc current-thread () ::Object
+  (result (Sg_VM)))
+
+;(define-c-proc thread-base-priority (vm::VM) ::Object
+
+(define-c-proc thread-start! (vm::VM) ::Object
+  (result (Sg_ThreadStart vm)))
+
+(define-c-proc thread-join! (vm::VM :optional (timeout #f) timeoutval) ::Object
+  (result (Sg_ThreadJoin vm timeout timeoutval)))
+
+(define-c-proc thread-yield! () ::void
+  (Sg_YieldCPU))
+
+(define-c-proc thread-sleep! (time::number) ::void
+  (Sg_ThreadSleep time))
+
+(define-c-proc thread-terminate! (vm::VM) ::void
+  (Sg_ThreadTerminate vm))
 
 (define-c-proc mutex? (o) ::boolean
   (result (SG_MUTEX_P o)))

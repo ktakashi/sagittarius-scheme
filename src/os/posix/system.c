@@ -31,6 +31,9 @@
  */
 #include <io.h>
 #include <unistd.h>
+#ifdef HAVE_SCHED_H
+# include <sched.h>
+#endif
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/system.h>
 #include <sagittarius/file.h>
@@ -59,4 +62,28 @@ SgObject Sg_GetDefaultLoadPath()
 {
   return SG_LIST2(Sg_MakeString(UC(SAGITTARIUS_SITE_LIB_PATH), SG_LITERAL_STRING),
 		  Sg_MakeString(UC(SAGITTARIUS_SHARE_LIB_PATH), SG_LITERAL_STRING));
+}
+
+SgObject Sg_GetDefaultDynamicLoadPath()
+{
+  return SG_LIST1(Sg_MakeString(UC(SAGITTARIUS_DYNLIB_PATH), SG_LITERAL_STRING));
+}
+
+void Sg_YieldCPU()
+{
+#if defined(HAVE_SCHED_YIELD)
+    sched_yield();
+#elif defined(HAVE_NANOSLEEP)
+    struct timespec spec;
+    spec.tv_sec = 0;
+    spec.tv_nsec = 1;
+    nanosleep(&spec, NULL);
+#elif defined(HAVE_SELECT)
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 1;
+    select(0, NULL, NULL, NULL, &tv);
+#else /* the last resort */
+    sleep(1);
+#endif
 }

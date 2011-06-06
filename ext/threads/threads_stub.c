@@ -103,7 +103,7 @@ static SgObject _sagittarius_threads_thread_state(SgObject *args, int argc, void
   {
     SgObject SG_RETURN = SG_UNDEF;
     {
-      int state = vm->state;
+      int state = vm->threadState;
       if (SG_VM_NEW == state      ) {
         SG_RETURN = (SG_INTERN("new"));
       } else if (SG_VM_RUNNABLE == state      ) {
@@ -124,6 +124,110 @@ static SgObject _sagittarius_threads_thread_state(SgObject *args, int argc, void
   }
 }
 static SG_DEFINE_SUBR(_sagittarius_threads_thread_state_Stub, 1, 0, _sagittarius_threads_thread_state, SG_FALSE, NULL);
+
+;
+static SgObject _sagittarius_threads_current_thread(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("current-thread");
+  checkArgumentLength(0);
+  {
+    SgObject SG_RETURN = SG_UNDEF;
+    SG_RETURN = (Sg_VM());
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_threads_current_thread_Stub, 0, 0, _sagittarius_threads_current_thread, SG_FALSE, NULL);
+
+;
+static SgObject _sagittarius_threads_thread_start21(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("thread-start!");
+  SgObject vm_scm;
+  SgVM *vm;
+  checkArgumentLength(1);
+  argumentAsVM(0, vm_scm, vm);
+  {
+    SgObject SG_RETURN = SG_UNDEF;
+    SG_RETURN = (Sg_ThreadStart(vm));
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_threads_thread_start21_Stub, 1, 0, _sagittarius_threads_thread_start21, SG_FALSE, NULL);
+
+;
+static SgObject _sagittarius_threads_thread_join21(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("thread-join!");
+  SgObject vm_scm;
+  SgVM *vm;
+  SgObject timeout;
+  SgObject timeoutval;
+  checkArgumentLengthBetween(1, 3);
+  argumentAsVM(0, vm_scm, vm);
+  if (argc >= 2) {
+    argumentRef(1, timeout);
+  } else {
+    timeout = SG_MAKE_BOOL(FALSE);
+  }
+
+  if (argc >= 3) {
+    argumentRef(2, timeoutval);
+  } else {
+    timeoutval = SG_UNBOUND;
+  }
+
+  {
+    SgObject SG_RETURN = SG_UNDEF;
+    SG_RETURN = (Sg_ThreadJoin(vm, timeout, timeoutval));
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_threads_thread_join21_Stub, 1, 2, _sagittarius_threads_thread_join21, SG_FALSE, NULL);
+
+;
+static SgObject _sagittarius_threads_thread_yield21(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("thread-yield!");
+  checkArgumentLength(0);
+  {
+    SgObject SG_RETURN = SG_UNDEF;
+    Sg_YieldCPU();
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_threads_thread_yield21_Stub, 0, 0, _sagittarius_threads_thread_yield21, SG_FALSE, NULL);
+
+;
+static SgObject _sagittarius_threads_thread_sleep21(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("thread-sleep!");
+  SgObject time_scm;
+  SgObject time;
+  checkArgumentLength(1);
+  argumentAsNumber(0, time_scm, time);
+  {
+    SgObject SG_RETURN = SG_UNDEF;
+    Sg_ThreadSleep(time);
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_threads_thread_sleep21_Stub, 1, 0, _sagittarius_threads_thread_sleep21, SG_FALSE, NULL);
+
+;
+static SgObject _sagittarius_threads_thread_terminate21(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("thread-terminate!");
+  SgObject vm_scm;
+  SgVM *vm;
+  checkArgumentLength(1);
+  argumentAsVM(0, vm_scm, vm);
+  {
+    SgObject SG_RETURN = SG_UNDEF;
+    Sg_ThreadTerminate(vm);
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_threads_thread_terminate21_Stub, 1, 0, _sagittarius_threads_thread_terminate21, SG_FALSE, NULL);
 
 ;
 static SgObject _sagittarius_threads_mutex3f(SgObject *args, int argc, void *data_)
@@ -347,32 +451,44 @@ static SG_DEFINE_SUBR(_sagittarius_threads_mutex_unlock21_Stub, 1, 2, _sagittari
 void Sg__Init_sagittarius_threads()
 {
   SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC("(sagittarius threads)"), SG_LITERAL_STRING)), TRUE);
-  SG_PROCEDURE_NAME(&_sagittarius_threads_mutex_specific_Stub) = Sg_MakeString(UC("mutex-specific"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("mutex-specific"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_mutex_specific_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_threads_mutex_unlock21_Stub) = Sg_MakeString(UC("mutex-unlock!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("mutex-unlock!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_mutex_unlock21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_threads_thread_name_Stub) = Sg_MakeString(UC("thread-name"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("thread-name"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_thread_name_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_threads_thread_specific_set21_Stub) = Sg_MakeString(UC("thread-specific-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("thread-specific-set!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_thread_specific_set21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_threads_make_thread_Stub) = Sg_MakeString(UC("make-thread"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-thread"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_make_thread_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_threads_mutex3f_Stub) = Sg_MakeString(UC("mutex?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("mutex?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_mutex3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_threads_make_mutex_Stub) = Sg_MakeString(UC("make-mutex"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-mutex"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_make_mutex_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_threads_mutex_lock21_Stub) = Sg_MakeString(UC("mutex-lock!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("mutex-lock!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_mutex_lock21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_threads_thread_specific_Stub) = Sg_MakeString(UC("thread-specific"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("thread-specific"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_thread_specific_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_threads_mutex_state_Stub) = Sg_MakeString(UC("mutex-state"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("mutex-state"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_mutex_state_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_threads_mutex_name_Stub) = Sg_MakeString(UC("mutex-name"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("mutex-name"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_mutex_name_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_threads_mutex_specific_set21_Stub) = Sg_MakeString(UC("mutex-specific-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("mutex-specific-set!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_mutex_specific_set21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_threads_thread3f_Stub) = Sg_MakeString(UC("thread?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("thread?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_thread3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_threads_thread_join21_Stub) = Sg_MakeString(UC("thread-join!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("thread-join!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_thread_join21_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_threads_thread_state_Stub) = Sg_MakeString(UC("thread-state"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("thread-state"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_thread_state_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_threads_thread_terminate21_Stub) = Sg_MakeString(UC("thread-terminate!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("thread-terminate!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_thread_terminate21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_threads_mutex_lock21_Stub) = Sg_MakeString(UC("mutex-lock!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("mutex-lock!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_mutex_lock21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_threads_thread_specific_set21_Stub) = Sg_MakeString(UC("thread-specific-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("thread-specific-set!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_thread_specific_set21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_threads_thread_sleep21_Stub) = Sg_MakeString(UC("thread-sleep!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("thread-sleep!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_thread_sleep21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_threads_mutex_name_Stub) = Sg_MakeString(UC("mutex-name"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("mutex-name"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_mutex_name_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_threads_thread3f_Stub) = Sg_MakeString(UC("thread?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("thread?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_thread3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_threads_current_thread_Stub) = Sg_MakeString(UC("current-thread"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("current-thread"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_current_thread_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_threads_thread_name_Stub) = Sg_MakeString(UC("thread-name"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("thread-name"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_thread_name_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_threads_mutex_specific_Stub) = Sg_MakeString(UC("mutex-specific"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("mutex-specific"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_mutex_specific_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_threads_mutex_state_Stub) = Sg_MakeString(UC("mutex-state"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("mutex-state"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_mutex_state_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_threads_mutex_unlock21_Stub) = Sg_MakeString(UC("mutex-unlock!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("mutex-unlock!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_mutex_unlock21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_threads_make_thread_Stub) = Sg_MakeString(UC("make-thread"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-thread"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_make_thread_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_threads_thread_start21_Stub) = Sg_MakeString(UC("thread-start!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("thread-start!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_thread_start21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_threads_mutex_specific_set21_Stub) = Sg_MakeString(UC("mutex-specific-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("mutex-specific-set!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_mutex_specific_set21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_threads_make_mutex_Stub) = Sg_MakeString(UC("make-mutex"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-mutex"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_make_mutex_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_threads_thread_specific_Stub) = Sg_MakeString(UC("thread-specific"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("thread-specific"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_thread_specific_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_threads_thread_yield21_Stub) = Sg_MakeString(UC("thread-yield!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("thread-yield!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_threads_thread_yield21_Stub));
 }

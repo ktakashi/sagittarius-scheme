@@ -35,6 +35,7 @@
 
 #ifdef USE_BOEHM_GC
 # define _beginthreadex GC_beginthreadex
+# define _endthreadex GC_endthreadex
 #endif
 
 void Sg_InitMutex(SgInternalMutex *mutex, int recursive)
@@ -153,6 +154,19 @@ int Sg_Wait(SgInternalCond *cond, SgInternalMutex *mutex)
 int Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex, int msecs)
 {
   return wait_internal(cond, mutex, msecs);
+}
+
+void Sg_ExitThread(SgInternalThread *thread, void *ret)
+{
+  thread->returnValue = ret;
+  _endthreadex((unsigned int)ret);
+}
+
+void Sg_TerminateThread(SgInternalThread *thread)
+{
+  /* FIXME right now we just call _endthreadex for termination. */
+  thread->returnValue = SG_UNDEF;
+  _endthreadex(0);
 }
 
 /*

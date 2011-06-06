@@ -264,6 +264,7 @@
       (format out "void ~s()~%" name)
       (format out "{~%")
       (format out "  SgLibrary *lib = Sg_FindLibrary(SYMBOL(~s), TRUE);~%" libname)
+      (format out "  SgLibrary *save = Sg_VM()->currentLibrary;~%")
       (let loop ((keys keys))
 	(unless (null? keys)
 	  (let* ((object (car keys))
@@ -299,7 +300,9 @@
 		      pos-list)
 	    (loop (cdr keys)))))
       (resolve-import out lib-info)
+      (format out "  Sg_VM()->currentLibrary = lib;~%")
       (format out "  Sg_VMExecute(SG_OBJ(&~a));~%" toplevel-name)
+      (format out "  Sg_VM()->currentLibrary = save;~%")
       (format out "}~%"))))
 ;;;; end of file
 ;; Local Variables:

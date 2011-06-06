@@ -1,8 +1,6 @@
 ;; -*- scheme -*-
 (library (rnrs base (6))
     (export
-     ;; misc
-     er-macro-transformer
      ;; base
      define define-syntax
      quote lambda if set! cond case and or

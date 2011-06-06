@@ -83,7 +83,7 @@ SG_EXTERN SgChar Sg_EnsureUcs4(SgChar c);
 /* string convertion */
 SG_EXTERN SgObject Sg_Utf8sToUtf32s(const char *s, int len);
 SG_EXTERN SgObject Sg_Utf16sToUtf32s(const char *s, int len);
-SG_EXTERN char*    Sg_Utf32sToUtf8s(SgString *s);
+SG_EXTERN char*    Sg_Utf32sToUtf8s(const SgString *s);
 
 /* char case */
 SG_EXTERN SgChar   Sg_CharUpCase(SgChar ch);

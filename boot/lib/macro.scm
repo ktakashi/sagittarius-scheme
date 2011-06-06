@@ -114,6 +114,8 @@
            (collect-vars-ranks (vector->list pat) lites depth ranks))
           (else ranks))))
 
+(define syntax-quote. (make-identifier 'syntax-quote '() '(sagittarius compiler)))
+
 ;; this must be in compiler.scm for global lambda let dynamic-wind
 ;; but for now
 (define compile-syntax-case
@@ -151,7 +153,7 @@
 					   (lambda (clause)
 					     `(lambda (,@(map car ranks)
 						       use-env . .vars)
-						(let ((.ranks (append (syntax-quote ,ranks) .ranks)))
+						(let ((.ranks (append (,syntax-quote. ,ranks) .ranks)))
 						  (let ((.save .vars.)
 							(.env-save use-env))
 						    (dynamic-wind
@@ -164,8 +166,8 @@
 							  (set! .vars. .save)
 							  (set! .use-env .env-save))))))))
 					 (set! newenv (append env newenv))
-					 `(list (syntax-quote ,pattern)
-						(syntax-quote ,ranks)
+					 `(list (,syntax-quote. ,pattern)
+						(,syntax-quote. ,ranks)
 						,(if (= len 2) ; fender
 						     #f
 						     (construct (cadr clause)))
@@ -380,11 +382,11 @@
 	(let ((patvar (map car ranks)))
 	  (if (variable? tmpl)
 	      (if (null? ranks)
-		  `(.expand-syntax (syntax-quote ,patvar) (syntax-quote ,tmpl) .ranks () #f ,p1env)
-		  `(.expand-syntax (syntax-quote ,patvar) (syntax-quote ,tmpl) (list (cons (syntax-quote ,tmpl) 0)) .vars use-env ,p1env)))
+		  `(.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl) .ranks () #f ,p1env)
+		  `(.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl) (list (cons (,syntax-quote. ,tmpl) 0)) .vars use-env ,p1env)))
 	  (if (null? ranks)
-	      `(.expand-syntax (syntax-quote ,patvar) (syntax-quote ,tmpl) .ranks () #f ,p1env)
-	      `(.expand-syntax (syntax-quote ,patvar) (syntax-quote ,tmpl) (append (syntax-quote ,ranks) .ranks) .vars use-env ,p1env)))))))
+	      `(.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl) .ranks () #f ,p1env)
+	      `(.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl) (append (,syntax-quote. ,ranks) .ranks) .vars use-env ,p1env)))))))
 
 (define expand-syntax
   (lambda (patvars template ranks vars use-env p1env)

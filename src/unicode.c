@@ -354,7 +354,7 @@ SgObject Sg_Utf16sToUtf32s(const char *s, int len)
   return Sg_GetStringFromStringPort(sp);
 }
 
-char* Sg_Utf32sToUtf8s(SgString *s)
+char* Sg_Utf32sToUtf8s(const SgString *s)
 {
   SgPort *p = Sg_MakeByteArrayOutputPort(s->size + sizeof(SgChar));
   SgTranscoder *t = Sg_MakeTranscoder(Sg_MakeUtf8Codec(), LF, SG_IGNORE_ERROR);

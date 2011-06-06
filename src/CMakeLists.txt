@@ -15,6 +15,16 @@ ELSE()
     os/posix/system.c os/posix/thread.c)
 ENDIF()
 
+IF(SIZEOF_WCHAR_T LESS 4)
+  SET(PLATFORM_SOURCE_UCS4
+    ${PLATFORM_SOURCE_UCS4}
+    ucs4.cpp)
+ELSE()
+  # dummy
+  SET(PLATFORM_SOURCE_UCS4
+    ${PLATFORM_SOURCE_UCS4})
+ENDIF()
+
 SET(SAGITTARIUS_LIB_SOURCE
   ${SAGITTARIUS_LIB_SOURCE}
   codec.c          port.c
@@ -27,7 +37,7 @@ SET(SAGITTARIUS_LIB_SOURCE
   bytevector.c     subr.c
   generic.c        bits.c
   unicode.c        bignum.c
-  ucs4.cpp         library.c
+  library.c        
   keyword.c        identifier.c
   writer.c         compiler.c
   closure.c        instruction.c
@@ -46,7 +56,8 @@ SET(SAGITTARIUS_LIB_SOURCE
 
 ADD_LIBRARY(sagittarius SHARED 
   ${SAGITTARIUS_LIB_SOURCE}
-  ${PLATFORM_SOURCE})
+  ${PLATFORM_SOURCE}
+  ${PLATFORM_SOURCE_UCS4})
 
 INCLUDE_DIRECTORIES(${SAGITTARIUS_INCLUDE_DIR})
 

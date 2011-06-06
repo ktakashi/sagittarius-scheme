@@ -1,6 +1,6 @@
 ;; -*- scheme -*-
 (library (rnrs syntax-case (6))
-    (export syntax-quote ;; misc
+    (export ;;syntax-quote ;; misc
 	    make-variable-transformer
 	    syntax-case
 	    _ ...
@@ -10,7 +10,6 @@
 	    with-syntax quasisyntax unsyntax unsyntax-splicing
 	    syntax-violation)
     (import (core)
-	    (sagittarius)
 	    (core syntax))
 
 ) ; [end]

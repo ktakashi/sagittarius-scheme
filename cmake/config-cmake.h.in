@@ -1,6 +1,7 @@
 #cmakedefine SAGITTARIUS_VERSION "@SAGITTARIUS_VERSION@"
 #cmakedefine SAGITTARIUS_SHARE_LIB_PATH "@SAGITTARIUS_SHARE_LIB_PATH@"
 #cmakedefine SAGITTARIUS_SITE_LIB_PATH "@SAGITTARIUS_SITE_LIB_PATH@"
+#cmakedefine SAGITTARIUS_DYNLIB_PATH "@SAGITTARIUS_DYNLIB_PATH@"
 
 #cmakedefine USE_BOEHM_GC
 
@@ -18,8 +19,12 @@
 #cmakedefine HAVE_TIME_H
 #cmakedefine HAVE_SIGNAL_H
 #cmakedefine HAVE_DLFCN_H
+#cmakedefine HAVE_SCHED_H
 
 #cmakedefine HAVE_ALLOCA
+#cmakedefine HAVE_SCHED_YIELD
+#cmakedefine HAVE_NANOSLEEP
+#cmakedefine HAVE_SELECT
 
 #cmakedefine SHLIB_SO_SUFFIX "@SHLIB_SO_SUFFIX@"
 

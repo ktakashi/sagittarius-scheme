@@ -109,6 +109,10 @@ SgObject Sg_MutexLock(SgMutex *mutex, SgObject timeout, SgVM *owner)
 {
   SgObject r = SG_TRUE;
   SgVM *abandoned = NULL;
+  int msec = -1;
+  if (SG_REALP(timeout)) {
+    msec = Sg_GetIntegerClamp(timeout, SG_CLAMP_NONE, NULL);
+  }
   /* TODO clean up */
   Sg_LockMutex(&mutex->mutex);
   while (mutex->locked) {
@@ -118,7 +122,6 @@ SgObject Sg_MutexLock(SgMutex *mutex, SgObject timeout, SgVM *owner)
       break;
     }
     if (SG_REALP(timeout)) {
-      int msec = Sg_GetIntegerClamp(timeout, SG_CLAMP_NONE, NULL);
       int success = Sg_WaitWithTimeout(&mutex->cv, &mutex->mutex, msec);
       if (!success) {
 	r = SG_FALSE;

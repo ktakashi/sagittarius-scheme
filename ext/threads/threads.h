@@ -63,6 +63,42 @@ SG_DECLARE_META_OBJ(Sg_MutexMeta);
 #define SG_MUTEX(obj)     ((SgMutex *)obj)
 #define SG_MUTEX_P(obj)   SG_META_OBJ_TYPE_P(obj, SG_META_MUTEX)
 
+/* emulate pthread_cleanup_push/pop*/
+#ifdef _MSC_VER
+#include <windows.h>
+/* emulation code from pthread for win32 */
+typedef void (* ptw32_cleanup_callback_t)(void *);
+typedef struct ptw32_cleanup_rec_t
+{
+  ptw32_cleanup_callback_t routine;
+  void *arg;
+  struct ptw32_cleanup_rec_t *prev;
+} ptw32_cleanup_t;
+# define thread_cleanup_push(_rout, _arg)			\
+  {								\
+    ptw32_cleanup_t _cleanup;					\
+    _cleanup.routine = (ptw32_cleanup_callback_t)(_rout);	\
+    _cleanup.arg = (_arg);					\
+    __try {
+
+# define thread_cleanup_pop(_execute)			\
+    } __finally {					\
+      if ( _execute || AbnormalTermination()) {		\
+	(*(_cleanup.routine))(_cleanup.arg);		\
+      }							\
+    }							\
+  }
+
+#elif !defined(_WIN32) && !defined(_WIN64)
+/* Assume we are using pthread */
+# include <pthread.h>
+# define thread_cleanup_push pthread_cleanup_push
+# define thread_cleanup_pop  pthread_cleanup_pop
+#else
+# error FIXME: non VC compiler on Windows are not supported!
+#endif
+
+
 SG_CDECL_BEGIN
 /*
   Scheme level thread API
@@ -84,6 +120,12 @@ SgObject Sg_MakeMutex(SgObject name);
 SgObject Sg_MutexState(SgMutex *mutex);
 SgObject Sg_MutexLock(SgMutex *mutex, SgObject timeout, SgVM *owner);
 SgObject Sg_MutexUnlock(SgMutex *mutex, SgConditionVariable *cv, SgObject timeout);
+
+/* thread exceptions */
+SgObject Sg_MakeJoinTimeoutException(SgVM *vm);
+SgObject Sg_MakeAbandonedMutexException(SgVM *vm);
+SgObject Sg_MakeTerminatedThreadException(SgVM *vm);
+SgObject Sg_UncaughtException(SgVM *vm);
 
 SG_CDECL_END
 #endif /* ! SAGITTARIUS_THREADS_H_ */

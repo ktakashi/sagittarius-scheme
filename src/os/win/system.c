@@ -37,3 +37,8 @@ const SgChar* Sg_NativeFileSeparator()
 {
   return UC("\\");
 }
+
+void Sg_YieldCPU()
+{
+  Sleep(10);
+}

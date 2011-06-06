@@ -791,6 +791,9 @@ static void write_code_builder(SgCodeBuilder *cb, SgPort *port, SgWriteContext *
 static void write_hashtable(SgHashTable *ht, SgPort *port, SgWriteContext *ctx)
 {
   Sg_PutuzUnsafe(port, UC("#<hashtable "));
+  if (SG_IMMUTABLE_HASHTABLE_P(ht)) {
+    Sg_PutuzUnsafe(port, UC("immutable "));
+  }
   switch (ht->type) {
   case SG_HASH_EQ:
     Sg_PutuzUnsafe(port, UC("eq?"));
@@ -805,9 +808,9 @@ static void write_hashtable(SgHashTable *ht, SgPort *port, SgWriteContext *ctx)
     Sg_PutuzUnsafe(port, UC("string=?"));
     break;
   case SG_HASH_GENERAL:
-    Sg_Write(port, SG_HASHTABLE_CORE(ht)->generalHasher, SG_WRITE_MODE(ctx));
+    write_ss_rec(SG_HASHTABLE_CORE(ht)->generalHasher, port, ctx);
     Sg_PutcUnsafe(port, ' ');
-    Sg_Write(port, SG_HASHTABLE_CORE(ht)->generalCompare, SG_WRITE_MODE(ctx));
+    write_ss_rec(SG_HASHTABLE_CORE(ht)->generalCompare, port, ctx);
     break;
   }
   Sg_PutcUnsafe(port, '>');
@@ -1021,6 +1024,31 @@ static void write_meta_obj(SgObject *m, SgPort *port, SgWriteContext *ctx)
   }
 }
 
+static void write_thread(SgVM *vm, SgPort *port, SgWriteContext *ctx)
+{
+  char buf[50];
+  Sg_PutuzUnsafe(port, UC("#<thread "));
+  write_ss_rec(vm->name, port, ctx);
+  switch (vm->threadState) {
+  case SG_VM_NEW:
+    Sg_PutzUnsafe(port, " new");
+    break;
+  case SG_VM_RUNNABLE:
+    Sg_PutzUnsafe(port, " runnable");
+    break;
+  case SG_VM_STOPPED:
+    Sg_PutzUnsafe(port, " stopped");
+    break;
+  case SG_VM_TERMINATED:
+    Sg_PutzUnsafe(port, " terminated");
+    break;
+  default:
+    Sg_PutzUnsafe(port, " (unknonw state)");
+    break;
+  }
+  snprintf(buf, sizeof(buf), " %p>", vm);
+  Sg_PutzUnsafe(port, buf);
+}
 
 #define SPBUFSIZ  50
 #define CASE_ITAG(obj, str)				\
@@ -1205,6 +1233,8 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
     write_codec(SG_CODEC(obj), port, ctx);
   } else if (SG_META_OBJ_P(obj)) {
     write_meta_obj(obj, port, ctx);
+  } else if (SG_VMP(obj)) {
+    write_thread(SG_VM(obj), port, ctx);
   } else {
     Sg_PutuzUnsafe(port, UC("#<unknown datum>"));
   }

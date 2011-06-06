@@ -16,7 +16,8 @@
 	    call-with-input-file
 	    call-with-output-file
 	    with-input-from-file
-	    with-output-to-file)
+	    with-output-to-file
+	    format)
     (import (core)
 	    (core base)
 	    (core syntax)

@@ -210,7 +210,7 @@ SG_EXTERN const SgChar* UC(const char *str);
 SG_CDECL_END
 #else
 # define UC_(x) L##x
-# define UC(x)  (const SgChar*)UC_(x)
+# define UC(x)  (const SgChar*)(UC_(x))
 #endif
 
 /*

@@ -138,6 +138,15 @@ int Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex, int msecs)
   return ETIMEDOUT != ret;
 }
 
+void Sg_ExitThread(SgInternalThread *thread, void *ret)
+{
+  pthread_exit(ret);
+}
+
+void Sg_TerminateThread(SgInternalThread *thread)
+{
+  pthread_cancel(thread->thread);
+}
 /*
   end of file
   Local Variables:

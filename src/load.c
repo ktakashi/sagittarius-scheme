@@ -29,6 +29,8 @@
  *
  *  $Id: $
  */
+#include <string.h>
+#include <ctype.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/load.h"
 #include "sagittarius/core.h"
@@ -45,6 +47,7 @@
 #include "sagittarius/writer.h"
 #include "sagittarius/vm.h"
 #include "sagittarius/thread.h"
+#include "sagittarius/unicode.h"
 
 static SgObject load_after(SgObject *args, int argc, void *data)
 {
@@ -216,6 +219,29 @@ static void unlock_dlobj(dlobj *dlo)
   Sg_UnlockMutex(&dlo->mutex);
 }
 
+#define DYNLOAD_PREFIX "_Sg_Init_"
+
+static const char* derive_dynload_initfn(const char *filename)
+{
+  const char *head, *tail, *s;
+  char *name, *d;
+
+  head = strrchr(filename, '/');
+  if (head == NULL) head = filename;
+  else head++;
+  tail = strchr(head, '.');
+  if (tail == NULL) tail = filename + strlen(filename);
+
+  name = SG_NEW_ATOMIC2(char *, sizeof(DYNLOAD_PREFIX) + tail - head);
+  strcpy(name, DYNLOAD_PREFIX);
+  for (s = head, d = name + sizeof(DYNLOAD_PREFIX) - 1; s < tail; s++, d++) {
+    if (isalnum(*s)) *d = tolower(*s);
+    else *d = '_';
+  }
+  *d = '\0';
+  return name;
+}
+
 const char* get_initfn_name(SgObject initfn, SgString *dsopath)
 {
   /* TODO we might want to derive dynload init function */
@@ -224,8 +250,7 @@ const char* get_initfn_name(SgObject initfn, SgString *dsopath)
 					SG_STRING(initfn));
     return Sg_Utf32sToUtf8s(SG_STRING(_initfn));
   } else {
-    Sg_Error(UC("derivation is not supported yet."));
-    return "";
+    return derive_dynload_initfn(Sg_Utf32sToUtf8s(dsopath));
   }
 }
 
@@ -301,7 +326,7 @@ SgObject Sg_DynLoad(SgString *filename, SgObject initfn, unsigned long flags)
   dlobj *dlo;
   INIT_LOCK(dso_lock);
 
-  spath = Sg_FindFile(filename, vm->loadPath, dynldinfo.dso_suffix, TRUE);
+  spath = Sg_FindFile(filename, vm->dynamicLoadPath, dynldinfo.dso_suffix, TRUE);
   if (SG_FALSEP(spath)) {
     Sg_Error(UC("can't find dlopen-able library %S"), filename);
   }

@@ -170,6 +170,7 @@ struct SgVMRec
      load path
    */
   SgObject loadPath;
+  SgObject dynamicLoadPath;
   /*
     toplevel variables.
     alist of variable name and gloc.
@@ -228,6 +229,7 @@ struct SgVMRec
   /* gc related */
   int finalizerPending;
   int attentionRequest;
+  int stopRequest;
 
   /* statistics */
   SgVMState state;
@@ -343,6 +345,7 @@ SG_EXTERN void     Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject 
 SG_EXTERN void     Sg_VMDumpCode(SgCodeBuilder *cb);
 
 SG_EXTERN SgObject Sg_AddLoadPath(SgString *path);
+SG_EXTERN SgObject Sg_AddDynamicLoadPath(SgString *path);
 
 /* eval */
 SG_EXTERN SgObject Sg_VMEval(SgObject sexp, SgObject env);

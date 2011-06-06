@@ -48,7 +48,8 @@ typedef struct SgInternalMutexRec
 } SgInternalMutex;
 typedef struct SgInternalThreadRec
 {
-  HANDLE thread;
+  HANDLE  thread;
+  void   *returnValue;
 } SgInternalThread;
 typedef unsigned int __stdcall SgThreadEntryFunc(void *);
 #define SG_INTERNAL_THREAD_INIT(thr)         ((thr)->thread = (HANDLE)NULL)
@@ -101,6 +102,9 @@ SG_EXTERN int  Sg_Notify(SgInternalCond *cond);
 SG_EXTERN int  Sg_NotifyAll(SgInternalCond *cond);
 SG_EXTERN int  Sg_Wait(SgInternalCond *cond, SgInternalMutex *mutex);
 SG_EXTERN int  Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex, int msecs);
+
+SG_EXTERN void Sg_ExitThread(SgInternalThread *thread, void *ret);
+SG_EXTERN void Sg_TerminateThread(SgInternalThread *thread);
 
 SG_CDECL_END
 

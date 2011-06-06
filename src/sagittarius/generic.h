@@ -123,7 +123,7 @@ typedef struct SgMetaHeaderRec
   } while (0)
 
 #define SG_GET_META_OBJ(obj)          (SG_METAHDR(obj)->meta)
-#define SG_META_OBJ_TYPE_P(obj, type) (SG_HDR(obj) == (type))
+#define SG_META_OBJ_TYPE_P(obj, type) (SG_HDR(obj) == (SgHeader)(type))
 #define SG_INIT_META_OBJ(name, printer)		\
   SgMetaObject (name) = { (printer) }
 
