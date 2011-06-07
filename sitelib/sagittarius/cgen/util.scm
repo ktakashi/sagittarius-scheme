@@ -5,12 +5,21 @@
 	    register-and/or set-renderer! generate-renderer renderer
 	    renderer-indent-incl! renderer-indent-decl!
 	    renderer-no-indent
+	    gen-temporary
+	    ;; for convenience
+	    string-index string-index-right string-map
+	    receive
 	    acons
-	    gen-temporary)
+	    )
     (import (rnrs (6))
-	    ;; TODO the same as cgen.scm
-	    (only (srfi srfi-13) string-tokenize)
-	    (only (srfi srfi-14) string->char-set)
+	    ;; TODO to avoid (sagittarius) library we use (srfi-13) for now.
+	    ;; but we want to use Sagittarius as generator in future.
+	    ;;(srfi srfi-13)
+	    ;;(only (srfi srfi-8) receive)
+	    ;;(only (srfi srfi-14) string->char-set)
+	    (srfi :13)
+	    (only (srfi :8) receive)
+	    (only (srfi :14) string->char-set)
 	    (sagittarius format))
   ;; TODO remove
   (define-syntax acons

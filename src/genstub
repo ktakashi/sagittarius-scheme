@@ -1,6 +1,5 @@
 ;; -*- Scheme -*-
-(import (rnrs)
-	(sagittarius cgen))
+(import (sagittarius cgen))
 (cgen "proclib.stub")
 (cgen "null.stub")
 (cgen "vmlib.stub")

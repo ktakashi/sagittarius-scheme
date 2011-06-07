@@ -47,7 +47,7 @@ SgObject Sg_MakeThread(SgProcedure *thunk, SgObject name)
   }
   vm = Sg_NewVM(current, name);
   vm->thunk = thunk;
-  vm->exceptionHandler = SG_OBJ(&thread_error_handler_STUB);
+  vm->defaultEscapeHandler = SG_OBJ(&thread_error_handler_STUB);
   return SG_OBJ(vm);
 }
 
@@ -62,7 +62,8 @@ static void thread_cleanup(void *data)
   vm->threadState = SG_VM_TERMINATED;
   if (vm->canceller) {
     /* this thread is cancelled */
-    /* TODO set result exception */
+    exc = Sg_MakeTerminatedThreadException(vm, vm->canceller);
+    vm->resultException = exc;
   }
   Sg_NotifyAll(&vm->cond);
   Sg_UnlockMutex(&vm->vmlock);
@@ -84,12 +85,18 @@ static void* thread_entry(void *data)
       default:
 	Sg_Panic("unknown escape");
       case SG_VM_ESCAPE_ERROR:
-	/* TODO thread exception */
+	exc = Sg_MakeUncaughtException(vm, SG_OBJ(vm->escapeData[1]));
+	vm->resultException = exc;
+	Sg_ReportError(SG_OBJ(vm->escapeData[1]));
 	break;
       }
     } SG_END_PROTECT;
   } else {
-    /* TODO exception */
+    /* I'm not sure if this happen */
+    /* if this happen, we can not use any Sg_Apply related methods such as error creations.
+       so just create string.
+     */
+    vm->resultException = Sg_MakeString(UC("set-current-vm failed"), SG_LITERAL_STRING);
   }
   thread_cleanup_pop(TRUE);
   return NULL;
@@ -136,8 +143,7 @@ SgObject Sg_ThreadJoin(SgVM *vm, SgObject timeout, SgObject timeoutval)
   Sg_UnlockMutex(&vm->vmlock);
   if (!success) {
     if (SG_UNBOUNDP(timeoutval)) {
-      /* TODO make join-timeout-exception */
-      SgObject e = SG_UNDEF;
+      SgObject e = Sg_MakeJoinTimeoutException(vm);
       result = Sg_Raise(e, FALSE);
     } else {
       result = timeoutval;
@@ -255,13 +261,13 @@ SgObject Sg_ThreadTerminate(SgVM *target)
   return SG_UNDEF;
 }
 
-extern void Sg__Init_sagittarius_threads();
+extern void Sg__Init_sagittarius_threads_impl();
 extern void Sg__InitMutex();
 
 void Sg_Init_sagittarius__threads()
 {
   Sg__InitMutex();
-  Sg__Init_sagittarius_threads();
+  Sg__Init_sagittarius_threads_impl();
   SG_PROCEDURE_NAME(&thread_error_handler_STUB)
     = Sg_MakeString(UC("thread-exception-handler"), SG_LITERAL_STRING);
 }

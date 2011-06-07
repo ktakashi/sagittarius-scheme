@@ -48,6 +48,8 @@
 	     (if top
 		 (string-append "WORD(" r ")")
 		 r)))
+	  ((char? p)
+	   (format "SG_MAKE_CHAR(~a)" (char->integer p)))
 	  (else
 	   (error "unknown scheme object" p)))))
 

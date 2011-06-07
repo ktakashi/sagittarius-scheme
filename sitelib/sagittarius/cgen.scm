@@ -45,9 +45,6 @@
 	     (base:dispatch dispatch)))
     (import (rnrs (6))
 	    (rnrs eval (6))
-	    ;; TODO to avoid (sagittarius) library we use (srfi-13) for now.
-	    ;; but we want to use Sagittarius as generator in future.
-	    (only (srfi srfi-13) string-index string-index-right string-map)
 	    (sagittarius format)
 	    (sagittarius cgen util)
 	    (prefix (sagittarius cgen base) base:)
@@ -306,7 +303,7 @@
        (error 'resolve-args "invalid type" type)))))
 
   (define (resolve-return return)
-    (let* ((s-return (symbol->string return))
+    (let* ((s-return (format ":~s" return))
 	   (tokens (string-split s-return)))
       (or (= (length tokens) 1)
 	  (error 'resolve-return (format "return type must be ::<type> but got ~s" return)))

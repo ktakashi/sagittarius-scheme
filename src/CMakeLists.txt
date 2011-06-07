@@ -52,6 +52,7 @@ SET(SAGITTARIUS_LIB_SOURCE
   compiler-aux.c   lib_scmlib.c
   extlib.c         lib_errors.c
   lib_arith.c      lib_macro.c
+  lib_match_core.c
 )
 
 ADD_LIBRARY(sagittarius SHARED 

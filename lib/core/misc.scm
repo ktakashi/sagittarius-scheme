@@ -1,7 +1,7 @@
 ;; -*- scheme -*-
 (library (core misc)
     (export unique-id-list?
-	    #;safe-length)
+	    define-macro)
     (import (core)
 	    (sagittarius)
 	    (core base))
@@ -13,10 +13,21 @@
 			 (memq (car lst) (cdr lst))
 			 (loop (cdr lst))))))))
 
-  #;(define safe-length
-    (lambda (lst)
-      (let loop ((lst lst) (n 0))
-	(if (pair? lst)
-	    (loop (cdr lst) (+ n 1))
-	    (or (and (null? lst) n) -1)))))
+  (define-syntax define-macro
+    (er-macro-transformer
+     (lambda (form rename compare)
+       (let ((name (cadr form))
+	     (body (cddr form)))
+	 (let ((_define-macro (rename 'define-macro))
+	       (_lambda (rename 'lambda))
+	       (_define-syntax (rename 'define-syntax))
+	       (_car (rename 'car)) (_cdr (rename 'cdr))
+	       (_er-macro-transformer (rename 'er-macro-transformer))
+	       (_apply (rename 'apply)) (_form (rename 'form)))
+	   (if (pair? name)
+	       `(,_define-macro ,(car name) (,_lambda ,(cdr name) ,@body))
+	       `(,_define-syntax ,name
+		  (,_er-macro-transformer
+		   (,_lambda (,_form rename compare)
+		     (,_apply ,(car body) (,_cdr ,_form)))))))))))
 )

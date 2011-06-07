@@ -123,9 +123,9 @@ SgObject Sg_MutexUnlock(SgMutex *mutex, SgConditionVariable *cv, SgObject timeou
 
 /* thread exceptions */
 SgObject Sg_MakeJoinTimeoutException(SgVM *vm);
-SgObject Sg_MakeAbandonedMutexException(SgVM *vm);
-SgObject Sg_MakeTerminatedThreadException(SgVM *vm);
-SgObject Sg_UncaughtException(SgVM *vm);
+SgObject Sg_MakeAbandonedMutexException(SgVM *vm, SgMutex *mutex);
+SgObject Sg_MakeTerminatedThreadException(SgVM *vm, SgVM *terminator);
+SgObject Sg_MakeUncaughtException(SgVM *vm, SgObject reason);
 
 SG_CDECL_END
 #endif /* ! SAGITTARIUS_THREADS_H_ */

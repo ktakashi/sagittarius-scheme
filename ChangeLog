@@ -1,3 +1,9 @@
+2011-06-07  Takashi Kato  <ktakashi@ymail.com>
+
+	* sitelib/match.scm (match): introduced Andrew Wright's match.
+
+	* autogen.sh: use sash instead of Ypsilon to generate stub
+
 2011-06-06  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/sagittarius/threads.scm (sagittarius threads): introduced first version

@@ -451,7 +451,7 @@ static int64_t file_write_to_block_buffer(SgObject self, uint8_t *v, int64_t req
       memcpy(SG_BINARY_PORT(self)->buffer + SG_BINARY_PORT(self)->bufferIndex,
 	     v + write_size, buf_diff);
       SG_BINARY_PORT(self)->bufferIndex += buf_diff;
-      write_size += size_diff;
+      write_size += buf_diff;
       file_flush_internal(self);
       need_unwind = TRUE;
     }
@@ -516,7 +516,7 @@ SgObject Sg_MakeFileBinaryOutputPort(SgFile *file, int bufferMode)
   ASSERT(file->isOpen(file));
 
   z->closed = FALSE;
-  z->flush = file_flush; /* TODO rename. */
+  z->flush = file_flush_internal; /* TODO rename. */
   z->close = file_close;
 
   b->src.file = file;

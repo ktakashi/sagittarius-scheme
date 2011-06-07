@@ -127,6 +127,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->escapeReason = SG_VM_ESCAPE_NONE;
   v->escapeData[0] = NULL;
   v->escapeData[1] = NULL;
+  v->defaultEscapeHandler = SG_FALSE;
 
   v->dynamicWinders = SG_NIL;
   v->parentExHandler = SG_FALSE;
@@ -300,6 +301,28 @@ static inline void report_error(SgObject exception)
     }
   }
   Sg_FlushAllPort(FALSE);
+}
+
+void Sg_ReportError(SgObject e)
+{
+  SgVM *vm = Sg_VM();
+
+  if (SG_VM_RUNTIME_FLAG_IS_SET(vm, SG_ERROR_BEING_REPORTED)) {
+    Sg_Abort("Unhandled error occurred during reporting an error. Process aborted.\n");
+  }
+  SG_VM_RUNTIME_FLAG_SET(vm, SG_ERROR_BEING_REPORTED);
+  SG_UNWIND_PROTECT {
+    if (SG_PROCEDUREP(vm->defaultEscapeHandler)) {
+      Sg_Apply1(vm->defaultEscapeHandler, e);
+    } else {
+      report_error(e);
+    }
+  }
+  SG_WHEN_ERROR {
+    SG_VM_RUNTIME_FLAG_CLEAR(vm, SG_ERROR_BEING_REPORTED);
+  }
+  SG_END_PROTECT;
+  SG_VM_RUNTIME_FLAG_CLEAR(vm, SG_ERROR_BEING_REPORTED);
 }
 
 SgGloc* Sg_FindBinding(SgObject library, SgObject name, SgObject callback)

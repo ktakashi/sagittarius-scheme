@@ -54,6 +54,47 @@
    we implement these standard conditions in C.
  */
 
+/* macros to define C level exceptions */
+
+#define SG_DECLARE_EXCEPTIONS(libname, create)				\
+  SgObject rtd__, rcd__, ctr__, pred__, accessor__;			\
+  SgObject lib__ = Sg_FindLibrary(SG_INTERN(libname), (create))
+
+#define SG_INTERN__CONDITION(cname, sname, prtd, prcd, uid, sealed, opaque, fvec, protocol) \
+  do {									\
+    rtd__ = Sg_MakeRecordTypeDescriptor(SG_INTERN(#sname),		\
+					(prtd), (uid), (sealed),	\
+					(opaque), (fvec));		\
+    rcd__ = Sg_MakeRecordConstructorDescriptor(rtd__, (prcd), (protocol)); \
+    SG_INIT_RECORD_TYPE(cname, SG_INTERN(#sname), rtd__, rcd__);	\
+    Sg_InsertBinding(lib__, SG_INTERN(#sname), cname);			\
+  } while (0)
+
+#define SG_INTERN__CONDITION_SIMPLE(cname, sname, prtd, prcd, fvec)	\
+  SG_INTERN__CONDITION(cname, sname, prtd, prcd, SG_FALSE, FALSE, FALSE, fvec, SG_FALSE)
+
+#define SG_INTERN__CONDITION_CTR(cname, method)			\
+  do {								\
+    ctr__ = Sg_RecordConstructor(SG_RECORD_TYPE_RCD(cname));	\
+    Sg_InsertBinding(lib__, SG_INTERN(#method), ctr__);		\
+  } while (0)
+
+#define SG_INTERN__CONDITION_PRED(cname, method)		\
+  do {								\
+    pred__ = Sg_RecordPredicate(SG_RECORD_TYPE_RTD(cname));	\
+    Sg_InsertBinding(lib__, SG_INTERN(#method), pred__);	\
+  } while (0)
+
+#define SG_INTERN__CONDITION_ACCESSOR(cname, rmethod, cmethod, pos)	\
+  do {									\
+    accessor__ = Sg_RecordAccessor(SG_RECORD_TYPE_RTD(cname), pos);	\
+    Sg_InsertBinding(lib__, SG_INTERN(#rmethod), accessor__);		\
+    Sg_InsertBinding(lib__, SG_INTERN(#cmethod),			\
+		     Sg_ConditionAccessor(SG_RECORD_TYPE_RTD(cname), accessor__)); \
+  } while (0)
+
+#define SG_SET_CONSTRUCTOR(t) (t) = ctr__;
+
 SG_CDECL_BEGIN
 
 /* constructor */

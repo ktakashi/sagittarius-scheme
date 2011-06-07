@@ -11,9 +11,6 @@
 	    define-cgen-stmt define-cgen-macro register-macro!)
     (import (rnrs (6))
 	    (rnrs eval (6))
-	    ;; TODO the same as cgen.scm
-	    (only (srfi srfi-13) string-index string-index-right)
-	    (only (srfi srfi-8) receive)
 	    (match)
 	    (sagittarius cgen util)
 	    (sagittarius format))
@@ -35,13 +32,13 @@
 		  (method (hashtable-ref *dispatch-table* head resolve-call)))
 	     (method body dispatch k)))
 	  ((boolean? body)
-	   ((renderer) (format "SG_MAKE_BOOL(~s)" (if body 'TRUE 'FALSE))))
+	   ((renderer) (format "SG_MAKE_BOOL(~a)" (if body 'TRUE 'FALSE))))
 	  ((string? body)
 	   ((renderer) (format "UC(~s)" body)))
 	  ((char? body)
 	   ((renderer) (format "~a" (char->integer body))))
 	  (else
-	   ((renderer) (format "~s" body)))))
+	   ((renderer) (format "~a" body)))))
 
   ;; generic method
   ;; assume if there is no registered dispatcher
@@ -65,7 +62,7 @@
   (define (quote-proc body dispatch k)
     (if (null? (cadr body))
 	((renderer) (format "SG_NIL"))
-	((renderer) (format "SG_INTERN(~s)" (format "~s" (cadr body)))))
+	((renderer) (format "SG_INTERN(~s)" (format "~a" (cadr body)))))
     (k k))
 
   ;; +
@@ -215,7 +212,7 @@
     (define (resolve-variable vars exprs)
       (for-each (lambda (var expr)
 		  (receive (name type) (resolve-type-name var)
-		    ((renderer) (format "~s ~s = " type name))
+		    ((renderer) (format "~a ~a = " type name))
 		    (renderer-no-indent #t)
 		    (dispatch expr dispatch k)
 		    ((renderer) (format ";~%"))

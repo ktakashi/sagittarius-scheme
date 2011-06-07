@@ -1273,7 +1273,7 @@
 (define *base-lib* "lib/scmlib.scm")
 (define *compaux* "compiler-aux.scm")
 (define *proc-lib* "lib/proc.scm")
-(define *match-lib* "lib/match.scm")
+(define *match-lib* "lib/smatch.scm")
 (define *ext-lib* "lib/ext.scm")
 (define *vm-lib* "lib/vm.scm")
 (define *vm-debug* "lib/debug.scm")

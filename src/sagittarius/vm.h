@@ -136,6 +136,15 @@ enum {
 				   terminated. */
 };
 
+enum {
+  SG_ERROR_BEING_HANDLED  = (1L << 0),
+  SG_ERROR_BEING_REPORTED = (1L << 1)
+};
+
+#define SG_VM_RUNTIME_FLAG_IS_SET(vm, flag) ((vm)->runtimeFlags & (flag))
+#define SG_VM_RUNTIME_FLAG_SET(vm, flag)    ((vm)->runtimeFlags != (flag))
+#define SG_VM_RUNTIME_FLAG_CLEAR(vm, flag)  ((vm)->runtimeFlags &= ~(flag))
+
 struct SgVMRec
 {
   SG_HEADER;
@@ -152,6 +161,7 @@ struct SgVMRec
   SgObject resultException;	/* thread exception */
 
   unsigned int flags;		/* flags */
+  unsigned int runtimeFlags;	/* flags for runtime */
   /* Registers */
   SgWord   *pc;			/* program counter */
   SgObject  ac;			/* accumelator */
@@ -208,6 +218,7 @@ struct SgVMRec
   SgContinuation *escapePoint;
   SgVMEscapeReason escapeReason;
   void      *escapeData[2];
+  SgObject   defaultEscapeHandler; /* for multi threading */
   /* error */
   SgObject   error;
 
@@ -370,6 +381,7 @@ SG_EXTERN SgObject Sg_GetStackTrace();
 SG_EXTERN SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP);
 SG_EXTERN void     Sg_VMDefaultExceptionHandler(SgObject exception);
 SG_EXTERN SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk);
+SG_EXTERN void     Sg_ReportError(SgObject e);
 
 /* finalizer */
 SG_EXTERN SgObject Sg_VMFinalizerRun(SgVM *vm);

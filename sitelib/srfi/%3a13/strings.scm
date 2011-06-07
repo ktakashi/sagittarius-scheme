@@ -66,6 +66,7 @@
      substring-spec-ok?
      make-kmp-restart-vector kmp-step string-kmp-partial-search)
     (import (rnrs)
+	    (rnrs mutable-strings)
 	    (only (sagittarius) format)
 	    (srfi :8 receive)
 	    (srfi :14 char-set))

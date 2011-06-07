@@ -1,14 +1,15 @@
 ;; -*- scheme -*-
-(library (sagittarius threads)
+(library (sagittarius threads impl)
     (export thread?
 	    make-thread
 	    thread-name
 	    thread-specific thread-specific-set!
 	    thread-state
 	    current-thread
-	    thread-base-priority thread-base-priority-set!
-	    thread-priority-boost thread-priority-boost-set!
-	    thread-quantum thread-quantum-set!
+	    ;; TODO implement
+	    ;;thread-base-priority thread-base-priority-set!
+	    ;;thread-priority-boost thread-priority-boost-set!
+	    ;;thread-quantum thread-quantum-set!
 	    thread-start! thread-join! thread-yield! thread-sleep!
 	    thread-terminate!
 
@@ -17,6 +18,20 @@
 	    mutex-name mutex-state
 	    mutex-specific mutex-specific-set!
 	    mutex-lock! mutex-unlock!
+
+	    ;; condition variable
+	    condition-variable? make-condition-variable
+	    condition-variable-name
+	    condition-variable-specific condition-variable-specific-set!
+	    condition-variable-signal! condition-variable-broadcast!
+
+	    ;; time
+	    current-time time? time->seconds seconds->time
+
+	    ;; exceptions
+	    join-time-out-exception? abandoned-mutex-exception?
+	    terminated-thread-exception? uncaught-exception?
+	    uncaught-exception-reason
 	    )
     (import :none)
 #!compatible

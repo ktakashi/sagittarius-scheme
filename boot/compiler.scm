@@ -15,7 +15,7 @@
 ;; common definition
 (cond-expand
  (gauche
-  (require "lib/match.scm")    ;; for smatch
+  (require "lib/smatch.scm")    ;; for smatch
   (require "compiler-aux.scm") ;; for define-simple-struct
   (use util.list)
 
@@ -49,7 +49,7 @@
  (sagittarius
   ;; sagittarius
   ;; include is just a mark for generating the compiler
-  (include "lib/match.scm")
+  (include "lib/smatch.scm")
   #;(include "compiler-aux.scm"))
 )
 

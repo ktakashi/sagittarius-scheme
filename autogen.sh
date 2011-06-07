@@ -20,11 +20,21 @@ do_library()
     cd ../
 }
 
+do_builtin()
+{
+    echo Generating c file from compiler.scm
+    cd boot
+    gosh -I. vm.scm ./lib/match_core.scm c "(match core)" ../src/lib_match_core.c
+    cd ../
+}
+
+
 do_stub()
 {
     echo Generating library from stub
     cd src
-    Ypsilon --sitelib=../sitelib ./genstub
+    #Ypsilon --sitelib=../sitelib ./genstub
+    sash ./genstub
     cd ../
 }
 
@@ -33,6 +43,7 @@ show_usage()
     echo "usage: $0 compiler|library|stub|all"
     echo "    compiler: generate compiler.c"
     echo "    library:  generate compiled libraries"
+    echo "    builtin:  generate compiled builtin libraries"
     echo "    stub:     generate stub files"
     echo "    all:      generate do everything above"
     echo "  These can be combined and if you did not specify this script"
@@ -52,6 +63,9 @@ then
 	    library)
 		do_library
 		;;
+	    builtin)
+		do_builtin
+		;;
 	    stub)
 		do_stub
 		;;
@@ -69,3 +83,4 @@ then
 else
     show_usage
 fi
+
