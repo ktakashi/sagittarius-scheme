@@ -148,7 +148,7 @@
 	   (wrong-type-of-argument-violation 'mutex-lock!
 					     "thread or #f"
 					     thread)))
-    (result (Sg_MutexLock (SG_MUTEX o) timeout thread))))
+    (result (Sg_MutexLock (SG_MUTEX o) timeout owner))))
 
 (define-c-proc mutex-unlock! (o :optional (cv #f) (timeout #f)) ::Object
   (check-mutex o mutex-unlock!)

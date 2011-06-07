@@ -6,7 +6,7 @@ ADD_LIBRARY(sagittarius--threads MODULE
   threads.c threads_stub.c mutex.c)
 
 ADD_CUSTOM_TARGET(genstub
-  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/sash ${CMAKE_CURRENT_SOURCE_DIR}/../genstub ${CMAKE_CURRENT_SOURCE_DIR}/threads_stub.stub)
+  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/sash -L${CMAKE_CURRENT_SOURCE_DIR}/../../lib -L${CMAKE_CURRENT_SOURCE_DIR}/../../sitelib ${CMAKE_CURRENT_SOURCE_DIR}/../genstub ${CMAKE_CURRENT_SOURCE_DIR}/threads_stub.stub)
 
 ADD_DEPENDENCIES(sagittarius--threads genstub)
 

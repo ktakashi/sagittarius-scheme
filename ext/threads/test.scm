@@ -1,6 +1,9 @@
 ;; -*- scheme -*-
 
 ;; testing mutil thread
+;; this file will be called from one upper
+;; so load path must be like this
+(add-load-path "./threads/")
 (library (threads test)
     (export run-threads-test)
     (import (srfi :64 testing)
@@ -25,8 +28,10 @@
       (mutex-specific-set! m 'specific-data)
       (test-equal "mutex specific" (mutex-specific m) 'specific-data)
       (test-equal "mutex state" (mutex-state m) 'not-abandoned)
-      ;;(test-assert "mutex locked" (mutex-lock! m))
-      ;;(test-equal "mutex state" (mutex-state m) 'not-owned)
-      ;;(test-assert "mutex unlocked" (mutex-unlock! m)))
+      (test-assert "mutex locked" (mutex-lock! m))
+      (test-assert "mutex state" (thread? (mutex-state m)))
+      (test-equal "mutex state 2" (mutex-state m) (current-thread))
+      (test-assert "mutex unlocked" (mutex-unlock! m))
+      )
     (test-end))
 )
