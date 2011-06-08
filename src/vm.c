@@ -142,7 +142,13 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 
   /* from proto */
   /* if proto was NULL, this will be initialized Sg__InitVM */
-  v->currentLibrary = proto ? proto->currentLibrary: NULL;
+  /* TODO I'm not sure if I should use the same libraries and currentLibrary
+     from proto. Should I copy it?
+   */
+  v->libraries = proto ? proto->libraries: SG_UNDEF;
+  v->currentLibrary = proto ? proto->currentLibrary: SG_UNDEF;
+  v->loadPath = proto ? proto->loadPath: SG_NIL;
+  v->dynamicLoadPath = proto ? proto->dynamicLoadPath: SG_NIL;
   v->cstack = proto ? proto->cstack : NULL;
   v->flags = proto? proto->flags : 0;
   v->currentInputPort = proto 
@@ -164,7 +170,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 				  ? Sg_MakeNativeConsoleTranscoder()
 				  : Sg_MakeNativeTranscoder());
   v->logPort = proto ? proto->logPort : v->currentErrorPort;
-  /* TODO thread, mutex, etc */
+  /* thread, mutex, etc */
   SG_INTERNAL_THREAD_INIT(&v->thread);
   Sg_InitMutex(&v->vmlock, FALSE);
   Sg_InitCond(&v->cond);

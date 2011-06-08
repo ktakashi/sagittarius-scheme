@@ -1,4 +1,4 @@
-/* This file is autmatically generated from "/home/t.kato/projects/sagittarius/ext/time/time_stub.stub". DO NOT EDIT!!*/
+/* This file is autmatically generated from "/home/takashi/projects/sagittarius/ext/time/time_stub.stub". DO NOT EDIT!!*/
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius.h>
 #include "time.h"
@@ -53,7 +53,7 @@ static SgObject _sagittarius_time_impl_time_type(SgObject *args, int argc, void 
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_TIME_P(o))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), o, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
@@ -74,7 +74,7 @@ static SgObject _sagittarius_time_impl_time_nanosecond(SgObject *args, int argc,
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_TIME_P(o))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), o, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
@@ -95,7 +95,7 @@ static SgObject _sagittarius_time_impl_time_second(SgObject *args, int argc, voi
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_TIME_P(o))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), o, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
@@ -119,7 +119,7 @@ static SgObject _sagittarius_time_impl_set_time_type21(SgObject *args, int argc,
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_TIME_P(o))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), o, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
@@ -143,7 +143,7 @@ static SgObject _sagittarius_time_impl_set_time_nanosecond21(SgObject *args, int
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_TIME_P(o))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), o, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
@@ -167,7 +167,7 @@ static SgObject _sagittarius_time_impl_set_time_second21(SgObject *args, int arg
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_TIME_P(o))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), o, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
@@ -188,7 +188,7 @@ static SgObject _sagittarius_time_impl_copy_time(SgObject *args, int argc, void 
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_TIME_P(o))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), o, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
@@ -263,7 +263,7 @@ static SgObject _sagittarius_time_impl_time_3esecond(SgObject *args, int argc, v
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_TIME_P(o))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), o, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
@@ -302,13 +302,13 @@ static SgObject _sagittarius_time_impl_time3c3d3f(SgObject *args, int argc, void
     int SG_RETURN;
     if (!(SG_TIME_P(x))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), x, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_TIME_P(y))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), y, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
@@ -331,13 +331,13 @@ static SgObject _sagittarius_time_impl_time3c3f(SgObject *args, int argc, void *
     int SG_RETURN;
     if (!(SG_TIME_P(x))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), x, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_TIME_P(y))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), y, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
@@ -360,13 +360,13 @@ static SgObject _sagittarius_time_impl_time3d3f(SgObject *args, int argc, void *
     int SG_RETURN;
     if (!(SG_TIME_P(x))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), x, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_TIME_P(y))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), y, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
@@ -389,13 +389,13 @@ static SgObject _sagittarius_time_impl_time3e3d3f(SgObject *args, int argc, void
     int SG_RETURN;
     if (!(SG_TIME_P(x))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), x, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_TIME_P(y))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), y, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
@@ -418,13 +418,13 @@ static SgObject _sagittarius_time_impl_time3e3f(SgObject *args, int argc, void *
     int SG_RETURN;
     if (!(SG_TIME_P(x))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), x, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_TIME_P(y))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), y, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
@@ -447,13 +447,13 @@ static SgObject _sagittarius_time_impl_time_difference(SgObject *args, int argc,
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_TIME_P(x))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), x, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_TIME_P(y))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), y, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
@@ -476,13 +476,13 @@ static SgObject _sagittarius_time_impl_time_difference21(SgObject *args, int arg
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_TIME_P(x))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), x, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_TIME_P(y))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), y, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
@@ -505,13 +505,13 @@ static SgObject _sagittarius_time_impl_add_duration(SgObject *args, int argc, vo
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_TIME_P(x))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), x, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_TIME_P(y))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), y, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
@@ -534,13 +534,13 @@ static SgObject _sagittarius_time_impl_add_duration21(SgObject *args, int argc, 
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_TIME_P(x))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), x, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_TIME_P(y))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), y, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
@@ -563,13 +563,13 @@ static SgObject _sagittarius_time_impl_subtract_duration(SgObject *args, int arg
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_TIME_P(x))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), x, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_TIME_P(y))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), y, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
@@ -592,13 +592,13 @@ static SgObject _sagittarius_time_impl_subtract_duration21(SgObject *args, int a
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_TIME_P(x))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), x, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_TIME_P(y))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("time"), SG_LITERAL_STRING), y, SG_NIL);
-      SG_RETURN = (SG_UNDEF);
+      return SG_UNDEF;
 ;
     }
 ;
@@ -612,52 +612,52 @@ static SG_DEFINE_SUBR(_sagittarius_time_impl_subtract_duration21_Stub, 2, 0, _sa
 void Sg__Init_sagittarius_time_impl()
 {
   SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC("(sagittarius time impl)"), SG_LITERAL_STRING)), TRUE);
-  SG_PROCEDURE_NAME(&_sagittarius_time_impl_subtract_duration21_Stub) = Sg_MakeString(UC("subtract-duration!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("subtract-duration!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_subtract_duration21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_time_impl_time3e3d3f_Stub) = Sg_MakeString(UC("time>=?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time>=?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time3e3d3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_time_impl_time3c3d3f_Stub) = Sg_MakeString(UC("time<=?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time<=?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time3c3d3f_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_time_impl_subtract_duration_Stub) = Sg_MakeString(UC("subtract-duration"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("subtract-duration"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_subtract_duration_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_time_impl_set_time_type21_Stub) = Sg_MakeString(UC("set-time-type!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-time-type!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_set_time_type21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_time_impl_time3d3f_Stub) = Sg_MakeString(UC("time=?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time=?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time3d3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_time_impl_time3c3f_Stub) = Sg_MakeString(UC("time<?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time<?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time3c3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_time_impl_time3c3d3f_Stub) = Sg_MakeString(UC("time<=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time<=?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time3c3d3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_time_impl_set_time_nanosecond21_Stub) = Sg_MakeString(UC("set-time-nanosecond!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-time-nanosecond!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_set_time_nanosecond21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_time_impl_time_resolution_Stub) = Sg_MakeString(UC("time-resolution"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time-resolution"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time_resolution_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_time_impl_make_time_Stub) = Sg_MakeString(UC("make-time"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-time"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_make_time_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_time_impl_subtract_duration21_Stub) = Sg_MakeString(UC("subtract-duration!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("subtract-duration!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_subtract_duration21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_time_impl_set_time_type21_Stub) = Sg_MakeString(UC("set-time-type!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-time-type!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_set_time_type21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_time_impl_second_3etime_Stub) = Sg_MakeString(UC("second->time"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("second->time"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_second_3etime_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_time_impl_time_3esecond_Stub) = Sg_MakeString(UC("time->second"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time->second"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time_3esecond_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_time_impl_time3f_Stub) = Sg_MakeString(UC("time?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time3f_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_time_impl_copy_time_Stub) = Sg_MakeString(UC("copy-time"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("copy-time"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_copy_time_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_time_impl_add_duration21_Stub) = Sg_MakeString(UC("add-duration!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("add-duration!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_add_duration21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_time_impl_set_time_nanosecond21_Stub) = Sg_MakeString(UC("set-time-nanosecond!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-time-nanosecond!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_set_time_nanosecond21_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_time_impl_set_time_second21_Stub) = Sg_MakeString(UC("set-time-second!"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-time-second!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_set_time_second21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_time_impl_time_resolution_Stub) = Sg_MakeString(UC("time-resolution"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time-resolution"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time_resolution_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_time_impl_time_nanosecond_Stub) = Sg_MakeString(UC("time-nanosecond"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time-nanosecond"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time_nanosecond_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_time_impl_time_type_Stub) = Sg_MakeString(UC("time-type"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time-type"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time_type_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_time_impl_time3e3f_Stub) = Sg_MakeString(UC("time>?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time>?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time3e3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_time_impl_time_difference_Stub) = Sg_MakeString(UC("time-difference"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time-difference"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time_difference_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_time_impl_time3e3d3f_Stub) = Sg_MakeString(UC("time>=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time>=?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time3e3d3f_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_time_impl_current_time_Stub) = Sg_MakeString(UC("current-time"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("current-time"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_current_time_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_time_impl_time_difference21_Stub) = Sg_MakeString(UC("time-difference!"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time-difference!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time_difference21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_time_impl_time_3esecond_Stub) = Sg_MakeString(UC("time->second"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time->second"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time_3esecond_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_time_impl_time_nanosecond_Stub) = Sg_MakeString(UC("time-nanosecond"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time-nanosecond"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time_nanosecond_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_time_impl_time_difference_Stub) = Sg_MakeString(UC("time-difference"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time-difference"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time_difference_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_time_impl_add_duration_Stub) = Sg_MakeString(UC("add-duration"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("add-duration"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_add_duration_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_time_impl_second_3etime_Stub) = Sg_MakeString(UC("second->time"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("second->time"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_second_3etime_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_time_impl_time3e3f_Stub) = Sg_MakeString(UC("time>?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time>?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time3e3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_time_impl_time3d3f_Stub) = Sg_MakeString(UC("time=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time=?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time3d3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_time_impl_add_duration21_Stub) = Sg_MakeString(UC("add-duration!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("add-duration!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_add_duration21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_time_impl_time3c3f_Stub) = Sg_MakeString(UC("time<?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time<?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time3c3f_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_time_impl_time_second_Stub) = Sg_MakeString(UC("time-second"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("time-second"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_time_second_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_time_impl_add_duration_Stub) = Sg_MakeString(UC("add-duration"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("add-duration"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_time_impl_add_duration_Stub));
 }

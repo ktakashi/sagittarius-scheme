@@ -49,12 +49,12 @@
      (dispatch
       `(begin
 	 (Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got '())
-	 (result SG_UNDEF))))
+	 (return SG_UNDEF))))
     ((_ who msg got irritants)
      (dispatch
       `(begin
 	 (Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got ,irritants)
-	 (result SG_UNDEF)))))
+	 (return SG_UNDEF)))))
 
   (define-c-proc make-time (type::Symbol nsec::number sec::number) ::Object
     (result (Sg_MakeTime type (Sg_GetIntegerS64Clamp sec SG_CLAMP_NONE NULL)

@@ -76,7 +76,7 @@
   ;; NB: actually, we can make mutex recursively by default.
   ;;     I'm not sure if it's a good proposal or not, so for now,
   ;;     like this.
-  (define (mutex-unlock-recursively! mutex)
+  (define (mutex-lock-recursively! mutex)
     (if (eq? (mutex-state mutex) (current-thread))
 	(let ((n (mutex-specific mutex)))
 	  (mutex-specific-set! mutex (+ n 1)))
