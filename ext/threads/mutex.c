@@ -60,7 +60,7 @@ static void mutex_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
   }
 }
 
-SG_INIT_META_OBJ(Sg_MutexMeta, &mutex_printer);
+SG_INIT_META_OBJ(Sg_MutexMeta, &mutex_printer, NULL);
 
 static void mutex_finalize(SgObject obj, void *data)
 {
@@ -181,7 +181,7 @@ static void cv_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
   Sg_Printf(port, UC("#<condition variable %S>"), cv->name);
 }
 
-SG_INIT_META_OBJ(Sg_ConditionVariableMeta, &cv_printer);
+SG_INIT_META_OBJ(Sg_ConditionVariableMeta, &cv_printer, NULL);
 
 static void cv_finalize(SgObject obj, void *data)
 {

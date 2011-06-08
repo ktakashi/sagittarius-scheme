@@ -5,10 +5,10 @@
 ADD_LIBRARY(sagittarius--threads MODULE
   threads.c threads_stub.c mutex.c)
 
-ADD_CUSTOM_TARGET(genstub
-  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/sash -L${CMAKE_CURRENT_SOURCE_DIR}/../../lib -L${CMAKE_CURRENT_SOURCE_DIR}/../../sitelib ${CMAKE_CURRENT_SOURCE_DIR}/../genstub ${CMAKE_CURRENT_SOURCE_DIR}/threads_stub.stub)
-
-ADD_DEPENDENCIES(sagittarius--threads genstub)
+INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
+ADD_STUBS(sagittarius--threads
+  COMMAND ${GENSTUB}
+  ${CMAKE_CURRENT_SOURCE_DIR}/threads_stub.stub)
 
 SET_TARGET_PROPERTIES(sagittarius--threads PROPERTIES PREFIX "")
 TARGET_LINK_LIBRARIES(sagittarius--threads sagittarius)

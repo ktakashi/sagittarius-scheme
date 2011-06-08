@@ -3,7 +3,5 @@
 (add-load-path "../lib")
 
 (import (sagittarius cgen))
-(when (not (= (length (command-line)) 2))
-  (error 'genstub "invalid command-line arguments" (command-line)))
-(let ((file (cadr (command-line))))
-  (cgen file))
+(let ((files (cdr (command-line))))
+  (for-each cgen files))

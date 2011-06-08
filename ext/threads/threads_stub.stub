@@ -25,13 +25,11 @@
 	    condition-variable-specific condition-variable-specific-set!
 	    condition-variable-signal! condition-variable-broadcast!
 
-	    ;; time
-	    current-time time? time->seconds seconds->time
-
 	    ;; exceptions
-	    join-time-out-exception? abandoned-mutex-exception?
-	    terminated-thread-exception? uncaught-exception?
-	    uncaught-exception-reason
+	    ;; these are implemented in mutex.c
+	    ;;join-time-out-exception? abandoned-mutex-exception?
+	    ;;terminated-thread-exception? uncaught-exception?
+	    ;;uncaught-exception-reason
 	    )
     (import :none)
 #!compatible

@@ -29,6 +29,7 @@
  *
  *  $Id: $
  */
+#include <windows.h>
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/file.h>
 
@@ -36,6 +37,18 @@
 const SgChar* Sg_NativeFileSeparator()
 {
   return UC("\\");
+}
+
+int Sg_GetTimeOfDay(unsigned long *sec, unsigned long *nsec)
+{
+  FILETIME ft;
+  uint64_t ft64;
+
+  GetSystemTimeAsFileTime(&ft);
+  ft64 = ((uint64_t)ft.dwLowDateTime + (((uint64_t)ft.dwHighDateTime) << 32)) / 10 - 11644473600000000LL;
+  *nsec = ft64 % 1000000;
+  *sec = ft64 / 1000000;
+  return 0;
 }
 
 void Sg_YieldCPU()

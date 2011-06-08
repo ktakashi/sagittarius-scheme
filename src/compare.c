@@ -40,6 +40,7 @@
 #include "sagittarius/string.h"
 #include "sagittarius/vector.h"
 #include "sagittarius/hashtable.h"
+#include "sagittarius/generic.h"
 #include "sagittarius/vm.h"	/* for box */
 
 int Sg_EqP(SgObject x, SgObject y)
@@ -47,7 +48,7 @@ int Sg_EqP(SgObject x, SgObject y)
   return SG_EQ(x, y);
 }
 
-int Sg_EqvP(SgObject x, SgObject y)
+static int eqv_internal(SgObject x, SgObject y, int from_equal_p)
 {
   if (SG_NUMBERP(x)) {
     if (SG_NUMBERP(y)) {
@@ -82,7 +83,18 @@ int Sg_EqvP(SgObject x, SgObject y)
       return FALSE;
     }
   }
+  if (from_equal_p && SG_META_OBJ_P(x)) {
+    if (SG_META_OBJ_P(y) &&
+	SG_GET_META_OBJ(x)->compare) {
+      return SG_GET_META_OBJ(x)->compare(x, y, from_equal_p);
+    }
+  }
   return SG_EQ(x, y);
+}
+
+int Sg_EqvP(SgObject x, SgObject y)
+{
+  return eqv_internal(x, y, FALSE);
 }
 
 /* R6RS requires to equal? to stop when the given object were shared object */
@@ -224,7 +236,7 @@ static SgObject pre_p(SgObject x, SgObject y, SgObject k)
       return SG_FALSE;
     }
   }
-  if (Sg_EqvP(x, y)) {
+  if (eqv_internal(x, y, TRUE)) {
     return k;
   } else {
     return SG_FALSE;
@@ -293,7 +305,7 @@ static SgObject fast_p(SgHashTable **pht, SgObject x, SgObject y, SgObject k, st
       return SG_FALSE;
     }
   }
-  if (Sg_EqvP(x, y)) {
+  if (eqv_internal(x, y, TRUE)) {
     return k;
   } else {
     return SG_FALSE;
@@ -438,7 +450,7 @@ static SgObject slow_p(SgHashTable **pht, SgObject x, SgObject y, SgObject k, st
     }
   }
 
-  if (Sg_EqvP(x, y)) {
+  if (eqv_internal(x, y, TRUE)) {
     return k;
   } else {
     return SG_FALSE;

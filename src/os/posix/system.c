@@ -31,6 +31,7 @@
  */
 #include <io.h>
 #include <unistd.h>
+#include <time.h>
 #ifdef HAVE_SCHED_H
 # include <sched.h>
 #endif
@@ -40,6 +41,7 @@
 #include <sagittarius/unicode.h>
 #include <sagittarius/string.h>
 #include <sagittarius/pair.h>
+#include <sagittarius/error.h>
 
 /* os dependent values */
 const SgChar* Sg_NativeFileSeparator()
@@ -67,6 +69,36 @@ SgObject Sg_GetDefaultLoadPath()
 SgObject Sg_GetDefaultDynamicLoadPath()
 {
   return SG_LIST1(Sg_MakeString(UC(SAGITTARIUS_DYNLIB_PATH), SG_LITERAL_STRING));
+}
+
+int Sg_GetTimeOfDay(unsigned long *sec, unsigned long *usec)
+{
+#if defined(HAVE_CLOCK_GETTIME)
+  struct timespec ts;
+  int r;
+  r = clock_gettime(CLOCK_REALTIME, &ts);
+  /* TODO do we need system error? */
+  if (r < 0) Sg_Error(UC("clock_gettime failed"));
+  *sec = (unsigned long)ts.tv_sec;
+  *usec = (unsigned long)ts.tv_nsec / 1000;
+  return r;
+#elif defined(HAVE_GETTIMEOFDAY)
+  struct timeval tv;
+  int r;
+  r = gettimeofday(&tv, NULL);
+  /* TODO do we need system error? */
+  if (r < 0) Sg_Error(UC("gettimeofday failed"));
+  *sec = (unsigned long)tv.tv_sec;
+  *usec = (unsigned long)tv.tv_usec;
+  return r;
+#else
+  /* Last resort */
+  /* If the platform is POSIX, it must have either clock_gettime or gettimeofday.
+     Do we still need this? */
+  *sec = (unsigned long)time(NULL);
+  *usec = 0;
+  return 0;
+#endif
 }
 
 void Sg_YieldCPU()

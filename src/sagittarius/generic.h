@@ -96,10 +96,13 @@ struct SgInstanceRec
 
 /* I'm not sure if here is good location to put UserDef */
 typedef void SgMetaObjectPrinter(SgPort *p, SgObject self, SgWriteContext *ctx);
+typedef int  SgMetaObjectCompare(SgObject x, SgObject y, int equalp);
+
 typedef struct SgMetaObjectRec
 {
   /* for now only printer */
   SgMetaObjectPrinter *printer;
+  SgMetaObjectCompare *compare;
 } SgMetaObject;
 
 typedef struct SgMetaHeaderRec
@@ -123,9 +126,9 @@ typedef struct SgMetaHeaderRec
   } while (0)
 
 #define SG_GET_META_OBJ(obj)          (SG_METAHDR(obj)->meta)
-#define SG_META_OBJ_TYPE_P(obj, type) (SG_METAHDR(obj)->meta == (type))
-#define SG_INIT_META_OBJ(name, printer)		\
-  SgMetaObject (name) = { (printer) }
+#define SG_META_OBJ_TYPE_P(obj, type) (SG_META_OBJ_P(obj) && SG_METAHDR(obj)->meta == (type))
+#define SG_INIT_META_OBJ(name, printer, compare)	\
+  SgMetaObject (name) = { (printer), (compare) }
 
 SG_CDECL_BEGIN
 

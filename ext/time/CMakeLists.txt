@@ -1,0 +1,19 @@
+# Sagittarius extensions -*- CMake -*-
+# 
+# Build file for time
+
+ADD_LIBRARY(sagittarius--time MODULE
+  time.c time_stub.c)
+
+INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
+ADD_STUBS(sagittarius--time
+  COMMAND ${GENSTUB}
+  ${CMAKE_CURRENT_SOURCE_DIR}/time_stub.stub)
+
+SET_TARGET_PROPERTIES(sagittarius--time PROPERTIES PREFIX "")
+TARGET_LINK_LIBRARIES(sagittarius--time sagittarius)
+
+INSTALL(TARGETS sagittarius--time
+  DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
+INSTALL(FILES sagittarius/time.scm
+  DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH}/sagittarius)

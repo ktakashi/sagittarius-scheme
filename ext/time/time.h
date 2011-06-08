@@ -1,6 +1,6 @@
 /* -*- C -*- */
 /*
- * system.h
+ * time.h: srfi-19 time library
  *
  *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
  *
@@ -29,28 +29,55 @@
  *
  *  $Id: $
  */
-#ifndef SAGITTARIUS_SYSTEM_H_
-#define SAGITTARIUS_SYSTEM_H_
+#ifndef SAGITTARIUS_TIME_H_
+#define SAGITTARIUS_TIME_H_
 
-#include "sagittariusdefs.h"
+#include <sagittarius.h>
+#include <time.h>
+
+typedef struct SgTimeRec
+{
+  SG_META_HEADER;
+  SgObject type;
+  int64_t  sec;
+  unsigned long nsec;
+} SgTime;
+
+SG_DECLARE_META_OBJ(Sg_TimeMeta);
+#define SG_META_TIME  (&Sg_TimeMeta)
+#define SG_TIME(obj)  ((SgTime *)obj)
+#define SG_TIME_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_TIME)
+
+
+typedef struct SgDateRec
+{
+  SG_META_HEADER;
+  unsigned long nsec;
+  struct tm tm;			/* for lazyness */
+  int64_t zoneOffset;
+} SgDate;
+
+SG_DECLARE_META_OBJ(Sg_DateMeta);
+#define SG_META_DATE   (&Sg_DateMeta)
+#define SG_DATE(obj)   ((SgDate *)obj)
+#define SG_DATE_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_DATE)
+
+#define TM_NANO  1.0e9
+#define TM_SID   86400
+#define TM_SIDH  43200
+#define TM_TAI_EPOCH_IN_JD (double)(4881175/2)
 
 SG_CDECL_BEGIN
 
-/* TODO file related function might need to be moved to file.h */
-SG_EXTERN int           Sg_FileExistP(SgString *path);
-SG_EXTERN int           Sg_DeleteFile(SgString *path);
-SG_EXTERN const SgChar* Sg_NativeFileSeparator();
+SgObject Sg_MakeTime(SgObject type, int64_t sec, unsigned long nsec);
+SgObject Sg_CurrentTime(SgObject type);
+SgObject Sg_SecondToTime(int64_t sec);
+SgObject Sg_TimeToSecond(SgTime *time);
+SgObject Sg_TimeDifference(SgTime *x, SgTime *y, SgTime *r);
+SgObject Sg_AddDuration(SgTime *x, SgTime *y, SgTime *r);
+SgObject Sg_SubDuration(SgTime *x, SgTime *y, SgTime *r);
 
-/* load path */
-SG_EXTERN SgObject      Sg_GetDefaultLoadPath();
-SG_EXTERN SgObject      Sg_GetDefaultDynamicLoadPath();
-
-/* time */
-SG_EXTERN int           Sg_GetTimeOfDay(unsigned long *sec, unsigned long *usec);
-
-/* for threading */
-SG_EXTERN void          Sg_YieldCPU();
 
 SG_CDECL_END
 
-#endif /* SAGITTARIUS_SYSTEM_H_ */
+#endif /* SAGITTARIUS_TIME_H_ */

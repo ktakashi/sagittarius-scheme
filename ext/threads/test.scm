@@ -11,7 +11,6 @@
 	    (sagittarius threads))
 
   (define (run-threads-test)
-    (test-begin "threads test")
     (let ((t (make-thread (lambda () 'thread-1)
 			  'thread-1)))
       (test-assert 'thread? (thread? t))
@@ -33,5 +32,5 @@
       (test-equal "mutex state 2" (mutex-state m) (current-thread))
       (test-assert "mutex unlocked" (mutex-unlock! m))
       )
-    (test-end))
+    )
 )

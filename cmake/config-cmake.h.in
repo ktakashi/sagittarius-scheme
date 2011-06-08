@@ -25,6 +25,8 @@
 #cmakedefine HAVE_SCHED_YIELD
 #cmakedefine HAVE_NANOSLEEP
 #cmakedefine HAVE_SELECT
+#cmakedefine HAVE_CLOCK_GETTIME
+#cmakedefine HAVE_GETTIMEOFDAY
 
 #cmakedefine SHLIB_SO_SUFFIX "@SHLIB_SO_SUFFIX@"
 

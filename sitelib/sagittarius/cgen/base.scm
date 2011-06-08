@@ -44,9 +44,12 @@
   ;; assume if there is no registered dispatcher
   ;; it's function or macro call.
   (define (resolve-call body dispatch k)
-    (let ((name (car body)))
+    (let ((name (car body))
+	  (save (renderer-no-indent)))
       ;;(renderer-no-indent #t)
-      ((renderer) (format "~a(" name))
+      (dispatch name dispatch k)
+      (renderer-no-indent #t)
+      ((renderer) "(")
       (renderer-no-indent #t)
       (let loop ((args (cdr body))
 		 (i 0))
@@ -55,7 +58,9 @@
 	    ((renderer) ", "))
 	  (dispatch (car args) dispatch k)
 	  (loop (cdr args) (+ i 1))))
-      ((renderer) ")")))
+      ((renderer) ")")
+      (renderer-no-indent save)
+      (k k)))
 
 
   ;; quote
