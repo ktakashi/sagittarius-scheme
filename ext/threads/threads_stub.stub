@@ -11,6 +11,7 @@
 	    ;;thread-priority-boost thread-priority-boost-set!
 	    ;;thread-quantum thread-quantum-set!
 	    thread-start! thread-join! thread-yield! thread-sleep!
+	    thread-stop! thread-cont!
 	    thread-terminate!
 
 	    ;; mutex
@@ -25,6 +26,8 @@
 	    condition-variable-specific condition-variable-specific-set!
 	    condition-variable-signal! condition-variable-broadcast!
 
+	    ;; misc
+	    sys-nanosleep
 	    ;; exceptions
 	    ;; these are implemented in mutex.c
 	    ;;join-time-out-exception? abandoned-mutex-exception?
@@ -103,6 +106,12 @@
 
   (define-c-proc thread-sleep! (time::number) ::void
     (Sg_ThreadSleep time))
+
+  (define-c-proc thread-stop! (vm::VM :optional (timeout #f) timeoutval) ::Object
+    (result (Sg_ThreadStop vm timeout timeoutval)))
+
+  (define-c-proc thread-cont! (vm::VM) ::Object
+    (result (Sg_ThreadCont vm)))
 
   (define-c-proc thread-terminate! (vm::VM) ::void
     (Sg_ThreadTerminate vm))
@@ -192,4 +201,7 @@
   (define-c-proc condition-variable-broadcast! (cv) ::void
     (check-cv cv)
     (Sg_ConditionVariableBroadcast cv))
+
+  (define-c-proc sys-nanosleep (n::number) ::Object
+    (result (Sg_MakeInteger (Sg_SysNanosleep (Sg_GetDouble n)))))
 )

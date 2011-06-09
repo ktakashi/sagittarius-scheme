@@ -42,6 +42,10 @@
 	    ;; extra hashtable
 	    make-equal-hashtable make-string-hashtable
 
+	    ;; error
+	    ;; from Gauche
+	    with-error-handler
+
 	    ;; io
 	    port-closed? format write/ss
 
@@ -252,6 +256,10 @@
   ;; just for consistancy
   (define-c-proc hashtable-values (ht::HashTable) ::Object
     (result (Sg_ListToVector (Sg_HashTableValues ht) 0 -1)))
+
+  ;; error
+  (define-c-proc with-error-handler (handler thunk) ::Object
+    (result (Sg_VMWithErrorHandler handler thunk)))
 
   ;; io
   (define-cgen-stmt check-output-port

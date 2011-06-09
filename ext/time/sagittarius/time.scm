@@ -50,7 +50,7 @@
 	    ;;time-process
 
 	    ;; time convertion
-	    time->second second->time
+	    time->seconds seconds->time
 
 	    ;; compiration
 	    time<=? time<?

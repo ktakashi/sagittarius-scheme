@@ -29,6 +29,8 @@
  *
  *  $Id: $
  */
+#include <math.h>
+#include <time.h>
 #define LIBSAGITTARIUS_BODY
 #include "threads.h"
 
@@ -126,7 +128,7 @@ SgObject Sg_ThreadJoin(SgVM *vm, SgObject timeout, SgObject timeoutval)
   if (SG_REALP(timeout)) {
     msec = Sg_GetIntegerClamp(timeout, SG_CLAMP_NONE, NULL);
   }
-  Sg_LockMutex(&vm->vmlock);
+  SG_INTERNAL_MUTEX_SAFE_LOCK_BEGIN(vm->vmlock);
   while (vm->threadState != SG_VM_TERMINATED) {
     if (SG_REALP(timeout)) {
       success = Sg_WaitWithTimeout(&vm->cond, &vm->vmlock, msec);
@@ -140,7 +142,7 @@ SgObject Sg_ThreadJoin(SgVM *vm, SgObject timeout, SgObject timeoutval)
     resultx = vm->resultException;
     vm->resultException = SG_FALSE;
   }
-  Sg_UnlockMutex(&vm->vmlock);
+  SG_INTERNAL_MUTEX_SAFE_LOCK_END();
   if (!success) {
     if (SG_UNBOUNDP(timeoutval)) {
       SgObject e = Sg_MakeJoinTimeoutException(vm);
@@ -159,20 +161,19 @@ SgObject Sg_ThreadStop(SgVM *target, SgObject timeout, SgObject timeoutval)
   int invalid_state = FALSE;
   SgVM *taker = NULL;
   SgVM *vm = Sg_VM();
-  int msec;
-  int success;
+  int msec = 0;
+  int success = TRUE;
   if (SG_REALP(timeout)) {
     msec = Sg_GetIntegerClamp(timeout, SG_CLAMP_NONE, NULL);
   }
 
- retry:
   Sg_LockMutex(&target->vmlock);
   if (target->threadState != SG_VM_RUNNABLE &&
       target->threadState != SG_VM_STOPPED) {
     invalid_state = TRUE;
   } else if (target->inspector != NULL &&
 	     target->inspector != vm &&
-	     target->inspector->state != SG_VM_TERMINATED) {
+	     target->inspector->threadState != SG_VM_TERMINATED) {
     taker = target->inspector;
   } else {
     if (target->inspector != vm) {
@@ -208,7 +209,7 @@ SgObject Sg_ThreadCont(SgVM *target)
   if (target->inspector == NULL) {
     not_stopped = TRUE;
   } else if (target->inspector != Sg_VM() &&
-	     target->inspector->state != SG_VM_TERMINATED) {
+	     target->inspector->threadState != SG_VM_TERMINATED) {
     stopped_by_other = target->inspector;
   } else {
     target->inspector = NULL;
@@ -259,6 +260,60 @@ SgObject Sg_ThreadTerminate(SgVM *target)
     Sg_UnlockMutex(&target->vmlock);
   }
   return SG_UNDEF;
+}
+
+#if !defined HAVE_NANOSLEEP || defined(_WIN32)
+int nanosleep(const struct timespec *req, struct timespec *rem)
+{
+    DWORD msecs = 0;
+    time_t sec;
+    u_long overflow = 0, c;
+    const DWORD MSEC_OVERFLOW = 4294967; /* 4294967*1000 = 0xfffffed8 */
+
+    /* It's very unlikely that we overflow msecs, but just in case... */
+    if (req->tv_sec > 0 || (req->tv_sec == 0 && req->tv_nsec > 0)) {
+        if (req->tv_sec >= MSEC_OVERFLOW) {
+            overflow = req->tv_sec / MSEC_OVERFLOW;
+            sec = req->tv_sec % MSEC_OVERFLOW;
+        } else {
+            sec = req->tv_sec;
+        }
+        msecs = (sec * 1000 + (req->tv_nsec + 999999)/1000000);
+    }
+    Sleep (msecs);
+    for (c = 0; c < overflow; c++) {
+        Sleep(MSEC_OVERFLOW * 1000);
+    }
+    if (rem) {
+        rem->tv_sec = rem->tv_nsec = 0;
+    }
+    return 0;
+}
+#endif
+
+unsigned long Sg_SysNanosleep(double v)
+{
+  struct timespec spec, rem;
+  spec.tv_sec = (unsigned long)floor(v / 1.0e9);
+  spec.tv_nsec = (unsigned long)fmod(v, 1.0e9);
+  while (spec.tv_nsec >= 1000000000L) {
+    spec.tv_nsec -= 1000000000L;
+    spec.tv_sec += 1;
+  }
+  rem.tv_sec = 0;
+  rem.tv_nsec = 0;
+  nanosleep(&spec, &rem);
+  if (rem.tv_sec == 0 && rem.tv_nsec == 0) return 0;
+  else {
+    /* returns remaind nanosecond */
+    unsigned long r = 0;
+    while (rem.tv_sec >= 0) {
+      r += 1000000000L;
+      rem.tv_sec -= 1000000000L;
+    }
+    r += rem.tv_nsec;
+    return r;
+  }
 }
 
 extern void Sg__Init_sagittarius_threads_impl();

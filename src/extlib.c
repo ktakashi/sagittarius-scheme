@@ -787,6 +787,23 @@ static SgObject _sagittarius_hashtable_values(SgObject *args, int argc, void *da
 static SG_DEFINE_SUBR(_sagittarius_hashtable_values_Stub, 1, 0, _sagittarius_hashtable_values, SG_FALSE, NULL);
 
 ;
+static SgObject _sagittarius_with_error_handler(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("with-error-handler");
+  SgObject handler;
+  SgObject thunk;
+  checkArgumentLength(2);
+  argumentRef(0, handler);
+  argumentRef(1, thunk);
+  {
+    SgObject SG_RETURN = SG_UNDEF;
+    SG_RETURN = (Sg_VMWithErrorHandler(handler, thunk));
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_with_error_handler_Stub, 2, 0, _sagittarius_with_error_handler, SG_FALSE, NULL);
+
+;
 ;
 static SgObject _sagittarius_port_closed3f(SgObject *args, int argc, void *data_)
 {
@@ -951,6 +968,8 @@ void Sg__Init_sagittarius()
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-equal-hashtable"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_make_equal_hashtable_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_id_name_Stub) = Sg_MakeString(UC("id-name"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("id-name"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_id_name_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_with_error_handler_Stub) = Sg_MakeString(UC("with-error-handler"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("with-error-handler"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_with_error_handler_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_hashtable_values_Stub) = Sg_MakeString(UC("hashtable-values"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-values"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_hashtable_values_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_current_dynamic_environment_Stub) = Sg_MakeString(UC("current-dynamic-environment"), SG_LITERAL_STRING);

@@ -14,7 +14,7 @@
 	    time-resolution
 
 	    ;; time convertion
-	    time->second second->time
+	    time->seconds seconds->time
 
 	    ;; compiration
 	    time<=? time<?
@@ -113,12 +113,12 @@
   (define-c-proc current-time (:optional (type::Symbol 'time-utc)) ::Object
     (result (Sg_CurrentTime type)))
 
-  (define-c-proc time->second (o) ::Object
+  (define-c-proc time->seconds (o) ::Object
     (check-time o)
-    (result (Sg_TimeToSecond (SG_TIME o))))
+    (result (Sg_TimeToSeconds (SG_TIME o))))
 
-  (define-c-proc second->time (o::number) ::Object
-    (result (Sg_SecondToTime (Sg_GetIntegerS64Clamp o SG_CLAMP_NONE NULL))))
+  (define-c-proc seconds->time (o::number) ::Object
+    (result (Sg_SecondsToTime (Sg_GetIntegerS64Clamp o SG_CLAMP_NONE NULL))))
 
   (define-c-proc time<=? (x y) ::boolean
     (check-time x)

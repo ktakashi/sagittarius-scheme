@@ -83,18 +83,59 @@ typedef struct  SgInternalCondRec
 #define SG_INTERNAL_THREAD_INIT(thr)         ((thr)->thread = (pthread_t)NULL)
 #define SG_INTERNAL_THREAD_INITIALIZED_P(thr) ((thr)->thread != (pthread_t)NULL)
 
+/* emulate pthread_cleanup_push/pop*/
+#ifdef _MSC_VER
+#include <windows.h>
+/* emulation code from pthread for win32 */
+typedef void (* ptw32_cleanup_callback_t)(void *);
+typedef struct ptw32_cleanup_rec_t
+{
+  ptw32_cleanup_callback_t routine;
+  void *arg;
+  struct ptw32_cleanup_rec_t *prev;
+} ptw32_cleanup_t;
+# define thread_cleanup_push(_rout, _arg)			\
+  {								\
+    ptw32_cleanup_t _cleanup;					\
+    _cleanup.routine = (ptw32_cleanup_callback_t)(_rout);	\
+    _cleanup.arg = (_arg);					\
+    __try {
+
+# define thread_cleanup_pop(_execute)			\
+    } __finally {					\
+      if ( _execute || AbnormalTermination()) {		\
+	(*(_cleanup.routine))(_cleanup.arg);		\
+      }							\
+    }							\
+  }
+
+#elif !defined(_WIN32) && !defined(_WIN64)
+/* Assume we are using pthread */
+# include <pthread.h>
+# define thread_cleanup_push pthread_cleanup_push
+# define thread_cleanup_pop  pthread_cleanup_pop
+#else
+# error FIXME: non VC compiler on Windows are not supported!
+#endif
+
+#define SG_INTERNAL_MUTEX_SAFE_LOCK_BEGIN(mutex)	\
+  Sg_LockMutex(&(mutex));				\
+  thread_cleanup_push(Sg__MutexCleanup, &(mutex))
+#define SG_INTERNAL_MUTEX_SAFE_LOCK_END() /* dummy */; thread_cleanup_pop(1)
+
 #endif
 
 SG_CDECL_BEGIN
 
 SG_EXTERN void Sg_InitMutex(SgInternalMutex *mutex, int recursive);
 SG_EXTERN void Sg_LockMutex(SgInternalMutex *mutex);
+SG_EXTERN void Sg__MutexCleanup(void *mutex);
 SG_EXTERN void Sg_UnlockMutex(SgInternalMutex *mutex);
 SG_EXTERN void Sg_DestroyMutex(SgInternalMutex *mutex);
 
 SG_EXTERN void Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry, void *param);
 SG_EXTERN void Sg_InternalThreadYield();
-SG_EXTERN SgInternalThread Sg_CurrentThread();
+SG_EXTERN void Sg_SetCurrentThread(SgInternalThread *ret);
 
 SG_EXTERN void Sg_InitCond(SgInternalCond *cond);
 SG_EXTERN void Sg_DestroyCond(SgInternalCond *cond);

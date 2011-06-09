@@ -85,7 +85,13 @@ static inline SgObject make_box(SgObject value)
 static SgObject evaluate_safe(SgObject program, SgWord *compiledCode);
 static SgObject run_loop();
 
-/* TODO if prototype was given copy from it. */
+static void vm_finalize(SgObject obj, void *data)
+{
+  SgVM *vm = SG_VM(obj);
+  Sg_DestroyMutex(&vm->vmlock);
+  Sg_DestroyCond(&vm->cond);
+}
+
 SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 {
   SgVM *v = SG_NEW(SgVM);
@@ -123,6 +129,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 
   v->attentionRequest = FALSE;
   v->finalizerPending = FALSE;
+  v->stopRequest = FALSE;
   v->escapePoint = NULL;
   v->escapeReason = SG_VM_ESCAPE_NONE;
   v->escapeData[0] = NULL;
@@ -180,6 +187,8 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->specific = SG_FALSE;
   v->result = SG_UNDEF;
   v->resultException = SG_UNDEF;
+
+  Sg_RegisterFinalizer(SG_OBJ(v), vm_finalize, NULL);
   return v;
 }
 
@@ -201,7 +210,7 @@ int Sg_AttachVM(SgVM *vm)
 #else
   if (pthread_setspecific(the_vm_key, vm) != 0) return FALSE;
 #endif
-  vm->thread = Sg_CurrentThread();
+  Sg_SetCurrentThread(&vm->thread);
   vm->state = SG_VM_RUNNABLE;
   return TRUE;
 }
@@ -246,6 +255,8 @@ static inline void report_error(SgObject exception)
   static const int MAX_STACK_TRACE = 20;
   SgObject error = SG_NIL, stackTrace = SG_NIL;
   SgObject cur;
+  SgPort *buf = SG_PORT(Sg_MakeStringOutputPort(-1));
+
   if (SG_PAIRP(exception)) {
     error = SG_CAR(exception);
     stackTrace = SG_CDR(exception);
@@ -253,7 +264,7 @@ static inline void report_error(SgObject exception)
     error = exception;
     stackTrace = Sg_GetStackTrace();
   }
-  Sg_Printf(SG_PORT(Sg_StandardErrorPort()),
+  Sg_Printf(buf,
 	    UC("*error*\n"
 	       "%A\n"
 	       "stack trace:\n"), Sg_DescribeCondition(error));
@@ -264,7 +275,7 @@ static inline void report_error(SgObject exception)
     obj = SG_CAR(cur);
     index = SG_CAR(obj);
     if (SG_INT_VALUE(index) > MAX_STACK_TRACE) {
-      Sg_Printf(SG_PORT(Sg_StandardErrorPort()),
+      Sg_Printf(buf,
 		UC("      ... (more stack dump truncated)\n"));
       break;
     }
@@ -282,7 +293,7 @@ static inline void report_error(SgObject exception)
 	/* info = SG_SOURCE_INFO(src); */
       }
       if (SG_FALSEP(info) || !info) {
-	Sg_Printf(Sg_StandardErrorPort(),
+	Sg_Printf(buf,
 		  UC("  [%A] %A: %A (location *unknown*)\n"
 		     "    src: %#50S\n"),
 		  index, SG_CAR(proc), SG_CADR(proc),
@@ -290,7 +301,7 @@ static inline void report_error(SgObject exception)
       } else {
 	file = SG_CAR(info);
 	line = SG_CDR(info);
-	Sg_Printf(Sg_StandardErrorPort(),
+	Sg_Printf(buf,
 		  UC("  [%A] %A: %A (location %S (line %A))\n"
 		     "    src: %#50S\n"),
 		  index, SG_CAR(proc), SG_CADR(proc),
@@ -301,11 +312,12 @@ static inline void report_error(SgObject exception)
     } else {
     no_src:
       /* *cproc* does not have any source info */
-      Sg_Printf(Sg_StandardErrorPort(),
+      Sg_Printf(buf,
 		UC("  [%A] %A: %A \n"),
 		index, SG_CAR(proc), SG_CADR(proc));
     }
   }
+  Sg_Write(Sg_GetStringFromStringPort(buf), SG_PORT(Sg_StandardErrorPort()), SG_WRITE_DISPLAY);
   Sg_FlushAllPort(FALSE);
 }
 
@@ -349,6 +361,7 @@ SgGloc* Sg_FindBinding(SgObject library, SgObject name, SgObject callback)
     ASSERT(SG_GLOCP(SG_CDR(gloc)));
     return SG_CDR(gloc);
   }
+
   return ret;
 }
 void Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value_or_gloc)
@@ -932,7 +945,7 @@ SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk)
   return Sg_VMDynamicWind(before, thunk, after);
 }
 
-#if 0
+
 static SgObject install_ehandler(SgObject *args, int argc, void *data)
 {
   SgContinuation *c = (SgContinuation*)data;
@@ -951,7 +964,7 @@ static SgObject discard_ehandler(SgObject *args, int argc, void *data)
   return SG_UNDEF;
 }
 
-SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk)
+SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk)
 {
   SgContinuation *c = SG_NEW(SgContinuation);
   SgObject before, after;
@@ -963,14 +976,15 @@ SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk)
   c->winders = vm->dynamicWinders;
   c->cstack = vm->cstack;
   c->cont = vm->cont;
-  
+  c->errorReporting = SG_VM_RUNTIME_FLAG_IS_SET(vm, SG_ERROR_BEING_REPORTED);
+
   vm->escapePoint = c;
 
   before = Sg_MakeSubr(install_ehandler, c, 0, 0, SG_FALSE);
   after  = Sg_MakeSubr(discard_ehandler, c, 0, 0, SG_FALSE);
   return Sg_VMDynamicWind(before, thunk, after);
 }
-#endif
+
 
 #define SKIP(vm, n)        (PC(vm) += (n))
 #define FETCH_OPERAND(pc)  SG_OBJ((*(pc)++))
@@ -1253,16 +1267,37 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
   SgObject hp;
   
   if (c) {
+    SgObject result = SG_FALSE;
+    SgObject target, current;
     /* never reaches for now. */
+    vm->escapePoint = c->prev;
+    SG_UNWIND_PROTECT {
+      result = Sg_Apply1(c->ehandler, e);
+      target = c->winders;
+      current = vm->dynamicWinders;
+      for (hp = current; SG_PAIRP(hp) && (hp != target); hp = SG_CDR(hp)) {
+	SgObject proc = SG_CDAR(hp);
+	vm->dynamicWinders = SG_CDR(hp);
+	Sg_Apply0(proc);
+      }
+    }
+    SG_WHEN_ERROR {
+      SG_NEXT_HANDLER;
+    }
+    SG_END_PROTECT;
+    vm->ac = result;
+    vm->cont = c->cont;
+    if (c->errorReporting) {
+      SG_VM_RUNTIME_FLAG_SET(vm, SG_ERROR_BEING_REPORTED);
+    }
   } else {
+    Sg_ReportError(e);
     SG_FOR_EACH(hp, vm->dynamicWinders) {
       SgObject proc = SG_CDAR(hp);
       vm->dynamicWinders = SG_CDR(hp);
       Sg_Apply0(proc);
     }
   }
-  Sg_FlushAllPort(FALSE);
-  report_error(e);
   /* jump */
   if (vm->cstack) {
     vm->escapeReason = SG_VM_ESCAPE_ERROR;
@@ -1535,6 +1570,19 @@ static void process_queued_requests(SgVM *vm)
   
   vm->attentionRequest = FALSE;
   if (vm->finalizerPending) Sg_VMFinalizerRun(vm);
+
+  if (vm->stopRequest) {
+    SG_INTERNAL_MUTEX_SAFE_LOCK_BEGIN(vm->vmlock);
+    if (vm->stopRequest) {
+      vm->stopRequest = FALSE;
+      vm->threadState = SG_VM_STOPPED;
+      Sg_NotifyAll(&vm->cond);
+      while (vm->threadState == SG_VM_STOPPED) {
+	Sg_Wait(&vm->cond, &vm->vmlock);
+      }
+    }
+    SG_INTERNAL_MUTEX_SAFE_LOCK_END();
+  }
 }
 
 #define CONST_INSN(vm)				\
@@ -1793,8 +1841,8 @@ SgObject run_loop()
     int val1, val2;
 
     DISPATCH;
-
-	c = (SgWord)FETCH_OPERAND(PC(vm));
+    if (vm->attentionRequest) goto process_queue;
+    c = (SgWord)FETCH_OPERAND(PC(vm));
     SWITCH(INSN(c)) {
 #define VM_LOOP
 #include "vminsn.c"
@@ -1824,11 +1872,14 @@ void Sg__InitVM()
     Sg_Panic("pthread_key_create failed.");
   }
   rootVM = Sg_NewVM(NULL, Sg_MakeString(UC("root"), SG_LITERAL_STRING));
+  Sg_SetCurrentVM(rootVM);
+  /*
   if (pthread_setspecific(the_vm_key, rootVM) != 0) {
     Sg_Panic("pthread_setspecific failed.");
   }
+  */
 #endif
-  rootVM->thread = Sg_CurrentThread();
+  Sg_SetCurrentThread(&rootVM->thread);
   rootVM->threadState = SG_VM_RUNNABLE;
   rootVM->libraries = Sg_MakeHashTableSimple(SG_HASH_EQ, 64);
   rootVM->currentLibrary = Sg_FindLibrary(SG_INTERN("user"), TRUE);

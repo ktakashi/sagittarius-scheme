@@ -42,6 +42,7 @@
 	    ;;thread-priority-boost thread-priority-boost-set!
 	    ;;thread-quantum thread-quantum-set!
 	    thread-start! thread-join! thread-yield! thread-sleep!
+	    thread-stop! thread-cont!
 	    thread-terminate!
 
 	    ;; mutex
@@ -57,7 +58,7 @@
 	    condition-variable-signal! condition-variable-broadcast!
 
 	    ;; time
-	    current-time time? time->seconds seconds->time
+	    ;;current-time time? time->seconds seconds->time
 
 	    ;; exceptions
 	    join-time-out-exception? abandoned-mutex-exception?
@@ -69,8 +70,13 @@
 	    mutex-lock-recursively! mutex-unlock-recursively!
 	    ;; from Gauche
 	    with-locking-mutex
+
+	    sys-nanosleep
+	    thread-guard
 	    )
     (import (core)
+	    (core syntax)
+	    (sagittarius)
 	    (sagittarius threads impl))
 
   ;; NB: actually, we can make mutex recursively by default.
@@ -95,4 +101,32 @@
 	(lambda () (mutex-lock! mutex))
 	thunk
 	(lambda () (mutex-unlock! mutex))))
+
+  (define-syntax thread-guard
+    (syntax-rules ()
+      [(thread-guard (var . clauses) . body)
+       (with-error-handler
+         (lambda (e)
+           (let ((var e))
+             (%guard-rec var e . clauses)))
+	 (lambda () . body))]))
+
+  (define-syntax %guard-rec
+    (syntax-rules (else =>)
+      [(%guard-rec var exc)
+       (raise exc)]
+      [(%guard-rec var exc (else . exprs))
+       (begin . exprs)]
+      [(%guard-rec var exc (test => proc) . more)
+       (let ((tmp test))
+	 (if tmp
+	     (proc tmp)
+	     (%guard-rec var exc . more)))]
+      [(%guard-rec var exc (test . exprs) . more)
+       (if test
+	   (begin . exprs)
+	   (%guard-rec var exc . more))]
+      [(%guard-rec var exc other . more)
+       (syntax-error "malformed guard clause" other)]))
+
 )

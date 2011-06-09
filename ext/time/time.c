@@ -153,12 +153,12 @@ SgObject Sg_CurrentTime(SgObject type)
   }
 }
 
-SgObject Sg_SecondToTime(int64_t sec)
+SgObject Sg_SecondsToTime(int64_t sec)
 {
   return Sg_MakeTime(time_utc, sec, 0);
 }
 
-SgObject Sg_TimeToSecond(SgTime *t)
+SgObject Sg_TimeToSeconds(SgTime *t)
 {
   if (t->nsec) {
     return Sg_MakeFlonum((double)t->sec + (double)t->nsec/TM_NANO);

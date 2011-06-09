@@ -61,7 +61,7 @@
      test-result-ref test-result-set! test-result-clear test-result-remove
      test-result-kind test-passed?
      (rename (%test-log-to-file test-log-to-file))
-					; Misc test-runner functions
+     ;; Misc test-runner functions
      test-runner? test-runner-reset test-runner-null
      test-runner-simple test-runner-current test-runner-factory test-runner-get
      test-runner-create test-runner-test-name

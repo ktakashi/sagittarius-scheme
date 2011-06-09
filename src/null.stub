@@ -140,9 +140,9 @@
 
 	    ;; 7 Exceptions and conditions
 	    ;; 7.1 exceptions
-	    ;; with-exception-handler
-	    ;; raise raise-continuable
-	    ;; rest of chapter 7 are in exceptions.c
+	    with-exception-handler
+	    raise raise-continuable
+	    ;;rest of chapter 7 are in exceptions.c
 
 	    ;; io
 	    write/ss

@@ -63,42 +63,6 @@ SG_DECLARE_META_OBJ(Sg_MutexMeta);
 #define SG_MUTEX(obj)     ((SgMutex *)obj)
 #define SG_MUTEX_P(obj)   SG_META_OBJ_TYPE_P(obj, SG_META_MUTEX)
 
-/* emulate pthread_cleanup_push/pop*/
-#ifdef _MSC_VER
-#include <windows.h>
-/* emulation code from pthread for win32 */
-typedef void (* ptw32_cleanup_callback_t)(void *);
-typedef struct ptw32_cleanup_rec_t
-{
-  ptw32_cleanup_callback_t routine;
-  void *arg;
-  struct ptw32_cleanup_rec_t *prev;
-} ptw32_cleanup_t;
-# define thread_cleanup_push(_rout, _arg)			\
-  {								\
-    ptw32_cleanup_t _cleanup;					\
-    _cleanup.routine = (ptw32_cleanup_callback_t)(_rout);	\
-    _cleanup.arg = (_arg);					\
-    __try {
-
-# define thread_cleanup_pop(_execute)			\
-    } __finally {					\
-      if ( _execute || AbnormalTermination()) {		\
-	(*(_cleanup.routine))(_cleanup.arg);		\
-      }							\
-    }							\
-  }
-
-#elif !defined(_WIN32) && !defined(_WIN64)
-/* Assume we are using pthread */
-# include <pthread.h>
-# define thread_cleanup_push pthread_cleanup_push
-# define thread_cleanup_pop  pthread_cleanup_pop
-#else
-# error FIXME: non VC compiler on Windows are not supported!
-#endif
-
-
 SG_CDECL_BEGIN
 /*
   Scheme level thread API
@@ -111,6 +75,7 @@ extern SgObject Sg_ThreadStop(SgVM *vm, SgObject timeout, SgObject timeoutval);
 extern SgObject Sg_ThreadCont(SgVM *vm);
 extern SgObject Sg_ThreadSleep(SgObject timeout);
 extern SgObject Sg_ThreadTerminate(SgVM *vm);
+extern unsigned long Sg_SysNanosleep(double nanosecond);
 
 SgObject Sg_MakeConditionVariable(SgObject name);
 SgObject Sg_ConditionVariableSignal(SgConditionVariable *cond);

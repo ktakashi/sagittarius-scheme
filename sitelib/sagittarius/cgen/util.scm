@@ -17,9 +17,9 @@
 	    ;;(srfi srfi-13)
 	    ;;(only (srfi srfi-8) receive)
 	    ;;(only (srfi srfi-14) string->char-set)
-	    (srfi :13)
-	    (only (srfi :8) receive)
-	    (only (srfi :14) string->char-set)
+	    (srfi :13 strings)
+	    (only (srfi :8 receive) receive)
+	    (only (srfi :14 char-set) string->char-set)
 	    (sagittarius format))
   ;; TODO remove
   (define-syntax acons

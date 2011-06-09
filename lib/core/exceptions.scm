@@ -5,7 +5,6 @@
 	    raise
 	    raise-continuable)
     (import (core)
-	    (core base)
 	    (core errors)
 	    (core syntax)
 	    (sagittarius))

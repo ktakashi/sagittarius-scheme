@@ -61,6 +61,12 @@ void Sg_UnlockMutex(SgInternalMutex *mutex)
   pthread_mutex_unlock(&mutex->mutex);
 }
 
+void Sg__MutexCleanup(void *mutex_)
+{
+  SgInternalMutex *mutex = (SgInternalMutex *)mutex_;
+  pthread_mutex_unlock(&mutex->mutex);
+}
+
 void Sg_DestroyMutex(SgInternalMutex *mutex)
 {
   pthread_mutex_destroy(&mutex->mutex);
@@ -77,10 +83,9 @@ void Sg_InternalThreadYield()
   sched_yield();
 }
 
-SgInternalThread Sg_CurrentThread()
+void Sg_SetCurrentThread(SgInternalThread *ret)
 {
-  SgInternalThread ret = { pthread_self() };
-  return ret;
+  ret->thread = pthread_self();
 }
 
 void Sg_InitCond(SgInternalCond *cond)

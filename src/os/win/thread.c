@@ -53,6 +53,12 @@ void Sg_UnlockMutex(SgInternalMutex *mutex)
   ReleaseMutex(mutex->mutex);
 }
 
+void Sg__MutexCleanup(void *mutex_)
+{
+  SgInternalMutex *mutex = (SgInternalMutex *)mutex_;
+  ReleaseMutex(&mutex->mutex);
+}
+
 void Sg_DestroyMutex(SgInternalMutex *mutex)
 {
   CloseHandle(mutex->mutex);
@@ -68,9 +74,9 @@ void Sg_InternalThreadYield()
   Sleep(0);
 }
 
-SgInternalThread Sg_CurrentThread()
+void Sg_SetCurrentThread(SgInternalThread *ret)
 {
-  return GetCurrentThread();
+  ret->thread = GetCurrentThread();
 }
 
 void Sg_InitCond(SgInternalCond *cond)
