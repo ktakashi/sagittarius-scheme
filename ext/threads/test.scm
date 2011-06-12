@@ -111,7 +111,11 @@
       (test-equal "mutex state" (mutex-state m) 'not-abandoned)
       (test-assert "mutex locked" (mutex-lock! m))
       (test-equal "mutex state 2" (mutex-state m) (current-thread))
+      (mutex-unlock! m)
+      (mutex-lock! m #f #f)
+      (test-equal "mutex state 3" (mutex-state m) 'not-owned)
       (test-assert "mutex unlocked" (mutex-unlock! m))
+      (test-equal "mutex state 4" (mutex-state m) 'not-abandoned)
       )
 
     (test-equal "lock and unlock - blocking (simple spin-lock)" 
@@ -163,5 +167,92 @@
 		    (mutex-unlock! m)
 		    (list r0 r1 r2 #;r3 #;r4 r5 r6))))
 
+    (test-equal "recursive mutex" (list (current-thread) 0 'not-abandoned)
+		(let ((m (make-mutex)))
+		  (mutex-specific-set! m 0)
+		  (mutex-lock-recursively! m)
+		  (mutex-lock-recursively! m)
+		  (mutex-lock-recursively! m)
+		  (let ((r0 (mutex-state m)))
+		    (mutex-unlock-recursively! m)
+		    (mutex-unlock-recursively! m)
+		    (let ((r1 (mutex-specific m)))
+		      (mutex-unlock-recursively! m)
+		      (list r0 r1 (mutex-state m))))))
+
+    ;; condition variables
+    (test-assert "make-condition-variable"
+		 (condition-variable? (make-condition-variable)))
+
+    (test-equal "condition-variable-name" 'foo
+		 (condition-variable-name (make-condition-variable 'foo)))
+
+    (test-equal "condition-variable-specific" "hello"
+		 (let ((c (make-condition-variable 'foo)))
+		   (condition-variable-specific-set! c "hello")
+		   (condition-variable-specific c)))
+
+    ;; Producer-consumer model using condition variable
+    (test-equal "condition-variable-signal!"
+       '((put a) (get a) (put b) (get b) (put c) (get c))
+       (let ((log '())
+             (cell #f)
+             (m  (make-mutex))
+             (put-cv (make-condition-variable))
+             (get-cv (make-condition-variable)))
+         (define (put! msg)
+           (mutex-lock! m)
+           (if cell
+             (begin (mutex-unlock! m put-cv) (put! msg))
+             (begin (set! cell msg)
+                    (set! log (cons `(put ,msg) log))
+                    (condition-variable-signal! get-cv)
+                    (mutex-unlock! m))))
+         (define (get!)
+           (mutex-lock! m)
+           (if cell
+             (let ((r cell))
+               (set! cell #f)
+               (set! log (cons `(get ,r) log))
+               (condition-variable-signal! put-cv)
+               (mutex-unlock! m)
+               r)
+             (begin
+               (mutex-unlock! m get-cv) (get!))))
+         (define (producer)
+           (put! 'a)
+           (put! 'b)
+           (put! 'c))
+         (define (consumer)
+           (get!)
+           (get!)
+           (get!))
+         (let ((tp (thread-start! (make-thread producer 'producer)))
+               (tc (thread-start! (make-thread consumer 'consumer))))
+           (thread-join! tp)
+           (thread-join! tc)
+           (reverse log))))
+
+    ;; thread local parameters
+    #;(let ()
+      (define *thr1-val* #f)
+      (define *thr2-val* #f)
+      (define p (make-parameter 3))
+      (test-equal "check locality of parameters"
+		  '(3 4 5)
+		  (let ((th1 (make-thread
+			      (lambda ()
+				(p 4)
+				(set! *thr1-val* (p)))))
+			(th2 (make-thread
+			      (lambda ()
+				(p 5)
+				(set! *thr2-val* (p))))))
+		    (thread-start! th1)
+		    (thread-start! th2)
+		    (thread-join! th1)
+		    (thread-join! th2)
+		    (list (p) *thr1-val* *thr2-val*))))
+      
     )
 )

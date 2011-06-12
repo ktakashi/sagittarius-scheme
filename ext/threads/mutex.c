@@ -151,22 +151,23 @@ SgObject Sg_MutexLock(SgMutex *mutex, SgObject timeout, SgVM *owner)
 SgObject Sg_MutexUnlock(SgMutex *mutex, SgConditionVariable *cv, SgObject timeout)
 {
   SgObject r = SG_TRUE;
-  Sg_LockMutex(&mutex->mutex);
-  mutex->locked = FALSE;
-  mutex->owner = NULL;
 
   thread_cleanup_push((void (*)(void*))Sg_UnlockMutex,
 		      (void *)&mutex->mutex);
+
+  Sg_LockMutex(&mutex->mutex);
+  mutex->locked = FALSE;
+  mutex->owner = NULL;
   Sg_Notify(&mutex->cv);
   if (cv) {
     if (SG_REALP(timeout)) {
       int msec = Sg_GetIntegerClamp(timeout, SG_CLAMP_NONE, NULL);
-      int success = Sg_WaitWithTimeout(&mutex->cv, &mutex->mutex, msec);
+      int success = Sg_WaitWithTimeout(&cv->cv, &mutex->mutex, msec);
       if (!success) {
 	r = SG_FALSE;
       }      
     } else {
-      Sg_Wait(&mutex->cv, &mutex->mutex);
+      Sg_Wait(&cv->cv, &mutex->mutex);
     }
   }
   Sg_UnlockMutex(&mutex->mutex);

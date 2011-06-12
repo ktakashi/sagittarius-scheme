@@ -1818,6 +1818,28 @@
 
 (define pass1/body-finish
   (lambda (intdefs intmacros exprs p1env)
+    (define let-syntax-parser
+      (lambda (exprs p1env)
+	(let* ((names (map car exprs))
+	       (trans (map (lambda (n x)
+			     (pass1/eval-macro-rhs
+			      'let-syntax
+			      (variable-name n)
+			      x (p1env-add-name p1env (variable-name n))))
+			   names (map cadr exprs)))
+	       (newenv (p1env-extend p1env (%map-cons names trans)  LEXICAL)))
+	  newenv)))
+    (define letrec-syntax-parser
+      (lambda (exprs p1env)
+	(let* ((newenv (p1env-extend p1env exprs LEXICAL))
+	       (trans (map (lambda (n x)
+			     (pass1/eval-macro-rhs
+			      'letrec-syntax
+			      (variable-name n)
+			      x (p1env-add-name newenv (variable-name n))))
+			   (map car exprs) (map cadr exprs))))
+	  (for-each set-cdr! (cdar (p1env-frames newenv)) trans)
+	  newenv)))
     (cond ((and (null? intdefs)
 		(null? intmacros))
 	   (pass1/body-rest exprs p1env))
@@ -1836,41 +1858,18 @@
 	   ;; intmacro list is like this
 	   ;; ((<type> . ((name expr) ...)) ...)
 	   ;; <type> : def, rec or let. def = define-syntax, rec = letrec-syntax
-	   (let ((intmacros. (reverse intmacros))) ;; for define-syntax, we need to reverse it
-	     (define let-syntax-parser
-	       (lambda (exprs p1env)
-		 (let* ((names (map car exprs))
-			(trans (map (lambda (n x)
-				      (pass1/eval-macro-rhs
-				       'let-syntax
-				       (variable-name n)
-				       x (p1env-add-name p1env (variable-name n))))
-				    names (map cadr exprs)))
-		       (newenv (p1env-extend p1env (%map-cons names trans)  LEXICAL)))
-		   newenv)))
-	     (define letrec-syntax-parser
-	       (lambda (exprs p1env)
-		 (let* ((newenv (p1env-extend p1env exprs LEXICAL))
-			(trans (map (lambda (n x)
-				      (pass1/eval-macro-rhs
-				       'letrec-syntax
-				       (variable-name n)
-				       x (p1env-add-name newenv (variable-name n))))
-				    (map car exprs) (map cadr exprs))))
-		   (for-each set-cdr! (cdar (p1env-frames newenv)) trans)
-		   newenv)))
-	     (let ((macenv (let loop ((exprs intmacros.)
-				      (env p1env))
-			     (if (null? exprs)
-				 env
-				 (case (caar exprs)
-				   ((def rec)
-				    (loop (cdr exprs)
-					  (letrec-syntax-parser (cdar exprs) env)))
-				   ((let)
-				    (loop (cdr exprs)
-					  (let-syntax-parser (cdar exprs) env))))))))
-	       (pass1/body-rec exprs intdefs '() macenv)))))))
+	   (let ((macenv (let loop ((exprs intmacros)
+				    (env p1env))
+			   (if (null? exprs)
+			       env
+			       (case (caar exprs)
+				 ((def rec)
+				  (loop (cdr exprs)
+					(letrec-syntax-parser (cdar exprs) env)))
+				 ((let)
+				  (loop (cdr exprs)
+					(let-syntax-parser (cdar exprs) env))))))))
+	     (pass1/body-rec exprs intdefs '() macenv))))))
 
 (define pass1/body-init
   (lambda (lvar init&src newenv)

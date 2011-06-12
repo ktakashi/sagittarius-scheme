@@ -8,7 +8,7 @@ ADD_LIBRARY(sagittarius--threads MODULE
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 ADD_STUBS(sagittarius--threads
   COMMAND ${GENSTUB}
-  ${CMAKE_CURRENT_SOURCE_DIR}/threads_stub.stub)
+  FILES ${CMAKE_CURRENT_SOURCE_DIR}/threads_stub.stub)
 
 SET_TARGET_PROPERTIES(sagittarius--threads PROPERTIES PREFIX "")
 TARGET_LINK_LIBRARIES(sagittarius--threads sagittarius)

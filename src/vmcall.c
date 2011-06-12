@@ -86,7 +86,9 @@
     }
     SG_PROF_COUNT_CALL(vm, CL(vm));
   } else {
-    Sg_Error(UC("apply: invalid application, %S"), AC(vm));
+    Sg_AssertionViolation(SG_INTERN("apply"),
+			  Sg_MakeString(UC("invalid application"), SG_LITERAL_STRING),
+			  AC(vm));
   }
 }
 
