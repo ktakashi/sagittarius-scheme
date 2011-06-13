@@ -69,6 +69,7 @@ extern void Sg__Init_sagittarius_compiler();
 /* these must be the last */
 extern void Sg__Init_core_errors();
 extern void Sg__Init_core_arithmetic();
+extern void Sg__Init_core_enums();
 extern void Sg__Init_match_core();
 void Sg_Init()
 {
@@ -125,6 +126,7 @@ void Sg_Init()
   /* even these files need to be ordered */
   Sg__Init_core_errors();
   Sg__Init_core_arithmetic();
+  Sg__Init_core_enums();
   Sg__Init_match_core();
 
   /* TODO should this be here? */

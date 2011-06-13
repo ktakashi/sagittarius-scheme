@@ -1,4 +1,5 @@
-(import (rnrs)
+(import (core)
+	(core base)
 	(core errors))
 
 (define (default-reader)

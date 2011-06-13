@@ -239,7 +239,7 @@
 	 (objects (make-eq-hashtable))
 	 (len (pre-resolve-code-builder cb cb-info objects))
 	 (toplevel-name (format "toplevel_~s" (string->symbol (library-name->string libname #\_))))
-	 #;(libname-p (read (open-input-string libname))) ;; convert to s-exp
+	 (libname-p (read (open-input-string libname))) ;; convert to s-exp
 	 #;(imported (map car (library-imported (find-library libname-p #f)))))
     (format out "static struct sg__wcRec {~%")
     (format out "  SgCodeBuilder cb[~a];~%" (+ 1 (length (vector-ref cb-info 0))))
@@ -274,7 +274,8 @@
 	    (for-each (lambda (pos)
 			(format out "  sg__wc.w[~a] = " pos)
 			(cond ((identifier? object)
-			       (unless (memq (id-library object) lib-info)
+			       (when (and (not (memq (id-library object) lib-info))
+					  (equal? (library-name (id-library object)) libname-p))
 				 (set! lib-info (cons (id-library object) lib-info)))
 			       (format out "IDENT(~s, lib);~%" (symbol->string (id-name object))))
 			      ((symbol? object)

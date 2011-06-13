@@ -1281,6 +1281,7 @@
 (define *arith-lib* "lib/arith.scm")
 (define *macro-lib* "lib/macro.scm")
 (define *insn* "insn.scm")
+(define *enum-lib* "lib/enums.scm")
 ;; sagittarius core libraries
 (define *core-lib* "../lib/core.scm")
 (define *struct-lib* "../lib/core/struct.scm")
@@ -1334,6 +1335,8 @@
 		       (sagittarius compiler util)
 		       (sagittarius vm)
 		       (sagittarius vm instruction)) #f)
+
+    (,*enum-lib* #f () #t)
     ))
   
     
