@@ -63,6 +63,13 @@ SG_DECLARE_META_OBJ(Sg_MutexMeta);
 #define SG_MUTEX(obj)     ((SgMutex *)obj)
 #define SG_MUTEX_P(obj)   SG_META_OBJ_TYPE_P(obj, SG_META_MUTEX)
 
+#ifdef _MSC_VER
+struct timespec {
+    time_t tv_sec;
+    long   tv_nsec;
+};
+#endif
+
 SG_CDECL_BEGIN
 /*
   Scheme level thread API

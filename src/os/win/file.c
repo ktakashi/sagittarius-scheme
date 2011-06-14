@@ -321,7 +321,8 @@ SgObject Sg_StandardError()
 
 int Sg_IsUTF16Console(SgObject file)
 {
-  return GetFileType(SG_FD(file)->desc) == FILE_TYPE_CHAR;
+  /*return GetFileType(SG_FD(file)->desc) == FILE_TYPE_CHAR; */
+  return FALSE;
 }
 
 /* system.h
@@ -350,7 +351,7 @@ int Sg_FileReadableP(SgString *path)
 
 int Sg_FileRegularP(SgString *path)
 {
-    HANDLE fd = CreateFileW(utf32ToUtf16(path), 0, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE fd = CreateFileW(utf32ToUtf16(SG_STRING_VALUE(path)), 0, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (fd != INVALID_HANDLE_VALUE) {
         DWORD type = GetFileType(fd) & ~FILE_TYPE_REMOTE;
         CloseHandle(fd);
@@ -361,7 +362,7 @@ int Sg_FileRegularP(SgString *path)
 
 int Sg_FileSymbolicLinkP(SgString *path)
 {
-    DWORD attr = GetFileAttributesW(utf32ToUtf16(path));
+    DWORD attr = GetFileAttributesW(utf32ToUtf16(SG_STRING_VALUE(path)));
     if (attr == INVALID_FILE_ATTRIBUTES) {
         return FALSE;
     }
@@ -372,9 +373,10 @@ static int end_with(const SgString *target, const char * key)
 {
   int size = SG_STRING_SIZE(target);
   int keysize = strlen(key);
-  const SgChar *value = SG_STRING_VALUE(target);
-  SgChar *p = value + size - keysize;
-  return strncmp(p, key, keysize) == 0;
+  SgChar *value = SG_STRING_VALUE(target);
+  SgChar *p;
+  p = value + size - keysize;
+  return ustrncmp(p, key, keysize) == 0;
 }
 
 int Sg_FileExecutableP(SgString *path)
@@ -402,8 +404,8 @@ int Sg_DeleteFileOrDirectory(SgString *path)
 
 int Sg_FileRename(SgString *oldpath, SgString *newpath)
 {
-  return MoveFileExW(utf32ToUtf16(SG_STRING_VALUE(oldPath)),
-		     utf32ToUtf16(SG_STRING_VALUE(newPath)),
+  return MoveFileExW(utf32ToUtf16(SG_STRING_VALUE(oldpath)),
+		     utf32ToUtf16(SG_STRING_VALUE(newpath)),
 		     MOVEFILE_REPLACE_EXISTING);
 }
 
@@ -413,9 +415,9 @@ int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
 {
     ProcCreateSymbolicLink win32CreateSymbolicLink = (ProcCreateSymbolicLink)GetProcAddress(LoadLibraryA("kernel32"), "CreateSymbolicLinkW");
     if (win32CreateSymbolicLink) {
-      const wchar_t* newPathW = utf32ToUtf16(SG_STRING_VALUE(newPath));
+      const wchar_t* newPathW = utf32ToUtf16(SG_STRING_VALUE(newpath));
       DWORD flag = PathIsDirectoryW(newPathW) ? 1 : 0; // SYMBOLIC_LINK_FLAG_DIRECTORY == 1
-      if (win32CreateSymbolicLink(newPathW, utf32ToUtf16(SG_STRING_VALUE(oldPath)), flag)) {
+      if (win32CreateSymbolicLink(newPathW, utf32ToUtf16(SG_STRING_VALUE(oldpath)), flag)) {
 	return TRUE;
       }
     }
@@ -433,8 +435,9 @@ SgObject Sg_FileModifyTime(SgString *path)
   if (fd != INVALID_HANDLE_VALUE) {
     BY_HANDLE_FILE_INFORMATION fileInfo;
     if (GetFileInformationByHandle(fd, &fileInfo)) {
+      int64_t tm;
       CloseHandle(fd);
-      int64_t tm = ((int64_t)fileInfo.ftLastWriteTime.dwHighDateTime << 32) + fileInfo.ftLastWriteTime.dwLowDateTime;
+      tm = ((int64_t)fileInfo.ftLastWriteTime.dwHighDateTime << 32) + fileInfo.ftLastWriteTime.dwLowDateTime;
       return Sg_MakeIntegerFromS64(tm);
     }
     CloseHandle(fd);
@@ -448,8 +451,9 @@ SgObject Sg_FileAccessTime(SgString *path)
   if (fd != INVALID_HANDLE_VALUE) {
     BY_HANDLE_FILE_INFORMATION fileInfo;
     if (GetFileInformationByHandle(fd, &fileInfo)) {
+      int64_t tm;
       CloseHandle(fd);
-      int64_t tm = ((int64_t)fileInfo.ftLastAccessTime.dwHighDateTime << 32) + fileInfo.ftLastAccessTime.dwLowDateTime;
+      tm = ((int64_t)fileInfo.ftLastAccessTime.dwHighDateTime << 32) + fileInfo.ftLastAccessTime.dwLowDateTime;
       return Sg_MakeIntegerFromS64(tm);
     }
     CloseHandle(fd);
@@ -463,8 +467,9 @@ SgObject Sg_FileChangeTime(SgString *path)
   if (fd != INVALID_HANDLE_VALUE) {
     BY_HANDLE_FILE_INFORMATION fileInfo;
     if (GetFileInformationByHandle(fd, &fileInfo)) {
+      int64_t tm;
       CloseHandle(fd);
-      int64_t tm = ((int64_t)fileInfo.ftCreationTime.dwHighDateTime << 32) + fileInfo.ftCreattionTime.dwLowDateTime;
+      tm = ((int64_t)fileInfo.ftCreationTime.dwHighDateTime << 32) + fileInfo.ftCreationTime.dwLowDateTime;
       return Sg_MakeIntegerFromS64(tm);
     }
     CloseHandle(fd);
@@ -474,10 +479,10 @@ SgObject Sg_FileChangeTime(SgString *path)
 
 SgObject Sg_FileSize(SgString *path)
 {
-  HANDLE fd = CreateFileW(utf32ToUtf16(SG_STRING_VALUE(path), 
-				       GENERIC_READ,
-				       FILE_SHARE_READ | FILE_SHARE_WRITE,
-				       NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+  HANDLE fd = CreateFileW(utf32ToUtf16(SG_STRING_VALUE(path)), 
+			  GENERIC_READ,
+			  FILE_SHARE_READ | FILE_SHARE_WRITE,
+			  NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
   if (fd != INVALID_HANDLE_VALUE) {
     LARGE_INTEGER bsize;
     if (GetFileSizeEx(fd, &bsize)) {

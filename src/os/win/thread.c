@@ -56,7 +56,7 @@ void Sg_UnlockMutex(SgInternalMutex *mutex)
 void Sg__MutexCleanup(void *mutex_)
 {
   SgInternalMutex *mutex = (SgInternalMutex *)mutex_;
-  ReleaseMutex(&mutex->mutex);
+  ReleaseMutex(mutex->mutex);
 }
 
 void Sg_DestroyMutex(SgInternalMutex *mutex)
@@ -64,14 +64,24 @@ void Sg_DestroyMutex(SgInternalMutex *mutex)
   CloseHandle(mutex->mutex);
 }
 
+static DWORD ExceptionFilter(EXCEPTION_POINTERS *ep, DWORD *ei)
+{
+  return EXCEPTION_EXECUTE_HANDLER;
+}
+
 void Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry, void *param)
 {
-  _beginthreadex(NULL, 0, entry, param, 0, NULL);
+  DWORD ei[] = { 0, 0, 0 };
+  __try {
+    thread->thread = (HANDLE)_beginthreadex(NULL, 0, entry, param, 0, NULL);
+  } __except (ExceptionFilter(GetExceptionInformation(), ei)) {
+    /* do nothing... */
+  }
 }
 
 void Sg_InternalThreadYield()
 {
-  Sleep(0);
+  Sleep(1);
 }
 
 void Sg_SetCurrentThread(SgInternalThread *ret)
@@ -92,15 +102,15 @@ void Sg_DestroyCond(SgInternalCond *cond)
 {
   CloseHandle(cond->semaphore);
   CloseHandle(cond->waiters_done);
-  DeleteCriticalSection(cond->waiters_count_lock);
+  DeleteCriticalSection(&cond->waiters_count_lock);
 }
 
 int Sg_Notify(SgInternalCond *cond)
 {
   int have_waiters;
-  EnterCriticalSection(cond->waiters_count_lock);
+  EnterCriticalSection(&cond->waiters_count_lock);
   have_waiters = cond->waiters_count > 0;
-  LeaveCriticalSection(cond->waiters_count_lock);
+  LeaveCriticalSection(&cond->waiters_count_lock);
   if (have_waiters) {
     ReleaseSemaphore(cond->semaphore, 1, 0);
   }
@@ -110,7 +120,7 @@ int Sg_Notify(SgInternalCond *cond)
 int Sg_NotifyAll(SgInternalCond *cond)
 {
   int have_waiters;
-  EnterCriticalSection(cond->waiters_count_lock);
+  EnterCriticalSection(&cond->waiters_count_lock);
   have_waiters = 0;
 
   if (cond->waiters_count > 0) {
@@ -119,11 +129,11 @@ int Sg_NotifyAll(SgInternalCond *cond)
   }
   if (have_waiters) {
     ReleaseSemaphore(cond->semaphore, cond->waiters_count, 0);
-    LeaveCriticalSection(cond->waiters_count_lock);
+    LeaveCriticalSection(&cond->waiters_count_lock);
     WaitForSingleObject(cond->waiters_done, INFINITE);
     cond->was_broadcast = 0;
   } else {
-    LeaveCriticalSection(cond->waiters_count_lock);
+    LeaveCriticalSection(&cond->waiters_count_lock);
   }
   return TRUE;
 }
@@ -131,18 +141,18 @@ int Sg_NotifyAll(SgInternalCond *cond)
 static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex, int msecs)
 {
   int last_waiter;
-  EnterCriticalSection(cond->waiters_count_lock);
+  EnterCriticalSection(&cond->waiters_count_lock);
   cond->waiters_count++;
-  LeaveCriticalSection(cond->waiters_count_lock);
+  LeaveCriticalSection(&cond->waiters_count_lock);
 
   if (WAIT_TIMEOUT == SignalObjectAndWait(mutex->mutex, cond->semaphore, msecs, FALSE)) {
     return FALSE;
   }
 
-  EnterCriticalSection(cond->waiters_count_lock);
+  EnterCriticalSection(&cond->waiters_count_lock);
   cond->waiters_count--;
   last_waiter = cond->was_broadcast && cond->waiters_count == 0;
-  LeaveCriticalSection(cond->waiters_count_lock);
+  LeaveCriticalSection(&cond->waiters_count_lock);
 
   if (last_waiter) {
     SignalObjectAndWait(cond->waiters_done, mutex->mutex, INFINITE, FALSE);
@@ -168,11 +178,59 @@ void Sg_ExitThread(SgInternalThread *thread, void *ret)
   _endthreadex((unsigned int)ret);
 }
 
+#if defined(_M_IX86) || defined(_X86_)
+#define PTW32_PROGCTR(Context)  ((Context).Eip)
+#endif
+
+#if defined (_M_IA64)
+#define PTW32_PROGCTR(Context)  ((Context).StIIP)
+#endif
+
+#if defined(_MIPS_)
+#define PTW32_PROGCTR(Context)  ((Context).Fir)
+#endif
+
+#if defined(_ALPHA_)
+#define PTW32_PROGCTR(Context)  ((Context).Fir)
+#endif
+
+#if defined(_PPC_)
+#define PTW32_PROGCTR(Context)  ((Context).Iar)
+#endif
+
+#if defined(_AMD64_)
+#define PTW32_PROGCTR(Context)  ((Context).Rip)
+#endif
+
+#if !defined(PTW32_PROGCTR)
+#error Module contains CPU-specific code; modify and recompile.
+#endif
+
+static void CALLBACK cancel_self(DWORD unused)
+{
+  DWORD exceptionInformation[3];
+  exceptionInformation[0] = (DWORD)(2);
+  exceptionInformation[1] = (DWORD)(0);
+  exceptionInformation[2] = (DWORD)(0);
+
+  RaiseException (-1, 0, 3, exceptionInformation);
+}
+
 void Sg_TerminateThread(SgInternalThread *thread)
 {
-  /* FIXME right now we just call _endthreadex for termination. */
+  /* FIXME I'm not sure if it's valid or not */
+  HANDLE threadH = thread->thread;
+  SuspendThread(threadH);
+  if (WaitForSingleObject(threadH, 0) == WAIT_TIMEOUT) {
+    CONTEXT context;
+    context.ContextFlags = CONTEXT_CONTROL;
+    GetThreadContext(threadH, &context);
+    PTW32_PROGCTR(context) = (DWORD_PTR)cancel_self;
+    SetThreadContext(threadH, &context);
+    ResumeThread(threadH);
+  }
   thread->returnValue = SG_UNDEF;
-  _endthreadex(0);
+  
 }
 
 /*

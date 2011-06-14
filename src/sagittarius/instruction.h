@@ -9,6 +9,11 @@
 #define INSN_VALUE2_MASK  ((1 << (sizeof(intptr_t) * 8)) - 1)
 #define INSN_VALUE1_SHIFT 8
 #define INSN_VALUE2_SHIFT 20
+
+#ifdef CONST
+# undef CONST
+#endif
+
 /**
    @brief set of instructions.
 

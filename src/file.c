@@ -193,11 +193,12 @@ SgObject Sg_FindFile(SgString *path, SgObject loadPaths,
 					  sep,
 					  path));
     }
-    if (Sg_FileExistP(SG_STRING(realPath))) {
+	if (Sg_FileExistP(SG_STRING(realPath))) {
       return realPath;
-    } else if (!quiet) {
-      Sg_Error(UC("given file was not found %S"), path);
     }
+  }
+  if (!quiet) {
+    Sg_Error(UC("given file was not found %S"), path);
   }
   return SG_FALSE;
 }

@@ -31,6 +31,10 @@
  */
 #include <math.h>
 #include <time.h>
+#ifdef HAVE_SYS_TIME_H
+# include <sys/time.h>
+#endif
+
 #define LIBSAGITTARIUS_BODY
 #include "threads.h"
 
@@ -113,7 +117,7 @@ SgObject Sg_ThreadStart(SgVM *vm)
   } else {
     ASSERT(vm->thunk);
     vm->threadState = SG_VM_RUNNABLE;
-    Sg_InternalThreadStart(&vm->thread, thread_entry, vm);
+    Sg_InternalThreadStart(&vm->thread, (SgThreadEntryFunc *)thread_entry, vm);
   }
   Sg_UnlockMutex(&vm->vmlock);
   if (err_state) Sg_Error(UC("attempt to start an already-started thread: %S"), vm);
@@ -319,13 +323,15 @@ unsigned long Sg_SysNanosleep(double v)
 extern void Sg__Init_sagittarius_threads_impl();
 extern void Sg__InitMutex();
 
-void Sg_Init_sagittarius__threads()
+SG_CDECL_BEGIN
+SG_EXPORT void Sg_Init_sagittarius__threads()
 {
   Sg__InitMutex();
   Sg__Init_sagittarius_threads_impl();
   SG_PROCEDURE_NAME(&thread_error_handler_STUB)
     = Sg_MakeString(UC("thread-exception-handler"), SG_LITERAL_STRING);
 }
+SG_CDECL_END
 /*
   end of file
   Local Variables:

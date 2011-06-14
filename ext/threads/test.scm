@@ -3,18 +3,20 @@
 ;; testing mutil thread
 ;; this file will be called from one upper
 ;; so load path must be like this
-(add-load-path "./threads/")
+(add-load-path "./threads")
 (add-load-path "./time/")
 (library (threads test)
     (export run-threads-test)
     (import (srfi :64 testing)
 	    (rnrs)
+	    (core base)
 	    (sagittarius threads)
 	    (sagittarius time))
 
   (define (run-threads-test)
     ;; most test cases are from Gauche 
     ;; basic API
+    (print "basic API")
     (test-assert "current-thread" (eq? (current-thread) (current-thread)))
     (test-equal "thread?" '(#t #f) (list (thread? (current-thread))
 					 (thread? 'foo)))
@@ -74,6 +76,7 @@
 		    (thread-join! t1))))
 
     ;; thread and error
+    (print "thread and error")
     (test-assert "uncaught-exception"
 		 (let ((t (make-thread (lambda () (assertion-violation 'who "foo")))))
 		   (thread-start! t)

@@ -142,7 +142,7 @@ static SgObject macro_expand_cc(SgObject result, void **data)
 }
 
 
-static SgObject p1env_lookup(SgVector *p1env, SgObject name, int lookup_as)
+static SgObject p1env_lookup(SgVector *p1env, SgObject name, SgObject lookup_as)
 {
   int name_identp = SG_IDENTIFIERP(name);
   SgObject frames = SG_VECTOR_ELEMENT(p1env, 1);
@@ -204,7 +204,7 @@ SgObject Sg_MacroExpand(SgObject expr, SgObject p1env, int onceP)
 	  mac = SG_MACRO(gval);
 	}
       } else {
-	g = p1env_lookup(p1env, sym, SG_MAKE_INT(2));
+	g = p1env_lookup(SG_VECTOR(p1env), sym, SG_MAKE_INT(2));
 	if (SG_MACROP(g)) {
 	  mac = SG_MACRO(g);
 	}

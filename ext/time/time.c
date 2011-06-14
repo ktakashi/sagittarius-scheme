@@ -30,6 +30,7 @@
  *  $Id: $
  */
 #include <math.h>
+#define LIBSAGITTARIUS_BODY
 #include "time.h"
 
 static void time_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
@@ -179,7 +180,7 @@ SgObject Sg_TimeDifference(SgTime *x, SgTime *y, SgTime *r)
     r->nsec = 0;
   } else {
     double nano = (x->sec * TM_NANO + x->nsec) - (y->sec * TM_NANO + y->nsec);
-    int64_t nanos = abs(remainder(nano, TM_NANO));
+    int64_t nanos = abs(fmod(nano, TM_NANO));
     unsigned long secs = nano / TM_NANO;
     r->sec = secs;
     r->nsec = nanos;
@@ -197,7 +198,7 @@ SgObject Sg_AddDuration(SgTime *x, SgTime *y, SgTime *r)
   }
   sec_plus = x->sec + y->sec;
   nsec_plus = x->nsec + y->nsec;
-  rr = remainder(nsec_plus, TM_NANO);
+  rr = (unsigned long)fmod(nsec_plus, TM_NANO);
   q = nsec_plus / TM_NANO;
   if (rr < 0) {
     r->sec = sec_plus + q + -1;
@@ -219,7 +220,7 @@ SgObject Sg_SubDuration(SgTime *x, SgTime *y, SgTime *r)
   }
   sec_minus = x->sec - y->sec;
   nsec_minus = x->nsec - y->nsec;
-  rr = remainder(nsec_minus, TM_NANO);
+  rr = (unsigned long)fmod(nsec_minus, TM_NANO);
   q = nsec_minus / TM_NANO;
   if (r < 0) {
     r->sec = sec_minus - q - 1;
@@ -233,7 +234,8 @@ SgObject Sg_SubDuration(SgTime *x, SgTime *y, SgTime *r)
 
 extern void Sg__Init_sagittarius_time_impl();
 
-void Sg_Init_sagittarius__time()
+SG_CDECL_BEGIN
+SG_EXPORT void Sg_Init_sagittarius__time()
 {
   time_utc = SG_INTERN("time-utc");
   time_tai = SG_INTERN("time-tai");
@@ -241,3 +243,4 @@ void Sg_Init_sagittarius__time()
   time_duration = SG_INTERN("time-duration");
   Sg__Init_sagittarius_time_impl();
 }
+SG_CDECL_END

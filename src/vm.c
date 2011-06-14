@@ -58,6 +58,7 @@
 #include "sagittarius/profiler.h"
 #include "sagittarius/gloc.h"
 #include "sagittarius/weak.h"
+#include "sagittarius/thread.h"
 
 static SgInternalMutex global_lock;
 
@@ -1152,17 +1153,37 @@ SgObject Sg_VMCallCC(SgObject proc)
 /* given load path must be unshifted.
    NB: we don't check the validity of given path.
  */
+static SgString* replace_file_separator(SgString *path)
+{
+  SgPort *ret = SG_PORT(Sg_MakeStringOutputPort(SG_STRING_SIZE(path)));
+  int i;
+  for (i = 0; i < SG_STRING_SIZE(path); i++) {
+    /* we need to check both '/' and '\\' */
+    SgChar c = SG_STRING_VALUE_AT(path, i);
+    switch (c) {
+    case '/':
+    case '\\':
+      Sg_PutuzUnsafe(ret, Sg_NativeFileSeparator());
+      break;
+    default:
+      Sg_PutcUnsafe(ret, c);
+      break;
+    }
+  }
+  return SG_STRING(Sg_GetStringFromStringPort(ret));
+}
+
 SgObject Sg_AddLoadPath(SgString *path)
 {
   SgVM *vm = Sg_VM();
-  vm->loadPath = Sg_Append2X(SG_LIST1(path), vm->loadPath);
+  vm->loadPath = Sg_Append2X(SG_LIST1(replace_file_separator(path)), vm->loadPath);
   return vm->loadPath;
 }
 
 SgObject Sg_AddDynamicLoadPath(SgString *path)
 {
   SgVM *vm = Sg_VM();
-  vm->dynamicLoadPath = Sg_Append2X(SG_LIST1(path), vm->dynamicLoadPath);
+  vm->dynamicLoadPath = Sg_Append2X(SG_LIST1(replace_file_separator(path)), vm->dynamicLoadPath);
   return vm->dynamicLoadPath;
 }
 

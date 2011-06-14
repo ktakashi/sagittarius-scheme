@@ -158,7 +158,7 @@ static struct
 
 struct dlobj_initfn_rec
 {
-  struct dlobj_initfn *next;
+  dlobj_initfn *next;
   const char *name;
   SgDynLoadInitFn fn;
   int initialized;
@@ -227,7 +227,11 @@ static const char* derive_dynload_initfn(const char *filename)
   char *name, *d;
 
   head = strrchr(filename, '/');
-  if (head == NULL) head = filename;
+  if (head == NULL) {
+    head = strrchr(filename, '\\');
+    if (head == NULL) head = filename;
+	else head++;
+  }
   else head++;
   tail = strchr(head, '.');
   if (tail == NULL) tail = filename + strlen(filename);
@@ -272,9 +276,9 @@ static void load_dlo(dlobj *dlo)
   if (dlo->handle == NULL) {
     const SgString *err = dl_error();
     if (err == NULL) {
-      Sg_Error("failed to link %S dynamically", dlo->path);
+      Sg_Error(UC("failed to link %S dynamically"), dlo->path);
     } else {
-      Sg_Error("failed to link %S dynamically: %S", dlo->path, err);
+      Sg_Error(UC("failed to link %S dynamically: %S"), dlo->path, err);
     }
   }
   dlo->loaded = TRUE;

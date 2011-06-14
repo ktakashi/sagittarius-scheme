@@ -31,7 +31,8 @@
  */
 #include <windows.h>
 #define LIBSAGITTARIUS_BODY
-#include <sagittarius/file.h>
+#include "sagittarius/file.h"
+#include "sagittarius/system.h"
 
 /* os dependent values */
 const SgChar* Sg_NativeFileSeparator()

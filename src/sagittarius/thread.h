@@ -59,10 +59,10 @@ struct SgInternalCondRec
   int waiters_count;
   CRITICAL_SECTION waiters_count_lock;
   HANDLE semaphore;
-  HANDLE watiers_done;
+  HANDLE waiters_done;
   size_t was_broadcast;
-} SgInternalCond;
-typedef struct SgInternalCondRec * SgInternalCond;
+};
+typedef struct SgInternalCondRec SgInternalCond;
 
 #else
 typedef struct SgInternalMutexRec
@@ -82,6 +82,7 @@ typedef struct  SgInternalCondRec
 
 #define SG_INTERNAL_THREAD_INIT(thr)         ((thr)->thread = (pthread_t)NULL)
 #define SG_INTERNAL_THREAD_INITIALIZED_P(thr) ((thr)->thread != (pthread_t)NULL)
+#endif
 
 /* emulate pthread_cleanup_push/pop*/
 #ifdef _MSC_VER
@@ -123,7 +124,6 @@ typedef struct ptw32_cleanup_rec_t
   thread_cleanup_push(Sg__MutexCleanup, &(mutex))
 #define SG_INTERNAL_MUTEX_SAFE_LOCK_END() /* dummy */; thread_cleanup_pop(1)
 
-#endif
 
 SG_CDECL_BEGIN
 
