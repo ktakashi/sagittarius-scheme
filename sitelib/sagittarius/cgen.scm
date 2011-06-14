@@ -47,6 +47,7 @@
 	    (rnrs eval (6))
 	    (sagittarius format)
 	    (sagittarius cgen util)
+	    (sagittarius)
 	    (prefix (sagittarius cgen base) base:)
 	    (match))
   ;; this must be (file) library but for now.
@@ -430,7 +431,13 @@
       (base:init)
       (init)
       (if (file-exists? out)
-	  (delete-file out))
+	  (let ((stub-mtime (file-stat-mtime file))
+		(out-mtime (file-stat-mtime out)))
+	    (if (> stub-mtime out-mtime)
+		(delete-file out)
+		(begin
+		  (base:warn "generated file is older than stub file. exit.")
+		  (exit)))))
       (with-output-to-file out
 	(lambda ()
 	  (with-input-from-file file

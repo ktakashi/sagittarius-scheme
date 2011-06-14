@@ -36,10 +36,9 @@
 
 SG_CDECL_BEGIN
 
-/* TODO file related function might need to be moved to file.h */
-SG_EXTERN int           Sg_FileExistP(SgString *path);
-SG_EXTERN int           Sg_DeleteFile(SgString *path);
 SG_EXTERN const SgChar* Sg_NativeFileSeparator();
+
+SG_EXTERN SgObject      Sg_GetLastErrorMessage();
 
 /* load path */
 SG_EXTERN SgObject      Sg_GetDefaultLoadPath();

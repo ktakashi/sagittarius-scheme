@@ -29,6 +29,7 @@
  *
  *  $Id: $
  */
+#include <math.h>
 #include "time.h"
 
 static void time_printer(SgPort *port, SgObject self, SgWriteContext *ctx)

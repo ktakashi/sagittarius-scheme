@@ -730,13 +730,13 @@ SgObject Sg_MakeIntegerU(unsigned long x)
 
 SgObject Sg_MakeIntegerFromS64(int64_t x)
 {
-  if ((x <= INT_MAX) && (x >= INT_MIN)) return SG_MAKE_INT(x);
+  if ((x <= SG_INT_MAX) && (x >= SG_INT_MIN)) return SG_MAKE_INT(x);
   return Sg_MakeBignumFromS64(x);
 }
 
 SgObject Sg_MakeIntegerFromU64(uint64_t x)
 {
-  if (x <= INT_MAX) return SG_MAKE_INT(x);
+  if (x <= SG_INT_MAX) return SG_MAKE_INT(x);
   return Sg_MakeBignumFromU64(x);
 }
 

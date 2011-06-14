@@ -5,10 +5,11 @@
 ADD_LIBRARY(sagittarius--time MODULE
   time.c time_stub.c)
 
-INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 ADD_STUBS(sagittarius--time
   COMMAND ${GENSTUB}
   FILES ${CMAKE_CURRENT_SOURCE_DIR}/time_stub.stub)
+
+INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 
 SET_TARGET_PROPERTIES(sagittarius--time PROPERTIES PREFIX "")
 TARGET_LINK_LIBRARIES(sagittarius--time sagittarius)

@@ -35,6 +35,23 @@
 	    add-dynamic-load-path
 	    load-dynamic-library
 
+	    ;; filesystem
+	    file-size-in-bytes
+	    file-regular?
+	    file-directory?
+	    file-symbolic-link?
+	    file-readable?
+	    file-writable?
+	    file-executable?
+	    file-stat-ctime
+	    file-stat-mtime
+	    create-symbolic-link
+	    create-hard-link
+	    rename-file
+	    delete-directory
+	    create-directory
+
+
 	    ;; hashtable
 	    hashtable-keys-list hashtable-values-list
 	    hashtable-values
@@ -217,6 +234,80 @@
 
   (define-c-proc load-dynamic-library (name::String :optional init) ::Object
     (result (Sg_DynLoad name init 0)))
+
+  (define-c-proc file-size-in-bytes (path::String) ::Object
+    (let ((size (Sg_FileSize path)))
+      (if (SG_UNDEFP size)
+	  (Sg_AssertionViolation procedureName
+				 (Sg_GetLastErrorMessage)
+				 path))
+      (result size)))
+  
+  (define-c-proc file-regular? (path::String) ::boolean
+    (result (Sg_FileRegularP path)))
+
+  (define-c-proc file-directory? (path::String) ::boolean
+    (result (Sg_DirectoryP path)))
+
+  (define-c-proc file-symbolic-link? (path::String) ::boolean
+    (result (Sg_FileSymbolicLinkP path)))
+
+  (define-c-proc file-readable? (path::String) ::boolean
+    (result (Sg_FileReadableP path)))
+
+  (define-c-proc file-writable? (path::String) ::boolean
+    (result (Sg_FileWritableP path)))
+
+  (define-c-proc file-executable? (path::String) ::boolean
+    (result (Sg_FileExecutableP path)))
+
+  (define-c-proc file-stat-ctime (path::String) ::Object
+    (let ((tm (Sg_FileChangeTime path)))
+      (if (SG_UNDEFP tm)
+	  (Sg_AssertionViolation procedureName
+				 (Sg_GetLastErrorMessage)
+				 path))
+      (result tm)))
+
+  (define-c-proc file-stat-mtime (path::String) ::Object
+    (let ((tm (Sg_FileModifyTime path)))
+      (if (SG_UNDEFP tm)
+	  (Sg_AssertionViolation procedureName
+				 (Sg_GetLastErrorMessage)
+				 path))
+      (result tm)))
+
+  (define-c-proc file-stat-atime (path::String) ::Object
+    (let ((tm (Sg_FileAccessTime path)))
+      (if (SG_UNDEFP tm)
+	  (Sg_AssertionViolation procedureName
+				 (Sg_GetLastErrorMessage)
+				 path))
+      (result tm)))
+
+  (define-c-proc create-symbolic-link (oldpath::String newpath::String) ::void
+    (unless (Sg_CreateSymbolicLink oldpath newpath)
+      (Sg_AssertionViolation procedureName
+			     (Sg_GetLastErrorMessage)
+			     (SG_LIST2 oldpath newpath))))
+
+  (define-c-proc rename-file (oldpath::String newpath::String) ::void
+    (unless (Sg_FileRename oldpath newpath)
+      (Sg_AssertionViolation procedureName
+			     (Sg_GetLastErrorMessage)
+			     (SG_LIST2 oldpath newpath))))
+
+  (define-c-proc delete-directory (path::String) ::void
+    (unless (Sg_DeleteFileOrDirectory path)
+      (Sg_AssertionViolation procedureName
+			     (Sg_GetLastErrorMessage)
+			     path)))
+
+  (define-c-proc create-directory (path::String) ::void
+    (unless (Sg_CreateDirectory path)
+      (Sg_AssertionViolation procedureName
+			     (Sg_GetLastErrorMessage)
+			     path)))
 
   ;; hashtable
   (define-c-proc make-equal-hashtable (:optional (k::fixnum 200)) ::Object

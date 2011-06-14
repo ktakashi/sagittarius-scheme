@@ -32,6 +32,7 @@
 #include <io.h>
 #include <unistd.h>
 #include <time.h>
+#include <errno.h>
 #ifdef HAVE_SCHED_H
 # include <sched.h>
 #endif
@@ -49,15 +50,9 @@ const SgChar* Sg_NativeFileSeparator()
   return UC("/");
 }
 
-int Sg_FileExistP(SgString *path)
+SgObject Sg_GetLastErrorMessage()
 {
-  char *utf8path = Sg_Utf32sToUtf8s(path);
-  return access(utf8path, F_OK) == 0; 
-}
-
-int Sg_DeleteFile(SgString *path)
-{
-  return remove(Sg_Utf32sToUtf8s(path));
+  return Sg_MakeStringC(strerror(errno));
 }
 
 SgObject Sg_GetDefaultLoadPath()

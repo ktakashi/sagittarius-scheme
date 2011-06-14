@@ -42,6 +42,11 @@ ENDMACRO(PARSE_ARGUMENTS)
 # usage
 #   ADD_STUBS(target stub_file1 stub_file2 ...
 #             [DEPENDENCIES dep1 dep2 ...])
+# generated Makefile image:
+#  somewhere/buzz.c: somewhere/buzz.stub
+#  somewhere/buzz.stub: buzz.stub
+#  buzz.stub:
+#   genstub somewhere/buzz.stub
 MACRO(ADD_STUBS)
   PARSE_ARGUMENTS(STUB "COMMAND;FILES" "NAME;DEPENDENCIES" ${ARGN})
   CAR(STUB_TARGET ${STUB_DEFAULT_ARGS})
@@ -50,21 +55,16 @@ MACRO(ADD_STUBS)
     SET(STUB_NAME "${STUB_TARGET}_genstub")
   ENDIF()
   ADD_CUSTOM_TARGET(${STUB_NAME} ${STUB_COMMAND} ${STUB_FILES})
-#   FOREACH(file ${STUB_FILES})
-#     GET_FILENAME_COMPONENT(C_TARGET ${file} NAME)
-#     GET_FILENAME_COMPONENT(C_NAME ${file} NAME_WE)
-#     GET_FILENAME_COMPONENT(C_PATH ${file} PATH)
-#     SET(C_FILE "${C_PATH}/${C_NAME}.c")
-# 
-#     ADD_CUSTOM_TARGET(${C_TARGET} ${STUB_COMMAND} ${file})
-#     SET_SOURCE_FILES_PROPERTIES(${file}
-#       PROPERTIES
-#         OBJECT_DEPENDS ${C_TARGET})
-#     SET_SOURCE_FILES_PROPERTIES(${C_FILE}
-#       PROPERTIES
-#         OBJECT_DEPENDS ${C_FILE}
-# 	GENERATED ${file})
-#   ENDFOREACH()
+  # set generated flag for target files
+  FOREACH(file ${STUB_FILES})
+    GET_FILENAME_COMPONENT(C_NAME ${file} NAME_WE)
+    GET_FILENAME_COMPONENT(C_PATH ${file} PATH)
+    # creates generated c file name here.
+    SET(C_FILE "${C_PATH}/${C_NAME}.c")
+    SET_SOURCE_FILES_PROPERTIES(${C_FILE}
+      PROPERTIES
+      GENERATED TRUE)
+  ENDFOREACH()
   ADD_DEPENDENCIES(${STUB_TARGET} ${STUB_NAME})
 
 ENDMACRO(ADD_STUBS)

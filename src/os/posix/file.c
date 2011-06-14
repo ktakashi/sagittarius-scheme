@@ -40,6 +40,7 @@
 #include "sagittarius/string.h"
 #include "sagittarius/error.h"
 #include "sagittarius/symbol.h"
+#include "sagittarius/number.h"
 
 enum {
   INVALID_HANDLE_VALUE = -1,
@@ -249,6 +250,149 @@ SgObject Sg_StandardError()
 int Sg_IsUTF16Console(SgObject file)
 {
   return FALSE;
+}
+
+int Sg_FileExistP(SgString *path)
+{
+  char *utf8path = Sg_Utf32sToUtf8s(path);
+  return access(utf8path, F_OK) == 0; 
+}
+
+int Sg_DeleteFile(SgString *path)
+{
+  return remove(Sg_Utf32sToUtf8s(path));
+}
+
+/* Originally from Mosh start */
+int Sg_FileWritableP(SgString *path)
+{
+  return access(Sg_Utf32sToUtf8s(path), W_OK | F_OK) == 0;
+}
+
+int Sg_FileReadableP(SgString *path)
+{
+  return access(Sg_Utf32sToUtf8s(path), R_OK) == 0;
+}
+
+int Sg_FileRegularP(SgString *path)
+{
+  struct stat st;
+  if (stat(Sg_Utf32sToUtf8s(path), &st) == 0) {
+    return S_ISREG(st.st_mode);
+  }
+  return FALSE;
+}
+
+int Sg_FileSymbolicLinkP(SgString *path)
+{
+  struct stat st;
+  if (stat(Sg_Utf32sToUtf8s(path), &st) == 0) {
+    return S_ISLNK(st.st_mode);
+  }
+  return FALSE;
+}
+
+int Sg_FileExecutableP(SgString *path)
+{
+  return access(Sg_Utf32sToUtf8s(path), X_OK) == 0;
+}
+
+int Sg_DirectoryP(SgString *path)
+{
+  struct stat st;
+  if (stat(Sg_Utf32sToUtf8s(path), &st) == 0) {
+    return S_ISDIR(st.st_mode) ? TRUE : FALSE;
+  }
+  return FALSE;
+}
+
+int Sg_DeleteFileOrDirectory(SgString *path)
+{
+  return remove(Sg_Utf32sToUtf8s(path)) == 0;
+}
+
+int Sg_FileRename(SgString *oldpath, SgString *newpath)
+{
+  return rename(Sg_Utf32sToUtf8s(oldpath), Sg_Utf32sToUtf8s(newpath)) == 0;
+}
+
+int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
+{
+  return symlink(Sg_Utf32sToUtf8s(oldpath), Sg_Utf32sToUtf8s(newpath)) == 0;
+}
+
+int Sg_CreateDirectory(SgString *path)
+{
+  return mkdir(Sg_Utf32sToUtf8s(path), S_IRWXU | S_IRWXG | S_IRWXO) == 0;
+}
+
+SgObject Sg_FileModifyTime(SgString *path)
+{
+    struct stat st;
+    if (stat(Sg_Utf32sToUtf8s(path), &st) == 0) {
+#if __DARWIN_64_BIT_INO_T
+        return Sg_Add(Sg_MakeIntegerFromS64(st.st_mtimespec.tv_nsec),
+		      Sg_Mul(Sg_MakeIntegerFromS64(1000000000),
+			     Sg_MakeIntegerFromS64(st.st_mtimespec.tv_sec)));
+#elif defined(_BSD_SOURCE) || defined(_SVID_SOURCE)
+        return Sg_Add(Sg_MakeInteger(st.st_mtim.tv_nsec),
+		      Sg_Mul(Sg_MakeIntegerFromS64(1000000000),
+			     Sg_MakeIntegerFromS64(st.st_mtim.tv_sec)));
+#else
+        return Sg_Mul(Sg_MakeIntegerFromS64(1000000000),
+		      Sg_MakeIntegerFromS64(st.st_mtime));
+#endif
+    }
+    return SG_UNDEF;
+}
+
+SgObject Sg_FileAccessTime(SgString *path)
+{
+    struct stat st;
+    if (stat(Sg_Utf32sToUtf8s(path), &st) == 0) {
+#if __DARWIN_64_BIT_INO_T
+        return Sg_Add(Sg_MakeIntegerFromS64(st.st_atimespec.tv_nsec),
+		      Sg_Mul(Sg_MakeIntegerFromS64(1000000000),
+			     Sg_MakeIntegerFromS64(st.st_atimespec.tv_sec)));
+#elif defined(_BSD_SOURCE) || defined(_SVID_SOURCE)
+        return Sg_Add(Sg_MakeInteger(st.st_atim.tv_nsec),
+		      Sg_Mul(Sg_MakeIntegerFromS64(1000000000),
+			     Sg_MakeIntegerFromS64(st.st_atim.tv_sec)));
+#else
+        return Sg_Mul(Sg_MakeIntegerFromS64(1000000000),
+		      Sg_MakeIntegerFromS64(st.st_atime));
+#endif
+    }
+    return SG_UNDEF;
+}
+
+SgObject Sg_FileChangeTime(SgString *path)
+{
+    struct stat st;
+    if (stat(Sg_Utf32sToUtf8s(path), &st) == 0) {
+#if __DARWIN_64_BIT_INO_T
+        return Sg_Add(Sg_MakeIntegerFromS64(st.st_ctimespec.tv_nsec),
+		      Sg_Mul(Sg_MakeIntegerFromS64(1000000000),
+			     Sg_MakeIntegerFromS64(st.st_ctimespec.tv_sec)));
+#elif defined(_BSD_SOURCE) || defined(_SVID_SOURCE)
+        return Sg_Add(Sg_MakeInteger(st.st_ctim.tv_nsec),
+		      Sg_Mul(Sg_MakeIntegerFromS64(1000000000),
+			     Sg_MakeIntegerFromS64(st.st_ctim.tv_sec)));
+#else
+        return Sg_Mul(Sg_MakeIntegerFromS64(1000000000),
+		      Sg_MakeIntegerFromS64(st.st_ctime));
+#endif
+    }
+    return SG_UNDEF;
+}
+
+SgObject Sg_FileSize(SgString *path)
+{
+  struct stat st;
+  if (stat(Sg_Utf32sToUtf8s(path), &st) == 0) {
+    return Sg_MakeIntegerFromS64(st.st_size);
+  }
+  return SG_UNDEF;
 }
 
 /*

@@ -37,7 +37,6 @@
 static inline SgPair* make_pair()
 {
   SgPair *z = SG_NEW(SgPair);
-  z->sourceInfo = SG_FALSE;
   return z;
 }
 

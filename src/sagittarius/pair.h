@@ -38,8 +38,6 @@ struct SgPairRec
 {
   SgObject car;
   SgObject cdr;
-  /* source info which contains file name and line */
-  SgObject sourceInfo;
 };
 
 #define SG_PAIRP(obj) 	  	 (SG_PTRP(obj) && (SG_HDR(obj) & 0xf) != 0x7)
@@ -52,7 +50,6 @@ struct SgPairRec
 #define SG_CDDR(obj)   	  	 (SG_CDR(SG_CDR(obj)))
 #define SG_SET_CAR(obj, value)   (SG_CAR(obj) = (value))
 #define SG_SET_CDR(obj, value)   (SG_CDR(obj) = (value))
-#define SG_SOURCE_INFO(obj)      (SG_PAIR(obj)->sourceInfo)
 
 #define SG_LISTP(obj)            (SG_NULLP(obj) || SG_PAIRP(obj))
 

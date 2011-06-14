@@ -1,4 +1,4 @@
-// -*- C -*-
+/* -*- C -*- */
 /*
  * file.c
  *
@@ -43,8 +43,11 @@
 #include <sagittarius/error.h>
 #include <sagittarius/symbol.h>
 #include <sagittarius/unicode.h>
+#include <sagittarius/number.h>
 
+#ifdef _MSC_VER
 #pragma comment(lib, "shlwapi.lib")
+#endif
 
 typedef struct FD_tag
 {
@@ -256,25 +259,31 @@ SgObject Sg_MakeFile()
   return SG_OBJ(z);
 }
 
-SgObject Sg_OpenFile(SgString *file, int flags)
+static SgObject get_last_error(DWORD e)
 {
 #define MSG_SIZE 128
+  wchar_t msg[MSG_SIZE];
+  int size = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+			    0, 
+			    e,
+			    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			    msg,
+			    MSG_SIZE,
+			    NULL);
+  if (size > 2 && msg[size - 2] == '\r') {
+    msg[size - 2] = 0;
+    size -= 2;
+  }
+  return utf16ToUtf32(msg);
+#undef MSG_SIZE
+}
+
+SgObject Sg_OpenFile(SgString *file, int flags)
+{
   SgFile *z = make_file(INVALID_HANDLE_VALUE);
   z->open(z, file->value, flags);
   if (!win_is_open(z)) {
-    wchar_t msg[MSG_SIZE];
-    int size = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-			      0, 
-			      SG_FD(z)->lastError,
-			      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			      msg,
-			      MSG_SIZE,
-			      NULL);
-    if (size > 2 && msg[size - 2] == '\r') {
-        msg[size - 2] = 0;
-        size -= 2;
-    }
-    return utf16ToUtf32(msg);
+    return get_last_error(SG_FD(z)->lastError);
   }
   return SG_OBJ(z);
 }
@@ -328,6 +337,158 @@ int Sg_DeleteFile(SgString *path)
   return DeleteFileW(utf32ToUtf16(path->value));
 }
 
+/* Originally from Mosh start */
+int Sg_FileWritableP(SgString *path)
+{
+  return _waccess(utf32ToUtf16(path->value), W_OK | F_OK) == 0; 
+}
+
+int Sg_FileReadableP(SgString *path)
+{
+  return _waccess(utf32ToUtf16(path->value), R_OK) == 0; 
+}
+
+int Sg_FileRegularP(SgString *path)
+{
+    HANDLE fd = CreateFileW(utf32ToUtf16(path), 0, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (fd != INVALID_HANDLE_VALUE) {
+        DWORD type = GetFileType(fd) & ~FILE_TYPE_REMOTE;
+        CloseHandle(fd);
+        return (type == FILE_TYPE_DISK);
+    }
+    return FALSE;
+}
+
+int Sg_FileSymbolicLinkP(SgString *path)
+{
+    DWORD attr = GetFileAttributesW(utf32ToUtf16(path));
+    if (attr == INVALID_FILE_ATTRIBUTES) {
+        return FALSE;
+    }
+    return (attr & FILE_ATTRIBUTE_REPARSE_POINT);
+}
+
+static int end_with(const SgString *target, const char * key)
+{
+  int size = SG_STRING_SIZE(target);
+  int keysize = strlen(key);
+  const SgChar *value = SG_STRING_VALUE(target);
+  SgChar *p = value + size - keysize;
+  return strncmp(p, key, keysize) == 0;
+}
+
+int Sg_FileExecutableP(SgString *path)
+{
+    if (Sg_FileExistP(path)) {
+      const char* pathext[] = { ".COM", ".EXE", ".BAT", ".VBS", ".VBE",
+				".JS",  ".JSE", ".WSF", ".WSH", ".MSC" };
+      unsigned int i;
+      for (i = 0; i < sizeof(pathext); i++) {
+	if (end_with(path, pathext[i])) return TRUE;
+      }
+    }
+    return FALSE;
+}
+
+int Sg_DirectoryP(SgString *path)
+{
+  return PathIsDirectoryW(utf32ToUtf16(SG_STRING_VALUE(path)));
+}
+
+int Sg_DeleteFileOrDirectory(SgString *path)
+{
+  return DeleteFileW(utf32ToUtf16(SG_STRING_VALUE(path)));
+}
+
+int Sg_FileRename(SgString *oldpath, SgString *newpath)
+{
+  return MoveFileExW(utf32ToUtf16(SG_STRING_VALUE(oldPath)),
+		     utf32ToUtf16(SG_STRING_VALUE(newPath)),
+		     MOVEFILE_REPLACE_EXISTING);
+}
+
+typedef BOOL (WINAPI* ProcCreateSymbolicLink) (LPCTSTR, LPCTSTR, DWORD);
+
+int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
+{
+    ProcCreateSymbolicLink win32CreateSymbolicLink = (ProcCreateSymbolicLink)GetProcAddress(LoadLibraryA("kernel32"), "CreateSymbolicLinkW");
+    if (win32CreateSymbolicLink) {
+      const wchar_t* newPathW = utf32ToUtf16(SG_STRING_VALUE(newPath));
+      DWORD flag = PathIsDirectoryW(newPathW) ? 1 : 0; // SYMBOLIC_LINK_FLAG_DIRECTORY == 1
+      if (win32CreateSymbolicLink(newPathW, utf32ToUtf16(SG_STRING_VALUE(oldPath)), flag)) {
+	return TRUE;
+      }
+    }
+    return FALSE;
+}
+
+int Sg_CreateDirectory(SgString *path)
+{
+  return CreateDirectoryW(utf32ToUtf16(SG_STRING_VALUE(path)), NULL);
+}
+
+SgObject Sg_FileModifyTime(SgString *path)
+{
+  HANDLE fd = CreateFileW(utf32ToUtf16(SG_STRING_VALUE(path)), 0, 0, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_NORMAL, NULL);
+  if (fd != INVALID_HANDLE_VALUE) {
+    BY_HANDLE_FILE_INFORMATION fileInfo;
+    if (GetFileInformationByHandle(fd, &fileInfo)) {
+      CloseHandle(fd);
+      int64_t tm = ((int64_t)fileInfo.ftLastWriteTime.dwHighDateTime << 32) + fileInfo.ftLastWriteTime.dwLowDateTime;
+      return Sg_MakeIntegerFromS64(tm);
+    }
+    CloseHandle(fd);
+  }
+  return SG_UNDEF;
+}
+
+SgObject Sg_FileAccessTime(SgString *path)
+{
+  HANDLE fd = CreateFileW(utf32ToUtf16(SG_STRING_VALUE(path)), 0, 0, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_NORMAL, NULL);
+  if (fd != INVALID_HANDLE_VALUE) {
+    BY_HANDLE_FILE_INFORMATION fileInfo;
+    if (GetFileInformationByHandle(fd, &fileInfo)) {
+      CloseHandle(fd);
+      int64_t tm = ((int64_t)fileInfo.ftLastAccessTime.dwHighDateTime << 32) + fileInfo.ftLastAccessTime.dwLowDateTime;
+      return Sg_MakeIntegerFromS64(tm);
+    }
+    CloseHandle(fd);
+  }
+  return SG_UNDEF;
+}
+
+SgObject Sg_FileChangeTime(SgString *path)
+{
+  HANDLE fd = CreateFileW(utf32ToUtf16(SG_STRING_VALUE(path)), 0, 0, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_NORMAL, NULL);
+  if (fd != INVALID_HANDLE_VALUE) {
+    BY_HANDLE_FILE_INFORMATION fileInfo;
+    if (GetFileInformationByHandle(fd, &fileInfo)) {
+      CloseHandle(fd);
+      int64_t tm = ((int64_t)fileInfo.ftCreationTime.dwHighDateTime << 32) + fileInfo.ftCreattionTime.dwLowDateTime;
+      return Sg_MakeIntegerFromS64(tm);
+    }
+    CloseHandle(fd);
+  }
+  return SG_UNDEF;
+}
+
+SgObject Sg_FileSize(SgString *path)
+{
+  HANDLE fd = CreateFileW(utf32ToUtf16(SG_STRING_VALUE(path), 
+				       GENERIC_READ,
+				       FILE_SHARE_READ | FILE_SHARE_WRITE,
+				       NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+  if (fd != INVALID_HANDLE_VALUE) {
+    LARGE_INTEGER bsize;
+    if (GetFileSizeEx(fd, &bsize)) {
+      CloseHandle(fd);
+      return Sg_MakeIntegerFromS64(bsize.QuadPart);
+    }
+    CloseHandle(fd);
+  }
+  return SG_UNDEF;
+}
+
 
 static SgString *win_lib_path = NULL;
 static SgString *win_sitelib_path = NULL;
@@ -363,8 +524,9 @@ static void initialize_path()
   win_dynlib_path = SG_STRING(Sg_MakeString(UC(SAGITTARIUS_DYNLIB_PATH), SG_LITERAL_STRING));
 }
 
-
-
+/* defined in system.h
+   we need utf32ToUtf16, but i don't want to write it everywhere.
+ */
 SgObject Sg_GetDefaultLoadPath()
 {
   if (win_lib_path == NULL ||
@@ -386,6 +548,12 @@ SgObject Sg_GetDefaultDynamicLoadPath()
   }
   return SG_LIST1(Sg_MakeString(UC(SAGITTARIUS_DYNLIB_PATH), SG_LITERAL_STRING));
 }
+
+SgObject Sg_GetLastErrorMessage()
+{
+  return get_last_error(GetLastError());
+}
+
 
 /*
   end of file

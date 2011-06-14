@@ -1,4 +1,4 @@
-// -*- C -*-
+/* -*- C -*- */
 /*
  * file.h
  *
@@ -78,6 +78,24 @@ SG_EXTERN SgObject Sg_MakeFileOptions(SgObject options);
 
 SG_EXTERN SgObject Sg_FindFile(SgString *name, SgObject loadPaths,
 			       SgString *suffix, int quiet);
+
+SG_EXTERN int      Sg_FileExistP(SgString *path);
+SG_EXTERN int      Sg_DeleteFile(SgString *path);
+/* file stat */
+SG_EXTERN int      Sg_FileWritableP(SgString *path);
+SG_EXTERN int      Sg_FileReadableP(SgString *path);
+SG_EXTERN int      Sg_FileRegularP(SgString *path);
+SG_EXTERN int      Sg_FileSymbolicLinkP(SgString *path);
+SG_EXTERN int      Sg_FileExecutableP(SgString *path);
+SG_EXTERN int      Sg_DirectoryP(SgString *path);
+SG_EXTERN int      Sg_DeleteFileOrDirectory(SgString *path);
+SG_EXTERN int      Sg_FileRename(SgString *oldpath, SgString *newpath);
+SG_EXTERN int      Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath);
+SG_EXTERN int      Sg_CreateDirectory(SgString *path);
+SG_EXTERN SgObject Sg_FileModifyTime(SgString *path);
+SG_EXTERN SgObject Sg_FileAccessTime(SgString *path);
+SG_EXTERN SgObject Sg_FileChangeTime(SgString *path);
+SG_EXTERN SgObject Sg_FileSize(SgString *path);
 
 SG_CDECL_END
 
