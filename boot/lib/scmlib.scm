@@ -814,11 +814,9 @@
 ;; from Ypsilon
 (define call-with-port
   (lambda (port proc)
-    (call-with-values
-     (lambda () (proc port))
-     (lambda args
-       (close-port port)
-       (apply values args)))))
+    (receive args (proc port)
+      (close-port port)
+      (apply values args))))
 
 
 ;; 8.2.10 output port
