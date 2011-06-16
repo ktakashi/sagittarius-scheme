@@ -2,7 +2,9 @@
 MESSAGE(STATUS "operating system: ${CMAKE_SYSTEM_NAME}")
 
 # we use posix files for Cygwin
-IF(WIN32 AND NOT CYGWIN)
+# since cmake 2.8.4, we don't have to do this trick any more.
+#IF(WIN32 AND NOT CYGWIN)
+IF(WIN32)
   SET(PLATFORM_SOURCE ${PLATFORM_SOURCE}
     os/win/file.c os/win/transcoder.c
     os/win/system.c os/win/thread.c)

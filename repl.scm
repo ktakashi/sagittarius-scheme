@@ -1,6 +1,7 @@
 (import (core)
 	(core base)
-	(core errors))
+	(core errors)
+	(sagittarius))
 
 (define (default-reader)
   (read (current-input-port)))
@@ -21,7 +22,7 @@
   (let loop1 ()
     (call-with-current-continuation
      (lambda (continue)
-       (with-exception-handler
+       (with-error-handler
 	(lambda (e) 
 	  (print "error:")
 	  (display (describe-condition e))

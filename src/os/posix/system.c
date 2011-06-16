@@ -50,9 +50,14 @@ const SgChar* Sg_NativeFileSeparator()
   return UC("/");
 }
 
+SgObject Sg_GetLastErrorMessageWithErrorCode(int code)
+{
+  return Sg_MakeStringC(strerror(code));
+}
+
 SgObject Sg_GetLastErrorMessage()
 {
-  return Sg_MakeStringC(strerror(errno));
+  return Sg_GetLastErrorMessageWithErrorCode(errno);
 }
 
 SgObject Sg_GetDefaultLoadPath()

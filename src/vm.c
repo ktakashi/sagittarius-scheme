@@ -99,6 +99,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   int i;
   SgWord *callCode = SG_NEW_ARRAY(SgWord, 2);
   SgWord *applyCode = SG_NEW_ARRAY(SgWord,  7);
+  unsigned long sec, usec;
 
   SgCodeBuilder *closureForEvaluateCode = Sg_MakeCodeBuilder(-1);
   SG_SET_HEADER(v, TC_VM);
@@ -188,6 +189,11 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->specific = SG_FALSE;
   v->result = SG_UNDEF;
   v->resultException = SG_UNDEF;
+
+  /* uptime */
+  Sg_GetTimeOfDay(&sec, &usec);
+  v->uptimeSec = sec;
+  v->uptimeUsec = usec;
 
   Sg_RegisterFinalizer(SG_OBJ(v), vm_finalize, NULL);
   return v;
@@ -388,6 +394,13 @@ void Sg_VMSetToplevelVariable(SgSymbol *name, SgObject value)
   SgGloc *g = Sg_MakeGloc(name, vm->currentLibrary);
   SG_GLOC_SET(g, value);
   vm->toplevelVariables = Sg_Acons(name, g, vm->toplevelVariables);
+}
+
+void Sg_VMProcessTime(unsigned long *sec, unsigned long *usec)
+{
+  /* we need to get process time from rootVM */
+  *sec = rootVM->uptimeSec;
+  *usec = rootVM->uptimeUsec;
 }
 
 static void vm_dump_code_rec(SgCodeBuilder *cb, int indent)
@@ -953,6 +966,7 @@ static SgObject install_ehandler(SgObject *args, int argc, void *data)
   SgVM *vm = Sg_VM();
   vm->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
   vm->escapePoint = c;
+  SG_VM_RUNTIME_FLAG_CLEAR(vm, SG_ERROR_BEING_REPORTED);
   return SG_UNDEF;
 }
 
@@ -962,6 +976,9 @@ static SgObject discard_ehandler(SgObject *args, int argc, void *data)
   SgVM *vm = Sg_VM();
   vm->escapePoint = c->prev;
   vm->exceptionHandler = c->xhandler;
+  if (c->errorReporting) {
+    SG_VM_RUNTIME_FLAG_SET(vm, SG_ERROR_BEING_REPORTED);
+  }
   return SG_UNDEF;
 }
 

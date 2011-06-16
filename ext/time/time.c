@@ -30,7 +30,7 @@
  *  $Id: $
  */
 #include <math.h>
-#define LIBSAGITTARIUS_BODY
+#include <sagittarius/extend.h>
 #include "time.h"
 
 static void time_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
@@ -50,9 +50,9 @@ static int time_compare(SgObject x, SgObject y, int equalp)
     if (SG_EQ(tx->type, ty->type) &&
 	tx->sec == ty->sec &&
 	tx->nsec == ty->nsec) {
-      return 0;
+      return TRUE;
     } else {
-      return 1;
+      return FALSE;
     }
   } else {
     if (!SG_EQ(tx->type, ty->type)) {
@@ -75,6 +75,8 @@ static SgObject time_utc = SG_UNDEF;
 static SgObject time_tai = SG_UNDEF;
 static SgObject time_monotonic = SG_UNDEF;
 static SgObject time_duration = SG_UNDEF;
+static SgObject time_process = SG_UNDEF;
+static SgObject time_thread = SG_UNDEF;
 
 static SgTime* make_time_int(SgObject type)
 {
@@ -140,15 +142,22 @@ static unsigned long leap_second_delta(unsigned long utcsec)
 SgObject Sg_CurrentTime(SgObject type)
 {
   unsigned long sec, usec;
+  Sg_GetTimeOfDay(&sec, &usec);
   if (SG_EQ(type, time_utc)) {
-    Sg_GetTimeOfDay(&sec, &usec);
-    return Sg_MakeTime(time_utc, sec, usec * 1000);
+    return Sg_MakeTime(time_utc, sec, usec * 10);
   } else if (SG_EQ(type, time_tai)) {
     return Sg_MakeTime(time_tai, sec + leap_second_delta(sec),
-		       usec * 1000);
+		       usec * 10);
   } else if (SG_EQ(type, time_monotonic)) {
     return Sg_MakeTime(time_monotonic, sec + leap_second_delta(sec),
-		       usec * 1000);
+		       usec * 10);
+  } else if (SG_EQ(type, time_process)) {
+    unsigned long vsec, vusec;
+    Sg_VMProcessTime(&vsec, &vusec);
+    return Sg_MakeTime(type, sec - vsec, (usec - vusec) * 10);
+  } else if (SG_EQ(type, time_thread)) {
+    SgVM *vm = Sg_VM();
+    return Sg_MakeTime(type, sec - vm->uptimeSec, (usec - vm->uptimeUsec) * 10);
   } else {
     Sg_Error(UC("TIME-ERROR type current-time: invalid-clock-type %S"), type);
     return SG_UNDEF;		/* dummy */
@@ -180,8 +189,8 @@ SgObject Sg_TimeDifference(SgTime *x, SgTime *y, SgTime *r)
     r->nsec = 0;
   } else {
     double nano = (x->sec * TM_NANO + x->nsec) - (y->sec * TM_NANO + y->nsec);
-    int64_t nanos = abs(fmod(nano, TM_NANO));
-    unsigned long secs = nano / TM_NANO;
+    unsigned long nanos = abs(fmod(nano, TM_NANO));
+    int64_t secs = nano / TM_NANO;
     r->sec = secs;
     r->nsec = nanos;
   }
@@ -233,14 +242,19 @@ SgObject Sg_SubDuration(SgTime *x, SgTime *y, SgTime *r)
 }
 
 extern void Sg__Init_sagittarius_time_impl();
+extern void Sg__Init_sagittarius_date_impl();
 
-SG_CDECL_BEGIN
-SG_EXPORT void Sg_Init_sagittarius__time()
+
+SG_EXTENSION_ENTRY void Sg_Init_sagittarius__time()
 {
+  SG_INIT_EXTENSION(sagittarius__time);
   time_utc = SG_INTERN("time-utc");
   time_tai = SG_INTERN("time-tai");
   time_monotonic = SG_INTERN("time-monotonic");
   time_duration = SG_INTERN("time-duration");
+  time_process = SG_INTERN("time-process");
+  time_thread = SG_INTERN("time-thread");
   Sg__Init_sagittarius_time_impl();
+  Sg__Init_sagittarius_date_impl();
 }
-SG_CDECL_END
+

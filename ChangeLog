@@ -1,3 +1,8 @@
+2011-06-16  Takashi Kato  <ktakashi@ymail.com>
+
+	* ext/socket/sagittarius/socket.scm (sagittarius socket): socket library
+	has been added.
+
 2011-06-08  Takashi Kato  <ktakashi@ymail.com>
 
 	* ext/time/time.c (sagittarius time): introduced first version of time

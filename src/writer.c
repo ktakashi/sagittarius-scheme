@@ -899,6 +899,9 @@ static void write_port(SgPort *p, SgPort *port, SgWriteContext *ctx)
     case SG_BYTE_ARRAY_BINARY_PORT_TYPE:
       Sg_PutuzUnsafe(port, UC("bytearray"));
       break;
+    case SG_CUSTOM_BINARY_PORT_TYPE:
+      Sg_PutuzUnsafe(port, UC("custom"));
+      break;
     default:
       /* never happen */
       Sg_PutuzUnsafe(port, UC("unknown"));
@@ -911,6 +914,9 @@ static void write_port(SgPort *p, SgPort *port, SgWriteContext *ctx)
       break;
     case SG_STRING_TEXTUAL_PORT_TYPE:
       Sg_PutuzUnsafe(port, UC("string"));
+      break;
+    case SG_CUSTOM_TEXTUAL_PORT_TYPE:
+      Sg_PutuzUnsafe(port, UC("custom"));
       break;
     default:
       /* never happen */

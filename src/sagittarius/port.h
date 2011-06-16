@@ -35,6 +35,9 @@
 #include "sagittariusdefs.h"
 #include "thread.h"
 
+typedef int64_t SgPortPositionFn(SgPort *);
+typedef void    SgSetPortPositionFn(SgPort *, int64_t);
+
 typedef struct SgBinaryPortRec
 {
   /* only binary port has open */
@@ -57,6 +60,11 @@ typedef struct SgBinaryPortRec
       SgByteVector *bvec;
       int           index;
     } buffer;
+    struct {
+      void                *data;
+      SgPortPositionFn    *position;
+      SgSetPortPositionFn *setPosition;
+    } custom;
   } src;
   /*
     these properties are only used for file-binary in/out port.
@@ -94,6 +102,11 @@ typedef struct SgTextualPortRec
       int       index;
       int       lineNo; 	/* for input */
     } buffer;
+    struct {
+      void                *data;
+      SgPortPositionFn    *position;
+      SgSetPortPositionFn *setPosition;
+    } custom;
   } src;
 } SgTextualPort;
 
@@ -165,7 +178,8 @@ enum SgBufferMode {
 
 enum SgBinaryPortType {
   SG_FILE_BINARY_PORT_TYPE,
-  SG_BYTE_ARRAY_BINARY_PORT_TYPE
+  SG_BYTE_ARRAY_BINARY_PORT_TYPE,
+  SG_CUSTOM_BINARY_PORT_TYPE,
 };
 
 enum SgBinaryPortClosedType {
@@ -177,6 +191,7 @@ enum SgBinaryPortClosedType {
 enum SgTextualPortType {
   SG_TRANSCODED_TEXTUAL_PORT_TYPE,
   SG_STRING_TEXTUAL_PORT_TYPE,
+  SG_CUSTOM_TEXTUAL_PORT_TYPE,
 };
 
 enum SgCustomPortType {
@@ -298,6 +313,11 @@ SG_EXTERN void     Sg_SetPortPosition(SgPort *port, int64_t offset);
 
 SG_EXTERN int      Sg_LineNo(SgPort *port);
 SG_EXTERN SgObject Sg_FileName(SgPort *port);
+
+/* for user defined port */
+SG_EXTERN int      Sg_AddPortCleanup(SgPort *port);
+SG_EXTERN void     Sg_RegisterBufferedPort(SgPort *port);
+SG_EXTERN void     Sg_UnregisterBufferedPort(SgPort *port);
 
 SG_CDECL_END
 

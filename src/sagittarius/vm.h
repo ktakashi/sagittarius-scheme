@@ -249,6 +249,9 @@ struct SgVMRec
   SgVMState state;
   int profilerRunning;
   SgVMProfiler *profiler;
+  /* for threads modules */
+  unsigned long uptimeSec;
+  unsigned long uptimeUsec;
 };
 
 /*
@@ -395,6 +398,9 @@ SG_EXTERN void     Sg_VMPrintFrame();
 
 /* toplevel variable*/
 SG_EXTERN void     Sg_VMSetToplevelVariable(SgSymbol *name, SgObject value);
+
+/* process time */
+SG_EXTERN void     Sg_VMProcessTime(unsigned long *sec, unsigned long *usec);
 
 SG_CDECL_END
 

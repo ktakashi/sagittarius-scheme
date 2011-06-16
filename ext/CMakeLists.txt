@@ -10,3 +10,4 @@ SET(GENSTUB
 
 ADD_SUBDIRECTORY(threads threads)
 ADD_SUBDIRECTORY(time time)
+ADD_SUBDIRECTORY(socket socket)

@@ -558,6 +558,10 @@ SgObject Sg_GetLastErrorMessage()
 {
   return get_last_error(GetLastError());
 }
+SgObject Sg_GetLastErrorMessageWithErrorCode(int code)
+{
+  return get_last_error(code);
+}
 
 
 /*

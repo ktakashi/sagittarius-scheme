@@ -219,7 +219,7 @@ SgCodeBuilder* Sg_MakeCodeBuilder(int size)
     code = SG_NEW_ARRAY(SgWord, size);
   }
   SG_CODE_BUILDER_INIT(cb, code, SG_FALSE, 0, FALSE, 0, 0, size);
-  INIT_CODE_PACKET(cb->packet, -1, EMPTY, SG_UNDEF, SG_UNDEF, SG_UNDEF);
+  INIT_CODE_PACKET(cb->packet, EMPTY, -1, SG_UNDEF, SG_UNDEF, SG_UNDEF);
   return cb;
 }
 

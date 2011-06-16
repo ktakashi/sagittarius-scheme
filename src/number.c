@@ -1002,7 +1002,7 @@ SgObject Sg_RationalAddSub(SgObject x, SgObject y, int subtract)
   }
   if (Sg_NumEq(dy, gcd)) {
     /* only factor y */
-    nx = Sg_Mul(Sg_Quotient(dx, dy, NULL), ny);
+    ny = Sg_Mul(Sg_Quotient(dx, dy, NULL), ny);
     dr = dx;
     goto finish;
   }
@@ -2998,7 +2998,7 @@ SgObject Sg_Gcd(SgObject x, SgObject y)
   y = Sg_Abs(y);
   if (Sg_NumCmp(x, y) < 0) { SgObject t = x; x = y; y = t; }
 
-  while (!(SG_MAKE_INT(0) == y)) {
+  while (SG_MAKE_INT(0) != y) {
     SgObject r = Sg_Modulo(x, y, TRUE);
     x = y;
     y = r;

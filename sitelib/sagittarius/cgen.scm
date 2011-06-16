@@ -427,7 +427,8 @@
   (define (cgen file)
     (let* ((ext (file-extention file))
 	   (body (file-name-without-extention file))
-	   (out (string-append body ".c")))
+	   (out (string-append body ".c"))
+	   (exit? #f))
       (base:init)
       (init)
       (if (file-exists? out)
@@ -437,13 +438,14 @@
 		(delete-file out)
 		(begin
 		  (base:warn "generated file is older than stub file. exit.")
-		  (exit)))))
-      (with-output-to-file out
-	(lambda ()
-	  (with-input-from-file file
-	    (lambda ()
-	      (pre-resolve)
-	      (write-header file)
-	      (resolve-body)
-	      (generate-init)))))))
+		  (set! exit? #t)))))
+      (unless exit?
+	(with-output-to-file out
+	  (lambda ()
+	    (with-input-from-file file
+	      (lambda ()
+		(pre-resolve)
+		(write-header file)
+		(resolve-body)
+		(generate-init))))))))
   )

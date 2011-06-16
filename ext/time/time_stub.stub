@@ -103,8 +103,8 @@
     (cond ((SG_EQ type 'time-tai) (result 10000))
 	  ((SG_EQ type 'time-utc) (result 10000))
 	  ((SG_EQ type 'time-monotonic) (result 10000))
-	  ;;((SG_EQ type 'time-thread) (result 10000))
-	  ;;((SG_EQ type 'time-process) (result 10000))
+	  ((SG_EQ type 'time-thread) (result 10000))
+	  ((SG_EQ type 'time-process) (result 10000))
 	  (else 
 	   (assertion-violation procedureName
 				"invalid-clock-type"

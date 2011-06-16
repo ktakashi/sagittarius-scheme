@@ -124,7 +124,10 @@ void Sg_IOError(SgIOErrorType type, SgObject who, SgObject msg,
     Sg_Apply4(proc, who, msg, port, SG_MAKE_CHAR('?'));
     break;
   default:
-    Sg_Error(UC("invalid i/o error type"));
+    g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-error"), SG_FALSE);
+    proc = SG_GLOC_GET(g);
+    Sg_Apply3(proc, who, msg, port);
+    break;
   }
 }
 

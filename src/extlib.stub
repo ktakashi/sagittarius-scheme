@@ -27,6 +27,7 @@
 
 	    ;; misc
 	    current-exception-handler
+	    parent-exception-handler
 	    variable? arity
 	    unbound undefined undefined?
 	    add-load-path load

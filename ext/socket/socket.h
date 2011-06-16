@@ -1,6 +1,6 @@
 /* -*- C -*- */
 /*
- * time.h: srfi-19 time library
+ * socket.h
  *
  *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
  *
@@ -29,63 +29,66 @@
  *
  *  $Id: $
  */
-#ifndef SAGITTARIUS_TIME_H_
-#define SAGITTARIUS_TIME_H_
+#ifndef SAGITTARIUS_SOCKET_H_
+#define SAGITTARIUS_SOCKET_H_
 
 #include <sagittarius.h>
-#include <time.h>
+#ifdef _WIN32
+# include <winsock2.h>
+# include <ws2tcpip.h>
+# include <wspiapi.h>
+# pragma comment(lib, "ws2_32.lib")
+# pragma comment(lib, "iphlpapi.lib")
+# define snprintf _snprintf
+#else
+# include <sys/socket.h>
+# include <netdb.h>
+# include <unistd.h>
+# include <errno.h>
+#endif
 
-typedef struct SgTimeRec
+typedef enum {
+  SG_SOCKET_CLIENT,
+  SG_SOCKET_SERVER,
+} SgSocketType;
+
+typedef struct SgSocketRec
 {
   SG_META_HEADER;
-  SgObject type;
-  int64_t  sec;
-  unsigned long nsec;
-} SgTime;
+  int socket;			/* fd */
+  int lastError;
+  SgSocketType type;
+  SgString *address;		/* for print */
+} SgSocket;
 
-SG_DECLARE_META_OBJ(Sg_TimeMeta);
-#define SG_META_TIME  (&Sg_TimeMeta)
-#define SG_TIME(obj)  ((SgTime *)obj)
-#define SG_TIME_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_TIME)
-
-
-typedef struct SgDateRec
-{
-  SG_META_HEADER;
-  unsigned long nsec;
-  int     nanosecond;
-  int     second;
-  int     minute;
-  int     hour;
-  int     day;
-  int     month;
-  int     year;
-  int64_t zoneOffset;
-} SgDate;
-
-SG_DECLARE_META_OBJ(Sg_DateMeta);
-#define SG_META_DATE   (&Sg_DateMeta)
-#define SG_DATE(obj)   ((SgDate *)obj)
-#define SG_DATE_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_DATE)
-
-#define TM_NANO  1.0e9
-#define TM_SID   86400
-#define TM_SIDH  43200
-#define TM_TAI_EPOCH_IN_JD (double)(4881175/2)
+SG_DECLARE_META_OBJ(Sg_SocketMeta);
+#define SG_META_SOCKET   (&Sg_SocketMeta)
+#define SG_SOCKET(obj)   ((SgSocket*)obj)
+#define SG_SOCKET_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_SOCKET)
 
 SG_CDECL_BEGIN
 
-SgObject Sg_MakeTime(SgObject type, int64_t sec, unsigned long nsec);
-SgObject Sg_CurrentTime(SgObject type);
-SgObject Sg_SecondsToTime(int64_t sec);
-SgObject Sg_TimeToSeconds(SgTime *time);
-SgObject Sg_TimeDifference(SgTime *x, SgTime *y, SgTime *r);
-SgObject Sg_AddDuration(SgTime *x, SgTime *y, SgTime *r);
-SgObject Sg_SubDuration(SgTime *x, SgTime *y, SgTime *r);
+SgSocket* Sg_CreateClientSocket(const SgString *node,
+				const SgString *service,
+				int ai_family,
+				int ai_socktype,
+				int ai_flags,
+				int ai_protocol);
+SgSocket* Sg_CreateServerSocket(const SgString *service,
+				int ai_family,
+				int ai_socktype,
+				int ai_protocol);
 
-SgObject Sg_MakeDate(int nano, int sec, int min, int hour, int day, int mon, int year, int64_t zone);
-SgObject Sg_LocalTzOffset();
+int       Sg_SocketReceive(SgSocket *socket, uint8_t *data, int size, int flags);
+int       Sg_SocketSend(SgSocket *socket, uint8_t *data, int size, int flags);
+SgSocket* Sg_SocketAccept(SgSocket *socket);
+void      Sg_SocketShutdown(SgSocket *socket, int how);
+void      Sg_SocketClose(SgSocket *socket);
+int       Sg_SocketOpenP(SgSocket *socket);
+
+SgObject  Sg_MakeSocketPort(SgSocket *socket);
+void      Sg_ShutdownPort(SgPort *port);
 
 SG_CDECL_END
 
-#endif /* SAGITTARIUS_TIME_H_ */
+#endif /* SAGITTARIUS_SOCKET_HPP_ */

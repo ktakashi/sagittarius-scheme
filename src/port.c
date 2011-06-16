@@ -77,6 +77,11 @@ static void port_finalize(SgObject obj, void *data)
   port_cleanup(SG_PORT(obj));
 }
 
+int Sg_AddPortCleanup(SgPort *port)
+{
+  Sg_RegisterFinalizer(SG_OBJ(port), port_finalize, NULL);
+}
+
 static SgPort* make_port(enum SgPortDirection d, enum SgPortType t, enum SgBufferMode m)
 {
   SgPort *z = SG_NEW(SgPort);
@@ -184,6 +189,16 @@ static void unregister_buffered_port(SgPort *port)
     }
     i -= ++c; while (i < 0) i += PORT_VECTOR_SIZE;
   } while (i != h);
+}
+
+void Sg_RegisterBufferedPort(SgPort *port)
+{
+  register_buffered_port(port);
+}
+
+void Sg_UnregisterBufferedPort(SgPort *port)
+{
+  unregister_buffered_port(port);
 }
 
 /*
@@ -1722,13 +1737,18 @@ SgChar Sg_PeekcUnsafe(SgPort *port)
 int Sg_HasPortPosition(SgPort *port)
 {
   if (SG_BINARY_PORTP(port)) {
-    return TRUE;
+    if (SG_BINARY_PORT(port)->type == SG_CUSTOM_BINARY_PORT_TYPE) {
+      return SG_BINARY_PORT(port)->src.custom.position != NULL;
+    }
+    else return TRUE;
   } else if (SG_TEXTUAL_PORTP(port)) {
     switch (SG_TEXTUAL_PORT(port)->type) {
     case SG_TRANSCODED_TEXTUAL_PORT_TYPE:
       return FALSE;
     case SG_STRING_TEXTUAL_PORT_TYPE:
       return TRUE;
+    case SG_CUSTOM_TEXTUAL_PORT_TYPE:
+      return SG_TEXTUAL_PORT(port)->src.custom.position != NULL;
     default:
       Sg_Error(UC("unknown textual port type. may be bug? %S"), port);
     }
@@ -1742,13 +1762,18 @@ int Sg_HasPortPosition(SgPort *port)
 int Sg_HasSetPortPosition(SgPort *port)
 {
   if (SG_BINARY_PORTP(port)) {
-    return TRUE;
+    if (SG_BINARY_PORT(port)->type == SG_CUSTOM_BINARY_PORT_TYPE) {
+      return SG_BINARY_PORT(port)->src.custom.setPosition != NULL;
+    }
+    else return TRUE;
   } else if (SG_TEXTUAL_PORTP(port)) {
     switch (SG_TEXTUAL_PORT(port)->type) {
     case SG_TRANSCODED_TEXTUAL_PORT_TYPE:
       return FALSE;
     case SG_STRING_TEXTUAL_PORT_TYPE:
       return TRUE;
+    case SG_CUSTOM_TEXTUAL_PORT_TYPE:
+      return SG_TEXTUAL_PORT(port)->src.custom.setPosition != NULL;
     default:
       Sg_Error(UC("unknown textual port type. may be bug? %S"), port);
     }
@@ -1770,6 +1795,16 @@ int64_t Sg_PortPosition(SgPort *port)
     case SG_BYTE_ARRAY_BINARY_PORT_TYPE:
       pos = (int64_t)SG_BINARY_PORT(port)->src.buffer.index;
       break;
+    case SG_CUSTOM_BINARY_PORT_TYPE: {
+      SgPortPositionFn *fn = SG_BINARY_PORT(port)->src.custom.position;
+      if (fn) {
+	pos = fn(port);
+      } else {
+	Sg_Error(UC("given custom binary port does not support port-position")); 
+	return -1;
+      }
+      break;
+    }
     default:
       Sg_Error(UC("unknown binary port type. may be bug? %S"), port);
       return -1;
@@ -1784,6 +1819,16 @@ int64_t Sg_PortPosition(SgPort *port)
     case SG_STRING_TEXTUAL_PORT_TYPE:
       pos = (int64_t)SG_TEXTUAL_PORT(port)->src.buffer.index;
       break;
+    case SG_CUSTOM_TEXTUAL_PORT_TYPE: {
+      SgPortPositionFn *fn = SG_TEXTUAL_PORT(port)->src.custom.position;
+      if (fn) {
+	pos = fn(port);
+      } else {
+	Sg_Error(UC("given custom textual port does not support port-position")); 
+	return -1;
+      }
+      break;
+    }
     default:
       Sg_Error(UC("unknown textual port type. may be bug? %S"), port);
       return -1;
@@ -1830,20 +1875,42 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset)
     case SG_BYTE_ARRAY_BINARY_PORT_TYPE:
       SG_BINARY_PORT(port)->src.buffer.index = offset;
       break;
+    case SG_CUSTOM_BINARY_PORT_TYPE: {
+      SgSetPortPositionFn *fn = SG_BINARY_PORT(port)->src.custom.setPosition;
+      if (fn) {
+	fn(port, offset);
+      } else {
+	Sg_Error(UC("given custom binary port does not support set-port-position!")); 
+	return;
+      }
+      break;
+    }
     default:
       Sg_Error(UC("unknown binary port type. may be bug? %S"), port);
+      return;
     }
     return;
   } else if (SG_TEXTUAL_PORTP(port)) {
     switch (SG_TEXTUAL_PORT(port)->type) {
     case SG_TRANSCODED_TEXTUAL_PORT_TYPE:
-      Sg_Error(UC("transcoded textual port does not support port-position")); 
+      Sg_Error(UC("transcoded textual port does not support set-port-position!")); 
       break;
     case SG_STRING_TEXTUAL_PORT_TYPE:
       SG_TEXTUAL_PORT(port)->src.buffer.index = offset;
       break;
+    case SG_CUSTOM_TEXTUAL_PORT_TYPE: {
+      SgSetPortPositionFn *fn = SG_TEXTUAL_PORT(port)->src.custom.setPosition;
+      if (fn) {
+	fn(port, offset);
+      } else {
+	Sg_Error(UC("given custom textual port does not support set-port-position!")); 
+	return;
+      }
+      break;
+    }
     default:
       Sg_Error(UC("unknown textual port type. may be bug? %S"), port);
+      return;
     }
     return;
   } else if (SG_CUSTOM_PORTP(port)) {
