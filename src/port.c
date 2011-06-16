@@ -1417,10 +1417,12 @@ void Sg_PseudoClosePort(SgPort *port)
   if (SG_BINARY_PORTP(port)) {
     SG_BINARY_PORT(port)->closed = SG_BPORT_PSEUDO;
   } else if (SG_CUSTOM_PORTP(port)) {
-    ASSERT(SG_CUSTOM_PORT(port)->type == SG_BINARY_CUSTOM_PORT_TYPE);
+    if (SG_CUSTOM_PORT(port)->type != SG_BINARY_CUSTOM_PORT_TYPE) goto err;
     SG_CUSTOM_BINARY_PORT(port)->closed = SG_BPORT_PSEUDO;
+  } else {
+  err:
+    Sg_Error(UC("binary port required, but got %S"), port);
   }
-  Sg_Error(UC("binary port required, but got %S"), port);
 }
 
 int Sg_PortClosedP(SgPort *port)

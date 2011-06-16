@@ -33,6 +33,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <errno.h>
+#include <string.h>
 #ifdef HAVE_SCHED_H
 # include <sched.h>
 #endif
