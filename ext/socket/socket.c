@@ -466,7 +466,7 @@ static int64_t socket_put_u8(SgObject self, uint8_t v)
 SgObject Sg_MakeSocketPort(SgSocket *socket)
 {
   SgPort *z = make_port(SG_IN_OUT_PORT, SG_BINARY_PORT_TYPE, SG_BUFMODE_NONE);
-  SgBinaryPort *b = make_binary_port(SG_CUSTOM_BINARY_PORT_TYPE, socket);
+  SgBinaryPort *b = make_binary_port(SG_BINARY_CUSTOM_PORT_TYPE, socket);
 
   z->closed = FALSE;
   z->flush = socket_flush;
