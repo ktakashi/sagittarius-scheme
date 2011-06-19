@@ -131,7 +131,6 @@
 			   (cons (car a)
 				 (cdr a)))
 			 ranks)))))
-
       (or (and (list? literals)
 	       (for-all variable? literals))
 	  (assertion-violation 'syntax-case "invalid literals" expr literals))
@@ -142,9 +141,9 @@
       (and (memq '... literals)
 	   (assertion-violation 'syntax-case "... in literals" expr literals))
       (letrec ((newenv '())
-	       (seen (make-eq-hashtable))
 	       (processes (map (lambda (clause)
-				 (let ((len (length clause)))
+				 (let ((len (length clause))
+				       (seen (make-eq-hashtable)))
 				   (if (or (= len 2) (= len 3))
 				       (receive (pattern ranks env) 
 					   ;; we want pattern variables unique, so wrap with no environment.
@@ -152,19 +151,24 @@
 					 (define construct
 					   (lambda (clause)
 					     `(lambda (,@(map car ranks)
-						       use-env . .vars)
+						       use-env mac-env . .vars)
 						(let ((.ranks (append (,syntax-quote. ,ranks) .ranks)))
 						  (let ((.save .vars.)
-							(.env-save use-env))
+							(.uenv-save use-env)
+							(.menv-save mac-env))
 						    (dynamic-wind
 							(lambda ()
 							  (set! .vars. (append .vars .vars.))
 							  (set! .vars .vars.)
-							  (set! .use-env use-env))
+							  (when use-env
+							    (set! .use-env use-env))
+							  (when mac-env
+							    (set! .mac-env mac-env)))
 							(lambda () ,(wrap-syntax clause p1env seen))
 							(lambda ()
 							  (set! .vars. .save)
-							  (set! .use-env .env-save))))))))
+							  (set! .use-env .uenv-save)
+							  (set! .mac-env .menv-save))))))))
 					 (set! newenv (append env newenv))
 					 `(list (,syntax-quote. ,pattern)
 						(,syntax-quote. ,ranks)
@@ -334,14 +338,15 @@
     ;; however if expression was defined by user or something, it doesn't have
     ;; it. so we need to check if it has ir or not.
     ;; expression is (expr . (use-env . mac-env))
-    (receive (form use-env)
+    (receive (form use-env mac-env)
 	(if (and (pair? expr)
 		 (pair? (cdr expr))
 		 (p1env? (cadr expr))
 		 (p1env? (cddr expr)))
 	    (values (wrap-syntax (car expr) (cadr expr) (make-eq-hashtable) #t)
-		    (cadr expr))
-	    (values expr #f))
+		    (cadr expr)
+		    (cddr expr))
+	    (values expr #f #f))
       (define match
 	(lambda (form pat)
 	  (and (match-pattern? form pat literals)
@@ -357,11 +362,12 @@
 		    (patvars (cadr clause))
 		    (fender (caddr clause))
 		    (expr (cadddr clause)))
-		(let ((vars (match form pat)))
+		(let* ((vars (match form pat))
+		       (args (and vars (append (map cadr vars) (list use-env mac-env) vars))))
 		  (if (and vars
 			   (or (not fender)
-			       (apply-ex fender (append (map cadr vars) (list use-env) vars))))
-		      (apply-ex expr (append (map cadr vars) (list use-env) vars))
+			       (apply-ex fender args)))
+		      (apply-ex expr args)
 		      (loop (cdr lst)))))))))))
 
 ;; syntax
@@ -382,14 +388,18 @@
 	(let ((patvar (map car ranks)))
 	  (if (variable? tmpl)
 	      (if (null? ranks)
-		  `(.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl) .ranks () #f ,p1env)
-		  `(.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl) (list (cons (,syntax-quote. ,tmpl) 0)) .vars use-env ,p1env)))
+		  `(.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl)
+				   .ranks () .use-env .mac-env ,p1env)
+		  `(.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl)
+				   (list (cons (,syntax-quote. ,tmpl) 0)) .vars .use-env .mac-env ,p1env)))
 	  (if (null? ranks)
-	      `(.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl) .ranks () #f ,p1env)
-	      `(.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl) (append (,syntax-quote. ,ranks) .ranks) .vars use-env ,p1env)))))))
+	      `(.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl)
+			       .ranks () .use-env .mac-env ,p1env)
+	      `(.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl)
+			       (append (,syntax-quote. ,ranks) .ranks) .vars .use-env .mac-env ,p1env)))))))
 
 (define expand-syntax
-  (lambda (patvars template ranks vars use-env p1env)
+  (lambda (patvars template ranks vars use-env mac-env p1env)
     (let ((seen (make-eq-hashtable)))
       (define emit
 	(lambda (datum)
@@ -459,7 +469,7 @@
 
       (if (null? template)
 	  '()
-	  (let ((form (transcribe-template template ranks patvars vars use-env emit)))
+	  (let ((form (transcribe-template template ranks patvars vars use-env mac-env emit)))
 	    (cond ((null? form) '())
 		  ((identifier? form) form)
 		  ((symbol? form)
@@ -523,22 +533,36 @@
             (or exhausted '()))))))
 
 (define transcribe-template
-  (lambda (tmpl ranks patvars vars use-env emit)
-    (define remove-duplicates
-      (lambda (alist)
-	(or (let loop ((lst alist))
-	      (cond ((null? lst) alist)
-		    ((assq (caar lst) (cdr lst)) #f)
-		    (else (loop (cdr lst)))))
-	    (let loop ((lst alist) (acc '()))
-	      (cond ((null? lst) acc)
-		    ((assq (caar lst) acc)
-		     (loop (cdr lst) acc))
-		    (else
-		     (loop (cdr lst) (cons (car lst) acc))))))))
-    (let ((seen (make-eq-hashtable))
-	  ;; creates dummy p1env
-	  (env  (if use-env use-env `#(,(vm-current-library) () #f #f))))
+  (lambda (template ranks patvars vars use-env mac-env emit)
+    (define rewrite-template
+      (lambda (t seen)
+	(cond ((null? t) t)
+	      ((pair? t)
+	       (cons (rewrite-template (car t) seen)
+		     (rewrite-template (cdr t) seen)))
+	      ((vector? t)
+	       (list->vector (rewrite-template (vector->list t) seen)))
+	      ((and (variable? t)
+		    (assq t vars))
+	       => (lambda (slot)
+		    (car slot)))
+	      (else
+	       (if (and (identifier? t)
+			(or (not mac-env)
+			    (identifier? (p1env-lookup mac-env t 0))))
+		   (let ((s (unwrap-syntax t)))
+		     (cond ((hashtable-ref seen s #f)
+			    => (lambda (id) id))
+			   (else
+			    (let ((new-id (copy-identifier t)))
+			      (hashtable-set! seen s new-id)
+			      new-id))))
+		   t)))))
+
+    (let* ((seen (make-eq-hashtable))
+	   (tmpl (rewrite-template template seen))
+	   ;; creates dummy p1env
+	   (env  (if use-env use-env `#(,(vm-current-library) () #f #f))))
 
       (define expand-var
 	(lambda (tmpl vars)
@@ -695,6 +719,7 @@
 (set-toplevel-variable! '.make-variable-transformer make-variable-transformer)
 (set-toplevel-variable! '.count-pair count-pair)
 (set-toplevel-variable! '.use-env #f)
+(set-toplevel-variable! '.mac-env #f)
 
 ;;;; end of file
 ;; Local Variables:

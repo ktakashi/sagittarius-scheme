@@ -88,7 +88,7 @@
       (format out "        0x~8'0X           /* ~6a (~s) */,~%" (abs insn) i (car info))))
 
 (define (decode-start-comment sym)
-  (if sym
+  (if (symbol? sym)
       (let* ((s (string-copy (symbol->string sym)))
 	     (len (string-length s)))
 	(let loop ((i 0))

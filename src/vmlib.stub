@@ -9,6 +9,7 @@
 	    id-library-set!
 	    copy-identifier
 	    identifier-binding-eqv?
+	    bound-id->symbol
 	    
 	    ;; syntax
 	    make-syntax syntax? syntax-name syntax-proc
@@ -82,6 +83,10 @@
 
   (define-c-proc copy-identifier (id::Identifier) ::Object
     (result (Sg_CopyIdentifier id)))
+
+  (define-c-proc bound-id->symbol (id::Identifier) ::Object
+    (let ((s (Sg_Sprintf "%A.%x" (SG_IDENTIFIER_NAME id) id)))
+      (result (Sg_Intern s))))
 
   ;; syntax
   (define-c-proc make-syntax (name::Symbol proc :optional (userDefined::boolean FALSE)) ::Object
@@ -162,12 +167,12 @@
   (define-c-proc import-library (to from only except rename prefix transp) ::void
     (Sg_ImportLibraryFullSpec to from only except rename prefix))
 
-  (define-c-proc vm-current-library (:rest name) ::Object
+  (define-c-proc vm-current-library (:optional (name::Library SG_UNBOUND)) ::Object
     (let ((vm::SgVM* (Sg_VM)))
-      (if (SG_NULLP name)
+      (if (SG_UNBOUNDP name)
 	  (result vm->currentLibrary)
 	  (begin
-	    (set! vm->currentLibrary (SG_CAR name))
+	    (set! vm->currentLibrary name)
 	    ; dummy
 	    (result SG_UNDEF)))))
 

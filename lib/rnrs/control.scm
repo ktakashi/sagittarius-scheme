@@ -3,7 +3,7 @@
     (export when unless do case-lambda)
     (import (core)
 	    (core base)
-	    (core syntax-rules))
+	    (core syntax))
   ;; implementation from srfi-16
   (define-syntax case-lambda
     (syntax-rules ()

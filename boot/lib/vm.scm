@@ -103,7 +103,9 @@
 		(get-binding-frame name envs))
 	    (if (library? library)
 		library
-		(vm-current-library)))))
+		(vm-current-library))
+	    ;; for bound-id->symbol
+	    (gensym))))
 
 (define (id-name id)
   (vector-ref id 1))
@@ -117,6 +119,12 @@
   (vector-ref id 3))
 (define (id-library-set! id v)
   (vector-set! id 3 v))
+
+(define (bound-id->symbol id)
+  (let ((n (format "~a~a"
+		   (id-name id)
+		   (vector-ref id 4))))
+    (string->symbol n)))
 
 (define copy-identifier
   (lambda (id)
