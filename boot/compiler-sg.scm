@@ -1275,11 +1275,24 @@
  unrename-expression
  (lambda
   (expr ids)
+  (define
+   quoted?
+   (lambda
+    (e)
+    (and
+     (pair? e)
+     (pair? (cdr e))
+     (variable? (car e))
+     (variable? (cadr e))
+     (let
+      ((n (variable-name (car e))))
+      (or (eq? n 'quote) (eq? n 'syntax-quote))))))
   (let
    loop
    ((expr expr))
    (cond
     ((null? expr) '())
+    ((quoted? expr) expr)
     ((pair? expr) (cons (loop (car expr)) (loop (cdr expr))))
     ((and (identifier? expr) (memq expr ids)) (bound-id->symbol expr))
     (else expr)))))
@@ -2035,10 +2048,10 @@
   (define
    let-syntax-parser
    (lambda
-    (exprs p1env)
+    (exprs p1env old-ids)
     (let*
      ((names (imap car exprs))
-      (ids (collect-lexical-id names p1env))
+      (ids (append! (collect-lexical-id names p1env) old-ids))
       (unrenamed-ids (unrename-expression names ids))
       (trans
        (map
@@ -2056,10 +2069,10 @@
   (define
    letrec-syntax-parser
    (lambda
-    (exprs p1env)
+    (exprs p1env old-ids)
     (let*
      ((names (imap car exprs))
-      (ids (collect-lexical-id names p1env))
+      (ids (append! (collect-lexical-id names p1env) old-ids))
       (unrenamed-ids (unrename-expression names ids))
       (bodys (imap cadr exprs))
       (newenv (p1env-extend p1env (%map-cons unrenamed-ids bodys) LEXICAL))
@@ -2107,19 +2120,13 @@
         ((def rec)
          (receive
           (new-env new-ids)
-          (letrec-syntax-parser (cdar exprs) env)
-          (loop
-           (cdr exprs)
-           new-env
-           (if (null? new-ids) ids (append! new-ids ids)))))
+          (letrec-syntax-parser (cdar exprs) env ids)
+          (loop (cdr exprs) new-env new-ids)))
         ((let)
          (receive
           (new-env new-ids)
-          (let-syntax-parser (cdar exprs) env)
-          (loop
-           (cdr exprs)
-           new-env
-           (if (null? new-ids) ids (append! new-ids ids))))))))
+          (let-syntax-parser (cdar exprs) env ids)
+          (loop (cdr exprs) new-env new-ids))))))
      (pass1/body-rec (unrename-expression exprs ids) intdefs '() macenv))))))
 
 (define

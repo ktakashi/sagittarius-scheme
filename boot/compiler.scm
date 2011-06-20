@@ -1300,8 +1300,20 @@
 ;; TODO i want to unrename destructively.
 (define unrename-expression
   (lambda (expr ids)
+    ;; the most important quoted symbols are like this 'a.
+    (define quoted?
+      (lambda (e)
+	(and (pair? e)
+	     (pair? (cdr e))
+	     (variable? (car e))
+	     (variable? (cadr e))
+	     (let ((n (variable-name (car e))))
+	       (or (eq? n 'quote)
+		   (eq? n 'syntax-quote))))))
+
     (let loop ((expr expr))
       (cond ((null? expr) '())
+	    ((quoted? expr) expr)
 	    ((pair? expr)
 	     (cons (loop (car expr))
 		   (loop (cdr expr))))
@@ -1889,9 +1901,9 @@
 (define pass1/body-finish
   (lambda (intdefs intmacros exprs p1env)
     (define let-syntax-parser
-      (lambda (exprs p1env)
+      (lambda (exprs p1env old-ids)
 	(let* ((names (imap car exprs))
-	       (ids (collect-lexical-id names p1env))
+	       (ids (append! (collect-lexical-id names p1env) old-ids))
 	       (unrenamed-ids (unrename-expression names ids))
 	       (trans (map (lambda (n x)
 			     (pass1/eval-macro-rhs
@@ -1902,9 +1914,9 @@
 	       (newenv (p1env-extend p1env (%map-cons unrenamed-ids trans)  LEXICAL)))
 	  (values newenv ids))))
     (define letrec-syntax-parser
-      (lambda (exprs p1env)
+      (lambda (exprs p1env old-ids)
 	(let* ((names (imap car exprs))
-	       (ids (collect-lexical-id names p1env))
+	       (ids (append! (collect-lexical-id names p1env) old-ids))
 	       (unrenamed-ids (unrename-expression names ids))
 	       (bodys (imap cadr exprs))
 	       (newenv (p1env-extend p1env (%map-cons unrenamed-ids bodys) LEXICAL))
@@ -1943,16 +1955,12 @@
 		     (case (caar exprs)
 		       ((def rec)
 			(receive (new-env new-ids)
-			    (letrec-syntax-parser (cdar exprs) env)
-			  (loop (cdr exprs) new-env (if (null? new-ids)
-							ids
-							(append! new-ids ids)))))
+			    (letrec-syntax-parser (cdar exprs) env ids)
+			  (loop (cdr exprs) new-env new-ids)))
 		       ((let)
 			(receive (new-env new-ids)
-			    (let-syntax-parser (cdar exprs) env)
-			  (loop (cdr exprs) new-env (if (null? new-ids)
-							ids
-							(append! new-ids ids))))))))
+			    (let-syntax-parser (cdar exprs) env ids)
+			  (loop (cdr exprs) new-env new-ids))))))
 	     (pass1/body-rec (unrename-expression exprs ids) intdefs '() macenv))))))
 
 (define pass1/body-init
