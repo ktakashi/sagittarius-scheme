@@ -1,0 +1,61 @@
+;; -*- scheme -*-
+(library (sagittarius regex impl)
+    (export compile-regex
+	    regex-matcher
+	    regex-matches
+	    regex-find
+	    regex-group
+
+	    ;; predicates
+	    regex-pattern?
+	    regex-matcher?
+	    )
+    (import :none)
+
+  #!compatible
+  (decl-code
+   (.include "regex.h"))
+
+  (define-c-proc compile-regex (p::String :optional (flags::fixnum 0)) ::Object
+    (result (Sg_CompileRegex p flags)))
+
+  (define-cgen-stmt check-pattern
+    ((_ o)
+     (dispatch
+      `(unless (SG_PATTERN_P ,o)
+	 (Sg_WrongTypeOfArgumentViolation procedureName
+					  (Sg_MakeString "regex pattern" SG_LITERAL_STRING)
+					  ,o
+					  '())))))
+
+  (define-c-proc regex-matcher (pat input::String) ::Object
+    (check-pattern pat)
+    (result (Sg_RegexMatcher (SG_PATTERN pat) input)))
+
+  (define-cgen-stmt check-matcher
+    ((_ o)
+     (dispatch
+      `(unless (SG_MATCHER_P ,o)
+	 (Sg_WrongTypeOfArgumentViolation procedureName
+					  (Sg_MakeString "regex matcher" SG_LITERAL_STRING)
+					  ,o
+					  '())))))
+
+  (define-c-proc regex-matches (m) ::boolean
+    (check-matcher m)
+    (result (Sg_RegexMatches m)))
+
+  (define-c-proc regex-find (m :optional (start::fixnum -1)) ::boolean
+    (check-matcher m)
+    (result (Sg_RegexFind m start)))
+
+  (define-c-proc regex-group (m :optional (group::fixnum 0)) ::Object
+    (check-matcher m)
+    (result (Sg_RegexGroup m group)))
+
+  (define-c-proc regex-pattern? (o) ::boolean
+    (result (SG_PATTERN_P o)))
+
+  (define-c-proc regex-matcher? (o) ::boolean
+    (result (SG_MATCHER_P o)))
+)

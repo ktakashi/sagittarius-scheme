@@ -4,6 +4,7 @@
 (import (threads test)
 	(time test)
 	(socket test)
+	(regex test)
 	(srfi :64 testing))
 
 (test-begin "extension test")
@@ -11,4 +12,5 @@
 (run-time-test)
 (run-socket-test)
 (run-threads-test)
+(run-regex-test)
 (test-end)
