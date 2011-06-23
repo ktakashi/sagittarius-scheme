@@ -4,11 +4,16 @@
 	    regex-matcher
 	    regex-matches
 	    regex-find
+	    regex-looking-at
 	    regex-group
 
 	    ;; predicates
 	    regex-pattern?
 	    regex-matcher?
+
+	    ;; utility
+	    regex-after
+	    regex-before
 	    )
     (import :none)
 
@@ -49,6 +54,10 @@
     (check-matcher m)
     (result (Sg_RegexFind m start)))
 
+  (define-c-proc regex-looking-at (m) ::boolean
+    (check-matcher m)
+    (result (Sg_RegexLookingAt m)))
+
   (define-c-proc regex-group (m :optional (group::fixnum 0)) ::Object
     (check-matcher m)
     (result (Sg_RegexGroup m group)))
@@ -58,4 +67,16 @@
 
   (define-c-proc regex-matcher? (o) ::boolean
     (result (SG_MATCHER_P o)))
+
+  (define-c-proc regex-after (m) ::Object
+    (check-matcher m)
+    (result (Sg_Substring (-> (SG_MATCHER m) text)
+			  (-> (SG_MATCHER m) last)
+			  (-> (SG_MATCHER m) to))))
+
+  (define-c-proc regex-before (m) ::Object
+    (check-matcher m)
+    (result (Sg_Substring (-> (SG_MATCHER m) text)
+			  (-> (SG_MATCHER m) oldLast)
+			  (-> (SG_MATCHER m) last))))
 )

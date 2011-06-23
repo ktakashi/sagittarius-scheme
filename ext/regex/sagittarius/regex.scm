@@ -34,6 +34,7 @@
 	    regex-matcher
 	    regex-matches
 	    regex-find
+	    regex-looking-at
 	    regex-group
 	    ;; flags
 	    regex-pattern?
@@ -46,6 +47,44 @@
 	    LITERAL
 	    DOTAIL
 	    UNICODE-CASE
+
+	    ;; syntax-sugar
+	    regex
+
+	    ;; wrapper APIs
+	    matches
+	    looking-at
 	    )
-    (import (sagittarius regex impl))
+    (import (sagittarius regex impl)
+	    (core)
+	    (core errors)
+	    (sagittarius))
+  (define regex compile-regex)
+
+  ;; complete match
+  (define (matches reg text)
+    (let ((matcher (regex-matcher reg text)))
+      (if (regex-matches matcher)
+	  (lambda (group)
+	    (regex-group matcher group))
+	  #f)))
+
+  (define (looking-at reg text)
+    (let ((matcher (regex-matcher reg text)))
+      (if (regex-looking-at matcher)
+	  (lambda (group)
+	    (cond ((number? group)
+		   (regex-group matcher group))
+		  ((eq? 'after group)
+		   (regex-after matcher))
+		  ((eq? 'before group)
+		   (regex-before matcher))
+		  (else
+		   (assertion-violation 'looking-at
+					(format "number, 'after or 'before required but got ~a" group)
+					group))))
+	  #f)))
+					
+		   
+  
 )

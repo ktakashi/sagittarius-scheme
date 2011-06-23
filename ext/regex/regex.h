@@ -123,6 +123,7 @@ SG_CDECL_BEGIN
 SgPattern* Sg_CompileRegex(SgString *pattern, int flags);
 SgMatcher* Sg_RegexMatcher(SgPattern *pattern, SgString *input);
 int        Sg_RegexMatches(SgMatcher *m);
+int        Sg_RegexLookingAt(SgMatcher *m);
 int        Sg_RegexFind(SgMatcher *m, int start);
 SgString*  Sg_RegexGroup(SgMatcher *m, int group);
 

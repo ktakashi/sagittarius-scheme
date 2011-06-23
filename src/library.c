@@ -29,6 +29,7 @@
  *
  *  $Id: $
  */
+#include <ctype.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/library.h"
 #include "sagittarius/pair.h"
@@ -139,6 +140,46 @@ SgObject Sg_MakeLibrary(SgObject name)
   return SG_OBJ(z);
 }
 
+static SgString* encode_string(SgString *s, int keywordP)
+{
+  SgObject sl = Sg_StringToList(s);
+  SgObject cp;
+  SgObject perc = SG_MAKE_CHAR('%');
+  SgObject h = SG_NIL, t = SG_NIL;
+  if (keywordP) {
+    SG_APPEND1(h, t, perc);
+    SG_APPEND1(h, t, SG_MAKE_CHAR('3'));
+    SG_APPEND1(h, t, SG_MAKE_CHAR('a'));
+  }
+
+  SG_FOR_EACH(cp, sl) {
+    SgObject c = SG_CAR(cp);
+    SgChar ch = SG_CHAR_VALUE(c);
+    /* /\:*?"<>| */
+    if (!isalnum(ch) &&
+	(ch == '/'  ||
+	 ch == '\\' ||
+	 ch == ':'  ||
+	 ch == '*'  ||
+	 ch == '?'  ||
+	 ch == '"'  ||
+	 ch == '<'  ||
+	 ch == '>'  ||
+	 ch == '|')){
+      int high = (ch >> 4) & 0xF;
+      int low  = ch & 0xF;
+      SG_APPEND1(h, t, perc);
+      SG_APPEND1(h, t, SG_MAKE_CHAR((high < 0xa) ? high + '0' : high + 0x57));
+      SG_APPEND1(h, t, SG_MAKE_CHAR((low < 0xa) ? low + '0' : low + 0x57));
+    } else if (ch >= 128) {
+      Sg_Error(UC("multi byte characters are not supported for library name. %A"), c);
+    } else {
+      SG_APPEND1(h, t, c);
+    }
+  }
+  return Sg_ListToString(h);
+}
+
 /*
   library path convertion must be like this.
    (lib a b (1)) -> lib/a/b
@@ -156,20 +197,28 @@ static SgString* library_name_to_path(SgObject name)
   SgObject h = SG_NIL, t = SG_NIL;
   SG_FOR_EACH(item, name) {
     if (SG_SYMBOLP(SG_CAR(item))) {
-      if (SG_SYMBOL(SG_CAR(item))->name->value[0] == ':') {
+      SgObject o = encode_string(SG_SYMBOL(SG_CAR(item))->name, FALSE);
+      SG_APPEND1(h, t, o);
+#if 0
+     if (SG_SYMBOL(SG_CAR(item))->name->value[0] == ':') {
 	/* keyword but read as symbol */
 	SgObject o = Sg_Sprintf(UC("%%3a%s"), (SG_SYMBOL(SG_CAR(item))->name->value + 1));
 	SG_APPEND1(h, t, o);
       } else {
 	SG_APPEND1(h, t, SG_SYMBOL(SG_CAR(item))->name);
       }
+#endif
     } else if (SG_KEYWORDP(SG_CAR(item))) {
       /* for srfi-97.
 	 NB: when I create srfi library, it must be #!compatible or #!core
 	 or else :1 won't be a keyword.
        */
+      SgObject o = encode_string(SG_KEYWORD(SG_CAR(item))->name, TRUE);
+      SG_APPEND1(h, t, o);
+#if 0
       SgObject o = Sg_Sprintf(UC("%%3a%A"), SG_CAR(item));
       SG_APPEND1(h, t, o);
+#endif
     } else {
       Sg_Error(UC("library name can contain only symbols or keywords, but got %S"), SG_CAR(item));
     }

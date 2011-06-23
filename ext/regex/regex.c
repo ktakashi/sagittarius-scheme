@@ -2208,7 +2208,7 @@ static int rxmatch(node_t *node, SgMatcher *matcher, int i, SgString *seq)
   case BEGIN: {
     int fromIndex = matcher->anchoringBounds ? matcher->from : 0;
     if (i == fromIndex && rxmatch(node->next, matcher, i, seq)) {
-      matcher->last = i;
+      matcher->first = i;
       matcher->groups[0] = i;
       matcher->groups[1] = matcher->last;
       return TRUE;
@@ -2898,6 +2898,11 @@ int Sg_RegexMatches(SgMatcher *m)
   return matcher_match(m, m->from, ENDANCHOR);
 }
 
+int Sg_RegexLookingAt(SgMatcher *m)
+{
+  return matcher_match(m, m->from, NOANCHOR);
+}
+
 int Sg_RegexFind(SgMatcher *m, int start)
 {
   if (start < 0) {
@@ -2935,7 +2940,7 @@ SgString* Sg_RegexGroup(SgMatcher *m, int group)
     Sg_Error(UC("No group %d"), group);
   }
   if ((m->groups[group*2] == -1) || (m->groups[group*2 + 1] == -1))
-    return SG_UNDEF;
+    return SG_FALSE;
   return Sg_Substring(m->text, m->groups[group * 2], m->groups[group*2 + 1]);
 }
 

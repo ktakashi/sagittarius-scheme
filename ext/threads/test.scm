@@ -34,6 +34,7 @@
 		     (thread-join! t)))))
 
     ;; calculate fibonacchi in awful way
+    (print "mt-fib")
     (let ()
       (define (mt-fib n)
 	(let ((threads (make-vector n)))
@@ -83,7 +84,7 @@
 		   (with-error-handler
 		     (lambda (e)
 		       (and (uncaught-exception? e)
-			    ((condition-predicate &assertion) (uncaught-exception-reason e))))
+			    (assertion-violation? (uncaught-exception-reason e))))
 		     (lambda () (thread-join! t)))))
 
     (test-assert "uncaught-exception"
@@ -103,8 +104,8 @@
 		   (thread-start! t)
 		   (with-error-handler
 		     (lambda (e) e)
-		     (lambda () ((condition-predicate &assertion)
-				 (thread-join! t))))))
+		     (lambda ()
+		       (assertion-violation? (thread-join! t))))))
 		 
     (let ((m (make-mutex 'mutex-1)))
       (test-assert 'mutex? (mutex? m))

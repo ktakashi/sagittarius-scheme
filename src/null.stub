@@ -2383,7 +2383,8 @@
 		(let ((c::SgChar (Sg_Getc p)))
 		  ;; transcoder return LF as eol.
 		  ;; TODO string-port doesn't have any indication for eol
-		  (cond ((== c LF)
+		  (cond ((or (== c LF)
+			     (== c EOF))
 			 (break))
 			(else
 			 (Sg_PutcUnsafe buf c)))))

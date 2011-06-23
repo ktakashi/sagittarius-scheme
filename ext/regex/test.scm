@@ -289,6 +289,15 @@
 		    (if (regex-find m)
 			(loop (cons (regex-group m) r))
 			(reverse r)))))
+
+    ;; wrapper
+    (test-equal "wrapper test"
+		'("hello world" "hello" "world")
+		(let* ((rx (regex "(\\w+) (\\w+)")))
+		  (cond ((matches rx "hello world")
+			 => (lambda (m)
+			      (list (m 0) (m 1) (m 2))))
+			(else '()))))
 		  
     )
 )

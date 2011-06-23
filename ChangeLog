@@ -1,3 +1,20 @@
+2011-06-23  Takashi Kato  <ktakashi@ymail.com>
+
+	* sitelib/rfc/uri.scm (rfc uri): added RFC3986 uttility library.
+
+	* src/null.stub (null): fixed get-line method.
+
+	* src/library.c (encode_string): added encoding method to convert
+	library name to path.
+
+	* ext/regex/regex.c: fixed some bugs.
+
+	* sitelib/srfi/%3a2/and-let%2a.scm (srfi :2 and-let*): added srfi-2.
+
+	* sitelib/text/parse.scm (text parse): addes parse input library.
+
+	* sitelib/rfc/%3a5322.scm (rfc :5322): added rfc 5322 utility library.
+
 2011-06-22  Takashi Kato  <ktakashi@ymail.com>
 
 	* ext/regex/sagittarius/regex.scm (sagittarius regex): introduced Java
