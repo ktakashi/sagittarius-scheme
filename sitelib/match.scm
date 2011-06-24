@@ -42,8 +42,8 @@
 	(lambda (y) (and (list? y) (<= 2 (length y))))
 	(cdr args))) (let* ((exp (car args))
 			    (clauses (cdr args))
-			    (e (if (symbol? exp) exp (gensym))))
-		       (if (symbol? exp)
+			    (e (if (variable? exp) exp (gensym))))
+		       (if (variable? exp)
 			   ((car match:expanders)
 			    e
 			    clauses

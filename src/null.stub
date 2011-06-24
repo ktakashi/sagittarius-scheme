@@ -1068,16 +1068,16 @@
 		  (result TRUE))))))))
 
   (define-c-proc char<? (c1 c2 :rest rest) ::boolean
-    (char<>=? >= char<? c1 c2 rest))
+    (char<>=? < char<? c1 c2 rest))
 
   (define-c-proc char>? (c1 c2 :rest rest) ::boolean
-    (char<>=? <= char>? c1 c2 rest))
+    (char<>=? > char>? c1 c2 rest))
 
   (define-c-proc char<=? (c1 c2 :rest rest) ::boolean
-    (char<>=? > char<=? c1 c2 rest))
+    (char<>=? <= char<=? c1 c2 rest))
 
   (define-c-proc char>=? (c1 c2 :rest rest) ::boolean
-    (char<>=? < char>=? c1 c2 rest))
+    (char<>=? >= char>=? c1 c2 rest))
 
   ;; 11.12 strings
   (define-cgen-stmt check-string

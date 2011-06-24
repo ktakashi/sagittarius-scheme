@@ -18,6 +18,7 @@
 	    )
     (import null
 	    (core base)
+	    (core errors)
 	    (sagittarius))
   ;;
   ;; match - Andrew Wright's pattern matching macro.
@@ -171,11 +172,11 @@
   (define match:error
     (lambda (val . args)
       (print args)
-					;    (for-each pretty-print args)
+      ;;    (for-each pretty-print args)
       (error 'match "no matching clause for " val)))
 
   (define match:syntax-err
-    (lambda (obj msg) (error msg obj)))
+    (lambda (obj msg) (error 'match:syntax-err msg obj)))
   (define match:disjoint-structure-tags '())
   (define match:make-structure-tag
     (lambda (name)
@@ -357,11 +358,14 @@
 
   (define (validate-pattern pattern)
     (define (simple? x)
-      (or (string? x) (boolean? x) (char? x) (number? x) (null? x)))
+      (or (string? x) (boolean? x) (char? x) (number? x) (null? x) (keyword? x)))
     (define (ordinary p)
       (let ((cons-ordinary (lambda (x y) (cons (ordinary x) (ordinary y)))))
 	(cond ((simple? p) p)
-	      ((equal? p '_) '_)
+	      ;;((equal? p '_) '_)
+	      ((or (eq? p '_)
+		   (and (identifier? p)
+			(eq? (identifier->symbol p) '_))) '_)
 	      ((pattern-var? p) p)
 	      ((pair? p)
 	       (case (car p)
@@ -394,7 +398,7 @@
 		      `(not ,@(map ordinary (cdr p)))
 		      (cons-ordinary (car p) (cdr p))))
 		 (($ struct)
-		  (if (and (pair? (cdr p)) (symid? (cadr p)) (list? (cddr p)))
+		  (if (and (pair? (cdr p)) (variable? (cadr p)) (list? (cddr p)))
 		      `($ ,(cadr p) ,@(map ordinary (cddr p)))
 		      (cons-ordinary (car p) (cdr p))))
 		 ((set!)
