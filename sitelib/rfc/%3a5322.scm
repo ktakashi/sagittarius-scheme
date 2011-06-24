@@ -41,7 +41,7 @@
 	    (sagittarius)
 	    (sagittarius regex)
 	    (text parse)
-	    (core misc) ;; for define-optional
+	    (core define-optional)
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
 	    (srfi :14 char-set)

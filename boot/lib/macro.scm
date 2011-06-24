@@ -449,6 +449,7 @@
 			 ;; I assume it needs to be the same.
 			 ;; TODO I think this is wrong.
 			 ((and (identifier? lst)
+			       (null? (id-envs lst))
 			       (memq (identifier->symbol lst) (unwrap-syntax patvars)))
 			  (wrap-syntax (identifier->symbol lst) p1env renamed-ids))
 			 (else lst)))
