@@ -704,7 +704,7 @@ static void write_identifier(SgIdentifier *id, SgPort *port, SgWriteContext *ctx
   write_symbol(id->name, port, ctx);
   Sg_PutcUnsafe(port, '#');
   write_symbol(id->library->name, port, ctx);
-#if 0
+#if 1
   if (SG_WRITE_MODE(ctx) == SG_WRITE_WRITE) {
     char buf[50];
     Sg_PutcUnsafe(port, ' ');

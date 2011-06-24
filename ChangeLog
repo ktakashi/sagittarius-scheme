@@ -20,6 +20,11 @@
 	* ext/regex/sagittarius/regex.scm (sagittarius regex): introduced Java
 	compatible regular expression library.
 
+2011-06-17  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/null.stub, src/extlib.stub (display write newline write/ss format):
+	added open check and output port check.
+	
 2011-06-16  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/port.c (Sg_PseudoClosePort): fixed stupid bug.

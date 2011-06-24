@@ -58,6 +58,12 @@ SG_INIT_META_OBJ(Sg_SocketMeta, &socket_printer, NULL);
     (sock)->lastError = last_error;		\
   } while (0)
 
+
+static void socket_finalizer(SgObject self, void *data)
+{
+  Sg_SocketClose(SG_SOCKET(self));
+}
+
 static SgSocket* make_socket(int fd, SgSocketType type, SgString *address)
 {
   SgSocket *s = SG_NEW(SgSocket);
@@ -66,6 +72,7 @@ static SgSocket* make_socket(int fd, SgSocketType type, SgString *address)
   s->type = type;
   s->address = address;
   s->lastError = 0;
+  Sg_RegisterFinalizer(s, socket_finalizer, NULL);
   return s;
 }
 

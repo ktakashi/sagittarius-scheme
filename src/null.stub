@@ -2764,12 +2764,18 @@
     (Sg_Putc p (SG_CHAR_VALUE ch)))
   
   (define-c-proc newline (:optional (p::Port (Sg_CurrentOutputPort))) ::void
+    (check-port-open newline p)
+    (check-output-port newline p)
     (Sg_Putc p #\linefeed))
 
   (define-c-proc display (o :optional (p::Port (Sg_CurrentOutputPort))) ::void
+    (check-port-open display p)
+    (check-output-port display p)
     (Sg_Write o p SG_WRITE_DISPLAY))
 
   (define-c-proc write (o :optional (p::Port (Sg_CurrentOutputPort))) ::void
+    (check-port-open write p)
+    (check-output-port write p)
     (Sg_Write o p SG_WRITE_WRITE))
 
   ;; 9 file system

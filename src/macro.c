@@ -119,7 +119,7 @@ static SgObject macro_tranform(SgObject *args, int argc, void *data_)
   data = Sg_ApplySafe(args[3], SG_NIL);
   mac_env = SG_MACRO(macro)->env;
   if (SG_MACROP(data)) {
-    return Sg_Apply4(SG_MACRO(data)->transformer, data, form, p1env, SG_MACRO(data)->data);
+    return Sg_Apply4(SG_MACRO(data)->transformer, data, form, mac_env, SG_MACRO(data)->data);
   } else {
     return Sg_Apply1(data, Sg_Cons(form, Sg_Cons(p1env, mac_env)));
   }

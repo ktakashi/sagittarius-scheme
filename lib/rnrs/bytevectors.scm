@@ -24,7 +24,7 @@
 	    string->utf32 utf32->string)
     (import (core)
 	    (core base)
-	    (core syntax-rules))
+	    (core syntax))
   (define-syntax endianness
     (syntax-rules (big little native)
       ((_ big)    'big)

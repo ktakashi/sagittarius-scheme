@@ -366,12 +366,23 @@
   (define-c-proc port-closed? (p::Port) ::boolean
     (result (Sg_PortClosedP p)))
 
+  (define-cgen-stmt check-port-open
+    ((_ name p)
+     (dispatch
+      `(when (Sg_PortClosedP ,p)
+	 (wrong-type-of-argument-violation ',name
+					   "opened port"
+					   ,p)))))
+
   (define-c-proc write/ss (o :optional (p::Port (Sg_CurrentOutputPort))) ::void
+    (check-port-open write/ss p)
     (check-output-port write/ss p)
     (Sg_Write o p SG_WRITE_SHARED))
 
   (define-c-proc format (p :rest rest) ::Object
     (cond ((SG_PORTP p)
+	   (check-port-open format p)
+	   (check-output-port format p)
 	   (let ((fmt::SgString* (SG_CAR rest))
 		 (objs (SG_CDR rest)))
 	     (Sg_Format p fmt objs FALSE)

@@ -7,7 +7,7 @@
           modulo
           delay
           force)
-  (import (core) (core syntax-rules))
+  (import (core) (core syntax))
 
   (define force
     (lambda (object)

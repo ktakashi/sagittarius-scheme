@@ -18,7 +18,7 @@
     (import (core)
 	    (core errors)
 	    (core syntax-case)
-	    (core syntax-rules)
+	    ;;(core syntax-rules)
 	    (sagittarius))
 
   (define-syntax unsyntax
@@ -40,7 +40,7 @@
 	 (syntax (syntax-case (list e0 ...) ()
 		   ((p ...) (let () e1 e2 ...))))))))
 
-  #;(define-syntax syntax-rules
+  (define-syntax syntax-rules
     (lambda (x)
       (define clause
 	(lambda (y)
