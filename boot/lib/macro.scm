@@ -492,9 +492,19 @@
 	      (else
 	       (values (list-head form len) tail len))))))
 
-(define rank-of
+#;(define rank-of
   (lambda (name ranks)
     (let ((slot (assq name ranks)))
+      (if slot (cdr slot) -1))))
+
+(define rank-of
+  (lambda (name ranks)
+    (let ((slot (exists (lambda (slot)
+			  (if (identifier=? (id-envs name) name
+					    (id-envs (car slot)) (car slot))
+			      slot
+			      #f))
+			ranks)))
       (if slot (cdr slot) -1))))
 
 (define subform-of
@@ -589,7 +599,13 @@
 		 `(template: ,template) `(subforms: ,@vars))))))
       (define expand-ellipsis-var
 	(lambda (tmpl vars)
-	  (cond ((assq tmpl vars)
+	  (cond (#;(assq tmpl vars)
+		 (exists (lambda (slot)
+			   (if (identifier=? (id-envs tmpl) tmpl
+					     (id-envs (car slot)) (car slot))
+			       slot
+			       #f))
+			 vars)
 		 => (lambda (slot)
 		      (cond ((null? (cdr slot)) '())
 			    ;; if we don't share this with syntax-rules
