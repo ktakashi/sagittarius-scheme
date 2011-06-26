@@ -14,6 +14,7 @@
 
   (define (run-rfc-base64-tests)
     (test-begin "base64-test")
+    ;; I should add the cases which specifies transcoder.
     (test-equal "base64 encode" "YWJjZGVmZw==" (base64-encode-string "abcdefg"))
     (test-equal "base64 decode" "abcdefg" (base64-decode-string "YWJjZGVmZw=="))
 

@@ -36,12 +36,15 @@
     (export &rfc5322-parse-error
 	    rfc5322-read-headers
 	    rfc5322-header->list
-	    rfc5322-header-ref)
+	    rfc5322-header-ref
+	    rfc5322-next-token
+	    rfc5322-field->tokens)
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius regex)
+	    (sagittarius let-optionals*)
+	    (sagittarius define-optional)
 	    (text parse)
-	    (core define-optional)
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
 	    (srfi :14 char-set)
@@ -86,9 +89,9 @@
 	    ((string-null? line) (reverse! r))
 	    (else
 	     (receive (n body) (string-scan line coron)
-	       (let ((name (and-let* (( (string? n))
+	       (let ((name (and-let* (( (string? n) )
 				      (name (string-trim-both n))
-				      ( (string-every rfc5322-char-set name)))
+				      ( (string-every rfc5322-char-set name) ))
 			     (string-downcase name))))
 		 (cond (name
 			(let loop2 ((nline (reader in))
@@ -112,4 +115,61 @@
 					     (format "bad header line: ~s" line)
 					     #f #f))
 		       (else (loop r (reader in))))))))))
+
+  (define (rfc5322-field->tokens field . opts)
+    (call-with-port (open-string-input-port field)
+      (lambda (port)
+	(let ((proc (cut apply rfc5322-next-token <> opts)))
+	  (let loop ((l (proc port))
+		     (r '()))
+	    (if (eof-object? l)
+		(reverse! r)
+		(loop (proc port) (cons l r))))))))
+
+  (define *rfc5322-atext-chars*
+    (string->char-set "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&'*+/=?^_`{|}~-"))
+  (define (rfc5322-dot-atom input)
+    (next-token-of `(,*rfc5322-atext-chars* #\.) input))
+  (define *quote-set* (string->char-set "\""))
+
+  (define (rfc5322-quoted-string input)
+    (call-with-string-output-port
+     (lambda (port)
+       (let loop ((c (peek-next-char input)))
+	 (cond ((eof-object? c) #t);; tolerate missing closing DQUOTE
+	       ((char=? c #\") (get-char input) #t) ;; discard DQUOTE
+	       ((char=? c #\\)
+		(let ((c (peek-next-char input)))
+		  (cond ((eof-object? c) #t) ;; tolerate stray backslash
+			(else (put-char port c) (loop (peek-next-char input))))))
+	       (else (put-char port c) (loop (peek-next-char input))))))))
+
+  (define *rfc5322-standard-tokenizers*
+    `((,*quote-set* . ,rfc5322-quoted-string)
+      (,*rfc5322-atext-chars* . ,rfc5322-dot-atom)))
+  
+  (define (rfc5322-next-token input . opts)
+    (let ((tokenab (map (lambda (e)
+			  (cond ((char-set? e) (cons e (cut next-token-of e <>)))
+				(else e)))
+			(get-optional opts *rfc5322-standard-tokenizers*)))
+	  (c (rfc5322-skip-cfws input)))
+      (cond ((eof-object? c) c)
+	    ((find (lambda (e) (char-set-contains? (car e) c)) tokenab)
+	     => (lambda (e) ((cdr e) input)))
+	    (else (get-char input)))))
+
+  (define (rfc5322-skip-cfws input)
+    (define (scan c)
+      (cond ((eof-object? c) c)
+	    ((char=? c #\( ) (in-comment (peek-next-char input)))
+	    ((char-whitespace? c) (scan (peek-next-char input)))
+	    (else c)))
+    (define (in-comment c)
+      (cond ((eof-object? c) c)
+	    ((char=? c #\) ) (scan (peek-next-char input)))
+	    ((char=? c #\\ ) (read-char input) (in-comment (peek-next-char input)))
+	    ((char=? c #\( ) (in-comment (in-comment (peek-next-char input))))
+	    (else (in-comment (peek-next-char input)))))
+    (scan (peek-char input)))  
 )

@@ -45,26 +45,61 @@
 	    (core base)
 	    (sagittarius)
 	    (srfi :13 strings)
+	    (srfi :14 char-set)
 	    (srfi :6 basic-string-ports)
 	    (srfi :26 cut))
 
   (define (char-list-predicate char-list)
-    (cond ((not (list? char-list))
+    (cond ((char-set? char-list) char-list-contains?/char-set)
+	  ((not (list? char-list))
 	   (assertion-violation 'char-list-predicate
 				"CHAR-LIST must be a list of characters and/or symbol '*eof*"
 				char-list))
-	  ((memq '*eof* char-list) char-list-contains?/eof)
+	  ((and (pair? char-list)
+		(char-set? (car char-list))
+		(pair? (cdr char-list))
+		(null? (cddr char-list))
+		(eq? '*eof* (cadr char-list)))
+	   char-list-contains?/char-set/eof)
+	  ((memq '*eof* char-list)
+	   (if (for-all character-or-eof? char-list)
+	       char-list/contains?/char/eof
+	       char-list-contains?/eof))
 	  ((for-all char? char-list) char-list-contains?/chars)
 	  (else
-	   (assertion-violation 'char-list-predicate
-				"CHAR-LIST must be a list of characters and/or symbol '*eof*"))))
+	   char-list-contains?)))
+
+  (define (character-or-eof? char)
+    (or (char? char)
+	(eof-object? char)))
+
+  (define (char-list-contains?/char-set char-list char)
+    (and (char? char) (char-set-contains? char-list char)))
+
+  (define (char-list-contains?/char-set/eof char-list char)
+    (or (eof-object? char)
+	(and (char? char) (char-set-contains? char-list char))))
 
   (define (char-list-contains?/chars char-list char)
     (memv char char-list))
 
+  (define (char-list-contains?/chars/eof char-list char)
+    (or (eof-object? char)
+	(memv char char-list)))
+
   (define (char-list-contains?/eof char-list char)
     (or (eof-object? char)
 	(memv char char-list)))
+
+  (define (char-list-contains? char-list char) ;generic version
+    (let loop ((cs char-list))
+      (if (null? cs)
+	  #f
+	  (or (eqv? (car cs) char)
+	      (and (char-set? (car cs))
+		   (char-list-contains?/char-set (car cs) char))
+	      (loop (cdr cs))))))
+
 
   ;; from Gauche
   (define (find-string-from-port? str in-port . max-no-char)

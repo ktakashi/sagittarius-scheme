@@ -550,7 +550,7 @@
 	(format "~a" (id-name id))))
     (define lvar->string
       (lambda (lvar)
-	(format "~a[~a;~a]"
+	(format "~a[~a.~a]"
 		(lvar-name lvar)
 		(lvar-ref-count lvar) (lvar-set-count lvar))))
     (define rec
@@ -561,7 +561,7 @@
 	 ((has-tag? iform $UNDEF)
 	  (format #t "($const #<undef>)"))
 	 ((has-tag? iform $LAMBDA)
-	  (format #t "($lambda[~a;~a] ~a" ($lambda-name iform)
+	  (format #t "($lambda[~a.~a] ~a" ($lambda-name iform)
 		  (length ($lambda-calls iform))
 		  (map lvar->string ($lambda-lvars iform)))
 	  (nl (+ ind 2))
@@ -1355,7 +1355,7 @@
 	      (lvars (imap make-lvar+ unrenamed-ids))
 	      (newenv (p1env-extend p1env (%map-cons unrenamed-ids lvars) LEXICAL)))
 	 ;; generator must be unrenamed by parent expression
-	 ($receive form reqargs opt lvars (pass1 expr p1env)
+	 ($receive form reqargs opt lvars (pass1 (unrename-expression expr ids) p1env)
 		   (pass1/body (unrename-expression body ids) newenv)))))
     (- (syntax-error "malformed receive" form))))
 

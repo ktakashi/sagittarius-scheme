@@ -2308,7 +2308,7 @@
 	     ;; TODO it's not *RIGHT* implementation
 	     ;; we should use string-output-port as buffer
 	     ;; but this is match faster (i guess...)
-	     (let ((buf::SgChar* (SG_NEW_ATOMIC2 SgChar* (+ count 1)))
+	     (let ((buf::SgChar* (SG_NEW_ATOMIC2 SgChar* (* (sizeof SgChar) (+ count 1))))
 		   (i::int 0)
 		   (ret (Sg_MakeEmptyString)))
 	       (loop 

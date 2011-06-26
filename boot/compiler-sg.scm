@@ -507,7 +507,7 @@
    (lambda
     (lvar)
     (format
-     "~a[~a;~a]"
+     "~a[~a.~a]"
      (lvar-name lvar)
      (lvar-ref-count lvar)
      (lvar-set-count lvar))))
@@ -521,7 +521,7 @@
      ((has-tag? iform $LAMBDA)
       (format
        #t
-       "($lambda[~a;~a] ~a"
+       "($lambda[~a.~a] ~a"
        ($lambda-name iform)
        (length ($lambda-calls iform))
        (map lvar->string ($lambda-lvars iform)))
@@ -1348,7 +1348,7 @@
       reqargs
       opt
       lvars
-      (pass1 expr p1env)
+      (pass1 (unrename-expression expr ids) p1env)
       (pass1/body (unrename-expression body ids) newenv)))))
   (- (syntax-error "malformed receive" form))))
 

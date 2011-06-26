@@ -10,6 +10,8 @@
 	    string-index string-index-right string-map
 	    receive
 	    acons
+	    *c-delimiter-set*
+	    char-set-contains?
 	    )
     (import (rnrs (6))
 	    ;; TODO to avoid (sagittarius) library we use (srfi-13) for now.
@@ -19,7 +21,8 @@
 	    ;;(only (srfi srfi-14) string->char-set)
 	    (srfi :13 strings)
 	    (only (srfi :8 receive) receive)
-	    (only (srfi :14 char-set) string->char-set)
+	    (only (srfi :14 char-set) string->char-set char-set:symbol char-set-contains?
+		  char-set-union char-set:punctuation)
 	    (sagittarius format))
   ;; TODO remove
   (define-syntax acons
@@ -30,6 +33,8 @@
   (define *renderer* #f)
   (define *renderer-indent* "")
   (define *renderer-no-indent* #f)
+
+  (define *c-delimiter-set* (char-set-union char-set:punctuation char-set:symbol))
   
   (define (set-renderer! renderer)
     (set! *renderer* renderer))

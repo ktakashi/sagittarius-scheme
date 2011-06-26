@@ -104,7 +104,8 @@
     ((base:renderer) (format "#include <sagittarius.h>~%")))
 
   (define (is-ascii-symbol c)
-    (or (and (char<=? #\! c)
+    (char-set-contains? *c-delimiter-set* c)
+    #;(or (and (char<=? #\! c)
 	     (char<=? c #\/))
 	(and (char<=? #\: c)
 	     (char<=? c #\@))))

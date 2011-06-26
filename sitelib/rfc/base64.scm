@@ -31,8 +31,10 @@
 (library (rfc base64)
     (export base64-encode base64-encode-string
 	    base64-decode base64-decode-string)
-    (import (only (core) quotient modulo)
-	    (rnrs))
+    (import (core)
+	    (core syntax)
+	    (core errors)
+	    (sagittarius define-optional))
 
   (define *decode-table*
     ;;    !   "   #   $   %   &   '   (   )   *   +   ,   -   .   /
@@ -62,26 +64,15 @@
       #\=
     ))
 
-  (define base64-decode-string 
-    (case-lambda
-     ((string)
+  (define-optional 
+    (base64-decode-string string (optional (transcoder (native-transcoder))))
       (or (string? string)
 	  (assertion-violation 'base64-decode-string
 			       (format "string required, but got ~s" string)
 			       string))
       (bytevector->string
-       (base64-decode (string->bytevector string (native-transcoder)))
-       (native-transcoder)))
-     ((string codec)
-      (or (and (string? string)
-	       (codec? codec))
-	  (assertion-violation 'base64-decode-string
-			       (format "string and codec required, but got ~s and ~s" string codec)
-			       string codec))
-      (let ((tr (make-transcoder codec)))
-	(bytevector->string
-	 (base64-decode (string->bytevector string tr))
-	 tr)))))
+       (base64-decode (string->bytevector string transcoder))
+       transcoder))
 
   (define (base64-decode bv)
     (or (bytevector? bv)
@@ -131,62 +122,27 @@
 	      (else (d2 (get-u8 in) hi))))
       (d0 (get-u8 in))))    
 
-  (define base64-encode-string 
-    (case-lambda
-     ((string)
-      (or (string? string)
-	  (assertion-violation 'base64-encode-string
-			       (format "string required, but got ~s" string)
-			       string))
-      (bytevector->string
-       (base64-encode (string->bytevector string (native-transcoder)))
-       (native-transcoder)))
-     ((string codec)
-      (or (and (string? string)
-	       (codec? codec))
-	  (assertion-violation 'base64-encode-string
-			       (format "string and codec required, but got ~s and ~s" string codec)
-			       string codec))
-      (let ((tr (make-transcoder codec)))
-	(bytevector->string
-	 (base64-encode (string->bytevector string tr))
-	 tr)))
-     ((string codec line-width)
-      (or (and (string? string)
-	       (codec? codec)
-	       (integer? line-width))
-	  (assertion-violation 'base64-encode-string
-			       (format "string, codec and integer required, but got ~s and ~s"
-				       string codec line-width)
-			       string codec line-width))
-      (let ((tr (make-transcoder codec)))
-	(bytevector->string
-	 (base64-encode (string->bytevector string tr) line-width)
-	 tr)))))
+  (define-optional
+    (base64-encode-string string (optional (transcoder (native-transcoder))
+					   (line-width 76)))
+    (or (string? string)
+	(assertion-violation 'base64-encode-string
+			     (format "string required, but got ~s" string)
+			     string))
+    (bytevector->string
+     (base64-encode (string->bytevector string transcoder) line-width)
+     transcoder))
 
-  (define base64-encode
-    (case-lambda
-     ((bv)
-      (or (bytevector? bv)
+  (define-optional (base64-encode bv (optional (line-width 76)))
+    (or (bytevector? bv)
 	(assertion-violation 'base64-encode
 			     (format "bytevector required, but got ~s" bv)
 			     bv))
       (call-with-bytevector-output-port
        (lambda (out)
 	 (let ((in (open-bytevector-input-port bv)))
-	   (base64-encode-impl in out 76)
-	   (close-input-port in)))))
-     ((bv line-width)
-      (or (and (bytevector? bv)
-	       (integer? line-width))
-	  (assertion-violation 'base64-encode
-			       (format "bytevector and integer required, but got ~s and ~s" bv line-width)
-			       bv line-width))
-      (call-with-bytevector-output-port
-       (lambda (out)
-	 (let ((in (open-bytevector-input-port bv)))
 	   (base64-encode-impl in out line-width)
-	   (close-input-port in)))))))
+	   (close-input-port in)))))
 
   (define (base64-encode-impl in out line-width)
     (define max-col (and line-width

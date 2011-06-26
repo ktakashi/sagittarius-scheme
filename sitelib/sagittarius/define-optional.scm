@@ -1,14 +1,15 @@
 ;; -*- scheme -*-
-(library (core define-optional)
+(library (sagittarius define-optional)
     (export define-optional)
     (import (core)
 	    (core syntax))
+
   (define-syntax define-optional
     (syntax-rules (optional)
       ((_ (name . bindings) . bodies)
-       (define-optional :seek-optional bindings () ((name . bindings) . bodies)))
+       (define-optional "seek-optional" bindings () ((name . bindings) . bodies)))
 
-      ((_ :seek-optional ((optional . _opt-bindings))
+      ((_ "seek-optional" ((optional . _opt-bindings))
 	 (reqd ...) ((name . _bindings) . _bodies))
        (define (name reqd ... . _rest)
 	 (letrec-syntax
@@ -31,10 +32,10 @@
 		    . bodies)))))
 	   (handle-opts _rest _bodies . _opt-bindings))))
 
-      ((_ :seek-optional (x . rest) (reqd ...) form)
-       (define-optional :seek-optional rest (reqd ... x) form))
+      ((_ "seek-optional" (x . rest) (reqd ...) form)
+       (define-optional "seek-optional" rest (reqd ... x) form))
 
-      ((_ :seek-optional not-a-pair reqd form)
+      ((_ "seek-optional" not-a-pair reqd form)
        (define . form))			; No optional found, regular define
 
       ((_ name body)		; Just the definition for 'name',

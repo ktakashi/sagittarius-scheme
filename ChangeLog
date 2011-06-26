@@ -1,3 +1,11 @@
+2011-06-26  Takashi Kato  <ktakashi@ymail.com>
+
+	* sitelib/rfc/base64.scm (rfc base64): changed to use define-optional
+	instead of case-lambda.
+
+	* sitelib/rfc/quoted-printable.scm (rfc quoted-printable): introduced
+	(rfc quoted-printable) library.
+
 2011-06-23  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/rfc/uri.scm (rfc uri): added RFC3986 uttility library.
