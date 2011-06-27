@@ -142,7 +142,7 @@ SgObject Sg_MakeLibrary(SgObject name)
 
 static SgString* encode_string(SgString *s, int keywordP)
 {
-  SgObject sl = Sg_StringToList(s);
+  SgObject sl = Sg_StringToList(s, 0, -1);
   SgObject cp;
   SgObject perc = SG_MAKE_CHAR('%');
   SgObject h = SG_NIL, t = SG_NIL;

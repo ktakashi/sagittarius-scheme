@@ -441,7 +441,8 @@
 			  (let ((a (loop (car lst))) (d (loop (cdr lst))))
 			    (cond ((and (eq? (car lst) a) (eq? (cdr lst) d)) lst)
 				  (else (cons a d)))))
-			 ((and (identifier? lst)
+			 ;; why did we need this?
+			 #;((and (identifier? lst)
 			       (assq lst vars))
 			  => (lambda (slot)
 			       (emit (cadr slot))))
@@ -459,7 +460,8 @@
 			  => (lambda (id) id))
 			 ((hashtable-ref seen lst #f)
 			  => (lambda (id) id))
-			 ((let ((var (id-contains? patvars lst)))
+			 ;; why did we need this?
+			 #;((let ((var (id-contains? patvars lst)))
 			    (assq var vars))
 			  => (lambda (slot)
 			       (emit (cadr slot))))

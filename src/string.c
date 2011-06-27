@@ -205,13 +205,13 @@ SgObject Sg_StringAppend(SgObject args)
   return SG_OBJ(r);
 }
 
-SgObject Sg_StringToList(SgString *s)
+SgObject Sg_StringToList(SgString *s, int start, int end)
 {
   int size = SG_STRING_SIZE(s), i;
   const SgChar *buf = SG_STRING_VALUE(s);
   SgObject h = SG_NIL, t = SG_NIL;
-
-  for (i = 0; i < size; i++) {
+  SG_CHECK_START_END(start, end, size);
+  for (i = start; i < end; i++) {
     SG_APPEND1(h, t, SG_MAKE_CHAR(buf[i]));
   }
   return h;
@@ -274,6 +274,21 @@ void Sg_StringSet(SgString *s, int k, SgChar c)
     Sg_Error(UC("attemped to modify a immutable string %S"), s);
   }
   SG_STRING_VALUE_AT(s, k) = c;
+}
+
+void Sg_StringFill(SgString *s, SgChar c, int start, int end)
+{
+  int size = s->size, i;
+  SG_CHECK_START_END(start, end, size);
+  for (i = start; i < end; i++) {
+    SG_STRING_VALUE_AT(s, i) = c;
+  }
+}
+
+SgObject Sg_MaybeSubstring(SgString *s, int start, int end)
+{
+  if (start == 0 && end < 0) return SG_OBJ(s);
+  return Sg_Substring(s, start, end);
 }
 
 

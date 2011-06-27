@@ -67,8 +67,9 @@
      make-kmp-restart-vector kmp-step string-kmp-partial-search)
     (import (rnrs)
 	    (rnrs mutable-strings)
-	    (only (sagittarius) format)
+	    (sagittarius)
 	    (sagittarius let-optionals*)
+	    (sagittarius define-optional)
 	    (srfi :8 receive)
 	    (srfi :14 char-set))
 
@@ -308,7 +309,7 @@
   (if (and (zero? start) (= end (string-length s))) s
       (substring s start end)))
 
-(define (string-copy s . maybe-start+end)
+#;(define (string-copy s . maybe-start+end)
   (let-string-start+end (start end) string-copy s maybe-start+end
     (substring s start end)))
 
@@ -965,33 +966,17 @@
 ;;; biggest power of two that won't cause this expression to fixnum overflow, 
 ;;; and everything will be copacetic.
 
-(define (%string-hash s char->int bound start end)
-  (let ((iref (lambda (s i) (char->int (string-ref s i))))
-	;; Compute a 111...1 mask that will cover BOUND-1:
-	(mask (let lp ((i #x10000)) ; Let's skip first 16 iterations, eh?
-		(if (>= i bound) (- i 1) (lp (+ i i))))))
-    (let lp ((i start) (ans 0))
-      (if (>= i end) (modulo ans bound)
-	  (lp (+ i 1) (bitwise-and mask (+ (* 37 ans) (iref s i))))))))
+(define-optional (string-hash s (optional (bound 4194304)
+					  (start 0)
+					  (end -1)))
+  (check-arg string? s string-hash)
+  (string-hash (%maybe-substring s start end) bound))
 
-(define (string-hash s . maybe-bound+start+end)
-  (let-optionals* maybe-bound+start+end ((bound 4194304 (and (integer? bound)
-							     (exact? bound)
-							     (<= 0 bound)))
-					 rest)
-    (let ((bound (if (zero? bound) 4194304 bound)))	; 0 means default.
-      (let-string-start+end (start end) string-hash s rest
-        (%string-hash s char->integer bound start end)))))
-
-(define (string-hash-ci s . maybe-bound+start+end)
-  (let-optionals* maybe-bound+start+end ((bound 4194304 (and (integer? bound)
-							     (exact? bound)
-							     (<= 0 bound)))
-					 rest)
-    (let ((bound (if (zero? bound) 4194304 bound)))	; 0 means default.
-      (let-string-start+end (start end) string-hash-ci s rest
-        (%string-hash s (lambda (c) (char->integer (char-downcase c)))
-		      bound start end)))))
+(define-optional (string-hash-ci s (optional (bound 4194304)
+					     (start 0)
+					     (end -1)))
+  (check-arg string? s string-hash-ci)
+  (string-hash-ci (%maybe-substring s start end) bound))
 
 ;;; Case hacking
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1339,7 +1324,7 @@
 ;;; string-copy! to tstart from [fstart fend]
 ;;; 	Guaranteed to work, even if s1 eq s2.
 
-(define (string-fill! s char . maybe-start+end)
+#;(define (string-fill! s char . maybe-start+end)
   (check-arg char? char string-fill!)
   (let-string-start+end (start end) string-fill! s maybe-start+end
     (do ((i (- end 1) (- i 1)))
@@ -1601,11 +1586,11 @@
 ;(define (string->list s . maybe-start+end)
 ;  (apply string-fold-right cons '() s maybe-start+end))
 
-(define (string->list s . maybe-start+end)
-  (let-string-start+end (start end) string->list s maybe-start+end
-    (do ((i (- end 1) (- i 1))
-	 (ans '() (cons (string-ref s i) ans)))
-	((< i start) ans))))
+;;(define (string->list s . maybe-start+end)
+;;  (let-string-start+end (start end) string->list s maybe-start+end
+;;    (do ((i (- end 1) (- i 1))
+;;	 (ans '() (cons (string-ref s i) ans)))
+;;	((< i start) ans))))
 
 ;;; Defined by R5RS, so commented out here.
 ;(define (list->string lis) (string-unfold null? car cdr lis))

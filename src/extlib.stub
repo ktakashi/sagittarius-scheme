@@ -35,6 +35,8 @@
 	    current-dynamic-environment
 	    add-dynamic-load-path
 	    load-dynamic-library
+	    ;; for srfi-13
+	    %maybe-substring
 
 	    ;; filesystem
 	    file-size-in-bytes
@@ -309,6 +311,9 @@
       (Sg_AssertionViolation procedureName
 			     (Sg_GetLastErrorMessage)
 			     path)))
+
+  (define-c-proc %maybe-substring (s::Sting :optional (start::fixnum 0) (end::fixnum -1)) ::Object
+    (result (Sg_MaybeSubstring s start end)))
 
   ;; hashtable
   (define-c-proc make-equal-hashtable (:optional (k::fixnum 200)) ::Object

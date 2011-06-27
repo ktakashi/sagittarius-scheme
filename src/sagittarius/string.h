@@ -1,4 +1,4 @@
-// -*- C -*-
+/* -*- C -*- */
 /*
  * string.h
  *
@@ -71,7 +71,7 @@ SG_EXTERN SgObject Sg_ReserveString(size_t size, SgChar fill);
 /* this is for get-string-n related not for c use */
 SG_EXTERN SgObject Sg_MakeEmptyString();
 
-SG_EXTERN SgObject Sg_StringToList(SgString *s);
+SG_EXTERN SgObject Sg_StringToList(SgString *s, int start, int end);
 SG_EXTERN SgObject Sg_ListToString(SgObject obj);
 
 /* compare */
@@ -88,6 +88,9 @@ SG_EXTERN SgChar   Sg_StringRef(SgString *s, int k);
 /* modify */
 SG_EXTERN SgObject Sg_Substring(SgString *x, int start, int end);
 SG_EXTERN void     Sg_StringSet(SgString *s, int k, SgChar c);
+SG_EXTERN void     Sg_StringFill(SgString *s, SgChar c, int start, int end);
+/* for srfi-13 */
+SG_EXTERN SgObject Sg_MaybeSubstring(SgString *s, int start, int end);
 
 SG_CDECL_END
 

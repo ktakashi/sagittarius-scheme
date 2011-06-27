@@ -1055,7 +1055,7 @@
 	 (check-char ,name ,first)
 	 (check-char ,name ,second)
 	 (cond ((SG_NULLP ,rest)
-		(result (not (,compare ,first ,second))))
+		(result (,compare ,first ,second)))
 	       ((not (,compare ,first ,second))
 		(result FALSE))
 	       (else
@@ -1160,14 +1160,16 @@
   (define-c-proc string-append (:rest rest) ::Object
     (result (Sg_StringAppend rest)))
 
-  (define-c-proc string->list (s::String) ::Object
-    (result (Sg_StringToList s)))
+  ;; we take start+end as optional arguments for srfi-13
+  (define-c-proc string->list (s::String :optional (start::fixnum 0) (end::fixnum -1)) ::Object
+    (result (Sg_StringToList s start end)))
 
   (define-c-proc list->string (o) ::Object
     (result (Sg_ListToString o)))
 
-  (define-c-proc string-copy (s::String) ::Object
-    (result (Sg_CopyString s)))
+  ;; we take start+end as optional arguments for srfi-13
+  (define-c-proc string-copy (s::String :optional (start::fixnum 0) (end::fixnum -1)) ::Object
+    (result (Sg_Substring s start end)))
 
   ;; 11.13 vectors
   (define-c-proc make-vector (size::fixnum :optional (fill SG_UNDEF)) ::Object
@@ -3728,6 +3730,14 @@
 			   s))
     (set! (SG_STRING_VALUE_AT s k) (SG_CHAR_VALUE c)))
   
+  ;; we take start and end as optional arguments for srfi-13
+  (define-c-proc string-fill! (s::String c :optional (start::fixnum 0) (end::fixnum -1)) ::void
+    (check-char string-fill! c)
+    (when (SG_LITERAL_STRINGP s)
+      (assertion-violation 'string-set! "attempted to modify an immutable string"
+			   s))
+    (Sg_StringFill s (SG_CHAR_VALUE c) start end))
+
   ;; conditions
   (define-c-proc keyword? (o) ::boolean
     (result (SG_KEYWORDP o)))
