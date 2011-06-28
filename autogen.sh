@@ -38,6 +38,14 @@ do_stub()
     cd ../
 }
 
+do_insn()
+{
+    echo generating instruction
+    cd src
+    sash -L../sitelib ./geninsn
+    cd ../
+}
+
 show_usage()
 {
     echo "usage: $0 compiler|library|stub|all"
@@ -45,6 +53,7 @@ show_usage()
     echo "    library:  generate compiled libraries"
     echo "    builtin:  generate compiled builtin libraries"
     echo "    stub:     generate stub files"
+    echo "    insn:     generate insn"
     echo "    all:      generate do everything above"
     echo "  These can be combined and if you did not specify this script"
     echo "  runs every thing"
@@ -69,11 +78,15 @@ then
 	    stub)
 		do_stub
 		;;
+	    insn)
+		do_insn
+		;;
 	    all)
 		echo "generate all."
 		do_compile
 		do_library
 		do_stub
+		do_insn
 		;;
 	    *)
 		show_usage

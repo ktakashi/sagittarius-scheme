@@ -228,6 +228,7 @@ SG_CDECL_END
 typedef struct SgBignumRec     	   SgBignum;
 typedef struct SgBoxRec            SgBox;
 typedef struct SgByteVectorRec     SgByteVector;
+typedef struct SgCharSetRec        SgCharSet;
 typedef struct SgClosureRec        SgClosure;
 typedef struct SgCodeBuilderRec	   SgCodeBuilder;
 typedef struct SgCodecRec      	   SgCodec;
@@ -292,6 +293,7 @@ enum {
   TC_SYNTAX,
   TC_MACRO,
   TC_RECORD_TYPE,
+  TC_CHAR_SET,
 
   TC_COMPLEX,
   TC_RATIONAL,

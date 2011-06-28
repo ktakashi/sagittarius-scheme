@@ -56,7 +56,8 @@ static SgString* make_string(int size)
   } while (0)
 
 static SgInternalMutex smutex;
-static SgHashTable *stable;
+static SgHashTable STABLE = { MAKE_HDR_VALUE(TC_HASHTABLE), SG_HASH_GENERAL, { NULL } };
+#define stable (&STABLE)
 
 SgObject Sg_MakeString(const SgChar *value, SgStringType flag)
 {
@@ -67,6 +68,7 @@ SgObject Sg_MakeString(const SgChar *value, SgStringType flag)
     r = Sg_HashTableRef(stable, SG_OBJ(value), SG_FALSE);
     Sg_UnlockMutex(&smutex);
     if (!SG_FALSEP(r)) {
+      ASSERT(SG_STRINGP(r));
       return r;
     }
   }
@@ -324,7 +326,8 @@ static int string_compare(const SgHashCore *ht, intptr_t key, intptr_t entryKey)
 void Sg__InitString()
 {
   Sg_InitMutex(&smutex, FALSE);
-  stable = Sg_MakeHashTable(string_hash, string_compare, 4096);
+  /* stable = Sg_MakeHashTable(string_hash, string_compare, 4096); */
+  Sg_HashCoreInitGeneral(&stable->core, string_hash, string_compare, 4096, NULL);
 }
 
 /*

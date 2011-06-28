@@ -674,6 +674,7 @@ CASE(LSET) {
       }
 |#
 (define-inst LOCAL_CALL (1 0 #t)
+  (CHECK_STACK (SG_CLOSURE_MAX_STACK (AC vm)) vm)
   (LOCAL_CALL_INSN vm c))
 
 #|
@@ -696,6 +697,7 @@ CASE(LSET) {
       }
 |#
 (define-inst LOCAL_TAIL_CALL (1 0 #t)
+  (CHECK_STACK (SG_CLOSURE_MAX_STACK (AC vm)) vm)
   (TAIL_CALL_INSN vm c)
   (LOCAL_CALL_INSN vm c))
 

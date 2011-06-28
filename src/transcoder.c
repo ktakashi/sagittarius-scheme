@@ -98,13 +98,13 @@ static void unGetChar(SgObject self, SgChar c)
   if (tran->buffer == NULL) {
     /* manual alloc */
     tran->bufferSize = DEFAULT_BUFFER_SIZE;
-    tran->buffer = (SgChar*)SG_MALLOC_ATOMIC(tran->bufferSize);
+    tran->buffer = SG_NEW_ATOMIC2(SgChar*, sizeof(SgChar) * tran->bufferSize);
     tran->bufferPosition = 0;
   }
   
   if (tran->bufferPosition == SIZE2POS(tran->bufferSize)) {
     int nextBufferSize = tran->bufferSize + INCREASE_SIZE;
-    SgChar *tmp = (SgChar*)SG_MALLOC_ATOMIC(nextBufferSize);
+    SgChar *tmp = SG_NEW_ATOMIC2(SgChar*, sizeof(SgChar) * nextBufferSize);
     if (tmp == NULL) {
       /** @todo error handling */
       exit(-1);

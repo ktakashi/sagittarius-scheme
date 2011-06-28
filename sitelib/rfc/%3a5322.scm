@@ -35,10 +35,10 @@
 (library (rfc :5322)
     (export &rfc5322-parse-error
 	    rfc5322-read-headers
-	    rfc5322-header->list
-	    rfc5322-header-ref
 	    rfc5322-next-token
-	    rfc5322-field->tokens)
+	    rfc5322-header-ref
+	    rfc5322-field->tokens
+	    rfc5322-quoted-string)
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius regex)
@@ -115,6 +115,10 @@
 					     (format "bad header line: ~s" line)
 					     #f #f))
 		       (else (loop r (reader in))))))))))
+
+  (define (rfc5322-header-ref header field-name . maybe-default)
+    (cond ((assoc field-name header) => cadr)
+	  (else (get-optional maybe-default #f))))
 
   (define (rfc5322-field->tokens field . opts)
     (call-with-port (open-string-input-port field)

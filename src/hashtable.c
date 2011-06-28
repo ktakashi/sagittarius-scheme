@@ -201,9 +201,7 @@ static Entry *insert_entry(SgHashCore *table,
       newb[index] = f;
     }
     /* gc friendliness */
-    /*
     for (i = 0; i < table->bucketCount; i++) table->buckets[i] = NULL;
-    */
 
     table->bucketCount = newsize;
     table->bucketsLog2Count = newbits;

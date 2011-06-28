@@ -312,7 +312,7 @@
 			     (Sg_GetLastErrorMessage)
 			     path)))
 
-  (define-c-proc %maybe-substring (s::Sting :optional (start::fixnum 0) (end::fixnum -1)) ::Object
+  (define-c-proc %maybe-substring (s::String :optional (start::fixnum 0) (end::fixnum -1)) ::Object
     (result (Sg_MaybeSubstring s start end)))
 
   ;; hashtable

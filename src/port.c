@@ -1281,12 +1281,12 @@ static void custom_textual_unget_char(SgObject self, SgChar ch)
   if (EOF == ch) return;
   if (SG_CUSTOM_PORT(self)->buffer == NULL) {
     SG_CUSTOM_PORT(self)->size = DEFAULT_BUFFER_SIZE; /* 256 */
-    SG_CUSTOM_PORT(self)->buffer = (SgChar*)SG_MALLOC_ATOMIC(SG_CUSTOM_PORT(self)->size);
+    SG_CUSTOM_PORT(self)->buffer = SG_NEW_ATOMIC2(SgChar*, sizeof(SgChar) * SG_CUSTOM_PORT(self)->size);
     SG_CUSTOM_PORT(self)->index = 0;
   }
   if (SG_CUSTOM_PORT(self)->index == size_to_pos(SG_CUSTOM_PORT(self)->size)) {
     int next = SG_CUSTOM_PORT(self)->size + INCREASE_BUFFER_SIZE;
-    SgChar *tmp = (SgChar*)SG_MALLOC_ATOMIC(next);
+    SgChar *tmp = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar) * next);
     if (tmp == NULL) {
       /* TODO allocation error */
       exit(-1);

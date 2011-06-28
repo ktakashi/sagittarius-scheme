@@ -143,9 +143,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
   v->parameters = Sg_MakeHashTableSimple(SG_HASH_EQ, 64);
   /* TODO use equal hash for source info might not be good. */
-  v->sourceInfos = Sg_MakeWeakHashTableSimple(SG_HASH_EQUAL, 
-					      SG_WEAK_VALUE, 
-					      64, SG_FALSE);
+  v->sourceInfos = Sg_MakeHashTableSimple(SG_HASH_EQUAL, 4000);
   v->toplevelVariables = SG_NIL;
   v->commandLineArgs = SG_NIL;
 
@@ -295,8 +293,8 @@ static inline void report_error(SgObject exception)
       } else {
 	src = Sg_LastPair(tmp);
 	src = SG_CDAR(src);
-	info = Sg_WeakHashTableRef(SG_WEAK_HASHTABLE(Sg_VM()->sourceInfos),
-				   src, SG_FALSE);
+	info = Sg_HashTableRef(SG_WEAK_HASHTABLE(Sg_VM()->sourceInfos),
+			       src, SG_FALSE);
 	/* info = SG_SOURCE_INFO(src); */
       }
       if (SG_FALSEP(info) || !info) {
@@ -567,8 +565,15 @@ SgObject Sg_Environment(SgObject lib, SgObject spec)
   return lib;
 }
 
+#define MOSTLY_FALSE(expr) expr
+
 /* TODO check stack expantion */
-#define CHECK_STACK(size, vm)	/* dummy */
+#define CHECK_STACK(size, vm)					\
+  do {								\
+    if (MOSTLY_FALSE(SP(vm) >= (vm)->stackEnd - (size))) {	\
+      Sg_Error(UC("stack needs to be expand"));			\
+    }								\
+  } while (0)
 
 void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
 {
@@ -1646,7 +1651,7 @@ static void process_queued_requests(SgVM *vm)
 			   SG_IDENTIFIER(var)->name, SG_UNBOUND);	\
     if (SG_UNBOUNDP(value)) {						\
       Sg_AssertionViolation(SG_INTERN("vm"),				\
-			    Sg_Sprintf(UC("unbound variable %S")),	\
+			    Sg_Sprintf(UC("unbound variable %A"), var),	\
 			    var);					\
       return SG_UNDEF;							\
     }									\

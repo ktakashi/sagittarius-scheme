@@ -52,7 +52,7 @@
     SgClosure *c = SG_CLOSURE(AC(vm));
     SgCodeBuilder *cb = SG_CODE_BUILDER(c->code);
     int required = cb->argc;
-    /* TODO expand stack */
+    CHECK_STACK(cb->maxStack, vm);
     DC(vm) = AC(vm);
     CL(vm) = AC(vm);
     PC(vm) = cb->code;

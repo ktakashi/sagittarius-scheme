@@ -47,6 +47,7 @@ struct SgClosureRec
 
 #define SG_CLOSURE(obj)   ((SgClosure*)(obj))
 #define SG_CLOSUREP(obj)  (SG_PROCEDUREP(obj) && (SG_PROCEDURE_TYPE(obj)) == SG_PROC_CLOSURE)
+#define SG_CLOSURE_MAX_STACK(obj) (SG_CODE_BUILDER(SG_CLOSURE(obj)->code)->maxStack)
 
 SG_CDECL_BEGIN
 

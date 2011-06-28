@@ -18,12 +18,12 @@
     (result SG_UNDEF))
 
   (define-c-proc source-info (o) ::Object
-    (result (Sg_WeakHashTableRef (SG_WEAK_HASHTABLE (-> (Sg_VM) sourceInfos))
-				 o
-				 #f)))
+    (result (Sg_HashTableRef (SG_HASHTABLE (-> (Sg_VM) sourceInfos))
+			     o
+			     #f)))
 
   (define-c-proc source-info-set! (o i) ::void
-    (Sg_WeakHashTableSet (SG_WEAK_HASHTABLE (-> (Sg_VM) sourceInfos))
-			 o i 0))
+    (Sg_HashTableSet (SG_HASHTABLE (-> (Sg_VM) sourceInfos))
+		     o i 0))
 )
 

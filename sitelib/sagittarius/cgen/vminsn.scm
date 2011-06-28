@@ -6,6 +6,7 @@
 	    (match)
 	    (sagittarius format)
 	    (sagittarius cgen util)
+	    (core)
 	    (prefix (sagittarius cgen base) base:))
 
   (define *name-values* '())
@@ -22,7 +23,8 @@
 		  (eq? ':value (caar clauses)))
 	     (set! *name-values* (acons name (cadar clauses) *name-values*))
 	     (loop (cdr clauses)))
-	    ((symbol? (car clauses))
+	    ((or (keyword? (car clauses))
+		 (symbol? (car clauses)))
 	     (case (car clauses)
 	       ((:label)
 		(set! *labeled-insns* (cons name *labeled-insns*))

@@ -14,7 +14,7 @@
                           let* letrec begin do quasiquote unquote unquote-splicing
                           define-syntax let-syntax letrec-syntax
                           => else)
-		   '(only (core syntax-rules) syntax-rules ... _))))
+		   '(only (core syntax) syntax-rules ... _))))
 
   (define scheme-report-environment
     (lambda (n)

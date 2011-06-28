@@ -277,8 +277,7 @@ static SgObject read_symbol(SgPort *port, SgReaderContext *ctx)
       }
       lexical_error(port, ctx, UC("invalid character %c while reading identifier"), c);
     }
-    /* TODO get vm flag or something */
-    if (TRUE) {
+    if (!SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE)) {
       if (SYMBOL_CHARP(c)) {
 	buf[i++] = c;
 	continue;
@@ -335,7 +334,24 @@ SgObject read_number(SgPort *port, SgReaderContext *ctx)
   str = Sg_MakeString(buf, SG_HEAP_STRING);
   num = Sg_StringToNumber(str, 10, TRUE);
   if (!SG_FALSEP(num)) return num;
-  else return Sg_Intern(str);
+  if (buf[1] == 0 && buf[0] == '.') return Sg_Intern(str);
+  if (SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE)) {
+    if (buf[1] == 0 && (buf[0] == '+' || buf[0] == '-')) return Sg_Intern(str);
+    if (ustrcmp(buf, "...") == 0) return Sg_Intern(str);
+    if (buf[0] == '-' && buf[1] == '>') {
+      int i = 2;
+      SgChar c;
+      while ((c = buf[i++]) != 0) {
+	if (c > 127) continue;
+	if (SYMBOL_CHARP(c)) continue;
+	lexical_error(port, ctx, UC("invalid lexical syntax %s"), buf);
+      }
+      return Sg_Intern(str);
+    }
+    lexical_error(port, ctx, UC("invalid lexical syntax %s"), buf);
+    return SG_UNDEF;		/* dummy */
+  }
+  return Sg_Intern(str);
 }
 
 SgObject read_prefixed_number(SgChar initial, SgPort *port, SgReaderContext *ctx)
@@ -486,9 +502,9 @@ SgObject read_list(SgPort *port, SgReaderContext *ctx, int bracketedp, int vecto
 	lexical_error(port, ctx, UC("bracketed list terminated by parenthesis"));
       }
       if (!SG_NULLP(h)) {
-	Sg_WeakHashTableSet(SG_WEAK_HASHTABLE(Sg_VM()->sourceInfos),
-			    h, Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin)),
-			    0);
+	Sg_HashTableSet(SG_HASHTABLE(Sg_VM()->sourceInfos),
+			h, Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin)),
+			0);
 	/* SG_SOURCE_INFO(h) = Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin)); */
       }
       return h;
@@ -499,9 +515,9 @@ SgObject read_list(SgPort *port, SgReaderContext *ctx, int bracketedp, int vecto
 	lexical_error(port, ctx, UC("bracketed list terminated by bracket"));
       }
       if (!SG_NULLP(h)) {
-	Sg_WeakHashTableSet(SG_WEAK_HASHTABLE(Sg_VM()->sourceInfos),
-			    h, Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin)), 
-			    0);
+	Sg_HashTableSet(SG_HASHTABLE(Sg_VM()->sourceInfos),
+			h, Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin)), 
+			0);
 	/* SG_SOURCE_INFO(h) = Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin)); */
       }
       return h;
@@ -531,7 +547,7 @@ SgObject read_list(SgPort *port, SgReaderContext *ctx, int bracketedp, int vecto
 	  }
 	  SG_SET_CDR(t, rest);
 	  if (!SG_NULLP(h)) {
-	    Sg_WeakHashTableSet(SG_WEAK_HASHTABLE(Sg_VM()->sourceInfos),
+	    Sg_HashTableSet(SG_HASHTABLE(Sg_VM()->sourceInfos),
 				h, Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin)),
 				0);
 	    /* SG_SOURCE_INFO(h) = Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin)); */
@@ -545,9 +561,9 @@ SgObject read_list(SgPort *port, SgReaderContext *ctx, int bracketedp, int vecto
 	  }
 	  SG_SET_CDR(t, rest);
 	  if (!SG_NULLP(h)) {
-	    Sg_WeakHashTableSet(SG_WEAK_HASHTABLE(Sg_VM()->sourceInfos),
-				h, Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin)),
-				0);
+	    Sg_HashTableSet(SG_HASHTABLE(Sg_VM()->sourceInfos),
+			    h, Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin)),
+			    0);
 	    /* SG_SOURCE_INFO(h) = Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line_begin)); */
 	  }
 	  return h;

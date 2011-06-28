@@ -419,7 +419,7 @@ static node_t* make_curly(node_t *node, int cmin, int cmax, curly_type type)
 static node_t* make_branch(node_t *first, node_t *second, node_t *branchConn)
 {
   node_t *z = make_node(BRANCH);
-  z->clazz.branch.atoms = SG_NEW2(node_t **, INITIAL_BRAHCH);
+  z->clazz.branch.atoms = SG_NEW_ARRAY(node_t *, INITIAL_BRAHCH);
   z->clazz.branch.atoms[0] = first;
   z->clazz.branch.atoms[1] = second;
   z->clazz.branch.conn = branchConn;
@@ -531,7 +531,7 @@ static void add_branch(node_t *self, node_t *node)
 {
   if (self->clazz.branch.size >= self->clazz.branch.atomlen) {
     int newlen = self->clazz.branch.atomlen * 2;
-    node_t **tmp = SG_NEW2(node_t **, newlen);
+    node_t **tmp = SG_NEW_ARRAY(node_t *, newlen);
     int i;
     for (i = 0; i < self->clazz.branch.size; i++) {
       tmp[i] = self->clazz.branch.atoms[i];

@@ -36,7 +36,8 @@
 ;; <http://www.ietf.org/rfc/rfc2047.txt>
 
 (library (rfc mime)
-    (export mime-parse-version)
+    (export mime-parse-version
+	    mime-parse-content-type)
     (import (rnrs)
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
@@ -44,16 +45,65 @@
 	    (sagittarius define-optional)
 	    (sagittarius regex)
 	    (sagittarius)
+	    (sagittarius io)
 	    (rfc :5322))
 
   (define *version-regex* (regex "^(\\d+)\\.(\\d+)$"))
 
+  ;; returns list of major and minor versions in integers
   (define (mime-parse-version field)
     (and-let* (( field )
 	       (s (string-concatenate
-		   (map (lambda (f) (format "~s" f)) (rfc5322-field->tokens field))))
-	       (m (matches *version-regex* s)))
+		   (map (lambda (f) (format "~a" f)) (rfc5322-field->tokens field))))
+	       (m (looking-at *version-regex* s)))
       (map (lambda (d) (string->number (m d))) '(1 2))))
+
+
+  (define *ct-token-chars*
+    (char-set-difference (ucs-range->char-set #x21 #x7e) (string->char-set "()<>@,;:\\\"/[]?=")))
+
+  ;; RFC2045 Content-Type header field
+  ;; returns (<type> <subtype (attribute . <value>) ...)
+  (define (mime-parse-content-type field)
+    (and field
+	 (call-with-input-string field
+	   (lambda (input)
+	     (and-let* ((type (rfc5322-next-token input `(,*ct-token-chars*)))
+			( (string? type) )
+			( (eqv? #\/ (rfc5322-next-token input '())) )
+			(subtype (rfc5322-next-token input `(,*ct-token-chars*)))
+			( (string? subtype) ))
+	       (list* (string-downcase type)
+		      (string-downcase subtype)
+		      (mime-parse-parameters input)))))))
+
+  ;; RFC2183 Content-Disposition header field
+  ;; returns (<token> (<attribute> . <value>) ...)
+  (define (mime-parse-content-disposition field)
+    (and field
+	 (call-with-input-string field
+	   (lambda (input)
+	     (and-let* ((token (rfc5322-next-token input `(,*ct-token-chars*)))
+			( (string? token) ))
+	       (cons (string-downcase token)
+		     (mime-parse-parameters input)))))))
+
+  ;; parse a parameter-values type header field
+  ;;  ;paremter=value;parameter-value
+  ;; => ((parameter . value) ...)
+  (define-optional (mime-parse-parameters (optional (input (current-input-port))))
+    (let loop ((r '()))
+      (cond ((and-let* (( (eqv? #\; (rfc5322-next-token input '())) )
+			(attr (rfc5322-next-token input `(,*ct-token-chars*)))
+			( (string? attr) )
+			( (eqv? #\= (rfc5322-next-token input '())) )
+			(val (rfc5322-next-token input `(,*ct-token-chars*
+							 (,(string->char-set "\"")
+							  . ,rfc5322-quoted-string))))
+			( (string? val) ))
+	       (cons attr val))
+	     => (lambda (p) (loop (cons p r))))
+	    (else (reverse! r)))))
 
 )
 
