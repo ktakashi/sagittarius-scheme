@@ -1248,7 +1248,7 @@
 		   (i::int 0))
 	       (dolist (e rest)
 		 (set! (SG_VALUES_ELEMENT v i) e)
-		 (set! i (+ i 1)))
+		 (post++ i))
 	       (result v))))))
 
   (define-c-proc dynamic-wind (before thunk after) ::Object
@@ -2319,7 +2319,7 @@
 		       (break))
 		      (else
 		       (set! (arrayref buf i) (Sg_Getc p))
-		       (set! i (+ i 1)))))
+		       (post++ i))))
 	       (set! (arrayref buf count) 0)
 	       (set! (SG_STRING_SIZE ret) i)
 	       (set! (SG_STRING_VALUE ret) buf)
@@ -2350,7 +2350,7 @@
 		       (break))
 		      (else
 		       (set! (arrayref buf i) (Sg_Getc p))
-		       (set! i (+ i 1)))))
+		       (post++ i))))
 	       (result (SG_MAKE_INT (- i start))))))))
 
   (define-c-proc get-string-all (p::Port) ::Object
@@ -2641,8 +2641,8 @@
 	      (break))
 	     (else
 	      (Sg_PutcUnsafe p (SG_STRING_VALUE_AT s i))
-	      (set! i (+ i 1))))))
-    (SG_PORT_UNLOCK p))
+	      (post++ i))))
+      (SG_PORT_UNLOCK p)))
 
   (define-c-proc put-datum (p::Port datum) ::void
     (check-port-open put-datum p)

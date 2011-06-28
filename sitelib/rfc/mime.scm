@@ -39,14 +39,14 @@
     (export mime-parse-version
 	    mime-parse-content-type)
     (import (rnrs)
+	    (rfc :5322)
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
 	    (srfi :14 char-set)
 	    (sagittarius define-optional)
 	    (sagittarius regex)
 	    (sagittarius)
-	    (sagittarius io)
-	    (rfc :5322))
+	    (sagittarius io))
 
   (define *version-regex* (regex "^(\\d+)\\.(\\d+)$"))
 

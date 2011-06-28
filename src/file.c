@@ -193,7 +193,7 @@ SgObject Sg_FindFile(SgString *path, SgObject loadPaths,
 					  sep,
 					  path));
     }
-	if (Sg_FileExistP(SG_STRING(realPath))) {
+    if (Sg_FileExistP(SG_STRING(realPath))) {
       return realPath;
     }
   }

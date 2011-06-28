@@ -262,7 +262,7 @@ CASE(SHIFTJ) {
   INSN_VAL2(val1, val2, c);
   {
     int i = val2;
-    for (;;i=(i - 1)) {
+    for (;;i--) {
       if ((i <= 0 && SG_CLOSURE(DC(vm))->mark)) {
         break;
       }
@@ -384,7 +384,7 @@ CASE(RECEIVE) {
       if (val1 == 1      ) {
         PUSH(SP(vm), AC(vm));
       } else if (val1 > 0      ) {
-        for (i=0;i < val1;i=(i + 1)) {
+        for (i=0;i < val1;i++) {
           PUSH(SP(vm), SG_VALUES_ELEMENT(AC(vm), i));
         };
       }      
@@ -396,7 +396,7 @@ CASE(RECEIVE) {
         if (numValues == 1) {
           SG_APPEND1(h, t, AC(vm));
         } else {
-          for (i=0;i < numValues;i=(i + 1)) {
+          for (i=0;i < numValues;i++) {
             SG_APPEND1(h, t, SG_VALUES_ELEMENT(AC(vm), i));
           };
         }
@@ -408,7 +408,7 @@ CASE(RECEIVE) {
       {
         SgObject h = SG_NIL;
         SgObject t = SG_NIL;
-        for (i=0;;i=(i + 1)) {
+        for (i=0;;i++) {
           if (i < val1          ) {
             PUSH(SP(vm), SG_VALUES_ELEMENT(AC(vm), i));
           } else if (i < SG_VALUES_SIZE(AC(vm))          ) {
@@ -628,7 +628,7 @@ CASE(LIST) {
     SgObject ret = SG_NIL;
     if (val1 > 0) {
       ret=Sg_Cons(AC(vm), ret);
-      for (i=0;i < n;i=(i + 1)) {
+      for (i=0;i < n;i++) {
         ret=Sg_Cons(INDEX(SP(vm), i), ret);
       };
       SP(vm)=(SP(vm) - n);
@@ -653,7 +653,7 @@ CASE(VALUES) {
           int i = 0;
           int n = (val1 - 1);
           SG_VALUES_ELEMENT(v, n)=AC(vm);
-          for (i=0;i < n;i=(i + 1)) {
+          for (i=0;i < n;i++) {
             SG_VALUES_ELEMENT(v, (n - i - 1))=INDEX(SP(vm), i);
           };
           SP(vm)=(SP(vm) - n);
@@ -704,7 +704,7 @@ CASE(VECTOR) {
         int i = 0;
         int n = (val1 - 1);
         SG_VECTOR_ELEMENT(v, n)=AC(vm);
-        for (i=0;i < n;i=(i + 1)) {
+        for (i=0;i < n;i++) {
           SG_VECTOR_ELEMENT(v, (n - i - 1))=INDEX(SP(vm), i);
         };
         SP(vm)=(SP(vm) - n);

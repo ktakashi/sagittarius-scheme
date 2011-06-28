@@ -1,4 +1,4 @@
-// -*- C -*-
+/* -*- C -*- */
 /*
  * reader.c
  *
@@ -255,7 +255,6 @@ static SgObject read_symbol(SgPort *port, SgReaderContext *ctx)
       if (c == 'x') {
 	Sg_UngetcUnsafe(port, c);
 	c = read_escape_sequence(port, ctx);
-	//i += Sg_ConvertUcs4ToUtf8(Sg_EnsureUcs4(c), (uint8_t*)(buf + i), SG_ERROR_HANDLING_MODE(port));
 	buf[i++] = c;
 	continue;
       } else {

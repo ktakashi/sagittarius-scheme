@@ -252,7 +252,7 @@ static SgObject search_library(SgObject name)
     SgObject dir;
     SG_FOR_EACH(dir, vm->loadPath) {
       SgObject real = Sg_StringAppend(SG_LIST3(SG_CAR(dir),
-				   Sg_MakeString(Sg_NativeFileSeparator(), SG_LITERAL_STRING),
+				   Sg_MakeString(Sg_NativeFileSeparator(), SG_HEAP_STRING),
 				   p));
       if (Sg_FileExistP(real)) {
 	path = SG_STRING(real);

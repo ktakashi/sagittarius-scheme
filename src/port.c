@@ -277,6 +277,7 @@ static void file_fill_buffer(SgObject self)
       read_size += result;
     }
   }
+  ASSERT(read_size <= PORT_DEFAULT_BUF_SIZE);
   SG_BINARY_PORT(self)->bufferSize = read_size;
   SG_BINARY_PORT(self)->bufferIndex = 0;
 }
