@@ -204,18 +204,118 @@ static SgObject _sagittarius_regex_impl_regex_before(SgObject *args, int argc, v
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("regex matcher"), SG_LITERAL_STRING), m, SG_NIL);
     }
 ;
-    SG_RETURN = (Sg_Substring(SG_MATCHER(m)->text, SG_MATCHER(m)->oldLast, SG_MATCHER(m)->last));
+    SG_RETURN = (Sg_Substring(SG_MATCHER(m)->text, 0, (SG_MATCHER(m)->last - 1)));
     return SG_RETURN;
   }
 }
 static SG_DEFINE_SUBR(_sagittarius_regex_impl_regex_before_Stub, 1, 0, _sagittarius_regex_impl_regex_before, SG_FALSE, NULL);
 
 ;
+static SgObject _sagittarius_regex_impl_regex_replace_all(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("regex-replace-all");
+  SgObject m;
+  SgObject replacement_scm;
+  SgString *replacement;
+  checkArgumentLength(2);
+  argumentRef(0, m);
+  argumentAsString(1, replacement_scm, replacement);
+  {
+    SgObject SG_RETURN = SG_UNDEF;
+    if (!(SG_MATCHER_P(m))) {
+      Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("regex matcher"), SG_LITERAL_STRING), m, SG_NIL);
+    }
+;
+    SG_RETURN = (Sg_RegexReplaceAll(m, replacement));
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_regex_impl_regex_replace_all_Stub, 2, 0, _sagittarius_regex_impl_regex_replace_all, SG_FALSE, NULL);
+
+;
+static SgObject _sagittarius_regex_impl_regex_replace_first(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("regex-replace-first");
+  SgObject m;
+  SgObject replacement_scm;
+  SgString *replacement;
+  checkArgumentLength(2);
+  argumentRef(0, m);
+  argumentAsString(1, replacement_scm, replacement);
+  {
+    SgObject SG_RETURN = SG_UNDEF;
+    if (!(SG_MATCHER_P(m))) {
+      Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("regex matcher"), SG_LITERAL_STRING), m, SG_NIL);
+    }
+;
+    SG_RETURN = (Sg_RegexReplaceFirst(m, replacement));
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_regex_impl_regex_replace_first_Stub, 2, 0, _sagittarius_regex_impl_regex_replace_first, SG_FALSE, NULL);
+
+;
+static SgObject _sagittarius_regex_impl_matcher_first(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("matcher-first");
+  SgObject m;
+  checkArgumentLength(1);
+  argumentRef(0, m);
+  {
+    int SG_RETURN;
+    if (!(SG_MATCHER_P(m))) {
+      Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("regex matcher"), SG_LITERAL_STRING), m, SG_NIL);
+    }
+;
+    SG_RETURN = (SG_MATCHER(m)->first);
+    return SG_MAKE_INT(SG_RETURN);
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_regex_impl_matcher_first_Stub, 1, 0, _sagittarius_regex_impl_matcher_first, SG_FALSE, NULL);
+
+;
+static SgObject _sagittarius_regex_impl_matcher_last(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("matcher-last");
+  SgObject m;
+  checkArgumentLength(1);
+  argumentRef(0, m);
+  {
+    int SG_RETURN;
+    if (!(SG_MATCHER_P(m))) {
+      Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("regex matcher"), SG_LITERAL_STRING), m, SG_NIL);
+    }
+;
+    SG_RETURN = (SG_MATCHER(m)->last);
+    return SG_MAKE_INT(SG_RETURN);
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_regex_impl_matcher_last_Stub, 1, 0, _sagittarius_regex_impl_matcher_last, SG_FALSE, NULL);
+
+;
 void Sg__Init_sagittarius_regex_impl()
 {
   SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC("(sagittarius regex impl)"), SG_LITERAL_STRING)), TRUE);
+  SG_PROCEDURE_NAME(&_sagittarius_regex_impl_regex_matches_Stub) = Sg_MakeString(UC("regex-matches"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("regex-matches"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_regex_impl_regex_matches_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_regex_impl_regex_before_Stub) = Sg_MakeString(UC("regex-before"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("regex-before"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_regex_impl_regex_before_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_regex_impl_regex_find_Stub) = Sg_MakeString(UC("regex-find"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("regex-find"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_regex_impl_regex_find_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_regex_impl_regex_replace_all_Stub) = Sg_MakeString(UC("regex-replace-all"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("regex-replace-all"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_regex_impl_regex_replace_all_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_regex_impl_regex_replace_first_Stub) = Sg_MakeString(UC("regex-replace-first"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("regex-replace-first"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_regex_impl_regex_replace_first_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_regex_impl_regex_looking_at_Stub) = Sg_MakeString(UC("regex-looking-at"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("regex-looking-at"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_regex_impl_regex_looking_at_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_regex_impl_regex_group_Stub) = Sg_MakeString(UC("regex-group"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("regex-group"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_regex_impl_regex_group_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_regex_impl_matcher_first_Stub) = Sg_MakeString(UC("matcher-first"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("matcher-first"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_regex_impl_matcher_first_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_regex_impl_regex_pattern3f_Stub) = Sg_MakeString(UC("regex-pattern?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("regex-pattern?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_regex_impl_regex_pattern3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_regex_impl_matcher_last_Stub) = Sg_MakeString(UC("matcher-last"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("matcher-last"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_regex_impl_matcher_last_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_regex_impl_compile_regex_Stub) = Sg_MakeString(UC("compile-regex"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("compile-regex"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_regex_impl_compile_regex_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_regex_impl_regex_matcher3f_Stub) = Sg_MakeString(UC("regex-matcher?"), SG_LITERAL_STRING);
@@ -224,14 +324,4 @@ void Sg__Init_sagittarius_regex_impl()
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("regex-matcher"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_regex_impl_regex_matcher_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_regex_impl_regex_after_Stub) = Sg_MakeString(UC("regex-after"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("regex-after"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_regex_impl_regex_after_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_regex_impl_regex_matches_Stub) = Sg_MakeString(UC("regex-matches"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("regex-matches"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_regex_impl_regex_matches_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_regex_impl_regex_before_Stub) = Sg_MakeString(UC("regex-before"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("regex-before"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_regex_impl_regex_before_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_regex_impl_regex_find_Stub) = Sg_MakeString(UC("regex-find"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("regex-find"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_regex_impl_regex_find_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_regex_impl_regex_looking_at_Stub) = Sg_MakeString(UC("regex-looking-at"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("regex-looking-at"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_regex_impl_regex_looking_at_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_regex_impl_regex_group_Stub) = Sg_MakeString(UC("regex-group"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("regex-group"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_regex_impl_regex_group_Stub));
 }

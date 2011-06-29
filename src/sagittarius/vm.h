@@ -145,7 +145,7 @@ enum {
 };
 
 #define SG_VM_RUNTIME_FLAG_IS_SET(vm, flag) ((vm)->runtimeFlags & (flag))
-#define SG_VM_RUNTIME_FLAG_SET(vm, flag)    ((vm)->runtimeFlags != (flag))
+#define SG_VM_RUNTIME_FLAG_SET(vm, flag)    ((vm)->runtimeFlags |= (flag))
 #define SG_VM_RUNTIME_FLAG_CLEAR(vm, flag)  ((vm)->runtimeFlags &= ~(flag))
 
 struct SgVMRec

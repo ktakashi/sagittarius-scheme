@@ -106,7 +106,7 @@ typedef enum {
 #define SG_HASH_ENTRY_KEY(e)   SG_OBJ((e)->key)
 #define SG_HASH_ENTRY_VALUE(e) SG_OBJ((e)->value)
 #define SG_HASH_ENTRY_SET_VALUE(e, v)		\
-  SG_OBJ((e)->value = (intptr_t)v)
+  SG_OBJ((e)->value = (void *)v)
 /* for hashtable-copy */
 #define SG_HASHTABLE_IMMUTABLE_SHIFT   	11
 #define SG_HASHTABLE_IMMUTABLE_BIT     ((uintptr_t)1 << SG_HASHTABLE_IMMUTABLE_SHIFT)

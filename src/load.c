@@ -80,11 +80,9 @@ SgObject Sg_VMLoadFromPort(SgPort *port)
 
 SgObject Sg_VMLoad(SgString *path)
 {
-  Registers r;
   SgObject file;
   SgObject bport;
   SgObject tport;
-  SgObject o;
   SgObject realPath;
   SgVM *vm = Sg_VM();
 

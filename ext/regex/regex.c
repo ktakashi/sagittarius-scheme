@@ -2256,7 +2256,7 @@ static int rxmatch(node_t *node, SgMatcher *matcher, int i, SgString *seq)
       matcher->first = i;
       ret = rxmatch(node->next, matcher, i + patternLength, seq);
       if (ret) {
-	matcher->last = i;
+	matcher->first = i;
 	matcher->groups[0] = matcher->first;
 	matcher->groups[1] = matcher->last;
 	return TRUE;
@@ -2942,6 +2942,106 @@ SgString* Sg_RegexGroup(SgMatcher *m, int group)
   if ((m->groups[group*2] == -1) || (m->groups[group*2 + 1] == -1))
     return SG_FALSE;
   return Sg_Substring(m->text, m->groups[group * 2], m->groups[group*2 + 1]);
+}
+
+static void append_replacement(SgMatcher *m, SgPort *p, SgString *replacement)
+{
+  int cursor = 0, i;
+  if (m->first < 0) {
+    Sg_Error(UC("No match available"));
+  }
+  /* To avoid memory allocation */
+  for (i = m->lastAppendPosition; i < m->first; i++) {
+    Sg_PutcUnsafe(p, SG_STRING_VALUE_AT(m->text, i));
+  }
+  while (cursor < SG_STRING_SIZE(replacement)) {
+    SgChar nextChar = SG_STRING_VALUE_AT(replacement, cursor);
+    if (nextChar == '\\') {
+      cursor++;
+      nextChar = SG_STRING_VALUE_AT(replacement, cursor);
+      Sg_PutcUnsafe(p, nextChar);
+      cursor++;
+    } else if (nextChar == '$') {
+      int refNum, done = FALSE;
+      SgString *v;
+      /* Skip past $ */
+      cursor++;
+      /* The first number is always a group */
+      refNum = SG_STRING_VALUE_AT(replacement, cursor) - '0';
+      if ((refNum < 0) || (refNum > 9)) {
+	Sg_Error(UC("Illegal group reference: %A"), SG_MAKE_CHAR(refNum));
+      }
+      cursor++;
+      /* Capture the largest legal group string */
+      while (!done) {
+	int nextDigit, newRefNum;
+	if (cursor >= SG_STRING_SIZE(replacement)) break;
+	nextDigit = SG_STRING_VALUE_AT(replacement, cursor) - '0';
+	if ((nextDigit < 0) || (nextDigit > 9)) {
+	  /* not a number */
+	  break;
+	}
+	newRefNum = (refNum * 10) + nextDigit;
+	if (m->pattern->capturingGroupCount - 1 < newRefNum) {
+	  done = TRUE;
+	} else {
+	  refNum = newRefNum;
+	  cursor++;
+	}
+      }
+      v = Sg_RegexGroup(m, refNum);
+      if (!SG_FALSEP(v)) {
+	Sg_PutsUnsafe(p, v);
+      }
+    } else {
+      Sg_PutcUnsafe(p, nextChar);
+      cursor++;
+    }
+  }
+  m->lastAppendPosition = m->last;
+}
+
+static void append_tail(SgMatcher *m, SgPort *p)
+{
+  /* append the rest */
+  int i;
+  for (i = m->lastAppendPosition; i < SG_STRING_SIZE(m->text); i++) {
+    Sg_PutcUnsafe(p, SG_STRING_VALUE_AT(m->text, i));
+  }
+}
+
+SgString* Sg_RegexReplaceAll(SgMatcher *m, SgString *replacement)
+{
+  int result;
+  reset_matcher(m);
+  result = Sg_RegexFind(m, -1);
+  if (result) {
+    /* hopefully this is enough, well it'll expand anyway */
+    SgPort *p = Sg_MakeStringOutputPort(SG_STRING_SIZE(m->text) * 1.5);
+    do {
+      append_replacement(m, p, replacement);
+      result = Sg_RegexFind(m, -1);
+    } while (result);
+    append_tail(m, p);
+    return Sg_GetStringFromStringPort(p);
+  }
+  /* no replacement, we just return text */
+  return m->text;
+}
+
+SgString* Sg_RegexReplaceFirst(SgMatcher *m, SgString *replacement)
+{
+  int result;
+  reset_matcher(m);
+  result = Sg_RegexFind(m, -1);
+  if (result) {
+    SgPort *p = Sg_MakeStringOutputPort(SG_STRING_SIZE(m->text) * 1.5);
+    append_replacement(m, p, replacement);
+    append_tail(m, p);
+    return Sg_GetStringFromStringPort(p);
+  }
+  /* we don't copy. */
+  return m->text;
 }
 
 extern void Sg__Init_sagittarius_regex_impl();

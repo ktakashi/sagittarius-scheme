@@ -1502,7 +1502,7 @@ SgObject Sg_Inverse(SgObject obj)
 static inline int integer_length_rec(SgObject n)
 {
   int n2;
-  int n3;
+  SgObject n3;
   if (SG_INTP(n)) {
     switch (SG_INT_VALUE(n)) {
     case 0: case -1:
@@ -2116,7 +2116,7 @@ SgObject Sg_Div(SgObject x, SgObject y)
       SgObject r2 = Sg_Add(Sg_Mul(real2, real2), Sg_Mul(imag2, imag2));
       SgObject real3 = Sg_Div(Sg_Add(Sg_Mul(real, real2), Sg_Mul(imag, imag2)), r2);
       SgObject imag3 = Sg_Div(Sg_Sub(Sg_Mul(imag, real2), Sg_Mul(real, imag2)), r2);
-      return oprtr_norm_complex(real3, imag2);
+      return oprtr_norm_complex(real3, imag3);
     }
   }
   Sg_Error(UC("Sg_Div: wrong type of argument(x %S, y %S)"), x, y);
@@ -2182,7 +2182,7 @@ SgObject Sg_Quotient(SgObject x, SgObject y, SgObject *rem)
   if (SG_BIGNUMP(x)) {
   bignum_again:
     if (SG_INTP(y)) {
-      intptr_t r;
+      long r;
       SgObject q = Sg_BignumDivSI(SG_BIGNUM(x), SG_INT_VALUE(y), &r);
       if (rem) *rem = SG_MAKE_INT(r);
       return q;
@@ -2849,7 +2849,7 @@ static inline SgObject exact_integer_sqrt(SgObject k)
     return Sg_Exact(Sg_Round(ik, SG_ROUND_FLOOR));
   } else {
     int len = Sg_IntegerLength(k);
-    SgObject quo = Sg_Quotient(SG_MAKE_INT(k), SG_MAKE_INT(2), NULL);
+    SgObject quo = Sg_Quotient(SG_MAKE_INT(len), SG_MAKE_INT(2), NULL);
     ASSERT(SG_INTP(quo));
     return Sg_Ash(SG_MAKE_INT(1), SG_INT_VALUE(quo));
   }
@@ -3432,7 +3432,7 @@ SgObject Sg_NumberToString(SgObject obj, int radix, int use_upper)
 
   if (SG_INTP(obj)) {
     char *pbuf = buf;
-    intptr_t value = SG_INT_VALUE(obj);
+    long value = SG_INT_VALUE(obj);
     if (value < 0) {
       *pbuf++ = '-';
       value = -value;

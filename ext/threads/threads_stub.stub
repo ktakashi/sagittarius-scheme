@@ -93,7 +93,7 @@
   (define-c-proc current-thread () ::Object
     (result (Sg_VM)))
 
-					;(define-c-proc thread-base-priority (vm::VM) ::Object
+  ;;(define-c-proc thread-base-priority (vm::VM) ::Object
 
   (define-c-proc thread-start! (vm::VM) ::Object
     (result (Sg_ThreadStart vm)))

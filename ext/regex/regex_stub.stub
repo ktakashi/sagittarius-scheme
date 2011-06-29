@@ -14,6 +14,14 @@
 	    ;; utility
 	    regex-after
 	    regex-before
+
+	    ;; modify
+	    regex-replace-all
+	    regex-replace-first
+
+	    ;; accessor
+	    matcher-first
+	    matcher-last
 	    )
     (import :none)
 
@@ -77,6 +85,23 @@
   (define-c-proc regex-before (m) ::Object
     (check-matcher m)
     (result (Sg_Substring (-> (SG_MATCHER m) text)
-			  (-> (SG_MATCHER m) oldLast)
-			  (-> (SG_MATCHER m) last))))
+			  0
+			  (- (-> (SG_MATCHER m) last) 1))))
+
+  (define-c-proc regex-replace-all (m replacement::String) ::Object
+    (check-matcher m)
+    (result (Sg_RegexReplaceAll m replacement)))
+
+  (define-c-proc regex-replace-first (m replacement::String) ::Object
+    (check-matcher m)
+    (result (Sg_RegexReplaceFirst m replacement)))
+
+
+  (define-c-proc matcher-first (m) ::fixnum
+    (check-matcher m)
+    (result (-> (SG_MATCHER m) first)))
+
+  (define-c-proc matcher-last (m) ::fixnum
+    (check-matcher m)
+    (result (-> (SG_MATCHER m) last)))
 )

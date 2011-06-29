@@ -127,6 +127,10 @@ int        Sg_RegexLookingAt(SgMatcher *m);
 int        Sg_RegexFind(SgMatcher *m, int start);
 SgString*  Sg_RegexGroup(SgMatcher *m, int group);
 
+/* modify */
+SgString*  Sg_RegexReplaceAll(SgMatcher *m, SgString *replacement);
+SgString*  Sg_RegexReplaceFirst(SgMatcher *m, SgString *replacement);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_REGEX_H_ */

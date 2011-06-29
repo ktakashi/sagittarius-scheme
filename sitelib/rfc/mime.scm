@@ -37,16 +37,22 @@
 
 (library (rfc mime)
     (export mime-parse-version
-	    mime-parse-content-type)
+	    mime-parse-content-type
+	    mime-compose-parameters
+	    mime-decode-text)
     (import (rnrs)
-	    (rfc :5322)
+	    (srfi :1 lists)
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
 	    (srfi :14 char-set)
+	    (match)
 	    (sagittarius define-optional)
 	    (sagittarius regex)
 	    (sagittarius)
-	    (sagittarius io))
+	    (sagittarius io)
+	    (rfc :5322)
+	    (rfc quoted-printable)
+	    (rfc base64))
 
   (define *version-regex* (regex "^(\\d+)\\.(\\d+)$"))
 
@@ -73,7 +79,7 @@
 			( (eqv? #\/ (rfc5322-next-token input '())) )
 			(subtype (rfc5322-next-token input `(,*ct-token-chars*)))
 			( (string? subtype) ))
-	       (list* (string-downcase type)
+	       (cons* (string-downcase type)
 		      (string-downcase subtype)
 		      (mime-parse-parameters input)))))))
 
@@ -105,5 +111,64 @@
 	     => (lambda (p) (loop (cons p r))))
 	    (else (reverse! r)))))
 
+  ;; Inverse of mime-parse-parameters
+  ;; ((paramter . value) ...) => ;parameter=value;parameter=value ...
+  (define-optional (mime-compose-parameters pvs (optional (port (current-output-port))
+							  (start-column 0)))
+    (define quote-re (regex "[\"\\\\]"))
+    (define (quote-value v)
+      (if (string-every *ct-token-chars* v)
+	  v
+	  (string-append "\"" (regex-replace-all quote-re v "\\\\\\0") "\"")))
+    (define (valid-name p)
+      (let ((z (format "~a" p)))
+	(if (string-every *ct-token-chars* z)
+	    z
+	    (assertion-violation 'mime-compose-parameters
+				 "invalid parameter valur for rfc2822 header"
+				 p))))
+    (define (gen)
+      (fold (lambda (pv column)
+	      (match pv
+		((p . v)
+		 (let* ((z (format "~a=~a" (valid-name p) (quote-value (format "~a" v))))
+			(len (+ (string-length z) column)))
+		   (cond ((> len 78)
+			  (display ";\r\n") (display z) (string-length z))
+			 (else
+			  (display ";") (display z) (+ len column 2)))))
+		(_ (assertion-violation 'mime-compose-parameters
+					"bad parameter-value entry"
+					pv))))
+	    start-column pvs))
+    (match port
+      (#f (with-output-to-string gen))
+      (#t (gen))
+      ((? port?) (with-output-to-port port gen))))
+
+  ;; RFC2047 header field encoding
+
+  (define *mime-encoded-header-re* 
+    (regex "^=\\?([-!#-'*+\\w\\^-~]+)\\?([-!#-'*+\\w\\^-~]+)\\?([!->@-~]+)\\?="))
+
+  (define (%mime-decode-word word charset encoding body)
+    ;; TODO converting charset
+    (cond ((string-ci=? encoding "q")
+	   (quoted-printable-decode-string body))
+	  ((string-ci=? encoding "b")
+	   (base64-decode-string body))
+	  (else word)))
+
+  ;; decode rfc2047-encoded word, i.e. "=?...?="
+  (define (mime-decode-text body)
+    (let loop ((s body))
+      (receive (pre rest) (string-scan s "=?" 'before*)
+	(cond ((not pre) s)
+	      ((looking-at *mime-encoded-header-re* rest)
+	       => (lambda (m)
+		    (string-append pre
+				   (%mime-decode-word (m 0) (m 1) (m 2) (m 3))
+				   (loop (m 'after)))))
+	      (else s)))))
 )
 

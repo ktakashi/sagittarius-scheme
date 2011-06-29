@@ -219,14 +219,13 @@ SgCodeBuilder* Sg_MakeCodeBuilder(int size)
     code = SG_NEW_ARRAY(SgWord, size);
   }
   SG_CODE_BUILDER_INIT(cb, code, SG_FALSE, 0, FALSE, 0, 0, size);
-  INIT_CODE_PACKET(cb->packet, EMPTY, -1, SG_UNDEF, SG_UNDEF, SG_UNDEF);
+  INIT_CODE_PACKET(cb->packet, EMPTY, -1, 0, 0, SG_UNDEF);
   return cb;
 }
 
 void Sg_CodeBuilderEmit(SgCodeBuilder *cb, SgWord insn, PacketType type,
 			int arg0, int arg1, SgObject obj)
 {
-  int count = 0;
   SgCodePacket packet = {insn, type, arg0, arg1, obj};
   cb_put(cb, &packet);
 }

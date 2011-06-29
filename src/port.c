@@ -80,6 +80,7 @@ static void port_finalize(SgObject obj, void *data)
 int Sg_AddPortCleanup(SgPort *port)
 {
   Sg_RegisterFinalizer(SG_OBJ(port), port_finalize, NULL);
+  return TRUE;
 }
 
 static SgPort* make_port(enum SgPortDirection d, enum SgPortType t, enum SgBufferMode m)
@@ -334,6 +335,7 @@ static int file_get_u8(SgObject self)
     if (SG_PORT_HAS_U8_AHEAD(self)) {
       buf = SG_PORT_U8_AHEAD(self);
       SG_PORT_U8_AHEAD(self) = EOF;
+      result = 1;
     } else {
       result = SG_PORT_FILE(self)->read(SG_PORT_FILE(self), &buf, 1);
     }
@@ -645,7 +647,7 @@ static int64_t byte_array_read_u8_all(SgObject self, uint8_t **buf)
   SgByteVector *bvec = SG_BINARY_PORT(self)->src.buffer.bvec;
   int bsize = SG_BVECTOR_SIZE(bvec);
   int bindex = SG_BINARY_PORT(self)->src.buffer.index;
-  int rest_size = bsize - bindex, i;
+  int rest_size = bsize - bindex;
 
   *buf = SG_NEW_ATOMIC2(uint8_t *, rest_size);
   *buf = SG_BVECTOR_ELEMENTS(bvec);
@@ -753,7 +755,6 @@ SgObject Sg_MakeByteArrayOutputPort(int size)
   SgPort *z = make_port(SG_OUTPUT_PORT, SG_BINARY_PORT_TYPE, SG_BUFMODE_NONE);
   SgBinaryPort *b = make_binary_port(SG_BYTE_ARRAY_BINARY_PORT_TYPE);
 
-  uint8_t *buffer;
   int actual_size = (size > 0) ? size : DEFAULT_BUFFER_SIZE;
 
   z->closed = FALSE;
@@ -939,7 +940,7 @@ static void string_oport_putchar(SgObject self, SgChar c)
   int current_index = tp->src.buffer.index;
 
   if (current_index + 1 >= current_size) {
-    int new_size = current_size + INCREASE_BUFFER_SIZE, i;
+    int new_size = current_size + INCREASE_BUFFER_SIZE;
     SgString *tmp = Sg_ReserveString(new_size, ' ');
     memcpy(SG_STRING_VALUE(tmp), SG_STRING_VALUE(str),
 	   current_index * sizeof(SgChar));
@@ -977,14 +978,6 @@ static int string_iport_getlineno(SgObject self)
 {
   return SG_TEXTUAL_PORT(self)->src.buffer.lineNo;
 }
-
-static SgChar string_iport_look_aheadchar(SgObject self)
-{
-  SgString *str = SG_TEXTUAL_PORT(self)->src.buffer.str;
-  int current_index = SG_TEXTUAL_PORT(self)->src.buffer.index;
-  return SG_STRING_VALUE_AT(str, current_index + 1);
-}
-
 
 SgObject Sg_MakeStringOutputPort(int bufferSize)
 {

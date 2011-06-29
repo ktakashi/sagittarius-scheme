@@ -204,6 +204,18 @@
 			     (regex-group m 1))
 		       '())))
 
+    (test-equal "replace-first"
+		"hello beautiful world"
+		(let ((p (regex "fxxking")))
+		  (regex-replace-first p "hello fxxking world" "beautiful")))
+
+    (test-equal "replace-all"
+		"hello beautiful beautiful world"
+		(let ((p (regex "fxxking")))
+		  (regex-replace-all p "hello fxxking fxxkingworld" "beautiful")))
+
+    
+
     (test-equal "standard pattern case sensitive"
 		'("http://www.nilab.info/"
 		  "http://WWW.NILAB.INFO/"

@@ -50,16 +50,43 @@
 
 	    ;; syntax-sugar
 	    regex
+	    string-scan
 
 	    ;; wrapper APIs
 	    matches
 	    looking-at
+
+	    ;; modify
+	    regex-replace-all
+	    regex-replace-first
 	    )
-    (import (sagittarius regex impl)
+    (import (except (sagittarius regex impl) regex-replace-first regex-replace-all)
+	    (prefix (only (sagittarius regex impl) regex-replace-first regex-replace-all) impl:)
 	    (core)
 	    (core errors)
 	    (sagittarius))
+
   (define regex compile-regex)
+
+  (define (string-scan target pattern mode)
+    (let* ((re (compile-regex pattern))
+	   (m  (regex-matcher re target)))
+      (if (regex-find m)
+	  (case mode
+	    ((index) (matcher-first m))
+	    ((before) (regex-before m))
+	    ((after) (regex-after m))
+	    ((before*)
+	     (values (regex-before m)
+		     (substring target (matcher-first m)
+				(string-length target))))
+	    ((after*)
+	     (values (regex-before m)
+		     (substring target (matcher-last m)
+				(string-length target))))
+	    ((both)
+	     (values (regex-before m) (regex-after m))))
+	  #f)))
 
   ;; complete match
   (define (matches reg text)
@@ -84,7 +111,14 @@
 					(format "number, 'after or 'before required but got ~a" group)
 					group))))
 	  #f)))
-					
-		   
+  
+  ;; for convenience, we wrap
+  (define (regex-replace-all reg text replacement)
+    (let ((matcher (regex-matcher reg text)))
+      (impl:regex-replace-all matcher replacement)))
+
+  (define (regex-replace-first reg text replacement)
+    (let ((matcher (regex-matcher reg text)))
+      (impl:regex-replace-first matcher replacement)))
   
 )

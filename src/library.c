@@ -223,7 +223,7 @@ static SgString* library_name_to_path(SgObject name)
       Sg_Error(UC("library name can contain only symbols or keywords, but got %S"), SG_CAR(item));
     }
     if (!SG_NULLP(SG_CDR(item))) {
-      SG_APPEND1(h, t, Sg_MakeString(separator, SG_LITERAL_STRING));
+      SG_APPEND1(h, t, Sg_MakeString(separator, SG_HEAP_STRING));
     }
   }
   return Sg_StringAppend(h);
@@ -252,8 +252,8 @@ static SgObject search_library(SgObject name)
     SgObject dir;
     SG_FOR_EACH(dir, vm->loadPath) {
       SgObject real = Sg_StringAppend(SG_LIST3(SG_CAR(dir),
-				   Sg_MakeString(Sg_NativeFileSeparator(), SG_HEAP_STRING),
-				   p));
+					       Sg_MakeString(Sg_NativeFileSeparator(), SG_HEAP_STRING),
+					       p));
       if (Sg_FileExistP(real)) {
 	path = SG_STRING(real);
 	goto goal;
@@ -444,7 +444,8 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
     /* TODO no overwrite? */
     if (SG_FALSEP(exportSpec)) {
       /* this must be C library. */
-      Sg_HashTableSet(SG_LIBRARY_TABLE(tolib), SG_CAR(key), v, 0);
+      /* Sg_HashTableSet(SG_LIBRARY_TABLE(tolib), SG_CAR(key), v, 0); */
+      import_variable(tolib, SG_CAR(key), v, imports, except, prefix);
     } else if (!SG_FALSEP(Sg_Memq(SG_CAR(key), SG_CAR(exportSpec))) ||
 	       allP) {
       /* key was in non-rename export spec or :all key word */

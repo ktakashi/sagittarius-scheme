@@ -145,7 +145,7 @@ static SgObject read_keyword(SgPort *port, SgReaderContext *ctx);
 static SgObject read_bytevector(SgPort *port, SgReaderContext *ctx);
 static SgObject read_char(SgPort *port, SgReaderContext *ctx);
 static SgObject read_list(SgPort *port, SgReaderContext *ctx, int bracketedp, int vectorp);
-static void read_thing(SgPort *port, SgReaderContext *ctx, SgChar *buf, size_t size, SgChar initial);
+static int read_thing(SgPort *port, SgReaderContext *ctx, SgChar *buf, size_t size, SgChar initial);
 static SgObject read_prefixed_number(SgChar initial, SgPort *port, SgReaderContext *ctx);
 static void link_graph(SgPort *port, SgReaderContext *ctx, SgObject obj);
 
@@ -376,7 +376,7 @@ SgObject read_prefixed_number(SgChar initial, SgPort *port, SgReaderContext *ctx
   return num;
 }
 
-void  read_thing(SgPort *port, SgReaderContext *ctx, SgChar *buf, size_t size, SgChar initial)
+int read_thing(SgPort *port, SgReaderContext *ctx, SgChar *buf, size_t size, SgChar initial)
 {
   size_t i = 0;
   if (initial != -1) {
@@ -386,12 +386,13 @@ void  read_thing(SgPort *port, SgReaderContext *ctx, SgChar *buf, size_t size, S
     SgChar c = Sg_PeekcUnsafe(port);
     if (c == EOF || delimited(c)) {
       buf[i] = 0;
-      return;
+      return i;
     }
     Sg_GetcUnsafe(port);
     buf[i++] = c;
   }
   lexical_error(port, ctx, UC("token buffer overflow while reading identifier, %s ..."), buf);
+  return -1;			/* dummy */
 }
 
 static const struct {
@@ -609,7 +610,7 @@ SgObject read_string(SgPort *port, SgReaderContext *ctx)
       SgChar *real = SG_NEW_ATOMIC2(SgChar *, (i + 1) * sizeof(SgChar));
       buf[i] = 0;
       memcpy(real, buf, (i + 1) * sizeof(SgChar));
-      return Sg_MakeString(buf, SG_LITERAL_STRING);
+      return Sg_MakeString(real, SG_LITERAL_STRING);
     }
     if (c == '\\') {
       c = Sg_GetcUnsafe(port);
@@ -653,9 +654,14 @@ SgObject read_keyword(SgPort *port, SgReaderContext *ctx)
     name = read_quoted_symbol(port, ctx, FALSE);
     return Sg_MakeKeyword(SG_SYMBOL(name)->name);
   } else {
+    SgChar *real;
+    int size;
     Sg_UngetcUnsafe(port, c2);
-    read_thing(port, ctx, buf, array_sizeof(buf), -1);
-    return Sg_MakeKeyword(Sg_MakeString(buf, SG_LITERAL_STRING));
+    size = read_thing(port, ctx, buf, array_sizeof(buf), -1);
+    real = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar) * (size + 1));
+    buf[size] = 0;		/* just in case */
+    memcpy(real, buf, (size + 1) * sizeof(SgChar));
+    return Sg_MakeKeyword(Sg_MakeString(real, SG_LITERAL_STRING));
   }
 }
 

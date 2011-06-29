@@ -96,7 +96,6 @@ static void vm_finalize(SgObject obj, void *data)
 SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 {
   SgVM *v = SG_NEW(SgVM);
-  int i;
   SgWord *callCode = SG_NEW_ARRAY(SgWord, 2);
   SgWord *applyCode = SG_NEW_ARRAY(SgWord,  7);
   unsigned long sec, usec;
@@ -125,7 +124,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->stack = SG_NEW_ARRAY(SgObject, SG_VM_STACK_SIZE);
   v->sp = v->fp = v->stack;
   v->stackEnd = v->stack + SG_VM_STACK_SIZE;
-  v->cont = v->sp;
+  v->cont = (SgContFrame *)v->sp;
   v->ac = SG_NIL;
   v->cl = v->dc = NULL;
 
@@ -293,7 +292,7 @@ static inline void report_error(SgObject exception)
       } else {
 	src = Sg_LastPair(tmp);
 	src = SG_CDAR(src);
-	info = Sg_HashTableRef(SG_WEAK_HASHTABLE(Sg_VM()->sourceInfos),
+	info = Sg_HashTableRef(SG_HASHTABLE(Sg_VM()->sourceInfos),
 			       src, SG_FALSE);
 	/* info = SG_SOURCE_INFO(src); */
       }
@@ -490,7 +489,6 @@ SgObject Sg_VMCurrentLibrary()
 SgObject Sg_Compile(SgObject o, SgObject e)
 {
   static SgObject compiler = SG_UNDEF;
-  SgObject compiled;
   /* compiler is initialized after VM. so we need to look it up first */
   if (SG_UNDEFP(compiler)) {
     SgObject compile_library;
@@ -1250,7 +1248,7 @@ SgObject Sg_GetStackTrace()
     }
     cur = Sg_Acons(SG_MAKE_INT(i), r, cur);
   next_cont:
-    if (cont > vm->stack) {
+    if ((uintptr_t)cont > (uintptr_t)vm->stack) {
 
       SgContFrame *nextCont;
       cl = cont->cl;
@@ -1262,7 +1260,8 @@ SgObject Sg_GetStackTrace()
       if (!SG_PTRP(nextCont)) {
 	break;
       }
-      if (nextCont < vm->stack || vm->stackEnd < nextCont) {
+      if ((uintptr_t)nextCont < (uintptr_t)vm->stack ||
+	  (uintptr_t)vm->stackEnd < (uintptr_t)nextCont) {
 	break;
       }
       cont = nextCont;
@@ -1789,7 +1788,7 @@ static void process_queued_requests(SgVM *vm)
 static void print_frames(SgVM *vm)
 {
   SgContFrame *cont = CONT(vm);
-  SgObject *stack = vm->stack, sp = SP(vm);
+  SgObject *stack = vm->stack, *sp = SP(vm);
   SgObject *current = sp;
   SgString *fmt = Sg_MakeString(UC("+   o=~39,,,,39a +~%"), SG_LITERAL_STRING);
   SgString *clfmt = Sg_MakeString(UC("+   cl=~38,,,,39s +~%"), SG_LITERAL_STRING);
@@ -1881,7 +1880,7 @@ SgObject run_loop()
 
   for (;;) {
     SgWord c;
-    int val1, val2;
+    int val1 = 0, val2 = 0;
 
     DISPATCH;
     if (vm->attentionRequest) goto process_queue;

@@ -41,6 +41,7 @@
 	    rfc5322-quoted-string)
     (import (rnrs)
 	    (sagittarius)
+	    (sagittarius io)
 	    (sagittarius regex)
 	    (sagittarius let-optionals*)
 	    (sagittarius define-optional)
@@ -65,15 +66,7 @@
 			  (make-message-condition msg)
 			  (make-irritants-condition irritants))))))
 
-  (define coron (regex "([^\\n:]+?):"))
-
   (define wsp '(#\space #\tab))
-
-  (define (string-scan line seperator)
-    (cond ((looking-at seperator line)
-	   => (lambda (m)
-		(values (m 1) (m 'after))))
-	  (else (values #f #f))))
 
   (define rfc5322-char-set (char-set-difference char-set:printing (string->char-set ":")))
 
@@ -88,7 +81,7 @@
       (cond ((eof-object? line) (reverse! r))
 	    ((string-null? line) (reverse! r))
 	    (else
-	     (receive (n body) (string-scan line coron)
+	     (receive (n body) (string-scan line ":" 'both)
 	       (let ((name (and-let* (( (string? n) )
 				      (name (string-trim-both n))
 				      ( (string-every rfc5322-char-set name) ))
@@ -121,7 +114,7 @@
 	  (else (get-optional maybe-default #f))))
 
   (define (rfc5322-field->tokens field . opts)
-    (call-with-port (open-string-input-port field)
+    (call-with-input-string field
       (lambda (port)
 	(let ((proc (cut apply rfc5322-next-token <> opts)))
 	  (let loop ((l (proc port))
