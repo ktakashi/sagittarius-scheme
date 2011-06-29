@@ -44,20 +44,41 @@ typedef enum {
   NO_BOM,
 } Endianness;
 
+typedef enum {
+  SG_BUILTIN_CODEC,
+  SG_CUSTOM_CODEC
+} SgCodecType;
+
 struct SgCodecRec
 {
   SG_HEADER;
-  int    (*putChar)(SgObject, SgPort*, SgChar, ErrorHandlingMode);
-  SgChar (*getChar)(SgObject, SgPort*, ErrorHandlingMode, int);
   SgString  *name;
-  Endianness endian;
+  SgCodecType type;
+  union {
+    struct {
+      /* TODO read and write; */
+      int    (*putChar)(SgObject, SgPort*, SgChar, ErrorHandlingMode);
+      SgChar (*getChar)(SgObject, SgPort*, ErrorHandlingMode, int);
+      Endianness endian;
+    } builtin;
+    struct {
+      /* TODO read and write */
+      SgObject getc;
+      SgObject putc;
+      SgObject data;
+    } custom;
+  } impl;
 };
 
 #define SG_CODECP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_CODEC))
 #define SG_CODEC(obj)  ((SgCodec*)obj)
 /* accessor */
 #define SG_CODEC_NAME(obj)   (SG_CODEC(obj)->name)
-#define SG_CODEC_ENDIAN(obj) (SG_CODEC(obj)->endian)
+
+#define SG_CODEC_BUILTIN(obj) (&(SG_CODEC(obj)->impl.builtin))
+#define SG_CODEC_CUSTOM(obj)  (&(SG_CODEC(obj)->impl.custom))
+
+#define SG_CODEC_ENDIAN(obj) (SG_CODEC_BUILTIN(obj)->endian)
 
 SG_CDECL_BEGIN
 

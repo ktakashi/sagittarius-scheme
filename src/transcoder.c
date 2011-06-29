@@ -34,10 +34,30 @@
 #include "sagittarius/transcoder.h"
 #include "sagittarius/codec.h"
 #include "sagittarius/port.h"
+#include "sagittarius/symbol.h"
+#include "sagittarius/builtin-symbols.h"
+#include "sagittarius/core.h"
+#include "sagittarius/vm.h"
+#include "sagittarius/error.h"
 
 #define DEFAULT_BUFFER_SIZE (128 * sizeof(SgChar))
 #define INCREASE_SIZE       (32 * sizeof(SgChar))
-#define SIZE2POS(sz)        ((int)(sz / sizeof(SgChar)))            
+#define SIZE2POS(sz)        ((int)(sz / sizeof(SgChar)))
+
+static SgObject get_mode(int mode)
+{
+  switch (mode) {
+  case SG_REPLACE_ERROR:
+    return SG_SYMBOL_REPLACE;
+  case SG_IGNORE_ERROR:
+    return SG_SYMBOL_IGNORE;
+  case SG_RAISE_ERROR:
+    return SG_SYMBOL_RAISE;
+  default:
+    Sg_Panic("unknonw error handling type %d", mode);
+  }
+  return SG_UNDEF;		/* dummy */
+}
 
 
 static SgChar getCharInternal(SgObject self, SgPort *port)
@@ -45,17 +65,41 @@ static SgChar getCharInternal(SgObject self, SgPort *port)
   SgTranscoder *tran = SG_TRANSCODER(self);
   if (tran->isBegin) {
     tran->isBegin = FALSE;
-    return tran->codec->getChar(tran->codec, port, tran->mode, TRUE);
+    if (tran->codec->type == SG_BUILTIN_CODEC) {
+      return SG_CODEC_BUILTIN(tran->codec)->getChar(tran->codec, port, tran->mode, TRUE);
+    } else {
+      SgObject c = Sg_Apply4(SG_CODEC_CUSTOM(tran->codec)->getc,
+			     port, get_mode(tran->mode), SG_TRUE,
+			     SG_CODEC_CUSTOM(tran->codec)->data);
+      if (SG_CHARP(c)) {
+	return SG_CHAR_VALUE(c);
+      } else {
+	Sg_Error(UC("codec returned invalid object %S"), c);
+      }
+    }
   } else {
     SgChar c;
     if (tran->buffer == NULL || tran->bufferPosition == 0) {
-      c = tran->codec->getChar(tran->codec, port, tran->mode, FALSE);
+      if (tran->codec->type == SG_BUILTIN_CODEC) {
+	c = SG_CODEC_BUILTIN(tran->codec)->getChar(tran->codec, port, tran->mode, FALSE);
+      } else {
+	SgObject co = Sg_Apply4(SG_CODEC_CUSTOM(tran->codec)->getc,
+				port, get_mode(tran->mode), SG_FALSE,
+				SG_CODEC_CUSTOM(tran->codec)->data);
+	if (SG_CHARP(co)) {
+	  c =  SG_CHAR_VALUE(co);
+	} else {
+	  Sg_Error(UC("codec returned invalid object %S"), c);
+	  return -1;		/* dummy */
+	}	
+      }
     } else {
       c = tran->buffer[tran->bufferPosition - 1];
       tran->bufferPosition--;
     }
     return c;
   }
+  return -1;			/* dummy */
 }
 
 static SgChar getChar(SgObject self, SgPort *port)
@@ -123,6 +167,16 @@ static void unGetChar(SgObject self, SgChar c)
   }
 }
 
+#define dispatch_putchar(codec, p, c, mode)				\
+  do {									\
+    if ((codec)->type == SG_BUILTIN_CODEC) {				\
+      SG_CODEC_BUILTIN(codec)->putChar(codec, (p), (c), mode);		\
+    } else {								\
+      Sg_Apply4(SG_CODEC_CUSTOM(codec)->putc, (p), SG_MAKE_CHAR(c),	\
+		get_mode(mode),	SG_CODEC_CUSTOM(codec)->data);		\
+    }									\
+  } while (0)
+
 static void putChar(SgObject self, SgPort *port, SgChar c)
 {
   SgTranscoder *tran = SG_TRANSCODER(self);
@@ -130,7 +184,8 @@ static void putChar(SgObject self, SgPort *port, SgChar c)
     tran->bufferPosition--;
   }
   if (tran->eolStyle == E_NONE) {
-    tran->codec->putChar(tran->codec, port, c, tran->mode);
+    /* tran->codec->putChar(tran->codec, port, c, tran->mode); */
+    dispatch_putchar(tran->codec, port, c, tran->mode);
     return;
   } else if (c == LF) {
     switch (tran->eolStyle) {
@@ -138,22 +193,33 @@ static void putChar(SgObject self, SgPort *port, SgChar c)
     case CR:
     case NEL:
     case LS:
-      tran->codec->putChar(tran->codec, port, tran->eolStyle, tran->mode);
+      /* tran->codec->putChar(tran->codec, port, tran->eolStyle, tran->mode); */
+      dispatch_putchar(tran->codec, port, tran->eolStyle, tran->mode);
       break;
     case E_NONE:
-      tran->codec->putChar(tran->codec, port, c, tran->mode);
+      /* tran->codec->putChar(tran->codec, port, c, tran->mode); */
+      dispatch_putchar(tran->codec, port, c, tran->mode);
       break;
     case CRLF:
+      /*
       tran->codec->putChar(tran->codec, port, CR, tran->mode);
       tran->codec->putChar(tran->codec, port, LF, tran->mode);
+      */
+      dispatch_putchar(tran->codec, port, CR, tran->mode);
+      dispatch_putchar(tran->codec, port, LF, tran->mode);
       break;
     case CRNEL:
+      /*
       tran->codec->putChar(tran->codec, port, CR, tran->mode);
       tran->codec->putChar(tran->codec, port, NEL, tran->mode);
+      */
+      dispatch_putchar(tran->codec, port, CR, tran->mode);
+      dispatch_putchar(tran->codec, port, NEL, tran->mode);
       break;
     }
   } else {
-    tran->codec->putChar(tran->codec, port, c, tran->mode);
+    /* tran->codec->putChar(tran->codec, port, c, tran->mode); */
+    dispatch_putchar(tran->codec, port, c, tran->mode);
   }
 }
 

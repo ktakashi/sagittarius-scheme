@@ -1,3 +1,7 @@
+2011-06-29  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/codec.h: prepared for custom codec.
+
 2011-06-26  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/rfc/base64.scm (rfc base64): changed to use define-optional

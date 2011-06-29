@@ -1979,11 +1979,11 @@
   (define-c-proc transcoder-error-handling-mode (t::Transcoder) ::Object
     (let ((mode::ErrorHandlingMode (SG_TRANSCODER_MODE t)))
       (cond ((SG_EQ mode SG_REPLACE_ERROR)
-	     (result 'replace))
+	     (result SG_SYMBOL_REPLACE))
 	    ((SG_EQ mode SG_IGNORE_ERROR)
-	     (result 'ignore))
+	     (result SG_SYMBOL_IGNORE))
 	    ((SG_EQ mode SG_RAISE_ERROR)
-	     (result 'raise))
+	     (result SG_SYMBOL_RAISE))
 	    (else
 	     (assertion-violation 'transcoder-error-handling-mode
 				  "transcoder had unknown error-handling-mode. this must be a bug, please report it"

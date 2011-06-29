@@ -54,6 +54,9 @@ SgSymbol Sg_BuiltinSymbols[] = {
   ENTRY(),
   ENTRY(),
   ENTRY(),
+  ENTRY(),
+  ENTRY(),
+  ENTRY(),
 #undef ENTRY
 };
 static void init_builtin_symbols()
@@ -113,5 +116,8 @@ static void init_builtin_symbols()
   INTERN("file-options", 48);
   INTERN("record-type-descriptor", 49);
   INTERN("record-constructor-descriptor", 50);
+  INTERN("relpace", 51);
+  INTERN("ignore", 52);
+  INTERN("raise", 53);
 #undef INTERN
 }

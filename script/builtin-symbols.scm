@@ -110,6 +110,9 @@
     (file-options         SG_SYMBOL_FILE_OPTIONS) ; not so smart...
     (record-type-descriptor SG_SYMBOL_RTD)
     (record-constructor-descriptor SG_SYMBOL_RCD)
+    (relpace              SG_SYMBOL_REPLACE)
+    (ignore               SG_SYMBOL_IGNORE)
+    (raise                SG_SYMBOL_RAISE)
     ;; add later
     ))
 ;;;; end of file

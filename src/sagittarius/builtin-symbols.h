@@ -53,4 +53,7 @@ SG_EXTERN SgSymbol Sg_BuiltinSymbols[];
 #define SG_SYMBOL_FILE_OPTIONS SG_OBJ(&Sg_BuiltinSymbols[48])
 #define SG_SYMBOL_RTD SG_OBJ(&Sg_BuiltinSymbols[49])
 #define SG_SYMBOL_RCD SG_OBJ(&Sg_BuiltinSymbols[50])
+#define SG_SYMBOL_REPLACE SG_OBJ(&Sg_BuiltinSymbols[51])
+#define SG_SYMBOL_IGNORE SG_OBJ(&Sg_BuiltinSymbols[52])
+#define SG_SYMBOL_RAISE SG_OBJ(&Sg_BuiltinSymbols[53])
 #endif /* BUILTIN_SYMBOL_H__ */

@@ -58,20 +58,20 @@ int Sg_Ucs4SubsequentP(SgChar c)
 
 int Sg_Ucs4WhiteSpaceP(SgChar c)
 {
-  if (c == 0x0020) return TRUE;                   //; White_Space # Zs       SPACE
-  if (c >= 0x0009 && c <= 0x000d) return TRUE;    //; White_Space # Cc   [5] <control-0009>..<control-000D>
+  if (c == 0x0020) return TRUE;                   /*; White_Space # Zs       SPACE */
+  if (c >= 0x0009 && c <= 0x000d) return TRUE;    /*; White_Space # Cc   [5] <control-0009>..<control-000D> */
   if (c <= 0x007F) return FALSE;
-  if (c >= 0x2000 && c <= 0x200a) return TRUE;    //; White_Space # Zs  [11] EN QUAD..HAIR SPACE
+  if (c >= 0x2000 && c <= 0x200a) return TRUE;    /*; White_Space # Zs  [11] EN QUAD..HAIR SPACE */
   switch (c) {
-  case 0x0085:    //; White_Space # Cc       <control-0085>
-  case 0x00A0:    //; White_Space # Zs       NO-BREAK SPACE
-  case 0x1680:    //; White_Space # Zs       OGHAM SPACE MARK
-  case 0x180E:    //; White_Space # Zs       MONGOLIAN VOWEL SEPARATOR
-  case 0x2028:    //; White_Space # Zl       LINE SEPARATOR
-  case 0x2029:    //; White_Space # Zp       PARAGRAPH SEPARATOR
-  case 0x202F:    //; White_Space # Zs       NARROW NO-BREAK SPACE
-  case 0x205F:    //; White_Space # Zs       MEDIUM MATHEMATICAL SPACE
-  case 0x3000:    //; White_Space # Zs       IDEOGRAPHIC SPACE
+  case 0x0085:    /*; White_Space # Cc       <control-0085> */
+  case 0x00A0:    /*; White_Space # Zs       NO-BREAK SPACE */
+  case 0x1680:    /*; White_Space # Zs       OGHAM SPACE MARK */
+  case 0x180E:    /*; White_Space # Zs       MONGOLIAN VOWEL SEPARATOR */
+  case 0x2028:    /*; White_Space # Zl       LINE SEPARATOR */
+  case 0x2029:    /*; White_Space # Zp       PARAGRAPH SEPARATOR */
+  case 0x202F:    /*; White_Space # Zs       NARROW NO-BREAK SPACE */
+  case 0x205F:    /*; White_Space # Zs       MEDIUM MATHEMATICAL SPACE */
+  case 0x3000:    /*; White_Space # Zs       IDEOGRAPHIC SPACE */
     return TRUE;
   }
   return FALSE;
@@ -79,17 +79,17 @@ int Sg_Ucs4WhiteSpaceP(SgChar c)
 
 int Sg_Ucs4IntralineWhiteSpaceP(SgChar c)
 {
-  if (c == 0x0020) return TRUE;                   //; White_Space # Zs       SPACE
-  if (c == 0x0009) return TRUE;                   //; White_Space # Cc   [5] <control-0009>
+  if (c == 0x0020) return TRUE;                   /*; White_Space # Zs       SPACE */
+  if (c == 0x0009) return TRUE;                   /*; White_Space # Cc   [5] <control-0009> */
   if (c <= 0x007F) return FALSE;
-  if (c >= 0x2000 && c <= 0x200a) return TRUE;    //; White_Space # Zs  [11] EN QUAD..HAIR SPACE
+  if (c >= 0x2000 && c <= 0x200a) return TRUE;    /*; White_Space # Zs  [11] EN QUAD..HAIR SPACE */
   switch (c) {
-  case 0x00A0:    //; White_Space # Zs       NO-BREAK SPACE
-  case 0x1680:    //; White_Space # Zs       OGHAM SPACE MARK
-  case 0x180E:    //; White_Space # Zs       MONGOLIAN VOWEL SEPARATOR
-  case 0x202F:    //; White_Space # Zs       NARROW NO-BREAK SPACE
-  case 0x205F:    //; White_Space # Zs       MEDIUM MATHEMATICAL SPACE
-  case 0x3000:    //; White_Space # Zs       IDEOGRAPHIC SPACE
+  case 0x00A0:    /*; White_Space # Zs       NO-BREAK SPACE */
+  case 0x1680:    /*; White_Space # Zs       OGHAM SPACE MARK */
+  case 0x180E:    /*; White_Space # Zs       MONGOLIAN VOWEL SEPARATOR */
+  case 0x202F:    /*; White_Space # Zs       NARROW NO-BREAK SPACE */
+  case 0x205F:    /*; White_Space # Zs       MEDIUM MATHEMATICAL SPACE */
+  case 0x3000:    /*; White_Space # Zs       IDEOGRAPHIC SPACE */
     return TRUE;
   }
   return FALSE;
@@ -171,7 +171,7 @@ int Sg_ConvertUcs4ToUtf16(SgChar ucs4, uint8_t utf8[4], ErrorHandlingMode mode, 
     put2byte(utf8, ucs4);
     return 2;
   } else {
-    // http://unicode.org/faq/utf_bom.html#utf16-3
+    /* http://unicode.org/faq/utf_bom.html#utf16-3 */
     const uint16_t HI_SURROGATE_START = 0xD800;
     uint16_t X = (uint16_t) ucs4;
     SgChar   U = (ucs4 >> 16) & ((1 << 5) - 1);
@@ -217,10 +217,10 @@ SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
   if (f == EOF) return EOF;
   first = (uint8_t)(f & 0xff);
 
-  // UTF8-1(ascii) = %x00-7F
+  /* UTF8-1(ascii) = %x00-7F */
   if (first < 0x80) {
     return first;
-    // UTF8-2 = %xC2-DF UTF8-tail
+    /* UTF8-2 = %xC2-DF UTF8-tail */
   } else if (0xc2 <= first && first <= 0xdf) {
     uint8_t second = Sg_GetbUnsafe(port);
     if (isUtf8Tail(second)) {
@@ -228,8 +228,8 @@ SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
     } else {
       decodeError(SG_INTERN("convert-utf8-to-ucs4"));
     }
-    // UTF8-3 = %xE0 %xA0-BF UTF8-tail / %xE1-EC 2( UTF8-tail ) /
-    //          %xED %x80-9F UTF8-tail / %xEE-EF 2( UTF8-tail )
+    /* UTF8-3 = %xE0 %xA0-BF UTF8-tail / %xE1-EC 2( UTF8-tail ) /  */
+    /*          %xED %x80-9F UTF8-tail / %xEE-EF 2( UTF8-tail )    */
   } else if (0xe0 <= first && first <= 0xef) {
     uint8_t second = Sg_GetbUnsafe(port);
     uint8_t third =  Sg_GetbUnsafe(port);
@@ -243,8 +243,8 @@ SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
     } else {
       decodeError(SG_INTERN("convert-utf8-to-ucs4"));
     }
-    // UTF8-4 = %xF0 %x90-BF 2( UTF8-tail ) / %xF1-F3 3( UTF8-tail ) /
-    //          %xF4 %x80-8F 2( UTF8-tail )
+    /* UTF8-4 = %xF0 %x90-BF 2( UTF8-tail ) / %xF1-F3 3( UTF8-tail ) /  */
+    /*          %xF4 %x80-8F 2( UTF8-tail )  */
   } else if (0xf0 <= first && first <= 0xf4) {
     uint8_t second = Sg_GetbUnsafe(port);
     uint8_t third =  Sg_GetbUnsafe(port);
@@ -275,7 +275,7 @@ SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode, SgCodec *code
   uint16_t val1, val2;
   int a, b, c, d;
 
-#define isLittleEndian(c) (SG_CODEC(c)->endian == UTF_16LE)
+#define isLittleEndian(c) (SG_CODEC_ENDIAN(c) == UTF_16LE)
  retry:
   /* TODO assert */
   a = Sg_GetbUnsafe(port);
@@ -286,15 +286,15 @@ SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode, SgCodec *code
     decodeError(SG_INTERN("convert-utf16-to-ucs4"));
   }
 
-  if (checkBOMNow && codec->endian == UTF_16CHECK_BOM) {
+  if (checkBOMNow && SG_CODEC_ENDIAN(codec) == UTF_16CHECK_BOM) {
     if (a == 0xFE && b == 0xFF) {
-      SG_CODEC(codec)->endian = UTF_16BE;
+      SG_CODEC_ENDIAN(codec) = UTF_16BE;
       return Sg_ConvertUtf16ToUcs4(port, mode, codec, FALSE);
     } else if (a == 0xFF && b == 0xFE) {
-      SG_CODEC(codec)->endian = UTF_16LE;
+      SG_CODEC_ENDIAN(codec) = UTF_16LE;
       return Sg_ConvertUtf16ToUcs4(port, mode, codec, FALSE);
     } else {
-      SG_CODEC(codec)->endian = UTF_16BE;
+      SG_CODEC_ENDIAN(codec) = UTF_16BE;
       /* correct? */
     }
   }
@@ -312,7 +312,7 @@ SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode, SgCodec *code
     decodeError(SG_INTERN("convert-utf16-to-ucs4"));
   }
   val2 = isLittleEndian(codec) ? ((d << 8) | c) : ((c << 8) | d);
-  // http://unicode.org/faq/utf_bom.html#utf16-3
+  /* http://unicode.org/faq/utf_bom.html#utf16-3 */
   hi = val1;
   lo = val2;
   X = (hi & ((1 << 6) -1)) << 10 | (lo & ((1 << 10) -1));

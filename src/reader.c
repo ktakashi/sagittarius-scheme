@@ -333,13 +333,14 @@ SgObject read_number(SgPort *port, SgReaderContext *ctx)
   str = Sg_MakeString(buf, SG_HEAP_STRING);
   num = Sg_StringToNumber(str, 10, TRUE);
   if (!SG_FALSEP(num)) return num;
-  if (buf[1] == 0 && buf[0] == '.') return Sg_Intern(str);
+  if (buf[1] == 0 && buf[0] == '.') return SG_SYMBOL_DOT;
   if (SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE)) {
     if (buf[1] == 0 && (buf[0] == '+' || buf[0] == '-')) return Sg_Intern(str);
-    if (ustrcmp(buf, "...") == 0) return Sg_Intern(str);
+    if (ustrcmp(buf, "...") == 0) return SG_SYMBOL_ELLIPSIS;
     if (buf[0] == '-' && buf[1] == '>') {
       int i = 2;
       SgChar c;
+
       while ((c = buf[i++]) != 0) {
 	if (c > 127) continue;
 	if (SYMBOL_CHARP(c)) continue;
