@@ -41,9 +41,9 @@
 	    (sagittarius define-optional))
 
   (define-optional 
-    (quoted-printable-encode-string str (optional (line-width 76)
-						  ;; we need to use transcoder with crlf
+    (quoted-printable-encode-string str (optional ;; we need to use transcoder with crlf
 						  (transcoder (make-transcoder (utf-8-codec) (eol-style crlf)))
+						  (line-width 76)
 						  (binary? #f)))
     (or (string? str)
 	(assertion-violation 'quoted-printable-encode-string
@@ -95,9 +95,9 @@
 		(loop (get-u8 bport) (+ line-count 3))))))))
 
   (define-optional
-    (quoted-printable-decode-string str (optional (line-width 76)
-						  ;; we need to use transcoder with crlf
+    (quoted-printable-decode-string str (optional ;; we need to use transcoder with crlf
 						  (transcoder (make-transcoder (utf-8-codec) (eol-style crlf)))
+						  (line-width 76)
 						  (binary? #f)))
     (or (string? str)
 	(assertion-violation 'quoted-printable-decode-string

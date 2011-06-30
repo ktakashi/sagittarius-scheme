@@ -1,4 +1,4 @@
-// -*- C -*-
+/* -*- C -*- */
 /*
  * transcoder.c
  *
@@ -60,82 +60,7 @@ static SgObject get_mode(int mode)
 }
 
 
-static SgChar getCharInternal(SgObject self, SgPort *port)
-{
-  SgTranscoder *tran = SG_TRANSCODER(self);
-  if (tran->isBegin) {
-    tran->isBegin = FALSE;
-    if (tran->codec->type == SG_BUILTIN_CODEC) {
-      return SG_CODEC_BUILTIN(tran->codec)->getChar(tran->codec, port, tran->mode, TRUE);
-    } else {
-      SgObject c = Sg_Apply4(SG_CODEC_CUSTOM(tran->codec)->getc,
-			     port, get_mode(tran->mode), SG_TRUE,
-			     SG_CODEC_CUSTOM(tran->codec)->data);
-      if (SG_CHARP(c)) {
-	return SG_CHAR_VALUE(c);
-      } else {
-	Sg_Error(UC("codec returned invalid object %S"), c);
-      }
-    }
-  } else {
-    SgChar c;
-    if (tran->buffer == NULL || tran->bufferPosition == 0) {
-      if (tran->codec->type == SG_BUILTIN_CODEC) {
-	c = SG_CODEC_BUILTIN(tran->codec)->getChar(tran->codec, port, tran->mode, FALSE);
-      } else {
-	SgObject co = Sg_Apply4(SG_CODEC_CUSTOM(tran->codec)->getc,
-				port, get_mode(tran->mode), SG_FALSE,
-				SG_CODEC_CUSTOM(tran->codec)->data);
-	if (SG_CHARP(co)) {
-	  c =  SG_CHAR_VALUE(co);
-	} else {
-	  Sg_Error(UC("codec returned invalid object %S"), c);
-	  return -1;		/* dummy */
-	}	
-      }
-    } else {
-      c = tran->buffer[tran->bufferPosition - 1];
-      tran->bufferPosition--;
-    }
-    return c;
-  }
-  return -1;			/* dummy */
-}
-
-static SgChar getChar(SgObject self, SgPort *port)
-{
-  SgTranscoder *tran = SG_TRANSCODER(self);
-  SgChar c = getCharInternal(self, port);
-  if (tran->eolStyle == E_NONE) {
-    if (c == LF) {
-      tran->lineNo++;
-    }
-    return c;
-  }
-  switch (c) {
-  case LF:
-  case NEL:
-  case LS:
-    tran->lineNo++;
-    return LF;
-  case CR: {
-    SgChar c2 = getCharInternal(self, port);
-    tran->lineNo++;
-    switch (c2) {
-    case LF:
-    case NEL:
-      return LF;
-    default:
-      tran->unGetChar(self, c2);
-      return LF;
-    }
-  }
-  default:
-    return c;
-  }
-}
-
-static void unGetChar(SgObject self, SgChar c)
+static void unget_char(SgObject self, SgChar c)
 {
   SgTranscoder *tran = SG_TRANSCODER(self);
   if (EOF == c) return;
@@ -167,17 +92,100 @@ static void unGetChar(SgObject self, SgChar c)
   }
 }
 
+
+#define dispatch_getchar(codec, p, c, mode) 
+
+static SgChar get_char_internal(SgObject self, SgPort *port)
+{
+  SgTranscoder *tran = SG_TRANSCODER(self);
+  if (tran->isBegin) {
+    tran->isBegin = FALSE;
+    if (tran->codec->type == SG_BUILTIN_CODEC) {
+      return SG_CODEC_BUILTIN(tran->codec)->getc(tran->codec, port, tran->mode, TRUE);
+    } else {
+      SgObject c = Sg_Apply4(SG_CODEC_CUSTOM(tran->codec)->getc,
+			     port, get_mode(tran->mode), SG_TRUE,
+			     SG_CODEC_CUSTOM(tran->codec)->data);
+      if (SG_CHARP(c)) {
+	return SG_CHAR_VALUE(c);
+      } else if (SG_EOFP(c)) {
+	return EOF;
+      } else {
+	Sg_Error(UC("codec returned invalid object %S"), c);
+      }
+    }
+  } else {
+    SgChar c;
+    if (tran->buffer == NULL || tran->bufferPosition == 0) {
+      if (tran->codec->type == SG_BUILTIN_CODEC) {
+	c = SG_CODEC_BUILTIN(tran->codec)->getc(tran->codec, port, tran->mode, FALSE);
+      } else {
+	SgObject co = Sg_Apply4(SG_CODEC_CUSTOM(tran->codec)->getc,
+				port, get_mode(tran->mode), SG_FALSE,
+				SG_CODEC_CUSTOM(tran->codec)->data);
+	if (SG_CHARP(co)) {
+	  c =  SG_CHAR_VALUE(co);
+	} else if (SG_EOFP(co)) {
+	  return EOF;
+	} else {
+	  Sg_Error(UC("codec returned invalid object %S"), co);
+	  return -1;		/* dummy */
+	}
+      }
+    } else {
+      c = tran->buffer[tran->bufferPosition - 1];
+      tran->bufferPosition--;
+    }
+    return c;
+  }
+  return -1;			/* dummy */
+}
+
+static SgChar get_char(SgObject self, SgPort *port)
+{
+  SgTranscoder *tran = SG_TRANSCODER(self);
+  SgChar c = get_char_internal(self, port);
+  if (tran->eolStyle == E_NONE) {
+    if (c == LF) {
+      tran->lineNo++;
+    }
+    return c;
+  }
+  switch (c) {
+  case LF:
+  case NEL:
+  case LS:
+    tran->lineNo++;
+    return LF;
+  case CR: {
+    SgChar c2 = get_char_internal(self, port);
+    tran->lineNo++;
+    switch (c2) {
+    case LF:
+    case NEL:
+      return LF;
+    default:
+      unget_char(self, c2);
+      return LF;
+    }
+  }
+  default:
+    return c;
+  }
+}
+
 #define dispatch_putchar(codec, p, c, mode)				\
   do {									\
     if ((codec)->type == SG_BUILTIN_CODEC) {				\
-      SG_CODEC_BUILTIN(codec)->putChar(codec, (p), (c), mode);		\
+      SG_CODEC_BUILTIN(codec)->putc(codec, (p), (c), mode);		\
     } else {								\
       Sg_Apply4(SG_CODEC_CUSTOM(codec)->putc, (p), SG_MAKE_CHAR(c),	\
 		get_mode(mode),	SG_CODEC_CUSTOM(codec)->data);		\
     }									\
   } while (0)
 
-static void putChar(SgObject self, SgPort *port, SgChar c)
+
+static void put_char(SgObject self, SgPort *port, SgChar c)
 {
   SgTranscoder *tran = SG_TRANSCODER(self);
   if (tran->bufferPosition != 0) {
@@ -234,9 +242,9 @@ SgObject Sg_MakeTranscoder(SgCodec *codec, EolStyle eolStyle, ErrorHandlingMode 
   z->buffer = NULL;
   z->bufferSize = 0;
   z->isBegin = TRUE;
-  z->getChar = getChar;
-  z->unGetChar = unGetChar;
-  z->putChar = putChar;
+  z->getChar = get_char;
+  z->unGetChar = unget_char;
+  z->putChar = put_char;
   return SG_OBJ(z);
 }
 

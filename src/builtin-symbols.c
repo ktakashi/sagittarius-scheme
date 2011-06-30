@@ -116,7 +116,7 @@ static void init_builtin_symbols()
   INTERN("file-options", 48);
   INTERN("record-type-descriptor", 49);
   INTERN("record-constructor-descriptor", 50);
-  INTERN("relpace", 51);
+  INTERN("replace", 51);
   INTERN("ignore", 52);
   INTERN("raise", 53);
 #undef INTERN

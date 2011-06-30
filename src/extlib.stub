@@ -68,6 +68,7 @@
 
 	    ;; io
 	    port-closed? format write/ss
+	    make-codec
 
 	    ;; profiler
 	    profiler-start profiler-stop profiler-reset
@@ -406,6 +407,9 @@
 	   (let ((out (Sg_MakeStringOutputPort 16)))
 	     (Sg_Format out p rest FALSE)
 	     (result (Sg_GetStringFromStringPort out))))))
+
+  (define-c-proc make-codec (name::Symbol g::Procedure p::Procedure data) ::Object
+    (result (Sg_MakeCustomCodecSimple name g p data)))
 
   ;; profiler
   (define-c-proc profiler-start () ::void

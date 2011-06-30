@@ -960,7 +960,7 @@ static void write_port(SgPort *p, SgPort *port, SgWriteContext *ctx)
   transcoder = Sg_PortTranscoder(p);
   if (!SG_FALSEP(transcoder)) {
     Sg_PutcUnsafe(port, ' ');
-    Sg_PutsUnsafe(port, SG_CODEC_NAME(SG_TRANSCODER_CODEC(transcoder)));
+    write_ss_rec(SG_CODEC_NAME(SG_TRANSCODER_CODEC(transcoder)), port, ctx);
   }
   if (Sg_PortClosedP(p)) {
     Sg_PutcUnsafe(port, ' ');
@@ -1016,9 +1016,12 @@ static void write_transcoder(SgTranscoder *t, SgPort *port, SgWriteContext *ctx)
 
 static void write_codec(SgCodec *c, SgPort *port, SgWriteContext *ctx)
 {
+  int save = SG_WRITE_MODE(ctx);
+  ctx->mode = SG_WRITE_DISPLAY;
   Sg_PutuzUnsafe(port, UC("#<codec "));
-  Sg_PutsUnsafe(port, SG_CODEC_NAME(c));
+  write_ss_rec(SG_CODEC_NAME(c), port, ctx);
   Sg_PutcUnsafe(port, '>');
+  ctx->mode = save;
 }
 
 static void write_meta_obj(SgObject *m, SgPort *port, SgWriteContext *ctx)

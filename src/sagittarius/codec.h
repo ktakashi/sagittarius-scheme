@@ -57,14 +57,18 @@ struct SgCodecRec
   union {
     struct {
       /* TODO read and write; */
-      int    (*putChar)(SgObject, SgPort*, SgChar, ErrorHandlingMode);
-      SgChar (*getChar)(SgObject, SgPort*, ErrorHandlingMode, int);
+      int     (*putc)(SgObject, SgPort*, SgChar, ErrorHandlingMode);
+      SgChar  (*getc)(SgObject, SgPort*, ErrorHandlingMode, int);
+      int64_t (*readc)(SgObject, SgPort*, SgChar*, int64_t, ErrorHandlingMode, int);
+      int64_t (*writec)(SgObject, SgPort*, const SgChar*, int64_t, ErrorHandlingMode);
       Endianness endian;
     } builtin;
     struct {
       /* TODO read and write */
       SgObject getc;
       SgObject putc;
+      SgObject readc;
+      SgObject writec;
       SgObject data;
     } custom;
   } impl;
@@ -90,6 +94,9 @@ SG_EXTERN SgObject Sg_MakeLatin1Codec();
 /* check BOM */
 SG_EXTERN Endianness Sg_Utf16CheckBOM(SgByteVector *bv);
 SG_EXTERN Endianness Sg_Utf32CheckBOM(SgByteVector *bv);
+
+/* Scheme interface */
+SG_EXTERN SgObject Sg_MakeCustomCodecSimple(SgObject name, SgObject getc, SgObject putc, SgObject data);
 
 SG_CDECL_END
 

@@ -1,4 +1,4 @@
-// -*- C -*-
+/* -*- C -*- */
 /*
  * transcoder.h
  *
@@ -34,6 +34,7 @@
 
 #include "sagittariusdefs.h"
 
+/* TODO support read and write */
 struct SgTranscoderRec
 {
   SG_HEADER;

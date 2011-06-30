@@ -39,7 +39,9 @@
     (export mime-parse-version
 	    mime-parse-content-type
 	    mime-compose-parameters
-	    mime-decode-text)
+	    mime-decode-word
+	    mime-decode-text
+	    mime-encode-word)
     (import (rnrs)
 	    (srfi :1 lists)
 	    (srfi :2 and-let*)
@@ -50,6 +52,7 @@
 	    (sagittarius regex)
 	    (sagittarius)
 	    (sagittarius io)
+	    (encoding decoder)
 	    (rfc :5322)
 	    (rfc quoted-printable)
 	    (rfc base64))
@@ -152,14 +155,26 @@
     (regex "^=\\?([-!#-'*+\\w\\^-~]+)\\?([-!#-'*+\\w\\^-~]+)\\?([!->@-~]+)\\?="))
 
   (define (%mime-decode-word word charset encoding body)
-    ;; TODO converting charset
-    (cond ((string-ci=? encoding "q")
-	   (quoted-printable-decode-string body))
-	  ((string-ci=? encoding "b")
-	   (base64-decode-string body))
-	  (else word)))
+    (let ((decoder (lookup-decoder charset)))
+      (if decoder
+	  (cond ((string-ci=? encoding "q")
+		 (decode decoder (quoted-printable-decode (string->utf8 body))))
+		((string-ci=? encoding "b")
+		 (decode decoder (base64-decode (string->utf8 body))))
+		(else word))
+	  word)))
 
   ;; decode rfc2047-encoded word, i.e. "=?...?="
+  (define (mime-decode-word word)
+    (cond ((looking-at *mime-encoded-header-re* word)
+	   => (lambda (m)
+		(if (equal? (m 'after) "")
+		    (%mime-decode-word word (m 1) (m 2) (m 3))
+		    word)))
+	  (else word)))
+
+  ;; decode the entire header field body, possibly a mixture of
+  ;; encoded-words and orginary words.
   (define (mime-decode-text body)
     (let loop ((s body))
       (receive (pre rest) (string-scan s "=?" 'before*)
@@ -170,5 +185,25 @@
 				   (%mime-decode-word (m 0) (m 1) (m 2) (m 3))
 				   (loop (m 'after)))))
 	      (else s)))))
+
+  (define (%canonical-encoding encoding)
+    (case encoding
+      ((B b base64) 'B)
+      ((Q q quoted-printable) 'Q)
+      (else
+       (assertion-violation 'canonical-encoding
+			    "unsupported MIME header encoding specifier"
+			    encoding))))
+
+  (define-optional (mime-encode-word word (optional (charset 'utf-8)
+						    (transfer-encoding 'base64)))
+    ;; decoder is just a codec.
+    (let ((decoder (lookup-decoder charset))
+	  (enc (%canonical-encoding transfer-encoding)))
+      (format "=?~a?~a?~a?=" charset enc
+	      ((if (eq? enc 'B)
+		   base64-encode-string
+		   quoted-printable-encode-string)
+	       word (make-transcoder decoder (eol-style crlf))))))
 )
 

@@ -1,3 +1,7 @@
+2011-06-30  Takashi Kato  <ktakashi@ymail.com>
+
+	* sitelib/encoding/sjis.scm (encoding sjis): added sjis-codec.
+
 2011-06-29  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/codec.h: prepared for custom codec.

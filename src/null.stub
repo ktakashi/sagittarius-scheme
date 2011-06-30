@@ -393,7 +393,8 @@
 ;; for Ypsilon
 #!compatible
   (decl-code
-   (.include <sagittarius/instruction.h>))
+   (.include <sagittarius/instruction.h>)
+   (.include <sagittarius/builtin-symbols.h>))
 
   (define-cgen-stmt assertion-violation
     ((_ who msg)

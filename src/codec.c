@@ -1,4 +1,4 @@
-// -*- C -*-
+/* -*- C -*- */
 /*
  * codec.c
  *
@@ -47,7 +47,7 @@ static SgCodec* make_codec()
   return z;
 }
 
-static int putUtf8Char(SgObject self, SgPort *port, SgChar c, ErrorHandlingMode mode)
+static int put_utf8_char(SgObject self, SgPort *port, SgChar c, ErrorHandlingMode mode)
 {
   uint8_t buf[4];
   int64_t size = Sg_ConvertUcs4ToUtf8(c, buf, mode);
@@ -55,22 +55,44 @@ static int putUtf8Char(SgObject self, SgPort *port, SgChar c, ErrorHandlingMode 
   return (int)(SG_BINARY_PORT(port)->putU8Array(port, buf, size));
 }
 
-static SgChar getUtf8Char(SgObject self, SgPort *port, ErrorHandlingMode mode, int checkBOM)
+static SgChar get_utf8_char(SgObject self, SgPort *port, ErrorHandlingMode mode, int checkBOM)
 {
   return Sg_ConvertUtf8ToUcs4(port, mode);
+}
+
+static int64_t read_utf8(SgObject self, SgPort *port, SgChar *buf, int64_t size, ErrorHandlingMode mode, int checkBOM)
+{
+  /* for now super naive implementation */
+  int64_t i;
+  for (i = 0; i < size; i++) {
+    buf[i] = get_utf8_char(self, port, mode, checkBOM);
+  }
+  return i;
+}
+
+static int64_t write_utf8(SgObject self, SgPort* port, const SgChar* buf, int64_t size, ErrorHandlingMode mode)
+{
+  /* for now super naive implementation */
+  int64_t i;
+  for (i = 0; i < size; i++) {
+    put_utf8_char(self, port, buf[i], mode);
+  }
+  return i;
 }
 
 SgObject Sg_MakeUtf8Codec()
 {
   SgCodec *z = make_codec();
-  z->impl.builtin.putChar = putUtf8Char;
-  z->impl.builtin.getChar = getUtf8Char;
-  z->name = Sg_MakeString(UC("utf8-codec"), SG_LITERAL_STRING);
-  z->impl.builtin.endian = NO_BOM;
+  SG_CODEC_BUILTIN(z)->putc = put_utf8_char;
+  SG_CODEC_BUILTIN(z)->getc = get_utf8_char;
+  SG_CODEC_BUILTIN(z)->readc = read_utf8;
+  SG_CODEC_BUILTIN(z)->writec = write_utf8;
+  SG_CODEC_NAME(z) = Sg_MakeString(UC("utf8-codec"), SG_LITERAL_STRING);
+  SG_CODEC_ENDIAN(z) = NO_BOM;
   return SG_OBJ(z);
 }
 
-static int putUtf16Char(SgObject self, SgPort *port, SgChar c, ErrorHandlingMode mode)
+static int put_utf16_char(SgObject self, SgPort *port, SgChar c, ErrorHandlingMode mode)
 {
   uint8_t buf[4];
   int64_t size = Sg_ConvertUcs4ToUtf16(c, buf, mode, SG_CODEC(self)->impl.builtin.endian == UTF_16LE);
@@ -78,20 +100,43 @@ static int putUtf16Char(SgObject self, SgPort *port, SgChar c, ErrorHandlingMode
   return (int)(SG_BINARY_PORT(port)->putU8Array(port, buf, size));
 }
 
-static SgChar getUtf16Char(SgObject self, SgPort *port, ErrorHandlingMode mode, int checkBOM)
+static SgChar get_utf16_char(SgObject self, SgPort *port, ErrorHandlingMode mode, int checkBOM)
 {
   return Sg_ConvertUtf16ToUcs4(port, mode, SG_CODEC(self), checkBOM);
 }
+
+static int64_t read_utf16(SgObject self, SgPort *port, SgChar *buf, int64_t size, ErrorHandlingMode mode, int checkBOM)
+{
+  /* for now super naive implementation */
+  int64_t i;
+  for (i = 0; i < size; i++) {
+    buf[i] = get_utf16_char(self, port, mode, checkBOM);
+  }
+  return i;
+}
+
+static int64_t write_utf16(SgObject self, SgPort* port, const SgChar* buf, int64_t size, ErrorHandlingMode mode)
+{
+  /* for now super naive implementation */
+  int64_t i;
+  for (i = 0; i < size; i++) {
+    put_utf16_char(self, port, buf[i], mode);
+  }
+  return i;
+}
+
 
 SgObject Sg_MakeUtf16Codec(Endianness endian)
 {
   SgCodec* z;
   ASSERT(endian == UTF_16BE || endian == UTF_16LE || endian == UTF_16CHECK_BOM);
   z = make_codec();
-  z->impl.builtin.putChar = putUtf16Char;
-  z->impl.builtin.getChar = getUtf16Char;
-  z->name = Sg_MakeString(UC("utf16-codec"), SG_LITERAL_STRING);
-  z->impl.builtin.endian = endian;
+  SG_CODEC_BUILTIN(z)->putc = put_utf16_char;
+  SG_CODEC_BUILTIN(z)->getc = get_utf16_char;
+  SG_CODEC_BUILTIN(z)->readc = read_utf16;
+  SG_CODEC_BUILTIN(z)->writec = write_utf16;
+  SG_CODEC_NAME(z) = Sg_MakeString(UC("utf16-codec"), SG_LITERAL_STRING);
+  SG_CODEC_ENDIAN(z) = endian;
   return SG_OBJ(z);
 }
 
@@ -160,35 +205,59 @@ static SgChar get_utf32_char(SgObject self, SgPort *port, ErrorHandlingMode mode
   }
 }
 
+
+static int64_t read_utf32(SgObject self, SgPort *port, SgChar *buf, int64_t size, ErrorHandlingMode mode, int checkBOM)
+{
+  /* for now super naive implementation */
+  int64_t i;
+  for (i = 0; i < size; i++) {
+    buf[i] = get_utf32_char(self, port, mode, checkBOM);
+  }
+  return i;
+}
+
+static int64_t write_utf32(SgObject self, SgPort* port, const SgChar* buf, int64_t size, ErrorHandlingMode mode)
+{
+  /* for now super naive implementation */
+  int64_t i;
+  for (i = 0; i < size; i++) {
+    put_utf32_char(self, port, buf[i], mode);
+  }
+  return i;
+}
+
+
 SgObject Sg_MakeUtf32Codec(Endianness endian)
 {
   SgCodec* z = make_codec();
   if (endian == UTF_32USE_NATIVE_ENDIAN) {
 #if WORDS_BIGENDIAN
-    z->impl.builtin.endian = UTF_32BE;
+    SG_CODEC_ENDIAN(z) = UTF_32BE;
 #else
-    z->impl.builtin.endian = UTF_32LE;
+    SG_CODEC_ENDIAN(z) = UTF_32LE;
 #endif
-    z->name = Sg_MakeString(UC("utf32-codec"), SG_LITERAL_STRING);
+    SG_CODEC_NAME(z) = Sg_MakeString(UC("utf32-codec"), SG_LITERAL_STRING);
   } else {
     ASSERT(endian == UTF_32LE || endian == UTF_32BE);
 #if WORDS_BIGENDIAN
     if (endian == UTF_32BE) {
-      z->name = Sg_MakeString(UC("utf32-codec"), SG_LITERAL_STRING);
+      SG_CODEC_NAME(z) = Sg_MakeString(UC("utf32-codec"), SG_LITERAL_STRING);
     } else {
-      z->name = Sg_MakeString(UC("utf32-codec(little)"), SG_LITERAL_STRING);
+      SG_CODEC_NAME(z) = Sg_MakeString(UC("utf32-codec(little)"), SG_LITERAL_STRING);
     }
 #else
     if (endian == UTF_32BE) {
-      z->name = Sg_MakeString(UC("utf32-codec(big)"), SG_LITERAL_STRING);
+      SG_CODEC_NAME(z) = Sg_MakeString(UC("utf32-codec(big)"), SG_LITERAL_STRING);
     } else {
-      z->name = Sg_MakeString(UC("utf32-codec"), SG_LITERAL_STRING);
+      SG_CODEC_NAME(z) = Sg_MakeString(UC("utf32-codec"), SG_LITERAL_STRING);
     }
 #endif
-    z->impl.builtin.endian = endian;
+    SG_CODEC_ENDIAN(z) = endian;
   }
-  z->impl.builtin.putChar = put_utf32_char;
-  z->impl.builtin.getChar = get_utf32_char;
+  SG_CODEC_BUILTIN(z)->putc = put_utf32_char;
+  SG_CODEC_BUILTIN(z)->getc = get_utf32_char;
+  SG_CODEC_BUILTIN(z)->readc = read_utf32;
+  SG_CODEC_BUILTIN(z)->writec = write_utf32;
   return SG_OBJ(z);
 }
 
@@ -230,13 +299,37 @@ static SgChar get_latin1_char(SgObject self, SgPort *port, ErrorHandlingMode mod
   return ' ';
 }
 
+
+static int64_t read_latin1(SgObject self, SgPort *port, SgChar *buf, int64_t size, ErrorHandlingMode mode, int checkBOM)
+{
+  /* for now super naive implementation */
+  int64_t i;
+  for (i = 0; i < size; i++) {
+    buf[i] = get_latin1_char(self, port, mode, checkBOM);
+  }
+  return i;
+}
+
+static int64_t write_latin1(SgObject self, SgPort* port, const SgChar* buf, int64_t size, ErrorHandlingMode mode)
+{
+  /* for now super naive implementation */
+  int64_t i;
+  for (i = 0; i < size; i++) {
+    put_latin1_char(self, port, buf[i], mode);
+  }
+  return i;
+}
+
+
 SgObject Sg_MakeLatin1Codec()
 {
   SgCodec* z = make_codec();
 
-  z->impl.builtin.putChar = put_latin1_char;
-  z->impl.builtin.getChar = get_latin1_char;
-  z->name = Sg_MakeString(UC("latin1-codec"), SG_LITERAL_STRING);
+  SG_CODEC_BUILTIN(z)->putc = put_latin1_char;
+  SG_CODEC_BUILTIN(z)->getc = get_latin1_char;
+  SG_CODEC_BUILTIN(z)->readc = read_latin1;
+  SG_CODEC_BUILTIN(z)->writec = write_latin1;
+  SG_CODEC_NAME(z) = Sg_MakeString(UC("latin1-codec"), SG_LITERAL_STRING);
   return SG_OBJ(z);
 }
 
@@ -277,6 +370,20 @@ Endianness Sg_Utf32CheckBOM(SgByteVector *bv)
   } else {
     return NO_BOM;
   }
+}
+
+SgObject Sg_MakeCustomCodecSimple(SgObject name, SgObject getc, SgObject putc, SgObject data)
+{
+  SgCodec *z = make_codec();
+  z->type = SG_CUSTOM_CODEC;
+  z->name = name;
+  SG_CODEC_CUSTOM(z)->putc = putc;
+  SG_CODEC_CUSTOM(z)->getc = getc;
+  SG_CODEC_CUSTOM(z)->data = data;
+  /* TODO default read and write */
+  SG_CODEC_CUSTOM(z)->readc  = SG_UNDEF;
+  SG_CODEC_CUSTOM(z)->writec = SG_UNDEF;
+  return SG_OBJ(z);
 }
 
 /*

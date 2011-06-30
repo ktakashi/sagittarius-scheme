@@ -212,7 +212,7 @@
     (test-equal "replace-all"
 		"hello beautiful beautiful world"
 		(let ((p (regex "fxxking")))
-		  (regex-replace-all p "hello fxxking fxxkingworld" "beautiful")))
+		  (regex-replace-all p "hello fxxking fxxking world" "beautiful")))
 
     
 

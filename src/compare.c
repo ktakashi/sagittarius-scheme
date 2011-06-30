@@ -74,8 +74,8 @@ static int eqv_internal(SgObject x, SgObject y, int from_equal_p)
 	 method.
        */
       if ((SG_CODEC(x)->type == SG_BUILTIN_CODEC &&
-	   (SG_CODEC_BUILTIN(x)->getChar == SG_CODEC_BUILTIN(y)->getChar) &&
-	   (SG_CODEC_BUILTIN(x)->putChar == SG_CODEC_BUILTIN(y)->putChar)) ||
+	   (SG_CODEC_BUILTIN(x)->getc == SG_CODEC_BUILTIN(y)->getc) &&
+	   (SG_CODEC_BUILTIN(x)->putc == SG_CODEC_BUILTIN(y)->putc)) ||
 	  (SG_CODEC(x)->type == SG_CUSTOM_CODEC &&
 	    /* we just compare the name */
 	   SG_EQ(SG_CODEC(x)->name, SG_CODEC(y)->name))) {
