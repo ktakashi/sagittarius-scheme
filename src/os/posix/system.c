@@ -34,6 +34,8 @@
 #include <time.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #ifdef HAVE_SCHED_H
 # include <sched.h>
 #endif
@@ -119,4 +121,41 @@ void Sg_YieldCPU()
 #else /* the last resort */
     sleep(1);
 #endif
+}
+
+SgObject Sg_Getenv(const SgChar *env)
+{
+  int len = ustrlen(env);
+  SgString s = { MAKE_HDR_VALUE(TC_STRING), len, env};
+  char *key = Sg_Utf32sToUtf8s(&s);
+  const char *value = getenv(key);
+  if (value == NULL) return SG_FALSE;
+  return Sg_MakeStringC(value);
+}
+
+SgObject Sg_GetTemporaryDirectory()
+{
+  static const char *NAME = "/.sagittarius";
+  const char *home = getenv("HOME");
+  int len = strlen(home) + 13;	/* 13 is the length of /.sagittarius */
+  char *real = SG_NEW_ATOMIC2(char *, len + 1);
+  /* We know the length, so don't worry */
+  strcpy(real, home);
+  strcat(real, NAME);
+  if (access(real, F_OK) == 0) {
+    struct stat st;
+    if (stat(real, &st) == 0) {
+      if (S_ISDIR(st.st_mode)) {
+	return Sg_MakeStringC(real);
+      } else {
+	return SG_FALSE;
+      }
+    } else {
+      return SG_FALSE;
+    }
+  } else {
+    /* create */
+    if (mkdir(real, S_IRWXU | S_IRWXG | S_IRWXO) != 0) return SG_FALSE;
+  }
+  return Sg_MakeStringC(real);
 }

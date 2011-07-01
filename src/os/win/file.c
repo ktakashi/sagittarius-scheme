@@ -85,7 +85,28 @@ static int64_t win_write(SgObject self, uint8_t *buf, int64_t size)
   int isOK;
   SgFile *file = SG_FILE(self);
   /* check console */
-  isOK = WriteFile(SG_FD(file)->desc, buf, size, &writeSize, NULL);
+  if (Sg_IsUTF16Console()) {
+#if 1
+    unsigned int destSize = 0;
+    uint8_t *dest = NULL;
+    if ((destSize = WideCharToMultiByte(GetConsoleOutputCP(), 0, (const wchar_t *)buf, size / 2, (LPSTR)NULL, 0, NULL)) == 0) {
+      Sg_IOWriteError(SG_INTERN("write"), Sg_GetLastErrorMessage(), SG_UNDEF);
+    }
+    dest = SG_NEW_ATOMIC2(uint8_t *, destSize + 1);
+    if (WideCharToMultiByte(GetConsoleOutputCP(), 0, (const wchar_t *)buf, size / 2, (LPSTR)dest, destSize, NULL, NULL) == 0) {
+      Sg_IOWriteError(SG_INTERN("write"), Sg_GetLastErrorMessage(), SG_UNDEF);
+    }
+    isOK = WriteFile(SG_FD(file)->desc, dest, destSize, &writeSize, NULL);
+    if (writeSize != destSize) {
+      Sg_IOWriteError(SG_INTERN("write"), Sg_GetLastErrorMessage(), SG_UNDEF);
+    }
+    writeSize = size;
+#else
+    isOK = WriteFile(SG_FD(file)->desc, buf, size, &writeSize, NULL);
+#endif 0
+  } else {
+    isOK = WriteFile(SG_FD(file)->desc, buf, size, &writeSize, NULL);
+  }
   setLastError(file);
   if (isOK) {
     return writeSize;
@@ -129,43 +150,7 @@ static int win_is_open(SgObject self)
   return SG_FD(file)->desc != INVALID_HANDLE_VALUE;
 }
 
-/* from mosh */
-static const wchar_t* utf32ToUtf16(const SgChar *s)
-{
-  int size = ustrlen(s), i;
-  SgPort *out = Sg_MakeByteArrayOutputPort(sizeof(wchar_t) * (size + 1));
-  SgCodec *codec = Sg_MakeUtf16Codec(UTF_16LE);
-  SgTranscoder *tcoder = Sg_MakeTranscoder(codec, LF, SG_REPLACE_ERROR);
-  
-  for (i = 0; i < size; i++) {
-    tcoder->putChar(tcoder, out, s[i]);
-  }
-  tcoder->putChar(tcoder, out, '\0');
-  return (const wchar_t*)Sg_GetByteArrayFromBinaryPort(out);
-}
-
-static inline int isLead(SgChar c) { return (c & 0xfffffc00) == 0xd800; }
-static inline int isTrail(SgChar c) { return (c & 0xfffffc00) == 0xdc00; }
-static SgString* utf16ToUtf32(wchar_t *s)
-{
-  const SgChar offset = (0xd800 << 10UL) + 0xdc00 - 0x10000;
-  size_t i = 0, n = wcslen(s);
-  SgObject out = Sg_MakeStringOutputPort(n);
-  while (i < n) {
-    SgChar c0 = s[i++];
-    if (isLead(c0)) {
-      SgChar c1;
-      if (i < n && isTrail((c1 = s[i]))) {
-	i++;
-	c0 = (c0 << 10) + c1 - offset;
-      } else {
-	return Sg_MakeString(UC("bad char"), SG_LITERAL_STRING);
-      }
-    }
-    Sg_PutcUnsafe(out, c0);
-  }
-  return Sg_GetStringFromStringPort(out);
-}
+#include "win_util.c"
 
 static int win_open(SgObject self, const SgChar* path, int flags)
 {
@@ -259,25 +244,6 @@ SgObject Sg_MakeFile()
   return SG_OBJ(z);
 }
 
-static SgObject get_last_error(DWORD e)
-{
-#define MSG_SIZE 128
-  wchar_t msg[MSG_SIZE];
-  int size = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-			    0, 
-			    e,
-			    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			    msg,
-			    MSG_SIZE,
-			    NULL);
-  if (size > 2 && msg[size - 2] == '\r') {
-    msg[size - 2] = 0;
-    size -= 2;
-  }
-  return utf16ToUtf32(msg);
-#undef MSG_SIZE
-}
-
 SgObject Sg_OpenFile(SgString *file, int flags)
 {
   SgFile *z = make_file(INVALID_HANDLE_VALUE);
@@ -321,8 +287,7 @@ SgObject Sg_StandardError()
 
 int Sg_IsUTF16Console(SgObject file)
 {
-  /*return GetFileType(SG_FD(file)->desc) == FILE_TYPE_CHAR; */
-  return FALSE;
+  return GetFileType(SG_FD(file)->desc) == FILE_TYPE_CHAR;
 }
 
 /* system.h
@@ -528,41 +493,6 @@ static void initialize_path()
   win_lib_path = SG_STRING(Sg_MakeString(UC(SAGITTARIUS_SHARE_LIB_PATH), SG_LITERAL_STRING));
   win_dynlib_path = SG_STRING(Sg_MakeString(UC(SAGITTARIUS_DYNLIB_PATH), SG_LITERAL_STRING));
 }
-
-/* defined in system.h
-   we need utf32ToUtf16, but i don't want to write it everywhere.
- */
-SgObject Sg_GetDefaultLoadPath()
-{
-  if (win_lib_path == NULL ||
-      win_sitelib_path == NULL ||
-      win_dynlib_path == NULL) {
-    initialize_path();
-  }
-  return SG_LIST2(win_sitelib_path, win_lib_path);
-		  
-}
-
-SgObject Sg_GetDefaultDynamicLoadPath()
-{
-  /* this must be initialized when vm is being created. */
-  if (win_lib_path == NULL ||
-      win_sitelib_path == NULL ||
-      win_dynlib_path == NULL) {
-    initialize_path();
-  }
-  return SG_LIST1(Sg_MakeString(UC(SAGITTARIUS_DYNLIB_PATH), SG_LITERAL_STRING));
-}
-
-SgObject Sg_GetLastErrorMessage()
-{
-  return get_last_error(GetLastError());
-}
-SgObject Sg_GetLastErrorMessageWithErrorCode(int code)
-{
-  return get_last_error(code);
-}
-
 
 /*
   end of file

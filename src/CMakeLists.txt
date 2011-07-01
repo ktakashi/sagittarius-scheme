@@ -48,6 +48,7 @@ SET(SAGITTARIUS_LIB_SOURCE
   record.c         exceptions.c
   profiler.c       weak.c
   gloc.c           load.c
+  cache.c
   # libraries
   proclib.c        null.c
   vmlib.c          vmdebug.c

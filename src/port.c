@@ -403,9 +403,8 @@ static int64_t file_read_u8_all(SgObject self, uint8_t **buf)
   } else {
     int offset = 0;
     if (SG_PORT_HAS_U8_AHEAD(self)) {
-      dest[0] = SG_PORT_U8_AHEAD(self);
+      dest[offset++] = SG_PORT_U8_AHEAD(self);
       SG_PORT_U8_AHEAD(self) = EOF;
-      offset++;
     }
     result = SG_PORT_FILE(self)->read(SG_PORT_FILE(self), dest + offset, rest_size - offset);
     result += offset;

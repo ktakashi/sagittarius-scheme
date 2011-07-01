@@ -118,6 +118,7 @@ typedef enum {
   COMPILING,
   COMPILED,
   RUNNING,
+  IMPORTING,
   FINISHED
 } SgVMState;
 
@@ -252,6 +253,16 @@ struct SgVMRec
   /* for threads modules */
   unsigned long uptimeSec;
   unsigned long uptimeUsec;
+
+  /* temporary storage for compiled cache
+     storage structure:
+     ((#<code-builder> ...)
+      (#<code-builder> ...)
+      ...)
+     compiled codes are always appended the first list.
+     when importing a library, first list will be appended.
+   */
+  SgObject cache;
 };
 
 /*
@@ -365,7 +376,6 @@ SG_EXTERN SgObject Sg_AddLoadPath(SgString *path);
 SG_EXTERN SgObject Sg_AddDynamicLoadPath(SgString *path);
 
 /* eval */
-SG_EXTERN SgObject Sg_VMEval(SgObject sexp, SgObject env);
 SG_EXTERN SgObject Sg_Eval(SgObject sexp, SgObject env);
 SG_EXTERN SgObject Sg_Environment(SgObject lib, SgObject spec);
 

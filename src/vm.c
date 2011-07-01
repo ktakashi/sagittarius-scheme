@@ -136,6 +136,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->escapeData[0] = NULL;
   v->escapeData[1] = NULL;
   v->defaultEscapeHandler = SG_FALSE;
+  v->cache = SG_NIL;
 
   v->dynamicWinders = SG_NIL;
   v->parentExHandler = SG_FALSE;
@@ -504,35 +505,17 @@ SgObject Sg_Compile(SgObject o, SgObject e)
 
 /* 
    env: library for now.
-   vm-current-library will be given env and after eval, we restore it.
- */
-SgObject Sg_VMEval(SgObject sexp, SgObject env)
-{
-  SgObject v = SG_NIL;
-  SgVM *vm = theVM;
-
-  v = Sg_Compile(sexp, env);
-
-  ASSERT(SG_CODE_BUILDERP(v));
-  /* TODO replace and restore current library*/
-  SG_CLOSURE(vm->closureForEvaluate)->code = v;
-  vm->cl = vm->closureForEvaluate;
-  vm->dc = vm->closureForEvaluate;
-  vm->pc = SG_CODE_BUILDER(v)->code;
-  return SG_UNDEF;
-}
-
-/* 
-   env: library for now.
  */
 SgObject Sg_Eval(SgObject sexp, SgObject env)
 {
   SgObject v = SG_NIL;
   SgVM *vm = theVM;
 
-  vm->state = COMPILING;
+  if (vm->state != IMPORTING) vm->state = COMPILING;
   v = Sg_Compile(sexp, env);
-  vm->state = RUNNING;
+  /* store cache */
+  if (vm->state == IMPORTING) SG_SET_CAR(vm->cache, Sg_Cons(v, SG_CAR(vm->cache)));
+  if (vm->state != IMPORTING) vm->state = RUNNING;
 
   ASSERT(SG_CODE_BUILDERP(v));
   /* TODO replace and restore current library*/

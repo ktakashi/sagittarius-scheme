@@ -302,7 +302,7 @@ SgObject Sg_Memv(SgObject obj, SgObject list)
   }
   return SG_FALSE;
 }
-
+/*
 SgObject Sg_Member(SgObject obj, SgObject list)
 {
   SG_FOR_EACH(list, list) {
@@ -310,6 +310,7 @@ SgObject Sg_Member(SgObject obj, SgObject list)
   }
   return SG_FALSE;
 }
+*/
 
 SgObject Sg_Assq(SgObject obj, SgObject alist)
 {
@@ -335,6 +336,7 @@ SgObject Sg_Assv(SgObject obj, SgObject alist)
   return SG_FALSE;
 }
 
+/*
 SgObject Sg_Assoc(SgObject obj, SgObject alist)
 {
   SgObject cp;
@@ -346,6 +348,7 @@ SgObject Sg_Assoc(SgObject obj, SgObject alist)
   }
   return SG_FALSE;
 }
+*/
   
 /*
   end of file

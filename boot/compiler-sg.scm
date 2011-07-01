@@ -781,6 +781,16 @@
    (p1env-current-proc p1env))))
 
 (define
+ p1env-difference
+ (lambda
+  (p1env frame)
+  (make-p1env
+   (p1env-library p1env)
+   (lset-difference equal? (p1env-frames p1env) frame)
+   (p1env-exp-name p1env)
+   (p1env-current-proc p1env))))
+
+(define
  make-bottom-p1env
  (lambda
   maybe-library
@@ -2089,14 +2099,21 @@
         (unrename-expression bodys ids))))
      (for-each set-cdr! (cdar (p1env-frames newenv)) trans)
      (values newenv ids))))
-  (cond
-   ((and (null? intdefs) (null? intmacros)) (pass1/body-rest exprs p1env))
-   ((null? intmacros)
-    (let*
-     ((intdefs. (reverse intdefs))
-      (vars (map car intdefs.))
-      (lvars (map make-lvar+ vars))
-      (newenv (p1env-extend p1env (%map-cons vars lvars) LEXICAL)))
+  (let*
+   ((intdefs. (reverse intdefs))
+    (vars (map car intdefs.))
+    (lvars
+     (map
+      (lambda
+       (var)
+       (let
+        ((r (p1env-lookup p1env var LEXICAL)))
+        (if (lvar? r) r (make-lvar var))))
+      vars))
+    (newenv (p1env-extend p1env (%map-cons vars lvars) LEXICAL)))
+   (cond
+    ((and (null? intdefs) (null? intmacros)) (pass1/body-rest exprs p1env))
+    ((null? intmacros)
      ($let
       #f
       'rec
@@ -2105,29 +2122,33 @@
        (lambda (lv def) (pass1/body-init lv def newenv))
        lvars
        (map cdr intdefs.))
-      (pass1/body-rest exprs newenv))))
-   (else
-    (receive
-     (macenv ids)
-     (let
-      loop
-      ((exprs intmacros) (env p1env) (ids '()))
-      (if
-       (null? exprs)
-       (values env ids)
-       (case
-        (caar exprs)
-        ((def rec)
-         (receive
-          (new-env new-ids)
-          (letrec-syntax-parser (cdar exprs) env ids)
-          (loop (cdr exprs) new-env new-ids)))
-        ((let)
-         (receive
-          (new-env new-ids)
-          (let-syntax-parser (cdar exprs) env ids)
-          (loop (cdr exprs) new-env new-ids))))))
-     (pass1/body-rec (unrename-expression exprs ids) intdefs '() macenv))))))
+      (pass1/body-rest exprs newenv)))
+    (else
+     (receive
+      (macenv ids)
+      (let
+       loop
+       ((exprs intmacros) (env newenv) (ids '()))
+       (if
+        (null? exprs)
+        (values env ids)
+        (case
+         (caar exprs)
+         ((def rec)
+          (receive
+           (new-env new-ids)
+           (letrec-syntax-parser (cdar exprs) env ids)
+           (loop (cdr exprs) new-env new-ids)))
+         ((let)
+          (receive
+           (new-env new-ids)
+           (let-syntax-parser (cdar exprs) env ids)
+           (loop (cdr exprs) new-env new-ids))))))
+      (pass1/body-rec
+       (unrename-expression exprs ids)
+       intdefs
+       '()
+       macenv)))))))
 
 (define
  pass1/body-init

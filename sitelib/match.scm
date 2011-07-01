@@ -3,6 +3,7 @@
 ;; match - Andrew Wright's pattern matching macro.
 ;;
 ;;   Ported to Sagittarius by Takashi Kati<ktakashi@ymail.com>
+#!compatible
 (library (match helper)
     (export gentemp
 	    defmacro)

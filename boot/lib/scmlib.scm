@@ -201,6 +201,32 @@
 	      (recur (cdr lis) (- k 1))
 	    (values (cons (car lis) prefix) suffix))))))
 
+(define (find pred list)
+  (cond ((find-tail pred list) => car)
+	(else #f)))
+
+(define (find-tail pred list)
+  (or (procedure? pred)
+      (assertion-violation 'find-tail
+			   (wrong-type-argument-message "procedure" pred 2)))
+  (let lp ((list list))
+    (and (not (null-list? list))
+     (if (pred (car list)) list
+         (lp (cdr list))))))
+
+(define (assoc x lis . =)
+  (or (list? lis)
+      (assertion-violation 'assoc
+			   (wrong-type-argument-message "list" lis 2)))
+  (if (null? =)
+      (assoc x lis equal?)
+      (find (lambda (entry) ((car =) x (car entry))) lis)))
+
+(define (member x lis . =)
+  (if (null? =)
+      (member x lis equal?)
+      (find-tail (lambda (y) ((car =) x y)) lis)))
+
 (define (delete x lis . =)
   (if (null? =)
       (delete x lis equal?)
@@ -217,6 +243,17 @@
               (for-all (lambda (lis) (member x lis =)) lists))
             lis1)))))
 
+(define (lset-difference = lis1 . lists)
+  (or (procedure? =)
+      (assertion-violation 'lset-difference
+			   (wrong-type-argument-message "procedure" = 2)))
+  (let ((lists (filter pair? lists)))   ; Throw out empty lists.
+    (cond ((null? lists)     lis1)  ; Short cut
+      ((memq lis1 lists) '())   ; Short cut
+      (else (filter (lambda (x)
+              (for-all (lambda (lis) (not (member x lis =)))
+                 lists))
+            lis1)))))
 
 (define (take lis k)
   (or (integer? k)

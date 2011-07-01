@@ -135,7 +135,8 @@
 	    string->utf32 utf32->string
 
 	    ;; 3 List utilities
-	    memq memv member assq assv assoc
+	    memq memv ;;member ;; in scmlib.scm
+	    assq assv ;;assoc  ;; in scmlib.scm
 	    cons*
 
 	    ;; 7 Exceptions and conditions
@@ -1825,9 +1826,6 @@
   (define-c-proc memv (arg0 arg1) ::Object
     (result (Sg_Memv arg0 arg1)))
 
-  (define-c-proc member (obj lst) ::Object
-    (result (Sg_Member obj lst)))
-
   (define-c-proc assq (obj alist) ::Object
     (unless (SG_LISTP alist)
       (wrong-type-of-argument-violation 'assq
@@ -1843,14 +1841,6 @@
 					alist
 					(SG_LIST2 obj alist)))
     (result (Sg_Assv obj alist)))
-
-  (define-c-proc assoc (obj alist) ::Object
-    (unless (SG_LISTP alist)
-      (wrong-type-of-argument-violation 'assoc
-					"list"
-					alist
-					(SG_LIST2 obj alist)))
-    (result (Sg_Assoc obj alist)))
 
   (define-c-proc cons* (:rest rest) ::Object
     (let ((h '()) (t '()))

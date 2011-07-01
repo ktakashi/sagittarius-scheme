@@ -79,7 +79,7 @@
    (only (rnrs mutable-pairs) set-cdr! set-car!)
    (only (sagittarius) circular-list? dotted-list? reverse!)
    (only (core) receive last-pair)
-   (only (core base) split-at null-list? delete lset-intersection take drop fold)
+   (only (core base) split-at null-list? delete lset-intersection take drop fold lset-difference assoc member find find-tail)
     )
 
 ;;;
@@ -1312,12 +1312,12 @@
      (filter! (lambda (y) (not (= x y))) lis)]))
 
 ;;; Extended from R4RS to take an optional comparison argument.
-(define member
-  (case-lambda
-    [(x lis)
-     (member x lis equal?)]
-    [(x lis =)
-     (find-tail (lambda (y) (= x y)) lis)]))
+;;(define member
+;;  (case-lambda
+;;    [(x lis)
+;;     (member x lis equal?)]
+;;    [(x lis =)
+;;     (find-tail (lambda (y) (= x y)) lis)]))
 
 ;;; R4RS, hence we don't bother to define.
 ;;; The MEMBER and then FIND-TAIL call should definitely
@@ -1368,12 +1368,12 @@
 ;;;;;;;;;;;;;;;
 
 ;;; Extended from R4RS to take an optional comparison argument.
-(define assoc
-  (case-lambda
-    [(x lis)
-     (assoc x lis equal?)]
-    [(x lis =)
-     (find (lambda (entry) (= x (car entry))) lis)]))
+;;(define assoc
+;;  (case-lambda
+;;    [(x lis)
+;;     (assoc x lis equal?)]
+;;    [(x lis =)
+;;     (find (lambda (entry) (= x (car entry))) lis)]))
 
 (define (alist-cons key datum alist) (cons (cons key datum) alist))
 
@@ -1399,16 +1399,16 @@
 ;;; find find-tail take-while drop-while span break any every list-index
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (find pred list)
-  (cond ((find-tail pred list) => car)
-    (else #f)))
+;;(define (find pred list)
+;;  (cond ((find-tail pred list) => car)
+;;    (else #f)))
 
-(define (find-tail pred list)
-  (check-arg procedure? pred find-tail)
-  (let lp ((list list))
-    (and (not (null-list? list))
-     (if (pred (car list)) list
-         (lp (cdr list))))))
+;;(define (find-tail pred list)
+;;  (check-arg procedure? pred find-tail)
+;;  (let lp ((list list))
+;;    (and (not (null-list? list))
+;;     (if (pred (car list)) list
+;;         (lp (cdr list))))))
 
 (define (take-while pred lis)
   (check-arg procedure? pred take-while)
@@ -1626,16 +1626,6 @@
                   ans lis))))
       '() lists))
 
-
-(define (lset-intersection = lis1 . lists)
-  (check-arg procedure? = lset-intersection)
-  (let ((lists (delete lis1 lists eq?))) ; Throw out any LIS1 vals.
-    (cond ((any null-list? lists) '())      ; Short cut
-      ((null? lists)          lis1)     ; Short cut
-      (else (filter (lambda (x)
-              (every (lambda (lis) (member x lis =)) lists))
-            lis1)))))
-
 (define (lset-intersection! = lis1 . lists)
   (check-arg procedure? = lset-intersection!)
   (let ((lists (delete lis1 lists eq?))) ; Throw out any LIS1 vals.
@@ -1644,17 +1634,6 @@
       (else (filter! (lambda (x)
                (every (lambda (lis) (member x lis =)) lists))
              lis1)))))
-
-
-(define (lset-difference = lis1 . lists)
-  (check-arg procedure? = lset-difference)
-  (let ((lists (filter pair? lists)))   ; Throw out empty lists.
-    (cond ((null? lists)     lis1)  ; Short cut
-      ((memq lis1 lists) '())   ; Short cut
-      (else (filter (lambda (x)
-              (every (lambda (lis) (not (member x lis =)))
-                 lists))
-            lis1)))))
 
 (define (lset-difference! = lis1 . lists)
   (check-arg procedure? = lset-difference!)

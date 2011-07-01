@@ -47,6 +47,7 @@
 #include "sagittarius/gloc.h"
 #include "sagittarius/compare.h"
 #include "sagittarius/thread.h"
+#include "sagittarius/cache.h"
 
 
 static SgLibrary* make_library()
@@ -263,7 +264,19 @@ static SgObject search_library(SgObject name)
  goal:
   /* this must creates a new library */
   if (Sg_FileExistP(path)) {
-    Sg_Load(path);		/* check again, or flag? */
+    if (!Sg_ReadCache(path)) {
+      int save = vm->state;
+      vm->state = IMPORTING;
+      /* creates new cache */
+      vm->cache = Sg_Cons(SG_NIL, vm->cache);
+      Sg_Load(path);		/* check again, or flag? */
+      /* write cache */
+      Sg_WriteCache(path, Sg_ReverseX(SG_CAR(vm->cache)));
+      /* we don't need the first cache, so discard it */
+      vm->cache = SG_CDR(vm->cache);
+      /* restore state */
+      vm->state = save;
+    }
   } else {
     /* first creation or no file. */
     return SG_FALSE;

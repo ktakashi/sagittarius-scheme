@@ -30,9 +30,17 @@
  *  $Id: $
  */
 #include <windows.h>
+#include <shlwapi.h>
+#include <wchar_t.h>
+#include <io.h>
+#ifdef _MSC_VER
+#pragma comment(lib, "shlwapi.lib")
+#endif
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/file.h"
 #include "sagittarius/system.h"
+
+#include "win_util.c"
 
 /* os dependent values */
 const SgChar* Sg_NativeFileSeparator()
@@ -55,4 +63,81 @@ int Sg_GetTimeOfDay(unsigned long *sec, unsigned long *nsec)
 void Sg_YieldCPU()
 {
   Sleep(10);
+}
+
+
+SgObject Sg_GetDefaultLoadPath()
+{
+  if (win_lib_path == NULL ||
+      win_sitelib_path == NULL ||
+      win_dynlib_path == NULL) {
+    initialize_path();
+  }
+  return SG_LIST2(win_sitelib_path, win_lib_path);
+		  
+}
+
+SgObject Sg_GetDefaultDynamicLoadPath()
+{
+  /* this must be initialized when vm is being created. */
+  if (win_lib_path == NULL ||
+      win_sitelib_path == NULL ||
+      win_dynlib_path == NULL) {
+    initialize_path();
+  }
+  return SG_LIST1(Sg_MakeString(UC(SAGITTARIUS_DYNLIB_PATH), SG_LITERAL_STRING));
+}
+
+SgObject Sg_GetLastErrorMessage()
+{
+  return get_last_error(GetLastError());
+}
+SgObject Sg_GetLastErrorMessageWithErrorCode(int code)
+{
+  return get_last_error(code);
+}
+
+#define VALUE_SIZE 1024;
+
+static int get_env(const SgChar *env, wchar_t *buf, int size)
+{
+  int size = GetEnvironmentVariableW(utf32ToUtf16(key), buf, size);
+  if (size == 0 || size > size) {
+    return 0;
+  }
+}
+
+SgObject Sg_Getenv(const SgChar *env)
+{
+  wchar_t value[VALUE_SIZE];
+  if (get_env(env, buf, VALUE_SIZE) != 0)
+    return utf16ToUtf32(buf);
+  else
+    return SG_FALSE;
+}
+
+SgObject Sg_GetTemporaryDirectory()
+{
+  static const wchar_t NAME = L"Sagittarius";
+  wchar_t value[MAX_PATH];
+  int length = get_env(UC("TEMP"), value, MAX_PATH);
+  if (PathIsDirectoryW(value)) goto next;
+  /* maybe TMP? */
+  length = get_env(UC("TMP"), value, MAX_PATH);
+  if (PathIsDirectoryW(value)) goto next;
+  /* give up */
+  return SG_FALSE;
+
+ next:
+  /* temporary directory path is too long */
+  if (length > MAX_PATH) return SG_FALSE;
+  PathAppendW(value, NAME);
+  if (PathFileExists(value)) {
+    /* something is exists */
+    if (!PathIsDirectoryW(value)) return SG_FALSE;
+  } else {
+    /* create */
+    CreateDirectoryW(value);
+  }
+  return utf16ToUtf32(value);
 }

@@ -1,4 +1,4 @@
-// -*- C -*-
+/* -*- C -*- */
 /*
  * symbol.c
  *
@@ -57,7 +57,10 @@ SgObject Sg_MakeSymbol(SgString *name, int interned)
     Sg_LockMutex(&obtable_mutax);
     e = Sg_HashTableRef(obtable, SG_OBJ(name), SG_FALSE);
     Sg_UnlockMutex(&obtable_mutax);
-    if (!SG_FALSEP(e)) return e;
+    if (!SG_FALSEP(e)) {
+      ASSERT(SG_SYMBOLP(e));
+      return e;
+    }
   }
   /* symbol can be literal */
   sname = Sg_MakeString(name->value, SG_LITERAL_STRING);

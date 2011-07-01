@@ -124,10 +124,12 @@ SG_EXTERN SgObject Sg_ListRef(SgObject list, int i, SgObject fallback);
 
 SG_EXTERN SgObject Sg_Memq(SgObject obj, SgObject list);
 SG_EXTERN SgObject Sg_Memv(SgObject obj, SgObject list);
-SG_EXTERN SgObject Sg_Member(SgObject obj, SgObject list);
+/* for compatibility of SRFI-1*/
+/* SG_EXTERN SgObject Sg_Member(SgObject obj, SgObject list); */
 SG_EXTERN SgObject Sg_Assq(SgObject obj, SgObject alist);
 SG_EXTERN SgObject Sg_Assv(SgObject obj, SgObject alist);
-SG_EXTERN SgObject Sg_Assoc(SgObject obj, SgObject alist);
+/* for compatibility of SRFI-1*/
+/* SG_EXTERN SgObject Sg_Assoc(SgObject obj, SgObject alist); */
 
 SG_CDECL_END
 
