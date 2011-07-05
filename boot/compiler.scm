@@ -354,6 +354,12 @@
 
 (define-simple-struct $list $LIST $list src args)
 
+;; $library <library>
+;; This iform is only for compiled cache.
+(define-simple-struct $library $LIBRARY $library
+  library ; library
+)
+
 ;; common accessors
 (define-syntax $*-src
   (syntax-rules ()
@@ -1827,6 +1833,7 @@
 	       (vm-current-library current-lib))
 	     (lambda ()
 	       ($seq (append
+		      (list ($library current-lib)) ; put library here
 		      (map (lambda (x) (pass1 x newenv)) body)
 		      (list ($undef)))))
 	     (lambda ()
@@ -2610,6 +2617,9 @@
     iform))
 
 (define pass2/$LIST pass2/narg-inliner)
+
+(define pass2/$LIBRARY
+  (lambda (iform penv tail?) iform))
 
 ;; Dispatch table.
 (define *pass2-dispatch-table* (generate-dispatch-table pass2))
@@ -3555,6 +3565,11 @@
 (define pass3/$LIST
   (lambda (iform cb renv ctx)
     (%pass3/builtin-nargs cb ($*-src iform) LIST ($*-args iform) renv)))
+
+(define pass3/$LIBRARY
+  (lambda (iform cb renv ctx)
+    (cb-emit0o! cb LIBRARY ($library-library iform))
+    0))
 
 ;; handlers to emit specialized instruction when applicable
 (define pass3/asm-eq

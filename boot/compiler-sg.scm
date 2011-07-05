@@ -301,6 +301,8 @@
 
 (define-simple-struct $list $LIST $list src args)
 
+(define-simple-struct $library $LIBRARY $library library)
+
 (define-syntax $*-src (syntax-rules () ((_ iform) (vector-ref iform 1))))
 
 (define-syntax $*-args (syntax-rules () ((_ iform) (vector-ref iform 2))))
@@ -1933,7 +1935,10 @@
       (lambda
        ()
        ($seq
-        (append (map (lambda (x) (pass1 x newenv)) body) (list ($undef)))))
+        (append
+         (list ($library current-lib))
+         (map (lambda (x) (pass1 x newenv)) body)
+         (list ($undef)))))
       (lambda () (vm-current-library save))))))
   (- (syntax-error "malformed library" form))))
 
@@ -2771,6 +2776,8 @@
   iform))
 
 (define pass2/$LIST pass2/narg-inliner)
+
+(define pass2/$LIBRARY (lambda (iform penv tail?) iform))
 
 (define *pass2-dispatch-table* (generate-dispatch-table pass2))
 
@@ -3826,6 +3833,13 @@
  (lambda
   (iform cb renv ctx)
   (%pass3/builtin-nargs cb ($*-src iform) LIST ($*-args iform) renv)))
+
+(define
+ pass3/$LIBRARY
+ (lambda
+  (iform cb renv ctx)
+  (cb-emit0o! cb LIBRARY ($library-library iform))
+  0))
 
 (define
  pass3/asm-eq

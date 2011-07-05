@@ -34,9 +34,16 @@
 
 #include "sagittariusdefs.h"
 
+/* read cache state */
+enum {
+  CACHE_READ,
+  RE_CACHE_NEEDED,
+  INVALID_CACHE,
+};
+
 SG_CDECL_BEGIN
 
-SG_EXTERN int Sg_WriteCache(SgString *id, SgObject cache);
+SG_EXTERN int Sg_WriteCache(SgObject name, SgString *id, SgObject cache);
 SG_EXTERN int Sg_ReadCache(SgString *id);
 
 SG_CDECL_END

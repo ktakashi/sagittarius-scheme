@@ -223,6 +223,18 @@ SgCodeBuilder* Sg_MakeCodeBuilder(int size)
   return cb;
 }
 
+SgCodeBuilder* Sg_MakeCodeBuilderFromCache(SgWord *code, int size, int argc, int optional, int freec)
+{
+  SgCodeBuilder *cb = SG_NEW(SgCodeBuilder);
+  SG_SET_HEADER(cb, TC_CODE_BUILDER);
+  cb->code = code;
+  cb->size = size;
+  cb->argc = argc;
+  cb->optional = optional;
+  cb->freec = freec;
+  return cb;
+}
+
 void Sg_CodeBuilderEmit(SgCodeBuilder *cb, SgWord insn, PacketType type,
 			int arg0, int arg1, SgObject obj)
 {

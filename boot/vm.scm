@@ -374,6 +374,8 @@
       ((HALT) a)
       ((NOP) 
        (VM x (skip) a c f s))
+      ((LIBRARY) 
+       (VM x (skip 2) a c f s))
       ((UNDEF) 
        (VM x (skip) 'undef c f s))
       ((FRAME)

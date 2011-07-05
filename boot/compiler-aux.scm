@@ -245,7 +245,8 @@
   $CALL
   $ASM
   $IT
-  $LIST)
+  $LIST
+  $LIBRARY)
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix

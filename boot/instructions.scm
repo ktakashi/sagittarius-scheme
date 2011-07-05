@@ -821,6 +821,12 @@ CASE(LSET) {
 		    val1)
     (set! (AC vm) SG_UNDEF)))
 
+;; This instruction is just mark for compiled cache.
+;; So it doesn't do any thing.
+(define-inst LIBRARY (0 1 #f)
+  ;; discards library and move to next.
+  (FETCH_OPERAND (PC vm)))
+
 #|
       CASE(CAR) {
 	if (!SG_PAIRP(AC(vm))) {

@@ -9,11 +9,6 @@
 #define INSN_VALUE2_MASK  ((1 << (sizeof(intptr_t) * 8)) - 1)
 #define INSN_VALUE1_SHIFT 8
 #define INSN_VALUE2_SHIFT 20
-
-#ifdef CONST
-# undef CONST
-#endif
-
 /**
    @brief set of instructions.
 
@@ -79,29 +74,30 @@ typedef enum {
   ENTER = 0x35,
   LEAVE = 0x36,
   DEFINE = 0x37,
-  CAR = 0x38,
-  CDR = 0x39,
-  CONS = 0x3a,
-  LIST = 0x3b,
-  VALUES = 0x3c,
-  EQ = 0x3d,
-  EQV = 0x3e,
-  NULLP = 0x3f,
-  PAIRP = 0x40,
-  SYMBOLP = 0x41,
-  VECTOR = 0x42,
-  VECTORP = 0x43,
-  VEC_LEN = 0x44,
-  VEC_REF = 0x45,
-  VEC_SET = 0x46,
-  LREF_PUSH = 0x47,
-  FREF_PUSH = 0x48,
-  GREF_PUSH = 0x49,
-  CONST_PUSH = 0x4a,
-  CONSTI_PUSH = 0x4b,
-  GREF_CALL = 0x4c,
-  GREF_TAIL_CALL = 0x4d,
-  INSTRUCTION_COUNT = 78, /** number of instructions */
+  LIBRARY = 0x38,
+  CAR = 0x39,
+  CDR = 0x3a,
+  CONS = 0x3b,
+  LIST = 0x3c,
+  VALUES = 0x3d,
+  EQ = 0x3e,
+  EQV = 0x3f,
+  NULLP = 0x40,
+  PAIRP = 0x41,
+  SYMBOLP = 0x42,
+  VECTOR = 0x43,
+  VECTORP = 0x44,
+  VEC_LEN = 0x45,
+  VEC_REF = 0x46,
+  VEC_SET = 0x47,
+  LREF_PUSH = 0x48,
+  FREF_PUSH = 0x49,
+  GREF_PUSH = 0x4a,
+  CONST_PUSH = 0x4b,
+  CONSTI_PUSH = 0x4c,
+  GREF_CALL = 0x4d,
+  GREF_TAIL_CALL = 0x4e,
+  INSTRUCTION_COUNT = 79, /** number of instructions */
 } Instruction;
 
 typedef struct InsnInfoRec InsnInfo;

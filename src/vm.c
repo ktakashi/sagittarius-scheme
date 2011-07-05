@@ -1628,6 +1628,9 @@ static void process_queued_requests(SgVM *vm)
   } else {								\
     SgObject value;							\
     SgGloc *g;								\
+    if (!SG_IDENTIFIERP(var)) {						\
+      Sg_Error(UC("[internal error] (GREF) identifier required but got %S\n"), var); \
+    }									\
     ASSERT(SG_IDENTIFIERP(var));					\
     value = Sg_FindBinding(SG_IDENTIFIER(var)->library,			\
 			   SG_IDENTIFIER(var)->name, SG_UNBOUND);	\

@@ -48,6 +48,7 @@
 #include "sagittarius/compare.h"
 #include "sagittarius/thread.h"
 #include "sagittarius/cache.h"
+#include "sagittarius/reader.h"
 
 
 static SgLibrary* make_library()
@@ -196,6 +197,13 @@ static SgString* library_name_to_path(SgObject name)
      TODO profile.
    */
   SgObject h = SG_NIL, t = SG_NIL;
+
+  if (!SG_PAIRP(name)) {
+    /* for cache */
+    SgObject in = Sg_MakeStringInputPort(SG_SYMBOL(name)->name, TRUE);
+    name = Sg_Read(in, TRUE);
+  }
+
   SG_FOR_EACH(item, name) {
     if (SG_SYMBOLP(SG_CAR(item))) {
       SgObject o = encode_string(SG_SYMBOL(SG_CAR(item))->name, FALSE);
@@ -264,14 +272,20 @@ static SgObject search_library(SgObject name)
  goal:
   /* this must creates a new library */
   if (Sg_FileExistP(path)) {
-    if (!Sg_ReadCache(path)) {
+    int state = Sg_ReadCache(path);
+    if (state != CACHE_READ) {
       int save = vm->state;
       vm->state = IMPORTING;
       /* creates new cache */
       vm->cache = Sg_Cons(SG_NIL, vm->cache);
       Sg_Load(path);		/* check again, or flag? */
-      /* write cache */
-      Sg_WriteCache(path, Sg_ReverseX(SG_CAR(vm->cache)));
+      /* if Sg_ReadCache returns INVALID_CACHE, then we don't have to write it.
+	 it's gonna be invalid anyway.
+       */
+      if (state == RE_CACHE_NEEDED) {
+	/* write cache */
+	Sg_WriteCache(name, path, Sg_ReverseX(SG_CAR(vm->cache)));
+      }
       /* we don't need the first cache, so discard it */
       vm->cache = SG_CDR(vm->cache);
       /* restore state */
@@ -429,7 +443,7 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
       /* SHORTCUT (import (rnrs)) case*/
       SgObject imported = Sg_HashTableAddAll(SG_LIBRARY_TABLE(tolib),
 					     SG_LIBRARY_TABLE(fromlib));
-      SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, SG_LIST1(imported),
+      SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, SG_LIST4(imported, SG_NIL, SG_NIL, SG_FALSE),
 					    SG_LIBRARY_IMPORTED(tolib));
       return;
     } else {
@@ -438,8 +452,8 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
   }
   imports = culculate_imports(only, renames);
 
-  /* imported alist: ((lib1 . exportSpec) ...) */
-  SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, exportSpec,
+  /* imported alist: ((lib1 . (only except renames prefix)) ...) */
+  SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, SG_LIST4(only, except, renames, prefix),
 					SG_LIBRARY_IMPORTED(tolib));
   if (SG_NULLP(tolib->generics)) {
     tolib->generics = fromlib->generics;

@@ -11,1273 +11,1275 @@
 #define IDENT(x, lib) WORD(Sg_MakeIdentifier(SYMBOL(x), SG_NIL, (lib)))
 static struct sg__wcRec {
   SgCodeBuilder cb[35];
-  SgWord        w[993];
+  SgWord        w[995];
 } sg__wc = {
   { /* code builder */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[132], NULL, 1, FALSE, 0, 7, 6), /* enum-type-indexer */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[138], NULL, 2, FALSE, 0, 9, 7), /* indexer-set! */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[145], NULL, 1, FALSE, 0, 7, 6), /* enum-type-universe */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[151], NULL, 2, FALSE, 0, 9, 7), /* universe-set! */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[158], NULL, 2, FALSE, 0, 11, 30), /* make-enum-type */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[188], NULL, 2, FALSE, 0, 10, 12), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[200], NULL, 1, FALSE, 0, 7, 6), /* enum-set-members */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[206], NULL, 2, FALSE, 0, 9, 7), /* members-set! */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[213], NULL, 1, FALSE, 0, 7, 6), /* enum-set-type */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[219], NULL, 2, FALSE, 0, 9, 7), /* type-set! */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[226], NULL, 2, FALSE, 0, 11, 30), /* make-enum-set */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[256], NULL, 2, FALSE, 0, 10, 12), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[268], NULL, 1, FALSE, 0, 12, 49), /* make-enumeration-type */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[317], NULL, 1, FALSE, 1, 8, 7), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[324], NULL, 1, FALSE, 0, 12, 38), /* make-enumeration */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[362], NULL, 1, FALSE, 0, 9, 20), /* enum-set-universe */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[382], NULL, 1, FALSE, 0, 7, 9), /* enum-set-indexer */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[391], NULL, 1, FALSE, 0, 5, 4), /* enum-set-constructor */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[395], NULL, 1, FALSE, 1, 16, 48), /* enum-set-constructor */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[443], NULL, 1, FALSE, 1, 7, 5), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[448], NULL, 1, FALSE, 0, 9, 37), /* enum-set->list */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[485], NULL, 1, FALSE, 2, 11, 38), /* loop */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[523], NULL, 2, FALSE, 0, 9, 16), /* enum-set-member? */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[539], NULL, 2, FALSE, 0, 16, 50), /* enum-set-subset? */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[589], NULL, 1, FALSE, 1, 7, 5), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[594], NULL, 1, FALSE, 1, 7, 5), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[599], NULL, 2, FALSE, 0, 10, 13), /* enum-set=? */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[612], NULL, 2, FALSE, 0, 23, 92), /* enum-set-union */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[704], NULL, 2, FALSE, 0, 23, 93), /* enum-set-intersection */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[797], NULL, 2, FALSE, 0, 23, 93), /* enum-set-difference */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[890], NULL, 1, FALSE, 0, 13, 39), /* enum-set-complement */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[929], NULL, 1, FALSE, 1, 7, 8), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[937], NULL, 2, FALSE, 0, 15, 51), /* enum-set-projection */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[988], NULL, 1, FALSE, 1, 7, 5), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[134], NULL, 1, FALSE, 0, 7, 6), /* enum-type-indexer */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[140], NULL, 2, FALSE, 0, 9, 7), /* indexer-set! */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[147], NULL, 1, FALSE, 0, 7, 6), /* enum-type-universe */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[153], NULL, 2, FALSE, 0, 9, 7), /* universe-set! */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[160], NULL, 2, FALSE, 0, 11, 30), /* make-enum-type */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[190], NULL, 2, FALSE, 0, 10, 12), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[202], NULL, 1, FALSE, 0, 7, 6), /* enum-set-members */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[208], NULL, 2, FALSE, 0, 9, 7), /* members-set! */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[215], NULL, 1, FALSE, 0, 7, 6), /* enum-set-type */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[221], NULL, 2, FALSE, 0, 9, 7), /* type-set! */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[228], NULL, 2, FALSE, 0, 11, 30), /* make-enum-set */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[258], NULL, 2, FALSE, 0, 10, 12), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[270], NULL, 1, FALSE, 0, 12, 49), /* make-enumeration-type */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[319], NULL, 1, FALSE, 1, 8, 7), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[326], NULL, 1, FALSE, 0, 12, 38), /* make-enumeration */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[364], NULL, 1, FALSE, 0, 9, 20), /* enum-set-universe */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[384], NULL, 1, FALSE, 0, 7, 9), /* enum-set-indexer */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[393], NULL, 1, FALSE, 0, 5, 4), /* enum-set-constructor */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[397], NULL, 1, FALSE, 1, 16, 48), /* enum-set-constructor */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[445], NULL, 1, FALSE, 1, 7, 5), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[450], NULL, 1, FALSE, 0, 9, 37), /* enum-set->list */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[487], NULL, 1, FALSE, 2, 11, 38), /* loop */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[525], NULL, 2, FALSE, 0, 9, 16), /* enum-set-member? */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[541], NULL, 2, FALSE, 0, 16, 50), /* enum-set-subset? */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[591], NULL, 1, FALSE, 1, 7, 5), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[596], NULL, 1, FALSE, 1, 7, 5), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[601], NULL, 2, FALSE, 0, 10, 13), /* enum-set=? */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[614], NULL, 2, FALSE, 0, 23, 92), /* enum-set-union */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[706], NULL, 2, FALSE, 0, 23, 93), /* enum-set-intersection */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[799], NULL, 2, FALSE, 0, 23, 93), /* enum-set-difference */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[892], NULL, 1, FALSE, 0, 13, 39), /* enum-set-complement */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[931], NULL, 1, FALSE, 1, 7, 8), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[939], NULL, 2, FALSE, 0, 15, 51), /* enum-set-projection */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[990], NULL, 1, FALSE, 1, 7, 5), /* #f */
   },
   { /* compiled code */
-  /*     0 */        0x0000002A           /* 0      (CLOSURE) */,
-  /*     1 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*     2 */        0x00000037           /* 2      (DEFINE) */,
-  /*     3 */        WORD(SG_UNDEF)  /* identifier#enum-type-indexer */,
-  /*     4 */        0x0000002A           /* 4      (CLOSURE) */,
-  /*     5 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*     6 */        0x00000037           /* 6      (DEFINE) */,
-  /*     7 */        WORD(SG_UNDEF)  /* identifier#indexer-set! */,
-  /*     8 */        0x0000002A           /* 8      (CLOSURE) */,
-  /*     9 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*    10 */        0x00000037           /* 10     (DEFINE) */,
-  /*    11 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
-  /*    12 */        0x0000002A           /* 12     (CLOSURE) */,
-  /*    13 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*    14 */        0x00000037           /* 14     (DEFINE) */,
-  /*    15 */        WORD(SG_UNDEF)  /* identifier#universe-set! */,
-  /*    16 */        0x0000002A           /* 16     (CLOSURE) */,
-  /*    17 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*    18 */        0x00000037           /* 18     (DEFINE) */,
-  /*    19 */        WORD(SG_UNDEF)  /* identifier#make-enum-type */,
-  /*    20 */        0x00000031           /* 20     (FRAME) */,
-  /*    21 */        WORD(SG_MAKE_INT(14)),
-  /*    22 */        0x0000004A           /* 22     (CONST_PUSH) */,
-  /*    23 */        WORD(SG_UNDEF), /* <enum-type> */
-  /*    24 */        0x0000002A           /* 24     (CLOSURE) */,
-  /*    25 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*    26 */        0x0000000B           /* 26     (PUSH) */,
-  /*    27 */        0x00000049           /* 27     (GREF_PUSH) */,
-  /*    28 */        WORD(SG_UNDEF)  /* identifier#make-enum-type */,
-  /*    29 */        0x0000004A           /* 29     (CONST_PUSH) */,
-  /*    30 */        WORD(SG_UNDEF), /* universe */
-  /*    31 */        0x0000004A           /* 31     (CONST_PUSH) */,
-  /*    32 */        WORD(SG_UNDEF), /* indexer */
-  /*    33 */        0x0000054C           /* 33     (GREF_CALL) */,
-  /*    34 */        WORD(SG_UNDEF)  /* identifier#make-generic */,
-  /*    35 */        0x00000037           /* 35     (DEFINE) */,
-  /*    36 */        WORD(SG_UNDEF)  /* identifier#<enum-type> */,
-  /*    37 */        0x0000002A           /* 37     (CLOSURE) */,
-  /*    38 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*    39 */        0x00000037           /* 39     (DEFINE) */,
-  /*    40 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*    41 */        0x0000002A           /* 41     (CLOSURE) */,
-  /*    42 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*    43 */        0x00000037           /* 43     (DEFINE) */,
-  /*    44 */        WORD(SG_UNDEF)  /* identifier#members-set! */,
-  /*    45 */        0x0000002A           /* 45     (CLOSURE) */,
-  /*    46 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*    47 */        0x00000037           /* 47     (DEFINE) */,
-  /*    48 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*    49 */        0x0000002A           /* 49     (CLOSURE) */,
-  /*    50 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*    51 */        0x00000037           /* 51     (DEFINE) */,
-  /*    52 */        WORD(SG_UNDEF)  /* identifier#type-set! */,
-  /*    53 */        0x0000002A           /* 53     (CLOSURE) */,
-  /*    54 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*    55 */        0x00000037           /* 55     (DEFINE) */,
-  /*    56 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
-  /*    57 */        0x00000031           /* 57     (FRAME) */,
-  /*    58 */        WORD(SG_MAKE_INT(14)),
-  /*    59 */        0x0000004A           /* 59     (CONST_PUSH) */,
-  /*    60 */        WORD(SG_UNDEF), /* <enum-set> */
-  /*    61 */        0x0000002A           /* 61     (CLOSURE) */,
-  /*    62 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*    63 */        0x0000000B           /* 63     (PUSH) */,
-  /*    64 */        0x00000049           /* 64     (GREF_PUSH) */,
-  /*    65 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
-  /*    66 */        0x0000004A           /* 66     (CONST_PUSH) */,
-  /*    67 */        WORD(SG_UNDEF), /* type */
-  /*    68 */        0x0000004A           /* 68     (CONST_PUSH) */,
-  /*    69 */        WORD(SG_UNDEF), /* members */
-  /*    70 */        0x0000054C           /* 70     (GREF_CALL) */,
-  /*    71 */        WORD(SG_UNDEF)  /* identifier#make-generic */,
-  /*    72 */        0x00000037           /* 72     (DEFINE) */,
-  /*    73 */        WORD(SG_UNDEF)  /* identifier#<enum-set> */,
-  /*    74 */        0x0000002A           /* 74     (CLOSURE) */,
-  /*    75 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*    76 */        0x00000037           /* 76     (DEFINE) */,
-  /*    77 */        WORD(SG_UNDEF)  /* identifier#make-enumeration-type */,
-  /*    78 */        0x0000002A           /* 78     (CLOSURE) */,
-  /*    79 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*    80 */        0x00000037           /* 80     (DEFINE) */,
-  /*    81 */        WORD(SG_UNDEF)  /* identifier#make-enumeration */,
-  /*    82 */        0x0000002A           /* 82     (CLOSURE) */,
-  /*    83 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*    84 */        0x00000037           /* 84     (DEFINE) */,
-  /*    85 */        WORD(SG_UNDEF)  /* identifier#enum-set-universe */,
-  /*    86 */        0x0000002A           /* 86     (CLOSURE) */,
-  /*    87 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*    88 */        0x00000037           /* 88     (DEFINE) */,
-  /*    89 */        WORD(SG_UNDEF)  /* identifier#enum-set-indexer */,
-  /*    90 */        0x0000002A           /* 90     (CLOSURE) */,
-  /*    91 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*    92 */        0x00000037           /* 92     (DEFINE) */,
-  /*    93 */        WORD(SG_UNDEF)  /* identifier#enum-set-constructor */,
-  /*    94 */        0x0000002A           /* 94     (CLOSURE) */,
-  /*    95 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*    96 */        0x00000037           /* 96     (DEFINE) */,
-  /*    97 */        WORD(SG_UNDEF)  /* identifier#enum-set->list */,
-  /*    98 */        0x0000002A           /* 98     (CLOSURE) */,
-  /*    99 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   100 */        0x00000037           /* 100    (DEFINE) */,
-  /*   101 */        WORD(SG_UNDEF)  /* identifier#enum-set-member? */,
-  /*   102 */        0x0000002A           /* 102    (CLOSURE) */,
-  /*   103 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   104 */        0x00000037           /* 104    (DEFINE) */,
-  /*   105 */        WORD(SG_UNDEF)  /* identifier#enum-set-subset? */,
-  /*   106 */        0x0000002A           /* 106    (CLOSURE) */,
-  /*   107 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   108 */        0x00000037           /* 108    (DEFINE) */,
-  /*   109 */        WORD(SG_UNDEF)  /* identifier#enum-set=? */,
-  /*   110 */        0x0000002A           /* 110    (CLOSURE) */,
-  /*   111 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   112 */        0x00000037           /* 112    (DEFINE) */,
-  /*   113 */        WORD(SG_UNDEF)  /* identifier#enum-set-union */,
-  /*   114 */        0x0000002A           /* 114    (CLOSURE) */,
-  /*   115 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   116 */        0x00000037           /* 116    (DEFINE) */,
-  /*   117 */        WORD(SG_UNDEF)  /* identifier#enum-set-intersection */,
-  /*   118 */        0x0000002A           /* 118    (CLOSURE) */,
-  /*   119 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   120 */        0x00000037           /* 120    (DEFINE) */,
-  /*   121 */        WORD(SG_UNDEF)  /* identifier#enum-set-difference */,
-  /*   122 */        0x0000002A           /* 122    (CLOSURE) */,
-  /*   123 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   124 */        0x00000037           /* 124    (DEFINE) */,
-  /*   125 */        WORD(SG_UNDEF)  /* identifier#enum-set-complement */,
-  /*   126 */        0x0000002A           /* 126    (CLOSURE) */,
-  /*   127 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   128 */        0x00000037           /* 128    (DEFINE) */,
-  /*   129 */        WORD(SG_UNDEF)  /* identifier#enum-set-projection */,
-  /*   130 */        0x00000002           /* 130    (UNDEF) */,
-  /*   131 */        0x00000001           /* 131    (HALT) */,
-  /*   132 */        0x00000047           /* 0      (LREF_PUSH) */,
-  /*   133 */        0x0000004A           /* 1      (CONST_PUSH) */,
-  /*   134 */        WORD(SG_UNDEF), /* indexer */
-  /*   135 */        0x0000024D           /* 3      (GREF_TAIL_CALL) */,
-  /*   136 */        WORD(SG_UNDEF)  /* identifier#generic-ref */,
-  /*   137 */        0x00000030           /* 5      (RET) */,
-  /*   138 */        0x00000047           /* 0      (LREF_PUSH) */,
-  /*   139 */        0x0000004A           /* 1      (CONST_PUSH) */,
-  /*   140 */        WORD(SG_UNDEF), /* indexer */
-  /*   141 */        0x00000147           /* 3      (LREF_PUSH) */,
-  /*   142 */        0x0000034D           /* 4      (GREF_TAIL_CALL) */,
-  /*   143 */        WORD(SG_UNDEF)  /* identifier#generic-set! */,
-  /*   144 */        0x00000030           /* 6      (RET) */,
-  /*   145 */        0x00000047           /* 0      (LREF_PUSH) */,
-  /*   146 */        0x0000004A           /* 1      (CONST_PUSH) */,
-  /*   147 */        WORD(SG_UNDEF), /* universe */
-  /*   148 */        0x0000024D           /* 3      (GREF_TAIL_CALL) */,
-  /*   149 */        WORD(SG_UNDEF)  /* identifier#generic-ref */,
-  /*   150 */        0x00000030           /* 5      (RET) */,
-  /*   151 */        0x00000047           /* 0      (LREF_PUSH) */,
-  /*   152 */        0x0000004A           /* 1      (CONST_PUSH) */,
-  /*   153 */        WORD(SG_UNDEF), /* universe */
-  /*   154 */        0x00000147           /* 3      (LREF_PUSH) */,
-  /*   155 */        0x0000034D           /* 4      (GREF_TAIL_CALL) */,
-  /*   156 */        WORD(SG_UNDEF)  /* identifier#generic-set! */,
-  /*   157 */        0x00000030           /* 6      (RET) */,
-  /*   158 */        0x00000332           /* 0      (LET_FRAME) */,
-  /*   159 */        0x00000147           /* 1      (LREF_PUSH) */,
-  /*   160 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*   161 */        0x00000234           /* 3      (DISPLAY) */,
-  /*   162 */        0x00000031           /* 4      (FRAME) */,
-  /*   163 */        WORD(SG_MAKE_INT(5)),
-  /*   164 */        0x00000049           /* 6      (GREF_PUSH) */,
-  /*   165 */        WORD(SG_UNDEF)  /* identifier#<enum-type> */,
-  /*   166 */        0x0000014C           /* 8      (GREF_CALL) */,
-  /*   167 */        WORD(SG_UNDEF)  /* identifier#create-instance */,
-  /*   168 */        0x0000000B           /* 10     (PUSH) */,
-  /*   169 */        0x00000133           /* 11     (POP_LET_FRAME) */,
-  /*   170 */        0x00000031           /* 12     (FRAME) */,
-  /*   171 */        WORD(SG_MAKE_INT(7)),
-  /*   172 */        0x00000047           /* 14     (LREF_PUSH) */,
-  /*   173 */        0x0000004A           /* 15     (CONST_PUSH) */,
-  /*   174 */        WORD(SG_UNDEF), /* indexer */
-  /*   175 */        0x00000148           /* 17     (FREF_PUSH) */,
-  /*   176 */        0x0000034C           /* 18     (GREF_CALL) */,
-  /*   177 */        WORD(SG_UNDEF)  /* identifier#generic-set! */,
-  /*   178 */        0x00000031           /* 20     (FRAME) */,
-  /*   179 */        WORD(SG_MAKE_INT(7)),
-  /*   180 */        0x00000047           /* 22     (LREF_PUSH) */,
-  /*   181 */        0x0000004A           /* 23     (CONST_PUSH) */,
-  /*   182 */        WORD(SG_UNDEF), /* universe */
-  /*   183 */        0x00000048           /* 25     (FREF_PUSH) */,
-  /*   184 */        0x0000034C           /* 26     (GREF_CALL) */,
-  /*   185 */        WORD(SG_UNDEF)  /* identifier#generic-set! */,
-  /*   186 */        0x00000005           /* 28     (LREF) */,
-  /*   187 */        0x00000030           /* 29     (RET) */,
-  /*   188 */        0x00000147           /* 0      (LREF_PUSH) */,
-  /*   189 */        0x0000004A           /* 1      (CONST_PUSH) */,
-  /*   190 */        WORD(SG_UNDEF), /* "#<enum-type ~a>" */
-  /*   191 */        0x00000031           /* 3      (FRAME) */,
-  /*   192 */        WORD(SG_MAKE_INT(4)),
-  /*   193 */        0x00000047           /* 5      (LREF_PUSH) */,
-  /*   194 */        0x0000014C           /* 6      (GREF_CALL) */,
-  /*   195 */        WORD(SG_UNDEF)  /* identifier#enum-type-members */,
-  /*   196 */        0x0000000B           /* 8      (PUSH) */,
-  /*   197 */        0x0000034D           /* 9      (GREF_TAIL_CALL) */,
-  /*   198 */        WORD(SG_UNDEF)  /* identifier#format */,
-  /*   199 */        0x00000030           /* 11     (RET) */,
-  /*   200 */        0x00000047           /* 0      (LREF_PUSH) */,
-  /*   201 */        0x0000004A           /* 1      (CONST_PUSH) */,
-  /*   202 */        WORD(SG_UNDEF), /* members */
-  /*   203 */        0x0000024D           /* 3      (GREF_TAIL_CALL) */,
-  /*   204 */        WORD(SG_UNDEF)  /* identifier#generic-ref */,
-  /*   205 */        0x00000030           /* 5      (RET) */,
-  /*   206 */        0x00000047           /* 0      (LREF_PUSH) */,
-  /*   207 */        0x0000004A           /* 1      (CONST_PUSH) */,
-  /*   208 */        WORD(SG_UNDEF), /* members */
-  /*   209 */        0x00000147           /* 3      (LREF_PUSH) */,
-  /*   210 */        0x0000034D           /* 4      (GREF_TAIL_CALL) */,
-  /*   211 */        WORD(SG_UNDEF)  /* identifier#generic-set! */,
-  /*   212 */        0x00000030           /* 6      (RET) */,
-  /*   213 */        0x00000047           /* 0      (LREF_PUSH) */,
-  /*   214 */        0x0000004A           /* 1      (CONST_PUSH) */,
-  /*   215 */        WORD(SG_UNDEF), /* type */
-  /*   216 */        0x0000024D           /* 3      (GREF_TAIL_CALL) */,
-  /*   217 */        WORD(SG_UNDEF)  /* identifier#generic-ref */,
-  /*   218 */        0x00000030           /* 5      (RET) */,
-  /*   219 */        0x00000047           /* 0      (LREF_PUSH) */,
-  /*   220 */        0x0000004A           /* 1      (CONST_PUSH) */,
-  /*   221 */        WORD(SG_UNDEF), /* type */
-  /*   222 */        0x00000147           /* 3      (LREF_PUSH) */,
-  /*   223 */        0x0000034D           /* 4      (GREF_TAIL_CALL) */,
-  /*   224 */        WORD(SG_UNDEF)  /* identifier#generic-set! */,
-  /*   225 */        0x00000030           /* 6      (RET) */,
-  /*   226 */        0x00000332           /* 0      (LET_FRAME) */,
-  /*   227 */        0x00000147           /* 1      (LREF_PUSH) */,
-  /*   228 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*   229 */        0x00000234           /* 3      (DISPLAY) */,
-  /*   230 */        0x00000031           /* 4      (FRAME) */,
-  /*   231 */        WORD(SG_MAKE_INT(5)),
-  /*   232 */        0x00000049           /* 6      (GREF_PUSH) */,
-  /*   233 */        WORD(SG_UNDEF)  /* identifier#<enum-set> */,
-  /*   234 */        0x0000014C           /* 8      (GREF_CALL) */,
-  /*   235 */        WORD(SG_UNDEF)  /* identifier#create-instance */,
-  /*   236 */        0x0000000B           /* 10     (PUSH) */,
-  /*   237 */        0x00000133           /* 11     (POP_LET_FRAME) */,
-  /*   238 */        0x00000031           /* 12     (FRAME) */,
-  /*   239 */        WORD(SG_MAKE_INT(7)),
-  /*   240 */        0x00000047           /* 14     (LREF_PUSH) */,
-  /*   241 */        0x0000004A           /* 15     (CONST_PUSH) */,
-  /*   242 */        WORD(SG_UNDEF), /* members */
-  /*   243 */        0x00000148           /* 17     (FREF_PUSH) */,
-  /*   244 */        0x0000034C           /* 18     (GREF_CALL) */,
-  /*   245 */        WORD(SG_UNDEF)  /* identifier#generic-set! */,
-  /*   246 */        0x00000031           /* 20     (FRAME) */,
-  /*   247 */        WORD(SG_MAKE_INT(7)),
-  /*   248 */        0x00000047           /* 22     (LREF_PUSH) */,
-  /*   249 */        0x0000004A           /* 23     (CONST_PUSH) */,
-  /*   250 */        WORD(SG_UNDEF), /* type */
-  /*   251 */        0x00000048           /* 25     (FREF_PUSH) */,
-  /*   252 */        0x0000034C           /* 26     (GREF_CALL) */,
-  /*   253 */        WORD(SG_UNDEF)  /* identifier#generic-set! */,
-  /*   254 */        0x00000005           /* 28     (LREF) */,
-  /*   255 */        0x00000030           /* 29     (RET) */,
-  /*   256 */        0x00000147           /* 0      (LREF_PUSH) */,
-  /*   257 */        0x0000004A           /* 1      (CONST_PUSH) */,
-  /*   258 */        WORD(SG_UNDEF), /* "#<enum-set ~a>" */
-  /*   259 */        0x00000031           /* 3      (FRAME) */,
-  /*   260 */        WORD(SG_MAKE_INT(4)),
-  /*   261 */        0x00000047           /* 5      (LREF_PUSH) */,
-  /*   262 */        0x0000014C           /* 6      (GREF_CALL) */,
-  /*   263 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   264 */        0x0000000B           /* 8      (PUSH) */,
-  /*   265 */        0x0000034D           /* 9      (GREF_TAIL_CALL) */,
-  /*   266 */        WORD(SG_UNDEF)  /* identifier#format */,
-  /*   267 */        0x00000030           /* 11     (RET) */,
-  /*   268 */        0x00000232           /* 0      (LET_FRAME) */,
-  /*   269 */        0x00000047           /* 1      (LREF_PUSH) */,
-  /*   270 */        0x00000134           /* 2      (DISPLAY) */,
-  /*   271 */        0x00000031           /* 3      (FRAME) */,
-  /*   272 */        WORD(SG_MAKE_INT(3)),
-  /*   273 */        0x0000004C           /* 5      (GREF_CALL) */,
-  /*   274 */        WORD(SG_UNDEF)  /* identifier#make-eq-hashtable */,
-  /*   275 */        0x0000000B           /* 7      (PUSH) */,
-  /*   276 */        0x00000133           /* 8      (POP_LET_FRAME) */,
-  /*   277 */        0x00000432           /* 9      (LET_FRAME) */,
-  /*   278 */        0x00000047           /* 10     (LREF_PUSH) */,
-  /*   279 */        0x00000048           /* 11     (FREF_PUSH) */,
-  /*   280 */        0x00000234           /* 12     (DISPLAY) */,
-  /*   281 */        0x00000048           /* 13     (FREF_PUSH) */,
-  /*   282 */        0x0000004B           /* 14     (CONSTI_PUSH) */,
-  /*   283 */        0x00000235           /* 15     (ENTER) */,
-  /*   284 */        0x0000001A           /* 16     (MARK) */,
-  /*   285 */        0x00000005           /* 17     (LREF) */,
-  /*   286 */        0x00000022           /* 18     (BNNULL) */,
-  /*   287 */        WORD(SG_MAKE_INT(3)),
-  /*   288 */        0x00000018           /* 20     (JUMP) */,
-  /*   289 */        WORD(SG_MAKE_INT(19)),
-  /*   290 */        0x00000031           /* 22     (FRAME) */,
-  /*   291 */        WORD(SG_MAKE_INT(8)),
-  /*   292 */        0x00000148           /* 24     (FREF_PUSH) */,
-  /*   293 */        0x00000005           /* 25     (LREF) */,
-  /*   294 */        0x00000038           /* 26     (CAR) */,
-  /*   295 */        0x0000000B           /* 27     (PUSH) */,
-  /*   296 */        0x00000147           /* 28     (LREF_PUSH) */,
-  /*   297 */        0x0000034C           /* 29     (GREF_CALL) */,
-  /*   298 */        WORD(SG_UNDEF)  /* identifier#hashtable-set! */,
-  /*   299 */        0x00000005           /* 31     (LREF) */,
-  /*   300 */        0x00000039           /* 32     (CDR) */,
-  /*   301 */        0x0000000B           /* 33     (PUSH) */,
-  /*   302 */        0x00000105           /* 34     (LREF) */,
-  /*   303 */        0x0000010F           /* 35     (ADDI) */,
-  /*   304 */        0x0000000B           /* 36     (PUSH) */,
-  /*   305 */        0x00000219           /* 37     (SHIFTJ) */,
-  /*   306 */        0x00000018           /* 38     (JUMP) */,
-  /*   307 */        WORD(SG_MAKE_INT(-22)),
-  /*   308 */        0x00000036           /* 40     (LEAVE) */,
-  /*   309 */        0x00000048           /* 41     (FREF_PUSH) */,
-  /*   310 */        0x00000047           /* 42     (LREF_PUSH) */,
-  /*   311 */        0x0000002A           /* 43     (CLOSURE) */,
-  /*   312 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   313 */        0x0000000B           /* 45     (PUSH) */,
-  /*   314 */        0x0000024D           /* 46     (GREF_TAIL_CALL) */,
-  /*   315 */        WORD(SG_UNDEF)  /* identifier#make-enum-type */,
-  /*   316 */        0x00000030           /* 48     (RET) */,
-  /*   317 */        0x00000048           /* 0      (FREF_PUSH) */,
-  /*   318 */        0x00000047           /* 1      (LREF_PUSH) */,
-  /*   319 */        0x0000004A           /* 2      (CONST_PUSH) */,
-  /*   320 */        WORD(SG_MAKE_BOOL(FALSE)),
-  /*   321 */        0x0000034D           /* 4      (GREF_TAIL_CALL) */,
-  /*   322 */        WORD(SG_UNDEF)  /* identifier#hashtable-ref */,
-  /*   323 */        0x00000030           /* 6      (RET) */,
-  /*   324 */        0x00000031           /* 0      (FRAME) */,
-  /*   325 */        WORD(SG_MAKE_INT(4)),
-  /*   326 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*   327 */        0x0000014C           /* 3      (GREF_CALL) */,
-  /*   328 */        WORD(SG_UNDEF)  /* identifier#list? */,
-  /*   329 */        0x00000017           /* 5      (TEST) */,
-  /*   330 */        WORD(SG_MAKE_INT(29)),
-  /*   331 */        0x00000031           /* 7      (FRAME) */,
-  /*   332 */        WORD(SG_MAKE_INT(6)),
-  /*   333 */        0x00000049           /* 9      (GREF_PUSH) */,
-  /*   334 */        WORD(SG_UNDEF)  /* identifier#symbol? */,
-  /*   335 */        0x00000047           /* 11     (LREF_PUSH) */,
-  /*   336 */        0x0000024C           /* 12     (GREF_CALL) */,
-  /*   337 */        WORD(SG_UNDEF)  /* identifier#for-all */,
-  /*   338 */        0x00000017           /* 14     (TEST) */,
-  /*   339 */        WORD(SG_MAKE_INT(12)),
-  /*   340 */        0x00000031           /* 16     (FRAME) */,
-  /*   341 */        WORD(SG_MAKE_INT(4)),
-  /*   342 */        0x00000047           /* 18     (LREF_PUSH) */,
-  /*   343 */        0x0000014C           /* 19     (GREF_CALL) */,
-  /*   344 */        WORD(SG_UNDEF)  /* identifier#make-enumeration-type */,
-  /*   345 */        0x0000000B           /* 21     (PUSH) */,
-  /*   346 */        0x00000047           /* 22     (LREF_PUSH) */,
-  /*   347 */        0x0000024D           /* 23     (GREF_TAIL_CALL) */,
-  /*   348 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
-  /*   349 */        0x00000018           /* 25     (JUMP) */,
-  /*   350 */        WORD(SG_MAKE_INT(7)),
-  /*   351 */        0x0000004A           /* 27     (CONST_PUSH) */,
-  /*   352 */        WORD(SG_UNDEF), /* make-enumeration */
-  /*   353 */        0x0000004A           /* 29     (CONST_PUSH) */,
-  /*   354 */        WORD(SG_UNDEF), /* "argument 1 must be a list of symbols" */
-  /*   355 */        0x0000024D           /* 31     (GREF_TAIL_CALL) */,
-  /*   356 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
-  /*   357 */        0x00000018           /* 33     (JUMP) */,
-  /*   358 */        WORD(SG_MAKE_INT(3)),
-  /*   359 */        0x00000018           /* 35     (JUMP) */,
-  /*   360 */        WORD(SG_MAKE_INT(-9)),
-  /*   361 */        0x00000030           /* 37     (RET) */,
-  /*   362 */        0x00000031           /* 0      (FRAME) */,
-  /*   363 */        WORD(SG_MAKE_INT(4)),
-  /*   364 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*   365 */        0x0000014C           /* 3      (GREF_CALL) */,
-  /*   366 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   367 */        0x0000000B           /* 5      (PUSH) */,
-  /*   368 */        0x00000031           /* 6      (FRAME) */,
-  /*   369 */        WORD(SG_MAKE_INT(9)),
-  /*   370 */        0x00000031           /* 8      (FRAME) */,
-  /*   371 */        WORD(SG_MAKE_INT(4)),
-  /*   372 */        0x00000047           /* 10     (LREF_PUSH) */,
-  /*   373 */        0x0000014C           /* 11     (GREF_CALL) */,
-  /*   374 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   375 */        0x0000000B           /* 13     (PUSH) */,
-  /*   376 */        0x0000014C           /* 14     (GREF_CALL) */,
-  /*   377 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
-  /*   378 */        0x0000000B           /* 16     (PUSH) */,
-  /*   379 */        0x0000024D           /* 17     (GREF_TAIL_CALL) */,
-  /*   380 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
-  /*   381 */        0x00000030           /* 19     (RET) */,
-  /*   382 */        0x00000031           /* 0      (FRAME) */,
-  /*   383 */        WORD(SG_MAKE_INT(4)),
-  /*   384 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*   385 */        0x0000014C           /* 3      (GREF_CALL) */,
-  /*   386 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   387 */        0x0000000B           /* 5      (PUSH) */,
-  /*   388 */        0x0000014D           /* 6      (GREF_TAIL_CALL) */,
-  /*   389 */        WORD(SG_UNDEF)  /* identifier#enum-type-indexer */,
-  /*   390 */        0x00000030           /* 8      (RET) */,
-  /*   391 */        0x00000047           /* 0      (LREF_PUSH) */,
-  /*   392 */        0x0000002A           /* 1      (CLOSURE) */,
-  /*   393 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   394 */        0x00000030           /* 3      (RET) */,
-  /*   395 */        0x00000432           /* 0      (LET_FRAME) */,
-  /*   396 */        0x00000047           /* 1      (LREF_PUSH) */,
-  /*   397 */        0x00000048           /* 2      (FREF_PUSH) */,
-  /*   398 */        0x00000048           /* 3      (FREF_PUSH) */,
-  /*   399 */        0x00000334           /* 4      (DISPLAY) */,
-  /*   400 */        0x00000031           /* 5      (FRAME) */,
-  /*   401 */        WORD(SG_MAKE_INT(9)),
-  /*   402 */        0x00000031           /* 7      (FRAME) */,
-  /*   403 */        WORD(SG_MAKE_INT(4)),
-  /*   404 */        0x00000048           /* 9      (FREF_PUSH) */,
-  /*   405 */        0x0000014C           /* 10     (GREF_CALL) */,
-  /*   406 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   407 */        0x0000000B           /* 12     (PUSH) */,
-  /*   408 */        0x0000014C           /* 13     (GREF_CALL) */,
-  /*   409 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
-  /*   410 */        0x0000000B           /* 15     (PUSH) */,
-  /*   411 */        0x00000133           /* 16     (POP_LET_FRAME) */,
-  /*   412 */        0x00000031           /* 17     (FRAME) */,
-  /*   413 */        WORD(SG_MAKE_INT(8)),
-  /*   414 */        0x00000047           /* 19     (LREF_PUSH) */,
-  /*   415 */        0x0000002A           /* 20     (CLOSURE) */,
-  /*   416 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   417 */        0x0000000B           /* 22     (PUSH) */,
-  /*   418 */        0x00000248           /* 23     (FREF_PUSH) */,
-  /*   419 */        0x0000024C           /* 24     (GREF_CALL) */,
-  /*   420 */        WORD(SG_UNDEF)  /* identifier#for-all */,
-  /*   421 */        0x00000017           /* 26     (TEST) */,
-  /*   422 */        WORD(SG_MAKE_INT(12)),
-  /*   423 */        0x00000031           /* 28     (FRAME) */,
-  /*   424 */        WORD(SG_MAKE_INT(4)),
-  /*   425 */        0x00000048           /* 30     (FREF_PUSH) */,
-  /*   426 */        0x0000014C           /* 31     (GREF_CALL) */,
-  /*   427 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   428 */        0x0000000B           /* 33     (PUSH) */,
-  /*   429 */        0x00000248           /* 34     (FREF_PUSH) */,
-  /*   430 */        0x0000024D           /* 35     (GREF_TAIL_CALL) */,
-  /*   431 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
-  /*   432 */        0x00000018           /* 37     (JUMP) */,
-  /*   433 */        WORD(SG_MAKE_INT(9)),
-  /*   434 */        0x0000004A           /* 39     (CONST_PUSH) */,
-  /*   435 */        WORD(SG_UNDEF), /* enum-set-constructor */
-  /*   436 */        0x0000004A           /* 41     (CONST_PUSH) */,
-  /*   437 */        WORD(SG_UNDEF), /* "the symbol list must all belong to the universe." */
-  /*   438 */        0x00000047           /* 43     (LREF_PUSH) */,
-  /*   439 */        0x00000248           /* 44     (FREF_PUSH) */,
-  /*   440 */        0x0000044D           /* 45     (GREF_TAIL_CALL) */,
-  /*   441 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
-  /*   442 */        0x00000030           /* 47     (RET) */,
-  /*   443 */        0x00000047           /* 0      (LREF_PUSH) */,
-  /*   444 */        0x00000048           /* 1      (FREF_PUSH) */,
-  /*   445 */        0x0000024D           /* 2      (GREF_TAIL_CALL) */,
-  /*   446 */        WORD(SG_UNDEF)  /* identifier#memq */,
-  /*   447 */        0x00000030           /* 4      (RET) */,
-  /*   448 */        0x00000232           /* 0      (LET_FRAME) */,
-  /*   449 */        0x00000031           /* 1      (FRAME) */,
-  /*   450 */        WORD(SG_MAKE_INT(9)),
-  /*   451 */        0x00000031           /* 3      (FRAME) */,
-  /*   452 */        WORD(SG_MAKE_INT(4)),
-  /*   453 */        0x00000047           /* 5      (LREF_PUSH) */,
-  /*   454 */        0x0000014C           /* 6      (GREF_CALL) */,
-  /*   455 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   456 */        0x0000000B           /* 8      (PUSH) */,
-  /*   457 */        0x0000014C           /* 9      (GREF_CALL) */,
-  /*   458 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
-  /*   459 */        0x0000000B           /* 11     (PUSH) */,
-  /*   460 */        0x00000031           /* 12     (FRAME) */,
-  /*   461 */        WORD(SG_MAKE_INT(4)),
-  /*   462 */        0x00000047           /* 14     (LREF_PUSH) */,
-  /*   463 */        0x0000014C           /* 15     (GREF_CALL) */,
-  /*   464 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   465 */        0x0000000B           /* 17     (PUSH) */,
-  /*   466 */        0x00000233           /* 18     (POP_LET_FRAME) */,
-  /*   467 */        0x00000332           /* 19     (LET_FRAME) */,
-  /*   468 */        0x00000047           /* 20     (LREF_PUSH) */,
-  /*   469 */        0x00000147           /* 21     (LREF_PUSH) */,
-  /*   470 */        0x00000234           /* 22     (DISPLAY) */,
-  /*   471 */        0x00000002           /* 23     (UNDEF) */,
-  /*   472 */        0x0000000B           /* 24     (PUSH) */,
-  /*   473 */        0x0000000C           /* 25     (BOX) */,
-  /*   474 */        0x00000133           /* 26     (POP_LET_FRAME) */,
-  /*   475 */        0x00000048           /* 27     (FREF_PUSH) */,
-  /*   476 */        0x00000047           /* 28     (LREF_PUSH) */,
-  /*   477 */        0x0000002A           /* 29     (CLOSURE) */,
-  /*   478 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   479 */        0x00000006           /* 31     (LSET) */,
-  /*   480 */        0x00000148           /* 32     (FREF_PUSH) */,
-  /*   481 */        0x00000005           /* 33     (LREF) */,
-  /*   482 */        0x0000000D           /* 34     (UNBOX) */,
-  /*   483 */        0x0000012F           /* 35     (LOCAL_TAIL_CALL) */,
-  /*   484 */        0x00000030           /* 36     (RET) */,
-  /*   485 */        0x00000005           /* 0      (LREF) */,
-  /*   486 */        0x00000022           /* 1      (BNNULL) */,
-  /*   487 */        WORD(SG_MAKE_INT(5)),
-  /*   488 */        0x00000003           /* 3      (CONST) */,
-  /*   489 */        WORD(SG_NIL),
-  /*   490 */        0x00000018           /* 5      (JUMP) */,
-  /*   491 */        WORD(SG_MAKE_INT(31)),
-  /*   492 */        0x00000031           /* 7      (FRAME) */,
-  /*   493 */        WORD(SG_MAKE_INT(7)),
-  /*   494 */        0x00000005           /* 9      (LREF) */,
-  /*   495 */        0x00000038           /* 10     (CAR) */,
-  /*   496 */        0x0000000B           /* 11     (PUSH) */,
-  /*   497 */        0x00000148           /* 12     (FREF_PUSH) */,
-  /*   498 */        0x0000024C           /* 13     (GREF_CALL) */,
-  /*   499 */        WORD(SG_UNDEF)  /* identifier#memq */,
-  /*   500 */        0x00000017           /* 15     (TEST) */,
-  /*   501 */        WORD(SG_MAKE_INT(15)),
-  /*   502 */        0x00000005           /* 17     (LREF) */,
-  /*   503 */        0x00000038           /* 18     (CAR) */,
-  /*   504 */        0x0000000B           /* 19     (PUSH) */,
-  /*   505 */        0x00000031           /* 20     (FRAME) */,
-  /*   506 */        WORD(SG_MAKE_INT(7)),
-  /*   507 */        0x00000005           /* 22     (LREF) */,
-  /*   508 */        0x00000039           /* 23     (CDR) */,
-  /*   509 */        0x0000000B           /* 24     (PUSH) */,
-  /*   510 */        0x00000007           /* 25     (FREF) */,
-  /*   511 */        0x0000000D           /* 26     (UNBOX) */,
-  /*   512 */        0x0000012D           /* 27     (LOCAL_CALL) */,
-  /*   513 */        0x0000003A           /* 28     (CONS) */,
-  /*   514 */        0x00000018           /* 29     (JUMP) */,
-  /*   515 */        WORD(SG_MAKE_INT(7)),
-  /*   516 */        0x00000005           /* 31     (LREF) */,
-  /*   517 */        0x00000039           /* 32     (CDR) */,
-  /*   518 */        0x0000000B           /* 33     (PUSH) */,
-  /*   519 */        0x00000007           /* 34     (FREF) */,
-  /*   520 */        0x0000000D           /* 35     (UNBOX) */,
-  /*   521 */        0x0000012F           /* 36     (LOCAL_TAIL_CALL) */,
-  /*   522 */        0x00000030           /* 37     (RET) */,
-  /*   523 */        0x00000031           /* 0      (FRAME) */,
-  /*   524 */        WORD(SG_MAKE_INT(10)),
-  /*   525 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*   526 */        0x00000031           /* 3      (FRAME) */,
-  /*   527 */        WORD(SG_MAKE_INT(4)),
-  /*   528 */        0x00000147           /* 5      (LREF_PUSH) */,
-  /*   529 */        0x0000014C           /* 6      (GREF_CALL) */,
-  /*   530 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   531 */        0x0000000B           /* 8      (PUSH) */,
-  /*   532 */        0x0000024C           /* 9      (GREF_CALL) */,
-  /*   533 */        WORD(SG_UNDEF)  /* identifier#memq */,
-  /*   534 */        0x00000017           /* 11     (TEST) */,
-  /*   535 */        WORD(SG_MAKE_INT(3)),
-  /*   536 */        0x00000003           /* 13     (CONST) */,
-  /*   537 */        WORD(SG_MAKE_BOOL(TRUE)),
-  /*   538 */        0x00000030           /* 15     (RET) */,
-  /*   539 */        0x00000232           /* 0      (LET_FRAME) */,
-  /*   540 */        0x00000047           /* 1      (LREF_PUSH) */,
-  /*   541 */        0x00000134           /* 2      (DISPLAY) */,
-  /*   542 */        0x00000031           /* 3      (FRAME) */,
-  /*   543 */        WORD(SG_MAKE_INT(9)),
-  /*   544 */        0x00000031           /* 5      (FRAME) */,
-  /*   545 */        WORD(SG_MAKE_INT(4)),
-  /*   546 */        0x00000147           /* 7      (LREF_PUSH) */,
-  /*   547 */        0x0000014C           /* 8      (GREF_CALL) */,
-  /*   548 */        WORD(SG_UNDEF)  /* identifier#enum-set-universe */,
-  /*   549 */        0x0000000B           /* 10     (PUSH) */,
-  /*   550 */        0x0000014C           /* 11     (GREF_CALL) */,
-  /*   551 */        WORD(SG_UNDEF)  /* identifier#enum-set->list */,
-  /*   552 */        0x0000000B           /* 13     (PUSH) */,
-  /*   553 */        0x00000135           /* 14     (ENTER) */,
-  /*   554 */        0x00000031           /* 15     (FRAME) */,
-  /*   555 */        WORD(SG_MAKE_INT(18)),
-  /*   556 */        0x00000047           /* 17     (LREF_PUSH) */,
-  /*   557 */        0x0000002A           /* 18     (CLOSURE) */,
-  /*   558 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   559 */        0x0000000B           /* 20     (PUSH) */,
-  /*   560 */        0x00000031           /* 21     (FRAME) */,
-  /*   561 */        WORD(SG_MAKE_INT(9)),
-  /*   562 */        0x00000031           /* 23     (FRAME) */,
-  /*   563 */        WORD(SG_MAKE_INT(4)),
-  /*   564 */        0x00000048           /* 25     (FREF_PUSH) */,
-  /*   565 */        0x0000014C           /* 26     (GREF_CALL) */,
-  /*   566 */        WORD(SG_UNDEF)  /* identifier#enum-set-universe */,
-  /*   567 */        0x0000000B           /* 28     (PUSH) */,
-  /*   568 */        0x0000014C           /* 29     (GREF_CALL) */,
-  /*   569 */        WORD(SG_UNDEF)  /* identifier#enum-set->list */,
-  /*   570 */        0x0000000B           /* 31     (PUSH) */,
-  /*   571 */        0x0000024C           /* 32     (GREF_CALL) */,
-  /*   572 */        WORD(SG_UNDEF)  /* identifier#for-all */,
-  /*   573 */        0x00000036           /* 34     (LEAVE) */,
-  /*   574 */        0x00000017           /* 35     (TEST) */,
-  /*   575 */        WORD(SG_MAKE_INT(13)),
-  /*   576 */        0x00000147           /* 37     (LREF_PUSH) */,
-  /*   577 */        0x0000002A           /* 38     (CLOSURE) */,
-  /*   578 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   579 */        0x0000000B           /* 40     (PUSH) */,
-  /*   580 */        0x00000031           /* 41     (FRAME) */,
-  /*   581 */        WORD(SG_MAKE_INT(4)),
-  /*   582 */        0x00000047           /* 43     (LREF_PUSH) */,
-  /*   583 */        0x0000014C           /* 44     (GREF_CALL) */,
-  /*   584 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   585 */        0x0000000B           /* 46     (PUSH) */,
-  /*   586 */        0x0000024D           /* 47     (GREF_TAIL_CALL) */,
-  /*   587 */        WORD(SG_UNDEF)  /* identifier#for-all */,
-  /*   588 */        0x00000030           /* 49     (RET) */,
-  /*   589 */        0x00000047           /* 0      (LREF_PUSH) */,
-  /*   590 */        0x00000048           /* 1      (FREF_PUSH) */,
-  /*   591 */        0x0000024D           /* 2      (GREF_TAIL_CALL) */,
-  /*   592 */        WORD(SG_UNDEF)  /* identifier#memq */,
-  /*   593 */        0x00000030           /* 4      (RET) */,
-  /*   594 */        0x00000047           /* 0      (LREF_PUSH) */,
-  /*   595 */        0x00000048           /* 1      (FREF_PUSH) */,
-  /*   596 */        0x0000024D           /* 2      (GREF_TAIL_CALL) */,
-  /*   597 */        WORD(SG_UNDEF)  /* identifier#enum-set-member? */,
-  /*   598 */        0x00000030           /* 4      (RET) */,
-  /*   599 */        0x00000031           /* 0      (FRAME) */,
-  /*   600 */        WORD(SG_MAKE_INT(5)),
-  /*   601 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*   602 */        0x00000147           /* 3      (LREF_PUSH) */,
-  /*   603 */        0x0000024C           /* 4      (GREF_CALL) */,
-  /*   604 */        WORD(SG_UNDEF)  /* identifier#enum-set-subset? */,
-  /*   605 */        0x00000017           /* 6      (TEST) */,
-  /*   606 */        WORD(SG_MAKE_INT(5)),
-  /*   607 */        0x00000147           /* 8      (LREF_PUSH) */,
-  /*   608 */        0x00000047           /* 9      (LREF_PUSH) */,
-  /*   609 */        0x0000024D           /* 10     (GREF_TAIL_CALL) */,
-  /*   610 */        WORD(SG_UNDEF)  /* identifier#enum-set-subset? */,
-  /*   611 */        0x00000030           /* 12     (RET) */,
-  /*   612 */        0x00000031           /* 0      (FRAME) */,
-  /*   613 */        WORD(SG_MAKE_INT(4)),
-  /*   614 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*   615 */        0x0000014C           /* 3      (GREF_CALL) */,
-  /*   616 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   617 */        0x0000000B           /* 5      (PUSH) */,
-  /*   618 */        0x00000031           /* 6      (FRAME) */,
-  /*   619 */        WORD(SG_MAKE_INT(4)),
-  /*   620 */        0x00000147           /* 8      (LREF_PUSH) */,
-  /*   621 */        0x0000014C           /* 9      (GREF_CALL) */,
-  /*   622 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   623 */        0x00000020           /* 11     (BNEQ) */,
-  /*   624 */        WORD(SG_MAKE_INT(73)),
-  /*   625 */        0x00000031           /* 13     (FRAME) */,
-  /*   626 */        WORD(SG_MAKE_INT(4)),
-  /*   627 */        0x00000047           /* 15     (LREF_PUSH) */,
-  /*   628 */        0x0000014C           /* 16     (GREF_CALL) */,
-  /*   629 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   630 */        0x0000000B           /* 18     (PUSH) */,
-  /*   631 */        0x00000232           /* 19     (LET_FRAME) */,
-  /*   632 */        0x00000031           /* 20     (FRAME) */,
-  /*   633 */        WORD(SG_MAKE_INT(4)),
-  /*   634 */        0x00000047           /* 22     (LREF_PUSH) */,
-  /*   635 */        0x0000014C           /* 23     (GREF_CALL) */,
-  /*   636 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   637 */        0x0000000B           /* 25     (PUSH) */,
-  /*   638 */        0x00000031           /* 26     (FRAME) */,
-  /*   639 */        WORD(SG_MAKE_INT(4)),
-  /*   640 */        0x00000147           /* 28     (LREF_PUSH) */,
-  /*   641 */        0x0000014C           /* 29     (GREF_CALL) */,
-  /*   642 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   643 */        0x0000000B           /* 31     (PUSH) */,
-  /*   644 */        0x00000235           /* 32     (ENTER) */,
-  /*   645 */        0x00000432           /* 33     (LET_FRAME) */,
-  /*   646 */        0x00000047           /* 34     (LREF_PUSH) */,
-  /*   647 */        0x00000147           /* 35     (LREF_PUSH) */,
-  /*   648 */        0x00000234           /* 36     (DISPLAY) */,
-  /*   649 */        0x00000047           /* 37     (LREF_PUSH) */,
-  /*   650 */        0x00000147           /* 38     (LREF_PUSH) */,
-  /*   651 */        0x00000235           /* 39     (ENTER) */,
-  /*   652 */        0x0000001A           /* 40     (MARK) */,
-  /*   653 */        0x00000105           /* 41     (LREF) */,
-  /*   654 */        0x00000022           /* 42     (BNNULL) */,
-  /*   655 */        WORD(SG_MAKE_INT(4)),
-  /*   656 */        0x00000005           /* 44     (LREF) */,
-  /*   657 */        0x00000018           /* 45     (JUMP) */,
-  /*   658 */        WORD(SG_MAKE_INT(32)),
-  /*   659 */        0x00000031           /* 47     (FRAME) */,
-  /*   660 */        WORD(SG_MAKE_INT(7)),
-  /*   661 */        0x00000105           /* 49     (LREF) */,
-  /*   662 */        0x00000038           /* 50     (CAR) */,
-  /*   663 */        0x0000000B           /* 51     (PUSH) */,
-  /*   664 */        0x00000047           /* 52     (LREF_PUSH) */,
-  /*   665 */        0x0000024C           /* 53     (GREF_CALL) */,
-  /*   666 */        WORD(SG_UNDEF)  /* identifier#memq */,
-  /*   667 */        0x00000017           /* 55     (TEST) */,
-  /*   668 */        WORD(SG_MAKE_INT(10)),
-  /*   669 */        0x00000047           /* 57     (LREF_PUSH) */,
-  /*   670 */        0x00000105           /* 58     (LREF) */,
-  /*   671 */        0x00000039           /* 59     (CDR) */,
-  /*   672 */        0x0000000B           /* 60     (PUSH) */,
-  /*   673 */        0x00000219           /* 61     (SHIFTJ) */,
-  /*   674 */        0x00000018           /* 62     (JUMP) */,
-  /*   675 */        WORD(SG_MAKE_INT(-22)),
-  /*   676 */        0x00000018           /* 64     (JUMP) */,
-  /*   677 */        WORD(SG_MAKE_INT(13)),
-  /*   678 */        0x00000105           /* 66     (LREF) */,
-  /*   679 */        0x00000038           /* 67     (CAR) */,
-  /*   680 */        0x0000000B           /* 68     (PUSH) */,
-  /*   681 */        0x00000005           /* 69     (LREF) */,
-  /*   682 */        0x0000003A           /* 70     (CONS) */,
-  /*   683 */        0x0000000B           /* 71     (PUSH) */,
-  /*   684 */        0x00000105           /* 72     (LREF) */,
-  /*   685 */        0x00000039           /* 73     (CDR) */,
-  /*   686 */        0x0000000B           /* 74     (PUSH) */,
-  /*   687 */        0x00000219           /* 75     (SHIFTJ) */,
-  /*   688 */        0x00000018           /* 76     (JUMP) */,
-  /*   689 */        WORD(SG_MAKE_INT(-36)),
-  /*   690 */        0x00000036           /* 78     (LEAVE) */,
-  /*   691 */        0x00000036           /* 79     (LEAVE) */,
-  /*   692 */        0x0000000B           /* 80     (PUSH) */,
-  /*   693 */        0x0000024D           /* 81     (GREF_TAIL_CALL) */,
-  /*   694 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
-  /*   695 */        0x00000018           /* 83     (JUMP) */,
-  /*   696 */        WORD(SG_MAKE_INT(7)),
-  /*   697 */        0x0000004A           /* 85     (CONST_PUSH) */,
-  /*   698 */        WORD(SG_UNDEF), /* enum-set-union */
-  /*   699 */        0x0000004A           /* 87     (CONST_PUSH) */,
-  /*   700 */        WORD(SG_UNDEF), /* "enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type." */
-  /*   701 */        0x0000024D           /* 89     (GREF_TAIL_CALL) */,
-  /*   702 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
-  /*   703 */        0x00000030           /* 91     (RET) */,
-  /*   704 */        0x00000031           /* 0      (FRAME) */,
-  /*   705 */        WORD(SG_MAKE_INT(4)),
-  /*   706 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*   707 */        0x0000014C           /* 3      (GREF_CALL) */,
-  /*   708 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   709 */        0x0000000B           /* 5      (PUSH) */,
-  /*   710 */        0x00000031           /* 6      (FRAME) */,
-  /*   711 */        WORD(SG_MAKE_INT(4)),
-  /*   712 */        0x00000147           /* 8      (LREF_PUSH) */,
-  /*   713 */        0x0000014C           /* 9      (GREF_CALL) */,
-  /*   714 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   715 */        0x00000020           /* 11     (BNEQ) */,
-  /*   716 */        WORD(SG_MAKE_INT(74)),
-  /*   717 */        0x00000031           /* 13     (FRAME) */,
-  /*   718 */        WORD(SG_MAKE_INT(4)),
-  /*   719 */        0x00000047           /* 15     (LREF_PUSH) */,
-  /*   720 */        0x0000014C           /* 16     (GREF_CALL) */,
-  /*   721 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   722 */        0x0000000B           /* 18     (PUSH) */,
-  /*   723 */        0x00000232           /* 19     (LET_FRAME) */,
-  /*   724 */        0x00000031           /* 20     (FRAME) */,
-  /*   725 */        WORD(SG_MAKE_INT(4)),
-  /*   726 */        0x00000047           /* 22     (LREF_PUSH) */,
-  /*   727 */        0x0000014C           /* 23     (GREF_CALL) */,
-  /*   728 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   729 */        0x0000000B           /* 25     (PUSH) */,
-  /*   730 */        0x00000031           /* 26     (FRAME) */,
-  /*   731 */        WORD(SG_MAKE_INT(4)),
-  /*   732 */        0x00000147           /* 28     (LREF_PUSH) */,
-  /*   733 */        0x0000014C           /* 29     (GREF_CALL) */,
-  /*   734 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   735 */        0x0000000B           /* 31     (PUSH) */,
-  /*   736 */        0x00000235           /* 32     (ENTER) */,
-  /*   737 */        0x00000432           /* 33     (LET_FRAME) */,
-  /*   738 */        0x00000147           /* 34     (LREF_PUSH) */,
-  /*   739 */        0x00000047           /* 35     (LREF_PUSH) */,
-  /*   740 */        0x00000234           /* 36     (DISPLAY) */,
-  /*   741 */        0x0000004A           /* 37     (CONST_PUSH) */,
-  /*   742 */        WORD(SG_NIL),
-  /*   743 */        0x00000047           /* 39     (LREF_PUSH) */,
-  /*   744 */        0x00000235           /* 40     (ENTER) */,
-  /*   745 */        0x0000001A           /* 41     (MARK) */,
-  /*   746 */        0x00000105           /* 42     (LREF) */,
-  /*   747 */        0x00000022           /* 43     (BNNULL) */,
-  /*   748 */        WORD(SG_MAKE_INT(4)),
-  /*   749 */        0x00000005           /* 45     (LREF) */,
-  /*   750 */        0x00000018           /* 46     (JUMP) */,
-  /*   751 */        WORD(SG_MAKE_INT(32)),
-  /*   752 */        0x00000031           /* 48     (FRAME) */,
-  /*   753 */        WORD(SG_MAKE_INT(7)),
-  /*   754 */        0x00000105           /* 50     (LREF) */,
-  /*   755 */        0x00000038           /* 51     (CAR) */,
-  /*   756 */        0x0000000B           /* 52     (PUSH) */,
-  /*   757 */        0x00000148           /* 53     (FREF_PUSH) */,
-  /*   758 */        0x0000024C           /* 54     (GREF_CALL) */,
-  /*   759 */        WORD(SG_UNDEF)  /* identifier#memq */,
-  /*   760 */        0x00000017           /* 56     (TEST) */,
-  /*   761 */        WORD(SG_MAKE_INT(15)),
-  /*   762 */        0x00000105           /* 58     (LREF) */,
-  /*   763 */        0x00000038           /* 59     (CAR) */,
-  /*   764 */        0x0000000B           /* 60     (PUSH) */,
-  /*   765 */        0x00000005           /* 61     (LREF) */,
-  /*   766 */        0x0000003A           /* 62     (CONS) */,
-  /*   767 */        0x0000000B           /* 63     (PUSH) */,
-  /*   768 */        0x00000105           /* 64     (LREF) */,
-  /*   769 */        0x00000039           /* 65     (CDR) */,
-  /*   770 */        0x0000000B           /* 66     (PUSH) */,
-  /*   771 */        0x00000219           /* 67     (SHIFTJ) */,
-  /*   772 */        0x00000018           /* 68     (JUMP) */,
-  /*   773 */        WORD(SG_MAKE_INT(-27)),
-  /*   774 */        0x00000018           /* 70     (JUMP) */,
-  /*   775 */        WORD(SG_MAKE_INT(8)),
-  /*   776 */        0x00000047           /* 72     (LREF_PUSH) */,
-  /*   777 */        0x00000105           /* 73     (LREF) */,
-  /*   778 */        0x00000039           /* 74     (CDR) */,
-  /*   779 */        0x0000000B           /* 75     (PUSH) */,
-  /*   780 */        0x00000219           /* 76     (SHIFTJ) */,
-  /*   781 */        0x00000018           /* 77     (JUMP) */,
-  /*   782 */        WORD(SG_MAKE_INT(-36)),
-  /*   783 */        0x00000036           /* 79     (LEAVE) */,
-  /*   784 */        0x00000036           /* 80     (LEAVE) */,
-  /*   785 */        0x0000000B           /* 81     (PUSH) */,
-  /*   786 */        0x0000024D           /* 82     (GREF_TAIL_CALL) */,
-  /*   787 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
-  /*   788 */        0x00000018           /* 84     (JUMP) */,
-  /*   789 */        WORD(SG_MAKE_INT(7)),
-  /*   790 */        0x0000004A           /* 86     (CONST_PUSH) */,
-  /*   791 */        WORD(SG_UNDEF), /* enum-set-intersection */
-  /*   792 */        0x0000004A           /* 88     (CONST_PUSH) */,
-  /*   793 */        WORD(SG_UNDEF), /* "enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type." */
-  /*   794 */        0x0000024D           /* 90     (GREF_TAIL_CALL) */,
-  /*   795 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
-  /*   796 */        0x00000030           /* 92     (RET) */,
-  /*   797 */        0x00000031           /* 0      (FRAME) */,
-  /*   798 */        WORD(SG_MAKE_INT(4)),
-  /*   799 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*   800 */        0x0000014C           /* 3      (GREF_CALL) */,
-  /*   801 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   802 */        0x0000000B           /* 5      (PUSH) */,
-  /*   803 */        0x00000031           /* 6      (FRAME) */,
-  /*   804 */        WORD(SG_MAKE_INT(4)),
-  /*   805 */        0x00000147           /* 8      (LREF_PUSH) */,
-  /*   806 */        0x0000014C           /* 9      (GREF_CALL) */,
-  /*   807 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   808 */        0x00000020           /* 11     (BNEQ) */,
-  /*   809 */        WORD(SG_MAKE_INT(74)),
-  /*   810 */        0x00000031           /* 13     (FRAME) */,
-  /*   811 */        WORD(SG_MAKE_INT(4)),
-  /*   812 */        0x00000047           /* 15     (LREF_PUSH) */,
-  /*   813 */        0x0000014C           /* 16     (GREF_CALL) */,
-  /*   814 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   815 */        0x0000000B           /* 18     (PUSH) */,
-  /*   816 */        0x00000232           /* 19     (LET_FRAME) */,
-  /*   817 */        0x00000031           /* 20     (FRAME) */,
-  /*   818 */        WORD(SG_MAKE_INT(4)),
-  /*   819 */        0x00000047           /* 22     (LREF_PUSH) */,
-  /*   820 */        0x0000014C           /* 23     (GREF_CALL) */,
-  /*   821 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   822 */        0x0000000B           /* 25     (PUSH) */,
-  /*   823 */        0x00000031           /* 26     (FRAME) */,
-  /*   824 */        WORD(SG_MAKE_INT(4)),
-  /*   825 */        0x00000147           /* 28     (LREF_PUSH) */,
-  /*   826 */        0x0000014C           /* 29     (GREF_CALL) */,
-  /*   827 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   828 */        0x0000000B           /* 31     (PUSH) */,
-  /*   829 */        0x00000235           /* 32     (ENTER) */,
-  /*   830 */        0x00000432           /* 33     (LET_FRAME) */,
-  /*   831 */        0x00000147           /* 34     (LREF_PUSH) */,
-  /*   832 */        0x00000047           /* 35     (LREF_PUSH) */,
-  /*   833 */        0x00000234           /* 36     (DISPLAY) */,
-  /*   834 */        0x0000004A           /* 37     (CONST_PUSH) */,
-  /*   835 */        WORD(SG_NIL),
-  /*   836 */        0x00000047           /* 39     (LREF_PUSH) */,
-  /*   837 */        0x00000235           /* 40     (ENTER) */,
-  /*   838 */        0x0000001A           /* 41     (MARK) */,
-  /*   839 */        0x00000105           /* 42     (LREF) */,
-  /*   840 */        0x00000022           /* 43     (BNNULL) */,
-  /*   841 */        WORD(SG_MAKE_INT(4)),
-  /*   842 */        0x00000005           /* 45     (LREF) */,
-  /*   843 */        0x00000018           /* 46     (JUMP) */,
-  /*   844 */        WORD(SG_MAKE_INT(32)),
-  /*   845 */        0x00000031           /* 48     (FRAME) */,
-  /*   846 */        WORD(SG_MAKE_INT(7)),
-  /*   847 */        0x00000105           /* 50     (LREF) */,
-  /*   848 */        0x00000038           /* 51     (CAR) */,
-  /*   849 */        0x0000000B           /* 52     (PUSH) */,
-  /*   850 */        0x00000148           /* 53     (FREF_PUSH) */,
-  /*   851 */        0x0000024C           /* 54     (GREF_CALL) */,
-  /*   852 */        WORD(SG_UNDEF)  /* identifier#memq */,
-  /*   853 */        0x00000017           /* 56     (TEST) */,
-  /*   854 */        WORD(SG_MAKE_INT(10)),
-  /*   855 */        0x00000047           /* 58     (LREF_PUSH) */,
-  /*   856 */        0x00000105           /* 59     (LREF) */,
-  /*   857 */        0x00000039           /* 60     (CDR) */,
-  /*   858 */        0x0000000B           /* 61     (PUSH) */,
-  /*   859 */        0x00000219           /* 62     (SHIFTJ) */,
-  /*   860 */        0x00000018           /* 63     (JUMP) */,
-  /*   861 */        WORD(SG_MAKE_INT(-22)),
-  /*   862 */        0x00000018           /* 65     (JUMP) */,
-  /*   863 */        WORD(SG_MAKE_INT(13)),
-  /*   864 */        0x00000105           /* 67     (LREF) */,
-  /*   865 */        0x00000038           /* 68     (CAR) */,
-  /*   866 */        0x0000000B           /* 69     (PUSH) */,
-  /*   867 */        0x00000005           /* 70     (LREF) */,
-  /*   868 */        0x0000003A           /* 71     (CONS) */,
-  /*   869 */        0x0000000B           /* 72     (PUSH) */,
-  /*   870 */        0x00000105           /* 73     (LREF) */,
-  /*   871 */        0x00000039           /* 74     (CDR) */,
-  /*   872 */        0x0000000B           /* 75     (PUSH) */,
-  /*   873 */        0x00000219           /* 76     (SHIFTJ) */,
-  /*   874 */        0x00000018           /* 77     (JUMP) */,
-  /*   875 */        WORD(SG_MAKE_INT(-36)),
-  /*   876 */        0x00000036           /* 79     (LEAVE) */,
-  /*   877 */        0x00000036           /* 80     (LEAVE) */,
-  /*   878 */        0x0000000B           /* 81     (PUSH) */,
-  /*   879 */        0x0000024D           /* 82     (GREF_TAIL_CALL) */,
-  /*   880 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
-  /*   881 */        0x00000018           /* 84     (JUMP) */,
-  /*   882 */        WORD(SG_MAKE_INT(7)),
-  /*   883 */        0x0000004A           /* 86     (CONST_PUSH) */,
-  /*   884 */        WORD(SG_UNDEF), /* enum-set-difference */
-  /*   885 */        0x0000004A           /* 88     (CONST_PUSH) */,
-  /*   886 */        WORD(SG_UNDEF), /* "enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type." */
-  /*   887 */        0x0000024D           /* 90     (GREF_TAIL_CALL) */,
-  /*   888 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
-  /*   889 */        0x00000030           /* 92     (RET) */,
-  /*   890 */        0x00000232           /* 0      (LET_FRAME) */,
-  /*   891 */        0x00000047           /* 1      (LREF_PUSH) */,
-  /*   892 */        0x00000134           /* 2      (DISPLAY) */,
-  /*   893 */        0x00000031           /* 3      (FRAME) */,
-  /*   894 */        WORD(SG_MAKE_INT(4)),
-  /*   895 */        0x00000047           /* 5      (LREF_PUSH) */,
-  /*   896 */        0x0000014C           /* 6      (GREF_CALL) */,
-  /*   897 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   898 */        0x0000000B           /* 8      (PUSH) */,
-  /*   899 */        0x00000133           /* 9      (POP_LET_FRAME) */,
-  /*   900 */        0x00000031           /* 10     (FRAME) */,
-  /*   901 */        WORD(SG_MAKE_INT(4)),
-  /*   902 */        0x00000048           /* 12     (FREF_PUSH) */,
-  /*   903 */        0x0000014C           /* 13     (GREF_CALL) */,
-  /*   904 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   905 */        0x0000000B           /* 15     (PUSH) */,
-  /*   906 */        0x00000031           /* 16     (FRAME) */,
-  /*   907 */        WORD(SG_MAKE_INT(18)),
-  /*   908 */        0x00000047           /* 18     (LREF_PUSH) */,
-  /*   909 */        0x0000002A           /* 19     (CLOSURE) */,
-  /*   910 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   911 */        0x0000000B           /* 21     (PUSH) */,
-  /*   912 */        0x00000031           /* 22     (FRAME) */,
-  /*   913 */        WORD(SG_MAKE_INT(9)),
-  /*   914 */        0x00000031           /* 24     (FRAME) */,
-  /*   915 */        WORD(SG_MAKE_INT(4)),
-  /*   916 */        0x00000048           /* 26     (FREF_PUSH) */,
-  /*   917 */        0x0000014C           /* 27     (GREF_CALL) */,
-  /*   918 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   919 */        0x0000000B           /* 29     (PUSH) */,
-  /*   920 */        0x0000014C           /* 30     (GREF_CALL) */,
-  /*   921 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
-  /*   922 */        0x0000000B           /* 32     (PUSH) */,
-  /*   923 */        0x0000024C           /* 33     (GREF_CALL) */,
-  /*   924 */        WORD(SG_UNDEF)  /* identifier#filter */,
-  /*   925 */        0x0000000B           /* 35     (PUSH) */,
-  /*   926 */        0x0000024D           /* 36     (GREF_TAIL_CALL) */,
-  /*   927 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
-  /*   928 */        0x00000030           /* 38     (RET) */,
-  /*   929 */        0x00000031           /* 0      (FRAME) */,
-  /*   930 */        WORD(SG_MAKE_INT(5)),
-  /*   931 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*   932 */        0x00000048           /* 3      (FREF_PUSH) */,
-  /*   933 */        0x0000024C           /* 4      (GREF_CALL) */,
-  /*   934 */        WORD(SG_UNDEF)  /* identifier#memq */,
-  /*   935 */        0x00000023           /* 6      (NOT) */,
-  /*   936 */        0x00000030           /* 7      (RET) */,
-  /*   937 */        0x00000031           /* 0      (FRAME) */,
-  /*   938 */        WORD(SG_MAKE_INT(5)),
-  /*   939 */        0x00000047           /* 2      (LREF_PUSH) */,
-  /*   940 */        0x00000147           /* 3      (LREF_PUSH) */,
-  /*   941 */        0x0000024C           /* 4      (GREF_CALL) */,
-  /*   942 */        WORD(SG_UNDEF)  /* identifier#enum-set-subset? */,
-  /*   943 */        0x00000017           /* 6      (TEST) */,
-  /*   944 */        WORD(SG_MAKE_INT(4)),
-  /*   945 */        0x00000005           /* 8      (LREF) */,
-  /*   946 */        0x00000018           /* 9      (JUMP) */,
-  /*   947 */        WORD(SG_MAKE_INT(40)),
-  /*   948 */        0x00000332           /* 11     (LET_FRAME) */,
-  /*   949 */        0x00000147           /* 12     (LREF_PUSH) */,
-  /*   950 */        0x00000134           /* 13     (DISPLAY) */,
-  /*   951 */        0x00000031           /* 14     (FRAME) */,
-  /*   952 */        WORD(SG_MAKE_INT(9)),
-  /*   953 */        0x00000031           /* 16     (FRAME) */,
-  /*   954 */        WORD(SG_MAKE_INT(4)),
-  /*   955 */        0x00000147           /* 18     (LREF_PUSH) */,
-  /*   956 */        0x0000014C           /* 19     (GREF_CALL) */,
-  /*   957 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   958 */        0x0000000B           /* 21     (PUSH) */,
-  /*   959 */        0x0000014C           /* 22     (GREF_CALL) */,
-  /*   960 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
-  /*   961 */        0x0000000B           /* 24     (PUSH) */,
-  /*   962 */        0x00000031           /* 25     (FRAME) */,
-  /*   963 */        WORD(SG_MAKE_INT(4)),
-  /*   964 */        0x00000047           /* 27     (LREF_PUSH) */,
-  /*   965 */        0x0000014C           /* 28     (GREF_CALL) */,
-  /*   966 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   967 */        0x0000000B           /* 30     (PUSH) */,
-  /*   968 */        0x00000233           /* 31     (POP_LET_FRAME) */,
-  /*   969 */        0x00000031           /* 32     (FRAME) */,
-  /*   970 */        WORD(SG_MAKE_INT(4)),
-  /*   971 */        0x00000048           /* 34     (FREF_PUSH) */,
-  /*   972 */        0x0000014C           /* 35     (GREF_CALL) */,
-  /*   973 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   974 */        0x0000000B           /* 37     (PUSH) */,
-  /*   975 */        0x00000031           /* 38     (FRAME) */,
-  /*   976 */        WORD(SG_MAKE_INT(8)),
-  /*   977 */        0x00000047           /* 40     (LREF_PUSH) */,
-  /*   978 */        0x0000002A           /* 41     (CLOSURE) */,
-  /*   979 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   980 */        0x0000000B           /* 43     (PUSH) */,
-  /*   981 */        0x00000147           /* 44     (LREF_PUSH) */,
-  /*   982 */        0x0000024C           /* 45     (GREF_CALL) */,
-  /*   983 */        WORD(SG_UNDEF)  /* identifier#filter */,
-  /*   984 */        0x0000000B           /* 47     (PUSH) */,
-  /*   985 */        0x0000024D           /* 48     (GREF_TAIL_CALL) */,
-  /*   986 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
-  /*   987 */        0x00000030           /* 50     (RET) */,
-  /*   988 */        0x00000047           /* 0      (LREF_PUSH) */,
-  /*   989 */        0x00000048           /* 1      (FREF_PUSH) */,
-  /*   990 */        0x0000024D           /* 2      (GREF_TAIL_CALL) */,
-  /*   991 */        WORD(SG_UNDEF)  /* identifier#memq */,
-  /*   992 */        0x00000030           /* 4      (RET) */,
+  /*     0 */        0x00000038           /* 0      (LIBRARY) */,
+  /*     1 */        WORD(SG_UNDEF)  /* <library (core enums)> */,
+  /*     2 */        0x0000002A           /* 2      (CLOSURE) */,
+  /*     3 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*     4 */        0x00000037           /* 4      (DEFINE) */,
+  /*     5 */        WORD(SG_UNDEF)  /* identifier#enum-type-indexer */,
+  /*     6 */        0x0000002A           /* 6      (CLOSURE) */,
+  /*     7 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*     8 */        0x00000037           /* 8      (DEFINE) */,
+  /*     9 */        WORD(SG_UNDEF)  /* identifier#indexer-set! */,
+  /*    10 */        0x0000002A           /* 10     (CLOSURE) */,
+  /*    11 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*    12 */        0x00000037           /* 12     (DEFINE) */,
+  /*    13 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
+  /*    14 */        0x0000002A           /* 14     (CLOSURE) */,
+  /*    15 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*    16 */        0x00000037           /* 16     (DEFINE) */,
+  /*    17 */        WORD(SG_UNDEF)  /* identifier#universe-set! */,
+  /*    18 */        0x0000002A           /* 18     (CLOSURE) */,
+  /*    19 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*    20 */        0x00000037           /* 20     (DEFINE) */,
+  /*    21 */        WORD(SG_UNDEF)  /* identifier#make-enum-type */,
+  /*    22 */        0x00000031           /* 22     (FRAME) */,
+  /*    23 */        WORD(SG_MAKE_INT(14)),
+  /*    24 */        0x0000004B           /* 24     (CONST_PUSH) */,
+  /*    25 */        WORD(SG_UNDEF), /* <enum-type> */
+  /*    26 */        0x0000002A           /* 26     (CLOSURE) */,
+  /*    27 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*    28 */        0x0000000B           /* 28     (PUSH) */,
+  /*    29 */        0x0000004A           /* 29     (GREF_PUSH) */,
+  /*    30 */        WORD(SG_UNDEF)  /* identifier#make-enum-type */,
+  /*    31 */        0x0000004B           /* 31     (CONST_PUSH) */,
+  /*    32 */        WORD(SG_UNDEF), /* universe */
+  /*    33 */        0x0000004B           /* 33     (CONST_PUSH) */,
+  /*    34 */        WORD(SG_UNDEF), /* indexer */
+  /*    35 */        0x0000054D           /* 35     (GREF_CALL) */,
+  /*    36 */        WORD(SG_UNDEF)  /* identifier#make-generic */,
+  /*    37 */        0x00000037           /* 37     (DEFINE) */,
+  /*    38 */        WORD(SG_UNDEF)  /* identifier#<enum-type> */,
+  /*    39 */        0x0000002A           /* 39     (CLOSURE) */,
+  /*    40 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*    41 */        0x00000037           /* 41     (DEFINE) */,
+  /*    42 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*    43 */        0x0000002A           /* 43     (CLOSURE) */,
+  /*    44 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*    45 */        0x00000037           /* 45     (DEFINE) */,
+  /*    46 */        WORD(SG_UNDEF)  /* identifier#members-set! */,
+  /*    47 */        0x0000002A           /* 47     (CLOSURE) */,
+  /*    48 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*    49 */        0x00000037           /* 49     (DEFINE) */,
+  /*    50 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*    51 */        0x0000002A           /* 51     (CLOSURE) */,
+  /*    52 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*    53 */        0x00000037           /* 53     (DEFINE) */,
+  /*    54 */        WORD(SG_UNDEF)  /* identifier#type-set! */,
+  /*    55 */        0x0000002A           /* 55     (CLOSURE) */,
+  /*    56 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*    57 */        0x00000037           /* 57     (DEFINE) */,
+  /*    58 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
+  /*    59 */        0x00000031           /* 59     (FRAME) */,
+  /*    60 */        WORD(SG_MAKE_INT(14)),
+  /*    61 */        0x0000004B           /* 61     (CONST_PUSH) */,
+  /*    62 */        WORD(SG_UNDEF), /* <enum-set> */
+  /*    63 */        0x0000002A           /* 63     (CLOSURE) */,
+  /*    64 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*    65 */        0x0000000B           /* 65     (PUSH) */,
+  /*    66 */        0x0000004A           /* 66     (GREF_PUSH) */,
+  /*    67 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
+  /*    68 */        0x0000004B           /* 68     (CONST_PUSH) */,
+  /*    69 */        WORD(SG_UNDEF), /* type */
+  /*    70 */        0x0000004B           /* 70     (CONST_PUSH) */,
+  /*    71 */        WORD(SG_UNDEF), /* members */
+  /*    72 */        0x0000054D           /* 72     (GREF_CALL) */,
+  /*    73 */        WORD(SG_UNDEF)  /* identifier#make-generic */,
+  /*    74 */        0x00000037           /* 74     (DEFINE) */,
+  /*    75 */        WORD(SG_UNDEF)  /* identifier#<enum-set> */,
+  /*    76 */        0x0000002A           /* 76     (CLOSURE) */,
+  /*    77 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*    78 */        0x00000037           /* 78     (DEFINE) */,
+  /*    79 */        WORD(SG_UNDEF)  /* identifier#make-enumeration-type */,
+  /*    80 */        0x0000002A           /* 80     (CLOSURE) */,
+  /*    81 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*    82 */        0x00000037           /* 82     (DEFINE) */,
+  /*    83 */        WORD(SG_UNDEF)  /* identifier#make-enumeration */,
+  /*    84 */        0x0000002A           /* 84     (CLOSURE) */,
+  /*    85 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*    86 */        0x00000037           /* 86     (DEFINE) */,
+  /*    87 */        WORD(SG_UNDEF)  /* identifier#enum-set-universe */,
+  /*    88 */        0x0000002A           /* 88     (CLOSURE) */,
+  /*    89 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*    90 */        0x00000037           /* 90     (DEFINE) */,
+  /*    91 */        WORD(SG_UNDEF)  /* identifier#enum-set-indexer */,
+  /*    92 */        0x0000002A           /* 92     (CLOSURE) */,
+  /*    93 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*    94 */        0x00000037           /* 94     (DEFINE) */,
+  /*    95 */        WORD(SG_UNDEF)  /* identifier#enum-set-constructor */,
+  /*    96 */        0x0000002A           /* 96     (CLOSURE) */,
+  /*    97 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*    98 */        0x00000037           /* 98     (DEFINE) */,
+  /*    99 */        WORD(SG_UNDEF)  /* identifier#enum-set->list */,
+  /*   100 */        0x0000002A           /* 100    (CLOSURE) */,
+  /*   101 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   102 */        0x00000037           /* 102    (DEFINE) */,
+  /*   103 */        WORD(SG_UNDEF)  /* identifier#enum-set-member? */,
+  /*   104 */        0x0000002A           /* 104    (CLOSURE) */,
+  /*   105 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   106 */        0x00000037           /* 106    (DEFINE) */,
+  /*   107 */        WORD(SG_UNDEF)  /* identifier#enum-set-subset? */,
+  /*   108 */        0x0000002A           /* 108    (CLOSURE) */,
+  /*   109 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   110 */        0x00000037           /* 110    (DEFINE) */,
+  /*   111 */        WORD(SG_UNDEF)  /* identifier#enum-set=? */,
+  /*   112 */        0x0000002A           /* 112    (CLOSURE) */,
+  /*   113 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   114 */        0x00000037           /* 114    (DEFINE) */,
+  /*   115 */        WORD(SG_UNDEF)  /* identifier#enum-set-union */,
+  /*   116 */        0x0000002A           /* 116    (CLOSURE) */,
+  /*   117 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   118 */        0x00000037           /* 118    (DEFINE) */,
+  /*   119 */        WORD(SG_UNDEF)  /* identifier#enum-set-intersection */,
+  /*   120 */        0x0000002A           /* 120    (CLOSURE) */,
+  /*   121 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   122 */        0x00000037           /* 122    (DEFINE) */,
+  /*   123 */        WORD(SG_UNDEF)  /* identifier#enum-set-difference */,
+  /*   124 */        0x0000002A           /* 124    (CLOSURE) */,
+  /*   125 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   126 */        0x00000037           /* 126    (DEFINE) */,
+  /*   127 */        WORD(SG_UNDEF)  /* identifier#enum-set-complement */,
+  /*   128 */        0x0000002A           /* 128    (CLOSURE) */,
+  /*   129 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   130 */        0x00000037           /* 130    (DEFINE) */,
+  /*   131 */        WORD(SG_UNDEF)  /* identifier#enum-set-projection */,
+  /*   132 */        0x00000002           /* 132    (UNDEF) */,
+  /*   133 */        0x00000001           /* 133    (HALT) */,
+  /*   134 */        0x00000048           /* 0      (LREF_PUSH) */,
+  /*   135 */        0x0000004B           /* 1      (CONST_PUSH) */,
+  /*   136 */        WORD(SG_UNDEF), /* indexer */
+  /*   137 */        0x0000024E           /* 3      (GREF_TAIL_CALL) */,
+  /*   138 */        WORD(SG_UNDEF)  /* identifier#generic-ref */,
+  /*   139 */        0x00000030           /* 5      (RET) */,
+  /*   140 */        0x00000048           /* 0      (LREF_PUSH) */,
+  /*   141 */        0x0000004B           /* 1      (CONST_PUSH) */,
+  /*   142 */        WORD(SG_UNDEF), /* indexer */
+  /*   143 */        0x00000148           /* 3      (LREF_PUSH) */,
+  /*   144 */        0x0000034E           /* 4      (GREF_TAIL_CALL) */,
+  /*   145 */        WORD(SG_UNDEF)  /* identifier#generic-set! */,
+  /*   146 */        0x00000030           /* 6      (RET) */,
+  /*   147 */        0x00000048           /* 0      (LREF_PUSH) */,
+  /*   148 */        0x0000004B           /* 1      (CONST_PUSH) */,
+  /*   149 */        WORD(SG_UNDEF), /* universe */
+  /*   150 */        0x0000024E           /* 3      (GREF_TAIL_CALL) */,
+  /*   151 */        WORD(SG_UNDEF)  /* identifier#generic-ref */,
+  /*   152 */        0x00000030           /* 5      (RET) */,
+  /*   153 */        0x00000048           /* 0      (LREF_PUSH) */,
+  /*   154 */        0x0000004B           /* 1      (CONST_PUSH) */,
+  /*   155 */        WORD(SG_UNDEF), /* universe */
+  /*   156 */        0x00000148           /* 3      (LREF_PUSH) */,
+  /*   157 */        0x0000034E           /* 4      (GREF_TAIL_CALL) */,
+  /*   158 */        WORD(SG_UNDEF)  /* identifier#generic-set! */,
+  /*   159 */        0x00000030           /* 6      (RET) */,
+  /*   160 */        0x00000332           /* 0      (LET_FRAME) */,
+  /*   161 */        0x00000148           /* 1      (LREF_PUSH) */,
+  /*   162 */        0x00000048           /* 2      (LREF_PUSH) */,
+  /*   163 */        0x00000234           /* 3      (DISPLAY) */,
+  /*   164 */        0x00000031           /* 4      (FRAME) */,
+  /*   165 */        WORD(SG_MAKE_INT(5)),
+  /*   166 */        0x0000004A           /* 6      (GREF_PUSH) */,
+  /*   167 */        WORD(SG_UNDEF)  /* identifier#<enum-type> */,
+  /*   168 */        0x0000014D           /* 8      (GREF_CALL) */,
+  /*   169 */        WORD(SG_UNDEF)  /* identifier#create-instance */,
+  /*   170 */        0x0000000B           /* 10     (PUSH) */,
+  /*   171 */        0x00000133           /* 11     (POP_LET_FRAME) */,
+  /*   172 */        0x00000031           /* 12     (FRAME) */,
+  /*   173 */        WORD(SG_MAKE_INT(7)),
+  /*   174 */        0x00000048           /* 14     (LREF_PUSH) */,
+  /*   175 */        0x0000004B           /* 15     (CONST_PUSH) */,
+  /*   176 */        WORD(SG_UNDEF), /* indexer */
+  /*   177 */        0x00000149           /* 17     (FREF_PUSH) */,
+  /*   178 */        0x0000034D           /* 18     (GREF_CALL) */,
+  /*   179 */        WORD(SG_UNDEF)  /* identifier#generic-set! */,
+  /*   180 */        0x00000031           /* 20     (FRAME) */,
+  /*   181 */        WORD(SG_MAKE_INT(7)),
+  /*   182 */        0x00000048           /* 22     (LREF_PUSH) */,
+  /*   183 */        0x0000004B           /* 23     (CONST_PUSH) */,
+  /*   184 */        WORD(SG_UNDEF), /* universe */
+  /*   185 */        0x00000049           /* 25     (FREF_PUSH) */,
+  /*   186 */        0x0000034D           /* 26     (GREF_CALL) */,
+  /*   187 */        WORD(SG_UNDEF)  /* identifier#generic-set! */,
+  /*   188 */        0x00000005           /* 28     (LREF) */,
+  /*   189 */        0x00000030           /* 29     (RET) */,
+  /*   190 */        0x00000148           /* 0      (LREF_PUSH) */,
+  /*   191 */        0x0000004B           /* 1      (CONST_PUSH) */,
+  /*   192 */        WORD(SG_UNDEF), /* "#<enum-type ~a>" */
+  /*   193 */        0x00000031           /* 3      (FRAME) */,
+  /*   194 */        WORD(SG_MAKE_INT(4)),
+  /*   195 */        0x00000048           /* 5      (LREF_PUSH) */,
+  /*   196 */        0x0000014D           /* 6      (GREF_CALL) */,
+  /*   197 */        WORD(SG_UNDEF)  /* identifier#enum-type-members */,
+  /*   198 */        0x0000000B           /* 8      (PUSH) */,
+  /*   199 */        0x0000034E           /* 9      (GREF_TAIL_CALL) */,
+  /*   200 */        WORD(SG_UNDEF)  /* identifier#format */,
+  /*   201 */        0x00000030           /* 11     (RET) */,
+  /*   202 */        0x00000048           /* 0      (LREF_PUSH) */,
+  /*   203 */        0x0000004B           /* 1      (CONST_PUSH) */,
+  /*   204 */        WORD(SG_UNDEF), /* members */
+  /*   205 */        0x0000024E           /* 3      (GREF_TAIL_CALL) */,
+  /*   206 */        WORD(SG_UNDEF)  /* identifier#generic-ref */,
+  /*   207 */        0x00000030           /* 5      (RET) */,
+  /*   208 */        0x00000048           /* 0      (LREF_PUSH) */,
+  /*   209 */        0x0000004B           /* 1      (CONST_PUSH) */,
+  /*   210 */        WORD(SG_UNDEF), /* members */
+  /*   211 */        0x00000148           /* 3      (LREF_PUSH) */,
+  /*   212 */        0x0000034E           /* 4      (GREF_TAIL_CALL) */,
+  /*   213 */        WORD(SG_UNDEF)  /* identifier#generic-set! */,
+  /*   214 */        0x00000030           /* 6      (RET) */,
+  /*   215 */        0x00000048           /* 0      (LREF_PUSH) */,
+  /*   216 */        0x0000004B           /* 1      (CONST_PUSH) */,
+  /*   217 */        WORD(SG_UNDEF), /* type */
+  /*   218 */        0x0000024E           /* 3      (GREF_TAIL_CALL) */,
+  /*   219 */        WORD(SG_UNDEF)  /* identifier#generic-ref */,
+  /*   220 */        0x00000030           /* 5      (RET) */,
+  /*   221 */        0x00000048           /* 0      (LREF_PUSH) */,
+  /*   222 */        0x0000004B           /* 1      (CONST_PUSH) */,
+  /*   223 */        WORD(SG_UNDEF), /* type */
+  /*   224 */        0x00000148           /* 3      (LREF_PUSH) */,
+  /*   225 */        0x0000034E           /* 4      (GREF_TAIL_CALL) */,
+  /*   226 */        WORD(SG_UNDEF)  /* identifier#generic-set! */,
+  /*   227 */        0x00000030           /* 6      (RET) */,
+  /*   228 */        0x00000332           /* 0      (LET_FRAME) */,
+  /*   229 */        0x00000148           /* 1      (LREF_PUSH) */,
+  /*   230 */        0x00000048           /* 2      (LREF_PUSH) */,
+  /*   231 */        0x00000234           /* 3      (DISPLAY) */,
+  /*   232 */        0x00000031           /* 4      (FRAME) */,
+  /*   233 */        WORD(SG_MAKE_INT(5)),
+  /*   234 */        0x0000004A           /* 6      (GREF_PUSH) */,
+  /*   235 */        WORD(SG_UNDEF)  /* identifier#<enum-set> */,
+  /*   236 */        0x0000014D           /* 8      (GREF_CALL) */,
+  /*   237 */        WORD(SG_UNDEF)  /* identifier#create-instance */,
+  /*   238 */        0x0000000B           /* 10     (PUSH) */,
+  /*   239 */        0x00000133           /* 11     (POP_LET_FRAME) */,
+  /*   240 */        0x00000031           /* 12     (FRAME) */,
+  /*   241 */        WORD(SG_MAKE_INT(7)),
+  /*   242 */        0x00000048           /* 14     (LREF_PUSH) */,
+  /*   243 */        0x0000004B           /* 15     (CONST_PUSH) */,
+  /*   244 */        WORD(SG_UNDEF), /* members */
+  /*   245 */        0x00000149           /* 17     (FREF_PUSH) */,
+  /*   246 */        0x0000034D           /* 18     (GREF_CALL) */,
+  /*   247 */        WORD(SG_UNDEF)  /* identifier#generic-set! */,
+  /*   248 */        0x00000031           /* 20     (FRAME) */,
+  /*   249 */        WORD(SG_MAKE_INT(7)),
+  /*   250 */        0x00000048           /* 22     (LREF_PUSH) */,
+  /*   251 */        0x0000004B           /* 23     (CONST_PUSH) */,
+  /*   252 */        WORD(SG_UNDEF), /* type */
+  /*   253 */        0x00000049           /* 25     (FREF_PUSH) */,
+  /*   254 */        0x0000034D           /* 26     (GREF_CALL) */,
+  /*   255 */        WORD(SG_UNDEF)  /* identifier#generic-set! */,
+  /*   256 */        0x00000005           /* 28     (LREF) */,
+  /*   257 */        0x00000030           /* 29     (RET) */,
+  /*   258 */        0x00000148           /* 0      (LREF_PUSH) */,
+  /*   259 */        0x0000004B           /* 1      (CONST_PUSH) */,
+  /*   260 */        WORD(SG_UNDEF), /* "#<enum-set ~a>" */
+  /*   261 */        0x00000031           /* 3      (FRAME) */,
+  /*   262 */        WORD(SG_MAKE_INT(4)),
+  /*   263 */        0x00000048           /* 5      (LREF_PUSH) */,
+  /*   264 */        0x0000014D           /* 6      (GREF_CALL) */,
+  /*   265 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   266 */        0x0000000B           /* 8      (PUSH) */,
+  /*   267 */        0x0000034E           /* 9      (GREF_TAIL_CALL) */,
+  /*   268 */        WORD(SG_UNDEF)  /* identifier#format */,
+  /*   269 */        0x00000030           /* 11     (RET) */,
+  /*   270 */        0x00000232           /* 0      (LET_FRAME) */,
+  /*   271 */        0x00000048           /* 1      (LREF_PUSH) */,
+  /*   272 */        0x00000134           /* 2      (DISPLAY) */,
+  /*   273 */        0x00000031           /* 3      (FRAME) */,
+  /*   274 */        WORD(SG_MAKE_INT(3)),
+  /*   275 */        0x0000004D           /* 5      (GREF_CALL) */,
+  /*   276 */        WORD(SG_UNDEF)  /* identifier#make-eq-hashtable */,
+  /*   277 */        0x0000000B           /* 7      (PUSH) */,
+  /*   278 */        0x00000133           /* 8      (POP_LET_FRAME) */,
+  /*   279 */        0x00000432           /* 9      (LET_FRAME) */,
+  /*   280 */        0x00000048           /* 10     (LREF_PUSH) */,
+  /*   281 */        0x00000049           /* 11     (FREF_PUSH) */,
+  /*   282 */        0x00000234           /* 12     (DISPLAY) */,
+  /*   283 */        0x00000049           /* 13     (FREF_PUSH) */,
+  /*   284 */        0x0000004C           /* 14     (CONSTI_PUSH) */,
+  /*   285 */        0x00000235           /* 15     (ENTER) */,
+  /*   286 */        0x0000001A           /* 16     (MARK) */,
+  /*   287 */        0x00000005           /* 17     (LREF) */,
+  /*   288 */        0x00000022           /* 18     (BNNULL) */,
+  /*   289 */        WORD(SG_MAKE_INT(3)),
+  /*   290 */        0x00000018           /* 20     (JUMP) */,
+  /*   291 */        WORD(SG_MAKE_INT(19)),
+  /*   292 */        0x00000031           /* 22     (FRAME) */,
+  /*   293 */        WORD(SG_MAKE_INT(8)),
+  /*   294 */        0x00000149           /* 24     (FREF_PUSH) */,
+  /*   295 */        0x00000005           /* 25     (LREF) */,
+  /*   296 */        0x00000039           /* 26     (CAR) */,
+  /*   297 */        0x0000000B           /* 27     (PUSH) */,
+  /*   298 */        0x00000148           /* 28     (LREF_PUSH) */,
+  /*   299 */        0x0000034D           /* 29     (GREF_CALL) */,
+  /*   300 */        WORD(SG_UNDEF)  /* identifier#hashtable-set! */,
+  /*   301 */        0x00000005           /* 31     (LREF) */,
+  /*   302 */        0x0000003A           /* 32     (CDR) */,
+  /*   303 */        0x0000000B           /* 33     (PUSH) */,
+  /*   304 */        0x00000105           /* 34     (LREF) */,
+  /*   305 */        0x0000010F           /* 35     (ADDI) */,
+  /*   306 */        0x0000000B           /* 36     (PUSH) */,
+  /*   307 */        0x00000219           /* 37     (SHIFTJ) */,
+  /*   308 */        0x00000018           /* 38     (JUMP) */,
+  /*   309 */        WORD(SG_MAKE_INT(-22)),
+  /*   310 */        0x00000036           /* 40     (LEAVE) */,
+  /*   311 */        0x00000049           /* 41     (FREF_PUSH) */,
+  /*   312 */        0x00000048           /* 42     (LREF_PUSH) */,
+  /*   313 */        0x0000002A           /* 43     (CLOSURE) */,
+  /*   314 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   315 */        0x0000000B           /* 45     (PUSH) */,
+  /*   316 */        0x0000024E           /* 46     (GREF_TAIL_CALL) */,
+  /*   317 */        WORD(SG_UNDEF)  /* identifier#make-enum-type */,
+  /*   318 */        0x00000030           /* 48     (RET) */,
+  /*   319 */        0x00000049           /* 0      (FREF_PUSH) */,
+  /*   320 */        0x00000048           /* 1      (LREF_PUSH) */,
+  /*   321 */        0x0000004B           /* 2      (CONST_PUSH) */,
+  /*   322 */        WORD(SG_MAKE_BOOL(FALSE)),
+  /*   323 */        0x0000034E           /* 4      (GREF_TAIL_CALL) */,
+  /*   324 */        WORD(SG_UNDEF)  /* identifier#hashtable-ref */,
+  /*   325 */        0x00000030           /* 6      (RET) */,
+  /*   326 */        0x00000031           /* 0      (FRAME) */,
+  /*   327 */        WORD(SG_MAKE_INT(4)),
+  /*   328 */        0x00000048           /* 2      (LREF_PUSH) */,
+  /*   329 */        0x0000014D           /* 3      (GREF_CALL) */,
+  /*   330 */        WORD(SG_UNDEF)  /* identifier#list? */,
+  /*   331 */        0x00000017           /* 5      (TEST) */,
+  /*   332 */        WORD(SG_MAKE_INT(29)),
+  /*   333 */        0x00000031           /* 7      (FRAME) */,
+  /*   334 */        WORD(SG_MAKE_INT(6)),
+  /*   335 */        0x0000004A           /* 9      (GREF_PUSH) */,
+  /*   336 */        WORD(SG_UNDEF)  /* identifier#symbol? */,
+  /*   337 */        0x00000048           /* 11     (LREF_PUSH) */,
+  /*   338 */        0x0000024D           /* 12     (GREF_CALL) */,
+  /*   339 */        WORD(SG_UNDEF)  /* identifier#for-all */,
+  /*   340 */        0x00000017           /* 14     (TEST) */,
+  /*   341 */        WORD(SG_MAKE_INT(12)),
+  /*   342 */        0x00000031           /* 16     (FRAME) */,
+  /*   343 */        WORD(SG_MAKE_INT(4)),
+  /*   344 */        0x00000048           /* 18     (LREF_PUSH) */,
+  /*   345 */        0x0000014D           /* 19     (GREF_CALL) */,
+  /*   346 */        WORD(SG_UNDEF)  /* identifier#make-enumeration-type */,
+  /*   347 */        0x0000000B           /* 21     (PUSH) */,
+  /*   348 */        0x00000048           /* 22     (LREF_PUSH) */,
+  /*   349 */        0x0000024E           /* 23     (GREF_TAIL_CALL) */,
+  /*   350 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
+  /*   351 */        0x00000018           /* 25     (JUMP) */,
+  /*   352 */        WORD(SG_MAKE_INT(7)),
+  /*   353 */        0x0000004B           /* 27     (CONST_PUSH) */,
+  /*   354 */        WORD(SG_UNDEF), /* make-enumeration */
+  /*   355 */        0x0000004B           /* 29     (CONST_PUSH) */,
+  /*   356 */        WORD(SG_UNDEF), /* "argument 1 must be a list of symbols" */
+  /*   357 */        0x0000024E           /* 31     (GREF_TAIL_CALL) */,
+  /*   358 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
+  /*   359 */        0x00000018           /* 33     (JUMP) */,
+  /*   360 */        WORD(SG_MAKE_INT(3)),
+  /*   361 */        0x00000018           /* 35     (JUMP) */,
+  /*   362 */        WORD(SG_MAKE_INT(-9)),
+  /*   363 */        0x00000030           /* 37     (RET) */,
+  /*   364 */        0x00000031           /* 0      (FRAME) */,
+  /*   365 */        WORD(SG_MAKE_INT(4)),
+  /*   366 */        0x00000048           /* 2      (LREF_PUSH) */,
+  /*   367 */        0x0000014D           /* 3      (GREF_CALL) */,
+  /*   368 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   369 */        0x0000000B           /* 5      (PUSH) */,
+  /*   370 */        0x00000031           /* 6      (FRAME) */,
+  /*   371 */        WORD(SG_MAKE_INT(9)),
+  /*   372 */        0x00000031           /* 8      (FRAME) */,
+  /*   373 */        WORD(SG_MAKE_INT(4)),
+  /*   374 */        0x00000048           /* 10     (LREF_PUSH) */,
+  /*   375 */        0x0000014D           /* 11     (GREF_CALL) */,
+  /*   376 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   377 */        0x0000000B           /* 13     (PUSH) */,
+  /*   378 */        0x0000014D           /* 14     (GREF_CALL) */,
+  /*   379 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
+  /*   380 */        0x0000000B           /* 16     (PUSH) */,
+  /*   381 */        0x0000024E           /* 17     (GREF_TAIL_CALL) */,
+  /*   382 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
+  /*   383 */        0x00000030           /* 19     (RET) */,
+  /*   384 */        0x00000031           /* 0      (FRAME) */,
+  /*   385 */        WORD(SG_MAKE_INT(4)),
+  /*   386 */        0x00000048           /* 2      (LREF_PUSH) */,
+  /*   387 */        0x0000014D           /* 3      (GREF_CALL) */,
+  /*   388 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   389 */        0x0000000B           /* 5      (PUSH) */,
+  /*   390 */        0x0000014E           /* 6      (GREF_TAIL_CALL) */,
+  /*   391 */        WORD(SG_UNDEF)  /* identifier#enum-type-indexer */,
+  /*   392 */        0x00000030           /* 8      (RET) */,
+  /*   393 */        0x00000048           /* 0      (LREF_PUSH) */,
+  /*   394 */        0x0000002A           /* 1      (CLOSURE) */,
+  /*   395 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   396 */        0x00000030           /* 3      (RET) */,
+  /*   397 */        0x00000432           /* 0      (LET_FRAME) */,
+  /*   398 */        0x00000048           /* 1      (LREF_PUSH) */,
+  /*   399 */        0x00000049           /* 2      (FREF_PUSH) */,
+  /*   400 */        0x00000049           /* 3      (FREF_PUSH) */,
+  /*   401 */        0x00000334           /* 4      (DISPLAY) */,
+  /*   402 */        0x00000031           /* 5      (FRAME) */,
+  /*   403 */        WORD(SG_MAKE_INT(9)),
+  /*   404 */        0x00000031           /* 7      (FRAME) */,
+  /*   405 */        WORD(SG_MAKE_INT(4)),
+  /*   406 */        0x00000049           /* 9      (FREF_PUSH) */,
+  /*   407 */        0x0000014D           /* 10     (GREF_CALL) */,
+  /*   408 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   409 */        0x0000000B           /* 12     (PUSH) */,
+  /*   410 */        0x0000014D           /* 13     (GREF_CALL) */,
+  /*   411 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
+  /*   412 */        0x0000000B           /* 15     (PUSH) */,
+  /*   413 */        0x00000133           /* 16     (POP_LET_FRAME) */,
+  /*   414 */        0x00000031           /* 17     (FRAME) */,
+  /*   415 */        WORD(SG_MAKE_INT(8)),
+  /*   416 */        0x00000048           /* 19     (LREF_PUSH) */,
+  /*   417 */        0x0000002A           /* 20     (CLOSURE) */,
+  /*   418 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   419 */        0x0000000B           /* 22     (PUSH) */,
+  /*   420 */        0x00000249           /* 23     (FREF_PUSH) */,
+  /*   421 */        0x0000024D           /* 24     (GREF_CALL) */,
+  /*   422 */        WORD(SG_UNDEF)  /* identifier#for-all */,
+  /*   423 */        0x00000017           /* 26     (TEST) */,
+  /*   424 */        WORD(SG_MAKE_INT(12)),
+  /*   425 */        0x00000031           /* 28     (FRAME) */,
+  /*   426 */        WORD(SG_MAKE_INT(4)),
+  /*   427 */        0x00000049           /* 30     (FREF_PUSH) */,
+  /*   428 */        0x0000014D           /* 31     (GREF_CALL) */,
+  /*   429 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   430 */        0x0000000B           /* 33     (PUSH) */,
+  /*   431 */        0x00000249           /* 34     (FREF_PUSH) */,
+  /*   432 */        0x0000024E           /* 35     (GREF_TAIL_CALL) */,
+  /*   433 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
+  /*   434 */        0x00000018           /* 37     (JUMP) */,
+  /*   435 */        WORD(SG_MAKE_INT(9)),
+  /*   436 */        0x0000004B           /* 39     (CONST_PUSH) */,
+  /*   437 */        WORD(SG_UNDEF), /* enum-set-constructor */
+  /*   438 */        0x0000004B           /* 41     (CONST_PUSH) */,
+  /*   439 */        WORD(SG_UNDEF), /* "the symbol list must all belong to the universe." */
+  /*   440 */        0x00000048           /* 43     (LREF_PUSH) */,
+  /*   441 */        0x00000249           /* 44     (FREF_PUSH) */,
+  /*   442 */        0x0000044E           /* 45     (GREF_TAIL_CALL) */,
+  /*   443 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
+  /*   444 */        0x00000030           /* 47     (RET) */,
+  /*   445 */        0x00000048           /* 0      (LREF_PUSH) */,
+  /*   446 */        0x00000049           /* 1      (FREF_PUSH) */,
+  /*   447 */        0x0000024E           /* 2      (GREF_TAIL_CALL) */,
+  /*   448 */        WORD(SG_UNDEF)  /* identifier#memq */,
+  /*   449 */        0x00000030           /* 4      (RET) */,
+  /*   450 */        0x00000232           /* 0      (LET_FRAME) */,
+  /*   451 */        0x00000031           /* 1      (FRAME) */,
+  /*   452 */        WORD(SG_MAKE_INT(9)),
+  /*   453 */        0x00000031           /* 3      (FRAME) */,
+  /*   454 */        WORD(SG_MAKE_INT(4)),
+  /*   455 */        0x00000048           /* 5      (LREF_PUSH) */,
+  /*   456 */        0x0000014D           /* 6      (GREF_CALL) */,
+  /*   457 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   458 */        0x0000000B           /* 8      (PUSH) */,
+  /*   459 */        0x0000014D           /* 9      (GREF_CALL) */,
+  /*   460 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
+  /*   461 */        0x0000000B           /* 11     (PUSH) */,
+  /*   462 */        0x00000031           /* 12     (FRAME) */,
+  /*   463 */        WORD(SG_MAKE_INT(4)),
+  /*   464 */        0x00000048           /* 14     (LREF_PUSH) */,
+  /*   465 */        0x0000014D           /* 15     (GREF_CALL) */,
+  /*   466 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   467 */        0x0000000B           /* 17     (PUSH) */,
+  /*   468 */        0x00000233           /* 18     (POP_LET_FRAME) */,
+  /*   469 */        0x00000332           /* 19     (LET_FRAME) */,
+  /*   470 */        0x00000048           /* 20     (LREF_PUSH) */,
+  /*   471 */        0x00000148           /* 21     (LREF_PUSH) */,
+  /*   472 */        0x00000234           /* 22     (DISPLAY) */,
+  /*   473 */        0x00000002           /* 23     (UNDEF) */,
+  /*   474 */        0x0000000B           /* 24     (PUSH) */,
+  /*   475 */        0x0000000C           /* 25     (BOX) */,
+  /*   476 */        0x00000133           /* 26     (POP_LET_FRAME) */,
+  /*   477 */        0x00000049           /* 27     (FREF_PUSH) */,
+  /*   478 */        0x00000048           /* 28     (LREF_PUSH) */,
+  /*   479 */        0x0000002A           /* 29     (CLOSURE) */,
+  /*   480 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   481 */        0x00000006           /* 31     (LSET) */,
+  /*   482 */        0x00000149           /* 32     (FREF_PUSH) */,
+  /*   483 */        0x00000005           /* 33     (LREF) */,
+  /*   484 */        0x0000000D           /* 34     (UNBOX) */,
+  /*   485 */        0x0000012F           /* 35     (LOCAL_TAIL_CALL) */,
+  /*   486 */        0x00000030           /* 36     (RET) */,
+  /*   487 */        0x00000005           /* 0      (LREF) */,
+  /*   488 */        0x00000022           /* 1      (BNNULL) */,
+  /*   489 */        WORD(SG_MAKE_INT(5)),
+  /*   490 */        0x00000003           /* 3      (CONST) */,
+  /*   491 */        WORD(SG_NIL),
+  /*   492 */        0x00000018           /* 5      (JUMP) */,
+  /*   493 */        WORD(SG_MAKE_INT(31)),
+  /*   494 */        0x00000031           /* 7      (FRAME) */,
+  /*   495 */        WORD(SG_MAKE_INT(7)),
+  /*   496 */        0x00000005           /* 9      (LREF) */,
+  /*   497 */        0x00000039           /* 10     (CAR) */,
+  /*   498 */        0x0000000B           /* 11     (PUSH) */,
+  /*   499 */        0x00000149           /* 12     (FREF_PUSH) */,
+  /*   500 */        0x0000024D           /* 13     (GREF_CALL) */,
+  /*   501 */        WORD(SG_UNDEF)  /* identifier#memq */,
+  /*   502 */        0x00000017           /* 15     (TEST) */,
+  /*   503 */        WORD(SG_MAKE_INT(15)),
+  /*   504 */        0x00000005           /* 17     (LREF) */,
+  /*   505 */        0x00000039           /* 18     (CAR) */,
+  /*   506 */        0x0000000B           /* 19     (PUSH) */,
+  /*   507 */        0x00000031           /* 20     (FRAME) */,
+  /*   508 */        WORD(SG_MAKE_INT(7)),
+  /*   509 */        0x00000005           /* 22     (LREF) */,
+  /*   510 */        0x0000003A           /* 23     (CDR) */,
+  /*   511 */        0x0000000B           /* 24     (PUSH) */,
+  /*   512 */        0x00000007           /* 25     (FREF) */,
+  /*   513 */        0x0000000D           /* 26     (UNBOX) */,
+  /*   514 */        0x0000012D           /* 27     (LOCAL_CALL) */,
+  /*   515 */        0x0000003B           /* 28     (CONS) */,
+  /*   516 */        0x00000018           /* 29     (JUMP) */,
+  /*   517 */        WORD(SG_MAKE_INT(7)),
+  /*   518 */        0x00000005           /* 31     (LREF) */,
+  /*   519 */        0x0000003A           /* 32     (CDR) */,
+  /*   520 */        0x0000000B           /* 33     (PUSH) */,
+  /*   521 */        0x00000007           /* 34     (FREF) */,
+  /*   522 */        0x0000000D           /* 35     (UNBOX) */,
+  /*   523 */        0x0000012F           /* 36     (LOCAL_TAIL_CALL) */,
+  /*   524 */        0x00000030           /* 37     (RET) */,
+  /*   525 */        0x00000031           /* 0      (FRAME) */,
+  /*   526 */        WORD(SG_MAKE_INT(10)),
+  /*   527 */        0x00000048           /* 2      (LREF_PUSH) */,
+  /*   528 */        0x00000031           /* 3      (FRAME) */,
+  /*   529 */        WORD(SG_MAKE_INT(4)),
+  /*   530 */        0x00000148           /* 5      (LREF_PUSH) */,
+  /*   531 */        0x0000014D           /* 6      (GREF_CALL) */,
+  /*   532 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   533 */        0x0000000B           /* 8      (PUSH) */,
+  /*   534 */        0x0000024D           /* 9      (GREF_CALL) */,
+  /*   535 */        WORD(SG_UNDEF)  /* identifier#memq */,
+  /*   536 */        0x00000017           /* 11     (TEST) */,
+  /*   537 */        WORD(SG_MAKE_INT(3)),
+  /*   538 */        0x00000003           /* 13     (CONST) */,
+  /*   539 */        WORD(SG_MAKE_BOOL(TRUE)),
+  /*   540 */        0x00000030           /* 15     (RET) */,
+  /*   541 */        0x00000232           /* 0      (LET_FRAME) */,
+  /*   542 */        0x00000048           /* 1      (LREF_PUSH) */,
+  /*   543 */        0x00000134           /* 2      (DISPLAY) */,
+  /*   544 */        0x00000031           /* 3      (FRAME) */,
+  /*   545 */        WORD(SG_MAKE_INT(9)),
+  /*   546 */        0x00000031           /* 5      (FRAME) */,
+  /*   547 */        WORD(SG_MAKE_INT(4)),
+  /*   548 */        0x00000148           /* 7      (LREF_PUSH) */,
+  /*   549 */        0x0000014D           /* 8      (GREF_CALL) */,
+  /*   550 */        WORD(SG_UNDEF)  /* identifier#enum-set-universe */,
+  /*   551 */        0x0000000B           /* 10     (PUSH) */,
+  /*   552 */        0x0000014D           /* 11     (GREF_CALL) */,
+  /*   553 */        WORD(SG_UNDEF)  /* identifier#enum-set->list */,
+  /*   554 */        0x0000000B           /* 13     (PUSH) */,
+  /*   555 */        0x00000135           /* 14     (ENTER) */,
+  /*   556 */        0x00000031           /* 15     (FRAME) */,
+  /*   557 */        WORD(SG_MAKE_INT(18)),
+  /*   558 */        0x00000048           /* 17     (LREF_PUSH) */,
+  /*   559 */        0x0000002A           /* 18     (CLOSURE) */,
+  /*   560 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   561 */        0x0000000B           /* 20     (PUSH) */,
+  /*   562 */        0x00000031           /* 21     (FRAME) */,
+  /*   563 */        WORD(SG_MAKE_INT(9)),
+  /*   564 */        0x00000031           /* 23     (FRAME) */,
+  /*   565 */        WORD(SG_MAKE_INT(4)),
+  /*   566 */        0x00000049           /* 25     (FREF_PUSH) */,
+  /*   567 */        0x0000014D           /* 26     (GREF_CALL) */,
+  /*   568 */        WORD(SG_UNDEF)  /* identifier#enum-set-universe */,
+  /*   569 */        0x0000000B           /* 28     (PUSH) */,
+  /*   570 */        0x0000014D           /* 29     (GREF_CALL) */,
+  /*   571 */        WORD(SG_UNDEF)  /* identifier#enum-set->list */,
+  /*   572 */        0x0000000B           /* 31     (PUSH) */,
+  /*   573 */        0x0000024D           /* 32     (GREF_CALL) */,
+  /*   574 */        WORD(SG_UNDEF)  /* identifier#for-all */,
+  /*   575 */        0x00000036           /* 34     (LEAVE) */,
+  /*   576 */        0x00000017           /* 35     (TEST) */,
+  /*   577 */        WORD(SG_MAKE_INT(13)),
+  /*   578 */        0x00000148           /* 37     (LREF_PUSH) */,
+  /*   579 */        0x0000002A           /* 38     (CLOSURE) */,
+  /*   580 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   581 */        0x0000000B           /* 40     (PUSH) */,
+  /*   582 */        0x00000031           /* 41     (FRAME) */,
+  /*   583 */        WORD(SG_MAKE_INT(4)),
+  /*   584 */        0x00000048           /* 43     (LREF_PUSH) */,
+  /*   585 */        0x0000014D           /* 44     (GREF_CALL) */,
+  /*   586 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   587 */        0x0000000B           /* 46     (PUSH) */,
+  /*   588 */        0x0000024E           /* 47     (GREF_TAIL_CALL) */,
+  /*   589 */        WORD(SG_UNDEF)  /* identifier#for-all */,
+  /*   590 */        0x00000030           /* 49     (RET) */,
+  /*   591 */        0x00000048           /* 0      (LREF_PUSH) */,
+  /*   592 */        0x00000049           /* 1      (FREF_PUSH) */,
+  /*   593 */        0x0000024E           /* 2      (GREF_TAIL_CALL) */,
+  /*   594 */        WORD(SG_UNDEF)  /* identifier#memq */,
+  /*   595 */        0x00000030           /* 4      (RET) */,
+  /*   596 */        0x00000048           /* 0      (LREF_PUSH) */,
+  /*   597 */        0x00000049           /* 1      (FREF_PUSH) */,
+  /*   598 */        0x0000024E           /* 2      (GREF_TAIL_CALL) */,
+  /*   599 */        WORD(SG_UNDEF)  /* identifier#enum-set-member? */,
+  /*   600 */        0x00000030           /* 4      (RET) */,
+  /*   601 */        0x00000031           /* 0      (FRAME) */,
+  /*   602 */        WORD(SG_MAKE_INT(5)),
+  /*   603 */        0x00000048           /* 2      (LREF_PUSH) */,
+  /*   604 */        0x00000148           /* 3      (LREF_PUSH) */,
+  /*   605 */        0x0000024D           /* 4      (GREF_CALL) */,
+  /*   606 */        WORD(SG_UNDEF)  /* identifier#enum-set-subset? */,
+  /*   607 */        0x00000017           /* 6      (TEST) */,
+  /*   608 */        WORD(SG_MAKE_INT(5)),
+  /*   609 */        0x00000148           /* 8      (LREF_PUSH) */,
+  /*   610 */        0x00000048           /* 9      (LREF_PUSH) */,
+  /*   611 */        0x0000024E           /* 10     (GREF_TAIL_CALL) */,
+  /*   612 */        WORD(SG_UNDEF)  /* identifier#enum-set-subset? */,
+  /*   613 */        0x00000030           /* 12     (RET) */,
+  /*   614 */        0x00000031           /* 0      (FRAME) */,
+  /*   615 */        WORD(SG_MAKE_INT(4)),
+  /*   616 */        0x00000048           /* 2      (LREF_PUSH) */,
+  /*   617 */        0x0000014D           /* 3      (GREF_CALL) */,
+  /*   618 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   619 */        0x0000000B           /* 5      (PUSH) */,
+  /*   620 */        0x00000031           /* 6      (FRAME) */,
+  /*   621 */        WORD(SG_MAKE_INT(4)),
+  /*   622 */        0x00000148           /* 8      (LREF_PUSH) */,
+  /*   623 */        0x0000014D           /* 9      (GREF_CALL) */,
+  /*   624 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   625 */        0x00000020           /* 11     (BNEQ) */,
+  /*   626 */        WORD(SG_MAKE_INT(73)),
+  /*   627 */        0x00000031           /* 13     (FRAME) */,
+  /*   628 */        WORD(SG_MAKE_INT(4)),
+  /*   629 */        0x00000048           /* 15     (LREF_PUSH) */,
+  /*   630 */        0x0000014D           /* 16     (GREF_CALL) */,
+  /*   631 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   632 */        0x0000000B           /* 18     (PUSH) */,
+  /*   633 */        0x00000232           /* 19     (LET_FRAME) */,
+  /*   634 */        0x00000031           /* 20     (FRAME) */,
+  /*   635 */        WORD(SG_MAKE_INT(4)),
+  /*   636 */        0x00000048           /* 22     (LREF_PUSH) */,
+  /*   637 */        0x0000014D           /* 23     (GREF_CALL) */,
+  /*   638 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   639 */        0x0000000B           /* 25     (PUSH) */,
+  /*   640 */        0x00000031           /* 26     (FRAME) */,
+  /*   641 */        WORD(SG_MAKE_INT(4)),
+  /*   642 */        0x00000148           /* 28     (LREF_PUSH) */,
+  /*   643 */        0x0000014D           /* 29     (GREF_CALL) */,
+  /*   644 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   645 */        0x0000000B           /* 31     (PUSH) */,
+  /*   646 */        0x00000235           /* 32     (ENTER) */,
+  /*   647 */        0x00000432           /* 33     (LET_FRAME) */,
+  /*   648 */        0x00000048           /* 34     (LREF_PUSH) */,
+  /*   649 */        0x00000148           /* 35     (LREF_PUSH) */,
+  /*   650 */        0x00000234           /* 36     (DISPLAY) */,
+  /*   651 */        0x00000048           /* 37     (LREF_PUSH) */,
+  /*   652 */        0x00000148           /* 38     (LREF_PUSH) */,
+  /*   653 */        0x00000235           /* 39     (ENTER) */,
+  /*   654 */        0x0000001A           /* 40     (MARK) */,
+  /*   655 */        0x00000105           /* 41     (LREF) */,
+  /*   656 */        0x00000022           /* 42     (BNNULL) */,
+  /*   657 */        WORD(SG_MAKE_INT(4)),
+  /*   658 */        0x00000005           /* 44     (LREF) */,
+  /*   659 */        0x00000018           /* 45     (JUMP) */,
+  /*   660 */        WORD(SG_MAKE_INT(32)),
+  /*   661 */        0x00000031           /* 47     (FRAME) */,
+  /*   662 */        WORD(SG_MAKE_INT(7)),
+  /*   663 */        0x00000105           /* 49     (LREF) */,
+  /*   664 */        0x00000039           /* 50     (CAR) */,
+  /*   665 */        0x0000000B           /* 51     (PUSH) */,
+  /*   666 */        0x00000048           /* 52     (LREF_PUSH) */,
+  /*   667 */        0x0000024D           /* 53     (GREF_CALL) */,
+  /*   668 */        WORD(SG_UNDEF)  /* identifier#memq */,
+  /*   669 */        0x00000017           /* 55     (TEST) */,
+  /*   670 */        WORD(SG_MAKE_INT(10)),
+  /*   671 */        0x00000048           /* 57     (LREF_PUSH) */,
+  /*   672 */        0x00000105           /* 58     (LREF) */,
+  /*   673 */        0x0000003A           /* 59     (CDR) */,
+  /*   674 */        0x0000000B           /* 60     (PUSH) */,
+  /*   675 */        0x00000219           /* 61     (SHIFTJ) */,
+  /*   676 */        0x00000018           /* 62     (JUMP) */,
+  /*   677 */        WORD(SG_MAKE_INT(-22)),
+  /*   678 */        0x00000018           /* 64     (JUMP) */,
+  /*   679 */        WORD(SG_MAKE_INT(13)),
+  /*   680 */        0x00000105           /* 66     (LREF) */,
+  /*   681 */        0x00000039           /* 67     (CAR) */,
+  /*   682 */        0x0000000B           /* 68     (PUSH) */,
+  /*   683 */        0x00000005           /* 69     (LREF) */,
+  /*   684 */        0x0000003B           /* 70     (CONS) */,
+  /*   685 */        0x0000000B           /* 71     (PUSH) */,
+  /*   686 */        0x00000105           /* 72     (LREF) */,
+  /*   687 */        0x0000003A           /* 73     (CDR) */,
+  /*   688 */        0x0000000B           /* 74     (PUSH) */,
+  /*   689 */        0x00000219           /* 75     (SHIFTJ) */,
+  /*   690 */        0x00000018           /* 76     (JUMP) */,
+  /*   691 */        WORD(SG_MAKE_INT(-36)),
+  /*   692 */        0x00000036           /* 78     (LEAVE) */,
+  /*   693 */        0x00000036           /* 79     (LEAVE) */,
+  /*   694 */        0x0000000B           /* 80     (PUSH) */,
+  /*   695 */        0x0000024E           /* 81     (GREF_TAIL_CALL) */,
+  /*   696 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
+  /*   697 */        0x00000018           /* 83     (JUMP) */,
+  /*   698 */        WORD(SG_MAKE_INT(7)),
+  /*   699 */        0x0000004B           /* 85     (CONST_PUSH) */,
+  /*   700 */        WORD(SG_UNDEF), /* enum-set-union */
+  /*   701 */        0x0000004B           /* 87     (CONST_PUSH) */,
+  /*   702 */        WORD(SG_UNDEF), /* "enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type." */
+  /*   703 */        0x0000024E           /* 89     (GREF_TAIL_CALL) */,
+  /*   704 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
+  /*   705 */        0x00000030           /* 91     (RET) */,
+  /*   706 */        0x00000031           /* 0      (FRAME) */,
+  /*   707 */        WORD(SG_MAKE_INT(4)),
+  /*   708 */        0x00000048           /* 2      (LREF_PUSH) */,
+  /*   709 */        0x0000014D           /* 3      (GREF_CALL) */,
+  /*   710 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   711 */        0x0000000B           /* 5      (PUSH) */,
+  /*   712 */        0x00000031           /* 6      (FRAME) */,
+  /*   713 */        WORD(SG_MAKE_INT(4)),
+  /*   714 */        0x00000148           /* 8      (LREF_PUSH) */,
+  /*   715 */        0x0000014D           /* 9      (GREF_CALL) */,
+  /*   716 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   717 */        0x00000020           /* 11     (BNEQ) */,
+  /*   718 */        WORD(SG_MAKE_INT(74)),
+  /*   719 */        0x00000031           /* 13     (FRAME) */,
+  /*   720 */        WORD(SG_MAKE_INT(4)),
+  /*   721 */        0x00000048           /* 15     (LREF_PUSH) */,
+  /*   722 */        0x0000014D           /* 16     (GREF_CALL) */,
+  /*   723 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   724 */        0x0000000B           /* 18     (PUSH) */,
+  /*   725 */        0x00000232           /* 19     (LET_FRAME) */,
+  /*   726 */        0x00000031           /* 20     (FRAME) */,
+  /*   727 */        WORD(SG_MAKE_INT(4)),
+  /*   728 */        0x00000048           /* 22     (LREF_PUSH) */,
+  /*   729 */        0x0000014D           /* 23     (GREF_CALL) */,
+  /*   730 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   731 */        0x0000000B           /* 25     (PUSH) */,
+  /*   732 */        0x00000031           /* 26     (FRAME) */,
+  /*   733 */        WORD(SG_MAKE_INT(4)),
+  /*   734 */        0x00000148           /* 28     (LREF_PUSH) */,
+  /*   735 */        0x0000014D           /* 29     (GREF_CALL) */,
+  /*   736 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   737 */        0x0000000B           /* 31     (PUSH) */,
+  /*   738 */        0x00000235           /* 32     (ENTER) */,
+  /*   739 */        0x00000432           /* 33     (LET_FRAME) */,
+  /*   740 */        0x00000148           /* 34     (LREF_PUSH) */,
+  /*   741 */        0x00000048           /* 35     (LREF_PUSH) */,
+  /*   742 */        0x00000234           /* 36     (DISPLAY) */,
+  /*   743 */        0x0000004B           /* 37     (CONST_PUSH) */,
+  /*   744 */        WORD(SG_NIL),
+  /*   745 */        0x00000048           /* 39     (LREF_PUSH) */,
+  /*   746 */        0x00000235           /* 40     (ENTER) */,
+  /*   747 */        0x0000001A           /* 41     (MARK) */,
+  /*   748 */        0x00000105           /* 42     (LREF) */,
+  /*   749 */        0x00000022           /* 43     (BNNULL) */,
+  /*   750 */        WORD(SG_MAKE_INT(4)),
+  /*   751 */        0x00000005           /* 45     (LREF) */,
+  /*   752 */        0x00000018           /* 46     (JUMP) */,
+  /*   753 */        WORD(SG_MAKE_INT(32)),
+  /*   754 */        0x00000031           /* 48     (FRAME) */,
+  /*   755 */        WORD(SG_MAKE_INT(7)),
+  /*   756 */        0x00000105           /* 50     (LREF) */,
+  /*   757 */        0x00000039           /* 51     (CAR) */,
+  /*   758 */        0x0000000B           /* 52     (PUSH) */,
+  /*   759 */        0x00000149           /* 53     (FREF_PUSH) */,
+  /*   760 */        0x0000024D           /* 54     (GREF_CALL) */,
+  /*   761 */        WORD(SG_UNDEF)  /* identifier#memq */,
+  /*   762 */        0x00000017           /* 56     (TEST) */,
+  /*   763 */        WORD(SG_MAKE_INT(15)),
+  /*   764 */        0x00000105           /* 58     (LREF) */,
+  /*   765 */        0x00000039           /* 59     (CAR) */,
+  /*   766 */        0x0000000B           /* 60     (PUSH) */,
+  /*   767 */        0x00000005           /* 61     (LREF) */,
+  /*   768 */        0x0000003B           /* 62     (CONS) */,
+  /*   769 */        0x0000000B           /* 63     (PUSH) */,
+  /*   770 */        0x00000105           /* 64     (LREF) */,
+  /*   771 */        0x0000003A           /* 65     (CDR) */,
+  /*   772 */        0x0000000B           /* 66     (PUSH) */,
+  /*   773 */        0x00000219           /* 67     (SHIFTJ) */,
+  /*   774 */        0x00000018           /* 68     (JUMP) */,
+  /*   775 */        WORD(SG_MAKE_INT(-27)),
+  /*   776 */        0x00000018           /* 70     (JUMP) */,
+  /*   777 */        WORD(SG_MAKE_INT(8)),
+  /*   778 */        0x00000048           /* 72     (LREF_PUSH) */,
+  /*   779 */        0x00000105           /* 73     (LREF) */,
+  /*   780 */        0x0000003A           /* 74     (CDR) */,
+  /*   781 */        0x0000000B           /* 75     (PUSH) */,
+  /*   782 */        0x00000219           /* 76     (SHIFTJ) */,
+  /*   783 */        0x00000018           /* 77     (JUMP) */,
+  /*   784 */        WORD(SG_MAKE_INT(-36)),
+  /*   785 */        0x00000036           /* 79     (LEAVE) */,
+  /*   786 */        0x00000036           /* 80     (LEAVE) */,
+  /*   787 */        0x0000000B           /* 81     (PUSH) */,
+  /*   788 */        0x0000024E           /* 82     (GREF_TAIL_CALL) */,
+  /*   789 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
+  /*   790 */        0x00000018           /* 84     (JUMP) */,
+  /*   791 */        WORD(SG_MAKE_INT(7)),
+  /*   792 */        0x0000004B           /* 86     (CONST_PUSH) */,
+  /*   793 */        WORD(SG_UNDEF), /* enum-set-intersection */
+  /*   794 */        0x0000004B           /* 88     (CONST_PUSH) */,
+  /*   795 */        WORD(SG_UNDEF), /* "enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type." */
+  /*   796 */        0x0000024E           /* 90     (GREF_TAIL_CALL) */,
+  /*   797 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
+  /*   798 */        0x00000030           /* 92     (RET) */,
+  /*   799 */        0x00000031           /* 0      (FRAME) */,
+  /*   800 */        WORD(SG_MAKE_INT(4)),
+  /*   801 */        0x00000048           /* 2      (LREF_PUSH) */,
+  /*   802 */        0x0000014D           /* 3      (GREF_CALL) */,
+  /*   803 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   804 */        0x0000000B           /* 5      (PUSH) */,
+  /*   805 */        0x00000031           /* 6      (FRAME) */,
+  /*   806 */        WORD(SG_MAKE_INT(4)),
+  /*   807 */        0x00000148           /* 8      (LREF_PUSH) */,
+  /*   808 */        0x0000014D           /* 9      (GREF_CALL) */,
+  /*   809 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   810 */        0x00000020           /* 11     (BNEQ) */,
+  /*   811 */        WORD(SG_MAKE_INT(74)),
+  /*   812 */        0x00000031           /* 13     (FRAME) */,
+  /*   813 */        WORD(SG_MAKE_INT(4)),
+  /*   814 */        0x00000048           /* 15     (LREF_PUSH) */,
+  /*   815 */        0x0000014D           /* 16     (GREF_CALL) */,
+  /*   816 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   817 */        0x0000000B           /* 18     (PUSH) */,
+  /*   818 */        0x00000232           /* 19     (LET_FRAME) */,
+  /*   819 */        0x00000031           /* 20     (FRAME) */,
+  /*   820 */        WORD(SG_MAKE_INT(4)),
+  /*   821 */        0x00000048           /* 22     (LREF_PUSH) */,
+  /*   822 */        0x0000014D           /* 23     (GREF_CALL) */,
+  /*   823 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   824 */        0x0000000B           /* 25     (PUSH) */,
+  /*   825 */        0x00000031           /* 26     (FRAME) */,
+  /*   826 */        WORD(SG_MAKE_INT(4)),
+  /*   827 */        0x00000148           /* 28     (LREF_PUSH) */,
+  /*   828 */        0x0000014D           /* 29     (GREF_CALL) */,
+  /*   829 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   830 */        0x0000000B           /* 31     (PUSH) */,
+  /*   831 */        0x00000235           /* 32     (ENTER) */,
+  /*   832 */        0x00000432           /* 33     (LET_FRAME) */,
+  /*   833 */        0x00000148           /* 34     (LREF_PUSH) */,
+  /*   834 */        0x00000048           /* 35     (LREF_PUSH) */,
+  /*   835 */        0x00000234           /* 36     (DISPLAY) */,
+  /*   836 */        0x0000004B           /* 37     (CONST_PUSH) */,
+  /*   837 */        WORD(SG_NIL),
+  /*   838 */        0x00000048           /* 39     (LREF_PUSH) */,
+  /*   839 */        0x00000235           /* 40     (ENTER) */,
+  /*   840 */        0x0000001A           /* 41     (MARK) */,
+  /*   841 */        0x00000105           /* 42     (LREF) */,
+  /*   842 */        0x00000022           /* 43     (BNNULL) */,
+  /*   843 */        WORD(SG_MAKE_INT(4)),
+  /*   844 */        0x00000005           /* 45     (LREF) */,
+  /*   845 */        0x00000018           /* 46     (JUMP) */,
+  /*   846 */        WORD(SG_MAKE_INT(32)),
+  /*   847 */        0x00000031           /* 48     (FRAME) */,
+  /*   848 */        WORD(SG_MAKE_INT(7)),
+  /*   849 */        0x00000105           /* 50     (LREF) */,
+  /*   850 */        0x00000039           /* 51     (CAR) */,
+  /*   851 */        0x0000000B           /* 52     (PUSH) */,
+  /*   852 */        0x00000149           /* 53     (FREF_PUSH) */,
+  /*   853 */        0x0000024D           /* 54     (GREF_CALL) */,
+  /*   854 */        WORD(SG_UNDEF)  /* identifier#memq */,
+  /*   855 */        0x00000017           /* 56     (TEST) */,
+  /*   856 */        WORD(SG_MAKE_INT(10)),
+  /*   857 */        0x00000048           /* 58     (LREF_PUSH) */,
+  /*   858 */        0x00000105           /* 59     (LREF) */,
+  /*   859 */        0x0000003A           /* 60     (CDR) */,
+  /*   860 */        0x0000000B           /* 61     (PUSH) */,
+  /*   861 */        0x00000219           /* 62     (SHIFTJ) */,
+  /*   862 */        0x00000018           /* 63     (JUMP) */,
+  /*   863 */        WORD(SG_MAKE_INT(-22)),
+  /*   864 */        0x00000018           /* 65     (JUMP) */,
+  /*   865 */        WORD(SG_MAKE_INT(13)),
+  /*   866 */        0x00000105           /* 67     (LREF) */,
+  /*   867 */        0x00000039           /* 68     (CAR) */,
+  /*   868 */        0x0000000B           /* 69     (PUSH) */,
+  /*   869 */        0x00000005           /* 70     (LREF) */,
+  /*   870 */        0x0000003B           /* 71     (CONS) */,
+  /*   871 */        0x0000000B           /* 72     (PUSH) */,
+  /*   872 */        0x00000105           /* 73     (LREF) */,
+  /*   873 */        0x0000003A           /* 74     (CDR) */,
+  /*   874 */        0x0000000B           /* 75     (PUSH) */,
+  /*   875 */        0x00000219           /* 76     (SHIFTJ) */,
+  /*   876 */        0x00000018           /* 77     (JUMP) */,
+  /*   877 */        WORD(SG_MAKE_INT(-36)),
+  /*   878 */        0x00000036           /* 79     (LEAVE) */,
+  /*   879 */        0x00000036           /* 80     (LEAVE) */,
+  /*   880 */        0x0000000B           /* 81     (PUSH) */,
+  /*   881 */        0x0000024E           /* 82     (GREF_TAIL_CALL) */,
+  /*   882 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
+  /*   883 */        0x00000018           /* 84     (JUMP) */,
+  /*   884 */        WORD(SG_MAKE_INT(7)),
+  /*   885 */        0x0000004B           /* 86     (CONST_PUSH) */,
+  /*   886 */        WORD(SG_UNDEF), /* enum-set-difference */
+  /*   887 */        0x0000004B           /* 88     (CONST_PUSH) */,
+  /*   888 */        WORD(SG_UNDEF), /* "enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type." */
+  /*   889 */        0x0000024E           /* 90     (GREF_TAIL_CALL) */,
+  /*   890 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
+  /*   891 */        0x00000030           /* 92     (RET) */,
+  /*   892 */        0x00000232           /* 0      (LET_FRAME) */,
+  /*   893 */        0x00000048           /* 1      (LREF_PUSH) */,
+  /*   894 */        0x00000134           /* 2      (DISPLAY) */,
+  /*   895 */        0x00000031           /* 3      (FRAME) */,
+  /*   896 */        WORD(SG_MAKE_INT(4)),
+  /*   897 */        0x00000048           /* 5      (LREF_PUSH) */,
+  /*   898 */        0x0000014D           /* 6      (GREF_CALL) */,
+  /*   899 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   900 */        0x0000000B           /* 8      (PUSH) */,
+  /*   901 */        0x00000133           /* 9      (POP_LET_FRAME) */,
+  /*   902 */        0x00000031           /* 10     (FRAME) */,
+  /*   903 */        WORD(SG_MAKE_INT(4)),
+  /*   904 */        0x00000049           /* 12     (FREF_PUSH) */,
+  /*   905 */        0x0000014D           /* 13     (GREF_CALL) */,
+  /*   906 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   907 */        0x0000000B           /* 15     (PUSH) */,
+  /*   908 */        0x00000031           /* 16     (FRAME) */,
+  /*   909 */        WORD(SG_MAKE_INT(18)),
+  /*   910 */        0x00000048           /* 18     (LREF_PUSH) */,
+  /*   911 */        0x0000002A           /* 19     (CLOSURE) */,
+  /*   912 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   913 */        0x0000000B           /* 21     (PUSH) */,
+  /*   914 */        0x00000031           /* 22     (FRAME) */,
+  /*   915 */        WORD(SG_MAKE_INT(9)),
+  /*   916 */        0x00000031           /* 24     (FRAME) */,
+  /*   917 */        WORD(SG_MAKE_INT(4)),
+  /*   918 */        0x00000049           /* 26     (FREF_PUSH) */,
+  /*   919 */        0x0000014D           /* 27     (GREF_CALL) */,
+  /*   920 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   921 */        0x0000000B           /* 29     (PUSH) */,
+  /*   922 */        0x0000014D           /* 30     (GREF_CALL) */,
+  /*   923 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
+  /*   924 */        0x0000000B           /* 32     (PUSH) */,
+  /*   925 */        0x0000024D           /* 33     (GREF_CALL) */,
+  /*   926 */        WORD(SG_UNDEF)  /* identifier#filter */,
+  /*   927 */        0x0000000B           /* 35     (PUSH) */,
+  /*   928 */        0x0000024E           /* 36     (GREF_TAIL_CALL) */,
+  /*   929 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
+  /*   930 */        0x00000030           /* 38     (RET) */,
+  /*   931 */        0x00000031           /* 0      (FRAME) */,
+  /*   932 */        WORD(SG_MAKE_INT(5)),
+  /*   933 */        0x00000048           /* 2      (LREF_PUSH) */,
+  /*   934 */        0x00000049           /* 3      (FREF_PUSH) */,
+  /*   935 */        0x0000024D           /* 4      (GREF_CALL) */,
+  /*   936 */        WORD(SG_UNDEF)  /* identifier#memq */,
+  /*   937 */        0x00000023           /* 6      (NOT) */,
+  /*   938 */        0x00000030           /* 7      (RET) */,
+  /*   939 */        0x00000031           /* 0      (FRAME) */,
+  /*   940 */        WORD(SG_MAKE_INT(5)),
+  /*   941 */        0x00000048           /* 2      (LREF_PUSH) */,
+  /*   942 */        0x00000148           /* 3      (LREF_PUSH) */,
+  /*   943 */        0x0000024D           /* 4      (GREF_CALL) */,
+  /*   944 */        WORD(SG_UNDEF)  /* identifier#enum-set-subset? */,
+  /*   945 */        0x00000017           /* 6      (TEST) */,
+  /*   946 */        WORD(SG_MAKE_INT(4)),
+  /*   947 */        0x00000005           /* 8      (LREF) */,
+  /*   948 */        0x00000018           /* 9      (JUMP) */,
+  /*   949 */        WORD(SG_MAKE_INT(40)),
+  /*   950 */        0x00000332           /* 11     (LET_FRAME) */,
+  /*   951 */        0x00000148           /* 12     (LREF_PUSH) */,
+  /*   952 */        0x00000134           /* 13     (DISPLAY) */,
+  /*   953 */        0x00000031           /* 14     (FRAME) */,
+  /*   954 */        WORD(SG_MAKE_INT(9)),
+  /*   955 */        0x00000031           /* 16     (FRAME) */,
+  /*   956 */        WORD(SG_MAKE_INT(4)),
+  /*   957 */        0x00000148           /* 18     (LREF_PUSH) */,
+  /*   958 */        0x0000014D           /* 19     (GREF_CALL) */,
+  /*   959 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   960 */        0x0000000B           /* 21     (PUSH) */,
+  /*   961 */        0x0000014D           /* 22     (GREF_CALL) */,
+  /*   962 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
+  /*   963 */        0x0000000B           /* 24     (PUSH) */,
+  /*   964 */        0x00000031           /* 25     (FRAME) */,
+  /*   965 */        WORD(SG_MAKE_INT(4)),
+  /*   966 */        0x00000048           /* 27     (LREF_PUSH) */,
+  /*   967 */        0x0000014D           /* 28     (GREF_CALL) */,
+  /*   968 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   969 */        0x0000000B           /* 30     (PUSH) */,
+  /*   970 */        0x00000233           /* 31     (POP_LET_FRAME) */,
+  /*   971 */        0x00000031           /* 32     (FRAME) */,
+  /*   972 */        WORD(SG_MAKE_INT(4)),
+  /*   973 */        0x00000049           /* 34     (FREF_PUSH) */,
+  /*   974 */        0x0000014D           /* 35     (GREF_CALL) */,
+  /*   975 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   976 */        0x0000000B           /* 37     (PUSH) */,
+  /*   977 */        0x00000031           /* 38     (FRAME) */,
+  /*   978 */        WORD(SG_MAKE_INT(8)),
+  /*   979 */        0x00000048           /* 40     (LREF_PUSH) */,
+  /*   980 */        0x0000002A           /* 41     (CLOSURE) */,
+  /*   981 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   982 */        0x0000000B           /* 43     (PUSH) */,
+  /*   983 */        0x00000148           /* 44     (LREF_PUSH) */,
+  /*   984 */        0x0000024D           /* 45     (GREF_CALL) */,
+  /*   985 */        WORD(SG_UNDEF)  /* identifier#filter */,
+  /*   986 */        0x0000000B           /* 47     (PUSH) */,
+  /*   987 */        0x0000024E           /* 48     (GREF_TAIL_CALL) */,
+  /*   988 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
+  /*   989 */        0x00000030           /* 50     (RET) */,
+  /*   990 */        0x00000048           /* 0      (LREF_PUSH) */,
+  /*   991 */        0x00000049           /* 1      (FREF_PUSH) */,
+  /*   992 */        0x0000024E           /* 2      (GREF_TAIL_CALL) */,
+  /*   993 */        WORD(SG_UNDEF)  /* identifier#memq */,
+  /*   994 */        0x00000030           /* 4      (RET) */,
   }
 };
 
-static SgCodeBuilder toplevel_core_enums = SG_STATIC_CODE_BUILDER(&sg__wc.w[0], SG_FALSE, 0, FALSE, 0, 0, 132);
+static SgCodeBuilder toplevel_core_enums = SG_STATIC_CODE_BUILDER(&sg__wc.w[0], SG_FALSE, 0, FALSE, 0, 0, 134);
 void Sg__Init_core_enums()
 {
   SgLibrary *lib = Sg_FindLibrary(SYMBOL("(core enums)"), TRUE);
   SgLibrary *save = Sg_VM()->currentLibrary;
-  sg__wc.w[604] = IDENT("enum-set-subset?", lib);
-  sg__wc.w[587] = IDENT("for-all", lib);
-  sg__wc.w[416] = WORD(&sg__wc.cb[19]);
-sg__wc.cb[19].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[991] = IDENT("memq", lib);
-  sg__wc.w[592] = IDENT("memq", lib);
-  sg__wc.w[113] = IDENT("enum-set-union", lib);
-  sg__wc.w[572] = IDENT("for-all", lib);
-  sg__wc.w[344] = IDENT("make-enumeration-type", lib);
-  sg__wc.w[1] = WORD(&sg__wc.cb[0]);
-sg__wc.cb[0].name = SYMBOL("enum-type-indexer");
-  sg__wc.w[129] = IDENT("enum-set-projection", lib);
-  sg__wc.w[884] = SYMBOLW("enum-set-difference");
-  sg__wc.w[386] = IDENT("enum-set-type", lib);
-  sg__wc.w[87] = WORD(&sg__wc.cb[16]);
-sg__wc.cb[16].name = SYMBOL("enum-set-indexer");
-  sg__wc.w[801] = IDENT("enum-set-type", lib);
-  sg__wc.w[117] = IDENT("enum-set-intersection", lib);
-  sg__wc.w[89] = IDENT("enum-set-indexer", lib);
-  sg__wc.w[127] = WORD(&sg__wc.cb[32]);
-sg__wc.cb[32].name = SYMBOL("enum-set-projection");
-  sg__wc.w[105] = IDENT("enum-set-subset?", lib);
-  sg__wc.w[348] = IDENT("make-enum-set", lib);
-  sg__wc.w[198] = IDENT("format", lib);
-  sg__wc.w[698] = SYMBOLW("enum-set-union");
-  sg__wc.w[312] = WORD(&sg__wc.cb[13]);
-sg__wc.cb[13].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[143] = IDENT("generic-set!", lib);
-  sg__wc.w[156] = IDENT("generic-set!", lib);
-  sg__wc.w[177] = IDENT("generic-set!", lib);
-  sg__wc.w[185] = IDENT("generic-set!", lib);
-  sg__wc.w[455] = IDENT("enum-set-type", lib);
-  sg__wc.w[389] = IDENT("enum-type-indexer", lib);
-  sg__wc.w[119] = WORD(&sg__wc.cb[29]);
-sg__wc.cb[29].name = SYMBOL("enum-set-difference");
-  sg__wc.w[77] = IDENT("make-enumeration-type", lib);
-  sg__wc.w[374] = IDENT("enum-set-type", lib);
-  sg__wc.w[821] = IDENT("enum-set-members", lib);
-  sg__wc.w[54] = WORD(&sg__wc.cb[10]);
-sg__wc.cb[10].name = SYMBOL("make-enum-set");
-  sg__wc.w[966] = IDENT("enum-set-members", lib);
-  sg__wc.w[121] = IDENT("enum-set-difference", lib);
-  sg__wc.w[666] = IDENT("memq", lib);
-  sg__wc.w[458] = IDENT("enum-type-universe", lib);
-  sg__wc.w[32] = SYMBOLW("indexer");
-  sg__wc.w[134] = SYMBOLW("indexer");
-  sg__wc.w[140] = SYMBOLW("indexer");
-  sg__wc.w[174] = SYMBOLW("indexer");
-  sg__wc.w[52] = IDENT("type-set!", lib);
-  sg__wc.w[960] = IDENT("enum-type-universe", lib);
-  sg__wc.w[957] = IDENT("enum-set-type", lib);
-  sg__wc.w[107] = WORD(&sg__wc.cb[26]);
-sg__wc.cb[26].name = SYMBOL("enum-set=?");
-  sg__wc.w[322] = IDENT("hashtable-ref", lib);
-  sg__wc.w[19] = IDENT("make-enum-type", lib);
-  sg__wc.w[702] = IDENT("assertion-violation", lib);
-  sg__wc.w[101] = IDENT("enum-set-member?", lib);
-  sg__wc.w[42] = WORD(&sg__wc.cb[7]);
-sg__wc.cb[7].name = SYMBOL("members-set!");
-  sg__wc.w[377] = IDENT("enum-type-universe", lib);
-  sg__wc.w[629] = IDENT("enum-set-type", lib);
-  sg__wc.w[610] = IDENT("enum-set-subset?", lib);
-  sg__wc.w[103] = WORD(&sg__wc.cb[23]);
-sg__wc.cb[23].name = SYMBOL("enum-set-subset?");
-  sg__wc.w[888] = IDENT("assertion-violation", lib);
-  sg__wc.w[204] = IDENT("generic-ref", lib);
-  sg__wc.w[217] = IDENT("generic-ref", lib);
-  sg__wc.w[36] = IDENT("<enum-type>", lib);
-  sg__wc.w[566] = IDENT("enum-set-universe", lib);
-  sg__wc.w[17] = WORD(&sg__wc.cb[4]);
-sg__wc.cb[4].name = SYMBOL("make-enum-type");
-  sg__wc.w[65] = IDENT("make-enum-set", lib);
-  sg__wc.w[694] = IDENT("make-enum-set", lib);
-  sg__wc.w[95] = WORD(&sg__wc.cb[20]);
-sg__wc.cb[20].name = SYMBOL("enum-set->list");
-  sg__wc.w[136] = IDENT("generic-ref", lib);
-  sg__wc.w[149] = IDENT("generic-ref", lib);
-  sg__wc.w[69] = SYMBOLW("members");
-  sg__wc.w[202] = SYMBOLW("members");
-  sg__wc.w[208] = SYMBOLW("members");
-  sg__wc.w[242] = SYMBOLW("members");
-  sg__wc.w[125] = IDENT("enum-set-complement", lib);
-  sg__wc.w[807] = IDENT("enum-set-type", lib);
-  sg__wc.w[700] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
-  sg__wc.w[795] = IDENT("assertion-violation", lib);
-  sg__wc.w[569] = IDENT("enum-set->list", lib);
-  sg__wc.w[11] = IDENT("enum-type-universe", lib);
-  sg__wc.w[5] = WORD(&sg__wc.cb[1]);
-sg__wc.cb[1].name = SYMBOL("indexer-set!");
-  sg__wc.w[927] = IDENT("make-enum-set", lib);
-  sg__wc.w[721] = IDENT("enum-set-type", lib);
-  sg__wc.w[366] = IDENT("enum-set-type", lib);
-  sg__wc.w[91] = WORD(&sg__wc.cb[17]);
-sg__wc.cb[17].name = SYMBOL("enum-set-constructor");
-  sg__wc.w[60] = SYMBOLW("<enum-set>");
-  sg__wc.w[352] = SYMBOLW("make-enumeration");
-  sg__wc.w[979] = WORD(&sg__wc.cb[33]);
-sg__wc.cb[33].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[827] = IDENT("enum-set-members", lib);
-  sg__wc.w[79] = WORD(&sg__wc.cb[14]);
-sg__wc.cb[14].name = SYMBOL("make-enumeration");
-  sg__wc.w[787] = IDENT("make-enum-set", lib);
-  sg__wc.w[642] = IDENT("enum-set-members", lib);
-  sg__wc.w[464] = IDENT("enum-set-members", lib);
-  sg__wc.w[406] = IDENT("enum-set-type", lib);
-  sg__wc.w[380] = IDENT("make-enum-set", lib);
-  sg__wc.w[897] = IDENT("enum-set-members", lib);
-  sg__wc.w[123] = WORD(&sg__wc.cb[30]);
-sg__wc.cb[30].name = SYMBOL("enum-set-complement");
-  sg__wc.w[622] = IDENT("enum-set-type", lib);
-  sg__wc.w[437] = STRINGW("the symbol list must all belong to the universe.");
-  sg__wc.w[85] = IDENT("enum-set-universe", lib);
-  sg__wc.w[81] = IDENT("make-enumeration", lib);
-  sg__wc.w[34] = IDENT("make-generic", lib);
-  sg__wc.w[7] = IDENT("indexer-set!", lib);
-  sg__wc.w[446] = IDENT("memq", lib);
-  sg__wc.w[62] = WORD(&sg__wc.cb[11]);
-sg__wc.cb[11].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[93] = IDENT("enum-set-constructor", lib);
-  sg__wc.w[195] = IDENT("enum-type-members", lib);
-  sg__wc.w[111] = WORD(&sg__wc.cb[27]);
-sg__wc.cb[27].name = SYMBOL("enum-set-union");
-  sg__wc.w[597] = IDENT("enum-set-member?", lib);
-  sg__wc.w[409] = IDENT("enum-type-universe", lib);
-  sg__wc.w[983] = IDENT("filter", lib);
-  sg__wc.w[734] = IDENT("enum-set-members", lib);
-  sg__wc.w[46] = WORD(&sg__wc.cb[8]);
-sg__wc.cb[8].name = SYMBOL("enum-set-type");
-  sg__wc.w[852] = IDENT("memq", lib);
-  sg__wc.w[558] = WORD(&sg__wc.cb[24]);
-sg__wc.cb[24].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[266] = IDENT("format", lib);
-  sg__wc.w[880] = IDENT("make-enum-set", lib);
-  sg__wc.w[791] = SYMBOLW("enum-set-intersection");
-  sg__wc.w[714] = IDENT("enum-set-type", lib);
-  sg__wc.w[636] = IDENT("enum-set-members", lib);
-  sg__wc.w[211] = IDENT("generic-set!", lib);
-  sg__wc.w[224] = IDENT("generic-set!", lib);
-  sg__wc.w[245] = IDENT("generic-set!", lib);
-  sg__wc.w[253] = IDENT("generic-set!", lib);
-  sg__wc.w[616] = IDENT("enum-set-type", lib);
-  sg__wc.w[533] = IDENT("memq", lib);
-  sg__wc.w[334] = IDENT("symbol?", lib);
-  sg__wc.w[25] = WORD(&sg__wc.cb[5]);
-sg__wc.cb[5].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[356] = IDENT("assertion-violation", lib);
-  sg__wc.w[478] = WORD(&sg__wc.cb[21]);
-sg__wc.cb[21].name = SYMBOL("loop");
-  sg__wc.w[274] = IDENT("make-eq-hashtable", lib);
-  sg__wc.w[934] = IDENT("memq", lib);
-  sg__wc.w[427] = IDENT("enum-set-type", lib);
-  sg__wc.w[9] = WORD(&sg__wc.cb[2]);
-sg__wc.cb[2].name = SYMBOL("enum-type-universe");
-  sg__wc.w[337] = IDENT("for-all", lib);
-  sg__wc.w[44] = IDENT("members-set!", lib);
-  sg__wc.w[71] = IDENT("make-generic", lib);
-  sg__wc.w[973] = IDENT("enum-set-type", lib);
-  sg__wc.w[728] = IDENT("enum-set-members", lib);
-  sg__wc.w[97] = IDENT("enum-set->list", lib);
-  sg__wc.w[393] = WORD(&sg__wc.cb[18]);
-sg__wc.cb[18].name = SYMBOL("enum-set-constructor");
-  sg__wc.w[793] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
-  sg__wc.w[708] = IDENT("enum-set-type", lib);
-  sg__wc.w[165] = IDENT("<enum-type>", lib);
-  sg__wc.w[40] = IDENT("enum-set-members", lib);
-  sg__wc.w[30] = SYMBOLW("universe");
-  sg__wc.w[147] = SYMBOLW("universe");
-  sg__wc.w[153] = SYMBOLW("universe");
-  sg__wc.w[182] = SYMBOLW("universe");
-  sg__wc.w[942] = IDENT("enum-set-subset?", lib);
-  sg__wc.w[431] = IDENT("make-enum-set", lib);
-  sg__wc.w[83] = WORD(&sg__wc.cb[15]);
-sg__wc.cb[15].name = SYMBOL("enum-set-universe");
-  sg__wc.w[298] = IDENT("hashtable-set!", lib);
-  sg__wc.w[73] = IDENT("<enum-set>", lib);
-  sg__wc.w[986] = IDENT("make-enum-set", lib);
-  sg__wc.w[109] = IDENT("enum-set=?", lib);
-  sg__wc.w[190] = STRINGW("#<enum-type ~a>");
-  sg__wc.w[910] = WORD(&sg__wc.cb[31]);
-sg__wc.cb[31].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[904] = IDENT("enum-set-type", lib);
-  sg__wc.w[354] = STRINGW("argument 1 must be a list of symbols");
-  sg__wc.w[315] = IDENT("make-enum-type", lib);
-  sg__wc.w[167] = IDENT("create-instance", lib);
-  sg__wc.w[48] = IDENT("enum-set-type", lib);
-  sg__wc.w[23] = SYMBOLW("<enum-type>");
-  sg__wc.w[435] = SYMBOLW("enum-set-constructor");
-  sg__wc.w[75] = WORD(&sg__wc.cb[12]);
-sg__wc.cb[12].name = SYMBOL("make-enumeration-type");
-  sg__wc.w[886] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
-  sg__wc.w[499] = IDENT("memq", lib);
-  sg__wc.w[115] = WORD(&sg__wc.cb[28]);
+  sg__wc.w[716] = IDENT("enum-set-type", lib);
+  sg__wc.w[574] = IDENT("for-all", lib);
+  sg__wc.w[25] = SYMBOLW("<enum-type>");
+  sg__wc.w[167] = IDENT("<enum-type>", lib);
+  sg__wc.w[975] = IDENT("enum-set-type", lib);
+  sg__wc.w[823] = IDENT("enum-set-members", lib);
+  sg__wc.w[437] = SYMBOLW("enum-set-constructor");
+  sg__wc.w[968] = IDENT("enum-set-members", lib);
+  sg__wc.w[117] = WORD(&sg__wc.cb[28]);
 sg__wc.cb[28].name = SYMBOL("enum-set-intersection");
-  sg__wc.w[28] = IDENT("make-enum-type", lib);
-  sg__wc.w[759] = IDENT("memq", lib);
-  sg__wc.w[584] = IDENT("enum-set-members", lib);
-  sg__wc.w[15] = IDENT("universe-set!", lib);
-  sg__wc.w[50] = WORD(&sg__wc.cb[9]);
-sg__wc.cb[9].name = SYMBOL("type-set!");
-  sg__wc.w[328] = IDENT("list?", lib);
-  sg__wc.w[578] = WORD(&sg__wc.cb[25]);
-sg__wc.cb[25].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[3] = IDENT("enum-type-indexer", lib);
-  sg__wc.w[918] = IDENT("enum-set-type", lib);
-  sg__wc.w[233] = IDENT("<enum-set>", lib);
-  sg__wc.w[258] = STRINGW("#<enum-set ~a>");
-  sg__wc.w[38] = WORD(&sg__wc.cb[6]);
-sg__wc.cb[6].name = SYMBOL("enum-set-members");
-  sg__wc.w[67] = SYMBOLW("type");
-  sg__wc.w[215] = SYMBOLW("type");
-  sg__wc.w[221] = SYMBOLW("type");
-  sg__wc.w[250] = SYMBOLW("type");
-  sg__wc.w[548] = IDENT("enum-set-universe", lib);
-  sg__wc.w[441] = IDENT("assertion-violation", lib);
-  sg__wc.w[99] = WORD(&sg__wc.cb[22]);
+  sg__wc.w[382] = IDENT("make-enum-set", lib);
+  sg__wc.w[314] = WORD(&sg__wc.cb[13]);
+sg__wc.cb[13].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[75] = IDENT("<enum-set>", lib);
+  sg__wc.w[21] = IDENT("make-enum-type", lib);
+  sg__wc.w[944] = IDENT("enum-set-subset?", lib);
+  sg__wc.w[899] = IDENT("enum-set-members", lib);
+  sg__wc.w[988] = IDENT("make-enum-set", lib);
+  sg__wc.w[888] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
+  sg__wc.w[624] = IDENT("enum-set-type", lib);
+  sg__wc.w[324] = IDENT("hashtable-ref", lib);
+  sg__wc.w[169] = IDENT("create-instance", lib);
+  sg__wc.w[113] = WORD(&sg__wc.cb[27]);
+sg__wc.cb[27].name = SYMBOL("enum-set-union");
+  sg__wc.w[448] = IDENT("memq", lib);
+  sg__wc.w[56] = WORD(&sg__wc.cb[10]);
+sg__wc.cb[10].name = SYMBOL("make-enum-set");
+  sg__wc.w[723] = IDENT("enum-set-type", lib);
+  sg__wc.w[111] = IDENT("enum-set=?", lib);
+  sg__wc.w[105] = WORD(&sg__wc.cb[23]);
+sg__wc.cb[23].name = SYMBOL("enum-set-subset?");
+  sg__wc.w[44] = WORD(&sg__wc.cb[7]);
+sg__wc.cb[7].name = SYMBOL("members-set!");
+  sg__wc.w[235] = IDENT("<enum-set>", lib);
+  sg__wc.w[346] = IDENT("make-enumeration-type", lib);
+  sg__wc.w[50] = IDENT("enum-set-type", lib);
+  sg__wc.w[317] = IDENT("make-enum-type", lib);
+  sg__wc.w[789] = IDENT("make-enum-set", lib);
+  sg__wc.w[466] = IDENT("enum-set-members", lib);
+  sg__wc.w[330] = IDENT("list?", lib);
+  sg__wc.w[206] = IDENT("generic-ref", lib);
+  sg__wc.w[219] = IDENT("generic-ref", lib);
+  sg__wc.w[30] = IDENT("make-enum-type", lib);
+  sg__wc.w[668] = IDENT("memq", lib);
+  sg__wc.w[612] = IDENT("enum-set-subset?", lib);
+  sg__wc.w[586] = IDENT("enum-set-members", lib);
+  sg__wc.w[480] = WORD(&sg__wc.cb[21]);
+sg__wc.cb[21].name = SYMBOL("loop");
+  sg__wc.w[408] = IDENT("enum-set-type", lib);
+  sg__wc.w[265] = IDENT("enum-set-members", lib);
+  sg__wc.w[237] = IDENT("create-instance", lib);
+  sg__wc.w[19] = WORD(&sg__wc.cb[4]);
+sg__wc.cb[4].name = SYMBOL("make-enum-type");
+  sg__wc.w[926] = IDENT("filter", lib);
+  sg__wc.w[618] = IDENT("enum-set-type", lib);
+  sg__wc.w[532] = IDENT("enum-set-members", lib);
+  sg__wc.w[376] = IDENT("enum-set-type", lib);
+  sg__wc.w[923] = IDENT("enum-type-universe", lib);
+  sg__wc.w[97] = WORD(&sg__wc.cb[20]);
+sg__wc.cb[20].name = SYMBOL("enum-set->list");
+  sg__wc.w[350] = IDENT("make-enum-set", lib);
+  sg__wc.w[829] = IDENT("enum-set-members", lib);
+  sg__wc.w[710] = IDENT("enum-set-type", lib);
+  sg__wc.w[411] = IDENT("enum-type-universe", lib);
+  sg__wc.w[276] = IDENT("make-eq-hashtable", lib);
+  sg__wc.w[9] = IDENT("indexer-set!", lib);
+  sg__wc.w[7] = WORD(&sg__wc.cb[1]);
+sg__wc.cb[1].name = SYMBOL("indexer-set!");
+  sg__wc.w[886] = SYMBOLW("enum-set-difference");
+  sg__wc.w[429] = IDENT("enum-set-type", lib);
+  sg__wc.w[93] = WORD(&sg__wc.cb[17]);
+sg__wc.cb[17].name = SYMBOL("enum-set-constructor");
+  sg__wc.w[138] = IDENT("generic-ref", lib);
+  sg__wc.w[151] = IDENT("generic-ref", lib);
+  sg__wc.w[129] = WORD(&sg__wc.cb[32]);
+sg__wc.cb[32].name = SYMBOL("enum-set-projection");
+  sg__wc.w[119] = IDENT("enum-set-intersection", lib);
+  sg__wc.w[379] = IDENT("enum-type-universe", lib);
+  sg__wc.w[260] = STRINGW("#<enum-set ~a>");
+  sg__wc.w[985] = IDENT("filter", lib);
+  sg__wc.w[797] = IDENT("assertion-violation", lib);
+  sg__wc.w[700] = SYMBOLW("enum-set-union");
+  sg__wc.w[550] = IDENT("enum-set-universe", lib);
+  sg__wc.w[433] = IDENT("make-enum-set", lib);
+  sg__wc.w[388] = IDENT("enum-set-type", lib);
+  sg__wc.w[81] = WORD(&sg__wc.cb[14]);
+sg__wc.cb[14].name = SYMBOL("make-enumeration");
+  sg__wc.w[46] = IDENT("members-set!", lib);
+  sg__wc.w[121] = WORD(&sg__wc.cb[29]);
+sg__wc.cb[29].name = SYMBOL("enum-set-difference");
+  sg__wc.w[34] = SYMBOLW("indexer");
+  sg__wc.w[136] = SYMBOLW("indexer");
+  sg__wc.w[142] = SYMBOLW("indexer");
+  sg__wc.w[176] = SYMBOLW("indexer");
+  sg__wc.w[197] = IDENT("enum-type-members", lib);
+  sg__wc.w[391] = IDENT("enum-type-indexer", lib);
+  sg__wc.w[64] = WORD(&sg__wc.cb[11]);
+sg__wc.cb[11].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[606] = IDENT("enum-set-subset?", lib);
+  sg__wc.w[589] = IDENT("for-all", lib);
+  sg__wc.w[553] = IDENT("enum-set->list", lib);
+  sg__wc.w[36] = IDENT("make-generic", lib);
+  sg__wc.w[882] = IDENT("make-enum-set", lib);
+  sg__wc.w[594] = IDENT("memq", lib);
+  sg__wc.w[91] = IDENT("enum-set-indexer", lib);
+  sg__wc.w[336] = IDENT("symbol?", lib);
+  sg__wc.w[17] = IDENT("universe-set!", lib);
+  sg__wc.w[704] = IDENT("assertion-violation", lib);
+  sg__wc.w[48] = WORD(&sg__wc.cb[8]);
+sg__wc.cb[8].name = SYMBOL("enum-set-type");
+  sg__wc.w[631] = IDENT("enum-set-type", lib);
+  sg__wc.w[69] = SYMBOLW("type");
+  sg__wc.w[217] = SYMBOLW("type");
+  sg__wc.w[223] = SYMBOLW("type");
+  sg__wc.w[252] = SYMBOLW("type");
+  sg__wc.w[736] = IDENT("enum-set-members", lib);
+  sg__wc.w[339] = IDENT("for-all", lib);
+  sg__wc.w[103] = IDENT("enum-set-member?", lib);
+  sg__wc.w[101] = WORD(&sg__wc.cb[22]);
 sg__wc.cb[22].name = SYMBOL("enum-set-member?");
-  sg__wc.w[56] = IDENT("make-enum-set", lib);
-  sg__wc.w[924] = IDENT("filter", lib);
-  sg__wc.w[420] = IDENT("for-all", lib);
-  sg__wc.w[921] = IDENT("enum-type-universe", lib);
-  sg__wc.w[235] = IDENT("create-instance", lib);
-  sg__wc.w[263] = IDENT("enum-set-members", lib);
-  sg__wc.w[13] = WORD(&sg__wc.cb[3]);
+  sg__wc.w[71] = SYMBOLW("members");
+  sg__wc.w[204] = SYMBOLW("members");
+  sg__wc.w[210] = SYMBOLW("members");
+  sg__wc.w[244] = SYMBOLW("members");
+  sg__wc.w[27] = WORD(&sg__wc.cb[5]);
+sg__wc.cb[5].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[560] = WORD(&sg__wc.cb[24]);
+sg__wc.cb[24].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[300] = IDENT("hashtable-set!", lib);
+  sg__wc.w[5] = IDENT("enum-type-indexer", lib);
+  sg__wc.w[67] = IDENT("make-enum-set", lib);
+  sg__wc.w[200] = IDENT("format", lib);
+  sg__wc.w[696] = IDENT("make-enum-set", lib);
+  sg__wc.w[13] = IDENT("enum-type-universe", lib);
+  sg__wc.w[929] = IDENT("make-enum-set", lib);
+  sg__wc.w[890] = IDENT("assertion-violation", lib);
+  sg__wc.w[115] = IDENT("enum-set-union", lib);
+  sg__wc.w[73] = IDENT("make-generic", lib);
+  sg__wc.w[11] = WORD(&sg__wc.cb[2]);
+sg__wc.cb[2].name = SYMBOL("enum-type-universe");
+  sg__wc.w[62] = SYMBOLW("<enum-set>");
+  sg__wc.w[131] = IDENT("enum-set-projection", lib);
+  sg__wc.w[107] = IDENT("enum-set-subset?", lib);
+  sg__wc.w[87] = IDENT("enum-set-universe", lib);
+  sg__wc.w[54] = IDENT("type-set!", lib);
+  sg__wc.w[981] = WORD(&sg__wc.cb[33]);
+sg__wc.cb[33].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[395] = WORD(&sg__wc.cb[18]);
+sg__wc.cb[18].name = SYMBOL("enum-set-constructor");
+  sg__wc.w[920] = IDENT("enum-set-type", lib);
+  sg__wc.w[730] = IDENT("enum-set-members", lib);
+  sg__wc.w[354] = SYMBOLW("make-enumeration");
+  sg__wc.w[809] = IDENT("enum-set-type", lib);
+  sg__wc.w[501] = IDENT("memq", lib);
+  sg__wc.w[422] = IDENT("for-all", lib);
+  sg__wc.w[644] = IDENT("enum-set-members", lib);
+  sg__wc.w[85] = WORD(&sg__wc.cb[15]);
+sg__wc.cb[15].name = SYMBOL("enum-set-universe");
+  sg__wc.w[125] = WORD(&sg__wc.cb[30]);
+sg__wc.cb[30].name = SYMBOL("enum-set-complement");
+  sg__wc.w[145] = IDENT("generic-set!", lib);
+  sg__wc.w[158] = IDENT("generic-set!", lib);
+  sg__wc.w[179] = IDENT("generic-set!", lib);
+  sg__wc.w[187] = IDENT("generic-set!", lib);
+  sg__wc.w[123] = IDENT("enum-set-difference", lib);
+  sg__wc.w[959] = IDENT("enum-set-type", lib);
+  sg__wc.w[568] = IDENT("enum-set-universe", lib);
+  sg__wc.w[99] = IDENT("enum-set->list", lib);
+  sg__wc.w[192] = STRINGW("#<enum-type ~a>");
+  sg__wc.w[58] = IDENT("make-enum-set", lib);
+  sg__wc.w[77] = WORD(&sg__wc.cb[12]);
+sg__wc.cb[12].name = SYMBOL("make-enumeration-type");
+  sg__wc.w[83] = IDENT("make-enumeration", lib);
+  sg__wc.w[358] = IDENT("assertion-violation", lib);
+  sg__wc.w[356] = STRINGW("argument 1 must be a list of symbols");
+  sg__wc.w[962] = IDENT("enum-type-universe", lib);
+  sg__wc.w[816] = IDENT("enum-set-type", lib);
+  sg__wc.w[571] = IDENT("enum-set->list", lib);
+  sg__wc.w[79] = IDENT("make-enumeration-type", lib);
+  sg__wc.w[213] = IDENT("generic-set!", lib);
+  sg__wc.w[226] = IDENT("generic-set!", lib);
+  sg__wc.w[247] = IDENT("generic-set!", lib);
+  sg__wc.w[255] = IDENT("generic-set!", lib);
+  sg__wc.w[52] = WORD(&sg__wc.cb[9]);
+sg__wc.cb[9].name = SYMBOL("type-set!");
+  sg__wc.w[993] = IDENT("memq", lib);
+  sg__wc.w[761] = IDENT("memq", lib);
+  sg__wc.w[109] = WORD(&sg__wc.cb[26]);
+sg__wc.cb[26].name = SYMBOL("enum-set=?");
+  sg__wc.w[638] = IDENT("enum-set-members", lib);
+  sg__wc.w[95] = IDENT("enum-set-constructor", lib);
+  sg__wc.w[268] = IDENT("format", lib);
+  sg__wc.w[793] = SYMBOLW("enum-set-intersection");
+  sg__wc.w[702] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
+  sg__wc.w[535] = IDENT("memq", lib);
+  sg__wc.w[38] = IDENT("<enum-type>", lib);
+  sg__wc.w[40] = WORD(&sg__wc.cb[6]);
+sg__wc.cb[6].name = SYMBOL("enum-set-members");
+  sg__wc.w[803] = IDENT("enum-set-type", lib);
+  sg__wc.w[580] = WORD(&sg__wc.cb[25]);
+sg__wc.cb[25].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[127] = IDENT("enum-set-complement", lib);
+  sg__wc.w[457] = IDENT("enum-set-type", lib);
+  sg__wc.w[599] = IDENT("enum-set-member?", lib);
+  sg__wc.w[795] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
+  sg__wc.w[15] = WORD(&sg__wc.cb[3]);
 sg__wc.cb[3].name = SYMBOL("universe-set!");
-  sg__wc.w[814] = IDENT("enum-set-type", lib);
-  sg__wc.w[551] = IDENT("enum-set->list", lib);
-  sg__wc.w[530] = IDENT("enum-set-members", lib);
+  sg__wc.w[42] = IDENT("enum-set-members", lib);
+  sg__wc.w[460] = IDENT("enum-type-universe", lib);
+  sg__wc.w[418] = WORD(&sg__wc.cb[19]);
+sg__wc.cb[19].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[443] = IDENT("assertion-violation", lib);
+  sg__wc.w[439] = STRINGW("the symbol list must all belong to the universe.");
+  sg__wc.w[32] = SYMBOLW("universe");
+  sg__wc.w[149] = SYMBOLW("universe");
+  sg__wc.w[155] = SYMBOLW("universe");
+  sg__wc.w[184] = SYMBOLW("universe");
+  sg__wc.w[3] = WORD(&sg__wc.cb[0]);
+sg__wc.cb[0].name = SYMBOL("enum-type-indexer");
+  sg__wc.w[906] = IDENT("enum-set-type", lib);
+  sg__wc.w[854] = IDENT("memq", lib);
+  sg__wc.w[89] = WORD(&sg__wc.cb[16]);
+sg__wc.cb[16].name = SYMBOL("enum-set-indexer");
+  sg__wc.w[368] = IDENT("enum-set-type", lib);
+  sg__wc.w[936] = IDENT("memq", lib);
+  sg__wc.w[912] = WORD(&sg__wc.cb[31]);
+sg__wc.cb[31].name = SG_MAKE_BOOL(FALSE);
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(sagittarius)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(core base)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("null")));

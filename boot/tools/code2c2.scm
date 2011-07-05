@@ -77,6 +77,8 @@
 	 (format out "        WORD(SG_UNDEF)  /* <keyrowd ~s> */,~%" o))
 	((code-builder? o)
 	 (format out "        WORD(SG_UNDEF)  /* <code-builder> */,~%" #;(code-builder-name o)))
+	((library? o)
+	 (format out "        WORD(SG_UNDEF)  /* <library ~s> */,~%" (library-name o)))
 	(else
 	 (close-output-port out)
 	 (error "Unknown scheme object:" o))))
