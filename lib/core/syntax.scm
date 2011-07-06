@@ -16,6 +16,7 @@
 	    free-identifier=?
 	    syntax-violation)
     (import (core)
+	    (core base)
 	    (core errors)
 	    (core syntax-case)
 	    ;;(core syntax-rules)

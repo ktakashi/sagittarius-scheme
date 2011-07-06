@@ -631,6 +631,7 @@ static void write_symbol_name(SgString *snam, SgPort *port, SgWriteContext *ctx,
 
 static void write_symbol(SgSymbol *obj, SgPort *port, SgWriteContext *ctx)
 {
+  ASSERT(SG_STRINGP(obj->name));
   if (SG_WRITE_MODE(ctx) == SG_WRITE_DISPLAY) {
     Sg_PutsUnsafe(port, obj->name);
   } else {

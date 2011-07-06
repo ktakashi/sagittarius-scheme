@@ -1,5 +1,18 @@
 (library (core arithmetic)
-    (export :all)
+    (export gcd
+	    lcm
+	    div-and-mod
+	    div0-and-mod0
+	    bitwise-rotate-bit-field
+	    bitwise-reverse-bit-field
+	    fxdiv-and-mod
+	    fxdiv0-and-mod0
+	    fx+/carry
+	    fx-/carry
+	    fx*/carry
+	    fxrotate-bit-field
+	    fldiv-and-mod
+	    fldiv0-and-mod0)
     (import null
 	    (core errors))
 ;;;;;

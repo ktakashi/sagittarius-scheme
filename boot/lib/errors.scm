@@ -1,5 +1,26 @@
 (library (core errors)
-    (export :all)
+    (export describe-condition
+	    assertion-violation
+	    undefined-violation
+	    lexical-violation
+	    syntax-violation
+	    error
+	    implementation-restriction-violation
+	    undefined/syntax-violation
+	    assertion/syntax-violation
+	    raise-i/o-filename-error
+	    raise-i/o-error
+	    raise-misc-i/o-error-with-port
+	    raise-misc-i/o-error
+	    raise-i/o-read-error
+	    raise-i/o-write-error
+	    raise-i/o-file-protection-error
+	    raise-i/o-file-is-read-only-error
+	    raise-i/o-file-already-exists-error
+	    raise-i/o-file-does-not-exist-error
+	    raise-i/o-invalid-position-error
+	    raise-i/o-decoding-error
+	    raise-i/o-encoding-error)
     (import null (core base)
 	    (sagittarius))
 

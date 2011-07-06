@@ -42,6 +42,7 @@
 #include "sagittarius/writer.h"
 #include "sagittarius/error.h"
 #include "sagittarius/vm.h"
+#include "sagittarius/port.h"
 #include "sagittarius/load.h"
 #include "sagittarius/system.h"
 #include "sagittarius/gloc.h"
@@ -443,7 +444,7 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
       /* SHORTCUT (import (rnrs)) case*/
       SgObject imported = Sg_HashTableAddAll(SG_LIBRARY_TABLE(tolib),
 					     SG_LIBRARY_TABLE(fromlib));
-      SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, SG_LIST4(imported, SG_NIL, SG_NIL, SG_FALSE),
+      SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, SG_LIST4(SG_NIL, SG_NIL, SG_NIL, SG_FALSE),
 					    SG_LIBRARY_IMPORTED(tolib));
       return;
     } else {

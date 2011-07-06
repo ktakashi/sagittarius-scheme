@@ -82,7 +82,7 @@ static int posix_open(SgObject self, const SgChar* path, int flags)
   if (flags & SG_TRUNCATE) {
     mode |= O_TRUNC;
   }
-  SG_FD(self)->fd = open(Sg_Utf32sToUtf8s(Sg_MakeString(path, SG_LITERAL_STRING)),
+  SG_FD(self)->fd = open(Sg_Utf32sToUtf8s(Sg_MakeString(path, SG_HEAP_STRING)),
 			 mode, 0644);
   setLastError(self);
   return SG_FILE(self)->isOpen(self);
