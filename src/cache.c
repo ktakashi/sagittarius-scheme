@@ -157,7 +157,6 @@ static void put_word(SgPort *out, SgWord w, int tag)
   static const int WORD_SIZE = sizeof(SgObject);
   int i;
   Sg_PutbUnsafe(out, tag);
-  put_4byte(WORD_SIZE);
   for (i = 0; i < WORD_SIZE; i++) {
     /* write order:
        value-> 0xaabbccdd
@@ -220,12 +219,9 @@ struct cache_ctx_rec
 
 static int write_library(SgPort *out, SgLibrary *lib)
 {
-  int len;
   /* for now we don't support generic object */
   /* if (!SG_NULLP(lib->generics)) return FALSE; */
-  len = Sg_Length(lib->imported);
   Sg_PutbUnsafe(out, LIBRARY_TAG);
-  put_4byte(len);
   /* we can just ignore cbs and index */
   write_symbol_cache(out, lib->name);
   return TRUE;
@@ -299,10 +295,9 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
   }
   /* pass2 write cache. */
   write_cache_pass2(out, cb, closures, &ctx);
-  SG_FOR_EACH(closure, closures) {
+  SG_FOR_EACH(closure, SG_CDR(Sg_Reverse(closures))) {
     SgObject slot = SG_CAR(closure);
     Sg_PutbUnsafe(out, CLOSURE_TAG);
-    put_4byte(0);		/* dummy */
     write_cache_pass2(out, SG_CODE_BUILDER(SG_CAR(slot)), closures, &ctx);
   }
   /* if library is NULL, the given code was empty. see core.scm */
@@ -544,13 +539,11 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs, cach
 	SgObject slot = Sg_Assq(o, cbs);
 	/* never happen but just in case */
 	if (SG_FALSEP(slot)) Sg_Panic("non collected compiled code appeared during writing cache.");
-	/* set mark */
-	Sg_PutbUnsafe(out, (uint8_t)MARK_TAG);
-	put_4byte(2);
-	/* maximum 0xffff index
+	/* set mark.
+	   maximum 0xffffffff index
 	   i think this is durable.
 	 */
-	put_4byte(SG_INT_VALUE(SG_CDR(slot)));
+	put_word(out, SG_INT_VALUE(SG_CDR(slot)), MARK_TAG);
 	continue;
       }
       write_object_cache(out, o, cbs, ctx);
@@ -617,10 +610,9 @@ static void write_macro_cache(SgPort *out, SgLibrary *lib, SgObject cbs, cache_c
     } else {
       write_cache_pass2(out, SG_CLOSURE(SG_MACRO(macro)->transformer)->code, closures, ctx);
     }
-    SG_FOR_EACH(closure, closures) {
+    SG_FOR_EACH(closure, SG_CDR(Sg_Reverse(closures))) {
       SgObject slot = SG_CAR(closure);
       Sg_PutbUnsafe(out, CLOSURE_TAG);
-      put_4byte(0);		/* dummy */
       write_cache_pass2(out, SG_CODE_BUILDER(SG_CAR(slot)), closures, ctx);      
     }
     Sg_PutbUnsafe(out, MACRO_END_TAG);
@@ -690,13 +682,13 @@ static int read_4byte(SgPort *in)
 
 static SgWord read_word(SgPort *in, int tag_type)
 {
-  int len, i;
+  static const int WORD_SIZE = sizeof(SgObject);
+  int i;
   SgWord ret = 0;
   int tag = Sg_GetbUnsafe(in);	/* discard tag */
   if (tag != tag_type) return SG_WORD(SG_FALSE);
-  len = read_4byte(in);
   /* dd cc bb aa -> aa bb cc dd */
-  for (i = 0; i < len; i++) {
+  for (i = 0; i < WORD_SIZE; i++) {
     int b = Sg_GetbUnsafe(in);
     ret |= (b << (i * 8));
   }
@@ -718,6 +710,10 @@ static SgObject link_cb(SgObject cb, read_ctx *ctx)
 	if (SG_SHAREDREF_P(o)) {
 	  SgObject index = SG_SHAREDREF(o)->index;
 	  SgObject new_cb = Sg_HashTableRef(ctx->seen, index, SG_FALSE);
+#if 0
+	  Sg_Printf(Sg_StandardErrorPort(), UC("index %A, keys %S, values %S\n"), index,
+		    Sg_HashTableKeys(ctx->seen), Sg_HashTableValues(ctx->seen));
+#endif
 	  ASSERT(SG_CODE_BUILDERP(new_cb));
 	  code[i+j+1] = SG_WORD(new_cb);
 	  link_cb(new_cb, ctx);
@@ -888,6 +884,7 @@ static SgObject read_macro(SgPort *in, read_ctx *ctx)
   data = read_toplevel(in, ctx->seen, MACRO_END_TAG);
   tag = Sg_GetbUnsafe(in);
   ASSERT(tag == MACRO_END_TAG);
+  Sg_VMDumpCode(data);
   if (transP) {
     ASSERT(SG_CODE_BUILDERP(data));
     return Sg_MakeMacroTransformer(name, Sg_MakeClosure(data, NULL), env, lib);
@@ -899,10 +896,9 @@ static SgObject read_macro(SgPort *in, read_ctx *ctx)
 
 static SgObject read_closure(SgPort *in, read_ctx *ctx)
 {
-  int num, tag = Sg_GetbUnsafe(in);
+  int tag = Sg_GetbUnsafe(in);
   SgObject cb;
   if (tag != CLOSURE_TAG) return SG_FALSE;
-  num = read_4byte(in);
   cb = read_code(in, ctx);
   /* Sg_HashTableSet(ctx->seen, SG_MAKE_INT(num), cb, 0); */
   /* Do we need free variables? */
@@ -968,10 +964,8 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
     return SG_OBJ(read_word(in, INSTRUCTION_TAG));
   case MARK_TAG: {
     int index;
-    /* discards tag and length  */
-    Sg_GetbUnsafe(in);
-    read_4byte(in);
-    index = read_4byte(in);
+    /* discards tag  */
+    index = read_word(in, MARK_TAG);
     return make_shared_ref(index);
   }
   case IMMEDIATE_TAG:
@@ -1044,8 +1038,8 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
   SgLibrary *lib;
   SgHashTable *later = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
 
-  Sg_GetbUnsafe(in);		/* discard tag */
-  length = read_4byte(in);	/* length is import spec length */
+  tag = Sg_GetbUnsafe(in);
+  if (tag != LIBRARY_TAG) return SG_FALSE;
   name = read_symbol(in);
   if (SG_FALSEP(name)) return SG_FALSE;
   /* if vm is reading a cache, which means library is not loaded yet.
@@ -1101,10 +1095,13 @@ static SgObject read_code(SgPort *in, read_ctx *ctx)
   name = read_object(in, ctx);
   code = SG_NEW_ARRAY(SgWord, len);
   /* now we need to construct code builder */
+
   i = 0;
   while ((tag = Sg_PeekbUnsafe(in)) != CODE_BUILDER_END_TAG) {
     code[i++] = SG_WORD(read_object(in, ctx));
   }
+  tag = Sg_GetbUnsafe(in);
+  ASSERT(tag == CODE_BUILDER_END_TAG);
   cb = Sg_MakeCodeBuilderFromCache(name, code, len, argc, optional, freec);
   /* store seen */
   Sg_HashTableSet(ctx->seen, SG_MAKE_INT(index), cb, 0);
