@@ -223,7 +223,8 @@ SgCodeBuilder* Sg_MakeCodeBuilder(int size)
   return cb;
 }
 
-SgCodeBuilder* Sg_MakeCodeBuilderFromCache(SgWord *code, int size, int argc, int optional, int freec)
+SgCodeBuilder* Sg_MakeCodeBuilderFromCache(SgObject name, SgWord *code, int size,
+					   int argc, int optional, int freec)
 {
   SgCodeBuilder *cb = SG_NEW(SgCodeBuilder);
   SG_SET_HEADER(cb, TC_CODE_BUILDER);
@@ -232,6 +233,8 @@ SgCodeBuilder* Sg_MakeCodeBuilderFromCache(SgWord *code, int size, int argc, int
   cb->argc = argc;
   cb->optional = optional;
   cb->freec = freec;
+  cb->name = name;
+  cb->src = SG_NIL;
   return cb;
 }
 

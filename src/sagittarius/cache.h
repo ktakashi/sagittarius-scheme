@@ -43,8 +43,9 @@ enum {
 
 SG_CDECL_BEGIN
 
-SG_EXTERN int Sg_WriteCache(SgObject name, SgString *id, SgObject cache);
-SG_EXTERN int Sg_ReadCache(SgString *id);
+SG_EXTERN int  Sg_WriteCache(SgObject name, SgString *id, SgObject cache);
+SG_EXTERN int  Sg_ReadCache(SgString *id);
+SG_EXTERN void Sg_CleanCache();
 
 SG_CDECL_END
 

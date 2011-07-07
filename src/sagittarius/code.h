@@ -125,7 +125,8 @@ SG_EXTERN SgObject Sg_CodeBuilderFullName(SgCodeBuilder *cb);
 SG_EXTERN void     Sg_VMExecute(SgObject toplevel);
 
 /* for compiled cache */
-SG_EXTERN SgCodeBuilder* Sg_MakeCodeBuilderFromCache(SgWord *code, int size, int argc, int optional, int freec);
+SG_EXTERN SgCodeBuilder* Sg_MakeCodeBuilderFromCache(SgObject name, SgWord *code, int size,
+						     int argc, int optional, int freec);
 
 SG_CDECL_END
 

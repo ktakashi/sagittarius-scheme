@@ -31,6 +31,7 @@
  */
 #include <string.h>
 #include "sagittarius.h"
+#include "sagittarius/cache.h"	/* this is not included in sagittarius.h */
 
 /* getopt from mosh */
 struct option
@@ -183,12 +184,13 @@ static int getopt_long(int argc, char **argv, const char *optstring,
 static void show_usage()
 {
   fprintf(stderr,
-	  "Usage: sash [-hv][-L<path>][-D<path>][--debug-exec=<flags>][-p<file> or --logport=<file>]\n"
+	  "Usage: sash [-hv][-L<path>][-D<path>][--clean-cache][--debug-exec=<flags>][-p<file> or --logport=<file>]\n"
 	  "options:\n"
 	  "  -v          Prints version and exits.\n"
 	  "  -h          Prints this usage and exits.\n"
 	  "  -L<path>    Adds <path> to the head of the load path list.\n"
 	  "  -D<path>    Adds <path> to the head of the dynamic load path list.\n"
+	  "  --clean-cache Cleans compiled cache.\n"
 	  "  --debug-exec=<flags> Sets <flags> for VM debugging.\n"
 	  "    info        Shows loading files.\n"
 	  "    debug       Shows info level + calling function names.\n"
@@ -227,6 +229,7 @@ int main(int argc, char **argv)
     {"dynloadpath", optional_argument, 0, 'D'},
     {"help", 0, 0, 'h'},
     {"version", 0, 0, 'v'},
+    {"clean-cache", 0, 0, 'C'},
     {"debug-exec", optional_argument, 0, 'd'},
     {"logport", optional_argument, 0, 'p'},
     {0, 0, 0, 0}
@@ -237,7 +240,7 @@ int main(int argc, char **argv)
   Sg_Init();
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_R6RS_MODE);
-  while ((opt = getopt_long(argc, argv, "L:D:hdvp:", long_options, &optionIndex)) != -1) {
+  while ((opt = getopt_long(argc, argv, "L:D:hdvCp:", long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 'd':
       if (strcmp("trace", optarg) == 0) {
@@ -271,6 +274,9 @@ int main(int argc, char **argv)
       break;
     case 'h':
       show_usage();
+      break;
+    case 'C':
+      Sg_CleanCache();
       break;
     default:
       fprintf(stderr, "invalid option -- %c\n", opt);

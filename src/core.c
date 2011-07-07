@@ -53,6 +53,7 @@ extern void Sg__InitReader();
 extern void Sg__InitPort();
 extern void Sg__InitLoad();
 extern void Sg__InitVM();
+extern void Sg__InitCache();
 
 /* stub files */
 extern void Sg__Init_sagittarius_compiler_procedure();
@@ -96,6 +97,7 @@ void Sg_Init()
   Sg__InitPort();
   /* initialize default reader macro */
   Sg__InitReader();
+  Sg__InitCache();
 
   /* (sagittarius) library is not provided by file. so create it here */
   Sg_FindLibrary(SG_INTERN("(sagittarius)"), TRUE);

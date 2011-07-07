@@ -34,9 +34,11 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
+#include <dirent.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/file.h"
 #include "sagittarius/unicode.h"
+#include "sagittarius/pair.h"
 #include "sagittarius/string.h"
 #include "sagittarius/error.h"
 #include "sagittarius/symbol.h"
@@ -393,6 +395,21 @@ SgObject Sg_FileSize(SgString *path)
     return Sg_MakeIntegerFromS64(st.st_size);
   }
   return SG_UNDEF;
+}
+
+SgObject Sg_ReadDirectory(SgString *path)
+{
+  DIR* dir;
+  struct dirent* entry;
+  SgObject h = SG_NIL, t = SG_NIL;
+  if (NULL == (dir = opendir(Sg_Utf32sToUtf8s(path)))) {
+    return SG_FALSE;
+  }
+  for (entry = readdir(dir); entry != NULL; entry = readdir(dir)) {
+    SG_APPEND1(h, t, Sg_MakeStringC(entry->d_name));
+  }
+  closedir(dir);
+  return h;
 }
 
 /*

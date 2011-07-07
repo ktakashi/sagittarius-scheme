@@ -33,6 +33,7 @@
 #include <shlwapi.h>
 #include <wchar.h>
 #include <io.h>
+#include <string.h>
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/file.h>
 #include <sagittarius/codec.h>
@@ -459,6 +460,32 @@ SgObject Sg_FileSize(SgString *path)
   return SG_UNDEF;
 }
 
+SgObject Sg_ReadDirectory(SgString *path)
+{
+  WIN32_FIND_DATA data;
+  HANDLE hdl;
+
+  SgObject h = SG_NIL, t = SG_NIL;
+  SgString path2;
+  static const SgChar suf[] = { '\\', '*', 0 };
+  int size = sizeof(SgChar) * (SG_STRING_SIZE(path) + 3);
+  SgChar *buf = SG_NEW_ATOMIC2(SgChar *, size);
+  memcpy(buf, SG_STRING_VALUE(path), sizeof(SgChar) * SG_STRING_SIZE(path));
+  memcpy(buf + SG_STRING_SIZE(path), suf, sizeof(SgChar) * 2);
+
+  path2.size = size;
+  path2.value = buf;
+  hdl = FindFirstFileW(utf32ToUtf16(&path2), &data);
+  if (hdl != INVALID_HANDLE_VALUE) {
+    do {
+      SG_APPEND1(h, t, Sg_MakeString(utf16ToUtf32(data.cFileName), SG_HEAP_STRING));
+    } while (FindNextFileW(hdl, &data));
+    FindClose(hdl);
+  } else {
+    return SG_FALSE;
+  }
+  return h;
+}
 
 static SgString *win_lib_path = NULL;
 static SgString *win_sitelib_path = NULL;

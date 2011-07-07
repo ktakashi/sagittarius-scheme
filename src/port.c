@@ -1785,7 +1785,11 @@ int64_t Sg_PortPosition(SgPort *port)
     int64_t pos;
     switch (SG_BINARY_PORT(port)->type) {
     case SG_FILE_BINARY_PORT_TYPE:
-      pos = SG_BINARY_PORT(port)->src.file->tell(SG_BINARY_PORT(port)->src.file);
+      if (SG_BINARY_PORT(port)->buffer) {
+	pos = SG_BINARY_PORT(port)->position;
+      } else {
+	pos = SG_BINARY_PORT(port)->src.file->tell(SG_BINARY_PORT(port)->src.file);
+      }
       break;
     case SG_BYTE_ARRAY_BINARY_PORT_TYPE:
       pos = (int64_t)SG_BINARY_PORT(port)->src.buffer.index;
