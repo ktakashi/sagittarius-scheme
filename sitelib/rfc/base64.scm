@@ -32,6 +32,7 @@
     (export base64-encode base64-encode-string
 	    base64-decode base64-decode-string)
     (import (core)
+	    (core base)
 	    (core syntax)
 	    (core errors)
 	    (sagittarius define-optional))

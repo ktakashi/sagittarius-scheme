@@ -279,7 +279,7 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
 
   /* before write cache, we need to write library info */
   /* when writing a cache, the library must be created. */
-  if (!write_dependancy(out, (lib == NULL) ? Sg_FindLibrary(name, FALSE) : lib, &ctx)) {
+  if (lib != NULL && !write_dependancy(out, lib, &ctx)) {
     if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
       Sg_Printf(vm->logPort, UC("failed to write library. %S\n"), lib);
     }
@@ -309,6 +309,10 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
       Sg_PutbUnsafe(out, (uint8_t)INVALID_CACHE_TAG);
       return -1;
     }
+  } else {
+    put_word(out, 0, MACRO_SECTION_TAG);
+    write_symbol_cache(out, SG_INTERN("user"));
+    Sg_PutbUnsafe(out, MACRO_SECTION_END_TAG);
   }
   Sg_PutbUnsafe(out, BOUNDARY_TAG);
   return ctx.index;
@@ -1188,6 +1192,11 @@ int Sg_ReadCache(SgString *id)
   SgHashTable *shared = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
   SgLibrary *save = vm->currentLibrary;
   read_ctx ctx;
+  int b;
+
+  if (SG_VM_IS_SET_FLAG(vm, SG_DISABLE_CACHE)) {
+    return INVALID_CACHE;
+  }
 
   if (!Sg_FileExistP(cache_path)) {
     return RE_CACHE_NEEDED;
@@ -1225,6 +1234,10 @@ int Sg_ReadCache(SgString *id)
   ctx.sharedObjects = shared;
   ctx.insnP = FALSE;
   ctx.isLinkNeeded = FALSE;
+  /* check if it's invalid cache or not */
+  b = Sg_PeekbUnsafe(in);
+  if (b == INVALID_CACHE_TAG) return INVALID_CACHE;
+
   while ((obj = read_toplevel(in, MACRO_SECTION_TAG, &ctx)) != SG_EOF) {
     if (SG_LIBRARYP(obj)) {
       save = vm->currentLibrary;

@@ -1,6 +1,7 @@
 2011-07-08  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/cache.c (compiled cache): introduced compiled cache mechanism.
+	fixed cache structure.
 
 	* src/extlib.stub (sagittarius): added read-directory and clean-cache.
 

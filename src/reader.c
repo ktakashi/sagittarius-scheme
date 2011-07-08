@@ -724,6 +724,12 @@ SgObject read_token(SgPort *port, SgReaderContext *ctx)
 	  SG_VM_UNSET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
 	  SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
 	}
+	if (ustrcmp(tag->value, "nocache") == 0) {
+	  SG_VM_SET_FLAG(Sg_VM(), SG_DISABLE_CACHE);
+	}
+	if (ustrcmp(tag->value, "cache") == 0) {
+	  SG_VM_UNSET_FLAG(Sg_VM(), SG_DISABLE_CACHE);
+	}
       }
       goto top;
     }
