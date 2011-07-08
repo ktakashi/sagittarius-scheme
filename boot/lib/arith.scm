@@ -14,6 +14,7 @@
 	    fldiv-and-mod
 	    fldiv0-and-mod0)
     (import null
+	    (core base)
 	    (core errors))
 ;;;;;
 ;; arithmetic

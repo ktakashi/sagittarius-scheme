@@ -1,3 +1,9 @@
+2011-07-08  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/cache.c (compiled cache): introduced compiled cache mechanism.
+
+	* src/extlib.stub (sagittarius): added read-directory and clean-cache.
+
 2011-06-30  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/encoding/sjis.scm (encoding sjis): added sjis-codec.

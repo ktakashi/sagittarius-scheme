@@ -140,6 +140,10 @@ SgObject Sg_MakeLibrary(SgObject name)
   Sg_LockMutex(&mutex);
   Sg_HashTableSet(SG_VM_LIBRARIES(vm), z->name, z, SG_HASH_NO_OVERWRITE);
   Sg_UnlockMutex(&mutex);
+
+  if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
+    Sg_Printf(vm->logPort, UC("library %S has been created\n"), name);
+  }
   return SG_OBJ(z);
 }
 
@@ -425,6 +429,7 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
   static SgObject allKeyword = SG_UNDEF;
   SgLibrary *tolib, *fromlib;
   SgObject exportSpec, keys, key, imports;
+  SgVM *vm = Sg_VM();
   int allP = FALSE;
 
   if (SG_UNDEFP(allKeyword)) {
@@ -434,6 +439,10 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
   ENSURE_LIBRARY(from, fromlib);
   exportSpec = SG_LIBRARY_EXPORTED(fromlib);
 
+  if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
+    Sg_Printf(vm->logPort, UC("importing library (from %S, to %S)\n"), SG_LIBRARY_NAME(from), SG_LIBRARY_NAME(to));
+  }
+
   /* resolve :all keyword first */
   if (!SG_FALSEP(exportSpec) && 
       !SG_FALSEP(Sg_Memq(allKeyword, SG_CAR(exportSpec)))) {
@@ -442,8 +451,8 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
 	SG_NULLP(except) &&
 	SG_FALSEP(prefix)) {
       /* SHORTCUT (import (rnrs)) case*/
-      SgObject imported = Sg_HashTableAddAll(SG_LIBRARY_TABLE(tolib),
-					     SG_LIBRARY_TABLE(fromlib));
+      Sg_HashTableAddAll(SG_LIBRARY_TABLE(tolib),
+			 SG_LIBRARY_TABLE(fromlib));
       SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, SG_LIST4(SG_NIL, SG_NIL, SG_NIL, SG_FALSE),
 					    SG_LIBRARY_IMPORTED(tolib));
       return;

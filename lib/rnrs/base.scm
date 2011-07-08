@@ -55,6 +55,7 @@
     ;; TODO use import only
     (import (core)
 	    (core base)
+	    (core errors)
 	    (core arithmetic)
 	    (core misc)
 	    (core syntax)

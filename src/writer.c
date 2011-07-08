@@ -1082,6 +1082,11 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
     if (SG_TEXTUAL_PORT(port)->src.buffer.index >= ctx->limit) return;
   }
 
+  if (!obj) {
+    Sg_PutuzUnsafe(port, UC("#<null>"));
+    return;
+  }
+
   if (!SG_PTRP(obj)) {
     if (SG_IMMEDIATEP(obj)) {
       switch (SG_ITAG(obj)) {

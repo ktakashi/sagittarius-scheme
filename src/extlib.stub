@@ -53,7 +53,7 @@
 	    rename-file
 	    delete-directory
 	    create-directory
-
+	    read-directory
 
 	    ;; hashtable
 	    hashtable-keys-list hashtable-values-list
@@ -73,8 +73,12 @@
 	    ;; profiler
 	    profiler-start profiler-stop profiler-reset
 	    profiler-raw-result
+
+	    ;; cache
 	    )
     (import :null)
+  (decl-code
+   (.include <sagittarius/cache.h>))
 
   (define-cgen-stmt assertion-violation
     ((_ who msg)
@@ -313,6 +317,9 @@
 			     (Sg_GetLastErrorMessage)
 			     path)))
 
+  (define-c-proc read-directory (path::String) ::Object
+    (result (Sg_ReadDirectory path)))
+
   (define-c-proc %maybe-substring (s::String :optional (start::fixnum 0) (end::fixnum -1)) ::Object
     (result (Sg_MaybeSubstring s start end)))
 
@@ -421,4 +428,8 @@
 
   (define-c-proc profiler-raw-result () ::Object
     (result (Sg_ProfilerRawResult)))
+
+  ;; cache
+  (define-c-proc clean-cache () ::void
+    (Sg_CleanCache))
 )

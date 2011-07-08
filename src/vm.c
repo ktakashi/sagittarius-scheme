@@ -450,6 +450,8 @@ static void vm_dump_code_rec(SgCodeBuilder *cb, int indent)
 	} else {
 	  Sg_Printf(vm->logPort, UC(" ;; %#20S"), Sg_UnwrapSyntax(SG_CDR(src)));
 	}
+      } else {
+	Sg_Printf(vm->logPort, UC(" ;; #f"));
       }
     }
     Sg_Printf(vm->logPort, UC("\n"));
