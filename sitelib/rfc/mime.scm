@@ -48,7 +48,7 @@
 	    (srfi :13 strings)
 	    (srfi :14 char-set)
 	    (match)
-	    (sagittarius define-optional)
+	    (sagittarius control)
 	    (sagittarius regex)
 	    (sagittarius)
 	    (sagittarius io)

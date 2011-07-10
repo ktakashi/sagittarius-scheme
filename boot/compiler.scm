@@ -1131,21 +1131,27 @@
 
 
 (define pass1/define
-  (lambda (form oform flags module p1env)
+  (lambda (form oform flags library p1env)
     (check-toplevel oform p1env)
     (smatch form
       ((- (name . args) body ___)
        (pass1/define `(define ,name
 			,($src `(,lambda. ,args ,@body)
 			       oform))
-		     oform flags module p1env))
+		     oform flags library p1env))
       ((- name expr)
        (unless (variable? name) (syntax-error "malformed define" oform))
        (let ((p1env (p1env-add-name p1env (variable-name name))))
 	 ($define oform
 		  flags
-		  (make-identifier (unwrap-syntax name) '() module)
+		  (make-identifier (unwrap-syntax name) '() library)
 		  (pass1 (caddr form) (p1env-add-name p1env name)))))
+      ((- name)
+       (unless (variable? name) (syntax-error "malformed define" oform))
+       ($define oform
+		flags
+		(make-identifier (unwrap-syntax name) '() library)
+		($undef)))
       (- (syntax-error "malformed define" oform)))))
 
 (define-pass1-syntax (define form p1env) :null

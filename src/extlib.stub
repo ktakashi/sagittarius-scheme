@@ -75,6 +75,9 @@
 	    profiler-raw-result
 
 	    ;; cache
+	    clean-cache
+	    ;; env
+	    getenv
 	    )
     (import :null)
   (decl-code
@@ -432,4 +435,8 @@
   ;; cache
   (define-c-proc clean-cache () ::void
     (Sg_CleanCache))
+
+  ;; getenv
+  (define-c-proc getenv (path::String) ::Object
+    (result (Sg_Getenv (SG_STRING_VALUE path))))
 )

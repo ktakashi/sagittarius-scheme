@@ -68,20 +68,9 @@
     (import (rnrs)
 	    (rnrs mutable-strings)
 	    (sagittarius)
-	    (sagittarius let-optionals*)
-	    (sagittarius define-optional)
+	    (sagittarius control)
 	    (srfi :8 receive)
 	    (srfi :14 char-set))
-
-  (define-syntax check-arg
-    (syntax-rules ()
-      ((_ pred val proc)
-       (if (pred val)
-           val
-           (assertion-violation
-            'proc
-            (format "invalid argument, assertion failed in expression ~s" (list 'pred 'val))
-            (list pred val))))))
 
   (define (char-cased? c) (char-alphabetic? c))
 

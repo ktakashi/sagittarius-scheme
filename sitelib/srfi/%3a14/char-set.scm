@@ -37,21 +37,11 @@
 	  (rnrs mutable-strings)
 	  (core)
 	  (only (sagittarius) format)
-	  (sagittarius let-optionals*))
+	  (sagittarius control))
 
   (define %latin1->char integer->char)
   
   (define %char->latin1 char->integer)
-
-  (define-syntax check-arg
-    (syntax-rules ()
-      ((_ pred val proc)
-       (if (pred val)
-           val
-           (assertion-violation
-            'proc
-            (format "invalid argument, assertion failed in expression ~s" (list 'pred 'val))
-            (list pred val))))))
 
 ;;; SRFI-14 character-sets library				-*- Scheme -*-
 ;;;

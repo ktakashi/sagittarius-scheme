@@ -709,29 +709,44 @@ SgObject read_token(SgPort *port, SgReaderContext *ctx)
     switch (c) {
     case EOF: lexical_error(port, ctx, UC("unexpected end-of-file following sharp-sign(`)"));
     case '!': {
-      SgObject desc = read_symbol(port, ctx);
-      if (SG_SYMBOLP(desc)) {
-	SgString *tag = SG_SYMBOL(desc)->name;
-	if (ustrcmp(tag->value, "r6rs") == 0) {
-	  SG_VM_SET_FLAG(Sg_VM(), SG_R6RS_MODE);
-	  SG_VM_UNSET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
+      SgChar c2 = Sg_PeekcUnsafe(port);
+      /* if it starts with '#!/' or '#! ' we assume it's a script */
+      if (c2 == '/' || c2 == ' ') {
+	for (;;) {
+	  c2 = Sg_GetcUnsafe(port);
+	  /* internal eol-style is LF */
+	  if (c2 == LF) goto top;
+	  if (c2 == EOF) return SG_EOF;
 	}
-	if (ustrcmp(tag->value, "compatible") == 0) {
-	  SG_VM_SET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
-	  SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
+	/* NOTREACHED */
+      } else {
+	SgObject desc = read_symbol(port, ctx);
+	if (SG_SYMBOLP(desc)) {
+	  SgString *tag = SG_SYMBOL(desc)->name;
+	  if (ustrcmp(tag->value, "r6rs") == 0) {
+	    SG_VM_SET_FLAG(Sg_VM(), SG_R6RS_MODE);
+	    SG_VM_UNSET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
+	  }
+	  if (ustrcmp(tag->value, "compatible") == 0) {
+	    SG_VM_SET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
+	    SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
+	  }
+	  if (ustrcmp(tag->value, "core") == 0) {
+	    SG_VM_UNSET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
+	    SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
+	  }
+	  if (ustrcmp(tag->value, "nocache") == 0) {
+	    SG_VM_SET_FLAG(Sg_VM(), SG_DISABLE_CACHE);
+	  }
+	  if (ustrcmp(tag->value, "cache") == 0) {
+	    SG_VM_UNSET_FLAG(Sg_VM(), SG_DISABLE_CACHE);
+	  }
+	  if (ustrcmp(tag->value, "deprecated") == 0) {
+	    Sg_Warn(UC("deprecated file is being loaded %S"), Sg_FileName(port));
+	  }
 	}
-	if (ustrcmp(tag->value, "core") == 0) {
-	  SG_VM_UNSET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
-	  SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
-	}
-	if (ustrcmp(tag->value, "nocache") == 0) {
-	  SG_VM_SET_FLAG(Sg_VM(), SG_DISABLE_CACHE);
-	}
-	if (ustrcmp(tag->value, "cache") == 0) {
-	  SG_VM_UNSET_FLAG(Sg_VM(), SG_DISABLE_CACHE);
-	}
+	goto top;
       }
-      goto top;
     }
     case 'v': return read_bytevector(port, ctx);
     case 'f':
@@ -912,8 +927,6 @@ SgObject Sg_Read(SgObject port, int readSharedObject)
 
 void Sg__InitReader()
 {
-  SgVM *vm = Sg_VM();
-  /* it must be null. so we don't have to check */
 }
 
 /*

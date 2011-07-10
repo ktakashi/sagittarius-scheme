@@ -3461,10 +3461,17 @@ SgObject Sg_NumberToString(SgObject obj, int radix, int use_upper)
     r = Sg_StringAppend(SG_LIST3(nume, Sg_MakeString(UC("/"), SG_LITERAL_STRING), deno));
   } else if (SG_COMPLEXP(obj)) {
     SgObject real, imag;
+    int needPlus = FALSE;
     real = Sg_NumberToString(SG_COMPLEX(obj)->real, radix, use_upper);
     imag = Sg_NumberToString(SG_COMPLEX(obj)->imag, radix, use_upper);
-    r = Sg_StringAppend(SG_LIST4(real, Sg_MakeString(UC("+"), SG_LITERAL_STRING),
-				 imag, Sg_MakeString(UC("i"), SG_LITERAL_STRING)));
+    needPlus = (SG_STRING_VALUE_AT(imag, 0) != '+' && SG_STRING_VALUE_AT(imag, 0) != '-');
+    if (needPlus) {
+      r = Sg_StringAppend(SG_LIST4(real, Sg_MakeString(UC("+"), SG_LITERAL_STRING),
+				   imag, Sg_MakeString(UC("i"), SG_LITERAL_STRING)));
+    } else {
+      r = Sg_StringAppend(SG_LIST3(real, 
+				   imag, Sg_MakeString(UC("i"), SG_LITERAL_STRING)));
+    }
   } else {
     Sg_Error(UC("number required: %S"), obj);
   }

@@ -4,7 +4,7 @@
 	    decode)
     (import (rnrs)
 	    (only (sagittarius) format)
-	    (sagittarius define-optional)
+	    (sagittarius control)
 	    (encoding sjis))
 
   (define *supported-encoding*

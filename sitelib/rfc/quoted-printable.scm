@@ -38,7 +38,7 @@
 	    quoted-printable-decode-string)
     (import (rnrs)
 	    (only (sagittarius) format)
-	    (sagittarius define-optional))
+	    (sagittarius control))
 
   (define-optional 
     (quoted-printable-encode-string str (optional ;; we need to use transcoder with crlf

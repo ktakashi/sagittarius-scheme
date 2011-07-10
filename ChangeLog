@@ -1,3 +1,15 @@
+2011-07-10  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/reader.c (read): added #!/... style hash bang line reader.
+
+	* boot/compiler.scm (pass1/define): added (define <var>) form to
+	conform R6RS.
+
+2011-07-09  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/number.c (Sg_NumberToString): fixed displaying infinite complex
+	number.
+
 2011-07-08  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/cache.c (compiled cache): introduced compiled cache mechanism.

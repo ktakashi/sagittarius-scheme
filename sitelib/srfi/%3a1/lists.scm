@@ -78,6 +78,7 @@
    (rename (rnrs) (for-all every) (exists any))
    (only (rnrs mutable-pairs) set-cdr! set-car!)
    (only (sagittarius) circular-list? dotted-list? reverse!)
+   (only (sagittarius control) check-arg)
    (only (core) receive last-pair)
    (only (core base) split-at null-list? delete lset-intersection take drop fold lset-difference assoc member find find-tail)
     )
@@ -191,13 +192,13 @@
 ;;;    (define (check-arg pred val caller)
 ;;;      (let lp ((val val))
 ;;;        (if (pred val) val (lp (error "Bad argument" val pred caller)))))
-  (define-syntax check-arg
-    (lambda (stx)
-      (syntax-case stx ()
-        [(_ pred val caller)
-         (and (identifier? #'val) (identifier? #'caller))
-         #'(unless (pred val)
-             (assertion-violation 'caller "check-arg failed" val))])))
+;;  (define-syntax check-arg
+;;    (lambda (stx)
+;;      (syntax-case stx ()
+;;        [(_ pred val caller)
+;;         (and (identifier? #'val) (identifier? #'caller))
+;;         #'(unless (pred val)
+;;             (assertion-violation 'caller "check-arg failed" val))])))
 
 ;;;   A few uses of the LET-OPTIONAL and :OPTIONAL macros for parsing
 ;;;     optional arguments.
