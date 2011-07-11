@@ -1,12 +1,14 @@
 ;; -*- scheme -*-
 (library (sagittarius io)
-    (export call-with-input-string
+    (export call-with-port
+	    call-with-input-string
 	    call-with-output-string
 	    with-input-from-string
 	    with-input-from-port
 	    with-output-to-string
 	    with-output-to-port)
     (import (core)
+	    (core base)
 	    (srfi :6 basic-string-ports)
 	    (srfi :39 parameters))
 

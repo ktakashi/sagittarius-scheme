@@ -155,7 +155,10 @@
 ;;; underlying string representation of char sets. They should be
 ;;; inlined if possible.
 
-(define (si=0? s i) (zero? (%char->latin1 (string-ref s i))))
+(define (si=0? s i) 
+  ;; added for Sagittarius
+  (or (> i #xff)
+      (zero? (%char->latin1 (string-ref s i)))))
 (define (si=1? s i) (not (si=0? s i)))
 (define c0 (%latin1->char 0))
 (define c1 (%latin1->char 1))

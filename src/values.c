@@ -45,3 +45,11 @@ SgObject Sg_MakeValues(int argc)
   SgValues *z = make_values(argc);
   return SG_OBJ(z);
 }
+
+SgObject Sg_Values2(SgObject v1, SgObject v2)
+{
+  SgValues *v = make_values(2);
+  SG_VALUES_ELEMENT(v, 0) = v1;
+  SG_VALUES_ELEMENT(v, 1) = v2;
+  return SG_OBJ(v);
+}

@@ -51,6 +51,7 @@ struct SgValuesRec
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeValues(int argc);
+SG_EXTERN SgObject Sg_Values2(SgObject v1, SgObject v2);
 
 SG_CDECL_END
 

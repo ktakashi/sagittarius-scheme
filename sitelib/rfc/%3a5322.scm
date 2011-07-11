@@ -38,7 +38,9 @@
 	    rfc5322-next-token
 	    rfc5322-header-ref
 	    rfc5322-field->tokens
-	    rfc5322-quoted-string)
+	    rfc5322-quoted-string
+	    ;; misc
+	    rfc5322-line-reader)
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius io)
@@ -69,8 +71,19 @@
 
   (define rfc5322-char-set (char-set-difference char-set:printing (string->char-set ":")))
 
+  (define (rfc5322-line-reader port)
+    (let1 r (get-line port)
+      (if (eof-object? r)
+	  r
+	  (let1 len (string-length r)
+	    (if (char=? #\x0d (string-ref r (- len 1))) ;; check CR
+		;; TODO memory waste
+		(substring r 0 (- len 1))
+		r)))))
+      
+
   (define-optional (rfc5322-read-headers in (optional (strict? #f)
-						      (reader (cut get-line <>))))
+						      (reader (cut rfc5322-line-reader <>))))
     (define (accum name bodies r)
       (cons (list name (string-concatenate-reverse bodies)) r))
     (define drop-leading-fws string-trim)

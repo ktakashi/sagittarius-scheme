@@ -52,6 +52,15 @@ typedef enum {
   SG_HEAP_STRING,
 } SgStringType;
 
+typedef enum {
+  SG_STRING_SCAN_INDEX,		/* return index */
+  SG_STRING_SCAN_BEFORE,
+  SG_STRING_SCAN_AFTER,
+  SG_STRING_SCAN_BEFORE2,
+  SG_STRING_SCAN_AFTER2,
+  SG_STRING_SCAN_BOTH
+} SgStringScanType;
+
 #define STRING_LITERAL_SHIFT   	11
 #define STRING_LITERAL_BIT     ((uintptr_t)1 << STRING_LITERAL_SHIFT)
 #define READ_STRING_MAX_SIZE   	2048
@@ -85,6 +94,9 @@ SG_EXTERN SgObject Sg_StringAppend(SgObject args);
 SG_EXTERN SgObject Sg_CopyString(SgString *a);
 
 SG_EXTERN SgChar   Sg_StringRef(SgString *s, int k);
+/* search */
+SG_EXTERN SgObject Sg_StringScan(SgString *s1, SgString *s2, int retmode);
+SG_EXTERN SgObject Sg_StringScanChar(SgString *s1, SgChar ch, int retmode);
 /* modify */
 SG_EXTERN SgObject Sg_Substring(SgString *x, int start, int end);
 SG_EXTERN void     Sg_StringSet(SgString *s, int k, SgChar c);

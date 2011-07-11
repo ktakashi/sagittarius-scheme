@@ -36,7 +36,9 @@
 #include "sagittarius/unicode.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/error.h"
+#include "sagittarius/number.h"
 #include "sagittarius/thread.h"
+#include "sagittarius/values.h"
 
 static SgString* make_string(int size)
 {
@@ -256,6 +258,112 @@ SgChar Sg_StringRef(SgString *s, int k)
     Sg_Error(UC("string-ref: index out of bounds. %S %d"), s, k);
   }
   return SG_STRING_VALUE_AT(s, k);
+}
+
+static inline int boyer_moore(const SgChar *ss1, int siz1,
+                              const SgChar *ss2, int siz2)
+{
+  uint32_t shift[256];
+  int i, j, k;
+  for (i = 0; i < 256; i++) { shift[i] = siz2; }
+  for (j = 0; j < siz2-1; j++) {
+    shift[(uint32_t)ss2[j]] = siz2-j-1;
+  }
+  for (i = siz2 - 1; i < siz1; i += shift[(uint32_t)ss1[i]]) {
+    for (j = siz2 - 1, k = i; j >= 0 && ss1[k] == ss2[j]; j--, k--)
+      ;
+    if (j == -1) return k+1;
+  }
+  return -1;
+}
+
+static SgObject string_scan(SgString *s, const SgChar *ss2,
+			    int size2, int retmode)
+{
+  int i;
+  const SgChar *ss1 = SG_STRING_VALUE(s);
+  int size1 = SG_STRING_SIZE(s);
+  const SgObject nullstr = Sg_MakeString(UC(""), SG_LITERAL_STRING);
+
+  if (retmode < 0 || retmode > SG_STRING_SCAN_BOTH) {
+    Sg_Error(UC("return mode out of range' %d"), retmode);
+  }
+  if (size2 == 0) {
+    /* shortcut */
+    switch (retmode) {
+    case SG_STRING_SCAN_INDEX: return SG_MAKE_INT(0);
+    case SG_STRING_SCAN_BEFORE: return nullstr;
+    case SG_STRING_SCAN_AFTER:  return Sg_CopyString(s);
+    case SG_STRING_SCAN_BEFORE2:;
+    case SG_STRING_SCAN_AFTER2:;
+    case SG_STRING_SCAN_BOTH:
+      return Sg_Values2(nullstr, Sg_CopyString(s));
+    }
+  }
+  if (size1 >= size2) {
+    const SgChar *ssp = ss1;
+    for (i = 0; i < size1 - size2; i++) {
+      if (memcmp(ssp, ss2, size2) == 0) {
+	switch (retmode) {
+	case SG_STRING_SCAN_INDEX: return Sg_MakeInteger(i);
+	case SG_STRING_SCAN_BEFORE: return Sg_Substring(s, 0, i);
+	case SG_STRING_SCAN_AFTER:  return Sg_Substring(s, i + size2, -1);
+	case SG_STRING_SCAN_BEFORE2:
+	  return Sg_Values2(Sg_Substring(s, 0, i),
+			    Sg_Substring(s, i, -1));
+	case SG_STRING_SCAN_AFTER2:
+	  return Sg_Values2(Sg_Substring(s, 0, i + size2),
+			    Sg_Substring(s, i + size2, -1));
+	case SG_STRING_SCAN_BOTH:
+	  return Sg_Values2(Sg_Substring(s, 0, i),
+			    Sg_Substring(s, i + size2, -1));
+	}
+      }
+      ssp++;
+    }
+  }
+  if (size1 < size2) goto failed;
+  if (size1 < 256 || size2 >= 256) {
+    for (i = 0; i <= size1 - size2; i++) {
+      if (memcmp(ss2, ss1 + i, size2) == 0) break;
+    }
+    if (i == size1 - size2 + 1) goto failed;
+  } else {
+    i = boyer_moore(ss1, size1, ss2, size2);
+    if (i < 0) goto failed;
+  }
+
+  switch (retmode) {
+  case SG_STRING_SCAN_INDEX: return Sg_MakeInteger(i);
+  case SG_STRING_SCAN_BEFORE: return Sg_Substring(s, 0, i);
+  case SG_STRING_SCAN_AFTER:  return Sg_Substring(s, i + size2, -1);
+  case SG_STRING_SCAN_BEFORE2:
+    return Sg_Values2(Sg_Substring(s, 0, i),
+		      Sg_Substring(s, i, -1));
+  case SG_STRING_SCAN_AFTER2:
+    return Sg_Values2(Sg_Substring(s, 0, i + size2),
+		      Sg_Substring(s, i + size2, -1));
+  case SG_STRING_SCAN_BOTH:
+    return Sg_Values2(Sg_Substring(s, 0, i),
+		      Sg_Substring(s, i + size2, -1));
+  }
+ failed:
+  if (retmode <= SG_STRING_SCAN_AFTER) {
+    return SG_FALSE;
+  } else {
+    return Sg_Values2(SG_FALSE, SG_FALSE);
+  }
+}
+
+SgObject Sg_StringScan(SgString *s1, SgString *s2, int retmode)
+{
+  return string_scan(s1, SG_STRING_VALUE(s2), SG_STRING_SIZE(s2), retmode);
+}
+
+SgObject Sg_StringScanChar(SgString *s1, SgChar ch, int retmode)
+{
+  SgChar buf[2] = { ch, '\0' };
+  return string_scan(s1, buf, 1, retmode);
 }
 
 SgObject Sg_Substring(SgString *x, int start, int end)

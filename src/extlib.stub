@@ -35,6 +35,8 @@
 	    current-dynamic-environment
 	    add-dynamic-load-path
 	    load-dynamic-library
+	    ;; string
+	    string-scan
 	    ;; for srfi-13
 	    %maybe-substring
 
@@ -322,6 +324,27 @@
 
   (define-c-proc read-directory (path::String) ::Object
     (result (Sg_ReadDirectory path)))
+
+  ;; string
+  (define-c-proc string-scan (s1::String s2 :optional (mode 'index)) ::Object
+    (let ((rmode::int 0))
+      (cond ((SG_EQ mode 'index)   (set! rmode SG_STRING_SCAN_INDEX))
+	    ((SG_EQ mode 'before)  (set! rmode SG_STRING_SCAN_BEFORE))
+	    ((SG_EQ mode 'after)   (set! rmode SG_STRING_SCAN_AFTER))
+	    ((SG_EQ mode 'before*) (set! rmode SG_STRING_SCAN_BEFORE2))
+	    ((SG_EQ mode 'after*)  (set! rmode SG_STRING_SCAN_AFTER2))
+	    ((SG_EQ mode 'both)    (set! rmode SG_STRING_SCAN_BOTH))
+	    (else
+	     (assertion-violation 'string-scan
+				  "bad value in mode argument. it must be one of 'index, 'before, 'after, 'before*, 'after* or 'both"
+				  mode)))
+      (cond ((SG_STRINGP s2) (result (Sg_StringScan s1 (SG_STRING s2) rmode)))
+	    ((SG_CHARP s2)   (result (Sg_StringScanChar s1 (SG_CHAR_VALUE s2) rmode)))
+	    (else
+	     (wrong-type-of-argument-violation 'string-scan
+					       "string or char"
+					       s2
+					       (SG_LIST3 s1 s2 mode))))))
 
   (define-c-proc %maybe-substring (s::String :optional (start::fixnum 0) (end::fixnum -1)) ::Object
     (result (Sg_MaybeSubstring s start end)))

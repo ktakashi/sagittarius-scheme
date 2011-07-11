@@ -50,7 +50,6 @@
 
 	    ;; syntax-sugar
 	    regex
-	    string-scan
 
 	    ;; wrapper APIs
 	    matches
@@ -67,26 +66,6 @@
 	    (sagittarius))
 
   (define regex compile-regex)
-
-  (define (string-scan target pattern mode)
-    (let* ((re (compile-regex pattern))
-	   (m  (regex-matcher re target)))
-      (if (regex-find m)
-	  (case mode
-	    ((index) (matcher-first m))
-	    ((before) (regex-before m))
-	    ((after) (regex-after m))
-	    ((before*)
-	     (values (regex-before m)
-		     (substring target (matcher-first m)
-				(string-length target))))
-	    ((after*)
-	     (values (regex-before m)
-		     (substring target (matcher-last m)
-				(string-length target))))
-	    ((both)
-	     (values (regex-before m) (regex-after m))))
-	  #f)))
 
   ;; complete match
   (define (matches reg text)
