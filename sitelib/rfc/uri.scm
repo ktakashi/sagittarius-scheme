@@ -43,7 +43,8 @@
 	    uri-decode-string
 	    uri-encode
 	    uri-encode-string
-	    
+
+	    uri-compose
 	    *rfc3986-unreserved-char-set*
 	    *rfc2396-unreserved-char-set*
 	    ;; accesor for uri record
@@ -162,7 +163,7 @@
 			   (display path))
 		    (display "/"))
 		(when query (display "?") (display query))
-		(when fragment (display "#") (display fragment))))))))
+		(when fragments (display "#") (display fragments))))))))
 
   ;; encoding & decoding
   ;; This is for internal.
