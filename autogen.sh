@@ -25,6 +25,7 @@ do_builtin()
     echo Generating c file from compiler.scm
     cd boot
     gosh -I. vm.scm ./lib/match_core.scm c "(match core)" ../src/lib_match_core.c
+    gosh -I. vm.scm ./lib/repl.scm c "(sagittarius interactive)" ../src/lib_repl.c
     cd ../
 }
 

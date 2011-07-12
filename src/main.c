@@ -184,11 +184,12 @@ static int getopt_long(int argc, char **argv, const char *optstring,
 static void show_usage()
 {
   fprintf(stderr,
-	  "Usage: sash [-hv][-L<path>][-D<path>][--clean-cache][--disable-cache]"
+	  "Usage: sash [-hvi][-L<path>][-D<path>][--clean-cache][--disable-cache]"
 	  "[--debug-exec=<flags>][-p<file> or --logport=<file>]\n"
 	  "options:\n"
 	  "  -v          Prints version and exits.\n"
 	  "  -h          Prints this usage and exits.\n"
+	  "  -i          Interactive mode. Forces to print prompts.\n"
 	  "  -L<path>    Adds <path> to the head of the load path list.\n"
 	  "  -D<path>    Adds <path> to the head of the dynamic load path list.\n"
 	  "  --clean-cache Cleans compiled cache.\n"
@@ -222,14 +223,16 @@ static SgObject argsToList(int argc, int optind, char** argv)
 
 int main(int argc, char **argv)
 {
-  int opt;
-  int optionIndex = 0;
+  int opt, optionIndex = 0;
+  int forceInteactiveP = FALSE;
   SgVM *vm;
+  SgObject repl, lib;
 
   static struct option long_options[] = {
     {"loadpath", optional_argument, 0, 'L'},
     {"dynloadpath", optional_argument, 0, 'D'},
     {"help", 0, 0, 'h'},
+    {"interactive", 0, 0, 'i'},
     {"version", 0, 0, 'v'},
     {"clean-cache", 0, 0, 'C'},
     {"disable-cache", 0, 0, 'd'},
@@ -243,7 +246,7 @@ int main(int argc, char **argv)
   Sg_Init();
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_R6RS_MODE);
-  while ((opt = getopt_long(argc, argv, "L:D:hEvCdp:", long_options, &optionIndex)) != -1) {
+  while ((opt = getopt_long(argc, argv, "L:D:hEviCdp:", long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 'E':
       if (strcmp("trace", optarg) == 0) {
@@ -278,6 +281,9 @@ int main(int argc, char **argv)
     case 'h':
       show_usage();
       break;
+    case 'i':
+      forceInteactiveP = TRUE;
+      break;
     case 'C':
       Sg_CleanCache();
       break;
@@ -295,8 +301,20 @@ int main(int argc, char **argv)
     Sg_ImportLibrary(vm->currentLibrary, SG_OBJ(SG_INTERN("(core base)")));
     Sg_ImportLibrary(vm->currentLibrary, SG_OBJ(SG_INTERN("(sagittarius compiler)")));
     Sg_Load(SG_STRING(Sg_MakeStringC(argv[optind])));
+    if (forceInteactiveP) goto repl;
   } else {
-    fprintf(stderr, "not supported yet!\n");
+  repl:
+    repl = SG_UNDEF;
+    lib = Sg_FindLibrary(SG_INTERN("(sagittarius interactive)"), FALSE);
+    if (SG_FALSEP(lib)) goto err;
+    repl = Sg_FindBinding(lib, SG_INTERN("read-eval-print-loop"), SG_UNBOUND);
+    if (SG_UNBOUNDP(repl)) goto err;
+    /* change current library */
+    vm->currentLibrary = lib;
+    Sg_Apply0(SG_GLOC_GET(SG_GLOC(repl)));
+
+  err:
+    fprintf(stderr, "no repl available.");
   }
   Sg_FlushAllPort(TRUE);
   return 0;

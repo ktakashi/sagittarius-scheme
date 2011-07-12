@@ -36,13 +36,55 @@
     (export uri-parse
 	    uri-scheme&specific
 	    uri-decompose-hierarchical
-	    uri-decompose-authority)
-    (import (srfi :13 strings)
-	    (core)
+	    uri-decompose-authority
+
+	    uri-decode
+	    uri-decode-string
+	    uri-encode
+	    uri-encode-string
+	    
+	    *rfc3986-unreserved-char-set*
+	    *rfc2396-unreserved-char-set*
+	    ;; accesor for uri record
+	    make-uri uri?
+	    uri-scheme uri-scheme-set!
+	    uri-userinfo uri-userinfo-set!
+	    uri-host uri-host-set!
+	    uri-port uri-port-set!
+	    uri-path uri-path-set!
+	    uri-query uri-query-set!
+	    uri-fragments uri-fragments-set!)
+    (import (rnrs)
+	    (srfi :13 strings)
+	    (srfi :14 char-set)
 	    (sagittarius)
+	    (sagittarius io)
+	    (encoding decoder)
+	    (sagittarius control)
 	    (sagittarius regex))
 
-  ;; unreserved ::= ALPHA / DIGIT / "-" / "." / "_" / "~" 
+  (define-record-type uri
+    (fields (mutable scheme)
+	    (mutable userinfo)
+	    (mutable host)
+	    (mutable port)
+	    (mutable path)
+	    (mutable query)
+	    (mutable fragments)
+	    (mutable path*)
+    (protocol
+     (lambda (p)
+       (lambda args
+	 (let-optionals* args ((scheme #f)
+			       (userinfo #f)
+			       (host #f)
+			       (port #f)
+			       (path #f)
+			       (query #f)
+			       (fragments #f)
+			       (path* #f))
+	   (p scheme userinfo host port path query fragments path*))))))
+
 
   ;; from RFC3986 Appendix B. Parsing a URI Reference with a Regular Expression
   (define scheme (regex "^([a-zA-Z][a-zA-Z0-9+.-]*):"))
@@ -67,7 +109,7 @@
 	  (else (values #f #f #f))))
 
   ;; returns (scheme user-info host port path query fragments)
-  (define (uri-parse uri)
+  (define-optional (uri-parse uri (optional (as-record? #f)))
     (define (filter-non-empty-string str)
       (and (string? str)
 	   (not (string-null? str))
@@ -75,15 +117,135 @@
     (receive (scheme specific) (uri-scheme&specific uri)
       (receive (auth path query frag) (uri-decompose-hierarchical specific)
 	(receive (user-info host port) (uri-decompose-authority auth)
-	  (values scheme
-		  user-info
-		  (filter-non-empty-string host)
-		  (and port (string->number port))
-		  (filter-non-empty-string path)
-		  query
-		  frag)))))
+	  (let ((ctr (if as-record? make-uri values)))
+	    (ctr scheme
+		 user-info
+		 (filter-non-empty-string host)
+		 (and port (string->number port))
+		 (filter-non-empty-string path)
+		 query
+		 frag))))))
 
+  ;; compose
+  (define (uri-compose uri)
+    (check-arg uri? uri 'uri-compose)
+    (let ((scheme (uri-scheme uri))
+	  (userinfo (uri-userinfo uri))
+	  (host (uri-host uri))
+	  (port (uri-port uri))
+	  (path (uri-path uri))
+	  (query (uri-query uri))
+	  (fragments (uri-fragments uri))
+	  (path* (uri-path* uri)))
+      (with-output-to-string
+	(lambda ()
+	  (when scheme (display scheme) (display ":"))
+	  (display "//")
+	  (when userinfo (display userinfo) (display "@"))
+	  (when host     (display host))
+	  (when port     (display ":") (display port))
+	  (if path*
+	      (begin
+		(unless (string-prefix? "/" path*) (display "/"))
+		(display path*))
+	      (begin
+		(if path
+		    (begin (unless (string-prefix? "/" path) (display "/"))
+			   (display path))
+		    (display "/"))
+		(when query (display "?") (display query))
+		(when fragment (display "#") (display fragment))))))))
 
+  ;; encoding & decoding
+  ;; This is for internal.
+  ;; in and out must be binary-port
+  (define-optional (uri-decode in out (optional (cgi-decode #f)))
+    (define (hex-char? n)
+      (cond ((<= #x30 n #x39) ;; #\0 - #\9
+	     (- n #x30))
+	    ((<= #x61 n #x66) ;; #\a - #\f
+	     (- n #x57))
+	    ((<= #x41 n #x46) ;; #\A - #\F
+	     (- n #x37))
+	    (else #f)))
+    (check-arg binary-port? in 'uri-decode)
+    (let loop ((c (get-u8 in)))
+      (cond ((eof-object? c))
+	    ((= c #x25) ;; %
+	     (let1 c1 (get-u8 in)
+	       (cond ((eof-object? c1) (put-u8 out c))
+		     ((hex-char? c1)
+		      => (lambda (i1)
+			   (let1 c2 (get-u8 in)
+			     (cond ((eof-object? c2) (put-u8 out c) (put-u8 out c1))
+				   ((hex-char? c2)
+				    => (lambda (i2)
+					 (put-u8 out (+ (* i1 16) i2))
+					 (loop (get-u8 in))))
+				   (else (put-u8 out c) (put-u8 out c1) (loop c2))))))
+		     (else (put-u8 out c) (loop c1)))))
+	    ((= c #x2b) ;; +
+	     (if cgi-decode
+		 (put-u8 out #x20) ;; #\space
+		 (put-u8 out #x2b))
+	     (loop (get-u8 in)))
+	    (else (put-u8 out c) (loop (get-u8 in))))))
+
+  (define-optional (uri-decode-string string (optional (encoding 'utf-8)
+						       (cgi-decode #f)))
+    ;; decoder is mere codec.
+    (let ((decoder (lookup-decoder encoding)))
+      (if decoder
+	  (let ((bv (string->bytevector string (make-transcoder decoder))))
+	    (bytevector->string
+	     (call-with-bytevector-output-port
+	      (lambda (out)
+		(uri-decode (open-bytevector-input-port bv) out cgi-decode)))
+	     (make-transcoder decoder)))
+	  string)))
+
+  ;; 2396 -_.!~*'() + [0-9a-zA-Z]
+  (define *rfc2396-unreserved-char-set* (char-set-union (string->char-set "-_.!~*'()")
+							(char-set-difference char-set:letter+digit
+									     char-set:ascii)))
+  ;; 3986 -_.~ + [0-9a-zA-Z]
+  (define *rfc3986-unreserved-char-set* (char-set-union (string->char-set "-_.~")
+							(char-set-difference char-set:letter+digit
+									     char-set:ascii)))
+
+  (define-optional (uri-encode in out (optional (echars *rfc3986-unreserved-char-set*)))
+    (define (hex->char-integer h)
+      (cond ((<= 0 h 9) (+ h #x30))
+	    ((<= #xa h #xf) (+ h (- #x61 10)))
+	    (else (assertion-violation 'hex->char-integer
+				       "invalid hex number"
+				       h))))
+    (let loop ((b (get-u8 in)))
+      (unless (eof-object? b)
+	(if (and (< b #x80)
+		 (char-set-contains? echars (integer->char b)))
+	    (put-u8 b)
+	    (begin
+	      (put-u8 out #x25) ;; %
+	      (let ((hi (fxand (fxarithmetic-shift-right b 4) #xf))
+		    (lo (fxand b #xf)))
+		(put-u8 out (hex->char-integer hi))
+		(put-u8 out (hex->char-integer lo)))))
+	(loop (get-u8 in)))))
+
+  (define-optional (uri-encode-string string (optional (encoding 'utf-8)
+						       (echars *rfc3986-unreserved-char-set*)))
+    (let ((decoder (lookup-decoder encoding)))
+      (if decoder
+	  (let ((bv (string->bytevector string (make-transcoder decoder))))
+	    (bytevector->string
+	     (call-with-bytevector-output-port
+	      (lambda (out)
+		(uri-encode (open-bytevector-input-port bv)
+			    out
+			    echars)))
+	     (make-transcoder decoder)))
+	  string)))
 )
 
 

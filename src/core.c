@@ -72,6 +72,7 @@ extern void Sg__Init_core_errors();
 extern void Sg__Init_core_arithmetic();
 extern void Sg__Init_core_enums();
 extern void Sg__Init_match_core();
+extern void Sg__Init_sagittarius_interactive();
 void Sg_Init()
 {
 #ifdef USE_BOEHM_GC
@@ -130,6 +131,7 @@ void Sg_Init()
   Sg__Init_core_arithmetic();
   Sg__Init_core_enums();
   Sg__Init_match_core();
+  Sg__Init_sagittarius_interactive();
 
   /* TODO should this be here? */
   Sg_ImportLibrary(Sg_VM()->currentLibrary, SG_OBJ(SG_INTERN("null")));

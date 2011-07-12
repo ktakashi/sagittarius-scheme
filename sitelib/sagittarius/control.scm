@@ -4,6 +4,8 @@
     (export define-optional
 	    let-optionals*
 	    get-optional
+	    let-keywords
+	    let-keywords*
 	    begin0
 	    let1
 	    check-arg)
@@ -11,6 +13,7 @@
 	    (core base)
 	    (core errors)
 	    (core syntax)
+	    (core misc)
 	    (sagittarius))
 
   (define-syntax define-optional
@@ -141,6 +144,91 @@
       ((%let-optionals* arg () body ...)
        (if (null? arg) (begin body ...)
            (error 'let-optionals* "Too many arguments in let-opt" arg)))))
+
+  ;; from gauche
+  (define-macro (let-keywords arg specs . body)
+    (%let-keywords-rec arg specs body 'let))
+
+  (define-macro (let-keywords* arg specs . body)
+    (%let-keywords-rec arg specs body 'let*))
+
+  (define (%let-keywords-rec arg specs body %let)
+    (define (triplet var&default)
+      (or (and-let* ([ (list? var&default) ]
+		     [var (unwrap-syntax (car var&default))]
+		     [ (symbol? var) ])
+	    (case (length var&default)
+	      [(2) (values (car var&default)
+			   (make-keyword var)
+			   (cadr var&default))]
+	      [(3) (values (car var&default)
+			   (unwrap-syntax (cadr var&default))
+			   (caddr var&default))]
+	      [else #f]))
+	  (and-let* ([var (unwrap-syntax var&default)]
+		     [ (symbol? var) ])
+	    (values var (make-keyword var) (undefined)))
+	  (error 'let-keywords "bad binding form in let-keywords" var&default)))
+    (define (process-specs specs)
+      (let loop ((specs specs)
+		 (vars '()) (keys '()) (defaults '()) (tmps '()))
+	(define (finish restvar)
+	  (values (reverse! vars)
+		  (reverse! keys)
+		  (reverse! defaults)
+		  (reverse! tmps)
+		  restvar))
+	(cond [(null? specs) (finish #f)]
+	      [(pair? specs)
+	       (receive (var key default) (triplet (car specs))
+		 (loop (cdr specs)
+		       (cons var vars)
+		       (cons key keys)
+		       (cons default defaults)
+		       (cons (gensym) tmps)))]
+	      [else (finish (or specs #t))])))
+
+    (let ((argvar (gensym "args")) (loop (gensym "loop")))
+      (receive (vars keys defaults tmps restvar) (process-specs specs)
+	`(let ,loop ((,argvar ,arg)
+		     ,@(if (boolean? restvar) '() `((,restvar '())))
+		     ,@(map (cut list <> (undefined)) tmps))
+	      (cond
+	       [(null? ,argvar)
+		(,%let ,(map (lambda (var tmp default)
+			       `(,var (if (undefined? ,tmp) ,default ,tmp)))
+			     vars tmps defaults)
+		       ,@body)]
+	       [(null? (cdr ,argvar))
+		(error 'let-keywords "keyword list not even" ,argvar)]
+	       [else
+		(case (car ,argvar)
+		  ,@(map (lambda (key)
+			   `((,key)
+			     (,loop (cddr ,argvar)
+				    ,@(if (boolean? restvar)
+					  '()
+					  `(,restvar))
+				    ,@(map (lambda (k t)
+					     (if (eq? key k)
+						 `(cadr ,argvar)
+						 t))
+					   keys tmps))))
+			 keys)
+		  (else
+		   ,(cond [(eq? restvar #t)
+			   `(,loop (cddr ,argvar) ,@tmps)]
+			  [(eq? restvar #f)
+			   `(begin
+			      (error 'let-keywords "unknown keyword " (car ,argvar))
+			      (,loop (cddr ,argvar) ,@tmps))]
+			  [else
+			   `(,loop
+			     (cddr ,argvar)
+			     (list* (car ,argvar) (cadr ,argvar) ,restvar)
+			     ,@tmps)])))
+		]))))
+    )       
 
 
   (define-syntax begin0

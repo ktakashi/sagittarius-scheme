@@ -1371,7 +1371,7 @@ lc: compile builtin libraries
 		  (load-file path '() name import #f)))
 	      *builtin-libraries*)
     ;; import (sagittarius) as dummy here
-    (execute '(library (sagittarius)
+    #;(execute '(library (sagittarius)
 		  (export :all)
 		  (import null)) '())
 

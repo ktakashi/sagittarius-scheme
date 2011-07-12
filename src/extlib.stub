@@ -35,6 +35,8 @@
 	    current-dynamic-environment
 	    add-dynamic-load-path
 	    load-dynamic-library
+	    sagittarius-version
+	    report-error
 	    ;; string
 	    string-scan
 	    ;; for srfi-13
@@ -248,6 +250,13 @@
   (define-c-proc load-dynamic-library (name::String :optional init) ::Object
     (result (Sg_DynLoad name init 0)))
 
+  (define-c-proc sagittarius-version () ::Object
+    (result (Sg_MakeString (UC SAGITTARIUS_VERSION) SG_LITERAL_STRING)))
+
+  (define-c-proc report-error (e) ::void
+    (Sg_ReportError e))
+
+  ;; filesystem
   (define-c-proc file-size-in-bytes (path::String) ::Object
     (let ((size (Sg_FileSize path)))
       (if (SG_UNDEFP size)
