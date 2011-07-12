@@ -14,6 +14,8 @@
 	    (core errors)
 	    (core syntax)
 	    (core misc)
+	    (srfi :2 and-let*)
+	    (srfi :26 cut)
 	    (sagittarius))
 
   (define-syntax define-optional
@@ -225,7 +227,7 @@
 			  [else
 			   `(,loop
 			     (cddr ,argvar)
-			     (list* (car ,argvar) (cadr ,argvar) ,restvar)
+			     (cons* (car ,argvar) (cadr ,argvar) ,restvar)
 			     ,@tmps)])))
 		]))))
     )       

@@ -32,6 +32,7 @@
 ;; RFC3986 URI Generic Syntax
 ;; <http://www.ietf.org/rfc/rfc3986.txt>
 
+#!compatible
 (library (rfc uri)
     (export uri-parse
 	    uri-scheme&specific
@@ -71,18 +72,18 @@
 	    (mutable path)
 	    (mutable query)
 	    (mutable fragments)
-	    (mutable path*)
+	    (mutable path*))
     (protocol
      (lambda (p)
        (lambda args
-	 (let-optionals* args ((scheme #f)
-			       (userinfo #f)
-			       (host #f)
-			       (port #f)
-			       (path #f)
-			       (query #f)
-			       (fragments #f)
-			       (path* #f))
+	 (let-keywords* args ((scheme #f)
+			      (userinfo #f)
+			      (host #f)
+			      (port #f)
+			      (path #f)
+			      (query #f)
+			      (fragments #f)
+			      (path* #f))
 	   (p scheme userinfo host port path query fragments path*))))))
 
 
@@ -117,14 +118,21 @@
     (receive (scheme specific) (uri-scheme&specific uri)
       (receive (auth path query frag) (uri-decompose-hierarchical specific)
 	(receive (user-info host port) (uri-decompose-authority auth)
-	  (let ((ctr (if as-record? make-uri values)))
-	    (ctr scheme
-		 user-info
-		 (filter-non-empty-string host)
-		 (and port (string->number port))
-		 (filter-non-empty-string path)
-		 query
-		 frag))))))
+	  (if as-record?
+	      (make-uri :scheme scheme
+			:userinfo user-info
+			:host (filter-non-empty-string host)
+			:port (and port (string->number port))
+			:path (filter-non-empty-string path)
+			:query query
+			:fragments frag)
+	      (values scheme
+		      user-info
+		      (filter-non-empty-string host)
+		      (and port (string->number port))
+		      (filter-non-empty-string path)
+		      query
+		      frag))))))
 
   ;; compose
   (define (uri-compose uri)

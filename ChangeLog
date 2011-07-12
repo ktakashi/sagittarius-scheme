@@ -1,3 +1,11 @@
+2011-07-12  Takashi Kato  <ktakashi@ymail.com>
+
+	* sitelib/rfc/uri.scm (rfc uri): made uri record use keyword to
+	initialize values.
+
+	* sitelib/sagittarius/control.scm (sagittarius control): introduced
+	let-keywords and let-keywords*.
+
 2011-07-11  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/slib/queue.scm (slib queue): added slib queue.

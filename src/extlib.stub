@@ -78,6 +78,9 @@
 	    profiler-start profiler-stop profiler-reset
 	    profiler-raw-result
 
+	    ;; keyword
+	    make-keyword
+
 	    ;; cache
 	    clean-cache
 	    ;; env
@@ -463,6 +466,10 @@
 
   (define-c-proc profiler-raw-result () ::Object
     (result (Sg_ProfilerRawResult)))
+
+  ;; keyword
+  (define-c-proc make-keyword (key::Symbol) ::Object
+    (result (Sg_MakeKeyword (-> (SG_SYMBOL key) name))))
 
   ;; cache
   (define-c-proc clean-cache () ::void
