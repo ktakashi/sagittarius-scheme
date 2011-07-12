@@ -5,7 +5,7 @@
 
 if [ -e ./build/sash ]; then
     ./build/sash -L./lib -L./test/r6rs-test-suite ./test/r6rs-test-suite/tests/r6rs/run.sps
-    ./build/sash -L./lib -L./sitelib -L./test ./test/tests.scm
+    ./build/sash -L./lib -L./sitelib -L./test -L./ext/regex -D./build ./test/tests.scm
     echo "testing extensions"
     cd ext
     ../build/sash -L../lib -L../sitelib ./all-tests.scm
