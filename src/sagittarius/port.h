@@ -275,6 +275,7 @@ SG_EXTERN SgObject Sg_StandardErrorPort();
 SG_EXTERN SgObject Sg_PortTranscoder(SgObject port);
 
 /* utility methods */
+SG_EXTERN int      Sg_UTF16ConsolePortP(SgPort *port);
 SG_EXTERN void     Sg_FlushPort(SgPort *port);
 SG_EXTERN void     Sg_FlushAllPort(int exitting);
 SG_EXTERN int      Sg_Getb(SgPort *port);

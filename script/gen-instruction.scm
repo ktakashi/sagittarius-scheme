@@ -14,6 +14,10 @@
   (format out "#define INSN_VALUE2_MASK  ((1 << (sizeof(intptr_t) * 8)) - 1)~%")
   (format out "#define INSN_VALUE1_SHIFT 8~%")
   (format out "#define INSN_VALUE2_SHIFT 20~%")
+  (format out "#ifdef _MSC_VER~%")
+  (format out "/* what a stupid macro definition on windows.h*/~%")
+  (format out "#undef CONST~%")
+  (format out "#endif _MSC_VER~%")
   (format out "/**~%")
   (format out "   @brief set of instructions.~%~%")
   ;; newline

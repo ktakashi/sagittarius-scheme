@@ -43,6 +43,7 @@
 #include <sagittarius/string.h>
 #include <sagittarius/error.h>
 #include <sagittarius/symbol.h>
+#include <sagittarius/system.h>
 #include <sagittarius/unicode.h>
 #include <sagittarius/number.h>
 
@@ -86,11 +87,11 @@ static int64_t win_write(SgObject self, uint8_t *buf, int64_t size)
   int isOK;
   SgFile *file = SG_FILE(self);
   /* check console */
-  if (Sg_IsUTF16Console()) {
+  if (Sg_IsUTF16Console(file)) {
 #if 1
     unsigned int destSize = 0;
     uint8_t *dest = NULL;
-    if ((destSize = WideCharToMultiByte(GetConsoleOutputCP(), 0, (const wchar_t *)buf, size / 2, (LPSTR)NULL, 0, NULL)) == 0) {
+    if ((destSize = WideCharToMultiByte(GetConsoleOutputCP(), 0, (const wchar_t *)buf, size / 2, (LPSTR)NULL, 0, NULL, NULL)) == 0) {
       Sg_IOWriteError(SG_INTERN("write"), Sg_GetLastErrorMessage(), SG_UNDEF);
     }
     dest = SG_NEW_ATOMIC2(uint8_t *, destSize + 1);
@@ -209,6 +210,15 @@ static int win_close(SgObject self)
   return FALSE;
 }
 
+static int win_can_close(SgObject self)
+{
+  SgFile *file = SG_FILE(self);
+  return (file->isOpen(file)
+	  && !(SG_FD(file)->desc == GetStdHandle(STD_OUTPUT_HANDLE)
+	       || SG_FD(file)->desc == GetStdHandle(STD_INPUT_HANDLE)
+	       || SG_FD(file)->desc == GetStdHandle(STD_ERROR_HANDLE)));
+}
+
 static int64_t win_size(SgObject self)
 {
   LARGE_INTEGER size;
@@ -236,6 +246,7 @@ static SgFile* make_file(HANDLE hd)
   z->isOpen = win_is_open;
   z->open = win_open;
   z->close = win_close;
+  z->canClose = win_can_close;
   return z;
 }
 
@@ -466,19 +477,16 @@ SgObject Sg_ReadDirectory(SgString *path)
   HANDLE hdl;
 
   SgObject h = SG_NIL, t = SG_NIL;
-  SgString path2;
   static const SgChar suf[] = { '\\', '*', 0 };
   int size = sizeof(SgChar) * (SG_STRING_SIZE(path) + 3);
   SgChar *buf = SG_NEW_ATOMIC2(SgChar *, size);
   memcpy(buf, SG_STRING_VALUE(path), sizeof(SgChar) * SG_STRING_SIZE(path));
   memcpy(buf + SG_STRING_SIZE(path), suf, sizeof(SgChar) * 2);
 
-  path2.size = size;
-  path2.value = buf;
-  hdl = FindFirstFileW(utf32ToUtf16(&path2), &data);
+  hdl = FindFirstFileW(utf32ToUtf16(buf), &data);
   if (hdl != INVALID_HANDLE_VALUE) {
     do {
-      SG_APPEND1(h, t, Sg_MakeString(utf16ToUtf32(data.cFileName), SG_HEAP_STRING));
+      SG_APPEND1(h, t, utf16ToUtf32(data.cFileName));
     } while (FindNextFileW(hdl, &data));
     FindClose(hdl);
   } else {
@@ -521,6 +529,26 @@ static void initialize_path()
   win_dynlib_path = SG_STRING(Sg_MakeString(UC(SAGITTARIUS_DYNLIB_PATH), SG_LITERAL_STRING));
 }
 
+SgObject Sg_GetDefaultLoadPath()
+{
+  if (win_lib_path == NULL ||
+      win_sitelib_path == NULL ||
+      win_dynlib_path == NULL) {
+    initialize_path();
+  }
+  return SG_LIST2(win_sitelib_path, win_lib_path);
+}
+
+SgObject Sg_GetDefaultDynamicLoadPath()
+{
+  /* this must be initialized when vm is being created. */
+  if (win_lib_path == NULL ||
+      win_sitelib_path == NULL ||
+      win_dynlib_path == NULL) {
+    initialize_path();
+  }
+  return SG_LIST1(Sg_MakeString(UC(SAGITTARIUS_DYNLIB_PATH), SG_LITERAL_STRING));
+}
 /*
   end of file
   Local Variables:

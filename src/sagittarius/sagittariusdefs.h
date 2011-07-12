@@ -89,6 +89,9 @@
 /* VC does not have inttypes.h */
 #ifndef _MSC_VER
 #include <inttypes.h>
+#pragma warning(disable : 4255)
+#pragma warning(disable : 4820)
+#pragma warning(disable : 4711)
 #else
 #define snprintf _snprintf
 #endif

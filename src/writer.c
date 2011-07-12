@@ -81,8 +81,10 @@ void Sg_Write(SgObject obj, SgObject p, int mode)
   }
   if (!SG_TEXTUAL_PORTP(p)) {
     /* for now I asuume it's a binary port. */
-    SgTranscoder *trans = Sg_MakeNativeTranscoder();
-    port = SG_PORT(Sg_MakeTranscodedOutputPort(p, trans));
+    SgTranscoder *trans = Sg_UTF16ConsolePortP(p)
+      ? SG_TRANSCODER(Sg_MakeNativeConsoleTranscoder())
+      : SG_TRANSCODER(Sg_MakeNativeTranscoder());
+    port = SG_PORT(Sg_MakeTranscodedOutputPort(SG_PORT(p), trans));
   } else {
     /* for now I assume it's a textual port */
     port = SG_PORT(p);
@@ -496,7 +498,9 @@ void Sg_Format(SgPort *port, SgString *fmt, SgObject args, int ss)
   }
   if (!SG_TEXTUAL_PORTP(port)) {
     /* for now I asuume it's a binary port. */
-    SgTranscoder *trans = Sg_MakeNativeTranscoder();
+    SgTranscoder *trans = Sg_UTF16ConsolePortP(port)
+      ? SG_TRANSCODER(Sg_MakeNativeConsoleTranscoder())
+      : SG_TRANSCODER(Sg_MakeNativeTranscoder());
     out = SG_PORT(Sg_MakeTranscodedOutputPort(port, trans));
   } else {
     /* for now I assume it's a textual port */
@@ -1516,7 +1520,9 @@ void Sg_Vprintf(SgPort *port, const SgChar *fmt, va_list sp, int sharedp)
   }
   if (!SG_TEXTUAL_PORTP(port)) {
     /* for now I asuume it's a binary port. */
-    SgTranscoder *trans = Sg_MakeNativeTranscoder();
+    SgTranscoder *trans = Sg_UTF16ConsolePortP(port)
+      ? SG_TRANSCODER(Sg_MakeNativeConsoleTranscoder())
+      : SG_TRANSCODER(Sg_MakeNativeTranscoder());
     out = Sg_MakeTranscodedOutputPort(port, trans);
   } else {
     /* for now I assume it's a textual port */

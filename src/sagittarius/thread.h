@@ -86,7 +86,6 @@ typedef struct  SgInternalCondRec
 
 /* emulate pthread_cleanup_push/pop*/
 #ifdef _MSC_VER
-#include <windows.h>
 /* emulation code from pthread for win32 */
 typedef void (* ptw32_cleanup_callback_t)(void *);
 typedef struct ptw32_cleanup_rec_t

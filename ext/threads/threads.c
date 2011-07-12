@@ -271,7 +271,7 @@ int nanosleep(const struct timespec *req, struct timespec *rem)
 {
     DWORD msecs = 0;
     time_t sec;
-    u_long overflow = 0, c;
+    unsigned long overflow = 0, c;
     const DWORD MSEC_OVERFLOW = 4294967; /* 4294967*1000 = 0xfffffed8 */
 
     /* It's very unlikely that we overflow msecs, but just in case... */

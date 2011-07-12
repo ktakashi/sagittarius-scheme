@@ -30,6 +30,10 @@
  *  $Id: $
  */
 
+#include <sagittarius/transcoder.h>
+#include <sagittarius/codec.h>
+#include <sagittarius/string.h>
+
 /* from mosh */
 static const wchar_t* utf32ToUtf16(const SgChar *s)
 {

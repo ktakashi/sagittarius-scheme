@@ -9,6 +9,10 @@
 #define INSN_VALUE2_MASK  ((1 << (sizeof(intptr_t) * 8)) - 1)
 #define INSN_VALUE1_SHIFT 8
 #define INSN_VALUE2_SHIFT 20
+#ifdef _MSC_VER
+/* what a stupid macro definition on windows.h*/
+#undef CONST
+#endif _MSC_VER
 /**
    @brief set of instructions.
 

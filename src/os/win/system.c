@@ -31,7 +31,7 @@
  */
 #include <windows.h>
 #include <shlwapi.h>
-#include <wchar_t.h>
+#include <wchar.h>
 #include <io.h>
 #ifdef _MSC_VER
 #pragma comment(lib, "shlwapi.lib")
@@ -65,29 +65,6 @@ void Sg_YieldCPU()
   Sleep(10);
 }
 
-
-SgObject Sg_GetDefaultLoadPath()
-{
-  if (win_lib_path == NULL ||
-      win_sitelib_path == NULL ||
-      win_dynlib_path == NULL) {
-    initialize_path();
-  }
-  return SG_LIST2(win_sitelib_path, win_lib_path);
-		  
-}
-
-SgObject Sg_GetDefaultDynamicLoadPath()
-{
-  /* this must be initialized when vm is being created. */
-  if (win_lib_path == NULL ||
-      win_sitelib_path == NULL ||
-      win_dynlib_path == NULL) {
-    initialize_path();
-  }
-  return SG_LIST1(Sg_MakeString(UC(SAGITTARIUS_DYNLIB_PATH), SG_LITERAL_STRING));
-}
-
 SgObject Sg_GetLastErrorMessage()
 {
   return get_last_error(GetLastError());
@@ -97,28 +74,29 @@ SgObject Sg_GetLastErrorMessageWithErrorCode(int code)
   return get_last_error(code);
 }
 
-#define VALUE_SIZE 1024;
+#define VALUE_SIZE 1024
 
 static int get_env(const SgChar *env, wchar_t *buf, int size)
 {
-  int size = GetEnvironmentVariableW(utf32ToUtf16(key), buf, size);
-  if (size == 0 || size > size) {
-    return 0;
+  int envsize = GetEnvironmentVariableW(utf32ToUtf16(env), buf, size);
+  if (envsize == 0 || envsize > size) {
+    return FALSE;
   }
+  return TRUE;
 }
 
 SgObject Sg_Getenv(const SgChar *env)
 {
   wchar_t value[VALUE_SIZE];
-  if (get_env(env, buf, VALUE_SIZE) != 0)
-    return utf16ToUtf32(buf);
+  if (get_env(env, value, VALUE_SIZE) != 0)
+    return utf16ToUtf32(value);
   else
     return SG_FALSE;
 }
 
 SgObject Sg_GetTemporaryDirectory()
 {
-  static const wchar_t NAME = L"Sagittarius";
+  static const wchar_t NAME[] = L"Sagittarius";
   wchar_t value[MAX_PATH];
   int length = get_env(UC("TEMP"), value, MAX_PATH);
   if (PathIsDirectoryW(value)) goto next;
@@ -137,7 +115,7 @@ SgObject Sg_GetTemporaryDirectory()
     if (!PathIsDirectoryW(value)) return SG_FALSE;
   } else {
     /* create */
-    CreateDirectoryW(value);
+    CreateDirectoryW(value, NULL);
   }
   return utf16ToUtf32(value);
 }

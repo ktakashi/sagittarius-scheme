@@ -33,6 +33,9 @@
 #include <string.h>
 #include <signal.h>
 /* we assume _WIN32 is only VC */
+#if _MSC_VER
+#define EINTR WSAEINTR
+#endif
 
 #include "socket.h"
 #include <sagittarius/extend.h>

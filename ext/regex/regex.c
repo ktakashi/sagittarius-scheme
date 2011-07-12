@@ -121,9 +121,9 @@ typedef enum {
 } ques_type;
 
 typedef enum {
-  DIGIT,
-  SPACE,
-  WORD,
+  DIGIT_TYPE,
+  SPACE_TYPE,
+  WORD_TYPE,
 } ctype_type;
 
 typedef ques_type curly_type;
@@ -254,8 +254,8 @@ typedef struct tree_info_rec_t
 } tree_info_t;
 
 /* markers */
-static node_t accept = { NULL, NODE, { 0 } };
-static node_t last_accept = { NULL, LAST_NODE, { 0 } };
+static node_t accept_node = { NULL, NODE, { 0 } };
+static node_t last_accept_node = { NULL, LAST_NODE, { 0 } };
 static node_t look_behind_end = { NULL, LOOK_BEHIND_END, { 0 } };
 
 static int rxstudy(node_t *node, tree_info_t *info);
@@ -284,7 +284,7 @@ static void throw_error(const SgChar *msg, SgObject irritants)
 static node_t* make_node(node_type type)
 {
   node_t *z = SG_NEW(node_t);
-  z->next = &accept;
+  z->next = &accept_node;
   z->type = type;
   return z;
 }
@@ -519,8 +519,8 @@ SgPattern* Sg_CompileRegex(SgString *pattern, int flags)
   if (SG_STRING_SIZE(pattern) > 0) {
     rxcompile(p);
   } else {
-    p->root = make_start(&last_accept);
-    p->matchRoot = &last_accept;
+    p->root = make_start(&last_accept_node);
+    p->matchRoot = &last_accept_node;
   }
   return p;
 }
@@ -909,7 +909,7 @@ static SgChar escape(SgPattern *p, int inclass, int create)
   case 'C':
     break;
   case 'D':
-    if (create) p->root = complement(make_ctype(DIGIT));
+    if (create) p->root = complement(make_ctype(DIGIT_TYPE));
     return -1;
   case 'E':   case 'F':
     break;
@@ -924,12 +924,12 @@ static SgChar escape(SgPattern *p, int inclass, int create)
   case 'P': case 'Q': case 'R':
     break;
   case 'S':
-    if (create) p->root = complement(make_ctype(SPACE));
+    if (create) p->root = complement(make_ctype(SPACE_TYPE));
     return -1;
   case 'T': case 'U': case 'V':
     break;
   case 'W':
-    if (create) p->root = complement(make_ctype(WORD));
+    if (create) p->root = complement(make_ctype(WORD_TYPE));
     return -1;
   case 'X': case 'Y':
     break;
@@ -943,12 +943,12 @@ static SgChar escape(SgPattern *p, int inclass, int create)
     return '\007';
   case 'b':
     if (inclass) break;
-    if (create) p->root = make_node(BOTH);
+    if (create) p->root = make_bound(BOTH);
     return -1;
   case 'c':
     return c(p);
   case 'd':
-    if (create) p->root = make_ctype(DIGIT);
+    if (create) p->root = make_ctype(DIGIT_TYPE);
     return -1;
   case 'e':
     return '\033';
@@ -964,7 +964,7 @@ static SgChar escape(SgPattern *p, int inclass, int create)
   case 'r':
     return '\r';
   case 's':
-    if (create) p->root = make_ctype(SPACE);
+    if (create) p->root = make_ctype(SPACE_TYPE);
     return -1;
   case 't':
     return '\t';
@@ -973,7 +973,7 @@ static SgChar escape(SgPattern *p, int inclass, int create)
   case 'v':
     return '\013';
   case 'w':
-    if (create) p->root = make_ctype(WORD);
+    if (create) p->root = make_ctype(WORD_TYPE);
     return -1;
   case 'x':
     return x(p);
@@ -1607,9 +1607,9 @@ static void rxcompile(SgPattern *p)
 
     if (has(p, SG_LITERAL)) {
       p->matchRoot = new_slice(p, p->temp, p->patternLength);
-      p->matchRoot->next = &last_accept;
+      p->matchRoot->next = &last_accept_node;
     } else {
-      p->matchRoot = expr(p, &last_accept);
+      p->matchRoot = expr(p, &last_accept_node);
       if (p->patternLength != p->cursor) {
 	if (rxpeek(p) == ')') {
 	  throw_error(UC("Unmatched closing ')'"), SG_NIL);
@@ -1725,8 +1725,11 @@ static void rxaccept(SgPattern *p, SgChar ch, const SgChar *s)
   }
 }
 
+#ifndef _MSC_VER
+/* Do they need to define this as MACRO? */
 #define max(a,b) ((a)>(b)?(a):(b))
 #define min(a,b) ((a)<(b)?(a):(b))
+#endif
 
 /* study */
 static int rxstudy(node_t *node, tree_info_t *info)
@@ -1925,13 +1928,13 @@ static int is_satisfied_by(node_t *node, SgChar ch)
   case CTYPE: 
     if (ch < 128) {
       switch (node->clazz.char_property.meta.ctype) {
-      case DIGIT:
+      case DIGIT_TYPE:
 	ret = isdigit(ch);
 	goto br;
-      case SPACE:
+      case SPACE_TYPE:
 	ret = isspace(ch);
 	goto br;
-      case WORD:
+      case WORD_TYPE:
 	ret = (isalnum(ch) || ch == '_');
 	goto br;
       }
@@ -3357,7 +3360,7 @@ declare_dumper(LOOK_BEHIND_END)
 
 static void dump_compiled_regex_rec(node_t *node, int indent, SgHashTable *seen)
 {
-  if (node && node != &accept) {
+  if (node && node != &accept_node) {
     const char *node_name = get_node_name(node->type);
     put_indent(indent);
     fprintf(stderr, "%s\n", node_name);

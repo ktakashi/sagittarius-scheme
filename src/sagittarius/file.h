@@ -54,6 +54,7 @@ struct SgFileRec
   int     (*isOpen)(SgObject self);
   int     (*open)(SgObject self, const SgChar* path, int flags);
   int     (*close)(SgObject self);
+  int     (*canClose)(SgObject self); /* for port close */
   int     (*isUTF16Console)(SgObject self); /*  check if this file object is UTF16 console */
 };
 

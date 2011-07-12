@@ -32,13 +32,14 @@
 #ifndef SAGITTARIUS_SOCKET_H_
 #define SAGITTARIUS_SOCKET_H_
 
-#include <sagittarius.h>
 #ifdef _WIN32
 # include <winsock2.h>
 # include <ws2tcpip.h>
-# include <wspiapi.h>
 # pragma comment(lib, "ws2_32.lib")
+#if 0
+# include <wspiapi.h>
 # pragma comment(lib, "iphlpapi.lib")
+#endif
 # define snprintf _snprintf
 #else
 # include <sys/socket.h>
@@ -46,6 +47,7 @@
 # include <unistd.h>
 # include <errno.h>
 #endif
+#include <sagittarius.h>
 
 typedef enum {
   SG_SOCKET_CLIENT,

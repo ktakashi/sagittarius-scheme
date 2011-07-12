@@ -112,6 +112,13 @@ static int posix_close(SgObject self)
   return FALSE;
 }
 
+static int posix_can_close(SgObject self)
+{
+  return !(SG_FD(self)->fd == 0 ||
+	   SG_FD(self)->fd == 1 ||
+	   SG_FD(self)->fd == 2);
+}
+
 
 static int64_t posix_seek(SgObject self, int64_t offset, Whence whence)
 {
@@ -198,6 +205,7 @@ static SgFile* make_file(int handle)
   file->isOpen = posix_is_open;
   file->open = posix_open;
   file->close = posix_close;
+  file->canClose = posix_can_close;
   return file;
 }
 

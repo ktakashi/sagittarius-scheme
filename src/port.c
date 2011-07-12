@@ -203,9 +203,6 @@ void Sg_UnregisterBufferedPort(SgPort *port)
 }
 
 /*
-  TODO: set finalizer for all ports.
-  for now i don't close any port when gc is run.
-
   TODO: refactering.
  */
 
@@ -219,14 +216,16 @@ static int file_open(SgObject self)
 static int file_close(SgObject self)
 {
   if (!SG_PORT(self)->closed) {
-    SG_PORT(self)->closed = TRUE;
-    if (SG_PORT(self)->direction == SG_OUTPUT_PORT ||
-	SG_PORT(self)->direction == SG_IN_OUT_PORT) {
-      /* flush */
-      SG_PORT(self)->flush(self);
-      unregister_buffered_port(SG_PORT(self));
+    if (SG_PORT_FILE(self)->canClose(SG_PORT_FILE(self))) {
+      SG_PORT(self)->closed = TRUE;
+      if (SG_PORT(self)->direction == SG_OUTPUT_PORT ||
+	  SG_PORT(self)->direction == SG_IN_OUT_PORT) {
+	/* flush */
+	SG_PORT(self)->flush(self);
+	unregister_buffered_port(SG_PORT(self));
+      }
+      SG_PORT_FILE(self)->close(SG_PORT_FILE(self));
     }
-    SG_PORT_FILE(self)->close(SG_PORT_FILE(self));
   }
   return SG_PORT(self)->closed;
 }
@@ -498,8 +497,14 @@ static int64_t file_write_to_line_buffer(SgObject self, uint8_t *v, int64_t req_
     SG_BINARY_PORT(self)->bufferIndex++;
     write_size++;
     if (SG_BINARY_PORT(self)->buffer[SG_BINARY_PORT(self)->bufferIndex - 1] == '\n') {
-      file_flush_internal(self);
-      need_unwind = TRUE;
+      /* on Windows console, when 0x0a is written after 0x0a it must be one more character.
+	 however, if we flush here, it'll skip and cause something we don't want to.
+	 TODO: we need to detect it.
+       */
+      /*
+	file_flush_internal(self);
+	need_unwind = TRUE;
+      */
     }
   }
   if (need_unwind && SG_PORT(self)->direction == SG_IN_OUT_PORT) {
@@ -1983,6 +1988,17 @@ SgObject Sg_PortTranscoder(SgObject port)
     /* TODO custom port */
     return SG_FALSE;
   }
+}
+
+int Sg_UTF16ConsolePortP(SgPort *port)
+{
+  if (SG_BINARY_PORTP(port)) {
+    if (SG_BINARY_PORT(port)->type == SG_FILE_BINARY_PORT_TYPE) {
+      if (Sg_IsUTF16Console(SG_PORT_FILE(port))) return TRUE;
+    }
+    return FALSE;
+  }
+  return FALSE;
 }
 
 /* standard ports */
