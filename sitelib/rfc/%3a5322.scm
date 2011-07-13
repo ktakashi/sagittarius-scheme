@@ -76,10 +76,11 @@
       (if (eof-object? r)
 	  r
 	  (let1 len (string-length r)
-	    (if (char=? #\x0d (string-ref r (- len 1))) ;; check CR
-		;; TODO memory waste
-		(substring r 0 (- len 1))
-		r)))))
+	    (cond ((zero? len) r)
+		  ((char=? #\x0d (string-ref r (- len 1))) ;; check CR
+		   ;; TODO memory waste
+		   (substring r 0 (- len 1)))
+		  (else r))))))
       
 
   (define-optional (rfc5322-read-headers in (optional (strict? #f)

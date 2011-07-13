@@ -1658,12 +1658,19 @@ int Sg_GetbUnsafe(SgPort *port)
 int64_t Sg_ReadbUnsafe(SgPort *port, uint8_t *buf, int64_t size)
 {
   if (SG_BINARY_PORTP(port)) {
+  reckless:
     return SG_BINARY_PORT(port)->readU8(port, buf, size);
   } else if (SG_CUSTOM_PORTP(port)) {
     ASSERT(SG_CUSTOM_PORT(port)->type == SG_BINARY_CUSTOM_PORT_TYPE);
     return SG_CUSTOM_BINARY_PORT(port)->readU8(port, buf, size);
   } else {
-    Sg_Error(UC("binary port required, but got %S"), port);
+    /* read from byte recklessly */
+    if (SG_TEXTUAL_PORT(port)->type == SG_TRANSCODED_TEXTUAL_PORT_TYPE) {
+      port = SG_TEXTUAL_PORT(port)->src.transcoded.port;
+      goto reckless;
+    } else {
+      Sg_Error(UC("binary port required, but got %S"), port);
+    }
   }
   return -1;			/* dummy */
 }
@@ -1671,12 +1678,19 @@ int64_t Sg_ReadbUnsafe(SgPort *port, uint8_t *buf, int64_t size)
 int64_t Sg_ReadbAllUnsafe(SgPort *port, uint8_t **buf)
 {
   if (SG_BINARY_PORTP(port)) {
+  reckless:
     return SG_BINARY_PORT(port)->readU8All(port, buf);
   } else if (SG_CUSTOM_PORTP(port)) {
     ASSERT(SG_CUSTOM_PORT(port)->type == SG_BINARY_CUSTOM_PORT_TYPE);
     return SG_CUSTOM_BINARY_PORT(port)->readU8All(port, buf);
   } else {
-    Sg_Error(UC("binary port required, but got %S"), port);
+    /* read from byte recklessly */
+    if (SG_TEXTUAL_PORT(port)->type == SG_TRANSCODED_TEXTUAL_PORT_TYPE) {
+      port = SG_TEXTUAL_PORT(port)->src.transcoded.port;
+      goto reckless;
+    } else {
+      Sg_Error(UC("binary port required, but got %S"), port);
+    }
   }
   return -1;			/* dummy */
 }

@@ -1,3 +1,11 @@
+2011-07-13  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/null.stub: modified get-bytevector-* series for socket to read
+	bytes from textual ports.
+
+	* ext/regex/regex.c: fixed char_property matching, it always failed when
+	it reached last.
+
 2011-07-12  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/rfc/uri.scm (rfc uri): made uri record use keyword to

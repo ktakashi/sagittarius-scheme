@@ -1,9 +1,11 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 ;; This file is a part of Sagittarius Scheme system.
+#!compatible
 (library (sagittarius control)
     (export define-optional
 	    let-optionals*
 	    get-optional
+	    define-with-key
 	    let-keywords
 	    let-keywords*
 	    begin0
@@ -147,14 +149,79 @@
        (if (null? arg) (begin body ...)
            (error 'let-optionals* "Too many arguments in let-opt" arg)))))
 
-  ;; from gauche
-  (define-macro (let-keywords arg specs . body)
-    (%let-keywords-rec arg specs body 'let))
+  ;; from Gauche
+  (define-syntax let-keywords
+    (er-macro-transformer
+     (lambda (form rename compare)
+       (let ((arg   (cadr form))
+	     (specs (caddr form))
+	     (body  (cdddr form)))
+	 (%let-keywords-rec arg specs body (rename 'let) rename)))))
 
-  (define-macro (let-keywords* arg specs . body)
-    (%let-keywords-rec arg specs body 'let*))
+  (define-syntax let-keywords*
+    (er-macro-transformer
+     (lambda (form rename compare)
+       (let ((arg   (cadr form))
+	     (specs (caddr form))
+	     (body  (cdddr form)))
+	 (%let-keywords-rec arg specs body (rename 'let) rename)))))
 
-  (define (%let-keywords-rec arg specs body %let)
+  ;; like Gauche's :key
+  ;; (define-with-key (name arg0 arg1 :key key1 (key2 #f) :allow-other-keys opt)
+  ;;   body ...)
+  ;; ->
+  ;; (define (name arg0 arg1 . optional)
+  ;;   (let-keywords* optional (key1
+  ;;                            (key2 #f)
+  ;;                            . opt)
+  ;;     body ...))
+  (define-syntax define-with-key
+    (er-macro-transformer
+     (lambda (form rename compare)
+       (define (process-specs ospecs)
+	 (let loop ((specs ospecs)
+		    (required '())
+		    (keys '())
+		    (key-appear? #f))
+	   (define (finish restvar)
+	     (values (reverse! required)
+		     (reverse! keys)
+		     restvar))
+	   (cond ((null? specs) (finish (gensym "dummy")))
+		 ((pair? specs)
+		  (cond (key-appear?
+			 (if (eq? (car specs) :allow-other-keys)
+			     (finish (cadr specs))
+			     (let ((name (car specs)))
+			       (loop (cdr specs) required
+				     (cons (if (variable? name) (list name (undefined)) name) keys)
+				     #t))))
+			((eq? (car specs) :key)
+			 (loop (cdr specs) required keys #t))
+			(else
+			 (loop (cdr specs) (cons (car specs) required) keys #f))))
+		 (else
+		  (syntax-violation 'define-with-key
+				    "spec must be proper list"
+				    form
+				    ospec)))))
+       (let ((spec (cadr form))
+	     (body (cddr form))
+	     (opt  (gensym "opt")))
+	 (receive (required keys rest) (process-specs (cdr spec))
+	   `(define (,(car spec) ,@required . ,opt)
+	      (,(rename 'let-keywords*) ,opt (,@keys
+					      . ,rest)
+	       ,@body)))))))
+	 
+
+  ;;(define-macro (let-keywords arg specs . body)
+  ;;  (%let-keywords-rec arg specs body 'let))
+
+  ;;(define-macro (let-keywords* arg specs . body)
+  ;;  (%let-keywords-rec arg specs body 'let*))
+
+  (define (%let-keywords-rec arg specs body %let rename)
     (define (triplet var&default)
       (or (and-let* ([ (list? var&default) ]
 		     [var (unwrap-syntax (car var&default))]
@@ -190,7 +257,10 @@
 		       (cons (gensym) tmps)))]
 	      [else (finish (or specs #t))])))
 
-    (let ((argvar (gensym "args")) (loop (gensym "loop")))
+    (let ((argvar (gensym "args")) (loop (gensym "loop"))
+	  ;; we make a little bit hygine.
+	  (_error (rename 'error))
+	  (_undefined? (rename 'undefined?)))
       (receive (vars keys defaults tmps restvar) (process-specs specs)
 	`(let ,loop ((,argvar ,arg)
 		     ,@(if (boolean? restvar) '() `((,restvar '())))
@@ -198,11 +268,11 @@
 	      (cond
 	       [(null? ,argvar)
 		(,%let ,(map (lambda (var tmp default)
-			       `(,var (if (undefined? ,tmp) ,default ,tmp)))
+			       `(,var (if (,_undefined? ,tmp) ,default ,tmp)))
 			     vars tmps defaults)
 		       ,@body)]
 	       [(null? (cdr ,argvar))
-		(error 'let-keywords "keyword list not even" ,argvar)]
+		(,_error 'let-keywords "keyword list not even" ,argvar)]
 	       [else
 		(case (car ,argvar)
 		  ,@(map (lambda (key)
@@ -222,12 +292,12 @@
 			   `(,loop (cddr ,argvar) ,@tmps)]
 			  [(eq? restvar #f)
 			   `(begin
-			      (error 'let-keywords "unknown keyword " (car ,argvar))
+			      (,_error 'let-keywords "unknown keyword " (car ,argvar))
 			      (,loop (cddr ,argvar) ,@tmps))]
 			  [else
 			   `(,loop
 			     (cddr ,argvar)
-			     (cons* (car ,argvar) (cadr ,argvar) ,restvar)
+			     (,(rename 'cons*) (car ,argvar) (cadr ,argvar) ,restvar)
 			     ,@tmps)])))
 		]))))
     )       

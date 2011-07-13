@@ -679,6 +679,9 @@ static void write_string(SgString *obj, SgPort *port, SgWriteContext *ctx)
       case '\f':
 	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, 'f');
 	break;
+      case '\"':
+	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, '\"');
+	break;
       default:
 	{
 	  const int ASCII_SPC = 0x20;

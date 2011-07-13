@@ -34,6 +34,7 @@
 #include "sagittarius.h"
 #include "sagittarius/core.h"
 #include "sagittarius/vm.h"
+#include "sagittarius/builtin-symbols.h"
 
 static void finalizable();
 static void* oom_handler(size_t bytes)
@@ -149,12 +150,19 @@ void Sg_Init()
      we need extra treatment for er-rename. it's defined after the 
      initialization of compiler, so we need to export it to (core base) which 
      defines er-macro-transformer.
+     er-macro-transformer is defined (core base) but we want to export it with (sagittarius)
+     so insert it to the library here.
    */
   {
     SgLibrary *core_base_lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(core base)"), FALSE));
+    SgLibrary *sagittarius_lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius)"), FALSE));
     Sg_InsertBinding(core_base_lib,
 		     SG_INTERN("er-rename"),
 		     Sg_FindBinding(SG_INTERN("null"), SG_INTERN("er-rename"), SG_FALSE));
+    /* we don't have to insert er-rename */
+    Sg_InsertBinding(sagittarius_lib,
+		     SG_SYMBOL_ER_MACRO_TRANSFORMER,
+		     Sg_FindBinding(core_base_lib, SG_SYMBOL_ER_MACRO_TRANSFORMER, SG_UNBOUND));
   }
 
 }

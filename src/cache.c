@@ -538,6 +538,10 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs, cach
   Sg_PutbUnsafe(out, cb->argc);
   /* optional is boolean. */
   Sg_PutbUnsafe(out, cb->optional);
+  /* max stack 
+     255 is enough?
+   */
+  Sg_PutbUnsafe(out, cb->maxStack);
   /* I don't think we need this much, but just in case */
   put_4byte(cb->freec);
   put_4byte(SG_INT_VALUE(SG_CDR(this_slot)));
@@ -1125,12 +1129,13 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
 
 static SgObject read_code(SgPort *in, read_ctx *ctx)
 {
-  int len, tag, argc, optional, freec, index, i;
+  int len, tag, argc, optional, maxStack, freec, index, i;
   SgWord *code;
   SgObject cb, name;
   len = read_word(in, CODE_BUILDER_TAG);
   argc = Sg_GetbUnsafe(in);
   optional = Sg_GetbUnsafe(in);
+  maxStack = Sg_GetbUnsafe(in);
   freec = read_4byte(in);
   index = read_4byte(in);
   name = read_object(in, ctx);
@@ -1153,7 +1158,7 @@ static SgObject read_code(SgPort *in, read_ctx *ctx)
   }
   tag = Sg_GetbUnsafe(in);
   ASSERT(tag == CODE_BUILDER_END_TAG);
-  cb = Sg_MakeCodeBuilderFromCache(name, code, len, argc, optional, freec);
+  cb = Sg_MakeCodeBuilderFromCache(name, code, len, argc, optional, freec, maxStack);
   /* store seen */
   Sg_HashTableSet(ctx->seen, SG_MAKE_INT(index), cb, 0);
   return cb;

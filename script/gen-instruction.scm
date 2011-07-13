@@ -17,7 +17,7 @@
   (format out "#ifdef _MSC_VER~%")
   (format out "/* what a stupid macro definition on windows.h*/~%")
   (format out "#undef CONST~%")
-  (format out "#endif _MSC_VER~%")
+  (format out "#endif~%")
   (format out "/**~%")
   (format out "   @brief set of instructions.~%~%")
   ;; newline

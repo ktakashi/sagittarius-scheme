@@ -2792,7 +2792,7 @@ static int rxmatch(node_t *node, SgMatcher *matcher, int i, SgString *seq)
       return is_satisfied_by(node, ch) &&
 	rxmatch(node->next, matcher, i + 1, seq);
     } else {
-      return matcher->hitEnd = TRUE;
+      matcher->hitEnd = TRUE;
       return FALSE;
     }
   }
@@ -3349,7 +3349,13 @@ declare_dumper(CHAR_PROPERTY)
     }
     fputs(")\n", stderr);
   }
-
+  case CTYPE:
+    switch (node->clazz.char_property.meta.ctype) {
+    case DIGIT_TYPE: put_indent(indent); fputs("([DIGIT_TYPE])\n", stderr); break;
+    case SPACE_TYPE: put_indent(indent); fputs("([SPACE_TYPE])\n", stderr); break;
+    case WORD_TYPE: put_indent(indent); fputs("([WORD_TYPE])\n", stderr); break;
+    }
+    break;
   default: break;
   }
 

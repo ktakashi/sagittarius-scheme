@@ -548,13 +548,36 @@ SgObject Sg_Environment(SgObject lib, SgObject spec)
   return lib;
 }
 
+static void expand_stack(SgVM *vm, int plusSize)
+{
+#define stack_size (((intptr_t)(vm->stackEnd) - (intptr_t)(vm->stack)) / sizeof(intptr_t))
+  static const int WARN_STACK_SIZE = 48 * 1024 * 1024;
+  SgObject *nextStack;
+  int nextSize = stack_size + plusSize;
+  if (nextSize * sizeof(intptr_t) > WARN_STACK_SIZE) {
+    Sg_Warn(UC("stack is growing to %ld MB"), nextSize * sizeof(intptr_t) / 1024 / 1024);
+  }
+  nextStack = SG_NEW_ARRAY(SgObject, nextSize);
+  if (NULL == nextStack) {
+    Sg_Error(UC("stack overflow"));
+  }
+  memcpy(nextStack, vm->stack, sizeof(SgObject) * stack_size);
+  FP(vm) = nextStack + (FP(vm) - vm->stack);
+  SP(vm) = nextStack + (SP(vm) - vm->stack);
+  CONT(vm) = (SgContFrame*)(nextStack + ((SgObject*)CONT(vm) - vm->stack));
+  vm->stackEnd = nextStack + nextSize;
+  vm->stack = nextStack;
+#undef stack_size
+}
+
 #define MOSTLY_FALSE(expr) expr
 
 /* TODO check stack expantion */
 #define CHECK_STACK(size, vm)					\
   do {								\
     if (MOSTLY_FALSE(SP(vm) >= (vm)->stackEnd - (size))) {	\
-      Sg_Error(UC("stack needs to be expand"));			\
+      /*expand_stack(vm, size);*/				\
+      Sg_Panic("stack overflow");				\
     }								\
   } while (0)
 

@@ -187,19 +187,20 @@ static void show_usage()
 	  "Usage: sash [-hvi][-L<path>][-D<path>][--clean-cache][--disable-cache]"
 	  "[--debug-exec=<flags>][-p<file> or --logport=<file>]\n"
 	  "options:\n"
-	  "  -v          Prints version and exits.\n"
-	  "  -h          Prints this usage and exits.\n"
-	  "  -i          Interactive mode. Forces to print prompts.\n"
-	  "  -L<path>    Adds <path> to the head of the load path list.\n"
-	  "  -D<path>    Adds <path> to the head of the dynamic load path list.\n"
-	  "  --clean-cache Cleans compiled cache.\n"
-	  "  --disable-cache Disable compiled cache.\n"
-	  "  --debug-exec=<flags> Sets <flags> for VM debugging.\n"
-	  "    info        Shows loading files.\n"
-	  "    debug       Shows info level + calling function names.\n"
-	  "    trace       Shows info debug + stack frames.\n"
-	  "  -p<file> --logport=<file> Sets <file> as log port. This port will be\n"
-	  "                            used for above option's."
+	  "  -v,--version                  Prints version and exits.\n"
+	  "  -h,--help                     Prints this usage and exits.\n"
+	  "  -i,--interactive              Interactive mode. Forces to print prompts.\n"
+	  "  -6,--r6rs                     Runs sash with R6RS mode\n"
+	  "  -L<path>,--loadpath=<path>    Adds <path> to the head of the load path list.\n"
+	  "  -D<path>,--dynloadpath=<path> Adds <path> to the head of the dynamic load path list.\n"
+	  "  -C,--clean-cache              Cleans compiled cache.\n"
+	  "  -d,--disable-cache            Disable compiled cache.\n"
+	  "  -E,--debug-exec=<flags>       Sets <flags> for VM debugging.\n"
+	  "    		info        Shows loading files.\n"
+	  "    		debug       Shows info level + calling function names.\n"
+	  "    		trace       Shows info debug + stack frames.\n"
+	  "  -p<file>, --logport=<file>    Sets <file> as log port. This port will be\n"
+	  "                                used for above option's."
 	  );
   exit(1);
 }
@@ -233,6 +234,7 @@ int main(int argc, char **argv)
     {"dynloadpath", optional_argument, 0, 'D'},
     {"help", 0, 0, 'h'},
     {"interactive", 0, 0, 'i'},
+    {"r6rs", 0, 0, '6'},
     {"version", 0, 0, 'v'},
     {"clean-cache", 0, 0, 'C'},
     {"disable-cache", 0, 0, 'd'},
@@ -245,8 +247,8 @@ int main(int argc, char **argv)
   GC_INIT();
   Sg_Init();
   vm = Sg_VM();
-  SG_VM_SET_FLAG(vm, SG_R6RS_MODE);
-  while ((opt = getopt_long(argc, argv, "L:D:hEviCdp:", long_options, &optionIndex)) != -1) {
+  SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
+  while ((opt = getopt_long(argc, argv, "L:D:hEviCdp:6", long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 'E':
       if (strcmp("trace", optarg) == 0) {
@@ -256,6 +258,10 @@ int main(int argc, char **argv)
       } else if (strcmp("info", optarg) == 0) {
 	SG_VM_SET_FLAG(vm, SG_INFO_LEVEL);
       }
+      break;
+    case '6':
+      SG_VM_SET_FLAG(vm, SG_R6RS_MODE);
+      SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
       break;
     case 'L':
       Sg_AddLoadPath(SG_STRING(Sg_MakeStringC(optarg)));

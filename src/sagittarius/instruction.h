@@ -12,7 +12,7 @@
 #ifdef _MSC_VER
 /* what a stupid macro definition on windows.h*/
 #undef CONST
-#endif _MSC_VER
+#endif
 /**
    @brief set of instructions.
 

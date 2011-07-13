@@ -10,6 +10,7 @@
   (define *supported-encoding*
     `((iso-8859-1 . ,(latin-1-codec))
       (sjis       . ,(sjis-codec))
+      (shift_jis  . ,(sjis-codec))
       (latin-1    . ,(latin-1-codec))
       (utf-8      . ,(utf-8-codec))
       (utf-16     . ,(utf-16-codec))))

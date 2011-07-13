@@ -2205,9 +2205,10 @@
 			      "out of range"
 			      (SG_MAKE_INT ,t))))))
 
-  (define-c-proc get-bytevector-n (p::Port count::fixnum) ::Object
+  (define-c-proc get-bytevector-n (p::Port count::fixnum :optional (reckless #f)) ::Object
     (check-port-open get-bytevector-n p)
-    (check-binary-port get-bytevector-n p)
+    (when (SG_FALSEP reckless)
+      (check-binary-port get-bytevector-n p))
     (check-input-port get-bytevector-n p)
     (check-non-negative-fixnum get-bytevector-n count)
     (let ((buf::uint8_t* (SG_NEW_ATOMIC2 uint8_t* count))
@@ -2217,9 +2218,10 @@
 	  (result (Sg_MakeByteVectorFromU8Array buf res)))))
 
   (define-c-proc get-bytevector-n!
-    (p::Port bv::ByteVector start::fixnum count::fixnum) ::Object
+    (p::Port bv::ByteVector start::fixnum count::fixnum :optional (reckless #f)) ::Object
     (check-port-open get-bytevector-n! p)
-    (check-binary-port get-bytevector-n! p)
+    (when (SG_FALSEP reckless)
+      (check-binary-port get-bytevector-n p))
     (check-input-port get-bytevector-n! p)
     (check-non-negative-fixnum get-bytevector-n! start)
     (check-non-negative-fixnum get-bytevector-n! count)
@@ -2235,9 +2237,10 @@
 	     (result (SG_MAKE_INT res))))))
 
   ;; TODO this allocates memory twice.
-  (define-c-proc get-bytevector-some (p::Port) ::Object
+  (define-c-proc get-bytevector-some (p::Port :optional (reckless #f)) ::Object
     (check-port-open get-bytevector-some p)
-    (check-binary-port get-bytevector-some p)
+    (when (SG_FALSEP reckless)
+      (check-binary-port get-bytevector-n p))
     (check-input-port get-bytevector-some p)
     (let ((buf::uint8_t* (SG_NEW_ATOMIC2 uint8_t* 512)) ;; some
 	  (res::int64_t (Sg_Readb p buf 512)))
@@ -2245,9 +2248,10 @@
 	  (result SG_EOF)
 	  (result (Sg_MakeByteVectorFromU8Array buf res)))))
 
-  (define-c-proc get-bytevector-all (p::Port) ::Object
+  (define-c-proc get-bytevector-all (p::Port :optional (reckless #f)) ::Object
     (check-port-open get-bytevector-all p)
-    (check-binary-port get-bytevector-all p)
+    (when (SG_FALSEP reckless)
+      (check-binary-port get-bytevector-n p))
     (check-input-port get-bytevector-all p)
     ;; TODO we need to get the rest size to reduce memory allocation.
     ;; but for now I implement like this

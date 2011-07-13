@@ -46,16 +46,7 @@
 
 	    uri-compose
 	    *rfc3986-unreserved-char-set*
-	    *rfc2396-unreserved-char-set*
-	    ;; accesor for uri record
-	    make-uri uri?
-	    uri-scheme uri-scheme-set!
-	    uri-userinfo uri-userinfo-set!
-	    uri-host uri-host-set!
-	    uri-port uri-port-set!
-	    uri-path uri-path-set!
-	    uri-query uri-query-set!
-	    uri-fragments uri-fragments-set!)
+	    *rfc2396-unreserved-char-set*)
     (import (rnrs)
 	    (srfi :13 strings)
 	    (srfi :14 char-set)
@@ -64,29 +55,6 @@
 	    (encoding decoder)
 	    (sagittarius control)
 	    (sagittarius regex))
-
-  (define-record-type uri
-    (fields (mutable scheme)
-	    (mutable userinfo)
-	    (mutable host)
-	    (mutable port)
-	    (mutable path)
-	    (mutable query)
-	    (mutable fragments)
-	    (mutable path*))
-    (protocol
-     (lambda (p)
-       (lambda args
-	 (let-keywords* args ((scheme #f)
-			      (userinfo #f)
-			      (host #f)
-			      (port #f)
-			      (path #f)
-			      (query #f)
-			      (fragments #f)
-			      (path* #f))
-	   (p scheme userinfo host port path query fragments path*))))))
-
 
   ;; from RFC3986 Appendix B. Parsing a URI Reference with a Regular Expression
   (define scheme (regex "^([a-zA-Z][a-zA-Z0-9+.-]*):"))
@@ -111,7 +79,7 @@
 	  (else (values #f #f #f))))
 
   ;; returns (scheme user-info host port path query fragments)
-  (define-optional (uri-parse uri (optional (as-record? #f)))
+  (define (uri-parse uri)
     (define (filter-non-empty-string str)
       (and (string? str)
 	   (not (string-null? str))
@@ -119,51 +87,45 @@
     (receive (scheme specific) (uri-scheme&specific uri)
       (receive (auth path query frag) (uri-decompose-hierarchical specific)
 	(receive (user-info host port) (uri-decompose-authority auth)
-	  (if as-record?
-	      (make-uri :scheme scheme
-			:userinfo user-info
-			:host (filter-non-empty-string host)
-			:port (and port (string->number port))
-			:path (filter-non-empty-string path)
-			:query query
-			:fragments frag)
-	      (values scheme
-		      user-info
-		      (filter-non-empty-string host)
-		      (and port (string->number port))
-		      (filter-non-empty-string path)
-		      query
-		      frag))))))
+	  (values scheme
+		  user-info
+		  (filter-non-empty-string host)
+		  (and port (string->number port))
+		  (filter-non-empty-string path)
+		  query
+		  frag)))))
 
   ;; compose
-  (define (uri-compose uri)
-    (check-arg uri? uri 'uri-compose)
-    (let ((scheme (uri-scheme uri))
-	  (userinfo (uri-userinfo uri))
-	  (host (uri-host uri))
-	  (port (uri-port uri))
-	  (path (uri-path uri))
-	  (query (uri-query uri))
-	  (fragments (uri-fragments uri))
-	  (path* (uri-path* uri)))
+  (define-with-key (uri-compose :key (scheme #f) (userinfo #f) (host #f) (port #f)
+				(authority #f) (path  #f) (path* #f) (query #f)
+				(fragment #f) (specific #f))
       (with-output-to-string
 	(lambda ()
 	  (when scheme (display scheme) (display ":"))
-	  (display "//")
-	  (when userinfo (display userinfo) (display "@"))
-	  (when host     (display host))
-	  (when port     (display ":") (display port))
-	  (if path*
+	  (if specific
+	      (display specific)
 	      (begin
-		(unless (string-prefix? "/" path*) (display "/"))
-		(display path*))
-	      (begin
-		(if path
-		    (begin (unless (string-prefix? "/" path) (display "/"))
-			   (display path))
-		    (display "/"))
-		(when query (display "?") (display query))
-		(when fragments (display "#") (display fragments))))))))
+		(display "//")
+		(if authority
+		    (begin (display authority))
+		    (begin
+		      (when userinfo (display userinfo) (display "@"))
+		      (when host     (display host))
+		      (when port     (display ":") (display port))))
+		(if path*
+		    (begin
+		      (unless (string-prefix? "/" path*) (display "/"))
+		      (display path*))
+		    (begin
+		      (if path
+			  (begin (unless (string-prefix? "/" path) (display "/"))
+				 (display path))
+			  (display "/"))
+		      (when query (display "?") (display query))
+		      (when fragment (display "#") (display fragment))))
+		))
+	  )))
+
 
   ;; encoding & decoding
   ;; This is for internal.
