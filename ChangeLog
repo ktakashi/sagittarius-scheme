@@ -1,5 +1,7 @@
 2011-07-13  Takashi Kato  <ktakashi@ymail.com>
 
+	* sitelib/encoding/euc-jp.scm (encoding euc-jp): added euc-jp codec.
+
 	* src/null.stub: modified get-bytevector-* series for socket to read
 	bytes from textual ports.
 

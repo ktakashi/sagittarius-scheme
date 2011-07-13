@@ -95,6 +95,20 @@
 		       secure auth-handler auth-user auth-password))))))
 
   (define http-user-agent (make-parameter (format "sagittarius.http/~a" (sagittarius-version))))
+  ;; redirect
+  (define (redirect conn proto new-server)
+    (let1 orig-server (http-connection-server conn)
+      (unless (and (string=? orig-server new-server)
+		   (eq? (http-connection-secure conn) (equal? proto "https")))
+	(shutdown-secure-agent conn)
+	(and-let* ((s (http-connection-socket conn)))
+	  (socket-shutdown s)
+	  (socket-close s)
+	  (http-connection-socket-set! conn #f))
+	(http-connection-server-set! conn new-server)
+	(http-connection-secure-set! conn (equal? proto "https"))))
+    conn)
+
   ;; 
   (define-with-key (http-request method server request-uri
 				 :key (host #f)
@@ -120,7 +134,7 @@
 			      `(:user-agent ,user-agent) enc)
 	  (or (and-let* (( (not no-redirect) )
 			 ( (string-prefix? "3" code) )
-			 (lob (assoc "location" headers)))
+			 (loc (assoc "location" headers)))
 		(receive (uri proto new-server path*)
 		    (canonical-uri conn (cadr loc) (http-connection-server conn))
 		  (when (or (member uri history)
@@ -254,7 +268,7 @@
 				      (cadr p)))
 		  (receive-body-chunked remote handler)))
 	    (total
-	     (when (> total ) (set! handler (handler remote total)))
+	     (when (> total 0) (set! handler (handler remote total)))
 	     (handler remote 0))
 	    (else
 	     ;; length is unknown
@@ -289,6 +303,10 @@
 	       (raise-http-error 'receive-body-chunked
 				 "bad line in chunked data"
 				 line))))))
+
+  ;; secure
+  ;; dummy
+  (define (shutdown-secure-agent conn) #f)
 	
   (define (lookup-encoding hdrs)
     (or (and-let* ((c (rfc5322-header-ref hdrs "content-type"))
