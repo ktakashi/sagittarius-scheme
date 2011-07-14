@@ -41,6 +41,10 @@
 	    http-compose-form-data
 
 	    http-get
+	    http-head
+	    http-port
+	    http-put
+	    http-delete
 	    http-request)
     (import (rnrs)
 	    (core)
@@ -331,6 +335,17 @@
 		 (put-bytevector sink (get-bytevector-n remote size #t))
 		 (loop sink)))))))
 
+  ;; sink must be binary-port
+  (define (http-oport-receiver sink flusher)
+    (check-arg binary-port? sink 'http-oport-receiver)
+    (lambda (code hdrs totla retr)
+      (let loop ()
+	(receive (remote size) (retr)
+	  (cond ((= size 0) (flushre sink hdrs))
+		((> size 0)
+		 (put-bytevector sink (get-bytevector-n remote size #t))
+		 (loop)))))))
+
   ;; query and request body composition
   ;; if we use this alot we need to make a library for this.
   (define (intersperse item lis)
@@ -387,9 +402,21 @@
 	conn)))
 		     
 
-
+  ;; shortcuts for specific requests
   (define (http-get server request-uri . options)
     (apply %http-request-adaptor 'GET server request-uri #f options))
+
+  (define (http-head server request-uri . options)
+    (apply %http-request-adaptor 'HEAD server request-uri #f options))
+
+  (define (http-post server request-uri body . options)
+    (apply %http-request-adaptor 'POST server request-uri #f options))
+
+  (define (http-put server request-uri body . options)
+    (apply %http-request-adaptor 'PUT server request-uri #f options))
+
+  (define (http-delete server request-uri . options)
+    (apply %http-request-adaptor 'DELETE server request-uri #f options))
 
   (define-with-key (%http-request-adaptor method server request-uri body
 					  :key receiver (sink #f) (flusher #f)
@@ -409,6 +436,17 @@
   (define (http-null-sender)
     (lambda (hdrs encoding header-sink)
       (let ((body-sink (header-sink `(("content-length" "0") ,@hdrs))))
+	(body-sink 0))))
+
+  (define (http-blob-sender blob)
+    (lambda (hdrs encoding header-sink)
+      (let* ((data (if (string? blob) (string->utf8 blob) blob))
+	     (size (bytevector-length data))
+	     ;; TODO add "content-type: type/subtype; charset=utf-8" when blob was string
+	     (body-sink (header-sink `(("content-length" ,(format "~a" size))
+				       ,@hdrs)))
+	     (port (body-sink size)))
+	(put-bytevector port data)
 	(body-sink 0))))
 
   ;; authentication handling

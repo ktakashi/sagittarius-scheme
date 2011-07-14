@@ -358,6 +358,27 @@ SgObject Sg_DynLoad(SgString *filename, SgObject initfn, unsigned long flags)
   return SG_TRUE;
 }
 
+void* Sg_OpenSharedObject(SgString *filename)
+{
+  return dl_open(filename);
+}
+
+void* Sg_LookupSharedObject(void *handle, const char *symbol)
+{
+  /* dl_sym returns SgDynLoadInitFn so cast it*/
+  return (void*)dl_sym(handle, symbol);
+}
+
+void* Sg_CloseSharedObject(void *handle)
+{
+  dl_close(handle);
+}
+
+SgObject Sg_GetSharedError()
+{
+  return SG_OBJ(dl_error());
+}
+
 void Sg__InitLoad()
 {
   dynldinfo.dso_suffix = Sg_MakeString(UC(SHLIB_SO_SUFFIX), SG_LITERAL_STRING);

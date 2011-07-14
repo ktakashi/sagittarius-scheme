@@ -1,6 +1,6 @@
 /* -*- C -*- */
 /*
- * load.h
+ * dl_win.c
  *
  *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
  *
@@ -29,24 +29,46 @@
  *
  *  $Id: $
  */
-#ifndef SAGITTARIUS_LOAD_H_
-#define SAGITTARIUS_LOAD_H_
+#include <windows.h>
+#include "sagittarius/codec.h"
+#include "sagittarius/port.h"
 
-#include "sagittariusdefs.h"
+/* the same as os/win/file.c 
+   TODO: i don't want to put this here
+ */
+static const wchar_t* utf32ToUtf16(const SgChar *s)
+{
+  int size = ustrlen(s), i;
+  SgPort *out = Sg_MakeByteArrayOutputPort(sizeof(wchar_t) * (size + 1));
+  SgCodec *codec = Sg_MakeUtf16Codec(UTF_16LE);
+  SgTranscoder *tcoder = Sg_MakeTranscoder(codec, LF, SG_REPLACE_ERROR);
+  
+  for (i = 0; i < size; i++) {
+    tcoder->putChar(tcoder, out, s[i]);
+  }
+  tcoder->putChar(tcoder, out, '\0');
+  return (const wchar_t*)Sg_GetByteArrayFromBinaryPort(out);
+}
 
-SG_CDECL_BEGIN
 
-SG_EXTERN int      Sg_Load(SgString *path);
-SG_EXTERN SgObject Sg_VMLoad(SgString *path);
-SG_EXTERN SgObject Sg_VMLoadFromPort(SgPort *port);
+static void* dl_open(const SgString *path)
+{
+  wchar_t *xpath = utf32ToUtf16(SG_STRING_VALUE(path));
+  return (void*)LoadLibrary(xpath);
+}
 
-SG_EXTERN SgObject Sg_DynLoad(SgString *filename, SgObject initfn, unsigned long flags);
-/* for FFI interface */
-SG_EXTERN void*    Sg_OpenSharedObject(SgString *filename);
-SG_EXTERN void*    Sg_LookupSharedObject(void *handle, const char *symbol);
-SG_EXTERN void*    Sg_CloseSharedObject(void *handle);
-SG_EXTERN SgObject Sg_GetSharedError();
+static const SgString* dl_error(void)
+{
+  return Sg_GetLastErrorMessage();
+}
 
-SG_CDECL_END
+static SgDynLoadInitFn dl_sym(void *handle, const char *name)
+{
+  return (SgDynLoadInitFn)GetProcAddress((HMODULE)handle, name);
+}
 
-#endif /* SAGITTARIUS_LOAD_H_ */
+static void dl_close(void *handle)
+{
+  (void)FreeLibrary((HMODULE)handle);
+}
+
