@@ -415,16 +415,17 @@ static int socket_look_ahead_u8(SgObject self)
 static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
 {
   /* we need to read eagarly, or else something wrong happen. */
-  int readSize = 0;
+  int readSize = 0, offset = 0;
   if (SG_PORT_HAS_U8_AHEAD(self) && size > 0) {
     buf[0] = SG_PORT_U8_AHEAD(self);
     SG_PORT_U8_AHEAD(self) = EOF;
     buf++;
     size--;
     readSize++;
+    offset++;
   }
   for (;;) {
-    int now = Sg_SocketReceive(SG_PORT_SOCKET(self), buf, size, 0);
+    int now = Sg_SocketReceive(SG_PORT_SOCKET(self), buf + offset, size, 0);
     if (-1 == now) {
       Sg_IOReadError(SG_INTERN("read-u8"),
 		     Sg_GetLastErrorMessageWithErrorCode(SG_PORT_SOCKET(self)->lastError),
@@ -433,6 +434,7 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
     }
     size -= now;
     readSize += now;
+    offset += now;
     if (now == 0) return readSize;
     if (size == 0) break;
     /* loop */

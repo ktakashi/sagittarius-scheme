@@ -1,3 +1,7 @@
+2011-07-14  Takashi Kato  <ktakashi@ymail.com>
+
+	* ext/socket/socket.c: fixed read problem.
+
 2011-07-13  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/encoding/euc-jp.scm (encoding euc-jp): added euc-jp codec.
