@@ -17,7 +17,7 @@ ELSE()
     os/posix/system.c os/posix/thread.c)
 ENDIF()
 
-IF(SIZEOF_WCHAR_T LESS 4)
+IF(MSVC)
   SET(PLATFORM_SOURCE_UCS4
     ${PLATFORM_SOURCE_UCS4}
     ucs4.cpp)

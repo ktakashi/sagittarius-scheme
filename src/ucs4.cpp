@@ -33,7 +33,8 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/sagittariusdefs.h"
 
-#if SIZEOF_WCHAR_T < 4
+//#if SIZEOF_WCHAR_T < 4
+#if defined (_MSC_VER)
 // for now, it's really corner-cutting
 // from Mosh
 #include <map>

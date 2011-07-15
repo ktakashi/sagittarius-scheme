@@ -86,6 +86,13 @@
      string>=
      string?
      substring/shared
-     xsubstring)
+     xsubstring
+     ;; low level
+     string-parse-start+end
+     string-parse-final-start+end
+     let-string-start+end
+     check-substring-spec
+     substring-spec-ok?
+     make-kmp-restart-vector kmp-step string-kmp-partial-search)
     (import (srfi :13 strings))
   )

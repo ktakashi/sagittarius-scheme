@@ -1,3 +1,18 @@
+2011-07-15  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/cache.c (read_library): fixed not imported library problem, when
+	a cache imports the same library twice.
+
+	* sitelib/srfi/%3a13.scm (srfi): added low level procedures to export spec.
+
+	* sitelib/text/sxml/helper.scm: fixed export problem.
+
+	* sitelib/text/parse.scm (text parse): fixed find-string-from-port?. It was
+	using kmp-restart-vector wrong way.
+
+	* src/exceptions.c (condition): fixed segmentation fault when given argument
+	contains (condition).
+
 2011-07-14  Takashi Kato  <ktakashi@ymail.com>
 
 	* ext/socket/socket.c: fixed read problem.

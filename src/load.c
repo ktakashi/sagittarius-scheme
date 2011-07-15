@@ -369,7 +369,7 @@ void* Sg_LookupSharedObject(void *handle, const char *symbol)
   return (void*)dl_sym(handle, symbol);
 }
 
-void* Sg_CloseSharedObject(void *handle)
+void Sg_CloseSharedObject(void *handle)
 {
   dl_close(handle);
 }

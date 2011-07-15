@@ -1087,7 +1087,7 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
   int length, tag, i;
   SgObject name, from, import, export, keys, key;
   SgLibrary *lib;
-  SgHashTable *later = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
+  SgObject later = SG_NIL;
 
   tag = Sg_GetbUnsafe(in);
   if (tag != LIBRARY_TAG) return SG_FALSE;
@@ -1100,7 +1100,7 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
   for (i = 0; i < length; i++) {
     from = read_object(in, ctx);
     import = read_object(in, ctx);
-    Sg_HashTableSet(later, from, import, 0);
+    later = Sg_Acons(from, import, later);
   }
   /* read export */
   read_word(in, EXPORT_TAG);		/* we don't need EXPORT_TAG's length */
@@ -1112,10 +1112,11 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
   lib = Sg_MakeLibrary(name);
   lib->exported = export;
 
-  keys = Sg_HashTableKeys(later);
+  keys = Sg_ReverseX(later);
   SG_FOR_EACH(key, keys) {
-    from = SG_CAR(key);
-    import = Sg_HashTableRef(later, from, SG_FALSE);
+    /* keys are alist */
+    from = SG_CAAR(key);
+    import = SG_CDAR(key);
     ASSERT(!SG_FALSEP(import));
     /* import must be (only rename except prefix)
        see library.c

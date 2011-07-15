@@ -44,7 +44,7 @@ SG_EXTERN SgObject Sg_DynLoad(SgString *filename, SgObject initfn, unsigned long
 /* for FFI interface */
 SG_EXTERN void*    Sg_OpenSharedObject(SgString *filename);
 SG_EXTERN void*    Sg_LookupSharedObject(void *handle, const char *symbol);
-SG_EXTERN void*    Sg_CloseSharedObject(void *handle);
+SG_EXTERN void     Sg_CloseSharedObject(void *handle);
 SG_EXTERN SgObject Sg_GetSharedError();
 
 SG_CDECL_END

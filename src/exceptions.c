@@ -96,7 +96,7 @@ SgObject Sg_Condition(SgObject components)
 			    Sg_Sprintf(UC("expected condition, but got %S"), component),
 			    components);
     }
-    SG_APPEND1(hh, tt, SG_CAR(Sg_SimpleConditions(SG_CAR(component))));
+    SG_APPEND(hh, tt, Sg_SimpleConditions(SG_CAR(component)));
   }
   SG_APPEND1(h, t, hh);
   len = Sg_Length(h);

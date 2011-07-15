@@ -9,9 +9,12 @@
 	    char-return nl
 	    cout cerr
 	    make-char-quotator
-	    (rename (integer->char ascii->char)
-		    (integer->char ucscode->char)))
+	    ascii->char
+	    ucscode->char)
     (import (rnrs))
+
+  (define ascii->char integer->char)
+  (define ucscode->char integer->char)
 
   ;; this could be useful for somewhere, but for now
   (define-syntax begin0

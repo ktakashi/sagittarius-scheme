@@ -119,7 +119,10 @@
 		  ((= patpos 0)
 		   (scan 0 (+ count 1) (read-char in-port)))
 		  (else
-		   (scan (vector-ref restart patpos) count char))))
+		   (let ((pi (vector-ref restart patpos)))
+		     (if (= pi -1)
+			 (scan 0 0 (read-char in-port))
+			 (scan pi count char))))))
 	  (scan 0 1 (read-char in-port))
 	  )))
 

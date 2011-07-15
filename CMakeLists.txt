@@ -76,6 +76,19 @@ IF(SAGITTARIUS_PROFILE)
   ENDIF()
 ENDIF()
 
+# compiler option for global
+IF(WIN32)
+  IF (MSVC)
+  ELSE()
+    # mingw? we don't support
+  ENDIF()
+ELSEIF(CYGWIN)
+  # compiler must be gcc
+  ADD_DEFINITIONS(-fwide-exec-charset=ucs-4le)
+ELSE()
+ENDIF()
+
+
 IF(DEBUG_VERSION)
   ADD_DEFINITIONS(-DDEBUG_VERSION)
   SET(CMAKE_BUILD_TYPE Debug)

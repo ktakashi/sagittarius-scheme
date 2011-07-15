@@ -207,6 +207,7 @@ typedef uintptr_t SgHeader;
 /* 
    The idea from Mosh
  */
+/*
 #if SIZEOF_WCHAT_T < 4
 SG_CDECL_BEGIN
 SG_EXTERN const SgChar* UC(const char *str);
@@ -215,7 +216,18 @@ SG_CDECL_END
 # define UC_(x) L##x
 # define UC(x)  (const SgChar*)(UC_(x))
 #endif
-
+*/
+#if defined (_MSC_VER)
+SG_CDECL_BEGIN
+SG_EXTERN const SgChar* UC(const char *str);
+SG_CDECL_END
+#elif defined (__CYGWIN__) || defined (_WIN32)
+# define UC_(x) L##x
+# define UC(x)  (const SgChar*)(UC_(x)L"\0")
+#else
+# define UC_(x) L##x
+# define UC(x)  (const SgChar*)(UC_(x))
+#endif
 /*
   Sagittarius Tag construction
   
