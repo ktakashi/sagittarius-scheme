@@ -1,3 +1,8 @@
+2011-07-17  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/sagittarius/file.h: current-directory and set-current-directory
+	have been added.
+
 2011-07-15  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/cache.c (read_library): fixed not imported library problem, when

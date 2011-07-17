@@ -64,6 +64,7 @@
 #define VALIDATE_TAG  "Sagittarius version "SAGITTARIUS_VERSION
 
 static SgString *CACHE_DIR = NULL;
+static int TAG_LENGTH = 0;
 
 /* assume id is path. however just in case, we encode invalid path characters */
 static SgString* id_to_filename(SgString *id)
@@ -659,7 +660,8 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   file = Sg_OpenFile(cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
   out = Sg_MakeFileBinaryOutputPort(file, SG_BUFMODE_BLOCK);
   /* put validate tag */
-  Sg_Write(Sg_MakeString(UC(VALIDATE_TAG), SG_LITERAL_STRING), out, SG_WRITE_WRITE);
+  Sg_WritebUnsafe(out, (const uint8_t *)VALIDATE_TAG, 0, TAG_LENGTH);
+  /* Sg_Write(Sg_MakeString(UC(VALIDATE_TAG), SG_LITERAL_STRING), out, SG_WRITE_WRITE); */
   Sg_ClosePort(out);
   return TRUE;
 }
@@ -1193,12 +1195,13 @@ int Sg_ReadCache(SgString *id)
   SgString *cache_path = id_to_filename(id), *timestamp;
   SgFile *file;
   SgPort *in;
-  SgObject obj, validate_tag, vtime, otime;
-  SgHashTable *seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
-  SgHashTable *shared = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
+  SgObject obj, vtime, otime;
+  SgHashTable *seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 128);
+  SgHashTable *shared = Sg_MakeHashTableSimple(SG_HASH_EQ, 256);
   SgLibrary *save = vm->currentLibrary;
   read_ctx ctx;
-  int b;
+  char tagbuf[50], *alldata;
+  int b, size;
 
   if (SG_VM_IS_SET_FLAG(vm, SG_DISABLE_CACHE)) {
     return INVALID_CACHE;
@@ -1223,10 +1226,11 @@ int Sg_ReadCache(SgString *id)
 
   file = Sg_OpenFile(timestamp, SG_READ);
   in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_BLOCK);
-  in = Sg_MakeTranscodedInputPort(in, Sg_MakeNativeTranscoder());
-  validate_tag = Sg_Read(in, TRUE);
-  if (!(SG_STRINGP(validate_tag) &&
-	ustrcmp(SG_STRING_VALUE(validate_tag), VALIDATE_TAG) == 0)) {
+  /* in = Sg_MakeTranscodedInputPort(in, Sg_MakeNativeTranscoder()); */
+  /* validate_tag = Sg_Read(in, TRUE); */
+  size = Sg_ReadbUnsafe(in, tagbuf, 50);
+  tagbuf[size] = 0;
+  if (strcmp(tagbuf, VALIDATE_TAG) != 0) {
     Sg_ClosePort(in);
     return RE_CACHE_NEEDED;
   }
@@ -1235,6 +1239,8 @@ int Sg_ReadCache(SgString *id)
 
   file = Sg_OpenFile(cache_path, SG_READ);
   in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_BLOCK);
+  size = Sg_ReadbAllUnsafe(in, &alldata);
+  in = Sg_MakeByteArrayInputPort(alldata, size);
 
   ctx.seen = seen;
   ctx.sharedObjects = shared;
@@ -1245,6 +1251,8 @@ int Sg_ReadCache(SgString *id)
   if (b == INVALID_CACHE_TAG) return INVALID_CACHE;
 
   while ((obj = read_toplevel(in, MACRO_SECTION_TAG, &ctx)) != SG_EOF) {
+    /* toplevel cache never be #f */
+    if (SG_FALSEP(obj)) return RE_CACHE_NEEDED;
     if (SG_LIBRARYP(obj)) {
       save = vm->currentLibrary;
       vm->currentLibrary = SG_LIBRARY(obj);
@@ -1287,4 +1295,5 @@ void Sg_CleanCache()
 void Sg__InitCache()
 {
   CACHE_DIR = Sg_GetTemporaryDirectory();
+  TAG_LENGTH = strlen(VALIDATE_TAG);
 }

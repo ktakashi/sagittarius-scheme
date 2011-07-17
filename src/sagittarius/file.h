@@ -98,6 +98,8 @@ SG_EXTERN SgObject Sg_FileAccessTime(SgString *path);
 SG_EXTERN SgObject Sg_FileChangeTime(SgString *path);
 SG_EXTERN SgObject Sg_FileSize(SgString *path);
 SG_EXTERN SgObject Sg_ReadDirectory(SgString *path);
+SG_EXTERN SgObject Sg_CurrentDirectory();
+SG_EXTERN void     Sg_SetCurrentDirectory(SgString *path);
 
 SG_CDECL_END
 

@@ -58,6 +58,8 @@
 	    delete-directory
 	    create-directory
 	    read-directory
+	    current-directory
+	    set-current-directory
 
 	    ;; hashtable
 	    hashtable-keys-list hashtable-values-list
@@ -336,6 +338,12 @@
 
   (define-c-proc read-directory (path::String) ::Object
     (result (Sg_ReadDirectory path)))
+
+  (define-c-proc current-directory () ::Object
+    (result (Sg_CurrentDirectory)))
+
+  (define-c-proc set-current-directory (path::String) ::void
+    (Sg_SetCurrentDirectory path))
 
   ;; string
   (define-c-proc string-scan (s1::String s2 :optional (mode 'index)) ::Object

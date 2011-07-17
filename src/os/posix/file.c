@@ -30,6 +30,7 @@
  *  $Id: $
  */
 #include <string.h>
+#include <sys/param.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -43,6 +44,7 @@
 #include "sagittarius/error.h"
 #include "sagittarius/symbol.h"
 #include "sagittarius/number.h"
+#include "sagittarius/system.h"
 
 enum {
   INVALID_HANDLE_VALUE = -1,
@@ -420,6 +422,24 @@ SgObject Sg_ReadDirectory(SgString *path)
   return h;
 }
 
+SgObject Sg_CurrentDirectory()
+{
+  char buf[MAXPATHLEN];
+  if (getcwd(buf, MAXPATHLEN) == NULL) {
+    Sg_IOError(-1, SG_INTERN("current-directory"),
+	       Sg_GetLastErrorMessage(), SG_FALSE, SG_FALSE);
+    return SG_UNDEF;
+  }
+  return Sg_Utf8sToUtf32s(buf, strlen(buf));
+}
+
+void Sg_SetCurrentDirectory(SgString *path)
+{
+  if (chdir(Sg_Utf32sToUtf8s(path)) < 0) {
+    Sg_IOError(-1, SG_INTERN("set-current-directory"),
+	       Sg_GetLastErrorMessage(), SG_FALSE, SG_FALSE);
+  }
+}
 /*
   end of file
   Local Variables:

@@ -393,7 +393,7 @@ int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
     ProcCreateSymbolicLink win32CreateSymbolicLink = (ProcCreateSymbolicLink)GetProcAddress(LoadLibraryA("kernel32"), "CreateSymbolicLinkW");
     if (win32CreateSymbolicLink) {
       const wchar_t* newPathW = utf32ToUtf16(SG_STRING_VALUE(newpath));
-      DWORD flag = PathIsDirectoryW(newPathW) ? 1 : 0; // SYMBOLIC_LINK_FLAG_DIRECTORY == 1
+      DWORD flag = PathIsDirectoryW(newPathW) ? 1 : 0; /* SYMBOLIC_LINK_FLAG_DIRECTORY == 1 */
       if (win32CreateSymbolicLink(newPathW, utf32ToUtf16(SG_STRING_VALUE(oldpath)), flag)) {
 	return TRUE;
       }
@@ -493,6 +493,26 @@ SgObject Sg_ReadDirectory(SgString *path)
     return SG_FALSE;
   }
   return h;
+}
+
+SgObject Sg_CurrentDirectory()
+{
+  wchat_t ucs2[MAX_PATH];
+  if (!GetCurrentDirectoryW(MAX_PATH, ucs2)) {
+    Sg_IOError(-1, SG_INTERN("current-directory"),
+	       Sg_GetLastErrorMessage(), SG_FALSE, SG_FALSE);
+    return SG_UNDEF;
+  }
+  return utf16ToUtf32(ucs2);
+}
+
+void Sg_SetCurrentDirectory(SgString *path)
+{
+  wchat_t *ucs2 = utf32ToUtf16(SG_STRING_VALUE(path));
+  if (!SetCurrentDirectoryW(ucs2)) {
+    Sg_IOError(-1, SG_INTERN("set-current-directory"),
+	       Sg_GetLastErrorMessage(), SG_FALSE, SG_FALSE);
+  }
 }
 
 static SgString *win_lib_path = NULL;
