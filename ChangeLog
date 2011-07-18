@@ -1,3 +1,7 @@
+2011-07-18  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/os/win/file.c: fixed windows dynamic load path.
+
 2011-07-17  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/sagittarius/file.h: current-directory and set-current-directory

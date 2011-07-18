@@ -594,7 +594,7 @@ SgObject Sg_GetDefaultDynamicLoadPath()
       win_dynlib_path == NULL) {
     initialize_path();
   }
-  return SG_LIST1(Sg_MakeString(UC(SAGITTARIUS_DYNLIB_PATH), SG_LITERAL_STRING));
+  return SG_LIST1(win_dynlib_path);
 }
 /*
   end of file

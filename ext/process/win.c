@@ -54,12 +54,47 @@ SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
   SgString *command = Sg_StringAppend(SG_LIST3(name,
 					       Sg_MakeString(UC(" "), SG_LITERAL_STRING),
 					       commandLine));
+#if 0
+  HANDLE in_r, in_w, in_t, out_r, out_w, out_t, err;
+  SECURITY_ATTRIBUTES sa;
+
+  /* prepare */
+  sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+  sa.lpSecurityDescriptor = NULL;
+  sa.bInheritHandle = TRUE;
+  
+  /* create the child output pipe*/
+  CreatePipe(&out_t, &out_w, &sa, 0);
+  DuplicateHandle(GetCurrentProcess(), out_w,
+		  GetCurrentProcess(), &err, 0,
+		  TRUE, DUPLICATE_SAME_ACCESS);
+  /* create the child input pipe */
+  CreatePipe(&in_r, &in_t, &sa, 0);
+  DuplicateHandle(GetCurrentProcess(), out_t,
+		  GetCurrentProcess(), &out_r,
+		  0, FALSE, DUPLICATE_SAME_ACCESS);
+  DuplicateHandle(GetCurrentProcess(), in_t,
+		  GetCurrentProcess(), &in_r,
+		  0, FALSE,
+		  DUPLICATE_SAME_ACCESS);
+
+  CloseHandle(out_t);
+  CloseHandle(in_t);
+#endif
   ZeroMemory(&si,sizeof(si));
   si.cb = sizeof(si);
+  si.dwFlags = STARTF_USESTDHANDLES;
+  /* for now we just redirect to standard i/o.
+     as future task, we might want to redirect to files or something.
+   */
+  si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+  si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE); 
+  si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
   if (!CreateProcessW(NULL,
 		      utf32ToUtf16(SG_STRING_VALUE(command)),
-		      NULL, NULL, 0,
-		      CREATE_SUSPENDED | CREATE_NO_WINDOW,
+		      NULL, NULL,
+		      TRUE,
+		      CREATE_SUSPENDED,
 		      NULL, NULL,
 		      &si,
 		      &pi)) {
@@ -67,6 +102,16 @@ SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
     p->handle = SG_FALSE;
     return p;
   }
+  /*
+  CloseHandle(in_r);
+  CloseHandle(out_w);
+  CloseHandle(err);
+  CloseHandle(in_w);
+  CloseHandle(out_r);
+  */
+  p->in = Sg_MakeFileBinaryInputPort(Sg_MakeFileFromFD(si.hStdInput), SG_BUFMODE_NONE);
+  p->out = Sg_MakeFileBinaryOutputPort(Sg_MakeFileFromFD(si.hStdOutput), SG_BUFMODE_LINE);
+  p->err = Sg_MakeFileBinaryOutputPort(Sg_MakeFileFromFD(si.hStdError), SG_BUFMODE_NONE);
   p->handle = (uintptr_t)Sg_Cons(pi.hThread, pi.hProcess);
   return p;
 }
