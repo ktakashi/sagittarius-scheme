@@ -1,5 +1,7 @@
 2011-07-18  Takashi Kato  <ktakashi@ymail.com>
 
+	* ext/process/process.c: added process library.
+
 	* src/os/win/file.c: fixed windows dynamic load path.
 
 2011-07-17  Takashi Kato  <ktakashi@ymail.com>
