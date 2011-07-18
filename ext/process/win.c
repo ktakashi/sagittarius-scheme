@@ -31,18 +31,18 @@
  */
 #include <windows.h>
 
-static const wchar_t* utf32ToUtf16(const SgChar *s)
+static wchar_t* utf32ToUtf16(const SgChar *s)
 {
   int size = ustrlen(s), i;
-  SgPort *out = Sg_MakeByteArrayOutputPort(sizeof(wchar_t) * (size + 1));
-  SgCodec *codec = Sg_MakeUtf16Codec(UTF_16LE);
-  SgTranscoder *tcoder = Sg_MakeTranscoder(codec, LF, SG_REPLACE_ERROR);
+  SgPort *out = SG_PORT(Sg_MakeByteArrayOutputPort(sizeof(wchar_t) * (size + 1)));
+  SgCodec *codec = SG_CODEC(Sg_MakeUtf16Codec(UTF_16LE));
+  SgTranscoder *tcoder = SG_TRANSCODER(Sg_MakeTranscoder(codec, LF, SG_REPLACE_ERROR));
   
   for (i = 0; i < size; i++) {
     tcoder->putChar(tcoder, out, s[i]);
   }
   tcoder->putChar(tcoder, out, '\0');
-  return (const wchar_t*)Sg_GetByteArrayFromBinaryPort(out);
+  return (wchar_t*)Sg_GetByteArrayFromBinaryPort(out);
 }
 
 
@@ -51,16 +51,20 @@ SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
   SgProcess *p = make_process(name, commandLine);
   PROCESS_INFORMATION pi;
   STARTUPINFO si;
+  SgString *command = Sg_StringAppend(SG_LIST3(name,
+					       Sg_MakeString(UC(" "), SG_LITERAL_STRING),
+					       commandLine));
   ZeroMemory(&si,sizeof(si));
   si.cb = sizeof(si);
-  if (!CreateProcess(utf32ToUtf16(SG_STRING_VALUE(name)),
-		     utf32ToUtf16(SG_STRING_VALUE(commandLine)),
-		     NULL, NULL, 0,
-		     CREATE_SUSPENDED | CREATE_NO_WINDOW,
-		     NULL, NULL,
-		     &si,
-		     &pi)) {
-    Sg_Wran(UC("failed to create a process %A, %A"), name, Sg_GetLastErrorMessage());
+  if (!CreateProcessW(NULL,
+		      utf32ToUtf16(SG_STRING_VALUE(command)),
+		      NULL, NULL, 0,
+		      CREATE_SUSPENDED | CREATE_NO_WINDOW,
+		      NULL, NULL,
+		      &si,
+		      &pi)) {
+    Sg_Warn(UC("failed to create a process %A, %A"), name, Sg_GetLastErrorMessage());
+    p->handle = SG_FALSE;
     return p;
   }
   p->handle = (uintptr_t)Sg_Cons(pi.hThread, pi.hProcess);
@@ -69,17 +73,25 @@ SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
 
 static int process_wait(SgProcess *process)
 {
+  if (SG_FALSEP(SG_OBJ(process->handle))) {
+    return -1;
+  }
   WaitForSingleObject(SG_CDR(SG_OBJ(process->handle)), INFINITE);
   CloseHandle(SG_CAR(SG_OBJ(process->handle)));
   CloseHandle(SG_CDR(SG_OBJ(process->handle)));
+  return 0;
 }
 
 static int process_call(SgProcess *process, int waitP)
 {
+  if (SG_FALSEP(SG_OBJ(process->handle))) {
+    return -1;
+  }
   ResumeThread(SG_CAR(SG_OBJ(process->handle)));
   if (waitP) {
     process_wait(process);
   }
+  return 0;
 }
 
 void Sg_ProcessCall(SgProcess *process)
@@ -94,7 +106,7 @@ int Sg_ProcessRun(SgProcess *process)
 
 int Sg_ProcessWait(SgProcess *process)
 {
-  process_wait(process);
+  return process_wait(process);
 }
 
 static void init_process()

@@ -72,7 +72,25 @@ static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
   int isOK;
   SgFile *file = SG_FILE(self);
   /* check console */
-  isOK = ReadFile(SG_FD(file)->desc, buf, size, &readSize, NULL);
+  if (Sg_IsUTF16Console(self)) {
+    ASSERT(size == 1);
+    if (SG_FD(self)->prevChar != -1) {
+      isOK = TRUE;
+      readSize = 1;
+      *buf = (uint8_t)(SG_FD(self)->prevChar);
+      SG_FD(self)->prevChar = -1;
+    } else {
+      wchar_t wc;
+      isOK = ReadConsole(SG_FD(self)->desc, &wc, 1, &readSize, NULL);
+      if (isOK) {
+	readSize = 1;
+	*buf = (uint8_t)(wc);
+	SG_FD(self)->prevChar = wc >> 8;
+      }
+    }
+  } else {
+    isOK = ReadFile(SG_FD(file)->desc, buf, size, &readSize, NULL);
+  }
   setLastError(file);
   if (isOK) {
     return readSize;
@@ -237,6 +255,8 @@ static SgFile* make_file(HANDLE hd)
   FD *depend = SG_NEW(FD);
   SG_SET_HEADER(z, TC_FILE);
   depend->desc = hd;
+  depend->lastError = 0;
+  depend->prevChar = -1;
   z->osdependance = (void*)depend;
   z->read = win_read;
   z->write = win_write;
@@ -504,7 +524,7 @@ SgObject Sg_ReadDirectory(SgString *path)
 
 SgObject Sg_CurrentDirectory()
 {
-  wchat_t ucs2[MAX_PATH];
+  wchar_t ucs2[MAX_PATH];
   if (!GetCurrentDirectoryW(MAX_PATH, ucs2)) {
     Sg_IOError(-1, SG_INTERN("current-directory"),
 	       Sg_GetLastErrorMessage(), SG_FALSE, SG_FALSE);
@@ -515,7 +535,7 @@ SgObject Sg_CurrentDirectory()
 
 void Sg_SetCurrentDirectory(SgString *path)
 {
-  wchat_t *ucs2 = utf32ToUtf16(SG_STRING_VALUE(path));
+  wchar_t *ucs2 = utf32ToUtf16(SG_STRING_VALUE(path));
   if (!SetCurrentDirectoryW(ucs2)) {
     Sg_IOError(-1, SG_INTERN("set-current-directory"),
 	       Sg_GetLastErrorMessage(), SG_FALSE, SG_FALSE);

@@ -1087,7 +1087,7 @@ static SgObject read_object(SgPort *in, read_ctx *ctx)
 static SgObject read_library(SgPort *in, read_ctx *ctx)
 {
   int length, tag, i;
-  SgObject name, from, import, export, keys, key;
+  SgObject name, from, import, expot, keys, key;
   SgLibrary *lib;
   SgObject later = SG_NIL;
 
@@ -1106,13 +1106,13 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
   }
   /* read export */
   read_word(in, EXPORT_TAG);		/* we don't need EXPORT_TAG's length */
-  export = read_object(in, ctx);
+  expot = read_object(in, ctx);
 
   tag = Sg_GetbUnsafe(in);
   if (tag != BOUNDARY_TAG) return SG_FALSE;
 
   lib = Sg_MakeLibrary(name);
-  lib->exported = export;
+  lib->exported = expot;
 
   keys = Sg_ReverseX(later);
   SG_FOR_EACH(key, keys) {
@@ -1240,6 +1240,7 @@ int Sg_ReadCache(SgString *id)
   file = Sg_OpenFile(cache_path, SG_READ);
   in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_BLOCK);
   size = Sg_ReadbAllUnsafe(in, &alldata);
+  Sg_ClosePort(in);
   in = Sg_MakeByteArrayInputPort(alldata, size);
 
   ctx.seen = seen;
