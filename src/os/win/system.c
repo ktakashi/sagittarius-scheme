@@ -94,6 +94,33 @@ SgObject Sg_Getenv(const SgChar *env)
     return SG_FALSE;
 }
 
+void Sg_Setenv(const SgChar *env, const SgChar *value)
+{
+  SetEnvironmentVariable(utf32ToUtf16(env), (value) ? utf32ToUtf16(value) : NULL);
+}
+
+SgObject Sg_GetenvAlist()
+{
+  static const wchar_t equ = L'=';
+  SgObject ret = SG_NIL;
+  const wchar_t *env = GetEnvironmentStringsW();
+  for (;;) {
+    const wchar_t *p = wcschr(env + (*env == equ ? 1 : 0), equ);
+    if (p) {
+      SgString *key = utf16ToUtf32WithRegion(env, p);
+      size_t len = wcslen(p + 1);
+      SgString *value = utf16ToUtf32WithRegion(p + 1, p + len);
+      env = p + 1 + len + 1;
+      ret = Sg_Acons(key, value, ret);
+    } else {
+      Sg_Warn(UC("invalid environment."));
+      break;
+    }
+    if (*env == 0) break;
+  }
+  return ret;
+}
+
 SgObject Sg_GetTemporaryDirectory()
 {
   static const wchar_t NAME[] = L"Sagittarius";

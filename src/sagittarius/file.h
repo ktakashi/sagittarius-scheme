@@ -67,6 +67,7 @@ SG_CDECL_BEGIN
    @deprecated use Sg_OpenFile
  */
 SG_EXTERN SgObject Sg_MakeFile();
+SG_EXTERN SgObject Sg_MakeFileFromFD(uintptr_t handle);
 SG_EXTERN SgObject Sg_OpenFile(SgString *file, int flags);
 /* These methods are just creating wraps for stdout, stdin, stderr */
 SG_EXTERN SgObject Sg_StandardOut();

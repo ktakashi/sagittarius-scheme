@@ -1,6 +1,6 @@
-/* -*- C -*- */
+/* -*- mode: c; coding: utf-8; -*- */
 /*
- * system.h
+ * process.h
  *
  *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
  *
@@ -29,33 +29,41 @@
  *
  *  $Id: $
  */
-#ifndef SAGITTARIUS_SYSTEM_H_
-#define SAGITTARIUS_SYSTEM_H_
+#include <sagittarius/extend.h>
+#include "process.h"
 
-#include "sagittariusdefs.h"
+static void process_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+{
+  Sg_Printf(port, UC("#<process %S>"), SG_PROCESS(self)->name);
+}
 
-SG_CDECL_BEGIN
+SG_INIT_META_OBJ(Sg_ProcessMeta, &process_printer, NULL);
 
-SG_EXTERN const SgChar* Sg_NativeFileSeparator();
+static SgProcess* make_process(SgString *name, SgString *args)
+{
+  SgProcess *p = SG_NEW(SgProcess);
+  SG_SET_META_OBJ(p, SG_META_PROCESS);
+  p->name = name;
+  p->args = args;
+  p->handle = 0;
+  p->in = SG_UNDEF;
+  p->out = SG_UNDEF;
+  p->err = SG_UNDEF;
+  return p;
+}
 
-SG_EXTERN SgObject      Sg_GetLastErrorMessage();
-SG_EXTERN SgObject      Sg_GetLastErrorMessageWithErrorCode(int code);
+#if defined(_MSC_VER)
+# include "win.c"
+#else
+# include "posix.c"
+#endif
 
-/* load path */
-SG_EXTERN SgObject      Sg_GetDefaultLoadPath();
-SG_EXTERN SgObject      Sg_GetDefaultDynamicLoadPath();
 
-/* time */
-SG_EXTERN int           Sg_GetTimeOfDay(unsigned long *sec, unsigned long *usec);
+extern void Sg__Init_sagittarius_process_impl();
 
-/* for threading */
-SG_EXTERN void          Sg_YieldCPU();
-
-SG_EXTERN SgObject      Sg_Getenv(const SgChar *env);
-SG_EXTERN void          Sg_Setenv(const SgChar *env, const SgChar *value);
-SG_EXTERN SgObject      Sg_GetenvAlist();
-SG_EXTERN SgObject      Sg_GetTemporaryDirectory();
-
-SG_CDECL_END
-
-#endif /* SAGITTARIUS_SYSTEM_H_ */
+SG_EXTENSION_ENTRY void Sg_Init_sagittarius__process()
+{
+  SG_INIT_EXTENSION(sagittarius__process);
+  init_process();
+  Sg__Init_sagittarius_process_impl();
+}

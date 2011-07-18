@@ -1,6 +1,6 @@
 /* -*- C -*- */
 /*
- * win_util.c
+ * win.c
  *
  *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
  *
@@ -29,12 +29,8 @@
  *
  *  $Id: $
  */
+#include <windows.h>
 
-#include <sagittarius/transcoder.h>
-#include <sagittarius/codec.h>
-#include <sagittarius/string.h>
-
-/* from mosh */
 static const wchar_t* utf32ToUtf16(const SgChar *s)
 {
   int size = ustrlen(s), i;
@@ -49,65 +45,59 @@ static const wchar_t* utf32ToUtf16(const SgChar *s)
   return (const wchar_t*)Sg_GetByteArrayFromBinaryPort(out);
 }
 
-static inline int isLead(SgChar c) { return (c & 0xfffffc00) == 0xd800; }
-static inline int isTrail(SgChar c) { return (c & 0xfffffc00) == 0xdc00; }
-static SgString* utf16ToUtf32(wchar_t *s)
+
+SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
 {
-  const SgChar offset = (0xd800 << 10UL) + 0xdc00 - 0x10000;
-  size_t i = 0, n = wcslen(s);
-  SgObject out = Sg_MakeStringOutputPort(n);
-  while (i < n) {
-    SgChar c0 = s[i++];
-    if (isLead(c0)) {
-      SgChar c1;
-      if (i < n && isTrail((c1 = s[i]))) {
-	i++;
-	c0 = (c0 << 10) + c1 - offset;
-      } else {
-	return Sg_MakeString(UC("bad char"), SG_LITERAL_STRING);
-      }
-    }
-    Sg_PutcUnsafe(out, c0);
+  SgProcess *p = make_process(name, commandLine);
+  PROCESS_INFORMATION pi;
+  STARTUPINFO si;
+  ZeroMemory(&si,sizeof(si));
+  si.cb = sizeof(si);
+  if (!CreateProcess(utf32ToUtf16(SG_STRING_VALUE(name)),
+		     utf32ToUtf16(SG_STRING_VALUE(commandLine)),
+		     NULL, NULL, 0,
+		     CREATE_SUSPENDED | CREATE_NO_WINDOW,
+		     NULL, NULL,
+		     &si,
+		     &pi)) {
+    Sg_Wran(UC("failed to create a process %A, %A"), name, Sg_GetLastErrorMessage());
+    return p;
   }
-  return Sg_GetStringFromStringPort(out);
+  p->handle = (uintptr_t)Sg_Cons(pi.hThread, pi.hProcess);
+  return p;
 }
 
-static SgString* utf16ToUtf32WithRegion(wchar_t *s, wchar_t *e)
+static int process_wait(SgProcess *process)
 {
-  const SgChar offset = (0xd800 << 10UL) + 0xdc00 - 0x10000;
-  size_t i = 0;
-  SgObject out = Sg_MakeStringOutputPort(n);
-  while (s < e) {
-    SgChar c0 = *s++;
-    if (isLead(c0)) {
-      SgChar c1;
-      if (s < e && isTrail((c1 = *s))) {
-	s++;
-	c0 = (c0 << 10) + c1 - offset;
-      } else {
-	return Sg_MakeString(UC("bad char"), SG_LITERAL_STRING);
-      }
-    }
-    Sg_PutcUnsafe(out, c0);
-  }
-  return Sg_GetStringFromStringPort(out);
+  WaitForSingleObject(SG_CDR(SG_OBJ(process->handle)), INFINITE);
+  CloseHandle(SG_CAR(SG_OBJ(process->handle)));
+  CloseHandle(SG_CDR(SG_OBJ(process->handle)));
 }
 
-static SgObject get_last_error(DWORD e)
+static int process_call(SgProcess *process, int waitP)
 {
-#define MSG_SIZE 128
-  wchar_t msg[MSG_SIZE];
-  int size = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-			    0, 
-			    e,
-			    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			    msg,
-			    MSG_SIZE,
-			    NULL);
-  if (size > 2 && msg[size - 2] == '\r') {
-    msg[size - 2] = 0;
-    size -= 2;
+  ResumeThread(SG_CAR(SG_OBJ(process->handle)));
+  if (waitP) {
+    process_wait(process);
   }
-  return utf16ToUtf32(msg);
-#undef MSG_SIZE
+}
+
+void Sg_ProcessCall(SgProcess *process)
+{
+  process_call(process, FALSE);
+}
+
+int Sg_ProcessRun(SgProcess *process)
+{
+  return process_call(process, TRUE);
+}
+
+int Sg_ProcessWait(SgProcess *process)
+{
+  process_wait(process);
+}
+
+static void init_process()
+{
+  /* do nothing */
 }

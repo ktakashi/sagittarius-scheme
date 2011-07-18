@@ -297,6 +297,13 @@ SgObject Sg_StandardError()
   return SG_OBJ(stdError);
 }
 
+SgObject Sg_MakeFileFromFD(uintptr_t handle)
+{
+  SgFile * f = make_file((HANDLE)handle);
+  f->name = UC("fd");
+  return SG_OBJ(f);
+}
+
 int Sg_IsUTF16Console(SgObject file)
 {
   return GetFileType(SG_FD(file)->desc) == FILE_TYPE_CHAR;

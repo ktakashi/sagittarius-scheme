@@ -87,6 +87,8 @@
 	    clean-cache
 	    ;; env
 	    getenv
+	    setenv
+	    getenv-alist
 	    )
     (import :null)
   (decl-code
@@ -486,4 +488,18 @@
   ;; getenv
   (define-c-proc getenv (path::String) ::Object
     (result (Sg_Getenv (SG_STRING_VALUE path))))
+
+  (define-c-proc setenv (key::String value) ::void
+    (let ((v::SgChar* NULL))
+      (cond ((SG_STRINGP value)
+	     (set! v (SG_STRING_VALUE value)))
+	    ((SG_FALSEP value)) ;; NULL
+	    (else
+	     (wrong-type-of-argument-violation 'setenv
+					       "string or #f"
+					       value)))
+      (Sg_Setenv (SG_STRING_VALUE key) v)))
+  
+  (define-c-proc getenv-alist () ::Object
+    (result (Sg_GetenvAlist)))
 )

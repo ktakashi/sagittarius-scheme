@@ -1,6 +1,6 @@
-/* -*- C -*- */
+/* -*- mode: c; coding: utf-8; -*- */
 /*
- * system.h
+ * process.h
  *
  *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
  *
@@ -29,33 +29,38 @@
  *
  *  $Id: $
  */
-#ifndef SAGITTARIUS_SYSTEM_H_
-#define SAGITTARIUS_SYSTEM_H_
+#ifndef SAGITTARIUS_PROCESS_H_
+#define SAGITTARIUS_PROCESS_H_
 
-#include "sagittariusdefs.h"
+#include <sagittarius.h>
 
-SG_CDECL_BEGIN
+typedef struct SgProcessRec
+{
+  SG_META_HEADER;
+  SgString  *name;		/* process name */
+  SgString  *args;		/* command line args */
+  uintptr_t  handle;		/* process handle
+				   on Windows, this will be handle for process,
+				   on POSIX, this will be PID.
+				 */
+  /* process I/O */
+  SgObject   in;
+  SgObject   out;
+  SgObject   err;
+} SgProcess;
 
-SG_EXTERN const SgChar* Sg_NativeFileSeparator();
 
-SG_EXTERN SgObject      Sg_GetLastErrorMessage();
-SG_EXTERN SgObject      Sg_GetLastErrorMessageWithErrorCode(int code);
+SG_DECLARE_META_OBJ(Sg_ProcessMeta);
+#define SG_META_PROCESS   (&Sg_ProcessMeta)
+#define SG_PROCESS(obj)   ((SgProcess *)obj)
+#define SG_PROCESS_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_PROCESS)
 
-/* load path */
-SG_EXTERN SgObject      Sg_GetDefaultLoadPath();
-SG_EXTERN SgObject      Sg_GetDefaultDynamicLoadPath();
+#define argumentAsProcess(index, tmp_, var_)			\
+  castArgumentType(index, tmp_, var_, pointer, SG_PROCESS_P, SG_PROCESS)
 
-/* time */
-SG_EXTERN int           Sg_GetTimeOfDay(unsigned long *sec, unsigned long *usec);
+SgObject Sg_MakeProcess(SgString *name, SgString *commandLine);
+void     Sg_ProcessCall(SgProcess *process);
+int      Sg_ProcessRun(SgProcess *process);
+int      Sg_ProcessWait(SgProcess *process);
 
-/* for threading */
-SG_EXTERN void          Sg_YieldCPU();
-
-SG_EXTERN SgObject      Sg_Getenv(const SgChar *env);
-SG_EXTERN void          Sg_Setenv(const SgChar *env, const SgChar *value);
-SG_EXTERN SgObject      Sg_GetenvAlist();
-SG_EXTERN SgObject      Sg_GetTemporaryDirectory();
-
-SG_CDECL_END
-
-#endif /* SAGITTARIUS_SYSTEM_H_ */
+#endif /* SAGITTARIUS_PROCESS_H_ */

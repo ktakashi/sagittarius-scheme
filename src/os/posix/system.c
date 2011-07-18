@@ -133,6 +133,37 @@ SgObject Sg_Getenv(const SgChar *env)
   return Sg_MakeStringC(value);
 }
 
+void Sg_Setenv(const SgChar *key, const SgChar *value)
+{
+  int klen = ustrlen(key), vlen;
+  SgString keys = { MAKE_HDR_VALUE(TC_STRING), klen, key};
+  if (value) {
+    vlen = ustrlen(value);
+    {
+      /* if i can use C99 ... */
+      SgString values = { MAKE_HDR_VALUE(TC_STRING), vlen, value};
+      setenv(Sg_Utf32sToUtf8s(&keys), Sg_Utf32sToUtf8s(&values), 1);
+    }
+  } else {
+    /* if value was NULL, remove it */
+    unsetenv(Sg_Utf32sToUtf8s(&keys));
+  }
+}
+
+SgObject Sg_GetenvAlist()
+{
+  SgObject ret = SG_NIL;
+  char **env = environ;
+  while (*env) {
+    char *equ = strchr(*env, '=');
+    SgString *key = Sg_Utf8sToUtf32s(*env, equ - *env);
+    SgString *value = Sg_Utf8sToUtf32s(equ + 1, strlen(equ + 1));
+    ret = Sg_Acons(key, value, ret);
+    env++;
+  }
+  return ret;
+}
+
 SgObject Sg_GetTemporaryDirectory()
 {
   static const char *NAME = "/.sagittarius";

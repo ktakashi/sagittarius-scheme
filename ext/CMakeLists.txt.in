@@ -1,0 +1,19 @@
+# Sagittarius extensions -*- CMake -*-
+# 
+# Build file for @module@
+
+ADD_LIBRARY(sagittarius--@module@ MODULE
+  @module@.c @module@_stub.c)
+
+INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
+ADD_STUBS(sagittarius--@module@
+  COMMAND ${GENSTUB}
+  FILES ${CMAKE_CURRENT_SOURCE_DIR}/@module@_stub.stub)
+
+SET_TARGET_PROPERTIES(sagittarius--@module@ PROPERTIES PREFIX "")
+TARGET_LINK_LIBRARIES(sagittarius--@module@ sagittarius)
+
+INSTALL(TARGETS sagittarius--@module@
+  DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
+INSTALL(FILES sagittarius/@module@.scm
+  DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH}/sagittarius)
