@@ -2,6 +2,7 @@
 (library (sagittarius aspect)
     (export point-cut %insert-binding gloc-set!)
     (import (core)
+	    (core base)
 	    (core errors)
 	    (sagittarius)
 	    (sagittarius vm))

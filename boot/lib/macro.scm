@@ -451,7 +451,9 @@
 			 ;; TODO I think this is wrong.
 			 ((and (identifier? lst)
 			       (null? (id-envs lst))
-			       (memq (identifier->symbol lst) (unwrap-syntax patvars)))
+			       (memq (identifier->symbol lst) (unwrap-syntax patvars))
+			       ;; if it's bounded then we must not unwrap.
+			       (not (find-binding (id-library lst) (identifier->symbol lst) #f)))
 			  (wrap-syntax (identifier->symbol lst) p1env renamed-ids))
 			 (else lst)))
 		  ((null? lst) '())

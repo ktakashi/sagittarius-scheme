@@ -114,6 +114,7 @@ enum {
   LIBRARY_TAG,
   IMPORT_TAG,
   EXPORT_TAG,
+  LIBRARY_LOOKUP_TAG,
   IMMEDIATE_TAG,		/* fixnum, char, boolean etc. */
   /* primitives */
   STRING_TAG,
@@ -512,8 +513,11 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx 
   } else if (SG_CLOSUREP(o)) {
     write_cache_pass2(out, SG_CLOSURE(o)->code, cbs, ctx);
   } else if (SG_LIBRARYP(o)) {
-    /* this must be macro's maybeLibrary */
-    write_symbol_cache(out, SG_LIBRARY_NAME(o));
+    /* at this point, this library has already been written.
+       so just put lookup tag.
+     */
+    write_string_cache(out, SG_SYMBOL(SG_LIBRARY_NAME(o))->name, LIBRARY_LOOKUP_TAG);
+    /* write_symbol_cache(out, SG_LIBRARY_NAME(o)); */
   } else if (SG_GLOCP(o)) {
     /* gloc is for performance thing, it can be replaced by identifier */
     SgObject name = SG_GLOC(o)->name;
@@ -671,7 +675,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   library      ::= (LIBRARY_TAG length object IMPORT_TAG length (object)* EXPORT_TAG length object BOUNDARY_TAG)
   code-builder ::= (CODE_BUILDER_TAG length (instruction (object)*) BOUNDARY_TAG)
   length       ::= [0-9] [0-9] [0-9] [0-9]
-  object       ::= (symbol | string | keyword | identifer | vector | bytevector | code-builder)
+  object       ::= (symbol | string | keyword | identifer | vector | bytevector | code-builder | library)
   instruction  ::= INSN
 
   we can read object until BOUNDARY_TAG.
@@ -806,6 +810,20 @@ static SgObject read_symbol(SgPort *in, int internP)
   name = read_string(in, length);
   return Sg_MakeSymbol(name, internP);
 }
+
+static SgObject lookup_library(SgPort *in, read_ctx *ctx)
+{
+  int length;
+  SgString *name;
+  SgObject lib;
+  length = read_word(in, LIBRARY_LOOKUP_TAG);
+  name = read_string(in, length);
+  lib = Sg_MakeSymbol(name, TRUE);
+  lib = Sg_FindLibrary(lib, FALSE);
+  ASSERT(SG_LIBRARYP(lib));
+  return lib;
+}
+
 
 static SgObject read_keyword(SgPort *in)
 {
@@ -1065,6 +1083,8 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
     return read_dlist(in, ctx);
   case MACRO_TAG:
     return read_macro(in, ctx);
+  case LIBRARY_LOOKUP_TAG:
+    return lookup_library(in, ctx);
   default:
     /* maybe broken cache. */
     return SG_FALSE;

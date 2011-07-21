@@ -9,19 +9,20 @@
 (define body-tmpl "body.tmpl")
 
 (define (write-template tmpl real module)
-  (if (file-exists? real)
-      (delete-file real))
-  (let ((in (open-file-input-port tmpl (file-options no-fail) 'block (native-transcoder))))
-    (let* ((content (get-string-all in))
-	   (replaced (regex-replace-all module-re content module)))
-      (set! replaced (regex-replace-all module-l-re replaced (string-upcase module)))
-      (let ((out (open-file-output-port (format "~a/~a" module real)
-					(file-options no-fail)
-					'block
-					(native-transcoder))))
-	(put-string out replaced)
-	(close-output-port out)))
-    (close-input-port in)))
+  (let ((real (format "~a/~a" module real)))
+    (if (file-exists? real)
+	(delete-file real))
+    (let ((in (open-file-input-port tmpl (file-options no-fail) 'block (native-transcoder))))
+      (let* ((content (get-string-all in))
+	     (replaced (regex-replace-all module-re content module)))
+	(set! replaced (regex-replace-all module-l-re replaced (string-upcase module)))
+	(let ((out (open-file-output-port real
+					  (file-options no-fail)
+					  'block
+					  (native-transcoder))))
+	  (put-string out replaced)
+	  (close-output-port out)))
+      (close-input-port in))))
 
 (let ((args (command-line))
       (module #f))
