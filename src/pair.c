@@ -33,6 +33,11 @@
 #include "sagittarius/pair.h"
 #include "sagittarius/compare.h"
 #include "sagittarius/error.h"
+#include "sagittarius/subr.h"
+#include "sagittarius/string.h"
+#include "sagittarius/symbol.h"
+#include "sagittarius/library.h"
+#include "sagittarius/vm.h"
 
 static inline SgPair* make_pair()
 {
@@ -349,6 +354,53 @@ SgObject Sg_Assoc(SgObject obj, SgObject alist)
   return SG_FALSE;
 }
 */
+
+/* from Ypsilon */
+static SgObject do_transpose(int shortest_len, int argc, SgObject args[])
+{
+  SgObject ans = SG_NIL, tail = SG_NIL;
+  int i, n;
+  for (i = 0; i < shortest_len; i++) {
+    SgObject elt = SG_NIL, elt_tail = SG_NIL;
+    
+    SG_APPEND1(elt, elt_tail, SG_CAR(args[0]));
+    args[0] = SG_CDR(args[0]);
+    for (n = 1; n < argc; n++) {
+      SG_APPEND1(elt, elt_tail, SG_CAR(args[n]));
+      args[n] = SG_CDR(args[n]);
+    }
+    SG_APPEND1(ans, tail, elt);
+  }
+  return ans;
+}
+
+static SgObject list_transpose(SgObject *args, int argc, void *data)
+{
+  DeclareProcedureName("list-transpose+");
+  checkArgumentLengthAtLeast(1);
+  if (SG_LISTP(args[0])) {
+    int each_len = Sg_Length(args[0]), i;
+    for (i = 1; i < argc; i++) {
+      if (SG_LISTP(args[i])) {
+	int len = Sg_Length(args[i]);
+	if (len < each_len) each_len = len;
+	continue;
+      }
+      return SG_FALSE;
+    }
+    return do_transpose(each_len, argc, args);
+  }
+  return SG_FALSE;
+}
+
+static SG_DEFINE_SUBR(list_transpose_stub, 1, 0, list_transpose, SG_FALSE, NULL);
+
+void Sg__InitPair()
+{
+  SgLibrary *lib = Sg_FindLibrary(SG_INTERN("null"), FALSE);
+  SG_PROCEDURE_NAME(&list_transpose_stub) = Sg_MakeString(UC("list-transpose+"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, SG_INTERN("list-transpose+"), SG_OBJ(&list_transpose_stub));
+}
   
 /*
   end of file

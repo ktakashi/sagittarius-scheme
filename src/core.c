@@ -48,6 +48,7 @@ extern void Sg__InitNumber();
 extern void Sg__InitString();
 extern void Sg__InitKeyword();
 extern void Sg__InitFile();
+extern void Sg__InitPair();
 extern void Sg__InitRecord();
 extern void Sg__InitConsitions();
 extern void Sg__InitReader();
@@ -110,8 +111,8 @@ void Sg_Init()
 
   Sg__InitInstruction();
   Sg__Initnull();
-  /* make-file-options needs to be in (core base) */
-  Sg__InitFile();
+  /* Sg__InitFile(); */
+  Sg__InitPair();
 
   Sg__Init_sagittarius();
   Sg__Init_sagittarius_vm();

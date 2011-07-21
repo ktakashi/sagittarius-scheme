@@ -976,37 +976,37 @@
 	(SG_APPEND h t (SG_CAR cp)))
       (result h)))
 
-  (define-cgen-stmt do-transpose
-    ((_ lst)
-     (dispatch
-      `(let ((h '())(t '())
-	     (count::int (Sg_Length ,lst))
-	     (argv (Sg_ListToVector ,lst 0 -1))
-	     (lst0 (SG_VECTOR_ELEMENT argv 0)))
-	 (dolist (l lst0)
-	   (let ((elt (Sg_Cons l '()))
-		 (elt_tail elt)
-		 (n::int 1))
-	     (while (< n count)
-	       (SG_SET_CDR elt_tail (Sg_Cons (SG_CAR (SG_VECTOR_ELEMENT argv n)) '()))
-	       (set! elt_tail (SG_CDR elt_tail))
-	       (set! (SG_VECTOR_ELEMENT argv n)
-		     (SG_CDR (SG_VECTOR_ELEMENT argv n)))
-	       (set! n (+ n 1)))
-	     (SG_APPEND1 h t elt)))
-	 (result h)))))
-
-  (define-c-proc list-transpose+ (lst0 :rest rest) ::Object
-    (cond ((not (SG_LISTP lst0)) (result #f))
-	  (else
-	   (let ((each_len::int (Sg_Length lst0)))
-	     (dolist (x rest)
-	       (if (SG_LISTP x)
-		   (unless (not (== (Sg_Length x) each_len))
-		     (result #f))
-		   (result #f)))
-	     (let ((tmp (Sg_Cons lst0 rest)))
-	       (do-transpose tmp))))))
+;;  (define-cgen-stmt do-transpose
+;;    ((_ lst)
+;;     (dispatch
+;;      `(let ((h '())(t '())
+;;	     (count::int (Sg_Length ,lst))
+;;	     (argv (Sg_ListToVector ,lst 0 -1))
+;;	     (lst0 (SG_VECTOR_ELEMENT argv 0)))
+;;	 (dolist (l lst0)
+;;	   (let ((elt (Sg_Cons l '()))
+;;		 (elt_tail elt)
+;;		 (n::int 1))
+;;	     (while (< n count)
+;;	       (SG_SET_CDR elt_tail (Sg_Cons (SG_CAR (SG_VECTOR_ELEMENT argv n)) '()))
+;;	       (set! elt_tail (SG_CDR elt_tail))
+;;	       (set! (SG_VECTOR_ELEMENT argv n)
+;;		     (SG_CDR (SG_VECTOR_ELEMENT argv n)))
+;;	       (set! n (+ n 1)))
+;;	     (SG_APPEND1 h t elt)))
+;;	 (result h)))))
+;;
+;;  (define-c-proc list-transpose+ (lst0 :rest rest) ::Object
+;;    (cond ((not (SG_LISTP lst0)) (result #f))
+;;	  (else
+;;	   (let ((each_len::int (Sg_Length lst0)))
+;;	     #;(dolist (x rest)
+;;	       (if (SG_LISTP x)
+;;		   (unless (not (== (Sg_Length x) each_len))
+;;		     (return #f))
+;;		   (return #f)))
+;;	     (let ((tmp (Sg_Cons lst0 rest)))
+;;	       (do-transpose tmp))))))
 
   (define-c-proc last-pair (lst) ::Object
     (result (Sg_LastPair lst)))
