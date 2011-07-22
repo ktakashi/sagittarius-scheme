@@ -128,9 +128,16 @@ static SgFuncInfo* make_funcinfo(uintptr_t proc, int retType, SgObject signature
   return fn;
 }
 
-SgObject Sg_CreateCFunction(SgPointer *handle, int rettype, SgObject sigs)
+SgObject Sg_CreateCFunction(SgPointer *handle, int rettype, SgObject sigs, SgObject sret, SgObject sparam)
 {
-  SgFuncInfo *fn = make_funcinfo(handle->pointer, rettype, sigs);
+  SgFuncInfo *fn;
+  if (!handle->pointer) {
+    Sg_Error(UC("invalid c-function address %S"), handle);
+    return SG_UNDEF;
+  }
+  fn = make_funcinfo(handle->pointer, rettype, sigs);
+  fn->sReturnType = sret;
+  fn->sParameterTypes = sparam;
   return SG_OBJ(fn);
 }
 
@@ -1003,7 +1010,11 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
     }
     ffi_values[i] = (params + i);
   }
-
+  /* sanity check */
+  if (!func->code) {
+    Sg_Error(UC("invalid c-function %S"), func);
+    return SG_UNDEF;
+  }
   switch (retType) {
   case FFI_RETURN_TYPE_VOID:
     ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
@@ -1173,6 +1184,16 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__ffi()
   SIZE_VALUE(size_t);
   SIZE_VALUE(float);
   SIZE_VALUE(double);
+  SIZE_VALUE(int8_t);
+  SIZE_VALUE(uint8_t);
+  SIZE_VALUE(int16_t);
+  SIZE_VALUE(uint16_t);
+  SIZE_VALUE(int32_t);
+  SIZE_VALUE(uint32_t);
+  SIZE_VALUE(int64_t);
+  SIZE_VALUE(uint64_t);
+  SIZE_VALUE(intptr_t);
+  SIZE_VALUE(uintptr_t);
 
 #define ALIGN_OF2(name, type)						\
   do {									\
@@ -1200,6 +1221,13 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__ffi()
   ALIGN_OF(int16_t);
   ALIGN_OF(int32_t);
   ALIGN_OF(int64_t);
+  ALIGN_OF(uint8_t);
+  ALIGN_OF(uint16_t);
+  ALIGN_OF(uint32_t);
+  ALIGN_OF(uint64_t);
+  ALIGN_OF(intptr_t);
+  ALIGN_OF(uintptr_t);
+
 
 #undef CONST_VALUE
 #undef SIZE_VALUE

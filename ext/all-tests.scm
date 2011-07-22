@@ -5,6 +5,7 @@
 	(time test)
 	(socket test)
 	(regex test)
+	(ffi test)
 	(srfi :64 testing))
 
 (test-begin "extension test")
@@ -13,4 +14,5 @@
 (run-socket-test)
 (run-threads-test)
 (run-regex-test)
+(run-ffi-test)
 (test-end)

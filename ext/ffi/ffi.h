@@ -170,7 +170,7 @@ SG_DECLARE_META_OBJ(Sg_CStructMeta);
 
 
 SgObject Sg_MakePointer(void *p);
-SgObject Sg_CreateCFunction(SgPointer *handle, int rettype, SgObject args);
+SgObject Sg_CreateCFunction(SgPointer *handle, int rettype, SgObject args, SgObject sret, SgObject sparam);
 SgObject Sg_CreateCallback(int rettype, SgString *signatures, SgObject proc);
 void     Sg_ReleaseCallback(SgCallback *callback);
 SgObject Sg_CreateCStruct(SgObject name, SgObject layouts);
