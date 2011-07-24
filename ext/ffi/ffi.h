@@ -63,6 +63,8 @@ enum {
   FFI_SIGNATURE_INT64    = 'x',
   FFI_SIGNATURE_POINTER  = 'p',
   FFI_SIGNATURE_CALLBACK = 'c',
+  FFI_SIGNATURE_UINT     = 'u',
+  FFI_SIGNATURE_UINT64   = 'U',
 };
 
 typedef struct SgFuncInfoRec
@@ -73,8 +75,10 @@ typedef struct SgFuncInfoRec
   ffi_type **parameterTypes;
   /* maybe it's better to create a struct for closure */
   int        closureCount;
-  ffi_closure **closures;
-  void     **closurelocs;
+  /*
+    ffi_closure **closures;
+    void     **closurelocs;
+  */
   uintptr_t  code;
   int        argc;
   SgObject   signatures;
@@ -95,6 +99,13 @@ typedef struct SgCallbackRec
   int returnType;
   SgString *signatures;
   SgObject  proc;
+  /* for struct method
+     TODO: refactor, this is duplicated management.
+   */
+  ffi_cif       cif;
+  ffi_type    **parameterTypes;
+  ffi_closure  *closure;
+  void         *code;
 } SgCallback;
 
 SG_DECLARE_META_OBJ(Sg_CallbackMeta);
@@ -167,6 +178,8 @@ SG_DECLARE_META_OBJ(Sg_CStructMeta);
 #define FFI_RETURN_TYPE_UINT64_T    0x0013
 #define FFI_RETURN_TYPE_POINTER     0x0014
 #define FFI_RETURN_TYPE_STRUCT      0x0015
+/* for struct method */
+#define FFI_RETURN_TYPE_CALLBACK    0x0016
 
 
 SgObject Sg_MakePointer(void *p);

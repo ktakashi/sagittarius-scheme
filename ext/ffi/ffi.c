@@ -66,6 +66,7 @@ SG_INIT_META_OBJ(Sg_FuncInfoMeta, &funcinfo_printer, NULL);
 
 static ffi_type* lookup_ffi_return_type(int rettype);
 
+#if 0
 static void funcinfo_finalize(SgObject obj, void *data)
 {
   int i;
@@ -73,12 +74,45 @@ static void funcinfo_finalize(SgObject obj, void *data)
     ffi_closure_free(SG_FUNC_INFO(obj)->closures[i]);
   }
 }
+#endif
+
+static int set_ffi_parameter_types(SgObject signatures, ffi_type **types)
+{
+  const SgChar *sigs;
+  int i, callback = 0;
+  sigs = SG_STRING_VALUE(signatures);
+  for (i = 0; i < SG_STRING_SIZE(signatures); i++) {
+    switch (sigs[i]) {
+    case FFI_SIGNATURE_BOOL:
+      types[i] = &ffi_type_sint; break;
+    case FFI_SIGNATURE_INT:
+      types[i] = &ffi_type_slong; break;
+    case FFI_SIGNATURE_UINT:
+      types[i] = &ffi_type_ulong; break;
+    case FFI_SIGNATURE_FLOAT:
+      types[i] = &ffi_type_float; break;
+    case FFI_SIGNATURE_DOUBLE:
+      types[i] = &ffi_type_double; break;
+    case FFI_SIGNATURE_INT64:
+      types[i] = &ffi_type_sint64; break;
+    case FFI_SIGNATURE_UINT64:
+      types[i] = &ffi_type_uint64; break;
+    case FFI_SIGNATURE_CALLBACK:
+      callback++;
+    case FFI_SIGNATURE_POINTER:
+      types[i] = &ffi_type_pointer; break;
+    default:
+      Sg_Error(UC("invalid signature %c"), sigs[i]);
+      return SG_UNDEF;
+    }
+  }
+  return callback;
+}
 
 static SgFuncInfo* make_funcinfo(uintptr_t proc, int retType, SgObject signatures)
 {
   SgFuncInfo *fn = SG_NEW(SgFuncInfo);
-  int i, callback = 0;
-  const SgChar *sigs;
+  int callback = 0;
   SG_SET_META_OBJ(fn, SG_META_FUNC_INFO);
   /* signatures must be created in Scheme file */
   ASSERT(SG_STRINGP(signatures));
@@ -86,29 +120,8 @@ static SgFuncInfo* make_funcinfo(uintptr_t proc, int retType, SgObject signature
   fn->parameterTypes = SG_NEW_ARRAY(ffi_type, fn->argc);
   fn->signatures = signatures;
   fn->code = proc;
-  sigs = SG_STRING_VALUE(signatures);
-  for (i = 0; i < SG_STRING_SIZE(signatures); i++) {
-    switch (sigs[i]) {
-    case FFI_SIGNATURE_BOOL:
-      fn->parameterTypes[i] = &ffi_type_sint; break;
-    case FFI_SIGNATURE_INT:
-      fn->parameterTypes[i] = &ffi_type_slong; break;
-    case FFI_SIGNATURE_FLOAT:
-      fn->parameterTypes[i] = &ffi_type_float; break;
-    case FFI_SIGNATURE_DOUBLE:
-      fn->parameterTypes[i] = &ffi_type_double; break;
-    case FFI_SIGNATURE_INT64:
-      fn->parameterTypes[i] = &ffi_type_sint64; break;
-    case FFI_SIGNATURE_CALLBACK:
-      callback++;
-    case FFI_SIGNATURE_POINTER:
-      fn->parameterTypes[i] = &ffi_type_pointer; break;
-    default:
-      Sg_Error(UC("invalid signature %c"), sigs[i]);
-      return SG_UNDEF;
-    }
-  }
 
+  callback = set_ffi_parameter_types(signatures, fn->parameterTypes);
   /* initialize ffi_cif */
   if (!(ffi_prep_cif(&fn->cif, FFI_DEFAULT_ABI, fn->argc,
 		     lookup_ffi_return_type(retType), fn->parameterTypes) == FFI_OK)) {
@@ -117,6 +130,7 @@ static SgFuncInfo* make_funcinfo(uintptr_t proc, int retType, SgObject signature
   }
 
   fn->closureCount = callback;
+#if 0
   if (callback) {
     fn->closures = SG_NEW_ARRAY(ffi_closure, callback);
     fn->closurelocs = SG_NEW_ARRAY(void, callback);
@@ -125,6 +139,7 @@ static SgFuncInfo* make_funcinfo(uintptr_t proc, int retType, SgObject signature
     }
     Sg_RegisterFinalizer(SG_OBJ(fn), funcinfo_finalize, NULL);
   }
+#endif
   return fn;
 }
 
@@ -163,6 +178,7 @@ SgObject Sg_CreateCallback(int rettype, SgString *signatures, SgObject proc)
   c->signatures = signatures;
   c->proc = proc;
   c->uid = uid;
+  c->closure = ffi_closure_alloc(sizeof(ffi_closure), &c->code);
   /* store callback to static area to avoid GC. */
   Sg_HashTableSet(ctable, SG_MAKE_INT(uid), SG_OBJ(c), 0);
   return SG_OBJ(c);
@@ -171,6 +187,7 @@ SgObject Sg_CreateCallback(int rettype, SgString *signatures, SgObject proc)
 void Sg_ReleaseCallback(SgCallback *callback)
 {
   Sg_HashTableDelete(ctable, SG_MAKE_INT(callback->uid));
+  ffi_closure_free(callback->closure);
 }
 
 /* cstruct */
@@ -322,6 +339,9 @@ static size_t calculate_alignment(SgObject names, SgCStruct *st, int *foundP, in
   return align;
 }
 
+static SgHashTable REF_TABLE = { MAKE_HDR_VALUE(TC_HASHTABLE), SG_HASH_EQ, { NULL } };
+#define ref_table (&REF_TABLE)
+
 static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
 {
   switch (rettype) {
@@ -365,12 +385,13 @@ static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
   case FFI_RETURN_TYPE_POINTER :
   case FFI_RETURN_TYPE_STRUCT  :
     return make_pointer(POINTER_REF(uintptr_t, p, align));
+  case FFI_RETURN_TYPE_CALLBACK:
+    return Sg_HashTableRef(ref_table, (POINTER_REF(void*, p, align)), SG_FALSE);
   default:
     Sg_Panic("unknown FFI return type: %d", rettype);
     return NULL;
   }
 }
-
 
 SgObject Sg_CStructRef(SgPointer *p, SgCStruct *st, SgSymbol *name)
 {
@@ -418,8 +439,9 @@ typedef union
 } ffi_storage;
 
 
-static int push_ffi_type_value(SgFuncInfo *info, int *closureindex,
-			       SgChar signature, SgObject obj,
+static int push_ffi_type_value(SgFuncInfo *info,
+			       SgChar signature,
+			       SgObject obj,
 			       ffi_storage *storage,
 			       SgObject *lastError)
 {
@@ -430,7 +452,12 @@ static int push_ffi_type_value(SgFuncInfo *info, int *closureindex,
       *lastError = Sg_Sprintf(UC("'bool' required but got %A"), obj);
       return FALSE;
     case FFI_SIGNATURE_INT:
+    case FFI_SIGNATURE_UINT:
       storage->sl = SG_INT_VALUE(obj);
+      return TRUE;
+    case FFI_SIGNATURE_INT64:
+    case FFI_SIGNATURE_UINT64:
+      storage->s64 = SG_INT_VALUE(obj);
       return TRUE;
     case FFI_SIGNATURE_FLOAT:
       *lastError = Sg_Sprintf(UC("'float' required but got %A"), obj);
@@ -438,9 +465,6 @@ static int push_ffi_type_value(SgFuncInfo *info, int *closureindex,
     case FFI_SIGNATURE_DOUBLE:
       *lastError = Sg_Sprintf(UC("'double' required but got %A"), obj);
       return FALSE;
-    case FFI_SIGNATURE_INT64:
-      storage->sl = SG_INT_VALUE(obj);
-      return TRUE;
     case FFI_SIGNATURE_CALLBACK:
       *lastError = Sg_Sprintf(UC("'callback' required but got %A"), obj);
       return FALSE;
@@ -457,6 +481,7 @@ static int push_ffi_type_value(SgFuncInfo *info, int *closureindex,
     case FFI_SIGNATURE_BOOL:
       *lastError = Sg_Sprintf(UC("'bool' required but got %A"), obj);
       return FALSE;
+    case FFI_SIGNATURE_UINT:
     case FFI_SIGNATURE_INT:
       *lastError = Sg_Sprintf(UC("'int' required but got %A"), obj);
       return FALSE;
@@ -466,6 +491,7 @@ static int push_ffi_type_value(SgFuncInfo *info, int *closureindex,
     case FFI_SIGNATURE_DOUBLE:
       storage->f64 = SG_FLONUM(obj)->value;
       return TRUE;
+    case FFI_SIGNATURE_UINT64:
     case FFI_SIGNATURE_INT64:
       *lastError = Sg_Sprintf(UC("'int64_t' required but got %A"), obj);
       return FALSE;
@@ -484,6 +510,9 @@ static int push_ffi_type_value(SgFuncInfo *info, int *closureindex,
     case FFI_SIGNATURE_BOOL:
       *lastError = Sg_Sprintf(UC("'bool' required but got %A"), obj);
       return FALSE;
+    case FFI_SIGNATURE_UINT:
+      storage->ul = Sg_GetUIntegerClamp(obj, SG_CLAMP_NONE, NULL);
+      return TRUE;
     case FFI_SIGNATURE_INT:
       storage->sl = Sg_GetIntegerClamp(obj, SG_CLAMP_NONE, NULL);
       return TRUE;
@@ -494,7 +523,10 @@ static int push_ffi_type_value(SgFuncInfo *info, int *closureindex,
       *lastError = Sg_Sprintf(UC("'double' required but got %A"), obj);
       return FALSE;
     case FFI_SIGNATURE_INT64:
-      storage->sl = Sg_GetIntegerS64Clamp(obj, SG_CLAMP_NONE, NULL);
+      storage->s64 = Sg_GetIntegerS64Clamp(obj, SG_CLAMP_NONE, NULL);
+      return TRUE;
+    case FFI_SIGNATURE_UINT64:
+      storage->u64 = Sg_GetIntegerU64Clamp(obj, SG_CLAMP_NONE, NULL);
       return TRUE;
     case FFI_SIGNATURE_CALLBACK:
       *lastError = Sg_Sprintf(UC("'callback' required but got %A"), obj);
@@ -512,6 +544,7 @@ static int push_ffi_type_value(SgFuncInfo *info, int *closureindex,
     case FFI_SIGNATURE_BOOL:
       *lastError = Sg_Sprintf(UC("'bool' required but got %A"), obj);
       return FALSE;
+    case FFI_SIGNATURE_UINT:
     case FFI_SIGNATURE_INT:
       *lastError = Sg_Sprintf(UC("'int' required but got %A"), obj);
       return FALSE;
@@ -521,6 +554,7 @@ static int push_ffi_type_value(SgFuncInfo *info, int *closureindex,
     case FFI_SIGNATURE_DOUBLE:
       *lastError = Sg_Sprintf(UC("'double' required but got %A"), obj);
       return FALSE;
+    case FFI_SIGNATURE_UINT64:
     case FFI_SIGNATURE_INT64:
       *lastError = Sg_Sprintf(UC("'int64_t' required but got %A"), obj);
       return FALSE;
@@ -540,6 +574,7 @@ static int push_ffi_type_value(SgFuncInfo *info, int *closureindex,
     case FFI_SIGNATURE_BOOL:
       *lastError = Sg_Sprintf(UC("'bool' required but got %A"), obj);
       return FALSE;
+    case FFI_SIGNATURE_UINT:
     case FFI_SIGNATURE_INT:
       *lastError = Sg_Sprintf(UC("'int' required but got %A"), obj);
       return FALSE;
@@ -549,6 +584,7 @@ static int push_ffi_type_value(SgFuncInfo *info, int *closureindex,
     case FFI_SIGNATURE_DOUBLE:
       *lastError = Sg_Sprintf(UC("'double' required but got %A"), obj);
       return FALSE;
+    case FFI_SIGNATURE_UINT64:
     case FFI_SIGNATURE_INT64:
       *lastError = Sg_Sprintf(UC("'int64_t' required but got %A"), obj);
       return FALSE;
@@ -567,6 +603,7 @@ static int push_ffi_type_value(SgFuncInfo *info, int *closureindex,
     case FFI_SIGNATURE_BOOL:
       *lastError = Sg_Sprintf(UC("'bool' required but got %A"), obj);
       return FALSE;
+    case FFI_SIGNATURE_UINT:
     case FFI_SIGNATURE_INT:
       *lastError = Sg_Sprintf(UC("'int' required but got %A"), obj);
       return FALSE;
@@ -576,6 +613,7 @@ static int push_ffi_type_value(SgFuncInfo *info, int *closureindex,
     case FFI_SIGNATURE_DOUBLE:
       *lastError = Sg_Sprintf(UC("'double' required but got %A"), obj);
       return FALSE;
+    case FFI_SIGNATURE_UINT64:
     case FFI_SIGNATURE_INT64:
       *lastError = Sg_Sprintf(UC("'int64_t' required but got %A"), obj);
       return FALSE;
@@ -594,6 +632,7 @@ static int push_ffi_type_value(SgFuncInfo *info, int *closureindex,
     case FFI_SIGNATURE_BOOL:
       storage->sl = SG_TRUEP(obj) ? 1 : 0;
       return TRUE;
+    case FFI_SIGNATURE_UINT:
     case FFI_SIGNATURE_INT:
       *lastError = Sg_Sprintf(UC("'int' required but got %A"), obj);
       return FALSE;
@@ -603,6 +642,7 @@ static int push_ffi_type_value(SgFuncInfo *info, int *closureindex,
     case FFI_SIGNATURE_DOUBLE:
       *lastError = Sg_Sprintf(UC("'double' required but got %A"), obj);
       return FALSE;
+    case FFI_SIGNATURE_UINT64:
     case FFI_SIGNATURE_INT64:
       *lastError = Sg_Sprintf(UC("'int64_t' required but got %A"), obj);
       return FALSE;
@@ -621,6 +661,7 @@ static int push_ffi_type_value(SgFuncInfo *info, int *closureindex,
     case FFI_SIGNATURE_BOOL:
       *lastError = Sg_Sprintf(UC("'bool' required but got %A"), obj);
       return TRUE;
+    case FFI_SIGNATURE_UINT:
     case FFI_SIGNATURE_INT:
       *lastError = Sg_Sprintf(UC("'int' required but got %A"), obj);
       return FALSE;
@@ -630,20 +671,21 @@ static int push_ffi_type_value(SgFuncInfo *info, int *closureindex,
     case FFI_SIGNATURE_DOUBLE:
       *lastError = Sg_Sprintf(UC("'double' required but got %A"), obj);
       return FALSE;
+    case FFI_SIGNATURE_UINT64:
     case FFI_SIGNATURE_INT64:
       *lastError = Sg_Sprintf(UC("'int64_t' required but got %A"), obj);
       return FALSE;
     case FFI_SIGNATURE_CALLBACK:
       /* prepare closure here */
       /* TODO legal? */
-      if (ffi_prep_closure_loc(info->closures[*closureindex], &info->cif,
+      if (ffi_prep_closure_loc(SG_CALLBACK(obj)->closure, &info->cif,
 			       callback_invoker, obj,
-			       info->closurelocs[*closureindex]) != FFI_OK) {
+			       SG_CALLBACK(obj)->code) != FFI_OK) {
 	*lastError = Sg_Sprintf(UC("failed to prepare the callback."));
 	return FALSE;
       }
-      storage->ptr = info->closurelocs[*closureindex];
-      (*closureindex)++;
+
+      storage->ptr = SG_CALLBACK(obj)->code;
       return TRUE;
     case FFI_SIGNATURE_POINTER:
       *lastError = Sg_Sprintf(UC("'pointer' required but got %A"), obj);
@@ -682,6 +724,7 @@ static ffi_type* lookup_ffi_return_type(int rettype)
   case FFI_RETURN_TYPE_INT64_T : return &ffi_type_sint64;
   case FFI_RETURN_TYPE_UINT64_T: return &ffi_type_uint64;
   case FFI_RETURN_TYPE_POINTER : return &ffi_type_pointer;
+  case FFI_RETURN_TYPE_CALLBACK: return &ffi_type_pointer;
   default:
     Sg_Panic("unknown FFI return type: %d", rettype);
     return NULL;
@@ -783,6 +826,8 @@ static int convert_scheme_to_c_value(SgObject v, int type, void **result)
     } else goto ret0;
     break;
   ret0:
+    /* callback will be treated separately */
+  case FFI_RETURN_TYPE_CALLBACK:
   case FFI_RETURN_TYPE_VOID    :
     *((intptr_t *)result) = 0;
     return TRUE;
@@ -792,10 +837,9 @@ static int convert_scheme_to_c_value(SgObject v, int type, void **result)
   }  
 }
 
-static void callback_invoker(ffi_cif *cif, void *result, void **args, void *userdata)
+static SgObject get_callback_arguments(SgCallback *callback, void **args)
 {
   SgObject h = SG_NIL, t = SG_NIL, ret;
-  SgCallback *callback = SG_CALLBACK(userdata);
   int i;
   
   for (i = 0; i < SG_STRING_SIZE(callback->signatures); i++) {
@@ -878,8 +922,11 @@ static void callback_invoker(ffi_cif *cif, void *result, void **args, void *user
       break;
     }
   }
-  ret = Sg_Apply(callback->proc, h);
+  return h;
+}
 
+static void set_callback_result(SgCallback *callback, SgObject ret, ffi_cif *cif, void *result)
+{
   switch (callback->returnType) {    
   case FFI_RETURN_TYPE_BOOL:
     /* somehow, on my envionment(X86 windows cygwin) I needed this. why? */
@@ -966,12 +1013,21 @@ static void callback_invoker(ffi_cif *cif, void *result, void **args, void *user
   }
 }
 
+static void callback_invoker(ffi_cif *cif, void *result, void **args, void *userdata)
+{
+  SgCallback *callback = SG_CALLBACK(userdata);
+  SgObject argv = get_callback_arguments(callback, args), ret;
+
+  ret = Sg_Apply(callback->proc, argv);
+  set_callback_result(callback, ret, cif, result);
+}
+
 
 static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
 {
   DeclareProcedureName("%ffi-call");
   SgObject tmp, lastError;
-  int retType, i, index;
+  int retType, i;
   SgObject signatures;
   SgFuncInfo *func;
   intptr_t ret;
@@ -984,7 +1040,7 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
   return SG_UNDEF;
 #endif
 
-  checkArgumentLengthAtLeast(3);
+  checkArgumentLengthAtLeast(2);
   argumentAsFixnum(0, tmp, retType);
   argumentAsFuncInfo(1, tmp, func);
 
@@ -998,14 +1054,12 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
   ffi_values = SG_NEW_ARRAY(void*, func->argc);
   params = SG_NEW_ARRAY(ffi_storage, func->argc);
 
-  /* closure index*/
-  index = 0;
   for (i = 0; i < func->argc; i++) {
-    if (!push_ffi_type_value(func, &index,
+    if (!push_ffi_type_value(func,
 			     SG_STRING_VALUE_AT(signatures, i),
 			     args[i + 2], params + i,
 			     &lastError)) {
-      Sg_Error(UC("argument error: %S"), lastError);
+      Sg_Error(UC("argument error on index %d: %S"), i, lastError);
       return SG_UNDEF;
     }
     ffi_values[i] = (params + i);
@@ -1101,6 +1155,81 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
 
 static SG_DEFINE_SUBR(internal_ffi_call_stub, 3, 1, internal_ffi_call, SG_FALSE, NULL);
 
+
+static void attached_method_invoker(ffi_cif *cif, void *result, void **args, void *userdata)
+{
+  SgCallback *callback = SG_CALLBACK(userdata);
+#if 0
+  SgObject *argv = *(SgObject **)args[0];
+  int argc = *(int *)args[1];
+  void *data = *(void **)args[2];
+#endif
+  SgObject argv = get_callback_arguments(callback, args), ret;
+  ret = Sg_Apply(callback->proc, argv);
+  set_callback_result(callback, ret, cif, result);
+}
+
+static void set_ffi_callback_parameter_types(SgObject signatures, ffi_type **types)
+{
+  int i;
+  for (i = 0; i < SG_STRING_SIZE(signatures); i++) {
+    SgChar c = SG_STRING_VALUE_AT(signatures, i); 
+    switch (c) {
+      /* bool */
+    case 'l':
+      types[i] = &ffi_type_sint; break;
+      /* byte */
+    case 'b':
+      types[i] = &ffi_type_sint8; break;
+    case 'B':
+      types[i] = &ffi_type_uint8; break;
+      /* word */
+    case 'h':
+      types[i] = &ffi_type_sint16; break;
+    case 'H':
+      types[i] = &ffi_type_uint16; break;
+      /* dword */
+    case 'w':
+      types[i] = &ffi_type_sint32; break;
+    case 'W':
+      types[i] = &ffi_type_uint32; break;
+      /* qword */
+    case 'q':
+      types[i] = &ffi_type_sint64; break;
+    case 'Q':
+      types[i] = &ffi_type_uint64; break;
+      /* float */
+    case 'f':
+      types[i] = &ffi_type_float; break;
+    case 'd':
+      types[i] = &ffi_type_double; break;
+    case 'p':
+      types[i] = &ffi_type_pointer; break;
+    default:
+      FATAL("invalid callback argument signature\n[[exit]\n]");
+      break;
+    }
+  }
+}
+
+static int prep_method_handler(SgCallback *callback)
+{
+  ffi_status status;
+  ffi_type **params = SG_NEW_ARRAY(ffi_type *, SG_STRING_SIZE(callback->signatures));
+  ffi_type *ret = lookup_ffi_return_type(callback->returnType);
+  set_ffi_callback_parameter_types(callback->signatures, params);
+  ffi_prep_cif(&callback->cif, FFI_DEFAULT_ABI,
+	       SG_STRING_SIZE(callback->signatures),
+	       ret, params);
+  status = ffi_prep_closure_loc(callback->closure,
+				&callback->cif,
+				callback_invoker, callback,
+				callback->code);
+  callback->parameterTypes = params;
+  return status == FFI_OK;
+}
+
+
 /* utility */
 void Sg_PointerSet(SgPointer *p, int offset, int type, SgObject v)
 {
@@ -1129,6 +1258,14 @@ void Sg_PointerSet(SgPointer *p, int offset, int type, SgObject v)
     case_type(FFI_RETURN_TYPE_STRING  , intptr_t);
     case_type(FFI_RETURN_TYPE_POINTER , void*);
     case_type(FFI_RETURN_TYPE_STRUCT  , void*);
+  case FFI_RETURN_TYPE_CALLBACK: {
+    if (!SG_CALLBACK_P(v)) Sg_Error(UC("callback required, but got %S "), v);
+    if (prep_method_handler(SG_CALLBACK(v))) {
+      POINTER_SET(void*, p, offset, SG_CALLBACK(v)->code);
+      Sg_HashTableSet(ref_table, SG_CALLBACK(v)->code, v, 0);
+    }
+    break;
+  }
   default:
     Sg_Error(UC("invalid type %d"), type);
   }
@@ -1166,6 +1303,7 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__ffi()
 
   /* callback storage */
   Sg_HashCoreInitSimple(&ctable->core, SG_HASH_EQ, 0, NULL);
+  Sg_HashCoreInitSimple(&ref_table->core, SG_HASH_EQ, 0, NULL);
 
 #define CONST_VALUE(name, v) Sg_InsertBinding(lib, SG_INTERN(#name), SG_MAKE_INT(v))
 #define SIZE_VALUE(name) CONST_VALUE(size-of-name, sizeof(name))

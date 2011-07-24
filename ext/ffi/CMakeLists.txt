@@ -26,9 +26,9 @@ IF (HAVE_FFI_H)
     DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH}/sagittarius)
 
   # test module
-  ADD_LIBRARY(test-lib SHARED test-lib.c)
-  SET_TARGET_PROPERTIES(test-lib PROPERTIES PREFIX "")
-  SET_TARGET_PROPERTIES(test-lib PROPERTIES SUFFIX ".so")
+#  ADD_LIBRARY(test-lib SHARED test-lib.c)
+#  SET_TARGET_PROPERTIES(test-lib PROPERTIES PREFIX "")
+#  SET_TARGET_PROPERTIES(test-lib PROPERTIES SUFFIX ".so")
 
 ELSE()
   MESSAGE(WARN "libffi not found.")

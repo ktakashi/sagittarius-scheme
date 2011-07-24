@@ -67,7 +67,8 @@
     (import :null)
 
   (decl-code
-   (.include "ffi.h"))
+   (.include "ffi.h")
+   (.include <string.h>))
 
   (define-c-proc open-shared-library (file::String) ::Object
     (result (Sg_MakePointer (Sg_OpenSharedObject file))))
@@ -108,6 +109,7 @@
 
   (define-c-proc allocate-pointer (size::fixnum) ::Object
     (let ((p::char* (SG_NEW_ARRAY char size)))
+      (memset p 0 size)
       (result (Sg_MakePointer p))))
 
   ;; struct
@@ -118,6 +120,7 @@
   (define-c-proc allocate-c-struct (st::CStruct) ::Object
     ;; allocates byte
     (let ((p::char* (SG_NEW_ARRAY char (-> st size))))
+      (memset p 0 (-> st size))
       (result (Sg_MakePointer p))))
 
   (define-c-proc size-of-c-struct (st::CStruct) ::fixnum

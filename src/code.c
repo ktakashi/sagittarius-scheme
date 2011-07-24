@@ -59,9 +59,13 @@
 
 #define EXPAND_SIZE          32
 
+/* 
+   f000 0000 0000 0000 0000 0000 iiii iiii
+   i = insn
+ */
 #define SG_INT_FITS_INSN_VALUE(n)				\
-  (((n) <= (1 << ((sizeof(SgWord) << 3) - INSN_VALUE1_SHIFT))) &&	\
-   ((n) >= ~(1 << ((sizeof(SgWord) << 3) - INSN_VALUE1_SHIFT))))
+  (((n) <= (1 << (((sizeof(SgWord) << 3) - INSN_VALUE1_SHIFT) -1))) &&	\
+   ((n) >= ~(1 << (((sizeof(SgWord) << 3) - INSN_VALUE1_SHIFT) -1))))
 
 
 static SgCodePacket empty_packet = EMPTY_PACKET;
