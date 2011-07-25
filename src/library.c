@@ -531,7 +531,6 @@ SgGloc* Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
   } else {
     g = SG_GLOC(Sg_MakeGloc(symbol, lib));
     Sg_HashTableSet(lib->table, SG_OBJ(symbol), SG_OBJ(g), 0);
-    /* TODO refactor export mechanism */
   }
   Sg_UnlockMutex(&lib->lock);
 

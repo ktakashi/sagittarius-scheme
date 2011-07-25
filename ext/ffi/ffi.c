@@ -214,6 +214,7 @@ static SgCStruct* make_cstruct(int size)
 }
 
 static SgObject SYMBOL_STRUCT = SG_UNDEF;
+static SgLibrary *impl_lib = NULL;
 
 SgObject Sg_CreateCStruct(SgObject name, SgObject layouts)
 {
@@ -230,41 +231,62 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts)
   st->name = name;
   st->fieldCount = size;
   /* argument layouts must be like this
-     ((name type . type-symbol) (name type . (struct . struct-name)) ...)
+     ((name type . type-symbol)
+      (name -1   . (struct . struct-name))
+      ;; array
+      (name type . (size . type-symbol)) ...)
    */
   size = 0;
   SG_FOR_EACH(cp, layouts) {
     SgObject layout = SG_CAR(cp);
     SgObject typename;
     int type;
+    ffi_type *ffi;
     ASSERT(SG_INTP(SG_CADR(layout)));
 
     st->layouts[index].name = SG_CAR(layout);
-    if (SG_PAIRP(SG_CDDR(layout)) &&
-	SG_EQ(SYMBOL_STRUCT, SG_CAR(SG_CDDR(layout)))) {
-      SgObject gloc;
-      SgObject st2;
-      typename = SG_CDR(SG_CDDR(layout));
-      /* FIXME: this should not be like this */
-      gloc = Sg_FindBinding(vm->currentLibrary, typename, SG_FALSE);
-      if (SG_FALSEP(gloc)) {
-	Sg_Error(UC("undefined c-struct %S"), typename);
-	return SG_UNDEF;
+    st->layouts[index].array = -1;
+    if (SG_PAIRP(SG_CDDR(layout))) {
+      if (SG_EQ(SYMBOL_STRUCT, SG_CAR(SG_CDDR(layout)))) {
+	SgObject gloc;
+	SgObject st2;
+	typename = SG_CDR(SG_CDDR(layout));
+	/* FIXME: this should not be like this */
+	gloc = Sg_FindBinding(vm->currentLibrary, typename, SG_FALSE);
+	if (SG_FALSEP(gloc)) {
+	  Sg_Error(UC("undefined c-struct %S"), typename);
+	  return SG_UNDEF;
+	}
+	st2 = SG_GLOC_GET(SG_GLOC(gloc));
+	if (!SG_CSTRUCT_P(st2)) {
+	  Sg_Error(UC("c-struct required, but got %S"), st2);
+	  return SG_UNDEF;
+	}
+	st->type.elements[index] = &SG_CSTRUCT(st2)->type;
+	st->layouts[index].type = &SG_CSTRUCT(st2)->type;
+	st->layouts[index].cstruct = SG_CSTRUCT(st2);
+	st->layouts[index].tag = FFI_RETURN_TYPE_STRUCT;
+	size += SG_CSTRUCT(st2)->size;
+      } else if (SG_INTP(SG_CAR(SG_CDDR(layout)))) {
+	SgObject size_of, gloc;
+	int asize = SG_INT_VALUE(SG_CAR(SG_CDDR(layout)));
+	type = SG_INT_VALUE(SG_CADR(layout));
+	ffi = lookup_ffi_return_type(type);
+	size_of = Sg_Sprintf(UC("size-of-%A"), SG_CDR(SG_CDDR(layout)));
+	gloc = Sg_FindBinding(impl_lib, Sg_Intern(size_of), SG_FALSE);
+	if (SG_FALSEP(gloc)) {
+	  Sg_Error(UC("struct layout contains invalid array type %S"), layouts);
+	}
+	asize = asize * SG_INT_VALUE(SG_GLOC_GET(SG_GLOC(gloc))) - SG_INT_VALUE(SG_GLOC_GET(SG_GLOC(gloc)));
+	size += asize;
+	goto primitive_type;
+      } else {
+	Sg_Error(UC("invalid struct layout %S"), layouts);
       }
-      st2 = SG_GLOC_GET(SG_GLOC(gloc));
-      if (!SG_CSTRUCT_P(st2)) {
-	Sg_Error(UC("c-struct required, but got %S"), st2);
-	return SG_UNDEF;
-      }
-      st->type.elements[index] = &SG_CSTRUCT(st2)->type;
-      st->layouts[index].type = &SG_CSTRUCT(st2)->type;
-      st->layouts[index].cstruct = SG_CSTRUCT(st2);
-      st->layouts[index].tag = FFI_RETURN_TYPE_STRUCT;
-      size += SG_CSTRUCT(st2)->size;
     } else {
-      ffi_type *ffi;
       type = SG_INT_VALUE(SG_CADR(layout));
       ffi = lookup_ffi_return_type(type);
+    primitive_type:
       st->type.elements[index] = ffi;
       st->layouts[index].type = ffi;
       st->layouts[index].cstruct = NULL;
@@ -334,6 +356,9 @@ static size_t calculate_alignment(SgObject names, SgCStruct *st, int *foundP, in
       }
     } else {
       align += layouts[i].type->alignment;
+      if (layouts[i].array != -1) {
+	align += layouts[i].array;
+      }
     }
   }
   return align;
@@ -1000,8 +1025,10 @@ static void set_callback_result(SgCallback *callback, SgObject ret, ffi_cif *cif
       } else {
 	*((ffi_arg *) result) = SG_INT_VALUE(ret);
       }
+      break;
     } else if (SG_POINTER_P(ret)) {
       *((ffi_arg *) result) = SG_POINTER(ret)->pointer;
+      break;
     }
     /* fall through */
   case FFI_RETURN_TYPE_VOID:
@@ -1300,7 +1327,7 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__ffi()
   Sg__Init_sagittarius_ffi_impl();
   lib = Sg_FindLibrary(SG_INTERN("(sagittarius ffi impl)"), FALSE);
   Sg_InsertBinding(lib, name, &internal_ffi_call_stub);
-
+  impl_lib = lib;
   /* callback storage */
   Sg_HashCoreInitSimple(&ctable->core, SG_HASH_EQ, 0, NULL);
   Sg_HashCoreInitSimple(&ref_table->core, SG_HASH_EQ, 0, NULL);

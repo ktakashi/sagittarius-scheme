@@ -250,14 +250,20 @@
   ;; c-struct
   (define (make-c-struct name defs)
     (let ((layouts (map (lambda (def)
-			  (cond ((eq? 'struct (car def))
+			  (cond ((and (eq? 'struct (car def))
+				      (= (length def) 3))
 				 `(,(caddr def) -1 struct . ,(cadr def)))
 				((eq? 'callback (car def))
 				 ;; speciall case
 				 `(,(cadr def), #x16 . callback))
+				((and (eq? 'array (cadr def))
+				      (= (length def) 4)
+				      (assq (car def) c-function-return-type-alist))
+				 => (lambda (type)
+				      `(,(cadddr def) ,(cdr type) ,(caddr def) . ,(car type))))
 				((assq (car def) c-function-return-type-alist)
 				 => (lambda (type)
-				      `(,(cadr def) ,(cdr type) . (car type))))
+				      `(,(cadr def) ,(cdr type) . ,(car type))))
 				(else
 				 (assertion-violation 'make-c-struct
 						      (format "invalid struct declaration ~a" def)
@@ -276,13 +282,13 @@
 	((_ name (type . rest) ...)
 	 ;; black magic ...
 	 #'(begin
-	     (define name (make-c-struct 'name (map cons (list type ...) '(rest ...))))
 	     ;; if there are more than one struct in the same library,
 	     ;; and if one of them refere it, it cause unbound variable error.
 	     ;; to avoid it, we need to do this. ugly...
 	     (%insert-binding (vm-current-library)
 			      'name
-			      (make-c-struct 'name (map cons (list type ...) '(rest ...)))))))))
+			      (make-c-struct 'name (map cons (list type ...) '(rest ...))))
+	     (define name (make-c-struct 'name (map cons (list type ...) '(rest ...)))))))))
 
   (define c-function-return-type-alist
     '((void               . #x00)    ; FFI_RETURN_TYPE_VOID

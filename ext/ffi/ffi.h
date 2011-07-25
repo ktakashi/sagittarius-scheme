@@ -125,6 +125,7 @@ typedef struct struct_layout_rec_t
 {
   SgObject   name;		/* member name */
   SgCStruct *cstruct;
+  int        array;		/* -1 not array, otherwise array size */
   int        tag;		/* type tag */
   ffi_type  *type;		/* native type */
 } struct_layout_t;
