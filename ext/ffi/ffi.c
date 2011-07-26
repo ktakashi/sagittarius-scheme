@@ -330,28 +330,36 @@ static size_t calculate_alignment(SgObject names, SgCStruct *st, int *foundP, in
   int i = 0, size = st->fieldCount;
   struct_layout_t *layouts = st->layouts;
 
+  /* names are list of property name for struct.
+     name        => (name)
+     name1.name2 => (name1 name2)
+   */
   for (i = 0; i < size; i++) {
-    if (SG_EQ(name, layouts[i].name) && SG_NULLP(SG_CDR(names))) {
-      *foundP = TRUE;
-      *type = layouts[i].tag;
-      return align;
-    }
-    if (layouts[i].cstruct) {
-      /* struct in struct */
-      if (SG_NULLP(names)) {
-	align += layouts[i].cstruct->size;
-      } else {
-	/* search from here */
-	int foundP2 = FALSE, type2;
-	align += calculate_alignment(SG_CDR(names),
-				     layouts[i].cstruct,
-				     &foundP2,
-				     &type2);
-	/* second name was a member of the struct */
-	if (foundP2) {
-	  *foundP = TRUE;
-	  *type = type2;
-	  return align;
+    /* property found */
+    if (SG_EQ(name, layouts[i].name)) {
+      /* it's this one */
+      if (!layouts[i].cstruct && SG_NULLP(SG_CDR(names))) {
+	*foundP = TRUE;
+	*type = layouts[i].tag;
+	return align;
+      /* property was struct */
+      } else if (layouts[i].cstruct) {
+	/* struct in struct */
+	if (SG_NULLP(SG_CDR(names))) {
+	  align += layouts[i].cstruct->size;
+	} else {
+	  /* search from here */
+	  int foundP2 = FALSE, type2;
+	  align += calculate_alignment(SG_CDR(names),
+				       layouts[i].cstruct,
+				       &foundP2,
+				       &type2);
+	  /* second name was a member of the struct */
+	  if (foundP2) {
+	    *foundP = TRUE;
+	    *type = type2;
+	    return align;
+	  }
 	}
       }
     } else {
