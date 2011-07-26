@@ -48,6 +48,7 @@ Source: "..\ext\threads\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flag
 Source: "..\ext\time\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\ext\regex\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\ext\process\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\ext\ffi\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

@@ -39,6 +39,8 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/file.h"
 #include "sagittarius/system.h"
+#include "sagittarius/pair.h"
+#include "sagittarius/error.h"
 
 #include "win_util.c"
 
