@@ -34,6 +34,10 @@
 
 #include "sagittariusdefs.h"
 
+/*
+  vector header info
+  ........ ........ .....L.. ....0111 : L: literal
+ */
 struct SgVectorRec
 {
   SG_HEADER;
@@ -46,6 +50,10 @@ struct SgVectorRec
 #define SG_VECTOR_SIZE(obj)   	  (SG_VECTOR(obj)->size)
 #define SG_VECTOR_ELEMENTS(obj)   (SG_VECTOR(obj)->elements)
 #define SG_VECTOR_ELEMENT(obj, i) (SG_VECTOR(obj)->elements[i])
+
+#define VECTOR_LITERAL_SHIFT   	11
+#define VECTOR_LITERAL_BIT     ((uintptr_t)1 << VECTOR_LITERAL_SHIFT)
+#define SG_LITERAL_VECTORP(obj) (SG_VECTORP(obj) && (SG_HDR(obj) & VECTOR_LITERAL_BIT))
 
 SG_CDECL_BEGIN
 

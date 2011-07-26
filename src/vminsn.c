@@ -753,6 +753,12 @@ CASE(VEC_REF) {
 ;
   }
 ;
+  if ((SG_INT_VALUE(AC(vm)) >= SG_VECTOR_SIZE(INDEX(SP(vm), 0)) || SG_INT_VALUE(AC(vm)) < 0)) {
+    Sg_AssertionViolation(SG_INTERN("name"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(SG_INT_VALUE(AC(vm))));
+    return SG_UNDEF;
+;
+  }
+;
   AC(vm)=SG_VECTOR_ELEMENT(INDEX(SP(vm), 0), SG_INT_VALUE(AC(vm)));
   SP(vm)=(SP(vm) - 1);
   NEXT;
@@ -767,6 +773,12 @@ CASE(VEC_SET) {
 ;
   if (!(SG_INTP(INDEX(SP(vm), 0)))) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-set!"), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), INDEX(SP(vm), 0), SG_NIL);
+    return SG_UNDEF;
+;
+  }
+;
+  if ((SG_INT_VALUE(INDEX(SP(vm), 0)) >= SG_VECTOR_SIZE(INDEX(SP(vm), 1)) || SG_INT_VALUE(INDEX(SP(vm), 0)) < 0)) {
+    Sg_AssertionViolation(SG_INTERN("name"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(SG_INT_VALUE(INDEX(SP(vm), 0))));
     return SG_UNDEF;
 ;
   }

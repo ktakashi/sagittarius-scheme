@@ -4231,7 +4231,7 @@
   (smatch
    form
    ((- vec ind) (asm-arg2 form `(,VEC_REF) vec ind p1env))
-   (- (scheme-error 'vector-ref "wrong number of arguments" form)))))
+   (- (undefined)))))
 
 (define-builtin-inliner
  vector-set!

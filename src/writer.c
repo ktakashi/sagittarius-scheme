@@ -546,6 +546,39 @@ static char special[] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 11,3, 0, 7
 };
 
+static int symbol_need_bar(const SgChar *s, int n)
+{
+  switch (s[0]) {
+  case '@': return TRUE;
+  case '+':
+    if (s[1] == 0) return FALSE;
+    return TRUE;
+  case '-':
+    if (s[1] == 0) return FALSE;
+    if (s[1] != '>') return TRUE;
+    break;
+  case '.':
+    if (s[1] != '.') return TRUE;
+    if (s[2] != '.') return TRUE;
+    if (s[3] == 0) return FALSE;
+    return TRUE;
+  }
+  if (isdigit(s[0])) {
+    return TRUE;
+  } else {
+    SgChar c;
+    while ((c = *s++) != 0 && n--) {
+      if (c < 32) continue;
+      if (c == 127) continue;
+      if (c & 0x80) continue;
+      if (isalnum(c)) continue;
+      if (strchr("!$%&/:*<=>?^_~+-.@", (char)c)) continue;
+      return TRUE;
+    }
+    return FALSE;
+  }
+}
+
 static void write_symbol_name(SgString *snam, SgPort *port, SgWriteContext *ctx, int flags)
 {
   const SgChar *p = snam->value, *q;
@@ -565,10 +598,15 @@ static void write_symbol_name(SgString *snam, SgPort *port, SgWriteContext *ctx,
     Sg_PutcUnsafe(port, *p);
     return;
   }
+  /* R6RS does not have '|' */
+  if (mode != SG_WRITE_LIBPATH &&
+      (!(flags & SG_SYMBOL_WRITER_NOESCAPE_INITIAL))) {
+    escape = symbol_need_bar(p, size);
+  }
+  /*
   if (*p < 128
       && (special[*p] & 1)
       && (!(flags & SG_SYMBOL_WRITER_NOESCAPE_INITIAL))) {
-    /* R6RS does not have '|' */
     escape = TRUE && (mode != SG_WRITE_LIBPATH);
   } else {
     for (i = 0, q = p; i < size; i++, q++) {
@@ -579,6 +617,7 @@ static void write_symbol_name(SgString *snam, SgPort *port, SgWriteContext *ctx,
       }
     }
   }
+  */
   if (escape && !r6rsMode) {
     Sg_PutcUnsafe(port, '|');
     for (q = p; q < p + size; q++) {

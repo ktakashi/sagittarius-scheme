@@ -1015,46 +1015,28 @@ CASE(LSET) {
 					"vector" (AC vm)))
   (set! (AC vm) (SG_MAKE_INT (SG_VECTOR_SIZE (AC vm)))))
 
-#|
-      CASE(VEC_REF) {
-	if (!SG_VECTORP(INDEX(SP(vm), 0))) {
-	  Sg_Error(UC("vector-ref: vector required, but got %S"), INDEX(SP(vm), 0));
-	}
-	if (!SG_INTP(AC(vm))) {
-	  Sg_Error(UC("vector-ref: fixnum required, but got %S"), AC(vm));
-	}
-	AC(vm) = SG_VECTOR_ELEMENT(INDEX(SP(vm), 0), SG_INT_VALUE(AC(vm)));
-	SP(vm) -= 1;
-	NEXT;
-      }
-|#
+(define-cgen-stmt check-vector-range
+  ((_ name v index)
+   (dispatch 
+    `(when (or (>= ,index (SG_VECTOR_SIZE ,v))
+	       (< ,index 0))
+       (assertion-violation ',name "index out of range" (SG_MAKE_INT ,index))))))
+
 (define-inst VEC_REF (0 0 #t)
   (if (not (SG_VECTORP (INDEX (SP vm) 0)))
       (wrong-type-of-argument-violation 'vector-ref "vector" (INDEX (SP vm) 0)))
   (if (not (SG_INTP (AC vm)))
       (wrong-type-of-argument-violation 'vector-ref "fixnum" (AC vm)))
+  (check-vector-range vector-ref (INDEX (SP vm) 0) (SG_INT_VALUE (AC vm)))
   (set! (AC vm) (SG_VECTOR_ELEMENT (INDEX (SP vm) 0) (SG_INT_VALUE (AC vm))))
   (set! (SP vm) (- (SP vm) 1)))
 
-#|
-      CASE(VEC_SET) {
-	if (!SG_VECTORP(INDEX(SP(vm), 1))) {
-	  Sg_Error(UC("vector-set!: vector required, but got %S"), INDEX(SP(vm), 1));
-	}
-	if (!SG_INTP(INDEX(SP(vm), 0))) {
-	  Sg_Error(UC("vector-set!: fixnum required, but got %S"), INDEX(SP(vm), 0));
-	}
-	SG_VECTOR_ELEMENT(INDEX(SP(vm), 1), SG_INT_VALUE(INDEX(SP(vm), 0))) = AC(vm);
-	AC(vm) = SG_UNDEF;
-	SP(vm) -= 2;
-	NEXT;
-      }
-|#
 (define-inst VEC_SET (0 0 #t)
   (if (not (SG_VECTORP (INDEX (SP vm) 1)))
       (wrong-type-of-argument-violation 'vector-set! "vector" (INDEX (SP vm) 1)))
   (if (not (SG_INTP (INDEX (SP vm) 0)))
       (wrong-type-of-argument-violation 'vector-set! "fixnum" (INDEX (SP vm) 0)))
+  (check-vector-range vector-set! (INDEX (SP vm) 1) (SG_INT_VALUE (INDEX (SP vm) 0)))
   (set! (SG_VECTOR_ELEMENT (INDEX (SP vm) 1)
 			   (SG_INT_VALUE (INDEX (SP vm) 0)))
 	(AC vm))

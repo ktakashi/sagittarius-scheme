@@ -112,7 +112,7 @@ SgObject Sg_VectorToList(SgVector *v, int start, int end)
   SG_CHECK_START_END(start, end, len);
   if (elts) {
     int i;
-    for (i = 0; i < len; i++) SG_APPEND1(h, t, *elts++);
+    for (i = start; i < end; i++) SG_APPEND1(h, t, *(elts + i));
   }
   return h;
 }

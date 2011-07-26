@@ -767,7 +767,13 @@ SgObject read_token(SgPort *port, SgReaderContext *ctx)
       }
       lexical_error(port, ctx, UC("invalid lexical syntax #%S%S"), SG_MAKE_CHAR(c), SG_MAKE_CHAR(c2));
     }
-    case '(': return Sg_ListToVector(read_list(port, ctx, FALSE, TRUE), 0, -1);
+    case '(': {
+      SgObject v = Sg_ListToVector(read_list(port, ctx, FALSE, TRUE), 0, -1);
+      if (SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE)) {
+	SG_SET_HEADER_ATTRIBUTE(v, SG_MAKEBITS(1, VECTOR_LITERAL_SHIFT));
+      }
+      return v;
+    }
     case '|': return skip_srfi30(port, ctx);
     case '\\': return read_char(port, ctx);
     case ';': read_expr(port, ctx); goto top;

@@ -1099,15 +1099,14 @@
   (define-c-proc string-length (s::String) ::fixnum
     (result s->size))
 
-  (define-c-proc string-ref (s::String k::fixnum) ::Object
-    (when (< k 0)
-      (wrong-type-of-argument-violation 'string-ref "non negative exact integer"
-					(SG_MAKE_INT k)
-					(SG_LIST2 s (SG_MAKE_INT k))))
-    (when (> k (SG_STRING_SIZE s))
-      (assertion-violation 'string-ref "index out of bounds"
-			   (SG_LIST2 s (SG_MAKE_INT k))))
-    (result (SG_MAKE_CHAR (SG_STRING_VALUE_AT s k))))
+  (define-c-proc string-ref (s::String k::fixnum :optional fallback) ::Object
+    (cond ((or (< k 0)
+	       (>= k (SG_STRING_SIZE s)))
+	   (when (SG_UNBOUNDP fallback)
+	     (assertion-violation 'string-ref "index out of bounds"
+				  (SG_LIST2 s (SG_MAKE_INT k))))
+	   (result fallback))
+	  (else (result (SG_MAKE_CHAR (SG_STRING_VALUE_AT s k))))))
 
   ;; string compares
   (define-c-proc string=? (s1::String s2::String :rest rest) ::boolean
@@ -1192,6 +1191,9 @@
 	  (else (result (SG_VECTOR_ELEMENT vec i)))))
      
   (define-c-proc vector-set! (vec::Vector i::fixnum obj) ::void
+    (when (SG_LITERAL_VECTORP vec)
+      (assertion-violation 'vector-set "attempt to modify immutable vector"
+			   (SG_LIST1 vec)))
     (cond ((or (< i 0)
 	       (>= i (SG_VECTOR_SIZE vec)))
 	   (assertion-violation 'vector-ref "index out of range" (SG_MAKE_INT i)))
@@ -1200,8 +1202,10 @@
   (define-c-proc vector->list (vec::Vector :optional (start::fixnum 0) (end::fixnum -1)) ::Object
     (result (Sg_VectorToList vec start end)))
   
-  (define-c-proc list->vector (arg0) ::Object
-    (result (Sg_ListToVector arg0 0 -1)))
+  (define-c-proc list->vector (lst :optional (start::fixnum 0) (end::fixnum -1)) ::Object
+    (unless (SG_LISTP lst)
+      (wrong-type-of-argument-violation 'list->vector "propert list" lst))
+    (result (Sg_ListToVector lst start end)))
 
   (define-c-proc vector-fill! (vec::Vector fill) ::Object
     (Sg_VectorFill vec fill 0 -1))
