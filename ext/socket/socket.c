@@ -123,7 +123,7 @@ SgSocket* Sg_CreateClientSocket(const SgString *node,
 
     if (ret != 0) {
       Sg_IOError(-1, SG_INTERN("create-client-socket"), 
-		 Sg_GetLastErrorMessageWithErrorCode(last_error),
+		 Sg_GetLastErrorMessageWithErrorCode(ret),
 		 SG_FALSE, SG_LIST2(node, service));
       return NULL;
     }
@@ -134,7 +134,7 @@ SgSocket* Sg_CreateClientSocket(const SgString *node,
 	lastError = last_error;
 	continue;
       }
-      if (connect(fd, p->ai_addr, p->ai_addrlen) == 0) {
+      if (connect(fd, p->ai_addr, p->ai_addrlen) != -1) {
 	SgString *addressString = get_address_string(p->ai_addr, p->ai_addrlen);
 	freeaddrinfo(result);
 	return make_socket(fd, SG_SOCKET_CLIENT, addressString);
@@ -524,6 +524,10 @@ extern void Sg__Init_sagittarius_socket_impl();
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__socket()
 {
   SgLibrary *lib;
+#ifdef _WIN32
+  WSADATA wsaData;
+  WSAStartup(2, &wsaData);
+#endif
   SG_INIT_EXTENSION(sagittarius__socket);
   Sg__Init_sagittarius_socket_impl();
   lib = Sg_FindLibrary(SG_INTERN("(sagittarius socket impl)"), FALSE);
