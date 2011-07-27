@@ -509,7 +509,7 @@
    (lambda
     (lvar)
     (format
-     "~a[~a.~a]"
+     "~s[~a.~a]"
      (lvar-name lvar)
      (lvar-ref-count lvar)
      (lvar-set-count lvar))))

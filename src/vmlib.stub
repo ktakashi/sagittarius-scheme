@@ -85,8 +85,10 @@
     (result (Sg_CopyIdentifier id)))
 
   (define-c-proc bound-id->symbol (id::Identifier) ::Object
-    (let ((s (Sg_Sprintf "%A.%x" (SG_IDENTIFIER_NAME id) id)))
-      (result (Sg_Intern s))))
+    (if (SG_NULLP (SG_IDENTIFIER_ENVS id))
+	(let ((s (Sg_Sprintf "%A.%x" (SG_IDENTIFIER_NAME id) id)))
+	  (result (Sg_Intern s)))
+	(result id)))
 
   ;; syntax
   (define-c-proc make-syntax (name::Symbol proc :optional (userDefined::boolean FALSE)) ::Object

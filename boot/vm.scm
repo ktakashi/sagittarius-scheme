@@ -952,9 +952,11 @@
 			 (let ((path (car builtin-info))
 			       (name (cadr builtin-info))
 			       (import (caddr builtin-info))
-			       (can-be-c? (cadddr builtin-info)))
+			       (export (cadddr builtin-info))
+			       (can-be-c? (car (cddddr builtin-info))))			   
 			   (when can-be-c?
-			     (let* ((form (if name (construct-library path name import)
+			     (let* ((form (if name
+					      (construct-library path name import export)
 					      (car (file->sexp-list path))))
 				    (outpath (string-append dir "/"
 							    (library-path->path path)
@@ -1202,7 +1204,7 @@
 		     (errorf "condition? ~a not found " mark))))
 	  (else (loop (cdr form) (cons (car form) r)))))))
 
-(define (construct-library file lib imports)
+(define (construct-library file lib imports oexports)
   (let* ((sexp (file->sexp-list file))
 	 (program (notify-cond-expand sexp 'sagittarius))
 	 (exports '()))
@@ -1222,14 +1224,14 @@
 		   (set! exports (append enums exports)))
 		  (else #f))) program)
     (let ((form `(library ,lib 
-		     (export ,@(reverse exports))
+		     (export ,@(if oexports oexports (reverse exports)))
 		     (import ,@imports)
 		   ,@program)))
       form)))
 
-(define (load-file file opt lib imports show?)
+(define (load-file file opt lib imports exports show?)
   (if lib
-      (let ((form (construct-library file lib imports)))
+      (let ((form (construct-library file lib imports exports)))
 	(let ((r (execute form opt)))
 	  (when show?
 	    (print r)
@@ -1294,41 +1296,45 @@
 (define *synrule-lib* "../lib/core/syntax-rules.scm")
 
 (define *builtin-libraries* 
-  `((,*ext-lib* (sagittarius) (null) #f)
-    (,*base-lib* (core base) (null (sagittarius)) #t)
-    (,*core-lib* #f () #f)
+  `((,*ext-lib* (sagittarius) (null) #f #f)
+    (,*base-lib* (core base) (null (sagittarius)) #f #t)
+    (,*core-lib* #f () #f #f)
     (,*insn* (sagittarius vm instruction)
-	     (null (sagittarius)) #f)
+	     (null (sagittarius)) #f #f)
     (,*vm-lib* (sagittarius vm)
-	       (null (core base) (sagittarius) (sagittarius vm instruction)) #f)
+	       (null (core base) (sagittarius) (sagittarius vm instruction)) #f #f)
     (,*vm-debug* (sagittarius vm debug)
 		 (null (core base) (sagittarius) (sagittarius vm)
-		       (sagittarius vm instruction)) #f)
+		       (sagittarius vm instruction)) #f #f)
     ;; these are only for performance
     ;; in these libraries there are no syntax-rules, so we can import here
-    (,*exc-lib* #f () #t)
-    (,*arith-lib* #f () #t)
-    (,*macro-lib* (core syntax-case) (null (core base)
-					   (sagittarius)
-					   (sagittarius vm)
-					   (sagittarius vm instruction)) #t)
+    (,*exc-lib* #f () #f #t)
+    (,*arith-lib* #f () #f #t)
+    (,*macro-lib* (core syntax-case) 
+		  (null (core base)
+			(sagittarius)
+			(sagittarius vm)
+			(sagittarius vm instruction))
+		  #f
+		  #t)
     ;;
-    (,*struct-lib* #f () #f)
-    (,*misc-lib* #f () #f)
-    (,*synhelp-lib* #f () #f)
-    (,*synpat-lib* #f () #f)
-    (,*syntmp-lib* #f () #f)
-    (,*synrule-lib* #f () #f)
+    (,*struct-lib* #f () #f #f)
+    (,*misc-lib* #f () #f #f)
+    (,*synhelp-lib* #f () #f #f)
+    (,*synpat-lib* #f () #f #f)
+    (,*syntmp-lib* #f () #f #f)
+    (,*synrule-lib* #f () #f #f)
     (,*match-lib* (sagittarius compiler match)
 		  (null (core base)
 			(for (core syntax-rules) expand)
-			(sagittarius)) #f)
+			(sagittarius)) 
+		  #f #f)
     (,*compaux* (sagittarius compiler util)
 		(null (core base) 
 		      (for (core syntax-case) expand)
 		      (sagittarius)
 		      (for (sagittarius compiler match) expand))
-		#t)
+		#f #t)
     (,*proc-lib* (sagittarius compiler procedure) 
 		 (null (core base) (sagittarius)
 		       (core syntax-rules)
@@ -1336,9 +1342,9 @@
 		       (sagittarius compiler match)
 		       (sagittarius compiler util)
 		       (sagittarius vm)
-		       (sagittarius vm instruction)) #f)
+		       (sagittarius vm instruction)) #f #f)
 
-    (,*enum-lib* #f () #t)
+    (,*enum-lib* #f () #f #t)
     ))
   
     
@@ -1360,7 +1366,8 @@ lc: compile builtin libraries
     (for-each (lambda (builtin-info)
 		(let ((path (car builtin-info))
 		      (name (cadr builtin-info))
-		      (import (caddr builtin-info)))
+		      (import (caddr builtin-info))
+		      (export (cadddr builtin-info)))
 		  (print "loading " path)
 		  #;(if (eq? path *proc-lib*)
 		      (vm-debug #t))
@@ -1368,7 +1375,7 @@ lc: compile builtin libraries
 		  (let ((lib (find-library '(sagittarius) #f)))
 		    (when lib
 		      (library-exported-set! lib #f)))
-		  (load-file path '() name import #f)))
+		  (load-file path '() name import export #f)))
 	      *builtin-libraries*)
     ;; import (sagittarius) as dummy here
     #;(execute '(library (sagittarius)
@@ -1376,7 +1383,7 @@ lc: compile builtin libraries
 		  (import null)) '())
 
     (vm-debug-step #t)
-    (load-file (cadr args) (cddr args) #f #f #t))))
+    (load-file (cadr args) (cddr args) #f #f #f #t))))
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix

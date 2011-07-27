@@ -556,7 +556,7 @@
 	(format "~a" (id-name id))))
     (define lvar->string
       (lambda (lvar)
-	(format "~a[~a.~a]"
+	(format "~s[~a.~a]"
 		(lvar-name lvar)
 		(lvar-ref-count lvar) (lvar-set-count lvar))))
     (define rec

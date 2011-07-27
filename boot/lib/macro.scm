@@ -115,6 +115,8 @@
           (else ranks))))
 
 (define syntax-quote. (make-identifier 'syntax-quote '() '(sagittarius compiler)))
+(define .match-syntax-case (make-identifier 'match-syntax-case '() '(core syntax-case)))
+(define .expand-syntax (make-identifier 'expand-syntax '() '(core syntax-case)))
 
 ;; this must be in compiler.scm for global lambda let dynamic-wind
 ;; but for now
@@ -183,7 +185,7 @@
 							    `((clause: ,clause) (form ,exp-name))))))
 			       rules)))
 	(values (extend-env newenv env)
-		`(.match-syntax-case ',literals
+		`(,.match-syntax-case ',literals
 				     ,expr
 				     ,@processes))))))
 
@@ -388,14 +390,14 @@
 	(let ((patvar (map car ranks)))
 	  (if (variable? tmpl)
 	      (if (null? ranks)
-		  `(.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl)
+		  `(,.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl)
 				   .ranks () .use-env .mac-env ,p1env)
-		  `(.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl)
+		  `(,.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl)
 				   (list (cons (,syntax-quote. ,tmpl) 0)) .vars .use-env .mac-env ,p1env)))
 	  (if (null? ranks)
-	      `(.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl)
+	      `(,.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl)
 			       .ranks () .use-env .mac-env ,p1env)
-	      `(.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl)
+	      `(,.expand-syntax (,syntax-quote. ,patvar) (,syntax-quote. ,tmpl)
 			       (append (,syntax-quote. ,ranks) .ranks) .vars .use-env .mac-env ,p1env)))))))
 
 (define expand-syntax
@@ -441,11 +443,6 @@
 			  (let ((a (loop (car lst))) (d (loop (cdr lst))))
 			    (cond ((and (eq? (car lst) a) (eq? (cdr lst) d)) lst)
 				  (else (cons a d)))))
-			 ;; why did we need this?
-			 #;((and (identifier? lst)
-			       (assq lst vars))
-			  => (lambda (slot)
-			       (emit (cadr slot))))
 			 ;; if target identifier name matches with patvar
 			 ;; I assume it needs to be the same.
 			 ;; TODO I think this is wrong.
@@ -462,11 +459,6 @@
 			  => (lambda (id) id))
 			 ((hashtable-ref seen lst #f)
 			  => (lambda (id) id))
-			 ;; why did we need this?
-			 #;((let ((var (id-contains? patvars lst)))
-			    (assq var vars))
-			  => (lambda (slot)
-			       (emit (cadr slot))))
 			 (else
 			  (if use-env
 			      (wrap-syntax lst use-env renamed-ids)
@@ -739,8 +731,8 @@
 	      `#(,(vm-current-library) () #f #f)))
 
 ;; toplevel variables
-(set-toplevel-variable! '.match-syntax-case match-syntax-case)
-(set-toplevel-variable! '.expand-syntax expand-syntax)
+;;(set-toplevel-variable! '.match-syntax-case match-syntax-case)
+;;(set-toplevel-variable! '.expand-syntax expand-syntax)
 (set-toplevel-variable! '.ranks '())
 (set-toplevel-variable! '.vars. '())
 (set-toplevel-variable! '.make-variable-transformer make-variable-transformer)

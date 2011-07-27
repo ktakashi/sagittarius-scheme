@@ -25,6 +25,8 @@
 	    c-struct-ref
 	    c-struct-set!
 
+	    ;; typedef
+	    define-c-typedef
 	    ;; sizes
 	    size-of-bool
 	    size-of-char
@@ -169,9 +171,21 @@
 	 (= (pointer->integer p) 0)))
 
   (define-syntax define-c-typedef
-    (syntax-rules ()
-      ((_ old new)
-       (define new old))))
+    (syntax-rules (* s*)      
+      ((_ old (* new) rest ...)
+       (begin
+	 (define new void*)
+	 (define-c-typedef old rest ...)))
+      ((_ old (s* new) rest ...)
+       (begin
+	 (define new char*)
+	 (define-c-typedef old rest ...)))
+      ((_ old new rest ...)
+       (begin
+	 (define new old)
+	 (define-c-typedef old rest ...)))
+      ((_ old)
+       #t)))
 
   (define (pointer->c-function pointer ret-type name arg-types)
     (let* ((stub-ret-type (assoc ret-type c-function-return-type-alist))
