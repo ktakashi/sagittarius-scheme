@@ -13,13 +13,11 @@
     "QmFzZTY0IGlzIGEgZ3JvdXAgb2Ygc2ltaWxhciBlbmNvZGluZyBzY2hlbWVzIHRoYXQgcmVwcmVz\nZW50IGJpbmFyeSBkYXRhIGluIGFuIEFTQ0lJIHN0cmluZyBmb3JtYXQgYnkgdHJhbnNsYXRpbmcg\naXQgaW50byBhIHJhZGl4LTY0IHJlcHJlc2VudGF0aW9uLiBUaGUgQmFzZTY0IHRlcm0gb3JpZ2lu\nYXRlcyBmcm9tIGEgc3BlY2lmaWMgTUlNRSBjb250ZW50IHRyYW5zZmVyIGVuY29kaW5nLgoKQmFz\nZTY0IGVuY29kaW5nIHNjaGVtZXMgYXJlIGNvbW1vbmx5IHVzZWQgd2hlbiB0aGVyZSBpcyBhIG5l\nZWQgdG8gZW5jb2RlIGJpbmFyeSBkYXRhIHRoYXQgbmVlZHMgYmUgc3RvcmVkIGFuZCB0cmFuc2Zl\ncnJlZCBvdmVyIG1lZGlhIHRoYXQgYXJlIGRlc2lnbmVkIHRvIGRlYWwgd2l0aCB0ZXh0dWFsIGRh\ndGEuIFRoaXMgaXMgdG8gZW5zdXJlIHRoYXQgdGhlIGRhdGEgcmVtYWlucyBpbnRhY3Qgd2l0aG91\ndCBtb2RpZmljYXRpb24gZHVyaW5nIHRyYW5zcG9ydC4gQmFzZTY0IGlzIHVzZWQgY29tbW9ubHkg\naW4gYSBudW1iZXIgb2YgYXBwbGljYXRpb25zIGluY2x1ZGluZyBlbWFpbCB2aWEgTUlNRSwgYW5k\nIHN0b3JpbmcgY29tcGxleCBkYXRhIGluIFhNTC4=")
 
   (define (run-rfc-base64-tests)
-    (test-begin "base64-test")
     ;; I should add the cases which specifies transcoder.
     (test-equal "base64 encode" "YWJjZGVmZw==" (base64-encode-string "abcdefg"))
     (test-equal "base64 decode" "abcdefg" (base64-decode-string "YWJjZGVmZw=="))
 
     (test-equal "base64 encode long" *encoded-long-string* (base64-encode-string *long-string*))
     (test-equal "base64 decode long" *long-string* (base64-decode-string *encoded-long-string*))
-    (test-end)
     )
 )

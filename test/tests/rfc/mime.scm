@@ -61,7 +61,6 @@ Content</div>
 ------=_NextPart_DC7E1BB5_1105_4DB3_BAE3_2A6208EB099D--\r\n")
 
   (define (run-rfc-mime-test)
-    (test-begin "rfc-mime test")
     (test-equal "encoding"
 		encoded-utf-8-text
 		(mime-encode-text utf-8-text))
@@ -93,5 +92,5 @@ Content</div>
 			(set! r (cons (for-all mime-part? (mime-part-content packet)) r))
 			(reverse r))
 		      #f)))
-    (test-end))
+    )
 )

@@ -161,6 +161,8 @@ CASE(LSET) {
 	    (assertion-violation 'set!
 				 "unbound variable"
 				 (SG_IDENTIFIER_NAME var)))
+	  ;;(SG_GLOC_SET (SG_GLOC oldval) (AC vm))
+	  ;;(set! (pointer (- (PC vm) 1)) (SG_WORD oldval))
 	  (let ((g (Sg_MakeBinding (SG_IDENTIFIER_LIBRARY var)
 				   (SG_IDENTIFIER_NAME var)
 				   (AC vm)

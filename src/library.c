@@ -525,6 +525,13 @@ SgGloc* Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
   Sg_LockMutex(&lib->lock);
   v = Sg_HashTableRef(lib->table, SG_OBJ(symbol), SG_FALSE);
   if (SG_GLOCP(v)) {
+    /*
+    if (SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE)) {
+      Sg_AssertionViolation(symbol,
+			    Sg_MakeString(UC("multiple definition of identifier"), SG_LITERAL_STRING),
+			    SG_LIST1(symbol));
+    }
+    */
     g = SG_GLOC(v);
     prev_const = Sg_GlocConstP(g);
     oldval = SG_GLOC_GET(g);

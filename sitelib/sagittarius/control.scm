@@ -187,7 +187,7 @@
 	     (values (reverse! required)
 		     (reverse! keys)
 		     restvar))
-	   (cond ((null? specs) (finish (gensym "dummy")))
+	   (cond ((null? specs) (finish #f))
 		 ((pair? specs)
 		  (cond (key-appear?
 			 (if (eq? (car specs) :allow-other-keys)
@@ -210,8 +210,9 @@
 	     (opt  (gensym "opt")))
 	 (receive (required keys rest) (process-specs (cdr spec))
 	   `(define (,(car spec) ,@required . ,opt)
-	      (,(rename 'let-keywords*) ,opt (,@keys
-					      . ,rest)
+	      (,(rename 'let-keywords*) ,opt ,(if rest 
+						 `(,@keys . ,rest)
+						 `(,@keys))
 	       ,@body)))))))
 	 
 

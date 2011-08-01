@@ -1,0 +1,73 @@
+;; -*- mode: scheme; coding; utf-8 -*-
+(library (sagittarius crypto)
+    (export)
+    (import :null)
+
+  (decl-code
+   (.include "crypto.h"))
+
+  (define-c-proc crypto-object? (o) ::boolean
+    (result (SG_CRYPTO_P o)))
+
+  (define-c-proc cipher? (o) ::boolean
+    (result (and (SG_CRYPTO_P o)
+		 (== (-> (SG_CRYPTO o) type) CRYPTO_CIPHER))))
+
+  (define-c-proc key? (o) ::boolean
+    (result (and (SG_CRYPTO_P o)
+		 (== (-> (SG_CRYPTO o) type) CRYPTO_KEY))))
+
+  ;; key
+  (define-c-proc generate-secret-key (type::String key::ByteVector) ::Object
+    (result (Sg_GenerateSecretKey type key)))
+
+  ;; pseudo random
+  (define-c-proc make-pseudo-random (name::String bits::fixnum) ::Object
+    (when (< bits 0)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "positive integer" SG_LITERAL_STRING)
+				       (SG_MAKE_INT bits) '()))
+    (result (Sg_MakePseudoRandom name bits)))
+
+  (define-c-proc read-random (prng::Prng size::fixnum) ::Object
+    (when (< size 0)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "positive integer" SG_LITERAL_STRING)
+				       (SG_MAKE_INT size) '()))
+    (result (Sg_ReadRandom prng size)))
+
+
+  (define-c-proc make-cipher (name::String mode::fixnum key::Key
+			      iv rounds::fixnum padder ctr_mode::fixnum)
+    ::Object
+    (unless (or (SG_FALSEP iv)
+		(SG_BVECTORP iv))
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "bytevector or #f" SG_LITERAL_STRING)
+				       iv '()))
+    (unless (or (SG_FALSEP padder)
+		(SG_PROCEDUREP padder))
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "procedure or #f" SG_LITERAL_STRING)
+				       padder '()))
+    (if (< mode 0)
+	(Sg_Error "not supported yet!")
+	(result (Sg_MakeSymmetricCipher name mode key iv rounds padder ctr_mode))))
+
+  (define-c-proc encrypt (crypto::Crypto pt::ByteVector) ::Object
+    (unless (== (-> crypto type) CRYPTO_CIPHER)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "cipher" SG_LITERAL_STRING)
+				       crypto '()))
+    (result (Sg_Encrypt crypto pt)))
+
+  (define-c-proc decrypt (crypto::Crypto ct::ByteVector) ::Object
+    (unless (== (-> crypto type) CRYPTO_CIPHER)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "cipher" SG_LITERAL_STRING)
+				       crypto '()))
+    (result (Sg_Decrypt crypto ct)))
+
+  (define-c-proc suggest-keysize (name::String size::fixnum) ::fixnum
+    (result (Sg_SuggestKeysize name size)))
+)

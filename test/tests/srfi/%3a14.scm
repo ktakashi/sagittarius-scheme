@@ -9,9 +9,8 @@
   (define char-list '(#\a #\b #\c))
 
   (define (run-srfi-14-tests)
-    (test-begin "srfi-14-test")
     (test-assert 'char-set?     (char-set? cs1))
     (test-assert 'non-char-set? (not (char-set? #f)))
     (test-assert 'list->char-set (char-set? (list->char-set char-list)))
-    (test-end))
+    )
 )
