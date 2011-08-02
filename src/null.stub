@@ -3908,7 +3908,10 @@
   (define-c-proc tuple-ref (tuple i::fixnum) ::Object
     (result (Sg_TupleRef tuple i #f)))
 
-  (define-c-proc ruple-set! (tuple i::fixnum value) ::void
+  (define-c-proc tuple-set! (tuple i::fixnum value) ::void
     (Sg_TupleSet tuple i value))
+
+  (define-c-proc tuple-size (tuple) ::fixnum
+    (result (Sg_TupleSize tuple)))
 
   )

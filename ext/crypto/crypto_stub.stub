@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding; utf-8 -*-
-(library (sagittarius crypto)
+(library (sagittarius crypto impl)
     (export)
     (import :null)
 
@@ -29,12 +29,12 @@
 				       (SG_MAKE_INT bits) '()))
     (result (Sg_MakePseudoRandom name bits)))
 
-  (define-c-proc read-random (prng::Prng size::fixnum) ::Object
+  (define-c-proc read-random-bytes (prng::Prng size::fixnum) ::Object
     (when (< size 0)
       (Sg_WrongTypeOfArgumentViolation procedureName
 				       (Sg_MakeString "positive integer" SG_LITERAL_STRING)
 				       (SG_MAKE_INT size) '()))
-    (result (Sg_ReadRandom prng size)))
+    (result (Sg_ReadRandomBytes prng size)))
 
 
   (define-c-proc make-cipher (name::String mode::fixnum key::Key

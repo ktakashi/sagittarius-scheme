@@ -49,6 +49,11 @@
 					  191 75 26 223 140 38 166 255 236 146
 					  140 167 157 42 240 38 203 30 ))
 
+  (define *pseudo-primes*
+    '(341 561 645 1105 1387 1729 1905 2047 2465 2701 
+      2821 3277 4033 4369 4371 4681 5461 6601 7957 8321 
+      8481 8911))
+
   (define (run-crypto-test)
     ;; basic test
     (test-assert "crypto-object?" (crypto-object? des/cbc-cipher))
@@ -83,5 +88,9 @@
     (test-equal "DES3/CBC decrypt"
 		*plain-value*
 		(decrypt des3/cbc-cipher *des3/cbc-encrypted-value*))
+
+    ;; prime?
+    (test-assert "is-prime?"
+		 (not (exists is-prime? *pseudo-primes*)))
     )
 )

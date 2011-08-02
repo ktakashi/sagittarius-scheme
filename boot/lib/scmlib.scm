@@ -112,11 +112,17 @@
 		 (current-output-port)
 		 (car port)))
 	  (rtd (tuple-ref inst 0)))
-      (format p "#<record ~s ~a~a~a>"
+      (format p "#<record ~s ~a~a ~a>"
 	      (record-type-name rtd)
 	      (if (record-type-opaque? rtd) "opaque " "")
 	      (if (record-type-sealed? rtd) "sealed " "")
-	      rtd))))
+	      (let ((len (tuple-size inst)))
+		(let loop ((i 1)
+			   (r '()))
+		  (if (= i len)
+		      (reverse! r)
+		      (loop (+ i 1) (cons (tuple-ref inst i) r)))))))))
+
 
 ;; from Ypsilon
 (define make-nested-conser

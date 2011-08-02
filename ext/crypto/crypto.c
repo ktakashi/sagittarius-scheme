@@ -256,15 +256,15 @@ SgObject Sg_Decrypt(SgCrypto *crypto, SgByteVector *data)
 
 }
 
-extern void Sg__Init_sagittarius_crypto();
+extern void Sg__Init_sagittarius_crypto_impl();
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__crypto()
 {
   SgLibrary *lib;
   SG_INIT_EXTENSION(sagittarius__crypto);
 
-  Sg__Init_sagittarius_crypto();
-  lib = Sg_FindLibrary(SG_INTERN("(sagittarius crypto)"), FALSE);
+  Sg__Init_sagittarius_crypto_impl();
+  lib = Sg_FindLibrary(SG_INTERN("(sagittarius crypto impl)"), FALSE);
   /* initialize libtomcrypt */
 #define REGISTER_CIPHER(cipher)						\
   if (register_cipher(cipher) == -1) {					\

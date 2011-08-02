@@ -183,7 +183,7 @@ SgObject Sg_Decrypt(SgCrypto *crypto, SgByteVector *data);
 
 /* random */
 SgObject Sg_MakePseudoRandom(SgString *name, int bits);
-SgObject Sg_ReadRandom(SgCrypto *prng, int size);
+SgObject Sg_ReadRandomBytes(SgCrypto *prng, int size);
 
 /* keys */
 SgObject Sg_GenerateSecretKey(SgString *type, SgByteVector *key);

@@ -60,7 +60,7 @@ SgObject Sg_MakePseudoRandom(SgString *name, int bits)
   return SG_OBJ(crypto);
 }
 
-SgObject Sg_ReadRandom(SgCrypto *prng, int size)
+SgObject Sg_ReadRandomBytes(SgCrypto *prng, int size)
 {
   SgByteVector *buf;
   

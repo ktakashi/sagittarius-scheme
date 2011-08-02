@@ -183,5 +183,9 @@ SgObject Sg_TupleRef(SgObject tuple, int i, SgObject fallback)
 
 int Sg_TupleSize(SgObject tuple)
 {
+  if (!SG_INSTANCEP(tuple) ||
+      !SG_VECTORP(SG_INSTANCE(tuple)->values)) {
+    Sg_Error(UC("tuple required, but got %S"), tuple);
+  }
   return SG_VECTOR_SIZE(SG_INSTANCE(tuple)->values);
 }
