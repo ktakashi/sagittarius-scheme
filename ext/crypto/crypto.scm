@@ -14,6 +14,8 @@
 	    key?
 	    generate-secret-key
 	    generate-key-pair
+	    generate-private-key
+	    generate-public-key
 	    RSA
 	    keypair-private
 	    keypair-public

@@ -50,3 +50,18 @@ SgObject Sg_GenerateSecretKey(SgString *type, SgByteVector *key)
   SG_KEY(crypto)->name = type;
   return SG_OBJ(crypto);
 }
+
+static SgRecordType KEY_TYPE;
+SgObject key_rtd = SG_UNDEF;
+
+void Sg__InitKey(SgObject lib)
+{
+  SgObject rtd, rcd, nullvec = Sg_MakeVector(0, SG_UNDEF);
+  SgObject key = SG_INTERN("key");
+  rtd = Sg_MakeRecordTypeDescriptor(key, SG_FALSE, SG_FALSE,
+				    FALSE, FALSE, nullvec);
+  rcd = Sg_MakeRecordConstructorDescriptor(rtd, SG_FALSE, SG_FALSE);
+  SG_INIT_RECORD_TYPE(&KEY_TYPE, key, rtd, rcd);
+  Sg_InsertBinding(lib, key, &KEY_TYPE);
+  key_rtd = rtd;
+}

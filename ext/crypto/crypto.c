@@ -35,7 +35,7 @@
 static void crypto_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
 {
   switch (SG_CRYPTO(self)->type) {
-  case CRYPTO_CIPHER: {
+  case CRYPTO_SYM_CIPHER: {
     struct ltc_cipher_descriptor *desc 
       = &cipher_descriptor[SG_SCIPHER(self)->cipher];
     Sg_Printf(port, UC("#<cipher %S block-size %d, key-length %d>"),
@@ -43,6 +43,9 @@ static void crypto_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
 	      desc->min_key_length);
     break;
   }
+  case CRYPTO_PUB_CIPHER:
+    Sg_Printf(port, UC("#<cipher %A>"), SG_PCIPHER(self)->name);
+    break;
   case CRYPTO_PRNG:
     Sg_Printf(port, UC("#<prng %A>"), SG_PRNG(self)->name);
     break;
@@ -77,7 +80,7 @@ SgObject Sg_MakeSymmetricCipher(SgString *name, SgCryptoMode mode, SgCrypto *cke
 				SgObject iv, int rounds, SgObject padder, int ctr_mode)
 {
   const char *cname = Sg_Utf32sToUtf8s(name);
-  SgCrypto *crypto = make_crypto(CRYPTO_CIPHER);
+  SgCrypto *crypto = make_crypto(CRYPTO_SYM_CIPHER);
   int cipher = find_cipher(cname), err;
   SgByteVector *key;
   ASSERT(SG_CRYPTO(ckey)->type == CRYPTO_KEY);
@@ -163,6 +166,18 @@ SgObject Sg_MakeSymmetricCipher(SgString *name, SgCryptoMode mode, SgCrypto *cke
   return SG_OBJ(crypto);
 }
 
+SgObject Sg_MakePulicKeyCipher(SgObject name, SgObject key, SgObject encrypter,
+			       SgObject decrypter, SgObject padder)
+{
+  SgCrypto *crypto = make_crypto(CRYPTO_PUB_CIPHER); 
+  SG_PCIPHER(crypto)->name = name;
+  SG_PCIPHER(crypto)->key = key;
+  SG_PCIPHER(crypto)->encrypter = encrypter;
+  SG_PCIPHER(crypto)->decrypter = decrypter;
+  SG_PCIPHER(crypto)->padder = padder;
+  return SG_OBJ(crypto);
+}
+
 int Sg_SuggestKeysize(SgString *name, int keysize)
 {
   int cipher = find_cipher(Sg_Utf32sToUtf8s(name));
@@ -180,24 +195,18 @@ int Sg_SuggestKeysize(SgString *name, int keysize)
   return keysize;
 }
 
-SgObject Sg_Encrypt(SgCrypto *crypto, SgByteVector *data)
+static SgObject symmetric_encrypt(SgCrypto *crypto, SgByteVector *data)
 {
   int len, err;
   SgByteVector *ct;
-  ASSERT(SG_CRYPTO(crypto)->type == CRYPTO_CIPHER);
-  switch (SG_SCIPHER(crypto)->mode) {
-  case MODE_ECB: case MODE_CBC: {
-    if (!SG_FALSEP(SG_SCIPHER(crypto)->padder)) {
-      struct ltc_cipher_descriptor *desc
-	= &cipher_descriptor[SG_SCIPHER(crypto)->cipher];
-      int block_size = desc->block_length;
-      data = Sg_Apply3(SG_SCIPHER(crypto)->padder,
-		       data, SG_MAKE_INT(block_size), SG_TRUE);
-    }
-    break;
-  }
-  default:
-    break;
+  ASSERT(SG_CRYPTO(crypto)->type == CRYPTO_SYM_CIPHER);
+
+  if (!SG_FALSEP(SG_SCIPHER(crypto)->padder)) {
+    struct ltc_cipher_descriptor *desc
+      = &cipher_descriptor[SG_SCIPHER(crypto)->cipher];
+    int block_size = desc->block_length;
+    data = Sg_Apply3(SG_SCIPHER(crypto)->padder,
+		     data, SG_MAKE_INT(block_size), SG_TRUE);
   }
   len = SG_BVECTOR_SIZE(data);
   ct = Sg_MakeByteVector(len, 0);
@@ -212,14 +221,35 @@ SgObject Sg_Encrypt(SgCrypto *crypto, SgByteVector *data)
   return SG_OBJ(ct);
 }
 
-SgObject Sg_Decrypt(SgCrypto *crypto, SgByteVector *data)
+static SgObject public_key_encrypt(SgCrypto *crypto, SgByteVector *data)
+{
+  if (!SG_FALSEP(SG_PCIPHER(crypto)->padder)) {
+    data = Sg_Apply2(SG_PCIPHER(crypto)->padder, data, SG_TRUE);
+  }
+  return Sg_Apply2(SG_PCIPHER(crypto)->encrypter, data, SG_PCIPHER(crypto)->key);
+}
+
+SgObject Sg_Encrypt(SgCrypto *crypto, SgByteVector *data)
+{
+  switch (crypto->type) {
+  case CRYPTO_SYM_CIPHER:
+    return symmetric_encrypt(crypto, data);
+  case CRYPTO_PUB_CIPHER:
+    return public_key_encrypt(crypto, data);
+  default:
+    Sg_Error(UC("encrypt requires cipher, but got %S"), crypto);
+  }
+  return SG_UNDEF;		/* dummy */
+}
+
+static SgObject symmetric_decrypt(SgCrypto *crypto, SgByteVector *data)
 {
   uint8_t *key = SG_BVECTOR_ELEMENTS(SG_SECRET_KEY(SG_SCIPHER(crypto)->key));
   int keylen = SG_BVECTOR_SIZE(SG_SECRET_KEY(SG_SCIPHER(crypto)->key));
   int rounds = SG_SCIPHER(crypto)->rounds;
   SgByteVector *pt;
   int len = SG_BVECTOR_SIZE(data), err, block_size = -1;
-  ASSERT(SG_CRYPTO(crypto)->type == CRYPTO_CIPHER);
+  ASSERT(SG_CRYPTO(crypto)->type == CRYPTO_SYM_CIPHER);
   switch (SG_SCIPHER(crypto)->mode) {
   case MODE_ECB:
     ecb_start(SG_SCIPHER(crypto)->cipher, key, keylen, rounds,
@@ -253,10 +283,34 @@ SgObject Sg_Decrypt(SgCrypto *crypto, SgByteVector *data)
     return SG_UNDEF;
   }
   return SG_OBJ(pt);
-
 }
 
+static SgObject public_key_decrypt(SgCrypto *crypto, SgByteVector *data)
+{
+  data = Sg_Apply2(SG_PCIPHER(crypto)->decrypter, data, SG_PCIPHER(crypto)->key);
+  if (!SG_FALSEP(SG_PCIPHER(crypto)->padder)) {
+    data = Sg_Apply2(SG_PCIPHER(crypto)->padder, data, SG_FALSE);
+  }
+  return SG_OBJ(data);
+}
+
+
+SgObject Sg_Decrypt(SgCrypto *crypto, SgByteVector *data)
+{
+  switch (crypto->type) {
+  case CRYPTO_SYM_CIPHER:
+    return symmetric_decrypt(crypto, data);
+  case CRYPTO_PUB_CIPHER:
+    return public_key_decrypt(crypto, data);
+  default:
+    Sg_Error(UC("decrypt requires cipher, but got %S"), crypto);
+  }
+  return SG_UNDEF;		/* dummy */
+}
+
+
 extern void Sg__Init_sagittarius_crypto_impl();
+extern void Sg__InitKey(SgObject lib);
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__crypto()
 {
@@ -265,6 +319,7 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__crypto()
 
   Sg__Init_sagittarius_crypto_impl();
   lib = Sg_FindLibrary(SG_INTERN("(sagittarius crypto impl)"), FALSE);
+  Sg__InitKey(lib);
   /* initialize libtomcrypt */
 #define REGISTER_CIPHER(cipher)						\
   if (register_cipher(cipher) == -1) {					\

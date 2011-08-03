@@ -38,7 +38,8 @@
 
  */
 typedef enum {
-  CRYPTO_CIPHER,
+  CRYPTO_SYM_CIPHER,
+  CRYPTO_PUB_CIPHER,
   CRYPTO_KEY,
   CRYPTO_PRNG,
 } SgCryptoType;
@@ -74,6 +75,9 @@ typedef struct SgKeyRec
     SgByteVector *secretKey;
   } impl;
 } SgKey;
+
+/* key record type for procedure key? */
+extern SgObject key_rtd;
 
 /* for convenience */
 #define SG_PRIVATE_KEY(obj) (&((obj)->impl.privateKey))
@@ -119,6 +123,15 @@ typedef struct symmetric_cipher_rec_t
   int (*done)(void *skey);
 } symmetric_cipher_t;
 
+typedef struct public_key_cipher_ret_t
+{
+  SgObject name;
+  SgObject key;			/* public/private key */
+  SgObject encrypter;		/* if key was public */
+  SgObject decrypter;		/* if key was private */
+  SgObject padder;
+} public_key_cipher_t;
+
 
 /* pseudo random number generator */
 typedef struct SgPrngRec
@@ -133,9 +146,10 @@ typedef struct SgCryptoRec
   SG_META_HEADER;
   SgCryptoType type;
   union {
-    symmetric_cipher_t scipher;
-    SgKey              key;
-    SgPrng   	       prng;
+    symmetric_cipher_t  scipher;
+    public_key_cipher_t pcipher;
+    SgKey               key;
+    SgPrng   	        prng;
   } impl;
 } SgCrypto;
 
@@ -176,6 +190,8 @@ SgObject Sg_MakeCrypto(SgCryptoType type);
 
 SgObject Sg_MakeSymmetricCipher(SgString *name, SgCryptoMode mode, SgCrypto *key,
 				SgObject iv, int rounds, SgObject padder, int ctr_mode);
+SgObject Sg_MakePulicKeyCipher(SgObject name, SgObject key, SgObject encrypter,
+			       SgObject decrypter, SgObject padder);
 int      Sg_SuggestKeysize(SgString *name, int keysize);
 
 SgObject Sg_Encrypt(SgCrypto *crypto, SgByteVector *data);

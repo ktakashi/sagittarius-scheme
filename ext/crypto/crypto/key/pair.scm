@@ -11,11 +11,14 @@
 	    private-key?
 	    public-key
 	    public-key?)
-    (import (rnrs))
+    (import (rnrs)
+	    (sagittarius crypto))
 
   ;; interface for private/public keys
-  (define-record-type private-key)
-  (define-record-type public-key)
+  (define-record-type private-key
+    (parent key))
+  (define-record-type public-key
+    (parent key))
 
   (define-record-type keypair
     (fields (immutable private)
