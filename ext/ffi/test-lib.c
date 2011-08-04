@@ -7,7 +7,7 @@ int add(int x, int y)
   return x + y;
 }
 
-static void quicksort_(void *base,const size_t num,const size_t size
+static void quicksort_(uintptr_t base,const size_t num,const size_t size
     ,void *temp,int (*compare)(const void *,const void *))
 {
 	size_t pivot = 0,first2last = 0,last2first = num-1;
@@ -49,7 +49,7 @@ int quicksort(void *base, const size_t num, const size_t size,
   if(!temp){
     return -1;
   }
-  quicksort_(base,num,size,temp,compare);
+  quicksort_((uintptr_t)base,num,size,temp,compare);
   free(temp);
   return 0;
 }

@@ -11,8 +11,9 @@ if exist .\build\sash.exe (
 )
 
 %sash_exe% -L.\lib -L.\test\r6rs-test-suite .\test\r6rs-test-suite\tests\r6rs\run.sps
-%sash_exe% -L.\lib -L.\sitelib -L.\test .\test\tests.scm
+%sash_exe% -L.\lib -L.\sitelib -L.\test -L.\build\modules -L.\ext\regex .\test\tests.scm
 cd ext
+echo "extension modules test"
 ..\%sash_exe% -L..\lib -L..\sitelib -D..\build\modules .\all-tests.scm
 cd ..\
 pause
