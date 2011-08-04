@@ -8,6 +8,10 @@ SET(CMAKE_C_FLAGS "-Wall -O2")
 SET(CMAKE_CXX_FLAGS "-Wall -O2")
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/src/headers)
 
+IF (WIN32)
+  ADD_DEFINITIONS(-DLTC_NO_FILE)
+ENDIF()
+
 # we do not support encryption only AES
 ADD_LIBRARY(aes_enc STATIC src/ciphers/aes/aes.c)
 SET_PROPERTY(TARGET aes_enc

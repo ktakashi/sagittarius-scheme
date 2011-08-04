@@ -87,7 +87,7 @@ static unsigned long rng_ansic(unsigned char *buf, unsigned long len,
 #endif 
 
 /* Try the Microsoft CSP */
-#if defined(WIN32) || defined(WINCE)
+#if defined(_WIN32) || defined(WINCE)
 #define _WIN32_WINNT 0x0400
 #ifdef WINCE
    #define UNDER_CE
