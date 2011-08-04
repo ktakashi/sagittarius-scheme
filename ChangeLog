@@ -1,3 +1,7 @@
+2011-08-04  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/number.c (Sg_Mul): fixed bignum * 0 calculation. it returned bignum.
+
 2011-07-26  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/writer.c (write_symbol): fixed unneccessary case for escape symbol.

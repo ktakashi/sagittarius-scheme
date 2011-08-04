@@ -4,6 +4,7 @@
 	    random-prime)
     (import (rnrs)
 	    (sagittarius control)
+	    (crypto helper)
 	    (crypto random))
 
   (define *small-primes*
@@ -78,7 +79,7 @@
 	     (len (bytevector-length bv)))
 	(bytevector-u8-set! bv 0 (bitwise-ior (bytevector-u8-ref bv 0) #x80 #x40))
 	(bytevector-u8-set! bv (- len 1) (bitwise-ior (bytevector-u8-ref bv (- len 1)) #x01))
-	(let ((ret (bytevector->number bv)))
+	(let ((ret (bytevector->integer bv)))
 	(if (is-prime? ret)
 	    ret
 	    (loop))))))

@@ -10,6 +10,7 @@
 	    bytevector->number
 	    Yarrow Fortuna RC4 SOBER-128)
     (import (core)
+	    (crypto helper)
 	    (sagittarius control)
 	    (sagittarius crypto))
   ;; pseudo-random type
@@ -22,19 +23,9 @@
     (make-pseudo-random type bits))
 
   ;; TODO 100 bytes read-size are good enough?
-  (define (bytevector->number bv)
-    (let ((len (bytevector-length bv)))
-      (let loop ((i 0)
-		 (ans 0))
-	(if (= i len)
-	    ans
-	    (loop (+ i 1)
-		  (+ ans (bitwise-arithmetic-shift (bytevector-u8-ref bv i)
-						   (* i 8))))))))
-
   (define-with-key (random prng size :key (read-size 100))
     (let* ((bv (read-random-bytes prng read-size))
-	   (rnd (bytevector->number bv)))
+	   (rnd (bytevector->integer bv)))
       (if (> rnd size)
 	  (modulo rnd size)
 	  rnd)))

@@ -82,7 +82,7 @@
 	       (flush-output-port (current-output-port))
 	       (let ((form (read (current-input-port))))
 		 (and (eof-object? form) (exit 0))
-		 (and plugged (format #t "~%")(flush-output-port (current-output-port)))
+		 (and plugged #;(format #t "~%")(flush-output-port (current-output-port)))
 		 (receive ans ((current-evaluator) form (environment '(rnrs)))
 		   (apply (current-printer) ans)
 		   (flush-output-port (current-output-port))))))))

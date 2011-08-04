@@ -19,6 +19,10 @@
 	    RSA
 	    keypair-private
 	    keypair-public
+	    private-key
+	    private-key?
+	    public-key
+	    public-key?
 	    ;;
 	    private-key
 	    private-key?
@@ -33,6 +37,9 @@
 	    Yarrow Fortuna RC4 SOBER-128
 	    ;; padder
 	    pkcs5-padder
+	    pkcs-v1.5-padding
+	    PKCS-1-EME
+	    PKCS-1-EMSA
 	    ;; supported algorithms
 	    Blowfish
 	    X-Tea
@@ -65,9 +72,16 @@
 	    ;; ctr conter mode
 	    CTR_COUNTER_LITTLE_ENDIAN
 	    CTR_COUNTER_BIG_ENDIAN
-	    LTC_CTR_RFC3686)
+	    LTC_CTR_RFC3686
+	    ;; conditions
+	    &crypto-error crypto-error?
+	    &encrypt-error encrypt-error?
+	    &decrypt-error decrypt-error?
+	    raise-encrypt-error
+	    raise-decrypt-error)
     (import (crypto cipher)
 	    (crypto random)
 	    (crypto prime)
-	    (crypto key))
+	    (crypto key)
+	    (sagittarius crypto))
 )

@@ -1911,7 +1911,7 @@ SgObject Sg_Mul(SgObject x, SgObject y)
   }
   else if (SG_BIGNUMP(x)) {
     if (SG_INTP(y)) {
-      if (y == SG_MAKE_INT(0)) return x;
+      if (y == SG_MAKE_INT(0)) return y;
       return Sg_BignumMulSI(SG_BIGNUM(x), SG_INT_VALUE(y));
     }
     if (SG_BIGNUMP(y)) {
