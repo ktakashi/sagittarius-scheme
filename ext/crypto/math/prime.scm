@@ -1,11 +1,11 @@
 ;;
-(library (crypto prime)
+(library (math prime)
     (export is-prime?
 	    random-prime)
     (import (rnrs)
 	    (sagittarius control)
-	    (crypto helper)
-	    (crypto random))
+	    (math helper)
+	    (math random))
 
   (define *small-primes*
     '(3 5 7 11 13 17 19 23 29 31 37 41 43 

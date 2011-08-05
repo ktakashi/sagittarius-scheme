@@ -24,22 +24,6 @@
   (define-c-proc generate-secret-key (type::String key::ByteVector) ::Object
     (result (Sg_GenerateSecretKey type key)))
 
-  ;; pseudo random
-  (define-c-proc make-pseudo-random (name::String bits::fixnum) ::Object
-    (when (< bits 0)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "positive integer" SG_LITERAL_STRING)
-				       (SG_MAKE_INT bits) '()))
-    (result (Sg_MakePseudoRandom name bits)))
-
-  (define-c-proc read-random-bytes (prng::Prng size::fixnum) ::Object
-    (when (< size 0)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "positive integer" SG_LITERAL_STRING)
-				       (SG_MAKE_INT size) '()))
-    (result (Sg_ReadRandomBytes prng size)))
-
-
   (define-c-proc make-symmetric-cipher (name::String mode::fixnum key::Key
 			      iv rounds::fixnum padder ctr_mode::fixnum)
     ::Object
@@ -55,13 +39,15 @@
 				       padder '()))
     (result (Sg_MakeSymmetricCipher name mode key iv rounds padder ctr_mode)))
 
-  (define-c-proc make-public-key-cipher (name key enc::Procedure dec::Procedure padder) ::Object
+  (define-c-proc make-public-key-cipher (name key enc::Procedure
+					 dec::Procedure padder
+					 signer::Procedure verifier::Procedure) ::Object
     (unless (or (SG_FALSEP padder)
 		(SG_PROCEDUREP padder))
       (Sg_WrongTypeOfArgumentViolation procedureName
 				       (Sg_MakeString "procedure or #f" SG_LITERAL_STRING)
 				       padder '()))
-    (result (Sg_MakePulicKeyCipher name key enc dec padder)))
+    (result (Sg_MakePublicKeyCipher name key enc dec padder signer verifier)))
 
   (define-c-proc encrypt (crypto::Crypto pt::ByteVector) ::Object
     (unless (or (== (-> crypto type) CRYPTO_SYM_CIPHER)
@@ -81,4 +67,20 @@
 
   (define-c-proc suggest-keysize (name::String size::fixnum) ::fixnum
     (result (Sg_SuggestKeysize name size)))
+
+
+  ;; sign
+  (define-c-proc signature (crypto::Crypto data::ByteVector :rest opt) ::Object
+    (unless (== (-> crypto type) CRYPTO_PUB_CIPHER)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "publick key cipher" SG_LITERAL_STRING)
+				       crypto '()))
+    (result (Sg_Signature crypto data opt)))
+
+  (define-c-proc verify (crypto::Crypto data::ByteVector :rest opt) ::Object
+    (unless (== (-> crypto type) CRYPTO_PUB_CIPHER)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "publick key cipher" SG_LITERAL_STRING)
+				       crypto '()))
+    (result (Sg_Verify crypto data opt)))
 )

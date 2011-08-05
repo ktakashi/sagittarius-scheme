@@ -1,0 +1,52 @@
+;; -*- mode: scheme; coding: utf-8; -*-
+(library (sagittarius math impl)
+    (export)
+    (import :none)
+
+  (decl-code
+   (.include "math.h"))
+
+  (define-c-proc prng? (o) ::boolean
+    (result (SG_PRNG_P o)))
+
+  ;; pseudo random
+  (define-c-proc make-pseudo-random (name::String bits::fixnum) ::Object
+    (when (< bits 0)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "positive integer" SG_LITERAL_STRING)
+				       (SG_MAKE_INT bits) '()))
+    (result (Sg_MakePseudoRandom name bits)))
+
+  (define-c-proc make-custom-prng (name::String read::Procedure) ::Object
+    (result (Sg_MakeCustomPrng name read)))
+
+  (define-c-proc read-random-bytes (prng::Prng size::fixnum) ::Object
+    (when (< size 0)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "positive integer" SG_LITERAL_STRING)
+				       (SG_MAKE_INT size) '()))
+    (result (Sg_ReadRandomBytes prng size)))
+
+  (define-c-proc hash-algorithm? (o) ::boolean
+    (result (SG_HASH_P o)))
+
+  (define-c-proc make-hash-algorithm (name::String process) ::Object
+    (unless (or (SG_FALSEP process)
+		(SG_PROCEDUREP process))
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "procedure or #f" SG_LITERAL_STRING)
+				       process '()))
+    (result (Sg_MakeHash name process)))
+
+  (define-c-proc hash-init! (h::HashAlgo) ::boolean
+    (result (Sg_HashInit h)))
+
+  (define-c-proc hash-process! (h::HashAlgo in::ByteVector) ::void
+    (Sg_HashProcess h in))
+
+  (define-c-proc hash-done! (h::HashAlgo out::ByteVector) ::void
+    (Sg_HashDone h out))
+
+  (define-c-proc hash-size (h::HashAlgo) ::Object
+    (result (Sg_HashSize h)))
+)

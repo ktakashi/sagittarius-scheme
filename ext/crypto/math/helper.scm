@@ -1,12 +1,12 @@
 ;;; -*- mode: scheme; coding: utf-8 -*-
 ;;;
-;;; random.scm Cryptographic library
+;;; helper.scm math library
 ;;; 
-(library (crypto helper)
+(library (math helper)
     (export bytevector->integer
 	    integer->bytevector
 	    align-size)
-    (import (rnrs) (sagittarius))
+    (import (rnrs))
   
   (define (bytevector->integer bv)
     (let ((len (bytevector-length bv)))

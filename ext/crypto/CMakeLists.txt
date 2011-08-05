@@ -3,7 +3,7 @@
 # Build file for crypto
 
 ADD_LIBRARY(sagittarius--crypto MODULE
-  crypto.c key.c random.c crypto_stub.c)
+  crypto.c key.c crypto_stub.c)
 
 ADD_SUBDIRECTORY(libtomcrypt-1.17 libtomcrypt)
 
@@ -25,3 +25,17 @@ INSTALL(FILES crypto.scm
 INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/crypto
   DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH})
 
+# sagittarius--random
+ADD_LIBRARY(sagittarius--math MODULE
+  hash.c random.c math_stub.c math.c)
+ADD_STUBS(sagittarius--math
+  COMMAND ${GENSTUB}
+  FILES ${CMAKE_CURRENT_SOURCE_DIR}/math_stub.stub)
+SET_TARGET_PROPERTIES(sagittarius--math PROPERTIES PREFIX "")
+TARGET_LINK_LIBRARIES(sagittarius--math sagittarius prngs)
+INSTALL(TARGETS sagittarius--math
+  DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
+INSTALL(FILES sagittarius/math.scm
+  DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH}/sagittarius)
+INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/math
+  DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH})

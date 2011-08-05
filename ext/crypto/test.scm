@@ -3,7 +3,9 @@
     (export run-crypto-test)
     (import (srfi :64 testing)
 	    (rnrs)
-	    (crypto))
+	    (crypto)
+	    (math prime)
+	    (math hash))
 
   ;; plain value for all test cases
   (define *plain-value* (string->utf8 "I want to encrypt this text with the key!"))
@@ -171,16 +173,22 @@
 
     (test-assert "with padding too long RSA block"
 		 (guard (e 
-			 ((encrypt-error? e) #t)
+			 ((encode-error? e) #t)
 			 (else #f))
 		   (let ((rsa-encrypt-cipher (cipher RSA public-rsa-key)))
 		     (encrypt rsa-encrypt-cipher invalid-rsa-message))))
 
     (test-assert "with padding invalid block"
 		 (guard (e 
-			 ((decrypt-error? e) #t)
+			 ((decode-error? e) #t)
 			 (else #f))
 		   (let ((rsa-decrypt-cipher (cipher RSA private-rsa-key)))
 		     (decrypt rsa-decrypt-cipher invalid-padding))))
+
+    ;; hash test
+    ;; hash valid-rsa-message
+    (test-equal "MD5 hash"
+		#vu8(#xC7 #x2B #x96 #x98 #xFA #x19 #x27 #xE1 #xDD #x12 #xD3 #xCF #x26 #xED #x84 #xB2)
+		(hash MD5 valid-rsa-message))
     )
 )

@@ -46,9 +46,6 @@ static void crypto_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
   case CRYPTO_PUB_CIPHER:
     Sg_Printf(port, UC("#<cipher %A>"), SG_PCIPHER(self)->name);
     break;
-  case CRYPTO_PRNG:
-    Sg_Printf(port, UC("#<prng %A>"), SG_PRNG(self)->name);
-    break;
   case CRYPTO_KEY:
     Sg_Printf(port, UC("#<%A-key>"), SG_KEY(self)->name);
     break;
@@ -166,8 +163,9 @@ SgObject Sg_MakeSymmetricCipher(SgString *name, SgCryptoMode mode, SgCrypto *cke
   return SG_OBJ(crypto);
 }
 
-SgObject Sg_MakePulicKeyCipher(SgObject name, SgObject key, SgObject encrypter,
-			       SgObject decrypter, SgObject padder)
+SgObject Sg_MakePublicKeyCipher(SgObject name, SgObject key, SgObject encrypter,
+				SgObject decrypter, SgObject padder, SgObject signer,
+				SgObject verifier)
 {
   SgCrypto *crypto = make_crypto(CRYPTO_PUB_CIPHER); 
   SG_PCIPHER(crypto)->name = name;
@@ -175,6 +173,8 @@ SgObject Sg_MakePulicKeyCipher(SgObject name, SgObject key, SgObject encrypter,
   SG_PCIPHER(crypto)->encrypter = encrypter;
   SG_PCIPHER(crypto)->decrypter = decrypter;
   SG_PCIPHER(crypto)->padder = padder;
+  SG_PCIPHER(crypto)->signer = signer;
+  SG_PCIPHER(crypto)->verifier = verifier;
   return SG_OBJ(crypto);
 }
 
@@ -308,6 +308,45 @@ SgObject Sg_Decrypt(SgCrypto *crypto, SgByteVector *data)
   return SG_UNDEF;		/* dummy */
 }
 
+static SgObject apply_with_option(SgObject proc, SgObject data, SgObject key,
+				  SgObject opt)
+{
+  SgObject h = SG_NIL, t = SG_NIL;
+  SG_APPEND1(h, t, data);
+  SG_APPEND1(h, t, key);
+  SG_APPEND(h, t, opt);
+  return Sg_Apply(proc, h);
+}
+
+SgObject Sg_Signature(SgCrypto *crypto, SgByteVector *data, SgObject opt)
+{
+  switch (crypto->type) {
+  case CRYPTO_SYM_CIPHER:
+    Sg_Error(UC("symmetric cipher does not support signing, %S"), crypto);
+    break;
+  case CRYPTO_PUB_CIPHER:
+    return apply_with_option(SG_PCIPHER(crypto)->signer, data,
+			     SG_PCIPHER(crypto)->key, opt);
+  default:
+    Sg_Error(UC("decrypt requires cipher, but got %S"), crypto);
+  }
+  return SG_UNDEF;		/* dummy */
+}
+
+SgObject Sg_Verify(SgCrypto *crypto, SgByteVector *data, SgObject opt)
+{
+  switch (crypto->type) {
+  case CRYPTO_SYM_CIPHER:
+    Sg_Error(UC("symmetric cipher does not support verify, %S"), crypto);
+    break;
+  case CRYPTO_PUB_CIPHER:
+    return apply_with_option(SG_PCIPHER(crypto)->verifier, data,
+			     SG_PCIPHER(crypto)->key, opt);
+  default:
+    Sg_Error(UC("decrypt requires cipher, but got %S"), crypto);
+  }
+  return SG_UNDEF;		/* dummy */
+}
 
 extern void Sg__Init_sagittarius_crypto_impl();
 extern void Sg__InitKey(SgObject lib);
@@ -347,17 +386,6 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__crypto()
   REGISTER_CIPHER(&khazad_desc);
   REGISTER_CIPHER(&kseed_desc);
   REGISTER_CIPHER(&kasumi_desc);
-
-#define REGISTER_PRNG(prng)						\
-  if (register_prng(prng) == -1) {					\
-    Sg_Warn(UC("Unable to register %S pseudo random number generator "), Sg_MakeStringC((prng)->name)); \
-  }
-
-  REGISTER_PRNG(&yarrow_desc);
-  REGISTER_PRNG(&fortuna_desc);
-  REGISTER_PRNG(&rc4_desc);
-  REGISTER_PRNG(&sober128_desc);
-  REGISTER_PRNG(&sprng_desc);
 
   /* put mode */
 #define MODE_CONST(name) Sg_InsertBinding(lib, SG_INTERN(#name), SG_MAKE_INT(name))

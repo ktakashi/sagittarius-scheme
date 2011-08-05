@@ -12,6 +12,8 @@
 	    encrypt
 	    decrypt
 	    suggest-keysize
+	    signature
+	    verify
 	    ;; key
 	    key
 	    key?
@@ -33,8 +35,13 @@
 	    &crypto-error crypto-error?
 	    &encrypt-error encrypt-error?
 	    &decrypt-error decrypt-error?
+	    &encode-error encode-error?
+	    &decode-error decode-error?
 	    raise-encrypt-error
-	    raise-decrypt-error)
+	    raise-decrypt-error
+	    raise-encode-error
+	    raise-decode-error
+	    )
     (import (rnrs)
 	    (sagittarius crypto impl))
 
@@ -49,6 +56,12 @@
     make-decrypt-error decrypt-error?
     (mechanism condition-decrypt-mechanism))
 
+  (define-condition-type &encode-error &crypto-error
+    make-encode-error encode-error?)
+
+  (define-condition-type &decode-error &crypto-error
+    make-decode-error decode-error?)
+
   (define-syntax define-raise-error
     (syntax-rules ()
       ((_ name error)
@@ -62,4 +75,22 @@
 			       (make-irritants-condition irritants)))))))))
   (define-raise-error raise-encrypt-error make-encrypt-error)
   (define-raise-error raise-decrypt-error make-decrypt-error)
+
+  (define (raise-encode-error who message . irritants)
+    (raise
+     (apply condition
+	    (filter values
+		    (list (make-encode-error)
+			  (and who (make-who-condition who))
+			  (make-message-condition message)
+			  (make-irritants-condition irritants))))))
+
+  (define (raise-decode-error who message . irritants)
+    (raise
+     (apply condition
+	    (filter values
+		    (list (make-decode-error)
+			  (and who (make-who-condition who))
+			  (make-message-condition message)
+			  (make-irritants-condition irritants))))))
 )

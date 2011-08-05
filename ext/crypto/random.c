@@ -29,47 +29,76 @@
  *
  *  $Id: $
  */
-#include "crypto.h"
+#include "math.h"
+
+static void prng_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+{
+  Sg_Printf(port, UC("#<prng %A>"), SG_PRNG(self)->name);
+}
+
+SG_INIT_META_OBJ(Sg_PrngMeta, &prng_printer, NULL);
+
+static SgPrng* make_prng(int type, SgString *name)
+{
+  SgPrng *prng = SG_NEW(SgPrng);
+  SG_SET_META_OBJ(prng, SG_META_PRNG);
+  prng->type = type;
+  prng->name = name;
+  return prng;
+}
 
 static void finalize_prng(SgObject prng, void *data)
 {
-  prng_descriptor[SG_PRNG(prng)->wprng].done(&SG_PRNG(prng)->prng);
+  prng_descriptor[SG_PRNG(prng)->impl.builtin.wprng]
+    .done(&SG_PRNG(prng)->impl.builtin.prng);
 }
 
 SgObject Sg_MakePseudoRandom(SgString *name, int bits)
 {
   const char *cname = Sg_Utf32sToUtf8s(name);
-  int prng = find_prng(cname), err;
-  SgCrypto *crypto;
+  int wprng = find_prng(cname), err;
+  SgPrng *prng;
   
   if (prng == -1) {
     Sg_Error(UC("%A is not supported"), name);
     return SG_UNDEF;
   }
 
-  crypto = Sg_MakeCrypto(CRYPTO_PRNG);
-  SG_PRNG(crypto)->name = name;
-  SG_PRNG(crypto)->wprng = prng;
+  prng = make_prng(SG_BUILTIN_PRNG, name);
+  SG_PRNG(prng)->impl.builtin.wprng = wprng;
 
-  err = rng_make_prng(bits, prng, &SG_PRNG(crypto)->prng, NULL);
+  err = rng_make_prng(bits, wprng, &SG_PRNG(prng)->impl.builtin.prng, NULL);
   if (err != CRYPT_OK) {
-    Sg_Error(UC("Failed to initialize secure random: %A"), Sg_MakeStringC(error_to_string(err)));
+    Sg_Error(UC("Failed to initialize secure random: %A"),
+	     Sg_MakeStringC(error_to_string(err)));
     return SG_UNDEF;
   }
-  Sg_RegisterFinalizer(crypto, finalize_prng, NULL);
-  return SG_OBJ(crypto);
+  Sg_RegisterFinalizer(prng, finalize_prng, NULL);
+  return SG_OBJ(prng);
 }
 
-SgObject Sg_ReadRandomBytes(SgCrypto *prng, int size)
+SgObject Sg_ReadRandomBytes(SgPrng *prng, int size)
 {
-  SgByteVector *buf;
-  
-  ASSERT(SG_PRNG_P(prng));
-
-  buf = Sg_MakeByteVector(size, 0);
-  if (prng_descriptor[SG_PRNG(prng)->wprng].read(SG_BVECTOR_ELEMENTS(buf), size, &SG_PRNG(prng)->prng) != size) {
-    Sg_Error(UC("read random error"));
-    return SG_UNDEF;
+  SgByteVector *buf = Sg_MakeByteVector(size, 0);
+  switch (prng->type) {
+  case SG_BUILTIN_PRNG:
+    if (prng_descriptor[SG_PRNG(prng)->impl.builtin.wprng]
+	  .read(SG_BVECTOR_ELEMENTS(buf), size,
+		&SG_PRNG(prng)->impl.builtin.prng) != size) {
+      Sg_Error(UC("read random error"));
+      return SG_UNDEF;
+    }
+    break;
+  case SG_CUSTOM_PRNG:
+    Sg_Apply2(prng->impl.readRandom, buf, Sg_MakeInteger(size));
+    break;
   }
   return SG_OBJ(buf);
+}
+
+SgObject Sg_MakeCustomPrng(SgString *name, SgObject readRandom)
+{
+  SgPrng *prng = make_prng(SG_CUSTOM_PRNG, name);
+  prng->impl.readRandom = readRandom;
+  return SG_OBJ(prng);
 }

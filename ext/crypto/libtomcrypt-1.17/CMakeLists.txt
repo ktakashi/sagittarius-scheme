@@ -150,7 +150,7 @@ ADD_LIBRARY(prngs STATIC
   src/prngs/sober128.c
   src/prngs/sprng.c
   src/prngs/yarrow.c)
-TARGET_LINK_LIBRARIES(prngs hashes misc aes_enc)
+TARGET_LINK_LIBRARIES(prngs hashes misc aes_enc ciphers modes)
 
 SET(DUMMY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/libtomcrypt.c)
 ADD_LIBRARY(libtomcrypt STATIC

@@ -10,6 +10,8 @@
 	    cipher?
 	    encrypt
 	    decrypt
+	    signature
+	    verify
 	    ;; key
 	    key?
 	    generate-secret-key
@@ -28,13 +30,6 @@
 	    private-key?
 	    public-key
 	    public-key?
-	    ;; prime
-	    is-prime?
-	    ;; random number generator
-	    pseudo-random
-	    read-random-bytes
-	    random
-	    Yarrow Fortuna RC4 SOBER-128
 	    ;; padder
 	    pkcs5-padder
 	    pkcs-v1.5-padding
@@ -77,11 +72,15 @@
 	    &crypto-error crypto-error?
 	    &encrypt-error encrypt-error?
 	    &decrypt-error decrypt-error?
+	    &encode-error encode-error?
+	    &decode-error decode-error?
 	    raise-encrypt-error
-	    raise-decrypt-error)
+	    raise-decrypt-error
+	    raise-encode-error
+	    raise-decode-error)
     (import (crypto cipher)
-	    (crypto random)
-	    (crypto prime)
 	    (crypto key)
+	    (crypto pkcs)
+	    ;; for conditions
 	    (sagittarius crypto))
 )

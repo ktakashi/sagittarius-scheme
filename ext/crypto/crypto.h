@@ -41,7 +41,6 @@ typedef enum {
   CRYPTO_SYM_CIPHER,
   CRYPTO_PUB_CIPHER,
   CRYPTO_KEY,
-  CRYPTO_PRNG,
 } SgCryptoType;
 
 typedef enum {
@@ -130,16 +129,10 @@ typedef struct public_key_cipher_ret_t
   SgObject encrypter;		/* if key was public */
   SgObject decrypter;		/* if key was private */
   SgObject padder;
+  SgObject signer;
+  SgObject verifier;
 } public_key_cipher_t;
 
-
-/* pseudo random number generator */
-typedef struct SgPrngRec
-{
-  SgString  *name;
-  int        wprng;
-  prng_state prng;
-} SgPrng;
 
 typedef struct SgCryptoRec
 {
@@ -149,7 +142,6 @@ typedef struct SgCryptoRec
     symmetric_cipher_t  scipher;
     public_key_cipher_t pcipher;
     SgKey               key;
-    SgPrng   	        prng;
   } impl;
 } SgCrypto;
 
@@ -171,9 +163,6 @@ SG_DECLARE_META_OBJ(Sg_CryptoMeta);
   } while (0);
 
 
-#define SG_PRNG_P(obj) (SG_CRYPTO(obj)->type == CRYPTO_PRNG)
-#define SG_PRNG(obj)   (&(SG_CRYPTO(obj)->impl.prng))
-
 #define SG_KEY_P(obj) (SG_CRYPTO(obj)->type == CRYPTO_KEY)
 #define SG_KEY(obj)   (&(SG_CRYPTO(obj)->impl.key))
 
@@ -183,23 +172,20 @@ SG_DECLARE_META_OBJ(Sg_CryptoMeta);
 #define argumentAsKey(index, tmp_, var_)				\
   castArgumentType(index, tmp_, var_, key, SG_KEY_P, SG_CRYPTO)
 
-#define argumentAsPrng(index, tmp_, var_)				\
-  castArgumentType(index, tmp_, var_, prng, SG_PRNG_P, SG_CRYPTO)
-
 SgObject Sg_MakeCrypto(SgCryptoType type);
 
 SgObject Sg_MakeSymmetricCipher(SgString *name, SgCryptoMode mode, SgCrypto *key,
 				SgObject iv, int rounds, SgObject padder, int ctr_mode);
-SgObject Sg_MakePulicKeyCipher(SgObject name, SgObject key, SgObject encrypter,
-			       SgObject decrypter, SgObject padder);
+SgObject Sg_MakePublicKeyCipher(SgObject name, SgObject key, SgObject encrypter,
+				SgObject decrypter, SgObject padder, SgObject signer,
+				SgObject verifier);
 int      Sg_SuggestKeysize(SgString *name, int keysize);
 
 SgObject Sg_Encrypt(SgCrypto *crypto, SgByteVector *data);
 SgObject Sg_Decrypt(SgCrypto *crypto, SgByteVector *data);
 
-/* random */
-SgObject Sg_MakePseudoRandom(SgString *name, int bits);
-SgObject Sg_ReadRandomBytes(SgCrypto *prng, int size);
+SgObject Sg_Signature(SgCrypto *crypto, SgByteVector *data, SgObject opt);
+SgObject Sg_Verify(SgCrypto *crypto, SgByteVector *data, SgObject opt);
 
 /* keys */
 SgObject Sg_GenerateSecretKey(SgString *type, SgByteVector *key);

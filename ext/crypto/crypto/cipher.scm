@@ -9,8 +9,9 @@
 	    cipher?
 	    encrypt
 	    decrypt
-	    ;; padder
-	    pkcs5-padder
+	    ;; signing
+	    signature
+	    verify
 	    ;; supported algorithms
 	    Blowfish
 	    X-Tea
@@ -47,6 +48,7 @@
     (import (core)
 	    (core base)
 	    (crypto key)
+	    (crypto pkcs)
 	    (sagittarius)
 	    (sagittarius control)
 	    (sagittarius crypto))
@@ -85,26 +87,6 @@
 
   (define (cipher-keysize type test)
     (suggest-keysize type test))
-
-  ;; PKCS #5 padding.
-  ;; reference http://www.rsa.com/rsalabs/node.asp?id=2127
-  (define (pkcs5-padder bv block-size pad?)
-    (if pad?
-	(let* ((len (bytevector-length bv))
-	       (mod (modulo len block-size))
-	       (padding (- block-size mod)))
-	  (when (zero? padding)
-	    (set! padding 8))
-	  (let ((new (make-bytevector (+ len padding) 0)))
-	    ;; lazyness
-	    (bytevector-fill! new padding)
-	    (bytevector-copy! bv 0 new 0 len)
-	    new))
-	(let* ((len (bytevector-length bv))
-	       (pad (bytevector-u8-ref bv (- len 1)))
-	       (new (make-bytevector (- len pad) 0)))
-	  (bytevector-copy! bv 0 new 0 (- len pad))
-	  new)))
 
   (define-with-key (cipher type key 
 			   :key (mode MODE_ECB)

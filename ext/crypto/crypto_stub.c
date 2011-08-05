@@ -67,52 +67,6 @@ static SgObject _sagittarius_crypto_impl_generate_secret_key(SgObject *args, int
 static SG_DEFINE_SUBR(_sagittarius_crypto_impl_generate_secret_key_Stub, 2, 0, _sagittarius_crypto_impl_generate_secret_key, SG_FALSE, NULL);
 
 ;
-static SgObject _sagittarius_crypto_impl_make_pseudo_random(SgObject *args, int argc, void *data_)
-{
-  DeclareProcedureName("make-pseudo-random");
-  SgObject name_scm;
-  SgString *name;
-  SgObject bits_scm;
-  int bits;
-  checkArgumentLength(2);
-  argumentAsString(0, name_scm, name);
-  argumentAsFixnum(1, bits_scm, bits);
-  {
-    SgObject SG_RETURN = SG_UNDEF;
-    if (bits < 0) {
-      Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("positive integer"), SG_LITERAL_STRING), SG_MAKE_INT(bits), SG_NIL);
-    }
-;
-    SG_RETURN = (Sg_MakePseudoRandom(name, bits));
-    return SG_RETURN;
-  }
-}
-static SG_DEFINE_SUBR(_sagittarius_crypto_impl_make_pseudo_random_Stub, 2, 0, _sagittarius_crypto_impl_make_pseudo_random, SG_FALSE, NULL);
-
-;
-static SgObject _sagittarius_crypto_impl_read_random_bytes(SgObject *args, int argc, void *data_)
-{
-  DeclareProcedureName("read-random-bytes");
-  SgObject prng_scm;
-  SgPrng *prng;
-  SgObject size_scm;
-  int size;
-  checkArgumentLength(2);
-  argumentAsPrng(0, prng_scm, prng);
-  argumentAsFixnum(1, size_scm, size);
-  {
-    SgObject SG_RETURN = SG_UNDEF;
-    if (size < 0) {
-      Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("positive integer"), SG_LITERAL_STRING), SG_MAKE_INT(size), SG_NIL);
-    }
-;
-    SG_RETURN = (Sg_ReadRandomBytes(prng, size));
-    return SG_RETURN;
-  }
-}
-static SG_DEFINE_SUBR(_sagittarius_crypto_impl_read_random_bytes_Stub, 2, 0, _sagittarius_crypto_impl_read_random_bytes, SG_FALSE, NULL);
-
-;
 static SgObject _sagittarius_crypto_impl_make_symmetric_cipher(SgObject *args, int argc, void *data_)
 {
   DeclareProcedureName("make-symmetric-cipher");
@@ -163,23 +117,29 @@ static SgObject _sagittarius_crypto_impl_make_public_key_cipher(SgObject *args, 
   SgObject dec_scm;
   SgProcedure *dec;
   SgObject padder;
-  checkArgumentLength(5);
+  SgObject signer_scm;
+  SgProcedure *signer;
+  SgObject verifier_scm;
+  SgProcedure *verifier;
+  checkArgumentLength(7);
   argumentRef(0, name);
   argumentRef(1, key);
   argumentAsProcedure(2, enc_scm, enc);
   argumentAsProcedure(3, dec_scm, dec);
   argumentRef(4, padder);
+  argumentAsProcedure(5, signer_scm, signer);
+  argumentAsProcedure(6, verifier_scm, verifier);
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!((SG_FALSEP(padder) || SG_PROCEDUREP(padder)))) {
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), padder, SG_NIL);
     }
 ;
-    SG_RETURN = (Sg_MakePulicKeyCipher(name, key, enc, dec, padder));
+    SG_RETURN = (Sg_MakePublicKeyCipher(name, key, enc, dec, padder, signer, verifier));
     return SG_RETURN;
   }
 }
-static SG_DEFINE_SUBR(_sagittarius_crypto_impl_make_public_key_cipher_Stub, 5, 0, _sagittarius_crypto_impl_make_public_key_cipher, SG_FALSE, NULL);
+static SG_DEFINE_SUBR(_sagittarius_crypto_impl_make_public_key_cipher_Stub, 7, 0, _sagittarius_crypto_impl_make_public_key_cipher, SG_FALSE, NULL);
 
 ;
 static SgObject _sagittarius_crypto_impl_encrypt(SgObject *args, int argc, void *data_)
@@ -247,29 +207,79 @@ static SgObject _sagittarius_crypto_impl_suggest_keysize(SgObject *args, int arg
 static SG_DEFINE_SUBR(_sagittarius_crypto_impl_suggest_keysize_Stub, 2, 0, _sagittarius_crypto_impl_suggest_keysize, SG_FALSE, NULL);
 
 ;
+static SgObject _sagittarius_crypto_impl_signature(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("signature");
+  SgObject crypto_scm;
+  SgCrypto *crypto;
+  SgObject data_scm;
+  SgByteVector *data;
+  SgObject opt;
+  checkArgumentLengthAtLeast(2);
+  argumentAsCrypto(0, crypto_scm, crypto);
+  argumentAsByteVector(1, data_scm, data);
+  retrieveOptionalArguments(2, opt);
+  {
+    SgObject SG_RETURN = SG_UNDEF;
+    if (!(crypto->type == CRYPTO_PUB_CIPHER)) {
+      Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("publick key cipher"), SG_LITERAL_STRING), crypto, SG_NIL);
+    }
+;
+    SG_RETURN = (Sg_Signature(crypto, data, opt));
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_crypto_impl_signature_Stub, 2, 1, _sagittarius_crypto_impl_signature, SG_FALSE, NULL);
+
+;
+static SgObject _sagittarius_crypto_impl_verify(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("verify");
+  SgObject crypto_scm;
+  SgCrypto *crypto;
+  SgObject data_scm;
+  SgByteVector *data;
+  SgObject opt;
+  checkArgumentLengthAtLeast(2);
+  argumentAsCrypto(0, crypto_scm, crypto);
+  argumentAsByteVector(1, data_scm, data);
+  retrieveOptionalArguments(2, opt);
+  {
+    SgObject SG_RETURN = SG_UNDEF;
+    if (!(crypto->type == CRYPTO_PUB_CIPHER)) {
+      Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("publick key cipher"), SG_LITERAL_STRING), crypto, SG_NIL);
+    }
+;
+    SG_RETURN = (Sg_Verify(crypto, data, opt));
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_crypto_impl_verify_Stub, 2, 1, _sagittarius_crypto_impl_verify, SG_FALSE, NULL);
+
+;
 void Sg__Init_sagittarius_crypto_impl()
 {
   SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC("(sagittarius crypto impl)"), SG_LITERAL_STRING)), TRUE);
-  SG_PROCEDURE_NAME(&_sagittarius_crypto_impl_make_symmetric_cipher_Stub) = Sg_MakeString(UC("make-symmetric-cipher"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-symmetric-cipher"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_crypto_impl_make_symmetric_cipher_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_crypto_impl_generate_secret_key_Stub) = Sg_MakeString(UC("generate-secret-key"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("generate-secret-key"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_crypto_impl_generate_secret_key_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_crypto_impl_make_public_key_cipher_Stub) = Sg_MakeString(UC("make-public-key-cipher"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-public-key-cipher"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_crypto_impl_make_public_key_cipher_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_crypto_impl_cipher3f_Stub) = Sg_MakeString(UC("cipher?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cipher?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_crypto_impl_cipher3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_crypto_impl_make_pseudo_random_Stub) = Sg_MakeString(UC("make-pseudo-random"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-pseudo-random"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_crypto_impl_make_pseudo_random_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_crypto_impl_read_random_bytes_Stub) = Sg_MakeString(UC("read-random-bytes"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("read-random-bytes"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_crypto_impl_read_random_bytes_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_crypto_impl_decrypt_Stub) = Sg_MakeString(UC("decrypt"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("decrypt"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_crypto_impl_decrypt_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_crypto_impl_crypto_object3f_Stub) = Sg_MakeString(UC("crypto-object?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("crypto-object?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_crypto_impl_crypto_object3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_crypto_impl_suggest_keysize_Stub) = Sg_MakeString(UC("suggest-keysize"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("suggest-keysize"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_crypto_impl_suggest_keysize_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_crypto_impl_verify_Stub) = Sg_MakeString(UC("verify"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("verify"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_crypto_impl_verify_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_crypto_impl_make_symmetric_cipher_Stub) = Sg_MakeString(UC("make-symmetric-cipher"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-symmetric-cipher"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_crypto_impl_make_symmetric_cipher_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_crypto_impl_make_public_key_cipher_Stub) = Sg_MakeString(UC("make-public-key-cipher"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-public-key-cipher"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_crypto_impl_make_public_key_cipher_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_crypto_impl_key3f_Stub) = Sg_MakeString(UC("key?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("key?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_crypto_impl_key3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_crypto_impl_cipher3f_Stub) = Sg_MakeString(UC("cipher?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cipher?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_crypto_impl_cipher3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_crypto_impl_suggest_keysize_Stub) = Sg_MakeString(UC("suggest-keysize"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("suggest-keysize"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_crypto_impl_suggest_keysize_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_crypto_impl_encrypt_Stub) = Sg_MakeString(UC("encrypt"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("encrypt"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_crypto_impl_encrypt_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_crypto_impl_crypto_object3f_Stub) = Sg_MakeString(UC("crypto-object?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("crypto-object?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_crypto_impl_crypto_object3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_crypto_impl_signature_Stub) = Sg_MakeString(UC("signature"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("signature"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_crypto_impl_signature_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_crypto_impl_generate_secret_key_Stub) = Sg_MakeString(UC("generate-secret-key"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("generate-secret-key"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_crypto_impl_generate_secret_key_Stub));
 }
