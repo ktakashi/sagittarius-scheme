@@ -35,6 +35,8 @@
 	    pkcs-v1.5-padding
 	    PKCS-1-EME
 	    PKCS-1-EMSA
+	    pkcs1-emsa-pss-encode
+	    mgf-1
 	    ;; supported algorithms
 	    Blowfish
 	    X-Tea

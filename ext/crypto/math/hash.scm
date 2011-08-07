@@ -25,11 +25,12 @@
     (make-hash-algorithm name process))
 
   (define-with-key (hash type bv :key (process #f))
-    (let* ((algo (hash-algorithm type :process process))
+    (let* ((algo (if (hash-algorithm? type)
+		     type
+		     (hash-algorithm type :process process)))
 	   (out  (make-bytevector (hash-size algo) 0)))
       (hash-init! algo)
       (hash-process! algo bv)
       (hash-done! algo out)
       out))
-
 )

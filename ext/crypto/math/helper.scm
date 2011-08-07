@@ -16,7 +16,11 @@
 	  ((= i 0) ans))))
 
   (define-syntax align-size
-    (syntax-rules ()
+    (syntax-rules (bit)
+      ((_ (bit n))
+       (let ((bitlen n))
+	 (+ (bitwise-arithmetic-shift-right bitlen 3)
+	    (if (zero? (bitwise-and bitlen 7)) 0 1))))
       ((_ n)
        (let ((bitlen (bitwise-length n)))
 	 (+ (bitwise-arithmetic-shift-right bitlen 3)
