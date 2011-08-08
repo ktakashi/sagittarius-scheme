@@ -7,12 +7,16 @@
 	    pkcs5-padder
 	    ;; encoder
 	    pkcs1-emsa-pss-encode
+	    pkcs1-emsa-pss-verify
+	    pkcs1-emsa-v1.5-encode
+	    pkcs1-emsa-v1.5-verify
 	    mgf-1)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (math hash)
 	    (math helper)
 	    (math random)
+	    (sagittarius)
 	    (sagittarius control)
 	    (sagittarius crypto))
 
@@ -62,6 +66,7 @@
 	(bytevector-u32-set! buf len counter 'big)
 	(bytevector-copy! (hash hasher buf) 0 T (* counter len) len))))
 
+  ;; section 9.1.1
   (define-with-key (pkcs1-emsa-pss-encode m em-bits
 					  :key (algo :hash (hash-algorithm SHA-1))
 					       (mgf mgf-1)
@@ -105,4 +110,75 @@
 	      (bytevector-copy! H 0 EM m-len h-len)
 	      (bytevector-u8-set! EM (+ m-len h-len) #xBC)
 	      EM))))))
+
+  ;; section 9.1.2
+  (define-with-key (pkcs1-emsa-pss-verify m em em-bits
+					  :key (algo :hash (hash-algorithm SHA-1))
+					       (mgf mgf-1)
+					       (salt-length #f))
+    (unless salt-length
+      (set! salt-length (hash-size algo)))
+    (let ((hash-len (hash-size algo))
+	  (em-len   (align-size (bit em-bits))))
+      (when (and (< em-len (+ hash-len salt-length 2))
+		 (= #xbc (bytevector-u8-ref em (- (bytevector-length em) 1))))
+	(raise-decode-error 'pkcs1-emsa-pss-verify
+			    "inconsistent"))
+      (let* ((m-hash (hash algo m))	; step 2
+	     (mask-len (- em-len hash-len 1))
+	     (masked-db (make-bytevector mask-len 0))
+	     (H (make-bytevector hash-len 0))
+	     (limit (- (* 8 em-len) em-bits)))
+	;; step 5
+	(bytevector-copy! em 0 masked-db 0 mask-len)
+	(bytevector-copy! em mask-len H 0 hash-len)
+	;; step 6
+	;; check 8emLen - emBits of maskedDB
+	(do ((i 0 (+ i 1)))
+	    ((= i limit) #t)
+	  (unless (zero? (bytevector-u8-ref masked-db i))
+	    (raise-decode-error 'pkcs1-emsa-pss-verify
+			    "inconsistent")))
+	(let* ((db-mask (mgf H mask-len algo))
+	       (DB (bytevector-xor masked-db db-mask))
+	       (limit2 (- em-len hash-len salt-length 2)))
+	  (do ((i 0 (+ i 1)))
+	      ((= i limit) #t)
+	    (bytevector-u8-set! DB i 0))
+	  ;; check emLen - hLen - sLen - 2 leftmost octers
+	  (do ((i 0 (+ i 1)))
+	      ((= i limit2) #t)
+	    (unless (zero? (bytevector-u8-ref DB i))
+	      (raise-decode-error 'pkcs1-emsa-pss-verify
+			    "inconsistent")))
+	  ;; check if position emLen - hLen - sLen - 1 have 0x01
+	  (unless (= #x01 (bytevector-u8-ref DB limit2))
+	    (raise-decode-error 'pkcs1-emsa-pss-verify
+				"inconsistent"))
+	  (let ((salt (make-bytevector salt-length 0)))
+	    (bytevector-copy! DB (- (bytevector-length DB) salt-length) salt 0 salt-length)
+	    (let ((m-dash (make-bytevector (+ 8 hash-len salt-length) 0)))
+	      (bytevector-copy! m-hash 0 m-dash 8 hash-len)
+	      (bytevector-copy! salt 0 m-dash (+ 8 hash-len) salt-length)
+	      (let ((h-dash (hash algo m-dash)))
+		(if (bytevector=? H h-dash)
+		    #t
+		    (raise-decode-error 'pkcs1-emsa-pss-verify
+				"inconsistent")))))))))
+
+  ;; section 9.2
+  (define-with-key (pkcs1-emsa-v1.5-encode m em-bits
+					   :key (algo :hash (hash-algorithm SHA-1)))
+    
+    (implementation-restriction-violation 'pkcs1-emsa-v1.5-encode
+					  "not supported yet. this will be supported after ASN.1 was implemented")
+    )
+
+  (define-with-key (pkcs1-emsa-v1.5-verify m em em-bits
+					   :key (algo :hash (hash-algorithm SHA-1)))
+    
+    (implementation-restriction-violation 'pkcs1-emsa-v1.5-verify
+					  "not supported yet. this will be supported after ASN.1 was implemented")
+    )
+
 )

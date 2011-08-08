@@ -179,18 +179,26 @@
       (rsa-mod-expt bv key)))
 
 
-  (define-with-key (rsa-sign bv key :key (padding pkcs-1-rsassa-pss)
+  (define-with-key (rsa-sign bv key :key (encode pkcs1-emsa-pss-encode)
 				    :allow-other-keys opt)
     (or (rsa-private-key? key)
 	(raise-encrypt-error 'rsa-sign "invalid key" 'RSA))
     (let* ((modulus (rsa-private-key-modulus key))
-	   (len (align-size modulus))
-	   (data (apply padding bv len opt)))
+	   (len (bitwise-length modulus))
+	   (data (apply encode bv len opt)))
       (rsa-mod-expt data key)))
 
-  (define (rsa-verify bv key . opt)
-    (assertion-violation 'rsa-verify
-			 "not supported yet"))
+  (define-with-key (rsa-verify M S key :key (verify pkcs1-emsa-pss-verify)
+				       :allow-other-keys opt)
+    (or (rsa-public-key? key)
+	(raise-decrypt-error 'rsa-verify "invalid key" 'RSA))
+    (let* ((modulus (rsa-public-key-modulus key))
+	   (k       (align-size modulus)))
+      ;; length check
+      (unless (= k (bytevector-length S))
+	(raise-decrypt-error 'rsa-verify "invalid signature" 'RSA))
+      (let ((EM (rsa-mod-expt S key)))
+	(apply verify M EM (bitwise-length modulus) opt))))
       
   ;; padding
   ;; PKCS#1 EME
@@ -261,84 +269,4 @@
       (if pad?
 	  (encode data modulus)
 	  (decode data modulus)))))
-
-  ;; this method works with side effect
-  (define (pkcs-1-mgf1 hash seed seed-length mask mask-length)
-    (let* ((hash-len (hash-size hash))
-	   (buf4 (make-bytevector 4 0))
-	   (buf  (make-bytevector hash-len)))
-      (do ((counter 0 (+ counter 1))
-	   (i 0))
-	  ((zero? mask-length) mask)
-	(bytevector-u32-set! buf4 0 counter 'big)
-	(hash-init! hash)
-	(hash-process! hash seed)
-	(hash-process! hash buf4)
-	(hash-done! hash buf)
-	(set! mask-length (do ((x 0 (+ x 1)) (m mask-length (- m 1)))
-			      ((or (= x hash-len) (zero? m)) m)
-			    (bytevector-u8-set! mask i (bytevector-u8-ref buf x))
-			    (set! i (+ i 1)))))
-      mask))
-  
-  (define-with-key (pkcs-1-rsassa-pss data modulue-length
-				      :key (prng (pseudo-random RC4))
-					   (algo :hash (hash-algorithm SHA-512))
-					   (mgf  pkcs-1-mgf1)
-					   (salt-length #f))
-    (define 8byte-null-u8 (make-bytevector 8 0))
-    (unless salt-length
-      (set! salt-length (hash-size algo)))
-    (let ((hash-len (hash-size algo)))
-      ;; size check
-      (when (or (> salt-length modulue-length)
-		(< modulue-length (+ hash-len salt-length 2)))
-	(raise-encode-error 'pkcs-1-rsassa-pss
-			    "invalid size" hash))
-      (let ((DB   (make-bytevector modulue-length 0))
-	    (salt (make-bytevector modulue-length 0))
-	    (out  (make-bytevector modulue-length 0))
-	    (hash (make-bytevector modulue-length 0))
-	    (mask (make-bytevector modulue-length 0))
-	    (rand (read-random-bytes prng salt-length)))
-	(bytevector-copy! salt 0 rand 0 salt-length)
-	(hash-init! algo)
-	(hash-process! algo 8byte-null-u8)
-	(hash-process! algo data)
-	(hash-process! algo salt)
-	(hash-done! algo out)
-	;; generate DB = PS || 0x01 || salt,
-	;; PS == modulue-length - salt-length - hash-len - 2 zero bytes
-	(let ((limit (- modulue-length salt-length hash-len 2)))
-	  (do ((x 0 (+ x 1)))
-	      ((= x limit)
-	       ;; ugly
-	       (begin
-		 (bytevector-u8-set! DB x 1)
-		 (set! x (+ x 1))
-		 (bytevector-copy! DB x salt 0 salt-length)))
-	    (bytevector-u8-set! DB x 0))
-	  ;; generate mask of length modulue-length - hash-len - 1 from hash
-	  (let ((limit (- modulue-length hash-len 1)))
-	    (mgf algo out hash-len mask limit)
-	    ;; xor against DB
-	    (do ((i 0 (+ i 1)))
-		((= i limit) i)
-	      (bytevector-u8-set! DB i
-				  (bitwise-xor
-				   (bytevector-u8-ref DB i)
-				   (bytevector-u8-ref mask i))))
-	    ;; output is DB || hash || 0xBC
-	    (bytevector-copy! out 0 DB 0 limit)
-	    (bytevector-copy! out limit hash 0 hash-len)
-	    (bytevector-u8-set! out (+ limit hash-len) #xBC)
-	    ;; clear
-	    (bytevector-u8-set! out 0
-				(bitwise-and (bytevector-u8-ref out 0)
-					     (bitwise-arithmetic-shift-right #xFF
-									     (- (bitwise-arithmetic-shift-left modulue-length 3)
-										(- modulue-length 1)))))
-	    out)))))
-
-	
 )

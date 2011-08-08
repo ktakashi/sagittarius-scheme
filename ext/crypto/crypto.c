@@ -311,11 +311,7 @@ SgObject Sg_Decrypt(SgCrypto *crypto, SgByteVector *data)
 static SgObject apply_with_option(SgObject proc, SgObject data, SgObject key,
 				  SgObject opt)
 {
-  SgObject h = SG_NIL, t = SG_NIL;
-  SG_APPEND1(h, t, data);
-  SG_APPEND1(h, t, key);
-  SG_APPEND(h, t, opt);
-  return Sg_Apply(proc, h);
+
 }
 
 SgObject Sg_Signature(SgCrypto *crypto, SgByteVector *data, SgObject opt)
@@ -324,24 +320,33 @@ SgObject Sg_Signature(SgCrypto *crypto, SgByteVector *data, SgObject opt)
   case CRYPTO_SYM_CIPHER:
     Sg_Error(UC("symmetric cipher does not support signing, %S"), crypto);
     break;
-  case CRYPTO_PUB_CIPHER:
-    return apply_with_option(SG_PCIPHER(crypto)->signer, data,
-			     SG_PCIPHER(crypto)->key, opt);
+  case CRYPTO_PUB_CIPHER: {
+    SgObject h = SG_NIL, t = SG_NIL;
+    SG_APPEND1(h, t, data);
+    SG_APPEND1(h, t, SG_PCIPHER(crypto)->key);
+    SG_APPEND(h, t, opt);
+    return Sg_Apply(SG_PCIPHER(crypto)->signer, h);
+  }
   default:
     Sg_Error(UC("decrypt requires cipher, but got %S"), crypto);
   }
   return SG_UNDEF;		/* dummy */
 }
 
-SgObject Sg_Verify(SgCrypto *crypto, SgByteVector *data, SgObject opt)
+SgObject Sg_Verify(SgCrypto *crypto, SgByteVector *M, SgByteVector *S, SgObject opt)
 {
   switch (crypto->type) {
   case CRYPTO_SYM_CIPHER:
     Sg_Error(UC("symmetric cipher does not support verify, %S"), crypto);
     break;
-  case CRYPTO_PUB_CIPHER:
-    return apply_with_option(SG_PCIPHER(crypto)->verifier, data,
-			     SG_PCIPHER(crypto)->key, opt);
+  case CRYPTO_PUB_CIPHER: {
+    SgObject h = SG_NIL, t = SG_NIL;
+    SG_APPEND1(h, t, M);
+    SG_APPEND1(h, t, S);
+    SG_APPEND1(h, t, SG_PCIPHER(crypto)->key);
+    SG_APPEND(h, t, opt);
+    return Sg_Apply(SG_PCIPHER(crypto)->verifier, h);
+  }
   default:
     Sg_Error(UC("decrypt requires cipher, but got %S"), crypto);
   }

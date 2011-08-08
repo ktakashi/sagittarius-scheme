@@ -20,10 +20,7 @@
 	    ;; padding
 	    pkcs-v1.5-padding
 	    PKCS-1-EME
-	    PKCS-1-EMSA
-	    ;; sign
-	    sign
-	    verify)
+	    PKCS-1-EMSA)
     (import (core)
 	    (sagittarius)
 	    (sagittarius control)

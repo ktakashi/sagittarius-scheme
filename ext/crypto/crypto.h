@@ -185,7 +185,7 @@ SgObject Sg_Encrypt(SgCrypto *crypto, SgByteVector *data);
 SgObject Sg_Decrypt(SgCrypto *crypto, SgByteVector *data);
 
 SgObject Sg_Signature(SgCrypto *crypto, SgByteVector *data, SgObject opt);
-SgObject Sg_Verify(SgCrypto *crypto, SgByteVector *data, SgObject opt);
+SgObject Sg_Verify(SgCrypto *crypto, SgByteVector *M, SgByteVector *S, SgObject opt);
 
 /* keys */
 SgObject Sg_GenerateSecretKey(SgString *type, SgByteVector *key);

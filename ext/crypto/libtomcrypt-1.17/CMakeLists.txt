@@ -1,5 +1,9 @@
 # -*- mode: cmake; coding: utf-8; -*-
 # Build file for libtomcrypt
+#
+# We only use some of the modules, so the source tree is not completed.
+# If you want to see orignal libtomcrypt, see http://libtom.org
+#
 # This file was written by Takashi Kato and not a part of libtomcrypt.
 # 
 

@@ -70,17 +70,17 @@
 
 
   ;; sign
-  (define-c-proc signature (crypto::Crypto data::ByteVector :rest opt) ::Object
+  (define-c-proc sign (crypto::Crypto data::ByteVector :rest opt) ::Object
     (unless (== (-> crypto type) CRYPTO_PUB_CIPHER)
       (Sg_WrongTypeOfArgumentViolation procedureName
 				       (Sg_MakeString "publick key cipher" SG_LITERAL_STRING)
 				       crypto '()))
     (result (Sg_Signature crypto data opt)))
 
-  (define-c-proc verify (crypto::Crypto data::ByteVector :rest opt) ::Object
+  (define-c-proc verify (crypto::Crypto M::ByteVector S::ByteVector :rest opt) ::Object
     (unless (== (-> crypto type) CRYPTO_PUB_CIPHER)
       (Sg_WrongTypeOfArgumentViolation procedureName
 				       (Sg_MakeString "publick key cipher" SG_LITERAL_STRING)
 				       crypto '()))
-    (result (Sg_Verify crypto data opt)))
+    (result (Sg_Verify crypto M S opt)))
 )

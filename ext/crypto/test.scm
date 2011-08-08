@@ -89,6 +89,9 @@
     ;; #xFE is invalid
     #vu8(1 255 255 255 255 255 255 255 255 255 255 #xFE 255 255 255 255 255 255 0 116 101 115 116 32 109 101 115 115 97 103 101))
 
+  ;; 1024 bits takes too long. 512 bits can be durable.
+  (define key-pair (generate-key-pair RSA :size 512))
+
   (define (run-crypto-test)
     ;; basic test
     (test-assert "crypto-object?" (crypto-object? des/cbc-cipher))
@@ -190,5 +193,28 @@
     (test-equal "MD5 hash"
 		#vu8(#xC7 #x2B #x96 #x98 #xFA #x19 #x27 #xE1 #xDD #x12 #xD3 #xCF #x26 #xED #x84 #xB2)
 		(hash MD5 valid-rsa-message))
+
+    ;; PKCS#1 EMSA-PSS test
+    (test-assert "PKCS#1 EMSA-PSS"
+		 (let ((encoded (pkcs1-emsa-pss-encode valid-rsa-message 1024)))
+		   (pkcs1-emsa-pss-verify valid-rsa-message encoded 1024)))
+
+    (test-assert "Verify with EMSA-PSS and SHA-1"
+		 (let* ((rsa-sign-cipher (cipher RSA (keypair-private key-pair)))
+			(rsa-verify-cipher (cipher RSA (keypair-public key-pair)))
+			(em (sign rsa-sign-cipher valid-rsa-message)))
+		   (verify rsa-verify-cipher valid-rsa-message em)))
+
+    (test-assert "Verify with EMSA-PSS and MD5"
+		 (let* ((rsa-sign-cipher (cipher RSA (keypair-private key-pair)))
+			(rsa-verify-cipher (cipher RSA (keypair-public key-pair)))
+			(em (sign rsa-sign-cipher valid-rsa-message :hash (hash-algorithm MD5))))
+		   (verify rsa-verify-cipher valid-rsa-message em :hash (hash-algorithm MD5))))
+
+    (test-assert "Verify with PKCS1-v1.5"
+		 (let* ((rsa-sign-cipher (cipher RSA (keypair-private key-pair)))
+			(rsa-verify-cipher (cipher RSA (keypair-public key-pair)))
+			(em (sign rsa-sign-cipher valid-rsa-message :encode pkcs1-emsa-v1.5-encode)))
+		   (verify rsa-verify-cipher valid-rsa-message em :verify pkcs1-emsa-v1.5-verify)))
     )
 )

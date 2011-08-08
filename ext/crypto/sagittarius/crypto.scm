@@ -12,7 +12,7 @@
 	    encrypt
 	    decrypt
 	    suggest-keysize
-	    signature
+	    sign
 	    verify
 	    ;; key
 	    key

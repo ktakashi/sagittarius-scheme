@@ -10,7 +10,7 @@
 	    cipher?
 	    encrypt
 	    decrypt
-	    signature
+	    sign
 	    verify
 	    ;; key
 	    key?
@@ -36,6 +36,7 @@
 	    PKCS-1-EME
 	    PKCS-1-EMSA
 	    pkcs1-emsa-pss-encode
+	    pkcs1-emsa-pss-verify
 	    mgf-1
 	    ;; supported algorithms
 	    Blowfish
