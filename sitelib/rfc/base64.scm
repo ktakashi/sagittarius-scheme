@@ -35,6 +35,7 @@
 	    (core base)
 	    (core syntax)
 	    (core errors)
+	    (sagittarius)
 	    (sagittarius control))
 
   (define *decode-table*

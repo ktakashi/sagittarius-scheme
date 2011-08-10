@@ -74,7 +74,7 @@
 
 	    ;; io
 	    port-closed? format write/ss
-	    make-codec
+	    make-codec port-info
 
 	    ;; profiler
 	    profiler-start profiler-stop profiler-reset
@@ -82,6 +82,7 @@
 
 	    ;; keyword
 	    make-keyword
+	    keyword?
 
 	    ;; cache
 	    clean-cache
@@ -466,6 +467,16 @@
   (define-c-proc make-codec (name::Symbol g::Procedure p::Procedure data) ::Object
     (result (Sg_MakeCustomCodecSimple name g p data)))
 
+  (define-c-proc port-info (p::Port) ::Object
+    (let ((file (Sg_FileName p))
+	  (line #f)
+	  (pos #f))
+      (when (SG_TEXTUAL_PORTP p)
+	(set! line (SG_MAKE_INT (Sg_LineNo p))))
+      (when (Sg_HasPortPosition p)
+	(set! pos (SG_MAKE_INT (Sg_PortPosition p))))
+      (result (SG_LIST3 file line pos))))
+
   ;; profiler
   (define-c-proc profiler-start () ::void
     (Sg_ProfilerStart))
@@ -480,6 +491,9 @@
   ;; keyword
   (define-c-proc make-keyword (key::Symbol) ::Object
     (result (Sg_MakeKeyword (-> (SG_SYMBOL key) name))))
+
+  (define-c-proc keyword? (o) ::boolean
+    (result (SG_KEYWORDP o)))
 
   ;; cache
   (define-c-proc clean-cache () ::void

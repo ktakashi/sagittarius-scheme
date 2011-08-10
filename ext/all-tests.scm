@@ -11,10 +11,10 @@
 
 (test-begin "extension test")
 ;; time must be first. it is used in thread test
-;(run-time-test)
-;(run-socket-test)
+(run-time-test)
+(run-socket-test)
 ;(run-threads-test)
-;(run-regex-test)
-;(run-ffi-test)
+(run-regex-test)
+(run-ffi-test)
 (run-crypto-test)
 (test-end)

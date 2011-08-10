@@ -329,9 +329,6 @@
 	    ;; 12.5
 	    identifier? bound-identifier=? free-identifier=?
 	    
-	    ;; conditions
-	    keyword?
-
 	    ;; 13 Hashtables
 	    ;; 13.1 constructors
 	    make-eq-hashtable
@@ -3736,10 +3733,6 @@
       (assertion-violation 'string-set! "attempted to modify an immutable string"
 			   s))
     (Sg_StringFill s (SG_CHAR_VALUE c) start end))
-
-  ;; conditions
-  (define-c-proc keyword? (o) ::boolean
-    (result (SG_KEYWORDP o)))
 
   ;; conditions
   (define-c-proc condition (:rest components) ::Object

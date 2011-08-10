@@ -2120,7 +2120,7 @@
        (var)
        (let
         ((r (p1env-lookup p1env var LEXICAL)))
-        (if (lvar? r) r (make-lvar var))))
+        (if (and (identifier? var) (lvar? r)) r (make-lvar var))))
       vars))
     (newenv (p1env-extend p1env (%map-cons vars lvars) LEXICAL)))
    (cond
