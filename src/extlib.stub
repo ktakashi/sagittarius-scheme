@@ -20,7 +20,7 @@
 
 	    ;; list
 	    circular-list? dotted-list?
-	    reverse!
+	    reverse! acons append!
 
 	    ;; vector
 	    vector-copy
@@ -184,6 +184,21 @@
 
   (define-c-proc reverse! (lis) ::Object
     (result (Sg_ReverseX lis)))
+
+  (define-c-proc acons (a b alist) ::Object
+    (result (Sg_Acons a b alist)))
+
+  (define-c-proc append! (:rest lst) ::Object
+    (let ((h '()) (t '()))
+      (dopairs (cp lst)
+	(when (and (not (SG_PAIRP (SG_CAR cp)))
+		   (SG_NULLP (SG_CDR cp)))
+	  (if (SG_NULLP h)
+	      (set! h (SG_CAR cp))
+	      (SG_SET_CDR t (SG_CAR cp)))
+	  (break))
+	(SG_APPEND h t (SG_CAR cp)))
+      (result h)))
 
   ;; vector
   (define-c-proc vector-copy (vec::Vector :optional (start::fixnum 0)

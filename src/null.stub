@@ -50,7 +50,6 @@
 	    list? list length append reverse
 	    list-tail list-ref
 	    ;; map for-each ;; these are in scmlib.scm
-	    acons append! ;; misc
 	    list-transpose+ last-pair
 
 	    ;; 11.10 symbols
@@ -958,20 +957,6 @@
   (define-c-proc list-ref (lst k::fixnum :optional fallback) ::Object
     (result (Sg_ListRef lst k fallback)))
   ;; list miscs
-  (define-c-proc acons (a b alist) ::Object
-    (result (Sg_Acons a b alist)))
-
-  (define-c-proc append! (:rest lst) ::Object
-    (let ((h '()) (t '()))
-      (dopairs (cp lst)
-	(when (and (not (SG_PAIRP (SG_CAR cp)))
-		   (SG_NULLP (SG_CDR cp)))
-	  (if (SG_NULLP h)
-	      (set! h (SG_CAR cp))
-	      (SG_SET_CDR t (SG_CAR cp)))
-	  (break))
-	(SG_APPEND h t (SG_CAR cp)))
-      (result h)))
 
 ;;  (define-cgen-stmt do-transpose
 ;;    ((_ lst)
@@ -3702,10 +3687,17 @@
     (result (Sg_Environment (Sg_VMCurrentLibrary) (Sg_Cons spec more))))
 
   ;; 17 mutable pairs
+  (define-cgen-stmt check-pair
+    ((_ name c)
+     (dispatch
+      `(unless (SG_PAIRP ,c)
+	 (wrong-type-of-argument-violation ',name "pair" ,c)))))
   (define-c-proc set-car! (o v) ::void
+    (check-pair set-car! o)
     (SG_SET_CAR o v))
 
   (define-c-proc set-cdr! (o v) ::void
+    (check-pair set-cdr! o)
     (SG_SET_CDR o v))
 
   ;; 18 mutable strings

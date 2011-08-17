@@ -82,6 +82,9 @@
      encode-tag
      ;; condition
      &asn.1-error asn.1-error?
+     raise-asn.1-error
+     ;; misc
+     *base-types*
      )
     (import (rnrs)
 	    (sagittarius)
@@ -184,11 +187,49 @@
     (raise
      (apply condition
 	    (filter values
-		    (make-asn.1-error)
-		    (and who (make-who-condition who))
-		    (make-message-condition message)
-		    (make-irritants-condition irritants)))))
+		    (list (make-asn.1-error)
+			  (and who (make-who-condition who))
+			  (make-message-condition message)
+			  (make-irritants-condition irritants))))))
 
+  ;; for compiler
+  (define *base-types*
+    `(("BOOLEAN"      	      ,TAG_BOOLEAN     	     . BOOLEAN)
+      ("INTEGER"      	      ,TAG_INTEGER     	     . INTEGER)
+      ("BIT-STRING"   	      ,TAG_BIT_STRING  	     . BIT-STRING)
+      ("OCTET-STRING" 	      ,TAG_OCTET_STRING	     . STRING)
+      ("STRING"       	      ,TAG_OCTET_STRING	     . STRING)
+      ("NULL"         	      ,TAG_NULL        	     . NULL)
+      ("OBJECT-IDENTIFIER"    ,TAG_OBJECT_DESCRIPTOR . OBJECT-IDENTIFIER)
+      ("REAL"                 ,TAG_REAL              . REAL)
+      ("ENUMERATED"           ,TAG_ENUMERATED        . INTEGER)
+      ("ENUM"                 ,TAG_ENUMERATED        . INTEGER)
+      ("RELATIVE-OID"         ,TAG_RELATIVE_OID      . ROID)
+
+      ("SEQUENCE"             ,(bitwise-ior TAG_SEQUENCE TAG_CONSTRUCTIVE) . SEQUENCE)
+      ("SET"                  ,(bitwise-ior TAG_SET      TAG_CONSTRUCTIVE) . SET)
+
+      ("ObjectDescriptor"     ,TAG_OBJECT_DESCRIPTOR . STRING)
+      ("UTF8String"           ,TAG_UTF8_STRING       . STRING)
+      ("NumericString"        ,TAG_NUMERIC_STRING    . STRING)
+      ("TeletexString"        ,TAG_TELETEX_STRING    . STRING)
+      ("T61String"            ,TAG_TELETEX_STRING    . STRING)
+      ("VideotexString"       ,TAG_VIDEOTEX_STRING   . STRING)
+      ("IA5String"            ,TAG_IA5_STRING        . STRING)
+      ("UTCTime"              ,TAG_UTC_TIME          . UTIME)
+      ("GeneralizedTime"      ,TAG_GENERALIZED_TIME  . GTIME)
+      ("GraphicString"        ,TAG_GRAPHIC_STRING    . STRING)
+      ("VisibleString"        ,TAG_VISIBLE_STRING    . STRING)
+      ("ISO646String"         ,TAG_VISIBLE_STRING    . STRING)
+      ("GeneralString"        ,TAG_GENERAL_STRING    . STRING)
+      ("CharacterString"      ,TAG_CHARACTER_STRING  . STRING)
+      ("UniversalString"      ,TAG_CHARACTER_STRING  . STRING)
+      ("BMPString"            ,TAG_BMP_STRING        . STRING)
+      ("BCDString"            ,TAG_OCTET_STRING      . BCD)
+
+      ("CHOICE" #f . CHOICE)
+      ("ANY"    #f . ANY)))
+      
 )
 
 ;; Local Variables:

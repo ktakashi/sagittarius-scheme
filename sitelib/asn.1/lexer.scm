@@ -56,7 +56,7 @@
       ("PRIVATE"     . ,CLASS_PRIVATE)
       ("CONTEXT"     . ,CLASS_CONTEXT)))
 
-  (define word-charset (string->char-set "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-"))
+  (define word-charset (string->char-set "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789_-"))
   (define class-charset (string->char-set "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"))
 
   (define (make-lexer inport)
@@ -86,6 +86,7 @@
 			      (char=? ch #\{) (char=? ch #\}))
 			  (when (char=? ch #\})
 			    (append! stacked (list 'POSTBRACE)))
+			  (get-char inport) ;; discard char
 			  (let ((slot (assv ch reserved-char)))
 			    (make-lexical-token (cdr slot) location (list->string (list ch)))))
 			 ;; we treat assign special way.

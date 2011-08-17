@@ -97,7 +97,7 @@
 (declare-procedure car (l) (:inline CAR) :null car)
 (declare-procedure cdr (l) (:inline CDR) :null cdr)
 (declare-procedure cons (a b) (:inline CONS) :null cons)
-(declare-procedure acons (a b c) (:inline -1) :null acons)
+(declare-procedure acons (a b c) (:inline -1) :sagittarius acons)
 
 ;; conditions
 (declare-procedure null? (x) (:inline NULLP) :null null?)

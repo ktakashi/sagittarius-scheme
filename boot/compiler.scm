@@ -3687,7 +3687,7 @@
       (-
        (scheme-error 'vector-set! "wrong number of arguments" form)))))
 
-(define-builtin-inliner acons :null
+(define-builtin-inliner acons :sagittarius
   (lambda (form p1env)
     (smatch form
       ((- a b c)

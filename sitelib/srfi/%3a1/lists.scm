@@ -77,7 +77,7 @@
     cddadr cddar cdddar cddddr cdddr cddr cdr assv assq)
    (rename (rnrs) (for-all every) (exists any))
    (only (rnrs mutable-pairs) set-cdr! set-car!)
-   (only (sagittarius) circular-list? dotted-list? reverse!)
+   (only (sagittarius) circular-list? dotted-list? reverse! acons append!)
    (only (sagittarius control) check-arg)
    (only (core) receive last-pair)
    (only (core base) split-at null-list? delete lset-intersection take drop fold lset-difference assoc member find find-tail)
@@ -1376,7 +1376,8 @@
 ;;    [(x lis =)
 ;;     (find (lambda (entry) (= x (car entry))) lis)]))
 
-(define (alist-cons key datum alist) (cons (cons key datum) alist))
+;;(define (alist-cons key datum alist) (cons (cons key datum) alist))
+(define alist-cons acons)
 
 (define (alist-copy alist)
   (map (lambda (elt) (cons (car elt) (cdr elt)))

@@ -14,29 +14,35 @@
    (WORD CLASS SEQUENCE SET CHOICE OF IMPLICIT EXPLICIT OPTIONAL LBRACE RBRACE
 	 COMMA ANY ASSIGN NUMBER ENUM COMPONENTS POSTRBRACE DEFINED BY)
    ;; rules
-   (top (slist)  : (cons '() $1)
-	(module) : $1
+   (top (slist)  : (list (cons '() $1))
+	(module)
 	)
 
-   (module (WORD ASSIGN aitem)        : (cons $1 (list $3))
-	   (module WORD ASSIGN aitem) : (begin (set-cdr! (assq $2 $1) $4) $1)
+   (module (WORD ASSIGN aitem)        : (list (cons $1 (list $3)))
+	   (module WORD ASSIGN aitem) : (cond ((assoc $2 $1)
+					       => (lambda (slot)
+						    (set-cdr! slot (list $4))
+						    $1))
+					      (else (append! $1 (list (list $2 $4)))))
 	   )
 
    (aitem (class plicit anyelem postrb) : (begin 
 					    (asn.1-type-tag-set! $3 $1)
 					    (if $2 (tag-explicit! $3) $3))
-	  (celem) : $1
+	  (celem)
 	  )
 
-   (anyelem (onelem) : $1
-	    (eelem)  : $1
-	    (oelem)  : $1
-	    (selem)  : $1
+   (anyelem (onelem)
+	    (eelem)
+	    (oelem)
+	    (selem)
 	    )
 
-   (celem (COMPONENTS OF WORD) : (make-asn.1-type :type $1 :child $2))
-   (seqset (SEQUENCE) : $1
-	   (SET)      : $1
+   (celem (COMPONENTS OF WORD) : (make-asn.1-type :type $1 :child $3)
+	  )
+
+   (seqset (SEQUENCE)
+	   (SET)
 	   )
 
    (selem (seqset OF class plicit sselem optional)
@@ -47,9 +53,9 @@
 		(if $4 (tag-explicit! ret) ret)))
 	  )
 
-   (sselem (eelem)  : $1
-	   (oelem)  : $1
-	   (onelem) : $1
+   (sselem (eelem)
+	   (oelem)
+	   (onelem)
 	   )
 
    (onelem (SEQUENCE LBRACE slist RBRACE) : (make-asn.1-type :type $1 :child $3)
@@ -69,7 +75,7 @@
    (defined ()                : '()
             (DEFINED BY WORD) : $3)
 
-   (oelem (oielem) : $1
+   (oelem (oielem)
 	  )
 
    (nlist (nlist1)            : $1
@@ -77,8 +83,8 @@
 	  )
 
    (nlist1 (nitem)                   : (list $1)
-	   (nlist1 POSTRBRACE nitem) : (append! $1 $3)
-	   (nlist1 COMMA nitem)      : (append! $1 $3)
+	   (nlist1 POSTRBRACE nitem) : (append! $1 (list $3))
+	   (nlist1 COMMA nitem)      : (append! $1 (list $3))
 	   )
 
    (nitem (WORD class plicit anyelem)
@@ -88,19 +94,20 @@
 	      (if $3 (tag-explicit! ret) ret))
 	  )
 
-   (slist (slist1)            : $1
+   (slist ()                  : '()
+	  (slist1)            : $1
 	  (slist1 POSTRBRACE) : $1
 	  )
 
    (slist1 (sitem)                   : (list $1)
-	   (slist1 COMMA sitem)      : (append! $1 $3)
-	   (slist1 POSTRBRACE sitem) : (append! $1 $3)
+	   (slist1 COMMA sitem)      : (append! $1 (list $3))
+	   (slist1 POSTRBRACE sitem) : (append! $1 (list $3))
 	   )
 
    (snitem (oelem optional) : (begin (asn.1-type-optional-set! $1 $2) $1)
-	   (eelem)          : $1
-	   (selem)          : $1
-	   (onelem)         : $1
+	   (eelem)
+	   (selem)
+	   (onelem)
 	   )
 
    (sitem (WORD class plicit snitem)
@@ -108,7 +115,7 @@
 	      (asn.1-type-name-set! ret $1)
 	      (asn.1-type-tag-set! ret $2)
 	      (if $3 (tag-explicit! ret) ret))
-	  (celem) : $1
+	  (celem)
 	  (class plicit onelem)
 	  : (let ((ret $3))
 	      (asn.1-type-tag-set! $1)
@@ -119,7 +126,7 @@
 	     (OPTIONAL) : #t
 	     )
 
-   (class ()      : '()
+   (class ()      : #f
 	  (CLASS)
 	  )
 
@@ -128,13 +135,13 @@
 	   (IMPLICIT) : #f
 	   )
    ;; TODO implement enum
-   (elist (eitem)             : #f
-	  (elist COMMA eitem) : #f
+   (elist (eitem)
+	  (elist COMMA eitem)
 	  )
-   (eitem (WORD NUMBER)       : #f
+   (eitem (WORD NUMBER)
 	  )
-   (postrb ()                 : '()
-	   (POSTRBRACE)       : $1
+   (postrb ()
+	   (POSTRBRACE)
 	   )
    ))
    

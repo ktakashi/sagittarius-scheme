@@ -4249,7 +4249,7 @@
 
 (define-builtin-inliner
  acons
- :null
+ :sagittarius
  (lambda
   (form p1env)
   (smatch

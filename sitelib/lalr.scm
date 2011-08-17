@@ -1320,26 +1320,10 @@
 				    (+ i 1)
 				    (cons (cons prod (cadr rest))
 					  rev-productions-and-actions))
-			     (let* ((rhs-length (length rhs))
-				    (action
-				     (cons 'vector
-					   (cons (list 'quote (string->symbol
-							       (string-append
-								name
-								"-"
-								(number->string i))))
-						 (let loop-j ((j 1))
-						   (if (> j rhs-length)
-						       '()
-						       (cons (string->symbol
-							      (string-append
-							       "$"
-							       (number->string j)))
-							     (loop-j (+ j 1)))))))))
-			       (loop1 rest
-				      (+ i 1)
-				      (cons (cons prod action)
-					    rev-productions-and-actions))))))))))
+			     (loop1 rest
+				    (+ i 1)
+				    (cons (cons prod (if (zero? (length rhs)) #f '$1))
+					  rev-productions-and-actions)))))))))
 
 	 (define valid-nonterminal? symbol?)
 	 (define valid-terminal? symbol?)
@@ -1813,7 +1797,7 @@
 		       (___reduce (- defact))
 		       (___consume))
 		   (loop)))))
-	 
+
 	 (lambda (lexerp errorp)
 	   (set! ___errorp errorp)
 	   (set! ___lexerp lexerp)
@@ -1831,7 +1815,7 @@
 
 	 (define ___lexerp #f)
 	 (define ___errorp #f)
-	 
+
 	 ;; -- Input handling 
 	 
 	 (define *input* #f)

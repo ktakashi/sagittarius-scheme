@@ -86,10 +86,30 @@
      ;; parser/lexer
      asn.1-parser
      make-lexer
+
+     ;; interface for normal use
+     parse-asn.1
+     ;; interface for expert(?) use
+     verify compile
      )
     (import (asn.1 types)
 	    (asn.1 lexer)
-	    (asn.1 parser))
+	    (asn.1 parser)
+	    (asn.1 compiler)
+	    ;;(asn.1 converter)
+	    (rnrs)
+	    (sagittarius control))
+
+  (define (default-error-handler msg token)
+    (error 'parse-asn.1
+	   msg
+	   (if (lexical-token? token)
+	       (lexical-token-value token)
+	       token)))
+
+  (define-with-key (parse-asn.1 inport :key (error-handler default-error-handler))
+    (let ((tree (compile (verify (asn.1-parser (make-lexer inport) error-handler)))))
+      tree))
 
 )
 
