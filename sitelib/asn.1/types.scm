@@ -68,7 +68,7 @@
      TAG_CONSTRUCTIVE
 
      ;; type
-     make-asn.1-type
+     make-asn.1-type        asn.1-type?
      asn.1-type-name        asn.1-type-name-set!
      asn.1-type-tag	    asn.1-type-tag-set!
      asn.1-type-type	    asn.1-type-type-set!
@@ -85,8 +85,45 @@
      raise-asn.1-error
      ;; misc
      *base-types*
+     ;; asn.1-object
+     make-asn.1-object      asn.1-object?
+     asn.1-object-tag
+     asn.1-object-value     asn.1-object-value-set!
+     asn.1-object-tagging
+     asn.1-object-tag-class
+     ;; constructors
+     make-asn.1-boolean
+     make-asn.1-integer
+     make-asn.1-bit-string
+     make-asn.1-octet-string
+     make-asn.1-string
+     make-asn.1-null
+     make-asn.1-object-identifier
+     make-asn.1-real
+     make-asn.1-enum
+     make-asn.1-relative-oid
+     make-asn.1-sequence
+     make-asn.1-set
+     make-asn.1-object-descriptor
+     make-asn.1-utf8-string
+     make-asn.1-numeric-string
+     make-asn.1-teletex-string
+     make-asn.1-t61-string
+     make-asn.1-videotex-string
+     make-asn.1-ia5-string
+     make-asn.1-utc-time
+     make-asn.1-generalized-time
+     make-asn.1-graphic-string
+     make-asn.1-general-string
+     make-asn.1-visible-string
+     make-asn.1-iso64-string
+     make-asn.1-character-string
+     make-asn.1-universal-string
+     make-asn.1-bmp-string
+     make-asn.1-bcd-string
      )
     (import (rnrs)
+	    (srfi :19 time)
 	    (sagittarius)
 	    (sagittarius control))
 
@@ -178,7 +215,6 @@
     ;; tag class is 1 byte
     (bitwise-and (bitwise-arithmetic-shift-left tag-class 24)
 		 val))
-	
 
   (define-condition-type &asn.1-error &error
     make-asn.1-error asn.1-error?)
@@ -194,42 +230,121 @@
 
   ;; for compiler
   (define *base-types*
-    `(("BOOLEAN"      	      ,TAG_BOOLEAN     	     . BOOLEAN)
-      ("INTEGER"      	      ,TAG_INTEGER     	     . INTEGER)
-      ("BIT-STRING"   	      ,TAG_BIT_STRING  	     . BIT-STRING)
-      ("OCTET-STRING" 	      ,TAG_OCTET_STRING	     . STRING)
-      ("STRING"       	      ,TAG_OCTET_STRING	     . STRING)
-      ("NULL"         	      ,TAG_NULL        	     . NULL)
-      ("OBJECT-IDENTIFIER"    ,TAG_OBJECT_DESCRIPTOR . OBJECT-IDENTIFIER)
-      ("REAL"                 ,TAG_REAL              . REAL)
-      ("ENUMERATED"           ,TAG_ENUMERATED        . INTEGER)
-      ("ENUM"                 ,TAG_ENUMERATED        . INTEGER)
-      ("RELATIVE-OID"         ,TAG_RELATIVE_OID      . ROID)
+    `(("BOOLEAN"      	   ,TAG_BOOLEAN           . BOOLEAN)
+      ("INTEGER"      	   ,TAG_INTEGER           . INTEGER)
+      ("BIT-STRING"   	   ,TAG_BIT_STRING        . BIT-STRING)
+      ("OCTET-STRING" 	   ,TAG_OCTET_STRING      . STRING)
+      ("STRING"       	   ,TAG_OCTET_STRING      . STRING)
+      ("NULL"         	   ,TAG_NULL              . NULL)
+      ("OBJECT-IDENTIFIER" ,TAG_OBJECT_DESCRIPTOR . OBJECT-IDENTIFIER)
+      ("REAL"              ,TAG_REAL              . REAL)
+      ("ENUMERATED"        ,TAG_ENUMERATED        . INTEGER)
+      ("ENUM"              ,TAG_ENUMERATED        . INTEGER)
+      ("RELATIVE-OID"      ,TAG_RELATIVE_OID      . ROID)
 
-      ("SEQUENCE"             ,(bitwise-ior TAG_SEQUENCE TAG_CONSTRUCTIVE) . SEQUENCE)
-      ("SET"                  ,(bitwise-ior TAG_SET      TAG_CONSTRUCTIVE) . SET)
+      ("SEQUENCE"          ,(bitwise-ior TAG_SEQUENCE TAG_CONSTRUCTIVE) . SEQUENCE)
+      ("SET"               ,(bitwise-ior TAG_SET      TAG_CONSTRUCTIVE) . SET)
 
-      ("ObjectDescriptor"     ,TAG_OBJECT_DESCRIPTOR . STRING)
-      ("UTF8String"           ,TAG_UTF8_STRING       . STRING)
-      ("NumericString"        ,TAG_NUMERIC_STRING    . STRING)
-      ("TeletexString"        ,TAG_TELETEX_STRING    . STRING)
-      ("T61String"            ,TAG_TELETEX_STRING    . STRING)
-      ("VideotexString"       ,TAG_VIDEOTEX_STRING   . STRING)
-      ("IA5String"            ,TAG_IA5_STRING        . STRING)
-      ("UTCTime"              ,TAG_UTC_TIME          . UTIME)
-      ("GeneralizedTime"      ,TAG_GENERALIZED_TIME  . GTIME)
-      ("GraphicString"        ,TAG_GRAPHIC_STRING    . STRING)
-      ("VisibleString"        ,TAG_VISIBLE_STRING    . STRING)
-      ("ISO646String"         ,TAG_VISIBLE_STRING    . STRING)
-      ("GeneralString"        ,TAG_GENERAL_STRING    . STRING)
-      ("CharacterString"      ,TAG_CHARACTER_STRING  . STRING)
-      ("UniversalString"      ,TAG_CHARACTER_STRING  . STRING)
-      ("BMPString"            ,TAG_BMP_STRING        . STRING)
-      ("BCDString"            ,TAG_OCTET_STRING      . BCD)
+      ("ObjectDescriptor"  ,TAG_OBJECT_DESCRIPTOR . STRING)
+      ("UTF8String"        ,TAG_UTF8_STRING       . STRING)
+      ("NumericString"     ,TAG_NUMERIC_STRING    . STRING)
+      ("TeletexString"     ,TAG_TELETEX_STRING    . STRING)
+      ("T61String"         ,TAG_TELETEX_STRING    . STRING)
+      ("VideotexString"    ,TAG_VIDEOTEX_STRING   . STRING)
+      ("IA5String"         ,TAG_IA5_STRING        . STRING)
+      ("UTCTime"           ,TAG_UTC_TIME          . UTIME)
+      ("GeneralizedTime"   ,TAG_GENERALIZED_TIME  . GTIME)
+      ("GraphicString"     ,TAG_GRAPHIC_STRING    . STRING)
+      ("VisibleString"     ,TAG_VISIBLE_STRING    . STRING)
+      ("ISO64String"       ,TAG_VISIBLE_STRING    . STRING)
+      ("GeneralString"     ,TAG_GENERAL_STRING    . STRING)
+      ("CharacterString"   ,TAG_CHARACTER_STRING  . STRING)
+      ("UniversalString"   ,TAG_CHARACTER_STRING  . STRING)
+      ("BMPString"         ,TAG_BMP_STRING        . STRING)
+      ("BCDString"         ,TAG_OCTET_STRING      . BCD)
 
       ("CHOICE" #f . CHOICE)
       ("ANY"    #f . ANY)))
-      
+
+  ;; asn.1-object
+  (define-record-type asn.1-object
+    (fields tag
+	    (mutable value)
+	    ;; do we need this?
+	    tagging
+	    tag-class)
+    (protocol
+     (lambda (p)
+       (lambda (tag value . opts)
+	 (let-keywords opts ((tagging 'IMPLICIT)
+			     (tag-class CLASS_UNIVERSAL))
+	   (unless (or (eq? tagging 'IMPLICIT)
+		       (eq? tagging 'EXPLICIT))
+	     (assertion-violation 'make-asn.1-object
+				  "invalid tagging mode" tagging))
+	   (unless (or (= tag-class CLASS_UNIVERSAL)
+		       (= tag-class CLASS_PRIVATE)
+		       (= tag-class CLASS_CONTEXT)
+		       (= tag-class CLASS_APPLICATION))
+	     (assertion-violation 'make-asn.1-object
+				  "invalid tag class" tag-class))
+	   (p tag value tagging tag-class))))))
+
+  ;; constructors for primitive types
+  (define-syntax constructor-generator
+    (lambda (x)
+      (syntax-case x ()
+	((k type validator tag)
+	 (with-syntax ((name (datum->syntax #'k (string->symbol
+						 (format "make-asn.1-~a" (syntax->datum #'type))))))
+	   #'(define (name value . opts)
+	       (check-arg validator value name)
+	       (apply make-asn.1-object tag value opts)))))))
+
+  (constructor-generator boolean      	   boolean?  TAG_BOOLEAN)
+  (constructor-generator integer      	   integer?  TAG_INTEGER)
+  (constructor-generator bit-string   	   string?   TAG_BIT_STRING)
+  (constructor-generator octet-string 	   string?   TAG_OCTET_STRING)
+  (constructor-generator string       	   string?   TAG_STRING)
+  (constructor-generator null         	   null?     TAG_NULL)
+  ;; TODO OID check method
+  (constructor-generator object-identifier string?   TAG_OBJECT_DESCRIPTOR)
+  (constructor-generator real         	   real?     TAG_REAL)
+  (constructor-generator enum         	   positive? TAG_ENUMERATED)
+  ;; TODO correct?
+  (constructor-generator relative-oid  	   string?   TAG_RELATIVE_OID)
+
+  ;; contstructive
+  ;; to avoid unnecessary calculation
+  (define sequence_tag (bitwise-ior TAG_SEQUENCE TAG_CONSTRUCTIVE))
+  (define set_tag      (bitwise-ior TAG_SET      TAG_CONSTRUCTIVE))
+  (define (check-vector-contents v)
+    (check-arg vector? v check-vector-contents)
+    (let ((l (vector->list v)))
+      (for-all asn.1-object? l)))
+  (constructor-generator sequence check-vector-contents sequence_tag)
+  (constructor-generator set      check-vector-contents set_tag)
+
+  ;; pre-defined string
+  (constructor-generator object-descriptor string? TAG_OBJECT_DESCRIPTOR)
+  (constructor-generator utf8-string       string? TAG_UTF8_STRING)
+  (constructor-generator numeric-string    string? TAG_NUMERIC_STRING)
+  (constructor-generator teletex-string    string? TAG_TELETEX_STRING)
+  (constructor-generator t61-string        string? TAG_TELETEX_STRING)
+  (constructor-generator videotex-string   string? TAG_VIDEOTEX_STRING)
+  (constructor-generator ia5-string        string? TAG_IA5_STRING)
+  (constructor-generator utc-time          time?   TAG_UTC_TIME)
+  (constructor-generator generalized-time  time?   TAG_GENERALIZED_TIME)
+  (constructor-generator general-string    string? TAG_GENERAL_STRING)
+  (constructor-generator graphic-string    string? TAG_GRAPHIC_STRING)
+  (constructor-generator visible-string    string? TAG_VISIBLE_STRING)
+  (constructor-generator iso64-string      string? TAG_VISIBLE_STRING)
+  (constructor-generator character-string  string? TAG_CHARACTER_STRING)
+  (constructor-generator universal-string  string? TAG_CHARACTER_STRING)
+  (constructor-generator bmp-string        string? TAG_BMP_STRING)
+  (constructor-generator bcd-string        string? TAG_OCTET_STRING)
+  ;; TODO do we need choice and any?
+
 )
 
 ;; Local Variables:

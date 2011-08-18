@@ -91,6 +91,42 @@
      parse-asn.1
      ;; interface for expert(?) use
      verify compile
+     ;; asn.1-object
+     make-asn.1-object      asn.1-object?
+     asn.1-object-tag
+     asn.1-object-value     asn.1-object-value-set!
+     asn.1-object-tagging
+     asn.1-object-tag-class
+     ;; constructors
+     make-asn.1-boolean
+     make-asn.1-integer
+     make-asn.1-bit-string
+     make-asn.1-octet-string
+     make-asn.1-string
+     make-asn.1-null
+     make-asn.1-object-identifier
+     make-asn.1-real
+     make-asn.1-enum
+     make-asn.1-relative-oid
+     make-asn.1-sequence
+     make-asn.1-set
+     make-asn.1-object-descriptor
+     make-asn.1-utf8-string
+     make-asn.1-numeric-string
+     make-asn.1-teletex-string
+     make-asn.1-t61-string
+     make-asn.1-videotex-string
+     make-asn.1-ia5-string
+     make-asn.1-utc-time
+     make-asn.1-generalized-time
+     make-asn.1-graphic-string
+     make-asn.1-general-string
+     make-asn.1-visible-string
+     make-asn.1-iso64-string
+     make-asn.1-character-string
+     make-asn.1-universal-string
+     make-asn.1-bmp-string
+     make-asn.1-bcd-string
      )
     (import (asn.1 types)
 	    (asn.1 lexer)
