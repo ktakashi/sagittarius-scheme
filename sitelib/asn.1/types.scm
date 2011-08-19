@@ -98,7 +98,7 @@
      make-asn.1-octet-string
      make-asn.1-string
      make-asn.1-null
-     make-asn.1-object-identifier
+     make-asn.1-oid
      make-asn.1-real
      make-asn.1-enum
      make-asn.1-relative-oid
@@ -119,8 +119,12 @@
      make-asn.1-iso64-string
      make-asn.1-character-string
      make-asn.1-universal-string
+     make-asn.1-printable-string
      make-asn.1-bmp-string
      make-asn.1-bcd-string
+     ;;
+     asn.1-sequence
+     asn.1-set
      )
     (import (rnrs)
 	    (srfi :19 time)
@@ -260,6 +264,7 @@
       ("GeneralString"     ,TAG_GENERAL_STRING    . STRING)
       ("CharacterString"   ,TAG_CHARACTER_STRING  . STRING)
       ("UniversalString"   ,TAG_CHARACTER_STRING  . STRING)
+      ("PrintableString"   ,TAG_PRINTABLE_STRING  . STRING)
       ("BMPString"         ,TAG_BMP_STRING        . STRING)
       ("BCDString"         ,TAG_OCTET_STRING      . BCD)
 
@@ -301,29 +306,42 @@
 	       (check-arg validator value name)
 	       (apply make-asn.1-object tag value opts)))))))
 
-  (constructor-generator boolean      	   boolean?  TAG_BOOLEAN)
-  (constructor-generator integer      	   integer?  TAG_INTEGER)
-  (constructor-generator bit-string   	   string?   TAG_BIT_STRING)
-  (constructor-generator octet-string 	   string?   TAG_OCTET_STRING)
-  (constructor-generator string       	   string?   TAG_STRING)
-  (constructor-generator null         	   null?     TAG_NULL)
+  (constructor-generator boolean      boolean?    TAG_BOOLEAN)
+  (constructor-generator integer      integer?    TAG_INTEGER)
+  (constructor-generator bit-string   string?     TAG_BIT_STRING)
+  (constructor-generator octet-string bytevector? TAG_OCTET_STRING)
+  (constructor-generator string       string?     TAG_STRING)
+  (constructor-generator null         null?       TAG_NULL)
   ;; TODO OID check method
-  (constructor-generator object-identifier string?   TAG_OBJECT_DESCRIPTOR)
-  (constructor-generator real         	   real?     TAG_REAL)
-  (constructor-generator enum         	   positive? TAG_ENUMERATED)
+  (constructor-generator oid          string?     TAG_OBJECT_IDENTIFIER)
+  (constructor-generator real         real?       TAG_REAL)
+  (constructor-generator enum         positive?   TAG_ENUMERATED)
   ;; TODO correct?
-  (constructor-generator relative-oid  	   string?   TAG_RELATIVE_OID)
+  (constructor-generator relative-oid string?     TAG_RELATIVE_OID)
 
   ;; contstructive
   ;; to avoid unnecessary calculation
-  (define sequence_tag (bitwise-ior TAG_SEQUENCE TAG_CONSTRUCTIVE))
-  (define set_tag      (bitwise-ior TAG_SET      TAG_CONSTRUCTIVE))
+  ;;(define sequence_tag (bitwise-ior TAG_SEQUENCE TAG_CONSTRUCTIVE))
+  ;;(define set_tag      (bitwise-ior TAG_SET      TAG_CONSTRUCTIVE))
   (define (check-vector-contents v)
     (check-arg vector? v check-vector-contents)
     (let ((l (vector->list v)))
       (for-all asn.1-object? l)))
-  (constructor-generator sequence check-vector-contents sequence_tag)
-  (constructor-generator set      check-vector-contents set_tag)
+  (constructor-generator sequence check-vector-contents TAG_SEQUENCE)
+  (constructor-generator set      check-vector-contents TAG_SET)
+
+  ;; for convenience
+  (define-syntax asn.1-sequence
+    (er-macro-transformer
+     (lambda (form rename compare)
+       (let ((args (cdr form)))
+	 `(make-asn.1-sequence (vector ,@args))))))
+
+  (define-syntax asn.1-set
+    (er-macro-transformer
+     (lambda (form rename compare)
+       (let ((args (cdr form)))
+	 `(make-asn.1-set (vector ,@args))))))
 
   ;; pre-defined string
   (constructor-generator object-descriptor string? TAG_OBJECT_DESCRIPTOR)
@@ -341,6 +359,7 @@
   (constructor-generator iso64-string      string? TAG_VISIBLE_STRING)
   (constructor-generator character-string  string? TAG_CHARACTER_STRING)
   (constructor-generator universal-string  string? TAG_CHARACTER_STRING)
+  (constructor-generator printable-string  string? TAG_PRINTABLE_STRING)
   (constructor-generator bmp-string        string? TAG_BMP_STRING)
   (constructor-generator bcd-string        string? TAG_OCTET_STRING)
   ;; TODO do we need choice and any?

@@ -1387,7 +1387,7 @@
     (bv-check-index bytevector-s8-set! bv index)
     (unless (SG_IS_BYTE value)
       (assertion-violation 'bytevector-s8-set! 
-			   "value out of range. must be -127 <= value <= 128"
+			   "value out of range. must be -128 <= value <= 127"
 			   (SG_MAKE_INT value)))
     (Sg_ByteVectorS8Set bv index value))
 

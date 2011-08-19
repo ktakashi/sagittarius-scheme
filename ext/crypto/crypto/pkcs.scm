@@ -13,6 +13,7 @@
 	    mgf-1)
     (import (rnrs)
 	    (rnrs r5rs)
+	    (asn.1)
 	    (math hash)
 	    (math helper)
 	    (math random)
@@ -169,16 +170,34 @@
   ;; section 9.2
   (define-with-key (pkcs1-emsa-v1.5-encode m em-bits
 					   :key (algo :hash (hash-algorithm SHA-1)))
-    
-    (implementation-restriction-violation 'pkcs1-emsa-v1.5-encode
-					  "not supported yet. this will be supported after ASN.1 was implemented")
+    (let ((em-len (align-size (bit em-bits)))
+	  (h      (hash algo m))
+	  (oid    (hash-oid algo)))
+      (unless oid
+	(assertion-violation 'pkcs1-emsa-v1.5-encode "given hash algorithm does not have OID" algo))
+      ;; compute digest info
+      (let* ((T (encode (asn.1-sequence (asn.1-sequence (make-asn.1-oid oid) (make-asn.1-null '()))
+					(make-asn.1-octet-string h))))
+	     (t-len (bytevector-length T)))
+	(when (< em-len (+ t-len 11))
+	  (raise-encode-error 'pkcs1-emsa-v1.5-encode "intended encoded message length too short" em-len))
+	(let* ((PS-len (- em-len t-len 3))
+	       ;; Initialize with PS value
+	       (EM (make-bytevector (+ PS-len 3 t-len) #xFF)))
+	  (bytevector-u8-set! EM 0 #x00)
+	  (bytevector-u8-set! EM 1 #x01)
+	  (bytevector-u8-set! EM (+ PS-len 2) #x00)
+	  (bytevector-copy! T 0 EM (+ PS-len 3) t-len) 
+	  EM)))
     )
 
   (define-with-key (pkcs1-emsa-v1.5-verify m em em-bits
 					   :key (algo :hash (hash-algorithm SHA-1)))
-    
-    (implementation-restriction-violation 'pkcs1-emsa-v1.5-verify
-					  "not supported yet. this will be supported after ASN.1 was implemented")
+    ;; verify is the same as encode
+    (if (bytevector=? em (pkcs1-emsa-v1.5-encode m em-bits :hash algo))
+	#t
+	(raise-decode-error 'pkcs1-emsa-v1.5-verify
+			    "inconsistent"))
     )
 
 )

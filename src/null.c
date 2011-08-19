@@ -4334,7 +4334,7 @@ static SgObject nullbytevector_s8_set21(SgObject *args, int argc, void *data_)
     }
 ;
     if (!(SG_IS_BYTE(value))) {
-      Sg_AssertionViolation(SG_INTERN("bytevector-s8-set!"), Sg_MakeString(UC("value out of range. must be -127 <= value <= 128"), SG_LITERAL_STRING), SG_MAKE_INT(value));
+      Sg_AssertionViolation(SG_INTERN("bytevector-s8-set!"), Sg_MakeString(UC("value out of range. must be -128 <= value <= 127"), SG_LITERAL_STRING), SG_MAKE_INT(value));
       return SG_UNDEF;
 ;
     }

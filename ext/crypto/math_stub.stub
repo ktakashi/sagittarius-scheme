@@ -49,4 +49,7 @@
 
   (define-c-proc hash-size (h::HashAlgo) ::Object
     (result (Sg_HashSize h)))
+
+  (define-c-proc hash-oid (h::HashAlgo) ::Object
+    (result (Sg_HashOid h)))
 )

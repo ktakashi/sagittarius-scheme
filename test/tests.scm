@@ -1,5 +1,6 @@
 ;; -*- scheme -*-
 (import (srfi :64)
+	(tests sagittarius)
 	(tests r6rs+ vector)
 	(tests r6rs+ string)
 	(tests r6rs+ lists)
@@ -10,6 +11,7 @@
 	(tests rfc mime))
 
 (test-begin "sagittarius functionality tests start")
+(run-sagittarius-tests)
 (run-r6rs+-vector-tests)
 (run-r6rs+-string-tests)
 (run-r6rs+-lists-tests)

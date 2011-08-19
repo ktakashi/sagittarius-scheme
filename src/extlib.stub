@@ -90,6 +90,10 @@
 	    getenv
 	    setenv
 	    getenv-alist
+
+	    ;; bytevector
+	    bytevector->integer
+	    integer->bytevector
 	    )
     (import :null)
   (decl-code
@@ -531,4 +535,15 @@
   
   (define-c-proc getenv-alist () ::Object
     (result (Sg_GetenvAlist)))
+
+  ;; bytevector
+  (define-c-proc bytevector->integer (bv::ByteVector :optional (start::fixnum 0) (end::fixnum -1)) ::Object
+    (result (Sg_ByteVectorToInteger bv start end)))
+
+  (define-c-proc integer->bytevector (n::number) ::Object
+    (unless (SG_REALP n)
+      (wrong-type-of-argument-violation 'integer->bytevector
+					"real number"
+					n))
+    (result (Sg_IntegerToByteVector n)))
 )

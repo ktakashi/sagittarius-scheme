@@ -302,7 +302,6 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder, size_
   SgPort *bin;
   SgPort *tin;
   SgChar ch;
-  int i;
 
   if (size < 0) {
     size = SG_BVECTOR_SIZE(bv);
@@ -812,4 +811,29 @@ void Sg_ByteVectorIEEEDoubleBigSet(SgByteVector *bv, size_t index, double value)
     SG_BVECTOR_ELEMENT(bv, index + sizeof(double) - i - 1) = n.data[i];
   }
 #endif
+}
+
+SgObject Sg_ByteVectorToInteger(SgByteVector *bv, int start, int end)
+{
+  int len = SG_BVECTOR_SIZE(bv), i;
+  SgObject ans = SG_MAKE_INT(0);
+  SG_CHECK_START_END(start, end, len);
+  for (i = end; start < i; i--) {
+    SgObject tmp = Sg_Ash(SG_MAKE_INT(SG_BVECTOR_ELEMENT(bv, i-1)), ((len-i) << 3));
+    ans = Sg_Add(ans, tmp);
+  }
+  return ans;
+}
+
+SgObject Sg_IntegerToByteVector(SgObject num)
+{
+  static const SgObject MASK = SG_MAKE_INT(0xFF);
+  int bitlen = Sg_BitSize(num), i;
+  int len = (bitlen>>3) + ((bitlen & 7) == 0 ? 0 : 1);
+  SgByteVector *bv = make_bytevector(len);
+  for (i = len - 1; 0 <= i; i--) {
+    SG_BVECTOR_ELEMENT(bv, i) = SG_INT_VALUE(Sg_LogAnd(num, MASK));
+    num = Sg_Ash(num, -8);
+  }
+  return bv;
 }

@@ -139,5 +139,33 @@ SgObject Sg_HashSize(SgHashAlgo *algo)
     SgObject process = algo->impl.custom.process;
     return Sg_Apply4(process, algo->impl.custom.state, SG_FALSE, SG_FALSE,
 		     SG_INTERN("size"));
-  } 
+  }
+}
+
+SgObject Sg_HashOid(SgHashAlgo *algo)
+{
+  if (algo->type == SG_BUILTIN_HASH) {
+    int index = algo->impl.builtin.index, i;
+    unsigned long *OID = hash_descriptor[index].OID;
+    unsigned long len = hash_descriptor[index].OIDlen;
+    /* construct oid string */
+    SgObject h = SG_NIL, t = SG_NIL;
+    SgObject s = SG_UNDEF, cp;	/* return string */
+    const SgObject dot = Sg_MakeString(UC("."), SG_LITERAL_STRING);
+
+    if (len == 0) return SG_FALSE; /* given hash algorithm does not have OID */
+    for (i = 0; i < len; i++) {
+      SG_APPEND1(h, t, Sg_Sprintf(UC("%A"), Sg_MakeIntegerU(OID[i])));
+    }
+    s = SG_CAR(h);
+    SG_FOR_EACH(cp, SG_CDR(h)) {
+      s = Sg_StringAppend2(s, dot);
+      s = Sg_StringAppend2(s, SG_CAR(cp));
+    }
+    return s;
+  } else {
+    SgObject process = algo->impl.custom.process;
+    return Sg_Apply4(process, algo->impl.custom.state, SG_FALSE, SG_FALSE,
+		     SG_INTERN("oid"));
+  }  
 }

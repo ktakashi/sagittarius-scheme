@@ -466,8 +466,8 @@ SgObject read_bytevector(SgPort *port, SgReaderContext *ctx)
 	    lst = SG_CDR(lst);						\
 	    continue;							\
 	  }								\
-	  lexical_error(port, ctx, UC("expected " s_type ", but got %S"), SG_CAR(lst)); \
 	}								\
+	lexical_error(port, ctx, UC("expected " s_type ", but got %S"), SG_CAR(lst)); \
       }									\
       return bvector;							\
     }									\

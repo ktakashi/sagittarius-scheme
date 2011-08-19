@@ -1629,6 +1629,60 @@ static SgObject _sagittarius_getenv_alist(SgObject *args, int argc, void *data_)
 static SG_DEFINE_SUBR(_sagittarius_getenv_alist_Stub, 0, 0, _sagittarius_getenv_alist, SG_FALSE, NULL);
 
 ;
+static SgObject _sagittarius_bytevector_3einteger(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("bytevector->integer");
+  SgObject bv_scm;
+  SgByteVector *bv;
+  SgObject start_scm;
+  int start;
+  SgObject end_scm;
+  int end;
+  checkArgumentLengthBetween(1, 3);
+  argumentAsByteVector(0, bv_scm, bv);
+  if (argc >= 2) {
+    argumentAsFixnum(1, start_scm, start);
+  } else {
+    start = 0;
+  }
+
+  if (argc >= 3) {
+    argumentAsFixnum(2, end_scm, end);
+  } else {
+    end = -1;
+  }
+
+  {
+    SgObject SG_RETURN = SG_UNDEF;
+    SG_RETURN = (Sg_ByteVectorToInteger(bv, start, end));
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_bytevector_3einteger_Stub, 1, 2, _sagittarius_bytevector_3einteger, SG_FALSE, NULL);
+
+;
+static SgObject _sagittarius_integer_3ebytevector(SgObject *args, int argc, void *data_)
+{
+  DeclareProcedureName("integer->bytevector");
+  SgObject n_scm;
+  SgObject n;
+  checkArgumentLength(1);
+  argumentAsNumber(0, n_scm, n);
+  {
+    SgObject SG_RETURN = SG_UNDEF;
+    if (!(SG_REALP(n))) {
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("integer->bytevector"), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), n, SG_NIL);
+      SG_RETURN = (SG_UNDEF);
+;
+    }
+;
+    SG_RETURN = (Sg_IntegerToByteVector(n));
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_integer_3ebytevector_Stub, 1, 0, _sagittarius_integer_3ebytevector, SG_FALSE, NULL);
+
+;
 void Sg__Init_sagittarius()
 {
   SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC("(sagittarius)"), SG_LITERAL_STRING)), TRUE);
@@ -1640,6 +1694,8 @@ void Sg__Init_sagittarius()
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("reverse!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_reverse21_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_report_error_Stub) = Sg_MakeString(UC("report-error"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("report-error"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_report_error_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_bytevector_3einteger_Stub) = Sg_MakeString(UC("bytevector->integer"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector->integer"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_bytevector_3einteger_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_file_stat_atime_Stub) = Sg_MakeString(UC("file-stat-atime"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("file-stat-atime"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_file_stat_atime_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_hashtable_hasher_Stub) = Sg_MakeString(UC("hashtable-hasher"), SG_LITERAL_STRING);
@@ -1664,6 +1720,8 @@ void Sg__Init_sagittarius()
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("%maybe-substring"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_25maybe_substring_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_file_readable3f_Stub) = Sg_MakeString(UC("file-readable?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("file-readable?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_file_readable3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_integer_3ebytevector_Stub) = Sg_MakeString(UC("integer->bytevector"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("integer->bytevector"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_integer_3ebytevector_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_append21_Stub) = Sg_MakeString(UC("append!"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("append!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_append21_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_make_keyword_Stub) = Sg_MakeString(UC("make-keyword"), SG_LITERAL_STRING);

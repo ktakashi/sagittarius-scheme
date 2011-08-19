@@ -104,7 +104,7 @@
      make-asn.1-octet-string
      make-asn.1-string
      make-asn.1-null
-     make-asn.1-object-identifier
+     make-asn.1-oid
      make-asn.1-real
      make-asn.1-enum
      make-asn.1-relative-oid
@@ -125,14 +125,21 @@
      make-asn.1-iso64-string
      make-asn.1-character-string
      make-asn.1-universal-string
+     make-asn.1-printable-string
      make-asn.1-bmp-string
      make-asn.1-bcd-string
+     ;; for convenience
+     asn.1-sequence
+     asn.1-set
+     ;; encode
+     encode
      )
     (import (asn.1 types)
 	    (asn.1 lexer)
 	    (asn.1 parser)
 	    (asn.1 compiler)
 	    ;;(asn.1 converter)
+	    (asn.1 encode)
 	    (rnrs)
 	    (sagittarius control))
 
@@ -147,6 +154,10 @@
     (let ((tree (compile (verify (asn.1-parser (make-lexer inport) error-handler)))))
       tree))
 
+
+  (define-with-key (encode value :key (encoder der-encoder)
+			              (tree #f))
+    (encoder value :tree tree))
 )
 
 ;; Local Variables:

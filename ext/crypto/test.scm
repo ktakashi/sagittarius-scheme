@@ -194,6 +194,10 @@
 		#vu8(#xC7 #x2B #x96 #x98 #xFA #x19 #x27 #xE1 #xDD #x12 #xD3 #xCF #x26 #xED #x84 #xB2)
 		(hash MD5 valid-rsa-message))
 
+    (test-equal "MD5 OID"
+		"1.2.840.113549.2.5"
+		(hash-oid (hash-algorithm MD5)))
+
     ;; PKCS#1 EMSA-PSS test
     (test-assert "PKCS#1 EMSA-PSS"
 		 (let ((encoded (pkcs1-emsa-pss-encode valid-rsa-message 1024)))

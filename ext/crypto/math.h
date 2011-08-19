@@ -118,5 +118,6 @@ int      Sg_HashInit(SgHashAlgo *algo);
 void     Sg_HashProcess(SgHashAlgo *algo, SgByteVector *in);
 void     Sg_HashDone(SgHashAlgo *algo, SgByteVector *out);
 SgObject Sg_HashSize(SgHashAlgo *algo);
+SgObject Sg_HashOid(SgHashAlgo *algo);
 
 #endif /* SAGITTARIUS_MATH_H_ */

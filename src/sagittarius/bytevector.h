@@ -133,6 +133,11 @@ SG_EXTERN void      Sg_ByteVectorIEEEDoubleNativeSet(SgByteVector *bv, size_t in
 SG_EXTERN void      Sg_ByteVectorIEEEDoubleLittleSet(SgByteVector *bv, size_t index, double value);
 SG_EXTERN void      Sg_ByteVectorIEEEDoubleBigSet(SgByteVector *bv, size_t index, double value);
 
+/* utility */
+SG_EXTERN SgObject Sg_ByteVectorToInteger(SgByteVector *bv, int start, int end);
+SG_EXTERN SgObject Sg_IntegerToByteVector(SgObject num);
+
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_BYTEVECTOR_H_ */

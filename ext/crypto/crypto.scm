@@ -38,6 +38,8 @@
 	    pkcs1-emsa-pss-encode
 	    pkcs1-emsa-pss-verify
 	    mgf-1
+	    pkcs1-emsa-v1.5-encode
+	    pkcs1-emsa-v1.5-verify
 	    ;; supported algorithms
 	    Blowfish
 	    X-Tea
