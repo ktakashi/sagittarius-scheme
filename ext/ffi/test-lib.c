@@ -2,7 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-int add(int x, int y)
+#ifdef _MSC_VER
+# define EXPORT __declspec(dllexport)
+#else
+# define EXPORT
+#endif
+
+EXPORT int add(int x, int y)
 {
   return x + y;
 }
@@ -42,7 +48,7 @@ static void quicksort_(uintptr_t base,const size_t num,const size_t size
 	quicksort_(base+size*first2last,num-first2last,size,temp,compare);
 }
 
-int quicksort(void *base, const size_t num, const size_t size,
+EXPORT int quicksort(void *base, const size_t num, const size_t size,
 	      int (*compare)(const void *, const void *))
 {
   void *temp = malloc(size);
@@ -69,7 +75,7 @@ struct data_to_store
   } inner;
 };
 
-void store_data(struct data_to_store *storage)
+EXPORT void store_data(struct data_to_store *storage)
 {
   storage->value1 = 100;
   storage->inner.value2 = 200;
