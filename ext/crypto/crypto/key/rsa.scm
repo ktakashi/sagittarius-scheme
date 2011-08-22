@@ -89,9 +89,11 @@
 	    (public (make-rsa-public-key n e)))
 	(make-keypair private public)))
 
-    (define (rsa-random-prime)
+    (define (rsa-random-prime check)
       (let loop ((p (random-prime (/ size 16) :prng prng)))
-	(if (= 1 (gcd (- p 1) e))
+	(if (and (or (not check)
+		     (not (= p check)))
+		 (= 1 (gcd (- p 1) e)))
 	    p
 	    (loop (random-prime (/ size 16 :prng prng))))))
 
@@ -103,8 +105,8 @@
       (assertion-violation 'rsa-generate-key-pair
 			   "exponent is not prime number" e))
 
-    (let* ((p (rsa-random-prime))
-	   (q (rsa-random-prime))
+    (let* ((p (rsa-random-prime #f))
+	   (q (rsa-random-prime p))
 	   (n (* p q))
 	   (phi (* (- p 1) (- q 1))))
       (let ((d (mod-inverse e phi)))

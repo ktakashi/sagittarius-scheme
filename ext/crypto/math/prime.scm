@@ -4,6 +4,7 @@
 	    random-prime)
     (import (rnrs)
 	    (sagittarius control)
+	    (math)
 	    (math helper)
 	    (math random))
 
@@ -36,30 +37,25 @@
 	      (else
 	       (loop (cdr p))))))
 
-    (define (pow base power m)
-      (do ((result 1))
-	  ((<= power 0) result)
-	(when (= (bitwise-and power 1) 1)
-	  (set! result (mod (* result base) m)))
-	(set! base (mod (* base base) m))
-	(set! power (bitwise-arithmetic-shift-right power 1))))
-
     (let ((q (abs q)))
       (cond ((even? q) #f) ;; obvious
+	    ((= q 1) #f)   ;; 1 is not prime
 	    ((memv q *small-primes*) #t)
 	    ((check-small-prime q) #f) ;; multiple of small-primes
 	    (else
 	     ;; Miller Rabin test
-	     (let ((d (let loop ((d (bitwise-arithmetic-shift-right (- q 1) 1)))
-			(if (zero? (bitwise-and d 1))
-			    (loop (bitwise-arithmetic-shift-right d 1))
-			    d))))
+	     (let* ((t (- q 1))
+		    (d (if (zero? (bitwise-and t 1))
+			   (do ((d (bitwise-arithmetic-shift-right t 1)
+				   (bitwise-arithmetic-shift-right d 1)))
+			       ((not (zero? (bitwise-and d 1))) d))
+			   t)))
 	       (let loop ((i 0))
 		 (if (= i k)
 		     #t
 		     (let* ((a (+ (random rand (- q 2)) 1))
 			    (t d)
-			    (y (pow a t q)))
+			    (y (mod-expt a t q)))
 		       ;; check 0, ..., q - 1
 		       (let loop2 ()
 			 (when (and (not (= t (- q 1)))

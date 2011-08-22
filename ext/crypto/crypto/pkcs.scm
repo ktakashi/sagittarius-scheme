@@ -176,8 +176,9 @@
       (unless oid
 	(assertion-violation 'pkcs1-emsa-v1.5-encode "given hash algorithm does not have OID" algo))
       ;; compute digest info
-      (let* ((T (encode (asn.1-sequence (asn.1-sequence (make-asn.1-oid oid) (make-asn.1-null '()))
-					(make-asn.1-octet-string h))))
+      (let* ((digest (asn.1-sequence (asn.1-sequence (make-asn.1-oid oid) (make-asn.1-null '()))
+				     (make-asn.1-octet-string h)))
+	     (T (encode digest))
 	     (t-len (bytevector-length T)))
 	(when (< em-len (+ t-len 11))
 	  (raise-encode-error 'pkcs1-emsa-v1.5-encode "intended encoded message length too short" em-len))
@@ -194,10 +195,12 @@
   (define-with-key (pkcs1-emsa-v1.5-verify m em em-bits
 					   :key (algo :hash (hash-algorithm SHA-1)))
     ;; verify is the same as encode
-    (if (bytevector=? em (pkcs1-emsa-v1.5-encode m em-bits :hash algo))
-	#t
-	(raise-decode-error 'pkcs1-emsa-v1.5-verify
-			    "inconsistent"))
-    )
+    (let1 EM (pkcs1-emsa-v1.5-encode m em-bits :hash algo)
+      ;; to remove 0, we need to convert bv to integer and integer to bv. sucks!!
+      (if (= (bytevector->integer em) (bytevector->integer EM))
+	  #t
+	  (raise-decode-error 'pkcs1-emsa-v1.5-verify
+			      "inconsistent"))
+      ))
 
 )
