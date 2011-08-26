@@ -443,7 +443,11 @@
 	 (let ((value ;(namespace-ref (id-name var)))
 		(find-binding (id-library var) (id-name var) #f)))
 	   (or value
-	       (error (format "unbound variable ~s, library ~s~% ~s" (id-name var) (library-name (id-library var)) (stack-trace c))))
+	       (error (format "unbound variable ~s, library ~s~% ~s" (id-name var)
+			      (if (library? (id-library var))
+				  (library-name (id-library var))
+				  (id-library var)) 
+			      (stack-trace c))))
 	   (VM x (skip) value c f s))))
       ((LREF_PUSH)
        (let ((n (insn-value1 insn)))
@@ -462,7 +466,11 @@
 	 (let ((value ;(namespace-ref (id-name var)))
 		(find-binding (id-library var) (id-name var) #f)))
 	   (or value
-	       (error 'vm (format "unbound variable ~s, library ~s~% ~s" (id-name var) (library-name (id-library var)) (stack-trace c))))
+	       (error 'vm (format "unbound variable ~s, library ~s~% ~s" (id-name var)
+				  (if (library? (id-library var))
+				      (library-name (id-library var))
+				      (id-library var))
+				  (stack-trace c))))
 	   (VM x (skip) value c f (push value s)))))
       ((LSET)
        (let ((n (insn-value1 insn)))
@@ -615,7 +623,11 @@
 	 (let ((value ;(namespace-ref (id-name var)))
 		(find-binding (id-library var) (id-name var) #f)))
 	   (or value
-	       (error 'vm (format "unbound variable ~s, library ~s~% ~s" (id-name var) (library-name (id-library var)) (stack-trace c))))
+	       (error 'vm (format "unbound variable ~s, library ~s~% ~s" (id-name var)
+				  (if (library? (id-library var))
+				      (library-name (id-library var))
+				      (id-library var))
+				  (stack-trace c))))
 	   (apply-body value argc s))))
       ((GREF_TAIL_CALL)
        (let ((var (fetch))
@@ -627,7 +639,11 @@
 	 (let ((value ;(namespace-ref (id-name var)))
 		(find-binding (id-library var) (id-name var) #f)))
 	   (or value
-	       (error 'vm (format "unbound variable ~s, library ~s~% ~s" (id-name var) (library-name (id-library var)) (stack-trace c))))
+	       (error 'vm (format "unbound variable ~s, library ~s~% ~s" (id-name var)
+				  (if (library? (id-library var))
+				      (library-name (id-library var))
+				      (id-library var))
+				  (stack-trace c))))
 	   (apply-body value argc (shift-args f argc s)))))
       ((LOCAL_CALL)
        (let ((argc (insn-value1 insn)))
@@ -1039,8 +1055,8 @@
       (let ((proc (if (null? proc)
 		      `(make-procedure ',name #f ,reqargs ,opt? ,name)
 		      `(make-procedure ',name #f ,reqargs ,opt? ,@proc))))
-	  `(%insert-binding ',lib ',name
-			    ,proc)))))
+	`(%insert-binding ',lib ',name
+			  ,proc)))))
 ;; only for apply
 (define-macro (add-namespace-w-inliner! name args inliner . proc)
   (let ((lib 'null))
@@ -1188,6 +1204,18 @@
 		  (and (vector? p)
 		       (eq? (vector-ref p 0) '.procedure))))
 
+;; usage-env and macro-env
+(define *usage-env* `#(,(vm-current-library) () #f #f))
+(define *macro-env* `#(,(vm-current-library) () #f #f))
+(define (current-usage-env) *usage-env*)
+(define (current-macro-env) *macro-env*)
+(define (current-usage-env-set! e) (set! *usage-env* e))
+(define (current-macro-env-set! e) (set! *macro-env* e))
+(%insert-binding '(sagittarius) 'current-usage-env current-usage-env)
+(%insert-binding '(sagittarius) 'current-macro-env current-macro-env)
+(%insert-binding '(sagittarius) 'current-usage-env-set! current-usage-env-set!)
+(%insert-binding '(sagittarius) 'current-macro-env-set! current-macro-env-set!)
+
 
 (define-macro (aif test-form then-form . else-form)
   `(let ((it ,test-form))
@@ -1265,6 +1293,7 @@
 ;;(add-namespace! transcribe-syntax-rules (form use-env mac-env spec))
 (add-namespace! .match-syntax-case (literals expr . process) match-syntax-case)
 (add-namespace! cons* a)
+(add-namespace! list-head (a b) (lambda (a b) (take a b)))
 #;(add-namespace! dynamic-wind (before thunk after)
 		(lambda (before thunk after)
 		  (if (vector? before)
@@ -1313,13 +1342,7 @@
     ;; in these libraries there are no syntax-rules, so we can import here
     (,*exc-lib* #f () #f #t)
     (,*arith-lib* #f () #f #t)
-    (,*macro-lib* (core syntax-case) 
-		  (null (core base)
-			(sagittarius)
-			(sagittarius vm)
-			(sagittarius vm instruction))
-		  #f
-		  #t)
+    
     ;;
     (,*struct-lib* #f () #f #f)
     (,*misc-lib* #f () #f #f)
@@ -1327,11 +1350,24 @@
     (,*synpat-lib* #f () #f #f)
     (,*syntmp-lib* #f () #f #f)
     (,*synrule-lib* #f () #f #f)
+    ;; above syntax-rules is for generating boot code.
+    ;; TODO replace it to R7RS syntax-rules.
     (,*match-lib* (sagittarius compiler match)
 		  (null (core base)
 			(for (core syntax-rules) expand)
 			(sagittarius)) 
 		  #f #f)
+
+    (,*macro-lib* (core syntax-case) 
+		  (null (core base)
+			(core errors)
+			(for (sagittarius compiler match) expand)
+			(sagittarius)
+			(sagittarius vm)
+			(sagittarius vm instruction))
+		  #f
+		  #t)
+
     (,*compaux* (sagittarius compiler util)
 		(null (core base) 
 		      (for (core syntax-case) expand)

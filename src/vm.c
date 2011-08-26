@@ -99,7 +99,6 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   SgWord *callCode = SG_NEW_ARRAY(SgWord, 2);
   SgWord *applyCode = SG_NEW_ARRAY(SgWord,  7);
   unsigned long sec, usec;
-
   SgCodeBuilder *closureForEvaluateCode = Sg_MakeCodeBuilder(-1);
   SG_SET_HEADER(v, TC_VM);
 
@@ -177,6 +176,10 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 				  ? Sg_MakeNativeConsoleTranscoder()
 				  : Sg_MakeNativeTranscoder());
   v->logPort = proto ? proto->logPort : v->currentErrorPort;
+  /* macro env */
+  v->usageEnv = proto ? proto->usageEnv : SG_FALSE;
+  v->macroEnv = proto ? proto->macroEnv : SG_FALSE;
+
   /* thread, mutex, etc */
   SG_INTERNAL_THREAD_INIT(&v->thread);
   Sg_InitMutex(&v->vmlock, FALSE);
@@ -417,7 +420,7 @@ static void vm_dump_code_rec(SgCodeBuilder *cb, int indent)
     for (ind = 0; ind < indent; ind++) {
       Sg_Write(SG_MAKE_CHAR(' '), vm->logPort, SG_WRITE_DISPLAY);
     }
-    Sg_Printf(vm->logPort, UC("%A"), Sg_MakeStringC(info->name));
+    Sg_Printf(vm->logPort, UC("%d: %A"), i, Sg_MakeStringC(info->name));
     if (info->instValues != 0) {
       int val1, val2;
       Sg_Printf(vm->logPort, UC("("));
@@ -1917,6 +1920,7 @@ SgObject run_loop()
 
 void Sg__InitVM()
 {  
+  SgObject initialEnv = Sg_MakeVector(4, SG_FALSE);
   /* TODO multi thread and etc */
 #ifdef _MSC_VER
   rootVM = theVM = Sg_NewVM(NULL, Sg_MakeString(UC("root"), SG_LITERAL_STRING));
@@ -1943,6 +1947,12 @@ void Sg__InitVM()
   /* load path */
   rootVM->loadPath = Sg_GetDefaultLoadPath();
   rootVM->dynamicLoadPath = Sg_GetDefaultDynamicLoadPath();
+
+  /* env */
+  SG_VECTOR_ELEMENT(initialEnv, 0) = rootVM->currentLibrary;
+  SG_VECTOR_ELEMENT(initialEnv, 1) = SG_NIL;
+  rootVM->usageEnv = initialEnv;
+  rootVM->macroEnv = initialEnv;
 
   SG_PROCEDURE_NAME(&default_exception_handler_rec) = Sg_MakeString(UC("default-exception-handler"),
 								    SG_LITERAL_STRING);

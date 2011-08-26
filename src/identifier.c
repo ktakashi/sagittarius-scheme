@@ -56,6 +56,8 @@ SgObject Sg_MakeIdentifier(SgSymbol *symbol, SgObject envs, SgLibrary *library)
   id->name = symbol;
   id->library = library;
   id->envs = (envs == SG_NIL) ? SG_NIL : get_binding_frame(SG_OBJ(symbol), envs);
+  id->renamed = SG_FALSE;
+  id->transformersEnv = SG_FALSE;
   return SG_OBJ(id);
 }
 

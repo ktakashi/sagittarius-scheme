@@ -4,6 +4,7 @@
     (import (core)
 	    (core base)
 	    (core errors)
+	    (sagittarius)
 	    (slib qp)
 	    (slib alist))
 

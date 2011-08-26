@@ -1,7 +1,14 @@
 ;; -*- scheme -*-
 ;; This file is a part of Sagittarius Scheme system.
 (library (core syntax helper)
-    (export <sid>
+    (export bar?
+	    ellipsis?
+	    ellipsis-pair?
+	    ellipsis-splicing-pair?
+	    ellipsis-quote?
+	    count-pair
+
+	    <sid>
 	    make-sid sid-name sid-expression sid-depth
 	    sid?
 	    sid-control
@@ -21,6 +28,42 @@
 	    (core misc)
 	    (core errors)
 	    (core struct))
+
+  (define bar?
+    (lambda (expr)
+      (and (variable? expr)
+	   (eq? (identifier->symbol expr) '_))))
+
+  (define ellipsis?
+    (lambda (expr)
+      (and (variable? expr)
+	   (eq? (identifier->symbol expr) '...))))
+  
+  (define ellipsis-pair?
+    (lambda (form)
+      (and (pair? form)
+	   (pair? (cdr form))
+	   (ellipsis? (cadr form)))))
+
+  (define ellipsis-splicing-pair?
+    (lambda (form)
+      (and (pair? form)
+	   (pair? (cdr form))
+	   (ellipsis? (cadr form))
+	   (pair? (cddr form))
+	   (ellipsis? (caddr form)))))
+
+  (define ellipsis-quote?
+    (lambda (form)
+      (and (pair? form)
+	   (ellipsis? (car form))
+	   (pair? (cdr form))
+	   (null? (cddr form)))))
+
+  (define (count-pair p)
+    (let loop ((lst p) (n 0))
+      (if (pair? lst) (loop (cdr lst) (+ n 1)) n)))
+
 
   (define-struct <sid>
     (make-sid name expression depth control)

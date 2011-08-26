@@ -291,7 +291,7 @@ int main(int argc, char **argv)
       forceInteactiveP = TRUE;
       break;
     case 'C':
-      Sg_CleanCache();
+      Sg_CleanCache(SG_FALSE);
       break;
     case 'd':
       SG_VM_SET_FLAG(vm, SG_DISABLE_CACHE);

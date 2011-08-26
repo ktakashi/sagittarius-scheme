@@ -68,6 +68,8 @@ SG_EXTERN SgObject Sg_SearchLibrary(SgObject lib);
 SG_EXTERN SgGloc*  Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
 				  SgObject value, int flags);
 
+SG_EXTERN SgObject Sg_SearchLibraryPath(SgObject name);
+
 #define Sg_ImportLibrary(t, f)						\
   Sg_ImportLibraryFullSpec((t), (f), SG_NIL, SG_NIL, SG_NIL, SG_FALSE)
 

@@ -46,7 +46,7 @@
                   (identifier? #'e1)
                   (stash-set! 'nongenerative #'e1))
                  ((nongenerative)
-                  (stash-set! 'nongenerative (datum->syntax #'k (string->symbol (format "non-generative-record-type ~a" (gensym))))))
+                  (stash-set! 'nongenerative #`,(string->symbol (format "non-generative-record-type ~a" (gensym)))))
                  ((fields specs ...)
                   (stash-set!
                    'fields
@@ -87,7 +87,7 @@
              record-clauses)))
 
         (syntax-case x ()
-          ((_ (record-name constructor-name predicate-name) record-clauses ...)
+          ((k (record-name constructor-name predicate-name) record-clauses ...)
 	   (and (identifier? #'record-name) (identifier? #'constructor-name) (identifier? #'predicate-name))
            (begin
              (parse-record-clauses (syntax->datum #'record-name) #'(record-clauses ...))

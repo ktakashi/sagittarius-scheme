@@ -510,7 +510,10 @@
     (lvar)
     (format
      "~s[~a.~a]"
-     (lvar-name lvar)
+     (if
+      (identifier? (lvar-name lvar))
+      (id-name (lvar-name lvar))
+      (lvar-name lvar))
      (lvar-ref-count lvar)
      (lvar-set-count lvar))))
   (define
@@ -524,7 +527,10 @@
       (format
        #t
        "($lambda[~a.~a] ~a"
-       ($lambda-name iform)
+       (if
+        (identifier? ($lambda-name iform))
+        (id-name ($lambda-name iform))
+        ($lambda-name iform))
        (length ($lambda-calls iform))
        (map lvar->string ($lambda-lvars iform)))
       (nl (+ ind 2))
@@ -1142,7 +1148,7 @@
   form
   ((- expr (literal ___) rule ___)
    (receive
-    (newframe newexpr)
+    (func lites patvars processes)
     (compile-syntax-case
      (p1env-exp-name p1env)
      expr
@@ -1151,7 +1157,19 @@
      (p1env-library p1env)
      (p1env-frames p1env)
      p1env)
-    (pass1 newexpr (p1env-swap-frame p1env newframe))))
+    ($call
+     #f
+     ($gref func)
+     `(,(if (lvar? patvars) ($lref patvars) ($const-nil))
+      ,(pass1 `',lites p1env)
+      ,(pass1 expr p1env)
+      ,@(imap
+       (lambda
+        (expr&env)
+        (let
+         ((expr (car expr&env)) (env (cdr expr&env)))
+         (pass1 expr (p1env-swap-frame p1env env))))
+       processes)))))
   (- (syntax-error "malformed syntax-case" form))))
 
 (define-pass1-syntax
@@ -1159,7 +1177,10 @@
  :null
  (smatch
   form
-  ((- tmpl) (pass1 (compile-syntax (p1env-exp-name p1env) tmpl p1env) p1env))
+  ((- tmpl)
+   (pass1
+    (compile-syntax (p1env-exp-name p1env) tmpl (p1env-frames p1env) p1env)
+    p1env))
   (- (syntax-error "malformed syntax: expected exactly one datum" form))))
 
 (define-pass1-syntax
@@ -1306,15 +1327,7 @@
      (let
       ((n (variable-name (car e))))
       (or (eq? n 'quote) (eq? n 'syntax-quote))))))
-  (let
-   loop
-   ((expr expr))
-   (cond
-    ((null? expr) '())
-    ((quoted? expr) expr)
-    ((pair? expr) (cons (loop (car expr)) (loop (cdr expr))))
-    ((and (identifier? expr) (memq expr ids)) (bound-id->symbol expr))
-    (else expr)))))
+  expr))
 
 (define
  pass1/lambda
@@ -2274,7 +2287,7 @@
      (scheme-error
       'pass1
       "proper list required for function application or macro use"
-      form))
+      (unwrap-syntax form)))
     (cond
      ((pass1/lookup-head (car form) p1env)
       =>

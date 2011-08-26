@@ -119,17 +119,19 @@ void Sg_Init()
   Sg__Init_sagittarius_vm_debug();
 
   Sg__Init_core_base();
-  Sg__Init_core_syntax_case();
-  Sg__Init_sagittarius_compiler_util();
-  Sg__Init_sagittarius_compiler_procedure();
-  Sg__Init_sagittarius_compiler();
 
   /* generic initialization must be after the libraries initialization */
   Sg__InitRecord();
   Sg__InitConsitions();
 
-  /* even these files need to be ordered */
   Sg__Init_core_errors();
+  Sg__Init_core_syntax_case();
+
+  Sg__Init_sagittarius_compiler_util();
+  Sg__Init_sagittarius_compiler_procedure();
+  Sg__Init_sagittarius_compiler();
+
+  /* even these files need to be ordered */
   Sg__Init_core_arithmetic();
   Sg__Init_core_enums();
   Sg__Init_match_core();

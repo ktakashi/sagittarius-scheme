@@ -6,7 +6,7 @@
 	    (core base)
 	    (core errors)
 	    (core syntax helper)
-	    (core syntax-case)
+	    ;;(core syntax-case)
 	    (sagittarius))
 
   ;; we use sid to keep pattern variable information.

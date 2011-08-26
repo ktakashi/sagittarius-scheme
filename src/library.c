@@ -213,15 +213,6 @@ static SgString* library_name_to_path(SgObject name)
     if (SG_SYMBOLP(SG_CAR(item))) {
       SgObject o = encode_string(SG_SYMBOL(SG_CAR(item))->name, FALSE);
       SG_APPEND1(h, t, o);
-#if 0
-     if (SG_SYMBOL(SG_CAR(item))->name->value[0] == ':') {
-	/* keyword but read as symbol */
-	SgObject o = Sg_Sprintf(UC("%%3a%s"), (SG_SYMBOL(SG_CAR(item))->name->value + 1));
-	SG_APPEND1(h, t, o);
-      } else {
-	SG_APPEND1(h, t, SG_SYMBOL(SG_CAR(item))->name);
-      }
-#endif
     } else if (SG_KEYWORDP(SG_CAR(item))) {
       /* for srfi-97.
 	 NB: when I create srfi library, it must be #!compatible or #!core
@@ -229,10 +220,6 @@ static SgString* library_name_to_path(SgObject name)
        */
       SgObject o = encode_string(SG_KEYWORD(SG_CAR(item))->name, TRUE);
       SG_APPEND1(h, t, o);
-#if 0
-      SgObject o = Sg_Sprintf(UC("%%3a%A"), SG_CAR(item));
-      SG_APPEND1(h, t, o);
-#endif
     } else {
       Sg_Error(UC("library name can contain only symbols or keywords, but got %S"), SG_CAR(item));
     }
@@ -248,7 +235,7 @@ static SgObject extentions = NULL;
    this takes only library name part. we don't manage version
    on file system.
  */
-static SgObject search_library(SgObject name)
+static SgObject search_library(SgObject name, int onlyPath)
 {
   SgString *path = library_name_to_path(name);
   SgObject ext;
@@ -270,6 +257,7 @@ static SgObject search_library(SgObject name)
 					       p));
       if (Sg_FileExistP(real)) {
 	path = SG_STRING(real);
+	if (onlyPath) return path;
 	goto goal;
       }
     }
@@ -304,6 +292,14 @@ static SgObject search_library(SgObject name)
   return Sg_HashTableRef(libraries, convert_name_to_symbol(name), SG_FALSE);
 }
 
+/* for cache */
+SgObject Sg_SearchLibraryPath(SgObject name)
+{
+  SgObject id_version = library_name_to_id_version(name);
+  SgObject path = search_library(SG_CAR(id_version), TRUE);
+  return path;
+}
+
 SgObject Sg_FindLibrary(SgObject name, int createp)
 {
   SgVM *vm = Sg_VM();
@@ -322,7 +318,7 @@ SgObject Sg_FindLibrary(SgObject name, int createp)
     if (createp) {
       return Sg_MakeLibrary(name);
     } else {
-      lib = search_library(SG_CAR(id_version));
+      lib = search_library(SG_CAR(id_version), FALSE);
 #if 0
       if (SG_FALSEP(lib)) {
 	Sg_Error(UC("no library named %S"), name);
@@ -342,7 +338,7 @@ SgObject Sg_SearchLibrary(SgObject lib)
     return lib;
   }
   id_version = library_name_to_id_version(lib);
-  return search_library(SG_CAR(id_version));
+  return search_library(SG_CAR(id_version), FALSE);
 }
 
 #define ENSURE_LIBRARY(o, e)						\

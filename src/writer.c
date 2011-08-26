@@ -62,6 +62,7 @@
 #include "sagittarius/gloc.h"
 #include "sagittarius/unicode.h"
 #include "sagittarius/builtin-symbols.h"
+#include "sagittarius/reader.h"	/* for sharedref */
 
 #define WRITE_LIMITED  0x10
 #define WRITE_CIRCULAR 0x20
@@ -754,9 +755,7 @@ static void write_identifier(SgIdentifier *id, SgPort *port, SgWriteContext *ctx
 #if 1
   if (SG_WRITE_MODE(ctx) == SG_WRITE_WRITE) {
     char buf[50];
-    Sg_PutcUnsafe(port, ' ');
-    snprintf(buf, sizeof(buf), "(%p)", id->envs);
-    Sg_PutzUnsafe(port, buf);
+    Sg_PutuzUnsafe(port, SG_FALSEP(SG_IDENTIFIER_RENAMED(id)) ? UC(" #f") : UC(" #t"));
     snprintf(buf, sizeof(buf), "(%p)", id);
     Sg_PutcUnsafe(port, ' ');
     Sg_PutzUnsafe(port, buf);
@@ -1106,6 +1105,20 @@ static void write_thread(SgVM *vm, SgPort *port, SgWriteContext *ctx)
   Sg_PutzUnsafe(port, buf);
 }
 
+static void write_sharedref(SgSharedRef *ref, SgPort *port, SgWriteContext *ctx)
+{
+  Sg_PutuzUnsafe(port, UC("#<shared-ref "));
+  if (SG_NUMBERP(ref->index)) {
+    short mode = SG_WRITE_MODE(ctx); /* save */
+    ctx->mode = SG_WRITE_DISPLAY;    /* number must be display mode */
+    write_string(Sg_NumberToString(ref->index, 10, FALSE), port, ctx);
+    ctx->mode = mode;
+  } else {
+    Sg_PutuzUnsafe(port, UC("???"));
+  }
+  Sg_PutcUnsafe(port, '>');
+}
+
 #define SPBUFSIZ  50
 #define CASE_ITAG(obj, str)				\
   case SG_ITAG(obj): Sg_PutuzUnsafe(port, str); break;
@@ -1296,6 +1309,8 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
     write_meta_obj(obj, port, ctx);
   } else if (SG_VMP(obj)) {
     write_thread(SG_VM(obj), port, ctx);
+  } else if (SG_SHAREDREF_P(obj)) {
+    write_sharedref(SG_SHAREDREF(obj), port, ctx);
   } else {
     Sg_PutuzUnsafe(port, UC("#<unknown datum>"));
   }

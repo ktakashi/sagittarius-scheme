@@ -32,6 +32,15 @@
 (define (hashtable->alist ht)
   (hashtable-map cons ht))
 
+(define unique-id-list?
+  (lambda (lst)
+    (and (list? lst)
+         (not (let loop ((lst lst))
+                (and (pair? lst)
+                     (or (not (variable? (car lst)))
+                         (id-memq (car lst) (cdr lst))
+                         (loop (cdr lst)))))))))
+
 #;(define (any pred ls)
   (if (pair? ls) (if (pred (car ls)) (car ls) (any pred (cdr ls))) #f))
 
@@ -39,19 +48,15 @@
   (receive vals (producer) (apply consumer vals)))
 
 ;; er-macro-transformer
-(define er-macro-transformer
-  (lambda (f)
-    ;; expression should have use-env and mac-env
-    ;; use-env: eval time environment = expand phase environment
-    ;; mac-env: binging time environment.
-    (lambda (expr)
-      (let ((dict (make-eq-hashtable))
-	    (use-env&mac-env (cdr expr)))
-	(define (rename s) (er-rename s (cdr use-env&mac-env) dict))
-	(define (compare a b)
-	  (identifier=? (car use-env&mac-env) a
-			(cdr use-env&mac-env) b))
-	(f (car expr) rename compare)))))
+(define (er-macro-transformer f)
+  (lambda (expr)
+    (let ((dict (make-eq-hashtable))
+	  (use-env (current-usage-env))
+	  (mac-env (current-macro-env)))
+      (define (rename s) (er-rename s mac-env dict))
+      (define (compare a b)
+	(identifier=? use-env a mac-env b))
+      (f expr rename compare))))
 
 (define safe-length
   (lambda (lst)

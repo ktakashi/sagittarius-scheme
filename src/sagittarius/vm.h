@@ -176,6 +176,9 @@ struct SgVMRec
 
   SgContFrame  *cont;     	/* saved continuation frame */
 
+  /* macro expansion */
+  SgObject usageEnv;
+  SgObject macroEnv;
   /*
     default reader macro symbols
    */

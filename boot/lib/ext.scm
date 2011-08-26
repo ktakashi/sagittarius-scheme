@@ -30,6 +30,10 @@
 	      (loop (cdr frame)))
 	  '()))))
 
+;; i don't think it's smart but ...
+;;(define *usage-env* '())
+;;(define *macro-env* '())
+
 ;; from chibi-scheme
 (define identifier=?
   (lambda (e1 id1 e2 id2)
@@ -106,3 +110,26 @@
 	  (loop (+ i 1)
 		(map cdr rest)
 		(cons (map car rest) r))))))
+
+;; stub
+(define (condition . components)
+  components)
+(define (make-assertion-violation)
+  #(.assertion-violation))
+(define (make-who-condition who)
+  `#(.who-condition ,who))
+(define (make-message-condition msg)
+  `#(.message-condition ,msg))
+(define (make-irritants-condition . irr)
+  `#(.irritants-condition ,@irr))
+(define (syntax-violation who msg . irr)
+  (error who msg irr))
+
+(define (raise e) 
+  (if (pair? e)
+      (let loop ((e e))
+	(unless (null? e)
+	  (display (car e))(newline)
+	  (loop (cdr e))))
+      (print e))
+  (error 'raised))

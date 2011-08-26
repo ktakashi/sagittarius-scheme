@@ -38,12 +38,14 @@
   (define inexact exact->inexact)
   (define (source-info form) #f)
   (define (source-info-set! form info) #f)
+  (define list-head take)
 
   ;; load instruction definition
   (load "insn.scm")
   ;; load Vm procedures to run on scheme VM
   (load "lib/ext.scm")
   (load "lib/vm.scm")
+  ;;(load "lib/macro.scm")
   (load "lib/macro.scm")
   )
  (sagittarius
@@ -557,7 +559,9 @@
     (define lvar->string
       (lambda (lvar)
 	(format "~s[~a.~a]"
-		(lvar-name lvar)
+		(if (identifier? (lvar-name lvar))
+		    (id-name (lvar-name lvar))
+		    (lvar-name lvar))
 		(lvar-ref-count lvar) (lvar-set-count lvar))))
     (define rec
       (lambda (ind iform)
@@ -567,7 +571,10 @@
 	 ((has-tag? iform $UNDEF)
 	  (format #t "($const #<undef>)"))
 	 ((has-tag? iform $LAMBDA)
-	  (format #t "($lambda[~a.~a] ~a" ($lambda-name iform)
+	  (format #t "($lambda[~a.~a] ~a" 
+		  (if (identifier? ($lambda-name iform))
+		      (id-name ($lambda-name iform))
+		      ($lambda-name iform))
 		  (length ($lambda-calls iform))
 		  (map lvar->string ($lambda-lvars iform)))
 	  (nl (+ ind 2))
@@ -1180,13 +1187,23 @@
   (smatch form
     ((- expr (literal ___) rule ___)
      ;; compile-syntax-case returns subr.
-     (receive (newframe newexpr)
+     (receive (func lites patvars processes)
 	 (compile-syntax-case (p1env-exp-name p1env)
 			      expr literal rule
 			      (p1env-library p1env)
 			      (p1env-frames p1env)
 			      p1env)
-       (pass1 newexpr (p1env-swap-frame p1env newframe))))
+       ($call #f ($gref func)
+	      `(,(if (lvar? patvars) ($lref patvars) ($const-nil))
+		,(pass1 `(quote ,lites) p1env)
+		,(pass1 expr p1env)
+		,@(imap (lambda (expr&env)
+			  (let ((expr (car expr&env))
+				(env  (cdr expr&env)))
+			    (pass1 expr (p1env-swap-frame p1env env))))
+			processes)))
+       ;;(pass1 newexpr (p1env-swap-frame p1env newframe))))
+       ))
     (- (syntax-error "malformed syntax-case" form))))
 
 (define-pass1-syntax (syntax form p1env) :null
@@ -1194,6 +1211,7 @@
     ((- tmpl)
      (pass1 (compile-syntax (p1env-exp-name p1env)
 			    tmpl
+			    (p1env-frames p1env)
 			    p1env) p1env))
     (- (syntax-error "malformed syntax: expected exactly one datum" form))))
 
@@ -1330,8 +1348,8 @@
 	     (let ((n (variable-name (car e))))
 	       (or (eq? n 'quote)
 		   (eq? n 'syntax-quote))))))
-
-    (let loop ((expr expr))
+    expr
+    #;(let loop ((expr expr))
       (cond ((null? expr) '())
 	    ((quoted? expr) expr)
 	    ((pair? expr)
@@ -2083,7 +2101,7 @@
     (cond
      ((pair? form)
       (unless (list? form)
-	(scheme-error 'pass1 "proper list required for function application or macro use" form))
+	(scheme-error 'pass1 "proper list required for function application or macro use" (unwrap-syntax form)))
       (cond ((pass1/lookup-head (car form) p1env)
 	     => (lambda (obj)
 		  (cond ((identifier? obj) (pass1/global-call obj))

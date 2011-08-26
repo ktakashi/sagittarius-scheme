@@ -6,7 +6,6 @@
 (define (vm-macro-expand-phase?)
   (positive? *expand-phase*))
 
-
 (define (set-toplevel-variable! sym val)
   (set! *toplevel-variable* (acons sym val *toplevel-variable*)))
 (define (gloc-ref g) g)
@@ -89,11 +88,13 @@
 ;; <name>             ::= <symbol>
 ;; <envs>             ::= (<env> ...)
 ;; <library>          ::= (<symbol> ...) | #f
+;; <rename?>          ::= #f | #t
 ;;
 ;; where
 ;;   <name>             : The symbolic name of the identifier in the source.
 ;;   <envs>             : p1env frames
 ;;   <library>          : Library name.
+;;   <rename?>          : only appears in macro expansion
 (define make-identifier
   (lambda (name envs library)
     (vector '.identifier
@@ -105,7 +106,20 @@
 		library
 		(vm-current-library))
 	    ;; for bound-id->symbol
-	    (gensym))))
+	    (gensym)
+	    #f
+	    #f)))
+
+(define (rename-id id)
+  (if (identifier? id)
+      (let ((new-id (make-identifier (id-name id) (id-envs id) (id-library id))))
+	(id-renamed?-set! new-id)
+	(id-transformers-env-set! new-id (current-usage-env))
+	new-id)
+      (let ((new-id (make-identifier id '() (vm-current-library))))
+	(id-renamed?-set! new-id)
+	(id-transformers-env-set! new-id (current-usage-env))
+	new-id)))
 
 (define (id-name id)
   (vector-ref id 1))
@@ -119,6 +133,19 @@
   (vector-ref id 3))
 (define (id-library-set! id v)
   (vector-set! id 3 v))
+(define (id-renamed? id)
+  (vector-ref id 5))
+(define (id-renamed?-set! id)
+  (vector-set! id 5 #t))
+
+(define (id-transformers-env id)
+  (vector-ref id 6))
+(define (id-transformers-env-set! id e)
+  (vector-set! id 6 e))
+
+(define (renamed-id? id)
+  (and (identifier? id)
+       (id-renamed? id)))
 
 (define (bound-id->symbol id)
   (let ((n (format "~a~a"
@@ -498,8 +525,20 @@
 (define macro-transform
   (lambda (self form p1env data)
     (let ((expander (apply-proc data '()))
-	  (mac-env  (macro-env self)))
-      (apply-proc expander (list (cons form (cons p1env mac-env))))
+	  (mac-env  (macro-env self))
+	  (uenv-save (current-usage-env))
+	  (menv-save (current-macro-env)))
+      (current-usage-env-set! p1env)
+      (current-macro-env-set! mac-env)
+      (if (macro? expander)
+	  (let ((r (apply-proc (macro-transformer expander) (list expander form p1env (macro-data expander)))))
+	    (current-usage-env-set! uenv-save)
+	    (current-macro-env-set! menv-save)
+	    r)
+	  (let ((r (apply-proc expander (list form))))
+	    (current-usage-env-set! uenv-save)
+	    (current-macro-env-set! menv-save)
+	    r))
       #;(if (macro? expander)
 	  ((macro-transformer expander) expander form p1env (macro-data expander))
 	  (apply-proc expander (list (cons form p1env)))))))

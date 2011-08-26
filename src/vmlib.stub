@@ -45,6 +45,9 @@
 	    get-stack-trace-object
 	    set-toplevel-variable!
 	    get-toplevel-variables
+	    ;; for macro
+	    rename-id
+	    renamed-id
 	    )
     (import :none)
   (decl-code
@@ -80,6 +83,12 @@
 
   (define-c-proc id-library (id::Identifier) ::Object
     (result (SG_IDENTIFIER_LIBRARY id)))
+
+  (define-c-proc id-renamed? (id::Identifier) ::Object
+    (result (SG_IDENTIFIER_RENAMED id)))
+
+  (define-c-proc id-transformers-env (id::Identifier) ::Object
+    (result (SG_IDENTIFIER_TRANSFORMERS_ENV id)))
 
   (define-c-proc copy-identifier (id::Identifier) ::Object
     (result (Sg_CopyIdentifier id)))
@@ -336,4 +345,20 @@
 
   (define-c-proc get-toplevel-variables () ::Object
     (result (-> (Sg_VM) toplevelVariables)))
+
+  (define-c-proc rename-id (id) ::Object
+    (let ((new_id    SG_UNDEF)
+	  (vm::SgVM* (Sg_VM))
+	  (env       (-> vm macroEnv)))
+      (if (SG_IDENTIFIERP id)
+	  (set! new_id (Sg_MakeIdentifier (SG_IDENTIFIER_NAME id) (SG_IDENTIFIER_ENVS id)
+					  (SG_IDENTIFIER_LIBRARY id)))
+	  (set! new_id (Sg_WrapSyntax id env NULL FALSE)))
+      (set! (SG_IDENTIFIER_RENAMED new_id) SG_TRUE)
+      (set! (SG_IDENTIFIER_TRANSFORMERS_ENV new_id) (-> vm usageEnv))
+      (result new_id)))
+
+  (define-c-proc renamed-id? (o) ::boolean
+    (result (and (SG_IDENTIFIERP o)
+		 (not (SG_FALSEP (SG_IDENTIFIER_RENAMED o))))))
 )

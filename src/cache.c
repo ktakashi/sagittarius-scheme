@@ -66,6 +66,13 @@
 static SgString *CACHE_DIR = NULL;
 static int TAG_LENGTH = 0;
 
+#define CACHE_DEBUG 1
+#ifdef CACHE_DEBUG
+#define debug_print(fmt, ...) Sg_Printf(Sg_StandardErrorPort(), UC(fmt), __VA_ARGS__)
+#else
+#define debug_print(fmt, ...)	/* dummy */
+#endif
+
 /* assume id is path. however just in case, we encode invalid path characters */
 static SgString* id_to_filename(SgString *id)
 {
@@ -76,7 +83,9 @@ static SgString* id_to_filename(SgString *id)
   SG_FOR_EACH(cp, sl) {
     SgObject c = SG_CAR(cp);
     SgChar ch = SG_CHAR_VALUE(c);
-    if (!isalnum(ch)){
+    if (ch == '/' || ch == '.') {
+      SG_APPEND1(h, t, SG_MAKE_CHAR('_'));
+    } else if (!isalnum(ch)){
       int high = (ch >> 4) & 0xF;
       int low  = ch & 0xF;
       SG_APPEND1(h, t, perc);
@@ -322,7 +331,7 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
 
 #define interesting_p(obj)					\
   (SG_STRINGP(obj) || SG_SYMBOLP(obj) || SG_KEYWORDP(obj) ||	\
-   SG_IDENTIFIERP(obj) ||					\
+   SG_IDENTIFIERP(obj) || SG_MACROP(obj) ||			\
    SG_PAIRP(obj) || SG_VECTORP(obj) || SG_CLOSUREP(obj))
 
 static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
@@ -355,6 +364,26 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
     } else if (SG_IDENTIFIERP(obj)) {
       cbs = write_cache_scan(SG_IDENTIFIER_ENVS(obj), cbs, ctx);
       cbs = write_cache_scan(SG_IDENTIFIER_LIBRARY(obj)->name, cbs, ctx);
+      /* we do not scan transformersEnv's current-proc */
+      if (!SG_FALSEP(SG_IDENTIFIER_TRANSFORMERS_ENV(obj))) {
+	SG_VECTOR_ELEMENT(SG_IDENTIFIER_TRANSFORMERS_ENV(obj), 3) = SG_FALSE;
+	/* obj = SG_IDENTIFIER_TRANSFORMERS_ENV(obj); */
+	/* goto loop; */
+	cbs = write_cache_scan(SG_IDENTIFIER_TRANSFORMERS_ENV(obj), cbs, ctx);
+      }
+    } else if (SG_MACROP(obj)) {
+      /* local macro in transformersEnv */
+      cbs = write_cache_scan(SG_MACRO(obj)->name, cbs, ctx);
+      cbs = write_cache_scan(SG_MACRO(obj)->env, cbs, ctx);
+      if (SG_CLOSUREP(SG_MACRO(obj)->data)) {
+	cbs = Sg_Acons(SG_CLOSURE(SG_MACRO(obj)->data)->code, SG_MAKE_INT(ctx->index), cbs);
+	cbs = write_cache_pass1(SG_CLOSURE(SG_MACRO(obj)->data)->code, cbs, NULL, ctx);
+      }
+      if (SG_CLOSUREP(SG_MACRO(obj)->transformer)) {
+	cbs = Sg_Acons(SG_CLOSURE(SG_MACRO(obj)->transformer)->code, SG_MAKE_INT(ctx->index), cbs);
+	cbs = write_cache_pass1(SG_CLOSURE(SG_MACRO(obj)->transformer)->code, cbs, NULL, ctx);
+      }
+      cbs = write_cache_scan(SG_MACRO(obj)->maybeLibrary, cbs, ctx);
     }
   }
   return cbs;
@@ -469,6 +498,30 @@ static void write_list_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx *c
   }
 }
 
+static void write_macro(SgPort *out, SgMacro *macro, SgObject closures, cache_ctx *ctx)
+{
+  SgObject closure;
+  int subrP = SG_SUBRP(SG_MACRO(macro)->transformer);
+
+  SG_VECTOR_ELEMENT(SG_MACRO(macro)->env, 3) = SG_FALSE;
+
+  put_word(out, subrP, MACRO_TAG);
+  write_object_cache(out, SG_MACRO(macro)->name, closures, ctx);
+  write_object_cache(out, SG_MACRO(macro)->env, closures, ctx);
+  write_object_cache(out, SG_MACRO(macro)->maybeLibrary, closures, ctx);
+  if (subrP) {
+    write_cache_pass2(out, SG_CLOSURE(SG_MACRO(macro)->data)->code, closures, ctx);
+  } else {
+    write_cache_pass2(out, SG_CLOSURE(SG_MACRO(macro)->transformer)->code, closures, ctx);
+  }
+  SG_FOR_EACH(closure, SG_CDR(Sg_Reverse(closures))) {
+    SgObject slot = SG_CAR(closure);
+    Sg_PutbUnsafe(out, CLOSURE_TAG);
+    write_cache_pass2(out, SG_CODE_BUILDER(SG_CAR(slot)), closures, ctx);      
+  }
+  Sg_PutbUnsafe(out, MACRO_END_TAG);
+}
+
 static void write_object_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx *ctx)
 {
   SgObject sharedState = Sg_HashTableRef(ctx->sharedObjects, o, SG_FALSE);
@@ -507,9 +560,25 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx 
   } else if (SG_PAIRP(o)) {
     write_list_cache(out, o, cbs, ctx);
   } else if (SG_IDENTIFIERP(o)) {
+    /* We know how p1env constructed. and we don't need current-proc which is
+       only for optimization.
+       p1env ::= #( library frames exp-name current-proc )
+    */
     write_string_cache(out, SG_SYMBOL(SG_IDENTIFIER(o)->name)->name, IDENTIFIER_TAG);
     write_object_cache(out, SG_LIBRARY(SG_IDENTIFIER_LIBRARY(o))->name, cbs, ctx);
     write_object_cache(out, SG_IDENTIFIER_ENVS(o), cbs, ctx);
+    write_object_cache(out, SG_IDENTIFIER_RENAMED(o), cbs, ctx);
+    if (!SG_FALSEP(SG_IDENTIFIER_TRANSFORMERS_ENV(o))) {
+      /* this suppose to be changed by now, but just in case. */
+      SG_VECTOR_ELEMENT(SG_IDENTIFIER_TRANSFORMERS_ENV(o), 3) = SG_FALSE;
+#if 0
+      Sg_Write(SG_IDENTIFIER_TRANSFORMERS_ENV(o), Sg_StandardErrorPort(), SG_WRITE_SHARED);
+      Sg_Write(SG_MAKE_CHAR('\n'), Sg_StandardErrorPort(), SG_WRITE_DISPLAY);
+#endif
+      write_object_cache(out, SG_IDENTIFIER_TRANSFORMERS_ENV(o), cbs, ctx);
+    } else {
+      emit_immediate(out, SG_FALSE);
+    }
   } else if (SG_CLOSUREP(o)) {
     write_cache_pass2(out, SG_CLOSURE(o)->code, cbs, ctx);
   } else if (SG_LIBRARYP(o)) {
@@ -526,6 +595,13 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx 
     write_object_cache(out, SG_LIBRARY(lib)->name, cbs, ctx);
     /* gloc does not have any envs. */
     emit_immediate(out, SG_NIL);
+    emit_immediate(out, SG_FALSE);
+    emit_immediate(out, SG_FALSE);
+  } else if (SG_MACROP(o)) {
+    write_macro(out, o, cbs, ctx);
+  } else {
+    /* never happen? */
+    Sg_Panic("invalid cache object");
   }
 }
 
@@ -551,6 +627,7 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs, cach
   put_4byte(cb->freec);
   put_4byte(SG_INT_VALUE(SG_CDR(this_slot)));
   write_object_cache(out, cb->name, cbs, ctx);
+  debug_print("written code builder length: %d, pos: %d\n", len, Sg_PortPosition(out));
   for (i = 0; i < len;) {
     InsnInfo *info = Sg_LookupInsnName(INSN(code[i]));
     int j;
@@ -599,12 +676,14 @@ static void write_macro_cache(SgPort *out, SgLibrary *lib, SgObject cbs, cache_c
   put_word(out, Sg_Length(macros), MACRO_SECTION_TAG);
   write_symbol_cache(out, SG_LIBRARY_NAME(lib));
   SG_FOR_EACH(cp, macros) {
-    SgObject macro = SG_CAR(cp), closures = SG_NIL, closure;
-    int subrP = SG_SUBRP(SG_MACRO(macro)->transformer);
+    SgObject macro = SG_CAR(cp), closures = SG_NIL;
     /*
       Macro can be considered as one toplevel compiled code, which means we do
       not have to care about closures outside of given macro.
      */
+    /* do the same trik as identifier for macro env*/
+    SG_VECTOR_ELEMENT(SG_MACRO(macro)->env, 3) = SG_FALSE;
+
     /* for usual macros */
     if (SG_CLOSUREP(SG_MACRO(macro)->data)) {
       closures = Sg_Acons(SG_CLOSURE(SG_MACRO(macro)->data)->code, SG_MAKE_INT(ctx->index++), closures);
@@ -617,21 +696,7 @@ static void write_macro_cache(SgPort *out, SgLibrary *lib, SgObject cbs, cache_c
       /* we don't need to check library here */
       closures = write_cache_pass1(SG_CLOSURE(SG_MACRO(macro)->transformer)->code, closures, NULL, ctx); 
     }
-    put_word(out, subrP, MACRO_TAG);
-    write_object_cache(out, SG_MACRO(macro)->name, closures, ctx);
-    write_object_cache(out, SG_MACRO(macro)->env, closures, ctx);
-    write_object_cache(out, SG_MACRO(macro)->maybeLibrary, closures, ctx);
-    if (subrP) {
-      write_cache_pass2(out, SG_CLOSURE(SG_MACRO(macro)->data)->code, closures, ctx);
-    } else {
-      write_cache_pass2(out, SG_CLOSURE(SG_MACRO(macro)->transformer)->code, closures, ctx);
-    }
-    SG_FOR_EACH(closure, SG_CDR(Sg_Reverse(closures))) {
-      SgObject slot = SG_CAR(closure);
-      Sg_PutbUnsafe(out, CLOSURE_TAG);
-      write_cache_pass2(out, SG_CODE_BUILDER(SG_CAR(slot)), closures, ctx);      
-    }
-    Sg_PutbUnsafe(out, MACRO_END_TAG);
+    write_macro(out, macro, closures, ctx);
   }
   Sg_PutbUnsafe(out, MACRO_SECTION_END_TAG);
 }
@@ -736,6 +801,7 @@ static SgObject link_cb(SgObject cb, read_ctx *ctx)
 	if (SG_SHAREDREF_P(o)) {
 	  SgObject index = SG_SHAREDREF(o)->index;
 	  SgObject new_cb = Sg_HashTableRef(ctx->seen, index, SG_FALSE);
+	  debug_print("linking ... %A\n", o);
 #if 0
 	  Sg_Printf(Sg_StandardErrorPort(), UC("index %A, keys %S, values %S\n"), index,
 		    Sg_HashTableKeys(ctx->seen), Sg_HashTableValues(ctx->seen));
@@ -854,6 +920,8 @@ static SgObject read_identifier(SgPort *in, read_ctx *ctx)
   SgString *name;
   SgObject lib;
   SgObject envs;
+  SgObject renamed;
+  SgObject transformersEnv;
   SgIdentifier *id;
 
   length = read_word(in, IDENTIFIER_TAG);
@@ -863,6 +931,8 @@ static SgObject read_identifier(SgPort *in, read_ctx *ctx)
   if (SG_FALSEP(lib)) return SG_FALSE;
   lib = Sg_FindLibrary(lib, FALSE);
   envs = read_object_rec(in, ctx);
+  renamed = read_object_rec(in, ctx);
+  transformersEnv = read_object_rec(in, ctx);
 
   /* we need to resolve shread object later */
   id = SG_NEW(SgIdentifier);
@@ -870,6 +940,8 @@ static SgObject read_identifier(SgPort *in, read_ctx *ctx)
   id->name = Sg_Intern(name);
   id->library = lib;
   id->envs = envs;
+  id->renamed = renamed;
+  id->transformersEnv = transformersEnv;
   return id;
 }
 
@@ -893,8 +965,7 @@ static SgObject read_vector(SgPort *in, read_ctx *ctx)
   length = read_word(in, VECTOR_TAG);
   vec = Sg_MakeVector(length, SG_UNDEF);
   for (i = 0; i < length; i++) {
-    SgObject o = read_object_rec(in, ctx);
-    SG_VECTOR_ELEMENT(vec, i) = o;
+    SG_VECTOR_ELEMENT(vec, i) = read_object_rec(in, ctx);
   }
   return vec;
 }
@@ -906,7 +977,6 @@ static SgObject read_plist(SgPort *in, read_ctx *ctx)
   SgObject h = SG_NIL, t = SG_NIL;
 
   length = read_word(in, PLIST_TAG);
-
   for (i = 0; i < length; i++) {
     SG_APPEND1(h, t, read_object_rec(in, ctx));
   }
@@ -920,7 +990,6 @@ static SgObject read_dlist(SgPort *in, read_ctx *ctx)
   SgObject h = SG_NIL, t = SG_NIL, o;
 
   length = read_word(in, DLIST_TAG);
-
   o = read_object_rec(in, ctx);
   for (i = 0; i < length; i++) {
     SG_APPEND1(h, t, read_object_rec(in, ctx));
@@ -1086,7 +1155,7 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
   case LIBRARY_LOOKUP_TAG:
     return lookup_library(in, ctx);
   default:
-    /* maybe broken cache. */
+    Sg_Panic("unknown tag appeared. tag: %d, pos: %d", tag, Sg_PortPosition(in));
     return SG_FALSE;
   }
 }
@@ -1163,6 +1232,7 @@ static SgObject read_code(SgPort *in, read_ctx *ctx)
   index = read_4byte(in);
   name = read_object(in, ctx);
   code = SG_NEW_ARRAY(SgWord, len);
+  debug_print("read code builder length: %d, pos: %d\n", len, Sg_PortPosition(in));
   /* now we need to construct code builder */
   /*
   i = 0;
@@ -1176,6 +1246,8 @@ static SgObject read_code(SgPort *in, read_ctx *ctx)
       /* resolve shared object here for identifier*/
       read_cache_link(SG_IDENTIFIER_ENVS(o), Sg_MakeHashTableSimple(SG_HASH_EQ, 0), ctx);
       read_cache_link(SG_IDENTIFIER_LIBRARY(o), Sg_MakeHashTableSimple(SG_HASH_EQ, 0), ctx);
+      read_cache_link(SG_IDENTIFIER_RENAMED(o), Sg_MakeHashTableSimple(SG_HASH_EQ, 0), ctx);
+      read_cache_link(SG_IDENTIFIER_TRANSFORMERS_ENV(o), Sg_MakeHashTableSimple(SG_HASH_EQ, 0), ctx);
     }
     code[i] = SG_WORD(o);
   }
@@ -1294,21 +1366,29 @@ int Sg_ReadCache(SgString *id)
   return CACHE_READ;
 }
 
-void Sg_CleanCache()
+void Sg_CleanCache(SgObject target)
 {
   SgObject caches = Sg_ReadDirectory(CACHE_DIR);
   SgObject cache, path;
   SgString *sep = Sg_MakeString(Sg_NativeFileSeparator(), SG_LITERAL_STRING);
 
   if (SG_FALSEP(caches)) return;
-  SG_FOR_EACH(cache, caches) {
-    if (SG_STRING_SIZE(SG_CAR(cache)) == 1 &&
-	SG_STRING_VALUE_AT(SG_CAR(cache), 0) == '.') continue;
-    if (SG_STRING_SIZE(SG_CAR(cache)) == 2 &&
-	SG_STRING_VALUE_AT(SG_CAR(cache), 0) == '.' &&
-	SG_STRING_VALUE_AT(SG_CAR(cache), 1) == '.') continue;
-    path = Sg_StringAppend(SG_LIST3(CACHE_DIR, sep, SG_CAR(cache)));
-    Sg_DeleteFile(path);
+  if (!SG_FALSEP(target)) {
+    SgObject cache_name = Sg_SearchLibraryPath(target);
+    if (SG_FALSEP(cache_name)) return;
+    cache_name = id_to_filename(cache_name);
+    Sg_DeleteFile(cache_name);
+  } else {
+    SG_FOR_EACH(cache, caches) {
+      if (SG_STRING_SIZE(SG_CAR(cache)) == 1 &&
+	  SG_STRING_VALUE_AT(SG_CAR(cache), 0) == '.') continue;
+      if (SG_STRING_SIZE(SG_CAR(cache)) == 2 &&
+	  SG_STRING_VALUE_AT(SG_CAR(cache), 0) == '.' &&
+	  SG_STRING_VALUE_AT(SG_CAR(cache), 1) == '.') continue;
+      
+      path = Sg_StringAppend(SG_LIST3(CACHE_DIR, sep, SG_CAR(cache)));
+      Sg_DeleteFile(path);
+    }
   }
 }
 

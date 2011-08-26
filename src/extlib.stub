@@ -94,6 +94,9 @@
 	    ;; bytevector
 	    bytevector->integer
 	    integer->bytevector
+	    ;; env
+	    current-usage-env
+	    current-macro-env
 	    )
     (import :null)
   (decl-code
@@ -515,8 +518,8 @@
     (result (SG_KEYWORDP o)))
 
   ;; cache
-  (define-c-proc clean-cache () ::void
-    (Sg_CleanCache))
+  (define-c-proc clean-cache (:optional (target #f)) ::void
+    (Sg_CleanCache target))
 
   ;; getenv
   (define-c-proc getenv (path::String) ::Object
@@ -546,4 +549,10 @@
 					"real number"
 					n))
     (result (Sg_IntegerToByteVector n)))
+
+  (define-c-proc current-usage-env () ::Object
+    (result (-> (Sg_VM) usageEnv)))
+
+  (define-c-proc current-macro-env () ::Object
+    (result (-> (Sg_VM) macroEnv)))
 )

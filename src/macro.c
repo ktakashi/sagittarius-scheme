@@ -109,8 +109,12 @@ static SgObject unwrap_rec(SgObject form, SgObject history)
 
 static SgObject macro_tranform(SgObject *args, int argc, void *data_)
 {
+  SgVM *vm = Sg_VM();;
   SgObject macro, form, p1env, mac_env;
+  SgObject ue_save = vm->usageEnv;
+  SgObject me_save = vm->macroEnv;
   volatile SgObject data;
+  SgObject result;
   macro = args[0];
   ASSERT(SG_MACROP(macro));
   form = args[1];
@@ -118,11 +122,17 @@ static SgObject macro_tranform(SgObject *args, int argc, void *data_)
 
   data = Sg_ApplySafe(args[3], SG_NIL);
   mac_env = SG_MACRO(macro)->env;
+
+  vm->usageEnv = p1env;
+  vm->macroEnv = mac_env;
   if (SG_MACROP(data)) {
-    return Sg_Apply4(SG_MACRO(data)->transformer, data, form, mac_env, SG_MACRO(data)->data);
+    result = Sg_Apply4(SG_MACRO(data)->transformer, data, form, mac_env, SG_MACRO(data)->data);
   } else {
-    return Sg_Apply1(data, Sg_Cons(form, Sg_Cons(p1env, mac_env)));
+    result = Sg_Apply1(data, form);
   }
+  vm->usageEnv = ue_save;
+  vm->macroEnv = me_save;
+  return result;
 }
 
 static SG_DEFINE_SUBR(macro_tranform_Stub, 2, 0, macro_tranform, SG_FALSE, NULL);

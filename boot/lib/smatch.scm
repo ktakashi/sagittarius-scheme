@@ -16,6 +16,12 @@
      (smatcher k (lambda (x sk fk) (if (null? x) (sk) (fk))) () arg ...))
     ((smatcher "base" - k arg ...)
      (smatcher k (lambda (x sk fk) (sk)) () arg ...))
+;;    ((matcher "base" (syntax id) k arg ...)
+;;     (matcher k
+;;	      (lambda (x sk fk)
+;;		(if (free=? x 'id) (sk) (fk)))
+;;	      ()
+;;	      arg ...))
     ((smatcher "base" (? pred? p) k arg ...)
      (smatcher "base" p "predicate" pred? k arg ...))
     ((smatcher "predicate" code vars pred? k arg ...)

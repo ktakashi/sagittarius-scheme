@@ -6,7 +6,7 @@
 	    (core syntax pattern)
 	    (core syntax helper)
 	    (core misc)
-	    (core syntax-case) ;; for ellipsis-pair? so
+	    ;;(core syntax-case) ;; for ellipsis-pair? so
 	    (sagittarius))
   (define generate-output
     (lambda (template sids rename compare expr)
