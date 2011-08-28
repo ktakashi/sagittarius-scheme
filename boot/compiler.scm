@@ -1151,13 +1151,15 @@
        (let ((p1env (p1env-add-name p1env (variable-name name))))
 	 ($define oform
 		  flags
-		  (make-identifier (unwrap-syntax name) '() library)
+		  (make-identifier (unrename-symbol (unwrap-syntax name))
+				   '() library)
 		  (pass1 (caddr form) (p1env-add-name p1env name)))))
       ((- name)
        (unless (variable? name) (syntax-error "malformed define" oform))
        ($define oform
 		flags
-		(make-identifier (unwrap-syntax name) '() library)
+		(make-identifier (unrename-symbol
+				  (unwrap-syntax name) '() library))
 		($undef)))
       (- (syntax-error "malformed define" oform)))))
 
@@ -1272,21 +1274,27 @@
      (syntax-error "malformed letrec-syntax" form))))
 
 ;; 'rename' procedure - we just return a resolved identifier
-(define er-rename
-  (lambda (symid p1env dict)
-    (unless (variable? symid)
-      (scheme-error 'er-macro-transformer "rename procrdure requires a symbol or an identifier, but got " symid))
-    (if (symbol? symid)
-	(or (hashtable-ref dict symid #f)
-	    (let ((var (p1env-lookup p1env symid SYNTAX)))
-	      (let ((id (if (identifier? var)
-			    var
-			    (make-identifier symid
-					     (p1env-frames p1env)
-					     (p1env-library p1env)))))
+(define (er-rename)
+  (let ((count 0))
+    (lambda (symid p1env dict)
+      (unless (variable? symid)
+	(scheme-error 'er-macro-transformer "rename procrdure requires a symbol or an identifier, but got " symid))
+      (if (symbol? symid)
+	  (or (hashtable-ref dict symid #f)
+	      (let* ((var (p1env-lookup p1env symid SYNTAX))
+		     (id (cond ((syntax? var) 
+				(make-identifier symid
+						 (p1env-frames p1env)
+						 (p1env-lookup p1env)))
+			       ((and (identifier? var)
+				     (find-binding (id-library var) symid #f))
+				var)
+			       (else
+				(set! count (+ count 1))
+				(string->symbol (format "~a`~a" symid count))))))
 		(hashtable-set! dict symid id)
-		id)))
-	symid)))
+		id))
+	  symid))))
 
 
 ;; we need to export er-macro-transformer and er-rename

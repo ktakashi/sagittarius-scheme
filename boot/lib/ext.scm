@@ -15,6 +15,18 @@
 (define (id-name id)
   (vector-ref id 1))
 
+(define (unrename-symbol sym)
+  (let loop ((lst (string->list (symbol->string sym)))
+	     (r '()))
+    (cond ((null? lst)
+	   (string->symbol (list->string (reverse r))))
+	  ((char=? (car lst) #\`)
+	   (string->symbol (list->string (reverse r))))
+	  (else
+	   (loop (cdr lst) (cons (car lst) r))))))
+    
+				 
+
 ;; duplicated
 (define get-binding-frame
   (lambda (var env)
