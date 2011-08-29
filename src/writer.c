@@ -755,9 +755,7 @@ static void write_identifier(SgIdentifier *id, SgPort *port, SgWriteContext *ctx
 #if 1
   if (SG_WRITE_MODE(ctx) == SG_WRITE_WRITE) {
     char buf[50];
-    Sg_PutuzUnsafe(port, SG_FALSEP(SG_IDENTIFIER_RENAMED(id)) ? UC(" #f") : UC(" #t"));
     snprintf(buf, sizeof(buf), "(%p)", id);
-    Sg_PutcUnsafe(port, ' ');
     Sg_PutzUnsafe(port, buf);
   }
 #endif

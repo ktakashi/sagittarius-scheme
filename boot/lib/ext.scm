@@ -56,8 +56,8 @@
     (or (eq? id1 id2) ;; shortcut
 	;; strip p1env to frames
 	(let ()
-	  (set! e1 (vector-ref e1 1))
-	  (set! e2 (vector-ref e2 1))
+	  (set! e1 (if (vector? e1) (vector-ref e1 1) e1))
+	  (set! e2 (if (vector? e2) (vector-ref e2 1) e2))
 	  (let ((lam1 #f) (lam2 #f))
 	    (when (identifier? id1)
 	      (set! e1 (id-envs id1))   ;; this is only frames

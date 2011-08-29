@@ -1151,15 +1151,13 @@
        (let ((p1env (p1env-add-name p1env (variable-name name))))
 	 ($define oform
 		  flags
-		  (make-identifier (unrename-symbol (unwrap-syntax name))
-				   '() library)
+		  (make-identifier (unwrap-syntax name) '() library)
 		  (pass1 (caddr form) (p1env-add-name p1env name)))))
       ((- name)
        (unless (variable? name) (syntax-error "malformed define" oform))
        ($define oform
 		flags
-		(make-identifier (unrename-symbol
-				  (unwrap-syntax name) '() library))
+		(make-identifier (unwrap-syntax name) '() library)
 		($undef)))
       (- (syntax-error "malformed define" oform)))))
 
@@ -1281,19 +1279,14 @@
 	(scheme-error 'er-macro-transformer "rename procrdure requires a symbol or an identifier, but got " symid))
       (if (symbol? symid)
 	  (or (hashtable-ref dict symid #f)
-	      (let* ((var (p1env-lookup p1env symid SYNTAX))
-		     (id (cond ((syntax? var) 
-				(make-identifier symid
-						 (p1env-frames p1env)
-						 (p1env-lookup p1env)))
-			       ((and (identifier? var)
-				     (find-binding (id-library var) symid #f))
-				var)
-			       (else
-				(set! count (+ count 1))
-				(string->symbol (format "~a`~a" symid count))))))
-		(hashtable-set! dict symid id)
-		id))
+	      (let ((var (p1env-lookup p1env symid SYNTAX)))
+		(let ((id (if (identifier? var)
+			      var
+			      (make-identifier symid
+					       (p1env-frames p1env)
+					       (p1env-library p1env)))))
+		  (hashtable-set! dict symid id)
+		  id)))
 	  symid))))
 
 
@@ -1356,13 +1349,13 @@
 	     (let ((n (variable-name (car e))))
 	       (or (eq? n 'quote)
 		   (eq? n 'syntax-quote))))))
-    expr
-    #;(let loop ((expr expr))
+    (let loop ((expr expr))
       (cond ((null? expr) '())
 	    ((quoted? expr) expr)
 	    ((pair? expr)
-	     (cons (loop (car expr))
-		   (loop (cdr expr))))
+	     (set-car! expr (loop (car expr)))
+	     (set-cdr! expr (loop (cdr expr)))
+	     expr)
 	    ((and (identifier? expr)
 		  (memq expr ids))
 	     (bound-id->symbol expr))

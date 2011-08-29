@@ -66,7 +66,7 @@
 static SgString *CACHE_DIR = NULL;
 static int TAG_LENGTH = 0;
 
-#define CACHE_DEBUG 1
+/* #define CACHE_DEBUG 1 */
 #ifdef CACHE_DEBUG
 #define debug_print(fmt, ...) Sg_Printf(Sg_StandardErrorPort(), UC(fmt), __VA_ARGS__)
 #else
@@ -364,13 +364,6 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
     } else if (SG_IDENTIFIERP(obj)) {
       cbs = write_cache_scan(SG_IDENTIFIER_ENVS(obj), cbs, ctx);
       cbs = write_cache_scan(SG_IDENTIFIER_LIBRARY(obj)->name, cbs, ctx);
-      /* we do not scan transformersEnv's current-proc */
-      if (!SG_FALSEP(SG_IDENTIFIER_TRANSFORMERS_ENV(obj))) {
-	SG_VECTOR_ELEMENT(SG_IDENTIFIER_TRANSFORMERS_ENV(obj), 3) = SG_FALSE;
-	/* obj = SG_IDENTIFIER_TRANSFORMERS_ENV(obj); */
-	/* goto loop; */
-	cbs = write_cache_scan(SG_IDENTIFIER_TRANSFORMERS_ENV(obj), cbs, ctx);
-      }
     } else if (SG_MACROP(obj)) {
       /* local macro in transformersEnv */
       cbs = write_cache_scan(SG_MACRO(obj)->name, cbs, ctx);
@@ -567,18 +560,6 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx 
     write_string_cache(out, SG_SYMBOL(SG_IDENTIFIER(o)->name)->name, IDENTIFIER_TAG);
     write_object_cache(out, SG_LIBRARY(SG_IDENTIFIER_LIBRARY(o))->name, cbs, ctx);
     write_object_cache(out, SG_IDENTIFIER_ENVS(o), cbs, ctx);
-    write_object_cache(out, SG_IDENTIFIER_RENAMED(o), cbs, ctx);
-    if (!SG_FALSEP(SG_IDENTIFIER_TRANSFORMERS_ENV(o))) {
-      /* this suppose to be changed by now, but just in case. */
-      SG_VECTOR_ELEMENT(SG_IDENTIFIER_TRANSFORMERS_ENV(o), 3) = SG_FALSE;
-#if 0
-      Sg_Write(SG_IDENTIFIER_TRANSFORMERS_ENV(o), Sg_StandardErrorPort(), SG_WRITE_SHARED);
-      Sg_Write(SG_MAKE_CHAR('\n'), Sg_StandardErrorPort(), SG_WRITE_DISPLAY);
-#endif
-      write_object_cache(out, SG_IDENTIFIER_TRANSFORMERS_ENV(o), cbs, ctx);
-    } else {
-      emit_immediate(out, SG_FALSE);
-    }
   } else if (SG_CLOSUREP(o)) {
     write_cache_pass2(out, SG_CLOSURE(o)->code, cbs, ctx);
   } else if (SG_LIBRARYP(o)) {
@@ -595,13 +576,12 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx 
     write_object_cache(out, SG_LIBRARY(lib)->name, cbs, ctx);
     /* gloc does not have any envs. */
     emit_immediate(out, SG_NIL);
-    emit_immediate(out, SG_FALSE);
-    emit_immediate(out, SG_FALSE);
   } else if (SG_MACROP(o)) {
     write_macro(out, o, cbs, ctx);
   } else {
     /* never happen? */
-    Sg_Panic("invalid cache object");
+    /* Sg_Error(UC("invalid cache object. %A"), o); */
+    longjmp(ctx->escape, 1);
   }
 }
 
@@ -656,6 +636,7 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs, cach
 
 static void write_macro_cache(SgPort *out, SgLibrary *lib, SgObject cbs, cache_ctx *ctx)
 {
+  SgVM* vm = Sg_VM();
   SgObject keys = Sg_HashTableKeys(SG_LIBRARY_TABLE(lib));
   SgObject macros = SG_NIL, t = SG_NIL;
   SgObject cp;
@@ -920,8 +901,6 @@ static SgObject read_identifier(SgPort *in, read_ctx *ctx)
   SgString *name;
   SgObject lib;
   SgObject envs;
-  SgObject renamed;
-  SgObject transformersEnv;
   SgIdentifier *id;
 
   length = read_word(in, IDENTIFIER_TAG);
@@ -931,8 +910,6 @@ static SgObject read_identifier(SgPort *in, read_ctx *ctx)
   if (SG_FALSEP(lib)) return SG_FALSE;
   lib = Sg_FindLibrary(lib, FALSE);
   envs = read_object_rec(in, ctx);
-  renamed = read_object_rec(in, ctx);
-  transformersEnv = read_object_rec(in, ctx);
 
   /* we need to resolve shread object later */
   id = SG_NEW(SgIdentifier);
@@ -940,8 +917,6 @@ static SgObject read_identifier(SgPort *in, read_ctx *ctx)
   id->name = Sg_Intern(name);
   id->library = lib;
   id->envs = envs;
-  id->renamed = renamed;
-  id->transformersEnv = transformersEnv;
   return id;
 }
 
@@ -1246,8 +1221,6 @@ static SgObject read_code(SgPort *in, read_ctx *ctx)
       /* resolve shared object here for identifier*/
       read_cache_link(SG_IDENTIFIER_ENVS(o), Sg_MakeHashTableSimple(SG_HASH_EQ, 0), ctx);
       read_cache_link(SG_IDENTIFIER_LIBRARY(o), Sg_MakeHashTableSimple(SG_HASH_EQ, 0), ctx);
-      read_cache_link(SG_IDENTIFIER_RENAMED(o), Sg_MakeHashTableSimple(SG_HASH_EQ, 0), ctx);
-      read_cache_link(SG_IDENTIFIER_TRANSFORMERS_ENV(o), Sg_MakeHashTableSimple(SG_HASH_EQ, 0), ctx);
     }
     code[i] = SG_WORD(o);
   }
