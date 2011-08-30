@@ -524,7 +524,7 @@
 			(and (pred head)
 			     (assertion-violation 'for-all (format "traversal reached to non-pair element ~s" rest) (list pred lst)))))))
 	      (else
-	       (assertion-violation 'for-all (format "expected chain of pairs, but got ~r, as argument 2" lst) (list pred lst))))))
+	       (assertion-violation 'for-all (format "expected chain of pairs, but got ~a, as argument 2" lst) (list pred lst))))))
 
     (cond ((null? lst2)
 	   (for-all-1 pred lst1))
@@ -546,7 +546,7 @@
 		       (else
 			(assertion-violation 'exists (format "traversal reached to non-pair element ~s" rest) (list pred lst))))))
 	      (else
-	       (assertion-violation 'exists (format "expected chain of pairs, but got ~r, as argument 2" lst) (list pred lst))))))
+	       (assertion-violation 'exists (format "expected chain of pairs, but got ~a, as argument 2" lst) (list pred lst))))))
     (define exists-n-quick
       (lambda (pred lst)
 	(and (pair? lst)
@@ -666,7 +666,7 @@
     (if (null? lst2)
         (if (list? lst1)
             (fold-left-1 proc seed lst1)
-            (assertion-violation 'fold-left (format "expected proper list, but got ~r, as argument 3" lst1) (cons* proc seed lst1 lst2)))
+            (assertion-violation 'fold-left (format "expected proper list, but got ~a, as argument 3" lst1) (cons* proc seed lst1 lst2)))
         (cond ((apply list-transpose+ lst1 lst2)
                => (lambda (lst) (fold-left-n proc seed lst)))
               (else
@@ -690,7 +690,7 @@
     (if (null? lst2)
         (if (list? lst1)
             (fold-right-1 proc seed lst1)
-            (assertion-violation 'fold-right (format "expected proper list, but got ~r, as argument 3" lst1) (cons* proc seed lst1 lst2)))
+            (assertion-violation 'fold-right (format "expected proper list, but got ~a, as argument 3" lst1) (cons* proc seed lst1 lst2)))
         (cond ((apply list-transpose+ lst1 lst2)
                => (lambda (lst) (fold-right-n proc seed lst)))
               (else

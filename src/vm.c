@@ -341,6 +341,7 @@ void Sg_ReportError(SgObject e)
     if (SG_PROCEDUREP(vm->defaultEscapeHandler)) {
       Sg_Apply1(vm->defaultEscapeHandler, e);
     } else {
+      Sg_FlushAllPort(FALSE);
       report_error(e);
     }
   }
@@ -1920,7 +1921,7 @@ SgObject run_loop()
 
 void Sg__InitVM()
 {  
-  SgObject initialEnv = Sg_MakeVector(4, SG_FALSE);
+  SgObject initialEnv = Sg_MakeVector(4, SG_UNDEF);
   /* TODO multi thread and etc */
 #ifdef _MSC_VER
   rootVM = theVM = Sg_NewVM(NULL, Sg_MakeString(UC("root"), SG_LITERAL_STRING));

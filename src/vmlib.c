@@ -996,10 +996,10 @@ static SgObject _sagittarius_vm_p1env_lookup(SgObject *args, int argc, void *dat
           }
 ;
           {
-            SgObject cgen_1;
-            SG_FOR_EACH(cgen_1,SG_CDAR(fp)) {
+            SgObject cgen_60;
+            SG_FOR_EACH(cgen_60,SG_CDAR(fp)) {
               {
-                SgObject vp = SG_CAR(cgen_1);
+                SgObject vp = SG_CAR(cgen_60);
                 if (SG_EQ(name, SG_CAR(vp))) {
                   return SG_CDR(vp);
                 }
@@ -1039,10 +1039,10 @@ static SgObject _sagittarius_vm_p1env_toplevel3f(SgObject *args, int argc, void 
     int SG_RETURN;
     SG_RETURN = (TRUE);
     {
-      SgObject cgen_2;
-      SG_FOR_EACH(cgen_2,SG_VECTOR_ELEMENT(p1env, 1)) {
+      SgObject cgen_61;
+      SG_FOR_EACH(cgen_61,SG_VECTOR_ELEMENT(p1env, 1)) {
         {
-          SgObject fp = SG_CAR(cgen_2);
+          SgObject fp = SG_CAR(cgen_61);
           if (SG_CAR(fp) == SG_MAKE_INT(0)) {
             SG_RETURN = (FALSE);
           }
@@ -1085,10 +1085,10 @@ static SgObject _sagittarius_vm_p1env_pvar_lookup(SgObject *args, int argc, void
           }
 ;
           {
-            SgObject cgen_3;
-            SG_FOR_EACH(cgen_3,SG_CDAR(fp)) {
+            SgObject cgen_62;
+            SG_FOR_EACH(cgen_62,SG_CDAR(fp)) {
               {
-                SgObject vp = SG_CAR(cgen_3);
+                SgObject vp = SG_CAR(cgen_62);
                 if (((name_identp && SG_NULLP(SG_IDENTIFIER_ENVS(name)) && SG_EQ(SG_IDENTIFIER_NAME(name), SG_CAR(vp))) || (name_identp && Sg_IdentifierEqP(p1env, name, dummy_env, SG_CAR(vp))) || SG_EQ(name, SG_CAR(vp)))) {
                   return SG_CDR(vp);
                 }

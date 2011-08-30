@@ -1337,10 +1337,7 @@
    (cond
     ((null? expr) '())
     ((quoted? expr) expr)
-    ((pair? expr)
-     (set-car! expr (loop (car expr)))
-     (set-cdr! expr (loop (cdr expr)))
-     expr)
+    ((pair? expr) (cons (loop (car expr)) (loop (cdr expr))))
     ((and (identifier? expr) (memq expr ids)) (bound-id->symbol expr))
     (else expr)))))
 

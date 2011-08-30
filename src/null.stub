@@ -3583,15 +3583,20 @@
     (result (or (SG_IDENTIFIERP id)
 		(SG_USER_DEFINED_SYNTXP id))))
 
-  (define-c-proc bound-identifier=? (id1::Identifier id2::Identifier) ::boolean
+  (define-c-proc free-identifier=? (id1::Identifier id2::Identifier) ::boolean
     (result (and (SG_EQ (SG_IDENTIFIER_NAME id1)
 			(SG_IDENTIFIER_NAME id2))
 		 (SG_EQ (SG_IDENTIFIER_ENVS id1)
 			(SG_IDENTIFIER_ENVS id2)))))
   ;; TODO dummy
-  (define-c-proc free-identifier=? (id1::Identifier id2::Identifier) ::boolean
-    (result (SG_EQ (SG_IDENTIFIER_NAME id1)
-		   (SG_IDENTIFIER_NAME id2))))
+  (define-c-proc bound-identifier=? (id1::Identifier id2::Identifier) ::boolean
+    (let ((vm::SgVM* (Sg_VM)))
+      (if (SG_EQ (-> vm usageEnv) (-> vm macroEnv))
+	  (result (and (SG_EQ (SG_IDENTIFIER_NAME id1)
+			      (SG_IDENTIFIER_NAME id2))
+		       (SG_EQ (SG_IDENTIFIER_ENVS id1)
+			      (SG_IDENTIFIER_ENVS id2))))
+	  (result (SG_EQ id1 id2)))))
 
   ;; 13 Hashtables
   ;; 13.1 constructors

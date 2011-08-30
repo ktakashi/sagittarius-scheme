@@ -1206,7 +1206,7 @@
 
 ;; usage-env and macro-env
 (define *usage-env* `#(,(vm-current-library) () #f #f))
-(define *macro-env* `#(,(vm-current-library) () #f #f))
+(define *macro-env* *usage-env*)
 (define (current-usage-env) *usage-env*)
 (define (current-macro-env) *macro-env*)
 (define (current-usage-env-set! e) (set! *usage-env* e))

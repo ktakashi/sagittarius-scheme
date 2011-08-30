@@ -47,7 +47,7 @@
 	    get-toplevel-variables
 	    ;; for macro
 	    rename-id
-	    renamed-id
+	    renamed-id?
 	    )
     (import :none)
   (decl-code
