@@ -1272,22 +1272,20 @@
      (syntax-error "malformed letrec-syntax" form))))
 
 ;; 'rename' procedure - we just return a resolved identifier
-(define (er-rename)
-  (let ((count 0))
-    (lambda (symid p1env dict)
-      (unless (variable? symid)
-	(scheme-error 'er-macro-transformer "rename procrdure requires a symbol or an identifier, but got " symid))
-      (if (symbol? symid)
-	  (or (hashtable-ref dict symid #f)
-	      (let ((var (p1env-lookup p1env symid SYNTAX)))
-		(let ((id (if (identifier? var)
-			      var
-			      (make-identifier symid
-					       (p1env-frames p1env)
-					       (p1env-library p1env)))))
-		  (hashtable-set! dict symid id)
-		  id)))
-	  symid))))
+(define (er-rename symid p1env dict)
+  (unless (variable? symid)
+    (scheme-error 'er-macro-transformer "rename procrdure requires a symbol or an identifier, but got " symid))
+  (if (symbol? symid)
+      (or (hashtable-ref dict symid #f)
+	  (let ((var (p1env-lookup p1env symid SYNTAX)))
+	    (let ((id (if (identifier? var)
+			  var
+			  (make-identifier symid
+					   (p1env-frames p1env)
+					   (p1env-library p1env)))))
+	      (hashtable-set! dict symid id)
+	      id)))
+      symid))
 
 
 ;; we need to export er-macro-transformer and er-rename

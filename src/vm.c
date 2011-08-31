@@ -496,6 +496,10 @@ SgObject Sg_VMCurrentLibrary()
 SgObject Sg_Compile(SgObject o, SgObject e)
 {
   static SgObject compiler = SG_UNDEF;
+  SgVM *vm = Sg_VM();
+  SgObject usave = vm->usageEnv, msave = vm->macroEnv;
+  SgObject r;
+
   /* compiler is initialized after VM. so we need to look it up first */
   if (SG_UNDEFP(compiler)) {
     SgObject compile_library;
@@ -506,7 +510,10 @@ SgObject Sg_Compile(SgObject o, SgObject e)
     compiler = SG_GLOC_GET(g);
     Sg_UnlockMutex(&global_lock);
   }
-  return Sg_Apply2(compiler, o, e);
+  r = Sg_Apply2(compiler, o, e);
+  vm->usageEnv = usave;
+  vm->macroEnv = msave;
+  return r;
 }
 
 /* 
