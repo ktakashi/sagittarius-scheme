@@ -30,6 +30,8 @@
 
 	    ;; gloc
 	    gloc-ref gloc-set! gloc-bound?
+	    ;; for apropos
+	    gloc-library
 
 	    ;; code-builder
 	    make-code-builder cb-emit0! cb-emit1! cb-emit2! cb-emit0i!
@@ -190,6 +192,9 @@
 
   (define-c-proc gloc-bound? (g::Gloc) ::boolean
     (result (SG_UNBOUNDP (SG_GLOC_GET g))))
+
+  (define-c-proc gloc-library (g::Gloc) ::Object
+    (result (-> g library)))
 
   ;; code-builder
   (define-c-proc make-code-builder () ::Object

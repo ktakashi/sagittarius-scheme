@@ -3697,11 +3697,11 @@
      (dispatch
       `(unless (SG_PAIRP ,c)
 	 (wrong-type-of-argument-violation ',name "pair" ,c)))))
-  (define-c-proc set-car! (o v) ::void
+  (define-c-proc set-car! (o v) (inline SET_CAR) ::void
     (check-pair set-car! o)
     (SG_SET_CAR o v))
 
-  (define-c-proc set-cdr! (o v) ::void
+  (define-c-proc set-cdr! (o v) (inline SET_CDR) ::void
     (check-pair set-cdr! o)
     (SG_SET_CDR o v))
 

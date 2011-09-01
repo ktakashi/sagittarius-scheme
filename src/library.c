@@ -543,7 +543,7 @@ SgGloc* Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
 
   if (prev_const) {
     if (prev_const != flags || !Sg_EqualP(value, oldval)) {
-      Sg_Warn(UC("constant value %S bounded with %S was overwitten by %S"), value, symbol, oldval);
+      Sg_Warn(UC("constant value %S bounded with %S was overwitten by %S"), oldval, symbol, value);
     }
   }
   return g;

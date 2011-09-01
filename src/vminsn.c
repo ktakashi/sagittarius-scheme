@@ -80,6 +80,8 @@ DEFINSN(CONST_PUSH, 0, 1, FALSE, FALSE)
 DEFINSN(CONSTI_PUSH, 1, 0, FALSE, FALSE)
 DEFINSN(GREF_CALL, 1, 1, TRUE, FALSE)
 DEFINSN(GREF_TAIL_CALL, 1, 1, TRUE, FALSE)
+DEFINSN(SET_CAR, 0, 0, TRUE, FALSE)
+DEFINSN(SET_CDR, 0, 0, TRUE, FALSE)
 #endif /* DEFINSN */
 #ifdef VM_LOOP
 CASE(NOP) {
@@ -148,8 +150,11 @@ CASE(GSET) {
 ;
         }
 ;
-        SG_GLOC_SET(SG_GLOC(oldval), AC(vm));
-        *((PC(vm) - 1))=SG_WORD(oldval);
+        {
+          SgObject g = Sg_MakeBinding(SG_IDENTIFIER_LIBRARY(var), SG_IDENTIFIER_NAME(var), AC(vm), 0);
+          *((PC(vm) - 1))=SG_WORD(g);
+        }
+;
       }
 ;
     }
@@ -581,6 +586,7 @@ CASE(LEAVE) {
 }
 
 CASE(DEFINE) {
+  INSN_VAL1(val1, c);
   {
     SgObject var = FETCH_OPERAND(PC(vm));
     ASSERT(SG_IDENTIFIERP(var));
@@ -829,6 +835,30 @@ CASE(GREF_TAIL_CALL) {
   TAIL_CALL_INSN(vm, c);
   #include "vmcall.c"
 ;
+  NEXT;
+}
+
+CASE(SET_CAR) {
+  if (!(SG_PAIRP(INDEX(SP(vm), 0)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("set-car!"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), INDEX(SP(vm), 0), SG_NIL);
+    return SG_UNDEF;
+;
+  }
+;
+  SG_SET_CAR(INDEX(SP(vm), 0), AC(vm));
+  AC(vm)=SG_UNDEF;
+  NEXT;
+}
+
+CASE(SET_CDR) {
+  if (!(SG_PAIRP(INDEX(SP(vm), 0)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("set-cdr!"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), INDEX(SP(vm), 0), SG_NIL);
+    return SG_UNDEF;
+;
+  }
+;
+  SG_SET_CDR(INDEX(SP(vm), 0), AC(vm));
+  AC(vm)=SG_UNDEF;
   NEXT;
 }
 

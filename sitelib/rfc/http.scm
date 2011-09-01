@@ -192,7 +192,7 @@
   (define (canonical-uri conn uri host)
     (let*-values (((scheme specific) (uri-scheme&specific uri))
 		  ((h p q f) (uri-decompose-hierarchical specific)))
-      (let ((scheme (or scheme (if (http-connection-secure) "https" "http")))
+      (let ((scheme (or scheme (if (http-connection-secure conn) "https" "http")))
 	    (host (or h host)))
 	(values (uri-compose :scheme scheme :host host
 			      :path p :query q :fragment f)

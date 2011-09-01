@@ -98,6 +98,8 @@
 (declare-procedure cdr (l) (:inline CDR) :null cdr)
 (declare-procedure cons (a b) (:inline CONS) :null cons)
 (declare-procedure acons (a b c) (:inline -1) :sagittarius acons)
+(declare-procedure set-car! (a b) (:inline SET_CAR) :null set-car!)
+(declare-procedure set-cdr! (a b) (:inline SET_CDR) :null set-cdr!)
 
 ;; conditions
 (declare-procedure null? (x) (:inline NULLP) :null null?)

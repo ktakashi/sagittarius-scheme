@@ -101,7 +101,9 @@ typedef enum {
   CONSTI_PUSH = 0x4c,
   GREF_CALL = 0x4d,
   GREF_TAIL_CALL = 0x4e,
-  INSTRUCTION_COUNT = 79, /** number of instructions */
+  SET_CAR = 0x4f,
+  SET_CDR = 0x50,
+  INSTRUCTION_COUNT = 81, /** number of instructions */
 } Instruction;
 
 typedef struct InsnInfoRec InsnInfo;

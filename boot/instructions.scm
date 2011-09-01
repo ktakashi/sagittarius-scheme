@@ -815,6 +815,7 @@ CASE(LSET) {
 
 
 (define-inst DEFINE (1 1 #t)
+  (INSN_VAL1 val1 c)
   (let ((var (FETCH_OPERAND (PC vm))))
     (ASSERT (SG_IDENTIFIERP var))
     (Sg_MakeBinding (SG_IDENTIFIER_LIBRARY var)
@@ -1066,6 +1067,18 @@ CASE(LSET) {
 
 (define-inst GREF_TAIL_CALL (1 1 #t) :combined
   (GREF TAIL_CALL))
+
+(define-inst SET_CAR (0 0 #t)
+  (if (not (SG_PAIRP (INDEX (SP vm) 0)))
+      (wrong-type-of-argument-violation 'set-car! "pair" (INDEX (SP vm) 0)))
+  (SG_SET_CAR (INDEX (SP vm) 0) (AC vm))
+  (set! (AC vm) SG_UNDEF))
+
+(define-inst SET_CDR (0 0 #t)
+  (if (not (SG_PAIRP (INDEX (SP vm) 0)))
+      (wrong-type-of-argument-violation 'set-cdr! "pair" (INDEX (SP vm) 0)))
+  (SG_SET_CDR (INDEX (SP vm) 0) (AC vm))
+  (set! (AC vm) SG_UNDEF))
 
 ;;;; end of file
 ;; Local Variables:
