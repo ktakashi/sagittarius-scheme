@@ -497,7 +497,6 @@ SgObject Sg_Compile(SgObject o, SgObject e)
 {
   static SgObject compiler = SG_UNDEF;
   SgVM *vm = Sg_VM();
-  SgObject usave = vm->usageEnv, msave = vm->macroEnv;
   SgObject r;
 
   /* compiler is initialized after VM. so we need to look it up first */
@@ -510,10 +509,7 @@ SgObject Sg_Compile(SgObject o, SgObject e)
     compiler = SG_GLOC_GET(g);
     Sg_UnlockMutex(&global_lock);
   }
-  r = Sg_Apply2(compiler, o, e);
-  vm->usageEnv = usave;
-  vm->macroEnv = msave;
-  return r;
+  return Sg_Apply2(compiler, o, e);
 }
 
 /* 
@@ -1454,6 +1450,7 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
   SgCStack cstack;
   SgVM * volatile vm = Sg_VM();
   SgWord * volatile prev_pc = PC(vm);
+  SgObject usave = vm->usageEnv, msave = vm->macroEnv;
 
   CHECK_STACK(CONT_FRAME_SIZE, vm);
 
@@ -1492,6 +1489,8 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
 	CONT(vm) = cstack.cont;
 	AC(vm) = vm->ac;
 	vm->cstack = vm->cstack->prev;
+	vm->usageEnv = usave;
+	vm->macroEnv = msave;
 	longjmp(vm->cstack->jbuf, 1);
       }
     } else if (vm->escapeReason == SG_VM_ESCAPE_ERROR) {
@@ -1506,6 +1505,8 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
 	CONT(vm) = cstack.cont;
 	AC(vm) = vm->ac;
 	vm->cstack = vm->cstack->prev;
+	vm->usageEnv = usave;
+	vm->macroEnv = msave;
 	longjmp(vm->cstack->jbuf, 1);
       }
     } else {

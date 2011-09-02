@@ -121,6 +121,7 @@ static SgObject macro_tranform(SgObject *args, int argc, void *data_)
   p1env = args[2];
 
   data = Sg_ApplySafe(args[3], SG_NIL);
+  /* data = args[3]; */
   mac_env = SG_MACRO(macro)->env;
 
   vm->usageEnv = p1env;

@@ -756,6 +756,16 @@
    proc)))
 
 (define
+ p1env-extend-w/o-type
+ (lambda
+  (p1env frame)
+  (make-p1env
+   (p1env-library p1env)
+   (append frame (p1env-frames p1env))
+   (p1env-exp-name p1env)
+   (p1env-current-proc p1env))))
+
+(define
  p1env-sans-name
  (lambda
   (p1env)
@@ -1390,6 +1400,95 @@
       (pass1 (unrename-expression expr ids) p1env)
       (pass1/body (unrename-expression body ids) newenv)))))
   (- (syntax-error "malformed receive" form))))
+
+(define (pass1/let-values form p1env ref?)
+  (smatch
+   form
+   ((- ((vars expr) ___) body ___)
+    (unless
+     ref?
+     (let
+      lp
+      ((vars vars) (pool '()))
+      (cond
+       ((null? vars))
+       ((pair? vars)
+        (let
+         ((formals (car vars)))
+         (let
+          ((new-pool
+            (let
+             lp
+             ((formals formals) (pool pool))
+             (cond
+              ((null? formals) pool)
+              ((pair? formals)
+               (if
+                (memq (car formals) pool)
+                (syntax-error "duplicate formals in let-values" form)
+                (lp (cdr formals) (cons (car formals) pool))))
+              (else
+               (if
+                (memq formals pool)
+                (syntax-error "duplicate formals in let-values" form)
+                (cons formals pool)))))))
+          (lp (cdr vars) new-pool))))
+       (else
+        (if
+         (memq vars pool)
+         (syntax-error "duplicate formals in let-values" form)
+         (lp (cdr vars) (cons vars pool)))))))
+    (let
+     loop
+     ((vars vars)
+      (inits expr)
+      (next-frames '())
+      (last-frames '())
+      (p1env p1env)
+      (ids '()))
+     (if
+      (null? vars)
+      (pass1/body
+       (unrename-expression body ids)
+       (p1env-extend-w/o-type p1env last-frames))
+      (receive
+       (args reqargs opt)
+       (parse-lambda-args (car vars))
+       (let*
+        ((id (collect-lexical-id args p1env))
+         (new-ids (if (null? id) ids (cons id ids)))
+         (unrenamed-ids (unrename-expression args new-ids))
+         (lvars (imap make-lvar+ unrenamed-ids))
+         (frame (%map-cons unrenamed-ids lvars))
+         (next-frames (if ref? (acons LEXICAL frame next-frames) next-frames))
+         (last-frames (if ref? last-frames (acons LEXICAL frame last-frames)))
+         (newenv (if ref? (p1env-extend-w/o-type p1env next-frames) p1env))
+         (iexpr (pass1 (unrename-expression (car inits) new-ids) newenv)))
+        ($receive
+         form
+         reqargs
+         opt
+         lvars
+         iexpr
+         (loop
+          (cdr vars)
+          (cdr inits)
+          next-frames
+          last-frames
+          newenv
+          new-ids)))))))
+   (-
+    (syntax-error (format "malformed let~a-values" (if ref? "*" "")) form))))
+
+(define-pass1-syntax
+ (let-values form p1env)
+ :null
+ (pass1/let-values form p1env #f))
+
+(define-pass1-syntax
+ (let*-values form p1env)
+ :null
+ (pass1/let-values form p1env #t))
 
 (define-pass1-syntax
  (let form p1env)
