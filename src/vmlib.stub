@@ -32,6 +32,8 @@
 	    gloc-ref gloc-set! gloc-bound?
 	    ;; for apropos
 	    gloc-library
+	    ;; for macro
+	    gloc-name
 
 	    ;; code-builder
 	    make-code-builder cb-emit0! cb-emit1! cb-emit2! cb-emit0i!
@@ -195,6 +197,9 @@
 
   (define-c-proc gloc-library (g::Gloc) ::Object
     (result (-> g library)))
+
+  (define-c-proc gloc-name (g::Gloc) ::Object
+    (result (-> g name)))
 
   ;; code-builder
   (define-c-proc make-code-builder () ::Object

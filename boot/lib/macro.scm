@@ -216,19 +216,30 @@
              (match-pattern? (car expr) (car pat) lites)
              (match-ellipsis-n? (cdr expr) pat (- n 1) lites)))))
 
+#;(define match-literal?
+  (lambda (pat lites)
+    (cond ((id-memq pat lites) pat)
+	  ((find-binding (vm-current-library) (identifier->symbol pat) #f)
+	   => (lambda (gloc)
+		(cond ((id-memq (gloc-name gloc) lites)
+		       (gloc-name gloc))
+		      (else #f))))
+	  (else #f))))
+
 (define match-pattern?
   (lambda (expr pat lites)
     (define (compare a b)
-      (identifier=? (current-usage-env) a
-		    (current-macro-env) b)
-      #;(or (eq? a b)
-	  (eq? (identifier->symbol a)
-	       (identifier->symbol b))))
+      (or (identifier=? (current-usage-env) a
+			(current-macro-env) b)
+	  (let ((v (find-binding (vm-current-library) (identifier->symbol b) #f)))
+	    (and v
+		 (identifier=? (current-usage-env) a
+			       (current-macro-env) (gloc-name v))))))
     (cond ((bar? pat) #t)
           ((variable? pat)
            (cond ((id-memq pat lites)
-                  (and (variable? expr)
-                       (compare pat expr)))
+		  (and (variable? expr)
+		       (compare pat expr)))
                  (else #t)))
           ((ellipsis-pair? pat)
            (if (and (null? (cddr pat)) (list? expr))

@@ -115,13 +115,13 @@
                ((id x (... ...))             (syntax (exp1 x (... ...))))
                (id (identifier? (syntax id)) (syntax exp1))))))))))
 
-  (define-syntax unquote
-    (lambda (e)
-      (syntax-violation 'unquote "Invalid expression" e)))
-
-  (define-syntax unquote-splicing
-    (lambda (e)
-      (syntax-violation 'unquote-splicing "Invalid expression" e)))
+;;  (define-syntax unquote
+;;    (lambda (e)
+;;      (syntax-violation 'unquote "Invalid expression" e)))
+;;
+;;  (define-syntax unquote-splicing
+;;    (lambda (e)
+;;      (syntax-violation 'unquote-splicing "Invalid expression" e)))
   ;; from nmosh end
 ) ;[end]
 ;; end of file

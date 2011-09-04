@@ -682,14 +682,6 @@
 	  gloc
 	  #f))))
 
-(define global-eq?
-  (lambda (var sym p1env)
-    (and (variable? var)
-	 (let ((v (p1env-lookup p1env var LEXICAL)))
-	   (and (identifier? v)
-		(eq? (id-name v) sym)
-		(null? (id-envs v)))))))
-
 (define ensure-library
   (lambda (thing name create?)
     (let ((mod (cond ((pair? thing) (find-library thing create?))
@@ -801,6 +793,20 @@
 	(make-p1env (car maybe-library) '()))))
 
 ;; pass1 utilities
+(define global-eq?
+  (lambda (var sym p1env)
+    (and (variable? var)
+	 (let ((v (p1env-lookup p1env var LEXICAL)))
+	   (and (identifier? v)
+		(eq? (id-name v) sym)
+		(null? (id-envs v))
+		(cond ((find-binding (p1env-library p1env) sym #f)
+		       => (lambda (gloc)
+			    (let ((s (gloc-ref gloc)))
+			      (and (syntax? s)
+				   (eq? (syntax-name s) sym)))))
+		      (else #f)))))))
+
 (define formals->list
   (lambda (l)
     (cond ((null? l) l)
@@ -1006,25 +1012,34 @@
 ;; based on bdc-scheme end
 
 ;; based on Ypsilon by Yoshikatu Fujita
+(define-pass1-syntax (unquote form p1env) :null
+  (syntax-error "invalid expression" form))
+(define-pass1-syntax (unquote-splicing form p1env) :null
+  (syntax-error "invalid expression" form))
+
 (define pass1/quasiquote
-  (lambda (form nest)
+  (lambda (form nest p1env)
 
     (define quote?
       (lambda (tag)
-	(and (variable? tag)
+	(global-eq? tag 'quote p1env)
+	#;(and (variable? tag)
 	     (eq? (variable-name tag) 'quote))))
 
     (define unquote? 
       (lambda (tag)
-	(and (variable? tag)
+	(global-eq? tag 'unquote p1env)
+	#;(and (variable? tag)
 	     (eq? (variable-name tag) 'unquote))))
     (define quasiquote?
       (lambda (tag)
-	(and (variable? tag)
+	(global-eq? tag 'quasiquote p1env)
+	#;(and (variable? tag)
 	     (eq? (variable-name tag) 'quasiquote))))
     (define unquote-splicing?
       (lambda (tag)
-	(and (variable? tag)
+	(global-eq? tag 'unquote-splicing p1env)
+	#;(and (variable? tag)
 	     (eq? (variable-name tag) 'unquote-splicing))))
 
     (define quoted?
@@ -1141,7 +1156,7 @@
 
 (define-pass1-syntax (quasiquote form p1env) :null
   (smatch form
-    ((- obj) (pass1 ($src (pass1/quasiquote (cadr form) 0) form) p1env))
+    ((- obj) (pass1 ($src (pass1/quasiquote (cadr form) 0 p1env) form) p1env))
     (- (syntax-error "malformed quasiquote" form))))
 
 
@@ -1642,6 +1657,13 @@
 	    ($undef)
 	    ($seq (imap (lambda (b) (pass1 b p1env)) body)))))
     (- (syntax-error "malformed unless" form))))
+
+;; for global-eq?
+(define-pass1-syntax (else form p1env) :null
+  (syntax-error "invalid expression" form))
+
+(define-pass1-syntax (=> form p1env) :null
+  (syntax-error "invalid expression" form))
 
 (define-pass1-syntax (cond form p1env) :null
   (define process-clauses

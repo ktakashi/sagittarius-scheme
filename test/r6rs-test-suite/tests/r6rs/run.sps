@@ -26,9 +26,7 @@
         (tests r6rs mutable-pairs)
         (tests r6rs mutable-strings)
         (tests r6rs r5rs)
-	;; since Sagittarius scheme's syntax-rules is not
-	;; subset of syntax-case, this test case won't pass.
-        ;;(tests r6rs contrib)
+        (tests r6rs contrib)
 )
 
 (run-base-tests)
@@ -55,6 +53,6 @@
 (run-mutable-pairs-tests)
 (run-mutable-strings-tests)
 (run-r5rs-tests)
-;;(run-contrib-tests)
+(run-contrib-tests)
 
 (report-test-results)
