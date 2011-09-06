@@ -744,6 +744,22 @@ SgObject read_token(SgPort *port, SgReaderContext *ctx)
 	  if (ustrcmp(tag->value, "deprecated") == 0) {
 	    Sg_Warn(UC("deprecated file is being loaded %S"), Sg_FileName(port));
 	  }
+
+	  if (ustrcmp(tag->value, "noinlineasm") == 0) {
+	    SG_VM_SET_FLAG(Sg_VM(), SG_NO_INLINE_ASM);
+	  }
+	  if (ustrcmp(tag->value, "noinlinelocal") == 0) {
+	    SG_VM_SET_FLAG(Sg_VM(), SG_NO_INLINE_LOCAL);
+	  }
+	  if (ustrcmp(tag->value, "nolambdalifting") == 0) {
+	    SG_VM_SET_FLAG(Sg_VM(), SG_NO_LAMBDA_LIFT);
+	  }
+	  if (ustrcmp(tag->value, "nooptimization") == 0) {
+	    SgVM *vm = Sg_VM();
+	    SG_VM_SET_FLAG(vm, SG_NO_INLINE_ASM);
+	    SG_VM_SET_FLAG(vm, SG_NO_INLINE_LOCAL);
+	    SG_VM_SET_FLAG(vm, SG_NO_LAMBDA_LIFT);
+	  }
 	}
 	goto top;
       }

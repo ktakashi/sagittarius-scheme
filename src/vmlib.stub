@@ -49,6 +49,10 @@
 	    get-stack-trace-object
 	    set-toplevel-variable!
 	    get-toplevel-variables
+	    ;; optimize
+	    vm-noinline-locals?
+	    vm-nolambda-lifting?
+
 	    ;; for macro
 	    rename-id
 	    renamed-id?
@@ -349,4 +353,11 @@
 
   (define-c-proc get-toplevel-variables () ::Object
     (result (-> (Sg_VM) toplevelVariables)))
+
+  ;; optimize
+  (define-c-proc vm-noinline-locals? () ::boolean
+    (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_INLINE_LOCAL)))
+
+  (define-c-proc vm-nolambda-lifting? () ::boolean
+    (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_LAMBDA_LIFT)))
 )

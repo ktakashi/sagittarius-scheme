@@ -555,27 +555,7 @@ SgObject Sg_Environment(SgObject lib, SgObject spec)
   return lib;
 }
 
-static void expand_stack(SgVM *vm, int plusSize)
-{
-#define stack_size (((intptr_t)(vm->stackEnd) - (intptr_t)(vm->stack)) / sizeof(intptr_t))
-  static const int WARN_STACK_SIZE = 48 * 1024 * 1024;
-  SgObject *nextStack;
-  int nextSize = stack_size + plusSize;
-  if (nextSize * sizeof(intptr_t) > WARN_STACK_SIZE) {
-    Sg_Warn(UC("stack is growing to %ld MB"), nextSize * sizeof(intptr_t) / 1024 / 1024);
-  }
-  nextStack = SG_NEW_ARRAY(SgObject, nextSize);
-  if (NULL == nextStack) {
-    Sg_Error(UC("stack overflow"));
-  }
-  memcpy(nextStack, vm->stack, sizeof(SgObject) * stack_size);
-  FP(vm) = nextStack + (FP(vm) - vm->stack);
-  SP(vm) = nextStack + (SP(vm) - vm->stack);
-  CONT(vm) = (SgContFrame*)(nextStack + ((SgObject*)CONT(vm) - vm->stack));
-  vm->stackEnd = nextStack + nextSize;
-  vm->stack = nextStack;
-#undef stack_size
-}
+static void expand_stack(SgVM *vm);
 
 #define MOSTLY_FALSE(expr) expr
 
@@ -583,8 +563,8 @@ static void expand_stack(SgVM *vm, int plusSize)
 #define CHECK_STACK(size, vm)					\
   do {								\
     if (MOSTLY_FALSE(SP(vm) >= (vm)->stackEnd - (size))) {	\
-      /*expand_stack(vm, size);*/				\
-      Sg_Panic("stack overflow");				\
+      expand_stack(vm);						\
+      /* Sg_Panic("stack overflow"); */				\
     }								\
   } while (0)
 
@@ -1029,10 +1009,10 @@ SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk)
 #define REFER_LOCAL(vm, n)   *(FP(vm) + n)
 #define INDEX_CLOSURE(vm, n) (SG_CLOSURE(DC(vm))->frees[n])
 
-static inline Stack* save_stack()
+static inline Stack* save_stack(void *end)
 {
   SgVM *vm = Sg_VM();
-  int size = vm->sp - vm->stack;
+  int size = (SgObject*)end - vm->stack;
   Stack *s = SG_NEW2(Stack *, sizeof(Stack) + sizeof(SgObject)*(size - 1));
   s->size = size;
   memcpy(s->stack, vm->stack, sizeof(SgObject) * size);
@@ -1043,6 +1023,73 @@ static inline int restore_stack(Stack *s, SgObject *to)
 {
   memcpy(to, s->stack, s->size * sizeof(SgObject));
   return s->size;
+}
+
+/*
+  we reuse stack area. so we need to save current stack to somewhere.
+  for now we do like this.
+
+  +---------+        +---------+
+  |   old   |        |   new   |
+  |  stack  |   -->  |  stack  |
+  |         |        |         |
+  |         |        +---------+
+  |         |        |  cont   |
+  +---------+        +---------+
+
+  detail drawing
++---------------------------------------------+ <== sp(0x51ec24)
++   p=                                      0 +
++   o=#(9 (#<identifier lambda#(tests r6rs te +
++---------------------------------------------+
++ size=                                     2 +
++   pc=                            0x6a5d8dcc +
++   cl=#<closure #f>                          +
++   dc=#<closure #f>                          +
++   fp=                              0x51ec00 +
++ prev=                              0x51ebe8 +
++---------------------------------------------+ <== cont(0x51ec08)
++   p=                               0x51ebe8 +
++   o=(#(9 (#<identifier lambda#(tests r6rs t +
++   o=#<closure pass2/lifted-define>          +
++---------------------------------------------+ <== fp(0x51ec00)
++ size=                                     3 +
++   pc=                            0x6a5d8df4 +
++   cl=#<closure #f>                          +
++   dc=#<closure #f>                          +
++   fp=                              0x51ebdc +
++ prev=                              0x51ebc4 +
++---------------------------------------------+ <== prev(0x51ebe8)
+
+  We need the last frame pointer to refer local variables.
+  So copy from fp - CONT_FRAME_SIZE address.
+ */
+static SgObject restore_stack_cc(SgObject ac, void **data)
+{
+  Stack *stack = (Stack*)data[0];
+  SgVM *vm = Sg_VM();
+  SP(vm) = vm->stack + restore_stack(stack, vm->stack);
+  FP(vm) = (SgObject*)data[1];
+  return ac;
+}
+
+static void expand_stack(SgVM *vm)
+{
+  Stack *stack = save_stack(CONT(vm));
+  SgObject *s = vm->stack, *fp_diff = FP(vm) - CONT_FRAME_SIZE, *sp = SP(vm);
+  void *data[2];
+  int diff = SP(vm) - FP(vm);
+  /* clear stack */
+  while (s != fp_diff) *s++ = NULL;
+  SP(vm) = vm->stack;
+  /* create marker cont frame */
+  data[0] = stack;
+  data[1] = FP(vm);
+  Sg_VMPushCC(restore_stack_cc, data, 2);
+  /* slide the last frame to top */
+  memmove(SP(vm), fp_diff, (sp - fp_diff) * sizeof(SgObject));
+  SP(vm) += (sp - fp_diff);
+  FP(vm) = SP(vm) - diff;
 }
 
 static inline SgContinuation* make_continuation(Stack *s)
@@ -1177,7 +1224,7 @@ SgObject Sg_VMCallCC(SgObject proc)
   SgContinuation *cont;
   SgObject contproc;
 
-  stack = save_stack();
+  stack = save_stack(SP(Sg_VM()));
   cont = make_continuation(stack);
   contproc = Sg_MakeSubr(throw_continuation, cont, 0, 1,
 			 Sg_MakeString(UC("continucation"),

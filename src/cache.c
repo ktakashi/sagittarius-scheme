@@ -579,8 +579,11 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx 
   } else if (SG_MACROP(o)) {
     write_macro(out, o, cbs, ctx);
   } else {
+    SgVM *vm = Sg_VM();
     /* never happen? */
-    /* Sg_Error(UC("invalid cache object. %A"), o); */
+    if (SG_VM_LOG_LEVEL(vm, SG_WARN_LEVEL)) {
+      Sg_Printf(vm->logPort, UC("Non-cachable object appeared in writing phase %S\n"), o);
+    }
     longjmp(ctx->escape, 1);
   }
 }

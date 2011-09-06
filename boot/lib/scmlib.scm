@@ -243,10 +243,30 @@
       (delete x lis equal?)
       (filter (lambda (y) (not ((car =) x y))) lis)))
 
+(define (reduce f ridentity lis)
+  (or (procedure? f)
+      (assertion-violation 'reduce (wrong-type-argument-message "procedure" = 1)))
+  (if (null-list? lis) ridentity
+      (fold f (car lis) (cdr lis))))
+
+(define (lset-union = . lists)
+  (or (procedure? =)
+      (assertion-violation 'lset-union (wrong-type-argument-message "procedure" = 1)))
+  (reduce (lambda (lis ans)     ; Compute ANS + LIS.
+	    (cond ((null? lis) ans) ; Don't copy any lists
+		  ((null? ans) lis)     ; if we don't have to.
+		  ((eq? lis ans) ans)
+		  (else
+		   (fold (lambda (elt ans) (if (exists (lambda (x) (= x elt)) ans)
+					       ans
+					       (cons elt ans)))
+			 ans lis))))
+	  '() lists))
+
 (define (lset-intersection = lis1 . lists)
   (or (procedure? =)
       (assertion-violation 'lset-intersection
-			   (wrong-type-argument-message "procedure" = 2)))
+			   (wrong-type-argument-message "procedure" = 1)))
   (let ((lists (delete lis1 lists eq?))) ; Throw out any LIS1 vals.
     (cond ((exists null-list? lists) '())      ; Short cut
       ((null? lists)          lis1)     ; Short cut
@@ -257,7 +277,7 @@
 (define (lset-difference = lis1 . lists)
   (or (procedure? =)
       (assertion-violation 'lset-difference
-			   (wrong-type-argument-message "procedure" = 2)))
+			   (wrong-type-argument-message "procedure" = 1)))
   (let ((lists (filter pair? lists)))   ; Throw out empty lists.
     (cond ((null? lists)     lis1)  ; Short cut
       ((memq lis1 lists) '())   ; Short cut

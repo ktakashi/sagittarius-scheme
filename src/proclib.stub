@@ -33,7 +33,8 @@
 
     (define-c-proc inline? (arg0::Object) ::boolean
       (result (and (SG_PROCEDUREP arg0)
-		   (not (SG_FALSEP (SG_PROCEDURE_INLINER arg0))))))
+		   (not (SG_FALSEP (SG_PROCEDURE_INLINER arg0)))
+		   (not (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_INLINE_ASM)))))
 
     (define-c-proc find-procedure (name::Symbol lib::Object) ::Object
       (let ((g (Sg_FindBinding lib name SG_UNBOUND)))

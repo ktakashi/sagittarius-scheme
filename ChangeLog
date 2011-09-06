@@ -1,3 +1,13 @@
+2011-09-06  Takashi Kato  <ktakashi@ymail.com>
+
+	* boot/compiler.scm (renv): made it not to use hashtable for cache.
+
+	* sitelib/srfi/%3a98.scm: supported srfi-98.
+
+	* boot/compiler.scm (pass2/lambda-lifting): added lambda lifting.
+
+	* src/vm.c (expand_stack): implemented stack expantion.
+
 2011-08-04  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/number.c (Sg_Mul): fixed bignum * 0 calculation. it returned bignum.

@@ -267,7 +267,8 @@
  body
  flag
  (calls '())
- (free-lvars '()))
+ (free-lvars '())
+ (lifted-var #f))
 
 (define-simple-struct
  $receive
@@ -2469,7 +2470,11 @@
   (iform penv tail?)
   ((vector-ref *pass2-dispatch-table* (iform-tag iform)) iform penv tail?)))
 
-(define pass2 (lambda (iform) (pass2/rec iform '() #t)))
+(define
+ pass2
+ (lambda
+  (iform library)
+  (pass2/lambda-lifting (pass2/rec iform '() #t) library)))
 
 (define pass2/$UNDEF (lambda (iform penv tail?) iform))
 
@@ -2852,6 +2857,11 @@
      ((proc ($call-proc iform)) (args ($call-args iform)))
      ($call-proc-set! iform (pass2/rec proc penv #f))
      (cond
+      ((vm-noinline-locals?)
+       ($call-args-set!
+        iform
+        (imap (lambda (arg) (pass2/rec arg penv #f)) args))
+       iform)
       ((has-tag? proc $LAMBDA)
        (pass2/rec
         (expand-inlined-procedure ($*-src iform) proc args)
@@ -2931,6 +2941,370 @@
 
 (define *pass2-dispatch-table* (generate-dispatch-table pass2))
 
+(define (make-label-dic init) (list init))
+
+(define (label-seen? label-dic label-node) (memq label-node (cdr label-dic)))
+
+(define (label-push! label-dic label-node)
+  (set-cdr! label-dic (cons label-node (cdr label-dic))))
+
+(define (label-dic-info label-dic) (car label-dic))
+
+(define (label-dic-info-set! label-dic val) (set-car! label-dic val))
+
+(define (label-dic-info-push! label-dic val)
+  (set-car! label-dic (cons val (car label-dic))))
+
+(define-syntax
+ pass2/add-lvar
+ (syntax-rules
+  ()
+  ((_ lvar bound free)
+   (if (or (memq lvar bound) (memq lvar free)) free (cons lvar free)))))
+
+(define (pass2/lambda-lifting iform library)
+  (if
+   (vm-nolambda-lifting?)
+   iform
+   (let
+    ((dic (make-label-dic '())))
+    (pass2/scan iform '() '() #t dic)
+    (let
+     ((lambda-nodes (label-dic-info dic)))
+     (if
+      (or
+       (null? lambda-nodes)
+       (and
+        (null? (cdr lambda-nodes))
+        ($lambda-lifted-var (car lambda-nodes))))
+      iform
+      (let
+       ((lifted (pass2/lift lambda-nodes library)))
+       (if
+        (null? lifted)
+        iform
+        (let
+         ((iform. (pass2/subst iform (make-label-dic '()))))
+         ($seq `(,@(map pass2/lifted-define lifted) ,iform.))))))))))
+
+(define (pass2/lifted-define lambda-node)
+  ($define
+   ($lambda-src lambda-node)
+   '()
+   ($lambda-lifted-var lambda-node)
+   lambda-node))
+
+(define-syntax
+ pass2/scan*
+ (er-macro-transformer
+  (lambda
+   (f r c)
+   (smatch
+    f
+    ((- iforms bs fs t? labels)
+     (let
+      ((iforms. (gensym)))
+      `(let
+       ((,iforms. ,iforms))
+       (cond
+        ((null? ,iforms.) ,fs)
+        ((null? (cdr ,iforms.))
+         (pass2/scan (car ,iforms.) ,bs ,fs ,t? ,labels))
+        (else
+         (let
+          loop
+          ((,iforms. ,iforms.) (,fs ,fs))
+          (if
+           (null? ,iforms.)
+           ,fs
+           (loop
+            (cdr ,iforms.)
+            (pass2/scan (car ,iforms.) ,bs ,fs ,t? ,labels)))))))))))))
+(define-syntax
+ pass2/subst!
+ (er-macro-transformer
+  (lambda
+   (f r c)
+   (smatch
+    f
+    ((- access-form labels)
+     (smatch
+      access-form
+      ((accessor expr)
+       (let
+        ((org (gensym))
+         (result (gensym))
+         (setter
+          (if
+           (eq? accessor 'car)
+           'set-car!
+           (string->symbol (format "~a-set!" accessor)))))
+        `(let*
+         ((,org (,accessor ,expr)) (,result (pass2/subst ,org ,labels)))
+         (unless (eq? ,org ,result) (,setter ,expr ,result))
+         ,expr)))))))))
+(define-syntax
+ pass2/subst*!
+ (er-macro-transformer
+  (lambda
+   (f r c)
+   (smatch
+    f
+    ((- iforms labels)
+     (let
+      ((iforms. (gensym)))
+      `(let
+       ((,iforms. ,iforms))
+       (cond
+        ((null? ,iforms.))
+        ((null? (cdr ,iforms.)) (pass2/subst! (car ,iforms.) ,labels))
+        (else
+         (let
+          loop
+          ((,iforms. ,iforms.))
+          (unless
+           (null? ,iforms.)
+           (pass2/subst! (car ,iforms.) ,labels)
+           (loop (cdr ,iforms.)))))))))))))
+(define (pass2/scan iform bs fs t? labels)
+  ((vector-ref *pass2/lambda-lifting-table* (iform-tag iform))
+   iform
+   bs
+   fs
+   t?
+   labels))
+
+(define (pass2-scan/$DEFINE iform bs fs t? labels)
+  (unless
+   t?
+   (error
+    'pass2/lambda-lifting
+    "[internal] $DEFINE in non-toplevel"))(pass2/scan
+   ($define-expr iform)
+   bs
+   fs
+   #t
+   labels))
+
+(define (pass2-scan/$LREF iform bs fs t? labels)
+  (pass2/add-lvar ($lref-lvar iform) bs fs))
+
+(define (pass2-scan/$LSET iform bs fs t? labels)
+  (let
+   ((fs (pass2/scan ($lset-expr iform) bs fs t? labels)))
+   (pass2/add-lvar ($lref-lvar iform) bs fs)))
+
+(define (pass2-scan/$GSET iform bs fs t? labels)
+  (pass2/scan ($gset-expr iform) bs fs t? labels))
+
+(define (pass2-scan/$IF iform bs fs t? labels)
+  (let*
+   ((fs (pass2/scan ($if-test iform) bs fs t? labels))
+    (fs (pass2/scan ($if-then iform) bs fs t? labels)))
+   (pass2/scan ($if-else iform) bs fs t? labels)))
+
+(define (pass2-scan/$LET iform bs fs t? labels)
+  (let*
+   ((new-bs (append ($let-lvars iform) bs))
+    (bs (if (eq? ($let-type iform) 'rec) new-bs bs))
+    (fs (pass2/scan* ($let-inits iform) bs fs t? labels)))
+   (pass2/scan ($let-body iform) new-bs fs #f labels)))
+
+(define (pass2-scan/$RECEIVE iform bs fs t? labels)
+  (let
+   ((fs (pass2/scan ($receive-expr iform) bs fs t? labels))
+    (bs (append ($receive-lvars iform) bs)))
+   (pass2/scan ($receive-body iform) bs fs #f labels)))
+
+(define (pass2-scan/$LAMBDA iform bs fs t? labels)
+  (let
+   ((inner-fs
+     (pass2/scan ($lambda-body iform) ($lambda-lvars iform) '() #f labels)))
+   (unless
+    (eq? ($lambda-flag iform) 'dissolved)
+    (label-dic-info-push! labels iform)
+    (when t? ($lambda-lifted-var-set! iform #t)))
+   (cond
+    (t? '())
+    (else
+     ($lambda-free-lvars-set! iform inner-fs)
+     (let
+      loop
+      ((inner-fs inner-fs) (fs fs))
+      (if
+       (null? inner-fs)
+       fs
+       (loop (cdr inner-fs) (pass2/add-lvar (car inner-fs) bs fs))))))))
+
+(define (pass2-scan/$LABEL iform bs fs t? labels)
+  (cond
+   ((label-seen? labels iform) fs)
+   (else
+    (label-push! labels iform)
+    (pass2/scan ($label-body iform) bs fs #f labels))))
+
+(define (pass2-scan/$SEQ iform bs fs t? labels)
+  (pass2/scan* ($seq-body iform) bs fs t? labels))
+
+(define (pass2-scan/$CALL iform bs fs t? labels)
+  (let
+   ((fs
+     (if
+      (eq? ($call-flag iform) 'jump)
+      fs
+      (pass2/scan ($call-proc iform) bs fs t? labels))))
+   (pass2/scan* ($call-args iform) bs fs t? labels)))
+
+(define (pass2-scan/$ASM iform bs fs t? labels)
+  (pass2/scan* ($asm-args iform) bs fs t? labels))
+
+(define (pass2-scan/$LIST iform bs fs t? labels)
+  (pass2/scan* ($*-args iform) bs fs t? labels))
+
+(define (pass2-scan/$LIBRARY iform bs fs t? labels) fs)
+
+(define (pass2-scan/$IT iform bs fs t? labels) fs)
+
+(define (pass2-scan/$UNDEF iform bs fs t? labels) fs)
+
+(define (pass2-scan/$GREF iform bs fs t? labels) fs)
+
+(define (pass2-scan/$CONST iform bs fs t? labels) fs)
+
+(define *pass2/lambda-lifting-table* (generate-dispatch-table pass2-scan))
+
+(define (pass2/lift lambda-nodes library)
+  (let
+   ((top-name #f))
+   (let
+    loop
+    ((lms lambda-nodes))
+    (when
+     (pair? lms)
+     (or
+      (and
+       ($lambda-lifted-var (car lms))
+       (let
+        ((n ($lambda-name (car lms))))
+        (and n (set! top-name (if (identifier? n) (id-name n) n)))))
+      (loop (cdr lms)))))
+   (let
+    ((results '()))
+    (let
+     loop
+     ((lms lambda-nodes))
+     (cond
+      ((null? lms))
+      (($lambda-lifted-var (car lms))
+       ($lambda-lifted-var-set! (car lms) #f)
+       (loop (cdr lms)))
+      (else
+       (let*
+        ((lm (car lms)) (fvs ($lambda-free-lvars lm)))
+        (when
+         (or
+          (null? fvs)
+          (and
+           (null? (cdr fvs))
+           (zero? (lvar-set-count (car fvs)))
+           (eq? (lvar-initval (car fvs)) lm)))
+         (let
+          ((gvar (make-identifier (gensym) '() library)))
+          ($lambda-name-set!
+           lm
+           (list top-name (or ($lambda-name lm) (id-name gvar))))
+          ($lambda-lifted-var-set! lm gvar)
+          (set! results (cons lm results))))
+        (loop (cdr lms))))))
+    results)))
+
+(define (pass2/subst iform labels)
+  ((vector-ref *pass2/subst-table* (iform-tag iform)) iform labels))
+
+(define (pass2-subst/$DEFINE iform labels)
+  (pass2/subst! ($define-expr iform) labels))
+
+(define (pass2-subst/$LREF iform labels)
+  (or
+   (and
+    (= (lvar-set-count ($lref-lvar iform)) 0)
+    (let
+     ((init (lvar-initval ($lref-lvar iform))))
+     (and
+      (vector? init)
+      (has-tag? init $LAMBDA)
+      (let
+       ((id ($lambda-lifted-var init)))
+       (and
+        id
+        (lvar-ref--! ($lref-lvar iform))
+        (vector-set! iform 0 $GREF)
+        ($gref-id-set! iform id)
+        iform)))))
+   iform))
+
+(define (pass2-subst/$LSET iform labels)
+  (pass2/subst! ($lset-expr iform) labels))
+
+(define (pass2-subst/$GSET iform labels)
+  (pass2/subst! ($gset-expr iform) labels))
+
+(define (pass2-subst/$IF iform labels)
+  (pass2/subst!
+   ($if-test iform)
+   labels)(pass2/subst!
+   ($if-then iform)
+   labels)(pass2/subst! ($if-else iform) labels))
+
+(define (pass2-subst/$LET iform labels)
+  (pass2/subst*!
+   ($let-inits iform)
+   labels)(pass2/subst! ($let-body iform) labels))
+
+(define (pass2-subst/$RECEIVE iform labels)
+  (pass2/subst!
+   ($receive-expr iform)
+   labels)(pass2/subst! ($receive-body iform) labels))
+
+(define (pass2-subst/$LAMBDA iform labels)
+  (pass2/subst!
+   ($lambda-body iform)
+   labels)(or
+   (let ((id ($lambda-lifted-var iform))) (and id ($gref id)))
+   iform))
+
+(define (pass2-subst/$LABEL iform labels)
+  (unless
+   (label-seen? labels iform)
+   (label-push! labels iform)
+   (pass2/subst! ($label-body iform) labels))iform)
+
+(define (pass2-subst/$SEQ iform labels)
+  (pass2/subst*! ($seq-body iform) labels)iform)
+
+(define (pass2-subst/$CALL iform labels)
+  (pass2/subst*!
+   ($call-args iform)
+   labels)(pass2/subst! ($call-proc iform) labels))
+
+(define (pass2-subst/$ASM iform labels)
+  (pass2/subst*! ($asm-args iform) labels)iform)
+
+(define (pass2-subst/$LIST iform labels)
+  (pass2/subst*! ($*-args iform) labels)iform)
+
+(define (pass2-subst/$IT iform labels) iform)
+
+(define (pass2-subst/$LIBRARY iform labels) iform)
+
+(define (pass2-subst/$UNDEF iform labels) iform)
+
+(define (pass2-subst/$GREF iform labels) iform)
+
+(define (pass2-subst/$CONST iform labels) iform)
+
+(define *pass2/subst-table* (generate-dispatch-table pass2-subst))
+
 (define make-new-label (lambda src ($label (if (null? src) #f (car src)))))
 
 (define
@@ -2969,7 +3343,7 @@
  make-renv
  (locals '())
  (frees '())
- (sets (make-eq-hashtable))
+ (sets '())
  (can-free '())
  (display 0))
 
@@ -3021,33 +3395,10 @@
    (renv-display renv))))
 
 (define
- eq-hashtable-copy
- (lambda
-  (ht)
-  (let
-   ((ret (make-eq-hashtable)))
-   (hashtable-for-each (lambda (key value) (hashtable-set! ret key value)) ht)
-   ret)))
-
-(define
- hashtable-set-true!
- (lambda
-  (ht keys)
-  (let
-   loop
-   ((keys keys))
-   (cond
-    ((null? keys) ht)
-    (else (hashtable-set! ht (car keys) #t) (loop (cdr keys)))))))
-
-(define
  pass3/add-sets
  (lambda
   (sets new-sets)
-  (if
-   (null? new-sets)
-   sets
-   (hashtable-set-true! (eq-hashtable-copy sets) new-sets))))
+  (if (null? new-sets) sets (lset-union eq? sets new-sets))))
 
 (define
  pass3/rec
@@ -3302,9 +3653,7 @@
  (lambda
   (iform cb renv ctx)
   (pass3/compile-refer ($lref-lvar iform) cb renv)
-  (when
-   (hashtable-ref (renv-sets renv) ($lref-lvar iform) #f)
-   (cb-emit0! cb UNBOX))
+  (when (memq ($lref-lvar iform) (renv-sets renv)) (cb-emit0! cb UNBOX))
   0))
 
 (define
@@ -3638,7 +3987,7 @@
          renv
          (renv-locals renv)
          free
-         (hashtable-keys-list (renv-sets renv))
+         (renv-sets renv)
          '()
          need-display?)
         (normal-context ctx))))
@@ -4417,7 +4766,12 @@
    ((env (cond ((vector? env) env) (else (make-bottom-p1env)))))
    (let
     ((p1 (pass1 (pass0 program env) env)))
-    (pass3 (pass2 p1) (make-code-builder) (make-renv) 'normal/top HALT)))))
+    (pass3
+     (pass2 p1 (p1env-library env))
+     (make-code-builder)
+     (make-renv)
+     'normal/top
+     HALT)))))
 
 (define
  compile-p1
@@ -4433,7 +4787,7 @@
   (program)
   (let
    ((env (make-bottom-p1env)))
-   (pp-iform (pass2 (pass1 (pass0 program env) env))))))
+   (pp-iform (pass2 (pass1 (pass0 program env) env) (p1env-library env))))))
 
 (define
  compile-p3
@@ -4443,7 +4797,13 @@
    ((env (make-bottom-p1env)))
    (let*
     ((p1 (pass1 (pass0 program env) env))
-     (p3 (pass3 (pass2 p1) (make-code-builder) (make-renv) 'normal/top HALT)))
+     (p3
+      (pass3
+       (pass2 p1 (p1env-library env))
+       (make-code-builder)
+       (make-renv)
+       'normal/top
+       HALT)))
     (vm-dump-code p3)))))
 
 (define init-compiler (lambda () #f))

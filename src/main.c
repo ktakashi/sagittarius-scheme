@@ -190,13 +190,19 @@ static void show_usage()
 	  "  -v,--version                  Prints version and exits.\n"
 	  "  -h,--help                     Prints this usage and exits.\n"
 	  "  -i,--interactive              Interactive mode. Forces to print prompts.\n"
+	  "  -f,--flag                     Optimization flag.\n"
+	  "      no-inline         Not use inline ASM.\n"
+	  "      no-inline-local   Not inline local call.\n"
+	  "      no-lambda-lifting Not do lambda lifting.\n"
+	  "      no-optimization   Not optimiza.\n"
 	  "  -6,--r6rs                     Runs sash with R6RS mode\n"
 	  "  -L<path>,--loadpath=<path>    Adds <path> to the head of the load path list.\n"
 	  "  -D<path>,--dynloadpath=<path> Adds <path> to the head of the dynamic load path list.\n"
 	  "  -C,--clean-cache              Cleans compiled cache.\n"
 	  "  -d,--disable-cache            Disable compiled cache.\n"
 	  "  -E,--debug-exec=<flags>       Sets <flags> for VM debugging.\n"
-	  "    		info        Shows loading files.\n"
+	  "    		warn        Shows warning level log.\n"
+	  "    		info        Shows warning level + loading files.\n"
 	  "    		debug       Shows info level + calling function names.\n"
 	  "    		trace       Shows info debug + stack frames.\n"
 	  "  -p<file>, --logport=<file>    Sets <file> as log port. This port will be\n"
@@ -232,6 +238,7 @@ int main(int argc, char **argv)
   static struct option long_options[] = {
     {"loadpath", optional_argument, 0, 'L'},
     {"dynloadpath", optional_argument, 0, 'D'},
+    {"flag", optional_argument, 0, 'f'},
     {"help", 0, 0, 'h'},
     {"interactive", 0, 0, 'i'},
     {"r6rs", 0, 0, '6'},
@@ -257,8 +264,26 @@ int main(int argc, char **argv)
 	SG_VM_SET_FLAG(vm, SG_DEBUG_LEVEL);
       } else if (strcmp("info", optarg) == 0) {
 	SG_VM_SET_FLAG(vm, SG_INFO_LEVEL);
+      } else if (strcmp("warn", optarg) == 0) {
+	SG_VM_SET_FLAG(vm, SG_WARN_LEVEL);
+      } else {
+	Sg_Warn(UC("unknown log level option %A"), Sg_MakeStringC(optarg));
       }
       break;
+    case 'f':
+      if (strcmp("no-inline", optarg) == 0) {
+	SG_VM_SET_FLAG(vm, SG_NO_INLINE_ASM);
+      } else if (strcmp("no-inline-local", optarg) == 0) {
+	SG_VM_SET_FLAG(vm, SG_NO_INLINE_LOCAL);
+      } else if (strcmp("no-lambda-lifting", optarg) == 0) {
+	SG_VM_SET_FLAG(vm, SG_NO_LAMBDA_LIFT);
+      } else if (strcmp("no-optimization", optarg) == 0) {
+	SG_VM_SET_FLAG(vm, SG_NO_INLINE_ASM);
+	SG_VM_SET_FLAG(vm, SG_NO_INLINE_LOCAL);
+	SG_VM_SET_FLAG(vm, SG_NO_LAMBDA_LIFT);
+      } else {
+	Sg_Warn(UC("unknown optimize option %A"), Sg_MakeStringC(optarg));
+      }
     case '6':
       SG_VM_SET_FLAG(vm, SG_R6RS_MODE);
       SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);

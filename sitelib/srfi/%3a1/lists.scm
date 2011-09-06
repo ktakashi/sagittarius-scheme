@@ -80,7 +80,7 @@
    (only (sagittarius) circular-list? dotted-list? reverse! acons append!)
    (only (sagittarius control) check-arg)
    (only (core) receive last-pair)
-   (only (core base) split-at null-list? delete lset-intersection take drop fold lset-difference assoc member find find-tail)
+   (only (core base) split-at null-list? delete lset-intersection take drop fold lset-difference assoc member find find-tail lset-union reduce)
     )
 
 ;;;
@@ -963,11 +963,6 @@
 ;;; REDUCE and REDUCE-RIGHT only use RIDENTITY in the empty-list case.
 ;;; These cannot meaningfully be n-ary.
 
-(define (reduce f ridentity lis)
-  (check-arg procedure? f reduce)
-  (if (null-list? lis) ridentity
-      (fold f (car lis) (cdr lis))))
-
 (define (reduce-right f ridentity lis)
   (check-arg procedure? f reduce-right)
   (if (null-list? lis) ridentity
@@ -1598,20 +1593,6 @@
   (check-arg procedure? = lset-adjoin)
   (fold (lambda (elt ans) (if (member elt ans =) ans (cons elt ans)))
     lis elts))
-
-
-(define (lset-union = . lists)
-  (check-arg procedure? = lset-union)
-  (reduce (lambda (lis ans)     ; Compute ANS + LIS.
-        (cond ((null? lis) ans) ; Don't copy any lists
-          ((null? ans) lis)     ; if we don't have to.
-          ((eq? lis ans) ans)
-          (else
-           (fold (lambda (elt ans) (if (any (lambda (x) (= x elt)) ans)
-                           ans
-                           (cons elt ans)))
-             ans lis))))
-      '() lists))
 
 (define (lset-union! = . lists)
   (check-arg procedure? = lset-union!)
