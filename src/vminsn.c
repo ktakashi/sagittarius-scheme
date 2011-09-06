@@ -188,7 +188,23 @@ CASE(ADD) {
 }
 
 CASE(ADDI) {
-  BUILTIN_ONE_ARG_WITH_INSN_VALUE(vm, Sg_Add, c);
+  INSN_VAL1(val1, c);
+  if (SG_INTP(AC(vm))) {
+    {
+      long n = (val1 + SG_INT_VALUE(AC(vm)));
+      if ((SG_INT_MIN <= n && SG_INT_MAX >= n)) {
+        AC(vm)=SG_MAKE_INT(n);
+      } else {
+        AC(vm)=Sg_MakeBignumFromSI(n);
+      }
+;
+    }
+;
+  } else {
+    BUILTIN_ONE_ARG_WITH_INSN_VALUE(vm, Sg_Add, c);
+  }
+  
+;
   NEXT;
 }
 
@@ -198,7 +214,23 @@ CASE(SUB) {
 }
 
 CASE(SUBI) {
-  BUILTIN_ONE_ARG_WITH_INSN_VALUE(vm, Sg_Sub, c);
+  INSN_VAL1(val1, c);
+  if (SG_INTP(AC(vm))) {
+    {
+      long n = (val1 - SG_INT_VALUE(AC(vm)));
+      if ((SG_INT_MIN <= n && SG_INT_MAX >= n)) {
+        AC(vm)=SG_MAKE_INT(n);
+      } else {
+        AC(vm)=Sg_MakeBignumFromSI(n);
+      }
+;
+    }
+;
+  } else {
+    BUILTIN_ONE_ARG_WITH_INSN_VALUE(vm, Sg_Sub, c);
+  }
+  
+;
   NEXT;
 }
 
@@ -208,6 +240,7 @@ CASE(MUL) {
 }
 
 CASE(MULI) {
+  INSN_VAL1(val1, c);
   BUILTIN_ONE_ARG_WITH_INSN_VALUE(vm, Sg_Mul, c);
   NEXT;
 }
@@ -286,27 +319,117 @@ CASE(MARK) {
 }
 
 CASE(BNNUME) {
-  BRANCH_TEST2(Sg_NumEq);
+  {
+    SgObject n = FETCH_OPERAND(PC(vm));
+    SgObject s = INDEX(SP(vm), 0);
+    int t = FALSE;
+    if ((SG_INTP(AC(vm)) && SG_INTP(s))    ) {
+      t=(intptr_t)s == (intptr_t)AC(vm);
+    } else {
+      t=Sg_NumEq(s, AC(vm));
+    }
+    
+;
+    AC(vm)=SG_MAKE_BOOL(t);
+    if (!(t)) {
+      PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
+    }
+;
+    SP(vm)--;
+  }
+;
   NEXT;
 }
 
 CASE(BNLT) {
-  BRANCH_TEST2(Sg_NumLt);
+  {
+    SgObject n = FETCH_OPERAND(PC(vm));
+    SgObject s = INDEX(SP(vm), 0);
+    int t = FALSE;
+    if ((SG_INTP(AC(vm)) && SG_INTP(s))    ) {
+      t=(intptr_t)s < (intptr_t)AC(vm);
+    } else {
+      t=Sg_NumLt(s, AC(vm));
+    }
+    
+;
+    AC(vm)=SG_MAKE_BOOL(t);
+    if (!(t)) {
+      PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
+    }
+;
+    SP(vm)--;
+  }
+;
   NEXT;
 }
 
 CASE(BNLE) {
-  BRANCH_TEST2(Sg_NumLe);
+  {
+    SgObject n = FETCH_OPERAND(PC(vm));
+    SgObject s = INDEX(SP(vm), 0);
+    int t = FALSE;
+    if ((SG_INTP(AC(vm)) && SG_INTP(s))    ) {
+      t=(intptr_t)s <= (intptr_t)AC(vm);
+    } else {
+      t=Sg_NumLe(s, AC(vm));
+    }
+    
+;
+    AC(vm)=SG_MAKE_BOOL(t);
+    if (!(t)) {
+      PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
+    }
+;
+    SP(vm)--;
+  }
+;
   NEXT;
 }
 
 CASE(BNGT) {
-  BRANCH_TEST2(Sg_NumGt);
+  {
+    SgObject n = FETCH_OPERAND(PC(vm));
+    SgObject s = INDEX(SP(vm), 0);
+    int t = FALSE;
+    if ((SG_INTP(AC(vm)) && SG_INTP(s))    ) {
+      t=(intptr_t)s > (intptr_t)AC(vm);
+    } else {
+      t=Sg_NumGt(s, AC(vm));
+    }
+    
+;
+    AC(vm)=SG_MAKE_BOOL(t);
+    if (!(t)) {
+      PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
+    }
+;
+    SP(vm)--;
+  }
+;
   NEXT;
 }
 
 CASE(BNGE) {
-  BRANCH_TEST2(Sg_NumGe);
+  {
+    SgObject n = FETCH_OPERAND(PC(vm));
+    SgObject s = INDEX(SP(vm), 0);
+    int t = FALSE;
+    if ((SG_INTP(AC(vm)) && SG_INTP(s))    ) {
+      t=(intptr_t)s >= (intptr_t)AC(vm);
+    } else {
+      t=Sg_NumGe(s, AC(vm));
+    }
+    
+;
+    AC(vm)=SG_MAKE_BOOL(t);
+    if (!(t)) {
+      PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
+    }
+;
+    SP(vm)--;
+  }
+;
   NEXT;
 }
 
@@ -336,27 +459,82 @@ CASE(NOT) {
 }
 
 CASE(NUM_EQ) {
-  BUILTIN_TWO_ARGS_COMPARE(vm, Sg_NumEq);
+  {
+    SgObject s = INDEX(SP(vm), 0);
+    if ((SG_INTP(AC(vm)) && SG_INTP(s))    ) {
+      AC(vm)=SG_MAKE_BOOL((intptr_t)s == (intptr_t)AC(vm)      );
+    } else {
+      AC(vm)=SG_MAKE_BOOL(Sg_NumEq(s, AC(vm)));
+    }
+    
+;
+    SP(vm)--;
+  }
+;
   NEXT;
 }
 
 CASE(NUM_LT) {
-  BUILTIN_TWO_ARGS_COMPARE(vm, Sg_NumLt);
+  {
+    SgObject s = INDEX(SP(vm), 0);
+    if ((SG_INTP(AC(vm)) && SG_INTP(s))    ) {
+      AC(vm)=SG_MAKE_BOOL((intptr_t)s < (intptr_t)AC(vm)      );
+    } else {
+      AC(vm)=SG_MAKE_BOOL(Sg_NumLt(s, AC(vm)));
+    }
+    
+;
+    SP(vm)--;
+  }
+;
   NEXT;
 }
 
 CASE(NUM_LE) {
-  BUILTIN_TWO_ARGS_COMPARE(vm, Sg_NumLe);
+  {
+    SgObject s = INDEX(SP(vm), 0);
+    if ((SG_INTP(AC(vm)) && SG_INTP(s))    ) {
+      AC(vm)=SG_MAKE_BOOL((intptr_t)s <= (intptr_t)AC(vm)      );
+    } else {
+      AC(vm)=SG_MAKE_BOOL(Sg_NumLe(s, AC(vm)));
+    }
+    
+;
+    SP(vm)--;
+  }
+;
   NEXT;
 }
 
 CASE(NUM_GT) {
-  BUILTIN_TWO_ARGS_COMPARE(vm, Sg_NumGt);
+  {
+    SgObject s = INDEX(SP(vm), 0);
+    if ((SG_INTP(AC(vm)) && SG_INTP(s))    ) {
+      AC(vm)=SG_MAKE_BOOL((intptr_t)s > (intptr_t)AC(vm)      );
+    } else {
+      AC(vm)=SG_MAKE_BOOL(Sg_NumGt(s, AC(vm)));
+    }
+    
+;
+    SP(vm)--;
+  }
+;
   NEXT;
 }
 
 CASE(NUM_GE) {
-  BUILTIN_TWO_ARGS_COMPARE(vm, Sg_NumGe);
+  {
+    SgObject s = INDEX(SP(vm), 0);
+    if ((SG_INTP(AC(vm)) && SG_INTP(s))    ) {
+      AC(vm)=SG_MAKE_BOOL((intptr_t)s >= (intptr_t)AC(vm)      );
+    } else {
+      AC(vm)=SG_MAKE_BOOL(Sg_NumGe(s, AC(vm)));
+    }
+    
+;
+    SP(vm)--;
+  }
+;
   NEXT;
 }
 
@@ -532,10 +710,8 @@ CASE(RET) {
 CASE(FRAME) {
   {
     SgObject n = FETCH_OPERAND(PC(vm));
-    int skipSize = 0;
     ASSERT(SG_INTP(n));
-    skipSize=SG_INT_VALUE(n);
-    PUSH_CONT(vm, (PC(vm) + (skipSize - 1)));
+    PUSH_CONT(vm, (PC(vm) + (SG_INT_VALUE(n) - 1)));
   }
 ;
   NEXT;

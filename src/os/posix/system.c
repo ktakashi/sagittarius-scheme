@@ -35,6 +35,8 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <fcntl.h>
 #ifdef HAVE_SCHED_H
 # include <sched.h>
@@ -46,6 +48,8 @@
 #include <sagittarius/string.h>
 #include <sagittarius/pair.h>
 #include <sagittarius/error.h>
+#include <sagittarius/values.h>
+#include <sagittarius/number.h>
 
 /* os dependent values */
 const SgChar* Sg_NativeFileSeparator()
@@ -189,4 +193,19 @@ SgObject Sg_GetTemporaryDirectory()
     if (mkdir(real, S_IRWXU | S_IRWXG | S_IRWXO) != 0) return SG_FALSE;
   }
   return Sg_MakeStringC(real);
+}
+
+/* from Ypsilon */
+SgObject Sg_TimeUsage()
+{
+  struct timeval tv;
+  struct rusage ru;
+  SgObject values;
+  gettimeofday(&tv, NULL);
+  getrusage(RUSAGE_SELF, &ru);
+  values = Sg_MakeValues(3);
+  SG_VALUES_ELEMENT(values, 0) = Sg_MakeFlonum((double)tv.tv_sec + tv.tv_usec / 1000000.0);
+  SG_VALUES_ELEMENT(values, 1) = Sg_MakeFlonum((double)ru.ru_utime.tv_sec + ru.ru_utime.tv_usec / 1000000.0);
+  SG_VALUES_ELEMENT(values, 2) = Sg_MakeFlonum((double)ru.ru_stime.tv_sec + ru.ru_stime.tv_usec / 1000000.0);
+  return values;
 }

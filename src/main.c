@@ -255,7 +255,7 @@ int main(int argc, char **argv)
   Sg_Init();
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
-  while ((opt = getopt_long(argc, argv, "L:D:hEviCdp:6", long_options, &optionIndex)) != -1) {
+  while ((opt = getopt_long(argc, argv, "L:D:f:hEviCdp:6", long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 'E':
       if (strcmp("trace", optarg) == 0) {

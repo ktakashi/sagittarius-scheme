@@ -497,7 +497,6 @@ SgObject Sg_Compile(SgObject o, SgObject e)
 {
   static SgObject compiler = SG_UNDEF;
   SgVM *vm = Sg_VM();
-  SgObject r;
 
   /* compiler is initialized after VM. so we need to look it up first */
   if (SG_UNDEFP(compiler)) {
@@ -1079,6 +1078,11 @@ static void expand_stack(SgVM *vm)
   SgObject *s = vm->stack, *fp_diff = FP(vm) - CONT_FRAME_SIZE, *sp = SP(vm);
   void *data[2];
   int diff = SP(vm) - FP(vm);
+
+  if (SG_VM_LOG_LEVEL(vm, SG_INFO_LEVEL) && vm->state == RUNNING) {
+    Sg_Printf(vm->logPort, UC("expanding stack\n"));
+  }
+
   /* clear stack */
   while (s != fp_diff) *s++ = NULL;
   SP(vm) = vm->stack;
@@ -1760,21 +1764,20 @@ static void process_queued_requests(SgVM *vm)
   do {						\
     SgObject s = INDEX(SP(vm), 0);		\
     AC(vm) = proc(s, AC(vm));			\
-	SP(vm) -= 1;				\
+    SP(vm)--;					\
   } while (0)
 
 #define BUILTIN_TWO_ARGS_COMPARE(vm, proc)	\
   do {						\
     SgObject s = INDEX(SP(vm), 0);		\
     AC(vm) = SG_MAKE_BOOL(proc(s, AC(vm)));	\
-    SP(vm) -= 1;				\
+    SP(vm)--;					\
   } while(0)
 
 #define BUILTIN_ONE_ARG(vm, proc)		\
   AC(vm) = proc(AC(vm));
 
 #define BUILTIN_ONE_ARG_WITH_INSN_VALUE(vm, proc, code)		\
-  INSN_VAL1(val1, code);					\
   AC(vm) = proc(SG_MAKE_INT(val1), AC(vm));
 
 #define BRANCH_TEST2(test)			\
@@ -1785,7 +1788,7 @@ static void process_queued_requests(SgVM *vm)
     if (SG_FALSEP(AC(vm))) {			\
       PC(vm) += SG_INT_VALUE(n) - 1;		\
     }						\
-    SP(vm) -= 1;				\
+    SP(vm)--;					\
   }
 #define BRANCH_TEST1(test)			\
   {						\

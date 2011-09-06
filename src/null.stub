@@ -882,7 +882,7 @@
     (result (Sg_StringToNumber s radix FALSE)))
 
   ;; 11.8 booleans
-  (define-c-proc not (arg0) ::boolean
+  (define-c-proc not (arg0) (inline NOT) ::boolean
     (result (SG_FALSEP arg0)))
 
   (define-cgen-stmt check-boolean

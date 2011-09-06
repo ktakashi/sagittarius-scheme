@@ -97,6 +97,8 @@
 	    ;; env
 	    current-usage-env
 	    current-macro-env
+	    ;; time
+	    time-usage
 	    )
     (import :null)
   (decl-code
@@ -555,4 +557,8 @@
 
   (define-c-proc current-macro-env () ::Object
     (result (-> (Sg_VM) macroEnv)))
+
+  ;; time
+  (define-c-proc time-usage () ::Object
+    (result (Sg_TimeUsage)))
 )

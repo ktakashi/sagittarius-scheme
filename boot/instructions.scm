@@ -209,14 +209,16 @@ CASE(LSET) {
 (define-inst ADD (0 0 #t)
   (BUILTIN_TWO_ARGS vm Sg_Add))
 
-#|
-      CASE(ADDI) {
-	BUILTIN_ONE_ARG_WITH_INSN_VALUE(vm, Sg_Add, c);
-	NEXT;
-      }
-|#
 (define-inst ADDI (1 0 #t)
-  (BUILTIN_ONE_ARG_WITH_INSN_VALUE vm Sg_Add c))
+  (INSN_VAL1 val1 c)
+  (cond ((SG_INTP (AC vm))
+	 (let ((n::long (+ val1 (SG_INT_VALUE (AC vm)))))
+	   (if (and (<= SG_INT_MIN n)
+		    (>= SG_INT_MAX n))
+	       (set! (AC vm) (SG_MAKE_INT n))
+	       (set! (AC vm) (Sg_MakeBignumFromSI n)))))
+	(else
+	 (BUILTIN_ONE_ARG_WITH_INSN_VALUE vm Sg_Add c))))
 
 #|
       CASE(SUB) {
@@ -227,14 +229,16 @@ CASE(LSET) {
 (define-inst SUB (0 0 #t)
   (BUILTIN_TWO_ARGS vm Sg_Sub))
 
-#|
-      CASE(SUBI) {
-	BUILTIN_ONE_ARG_WITH_INSN_VALUE(vm, Sg_Sub, c);
-	NEXT;
-      }
-|#
 (define-inst SUBI (1 0 #t)
-  (BUILTIN_ONE_ARG_WITH_INSN_VALUE vm Sg_Sub c))
+  (INSN_VAL1 val1 c)
+  (cond ((SG_INTP (AC vm))
+	 (let ((n::long (- val1 (SG_INT_VALUE (AC vm)))))
+	   (if (and (<= SG_INT_MIN n)
+		    (>= SG_INT_MAX n))
+	       (set! (AC vm) (SG_MAKE_INT n))
+	       (set! (AC vm) (Sg_MakeBignumFromSI n)))))
+	(else
+	 (BUILTIN_ONE_ARG_WITH_INSN_VALUE vm Sg_Sub c))))
 
 #|
       CASE(MUL) {
@@ -245,13 +249,8 @@ CASE(LSET) {
 (define-inst MUL (0 0 #t)
   (BUILTIN_TWO_ARGS vm Sg_Mul))
 
-#|
-      CASE(MULI) {
-	BUILTIN_ONE_ARG_WITH_INSN_VALUE(vm, Sg_Mul, c);
-	NEXT;
-      }
-|#
 (define-inst MULI (1 0 #t)
+  (INSN_VAL1 val1 c)
   (BUILTIN_ONE_ARG_WITH_INSN_VALUE vm Sg_Mul c))
 
 ;;
@@ -349,50 +348,41 @@ CASE(LSET) {
 (define-inst MARK (0 0 #f)
   (set! (-> (SG_CLOSURE (DC vm)) mark) (FP vm)))
 
-#|
-      CASE(BNNUME) {
-	BRANCH_TEST2(Sg_NumEq);
-	NEXT;
-      }
-|#
+(define-cgen-stmt branch-number-test
+  ((_ op func)
+   (dispatch
+    `(let ((n (FETCH_OPERAND (PC vm)))
+	   (s (INDEX (SP vm) 0))
+	   (t::int FALSE))
+       (cond ((and (SG_INTP (AC vm))
+		   (SG_INTP s))
+	      (set! t (,op (cast intptr_t s) (cast intptr_t (AC vm)))))
+	     (else
+	      (set! t (,func s (AC vm)))))
+       (set! (AC vm) (SG_MAKE_BOOL t))
+       (unless t
+	 (set! (PC vm) (+ (PC vm) (- (SG_INT_VALUE n) 1))))
+       (post-- (SP vm))))))
+
 (define-inst BNNUME (0 1 #t) :label
-  (BRANCH_TEST2 Sg_NumEq))
+  ;;(BRANCH_TEST2 Sg_NumEq))
+  (branch-number-test == Sg_NumEq))
 
-#|
-      CASE(BNLT) {
-	BRANCH_TEST2(Sg_NumLt);
-	NEXT;
-      }
-|#
 (define-inst BNLT (0 1 #t) :label
-  (BRANCH_TEST2 Sg_NumLt))
+  ;;(BRANCH_TEST2 Sg_NumLt))
+  (branch-number-test < Sg_NumLt))
 
-#|
-      CASE(BNLE) {
-	BRANCH_TEST2(Sg_NumLe);
-	NEXT;
-      }
-|#
 (define-inst BNLE (0 1 #t) :label
-  (BRANCH_TEST2 Sg_NumLe))
+  ;;(BRANCH_TEST2 Sg_NumLe))
+  (branch-number-test <= Sg_NumLe))
 
-#|
-      CASE(BNGT) {
-	BRANCH_TEST2(Sg_NumGt);
-	NEXT;
-      }
-|#
 (define-inst BNGT (0 1 #t) :label
-  (BRANCH_TEST2 Sg_NumGt))
+  ;;(BRANCH_TEST2 Sg_NumGt))
+  (branch-number-test > Sg_NumGt))
 
-#|
-      CASE(BNGE) {
-	BRANCH_TEST2(Sg_NumGe);
-	NEXT;
-      }
-|#
 (define-inst BNGE (0 1 #t) :label
-  (BRANCH_TEST2 Sg_NumGe))
+  ;;(BRANCH_TEST2 Sg_NumGe))
+  (branch-number-test >= Sg_NumGe))
 
 #|
       CASE(BNEQ) {
@@ -431,50 +421,37 @@ CASE(LSET) {
       (set! (AC vm) SG_TRUE)
       (set! (AC vm) SG_FALSE)))
 
-#|
-      CASE(NUM_EQ) {
-	BUILTIN_TWO_ARGS_COMPARE(vm, Sg_NumEq);
-	NEXT;
-      }
-|#
+(define-cgen-stmt builtin-number-compare
+  ((_ op func)
+   (dispatch
+    `(let ((s (INDEX (SP vm) 0)))
+       (cond ((and (SG_INTP (AC vm))
+		   (SG_INTP s))
+	      (set! (AC vm) (SG_MAKE_BOOL (,op (cast intptr_t s)
+					       (cast intptr_t (AC vm))))))
+	     (else
+	      (set! (AC vm) (SG_MAKE_BOOL (,func s (AC vm))))))
+       (post-- (SP vm))))))
+
 (define-inst NUM_EQ (0 0 #t)
-  (BUILTIN_TWO_ARGS_COMPARE vm Sg_NumEq))
+  ;;(BUILTIN_TWO_ARGS_COMPARE vm Sg_NumEq))
+  (builtin-number-compare == Sg_NumEq))
 
-#|
-      CASE(NUM_LT) {
-	BUILTIN_TWO_ARGS_COMPARE(vm, Sg_NumLt);
-	NEXT;
-      }
-|#
 (define-inst NUM_LT (0 0 #t)
-  (BUILTIN_TWO_ARGS_COMPARE vm Sg_NumLt))
+  ;;(BUILTIN_TWO_ARGS_COMPARE vm Sg_NumLt))
+  (builtin-number-compare < Sg_NumLt))
 
-#|
-      CASE(NUM_LE) {
-	BUILTIN_TWO_ARGS_COMPARE(vm, Sg_NumLe);
-	NEXT;
-      }
-|#
 (define-inst NUM_LE (0 0 #t)
-  (BUILTIN_TWO_ARGS_COMPARE vm Sg_NumLe))
+  ;;(BUILTIN_TWO_ARGS_COMPARE vm Sg_NumLe))
+  (builtin-number-compare <= Sg_NumLe))
 
-#|
-      CASE(NUM_GT) {
-	BUILTIN_TWO_ARGS_COMPARE(vm, Sg_NumGt);
-	NEXT;
-      }
-|#
 (define-inst NUM_GT (0 0 #t)
-  (BUILTIN_TWO_ARGS_COMPARE vm Sg_NumGt))
+  ;;(BUILTIN_TWO_ARGS_COMPARE vm Sg_NumGt))
+  (builtin-number-compare > Sg_NumGt))
 
-#|
-      CASE(NUM_GE) {
-	BUILTIN_TWO_ARGS_COMPARE(vm, Sg_NumGe);
-	NEXT;
-      }
-|#
 (define-inst NUM_GE (0 0 #t)
-  (BUILTIN_TWO_ARGS_COMPARE vm Sg_NumGe))
+  ;;(BUILTIN_TWO_ARGS_COMPARE vm Sg_NumGe))
+  (builtin-number-compare >= Sg_NumGe))
 
 #|
       CASE(RECEIVE) {
@@ -736,11 +713,9 @@ CASE(LSET) {
       }
 |#
 (define-inst FRAME (0 1 #f) :label
-  (let ((n (FETCH_OPERAND (PC vm)))
-	(skipSize::int 0))
+  (let ((n (FETCH_OPERAND (PC vm))))
     (ASSERT (SG_INTP n))
-    (set! skipSize (SG_INT_VALUE n))
-    (PUSH_CONT vm (+ (PC vm) (- skipSize 1)))))
+    (PUSH_CONT vm (+ (PC vm) (- (SG_INT_VALUE n) 1)))))
 
 #|
       CASE(LET_FRAME) {
@@ -929,21 +904,9 @@ CASE(LSET) {
 	    (set! (SP vm) (- (SP vm) n))))
 	(set! (AC vm) v))))
 
-#|
-      CASE(EQ) {
-	BUILTIN_TWO_ARGS_COMPARE(vm, SG_EQ);
-	NEXT;
-      }
-|#
 (define-inst EQ (0 0 #t)
   (BUILTIN_TWO_ARGS_COMPARE vm SG_EQ))
 
-#|
-      CASE(EQV) {
-	BUILTIN_TWO_ARGS_COMPARE(vm, Sg_EqvP);
-	NEXT;
-      }
-|#
 (define-inst EQV (0 0 #t)
   (BUILTIN_TWO_ARGS_COMPARE vm Sg_EqvP))
 

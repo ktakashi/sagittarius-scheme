@@ -642,6 +642,8 @@
       (for-each
        (lambda (elt) (nl (+ ind 2)) (rec (+ ind 2) elt))
        ($list-args iform)))
+     ((has-tag? iform $LIBRARY)
+      (format #t "($library ~a)" ($library-library iform)))
      (else (scheme-error 'pp-iform "unknown tag:" (iform-tag iform))))))
   (rec 0 iform)
   (newline)))
