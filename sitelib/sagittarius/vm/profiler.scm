@@ -63,20 +63,20 @@
 
       (print "Profiler statistics (total "num-samples" samples, "
 	     sum-time " seconds)")
-      (print "                                                    num    time/    total")
-      (print "Name                                                calls  call(ms) samples")
-      (print "---------------------------------------------------+------+-------+-----------")
+      (print "                                                   num     time/    total")
+      (print "Name                                               calls   call(ms) samples")
+      (print "--------------------------------------------------+-------+--------+-----------")
       (for-each
        (lambda (e)
 	 (let* ((name (car e))
-		(samples (cddr e))
 		(ncalls  (cadr e))
+		(samples (cddr e))
 		)
-	   (format #t "~50a ~7a ~5a ~5a(~3a%)\n"
+	   (format #t "~50a ~7a ~8a ~5a(~3a%)\n"
 		   name ncalls (time/call samples ncalls) samples
 		   (if (zero? num-samples)
 		       0
-		       (inexact->exact (round (* 100 (/ samples num-samples))))))))
+		       (exact (round (* 100 (/ samples num-samples))))))))
        (if (integer? max-rows)
 	   (if (> (length sorted) max-rows)
 	       (take sorted max-rows)

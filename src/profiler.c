@@ -45,6 +45,11 @@
 
 #define SAMPLING_PERIOD 10000
 
+#ifdef __CYGWIN__
+#define ITIMER_PROF ITIMER_REAL
+#define SIGPROF     SIGALRM
+#endif
+
 #define ITIMER_START()                                  \
     do {                                                \
         struct itimerval tval, oval;                    \
@@ -98,7 +103,8 @@ static void collect_samples(SgVMProfiler *prof)
     SgObject e = Sg_HashTableRef(prof->statHash,
 				 prof->samples[i].func, SG_UNBOUND);
     if (SG_UNBOUNDP(e)) {
-      /* TODO */
+      Sg_Warn(UC("profiler: uncounted object appeared in a sample: %p (%S)\n"),
+	      prof->samples[i].func, prof->samples[i].func);
     } else {
       ASSERT(SG_PAIRP(e));
       count = SG_INT_VALUE(SG_CDR(e)) + 1;

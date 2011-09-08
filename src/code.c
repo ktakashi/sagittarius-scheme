@@ -138,6 +138,24 @@ static void combineInsnArg0(SgCodeBuilder *cb, SgCodePacket *packet)
       goto flush;
     }
     break;
+  case CAR:
+    switch (cb->packet.insn) {
+    case LREF:
+      cb->packet.insn = LREF_CAR;
+      break;
+    default:
+      goto flush;
+    }
+    break;
+  case CDR:
+    switch (cb->packet.insn) {
+    case LREF:
+      cb->packet.insn = LREF_CDR;
+      break;
+    default:
+      goto flush;
+    }
+    break;
   case UNDEF:
     switch (cb->packet.insn) {
     case UNDEF: break;
@@ -190,6 +208,18 @@ static void combineInsnArg1(SgCodeBuilder *cb, SgCodePacket *packet)
     }
     goto flush;
   }
+#if 0
+  case JUMP:
+    switch (cb->packet.insn) {
+    case SHIFTJ:
+      cb->packet.insn = SHIFTJ_JUMP;
+      cb->packet.obj = packet->obj;
+      break;
+    default:
+      goto flush;
+    }
+    break;
+#endif
   default:
   flush:
     flush(cb);

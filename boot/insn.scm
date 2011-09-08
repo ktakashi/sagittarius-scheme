@@ -81,7 +81,9 @@
 (define-constant GREF_TAIL_CALL 78)
 (define-constant SET_CAR 79)
 (define-constant SET_CDR 80)
-(define-constant INSTRUCTION_COUNT 81)
+(define-constant LREF_CAR 81)
+(define-constant LREF_CDR 82)
+(define-constant INSTRUCTION_COUNT 83)
 (define (lookup-insn-name insn)
   (cond
     ((eqv? insn 0) '(NOP 0 0 #f #f))
@@ -165,4 +167,6 @@
     ((eqv? insn 78) '(GREF_TAIL_CALL 1 1 #t #f))
     ((eqv? insn 79) '(SET_CAR 0 0 #t #f))
     ((eqv? insn 80) '(SET_CDR 0 0 #t #f))
+    ((eqv? insn 81) '(LREF_CAR 1 0 #t #f))
+    ((eqv? insn 82) '(LREF_CDR 1 0 #t #f))
     (else 'unknown)))

@@ -425,9 +425,11 @@ static int string_compare(const SgHashCore *ht, intptr_t key, intptr_t entryKey)
 {
   if (!SG_PTRP(entryKey)) return FALSE;
   else {
-    SgChar *s1 = (SgChar*)key, *s2 = (SgChar*)entryKey;
-    int size1 = ustrlen(s1), size2 = ustrlen(s2);
-    return string_equal(s1, size1, s2, size2);
+    const uint32_t *s1, *s2;
+    for (s1 = (const uint32_t *)key, s2 = (const uint32_t *)entryKey;
+	 *s1 == *s2 && *s1 != 0;
+	 s1++, s2++);
+    return *s1 - *s2 == 0;
   }
 }
 

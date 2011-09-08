@@ -706,6 +706,8 @@
   (vector-set! packet 3 o))
 (define (packet-obj packet)
   (vector-ref packet 4))
+(define (packet-obj-set! packet o)
+  (vector-set! packet 4 o))
 
 (define make-code-builder 
   (lambda ()
@@ -835,6 +837,18 @@
 	       (else
 		(cb-flush cb)
 		(code-builder-packet-set! cb packet))))
+	((= (packet-insn packet) CAR)
+	 (cond ((= (packet-insn (code-builder-packet cb)) LREF)
+		(packet-insn-set! (code-builder-packet cb) LREF_CAR))
+	       (else
+		(cb-flush cb)
+		(code-builder-packet-set! cb packet))))
+	((= (packet-insn packet) CDR)
+	 (cond ((= (packet-insn (code-builder-packet cb)) LREF)
+		(packet-insn-set! (code-builder-packet cb) LREF_CDR))
+	       (else
+		(cb-flush cb)
+		(code-builder-packet-set! cb packet))))
 	((= (packet-insn packet) UNDEF)
 	 ;; i don't want undef undef undef thing.
 	 (cond ((= (packet-insn (code-builder-packet cb)) UNDEF)
@@ -876,6 +890,13 @@
 		 (else
 		  (cb-flush cb)
 		  (code-builder-packet-set! cb packet)))))
+	#;((= (packet-insn packet) JUMP)
+	 (cond ((= (packet-insn (code-builder-packet cb)) SHIFTJ)
+		(packet-insn-set! (code-builder-packet cb) SHIFTJ_JUMP)
+		(packet-obj-set!  (code-builder-packet cb) (packet-obj packet)))
+	       (else
+		(cb-flush cb)
+		(code-builder-packet-set! cb packet))))
 	(else
 	 (cb-flush cb)
 	 (code-builder-packet-set! cb packet))))

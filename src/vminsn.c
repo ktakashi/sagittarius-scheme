@@ -82,6 +82,8 @@ DEFINSN(GREF_CALL, 1, 1, TRUE, FALSE)
 DEFINSN(GREF_TAIL_CALL, 1, 1, TRUE, FALSE)
 DEFINSN(SET_CAR, 0, 0, TRUE, FALSE)
 DEFINSN(SET_CDR, 0, 0, TRUE, FALSE)
+DEFINSN(LREF_CAR, 1, 0, TRUE, FALSE)
+DEFINSN(LREF_CDR, 1, 0, TRUE, FALSE)
 #endif /* DEFINSN */
 #ifdef VM_LOOP
 CASE(NOP) {
@@ -1035,6 +1037,30 @@ CASE(SET_CDR) {
 ;
   SG_SET_CDR(INDEX(SP(vm), 0), AC(vm));
   AC(vm)=SG_UNDEF;
+  NEXT;
+}
+
+CASE(LREF_CAR) {
+  LREF_INSN(vm, c);
+  if (!(SG_PAIRP(AC(vm)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), AC(vm), SG_NIL);
+    return SG_UNDEF;
+;
+  }
+;
+  BUILTIN_ONE_ARG(vm, SG_CAR);
+  NEXT;
+}
+
+CASE(LREF_CDR) {
+  LREF_INSN(vm, c);
+  if (!(SG_PAIRP(AC(vm)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), AC(vm), SG_NIL);
+    return SG_UNDEF;
+;
+  }
+;
+  BUILTIN_ONE_ARG(vm, SG_CDR);
   NEXT;
 }
 

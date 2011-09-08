@@ -1043,6 +1043,15 @@ CASE(LSET) {
   (SG_SET_CDR (INDEX (SP vm) 0) (AC vm))
   (set! (AC vm) SG_UNDEF))
 
+(define-inst LREF_CAR (1 0 #t) :combined
+  (LREF CAR))
+
+(define-inst LREF_CDR (1 0 #t) :combined
+  (LREF CDR))
+
+#;(define-inst SHIFTJ_JUMP (2 1 #t) :combined
+  (SHIFTJ JUMP))
+
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix

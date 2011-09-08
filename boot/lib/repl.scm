@@ -12,13 +12,6 @@
 	    (core errors)
 	    (sagittarius))
 
-  ;; we need to reuse this.
-  (define interactive-environment
-    (environment 'null ;; for syntax import.
-		 '(core base)
-		 '(sagittarius)
-		 '(rnrs)))
-
   (define (default-exception-printer c . out)
     (report-error c))
 
@@ -74,6 +67,13 @@
 			      (format "expected procedure or #f, but got ~s" x)))))))
 
   (define (read-eval-print-loop)
+    ;; initialize env
+    (define interactive-environment
+      (environment 'null ;; for syntax import.
+		   '(core base)
+		   '(sagittarius)
+		   '(rnrs)))
+
     (let ((plugged (getenv "EMACS")))
       (let loop ()
 	(call-with-current-continuation

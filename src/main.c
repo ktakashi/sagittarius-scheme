@@ -208,7 +208,12 @@ static void show_usage()
 	  "    		debug       Shows info level + calling function names.\n"
 	  "    		trace       Shows info debug + stack frames.\n"
 	  "  -p<file>, --logport=<file>     Sets <file> as log port. This port will be\n"
-	  "                                 used for above option's."
+	  "                                 used for above option's.\n"
+#ifdef SAGITTARIUS_PROFILE
+	  "  -P<time>, --profile<time>      Run with profiler, see below for <time> options.\n"
+	  "             time        Sort by time\n"
+	  "             count       Sort by count\n"
+#endif
 	  );
   exit(1);
 }
@@ -229,6 +234,25 @@ static SgObject argsToList(int argc, int optind, char** argv)
   }
   return h;
 }
+
+static int profiler_mode = FALSE;
+static SgObject profiler_option = SG_UNDEF;
+
+static void cleanup_main(void *data)
+{
+  if (profiler_mode) {
+    SgObject gloc, lib;
+    Sg_ProfilerStop();
+    lib = Sg_FindLibrary(SG_INTERN("(sagittarius vm profiler)"), FALSE);
+    if (!SG_FALSEP(lib)) {
+      gloc = Sg_FindBinding(lib, SG_INTERN("profiler-show"), SG_UNBOUND);
+      if (!SG_UNBOUNDP(gloc)) {
+	Sg_Apply3(SG_GLOC_GET(SG_GLOC(gloc)), SG_FALSE, profiler_option, SG_MAKE_INT(50));
+      }
+    }
+  }
+}
+
 
 int main(int argc, char **argv)
 {
@@ -251,6 +275,9 @@ int main(int argc, char **argv)
     {"disable-cache", 0, 0, 'd'},
     {"debug-exec", optional_argument, 0, 'E'},
     {"logport", optional_argument, 0, 'p'},
+#ifdef SAGITTARIUS_PROFILE
+    {"profile", optional_argument, 0, 'P'},
+#endif
     {0, 0, 0, 0}
    };
   
@@ -259,7 +286,7 @@ int main(int argc, char **argv)
   Sg_Init();
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
-  while ((opt = getopt_long(argc, argv, "L:D:f:I:hEviCdp:6", long_options, &optionIndex)) != -1) {
+  while ((opt = getopt_long(argc, argv, "L:D:f:I:hEviCdp:6P:", long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 'E':
       if (strcmp("trace", optarg) == 0) {
@@ -329,13 +356,33 @@ int main(int argc, char **argv)
     case 'd':
       SG_VM_SET_FLAG(vm, SG_DISABLE_CACHE);
       break;
+#ifdef SAGITTARIUS_PROFILE
+    case 'P':
+      profiler_mode = TRUE;
+      if (strcmp("time", optarg) == 0) {
+	profiler_option = SG_INTERN("time");
+      } else if (strcmp("count", optarg) == 0) {
+	profiler_option = SG_INTERN("count");
+      } else {
+	goto usage;
+      }      
+      break;
+#endif
     default:
+  usage:
       fprintf(stderr, "invalid option -- %c\n", opt);
       show_usage();
       break;
     }
   }
   vm->commandLineArgs = argsToList(argc, optind, argv);
+  /* set profiler */
+  if (profiler_mode) {
+    Sg_ImportLibrary(vm->currentLibrary, SG_OBJ(SG_INTERN("(sagittarius vm profiler)")));
+    Sg_ProfilerStart();
+  }
+  Sg_AddCleanupHandler(cleanup_main, NULL);
+
   if (optind < argc) {
     Sg_ImportLibrary(vm->currentLibrary, SG_OBJ(SG_INTERN("(core base)")));
     /* Sg_ImportLibrary(vm->currentLibrary, SG_OBJ(SG_INTERN("(sagittarius compiler)"))); */

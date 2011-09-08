@@ -995,7 +995,8 @@
 
   ;; 11.10 symbols
   (define-c-proc symbol->string (z::Symbol) ::Object
-    (result (Sg_CopyString (-> z name))))
+    (result (-> z name))
+    #;(result (Sg_MakeString (SG_STRING_VALUE (-> z name)) SG_LITERAL_STRING)))
 
   (define-cgen-stmt check-symbol
     ((_ name s)
@@ -1007,7 +1008,8 @@
     (x=? check-symbol SG_EQ symbol=? s1 s2 rest))
 
   (define-c-proc string->symbol (z::String) ::Object
-    (result (Sg_Intern z)))
+    (let ((s (Sg_MakeString (SG_STRING_VALUE z) SG_LITERAL_STRING)))
+      (result (Sg_Intern s))))
 
   ;; 11.11 characters
   (define-cgen-stmt check-char
@@ -1082,13 +1084,14 @@
     (result s->size))
 
   (define-c-proc string-ref (s::String k::fixnum :optional fallback) ::Object
-    (cond ((or (< k 0)
-	       (>= k (SG_STRING_SIZE s)))
+    (cond ((and (>= k 0)
+		(< k (SG_STRING_SIZE s)))
+	   (result (SG_MAKE_CHAR (SG_STRING_VALUE_AT s k))))
+	  (else 
 	   (when (SG_UNBOUNDP fallback)
 	     (assertion-violation 'string-ref "index out of bounds"
 				  (SG_LIST2 s (SG_MAKE_INT k))))
-	   (result fallback))
-	  (else (result (SG_MAKE_CHAR (SG_STRING_VALUE_AT s k))))))
+	   (result fallback))))
 
   ;; string compares
   (define-c-proc string=? (s1::String s2::String :rest rest) ::boolean
