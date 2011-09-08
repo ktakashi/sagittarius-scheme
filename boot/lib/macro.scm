@@ -104,6 +104,7 @@
 
 ;; for global call.
 (define .match-syntax-case (make-identifier 'match-syntax-case '() '(core syntax-case)))
+(define .list              (make-identifier 'list '() '(core syntax-case)))
 
 (define collect-unique-ids ; exclude '...
   (lambda (expr)
@@ -174,13 +175,13 @@
 			 ((p expr)
 			  ;; we want pattern variables unique, so wrap it
 			  (receive (pattern env) (parse-pattern	(wrap-syntax p mac-env seen))
-			    (cons `(list (,syntax-quote. ,pattern)
+			    (cons `(,.list (,syntax-quote. ,pattern)
 					 #f
 					 (lambda (.vars) ,(wrap-syntax expr mac-env seen)))
 				  env)))
 			 ((p fender expr)
 			  (receive (pattern env) (parse-pattern (wrap-syntax p mac-env seen))
-			    (cons `(list (,syntax-quote. ,pattern)
+			    (cons `(,.list (,syntax-quote. ,pattern)
 					 (lambda (.vars) ,(wrap-syntax fender mac-env seen))
 					 (lambda (.vars) ,(wrap-syntax expr mac-env seen)))
 				  env))))))
@@ -475,7 +476,7 @@
 				      (,syntax-quote. ,env)))
 		(if (null? ranks)
 		    `(,.expand-syntax ,patvar (,syntax-quote. ,template)
-				      '() (,syntax-quote. ,lex-id) ()
+				      () (,syntax-quote. ,lex-id) ()
 				      (,syntax-quote. ,env))
 		    `(,.expand-syntax ,patvar
 				      (,syntax-quote. ,template)

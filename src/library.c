@@ -50,17 +50,18 @@
 #include "sagittarius/thread.h"
 #include "sagittarius/cache.h"
 #include "sagittarius/reader.h"
-
+#include "sagittarius/identifier.h"
 
 static SgLibrary* make_library()
 {
   SgLibrary *z = SG_NEW(SgLibrary);
   SG_SET_HEADER(z, TC_LIBRARY);
-  z->table = Sg_MakeHashTableSimple(SG_HASH_EQ, 1024);
+  z->table = Sg_MakeHashTableSimple(SG_HASH_EQUAL, 1024);
   z->imported = SG_NIL;
   z->exported = SG_FALSE;
   z->generics = SG_NIL;
   z->version = SG_NIL;
+  z->parents = SG_NIL;
   Sg_InitMutex(&z->lock, FALSE);
   return z;
 }
@@ -78,6 +79,8 @@ static SgObject library_name_to_id_version(SgObject name)
 	SgObject o = SG_CAR(cp);
 	if (SG_SYMBOLP(o) || SG_KEYWORDP(o)) {
 	  SG_APPEND1(h, t, o);
+	} else if (SG_IDENTIFIERP(o)) {
+	  SG_APPEND1(h, t, SG_IDENTIFIER_NAME(o));
 	} else if (SG_PAIRP(o) && SG_NULLP(SG_CDR(cp))) {
 	  SgObject num;
 	  if (SG_PROPER_LISTP(o)) {
@@ -119,9 +122,9 @@ static SgSymbol* convert_name_to_symbol(SgObject name)
   return SG_UNDEF;		/* dummy */
 }
 
+static SgInternalMutex mutex = { NULL };
 SgObject Sg_MakeLibrary(SgObject name)
 {
-  static SgInternalMutex mutex = { NULL };
   SgLibrary *z = make_library();
   SgVM *vm = Sg_VM();
   /* TODO if it's from Sg_FindLibrary, this is processed twice. */
@@ -145,6 +148,29 @@ SgObject Sg_MakeLibrary(SgObject name)
     Sg_Printf(vm->logPort, UC("library %S has been created\n"), name);
   }
   return SG_OBJ(z);
+}
+
+/* creates anonymous library */
+SgObject Sg_MakeEvalLibrary()
+{
+  SgVM *vm = Sg_VM();
+  SgLibrary *z = make_library();
+  z->name = Sg_MakeSymbol(Sg_MakeString(UC("(eval environment)"), SG_LITERAL_STRING),
+			  FALSE);
+  z->version = SG_FALSE;
+  Sg_LockMutex(&mutex);
+  Sg_HashTableSet(SG_VM_LIBRARIES(vm), z->name, z, SG_HASH_NO_OVERWRITE);
+  Sg_UnlockMutex(&mutex);
+
+  return z;
+}
+
+void Sg_RemoveLibrary(SgLibrary *lib)
+{
+  SgVM *vm = Sg_VM();
+  Sg_LockMutex(&mutex);
+  Sg_HashTableDelete(SG_VM_LIBRARIES(vm), SG_LIBRARY_NAME(lib));
+  Sg_UnlockMutex(&mutex);
 }
 
 static SgString* encode_string(SgString *s, int keywordP)
@@ -379,14 +405,20 @@ static SgObject culculate_imports(SgObject only, SgObject renames)
       SG_SET_CAR(target, SG_FALSE);
     }
     if (!SG_FALSEP(SG_CAR(first))) {
-      SG_APPEND1(h, t, first);
+      /* merge only and renames */
+      SgObject exists = Sg_Assq(SG_CAR(first), h);
+      if (SG_FALSEP(exists)) {
+	SG_APPEND1(h, t, first);
+      } else {
+	SG_SET_CDR(exists, SG_CADR(first));
+      }
     }
   }
   return h;
 }
 
-static void import_variable(SgLibrary *lib, SgObject key, SgObject value,
-			    SgObject imports, SgObject except, SgObject prefix)
+static SgObject rename_key(SgObject key, SgObject prefix,
+			   SgObject imports, SgObject except)
 {
   SgObject name = key;
   /* if prefix was not #f, it must be this import spec
@@ -409,13 +441,68 @@ static void import_variable(SgLibrary *lib, SgObject key, SgObject value,
       if (!SG_FALSEP(renamed)) {
 	if (!SG_PAIRP(renamed)) {
 	  Sg_Error(UC("invalid rename clause %S"), renamed);
-	  return;
+	  return SG_UNBOUND;	/* dummy */
 	}
-	name = SG_CADR(renamed);
+	name = SG_CDR(renamed);
       }
     }
-    Sg_HashTableSet(SG_LIBRARY_TABLE(lib), name, value, 0); 
+    return name;
   }
+  return SG_UNBOUND;
+}
+
+static void import_variable(SgLibrary *lib, SgLibrary *fromlib, SgObject key, SgObject value,
+			    SgObject imports, SgObject except, SgObject prefix)
+{
+  SgObject name = rename_key(key, prefix, imports, except);
+  if (!SG_UNBOUNDP(name)) {
+    SgObject slot = Sg_Assq(fromlib, lib->parents);
+    ASSERT(!SG_FALSEP(slot));
+    SG_SET_CDR(slot, Sg_Cons(Sg_Cons(name, key), SG_CDR(slot)));
+  }
+}
+
+static void import_parents(SgLibrary *lib, SgLibrary *fromlib,
+			   SgObject imports, SgObject except, SgObject prefix,
+			   int allP)
+{
+  SgObject parents = fromlib->parents;
+  SgObject exportSpec = SG_LIBRARY_EXPORTED(fromlib);
+  /* we need to check if fromlib's export spec exports variables */
+  SgObject exported = SG_NIL, cp;
+  SG_FOR_EACH(cp, parents) {
+    SgObject slot = SG_CAR(cp);
+    SgObject lib = SG_CAR(slot);
+    SgObject alist = SG_CDR(slot);
+    SgObject slot2, tmp = SG_NIL;
+    SG_FOR_EACH(slot2, alist) {
+      /* we only have interest in renamed name */
+      SgObject renamed = SG_CAAR(slot2);
+      if (SG_FALSEP(exportSpec) ||
+	  !SG_FALSEP(Sg_Memq(renamed, SG_CAR(exportSpec))) ||
+	  allP) {
+	/* key was in non-rename export spec or :all key word */
+	renamed = rename_key(renamed, prefix, imports, except);
+	if (!SG_UNBOUNDP(renamed)) {
+	  tmp = Sg_Acons(renamed, SG_CDAR(slot2), tmp);
+	}
+      } else {
+	/* renamed export */
+	SgObject spec = Sg_Assq(renamed, SG_CDR(exportSpec));
+	if (!SG_FALSEP(spec)) {
+	  renamed = rename_key(SG_CADR(spec), prefix, imports, except);
+	  if (!SG_UNBOUNDP(renamed)) {
+	    tmp = Sg_Acons(SG_CADR(spec), SG_CDAR(slot2), tmp);
+	  }
+	}
+      }
+    }
+    if (!SG_NULLP(tmp)) {
+      exported = Sg_Acons(lib, tmp, exported);
+    }
+  }
+  /* we just need to simply append */
+  lib->parents = Sg_Append2X(lib->parents, exported);
 }
 
 void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
@@ -433,6 +520,8 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
   }
   ENSURE_LIBRARY(to, tolib);
   ENSURE_LIBRARY(from, fromlib);
+  Sg_LockMutex(&tolib->lock);
+  tolib->parents = Sg_Acons(fromlib, SG_NIL, tolib->parents);
   exportSpec = SG_LIBRARY_EXPORTED(fromlib);
 
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
@@ -446,18 +535,23 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
 	SG_NULLP(renames) &&
 	SG_NULLP(except) &&
 	SG_FALSEP(prefix)) {
-      /* SHORTCUT (import (rnrs)) case*/
-      Sg_HashTableAddAll(SG_LIBRARY_TABLE(tolib),
-			 SG_LIBRARY_TABLE(fromlib));
+      keys = Sg_HashTableKeys(SG_LIBRARY_TABLE(fromlib));
+      SG_FOR_EACH(key, keys) {
+	SgObject v = Sg_HashTableRef(SG_LIBRARY_TABLE(fromlib), SG_CAR(key), SG_UNBOUND);
+	if (SG_UNBOUNDP(v)) {
+	  Sg_Error(UC("target import library does not contain %S"), SG_CAR(key));
+	}
+	import_variable(tolib, fromlib, SG_CAR(key), v, SG_NIL, SG_NIL, SG_FALSE);
+      }
+      import_parents(tolib, fromlib, SG_NIL, SG_NIL, SG_FALSE, TRUE);
       SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, SG_LIST4(SG_NIL, SG_NIL, SG_NIL, SG_FALSE),
 					    SG_LIBRARY_IMPORTED(tolib));
-      return;
+      goto out;
     } else {
       allP = TRUE;
     }
   }
   imports = culculate_imports(only, renames);
-
   /* imported alist: ((lib1 . (only except renames prefix)) ...) */
   SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, SG_LIST4(only, except, renames, prefix),
 					SG_LIBRARY_IMPORTED(tolib));
@@ -470,6 +564,7 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
   keys = Sg_HashTableKeys(SG_LIBRARY_TABLE(fromlib));
   SG_FOR_EACH(key, keys) {
     SgObject v = Sg_HashTableRef(SG_LIBRARY_TABLE(fromlib), SG_CAR(key), SG_UNBOUND);
+
     if (SG_UNBOUNDP(v)) {
       /* TODO error? */
       Sg_Error(UC("target import library does not contain %S"), SG_CAR(key));
@@ -477,24 +572,24 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
     /* TODO no overwrite? */
     if (SG_FALSEP(exportSpec)) {
       /* this must be C library. */
-      /* Sg_HashTableSet(SG_LIBRARY_TABLE(tolib), SG_CAR(key), v, 0); */
-      import_variable(tolib, SG_CAR(key), v, imports, except, prefix);
+      import_variable(tolib, fromlib, SG_CAR(key), v, imports, except, prefix);
     } else if (!SG_FALSEP(Sg_Memq(SG_CAR(key), SG_CAR(exportSpec))) ||
 	       allP) {
       /* key was in non-rename export spec or :all key word */
-      import_variable(tolib, SG_CAR(key), v, imports, except, prefix);
-      /* Sg_HashTableSet(SG_LIBRARY_TABLE(tolib), SG_CAR(key), v, 0); */
+      import_variable(tolib, fromlib, SG_CAR(key), v, imports, except, prefix);
     } else {
       /* renamed export */
       SgObject spec = Sg_Assq(SG_CAR(key), SG_CDR(exportSpec));
       if (SG_FALSEP(spec)) {
 	/* ignore */
       } else {
-	import_variable(tolib, SG_CADR(spec), v, imports, except, prefix);
-	/* Sg_HashTableSet(SG_LIBRARY_TABLE(tolib), SG_CDR(spec), v, 0); */
+	import_variable(tolib, fromlib, SG_CADR(spec), v, imports, except, prefix);
       }
     }
   }
+  import_parents(tolib, fromlib, imports, except, prefix, allP);
+ out:
+  Sg_UnlockMutex(&tolib->lock);
 }
 
 void Sg_LibraryExportedSet(SgObject lib, SgObject exportSpec)
@@ -519,21 +614,15 @@ SgGloc* Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
   SgObject oldval = SG_UNDEF;
   int prev_const = FALSE;
   Sg_LockMutex(&lib->lock);
-  v = Sg_HashTableRef(lib->table, SG_OBJ(symbol), SG_FALSE);
+
+  v = Sg_HashTableRef(lib->table, symbol, SG_FALSE);
   if (SG_GLOCP(v)) {
-    /*
-    if (SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE)) {
-      Sg_AssertionViolation(symbol,
-			    Sg_MakeString(UC("multiple definition of identifier"), SG_LITERAL_STRING),
-			    SG_LIST1(symbol));
-    }
-    */
     g = SG_GLOC(v);
     prev_const = Sg_GlocConstP(g);
     oldval = SG_GLOC_GET(g);
   } else {
     g = SG_GLOC(Sg_MakeGloc(symbol, lib));
-    Sg_HashTableSet(lib->table, SG_OBJ(symbol), SG_OBJ(g), 0);
+    Sg_HashTableSet(lib->table, symbol, SG_OBJ(g), 0);
   }
   Sg_UnlockMutex(&lib->lock);
 
@@ -548,6 +637,58 @@ SgGloc* Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
   }
   return g;
 }
+
+
+SgGloc* Sg_FindBinding(SgObject library, SgObject name, SgObject callback)
+{
+  SgLibrary *lib;
+  SgObject ret;
+  ASSERT(SG_SYMBOLP(name));
+  if (SG_LIBRARYP(library)) lib = SG_LIBRARY(library);
+  else lib = Sg_FindLibrary(library, FALSE);
+  if (SG_FALSEP(lib)) return callback;
+
+  /* first look up from library table */
+  ret = Sg_HashTableRef(SG_LIBRARY_TABLE(lib), name, SG_UNBOUND);
+  if (SG_UNBOUNDP(ret)) {
+    /* second we need to look up from parents */
+    SgObject cp;
+    SG_FOR_EACH(cp, lib->parents) {
+      /* (<lib> . ((<imported> . <name>) ...)) */
+      SgObject alist = SG_CDAR(cp);
+      SgObject slot = Sg_Assq(name, alist);
+      if (!SG_FALSEP(slot)) {
+	SgObject oname = SG_CDR(slot);
+	ret = Sg_HashTableRef(SG_LIBRARY_TABLE(SG_CAAR(cp)), oname, SG_UNBOUND);
+	if (SG_UNBOUNDP(ret)) {
+	  ret = callback;
+	}
+	goto out;
+      }
+    }
+    ret = callback;
+  }
+ out:
+  return ret;
+}
+
+void Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value_or_gloc)
+{
+  SgObject value;
+  if (SG_GLOCP(value_or_gloc)) {
+    value = SG_GLOC_GET(SG_GLOC(value_or_gloc));
+  } else {
+    value = value_or_gloc;
+  }
+  if (SG_SYMBOLP(name)) {
+    Sg_MakeBinding(library, name, value, 0);
+  } else if (SG_IDENTIFIERP(name)) {
+    Sg_MakeBinding(library, SG_IDENTIFIER_NAME(name), value, 0);
+  } else {
+    Sg_Error(UC("symbol or identifier required, but got %S"), name);
+  }
+}
+
 /*
   end of file
   Local Variables:

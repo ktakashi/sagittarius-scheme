@@ -27,6 +27,7 @@
 	    library-imported-set! library-exported library-exported-set!
 	    library-table #;%set-library %insert-binding find-library
 	    find-binding vm-current-library
+	    library-parents
 
 	    ;; gloc
 	    gloc-ref gloc-set! gloc-bound?
@@ -151,13 +152,16 @@
     (set! (SG_LIBRARY_IMPORTED arg0) arg1))
 
   (define-c-proc library-exported (arg0::Library) ::Object
-    (result (SG_LIBRARY_IMPORTED arg0)))
+    (result (SG_LIBRARY_EXPORTED arg0)))
 
   (define-c-proc library-exported-set! (arg0::Library arg1) ::void
     (set! (SG_LIBRARY_EXPORTED arg0) arg1))
 
   (define-c-proc library-table (lib::Library) ::Object
     (result (SG_LIBRARY_TABLE lib)))
+
+  (define-c-proc library-parents (lib::Library) ::Object
+    (result (-> lib parents)))
 
   #;(define-c-proc %set-library (arg0::Library) ::void
     (Sg_SetLibrary arg0))

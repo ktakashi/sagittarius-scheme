@@ -12,6 +12,12 @@
 	    (core errors)
 	    (sagittarius))
 
+  ;; we need to reuse this.
+  (define interactive-environment
+    (environment 'null ;; for syntax import.
+		 '(core base)
+		 '(sagittarius)
+		 '(rnrs)))
 
   (define (default-exception-printer c . out)
     (report-error c))
@@ -83,7 +89,7 @@
 	       (let ((form (read (current-input-port))))
 		 (and (eof-object? form) (exit 0))
 		 (and plugged #;(format #t "~%")(flush-output-port (current-output-port)))
-		 (receive ans ((current-evaluator) form (environment '(rnrs)))
+		 (receive ans ((current-evaluator) form interactive-environment)
 		   (apply (current-printer) ans)
 		   (flush-output-port (current-output-port))))))))
 	(loop))))

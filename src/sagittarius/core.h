@@ -43,6 +43,8 @@ SG_EXTERN void  Sg_Init();
 
 SG_EXTERN void 	Sg_Exit(int code);
 SG_EXTERN void 	Sg_Cleanup();
+SG_EXTERN void*	Sg_AddCleanupHandler(void (*proc)(void *data), void *data);
+SG_EXTERN void	Sg_DeleteCleanupHandler(void *handle);
 SG_EXTERN void 	Sg_Panic(const char* msg, ...);
 SG_EXTERN void 	Sg_Abort(const char* msg);
 /* gc wrappers */
@@ -57,6 +59,10 @@ SG_EXTERN void* Sg_GCBase(void *value);
 
 /* experimental */
 SG_EXTERN void  Sg_AddGCRoots(void *start, void *end);
+
+/* cond-expand */
+SG_EXTERN void  Sg_AddCondFeature(const SgChar *feature);
+SG_EXTERN SgObject Sg_CondFeatures();
 
 SG_CDECL_END
 

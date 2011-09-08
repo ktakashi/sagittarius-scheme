@@ -2492,7 +2492,7 @@ SgObject Sg_Sin(SgObject obj)
     return Sg_MakeComplex(Sg_MakeFlonum(0.5 * sin(real) * (e + f)),
 			  Sg_MakeFlonum(0.5 * cos(real) * (e - f)));
   }
-  if (SG_REALP(obj)) return Sg_MakeFlonum(Sg_GetDouble(obj));
+  if (SG_REALP(obj)) return Sg_MakeFlonum(sin(Sg_GetDouble(obj)));
   Sg_Error(UC("number required, but got %S"), obj);
   return SG_UNDEF;		/* dummy */
 }

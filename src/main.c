@@ -184,29 +184,31 @@ static int getopt_long(int argc, char **argv, const char *optstring,
 static void show_usage()
 {
   fprintf(stderr,
-	  "Usage: sash [-hvi][-L<path>][-D<path>][--clean-cache][--disable-cache]"
+	  "Usage: sash [-hvi6][-L<path>][-D<path>][-f<flag>][-I<library>][--clean-cache][--disable-cache]"
 	  "[--debug-exec=<flags>][-p<file> or --logport=<file>]\n"
 	  "options:\n"
-	  "  -v,--version                  Prints version and exits.\n"
-	  "  -h,--help                     Prints this usage and exits.\n"
-	  "  -i,--interactive              Interactive mode. Forces to print prompts.\n"
-	  "  -f,--flag                     Optimization flag.\n"
+	  "  -v,--version                   Prints version and exits.\n"
+	  "  -h,--help                      Prints this usage and exits.\n"
+	  "  -i,--interactive               Interactive mode. Forces to print prompts.\n"
+	  "  -f<flag>,--flag=<flag>         Optimization flag.\n"
 	  "      no-inline         Not use inline ASM.\n"
 	  "      no-inline-local   Not inline local call.\n"
 	  "      no-lambda-lifting Not do lambda lifting.\n"
 	  "      no-optimization   Not optimiza.\n"
-	  "  -6,--r6rs                     Runs sash with R6RS mode\n"
-	  "  -L<path>,--loadpath=<path>    Adds <path> to the head of the load path list.\n"
-	  "  -D<path>,--dynloadpath=<path> Adds <path> to the head of the dynamic load path list.\n"
-	  "  -C,--clean-cache              Cleans compiled cache.\n"
-	  "  -d,--disable-cache            Disable compiled cache.\n"
-	  "  -E,--debug-exec=<flags>       Sets <flags> for VM debugging.\n"
+	  "  -I<library>,--import=<library> Import specified library to user library\n"
+	  "                                 before sash will be executed.\n"
+	  "  -6,--r6rs                      Runs sash with R6RS mode\n"
+	  "  -L<path>,--loadpath=<path>     Adds <path> to the head of the load path list.\n"
+	  "  -D<path>,--dynloadpath=<path>  Adds <path> to the head of the dynamic load path list.\n"
+	  "  -C,--clean-cache               Cleans compiled cache.\n"
+	  "  -d,--disable-cache             Disable compiled cache.\n"
+	  "  -E,--debug-exec=<flags>        Sets <flags> for VM debugging.\n"
 	  "    		warn        Shows warning level log.\n"
 	  "    		info        Shows warning level + loading files.\n"
 	  "    		debug       Shows info level + calling function names.\n"
 	  "    		trace       Shows info debug + stack frames.\n"
-	  "  -p<file>, --logport=<file>    Sets <file> as log port. This port will be\n"
-	  "                                used for above option's."
+	  "  -p<file>, --logport=<file>     Sets <file> as log port. This port will be\n"
+	  "                                 used for above option's."
 	  );
   exit(1);
 }
@@ -232,6 +234,7 @@ int main(int argc, char **argv)
 {
   int opt, optionIndex = 0;
   int forceInteactiveP = FALSE;
+  int exit_code = 0;
   SgVM *vm;
   SgObject repl, lib;
 
@@ -241,6 +244,7 @@ int main(int argc, char **argv)
     {"flag", optional_argument, 0, 'f'},
     {"help", 0, 0, 'h'},
     {"interactive", 0, 0, 'i'},
+    {"import", 0, 0, 'I'},
     {"r6rs", 0, 0, '6'},
     {"version", 0, 0, 'v'},
     {"clean-cache", 0, 0, 'C'},
@@ -255,7 +259,7 @@ int main(int argc, char **argv)
   Sg_Init();
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
-  while ((opt = getopt_long(argc, argv, "L:D:f:hEviCdp:6", long_options, &optionIndex)) != -1) {
+  while ((opt = getopt_long(argc, argv, "L:D:f:I:hEviCdp:6", long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 'E':
       if (strcmp("trace", optarg) == 0) {
@@ -284,6 +288,10 @@ int main(int argc, char **argv)
       } else {
 	Sg_Warn(UC("unknown optimize option %A"), Sg_MakeStringC(optarg));
       }
+      break;
+    case 'I':
+      Sg_ImportLibrary(vm->currentLibrary, Sg_Intern(Sg_MakeStringC(optarg)));
+      break;
     case '6':
       SG_VM_SET_FLAG(vm, SG_R6RS_MODE);
       SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
@@ -330,8 +338,8 @@ int main(int argc, char **argv)
   vm->commandLineArgs = argsToList(argc, optind, argv);
   if (optind < argc) {
     Sg_ImportLibrary(vm->currentLibrary, SG_OBJ(SG_INTERN("(core base)")));
-    Sg_ImportLibrary(vm->currentLibrary, SG_OBJ(SG_INTERN("(sagittarius compiler)")));
-    Sg_Load(SG_STRING(Sg_MakeStringC(argv[optind])));
+    /* Sg_ImportLibrary(vm->currentLibrary, SG_OBJ(SG_INTERN("(sagittarius compiler)"))); */
+    exit_code = Sg_Load(SG_STRING(Sg_MakeStringC(argv[optind])));
     if (forceInteactiveP) goto repl;
   } else {
   repl:
@@ -347,8 +355,8 @@ int main(int argc, char **argv)
   err:
     fprintf(stderr, "no repl available.");
   }
-  Sg_FlushAllPort(TRUE);
-  return 0;
+  Sg_Exit(exit_code);
+  return 0;			/* not reached */
 }
 /*
   end of file

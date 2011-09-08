@@ -988,6 +988,20 @@
  :null
  (syntax-error "invalid expression" form))
 
+(define |.list| (global-id 'list))
+
+(define |.cons| (global-id 'cons))
+
+(define |.cons*| (global-id 'cons*))
+
+(define |.append| (global-id 'append))
+
+(define |.quote| (global-id 'quote))
+
+(define |.vector| (global-id 'vector))
+
+(define |.list->vector| (global-id 'list->vector))
+
 (define
  pass1/quasiquote
  (lambda
@@ -1023,8 +1037,8 @@
     (cond
      ((null? body) tail)
      ((null-constant? tail)
-      (if (= (length body) 1) (car body) `(append ,@body)))
-     (else `(append ,@body ,tail)))))
+      (if (= (length body) 1) (car body) `(,|.append| ,@body)))
+     (else `(,|.append| ,@body ,tail)))))
   (define
    emit-cons*
    (lambda
@@ -1034,24 +1048,30 @@
      (emit-cons (car body) tail)
      (cond
       ((null? body) tail)
-      ((null-constant? tail) `(list ,@body))
-      ((and (pair? tail) (eq? (car tail) 'list)) `(list ,@body ,@(cdr tail)))
-      ((and (pair? tail) (or (eq? (car tail) 'cons) (eq? (car tail) 'cons*)))
-       `(cons* ,@body ,@(cdr tail)))
-      (else `(cons* ,@body ,tail))))))
+      ((null-constant? tail) `(,|.list| ,@body))
+      ((and (pair? tail) (eq? (car tail) |.list|))
+       `(,|.list| ,@body ,@(cdr tail)))
+      ((and
+        (pair? tail)
+        (or (eq? (car tail) |.cons|) (eq? (car tail) |.cons*|)))
+       `(,|.cons*| ,@body ,@(cdr tail)))
+      (else `(,|.cons*| ,@body ,tail))))))
   (define
    emit-cons
    (lambda
     (head tail)
     (if
      (and (constant? head) (constant? tail))
-     (list 'quote (cons (constant-value head) (constant-value tail)))
+     (list |.quote| (cons (constant-value head) (constant-value tail)))
      (cond
-      ((null-constant? tail) `(list ,head))
-      ((and (pair? tail) (eq? (car tail) 'list)) `(list ,head ,@(cdr tail)))
-      ((and (pair? tail) (or (eq? (car tail) 'cons) (eq? (car tail) 'cons*)))
-       `(cons* ,head ,@(cdr tail)))
-      (else `(cons ,head ,tail))))))
+      ((null-constant? tail) `(,|.list| ,head))
+      ((and (pair? tail) (eq? (car tail) |.list|))
+       `(,|.list| ,head ,@(cdr tail)))
+      ((and
+        (pair? tail)
+        (or (eq? (car tail) |.cons|) (eq? (car tail) |.cons*|)))
+       `(,|.cons*| ,head ,@(cdr tail)))
+      (else `(,|.cons| ,head ,tail))))))
   (define
    expand-vector
    (lambda
@@ -1059,10 +1079,10 @@
     (let
      ((lst (expand (vector->list expr) nest)))
      (cond
-      ((null-constant? lst) `(vector))
-      ((constant? lst) `',(list->vector (constant-value lst)))
-      ((and (pair? lst) (eq? (car lst) 'list)) `(vector ,@(cdr lst)))
-      (else `(list->vector ,lst))))))
+      ((null-constant? lst) `(,|.vector|))
+      ((constant? lst) `(,|.quote| ,(list->vector (constant-value lst))))
+      ((and (pair? lst) (eq? (car lst) |.list|)) `(,|.vector| ,@(cdr lst)))
+      (else `(,|.list->vector| ,lst))))))
   (define
    expand
    (lambda
@@ -1098,12 +1118,13 @@
         ((tag (car expr)))
         (cond
          ((or (unquote? tag) (unquote-splicing? tag))
-          (emit-cons `',tag (expand (cdr expr) (- nest 1))))
-         ((quasiquote? tag) (emit-cons `',tag (expand (cdr expr) (+ nest 1))))
+          (emit-cons `(,|.quote| ,tag) (expand (cdr expr) (- nest 1))))
+         ((quasiquote? tag)
+          (emit-cons `(,|.quote| ,tag) (expand (cdr expr) (+ nest 1))))
          (else
           (emit-cons (expand (car expr) nest) (expand (cdr expr) nest)))))))
      ((vector? expr) (expand-vector expr nest))
-     ((variable? expr) `',expr)
+     ((variable? expr) `(,|.quote| ,expr))
      ((null? expr) '())
      (else expr))))
   (expand form nest)))
@@ -1188,7 +1209,7 @@
      #f
      ($gref func)
      `(,(if (lvar? patvars) ($lref patvars) ($const-nil))
-      ,(pass1 `',lites p1env)
+      ,(pass1 `(,|.quote| ,lites) p1env)
       ,(pass1 expr p1env)
       ,@(imap
        (lambda
@@ -1926,7 +1947,7 @@
         (parse-spec set)
         (values
          ref
-         (lset-intersection eq? only ids)
+         (if (null? only) ids (lset-intersection eq? only ids))
          except
          renames
          prefix
@@ -4765,7 +4786,11 @@
  (lambda
   (program env)
   (let
-   ((env (cond ((vector? env) env) (else (make-bottom-p1env)))))
+   ((env
+     (cond
+      ((vector? env) env)
+      ((library? env) (make-bottom-p1env env))
+      (else (make-bottom-p1env)))))
    (let
     ((p1 (pass1 (pass0 program env) env)))
     (pass3

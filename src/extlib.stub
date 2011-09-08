@@ -99,6 +99,8 @@
 	    current-macro-env
 	    ;; time
 	    time-usage
+	    ;; cond-expand
+	    cond-features
 	    )
     (import :null)
   (decl-code
@@ -561,4 +563,7 @@
   ;; time
   (define-c-proc time-usage () ::Object
     (result (Sg_TimeUsage)))
+
+  (define-c-proc cond-features () ::Object
+    (result (Sg_CondFeatures)))
 )

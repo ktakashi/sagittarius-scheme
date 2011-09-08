@@ -378,8 +378,6 @@ SG_EXTERN SgObject Sg_VMCallCC(SgObject proc);
 SG_EXTERN SgVM*    Sg_VM();	/* get vm */
 SG_EXTERN int      Sg_SetCurrentVM(SgVM *vm);
 SG_EXTERN int      Sg_AttachVM(SgVM *vm);
-SG_EXTERN SgGloc*  Sg_FindBinding(SgObject library, SgObject name, SgObject callback);
-SG_EXTERN void     Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value);
 SG_EXTERN void     Sg_VMDumpCode(SgCodeBuilder *cb);
 
 SG_EXTERN SgObject Sg_AddLoadPath(SgString *path);

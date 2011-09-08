@@ -285,6 +285,8 @@
 			(format out "  sg__wc.w[~a] = " pos)
 			(cond ((identifier? object)
 			       (when (and (not (memq (id-library object) lib-info))
+					  (or (library? (id-library object))
+					      #;(and (print (id-name object)) #f))
 					  (equal? (library-name (id-library object)) libname-p))
 				 (set! lib-info (cons (id-library object) lib-info)))
 			       (if (symbol-interned? (id-name object))

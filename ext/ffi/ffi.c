@@ -1326,6 +1326,7 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__ffi()
 {
   SgLibrary *lib;
   SgObject name = SG_INTERN("%ffi-call");
+
   SG_PROCEDURE_NAME(&internal_ffi_call_stub) = name;
 
   SYMBOL_STRUCT = SG_INTERN("struct");

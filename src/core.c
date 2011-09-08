@@ -43,6 +43,8 @@ static void* oom_handler(size_t bytes)
   return NULL;			/* dummy */
 }
 
+static void init_cond_features();
+
 extern void Sg__InitSymbol();
 extern void Sg__InitNumber();
 extern void Sg__InitString();
@@ -77,6 +79,7 @@ extern void Sg__Init_match_core();
 extern void Sg__Init_sagittarius_interactive();
 void Sg_Init()
 {
+  SgObject nullsym, coreBase;
 #ifdef USE_BOEHM_GC
   GC_INIT();
   GC_oom_fn = oom_handler;
@@ -102,6 +105,9 @@ void Sg_Init()
   Sg__InitReader();
   Sg__InitCache();
 
+  nullsym = SG_INTERN("null");
+  coreBase = SG_INTERN("(core base)");
+
   /* (sagittarius) library is not provided by file. so create it here */
   Sg_FindLibrary(SG_INTERN("(sagittarius)"), TRUE);
   /* for (core syntax-case) we need compler library to create global id.
@@ -118,11 +124,16 @@ void Sg_Init()
   Sg__Init_sagittarius_vm();
   Sg__Init_sagittarius_vm_debug();
 
+  /* this is scmlib.scm */
   Sg__Init_core_base();
 
   /* generic initialization must be after the libraries initialization */
   Sg__InitRecord();
+  /* each time when we put something in null, we need to add */
+  /* this is even funny... orz */
+  Sg_ImportLibrary(coreBase, nullsym);
   Sg__InitConsitions();
+  Sg_ImportLibrary(coreBase, nullsym);
 
   Sg__Init_core_errors();
   Sg__Init_core_syntax_case();
@@ -138,16 +149,13 @@ void Sg_Init()
   Sg__Init_sagittarius_interactive();
 
   /* TODO should this be here? */
-  Sg_ImportLibrary(Sg_VM()->currentLibrary, SG_OBJ(SG_INTERN("null")));
+  Sg_ImportLibrary(Sg_VM()->currentLibrary, nullsym);
   Sg_ImportLibrary(Sg_VM()->currentLibrary, SG_OBJ(SG_INTERN("(sagittarius)")));
 
-#if 1
-  /* why do we need this? */
-  Sg_ImportLibrary(SG_OBJ(SG_INTERN("(sagittarius compiler)")),
-		   SG_OBJ(SG_INTERN("null")));
+  /* we need to put basic syntaxes to compiler. */
+  Sg_ImportLibrary(SG_OBJ(SG_INTERN("(sagittarius compiler)")), nullsym);
   Sg_ImportLibrary(SG_OBJ(SG_INTERN("(sagittarius compiler)")),
 		   SG_OBJ(SG_INTERN("(sagittarius)")));
-#endif
 
   /* 
      we need extra treatment for er-rename. it's defined after the 
@@ -157,17 +165,16 @@ void Sg_Init()
      so insert it to the library here.
    */
   {
-    SgLibrary *core_base_lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(core base)"), FALSE));
+    SgLibrary *core_base_lib = SG_LIBRARY(Sg_FindLibrary(coreBase, FALSE));
     SgLibrary *sagittarius_lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius)"), FALSE));
     Sg_InsertBinding(core_base_lib,
 		     SG_INTERN("er-rename"),
-		     Sg_FindBinding(SG_INTERN("null"), SG_INTERN("er-rename"), SG_FALSE));
-    /* we don't have to insert er-rename */
+		     Sg_FindBinding(nullsym, SG_INTERN("er-rename"), SG_FALSE));
     Sg_InsertBinding(sagittarius_lib,
 		     SG_SYMBOL_ER_MACRO_TRANSFORMER,
 		     Sg_FindBinding(core_base_lib, SG_SYMBOL_ER_MACRO_TRANSFORMER, SG_UNBOUND));
   }
-
+  init_cond_features();
 }
 /* GC related */
 void Sg_GC()
@@ -277,10 +284,63 @@ void Sg_Exit(int code)
   exit(EXIT_CODE(code));
 }
 
+struct cleanup_handler_rec
+{
+  void (*handler)(void *);
+  void *data;
+  struct cleanup_handler_rec *next;
+};
+
+static struct {
+  int dirty;
+  struct cleanup_handler_rec *handlers;
+} cleanup = { TRUE, NULL };
+
 void Sg_Cleanup()
 {
+  SgVM *vm = Sg_VM();
+  SgObject hp;
+  struct cleanup_handler_rec *ch;
+  
+  if (!cleanup.dirty) return;
+  cleanup.dirty = FALSE;
+
+  SG_FOR_EACH(hp, vm->dynamicWinders) {
+    vm->dynamicWinders = SG_CDR(hp);
+    Sg_Apply0(SG_CDAR(hp));
+  }
+  
+  for (ch = cleanup.handlers; ch; ch = ch->next) {
+    ch->handler(ch->data);
+  }
+
   Sg_FlushAllPort(TRUE);
   return;
+}
+
+void* Sg_AddCleanupHandler(void (*proc)(void *data), void *data)
+{
+  struct cleanup_handler_rec *h = SG_NEW(struct cleanup_handler_rec);
+  h->handler = proc;
+  h->data = data;
+  h->next = cleanup.handlers;
+  cleanup.handlers = h;
+  return h;
+}
+
+void Sg_DeleteCleanupHandler(void *handle)
+{
+  struct cleanup_handler_rec *x = NULL, *y = cleanup.handlers;
+  while (y) {
+    if (y == handle) {
+      if (x == NULL) {
+	cleanup.handlers = y->next;
+      } else {
+	x->next = y->next;
+      }
+      break;
+    }
+  }
 }
 
 void Sg_Panic(const char* msg, ...)
@@ -299,6 +359,31 @@ void Sg_Abort(const char* msg)
   int size = (int)strlen(msg);
   write(2, msg, size);
   _exit(EXIT_CODE(1));
+}
+
+static struct {
+  SgObject list;
+  SgInternalMutex mutex;
+} cond_features = { SG_NIL };
+
+void  Sg_AddCondFeature(const SgChar *feature)
+{
+  Sg_LockMutex(&cond_features.mutex);
+  cond_features.list = Sg_Cons(Sg_Intern(Sg_MakeString(feature,
+						       SG_LITERAL_STRING)),
+			       cond_features.list);
+  Sg_UnlockMutex(&cond_features.mutex);
+}
+
+SgObject Sg_CondFeatures()
+{
+  return cond_features.list;
+}
+
+static void init_cond_features()
+{
+  Sg_AddCondFeature(UC("sagittarius"));
+  Sg_AddCondFeature(UC("sagittarius.os."SAGITTARIUS_PLATFORM));
 }
 
 /* somehow Visual Studio 2010 requires this to create dll.*/

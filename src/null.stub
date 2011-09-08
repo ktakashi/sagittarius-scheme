@@ -3689,7 +3689,7 @@
     (result (Sg_Eval sexp env)))
 
   (define-c-proc environment (spec :rest more) ::Object
-    (result (Sg_Environment (Sg_VMCurrentLibrary) (Sg_Cons spec more))))
+    (result (Sg_Environment (Sg_MakeEvalLibrary) #;(Sg_VMCurrentLibrary) (Sg_Cons spec more))))
 
   ;; 17 mutable pairs
   (define-cgen-stmt check-pair

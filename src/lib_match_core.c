@@ -17,26 +17,26 @@ static struct sg__wcRec {
   SgWord        w[10856];
 } sg__wc = {
   { /* code builder */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[246], NULL, 1, FALSE, 0, 5, 3), /* (symbol-append #:G16463) */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[249], NULL, 1, FALSE, 0, 8, 8), /* (symbol-append #:G16461) */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[257], NULL, 2, FALSE, 0, 10, 9), /* (symbol-append #:G16459) */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[266], NULL, 1, FALSE, 0, 5, 3), /* (symbol-append #:G16457) */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[269], NULL, 1, FALSE, 0, 9, 10), /* (symbol-append #:G16455) */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[279], NULL, 2, FALSE, 0, 10, 9), /* (symbol-append #:G16453) */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[246], NULL, 1, FALSE, 0, 5, 3), /* (symbol-append #:G15149) */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[249], NULL, 1, FALSE, 0, 8, 8), /* (symbol-append #:G15147) */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[257], NULL, 2, FALSE, 0, 10, 9), /* (symbol-append #:G15145) */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[266], NULL, 1, FALSE, 0, 5, 3), /* (symbol-append #:G15143) */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[269], NULL, 1, FALSE, 0, 9, 10), /* (symbol-append #:G15141) */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[279], NULL, 2, FALSE, 0, 10, 9), /* (symbol-append #:G15139) */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[288], NULL, 1, FALSE, 0, 10, 18), /* (symbol-append error-maker) */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[306], NULL, 1, FALSE, 0, 8, 8), /* (symbol-append error-maker) */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[314], NULL, 1, FALSE, 0, 11, 45), /* (symbol-append simple?) */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[359], NULL, 1, FALSE, 0, 5, 3), /* (symbol-append #:G16445) */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[359], NULL, 1, FALSE, 0, 5, 3), /* (symbol-append #:G15131) */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[362], NULL, 2, FALSE, 0, 10, 22), /* (symbol-append find-prefix) */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[384], NULL, 2, FALSE, 0, 9, 21), /* (symbol-append permutation) */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[405], NULL, 1, FALSE, 1, 7, 5), /* #f */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[410], NULL, 1, FALSE, 0, 15, 85), /* (symbol-append const?) */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[495], NULL, 1, FALSE, 0, 5, 3), /* (symbol-append #:G16437) */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[498], NULL, 1, FALSE, 0, 5, 3), /* (symbol-append #:G16435) */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[501], NULL, 1, FALSE, 0, 8, 8), /* (symbol-append #:G16433) */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[509], NULL, 1, FALSE, 0, 10, 17), /* (symbol-append #:G16431) */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[526], NULL, 1, FALSE, 0, 10, 17), /* (symbol-append #:G16429) */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[543], NULL, 1, FALSE, 0, 8, 23), /* (symbol-append #:G16427) */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[495], NULL, 1, FALSE, 0, 5, 3), /* (symbol-append #:G15123) */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[498], NULL, 1, FALSE, 0, 5, 3), /* (symbol-append #:G15121) */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[501], NULL, 1, FALSE, 0, 8, 8), /* (symbol-append #:G15119) */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[509], NULL, 1, FALSE, 0, 10, 17), /* (symbol-append #:G15117) */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[526], NULL, 1, FALSE, 0, 10, 17), /* (symbol-append #:G15115) */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[543], NULL, 1, FALSE, 0, 8, 23), /* (symbol-append #:G15113) */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[566], NULL, 2, TRUE, 0, 9, 13), /* match:error */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[579], NULL, 2, FALSE, 0, 9, 7), /* match:syntax-err */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[586], NULL, 1, FALSE, 0, 12, 48), /* match:make-structure-tag */
@@ -127,79 +127,79 @@ static struct sg__wcRec {
   /*     0 */        0x0000002A           /* 0      (CLOSURE) */,
   /*     1 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*     2 */        0x00000037           /* 2      (DEFINE) */,
-  /*     3 */        WORD(SG_UNDEF)  /* identifier#G16463 */,
+  /*     3 */        WORD(SG_UNDEF)  /* identifier#G15149 */,
   /*     4 */        0x0000002A           /* 4      (CLOSURE) */,
   /*     5 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*     6 */        0x00000037           /* 6      (DEFINE) */,
-  /*     7 */        WORD(SG_UNDEF)  /* identifier#G16461 */,
+  /*     7 */        WORD(SG_UNDEF)  /* identifier#G15147 */,
   /*     8 */        0x0000002A           /* 8      (CLOSURE) */,
   /*     9 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    10 */        0x00000037           /* 10     (DEFINE) */,
-  /*    11 */        WORD(SG_UNDEF)  /* identifier#G16459 */,
+  /*    11 */        WORD(SG_UNDEF)  /* identifier#G15145 */,
   /*    12 */        0x0000002A           /* 12     (CLOSURE) */,
   /*    13 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    14 */        0x00000037           /* 14     (DEFINE) */,
-  /*    15 */        WORD(SG_UNDEF)  /* identifier#G16457 */,
+  /*    15 */        WORD(SG_UNDEF)  /* identifier#G15143 */,
   /*    16 */        0x0000002A           /* 16     (CLOSURE) */,
   /*    17 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    18 */        0x00000037           /* 18     (DEFINE) */,
-  /*    19 */        WORD(SG_UNDEF)  /* identifier#G16455 */,
+  /*    19 */        WORD(SG_UNDEF)  /* identifier#G15141 */,
   /*    20 */        0x0000002A           /* 20     (CLOSURE) */,
   /*    21 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    22 */        0x00000037           /* 22     (DEFINE) */,
-  /*    23 */        WORD(SG_UNDEF)  /* identifier#G16453 */,
+  /*    23 */        WORD(SG_UNDEF)  /* identifier#G15139 */,
   /*    24 */        0x0000002A           /* 24     (CLOSURE) */,
   /*    25 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    26 */        0x00000037           /* 26     (DEFINE) */,
-  /*    27 */        WORD(SG_UNDEF)  /* identifier#G16451 */,
+  /*    27 */        WORD(SG_UNDEF)  /* identifier#G15137 */,
   /*    28 */        0x0000002A           /* 28     (CLOSURE) */,
   /*    29 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    30 */        0x00000037           /* 30     (DEFINE) */,
-  /*    31 */        WORD(SG_UNDEF)  /* identifier#G16449 */,
+  /*    31 */        WORD(SG_UNDEF)  /* identifier#G15135 */,
   /*    32 */        0x0000002A           /* 32     (CLOSURE) */,
   /*    33 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    34 */        0x00000037           /* 34     (DEFINE) */,
-  /*    35 */        WORD(SG_UNDEF)  /* identifier#G16447 */,
+  /*    35 */        WORD(SG_UNDEF)  /* identifier#G15133 */,
   /*    36 */        0x0000002A           /* 36     (CLOSURE) */,
   /*    37 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    38 */        0x00000037           /* 38     (DEFINE) */,
-  /*    39 */        WORD(SG_UNDEF)  /* identifier#G16445 */,
+  /*    39 */        WORD(SG_UNDEF)  /* identifier#G15131 */,
   /*    40 */        0x0000002A           /* 40     (CLOSURE) */,
   /*    41 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    42 */        0x00000037           /* 42     (DEFINE) */,
-  /*    43 */        WORD(SG_UNDEF)  /* identifier#G16443 */,
+  /*    43 */        WORD(SG_UNDEF)  /* identifier#G15129 */,
   /*    44 */        0x0000002A           /* 44     (CLOSURE) */,
   /*    45 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    46 */        0x00000037           /* 46     (DEFINE) */,
-  /*    47 */        WORD(SG_UNDEF)  /* identifier#G16441 */,
+  /*    47 */        WORD(SG_UNDEF)  /* identifier#G15127 */,
   /*    48 */        0x0000002A           /* 48     (CLOSURE) */,
   /*    49 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    50 */        0x00000037           /* 50     (DEFINE) */,
-  /*    51 */        WORD(SG_UNDEF)  /* identifier#G16439 */,
+  /*    51 */        WORD(SG_UNDEF)  /* identifier#G15125 */,
   /*    52 */        0x0000002A           /* 52     (CLOSURE) */,
   /*    53 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    54 */        0x00000037           /* 54     (DEFINE) */,
-  /*    55 */        WORD(SG_UNDEF)  /* identifier#G16437 */,
+  /*    55 */        WORD(SG_UNDEF)  /* identifier#G15123 */,
   /*    56 */        0x0000002A           /* 56     (CLOSURE) */,
   /*    57 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    58 */        0x00000037           /* 58     (DEFINE) */,
-  /*    59 */        WORD(SG_UNDEF)  /* identifier#G16435 */,
+  /*    59 */        WORD(SG_UNDEF)  /* identifier#G15121 */,
   /*    60 */        0x0000002A           /* 60     (CLOSURE) */,
   /*    61 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    62 */        0x00000037           /* 62     (DEFINE) */,
-  /*    63 */        WORD(SG_UNDEF)  /* identifier#G16433 */,
+  /*    63 */        WORD(SG_UNDEF)  /* identifier#G15119 */,
   /*    64 */        0x0000002A           /* 64     (CLOSURE) */,
   /*    65 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    66 */        0x00000037           /* 66     (DEFINE) */,
-  /*    67 */        WORD(SG_UNDEF)  /* identifier#G16431 */,
+  /*    67 */        WORD(SG_UNDEF)  /* identifier#G15117 */,
   /*    68 */        0x0000002A           /* 68     (CLOSURE) */,
   /*    69 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    70 */        0x00000037           /* 70     (DEFINE) */,
-  /*    71 */        WORD(SG_UNDEF)  /* identifier#G16429 */,
+  /*    71 */        WORD(SG_UNDEF)  /* identifier#G15115 */,
   /*    72 */        0x0000002A           /* 72     (CLOSURE) */,
   /*    73 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    74 */        0x00000037           /* 74     (DEFINE) */,
-  /*    75 */        WORD(SG_UNDEF)  /* identifier#G16427 */,
+  /*    75 */        WORD(SG_UNDEF)  /* identifier#G15113 */,
   /*    76 */        0x00000038           /* 76     (LIBRARY) */,
   /*    77 */        WORD(SG_UNDEF)  /* <library (match core)> */,
   /*    78 */        0x00000003           /* 78     (CONST) */,
@@ -504,7 +504,7 @@ static struct sg__wcRec {
   /*   377 */        0x0000000B           /* 15     (PUSH) */,
   /*   378 */        0x00000148           /* 16     (LREF_PUSH) */,
   /*   379 */        0x00000009           /* 17     (GREF) */,
-  /*   380 */        WORD(SG_UNDEF)  /* identifier#G16443 */,
+  /*   380 */        WORD(SG_UNDEF)  /* identifier#G15129 */,
   /*   381 */        0x0000022D           /* 19     (LOCAL_CALL) */,
   /*   382 */        0x0000003B           /* 20     (CONS) */,
   /*   383 */        0x00000030           /* 21     (RET) */,
@@ -1392,7 +1392,7 @@ static struct sg__wcRec {
   /*  1265 */        0x00000031           /* 197    (FRAME) */,
   /*  1266 */        WORD(SG_MAKE_INT(6)),
   /*  1267 */        0x0000004A           /* 199    (GREF_PUSH) */,
-  /*  1268 */        WORD(SG_UNDEF)  /* identifier#G16463 */,
+  /*  1268 */        WORD(SG_UNDEF)  /* identifier#G15149 */,
   /*  1269 */        0x00000049           /* 201    (FREF_PUSH) */,
   /*  1270 */        0x0000024D           /* 202    (GREF_CALL) */,
   /*  1271 */        WORD(SG_UNDEF)  /* identifier#map */,
@@ -1471,7 +1471,7 @@ static struct sg__wcRec {
   /*  1344 */        0x00000031           /* 276    (FRAME) */,
   /*  1345 */        WORD(SG_MAKE_INT(6)),
   /*  1346 */        0x0000004A           /* 278    (GREF_PUSH) */,
-  /*  1347 */        WORD(SG_UNDEF)  /* identifier#G16461 */,
+  /*  1347 */        WORD(SG_UNDEF)  /* identifier#G15147 */,
   /*  1348 */        0x00000049           /* 280    (FREF_PUSH) */,
   /*  1349 */        0x0000024D           /* 281    (GREF_CALL) */,
   /*  1350 */        WORD(SG_UNDEF)  /* identifier#map */,
@@ -1500,7 +1500,7 @@ static struct sg__wcRec {
   /*  1373 */        0x00000031           /* 305    (FRAME) */,
   /*  1374 */        WORD(SG_MAKE_INT(7)),
   /*  1375 */        0x0000004A           /* 307    (GREF_PUSH) */,
-  /*  1376 */        WORD(SG_UNDEF)  /* identifier#G16459 */,
+  /*  1376 */        WORD(SG_UNDEF)  /* identifier#G15145 */,
   /*  1377 */        0x00000049           /* 309    (FREF_PUSH) */,
   /*  1378 */        0x00000048           /* 310    (LREF_PUSH) */,
   /*  1379 */        0x0000034D           /* 311    (GREF_CALL) */,
@@ -1743,7 +1743,7 @@ static struct sg__wcRec {
   /*  1616 */        0x00000031           /* 186    (FRAME) */,
   /*  1617 */        WORD(SG_MAKE_INT(6)),
   /*  1618 */        0x0000004A           /* 188    (GREF_PUSH) */,
-  /*  1619 */        WORD(SG_UNDEF)  /* identifier#G16457 */,
+  /*  1619 */        WORD(SG_UNDEF)  /* identifier#G15143 */,
   /*  1620 */        0x00000049           /* 190    (FREF_PUSH) */,
   /*  1621 */        0x0000024D           /* 191    (GREF_CALL) */,
   /*  1622 */        WORD(SG_UNDEF)  /* identifier#map */,
@@ -1762,7 +1762,7 @@ static struct sg__wcRec {
   /*  1635 */        0x00000031           /* 205    (FRAME) */,
   /*  1636 */        WORD(SG_MAKE_INT(6)),
   /*  1637 */        0x0000004A           /* 207    (GREF_PUSH) */,
-  /*  1638 */        WORD(SG_UNDEF)  /* identifier#G16455 */,
+  /*  1638 */        WORD(SG_UNDEF)  /* identifier#G15141 */,
   /*  1639 */        0x00000049           /* 209    (FREF_PUSH) */,
   /*  1640 */        0x0000024D           /* 210    (GREF_CALL) */,
   /*  1641 */        WORD(SG_UNDEF)  /* identifier#map */,
@@ -1857,7 +1857,7 @@ static struct sg__wcRec {
   /*  1730 */        0x00000031           /* 300    (FRAME) */,
   /*  1731 */        WORD(SG_MAKE_INT(7)),
   /*  1732 */        0x0000004A           /* 302    (GREF_PUSH) */,
-  /*  1733 */        WORD(SG_UNDEF)  /* identifier#G16453 */,
+  /*  1733 */        WORD(SG_UNDEF)  /* identifier#G15139 */,
   /*  1734 */        0x00000049           /* 304    (FREF_PUSH) */,
   /*  1735 */        0x00000048           /* 305    (LREF_PUSH) */,
   /*  1736 */        0x0000034D           /* 306    (GREF_CALL) */,
@@ -2085,7 +2085,7 @@ static struct sg__wcRec {
   /*  1958 */        0x0000004B           /* 6      (CONST_PUSH) */,
   /*  1959 */        WORD(SG_NIL),
   /*  1960 */        0x00000009           /* 8      (GREF) */,
-  /*  1961 */        WORD(SG_UNDEF)  /* identifier#G16451 */,
+  /*  1961 */        WORD(SG_UNDEF)  /* identifier#G15137 */,
   /*  1962 */        0x0000003B           /* 10     (CONS) */,
   /*  1963 */        0x00000018           /* 11     (JUMP) */,
   /*  1964 */        WORD(SG_MAKE_INT(96)),
@@ -2102,7 +2102,7 @@ static struct sg__wcRec {
   /*  1975 */        0x0000004B           /* 23     (CONST_PUSH) */,
   /*  1976 */        WORD(SG_NIL),
   /*  1977 */        0x00000009           /* 25     (GREF) */,
-  /*  1978 */        WORD(SG_UNDEF)  /* identifier#G16449 */,
+  /*  1978 */        WORD(SG_UNDEF)  /* identifier#G15135 */,
   /*  1979 */        0x0000003B           /* 27     (CONS) */,
   /*  1980 */        0x00000018           /* 28     (JUMP) */,
   /*  1981 */        WORD(SG_MAKE_INT(79)),
@@ -2245,7 +2245,7 @@ static struct sg__wcRec {
   /*  2118 */        0x0000000C           /* 17     (BOX) */,
   /*  2119 */        0x00000433           /* 18     (POP_LET_FRAME) */,
   /*  2120 */        0x00000009           /* 19     (GREF) */,
-  /*  2121 */        WORD(SG_UNDEF)  /* identifier#G16447 */,
+  /*  2121 */        WORD(SG_UNDEF)  /* identifier#G15133 */,
   /*  2122 */        0x00000006           /* 21     (LSET) */,
   /*  2123 */        0x00000248           /* 22     (LREF_PUSH) */,
   /*  2124 */        0x00000148           /* 23     (LREF_PUSH) */,
@@ -2275,7 +2275,7 @@ static struct sg__wcRec {
   /*  2148 */        WORD(SG_MAKE_INT(5)),
   /*  2149 */        0x00000048           /* 2      (LREF_PUSH) */,
   /*  2150 */        0x00000009           /* 3      (GREF) */,
-  /*  2151 */        WORD(SG_UNDEF)  /* identifier#G16447 */,
+  /*  2151 */        WORD(SG_UNDEF)  /* identifier#G15133 */,
   /*  2152 */        0x0000012D           /* 5      (LOCAL_CALL) */,
   /*  2153 */        0x00000017           /* 6      (TEST) */,
   /*  2154 */        WORD(SG_MAKE_INT(4)),
@@ -3308,7 +3308,7 @@ static struct sg__wcRec {
   /*  3181 */        WORD(SG_MAKE_INT(5)),
   /*  3182 */        0x00000048           /* 2      (LREF_PUSH) */,
   /*  3183 */        0x00000009           /* 3      (GREF) */,
-  /*  3184 */        WORD(SG_UNDEF)  /* identifier#G16447 */,
+  /*  3184 */        WORD(SG_UNDEF)  /* identifier#G15133 */,
   /*  3185 */        0x0000012D           /* 5      (LOCAL_CALL) */,
   /*  3186 */        0x00000017           /* 6      (TEST) */,
   /*  3187 */        WORD(SG_MAKE_INT(4)),
@@ -3718,10 +3718,10 @@ static struct sg__wcRec {
   /*  3591 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*  3592 */        0x00000306           /* 43     (LSET) */,
   /*  3593 */        0x00000009           /* 44     (GREF) */,
-  /*  3594 */        WORD(SG_UNDEF)  /* identifier#G16443 */,
+  /*  3594 */        WORD(SG_UNDEF)  /* identifier#G15129 */,
   /*  3595 */        0x00000406           /* 46     (LSET) */,
   /*  3596 */        0x00000009           /* 47     (GREF) */,
-  /*  3597 */        WORD(SG_UNDEF)  /* identifier#G16441 */,
+  /*  3597 */        WORD(SG_UNDEF)  /* identifier#G15127 */,
   /*  3598 */        0x00000506           /* 49     (LSET) */,
   /*  3599 */        0x00000049           /* 50     (FREF_PUSH) */,
   /*  3600 */        0x0000004B           /* 51     (CONST_PUSH) */,
@@ -4500,7 +4500,7 @@ static struct sg__wcRec {
   /*  4373 */        0x00000148           /* 2      (LREF_PUSH) */,
   /*  4374 */        0x00000449           /* 3      (FREF_PUSH) */,
   /*  4375 */        0x00000009           /* 4      (GREF) */,
-  /*  4376 */        WORD(SG_UNDEF)  /* identifier#G16441 */,
+  /*  4376 */        WORD(SG_UNDEF)  /* identifier#G15127 */,
   /*  4377 */        0x0000022D           /* 6      (LOCAL_CALL) */,
   /*  4378 */        0x00000017           /* 7      (TEST) */,
   /*  4379 */        WORD(SG_MAKE_INT(4)),
@@ -4558,7 +4558,7 @@ static struct sg__wcRec {
   /*  4431 */        0x00000249           /* 2      (FREF_PUSH) */,
   /*  4432 */        0x00000148           /* 3      (LREF_PUSH) */,
   /*  4433 */        0x00000009           /* 4      (GREF) */,
-  /*  4434 */        WORD(SG_UNDEF)  /* identifier#G16441 */,
+  /*  4434 */        WORD(SG_UNDEF)  /* identifier#G15127 */,
   /*  4435 */        0x0000022D           /* 6      (LOCAL_CALL) */,
   /*  4436 */        0x00000017           /* 7      (TEST) */,
   /*  4437 */        WORD(SG_MAKE_INT(4)),
@@ -4598,7 +4598,7 @@ static struct sg__wcRec {
   /*  4471 */        0x00000148           /* 9      (LREF_PUSH) */,
   /*  4472 */        0x00000049           /* 10     (FREF_PUSH) */,
   /*  4473 */        0x00000009           /* 11     (GREF) */,
-  /*  4474 */        WORD(SG_UNDEF)  /* identifier#G16443 */,
+  /*  4474 */        WORD(SG_UNDEF)  /* identifier#G15129 */,
   /*  4475 */        0x0000022D           /* 13     (LOCAL_CALL) */,
   /*  4476 */        0x0000000B           /* 14     (PUSH) */,
   /*  4477 */        0x00000133           /* 15     (POP_LET_FRAME) */,
@@ -4625,7 +4625,7 @@ static struct sg__wcRec {
   /*  4498 */        0x00000031           /* 36     (FRAME) */,
   /*  4499 */        WORD(SG_MAKE_INT(6)),
   /*  4500 */        0x0000004A           /* 38     (GREF_PUSH) */,
-  /*  4501 */        WORD(SG_UNDEF)  /* identifier#G16445 */,
+  /*  4501 */        WORD(SG_UNDEF)  /* identifier#G15131 */,
   /*  4502 */        0x00000048           /* 40     (LREF_PUSH) */,
   /*  4503 */        0x0000024D           /* 41     (GREF_CALL) */,
   /*  4504 */        WORD(SG_UNDEF)  /* identifier#map */,
@@ -4869,7 +4869,7 @@ static struct sg__wcRec {
   /*  4742 */        0x0000000C           /* 5      (BOX) */,
   /*  4743 */        0x00000133           /* 6      (POP_LET_FRAME) */,
   /*  4744 */        0x00000009           /* 7      (GREF) */,
-  /*  4745 */        WORD(SG_UNDEF)  /* identifier#G16439 */,
+  /*  4745 */        WORD(SG_UNDEF)  /* identifier#G15125 */,
   /*  4746 */        0x00000006           /* 9      (LSET) */,
   /*  4747 */        0x00000432           /* 10     (LET_FRAME) */,
   /*  4748 */        0x00000049           /* 11     (FREF_PUSH) */,
@@ -4928,7 +4928,7 @@ static struct sg__wcRec {
   /*  4801 */        WORD(SG_MAKE_INT(5)),
   /*  4802 */        0x00000048           /* 65     (LREF_PUSH) */,
   /*  4803 */        0x00000009           /* 66     (GREF) */,
-  /*  4804 */        WORD(SG_UNDEF)  /* identifier#G16439 */,
+  /*  4804 */        WORD(SG_UNDEF)  /* identifier#G15125 */,
   /*  4805 */        0x0000012D           /* 68     (LOCAL_CALL) */,
   /*  4806 */        0x00000017           /* 69     (TEST) */,
   /*  4807 */        WORD(SG_MAKE_INT(3)),
@@ -5083,7 +5083,7 @@ static struct sg__wcRec {
   /*  4956 */        WORD(SG_MAKE_INT(5)),
   /*  4957 */        0x00000048           /* 220    (LREF_PUSH) */,
   /*  4958 */        0x00000009           /* 221    (GREF) */,
-  /*  4959 */        WORD(SG_UNDEF)  /* identifier#G16439 */,
+  /*  4959 */        WORD(SG_UNDEF)  /* identifier#G15125 */,
   /*  4960 */        0x0000012D           /* 223    (LOCAL_CALL) */,
   /*  4961 */        0x00000017           /* 224    (TEST) */,
   /*  4962 */        WORD(SG_MAKE_INT(3)),
@@ -5122,7 +5122,7 @@ static struct sg__wcRec {
   /*  4995 */        WORD(SG_UNDEF)  /* identifier#caddr */,
   /*  4996 */        0x0000000B           /* 259    (PUSH) */,
   /*  4997 */        0x00000009           /* 260    (GREF) */,
-  /*  4998 */        WORD(SG_UNDEF)  /* identifier#G16439 */,
+  /*  4998 */        WORD(SG_UNDEF)  /* identifier#G15125 */,
   /*  4999 */        0x0000012D           /* 262    (LOCAL_CALL) */,
   /*  5000 */        0x00000017           /* 263    (TEST) */,
   /*  5001 */        WORD(SG_MAKE_INT(7)),
@@ -6809,9 +6809,9 @@ static struct sg__wcRec {
   /*  6682 */        0x00000249           /* 51     (FREF_PUSH) */,
   /*  6683 */        0x00000149           /* 52     (FREF_PUSH) */,
   /*  6684 */        0x0000004A           /* 53     (GREF_PUSH) */,
-  /*  6685 */        WORD(SG_UNDEF)  /* identifier#G16437 */,
+  /*  6685 */        WORD(SG_UNDEF)  /* identifier#G15123 */,
   /*  6686 */        0x0000004A           /* 55     (GREF_PUSH) */,
-  /*  6687 */        WORD(SG_UNDEF)  /* identifier#G16435 */,
+  /*  6687 */        WORD(SG_UNDEF)  /* identifier#G15121 */,
   /*  6688 */        0x00000007           /* 57     (FREF) */,
   /*  6689 */        0x0000000D           /* 58     (UNBOX) */,
   /*  6690 */        0x0000052D           /* 59     (LOCAL_CALL) */,
@@ -7074,7 +7074,7 @@ static struct sg__wcRec {
   /*  6947 */        0x00000031           /* 316    (FRAME) */,
   /*  6948 */        WORD(SG_MAKE_INT(6)),
   /*  6949 */        0x0000004A           /* 318    (GREF_PUSH) */,
-  /*  6950 */        WORD(SG_UNDEF)  /* identifier#G16433 */,
+  /*  6950 */        WORD(SG_UNDEF)  /* identifier#G15119 */,
   /*  6951 */        0x00000149           /* 320    (FREF_PUSH) */,
   /*  6952 */        0x0000024D           /* 321    (GREF_CALL) */,
   /*  6953 */        WORD(SG_UNDEF)  /* identifier#map */,
@@ -7105,7 +7105,7 @@ static struct sg__wcRec {
   /*  6978 */        0x00000031           /* 347    (FRAME) */,
   /*  6979 */        WORD(SG_MAKE_INT(6)),
   /*  6980 */        0x0000004A           /* 349    (GREF_PUSH) */,
-  /*  6981 */        WORD(SG_UNDEF)  /* identifier#G16431 */,
+  /*  6981 */        WORD(SG_UNDEF)  /* identifier#G15117 */,
   /*  6982 */        0x00000149           /* 351    (FREF_PUSH) */,
   /*  6983 */        0x0000024D           /* 352    (GREF_CALL) */,
   /*  6984 */        WORD(SG_UNDEF)  /* identifier#map */,
@@ -7512,7 +7512,7 @@ static struct sg__wcRec {
   /*  7385 */        0x00000031           /* 187    (FRAME) */,
   /*  7386 */        WORD(SG_MAKE_INT(6)),
   /*  7387 */        0x0000004A           /* 189    (GREF_PUSH) */,
-  /*  7388 */        WORD(SG_UNDEF)  /* identifier#G16429 */,
+  /*  7388 */        WORD(SG_UNDEF)  /* identifier#G15115 */,
   /*  7389 */        0x00000149           /* 191    (FREF_PUSH) */,
   /*  7390 */        0x0000024D           /* 192    (GREF_CALL) */,
   /*  7391 */        WORD(SG_UNDEF)  /* identifier#map */,
@@ -10971,7 +10971,7 @@ static struct sg__wcRec {
   /* 10844 */        0x00000031           /* 4      (FRAME) */,
   /* 10845 */        WORD(SG_MAKE_INT(6)),
   /* 10846 */        0x0000004A           /* 6      (GREF_PUSH) */,
-  /* 10847 */        WORD(SG_UNDEF)  /* identifier#G16427 */,
+  /* 10847 */        WORD(SG_UNDEF)  /* identifier#G15113 */,
   /* 10848 */        0x00000048           /* 8      (LREF_PUSH) */,
   /* 10849 */        0x0000024D           /* 9      (GREF_CALL) */,
   /* 10850 */        WORD(SG_UNDEF)  /* identifier#map */,
@@ -10990,154 +10990,128 @@ void Sg__Init_match_core()
   SgLibrary *save = Sg_VM()->currentLibrary;
   SgObject  uninterned = SG_NIL;
   SgWord    tmp = WORD(SG_FALSE);
-  sg__wc.w[6605] = IDENT("emit", lib);
-  sg__wc.w[9649] = IDENT("equal?", lib);
-  sg__wc.w[7527] = IDENT("cons*", lib);
-  sg__wc.w[4504] = IDENT("map", lib);
-  sg__wc.w[1498] = IDENT("cadr", lib);
-  sg__wc.w[8235] = IDENT("cddadr", lib);
-  sg__wc.w[5456] = IDENT("cons*", lib);
-  sg__wc.w[1718] = IDENT("cons*", lib);
-  sg__wc.w[8428] = IDENT("caadar", lib);
-  sg__wc.w[2672] = IDENT("list?", lib);
-  sg__wc.w[10831] = IDENT("cons*", lib);
-  sg__wc.w[8667] = IDENT("cddadr", lib);
-  sg__wc.w[1112] = IDENT("bound", lib);
-  sg__wc.w[93] = IDENT("match:disjoint-structure-tags", lib);
-  sg__wc.w[7370] = IDENT("cons*", lib);
-  sg__wc.w[7124] = IDENT("cons*", lib);
-  sg__wc.w[117] = IDENT("match:error-control", lib);
-  sg__wc.w[1421] = IDENT("append", lib);
-  sg__wc.w[3508] = STRINGW("syntax error in pattern");
-  sg__wc.w[7826] = IDENT("cons*", lib);
-  sg__wc.w[4163] = IDENT("memq", lib);
-  sg__wc.w[1438] = IDENT("gensym", lib);
-  sg__wc.w[5471] = IDENT("cons*", lib);
-  sg__wc.w[6945] = IDENT("cons", lib);
-  sg__wc.w[4022] = IDENT("append", lib);
-  sg__wc.w[7790] = SYMBOLW("symbol?");
-  sg__wc.w[9924] = SYMBOLW("symbol?");
-  sg__wc.w[8405] = IDENT("caadar", lib);
-  sg__wc.w[140] = IDENT("genletrec", lib);
-  sg__wc.w[8647] = IDENT("cddadr", lib);
-  sg__wc.w[5554] = WORD(Sg_Cons(SYMBOL("quote"), Sg_Cons(SG_NIL, SG_NIL)));
-  sg__wc.w[1041] = IDENT("cons*", lib);
-  sg__wc.w[75] = tmp = UNSIDENT("G16427", lib);
-  uninterned = Sg_Acons(STRING("G16427"), SG_OBJ(tmp), uninterned);
-  sg__wc.w[10847] = WORD(SG_CDR(Sg_Assq(STRING("G16427"), uninterned)));
-  sg__wc.w[6330] = IDENT("emit", lib);
-  sg__wc.w[4423] = IDENT("cons*", lib);
-  sg__wc.w[3382] = IDENT("cadr", lib);
-  sg__wc.w[5429] = SYMBOLW("call-with-values");
-  sg__wc.w[8437] = SYMBOLW("call-with-values");
-  sg__wc.w[5395] = IDENT("append", lib);
-  sg__wc.w[928] = IDENT("equal?", lib);
-  sg__wc.w[10205] = IDENT("cons*", lib);
-  sg__wc.w[5481] = IDENT("cons*", lib);
-  sg__wc.w[1699] = IDENT("cons*", lib);
-  sg__wc.w[3130] = IDENT("map", lib);
-  sg__wc.w[4523] = IDENT("cadr", lib);
-  sg__wc.w[5770] = IDENT("cons*", lib);
-  sg__wc.w[204] = IDENT("vec-structure?", lib);
-  sg__wc.w[8387] = IDENT("caadar", lib);
-  sg__wc.w[9336] = IDENT("cadr", lib);
-  sg__wc.w[55] = tmp = UNSIDENT("G16437", lib);
-  uninterned = Sg_Acons(STRING("G16437"), SG_OBJ(tmp), uninterned);
-  sg__wc.w[6685] = WORD(SG_CDR(Sg_Assq(STRING("G16437"), uninterned)));
-  sg__wc.w[1281] = SYMBOLW("letrec");
-  sg__wc.w[8624] = IDENT("cddadr", lib);
-  sg__wc.w[5923] = IDENT("cadr", lib);
-  sg__wc.w[9995] = IDENT("c---rs", lib);
-  sg__wc.w[570] = IDENT("print", lib);
-  sg__wc.w[2442] = IDENT("cddr", lib);
-  sg__wc.w[7770] = IDENT("cons*", lib);
-  sg__wc.w[7551] = WORD(&sg__wc.cb[90]);
-  sg__wc.cb[90].name = SYMBOL("vloop");
-  sg__wc.w[2757] = IDENT("variable?", lib);
-  sg__wc.w[236] = IDENT("genletrec", lib);
-  sg__wc.w[1330] = IDENT("cons*", lib);
-  sg__wc.w[3204] = IDENT("cons*", lib);
-  sg__wc.w[9167] = IDENT("cadr", lib);
-  sg__wc.w[7090] = WORD(&sg__wc.cb[83]);
-  sg__wc.cb[83].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[6509] = IDENT("cons*", lib);
-  sg__wc.w[5673] = IDENT("emit", lib);
-  sg__wc.w[432] = IDENT("string?", lib);
-  sg__wc.w[264] = IDENT("cons*", lib);
-  sg__wc.w[6009] = WORD(&sg__wc.cb[76]);
-  sg__wc.cb[76].name = SYMBOL("rloop");
-  sg__wc.w[226] = WORD(Sg_Cons(Sg_Cons(SYMBOL("caar"), Sg_Cons(SYMBOL("car"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("cadr"), Sg_Cons(SYMBOL("cdr"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("cdar"), Sg_Cons(SYMBOL("car"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cddr"), Sg_Cons(SYMBOL("cdr"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("caaar"), Sg_Cons(SYMBOL("caar"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("caadr"), Sg_Cons(SYMBOL("cadr"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("cadar"), Sg_Cons(SYMBOL("cdar"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("caddr"), Sg_Cons(SYMBOL("cddr"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("cdaar"), Sg_Cons(SYMBOL("caar"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cdadr"), Sg_Cons(SYMBOL("cadr"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cddar"), Sg_Cons(SYMBOL("cdar"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cdddr"), Sg_Cons(SYMBOL("cddr"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("caaaar"), Sg_Cons(SYMBOL("caaar"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("caaadr"), Sg_Cons(SYMBOL("caadr"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("caadar"), Sg_Cons(SYMBOL("cadar"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("caaddr"), Sg_Cons(SYMBOL("caddr"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("cadaar"), Sg_Cons(SYMBOL("cdaar"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("cadadr"), Sg_Cons(SYMBOL("cdadr"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("caddar"), Sg_Cons(SYMBOL("cddar"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("cadddr"), Sg_Cons(SYMBOL("cdddr"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("cdaaar"), Sg_Cons(SYMBOL("caaar"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cdaadr"), Sg_Cons(SYMBOL("caadr"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cdadar"), Sg_Cons(SYMBOL("cadar"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cdaddr"), Sg_Cons(SYMBOL("caddr"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cddaar"), Sg_Cons(SYMBOL("cdaar"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cddadr"), Sg_Cons(SYMBOL("cdadr"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cdddar"), Sg_Cons(SYMBOL("cddar"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cddddr"), Sg_Cons(SYMBOL("cdddr"), SYMBOL("cdr"))), SG_NIL)))))))))))))))))))))))))))));
-  sg__wc.w[10173] = IDENT("cadr", lib);
-  sg__wc.w[5194] = WORD(&sg__wc.cb[69]);
-  sg__wc.cb[69].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1709] = IDENT("cons*", lib);
-  sg__wc.w[3160] = IDENT("reverse", lib);
-  sg__wc.w[17] = WORD(&sg__wc.cb[4]);
-  sg__wc.cb[4].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[8373] = IDENT("cadadr", lib);
+  sg__wc.w[1174] = IDENT("gensym", lib);
+  sg__wc.w[6132] = WORD(&sg__wc.cb[78]);
+  sg__wc.cb[78].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[10705] = IDENT("get-c---rs", lib);
+  sg__wc.w[3302] = IDENT("cddar", lib);
+  sg__wc.w[8514] = IDENT("equal?", lib);
+  sg__wc.w[6419] = WORD(&sg__wc.cb[73]);
+  sg__wc.cb[73].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1630] = IDENT("unreachable", lib);
+  sg__wc.w[174] = WORD(&sg__wc.cb[66]);
+  sg__wc.cb[66].name = SYMBOL("gen");
+  sg__wc.w[10601] = IDENT("cadr", lib);
+  sg__wc.w[1923] = IDENT("char-numeric?", lib);
+  sg__wc.w[8032] = IDENT("cadr", lib);
+  sg__wc.w[8787] = IDENT("cadadr", lib);
   sg__wc.w[3604] = WORD(&sg__wc.cb[62]);
   sg__wc.cb[62].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[4198] = WORD(&sg__wc.cb[53]);
-  sg__wc.cb[53].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1983] = IDENT("match:error-control", lib);
-  sg__wc.w[10662] = IDENT("cons*", lib);
-  sg__wc.w[210] = WORD(&sg__wc.cb[101]);
-  sg__wc.cb[101].name = SYMBOL("add-d");
-  sg__wc.w[1855] = WORD(Sg_Cons(SYMBOL("..."), Sg_Cons(SYMBOL("___"), SG_NIL)));
+  sg__wc.w[4134] = IDENT("cadr", lib);
   sg__wc.w[4218] = WORD(&sg__wc.cb[55]);
   sg__wc.cb[55].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[8599] = IDENT("cddadr", lib);
-  sg__wc.w[186] = WORD(&sg__wc.cb[94]);
-  sg__wc.cb[94].name = SYMBOL("guarantees");
+  sg__wc.w[5655] = IDENT("number?", lib);
+  sg__wc.w[4396] = WORD(&sg__wc.cb[48]);
+  sg__wc.cb[48].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[589] = SYMBOLW("disjoint");
+  sg__wc.w[1112] = IDENT("bound", lib);
+  sg__wc.w[2450] = IDENT("cdddr", lib);
+  sg__wc.w[10356] = SYMBOLW("set-");
+  sg__wc.w[10428] = SYMBOLW("set-");
+  sg__wc.w[1900] = WORD(Sg_Cons(SG_MAKE_CHAR(46), Sg_Cons(SG_MAKE_CHAR(95), SG_NIL)));
+  sg__wc.w[3722] = IDENT("gensym", lib);
+  sg__wc.w[166] = WORD(&sg__wc.cb[41]);
+  sg__wc.cb[41].name = SYMBOL("bound");
+  sg__wc.w[2738] = WORD(Sg_Cons(SYMBOL("$"), Sg_Cons(SYMBOL("struct"), SG_NIL)));
+  sg__wc.w[3282] = IDENT("caar", lib);
+  sg__wc.w[8255] = IDENT("cdar", lib);
+  sg__wc.w[7790] = SYMBOLW("symbol?");
+  sg__wc.w[9924] = SYMBOLW("symbol?");
+  sg__wc.w[2243] = IDENT("cddr", lib);
+  sg__wc.w[2983] = IDENT("memv", lib);
+  sg__wc.w[9810] = IDENT("equal?", lib);
+  sg__wc.w[8767] = IDENT("cddadr", lib);
+  sg__wc.w[1800] = IDENT("inline-let", lib);
+  sg__wc.w[2140] = WORD(&sg__wc.cb[40]);
+  sg__wc.cb[40].name = SYMBOL("ordlist");
+  sg__wc.w[619] = STRINGW("<");
+  sg__wc.w[140] = IDENT("genletrec", lib);
+  sg__wc.w[3697] = IDENT("variable?", lib);
+  sg__wc.w[6962] = IDENT("append", lib);
+  sg__wc.w[7340] = IDENT("cons", lib);
+  sg__wc.w[5429] = SYMBOLW("call-with-values");
+  sg__wc.w[8437] = SYMBOLW("call-with-values");
+  sg__wc.w[8243] = IDENT("equal?", lib);
+  sg__wc.w[9938] = IDENT("match:vector-structures", lib);
+  sg__wc.w[3545] = STRINGW("invalid use of unquote-splicing in pattern");
+  sg__wc.w[1600] = IDENT("gen", lib);
+  sg__wc.w[9582] = IDENT("equal?", lib);
+  sg__wc.w[1281] = SYMBOLW("letrec");
+  sg__wc.w[2099] = IDENT("warn", lib);
+  sg__wc.w[230] = WORD(&sg__wc.cb[104]);
+  sg__wc.cb[104].name = SYMBOL("symbol-append");
+  sg__wc.w[194] = WORD(&sg__wc.cb[97]);
+  sg__wc.cb[97].name = SYMBOL("equal-test?");
+  sg__wc.w[601] = IDENT("match:disjoint-structure-tags", lib);
+  sg__wc.w[121] = IDENT("match:set-error-control", lib);
+  sg__wc.w[4781] = IDENT("reverse", lib);
+  sg__wc.w[2867] = IDENT("cddr", lib);
+  sg__wc.w[8434] = IDENT("caar", lib);
+  sg__wc.w[3234] = IDENT("cadr", lib);
+  sg__wc.w[4523] = IDENT("cadr", lib);
+  sg__wc.w[1514] = IDENT("caddr", lib);
+  sg__wc.w[9563] = IDENT("equal?", lib);
+  sg__wc.w[3382] = IDENT("cadr", lib);
   sg__wc.w[7978] = IDENT("equal?", lib);
-  sg__wc.w[4329] = WORD(&sg__wc.cb[46]);
-  sg__wc.cb[46].name = SYMBOL("or*");
-  sg__wc.w[2050] = WORD(&sg__wc.cb[34]);
-  sg__wc.cb[34].name = SYMBOL("error-maker");
-  sg__wc.w[3625] = IDENT("variable?", lib);
-  sg__wc.w[8799] = IDENT("caadar", lib);
-  sg__wc.w[536] = IDENT("cons*", lib);
-  sg__wc.w[134] = WORD(&sg__wc.cb[27]);
-  sg__wc.cb[27].name = SYMBOL("genmatch");
-  sg__wc.w[105] = IDENT("match:structure-control", lib);
-  sg__wc.w[1340] = IDENT("cons*", lib);
-  sg__wc.w[9554] = IDENT("cadr", lib);
-  sg__wc.w[9147] = IDENT("equal?", lib);
-  sg__wc.w[7049] = IDENT("map", lib);
-  sg__wc.w[83] = WORD(&sg__wc.cb[20]);
-  sg__wc.cb[20].name = SYMBOL("match:error");
-  sg__wc.w[3366] = IDENT("cddr", lib);
-  sg__wc.w[10215] = IDENT("cons*", lib);
-  sg__wc.w[49] = WORD(&sg__wc.cb[13]);
-  sg__wc.cb[13].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[9773] = IDENT("vec-structure?", lib);
-  sg__wc.w[8850] = IDENT("cons*", lib);
-  sg__wc.w[9917] = IDENT("cadr", lib);
+  sg__wc.w[5348] = IDENT("caddr", lib);
+  sg__wc.w[9741] = IDENT("disjoint?", lib);
+  sg__wc.w[6503] = IDENT("symbol-append", lib);
+  sg__wc.w[646] = IDENT("match:error", lib);
+  sg__wc.w[7562] = IDENT("emit", lib);
+  sg__wc.w[345] = IDENT("number?", lib);
+  sg__wc.w[200] = IDENT("disjoint?", lib);
+  sg__wc.w[1279] = IDENT("unreachable", lib);
+  sg__wc.w[6348] = IDENT("error", lib);
   sg__wc.w[1632] = SYMBOLW("begin");
-  sg__wc.w[10693] = IDENT("cons*", lib);
-  sg__wc.w[3751] = IDENT("cons*", lib);
-  sg__wc.w[9980] = IDENT("cons*", lib);
-  sg__wc.w[7715] = IDENT("boolean?", lib);
+  sg__wc.w[1062] = IDENT("gensym", lib);
+  sg__wc.w[1452] = IDENT("error-maker", lib);
+  sg__wc.w[8611] = IDENT("cddr", lib);
+  sg__wc.w[10733] = IDENT("cadr", lib);
+  sg__wc.w[10289] = IDENT("get-c---rs", lib);
+  sg__wc.w[9997] = IDENT("assq", lib);
+  sg__wc.w[5313] = IDENT("cddddr", lib);
   sg__wc.w[7971] = IDENT("assm", lib);
-  sg__wc.w[2382] = IDENT("cddr", lib);
-  sg__wc.w[2693] = IDENT("map", lib);
-  sg__wc.w[8761] = IDENT("cddadr", lib);
-  sg__wc.w[9123] = IDENT("memq", lib);
-  sg__wc.w[2857] = IDENT("cadr", lib);
-  sg__wc.w[4055] = IDENT("dot-dot-k?", lib);
-  sg__wc.w[4445] = STRINGW("no variables allowed in");
-  sg__wc.w[5365] = IDENT("cadddr", lib);
-  sg__wc.w[6629] = IDENT("emit", lib);
-  sg__wc.w[9734] = IDENT("equal?", lib);
-  sg__wc.w[1950] = IDENT("string->number", lib);
+  sg__wc.w[19] = tmp = UNSIDENT("G15141", lib);
+  uninterned = Sg_Acons(STRING("G15141"), SG_OBJ(tmp), uninterned);
+  sg__wc.w[1638] = WORD(SG_CDR(Sg_Assq(STRING("G15141"), uninterned)));
   sg__wc.w[3106] = IDENT("vector->list", lib);
-  sg__wc.w[4985] = IDENT("cddr", lib);
+  sg__wc.w[4389] = IDENT("match:syntax-err", lib);
+  sg__wc.w[327] = IDENT("boolean?", lib);
+  sg__wc.w[9284] = IDENT("cadr", lib);
+  sg__wc.w[6888] = IDENT("list-ref", lib);
+  sg__wc.w[10510] = IDENT("caddr", lib);
+  sg__wc.w[4055] = IDENT("dot-dot-k?", lib);
+  sg__wc.w[1947] = IDENT("substring", lib);
+  sg__wc.w[8183] = IDENT("equal?", lib);
+  sg__wc.w[1271] = IDENT("map", lib);
+  sg__wc.w[9920] = IDENT("variable?", lib);
+  sg__wc.w[2222] = IDENT("identifier->symbol", lib);
+  sg__wc.w[1983] = IDENT("match:error-control", lib);
   sg__wc.w[7699] = SYMBOLW("string?");
   sg__wc.w[9853] = SYMBOLW("string?");
-  sg__wc.w[9902] = IDENT("cddr", lib);
-  sg__wc.w[8338] = IDENT("equal?", lib);
-  sg__wc.w[8020] = WORD(Sg_Cons(SYMBOL("cond"), Sg_Cons(SYMBOL("match:error"), SG_NIL)));
-  sg__wc.w[2393] = IDENT("cons*", lib);
+  sg__wc.w[9522] = IDENT("disjoint?", lib);
+  sg__wc.w[10043] = IDENT("cadr", lib);
+  sg__wc.w[3366] = IDENT("cddr", lib);
+  sg__wc.w[8582] = IDENT("cdadar", lib);
+  sg__wc.w[1831] = IDENT("identifier->symbol", lib);
+  sg__wc.w[212] = IDENT("add-d", lib);
+  sg__wc.w[2070] = WORD(&sg__wc.cb[36]);
+  sg__wc.cb[36].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[5304] = IDENT("hashtable-set!", lib);
+  sg__wc.w[3486] = IDENT("map", lib);
+  sg__wc.w[8773] = IDENT("cadr", lib);
+  sg__wc.w[138] = WORD(&sg__wc.cb[29]);
+  sg__wc.cb[29].name = SYMBOL("genletrec");
   sg__wc.w[2342] = SYMBOLW("?");
   sg__wc.w[2364] = SYMBOLW("?");
   sg__wc.w[3676] = SYMBOLW("?");
@@ -11145,238 +11119,206 @@ void Sg__Init_match_core()
   sg__wc.w[3775] = SYMBOLW("?");
   sg__wc.w[5709] = SYMBOLW("?");
   sg__wc.w[5973] = SYMBOLW("?");
-  sg__wc.w[10843] = IDENT("string-append", lib);
-  sg__wc.w[10371] = IDENT("cons*", lib);
-  sg__wc.w[8776] = IDENT("equal?", lib);
-  sg__wc.w[632] = IDENT("string->symbol", lib);
-  sg__wc.w[3313] = IDENT("cadar", lib);
-  sg__wc.w[8089] = IDENT("cadr", lib);
-  sg__wc.w[8129] = IDENT("cons*", lib);
-  sg__wc.w[6104] = IDENT("cadr", lib);
+  sg__wc.w[2357] = IDENT("cddr", lib);
+  sg__wc.w[2547] = IDENT("map", lib);
+  sg__wc.w[577] = IDENT("error", lib);
+  sg__wc.w[39] = tmp = UNSIDENT("G15131", lib);
+  uninterned = Sg_Acons(STRING("G15131"), SG_OBJ(tmp), uninterned);
+  sg__wc.w[4501] = WORD(SG_CDR(Sg_Assq(STRING("G15131"), uninterned)));
+  sg__wc.w[95] = WORD(&sg__wc.cb[22]);
+  sg__wc.cb[22].name = SYMBOL("match:make-structure-tag");
   sg__wc.w[3051] = IDENT("cadr", lib);
-  sg__wc.w[5497] = IDENT("append", lib);
+  sg__wc.w[2757] = IDENT("variable?", lib);
+  sg__wc.w[57] = WORD(&sg__wc.cb[15]);
+  sg__wc.cb[15].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[8104] = IDENT("caddr", lib);
+  sg__wc.w[7049] = IDENT("map", lib);
+  sg__wc.w[3793] = IDENT("cddr", lib);
+  sg__wc.w[33] = WORD(&sg__wc.cb[8]);
+  sg__wc.cb[8].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[2794] = IDENT("map", lib);
+  sg__wc.w[865] = IDENT("cadr", lib);
+  sg__wc.w[8349] = IDENT("cddadr", lib);
+  sg__wc.w[9400] = IDENT("disjoint?", lib);
+  sg__wc.w[7480] = WORD(&sg__wc.cb[88]);
+  sg__wc.cb[88].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[5] = WORD(&sg__wc.cb[1]);
+  sg__wc.cb[1].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1248] = IDENT("gen", lib);
   sg__wc.w[123] = SYMBOLW("null");
-  sg__wc.w[8291] = IDENT("cddadr", lib);
-  sg__wc.w[507] = IDENT("cons*", lib);
-  sg__wc.w[9871] = IDENT("char?", lib);
-  sg__wc.w[2090] = STRINGW("unreachable pattern ~a in ~a~%");
-  sg__wc.w[8559] = IDENT("cdadar", lib);
-  sg__wc.w[10074] = IDENT("caddr", lib);
-  sg__wc.w[8509] = IDENT("caadar", lib);
-  sg__wc.w[5580] = IDENT("string?", lib);
-  sg__wc.w[11] = tmp = UNSIDENT("G16459", lib);
-  uninterned = Sg_Acons(STRING("G16459"), SG_OBJ(tmp), uninterned);
-  sg__wc.w[1376] = WORD(SG_CDR(Sg_Assq(STRING("G16459"), uninterned)));
-  sg__wc.w[10317] = IDENT("cadr", lib);
-  sg__wc.w[2027] = IDENT("cons*", lib);
-  sg__wc.w[8069] = IDENT("cadr", lib);
-  sg__wc.w[10836] = STRINGW("unnested get! pattern");
-  sg__wc.w[10483] = IDENT("cadr", lib);
-  sg__wc.w[9488] = IDENT("equal?", lib);
-  sg__wc.w[2459] = IDENT("cadr", lib);
-  sg__wc.w[4389] = IDENT("match:syntax-err", lib);
-  sg__wc.w[2791] = IDENT("cddr", lib);
-  sg__wc.w[132] = IDENT("match:vector-structures", lib);
+  sg__wc.w[7044] = WORD(&sg__wc.cb[81]);
+  sg__wc.cb[81].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[8556] = IDENT("cddadr", lib);
+  sg__wc.w[1814] = IDENT("variable?", lib);
+  sg__wc.w[5273] = IDENT("hashtable-ref", lib);
+  sg__wc.w[3469] = IDENT("dot-dot-k?", lib);
+  sg__wc.w[6009] = WORD(&sg__wc.cb[76]);
+  sg__wc.cb[76].name = SYMBOL("rloop");
+  sg__wc.w[414] = IDENT("variable?", lib);
+  sg__wc.w[59] = tmp = UNSIDENT("G15121", lib);
+  uninterned = Sg_Acons(STRING("G15121"), SG_OBJ(tmp), uninterned);
+  sg__wc.w[6687] = WORD(SG_CDR(Sg_Assq(STRING("G15121"), uninterned)));
   sg__wc.w[1380] = IDENT("map", lib);
-  sg__wc.w[9693] = IDENT("vec-structure?", lib);
-  sg__wc.w[4087] = IDENT("cddr", lib);
+  sg__wc.w[5194] = WORD(&sg__wc.cb[69]);
+  sg__wc.cb[69].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[6135] = IDENT("emit", lib);
+  sg__wc.w[6802] = IDENT("variable?", lib);
+  sg__wc.w[4668] = WORD(&sg__wc.cb[58]);
+  sg__wc.cb[58].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[105] = IDENT("match:structure-control", lib);
+  sg__wc.w[8135] = IDENT("caddr", lib);
+  sg__wc.w[8327] = IDENT("cddadr", lib);
+  sg__wc.w[4754] = IDENT("cadr", lib);
+  sg__wc.w[4066] = WORD(&sg__wc.cb[51]);
+  sg__wc.cb[51].name = SG_MAKE_BOOL(FALSE);
   sg__wc.w[6145] = SYMBOLW("pair?");
   sg__wc.w[6594] = SYMBOLW("pair?");
   sg__wc.w[8001] = SYMBOLW("pair?");
   sg__wc.w[9303] = SYMBOLW("pair?");
-  sg__wc.w[1597] = IDENT("gensym", lib);
-  sg__wc.w[7103] = IDENT("add-d", lib);
-  sg__wc.w[8281] = IDENT("caadar", lib);
-  sg__wc.w[5244] = IDENT("caar", lib);
-  sg__wc.w[394] = IDENT("length", lib);
-  sg__wc.w[8533] = IDENT("cddadr", lib);
-  sg__wc.w[8484] = IDENT("cadar", lib);
-  sg__wc.w[1012] = IDENT("cddr", lib);
-  sg__wc.w[8715] = IDENT("cddar", lib);
-  sg__wc.w[2037] = IDENT("cons*", lib);
-  sg__wc.w[1248] = IDENT("gen", lib);
-  sg__wc.w[10525] = IDENT("cons*", lib);
-  sg__wc.w[8062] = IDENT("equal?", lib);
-  sg__wc.w[587] = IDENT("match:structure-control", lib);
-  sg__wc.w[627] = STRINGW(">");
-  sg__wc.w[6989] = IDENT("append", lib);
-  sg__wc.w[9463] = IDENT("equal?", lib);
-  sg__wc.w[825] = IDENT("inline-let", lib);
-  sg__wc.w[4288] = IDENT("cons*", lib);
-  sg__wc.w[2802] = IDENT("cons*", lib);
-  sg__wc.w[3287] = IDENT("equal?", lib);
-  sg__wc.w[327] = IDENT("boolean?", lib);
+  sg__wc.w[3342] = IDENT("append", lib);
+  sg__wc.w[8310] = IDENT("caadar", lib);
+  sg__wc.w[8530] = IDENT("caadar", lib);
+  sg__wc.w[3936] = WORD(&sg__wc.cb[44]);
+  sg__wc.cb[44].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[2303] = IDENT("cddr", lib);
+  sg__wc.w[10460] = IDENT("match:syntax-err", lib);
+  sg__wc.w[3903] = IDENT("caddr", lib);
+  sg__wc.w[3448] = IDENT("vector->list", lib);
+  sg__wc.w[9656] = IDENT("disjoint?", lib);
+  sg__wc.w[8712] = IDENT("cddadr", lib);
+  sg__wc.w[240] = IDENT("pattern-var?", lib);
+  sg__wc.w[85] = IDENT("match:error", lib);
+  sg__wc.w[3640] = STRINGW("duplicate variable in pattern");
+  sg__wc.w[3625] = IDENT("variable?", lib);
+  sg__wc.w[9088] = IDENT("add-d", lib);
+  sg__wc.w[5006] = IDENT("cdddr", lib);
   sg__wc.w[10197] = SYMBOLW("set-car!");
-  sg__wc.w[128] = IDENT("match:disjoint-predicates", lib);
-  sg__wc.w[1361] = IDENT("cons*", lib);
-  sg__wc.w[3035] = IDENT("cddr", lib);
-  sg__wc.w[3706] = IDENT("cadr", lib);
-  sg__wc.w[5445] = IDENT("cons*", lib);
-  sg__wc.w[8252] = IDENT("cddadr", lib);
-  sg__wc.w[1972] = IDENT("memq", lib);
-  sg__wc.w[1764] = IDENT("append", lib);
-  sg__wc.w[2547] = IDENT("map", lib);
-  sg__wc.w[10402] = IDENT("cons*", lib);
-  sg__wc.w[8461] = IDENT("cdar", lib);
-  sg__wc.w[10048] = IDENT("cons*", lib);
-  sg__wc.w[6271] = IDENT("cons*", lib);
-  sg__wc.w[962] = IDENT("cddr", lib);
-  sg__wc.w[9384] = IDENT("cadr", lib);
+  sg__wc.w[5739] = IDENT("emit", lib);
+  sg__wc.w[9860] = IDENT("boolean?", lib);
+  sg__wc.w[2192] = IDENT("pattern-var?", lib);
+  sg__wc.w[8500] = IDENT("cddadr", lib);
+  sg__wc.w[7659] = IDENT("cadr", lib);
+  sg__wc.w[243] = IDENT("match:expanders", lib);
+  sg__wc.w[8811] = IDENT("caddar", lib);
+  sg__wc.w[10854] = IDENT("string->symbol", lib);
+  sg__wc.w[10350] = IDENT("cddr", lib);
   sg__wc.w[1158] = IDENT("caddr", lib);
-  sg__wc.w[414] = IDENT("variable?", lib);
-  sg__wc.w[8685] = IDENT("cddadr", lib);
-  sg__wc.w[10153] = IDENT("cons*", lib);
-  sg__wc.w[9440] = IDENT("cons*", lib);
-  sg__wc.w[10581] = IDENT("cons*", lib);
-  sg__wc.w[492] = IDENT("cddr", lib);
-  sg__wc.w[4496] = IDENT("gensym", lib);
-  sg__wc.w[7196] = WORD(&sg__wc.cb[86]);
-  sg__wc.cb[86].name = SYMBOL("vloop");
+  sg__wc.w[136] = IDENT("genmatch", lib);
+  sg__wc.w[9347] = IDENT("equal-test?", lib);
+  sg__wc.w[6223] = IDENT("dot-dot-k?", lib);
+  sg__wc.w[4911] = IDENT("cadr", lib);
+  sg__wc.w[206] = WORD(&sg__wc.cb[100]);
+  sg__wc.cb[100].name = SYMBOL("add-a");
   sg__wc.w[7765] = SYMBOLW("number?");
   sg__wc.w[9886] = SYMBOLW("number?");
-  sg__wc.w[3503] = IDENT("list->vector", lib);
-  sg__wc.w[10773] = IDENT("cons*", lib);
-  sg__wc.w[7472] = IDENT("cons*", lib);
-  sg__wc.w[5419] = IDENT("faile-sym", lib);
-  sg__wc.w[8238] = IDENT("caar", lib);
-  sg__wc.w[6575] = WORD(&sg__wc.cb[79]);
-  sg__wc.cb[79].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[4116] = IDENT("cadr", lib);
+  sg__wc.w[9842] = IDENT("caddr", lib);
+  sg__wc.w[4504] = IDENT("map", lib);
+  sg__wc.w[1968] = IDENT("match:error-control", lib);
+  sg__wc.w[8475] = IDENT("cddadr", lib);
+  sg__wc.w[8265] = IDENT("cddadr", lib);
+  sg__wc.w[182] = WORD(&sg__wc.cb[93]);
+  sg__wc.cb[93].name = SYMBOL("assm");
+  sg__wc.w[9955] = IDENT("c---rs", lib);
   sg__wc.w[6266] = SYMBOLW("vector?");
   sg__wc.w[6311] = SYMBOLW("vector?");
   sg__wc.w[7843] = SYMBOLW("vector?");
   sg__wc.w[9750] = SYMBOLW("vector?");
   sg__wc.w[9792] = SYMBOLW("vector?");
-  sg__wc.w[5808] = WORD(&sg__wc.cb[72]);
-  sg__wc.cb[72].name = SYMBOL("loop");
-  sg__wc.w[8431] = IDENT("cddadr", lib);
-  sg__wc.w[1831] = IDENT("identifier->symbol", lib);
-  sg__wc.w[5541] = IDENT("cons*", lib);
-  sg__wc.w[4927] = WORD(&sg__wc.cb[65]);
-  sg__wc.cb[65].name = SYMBOL("loop");
-  sg__wc.w[29] = WORD(&sg__wc.cb[7]);
-  sg__wc.cb[7].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[10705] = IDENT("get-c---rs", lib);
+  sg__wc.w[3172] = STRINGW("syntax error in pattern");
+  sg__wc.w[8667] = IDENT("cddadr", lib);
+  sg__wc.w[1938] = IDENT("for-all", lib);
+  sg__wc.w[8035] = IDENT("guarantees", lib);
+  sg__wc.w[2740] = IDENT("memv", lib);
+  sg__wc.w[228] = IDENT("get-c---rs", lib);
+  sg__wc.w[192] = IDENT("in", lib);
+  sg__wc.w[3130] = IDENT("map", lib);
   sg__wc.w[1092] = IDENT("error-maker", lib);
-  sg__wc.w[8670] = IDENT("caadar", lib);
-  sg__wc.w[8022] = IDENT("memq", lib);
-  sg__wc.w[1] = WORD(&sg__wc.cb[0]);
-  sg__wc.cb[0].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[230] = WORD(&sg__wc.cb[104]);
-  sg__wc.cb[104].name = SYMBOL("symbol-append");
-  sg__wc.w[2981] = WORD(Sg_Cons(SYMBOL("unquote"), Sg_Cons(SYMBOL("unquote-splicing"), SG_NIL)));
-  sg__wc.w[4668] = WORD(&sg__wc.cb[58]);
-  sg__wc.cb[58].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1050] = IDENT("append", lib);
-  sg__wc.w[4341] = WORD(&sg__wc.cb[49]);
-  sg__wc.cb[49].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[194] = WORD(&sg__wc.cb[97]);
-  sg__wc.cb[97].name = SYMBOL("equal-test?");
-  sg__wc.w[162] = WORD(&sg__wc.cb[37]);
-  sg__wc.cb[37].name = SYMBOL("validate-pattern");
-  sg__wc.w[63] = tmp = UNSIDENT("G16433", lib);
-  uninterned = Sg_Acons(STRING("G16433"), SG_OBJ(tmp), uninterned);
-  sg__wc.w[6950] = WORD(SG_CDR(Sg_Assq(STRING("G16433"), uninterned)));
-  sg__wc.w[1641] = IDENT("map", lib);
-  sg__wc.w[3581] = WORD(&sg__wc.cb[42]);
-  sg__wc.cb[42].name = SYMBOL("bound");
-  sg__wc.w[142] = WORD(&sg__wc.cb[30]);
-  sg__wc.cb[30].name = SYMBOL("gendefine");
-  sg__wc.w[3785] = IDENT("cons*", lib);
-  sg__wc.w[937] = IDENT("cadadr", lib);
-  sg__wc.w[99] = WORD(&sg__wc.cb[23]);
-  sg__wc.cb[23].name = SYMBOL("match:structure?");
-  sg__wc.w[10743] = IDENT("cons*", lib);
-  sg__wc.w[6956] = IDENT("map", lib);
-  sg__wc.w[8214] = IDENT("cddadr", lib);
-  sg__wc.w[1694] = IDENT("cons*", lib);
+  sg__wc.w[5492] = IDENT("map", lib);
+  sg__wc.w[8452] = IDENT("cddadr", lib);
   sg__wc.w[7312] = SYMBOLW("vector-ref");
   sg__wc.w[7439] = SYMBOLW("vector-ref");
   sg__wc.w[7591] = SYMBOLW("vector-ref");
   sg__wc.w[10030] = SYMBOLW("vector-ref");
   sg__wc.w[10470] = SYMBOLW("vector-ref");
   sg__wc.w[10503] = SYMBOLW("vector-ref");
-  sg__wc.w[61] = WORD(&sg__wc.cb[16]);
-  sg__wc.cb[16].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[125] = WORD(Sg_Cons(SYMBOL("pair?"), Sg_Cons(SYMBOL("variable?"), Sg_Cons(SYMBOL("boolean?"), Sg_Cons(SYMBOL("number?"), Sg_Cons(SYMBOL("string?"), Sg_Cons(SYMBOL("char?"), Sg_Cons(SYMBOL("procedure?"), Sg_Cons(SYMBOL("vector?"), SG_NIL)))))))));
+  sg__wc.w[216] = IDENT("c---rs", lib);
   sg__wc.w[572] = SYMBOLW("match");
   sg__wc.w[1985] = SYMBOLW("match");
-  sg__wc.w[9938] = IDENT("match:vector-structures", lib);
-  sg__wc.w[8408] = IDENT("cddadr", lib);
+  sg__wc.w[1622] = IDENT("map", lib);
+  sg__wc.w[8647] = IDENT("cddadr", lib);
   sg__wc.w[502] = SYMBOLW("reverse");
-  sg__wc.w[1814] = IDENT("variable?", lib);
-  sg__wc.w[37] = WORD(&sg__wc.cb[9]);
-  sg__wc.cb[9].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[3838] = IDENT("cadr", lib);
-  sg__wc.w[8650] = IDENT("caadar", lib);
-  sg__wc.w[43] = tmp = UNSIDENT("G16443", lib);
-  uninterned = Sg_Acons(STRING("G16443"), SG_OBJ(tmp), uninterned);
-  sg__wc.w[380] = WORD(SG_CDR(Sg_Assq(STRING("G16443"), uninterned)));
-  sg__wc.w[3594] = WORD(SG_CDR(Sg_Assq(STRING("G16443"), uninterned)));
-  sg__wc.w[4474] = WORD(SG_CDR(Sg_Assq(STRING("G16443"), uninterned)));
-  sg__wc.w[89] = IDENT("match:syntax-err", lib);
-  sg__wc.w[10007] = IDENT("cddr", lib);
+  sg__wc.w[1897] = IDENT("string-ref", lib);
   sg__wc.w[8007] = IDENT("match:error-control", lib);
-  sg__wc.w[7429] = IDENT("cons*", lib);
-  sg__wc.w[10632] = IDENT("cons*", lib);
-  sg__wc.w[240] = IDENT("pattern-var?", lib);
-  sg__wc.w[2096] = IDENT("format", lib);
-  sg__wc.w[113] = IDENT("match:set-error", lib);
-  sg__wc.w[1325] = IDENT("cons*", lib);
-  sg__wc.w[2935] = IDENT("cddr", lib);
-  sg__wc.w[2222] = IDENT("identifier->symbol", lib);
+  sg__wc.w[3160] = IDENT("reverse", lib);
+  sg__wc.w[650] = IDENT("match:error-control", lib);
+  sg__wc.w[4623] = IDENT("x", lib);
+  sg__wc.w[4836] = IDENT("caar", lib);
   sg__wc.w[755] = SYMBOLW("n");
   sg__wc.w[786] = SYMBOLW("n");
   sg__wc.w[1290] = SYMBOLW("n");
   sg__wc.w[1321] = SYMBOLW("n");
   sg__wc.w[1659] = SYMBOLW("n");
   sg__wc.w[1690] = SYMBOLW("n");
-  sg__wc.w[913] = IDENT("cadr", lib);
-  sg__wc.w[1412] = IDENT("append", lib);
-  sg__wc.w[5398] = IDENT("cons*", lib);
-  sg__wc.w[9810] = IDENT("equal?", lib);
-  sg__wc.w[8198] = IDENT("cadadr", lib);
-  sg__wc.w[7071] = IDENT("cons*", lib);
-  sg__wc.w[4660] = IDENT("match:error", lib);
-  sg__wc.w[214] = WORD(Sg_Cons(Sg_Cons(SYMBOL("car"), Sg_Cons(SYMBOL("caar"), SYMBOL("cdar"))), Sg_Cons(Sg_Cons(SYMBOL("cdr"), Sg_Cons(SYMBOL("cadr"), SYMBOL("cddr"))), Sg_Cons(Sg_Cons(SYMBOL("caar"), Sg_Cons(SYMBOL("caaar"), SYMBOL("cdaar"))), Sg_Cons(Sg_Cons(SYMBOL("cadr"), Sg_Cons(SYMBOL("caadr"), SYMBOL("cdadr"))), Sg_Cons(Sg_Cons(SYMBOL("cdar"), Sg_Cons(SYMBOL("cadar"), SYMBOL("cddar"))), Sg_Cons(Sg_Cons(SYMBOL("cddr"), Sg_Cons(SYMBOL("caddr"), SYMBOL("cdddr"))), Sg_Cons(Sg_Cons(SYMBOL("caaar"), Sg_Cons(SYMBOL("caaaar"), SYMBOL("cdaaar"))), Sg_Cons(Sg_Cons(SYMBOL("caadr"), Sg_Cons(SYMBOL("caaadr"), SYMBOL("cdaadr"))), Sg_Cons(Sg_Cons(SYMBOL("cadar"), Sg_Cons(SYMBOL("caadar"), SYMBOL("cdadar"))), Sg_Cons(Sg_Cons(SYMBOL("caddr"), Sg_Cons(SYMBOL("caaddr"), SYMBOL("cdaddr"))), Sg_Cons(Sg_Cons(SYMBOL("cdaar"), Sg_Cons(SYMBOL("cadaar"), SYMBOL("cddaar"))), Sg_Cons(Sg_Cons(SYMBOL("cdadr"), Sg_Cons(SYMBOL("cadadr"), SYMBOL("cddadr"))), Sg_Cons(Sg_Cons(SYMBOL("cddar"), Sg_Cons(SYMBOL("caddar"), SYMBOL("cdddar"))), Sg_Cons(Sg_Cons(SYMBOL("cdddr"), Sg_Cons(SYMBOL("cadddr"), SYMBOL("cddddr"))), SG_NIL)))))))))))))));
-  sg__wc.w[8390] = IDENT("cddadr", lib);
-  sg__wc.w[4762] = IDENT("caddr", lib);
-  sg__wc.w[1999] = IDENT("gensym", lib);
-  sg__wc.w[783] = IDENT("cons*", lib);
-  sg__wc.w[8627] = IDENT("caadar", lib);
-  sg__wc.w[5592] = IDENT("cons*", lib);
-  sg__wc.w[234] = IDENT("genmatch", lib);
-  sg__wc.w[7412] = IDENT("cons*", lib);
-  sg__wc.w[519] = IDENT("cons*", lib);
-  sg__wc.w[9582] = IDENT("equal?", lib);
-  sg__wc.w[5655] = IDENT("number?", lib);
-  sg__wc.w[423] = IDENT("boolean?", lib);
-  sg__wc.w[892] = IDENT("gensym", lib);
-  sg__wc.w[6617] = IDENT("cons*", lib);
-  sg__wc.w[8178] = IDENT("caadr", lib);
-  sg__wc.w[5701] = IDENT("emit", lib);
-  sg__wc.w[1791] = IDENT("cons*", lib);
-  sg__wc.w[4663] = IDENT("y", lib);
-  sg__wc.w[7340] = IDENT("cons", lib);
-  sg__wc.w[200] = IDENT("disjoint?", lib);
-  sg__wc.w[1757] = IDENT("cons*", lib);
-  sg__wc.w[9308] = IDENT("cadr", lib);
-  sg__wc.w[8602] = IDENT("caadar", lib);
-  sg__wc.w[2740] = IDENT("memv", lib);
-  sg__wc.w[3890] = IDENT("cons*", lib);
-  sg__wc.w[160] = IDENT("unreachable", lib);
-  sg__wc.w[3172] = STRINGW("syntax error in pattern");
-  sg__wc.w[541] = IDENT("cons*", lib);
-  sg__wc.w[9135] = IDENT("equal?", lib);
-  sg__wc.w[9563] = IDENT("equal?", lib);
+  sg__wc.w[7344] = IDENT("map", lib);
+  sg__wc.w[970] = IDENT("cadadr", lib);
+  sg__wc.w[8222] = IDENT("cddadr", lib);
+  sg__wc.w[1567] = IDENT("gensym", lib);
+  sg__wc.w[8624] = IDENT("cddadr", lib);
+  sg__wc.w[1883] = IDENT("string-length", lib);
+  sg__wc.w[3547] = IDENT("match:syntax-err", lib);
+  sg__wc.w[2134] = WORD(&sg__wc.cb[39]);
+  sg__wc.cb[39].name = SYMBOL("quasi");
+  sg__wc.w[7391] = IDENT("map", lib);
+  sg__wc.w[150] = WORD(&sg__wc.cb[32]);
+  sg__wc.cb[32].name = SYMBOL("dot-dot-k?");
+  sg__wc.w[4586] = IDENT("cadr", lib);
+  sg__wc.w[7080] = IDENT("add-a", lib);
+  sg__wc.w[111] = WORD(&sg__wc.cb[25]);
+  sg__wc.cb[25].name = SYMBOL("match:set-error");
+  sg__wc.w[6336] = STRINGW("FATAL ERROR IN PATTERN MATCHER");
+  sg__wc.w[69] = WORD(&sg__wc.cb[18]);
+  sg__wc.cb[18].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[947] = IDENT("cdadr", lib);
+  sg__wc.w[3227] = IDENT("cddr", lib);
+  sg__wc.w[8206] = IDENT("cadadr", lib);
+  sg__wc.w[8439] = IDENT("equal?", lib);
+  sg__wc.w[45] = WORD(&sg__wc.cb[11]);
+  sg__wc.cb[11].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[9930] = IDENT("match:disjoint-predicates", lib);
+  sg__wc.w[180] = IDENT("emit", lib);
+  sg__wc.w[7573] = WORD(&sg__wc.cb[91]);
+  sg__wc.cb[91].name = SYMBOL("vloop");
+  sg__wc.w[1498] = IDENT("cadr", lib);
+  sg__wc.w[17] = WORD(&sg__wc.cb[4]);
+  sg__wc.cb[4].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[731] = IDENT("gensym", lib);
+  sg__wc.w[8599] = IDENT("cddadr", lib);
+  sg__wc.w[1852] = IDENT("identifier->symbol", lib);
+  sg__wc.w[6286] = WORD(&sg__wc.cb[84]);
+  sg__wc.cb[84].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[4282] = IDENT("cadr", lib);
+  sg__wc.w[9193] = IDENT("cadddr", lib);
+  sg__wc.w[3] = tmp = UNSIDENT("G15149", lib);
+  uninterned = Sg_Acons(STRING("G15149"), SG_OBJ(tmp), uninterned);
+  sg__wc.w[1268] = WORD(SG_CDR(Sg_Assq(STRING("G15149"), uninterned)));
+  sg__wc.w[5648] = IDENT("emit", lib);
+  sg__wc.w[482] = IDENT("cadr", lib);
+  sg__wc.w[3167] = IDENT("list->vector", lib);
+  sg__wc.w[4335] = IDENT("cddr", lib);
   sg__wc.w[7743] = SYMBOLW("char?");
   sg__wc.w[9875] = SYMBOLW("char?");
-  sg__wc.w[7054] = IDENT("append", lib);
-  sg__wc.w[6492] = IDENT("list-ref", lib);
-  sg__wc.w[839] = IDENT("validate-pattern", lib);
-  sg__wc.w[9741] = IDENT("disjoint?", lib);
-  sg__wc.w[8855] = IDENT("cons*", lib);
-  sg__wc.w[4596] = IDENT("cddr", lib);
-  sg__wc.w[9920] = IDENT("variable?", lib);
+  sg__wc.w[5808] = WORD(&sg__wc.cb[72]);
+  sg__wc.cb[72].name = SYMBOL("loop");
+  sg__wc.w[4927] = WORD(&sg__wc.cb[65]);
+  sg__wc.cb[65].name = SYMBOL("loop");
+  sg__wc.w[923] = IDENT("caadr", lib);
+  sg__wc.w[8190] = IDENT("cdadr", lib);
+  sg__wc.w[4712] = WORD(&sg__wc.cb[61]);
+  sg__wc.cb[61].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[6342] = IDENT("newline", lib);
+  sg__wc.w[1438] = IDENT("gensym", lib);
+  sg__wc.w[1999] = IDENT("gensym", lib);
   sg__wc.w[2516] = SYMBOLW("and");
   sg__wc.w[2535] = SYMBOLW("and");
   sg__wc.w[3771] = SYMBOLW("and");
@@ -11386,21 +11328,24 @@ void Sg__Init_match_core()
   sg__wc.w[8073] = SYMBOLW("and");
   sg__wc.w[8081] = SYMBOLW("and");
   sg__wc.w[8118] = SYMBOLW("and");
-  sg__wc.w[1834] = WORD(Sg_Cons(SYMBOL("quasiquote"), Sg_Cons(SYMBOL("quote"), Sg_Cons(SYMBOL("unquote"), Sg_Cons(SYMBOL("unquote-splicing"), Sg_Cons(SYMBOL("?"), Sg_Cons(SYMBOL("_"), Sg_Cons(SYMBOL("$"), Sg_Cons(SYMBOL("="), Sg_Cons(SYMBOL("and"), Sg_Cons(SYMBOL("or"), Sg_Cons(SYMBOL("not"), Sg_Cons(SYMBOL("set!"), Sg_Cons(SYMBOL("get!"), Sg_Cons(SYMBOL("..."), Sg_Cons(SYMBOL("___"), SG_NIL))))))))))))))));
-  sg__wc.w[8573] = IDENT("cddadr", lib);
-  sg__wc.w[2385] = IDENT("map", lib);
-  sg__wc.w[2698] = IDENT("append", lib);
-  sg__wc.w[6888] = IDENT("list-ref", lib);
-  sg__wc.w[9121] = WORD(Sg_Cons(SYMBOL("cond"), Sg_Cons(SYMBOL("match:error"), SG_NIL)));
-  sg__wc.w[8764] = IDENT("caadar", lib);
-  sg__wc.w[2066] = IDENT("cons*", lib);
-  sg__wc.w[10361] = IDENT("symbol-append", lib);
-  sg__wc.w[10433] = IDENT("symbol-append", lib);
-  sg__wc.w[101] = IDENT("match:structure?", lib);
-  sg__wc.w[2860] = IDENT("pattern-var?", lib);
-  sg__wc.w[706] = IDENT("map", lib);
-  sg__wc.w[10240] = IDENT("cons*", lib);
-  sg__wc.w[9802] = IDENT("cons*", lib);
+  sg__wc.w[4547] = WORD(&sg__wc.cb[54]);
+  sg__wc.cb[54].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[10727] = IDENT("cadr", lib);
+  sg__wc.w[7759] = IDENT("number?", lib);
+  sg__wc.w[4365] = WORD(&sg__wc.cb[47]);
+  sg__wc.cb[47].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[3510] = IDENT("match:syntax-err", lib);
+  sg__wc.w[23] = tmp = UNSIDENT("G15139", lib);
+  uninterned = Sg_Acons(STRING("G15139"), SG_OBJ(tmp), uninterned);
+  sg__wc.w[1733] = WORD(SG_CDR(Sg_Assq(STRING("G15139"), uninterned)));
+  sg__wc.w[6730] = IDENT("cddr", lib);
+  sg__wc.w[6492] = IDENT("list-ref", lib);
+  sg__wc.w[2766] = IDENT("cddr", lib);
+  sg__wc.w[6866] = IDENT("list-ref", lib);
+  sg__wc.w[10483] = IDENT("cadr", lib);
+  sg__wc.w[357] = IDENT("keyword?", lib);
+  sg__wc.w[1950] = IDENT("string->number", lib);
+  sg__wc.w[9443] = IDENT("equal?", lib);
   sg__wc.w[468] = SYMBOLW("quote");
   sg__wc.w[513] = SYMBOLW("quote");
   sg__wc.w[530] = SYMBOLW("quote");
@@ -11411,160 +11356,109 @@ void Sg__Init_match_core()
   sg__wc.w[5681] = SYMBOLW("quote");
   sg__wc.w[7782] = SYMBOLW("quote");
   sg__wc.w[9906] = SYMBOLW("quote");
-  sg__wc.w[1932] = IDENT("substring", lib);
-  sg__wc.w[3732] = IDENT("cadr", lib);
-  sg__wc.w[5725] = IDENT("cadr", lib);
-  sg__wc.w[3545] = STRINGW("invalid use of unquote-splicing in pattern");
-  sg__wc.w[8307] = IDENT("cddadr", lib);
-  sg__wc.w[6730] = IDENT("cddr", lib);
-  sg__wc.w[4952] = IDENT("cadr", lib);
-  sg__wc.w[6185] = IDENT("dot-dot-k?", lib);
-  sg__wc.w[4731] = IDENT("reverse", lib);
-  sg__wc.w[1897] = IDENT("string-ref", lib);
-  sg__wc.w[8743] = IDENT("cddr", lib);
-  sg__wc.w[1279] = IDENT("unreachable", lib);
-  sg__wc.w[220] = IDENT("setter", lib);
-  sg__wc.w[3195] = IDENT("variable?", lib);
-  sg__wc.w[601] = IDENT("match:disjoint-structure-tags", lib);
-  sg__wc.w[9522] = IDENT("disjoint?", lib);
-  sg__wc.w[1970] = WORD(Sg_Cons(SYMBOL("error"), Sg_Cons(SYMBOL("fail"), SG_NIL)));
-  sg__wc.w[5975] = IDENT("symbol-append", lib);
-  sg__wc.w[4335] = IDENT("cddr", lib);
-  sg__wc.w[4456] = IDENT("cons*", lib);
-  sg__wc.w[7318] = IDENT("cons*", lib);
+  sg__wc.w[8367] = IDENT("cddadr", lib);
+  sg__wc.w[8168] = IDENT("cadr", lib);
+  sg__wc.w[2057] = STRINGW("invalid value for match:error-control, legal values are");
+  sg__wc.w[1836] = IDENT("memq", lib);
+  sg__wc.w[8776] = IDENT("equal?", lib);
+  sg__wc.w[2360] = IDENT("list?", lib);
+  sg__wc.w[450] = IDENT("number?", lib);
+  sg__wc.w[43] = tmp = UNSIDENT("G15129", lib);
+  uninterned = Sg_Acons(STRING("G15129"), SG_OBJ(tmp), uninterned);
+  sg__wc.w[380] = WORD(SG_CDR(Sg_Assq(STRING("G15129"), uninterned)));
+  sg__wc.w[3594] = WORD(SG_CDR(Sg_Assq(STRING("G15129"), uninterned)));
+  sg__wc.w[4474] = WORD(SG_CDR(Sg_Assq(STRING("G15129"), uninterned)));
+  sg__wc.w[10135] = SYMBOLW("set-box!");
+  sg__wc.w[4213] = IDENT("vector->list", lib);
+  sg__wc.w[8089] = IDENT("cadr", lib);
+  sg__wc.w[10836] = STRINGW("unnested get! pattern");
+  sg__wc.w[10173] = IDENT("cadr", lib);
+  sg__wc.w[3780] = IDENT("cadr", lib);
+  sg__wc.w[2778] = IDENT("cadr", lib);
+  sg__wc.w[9390] = IDENT("cadr", lib);
+  sg__wc.w[8352] = IDENT("caadar", lib);
   sg__wc.w[2589] = SYMBOLW("or");
   sg__wc.w[2608] = SYMBOLW("or");
   sg__wc.w[3948] = SYMBOLW("or");
   sg__wc.w[4013] = SYMBOLW("or");
   sg__wc.w[4412] = SYMBOLW("or");
   sg__wc.w[5824] = SYMBOLW("or");
-  sg__wc.w[6107] = IDENT("dot-dot-k?", lib);
-  sg__wc.w[1912] = IDENT("string-ref", lib);
-  sg__wc.w[267] = IDENT("gensym", lib);
-  sg__wc.w[8294] = IDENT("caadar", lib);
-  sg__wc.w[6327] = WORD(&sg__wc.cb[89]);
-  sg__wc.cb[89].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[4387] = STRINGW("variables of or-pattern differ in");
-  sg__wc.w[408] = IDENT("memq", lib);
-  sg__wc.w[6160] = WORD(&sg__wc.cb[82]);
-  sg__wc.cb[82].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[8514] = IDENT("equal?", lib);
-  sg__wc.w[6336] = STRINGW("FATAL ERROR IN PATTERN MATCHER");
-  sg__wc.w[1883] = IDENT("string-length", lib);
-  sg__wc.w[6451] = WORD(&sg__wc.cb[75]);
-  sg__wc.cb[75].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[6802] = IDENT("variable?", lib);
-  sg__wc.w[7759] = IDENT("number?", lib);
-  sg__wc.w[1271] = IDENT("map", lib);
-  sg__wc.w[10311] = IDENT("cadr", lib);
-  sg__wc.w[8725] = IDENT("cddadr", lib);
-  sg__wc.w[596] = IDENT("gensym", lib);
-  sg__wc.w[188] = IDENT("guarantees", lib);
-  sg__wc.w[5175] = WORD(&sg__wc.cb[68]);
-  sg__wc.cb[68].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[10359] = SYMBOLW("!");
-  sg__wc.w[10431] = SYMBOLW("!");
-  sg__wc.w[10148] = IDENT("cons*", lib);
-  sg__wc.w[5648] = IDENT("emit", lib);
-  sg__wc.w[2794] = IDENT("map", lib);
-  sg__wc.w[13] = WORD(&sg__wc.cb[3]);
-  sg__wc.cb[3].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[357] = IDENT("keyword?", lib);
-  sg__wc.w[3294] = IDENT("cdar", lib);
-  sg__wc.w[8110] = IDENT("cons*", lib);
-  sg__wc.w[1915] = WORD(Sg_Cons(SG_MAKE_CHAR(46), Sg_Cons(SG_MAKE_CHAR(95), SG_NIL)));
+  sg__wc.w[176] = IDENT("gen", lib);
+  sg__wc.w[1214] = IDENT("gensym", lib);
+  sg__wc.w[9470] = IDENT("equal-test?", lib);
+  sg__wc.w[222] = WORD(&sg__wc.cb[103]);
+  sg__wc.cb[103].name = SYMBOL("getter");
+  sg__wc.w[8559] = IDENT("cdadar", lib);
+  sg__wc.w[190] = WORD(&sg__wc.cb[96]);
+  sg__wc.cb[96].name = SYMBOL("in");
+  sg__wc.w[7693] = IDENT("string?", lib);
+  sg__wc.w[63] = tmp = UNSIDENT("G15119", lib);
+  uninterned = Sg_Acons(STRING("G15119"), SG_OBJ(tmp), uninterned);
+  sg__wc.w[6950] = WORD(SG_CDR(Sg_Assq(STRING("G15119"), uninterned)));
+  sg__wc.w[5975] = IDENT("symbol-append", lib);
+  sg__wc.w[6330] = IDENT("emit", lib);
+  sg__wc.w[556] = IDENT("number?", lib);
+  sg__wc.w[6104] = IDENT("cadr", lib);
+  sg__wc.w[10397] = IDENT("cadr", lib);
   sg__wc.w[2230] = SYMBOLW("quasiquote");
-  sg__wc.w[1391] = IDENT("append", lib);
-  sg__wc.w[4712] = WORD(&sg__wc.cb[61]);
-  sg__wc.cb[61].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[4093] = WORD(&sg__wc.cb[52]);
-  sg__wc.cb[52].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[206] = WORD(&sg__wc.cb[100]);
-  sg__wc.cb[100].name = SYMBOL("add-a");
   sg__wc.w[2773] = SYMBOLW("$");
   sg__wc.w[4078] = SYMBOLW("$");
   sg__wc.w[4518] = SYMBOLW("$");
   sg__wc.w[5906] = SYMBOLW("$");
-  sg__wc.w[6077] = IDENT("getter", lib);
-  sg__wc.w[2140] = WORD(&sg__wc.cb[40]);
-  sg__wc.cb[40].name = SYMBOL("ordlist");
-  sg__wc.w[4565] = IDENT("list->vector", lib);
-  sg__wc.w[3500] = IDENT("map", lib);
-  sg__wc.w[3966] = WORD(&sg__wc.cb[45]);
-  sg__wc.cb[45].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[154] = WORD(&sg__wc.cb[33]);
-  sg__wc.cb[33].name = SYMBOL("error-maker");
-  sg__wc.w[182] = WORD(&sg__wc.cb[93]);
-  sg__wc.cb[93].name = SYMBOL("assm");
-  sg__wc.w[9849] = IDENT("string?", lib);
-  sg__wc.w[6348] = IDENT("error", lib);
-  sg__wc.w[4797] = IDENT("cadr", lib);
-  sg__wc.w[9317] = IDENT("member", lib);
-  sg__wc.w[119] = WORD(&sg__wc.cb[26]);
-  sg__wc.cb[26].name = SYMBOL("match:set-error-control");
-  sg__wc.w[388] = IDENT("length", lib);
-  sg__wc.w[1852] = IDENT("identifier->symbol", lib);
-  sg__wc.w[73] = WORD(&sg__wc.cb[19]);
-  sg__wc.cb[19].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[7181] = IDENT("assm", lib);
-  sg__wc.w[9410] = IDENT("equal?", lib);
-  sg__wc.w[1214] = IDENT("gensym", lib);
-  sg__wc.w[3865] = IDENT("cadr", lib);
-  sg__wc.w[10821] = IDENT("cons*", lib);
-  sg__wc.w[399] = WORD(&sg__wc.cb[12]);
-  sg__wc.cb[12].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[2042] = IDENT("cons*", lib);
-  sg__wc.w[6974] = IDENT("cons*", lib);
-  sg__wc.w[742] = IDENT("unreachable", lib);
-  sg__wc.w[318] = IDENT("string?", lib);
-  sg__wc.w[1418] = IDENT("cons*", lib);
-  sg__wc.w[9656] = IDENT("disjoint?", lib);
-  sg__wc.w[5667] = IDENT("cons*", lib);
-  sg__wc.w[360] = IDENT("gensym", lib);
-  sg__wc.w[3710] = IDENT("memq", lib);
-  sg__wc.w[3490] = IDENT("reverse", lib);
-  sg__wc.w[125] = WORD(Sg_Cons(SYMBOL("pair?"), Sg_Cons(SYMBOL("variable?"), Sg_Cons(SYMBOL("boolean?"), Sg_Cons(SYMBOL("number?"), Sg_Cons(SYMBOL("string?"), Sg_Cons(SYMBOL("char?"), Sg_Cons(SYMBOL("procedure?"), Sg_Cons(SYMBOL("vector?"), SG_NIL)))))))));
-  sg__wc.w[8255] = IDENT("cdar", lib);
-  sg__wc.w[299] = IDENT("cons*", lib);
-  sg__wc.w[2552] = IDENT("append", lib);
-  sg__wc.w[9955] = IDENT("c---rs", lib);
-  sg__wc.w[5573] = IDENT("emit", lib);
-  sg__wc.w[7928] = IDENT("append", lib);
-  sg__wc.w[9393] = IDENT("equal?", lib);
-  sg__wc.w[10799] = IDENT("cons*", lib);
-  sg__wc.w[8688] = IDENT("caadar", lib);
-  sg__wc.w[1141] = IDENT("cadr", lib);
-  sg__wc.w[7391] = IDENT("map", lib);
-  sg__wc.w[8032] = IDENT("cadr", lib);
-  sg__wc.w[97] = IDENT("match:make-structure-tag", lib);
-  sg__wc.w[734] = IDENT("gen", lib);
-  sg__wc.w[7737] = IDENT("char?", lib);
-  sg__wc.w[3685] = IDENT("cddr", lib);
-  sg__wc.w[3234] = IDENT("cadr", lib);
-  sg__wc.w[121] = IDENT("match:set-error-control", lib);
-  sg__wc.w[5261] = IDENT("assq", lib);
+  sg__wc.w[8124] = IDENT("cadr", lib);
+  sg__wc.w[8330] = IDENT("caadar", lib);
+  sg__wc.w[9882] = IDENT("number?", lib);
+  sg__wc.w[4087] = IDENT("cddr", lib);
+  sg__wc.w[9430] = IDENT("cadr", lib);
+  sg__wc.w[3313] = IDENT("cadar", lib);
+  sg__wc.w[8313] = IDENT("cadr", lib);
+  sg__wc.w[8533] = IDENT("cddadr", lib);
+  sg__wc.w[3838] = IDENT("cadr", lib);
+  sg__wc.w[9646] = IDENT("cadr", lib);
+  sg__wc.w[8715] = IDENT("cddar", lib);
+  sg__wc.w[238] = IDENT("gendefine", lib);
+  sg__wc.w[1350] = IDENT("map", lib);
+  sg__wc.w[3035] = IDENT("cddr", lib);
+  sg__wc.w[9082] = IDENT("add-a", lib);
+  sg__wc.w[9293] = IDENT("member", lib);
+  sg__wc.w[4159] = IDENT("cadr", lib);
+  sg__wc.w[6629] = IDENT("emit", lib);
+  sg__wc.w[674] = IDENT("error-maker", lib);
+  sg__wc.w[8503] = IDENT("caadar", lib);
+  sg__wc.w[9967] = IDENT("cadr", lib);
+  sg__wc.w[8685] = IDENT("cddadr", lib);
+  sg__wc.w[8796] = IDENT("cddadr", lib);
+  sg__wc.w[10317] = IDENT("cadr", lib);
   sg__wc.w[7721] = SYMBOLW("boolean?");
   sg__wc.w[9864] = SYMBOLW("boolean?");
-  sg__wc.w[85] = IDENT("match:error", lib);
-  sg__wc.w[6044] = IDENT("setter", lib);
-  sg__wc.w[3793] = IDENT("cddr", lib);
-  sg__wc.w[4491] = IDENT("gensym", lib);
-  sg__wc.w[4177] = IDENT("cadr", lib);
-  sg__wc.w[955] = IDENT("cddadr", lib);
-  sg__wc.w[1468] = IDENT("validate-pattern", lib);
-  sg__wc.w[7493] = IDENT("cons*", lib);
-  sg__wc.w[10733] = IDENT("cadr", lib);
-  sg__wc.w[5461] = IDENT("cons*", lib);
-  sg__wc.w[8243] = IDENT("equal?", lib);
-  sg__wc.w[4120] = IDENT("memq", lib);
-  sg__wc.w[8434] = IDENT("caar", lib);
-  sg__wc.w[7686] = IDENT("caddr", lib);
-  sg__wc.w[7893] = IDENT("cons*", lib);
-  sg__wc.w[1836] = IDENT("memq", lib);
-  sg__wc.w[1077] = IDENT("gensym", lib);
-  sg__wc.w[8673] = IDENT("cddadr", lib);
-  sg__wc.w[7376] = IDENT("cons*", lib);
-  sg__wc.w[1033] = IDENT("append", lib);
+  sg__wc.w[1141] = IDENT("cadr", lib);
+  sg__wc.w[3195] = IDENT("variable?", lib);
+  sg__wc.w[158] = WORD(&sg__wc.cb[35]);
+  sg__wc.cb[35].name = SYMBOL("unreachable");
+  sg__wc.w[9336] = IDENT("cadr", lib);
+  sg__wc.w[10707] = IDENT("assq", lib);
+  sg__wc.w[4496] = IDENT("gensym", lib);
+  sg__wc.w[2171] = IDENT("identifier?", lib);
+  sg__wc.w[2928] = IDENT("pattern-var?", lib);
+  sg__wc.w[702] = WORD(&sg__wc.cb[28]);
+  sg__wc.cb[28].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1972] = IDENT("memq", lib);
+  sg__wc.w[3294] = IDENT("cdar", lib);
+  sg__wc.w[8268] = IDENT("cadar", lib);
+  sg__wc.w[8478] = IDENT("caadar", lib);
+  sg__wc.w[87] = WORD(&sg__wc.cb[21]);
+  sg__wc.cb[21].name = SYMBOL("match:syntax-err");
+  sg__wc.w[267] = IDENT("gensym", lib);
+  sg__wc.w[53] = WORD(&sg__wc.cb[14]);
+  sg__wc.cb[14].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[8670] = IDENT("caadar", lib);
+  sg__wc.w[6545] = IDENT("cadr", lib);
+  sg__wc.w[5890] = IDENT("cadr", lib);
+  sg__wc.w[29] = WORD(&sg__wc.cb[7]);
+  sg__wc.cb[7].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[8020] = WORD(Sg_Cons(SYMBOL("cond"), Sg_Cons(SYMBOL("match:error"), SG_NIL)));
+  sg__wc.w[7328] = WORD(&sg__wc.cb[87]);
+  sg__wc.cb[87].name = SG_MAKE_BOOL(FALSE);
   sg__wc.w[7031] = SYMBOLW("cdr");
   sg__wc.w[10015] = SYMBOLW("cdr");
   sg__wc.w[10222] = SYMBOLW("cdr");
@@ -11572,29 +11466,39 @@ void Sg__Init_match_core()
   sg__wc.w[10677] = SYMBOLW("cdr");
   sg__wc.w[289] = SYMBOLW("cond");
   sg__wc.w[1742] = SYMBOLW("cond");
-  sg__wc.w[7130] = IDENT("cons*", lib);
-  sg__wc.w[67] = tmp = UNSIDENT("G16431", lib);
-  uninterned = Sg_Acons(STRING("G16431"), SG_OBJ(tmp), uninterned);
-  sg__wc.w[6981] = WORD(SG_CDR(Sg_Assq(STRING("G16431"), uninterned)));
-  sg__wc.w[1807] = IDENT("append", lib);
-  sg__wc.w[646] = IDENT("match:error", lib);
-  sg__wc.w[2055] = WORD(Sg_Cons(SYMBOL("unspecified"), Sg_Cons(SYMBOL("error"), Sg_Cons(SYMBOL("fail"), Sg_Cons(SYMBOL("match"), SG_NIL)))));
-  sg__wc.w[940] = IDENT("variable?", lib);
-  sg__wc.w[6962] = IDENT("append", lib);
-  sg__wc.w[6545] = IDENT("cadr", lib);
-  sg__wc.w[10683] = IDENT("cons*", lib);
+  sg__wc.w[4116] = IDENT("cadr", lib);
+  sg__wc.w[1] = WORD(&sg__wc.cb[0]);
+  sg__wc.cb[0].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[6933] = WORD(&sg__wc.cb[80]);
+  sg__wc.cb[80].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1077] = IDENT("gensym", lib);
+  sg__wc.w[5554] = WORD(Sg_Cons(SYMBOL("quote"), Sg_Cons(SG_NIL, SG_NIL)));
+  sg__wc.w[2442] = IDENT("cddr", lib);
+  sg__wc.w[3706] = IDENT("cadr", lib);
+  sg__wc.w[6953] = IDENT("map", lib);
+  sg__wc.w[6451] = WORD(&sg__wc.cb[75]);
+  sg__wc.cb[75].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1012] = IDENT("cddr", lib);
+  sg__wc.w[3287] = IDENT("equal?", lib);
+  sg__wc.w[8455] = IDENT("caadar", lib);
+  sg__wc.w[5175] = WORD(&sg__wc.cb[68]);
+  sg__wc.cb[68].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[5598] = IDENT("emit", lib);
+  sg__wc.w[1597] = IDENT("gensym", lib);
+  sg__wc.w[8650] = IDENT("caadar", lib);
+  sg__wc.w[1902] = IDENT("memq", lib);
   sg__wc.w[3215] = SYMBOLW("unquote");
-  sg__wc.w[3842] = IDENT("memq", lib);
-  sg__wc.w[815] = IDENT("append", lib);
-  sg__wc.w[8653] = IDENT("cddadr", lib);
   sg__wc.w[8011] = IDENT("memq", lib);
-  sg__wc.w[10601] = IDENT("cadr", lib);
-  sg__wc.w[2766] = IDENT("cddr", lib);
-  sg__wc.w[238] = IDENT("gendefine", lib);
-  sg__wc.w[2099] = IDENT("warn", lib);
-  sg__wc.w[8009] = WORD(Sg_Cons(SYMBOL("unspecified"), Sg_Cons(SYMBOL("fail"), SG_NIL)));
-  sg__wc.w[9193] = IDENT("cadddr", lib);
-  sg__wc.w[7004] = IDENT("cons*", lib);
+  sg__wc.w[4628] = WORD(&sg__wc.cb[57]);
+  sg__wc.cb[57].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[9121] = WORD(Sg_Cons(SYMBOL("cond"), Sg_Cons(SYMBOL("match:error"), SG_NIL)));
+  sg__wc.w[9224] = IDENT("cadr", lib);
+  sg__wc.w[97] = IDENT("match:make-structure-tag", lib);
+  sg__wc.w[4001] = WORD(&sg__wc.cb[50]);
+  sg__wc.cb[50].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[6605] = IDENT("emit", lib);
+  sg__wc.w[3909] = WORD(&sg__wc.cb[43]);
+  sg__wc.cb[43].name = SG_MAKE_BOOL(FALSE);
   sg__wc.w[5586] = SYMBOLW("equal?");
   sg__wc.w[5611] = SYMBOLW("equal?");
   sg__wc.w[5636] = SYMBOLW("equal?");
@@ -11603,58 +11507,39 @@ void Sg__Init_match_core()
   sg__wc.w[7512] = SYMBOLW("equal?");
   sg__wc.w[7675] = SYMBOLW("equal?");
   sg__wc.w[9834] = SYMBOLW("equal?");
-  sg__wc.w[3387] = IDENT("cons*", lib);
-  sg__wc.w[1415] = IDENT("append", lib);
-  sg__wc.w[10289] = IDENT("get-c---rs", lib);
-  sg__wc.w[3156] = IDENT("map", lib);
-  sg__wc.w[4534] = IDENT("cons*", lib);
-  sg__wc.w[9930] = IDENT("match:disjoint-predicates", lib);
+  sg__wc.w[4387] = STRINGW("variables of or-pattern differ in");
+  sg__wc.w[9797] = IDENT("cadr", lib);
+  sg__wc.w[7350] = IDENT("append", lib);
+  sg__wc.w[962] = IDENT("cddr", lib);
+  sg__wc.w[8425] = IDENT("cddadr", lib);
+  sg__wc.w[9940] = IDENT("memq", lib);
+  sg__wc.w[7641] = IDENT("in", lib);
+  sg__wc.w[9570] = IDENT("disjoint?", lib);
+  sg__wc.w[4445] = STRINGW("no variables allowed in");
+  sg__wc.w[8627] = IDENT("caadar", lib);
   sg__wc.w[6113] = SYMBOLW("list?");
   sg__wc.w[7821] = SYMBOLW("list?");
   sg__wc.w[7877] = SYMBOLW("list?");
   sg__wc.w[9271] = SYMBOLW("list?");
   sg__wc.w[9608] = SYMBOLW("list?");
-  sg__wc.w[1785] = IDENT("append", lib);
-  sg__wc.w[7637] = IDENT("cons*", lib);
-  sg__wc.w[1994] = IDENT("gensym", lib);
-  sg__wc.w[10688] = IDENT("cons*", lib);
-  sg__wc.w[6750] = IDENT("cons*", lib);
-  sg__wc.w[6289] = IDENT("emit", lib);
-  sg__wc.w[8630] = IDENT("cddadr", lib);
-  sg__wc.w[59] = tmp = UNSIDENT("G16435", lib);
-  uninterned = Sg_Acons(STRING("G16435"), SG_OBJ(tmp), uninterned);
-  sg__wc.w[6687] = WORD(SG_CDR(Sg_Assq(STRING("G16435"), uninterned)));
-  sg__wc.w[9997] = IDENT("assq", lib);
-  sg__wc.w[10637] = IDENT("cons*", lib);
-  sg__wc.w[822] = IDENT("cons*", lib);
-  sg__wc.w[3642] = IDENT("match:syntax-err", lib);
-  sg__wc.w[3903] = IDENT("caddr", lib);
-  sg__wc.w[8808] = IDENT("cddadr", lib);
-  sg__wc.w[524] = IDENT("cons*", lib);
-  sg__wc.w[109] = IDENT("match:set-structure-control", lib);
-  sg__wc.w[879] = IDENT("caddr", lib);
+  sg__wc.w[1870] = IDENT("identifier->symbol", lib);
+  sg__wc.w[9752] = IDENT("equal?", lib);
+  sg__wc.w[584] = IDENT("error", lib);
+  sg__wc.w[4589] = IDENT("dot-dot-k?", lib);
   sg__wc.w[7119] = SYMBOLW("vector-length");
   sg__wc.w[7365] = SYMBOLW("vector-length");
   sg__wc.w[7516] = SYMBOLW("vector-length");
-  sg__wc.w[10178] = IDENT("cons*", lib);
-  sg__wc.w[6623] = IDENT("cons*", lib);
-  sg__wc.w[8183] = IDENT("equal?", lib);
-  sg__wc.w[196] = IDENT("equal-test?", lib);
-  sg__wc.w[8871] = IDENT("assm", lib);
-  sg__wc.w[3139] = IDENT("dot-dot-k?", lib);
+  sg__wc.w[2857] = IDENT("cadr", lib);
+  sg__wc.w[8402] = IDENT("cddadr", lib);
+  sg__wc.w[172] = IDENT("inline-let", lib);
   sg__wc.w[6500] = SYMBOLW("-");
   sg__wc.w[7361] = SYMBOLW("-");
   sg__wc.w[7466] = SYMBOLW("-");
-  sg__wc.w[10458] = STRINGW("unnested set! pattern");
-  sg__wc.w[8349] = IDENT("cddadr", lib);
-  sg__wc.w[7344] = IDENT("map", lib);
-  sg__wc.w[5547] = IDENT("emit", lib);
   sg__wc.w[3285] = SYMBOLW("unquote-splicing");
-  sg__wc.w[8605] = IDENT("cddadr", lib);
-  sg__wc.w[212] = IDENT("add-d", lib);
-  sg__wc.w[178] = WORD(&sg__wc.cb[92]);
-  sg__wc.cb[92].name = SYMBOL("emit");
-  sg__wc.w[5890] = IDENT("cadr", lib);
+  sg__wc.w[8602] = IDENT("caadar", lib);
+  sg__wc.w[1857] = IDENT("memq", lib);
+  sg__wc.w[2526] = IDENT("list?", lib);
+  sg__wc.w[5331] = IDENT("cadr", lib);
   sg__wc.w[2429] = SYMBOLW("=");
   sg__wc.w[2454] = SYMBOLW("=");
   sg__wc.w[3815] = SYMBOLW("=");
@@ -11669,222 +11554,175 @@ void Sg__Init_match_core()
   sg__wc.w[5501] = SYMBOLW("_");
   sg__wc.w[6655] = SYMBOLW("_");
   sg__wc.w[7207] = SYMBOLW("_");
-  sg__wc.w[7169] = WORD(&sg__wc.cb[85]);
-  sg__wc.cb[85].name = SYMBOL("vloop");
-  sg__wc.w[8787] = IDENT("cadadr", lib);
-  sg__wc.w[561] = IDENT("number->string", lib);
-  sg__wc.w[636] = IDENT("match:disjoint-structure-tags", lib);
-  sg__wc.w[6132] = WORD(&sg__wc.cb[78]);
-  sg__wc.cb[78].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[7445] = IDENT("cons*", lib);
-  sg__wc.w[3356] = IDENT("cadr", lib);
-  sg__wc.w[5238] = WORD(&sg__wc.cb[71]);
-  sg__wc.cb[71].name = SYMBOL("next");
-  sg__wc.w[2178] = IDENT("identifier->symbol", lib);
-  sg__wc.w[842] = IDENT("bound", lib);
-  sg__wc.w[25] = WORD(&sg__wc.cb[6]);
-  sg__wc.cb[6].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[4865] = WORD(&sg__wc.cb[64]);
-  sg__wc.cb[64].name = SYMBOL("loop");
-  sg__wc.w[5006] = IDENT("cdddr", lib);
-  sg__wc.w[156] = IDENT("error-maker", lib);
-  sg__wc.w[3167] = IDENT("list->vector", lib);
-  sg__wc.w[192] = IDENT("in", lib);
-  sg__wc.w[168] = IDENT("bound", lib);
-  sg__wc.w[222] = WORD(&sg__wc.cb[103]);
-  sg__wc.cb[103].name = SYMBOL("getter");
-  sg__wc.w[4628] = WORD(&sg__wc.cb[57]);
-  sg__wc.cb[57].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[7507] = IDENT("cons*", lib);
-  sg__wc.w[8327] = IDENT("cddadr", lib);
-  sg__wc.w[5514] = IDENT("variable?", lib);
+  sg__wc.w[9731] = IDENT("cadr", lib);
+  sg__wc.w[9182] = IDENT("caddr", lib);
+  sg__wc.w[93] = IDENT("match:disjoint-structure-tags", lib);
+  sg__wc.w[89] = IDENT("match:syntax-err", lib);
+  sg__wc.w[202] = WORD(&sg__wc.cb[99]);
+  sg__wc.cb[99].name = SYMBOL("vec-structure?");
+  sg__wc.w[485] = IDENT("variable?", lib);
+  sg__wc.w[7] = tmp = UNSIDENT("G15147", lib);
+  uninterned = Sg_Acons(STRING("G15147"), SG_OBJ(tmp), uninterned);
+  sg__wc.w[1347] = WORD(SG_CDR(Sg_Assq(STRING("G15147"), uninterned)));
+  sg__wc.w[5630] = IDENT("char?", lib);
+  sg__wc.w[3685] = IDENT("cddr", lib);
+  sg__wc.w[928] = IDENT("equal?", lib);
+  sg__wc.w[8384] = IDENT("cddadr", lib);
+  sg__wc.w[247] = IDENT("gensym", lib);
+  sg__wc.w[5573] = IDENT("emit", lib);
+  sg__wc.w[1994] = IDENT("gensym", lib);
+  sg__wc.w[6338] = IDENT("display", lib);
+  sg__wc.w[8573] = IDENT("cddadr", lib);
+  sg__wc.w[152] = IDENT("dot-dot-k?", lib);
   sg__wc.w[773] = SYMBOLW(">=");
   sg__wc.w[1308] = SYMBOLW(">=");
   sg__wc.w[1677] = SYMBOLW(">=");
   sg__wc.w[7115] = SYMBOLW(">=");
-  sg__wc.w[190] = WORD(&sg__wc.cb[96]);
-  sg__wc.cb[96].name = SYMBOL("in");
-  sg__wc.w[2070] = WORD(&sg__wc.cb[36]);
-  sg__wc.cb[36].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[4396] = WORD(&sg__wc.cb[48]);
-  sg__wc.cb[48].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[3865] = IDENT("cadr", lib);
+  sg__wc.w[10291] = IDENT("assq", lib);
   sg__wc.w[6772] = SYMBOLW("for-all");
-  sg__wc.w[8576] = IDENT("caadar", lib);
-  sg__wc.w[166] = WORD(&sg__wc.cb[41]);
-  sg__wc.cb[41].name = SYMBOL("bound");
-  sg__wc.w[7704] = IDENT("cons*", lib);
   sg__wc.w[7960] = IDENT("append", lib);
-  sg__wc.w[2390] = IDENT("append", lib);
-  sg__wc.w[138] = WORD(&sg__wc.cb[29]);
-  sg__wc.cb[29].name = SYMBOL("genletrec");
-  sg__wc.w[6866] = IDENT("list-ref", lib);
-  sg__wc.w[8767] = IDENT("cddadr", lib);
-  sg__wc.w[95] = WORD(&sg__wc.cb[22]);
-  sg__wc.cb[22].name = SYMBOL("match:make-structure-tag");
-  sg__wc.w[2526] = IDENT("list?", lib);
-  sg__wc.w[57] = WORD(&sg__wc.cb[15]);
-  sg__wc.cb[15].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[5348] = IDENT("caddr", lib);
-  sg__wc.w[33] = WORD(&sg__wc.cb[8]);
-  sg__wc.cb[8].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[8135] = IDENT("caddr", lib);
-  sg__wc.w[8881] = IDENT("cons*", lib);
-  sg__wc.w[3737] = IDENT("cons*", lib);
-  sg__wc.w[1935] = IDENT("string->list", lib);
-  sg__wc.w[8310] = IDENT("caadar", lib);
-  sg__wc.w[5731] = IDENT("cons*", lib);
-  sg__wc.w[9882] = IDENT("number?", lib);
-  sg__wc.w[8550] = IDENT("cddadr", lib);
-  sg__wc.w[8500] = IDENT("cddadr", lib);
-  sg__wc.w[1902] = IDENT("memq", lib);
-  sg__wc.w[3] = tmp = UNSIDENT("G16463", lib);
-  uninterned = Sg_Acons(STRING("G16463"), SG_OBJ(tmp), uninterned);
-  sg__wc.w[1268] = WORD(SG_CDR(Sg_Assq(STRING("G16463"), uninterned)));
-  sg__wc.w[10854] = IDENT("string->symbol", lib);
-  sg__wc.w[10515] = IDENT("cons*", lib);
-  sg__wc.w[9088] = IDENT("add-d", lib);
-  sg__wc.w[10143] = IDENT("cons*", lib);
-  sg__wc.w[7795] = IDENT("cons*", lib);
-  sg__wc.w[5981] = IDENT("cons*", lib);
-  sg__wc.w[277] = IDENT("cons*", lib);
-  sg__wc.w[8095] = IDENT("append", lib);
-  sg__wc.w[5313] = IDENT("cddddr", lib);
-  sg__wc.w[136] = IDENT("genmatch", lib);
-  sg__wc.w[8141] = IDENT("cons*", lib);
-  sg__wc.w[1917] = IDENT("memq", lib);
-  sg__wc.w[3056] = IDENT("cons*", lib);
-  sg__wc.w[180] = IDENT("emit", lib);
-  sg__wc.w[2599] = IDENT("list?", lib);
-  sg__wc.w[8475] = IDENT("cddadr", lib);
-  sg__wc.w[1870] = IDENT("identifier->symbol", lib);
-  sg__wc.w[5567] = IDENT("cons*", lib);
-  sg__wc.w[228] = IDENT("get-c---rs", lib);
-  sg__wc.w[10322] = IDENT("cons*", lib);
-  sg__wc.w[8728] = IDENT("cdddar", lib);
-  sg__wc.w[2032] = IDENT("cons*", lib);
+  sg__wc.w[27] = tmp = UNSIDENT("G15137", lib);
+  uninterned = Sg_Acons(STRING("G15137"), SG_OBJ(tmp), uninterned);
+  sg__wc.w[1961] = WORD(SG_CDR(Sg_Assq(STRING("G15137"), uninterned)));
+  sg__wc.w[2382] = IDENT("cddr", lib);
+  sg__wc.w[6845] = IDENT("list-ref", lib);
+  sg__wc.w[5701] = IDENT("emit", lib);
+  sg__wc.w[1932] = IDENT("substring", lib);
+  sg__wc.w[403] = IDENT("for-all", lib);
+  sg__wc.w[8370] = IDENT("caadar", lib);
+  sg__wc.w[10545] = IDENT("cadr", lib);
   sg__wc.w[1245] = IDENT("gensym", lib);
-  sg__wc.w[10488] = IDENT("cons*", lib);
-  sg__wc.w[10020] = IDENT("cons*", lib);
-  sg__wc.w[2476] = IDENT("cons*", lib);
-  sg__wc.w[10111] = IDENT("cadr", lib);
-  sg__wc.w[9470] = IDENT("equal-test?", lib);
-  sg__wc.w[5630] = IDENT("char?", lib);
-  sg__wc.w[2799] = IDENT("append", lib);
-  sg__wc.w[10576] = IDENT("cons*", lib);
-  sg__wc.w[270] = SYMBOLW("define");
-  sg__wc.w[5304] = IDENT("hashtable-set!", lib);
-  sg__wc.w[6070] = IDENT("cadr", lib);
-  sg__wc.w[8265] = IDENT("cddadr", lib);
-  sg__wc.w[4781] = IDENT("reverse", lib);
-  sg__wc.w[6342] = IDENT("newline", lib);
-  sg__wc.w[9284] = IDENT("cadr", lib);
-  sg__wc.w[10448] = IDENT("cons*", lib);
-  sg__wc.w[9967] = IDENT("cadr", lib);
-  sg__wc.w[8452] = IDENT("cddadr", lib);
-  sg__wc.w[10086] = IDENT("cons*", lib);
-  sg__wc.w[1857] = IDENT("memq", lib);
-  sg__wc.w[3870] = IDENT("cons*", lib);
-  sg__wc.w[23] = tmp = UNSIDENT("G16453", lib);
-  uninterned = Sg_Acons(STRING("G16453"), SG_OBJ(tmp), uninterned);
-  sg__wc.w[1733] = WORD(SG_CDR(Sg_Assq(STRING("G16453"), uninterned)));
-  sg__wc.w[10381] = IDENT("cons*", lib);
-  sg__wc.w[8700] = IDENT("cddadr", lib);
-  sg__wc.w[9430] = IDENT("cadr", lib);
-  sg__wc.w[10550] = IDENT("cons*", lib);
-  sg__wc.w[650] = IDENT("match:error-control", lib);
-  sg__wc.w[926] = SYMBOLW("=>");
-  sg__wc.w[255] = IDENT("cons*", lib);
-  sg__wc.w[5273] = IDENT("hashtable-ref", lib);
-  sg__wc.w[9646] = IDENT("cadr", lib);
-  sg__wc.w[7521] = IDENT("cons*", lib);
-  sg__wc.w[3025] = IDENT("cadr", lib);
-  sg__wc.w[3694] = IDENT("cadr", lib);
-  sg__wc.w[6150] = IDENT("cons*", lib);
-  sg__wc.w[1529] = IDENT("gensym", lib);
-  sg__wc.w[10761] = IDENT("cddr", lib);
-  sg__wc.w[5695] = IDENT("cons*", lib);
+  sg__wc.w[9485] = IDENT("caddr", lib);
+  sg__wc.w[574] = STRINGW("no matching clause for ");
+  sg__wc.w[8743] = IDENT("cddr", lib);
+  sg__wc.w[47] = tmp = UNSIDENT("G15127", lib);
+  uninterned = Sg_Acons(STRING("G15127"), SG_OBJ(tmp), uninterned);
+  sg__wc.w[3597] = WORD(SG_CDR(Sg_Assq(STRING("G15127"), uninterned)));
+  sg__wc.w[4376] = WORD(SG_CDR(Sg_Assq(STRING("G15127"), uninterned)));
+  sg__wc.w[4434] = WORD(SG_CDR(Sg_Assq(STRING("G15127"), uninterned)));
+  sg__wc.w[570] = IDENT("print", lib);
+  sg__wc.w[441] = IDENT("char?", lib);
+  sg__wc.w[2385] = IDENT("map", lib);
+  sg__wc.w[609] = IDENT("match:runtime-structures", lib);
+  sg__wc.w[6163] = IDENT("emit", lib);
   sg__wc.w[7485] = IDENT("map", lib);
-  sg__wc.w[5451] = IDENT("cons*", lib);
-  sg__wc.w[7597] = IDENT("cons*", lib);
-  sg__wc.w[1767] = IDENT("cons*", lib);
-  sg__wc.w[2057] = STRINGW("invalid value for match:error-control, legal values are");
-  sg__wc.w[152] = IDENT("dot-dot-k?", lib);
-  sg__wc.w[31] = tmp = UNSIDENT("G16449", lib);
-  uninterned = Sg_Acons(STRING("G16449"), SG_OBJ(tmp), uninterned);
-  sg__wc.w[1978] = WORD(SG_CDR(Sg_Assq(STRING("G16449"), uninterned)));
-  sg__wc.w[8691] = IDENT("cddr", lib);
-  sg__wc.w[8035] = IDENT("guarantees", lib);
-  sg__wc.w[7396] = IDENT("append", lib);
-  sg__wc.w[1062] = IDENT("gensym", lib);
+  sg__wc.w[9384] = IDENT("cadr", lib);
+  sg__wc.w[8355] = IDENT("cdadr", lib);
+  sg__wc.w[8156] = IDENT("equal?", lib);
+  sg__wc.w[226] = WORD(Sg_Cons(Sg_Cons(SYMBOL("caar"), Sg_Cons(SYMBOL("car"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("cadr"), Sg_Cons(SYMBOL("cdr"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("cdar"), Sg_Cons(SYMBOL("car"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cddr"), Sg_Cons(SYMBOL("cdr"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("caaar"), Sg_Cons(SYMBOL("caar"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("caadr"), Sg_Cons(SYMBOL("cadr"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("cadar"), Sg_Cons(SYMBOL("cdar"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("caddr"), Sg_Cons(SYMBOL("cddr"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("cdaar"), Sg_Cons(SYMBOL("caar"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cdadr"), Sg_Cons(SYMBOL("cadr"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cddar"), Sg_Cons(SYMBOL("cdar"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cdddr"), Sg_Cons(SYMBOL("cddr"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("caaaar"), Sg_Cons(SYMBOL("caaar"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("caaadr"), Sg_Cons(SYMBOL("caadr"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("caadar"), Sg_Cons(SYMBOL("cadar"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("caaddr"), Sg_Cons(SYMBOL("caddr"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("cadaar"), Sg_Cons(SYMBOL("cdaar"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("cadadr"), Sg_Cons(SYMBOL("cdadr"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("caddar"), Sg_Cons(SYMBOL("cddar"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("cadddr"), Sg_Cons(SYMBOL("cdddr"), SYMBOL("car"))), Sg_Cons(Sg_Cons(SYMBOL("cdaaar"), Sg_Cons(SYMBOL("caaar"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cdaadr"), Sg_Cons(SYMBOL("caadr"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cdadar"), Sg_Cons(SYMBOL("cadar"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cdaddr"), Sg_Cons(SYMBOL("caddr"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cddaar"), Sg_Cons(SYMBOL("cdaar"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cddadr"), Sg_Cons(SYMBOL("cdadr"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cdddar"), Sg_Cons(SYMBOL("cddar"), SYMBOL("cdr"))), Sg_Cons(Sg_Cons(SYMBOL("cddddr"), Sg_Cons(SYMBOL("cdddr"), SYMBOL("cdr"))), SG_NIL)))))))))))))))))))))))))))));
+  sg__wc.w[2127] = WORD(&sg__wc.cb[38]);
+  sg__wc.cb[38].name = SYMBOL("ordinary");
+  sg__wc.w[627] = STRINGW(">");
+  sg__wc.w[9460] = IDENT("cadr", lib);
+  sg__wc.w[146] = WORD(&sg__wc.cb[31]);
+  sg__wc.cb[31].name = SYMBOL("pattern-var?");
+  sg__wc.w[3503] = IDENT("list->vector", lib);
+  sg__wc.w[8725] = IDENT("cddadr", lib);
+  sg__wc.w[107] = WORD(&sg__wc.cb[24]);
+  sg__wc.cb[24].name = SYMBOL("match:set-structure-control");
+  sg__wc.w[67] = tmp = UNSIDENT("G15117", lib);
+  uninterned = Sg_Acons(STRING("G15117"), SG_OBJ(tmp), uninterned);
+  sg__wc.w[6981] = WORD(SG_CDR(Sg_Assq(STRING("G15117"), uninterned)));
   sg__wc.w[3957] = IDENT("cadr", lib);
-  sg__wc.w[3227] = IDENT("cddr", lib);
-  sg__wc.w[4447] = IDENT("match:syntax-err", lib);
-  sg__wc.w[6037] = IDENT("cadr", lib);
-  sg__wc.w[482] = IDENT("cadr", lib);
-  sg__wc.w[3798] = IDENT("append", lib);
-  sg__wc.w[4485] = IDENT("cadr", lib);
-  sg__wc.w[7837] = IDENT("vec-structure?", lib);
-  sg__wc.w[3460] = IDENT("reverse", lib);
-  sg__wc.w[1471] = IDENT("bound", lib);
-  sg__wc.w[10727] = IDENT("cadr", lib);
-  sg__wc.w[8222] = IDENT("cddadr", lib);
-  sg__wc.w[115] = SYMBOLW("error");
-  sg__wc.w[6648] = IDENT("list-ref", lib);
-  sg__wc.w[8439] = IDENT("equal?", lib);
-  sg__wc.w[2357] = IDENT("cddr", lib);
-  sg__wc.w[10707] = IDENT("assq", lib);
-  sg__wc.w[35] = tmp = UNSIDENT("G16447", lib);
-  uninterned = Sg_Acons(STRING("G16447"), SG_OBJ(tmp), uninterned);
-  sg__wc.w[2121] = WORD(SG_CDR(Sg_Assq(STRING("G16447"), uninterned)));
-  sg__wc.w[2151] = WORD(SG_CDR(Sg_Assq(STRING("G16447"), uninterned)));
-  sg__wc.w[3184] = WORD(SG_CDR(Sg_Assq(STRING("G16447"), uninterned)));
-  sg__wc.w[584] = IDENT("error", lib);
-  sg__wc.w[7381] = IDENT("cons*", lib);
-  sg__wc.w[71] = tmp = UNSIDENT("G16429", lib);
-  uninterned = Sg_Acons(STRING("G16429"), SG_OBJ(tmp), uninterned);
-  sg__wc.w[7388] = WORD(SG_CDR(Sg_Assq(STRING("G16429"), uninterned)));
-  sg__wc.w[3994] = IDENT("cadr", lib);
-  sg__wc.w[164] = IDENT("validate-pattern", lib);
-  sg__wc.w[7480] = WORD(&sg__wc.cb[88]);
-  sg__wc.cb[88].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[4420] = IDENT("append", lib);
-  sg__wc.w[2983] = IDENT("memv", lib);
-  sg__wc.w[3801] = IDENT("cons*", lib);
-  sg__wc.w[7044] = WORD(&sg__wc.cb[81]);
-  sg__wc.cb[81].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[144] = IDENT("gendefine", lib);
-  sg__wc.w[7848] = IDENT("cons*", lib);
-  sg__wc.w[5476] = IDENT("cons*", lib);
-  sg__wc.w[8206] = IDENT("cadadr", lib);
-  sg__wc.w[5865] = WORD(&sg__wc.cb[74]);
-  sg__wc.cb[74].name = SYMBOL("loop");
-  sg__wc.w[6548] = IDENT("dot-dot-k?", lib);
-  sg__wc.w[3174] = IDENT("match:syntax-err", lib);
-  sg__wc.w[5129] = WORD(&sg__wc.cb[67]);
-  sg__wc.cb[67].name = SYMBOL("gen-rec");
-  sg__wc.w[9940] = IDENT("memq", lib);
-  sg__wc.w[7659] = IDENT("cadr", lib);
-  sg__wc.w[9] = WORD(&sg__wc.cb[2]);
-  sg__wc.cb[2].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[47] = tmp = UNSIDENT("G16441", lib);
-  uninterned = Sg_Acons(STRING("G16441"), SG_OBJ(tmp), uninterned);
-  sg__wc.w[3597] = WORD(SG_CDR(Sg_Assq(STRING("G16441"), uninterned)));
-  sg__wc.w[4376] = WORD(SG_CDR(Sg_Assq(STRING("G16441"), uninterned)));
-  sg__wc.w[4434] = WORD(SG_CDR(Sg_Assq(STRING("G16441"), uninterned)));
+  sg__wc.w[65] = WORD(&sg__wc.cb[17]);
+  sg__wc.cb[17].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[3642] = IDENT("match:syntax-err", lib);
+  sg__wc.w[549] = IDENT("symbol->string", lib);
+  sg__wc.w[41] = WORD(&sg__wc.cb[10]);
+  sg__wc.cb[10].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[587] = IDENT("match:structure-control", lib);
+  sg__wc.w[6107] = IDENT("dot-dot-k?", lib);
+  sg__wc.w[7551] = WORD(&sg__wc.cb[90]);
+  sg__wc.cb[90].name = SYMBOL("vloop");
+  sg__wc.w[270] = SYMBOLW("define");
+  sg__wc.w[13] = WORD(&sg__wc.cb[3]);
+  sg__wc.cb[3].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[7090] = WORD(&sg__wc.cb[83]);
+  sg__wc.cb[83].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[8333] = IDENT("caadr", lib);
+  sg__wc.w[636] = IDENT("match:disjoint-structure-tags", lib);
+  sg__wc.w[3732] = IDENT("cadr", lib);
+  sg__wc.w[8536] = IDENT("cdadar", lib);
+  sg__wc.w[3842] = IDENT("memq", lib);
+  sg__wc.w[9640] = IDENT("cadr", lib);
+  sg__wc.w[7928] = IDENT("append", lib);
+  sg__wc.w[3885] = IDENT("caddr", lib);
+  sg__wc.w[5238] = WORD(&sg__wc.cb[71]);
+  sg__wc.cb[71].name = SYMBOL("next");
+  sg__wc.w[2059] = IDENT("match:syntax-err", lib);
+  sg__wc.w[236] = IDENT("genletrec", lib);
+  sg__wc.w[6984] = IDENT("map", lib);
+  sg__wc.w[5952] = IDENT("length", lib);
+  sg__wc.w[8058] = IDENT("cadddr", lib);
+  sg__wc.w[4865] = WORD(&sg__wc.cb[64]);
+  sg__wc.cb[64].name = SYMBOL("loop");
+  sg__wc.w[10850] = IDENT("map", lib);
+  sg__wc.w[4163] = IDENT("memq", lib);
   sg__wc.w[4699] = WORD(&sg__wc.cb[60]);
   sg__wc.cb[60].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[4995] = IDENT("caddr", lib);
+  sg__wc.w[6077] = IDENT("getter", lib);
+  sg__wc.w[926] = SYMBOLW("=>");
+  sg__wc.w[4198] = WORD(&sg__wc.cb[53]);
+  sg__wc.cb[53].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[660] = IDENT("gensym", lib);
+  sg__wc.w[638] = IDENT("memq", lib);
+  sg__wc.w[5725] = IDENT("cadr", lib);
+  sg__wc.w[9849] = IDENT("string?", lib);
+  sg__wc.w[4329] = WORD(&sg__wc.cb[46]);
+  sg__wc.cb[46].name = SYMBOL("or*");
+  sg__wc.w[360] = IDENT("gensym", lib);
+  sg__wc.w[214] = WORD(Sg_Cons(Sg_Cons(SYMBOL("car"), Sg_Cons(SYMBOL("caar"), SYMBOL("cdar"))), Sg_Cons(Sg_Cons(SYMBOL("cdr"), Sg_Cons(SYMBOL("cadr"), SYMBOL("cddr"))), Sg_Cons(Sg_Cons(SYMBOL("caar"), Sg_Cons(SYMBOL("caaar"), SYMBOL("cdaar"))), Sg_Cons(Sg_Cons(SYMBOL("cadr"), Sg_Cons(SYMBOL("caadr"), SYMBOL("cdadr"))), Sg_Cons(Sg_Cons(SYMBOL("cdar"), Sg_Cons(SYMBOL("cadar"), SYMBOL("cddar"))), Sg_Cons(Sg_Cons(SYMBOL("cddr"), Sg_Cons(SYMBOL("caddr"), SYMBOL("cdddr"))), Sg_Cons(Sg_Cons(SYMBOL("caaar"), Sg_Cons(SYMBOL("caaaar"), SYMBOL("cdaaar"))), Sg_Cons(Sg_Cons(SYMBOL("caadr"), Sg_Cons(SYMBOL("caaadr"), SYMBOL("cdaadr"))), Sg_Cons(Sg_Cons(SYMBOL("cadar"), Sg_Cons(SYMBOL("caadar"), SYMBOL("cdadar"))), Sg_Cons(Sg_Cons(SYMBOL("caddr"), Sg_Cons(SYMBOL("caaddr"), SYMBOL("cdaddr"))), Sg_Cons(Sg_Cons(SYMBOL("cdaar"), Sg_Cons(SYMBOL("cadaar"), SYMBOL("cddaar"))), Sg_Cons(Sg_Cons(SYMBOL("cdadr"), Sg_Cons(SYMBOL("cadadr"), SYMBOL("cddadr"))), Sg_Cons(Sg_Cons(SYMBOL("cddar"), Sg_Cons(SYMBOL("caddar"), SYMBOL("cdddar"))), Sg_Cons(Sg_Cons(SYMBOL("cdddr"), Sg_Cons(SYMBOL("cadddr"), SYMBOL("cddddr"))), SG_NIL)))))))))))))));
+  sg__wc.w[8278] = IDENT("cddadr", lib);
+  sg__wc.w[8506] = IDENT("cddadr", lib);
+  sg__wc.w[10361] = IDENT("symbol-append", lib);
+  sg__wc.w[10433] = IDENT("symbol-append", lib);
+  sg__wc.w[8688] = IDENT("caadar", lib);
+  sg__wc.w[6648] = IDENT("list-ref", lib);
+  sg__wc.w[8799] = IDENT("caadar", lib);
+  sg__wc.w[232] = IDENT("symbol-append", lib);
+  sg__wc.w[9262] = IDENT("member", lib);
+  sg__wc.w[2672] = IDENT("list?", lib);
+  sg__wc.w[10311] = IDENT("cadr", lib);
+  sg__wc.w[101] = IDENT("match:structure?", lib);
+  sg__wc.w[1915] = WORD(Sg_Cons(SG_MAKE_CHAR(46), Sg_Cons(SG_MAKE_CHAR(95), SG_NIL)));
+  sg__wc.w[10111] = IDENT("cadr", lib);
+  sg__wc.w[4491] = IDENT("gensym", lib);
+  sg__wc.w[115] = SYMBOLW("error");
+  sg__wc.w[8481] = IDENT("cddadr", lib);
+  sg__wc.w[9957] = IDENT("assq", lib);
+  sg__wc.w[2250] = IDENT("cadr", lib);
+  sg__wc.w[1834] = WORD(Sg_Cons(SYMBOL("quasiquote"), Sg_Cons(SYMBOL("quote"), Sg_Cons(SYMBOL("unquote"), Sg_Cons(SYMBOL("unquote-splicing"), Sg_Cons(SYMBOL("?"), Sg_Cons(SYMBOL("_"), Sg_Cons(SYMBOL("$"), Sg_Cons(SYMBOL("="), Sg_Cons(SYMBOL("and"), Sg_Cons(SYMBOL("or"), Sg_Cons(SYMBOL("not"), Sg_Cons(SYMBOL("set!"), Sg_Cons(SYMBOL("get!"), Sg_Cons(SYMBOL("..."), Sg_Cons(SYMBOL("___"), SG_NIL))))))))))))))));
+  sg__wc.w[220] = IDENT("setter", lib);
+  sg__wc.w[8673] = IDENT("cddadr", lib);
+  sg__wc.w[1912] = IDENT("string-ref", lib);
+  sg__wc.w[6548] = IDENT("dot-dot-k?", lib);
+  sg__wc.w[7181] = IDENT("assm", lib);
+  sg__wc.w[8761] = IDENT("cddadr", lib);
+  sg__wc.w[7837] = IDENT("vec-structure?", lib);
+  sg__wc.w[4120] = IDENT("memq", lib);
   sg__wc.w[6793] = IDENT("assm", lib);
-  sg__wc.w[2620] = IDENT("map", lib);
-  sg__wc.w[3826] = IDENT("cadr", lib);
-  sg__wc.w[8656] = IDENT("cdddar", lib);
-  sg__wc.w[5952] = IDENT("length", lib);
-  sg__wc.w[4066] = WORD(&sg__wc.cb[51]);
-  sg__wc.cb[51].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[202] = WORD(&sg__wc.cb[99]);
-  sg__wc.cb[99].name = SYMBOL("vec-structure?");
-  sg__wc.w[2450] = IDENT("cdddr", lib);
-  sg__wc.w[2134] = WORD(&sg__wc.cb[39]);
-  sg__wc.cb[39].name = SYMBOL("quasi");
+  sg__wc.w[6044] = IDENT("setter", lib);
+  sg__wc.w[3156] = IDENT("map", lib);
+  sg__wc.w[10098] = SYMBOLW("unbox");
+  sg__wc.w[10532] = SYMBOLW("unbox");
+  sg__wc.w[10565] = SYMBOLW("unbox");
+  sg__wc.w[218] = WORD(&sg__wc.cb[102]);
+  sg__wc.cb[102].name = SYMBOL("setter");
+  sg__wc.w[9308] = IDENT("cadr", lib);
+  sg__wc.w[6185] = IDENT("dot-dot-k?", lib);
+  sg__wc.w[3710] = IDENT("memq", lib);
+  sg__wc.w[6945] = IDENT("cons", lib);
+  sg__wc.w[196] = IDENT("equal-test?", lib);
+  sg__wc.w[9104] = WORD(&sg__wc.cb[95]);
+  sg__wc.cb[95].name = SYMBOL("loop");
+  sg__wc.w[8458] = IDENT("cddadr", lib);
+  sg__wc.w[8235] = IDENT("cddadr", lib);
+  sg__wc.w[208] = IDENT("add-a", lib);
+  sg__wc.w[5580] = IDENT("string?", lib);
+  sg__wc.w[8653] = IDENT("cddadr", lib);
+  sg__wc.w[9765] = IDENT("equal?", lib);
   sg__wc.w[2662] = SYMBOLW("not");
   sg__wc.w[2681] = SYMBOLW("not");
   sg__wc.w[3978] = SYMBOLW("not");
@@ -11897,93 +11735,91 @@ void Sg__Init_match_core()
   sg__wc.w[9326] = SYMBOLW("not");
   sg__wc.w[9422] = SYMBOLW("not");
   sg__wc.w[9788] = SYMBOLW("not");
-  sg__wc.w[5623] = IDENT("emit", lib);
-  sg__wc.w[2769] = IDENT("list?", lib);
-  sg__wc.w[2080] = IDENT("cddddr", lib);
-  sg__wc.w[800] = IDENT("cons*", lib);
-  sg__wc.w[3936] = WORD(&sg__wc.cb[44]);
-  sg__wc.cb[44].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[150] = WORD(&sg__wc.cb[32]);
-  sg__wc.cb[32].name = SYMBOL("dot-dot-k?");
-  sg__wc.w[642] = IDENT("match:structure-control", lib);
-  sg__wc.w[9182] = IDENT("caddr", lib);
-  sg__wc.w[111] = WORD(&sg__wc.cb[25]);
-  sg__wc.cb[25].name = SYMBOL("match:set-error");
-  sg__wc.w[450] = IDENT("number?", lib);
-  sg__wc.w[2925] = IDENT("cadr", lib);
-  sg__wc.w[2213] = IDENT("variable?", lib);
-  sg__wc.w[1388] = IDENT("append", lib);
-  sg__wc.w[69] = WORD(&sg__wc.cb[18]);
-  sg__wc.cb[18].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[8190] = IDENT("cdadr", lib);
-  sg__wc.w[6118] = IDENT("cons*", lib);
-  sg__wc.w[9293] = IDENT("member", lib);
-  sg__wc.w[45] = WORD(&sg__wc.cb[11]);
-  sg__wc.cb[11].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[8367] = IDENT("cddadr", lib);
-  sg__wc.w[2303] = IDENT("cddr", lib);
-  sg__wc.w[1788] = IDENT("append", lib);
-  sg__wc.w[4754] = IDENT("cadr", lib);
-  sg__wc.w[10657] = IDENT("cadr", lib);
-  sg__wc.w[790] = IDENT("cons*", lib);
-  sg__wc.w[8633] = IDENT("cddar", lib);
+  sg__wc.w[2096] = IDENT("format", lib);
+  sg__wc.w[9227] = IDENT("variable?", lib);
+  sg__wc.w[4822] = IDENT("memq", lib);
+  sg__wc.w[3139] = IDENT("dot-dot-k?", lib);
+  sg__wc.w[7103] = IDENT("add-d", lib);
+  sg__wc.w[629] = IDENT("string-append", lib);
+  sg__wc.w[8428] = IDENT("caadar", lib);
+  sg__wc.w[9560] = IDENT("cadr", lib);
+  sg__wc.w[7619] = IDENT("in", lib);
+  sg__wc.w[825] = IDENT("inline-let", lib);
+  sg__wc.w[8630] = IDENT("cddadr", lib);
+  sg__wc.w[1873] = IDENT("symbol->string", lib);
+  sg__wc.w[2935] = IDENT("cddr", lib);
   sg__wc.w[6918] = SYMBOLW("car");
   sg__wc.w[9975] = SYMBOLW("car");
   sg__wc.w[10160] = SYMBOLW("car");
   sg__wc.w[10588] = SYMBOLW("car");
   sg__wc.w[10621] = SYMBOLW("car");
-  sg__wc.w[3633] = IDENT("memq", lib);
-  sg__wc.w[8811] = IDENT("caddar", lib);
-  sg__wc.w[7424] = IDENT("cons*", lib);
-  sg__wc.w[9570] = IDENT("disjoint?", lib);
-  sg__wc.w[5642] = IDENT("cons*", lib);
-  sg__wc.w[865] = IDENT("cadr", lib);
-  sg__wc.w[9752] = IDENT("equal?", lib);
-  sg__wc.w[8168] = IDENT("cadr", lib);
-  sg__wc.w[10356] = SYMBOLW("set-");
-  sg__wc.w[10428] = SYMBOLW("set-");
-  sg__wc.w[8845] = IDENT("cons*", lib);
-  sg__wc.w[1797] = IDENT("cons*", lib);
-  sg__wc.w[1953] = IDENT("match:error-control", lib);
-  sg__wc.w[4623] = IDENT("x", lib);
-  sg__wc.w[8352] = IDENT("caadar", lib);
-  sg__wc.w[5756] = IDENT("caddr", lib);
-  sg__wc.w[7350] = IDENT("append", lib);
-  sg__wc.w[312] = IDENT("cons*", lib);
-  sg__wc.w[9313] = IDENT("cons*", lib);
-  sg__wc.w[8608] = IDENT("cdadar", lib);
+  sg__wc.w[7715] = IDENT("boolean?", lib);
+  sg__wc.w[5365] = IDENT("cadddr", lib);
+  sg__wc.w[2620] = IDENT("map", lib);
+  sg__wc.w[3508] = STRINGW("syntax error in pattern");
+  sg__wc.w[117] = IDENT("match:error-control", lib);
+  sg__wc.w[2860] = IDENT("pattern-var?", lib);
+  sg__wc.w[937] = IDENT("cadadr", lib);
+  sg__wc.w[8405] = IDENT("caadar", lib);
+  sg__wc.w[9932] = IDENT("memq", lib);
+  sg__wc.w[5135] = IDENT("make-eq-hashtable", lib);
+  sg__wc.w[1468] = IDENT("validate-pattern", lib);
+  sg__wc.w[8605] = IDENT("cddadr", lib);
+  sg__wc.w[9995] = IDENT("c---rs", lib);
   sg__wc.w[184] = IDENT("assm", lib);
-  sg__wc.w[556] = IDENT("number?", lib);
-  sg__wc.w[638] = IDENT("memq", lib);
-  sg__wc.w[1428] = IDENT("cons*", lib);
-  sg__wc.w[2867] = IDENT("cddr", lib);
-  sg__wc.w[7036] = IDENT("cons*", lib);
-  sg__wc.w[3359] = IDENT("dot-dot-k?", lib);
-  sg__wc.w[10272] = IDENT("cons*", lib);
-  sg__wc.w[9731] = IDENT("cadr", lib);
+  sg__wc.w[9725] = IDENT("cadr", lib);
+  sg__wc.w[2050] = WORD(&sg__wc.cb[34]);
+  sg__wc.cb[34].name = SYMBOL("error-maker");
+  sg__wc.w[11] = tmp = UNSIDENT("G15145", lib);
+  uninterned = Sg_Acons(STRING("G15145"), SG_OBJ(tmp), uninterned);
+  sg__wc.w[1376] = WORD(SG_CDR(Sg_Assq(STRING("G15145"), uninterned)));
+  sg__wc.w[134] = WORD(&sg__wc.cb[27]);
+  sg__wc.cb[27].name = SYMBOL("genmatch");
+  sg__wc.w[9167] = IDENT("cadr", lib);
+  sg__wc.w[83] = WORD(&sg__wc.cb[20]);
+  sg__wc.cb[20].name = SYMBOL("match:error");
+  sg__wc.w[8871] = IDENT("assm", lib);
+  sg__wc.w[156] = IDENT("error-maker", lib);
+  sg__wc.w[49] = WORD(&sg__wc.cb[13]);
+  sg__wc.cb[13].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[913] = IDENT("cadr", lib);
+  sg__wc.w[8387] = IDENT("caadar", lib);
   sg__wc.w[5536] = SYMBOLW("null?");
   sg__wc.w[5562] = SYMBOLW("null?");
   sg__wc.w[6999] = SYMBOLW("null?");
   sg__wc.w[7815] = SYMBOLW("null?");
   sg__wc.w[7888] = SYMBOLW("null?");
   sg__wc.w[9279] = SYMBOLW("null?");
-  sg__wc.w[4586] = IDENT("cadr", lib);
-  sg__wc.w[8330] = IDENT("caadar", lib);
-  sg__wc.w[2250] = IDENT("cadr", lib);
-  sg__wc.w[4911] = IDENT("cadr", lib);
-  sg__wc.w[8579] = IDENT("cddadr", lib);
-  sg__wc.w[10838] = IDENT("match:syntax-err", lib);
-  sg__wc.w[2369] = IDENT("cadr", lib);
-  sg__wc.w[6845] = IDENT("list-ref", lib);
-  sg__wc.w[8770] = IDENT("cdadar", lib);
-  sg__wc.w[624] = IDENT("symbol->string", lib);
+  sg__wc.w[25] = WORD(&sg__wc.cb[6]);
+  sg__wc.cb[6].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[7196] = WORD(&sg__wc.cb[86]);
+  sg__wc.cb[86].name = SYMBOL("vloop");
+  sg__wc.w[1050] = IDENT("append", lib);
+  sg__wc.w[8576] = IDENT("caadar", lib);
+  sg__wc.w[6575] = WORD(&sg__wc.cb[79]);
+  sg__wc.cb[79].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[3500] = IDENT("map", lib);
+  sg__wc.w[31] = tmp = UNSIDENT("G15135", lib);
+  uninterned = Sg_Acons(STRING("G15135"), SG_OBJ(tmp), uninterned);
+  sg__wc.w[1978] = WORD(SG_CDR(Sg_Assq(STRING("G15135"), uninterned)));
+  sg__wc.w[6723] = IDENT("cadr", lib);
+  sg__wc.w[5865] = WORD(&sg__wc.cb[74]);
+  sg__wc.cb[74].name = SYMBOL("loop");
   sg__wc.w[103] = SYMBOLW("vector");
-  sg__wc.w[6020] = IDENT("emit", lib);
-  sg__wc.w[3326] = IDENT("cadar", lib);
-  sg__wc.w[6599] = IDENT("cons*", lib);
-  sg__wc.w[674] = IDENT("error-maker", lib);
-  sg__wc.w[8124] = IDENT("cadr", lib);
-  sg__wc.w[1923] = IDENT("char-numeric?", lib);
+  sg__wc.w[9147] = IDENT("equal?", lib);
+  sg__wc.w[318] = IDENT("string?", lib);
+  sg__wc.w[2769] = IDENT("list?", lib);
+  sg__wc.w[596] = IDENT("gensym", lib);
+  sg__wc.w[5129] = WORD(&sg__wc.cb[67]);
+  sg__wc.cb[67].name = SYMBOL("gen-rec");
+  sg__wc.w[10838] = IDENT("match:syntax-err", lib);
+  sg__wc.w[170] = WORD(&sg__wc.cb[63]);
+  sg__wc.cb[63].name = SYMBOL("inline-let");
+  sg__wc.w[2791] = IDENT("cddr", lib);
+  sg__wc.w[892] = IDENT("gensym", lib);
+  sg__wc.w[8373] = IDENT("cadadr", lib);
+  sg__wc.w[9410] = IDENT("equal?", lib);
+  sg__wc.w[394] = IDENT("length", lib);
   sg__wc.w[753] = SYMBOLW("lambda");
   sg__wc.w[763] = SYMBOLW("lambda");
   sg__wc.w[1025] = SYMBOLW("lambda");
@@ -12017,113 +11853,82 @@ void Sg__Init_match_core()
   sg__wc.w[10671] = SYMBOLW("lambda");
   sg__wc.w[10752] = SYMBOLW("lambda");
   sg__wc.w[10808] = SYMBOLW("lambda");
-  sg__wc.w[9224] = IDENT("cadr", lib);
-  sg__wc.w[8313] = IDENT("cadr", lib);
-  sg__wc.w[6723] = IDENT("cadr", lib);
-  sg__wc.w[7641] = IDENT("in", lib);
-  sg__wc.w[8553] = IDENT("caadar", lib);
-  sg__wc.w[224] = IDENT("getter", lib);
-  sg__wc.w[8503] = IDENT("caadar", lib);
-  sg__wc.w[247] = IDENT("gensym", lib);
-  sg__wc.w[8735] = IDENT("cddadr", lib);
-  sg__wc.w[604] = IDENT("match:disjoint-structure-tags", lib);
-  sg__wc.w[9082] = IDENT("add-a", lib);
-  sg__wc.w[9485] = IDENT("caddr", lib);
-  sg__wc.w[10571] = IDENT("cons*", lib);
-  sg__wc.w[7406] = SYMBOLW(">");
+  sg__wc.w[3586] = WORD(&sg__wc.cb[56]);
+  sg__wc.cb[56].name = SYMBOL("boundv");
+  sg__wc.w[9479] = IDENT("caddr", lib);
+  sg__wc.w[8550] = IDENT("cddadr", lib);
+  sg__wc.w[1821] = IDENT("dot-dot-k?", lib);
+  sg__wc.w[4341] = WORD(&sg__wc.cb[49]);
+  sg__wc.cb[49].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[3356] = IDENT("cadr", lib);
+  sg__wc.w[3581] = WORD(&sg__wc.cb[42]);
+  sg__wc.cb[42].name = SYMBOL("bound");
+  sg__wc.w[3490] = IDENT("reverse", lib);
+  sg__wc.w[160] = IDENT("unreachable", lib);
+  sg__wc.w[432] = IDENT("string?", lib);
+  sg__wc.w[51] = tmp = UNSIDENT("G15125", lib);
+  uninterned = Sg_Acons(STRING("G15125"), SG_OBJ(tmp), uninterned);
+  sg__wc.w[4745] = WORD(SG_CDR(Sg_Assq(STRING("G15125"), uninterned)));
+  sg__wc.w[4804] = WORD(SG_CDR(Sg_Assq(STRING("G15125"), uninterned)));
+  sg__wc.w[4959] = WORD(SG_CDR(Sg_Assq(STRING("G15125"), uninterned)));
+  sg__wc.w[4998] = WORD(SG_CDR(Sg_Assq(STRING("G15125"), uninterned)));
+  sg__wc.w[6020] = IDENT("emit", lib);
   sg__wc.w[6710] = IDENT("variable?", lib);
-  sg__wc.w[4836] = IDENT("caar", lib);
-  sg__wc.w[8527] = IDENT("cddadr", lib);
-  sg__wc.w[10443] = IDENT("cons*", lib);
-  sg__wc.w[10081] = IDENT("cons*", lib);
-  sg__wc.w[8478] = IDENT("caadar", lib);
-  sg__wc.w[1873] = IDENT("symbol->string", lib);
-  sg__wc.w[7748] = IDENT("cons*", lib);
-  sg__wc.w[15] = tmp = UNSIDENT("G16457", lib);
-  uninterned = Sg_Acons(STRING("G16457"), SG_OBJ(tmp), uninterned);
-  sg__wc.w[1619] = WORD(SG_CDR(Sg_Assq(STRING("G16457"), uninterned)));
-  sg__wc.w[609] = IDENT("match:runtime-structures", lib);
-  sg__wc.w[9460] = IDENT("cadr", lib);
-  sg__wc.w[4282] = IDENT("cadr", lib);
-  sg__wc.w[2778] = IDENT("cadr", lib);
-  sg__wc.w[10545] = IDENT("cadr", lib);
-  sg__wc.w[6316] = IDENT("cons*", lib);
-  sg__wc.w[345] = IDENT("number?", lib);
-  sg__wc.w[1394] = IDENT("cons*", lib);
-  sg__wc.w[3722] = IDENT("gensym", lib);
-  sg__wc.w[4213] = IDENT("vector->list", lib);
-  sg__wc.w[3486] = IDENT("map", lib);
-  sg__wc.w[1600] = IDENT("gen", lib);
-  sg__wc.w[7573] = WORD(&sg__wc.cb[91]);
-  sg__wc.cb[91].name = SYMBOL("vloop");
-  sg__wc.w[7080] = IDENT("add-a", lib);
-  sg__wc.w[8268] = IDENT("cadar", lib);
-  sg__wc.w[6338] = IDENT("display", lib);
-  sg__wc.w[6286] = WORD(&sg__wc.cb[84]);
-  sg__wc.cb[84].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[9123] = IDENT("memq", lib);
+  sg__wc.w[2369] = IDENT("cadr", lib);
+  sg__wc.w[6813] = IDENT("equal?", lib);
+  sg__wc.w[224] = IDENT("getter", lib);
+  sg__wc.w[839] = IDENT("validate-pattern", lib);
+  sg__wc.w[8009] = WORD(Sg_Cons(SYMBOL("unspecified"), Sg_Cons(SYMBOL("fail"), SG_NIL)));
+  sg__wc.w[9393] = IDENT("equal?", lib);
+  sg__wc.w[4762] = IDENT("caddr", lib);
+  sg__wc.w[7406] = SYMBOLW(">");
+  sg__wc.w[9454] = IDENT("cadr", lib);
+  sg__wc.w[8338] = IDENT("equal?", lib);
+  sg__wc.w[148] = IDENT("pattern-var?", lib);
+  sg__wc.w[9667] = IDENT("memq", lib);
+  sg__wc.w[8728] = IDENT("cdddar", lib);
+  sg__wc.w[71] = tmp = UNSIDENT("G15115", lib);
+  uninterned = Sg_Acons(STRING("G15115"), SG_OBJ(tmp), uninterned);
+  sg__wc.w[7388] = WORD(SG_CDR(Sg_Assq(STRING("G15115"), uninterned)));
+  sg__wc.w[5623] = IDENT("emit", lib);
+  sg__wc.w[3633] = IDENT("memq", lib);
+  sg__wc.w[8069] = IDENT("cadr", lib);
+  sg__wc.w[3987] = IDENT("cddr", lib);
+  sg__wc.w[9871] = IDENT("char?", lib);
+  sg__wc.w[5547] = IDENT("emit", lib);
+  sg__wc.w[10359] = SYMBOLW("!");
+  sg__wc.w[10431] = SYMBOLW("!");
+  sg__wc.w[198] = WORD(&sg__wc.cb[98]);
+  sg__wc.cb[98].name = SYMBOL("disjoint?");
+  sg__wc.w[3826] = IDENT("cadr", lib);
+  sg__wc.w[8291] = IDENT("cddadr", lib);
   sg__wc.w[580] = SYMBOLW("match:syntax-err");
+  sg__wc.w[2467] = IDENT("caddr", lib);
   sg__wc.w[5402] = SYMBOLW("call-with-current-continuation");
   sg__wc.w[8154] = SYMBOLW("call-with-current-continuation");
   sg__wc.w[8815] = SYMBOLW("call-with-current-continuation");
-  sg__wc.w[79] = STRINGW("Version 1.18, July 17, 1995");
-  sg__wc.w[8455] = IDENT("caadar", lib);
-  sg__wc.w[6476] = WORD(&sg__wc.cb[77]);
-  sg__wc.cb[77].name = SYMBOL("rloop");
-  sg__wc.w[10397] = IDENT("cadr", lib);
-  sg__wc.w[10043] = IDENT("cadr", lib);
-  sg__wc.w[9400] = IDENT("disjoint?", lib);
-  sg__wc.w[5214] = WORD(&sg__wc.cb[70]);
-  sg__wc.cb[70].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[10826] = IDENT("cons*", lib);
-  sg__wc.w[8703] = IDENT("cdadar", lib);
-  sg__wc.w[3640] = STRINGW("duplicate variable in pattern");
-  sg__wc.w[27] = tmp = UNSIDENT("G16451", lib);
-  uninterned = Sg_Acons(STRING("G16451"), SG_OBJ(tmp), uninterned);
-  sg__wc.w[1961] = WORD(SG_CDR(Sg_Assq(STRING("G16451"), uninterned)));
-  sg__wc.w[21] = WORD(&sg__wc.cb[5]);
-  sg__wc.cb[5].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[9435] = IDENT("cons*", lib);
-  sg__wc.w[170] = WORD(&sg__wc.cb[63]);
-  sg__wc.cb[63].name = SYMBOL("inline-let");
-  sg__wc.w[731] = IDENT("gensym", lib);
-  sg__wc.w[4547] = WORD(&sg__wc.cb[54]);
-  sg__wc.cb[54].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[218] = WORD(&sg__wc.cb[102]);
-  sg__wc.cb[102].name = SYMBOL("setter");
-  sg__wc.w[3586] = WORD(&sg__wc.cb[56]);
-  sg__wc.cb[56].name = SYMBOL("boundv");
-  sg__wc.w[9640] = IDENT("cadr", lib);
-  sg__wc.w[9104] = WORD(&sg__wc.cb[95]);
-  sg__wc.cb[95].name = SYMBOL("loop");
-  sg__wc.w[4365] = WORD(&sg__wc.cb[47]);
-  sg__wc.cb[47].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[3987] = IDENT("cddr", lib);
-  sg__wc.w[3028] = IDENT("dot-dot-k?", lib);
-  sg__wc.w[3697] = IDENT("variable?", lib);
-  sg__wc.w[158] = WORD(&sg__wc.cb[35]);
-  sg__wc.cb[35].name = SYMBOL("unreachable");
-  sg__wc.w[3469] = IDENT("dot-dot-k?", lib);
-  sg__wc.w[1514] = IDENT("caddr", lib);
-  sg__wc.w[7490] = IDENT("append", lib);
-  sg__wc.w[702] = WORD(&sg__wc.cb[28]);
-  sg__wc.cb[28].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[10768] = IDENT("cons*", lib);
-  sg__wc.w[9842] = IDENT("caddr", lib);
-  sg__wc.w[304] = IDENT("cons*", lib);
-  sg__wc.w[1772] = IDENT("cons*", lib);
-  sg__wc.w[4134] = IDENT("cadr", lib);
-  sg__wc.w[87] = WORD(&sg__wc.cb[21]);
-  sg__wc.cb[21].name = SYMBOL("match:syntax-err");
-  sg__wc.w[10453] = IDENT("cons*", lib);
-  sg__wc.w[9957] = IDENT("assq", lib);
-  sg__wc.w[8425] = IDENT("cddadr", lib);
-  sg__wc.w[5556] = IDENT("equal?", lib);
-  sg__wc.w[10091] = IDENT("cons*", lib);
-  sg__wc.w[53] = WORD(&sg__wc.cb[14]);
-  sg__wc.cb[14].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[7693] = IDENT("string?", lib);
-  sg__wc.w[1109] = IDENT("validate-pattern", lib);
-  sg__wc.w[7726] = IDENT("cons*", lib);
+  sg__wc.w[5764] = IDENT("cadr", lib);
+  sg__wc.w[9649] = IDENT("equal?", lib);
+  sg__wc.w[8700] = IDENT("cddadr", lib);
+  sg__wc.w[234] = IDENT("genmatch", lib);
+  sg__wc.w[3025] = IDENT("cadr", lib);
+  sg__wc.w[8062] = IDENT("equal?", lib);
+  sg__wc.w[10843] = IDENT("string-append", lib);
+  sg__wc.w[4985] = IDENT("cddr", lib);
+  sg__wc.w[6070] = IDENT("cadr", lib);
+  sg__wc.w[4447] = IDENT("match:syntax-err", lib);
+  sg__wc.w[5514] = IDENT("variable?", lib);
+  sg__wc.w[2178] = IDENT("identifier->symbol", lib);
+  sg__wc.w[2925] = IDENT("cadr", lib);
+  sg__wc.w[8509] = IDENT("caadar", lib);
+  sg__wc.w[8281] = IDENT("caadar", lib);
+  sg__wc.w[1855] = WORD(Sg_Cons(SYMBOL("..."), Sg_Cons(SYMBOL("___"), SG_NIL)));
+  sg__wc.w[8691] = IDENT("cddr", lib);
+  sg__wc.w[1935] = IDENT("string->list", lib);
+  sg__wc.w[561] = IDENT("number->string", lib);
+  sg__wc.w[5390] = IDENT("map", lib);
+  sg__wc.w[2981] = WORD(Sg_Cons(SYMBOL("unquote"), Sg_Cons(SYMBOL("unquote-splicing"), SG_NIL)));
   sg__wc.w[6995] = SYMBOLW("if");
   sg__wc.w[7402] = SYMBOLW("if");
   sg__wc.w[8049] = SYMBOLW("if");
@@ -12131,88 +11936,285 @@ void Sg__Init_match_core()
   sg__wc.w[8114] = SYMBOLW("if");
   sg__wc.w[8890] = SYMBOLW("if");
   sg__wc.w[9158] = SYMBOLW("if");
-  sg__wc.w[1350] = IDENT("map", lib);
-  sg__wc.w[81] = IDENT("match:version", lib);
-  sg__wc.w[485] = IDENT("variable?", lib);
-  sg__wc.w[4509] = IDENT("cons*", lib);
-  sg__wc.w[3780] = IDENT("cadr", lib);
-  sg__wc.w[4159] = IDENT("cadr", lib);
-  sg__wc.w[3448] = IDENT("vector->list", lib);
-  sg__wc.w[1452] = IDENT("error-maker", lib);
-  sg__wc.w[947] = IDENT("cdadr", lib);
-  sg__wc.w[10738] = IDENT("cons*", lib);
-  sg__wc.w[6953] = IDENT("map", lib);
-  sg__wc.w[1687] = IDENT("cons*", lib);
-  sg__wc.w[589] = SYMBOLW("disjoint");
-  sg__wc.w[208] = IDENT("add-a", lib);
-  sg__wc.w[8402] = IDENT("cddadr", lib);
-  sg__wc.w[7898] = IDENT("cons*", lib);
-  sg__wc.w[2360] = IDENT("list?", lib);
-  sg__wc.w[1821] = IDENT("dot-dot-k?", lib);
-  sg__wc.w[3855] = IDENT("gensym", lib);
-  sg__wc.w[39] = tmp = UNSIDENT("G16445", lib);
-  uninterned = Sg_Acons(STRING("G16445"), SG_OBJ(tmp), uninterned);
-  sg__wc.w[4501] = WORD(SG_CDR(Sg_Assq(STRING("G16445"), uninterned)));
-  sg__wc.w[10627] = IDENT("cons*", lib);
-  sg__wc.w[1036] = IDENT("cons*", lib);
-  sg__wc.w[4302] = IDENT("append", lib);
-  sg__wc.w[6923] = IDENT("cons*", lib);
+  sg__wc.w[255] = IDENT("cons*", lib);
+  sg__wc.w[264] = IDENT("cons*", lib);
+  sg__wc.w[277] = IDENT("cons*", lib);
+  sg__wc.w[286] = IDENT("cons*", lib);
+  sg__wc.w[299] = IDENT("cons*", lib);
+  sg__wc.w[304] = IDENT("cons*", lib);
+  sg__wc.w[312] = IDENT("cons*", lib);
+  sg__wc.w[507] = IDENT("cons*", lib);
+  sg__wc.w[519] = IDENT("cons*", lib);
+  sg__wc.w[524] = IDENT("cons*", lib);
+  sg__wc.w[536] = IDENT("cons*", lib);
+  sg__wc.w[541] = IDENT("cons*", lib);
+  sg__wc.w[783] = IDENT("cons*", lib);
+  sg__wc.w[790] = IDENT("cons*", lib);
   sg__wc.w[795] = IDENT("cons*", lib);
+  sg__wc.w[800] = IDENT("cons*", lib);
+  sg__wc.w[805] = IDENT("cons*", lib);
+  sg__wc.w[822] = IDENT("cons*", lib);
+  sg__wc.w[1036] = IDENT("cons*", lib);
+  sg__wc.w[1041] = IDENT("cons*", lib);
   sg__wc.w[1318] = IDENT("cons*", lib);
-  sg__wc.w[923] = IDENT("caadr", lib);
-  sg__wc.w[5390] = IDENT("map", lib);
-  sg__wc.w[10778] = IDENT("cons*", lib);
+  sg__wc.w[1325] = IDENT("cons*", lib);
+  sg__wc.w[1330] = IDENT("cons*", lib);
+  sg__wc.w[1335] = IDENT("cons*", lib);
+  sg__wc.w[1340] = IDENT("cons*", lib);
+  sg__wc.w[1361] = IDENT("cons*", lib);
+  sg__wc.w[1394] = IDENT("cons*", lib);
+  sg__wc.w[1399] = IDENT("cons*", lib);
+  sg__wc.w[1418] = IDENT("cons*", lib);
+  sg__wc.w[1428] = IDENT("cons*", lib);
+  sg__wc.w[1687] = IDENT("cons*", lib);
+  sg__wc.w[1694] = IDENT("cons*", lib);
+  sg__wc.w[1699] = IDENT("cons*", lib);
+  sg__wc.w[1704] = IDENT("cons*", lib);
+  sg__wc.w[1709] = IDENT("cons*", lib);
+  sg__wc.w[1718] = IDENT("cons*", lib);
+  sg__wc.w[1752] = IDENT("cons*", lib);
+  sg__wc.w[1757] = IDENT("cons*", lib);
+  sg__wc.w[1767] = IDENT("cons*", lib);
+  sg__wc.w[1772] = IDENT("cons*", lib);
+  sg__wc.w[1791] = IDENT("cons*", lib);
+  sg__wc.w[1797] = IDENT("cons*", lib);
+  sg__wc.w[2027] = IDENT("cons*", lib);
+  sg__wc.w[2032] = IDENT("cons*", lib);
+  sg__wc.w[2037] = IDENT("cons*", lib);
+  sg__wc.w[2042] = IDENT("cons*", lib);
+  sg__wc.w[2066] = IDENT("cons*", lib);
+  sg__wc.w[2393] = IDENT("cons*", lib);
+  sg__wc.w[2476] = IDENT("cons*", lib);
+  sg__wc.w[2802] = IDENT("cons*", lib);
+  sg__wc.w[3056] = IDENT("cons*", lib);
+  sg__wc.w[3204] = IDENT("cons*", lib);
+  sg__wc.w[3387] = IDENT("cons*", lib);
+  sg__wc.w[3737] = IDENT("cons*", lib);
+  sg__wc.w[3751] = IDENT("cons*", lib);
+  sg__wc.w[3785] = IDENT("cons*", lib);
+  sg__wc.w[3801] = IDENT("cons*", lib);
+  sg__wc.w[3870] = IDENT("cons*", lib);
+  sg__wc.w[3890] = IDENT("cons*", lib);
   sg__wc.w[4028] = IDENT("cons*", lib);
-  sg__wc.w[4531] = IDENT("append", lib);
-  sg__wc.w[8384] = IDENT("cddadr", lib);
-  sg__wc.w[5764] = IDENT("cadr", lib);
-  sg__wc.w[148] = IDENT("pattern-var?", lib);
-  sg__wc.w[176] = IDENT("gen", lib);
-  sg__wc.w[9347] = IDENT("equal-test?", lib);
-  sg__wc.w[2625] = IDENT("append", lib);
-  sg__wc.w[3829] = IDENT("variable?", lib);
-  sg__wc.w[1900] = WORD(Sg_Cons(SG_MAKE_CHAR(46), Sg_Cons(SG_MAKE_CHAR(95), SG_NIL)));
-  sg__wc.w[51] = tmp = UNSIDENT("G16439", lib);
-  uninterned = Sg_Acons(STRING("G16439"), SG_OBJ(tmp), uninterned);
-  sg__wc.w[4745] = WORD(SG_CDR(Sg_Assq(STRING("G16439"), uninterned)));
-  sg__wc.w[4804] = WORD(SG_CDR(Sg_Assq(STRING("G16439"), uninterned)));
-  sg__wc.w[4959] = WORD(SG_CDR(Sg_Assq(STRING("G16439"), uninterned)));
-  sg__wc.w[4998] = WORD(SG_CDR(Sg_Assq(STRING("G16439"), uninterned)));
+  sg__wc.w[4288] = IDENT("cons*", lib);
+  sg__wc.w[4423] = IDENT("cons*", lib);
+  sg__wc.w[4456] = IDENT("cons*", lib);
+  sg__wc.w[4509] = IDENT("cons*", lib);
+  sg__wc.w[4534] = IDENT("cons*", lib);
+  sg__wc.w[4787] = IDENT("cons*", lib);
+  sg__wc.w[5398] = IDENT("cons*", lib);
+  sg__wc.w[5445] = IDENT("cons*", lib);
+  sg__wc.w[5451] = IDENT("cons*", lib);
+  sg__wc.w[5456] = IDENT("cons*", lib);
+  sg__wc.w[5461] = IDENT("cons*", lib);
+  sg__wc.w[5471] = IDENT("cons*", lib);
+  sg__wc.w[5476] = IDENT("cons*", lib);
+  sg__wc.w[5481] = IDENT("cons*", lib);
+  sg__wc.w[5541] = IDENT("cons*", lib);
+  sg__wc.w[5567] = IDENT("cons*", lib);
+  sg__wc.w[5592] = IDENT("cons*", lib);
+  sg__wc.w[5617] = IDENT("cons*", lib);
+  sg__wc.w[5642] = IDENT("cons*", lib);
+  sg__wc.w[5667] = IDENT("cons*", lib);
+  sg__wc.w[5695] = IDENT("cons*", lib);
+  sg__wc.w[5731] = IDENT("cons*", lib);
+  sg__wc.w[5770] = IDENT("cons*", lib);
+  sg__wc.w[5981] = IDENT("cons*", lib);
+  sg__wc.w[6118] = IDENT("cons*", lib);
+  sg__wc.w[6150] = IDENT("cons*", lib);
+  sg__wc.w[6271] = IDENT("cons*", lib);
+  sg__wc.w[6316] = IDENT("cons*", lib);
+  sg__wc.w[6509] = IDENT("cons*", lib);
+  sg__wc.w[6599] = IDENT("cons*", lib);
+  sg__wc.w[6617] = IDENT("cons*", lib);
+  sg__wc.w[6623] = IDENT("cons*", lib);
+  sg__wc.w[6750] = IDENT("cons*", lib);
+  sg__wc.w[6778] = IDENT("cons*", lib);
+  sg__wc.w[6923] = IDENT("cons*", lib);
+  sg__wc.w[6974] = IDENT("cons*", lib);
+  sg__wc.w[7004] = IDENT("cons*", lib);
+  sg__wc.w[7016] = IDENT("cons*", lib);
+  sg__wc.w[7021] = IDENT("cons*", lib);
+  sg__wc.w[7036] = IDENT("cons*", lib);
+  sg__wc.w[7057] = IDENT("cons*", lib);
+  sg__wc.w[7071] = IDENT("cons*", lib);
+  sg__wc.w[7124] = IDENT("cons*", lib);
+  sg__wc.w[7130] = IDENT("cons*", lib);
+  sg__wc.w[7318] = IDENT("cons*", lib);
+  sg__wc.w[7370] = IDENT("cons*", lib);
+  sg__wc.w[7376] = IDENT("cons*", lib);
+  sg__wc.w[7381] = IDENT("cons*", lib);
+  sg__wc.w[7412] = IDENT("cons*", lib);
+  sg__wc.w[7424] = IDENT("cons*", lib);
+  sg__wc.w[7429] = IDENT("cons*", lib);
+  sg__wc.w[7445] = IDENT("cons*", lib);
+  sg__wc.w[7472] = IDENT("cons*", lib);
+  sg__wc.w[7493] = IDENT("cons*", lib);
+  sg__wc.w[7507] = IDENT("cons*", lib);
+  sg__wc.w[7521] = IDENT("cons*", lib);
+  sg__wc.w[7527] = IDENT("cons*", lib);
+  sg__wc.w[7597] = IDENT("cons*", lib);
+  sg__wc.w[7637] = IDENT("cons*", lib);
+  sg__wc.w[7704] = IDENT("cons*", lib);
+  sg__wc.w[7726] = IDENT("cons*", lib);
+  sg__wc.w[7748] = IDENT("cons*", lib);
+  sg__wc.w[7770] = IDENT("cons*", lib);
+  sg__wc.w[7795] = IDENT("cons*", lib);
+  sg__wc.w[7826] = IDENT("cons*", lib);
+  sg__wc.w[7848] = IDENT("cons*", lib);
+  sg__wc.w[7893] = IDENT("cons*", lib);
+  sg__wc.w[7898] = IDENT("cons*", lib);
+  sg__wc.w[7953] = IDENT("cons*", lib);
+  sg__wc.w[8098] = IDENT("cons*", lib);
+  sg__wc.w[8110] = IDENT("cons*", lib);
+  sg__wc.w[8129] = IDENT("cons*", lib);
+  sg__wc.w[8141] = IDENT("cons*", lib);
+  sg__wc.w[8845] = IDENT("cons*", lib);
+  sg__wc.w[8850] = IDENT("cons*", lib);
+  sg__wc.w[8855] = IDENT("cons*", lib);
+  sg__wc.w[8876] = IDENT("cons*", lib);
+  sg__wc.w[8881] = IDENT("cons*", lib);
+  sg__wc.w[8886] = IDENT("cons*", lib);
+  sg__wc.w[8897] = IDENT("cons*", lib);
+  sg__wc.w[9289] = IDENT("cons*", lib);
+  sg__wc.w[9313] = IDENT("cons*", lib);
+  sg__wc.w[9435] = IDENT("cons*", lib);
+  sg__wc.w[9440] = IDENT("cons*", lib);
+  sg__wc.w[9802] = IDENT("cons*", lib);
+  sg__wc.w[9807] = IDENT("cons*", lib);
+  sg__wc.w[9980] = IDENT("cons*", lib);
+  sg__wc.w[10020] = IDENT("cons*", lib);
+  sg__wc.w[10048] = IDENT("cons*", lib);
+  sg__wc.w[10081] = IDENT("cons*", lib);
+  sg__wc.w[10086] = IDENT("cons*", lib);
+  sg__wc.w[10091] = IDENT("cons*", lib);
+  sg__wc.w[10116] = IDENT("cons*", lib);
+  sg__wc.w[10143] = IDENT("cons*", lib);
+  sg__wc.w[10148] = IDENT("cons*", lib);
+  sg__wc.w[10153] = IDENT("cons*", lib);
+  sg__wc.w[10178] = IDENT("cons*", lib);
+  sg__wc.w[10205] = IDENT("cons*", lib);
+  sg__wc.w[10210] = IDENT("cons*", lib);
+  sg__wc.w[10215] = IDENT("cons*", lib);
+  sg__wc.w[10240] = IDENT("cons*", lib);
+  sg__wc.w[10267] = IDENT("cons*", lib);
+  sg__wc.w[10272] = IDENT("cons*", lib);
+  sg__wc.w[10277] = IDENT("cons*", lib);
+  sg__wc.w[10322] = IDENT("cons*", lib);
+  sg__wc.w[10327] = IDENT("cons*", lib);
+  sg__wc.w[10371] = IDENT("cons*", lib);
+  sg__wc.w[10376] = IDENT("cons*", lib);
+  sg__wc.w[10381] = IDENT("cons*", lib);
+  sg__wc.w[10402] = IDENT("cons*", lib);
+  sg__wc.w[10443] = IDENT("cons*", lib);
+  sg__wc.w[10448] = IDENT("cons*", lib);
+  sg__wc.w[10453] = IDENT("cons*", lib);
+  sg__wc.w[10488] = IDENT("cons*", lib);
+  sg__wc.w[10515] = IDENT("cons*", lib);
+  sg__wc.w[10520] = IDENT("cons*", lib);
+  sg__wc.w[10525] = IDENT("cons*", lib);
+  sg__wc.w[10550] = IDENT("cons*", lib);
+  sg__wc.w[10571] = IDENT("cons*", lib);
+  sg__wc.w[10576] = IDENT("cons*", lib);
+  sg__wc.w[10581] = IDENT("cons*", lib);
+  sg__wc.w[10606] = IDENT("cons*", lib);
+  sg__wc.w[10627] = IDENT("cons*", lib);
+  sg__wc.w[10632] = IDENT("cons*", lib);
+  sg__wc.w[10637] = IDENT("cons*", lib);
+  sg__wc.w[10662] = IDENT("cons*", lib);
+  sg__wc.w[10683] = IDENT("cons*", lib);
+  sg__wc.w[10688] = IDENT("cons*", lib);
+  sg__wc.w[10693] = IDENT("cons*", lib);
+  sg__wc.w[10738] = IDENT("cons*", lib);
+  sg__wc.w[10743] = IDENT("cons*", lib);
+  sg__wc.w[10768] = IDENT("cons*", lib);
+  sg__wc.w[10773] = IDENT("cons*", lib);
+  sg__wc.w[10778] = IDENT("cons*", lib);
+  sg__wc.w[10799] = IDENT("cons*", lib);
+  sg__wc.w[10821] = IDENT("cons*", lib);
+  sg__wc.w[10826] = IDENT("cons*", lib);
+  sg__wc.w[10831] = IDENT("cons*", lib);
+  sg__wc.w[3174] = IDENT("match:syntax-err", lib);
+  sg__wc.w[5673] = IDENT("emit", lib);
+  sg__wc.w[1109] = IDENT("validate-pattern", lib);
+  sg__wc.w[3994] = IDENT("cadr", lib);
+  sg__wc.w[132] = IDENT("match:vector-structures", lib);
+  sg__wc.w[4952] = IDENT("cadr", lib);
+  sg__wc.w[4660] = IDENT("match:error", lib);
+  sg__wc.w[10657] = IDENT("cadr", lib);
+  sg__wc.w[4485] = IDENT("cadr", lib);
+  sg__wc.w[8252] = IDENT("cddadr", lib);
+  sg__wc.w[8484] = IDENT("cadar", lib);
+  sg__wc.w[1917] = IDENT("memq", lib);
+  sg__wc.w[8022] = IDENT("memq", lib);
+  sg__wc.w[8764] = IDENT("caadar", lib);
+  sg__wc.w[10794] = IDENT("cadr", lib);
+  sg__wc.w[164] = IDENT("validate-pattern", lib);
+  sg__wc.w[6037] = IDENT("cadr", lib);
+  sg__wc.w[162] = WORD(&sg__wc.cb[37]);
+  sg__wc.cb[37].name = SYMBOL("validate-pattern");
+  sg__wc.w[624] = IDENT("symbol->string", lib);
+  sg__wc.w[128] = IDENT("match:disjoint-predicates", lib);
+  sg__wc.w[4663] = IDENT("y", lib);
+  sg__wc.w[142] = WORD(&sg__wc.cb[30]);
+  sg__wc.cb[30].name = SYMBOL("gendefine");
+  sg__wc.w[3694] = IDENT("cadr", lib);
+  sg__wc.w[6956] = IDENT("map", lib);
+  sg__wc.w[99] = WORD(&sg__wc.cb[23]);
+  sg__wc.cb[23].name = SYMBOL("match:structure?");
+  sg__wc.w[8238] = IDENT("caar", lib);
+  sg__wc.w[8461] = IDENT("cdar", lib);
+  sg__wc.w[1737] = IDENT("map", lib);
+  sg__wc.w[61] = WORD(&sg__wc.cb[16]);
+  sg__wc.cb[16].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[37] = WORD(&sg__wc.cb[9]);
+  sg__wc.cb[9].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[8656] = IDENT("cdddar", lib);
+  sg__wc.w[6327] = WORD(&sg__wc.cb[89]);
+  sg__wc.cb[89].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[9] = WORD(&sg__wc.cb[2]);
+  sg__wc.cb[2].name = SG_MAKE_BOOL(FALSE);
   sg__wc.w[258] = SYMBOLW("set!");
   sg__wc.w[280] = SYMBOLW("set!");
   sg__wc.w[2842] = SYMBOLW("set!");
   sg__wc.w[4105] = SYMBOLW("set!");
   sg__wc.w[6028] = SYMBOLW("set!");
-  sg__wc.w[577] = IDENT("error", lib);
-  sg__wc.w[10606] = IDENT("cons*", lib);
-  sg__wc.w[2754] = IDENT("cadr", lib);
-  sg__wc.w[5605] = IDENT("boolean?", lib);
-  sg__wc.w[805] = IDENT("cons*", lib);
-  sg__wc.w[7016] = IDENT("cons*", lib);
+  sg__wc.w[168] = IDENT("bound", lib);
+  sg__wc.w[6160] = WORD(&sg__wc.cb[82]);
+  sg__wc.cb[82].name = SG_MAKE_BOOL(FALSE);
   sg__wc.w[765] = SYMBOLW("l");
   sg__wc.w[779] = SYMBOLW("l");
   sg__wc.w[1300] = SYMBOLW("l");
   sg__wc.w[1314] = SYMBOLW("l");
   sg__wc.w[1669] = SYMBOLW("l");
   sg__wc.w[1683] = SYMBOLW("l");
-  sg__wc.w[6346] = STRINGW("THIS NEVER HAPPENS");
-  sg__wc.w[2928] = IDENT("pattern-var?", lib);
-  sg__wc.w[6503] = IDENT("symbol-append", lib);
-  sg__wc.w[441] = IDENT("char?", lib);
-  sg__wc.w[10210] = IDENT("cons*", lib);
   sg__wc.w[9665] = WORD(Sg_Cons(SYMBOL("list?"), Sg_Cons(SYMBOL("pair?"), Sg_Cons(SYMBOL("null?"), SG_NIL))));
-  sg__wc.w[6163] = IDENT("emit", lib);
-  sg__wc.w[10291] = IDENT("assq", lib);
-  sg__wc.w[9765] = IDENT("equal?", lib);
-  sg__wc.w[1704] = IDENT("cons*", lib);
-  sg__wc.w[9932] = IDENT("memq", lib);
-  sg__wc.w[8370] = IDENT("caadar", lib);
-  sg__wc.w[1752] = IDENT("cons*", lib);
+  sg__wc.w[632] = IDENT("string->symbol", lib);
+  sg__wc.w[4596] = IDENT("cddr", lib);
+  sg__wc.w[6476] = WORD(&sg__wc.cb[77]);
+  sg__wc.cb[77].name = SYMBOL("rloop");
+  sg__wc.w[4797] = IDENT("cadr", lib);
+  sg__wc.w[5419] = IDENT("faile-sym", lib);
+  sg__wc.w[5214] = WORD(&sg__wc.cb[70]);
+  sg__wc.cb[70].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[642] = IDENT("match:structure-control", lib);
+  sg__wc.w[955] = IDENT("cddadr", lib);
+  sg__wc.w[8214] = IDENT("cddadr", lib);
+  sg__wc.w[8431] = IDENT("cddadr", lib);
+  sg__wc.w[204] = IDENT("vec-structure?", lib);
+  sg__wc.w[9554] = IDENT("cadr", lib);
+  sg__wc.w[2090] = STRINGW("unreachable pattern ~a in ~a~%");
+  sg__wc.w[742] = IDENT("unreachable", lib);
+  sg__wc.w[1529] = IDENT("gensym", lib);
+  sg__wc.w[3591] = WORD(&sg__wc.cb[59]);
+  sg__wc.cb[59].name = SYMBOL("bound*");
   sg__wc.w[307] = SYMBOLW("match:error");
   sg__wc.w[2017] = SYMBOLW("match:error");
+  sg__wc.w[8633] = IDENT("cddar", lib);
   sg__wc.w[2910] = SYMBOLW("get!");
   sg__wc.w[4148] = SYMBOLW("get!");
   sg__wc.w[6061] = SYMBOLW("get!");
+  sg__wc.w[10007] = IDENT("cddr", lib);
   sg__wc.w[10038] = SYMBOLW("x");
   sg__wc.w[10069] = SYMBOLW("x");
   sg__wc.w[10106] = SYMBOLW("x");
@@ -12237,55 +12239,63 @@ void Sg__Init_match_core()
   sg__wc.w[10764] = SYMBOLW("x");
   sg__wc.w[10789] = SYMBOLW("x");
   sg__wc.w[10817] = SYMBOLW("x");
-  sg__wc.w[3885] = IDENT("caddr", lib);
-  sg__wc.w[243] = IDENT("match:expanders", lib);
-  sg__wc.w[8796] = IDENT("cddadr", lib);
-  sg__wc.w[2074] = IDENT("for-each", lib);
-  sg__wc.w[10460] = IDENT("match:syntax-err", lib);
-  sg__wc.w[2738] = WORD(Sg_Cons(SYMBOL("$"), Sg_Cons(SYMBOL("struct"), SG_NIL)));
-  sg__wc.w[1335] = IDENT("cons*", lib);
-  sg__wc.w[9560] = IDENT("cadr", lib);
-  sg__wc.w[2192] = IDENT("pattern-var?", lib);
-  sg__wc.w[10267] = IDENT("cons*", lib);
-  sg__wc.w[9262] = IDENT("member", lib);
-  sg__wc.w[8355] = IDENT("cdadr", lib);
-  sg__wc.w[286] = IDENT("cons*", lib);
-  sg__wc.w[6223] = IDENT("dot-dot-k?", lib);
-  sg__wc.w[8611] = IDENT("cddr", lib);
-  sg__wc.w[2059] = IDENT("match:syntax-err", lib);
-  sg__wc.w[549] = IDENT("symbol->string", lib);
-  sg__wc.w[7057] = IDENT("cons*", lib);
-  sg__wc.w[4052] = IDENT("cadr", lib);
-  sg__wc.w[2171] = IDENT("identifier?", lib);
-  sg__wc.w[10235] = IDENT("cadr", lib);
-  sg__wc.w[9725] = IDENT("cadr", lib);
-  sg__wc.w[619] = STRINGW("<");
-  sg__wc.w[8156] = IDENT("equal?", lib);
-  sg__wc.w[9797] = IDENT("cadr", lib);
-  sg__wc.w[8876] = IDENT("cons*", lib);
-  sg__wc.w[4995] = IDENT("caddr", lib);
-  sg__wc.w[1947] = IDENT("substring", lib);
+  sg__wc.w[4093] = WORD(&sg__wc.cb[52]);
+  sg__wc.cb[52].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[9773] = IDENT("vec-structure?", lib);
+  sg__wc.w[2080] = IDENT("cddddr", lib);
+  sg__wc.w[2599] = IDENT("list?", lib);
+  sg__wc.w[492] = IDENT("cddr", lib);
+  sg__wc.w[3966] = WORD(&sg__wc.cb[45]);
+  sg__wc.cb[45].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[79] = STRINGW("Version 1.18, July 17, 1995");
+  sg__wc.w[1953] = IDENT("match:error-control", lib);
+  sg__wc.w[940] = IDENT("variable?", lib);
+  sg__wc.w[8408] = IDENT("cddadr", lib);
+  sg__wc.w[4731] = IDENT("reverse", lib);
+  sg__wc.w[8198] = IDENT("cadadr", lib);
+  sg__wc.w[1471] = IDENT("bound", lib);
+  sg__wc.w[5244] = IDENT("caar", lib);
+  sg__wc.w[734] = IDENT("gen", lib);
+  sg__wc.w[8608] = IDENT("cdadar", lib);
+  sg__wc.w[1843] = IDENT("variable?", lib);
+  sg__wc.w[10761] = IDENT("cddr", lib);
+  sg__wc.w[6289] = IDENT("emit", lib);
+  sg__wc.w[9734] = IDENT("equal?", lib);
+  sg__wc.w[15] = tmp = UNSIDENT("G15143", lib);
+  uninterned = Sg_Acons(STRING("G15143"), SG_OBJ(tmp), uninterned);
+  sg__wc.w[1619] = WORD(SG_CDR(Sg_Assq(STRING("G15143"), uninterned)));
+  sg__wc.w[6346] = STRINGW("THIS NEVER HAPPENS");
   sg__wc.w[3117] = IDENT("reverse", lib);
-  sg__wc.w[3547] = IDENT("match:syntax-err", lib);
-  sg__wc.w[4589] = IDENT("dot-dot-k?", lib);
-  sg__wc.w[5739] = IDENT("emit", lib);
-  sg__wc.w[8333] = IDENT("caadr", lib);
-  sg__wc.w[2243] = IDENT("cddr", lib);
+  sg__wc.w[336] = IDENT("char?", lib);
+  sg__wc.w[9317] = IDENT("member", lib);
+  sg__wc.w[604] = IDENT("match:disjoint-structure-tags", lib);
+  sg__wc.w[113] = IDENT("match:set-error", lib);
+  sg__wc.w[4052] = IDENT("cadr", lib);
+  sg__wc.w[408] = IDENT("memq", lib);
+  sg__wc.w[8178] = IDENT("caadr", lib);
+  sg__wc.w[8390] = IDENT("cddadr", lib);
+  sg__wc.w[109] = IDENT("match:set-structure-control", lib);
+  sg__wc.w[9917] = IDENT("cadr", lib);
+  sg__wc.w[5556] = IDENT("equal?", lib);
+  sg__wc.w[144] = IDENT("gendefine", lib);
+  sg__wc.w[10074] = IDENT("caddr", lib);
+  sg__wc.w[8579] = IDENT("cddadr", lib);
   sg__wc.w[7060] = SYMBOLW("cons");
   sg__wc.w[7496] = SYMBOLW("cons");
-  sg__wc.w[172] = IDENT("inline-let", lib);
-  sg__wc.w[8582] = IDENT("cdadar", lib);
-  sg__wc.w[7328] = WORD(&sg__wc.cb[87]);
-  sg__wc.cb[87].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[8536] = IDENT("cdadar", lib);
-  sg__wc.w[7953] = IDENT("cons*", lib);
-  sg__wc.w[6933] = WORD(&sg__wc.cb[80]);
-  sg__wc.cb[80].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[10850] = IDENT("map", lib);
-  sg__wc.w[10350] = IDENT("cddr", lib);
-  sg__wc.w[8773] = IDENT("cadr", lib);
-  sg__wc.w[10510] = IDENT("caddr", lib);
-  sg__wc.w[629] = IDENT("string-append", lib);
+  sg__wc.w[10235] = IDENT("cadr", lib);
+  sg__wc.w[210] = WORD(&sg__wc.cb[101]);
+  sg__wc.cb[101].name = SYMBOL("add-d");
+  sg__wc.w[1641] = IDENT("map", lib);
+  sg__wc.w[8770] = IDENT("cdadar", lib);
+  sg__wc.w[2074] = IDENT("for-each", lib);
+  sg__wc.w[35] = tmp = UNSIDENT("G15133", lib);
+  uninterned = Sg_Acons(STRING("G15133"), SG_OBJ(tmp), uninterned);
+  sg__wc.w[2121] = WORD(SG_CDR(Sg_Assq(STRING("G15133"), uninterned)));
+  sg__wc.w[2151] = WORD(SG_CDR(Sg_Assq(STRING("G15133"), uninterned)));
+  sg__wc.w[3184] = WORD(SG_CDR(Sg_Assq(STRING("G15133"), uninterned)));
+  sg__wc.w[186] = WORD(&sg__wc.cb[94]);
+  sg__wc.cb[94].name = SYMBOL("guarantees");
+  sg__wc.w[10458] = STRINGW("unnested set! pattern");
   sg__wc.w[10059] = SYMBOLW("y");
   sg__wc.w[10077] = SYMBOLW("y");
   sg__wc.w[10127] = SYMBOLW("y");
@@ -12298,20 +12308,12 @@ void Sg__Init_match_core()
   sg__wc.w[10367] = SYMBOLW("y");
   sg__wc.w[10413] = SYMBOLW("y");
   sg__wc.w[10439] = SYMBOLW("y");
-  sg__wc.w[6419] = WORD(&sg__wc.cb[73]);
-  sg__wc.cb[73].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[3342] = IDENT("append", lib);
-  sg__wc.w[8104] = IDENT("caddr", lib);
-  sg__wc.w[174] = WORD(&sg__wc.cb[66]);
-  sg__wc.cb[66].name = SYMBOL("gen");
-  sg__wc.w[1800] = IDENT("inline-let", lib);
-  sg__wc.w[5331] = IDENT("cadr", lib);
-  sg__wc.w[660] = IDENT("gensym", lib);
-  sg__wc.w[10277] = IDENT("cons*", lib);
-  sg__wc.w[5] = WORD(&sg__wc.cb[1]);
-  sg__wc.cb[1].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[9807] = IDENT("cons*", lib);
-  sg__wc.w[8886] = IDENT("cons*", lib);
+  sg__wc.w[2754] = IDENT("cadr", lib);
+  sg__wc.w[9135] = IDENT("equal?", lib);
+  sg__wc.w[4565] = IDENT("list->vector", lib);
+  sg__wc.w[2055] = WORD(Sg_Cons(SYMBOL("unspecified"), Sg_Cons(SYMBOL("error"), Sg_Cons(SYMBOL("fail"), Sg_Cons(SYMBOL("match"), SG_NIL)))));
+  sg__wc.w[879] = IDENT("caddr", lib);
+  sg__wc.w[388] = IDENT("length", lib);
   sg__wc.w[746] = SYMBOLW("let");
   sg__wc.w[1648] = SYMBOLW("let");
   sg__wc.w[4776] = SYMBOLW("let");
@@ -12333,96 +12335,94 @@ void Sg__Init_match_core()
   sg__wc.w[10648] = SYMBOLW("let");
   sg__wc.w[10716] = SYMBOLW("let");
   sg__wc.w[10785] = SYMBOLW("let");
-  sg__wc.w[6135] = IDENT("emit", lib);
-  sg__wc.w[3591] = WORD(&sg__wc.cb[59]);
-  sg__wc.cb[59].name = SYMBOL("bound*");
-  sg__wc.w[1938] = IDENT("for-all", lib);
   sg__wc.w[10259] = SYMBOLW("set-cdr!");
-  sg__wc.w[9227] = IDENT("variable?", lib);
-  sg__wc.w[4001] = WORD(&sg__wc.cb[50]);
-  sg__wc.cb[50].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1630] = IDENT("unreachable", lib);
-  sg__wc.w[198] = WORD(&sg__wc.cb[98]);
-  sg__wc.cb[98].name = SYMBOL("disjoint?");
-  sg__wc.w[2127] = WORD(&sg__wc.cb[38]);
-  sg__wc.cb[38].name = SYMBOL("ordinary");
-  sg__wc.w[5492] = IDENT("map", lib);
-  sg__wc.w[10135] = SYMBOLW("set-box!");
-  sg__wc.w[7619] = IDENT("in", lib);
-  sg__wc.w[3909] = WORD(&sg__wc.cb[43]);
-  sg__wc.cb[43].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[146] = WORD(&sg__wc.cb[31]);
-  sg__wc.cb[31].name = SYMBOL("pattern-var?");
-  sg__wc.w[8556] = IDENT("cddadr", lib);
-  sg__wc.w[8506] = IDENT("cddadr", lib);
-  sg__wc.w[107] = WORD(&sg__wc.cb[24]);
-  sg__wc.cb[24].name = SYMBOL("match:set-structure-control");
-  sg__wc.w[6813] = IDENT("equal?", lib);
-  sg__wc.w[5598] = IDENT("emit", lib);
-  sg__wc.w[232] = IDENT("symbol-append", lib);
-  sg__wc.w[10376] = IDENT("cons*", lib);
-  sg__wc.w[7] = tmp = UNSIDENT("G16461", lib);
-  uninterned = Sg_Acons(STRING("G16461"), SG_OBJ(tmp), uninterned);
-  sg__wc.w[1347] = WORD(SG_CDR(Sg_Assq(STRING("G16461"), uninterned)));
-  sg__wc.w[10520] = IDENT("cons*", lib);
-  sg__wc.w[65] = WORD(&sg__wc.cb[17]);
-  sg__wc.cb[17].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[216] = IDENT("c---rs", lib);
-  sg__wc.w[2467] = IDENT("caddr", lib);
-  sg__wc.w[9479] = IDENT("caddr", lib);
-  sg__wc.w[41] = WORD(&sg__wc.cb[10]);
-  sg__wc.cb[10].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[7562] = IDENT("emit", lib);
-  sg__wc.w[3302] = IDENT("cddar", lib);
-  sg__wc.w[8098] = IDENT("cons*", lib);
-  sg__wc.w[3510] = IDENT("match:syntax-err", lib);
-  sg__wc.w[1622] = IDENT("map", lib);
-  sg__wc.w[8278] = IDENT("cddadr", lib);
-  sg__wc.w[9860] = IDENT("boolean?", lib);
-  sg__wc.w[5135] = IDENT("make-eq-hashtable", lib);
-  sg__wc.w[403] = IDENT("for-all", lib);
-  sg__wc.w[8530] = IDENT("caadar", lib);
-  sg__wc.w[8481] = IDENT("cddadr", lib);
-  sg__wc.w[9443] = IDENT("equal?", lib);
-  sg__wc.w[19] = tmp = UNSIDENT("G16455", lib);
-  uninterned = Sg_Acons(STRING("G16455"), SG_OBJ(tmp), uninterned);
-  sg__wc.w[1638] = WORD(SG_CDR(Sg_Assq(STRING("G16455"), uninterned)));
-  sg__wc.w[6778] = IDENT("cons*", lib);
-  sg__wc.w[10327] = IDENT("cons*", lib);
-  sg__wc.w[8712] = IDENT("cddadr", lib);
-  sg__wc.w[8058] = IDENT("cadddr", lib);
-  sg__wc.w[8897] = IDENT("cons*", lib);
-  sg__wc.w[6984] = IDENT("map", lib);
-  sg__wc.w[10116] = IDENT("cons*", lib);
-  sg__wc.w[10098] = SYMBOLW("unbox");
-  sg__wc.w[10532] = SYMBOLW("unbox");
-  sg__wc.w[10565] = SYMBOLW("unbox");
-  sg__wc.w[9454] = IDENT("cadr", lib);
+  sg__wc.w[9902] = IDENT("cddr", lib);
+  sg__wc.w[2213] = IDENT("variable?", lib);
+  sg__wc.w[9488] = IDENT("equal?", lib);
+  sg__wc.w[3359] = IDENT("dot-dot-k?", lib);
+  sg__wc.w[8553] = IDENT("caadar", lib);
+  sg__wc.w[9693] = IDENT("vec-structure?", lib);
+  sg__wc.w[8735] = IDENT("cddadr", lib);
+  sg__wc.w[55] = tmp = UNSIDENT("G15123", lib);
+  uninterned = Sg_Acons(STRING("G15123"), SG_OBJ(tmp), uninterned);
+  sg__wc.w[6685] = WORD(SG_CDR(Sg_Assq(STRING("G15123"), uninterned)));
+  sg__wc.w[423] = IDENT("boolean?", lib);
+  sg__wc.w[1970] = WORD(Sg_Cons(SYMBOL("error"), Sg_Cons(SYMBOL("fail"), SG_NIL)));
+  sg__wc.w[842] = IDENT("bound", lib);
+  sg__wc.w[5756] = IDENT("caddr", lib);
+  sg__wc.w[2693] = IDENT("map", lib);
+  sg__wc.w[9463] = IDENT("equal?", lib);
+  sg__wc.w[8527] = IDENT("cddadr", lib);
+  sg__wc.w[3855] = IDENT("gensym", lib);
+  sg__wc.w[3326] = IDENT("cadar", lib);
+  sg__wc.w[8307] = IDENT("cddadr", lib);
+  sg__wc.w[7686] = IDENT("caddr", lib);
+  sg__wc.w[5261] = IDENT("assq", lib);
+  sg__wc.w[3460] = IDENT("reverse", lib);
+  sg__wc.w[75] = tmp = UNSIDENT("G15113", lib);
+  uninterned = Sg_Acons(STRING("G15113"), SG_OBJ(tmp), uninterned);
+  sg__wc.w[10847] = WORD(SG_CDR(Sg_Assq(STRING("G15113"), uninterned)));
+  sg__wc.w[5605] = IDENT("boolean?", lib);
   sg__wc.w[777] = SYMBOLW("length");
   sg__wc.w[1312] = SYMBOLW("length");
   sg__wc.w[1681] = SYMBOLW("length");
-  sg__wc.w[5617] = IDENT("cons*", lib);
+  sg__wc.w[4177] = IDENT("cadr", lib);
   sg__wc.w[1955] = SYMBOLW("unspecified");
-  sg__wc.w[336] = IDENT("char?", lib);
-  sg__wc.w[1399] = IDENT("cons*", lib);
-  sg__wc.w[3282] = IDENT("caar", lib);
-  sg__wc.w[9667] = IDENT("memq", lib);
-  sg__wc.w[574] = STRINGW("no matching clause for ");
-  sg__wc.w[4822] = IDENT("memq", lib);
-  sg__wc.w[1567] = IDENT("gensym", lib);
-  sg__wc.w[1737] = IDENT("map", lib);
-  sg__wc.w[4787] = IDENT("cons*", lib);
-  sg__wc.w[1968] = IDENT("match:error-control", lib);
-  sg__wc.w[9289] = IDENT("cons*", lib);
-  sg__wc.w[10067] = SYMBOLW("vector-set!");
-  sg__wc.w[8458] = IDENT("cddadr", lib);
+  sg__wc.w[706] = IDENT("map", lib);
+  sg__wc.w[154] = WORD(&sg__wc.cb[33]);
+  sg__wc.cb[33].name = SYMBOL("error-maker");
+  sg__wc.w[8294] = IDENT("caadar", lib);
   sg__wc.w[4820] = WORD(Sg_Cons(SYMBOL("lambda"), Sg_Cons(SYMBOL("quote"), Sg_Cons(SYMBOL("match-lambda"), Sg_Cons(SYMBOL("match-lambda*"), SG_NIL)))));
-  sg__wc.w[1843] = IDENT("variable?", lib);
-  sg__wc.w[970] = IDENT("cadadr", lib);
-  sg__wc.w[9390] = IDENT("cadr", lib);
-  sg__wc.w[1174] = IDENT("gensym", lib);
-  sg__wc.w[10794] = IDENT("cadr", lib);
-  sg__wc.w[7021] = IDENT("cons*", lib);
+  sg__wc.w[3829] = IDENT("variable?", lib);
+  sg__wc.w[2459] = IDENT("cadr", lib);
+  sg__wc.w[119] = WORD(&sg__wc.cb[26]);
+  sg__wc.cb[26].name = SYMBOL("match:set-error-control");
+  sg__wc.w[10067] = SYMBOLW("vector-set!");
+  sg__wc.w[73] = WORD(&sg__wc.cb[19]);
+  sg__wc.cb[19].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[8703] = IDENT("cdadar", lib);
+  sg__wc.w[81] = IDENT("match:version", lib);
+  sg__wc.w[5923] = IDENT("cadr", lib);
+  sg__wc.w[8808] = IDENT("cddadr", lib);
+  sg__wc.w[7737] = IDENT("char?", lib);
+  sg__wc.w[399] = WORD(&sg__wc.cb[12]);
+  sg__wc.cb[12].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[3028] = IDENT("dot-dot-k?", lib);
+  sg__wc.w[188] = IDENT("guarantees", lib);
+  sg__wc.w[178] = WORD(&sg__wc.cb[92]);
+  sg__wc.cb[92].name = SYMBOL("emit");
+  sg__wc.w[21] = WORD(&sg__wc.cb[5]);
+  sg__wc.cb[5].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[815] = IDENT("append", lib);
+  sg__wc.w[1033] = IDENT("append", lib);
+  sg__wc.w[1388] = IDENT("append", lib);
+  sg__wc.w[1391] = IDENT("append", lib);
+  sg__wc.w[1412] = IDENT("append", lib);
+  sg__wc.w[1415] = IDENT("append", lib);
+  sg__wc.w[1421] = IDENT("append", lib);
+  sg__wc.w[1764] = IDENT("append", lib);
+  sg__wc.w[1785] = IDENT("append", lib);
+  sg__wc.w[1788] = IDENT("append", lib);
+  sg__wc.w[1807] = IDENT("append", lib);
+  sg__wc.w[2390] = IDENT("append", lib);
+  sg__wc.w[2552] = IDENT("append", lib);
+  sg__wc.w[2625] = IDENT("append", lib);
+  sg__wc.w[2698] = IDENT("append", lib);
+  sg__wc.w[2799] = IDENT("append", lib);
+  sg__wc.w[3798] = IDENT("append", lib);
+  sg__wc.w[4022] = IDENT("append", lib);
+  sg__wc.w[4302] = IDENT("append", lib);
+  sg__wc.w[4420] = IDENT("append", lib);
+  sg__wc.w[4531] = IDENT("append", lib);
+  sg__wc.w[5395] = IDENT("append", lib);
+  sg__wc.w[5497] = IDENT("append", lib);
+  sg__wc.w[6989] = IDENT("append", lib);
+  sg__wc.w[7054] = IDENT("append", lib);
+  sg__wc.w[7396] = IDENT("append", lib);
+  sg__wc.w[7490] = IDENT("append", lib);
+  sg__wc.w[8095] = IDENT("append", lib);
+  sg__wc.w[7169] = WORD(&sg__wc.cb[85]);
+  sg__wc.cb[85].name = SYMBOL("vloop");
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(sagittarius)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(core errors)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(core base)")));

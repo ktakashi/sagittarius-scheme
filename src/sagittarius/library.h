@@ -45,6 +45,15 @@ struct SgLibraryRec
   SgObject     generics;	/* user defined class */
   SgHashTable *table;		/* library inside */
   SgInternalMutex lock;
+  SgObject     parents;		/* imported variables.
+				   alist of library and imported variables.
+				   this must be like this:
+				   ((<lib> . ((<imported> . <name>) ...)))
+				   <lib>      : parent libarary
+				   <imported> : resolved name. cf) prefix etc.
+				   <name>     : original name.
+				   transient.
+				 */
 };
 
 #define SG_LIBRARY(obj)  ((SgLibrary*)(obj))
@@ -58,6 +67,8 @@ struct SgLibraryRec
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeLibrary(SgObject name);
+SG_EXTERN SgObject Sg_MakeEvalLibrary();
+SG_EXTERN void     Sg_RemoveLibrary(SgLibrary *lib);
 SG_EXTERN SgObject Sg_FindLibrary(SgObject name, int createp);
 SG_EXTERN void     Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
 					    SgObject only, SgObject except,
@@ -69,6 +80,8 @@ SG_EXTERN SgGloc*  Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
 				  SgObject value, int flags);
 
 SG_EXTERN SgObject Sg_SearchLibraryPath(SgObject name);
+SG_EXTERN SgGloc*  Sg_FindBinding(SgObject library, SgObject name, SgObject callback);
+SG_EXTERN void     Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value);
 
 #define Sg_ImportLibrary(t, f)						\
   Sg_ImportLibraryFullSpec((t), (f), SG_NIL, SG_NIL, SG_NIL, SG_FALSE)

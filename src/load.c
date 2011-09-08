@@ -121,6 +121,7 @@ static SgInternalMutex dso_lock = { NULL };
 int Sg_Load(SgString *path)
 {
   static SgObject load_stub = SG_UNDEF;
+  SgObject r = SG_FALSE;
   SgVM *vm = Sg_VM();
   /* flags(#!** etc) are only per file.
      so we need to save/restore.
@@ -140,9 +141,9 @@ int Sg_Load(SgString *path)
     load_stub = SG_GLOC_GET(SG_GLOC(gloc));
     Sg_UnlockMutex(&load_lock);
   }
-  Sg_Apply1(load_stub, path);
+  r = Sg_Apply1(load_stub, path);
   vm->flags = save;
-  return 0;
+  return (SG_INTP(r) ? SG_INT_VALUE(r) : 0);
 }
 
 /*

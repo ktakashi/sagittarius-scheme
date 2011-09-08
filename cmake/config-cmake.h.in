@@ -41,6 +41,8 @@
 
 #cmakedefine SAGITTARIUS_PROFILE
 
+#cmakedefine SAGITTARIUS_PLATFORM "@SAGITTARIUS_PLATFORM@"
+
 #ifdef _MSC_VER
 #define PRIdPTR     "Id"
 #endif

@@ -32,6 +32,7 @@
 #include <string.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/vm.h"
+#include "sagittarius/bignum.h"
 #include "sagittarius/code.h"
 #include "sagittarius/core.h"
 #include "sagittarius/closure.h"
@@ -352,44 +353,6 @@ void Sg_ReportError(SgObject e)
   SG_VM_RUNTIME_FLAG_CLEAR(vm, SG_ERROR_BEING_REPORTED);
 }
 
-SgGloc* Sg_FindBinding(SgObject library, SgObject name, SgObject callback)
-{
-  SgLibrary *lib;
-  SgObject ret;
-  ASSERT(SG_SYMBOLP(name));
-  if (SG_LIBRARYP(library)) lib = SG_LIBRARY(library);
-  else lib = Sg_FindLibrary(library, FALSE);
-  if (SG_FALSEP(lib)) return callback;
-
-  ret = Sg_HashTableRef(SG_LIBRARY_TABLE(lib), name, SG_UNBOUND);
-  if (SG_UNBOUNDP(ret)) {
-    /* search from toplevel */
-    SgObject gloc = Sg_Assq(name, Sg_VM()->toplevelVariables);
-    if (SG_FALSEP(gloc)) return callback;
-    ASSERT(SG_PAIRP(gloc));
-    ASSERT(SG_GLOCP(SG_CDR(gloc)));
-    return SG_CDR(gloc);
-  }
-
-  return ret;
-}
-void Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value_or_gloc)
-{
-  SgObject value;
-  if (SG_GLOCP(value_or_gloc)) {
-    value = SG_GLOC_GET(SG_GLOC(value_or_gloc));
-  } else {
-    value = value_or_gloc;
-  }
-  if (SG_SYMBOLP(name)) {
-    Sg_MakeBinding(library, name, value, 0);
-  } else if (SG_IDENTIFIERP(name)) {
-    Sg_MakeBinding(library, SG_IDENTIFIER_NAME(name), value, 0);
-  } else {
-    Sg_Error(UC("symbol or identifier required, but got %S"), name);
-  }
-}
-
 void Sg_VMSetToplevelVariable(SgSymbol *name, SgObject value)
 {
   SgVM *vm = Sg_VM();
@@ -496,7 +459,6 @@ SgObject Sg_VMCurrentLibrary()
 SgObject Sg_Compile(SgObject o, SgObject e)
 {
   static SgObject compiler = SG_UNDEF;
-  SgVM *vm = Sg_VM();
 
   /* compiler is initialized after VM. so we need to look it up first */
   if (SG_UNDEFP(compiler)) {
@@ -518,6 +480,7 @@ SgObject Sg_Eval(SgObject sexp, SgObject env)
 {
   SgObject v = SG_NIL;
   SgVM *vm = theVM;
+  SgObject r = SG_UNDEF, save = vm->currentLibrary;
 
   if (vm->state != IMPORTING) vm->state = COMPILING;
   v = Sg_Compile(sexp, env);
@@ -526,9 +489,13 @@ SgObject Sg_Eval(SgObject sexp, SgObject env)
   if (vm->state != IMPORTING) vm->state = RUNNING;
 
   ASSERT(SG_CODE_BUILDERP(v));
-  /* TODO replace and restore current library*/
+  if (!SG_FALSEP(env)) {
+    vm->currentLibrary = env;
+  }
   SG_CLOSURE(vm->closureForEvaluate)->code = v;
-  return evaluate_safe(vm->closureForEvaluate, SG_CODE_BUILDER(v)->code);
+  r = evaluate_safe(vm->closureForEvaluate, SG_CODE_BUILDER(v)->code);
+  vm->currentLibrary = save;
+  return r;
 }
 
 static SgObject pass1_import = SG_UNDEF;
