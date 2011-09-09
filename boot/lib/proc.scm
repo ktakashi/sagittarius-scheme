@@ -96,6 +96,10 @@
 ;; list procedure
 (declare-procedure car (l) (:inline CAR) :null car)
 (declare-procedure cdr (l) (:inline CDR) :null cdr)
+(declare-procedure caar (l) (:inline CAAR) :null car)
+(declare-procedure cadr (l) (:inline CADR) :null cadr)
+(declare-procedure cdar (l) (:inline CDAR) :null cdar)
+(declare-procedure cddr (l) (:inline CDDR) :null cddr)
 (declare-procedure cons (a b) (:inline CONS) :null cons)
 (declare-procedure acons (a b c) (:inline -1) :sagittarius acons)
 (declare-procedure set-car! (a b) (:inline SET_CAR) :null set-car!)

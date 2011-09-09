@@ -82,8 +82,16 @@ DEFINSN(GREF_CALL, 1, 1, TRUE, FALSE)
 DEFINSN(GREF_TAIL_CALL, 1, 1, TRUE, FALSE)
 DEFINSN(SET_CAR, 0, 0, TRUE, FALSE)
 DEFINSN(SET_CDR, 0, 0, TRUE, FALSE)
+DEFINSN(CAAR, 0, 0, TRUE, FALSE)
+DEFINSN(CADR, 0, 0, TRUE, FALSE)
+DEFINSN(CDAR, 0, 0, TRUE, FALSE)
+DEFINSN(CDDR, 0, 0, TRUE, FALSE)
 DEFINSN(LREF_CAR, 1, 0, TRUE, FALSE)
 DEFINSN(LREF_CDR, 1, 0, TRUE, FALSE)
+DEFINSN(FREF_CAR, 1, 0, TRUE, FALSE)
+DEFINSN(FREF_CDR, 1, 0, TRUE, FALSE)
+DEFINSN(GREF_CAR, 0, 1, TRUE, FALSE)
+DEFINSN(GREF_CDR, 0, 1, TRUE, FALSE)
 #endif /* DEFINSN */
 #ifdef VM_LOOP
 CASE(NOP) {
@@ -1040,6 +1048,78 @@ CASE(SET_CDR) {
   NEXT;
 }
 
+CASE(CAAR) {
+  if (!(SG_PAIRP(AC(vm)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), AC(vm), SG_NIL);
+    return SG_UNDEF;
+;
+  }
+;
+  BUILTIN_ONE_ARG(vm, SG_CAR);
+  if (!(SG_PAIRP(AC(vm)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), AC(vm), SG_NIL);
+    return SG_UNDEF;
+;
+  }
+;
+  BUILTIN_ONE_ARG(vm, SG_CAR);
+  NEXT;
+}
+
+CASE(CADR) {
+  if (!(SG_PAIRP(AC(vm)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), AC(vm), SG_NIL);
+    return SG_UNDEF;
+;
+  }
+;
+  BUILTIN_ONE_ARG(vm, SG_CDR);
+  if (!(SG_PAIRP(AC(vm)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), AC(vm), SG_NIL);
+    return SG_UNDEF;
+;
+  }
+;
+  BUILTIN_ONE_ARG(vm, SG_CAR);
+  NEXT;
+}
+
+CASE(CDAR) {
+  if (!(SG_PAIRP(AC(vm)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), AC(vm), SG_NIL);
+    return SG_UNDEF;
+;
+  }
+;
+  BUILTIN_ONE_ARG(vm, SG_CAR);
+  if (!(SG_PAIRP(AC(vm)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), AC(vm), SG_NIL);
+    return SG_UNDEF;
+;
+  }
+;
+  BUILTIN_ONE_ARG(vm, SG_CDR);
+  NEXT;
+}
+
+CASE(CDDR) {
+  if (!(SG_PAIRP(AC(vm)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), AC(vm), SG_NIL);
+    return SG_UNDEF;
+;
+  }
+;
+  BUILTIN_ONE_ARG(vm, SG_CDR);
+  if (!(SG_PAIRP(AC(vm)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), AC(vm), SG_NIL);
+    return SG_UNDEF;
+;
+  }
+;
+  BUILTIN_ONE_ARG(vm, SG_CDR);
+  NEXT;
+}
+
 CASE(LREF_CAR) {
   LREF_INSN(vm, c);
   if (!(SG_PAIRP(AC(vm)))) {
@@ -1054,6 +1134,54 @@ CASE(LREF_CAR) {
 
 CASE(LREF_CDR) {
   LREF_INSN(vm, c);
+  if (!(SG_PAIRP(AC(vm)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), AC(vm), SG_NIL);
+    return SG_UNDEF;
+;
+  }
+;
+  BUILTIN_ONE_ARG(vm, SG_CDR);
+  NEXT;
+}
+
+CASE(FREF_CAR) {
+  FREF_INSN(vm, c);
+  if (!(SG_PAIRP(AC(vm)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), AC(vm), SG_NIL);
+    return SG_UNDEF;
+;
+  }
+;
+  BUILTIN_ONE_ARG(vm, SG_CAR);
+  NEXT;
+}
+
+CASE(FREF_CDR) {
+  FREF_INSN(vm, c);
+  if (!(SG_PAIRP(AC(vm)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), AC(vm), SG_NIL);
+    return SG_UNDEF;
+;
+  }
+;
+  BUILTIN_ONE_ARG(vm, SG_CDR);
+  NEXT;
+}
+
+CASE(GREF_CAR) {
+  GREF_INSN(vm);
+  if (!(SG_PAIRP(AC(vm)))) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), AC(vm), SG_NIL);
+    return SG_UNDEF;
+;
+  }
+;
+  BUILTIN_ONE_ARG(vm, SG_CAR);
+  NEXT;
+}
+
+CASE(GREF_CDR) {
+  GREF_INSN(vm);
   if (!(SG_PAIRP(AC(vm)))) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), AC(vm), SG_NIL);
     return SG_UNDEF;

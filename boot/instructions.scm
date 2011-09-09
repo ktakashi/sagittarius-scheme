@@ -1043,11 +1043,35 @@ CASE(LSET) {
   (SG_SET_CDR (INDEX (SP vm) 0) (AC vm))
   (set! (AC vm) SG_UNDEF))
 
+(define-inst CAAR (0 0 #t) :combined
+  (CAR CAR))
+
+(define-inst CADR (0 0 #t) :combined
+  (CDR CAR))
+
+(define-inst CDAR (0 0 #t) :combined
+  (CAR CDR))
+
+(define-inst CDDR (0 0 #t) :combined
+  (CDR CDR))
+
 (define-inst LREF_CAR (1 0 #t) :combined
   (LREF CAR))
 
 (define-inst LREF_CDR (1 0 #t) :combined
   (LREF CDR))
+
+(define-inst FREF_CAR (1 0 #t) :combined
+  (FREF CAR))
+
+(define-inst FREF_CDR (1 0 #t) :combined
+  (FREF CDR))
+
+(define-inst GREF_CAR (0 1 #t) :combined
+  (GREF CAR))
+
+(define-inst GREF_CDR (0 1 #t) :combined
+  (GREF CDR))
 
 #;(define-inst SHIFTJ_JUMP (2 1 #t) :combined
   (SHIFTJ JUMP))

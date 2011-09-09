@@ -3450,7 +3450,7 @@
 (define
  pass3/find-free
  (lambda
-  (iform locals renv)
+  (iform locals renv cb)
   (define
    rec
    (lambda
@@ -3494,9 +3494,17 @@
       ($append-map1 (lambda (fm) (rec fm l labels-seen)) ($asm-args i)))
      ((has-tag? i $DEFINE) (rec ($define-expr i) l labels-seen))
      ((has-tag? i $CALL)
-      (append
-       ($append-map1 (lambda (fm) (rec fm l labels-seen)) ($call-args i))
-       (rec ($call-proc i) l labels-seen)))
+      (if
+       (and
+        (eq? ($call-flag i) 'embed)
+        (has-tag? ($lambda-body ($call-proc i)) $LABEL)
+        (assq
+         ($label-label ($lambda-body ($call-proc i)))
+         (code-builder-label-defs cb)))
+       '()
+       (append
+        ($append-map1 (lambda (fm) (rec fm l labels-seen)) ($call-args i))
+        (rec ($call-proc i) l labels-seen))))
      ((has-tag? i $LABEL)
       (if
        (memq i labels-seen)
@@ -3849,12 +3857,14 @@
         (pass3/find-free
          i
          vars
-         (renv-add-can-free2 renv (renv-locals renv) (renv-frees renv))))
+         (renv-add-can-free2 renv (renv-locals renv) (renv-frees renv))
+         cb))
        args)
       (pass3/find-free
        body
        vars
-       (renv-add-can-free2 renv (renv-frees renv) (renv-locals renv)))))
+       (renv-add-can-free2 renv (renv-frees renv) (renv-locals renv))
+       cb)))
     (sets
      (append
       vars
@@ -3910,12 +3920,14 @@
         (pass3/find-free
          i
          (renv-locals renv)
-         (renv-add-can-free2 renv (renv-frees renv) (renv-locals renv))))
+         (renv-add-can-free2 renv (renv-frees renv) (renv-locals renv))
+         cb))
        ($let-inits iform))
       (pass3/find-free
        body
        vars
-       (renv-add-can-free2 renv (renv-frees renv) (renv-locals renv)))))
+       (renv-add-can-free2 renv (renv-frees renv) (renv-locals renv))
+       cb)))
     (sets (pass3/find-sets body vars))
     (free-length (length free))
     (nargs (length vars))
@@ -3953,7 +3965,8 @@
      (pass3/find-free
       body
       vars
-      (renv-add-can-free2 renv (renv-locals renv) (renv-frees renv))))
+      (renv-add-can-free2 renv (renv-locals renv) (renv-frees renv))
+      cb))
     (sets (pass3/find-sets body vars))
     (lambda-cb (make-code-builder))
     (frlen (length free))
@@ -3988,11 +4001,13 @@
       (pass3/find-free
        ($receive-expr iform)
        (renv-locals renv)
-       (renv-add-can-free2 renv (renv-locals renv) (renv-frees renv)))
+       (renv-add-can-free2 renv (renv-locals renv) (renv-frees renv))
+       cb)
       (pass3/find-free
        body
        vars
-       (renv-add-can-free2 renv (renv-locals renv) (renv-frees renv)))))
+       (renv-add-can-free2 renv (renv-locals renv) (renv-frees renv))
+       cb)))
     (sets (pass3/find-sets body vars))
     (nargs (length vars))
     (free-length (length free)))
@@ -4110,7 +4125,7 @@
     (label ($lambda-body proc))
     (body ($label-body label))
     (vars ($lambda-lvars proc))
-    (free (pass3/find-free body vars renv))
+    (free (pass3/find-free body vars renv cb))
     (sets (pass3/find-sets body vars))
     (frlen (length free)))
    ($call-renv-set! iform (renv-copy renv))

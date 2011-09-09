@@ -143,6 +143,18 @@ static void combineInsnArg0(SgCodeBuilder *cb, SgCodePacket *packet)
     case LREF:
       cb->packet.insn = LREF_CAR;
       break;
+    case FREF:
+      cb->packet.insn = FREF_CAR;
+      break;
+    case GREF:
+      cb->packet.insn = GREF_CAR;
+      break;
+    case CAR:
+      cb->packet.insn = CAAR;
+      break;
+    case CDR:
+      cb->packet.insn = CADR;
+      break;
     default:
       goto flush;
     }
@@ -151,6 +163,18 @@ static void combineInsnArg0(SgCodeBuilder *cb, SgCodePacket *packet)
     switch (cb->packet.insn) {
     case LREF:
       cb->packet.insn = LREF_CDR;
+      break;
+    case FREF:
+      cb->packet.insn = FREF_CDR;
+      break;
+    case GREF:
+      cb->packet.insn = GREF_CDR;
+      break;
+    case CAR:
+      cb->packet.insn = CDAR;
+      break;
+    case CDR:
+      cb->packet.insn = CDDR;
       break;
     default:
       goto flush;

@@ -266,6 +266,9 @@
     (Sg_CodeBuilderEmit cb insn ARGUMENT1 0 0 lambda_cb)
     (Sg_CodeBuilderAddSrc lambda_cb insn src))
 
+  (define-c-proc code-builder-label-defs (cb::CodeBuilder) ::Object
+    (result (-> cb labelDefs)))
+
   (define-c-proc code-builder-finish-builder (cb::CodeBuilder last::fixnum) ::Object
     (result (Sg_CodeBuilderFinishBuilder cb last)))
 

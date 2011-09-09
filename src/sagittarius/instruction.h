@@ -103,9 +103,17 @@ typedef enum {
   GREF_TAIL_CALL = 0x4e,
   SET_CAR = 0x4f,
   SET_CDR = 0x50,
-  LREF_CAR = 0x51,
-  LREF_CDR = 0x52,
-  INSTRUCTION_COUNT = 83, /** number of instructions */
+  CAAR = 0x51,
+  CADR = 0x52,
+  CDAR = 0x53,
+  CDDR = 0x54,
+  LREF_CAR = 0x55,
+  LREF_CDR = 0x56,
+  FREF_CAR = 0x57,
+  FREF_CDR = 0x58,
+  GREF_CAR = 0x59,
+  GREF_CDR = 0x5a,
+  INSTRUCTION_COUNT = 91, /** number of instructions */
 } Instruction;
 
 typedef struct InsnInfoRec InsnInfo;
