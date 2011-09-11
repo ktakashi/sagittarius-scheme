@@ -47,7 +47,7 @@ static void mutex_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
   Sg_Printf(port, UC("#<mutex %S "), name);
   if (locked) {
     if (vm) {
-      if (vm->state == SG_VM_TERMINATED) {
+      if (vm->threadState == SG_VM_TERMINATED) {
 	Sg_Printf(port, UC("unlocked/abandoned>"));
       } else {
 	Sg_Printf(port, UC("locked/owned by %S>"), vm);
@@ -93,7 +93,7 @@ SgObject Sg_MutexState(SgMutex *mutex)
   Sg_LockMutex(&mutex->mutex);
   if (mutex->locked) {
     if (mutex->owner) {
-      if (mutex->owner->state == SG_VM_TERMINATED) r = sym_abandoned;
+      if (mutex->owner->threadState == SG_VM_TERMINATED) r = sym_abandoned;
       else r = SG_OBJ(mutex->owner);
     } else {
       r = sym_not_owned;
@@ -118,7 +118,7 @@ SgObject Sg_MutexLock(SgMutex *mutex, SgObject timeout, SgVM *owner)
 		      (void *)&mutex->mutex);
   Sg_LockMutex(&mutex->mutex);
   while (mutex->locked) {
-    if (mutex->owner && mutex->owner->state == SG_VM_TERMINATED) {
+    if (mutex->owner && mutex->owner->threadState == SG_VM_TERMINATED) {
       abandoned = mutex->owner;
       mutex->locked = FALSE;
       break;

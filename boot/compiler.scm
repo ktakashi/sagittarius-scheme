@@ -3349,6 +3349,7 @@
 		(not (has-tag? ($if-else iform) $IT))
 		(has-tag? ($if-test iform) $ASM)
 		(eqv? (car ($asm-insn ($if-test iform))) NOT))
+	   ;; shouldn't this in pass2?
 	   ;; (if (not x) a b) -> (if x b a)
 	   (pass3/$IF ($if ($*-src iform)
 			   (car ($asm-args ($if-test iform)))
@@ -3424,7 +3425,9 @@
 	       (cb-label-set! cb begin-of-else)
 	       (+ test-size then-size))
 	      (else
-	       (cb-emit0o! cb JUMP end-of-else)
+	       (if (tail-context? ctx)
+		   (cb-emit0! cb RET)
+		   (cb-emit0o! cb JUMP end-of-else))
 	       (cb-label-set! cb begin-of-else)
 	       (let ((else-size (pass3/rec ($if-else iform) cb renv ctx)))
 		 (cb-label-set! cb end-of-else)

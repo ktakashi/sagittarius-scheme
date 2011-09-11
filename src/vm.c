@@ -265,6 +265,7 @@ static inline void report_error(SgObject exception)
   SgObject error = SG_NIL, stackTrace = SG_NIL;
   SgObject cur;
   SgPort *buf = SG_PORT(Sg_MakeStringOutputPort(-1));
+  SgVM *vm = Sg_VM();
 
   if (SG_PAIRP(exception)) {
     error = SG_CAR(exception);
@@ -297,7 +298,7 @@ static inline void report_error(SgObject exception)
       } else {
 	src = Sg_LastPair(tmp);
 	src = SG_CDAR(src);
-	info = Sg_HashTableRef(SG_HASHTABLE(Sg_VM()->sourceInfos),
+	info = Sg_HashTableRef(SG_HASHTABLE(vm->sourceInfos),
 			       src, SG_FALSE);
 	/* info = SG_SOURCE_INFO(src); */
       }
@@ -975,9 +976,8 @@ SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk)
 #define REFER_LOCAL(vm, n)   *(FP(vm) + n)
 #define INDEX_CLOSURE(vm, n) (SG_CLOSURE(DC(vm))->frees[n])
 
-static inline Stack* save_stack(void *end)
+static inline Stack* save_stack(SgVM* vm, void *end)
 {
-  SgVM *vm = Sg_VM();
   int size = (SgObject*)end - vm->stack;
   Stack *s = SG_NEW2(Stack *, sizeof(Stack) + sizeof(SgObject)*(size - 1));
   s->size = size;
@@ -1041,7 +1041,7 @@ static SgObject restore_stack_cc(SgObject ac, void **data)
 
 static void expand_stack(SgVM *vm)
 {
-  Stack *stack = save_stack(CONT(vm));
+  Stack *stack = save_stack(vm, CONT(vm));
   SgObject *s = vm->stack, *fp_diff = FP(vm) - CONT_FRAME_SIZE, *sp = SP(vm);
   void *data[2];
   int diff = SP(vm) - FP(vm);
@@ -1194,8 +1194,9 @@ SgObject Sg_VMCallCC(SgObject proc)
   Stack *stack;
   SgContinuation *cont;
   SgObject contproc;
+  SgVM *vm = Sg_VM();
 
-  stack = save_stack(SP(Sg_VM()));
+  stack = save_stack(vm, SP(vm));
   cont = make_continuation(stack);
   contproc = Sg_MakeSubr(throw_continuation, cont, 0, 1,
 			 Sg_MakeString(UC("continucation"),
@@ -1642,13 +1643,13 @@ static SgObject process_queued_requests_cc(SgObject result, void **data)
 static void process_queued_requests(SgVM *vm)
 {
   void *data[1];
-  
   /* preserve the current continuation */
   data[0] = (void*)vm->ac;
 
   Sg_VMPushCC(process_queued_requests_cc, data, 1);
   
   vm->attentionRequest = FALSE;
+
   if (vm->finalizerPending) Sg_VMFinalizerRun(vm);
 
   if (vm->stopRequest) {
@@ -1729,16 +1730,15 @@ static void process_queued_requests(SgVM *vm)
 
 #define BUILTIN_TWO_ARGS(vm, proc)		\
   do {						\
-    SgObject s = INDEX(SP(vm), 0);		\
-    AC(vm) = proc(s, AC(vm));			\
+    AC(vm) = proc(INDEX(SP(vm), 0), AC(vm));	\
     SP(vm)--;					\
   } while (0)
 
-#define BUILTIN_TWO_ARGS_COMPARE(vm, proc)	\
-  do {						\
-    SgObject s = INDEX(SP(vm), 0);		\
-    AC(vm) = SG_MAKE_BOOL(proc(s, AC(vm)));	\
-    SP(vm)--;					\
+#define BUILTIN_TWO_ARGS_COMPARE(vm, proc)		\
+  do {							\
+    AC(vm) = SG_MAKE_BOOL(proc(INDEX(SP(vm), 0),	\
+			       AC(vm)));		\
+    SP(vm)--;						\
   } while(0)
 
 #define BUILTIN_ONE_ARG(vm, proc)		\
@@ -1750,20 +1750,22 @@ static void process_queued_requests(SgVM *vm)
 #define BRANCH_TEST2(test)			\
   {						\
     SgObject n = FETCH_OPERAND(PC(vm));		\
-    int t = test(INDEX(SP(vm), 0), AC(vm));	\
-    AC(vm) = SG_MAKE_BOOL(t);			\
-    if (SG_FALSEP(AC(vm))) {			\
+    if (!test(INDEX(SP(vm), 0), AC(vm))) {	\
       PC(vm) += SG_INT_VALUE(n) - 1;		\
+      AC(vm) = SG_FALSE;			\
+    } else {					\
+      AC(vm) = SG_TRUE;				\
     }						\
     SP(vm)--;					\
   }
 #define BRANCH_TEST1(test)			\
   {						\
     SgObject n = FETCH_OPERAND(PC(vm));		\
-    int t = test(AC(vm));			\
-    AC(vm) = SG_MAKE_BOOL(t);			\
-    if (SG_FALSEP(AC(vm))) {			\
+    if (!test(AC(vm))) {			\
       PC(vm) += SG_INT_VALUE(n) - 1;		\
+      AC(vm) = SG_FALSE;			\
+    } else {					\
+      AC(vm) = SG_TRUE;				\
     }						\
   }
 

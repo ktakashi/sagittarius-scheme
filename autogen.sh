@@ -42,6 +42,8 @@ do_stub()
 do_insn()
 {
     echo generating instruction
+#    ./script/gen-instruction.scm scheme ./boot/instructions.scm ./boot/insn.scm
+#    ./script/gen-instruction.scm c++ ./boot/instructions.scm ./src/sagittarius/instruction.h
     cd src
     sash -L../sitelib ./geninsn
     cd ../
@@ -84,10 +86,11 @@ then
 		;;
 	    all)
 		echo "generate all."
+		do_insn
 		do_compile
 		do_library
+		do_builtin
 		do_stub
-		do_insn
 		;;
 	    *)
 		show_usage

@@ -13,7 +13,8 @@
 ;; time must be first. it is used in thread test
 (run-time-test)
 (run-socket-test)
-;(run-threads-test)
+;; somehow it sometimes won't back.
+;;(run-threads-test)
 (run-regex-test)
 (run-ffi-test)
 (run-crypto-test)

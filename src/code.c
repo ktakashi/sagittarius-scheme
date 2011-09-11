@@ -134,6 +134,33 @@ static void combineInsnArg0(SgCodeBuilder *cb, SgCodePacket *packet)
     case CONSTI:
       cb->packet.insn = CONSTI_PUSH;
       break;
+    case LREF_CAR:
+      cb->packet.insn = LREF_CAR_PUSH;
+      break;
+    case FREF_CAR:
+      cb->packet.insn = FREF_CAR_PUSH;
+      break;
+    case GREF_CAR:
+      cb->packet.insn = GREF_CAR_PUSH;
+      break;
+    case LREF_CDR:
+      cb->packet.insn = LREF_CDR_PUSH;
+      break;
+    case FREF_CDR:
+      cb->packet.insn = FREF_CDR_PUSH;
+      break;
+    case GREF_CDR:
+      cb->packet.insn = GREF_CDR_PUSH;
+      break;
+    case CAR:
+      cb->packet.insn = CAR_PUSH;
+      break;
+    case CDR:
+      cb->packet.insn = CDR_PUSH;
+      break;
+    case CONS:
+      cb->packet.insn = CONS_PUSH;
+      break;
     default:
       goto flush;
     }

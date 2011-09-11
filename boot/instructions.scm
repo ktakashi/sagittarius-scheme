@@ -53,100 +53,43 @@
    (renderer-indent-decl!)
    ((renderer) "}")))
 
-#|
-CASE(NOP) {
- NEXT;
-}
-|#
 (define-inst NOP (0 0 #f) (:value 0)
   ;; do nothing
   )
 
-#|
-CASE(HALT) {
-  return AC(vm);
-}
-|#
 (define-inst HALT (0 0 #f) :return)
 
-#|
-CASE(UNDEF) {
-  AC(vm) = SG_UNDEF;
-  NEXT;
-}
-|#
 (define-inst UNDEF (0 0 #f)
   (set! (AC vm) SG_UNDEF))
 
-#|
-CASE(CONST) {
-  CONST_INSN(vm);
-  NEXT;
-}
-|#
 (define-inst CONST (0 1 #f)
-  (CONST_INSN vm))
+  (set! (AC vm) (FETCH_OPERAND (PC vm)))
+  #;(CONST_INSN vm))
 
-#|
-CASE(CONSTI) {
-  INSN_VAL1(val1 c);
-  AC(vm) = SG_MAKE_INT(val1);
-  NEXT;
-}
-|#
 (define-inst CONSTI (1 0 #f)
   (INSN_VAL1 val1 c)
   (set! (AC vm) (SG_MAKE_INT val1)))
 
-#|
-CASE(LREF) {
-  LREF_INSN(vm, c);
-  NEXT;
-}
-|#
 (define-inst LREF (1 0 #t)
-  (LREF_INSN vm c))
+  (INSN_VAL1 val1 c)
+  (set! (AC vm) (REFER_LOCAL vm val1))
+  #;(LREF_INSN vm c))
 
-#|
-CASE(LSET) {
-  INSN_VAL1(val1, c);
-  SG_BOX(REFER_LOCAL(vm, val1))->value = AC(vm);
-  NEXT;
-}
-|#
 (define-inst LSET (1 0 #t)
   (INSN_VAL1 val1 c)
   (set! (-> (SG_BOX (REFER_LOCAL vm val1)) value) (AC vm)))
 
-#|
-      CASE(FREF) {
-	FREF_INSN(vm, c);
-	NEXT;
-      }
-|#
 (define-inst FREF (1 0 #t)
-  (FREF_INSN vm c))
+  (INSN_VAL1 val1 c)
+  (set! (AC vm) (INDEX_CLOSURE vm val1))
+  #;(FREF_INSN vm c))
 
-#|
-      CASE(FSET) {
-	INSN_VAL1(val1, c);
-	SG_BOX(INDEX_CLOSURE(vm, val1))->value = AC(vm);
-	NEXT;
-      }
-|#
 (define-inst FSET (1 0 #t)
   (INSN_VAL1 val1 c)
   (set! (-> (SG_BOX (INDEX_CLOSURE vm val1)) value) (AC vm)))
 
-#|
-      CASE(GREF) {
-	GREF_INSN(vm);
-	NEXT;
-      }
-|#
 (define-inst GREF (0 1 #t)
   (GREF_INSN vm))
-
 
 (define-inst GSET (0 1 #t)
   (let ((var (FETCH_OPERAND (PC vm))))
@@ -169,43 +112,19 @@ CASE(LSET) {
 				   0)))
 	    (set! (pointer (- (PC vm) 1)) (SG_WORD g)))))
     (set! (AC vm) SG_UNDEF)))
-#|
-      CASE(PUSH) {
-	PUSH_INSN(vm);
-	NEXT;
-      }
-|#
-(define-inst PUSH (0 0 #f)
-  (PUSH_INSN vm))
 
-#|
-      CASE(BOX) {
-	INSN_VAL1(val1, c);
-	INDEX_SET(SP(vm), val1, make_box(INDEX(SP(vm), val1)));
-	NEXT;
-      }
-|#
+(define-inst PUSH (0 0 #f)
+  (PUSH (SP vm) (AC vm))
+  #;(PUSH_INSN vm))
+
 (define-inst BOX (1 0 #f)
   (INSN_VAL1 val1 c)
   (INDEX_SET (SP vm) val1 (make_box (INDEX (SP vm) val1))))
 
-#|
-      CASE(UNBOX) {
-	ASSERT(SG_BOXP(AC(vm)));
-	AC(vm) = SG_BOX(AC(vm))->value;
-	NEXT;
-      }
-|#
 (define-inst UNBOX (0 0 #f)
   (ASSERT (SG_BOXP (AC vm)))
   (set! (AC vm) (-> (SG_BOX (AC vm)) value)))
 
-#|
-      CASE(ADD) {
-	BUILTIN_TWO_ARGS(vm, Sg_Add);
-	NEXT;
-      }
-|#
 (define-inst ADD (0 0 #t)
   (BUILTIN_TWO_ARGS vm Sg_Add))
 
@@ -220,12 +139,6 @@ CASE(LSET) {
 	(else
 	 (BUILTIN_ONE_ARG_WITH_INSN_VALUE vm Sg_Add c))))
 
-#|
-      CASE(SUB) {
-	BUILTIN_TWO_ARGS(vm, Sg_Sub);
-	NEXT;
-      }
-|#
 (define-inst SUB (0 0 #t)
   (BUILTIN_TWO_ARGS vm Sg_Sub))
 
@@ -240,12 +153,6 @@ CASE(LSET) {
 	(else
 	 (BUILTIN_ONE_ARG_WITH_INSN_VALUE vm Sg_Sub c))))
 
-#|
-      CASE(MUL) {
-	BUILTIN_TWO_ARGS(vm, Sg_Mul);
-	NEXT;
-      }
-|#
 (define-inst MUL (0 0 #t)
   (BUILTIN_TWO_ARGS vm Sg_Mul))
 
@@ -274,39 +181,15 @@ CASE(LSET) {
   (INSN_VAL1 val1 c)
   (BUILTIN_ONE_ARG_WITH_INSN_VALUE vm Sg_Div c))
 
-#|
-      CASE(NEG) {
-	BUILTIN_ONE_ARG(vm, Sg_Negate);
-	NEXT;
-      }
-|#
 (define-inst NEG (0 0 #t)
   (BUILTIN_ONE_ARG vm Sg_Negate))
 
-#|
-      CASE(TEST) {
-	SgObject n = FETCH_OPERAND(PC(vm));
-	ASSERT(SG_INTP(n));
-	if (SG_FALSEP(AC(vm))) {
-	  PC(vm) += SG_INT_VALUE(n) - 1;
-	}
-	NEXT;
-      }
-|#
 (define-inst TEST (0 1 #t) :label
   (let ((n (FETCH_OPERAND (PC vm))))
     (ASSERT (SG_INTP n))
     (if (SG_FALSEP (AC vm))
 	(set! (PC vm) (+ (PC vm) (- (SG_INT_VALUE n) 1))))))
 
-#|
-      CASE(JUMP) {
-	SgObject n = FETCH_OPERAND(PC(vm));
-	ASSERT(SG_INTP(n));
-	PC(vm) += SG_INT_VALUE(n) - 1;
-	NEXT;
-      }
-|#
 (define-inst JUMP (0 1 #t) :label
   (let ((n (FETCH_OPERAND (PC vm))))
     (ASSERT (SG_INTP n))
@@ -329,15 +212,14 @@ CASE(LSET) {
 |#
 (define-inst SHIFTJ (2 0 #f)
   (INSN_VAL2 val1 val2 c)
-  (let ((i::int val2))
-    (for () () (post-- i)
-     (when (and (<= i 0)
-		(-> (SG_CLOSURE (DC vm)) mark))
-       (break))
-     (set! (DC vm) (-> (SG_CLOSURE (DC vm)) prev)))
-    (ASSERT (SG_CLOSUREP (DC vm)))
-    (set! (FP vm) (-> (SG_CLOSURE (DC vm)) mark))
-    (set! (SP vm) (shift_args (FP vm) val1 (SP vm)))))
+  (for ()
+       (not (and (<= val2 0)
+		 (-> (SG_CLOSURE (DC vm)) mark)))
+       (post-- val2)
+    (set! (DC vm) (-> (SG_CLOSURE (DC vm)) prev)))
+  (ASSERT (SG_CLOSUREP (DC vm)))
+  (set! (FP vm) (-> (SG_CLOSURE (DC vm)) mark))
+  (set! (SP vm) (shift_args (FP vm) val1 (SP vm))))
 
 #|
       CASE(MARK) {
@@ -755,9 +637,8 @@ CASE(LSET) {
       }
 |#
 (define-inst DISPLAY (1 0 #f)
-  (let ((new_c SG_UNDEF))
-    (INSN_VAL1 val1 c)
-    (set! new_c (make_display val1 (SP vm)))
+  (INSN_VAL1 val1 c)
+  (let ((new_c (make_display val1 (SP vm))))
     (set! (-> (SG_CLOSURE new_c) prev) (DC vm))
     (set! (DC vm) new_c)
     (set! (SP vm) (- (SP vm) val1))))
@@ -868,6 +749,21 @@ CASE(LSET) {
       (for (set! i 0) (< i n) (post++ i)
 	   (set! ret (Sg_Cons (INDEX (SP vm) i) ret)))
       (set! (SP vm) (- (SP vm) n)))
+    (set! (AC vm) ret)))
+
+(define-inst APPEND (1 0 #t)
+  (INSN_VAL1 val1 c)
+  (let ((nargs::int (- val1 1))
+	(i::int 0)
+	(ret '()))
+    (when (> nargs 0)
+      (set! ret (AC vm))
+      (for () (< i nargs) (post++ i)
+	   (when (< (Sg_Length (INDEX (SP vm) i)) 0)
+	     (wrong-type-of-argument-violation 'append
+					       "list" (INDEX (SP vm) i)))
+	   (set! ret (Sg_Append2 (INDEX (SP vm) i) ret)))
+      (set! (SP vm) (- (SP vm) nargs)))
     (set! (AC vm) ret)))
 
 #|
@@ -1055,6 +951,15 @@ CASE(LSET) {
 (define-inst CDDR (0 0 #t) :combined
   (CDR CDR))
 
+(define-inst CAR_PUSH (0 0 #t) :combined
+  (CAR PUSH))
+
+(define-inst CDR_PUSH (0 0 #t) :combined
+  (CDR PUSH))
+
+(define-inst CONS_PUSH (0 0 #t) :combined
+  (CONS PUSH))
+
 (define-inst LREF_CAR (1 0 #t) :combined
   (LREF CAR))
 
@@ -1072,6 +977,24 @@ CASE(LSET) {
 
 (define-inst GREF_CDR (0 1 #t) :combined
   (GREF CDR))
+
+(define-inst LREF_CAR_PUSH (1 0 #t) :combined
+  (LREF CAR PUSH))
+
+(define-inst LREF_CDR_PUSH (1 0 #t) :combined
+  (LREF CDR PUSH))
+
+(define-inst FREF_CAR_PUSH (1 0 #t) :combined
+  (FREF CAR PUSH))
+
+(define-inst FREF_CDR_PUSH (1 0 #t) :combined
+  (FREF CDR PUSH))
+
+(define-inst GREF_CAR_PUSH (0 1 #t) :combined
+  (GREF CAR PUSH))
+
+(define-inst GREF_CDR_PUSH (0 1 #t) :combined
+  (GREF CDR PUSH))
 
 #;(define-inst SHIFTJ_JUMP (2 1 #t) :combined
   (SHIFTJ JUMP))

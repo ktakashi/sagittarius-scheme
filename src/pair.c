@@ -102,12 +102,7 @@ SgObject Sg_VaList(va_list elts)
   return start;
 }
 
-SgObject Sg_ArrayToList(SgObject *array, int nelts)
-{
-  return Sg_ArrayToListWithTail(array, nelts, SG_NIL);
-}
-
-SgObject Sg_ArrayToListWithTail(SgObject *array, int nelts, SgObject tail)
+static inline SgObject array_to_list_with_tail(SgObject *array, int nelts, SgObject tail)
 {
   SgObject h = SG_NIL, t = SG_NIL;
   if (array) {
@@ -116,6 +111,16 @@ SgObject Sg_ArrayToListWithTail(SgObject *array, int nelts, SgObject tail)
   }
   if (!SG_NULLP(tail)) SG_APPEND(h, t, tail);
   return h;
+}
+
+SgObject Sg_ArrayToList(SgObject *array, int nelts)
+{
+  return array_to_list_with_tail(array, nelts, SG_NIL);
+}
+
+SgObject Sg_ArrayToListWithTail(SgObject *array, int nelts, SgObject tail)
+{
+  return array_to_list_with_tail(array, nelts, tail);
 }
 
 #define CXR(cname, sname, body)			\

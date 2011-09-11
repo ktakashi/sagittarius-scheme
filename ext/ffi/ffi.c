@@ -866,8 +866,9 @@ static int convert_scheme_to_c_value(SgObject v, int type, void **result)
     return TRUE;
   default:
     Sg_Panic("unknown FFI return type: %d", type);
-    return NULL;
-  }  
+    return FALSE;
+  }
+  return TRUE;
 }
 
 static SgObject get_callback_arguments(SgCallback *callback, void **args)

@@ -1,7 +1,11 @@
-#!/bin/env gosh
+#!/bin/env sash
 
-(use util.match)
-(use srfi-1)
+;;(use util.match)
+;;(use srfi-1)
+(import (rnrs)
+	(match)
+	(srfi :1 lists))
+
 
 (define (header-c++ out)
   (format out "/* -*- C -*- */~%")
@@ -199,11 +203,15 @@
 	-1)
       (let ((has-out? (>= (length args) 4)))
 	(let ((out (if has-out?
-		       (open-output-file (cadddr args))
+		       ;;(open-output-file (cadddr args))
+		       (open-file-output-port (cadddr args) (file-options no-fail))
 		       (current-output-port))))
 	  (gen-file (string->symbol (cadr args)) (caddr args) out #;(if (>= (length args) 4)
 								      (cddddr args)
 								      '()))))))
+
+(let ((args (command-line)))
+  (main args))
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix

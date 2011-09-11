@@ -945,7 +945,7 @@
   (define-c-proc length (lst) ::fixnum
     (result (Sg_Length lst)))
 
-  (define-c-proc append (:rest lst) ::Object
+  (define-c-proc append (:rest lst) (inline APPEND) ::Object
     (result (Sg_Append lst)))
 
   (define-c-proc reverse (lst) ::Object

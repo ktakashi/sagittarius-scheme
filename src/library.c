@@ -470,6 +470,7 @@ static void import_parents(SgLibrary *lib, SgLibrary *fromlib,
   SgObject exportSpec = SG_LIBRARY_EXPORTED(fromlib);
   /* we need to check if fromlib's export spec exports variables */
   SgObject exported = SG_NIL, cp;
+  /* parents ::= ((<lib> . ((rename . org) ...)) ...) */
   SG_FOR_EACH(cp, parents) {
     SgObject slot = SG_CAR(cp);
     SgObject lib = SG_CAR(slot);
@@ -477,7 +478,7 @@ static void import_parents(SgLibrary *lib, SgLibrary *fromlib,
     SgObject slot2, tmp = SG_NIL;
     SG_FOR_EACH(slot2, alist) {
       /* we only have interest in renamed name */
-      SgObject renamed = SG_CAAR(slot2);
+      SgObject renamed = SG_CAAR(slot2), spec;
       if (SG_FALSEP(exportSpec) ||
 	  !SG_FALSEP(Sg_Memq(renamed, SG_CAR(exportSpec))) ||
 	  allP) {
@@ -486,14 +487,15 @@ static void import_parents(SgLibrary *lib, SgLibrary *fromlib,
 	if (!SG_UNBOUNDP(renamed)) {
 	  tmp = Sg_Acons(renamed, SG_CDAR(slot2), tmp);
 	}
-      } else {
-	/* renamed export */
-	SgObject spec = Sg_Assq(renamed, SG_CDR(exportSpec));
-	if (!SG_FALSEP(spec)) {
-	  renamed = rename_key(SG_CADR(spec), prefix, imports, except);
-	  if (!SG_UNBOUNDP(renamed)) {
-	    tmp = Sg_Acons(SG_CADR(spec), SG_CDAR(slot2), tmp);
-	  }
+      }
+      /* renamed export */
+      /* we always need to check renamed export for duplicated export.
+	 ex) on srfi-1 car is exported as car and first. */
+      spec = Sg_Assq(renamed, SG_CDR(exportSpec));
+      if (!SG_FALSEP(spec)) {
+	renamed = rename_key(SG_CADR(spec), prefix, imports, except);
+	if (!SG_UNBOUNDP(renamed)) {
+	  tmp = Sg_Acons(SG_CADR(spec), SG_CDAR(slot2), tmp);
 	}
       }
     }

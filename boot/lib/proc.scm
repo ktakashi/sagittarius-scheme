@@ -82,6 +82,7 @@
 
 (declare-procedure list objs (:inline LIST) :null
   (lambda a a))
+(declare-procedure append a (:inline APPEND) :null append)
 
 (declare-procedure eq?   (a b) (:inline EQ) :null eq?)
 (declare-procedure eqv?  (a b) (:inline EQV) :null eqv?)

@@ -225,7 +225,6 @@ static int file_close(SgObject self)
 	unregister_buffered_port(SG_PORT(self));
       }
       SG_PORT_FILE(self)->close(SG_PORT_FILE(self));
-      Sg_UnregisterFinalizer(self);
     }
   }
   return SG_PORT(self)->closed;
@@ -1404,7 +1403,8 @@ SgObject Sg_GetStringFromStringPort(SgPort *port)
 
 void Sg_ClosePort(SgPort *port)
 {
-  port->close(port);
+  /* port->close(port); */
+  port_cleanup(port);
 }
 
 /* this doesn't close port, just pseudo.

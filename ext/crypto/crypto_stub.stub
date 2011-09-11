@@ -1,4 +1,4 @@
-;; -*- mode: scheme; coding; utf-8 -*-
+;; -*- mode: scheme; coding: utf-8; -*-
 (library (sagittarius crypto impl)
     (export)
     (import :null)

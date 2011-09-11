@@ -3825,7 +3825,10 @@
       (cb-label-set! cb begin-of-else)
       (+ test-size then-size))
      (else
-      (cb-emit0o! cb JUMP end-of-else)
+      (if
+       (tail-context? ctx)
+       (cb-emit0! cb RET)
+       (cb-emit0o! cb JUMP end-of-else))
       (cb-label-set! cb begin-of-else)
       (let
        ((else-size (pass3/rec ($if-else iform) cb renv ctx)))
