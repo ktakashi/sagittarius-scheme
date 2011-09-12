@@ -238,6 +238,8 @@ static SgObject argsToList(int argc, int optind, char** argv)
 static int profiler_mode = FALSE;
 static SgObject profiler_option = SG_UNDEF;
 
+static int stat = FALSE;
+
 static void cleanup_main(void *data)
 {
   if (profiler_mode) {
@@ -250,6 +252,12 @@ static void cleanup_main(void *data)
 	Sg_Apply3(SG_GLOC_GET(SG_GLOC(gloc)), SG_FALSE, profiler_option, SG_MAKE_INT(50));
       }
     }
+  }
+
+  if (stat) {
+    fprintf(stderr, "\n;; Statistics (*: main thread only):\n");
+    fprintf(stderr, ";;  GC: %zubytes heap, %zubytes allocated, %ld gc occurred\n",
+	    GC_get_heap_size(), GC_get_total_bytes(), GC_gc_no);
   }
 }
 
@@ -275,6 +283,7 @@ int main(int argc, char **argv)
     {"disable-cache", 0, 0, 'd'},
     {"debug-exec", optional_argument, 0, 'E'},
     {"logport", optional_argument, 0, 'p'},
+    {"stat", 0, 0, 's'},
 #ifdef SAGITTARIUS_PROFILE
     {"profile", optional_argument, 0, 'P'},
 #endif
@@ -286,7 +295,7 @@ int main(int argc, char **argv)
   Sg_Init();
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
-  while ((opt = getopt_long(argc, argv, "L:D:f:I:hEviCdp:6P:", long_options, &optionIndex)) != -1) {
+  while ((opt = getopt_long(argc, argv, "L:D:f:I:hEviCdp:6P:s", long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 'E':
       if (strcmp("trace", optarg) == 0) {
@@ -368,6 +377,9 @@ int main(int argc, char **argv)
       }      
       break;
 #endif
+    case 's':
+      stat = TRUE;
+      break;
     default:
   usage:
       fprintf(stderr, "invalid option -- %c\n", opt);

@@ -225,6 +225,7 @@ static int file_close(SgObject self)
 	unregister_buffered_port(SG_PORT(self));
       }
       SG_PORT_FILE(self)->close(SG_PORT_FILE(self));
+      Sg_UnregisterFinalizer(self);
     }
   }
   return SG_PORT(self)->closed;
@@ -603,6 +604,8 @@ SgObject Sg_MakeFileBinaryInputOutputPort(SgFile *file, int bufferMode)
  */
 static int byte_array_close(SgObject self)
 {
+  if (!SG_PORT(self)->closed)
+    Sg_UnregisterFinalizer(self);
   SG_PORT(self)->closed = TRUE;
   return TRUE;
 }
@@ -712,6 +715,8 @@ SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size)
 
 static int obyte_array_close(SgObject self)
 {
+  if (!SG_PORT(self)->closed)
+    Sg_UnregisterFinalizer(self);
   SG_PORT(self)->closed = TRUE;
   /* gc friendliness */
   SG_BINARY_PORT(self)->src.buffer.bvec = NULL;
@@ -1175,6 +1180,9 @@ static int64_t custom_binary_put_u8_array(SgObject self, uint8_t *v, int64_t siz
 
 static int custom_close(SgObject self)
 {
+  if (!SG_PORT(self)->closed) {
+    Sg_UnregisterFinalizer(self);
+  }
   SG_PORT(self)->closed = TRUE;
   return SG_PORT(self)->closed;
 }
@@ -1403,8 +1411,9 @@ SgObject Sg_GetStringFromStringPort(SgPort *port)
 
 void Sg_ClosePort(SgPort *port)
 {
-  /* port->close(port); */
-  port_cleanup(port);
+  port->close(port);
+  /* if (!port->closed) */
+  /*   port_cleanup(port); */
 }
 
 /* this doesn't close port, just pseudo.
