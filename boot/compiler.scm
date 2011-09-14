@@ -28,6 +28,7 @@
   (define hashtable-ref hash-table-get)
   (define hashtable-contains? hash-table-exists?)
   (define hashtable-keys-list hash-table-keys)
+  (define hashtable-values-list hash-table-values)
   (define hashtable-for-each (lambda (proc ht) (hash-table-for-each ht proc)))
   (define (syntax-error form . irritants)
     (errorf "syntax-error: ~s, irritants ~s" form irritants))
@@ -141,6 +142,8 @@
 
 ;; Maximum size of $LAMBDA node I allow to duplicate and inline.
 (define-constant SMALL_LAMBDA_SIZE 12)
+;; Maximum size of $LAMBDA node I allow to inline for library optimization
+(define-constant INLINABLE_LAMBDA_SIZE 24)
 (cond-expand
  (gauche
   (define-macro (generate-dispatch-table prefix)
@@ -212,6 +215,12 @@
   expr   ; expression IForm
   )
 
+(define-syntax $define?
+  (syntax-rules ()
+    ((_ iform)
+     (has-tag? iform $DEFINE))))
+
+
 ;; $lref <lvar>
 ;; Local variable reference.
 (define-simple-struct $lref $LREF #f
@@ -221,6 +230,11 @@
 (define $lref
   (lambda (lvar)
     (lvar-ref++! lvar) (vector $LREF lvar)))
+
+(define-syntax $lref?
+  (syntax-rules ()
+    ((_ iform)
+     (has-tag? iform $LREF))))
 
 ;; $lset <lvar> <expr>
 ;; Local variable assignment. The result of <expr> is set to <lvar>.
@@ -250,6 +264,11 @@
 (define-simple-struct $const $CONST $const
   value  ; Scheme value
 )
+
+(define-syntax $const?
+  (syntax-rules ()
+    ((_ iform)
+     (has-tag? iform $CONST))))
 
 (define $const-nil
   (let ((x ($const '())))
@@ -300,6 +319,11 @@
   (free-lvars '()) ; list of free local variables
   (lifted-var #f)
 )
+
+(define-syntax $lambda?
+  (syntax-rules ()
+    ((_ iform)
+     (has-tag? iform $LAMBDA))))
 
 ;; $receive <src> <args> <option> <lvars> <expr> <body>
 ;;   Multiple value binding construct.
@@ -387,7 +411,7 @@
 
 ;; Counts the size (approx # of nodes) of the iform
 (define iform-count-size-upto
-  (lambda (iform limit)
+  (lambda (oiform limit)
     (define rec
       (lambda (iform cnt)
 	(letrec-syntax ((sum-items
@@ -423,7 +447,7 @@
 					     (* ($call-args iform))))
 	   ((has-tag? iform $ASM) (sum-items (+ cnt 1) (* ($asm-args iform))))
 	   ((has-tag? iform $IT) cnt)
-	   ((has-tag? iform $LIST) (sum-items (+ cnt 1) ($*-arg0 iform)))
+	   ((has-tag? iform $LIST) (sum-items (+ cnt 1) (* ($*-args iform))))
 	   (else
 	    (scheme-error 'iform-count-size-upto 
 		   "[internal error] iform-count-size-upto: unknown iform tag:"
@@ -434,7 +458,7 @@
 	(cond ((null? iform-list) cnt)
 	      ((>= cnt limit) limit)
 	      (else (rec-list (cdr iform-list) (rec (car iform-list) cnt))))))
-    (rec iform 0)))
+    (rec oiform 0)))
     
 ;; Copy iform.
 ;;  Lvars that are bound within iform should be copied. Other lvars
@@ -661,7 +685,7 @@
 	  (for-each (lambda (elt) (nl (+ ind 2)) (rec (+ ind 2) elt))
 		    ($list-args iform)))
 	 ((has-tag? iform $LIBRARY)
-	  (format #t "($library ~a)" ($library-library iform)))
+	  (format #t "($library ~a)" (library-name ($library-library iform))))
 	 (else 
 	  (scheme-error 'pp-iform "unknown tag:" (iform-tag iform)))
 	 )))
@@ -872,7 +896,6 @@
      ((eq? symbol (lvar-name (car lvars))) (car lvars))
      (else
       (pass1/find-symbol-in-lvars symbol (cdr lvars))))))
-
 
 ;; Make global identifier.
 (define global-id
@@ -1848,6 +1871,155 @@
       (library-exported-set! lib
 			     (cons exports renames)))))
 
+;; Collect library inlinable define.
+;; Inlinable condition:
+;;  * only closed environment.
+;;      we do not support like this expression; (define a (let () (lambda () ...))).
+;;  * non recursive.
+;;  * non refer each other; like this one (define (a) (b)) (define (b) (a))
+;;      those two make optimization infinite.
+;;  * non assigned.
+;; We collect inlinable defines with 2 steps.
+;;  step1: scan defines
+;;   library form must be converted mere $seq. we need to lookup $define from it.
+;;  step2: put inlinable flag on $define
+;;   we need to scan whole library sequence and detect $define which are
+;;   satisfied above condition.
+(define (pass1/scan-inlinable iforms library)
+  (define (target? iform export-spec)
+    (and ($define? iform)
+	 ($lambda? ($define-expr iform))
+	 (not (memq (id-name ($define-id iform)) (car export-spec)))
+	 (not (assq (id-name ($define-id iform)) (cdr export-spec)))
+	 ($define-id iform)))
+  (define (id=? id1 id2)
+    (if (symbol? id1)
+	(eq? id1 (id-name id2))
+	(and (eq? (id-name id1) (id-name id2))
+	     (eq? (id-library id1) (id-library id2)))))
+  ;; we only need to check $GREF and $GSET
+  (define (rec iform id ids library seen)
+    (case/unquote (iform-tag iform)
+     (($UNDEF $IT $LIBRARY $LREF $CONST) #t)
+     (($DEFINE)
+      (rec ($define-expr iform) id ids library seen))
+     (($GREF)
+      ;; since we are doing this, we can check if the refered
+      ;; gref is defined or imported in this library here. but later.
+      (let ((gid ($gref-id iform)))
+	;; put refered id to seen
+	;; value must be list of ids.
+	(when (and id
+		   (member gid ids id=?)
+		   (not (id=? id gid)))
+	  (let ((refs (hashtable-ref seen gid '())))
+	    (hashtable-set! seen (id-name gid) (cons id refs))))
+	(and id
+	     (not (id=? id gid))))
+      )
+     (($LSET) (rec ($lset-expr iform) id ids library seen))
+     (($GSET)
+      (and (not (member ($gset-id iform) ids id=?))
+	   (rec ($gset-expr iform) id ids library seen)))
+     (($LET)
+      (and (let loop ((inits ($let-inits iform)))
+	     (if (null? inits)
+		 #t
+		 (and (rec (car inits) id ids library seen)
+		      (loop (cdr inits)))))
+	   (rec ($let-body iform) id ids library seen)))
+     (($LAMBDA)
+      (rec ($lambda-body iform) id ids library seen))
+     (($RECEIVE)
+      (and (rec ($receive-expr iform) id ids library seen)
+	   (rec ($receive-body iform) id ids library seen)))
+     (($CALL)
+      (and (let loop ((args ($call-args iform)))
+	     (if (null? args)
+		 #t
+		 (and (rec (car args) id ids library seen)
+		      (loop (cdr args)))))
+	   (rec ($call-proc iform) id ids library seen)))
+     (($SEQ)
+      (let loop ((exprs ($seq-body iform)))
+	(if (null? exprs)
+	    #t
+	    (and (rec (car exprs) id ids library seen)
+		 (loop (cdr exprs))))))
+     (($IF)
+      (and (rec ($if-test iform) id ids library seen)
+	   (rec ($if-then iform) id ids library seen)
+	   (rec ($if-else iform) id ids library seen)))
+     (($ASM)
+      (let loop ((args ($asm-args iform)))
+	(if (null? args)
+	    #t
+	    (and (rec (car args) id ids library seen)
+		 (loop (cdr args))))))
+     (($LIST)
+      (let loop ((args ($*-args iform)))
+	(if (null? args)
+	    #t
+	    (and (rec (car args) id ids library seen)
+		 (loop (cdr args))))))
+     (else
+      (scheme-error 'inlinable?
+		    "[internal error] invalid iform tag appeared"
+		    (iform-tag iform)))))
+  ;; must be only $define
+  (define (check-refers iforms seen)
+    (let ((keys (hashtable-keys-list seen)))
+      (filter values
+	      (map (lambda (iform)
+		     (and (let loop ((keys keys))
+			    (if (null? keys)
+				#t
+				(let ((refs (hashtable-ref seen (car keys) #f)))
+				  (and (or (not refs)
+					   (null? refs)
+					   (let ((tmp (member ($define-id iform) refs id=?))) 
+					     (or (not tmp)
+						 (null? tmp)
+						 (let ((self (hashtable-ref seen (id-name (car tmp)) #f)))
+						   (or (not self)
+						       (not (member (car keys) self id=?)))))))
+				       (loop (cdr keys))))))
+			  iform))
+		   iforms)))
+    )
+  (let ((export-spec (library-exported library)))
+    (let ((ids (let loop ((iforms iforms)
+			  (ret '()))
+		 (cond ((null? iforms) ret)
+		       ((target? (car iforms) export-spec)
+			=> (lambda (id)
+			     (loop (cdr iforms) (cons id ret))))
+		       (else (loop (cdr iforms) ret)))))
+	  ;; TODO since we are using Gauche to make bootstrap,
+	  ;; we can not use make-hashtable of R6RS.
+	  (seen (make-eq-hashtable)))
+      (check-refers
+       (filter values
+	       (map (lambda (iform)
+		      (let ((id (target? iform (library-exported library))))
+			(if (rec iform id ids library seen)
+			    (and id iform)
+			    #f)))
+		    iforms))
+       seen))))
+
+
+(define (pass1/collect-inlinable! iforms library)
+  (let ((inlinables (pass1/scan-inlinable iforms library)))
+    (for-each (lambda (iform)
+		(and ($define? iform) ;; sanity check
+		     ($define-flags-set! iform 
+					 (append! ($define-flags iform) '(inlinable)))))
+	      inlinables)
+    iforms)
+  )
+
+
 (define-pass1-syntax (import form p1env) :null
   (check-toplevel form p1env)
   (pass1/import form (p1env-library p1env)))
@@ -1877,10 +2049,12 @@
 	     (lambda ()
 	       (vm-current-library current-lib))
 	     (lambda ()
-	       ($seq (append
-		      (list ($library current-lib)) ; put library here
-		      (map (lambda (x) (pass1 x newenv)) body)
-		      (list ($undef)))))
+	       (let ((iforms (map (lambda (x) (pass1 x newenv)) body)))
+		 ($seq (append
+			(list ($library current-lib)) ; put library here
+			#;(map (lambda (x) (pass1 x newenv)) body)
+			(pass1/collect-inlinable! iforms current-lib)
+			(list ($undef))))))
 	     (lambda ()
 	       (vm-current-library save)))))) ;; restore current library
     (- (syntax-error "malformed library" form))))
@@ -2164,9 +2338,35 @@
     ((vector-ref *pass2-dispatch-table* (iform-tag iform))
      iform penv tail?)))
 
+(define (pass2/lookup-library iform library)
+  ;; if it's library compilation, we should have $seq and its car must be $library
+  (or (and (has-tag? iform $SEQ)
+	   (pair? ($seq-body iform))
+	   (has-tag? (car ($seq-body iform)) $LIBRARY)
+	   ($library-library (car ($seq-body iform))))
+      library))
+
+(define (pass2/collect-inlinables iform)
+  (cond ((and (not (vm-nolibrary-inlining?))
+	      (has-tag? iform $SEQ))
+	 (let ((r (filter values
+			(map (lambda (iform)
+			       (and ($define? iform)
+				    (memq 'inlinable ($define-flags iform))
+				    (cons (id-name ($define-id iform))
+					  ($define-expr iform))))
+			     ($seq-body iform)))))
+	   (if (null? r)
+	       '()
+	       (acons 'inlinable r '()))
+	   ))
+	(else '())))
+
 (define pass2
   (lambda (iform library)
-    (pass2/lambda-lifting (pass2/rec iform '() #t) library)))
+    (let ((library (pass2/lookup-library iform library))
+	  (penv    (pass2/collect-inlinables iform)))
+      (pass2/lambda-lifting (pass2/rec iform (acons 'library library penv) #t) library))))
 
 (define pass2/$UNDEF
   (lambda (iform penv tail?)
@@ -2580,12 +2780,12 @@
 	 ((vm-noinline-locals?)
 	  ($call-args-set! iform (imap (lambda (arg) (pass2/rec arg penv #f)) args))
 	  iform)
-	 ((has-tag? proc $LAMBDA) ;; ((lambda (...) ...) arg ...)
+	 (($lambda? proc) ;; ((lambda (...) ...) arg ...)
 	  ;; ((lambda (var ...) body) arg ...)
 	  ;; -> (let ((var arg) (... ...)) body)
 	  (pass2/rec (expand-inlined-procedure ($*-src iform) proc args)
 		     penv tail?))
-	 ((and (has-tag? proc $LREF)
+	 ((and ($lref? proc)
 	       (pass2/head-lref proc penv tail?))
 	  => (lambda (result)
 	       (cond
@@ -2608,6 +2808,35 @@
 						 (pass2/rec arg penv #f))
 					       args))
 		   iform)))))
+	 ;; expand library non exported procedure
+	 ;; for now disabled. there were too much stuff to avoid...
+	 ((and (has-tag? proc $GREF)
+	       (let ((id ($gref-id proc))
+		     (lib (cdr (assq 'library penv))))
+		 (and (eq? (id-library id) lib)
+		      (library-exported lib)
+		      (not (memq (id-name id) (car (library-exported lib))))
+		      (not (assq (id-name id) (cdr (library-exported lib))))))
+	       (assq 'inlinable penv))
+	  ;; get inlinables
+	  => (lambda (inlinables)
+	       (let* ((name (id-name ($gref-id proc)))
+		      (inliner (assq name inlinables)))
+		 (cond ((and inliner
+			     ;; check size here
+			     ;; TODO should we also make proc optimized?
+			     (< (iform-count-size-upto (cdr inliner) INLINABLE_LAMBDA_SIZE)
+				INLINABLE_LAMBDA_SIZE))
+			(pass2/$LET
+			 (expand-inlined-procedure ($gref-id proc) 
+						   (iform-copy (cdr inliner) '()) args)
+			 penv tail?))
+		       (else
+			($call-args-set! iform (imap (lambda (arg)
+						       (pass2/rec arg penv #f))
+						     args))
+			iform))))
+	  )
 	 (else
 	  ($call-args-set! iform (imap (lambda (arg)
 					(pass2/rec arg penv #f)) args))
@@ -2704,7 +2933,8 @@
 		      ($seq `(,@(map pass2/lifted-define lifted) ,iform.))))))))))
 
 (define (pass2/lifted-define lambda-node)
-  ($define ($lambda-src lambda-node) '()
+  ($define ($lambda-src lambda-node)
+	   '() ;;'(const) ;; somehow it doesn't work with const flag
 	   ($lambda-lifted-var lambda-node)
 	   lambda-node))
 

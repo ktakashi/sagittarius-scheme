@@ -53,6 +53,7 @@
 	    ;; optimize
 	    vm-noinline-locals?
 	    vm-nolambda-lifting?
+	    vm-nolibrary-inlining?
 
 	    ;; for macro
 	    rename-id
@@ -367,4 +368,7 @@
 
   (define-c-proc vm-nolambda-lifting? () ::boolean
     (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_LAMBDA_LIFT)))
+
+  (define-c-proc vm-nolibrary-inlining? () ::boolean
+    (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_LIBRARY_INLINING)))
 )

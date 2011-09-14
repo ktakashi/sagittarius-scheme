@@ -5,6 +5,7 @@
 (define (vm-r6rs-mode?) #f)
 (define (vm-noinline-locals?) #f)
 (define (vm-nolambda-lifting?) #f)
+(define (vm-nolibrary-inlining?) #f)
 (define (vm-macro-expand-phase?)
   (positive? *expand-phase*))
 

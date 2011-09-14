@@ -176,6 +176,8 @@
 
 (define-constant SMALL_LAMBDA_SIZE 12)
 
+(define-constant INLINABLE_LAMBDA_SIZE 24)
+
 (define-syntax
  generate-dispatch-table
  (er-macro-transformer
@@ -231,9 +233,15 @@
 
 (define-simple-struct $define $DEFINE $define src flags id expr)
 
+(define-syntax
+ $define?
+ (syntax-rules () ((_ iform) (has-tag? iform $DEFINE))))
+
 (define-simple-struct $lref $LREF #f lvar)
 
 (define $lref (lambda (lvar) (lvar-ref++! lvar) (vector $LREF lvar)))
+
+(define-syntax $lref? (syntax-rules () ((_ iform) (has-tag? iform $LREF))))
 
 (define-simple-struct $lset $LSET #f lvar expr)
 
@@ -246,6 +254,8 @@
 (define-simple-struct $gset $GSET $gset id expr)
 
 (define-simple-struct $const $CONST $const value)
+
+(define-syntax $const? (syntax-rules () ((_ iform) (has-tag? iform $CONST))))
 
 (define $const-nil (let ((x ($const '()))) (lambda () x)))
 
@@ -269,6 +279,10 @@
  (calls '())
  (free-lvars '())
  (lifted-var #f))
+
+(define-syntax
+ $lambda?
+ (syntax-rules () ((_ iform) (has-tag? iform $LAMBDA))))
 
 (define-simple-struct
  $receive
@@ -319,7 +333,7 @@
 (define
  iform-count-size-upto
  (lambda
-  (iform limit)
+  (oiform limit)
   (define
    rec
    (lambda
@@ -364,7 +378,7 @@
        (sum-items (+ cnt 1) ($call-proc iform) (* ($call-args iform))))
       ((has-tag? iform $ASM) (sum-items (+ cnt 1) (* ($asm-args iform))))
       ((has-tag? iform $IT) cnt)
-      ((has-tag? iform $LIST) (sum-items (+ cnt 1) ($*-arg0 iform)))
+      ((has-tag? iform $LIST) (sum-items (+ cnt 1) (* ($*-args iform))))
       (else
        (scheme-error
         'iform-count-size-upto
@@ -378,7 +392,7 @@
      ((null? iform-list) cnt)
      ((>= cnt limit) limit)
      (else (rec-list (cdr iform-list) (rec (car iform-list) cnt))))))
-  (rec iform 0)))
+  (rec oiform 0)))
 
 (define
  iform-copy
@@ -643,7 +657,7 @@
        (lambda (elt) (nl (+ ind 2)) (rec (+ ind 2) elt))
        ($list-args iform)))
      ((has-tag? iform $LIBRARY)
-      (format #t "($library ~a)" ($library-library iform)))
+      (format #t "($library ~a)" (library-name ($library-library iform))))
      (else (scheme-error 'pp-iform "unknown tag:" (iform-tag iform))))))
   (rec 0 iform)
   (newline)))
@@ -2073,6 +2087,172 @@
    (parse-export (cdr export))
    (library-exported-set! lib (cons exports renames)))))
 
+(define (pass1/scan-inlinable iforms library)
+  (define (target? iform export-spec)
+    (and
+     ($define? iform)
+     ($lambda? ($define-expr iform))
+     (not (memq (id-name ($define-id iform)) (car export-spec)))
+     (not (assq (id-name ($define-id iform)) (cdr export-spec)))
+     ($define-id
+      iform)))(define (id=? id1 id2)
+    (if
+     (symbol? id1)
+     (eq? id1 (id-name id2))
+     (and
+      (eq? (id-name id1) (id-name id2))
+      (eq?
+       (id-library id1)
+       (id-library
+        id2)))))(define (rec iform id ids library seen)
+    (case/unquote
+     (iform-tag iform)
+     (($UNDEF $IT $LIBRARY $LREF $CONST) #t)
+     (($DEFINE) (rec ($define-expr iform) id ids library seen))
+     (($GREF)
+      (let
+       ((gid ($gref-id iform)))
+       (when
+        (and id (member gid ids id=?) (not (id=? id gid)))
+        (let
+         ((refs (hashtable-ref seen gid '())))
+         (hashtable-set! seen (id-name gid) (cons id refs))))
+       (and id (not (id=? id gid)))))
+     (($LSET) (rec ($lset-expr iform) id ids library seen))
+     (($GSET)
+      (and
+       (not (member ($gset-id iform) ids id=?))
+       (rec ($gset-expr iform) id ids library seen)))
+     (($LET)
+      (and
+       (let
+        loop
+        ((inits ($let-inits iform)))
+        (if
+         (null? inits)
+         #t
+         (and (rec (car inits) id ids library seen) (loop (cdr inits)))))
+       (rec ($let-body iform) id ids library seen)))
+     (($LAMBDA) (rec ($lambda-body iform) id ids library seen))
+     (($RECEIVE)
+      (and
+       (rec ($receive-expr iform) id ids library seen)
+       (rec ($receive-body iform) id ids library seen)))
+     (($CALL)
+      (and
+       (let
+        loop
+        ((args ($call-args iform)))
+        (if
+         (null? args)
+         #t
+         (and (rec (car args) id ids library seen) (loop (cdr args)))))
+       (rec ($call-proc iform) id ids library seen)))
+     (($SEQ)
+      (let
+       loop
+       ((exprs ($seq-body iform)))
+       (if
+        (null? exprs)
+        #t
+        (and (rec (car exprs) id ids library seen) (loop (cdr exprs))))))
+     (($IF)
+      (and
+       (rec ($if-test iform) id ids library seen)
+       (rec ($if-then iform) id ids library seen)
+       (rec ($if-else iform) id ids library seen)))
+     (($ASM)
+      (let
+       loop
+       ((args ($asm-args iform)))
+       (if
+        (null? args)
+        #t
+        (and (rec (car args) id ids library seen) (loop (cdr args))))))
+     (($LIST)
+      (let
+       loop
+       ((args ($*-args iform)))
+       (if
+        (null? args)
+        #t
+        (and (rec (car args) id ids library seen) (loop (cdr args))))))
+     (else
+      (scheme-error
+       'inlinable?
+       "[internal error] invalid iform tag appeared"
+       (iform-tag
+        iform)))))(define (check-refers iforms seen)
+    (let
+     ((keys (hashtable-keys-list seen)))
+     (filter
+      values
+      (map
+       (lambda
+        (iform)
+        (and
+         (let
+          loop
+          ((keys keys))
+          (if
+           (null? keys)
+           #t
+           (let
+            ((refs (hashtable-ref seen (car keys) #f)))
+            (and
+             (or
+              (not refs)
+              (null? refs)
+              (let
+               ((tmp (member ($define-id iform) refs id=?)))
+               (or
+                (not tmp)
+                (null? tmp)
+                (let
+                 ((self (hashtable-ref seen (id-name (car tmp)) #f)))
+                 (or (not self) (not (member (car keys) self id=?)))))))
+             (loop (cdr keys))))))
+         iform))
+       iforms))))(let
+   ((export-spec (library-exported library)))
+   (let
+    ((ids
+      (let
+       loop
+       ((iforms iforms) (ret '()))
+       (cond
+        ((null? iforms) ret)
+        ((target? (car iforms) export-spec)
+         =>
+         (lambda (id) (loop (cdr iforms) (cons id ret))))
+        (else (loop (cdr iforms) ret)))))
+     (seen (make-eq-hashtable)))
+    (check-refers
+     (filter
+      values
+      (map
+       (lambda
+        (iform)
+        (let
+         ((id (target? iform (library-exported library))))
+         (if (rec iform id ids library seen) (and id iform) #f)))
+       iforms))
+     seen))))
+
+(define (pass1/collect-inlinable! iforms library)
+  (let
+   ((inlinables (pass1/scan-inlinable iforms library)))
+   (for-each
+    (lambda
+     (iform)
+     (and
+      ($define? iform)
+      ($define-flags-set!
+       iform
+       (append! ($define-flags iform) '(inlinable)))))
+    inlinables)
+   iforms))
+
 (define-pass1-syntax
  (import form p1env)
  :null
@@ -2108,11 +2288,13 @@
       (lambda () (vm-current-library current-lib))
       (lambda
        ()
-       ($seq
-        (append
-         (list ($library current-lib))
-         (map (lambda (x) (pass1 x newenv)) body)
-         (list ($undef)))))
+       (let
+        ((iforms (map (lambda (x) (pass1 x newenv)) body)))
+        ($seq
+         (append
+          (list ($library current-lib))
+          (pass1/collect-inlinable! iforms current-lib)
+          (list ($undef))))))
       (lambda () (vm-current-library save))))))
   (- (syntax-error "malformed library" form))))
 
@@ -2493,11 +2675,43 @@
   (iform penv tail?)
   ((vector-ref *pass2-dispatch-table* (iform-tag iform)) iform penv tail?)))
 
+(define (pass2/lookup-library iform library)
+  (or
+   (and
+    (has-tag? iform $SEQ)
+    (pair? ($seq-body iform))
+    (has-tag? (car ($seq-body iform)) $LIBRARY)
+    ($library-library (car ($seq-body iform))))
+   library))
+
+(define (pass2/collect-inlinables iform)
+  (cond
+   ((and (not (vm-nolibrary-inlining?)) (has-tag? iform $SEQ))
+    (let
+     ((r
+       (filter
+        values
+        (map
+         (lambda
+          (iform)
+          (and
+           ($define? iform)
+           (memq 'inlinable ($define-flags iform))
+           (cons (id-name ($define-id iform)) ($define-expr iform))))
+         ($seq-body iform)))))
+     (if (null? r) '() (acons 'inlinable r '()))))
+   (else '())))
+
 (define
  pass2
  (lambda
   (iform library)
-  (pass2/lambda-lifting (pass2/rec iform '() #t) library)))
+  (let
+   ((library (pass2/lookup-library iform library))
+    (penv (pass2/collect-inlinables iform)))
+   (pass2/lambda-lifting
+    (pass2/rec iform (acons 'library library penv) #t)
+    library))))
 
 (define pass2/$UNDEF (lambda (iform penv tail?) iform))
 
@@ -2885,12 +3099,12 @@
         iform
         (imap (lambda (arg) (pass2/rec arg penv #f)) args))
        iform)
-      ((has-tag? proc $LAMBDA)
+      (($lambda? proc)
        (pass2/rec
         (expand-inlined-procedure ($*-src iform) proc args)
         penv
         tail?))
-      ((and (has-tag? proc $LREF) (pass2/head-lref proc penv tail?))
+      ((and ($lref? proc) (pass2/head-lref proc penv tail?))
        =>
        (lambda
         (result)
@@ -2908,6 +3122,39 @@
            ($lambda-calls-set!
             lambda-node
             (acons iform penv ($lambda-calls lambda-node)))
+           ($call-args-set!
+            iform
+            (imap (lambda (arg) (pass2/rec arg penv #f)) args))
+           iform)))))
+      ((and
+        (has-tag? proc $GREF)
+        (let
+         ((id ($gref-id proc)) (lib (cdr (assq 'library penv))))
+         (and
+          (eq? (id-library id) lib)
+          (library-exported lib)
+          (not (memq (id-name id) (car (library-exported lib))))
+          (not (assq (id-name id) (cdr (library-exported lib))))))
+        (assq 'inlinable penv))
+       =>
+       (lambda
+        (inlinables)
+        (let*
+         ((name (id-name ($gref-id proc))) (inliner (assq name inlinables)))
+         (cond
+          ((and
+            inliner
+            (<
+             (iform-count-size-upto (cdr inliner) INLINABLE_LAMBDA_SIZE)
+             INLINABLE_LAMBDA_SIZE))
+           (pass2/$LET
+            (expand-inlined-procedure
+             ($gref-id proc)
+             (iform-copy (cdr inliner) '())
+             args)
+            penv
+            tail?))
+          (else
            ($call-args-set!
             iform
             (imap (lambda (arg) (pass2/rec arg penv #f)) args))
