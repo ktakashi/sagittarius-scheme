@@ -14,11 +14,11 @@
 #define UNSIDENT(x, lib) WORD(Sg_MakeIdentifier(UISYMBOL(x), SG_NIL, (lib)))
 static struct sg__wcRec {
   SgCodeBuilder cb[3];
-  SgWord        w[125];
+  SgWord        w[133];
 } sg__wc = {
   { /* code builder */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[71], NULL, 1, FALSE, 0, 9, 22), /* ensure-library-name */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[93], NULL, 1, FALSE, 0, 12, 32), /* parse-args */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[71], NULL, 1, FALSE, 0, 10, 30), /* ensure-library-name */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[101], NULL, 1, FALSE, 0, 12, 32), /* parse-args */
   },
   { /* compiled code */
   /*     0 */        0x00000038           /* 0      (LIBRARY) */,
@@ -109,43 +109,51 @@ static struct sg__wcRec {
   /*    85 */        WORD(SG_UNDEF), /* (sagittarius) */
   /*    86 */        0x00000030           /* 15     (RET) */,
   /*    87 */        0x0000004C           /* 16     (CONST_PUSH) */,
-  /*    88 */        WORD(SG_UNDEF), /* "invalid library tag:" */
-  /*    89 */        0x00000049           /* 18     (LREF_PUSH) */,
-  /*    90 */        0x0000024F           /* 19     (GREF_TAIL_CALL) */,
-  /*    91 */        WORD(SG_UNDEF)  /* identifier#error */,
-  /*    92 */        0x00000030           /* 21     (RET) */,
-  /*    93 */        0x00000332           /* 0      (LET_FRAME) */,
-  /*    94 */        0x00000049           /* 1      (LREF_PUSH) */,
-  /*    95 */        0x00000134           /* 2      (DISPLAY) */,
-  /*    96 */        0x00000049           /* 3      (LREF_PUSH) */,
-  /*    97 */        0x0000004D           /* 4      (CONSTI_PUSH) */,
-  /*    98 */        0x00000233           /* 5      (POP_LET_FRAME) */,
-  /*    99 */        0x0000001A           /* 6      (MARK) */,
-  /*   100 */        0x00000005           /* 7      (LREF) */,
-  /*   101 */        0x00000022           /* 8      (BNNULL) */,
-  /*   102 */        WORD(SG_MAKE_INT(6)),
-  /*   103 */        0x00000149           /* 10     (LREF_PUSH) */,
-  /*   104 */        0x00000003           /* 11     (CONST) */,
-  /*   105 */        WORD(SG_MAKE_BOOL(FALSE)),
-  /*   106 */        0x0000023E           /* 13     (VALUES) */,
-  /*   107 */        0x00000030           /* 14     (RET) */,
-  /*   108 */        0x00000005           /* 15     (LREF) */,
-  /*   109 */        0x00000042           /* 16     (PAIRP) */,
-  /*   110 */        0x00000017           /* 17     (TEST) */,
-  /*   111 */        WORD(SG_MAKE_INT(9)),
-  /*   112 */        0x00000060           /* 19     (LREF_CDR_PUSH) */,
-  /*   113 */        0x00000105           /* 20     (LREF) */,
-  /*   114 */        0x0000010F           /* 21     (ADDI) */,
-  /*   115 */        0x0000000B           /* 22     (PUSH) */,
-  /*   116 */        0x00000219           /* 23     (SHIFTJ) */,
-  /*   117 */        0x00000018           /* 24     (JUMP) */,
-  /*   118 */        WORD(SG_MAKE_INT(-18)),
-  /*   119 */        0x00000030           /* 26     (RET) */,
-  /*   120 */        0x00000149           /* 27     (LREF_PUSH) */,
-  /*   121 */        0x00000003           /* 28     (CONST) */,
-  /*   122 */        WORD(SG_MAKE_BOOL(TRUE)),
-  /*   123 */        0x0000023E           /* 30     (VALUES) */,
-  /*   124 */        0x00000030           /* 31     (RET) */,
+  /*    88 */        WORD(SG_UNDEF)  /* <keyrowd :base> */,
+  /*    89 */        0x00000005           /* 18     (LREF) */,
+  /*    90 */        0x00000021           /* 19     (BNEQV) */,
+  /*    91 */        WORD(SG_MAKE_INT(4)),
+  /*    92 */        0x00000003           /* 21     (CONST) */,
+  /*    93 */        WORD(SG_UNDEF), /* (core base) */
+  /*    94 */        0x00000030           /* 23     (RET) */,
+  /*    95 */        0x0000004C           /* 24     (CONST_PUSH) */,
+  /*    96 */        WORD(SG_UNDEF), /* "invalid library tag:" */
+  /*    97 */        0x00000049           /* 26     (LREF_PUSH) */,
+  /*    98 */        0x0000024F           /* 27     (GREF_TAIL_CALL) */,
+  /*    99 */        WORD(SG_UNDEF)  /* identifier#error */,
+  /*   100 */        0x00000030           /* 29     (RET) */,
+  /*   101 */        0x00000332           /* 0      (LET_FRAME) */,
+  /*   102 */        0x00000049           /* 1      (LREF_PUSH) */,
+  /*   103 */        0x00000134           /* 2      (DISPLAY) */,
+  /*   104 */        0x00000049           /* 3      (LREF_PUSH) */,
+  /*   105 */        0x0000004D           /* 4      (CONSTI_PUSH) */,
+  /*   106 */        0x00000233           /* 5      (POP_LET_FRAME) */,
+  /*   107 */        0x0000001A           /* 6      (MARK) */,
+  /*   108 */        0x00000005           /* 7      (LREF) */,
+  /*   109 */        0x00000022           /* 8      (BNNULL) */,
+  /*   110 */        WORD(SG_MAKE_INT(6)),
+  /*   111 */        0x00000149           /* 10     (LREF_PUSH) */,
+  /*   112 */        0x00000003           /* 11     (CONST) */,
+  /*   113 */        WORD(SG_MAKE_BOOL(FALSE)),
+  /*   114 */        0x0000023E           /* 13     (VALUES) */,
+  /*   115 */        0x00000030           /* 14     (RET) */,
+  /*   116 */        0x00000005           /* 15     (LREF) */,
+  /*   117 */        0x00000042           /* 16     (PAIRP) */,
+  /*   118 */        0x00000017           /* 17     (TEST) */,
+  /*   119 */        WORD(SG_MAKE_INT(9)),
+  /*   120 */        0x00000060           /* 19     (LREF_CDR_PUSH) */,
+  /*   121 */        0x00000105           /* 20     (LREF) */,
+  /*   122 */        0x0000010F           /* 21     (ADDI) */,
+  /*   123 */        0x0000000B           /* 22     (PUSH) */,
+  /*   124 */        0x00000219           /* 23     (SHIFTJ) */,
+  /*   125 */        0x00000018           /* 24     (JUMP) */,
+  /*   126 */        WORD(SG_MAKE_INT(-18)),
+  /*   127 */        0x00000030           /* 26     (RET) */,
+  /*   128 */        0x00000149           /* 27     (LREF_PUSH) */,
+  /*   129 */        0x00000003           /* 28     (CONST) */,
+  /*   130 */        WORD(SG_MAKE_BOOL(TRUE)),
+  /*   131 */        0x0000023E           /* 30     (VALUES) */,
+  /*   132 */        0x00000030           /* 31     (RET) */,
   }
 };
 
@@ -156,38 +164,40 @@ void Sg__Init_sagittarius_compiler_util()
   SgLibrary *save = Sg_VM()->currentLibrary;
   SgObject  uninterned = SG_NIL;
   SgWord    tmp = WORD(SG_FALSE);
+  sg__wc.w[65] = IDENT("$LIST", lib);
+  sg__wc.w[50] = IDENT("$LABEL", lib);
   sg__wc.w[35] = IDENT("$CONST", lib);
   sg__wc.w[20] = IDENT("$DEFINE", lib);
   sg__wc.w[14] = IDENT(".intermediate-tags.", lib);
+  sg__wc.w[7] = WORD(&sg__wc.cb[1]);
+  sg__wc.cb[1].name = SYMBOL("parse-args");
+  sg__wc.w[5] = IDENT("ensure-library-name", lib);
   sg__wc.w[68] = IDENT("$LIBRARY", lib);
   sg__wc.w[53] = IDENT("$SEQ", lib);
-  sg__wc.w[88] = STRINGW("invalid library tag:");
-  sg__wc.w[80] = KEYWORDW("sagittarius");
-  sg__wc.w[85] = WORD(Sg_Cons(SYMBOL("sagittarius"), SG_NIL));
   sg__wc.w[38] = IDENT("$IF", lib);
+  sg__wc.w[80] = KEYWORDW("sagittarius");
   sg__wc.w[23] = IDENT("$LREF", lib);
-  sg__wc.w[9] = IDENT("parse-args", lib);
-  sg__wc.w[12] = WORD(Sg_Cons(Sg_Cons(SYMBOL("$UNDEF"), SG_MAKE_INT(0)), Sg_Cons(Sg_Cons(SYMBOL("$DEFINE"), SG_MAKE_INT(1)), Sg_Cons(Sg_Cons(SYMBOL("$LREF"), SG_MAKE_INT(2)), Sg_Cons(Sg_Cons(SYMBOL("$LSET"), SG_MAKE_INT(3)), Sg_Cons(Sg_Cons(SYMBOL("$GREF"), SG_MAKE_INT(4)), Sg_Cons(Sg_Cons(SYMBOL("$GSET"), SG_MAKE_INT(5)), Sg_Cons(Sg_Cons(SYMBOL("$CONST"), SG_MAKE_INT(6)), Sg_Cons(Sg_Cons(SYMBOL("$IF"), SG_MAKE_INT(7)), Sg_Cons(Sg_Cons(SYMBOL("$LET"), SG_MAKE_INT(8)), Sg_Cons(Sg_Cons(SYMBOL("$LAMBDA"), SG_MAKE_INT(9)), Sg_Cons(Sg_Cons(SYMBOL("$RECEIVE"), SG_MAKE_INT(10)), Sg_Cons(Sg_Cons(SYMBOL("$LABEL"), SG_MAKE_INT(11)), Sg_Cons(Sg_Cons(SYMBOL("$SEQ"), SG_MAKE_INT(12)), Sg_Cons(Sg_Cons(SYMBOL("$CALL"), SG_MAKE_INT(13)), Sg_Cons(Sg_Cons(SYMBOL("$ASM"), SG_MAKE_INT(14)), Sg_Cons(Sg_Cons(SYMBOL("$IT"), SG_MAKE_INT(15)), Sg_Cons(Sg_Cons(SYMBOL("$LIST"), SG_MAKE_INT(16)), Sg_Cons(Sg_Cons(SYMBOL("$LIBRARY"), SG_MAKE_INT(17)), SG_NIL)))))))))))))))))));
   sg__wc.w[56] = IDENT("$CALL", lib);
   sg__wc.w[41] = IDENT("$LET", lib);
   sg__wc.w[26] = IDENT("$LSET", lib);
   sg__wc.w[72] = KEYWORDW("null");
   sg__wc.w[77] = SYMBOLW("null");
+  sg__wc.w[93] = WORD(Sg_Cons(SYMBOL("core"), Sg_Cons(SYMBOL("base"), SG_NIL)));
+  sg__wc.w[12] = WORD(Sg_Cons(Sg_Cons(SYMBOL("$UNDEF"), SG_MAKE_INT(0)), Sg_Cons(Sg_Cons(SYMBOL("$DEFINE"), SG_MAKE_INT(1)), Sg_Cons(Sg_Cons(SYMBOL("$LREF"), SG_MAKE_INT(2)), Sg_Cons(Sg_Cons(SYMBOL("$LSET"), SG_MAKE_INT(3)), Sg_Cons(Sg_Cons(SYMBOL("$GREF"), SG_MAKE_INT(4)), Sg_Cons(Sg_Cons(SYMBOL("$GSET"), SG_MAKE_INT(5)), Sg_Cons(Sg_Cons(SYMBOL("$CONST"), SG_MAKE_INT(6)), Sg_Cons(Sg_Cons(SYMBOL("$IF"), SG_MAKE_INT(7)), Sg_Cons(Sg_Cons(SYMBOL("$LET"), SG_MAKE_INT(8)), Sg_Cons(Sg_Cons(SYMBOL("$LAMBDA"), SG_MAKE_INT(9)), Sg_Cons(Sg_Cons(SYMBOL("$RECEIVE"), SG_MAKE_INT(10)), Sg_Cons(Sg_Cons(SYMBOL("$LABEL"), SG_MAKE_INT(11)), Sg_Cons(Sg_Cons(SYMBOL("$SEQ"), SG_MAKE_INT(12)), Sg_Cons(Sg_Cons(SYMBOL("$CALL"), SG_MAKE_INT(13)), Sg_Cons(Sg_Cons(SYMBOL("$ASM"), SG_MAKE_INT(14)), Sg_Cons(Sg_Cons(SYMBOL("$IT"), SG_MAKE_INT(15)), Sg_Cons(Sg_Cons(SYMBOL("$LIST"), SG_MAKE_INT(16)), Sg_Cons(Sg_Cons(SYMBOL("$LIBRARY"), SG_MAKE_INT(17)), SG_NIL)))))))))))))))))));
+  sg__wc.w[59] = IDENT("$ASM", lib);
   sg__wc.w[3] = WORD(&sg__wc.cb[0]);
   sg__wc.cb[0].name = SYMBOL("ensure-library-name");
-  sg__wc.w[59] = IDENT("$ASM", lib);
+  sg__wc.w[88] = KEYWORDW("base");
   sg__wc.w[44] = IDENT("$LAMBDA", lib);
   sg__wc.w[29] = IDENT("$GREF", lib);
-  sg__wc.w[5] = IDENT("ensure-library-name", lib);
-  sg__wc.w[7] = WORD(&sg__wc.cb[1]);
-  sg__wc.cb[1].name = SYMBOL("parse-args");
+  sg__wc.w[85] = WORD(Sg_Cons(SYMBOL("sagittarius"), SG_NIL));
+  sg__wc.w[9] = IDENT("parse-args", lib);
   sg__wc.w[62] = IDENT("$IT", lib);
   sg__wc.w[47] = IDENT("$RECEIVE", lib);
   sg__wc.w[32] = IDENT("$GSET", lib);
-  sg__wc.w[91] = IDENT("error", lib);
   sg__wc.w[17] = IDENT("$UNDEF", lib);
-  sg__wc.w[65] = IDENT("$LIST", lib);
-  sg__wc.w[50] = IDENT("$LABEL", lib);
+  sg__wc.w[99] = IDENT("error", lib);
+  sg__wc.w[96] = STRINGW("invalid library tag:");
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(sagittarius)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(core base)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("null")));

@@ -31,9 +31,11 @@
        (eq? (vector-ref p 0) '.procedure)))
 
 (define (inline? p)
-  (and (procedure? p)
-       ;; TODO add no-inline flag here
-       (procedure-inliner p)))
+  (or (and (procedure? p)
+	   ;; TODO add no-inline flag here
+	   (procedure-inliner p))
+      (and (closure? p)
+	   (vector-ref p 2))))
 
 (define (find-procedure name lib)
   (find-binding lib name #f))
@@ -122,6 +124,10 @@
 (declare-procedure values rest (:inline VALUES) :null values)
 
 (declare-procedure apply (a . b) (:inline APPLY) :null apply)
+
+;; dummy
+;;(declare-procedure map (p l1 . l2) (:inline -1) :base map)
+;;(declare-procedure for-each (p l1 . l2) (:inline -1) :base for-each)
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix

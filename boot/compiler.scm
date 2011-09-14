@@ -4279,6 +4279,89 @@
       (-
        (scheme-error 'acons "wrong number of arguments" form)))))
 
+;; there was nothing good with this...
+;; ;; this might be too much
+;; (define-builtin-inliner map :base
+;;   (lambda (form p1env)
+;;     (smatch form
+;;       ((- proc lst)
+;;        (let ((r (gensym))
+;; 	     (p (gensym))
+;; 	     (lp (gensym)))
+;; 	 (pass1 `(begin
+;; 		   (unless (list? ,lst)
+;; 		     (assertion-violation 'map
+;; 					  (format "list required, but got ~a" ,lst)))
+;; 		   (let ,lp ((,r '())
+;; 			      (,p ,lst))
+;; 		     (if (null? ,p)
+;; 			 (reverse! ,r)
+;; 			 (,lp (cons (,proc (car ,p)) ,r) (cdr ,p)))))
+;; 		p1env)))
+;;       ((- proc lst1 lst2)
+;;        (let ((r (gensym))
+;; 	     (p1 (gensym))
+;; 	     (p2 (gensym))
+;; 	     (lp (gensym)))
+;; 	 (pass1 `(begin
+;; 		   (unless (list? ,lst1)
+;; 		     (assertion-violation 'map
+;; 					  (format "list required, but got ~a" ,lst1)))
+;; 		   (unless (list? ,lst2)
+;; 		     (assertion-violation 'map
+;; 					  (format "list required, but got ~a" ,lst2)))
+;; 		   (let ,lp ((,r '())
+;; 			    (,p1 ,lst1)
+;; 			    (,p2 ,lst2))
+;; 		   (if (or (null? ,p1)
+;; 			   (null? ,p2))
+;; 		       (reverse! ,r)
+;; 		       (,lp (cons (,proc (car ,p1) (car ,p2)) ,r)
+;; 			     (cdr ,p1) (cdr ,p2)))))
+;; 		p1env)))
+;;       (-
+;;        (undefined)))))
+;; 
+;; (define-builtin-inliner for-each :base
+;;   (lambda (form p1env)
+;;     (smatch form
+;;       ((- proc lst)
+;;        (let ((p (gensym))
+;; 	     (lp (gensym)))
+;; 	 (pass1 `(begin
+;; 		   (unless (list? ,lst)
+;; 		     (assertion-violation 'map
+;; 					  (format "list required, but got ~a" ,lst)))
+;; 		   (let ,lp ((,p ,lst))
+;; 			(if (null? ,p)
+;; 			    (undefined)
+;; 			    (begin
+;; 			      (,proc (car ,p))
+;; 			      (,lp (cdr ,p))))))
+;; 		p1env)))
+;;       ((- proc lst1 lst2)
+;;        (let ((p1 (gensym))
+;; 	     (p2 (gensym))
+;; 	     (lp (gensym)))
+;; 	 (pass1 `(begin
+;; 		   (unless (list? ,lst1)
+;; 		     (assertion-violation 'map
+;; 					  (format "list required, but got ~a" ,lst1)))
+;; 		   (unless (list? ,lst2)
+;; 		     (assertion-violation 'map
+;; 					  (format "list required, but got ~a" ,lst2)))
+;; 		   (let ,lp ((,p1 ,lst1)
+;; 			     (,p2 ,lst2))
+;; 			(if (or (null? ,p1)
+;; 				(null? ,p2))
+;; 			    (undefined)
+;; 			    (begin
+;; 			      (,proc (car ,p1) (car ,p2))
+;; 			      (,lp (cdr ,p1) (cdr ,p2))))))
+;; 		p1env)))
+;;       (-
+;;        (undefined)))))
+
 (define integer-fits-insn-arg?
   (lambda (obj)
     (and (integer? obj)

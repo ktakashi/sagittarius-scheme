@@ -6,6 +6,7 @@
     (case tag
       ((:null) 'null)
       ((:sagittarius) '(sagittarius))
+      ((:base) '(core base))
       (else
        (error "invalid library tag:" tag)))))
 

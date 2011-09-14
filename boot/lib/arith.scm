@@ -15,7 +15,8 @@
 	    fldiv0-and-mod0)
     (import null
 	    (core base)
-	    (core errors))
+	    (core errors)
+	    (sagittarius))
 ;;;;;
 ;; arithmetic
 (define gcd

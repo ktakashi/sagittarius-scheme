@@ -82,8 +82,9 @@
 
 (define-simple-struct closure '.closure %closure
   body-code
-  body-pc
+  (inliner #f);; for Scheme VM
   argc
+  body-pc
   freec
   option?
   max-stack
@@ -99,7 +100,7 @@
 	 (free      (code-builder-freec code))
 	 (max-stack (code-builder-maxstack code))
 	 (src       (code-builder-name code)))
-    (let ((v (%closure raw-code 0 reqargs free opt max-stack src)))
+    (let ((v (%closure raw-code #f reqargs 0 free opt max-stack src)))
       (if (zero? free)
 	  v
 	  (let ((fv (make-vector free)))
@@ -404,7 +405,12 @@
 	     (var (fetch)))
 	 (or (identifier? var)
 	     (error "runtime error: DEFINE instruction requires identifier for its argument but got:" var))
-	 (let ((name (id-name var)))
+	 (let ((name (id-name var))
+	       (old  (find-binding (id-library var) (id-name var) #f)))
+	   (when (and old
+		      (closure? a)
+		      (inline? old))
+	     (closure-inliner-set! a (procedure-inliner old)))
 	   ;(namespace-set! name a)
 	   (%insert-binding (id-library var) name a)
 	   (VM x (skip) name #;'unspecified c f s))))
@@ -1283,6 +1289,7 @@
 ;(add-namespace! append o)
 (add-namespace! append! o)
 (add-namespace! reverse (o))
+(add-namespace! reverse! (o))
 ;;(add-namespace! apply (proc l1 . rest) apply-proc)
 (add-namespace-w-inliner! apply (proc l1 . rest) APPLY apply-proc)
 (add-namespace! apply-proc (proc l1 . rest))
