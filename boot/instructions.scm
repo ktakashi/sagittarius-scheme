@@ -86,7 +86,8 @@
 
 (define-inst FSET (1 0 #t)
   (INSN_VAL1 val1 c)
-  (set! (-> (SG_BOX (INDEX_CLOSURE vm val1)) value) (AC vm)))
+  (let ((obj (INDEX_CLOSURE vm val1)))
+    (set! (-> (SG_BOX obj) value) (AC vm))))
 
 (define-inst GREF (0 1 #t)
   (GREF_INSN vm))
@@ -195,40 +196,14 @@
     (ASSERT (SG_INTP n))
     (set! (PC vm) (+ (PC vm) (- (SG_INT_VALUE n) 1)))))
 
-#|
-      CASE(SHIFTJ) {
-	int i;
-
-	INSN_VAL2(val1, val2, c);
-	for (i = val2; ; i--) {
-	  if (i <= 0 && SG_CLOSURE(DC(vm))->mark) break;
-	  DC(vm) = SG_CLOSURE(DC(vm))->prev;
-	}
-	ASSERT(SG_CLOSUREP(DC(vm)));
-	FP(vm) = SG_CLOSURE(DC(vm))->mark;
-	SP(vm) = shift_args(FP(vm), val1, SP(vm));
-	NEXT;
-      }
-|#
 (define-inst SHIFTJ (2 0 #f)
   (INSN_VAL2 val1 val2 c)
-  (for ()
-       (not (and (<= val2 0)
-		 (-> (SG_CLOSURE (DC vm)) mark)))
-       (post-- val2)
-    (set! (DC vm) (-> (SG_CLOSURE (DC vm)) prev)))
-  (ASSERT (SG_CLOSUREP (DC vm)))
-  (set! (FP vm) (-> (SG_CLOSURE (DC vm)) mark))
-  (set! (SP vm) (shift_args (FP vm) val1 (SP vm))))
+  (shiftj_process vm val2 val1))
 
-#|
-      CASE(MARK) {
-	SG_CLOSURE(DC(vm))->mark = FP(vm);
-	NEXT;
-      }
-|#
 (define-inst MARK (0 0 #f)
-  (set! (-> (SG_CLOSURE (DC vm)) mark) (FP vm)))
+  (if (SG_CLOSUREP (DC vm))
+      (set! (-> (SG_CLOSURE (DC vm)) mark) (FP vm))
+      (set! (-> (DCLOSURE (DC vm)) mark) (FP vm))))
 
 (define-cgen-stmt branch-number-test
   ((_ op func)
@@ -621,27 +596,13 @@
 	NEXT;
       }
 |#
-(define-inst POP_LET_FRAME (1 0 #f)
-  (INSN_VAL1 val1 c)
-  (set! (SP vm) (discard_let_frame vm val1)))
+(define-inst POP_LET_FRAME (2 0 #f)
+  (INSN_VAL2 val1 val2 c)
+  (set! (SP vm) (discard_let_frame vm val1 val2)))
 
-#|
-      CASE(DISPLAY) {
-	SgObject new_c;
-	INSN_VAL1(val1, c);
-	new_c = make_display(val1, SP(vm));
-	SG_CLOSURE(new_c)->prev = DC(vm);
-	DC(vm) = new_c;
-	SP(vm) = SP(vm) - val1;
-	NEXT;
-      }
-|#
 (define-inst DISPLAY (1 0 #f)
   (INSN_VAL1 val1 c)
-  (let ((new_c (make_display val1 (SP vm))))
-    (set! (-> (SG_CLOSURE new_c) prev) (DC vm))
-    (set! (DC vm) new_c)
-    (set! (SP vm) (- (SP vm) val1))))
+  (make_display val1 vm))
 
 #|
       CASE(ENTER) {
@@ -663,8 +624,13 @@
 	NEXT;
       }
 |#
-(define-inst LEAVE (0 0 #f)
+(define-inst LEAVE (1 0 #f)
   (let ((sp::SgObject* (FP vm)))
+    (INSN_VAL1 val1 c)
+    (when (> val1 0)
+      (set! sp (- sp (/ (+ (sizeof display_closure)
+			   (* (sizeof SgObject) val1))
+			(sizeof SgObject)))))
     (set! (FP vm) (cast SgObject* (INDEX sp 0)))
     (set! (DC vm) (INDEX sp 1))
     (set! (SP vm) (- sp SG_LET_FRAME_SIZE))))

@@ -63,6 +63,7 @@ typedef struct SgContFrameRec
 {
   struct SgContFrameRec *prev; 	/* previous frame */
   int            size;		/* size of argument frame */
+  int            displaySize;	/* size of display closure */
   SgWord        *pc;		/* next PC */
   SgObject       cl;		/* cl register value */
   SgObject       dc;		/* dc register value */

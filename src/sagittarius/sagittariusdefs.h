@@ -328,6 +328,9 @@ enum {
 
   TC_GLOC,
 
+  /* system header */
+  TC_DISPLAY,
+
   TC_MASKBITS = 0x3f
 };
 

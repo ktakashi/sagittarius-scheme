@@ -4136,7 +4136,7 @@
     (pass3/make-boxes cb sets vars)
     (if
      (tail-context? ctx)
-     (cb-emit1! cb POP_LET_FRAME nargs)
+     (cb-emit2! cb POP_LET_FRAME nargs free-length)
      (cb-emit1! cb ENTER nargs))
     (let*
      ((new-renv (make-new-renv renv vars free sets vars need-display?))
@@ -4152,7 +4152,7 @@
            (cb-emit1i! cb LSET index (lvar-name (car vars)))
            (loop (cdr args) (cdr vars) (+ stack-size size) (+ index 1)))))))
       (body-size (pass3/rec body cb new-renv ctx)))
-     (unless (tail-context? ctx) (cb-emit0! cb LEAVE))
+     (unless (tail-context? ctx) (cb-emit1! cb LEAVE free-length))
      (+ body-size assign-size free-size))))))
 
 (define
@@ -4196,12 +4196,12 @@
      (pass3/make-boxes cb sets vars)
      (if
       (tail-context? ctx)
-      (cb-emit1! cb POP_LET_FRAME nargs)
+      (cb-emit2! cb POP_LET_FRAME nargs free-length)
       (cb-emit1! cb ENTER nargs))
      (let*
       ((new-renv (make-new-renv renv vars free sets vars need-display?))
        (body-size (pass3/rec body cb new-renv ctx)))
-      (unless (tail-context? ctx) (cb-emit0! cb LEAVE))
+      (unless (tail-context? ctx) (cb-emit1! cb LEAVE free-length))
       (+ body-size args-size free-size)))))))
 
 (define
@@ -4288,12 +4288,12 @@
      (pass3/make-boxes cb sets vars)
      (if
       (tail-context? ctx)
-      (cb-emit1! cb POP_LET_FRAME nargs)
+      (cb-emit2! cb POP_LET_FRAME nargs free-length)
       (cb-emit1! cb ENTER nargs))
      (let*
       ((new-renv (make-new-renv renv vars free sets vars need-display?))
        (body-size (pass3/rec body cb new-renv ctx)))
-      (unless (tail-context? ctx) (cb-emit0! cb LEAVE))
+      (unless (tail-context? ctx) (cb-emit1! cb LEAVE free-length))
       (+ body-size expr-size free-size)))))))
 
 (define
@@ -4393,7 +4393,7 @@
         ctx)))
      (if
       (tail-context? ctx)
-      (cb-emit1! cb POP_LET_FRAME nargs)
+      (cb-emit2! cb POP_LET_FRAME nargs frlen)
       (cb-emit1! cb ENTER nargs))
      (cb-emit0! cb MARK)
      (cb-label-set! cb (pass3/ensure-label cb label))
@@ -4405,7 +4405,7 @@
          cb
          (make-new-renv renv vars free sets vars need-display?)
          ctx)))
-      (unless (tail-context? ctx) (cb-emit0! cb LEAVE))
+      (unless (tail-context? ctx) (cb-emit1! cb LEAVE frlen))
       (+ nargs body-size frsiz)))))))
 
 (define

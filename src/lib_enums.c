@@ -224,7 +224,7 @@ static struct sg__wcRec {
   /*   168 */        0x0000014E           /* 8      (GREF_CALL) */,
   /*   169 */        WORD(SG_UNDEF)  /* identifier#create-instance */,
   /*   170 */        0x0000000B           /* 10     (PUSH) */,
-  /*   171 */        0x00000133           /* 11     (POP_LET_FRAME) */,
+  /*   171 */        0x00200133           /* 11     (POP_LET_FRAME) */,
   /*   172 */        0x00000031           /* 12     (FRAME) */,
   /*   173 */        WORD(SG_MAKE_INT(7)),
   /*   174 */        0x00000049           /* 14     (LREF_PUSH) */,
@@ -292,7 +292,7 @@ static struct sg__wcRec {
   /*   236 */        0x0000014E           /* 8      (GREF_CALL) */,
   /*   237 */        WORD(SG_UNDEF)  /* identifier#create-instance */,
   /*   238 */        0x0000000B           /* 10     (PUSH) */,
-  /*   239 */        0x00000133           /* 11     (POP_LET_FRAME) */,
+  /*   239 */        0x00200133           /* 11     (POP_LET_FRAME) */,
   /*   240 */        0x00000031           /* 12     (FRAME) */,
   /*   241 */        WORD(SG_MAKE_INT(7)),
   /*   242 */        0x00000049           /* 14     (LREF_PUSH) */,
@@ -331,7 +331,7 @@ static struct sg__wcRec {
   /*   275 */        0x0000004E           /* 5      (GREF_CALL) */,
   /*   276 */        WORD(SG_UNDEF)  /* identifier#make-eq-hashtable */,
   /*   277 */        0x0000000B           /* 7      (PUSH) */,
-  /*   278 */        0x00000133           /* 8      (POP_LET_FRAME) */,
+  /*   278 */        0x00100133           /* 8      (POP_LET_FRAME) */,
   /*   279 */        0x00000432           /* 9      (LET_FRAME) */,
   /*   280 */        0x00000049           /* 10     (LREF_PUSH) */,
   /*   281 */        0x0000004A           /* 11     (FREF_PUSH) */,
@@ -359,7 +359,7 @@ static struct sg__wcRec {
   /*   303 */        0x00000219           /* 33     (SHIFTJ) */,
   /*   304 */        0x00000018           /* 34     (JUMP) */,
   /*   305 */        WORD(SG_MAKE_INT(-18)),
-  /*   306 */        0x00000036           /* 36     (LEAVE) */,
+  /*   306 */        0x00000236           /* 36     (LEAVE) */,
   /*   307 */        0x0000004A           /* 37     (FREF_PUSH) */,
   /*   308 */        0x00000049           /* 38     (LREF_PUSH) */,
   /*   309 */        0x0000002A           /* 39     (CLOSURE) */,
@@ -460,7 +460,7 @@ static struct sg__wcRec {
   /*   404 */        0x0000014E           /* 13     (GREF_CALL) */,
   /*   405 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
   /*   406 */        0x0000000B           /* 15     (PUSH) */,
-  /*   407 */        0x00000133           /* 16     (POP_LET_FRAME) */,
+  /*   407 */        0x00300133           /* 16     (POP_LET_FRAME) */,
   /*   408 */        0x00000031           /* 17     (FRAME) */,
   /*   409 */        WORD(SG_MAKE_INT(8)),
   /*   410 */        0x00000049           /* 19     (LREF_PUSH) */,
@@ -522,7 +522,7 @@ static struct sg__wcRec {
   /*   466 */        0x00000002           /* 23     (UNDEF) */,
   /*   467 */        0x0000000B           /* 24     (PUSH) */,
   /*   468 */        0x0000000C           /* 25     (BOX) */,
-  /*   469 */        0x00000133           /* 26     (POP_LET_FRAME) */,
+  /*   469 */        0x00200133           /* 26     (POP_LET_FRAME) */,
   /*   470 */        0x0000004A           /* 27     (FREF_PUSH) */,
   /*   471 */        0x00000049           /* 28     (LREF_PUSH) */,
   /*   472 */        0x0000002A           /* 29     (CLOSURE) */,
@@ -611,7 +611,7 @@ static struct sg__wcRec {
   /*   555 */        0x0000000B           /* 31     (PUSH) */,
   /*   556 */        0x0000024E           /* 32     (GREF_CALL) */,
   /*   557 */        WORD(SG_UNDEF)  /* identifier#for-all */,
-  /*   558 */        0x00000036           /* 34     (LEAVE) */,
+  /*   558 */        0x00000136           /* 34     (LEAVE) */,
   /*   559 */        0x00000017           /* 35     (TEST) */,
   /*   560 */        WORD(SG_MAKE_INT(13)),
   /*   561 */        0x00000149           /* 37     (LREF_PUSH) */,
@@ -719,7 +719,7 @@ static struct sg__wcRec {
   /*   663 */        0x00000219           /* 66     (SHIFTJ) */,
   /*   664 */        0x00000018           /* 67     (JUMP) */,
   /*   665 */        WORD(SG_MAKE_INT(-27)),
-  /*   666 */        0x00000036           /* 69     (LEAVE) */,
+  /*   666 */        0x00000236           /* 69     (LEAVE) */,
   /*   667 */        0x00000036           /* 70     (LEAVE) */,
   /*   668 */        0x0000000B           /* 71     (PUSH) */,
   /*   669 */        0x0000024F           /* 72     (GREF_TAIL_CALL) */,
@@ -802,7 +802,7 @@ static struct sg__wcRec {
   /*   746 */        0x00000219           /* 67     (SHIFTJ) */,
   /*   747 */        0x00000018           /* 68     (JUMP) */,
   /*   748 */        WORD(SG_MAKE_INT(-27)),
-  /*   749 */        0x00000036           /* 70     (LEAVE) */,
+  /*   749 */        0x00000236           /* 70     (LEAVE) */,
   /*   750 */        0x00000036           /* 71     (LEAVE) */,
   /*   751 */        0x0000000B           /* 72     (PUSH) */,
   /*   752 */        0x0000024F           /* 73     (GREF_TAIL_CALL) */,
@@ -885,7 +885,7 @@ static struct sg__wcRec {
   /*   829 */        0x00000219           /* 67     (SHIFTJ) */,
   /*   830 */        0x00000018           /* 68     (JUMP) */,
   /*   831 */        WORD(SG_MAKE_INT(-27)),
-  /*   832 */        0x00000036           /* 70     (LEAVE) */,
+  /*   832 */        0x00000236           /* 70     (LEAVE) */,
   /*   833 */        0x00000036           /* 71     (LEAVE) */,
   /*   834 */        0x0000000B           /* 72     (PUSH) */,
   /*   835 */        0x0000024F           /* 73     (GREF_TAIL_CALL) */,
@@ -907,7 +907,7 @@ static struct sg__wcRec {
   /*   851 */        0x0000014E           /* 6      (GREF_CALL) */,
   /*   852 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
   /*   853 */        0x0000000B           /* 8      (PUSH) */,
-  /*   854 */        0x00000133           /* 9      (POP_LET_FRAME) */,
+  /*   854 */        0x00100133           /* 9      (POP_LET_FRAME) */,
   /*   855 */        0x00000031           /* 10     (FRAME) */,
   /*   856 */        WORD(SG_MAKE_INT(4)),
   /*   857 */        0x0000004A           /* 12     (FREF_PUSH) */,
@@ -975,7 +975,7 @@ static struct sg__wcRec {
   /*   919 */        0x0000014E           /* 27     (GREF_CALL) */,
   /*   920 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
   /*   921 */        0x0000000B           /* 29     (PUSH) */,
-  /*   922 */        0x00000233           /* 30     (POP_LET_FRAME) */,
+  /*   922 */        0x00100233           /* 30     (POP_LET_FRAME) */,
   /*   923 */        0x00000031           /* 31     (FRAME) */,
   /*   924 */        WORD(SG_MAKE_INT(4)),
   /*   925 */        0x0000004A           /* 33     (FREF_PUSH) */,
@@ -1008,235 +1008,133 @@ void Sg__Init_core_enums()
 {
   SgLibrary *lib = Sg_FindLibrary(SYMBOL("(core enums)"), TRUE);
   SgLibrary *save = Sg_VM()->currentLibrary;
-  SgObject  uninterned = SG_NIL;
-  SgWord    tmp = WORD(SG_FALSE);
-  sg__wc.w[131] = IDENT("enum-set-projection", lib);
-  sg__wc.w[703] = IDENT("enum-set-members", lib);
-  sg__wc.w[459] = IDENT("enum-set-members", lib);
-  sg__wc.w[852] = IDENT("enum-set-members", lib);
-  sg__wc.w[756] = SYMBOLW("enum-set-intersection");
-  sg__wc.w[582] = IDENT("enum-set-member?", lib);
-  sg__wc.w[15] = WORD(&sg__wc.cb[3]);
-  sg__wc.cb[3].name = SYMBOL("universe-set!");
-  sg__wc.w[766] = IDENT("enum-set-type", lib);
-  sg__wc.w[119] = IDENT("enum-set-intersection", lib);
-  sg__wc.w[536] = IDENT("enum-set->list", lib);
-  sg__wc.w[412] = WORD(&sg__wc.cb[19]);
-  sg__wc.cb[19].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[75] = IDENT("<enum-set>", lib);
-  sg__wc.w[5] = IDENT("enum-type-indexer", lib);
-  sg__wc.w[213] = IDENT("generic-set!", lib);
-  sg__wc.w[226] = IDENT("generic-set!", lib);
-  sg__wc.w[247] = IDENT("generic-set!", lib);
-  sg__wc.w[255] = IDENT("generic-set!", lib);
-  sg__wc.w[709] = IDENT("enum-set-members", lib);
-  sg__wc.w[83] = IDENT("make-enumeration", lib);
-  sg__wc.w[3] = WORD(&sg__wc.cb[0]);
-  sg__wc.cb[0].name = SYMBOL("enum-type-indexer");
-  sg__wc.w[569] = IDENT("enum-set-members", lib);
-  sg__wc.w[441] = IDENT("memq", lib);
-  sg__wc.w[36] = IDENT("make-generic", lib);
-  sg__wc.w[145] = IDENT("generic-set!", lib);
-  sg__wc.w[158] = IDENT("generic-set!", lib);
-  sg__wc.w[179] = IDENT("generic-set!", lib);
-  sg__wc.w[187] = IDENT("generic-set!", lib);
-  sg__wc.w[95] = IDENT("enum-set-constructor", lib);
-  sg__wc.w[89] = WORD(&sg__wc.cb[16]);
-  sg__wc.cb[16].name = SYMBOL("enum-set-indexer");
-  sg__wc.w[940] = IDENT("make-enum-set", lib);
-  sg__wc.w[772] = IDENT("enum-set-type", lib);
-  sg__wc.w[533] = IDENT("enum-set-universe", lib);
-  sg__wc.w[38] = IDENT("<enum-type>", lib);
-  sg__wc.w[87] = IDENT("enum-set-universe", lib);
-  sg__wc.w[46] = IDENT("members-set!", lib);
-  sg__wc.w[760] = IDENT("assertion-violation", lib);
-  sg__wc.w[310] = WORD(&sg__wc.cb[13]);
-  sg__wc.cb[13].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[882] = IDENT("make-enum-set", lib);
-  sg__wc.w[427] = IDENT("make-enum-set", lib);
-  sg__wc.w[865] = WORD(&sg__wc.cb[31]);
-  sg__wc.cb[31].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[121] = WORD(&sg__wc.cb[29]);
-  sg__wc.cb[29].name = SYMBOL("enum-set-difference");
-  sg__wc.w[927] = IDENT("enum-set-type", lib);
-  sg__wc.w[836] = IDENT("make-enum-set", lib);
-  sg__wc.w[815] = IDENT("memq", lib);
-  sg__wc.w[103] = IDENT("enum-set-member?", lib);
-  sg__wc.w[56] = WORD(&sg__wc.cb[10]);
-  sg__wc.cb[10].name = SYMBOL("make-enum-set");
-  sg__wc.w[897] = IDENT("enum-set-subset?", lib);
-  sg__wc.w[9] = IDENT("indexer-set!", lib);
-  sg__wc.w[109] = WORD(&sg__wc.cb[26]);
-  sg__wc.cb[26].name = SYMBOL("enum-set=?");
-  sg__wc.w[25] = SYMBOLW("<enum-type>");
-  sg__wc.w[859] = IDENT("enum-set-type", lib);
-  sg__wc.w[111] = IDENT("enum-set=?", lib);
-  sg__wc.w[423] = IDENT("enum-set-type", lib);
-  sg__wc.w[937] = IDENT("filter", lib);
-  sg__wc.w[779] = IDENT("enum-set-type", lib);
-  sg__wc.w[673] = SYMBOLW("enum-set-union");
-  sg__wc.w[557] = IDENT("for-all", lib);
-  sg__wc.w[34] = SYMBOLW("indexer");
-  sg__wc.w[136] = SYMBOLW("indexer");
-  sg__wc.w[142] = SYMBOLW("indexer");
-  sg__wc.w[176] = SYMBOLW("indexer");
-  sg__wc.w[44] = WORD(&sg__wc.cb[7]);
-  sg__wc.cb[7].name = SYMBOL("members-set!");
-  sg__wc.w[601] = IDENT("enum-set-type", lib);
-  sg__wc.w[105] = WORD(&sg__wc.cb[23]);
-  sg__wc.cb[23].name = SYMBOL("enum-set-subset?");
-  sg__wc.w[376] = IDENT("make-enum-set", lib);
-  sg__wc.w[50] = IDENT("enum-set-type", lib);
-  sg__wc.w[19] = WORD(&sg__wc.cb[4]);
-  sg__wc.cb[4].name = SYMBOL("make-enum-type");
-  sg__wc.w[879] = IDENT("filter", lib);
-  sg__wc.w[436] = IDENT("assertion-violation", lib);
-  sg__wc.w[786] = IDENT("enum-set-members", lib);
-  sg__wc.w[97] = WORD(&sg__wc.cb[20]);
-  sg__wc.cb[20].name = SYMBOL("enum-set->list");
-  sg__wc.w[268] = IDENT("format", lib);
-  sg__wc.w[260] = STRINGW("#<enum-set ~a>");
-  sg__wc.w[758] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
-  sg__wc.w[607] = IDENT("enum-set-type", lib);
-  sg__wc.w[362] = IDENT("enum-set-type", lib);
-  sg__wc.w[192] = STRINGW("#<enum-type ~a>");
-  sg__wc.w[7] = WORD(&sg__wc.cb[1]);
-  sg__wc.cb[1].name = SYMBOL("indexer-set!");
-  sg__wc.w[13] = IDENT("enum-type-universe", lib);
-  sg__wc.w[206] = IDENT("generic-ref", lib);
-  sg__wc.w[219] = IDENT("generic-ref", lib);
-  sg__wc.w[123] = IDENT("enum-set-difference", lib);
-  sg__wc.w[326] = IDENT("list?", lib);
-  sg__wc.w[62] = SYMBOLW("<enum-set>");
-  sg__wc.w[93] = WORD(&sg__wc.cb[17]);
-  sg__wc.cb[17].name = SYMBOL("enum-set-constructor");
-  sg__wc.w[933] = WORD(&sg__wc.cb[33]);
-  sg__wc.cb[33].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[792] = IDENT("enum-set-members", lib);
-  sg__wc.w[670] = IDENT("make-enum-set", lib);
-  sg__wc.w[265] = IDENT("enum-set-members", lib);
-  sg__wc.w[200] = IDENT("format", lib);
-  sg__wc.w[518] = IDENT("memq", lib);
-  sg__wc.w[373] = IDENT("enum-type-universe", lib);
-  sg__wc.w[81] = WORD(&sg__wc.cb[14]);
-  sg__wc.cb[14].name = SYMBOL("make-enumeration");
-  sg__wc.w[54] = IDENT("type-set!", lib);
-  sg__wc.w[335] = IDENT("for-all", lib);
-  sg__wc.w[589] = IDENT("enum-set-subset?", lib);
-  sg__wc.w[432] = STRINGW("the symbol list must all belong to the universe.");
-  sg__wc.w[945] = IDENT("memq", lib);
-  sg__wc.w[843] = IDENT("assertion-violation", lib);
-  sg__wc.w[577] = IDENT("memq", lib);
-  sg__wc.w[405] = IDENT("enum-type-universe", lib);
-  sg__wc.w[64] = WORD(&sg__wc.cb[11]);
-  sg__wc.cb[11].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[67] = IDENT("make-enum-set", lib);
-  sg__wc.w[125] = WORD(&sg__wc.cb[30]);
-  sg__wc.cb[30].name = SYMBOL("enum-set-complement");
-  sg__wc.w[614] = IDENT("enum-set-type", lib);
-  sg__wc.w[515] = IDENT("enum-set-members", lib);
-  sg__wc.w[370] = IDENT("enum-set-type", lib);
-  sg__wc.w[197] = IDENT("enum-type-members", lib);
-  sg__wc.w[649] = IDENT("memq", lib);
-  sg__wc.w[113] = WORD(&sg__wc.cb[27]);
-  sg__wc.cb[27].name = SYMBOL("enum-set-union");
-  sg__wc.w[491] = IDENT("memq", lib);
-  sg__wc.w[332] = IDENT("symbol?", lib);
-  sg__wc.w[17] = IDENT("universe-set!", lib);
-  sg__wc.w[430] = SYMBOLW("enum-set-constructor");
-  sg__wc.w[595] = IDENT("enum-set-subset?", lib);
-  sg__wc.w[99] = IDENT("enum-set->list", lib);
-  sg__wc.w[298] = IDENT("hashtable-set!", lib);
-  sg__wc.w[48] = WORD(&sg__wc.cb[8]);
-  sg__wc.cb[8].name = SYMBOL("enum-set-type");
-  sg__wc.w[554] = IDENT("enum-set->list", lib);
-  sg__wc.w[402] = IDENT("enum-set-type", lib);
-  sg__wc.w[621] = IDENT("enum-set-members", lib);
-  sg__wc.w[543] = WORD(&sg__wc.cb[24]);
-  sg__wc.cb[24].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[30] = IDENT("make-enum-type", lib);
-  sg__wc.w[58] = IDENT("make-enum-set", lib);
-  sg__wc.w[346] = IDENT("make-enum-set", lib);
   sg__wc.w[27] = WORD(&sg__wc.cb[5]);
   sg__wc.cb[5].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[889] = IDENT("memq", lib);
-  sg__wc.w[683] = IDENT("enum-set-type", lib);
   sg__wc.w[473] = WORD(&sg__wc.cb[21]);
   sg__wc.cb[21].name = SYMBOL("loop");
-  sg__wc.w[313] = IDENT("make-enum-type", lib);
-  sg__wc.w[551] = IDENT("enum-set-universe", lib);
-  sg__wc.w[79] = IDENT("make-enumeration-type", lib);
-  sg__wc.w[627] = IDENT("enum-set-members", lib);
-  sg__wc.w[91] = IDENT("enum-set-indexer", lib);
   sg__wc.w[11] = WORD(&sg__wc.cb[2]);
   sg__wc.cb[2].name = SYMBOL("enum-type-universe");
-  sg__wc.w[107] = IDENT("enum-set-subset?", lib);
-  sg__wc.w[237] = IDENT("create-instance", lib);
-  sg__wc.w[21] = IDENT("make-enum-type", lib);
   sg__wc.w[389] = WORD(&sg__wc.cb[18]);
   sg__wc.cb[18].name = SYMBOL("enum-set-constructor");
-  sg__wc.w[342] = IDENT("make-enumeration-type", lib);
-  sg__wc.w[73] = IDENT("make-generic", lib);
-  sg__wc.w[876] = IDENT("enum-type-universe", lib);
-  sg__wc.w[689] = IDENT("enum-set-type", lib);
-  sg__wc.w[115] = IDENT("enum-set-union", lib);
-  sg__wc.w[127] = IDENT("enum-set-complement", lib);
-  sg__wc.w[841] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
-  sg__wc.w[351] = STRINGW("argument 1 must be a list of symbols");
-  sg__wc.w[677] = IDENT("assertion-violation", lib);
-  sg__wc.w[572] = IDENT("for-all", lib);
-  sg__wc.w[914] = IDENT("enum-type-universe", lib);
   sg__wc.w[85] = WORD(&sg__wc.cb[15]);
   sg__wc.cb[15].name = SYMBOL("enum-set-universe");
-  sg__wc.w[235] = IDENT("<enum-set>", lib);
-  sg__wc.w[71] = SYMBOLW("members");
-  sg__wc.w[204] = SYMBOLW("members");
-  sg__wc.w[210] = SYMBOLW("members");
-  sg__wc.w[244] = SYMBOLW("members");
-  sg__wc.w[169] = IDENT("create-instance", lib);
-  sg__wc.w[69] = SYMBOLW("type");
-  sg__wc.w[217] = SYMBOLW("type");
-  sg__wc.w[223] = SYMBOLW("type");
-  sg__wc.w[252] = SYMBOLW("type");
-  sg__wc.w[129] = WORD(&sg__wc.cb[32]);
-  sg__wc.cb[32].name = SYMBOL("enum-set-projection");
-  sg__wc.w[138] = IDENT("generic-ref", lib);
-  sg__wc.w[151] = IDENT("generic-ref", lib);
-  sg__wc.w[32] = SYMBOLW("universe");
-  sg__wc.w[149] = SYMBOLW("universe");
-  sg__wc.w[155] = SYMBOLW("universe");
-  sg__wc.w[184] = SYMBOLW("universe");
-  sg__wc.w[873] = IDENT("enum-set-type", lib);
-  sg__wc.w[753] = IDENT("make-enum-set", lib);
-  sg__wc.w[453] = IDENT("enum-type-universe", lib);
-  sg__wc.w[732] = IDENT("memq", lib);
+  sg__wc.w[865] = WORD(&sg__wc.cb[31]);
+  sg__wc.cb[31].name = SG_MAKE_BOOL(FALSE);
   sg__wc.w[77] = WORD(&sg__wc.cb[12]);
   sg__wc.cb[12].name = SYMBOL("make-enumeration-type");
-  sg__wc.w[416] = IDENT("for-all", lib);
-  sg__wc.w[349] = SYMBOLW("make-enumeration");
-  sg__wc.w[911] = IDENT("enum-set-type", lib);
   sg__wc.w[117] = WORD(&sg__wc.cb[28]);
   sg__wc.cb[28].name = SYMBOL("enum-set-intersection");
-  sg__wc.w[675] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
-  sg__wc.w[385] = IDENT("enum-type-indexer", lib);
-  sg__wc.w[353] = IDENT("assertion-violation", lib);
-  sg__wc.w[167] = IDENT("<enum-type>", lib);
-  sg__wc.w[696] = IDENT("enum-set-type", lib);
-  sg__wc.w[450] = IDENT("enum-set-type", lib);
-  sg__wc.w[320] = IDENT("hashtable-ref", lib);
+  sg__wc.w[351] = STRINGW("argument 1 must be a list of symbols");
   sg__wc.w[52] = WORD(&sg__wc.cb[9]);
   sg__wc.cb[9].name = SYMBOL("type-set!");
   sg__wc.w[563] = WORD(&sg__wc.cb[25]);
   sg__wc.cb[25].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[276] = IDENT("make-eq-hashtable", lib);
-  sg__wc.w[920] = IDENT("enum-set-members", lib);
-  sg__wc.w[382] = IDENT("enum-set-type", lib);
   sg__wc.w[40] = WORD(&sg__wc.cb[6]);
   sg__wc.cb[6].name = SYMBOL("enum-set-members");
-  sg__wc.w[839] = SYMBOLW("enum-set-difference");
   sg__wc.w[101] = WORD(&sg__wc.cb[22]);
   sg__wc.cb[22].name = SYMBOL("enum-set-member?");
-  sg__wc.w[42] = IDENT("enum-set-members", lib);
+  sg__wc.w[841] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
+  sg__wc.w[15] = WORD(&sg__wc.cb[3]);
+  sg__wc.cb[3].name = SYMBOL("universe-set!");
+  sg__wc.w[412] = WORD(&sg__wc.cb[19]);
+  sg__wc.cb[19].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[3] = WORD(&sg__wc.cb[0]);
+  sg__wc.cb[0].name = SYMBOL("enum-type-indexer");
+  sg__wc.w[758] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
+  sg__wc.w[89] = WORD(&sg__wc.cb[16]);
+  sg__wc.cb[16].name = SYMBOL("enum-set-indexer");
+  sg__wc.w[129] = WORD(&sg__wc.cb[32]);
+  sg__wc.cb[32].name = SYMBOL("enum-set-projection");
+  sg__wc.w[310] = WORD(&sg__wc.cb[13]);
+  sg__wc.cb[13].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[121] = WORD(&sg__wc.cb[29]);
+  sg__wc.cb[29].name = SYMBOL("enum-set-difference");
+  sg__wc.w[56] = WORD(&sg__wc.cb[10]);
+  sg__wc.cb[10].name = SYMBOL("make-enum-set");
+  sg__wc.w[109] = WORD(&sg__wc.cb[26]);
+  sg__wc.cb[26].name = SYMBOL("enum-set=?");
+  sg__wc.w[44] = WORD(&sg__wc.cb[7]);
+  sg__wc.cb[7].name = SYMBOL("members-set!");
+  sg__wc.w[105] = WORD(&sg__wc.cb[23]);
+  sg__wc.cb[23].name = SYMBOL("enum-set-subset?");
+  sg__wc.w[19] = WORD(&sg__wc.cb[4]);
+  sg__wc.cb[4].name = SYMBOL("make-enum-type");
+  sg__wc.w[97] = WORD(&sg__wc.cb[20]);
+  sg__wc.cb[20].name = SYMBOL("enum-set->list");
+  sg__wc.w[675] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
+  sg__wc.w[7] = WORD(&sg__wc.cb[1]);
+  sg__wc.cb[1].name = SYMBOL("indexer-set!");
+  sg__wc.w[93] = WORD(&sg__wc.cb[17]);
+  sg__wc.cb[17].name = SYMBOL("enum-set-constructor");
+  sg__wc.w[432] = STRINGW("the symbol list must all belong to the universe.");
+  sg__wc.w[933] = WORD(&sg__wc.cb[33]);
+  sg__wc.cb[33].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[260] = STRINGW("#<enum-set ~a>");
+  sg__wc.w[192] = STRINGW("#<enum-type ~a>");
+  sg__wc.w[81] = WORD(&sg__wc.cb[14]);
+  sg__wc.cb[14].name = SYMBOL("make-enumeration");
+  sg__wc.w[125] = WORD(&sg__wc.cb[30]);
+  sg__wc.cb[30].name = SYMBOL("enum-set-complement");
+  sg__wc.w[64] = WORD(&sg__wc.cb[11]);
+  sg__wc.cb[11].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[113] = WORD(&sg__wc.cb[27]);
+  sg__wc.cb[27].name = SYMBOL("enum-set-union");
+  sg__wc.w[48] = WORD(&sg__wc.cb[8]);
+  sg__wc.cb[8].name = SYMBOL("enum-set-type");
+  sg__wc.w[543] = WORD(&sg__wc.cb[24]);
+  sg__wc.cb[24].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[9] = IDENT("indexer-set!", lib);
+  sg__wc.w[119] = IDENT("enum-set-intersection", lib);
+  sg__wc.w[83] = IDENT("make-enumeration", lib);
+  sg__wc.w[385] = sg__wc.w[5] = IDENT("enum-type-indexer", lib);
+  sg__wc.w[127] = IDENT("enum-set-complement", lib);
+  sg__wc.w[320] = IDENT("hashtable-ref", lib);
+  sg__wc.w[46] = IDENT("members-set!", lib);
+  sg__wc.w[115] = IDENT("enum-set-union", lib);
+  sg__wc.w[38] = sg__wc.w[167] = IDENT("<enum-type>", lib);
+  sg__wc.w[91] = IDENT("enum-set-indexer", lib);
+  sg__wc.w[276] = IDENT("make-eq-hashtable", lib);
+  sg__wc.w[123] = IDENT("enum-set-difference", lib);
+  sg__wc.w[332] = IDENT("symbol?", lib);
+  sg__wc.w[75] = sg__wc.w[235] = IDENT("<enum-set>", lib);
+  sg__wc.w[937] = sg__wc.w[879] = IDENT("filter", lib);
+  sg__wc.w[313] = sg__wc.w[21] = sg__wc.w[30] = IDENT("make-enum-type", lib);
+  sg__wc.w[151] = sg__wc.w[138] = sg__wc.w[219] = sg__wc.w[206] = IDENT("generic-ref", lib);
+  sg__wc.w[169] = sg__wc.w[237] = IDENT("create-instance", lib);
+  sg__wc.w[17] = IDENT("universe-set!", lib);
+  sg__wc.w[342] = sg__wc.w[79] = IDENT("make-enumeration-type", lib);
+  sg__wc.w[197] = IDENT("enum-type-members", lib);
+  sg__wc.w[107] = sg__wc.w[595] = sg__wc.w[589] = sg__wc.w[897] = IDENT("enum-set-subset?", lib);
+  sg__wc.w[416] = sg__wc.w[572] = sg__wc.w[335] = sg__wc.w[557] = IDENT("for-all", lib);
+  sg__wc.w[326] = IDENT("list?", lib);
+  sg__wc.w[111] = IDENT("enum-set=?", lib);
+  sg__wc.w[268] = sg__wc.w[200] = IDENT("format", lib);
+  sg__wc.w[582] = sg__wc.w[103] = IDENT("enum-set-member?", lib);
+  sg__wc.w[353] = sg__wc.w[677] = sg__wc.w[843] = sg__wc.w[436] = sg__wc.w[760] = IDENT("assertion-violation", lib);
+  sg__wc.w[298] = IDENT("hashtable-set!", lib);
+  sg__wc.w[73] = sg__wc.w[36] = IDENT("make-generic", lib);
+  sg__wc.w[453] = sg__wc.w[876] = sg__wc.w[405] = sg__wc.w[914] = sg__wc.w[373] = sg__wc.w[13] = IDENT("enum-type-universe", lib);
+  sg__wc.w[753] = sg__wc.w[940] = sg__wc.w[346] = sg__wc.w[670] = sg__wc.w[836] = sg__wc.w[58] = sg__wc.w[882] = sg__wc.w[376] = sg__wc.w[427] = sg__wc.w[67] = IDENT("make-enum-set", lib);
+  sg__wc.w[87] = sg__wc.w[551] = sg__wc.w[533] = IDENT("enum-set-universe", lib);
+  sg__wc.w[95] = IDENT("enum-set-constructor", lib);
+  sg__wc.w[732] = sg__wc.w[889] = sg__wc.w[491] = sg__wc.w[577] = sg__wc.w[649] = sg__wc.w[518] = sg__wc.w[815] = sg__wc.w[945] = sg__wc.w[441] = IDENT("memq", lib);
+  sg__wc.w[696] = sg__wc.w[382] = sg__wc.w[50] = sg__wc.w[450] = sg__wc.w[873] = sg__wc.w[927] = sg__wc.w[689] = sg__wc.w[683] = sg__wc.w[402] = sg__wc.w[911] = sg__wc.w[614] = sg__wc.w[370] = sg__wc.w[779] = sg__wc.w[859] = sg__wc.w[607] = sg__wc.w[423] = sg__wc.w[362] = sg__wc.w[601] = sg__wc.w[772] = sg__wc.w[766] = IDENT("enum-set-type", lib);
+  sg__wc.w[54] = IDENT("type-set!", lib);
+  sg__wc.w[255] = sg__wc.w[247] = sg__wc.w[226] = sg__wc.w[213] = sg__wc.w[187] = sg__wc.w[179] = sg__wc.w[158] = sg__wc.w[145] = IDENT("generic-set!", lib);
+  sg__wc.w[131] = IDENT("enum-set-projection", lib);
+  sg__wc.w[459] = sg__wc.w[627] = sg__wc.w[920] = sg__wc.w[42] = sg__wc.w[515] = sg__wc.w[621] = sg__wc.w[792] = sg__wc.w[786] = sg__wc.w[709] = sg__wc.w[569] = sg__wc.w[852] = sg__wc.w[265] = sg__wc.w[703] = IDENT("enum-set-members", lib);
+  sg__wc.w[554] = sg__wc.w[99] = sg__wc.w[536] = IDENT("enum-set->list", lib);
+  sg__wc.w[673] = SYMBOLW("enum-set-union");
+  sg__wc.w[839] = SYMBOLW("enum-set-difference");
+  sg__wc.w[430] = SYMBOLW("enum-set-constructor");
+  sg__wc.w[25] = SYMBOLW("<enum-type>");
+  sg__wc.w[184] = sg__wc.w[155] = sg__wc.w[149] = sg__wc.w[32] = SYMBOLW("universe");
+  sg__wc.w[252] = sg__wc.w[223] = sg__wc.w[217] = sg__wc.w[69] = SYMBOLW("type");
+  sg__wc.w[756] = SYMBOLW("enum-set-intersection");
+  sg__wc.w[349] = SYMBOLW("make-enumeration");
+  sg__wc.w[62] = SYMBOLW("<enum-set>");
+  sg__wc.w[244] = sg__wc.w[210] = sg__wc.w[204] = sg__wc.w[71] = SYMBOLW("members");
+  sg__wc.w[176] = sg__wc.w[142] = sg__wc.w[136] = sg__wc.w[34] = SYMBOLW("indexer");
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(sagittarius)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(core base)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("null")));

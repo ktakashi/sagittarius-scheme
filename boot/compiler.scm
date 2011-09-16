@@ -3708,7 +3708,7 @@
 		 (loop (cdr args)))))
 	(pass3/make-boxes cb sets vars)
 	(if (tail-context? ctx)
-	    (cb-emit1! cb POP_LET_FRAME nargs)
+	    (cb-emit2! cb POP_LET_FRAME nargs free-length)
 	    (cb-emit1! cb ENTER nargs))
 	(let* ((new-renv (make-new-renv renv vars free sets vars need-display?))
 	       (assign-size (let loop ((args args)
@@ -3729,7 +3729,7 @@
 				     new-renv
 				     ctx)))
 	  (unless (tail-context? ctx)
-	    (cb-emit0! cb LEAVE))
+	    (cb-emit1! cb LEAVE free-length))
 	  (+ body-size assign-size free-size))))))
 
 (define pass3/let
@@ -3769,12 +3769,12 @@
 					     ctx)))
 	  (pass3/make-boxes cb sets vars)
 	  (if (tail-context? ctx)
-	      (cb-emit1! cb POP_LET_FRAME nargs)
+	      (cb-emit2! cb POP_LET_FRAME nargs free-length)
 	      (cb-emit1! cb ENTER nargs))
 	  (let* ((new-renv (make-new-renv renv vars free sets vars need-display?))
 		 (body-size (pass3/rec body cb new-renv ctx)))
 	    (unless (tail-context? ctx)
-	      (cb-emit0! cb LEAVE))
+	      (cb-emit1! cb LEAVE free-length))
 	    (+ body-size args-size free-size)))))))
 
 (define pass3/$LAMBDA
@@ -3848,7 +3848,7 @@
 		     ($*-src iform))
 	  (pass3/make-boxes cb sets vars)
 	  (if (tail-context? ctx)
-	      (cb-emit1! cb POP_LET_FRAME nargs)
+	      (cb-emit2! cb POP_LET_FRAME nargs free-length)
 	      (cb-emit1! cb ENTER nargs))
 	  (let* ((new-renv (make-new-renv renv vars free sets vars need-display?))
 		 (body-size (pass3/rec body
@@ -3856,7 +3856,7 @@
 				       new-renv
 				       ctx)))
 	    (unless (tail-context? ctx)
-	      (cb-emit0! cb LEAVE))
+	      (cb-emit1! cb LEAVE free-length))
 	    (+ body-size expr-size free-size)))))))
 
 (define pass3/$LABEL
@@ -3946,7 +3946,7 @@
 							    need-display?)
 					     ctx)))
 	  (if (tail-context? ctx)
-	      (cb-emit1! cb POP_LET_FRAME nargs)
+	      (cb-emit2! cb POP_LET_FRAME nargs frlen)
 	      (cb-emit1! cb ENTER nargs))
 	  ;; set mark
 	  (cb-emit0! cb MARK)
@@ -3957,7 +3957,7 @@
 				      (make-new-renv renv vars free sets vars need-display?)
 				      ctx)))
 	    (unless (tail-context? ctx)
-	      (cb-emit0! cb LEAVE))
+	      (cb-emit1! cb LEAVE frlen))
 	    (+ nargs body-size frsiz)))))))
 
 ;; Jump call

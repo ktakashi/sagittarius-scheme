@@ -52,10 +52,10 @@ DEFINSN(LOCAL_TAIL_CALL, 1, 0, TRUE, FALSE)
 DEFINSN(RET, 0, 0, FALSE, FALSE)
 DEFINSN(FRAME, 0, 1, FALSE, TRUE)
 DEFINSN(LET_FRAME, 1, 0, TRUE, FALSE)
-DEFINSN(POP_LET_FRAME, 1, 0, FALSE, FALSE)
+DEFINSN(POP_LET_FRAME, 2, 0, FALSE, FALSE)
 DEFINSN(DISPLAY, 1, 0, FALSE, FALSE)
 DEFINSN(ENTER, 1, 0, FALSE, FALSE)
-DEFINSN(LEAVE, 0, 0, FALSE, FALSE)
+DEFINSN(LEAVE, 1, 0, FALSE, FALSE)
 DEFINSN(DEFINE, 1, 1, TRUE, FALSE)
 DEFINSN(LIBRARY, 0, 1, FALSE, FALSE)
 DEFINSN(CAR, 0, 0, TRUE, FALSE)
@@ -148,7 +148,11 @@ CASE(FREF) {
 
 CASE(FSET) {
   INSN_VAL1(val1, c);
-  SG_BOX(INDEX_CLOSURE(vm, val1))->value=AC(vm);
+  {
+    SgObject obj = INDEX_CLOSURE(vm, val1);
+    SG_BOX(obj)->value=AC(vm);
+  }
+;
   NEXT;
 }
 
@@ -318,17 +322,17 @@ CASE(JUMP) {
 
 CASE(SHIFTJ) {
   INSN_VAL2(val1, val2, c);
-  for (;!((val2 <= 0 && SG_CLOSURE(DC(vm))->mark));val2--) {
-    DC(vm)=SG_CLOSURE(DC(vm))->prev;
-  };
-  ASSERT(SG_CLOSUREP(DC(vm)));
-  FP(vm)=SG_CLOSURE(DC(vm))->mark;
-  SP(vm)=shift_args(FP(vm), val1, SP(vm));
+  shiftj_process(vm, val2, val1);
   NEXT;
 }
 
 CASE(MARK) {
-  SG_CLOSURE(DC(vm))->mark=FP(vm);
+  if (SG_CLOSUREP(DC(vm))) {
+    SG_CLOSURE(DC(vm))->mark=FP(vm);
+  } else {
+    DCLOSURE(DC(vm))->mark=FP(vm);
+  }
+;
   NEXT;
 }
 
@@ -740,20 +744,14 @@ CASE(LET_FRAME) {
 }
 
 CASE(POP_LET_FRAME) {
-  INSN_VAL1(val1, c);
-  SP(vm)=discard_let_frame(vm, val1);
+  INSN_VAL2(val1, val2, c);
+  SP(vm)=discard_let_frame(vm, val1, val2);
   NEXT;
 }
 
 CASE(DISPLAY) {
   INSN_VAL1(val1, c);
-  {
-    SgObject new_c = make_display(val1, SP(vm));
-    SG_CLOSURE(new_c)->prev=DC(vm);
-    DC(vm)=new_c;
-    SP(vm)=(SP(vm) - val1);
-  }
-;
+  make_display(val1, vm);
   NEXT;
 }
 
@@ -766,6 +764,11 @@ CASE(ENTER) {
 CASE(LEAVE) {
   {
     SgObject* sp = FP(vm);
+    INSN_VAL1(val1, c);
+    if (val1 > 0) {
+      sp=(sp - ((sizeof(display_closure) + (sizeof(SgObject) * val1)) / sizeof(SgObject)));
+    }
+;
     FP(vm)=(SgObject*)INDEX(sp, 0);
     DC(vm)=INDEX(sp, 1);
     SP(vm)=(sp - SG_LET_FRAME_SIZE);

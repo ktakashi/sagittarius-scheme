@@ -387,7 +387,7 @@
        (let ((n (insn-value1 insn)))
 	 (VM x (skip) a c f (push-let-frame f c s))))
       ((POP_LET_FRAME)
-       (let* ((n (insn-value1 insn))
+       (let* ((n (insn-value1-with-mask insn))
 	      (s (discard-let-frame f n s)))
 	 (VM x (skip) a c f s)))
       ((DISPLAY)
