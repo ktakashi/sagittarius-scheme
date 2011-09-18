@@ -4139,7 +4139,14 @@
      (cb-emit2! cb POP_LET_FRAME nargs free-length)
      (cb-emit1! cb ENTER nargs))
     (let*
-     ((new-renv (make-new-renv renv vars free sets vars need-display?))
+     ((new-renv
+       (make-new-renv
+        renv
+        vars
+        free
+        sets
+        vars
+        (and (not (tail-context? ctx)) need-display?)))
       (assign-size
        (let
         loop
@@ -4199,7 +4206,14 @@
       (cb-emit2! cb POP_LET_FRAME nargs free-length)
       (cb-emit1! cb ENTER nargs))
      (let*
-      ((new-renv (make-new-renv renv vars free sets vars need-display?))
+      ((new-renv
+        (make-new-renv
+         renv
+         vars
+         free
+         sets
+         vars
+         (and (not (tail-context? ctx)) need-display?)))
        (body-size (pass3/rec body cb new-renv ctx)))
       (unless (tail-context? ctx) (cb-emit1! cb LEAVE free-length))
       (+ body-size args-size free-size)))))))
@@ -4291,7 +4305,14 @@
       (cb-emit2! cb POP_LET_FRAME nargs free-length)
       (cb-emit1! cb ENTER nargs))
      (let*
-      ((new-renv (make-new-renv renv vars free sets vars need-display?))
+      ((new-renv
+        (make-new-renv
+         renv
+         vars
+         free
+         sets
+         vars
+         (and (not (tail-context? ctx)) need-display?)))
        (body-size (pass3/rec body cb new-renv ctx)))
       (unless (tail-context? ctx) (cb-emit1! cb LEAVE free-length))
       (+ body-size expr-size free-size)))))))

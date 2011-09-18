@@ -763,15 +763,8 @@ CASE(ENTER) {
 
 CASE(LEAVE) {
   {
-    SgObject* sp = FP(vm);
     INSN_VAL1(val1, c);
-    if (val1 > 0) {
-      sp=(sp - ((sizeof(display_closure) + (sizeof(SgObject) * val1)) / sizeof(SgObject)));
-    }
-;
-    FP(vm)=(SgObject*)INDEX(sp, 0);
-    DC(vm)=INDEX(sp, 1);
-    SP(vm)=(sp - SG_LET_FRAME_SIZE);
+    leave_process(vm, val1);
   }
 ;
   NEXT;

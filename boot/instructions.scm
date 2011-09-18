@@ -615,25 +615,9 @@
   (INSN_VAL1 val1 c)
   (set! (FP vm) (- (SP vm) val1)))
 
-#|
-      CASE(LEAVE) {
-	SgObject *sp = FP(vm);
-	FP(vm) = (SgObject*)INDEX(sp, 0);
-	DC(vm) = INDEX(sp, 1);
-	SP(vm) = sp - SG_LET_FRAME_SIZE;
-	NEXT;
-      }
-|#
 (define-inst LEAVE (1 0 #f)
-  (let ((sp::SgObject* (FP vm)))
-    (INSN_VAL1 val1 c)
-    (when (> val1 0)
-      (set! sp (- sp (/ (+ (sizeof display_closure)
-			   (* (sizeof SgObject) val1))
-			(sizeof SgObject)))))
-    (set! (FP vm) (cast SgObject* (INDEX sp 0)))
-    (set! (DC vm) (INDEX sp 1))
-    (set! (SP vm) (- sp SG_LET_FRAME_SIZE))))
+  (INSN_VAL1 val1 c)
+  (leave_process vm val1))
 
 
 (define-inst DEFINE (1 1 #t)

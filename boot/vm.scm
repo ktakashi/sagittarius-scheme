@@ -184,6 +184,30 @@
 	(loop (- i 1))))
     (+ f n)))
 
+;; discards one before
+;; pattern1
+;; (prev1 dc) -> (dc)
+;; pattern2
+;; (prev2 prev1 dc) -> (prev2 dc)
+;; pattern3
+;; (dc) -> (dc)
+;; we don't need prev1
+(define (null-vector? v)
+  (and (vector? v)
+       (zero? (vector-length v))))
+(define (discard-prev-display dc)
+  (let ((prev (closure-prev dc)))
+    (when (and (not (null-vector? prev))
+	       (not (closure-mark prev)))
+      ;;(closure-mark-set! dc (closure-mark prev))
+      (let ((prev2 (closure-prev prev)))
+	(if (not (null-vector? prev2)) ;; pattern2
+	    (closure-prev-set! dc prev2)
+	    ;; pattern1
+	    (closure-prev-set! dc #()))))
+    dc))
+	
+
 (define (stack->pair-args sp num-args)
   (let loop ([n (- num-args 1)])
     (if (>= n 0)
@@ -364,7 +388,7 @@
       (format #t "pc:~a/~a~%" pc (vector-length x))
       (debug-insn-print)
       (display "ac:")(dbg-print a)
-      ;(display "cl:")(dbg-print c)
+      (display "cl:")(dbg-print c)
       (print "frame:" f)
       (print-stack s)
       (newline)
@@ -388,7 +412,9 @@
 	 (VM x (skip) a c f (push-let-frame f c s))))
       ((POP_LET_FRAME)
        (let* ((n (insn-value1-with-mask insn))
-	      (s (discard-let-frame f n s)))
+	      (m (insn-value2 insn))
+	      (s (discard-let-frame f n s))
+	      (c (if (zero? m) c (discard-prev-display c))))
 	 (VM x (skip) a c f s)))
       ((DISPLAY)
        (let ((n (insn-value1 insn)))
@@ -1311,6 +1337,7 @@
 (add-namespace! hashtable->alist (h) hash-table->alist)
 (add-namespace! hashtable-keys-list (h) hash-table-keys)
 (add-namespace! hashtable-values (h) hash-table-values)
+(add-namespace! hashtable-values-list (h) hash-table-values)
 ;(add-namespace! vm/apply (c . a))
 (add-namespace! er-rename (a b c))
 (add-namespace! identifier? (i))

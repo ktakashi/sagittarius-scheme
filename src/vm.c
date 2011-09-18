@@ -977,8 +977,9 @@ typedef struct display_closure_rec
   int       size;
   SgObject  frees[];
 } display_closure;
-#define DCLOSURE(obj) ((display_closure*)obj)
-
+#define DCLOSURE(obj)  ((display_closure*)obj)
+#define DCLOSUREP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_DISPLAY))
+#define DCLOSURE_SIZE(obj) DCLOSURE(obj)->size
 
 #define SKIP(vm, n)        (PC(vm) += (n))
 #define FETCH_OPERAND(pc)  SG_OBJ((*(pc)++))
@@ -1054,11 +1055,11 @@ static SgObject restore_stack_cc(SgObject ac, void **data)
 
 static SgObject save_disp(SgVM *vm)
 {
-  static const int DCLOSURE_SIZE = sizeof(display_closure)/sizeof(SgObject);
+  static const int D_SIZE = sizeof(display_closure)/sizeof(SgObject);
   SgObject dc = DC(vm);
   SgClosure *r = NULL;
   while (!SG_CLOSUREP(dc)) {
-    int freec = DCLOSURE(dc)->size - DCLOSURE_SIZE, i;
+    int freec = DCLOSURE_SIZE(dc) - D_SIZE, i;
     SgClosure * cl = SG_NEW2(SgClosure *,
 			     sizeof(SgClosure) + (sizeof(SgObject) * freec));
     SG_SET_HEADER(cl, TC_PROCEDURE);
@@ -1079,7 +1080,7 @@ static void expand_stack(SgVM *vm)
   Stack *stack = save_stack(vm, CONT(vm));
   SgObject *s = vm->stack, *fp_diff = FP(vm) - CONT_FRAME_SIZE, *sp = SP(vm);
   SgObject dc;
-  SgContFrame *tmp,
+  SgContFrame *tmp;
   void *data[2];
   int diff = SP(vm) - FP(vm);
 
@@ -1454,7 +1455,6 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
     newcont->pc = next_pc;				\
     newcont->cl = CL(vm);				\
     newcont->dc = DC(vm);				\
-    newcont->displaySize = 0;				\
     CONT(vm) = newcont;					\
     SP(vm) += CONT_FRAME_SIZE;				\
     /* FP(vm) = SP(vm);	*/				\
@@ -1599,24 +1599,6 @@ void Sg_VMExecute(SgObject toplevel)
   evaluate_safe(theVM->closureForEvaluate, SG_CODE_BUILDER(toplevel)->code);
 }
 
-#if 0
-static inline void make_call_frame(SgVM *vm, SgWord *pc)
-{
-  SgObject *s = SP(vm);
-  SgContFrame *cc = (SgContFrame*)s;
-  cc->size = SP(vm) - FP(vm);		/* dummy */
-  cc->pc = pc;
-  cc->cl = CL(vm);
-  cc->dc = DC(vm);
-  cc->fp = FP(vm);
-  cc->prev = CONT(vm);
-  s += CONT_FRAME_SIZE;
-  SP(vm) = s;
-  CONT(vm) = cc;
-}
-#endif 
-
-
 /*
   discards let frame.
 
@@ -1639,6 +1621,8 @@ static inline void make_call_frame(SgVM *vm, SgWord *pc)
   +------------------+
   |      var         |
   +------------------+ <- fp
+  | Previous display |
+  +------------------+
   | Previous frame   |
   +------------------+
 
@@ -1654,31 +1638,67 @@ static inline void make_call_frame(SgVM *vm, SgWord *pc)
   | Previous frame   |
   +------------------+
  */
+#define USE_STACK_DISPLAY 0
 
+#if USE_STACK_DISPLAY
 static inline SgObject* discard_let_frame(SgVM *vm, int n, int freec)
 {
-  int display_size = 0;
+  int display_size = 0, prev_size = 0;
   int size = 0;
   volatile SgObject *butt;
   if (freec > 0) {
     display_size = sizeof(display_closure) + (sizeof(SgObject) * freec);
     size = display_size/sizeof(SgObject);
+    /* check display closure */
+    SgObject dc = DC(vm);
+    /* we don't have to consider root display
+       pattern 1: (prev2 prev1 dc) -> (prev2 dc)
+       pattern 2: (prev1 dc)       -> (dc)
+       pattern 3: (dc)             -> (dc) ;; never happen
+       prev2 in pattern1 and prev1 in pattern 2 could be a closure.
+     */
+    ASSERT(DCLOSUREP(dc));	/* sanity check */
+    SgObject prev = DCLOSURE(dc)->prev;
+    if (!prev) {
+      /* pattern3 and already replaced */
+    } else if (DCLOSUREP(prev)) {
+      /* cut prev closure */
+      SgObject prev2 = DCLOSURE(prev)->prev;
+      prev_size = DCLOSURE_SIZE(prev);
+      DCLOSURE(dc)->mark = DCLOSURE(prev)->mark;
+      DCLOSURE(dc)->prev = prev2;
+    } else if (SG_CLOSUREP(prev)) {
+      DCLOSURE(dc)->prev = NULL;
+      DCLOSURE(dc)->mark = SG_CLOSURE(prev)->mark;
+    }
+
   }
   butt = SP(vm) - (n + size);
-  memmove(FP(vm), butt, sizeof(SgObject) * n + display_size);
+  memmove(FP(vm) - prev_size, butt, sizeof(SgObject) * n + display_size);
   if (freec > 0) {
     /* dc register must be updated */
-    DC(vm) = FP(vm);
+    DC(vm) = FP(vm) - prev_size;
   }
-  FP(vm) += size;
-  CONT(vm)->displaySize += size;
+  FP(vm) += (size - prev_size);
   return FP(vm) + n;
 
 }
-#if 0
-static inline SgObject* discard_let_frame(SgVM *vm, int n)
+#else
+static inline SgObject* discard_let_frame(SgVM *vm, int n, int freec)
 {
   int i;
+  if (freec > 0) {
+    SgObject prev = SG_CLOSURE(DC(vm))->prev;
+    if (prev && !SG_CLOSURE(prev)->mark) {
+      SgObject prev2 = SG_CLOSURE(prev)->prev;
+      if (prev2) {
+	SG_CLOSURE(DC(vm))->prev = prev2;
+      } else {
+	/* make it root display */
+	SG_CLOSURE(DC(vm))->prev = NULL;
+      }
+    }
+  }
   for (i = n - 1; 0 <= i; i--) {
     INDEX_SET(FP(vm) + n, i, INDEX(SP(vm), i));
   }
@@ -1708,6 +1728,7 @@ static inline SgObject* discard_let_frame(SgVM *vm, int n)
   +------------------+
 
  */
+#if USE_STACK_DISPLAY
 static inline void make_display(int n, SgVM *vm)
 {
   SgObject *tfp = SP(vm) - n;	/* temporary fp */
@@ -1719,6 +1740,7 @@ static inline void make_display(int n, SgVM *vm)
   SG_SET_HEADER(cl, TC_DISPLAY);
   cl->prev = DC(vm);
   cl->size = size/sizeof(SgObject);
+  cl->mark = NULL;
   for (i = 0; i < n; i++) {
     cl->frees[i] = INDEX(SP(vm), i);
   }
@@ -1726,10 +1748,9 @@ static inline void make_display(int n, SgVM *vm)
   memmove(tfp, cl, size);
   DC(vm) = tfp;
   SP(vm) = tfp + size/sizeof(SgObject);
-  CONT(vm)->displaySize = size/sizeof(SgObject);
 }
-#if 0
-static inline SgObject make_display(int n, SgObject *sp)
+#else
+static inline void make_display(int n, SgVM *vm) 
 {
   SgClosure *cl = cl = SG_NEW2(SgClosure *,
 			       sizeof(SgClosure) + (sizeof(SgObject) * n));
@@ -1737,11 +1758,28 @@ static inline SgObject make_display(int n, SgObject *sp)
   SG_SET_HEADER(cl, TC_PROCEDURE);
   SG_PROCEDURE_INIT(cl, 0, FALSE, SG_PROC_CLOSURE, SG_FALSE);
   for (i = 0; i < n; i++) {
-    cl->frees[i] = INDEX(sp, i);
+    cl->frees[i] = INDEX(SP(vm), i);
   }
-  return SG_OBJ(cl);
+  cl->prev = DC(vm);
+  DC(vm) = cl;
+  SP(vm) -= n;
 }
 #endif
+
+static inline void leave_process(SgVM *vm, int freec)
+{
+    SgObject* sp = FP(vm);
+#if USE_STACK_DISPLAY
+    if (freec > 0) {
+      int size = DCLOSURE(DC(vm))->size;
+      sp=(sp - size);
+    }
+;
+#endif
+    FP(vm)=(SgObject*)INDEX(sp, 0);
+    DC(vm)=INDEX(sp, 1);
+    SP(vm)=(sp - SG_LET_FRAME_SIZE);
+}
 
 static inline SgObject* shift_args(SgObject *fp, int m, SgObject *sp);
 /* shiftj
@@ -1783,11 +1821,10 @@ static inline void shiftj_process(SgVM *vm, int depth, int diff)
     if (SG_CLOSUREP(DC(vm))) {
       DC(vm)=SG_CLOSURE(DC(vm))->prev;
     } else {
-      CONT(vm)->displaySize -= DCLOSURE(DC(vm))->size;
       DC(vm)=DCLOSURE(DC(vm))->prev;
     }
   }
-  /* ASSERT(SG_CLOSUREP(DC(vm))); */
+  ASSERT(SG_CLOSUREP(DC(vm)) || DCLOSUREP(DC(vm)));
   FP(vm) = SG_CLOSUREP(DC(vm)) ? SG_CLOSURE(DC(vm))->mark : DCLOSURE(DC(vm))->mark;
   shift_args(FP(vm), diff, SP(vm));
 }
@@ -2066,8 +2103,6 @@ static void print_frames(SgVM *vm)
     Sg_Printf(vm->logPort, UC("0x%x +---------------------------------------------+\n"), current);
     Sg_Printf(vm->logPort, UC("0x%x + size=%#38d +\n"),
 	      (uintptr_t)cont + offsetof(SgContFrame, size), cont->size);
-    Sg_Printf(vm->logPort, UC("0x%x +   ds=%#38d +\n"),
-	      (uintptr_t)cont + offsetof(SgContFrame, displaySize), cont->displaySize);
     Sg_Printf(vm->logPort, UC("0x%x +   pc=%#38x +\n"),
 	      (uintptr_t)cont + offsetof(SgContFrame, pc), cont->pc);
     Sg_Printf(vm->logPort, UC("0x%x "), (uintptr_t)cont + offsetof(SgContFrame, cl));
@@ -2098,66 +2133,6 @@ static void print_frames(SgVM *vm)
   }
   Sg_Printf(vm->logPort, UC("0x%x +---------------------------------------------+\n"), stack);
 }
-
-#if 0
-static void print_frames(SgVM *vm)
-{
-  SgContFrame *cont = CONT(vm);
-  SgObject *stack = vm->stack, *sp = SP(vm);
-  SgObject *current = sp;
-  SgString *fmt   = Sg_MakeString(UC("0x~x +    o=~38,,,,39a +~%"), SG_LITERAL_STRING);
-  SgString *clfmt = Sg_MakeString(UC("0x~x +   cl=~38,,,,39s +~%"), SG_LITERAL_STRING);
-  SgString *dcfmt = Sg_MakeString(UC("0x~x +   dc=~38,,,,39s +~%"), SG_LITERAL_STRING);
-  int something_printed = FALSE;
-  Sg_Printf(vm->logPort, UC("stack: 0x%x\n"), stack);
-  Sg_Printf(vm->logPort, UC("0x%x +---------------------------------------------+ <== sp(0x%x)\n"), sp, sp);
-  /* we print frames from top */
-  while (stack < current && current <= sp) {
-    if (((uintptr_t)current) == ((uintptr_t)cont + sizeof(SgContFrame))) {
-      /* print call frame */
-      /* frame | frame case*/
-      if (something_printed) {
-	Sg_Format(vm->logPort, fmt, SG_LIST2(*current, *current), TRUE);
-	something_printed = FALSE;
-	Sg_Printf(vm->logPort, UC("0x%x +---------------------------------------------+\n"), *current);
-      }
-      Sg_Printf(vm->logPort, UC("+ size=%#38d +\n"), cont->size);
-      Sg_Printf(vm->logPort, UC("+   ds=%#38d +\n"), cont->displaySize);
-      Sg_Printf(vm->logPort, UC("+   pc=%#38x +\n"), cont->pc);
-      Sg_Format(vm->logPort, clfmt, SG_LIST1(cont->cl), TRUE);
-      Sg_Format(vm->logPort, dcfmt, SG_LIST1(cont->dc), TRUE);
-      Sg_Printf(vm->logPort, UC("+   fp=%#38x +\n"), cont->fp);
-      Sg_Printf(vm->logPort, UC("+ prev=%#38x +\n"), cont->prev);
-      if (cont == CONT(vm)) {
-	Sg_Printf(vm->logPort, UC("+---------------------------------------------+ <== cont(0x%x)\n"), cont);
-      } else if (cont->prev) {
-	Sg_Printf(vm->logPort, UC("+---------------------------------------------+ <== prev(0x%x)\n"), cont);
-      }
-      current = cont;
-      cont = cont->prev;
-      /* check if prev cont has arg or not. */
-      continue;
-    }
-    /* this might be fp or dc of let frame */
-    if ((stack <= *current && *current <= sp)) {
-      Sg_Printf(vm->logPort, UC("+   p=%#39x +\n"), *current);
-    } else if (!(*current)) {
-      /* why does this happen? */
-      Sg_Printf(vm->logPort, UC("+   p=%#39x +\n"), *current);
-    } else if (!((uintptr_t)*current & 0xFFFF0000)) {
-      /* temporary fix for 32 bits */
-      Sg_Printf(vm->logPort, UC("+   p=%#39x +\n"), *current);
-    } else {
-      /* assume it's an object */
-      Sg_Format(vm->logPort, fmt, SG_LIST1(*current), TRUE);
-    }
-    something_printed = TRUE;
-    current--;
-  }
-  Sg_Printf(vm->logPort, UC("+---------------------------------------------+ <== bottom(0x%x)\n"), stack);
-  Sg_Write(SG_MAKE_CHAR('\n'), vm->logPort, 1);
-}
-#endif 
 
 void Sg_VMPrintFrame()
 {
