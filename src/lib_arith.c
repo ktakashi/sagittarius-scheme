@@ -139,7 +139,7 @@ static struct sg__wcRec {
   /*   101 */        WORD(SG_UNDEF)  /* identifier#%gcd */,
   /*   102 */        0x0000000B           /* 42     (PUSH) */,
   /*   103 */        0x00000160           /* 43     (LREF_CDR_PUSH) */,
-  /*   104 */        0x00000219           /* 44     (SHIFTJ) */,
+  /*   104 */        0x00100219           /* 44     (SHIFTJ) */,
   /*   105 */        0x00000018           /* 45     (JUMP) */,
   /*   106 */        WORD(SG_MAKE_INT(-15)),
   /*   107 */        0x00000030           /* 47     (RET) */,
@@ -249,7 +249,7 @@ static struct sg__wcRec {
   /*   211 */        0x00000136           /* 74     (LEAVE) */,
   /*   212 */        0x0000000B           /* 75     (PUSH) */,
   /*   213 */        0x00000160           /* 76     (LREF_CDR_PUSH) */,
-  /*   214 */        0x00000219           /* 77     (SHIFTJ) */,
+  /*   214 */        0x00100219           /* 77     (SHIFTJ) */,
   /*   215 */        0x00000018           /* 78     (JUMP) */,
   /*   216 */        WORD(SG_MAKE_INT(-48)),
   /*   217 */        0x00000030           /* 80     (RET) */,
@@ -513,7 +513,7 @@ static struct sg__wcRec {
   /*   475 */        0x00000205           /* 76     (LREF) */,
   /*   476 */        -0x000000F1          /* 77     (ADDI) */,
   /*   477 */        0x0000000B           /* 78     (PUSH) */,
-  /*   478 */        0x00000319           /* 79     (SHIFTJ) */,
+  /*   478 */        0x00100319           /* 79     (SHIFTJ) */,
   /*   479 */        0x00000018           /* 80     (JUMP) */,
   /*   480 */        WORD(SG_MAKE_INT(-46)),
   /*   481 */        0x00000030           /* 82     (RET) */,
@@ -540,7 +540,7 @@ static struct sg__wcRec {
   /*   502 */        0x00000205           /* 103    (LREF) */,
   /*   503 */        -0x000000F1          /* 104    (ADDI) */,
   /*   504 */        0x0000000B           /* 105    (PUSH) */,
-  /*   505 */        0x00000319           /* 106    (SHIFTJ) */,
+  /*   505 */        0x00100319           /* 106    (SHIFTJ) */,
   /*   506 */        0x00000018           /* 107    (JUMP) */,
   /*   507 */        WORD(SG_MAKE_INT(-73)),
   /*   508 */        0x00000030           /* 109    (RET) */,
@@ -1381,115 +1381,115 @@ void Sg__Init_core_arithmetic()
 {
   SgLibrary *lib = Sg_FindLibrary(SYMBOL("(core arithmetic)"), TRUE);
   SgLibrary *save = Sg_VM()->currentLibrary;
-  sg__wc.w[897] = STRINGW("fixnum required, but got ~a");
-  sg__wc.w[19] = WORD(&sg__wc.cb[6]);
-  sg__wc.cb[6].name = SYMBOL("bitwise-rotate-bit-field");
-  sg__wc.w[125] = STRINGW("integer");
-  sg__wc.w[55] = WORD(&sg__wc.cb[15]);
-  sg__wc.cb[15].name = SYMBOL("fldiv0-and-mod0");
-  sg__wc.w[43] = WORD(&sg__wc.cb[12]);
-  sg__wc.cb[12].name = SYMBOL("fx*/carry");
+  sg__wc.w[27] = WORD(&sg__wc.cb[8]);
+  sg__wc.cb[8].name = SYMBOL("fxdiv-and-mod");
+  sg__wc.w[15] = WORD(&sg__wc.cb[5]);
+  sg__wc.cb[5].name = SYMBOL("div0-and-mod0");
+  sg__wc.w[989] = STRINGW("fixnum required, but got ~a");
   sg__wc.w[7] = WORD(&sg__wc.cb[2]);
   sg__wc.cb[2].name = SYMBOL("lcm");
-  sg__wc.w[727] = STRINGW("fixnum required, but got ~a");
+  sg__wc.w[55] = WORD(&sg__wc.cb[15]);
+  sg__wc.cb[15].name = SYMBOL("fldiv0-and-mod0");
+  sg__wc.w[1128] = STRINGW("out of range");
+  sg__wc.w[701] = STRINGW("fixnum required, but got ~a");
+  sg__wc.w[43] = WORD(&sg__wc.cb[12]);
+  sg__wc.cb[12].name = SYMBOL("fx*/carry");
+  sg__wc.w[753] = STRINGW("fixnum required, but got ~a");
+  sg__wc.w[1177] = STRINGW("out of range");
   sg__wc.w[31] = WORD(&sg__wc.cb[9]);
   sg__wc.cb[9].name = SYMBOL("fxdiv0-and-mod0");
   sg__wc.w[845] = STRINGW("fixnum required, but got ~a");
-  sg__wc.w[1128] = STRINGW("out of range");
-  sg__wc.w[871] = STRINGW("fixnum required, but got ~a");
+  sg__wc.w[235] = STRINGW("integer");
+  sg__wc.w[19] = WORD(&sg__wc.cb[6]);
+  sg__wc.cb[6].name = SYMBOL("bitwise-rotate-bit-field");
+  sg__wc.w[144] = WORD(&sg__wc.cb[3]);
+  sg__wc.cb[3].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[609] = STRINGW("fixnum required, but got ~a");
+  sg__wc.w[3] = WORD(&sg__wc.cb[0]);
+  sg__wc.cb[0].name = SYMBOL("gcd");
+  sg__wc.w[1099] = STRINGW("out of range");
+  sg__wc.w[897] = STRINGW("fixnum required, but got ~a");
+  sg__wc.w[1043] = STRINGW("fixnum required, but got ~a");
+  sg__wc.w[727] = STRINGW("fixnum required, but got ~a");
   sg__wc.w[1016] = STRINGW("fixnum required, but got ~a");
+  sg__wc.w[583] = STRINGW("fixnum required, but got ~a");
+  sg__wc.w[47] = WORD(&sg__wc.cb[13]);
+  sg__wc.cb[13].name = SYMBOL("fxrotate-bit-field");
+  sg__wc.w[557] = STRINGW("fixnum required, but got ~a");
+  sg__wc.w[125] = STRINGW("integer");
+  sg__wc.w[1157] = STRINGW("out of range");
+  sg__wc.w[35] = WORD(&sg__wc.cb[10]);
+  sg__wc.cb[10].name = SYMBOL("fx+/carry");
+  sg__wc.w[1070] = STRINGW("fixnum required, but got ~a");
   sg__wc.w[23] = WORD(&sg__wc.cb[7]);
   sg__wc.cb[7].name = SYMBOL("bitwise-reverse-bit-field");
   sg__wc.w[11] = WORD(&sg__wc.cb[4]);
   sg__wc.cb[4].name = SYMBOL("div-and-mod");
-  sg__wc.w[47] = WORD(&sg__wc.cb[13]);
-  sg__wc.cb[13].name = SYMBOL("fxrotate-bit-field");
-  sg__wc.w[144] = WORD(&sg__wc.cb[3]);
-  sg__wc.cb[3].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[35] = WORD(&sg__wc.cb[10]);
-  sg__wc.cb[10].name = SYMBOL("fx+/carry");
-  sg__wc.w[1157] = STRINGW("out of range");
-  sg__wc.w[3] = WORD(&sg__wc.cb[0]);
-  sg__wc.cb[0].name = SYMBOL("gcd");
-  sg__wc.w[27] = WORD(&sg__wc.cb[8]);
-  sg__wc.cb[8].name = SYMBOL("fxdiv-and-mod");
-  sg__wc.w[753] = STRINGW("fixnum required, but got ~a");
-  sg__wc.w[1177] = STRINGW("out of range");
-  sg__wc.w[583] = STRINGW("fixnum required, but got ~a");
-  sg__wc.w[1070] = STRINGW("fixnum required, but got ~a");
-  sg__wc.w[15] = WORD(&sg__wc.cb[5]);
-  sg__wc.cb[5].name = SYMBOL("div0-and-mod0");
-  sg__wc.w[51] = WORD(&sg__wc.cb[14]);
-  sg__wc.cb[14].name = SYMBOL("fldiv-and-mod");
-  sg__wc.w[989] = STRINGW("fixnum required, but got ~a");
-  sg__wc.w[557] = STRINGW("fixnum required, but got ~a");
-  sg__wc.w[1043] = STRINGW("fixnum required, but got ~a");
-  sg__wc.w[609] = STRINGW("fixnum required, but got ~a");
-  sg__wc.w[1099] = STRINGW("out of range");
-  sg__wc.w[39] = WORD(&sg__wc.cb[11]);
-  sg__wc.cb[11].name = SYMBOL("fx-/carry");
-  sg__wc.w[235] = STRINGW("integer");
-  sg__wc.w[701] = STRINGW("fixnum required, but got ~a");
   sg__wc.w[67] = WORD(&sg__wc.cb[1]);
   sg__wc.cb[1].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1328] = IDENT("fldiv0", lib);
-  sg__wc.w[1245] = IDENT("fxbit-field", lib);
-  sg__wc.w[33] = IDENT("fxdiv0-and-mod0", lib);
-  sg__wc.w[302] = sg__wc.w[413] = IDENT("positive?", lib);
-  sg__wc.w[206] = IDENT("quotient", lib);
-  sg__wc.w[57] = IDENT("fldiv0-and-mod0", lib);
-  sg__wc.w[1225] = sg__wc.w[523] = IDENT("fxmod", lib);
-  sg__wc.w[17] = IDENT("div0-and-mod0", lib);
-  sg__wc.w[5] = IDENT("gcd", lib);
-  sg__wc.w[516] = IDENT("fxdiv", lib);
-  sg__wc.w[489] = sg__wc.w[466] = IDENT("bitwise-arithmetic-shift", lib);
-  sg__wc.w[1320] = IDENT("flmod", lib);
-  sg__wc.w[455] = IDENT("bitwise-and", lib);
-  sg__wc.w[71] = sg__wc.w[148] = IDENT("map", lib);
-  sg__wc.w[1313] = IDENT("fldiv", lib);
-  sg__wc.w[1304] = IDENT("fxcopy-bit-field", lib);
-  sg__wc.w[37] = IDENT("fx+/carry", lib);
-  sg__wc.w[9] = IDENT("lcm", lib);
-  sg__wc.w[1118] = sg__wc.w[1147] = sg__wc.w[1089] = IDENT("fixnum-width", lib);
-  sg__wc.w[493] = sg__wc.w[387] = IDENT("bitwise-ior", lib);
-  sg__wc.w[29] = IDENT("fxdiv-and-mod", lib);
-  sg__wc.w[45] = IDENT("fx*/carry", lib);
-  sg__wc.w[317] = sg__wc.w[260] = IDENT("mod", lib);
-  sg__wc.w[21] = IDENT("bitwise-rotate-bit-field", lib);
-  sg__wc.w[25] = IDENT("bitwise-reverse-bit-field", lib);
-  sg__wc.w[1296] = IDENT("fxior", lib);
-  sg__wc.w[253] = IDENT("div", lib);
-  sg__wc.w[101] = sg__wc.w[188] = IDENT("%gcd", lib);
-  sg__wc.w[395] = sg__wc.w[446] = IDENT("bitwise-copy-bit-field", lib);
-  sg__wc.w[53] = IDENT("fldiv-and-mod", lib);
-  sg__wc.w[538] = IDENT("fxmod0", lib);
-  sg__wc.w[273] = sg__wc.w[678] = sg__wc.w[966] = sg__wc.w[822] = IDENT("div0", lib);
-  sg__wc.w[195] = sg__wc.w[458] = sg__wc.w[438] = IDENT("zero?", lib);
-  sg__wc.w[353] = IDENT("bitwise-arithmetic-shift-left", lib);
-  sg__wc.w[49] = IDENT("fxrotate-bit-field", lib);
-  sg__wc.w[792] = sg__wc.w[675] = sg__wc.w[963] = sg__wc.w[135] = sg__wc.w[819] = sg__wc.w[648] = sg__wc.w[936] = sg__wc.w[245] = IDENT("abs", lib);
-  sg__wc.w[41] = IDENT("fx-/carry", lib);
-  sg__wc.w[1282] = IDENT("fxarithmetic-shift-right", lib);
-  sg__wc.w[222] = sg__wc.w[112] = IDENT("integer?", lib);
+  sg__wc.w[51] = WORD(&sg__wc.cb[14]);
+  sg__wc.cb[14].name = SYMBOL("fldiv-and-mod");
+  sg__wc.w[871] = STRINGW("fixnum required, but got ~a");
+  sg__wc.w[39] = WORD(&sg__wc.cb[11]);
+  sg__wc.cb[11].name = SYMBOL("fx-/carry");
   sg__wc.w[531] = IDENT("fxdiv0", lib);
-  sg__wc.w[1073] = sg__wc.w[560] = sg__wc.w[848] = sg__wc.w[612] = sg__wc.w[992] = sg__wc.w[900] = sg__wc.w[704] = sg__wc.w[1046] = sg__wc.w[756] = sg__wc.w[586] = sg__wc.w[874] = sg__wc.w[1019] = sg__wc.w[730] = IDENT("format", lib);
-  sg__wc.w[280] = sg__wc.w[651] = sg__wc.w[795] = sg__wc.w[939] = IDENT("mod0", lib);
-  sg__wc.w[1026] = sg__wc.w[242] = sg__wc.w[736] = sg__wc.w[566] = sg__wc.w[1080] = sg__wc.w[854] = sg__wc.w[1163] = sg__wc.w[618] = sg__wc.w[906] = sg__wc.w[1105] = sg__wc.w[999] = sg__wc.w[710] = sg__wc.w[762] = sg__wc.w[1053] = sg__wc.w[1183] = sg__wc.w[132] = sg__wc.w[592] = sg__wc.w[880] = sg__wc.w[1134] = IDENT("assertion-violation", lib);
-  sg__wc.w[429] = sg__wc.w[336] = IDENT("bitwise-bit-field", lib);
-  sg__wc.w[473] = sg__wc.w[373] = sg__wc.w[500] = IDENT("bitwise-arithmetic-shift-right", lib);
+  sg__wc.w[9] = IDENT("lcm", lib);
+  sg__wc.w[21] = IDENT("bitwise-rotate-bit-field", lib);
+  sg__wc.w[1296] = IDENT("fxior", lib);
+  sg__wc.w[57] = IDENT("fldiv0-and-mod0", lib);
+  sg__wc.w[387] = sg__wc.w[493] = IDENT("bitwise-ior", lib);
+  sg__wc.w[33] = IDENT("fxdiv0-and-mod0", lib);
+  sg__wc.w[1282] = IDENT("fxarithmetic-shift-right", lib);
+  sg__wc.w[253] = IDENT("div", lib);
+  sg__wc.w[353] = IDENT("bitwise-arithmetic-shift-left", lib);
   sg__wc.w[1262] = IDENT("fxarithmetic-shift-left", lib);
-  sg__wc.w[1335] = IDENT("flmod0", lib);
+  sg__wc.w[1320] = IDENT("flmod", lib);
+  sg__wc.w[500] = sg__wc.w[373] = sg__wc.w[473] = IDENT("bitwise-arithmetic-shift-right", lib);
+  sg__wc.w[1245] = IDENT("fxbit-field", lib);
+  sg__wc.w[260] = sg__wc.w[317] = IDENT("mod", lib);
+  sg__wc.w[1313] = IDENT("fldiv", lib);
+  sg__wc.w[489] = sg__wc.w[466] = IDENT("bitwise-arithmetic-shift", lib);
+  sg__wc.w[516] = IDENT("fxdiv", lib);
+  sg__wc.w[523] = sg__wc.w[1225] = IDENT("fxmod", lib);
   sg__wc.w[128] = sg__wc.w[238] = IDENT("wrong-type-argument-message", lib);
   sg__wc.w[13] = IDENT("div-and-mod", lib);
-  sg__wc.w[959] = sg__wc.w[671] = sg__wc.w[954] = sg__wc.w[666] = sg__wc.w[815] = sg__wc.w[810] = sg__wc.w[932] = sg__wc.w[644] = sg__wc.w[927] = sg__wc.w[639] = sg__wc.w[788] = sg__wc.w[783] = IDENT("least-fixnum", lib);
-  sg__wc.w[1004] = sg__wc.w[715] = sg__wc.w[545] = sg__wc.w[1058] = sg__wc.w[833] = sg__wc.w[597] = sg__wc.w[885] = sg__wc.w[977] = sg__wc.w[689] = sg__wc.w[741] = sg__wc.w[1031] = sg__wc.w[571] = sg__wc.w[859] = IDENT("fixnum?", lib);
-  sg__wc.w[231] = SYMBOLW("lcm");
-  sg__wc.w[1175] = SYMBOLW("name");
-  sg__wc.w[749] = sg__wc.w[723] = sg__wc.w[697] = SYMBOLW("fx-/carry");
+  sg__wc.w[455] = IDENT("bitwise-and", lib);
+  sg__wc.w[413] = sg__wc.w[302] = IDENT("positive?", lib);
+  sg__wc.w[148] = sg__wc.w[71] = IDENT("map", lib);
+  sg__wc.w[5] = IDENT("gcd", lib);
+  sg__wc.w[45] = IDENT("fx*/carry", lib);
+  sg__wc.w[25] = IDENT("bitwise-reverse-bit-field", lib);
+  sg__wc.w[822] = sg__wc.w[273] = sg__wc.w[966] = sg__wc.w[678] = IDENT("div0", lib);
+  sg__wc.w[206] = IDENT("quotient", lib);
+  sg__wc.w[29] = IDENT("fxdiv-and-mod", lib);
+  sg__wc.w[939] = sg__wc.w[651] = sg__wc.w[280] = sg__wc.w[795] = IDENT("mod0", lib);
+  sg__wc.w[17] = IDENT("div0-and-mod0", lib);
+  sg__wc.w[112] = sg__wc.w[222] = IDENT("integer?", lib);
+  sg__wc.w[37] = IDENT("fx+/carry", lib);
+  sg__wc.w[53] = IDENT("fldiv-and-mod", lib);
+  sg__wc.w[1118] = sg__wc.w[1147] = sg__wc.w[1089] = IDENT("fixnum-width", lib);
+  sg__wc.w[446] = sg__wc.w[395] = IDENT("bitwise-copy-bit-field", lib);
+  sg__wc.w[1335] = IDENT("flmod0", lib);
+  sg__wc.w[815] = sg__wc.w[810] = sg__wc.w[959] = sg__wc.w[671] = sg__wc.w[666] = sg__wc.w[954] = sg__wc.w[788] = sg__wc.w[783] = sg__wc.w[932] = sg__wc.w[644] = sg__wc.w[927] = sg__wc.w[639] = IDENT("least-fixnum", lib);
+  sg__wc.w[458] = sg__wc.w[438] = sg__wc.w[195] = IDENT("zero?", lib);
+  sg__wc.w[336] = sg__wc.w[429] = IDENT("bitwise-bit-field", lib);
+  sg__wc.w[859] = sg__wc.w[571] = sg__wc.w[741] = sg__wc.w[1004] = sg__wc.w[833] = sg__wc.w[1058] = sg__wc.w[545] = sg__wc.w[885] = sg__wc.w[597] = sg__wc.w[715] = sg__wc.w[689] = sg__wc.w[977] = sg__wc.w[1031] = IDENT("fixnum?", lib);
+  sg__wc.w[188] = sg__wc.w[101] = IDENT("%gcd", lib);
+  sg__wc.w[538] = IDENT("fxmod0", lib);
+  sg__wc.w[1304] = IDENT("fxcopy-bit-field", lib);
+  sg__wc.w[592] = sg__wc.w[762] = sg__wc.w[1183] = sg__wc.w[132] = sg__wc.w[1134] = sg__wc.w[1026] = sg__wc.w[854] = sg__wc.w[1080] = sg__wc.w[566] = sg__wc.w[906] = sg__wc.w[710] = sg__wc.w[618] = sg__wc.w[736] = sg__wc.w[999] = sg__wc.w[242] = sg__wc.w[1163] = sg__wc.w[1105] = sg__wc.w[1053] = sg__wc.w[880] = IDENT("assertion-violation", lib);
+  sg__wc.w[1328] = IDENT("fldiv0", lib);
+  sg__wc.w[648] = sg__wc.w[819] = sg__wc.w[245] = sg__wc.w[963] = sg__wc.w[675] = sg__wc.w[792] = sg__wc.w[135] = sg__wc.w[936] = IDENT("abs", lib);
+  sg__wc.w[49] = IDENT("fxrotate-bit-field", lib);
+  sg__wc.w[1019] = sg__wc.w[848] = sg__wc.w[560] = sg__wc.w[1073] = sg__wc.w[900] = sg__wc.w[612] = sg__wc.w[730] = sg__wc.w[992] = sg__wc.w[1046] = sg__wc.w[874] = sg__wc.w[586] = sg__wc.w[704] = sg__wc.w[756] = IDENT("format", lib);
+  sg__wc.w[41] = IDENT("fx-/carry", lib);
   sg__wc.w[1155] = sg__wc.w[1126] = sg__wc.w[1097] = sg__wc.w[1066] = sg__wc.w[1039] = sg__wc.w[1012] = sg__wc.w[985] = SYMBOLW("fxrotate-bit-field");
+  sg__wc.w[231] = SYMBOLW("lcm");
   sg__wc.w[121] = SYMBOLW("gcd");
   sg__wc.w[605] = sg__wc.w[579] = sg__wc.w[553] = SYMBOLW("fx+/carry");
   sg__wc.w[893] = sg__wc.w[867] = sg__wc.w[841] = SYMBOLW("fx*/carry");
+  sg__wc.w[1175] = SYMBOLW("name");
+  sg__wc.w[749] = sg__wc.w[723] = sg__wc.w[697] = SYMBOLW("fx-/carry");
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(sagittarius)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(core errors)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(core base)")));

@@ -490,6 +490,9 @@ SgObject Sg_Eval(SgObject sexp, SgObject env)
   if (vm->state != IMPORTING) vm->state = RUNNING;
 
   ASSERT(SG_CODE_BUILDERP(v));
+  if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
+    Sg_VMDumpCode(v);
+  }
   if (!SG_FALSEP(env)) {
     vm->currentLibrary = env;
   }
@@ -1080,7 +1083,6 @@ static void expand_stack(SgVM *vm)
   Stack *stack = save_stack(vm, CONT(vm));
   SgObject *s = vm->stack, *fp_diff = FP(vm) - CONT_FRAME_SIZE, *sp = SP(vm);
   SgObject dc;
-  SgContFrame *tmp;
   void *data[2];
   int diff = SP(vm) - FP(vm);
 
@@ -1088,7 +1090,9 @@ static void expand_stack(SgVM *vm)
     Sg_Printf(vm->logPort, UC("expanding stack\n"));
   }
   /* save display closure */
+#if USE_STACK_DISPLAY
   dc = save_disp(vm);
+#endif
 
   /* clear stack */
   while (s != fp_diff) *s++ = NULL;
@@ -1102,8 +1106,10 @@ static void expand_stack(SgVM *vm)
   /* FIXME, this doesn't work */
   SP(vm) += (sp - fp_diff);
   FP(vm) = SP(vm) - diff;
+#if USE_STACK_DISPLAY
   DC(vm) = dc;
   CONT(vm)->dc = dc;
+#endif
 
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
     print_frames(vm);
@@ -1817,7 +1823,20 @@ static inline SgObject* shift_args(SgObject *fp, int m, SgObject *sp);
  */
 static inline void shiftj_process(SgVM *vm, int depth, int diff)
 {
-  for (;!(depth <= 0 && SG_CLOSURE(DC(vm))->mark); depth--) {
+  int skip_marks = depth - 1, count = 0;
+  for (;;) {
+    SgObject mark;
+    if (SG_CLOSUREP(DC(vm))) {
+      mark = SG_CLOSURE(DC(vm))->mark;
+    } else {
+      mark = DCLOSURE(DC(vm))->mark;
+    }
+    if (count == skip_marks && mark) {
+      break;
+    }
+    if (mark) {
+      count++;
+    }
     if (SG_CLOSUREP(DC(vm))) {
       DC(vm)=SG_CLOSURE(DC(vm))->prev;
     } else {
@@ -1826,7 +1845,7 @@ static inline void shiftj_process(SgVM *vm, int depth, int diff)
   }
   ASSERT(SG_CLOSUREP(DC(vm)) || DCLOSUREP(DC(vm)));
   FP(vm) = SG_CLOSUREP(DC(vm)) ? SG_CLOSURE(DC(vm))->mark : DCLOSURE(DC(vm))->mark;
-  shift_args(FP(vm), diff, SP(vm));
+  SP(vm) = shift_args(FP(vm), diff, SP(vm));
 }
 
 
@@ -2072,7 +2091,7 @@ static void print_frames(SgVM *vm)
   SgContFrame *cont = CONT(vm);
   SgObject *stack = vm->stack, *sp = SP(vm);
   SgObject *current = sp - 1;
-  int below_cont = FALSE, size = cont->size;
+  int below_cont = FALSE, size = cont->size, c_func = FALSE;
   SgString *fmt   = Sg_MakeString(UC("+    o=~38,,,,39a +~%"), SG_LITERAL_STRING);
   SgString *clfmt = Sg_MakeString(UC("+   cl=~38,,,,39s +~%"), SG_LITERAL_STRING);
   SgString *dcfmt = Sg_MakeString(UC("+   dc=~38,,,,39s +~%"), SG_LITERAL_STRING);
@@ -2081,7 +2100,7 @@ static void print_frames(SgVM *vm)
   Sg_Printf(vm->logPort, UC("0x%x +---------------------------------------------+ <== sp(0x%x)\n"), sp, sp);
   /* first we dump from top until cont frame. */
   while ((stack < current && current <= sp)) {
-    if (current == (SgObject*)cont + CONT_FRAME_SIZE + size) {
+    if (current == (SgObject*)cont + CONT_FRAME_SIZE) {
       break;
     }
     Sg_Printf(vm->logPort, UC("0x%x +   p=%#39x +\n"), current, *current);
@@ -2118,15 +2137,22 @@ static void print_frames(SgVM *vm)
     } else if (cont->prev) {
       Sg_Printf(vm->logPort, UC("0x%x +---------------------------------------------+ <== prev(0x%x)\n"), cont, cont);
     }
+    if (cont->fp == NULL) c_func = TRUE;
+    else c_func = FALSE;
+
     current = cont;
     size = cont->size;
     /* cont's size is argc of previous cont frame */
     /* dump arguments */
     for (i = 0; i < size; i++) {
-      Sg_Printf(vm->logPort, UC("0x%x "), current-i-1);
-      Sg_Format(vm->logPort, fmt, SG_LIST1(*(current-i-1)), TRUE);
+      if (c_func) {
+	Sg_Printf(vm->logPort, UC("0x%x +   p=%#39x +\n"), current-i-1, *(current-i-1));
+      } else {
+	Sg_Printf(vm->logPort, UC("0x%x "), current-i-1);
+	Sg_Format(vm->logPort, fmt, SG_LIST1(*(current-i-1)), TRUE);
+      }
     }
-    current -= size;
+    current -= (size + 1);
     cont = cont->prev;
     /* check if prev cont has arg or not. */
     continue;

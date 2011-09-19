@@ -3710,8 +3710,7 @@
 	(if (tail-context? ctx)
 	    (cb-emit2! cb POP_LET_FRAME nargs free-length)
 	    (cb-emit1! cb ENTER nargs))
-	(let* ((new-renv (make-new-renv renv vars free sets vars (and (not (tail-context? ctx))
-								      need-display?)))
+	(let* ((new-renv (make-new-renv renv vars free sets vars #f))
 	       (assign-size (let loop ((args args)
 				       (vars vars) ;; for debug info
 				       (size 0)
@@ -3772,8 +3771,7 @@
 	  (if (tail-context? ctx)
 	      (cb-emit2! cb POP_LET_FRAME nargs free-length)
 	      (cb-emit1! cb ENTER nargs))
-	  (let* ((new-renv (make-new-renv renv vars free sets vars (and (not (tail-context? ctx))
-									need-display?)))
+	  (let* ((new-renv (make-new-renv renv vars free sets vars #f))
 		 (body-size (pass3/rec body cb new-renv ctx)))
 	    (unless (tail-context? ctx)
 	      (cb-emit1! cb LEAVE free-length))
@@ -3852,8 +3850,7 @@
 	  (if (tail-context? ctx)
 	      (cb-emit2! cb POP_LET_FRAME nargs free-length)
 	      (cb-emit1! cb ENTER nargs))
-	  (let* ((new-renv (make-new-renv renv vars free sets vars (and (not (tail-context? ctx))
-									need-display?)))
+	  (let* ((new-renv (make-new-renv renv vars free sets vars #f))
 		 (body-size (pass3/rec body
 				       cb
 				       new-renv
@@ -3957,10 +3954,7 @@
 	  (pass3/make-boxes cb sets vars)
 	  ;($label-label-set! label #t)
 	  (let ((body-size (pass3/rec body cb
-				      (make-new-renv renv vars free sets vars 
-						     need-display?
-						     #;(and (not (tail-context? ctx))
-							  need-display?))
+				      (make-new-renv renv vars free sets vars #t)
 				      ctx)))
 	    (unless (tail-context? ctx)
 	      (cb-emit1! cb LEAVE frlen))
@@ -3977,7 +3971,7 @@
 	(cb-emit2! cb SHIFTJ
 		   nargs
 		   (- (renv-display renv) 
-		      (renv-display ($call-renv ($call-proc iform))) 1))
+		      (renv-display ($call-renv ($call-proc iform)))))
 	;;($label-label-set! label #t)
 	(cb-emit0o! cb JUMP (pass3/ensure-label cb label))
 	ret))))

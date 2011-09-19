@@ -20,7 +20,7 @@ static struct sg__wcRec {
     SG_STATIC_CODE_BUILDER(&sg__wc.w[219], NULL, 2, FALSE, 0, 17, 64), /* (make-variable-transformer loop) */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[283], NULL, 1, FALSE, 0, 14, 60), /* (make-variable-transformer loop) */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[343], NULL, 1, FALSE, 0, 15, 70), /* (make-variable-transformer loop) */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[413], NULL, 1, FALSE, 0, 7, 13), /* (make-variable-transformer #:G14786) */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[413], NULL, 1, FALSE, 0, 7, 13), /* (make-variable-transformer #:G14877) */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[426], NULL, 1, FALSE, 0, 6, 12), /* lvar? */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[438], NULL, 2, FALSE, 0, 18, 78), /* lookup-lexical-name */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[516], NULL, 1, FALSE, 0, 7, 17), /* bar? */
@@ -91,19 +91,19 @@ static struct sg__wcRec {
   /*     0 */        0x0000002A           /* 0      (CLOSURE) */,
   /*     1 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*     2 */        0x00000037           /* 2      (DEFINE) */,
-  /*     3 */        WORD(SG_UNDEF)  /* identifier#G14792 */,
+  /*     3 */        WORD(SG_UNDEF)  /* identifier#G14883 */,
   /*     4 */        0x0000002A           /* 4      (CLOSURE) */,
   /*     5 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*     6 */        0x00000037           /* 6      (DEFINE) */,
-  /*     7 */        WORD(SG_UNDEF)  /* identifier#G14790 */,
+  /*     7 */        WORD(SG_UNDEF)  /* identifier#G14881 */,
   /*     8 */        0x0000002A           /* 8      (CLOSURE) */,
   /*     9 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    10 */        0x00000037           /* 10     (DEFINE) */,
-  /*    11 */        WORD(SG_UNDEF)  /* identifier#G14788 */,
+  /*    11 */        WORD(SG_UNDEF)  /* identifier#G14879 */,
   /*    12 */        0x0000002A           /* 12     (CLOSURE) */,
   /*    13 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    14 */        0x00000037           /* 14     (DEFINE) */,
-  /*    15 */        WORD(SG_UNDEF)  /* identifier#G14786 */,
+  /*    15 */        WORD(SG_UNDEF)  /* identifier#G14877 */,
   /*    16 */        0x00000038           /* 16     (LIBRARY) */,
   /*    17 */        WORD(SG_UNDEF)  /* <library (core syntax-case)> */,
   /*    18 */        0x00000004           /* 18     (CONSTI) */,
@@ -317,11 +317,11 @@ static struct sg__wcRec {
   /*   226 */        0x0000005F           /* 7      (LREF_CAR_PUSH) */,
   /*   227 */        0x00000149           /* 8      (LREF_PUSH) */,
   /*   228 */        0x00000009           /* 9      (GREF) */,
-  /*   229 */        WORD(SG_UNDEF)  /* identifier#G14792 */,
+  /*   229 */        WORD(SG_UNDEF)  /* identifier#G14883 */,
   /*   230 */        0x0000022D           /* 11     (LOCAL_CALL) */,
   /*   231 */        0x0000000B           /* 12     (PUSH) */,
   /*   232 */        0x00000009           /* 13     (GREF) */,
-  /*   233 */        WORD(SG_UNDEF)  /* identifier#G14792 */,
+  /*   233 */        WORD(SG_UNDEF)  /* identifier#G14883 */,
   /*   234 */        0x0000022F           /* 15     (LOCAL_TAIL_CALL) */,
   /*   235 */        0x00000030           /* 16     (RET) */,
   /*   236 */        0x00000031           /* 17     (FRAME) */,
@@ -366,7 +366,7 @@ static struct sg__wcRec {
   /*   275 */        0x0000000B           /* 56     (PUSH) */,
   /*   276 */        0x00000149           /* 57     (LREF_PUSH) */,
   /*   277 */        0x00000009           /* 58     (GREF) */,
-  /*   278 */        WORD(SG_UNDEF)  /* identifier#G14792 */,
+  /*   278 */        WORD(SG_UNDEF)  /* identifier#G14883 */,
   /*   279 */        0x0000022F           /* 60     (LOCAL_TAIL_CALL) */,
   /*   280 */        0x00000030           /* 61     (RET) */,
   /*   281 */        0x00000105           /* 62     (LREF) */,
@@ -382,14 +382,14 @@ static struct sg__wcRec {
   /*   291 */        WORD(SG_MAKE_INT(5)),
   /*   292 */        0x0000005F           /* 9      (LREF_CAR_PUSH) */,
   /*   293 */        0x00000009           /* 10     (GREF) */,
-  /*   294 */        WORD(SG_UNDEF)  /* identifier#G14790 */,
+  /*   294 */        WORD(SG_UNDEF)  /* identifier#G14881 */,
   /*   295 */        0x0000012D           /* 12     (LOCAL_CALL) */,
   /*   296 */        0x0000000B           /* 13     (PUSH) */,
   /*   297 */        0x00000031           /* 14     (FRAME) */,
   /*   298 */        WORD(SG_MAKE_INT(5)),
   /*   299 */        0x00000060           /* 16     (LREF_CDR_PUSH) */,
   /*   300 */        0x00000009           /* 17     (GREF) */,
-  /*   301 */        WORD(SG_UNDEF)  /* identifier#G14790 */,
+  /*   301 */        WORD(SG_UNDEF)  /* identifier#G14881 */,
   /*   302 */        0x0000012D           /* 19     (LOCAL_CALL) */,
   /*   303 */        0x0000000B           /* 20     (PUSH) */,
   /*   304 */        0x00100233           /* 21     (POP_LET_FRAME) */,
@@ -423,7 +423,7 @@ static struct sg__wcRec {
   /*   332 */        WORD(SG_UNDEF)  /* identifier#vector->list */,
   /*   333 */        0x0000000B           /* 50     (PUSH) */,
   /*   334 */        0x00000009           /* 51     (GREF) */,
-  /*   335 */        WORD(SG_UNDEF)  /* identifier#G14790 */,
+  /*   335 */        WORD(SG_UNDEF)  /* identifier#G14881 */,
   /*   336 */        0x0000012D           /* 53     (LOCAL_CALL) */,
   /*   337 */        0x0000000B           /* 54     (PUSH) */,
   /*   338 */        0x0000014F           /* 55     (GREF_TAIL_CALL) */,
@@ -443,14 +443,14 @@ static struct sg__wcRec {
   /*   352 */        WORD(SG_MAKE_INT(5)),
   /*   353 */        0x0000005F           /* 10     (LREF_CAR_PUSH) */,
   /*   354 */        0x00000009           /* 11     (GREF) */,
-  /*   355 */        WORD(SG_UNDEF)  /* identifier#G14788 */,
+  /*   355 */        WORD(SG_UNDEF)  /* identifier#G14879 */,
   /*   356 */        0x0000012D           /* 13     (LOCAL_CALL) */,
   /*   357 */        0x00000017           /* 14     (TEST) */,
   /*   358 */        WORD(SG_MAKE_INT(2)),
   /*   359 */        0x00000030           /* 16     (RET) */,
   /*   360 */        0x00000060           /* 17     (LREF_CDR_PUSH) */,
   /*   361 */        0x00000009           /* 18     (GREF) */,
-  /*   362 */        WORD(SG_UNDEF)  /* identifier#G14788 */,
+  /*   362 */        WORD(SG_UNDEF)  /* identifier#G14879 */,
   /*   363 */        0x0000012F           /* 20     (LOCAL_TAIL_CALL) */,
   /*   364 */        0x00000030           /* 21     (RET) */,
   /*   365 */        0x00000031           /* 22     (FRAME) */,
@@ -485,7 +485,7 @@ static struct sg__wcRec {
   /*   394 */        0x00000047           /* 51     (VEC_REF) */,
   /*   395 */        0x0000000B           /* 52     (PUSH) */,
   /*   396 */        0x00000009           /* 53     (GREF) */,
-  /*   397 */        WORD(SG_UNDEF)  /* identifier#G14788 */,
+  /*   397 */        WORD(SG_UNDEF)  /* identifier#G14879 */,
   /*   398 */        0x0000012D           /* 55     (LOCAL_CALL) */,
   /*   399 */        0x00000017           /* 56     (TEST) */,
   /*   400 */        WORD(SG_MAKE_INT(2)),
@@ -493,7 +493,7 @@ static struct sg__wcRec {
   /*   402 */        0x00000005           /* 59     (LREF) */,
   /*   403 */        -0x000000F1          /* 60     (ADDI) */,
   /*   404 */        0x0000000B           /* 61     (PUSH) */,
-  /*   405 */        0x00000119           /* 62     (SHIFTJ) */,
+  /*   405 */        0x00100119           /* 62     (SHIFTJ) */,
   /*   406 */        0x00000018           /* 63     (JUMP) */,
   /*   407 */        WORD(SG_MAKE_INT(-21)),
   /*   408 */        0x00000030           /* 65     (RET) */,
@@ -837,7 +837,7 @@ static struct sg__wcRec {
   /*   746 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*   747 */        0x00000030           /* 74     (RET) */,
   /*   748 */        0x00000060           /* 75     (LREF_CDR_PUSH) */,
-  /*   749 */        0x00000119           /* 76     (SHIFTJ) */,
+  /*   749 */        0x00100119           /* 76     (SHIFTJ) */,
   /*   750 */        0x00000018           /* 77     (JUMP) */,
   /*   751 */        WORD(SG_MAKE_INT(-22)),
   /*   752 */        0x00000030           /* 79     (RET) */,
@@ -978,13 +978,13 @@ static struct sg__wcRec {
   /*   887 */        0x0000000C           /* 5      (BOX) */,
   /*   888 */        0x00100133           /* 6      (POP_LET_FRAME) */,
   /*   889 */        0x00000009           /* 7      (GREF) */,
-  /*   890 */        WORD(SG_UNDEF)  /* identifier#G14792 */,
+  /*   890 */        WORD(SG_UNDEF)  /* identifier#G14883 */,
   /*   891 */        0x00000006           /* 9      (LSET) */,
   /*   892 */        0x0000004A           /* 10     (FREF_PUSH) */,
   /*   893 */        0x0000004C           /* 11     (CONST_PUSH) */,
   /*   894 */        WORD(SG_NIL),
   /*   895 */        0x00000009           /* 13     (GREF) */,
-  /*   896 */        WORD(SG_UNDEF)  /* identifier#G14792 */,
+  /*   896 */        WORD(SG_UNDEF)  /* identifier#G14883 */,
   /*   897 */        0x0000022F           /* 15     (LOCAL_TAIL_CALL) */,
   /*   898 */        0x00000030           /* 16     (RET) */,
   /*   899 */        0x00000031           /* 0      (FRAME) */,
@@ -1662,7 +1662,7 @@ static struct sg__wcRec {
   /*  1571 */        0x00000105           /* 12     (LREF) */,
   /*  1572 */        0x0000010F           /* 13     (ADDI) */,
   /*  1573 */        0x0000000B           /* 14     (PUSH) */,
-  /*  1574 */        0x00000219           /* 15     (SHIFTJ) */,
+  /*  1574 */        0x00100219           /* 15     (SHIFTJ) */,
   /*  1575 */        0x00000018           /* 16     (JUMP) */,
   /*  1576 */        WORD(SG_MAKE_INT(-10)),
   /*  1577 */        0x00000030           /* 18     (RET) */,
@@ -2070,7 +2070,7 @@ static struct sg__wcRec {
   /*  1979 */        0x0000034E           /* 37     (GREF_CALL) */,
   /*  1980 */        WORD(SG_UNDEF)  /* identifier#bind-var! */,
   /*  1981 */        0x0000000B           /* 39     (PUSH) */,
-  /*  1982 */        0x00000219           /* 40     (SHIFTJ) */,
+  /*  1982 */        0x00100219           /* 40     (SHIFTJ) */,
   /*  1983 */        0x00000018           /* 41     (JUMP) */,
   /*  1984 */        WORD(SG_MAKE_INT(-28)),
   /*  1985 */        0x00000030           /* 43     (RET) */,
@@ -2455,7 +2455,7 @@ static struct sg__wcRec {
   /*  2364 */        0x0010022B           /* 127    (APPLY) */,
   /*  2365 */        0x00000030           /* 128    (RET) */,
   /*  2366 */        0x00000262           /* 129    (FREF_CDR_PUSH) */,
-  /*  2367 */        0x00000119           /* 130    (SHIFTJ) */,
+  /*  2367 */        0x00100119           /* 130    (SHIFTJ) */,
   /*  2368 */        0x00000018           /* 131    (JUMP) */,
   /*  2369 */        WORD(SG_MAKE_INT(-99)),
   /*  2370 */        0x00000030           /* 133    (RET) */,
@@ -2547,7 +2547,7 @@ static struct sg__wcRec {
   /*  2456 */        0x0000010F           /* 24     (ADDI) */,
   /*  2457 */        0x0000000B           /* 25     (PUSH) */,
   /*  2458 */        0x00000160           /* 26     (LREF_CDR_PUSH) */,
-  /*  2459 */        0x00000219           /* 27     (SHIFTJ) */,
+  /*  2459 */        0x00100219           /* 27     (SHIFTJ) */,
   /*  2460 */        0x00000018           /* 28     (JUMP) */,
   /*  2461 */        WORD(SG_MAKE_INT(-17)),
   /*  2462 */        0x00000030           /* 30     (RET) */,
@@ -3786,11 +3786,11 @@ static struct sg__wcRec {
   /*  3695 */        0x0000000C           /* 131    (BOX) */,
   /*  3696 */        0x00100133           /* 132    (POP_LET_FRAME) */,
   /*  3697 */        0x00000009           /* 133    (GREF) */,
-  /*  3698 */        WORD(SG_UNDEF)  /* identifier#G14790 */,
+  /*  3698 */        WORD(SG_UNDEF)  /* identifier#G14881 */,
   /*  3699 */        0x00000006           /* 135    (LSET) */,
   /*  3700 */        0x0000004A           /* 136    (FREF_PUSH) */,
   /*  3701 */        0x00000009           /* 137    (GREF) */,
-  /*  3702 */        WORD(SG_UNDEF)  /* identifier#G14790 */,
+  /*  3702 */        WORD(SG_UNDEF)  /* identifier#G14881 */,
   /*  3703 */        0x0000012F           /* 139    (LOCAL_TAIL_CALL) */,
   /*  3704 */        0x00000030           /* 140    (RET) */,
   /*  3705 */        0x00000B32           /* 141    (LET_FRAME) */,
@@ -3971,13 +3971,13 @@ static struct sg__wcRec {
   /*  3880 */        0x0000000C           /* 8      (BOX) */,
   /*  3881 */        0x00000135           /* 9      (ENTER) */,
   /*  3882 */        0x00000009           /* 10     (GREF) */,
-  /*  3883 */        WORD(SG_UNDEF)  /* identifier#G14788 */,
+  /*  3883 */        WORD(SG_UNDEF)  /* identifier#G14879 */,
   /*  3884 */        0x00000006           /* 12     (LSET) */,
   /*  3885 */        0x00000031           /* 13     (FRAME) */,
   /*  3886 */        WORD(SG_MAKE_INT(5)),
   /*  3887 */        0x0000004A           /* 15     (FREF_PUSH) */,
   /*  3888 */        0x00000009           /* 16     (GREF) */,
-  /*  3889 */        WORD(SG_UNDEF)  /* identifier#G14788 */,
+  /*  3889 */        WORD(SG_UNDEF)  /* identifier#G14879 */,
   /*  3890 */        0x0000012D           /* 18     (LOCAL_CALL) */,
   /*  3891 */        0x00000136           /* 19     (LEAVE) */,
   /*  3892 */        0x00000036           /* 20     (LEAVE) */,
@@ -4313,7 +4313,7 @@ static struct sg__wcRec {
   /*  4222 */        0x0000012F           /* 78     (LOCAL_TAIL_CALL) */,
   /*  4223 */        0x00000030           /* 79     (RET) */,
   /*  4224 */        0x00000162           /* 80     (FREF_CDR_PUSH) */,
-  /*  4225 */        0x00000119           /* 81     (SHIFTJ) */,
+  /*  4225 */        0x00100119           /* 81     (SHIFTJ) */,
   /*  4226 */        0x00000018           /* 82     (JUMP) */,
   /*  4227 */        WORD(SG_MAKE_INT(-55)),
   /*  4228 */        0x00000030           /* 84     (RET) */,
@@ -4792,7 +4792,7 @@ static struct sg__wcRec {
   /*  4701 */        0x0000034E           /* 41     (GREF_CALL) */,
   /*  4702 */        WORD(SG_UNDEF)  /* identifier#consume-ellipsis-vars */,
   /*  4703 */        0x0000000B           /* 43     (PUSH) */,
-  /*  4704 */        0x00000219           /* 44     (SHIFTJ) */,
+  /*  4704 */        0x00100219           /* 44     (SHIFTJ) */,
   /*  4705 */        0x00000018           /* 45     (JUMP) */,
   /*  4706 */        WORD(SG_MAKE_INT(-25)),
   /*  4707 */        0x00000030           /* 47     (RET) */,
@@ -5399,7 +5399,7 @@ static struct sg__wcRec {
   /*  5308 */        0x0000024E           /* 21     (GREF_CALL) */,
   /*  5309 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  5310 */        0x0000004B           /* 23     (GREF_PUSH) */,
-  /*  5311 */        WORD(SG_UNDEF)  /* identifier#G14786 */,
+  /*  5311 */        WORD(SG_UNDEF)  /* identifier#G14877 */,
   /*  5312 */        0x00000049           /* 25     (LREF_PUSH) */,
   /*  5313 */        0x0000024F           /* 26     (GREF_TAIL_CALL) */,
   /*  5314 */        WORD(SG_UNDEF)  /* identifier#map */,
@@ -5438,303 +5438,303 @@ void Sg__Init_core_syntax_case()
 {
   SgLibrary *lib = Sg_FindLibrary(SYMBOL("(core syntax-case)"), TRUE);
   SgLibrary *save = Sg_VM()->currentLibrary;
-  sg__wc.w[41] = WORD(&sg__wc.cb[8]);
-  sg__wc.cb[8].name = SYMBOL("ellipsis-pair?");
-  sg__wc.w[713] = STRINGW("syntax pattern");
-  sg__wc.w[2564] = WORD(&sg__wc.cb[38]);
-  sg__wc.cb[38].name = SYMBOL("loop");
-  sg__wc.w[3128] = WORD(&sg__wc.cb[44]);
-  sg__wc.cb[44].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[3649] = WORD(&sg__wc.cb[49]);
-  sg__wc.cb[49].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[126] = WORD(&sg__wc.cb[26]);
-  sg__wc.cb[26].name = SYMBOL("union-vars");
-  sg__wc.w[4530] = WORD(&sg__wc.cb[59]);
-  sg__wc.cb[59].name = SYMBOL("expand-var");
-  sg__wc.w[134] = WORD(&sg__wc.cb[28]);
-  sg__wc.cb[28].name = SYMBOL("bind-null-ellipsis");
-  sg__wc.w[206] = WORD(&sg__wc.cb[65]);
-  sg__wc.cb[65].name = SYMBOL("syntax->datum");
-  sg__wc.w[4627] = STRINGW("syntax template");
-  sg__wc.w[142] = WORD(&sg__wc.cb[30]);
-  sg__wc.cb[30].name = SYMBOL("bind-ellipsis-n");
-  sg__wc.w[166] = WORD(&sg__wc.cb[33]);
-  sg__wc.cb[33].name = SYMBOL("collect-rename-ids");
-  sg__wc.w[715] = STRINGW("ellipsis following literal");
-  sg__wc.w[2986] = STRINGW("syntax template");
-  sg__wc.w[4629] = STRINGW("subforms have different size of matched input (variable)");
-  sg__wc.w[2988] = STRINGW("too few ellipsis following subtemplate");
-  sg__wc.w[53] = WORD(&sg__wc.cb[11]);
-  sg__wc.cb[11].name = SYMBOL("check-pattern");
-  sg__wc.w[160] = WORD(Sg_Cons(SYMBOL("core"), Sg_Cons(SYMBOL("syntax-case"), SG_NIL)));
-  sg__wc.w[89] = WORD(&sg__wc.cb[16]);
-  sg__wc.cb[16].name = SYMBOL("collect-vars-ranks");
-  sg__wc.w[2493] = WORD(&sg__wc.cb[37]);
-  sg__wc.cb[37].name = SYMBOL("control-patvar-exists?");
-  sg__wc.w[1145] = WORD(&sg__wc.cb[19]);
-  sg__wc.cb[19].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[178] = WORD(&sg__wc.cb[43]);
-  sg__wc.cb[43].name = SYMBOL("compile-syntax");
-  sg__wc.w[2781] = STRINGW("syntax template");
-  sg__wc.w[1355] = WORD(&sg__wc.cb[21]);
-  sg__wc.cb[21].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[3620] = WORD(&sg__wc.cb[48]);
-  sg__wc.cb[48].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[114] = WORD(&sg__wc.cb[23]);
-  sg__wc.cb[23].name = SYMBOL("match-ellipsis?");
-  sg__wc.w[67] = WORD(Sg_Cons(SYMBOL("core"), Sg_Cons(SYMBOL("syntax-case"), SG_NIL)));
-  sg__wc.w[202] = WORD(&sg__wc.cb[64]);
-  sg__wc.cb[64].name = SYMBOL("datum->syntax");
-  sg__wc.w[198] = WORD(&sg__wc.cb[58]);
-  sg__wc.cb[58].name = SYMBOL("transcribe-template");
-  sg__wc.w[9] = WORD(&sg__wc.cb[2]);
-  sg__wc.cb[2].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[29] = WORD(&sg__wc.cb[5]);
-  sg__wc.cb[5].name = SYMBOL("lookup-lexical-name");
-  sg__wc.w[2783] = STRINGW("too few ellipsis following subtemplate");
-  sg__wc.w[1068] = STRINGW("duplicate literals");
-  sg__wc.w[3054] = STRINGW("syntax template");
-  sg__wc.w[5066] = STRINGW("syntax template");
-  sg__wc.w[33] = WORD(&sg__wc.cb[6]);
-  sg__wc.cb[6].name = SYMBOL("bar?");
-  sg__wc.w[45] = WORD(&sg__wc.cb[9]);
-  sg__wc.cb[9].name = SYMBOL("ellipsis-splicing-pair?");
-  sg__wc.w[174] = WORD(&sg__wc.cb[36]);
-  sg__wc.cb[36].name = SYMBOL("check-template");
-  sg__wc.w[2541] = WORD(&sg__wc.cb[42]);
-  sg__wc.cb[42].name = SYMBOL("loop");
-  sg__wc.w[3601] = WORD(&sg__wc.cb[47]);
-  sg__wc.cb[47].name = SYMBOL("emit");
-  sg__wc.w[122] = WORD(&sg__wc.cb[25]);
-  sg__wc.cb[25].name = SYMBOL("match-pattern?");
-  sg__wc.w[4244] = WORD(&sg__wc.cb[53]);
-  sg__wc.cb[53].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[741] = STRINGW("syntax pattern");
-  sg__wc.w[4384] = WORD(&sg__wc.cb[57]);
-  sg__wc.cb[57].name = SYMBOL("loop");
-  sg__wc.w[5029] = WORD(&sg__wc.cb[63]);
-  sg__wc.cb[63].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[138] = WORD(&sg__wc.cb[29]);
-  sg__wc.cb[29].name = SYMBOL("bind-ellipsis");
-  sg__wc.w[3056] = STRINGW("misplaced ellipsis following empty list");
-  sg__wc.w[150] = WORD(&sg__wc.cb[32]);
-  sg__wc.cb[32].name = SYMBOL("match-syntax-case");
-  sg__wc.w[5303] = STRINGW("expected list, but got ~s");
-  sg__wc.w[2916] = STRINGW("syntax template");
-  sg__wc.w[846] = STRINGW("syntax pattern");
-  sg__wc.w[743] = STRINGW("ambiguous use of ellipsis");
-  sg__wc.w[2918] = STRINGW("missing pattern variable that used in same level as in pattern");
-  sg__wc.w[848] = STRINGW("duplicate pattern variables");
-  sg__wc.w[2854] = STRINGW("syntax template");
-  sg__wc.w[49] = WORD(&sg__wc.cb[10]);
-  sg__wc.cb[10].name = SYMBOL("ellipsis-quote?");
-  sg__wc.w[681] = STRINGW("syntax pattern");
-  sg__wc.w[635] = WORD(&sg__wc.cb[12]);
-  sg__wc.cb[12].name = SYMBOL("loop");
-  sg__wc.w[57] = WORD(&sg__wc.cb[14]);
-  sg__wc.cb[14].name = SYMBOL("extend-env");
-  sg__wc.w[3026] = STRINGW("syntax template");
-  sg__wc.w[105] = WORD(&sg__wc.cb[17]);
-  sg__wc.cb[17].name = SYMBOL("compile-syntax-case");
-  sg__wc.w[170] = WORD(&sg__wc.cb[35]);
-  sg__wc.cb[35].name = SYMBOL("parse-ellipsis-splicing");
-  sg__wc.w[2751] = WORD(&sg__wc.cb[41]);
-  sg__wc.cb[41].name = SYMBOL("loop");
-  sg__wc.w[1202] = WORD(&sg__wc.cb[20]);
-  sg__wc.cb[20].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[182] = WORD(&sg__wc.cb[46]);
-  sg__wc.cb[46].name = SYMBOL("expand-syntax");
-  sg__wc.w[186] = WORD(&sg__wc.cb[52]);
-  sg__wc.cb[52].name = SYMBOL("rank-of");
-  sg__wc.w[118] = WORD(&sg__wc.cb[24]);
-  sg__wc.cb[24].name = SYMBOL("match-ellipsis-n?");
-  sg__wc.w[194] = WORD(&sg__wc.cb[56]);
-  sg__wc.cb[56].name = SYMBOL("consume-ellipsis-vars");
-  sg__wc.w[5320] = WORD(&sg__wc.cb[68]);
-  sg__wc.cb[68].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[4555] = WORD(&sg__wc.cb[62]);
-  sg__wc.cb[62].name = SYMBOL("expand-template");
   sg__wc.w[5] = WORD(&sg__wc.cb[1]);
   sg__wc.cb[1].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[4724] = STRINGW("syntax template");
-  sg__wc.w[99] = WORD(Sg_Cons(SYMBOL("sagittarius"), Sg_Cons(SYMBOL("compiler"), SG_NIL)));
-  sg__wc.w[25] = WORD(&sg__wc.cb[4]);
-  sg__wc.cb[4].name = SYMBOL("lvar?");
-  sg__wc.w[1106] = STRINGW("... in literals");
-  sg__wc.w[2856] = STRINGW("too few ellipsis following subtemplate");
-  sg__wc.w[1554] = STRINGW("invalid form");
-  sg__wc.w[3028] = STRINGW("missing pattern variable that used in same level as in pattern");
-  sg__wc.w[2837] = STRINGW("syntax template");
-  sg__wc.w[683] = STRINGW("improper use of ellipsis");
-  sg__wc.w[37] = WORD(&sg__wc.cb[7]);
-  sg__wc.cb[7].name = SYMBOL("ellipsis?");
-  sg__wc.w[3062] = STRINGW("syntax template");
-  sg__wc.w[79] = WORD(Sg_Cons(SYMBOL("core"), Sg_Cons(SYMBOL("syntax-case"), SG_NIL)));
-  sg__wc.w[2498] = WORD(&sg__wc.cb[40]);
-  sg__wc.cb[40].name = SYMBOL("check-escaped");
-  sg__wc.w[3434] = WORD(&sg__wc.cb[45]);
-  sg__wc.cb[45].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[4004] = WORD(&sg__wc.cb[51]);
-  sg__wc.cb[51].name = SYMBOL("loop");
+  sg__wc.w[33] = WORD(&sg__wc.cb[6]);
+  sg__wc.cb[6].name = SYMBOL("bar?");
+  sg__wc.w[49] = WORD(&sg__wc.cb[10]);
+  sg__wc.cb[10].name = SYMBOL("ellipsis-quote?");
+  sg__wc.w[57] = WORD(&sg__wc.cb[14]);
+  sg__wc.cb[14].name = SYMBOL("extend-env");
+  sg__wc.w[3064] = STRINGW("misplaced ellipsis following literal");
+  sg__wc.w[146] = WORD(&sg__wc.cb[31]);
+  sg__wc.cb[31].name = SYMBOL("bind-pattern");
+  sg__wc.w[1355] = WORD(&sg__wc.cb[21]);
+  sg__wc.cb[21].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[2493] = WORD(&sg__wc.cb[37]);
+  sg__wc.cb[37].name = SYMBOL("control-patvar-exists?");
+  sg__wc.w[178] = WORD(&sg__wc.cb[43]);
+  sg__wc.cb[43].name = SYMBOL("compile-syntax");
+  sg__wc.w[134] = WORD(&sg__wc.cb[28]);
+  sg__wc.cb[28].name = SYMBOL("bind-null-ellipsis");
+  sg__wc.w[3649] = WORD(&sg__wc.cb[49]);
+  sg__wc.cb[49].name = SG_MAKE_BOOL(FALSE);
   sg__wc.w[4300] = WORD(&sg__wc.cb[55]);
   sg__wc.cb[55].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[130] = WORD(&sg__wc.cb[27]);
-  sg__wc.cb[27].name = SYMBOL("bind-var!");
-  sg__wc.w[1045] = STRINGW("invalid literals");
   sg__wc.w[4544] = WORD(&sg__wc.cb[61]);
   sg__wc.cb[61].name = SYMBOL("expand-escaped-template");
   sg__wc.w[214] = WORD(&sg__wc.cb[67]);
   sg__wc.cb[67].name = SYMBOL("make-variable-transformer");
+  sg__wc.w[2837] = STRINGW("syntax template");
+  sg__wc.w[3026] = STRINGW("syntax template");
   sg__wc.w[2839] = STRINGW("misplaced ellipsis");
-  sg__wc.w[2972] = STRINGW("syntax template");
-  sg__wc.w[146] = WORD(&sg__wc.cb[31]);
-  sg__wc.cb[31].name = SYMBOL("bind-pattern");
-  sg__wc.w[2398] = WORD(&sg__wc.cb[34]);
-  sg__wc.cb[34].name = SYMBOL("loop");
-  sg__wc.w[3064] = STRINGW("misplaced ellipsis following literal");
-  sg__wc.w[2974] = STRINGW("misplace ellipsis following literal");
-  sg__wc.w[4726] = STRINGW("subforms have different size of matched input (ellipsis template)");
-  sg__wc.w[664] = WORD(&sg__wc.cb[13]);
-  sg__wc.cb[13].name = SYMBOL("loop");
-  sg__wc.w[85] = WORD(&sg__wc.cb[15]);
-  sg__wc.cb[15].name = SYMBOL("collect-unique-ids");
-  sg__wc.w[1125] = WORD(&sg__wc.cb[18]);
-  sg__wc.cb[18].name = SYMBOL("parse-pattern");
-  sg__wc.w[2599] = WORD(&sg__wc.cb[39]);
-  sg__wc.cb[39].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[110] = WORD(&sg__wc.cb[22]);
-  sg__wc.cb[22].name = SYMBOL("count-pair");
-  sg__wc.w[3806] = WORD(&sg__wc.cb[50]);
-  sg__wc.cb[50].name = SYMBOL("loop");
+  sg__wc.w[1] = WORD(&sg__wc.cb[0]);
+  sg__wc.cb[0].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[5066] = STRINGW("syntax template");
+  sg__wc.w[45] = WORD(&sg__wc.cb[9]);
+  sg__wc.cb[9].name = SYMBOL("ellipsis-splicing-pair?");
+  sg__wc.w[105] = WORD(&sg__wc.cb[17]);
+  sg__wc.cb[17].name = SYMBOL("compile-syntax-case");
+  sg__wc.w[142] = WORD(&sg__wc.cb[30]);
+  sg__wc.cb[30].name = SYMBOL("bind-ellipsis-n");
+  sg__wc.w[1045] = STRINGW("invalid literals");
+  sg__wc.w[118] = WORD(&sg__wc.cb[24]);
+  sg__wc.cb[24].name = SYMBOL("match-ellipsis-n?");
+  sg__wc.w[174] = WORD(&sg__wc.cb[36]);
+  sg__wc.cb[36].name = SYMBOL("check-template");
+  sg__wc.w[2541] = WORD(&sg__wc.cb[42]);
+  sg__wc.cb[42].name = SYMBOL("loop");
+  sg__wc.w[3620] = WORD(&sg__wc.cb[48]);
+  sg__wc.cb[48].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[4536] = WORD(&sg__wc.cb[60]);
+  sg__wc.cb[60].name = SYMBOL("expand-ellipsis-template");
   sg__wc.w[190] = WORD(&sg__wc.cb[54]);
   sg__wc.cb[54].name = SYMBOL("collect-ellipsis-vars");
   sg__wc.w[210] = WORD(&sg__wc.cb[66]);
   sg__wc.cb[66].name = SYMBOL("generate-temporaries");
-  sg__wc.w[4536] = WORD(&sg__wc.cb[60]);
-  sg__wc.cb[60].name = SYMBOL("expand-ellipsis-template");
-  sg__wc.w[1] = WORD(&sg__wc.cb[0]);
-  sg__wc.cb[0].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[2986] = STRINGW("syntax template");
+  sg__wc.w[3028] = STRINGW("missing pattern variable that used in same level as in pattern");
   sg__wc.w[5068] = STRINGW("subforms have different size of matched input (ellipsis)");
+  sg__wc.w[67] = WORD(Sg_Cons(SYMBOL("core"), Sg_Cons(SYMBOL("syntax-case"), SG_NIL)));
+  sg__wc.w[846] = STRINGW("syntax pattern");
+  sg__wc.w[2988] = STRINGW("too few ellipsis following subtemplate");
+  sg__wc.w[681] = STRINGW("syntax pattern");
+  sg__wc.w[713] = STRINGW("syntax pattern");
+  sg__wc.w[2280] = STRINGW("invalid syntax");
+  sg__wc.w[29] = WORD(&sg__wc.cb[5]);
+  sg__wc.cb[5].name = SYMBOL("lookup-lexical-name");
+  sg__wc.w[41] = WORD(&sg__wc.cb[8]);
+  sg__wc.cb[8].name = SYMBOL("ellipsis-pair?");
+  sg__wc.w[664] = WORD(&sg__wc.cb[13]);
+  sg__wc.cb[13].name = SYMBOL("loop");
+  sg__wc.w[2916] = STRINGW("syntax template");
+  sg__wc.w[1202] = WORD(&sg__wc.cb[20]);
+  sg__wc.cb[20].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[170] = WORD(&sg__wc.cb[35]);
+  sg__wc.cb[35].name = SYMBOL("parse-ellipsis-splicing");
+  sg__wc.w[848] = STRINGW("duplicate pattern variables");
+  sg__wc.w[2751] = WORD(&sg__wc.cb[41]);
+  sg__wc.cb[41].name = SYMBOL("loop");
+  sg__wc.w[130] = WORD(&sg__wc.cb[27]);
+  sg__wc.cb[27].name = SYMBOL("bind-var!");
+  sg__wc.w[3601] = WORD(&sg__wc.cb[47]);
+  sg__wc.cb[47].name = SYMBOL("emit");
+  sg__wc.w[683] = STRINGW("improper use of ellipsis");
+  sg__wc.w[4244] = WORD(&sg__wc.cb[53]);
+  sg__wc.cb[53].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[715] = STRINGW("ellipsis following literal");
+  sg__wc.w[4530] = WORD(&sg__wc.cb[59]);
+  sg__wc.cb[59].name = SYMBOL("expand-var");
+  sg__wc.w[206] = WORD(&sg__wc.cb[65]);
+  sg__wc.cb[65].name = SYMBOL("syntax->datum");
+  sg__wc.w[5249] = STRINGW("expected identifier, but got ~s");
+  sg__wc.w[4724] = STRINGW("syntax template");
+  sg__wc.w[2918] = STRINGW("missing pattern variable that used in same level as in pattern");
+  sg__wc.w[2972] = STRINGW("syntax template");
+  sg__wc.w[4726] = STRINGW("subforms have different size of matched input (ellipsis template)");
+  sg__wc.w[5303] = STRINGW("expected list, but got ~s");
+  sg__wc.w[25] = WORD(&sg__wc.cb[4]);
+  sg__wc.cb[4].name = SYMBOL("lvar?");
+  sg__wc.w[2974] = STRINGW("misplace ellipsis following literal");
+  sg__wc.w[85] = WORD(&sg__wc.cb[15]);
+  sg__wc.cb[15].name = SYMBOL("collect-unique-ids");
+  sg__wc.w[1125] = WORD(&sg__wc.cb[18]);
+  sg__wc.cb[18].name = SYMBOL("parse-pattern");
+  sg__wc.w[741] = STRINGW("syntax pattern");
+  sg__wc.w[114] = WORD(&sg__wc.cb[23]);
+  sg__wc.cb[23].name = SYMBOL("match-ellipsis?");
+  sg__wc.w[2398] = WORD(&sg__wc.cb[34]);
+  sg__wc.cb[34].name = SYMBOL("loop");
+  sg__wc.w[126] = WORD(&sg__wc.cb[26]);
+  sg__wc.cb[26].name = SYMBOL("union-vars");
+  sg__wc.w[2498] = WORD(&sg__wc.cb[40]);
+  sg__wc.cb[40].name = SYMBOL("check-escaped");
+  sg__wc.w[138] = WORD(&sg__wc.cb[29]);
+  sg__wc.cb[29].name = SYMBOL("bind-ellipsis");
+  sg__wc.w[182] = WORD(&sg__wc.cb[46]);
+  sg__wc.cb[46].name = SYMBOL("expand-syntax");
+  sg__wc.w[198] = WORD(&sg__wc.cb[58]);
+  sg__wc.cb[58].name = SYMBOL("transcribe-template");
+  sg__wc.w[186] = WORD(&sg__wc.cb[52]);
+  sg__wc.cb[52].name = SYMBOL("rank-of");
+  sg__wc.w[202] = WORD(&sg__wc.cb[64]);
+  sg__wc.cb[64].name = SYMBOL("datum->syntax");
+  sg__wc.w[1087] = STRINGW("_ in literals");
+  sg__wc.w[3054] = STRINGW("syntax template");
+  sg__wc.w[743] = STRINGW("ambiguous use of ellipsis");
+  sg__wc.w[160] = WORD(Sg_Cons(SYMBOL("core"), Sg_Cons(SYMBOL("syntax-case"), SG_NIL)));
+  sg__wc.w[4627] = STRINGW("syntax template");
+  sg__wc.w[1106] = STRINGW("... in literals");
+  sg__wc.w[3056] = STRINGW("misplaced ellipsis following empty list");
   sg__wc.w[13] = WORD(&sg__wc.cb[3]);
   sg__wc.cb[3].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[2280] = STRINGW("invalid syntax");
-  sg__wc.w[1087] = STRINGW("_ in literals");
-  sg__wc.w[5249] = STRINGW("expected identifier, but got ~s");
-  sg__wc.w[216] = IDENT("make-variable-transformer", lib);
-  sg__wc.w[3702] = sg__wc.w[3698] = sg__wc.w[335] = sg__wc.w[301] = sg__wc.w[294] = sg__wc.w[7] = UNSIDENT("G14790", lib);
-  sg__wc.w[5330] = IDENT("make-macro", lib);
-  sg__wc.w[1032] = IDENT("symbol?", lib);
-  sg__wc.w[1875] = IDENT("equal?", lib);
-  sg__wc.w[69] = sg__wc.w[101] = sg__wc.w[162] = sg__wc.w[81] = IDENT("make-identifier", lib);
-  sg__wc.w[492] = IDENT("id-name", lib);
-  sg__wc.w[3518] = IDENT("number?", lib);
-  sg__wc.w[2608] = IDENT("any1", lib);
-  sg__wc.w[1721] = IDENT("gloc-name", lib);
-  sg__wc.w[416] = IDENT("gensym", lib);
-  sg__wc.w[1058] = IDENT("unique-id-list?", lib);
-  sg__wc.w[200] = sg__wc.w[3684] = sg__wc.w[3727] = IDENT("transcribe-template", lib);
-  sg__wc.w[2146] = sg__wc.w[1813] = IDENT("list-tail", lib);
-  sg__wc.w[3850] = IDENT("copy-identifier", lib);
-  sg__wc.w[1901] = sg__wc.w[2001] = sg__wc.w[128] = sg__wc.w[2035] = IDENT("union-vars", lib);
-  sg__wc.w[2468] = IDENT("list-head", lib);
-  sg__wc.w[4791] = sg__wc.w[4902] = sg__wc.w[3969] = IDENT("cdr", lib);
-  sg__wc.w[544] = sg__wc.w[1695] = sg__wc.w[527] = sg__wc.w[3988] = IDENT("identifier->symbol", lib);
-  sg__wc.w[3889] = sg__wc.w[3883] = sg__wc.w[397] = sg__wc.w[362] = sg__wc.w[355] = sg__wc.w[11] = UNSIDENT("G14788", lib);
-  sg__wc.w[1689] = IDENT("vm-current-library", lib);
-  sg__wc.w[5033] = sg__wc.w[4248] = IDENT("exists", lib);
-  sg__wc.w[71] = sg__wc.w[1128] = IDENT(".match-syntax-case", lib);
-  sg__wc.w[1601] = sg__wc.w[1759] = sg__wc.w[116] = IDENT("match-ellipsis?", lib);
-  sg__wc.w[257] = sg__wc.w[4314] = sg__wc.w[1098] = sg__wc.w[842] = sg__wc.w[1967] = sg__wc.w[1079] = IDENT("memq", lib);
-  sg__wc.w[896] = sg__wc.w[890] = sg__wc.w[278] = sg__wc.w[233] = sg__wc.w[229] = sg__wc.w[3] = UNSIDENT("G14792", lib);
-  sg__wc.w[3212] = sg__wc.w[31] = sg__wc.w[3534] = IDENT("lookup-lexical-name", lib);
-  sg__wc.w[184] = IDENT("expand-syntax", lib);
-  sg__wc.w[47] = sg__wc.w[2881] = sg__wc.w[4932] = sg__wc.w[2614] = IDENT("ellipsis-splicing-pair?", lib);
-  sg__wc.w[4470] = IDENT("circular-list?", lib);
-  sg__wc.w[208] = IDENT("syntax->datum", lib);
-  sg__wc.w[509] = sg__wc.w[27] = IDENT("lvar?", lib);
-  sg__wc.w[5252] = sg__wc.w[5306] = IDENT("format", lib);
+  sg__wc.w[37] = WORD(&sg__wc.cb[7]);
+  sg__wc.cb[7].name = SYMBOL("ellipsis?");
+  sg__wc.w[635] = WORD(&sg__wc.cb[12]);
+  sg__wc.cb[12].name = SYMBOL("loop");
+  sg__wc.w[4629] = STRINGW("subforms have different size of matched input (variable)");
+  sg__wc.w[166] = WORD(&sg__wc.cb[33]);
+  sg__wc.cb[33].name = SYMBOL("collect-rename-ids");
+  sg__wc.w[110] = WORD(&sg__wc.cb[22]);
+  sg__wc.cb[22].name = SYMBOL("count-pair");
+  sg__wc.w[2599] = WORD(&sg__wc.cb[39]);
+  sg__wc.cb[39].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[3434] = WORD(&sg__wc.cb[45]);
+  sg__wc.cb[45].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[4004] = WORD(&sg__wc.cb[51]);
+  sg__wc.cb[51].name = SYMBOL("loop");
+  sg__wc.w[4384] = WORD(&sg__wc.cb[57]);
+  sg__wc.cb[57].name = SYMBOL("loop");
+  sg__wc.w[5029] = WORD(&sg__wc.cb[63]);
+  sg__wc.cb[63].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[99] = WORD(Sg_Cons(SYMBOL("sagittarius"), Sg_Cons(SYMBOL("compiler"), SG_NIL)));
+  sg__wc.w[2854] = STRINGW("syntax template");
+  sg__wc.w[1554] = STRINGW("invalid form");
+  sg__wc.w[9] = WORD(&sg__wc.cb[2]);
+  sg__wc.cb[2].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[53] = WORD(&sg__wc.cb[11]);
+  sg__wc.cb[11].name = SYMBOL("check-pattern");
+  sg__wc.w[89] = WORD(&sg__wc.cb[16]);
+  sg__wc.cb[16].name = SYMBOL("collect-vars-ranks");
+  sg__wc.w[1145] = WORD(&sg__wc.cb[19]);
+  sg__wc.cb[19].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[2781] = STRINGW("syntax template");
+  sg__wc.w[150] = WORD(&sg__wc.cb[32]);
+  sg__wc.cb[32].name = SYMBOL("match-syntax-case");
+  sg__wc.w[122] = WORD(&sg__wc.cb[25]);
+  sg__wc.cb[25].name = SYMBOL("match-pattern?");
+  sg__wc.w[2564] = WORD(&sg__wc.cb[38]);
+  sg__wc.cb[38].name = SYMBOL("loop");
+  sg__wc.w[3128] = WORD(&sg__wc.cb[44]);
+  sg__wc.cb[44].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[194] = WORD(&sg__wc.cb[56]);
+  sg__wc.cb[56].name = SYMBOL("consume-ellipsis-vars");
+  sg__wc.w[3806] = WORD(&sg__wc.cb[50]);
+  sg__wc.cb[50].name = SYMBOL("loop");
+  sg__wc.w[2856] = STRINGW("too few ellipsis following subtemplate");
+  sg__wc.w[4555] = WORD(&sg__wc.cb[62]);
+  sg__wc.cb[62].name = SYMBOL("expand-template");
+  sg__wc.w[5320] = WORD(&sg__wc.cb[68]);
+  sg__wc.cb[68].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1068] = STRINGW("duplicate literals");
+  sg__wc.w[2783] = STRINGW("too few ellipsis following subtemplate");
+  sg__wc.w[79] = WORD(Sg_Cons(SYMBOL("core"), Sg_Cons(SYMBOL("syntax-case"), SG_NIL)));
+  sg__wc.w[3062] = STRINGW("syntax template");
   sg__wc.w[1035] = IDENT("for-all", lib);
-  sg__wc.w[180] = IDENT("compile-syntax", lib);
-  sg__wc.w[1628] = sg__wc.w[1805] = sg__wc.w[120] = IDENT("match-ellipsis-n?", lib);
-  sg__wc.w[192] = sg__wc.w[4677] = IDENT("collect-ellipsis-vars", lib);
-  sg__wc.w[2312] = sg__wc.w[590] = IDENT("caddr", lib);
-  sg__wc.w[1173] = sg__wc.w[59] = IDENT("extend-env", lib);
-  sg__wc.w[35] = sg__wc.w[1907] = sg__wc.w[1634] = sg__wc.w[815] = sg__wc.w[903] = sg__wc.w[442] = IDENT("bar?", lib);
-  sg__wc.w[486] = IDENT("id-library", lib);
-  sg__wc.w[4755] = sg__wc.w[5255] = sg__wc.w[746] = sg__wc.w[5097] = sg__wc.w[5309] = sg__wc.w[4658] = IDENT("assertion-violation", lib);
-  sg__wc.w[5228] = sg__wc.w[1724] = sg__wc.w[4275] = sg__wc.w[1677] = IDENT("identifier=?", lib);
-  sg__wc.w[107] = IDENT("compile-syntax-case", lib);
-  sg__wc.w[2895] = sg__wc.w[4945] = sg__wc.w[2625] = sg__wc.w[172] = IDENT("parse-ellipsis-splicing", lib);
-  sg__wc.w[2605] = sg__wc.w[2384] = sg__wc.w[1951] = sg__wc.w[3112] = sg__wc.w[87] = sg__wc.w[4289] = IDENT("collect-unique-ids", lib);
-  sg__wc.w[212] = IDENT("generate-temporaries", lib);
-  sg__wc.w[2866] = sg__wc.w[4916] = sg__wc.w[2593] = sg__wc.w[51] = IDENT("ellipsis-quote?", lib);
-  sg__wc.w[1652] = sg__wc.w[2068] = sg__wc.w[832] = sg__wc.w[920] = sg__wc.w[707] = IDENT("id-memq", lib);
-  sg__wc.w[1138] = sg__wc.w[3511] = sg__wc.w[466] = sg__wc.w[3162] = sg__wc.w[3869] = IDENT("p1env-lookup", lib);
-  sg__wc.w[152] = IDENT("match-syntax-case", lib);
-  sg__wc.w[4951] = IDENT("append", lib);
-  sg__wc.w[339] = sg__wc.w[4121] = sg__wc.w[4864] = sg__wc.w[5207] = IDENT("list->vector", lib);
-  sg__wc.w[1870] = sg__wc.w[1792] = sg__wc.w[1839] = sg__wc.w[124] = sg__wc.w[1594] = sg__wc.w[1618] = sg__wc.w[2329] = sg__wc.w[1846] = sg__wc.w[1820] = IDENT("match-pattern?", lib);
-  sg__wc.w[332] = sg__wc.w[1866] = sg__wc.w[2228] = sg__wc.w[779] = sg__wc.w[4114] = sg__wc.w[4855] = sg__wc.w[5198] = sg__wc.w[2719] = sg__wc.w[3095] = sg__wc.w[866] = sg__wc.w[1860] = sg__wc.w[2222] = sg__wc.w[2812] = sg__wc.w[274] = sg__wc.w[999] = IDENT("vector->list", lib);
-  sg__wc.w[4077] = sg__wc.w[4053] = IDENT("hashtable-ref", lib);
-  sg__wc.w[2117] = sg__wc.w[2017] = sg__wc.w[140] = IDENT("bind-ellipsis", lib);
+  sg__wc.w[216] = IDENT("make-variable-transformer", lib);
+  sg__wc.w[1721] = IDENT("gloc-name", lib);
+  sg__wc.w[3702] = sg__wc.w[3698] = sg__wc.w[335] = sg__wc.w[301] = sg__wc.w[294] = sg__wc.w[7] = UNSIDENT("G14881", lib);
   sg__wc.w[204] = IDENT("datum->syntax", lib);
-  sg__wc.w[5275] = sg__wc.w[3596] = sg__wc.w[1715] = sg__wc.w[1673] = IDENT("current-macro-env", lib);
-  sg__wc.w[3123] = sg__wc.w[4293] = sg__wc.w[3429] = IDENT("values", lib);
-  sg__wc.w[5217] = sg__wc.w[4264] = sg__wc.w[3947] = sg__wc.w[5263] = sg__wc.w[5224] = sg__wc.w[4271] = sg__wc.w[3548] = IDENT("id-envs", lib);
-  sg__wc.w[4485] = sg__wc.w[4453] = IDENT("cddar", lib);
-  sg__wc.w[3586] = sg__wc.w[3783] = sg__wc.w[2253] = sg__wc.w[1184] = IDENT("make-eq-hashtable", lib);
-  sg__wc.w[5082] = sg__wc.w[4740] = sg__wc.w[4643] = sg__wc.w[3498] = sg__wc.w[3493] = sg__wc.w[3483] = sg__wc.w[3471] = sg__wc.w[3461] = sg__wc.w[3415] = sg__wc.w[3410] = sg__wc.w[3398] = sg__wc.w[3388] = sg__wc.w[3374] = sg__wc.w[3361] = sg__wc.w[3356] = sg__wc.w[3344] = sg__wc.w[3332] = sg__wc.w[3316] = sg__wc.w[3311] = sg__wc.w[3299] = sg__wc.w[3289] = sg__wc.w[3275] = sg__wc.w[3262] = sg__wc.w[3257] = sg__wc.w[3245] = sg__wc.w[3233] = sg__wc.w[1536] = sg__wc.w[1531] = sg__wc.w[1509] = sg__wc.w[1487] = sg__wc.w[1332] = sg__wc.w[1327] = sg__wc.w[1303] = IDENT("cons*", lib);
-  sg__wc.w[369] = sg__wc.w[3740] = sg__wc.w[3817] = sg__wc.w[3940] = sg__wc.w[3541] = sg__wc.w[3169] = sg__wc.w[5237] = sg__wc.w[477] = sg__wc.w[411] = sg__wc.w[4099] = sg__wc.w[3843] = IDENT("identifier?", lib);
-  sg__wc.w[1557] = IDENT("syntax-error", lib);
-  sg__wc.w[136] = sg__wc.w[1996] = sg__wc.w[2030] = IDENT("bind-null-ellipsis", lib);
-  sg__wc.w[2340] = sg__wc.w[2233] = sg__wc.w[2212] = sg__wc.w[2190] = sg__wc.w[2051] = sg__wc.w[148] = sg__wc.w[2014] = sg__wc.w[2209] = IDENT("bind-pattern", lib);
-  sg__wc.w[3447] = sg__wc.w[3135] = sg__wc.w[4307] = IDENT("filter", lib);
-  sg__wc.w[1157] = sg__wc.w[55] = IDENT("check-pattern", lib);
-  sg__wc.w[1136] = sg__wc.w[20] = sg__wc.w[3160] = sg__wc.w[3867] = sg__wc.w[464] = IDENT("LEXICAL", lib);
-  sg__wc.w[2777] = IDENT("<", lib);
-  sg__wc.w[5077] = sg__wc.w[4651] = sg__wc.w[2285] = sg__wc.w[1019] = sg__wc.w[4638] = sg__wc.w[4748] = sg__wc.w[4214] = sg__wc.w[5285] = sg__wc.w[4735] = sg__wc.w[5090] = IDENT("unwrap-syntax", lib);
-  sg__wc.w[1294] = sg__wc.w[83] = sg__wc.w[1478] = IDENT(".list", lib);
-  sg__wc.w[5311] = sg__wc.w[15] = UNSIDENT("G14786", lib);
-  sg__wc.w[3322] = sg__wc.w[3451] = sg__wc.w[164] = sg__wc.w[3223] = sg__wc.w[3265] = sg__wc.w[3364] = IDENT(".expand-syntax", lib);
+  sg__wc.w[486] = IDENT("id-library", lib);
+  sg__wc.w[5330] = IDENT("make-macro", lib);
+  sg__wc.w[107] = IDENT("compile-syntax-case", lib);
+  sg__wc.w[1689] = IDENT("vm-current-library", lib);
+  sg__wc.w[1875] = IDENT("equal?", lib);
   sg__wc.w[4702] = sg__wc.w[196] = IDENT("consume-ellipsis-vars", lib);
-  sg__wc.w[3627] = sg__wc.w[3441] = sg__wc.w[168] = IDENT("collect-rename-ids", lib);
-  sg__wc.w[176] = sg__wc.w[3143] = IDENT("check-template", lib);
-  sg__wc.w[876] = sg__wc.w[23] = sg__wc.w[3509] = sg__wc.w[4158] = IDENT("PATTERN", lib);
-  sg__wc.w[112] = sg__wc.w[1778] = sg__wc.w[2129] = sg__wc.w[1770] = sg__wc.w[2137] = IDENT("count-pair", lib);
-  sg__wc.w[4561] = sg__wc.w[2504] = IDENT("safe-length", lib);
+  sg__wc.w[184] = IDENT("expand-syntax", lib);
+  sg__wc.w[2468] = IDENT("list-head", lib);
+  sg__wc.w[2608] = IDENT("any1", lib);
+  sg__wc.w[180] = IDENT("compile-syntax", lib);
+  sg__wc.w[1628] = sg__wc.w[120] = sg__wc.w[1805] = IDENT("match-ellipsis-n?", lib);
+  sg__wc.w[416] = IDENT("gensym", lib);
+  sg__wc.w[4275] = sg__wc.w[5228] = sg__wc.w[1677] = sg__wc.w[1724] = IDENT("identifier=?", lib);
+  sg__wc.w[2035] = sg__wc.w[1901] = sg__wc.w[128] = sg__wc.w[2001] = IDENT("union-vars", lib);
   sg__wc.w[1893] = sg__wc.w[4721] = IDENT("reverse", lib);
-  sg__wc.w[497] = sg__wc.w[1700] = IDENT("find-binding", lib);
-  sg__wc.w[2787] = sg__wc.w[686] = sg__wc.w[2288] = sg__wc.w[3059] = sg__wc.w[3068] = sg__wc.w[3032] = sg__wc.w[1110] = sg__wc.w[2842] = sg__wc.w[2860] = sg__wc.w[2922] = sg__wc.w[1091] = sg__wc.w[1049] = sg__wc.w[2978] = sg__wc.w[719] = sg__wc.w[1072] = sg__wc.w[2992] = sg__wc.w[852] = IDENT("syntax-violation", lib);
-  sg__wc.w[4327] = sg__wc.w[4783] = sg__wc.w[1922] = sg__wc.w[4602] = sg__wc.w[4194] = sg__wc.w[4894] = sg__wc.w[3961] = sg__wc.w[2415] = IDENT("assq", lib);
+  sg__wc.w[4426] = sg__wc.w[2584] = sg__wc.w[2731] = sg__wc.w[188] = sg__wc.w[4880] = sg__wc.w[2964] = sg__wc.w[5002] = sg__wc.w[2773] = sg__wc.w[4769] = sg__wc.w[2848] = IDENT("rank-of", lib);
+  sg__wc.w[4791] = sg__wc.w[3969] = sg__wc.w[4902] = IDENT("cdr", lib);
+  sg__wc.w[3869] = sg__wc.w[466] = sg__wc.w[1138] = sg__wc.w[3162] = sg__wc.w[3511] = IDENT("p1env-lookup", lib);
+  sg__wc.w[1149] = sg__wc.w[3444] = sg__wc.w[5056] = sg__wc.w[5314] = sg__wc.w[3132] = sg__wc.w[4304] = sg__wc.w[3653] = sg__wc.w[3630] = IDENT("map", lib);
+  sg__wc.w[3889] = sg__wc.w[3883] = sg__wc.w[397] = sg__wc.w[362] = sg__wc.w[355] = sg__wc.w[11] = UNSIDENT("G14879", lib);
+  sg__wc.w[3534] = sg__wc.w[3212] = sg__wc.w[31] = IDENT("lookup-lexical-name", lib);
+  sg__wc.w[152] = IDENT("match-syntax-case", lib);
+  sg__wc.w[1032] = IDENT("symbol?", lib);
+  sg__wc.w[2129] = sg__wc.w[1778] = sg__wc.w[112] = sg__wc.w[1770] = sg__wc.w[2137] = IDENT("count-pair", lib);
   sg__wc.w[3184] = IDENT("vector-copy", lib);
-  sg__wc.w[2108] = sg__wc.w[1980] = sg__wc.w[1897] = sg__wc.w[2077] = sg__wc.w[132] = sg__wc.w[2170] = IDENT("bind-var!", lib);
-  sg__wc.w[603] = sg__wc.w[806] = sg__wc.w[593] = sg__wc.w[2452] = sg__wc.w[737] = sg__wc.w[451] = sg__wc.w[2513] = sg__wc.w[562] = sg__wc.w[240] = sg__wc.w[677] = sg__wc.w[4570] = sg__wc.w[2831] = sg__wc.w[39] = sg__wc.w[578] = IDENT("ellipsis?", lib);
-  sg__wc.w[2060] = sg__wc.w[2101] = sg__wc.w[249] = sg__wc.w[1751] = sg__wc.w[2576] = sg__wc.w[537] = sg__wc.w[3196] = sg__wc.w[1659] = sg__wc.w[824] = sg__wc.w[520] = sg__wc.w[912] = sg__wc.w[4761] = sg__wc.w[2949] = sg__wc.w[4872] = sg__wc.w[4985] = sg__wc.w[947] = sg__wc.w[699] = sg__wc.w[2824] = sg__wc.w[2762] = sg__wc.w[2160] = sg__wc.w[1644] = IDENT("variable?", lib);
-  sg__wc.w[1504] = sg__wc.w[4093] = sg__wc.w[3757] = sg__wc.w[3834] = sg__wc.w[5281] = sg__wc.w[1322] = sg__wc.w[1526] = sg__wc.w[1468] = sg__wc.w[1284] = sg__wc.w[2258] = sg__wc.w[5337] = sg__wc.w[424] = sg__wc.w[3858] = IDENT("wrap-syntax", lib);
-  sg__wc.w[2083] = sg__wc.w[1733] = sg__wc.w[2942] = sg__wc.w[935] = sg__wc.w[4978] = sg__wc.w[692] = sg__wc.w[43] = sg__wc.w[2659] = IDENT("ellipsis-pair?", lib);
-  sg__wc.w[144] = sg__wc.w[2183] = sg__wc.w[2054] = IDENT("bind-ellipsis-n", lib);
-  sg__wc.w[3653] = sg__wc.w[3630] = sg__wc.w[5314] = sg__wc.w[3444] = sg__wc.w[5056] = sg__wc.w[1149] = sg__wc.w[3132] = sg__wc.w[4304] = IDENT("map", lib);
-  sg__wc.w[1026] = sg__wc.w[2094] = sg__wc.w[5291] = sg__wc.w[1744] = IDENT("list?", lib);
-  sg__wc.w[3280] = sg__wc.w[3379] = sg__wc.w[3306] = sg__wc.w[3405] = sg__wc.w[3339] = sg__wc.w[3228] = sg__wc.w[3466] = sg__wc.w[3252] = sg__wc.w[1482] = sg__wc.w[3270] = sg__wc.w[3369] = sg__wc.w[103] = sg__wc.w[3488] = sg__wc.w[3294] = sg__wc.w[3393] = sg__wc.w[3327] = sg__wc.w[3351] = sg__wc.w[3456] = sg__wc.w[3240] = sg__wc.w[3478] = sg__wc.w[1298] = IDENT("syntax-quote.", lib);
-  sg__wc.w[1005] = sg__wc.w[967] = sg__wc.w[91] = sg__wc.w[989] = sg__wc.w[986] = sg__wc.w[1169] = sg__wc.w[970] = IDENT("collect-vars-ranks", lib);
+  sg__wc.w[896] = sg__wc.w[890] = sg__wc.w[278] = sg__wc.w[233] = sg__wc.w[229] = sg__wc.w[3] = UNSIDENT("G14883", lib);
+  sg__wc.w[4470] = IDENT("circular-list?", lib);
+  sg__wc.w[3518] = IDENT("number?", lib);
+  sg__wc.w[5252] = sg__wc.w[5306] = IDENT("format", lib);
+  sg__wc.w[5082] = sg__wc.w[4740] = sg__wc.w[4643] = sg__wc.w[3498] = sg__wc.w[3493] = sg__wc.w[3483] = sg__wc.w[3471] = sg__wc.w[3461] = sg__wc.w[3415] = sg__wc.w[3410] = sg__wc.w[3398] = sg__wc.w[3388] = sg__wc.w[3374] = sg__wc.w[3361] = sg__wc.w[3356] = sg__wc.w[3344] = sg__wc.w[3332] = sg__wc.w[3316] = sg__wc.w[3311] = sg__wc.w[3299] = sg__wc.w[3289] = sg__wc.w[3275] = sg__wc.w[3262] = sg__wc.w[3257] = sg__wc.w[3245] = sg__wc.w[3233] = sg__wc.w[1536] = sg__wc.w[1531] = sg__wc.w[1509] = sg__wc.w[1487] = sg__wc.w[1332] = sg__wc.w[1327] = sg__wc.w[1303] = IDENT("cons*", lib);
+  sg__wc.w[3447] = sg__wc.w[4307] = sg__wc.w[3135] = IDENT("filter", lib);
+  sg__wc.w[3596] = sg__wc.w[1715] = sg__wc.w[1673] = sg__wc.w[5275] = IDENT("current-macro-env", lib);
+  sg__wc.w[497] = sg__wc.w[1700] = IDENT("find-binding", lib);
+  sg__wc.w[492] = IDENT("id-name", lib);
+  sg__wc.w[59] = sg__wc.w[1173] = IDENT("extend-env", lib);
+  sg__wc.w[1557] = IDENT("syntax-error", lib);
+  sg__wc.w[2183] = sg__wc.w[2054] = sg__wc.w[144] = IDENT("bind-ellipsis-n", lib);
+  sg__wc.w[5291] = sg__wc.w[1026] = sg__wc.w[2094] = sg__wc.w[1744] = IDENT("list?", lib);
+  sg__wc.w[4271] = sg__wc.w[5224] = sg__wc.w[3947] = sg__wc.w[4264] = sg__wc.w[5263] = sg__wc.w[5217] = sg__wc.w[3548] = IDENT("id-envs", lib);
+  sg__wc.w[2777] = IDENT("<", lib);
+  sg__wc.w[200] = sg__wc.w[3684] = sg__wc.w[3727] = IDENT("transcribe-template", lib);
+  sg__wc.w[903] = sg__wc.w[1634] = sg__wc.w[35] = sg__wc.w[1907] = sg__wc.w[815] = sg__wc.w[442] = IDENT("bar?", lib);
+  sg__wc.w[2881] = sg__wc.w[2614] = sg__wc.w[4932] = sg__wc.w[47] = IDENT("ellipsis-splicing-pair?", lib);
+  sg__wc.w[1058] = IDENT("unique-id-list?", lib);
+  sg__wc.w[162] = sg__wc.w[101] = sg__wc.w[69] = sg__wc.w[81] = IDENT("make-identifier", lib);
+  sg__wc.w[4561] = sg__wc.w[2504] = IDENT("safe-length", lib);
+  sg__wc.w[1813] = sg__wc.w[2146] = IDENT("list-tail", lib);
+  sg__wc.w[3988] = sg__wc.w[544] = sg__wc.w[527] = sg__wc.w[1695] = IDENT("identifier->symbol", lib);
+  sg__wc.w[1980] = sg__wc.w[2077] = sg__wc.w[2170] = sg__wc.w[2108] = sg__wc.w[1897] = sg__wc.w[132] = IDENT("bind-var!", lib);
+  sg__wc.w[27] = sg__wc.w[509] = IDENT("lvar?", lib);
+  sg__wc.w[3850] = IDENT("copy-identifier", lib);
+  sg__wc.w[3123] = sg__wc.w[3429] = sg__wc.w[4293] = IDENT("values", lib);
+  sg__wc.w[707] = sg__wc.w[832] = sg__wc.w[920] = sg__wc.w[2068] = sg__wc.w[1652] = IDENT("id-memq", lib);
+  sg__wc.w[332] = sg__wc.w[1860] = sg__wc.w[2719] = sg__wc.w[866] = sg__wc.w[3095] = sg__wc.w[999] = sg__wc.w[2228] = sg__wc.w[4855] = sg__wc.w[2812] = sg__wc.w[779] = sg__wc.w[5198] = sg__wc.w[1866] = sg__wc.w[4114] = sg__wc.w[274] = sg__wc.w[2222] = IDENT("vector->list", lib);
+  sg__wc.w[2625] = sg__wc.w[2895] = sg__wc.w[4945] = sg__wc.w[172] = IDENT("parse-ellipsis-splicing", lib);
+  sg__wc.w[51] = sg__wc.w[2866] = sg__wc.w[4916] = sg__wc.w[2593] = IDENT("ellipsis-quote?", lib);
+  sg__wc.w[212] = IDENT("generate-temporaries", lib);
+  sg__wc.w[3112] = sg__wc.w[2384] = sg__wc.w[4289] = sg__wc.w[87] = sg__wc.w[1951] = sg__wc.w[2605] = IDENT("collect-unique-ids", lib);
+  sg__wc.w[4053] = sg__wc.w[4077] = IDENT("hashtable-ref", lib);
+  sg__wc.w[3265] = sg__wc.w[3451] = sg__wc.w[3322] = sg__wc.w[164] = sg__wc.w[3364] = sg__wc.w[3223] = IDENT(".expand-syntax", lib);
+  sg__wc.w[2017] = sg__wc.w[2117] = sg__wc.w[140] = IDENT("bind-ellipsis", lib);
   sg__wc.w[2440] = IDENT("cdddr", lib);
-  sg__wc.w[1709] = sg__wc.w[2248] = sg__wc.w[1667] = sg__wc.w[5327] = sg__wc.w[5269] = sg__wc.w[421] = sg__wc.w[4498] = sg__wc.w[3591] = IDENT("current-usage-env", lib);
-  sg__wc.w[2848] = sg__wc.w[5002] = sg__wc.w[4880] = sg__wc.w[2584] = sg__wc.w[2773] = sg__wc.w[2731] = sg__wc.w[188] = sg__wc.w[4769] = sg__wc.w[4426] = sg__wc.w[2964] = IDENT("rank-of", lib);
-  sg__wc.w[5245] = SYMBOLW("datum->syntax");
-  sg__wc.w[95] = SYMBOLW("syntax-quote");
-  sg__wc.w[5085] = sg__wc.w[4743] = sg__wc.w[4646] = SYMBOLW("subforms:");
-  sg__wc.w[5072] = sg__wc.w[4730] = sg__wc.w[4633] = SYMBOLW("template:");
-  sg__wc.w[1104] = sg__wc.w[1085] = sg__wc.w[1066] = sg__wc.w[1043] = SYMBOLW("syntax-case");
+  sg__wc.w[208] = IDENT("syntax->datum", lib);
+  sg__wc.w[4099] = sg__wc.w[477] = sg__wc.w[411] = sg__wc.w[3940] = sg__wc.w[3843] = sg__wc.w[3817] = sg__wc.w[3740] = sg__wc.w[369] = sg__wc.w[3541] = sg__wc.w[5237] = sg__wc.w[3169] = IDENT("identifier?", lib);
+  sg__wc.w[2030] = sg__wc.w[136] = sg__wc.w[1996] = IDENT("bind-null-ellipsis", lib);
+  sg__wc.w[590] = sg__wc.w[2312] = IDENT("caddr", lib);
+  sg__wc.w[3143] = sg__wc.w[176] = IDENT("check-template", lib);
+  sg__wc.w[83] = sg__wc.w[1478] = sg__wc.w[1294] = IDENT(".list", lib);
+  sg__wc.w[2209] = sg__wc.w[2014] = sg__wc.w[2190] = sg__wc.w[2051] = sg__wc.w[2233] = sg__wc.w[2340] = sg__wc.w[148] = sg__wc.w[2212] = IDENT("bind-pattern", lib);
+  sg__wc.w[4248] = sg__wc.w[5033] = IDENT("exists", lib);
+  sg__wc.w[5207] = sg__wc.w[4121] = sg__wc.w[339] = sg__wc.w[4864] = IDENT("list->vector", lib);
+  sg__wc.w[746] = sg__wc.w[4658] = sg__wc.w[5255] = sg__wc.w[4755] = sg__wc.w[5309] = sg__wc.w[5097] = IDENT("assertion-violation", lib);
+  sg__wc.w[4485] = sg__wc.w[4453] = IDENT("cddar", lib);
+  sg__wc.w[1922] = sg__wc.w[2415] = sg__wc.w[4602] = sg__wc.w[4194] = sg__wc.w[4783] = sg__wc.w[4327] = sg__wc.w[3961] = sg__wc.w[4894] = IDENT("assq", lib);
+  sg__wc.w[737] = sg__wc.w[562] = sg__wc.w[603] = sg__wc.w[806] = sg__wc.w[451] = sg__wc.w[2513] = sg__wc.w[39] = sg__wc.w[2452] = sg__wc.w[240] = sg__wc.w[677] = sg__wc.w[578] = sg__wc.w[2831] = sg__wc.w[593] = sg__wc.w[4570] = IDENT("ellipsis?", lib);
+  sg__wc.w[3160] = sg__wc.w[3867] = sg__wc.w[20] = sg__wc.w[1136] = sg__wc.w[464] = IDENT("LEXICAL", lib);
+  sg__wc.w[1128] = sg__wc.w[71] = IDENT(".match-syntax-case", lib);
+  sg__wc.w[986] = sg__wc.w[1169] = sg__wc.w[970] = sg__wc.w[1005] = sg__wc.w[967] = sg__wc.w[91] = sg__wc.w[989] = IDENT("collect-vars-ranks", lib);
+  sg__wc.w[257] = sg__wc.w[1967] = sg__wc.w[842] = sg__wc.w[4314] = sg__wc.w[1098] = sg__wc.w[1079] = IDENT("memq", lib);
+  sg__wc.w[4951] = IDENT("append", lib);
+  sg__wc.w[4748] = sg__wc.w[4214] = sg__wc.w[1019] = sg__wc.w[4735] = sg__wc.w[5090] = sg__wc.w[5077] = sg__wc.w[2285] = sg__wc.w[4651] = sg__wc.w[5285] = sg__wc.w[4638] = IDENT("unwrap-syntax", lib);
+  sg__wc.w[3441] = sg__wc.w[3627] = sg__wc.w[168] = IDENT("collect-rename-ids", lib);
+  sg__wc.w[3509] = sg__wc.w[23] = sg__wc.w[876] = sg__wc.w[4158] = IDENT("PATTERN", lib);
+  sg__wc.w[1601] = sg__wc.w[1759] = sg__wc.w[116] = IDENT("match-ellipsis?", lib);
+  sg__wc.w[1618] = sg__wc.w[1846] = sg__wc.w[124] = sg__wc.w[1870] = sg__wc.w[1792] = sg__wc.w[1839] = sg__wc.w[2329] = sg__wc.w[1820] = sg__wc.w[1594] = IDENT("match-pattern?", lib);
+  sg__wc.w[1667] = sg__wc.w[2248] = sg__wc.w[5269] = sg__wc.w[3591] = sg__wc.w[5327] = sg__wc.w[421] = sg__wc.w[4498] = sg__wc.w[1709] = IDENT("current-usage-env", lib);
+  sg__wc.w[4677] = sg__wc.w[192] = IDENT("collect-ellipsis-vars", lib);
+  sg__wc.w[1157] = sg__wc.w[55] = IDENT("check-pattern", lib);
+  sg__wc.w[5311] = sg__wc.w[15] = UNSIDENT("G14877", lib);
+  sg__wc.w[3252] = sg__wc.w[3306] = sg__wc.w[3466] = sg__wc.w[3488] = sg__wc.w[3369] = sg__wc.w[1482] = sg__wc.w[3339] = sg__wc.w[3393] = sg__wc.w[1298] = sg__wc.w[3240] = sg__wc.w[3294] = sg__wc.w[3456] = sg__wc.w[3478] = sg__wc.w[3327] = sg__wc.w[3270] = sg__wc.w[3280] = sg__wc.w[3379] = sg__wc.w[3351] = sg__wc.w[103] = sg__wc.w[3228] = sg__wc.w[3405] = IDENT("syntax-quote.", lib);
+  sg__wc.w[1184] = sg__wc.w[2253] = sg__wc.w[3783] = sg__wc.w[3586] = IDENT("make-eq-hashtable", lib);
+  sg__wc.w[43] = sg__wc.w[4978] = sg__wc.w[935] = sg__wc.w[2083] = sg__wc.w[2942] = sg__wc.w[2659] = sg__wc.w[692] = sg__wc.w[1733] = IDENT("ellipsis-pair?", lib);
+  sg__wc.w[947] = sg__wc.w[699] = sg__wc.w[2824] = sg__wc.w[2949] = sg__wc.w[824] = sg__wc.w[3196] = sg__wc.w[2762] = sg__wc.w[2160] = sg__wc.w[537] = sg__wc.w[520] = sg__wc.w[912] = sg__wc.w[4872] = sg__wc.w[2060] = sg__wc.w[2101] = sg__wc.w[4985] = sg__wc.w[1644] = sg__wc.w[4761] = sg__wc.w[1751] = sg__wc.w[1659] = sg__wc.w[249] = sg__wc.w[2576] = IDENT("variable?", lib);
+  sg__wc.w[3834] = sg__wc.w[3858] = sg__wc.w[1526] = sg__wc.w[1468] = sg__wc.w[4093] = sg__wc.w[2258] = sg__wc.w[3757] = sg__wc.w[5281] = sg__wc.w[5337] = sg__wc.w[1504] = sg__wc.w[424] = sg__wc.w[1322] = sg__wc.w[1284] = IDENT("wrap-syntax", lib);
+  sg__wc.w[852] = sg__wc.w[1091] = sg__wc.w[2978] = sg__wc.w[1049] = sg__wc.w[2992] = sg__wc.w[719] = sg__wc.w[2842] = sg__wc.w[1072] = sg__wc.w[3032] = sg__wc.w[3068] = sg__wc.w[686] = sg__wc.w[3059] = sg__wc.w[2922] = sg__wc.w[1110] = sg__wc.w[2787] = sg__wc.w[2288] = sg__wc.w[2860] = IDENT("syntax-violation", lib);
   sg__wc.w[1076] = sg__wc.w[530] = SYMBOLW("_");
+  sg__wc.w[5085] = sg__wc.w[4743] = sg__wc.w[4646] = SYMBOLW("subforms:");
+  sg__wc.w[1104] = sg__wc.w[1085] = sg__wc.w[1066] = sg__wc.w[1043] = SYMBOLW("syntax-case");
+  sg__wc.w[435] = SYMBOLW("lvar");
+  sg__wc.w[5317] = SYMBOLW("variable-transformer");
+  sg__wc.w[5245] = SYMBOLW("datum->syntax");
+  sg__wc.w[1514] = sg__wc.w[1492] = sg__wc.w[1310] = SYMBOLW("lambda");
+  sg__wc.w[5299] = SYMBOLW("generate-temporaries");
+  sg__wc.w[5072] = sg__wc.w[4730] = sg__wc.w[4633] = SYMBOLW("template:");
+  sg__wc.w[1095] = sg__wc.w[547] = SYMBOLW("...");
   sg__wc.w[3177] = sg__wc.w[3158] = sg__wc.w[1516] = sg__wc.w[1494] = sg__wc.w[1312] = sg__wc.w[1134] = SYMBOLW(".vars");
   sg__wc.w[156] = SYMBOLW("expand-syntax");
-  sg__wc.w[435] = SYMBOLW("lvar");
-  sg__wc.w[5299] = SYMBOLW("generate-temporaries");
-  sg__wc.w[1514] = sg__wc.w[1492] = sg__wc.w[1310] = SYMBOLW("lambda");
   sg__wc.w[63] = SYMBOLW("match-syntax-case");
+  sg__wc.w[95] = SYMBOLW("syntax-quote");
   sg__wc.w[75] = SYMBOLW("list");
-  sg__wc.w[5317] = SYMBOLW("variable-transformer");
-  sg__wc.w[1095] = sg__wc.w[547] = SYMBOLW("...");
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(sagittarius vm instruction)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(sagittarius vm)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(sagittarius)")));

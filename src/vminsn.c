@@ -203,7 +203,11 @@ CASE(BOX) {
 }
 
 CASE(UNBOX) {
-  ASSERT(SG_BOXP(AC(vm)));
+  /* ASSERT(SG_BOXP(AC(vm))); */
+  if (!SG_BOXP(AC(vm))) {
+    Sg_VMPrintFrame();
+    Sg_Panic("[internal] UNBOX got non-box object (%p)", AC(vm));
+  }
   AC(vm)=SG_BOX(AC(vm))->value;
   NEXT;
 }

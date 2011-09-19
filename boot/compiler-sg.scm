@@ -4139,14 +4139,7 @@
      (cb-emit2! cb POP_LET_FRAME nargs free-length)
      (cb-emit1! cb ENTER nargs))
     (let*
-     ((new-renv
-       (make-new-renv
-        renv
-        vars
-        free
-        sets
-        vars
-        (and (not (tail-context? ctx)) need-display?)))
+     ((new-renv (make-new-renv renv vars free sets vars #f))
       (assign-size
        (let
         loop
@@ -4206,14 +4199,7 @@
       (cb-emit2! cb POP_LET_FRAME nargs free-length)
       (cb-emit1! cb ENTER nargs))
      (let*
-      ((new-renv
-        (make-new-renv
-         renv
-         vars
-         free
-         sets
-         vars
-         (and (not (tail-context? ctx)) need-display?)))
+      ((new-renv (make-new-renv renv vars free sets vars #f))
        (body-size (pass3/rec body cb new-renv ctx)))
       (unless (tail-context? ctx) (cb-emit1! cb LEAVE free-length))
       (+ body-size args-size free-size)))))))
@@ -4305,14 +4291,7 @@
       (cb-emit2! cb POP_LET_FRAME nargs free-length)
       (cb-emit1! cb ENTER nargs))
      (let*
-      ((new-renv
-        (make-new-renv
-         renv
-         vars
-         free
-         sets
-         vars
-         (and (not (tail-context? ctx)) need-display?)))
+      ((new-renv (make-new-renv renv vars free sets vars #f))
        (body-size (pass3/rec body cb new-renv ctx)))
       (unless (tail-context? ctx) (cb-emit1! cb LEAVE free-length))
       (+ body-size expr-size free-size)))))))
@@ -4421,11 +4400,7 @@
      (pass3/make-boxes cb sets vars)
      (let
       ((body-size
-        (pass3/rec
-         body
-         cb
-         (make-new-renv renv vars free sets vars need-display?)
-         ctx)))
+        (pass3/rec body cb (make-new-renv renv vars free sets vars #t) ctx)))
       (unless (tail-context? ctx) (cb-emit1! cb LEAVE frlen))
       (+ nargs body-size frsiz)))))))
 
@@ -4447,7 +4422,7 @@
      cb
      SHIFTJ
      nargs
-     (- (renv-display renv) (renv-display ($call-renv ($call-proc iform))) 1))
+     (- (renv-display renv) (renv-display ($call-renv ($call-proc iform)))))
     (cb-emit0o! cb JUMP (pass3/ensure-label cb label))
     ret))))
 
