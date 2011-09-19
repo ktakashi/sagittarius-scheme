@@ -1644,7 +1644,11 @@ void Sg_VMExecute(SgObject toplevel)
   | Previous frame   |
   +------------------+
  */
-#define USE_STACK_DISPLAY 0
+/* bench mark said, it does not make that much difference.
+   and made call/cc so slow.
+   maybe we need to do call/cc performance tuning first.
+ */
+/* #define USE_STACK_DISPLAY 1 */
 
 #if USE_STACK_DISPLAY
 static inline SgObject* discard_let_frame(SgVM *vm, int n, int freec)
@@ -1667,15 +1671,13 @@ static inline SgObject* discard_let_frame(SgVM *vm, int n, int freec)
     SgObject prev = DCLOSURE(dc)->prev;
     if (!prev) {
       /* pattern3 and already replaced */
-    } else if (DCLOSUREP(prev)) {
+    } else if (DCLOSUREP(prev) && !DCLOSURE(prev)->mark) {
       /* cut prev closure */
       SgObject prev2 = DCLOSURE(prev)->prev;
       prev_size = DCLOSURE_SIZE(prev);
-      DCLOSURE(dc)->mark = DCLOSURE(prev)->mark;
       DCLOSURE(dc)->prev = prev2;
-    } else if (SG_CLOSUREP(prev)) {
+    } else if (SG_CLOSUREP(prev) && !SG_CLOSURE(prev)->mark) {
       DCLOSURE(dc)->prev = NULL;
-      DCLOSURE(dc)->mark = SG_CLOSURE(prev)->mark;
     }
 
   }
