@@ -203,11 +203,7 @@ CASE(BOX) {
 }
 
 CASE(UNBOX) {
-  /* ASSERT(SG_BOXP(AC(vm))); */
-  if (!SG_BOXP(AC(vm))) {
-    Sg_VMPrintFrame();
-    Sg_Panic("[internal] UNBOX got non-box object (%p)", AC(vm));
-  }
+  ASSERT(SG_BOXP(AC(vm)));
   AC(vm)=SG_BOX(AC(vm))->value;
   NEXT;
 }
@@ -766,11 +762,8 @@ CASE(ENTER) {
 }
 
 CASE(LEAVE) {
-  {
-    INSN_VAL1(val1, c);
-    leave_process(vm, val1);
-  }
-;
+  INSN_VAL1(val1, c);
+  leave_process(vm, val1);
   NEXT;
 }
 

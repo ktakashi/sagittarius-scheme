@@ -513,10 +513,10 @@
 		      ($lambda-flag iform))))
 	  ((has-tag? iform $RECEIVE)
 	   (receive (newlvs newalist)
-	       (iform-copy-zip-lvs ($lambda-lvars iform) lv-alist)
+	       (iform-copy-zip-lvs ($receive-lvars iform) lv-alist)
 	     ($receive ($receive-src iform)
 		       ($receive-args iform)
-		       ($receive-optarg iform)
+		       ($receive-option iform)
 		       newlvs 
 		       (iform-copy ($receive-expr iform) lv-alist)
 		       (iform-copy ($receive-body iform) newalist))))

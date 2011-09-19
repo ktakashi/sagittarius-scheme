@@ -977,12 +977,14 @@ typedef struct display_closure_rec
   SG_HEADER;
   SgObject *mark;
   SgObject *prev;
-  int       size;
   SgObject  frees[];
 } display_closure;
+#define DCLOSURE_SIZE_SHIFT 9
 #define DCLOSURE(obj)  ((display_closure*)obj)
 #define DCLOSUREP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_DISPLAY))
-#define DCLOSURE_SIZE(obj) DCLOSURE(obj)->size
+#define DCLOSURE_SIZE(obj) (SG_HDR(obj) >> DCLOSURE_SIZE_SHIFT)
+#define DCLOSURE_SIZE_SET(obj, size)		\
+  (SG_SET_HEADER_ATTRIBUTE(obj, (size << DCLOSURE_SIZE_SHIFT)))
 
 #define SKIP(vm, n)        (PC(vm) += (n))
 #define FETCH_OPERAND(pc)  SG_OBJ((*(pc)++))
@@ -1657,10 +1659,11 @@ static inline SgObject* discard_let_frame(SgVM *vm, int n, int freec)
   int size = 0;
   volatile SgObject *butt;
   if (freec > 0) {
+    SgObject dc, prev;
     display_size = sizeof(display_closure) + (sizeof(SgObject) * freec);
     size = display_size/sizeof(SgObject);
     /* check display closure */
-    SgObject dc = DC(vm);
+    dc = DC(vm);
     /* we don't have to consider root display
        pattern 1: (prev2 prev1 dc) -> (prev2 dc)
        pattern 2: (prev1 dc)       -> (dc)
@@ -1668,7 +1671,7 @@ static inline SgObject* discard_let_frame(SgVM *vm, int n, int freec)
        prev2 in pattern1 and prev1 in pattern 2 could be a closure.
      */
     ASSERT(DCLOSUREP(dc));	/* sanity check */
-    SgObject prev = DCLOSURE(dc)->prev;
+    prev = DCLOSURE(dc)->prev;
     if (!prev) {
       /* pattern3 and already replaced */
     } else if (DCLOSUREP(prev) && !DCLOSURE(prev)->mark) {
@@ -1696,15 +1699,15 @@ static inline SgObject* discard_let_frame(SgVM *vm, int n, int freec)
 {
   int i;
   if (freec > 0) {
-    SgObject prev = SG_CLOSURE(DC(vm))->prev;
-    if (prev && !SG_CLOSURE(prev)->mark) {
-      SgObject prev2 = SG_CLOSURE(prev)->prev;
-      if (prev2) {
-	SG_CLOSURE(DC(vm))->prev = prev2;
-      } else {
-	/* make it root display */
-	SG_CLOSURE(DC(vm))->prev = NULL;
-      }
+    SgObject prev;
+    ASSERT(DCLOSUREP(DC(vm)));
+    prev = DCLOSURE(DC(vm))->prev;
+    if (!prev) {
+    } else if (DCLOSUREP(prev) && !DCLOSURE(prev)->mark) {
+      SgObject prev2 = DCLOSURE(prev)->prev;
+      DCLOSURE(DC(vm))->prev = prev2;
+    } else if (SG_CLOSUREP(prev) && !SG_CLOSURE(prev)->mark) {
+      DCLOSURE(DC(vm))->prev = NULL;
     }
   }
   for (i = n - 1; 0 <= i; i--) {
@@ -1747,8 +1750,8 @@ static inline void make_display(int n, SgVM *vm)
   CHECK_STACK(size/sizeof(SgObject), vm);
   SG_SET_HEADER(cl, TC_DISPLAY);
   cl->prev = DC(vm);
-  cl->size = size/sizeof(SgObject);
   cl->mark = NULL;
+  DCLOSURE_SIZE_SET(cl, size/sizeof(SgObject));
   for (i = 0; i < n; i++) {
     cl->frees[i] = INDEX(SP(vm), i);
   }
@@ -1760,15 +1763,16 @@ static inline void make_display(int n, SgVM *vm)
 #else
 static inline void make_display(int n, SgVM *vm) 
 {
-  SgClosure *cl = cl = SG_NEW2(SgClosure *,
-			       sizeof(SgClosure) + (sizeof(SgObject) * n));
+  const int size = sizeof(display_closure) + (sizeof(SgObject) * n);
+  display_closure *cl = SG_NEW2(display_closure *, size);
   int i;
-  SG_SET_HEADER(cl, TC_PROCEDURE);
-  SG_PROCEDURE_INIT(cl, 0, FALSE, SG_PROC_CLOSURE, SG_FALSE);
+  SG_SET_HEADER(cl, TC_DISPLAY);
+  /* SG_PROCEDURE_INIT(cl, 0, FALSE, SG_PROC_CLOSURE, SG_FALSE); */
   for (i = 0; i < n; i++) {
     cl->frees[i] = INDEX(SP(vm), i);
   }
   cl->prev = DC(vm);
+  DCLOSURE_SIZE_SET(cl, size/sizeof(SgObject));
   DC(vm) = cl;
   SP(vm) -= n;
 }
