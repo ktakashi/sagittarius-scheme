@@ -634,7 +634,8 @@
 ;; So it doesn't do any thing.
 (define-inst LIBRARY (0 1 #f)
   ;; discards library and move to next.
-  (FETCH_OPERAND (PC vm)))
+  (let ((lib (Sg_FindLibrary (FETCH_OPERAND (PC vm)) FALSE)))
+    (set! (-> vm currentLibrary) (cast SgLibrary* lib))))
 
 #|
       CASE(CAR) {

@@ -119,6 +119,7 @@
       (symbol? o)
       (string? o)
       (keyword? o)
+      (library? o)
       (code-builder? o)))
 
 ;; calculate length of total cb without src info
@@ -326,6 +327,8 @@
 				 (format out "KEYWORDW(\"~a\");~%" object))
 				((pair? object)
 				 (format out "~a;~%" (code-make-pair object)))
+				((library? object)
+				 (format out "SYMBOLW(\"~s\");~%" (library-name object)))
 				((code-builder? object)
 				 (let ((info (assq object cb-alist)))
 				   (let ((name (code-builder-name object)))

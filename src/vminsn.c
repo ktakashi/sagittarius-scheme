@@ -780,7 +780,11 @@ CASE(DEFINE) {
 }
 
 CASE(LIBRARY) {
-  FETCH_OPERAND(PC(vm));
+  {
+    SgObject lib = Sg_FindLibrary(FETCH_OPERAND(PC(vm)), FALSE);
+    vm->currentLibrary=(SgLibrary*)lib;
+  }
+;
   NEXT;
 }
 
