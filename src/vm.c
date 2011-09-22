@@ -259,6 +259,28 @@ int Sg_SetCurrentVM(SgVM *vm)
     (vm)->cont = (r)->cont;			\
   } while (0)
 
+/* some flags */
+/* bench mark said, it does not make that much difference.
+   and made call/cc so slow.
+   maybe we need to do call/cc performance tuning first.
+ */
+/* #define USE_STACK_DISPLAY 1 */
+#define CLEAN_STACK 1
+/* #define PROF_INSN 1 */
+/*
+  clear stack.
+  for now, it's only used after compile.
+  benchmark said it did not make that much difference, however it definitely
+  reduced some GC counts. well just put it.
+ */
+#if CLEAN_STACK
+#define CLEAR_STACK(vm)							\
+  memset(SP(vm),0,((vm)->stackEnd-SP(vm))*sizeof(SgObject))
+#else
+#define CLEAR_STACK(vm)		/* dummy */
+#endif
+
+
 static inline void report_error(SgObject exception)
 {
   static const int MAX_STACK_TRACE = 20;
@@ -488,6 +510,7 @@ SgObject Sg_Eval(SgObject sexp, SgObject env)
   /* store cache */
   if (vm->state == IMPORTING) SG_SET_CAR(vm->cache, Sg_Cons(v, SG_CAR(vm->cache)));
   if (vm->state != IMPORTING) vm->state = RUNNING;
+  CLEAR_STACK(vm);
 
   ASSERT(SG_CODE_BUILDERP(v));
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
@@ -979,7 +1002,7 @@ typedef struct display_closure_rec
   SgObject *prev;
   SgObject  frees[];
 } display_closure;
-#define DCLOSURE_SIZE_SHIFT 9
+#define DCLOSURE_SIZE_SHIFT 11
 #define DCLOSURE(obj)  ((display_closure*)obj)
 #define DCLOSUREP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_DISPLAY))
 #define DCLOSURE_SIZE(obj) (SG_HDR(obj) >> DCLOSURE_SIZE_SHIFT)
@@ -1646,20 +1669,14 @@ void Sg_VMExecute(SgObject toplevel)
   | Previous frame   |
   +------------------+
  */
-/* bench mark said, it does not make that much difference.
-   and made call/cc so slow.
-   maybe we need to do call/cc performance tuning first.
- */
-/* #define USE_STACK_DISPLAY 1 */
-
 #if USE_STACK_DISPLAY
 static inline SgObject* discard_let_frame(SgVM *vm, int n, int freec)
 {
-  int display_size = 0, prev_size = 0;
-  int size = 0;
-  volatile SgObject *butt;
   if (freec > 0) {
-    SgObject dc, prev;
+    int display_size = 0, prev_size = 0;
+    int size = 0, i;
+    SgObject dc, prev, *butt;
+    display_closure *tmp;
     display_size = sizeof(display_closure) + (sizeof(SgObject) * freec);
     size = display_size/sizeof(SgObject);
     /* check display closure */
@@ -1682,15 +1699,22 @@ static inline SgObject* discard_let_frame(SgVM *vm, int n, int freec)
     } else if (SG_CLOSUREP(prev) && !SG_CLOSURE(prev)->mark) {
       DCLOSURE(dc)->prev = NULL;
     }
-
-  }
-  butt = SP(vm) - (n + size);
-  memmove(FP(vm) - prev_size, butt, sizeof(SgObject) * n + display_size);
-  if (freec > 0) {
-    /* dc register must be updated */
+    
+    butt = SP(vm) - (n + size);
+    memmove(FP(vm) - prev_size, butt, sizeof(SgObject) * n + display_size);
+    /* tmp = DCLOSURE(FP(vm) - prev_size); */
+    /* *tmp = *DCLOSURE(butt); /\* copy header *\/ */
+    /* for (i = 0; i < freec + n; i++) { */
+    /*   tmp->frees[i] = DCLOSURE(butt)->frees[i]; */
+    /* } */
     DC(vm) = FP(vm) - prev_size;
+    FP(vm) += (size - prev_size);
+  } else {
+    int i;
+    for (i = n - 1; 0 <= i; i--) {
+      INDEX_SET(FP(vm) + n, i, INDEX(SP(vm), i));
+    }
   }
-  FP(vm) += (size - prev_size);
   return FP(vm) + n;
 
 }
@@ -1702,12 +1726,13 @@ static inline SgObject* discard_let_frame(SgVM *vm, int n, int freec)
     SgObject prev;
     ASSERT(DCLOSUREP(DC(vm)));
     prev = DCLOSURE(DC(vm))->prev;
-    if (!prev) {
-    } else if (DCLOSUREP(prev) && !DCLOSURE(prev)->mark) {
-      SgObject prev2 = DCLOSURE(prev)->prev;
-      DCLOSURE(DC(vm))->prev = prev2;
-    } else if (SG_CLOSUREP(prev) && !SG_CLOSURE(prev)->mark) {
-      DCLOSURE(DC(vm))->prev = NULL;
+    if (prev) {
+      if (SG_CLOSUREP(prev) && !SG_CLOSURE(prev)->mark) {
+	DCLOSURE(DC(vm))->prev = NULL;
+      } else if (DCLOSUREP(prev) && !DCLOSURE(prev)->mark) {
+	SgObject prev2 = DCLOSURE(prev)->prev;
+	DCLOSURE(DC(vm))->prev = prev2;
+      }
     }
   }
   for (i = n - 1; 0 <= i; i--) {
@@ -1783,10 +1808,9 @@ static inline void leave_process(SgVM *vm, int freec)
     SgObject* sp = FP(vm);
 #if USE_STACK_DISPLAY
     if (freec > 0) {
-      int size = DCLOSURE(DC(vm))->size;
-      sp=(sp - size);
+      ASSERT(DCLOSUREP(DC(vm)));
+      sp -= DCLOSURE_SIZE(DC(vm));
     }
-;
 #endif
     FP(vm)=(SgObject*)INDEX(sp, 0);
     DC(vm)=INDEX(sp, 1);
@@ -1833,14 +1857,14 @@ static inline void shiftj_process(SgVM *vm, int depth, int diff)
   for (;;) {
     SgObject mark;
     if (SG_CLOSUREP(DC(vm))) {
-      mark = SG_CLOSURE(DC(vm))->mark;
+      FP(vm) = SG_CLOSURE(DC(vm))->mark;
     } else {
-      mark = DCLOSURE(DC(vm))->mark;
+      FP(vm) = DCLOSURE(DC(vm))->mark;
     }
-    if (count == skip_marks && mark) {
+    if (count == skip_marks && FP(vm)) {
       break;
     }
-    if (mark) {
+    if (FP(vm)) {
       count++;
     }
     if (SG_CLOSUREP(DC(vm))) {
@@ -1850,7 +1874,6 @@ static inline void shiftj_process(SgVM *vm, int depth, int diff)
     }
   }
   ASSERT(SG_CLOSUREP(DC(vm)) || DCLOSUREP(DC(vm)));
-  FP(vm) = SG_CLOSUREP(DC(vm)) ? SG_CLOSURE(DC(vm))->mark : DCLOSURE(DC(vm))->mark;
   SP(vm) = shift_args(FP(vm), diff, SP(vm));
 }
 
@@ -1864,20 +1887,6 @@ static inline SgObject stack_to_pair_args(SgObject *sp, int nargs)
   }
   return args;
 }
-
-#if 0
-static inline void pair_args_to_stack(SgObject *sp, int offset, SgObject args)
-{
-  if (SG_NULLP(args)) {
-    INDEX_SET(sp, offset, SG_NIL);
-  } else {
-    SgObject arg;
-    SG_FOR_EACH(arg, args) {
-      PUSH(sp, SG_CAR(arg));
-    }
-  }
-}
-#endif
 
 /* shift-arg-to-top */
 static inline SgObject* unshift_args(SgObject *sp, int diff)
@@ -2171,6 +2180,24 @@ void Sg_VMPrintFrame()
   print_frames(Sg_VM());
 }
 
+#if PROF_INSN
+#define COUNT_INSN(c)   if (vm->state == RUNNING) called_instructions[INSN(c)]++
+static int called_instructions[INSTRUCTION_COUNT] = {0};
+static void show_inst_count(void *data)
+{
+  int i;
+  for (i = 0; i < INSTRUCTION_COUNT; i++) {
+    if (called_instructions[i]) {
+      InsnInfo *info = Sg_LookupInsnName(i);
+      fprintf(stderr, "INSN: %s(%d)\n", info->name, called_instructions[i]);
+    }
+  }
+}
+#else
+#define COUNT_INSN(c)		/* dummy */
+#endif
+
+
 #ifdef __GNUC__
 # define SWITCH(val)        goto *dispatch_table[val];
 # define CASE(insn)         SG_CPP_CAT(LABEL_, insn) :
@@ -2179,6 +2206,7 @@ void Sg_VMPrintFrame()
   do {								\
     if (vm->attentionRequest) goto process_queue;		\
     c = (SgWord)FETCH_OPERAND(PC(vm));				\
+    COUNT_INSN(c);						\
     goto *dispatch_table[INSN(c)];				\
   } while (0)
 # define DEFAULT            LABEL_DEFAULT :
@@ -2212,6 +2240,7 @@ SgObject run_loop()
     DISPATCH;
     if (vm->attentionRequest) goto process_queue;
     c = (SgWord)FETCH_OPERAND(PC(vm));
+    COUNT_INSN(c);
     SWITCH(INSN(c)) {
 #define VM_LOOP
 #include "vminsn.c"
@@ -2270,6 +2299,10 @@ void Sg__InitVM()
   SG_PROCEDURE_NAME(&default_exception_handler_rec) = Sg_MakeString(UC("default-exception-handler"),
 								    SG_LITERAL_STRING);
   Sg_InitMutex(&global_lock, TRUE);
+
+#if PROF_INSN
+  Sg_AddCleanupHandler(show_inst_count, NULL);
+#endif
 }
 
 /*

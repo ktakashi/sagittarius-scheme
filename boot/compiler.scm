@@ -1479,7 +1479,7 @@
 	   (pass1/body (unrename-expression body ids) p1env)
 	   (let* ((id (collect-lexical-id (car vars) p1env))
 		  (new-ids (if (null? id) ids (cons id ids)))
-		  (unrenamed (unrename-expression id new-ids))
+		  (unrenamed (if (null? id) (car vars) (unrename-expression id new-ids)))
 		  (lv (make-lvar unrenamed))
 		  (newenv (p1env-extend p1env `((,(car vars) . ,lv)) LEXICAL))
 		  (iexpr (pass1 (unrename-expression (car inits) ids) ; can not refer itself in its init
@@ -2407,6 +2407,11 @@
 		   ($lref-lvar-set! iform ($lref-lvar initval))
 		   ;; try derefered $lref
 		   (pass2/$LREF iform penv tail?))
+;;		  ((and (not (vm-noinline-locals?))
+;;			(= (lvar-ref-count lvar) 1))
+;;		   (lvar-ref--! lvar)
+;;		   (lvar-ref--! lvar);; make it -1 so that pass2/$LET can handle
+;;		   (pass2/rec initval penv tail?))
 		  (else iform)))
 	  iform))))
 
@@ -2580,6 +2585,10 @@
 	       (rr '())) ;; result removed	    
       (cond ((null? lvars)
 	     (values (reverse rl) (reverse ri) (reverse rr)))
+	    ((and (= (lvar-ref-count (car lvars)) -1)
+		  (zero? (lvar-set-count (car lvars))))
+	     ;; need to skip
+	     (loop (cdr lvars) (cdr inits) rl ri rr))
 	    ((and (zero? (lvar-ref-count (car lvars)))
 		  (zero? (lvar-set-count (car lvars))))
 	     ;; TODO: if I remove $LREF from inits, do I need to decrement

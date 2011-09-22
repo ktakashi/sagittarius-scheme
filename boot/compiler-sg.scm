@@ -1615,7 +1615,7 @@
      (let*
       ((id (collect-lexical-id (car vars) p1env))
        (new-ids (if (null? id) ids (cons id ids)))
-       (unrenamed (unrename-expression id new-ids))
+       (unrenamed (if (null? id) (car vars) (unrename-expression id new-ids)))
        (lv (make-lvar unrenamed))
        (newenv (p1env-extend p1env `((,(car vars) unquote lv)) LEXICAL))
        (iexpr
@@ -2752,6 +2752,10 @@
        (lvar-ref++! ($lref-lvar initval))
        ($lref-lvar-set! iform ($lref-lvar initval))
        (pass2/$LREF iform penv tail?))
+      ((and (not (vm-noinline-locals?)) (= (lvar-ref-count lvar) 1))
+       (lvar-ref--! lvar)
+       (lvar-ref--! lvar)
+       (pass2/rec initval penv tail?))
       (else iform)))
     iform))))
 
@@ -2882,6 +2886,10 @@
    ((lvars lvars) (inits inits) (rl '()) (ri '()) (rr '()))
    (cond
     ((null? lvars) (values (reverse rl) (reverse ri) (reverse rr)))
+    ((and
+      (= (lvar-ref-count (car lvars)) -1)
+      (zero? (lvar-set-count (car lvars))))
+     (loop (cdr lvars) (cdr inits) rl ri rr))
     ((and
       (zero? (lvar-ref-count (car lvars)))
       (zero? (lvar-set-count (car lvars))))
