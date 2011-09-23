@@ -52,6 +52,7 @@ SgObject Sg_MakeClosure(SgObject code,
   freec = SG_CODE_BUILDER_FREEC(code);
   cl->code = code;
   cl->mark = NULL;
+  cl->size = freec;		/* dummy */
   for (i = 0; i < freec; i++) {
     cl->frees[i] = frees[freec - i - 1];
   }

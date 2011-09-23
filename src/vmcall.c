@@ -55,8 +55,8 @@
     SgCodeBuilder *cb = SG_CODE_BUILDER(c->code);
     int required = cb->argc;
     CHECK_STACK(cb->maxStack, vm);
-    DC(vm) = AC(vm);
     CL(vm) = AC(vm);
+    DC(vm) = CL(vm) + offsetof(SgClosure, size);
     PC(vm) = cb->code;
     if (cb->optional) {
       int extra = argc - required;

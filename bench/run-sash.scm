@@ -168,5 +168,4 @@
 (time-bench peval 20)
 (time-bench ray 1)
 (time-bench scheme 3000)
-
 (newline)

@@ -201,9 +201,7 @@
   (shiftj_process vm val2 val1))
 
 (define-inst MARK (0 0 #f)
-  (if (SG_CLOSUREP (DC vm))
-      (set! (-> (SG_CLOSURE (DC vm)) mark) (FP vm))
-      (set! (-> (DCLOSURE (DC vm)) mark) (FP vm))))
+  (set! (-> (DCLOSURE (DC vm)) mark) (FP vm)))
 
 (define-cgen-stmt branch-number-test
   ((_ op func)

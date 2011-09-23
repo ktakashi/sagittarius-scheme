@@ -327,11 +327,7 @@ CASE(SHIFTJ) {
 }
 
 CASE(MARK) {
-  if (SG_CLOSUREP(DC(vm))) {
-    SG_CLOSURE(DC(vm))->mark=FP(vm);
-  } else {
-    DCLOSURE(DC(vm))->mark=FP(vm);
-  }
+  DCLOSURE(DC(vm))->mark=FP(vm);
 ;
   NEXT;
 }

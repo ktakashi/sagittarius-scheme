@@ -121,9 +121,12 @@ uint32_t Sg_EqvHash(SgObject obj)
   return hashval & HASHMASK;
 }
 
-uint32_t Sg_EqualHash(SgObject obj)
+#define EQUAL_HASH_DEPTH_LIMIT 100
+/* from Ypsilon */
+static uint32_t equal_hash_rec(SgObject obj, int depth)
 {
   uint32_t hashval;
+  if (depth > EQUAL_HASH_DEPTH_LIMIT) return 1;
   if (!SG_PTRP(obj)) {
     SMALL_INT_HASH(hashval, (unsigned long)SG_WORD(obj));
     return hashval;
@@ -133,19 +136,15 @@ uint32_t Sg_EqualHash(SgObject obj)
     return Sg_StringHash(SG_STRING(obj), 0);
   } else if (SG_PAIRP(obj)) {
     unsigned long h = 0, h2;
-    SgObject cp;
-    SG_FOR_EACH(cp, obj) {
-      h2 = Sg_EqualHash(SG_CAR(cp));
-      h = COMBINE(h, h2);
-    }
-    h2 = Sg_EqualHash(cp);
+    h = equal_hash_rec(SG_CAR(obj), depth + 1);
+    h2 = equal_hash_rec(SG_CDR(obj), depth + 1);
     h = COMBINE(h, h2);
     return h;
   } else if (SG_VECTORP(obj)) {
     int i, size = SG_VECTOR_SIZE(obj);
     unsigned long h = 0, h2;
     for (i = 0; i < size; i++) {
-      h2 = Sg_EqualHash(SG_VECTOR_ELEMENT(obj, i));
+      h2 = equal_hash_rec(SG_VECTOR_ELEMENT(obj, i), depth + 1);
       h = COMBINE(h, h2);
     }
     return h;
@@ -157,6 +156,11 @@ uint32_t Sg_EqualHash(SgObject obj)
     ADDRESS_HASH(hashval, obj);
     return hashval;
   }
+}
+
+uint32_t Sg_EqualHash(SgObject obj)
+{
+  return equal_hash_rec(obj, 0);
 }
 
 uint32_t Sg_StringHash(SgString *str, uint32_t bound)
