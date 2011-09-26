@@ -86,8 +86,7 @@
 
 (define-inst FSET (1 0 #t)
   (INSN_VAL1 val1 c)
-  (let ((obj (INDEX_CLOSURE vm val1)))
-    (set! (-> (SG_BOX obj) value) (AC vm))))
+  (set! (-> (SG_BOX (INDEX_CLOSURE vm val1)) value) (AC vm)))
 
 (define-inst GREF (0 1 #t)
   (GREF_INSN vm))
@@ -201,7 +200,7 @@
   (shiftj_process vm val2 val1))
 
 (define-inst MARK (0 0 #f)
-  (set! (-> (DCLOSURE (DC vm)) mark) (FP vm)))
+  (set! (-> (DCLOSURE (DC vm)) mark) (-> vm fpOffset)))
 
 (define-cgen-stmt branch-number-test
   ((_ op func)
@@ -585,7 +584,8 @@
   (INSN_VAL1 val1 c)
   (CHECK_STACK val1 vm)
   (PUSH (SP vm) (DC vm))
-  (PUSH (SP vm) (FP vm)))
+  #;(PUSH (SP vm) (FP vm))
+  (PUSH (SP vm) (-> vm fpOffset)))
 
 #|
       CASE(POP_LET_FRAME) {
@@ -611,7 +611,8 @@
 |#
 (define-inst ENTER (1 0 #f)
   (INSN_VAL1 val1 c)
-  (set! (FP vm) (- (SP vm) val1)))
+  (set! (FP vm) (- (SP vm) val1))
+  (set! (-> vm fpOffset) (CALC_OFFSET vm val1)))
 
 (define-inst LEAVE (1 0 #f)
   (INSN_VAL1 val1 c)

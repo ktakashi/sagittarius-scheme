@@ -127,6 +127,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->cont = (SgContFrame *)v->sp;
   v->ac = SG_NIL;
   v->cl = v->dc = NULL;
+  v->fpOffset = 0;
 
   v->attentionRequest = FALSE;
   v->finalizerPending = FALSE;
@@ -576,15 +577,16 @@ void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
   cc->prev = CONT(vm);
   cc->size = datasize;
   cc->pc = (SgWord*)after;
-  cc->fp = NULL;
+  /* cc->fp = NULL; */
+  cc->fp = -1;
   cc->cl = CL(vm);
   cc->dc = DC(vm);
-  FP(vm) = s;
   for (i = 0; i < datasize; i++) {
     PUSH(s, SG_OBJ(data[i]));
   }
   CONT(vm) = cc;
   FP(vm) = SP(vm) = s;
+  vm->fpOffset = CALC_OFFSET(vm, 0);
 }
 
 #if 0
@@ -701,7 +703,7 @@ SgObject Sg_Apply(SgObject proc, SgObject args)
   vm->applyCode[3] = SG_WORD(proc);
   vm->applyCode[5] = SG_WORD(args);
 
-  program = (vm->cl) ? vm->cl : vm->closureForEvaluate;
+  program = (CL(vm)) ? CL(vm) : vm->closureForEvaluate;
   return evaluate_safe(program, vm->applyCode);
 }
 
@@ -999,7 +1001,8 @@ SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk)
 typedef struct display_closure_rec
 {
   int       size;
-  SgObject *mark;
+  /* SgObject *mark; */
+  int       mark;
   SgObject  prev;
   SgObject  frees[];
 } display_closure;
@@ -1079,6 +1082,7 @@ static SgObject restore_stack_cc(SgObject ac, void **data)
   return ac;
 }
 
+#if 0
 static SgObject save_disp(SgVM *vm)
 {
   static const int D_SIZE = sizeof(display_closure)/sizeof(SgObject);
@@ -1100,6 +1104,7 @@ static SgObject save_disp(SgVM *vm)
   SG_CLOSURE(dc)->prev = r;
   return dc;
 }
+#endif
 
 static void expand_stack(SgVM *vm)
 {
@@ -1479,7 +1484,8 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
   do {							\
     SgContFrame *newcont = (SgContFrame*)SP(vm);	\
     newcont->prev = CONT(vm);				\
-    newcont->fp = FP(vm);				\
+    /* newcont->fp = FP(vm);	 */			\
+    newcont->fp = vm->fpOffset;				\
     newcont->size = (int)(SP(vm) - FP(vm));		\
     newcont->pc = next_pc;				\
     newcont->cl = CL(vm);				\
@@ -1494,7 +1500,8 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
 
 #define POP_CONT()							\
   do {									\
-    if (CONT(vm)->fp == NULL) {						\
+    /* if (CONT(vm)->fp == NULL) { */					\
+    if (CONT(vm)->fp == -1) {						\
       void *data__[SG_CCONT_DATA_SIZE];					\
       SgObject v__ = AC(vm);						\
       SgCContinuationProc *after__;					\
@@ -1509,6 +1516,7 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
 	SP(vm) = (SgObject*)CONT(vm);					\
       }									\
       FP(vm) = SP(vm);							\
+      (vm)->fpOffset = CALC_OFFSET(vm, 0);				\
       PC(vm) = PC_TO_RETURN;						\
       CL(vm) = CONT(vm)->cl;						\
       DC(vm) = CONT(vm)->dc;						\
@@ -1516,8 +1524,9 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
       AC(vm) = CALL_CCONT(after__, v__, data__);			\
     } else if (IN_STACK_P((SgObject*)CONT(vm), vm)) {			\
       SgContFrame *cont__ = CONT(vm);					\
-      SP(vm) = CONT(vm)->fp + CONT(vm)->size;				\
-      FP(vm) = cont__->fp;						\
+      (vm)->fpOffset = cont__->fp;					\
+      FP(vm) = (vm)->stack + cont__->fp;				\
+      SP(vm) = FP(vm) + cont__->size;					\
       PC(vm) = cont__->pc;						\
       CL(vm) = cont__->cl;						\
       DC(vm) = cont__->dc;						\
@@ -1540,7 +1549,7 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
   } while (0)
 
 
-static display_closure dummy_display = {0, NULL, NULL};
+static display_closure dummy_display = {0, -1, NULL};
 
 SgObject evaluate_safe(SgObject program, SgWord *code)
 {
@@ -1555,7 +1564,7 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
   CL(vm) = program;
   /* display closure's address */
   if (SG_CLOSUREP(program)) {
-    DC(vm) = program + offsetof(SgClosure, size);
+    DC(vm) = SG_OBJ((uintptr_t)program+offsetof(SgClosure, size));
   } else {
     DC(vm) = &dummy_display;
   }
@@ -1563,8 +1572,8 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
   if (code != NULL) {
     PC(vm) = code;
   } else {
-    ASSERT(SG_CLOSUREP(vm->cl));
-    PC(vm) = SG_CODE_BUILDER(SG_CLOSURE(vm->cl)->code)->code;
+    ASSERT(SG_CLOSUREP(CL(vm)));
+    PC(vm) = SG_CODE_BUILDER(SG_CLOSURE(CL(vm))->code)->code;
   }
   cstack.prev = vm->cstack;
   cstack.cont = vm->cont;
@@ -1694,7 +1703,7 @@ static inline SgObject* discard_let_frame(SgVM *vm, int n, int freec)
      */
     prev = DCLOSURE(dc)->prev;
     if (prev) {
-      if (!DCLOSURE(prev)->mark) {
+      if (DCLOSURE(prev)->mark == -1) {
 	/* cut prev closure */
 	SgObject prev2 = DCLOSURE(prev)->prev;
 	prev_size = DCLOSURE_SIZE(prev);
@@ -1710,7 +1719,8 @@ static inline SgObject* discard_let_frame(SgVM *vm, int n, int freec)
     /*   tmp->frees[i] = DCLOSURE(butt)->frees[i]; */
     /* } */
     DC(vm) = FP(vm) - prev_size;
-    FP(vm) += (size - prev_size);
+    vm->fpOffset += (size - prev_size);
+    FP(vm) += vm->fpOffset;
   } else {
     int i;
     for (i = n - 1; 0 <= i; i--) {
@@ -1726,9 +1736,10 @@ static inline SgObject* discard_let_frame(SgVM *vm, int n, int freec)
   int i;
   if (freec > 0) {
     SgObject prev;
+    ASSERT(!SG_CLOSUREP(DC(vm)));
     prev = DCLOSURE(DC(vm))->prev;
     if (prev) {
-      if (!DCLOSURE(prev)->mark) {
+      if (DCLOSURE(prev)->mark == -1) {
 	SgObject prev2 = DCLOSURE(prev)->prev;
 	DCLOSURE(DC(vm))->prev = prev2;
       }
@@ -1774,7 +1785,7 @@ static inline void make_display(int n, SgVM *vm)
   CHECK_STACK(size/sizeof(SgObject), vm);
   SG_SET_HEADER(cl, TC_DISPLAY);
   cl->prev = DC(vm);
-  cl->mark = NULL;
+  cl->mark = -1;
   DCLOSURE_SIZE_SET(cl, size/sizeof(SgObject));
   for (i = 0; i < n; i++) {
     cl->frees[i] = INDEX(SP(vm), i);
@@ -1795,6 +1806,7 @@ static inline void make_display(int n, SgVM *vm)
   for (i = 0; i < n; i++) {
     cl->frees[i] = INDEX(SP(vm), i);
   }
+  cl->mark = -1;
   cl->prev = DC(vm);
   DCLOSURE_SIZE_SET(cl, size/sizeof(SgObject));
   DC(vm) = cl;
@@ -1805,12 +1817,15 @@ static inline void make_display(int n, SgVM *vm)
 static inline void leave_process(SgVM *vm, int freec)
 {
     SgObject* sp = FP(vm);
+    int offset;
 #if USE_STACK_DISPLAY
     if (freec > 0) {
       sp -= DCLOSURE_SIZE(DC(vm));
     }
 #endif
-    FP(vm)=(SgObject*)INDEX(sp, 0);
+    offset = (int)INDEX(sp, 0);
+    FP(vm)=vm->stack + offset;
+    vm->fpOffset = offset;
     DC(vm)=INDEX(sp, 1);
     SP(vm)=(sp - SG_LET_FRAME_SIZE);
 }
@@ -1853,11 +1868,12 @@ static inline void shiftj_process(SgVM *vm, int depth, int diff)
 {
   int skip_marks = depth, count = 0;
   for (;;) {
-    SgObject mark;
-    FP(vm) = DCLOSURE(DC(vm))->mark;
-    if (FP(vm)) {
+    int mark = DCLOSURE(DC(vm))->mark;
+    if (mark != -1) {
       count++;
       if (count == skip_marks) {
+	FP(vm) = vm->stack + mark;
+	vm->fpOffset = mark;
 	break;
       }
     }
@@ -1986,8 +2002,9 @@ static void process_queued_requests(SgVM *vm)
     cl = SG_CLOSURE(AC(vm));						\
     cb = SG_CODE_BUILDER(cl->code);					\
     CL(vm) = AC(vm);							\
-    DC(vm) = CL(vm) + offsetof(SgClosure, size);			\
+    DC(vm) = SG_OBJ((uintptr_t)CL(vm)+offsetof(SgClosure, size));	\
     PC(vm) = cb->code;							\
+    vm->fpOffset = CALC_OFFSET(vm, val1);				\
     FP(vm) = SP(vm) - val1;						\
   }
 
@@ -2148,12 +2165,14 @@ static void print_frames(SgVM *vm)
     /* cont's size is argc of previous cont frame */
     /* dump arguments */
     for (i = 0; i < size; i++) {
-      if (c_func) {
+      //      if (c_func) {
 	Sg_Printf(vm->logPort, UC("0x%x +   p=%#39x +\n"), current-i-1, *(current-i-1));
-      } else {
+	/*
+    } else {
 	Sg_Printf(vm->logPort, UC("0x%x "), current-i-1);
 	Sg_Format(vm->logPort, fmt, SG_LIST1(*(current-i-1)), TRUE);
       }
+	*/
     }
     current -= (size + 1);
     cont = cont->prev;

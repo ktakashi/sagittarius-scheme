@@ -327,7 +327,8 @@ CASE(SHIFTJ) {
 }
 
 CASE(MARK) {
-  DCLOSURE(DC(vm))->mark=FP(vm);
+  ASSERT(vm->fpOffset > 0);
+  DCLOSURE(DC(vm))->mark=vm->fpOffset;
 ;
   NEXT;
 }
@@ -735,7 +736,8 @@ CASE(LET_FRAME) {
   INSN_VAL1(val1, c);
   CHECK_STACK(val1, vm);
   PUSH(SP(vm), DC(vm));
-  PUSH(SP(vm), FP(vm));
+  /* PUSH(SP(vm), FP(vm)); */
+  PUSH(SP(vm), vm->fpOffset);
   NEXT;
 }
 
@@ -754,6 +756,7 @@ CASE(DISPLAY) {
 CASE(ENTER) {
   INSN_VAL1(val1, c);
   FP(vm)=(SP(vm) - val1);
+  vm->fpOffset = CALC_OFFSET(vm, val1);
   NEXT;
 }
 

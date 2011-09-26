@@ -40,7 +40,8 @@ struct SgClosureRec
   SgProcedure common;
   SgObject    code;		/* code builder */
   int         size;		/* for display_closure */
-  SgObject   *mark;		/* mark for frame pointer */
+  /* SgObject   *mark; */	/* mark for frame pointer */
+  int         mark;
   SgObject    prev;
   SgObject    frees[];
   

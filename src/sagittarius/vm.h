@@ -66,7 +66,8 @@ typedef struct SgContFrameRec
   SgWord        *pc;		/* next PC */
   SgObject       cl;		/* cl register value */
   SgObject       dc;		/* dc register value */
-  SgObject      *fp;		/* fp register value */
+  /* SgObject      *fp; */	/* fp register value */
+  int            fp;
 } SgContFrame;
 
 #define CONT_FRAME_SIZE (sizeof(SgContFrame)/sizeof(SgObject))
@@ -173,8 +174,9 @@ struct SgVMRec
   SgObject  dc;			/* display closure */
   SgObject *fp;			/* frame pointer */
   SgObject *sp;			/* stack pointer */
-
   SgContFrame  *cont;     	/* saved continuation frame */
+  /* for convenience */
+  int       fpOffset;
 
   /* macro expansion */
   SgObject usageEnv;
@@ -314,6 +316,8 @@ typedef enum {
 #define FP(vm)             (vm)->fp
 #define SP(vm)             (vm)->sp
 #define CONT(vm)           (vm)->cont
+
+#define CALC_OFFSET(vm, offset)  ((SP(vm)-(vm)->stack)-(offset))
 
 #define INDEX(sp, n)        (*((sp) - (n) - 1))
 #define INDEX_SET(sp, n, v) (*((sp) - (n) - 1) = (v))
