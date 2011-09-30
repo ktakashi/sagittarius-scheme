@@ -197,8 +197,11 @@
 
 (define-inst SHIFTJ (2 0 #f)
   (INSN_VAL2 val1 val2 c)
-  (shiftj_process vm val2 val1))
+  #;(shiftj_process vm val2 val1)
+  (set! (SP vm) (shift_args (+ (FP vm) val2) val1 (SP vm))))
 
+;; Since we are not using display closure for let,
+;; this won't be needed any more.
 (define-inst MARK (0 0 #f)
   (set! (-> (DCLOSURE (DC vm)) mark) (-> vm fpOffset)))
 
@@ -571,15 +574,8 @@
     (ASSERT (SG_INTP n))
     (PUSH_CONT vm (+ (PC vm) (- (SG_INT_VALUE n) 1)))))
 
-#|
-      CASE(LET_FRAME) {
-	/* TODO expand stack */
-	INSN_VAL1(val1, c);
-	PUSH(SP(vm), DC(vm));
-	PUSH(SP(vm), FP(vm));
-	NEXT;
-      }
-|#
+
+;; These LET_FRAME, POP_LET_FRAME and DISPLAY are not used any more
 (define-inst LET_FRAME (1 0 #t)
   (INSN_VAL1 val1 c)
   (CHECK_STACK val1 vm)
@@ -587,13 +583,6 @@
   #;(PUSH (SP vm) (FP vm))
   (PUSH (SP vm) (-> vm fpOffset)))
 
-#|
-      CASE(POP_LET_FRAME) {
-	INSN_VAL1(val1, c);
-	SP(vm) = discard_let_frame(vm, val1);
-	NEXT;
-      }
-|#
 (define-inst POP_LET_FRAME (2 0 #f)
   (INSN_VAL2 val1 val2 c)
   (set! (SP vm) (discard_let_frame vm val1 val2)))
@@ -616,7 +605,8 @@
 
 (define-inst LEAVE (1 0 #f)
   (INSN_VAL1 val1 c)
-  (leave_process vm val1))
+  #;(leave_process vm val1)
+  (set! (SP vm) (- (SP vm) val1)))
 
 
 (define-inst DEFINE (1 1 #t)

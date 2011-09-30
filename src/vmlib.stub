@@ -117,7 +117,7 @@
     (result (SG_SYNTAXP arg0)))
 
   (define-c-proc call-syntax-handler (s::Syntax expr p1env) ::Object
-    (result (Sg_Apply (SG_SYNTAX_PROC s) (SG_LIST2 expr p1env))))
+    (result (Sg_VMApply2 (SG_SYNTAX_PROC s) expr p1env)))
 
   ;; macro
   (define-c-proc macro? (obj) ::boolean
@@ -130,8 +130,8 @@
     (result (Sg_MakeMacroTransformer name proc p1env library)))
 
   (define-c-proc call-macro-expander (macro::Macro expr p1env) ::Object
-    (result (Sg_Apply4 (-> macro transformer)
-		       macro expr p1env (-> macro data))))
+    (result (Sg_VMApply4 (-> macro transformer)
+			 macro expr p1env (-> macro data))))
 
   (define-c-proc %internal-macro-expand (expr p1env onceP::boolean) ::Object
     (result (Sg_MacroExpand expr p1env onceP)))

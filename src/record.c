@@ -37,6 +37,7 @@
 #include "sagittarius/builtin-symbols.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/hashtable.h"
+#include "sagittarius/library.h"
 #include "sagittarius/string.h"
 #include "sagittarius/vector.h"
 #include "sagittarius/error.h"

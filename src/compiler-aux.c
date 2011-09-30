@@ -14,11 +14,11 @@
 #define UNSIDENT(x, lib) WORD(Sg_MakeIdentifier(UISYMBOL(x), SG_NIL, (lib)))
 static struct sg__wcRec {
   SgCodeBuilder cb[3];
-  SgWord        w[133];
+  SgWord        w[130];
 } sg__wc = {
   { /* code builder */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[71], NULL, 1, FALSE, 0, 10, 30), /* ensure-library-name */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[101], NULL, 1, FALSE, 0, 12, 32), /* parse-args */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[71], NULL, 1, FALSE, 0, 13, 30), /* ensure-library-name */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[101], NULL, 1, FALSE, 0, 15, 29), /* parse-args */
   },
   { /* compiled code */
   /*     0 */        0x00000038           /* 0      (LIBRARY) */,
@@ -91,7 +91,7 @@ static struct sg__wcRec {
   /*    67 */        0x00000137           /* 67     (DEFINE) */,
   /*    68 */        WORD(SG_UNDEF)  /* identifier#$LIBRARY */,
   /*    69 */        0x00000002           /* 69     (UNDEF) */,
-  /*    70 */        0x00000001           /* 70     (HALT) */,
+  /*    70 */        0x00000030           /* 70     (RET) */,
   /*    71 */        0x0000004C           /* 0      (CONST_PUSH) */,
   /*    72 */        WORD(SG_UNDEF)  /* <keyrowd :null> */,
   /*    73 */        0x00000005           /* 2      (LREF) */,
@@ -122,38 +122,35 @@ static struct sg__wcRec {
   /*    98 */        0x0000024F           /* 27     (GREF_TAIL_CALL) */,
   /*    99 */        WORD(SG_UNDEF)  /* identifier#error */,
   /*   100 */        0x00000030           /* 29     (RET) */,
-  /*   101 */        0x00000332           /* 0      (LET_FRAME) */,
-  /*   102 */        0x00000049           /* 1      (LREF_PUSH) */,
-  /*   103 */        0x00000134           /* 2      (DISPLAY) */,
-  /*   104 */        0x00000049           /* 3      (LREF_PUSH) */,
-  /*   105 */        0x0000004D           /* 4      (CONSTI_PUSH) */,
-  /*   106 */        0x00100233           /* 5      (POP_LET_FRAME) */,
-  /*   107 */        0x0000001A           /* 6      (MARK) */,
-  /*   108 */        0x00000005           /* 7      (LREF) */,
-  /*   109 */        0x00000022           /* 8      (BNNULL) */,
-  /*   110 */        WORD(SG_MAKE_INT(6)),
-  /*   111 */        0x00000149           /* 10     (LREF_PUSH) */,
-  /*   112 */        0x00000003           /* 11     (CONST) */,
-  /*   113 */        WORD(SG_MAKE_BOOL(FALSE)),
-  /*   114 */        0x0000023E           /* 13     (VALUES) */,
-  /*   115 */        0x00000030           /* 14     (RET) */,
-  /*   116 */        0x00000005           /* 15     (LREF) */,
-  /*   117 */        0x00000042           /* 16     (PAIRP) */,
-  /*   118 */        0x00000017           /* 17     (TEST) */,
-  /*   119 */        WORD(SG_MAKE_INT(9)),
-  /*   120 */        0x00000060           /* 19     (LREF_CDR_PUSH) */,
-  /*   121 */        0x00000105           /* 20     (LREF) */,
-  /*   122 */        0x0000010F           /* 21     (ADDI) */,
-  /*   123 */        0x0000000B           /* 22     (PUSH) */,
-  /*   124 */        0x00100219           /* 23     (SHIFTJ) */,
-  /*   125 */        0x00000018           /* 24     (JUMP) */,
-  /*   126 */        WORD(SG_MAKE_INT(-18)),
-  /*   127 */        0x00000030           /* 26     (RET) */,
-  /*   128 */        0x00000149           /* 27     (LREF_PUSH) */,
-  /*   129 */        0x00000003           /* 28     (CONST) */,
-  /*   130 */        WORD(SG_MAKE_BOOL(TRUE)),
-  /*   131 */        0x0000023E           /* 30     (VALUES) */,
-  /*   132 */        0x00000030           /* 31     (RET) */,
+  /*   101 */        0x00000049           /* 0      (LREF_PUSH) */,
+  /*   102 */        0x0000004D           /* 1      (CONSTI_PUSH) */,
+  /*   103 */        0x00000335           /* 2      (ENTER) */,
+  /*   104 */        0x00000105           /* 3      (LREF) */,
+  /*   105 */        0x00000022           /* 4      (BNNULL) */,
+  /*   106 */        WORD(SG_MAKE_INT(6)),
+  /*   107 */        0x00000249           /* 6      (LREF_PUSH) */,
+  /*   108 */        0x00000003           /* 7      (CONST) */,
+  /*   109 */        WORD(SG_MAKE_BOOL(FALSE)),
+  /*   110 */        0x0000023E           /* 9      (VALUES) */,
+  /*   111 */        0x00000030           /* 10     (RET) */,
+  /*   112 */        0x00000105           /* 11     (LREF) */,
+  /*   113 */        0x00000042           /* 12     (PAIRP) */,
+  /*   114 */        0x00000017           /* 13     (TEST) */,
+  /*   115 */        WORD(SG_MAKE_INT(9)),
+  /*   116 */        0x00000160           /* 15     (LREF_CDR_PUSH) */,
+  /*   117 */        0x00000205           /* 16     (LREF) */,
+  /*   118 */        0x0000010F           /* 17     (ADDI) */,
+  /*   119 */        0x0000000B           /* 18     (PUSH) */,
+  /*   120 */        0x00100219           /* 19     (SHIFTJ) */,
+  /*   121 */        0x00000018           /* 20     (JUMP) */,
+  /*   122 */        WORD(SG_MAKE_INT(-18)),
+  /*   123 */        0x00000030           /* 22     (RET) */,
+  /*   124 */        0x00000249           /* 23     (LREF_PUSH) */,
+  /*   125 */        0x00000003           /* 24     (CONST) */,
+  /*   126 */        WORD(SG_MAKE_BOOL(TRUE)),
+  /*   127 */        0x0000023E           /* 26     (VALUES) */,
+  /*   128 */        0x00000236           /* 27     (LEAVE) */,
+  /*   129 */        0x00000030           /* 28     (RET) */,
   }
 };
 
@@ -162,40 +159,40 @@ void Sg__Init_sagittarius_compiler_util()
 {
   SgLibrary *lib = Sg_FindLibrary(SYMBOL("(sagittarius compiler util)"), TRUE);
   SgLibrary *save = Sg_VM()->currentLibrary;
-  sg__wc.w[1] = SYMBOLW("(sagittarius compiler util)");
   sg__wc.w[72] = KEYWORDW("null");
+  sg__wc.w[88] = KEYWORDW("base");
+  sg__wc.w[12] = WORD(Sg_Cons(Sg_Cons(SYMBOL("$UNDEF"), SG_MAKE_INT(0)), Sg_Cons(Sg_Cons(SYMBOL("$DEFINE"), SG_MAKE_INT(1)), Sg_Cons(Sg_Cons(SYMBOL("$LREF"), SG_MAKE_INT(2)), Sg_Cons(Sg_Cons(SYMBOL("$LSET"), SG_MAKE_INT(3)), Sg_Cons(Sg_Cons(SYMBOL("$GREF"), SG_MAKE_INT(4)), Sg_Cons(Sg_Cons(SYMBOL("$GSET"), SG_MAKE_INT(5)), Sg_Cons(Sg_Cons(SYMBOL("$CONST"), SG_MAKE_INT(6)), Sg_Cons(Sg_Cons(SYMBOL("$IF"), SG_MAKE_INT(7)), Sg_Cons(Sg_Cons(SYMBOL("$LET"), SG_MAKE_INT(8)), Sg_Cons(Sg_Cons(SYMBOL("$LAMBDA"), SG_MAKE_INT(9)), Sg_Cons(Sg_Cons(SYMBOL("$RECEIVE"), SG_MAKE_INT(10)), Sg_Cons(Sg_Cons(SYMBOL("$LABEL"), SG_MAKE_INT(11)), Sg_Cons(Sg_Cons(SYMBOL("$SEQ"), SG_MAKE_INT(12)), Sg_Cons(Sg_Cons(SYMBOL("$CALL"), SG_MAKE_INT(13)), Sg_Cons(Sg_Cons(SYMBOL("$ASM"), SG_MAKE_INT(14)), Sg_Cons(Sg_Cons(SYMBOL("$IT"), SG_MAKE_INT(15)), Sg_Cons(Sg_Cons(SYMBOL("$LIST"), SG_MAKE_INT(16)), Sg_Cons(Sg_Cons(SYMBOL("$LIBRARY"), SG_MAKE_INT(17)), SG_NIL)))))))))))))))))));
   sg__wc.w[96] = STRINGW("invalid library tag:");
   sg__wc.w[85] = WORD(Sg_Cons(SYMBOL("sagittarius"), SG_NIL));
-  sg__wc.w[88] = KEYWORDW("base");
   sg__wc.w[7] = WORD(&sg__wc.cb[1]);
   sg__wc.cb[1].name = SYMBOL("parse-args");
-  sg__wc.w[12] = WORD(Sg_Cons(Sg_Cons(SYMBOL("$UNDEF"), SG_MAKE_INT(0)), Sg_Cons(Sg_Cons(SYMBOL("$DEFINE"), SG_MAKE_INT(1)), Sg_Cons(Sg_Cons(SYMBOL("$LREF"), SG_MAKE_INT(2)), Sg_Cons(Sg_Cons(SYMBOL("$LSET"), SG_MAKE_INT(3)), Sg_Cons(Sg_Cons(SYMBOL("$GREF"), SG_MAKE_INT(4)), Sg_Cons(Sg_Cons(SYMBOL("$GSET"), SG_MAKE_INT(5)), Sg_Cons(Sg_Cons(SYMBOL("$CONST"), SG_MAKE_INT(6)), Sg_Cons(Sg_Cons(SYMBOL("$IF"), SG_MAKE_INT(7)), Sg_Cons(Sg_Cons(SYMBOL("$LET"), SG_MAKE_INT(8)), Sg_Cons(Sg_Cons(SYMBOL("$LAMBDA"), SG_MAKE_INT(9)), Sg_Cons(Sg_Cons(SYMBOL("$RECEIVE"), SG_MAKE_INT(10)), Sg_Cons(Sg_Cons(SYMBOL("$LABEL"), SG_MAKE_INT(11)), Sg_Cons(Sg_Cons(SYMBOL("$SEQ"), SG_MAKE_INT(12)), Sg_Cons(Sg_Cons(SYMBOL("$CALL"), SG_MAKE_INT(13)), Sg_Cons(Sg_Cons(SYMBOL("$ASM"), SG_MAKE_INT(14)), Sg_Cons(Sg_Cons(SYMBOL("$IT"), SG_MAKE_INT(15)), Sg_Cons(Sg_Cons(SYMBOL("$LIST"), SG_MAKE_INT(16)), Sg_Cons(Sg_Cons(SYMBOL("$LIBRARY"), SG_MAKE_INT(17)), SG_NIL)))))))))))))))))));
   sg__wc.w[80] = KEYWORDW("sagittarius");
+  sg__wc.w[1] = SYMBOLW("(sagittarius compiler util)");
+  sg__wc.w[93] = WORD(Sg_Cons(SYMBOL("core"), Sg_Cons(SYMBOL("base"), SG_NIL)));
   sg__wc.w[3] = WORD(&sg__wc.cb[0]);
   sg__wc.cb[0].name = SYMBOL("ensure-library-name");
-  sg__wc.w[93] = WORD(Sg_Cons(SYMBOL("core"), Sg_Cons(SYMBOL("base"), SG_NIL)));
-  sg__wc.w[53] = IDENT("$SEQ", lib);
   sg__wc.w[68] = IDENT("$LIBRARY", lib);
+  sg__wc.w[9] = IDENT("parse-args", lib);
   sg__wc.w[14] = IDENT(".intermediate-tags.", lib);
   sg__wc.w[20] = IDENT("$DEFINE", lib);
   sg__wc.w[35] = IDENT("$CONST", lib);
-  sg__wc.w[9] = IDENT("parse-args", lib);
-  sg__wc.w[5] = IDENT("ensure-library-name", lib);
   sg__wc.w[50] = IDENT("$LABEL", lib);
   sg__wc.w[65] = IDENT("$LIST", lib);
+  sg__wc.w[99] = IDENT("error", lib);
   sg__wc.w[17] = IDENT("$UNDEF", lib);
   sg__wc.w[32] = IDENT("$GSET", lib);
   sg__wc.w[47] = IDENT("$RECEIVE", lib);
   sg__wc.w[62] = IDENT("$IT", lib);
-  sg__wc.w[99] = IDENT("error", lib);
   sg__wc.w[29] = IDENT("$GREF", lib);
   sg__wc.w[44] = IDENT("$LAMBDA", lib);
   sg__wc.w[59] = IDENT("$ASM", lib);
   sg__wc.w[26] = IDENT("$LSET", lib);
   sg__wc.w[41] = IDENT("$LET", lib);
   sg__wc.w[56] = IDENT("$CALL", lib);
+  sg__wc.w[5] = IDENT("ensure-library-name", lib);
   sg__wc.w[23] = IDENT("$LREF", lib);
   sg__wc.w[38] = IDENT("$IF", lib);
+  sg__wc.w[53] = IDENT("$SEQ", lib);
   sg__wc.w[77] = SYMBOLW("null");
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(sagittarius)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(core base)")));

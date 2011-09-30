@@ -36,6 +36,7 @@
 #include "sagittarius/vector.h"
 #include "sagittarius/symbol.h"
 #include "sagittarius/code.h"
+#include "sagittarius/library.h"
 #include "sagittarius/subr.h"
 #include "sagittarius/vm.h"
 #include "sagittarius/gloc.h"
@@ -120,7 +121,7 @@ static SgObject macro_tranform(SgObject *args, int argc, void *data_)
   form = args[1];
   p1env = args[2];
 
-  data = Sg_ApplySafe(args[3], SG_NIL);
+  data = Sg_Apply0(args[3]);
   /* data = args[3]; */
   mac_env = SG_MACRO(macro)->env;
 

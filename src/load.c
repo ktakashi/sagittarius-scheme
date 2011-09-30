@@ -37,6 +37,7 @@
 #include "sagittarius/error.h"
 #include "sagittarius/file.h"
 #include "sagittarius/gloc.h"
+#include "sagittarius/library.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/port.h"
 #include "sagittarius/reader.h"
@@ -62,7 +63,7 @@ static SgObject load_cc(SgObject result, void **data)
   SgObject expr = Sg_Read(port, TRUE);
   if (!SG_EOFP(expr)) {
     Sg_VMPushCC(load_cc, data, 1);
-    return Sg_Eval(expr, SG_FALSE);
+    return Sg_VMEval(expr, SG_FALSE);
   } else {
     return SG_TRUE;
   }

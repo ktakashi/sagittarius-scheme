@@ -3689,7 +3689,7 @@
   ;; 15 composit library
   ;; 16 eval
   (define-c-proc eval (sexp env) ::Object
-    (result (Sg_Eval sexp env)))
+    (result (Sg_VMEval sexp env)))
 
   (define-c-proc environment (spec :rest more) ::Object
     (result (Sg_Environment (Sg_MakeEvalLibrary) #;(Sg_VMCurrentLibrary) (Sg_Cons spec more))))

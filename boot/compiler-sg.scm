@@ -2752,10 +2752,6 @@
        (lvar-ref++! ($lref-lvar initval))
        ($lref-lvar-set! iform ($lref-lvar initval))
        (pass2/$LREF iform penv tail?))
-      ((and (not (vm-noinline-locals?)) (= (lvar-ref-count lvar) 1))
-       (lvar-ref--! lvar)
-       (lvar-ref--! lvar)
-       (pass2/rec initval penv tail?))
       (else iform)))
     iform))))
 
@@ -3672,6 +3668,28 @@
    (renv-can-free renv)
    (renv-display renv))))
 
+(define (renv-add-dummy renv)
+  (let
+   ((r (renv-copy renv)))
+   (renv-locals-set! r (append (renv-locals renv) (list (make-lvar 'dummy))))
+   r))
+
+(define (renv-add-frame-dummy renv)
+  (let
+   ((r (renv-copy renv)))
+   (renv-locals-set!
+    r
+    (append
+     (renv-locals renv)
+     (let
+      loop
+      ((i 0) (r '()))
+      (if
+       (= i (pass3/frame-size))
+       r
+       (loop (+ i 1) (cons (make-lvar 'dummy) r))))))
+   r))
+
 (define
  pass3/add-sets
  (lambda
@@ -4107,61 +4125,44 @@
    ((vars ($let-lvars iform))
     (body ($let-body iform))
     (args ($let-inits iform))
-    (free
-     (append
-      ($append-map1
-       (lambda
-        (i)
-        (pass3/find-free
-         i
-         vars
-         (renv-add-can-free2 renv (renv-locals renv) (renv-frees renv))
-         cb))
-       args)
-      (pass3/find-free
-       body
-       vars
-       (renv-add-can-free2 renv (renv-frees renv) (renv-locals renv))
-       cb)))
     (sets
      (append
       vars
       (pass3/find-sets body vars)
       ($append-map1 (lambda (i) (pass3/find-sets i vars)) args)))
-    (free-length (length free))
     (nargs (length vars))
-    (need-display? (> free-length 0)))
-   (cb-emit1i! cb LET_FRAME (+ nargs free-length) ($*-src iform))
+    (total (+ nargs (length (renv-locals renv)))))
    (let
-    ((free-size (if (> free-length 0) (pass3/collect-free cb free renv) 0)))
-    (when need-display? (cb-emit1! cb DISPLAY free-length))
-    (let
-     loop
-     ((args args))
-     (cond
-      ((null? args) '())
-      (else (cb-emit0! cb UNDEF) (cb-emit0! cb PUSH) (loop (cdr args)))))
-    (pass3/make-boxes cb sets vars)
-    (if
-     (tail-context? ctx)
-     (cb-emit2! cb POP_LET_FRAME nargs free-length)
-     (cb-emit1! cb ENTER nargs))
-    (let*
-     ((new-renv (make-new-renv renv vars free sets vars #f))
-      (assign-size
-       (let
-        loop
-        ((args args) (vars vars) (size 0) (index 0))
-        (cond
-         ((null? args) size)
-         (else
-          (let
-           ((stack-size (pass3/rec (car args) cb new-renv 'normal/bottom)))
-           (cb-emit1i! cb LSET index (lvar-name (car vars)))
-           (loop (cdr args) (cdr vars) (+ stack-size size) (+ index 1)))))))
-      (body-size (pass3/rec body cb new-renv ctx)))
-     (unless (tail-context? ctx) (cb-emit1! cb LEAVE free-length))
-     (+ body-size assign-size free-size))))))
+    loop
+    ((args args))
+    (cond
+     ((null? args) '())
+     (else (cb-emit0! cb UNDEF) (cb-emit0! cb PUSH) (loop (cdr args)))))
+   (pass3/make-boxes cb sets vars)
+   (cb-emit1! cb ENTER total)
+   (let*
+    ((new-renv
+      (make-new-renv
+       renv
+       (append (renv-locals renv) vars)
+       (renv-frees renv)
+       sets
+       vars
+       #f))
+     (assign-size
+      (let
+       loop
+       ((args args) (vars vars) (size 0) (index (length (renv-locals renv))))
+       (cond
+        ((null? args) size)
+        (else
+         (let
+          ((stack-size (pass3/rec (car args) cb new-renv 'normal/bottom)))
+          (cb-emit1i! cb LSET index (lvar-name (car vars)))
+          (loop (cdr args) (cdr vars) (+ stack-size size) (+ index 1)))))))
+     (body-size (pass3/rec body cb new-renv ctx)))
+    (cb-emit1! cb LEAVE nargs)
+    (+ body-size assign-size total)))))
 
 (define
  pass3/let
@@ -4170,47 +4171,30 @@
   (let*
    ((vars ($let-lvars iform))
     (body ($let-body iform))
-    (free
-     (append
-      ($append-map1
-       (lambda
-        (i)
-        (pass3/find-free
-         i
-         (renv-locals renv)
-         (renv-add-can-free2 renv (renv-frees renv) (renv-locals renv))
-         cb))
-       ($let-inits iform))
-      (pass3/find-free
-       body
-       vars
-       (renv-add-can-free2 renv (renv-frees renv) (renv-locals renv))
-       cb)))
     (sets (pass3/find-sets body vars))
-    (free-length (length free))
     (nargs (length vars))
-    (need-display? (> free-length 0)))
-   (cb-emit1i! cb LET_FRAME (+ nargs free-length) ($*-src iform))
+    (total (+ nargs (length (renv-locals renv)))))
    (let
-    ((free-size (if (> free-length 0) (pass3/collect-free cb free renv) 0)))
-    (when need-display? (cb-emit1! cb DISPLAY free-length))
-    (let
-     ((args-size
-       (pass3/compile-args
-        ($let-inits iform)
-        cb
-        (make-new-renv renv (renv-locals renv) free sets '() need-display?)
-        ctx)))
-     (pass3/make-boxes cb sets vars)
-     (if
-      (tail-context? ctx)
-      (cb-emit2! cb POP_LET_FRAME nargs free-length)
-      (cb-emit1! cb ENTER nargs))
-     (let*
-      ((new-renv (make-new-renv renv vars free sets vars #f))
-       (body-size (pass3/rec body cb new-renv ctx)))
-      (unless (tail-context? ctx) (cb-emit1! cb LEAVE free-length))
-      (+ body-size args-size free-size)))))))
+    ((args-size
+      (pass3/compile-args
+       ($let-inits iform)
+       cb
+       (make-new-renv renv (renv-locals renv) (renv-frees renv) sets '() #f)
+       ctx)))
+    (pass3/make-boxes cb sets vars)
+    (cb-emit1! cb ENTER total)
+    (let*
+     ((new-renv
+       (make-new-renv
+        renv
+        (append (renv-locals renv) vars)
+        (renv-frees renv)
+        sets
+        vars
+        #f))
+      (body-size (pass3/rec body cb new-renv ctx)))
+     (cb-emit1! cb LEAVE nargs)
+     (+ body-size args-size total))))))
 
 (define
  pass3/$LAMBDA
@@ -4254,55 +4238,42 @@
   (let*
    ((vars ($receive-lvars iform))
     (body ($receive-body iform))
-    (free
-     (append
-      (pass3/find-free
-       ($receive-expr iform)
-       (renv-locals renv)
-       (renv-add-can-free2 renv (renv-locals renv) (renv-frees renv))
-       cb)
-      (pass3/find-free
-       body
-       vars
-       (renv-add-can-free2 renv (renv-locals renv) (renv-frees renv))
-       cb)))
     (sets (pass3/find-sets body vars))
     (nargs (length vars))
-    (free-length (length free)))
-   (cb-emit1i! cb LET_FRAME (+ nargs free-length) ($*-src iform))
-   (let*
-    ((free-size (if (> free-length 0) (pass3/collect-free cb free renv) 0))
-     (need-display? (> free-length 0)))
-    (when need-display? (cb-emit1! cb DISPLAY free-length))
-    (let
-     ((expr-size
-       (pass3/rec
-        ($receive-expr iform)
-        cb
-        (make-new-renv
-         renv
-         (renv-locals renv)
-         free
-         (renv-sets renv)
-         '()
-         need-display?)
-        (normal-context ctx))))
-     (cb-emit2i!
-      cb
-      RECEIVE
-      ($receive-args iform)
-      ($receive-option iform)
-      ($*-src iform))
-     (pass3/make-boxes cb sets vars)
-     (if
-      (tail-context? ctx)
-      (cb-emit2! cb POP_LET_FRAME nargs free-length)
-      (cb-emit1! cb ENTER nargs))
-     (let*
-      ((new-renv (make-new-renv renv vars free sets vars #f))
-       (body-size (pass3/rec body cb new-renv ctx)))
-      (unless (tail-context? ctx) (cb-emit1! cb LEAVE free-length))
-      (+ body-size expr-size free-size)))))))
+    (total (+ nargs (length (renv-locals renv)))))
+   (let
+    ((expr-size
+      (pass3/rec
+       ($receive-expr iform)
+       cb
+       (make-new-renv
+        renv
+        (renv-locals renv)
+        (renv-frees renv)
+        (renv-sets renv)
+        '()
+        #f)
+       (normal-context ctx))))
+    (cb-emit2i!
+     cb
+     RECEIVE
+     ($receive-args iform)
+     ($receive-option iform)
+     ($*-src iform))
+    (pass3/make-boxes cb sets vars)
+    (cb-emit1! cb ENTER total)
+    (let*
+     ((new-renv
+       (make-new-renv
+        renv
+        (append (renv-locals renv) vars)
+        (renv-frees renv)
+        sets
+        vars
+        #f))
+      (body-size (pass3/rec body cb new-renv ctx)))
+     (unless (tail-context? ctx) (cb-emit1! cb LEAVE nargs))
+     (+ body-size expr-size total))))))
 
 (define
  pass3/$LABEL
@@ -4362,7 +4333,8 @@
    ((end-of-frame (make-new-label)) (tail? (tail-context? ctx)))
    (unless tail? (cb-emit0o! cb FRAME end-of-frame))
    (let*
-    ((args-size (pass3/compile-args ($call-args iform) cb renv ctx))
+    ((renv (if tail? renv (renv-add-frame-dummy renv)))
+     (args-size (pass3/compile-args ($call-args iform) cb renv ctx))
      (proc-size (pass3/rec ($call-proc iform) cb renv 'normal/top))
      (nargs (length ($call-args iform))))
     (if
@@ -4386,31 +4358,38 @@
     (free (pass3/find-free body vars renv cb))
     (sets (pass3/find-sets body vars))
     (frlen (length free)))
-   ($call-renv-set! iform (renv-copy renv))
-   (cb-emit1i! cb LET_FRAME (+ nargs frlen) ($*-src iform))
-   (let*
-    ((frsiz (if (> frlen 0) (pass3/collect-free cb free renv) 0))
-     (need-display? (> frlen 0)))
-    (when need-display? (cb-emit1! cb DISPLAY frlen))
+   ($call-renv-set! iform (length (renv-locals renv)))
+   (let
+    ((args-size
+      (pass3/compile-args
+       args
+       cb
+       (make-new-renv
+        renv
+        (append (renv-locals renv) vars)
+        (renv-frees renv)
+        sets
+        '()
+        #f)
+       ctx)))
+    (cb-emit1! cb ENTER (+ nargs (length (renv-locals renv))))
+    (cb-label-set! cb (pass3/ensure-label cb label))
+    (pass3/make-boxes cb sets vars)
     (let
-     ((args-size
-       (pass3/compile-args
-        args
+     ((body-size
+       (pass3/rec
+        body
         cb
-        (make-new-renv renv (renv-locals renv) free sets '() need-display?)
+        (make-new-renv
+         renv
+         (append (renv-locals renv) vars)
+         (renv-frees renv)
+         sets
+         vars
+         #t)
         ctx)))
-     (if
-      (tail-context? ctx)
-      (cb-emit2! cb POP_LET_FRAME nargs frlen)
-      (cb-emit1! cb ENTER nargs))
-     (cb-emit0! cb MARK)
-     (cb-label-set! cb (pass3/ensure-label cb label))
-     (pass3/make-boxes cb sets vars)
-     (let
-      ((body-size
-        (pass3/rec body cb (make-new-renv renv vars free sets vars #t) ctx)))
-      (unless (tail-context? ctx) (cb-emit1! cb LEAVE frlen))
-      (+ nargs body-size frsiz)))))))
+     (cb-emit1! cb LEAVE nargs)
+     (+ nargs body-size))))))
 
 (define
  pass3/jump-call
@@ -4426,11 +4405,7 @@
        cb
        (renv-copy renv)
        (normal-context ctx))))
-    (cb-emit2!
-     cb
-     SHIFTJ
-     nargs
-     (- (renv-display renv) (renv-display ($call-renv ($call-proc iform)))))
+    (cb-emit2! cb SHIFTJ nargs ($call-renv ($call-proc iform)))
     (cb-emit0o! cb JUMP (pass3/ensure-label cb label))
     ret))))
 
@@ -4442,7 +4417,8 @@
    ((end-of-frame (make-new-label)) (tail? (tail-context? ctx)))
    (unless tail? (cb-emit0o! cb FRAME end-of-frame))
    (let*
-    ((proc-size (pass3/rec ($call-proc iform) cb renv (normal-context ctx)))
+    ((renv (if tail? renv (renv-add-frame-dummy renv)))
+     (proc-size (pass3/rec ($call-proc iform) cb renv (normal-context ctx)))
      (args-size (pass3/compile-args ($call-args iform) cb renv 'normal/top))
      (nargs (length ($call-args iform))))
     (if
@@ -4460,7 +4436,8 @@
    ((end-of-frame (make-new-label)) (tail? (tail-context? ctx)))
    (unless tail? (cb-emit0o! cb FRAME end-of-frame))
    (let*
-    ((args-size (pass3/compile-args ($call-args iform) cb renv ctx))
+    ((renv (if tail? renv (renv-add-frame-dummy renv)))
+     (args-size (pass3/compile-args ($call-args iform) cb renv ctx))
      (proc-size (pass3/rec ($call-proc iform) cb renv 'normal/top))
      (nargs (length ($call-args iform))))
     (if
@@ -4504,8 +4481,9 @@
       (let
        ((merge-label (make-new-label)))
        (cb-emit0o! cb FRAME merge-label)
-       (let
-        ((d (pass3/asm-generic cb insn args info renv)))
+       (let*
+        ((renv (renv-add-frame-dummy renv))
+         (d (pass3/asm-generic cb insn args info renv)))
         (cb-label-set! cb merge-label)
         (+ (pass3/frame-size) d)))))
     (else (pass3/asm-generic cb insn args info renv))))))
@@ -4527,13 +4505,13 @@
      ((d0 (pass3/rec (car args) cb renv 'normal/top)))
      (cb-emit0! cb PUSH)
      (let
-      ((d1 (pass3/rec (cadr args) cb renv 'normal/top)))
+      ((d1 (pass3/rec (cadr args) cb (renv-add-dummy renv) 'normal/top)))
       (pass3/emit-asm! cb insn info)
       (max d0 (+ d1 1)))))
    (else
     (let
      loop
-     ((args args) (depth 0) (count 0))
+     ((args args) (depth 0) (count 0) (renv renv))
      (cond
       ((null? (cdr args))
        (let
@@ -4544,7 +4522,11 @@
        (let
         ((d (pass3/rec (car args) cb renv 'normal/top)))
         (cb-emit0! cb PUSH)
-        (loop (cdr args) (max depth (+ d count)) (+ count 1))))))))))
+        (loop
+         (cdr args)
+         (max depth (+ d count))
+         (+ count 1)
+         (renv-add-dummy renv))))))))))
 
 (define
  pass3/emit-asm!
@@ -4570,7 +4552,7 @@
        ((,d0 (pass3/rec ,arg0 cb renv (normal-context ctx))))
        (cb-emit0! cb PUSH)
        (let
-        ((,d1 (pass3/rec ,arg1 cb renv 'normal/top)))
+        ((,d1 (pass3/rec ,arg1 cb (renv-add-dummy renv) 'normal/top)))
         (cb-emit1i! cb ,code ,param ,info)
         (max ,d0 (+ ,d1 1))))))))))
 (define-syntax
@@ -4606,7 +4588,7 @@
    (begin (cb-emit1i! cb code 0 info) 0)
    (let
     loop
-    ((as args) (depth 0) (count 0))
+    ((as args) (depth 0) (count 0) (renv renv))
     (cond
      ((null? (cdr as))
       (let
@@ -4617,7 +4599,11 @@
       (let
        ((d (pass3/rec (car as) cb renv 'normal/top)))
        (cb-emit0! cb PUSH)
-       (loop (cdr as) (max (+ d count) depth) (+ count 1)))))))))
+       (loop
+        (cdr as)
+        (max (+ d count) depth)
+        (+ count 1)
+        (renv-add-dummy renv)))))))))
 
 (define
  pass3/$LIST
@@ -4700,14 +4686,18 @@
     (cb-emit0! cb PUSH)
     (let
      loop
-     ((args (cdr args)) (depth (+ d 1)) (cnt 1))
+     ((args (cdr args)) (depth (+ d 1)) (cnt 1) (renv (renv-add-dummy renv)))
      (if
       (null? args)
       depth
       (let
        ((d (pass3/rec (car args) cb renv 'normal/top)))
        (cb-emit0! cb PUSH)
-       (loop (cdr args) (max depth (+ d cnt 1)) (+ cnt 1)))))))))
+       (loop
+        (cdr args)
+        (max depth (+ d cnt 1))
+        (+ cnt 1)
+        (renv-add-dummy renv)))))))))
 
 (define
  asm-arg1
@@ -5066,8 +5056,8 @@
      (pass2 p1 (p1env-library env))
      (make-code-builder)
      (make-renv)
-     'normal/top
-     HALT)))))
+     'tail
+     RET)))))
 
 (define
  compile-p1
@@ -5098,8 +5088,8 @@
        (pass2 p1 (p1env-library env))
        (make-code-builder)
        (make-renv)
-       'normal/top
-       HALT)))
+       'tail
+       RET)))
     (vm-dump-code p3)))))
 
 (define init-compiler (lambda () #f))

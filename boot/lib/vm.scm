@@ -593,7 +593,7 @@
 
 ;; this needs to be in C++. I don't want to double manage these values.
 (define (pass3/let-frame-size) 2)
-(define (pass3/frame-size) 4)
+(define (pass3/frame-size) 7)
 
 ;; also need to be c++
 ;; code builder

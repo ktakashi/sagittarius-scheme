@@ -110,7 +110,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   applyCode[4] = SG_WORD(CONST);
   applyCode[5] = SG_WORD(SG_UNDEF);
   applyCode[6] = SG_WORD(MERGE_INSN_VALUE1(APPLY, 2));
-  applyCode[7] = SG_WORD(HALT);
+  applyCode[7] = SG_WORD(RET);
 
   v->applyCode = applyCode;
   v->callCode = callCode;
@@ -524,6 +524,42 @@ SgObject Sg_Eval(SgObject sexp, SgObject env)
   r = evaluate_safe(vm->closureForEvaluate, SG_CODE_BUILDER(v)->code);
   vm->currentLibrary = save;
   return r;
+}
+
+static SgObject eval_restore_env(SgObject *args, int argc, void *data)
+{
+  theVM->currentLibrary = SG_LIBRARY(data);
+  return SG_UNDEF;
+}
+
+SgObject Sg_VMEval(SgObject sexp, SgObject env)
+{
+  SgObject v = SG_NIL;
+  SgVM *vm = theVM;
+
+  if (vm->state != IMPORTING) vm->state = COMPILING;
+  v = Sg_Compile(sexp, env);
+  /* store cache */
+  if (vm->state == IMPORTING) SG_SET_CAR(vm->cache, Sg_Cons(v, SG_CAR(vm->cache)));
+  if (vm->state != IMPORTING) vm->state = RUNNING;
+  CLEAR_STACK(vm);
+
+  ASSERT(SG_CODE_BUILDERP(v));
+  if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
+    Sg_VMDumpCode(v);
+  }
+  if (!SG_FALSEP(env)) {
+    SgObject body = Sg_MakeClosure(v, NULL);
+    SgObject before = Sg_MakeSubr(eval_restore_env, env, 0, 0, SG_FALSE);
+    SgObject after = Sg_MakeSubr(eval_restore_env, vm->currentLibrary, 0, 0, SG_FALSE);
+    return Sg_VMDynamicWind(before, body, after);
+  } else {
+    /* Since we have LIBRARY instruction, we always need to restore current library */
+    SgObject body = Sg_MakeClosure(v, NULL);
+    SgObject before = Sg_NullProc();
+    SgObject after = Sg_MakeSubr(eval_restore_env, vm->currentLibrary, 0, 0, SG_FALSE);
+    return Sg_VMDynamicWind(before, body, after);
+  }
 }
 
 static SgObject pass1_import = SG_UNDEF;
@@ -1034,6 +1070,83 @@ static inline int restore_stack(Stack *s, SgObject *to)
   return s->size;
 }
 
+static SgObject* save_first_env(SgVM *vm)
+{
+  int size = SP(vm) - FP(vm), i;
+  SgObject *env = SG_NEW_ARRAY(SgObject, size);
+  for (i = 0; i < size; i++) {
+    env[i] = REFER_LOCAL(vm, i);
+  }
+  return env;
+}
+
+#define FORWARDED_CONT_P(c) ((c)&&((c)->size == -1))
+#define FORWARDED_CONT(c)   ((c)->prev)
+
+static void save_cont(SgVM *vm)
+{
+  SgContFrame *c = CONT(vm), *prev = NULL, *tmp;
+  SgCStack *cstk;
+  SgContinuation *ep;
+  SgObject *args, *s, *d;
+  int i;
+
+  args = save_first_env(vm);
+
+  do {
+    int size = (CONT_FRAME_SIZE + c->size) * sizeof(SgObject);
+    SgContFrame *csave = SG_NEW2(SgContFrame *, size);
+
+    /* copy cont frame */
+    if (c->fp != -1) {
+      *csave = *c;		/* copy the frame */
+      if (c->size) {
+	/* copy the args */
+	s = (SgObject*)c->prev + CONT_FRAME_SIZE;
+	d = (SgObject*)csave + CONT_FRAME_SIZE;
+	for (i = c->size; i > 0; i--) {
+	  *d++ = *s++;
+	}
+      }
+    } else {
+      /* C continuation */
+      s = (SgObject*)c;
+      d = (SgObject*)csave;
+      for (i =CONT_FRAME_SIZE + c->size; i > 0; i--) {
+	/* C continuation frame contains opaque pointer */
+	*d++ = *s++;
+      }
+    }
+    if (args) {
+      /* the first cont frame */
+      csave->env = args;
+      args = NULL;
+    }
+    /* make the orig frame forwarded */
+    if (prev) prev->prev = csave;
+    prev = csave;
+    tmp = c->prev;
+    c->prev = csave;
+    c->size = -1;
+    c = tmp;
+  } while (IN_STACK_P((SgObject*)c, vm));
+
+  if (FORWARDED_CONT_P(vm->cont)) {
+    vm->cont = FORWARDED_CONT(vm->cont);
+  }
+  for (cstk = vm->cstack; cstk; cstk = cstk->prev) {
+    if (FORWARDED_CONT_P(cstk->cont)) {
+      cstk->cont = FORWARDED_CONT(cstk->cont);
+    }
+  }
+  for (ep = vm->escapePoint; ep; ep = ep->prev) {
+    if (FORWARDED_CONT_P(ep->cont)) {
+      ep->cont = FORWARDED_CONT(ep->cont);
+    } 
+  }
+}
+
+
 /*
   we reuse stack area. so we need to save current stack to somewhere.
   for now we do like this.
@@ -1144,18 +1257,6 @@ static void expand_stack(SgVM *vm)
   }
 }
 
-static inline SgContinuation* make_continuation(Stack *s)
-{
-  SgVM *vm = Sg_VM();
-  SgContinuation *c = SG_NEW(SgContinuation);
-  c->stack = s;
-  c->winders = vm->dynamicWinders;
-  c->cont = vm->cont;
-  c->cstack = vm->cstack;
-  
-  return c;
-}
-
 static SgWord return_code[1] = {SG_WORD(RET)};
 
 #define PC_TO_RETURN return_code
@@ -1200,11 +1301,9 @@ static SgObject throw_continuation_body(SgObject handlers,
     vm->ac = SG_CAR(args);
   }
   /* restore stack */
-
-  vm->sp = vm->stack + restore_stack(c->stack, vm->stack);
-  vm->fp = vm->sp - argc;
-
   vm->cont = c->cont;
+  vm->fp = c->cont->env;
+
   vm->pc = return_code;
   vm->dynamicWinders = c->winders;
 
@@ -1276,9 +1375,15 @@ SgObject Sg_VMCallCC(SgObject proc)
   SgContinuation *cont;
   SgObject contproc;
   SgVM *vm = Sg_VM();
+  
+  save_cont(vm);
+  cont = SG_NEW(SgContinuation);
+  cont->winders = vm->dynamicWinders;
+  cont->cont = vm->cont;
+  cont->cstack = vm->cstack;
+  cont->prev = NULL;
+  cont->ehandler = SG_FALSE;
 
-  stack = save_stack(vm, SP(vm));
-  cont = make_continuation(stack);
   contproc = Sg_MakeSubr(throw_continuation, cont, 0, 1,
 			 Sg_MakeString(UC("continucation"),
 				       SG_LITERAL_STRING));
@@ -1478,8 +1583,6 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
 		      default_exception_handler_body,
 		      SG_FALSE, NULL);
 
-
-
 #define PUSH_CONT(vm, next_pc)				\
   do {							\
     SgContFrame *newcont = (SgContFrame*)SP(vm);	\
@@ -1538,7 +1641,7 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
       CL(vm) = CONT(vm)->cl;						\
       DC(vm) = CONT(vm)->dc;						\
       if (CONT(vm)->fp && size__) {					\
-	SgObject *s__ = CONT(vm)->fp, *d__ = SP(vm);			\
+	SgObject *s__ = (SgObject*)CONT(vm)+CONT_FRAME_SIZE, *d__ = SP(vm); \
 	SP(vm) += size__;						\
 	while (size__-- > 0) {						\
 	  *d__++ = *s__++;						\
@@ -1551,6 +1654,9 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
 
 static display_closure dummy_display = {0, -1, NULL};
 
+static SgWord boundaryFrameMark = NOP;
+#define BOUNDARY_FRAME_MARK_P(cont) ((cont)->pc == &boundaryFrameMark)
+
 SgObject evaluate_safe(SgObject program, SgWord *code)
 {
   SgCStack cstack;
@@ -1559,6 +1665,7 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
   SgObject usave = vm->usageEnv, msave = vm->macroEnv;
 
   CHECK_STACK(CONT_FRAME_SIZE, vm);
+  PUSH_CONT(vm, &boundaryFrameMark);
 
   ASSERT(SG_PROCEDUREP(program));
   CL(vm) = program;
@@ -1585,6 +1692,7 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
     run_loop();
     AC(vm) = vm->ac;
     if (vm->cont == cstack.cont) {
+      POP_CONT();
       PC(vm) = prev_pc;
     }
   } else {
@@ -1599,6 +1707,7 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
 	ASSERT(vm->cstack && vm->cstack->prev);
 	CONT(vm) = cstack.cont;
 	AC(vm) = vm->ac;
+	POP_CONT();
 	vm->cstack = vm->cstack->prev;
 	vm->usageEnv = usave;
 	vm->macroEnv = msave;
@@ -1615,6 +1724,7 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
       } else {
 	CONT(vm) = cstack.cont;
 	AC(vm) = vm->ac;
+	POP_CONT();
 	vm->cstack = vm->cstack->prev;
 	vm->usageEnv = usave;
 	vm->macroEnv = msave;
@@ -2049,15 +2159,14 @@ static void process_queued_requests(SgVM *vm)
     }						\
   }
 
-#define RET_INSN()				\
-  do {						\
-  /*						\
-    if (CONT(vm) == NULL) {			\
-      break;					\
-    }						\
-  */						\
-    POP_CONT();					\
-  } while (0)					\
+#define RET_INSN()						\
+  do {								\
+    if (CONT(vm) == NULL || BOUNDARY_FRAME_MARK_P(CONT(vm))) {	\
+      /* no more continuation */				\
+      return AC(vm);						\
+    }								\
+    POP_CONT();							\
+  } while (0)							\
 
 /*
   print call frames
@@ -2230,7 +2339,7 @@ SgObject run_loop()
   SgVM *vm = Sg_VM();
   
   vm->callCode[0] = SG_WORD(CALL);
-  vm->callCode[1] = SG_WORD(HALT);
+  vm->callCode[1] = SG_WORD(RET);
 
 #ifdef __GNUC__
   static void *dispatch_table[INSTRUCTION_COUNT] = {

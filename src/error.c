@@ -38,6 +38,7 @@
 #include "sagittarius/writer.h"
 #include "sagittarius/symbol.h"
 #include "sagittarius/vm.h"
+#include "sagittarius/library.h"
 #include "sagittarius/gloc.h"
 #include "sagittarius/core.h"
 

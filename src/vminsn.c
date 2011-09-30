@@ -148,11 +148,7 @@ CASE(FREF) {
 
 CASE(FSET) {
   INSN_VAL1(val1, c);
-  {
-    SgObject obj = INDEX_CLOSURE(vm, val1);
-    SG_BOX(obj)->value=AC(vm);
-  }
-;
+  SG_BOX(INDEX_CLOSURE(vm, val1))->value=AC(vm);
   NEXT;
 }
 
@@ -322,14 +318,12 @@ CASE(JUMP) {
 
 CASE(SHIFTJ) {
   INSN_VAL2(val1, val2, c);
-  shiftj_process(vm, val2, val1);
+  SP(vm)=shift_args((FP(vm) + val2), val1, SP(vm));
   NEXT;
 }
 
 CASE(MARK) {
-  ASSERT(vm->fpOffset > 0);
   DCLOSURE(DC(vm))->mark=vm->fpOffset;
-;
   NEXT;
 }
 
@@ -736,7 +730,6 @@ CASE(LET_FRAME) {
   INSN_VAL1(val1, c);
   CHECK_STACK(val1, vm);
   PUSH(SP(vm), DC(vm));
-  /* PUSH(SP(vm), FP(vm)); */
   PUSH(SP(vm), vm->fpOffset);
   NEXT;
 }
@@ -756,13 +749,13 @@ CASE(DISPLAY) {
 CASE(ENTER) {
   INSN_VAL1(val1, c);
   FP(vm)=(SP(vm) - val1);
-  vm->fpOffset = CALC_OFFSET(vm, val1);
+  vm->fpOffset=CALC_OFFSET(vm, val1);
   NEXT;
 }
 
 CASE(LEAVE) {
   INSN_VAL1(val1, c);
-  leave_process(vm, val1);
+  SP(vm)=(SP(vm) - val1);
   NEXT;
 }
 

@@ -151,8 +151,11 @@
 (define (set-box! b v)
   (vector-set! b 1 v))
 
+;; adjust for c
+;; now cont frame size is 7
+(define *frame-size* 7)
 (define (push-frame f c pc x s)
-  (push x (push pc (push c (push f s)))))
+  (push x (push pc (push c (push f (push -1 (push -2 (push -3 s))))))))
 (define (push-let-frame f c s)
   (push c (push f s)))
 
@@ -264,7 +267,7 @@
 	  r
 	  (loop prev (cons src r))))))
       
-
+(define current-form #f)
 ;; VM
 ;; x = code
 ;; pc = program counter
@@ -300,7 +303,7 @@
 				a
 				(index s 2) ;; closure
 				(index s 3) ;; fp
-				(- s 4)))))))
+				(- s *frame-size*)))))))
     (define (apply-body cl argc s)
       (cond ((procedure? cl)
 	     (let ((p (stack->pair-args s argc)))
@@ -339,8 +342,8 @@
 				 (- s argc)
 				 s))
 			    (else
-			     (errorf "[2]wrang number of arguments for ~a (required ~d, got ~d)"
-				     (shorten-object cl) required-length argc)))))))
+			     (errorf "[2]wrang number of arguments for ~a (required ~d, got ~d)\n ~a"
+				     (shorten-object cl) required-length argc current-form)))))))
 	    ((org-closure? cl)
 	     (let ((p (stack->pair-args s argc)))
 	       (VM `#(,RET ,HALT) 0 (apply cl p) c (- s argc) s)))
@@ -425,7 +428,9 @@
        (let ((n (insn-value1 insn)))
 	 (VM x (skip) a c (- s n) s)))
       ((LEAVE)
-       (VM x (skip) a (index f 0) (index f 1) (- f 2)))
+       (let ((pop (insn-value1 insn)))
+       ;;(VM x (skip) a (index f 0) (index f 1) (- f 2))
+	 (VM x (skip) a c f (- s pop))))
       ((DEFINE)
        (let ((const? (insn-value1 insn))
 	     (var (fetch)))
@@ -672,6 +677,9 @@
        (VM x (skip) a c f s))
       ((SHIFTJ)
        (let ((argc (insn-value1-with-mask insn))
+	     (keep (insn-value2 insn)))
+	 (VM x (skip) a c f (shift-args (+ f keep) argc s)))
+       #;(let ((argc (insn-value1-with-mask insn))
 	     (display (- (insn-value2 insn) 1)))
 	 (let loop ((i 0)
 		    (c c))
@@ -682,18 +690,6 @@
 		 (VM x (skip) a c fp s))
 	       (loop (+ i (if (closure-mark c) 1 0))
 		     (closure-prev c))))))
-      #;((SHIFTJ_JUMP)
-       (let ((argc (insn-value1-with-mask insn))
-	     (display (insn-value2 insn))
-	     (n (fetch)))
-	 (let loop ((i display)
-		    (c c))
-	   (if (and (<= i 0)
-		    (closure-mark c))
-	       (let* ((fp (closure-mark c))
-		      (s (shift-args fp argc s)))
-		 (VM x (skip n) a c fp s))
-	       (loop (- i 1) (closure-prev c))))))
       ((JUMP)
        (let ((n (fetch)))
 	 (VM x (skip n) a c f s)))
@@ -1086,13 +1082,20 @@
 			(else c)))
 		body)))
 
+(define boundaryFrameMark 0)
+(define dummyCode `#(,HALT))
+
 (define (execute s opt)
+  #;(when (and (pair? s)
+	     (pair? (cdr s))
+	     (equal? (cadr s) '(sagittarius compiler match)))
+    (set! *debug* #t))
   (if (null? opt)
       (let ((c (compile s '()))
 	    (cl (%closure)))
 	(when *show-code*
 	  (vm-dump-code c))
-	(VM (array-data (code-builder-code c)) 0 '() cl 0 0))
+	(VM (array-data (code-builder-code c)) 0 '() cl *frame-size* (push-frame 0 '() boundaryFrameMark dummyCode 0)))
       (let ((o (string->symbol (car opt))))
 	#;(format #t "~,,,,50s~%" s)
 	(case o
@@ -1109,7 +1112,7 @@
 	   (set! *debug* #t)
 	   (let ((c (compile s '()))
 		 (cl (%closure)))
-	     (VM (array-data (code-builder-code c)) 0 '() cl 0 0)))
+	     (VM (array-data (code-builder-code c)) 0 '() cl *frame-size* (push-frame 0 '() boundaryFrameMark dummyCode 0))))
 	  ((c)
 	   (or (>= (length opt) 2)
 	       (error 'execute "option c requires following parameter: libname &output-file"))
@@ -1593,6 +1596,19 @@ lc: compile builtin libraries
 		  (export :all)
 		  (import null)) '())
 
+  #;(for-each (lambda (builtin-info)
+	      (let ((path (car builtin-info))
+		    (name (cadr builtin-info))
+		    (import (caddr builtin-info))
+		    (export (cadddr builtin-info)))
+		(print "loading " path)
+		(let ((lib (find-library '(sagittarius) #f)))
+		  (when lib
+		    (library-exported-set! lib #f)))
+		(load-file path '() name import export #f)))
+	    `((,*ext-lib* (sagittarius) (null) #f #f)
+	      (,*base-lib* (core base) (null (sagittarius)) #f #t)))
+  
     (vm-debug-step #t)
     (load-file (cadr args) (cddr args) #f #f #f #t))))
 ;;;; end of file

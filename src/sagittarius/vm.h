@@ -68,6 +68,7 @@ typedef struct SgContFrameRec
   SgObject       dc;		/* dc register value */
   /* SgObject      *fp; */	/* fp register value */
   int            fp;
+  SgObject      *env;		/* saved arguments */
 } SgContFrame;
 
 #define CONT_FRAME_SIZE (sizeof(SgContFrame)/sizeof(SgObject))
@@ -100,7 +101,6 @@ typedef struct SgCStackRec
 typedef struct SgContinucationRec
 {
   struct SgContinucationRec * prev;
-  Stack       *stack;
   SgContFrame *cont;
   SgObject     winders;
   SgCStack    *cstack;
