@@ -4162,7 +4162,7 @@
           (loop (cdr args) (cdr vars) (+ stack-size size) (+ index 1)))))))
      (body-size (pass3/rec body cb new-renv ctx)))
     (cb-emit1! cb LEAVE nargs)
-    (+ body-size assign-size total)))))
+    (+ body-size assign-size nargs)))))
 
 (define
  pass3/let
@@ -4194,7 +4194,7 @@
         #f))
       (body-size (pass3/rec body cb new-renv ctx)))
      (cb-emit1! cb LEAVE nargs)
-     (+ body-size args-size total))))))
+     (+ body-size args-size nargs))))))
 
 (define
  pass3/$LAMBDA
@@ -4273,7 +4273,7 @@
         #f))
       (body-size (pass3/rec body cb new-renv ctx)))
      (unless (tail-context? ctx) (cb-emit1! cb LEAVE nargs))
-     (+ body-size expr-size total))))))
+     (+ body-size expr-size nargs))))))
 
 (define
  pass3/$LABEL

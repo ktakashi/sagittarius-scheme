@@ -323,7 +323,6 @@ CASE(SHIFTJ) {
 }
 
 CASE(MARK) {
-  DCLOSURE(DC(vm))->mark=vm->fpOffset;
   NEXT;
 }
 
@@ -730,7 +729,7 @@ CASE(LET_FRAME) {
   INSN_VAL1(val1, c);
   CHECK_STACK(val1, vm);
   PUSH(SP(vm), DC(vm));
-  PUSH(SP(vm), vm->fpOffset);
+  /* PUSH(SP(vm), vm->fpOffset); */
   NEXT;
 }
 
@@ -749,7 +748,7 @@ CASE(DISPLAY) {
 CASE(ENTER) {
   INSN_VAL1(val1, c);
   FP(vm)=(SP(vm) - val1);
-  vm->fpOffset=CALC_OFFSET(vm, val1);
+  /* vm->fpOffset=CALC_OFFSET(vm, val1); */
   NEXT;
 }
 
@@ -1052,6 +1051,7 @@ CASE(SET_CAR) {
   }
 ;
   SG_SET_CAR(INDEX(SP(vm), 0), AC(vm));
+  SP(vm)--;
   AC(vm)=SG_UNDEF;
   NEXT;
 }
@@ -1064,6 +1064,7 @@ CASE(SET_CDR) {
   }
 ;
   SG_SET_CDR(INDEX(SP(vm), 0), AC(vm));
+  SP(vm)--;
   AC(vm)=SG_UNDEF;
   NEXT;
 }

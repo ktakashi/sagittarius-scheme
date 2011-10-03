@@ -318,7 +318,7 @@ static void format_integer(SgPort *out, SgObject arg, SgObject *params, int npar
 static void format_proc(SgPort *port, SgString *fmt, SgObject args, int sharedp)
 {
   SgChar ch = 0;
-  SgObject arg, oargs = args;
+  SgObject arg;
   SgPort *fmtstr = SG_PORT(Sg_MakeStringInputPort(fmt, FALSE));
   int backtracked = FALSE;
   int arglen, argcount;
@@ -583,9 +583,8 @@ static int symbol_need_bar(const SgChar *s, int n)
 static void write_symbol_name(SgString *snam, SgPort *port, SgWriteContext *ctx, int flags)
 {
   const SgChar *p = snam->value, *q;
-  int size = snam->size, i;
+  int size = snam->size;
   int escape = FALSE;
-  int spmask = 0x12;
   int r6rsMode = SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE);
   int mode = SG_WRITE_MODE(ctx);
 
@@ -604,21 +603,6 @@ static void write_symbol_name(SgString *snam, SgPort *port, SgWriteContext *ctx,
       (!(flags & SG_SYMBOL_WRITER_NOESCAPE_INITIAL))) {
     escape = symbol_need_bar(p, size);
   }
-  /*
-  if (*p < 128
-      && (special[*p] & 1)
-      && (!(flags & SG_SYMBOL_WRITER_NOESCAPE_INITIAL))) {
-    escape = TRUE && (mode != SG_WRITE_LIBPATH);
-  } else {
-    for (i = 0, q = p; i < size; i++, q++) {
-      if (*q < 128
-	  && (special[*q] & spmask)) {
-	escape = TRUE && (mode != SG_WRITE_LIBPATH);
-	break;
-      }
-    }
-  }
-  */
   if (escape && !r6rsMode) {
     Sg_PutcUnsafe(port, '|');
     for (q = p; q < p + size; q++) {

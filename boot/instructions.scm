@@ -203,7 +203,7 @@
 ;; Since we are not using display closure for let,
 ;; this won't be needed any more.
 (define-inst MARK (0 0 #f)
-  (set! (-> (DCLOSURE (DC vm)) mark) (-> vm fpOffset)))
+  #;(set! (-> (DCLOSURE (DC vm)) mark) (-> vm fpOffset)))
 
 (define-cgen-stmt branch-number-test
   ((_ op func)
@@ -391,7 +391,7 @@
 		   (PUSH (SP vm) (SG_VALUES_ELEMENT (AC vm) i))))))
 	  ((== val1 0)
 	   ;; (receive a ...)
-	   (let ((h '())
+	   (let ((h '())te
 		 (t '()))
 	     (if (== numValues 1)
 		 (SG_APPEND1 h t (AC vm))
@@ -831,7 +831,8 @@
       (wrong-type-of-argument-violation 'vector-ref "fixnum" (AC vm)))
   (check-vector-range vector-ref (INDEX (SP vm) 0) (SG_INT_VALUE (AC vm)))
   (set! (AC vm) (SG_VECTOR_ELEMENT (INDEX (SP vm) 0) (SG_INT_VALUE (AC vm))))
-  (set! (SP vm) (- (SP vm) 1)))
+  (post-- (SP vm))
+  #;(set! (SP vm) (- (SP vm) 1)))
 
 (define-inst VEC_SET (0 0 #t)
   (if (not (SG_VECTORP (INDEX (SP vm) 1)))
@@ -871,12 +872,14 @@
   (if (not (SG_PAIRP (INDEX (SP vm) 0)))
       (wrong-type-of-argument-violation 'set-car! "pair" (INDEX (SP vm) 0)))
   (SG_SET_CAR (INDEX (SP vm) 0) (AC vm))
+  (post-- (SP vm))
   (set! (AC vm) SG_UNDEF))
 
 (define-inst SET_CDR (0 0 #t)
   (if (not (SG_PAIRP (INDEX (SP vm) 0)))
       (wrong-type-of-argument-violation 'set-cdr! "pair" (INDEX (SP vm) 0)))
   (SG_SET_CDR (INDEX (SP vm) 0) (AC vm))
+  (post-- (SP vm))
   (set! (AC vm) SG_UNDEF))
 
 (define-inst CAAR (0 0 #t) :combined

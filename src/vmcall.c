@@ -44,11 +44,10 @@
 
   if (SG_SUBRP(AC(vm))) {
     CL(vm) = AC(vm);
-    DC(vm) = &dummy_display;
     PC(vm) = SG_SUBR_RETURN_CODE(AC(vm));
     SG_SUBR_RETURN_CODE(AC(vm))[0] = SG_WORD(RET);
     FP(vm) = SP(vm) - argc;
-    vm->fpOffset = CALC_OFFSET(vm, argc);
+    /* vm->fpOffset = CALC_OFFSET(vm, argc); */
     SG_PROF_COUNT_CALL(vm, AC(vm));
     AC(vm) = SG_SUBR_FUNC(AC(vm))(FP(vm), argc, SG_SUBR_DATA(AC(vm)));
   } else if (SG_CLOSUREP(AC(vm))) {
@@ -57,7 +56,7 @@
     int required = cb->argc;
     CHECK_STACK(cb->maxStack, vm);
     CL(vm) = AC(vm);
-    DC(vm) = SG_OBJ((uintptr_t)CL(vm)+offsetof(SgClosure, size));
+    DC(vm) = AC(vm);
     PC(vm) = cb->code;
     if (cb->optional) {
       int extra = argc - required;
@@ -66,21 +65,21 @@
 	INDEX_SET(sp, 0, SG_NIL);
 	SP(vm) = sp;
 	FP(vm) = sp - required;
-	vm->fpOffset = CALC_OFFSET(vm, required);
+	/* vm->fpOffset = CALC_OFFSET(vm, required); */
       } else if (extra >= 0) {
 	SgObject *sp;
 	INDEX_SET(SP(vm), extra, stack_to_pair_args(SP(vm), extra + 1));
 	sp = SP(vm) - extra;
 	SP(vm) = sp;
 	FP(vm) = sp - required;
-	vm->fpOffset = CALC_OFFSET(vm, required);
+	/* vm->fpOffset = CALC_OFFSET(vm, required); */
       } else {
 	Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),
 					   required - 1, argc, SG_UNDEF);
       }
     } else if (required == argc) {
       FP(vm) = SP(vm) - argc;
-      vm->fpOffset = CALC_OFFSET(vm, argc);
+      /* vm->fpOffset = CALC_OFFSET(vm, argc); */
     } else {
       SgObject args = SG_NIL;
       int i;

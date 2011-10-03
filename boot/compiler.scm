@@ -3733,7 +3733,7 @@
 				   new-renv
 				   ctx)))
 	(cb-emit1! cb LEAVE nargs)
-	(+ body-size assign-size total)))))
+	(+ body-size assign-size nargs)))))
 
 (define pass3/let
   (lambda (iform cb renv ctx)
@@ -3757,7 +3757,7 @@
 					(renv-frees renv) sets vars #f))
 	       (body-size (pass3/rec body cb new-renv ctx)))
 	  (cb-emit1! cb LEAVE nargs)
-	  (+ body-size args-size total))))))
+	  (+ body-size args-size nargs))))))
 
 (define pass3/$LAMBDA
   (lambda (iform cb renv ctx)
@@ -3817,7 +3817,7 @@
 	       (body-size (pass3/rec body cb new-renv ctx)))
 	  (unless (tail-context? ctx)
 	    (cb-emit1! cb LEAVE nargs))
-	  (+ body-size expr-size total))))))
+	  (+ body-size expr-size nargs))))))
 
 (define pass3/$LABEL
   (lambda (iform cb renv ctx)
