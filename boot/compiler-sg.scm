@@ -4364,13 +4364,7 @@
       (pass3/compile-args
        args
        cb
-       (make-new-renv
-        renv
-        (append (renv-locals renv) vars)
-        (renv-frees renv)
-        sets
-        '()
-        #f)
+       (make-new-renv renv (renv-locals renv) (renv-frees renv) sets '() #f)
        ctx)))
     (cb-emit1! cb ENTER (+ nargs (length (renv-locals renv))))
     (cb-label-set! cb (pass3/ensure-label cb label))

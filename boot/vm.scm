@@ -1315,7 +1315,7 @@
 (add-namespace! odd? (o))
 (add-namespace! even? (o))
 (add-namespace! positive? (o))
-(add-namespace! mod (a b))
+;;(add-namespace! mod (a b))
 ;(add-namespace! pair? (p))
 (add-namespace! length (p))
 ;(add-namespace! null? (p))

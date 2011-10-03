@@ -3893,7 +3893,7 @@
       ($call-renv-set! iform (length (renv-locals renv))) ;; for not to shift
       (let ((args-size (pass3/compile-args args cb 
 					   (make-new-renv renv
-							  (append (renv-locals renv) vars)
+							  (renv-locals renv)
 							  (renv-frees renv)
 							  sets
 							  '()
