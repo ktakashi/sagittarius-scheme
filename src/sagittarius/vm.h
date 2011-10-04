@@ -66,8 +66,8 @@ typedef struct SgContFrameRec
   SgWord        *pc;		/* next PC */
   SgObject       cl;		/* cl register value */
   SgObject       dc;		/* dc register value */
-  SgObject      *fp;		/* fp register value */
-  /* int            fp; */
+  /* SgObject      *fp; */	/* fp register value */
+  int            fp;
   SgObject      *env;		/* saved arguments */
 } SgContFrame;
 
