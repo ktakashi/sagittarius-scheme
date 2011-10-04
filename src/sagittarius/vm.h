@@ -395,6 +395,7 @@ SG_EXTERN SgObject Sg_AddDynamicLoadPath(SgString *path);
 
 /* eval */
 SG_EXTERN SgObject Sg_Eval(SgObject sexp, SgObject env);
+SG_EXTERN SgObject Sg_VMEval(SgObject sexp, SgObject env);
 SG_EXTERN SgObject Sg_Environment(SgObject lib, SgObject spec);
 
 /* dynamic-wind */

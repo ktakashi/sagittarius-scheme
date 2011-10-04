@@ -296,7 +296,7 @@
 			   (set! pc (+ pc 1))
 			   (vector-ref x pc)))))
 	       (return (syntax-rules ()
-			 ((_)
+			 ((_ a)
 			  (let ((s f))
 			    (VM (index s 0) ;; code
 				(index s 1) ;; pc
@@ -409,17 +409,17 @@
       ((FRAME)
        (let ((n (fetch)))
        (VM x (skip) a c f (push-frame f c (- (+ pc n) 1) x s))))
-      ((LET_FRAME)
+      #;((LET_FRAME)
        ;; TODO expand stack
        (let ((n (insn-value1 insn)))
 	 (VM x (skip) a c f (push-let-frame f c s))))
-      ((POP_LET_FRAME)
+      #;((POP_LET_FRAME)
        (let* ((n (insn-value1-with-mask insn))
 	      (m (insn-value2 insn))
 	      (s (discard-let-frame f n s))
 	      (c (if (zero? m) c (discard-prev-display c))))
 	 (VM x (skip) a c f s)))
-      ((DISPLAY)
+      #;((DISPLAY)
        (let ((n (insn-value1 insn)))
 	 (let ((new-c (make-display n s)))
 	   (closure-prev-set! new-c c)
@@ -672,7 +672,7 @@
 
       ;; set mark on current closure
       ;; then shiftj can look for this mark to jump where.
-      ((MARK)
+      #;((MARK)
        (closure-mark-set! c f)
        (VM x (skip) a c f s))
       ((SHIFTJ)
@@ -859,7 +859,10 @@
 		  (pair-args->stack s 0 args)
 		  (VM `#(,(merge-insn1 CALL len) ,HALT) 0 a c f s))))))
       ((RET)
-       (return))
+       (return a))
+      ((CONST_RET)
+       (let ((a (fetch)))
+	 (return a)))
       ;; builtin procedures
       ((NOT)
        (VM x (skip) (not a) c f s))

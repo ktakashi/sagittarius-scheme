@@ -4105,7 +4105,7 @@
       (cb-label-set! cb begin-of-else)
       (let
        ((else-size (pass3/rec ($if-else iform) cb renv ctx)))
-       (cb-label-set! cb end-of-else)
+       (unless (tail-context? ctx) (cb-label-set! cb end-of-else))
        (+ test-size then-size else-size))))))))
 
 (define
@@ -4161,7 +4161,7 @@
           (cb-emit1i! cb LSET index (lvar-name (car vars)))
           (loop (cdr args) (cdr vars) (+ stack-size size) (+ index 1)))))))
      (body-size (pass3/rec body cb new-renv ctx)))
-    (cb-emit1! cb LEAVE nargs)
+    (unless (tail-context? ctx) (cb-emit1! cb LEAVE nargs))
     (+ body-size assign-size nargs)))))
 
 (define
@@ -4193,7 +4193,7 @@
         vars
         #f))
       (body-size (pass3/rec body cb new-renv ctx)))
-     (cb-emit1! cb LEAVE nargs)
+     (unless (tail-context? ctx) (cb-emit1! cb LEAVE nargs))
      (+ body-size args-size nargs))))))
 
 (define
@@ -4382,7 +4382,7 @@
          vars
          #t)
         ctx)))
-     (cb-emit1! cb LEAVE nargs)
+     (unless (tail-context? ctx) (cb-emit1! cb LEAVE nargs))
      (+ nargs body-size))))))
 
 (define

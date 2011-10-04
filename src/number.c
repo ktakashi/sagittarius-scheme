@@ -1039,7 +1039,20 @@ SgObject Sg_RationalMulDiv(SgObject x, SgObject y, int divide)
 
 SgObject Sg_MakeFlonum(double d)
 {
-  SgFlonum *f = SG_NEW_ATOMIC(SgFlonum);
+  SgFlonum *f;
+#if USE_CONST_FLONUM
+  if (d == 0.0) {
+    union { double f64; int64_t i64; } datum;
+    datum.f64 = d;
+    if (datum.i64 < 0) {
+      return SG_FL_NEGATIVE_ZERO;
+    } else {
+      return SG_FL_POSITIVE_ZERO;
+    }
+  }
+  if (isnan(d)) return SG_NAN;
+#endif
+  f = SG_NEW_ATOMIC(SgFlonum);
   SG_SET_HEADER(f, TC_FLONUM);
   f->value = d;
   return SG_OBJ(f);
@@ -3507,9 +3520,23 @@ void Sg__InitNumber()
   }
 
   SG_2_52   = Sg_MakeBignumFromS64(iexpt_2n52);
+
+#if USE_CONST_FLONUM
+  /* initialize const flonums */
+#define INIT_CONST_FL(n, v)					\
+  { (n) = SG_NEW_ATOMIC(SgFlonum); SG_SET_HEADER(n, TC_FLONUM);	\
+    SG_FLONUM(n)->value = (v);}
+
+  INIT_CONST_FL(SG_NAN, NAN);
+  INIT_CONST_FL(SG_POSITIVE_INFINITY, INFINITY);
+  INIT_CONST_FL(SG_NEGATIVE_INFINITY, -INFINITY);
+  INIT_CONST_FL(SG_FL_POSITIVE_ZERO, 0.0);
+  INIT_CONST_FL(SG_FL_NEGATIVE_ZERO, -0.0);
+#else
   SG_POSITIVE_INFINITY = Sg_MakeFlonum(INFINITY);
   SG_NEGATIVE_INFINITY = Sg_MakeFlonum(-INFINITY);
   SG_NAN = Sg_MakeFlonum(NAN);
+#endif
 }
   
 /*

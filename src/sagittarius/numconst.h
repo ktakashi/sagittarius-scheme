@@ -38,13 +38,20 @@ SG_CDECL_BEGIN
 SG_EXTERN SgObject Sg__ConstObjes[]; /* initialized in number.c */
 SG_CDECL_END
 
+#define USE_CONST_FLONUM 1
+
 #define SG_2_52               (Sg__ConstObjes[0]) /* 2^52 */
 #define SG_2_53               (Sg__ConstObjes[1]) /* 2^53 */
 #define SG_POSITIVE_INFINITY  (Sg__ConstObjes[2]) /* #i1/0 */
 #define SG_NEGATIVE_INFINITY  (Sg__ConstObjes[3]) /* #i-1/0 */
 #define SG_NAN                (Sg__ConstObjes[4]) /* #<nan> */
-
+#if USE_CONST_FLONUM
+#define SG_FL_POSITIVE_ZERO   (Sg__ConstObjes[5]) /* 0.0 */
+#define SG_FL_NEGATIVE_ZERO   (Sg__ConstObjes[6]) /* -0.0 */
+#define SG_NUM_CONST_OBJS 7
+#else
 #define SG_NUM_CONST_OBJS 5
+#endif
 
 #endif /* SAGITTARIUS_NUMCONST_H_ */
 

@@ -27,7 +27,6 @@ DEFINSN(NEG, 0, 0, TRUE, FALSE)
 DEFINSN(TEST, 0, 1, TRUE, TRUE)
 DEFINSN(JUMP, 0, 1, TRUE, TRUE)
 DEFINSN(SHIFTJ, 2, 0, FALSE, FALSE)
-DEFINSN(MARK, 0, 0, FALSE, FALSE)
 DEFINSN(BNNUME, 0, 1, TRUE, TRUE)
 DEFINSN(BNLT, 0, 1, TRUE, TRUE)
 DEFINSN(BNLE, 0, 1, TRUE, TRUE)
@@ -51,9 +50,6 @@ DEFINSN(TAIL_CALL, 1, 0, TRUE, FALSE)
 DEFINSN(LOCAL_TAIL_CALL, 1, 0, TRUE, FALSE)
 DEFINSN(RET, 0, 0, FALSE, FALSE)
 DEFINSN(FRAME, 0, 1, FALSE, TRUE)
-DEFINSN(LET_FRAME, 1, 0, TRUE, FALSE)
-DEFINSN(POP_LET_FRAME, 2, 0, FALSE, FALSE)
-DEFINSN(DISPLAY, 1, 0, FALSE, FALSE)
 DEFINSN(ENTER, 1, 0, FALSE, FALSE)
 DEFINSN(LEAVE, 1, 0, FALSE, FALSE)
 DEFINSN(DEFINE, 1, 1, TRUE, FALSE)
@@ -102,6 +98,7 @@ DEFINSN(FREF_CAR_PUSH, 1, 0, TRUE, FALSE)
 DEFINSN(FREF_CDR_PUSH, 1, 0, TRUE, FALSE)
 DEFINSN(GREF_CAR_PUSH, 0, 1, TRUE, FALSE)
 DEFINSN(GREF_CDR_PUSH, 0, 1, TRUE, FALSE)
+DEFINSN(CONST_RET, 0, 1, FALSE, FALSE)
 #endif /* DEFINSN */
 #ifdef VM_LOOP
 CASE(NOP) {
@@ -205,7 +202,23 @@ CASE(UNBOX) {
 }
 
 CASE(ADD) {
-  BUILTIN_TWO_ARGS(vm, Sg_Add);
+  if ((SG_INTP(AC(vm)) && SG_INTP(INDEX(SP(vm), 0)))  ) {
+    {
+      long n = (SG_INT_VALUE(INDEX(SP(vm), 0)) + SG_INT_VALUE(AC(vm)));
+      SP(vm)--;
+      if ((SG_INT_MIN <= n && SG_INT_MAX >= n)) {
+        AC(vm)=SG_MAKE_INT(n);
+      } else {
+        AC(vm)=Sg_MakeBignumFromSI(n);
+      }
+;
+    }
+;
+  } else {
+    BUILTIN_TWO_ARGS(vm, Sg_Add);
+  }
+  
+;
   NEXT;
 }
 
@@ -231,7 +244,23 @@ CASE(ADDI) {
 }
 
 CASE(SUB) {
-  BUILTIN_TWO_ARGS(vm, Sg_Sub);
+  if ((SG_INTP(AC(vm)) && SG_INTP(INDEX(SP(vm), 0)))  ) {
+    {
+      long n = (SG_INT_VALUE(INDEX(SP(vm), 0)) - SG_INT_VALUE(AC(vm)));
+      SP(vm)--;
+      if ((SG_INT_MIN <= n && SG_INT_MAX >= n)) {
+        AC(vm)=SG_MAKE_INT(n);
+      } else {
+        AC(vm)=Sg_MakeBignumFromSI(n);
+      }
+;
+    }
+;
+  } else {
+    BUILTIN_TWO_ARGS(vm, Sg_Sub);
+  }
+  
+;
   NEXT;
 }
 
@@ -294,14 +323,17 @@ CASE(NEG) {
 }
 
 CASE(TEST) {
-  {
-    SgObject n = FETCH_OPERAND(PC(vm));
-    ASSERT(SG_INTP(n));
-    if (SG_FALSEP(AC(vm))) {
+  if (SG_FALSEP(AC(vm))) {
+    {
+      SgObject n = FETCH_OPERAND(PC(vm));
+      ASSERT(SG_INTP(n));
       PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
     }
 ;
+  } else {
+    PC(vm)++;
   }
+  
 ;
   NEXT;
 }
@@ -322,10 +354,6 @@ CASE(SHIFTJ) {
   NEXT;
 }
 
-CASE(MARK) {
-  NEXT;
-}
-
 CASE(BNNUME) {
   {
     SgObject n = FETCH_OPERAND(PC(vm));
@@ -338,10 +366,13 @@ CASE(BNNUME) {
     }
     
 ;
-    AC(vm)=SG_MAKE_BOOL(t);
-    if (!(t)) {
+    if (t) {
+      AC(vm)=SG_TRUE;
+    } else {
+      AC(vm)=SG_FALSE;
       PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
     }
+    
 ;
     SP(vm)--;
   }
@@ -361,10 +392,13 @@ CASE(BNLT) {
     }
     
 ;
-    AC(vm)=SG_MAKE_BOOL(t);
-    if (!(t)) {
+    if (t) {
+      AC(vm)=SG_TRUE;
+    } else {
+      AC(vm)=SG_FALSE;
       PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
     }
+    
 ;
     SP(vm)--;
   }
@@ -384,10 +418,13 @@ CASE(BNLE) {
     }
     
 ;
-    AC(vm)=SG_MAKE_BOOL(t);
-    if (!(t)) {
+    if (t) {
+      AC(vm)=SG_TRUE;
+    } else {
+      AC(vm)=SG_FALSE;
       PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
     }
+    
 ;
     SP(vm)--;
   }
@@ -407,10 +444,13 @@ CASE(BNGT) {
     }
     
 ;
-    AC(vm)=SG_MAKE_BOOL(t);
-    if (!(t)) {
+    if (t) {
+      AC(vm)=SG_TRUE;
+    } else {
+      AC(vm)=SG_FALSE;
       PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
     }
+    
 ;
     SP(vm)--;
   }
@@ -430,10 +470,13 @@ CASE(BNGE) {
     }
     
 ;
-    AC(vm)=SG_MAKE_BOOL(t);
-    if (!(t)) {
+    if (t) {
+      AC(vm)=SG_TRUE;
+    } else {
+      AC(vm)=SG_FALSE;
       PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
     }
+    
 ;
     SP(vm)--;
   }
@@ -725,30 +768,9 @@ CASE(FRAME) {
   NEXT;
 }
 
-CASE(LET_FRAME) {
-  INSN_VAL1(val1, c);
-  CHECK_STACK(val1, vm);
-  PUSH(SP(vm), DC(vm));
-  /* PUSH(SP(vm), vm->fpOffset); */
-  NEXT;
-}
-
-CASE(POP_LET_FRAME) {
-  INSN_VAL2(val1, val2, c);
-  SP(vm)=discard_let_frame(vm, val1, val2);
-  NEXT;
-}
-
-CASE(DISPLAY) {
-  INSN_VAL1(val1, c);
-  make_display(val1, vm);
-  NEXT;
-}
-
 CASE(ENTER) {
   INSN_VAL1(val1, c);
   FP(vm)=(SP(vm) - val1);
-  /* vm->fpOffset=CALC_OFFSET(vm, val1); */
   NEXT;
 }
 
@@ -966,7 +988,7 @@ CASE(VEC_REF) {
   }
 ;
   AC(vm)=SG_VECTOR_ELEMENT(INDEX(SP(vm), 0), SG_INT_VALUE(AC(vm)));
-  SP(vm)=(SP(vm) - 1);
+  SP(vm)--;
   NEXT;
 }
 
@@ -1326,6 +1348,12 @@ CASE(GREF_CDR_PUSH) {
 ;
   BUILTIN_ONE_ARG(vm, SG_CDR);
   PUSH(SP(vm), AC(vm));
+  NEXT;
+}
+
+CASE(CONST_RET) {
+  AC(vm)=FETCH_OPERAND(PC(vm));
+  RET_INSN();
   NEXT;
 }
 

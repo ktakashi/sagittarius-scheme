@@ -856,6 +856,12 @@
 	       (else
 		(cb-flush cb)
 		(code-builder-packet-set! cb packet))))
+	((= (packet-insn packet) RET)
+	 (cond ((= (packet-insn (code-builder-packet cb)) CONST)
+		(packet-insn-set! (code-builder-packet cb) CONST_RET))
+	       (else 
+		(cb-flush cb)
+		(code-builder-packet-set! cb packet))))
 	((= (packet-insn packet) CAR)
 	 (cond ((= (packet-insn (code-builder-packet cb)) LREF)
 		(packet-insn-set! (code-builder-packet cb) LREF_CAR))

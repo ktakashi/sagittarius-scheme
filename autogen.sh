@@ -45,7 +45,8 @@ do_insn()
 #    ./script/gen-instruction.scm scheme ./boot/instructions.scm ./boot/insn.scm
 #    ./script/gen-instruction.scm c++ ./boot/instructions.scm ./src/sagittarius/instruction.h
     cd src
-    sash -L../sitelib ./geninsn
+#    sash -L../sitelib ./geninsn
+    sash ./geninsn
     cd ../
 }
 

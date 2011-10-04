@@ -221,7 +221,7 @@ int Sg_AttachVM(SgVM *vm)
   if (pthread_setspecific(the_vm_key, vm) != 0) return FALSE;
 #endif
   Sg_SetCurrentThread(&vm->thread);
-  vm->state = SG_VM_RUNNABLE;
+  vm->threadState = SG_VM_RUNNABLE;
   return TRUE;
 }
 
@@ -1720,32 +1720,6 @@ void Sg_VMExecute(SgObject toplevel)
   evaluate_safe(theVM->closureForEvaluate, SG_CODE_BUILDER(toplevel)->code);
 }
 
-
-#if USE_STACK_DISPLAY
-static inline SgObject* discard_let_frame(SgVM *vm, int n, int freec)
-{
-  Sg_Panic("POP_LET_FRAME appeared, but it's no longer used.");
-}
-#else
-static inline SgObject* discard_let_frame(SgVM *vm, int n, int freec)
-{
-  Sg_Panic("POP_LET_FRAME appeared, but it's no longer used.");
-}
-#endif
-
-#if USE_STACK_DISPLAY
-static inline void make_display(int n, SgVM *vm)
-{
-  Sg_Panic("DISPLAY appeared, but it's no longer used.");
-}
-#else
-static inline void make_display(int n, SgVM *vm) 
-{
-  Sg_Panic("DISPLAY appeared, but it's no longer used.");
-}
-#endif
-
-
 static inline SgObject stack_to_pair_args(SgObject *sp, int nargs)
 {
   SgObject args = SG_NIL;
@@ -1772,6 +1746,7 @@ static inline SgObject* shift_args(SgObject *fp, int m, SgObject *sp)
   for (i = m - 1; 0 <= i; i--) {
     INDEX_SET(fp + m, i, INDEX(sp, i));
   }
+  /* memmove(fp, sp-m, m*sizeof(SgObject)); */
   return fp + m;
 }
 
@@ -1893,22 +1868,22 @@ static void process_queued_requests(SgVM *vm)
 #define BRANCH_TEST2(test)			\
   {						\
     SgObject n = FETCH_OPERAND(PC(vm));		\
-    if (!test(INDEX(SP(vm), 0), AC(vm))) {	\
+    if (test(INDEX(SP(vm), 0), AC(vm))) {	\
+      AC(vm) = SG_TRUE;				\
+    } else {					\
       PC(vm) += SG_INT_VALUE(n) - 1;		\
       AC(vm) = SG_FALSE;			\
-    } else {					\
-      AC(vm) = SG_TRUE;				\
     }						\
     SP(vm)--;					\
   }
 #define BRANCH_TEST1(test)			\
   {						\
     SgObject n = FETCH_OPERAND(PC(vm));		\
-    if (!test(AC(vm))) {			\
+    if (test(AC(vm))) {				\
+      AC(vm) = SG_TRUE;				\
+    } else {					\
       PC(vm) += SG_INT_VALUE(n) - 1;		\
       AC(vm) = SG_FALSE;			\
-    } else {					\
-      AC(vm) = SG_TRUE;				\
     }						\
   }
 

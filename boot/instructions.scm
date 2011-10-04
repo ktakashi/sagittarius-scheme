@@ -126,7 +126,17 @@
   (set! (AC vm) (-> (SG_BOX (AC vm)) value)))
 
 (define-inst ADD (0 0 #t)
-  (BUILTIN_TWO_ARGS vm Sg_Add))
+  (cond ((and (SG_INTP (AC vm))
+	      (SG_INTP (INDEX (SP vm) 0)))
+	 (let ((n::long (+ (SG_INT_VALUE (INDEX (SP vm) 0))
+			   (SG_INT_VALUE (AC vm)))))
+	   (post-- (SP vm))
+	   (if (and (<= SG_INT_MIN n)
+		    (>= SG_INT_MAX n))
+	       (set! (AC vm) (SG_MAKE_INT n))
+	       (set! (AC vm) (Sg_MakeBignumFromSI n)))))
+	(else
+	 (BUILTIN_TWO_ARGS vm Sg_Add))))
 
 (define-inst ADDI (1 0 #t)
   (INSN_VAL1 val1 c)
@@ -140,7 +150,17 @@
 	 (BUILTIN_ONE_ARG_WITH_INSN_VALUE vm Sg_Add c))))
 
 (define-inst SUB (0 0 #t)
-  (BUILTIN_TWO_ARGS vm Sg_Sub))
+  (cond ((and (SG_INTP (AC vm))
+	      (SG_INTP (INDEX (SP vm) 0)))
+	 (let ((n::long (- (SG_INT_VALUE (INDEX (SP vm) 0))
+			   (SG_INT_VALUE (AC vm)))))
+	   (post-- (SP vm))
+	   (if (and (<= SG_INT_MIN n)
+		    (>= SG_INT_MAX n))
+	       (set! (AC vm) (SG_MAKE_INT n))
+	       (set! (AC vm) (Sg_MakeBignumFromSI n)))))
+	(else
+	 (BUILTIN_TWO_ARGS vm Sg_Sub))))
 
 (define-inst SUBI (1 0 #t)
   (INSN_VAL1 val1 c)
@@ -185,10 +205,12 @@
   (BUILTIN_ONE_ARG vm Sg_Negate))
 
 (define-inst TEST (0 1 #t) :label
-  (let ((n (FETCH_OPERAND (PC vm))))
-    (ASSERT (SG_INTP n))
-    (if (SG_FALSEP (AC vm))
-	(set! (PC vm) (+ (PC vm) (- (SG_INT_VALUE n) 1))))))
+  (cond ((SG_FALSEP (AC vm))
+	 (let ((n (FETCH_OPERAND (PC vm))))
+	   (ASSERT (SG_INTP n))
+	   (set! (PC vm) (+ (PC vm) (- (SG_INT_VALUE n) 1)))))
+	(else
+	 (post++ (PC vm)))))
 
 (define-inst JUMP (0 1 #t) :label
   (let ((n (FETCH_OPERAND (PC vm))))
@@ -199,11 +221,6 @@
   (INSN_VAL2 val1 val2 c)
   #;(shiftj_process vm val2 val1)
   (set! (SP vm) (shift_args (+ (FP vm) val2) val1 (SP vm))))
-
-;; Since we are not using display closure for let,
-;; this won't be needed any more.
-(define-inst MARK (0 0 #f)
-  #;(set! (-> (DCLOSURE (DC vm)) mark) (-> vm fpOffset)))
 
 (define-cgen-stmt branch-number-test
   ((_ op func)
@@ -216,9 +233,11 @@
 	      (set! t (,op (cast intptr_t s) (cast intptr_t (AC vm)))))
 	     (else
 	      (set! t (,func s (AC vm)))))
-       (set! (AC vm) (SG_MAKE_BOOL t))
-       (unless t
-	 (set! (PC vm) (+ (PC vm) (- (SG_INT_VALUE n) 1))))
+       (cond (t
+	      (set! (AC vm) SG_TRUE))
+	     (else
+	      (set! (AC vm) SG_FALSE)
+	      (set! (PC vm) (+ (PC vm) (- (SG_INT_VALUE n) 1)))))
        (post-- (SP vm))))))
 
 (define-inst BNNUME (0 1 #t) :label
@@ -391,7 +410,7 @@
 		   (PUSH (SP vm) (SG_VALUES_ELEMENT (AC vm) i))))))
 	  ((== val1 0)
 	   ;; (receive a ...)
-	   (let ((h '())te
+	   (let ((h '())
 		 (t '()))
 	     (if (== numValues 1)
 		 (SG_APPEND1 h t (AC vm))
@@ -575,22 +594,6 @@
     (PUSH_CONT vm (+ (PC vm) (- (SG_INT_VALUE n) 1)))))
 
 
-;; These LET_FRAME, POP_LET_FRAME and DISPLAY are not used any more
-(define-inst LET_FRAME (1 0 #t)
-  (INSN_VAL1 val1 c)
-  (CHECK_STACK val1 vm)
-  (PUSH (SP vm) (DC vm))
-  #;(PUSH (SP vm) (FP vm))
-  (PUSH (SP vm) (-> vm fpOffset)))
-
-(define-inst POP_LET_FRAME (2 0 #f)
-  (INSN_VAL2 val1 val2 c)
-  (set! (SP vm) (discard_let_frame vm val1 val2)))
-
-(define-inst DISPLAY (1 0 #f)
-  (INSN_VAL1 val1 c)
-  (make_display val1 vm))
-
 #|
       CASE(ENTER) {
 	INSN_VAL1(val1, c);
@@ -601,7 +604,7 @@
 (define-inst ENTER (1 0 #f)
   (INSN_VAL1 val1 c)
   (set! (FP vm) (- (SP vm) val1))
-  (set! (-> vm fpOffset) (CALC_OFFSET vm val1)))
+  #;(set! (-> vm fpOffset) (CALC_OFFSET vm val1)))
 
 (define-inst LEAVE (1 0 #f)
   (INSN_VAL1 val1 c)
@@ -939,8 +942,8 @@
 (define-inst GREF_CDR_PUSH (0 1 #t) :combined
   (GREF CDR PUSH))
 
-#;(define-inst SHIFTJ_JUMP (2 1 #t) :combined
-  (SHIFTJ JUMP))
+(define-inst CONST_RET (0 1 #f) :combined
+  (CONST RET))
 
 ;;;; end of file
 ;; Local Variables:

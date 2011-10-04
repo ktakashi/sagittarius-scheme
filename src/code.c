@@ -165,6 +165,15 @@ static void combineInsnArg0(SgCodeBuilder *cb, SgCodePacket *packet)
       goto flush;
     }
     break;
+  case RET:
+    switch (cb->packet.insn) {
+    case CONST:
+      cb->packet.insn = CONST_RET;
+      break;
+    default:
+      goto flush;
+    }
+    break;
   case CAR:
     switch (cb->packet.insn) {
     case LREF:
