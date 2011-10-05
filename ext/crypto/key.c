@@ -47,7 +47,7 @@ SgObject Sg_GenerateSecretKey(SgString *type, SgByteVector *key)
   }
   crypto = Sg_MakeCrypto(CRYPTO_KEY);
   SG_SECRET_KEY(SG_KEY(crypto)) = key;
-  SG_KEY(crypto)->name = type;
+  SG_KEY(crypto)->name = SG_SYMBOL(Sg_Intern(type));
   return SG_OBJ(crypto);
 }
 

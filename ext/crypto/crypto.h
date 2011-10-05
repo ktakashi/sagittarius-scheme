@@ -169,9 +169,6 @@ SG_DECLARE_META_OBJ(Sg_CryptoMeta);
 #define argumentAsCrypto(index, tmp_, var_)				\
   castArgumentType(index, tmp_, var_, crypto, SG_CRYPTO_P, SG_CRYPTO)
 
-#define argumentAsKey(index, tmp_, var_)				\
-  castArgumentType(index, tmp_, var_, key, SG_KEY_P, SG_CRYPTO)
-
 SgObject Sg_MakeCrypto(SgCryptoType type);
 
 SgObject Sg_MakeSymmetricCipher(SgString *name, SgCryptoMode mode, SgCrypto *key,

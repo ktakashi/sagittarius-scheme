@@ -24,9 +24,13 @@
   (define-c-proc generate-secret-key (type::String key::ByteVector) ::Object
     (result (Sg_GenerateSecretKey type key)))
 
-  (define-c-proc make-symmetric-cipher (name::String mode::fixnum key::Key
+  (define-c-proc make-symmetric-cipher (name::String mode::fixnum key::Crypto
 			      iv rounds::fixnum padder ctr_mode::fixnum)
     ::Object
+    (unless (SG_KEY_P key)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "key" SG_LITERAL_STRING)
+				       key '()))
     (unless (or (SG_FALSEP iv)
 		(SG_BVECTORP iv))
       (Sg_WrongTypeOfArgumentViolation procedureName

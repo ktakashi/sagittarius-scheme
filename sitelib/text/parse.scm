@@ -43,6 +43,7 @@
 	    read-string)
     (import (core)
 	    (core base)
+	    (core errors)
 	    (sagittarius)
 	    (srfi :13 strings)
 	    (srfi :14 char-set)
