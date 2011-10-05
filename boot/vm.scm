@@ -24,6 +24,10 @@
 ;(define *libraries* (make-hash-table 'equal?))
 ;(define (vm-libraries) *libraries*)
 
+;; adjust for c
+;; now cont frame size is 6
+(define *frame-size* 6)
+
 (cond-expand
  (gauche
   (define (syntax-error form . irritants)
@@ -151,11 +155,14 @@
 (define (set-box! b v)
   (vector-set! b 1 v))
 
-;; adjust for c
-;; now cont frame size is 7
-(define *frame-size* 7)
+
 (define (push-frame f c pc x s)
-  (push x (push pc (push c (push f (push -1 (push -2 (push -3 s))))))))
+  (let ((dummy-count (- *frame-size* 4)))
+    (let ((s (do ((i 1 (+ i 1))
+		  (s (push '*dummy* s) (push '*dummy* s)))
+		 ((= i dummy-count) s))))
+      (push x (push pc (push c (push f s)))))))
+
 (define (push-let-frame f c s)
   (push c (push f s)))
 

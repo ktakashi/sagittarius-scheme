@@ -56,7 +56,6 @@
     int required = cb->argc;
     CHECK_STACK(cb->maxStack, vm);
     CL(vm) = AC(vm);
-    DC(vm) = AC(vm);
     PC(vm) = cb->code;
     if (cb->optional) {
       int extra = argc - required;

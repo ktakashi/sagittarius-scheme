@@ -52,11 +52,16 @@ struct SgBoxRec
 #define SG_BOX(obj)  ((SgBox*)(obj))
 #define SG_BOXP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_BOX))
 
+#define USE_ONE_PATH_CALL_CC 1
+
+#if USE_ONE_PATH_CALL_CC
+#else
 typedef struct StackRec
 {
   int      size;
   SgObject stack[1];
 } Stack;
+#endif
 
 /* continuation frame */
 typedef struct SgContFrameRec
@@ -65,25 +70,12 @@ typedef struct SgContFrameRec
   int            size;		/* size of argument frame */
   SgWord        *pc;		/* next PC */
   SgObject       cl;		/* cl register value */
-  SgObject       dc;		/* dc register value */
-  /* SgObject      *fp; */	/* fp register value */
-  int            fp;
+  SgObject      *fp;		/* fp register value */
+  /* int            fp; */
   SgObject      *env;		/* saved arguments */
 } SgContFrame;
 
 #define CONT_FRAME_SIZE (sizeof(SgContFrame)/sizeof(SgObject))
-
-typedef struct RegistersRec
-{
-  SgWord   *pc;
-  SgObject  ac;
-  SgObject  cl;
-  SgObject  dc;
-  int       spOffset;
-  int       fpOffset;
-  SgContFrame *cont;
-} Registers;
-
 
 typedef SgObject SgCContinuationProc(SgObject result, void **data);
 
@@ -102,7 +94,10 @@ typedef struct SgContinucationRec
 {
   struct SgContinucationRec * prev;
   SgContFrame *cont;
+#if USE_ONE_PATH_CALL_CC
+#else
   Stack       *stack;
+#endif
   SgObject     winders;
   SgCStack    *cstack;
   SgObject     ehandler;
@@ -172,7 +167,6 @@ struct SgVMRec
   SgWord   *pc;			/* program counter */
   SgObject  ac;			/* accumelator */
   SgObject  cl;			/* current closure */
-  SgObject  dc;			/* display closure */
   SgObject *fp;			/* frame pointer */
   SgObject *sp;			/* stack pointer */
   SgContFrame  *cont;     	/* saved continuation frame */
@@ -312,7 +306,6 @@ typedef enum {
 
 #define PC(vm)             (vm)->pc
 #define AC(vm)             (vm)->ac
-#define DC(vm)             (vm)->dc
 #define CL(vm)             (vm)->cl
 #define FP(vm)             (vm)->fp
 #define SP(vm)             (vm)->sp
@@ -372,7 +365,6 @@ SG_CDECL_BEGIN
 SG_EXTERN SgVM*    Sg_NewVM(SgVM *proto, SgObject name);
 SG_EXTERN SgObject Sg_Compile(SgObject sexp, SgObject env);
 SG_EXTERN SgObject Sg_Apply(SgObject proc, SgObject args);
-SG_EXTERN SgObject Sg_ApplySafe(SgObject proc, SgObject args);
 SG_EXTERN SgObject Sg_Apply0(SgObject proc);
 SG_EXTERN SgObject Sg_Apply1(SgObject proc, SgObject arg);
 SG_EXTERN SgObject Sg_Apply2(SgObject proc, SgObject arg0, SgObject arg1);

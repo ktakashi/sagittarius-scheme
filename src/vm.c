@@ -126,7 +126,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->stackEnd = v->stack + SG_VM_STACK_SIZE;
   v->cont = (SgContFrame *)v->sp;
   v->ac = SG_NIL;
-  v->cl = v->dc = NULL;
+  v->cl = NULL;
   /* v->fpOffset = 0; */
 
   v->attentionRequest = FALSE;
@@ -237,35 +237,11 @@ int Sg_SetCurrentVM(SgVM *vm)
 
 #define Sg_VM() theVM
 
-
-#define SAVE_REGS(vm, r)			\
-  do {						\
-    (r)->ac = (vm)->ac;				\
-    (r)->dc = (vm)->dc;				\
-    (r)->cl = (vm)->cl;				\
-    (r)->pc = (vm)->pc;				\
-    (r)->spOffset = (vm)->sp - (vm)->stack;	\
-    (r)->fpOffset = (vm)->fp - (vm)->stack;	\
-    (r)->cont = (vm)->cont;			\
-  } while (0)
-
-#define RESTORE_REGS(vm, r)			\
-  do {						\
-    (vm)->ac = (r)->ac;				\
-    (vm)->dc = (r)->dc;				\
-    (vm)->cl = (r)->cl;				\
-    (vm)->pc = (r)->pc;				\
-    (vm)->sp = (vm)->stack + (r)->spOffset;	\
-    (vm)->fp = (vm)->stack + (r)->fpOffset;	\
-    (vm)->cont = (r)->cont;			\
-  } while (0)
-
 /* some flags */
 /* bench mark said, it does not make that much difference.
    and made call/cc so slow.
    maybe we need to do call/cc performance tuning first.
  */
-/* #define USE_STACK_DISPLAY 1 */
 #define CLEAN_STACK 1
 /* #define PROF_INSN 1 */
 /*
@@ -581,7 +557,7 @@ SgObject Sg_Environment(SgObject lib, SgObject spec)
   }
   /* make spec look like import-spec */
   spec = Sg_Cons(SG_INTERN("import"), spec);
-  Sg_ApplySafe(pass1_import, SG_LIST2(spec, lib));
+  Sg_Apply2(pass1_import, spec, lib);
   return lib;
 }
 
@@ -599,7 +575,7 @@ static void expand_stack(SgVM *vm);
     }								\
   } while (0)
 
-#define C_CONT_MARK 0x46495963
+#define C_CONT_MARK NULL
 
 void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
 {
@@ -618,7 +594,6 @@ void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
   /* cc->fp = NULL; */
   cc->fp = C_CONT_MARK;
   cc->cl = CL(vm);
-  cc->dc = DC(vm);
   for (i = 0; i < datasize; i++) {
     PUSH(s, SG_OBJ(data[i]));
   }
@@ -627,134 +602,23 @@ void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
   /* vm->fpOffset = CALC_OFFSET(vm, 0); */
 }
 
-#if 0
-/* this version's apply has a bug. */
-/* Apply families */
-static void make_call_frame(SgVM *vm, SgWord *pc);
-static SgWord apply_calls_w_halt[][5] = {
-  { MERGE_INSN_VALUE1(CALL, 0), RET, HALT },
-  { MERGE_INSN_VALUE1(CALL, 1), RET, HALT },
-  { MERGE_INSN_VALUE1(CALL, 2), RET, HALT },
-  { MERGE_INSN_VALUE1(CALL, 3), RET, HALT },
-  { MERGE_INSN_VALUE1(CALL, 4), RET, HALT }
-};
-#endif
+/* #define USE_LIGHT_WEIGHT_APPLY 1 */
 
-/*
-  TODO:
-  convert to direct call.
- */
-SgObject Sg_Apply0(SgObject proc)
-{
-#if 0
-  SgVM *vm = Sg_VM();
-  make_call_frame(vm, apply_calls_w_halt[0] + 2);
-  AC(vm) = proc;
-  return evaluate_safe(apply_calls_w_halt[0], 3);
-#endif
-  return Sg_Apply(proc, SG_NIL);
-}
+#define PUSH_CONT(vm, next_pc)				\
+  do {							\
+    SgContFrame *newcont = (SgContFrame*)SP(vm);	\
+    newcont->prev = CONT(vm);				\
+    newcont->fp = FP(vm);				\
+    /* newcont->fp = (SgObject*)newcont - FP(vm); */	\
+    /* newcont->fp = vm->fpOffset; */			\
+    newcont->size = (int)(SP(vm) - FP(vm));		\
+    newcont->pc = next_pc;				\
+    newcont->cl = CL(vm);				\
+    CONT(vm) = newcont;					\
+    SP(vm) += CONT_FRAME_SIZE;				\
+    /* FP(vm) = SP(vm);	*/				\
+  } while (0)
 
-SgObject Sg_Apply1(SgObject proc, SgObject arg)
-{
-#if 0
-  SgVM *vm = Sg_VM();
-  make_call_frame(vm, apply_calls_w_halt[1] + 2);
-  PUSH(SP(vm), arg);
-  AC(vm) = proc;
-  return evaluate_safe(apply_calls_w_halt[1], 3);
-#endif
-  SgPair f;
-  f.car = arg;
-  f.cdr = SG_NIL;
-  return Sg_Apply(proc, &f);
-}
-
-SgObject Sg_Apply2(SgObject proc, SgObject arg0, SgObject arg1)
-{
-#if 0
-  SgVM *vm = Sg_VM();
-  make_call_frame(vm, apply_calls_w_halt[2] + 2);
-  PUSH(SP(vm), arg0);
-  PUSH(SP(vm), arg1);
-  AC(vm) = proc;
-  return evaluate_safe(apply_calls_w_halt[2], 3);
-#endif
-  SgPair f, s;
-  f.car = arg0;
-  f.cdr = &s;
-  s.car = arg1;
-  s.cdr = SG_NIL;
-  return Sg_Apply(proc, &f);
-}
-
-SgObject Sg_Apply3(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2)
-{
-#if 0
-  SgVM *vm = Sg_VM();
-  make_call_frame(vm, apply_calls_w_halt[3] + 2);
-  PUSH(SP(vm), arg0);
-  PUSH(SP(vm), arg1);
-  PUSH(SP(vm), arg2);
-  AC(vm) = proc;
-  return evaluate_safe(apply_calls_w_halt[3], 3);
-#endif
-  SgPair f, s, t;
-  f.car = arg0;
-  f.cdr = &s;
-  s.car = arg1;
-  s.cdr = &t;
-  t.car = arg2;
-  t.cdr = SG_NIL;
-  return Sg_Apply(proc, &f);
-}
-
-SgObject Sg_Apply4(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2, SgObject arg3)
-{
-#if 0
-  SgVM *vm = Sg_VM();
-  make_call_frame(vm, apply_calls_w_halt[4] + 2);
-  PUSH(SP(vm), arg0);
-  PUSH(SP(vm), arg1);
-  PUSH(SP(vm), arg2);
-  PUSH(SP(vm), arg3);
-  AC(vm) = proc;
-  return evaluate_safe(apply_calls_w_halt[4], 3);
-#endif
-  SgPair f, s, t, fo;
-  f.car = arg0;
-  f.cdr = &s;
-  s.car = arg1;
-  s.cdr = &t;
-  t.car = arg2;
-  t.cdr = &fo;
-  fo.car = arg3;
-  fo.cdr = SG_NIL;
-  return Sg_Apply(proc, &f);
-}
-
-SgObject Sg_Apply(SgObject proc, SgObject args)
-{
-  SgVM *vm = Sg_VM();
-  SgObject program;
-
-  vm->applyCode[3] = SG_WORD(proc);
-  vm->applyCode[5] = SG_WORD(args);
-
-  program = (CL(vm)) ? CL(vm) : vm->closureForEvaluate;
-  return evaluate_safe(program, vm->applyCode);
-}
-
-SgObject Sg_ApplySafe(SgObject proc, SgObject args)
-{
-  SgVM *vm = Sg_VM();
-  Registers r;
-  SgObject ret;
-  SAVE_REGS(vm, &r);
-  ret = Sg_Apply(proc, args);
-  RESTORE_REGS(vm, &r);
-  return ret;
-}
 
 static SgWord apply_callN[2] = {
   MERGE_INSN_VALUE2(APPLY, 2, 1),
@@ -768,6 +632,107 @@ static SgWord apply_calls[][5] = {
   { MERGE_INSN_VALUE1(TAIL_CALL, 3), RET },
   { MERGE_INSN_VALUE1(TAIL_CALL, 4), RET }
 };
+
+SgObject Sg_Apply0(SgObject proc)
+{
+#if USE_LIGHT_WEIGHT_APPLY
+  SgVM *vm = Sg_VM();
+  PUSH_CONT(vm, apply_calls[0]);
+  return evaluate_safe(proc, apply_calls[0]);
+#else
+  return Sg_Apply(proc, SG_NIL);
+#endif
+}
+
+SgObject Sg_Apply1(SgObject proc, SgObject arg)
+{
+#if USE_LIGHT_WEIGHT_APPLY
+  SgVM *vm = Sg_VM();
+  PUSH_CONT(vm, apply_calls[1]);
+  PUSH(SP(vm), arg);
+  return evaluate_safe(proc, apply_calls[1]);
+#else
+  SgPair f;
+  f.car = arg;
+  f.cdr = SG_NIL;
+  return Sg_Apply(proc, &f);
+#endif
+}
+
+SgObject Sg_Apply2(SgObject proc, SgObject arg0, SgObject arg1)
+{
+#if USE_LIGHT_WEIGHT_APPLY
+  SgVM *vm = Sg_VM();
+  PUSH_CONT(vm, apply_calls[2]);
+  PUSH(SP(vm), arg0);
+  PUSH(SP(vm), arg1);
+  return evaluate_safe(proc, apply_calls[2]);
+#else
+  SgPair f, s;
+  f.car = arg0;
+  f.cdr = &s;
+  s.car = arg1;
+  s.cdr = SG_NIL;
+  return Sg_Apply(proc, &f);
+#endif
+}
+
+SgObject Sg_Apply3(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2)
+{
+#if USE_LIGHT_WEIGHT_APPLY
+  SgVM *vm = Sg_VM();
+  PUSH_CONT(vm, apply_calls[3]);
+  PUSH(SP(vm), arg0);
+  PUSH(SP(vm), arg1);
+  PUSH(SP(vm), arg2);
+  return evaluate_safe(proc, apply_calls[3]);
+#else
+  SgPair f, s, t;
+  f.car = arg0;
+  f.cdr = &s;
+  s.car = arg1;
+  s.cdr = &t;
+  t.car = arg2;
+  t.cdr = SG_NIL;
+  return Sg_Apply(proc, &f);
+#endif
+}
+
+SgObject Sg_Apply4(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2, SgObject arg3)
+{
+#if USE_LIGHT_WEIGHT_APPLY
+  SgVM *vm = Sg_VM();
+  PUSH_CONT(vm, apply_calls[4]);
+  PUSH(SP(vm), arg0);
+  PUSH(SP(vm), arg1);
+  PUSH(SP(vm), arg2);
+  PUSH(SP(vm), arg3);
+  return evaluate_safe(proc, apply_calls[4]);
+#else
+  SgPair f, s, t, fo;
+  f.car = arg0;
+  f.cdr = &s;
+  s.car = arg1;
+  s.cdr = &t;
+  t.car = arg2;
+  t.cdr = &fo;
+  fo.car = arg3;
+  fo.cdr = SG_NIL;
+  return Sg_Apply(proc, &f);
+#endif
+}
+
+SgObject Sg_Apply(SgObject proc, SgObject args)
+{
+  SgVM *vm = Sg_VM();
+  SgObject program;
+
+  vm->applyCode[3] = SG_WORD(proc);
+  vm->applyCode[5] = SG_WORD(args);
+
+  program = (CL(vm)) ? CL(vm) : vm->closureForEvaluate;
+  return evaluate_safe(program, vm->applyCode);
+}
 
 /*
   VMApply families.
@@ -1035,74 +1000,73 @@ SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk)
   return Sg_VMDynamicWind(before, thunk, after);
 }
 
-/* make this the same layout of SgClosure's display */
-
 #define SKIP(vm, n)        (PC(vm) += (n))
 #define FETCH_OPERAND(pc)  SG_OBJ((*(pc)++))
 #define PEEK_OPERAND(pc)   SG_OBJ((*(pc)))
 
 #define REFER_LOCAL(vm, n)   *(FP(vm) + n)
-#define INDEX_CLOSURE(vm, n)  SG_CLOSURE(DC(vm))->frees[n]
-
-/* NOT YET. */
-/* #define USE_ONE_PATH_CALL_CC 1 */
+#define INDEX_CLOSURE(vm, n)  SG_CLOSURE(CL(vm))->frees[n]
 
 #if USE_ONE_PATH_CALL_CC
-
-static SgObject* save_first_env(SgVM *vm)
-{
-  int size = SP(vm) - FP(vm), i;
-  SgObject *env = SG_NEW_ARRAY(SgObject, size);
-  for (i = 0; i < size; i++) {
-    env[i] = REFER_LOCAL(vm, i);
-  }
-  return env;
-}
 
 #define FORWARDED_CONT_P(c) ((c)&&((c)->size == -1))
 #define FORWARDED_CONT(c)   ((c)->prev)
 
+/*
+  save a cont frame with its arguments.
+ */
+static SgContFrame* save_a_cont(SgContFrame *c)
+{
+  SgObject *s, *d;
+  SgContFrame *csave;
+  int i;
+  const size_t size = sizeof(SgContFrame) + c->size * sizeof(SgObject);
+  csave = SG_NEW2(SgContFrame *, size);
+  csave->env = NULL;
+  /* copy cont frame */
+  if (c->fp != C_CONT_MARK) {
+    *csave = *c;		/* copy the frame */
+    if (c->size) {
+      /* copy the args */
+      s = (SgObject*)c - c->size;
+      d = (SgObject*)csave + CONT_FRAME_SIZE;
+      csave->env = d;
+      for (i = 0; i < c->size; i++) {
+	*d++ = *s++;
+      }
+    }
+  } else {
+    /* C continuation */
+    s = (SgObject*)c;
+    d = (SgObject*)csave;
+    for (i =CONT_FRAME_SIZE + c->size; i > 0; i--) {
+      /* C continuation frame contains opaque pointer */
+      *d++ = *s++;
+    }
+  }
+  return csave;
+}
+
+/*
+  save continuation frame to heap.
+  we do with 2 passes.
+  pass1: save cont frame to heap
+  pass2: update cstack etc.
+ */
 static void save_cont(SgVM *vm)
 {
   SgContFrame *c = CONT(vm), *prev = NULL, *tmp;
   SgCStack *cstk;
   SgContinuation *ep;
-  SgObject *args = NULL, *s, *d;
-  int i;
+  /* struct offset_saver saver = {NULL, 0, NULL}; */
 
-  args = save_first_env(vm);
+  if (!IN_STACK_P((SgObject*)c, vm)) return;
 
   do {
-    int size = (CONT_FRAME_SIZE + c->size) * sizeof(SgObject);
-    SgContFrame *csave = SG_NEW2(SgContFrame *, size);
-
-    /* copy cont frame */
-    if (c->fp != C_CONT_MARK) {
-      *csave = *c;		/* copy the frame */
-      if (c->size) {
-	/* copy the args */
-	s = (SgObject*)c->prev + CONT_FRAME_SIZE;
-	d = (SgObject*)csave + CONT_FRAME_SIZE;
-	for (i = c->size; i > 0; i--) {
-	  *d++ = *s++;
-	}
-      }
-    } else {
-      /* C continuation */
-      s = (SgObject*)c;
-      d = (SgObject*)csave;
-      for (i =CONT_FRAME_SIZE + c->size; i > 0; i--) {
-	/* C continuation frame contains opaque pointer */
-	*d++ = *s++;
-      }
-    }
-    if (args) {
-      /* the first cont frame */
-      csave->env = args;
-      args = NULL;
-    }
+    SgContFrame *csave = save_a_cont(c);
     /* make the orig frame forwarded */
     if (prev) prev->prev = csave;
+
     prev = csave;
     tmp = c->prev;
     c->prev = csave;
@@ -1128,6 +1092,11 @@ static void save_cont(SgVM *vm)
 static void expand_stack(SgVM *vm)
 {
   SgObject *p;
+
+  if (SG_VM_LOG_LEVEL(vm, SG_INFO_LEVEL)) {
+    Sg_Printf(vm->logPort, UC("expanding stack\n"));
+  }
+
   save_cont(vm);
   memmove(vm->stack, FP(vm), (SP(vm) - FP(vm))*sizeof(SgObject));
   SP(vm) -= FP(vm) - vm->stack;
@@ -1365,7 +1334,6 @@ SgObject Sg_VMCallCC(SgObject proc)
   cont = SG_NEW(SgContinuation);
   cont->stack = stack;
 #endif
-
   cont->winders = vm->dynamicWinders;
   cont->cont = vm->cont;
   cont->cstack = vm->cstack;
@@ -1572,23 +1540,6 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
 		      default_exception_handler_body,
 		      SG_FALSE, NULL);
 
-#define PUSH_CONT(vm, next_pc)				\
-  do {							\
-    SgContFrame *newcont = (SgContFrame*)SP(vm);	\
-    newcont->prev = CONT(vm);				\
-    /* newcont->fp = FP(vm); */				\
-    newcont->fp = (SgObject*)newcont - FP(vm);		\
-    /* newcont->fp = vm->fpOffset; */			\
-    newcont->size = (int)(SP(vm) - FP(vm));		\
-    newcont->pc = next_pc;				\
-    newcont->cl = CL(vm);				\
-    newcont->dc = DC(vm);				\
-    CONT(vm) = newcont;					\
-    SP(vm) += CONT_FRAME_SIZE;				\
-    /* FP(vm) = SP(vm);	*/				\
-  } while (0)
-  
-
 #define CALL_CCONT(p, v, d) p(v, d)
 
 #define POP_CONT()							\
@@ -1611,35 +1562,29 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
       FP(vm) = SP(vm);							\
       PC(vm) = PC_TO_RETURN;						\
       CL(vm) = CONT(vm)->cl;						\
-      DC(vm) = CONT(vm)->dc;						\
       CONT(vm) = CONT(vm)->prev;					\
       /* (vm)->fpOffset = CALC_OFFSET(vm, 0); */			\
       AC(vm) = CALL_CCONT(after__, v__, data__);			\
     } else if (IN_STACK_P((SgObject*)CONT(vm), vm)) {			\
       SgContFrame *cont__ = CONT(vm);					\
-      FP(vm) = (SgObject*)cont__ - cont__->fp;				\
-      /* FP(vm) = cont__->fp; */					\
+      /* FP(vm) = (SgObject*)cont__ - cont__->fp; */			\
+      FP(vm) = cont__->fp;						\
       SP(vm) = FP(vm) + cont__->size;					\
       PC(vm) = cont__->pc;						\
       CL(vm) = cont__->cl;						\
-      DC(vm) = cont__->dc;						\
       CONT(vm) = cont__->prev;						\
     } else {								\
       int size__ = CONT(vm)->size;					\
       FP(vm) = SP(vm) = vm->stack;					\
       PC(vm) = CONT(vm)->pc;						\
       CL(vm) = CONT(vm)->cl;						\
-      DC(vm) = CONT(vm)->dc;						\
-      if (CONT(vm)->fp && size__) {					\
-	SgObject *s__ = (SgObject*)CONT(vm)+CONT_FRAME_SIZE, *d__ = SP(vm); \
+      if (CONT(vm)->env && size__) {					\
+	SgObject *s__ = CONT(vm)->env, *d__ = SP(vm);			\
 	SP(vm) += size__;						\
 	while (size__-- > 0) {						\
 	  *d__++ = *s__++;						\
 	}								\
       }									\
-      /* if (CONT(vm)->env) { */					\
-      /* 	FP(vm) = CONT(vm)->env;	*/				\
-      /* } */								\
       CONT(vm) = CONT(vm)->prev;					\
     }									\
   } while (0)
@@ -1660,7 +1605,6 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
 
   ASSERT(SG_PROCEDUREP(program));
   CL(vm) = program;
-  DC(vm) = program;
 
   if (code != NULL) {
     PC(vm) = code;
@@ -1764,22 +1708,11 @@ static inline SgObject* unshift_args(SgObject *sp, int diff)
 static inline SgObject* shift_args(SgObject *fp, int m, SgObject *sp)
 {
   int i;
-#if USE_ONE_PATH_CALL_CC
-  if (IN_STACK_P(fp, Sg_VM())) {
-#endif
-
-    for (i = m - 1; 0 <= i; i--) {
-      INDEX_SET(fp + m, i, INDEX(sp, i));
-    }
-    /* memmove(fp, sp-m, m*sizeof(SgObject)); */
-    return fp + m;
-
-#if USE_ONE_PATH_CALL_CC
-  } else {
-    return sp;
+  for (i = m - 1; 0 <= i; i--) {
+    INDEX_SET(fp + m, i, INDEX(sp, i));
   }
-#endif
-
+  /* memmove(fp, sp-m, m*sizeof(SgObject)); */
+  return fp + m;
 }
 
 static SgObject process_queued_requests_cc(SgObject result, void **data)
@@ -1872,7 +1805,6 @@ static void process_queued_requests(SgVM *vm)
     cl = SG_CLOSURE(AC(vm));						\
     cb = SG_CODE_BUILDER(cl->code);					\
     CL(vm) = AC(vm);							\
-    DC(vm) = AC(vm);							\
     PC(vm) = cb->code;							\
     FP(vm) = SP(vm) - val1;						\
     /* vm->fpOffset = CALC_OFFSET(vm, val1); */				\
@@ -2016,8 +1948,6 @@ static void print_frames(SgVM *vm)
 		(uintptr_t)cont + offsetof(SgContFrame, pc), cont->pc);
       Sg_Printf(vm->logPort, UC("0x%x "), (uintptr_t)cont + offsetof(SgContFrame, cl));
       Sg_Format(vm->logPort, clfmt, SG_LIST1(cont->cl), TRUE);
-      Sg_Printf(vm->logPort, UC("0x%x +   dc=%#38x +\n"),
-		(uintptr_t)cont + offsetof(SgContFrame, dc), cont->dc);
       Sg_Printf(vm->logPort, UC("0x%x +   fp=%#38x +\n"),
 		(uintptr_t)cont + offsetof(SgContFrame, fp), cont->fp);
       Sg_Printf(vm->logPort, UC("0x%x + prev=%#38x +\n"),
