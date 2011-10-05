@@ -1,119 +1,46 @@
-#!/usr/bin/env mosh
+(import (rnrs)
+        (mosh)
+        (rnrs r5rs)
+	(rnrs mutable-pairs)
+	(rnrs mutable-strings)
+        (srfi :11))
 
-(import (rnrs) (rnrs eval)
-	(mosh)
-        (only (psyntax system $all) interaction-environment))
+(define unspecified (if #f #f))
 
-(define runner 
-  '(begin
-     (define undef (if #f #t))
-     (define (run-benchmark name count ok? run-maker . args)
-       (format #t "~%;;  ~a (x~a)" (pad-space name 7) count)
-       (flush-output-port (current-output-port))
-       (let* ((run (apply run-maker args))
-	      (result (time (run-bench name count ok? run))))
-	 (and (not (ok? result))
-	      (format #t "~%;; wrong result: ~s~%" result)
-	      (flush-output-port (current-output-port))))
-       (format #t ";;  ----------------------------------------------------------------")
-       (flush-output-port (current-output-port))
-       undef)
+(define (run-benchmark name count ok? run-maker . args)
+  (format #t "~%;;  ~a (x~a)~!" (pad-space name 7) count)
+  (let* ((run (apply run-maker args))
+         (result (time (run-bench name count ok? run))))
+    (and (not (ok? result)) (format #t "~%;; wrong result: ~s~%~!" result)))
+  (format #t ";;  ----------------------------------------------------------------~!")
+  unspecified)
 
-  (define call-with-output-file/truncate
-    (lambda (file-name proc)
-      (let ((p (open-file-output-port
-		file-name
-		(file-options no-fail)
-		(buffer-mode block)
-		(native-transcoder))))
-	(call-with-port p proc))))
+(define call-with-output-file/truncate
+  (lambda (file-name proc)
+    (let ((p (open-file-output-port
+              file-name
+              (file-options no-fail)
+              (buffer-mode block)
+              (native-transcoder))))
+      (call-with-port p proc))))
 
-  (define fatal-error
-    (lambda x
-      (format #t "fatal-error: ~s" x)
-      (exit)))
+(define fatal-error
+  (lambda x
+    (format #t "fatal-error: ~s" x)
+    (exit)))
 
-  (define pad-space
-    (lambda (str n)
-      (let ((pad (- n (string-length str))))
-	(if (<= pad 0)
-	    str
-	    (string-append str (make-string pad #\space))))))
-  
-  (define format.6f
-    (lambda (x)
-      (let* ((str (number->string (/ (round (* x 1000000.0)) 1000000.0)))
-	     (pad (- 8 (string-length str))))
-	(if (<= pad 0)
-	    str
-	    (string-append str (make-string pad #\0))))))
+(define pad-space
+  (lambda (str n)
+    (let ((pad (- n (string-length str))))
+      (if (<= pad 0)
+          str
+          (string-append str (make-string pad #\space))))))
 
-  (define (run-bench name count ok? run)
-    (let loop ((i 0) (result (list 'undefined)))
-      (if (< i count)
-	  (loop (+ i 1) (run))
-	  result)))
-
-  (define-syntax FLOATvector-const (syntax-rules () ((_ . lst) (list->vector 'lst))))
-  (define-syntax FLOATvector? (syntax-rules () ((_ x) (vector? x))))
-  (define-syntax FLOATvector (syntax-rules () ((_ . lst) (vector . lst))))
-  (define-syntax FLOATmake-vector (syntax-rules () ((_ n . init) (make-vector n . init))))
-  (define-syntax FLOATvector-ref (syntax-rules () ((_ v i) (vector-ref v i))))
-  (define-syntax FLOATvector-set! (syntax-rules () ((_ v i x) (vector-set! v i x))))
-  (define-syntax FLOATvector-length (syntax-rules () ((_ v) (vector-length v))))
-  (define-syntax nuc-const (syntax-rules () ((_ . lst) (list->vector 'lst))))
-  (define-syntax FLOAT+ (syntax-rules () ((_ . lst) (+ . lst))))
-  (define-syntax FLOAT- (syntax-rules () ((_ . lst) (- . lst))))
-  (define-syntax FLOAT* (syntax-rules () ((_ . lst) (* . lst))))
-  (define-syntax FLOAT/ (syntax-rules () ((_ . lst) (/ . lst))))
-  (define-syntax FLOAT= (syntax-rules () ((_ . lst) (= . lst))))
-  (define-syntax FLOAT< (syntax-rules () ((_ . lst) (< . lst))))
-  (define-syntax FLOAT<= (syntax-rules () ((_ . lst) (<= . lst))))
-  (define-syntax FLOAT> (syntax-rules () ((_ . lst) (> . lst))))
-  (define-syntax FLOAT>= (syntax-rules () ((_ . lst) (>= . lst))))
-  (define-syntax FLOATnegative? (syntax-rules () ((_ x) (negative? x))))
-  (define-syntax FLOATpositive? (syntax-rules () ((_ x) (positive? x))))
-  (define-syntax FLOATzero? (syntax-rules () ((_ x) (zero? x))))
-  (define-syntax FLOATabs (syntax-rules () ((_ x) (abs x))))
-  (define-syntax FLOATsin (syntax-rules () ((_ x) (sin x))))
-  (define-syntax FLOATcos (syntax-rules () ((_ x) (cos x))))
-  (define-syntax FLOATatan (syntax-rules () ((_ x) (atan x))))
-  (define-syntax FLOATsqrt (syntax-rules () ((_ x) (sqrt x))))
-  (define-syntax FLOATmin (syntax-rules () ((_ . lst) (min . lst))))
-  (define-syntax FLOATmax (syntax-rules () ((_ . lst) (max . lst))))
-  (define-syntax FLOATround (syntax-rules () ((_ x) (round x))))
-  (define-syntax FLOATinexact->exact (syntax-rules () ((_ x) (inexact->exact x))))
-  (define-syntax GENERIC+ (syntax-rules () ((_ . lst) (+ . lst))))
-  (define-syntax GENERIC- (syntax-rules () ((_ . lst) (- . lst))))
-  (define-syntax GENERIC* (syntax-rules () ((_ . lst) (* . lst))))
-  (define-syntax GENERIC/ (syntax-rules () ((_ . lst) (/ . lst))))
-  (define-syntax GENERICquotient (syntax-rules () ((_ x y) (quotient x y))))
-  (define-syntax GENERICremainder (syntax-rules () ((_ x y) (remainder x y))))
-  (define-syntax GENERICmodulo (syntax-rules () ((_ x y) (modulo x y))))
-  (define-syntax GENERIC= (syntax-rules () ((_ . lst) (= . lst))))
-  (define-syntax GENERIC< (syntax-rules () ((_ . lst) (< . lst))))
-  (define-syntax GENERIC<= (syntax-rules () ((_ . lst) (<= . lst))))
-  (define-syntax GENERIC> (syntax-rules () ((_ . lst) (> . lst))))
-  (define-syntax GENERIC>= (syntax-rules () ((_ . lst) (>= . lst))))
-  (define-syntax GENERICexpt (syntax-rules () ((_ x y) (expt x y))))
-  )
-)
-
-(define m (interaction-environment))
-
-(eval '(import (rnrs r5rs)) m)
-(eval runner m)
-(define load-bench-n-run
-  (lambda (iters name)
-    (let ((filename (string-append "./gambit-benchmarks/" name ".scm")))
-      (eval iters m)
-      (call-with-input-file filename
-	(lambda (in)
-	  (let loop ((sexp (read in)))
-	    (unless (eof-object? sexp)
-	      (eval sexp m)
-	      (loop (read in)))))))
-    (eval '(main) m)))
+(define (run-bench name count ok? run)
+  (let loop ((i 0) (result (list 'undefined)))
+    (if (< i count)
+        (loop (+ i 1) (run))
+        result)))
 
 (define-syntax time-bench
   (lambda (x)
@@ -121,13 +48,59 @@
       ((?_ name count)
        (let ((symbolic-name (syntax->datum (syntax name))))
          (with-syntax ((symbol-iters (datum->syntax #'?_ (string->symbol (format "~a-iters" symbolic-name))))
-                       (string-name (datum->syntax #'?_ (symbol->string symbolic-name))))
-           (syntax
-            (begin
-              (load-bench-n-run '(define symbol-iters count) string-name)))))))))
+                       (string-name (datum->syntax #'?_ (format "./gambit-benchmarks/~a.scm" symbolic-name))) )
+                      (syntax
+                       (begin
+                         (define symbol-iters count)
+                         (include string-name)
+                         (main)))))))))
 
-#!compatible
+(define-syntax FLOATvector-const (syntax-rules () ((_ . lst) (list->vector 'lst))))
+(define-syntax FLOATvector? (syntax-rules () ((_ x) (vector? x))))
+(define-syntax FLOATvector (syntax-rules () ((_ . lst) (vector . lst))))
+(define-syntax FLOATmake-vector (syntax-rules () ((_ n . init) (make-vector n . init))))
+(define-syntax FLOATvector-ref (syntax-rules () ((_ v i) (vector-ref v i))))
+(define-syntax FLOATvector-set! (syntax-rules () ((_ v i x) (vector-set! v i x))))
+(define-syntax FLOATvector-length (syntax-rules () ((_ v) (vector-length v))))
+(define-syntax nuc-const (syntax-rules () ((_ . lst) (list->vector 'lst))))
+(define-syntax FLOAT+ (syntax-rules () ((_ . lst) (+ . lst))))
+(define-syntax FLOAT- (syntax-rules () ((_ . lst) (- . lst))))
+(define-syntax FLOAT* (syntax-rules () ((_ . lst) (* . lst))))
+(define-syntax FLOAT/ (syntax-rules () ((_ . lst) (/ . lst))))
+(define-syntax FLOAT= (syntax-rules () ((_ . lst) (= . lst))))
+(define-syntax FLOAT< (syntax-rules () ((_ . lst) (< . lst))))
+(define-syntax FLOAT<= (syntax-rules () ((_ . lst) (<= . lst))))
+(define-syntax FLOAT> (syntax-rules () ((_ . lst) (> . lst))))
+(define-syntax FLOAT>= (syntax-rules () ((_ . lst) (>= . lst))))
+(define-syntax FLOATnegative? (syntax-rules () ((_ x) (negative? x))))
+(define-syntax FLOATpositive? (syntax-rules () ((_ x) (positive? x))))
+(define-syntax FLOATzero? (syntax-rules () ((_ x) (zero? x))))
+(define-syntax FLOATabs (syntax-rules () ((_ x) (abs x))))
+(define-syntax FLOATsin (syntax-rules () ((_ x) (sin x))))
+(define-syntax FLOATcos (syntax-rules () ((_ x) (cos x))))
+(define-syntax FLOATatan (syntax-rules () ((_ x) (atan x))))
+(define-syntax FLOATsqrt (syntax-rules () ((_ x) (sqrt x))))
+(define-syntax FLOATmin (syntax-rules () ((_ . lst) (min . lst))))
+(define-syntax FLOATmax (syntax-rules () ((_ . lst) (max . lst))))
+(define-syntax FLOATround (syntax-rules () ((_ x) (round x))))
+(define-syntax FLOATinexact->exact (syntax-rules () ((_ x) (inexact->exact x))))
+(define-syntax GENERIC+ (syntax-rules () ((_ . lst) (+ . lst))))
+(define-syntax GENERIC- (syntax-rules () ((_ . lst) (- . lst))))
+(define-syntax GENERIC* (syntax-rules () ((_ . lst) (* . lst))))
+(define-syntax GENERIC/ (syntax-rules () ((_ . lst) (/ . lst))))
+(define-syntax GENERICquotient (syntax-rules () ((_ x y) (quotient x y))))
+(define-syntax GENERICremainder (syntax-rules () ((_ x y) (remainder x y))))
+(define-syntax GENERICmodulo (syntax-rules () ((_ x y) (modulo x y))))
+(define-syntax GENERIC= (syntax-rules () ((_ . lst) (= . lst))))
+(define-syntax GENERIC< (syntax-rules () ((_ . lst) (< . lst))))
+(define-syntax GENERIC<= (syntax-rules () ((_ . lst) (<= . lst))))
+(define-syntax GENERIC> (syntax-rules () ((_ . lst) (> . lst))))
+(define-syntax GENERIC>= (syntax-rules () ((_ . lst) (>= . lst))))
+(define-syntax GENERICexpt (syntax-rules () ((_ x y) (expt x y))))
 
+;;#!compatible
+
+;;
 (format #t "\n\n;;  GABRIEL\n")
 (time-bench boyer 3)
 (time-bench browse 120)
