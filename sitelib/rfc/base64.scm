@@ -73,7 +73,7 @@
 			       (format "string required, but got ~s" string)
 			       string))
       (bytevector->string
-       (base64-decode (string->bytevector string transcoder))
+       (base64-decode (string->utf8 string))
        transcoder))
 
   (define (base64-decode bv)
@@ -131,9 +131,8 @@
 	(assertion-violation 'base64-encode-string
 			     (format "string required, but got ~s" string)
 			     string))
-    (bytevector->string
-     (base64-encode (string->bytevector string transcoder) line-width)
-     transcoder))
+    (utf8->string
+     (base64-encode (string->bytevector string transcoder) line-width)))
 
   (define-optional (base64-encode bv (optional (line-width 76)))
     (or (bytevector? bv)

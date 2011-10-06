@@ -308,12 +308,6 @@ SgObject Sg_Decrypt(SgCrypto *crypto, SgByteVector *data)
   return SG_UNDEF;		/* dummy */
 }
 
-static SgObject apply_with_option(SgObject proc, SgObject data, SgObject key,
-				  SgObject opt)
-{
-
-}
-
 SgObject Sg_Signature(SgCrypto *crypto, SgByteVector *data, SgObject opt)
 {
   switch (crypto->type) {
