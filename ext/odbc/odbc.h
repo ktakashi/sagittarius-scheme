@@ -1,0 +1,85 @@
+/* -*- mode: c; coding: utf-8; -*- */
+/*
+ * odbc.h
+ *
+ *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
+ *   are met:
+ *
+ *   1. Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *
+ *   2. Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer in the
+ *      documentation and/or other materials provided with the distribution.
+ *
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ *   TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ *   PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ *   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ *   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ *  $Id: $
+ */
+#ifndef SAGITTARIUS_ODBC_H_
+#define SAGITTARIUS_ODBC_H_
+
+#include <sagittarius.h>
+#if __CYGWIN__ || _WIN32
+#include <windows.h>
+#endif
+#include <sql.h>
+#ifdef HAVE_SQLEXT_H
+#include <sqlext.h>
+#endif
+
+typedef struct SgOdbcCtxRec
+{
+  SG_META_HEADER;
+  SQLSMALLINT type;
+  SQLHANDLE   handle;
+} SgOdbcCtx;
+
+SG_DECLARE_META_OBJ(Sg_OdbcCtxMeta);
+#define SG_META_ODBC_CTX    (&Sg_OdbcCtxMeta)
+#define SG_ODBC_CTX(obj)    ((SgOdbcCtx *)obj)
+#define SG_ODBC_CTX_P(obj)  SG_META_OBJ_TYPE_P(obj, SG_META_ODBC_CTX)
+
+#define SQL_HANDLE_TYPE_P(obj, type__)					\
+  (SG_ODBC_CTX_P(obj) && SG_ODBC_CTX(obj)->type == (type__))
+
+#define SG_ODBC_ENV_P(obj)  SQL_HANDLE_TYPE_P(obj, SQL_HANDLE_ENV)
+#define SG_ODBC_DBC_P(obj)  SQL_HANDLE_TYPE_P(obj, SQL_HANDLE_DBC)
+#define SG_ODBC_STMT_P(obj) SQL_HANDLE_TYPE_P(obj, SQL_HANDLE_STMT)
+#define SG_ODBC_DESC_P(obj) SQL_HANDLE_TYPE_P(obj, SQL_HANDLE_DESC)
+
+SgObject Sg_CreateOdbcCtx(SQLSMALLINT type, SgObject parent);
+SgObject Sg_Connect(SgObject env, SgString *server, SgString *user, SgString *auth, int autoCommitP);
+int      Sg_SetConnectAttr(SgObject hdbc, int name, SgObject value);
+int      Sg_Disconnect(SgObject hdbc);
+SgObject Sg_Statement(SgObject hdbc);
+SgObject Sg_Prepare(SgObject hdbc, SgString *text);
+int      Sg_NumParams(SgObject stmt);
+int      Sg_BindParameter(SgObject stmt, int index, SgObject value);
+int      Sg_Execute(SgObject stmt);
+int      Sg_ExecuteDirect(SgObject stmt, SgString *text);
+int      Sg_Fetch(SgObject stmt);
+SgObject Sg_GetData(SgObject stmt, int index);
+
+int      Sg_RowCount(SgObject stmt);
+
+int      Sg_Commit(SgObject ctx);
+int      Sg_Rollback(SgObject ctx);
+
+/* extra */
+/* TODO maybe list of drivers or some othre ODBC specifics? */
+
+#endif /* SAGITTARIUS_ODBC_H_ */

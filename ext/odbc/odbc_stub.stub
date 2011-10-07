@@ -1,0 +1,125 @@
+;; -*- mode: scheme; coding: utf-8; -*-
+(library (odbc impl)
+    (export create-odbc-env
+	    connect!
+	    set-connect-attr!
+	    disconnect!
+	    statement
+	    prepare
+	    num-params
+	    bind-parameter!
+	    execute!
+	    execute-direct!
+	    fetch!
+	    get-data
+	    row-count
+	    commit!
+	    rollback!)
+    (import :none)
+
+  (decl-code
+   (.include "odbc.h")
+   )
+
+  (define-c-proc create-odbc-env () ::Object
+    (result (Sg_CreateOdbcCtx SQL_HANDLE_ENV NULL)))
+
+  (define-c-proc connect! (env server::String user::String auth::String :optional (autoCommitP #t))
+    ::Object
+    (unless (SG_ODBC_ENV_P env)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc env" SG_LITERAL_STRING)
+				       env SG_NIL))
+    (result (Sg_Connect env server user auth (not (SG_FALSEP autoCommitP)))))
+
+  (define-c-proc set-connect-attr! (hdbc name::fixnum value) ::boolean
+    (unless (SG_ODBC_DBC_P hdbc)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc connection" SG_LITERAL_STRING)
+				       hdbc SG_NIL))
+    (result (Sg_SetConnectAttr hdbc name value)))
+
+  (define-c-proc disconnect! (hdbc) ::boolean
+    (unless (SG_ODBC_DBC_P hdbc)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc connection" SG_LITERAL_STRING)
+				       hdbc SG_NIL))
+    (result (Sg_Disconnect hdbc)))
+
+  (define-c-proc statement (hdbc) ::Object
+    (unless (SG_ODBC_DBC_P hdbc)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc connection" SG_LITERAL_STRING)
+				       hdbc SG_NIL))
+    (result (Sg_Statement hdbc)))
+
+  (define-c-proc prepare (hdbc text::String) ::Object
+    (unless (SG_ODBC_DBC_P hdbc)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc connection" SG_LITERAL_STRING)
+				       hdbc SG_NIL))
+    (result (Sg_Prepare hdbc text)))
+
+  (define-c-proc num-params (stmt) ::fixnum
+    (unless (SG_ODBC_STMT_P stmt)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
+				       stmt SG_NIL))
+    (result (Sg_NumParams stmt)))
+
+  (define-c-proc bind-parameter! (stmt index::fixnum value) ::boolean
+    (unless (SG_ODBC_STMT_P stmt)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
+				       stmt SG_NIL))
+    (result (Sg_BindParameter stmt index value)))
+
+  (define-c-proc execute! (stmt) ::boolean
+    (unless (SG_ODBC_STMT_P stmt)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
+				       stmt SG_NIL))
+    (result (Sg_Execute stmt)))
+
+  (define-c-proc execute-direct! (stmt text::String) ::boolean
+    (unless (SG_ODBC_STMT_P stmt)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
+				       stmt SG_NIL))
+    (result (Sg_ExecuteDirect stmt text)))
+
+  (define-c-proc fetch! (stmt) ::boolean
+    (unless (SG_ODBC_STMT_P stmt)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
+				       stmt SG_NIL))
+    (result (Sg_Fetch stmt)))
+
+  (define-c-proc get-data (stmt index::fixnum) ::Object
+    (unless (SG_ODBC_STMT_P stmt)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
+				       stmt SG_NIL))
+    (result (Sg_GetData stmt index)))
+
+  (define-c-proc row-count (stmt) ::fixnum
+    (unless (SG_ODBC_STMT_P stmt)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
+				       stmt SG_NIL))
+    (result (Sg_RowCount stmt)))
+
+  (define-c-proc commit! (ctx) ::boolean
+    (unless (SG_ODBC_CTX_P ctx)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc" SG_LITERAL_STRING)
+				       ctx SG_NIL))
+    (result (Sg_Commit ctx)))
+
+  (define-c-proc rollback! (ctx) ::boolean
+    (unless (SG_ODBC_CTX_P ctx)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc" SG_LITERAL_STRING)
+				       ctx SG_NIL))
+    (result (Sg_Rollback ctx)))
+)
