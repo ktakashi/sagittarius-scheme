@@ -30,6 +30,72 @@
 
 (load-dynamic-library "sagittarius--odbc")
 (library (odbc)
-    (export :all)
-    (import (odbc impl))
+    (export create-odbc-env
+	    connect!
+	    set-connect-attr!
+	    disconnect!
+	    statement
+	    prepare
+	    num-params
+	    bind-parameter!
+	    execute!
+	    execute-direct!
+	    fetch!
+	    get-data
+	    row-count
+	    commit!
+	    rollback!
+	    ;; predication
+	    odbc-env?
+	    odbc-connection?
+	    odbc-statement?
+
+	    odbc-date?
+	    odbc-time?
+	    odbc-timestamp?
+
+	    ;; converter
+	    odbc-date->date
+	    odbc-time->time
+	    odbc-timestamp->date)
+    (import (odbc impl)
+	    (rnrs)
+	    (sagittarius)
+	    (srfi :19 time))
+
+  (define (odbc-date->date date)
+    (or (odbc-date? date)
+	(assertion-violation 'odbc-date->date
+			     (format "odbc-date required but got ~a" date)
+			     date))
+    (make-date 0 0 0 0
+	       (odbc-date-day date)
+	       (odbc-date-month date)
+	       (odbc-date-year date)
+	       (date-zone-offset (current-date))))
+
+  (define (odbc-time->time time)
+    (or (odbc-time? time)
+	(assertion-violation 'odbc-time->time
+			     (format "odbc-time required but got ~a" time)
+			     time))
+    (make-time time-monotonic
+	       (+ (* (odbc-time-hour time) 3600)
+		  (* (odbc-time-minute time) 60)
+		  (odbc-time-second time))
+	       0))
+
+  (define (odbc-timestamp->date timestamp)
+    (or (odbc-timestamp? timestamp )
+	(assertion-violation 'odbc-timestamp?
+			     (format "odbc-timestamp required but got ~a" timestamp)
+			     timestamp))
+    (make-date (odbc-timestamp-fraction timestamp)
+	       (odbc-timestamp-second timestamp)
+	       (odbc-timestamp-minute timestamp)
+	       (odbc-timestamp-hour timestamp)
+	       (odbc-timestamp-day timestamp)
+	       (odbc-timestamp-month timestamp)
+	       (odbc-timestamp-year timestamp)
+	       (date-zone-offset (current-date))))
 )

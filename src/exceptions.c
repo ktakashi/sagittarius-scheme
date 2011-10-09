@@ -208,6 +208,7 @@ static SgObject make_non_continuable_violation;
 static SgObject make_who_condition;
 static SgObject make_message_condition;
 static SgObject make_irritants_condition;
+static SgObject make_warning;
 
 SgObject Sg_MakeNonContinuableViolation()
 {
@@ -227,6 +228,11 @@ SgObject Sg_MakeMessageCondition(SgObject msg)
 SgObject Sg_MakeIrritantsCondition(SgObject irritants)
 {
   return Sg_Apply1(make_irritants_condition, irritants);
+}
+
+SgObject Sg_MakeWarning()
+{
+  return Sg_Apply0(make_warning);
 }
 
 SgObject Sg_DescribeCondition(SgObject con)
@@ -354,6 +360,7 @@ void Sg__InitConsitions()
     /* warning */
     INTERN_CONDITION_WITH_PARENT(&warning, &condition, nullvec);
     INTERN_CTR_PRED(&warning, make-warning, warning?);
+    make_warning = ctr;
   }
   {
     /* serious */

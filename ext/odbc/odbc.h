@@ -41,11 +41,23 @@
 #include <sqlext.h>
 #endif
 
+typedef struct param_holder_rec
+{
+  union {
+    void   *p;
+    long    sl;
+    double  d;
+    int64_t s64;
+  } param;
+  struct param_holder_rec *next;
+} param_holder;
+
 typedef struct SgOdbcCtxRec
 {
   SG_META_HEADER;
   SQLSMALLINT type;
   SQLHANDLE   handle;
+  param_holder *holder;
 } SgOdbcCtx;
 
 SG_DECLARE_META_OBJ(Sg_OdbcCtxMeta);
@@ -60,6 +72,35 @@ SG_DECLARE_META_OBJ(Sg_OdbcCtxMeta);
 #define SG_ODBC_DBC_P(obj)  SQL_HANDLE_TYPE_P(obj, SQL_HANDLE_DBC)
 #define SG_ODBC_STMT_P(obj) SQL_HANDLE_TYPE_P(obj, SQL_HANDLE_STMT)
 #define SG_ODBC_DESC_P(obj) SQL_HANDLE_TYPE_P(obj, SQL_HANDLE_DESC)
+
+/* for SQL type compatibility */
+typedef enum {
+  SG_SQL_DATE,
+  SG_SQL_TIME,
+  SG_SQL_TIMESTAMP,
+} DateType;
+typedef struct SgOdbcDateRec
+{
+  SG_META_HEADER;
+  DateType type;
+  union {
+    SQL_TIME_STRUCT      time;
+    SQL_TIMESTAMP_STRUCT timestamp;
+    SQL_DATE_STRUCT      date;
+  } data;
+} SgOdbcDate;
+
+SG_DECLARE_META_OBJ(Sg_OdbcDateMeta);
+#define SG_META_ODBC_DATE   (&Sg_OdbcDateMeta)
+#define SG_ODBC_DATE(obj)   ((SgOdbcDate *)obj)
+#define SG_ODBC_DATE_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_ODBC_DATE)
+
+#define SG_ODBC_DATE_DATE_P(obj)					\
+  (SG_ODBC_DATE_P(obj) && SG_ODBC_DATE(obj)->type == SG_SQL_DATE)
+#define SG_ODBC_DATE_TIME_P(obj)					\
+  (SG_ODBC_DATE_P(obj) && SG_ODBC_DATE(obj)->type == SG_SQL_TIME)
+#define SG_ODBC_DATE_TIMESTAMP_P(obj)					\
+  (SG_ODBC_DATE_P(obj) && SG_ODBC_DATE(obj)->type == SG_SQL_TIMESTAMP)
 
 SgObject Sg_CreateOdbcCtx(SQLSMALLINT type, SgObject parent);
 SgObject Sg_Connect(SgObject env, SgString *server, SgString *user, SgString *auth, int autoCommitP);

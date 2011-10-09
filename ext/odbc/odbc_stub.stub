@@ -14,7 +14,33 @@
 	    get-data
 	    row-count
 	    commit!
-	    rollback!)
+	    rollback!
+	    ;; predicate
+	    odbc-env?
+	    odbc-connection?
+	    odbc-statement?
+
+	    odbc-date?
+	    odbc-time?
+	    odbc-timestamp?
+	    
+	    ;; accessor
+	    odbc-date-year
+	    odbc-date-month
+	    odbc-date-day
+
+	    odbc-time-hour
+	    odbc-time-minute
+	    odbc-time-second
+
+	    odbc-timestamp-year
+	    odbc-timestamp-month
+	    odbc-timestamp-day
+	    odbc-timestamp-hour
+	    odbc-timestamp-minute
+	    odbc-timestamp-second
+	    odbc-timestamp-fraction
+	    )
     (import :none)
 
   (decl-code
@@ -122,4 +148,110 @@
 				       (Sg_MakeString "odbc" SG_LITERAL_STRING)
 				       ctx SG_NIL))
     (result (Sg_Rollback ctx)))
+
+  (define-c-proc odbc-env? (obj) ::boolean
+    (result (SG_ODBC_ENV_P obj)))
+  (define-c-proc odbc-connection? (obj) ::boolean
+    (result (SG_ODBC_DBC_P obj)))
+  (define-c-proc odbc-statement? (obj) ::boolean
+    (result (SG_ODBC_STMT_P obj)))
+
+  (define-c-proc odbc-date? (obj) ::boolean
+    (result (SG_ODBC_DATE_DATE_P obj)))
+  (define-c-proc odbc-time? (obj) ::boolean
+    (result (SG_ODBC_DATE_TIME_P obj)))
+  (define-c-proc odbc-timestamp? (obj) ::boolean
+    (result (SG_ODBC_DATE_TIMESTAMP_P obj)))
+
+  ;; accessors
+  (define-c-proc odbc-date-year (date) ::fixnum
+    (unless (SG_ODBC_DATE_DATE_P date)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc-date" SG_LITERAL_STRING)
+				       date SG_NIL))
+    (result (-> (SG_ODBC_DATE date) data.date.year)))
+
+  (define-c-proc odbc-date-month (date) ::fixnum
+    (unless (SG_ODBC_DATE_DATE_P date)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc-date" SG_LITERAL_STRING)
+				       date SG_NIL))
+    (result (-> (SG_ODBC_DATE date) data.date.month)))
+
+  (define-c-proc odbc-date-day (date) ::fixnum
+    (unless (SG_ODBC_DATE_DATE_P date)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc-date" SG_LITERAL_STRING)
+				       date SG_NIL))
+    (result (-> (SG_ODBC_DATE date) data.date.day)))
+
+  (define-c-proc odbc-time-hour (time) ::fixnum
+    (unless (SG_ODBC_DATE_TIME_P time)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc-time" SG_LITERAL_STRING)
+				       time SG_NIL))
+    (result (-> (SG_ODBC_DATE time) data.time.hour)))
+
+  (define-c-proc odbc-time-minute (time) ::fixnum
+    (unless (SG_ODBC_DATE_TIME_P time)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc-time" SG_LITERAL_STRING)
+				       time SG_NIL))
+    (result (-> (SG_ODBC_DATE time) data.time.minute)))
+
+  (define-c-proc odbc-time-second (time) ::fixnum
+    (unless (SG_ODBC_DATE_TIME_P time)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc-time" SG_LITERAL_STRING)
+				       time SG_NIL))
+    (result (-> (SG_ODBC_DATE time) data.time.second)))
+
+  (define-c-proc odbc-timestamp-year (timestamp) ::fixnum
+    (unless (SG_ODBC_DATE_TIMESTAMP_P timestamp)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc-timestamp" SG_LITERAL_STRING)
+				       timestamp SG_NIL))
+    (result (-> (SG_ODBC_DATE timestamp) data.timestamp.year)))
+
+  (define-c-proc odbc-timestamp-month (timestamp) ::fixnum
+    (unless (SG_ODBC_DATE_TIMESTAMP_P timestamp)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc-timestamp" SG_LITERAL_STRING)
+				       timestamp SG_NIL))
+    (result (-> (SG_ODBC_DATE timestamp) data.timestamp.month)))
+
+  (define-c-proc odbc-timestamp-day (timestamp) ::fixnum
+    (unless (SG_ODBC_DATE_TIMESTAMP_P timestamp)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc-timestamp" SG_LITERAL_STRING)
+				       timestamp SG_NIL))
+    (result (-> (SG_ODBC_DATE timestamp) data.timestamp.day)))
+
+  (define-c-proc odbc-timestamp-hour (timestamp) ::fixnum
+    (unless (SG_ODBC_DATE_TIMESTAMP_P timestamp)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc-timestamp" SG_LITERAL_STRING)
+				       timestamp SG_NIL))
+    (result (-> (SG_ODBC_DATE timestamp) data.timestamp.hour)))
+
+  (define-c-proc odbc-timestamp-minute (timestamp) ::fixnum
+    (unless (SG_ODBC_DATE_TIMESTAMP_P timestamp)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc-timestamp" SG_LITERAL_STRING)
+				       timestamp SG_NIL))
+    (result (-> (SG_ODBC_DATE timestamp) data.timestamp.minute)))
+
+  (define-c-proc odbc-timestamp-second (timestamp) ::fixnum
+    (unless (SG_ODBC_DATE_TIMESTAMP_P timestamp)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc-timestamp" SG_LITERAL_STRING)
+				       timestamp SG_NIL))
+    (result (-> (SG_ODBC_DATE timestamp) data.timestamp.second)))
+
+  (define-c-proc odbc-timestamp-fraction (timestamp) ::fixnum
+    (unless (SG_ODBC_DATE_TIMESTAMP_P timestamp)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc-timestamp" SG_LITERAL_STRING)
+				       timestamp SG_NIL))
+    (result (-> (SG_ODBC_DATE timestamp) data.timestamp.fraction)))
 )

@@ -56,7 +56,8 @@ static SgObject make_odbc_error()
 	cond = Sg_Condition(SG_LIST3(odbcc, whoc, msgc));		\
 	Sg_Raise(cond, FALSE);						\
       } else {								\
-	cond = Sg_Condition(SG_LIST2(whoc, msgc));			\
+	SgObject wa_ = Sg_MakeWarning();				\
+	cond = Sg_Condition(SG_LIST3(wa_, whoc, msgc));			\
 	Sg_Raise(cond, TRUE);						\
       }									\
     }									\
@@ -90,6 +91,7 @@ static SgOdbcCtx* make_odbc_ctx(SQLSMALLINT type, SgOdbcCtx *parent)
   SQLHANDLE *hparent = NULL;
   SG_SET_META_OBJ(ctx, SG_META_ODBC_CTX);
   ctx->type = type;
+  ctx->holder = NULL;
   if (parent) {
     hparent = SG_ODBC_CTX(parent)->handle;
   }
@@ -184,26 +186,28 @@ int Sg_BindParameter(SgObject stmt, int index, SgObject value)
 {
   SQLRETURN ret;
   SQLHSTMT hstmt;
+  param_holder *holder;
   ASSERT(SG_ODBC_STMT_P(stmt));
   hstmt = SG_ODBC_CTX(stmt)->handle;
+  holder = SG_NEW(param_holder);
   if (SG_INTP(value)) {
-    long v = SG_INT_VALUE(value);
+    holder->param.sl = SG_INT_VALUE(value);
     ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT, SQL_C_SLONG, SQL_INTEGER,
-			   0, 0, &v, 0, NULL);
+			   0, 0, &holder->param.sl, 0, NULL);
   } else if (SG_BIGNUMP(value)) {
-    int64_t v = Sg_GetIntegerS64Clamp(value, SG_CLAMP_NONE, NULL);
+    holder->param.s64 = Sg_GetIntegerS64Clamp(value, SG_CLAMP_NONE, NULL);
     ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT, SQL_C_SBIGINT, SQL_BIGINT,
-			   0, 0, &v, 0, NULL);
-  } else if (SG_FLONUM(value)) {
-    double v = Sg_GetDouble(value);
+			   0, 0, &holder->param.s64, 0, NULL);
+  } else if (SG_FLONUMP(value)) {
+    holder->param.d = Sg_GetDouble(value);
     ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT, SQL_C_DOUBLE, SQL_DOUBLE,
-			   0, 0, &v, 0, NULL);
+			   0, 0, &holder->param.d, 0, NULL);
   } else if (SG_STRINGP(value)) {
     /* For now we only support varchar. */
-    char *v = Sg_Utf32sToUtf8s(SG_STRING(value));
+    holder->param.p  = (void*)Sg_Utf32sToUtf8s(SG_STRING(value));
     /* TODO we need to get column size from somewhere. */
     ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR,
-			   SG_STRING_SIZE(value), 0, v, 0, NULL);
+			   SG_STRING_SIZE(value), 0, holder->param.p, 0, NULL);
   } else {
     Sg_ImplementationRestrictionViolation(SG_INTERN("bind-parameter!"),
 					  Sg_MakeString(UC("given value was not supported"), SG_LITERAL_STRING),
@@ -211,6 +215,8 @@ int Sg_BindParameter(SgObject stmt, int index, SgObject value)
     return FALSE;
   }
   CHECK_ERROR(bind-parameter!, stmt, ret);
+  holder->next = SG_ODBC_CTX(stmt)->holder;
+  SG_ODBC_CTX(stmt)->holder = holder;
   return TRUE;
 }
 
@@ -246,7 +252,7 @@ int Sg_Fetch(SgObject stmt)
   }
 }
 
-static SgObject read_var_data_impl(SQLHSTMT stmt, int index, int len, int stringP)
+static SgObject read_var_data_impl(SQLHSTMT stmt, int index, int len, int stringP, int asPortP)
 {
   uint8_t buf[256] = {0};
   SgObject port = Sg_MakeByteArrayOutputPort(0), bv;
@@ -257,6 +263,7 @@ static SgObject read_var_data_impl(SQLHSTMT stmt, int index, int len, int string
     if (SQL_NULL_DATA == ind) return SG_NIL;
     Sg_WritebUnsafe(port, buf, 0, (ind>sizeof(buf) || ind==SQL_NO_TOTAL) ? sizeof(buf) : ind);
   }
+  if (asPortP) return port;	/* for now */
   bv = Sg_GetByteVectorFromBinaryPort(port);
   if (stringP) {    
     /* for now. */
@@ -267,29 +274,63 @@ static SgObject read_var_data_impl(SQLHSTMT stmt, int index, int len, int string
   }
 }
 
-static SgObject time_to_string(SQL_TIME_STRUCT *data)
+static void odbc_date_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
 {
-  return Sg_Sprintf(UC("%d:%d:%d"), data->hour, data->minute, data->second);
+  SgOdbcDate *d = SG_ODBC_DATE(self);
+  switch (d->type) {
+  case SG_SQL_DATE:
+    Sg_Printf(port, UC("#<odbc-date %d-%d-%d>"),
+	      d->data.date.day, d->data.date.month, d->data.date.year);
+    break;
+  case SG_SQL_TIME:
+    Sg_Printf(port, UC("#<odbc-time %d:%d:%d>"),
+	      d->data.time.hour, d->data.time.minute, d->data.time.second);
+    break;
+  case SG_SQL_TIMESTAMP:
+    Sg_Printf(port, UC("#<odbc-timestamp %d-%d-%d %d:%d:%d.%d>"),
+	      d->data.timestamp.day, d->data.timestamp.month, d->data.timestamp.year,
+	      d->data.timestamp.hour, d->data.timestamp.minute, d->data.timestamp.second,
+	      d->data.timestamp.fraction);
+    break;
+  }
 }
 
-static SgObject date_to_string(SQL_DATE_STRUCT *data)
+SG_INIT_META_OBJ(Sg_OdbcDateMeta, &odbc_date_printer, NULL);
+
+static SgOdbcDate* make_odbc_date(DateType type)
 {
-  return Sg_Sprintf(UC("%d-%d-%d"), data->day, data->month, data->year);
+  SgOdbcDate *d = SG_NEW(SgOdbcDate);
+  SG_SET_META_OBJ(d, SG_META_ODBC_DATE);
+  d->type = type;
+  return d;
 }
 
-static SgObject timestamp_to_string(SQL_TIMESTAMP_STRUCT *data)
+static SgObject time_to_obj(SQL_TIME_STRUCT *data)
 {
-  return Sg_Sprintf(UC("%d-%d-%d %d:%d:%d.%d"),
-		    data->day, data->month, data->year,
-		    data->hour, data->minute, data->second,
-		    data->fraction);
+  SgOdbcDate *d = make_odbc_date(SG_SQL_TIME);
+  d->data.time = *data;		/* copy */
+  return SG_OBJ(d);
+}
+
+static SgObject date_to_obj(SQL_DATE_STRUCT *data)
+{
+  SgOdbcDate *d = make_odbc_date(SG_SQL_DATE);
+  d->data.date = *data;		/* copy */
+  return SG_OBJ(d);
+}
+
+static SgObject timestamp_to_obj(SQL_TIMESTAMP_STRUCT *data)
+{
+  SgOdbcDate *d = make_odbc_date(SG_SQL_TIMESTAMP);
+  d->data.timestamp = *data;	/* copy */
+  return SG_OBJ(d);
 }
 
 static SgObject try_known_name_data(SgObject stmt, int index, int length, const char * name)
 {
   /* I have no idea why Oracle return sql data type -9 for varchar2. */
   if (strcmp(name, "VARCHAR2") == 0) {
-    return read_var_data_impl(SG_ODBC_CTX(stmt)->handle, index, length, TRUE);
+    return read_var_data_impl(SG_ODBC_CTX(stmt)->handle, index, length, TRUE, FALSE);
   }
 
   Sg_ImplementationRestrictionViolation(SG_INTERN("get-data"),
@@ -317,7 +358,10 @@ SgObject Sg_GetData(SgObject stmt, int index)
   CHECK_ERROR(get-data, stmt, ret)
 
 #define read_var_data(stringP)						\
-  read_var_data_impl(SG_ODBC_CTX(stmt)->handle, index, len, (stringP))
+  read_var_data_impl(SG_ODBC_CTX(stmt)->handle, index, len, (stringP), FALSE)
+
+#define read_var_data_as_port(stringP)						\
+  read_var_data_impl(SG_ODBC_CTX(stmt)->handle, index, len, (stringP), TRUE)
 
 #define read_time_related(struct__, ctype__, conv__)			\
   do {									\
@@ -340,13 +384,13 @@ SgObject Sg_GetData(SgObject stmt, int index)
     return Sg_MakeByteVectorFromU8Array(buf, len);
   }
   case SQL_TIME:
-    read_time_related(SQL_TIME_STRUCT, SQL_C_TYPE_TIME, time_to_string);
+    read_time_related(SQL_TIME_STRUCT, SQL_C_TYPE_TIME, time_to_obj);
     break;
   case SQL_DATE:
-    read_time_related(SQL_DATE_STRUCT, SQL_C_TYPE_DATE, date_to_string);
+    read_time_related(SQL_DATE_STRUCT, SQL_C_TYPE_DATE, date_to_obj);
     break;
   case SQL_TIMESTAMP:
-    read_time_related(SQL_TIMESTAMP_STRUCT, SQL_C_TYPE_TIMESTAMP, timestamp_to_string);
+    read_time_related(SQL_TIMESTAMP_STRUCT, SQL_C_TYPE_TIMESTAMP, timestamp_to_obj);
     break;
   case SQL_DECIMAL:		/* should decimal be here? */
   case SQL_SMALLINT: case SQL_INTEGER: {
@@ -372,11 +416,17 @@ SgObject Sg_GetData(SgObject stmt, int index)
     CHECK_ERROR(get-data, stmt, ret);
     return (sqlType == SQL_DOUBLE) ? Sg_MakeFlonum(v) : Sg_MakeFlonum((float)v);
   }
-  case SQL_VARCHAR: case SQL_LONGVARCHAR: return read_var_data(TRUE);
-  /* TODO blob could be super huge, i want to get this as a port */
-  case SQL_VARBINARY: case SQL_LONGVARBINARY: return read_var_data(FALSE);
+  case SQL_VARCHAR: return read_var_data(TRUE);
+  case SQL_VARBINARY: return read_var_data(FALSE);
+  /* FIXME currently it just return as port, if it's really huge,
+     it aborts.
+   */
+  case SQL_LONGVARCHAR: return read_var_data_as_port(TRUE);
+  case SQL_LONGVARBINARY: return read_var_data_as_port(FALSE);
   default: {
-    char *buf[50];
+    /* some RDBMS(ex: Oracle) return weird type, to handle it we need this.
+       Sucks!!*/
+    char buf[50];
     SQLColAttribute(SG_ODBC_CTX(stmt)->handle, (SQLUSMALLINT)index,
 		    SQL_DESC_TYPE_NAME, (SQLPOINTER)buf, sizeof(buf), NULL, NULL);
     return try_known_name_data(stmt, index, len, buf);
