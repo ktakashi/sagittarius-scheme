@@ -34,6 +34,7 @@
 	    connect!
 	    set-connect-attr!
 	    disconnect!
+	    connection-open?
 	    statement
 	    prepare
 	    num-params
@@ -43,6 +44,9 @@
 	    fetch!
 	    get-data
 	    row-count
+	    column-size
+	    column-count
+	    result-columns
 	    commit!
 	    rollback!
 	    ;; predication

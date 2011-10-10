@@ -151,6 +151,18 @@ int Sg_Disconnect(SgObject hdbc)
   return TRUE;
 }
 
+int Sg_OpenP(SgObject hdbc)
+{
+  SQLRETURN ret;
+  SQLUINTEGER b;
+  ASSERT(SG_ODBC_DBC_P(hdbc));
+  ret = SQLGetConnectAttr(SG_ODBC_CTX(hdbc)->handle,
+			  SQL_ATTR_CONNECTION_DEAD,
+			  (SQLPOINTER)&b, SQL_IS_UINTEGER, NULL);
+  if (ret == SQL_ERROR) return FALSE;
+  return (b != SQL_CD_TRUE);
+}
+
 SgObject Sg_Statement(SgObject hdbc)
 {
   /* create empty statement */
@@ -225,7 +237,7 @@ int Sg_Execute(SgObject stmt)
   SQLRETURN ret;
   ASSERT(SG_ODBC_STMT_P(stmt));
   ret = SQLExecute(SG_ODBC_CTX(stmt)->handle);
-  CHECK_ERROR(execute, stmt, ret);
+  CHECK_ERROR(execute!, stmt, ret);
   return TRUE;
 }
 
@@ -235,7 +247,7 @@ int Sg_ExecuteDirect(SgObject stmt, SgString *text)
   SQLRETURN ret;
   ASSERT(SG_ODBC_STMT_P(stmt));
   ret = SQLExecDirect(SG_ODBC_CTX(stmt)->handle, (SQLCHAR *)s, SQL_NTS);
-  CHECK_ERROR(execute-direct, stmt, ret);
+  CHECK_ERROR(execute-direct!, stmt, ret);
   return TRUE;
 }
 
@@ -263,8 +275,10 @@ static SgObject read_var_data_impl(SQLHSTMT stmt, int index, int len, int string
     if (SQL_NULL_DATA == ind) return SG_NIL;
     Sg_WritebUnsafe(port, buf, 0, (ind>sizeof(buf) || ind==SQL_NO_TOTAL) ? sizeof(buf) : ind);
   }
-  if (asPortP) return port;	/* for now */
   bv = Sg_GetByteVectorFromBinaryPort(port);
+  if (asPortP) {
+    return Sg_MakeByteVectorInputPort(bv, 0);	/* for now */
+  }
   if (stringP) {    
     /* for now. */
     SgObject tran = Sg_MakeNativeTranscoder();
@@ -340,6 +354,17 @@ static SgObject try_known_name_data(SgObject stmt, int index, int length, const 
   return SG_UNDEF;		/* dummy */
 }
 
+int Sg_ColumnSize(SgObject stmt, int index)
+{
+  SQLRETURN ret;
+  SQLINTEGER len;
+  ASSERT(SG_ODBC_STMT_P(stmt));
+  ret = SQLColAttribute(SG_ODBC_CTX(stmt)->handle, (SQLUSMALLINT)index, 
+			SQL_DESC_LENGTH, NULL, 0, NULL, &len);
+  CHECK_ERROR(get-data, stmt, ret);
+  return len;
+}
+
 SgObject Sg_GetData(SgObject stmt, int index)
 {
   SQLRETURN ret;
@@ -365,7 +390,7 @@ SgObject Sg_GetData(SgObject stmt, int index)
 
 #define read_time_related(struct__, ctype__, conv__)			\
   do {									\
-    struct__ buf__;							\
+    struct__ buf__ = {0};						\
     ret = SQLGetData(SG_ODBC_CTX(stmt)->handle, index, (ctype__),	\
 		     &buf__, len, NULL);				\
     CHECK_ERROR(get-data, stmt, ret);					\
@@ -445,12 +470,44 @@ int Sg_RowCount(SgObject stmt)
   return len;
 }
 
+int Sg_ColumnCount(SgObject stmt)
+{
+  SQLRETURN ret;
+  SQLSMALLINT  len;
+  ASSERT(SG_ODBC_STMT_P(stmt));
+  ret = SQLNumResultCols(SG_ODBC_CTX(stmt)->handle, &len);
+  CHECK_ERROR(result-columns, stmt, ret);
+  return len;
+}
+
+SgObject Sg_ResultColumns(SgObject stmt)
+{
+  SQLRETURN ret;
+  SQLSMALLINT  len;
+  int i;
+  SgObject columns;
+  ASSERT(SG_ODBC_STMT_P(stmt));
+  ret = SQLNumResultCols(SG_ODBC_CTX(stmt)->handle, &len);
+  CHECK_ERROR(result-columns, stmt, ret);
+  columns = Sg_MakeVector(len, SG_UNDEF);
+  for (i = 0; i < len; i++) {
+    char buf[256] = {0};
+    SQLSMALLINT readlen;
+    ret = SQLColAttribute(SG_ODBC_CTX(stmt)->handle, (SQLUSMALLINT)(i + 1),
+			  SQL_DESC_NAME,
+			  (SQLPOINTER)buf, sizeof(buf), &readlen, NULL);
+    CHECK_ERROR(result-columns, stmt, ret);
+    SG_VECTOR_ELEMENT(columns, i) = Sg_MakeStringC(buf);
+  }
+  return columns;
+}
+
 int Sg_Commit(SgObject ctx)
 {
   SQLRETURN ret;
   ASSERT(SG_ODBC_CTX_P(ctx));
-  ret =
-    SQLEndTran(SG_ODBC_CTX(ctx)->type, SG_ODBC_CTX(ctx)->handle, SQL_COMMIT);
+  ret = SQLEndTran(SG_ODBC_CTX(ctx)->type,
+		   SG_ODBC_CTX(ctx)->handle, SQL_COMMIT);
   CHECK_ERROR(commit, ctx, ret);
   return TRUE;
 }

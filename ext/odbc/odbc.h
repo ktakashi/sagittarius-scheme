@@ -106,6 +106,7 @@ SgObject Sg_CreateOdbcCtx(SQLSMALLINT type, SgObject parent);
 SgObject Sg_Connect(SgObject env, SgString *server, SgString *user, SgString *auth, int autoCommitP);
 int      Sg_SetConnectAttr(SgObject hdbc, int name, SgObject value);
 int      Sg_Disconnect(SgObject hdbc);
+int      Sg_OpenP(SgObject hdbc);
 SgObject Sg_Statement(SgObject hdbc);
 SgObject Sg_Prepare(SgObject hdbc, SgString *text);
 int      Sg_NumParams(SgObject stmt);
@@ -116,6 +117,10 @@ int      Sg_Fetch(SgObject stmt);
 SgObject Sg_GetData(SgObject stmt, int index);
 
 int      Sg_RowCount(SgObject stmt);
+/* returns result column names */
+int      Sg_ColumnCount(SgObject stmt);
+int      Sg_ColumnSize(SgObject stmt, int index);
+SgObject Sg_ResultColumns(SgObject stmt);
 
 int      Sg_Commit(SgObject ctx);
 int      Sg_Rollback(SgObject ctx);

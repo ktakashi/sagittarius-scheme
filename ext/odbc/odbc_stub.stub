@@ -4,6 +4,7 @@
 	    connect!
 	    set-connect-attr!
 	    disconnect!
+	    connection-open?
 	    statement
 	    prepare
 	    num-params
@@ -13,6 +14,9 @@
 	    fetch!
 	    get-data
 	    row-count
+	    column-size
+	    column-count
+	    result-columns
 	    commit!
 	    rollback!
 	    ;; predicate
@@ -71,6 +75,13 @@
 				       (Sg_MakeString "odbc connection" SG_LITERAL_STRING)
 				       hdbc SG_NIL))
     (result (Sg_Disconnect hdbc)))
+
+  (define-c-proc connection-open? (hdbc) ::boolean
+    (unless (SG_ODBC_DBC_P hdbc)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc connection" SG_LITERAL_STRING)
+				       hdbc SG_NIL))
+    (result (Sg_OpenP hdbc)))
 
   (define-c-proc statement (hdbc) ::Object
     (unless (SG_ODBC_DBC_P hdbc)
@@ -134,6 +145,27 @@
 				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
 				       stmt SG_NIL))
     (result (Sg_RowCount stmt)))
+
+  (define-c-proc column-size (stmt index::fixnum) ::fixnum
+    (unless (SG_ODBC_STMT_P stmt)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
+				       stmt SG_NIL))
+    (result (Sg_ColumnSize stmt index)))
+
+  (define-c-proc column-count (stmt) ::fixnum
+    (unless (SG_ODBC_STMT_P stmt)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
+				       stmt SG_NIL))
+    (result (Sg_ColumnCount stmt)))
+
+  (define-c-proc result-columns (stmt) ::Object
+    (unless (SG_ODBC_STMT_P stmt)
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
+				       stmt SG_NIL))
+    (result (Sg_ResultColumns stmt)))
 
   (define-c-proc commit! (ctx) ::boolean
     (unless (SG_ODBC_CTX_P ctx)
