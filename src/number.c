@@ -106,6 +106,7 @@ static double pow10n(double x, int n)
     }
     return x/dpow10[-n];
   }
+
 }
 
 static SgObject intptr_to_integer(intptr_t value)
@@ -1037,9 +1038,17 @@ SgObject Sg_RationalMulDiv(SgObject x, SgObject y, int divide)
 #define Sg_RationalDiv(x, y) Sg_RationalMulDiv(x, y, TRUE)
 
 
+static SgFlonum* make_flonum(double d)
+{
+  SgFlonum *f = SG_NEW_ATOMIC(SgFlonum);
+  SG_SET_HEADER(f, TC_FLONUM);
+  f->value = d;
+  return SG_OBJ(f);
+}
+
+
 SgObject Sg_MakeFlonum(double d)
 {
-  SgFlonum *f;
 #if USE_CONST_FLONUM
   if (d == 0.0) {
     union { double f64; int64_t i64; } datum;
@@ -1052,10 +1061,7 @@ SgObject Sg_MakeFlonum(double d)
   }
   if (isnan(d)) return SG_NAN;
 #endif
-  f = SG_NEW_ATOMIC(SgFlonum);
-  SG_SET_HEADER(f, TC_FLONUM);
-  f->value = d;
-  return SG_OBJ(f);
+  return make_flonum(d);
 }
 
 static inline SgObject make_complex(SgObject real, SgObject imag)
@@ -3314,6 +3320,7 @@ static void double_print(char *buf, int buflen, double val, int plus_sign)
     int mp2 = FALSE, fixup = FALSE;
     
     if (val < 0) val = -val;
+    /* initialize r, s, m+ and m- */
     f = Sg_DecodeFlonum(val, &exp, &sign);
     round = !Sg_OddP(f);
     if (exp >= 0) {
@@ -3342,6 +3349,10 @@ static void double_print(char *buf, int buflen, double val, int plus_sign)
 	mm = SG_MAKE_INT(1);
       }
     }
+    /* Sg_Printf(Sg_StandardErrorPort(),  UC("exp=%d, round=%d, r=%S, s=%S, mp=%d, mm=%S\n"), */
+    /* 	      exp, round, r, s, mp, mm); */
+
+    /* estimate scale */
     est = (int)ceil(log10(val) - 0.1);
     if (est >= 0) {
       s = Sg_Mul(s, Sg_Expt(SG_MAKE_INT(10), SG_MAKE_INT(est)));
@@ -3350,7 +3361,7 @@ static void double_print(char *buf, int buflen, double val, int plus_sign)
       r = Sg_Mul(r, scale);
       mm = Sg_Mul(mm, scale);
     }
-
+    /* fixup. avoid calculating m+ for obvious case. */
     if (Sg_NumCmp(r, s) >= 0) {
       fixup = TRUE;
     } else {
@@ -3365,13 +3376,17 @@ static void double_print(char *buf, int buflen, double val, int plus_sign)
       s = Sg_Mul(s, SG_MAKE_INT(10));
       est++;
     }
+    /* Sg_Printf(Sg_StandardErrorPort(),  UC("est=%d, r=%S, s=%S, mp=%S, mm=%S\n"), */
+    /* 	      est, r, s, mp, mm); */
 
+    /* determine position of decimal point. */
     if (est < 10 && est > -3) {
       point = est; est = 1;
     } else {
       point = 1;
     }
 
+    /* generate */
     if (point <= 0) {
       *buf++ = '0'; buflen--;
       *buf++ = '.', buflen--;
@@ -3384,6 +3399,9 @@ static void double_print(char *buf, int buflen, double val, int plus_sign)
       q = Sg_Quotient(r10, s, &r);
       mm = Sg_Mul(mm, SG_MAKE_INT(10));
       mp = (mp2 ? Sg_Ash(mm, 1) : mm);
+
+      /* Sg_Printf(Sg_StandardErrorPort(),  UC("q=%S, r=%S, mp=%S, mm=%S\n"), */
+      /* 		q, r, mp, mm); */
 
       ASSERT(SG_INTP(q));
       if (round) {

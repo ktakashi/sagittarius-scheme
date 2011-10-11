@@ -1,4 +1,5 @@
 ;;
+#!compatible
 (library (math prime)
     (export is-prime?
 	    random-prime)

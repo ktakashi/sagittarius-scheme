@@ -87,15 +87,10 @@
      test-on-bad-count-simple test-on-bad-end-name-simple
      test-on-final-simple test-on-test-end-simple)
     (import
-     (only (rnrs base) define ... _ lambda begin define-syntax syntax-rules else assertion-violation quote set! reverse let if not cond null? car cdr or eqv? cons let* string? string-append > number->string and equal? = - caar cdar eq? pair? case + >= <= dynamic-wind apply list < procedure? integer? quasiquote)
-     (only (rnrs control) case-lambda when)
-     (only (rnrs exceptions) guard)
-     (only (rnrs io simple) display newline open-output-file output-port? current-output-port write eof-object? read-char read)
-     (only (rnrs lists) assq memq)
-     (only (rnrs syntax-case) syntax-case)
-     (only (rnrs) define-record-type)
-     (only (rename (rnrs eval) (eval rnrs:eval)) rnrs:eval environment)
-     (only (rnrs mutable-pairs) set-car! set-cdr!)
+     (rnrs)
+     (prefix (only (rnrs eval) eval) rnrs:)
+     (only (rnrs eval) environment)
+     (rnrs mutable-pairs)
      (only (srfi :1 lists) reverse!)
      (only (srfi :6 basic-string-ports) open-input-string)
      ;;(only (srfi :9 records) define-record-type)
@@ -530,7 +525,11 @@
   (define-syntax %test-evaluate-with-catch
     (syntax-rules ()
       ((%test-evaluate-with-catch test-expression)
-       (guard (ex (else #f)) test-expression))))
+       (guard (ex 
+	       ((message-condition? ex)
+		(condition-message ex))
+	       (else #f))
+	 test-expression))))
 
   (define (%test-source-line2 form)
     '())

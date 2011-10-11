@@ -28,7 +28,7 @@
 ;     decisions related to performance are taken for Scheme48.
 ;   * Alternative implementations, Comments and Warnings are 
 ;     mentioned after the definition with a heading.
-
+#!compatible
 (library (srfi :42 eager-comprehensions)
   (export
     do-ec list-ec append-ec string-ec string-append-ec vector-ec 
@@ -40,7 +40,11 @@
     srfi-42-dispatched srfi-42-do srfi-42-let srfi-42-parallel srfi-42-while srfi-42-until
     srfi-42--dispatch-ref srfi-42--dispatch-set! make-initial-:-dispatch 
     dispatch-union srfi-42-generator-proc)
-  (import (rnrs)
+  (import (except (rnrs) syntax-rules)
+	  (rnrs r5rs)
+	  ;; since syntax-case is not perfectly working, R6RS syntax-rules
+	  ;; also contains bugs. so until it's fixed we use (core syntax-rules)
+	  (core syntax-rules)
 	  (sagittarius)
 	  (match)
 	  (srfi :39 parameters)

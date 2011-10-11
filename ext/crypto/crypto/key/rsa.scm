@@ -2,6 +2,7 @@
 ;;;
 ;;; rsa.scm Cryptographic library
 ;;; 
+#!compatible
 (library (crypto key rsa)
     (export rsa-generate-key-pair
 	    rsa-generate-private-key

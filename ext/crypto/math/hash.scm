@@ -2,6 +2,7 @@
 ;;;
 ;;; random.scm math library
 ;;; 
+#!compatible
 (library (math hash)
     (export hash-algorithm?
 	    hash-algorithm

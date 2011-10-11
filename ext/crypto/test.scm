@@ -1,4 +1,5 @@
 (add-load-path "./crypto")
+#!compatible
 (library (crypto test)
     (export run-crypto-test)
     (import (srfi :64 testing)

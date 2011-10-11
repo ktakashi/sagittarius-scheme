@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Sagittarius"
-#define MyAppVersion "0.1.4"
+#define MyAppVersion "0.2.0"
 #define MyAppPublisher "Takashi Kato"
 #define MyAppURL "http://code.google.com/p/sagittarius-scheme/"
 #define MyAppExeName "sash.exe"
@@ -22,7 +22,7 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={pf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 LicenseFile=D:\home\t.kato\projects\sagittarius.win\Copyright
-OutputBaseFilename=setup_sagittarius_${#MyAppVersion}
+OutputBaseFilename=setup_sagittarius_{#MyAppVersion}
 Compression=lzma
 SolidCompression=yes
 
@@ -50,6 +50,7 @@ Source: "..\ext\regex\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags:
 Source: "..\ext\process\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\ext\ffi\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\ext\crypto\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\ext\odbc\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

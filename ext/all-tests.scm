@@ -9,6 +9,55 @@
 	(crypto test)
 	(srfi :64 testing))
 
+;; srfi-64 default implementation does not report detail error.
+;; so creates own test-runner
+(define (test-on-test-end-detail runner)
+  (define (%test-write-result1 pair port)
+    (display "  " port)
+    (display (car pair) port)
+    (display ": " port)
+    (write (cdr pair) port)
+    (newline port))
+  (let ((log  (test-runner-aux-value runner))
+	(kind (test-result-ref runner 'result-kind)))
+    (when (memq kind '(xpass fail))
+      (let* ((results (test-result-alist runner))
+	     (source-file (assq 'source-file results))
+	     (source-line (assq 'source-line results))
+	     (test-name (assq 'test-name results)))
+	(when (or source-file source-line)
+	  (if source-file (display (cdr source-file)))
+	  (display ":")
+	  (if source-line (display (cdr source-line)))
+	  (display ":"))
+	(display (if (eq? kind 'xpass) "XPASS" "FAIL"))
+	(when test-name
+	  (display " ")(display (cdr test-name)))
+	(newline))
+      (let ((expected (test-result-ref runner 'expected-value))
+	    (actual   (test-result-ref runner 'actual-value)))
+	(display #\tab)(display "expected value: ")(display expected)(newline)
+	(display #\tab)(display "  actual value: ")(display actual)(newline)))
+    (when (output-port? log)
+      (display "Test end:" log)
+      (newline log)
+      (let loop ((list (test-result-alist runner)))
+	(if (pair? list)
+	    (let ((pair (car list)))
+	      ;; Write out properties not written out by on-test-begin.
+	      (if (not (memq (car pair)
+			     '(test-name source-file source-line source-form)))
+		  (%test-write-result1 pair log))
+	      (loop (cdr list))))))))
+
+(define (test-runner-detail)
+  (let ((runner (test-runner-simple)))
+      (test-runner-on-test-end! runner test-on-test-end-detail)
+      runner))
+
+(test-runner-factory test-runner-detail)
+
+
 (test-begin "extension test")
 ;; time must be first. it is used in thread test
 (run-time-test)

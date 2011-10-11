@@ -5,7 +5,7 @@ INCLUDE(${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckFunctionExists.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckTypeSize.cmake)
 
-ENABLE_TESTING()
+#ENABLE_TESTING()
 
 # basic info for project
 SET(SAGITTARIUS_NAME "sagittarius" CACHE STRING "Sagittarius PACKAGE_NAME")
@@ -21,7 +21,7 @@ SET(CMAKE_INSTALL_PREFIX ${INSTALL_PREFIX} CACHE INTERNAL "Prefix prepended to i
 
 #SET(SAGITTARIUS_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}"
 #  CACHE STRING "Sagittarius release version string")
-SET(SAGITTARIUS_VERSION "0.1.4" CACHE STRING "Sagittarius release version string" FORCE)
+SET(SAGITTARIUS_VERSION "0.2.0" CACHE STRING "Sagittarius release version string" FORCE)
 
 IF(WIN32 AND NOT CYGWIN)
   # On Windows platform, we resolve library path relatively.
@@ -201,3 +201,6 @@ CONFIGURE_FILE(
 
 ADD_CUSTOM_TARGET(uninstall
     COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
+
+ADD_CUSTOM_TARGET(test
+  COMMAND ${PROJECT_SOURCE_DIR}/build/sash run-test.scm)

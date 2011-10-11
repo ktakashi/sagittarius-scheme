@@ -1192,8 +1192,8 @@
       (wrong-type-of-argument-violation 'list->vector "propert list" lst))
     (result (Sg_ListToVector lst start end)))
 
-  (define-c-proc vector-fill! (vec::Vector fill) ::Object
-    (Sg_VectorFill vec fill 0 -1))
+  (define-c-proc vector-fill! (vec::Vector fill :optional (start::fixnum 0) (end::fixnum -1)) ::Object
+    (Sg_VectorFill vec fill start end))
 
   ;; 11.14 errors and violations
   (define-c-proc assertion-violation (who message :rest irritants) ::void
