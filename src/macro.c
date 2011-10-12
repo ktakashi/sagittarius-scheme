@@ -230,6 +230,10 @@ SgObject Sg_MacroExpand(SgObject expr, SgObject p1env, int onceP)
       Sg_VMPushCC(macro_expand_cc, data, 1);
     }
     expr = Sg_Apply4(mac->transformer, mac, expr, p1env, mac->data);
+  } else if (!onceP) {
+    /* do recursively */
+    expr = Sg_Cons(op,
+		   Sg_MacroExpand(SG_CDR(expr), p1env, onceP));
   }
   /* not pair or null */
   return expr;

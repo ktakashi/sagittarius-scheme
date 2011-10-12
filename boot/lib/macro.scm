@@ -461,6 +461,7 @@
 			'.vars)))
 	  (env    (vector-copy mac-env)))
       ;; we don't need current-proc for this
+      ;; this makes compiled cache size much smaller.
       (vector-set! env 3 #f)
       (if (variable? template)
 	  (let ((lex-id (lookup-lexical-name tmpl mac-env)))
@@ -676,9 +677,9 @@
 			(emit (emit (cadr slot)))
 			(else (cadr slot)))))
 	    (else
-	     (assertion-violation "syntax template" "subforms have different size of matched input (variable)"
-				  `(template: ,(unwrap-syntax in-form))
-				  `(subforms: ,@(unwrap-syntax vars))))))
+	     (syntax-violation "syntax template" "subforms have different size of matched input (variable)"
+			       `(template: ,(unwrap-syntax in-form))
+			       `(subforms: ,@(unwrap-syntax vars))))))
     (define (expand-ellipsis-var tmpl vars)
       (cond ((exists (lambda (slot)
 		       (if (identifier=? (id-envs tmpl) tmpl
@@ -691,9 +692,9 @@
 			(emit (map emit (cadr slot)))
 			(else (cadr slot)))))
 	    (else
-	     (assertion-violation "syntax template" "subforms have different size of matched input (ellipsis)"
-				  `(template: ,(unwrap-syntax in-form))
-				  `(subforms: ,@(unwrap-syntax vars))))))
+	     (syntax-violation "syntax template" "subforms have different size of matched input (ellipsis)"
+			       `(template: ,(unwrap-syntax in-form))
+			       `(subforms: ,@(unwrap-syntax vars))))))
 
     (define (expand-ellipsis-template tmpl depth vars)
       (let loop ((expr '()) (remains (collect-ellipsis-vars tmpl ranks depth vars)))
@@ -703,9 +704,9 @@
 	      ((null? remains) '())
 	      ((eq? remains #t) (reverse expr))
 	      (else
-	       (assertion-violation "syntax template" "subforms have different size of matched input (ellipsis template)"
-                                        `(template: ,(unwrap-syntax in-form))
-					`(subforms: ,@(unwrap-syntax vars)))))))
+	       (syntax-violation "syntax template" "subforms have different size of matched input (ellipsis template)"
+				 `(template: ,(unwrap-syntax in-form))
+				 `(subforms: ,@(unwrap-syntax vars)))))))
 
     (define (expand-escaped-template tmpl depth vars)
       (cond ((variable? tmpl)
