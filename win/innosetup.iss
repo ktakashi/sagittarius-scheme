@@ -41,6 +41,7 @@ Source: "..\src\*.h"; DestDir: "{app}\include"; Flags: ignoreversion recursesubd
 Source: "..\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\sitelib\*"; DestDir: "{app}\sitelib"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\build\modules\Release\*.dll"; DestDir: "{app}\modules"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\doc\sagittarius-ref.pdf"; DestDir: "{app}\doc"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 ; TODO: I don't want to write install script every time when I added ext/* module
 Source: "..\ext\socket\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -54,6 +55,8 @@ Source: "..\ext\odbc\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: 
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+Name: "{group}\reference.pdf"; Filename: "{app}\doc\sagittarius-ref.pdf"
+Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 ;Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: quicklaunchicon
 

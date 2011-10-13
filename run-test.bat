@@ -10,7 +10,9 @@ if exist .\build\sash.exe (
   exit
 )
 
+echo "R6RS tests"
 %sash_exe% -L.\lib -L.\test\r6rs-test-suite .\test\r6rs-test-suite\tests\r6rs\run.sps
+echo "sitelib tests"
 %sash_exe% -L.\lib -L.\sitelib -L.\test -L.\build\modules -L.\ext\regex .\test\tests.scm
 cd ext
 echo "extension modules test"

@@ -110,11 +110,11 @@ static SgObject unwrap_rec(SgObject form, SgObject history)
 
 static SgObject macro_tranform(SgObject *args, int argc, void *data_)
 {
-  SgVM *vm = Sg_VM();;
+  SgVM *vm = Sg_VM();
   SgObject macro, form, p1env, mac_env;
   SgObject ue_save = vm->usageEnv;
   SgObject me_save = vm->macroEnv;
-  volatile SgObject data;
+  SgObject data;
   SgObject result;
   macro = args[0];
   ASSERT(SG_MACROP(macro));

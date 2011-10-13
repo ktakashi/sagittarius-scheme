@@ -1964,10 +1964,20 @@ static void print_frames(SgVM *vm)
       size = cont->size;
       /* cont's size is argc of previous cont frame */
       /* dump arguments */
-      for (i = 0; i < size; i++) {
-	Sg_Printf(vm->logPort, UC("0x%x +   p=%#39x +\n"), current-i-1, *(current-i-1));
+      if (IN_STACK_P((SgObject*)cont, vm)) {
+	if (!c_func) {
+	  for (i = 0; i < size; i++, current--) {
+	    Sg_Printf(vm->logPort, UC("0x%x +   p=%#39x +\n"), current, *(current));
+	  }
+	}
+      } else {
+	if (!c_func) {
+	  for (i = 0; i < size; i++) {
+	    Sg_Printf(vm->logPort, UC("0x%x +   p=%#39x +\n"), cont->env+i, *(cont->env+i));
+	  }
+	}
+	break;
       }
-      current -= (size + 1);
       cont = cont->prev;
       /* check if prev cont has arg or not. */
       continue;

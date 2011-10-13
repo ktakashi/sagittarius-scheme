@@ -2,14 +2,18 @@
 # 
 # Build file for odbc
 
-# quick hack for Cygwin
 INCLUDE(${CMAKE_ROOT}/Modules/CheckIncludeFiles.cmake)
 IF (CYGWIN)
+  MESSAGE(STATUS "checking ODBC on CYGWIN")
+  CHECK_INCLUDE_FILES("windows.h;sql.h" HAVE_SQL_H)
+  CHECK_INCLUDE_FILES("windows.h;sql.h;sqlext.h" HAVE_SQLEXT_H)
+ELSEIF(WIN32)
+  MESSAGE(STATUS "checking ODBC on Windows")
   CHECK_INCLUDE_FILES("windows.h;sql.h" HAVE_SQL_H)
   CHECK_INCLUDE_FILES("windows.h;sql.h;sqlext.h" HAVE_SQLEXT_H)
 ELSE()
-  CHECK_INCLUDE_FILE(sql.h HAVE_SQL_H)
-  CHECK_INCLUDE_FILE(sqlext.h HAVE_SQLEXT_H)
+  CHECK_INCLUDE_FILES("sql.h" HAVE_SQL_H)
+  CHECK_INCLUDE_FILES("sql.h;sqlext.h" HAVE_SQLEXT_H)
 ENDIF()
 
 IF (HAVE_SQL_H)
@@ -33,7 +37,7 @@ IF (HAVE_SQL_H)
 
   IF (CYGWIN)
     TARGET_LINK_LIBRARIES(sagittarius--odbc odbc32)
-  ELSEIF(WINDOWS)
+  ELSEIF(WIN32)
     TARGET_LINK_LIBRARIES(sagittarius--odbc odbc32)
   ELSE()
     # TODO

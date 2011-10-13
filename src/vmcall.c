@@ -51,17 +51,25 @@
     SG_PROF_COUNT_CALL(vm, AC(vm));
     AC(vm) = SG_SUBR_FUNC(AC(vm))(FP(vm), argc, SG_SUBR_DATA(AC(vm)));
   } else if (SG_CLOSUREP(AC(vm))) {
-    SgClosure *c = SG_CLOSURE(AC(vm));
-    SgCodeBuilder *cb = SG_CODE_BUILDER(c->code);
-    int required = cb->argc;
+    SgClosure *cl = SG_CLOSURE(AC(vm));
+    SgCodeBuilder *cb = SG_CODE_BUILDER(cl->code);
+    int required = SG_PROCEDURE_REQUIRED(cl);
+    int optargs =  SG_PROCEDURE_OPTIONAL(cl);
     CHECK_STACK(cb->maxStack, vm);
     CL(vm) = AC(vm);
     PC(vm) = cb->code;
-    if (cb->optional) {
+    if (optargs) {
       int extra = argc - required;
       if (-1 == extra) {
-	SgObject *sp = unshift_args(SP(vm), 1);
-	INDEX_SET(sp, 0, SG_NIL);
+	/* Apply call */
+	SgObject *sp;
+	if (SP(vm) - vm->stack >= 1) {
+	  sp = unshift_args(SP(vm), 1);
+	  INDEX_SET(sp, 0, SG_NIL);
+	} else {
+	  sp = SP(vm);
+	  PUSH(sp, SG_NIL);
+	}
 	SP(vm) = sp;
 	FP(vm) = sp - required;
 	/* vm->fpOffset = CALC_OFFSET(vm, required); */

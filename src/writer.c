@@ -564,7 +564,9 @@ static int symbol_need_bar(const SgChar *s, int n)
     if (s[3] == 0) return FALSE;
     return TRUE;
   }
-  if (isdigit(s[0])) {
+  if (s[0] >= 0xFF) {
+    return TRUE;
+  } else if (isdigit(s[0])) {
     return TRUE;
   } else {
     SgChar c;
@@ -572,6 +574,7 @@ static int symbol_need_bar(const SgChar *s, int n)
       if (c < 32) continue;
       if (c == 127) continue;
       if (c & 0x80) continue;
+	  if (c >= 0xFF) return TRUE;
       if (isalnum(c)) continue;
       if (strchr("!$%&/:*<=>?^_~+-.@", (char)c)) continue;
       return TRUE;

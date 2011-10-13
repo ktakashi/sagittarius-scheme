@@ -59,7 +59,7 @@ SgObject Sg_MakePseudoRandom(SgString *name, int bits)
   int wprng = find_prng(cname), err;
   SgPrng *prng;
   
-  if (prng == -1) {
+  if (wprng == -1) {
     Sg_Error(UC("%A is not supported"), name);
     return SG_UNDEF;
   }

@@ -145,7 +145,7 @@ SgObject Sg_HashSize(SgHashAlgo *algo)
 SgObject Sg_HashOid(SgHashAlgo *algo)
 {
   if (algo->type == SG_BUILTIN_HASH) {
-    int index = algo->impl.builtin.index, i;
+    unsigned int index = algo->impl.builtin.index, i;
     unsigned long *OID = hash_descriptor[index].OID;
     unsigned long len = hash_descriptor[index].OIDlen;
     /* construct oid string */
