@@ -29,6 +29,8 @@
 (cond-expand
  (sagittarius.os.windows
   ;; all-tests adds dynamic-load-path however it's for non windows environment
-  (add-dynamic-load-path "../build/modules")))
+  (add-dynamic-load-path "../build/modules"))
+ (else
+  #t))
 (load "./all-tests.scm")
 (flush-output-port (current-output-port))
