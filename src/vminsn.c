@@ -325,9 +325,9 @@ CASE(NEG) {
 CASE(TEST) {
   if (SG_FALSEP(AC(vm))) {
     {
-      SgObject n = FETCH_OPERAND(PC(vm));
+      SgObject n = PEEK_OPERAND(PC(vm));
       ASSERT(SG_INTP(n));
-      PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
+      PC(vm)=(PC(vm) + SG_INT_VALUE(n));
     }
 ;
   } else {
@@ -340,9 +340,9 @@ CASE(TEST) {
 
 CASE(JUMP) {
   {
-    SgObject n = FETCH_OPERAND(PC(vm));
+    SgObject n = PEEK_OPERAND(PC(vm));
     ASSERT(SG_INTP(n));
-    PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
+    PC(vm)=(PC(vm) + SG_INT_VALUE(n));
   }
 ;
   NEXT;
@@ -356,7 +356,7 @@ CASE(SHIFTJ) {
 
 CASE(BNNUME) {
   {
-    SgObject n = FETCH_OPERAND(PC(vm));
+    SgObject n = PEEK_OPERAND(PC(vm));
     SgObject s = INDEX(SP(vm), 0);
     int t = FALSE;
     if ((SG_INTP(AC(vm)) && SG_INTP(s))    ) {
@@ -368,9 +368,10 @@ CASE(BNNUME) {
 ;
     if (t) {
       AC(vm)=SG_TRUE;
+      PC(vm)++;
     } else {
       AC(vm)=SG_FALSE;
-      PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
+      PC(vm)=(PC(vm) + SG_INT_VALUE(n));
     }
     
 ;
@@ -382,7 +383,7 @@ CASE(BNNUME) {
 
 CASE(BNLT) {
   {
-    SgObject n = FETCH_OPERAND(PC(vm));
+    SgObject n = PEEK_OPERAND(PC(vm));
     SgObject s = INDEX(SP(vm), 0);
     int t = FALSE;
     if ((SG_INTP(AC(vm)) && SG_INTP(s))    ) {
@@ -394,9 +395,10 @@ CASE(BNLT) {
 ;
     if (t) {
       AC(vm)=SG_TRUE;
+      PC(vm)++;
     } else {
       AC(vm)=SG_FALSE;
-      PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
+      PC(vm)=(PC(vm) + SG_INT_VALUE(n));
     }
     
 ;
@@ -408,7 +410,7 @@ CASE(BNLT) {
 
 CASE(BNLE) {
   {
-    SgObject n = FETCH_OPERAND(PC(vm));
+    SgObject n = PEEK_OPERAND(PC(vm));
     SgObject s = INDEX(SP(vm), 0);
     int t = FALSE;
     if ((SG_INTP(AC(vm)) && SG_INTP(s))    ) {
@@ -420,9 +422,10 @@ CASE(BNLE) {
 ;
     if (t) {
       AC(vm)=SG_TRUE;
+      PC(vm)++;
     } else {
       AC(vm)=SG_FALSE;
-      PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
+      PC(vm)=(PC(vm) + SG_INT_VALUE(n));
     }
     
 ;
@@ -434,7 +437,7 @@ CASE(BNLE) {
 
 CASE(BNGT) {
   {
-    SgObject n = FETCH_OPERAND(PC(vm));
+    SgObject n = PEEK_OPERAND(PC(vm));
     SgObject s = INDEX(SP(vm), 0);
     int t = FALSE;
     if ((SG_INTP(AC(vm)) && SG_INTP(s))    ) {
@@ -446,9 +449,10 @@ CASE(BNGT) {
 ;
     if (t) {
       AC(vm)=SG_TRUE;
+      PC(vm)++;
     } else {
       AC(vm)=SG_FALSE;
-      PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
+      PC(vm)=(PC(vm) + SG_INT_VALUE(n));
     }
     
 ;
@@ -460,7 +464,7 @@ CASE(BNGT) {
 
 CASE(BNGE) {
   {
-    SgObject n = FETCH_OPERAND(PC(vm));
+    SgObject n = PEEK_OPERAND(PC(vm));
     SgObject s = INDEX(SP(vm), 0);
     int t = FALSE;
     if ((SG_INTP(AC(vm)) && SG_INTP(s))    ) {
@@ -472,9 +476,10 @@ CASE(BNGE) {
 ;
     if (t) {
       AC(vm)=SG_TRUE;
+      PC(vm)++;
     } else {
       AC(vm)=SG_FALSE;
-      PC(vm)=(PC(vm) + (SG_INT_VALUE(n) - 1));
+      PC(vm)=(PC(vm) + SG_INT_VALUE(n));
     }
     
 ;

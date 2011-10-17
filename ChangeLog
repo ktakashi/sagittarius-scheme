@@ -1,3 +1,9 @@
+2011-10-17  Takashi Kato  <ktakashi@ymail.com>
+
+	* boot/lib/macro.scm (expand-syntax): fixed replacing non equal identifiers.
+
+	* src/identifier.c (Sg_IdentifierEqP): fixed comparing identifiers.
+
 2011-09-08  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/library.c (import_parents): improved library system.

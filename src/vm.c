@@ -1708,11 +1708,12 @@ static inline SgObject* unshift_args(SgObject *sp, int diff)
 static inline SgObject* shift_args(SgObject *fp, int m, SgObject *sp)
 {
   int i;
+  SgObject *f = fp + m;
   for (i = m - 1; 0 <= i; i--) {
-    INDEX_SET(fp + m, i, INDEX(sp, i));
+    INDEX_SET(f, i, INDEX(sp, i));
   }
   /* memmove(fp, sp-m, m*sizeof(SgObject)); */
-  return fp + m;
+  return f;
 }
 
 static SgObject process_queued_requests_cc(SgObject result, void **data)
@@ -1812,15 +1813,15 @@ static void process_queued_requests(SgVM *vm)
 
 #define BUILTIN_TWO_ARGS(vm, proc)		\
   do {						\
-    AC(vm) = proc(INDEX(SP(vm), 0), AC(vm));	\
-    SP(vm)--;					\
+    AC(vm) = proc(INDEX(SP(vm)--, 0), AC(vm));	\
+    /* SP(vm)--; */				\
   } while (0)
 
 #define BUILTIN_TWO_ARGS_COMPARE(vm, proc)		\
   do {							\
-    AC(vm) = SG_MAKE_BOOL(proc(INDEX(SP(vm), 0),	\
+    AC(vm) = SG_MAKE_BOOL(proc(INDEX(SP(vm)--, 0),	\
 			       AC(vm)));		\
-    SP(vm)--;						\
+    /* SP(vm)--; */					\
   } while(0)
 
 #define BUILTIN_ONE_ARG(vm, proc)		\
@@ -1831,22 +1832,24 @@ static void process_queued_requests(SgVM *vm)
 
 #define BRANCH_TEST2(test)			\
   {						\
-    SgObject n = FETCH_OPERAND(PC(vm));		\
-    if (test(INDEX(SP(vm), 0), AC(vm))) {	\
+    SgObject n = PEEK_OPERAND(PC(vm));		\
+    if (test(INDEX(SP(vm)--, 0), AC(vm))) {	\
       AC(vm) = SG_TRUE;				\
+      PC(vm)++;					\
     } else {					\
-      PC(vm) += SG_INT_VALUE(n) - 1;		\
+      PC(vm) += SG_INT_VALUE(n);		\
       AC(vm) = SG_FALSE;			\
     }						\
-    SP(vm)--;					\
+    /* SP(vm)--; */				\
   }
 #define BRANCH_TEST1(test)			\
   {						\
-    SgObject n = FETCH_OPERAND(PC(vm));		\
+    SgObject n = PEEK_OPERAND(PC(vm));		\
     if (test(AC(vm))) {				\
       AC(vm) = SG_TRUE;				\
+      PC(vm)++;					\
     } else {					\
-      PC(vm) += SG_INT_VALUE(n) - 1;		\
+      PC(vm) += SG_INT_VALUE(n);		\
       AC(vm) = SG_FALSE;			\
     }						\
   }

@@ -301,7 +301,9 @@ static double algorithmR(SgObject f, const int e, const double z0)
     }
     test = Sg_NumCmp(D2, y);
     if (test < 0) {
-      if (negP && m == iexpt_2n52 && Sg_NumGt(Sg_Ash(D2, 1), y)) {
+      if (negP && m == iexpt_2n52 &&
+	  k > -1074 &&
+	  Sg_NumGt(Sg_Ash(D2, 1), y)) {
 	z = prevfloat(z);
 	continue;
       }

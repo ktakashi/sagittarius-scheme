@@ -206,16 +206,16 @@
 
 (define-inst TEST (0 1 #t) :label
   (cond ((SG_FALSEP (AC vm))
-	 (let ((n (FETCH_OPERAND (PC vm))))
+	 (let ((n (PEEK_OPERAND (PC vm))))
 	   (ASSERT (SG_INTP n))
-	   (set! (PC vm) (+ (PC vm) (- (SG_INT_VALUE n) 1)))))
+	   (set! (PC vm) (+ (PC vm) (SG_INT_VALUE n)))))
 	(else
 	 (post++ (PC vm)))))
 
 (define-inst JUMP (0 1 #t) :label
-  (let ((n (FETCH_OPERAND (PC vm))))
+  (let ((n (PEEK_OPERAND (PC vm))))
     (ASSERT (SG_INTP n))
-    (set! (PC vm) (+ (PC vm) (- (SG_INT_VALUE n) 1)))))
+    (set! (PC vm) (+ (PC vm) (SG_INT_VALUE n)))))
 
 (define-inst SHIFTJ (2 0 #f)
   (INSN_VAL2 val1 val2 c)
@@ -225,7 +225,7 @@
 (define-cgen-stmt branch-number-test
   ((_ op func)
    (dispatch
-    `(let ((n (FETCH_OPERAND (PC vm)))
+    `(let ((n (PEEK_OPERAND (PC vm)))
 	   (s (INDEX (SP vm) 0))
 	   (t::int FALSE))
        (cond ((and (SG_INTP (AC vm))
@@ -234,10 +234,11 @@
 	     (else
 	      (set! t (,func s (AC vm)))))
        (cond (t
-	      (set! (AC vm) SG_TRUE))
+	      (set! (AC vm) SG_TRUE)
+	      (post++ (PC vm)))
 	     (else
 	      (set! (AC vm) SG_FALSE)
-	      (set! (PC vm) (+ (PC vm) (- (SG_INT_VALUE n) 1)))))
+	      (set! (PC vm) (+ (PC vm) (SG_INT_VALUE n)))))
        (post-- (SP vm))))))
 
 (define-inst BNNUME (0 1 #t) :label

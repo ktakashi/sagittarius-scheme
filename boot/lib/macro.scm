@@ -232,9 +232,13 @@
     (define (compare a b)
       (or (identifier=? (current-usage-env) a
 			(current-macro-env) b)
+	  (and (identifier? a) (identifier? b)
+	       (eq? (id-name a) (id-name b))
+	       (eq? (id-envs a) (id-envs b)))
 	  (let ((v (find-binding (vm-current-library) (identifier->symbol b) #f)))
 	    (and v
-		 (identifier=? (current-usage-env) a
+		 (eq? (identifier->symbol a) (gloc-name v))
+		 #;(identifier=? (current-usage-env) a
 			       (current-macro-env) (gloc-name v))))))
     (cond ((bar? pat) #t)
           ((variable? pat)
@@ -509,21 +513,20 @@
 	  ((symbol? datum) (wrap-syntax datum use-env seen))
 	  (else datum)))
   (define (lookup-pattern-variable p1env vars id)
-    (let ((name (identifier->symbol id)))
-      (let loop ((frames (vector-ref p1env 1)))
-	(cond ((null? frames) #f)
-	      ((and (pair? frames)
-		    (= (caar frames) PATTERN))
-	       (let loop2 ((frame (cdar frames)))
-		 (cond ((null? frame) (loop (cdr frames)))
-		       ((assq (caar frame) vars)
+    (let loop ((frames (vector-ref p1env 1)))
+      (cond ((null? frames) #f)
+	    ((and (pair? frames)
+		  (= (caar frames) PATTERN))
+	     (let loop2 ((frame (cdar frames)))
+	       (cond ((null? frame) (loop (cdr frames)))
+		     ((assq (caar frame) vars)
 			=> (lambda (slot)
 			     (let ((r (cadr slot)))
-			       (if (eq? name (unwrap-syntax r))
+			       (if (identifier=? use-env id mac-env r)
 				   r
 				   (loop (cdr frames))))))
-		       (else (loop2 (cdr frame))))))
-	      (else (loop (cdr frames)))))))
+		     (else (loop2 (cdr frame))))))
+	    (else (loop (cdr frames))))))
 
   (define contain-identifier?
     (lambda (lst)
@@ -601,8 +604,8 @@
 
 (define (rank-of name ranks)
   (let ((slot (exists (lambda (slot)
-			(if (identifier=? (id-envs name) name
-					  (id-envs (car slot)) (car slot))
+			(if (and (eq? (id-envs name) (id-envs (car slot)))
+				 (eq? (id-name name) (id-name (car slot))))
 			    slot
 			    #f))
 		      ranks)))
@@ -682,8 +685,8 @@
 			       `(subforms: ,@(unwrap-syntax vars))))))
     (define (expand-ellipsis-var tmpl vars)
       (cond ((exists (lambda (slot)
-		       (if (identifier=? (id-envs tmpl) tmpl
-					 (id-envs (car slot)) (car slot))
+		       (if (and (eq? (id-envs tmpl) (id-envs (car slot)))
+				(eq? (id-name tmpl) (id-name (car slot))))
 			   slot
 			   #f))
 		     vars)

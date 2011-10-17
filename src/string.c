@@ -94,11 +94,22 @@ SgObject Sg_MakeString(const SgChar *value, SgStringType flag)
 /* This method assumes given value as ASCII for now */
 SgObject Sg_MakeStringC(const char *value)
 {
+#if 0
   SgString *z;
   z = make_string(strlen(value));
   COPY_STRING(z, value, z->size, 0);
   z->value[z->size] = 0;
   return SG_OBJ(z);
+#endif
+  int size = strlen(value), i;
+  SgChar *z, *t;
+  z = t = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar) * (size + 1));
+  
+  for (i = 0; i < size; i++) {
+    *t++ = *value++;
+  }
+  *t = 0;
+  return Sg_MakeString(z, SG_LITERAL_STRING);
 }
 
 SgObject Sg_ReserveString(size_t size, SgChar fill)
