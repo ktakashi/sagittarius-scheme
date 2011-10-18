@@ -7,9 +7,9 @@
 ;
 static SgObject _sagittarius_vm_insn_name(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("insn-name");
   SgObject insn_scm;
   int insn;
+  DeclareProcedureName("insn-name");
   checkArgumentLength(1);
   argumentAsFixnum(0, insn_scm, insn);
   {
@@ -27,12 +27,12 @@ static SG_DEFINE_SUBR(_sagittarius_vm_insn_name_Stub, 1, 0, _sagittarius_vm_insn
 ;
 static SgObject _sagittarius_vm_make_identifier(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-identifier");
   SgObject name_scm;
   SgSymbol *name;
   SgObject envs;
   SgObject library_scm;
   SgLibrary *library;
+  DeclareProcedureName("make-identifier");
   checkArgumentLength(3);
   argumentAsSymbol(0, name_scm, name);
   argumentRef(1, envs);
@@ -48,9 +48,9 @@ static SG_DEFINE_SUBR(_sagittarius_vm_make_identifier_Stub, 3, 0, _sagittarius_v
 ;
 static SgObject _sagittarius_vm_id_envs(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("id-envs");
   SgObject id_scm;
   SgIdentifier *id;
+  DeclareProcedureName("id-envs");
   checkArgumentLength(1);
   argumentAsIdentifier(0, id_scm, id);
   {
@@ -64,9 +64,9 @@ static SG_DEFINE_SUBR(_sagittarius_vm_id_envs_Stub, 1, 0, _sagittarius_vm_id_env
 ;
 static SgObject _sagittarius_vm_id_library(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("id-library");
   SgObject id_scm;
   SgIdentifier *id;
+  DeclareProcedureName("id-library");
   checkArgumentLength(1);
   argumentAsIdentifier(0, id_scm, id);
   {
@@ -80,9 +80,9 @@ static SG_DEFINE_SUBR(_sagittarius_vm_id_library_Stub, 1, 0, _sagittarius_vm_id_
 ;
 static SgObject _sagittarius_vm_copy_identifier(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("copy-identifier");
   SgObject id_scm;
   SgIdentifier *id;
+  DeclareProcedureName("copy-identifier");
   checkArgumentLength(1);
   argumentAsIdentifier(0, id_scm, id);
   {
@@ -96,9 +96,9 @@ static SG_DEFINE_SUBR(_sagittarius_vm_copy_identifier_Stub, 1, 0, _sagittarius_v
 ;
 static SgObject _sagittarius_vm_bound_id_3esymbol(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bound-id->symbol");
   SgObject id_scm;
   SgIdentifier *id;
+  DeclareProcedureName("bound-id->symbol");
   checkArgumentLength(1);
   argumentAsIdentifier(0, id_scm, id);
   {
@@ -121,12 +121,12 @@ static SG_DEFINE_SUBR(_sagittarius_vm_bound_id_3esymbol_Stub, 1, 0, _sagittarius
 ;
 static SgObject _sagittarius_vm_make_syntax(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-syntax");
   SgObject name_scm;
   SgSymbol *name;
   SgObject proc;
   SgObject userDefined_scm;
   int userDefined;
+  DeclareProcedureName("make-syntax");
   checkArgumentLengthBetween(2, 3);
   argumentAsSymbol(0, name_scm, name);
   argumentRef(1, proc);
@@ -147,9 +147,9 @@ static SG_DEFINE_SUBR(_sagittarius_vm_make_syntax_Stub, 2, 1, _sagittarius_vm_ma
 ;
 static SgObject _sagittarius_vm_syntax_name(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("syntax-name");
   SgObject arg0_scm;
   SgSyntax *arg0;
+  DeclareProcedureName("syntax-name");
   checkArgumentLength(1);
   argumentAsSyntax(0, arg0_scm, arg0);
   {
@@ -163,9 +163,9 @@ static SG_DEFINE_SUBR(_sagittarius_vm_syntax_name_Stub, 1, 0, _sagittarius_vm_sy
 ;
 static SgObject _sagittarius_vm_syntax_proc(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("syntax-proc");
   SgObject arg0_scm;
   SgSyntax *arg0;
+  DeclareProcedureName("syntax-proc");
   checkArgumentLength(1);
   argumentAsSyntax(0, arg0_scm, arg0);
   {
@@ -179,8 +179,8 @@ static SG_DEFINE_SUBR(_sagittarius_vm_syntax_proc_Stub, 1, 0, _sagittarius_vm_sy
 ;
 static SgObject _sagittarius_vm_syntax3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("syntax?");
   SgObject arg0;
+  DeclareProcedureName("syntax?");
   checkArgumentLength(1);
   argumentRef(0, arg0);
   {
@@ -194,11 +194,11 @@ static SG_DEFINE_SUBR(_sagittarius_vm_syntax3f_Stub, 1, 0, _sagittarius_vm_synta
 ;
 static SgObject _sagittarius_vm_call_syntax_handler(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("call-syntax-handler");
   SgObject s_scm;
   SgSyntax *s;
   SgObject expr;
   SgObject p1env;
+  DeclareProcedureName("call-syntax-handler");
   checkArgumentLength(3);
   argumentAsSyntax(0, s_scm, s);
   argumentRef(1, expr);
@@ -214,8 +214,8 @@ static SG_DEFINE_SUBR(_sagittarius_vm_call_syntax_handler_Stub, 3, 0, _sagittari
 ;
 static SgObject _sagittarius_vm_macro3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("macro?");
   SgObject obj;
+  DeclareProcedureName("macro?");
   checkArgumentLength(1);
   argumentRef(0, obj);
   {
@@ -229,12 +229,12 @@ static SG_DEFINE_SUBR(_sagittarius_vm_macro3f_Stub, 1, 0, _sagittarius_vm_macro3
 ;
 static SgObject _sagittarius_vm_make_macro(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-macro");
   SgObject name;
   SgObject transformer;
   SgObject data;
   SgObject p1env;
   SgObject maybe_library;
+  DeclareProcedureName("make-macro");
   checkArgumentLengthBetween(4, 5);
   argumentRef(0, name);
   argumentRef(1, transformer);
@@ -257,11 +257,11 @@ static SG_DEFINE_SUBR(_sagittarius_vm_make_macro_Stub, 4, 1, _sagittarius_vm_mak
 ;
 static SgObject _sagittarius_vm_make_macro_transformer(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-macro-transformer");
   SgObject name;
   SgObject proc;
   SgObject p1env;
   SgObject library;
+  DeclareProcedureName("make-macro-transformer");
   checkArgumentLength(4);
   argumentRef(0, name);
   argumentRef(1, proc);
@@ -278,11 +278,11 @@ static SG_DEFINE_SUBR(_sagittarius_vm_make_macro_transformer_Stub, 4, 0, _sagitt
 ;
 static SgObject _sagittarius_vm_call_macro_expander(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("call-macro-expander");
   SgObject macro_scm;
   SgMacro *macro;
   SgObject expr;
   SgObject p1env;
+  DeclareProcedureName("call-macro-expander");
   checkArgumentLength(3);
   argumentAsMacro(0, macro_scm, macro);
   argumentRef(1, expr);
@@ -298,11 +298,11 @@ static SG_DEFINE_SUBR(_sagittarius_vm_call_macro_expander_Stub, 3, 0, _sagittari
 ;
 static SgObject _sagittarius_vm_25internal_macro_expand(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("%internal-macro-expand");
   SgObject expr;
   SgObject p1env;
   SgObject onceP_scm;
   int onceP;
+  DeclareProcedureName("%internal-macro-expand");
   checkArgumentLength(3);
   argumentRef(0, expr);
   argumentRef(1, p1env);
@@ -318,8 +318,8 @@ static SG_DEFINE_SUBR(_sagittarius_vm_25internal_macro_expand_Stub, 3, 0, _sagit
 ;
 static SgObject _sagittarius_vm_make_library(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-library");
   SgObject name;
+  DeclareProcedureName("make-library");
   checkArgumentLength(1);
   argumentRef(0, name);
   {
@@ -333,8 +333,8 @@ static SG_DEFINE_SUBR(_sagittarius_vm_make_library_Stub, 1, 0, _sagittarius_vm_m
 ;
 static SgObject _sagittarius_vm_library3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("library?");
   SgObject arg0;
+  DeclareProcedureName("library?");
   checkArgumentLength(1);
   argumentRef(0, arg0);
   {
@@ -348,9 +348,9 @@ static SG_DEFINE_SUBR(_sagittarius_vm_library3f_Stub, 1, 0, _sagittarius_vm_libr
 ;
 static SgObject _sagittarius_vm_library_name(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("library-name");
   SgObject arg0_scm;
   SgLibrary *arg0;
+  DeclareProcedureName("library-name");
   checkArgumentLength(1);
   argumentAsLibrary(0, arg0_scm, arg0);
   {
@@ -364,9 +364,9 @@ static SG_DEFINE_SUBR(_sagittarius_vm_library_name_Stub, 1, 0, _sagittarius_vm_l
 ;
 static SgObject _sagittarius_vm_library_imported(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("library-imported");
   SgObject arg0_scm;
   SgLibrary *arg0;
+  DeclareProcedureName("library-imported");
   checkArgumentLength(1);
   argumentAsLibrary(0, arg0_scm, arg0);
   {
@@ -380,10 +380,10 @@ static SG_DEFINE_SUBR(_sagittarius_vm_library_imported_Stub, 1, 0, _sagittarius_
 ;
 static SgObject _sagittarius_vm_library_imported_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("library-imported-set!");
   SgObject arg0_scm;
   SgLibrary *arg0;
   SgObject arg1;
+  DeclareProcedureName("library-imported-set!");
   checkArgumentLength(2);
   argumentAsLibrary(0, arg0_scm, arg0);
   argumentRef(1, arg1);
@@ -398,9 +398,9 @@ static SG_DEFINE_SUBR(_sagittarius_vm_library_imported_set21_Stub, 2, 0, _sagitt
 ;
 static SgObject _sagittarius_vm_library_exported(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("library-exported");
   SgObject arg0_scm;
   SgLibrary *arg0;
+  DeclareProcedureName("library-exported");
   checkArgumentLength(1);
   argumentAsLibrary(0, arg0_scm, arg0);
   {
@@ -414,10 +414,10 @@ static SG_DEFINE_SUBR(_sagittarius_vm_library_exported_Stub, 1, 0, _sagittarius_
 ;
 static SgObject _sagittarius_vm_library_exported_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("library-exported-set!");
   SgObject arg0_scm;
   SgLibrary *arg0;
   SgObject arg1;
+  DeclareProcedureName("library-exported-set!");
   checkArgumentLength(2);
   argumentAsLibrary(0, arg0_scm, arg0);
   argumentRef(1, arg1);
@@ -432,9 +432,9 @@ static SG_DEFINE_SUBR(_sagittarius_vm_library_exported_set21_Stub, 2, 0, _sagitt
 ;
 static SgObject _sagittarius_vm_library_table(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("library-table");
   SgObject lib_scm;
   SgLibrary *lib;
+  DeclareProcedureName("library-table");
   checkArgumentLength(1);
   argumentAsLibrary(0, lib_scm, lib);
   {
@@ -448,9 +448,9 @@ static SG_DEFINE_SUBR(_sagittarius_vm_library_table_Stub, 1, 0, _sagittarius_vm_
 ;
 static SgObject _sagittarius_vm_library_parents(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("library-parents");
   SgObject lib_scm;
   SgLibrary *lib;
+  DeclareProcedureName("library-parents");
   checkArgumentLength(1);
   argumentAsLibrary(0, lib_scm, lib);
   {
@@ -464,10 +464,10 @@ static SG_DEFINE_SUBR(_sagittarius_vm_library_parents_Stub, 1, 0, _sagittarius_v
 ;
 static SgObject _sagittarius_vm_find_library(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("find-library");
   SgObject arg0;
   SgObject createp_scm;
   int createp;
+  DeclareProcedureName("find-library");
   checkArgumentLength(2);
   argumentRef(0, arg0);
   argumentAsBoolean(1, createp_scm, createp);
@@ -482,10 +482,10 @@ static SG_DEFINE_SUBR(_sagittarius_vm_find_library_Stub, 2, 0, _sagittarius_vm_f
 ;
 static SgObject _sagittarius_vm_25insert_binding(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("%insert-binding");
   SgObject libname;
   SgObject name;
   SgObject value;
+  DeclareProcedureName("%insert-binding");
   checkArgumentLength(3);
   argumentRef(0, libname);
   argumentRef(1, name);
@@ -509,11 +509,11 @@ static SG_DEFINE_SUBR(_sagittarius_vm_25insert_binding_Stub, 3, 0, _sagittarius_
 ;
 static SgObject _sagittarius_vm_find_binding(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("find-binding");
   SgObject arg0;
   SgObject arg1_scm;
   SgSymbol *arg1;
   SgObject callback;
+  DeclareProcedureName("find-binding");
   checkArgumentLength(3);
   argumentRef(0, arg0);
   argumentAsSymbol(1, arg1_scm, arg1);
@@ -529,7 +529,6 @@ static SG_DEFINE_SUBR(_sagittarius_vm_find_binding_Stub, 3, 0, _sagittarius_vm_f
 ;
 static SgObject _sagittarius_vm_import_library(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("import-library");
   SgObject to;
   SgObject from;
   SgObject only;
@@ -537,6 +536,7 @@ static SgObject _sagittarius_vm_import_library(SgObject *args, int argc, void *d
   SgObject rename;
   SgObject prefix;
   SgObject transp;
+  DeclareProcedureName("import-library");
   checkArgumentLength(7);
   argumentRef(0, to);
   argumentRef(1, from);
@@ -556,9 +556,9 @@ static SG_DEFINE_SUBR(_sagittarius_vm_import_library_Stub, 7, 0, _sagittarius_vm
 ;
 static SgObject _sagittarius_vm_vm_current_library(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("vm-current-library");
   SgObject name_scm;
   SgLibrary *name;
+  DeclareProcedureName("vm-current-library");
   checkArgumentLengthBetween(0, 1);
   if (argc >= 1) {
     argumentAsLibrary(0, name_scm, name);
@@ -587,9 +587,9 @@ static SG_DEFINE_SUBR(_sagittarius_vm_vm_current_library_Stub, 0, 1, _sagittariu
 ;
 static SgObject _sagittarius_vm_gloc_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("gloc-ref");
   SgObject g_scm;
   SgGloc *g;
+  DeclareProcedureName("gloc-ref");
   checkArgumentLength(1);
   argumentAsGloc(0, g_scm, g);
   {
@@ -603,10 +603,10 @@ static SG_DEFINE_SUBR(_sagittarius_vm_gloc_ref_Stub, 1, 0, _sagittarius_vm_gloc_
 ;
 static SgObject _sagittarius_vm_gloc_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("gloc-set!");
   SgObject g_scm;
   SgGloc *g;
   SgObject value;
+  DeclareProcedureName("gloc-set!");
   checkArgumentLength(2);
   argumentAsGloc(0, g_scm, g);
   argumentRef(1, value);
@@ -621,9 +621,9 @@ static SG_DEFINE_SUBR(_sagittarius_vm_gloc_set21_Stub, 2, 0, _sagittarius_vm_glo
 ;
 static SgObject _sagittarius_vm_gloc_bound3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("gloc-bound?");
   SgObject g_scm;
   SgGloc *g;
+  DeclareProcedureName("gloc-bound?");
   checkArgumentLength(1);
   argumentAsGloc(0, g_scm, g);
   {
@@ -637,9 +637,9 @@ static SG_DEFINE_SUBR(_sagittarius_vm_gloc_bound3f_Stub, 1, 0, _sagittarius_vm_g
 ;
 static SgObject _sagittarius_vm_gloc_library(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("gloc-library");
   SgObject g_scm;
   SgGloc *g;
+  DeclareProcedureName("gloc-library");
   checkArgumentLength(1);
   argumentAsGloc(0, g_scm, g);
   {
@@ -653,9 +653,9 @@ static SG_DEFINE_SUBR(_sagittarius_vm_gloc_library_Stub, 1, 0, _sagittarius_vm_g
 ;
 static SgObject _sagittarius_vm_gloc_name(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("gloc-name");
   SgObject g_scm;
   SgGloc *g;
+  DeclareProcedureName("gloc-name");
   checkArgumentLength(1);
   argumentAsGloc(0, g_scm, g);
   {
@@ -682,11 +682,11 @@ static SG_DEFINE_SUBR(_sagittarius_vm_make_code_builder_Stub, 0, 0, _sagittarius
 ;
 static SgObject _sagittarius_vm_cb_emit021(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("cb-emit0!");
   SgObject cb_scm;
   SgCodeBuilder *cb;
   SgObject insn_scm;
   int insn;
+  DeclareProcedureName("cb-emit0!");
   checkArgumentLength(2);
   argumentAsCodeBuilder(0, cb_scm, cb);
   argumentAsFixnum(1, insn_scm, insn);
@@ -701,13 +701,13 @@ static SG_DEFINE_SUBR(_sagittarius_vm_cb_emit021_Stub, 2, 0, _sagittarius_vm_cb_
 ;
 static SgObject _sagittarius_vm_cb_emit121(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("cb-emit1!");
   SgObject cb_scm;
   SgCodeBuilder *cb;
   SgObject insn_scm;
   int insn;
   SgObject arg0_scm;
   int arg0;
+  DeclareProcedureName("cb-emit1!");
   checkArgumentLength(3);
   argumentAsCodeBuilder(0, cb_scm, cb);
   argumentAsFixnum(1, insn_scm, insn);
@@ -723,7 +723,6 @@ static SG_DEFINE_SUBR(_sagittarius_vm_cb_emit121_Stub, 3, 0, _sagittarius_vm_cb_
 ;
 static SgObject _sagittarius_vm_cb_emit221(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("cb-emit2!");
   SgObject cb_scm;
   SgCodeBuilder *cb;
   SgObject insn_scm;
@@ -732,6 +731,7 @@ static SgObject _sagittarius_vm_cb_emit221(SgObject *args, int argc, void *data_
   int arg0;
   SgObject arg1_scm;
   int arg1;
+  DeclareProcedureName("cb-emit2!");
   checkArgumentLength(4);
   argumentAsCodeBuilder(0, cb_scm, cb);
   argumentAsFixnum(1, insn_scm, insn);
@@ -748,12 +748,12 @@ static SG_DEFINE_SUBR(_sagittarius_vm_cb_emit221_Stub, 4, 0, _sagittarius_vm_cb_
 ;
 static SgObject _sagittarius_vm_cb_emit0i21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("cb-emit0i!");
   SgObject cb_scm;
   SgCodeBuilder *cb;
   SgObject insn_scm;
   int insn;
   SgObject src;
+  DeclareProcedureName("cb-emit0i!");
   checkArgumentLength(3);
   argumentAsCodeBuilder(0, cb_scm, cb);
   argumentAsFixnum(1, insn_scm, insn);
@@ -770,7 +770,6 @@ static SG_DEFINE_SUBR(_sagittarius_vm_cb_emit0i21_Stub, 3, 0, _sagittarius_vm_cb
 ;
 static SgObject _sagittarius_vm_cb_emit1i21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("cb-emit1i!");
   SgObject cb_scm;
   SgCodeBuilder *cb;
   SgObject insn_scm;
@@ -778,6 +777,7 @@ static SgObject _sagittarius_vm_cb_emit1i21(SgObject *args, int argc, void *data
   SgObject arg0_scm;
   int arg0;
   SgObject src;
+  DeclareProcedureName("cb-emit1i!");
   checkArgumentLength(4);
   argumentAsCodeBuilder(0, cb_scm, cb);
   argumentAsFixnum(1, insn_scm, insn);
@@ -795,7 +795,6 @@ static SG_DEFINE_SUBR(_sagittarius_vm_cb_emit1i21_Stub, 4, 0, _sagittarius_vm_cb
 ;
 static SgObject _sagittarius_vm_cb_emit2i21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("cb-emit2i!");
   SgObject cb_scm;
   SgCodeBuilder *cb;
   SgObject insn_scm;
@@ -805,6 +804,7 @@ static SgObject _sagittarius_vm_cb_emit2i21(SgObject *args, int argc, void *data
   SgObject arg1_scm;
   int arg1;
   SgObject src;
+  DeclareProcedureName("cb-emit2i!");
   checkArgumentLength(5);
   argumentAsCodeBuilder(0, cb_scm, cb);
   argumentAsFixnum(1, insn_scm, insn);
@@ -823,12 +823,12 @@ static SG_DEFINE_SUBR(_sagittarius_vm_cb_emit2i21_Stub, 5, 0, _sagittarius_vm_cb
 ;
 static SgObject _sagittarius_vm_cb_emit0o21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("cb-emit0o!");
   SgObject cb_scm;
   SgCodeBuilder *cb;
   SgObject insn_scm;
   int insn;
   SgObject obj;
+  DeclareProcedureName("cb-emit0o!");
   checkArgumentLength(3);
   argumentAsCodeBuilder(0, cb_scm, cb);
   argumentAsFixnum(1, insn_scm, insn);
@@ -844,13 +844,13 @@ static SG_DEFINE_SUBR(_sagittarius_vm_cb_emit0o21_Stub, 3, 0, _sagittarius_vm_cb
 ;
 static SgObject _sagittarius_vm_cb_emit0oi21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("cb-emit0oi!");
   SgObject cb_scm;
   SgCodeBuilder *cb;
   SgObject insn_scm;
   int insn;
   SgObject obj;
   SgObject src;
+  DeclareProcedureName("cb-emit0oi!");
   checkArgumentLength(4);
   argumentAsCodeBuilder(0, cb_scm, cb);
   argumentAsFixnum(1, insn_scm, insn);
@@ -868,7 +868,6 @@ static SG_DEFINE_SUBR(_sagittarius_vm_cb_emit0oi21_Stub, 4, 0, _sagittarius_vm_c
 ;
 static SgObject _sagittarius_vm_cb_emit1oi21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("cb-emit1oi!");
   SgObject cb_scm;
   SgCodeBuilder *cb;
   SgObject insn_scm;
@@ -877,6 +876,7 @@ static SgObject _sagittarius_vm_cb_emit1oi21(SgObject *args, int argc, void *dat
   int arg0;
   SgObject obj;
   SgObject src;
+  DeclareProcedureName("cb-emit1oi!");
   checkArgumentLength(5);
   argumentAsCodeBuilder(0, cb_scm, cb);
   argumentAsFixnum(1, insn_scm, insn);
@@ -895,10 +895,10 @@ static SG_DEFINE_SUBR(_sagittarius_vm_cb_emit1oi21_Stub, 5, 0, _sagittarius_vm_c
 ;
 static SgObject _sagittarius_vm_cb_label_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("cb-label-set!");
   SgObject cb_scm;
   SgCodeBuilder *cb;
   SgObject label;
+  DeclareProcedureName("cb-label-set!");
   checkArgumentLength(2);
   argumentAsCodeBuilder(0, cb_scm, cb);
   argumentRef(1, label);
@@ -913,7 +913,6 @@ static SG_DEFINE_SUBR(_sagittarius_vm_cb_label_set21_Stub, 2, 0, _sagittarius_vm
 ;
 static SgObject _sagittarius_vm_cb_emit_closure21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("cb-emit-closure!");
   SgObject cb_scm;
   SgCodeBuilder *cb;
   SgObject insn_scm;
@@ -930,6 +929,7 @@ static SgObject _sagittarius_vm_cb_emit_closure21(SgObject *args, int argc, void
   SgObject max_stack_scm;
   int max_stack;
   SgObject src;
+  DeclareProcedureName("cb-emit-closure!");
   checkArgumentLength(9);
   argumentAsCodeBuilder(0, cb_scm, cb);
   argumentAsFixnum(1, insn_scm, insn);
@@ -958,9 +958,9 @@ static SG_DEFINE_SUBR(_sagittarius_vm_cb_emit_closure21_Stub, 9, 0, _sagittarius
 ;
 static SgObject _sagittarius_vm_code_builder_label_defs(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("code-builder-label-defs");
   SgObject cb_scm;
   SgCodeBuilder *cb;
+  DeclareProcedureName("code-builder-label-defs");
   checkArgumentLength(1);
   argumentAsCodeBuilder(0, cb_scm, cb);
   {
@@ -974,11 +974,11 @@ static SG_DEFINE_SUBR(_sagittarius_vm_code_builder_label_defs_Stub, 1, 0, _sagit
 ;
 static SgObject _sagittarius_vm_code_builder_finish_builder(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("code-builder-finish-builder");
   SgObject cb_scm;
   SgCodeBuilder *cb;
   SgObject last_scm;
   int last;
+  DeclareProcedureName("code-builder-finish-builder");
   checkArgumentLength(2);
   argumentAsCodeBuilder(0, cb_scm, cb);
   argumentAsFixnum(1, last_scm, last);
@@ -1006,9 +1006,9 @@ static SG_DEFINE_SUBR(_sagittarius_vm_vm_r6rs_mode3f_Stub, 0, 0, _sagittarius_vm
 ;
 static SgObject _sagittarius_vm_25map_cons(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("%map-cons");
   SgObject l1;
   SgObject l2;
+  DeclareProcedureName("%map-cons");
   checkArgumentLength(2);
   argumentRef(0, l1);
   argumentRef(1, l2);
@@ -1034,11 +1034,11 @@ static SG_DEFINE_SUBR(_sagittarius_vm_25map_cons_Stub, 2, 0, _sagittarius_vm_25m
 ;
 static SgObject _sagittarius_vm_p1env_lookup(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("p1env-lookup");
   SgObject p1env_scm;
   SgVector *p1env;
   SgObject name;
   SgObject lookup_as;
+  DeclareProcedureName("p1env-lookup");
   checkArgumentLength(3);
   argumentAsVector(0, p1env_scm, p1env);
   argumentRef(1, name);
@@ -1060,10 +1060,10 @@ static SgObject _sagittarius_vm_p1env_lookup(SgObject *args, int argc, void *dat
           }
 ;
           {
-            SgObject cgen_1;
-            SG_FOR_EACH(cgen_1,SG_CDAR(fp)) {
+            SgObject cgen_60;
+            SG_FOR_EACH(cgen_60,SG_CDAR(fp)) {
               {
-                SgObject vp = SG_CAR(cgen_1);
+                SgObject vp = SG_CAR(cgen_60);
                 if (SG_EQ(name, SG_CAR(vp))) {
                   return SG_CDR(vp);
                 }
@@ -1095,18 +1095,18 @@ static SG_DEFINE_SUBR(_sagittarius_vm_p1env_lookup_Stub, 3, 0, _sagittarius_vm_p
 ;
 static SgObject _sagittarius_vm_p1env_toplevel3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("p1env-toplevel?");
   SgObject p1env;
+  DeclareProcedureName("p1env-toplevel?");
   checkArgumentLength(1);
   argumentRef(0, p1env);
   {
     int SG_RETURN;
     SG_RETURN = (TRUE);
     {
-      SgObject cgen_2;
-      SG_FOR_EACH(cgen_2,SG_VECTOR_ELEMENT(p1env, 1)) {
+      SgObject cgen_61;
+      SG_FOR_EACH(cgen_61,SG_VECTOR_ELEMENT(p1env, 1)) {
         {
-          SgObject fp = SG_CAR(cgen_2);
+          SgObject fp = SG_CAR(cgen_61);
           if (SG_CAR(fp) == SG_MAKE_INT(0)) {
             SG_RETURN = (FALSE);
           }
@@ -1123,10 +1123,10 @@ static SG_DEFINE_SUBR(_sagittarius_vm_p1env_toplevel3f_Stub, 1, 0, _sagittarius_
 ;
 static SgObject _sagittarius_vm_p1env_pvar_lookup(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("p1env-pvar-lookup");
   SgObject p1env_scm;
   SgVector *p1env;
   SgObject name;
+  DeclareProcedureName("p1env-pvar-lookup");
   checkArgumentLength(2);
   argumentAsVector(0, p1env_scm, p1env);
   argumentRef(1, name);
@@ -1149,10 +1149,10 @@ static SgObject _sagittarius_vm_p1env_pvar_lookup(SgObject *args, int argc, void
           }
 ;
           {
-            SgObject cgen_3;
-            SG_FOR_EACH(cgen_3,SG_CDAR(fp)) {
+            SgObject cgen_62;
+            SG_FOR_EACH(cgen_62,SG_CDAR(fp)) {
               {
-                SgObject vp = SG_CAR(cgen_3);
+                SgObject vp = SG_CAR(cgen_62);
                 if (((name_identp && SG_NULLP(SG_IDENTIFIER_ENVS(name)) && SG_EQ(SG_IDENTIFIER_NAME(name), SG_CAR(vp))) || (name_identp && Sg_IdentifierEqP(p1env, name, dummy_env, SG_CAR(vp))) || SG_EQ(name, SG_CAR(vp)))) {
                   return SG_CDR(vp);
                 }
@@ -1234,37 +1234,6 @@ static SgObject _sagittarius_vm_get_stack_trace_object(SgObject *args, int argc,
 static SG_DEFINE_SUBR(_sagittarius_vm_get_stack_trace_object_Stub, 0, 0, _sagittarius_vm_get_stack_trace_object, SG_FALSE, NULL);
 
 ;
-static SgObject _sagittarius_vm_set_toplevel_variable21(SgObject *args, int argc, void *data_)
-{
-  DeclareProcedureName("set-toplevel-variable!");
-  SgObject s_scm;
-  SgSymbol *s;
-  SgObject obj;
-  checkArgumentLength(2);
-  argumentAsSymbol(0, s_scm, s);
-  argumentRef(1, obj);
-  {
-    SgObject SG_RETURN = SG_UNDEF;
-    Sg_VMSetToplevelVariable(s, obj);
-    return SG_RETURN;
-  }
-}
-static SG_DEFINE_SUBR(_sagittarius_vm_set_toplevel_variable21_Stub, 2, 0, _sagittarius_vm_set_toplevel_variable21, SG_FALSE, NULL);
-
-;
-static SgObject _sagittarius_vm_get_toplevel_variables(SgObject *args, int argc, void *data_)
-{
-  DeclareProcedureName("get-toplevel-variables");
-  checkArgumentLength(0);
-  {
-    SgObject SG_RETURN = SG_UNDEF;
-    SG_RETURN = (Sg_VM()->toplevelVariables);
-    return SG_RETURN;
-  }
-}
-static SG_DEFINE_SUBR(_sagittarius_vm_get_toplevel_variables_Stub, 0, 0, _sagittarius_vm_get_toplevel_variables, SG_FALSE, NULL);
-
-;
 static SgObject _sagittarius_vm_vm_noinline_locals3f(SgObject *args, int argc, void *data_)
 {
   DeclareProcedureName("vm-noinline-locals?");
@@ -1307,130 +1276,126 @@ static SG_DEFINE_SUBR(_sagittarius_vm_vm_nolibrary_inlining3f_Stub, 0, 0, _sagit
 void Sg__Init_sagittarius_vm()
 {
   SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC("(sagittarius vm)"), SG_LITERAL_STRING)), TRUE);
-  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit2i21_Stub) = Sg_MakeString(UC("cb-emit2i!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit2i!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit2i21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_p1env_toplevel3f_Stub) = Sg_MakeString(UC("p1env-toplevel?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("p1env-toplevel?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_p1env_toplevel3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_syntax_name_Stub) = Sg_MakeString(UC("syntax-name"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("syntax-name"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_syntax_name_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_library_table_Stub) = Sg_MakeString(UC("library-table"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("library-table"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_library_table_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_set_toplevel_variable21_Stub) = Sg_MakeString(UC("set-toplevel-variable!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-toplevel-variable!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_set_toplevel_variable21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_make_identifier_Stub) = Sg_MakeString(UC("make-identifier"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-identifier"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_make_identifier_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_pass32flet_frame_size_Stub) = Sg_MakeString(UC("pass3/let-frame-size"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pass3/let-frame-size"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_pass32flet_frame_size_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit0i21_Stub) = Sg_MakeString(UC("cb-emit0i!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit0i!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit0i21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_vm_r6rs_mode3f_Stub) = Sg_MakeString(UC("vm-r6rs-mode?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vm-r6rs-mode?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_vm_r6rs_mode3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_get_stack_trace_object_Stub) = Sg_MakeString(UC("get-stack-trace-object"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-stack-trace-object"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_get_stack_trace_object_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit_closure21_Stub) = Sg_MakeString(UC("cb-emit-closure!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit-closure!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit_closure21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_make_macro_transformer_Stub) = Sg_MakeString(UC("make-macro-transformer"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-macro-transformer"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_make_macro_transformer_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_bound_id_3esymbol_Stub) = Sg_MakeString(UC("bound-id->symbol"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bound-id->symbol"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_bound_id_3esymbol_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit1i21_Stub) = Sg_MakeString(UC("cb-emit1i!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit1i!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit1i21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_find_binding_Stub) = Sg_MakeString(UC("find-binding"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("find-binding"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_find_binding_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_vm_syntax3f_Stub) = Sg_MakeString(UC("syntax?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("syntax?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_syntax3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_copy_identifier_Stub) = Sg_MakeString(UC("copy-identifier"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("copy-identifier"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_copy_identifier_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_library_parents_Stub) = Sg_MakeString(UC("library-parents"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("library-parents"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_library_parents_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit221_Stub) = Sg_MakeString(UC("cb-emit2!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit2!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit221_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit0o21_Stub) = Sg_MakeString(UC("cb-emit0o!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit0o!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit0o21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_library_imported_set21_Stub) = Sg_MakeString(UC("library-imported-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("library-imported-set!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_library_imported_set21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_p1env_lookup_Stub) = Sg_MakeString(UC("p1env-lookup"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("p1env-lookup"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_p1env_lookup_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_make_syntax_Stub) = Sg_MakeString(UC("make-syntax"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-syntax"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_make_syntax_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_get_toplevel_variables_Stub) = Sg_MakeString(UC("get-toplevel-variables"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-toplevel-variables"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_get_toplevel_variables_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_vm_nolibrary_inlining3f_Stub) = Sg_MakeString(UC("vm-nolibrary-inlining?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vm-nolibrary-inlining?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_vm_nolibrary_inlining3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_25insert_binding_Stub) = Sg_MakeString(UC("%insert-binding"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("%insert-binding"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_25insert_binding_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_vm_nolambda_lifting3f_Stub) = Sg_MakeString(UC("vm-nolambda-lifting?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vm-nolambda-lifting?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_vm_nolambda_lifting3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit0oi21_Stub) = Sg_MakeString(UC("cb-emit0oi!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit0oi!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit0oi21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_gloc_library_Stub) = Sg_MakeString(UC("gloc-library"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("gloc-library"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_gloc_library_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_pass32fframe_size_Stub) = Sg_MakeString(UC("pass3/frame-size"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pass3/frame-size"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_pass32fframe_size_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_gloc_ref_Stub) = Sg_MakeString(UC("gloc-ref"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("gloc-ref"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_gloc_ref_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit021_Stub) = Sg_MakeString(UC("cb-emit0!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit0!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit021_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_print_stack_frames_Stub) = Sg_MakeString(UC("print-stack-frames"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("print-stack-frames"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_print_stack_frames_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_library_exported_Stub) = Sg_MakeString(UC("library-exported"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("library-exported"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_library_exported_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_vm_current_library_Stub) = Sg_MakeString(UC("vm-current-library"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vm-current-library"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_vm_current_library_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_make_macro_Stub) = Sg_MakeString(UC("make-macro"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-macro"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_make_macro_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_vm_find_library_Stub) = Sg_MakeString(UC("find-library"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("find-library"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_find_library_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_make_code_builder_Stub) = Sg_MakeString(UC("make-code-builder"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-code-builder"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_make_code_builder_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_insn_name_Stub) = Sg_MakeString(UC("insn-name"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("insn-name"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_insn_name_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_code_builder_finish_builder_Stub) = Sg_MakeString(UC("code-builder-finish-builder"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("code-builder-finish-builder"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_code_builder_finish_builder_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_25internal_macro_expand_Stub) = Sg_MakeString(UC("%internal-macro-expand"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("%internal-macro-expand"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_25internal_macro_expand_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_library_imported_Stub) = Sg_MakeString(UC("library-imported"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("library-imported"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_library_imported_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_25map_cons_Stub) = Sg_MakeString(UC("%map-cons"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("%map-cons"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_25map_cons_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_syntax_proc_Stub) = Sg_MakeString(UC("syntax-proc"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("syntax-proc"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_syntax_proc_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_import_library_Stub) = Sg_MakeString(UC("import-library"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("import-library"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_import_library_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_library_name_Stub) = Sg_MakeString(UC("library-name"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("library-name"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_library_name_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_call_macro_expander_Stub) = Sg_MakeString(UC("call-macro-expander"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("call-macro-expander"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_call_macro_expander_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_gloc_bound3f_Stub) = Sg_MakeString(UC("gloc-bound?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("gloc-bound?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_gloc_bound3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_library3f_Stub) = Sg_MakeString(UC("library?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("library?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_library3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit1oi21_Stub) = Sg_MakeString(UC("cb-emit1oi!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit1oi!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit1oi21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_gloc_set21_Stub) = Sg_MakeString(UC("gloc-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("gloc-set!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_gloc_set21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_id_library_Stub) = Sg_MakeString(UC("id-library"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("id-library"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_id_library_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_gloc_name_Stub) = Sg_MakeString(UC("gloc-name"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("gloc-name"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_gloc_name_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_call_syntax_handler_Stub) = Sg_MakeString(UC("call-syntax-handler"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("call-syntax-handler"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_call_syntax_handler_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_p1env_pvar_lookup_Stub) = Sg_MakeString(UC("p1env-pvar-lookup"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("p1env-pvar-lookup"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_p1env_pvar_lookup_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_vm_noinline_locals3f_Stub) = Sg_MakeString(UC("vm-noinline-locals?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vm-noinline-locals?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_vm_noinline_locals3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_id_envs_Stub) = Sg_MakeString(UC("id-envs"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("id-envs"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_id_envs_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_vm_library_exported_set21_Stub) = Sg_MakeString(UC("library-exported-set!"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("library-exported-set!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_library_exported_set21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_macro3f_Stub) = Sg_MakeString(UC("macro?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("macro?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_macro3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit121_Stub) = Sg_MakeString(UC("cb-emit1!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit1!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit121_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_label_set21_Stub) = Sg_MakeString(UC("cb-label-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-label-set!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_label_set21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit0o21_Stub) = Sg_MakeString(UC("cb-emit0o!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit0o!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit0o21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_25internal_macro_expand_Stub) = Sg_MakeString(UC("%internal-macro-expand"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("%internal-macro-expand"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_25internal_macro_expand_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_vm_make_library_Stub) = Sg_MakeString(UC("make-library"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-library"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_make_library_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_syntax_name_Stub) = Sg_MakeString(UC("syntax-name"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("syntax-name"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_syntax_name_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_import_library_Stub) = Sg_MakeString(UC("import-library"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("import-library"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_import_library_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_pass32flet_frame_size_Stub) = Sg_MakeString(UC("pass3/let-frame-size"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pass3/let-frame-size"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_pass32flet_frame_size_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit0oi21_Stub) = Sg_MakeString(UC("cb-emit0oi!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit0oi!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit0oi21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_library3f_Stub) = Sg_MakeString(UC("library?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("library?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_library3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit_closure21_Stub) = Sg_MakeString(UC("cb-emit-closure!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit-closure!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit_closure21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit021_Stub) = Sg_MakeString(UC("cb-emit0!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit0!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit021_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_gloc_name_Stub) = Sg_MakeString(UC("gloc-name"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("gloc-name"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_gloc_name_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_find_binding_Stub) = Sg_MakeString(UC("find-binding"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("find-binding"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_find_binding_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_make_macro_Stub) = Sg_MakeString(UC("make-macro"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-macro"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_make_macro_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_id_envs_Stub) = Sg_MakeString(UC("id-envs"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("id-envs"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_id_envs_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit221_Stub) = Sg_MakeString(UC("cb-emit2!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit2!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit221_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_code_builder_finish_builder_Stub) = Sg_MakeString(UC("code-builder-finish-builder"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("code-builder-finish-builder"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_code_builder_finish_builder_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_label_set21_Stub) = Sg_MakeString(UC("cb-label-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-label-set!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_label_set21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_p1env_toplevel3f_Stub) = Sg_MakeString(UC("p1env-toplevel?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("p1env-toplevel?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_p1env_toplevel3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_make_syntax_Stub) = Sg_MakeString(UC("make-syntax"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-syntax"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_make_syntax_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_syntax_proc_Stub) = Sg_MakeString(UC("syntax-proc"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("syntax-proc"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_syntax_proc_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_make_identifier_Stub) = Sg_MakeString(UC("make-identifier"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-identifier"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_make_identifier_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_vm_nolambda_lifting3f_Stub) = Sg_MakeString(UC("vm-nolambda-lifting?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vm-nolambda-lifting?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_vm_nolambda_lifting3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_gloc_bound3f_Stub) = Sg_MakeString(UC("gloc-bound?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("gloc-bound?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_gloc_bound3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_get_stack_trace_object_Stub) = Sg_MakeString(UC("get-stack-trace-object"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-stack-trace-object"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_get_stack_trace_object_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_gloc_ref_Stub) = Sg_MakeString(UC("gloc-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("gloc-ref"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_gloc_ref_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_id_library_Stub) = Sg_MakeString(UC("id-library"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("id-library"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_id_library_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit1i21_Stub) = Sg_MakeString(UC("cb-emit1i!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit1i!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit1i21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_vm_current_library_Stub) = Sg_MakeString(UC("vm-current-library"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vm-current-library"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_vm_current_library_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_vm_noinline_locals3f_Stub) = Sg_MakeString(UC("vm-noinline-locals?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vm-noinline-locals?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_vm_noinline_locals3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_library_parents_Stub) = Sg_MakeString(UC("library-parents"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("library-parents"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_library_parents_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_insn_name_Stub) = Sg_MakeString(UC("insn-name"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("insn-name"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_insn_name_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit121_Stub) = Sg_MakeString(UC("cb-emit1!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit1!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit121_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit2i21_Stub) = Sg_MakeString(UC("cb-emit2i!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit2i!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit2i21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_p1env_lookup_Stub) = Sg_MakeString(UC("p1env-lookup"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("p1env-lookup"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_p1env_lookup_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_25map_cons_Stub) = Sg_MakeString(UC("%map-cons"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("%map-cons"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_25map_cons_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_25insert_binding_Stub) = Sg_MakeString(UC("%insert-binding"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("%insert-binding"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_25insert_binding_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_call_macro_expander_Stub) = Sg_MakeString(UC("call-macro-expander"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("call-macro-expander"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_call_macro_expander_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_vm_r6rs_mode3f_Stub) = Sg_MakeString(UC("vm-r6rs-mode?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vm-r6rs-mode?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_vm_r6rs_mode3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_pass32fframe_size_Stub) = Sg_MakeString(UC("pass3/frame-size"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pass3/frame-size"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_pass32fframe_size_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_gloc_set21_Stub) = Sg_MakeString(UC("gloc-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("gloc-set!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_gloc_set21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_bound_id_3esymbol_Stub) = Sg_MakeString(UC("bound-id->symbol"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bound-id->symbol"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_bound_id_3esymbol_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_library_exported_Stub) = Sg_MakeString(UC("library-exported"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("library-exported"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_library_exported_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_p1env_pvar_lookup_Stub) = Sg_MakeString(UC("p1env-pvar-lookup"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("p1env-pvar-lookup"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_p1env_pvar_lookup_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_copy_identifier_Stub) = Sg_MakeString(UC("copy-identifier"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("copy-identifier"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_copy_identifier_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_make_code_builder_Stub) = Sg_MakeString(UC("make-code-builder"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-code-builder"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_make_code_builder_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_macro3f_Stub) = Sg_MakeString(UC("macro?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("macro?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_macro3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_library_imported_set21_Stub) = Sg_MakeString(UC("library-imported-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("library-imported-set!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_library_imported_set21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_library_imported_Stub) = Sg_MakeString(UC("library-imported"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("library-imported"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_library_imported_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_vm_code_builder_label_defs_Stub) = Sg_MakeString(UC("code-builder-label-defs"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("code-builder-label-defs"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_code_builder_label_defs_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_library_table_Stub) = Sg_MakeString(UC("library-table"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("library-table"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_library_table_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_vm_nolibrary_inlining3f_Stub) = Sg_MakeString(UC("vm-nolibrary-inlining?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vm-nolibrary-inlining?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_vm_nolibrary_inlining3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_library_name_Stub) = Sg_MakeString(UC("library-name"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("library-name"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_library_name_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit0i21_Stub) = Sg_MakeString(UC("cb-emit0i!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit0i!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit0i21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_gloc_library_Stub) = Sg_MakeString(UC("gloc-library"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("gloc-library"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_gloc_library_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_cb_emit1oi21_Stub) = Sg_MakeString(UC("cb-emit1oi!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cb-emit1oi!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_cb_emit1oi21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_make_macro_transformer_Stub) = Sg_MakeString(UC("make-macro-transformer"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-macro-transformer"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_make_macro_transformer_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_print_stack_frames_Stub) = Sg_MakeString(UC("print-stack-frames"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("print-stack-frames"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_print_stack_frames_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_call_syntax_handler_Stub) = Sg_MakeString(UC("call-syntax-handler"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("call-syntax-handler"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_call_syntax_handler_Stub));
 }

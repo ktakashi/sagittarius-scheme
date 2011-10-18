@@ -360,9 +360,9 @@
       ((base:renderer) (format "static SgObject ~a(SgObject *args, int argc, void *data_)~%"
 			       (resolve-name name 'function)))
       ((base:renderer) (format "{~%"))
-      ((base:renderer) (format "  DeclareProcedureName(~s);~%" (symbol->string name)))
       (let ((type/names (parse-args args)))
 	(resolve-args args 'declare)
+	((base:renderer) (format "  DeclareProcedureName(~s);~%" (symbol->string name)))
 	(resolve-args args 'check)
 	(resolve-c-body c-body type/names (resolve-return return)))
       ((base:renderer) (format "}~%"))

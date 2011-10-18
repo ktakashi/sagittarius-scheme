@@ -79,6 +79,7 @@
 	    ;; profiler
 	    profiler-start profiler-stop profiler-reset
 	    profiler-raw-result
+	    disasm
 
 	    ;; keyword
 	    make-keyword
@@ -513,6 +514,12 @@
 
   (define-c-proc profiler-raw-result () ::Object
     (result (Sg_ProfilerRawResult)))
+
+  (define-c-proc disasm (c::Procedure) ::Object
+    (if (SG_CLOSUREP c)
+	(Sg_VMDumpCode (-> (SG_CLOSURE c) code))
+	(Sg_Printf (-> (Sg_VM) logPort) "subr %S" (SG_PROCEDURE_NAME c)))
+    (result SG_UNDEF))
 
   ;; keyword
   (define-c-proc make-keyword (key::Symbol) ::Object

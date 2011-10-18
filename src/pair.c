@@ -325,7 +325,11 @@ SgObject Sg_Member(SgObject obj, SgObject list)
 SgObject Sg_Assq(SgObject obj, SgObject alist)
 {
   SgObject cp;
-  if (!SG_LISTP(alist)) Sg_Error(UC("assq: list requried, but got %S"), alist);
+  if (!SG_LISTP(alist)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("assq"),
+				    SG_MAKE_STRING("list"),
+				    alist, SG_NIL);
+  }
   SG_FOR_EACH(cp, alist) {
     SgObject entry = SG_CAR(cp);
     if (!SG_PAIRP(entry)) continue;
@@ -337,7 +341,11 @@ SgObject Sg_Assq(SgObject obj, SgObject alist)
 SgObject Sg_Assv(SgObject obj, SgObject alist)
 {
   SgObject cp;
-  if (!SG_LISTP(alist)) Sg_Error(UC("assv: list requried, but got %S"), alist);
+  if (!SG_LISTP(alist)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("assv"),
+				    SG_MAKE_STRING("list"),
+				    alist, SG_NIL);
+  }
   SG_FOR_EACH(cp, alist) {
     SgObject entry = SG_CAR(cp);
     if (!SG_PAIRP(entry)) continue;

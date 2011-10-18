@@ -72,6 +72,8 @@ typedef enum {
 #define SG_STRING_VALUE(obj)    (SG_STRING(obj)->value)
 #define SG_STRING_VALUE_AT(obj, index)    (SG_STRING(obj)->value[index])
 
+#define SG_MAKE_STRING(str) Sg_MakeString(UC(str), SG_LITERAL_STRING)
+
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeStringC(const char *value);

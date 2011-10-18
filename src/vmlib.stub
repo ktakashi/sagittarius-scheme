@@ -356,12 +356,6 @@
   (define-c-proc get-stack-trace-object () ::Object
     (result (Sg_GetStackTrace)))
 
-  (define-c-proc set-toplevel-variable! (s::Symbol obj) ::void
-    (Sg_VMSetToplevelVariable s obj))
-
-  (define-c-proc get-toplevel-variables () ::Object
-    (result (-> (Sg_VM) toplevelVariables)))
-
   ;; optimize
   (define-c-proc vm-noinline-locals? () ::boolean
     (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_INLINE_LOCAL)))

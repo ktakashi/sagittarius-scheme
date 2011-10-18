@@ -995,8 +995,7 @@
 
   ;; 11.10 symbols
   (define-c-proc symbol->string (z::Symbol) ::Object
-    (result (-> z name))
-    #;(result (Sg_MakeString (SG_STRING_VALUE (-> z name)) SG_LITERAL_STRING)))
+    (result (-> z name)))
 
   (define-cgen-stmt check-symbol
     ((_ name s)
@@ -1818,19 +1817,9 @@
     (result (Sg_Memv arg0 arg1)))
 
   (define-c-proc assq (obj alist) ::Object
-    (unless (SG_LISTP alist)
-      (wrong-type-of-argument-violation 'assq
-					"list"
-					alist
-					(SG_LIST2 obj alist)))
     (result (Sg_Assq obj alist)))
 
   (define-c-proc assv (obj alist) ::Object
-    (unless (SG_LISTP alist)
-      (wrong-type-of-argument-violation 'assv
-					"list"
-					alist
-					(SG_LIST2 obj alist)))
     (result (Sg_Assv obj alist)))
 
   (define-c-proc cons* (:rest rest) ::Object

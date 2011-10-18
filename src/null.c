@@ -11,8 +11,8 @@
 ;
 static SgObject nullboolean3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("boolean?");
   SgObject o;
+  DeclareProcedureName("boolean?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -26,8 +26,8 @@ static SG_DEFINE_SUBR(nullboolean3f_Stub, 1, 0, nullboolean3f, SG_FALSE, NULL);
 ;
 static SgObject nullpair3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pair?");
   SgObject arg0;
+  DeclareProcedureName("pair?");
   checkArgumentLength(1);
   argumentRef(0, arg0);
   {
@@ -41,8 +41,8 @@ static SG_DEFINE_SUBR(nullpair3f_Stub, 1, 0, nullpair3f, SG_MAKE_INT(PAIRP), NUL
 ;
 static SgObject nullsymbol3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("symbol?");
   SgObject arg0;
+  DeclareProcedureName("symbol?");
   checkArgumentLength(1);
   argumentRef(0, arg0);
   {
@@ -56,8 +56,8 @@ static SG_DEFINE_SUBR(nullsymbol3f_Stub, 1, 0, nullsymbol3f, SG_MAKE_INT(SYMBOLP
 ;
 static SgObject nullnumber3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("number?");
   SgObject o;
+  DeclareProcedureName("number?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -71,8 +71,8 @@ static SG_DEFINE_SUBR(nullnumber3f_Stub, 1, 0, nullnumber3f, SG_FALSE, NULL);
 ;
 static SgObject nullchar3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("char?");
   SgObject o;
+  DeclareProcedureName("char?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -86,8 +86,8 @@ static SG_DEFINE_SUBR(nullchar3f_Stub, 1, 0, nullchar3f, SG_FALSE, NULL);
 ;
 static SgObject nullstring3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string?");
   SgObject s;
+  DeclareProcedureName("string?");
   checkArgumentLength(1);
   argumentRef(0, s);
   {
@@ -101,8 +101,8 @@ static SG_DEFINE_SUBR(nullstring3f_Stub, 1, 0, nullstring3f, SG_FALSE, NULL);
 ;
 static SgObject nullvector3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("vector?");
   SgObject arg0;
+  DeclareProcedureName("vector?");
   checkArgumentLength(1);
   argumentRef(0, arg0);
   {
@@ -116,8 +116,8 @@ static SG_DEFINE_SUBR(nullvector3f_Stub, 1, 0, nullvector3f, SG_MAKE_INT(VECTORP
 ;
 static SgObject nullprocedure3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("procedure?");
   SgObject arg0;
+  DeclareProcedureName("procedure?");
   checkArgumentLength(1);
   argumentRef(0, arg0);
   {
@@ -131,8 +131,8 @@ static SG_DEFINE_SUBR(nullprocedure3f_Stub, 1, 0, nullprocedure3f, SG_FALSE, NUL
 ;
 static SgObject nullnull3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("null?");
   SgObject arg0;
+  DeclareProcedureName("null?");
   checkArgumentLength(1);
   argumentRef(0, arg0);
   {
@@ -146,9 +146,9 @@ static SG_DEFINE_SUBR(nullnull3f_Stub, 1, 0, nullnull3f, SG_MAKE_INT(NULLP), NUL
 ;
 static SgObject nulleq3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("eq?");
   SgObject a;
   SgObject b;
+  DeclareProcedureName("eq?");
   checkArgumentLength(2);
   argumentRef(0, a);
   argumentRef(1, b);
@@ -163,9 +163,9 @@ static SG_DEFINE_SUBR(nulleq3f_Stub, 2, 0, nulleq3f, SG_MAKE_INT(EQ), NULL);
 ;
 static SgObject nulleqv3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("eqv?");
   SgObject a;
   SgObject b;
+  DeclareProcedureName("eqv?");
   checkArgumentLength(2);
   argumentRef(0, a);
   argumentRef(1, b);
@@ -180,9 +180,9 @@ static SG_DEFINE_SUBR(nulleqv3f_Stub, 2, 0, nulleqv3f, SG_MAKE_INT(EQV), NULL);
 ;
 static SgObject nullequal3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("equal?");
   SgObject a;
   SgObject b;
+  DeclareProcedureName("equal?");
   checkArgumentLength(2);
   argumentRef(0, a);
   argumentRef(1, b);
@@ -197,8 +197,8 @@ static SG_DEFINE_SUBR(nullequal3f_Stub, 2, 0, nullequal3f, SG_FALSE, NULL);
 ;
 static SgObject nullcomplex3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("complex?");
   SgObject o;
+  DeclareProcedureName("complex?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -212,8 +212,8 @@ static SG_DEFINE_SUBR(nullcomplex3f_Stub, 1, 0, nullcomplex3f, SG_FALSE, NULL);
 ;
 static SgObject nullreal3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("real?");
   SgObject o;
+  DeclareProcedureName("real?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -227,8 +227,8 @@ static SG_DEFINE_SUBR(nullreal3f_Stub, 1, 0, nullreal3f, SG_FALSE, NULL);
 ;
 static SgObject nullrational3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("rational?");
   SgObject o;
+  DeclareProcedureName("rational?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -242,8 +242,8 @@ static SG_DEFINE_SUBR(nullrational3f_Stub, 1, 0, nullrational3f, SG_FALSE, NULL)
 ;
 static SgObject nullinteger3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("integer?");
   SgObject o;
+  DeclareProcedureName("integer?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -257,8 +257,8 @@ static SG_DEFINE_SUBR(nullinteger3f_Stub, 1, 0, nullinteger3f, SG_FALSE, NULL);
 ;
 static SgObject nullreal_valued3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("real-valued?");
   SgObject o;
+  DeclareProcedureName("real-valued?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -272,8 +272,8 @@ static SG_DEFINE_SUBR(nullreal_valued3f_Stub, 1, 0, nullreal_valued3f, SG_FALSE,
 ;
 static SgObject nullrational_valued3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("rational-valued?");
   SgObject o;
+  DeclareProcedureName("rational-valued?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -287,8 +287,8 @@ static SG_DEFINE_SUBR(nullrational_valued3f_Stub, 1, 0, nullrational_valued3f, S
 ;
 static SgObject nullinteger_valued3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("integer-valued?");
   SgObject o;
+  DeclareProcedureName("integer-valued?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -302,8 +302,8 @@ static SG_DEFINE_SUBR(nullinteger_valued3f_Stub, 1, 0, nullinteger_valued3f, SG_
 ;
 static SgObject nullexact3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("exact?");
   SgObject o;
+  DeclareProcedureName("exact?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -317,8 +317,8 @@ static SG_DEFINE_SUBR(nullexact3f_Stub, 1, 0, nullexact3f, SG_FALSE, NULL);
 ;
 static SgObject nullinexact3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("inexact?");
   SgObject o;
+  DeclareProcedureName("inexact?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -332,9 +332,9 @@ static SG_DEFINE_SUBR(nullinexact3f_Stub, 1, 0, nullinexact3f, SG_FALSE, NULL);
 ;
 static SgObject nullinexact(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("inexact");
   SgObject z_scm;
   SgObject z;
+  DeclareProcedureName("inexact");
   checkArgumentLength(1);
   argumentAsNumber(0, z_scm, z);
   {
@@ -348,9 +348,9 @@ static SG_DEFINE_SUBR(nullinexact_Stub, 1, 0, nullinexact, SG_FALSE, NULL);
 ;
 static SgObject nullexact(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("exact");
   SgObject z_scm;
   SgObject z;
+  DeclareProcedureName("exact");
   checkArgumentLength(1);
   argumentAsNumber(0, z_scm, z);
   {
@@ -366,10 +366,10 @@ static SG_DEFINE_SUBR(nullexact_Stub, 1, 0, nullexact, SG_FALSE, NULL);
 ;
 static SgObject null3d(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("=");
   SgObject arg0;
   SgObject arg1;
   SgObject rest;
+  DeclareProcedureName("=");
   checkArgumentLengthAtLeast(2);
   argumentRef(0, arg0);
   argumentRef(1, arg1);
@@ -399,10 +399,10 @@ static SG_DEFINE_SUBR(null3d_Stub, 2, 1, null3d, SG_FALSE, NULL);
 ;
 static SgObject null3c(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("<");
   SgObject arg0;
   SgObject arg1;
   SgObject rest;
+  DeclareProcedureName("<");
   checkArgumentLengthAtLeast(2);
   argumentRef(0, arg0);
   argumentRef(1, arg1);
@@ -432,10 +432,10 @@ static SG_DEFINE_SUBR(null3c_Stub, 2, 1, null3c, SG_FALSE, NULL);
 ;
 static SgObject null3c3d(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("<=");
   SgObject arg0;
   SgObject arg1;
   SgObject rest;
+  DeclareProcedureName("<=");
   checkArgumentLengthAtLeast(2);
   argumentRef(0, arg0);
   argumentRef(1, arg1);
@@ -465,10 +465,10 @@ static SG_DEFINE_SUBR(null3c3d_Stub, 2, 1, null3c3d, SG_FALSE, NULL);
 ;
 static SgObject null3e(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName(">");
   SgObject arg0;
   SgObject arg1;
   SgObject rest;
+  DeclareProcedureName(">");
   checkArgumentLengthAtLeast(2);
   argumentRef(0, arg0);
   argumentRef(1, arg1);
@@ -498,10 +498,10 @@ static SG_DEFINE_SUBR(null3e_Stub, 2, 1, null3e, SG_FALSE, NULL);
 ;
 static SgObject null3e3d(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName(">=");
   SgObject arg0;
   SgObject arg1;
   SgObject rest;
+  DeclareProcedureName(">=");
   checkArgumentLengthAtLeast(2);
   argumentRef(0, arg0);
   argumentRef(1, arg1);
@@ -531,9 +531,9 @@ static SG_DEFINE_SUBR(null3e3d_Stub, 2, 1, null3e3d, SG_FALSE, NULL);
 ;
 static SgObject nullzero3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("zero?");
   SgObject arg0_scm;
   SgObject arg0;
+  DeclareProcedureName("zero?");
   checkArgumentLength(1);
   argumentAsNumber(0, arg0_scm, arg0);
   {
@@ -547,9 +547,9 @@ static SG_DEFINE_SUBR(nullzero3f_Stub, 1, 0, nullzero3f, SG_FALSE, NULL);
 ;
 static SgObject nullpositive3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("positive?");
   SgObject x_scm;
   SgObject x;
+  DeclareProcedureName("positive?");
   checkArgumentLength(1);
   argumentAsNumber(0, x_scm, x);
   {
@@ -563,9 +563,9 @@ static SG_DEFINE_SUBR(nullpositive3f_Stub, 1, 0, nullpositive3f, SG_FALSE, NULL)
 ;
 static SgObject nullnegative3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("negative?");
   SgObject x_scm;
   SgObject x;
+  DeclareProcedureName("negative?");
   checkArgumentLength(1);
   argumentAsNumber(0, x_scm, x);
   {
@@ -579,9 +579,9 @@ static SG_DEFINE_SUBR(nullnegative3f_Stub, 1, 0, nullnegative3f, SG_FALSE, NULL)
 ;
 static SgObject nullodd3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odd?");
   SgObject x_scm;
   SgObject x;
+  DeclareProcedureName("odd?");
   checkArgumentLength(1);
   argumentAsNumber(0, x_scm, x);
   {
@@ -595,9 +595,9 @@ static SG_DEFINE_SUBR(nullodd3f_Stub, 1, 0, nullodd3f, SG_FALSE, NULL);
 ;
 static SgObject nulleven3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("even?");
   SgObject x_scm;
   SgObject x;
+  DeclareProcedureName("even?");
   checkArgumentLength(1);
   argumentAsNumber(0, x_scm, x);
   {
@@ -611,9 +611,9 @@ static SG_DEFINE_SUBR(nulleven3f_Stub, 1, 0, nulleven3f, SG_FALSE, NULL);
 ;
 static SgObject nullfinite3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("finite?");
   SgObject x_scm;
   SgObject x;
+  DeclareProcedureName("finite?");
   checkArgumentLength(1);
   argumentAsNumber(0, x_scm, x);
   {
@@ -627,9 +627,9 @@ static SG_DEFINE_SUBR(nullfinite3f_Stub, 1, 0, nullfinite3f, SG_FALSE, NULL);
 ;
 static SgObject nullinfinite3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("infinite?");
   SgObject x_scm;
   SgObject x;
+  DeclareProcedureName("infinite?");
   checkArgumentLength(1);
   argumentAsNumber(0, x_scm, x);
   {
@@ -643,9 +643,9 @@ static SG_DEFINE_SUBR(nullinfinite3f_Stub, 1, 0, nullinfinite3f, SG_FALSE, NULL)
 ;
 static SgObject nullnan3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("nan?");
   SgObject x_scm;
   SgObject x;
+  DeclareProcedureName("nan?");
   checkArgumentLength(1);
   argumentAsNumber(0, x_scm, x);
   {
@@ -659,9 +659,9 @@ static SG_DEFINE_SUBR(nullnan3f_Stub, 1, 0, nullnan3f, SG_FALSE, NULL);
 ;
 static SgObject nullmax(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("max");
   SgObject arg0;
   SgObject rest;
+  DeclareProcedureName("max");
   checkArgumentLengthAtLeast(1);
   argumentRef(0, arg0);
   retrieveOptionalArguments(1, rest);
@@ -676,9 +676,9 @@ static SG_DEFINE_SUBR(nullmax_Stub, 1, 1, nullmax, SG_FALSE, NULL);
 ;
 static SgObject nullmin(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("min");
   SgObject arg0;
   SgObject rest;
+  DeclareProcedureName("min");
   checkArgumentLengthAtLeast(1);
   argumentRef(0, arg0);
   retrieveOptionalArguments(1, rest);
@@ -694,8 +694,8 @@ static SG_DEFINE_SUBR(nullmin_Stub, 1, 1, nullmin, SG_FALSE, NULL);
 ;
 static SgObject null2b(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("+");
   SgObject rest;
+  DeclareProcedureName("+");
   retrieveOptionalArguments(0, rest);
   {
     SgObject SG_RETURN = SG_UNDEF;
@@ -739,8 +739,8 @@ static SG_DEFINE_SUBR(null2b_Stub, 0, 1, null2b, SG_FALSE, NULL);
 ;
 static SgObject null2b2e(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("+.");
   SgObject rest;
+  DeclareProcedureName("+.");
   retrieveOptionalArguments(0, rest);
   {
     SgObject SG_RETURN = SG_UNDEF;
@@ -773,8 +773,8 @@ static SG_DEFINE_SUBR(null2b2e_Stub, 0, 1, null2b2e, SG_FALSE, NULL);
 ;
 static SgObject null2a(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("*");
   SgObject rest;
+  DeclareProcedureName("*");
   retrieveOptionalArguments(0, rest);
   {
     SgObject SG_RETURN = SG_UNDEF;
@@ -818,8 +818,8 @@ static SG_DEFINE_SUBR(null2a_Stub, 0, 1, null2a, SG_FALSE, NULL);
 ;
 static SgObject null2a2e(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("*.");
   SgObject rest;
+  DeclareProcedureName("*.");
   retrieveOptionalArguments(0, rest);
   {
     SgObject SG_RETURN = SG_UNDEF;
@@ -852,10 +852,10 @@ static SG_DEFINE_SUBR(null2a2e_Stub, 0, 1, null2a2e, SG_FALSE, NULL);
 ;
 static SgObject null_(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("-");
   SgObject arg1_scm;
   SgObject arg1;
   SgObject rest;
+  DeclareProcedureName("-");
   checkArgumentLengthAtLeast(1);
   argumentAsNumber(0, arg1_scm, arg1);
   retrieveOptionalArguments(1, rest);
@@ -891,10 +891,10 @@ static SG_DEFINE_SUBR(null__Stub, 1, 1, null_, SG_FALSE, NULL);
 ;
 static SgObject null_2e(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("-.");
   SgObject arg1_scm;
   SgObject arg1;
   SgObject rest;
+  DeclareProcedureName("-.");
   checkArgumentLengthAtLeast(1);
   argumentAsNumber(0, arg1_scm, arg1);
   retrieveOptionalArguments(1, rest);
@@ -931,10 +931,10 @@ static SG_DEFINE_SUBR(null_2e_Stub, 1, 1, null_2e, SG_FALSE, NULL);
 ;
 static SgObject null2f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("/");
   SgObject arg1_scm;
   SgObject arg1;
   SgObject rest;
+  DeclareProcedureName("/");
   checkArgumentLengthAtLeast(1);
   argumentAsNumber(0, arg1_scm, arg1);
   retrieveOptionalArguments(1, rest);
@@ -984,10 +984,10 @@ static SG_DEFINE_SUBR(null2f_Stub, 1, 1, null2f, SG_FALSE, NULL);
 ;
 static SgObject null2f2e(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("/.");
   SgObject arg1_scm;
   SgObject arg1;
   SgObject rest;
+  DeclareProcedureName("/.");
   checkArgumentLengthAtLeast(1);
   argumentAsNumber(0, arg1_scm, arg1);
   retrieveOptionalArguments(1, rest);
@@ -1023,9 +1023,9 @@ static SG_DEFINE_SUBR(null2f2e_Stub, 1, 1, null2f2e, SG_FALSE, NULL);
 ;
 static SgObject nullabs(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("abs");
   SgObject x_scm;
   SgObject x;
+  DeclareProcedureName("abs");
   checkArgumentLength(1);
   argumentAsNumber(0, x_scm, x);
   {
@@ -1039,9 +1039,9 @@ static SG_DEFINE_SUBR(nullabs_Stub, 1, 0, nullabs, SG_FALSE, NULL);
 ;
 static SgObject nullnumerator(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("numerator");
   SgObject x_scm;
   SgObject x;
+  DeclareProcedureName("numerator");
   checkArgumentLength(1);
   argumentAsNumber(0, x_scm, x);
   {
@@ -1055,9 +1055,9 @@ static SG_DEFINE_SUBR(nullnumerator_Stub, 1, 0, nullnumerator, SG_FALSE, NULL);
 ;
 static SgObject nulldenominator(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("denominator");
   SgObject x_scm;
   SgObject x;
+  DeclareProcedureName("denominator");
   checkArgumentLength(1);
   argumentAsNumber(0, x_scm, x);
   {
@@ -1072,9 +1072,9 @@ static SG_DEFINE_SUBR(nulldenominator_Stub, 1, 0, nulldenominator, SG_FALSE, NUL
 ;
 static SgObject nullfloor(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("floor");
   SgObject x_scm;
   SgObject x;
+  DeclareProcedureName("floor");
   checkArgumentLength(1);
   argumentAsNumber(0, x_scm, x);
   {
@@ -1094,9 +1094,9 @@ static SG_DEFINE_SUBR(nullfloor_Stub, 1, 0, nullfloor, SG_FALSE, NULL);
 ;
 static SgObject nullceiling(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("ceiling");
   SgObject x_scm;
   SgObject x;
+  DeclareProcedureName("ceiling");
   checkArgumentLength(1);
   argumentAsNumber(0, x_scm, x);
   {
@@ -1116,9 +1116,9 @@ static SG_DEFINE_SUBR(nullceiling_Stub, 1, 0, nullceiling, SG_FALSE, NULL);
 ;
 static SgObject nulltruncate(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("truncate");
   SgObject x_scm;
   SgObject x;
+  DeclareProcedureName("truncate");
   checkArgumentLength(1);
   argumentAsNumber(0, x_scm, x);
   {
@@ -1138,9 +1138,9 @@ static SG_DEFINE_SUBR(nulltruncate_Stub, 1, 0, nulltruncate, SG_FALSE, NULL);
 ;
 static SgObject nullround(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("round");
   SgObject x_scm;
   SgObject x;
+  DeclareProcedureName("round");
   checkArgumentLength(1);
   argumentAsNumber(0, x_scm, x);
   {
@@ -1164,11 +1164,11 @@ static SG_DEFINE_SUBR(nullround_Stub, 1, 0, nullround, SG_FALSE, NULL);
 ;
 static SgObject nulldiv(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("div");
   SgObject x_scm;
   SgObject x;
   SgObject y_scm;
   SgObject y;
+  DeclareProcedureName("div");
   checkArgumentLength(2);
   argumentAsNumber(0, x_scm, x);
   argumentAsNumber(1, y_scm, y);
@@ -1202,11 +1202,11 @@ static SG_DEFINE_SUBR(nulldiv_Stub, 2, 0, nulldiv, SG_FALSE, NULL);
 ;
 static SgObject nullmod(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("mod");
   SgObject x_scm;
   SgObject x;
   SgObject y_scm;
   SgObject y;
+  DeclareProcedureName("mod");
   checkArgumentLength(2);
   argumentAsNumber(0, x_scm, x);
   argumentAsNumber(1, y_scm, y);
@@ -1240,11 +1240,11 @@ static SG_DEFINE_SUBR(nullmod_Stub, 2, 0, nullmod, SG_FALSE, NULL);
 ;
 static SgObject nulldiv0(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("div0");
   SgObject x_scm;
   SgObject x;
   SgObject y_scm;
   SgObject y;
+  DeclareProcedureName("div0");
   checkArgumentLength(2);
   argumentAsNumber(0, x_scm, x);
   argumentAsNumber(1, y_scm, y);
@@ -1278,11 +1278,11 @@ static SG_DEFINE_SUBR(nulldiv0_Stub, 2, 0, nulldiv0, SG_FALSE, NULL);
 ;
 static SgObject nullmod0(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("mod0");
   SgObject x_scm;
   SgObject x;
   SgObject y_scm;
   SgObject y;
+  DeclareProcedureName("mod0");
   checkArgumentLength(2);
   argumentAsNumber(0, x_scm, x);
   argumentAsNumber(1, y_scm, y);
@@ -1316,11 +1316,11 @@ static SG_DEFINE_SUBR(nullmod0_Stub, 2, 0, nullmod0, SG_FALSE, NULL);
 ;
 static SgObject null25gcd(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("%gcd");
   SgObject x_scm;
   SgObject x;
   SgObject y_scm;
   SgObject y;
+  DeclareProcedureName("%gcd");
   checkArgumentLength(2);
   argumentAsNumber(0, x_scm, x);
   argumentAsNumber(1, y_scm, y);
@@ -1335,9 +1335,9 @@ static SG_DEFINE_SUBR(null25gcd_Stub, 2, 0, null25gcd, SG_FALSE, NULL);
 ;
 static SgObject nullexp(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("exp");
   SgObject x_scm;
   SgObject x;
+  DeclareProcedureName("exp");
   checkArgumentLength(1);
   argumentAsNumber(0, x_scm, x);
   {
@@ -1351,11 +1351,11 @@ static SG_DEFINE_SUBR(nullexp_Stub, 1, 0, nullexp, SG_FALSE, NULL);
 ;
 static SgObject nullexpt(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("expt");
   SgObject x_scm;
   SgObject x;
   SgObject y_scm;
   SgObject y;
+  DeclareProcedureName("expt");
   checkArgumentLength(2);
   argumentAsNumber(0, x_scm, x);
   argumentAsNumber(1, y_scm, y);
@@ -1370,11 +1370,11 @@ static SG_DEFINE_SUBR(nullexpt_Stub, 2, 0, nullexpt, SG_FALSE, NULL);
 ;
 static SgObject nulllog(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("log");
   SgObject x_scm;
   SgObject x;
   SgObject base_scm;
   SgObject base;
+  DeclareProcedureName("log");
   checkArgumentLengthBetween(1, 2);
   argumentAsNumber(0, x_scm, x);
   if (argc >= 2) {
@@ -1406,11 +1406,11 @@ static SG_DEFINE_SUBR(nulllog_Stub, 1, 1, nulllog, SG_FALSE, NULL);
 ;
 static SgObject nullmake_rectangular(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-rectangular");
   SgObject a_scm;
   SgObject a;
   SgObject b_scm;
   SgObject b;
+  DeclareProcedureName("make-rectangular");
   checkArgumentLength(2);
   argumentAsNumber(0, a_scm, a);
   argumentAsNumber(1, b_scm, b);
@@ -1437,11 +1437,11 @@ static SG_DEFINE_SUBR(nullmake_rectangular_Stub, 2, 0, nullmake_rectangular, SG_
 ;
 static SgObject nullmake_polar(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-polar");
   SgObject r_scm;
   SgObject r;
   SgObject t_scm;
   SgObject t;
+  DeclareProcedureName("make-polar");
   checkArgumentLength(2);
   argumentAsNumber(0, r_scm, r);
   argumentAsNumber(1, t_scm, t);
@@ -1468,9 +1468,9 @@ static SG_DEFINE_SUBR(nullmake_polar_Stub, 2, 0, nullmake_polar, SG_FALSE, NULL)
 ;
 static SgObject nullreal_part(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("real-part");
   SgObject r_scm;
   SgObject r;
+  DeclareProcedureName("real-part");
   checkArgumentLength(1);
   argumentAsNumber(0, r_scm, r);
   {
@@ -1494,9 +1494,9 @@ static SG_DEFINE_SUBR(nullreal_part_Stub, 1, 0, nullreal_part, SG_FALSE, NULL);
 ;
 static SgObject nullimag_part(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("imag-part");
   SgObject r_scm;
   SgObject r;
+  DeclareProcedureName("imag-part");
   checkArgumentLength(1);
   argumentAsNumber(0, r_scm, r);
   {
@@ -1520,9 +1520,9 @@ static SG_DEFINE_SUBR(nullimag_part_Stub, 1, 0, nullimag_part, SG_FALSE, NULL);
 ;
 static SgObject nullmagnitude(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("magnitude");
   SgObject n_scm;
   SgObject n;
+  DeclareProcedureName("magnitude");
   checkArgumentLength(1);
   argumentAsNumber(0, n_scm, n);
   {
@@ -1536,9 +1536,9 @@ static SG_DEFINE_SUBR(nullmagnitude_Stub, 1, 0, nullmagnitude, SG_FALSE, NULL);
 ;
 static SgObject nullangle(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("angle");
   SgObject n_scm;
   SgObject n;
+  DeclareProcedureName("angle");
   checkArgumentLength(1);
   argumentAsNumber(0, n_scm, n);
   {
@@ -1552,9 +1552,9 @@ static SG_DEFINE_SUBR(nullangle_Stub, 1, 0, nullangle, SG_FALSE, NULL);
 ;
 static SgObject nullsin(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("sin");
   SgObject n_scm;
   SgObject n;
+  DeclareProcedureName("sin");
   checkArgumentLength(1);
   argumentAsNumber(0, n_scm, n);
   {
@@ -1574,9 +1574,9 @@ static SG_DEFINE_SUBR(nullsin_Stub, 1, 0, nullsin, SG_FALSE, NULL);
 ;
 static SgObject nullcos(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("cos");
   SgObject n_scm;
   SgObject n;
+  DeclareProcedureName("cos");
   checkArgumentLength(1);
   argumentAsNumber(0, n_scm, n);
   {
@@ -1596,9 +1596,9 @@ static SG_DEFINE_SUBR(nullcos_Stub, 1, 0, nullcos, SG_FALSE, NULL);
 ;
 static SgObject nulltan(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("tan");
   SgObject n_scm;
   SgObject n;
+  DeclareProcedureName("tan");
   checkArgumentLength(1);
   argumentAsNumber(0, n_scm, n);
   {
@@ -1618,9 +1618,9 @@ static SG_DEFINE_SUBR(nulltan_Stub, 1, 0, nulltan, SG_FALSE, NULL);
 ;
 static SgObject nullasin(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("asin");
   SgObject n_scm;
   SgObject n;
+  DeclareProcedureName("asin");
   checkArgumentLength(1);
   argumentAsNumber(0, n_scm, n);
   {
@@ -1640,9 +1640,9 @@ static SG_DEFINE_SUBR(nullasin_Stub, 1, 0, nullasin, SG_FALSE, NULL);
 ;
 static SgObject nullacos(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("acos");
   SgObject n_scm;
   SgObject n;
+  DeclareProcedureName("acos");
   checkArgumentLength(1);
   argumentAsNumber(0, n_scm, n);
   {
@@ -1662,11 +1662,11 @@ static SG_DEFINE_SUBR(nullacos_Stub, 1, 0, nullacos, SG_FALSE, NULL);
 ;
 static SgObject nullatan(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("atan");
   SgObject n_scm;
   SgObject n;
   SgObject n2_scm;
   SgObject n2;
+  DeclareProcedureName("atan");
   checkArgumentLengthBetween(1, 2);
   argumentAsNumber(0, n_scm, n);
   if (argc >= 2) {
@@ -1710,9 +1710,9 @@ static SG_DEFINE_SUBR(nullatan_Stub, 1, 1, nullatan, SG_FALSE, NULL);
 ;
 static SgObject nullsqrt(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("sqrt");
   SgObject n_scm;
   SgObject n;
+  DeclareProcedureName("sqrt");
   checkArgumentLength(1);
   argumentAsNumber(0, n_scm, n);
   {
@@ -1726,9 +1726,9 @@ static SG_DEFINE_SUBR(nullsqrt_Stub, 1, 0, nullsqrt, SG_FALSE, NULL);
 ;
 static SgObject nullexact_integer_sqrt(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("exact-integer-sqrt");
   SgObject n_scm;
   SgObject n;
+  DeclareProcedureName("exact-integer-sqrt");
   checkArgumentLength(1);
   argumentAsNumber(0, n_scm, n);
   {
@@ -1748,11 +1748,11 @@ static SG_DEFINE_SUBR(nullexact_integer_sqrt_Stub, 1, 0, nullexact_integer_sqrt,
 ;
 static SgObject nullrationalize(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("rationalize");
   SgObject x_scm;
   SgObject x;
   SgObject e_scm;
   SgObject e;
+  DeclareProcedureName("rationalize");
   checkArgumentLength(2);
   argumentAsNumber(0, x_scm, x);
   argumentAsNumber(1, e_scm, e);
@@ -1779,11 +1779,11 @@ static SG_DEFINE_SUBR(nullrationalize_Stub, 2, 0, nullrationalize, SG_FALSE, NUL
 ;
 static SgObject nullquotient(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("quotient");
   SgObject n1_scm;
   SgObject n1;
   SgObject n2_scm;
   SgObject n2;
+  DeclareProcedureName("quotient");
   checkArgumentLength(2);
   argumentAsNumber(0, n1_scm, n1);
   argumentAsNumber(1, n2_scm, n2);
@@ -1798,11 +1798,11 @@ static SG_DEFINE_SUBR(nullquotient_Stub, 2, 0, nullquotient, SG_FALSE, NULL);
 ;
 static SgObject nullremainder(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("remainder");
   SgObject n1_scm;
   SgObject n1;
   SgObject n2_scm;
   SgObject n2;
+  DeclareProcedureName("remainder");
   checkArgumentLength(2);
   argumentAsNumber(0, n1_scm, n1);
   argumentAsNumber(1, n2_scm, n2);
@@ -1817,11 +1817,11 @@ static SG_DEFINE_SUBR(nullremainder_Stub, 2, 0, nullremainder, SG_FALSE, NULL);
 ;
 static SgObject nullmodulo(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("modulo");
   SgObject n1_scm;
   SgObject n1;
   SgObject n2_scm;
   SgObject n2;
+  DeclareProcedureName("modulo");
   checkArgumentLength(2);
   argumentAsNumber(0, n1_scm, n1);
   argumentAsNumber(1, n2_scm, n2);
@@ -1836,9 +1836,9 @@ static SG_DEFINE_SUBR(nullmodulo_Stub, 2, 0, nullmodulo, SG_FALSE, NULL);
 ;
 static SgObject nullinteger_length(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("integer-length");
   SgObject n_scm;
   SgObject n;
+  DeclareProcedureName("integer-length");
   checkArgumentLength(1);
   argumentAsNumber(0, n_scm, n);
   {
@@ -1852,13 +1852,13 @@ static SG_DEFINE_SUBR(nullinteger_length_Stub, 1, 0, nullinteger_length, SG_FALS
 ;
 static SgObject nullnumber_3estring(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("number->string");
   SgObject z_scm;
   SgObject z;
   SgObject radix_scm;
   int radix;
   SgObject precision_scm;
   int precision;
+  DeclareProcedureName("number->string");
   checkArgumentLengthBetween(1, 3);
   argumentAsNumber(0, z_scm, z);
   if (argc >= 2) {
@@ -1884,11 +1884,11 @@ static SG_DEFINE_SUBR(nullnumber_3estring_Stub, 1, 2, nullnumber_3estring, SG_FA
 ;
 static SgObject nullstring_3enumber(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string->number");
   SgObject s_scm;
   SgString *s;
   SgObject radix_scm;
   int radix;
+  DeclareProcedureName("string->number");
   checkArgumentLengthBetween(1, 2);
   argumentAsString(0, s_scm, s);
   if (argc >= 2) {
@@ -1908,8 +1908,8 @@ static SG_DEFINE_SUBR(nullstring_3enumber_Stub, 1, 1, nullstring_3enumber, SG_FA
 ;
 static SgObject nullnot(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("not");
   SgObject arg0;
+  DeclareProcedureName("not");
   checkArgumentLength(1);
   argumentRef(0, arg0);
   {
@@ -1924,10 +1924,10 @@ static SG_DEFINE_SUBR(nullnot_Stub, 1, 0, nullnot, SG_MAKE_INT(NOT), NULL);
 ;
 static SgObject nullboolean3d3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("boolean=?");
   SgObject b1;
   SgObject b2;
   SgObject rest;
+  DeclareProcedureName("boolean=?");
   checkArgumentLengthAtLeast(2);
   argumentRef(0, b1);
   argumentRef(1, b2);
@@ -1988,9 +1988,9 @@ static SG_DEFINE_SUBR(nullboolean3d3f_Stub, 2, 1, nullboolean3d3f, SG_FALSE, NUL
 ;
 static SgObject nullcons(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("cons");
   SgObject o1;
   SgObject o2;
+  DeclareProcedureName("cons");
   checkArgumentLength(2);
   argumentRef(0, o1);
   argumentRef(1, o2);
@@ -2005,8 +2005,8 @@ static SG_DEFINE_SUBR(nullcons_Stub, 2, 0, nullcons, SG_MAKE_INT(CONS), NULL);
 ;
 static SgObject nullcar(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("car");
   SgObject o;
+  DeclareProcedureName("car");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -2026,8 +2026,8 @@ static SG_DEFINE_SUBR(nullcar_Stub, 1, 0, nullcar, SG_MAKE_INT(CAR), NULL);
 ;
 static SgObject nullcdr(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("cdr");
   SgObject o;
+  DeclareProcedureName("cdr");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -2047,8 +2047,8 @@ static SG_DEFINE_SUBR(nullcdr_Stub, 1, 0, nullcdr, SG_MAKE_INT(CDR), NULL);
 ;
 static SgObject nullcaar(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("caar");
   SgObject o;
+  DeclareProcedureName("caar");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -2074,8 +2074,8 @@ static SG_DEFINE_SUBR(nullcaar_Stub, 1, 0, nullcaar, SG_MAKE_INT(CAAR), NULL);
 ;
 static SgObject nullcadr(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("cadr");
   SgObject o;
+  DeclareProcedureName("cadr");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -2101,8 +2101,8 @@ static SG_DEFINE_SUBR(nullcadr_Stub, 1, 0, nullcadr, SG_MAKE_INT(CADR), NULL);
 ;
 static SgObject nullcdar(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("cdar");
   SgObject o;
+  DeclareProcedureName("cdar");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -2128,8 +2128,8 @@ static SG_DEFINE_SUBR(nullcdar_Stub, 1, 0, nullcdar, SG_MAKE_INT(CDAR), NULL);
 ;
 static SgObject nullcddr(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("cddr");
   SgObject o;
+  DeclareProcedureName("cddr");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -2155,8 +2155,8 @@ static SG_DEFINE_SUBR(nullcddr_Stub, 1, 0, nullcddr, SG_MAKE_INT(CDDR), NULL);
 ;
 static SgObject nulllist3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("list?");
   SgObject arg0;
+  DeclareProcedureName("list?");
   checkArgumentLength(1);
   argumentRef(0, arg0);
   {
@@ -2170,8 +2170,8 @@ static SG_DEFINE_SUBR(nulllist3f_Stub, 1, 0, nulllist3f, SG_FALSE, NULL);
 ;
 static SgObject nulllist(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("list");
   SgObject rest;
+  DeclareProcedureName("list");
   retrieveOptionalArguments(0, rest);
   {
     SgObject SG_RETURN = SG_UNDEF;
@@ -2184,8 +2184,8 @@ static SG_DEFINE_SUBR(nulllist_Stub, 0, 1, nulllist, SG_MAKE_INT(LIST), NULL);
 ;
 static SgObject nulllength(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("length");
   SgObject lst;
+  DeclareProcedureName("length");
   checkArgumentLength(1);
   argumentRef(0, lst);
   {
@@ -2199,8 +2199,8 @@ static SG_DEFINE_SUBR(nulllength_Stub, 1, 0, nulllength, SG_FALSE, NULL);
 ;
 static SgObject nullappend(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("append");
   SgObject lst;
+  DeclareProcedureName("append");
   retrieveOptionalArguments(0, lst);
   {
     SgObject SG_RETURN = SG_UNDEF;
@@ -2213,8 +2213,8 @@ static SG_DEFINE_SUBR(nullappend_Stub, 0, 1, nullappend, SG_MAKE_INT(APPEND), NU
 ;
 static SgObject nullreverse(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("reverse");
   SgObject lst;
+  DeclareProcedureName("reverse");
   checkArgumentLength(1);
   argumentRef(0, lst);
   {
@@ -2228,11 +2228,11 @@ static SG_DEFINE_SUBR(nullreverse_Stub, 1, 0, nullreverse, SG_FALSE, NULL);
 ;
 static SgObject nulllist_tail(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("list-tail");
   SgObject lst;
   SgObject k_scm;
   int k;
   SgObject fallback;
+  DeclareProcedureName("list-tail");
   checkArgumentLengthBetween(2, 3);
   argumentRef(0, lst);
   argumentAsFixnum(1, k_scm, k);
@@ -2253,11 +2253,11 @@ static SG_DEFINE_SUBR(nulllist_tail_Stub, 2, 1, nulllist_tail, SG_FALSE, NULL);
 ;
 static SgObject nulllist_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("list-ref");
   SgObject lst;
   SgObject k_scm;
   int k;
   SgObject fallback;
+  DeclareProcedureName("list-ref");
   checkArgumentLengthBetween(2, 3);
   argumentRef(0, lst);
   argumentAsFixnum(1, k_scm, k);
@@ -2278,8 +2278,8 @@ static SG_DEFINE_SUBR(nulllist_ref_Stub, 2, 1, nulllist_ref, SG_FALSE, NULL);
 ;
 static SgObject nulllast_pair(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("last-pair");
   SgObject lst;
+  DeclareProcedureName("last-pair");
   checkArgumentLength(1);
   argumentRef(0, lst);
   {
@@ -2293,9 +2293,9 @@ static SG_DEFINE_SUBR(nulllast_pair_Stub, 1, 0, nulllast_pair, SG_FALSE, NULL);
 ;
 static SgObject nullsymbol_3estring(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("symbol->string");
   SgObject z_scm;
   SgSymbol *z;
+  DeclareProcedureName("symbol->string");
   checkArgumentLength(1);
   argumentAsSymbol(0, z_scm, z);
   {
@@ -2310,12 +2310,12 @@ static SG_DEFINE_SUBR(nullsymbol_3estring_Stub, 1, 0, nullsymbol_3estring, SG_FA
 ;
 static SgObject nullsymbol3d3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("symbol=?");
   SgObject s1_scm;
   SgSymbol *s1;
   SgObject s2_scm;
   SgSymbol *s2;
   SgObject rest;
+  DeclareProcedureName("symbol=?");
   checkArgumentLengthAtLeast(2);
   argumentAsSymbol(0, s1_scm, s1);
   argumentAsSymbol(1, s2_scm, s2);
@@ -2376,9 +2376,9 @@ static SG_DEFINE_SUBR(nullsymbol3d3f_Stub, 2, 1, nullsymbol3d3f, SG_FALSE, NULL)
 ;
 static SgObject nullstring_3esymbol(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string->symbol");
   SgObject z_scm;
   SgString *z;
+  DeclareProcedureName("string->symbol");
   checkArgumentLength(1);
   argumentAsString(0, z_scm, z);
   {
@@ -2402,8 +2402,8 @@ static SG_DEFINE_SUBR(nullstring_3esymbol_Stub, 1, 0, nullstring_3esymbol, SG_FA
 ;
 static SgObject nullchar_3einteger(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("char->integer");
   SgObject c;
+  DeclareProcedureName("char->integer");
   checkArgumentLength(1);
   argumentRef(0, c);
   {
@@ -2423,9 +2423,9 @@ static SG_DEFINE_SUBR(nullchar_3einteger_Stub, 1, 0, nullchar_3einteger, SG_FALS
 ;
 static SgObject nullinteger_3echar(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("integer->char");
   SgObject ch_scm;
   int ch;
+  DeclareProcedureName("integer->char");
   checkArgumentLength(1);
   argumentAsFixnum(0, ch_scm, ch);
   {
@@ -2445,10 +2445,10 @@ static SG_DEFINE_SUBR(nullinteger_3echar_Stub, 1, 0, nullinteger_3echar, SG_FALS
 ;
 static SgObject nullchar3d3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("char=?");
   SgObject c1;
   SgObject c2;
   SgObject rest;
+  DeclareProcedureName("char=?");
   checkArgumentLengthAtLeast(2);
   argumentRef(0, c1);
   argumentRef(1, c2);
@@ -2510,10 +2510,10 @@ static SG_DEFINE_SUBR(nullchar3d3f_Stub, 2, 1, nullchar3d3f, SG_FALSE, NULL);
 ;
 static SgObject nullchar3c3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("char<?");
   SgObject c1;
   SgObject c2;
   SgObject rest;
+  DeclareProcedureName("char<?");
   checkArgumentLengthAtLeast(2);
   argumentRef(0, c1);
   argumentRef(1, c2);
@@ -2574,10 +2574,10 @@ static SG_DEFINE_SUBR(nullchar3c3f_Stub, 2, 1, nullchar3c3f, SG_FALSE, NULL);
 ;
 static SgObject nullchar3e3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("char>?");
   SgObject c1;
   SgObject c2;
   SgObject rest;
+  DeclareProcedureName("char>?");
   checkArgumentLengthAtLeast(2);
   argumentRef(0, c1);
   argumentRef(1, c2);
@@ -2638,10 +2638,10 @@ static SG_DEFINE_SUBR(nullchar3e3f_Stub, 2, 1, nullchar3e3f, SG_FALSE, NULL);
 ;
 static SgObject nullchar3c3d3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("char<=?");
   SgObject c1;
   SgObject c2;
   SgObject rest;
+  DeclareProcedureName("char<=?");
   checkArgumentLengthAtLeast(2);
   argumentRef(0, c1);
   argumentRef(1, c2);
@@ -2702,10 +2702,10 @@ static SG_DEFINE_SUBR(nullchar3c3d3f_Stub, 2, 1, nullchar3c3d3f, SG_FALSE, NULL)
 ;
 static SgObject nullchar3e3d3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("char>=?");
   SgObject c1;
   SgObject c2;
   SgObject rest;
+  DeclareProcedureName("char>=?");
   checkArgumentLengthAtLeast(2);
   argumentRef(0, c1);
   argumentRef(1, c2);
@@ -2767,10 +2767,10 @@ static SG_DEFINE_SUBR(nullchar3e3d3f_Stub, 2, 1, nullchar3e3d3f, SG_FALSE, NULL)
 ;
 static SgObject nullmake_string(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-string");
   SgObject k_scm;
   int k;
   SgObject c;
+  DeclareProcedureName("make-string");
   checkArgumentLengthBetween(1, 2);
   argumentAsFixnum(0, k_scm, k);
   if (argc >= 2) {
@@ -2796,8 +2796,8 @@ static SG_DEFINE_SUBR(nullmake_string_Stub, 1, 1, nullmake_string, SG_FALSE, NUL
 ;
 static SgObject nullstring(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string");
   SgObject rest;
+  DeclareProcedureName("string");
   retrieveOptionalArguments(0, rest);
   {
     SgObject SG_RETURN = SG_UNDEF;
@@ -2810,9 +2810,9 @@ static SG_DEFINE_SUBR(nullstring_Stub, 0, 1, nullstring, SG_FALSE, NULL);
 ;
 static SgObject nullstring_length(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string-length");
   SgObject s_scm;
   SgString *s;
+  DeclareProcedureName("string-length");
   checkArgumentLength(1);
   argumentAsString(0, s_scm, s);
   {
@@ -2826,12 +2826,12 @@ static SG_DEFINE_SUBR(nullstring_length_Stub, 1, 0, nullstring_length, SG_FALSE,
 ;
 static SgObject nullstring_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string-ref");
   SgObject s_scm;
   SgString *s;
   SgObject k_scm;
   int k;
   SgObject fallback;
+  DeclareProcedureName("string-ref");
   checkArgumentLengthBetween(2, 3);
   argumentAsString(0, s_scm, s);
   argumentAsFixnum(1, k_scm, k);
@@ -2864,12 +2864,12 @@ static SG_DEFINE_SUBR(nullstring_ref_Stub, 2, 1, nullstring_ref, SG_FALSE, NULL)
 ;
 static SgObject nullstring3d3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string=?");
   SgObject s1_scm;
   SgString *s1;
   SgObject s2_scm;
   SgString *s2;
   SgObject rest;
+  DeclareProcedureName("string=?");
   checkArgumentLengthAtLeast(2);
   argumentAsString(0, s1_scm, s1);
   argumentAsString(1, s2_scm, s2);
@@ -2931,12 +2931,12 @@ static SG_DEFINE_SUBR(nullstring3d3f_Stub, 2, 1, nullstring3d3f, SG_FALSE, NULL)
 ;
 static SgObject nullstring3c3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string<?");
   SgObject s1_scm;
   SgString *s1;
   SgObject s2_scm;
   SgString *s2;
   SgObject rest;
+  DeclareProcedureName("string<?");
   checkArgumentLengthAtLeast(2);
   argumentAsString(0, s1_scm, s1);
   argumentAsString(1, s2_scm, s2);
@@ -2985,12 +2985,12 @@ static SG_DEFINE_SUBR(nullstring3c3f_Stub, 2, 1, nullstring3c3f, SG_FALSE, NULL)
 ;
 static SgObject nullstring3e3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string>?");
   SgObject s1_scm;
   SgString *s1;
   SgObject s2_scm;
   SgString *s2;
   SgObject rest;
+  DeclareProcedureName("string>?");
   checkArgumentLengthAtLeast(2);
   argumentAsString(0, s1_scm, s1);
   argumentAsString(1, s2_scm, s2);
@@ -3039,12 +3039,12 @@ static SG_DEFINE_SUBR(nullstring3e3f_Stub, 2, 1, nullstring3e3f, SG_FALSE, NULL)
 ;
 static SgObject nullstring3c3d3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string<=?");
   SgObject s1_scm;
   SgString *s1;
   SgObject s2_scm;
   SgString *s2;
   SgObject rest;
+  DeclareProcedureName("string<=?");
   checkArgumentLengthAtLeast(2);
   argumentAsString(0, s1_scm, s1);
   argumentAsString(1, s2_scm, s2);
@@ -3093,12 +3093,12 @@ static SG_DEFINE_SUBR(nullstring3c3d3f_Stub, 2, 1, nullstring3c3d3f, SG_FALSE, N
 ;
 static SgObject nullstring3e3d3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string>=?");
   SgObject s1_scm;
   SgString *s1;
   SgObject s2_scm;
   SgString *s2;
   SgObject rest;
+  DeclareProcedureName("string>=?");
   checkArgumentLengthAtLeast(2);
   argumentAsString(0, s1_scm, s1);
   argumentAsString(1, s2_scm, s2);
@@ -3147,13 +3147,13 @@ static SG_DEFINE_SUBR(nullstring3e3d3f_Stub, 2, 1, nullstring3e3d3f, SG_FALSE, N
 ;
 static SgObject nullsubstring(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("substring");
   SgObject s_scm;
   SgString *s;
   SgObject start_scm;
   int start;
   SgObject end_scm;
   int end;
+  DeclareProcedureName("substring");
   checkArgumentLength(3);
   argumentAsString(0, s_scm, s);
   argumentAsFixnum(1, start_scm, start);
@@ -3193,8 +3193,8 @@ static SG_DEFINE_SUBR(nullsubstring_Stub, 3, 0, nullsubstring, SG_FALSE, NULL);
 ;
 static SgObject nullstring_append(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string-append");
   SgObject rest;
+  DeclareProcedureName("string-append");
   retrieveOptionalArguments(0, rest);
   {
     SgObject SG_RETURN = SG_UNDEF;
@@ -3207,13 +3207,13 @@ static SG_DEFINE_SUBR(nullstring_append_Stub, 0, 1, nullstring_append, SG_FALSE,
 ;
 static SgObject nullstring_3elist(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string->list");
   SgObject s_scm;
   SgString *s;
   SgObject start_scm;
   int start;
   SgObject end_scm;
   int end;
+  DeclareProcedureName("string->list");
   checkArgumentLengthBetween(1, 3);
   argumentAsString(0, s_scm, s);
   if (argc >= 2) {
@@ -3239,8 +3239,8 @@ static SG_DEFINE_SUBR(nullstring_3elist_Stub, 1, 2, nullstring_3elist, SG_FALSE,
 ;
 static SgObject nulllist_3estring(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("list->string");
   SgObject o;
+  DeclareProcedureName("list->string");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -3254,13 +3254,13 @@ static SG_DEFINE_SUBR(nulllist_3estring_Stub, 1, 0, nulllist_3estring, SG_FALSE,
 ;
 static SgObject nullstring_copy(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string-copy");
   SgObject s_scm;
   SgString *s;
   SgObject start_scm;
   int start;
   SgObject end_scm;
   int end;
+  DeclareProcedureName("string-copy");
   checkArgumentLengthBetween(1, 3);
   argumentAsString(0, s_scm, s);
   if (argc >= 2) {
@@ -3286,10 +3286,10 @@ static SG_DEFINE_SUBR(nullstring_copy_Stub, 1, 2, nullstring_copy, SG_FALSE, NUL
 ;
 static SgObject nullmake_vector(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-vector");
   SgObject size_scm;
   int size;
   SgObject fill;
+  DeclareProcedureName("make-vector");
   checkArgumentLengthBetween(1, 2);
   argumentAsFixnum(0, size_scm, size);
   if (argc >= 2) {
@@ -3309,8 +3309,8 @@ static SG_DEFINE_SUBR(nullmake_vector_Stub, 1, 1, nullmake_vector, SG_FALSE, NUL
 ;
 static SgObject nullvector(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("vector");
   SgObject rest;
+  DeclareProcedureName("vector");
   retrieveOptionalArguments(0, rest);
   {
     SgObject SG_RETURN = SG_UNDEF;
@@ -3323,9 +3323,9 @@ static SG_DEFINE_SUBR(nullvector_Stub, 0, 1, nullvector, SG_MAKE_INT(VECTOR), NU
 ;
 static SgObject nullvector_length(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("vector-length");
   SgObject vec_scm;
   SgVector *vec;
+  DeclareProcedureName("vector-length");
   checkArgumentLength(1);
   argumentAsVector(0, vec_scm, vec);
   {
@@ -3339,12 +3339,12 @@ static SG_DEFINE_SUBR(nullvector_length_Stub, 1, 0, nullvector_length, SG_MAKE_I
 ;
 static SgObject nullvector_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("vector-ref");
   SgObject vec_scm;
   SgVector *vec;
   SgObject i_scm;
   int i;
   SgObject fallback;
+  DeclareProcedureName("vector-ref");
   checkArgumentLengthBetween(2, 3);
   argumentAsVector(0, vec_scm, vec);
   argumentAsFixnum(1, i_scm, i);
@@ -3377,12 +3377,12 @@ static SG_DEFINE_SUBR(nullvector_ref_Stub, 2, 1, nullvector_ref, SG_FALSE, NULL)
 ;
 static SgObject nullvector_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("vector-set!");
   SgObject vec_scm;
   SgVector *vec;
   SgObject i_scm;
   int i;
   SgObject obj;
+  DeclareProcedureName("vector-set!");
   checkArgumentLength(3);
   argumentAsVector(0, vec_scm, vec);
   argumentAsFixnum(1, i_scm, i);
@@ -3412,13 +3412,13 @@ static SG_DEFINE_SUBR(nullvector_set21_Stub, 3, 0, nullvector_set21, SG_FALSE, N
 ;
 static SgObject nullvector_3elist(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("vector->list");
   SgObject vec_scm;
   SgVector *vec;
   SgObject start_scm;
   int start;
   SgObject end_scm;
   int end;
+  DeclareProcedureName("vector->list");
   checkArgumentLengthBetween(1, 3);
   argumentAsVector(0, vec_scm, vec);
   if (argc >= 2) {
@@ -3444,12 +3444,12 @@ static SG_DEFINE_SUBR(nullvector_3elist_Stub, 1, 2, nullvector_3elist, SG_FALSE,
 ;
 static SgObject nulllist_3evector(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("list->vector");
   SgObject lst;
   SgObject start_scm;
   int start;
   SgObject end_scm;
   int end;
+  DeclareProcedureName("list->vector");
   checkArgumentLengthBetween(1, 3);
   argumentRef(0, lst);
   if (argc >= 2) {
@@ -3481,7 +3481,6 @@ static SG_DEFINE_SUBR(nulllist_3evector_Stub, 1, 2, nulllist_3evector, SG_FALSE,
 ;
 static SgObject nullvector_fill21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("vector-fill!");
   SgObject vec_scm;
   SgVector *vec;
   SgObject fill;
@@ -3489,6 +3488,7 @@ static SgObject nullvector_fill21(SgObject *args, int argc, void *data_)
   int start;
   SgObject end_scm;
   int end;
+  DeclareProcedureName("vector-fill!");
   checkArgumentLengthBetween(2, 4);
   argumentAsVector(0, vec_scm, vec);
   argumentRef(1, fill);
@@ -3515,10 +3515,10 @@ static SG_DEFINE_SUBR(nullvector_fill21_Stub, 2, 2, nullvector_fill21, SG_FALSE,
 ;
 static SgObject nullassertion_violation(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("assertion-violation");
   SgObject who;
   SgObject message;
   SgObject irritants;
+  DeclareProcedureName("assertion-violation");
   checkArgumentLengthAtLeast(2);
   argumentRef(0, who);
   argumentRef(1, message);
@@ -3534,10 +3534,10 @@ static SG_DEFINE_SUBR(nullassertion_violation_Stub, 2, 1, nullassertion_violatio
 ;
 static SgObject nullscheme_error(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("scheme-error");
   SgObject who;
   SgObject msg;
   SgObject irritant;
+  DeclareProcedureName("scheme-error");
   checkArgumentLengthAtLeast(2);
   argumentRef(0, who);
   argumentRef(1, msg);
@@ -3553,9 +3553,9 @@ static SG_DEFINE_SUBR(nullscheme_error_Stub, 2, 1, nullscheme_error, SG_FALSE, N
 ;
 static SgObject nullsyntax_error(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("syntax-error");
   SgObject form;
   SgObject irritant;
+  DeclareProcedureName("syntax-error");
   checkArgumentLengthAtLeast(1);
   argumentRef(0, form);
   retrieveOptionalArguments(1, irritant);
@@ -3570,11 +3570,11 @@ static SG_DEFINE_SUBR(nullsyntax_error_Stub, 1, 1, nullsyntax_error, SG_FALSE, N
 ;
 static SgObject nullapply(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("apply");
   SgObject proc_scm;
   SgProcedure *proc;
   SgObject arg1;
   SgObject rest;
+  DeclareProcedureName("apply");
   checkArgumentLengthAtLeast(2);
   argumentAsProcedure(0, proc_scm, proc);
   argumentRef(1, arg1);
@@ -3621,9 +3621,9 @@ static SG_DEFINE_SUBR(nullapply_Stub, 2, 1, nullapply, SG_MAKE_INT(APPLY), NULL)
 ;
 static SgObject nullcall2fcc(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("call/cc");
   SgObject proc_scm;
   SgProcedure *proc;
+  DeclareProcedureName("call/cc");
   checkArgumentLength(1);
   argumentAsProcedure(0, proc_scm, proc);
   {
@@ -3637,9 +3637,9 @@ static SG_DEFINE_SUBR(nullcall2fcc_Stub, 1, 0, nullcall2fcc, SG_FALSE, NULL);
 ;
 static SgObject nullcall_with_current_continuation(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("call-with-current-continuation");
   SgObject proc_scm;
   SgProcedure *proc;
+  DeclareProcedureName("call-with-current-continuation");
   checkArgumentLength(1);
   argumentAsProcedure(0, proc_scm, proc);
   {
@@ -3653,8 +3653,8 @@ static SG_DEFINE_SUBR(nullcall_with_current_continuation_Stub, 1, 0, nullcall_wi
 ;
 static SgObject nullvalues(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("values");
   SgObject rest;
+  DeclareProcedureName("values");
   retrieveOptionalArguments(0, rest);
   {
     SgObject SG_RETURN = SG_UNDEF;
@@ -3695,10 +3695,10 @@ static SG_DEFINE_SUBR(nullvalues_Stub, 0, 1, nullvalues, SG_MAKE_INT(VALUES), NU
 ;
 static SgObject nulldynamic_wind(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("dynamic-wind");
   SgObject before;
   SgObject thunk;
   SgObject after;
+  DeclareProcedureName("dynamic-wind");
   checkArgumentLength(3);
   argumentRef(0, before);
   argumentRef(1, thunk);
@@ -3715,8 +3715,8 @@ static SG_DEFINE_SUBR(nulldynamic_wind_Stub, 3, 0, nulldynamic_wind, SG_FALSE, N
 ;
 static SgObject nullchar_upcase(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("char-upcase");
   SgObject c;
+  DeclareProcedureName("char-upcase");
   checkArgumentLength(1);
   argumentRef(0, c);
   {
@@ -3736,8 +3736,8 @@ static SG_DEFINE_SUBR(nullchar_upcase_Stub, 1, 0, nullchar_upcase, SG_FALSE, NUL
 ;
 static SgObject nullchar_downcase(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("char-downcase");
   SgObject c;
+  DeclareProcedureName("char-downcase");
   checkArgumentLength(1);
   argumentRef(0, c);
   {
@@ -3757,8 +3757,8 @@ static SG_DEFINE_SUBR(nullchar_downcase_Stub, 1, 0, nullchar_downcase, SG_FALSE,
 ;
 static SgObject nullchar_titlecase(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("char-titlecase");
   SgObject c;
+  DeclareProcedureName("char-titlecase");
   checkArgumentLength(1);
   argumentRef(0, c);
   {
@@ -3778,8 +3778,8 @@ static SG_DEFINE_SUBR(nullchar_titlecase_Stub, 1, 0, nullchar_titlecase, SG_FALS
 ;
 static SgObject nullchar_foldcase(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("char-foldcase");
   SgObject c;
+  DeclareProcedureName("char-foldcase");
   checkArgumentLength(1);
   argumentRef(0, c);
   {
@@ -3799,8 +3799,8 @@ static SG_DEFINE_SUBR(nullchar_foldcase_Stub, 1, 0, nullchar_foldcase, SG_FALSE,
 ;
 static SgObject nullchar_general_category(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("char-general-category");
   SgObject c;
+  DeclareProcedureName("char-general-category");
   checkArgumentLength(1);
   argumentRef(0, c);
   {
@@ -3820,8 +3820,8 @@ static SG_DEFINE_SUBR(nullchar_general_category_Stub, 1, 0, nullchar_general_cat
 ;
 static SgObject nullchar_alphabetic3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("char-alphabetic?");
   SgObject c;
+  DeclareProcedureName("char-alphabetic?");
   checkArgumentLength(1);
   argumentRef(0, c);
   {
@@ -3841,8 +3841,8 @@ static SG_DEFINE_SUBR(nullchar_alphabetic3f_Stub, 1, 0, nullchar_alphabetic3f, S
 ;
 static SgObject nullchar_numeric3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("char-numeric?");
   SgObject c;
+  DeclareProcedureName("char-numeric?");
   checkArgumentLength(1);
   argumentRef(0, c);
   {
@@ -3862,8 +3862,8 @@ static SG_DEFINE_SUBR(nullchar_numeric3f_Stub, 1, 0, nullchar_numeric3f, SG_FALS
 ;
 static SgObject nullchar_whitespace3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("char-whitespace?");
   SgObject c;
+  DeclareProcedureName("char-whitespace?");
   checkArgumentLength(1);
   argumentRef(0, c);
   {
@@ -3883,8 +3883,8 @@ static SG_DEFINE_SUBR(nullchar_whitespace3f_Stub, 1, 0, nullchar_whitespace3f, S
 ;
 static SgObject nullchar_upper_case3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("char-upper-case?");
   SgObject c;
+  DeclareProcedureName("char-upper-case?");
   checkArgumentLength(1);
   argumentRef(0, c);
   {
@@ -3904,8 +3904,8 @@ static SG_DEFINE_SUBR(nullchar_upper_case3f_Stub, 1, 0, nullchar_upper_case3f, S
 ;
 static SgObject nullchar_lower_case3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("char-lower-case?");
   SgObject c;
+  DeclareProcedureName("char-lower-case?");
   checkArgumentLength(1);
   argumentRef(0, c);
   {
@@ -3925,8 +3925,8 @@ static SG_DEFINE_SUBR(nullchar_lower_case3f_Stub, 1, 0, nullchar_lower_case3f, S
 ;
 static SgObject nullchar_title_case3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("char-title-case?");
   SgObject c;
+  DeclareProcedureName("char-title-case?");
   checkArgumentLength(1);
   argumentRef(0, c);
   {
@@ -3946,9 +3946,9 @@ static SG_DEFINE_SUBR(nullchar_title_case3f_Stub, 1, 0, nullchar_title_case3f, S
 ;
 static SgObject nullstring_upcase(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string-upcase");
   SgObject s_scm;
   SgString *s;
+  DeclareProcedureName("string-upcase");
   checkArgumentLength(1);
   argumentAsString(0, s_scm, s);
   {
@@ -3962,9 +3962,9 @@ static SG_DEFINE_SUBR(nullstring_upcase_Stub, 1, 0, nullstring_upcase, SG_FALSE,
 ;
 static SgObject nullstring_downcase(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string-downcase");
   SgObject s_scm;
   SgString *s;
+  DeclareProcedureName("string-downcase");
   checkArgumentLength(1);
   argumentAsString(0, s_scm, s);
   {
@@ -3978,9 +3978,9 @@ static SG_DEFINE_SUBR(nullstring_downcase_Stub, 1, 0, nullstring_downcase, SG_FA
 ;
 static SgObject nullstring_titlecase(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string-titlecase");
   SgObject s_scm;
   SgString *s;
+  DeclareProcedureName("string-titlecase");
   checkArgumentLength(1);
   argumentAsString(0, s_scm, s);
   {
@@ -3994,9 +3994,9 @@ static SG_DEFINE_SUBR(nullstring_titlecase_Stub, 1, 0, nullstring_titlecase, SG_
 ;
 static SgObject nullstring_foldcase(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string-foldcase");
   SgObject s_scm;
   SgString *s;
+  DeclareProcedureName("string-foldcase");
   checkArgumentLength(1);
   argumentAsString(0, s_scm, s);
   {
@@ -4010,9 +4010,9 @@ static SG_DEFINE_SUBR(nullstring_foldcase_Stub, 1, 0, nullstring_foldcase, SG_FA
 ;
 static SgObject nullstring_normalize_nfd(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string-normalize-nfd");
   SgObject s_scm;
   SgString *s;
+  DeclareProcedureName("string-normalize-nfd");
   checkArgumentLength(1);
   argumentAsString(0, s_scm, s);
   {
@@ -4026,9 +4026,9 @@ static SG_DEFINE_SUBR(nullstring_normalize_nfd_Stub, 1, 0, nullstring_normalize_
 ;
 static SgObject nullstring_normalize_nfkd(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string-normalize-nfkd");
   SgObject s_scm;
   SgString *s;
+  DeclareProcedureName("string-normalize-nfkd");
   checkArgumentLength(1);
   argumentAsString(0, s_scm, s);
   {
@@ -4042,9 +4042,9 @@ static SG_DEFINE_SUBR(nullstring_normalize_nfkd_Stub, 1, 0, nullstring_normalize
 ;
 static SgObject nullstring_normalize_nfc(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string-normalize-nfc");
   SgObject s_scm;
   SgString *s;
+  DeclareProcedureName("string-normalize-nfc");
   checkArgumentLength(1);
   argumentAsString(0, s_scm, s);
   {
@@ -4058,9 +4058,9 @@ static SG_DEFINE_SUBR(nullstring_normalize_nfc_Stub, 1, 0, nullstring_normalize_
 ;
 static SgObject nullstring_normalize_nfkc(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string-normalize-nfkc");
   SgObject s_scm;
   SgString *s;
+  DeclareProcedureName("string-normalize-nfkc");
   checkArgumentLength(1);
   argumentAsString(0, s_scm, s);
   {
@@ -4087,11 +4087,11 @@ static SG_DEFINE_SUBR(nullnative_endianness_Stub, 0, 0, nullnative_endianness, S
 ;
 static SgObject nullbytevector3d3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector=?");
   SgObject bv1_scm;
   SgByteVector *bv1;
   SgObject bv2_scm;
   SgByteVector *bv2;
+  DeclareProcedureName("bytevector=?");
   checkArgumentLength(2);
   argumentAsByteVector(0, bv1_scm, bv1);
   argumentAsByteVector(1, bv2_scm, bv2);
@@ -4106,9 +4106,9 @@ static SG_DEFINE_SUBR(nullbytevector3d3f_Stub, 2, 0, nullbytevector3d3f, SG_FALS
 ;
 static SgObject nullbytevector_copy(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-copy");
   SgObject src_scm;
   SgByteVector *src;
+  DeclareProcedureName("bytevector-copy");
   checkArgumentLength(1);
   argumentAsByteVector(0, src_scm, src);
   {
@@ -4122,7 +4122,6 @@ static SG_DEFINE_SUBR(nullbytevector_copy_Stub, 1, 0, nullbytevector_copy, SG_FA
 ;
 static SgObject nullbytevector_copy21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-copy!");
   SgObject src_scm;
   SgByteVector *src;
   SgObject sstart_scm;
@@ -4133,6 +4132,7 @@ static SgObject nullbytevector_copy21(SgObject *args, int argc, void *data_)
   int dstart;
   SgObject k_scm;
   int k;
+  DeclareProcedureName("bytevector-copy!");
   checkArgumentLength(5);
   argumentAsByteVector(0, src_scm, src);
   argumentAsFixnum(1, sstart_scm, sstart);
@@ -4150,11 +4150,11 @@ static SG_DEFINE_SUBR(nullbytevector_copy21_Stub, 5, 0, nullbytevector_copy21, S
 ;
 static SgObject nullmake_bytevector(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-bytevector");
   SgObject len_scm;
   int len;
   SgObject fill_scm;
   int fill;
+  DeclareProcedureName("make-bytevector");
   checkArgumentLengthBetween(1, 2);
   argumentAsFixnum(0, len_scm, len);
   if (argc >= 2) {
@@ -4174,8 +4174,8 @@ static SG_DEFINE_SUBR(nullmake_bytevector_Stub, 1, 1, nullmake_bytevector, SG_FA
 ;
 static SgObject nullbytevector3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector?");
   SgObject o;
+  DeclareProcedureName("bytevector?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -4189,9 +4189,9 @@ static SG_DEFINE_SUBR(nullbytevector3f_Stub, 1, 0, nullbytevector3f, SG_FALSE, N
 ;
 static SgObject nullbytevector_length(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-length");
   SgObject bv_scm;
   SgByteVector *bv;
+  DeclareProcedureName("bytevector-length");
   checkArgumentLength(1);
   argumentAsByteVector(0, bv_scm, bv);
   {
@@ -4205,11 +4205,11 @@ static SG_DEFINE_SUBR(nullbytevector_length_Stub, 1, 0, nullbytevector_length, S
 ;
 static SgObject nullbytevector_fill21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-fill!");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject fill_scm;
   int fill;
+  DeclareProcedureName("bytevector-fill!");
   checkArgumentLength(2);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, fill_scm, fill);
@@ -4224,8 +4224,8 @@ static SG_DEFINE_SUBR(nullbytevector_fill21_Stub, 2, 0, nullbytevector_fill21, S
 ;
 static SgObject nullu8_list_3ebytevector(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("u8-list->bytevector");
   SgObject lst;
+  DeclareProcedureName("u8-list->bytevector");
   checkArgumentLength(1);
   argumentRef(0, lst);
   {
@@ -4239,8 +4239,8 @@ static SG_DEFINE_SUBR(nullu8_list_3ebytevector_Stub, 1, 0, nullu8_list_3ebytevec
 ;
 static SgObject nullbytevector_3eu8_list(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector->u8-list");
   SgObject lst;
+  DeclareProcedureName("bytevector->u8-list");
   checkArgumentLength(1);
   argumentRef(0, lst);
   {
@@ -4255,11 +4255,11 @@ static SG_DEFINE_SUBR(nullbytevector_3eu8_list_Stub, 1, 0, nullbytevector_3eu8_l
 ;
 static SgObject nullbytevector_u8_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-u8-ref");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
+  DeclareProcedureName("bytevector-u8-ref");
   checkArgumentLength(2);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -4280,13 +4280,13 @@ static SG_DEFINE_SUBR(nullbytevector_u8_ref_Stub, 2, 0, nullbytevector_u8_ref, S
 ;
 static SgObject nullbytevector_u8_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-u8-set!");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
   SgObject value_scm;
   int value;
+  DeclareProcedureName("bytevector-u8-set!");
   checkArgumentLength(3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -4314,11 +4314,11 @@ static SG_DEFINE_SUBR(nullbytevector_u8_set21_Stub, 3, 0, nullbytevector_u8_set2
 ;
 static SgObject nullbytevector_s8_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-s8-ref");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
+  DeclareProcedureName("bytevector-s8-ref");
   checkArgumentLength(2);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -4339,13 +4339,13 @@ static SG_DEFINE_SUBR(nullbytevector_s8_ref_Stub, 2, 0, nullbytevector_s8_ref, S
 ;
 static SgObject nullbytevector_s8_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-s8-set!");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
   SgObject value_scm;
   int value;
+  DeclareProcedureName("bytevector-s8-set!");
   checkArgumentLength(3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -4375,11 +4375,11 @@ static SG_DEFINE_SUBR(nullbytevector_s8_set21_Stub, 3, 0, nullbytevector_s8_set2
 ;
 static SgObject nullbytevector_u16_native_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-u16-native-ref");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
+  DeclareProcedureName("bytevector-u16-native-ref");
   checkArgumentLength(2);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -4410,13 +4410,13 @@ static SG_DEFINE_SUBR(nullbytevector_u16_native_ref_Stub, 2, 0, nullbytevector_u
 ;
 static SgObject nullbytevector_u16_native_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-u16-native-set!");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
   SgObject value_scm;
   int value;
+  DeclareProcedureName("bytevector-u16-native-set!");
   checkArgumentLength(3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -4448,13 +4448,13 @@ static SG_DEFINE_SUBR(nullbytevector_u16_native_set21_Stub, 3, 0, nullbytevector
 ;
 static SgObject nullbytevector_u16_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-u16-ref");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
   SgObject endian_scm;
   SgSymbol *endian;
+  DeclareProcedureName("bytevector-u16-ref");
   checkArgumentLength(3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -4490,7 +4490,6 @@ static SG_DEFINE_SUBR(nullbytevector_u16_ref_Stub, 3, 0, nullbytevector_u16_ref,
 ;
 static SgObject nullbytevector_u16_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-u16-set!");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
@@ -4499,6 +4498,7 @@ static SgObject nullbytevector_u16_set21(SgObject *args, int argc, void *data_)
   int value;
   SgObject endian_scm;
   SgSymbol *endian;
+  DeclareProcedureName("bytevector-u16-set!");
   checkArgumentLength(4);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -4541,11 +4541,11 @@ static SG_DEFINE_SUBR(nullbytevector_u16_set21_Stub, 4, 0, nullbytevector_u16_se
 ;
 static SgObject nullbytevector_s16_native_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-s16-native-ref");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
+  DeclareProcedureName("bytevector-s16-native-ref");
   checkArgumentLength(2);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -4576,13 +4576,13 @@ static SG_DEFINE_SUBR(nullbytevector_s16_native_ref_Stub, 2, 0, nullbytevector_s
 ;
 static SgObject nullbytevector_s16_native_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-s16-native-set!");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
   SgObject value_scm;
   int value;
+  DeclareProcedureName("bytevector-s16-native-set!");
   checkArgumentLength(3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -4614,13 +4614,13 @@ static SG_DEFINE_SUBR(nullbytevector_s16_native_set21_Stub, 3, 0, nullbytevector
 ;
 static SgObject nullbytevector_s16_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-s16-ref");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
   SgObject endian_scm;
   SgSymbol *endian;
+  DeclareProcedureName("bytevector-s16-ref");
   checkArgumentLength(3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -4656,7 +4656,6 @@ static SG_DEFINE_SUBR(nullbytevector_s16_ref_Stub, 3, 0, nullbytevector_s16_ref,
 ;
 static SgObject nullbytevector_s16_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-s16-set!");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
@@ -4665,6 +4664,7 @@ static SgObject nullbytevector_s16_set21(SgObject *args, int argc, void *data_)
   int value;
   SgObject endian_scm;
   SgSymbol *endian;
+  DeclareProcedureName("bytevector-s16-set!");
   checkArgumentLength(4);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -4707,11 +4707,11 @@ static SG_DEFINE_SUBR(nullbytevector_s16_set21_Stub, 4, 0, nullbytevector_s16_se
 ;
 static SgObject nullbytevector_u32_native_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-u32-native-ref");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
+  DeclareProcedureName("bytevector-u32-native-ref");
   checkArgumentLength(2);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -4742,13 +4742,13 @@ static SG_DEFINE_SUBR(nullbytevector_u32_native_ref_Stub, 2, 0, nullbytevector_u
 ;
 static SgObject nullbytevector_u32_native_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-u32-native-set!");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
   SgObject v_scm;
   SgObject v;
+  DeclareProcedureName("bytevector-u32-native-set!");
   checkArgumentLength(3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -4795,13 +4795,13 @@ static SG_DEFINE_SUBR(nullbytevector_u32_native_set21_Stub, 3, 0, nullbytevector
 ;
 static SgObject nullbytevector_u32_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-u32-ref");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
   SgObject endian_scm;
   SgSymbol *endian;
+  DeclareProcedureName("bytevector-u32-ref");
   checkArgumentLength(3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -4837,7 +4837,6 @@ static SG_DEFINE_SUBR(nullbytevector_u32_ref_Stub, 3, 0, nullbytevector_u32_ref,
 ;
 static SgObject nullbytevector_u32_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-u32-set!");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
@@ -4846,6 +4845,7 @@ static SgObject nullbytevector_u32_set21(SgObject *args, int argc, void *data_)
   SgObject v;
   SgObject endian_scm;
   SgSymbol *endian;
+  DeclareProcedureName("bytevector-u32-set!");
   checkArgumentLength(4);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -4903,11 +4903,11 @@ static SG_DEFINE_SUBR(nullbytevector_u32_set21_Stub, 4, 0, nullbytevector_u32_se
 ;
 static SgObject nullbytevector_s32_native_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-s32-native-ref");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
+  DeclareProcedureName("bytevector-s32-native-ref");
   checkArgumentLength(2);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -4938,13 +4938,13 @@ static SG_DEFINE_SUBR(nullbytevector_s32_native_ref_Stub, 2, 0, nullbytevector_s
 ;
 static SgObject nullbytevector_s32_native_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-s32-native-set!");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
   SgObject v_scm;
   SgObject v;
+  DeclareProcedureName("bytevector-s32-native-set!");
   checkArgumentLength(3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -4991,13 +4991,13 @@ static SG_DEFINE_SUBR(nullbytevector_s32_native_set21_Stub, 3, 0, nullbytevector
 ;
 static SgObject nullbytevector_s32_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-s32-ref");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
   SgObject endian_scm;
   SgSymbol *endian;
+  DeclareProcedureName("bytevector-s32-ref");
   checkArgumentLength(3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -5033,7 +5033,6 @@ static SG_DEFINE_SUBR(nullbytevector_s32_ref_Stub, 3, 0, nullbytevector_s32_ref,
 ;
 static SgObject nullbytevector_s32_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-s32-set!");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
@@ -5042,6 +5041,7 @@ static SgObject nullbytevector_s32_set21(SgObject *args, int argc, void *data_)
   SgObject v;
   SgObject endian_scm;
   SgSymbol *endian;
+  DeclareProcedureName("bytevector-s32-set!");
   checkArgumentLength(4);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -5099,11 +5099,11 @@ static SG_DEFINE_SUBR(nullbytevector_s32_set21_Stub, 4, 0, nullbytevector_s32_se
 ;
 static SgObject nullbytevector_u64_native_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-u64-native-ref");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
+  DeclareProcedureName("bytevector-u64-native-ref");
   checkArgumentLength(2);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -5134,13 +5134,13 @@ static SG_DEFINE_SUBR(nullbytevector_u64_native_ref_Stub, 2, 0, nullbytevector_u
 ;
 static SgObject nullbytevector_u64_native_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-u64-native-set!");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
   SgObject v_scm;
   SgObject v;
+  DeclareProcedureName("bytevector-u64-native-set!");
   checkArgumentLength(3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -5187,13 +5187,13 @@ static SG_DEFINE_SUBR(nullbytevector_u64_native_set21_Stub, 3, 0, nullbytevector
 ;
 static SgObject nullbytevector_u64_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-u64-ref");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
   SgObject endian_scm;
   SgSymbol *endian;
+  DeclareProcedureName("bytevector-u64-ref");
   checkArgumentLength(3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -5229,7 +5229,6 @@ static SG_DEFINE_SUBR(nullbytevector_u64_ref_Stub, 3, 0, nullbytevector_u64_ref,
 ;
 static SgObject nullbytevector_u64_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-u64-set!");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
@@ -5238,6 +5237,7 @@ static SgObject nullbytevector_u64_set21(SgObject *args, int argc, void *data_)
   SgObject v;
   SgObject endian_scm;
   SgSymbol *endian;
+  DeclareProcedureName("bytevector-u64-set!");
   checkArgumentLength(4);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -5295,11 +5295,11 @@ static SG_DEFINE_SUBR(nullbytevector_u64_set21_Stub, 4, 0, nullbytevector_u64_se
 ;
 static SgObject nullbytevector_s64_native_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-s64-native-ref");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
+  DeclareProcedureName("bytevector-s64-native-ref");
   checkArgumentLength(2);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -5330,13 +5330,13 @@ static SG_DEFINE_SUBR(nullbytevector_s64_native_ref_Stub, 2, 0, nullbytevector_s
 ;
 static SgObject nullbytevector_s64_native_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-s64-native-set!");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
   SgObject v_scm;
   SgObject v;
+  DeclareProcedureName("bytevector-s64-native-set!");
   checkArgumentLength(3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -5383,13 +5383,13 @@ static SG_DEFINE_SUBR(nullbytevector_s64_native_set21_Stub, 3, 0, nullbytevector
 ;
 static SgObject nullbytevector_s64_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-s64-ref");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
   SgObject endian_scm;
   SgSymbol *endian;
+  DeclareProcedureName("bytevector-s64-ref");
   checkArgumentLength(3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -5425,7 +5425,6 @@ static SG_DEFINE_SUBR(nullbytevector_s64_ref_Stub, 3, 0, nullbytevector_s64_ref,
 ;
 static SgObject nullbytevector_s64_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-s64-set!");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
@@ -5434,6 +5433,7 @@ static SgObject nullbytevector_s64_set21(SgObject *args, int argc, void *data_)
   SgObject v;
   SgObject endian_scm;
   SgSymbol *endian;
+  DeclareProcedureName("bytevector-s64-set!");
   checkArgumentLength(4);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -5491,11 +5491,11 @@ static SG_DEFINE_SUBR(nullbytevector_s64_set21_Stub, 4, 0, nullbytevector_s64_se
 ;
 static SgObject nullbytevector_ieee_single_native_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-ieee-single-native-ref");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
+  DeclareProcedureName("bytevector-ieee-single-native-ref");
   checkArgumentLength(2);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -5526,13 +5526,13 @@ static SG_DEFINE_SUBR(nullbytevector_ieee_single_native_ref_Stub, 2, 0, nullbyte
 ;
 static SgObject nullbytevector_ieee_single_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-ieee-single-ref");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
   SgObject endian_scm;
   SgSymbol *endian;
+  DeclareProcedureName("bytevector-ieee-single-ref");
   checkArgumentLength(3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -5568,13 +5568,13 @@ static SG_DEFINE_SUBR(nullbytevector_ieee_single_ref_Stub, 3, 0, nullbytevector_
 ;
 static SgObject nullbytevector_ieee_single_native_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-ieee-single-native-set!");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
   SgObject v_scm;
   SgObject v;
+  DeclareProcedureName("bytevector-ieee-single-native-set!");
   checkArgumentLength(3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -5616,7 +5616,6 @@ static SG_DEFINE_SUBR(nullbytevector_ieee_single_native_set21_Stub, 3, 0, nullby
 ;
 static SgObject nullbytevector_ieee_single_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-ieee-single-set!");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
@@ -5625,6 +5624,7 @@ static SgObject nullbytevector_ieee_single_set21(SgObject *args, int argc, void 
   SgObject v;
   SgObject endian_scm;
   SgSymbol *endian;
+  DeclareProcedureName("bytevector-ieee-single-set!");
   checkArgumentLength(4);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -5671,11 +5671,11 @@ static SG_DEFINE_SUBR(nullbytevector_ieee_single_set21_Stub, 4, 0, nullbytevecto
 ;
 static SgObject nullbytevector_ieee_double_native_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-ieee-double-native-ref");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
+  DeclareProcedureName("bytevector-ieee-double-native-ref");
   checkArgumentLength(2);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -5706,13 +5706,13 @@ static SG_DEFINE_SUBR(nullbytevector_ieee_double_native_ref_Stub, 2, 0, nullbyte
 ;
 static SgObject nullbytevector_ieee_double_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-ieee-double-ref");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
   SgObject endian_scm;
   SgSymbol *endian;
+  DeclareProcedureName("bytevector-ieee-double-ref");
   checkArgumentLength(3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -5748,13 +5748,13 @@ static SG_DEFINE_SUBR(nullbytevector_ieee_double_ref_Stub, 3, 0, nullbytevector_
 ;
 static SgObject nullbytevector_ieee_double_native_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-ieee-double-native-set!");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
   int index;
   SgObject v_scm;
   SgObject v;
+  DeclareProcedureName("bytevector-ieee-double-native-set!");
   checkArgumentLength(3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -5796,7 +5796,6 @@ static SG_DEFINE_SUBR(nullbytevector_ieee_double_native_set21_Stub, 3, 0, nullby
 ;
 static SgObject nullbytevector_ieee_double_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector-ieee-double-set!");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject index_scm;
@@ -5805,6 +5804,7 @@ static SgObject nullbytevector_ieee_double_set21(SgObject *args, int argc, void 
   SgObject v;
   SgObject endian_scm;
   SgSymbol *endian;
+  DeclareProcedureName("bytevector-ieee-double-set!");
   checkArgumentLength(4);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsFixnum(1, index_scm, index);
@@ -5851,9 +5851,9 @@ static SG_DEFINE_SUBR(nullbytevector_ieee_double_set21_Stub, 4, 0, nullbytevecto
 ;
 static SgObject nullutf8_3estring(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("utf8->string");
   SgObject bv_scm;
   SgByteVector *bv;
+  DeclareProcedureName("utf8->string");
   checkArgumentLength(1);
   argumentAsByteVector(0, bv_scm, bv);
   {
@@ -5871,9 +5871,9 @@ static SG_DEFINE_SUBR(nullutf8_3estring_Stub, 1, 0, nullutf8_3estring, SG_FALSE,
 ;
 static SgObject nullstring_3eutf8(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string->utf8");
   SgObject s_scm;
   SgString *s;
+  DeclareProcedureName("string->utf8");
   checkArgumentLength(1);
   argumentAsString(0, s_scm, s);
   {
@@ -5891,12 +5891,12 @@ static SG_DEFINE_SUBR(nullstring_3eutf8_Stub, 1, 0, nullstring_3eutf8, SG_FALSE,
 ;
 static SgObject nullutf16_3estring(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("utf16->string");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject endian_scm;
   SgSymbol *endian;
   SgObject mandatory;
+  DeclareProcedureName("utf16->string");
   checkArgumentLengthBetween(2, 3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsSymbol(1, endian_scm, endian);
@@ -5956,11 +5956,11 @@ static SG_DEFINE_SUBR(nullutf16_3estring_Stub, 2, 1, nullutf16_3estring, SG_FALS
 ;
 static SgObject nullstring_3eutf16(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string->utf16");
   SgObject s_scm;
   SgString *s;
   SgObject endian_scm;
   SgSymbol *endian;
+  DeclareProcedureName("string->utf16");
   checkArgumentLengthBetween(1, 2);
   argumentAsString(0, s_scm, s);
   if (argc >= 2) {
@@ -5998,11 +5998,11 @@ static SG_DEFINE_SUBR(nullstring_3eutf16_Stub, 1, 1, nullstring_3eutf16, SG_FALS
 ;
 static SgObject nullstring_3eutf32(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string->utf32");
   SgObject s_scm;
   SgString *s;
   SgObject endian_scm;
   SgSymbol *endian;
+  DeclareProcedureName("string->utf32");
   checkArgumentLengthBetween(1, 2);
   argumentAsString(0, s_scm, s);
   if (argc >= 2) {
@@ -6040,12 +6040,12 @@ static SG_DEFINE_SUBR(nullstring_3eutf32_Stub, 1, 1, nullstring_3eutf32, SG_FALS
 ;
 static SgObject nullutf32_3estring(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("utf32->string");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject endian_scm;
   SgSymbol *endian;
   SgObject mandatory;
+  DeclareProcedureName("utf32->string");
   checkArgumentLengthBetween(2, 3);
   argumentAsByteVector(0, bv_scm, bv);
   argumentAsSymbol(1, endian_scm, endian);
@@ -6105,9 +6105,9 @@ static SG_DEFINE_SUBR(nullutf32_3estring_Stub, 2, 1, nullutf32_3estring, SG_FALS
 ;
 static SgObject nullmemq(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("memq");
   SgObject arg0;
   SgObject arg1;
+  DeclareProcedureName("memq");
   checkArgumentLength(2);
   argumentRef(0, arg0);
   argumentRef(1, arg1);
@@ -6122,9 +6122,9 @@ static SG_DEFINE_SUBR(nullmemq_Stub, 2, 0, nullmemq, SG_FALSE, NULL);
 ;
 static SgObject nullmemv(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("memv");
   SgObject arg0;
   SgObject arg1;
+  DeclareProcedureName("memv");
   checkArgumentLength(2);
   argumentRef(0, arg0);
   argumentRef(1, arg1);
@@ -6139,20 +6139,14 @@ static SG_DEFINE_SUBR(nullmemv_Stub, 2, 0, nullmemv, SG_FALSE, NULL);
 ;
 static SgObject nullassq(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("assq");
   SgObject obj;
   SgObject alist;
+  DeclareProcedureName("assq");
   checkArgumentLength(2);
   argumentRef(0, obj);
   argumentRef(1, alist);
   {
     SgObject SG_RETURN = SG_UNDEF;
-    if (!(SG_LISTP(alist))) {
-      Sg_WrongTypeOfArgumentViolation(SG_INTERN("assq"), Sg_MakeString(UC("list"), SG_LITERAL_STRING), alist, SG_LIST2(obj, alist));
-      return SG_UNDEF;
-;
-    }
-;
     SG_RETURN = (Sg_Assq(obj, alist));
     return SG_RETURN;
   }
@@ -6162,20 +6156,14 @@ static SG_DEFINE_SUBR(nullassq_Stub, 2, 0, nullassq, SG_FALSE, NULL);
 ;
 static SgObject nullassv(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("assv");
   SgObject obj;
   SgObject alist;
+  DeclareProcedureName("assv");
   checkArgumentLength(2);
   argumentRef(0, obj);
   argumentRef(1, alist);
   {
     SgObject SG_RETURN = SG_UNDEF;
-    if (!(SG_LISTP(alist))) {
-      Sg_WrongTypeOfArgumentViolation(SG_INTERN("assv"), Sg_MakeString(UC("list"), SG_LITERAL_STRING), alist, SG_LIST2(obj, alist));
-      return SG_UNDEF;
-;
-    }
-;
     SG_RETURN = (Sg_Assv(obj, alist));
     return SG_RETURN;
   }
@@ -6185,8 +6173,8 @@ static SG_DEFINE_SUBR(nullassv_Stub, 2, 0, nullassv, SG_FALSE, NULL);
 ;
 static SgObject nullcons2a(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("cons*");
   SgObject rest;
+  DeclareProcedureName("cons*");
   retrieveOptionalArguments(0, rest);
   {
     SgObject SG_RETURN = SG_UNDEF;
@@ -6224,9 +6212,9 @@ static SG_DEFINE_SUBR(nullcons2a_Stub, 0, 1, nullcons2a, SG_FALSE, NULL);
 ;
 static SgObject nullwith_exception_handler(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("with-exception-handler");
   SgObject handler;
   SgObject thunk;
+  DeclareProcedureName("with-exception-handler");
   checkArgumentLength(2);
   argumentRef(0, handler);
   argumentRef(1, thunk);
@@ -6241,8 +6229,8 @@ static SG_DEFINE_SUBR(nullwith_exception_handler_Stub, 2, 0, nullwith_exception_
 ;
 static SgObject nullraise(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("raise");
   SgObject c;
+  DeclareProcedureName("raise");
   checkArgumentLength(1);
   argumentRef(0, c);
   {
@@ -6256,8 +6244,8 @@ static SG_DEFINE_SUBR(nullraise_Stub, 1, 0, nullraise, SG_FALSE, NULL);
 ;
 static SgObject nullraise_continuable(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("raise-continuable");
   SgObject c;
+  DeclareProcedureName("raise-continuable");
   checkArgumentLength(1);
   argumentRef(0, c);
   {
@@ -6271,8 +6259,8 @@ static SG_DEFINE_SUBR(nullraise_continuable_Stub, 1, 0, nullraise_continuable, S
 ;
 static SgObject nullbuffer_mode3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("buffer-mode?");
   SgObject o;
+  DeclareProcedureName("buffer-mode?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -6362,13 +6350,13 @@ static SG_DEFINE_SUBR(nullnative_eol_style_Stub, 0, 0, nullnative_eol_style, SG_
 ;
 static SgObject nullmake_transcoder(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-transcoder");
   SgObject c_scm;
   SgCodec *c;
   SgObject eol_scm;
   SgSymbol *eol;
   SgObject mode_scm;
   SgSymbol *mode;
+  DeclareProcedureName("make-transcoder");
   checkArgumentLengthBetween(1, 3);
   argumentAsCodec(0, c_scm, c);
   if (argc >= 2) {
@@ -6444,9 +6432,9 @@ static SG_DEFINE_SUBR(nullnative_transcoder_Stub, 0, 0, nullnative_transcoder, S
 ;
 static SgObject nulltranscoder_codec(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("transcoder-codec");
   SgObject t_scm;
   SgTranscoder *t;
+  DeclareProcedureName("transcoder-codec");
   checkArgumentLength(1);
   argumentAsTranscoder(0, t_scm, t);
   {
@@ -6460,9 +6448,9 @@ static SG_DEFINE_SUBR(nulltranscoder_codec_Stub, 1, 0, nulltranscoder_codec, SG_
 ;
 static SgObject nulltranscoder_eol_style(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("transcoder-eol-style");
   SgObject t_scm;
   SgTranscoder *t;
+  DeclareProcedureName("transcoder-eol-style");
   checkArgumentLength(1);
   argumentAsTranscoder(0, t_scm, t);
   {
@@ -6500,9 +6488,9 @@ static SG_DEFINE_SUBR(nulltranscoder_eol_style_Stub, 1, 0, nulltranscoder_eol_st
 ;
 static SgObject nulltranscoder_error_handling_mode(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("transcoder-error-handling-mode");
   SgObject t_scm;
   SgTranscoder *t;
+  DeclareProcedureName("transcoder-error-handling-mode");
   checkArgumentLength(1);
   argumentAsTranscoder(0, t_scm, t);
   {
@@ -6532,11 +6520,11 @@ static SG_DEFINE_SUBR(nulltranscoder_error_handling_mode_Stub, 1, 0, nulltransco
 ;
 static SgObject nullbytevector_3estring(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bytevector->string");
   SgObject b_scm;
   SgByteVector *b;
   SgObject t_scm;
   SgTranscoder *t;
+  DeclareProcedureName("bytevector->string");
   checkArgumentLength(2);
   argumentAsByteVector(0, b_scm, b);
   argumentAsTranscoder(1, t_scm, t);
@@ -6551,11 +6539,11 @@ static SG_DEFINE_SUBR(nullbytevector_3estring_Stub, 2, 0, nullbytevector_3estrin
 ;
 static SgObject nullstring_3ebytevector(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string->bytevector");
   SgObject s_scm;
   SgString *s;
   SgObject t_scm;
   SgTranscoder *t;
+  DeclareProcedureName("string->bytevector");
   checkArgumentLength(2);
   argumentAsString(0, s_scm, s);
   argumentAsTranscoder(1, t_scm, t);
@@ -6583,8 +6571,8 @@ static SG_DEFINE_SUBR(nulleof_object_Stub, 0, 0, nulleof_object, SG_FALSE, NULL)
 ;
 static SgObject nulleof_object3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("eof-object?");
   SgObject o;
+  DeclareProcedureName("eof-object?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -6600,8 +6588,8 @@ static SG_DEFINE_SUBR(nulleof_object3f_Stub, 1, 0, nulleof_object3f, SG_FALSE, N
 ;
 static SgObject nullport3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("port?");
   SgObject obj;
+  DeclareProcedureName("port?");
   checkArgumentLength(1);
   argumentRef(0, obj);
   {
@@ -6615,9 +6603,9 @@ static SG_DEFINE_SUBR(nullport3f_Stub, 1, 0, nullport3f, SG_FALSE, NULL);
 ;
 static SgObject nullport_transcoder(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("port-transcoder");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("port-transcoder");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -6644,9 +6632,9 @@ static SG_DEFINE_SUBR(nullport_transcoder_Stub, 1, 0, nullport_transcoder, SG_FA
 ;
 static SgObject nulltextual_port3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("textual-port?");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("textual-port?");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -6660,9 +6648,9 @@ static SG_DEFINE_SUBR(nulltextual_port3f_Stub, 1, 0, nulltextual_port3f, SG_FALS
 ;
 static SgObject nullbinary_port3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("binary-port?");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("binary-port?");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -6676,11 +6664,11 @@ static SG_DEFINE_SUBR(nullbinary_port3f_Stub, 1, 0, nullbinary_port3f, SG_FALSE,
 ;
 static SgObject nulltranscoded_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("transcoded-port");
   SgObject p_scm;
   SgPort *p;
   SgObject t_scm;
   SgTranscoder *t;
+  DeclareProcedureName("transcoded-port");
   checkArgumentLength(2);
   argumentAsPort(0, p_scm, p);
   argumentAsTranscoder(1, t_scm, t);
@@ -6720,9 +6708,9 @@ static SG_DEFINE_SUBR(nulltranscoded_port_Stub, 2, 0, nulltranscoded_port, SG_FA
 ;
 static SgObject nullport_has_port_position3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("port-has-port-position?");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("port-has-port-position?");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -6736,9 +6724,9 @@ static SG_DEFINE_SUBR(nullport_has_port_position3f_Stub, 1, 0, nullport_has_port
 ;
 static SgObject nullport_has_set_port_position213f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("port-has-set-port-position!?");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("port-has-set-port-position!?");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -6752,9 +6740,9 @@ static SG_DEFINE_SUBR(nullport_has_set_port_position213f_Stub, 1, 0, nullport_ha
 ;
 static SgObject nullport_position(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("port-position");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("port-position");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -6774,11 +6762,11 @@ static SG_DEFINE_SUBR(nullport_position_Stub, 1, 0, nullport_position, SG_FALSE,
 ;
 static SgObject nullset_port_position21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("set-port-position!");
   SgObject p_scm;
   SgPort *p;
   SgObject off_scm;
   SgObject off;
+  DeclareProcedureName("set-port-position!");
   checkArgumentLength(2);
   argumentAsPort(0, p_scm, p);
   argumentAsNumber(1, off_scm, off);
@@ -6799,9 +6787,9 @@ static SG_DEFINE_SUBR(nullset_port_position21_Stub, 2, 0, nullset_port_position2
 ;
 static SgObject nullclose_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("close-port");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("close-port");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -6816,8 +6804,8 @@ static SG_DEFINE_SUBR(nullclose_port_Stub, 1, 0, nullclose_port, SG_FALSE, NULL)
 ;
 static SgObject nullinput_port3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("input-port?");
   SgObject obj;
+  DeclareProcedureName("input-port?");
   checkArgumentLength(1);
   argumentRef(0, obj);
   {
@@ -6831,9 +6819,9 @@ static SG_DEFINE_SUBR(nullinput_port3f_Stub, 1, 0, nullinput_port3f, SG_FALSE, N
 ;
 static SgObject nullport_eof3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("port-eof?");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("port-eof?");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -6865,7 +6853,6 @@ static SG_DEFINE_SUBR(nullport_eof3f_Stub, 1, 0, nullport_eof3f, SG_FALSE, NULL)
 ;
 static SgObject nullopen_file_input_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("open-file-input-port");
   SgObject file_scm;
   SgString *file;
   SgObject option;
@@ -6873,6 +6860,7 @@ static SgObject nullopen_file_input_port(SgObject *args, int argc, void *data_)
   SgSymbol *mode;
   SgObject transcoder_scm;
   SgTranscoder *transcoder;
+  DeclareProcedureName("open-file-input-port");
   checkArgumentLengthBetween(1, 4);
   argumentAsString(0, file_scm, file);
   if (argc >= 2) {
@@ -6928,11 +6916,11 @@ static SG_DEFINE_SUBR(nullopen_file_input_port_Stub, 1, 3, nullopen_file_input_p
 ;
 static SgObject nullopen_bytevector_input_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("open-bytevector-input-port");
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject t_scm;
   SgTranscoder *t;
+  DeclareProcedureName("open-bytevector-input-port");
   checkArgumentLengthBetween(1, 2);
   argumentAsByteVector(0, bv_scm, bv);
   if (argc >= 2) {
@@ -6961,9 +6949,9 @@ static SG_DEFINE_SUBR(nullopen_bytevector_input_port_Stub, 1, 1, nullopen_byteve
 ;
 static SgObject nullopen_string_input_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("open-string-input-port");
   SgObject s_scm;
   SgString *s;
+  DeclareProcedureName("open-string-input-port");
   checkArgumentLength(1);
   argumentAsString(0, s_scm, s);
   {
@@ -6990,9 +6978,9 @@ static SG_DEFINE_SUBR(nullstandard_input_port_Stub, 0, 0, nullstandard_input_por
 ;
 static SgObject nullcurrent_input_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("current-input-port");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("current-input-port");
   checkArgumentLengthBetween(0, 1);
   if (argc >= 1) {
     argumentAsPort(0, p_scm, p);
@@ -7028,7 +7016,6 @@ static SG_DEFINE_SUBR(nullcurrent_input_port_Stub, 0, 1, nullcurrent_input_port,
 ;
 static SgObject nullmake_custom_binary_input_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-custom-binary-input-port");
   SgObject id_scm;
   SgString *id;
   SgObject read_scm;
@@ -7036,6 +7023,7 @@ static SgObject nullmake_custom_binary_input_port(SgObject *args, int argc, void
   SgObject getter;
   SgObject setter;
   SgObject close;
+  DeclareProcedureName("make-custom-binary-input-port");
   checkArgumentLength(5);
   argumentAsString(0, id_scm, id);
   argumentAsProcedure(1, read_scm, read);
@@ -7071,7 +7059,6 @@ static SG_DEFINE_SUBR(nullmake_custom_binary_input_port_Stub, 5, 0, nullmake_cus
 ;
 static SgObject nullmake_custom_textual_input_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-custom-textual-input-port");
   SgObject id_scm;
   SgString *id;
   SgObject read_scm;
@@ -7079,6 +7066,7 @@ static SgObject nullmake_custom_textual_input_port(SgObject *args, int argc, voi
   SgObject getter;
   SgObject setter;
   SgObject close;
+  DeclareProcedureName("make-custom-textual-input-port");
   checkArgumentLength(5);
   argumentAsString(0, id_scm, id);
   argumentAsProcedure(1, read_scm, read);
@@ -7116,9 +7104,9 @@ static SG_DEFINE_SUBR(nullmake_custom_textual_input_port_Stub, 5, 0, nullmake_cu
 ;
 static SgObject nullget_u8(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("get-u8");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("get-u8");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -7159,9 +7147,9 @@ static SG_DEFINE_SUBR(nullget_u8_Stub, 1, 0, nullget_u8, SG_FALSE, NULL);
 ;
 static SgObject nulllookahead_u8(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("lookahead-u8");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("lookahead-u8");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -7204,12 +7192,12 @@ static SG_DEFINE_SUBR(nulllookahead_u8_Stub, 1, 0, nulllookahead_u8, SG_FALSE, N
 ;
 static SgObject nullget_bytevector_n(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("get-bytevector-n");
   SgObject p_scm;
   SgPort *p;
   SgObject count_scm;
   int count;
   SgObject reckless;
+  DeclareProcedureName("get-bytevector-n");
   checkArgumentLengthBetween(2, 3);
   argumentAsPort(0, p_scm, p);
   argumentAsFixnum(1, count_scm, count);
@@ -7267,7 +7255,6 @@ static SG_DEFINE_SUBR(nullget_bytevector_n_Stub, 2, 1, nullget_bytevector_n, SG_
 ;
 static SgObject nullget_bytevector_n21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("get-bytevector-n!");
   SgObject p_scm;
   SgPort *p;
   SgObject bv_scm;
@@ -7277,6 +7264,7 @@ static SgObject nullget_bytevector_n21(SgObject *args, int argc, void *data_)
   SgObject count_scm;
   int count;
   SgObject reckless;
+  DeclareProcedureName("get-bytevector-n!");
   checkArgumentLengthBetween(4, 5);
   argumentAsPort(0, p_scm, p);
   argumentAsByteVector(1, bv_scm, bv);
@@ -7350,10 +7338,10 @@ static SG_DEFINE_SUBR(nullget_bytevector_n21_Stub, 4, 1, nullget_bytevector_n21,
 ;
 static SgObject nullget_bytevector_some(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("get-bytevector-some");
   SgObject p_scm;
   SgPort *p;
   SgObject reckless;
+  DeclareProcedureName("get-bytevector-some");
   checkArgumentLengthBetween(1, 2);
   argumentAsPort(0, p_scm, p);
   if (argc >= 2) {
@@ -7404,10 +7392,10 @@ static SG_DEFINE_SUBR(nullget_bytevector_some_Stub, 1, 1, nullget_bytevector_som
 ;
 static SgObject nullget_bytevector_all(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("get-bytevector-all");
   SgObject p_scm;
   SgPort *p;
   SgObject reckless;
+  DeclareProcedureName("get-bytevector-all");
   checkArgumentLengthBetween(1, 2);
   argumentAsPort(0, p_scm, p);
   if (argc >= 2) {
@@ -7459,9 +7447,9 @@ static SG_DEFINE_SUBR(nullget_bytevector_all_Stub, 1, 1, nullget_bytevector_all,
 ;
 static SgObject nullget_char(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("get-char");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("get-char");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -7502,9 +7490,9 @@ static SG_DEFINE_SUBR(nullget_char_Stub, 1, 0, nullget_char, SG_FALSE, NULL);
 ;
 static SgObject nulllookahead_char(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("lookahead-char");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("lookahead-char");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -7545,11 +7533,11 @@ static SG_DEFINE_SUBR(nulllookahead_char_Stub, 1, 0, nulllookahead_char, SG_FALS
 ;
 static SgObject nullget_string_n(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("get-string-n");
   SgObject p_scm;
   SgPort *p;
   SgObject count_scm;
   int count;
+  DeclareProcedureName("get-string-n");
   checkArgumentLength(2);
   argumentAsPort(0, p_scm, p);
   argumentAsFixnum(1, count_scm, count);
@@ -7617,7 +7605,6 @@ static SG_DEFINE_SUBR(nullget_string_n_Stub, 2, 0, nullget_string_n, SG_FALSE, N
 ;
 static SgObject nullget_string_n21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("get-string-n!");
   SgObject p_scm;
   SgPort *p;
   SgObject s_scm;
@@ -7626,6 +7613,7 @@ static SgObject nullget_string_n21(SgObject *args, int argc, void *data_)
   int start;
   SgObject count_scm;
   int count;
+  DeclareProcedureName("get-string-n!");
   checkArgumentLength(4);
   argumentAsPort(0, p_scm, p);
   argumentAsString(1, s_scm, s);
@@ -7709,9 +7697,9 @@ static SG_DEFINE_SUBR(nullget_string_n21_Stub, 4, 0, nullget_string_n21, SG_FALS
 ;
 static SgObject nullget_string_all(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("get-string-all");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("get-string-all");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -7770,9 +7758,9 @@ static SG_DEFINE_SUBR(nullget_string_all_Stub, 1, 0, nullget_string_all, SG_FALS
 ;
 static SgObject nullget_line(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("get-line");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("get-line");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -7831,9 +7819,9 @@ static SG_DEFINE_SUBR(nullget_line_Stub, 1, 0, nullget_line, SG_FALSE, NULL);
 ;
 static SgObject nullget_datum(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("get-datum");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("get-datum");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -7866,8 +7854,8 @@ static SG_DEFINE_SUBR(nullget_datum_Stub, 1, 0, nullget_datum, SG_FALSE, NULL);
 ;
 static SgObject nulloutput_port3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("output-port?");
   SgObject obj;
+  DeclareProcedureName("output-port?");
   checkArgumentLength(1);
   argumentRef(0, obj);
   {
@@ -7881,9 +7869,9 @@ static SG_DEFINE_SUBR(nulloutput_port3f_Stub, 1, 0, nulloutput_port3f, SG_FALSE,
 ;
 static SgObject nullflush_output_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flush-output-port");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("flush-output-port");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -7897,9 +7885,9 @@ static SG_DEFINE_SUBR(nullflush_output_port_Stub, 1, 0, nullflush_output_port, S
 ;
 static SgObject nulloutput_port_buffer_mode(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("output-port-buffer-mode");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("output-port-buffer-mode");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -7926,7 +7914,6 @@ static SG_DEFINE_SUBR(nulloutput_port_buffer_mode_Stub, 1, 0, nulloutput_port_bu
 ;
 static SgObject nullopen_file_output_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("open-file-output-port");
   SgObject file_scm;
   SgString *file;
   SgObject option;
@@ -7934,6 +7921,7 @@ static SgObject nullopen_file_output_port(SgObject *args, int argc, void *data_)
   SgSymbol *mode;
   SgObject transcoder_scm;
   SgTranscoder *transcoder;
+  DeclareProcedureName("open-file-output-port");
   checkArgumentLengthBetween(1, 4);
   argumentAsString(0, file_scm, file);
   if (argc >= 2) {
@@ -8064,8 +8052,8 @@ static SG_DEFINE_SUBR(nullopen_file_output_port_Stub, 1, 3, nullopen_file_output
 ;
 static SgObject nullopen_output_bytevector(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("open-output-bytevector");
   SgObject t;
+  DeclareProcedureName("open-output-bytevector");
   checkArgumentLengthBetween(0, 1);
   if (argc >= 1) {
     argumentRef(0, t);
@@ -8093,9 +8081,9 @@ static SG_DEFINE_SUBR(nullopen_output_bytevector_Stub, 0, 1, nullopen_output_byt
 ;
 static SgObject nullget_output_bytevector(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("get-output-bytevector");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("get-output-bytevector");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -8143,9 +8131,9 @@ static SG_DEFINE_SUBR(nullopen_output_string_Stub, 0, 0, nullopen_output_string,
 ;
 static SgObject nullget_output_string(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("get-output-string");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("get-output-string");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -8210,9 +8198,9 @@ static SG_DEFINE_SUBR(nullstandard_error_port_Stub, 0, 0, nullstandard_error_por
 ;
 static SgObject nullcurrent_output_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("current-output-port");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("current-output-port");
   checkArgumentLengthBetween(0, 1);
   if (argc >= 1) {
     argumentAsPort(0, p_scm, p);
@@ -8247,9 +8235,9 @@ static SG_DEFINE_SUBR(nullcurrent_output_port_Stub, 0, 1, nullcurrent_output_por
 ;
 static SgObject nullcurrent_error_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("current-error-port");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("current-error-port");
   checkArgumentLengthBetween(0, 1);
   if (argc >= 1) {
     argumentAsPort(0, p_scm, p);
@@ -8284,7 +8272,6 @@ static SG_DEFINE_SUBR(nullcurrent_error_port_Stub, 0, 1, nullcurrent_error_port,
 ;
 static SgObject nullmake_custom_binary_output_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-custom-binary-output-port");
   SgObject id_scm;
   SgString *id;
   SgObject write_scm;
@@ -8292,6 +8279,7 @@ static SgObject nullmake_custom_binary_output_port(SgObject *args, int argc, voi
   SgObject getter;
   SgObject setter;
   SgObject close;
+  DeclareProcedureName("make-custom-binary-output-port");
   checkArgumentLength(5);
   argumentAsString(0, id_scm, id);
   argumentAsProcedure(1, write_scm, write);
@@ -8327,7 +8315,6 @@ static SG_DEFINE_SUBR(nullmake_custom_binary_output_port_Stub, 5, 0, nullmake_cu
 ;
 static SgObject nullmake_custom_textual_output_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-custom-textual-output-port");
   SgObject id_scm;
   SgString *id;
   SgObject write_scm;
@@ -8335,6 +8322,7 @@ static SgObject nullmake_custom_textual_output_port(SgObject *args, int argc, vo
   SgObject getter;
   SgObject setter;
   SgObject close;
+  DeclareProcedureName("make-custom-textual-output-port");
   checkArgumentLength(5);
   argumentAsString(0, id_scm, id);
   argumentAsProcedure(1, write_scm, write);
@@ -8370,11 +8358,11 @@ static SG_DEFINE_SUBR(nullmake_custom_textual_output_port_Stub, 5, 0, nullmake_c
 ;
 static SgObject nullput_u8(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("put-u8");
   SgObject p_scm;
   SgPort *p;
   SgObject octet_scm;
   int octet;
+  DeclareProcedureName("put-u8");
   checkArgumentLength(2);
   argumentAsPort(0, p_scm, p);
   argumentAsFixnum(1, octet_scm, octet);
@@ -8413,7 +8401,6 @@ static SG_DEFINE_SUBR(nullput_u8_Stub, 2, 0, nullput_u8, SG_FALSE, NULL);
 ;
 static SgObject nullput_bytevector(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("put-bytevector");
   SgObject p_scm;
   SgPort *p;
   SgObject bv_scm;
@@ -8422,6 +8409,7 @@ static SgObject nullput_bytevector(SgObject *args, int argc, void *data_)
   int start;
   SgObject count_scm;
   int count;
+  DeclareProcedureName("put-bytevector");
   checkArgumentLengthBetween(2, 4);
   argumentAsPort(0, p_scm, p);
   argumentAsByteVector(1, bv_scm, bv);
@@ -8484,10 +8472,10 @@ static SG_DEFINE_SUBR(nullput_bytevector_Stub, 2, 2, nullput_bytevector, SG_FALS
 ;
 static SgObject nullput_char(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("put-char");
   SgObject p_scm;
   SgPort *p;
   SgObject ch;
+  DeclareProcedureName("put-char");
   checkArgumentLength(2);
   argumentAsPort(0, p_scm, p);
   argumentRef(1, ch);
@@ -8526,7 +8514,6 @@ static SG_DEFINE_SUBR(nullput_char_Stub, 2, 0, nullput_char, SG_FALSE, NULL);
 ;
 static SgObject nullput_string(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("put-string");
   SgObject p_scm;
   SgPort *p;
   SgObject s_scm;
@@ -8535,6 +8522,7 @@ static SgObject nullput_string(SgObject *args, int argc, void *data_)
   int start;
   SgObject count_scm;
   int count;
+  DeclareProcedureName("put-string");
   checkArgumentLengthBetween(2, 4);
   argumentAsPort(0, p_scm, p);
   argumentAsString(1, s_scm, s);
@@ -8612,10 +8600,10 @@ static SG_DEFINE_SUBR(nullput_string_Stub, 2, 2, nullput_string, SG_FALSE, NULL)
 ;
 static SgObject nullput_datum(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("put-datum");
   SgObject p_scm;
   SgPort *p;
   SgObject datum;
+  DeclareProcedureName("put-datum");
   checkArgumentLength(2);
   argumentAsPort(0, p_scm, p);
   argumentRef(1, datum);
@@ -8648,7 +8636,6 @@ static SG_DEFINE_SUBR(nullput_datum_Stub, 2, 0, nullput_datum, SG_FALSE, NULL);
 ;
 static SgObject nullopen_file_input2foutput_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("open-file-input/output-port");
   SgObject file_scm;
   SgString *file;
   SgObject option;
@@ -8656,6 +8643,7 @@ static SgObject nullopen_file_input2foutput_port(SgObject *args, int argc, void 
   SgSymbol *mode;
   SgObject transcoder_scm;
   SgTranscoder *transcoder;
+  DeclareProcedureName("open-file-input/output-port");
   checkArgumentLengthBetween(1, 4);
   argumentAsString(0, file_scm, file);
   if (argc >= 2) {
@@ -8786,7 +8774,6 @@ static SG_DEFINE_SUBR(nullopen_file_input2foutput_port_Stub, 1, 3, nullopen_file
 ;
 static SgObject nullmake_custom_binary_input2foutput_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-custom-binary-input/output-port");
   SgObject id_scm;
   SgString *id;
   SgObject read_scm;
@@ -8796,6 +8783,7 @@ static SgObject nullmake_custom_binary_input2foutput_port(SgObject *args, int ar
   SgObject getter;
   SgObject setter;
   SgObject close;
+  DeclareProcedureName("make-custom-binary-input/output-port");
   checkArgumentLength(6);
   argumentAsString(0, id_scm, id);
   argumentAsProcedure(1, read_scm, read);
@@ -8832,7 +8820,6 @@ static SG_DEFINE_SUBR(nullmake_custom_binary_input2foutput_port_Stub, 6, 0, null
 ;
 static SgObject nullmake_custom_textual_input2foutput_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-custom-textual-input/output-port");
   SgObject id_scm;
   SgString *id;
   SgObject read_scm;
@@ -8842,6 +8829,7 @@ static SgObject nullmake_custom_textual_input2foutput_port(SgObject *args, int a
   SgObject getter;
   SgObject setter;
   SgObject close;
+  DeclareProcedureName("make-custom-textual-input/output-port");
   checkArgumentLength(6);
   argumentAsString(0, id_scm, id);
   argumentAsProcedure(1, read_scm, read);
@@ -8878,9 +8866,9 @@ static SG_DEFINE_SUBR(nullmake_custom_textual_input2foutput_port_Stub, 6, 0, nul
 ;
 static SgObject nullclose_input_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("close-input-port");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("close-input-port");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -8900,9 +8888,9 @@ static SG_DEFINE_SUBR(nullclose_input_port_Stub, 1, 0, nullclose_input_port, SG_
 ;
 static SgObject nullclose_output_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("close-output-port");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("close-output-port");
   checkArgumentLength(1);
   argumentAsPort(0, p_scm, p);
   {
@@ -8922,9 +8910,9 @@ static SG_DEFINE_SUBR(nullclose_output_port_Stub, 1, 0, nullclose_output_port, S
 ;
 static SgObject nullread_char(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("read-char");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("read-char");
   checkArgumentLengthBetween(0, 1);
   if (argc >= 1) {
     argumentAsPort(0, p_scm, p);
@@ -8958,9 +8946,9 @@ static SG_DEFINE_SUBR(nullread_char_Stub, 0, 1, nullread_char, SG_FALSE, NULL);
 ;
 static SgObject nullpeek_char(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("peek-char");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("peek-char");
   checkArgumentLengthBetween(0, 1);
   if (argc >= 1) {
     argumentAsPort(0, p_scm, p);
@@ -8994,9 +8982,9 @@ static SG_DEFINE_SUBR(nullpeek_char_Stub, 0, 1, nullpeek_char, SG_FALSE, NULL);
 ;
 static SgObject nullread(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("read");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("read");
   checkArgumentLengthBetween(0, 1);
   if (argc >= 1) {
     argumentAsPort(0, p_scm, p);
@@ -9021,10 +9009,10 @@ static SG_DEFINE_SUBR(nullread_Stub, 0, 1, nullread, SG_FALSE, NULL);
 ;
 static SgObject nullwrite_char(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("write-char");
   SgObject ch;
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("write-char");
   checkArgumentLengthBetween(1, 2);
   argumentRef(0, ch);
   if (argc >= 2) {
@@ -9056,9 +9044,9 @@ static SG_DEFINE_SUBR(nullwrite_char_Stub, 1, 1, nullwrite_char, SG_FALSE, NULL)
 ;
 static SgObject nullnewline(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("newline");
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("newline");
   checkArgumentLengthBetween(0, 1);
   if (argc >= 1) {
     argumentAsPort(0, p_scm, p);
@@ -9089,10 +9077,10 @@ static SG_DEFINE_SUBR(nullnewline_Stub, 0, 1, nullnewline, SG_FALSE, NULL);
 ;
 static SgObject nulldisplay(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("display");
   SgObject o;
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("display");
   checkArgumentLengthBetween(1, 2);
   argumentRef(0, o);
   if (argc >= 2) {
@@ -9124,10 +9112,10 @@ static SG_DEFINE_SUBR(nulldisplay_Stub, 1, 1, nulldisplay, SG_FALSE, NULL);
 ;
 static SgObject nullwrite(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("write");
   SgObject o;
   SgObject p_scm;
   SgPort *p;
+  DeclareProcedureName("write");
   checkArgumentLengthBetween(1, 2);
   argumentRef(0, o);
   if (argc >= 2) {
@@ -9159,9 +9147,9 @@ static SG_DEFINE_SUBR(nullwrite_Stub, 1, 1, nullwrite, SG_FALSE, NULL);
 ;
 static SgObject nullfile_exists3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("file-exists?");
   SgObject filename_scm;
   SgString *filename;
+  DeclareProcedureName("file-exists?");
   checkArgumentLength(1);
   argumentAsString(0, filename_scm, filename);
   {
@@ -9175,9 +9163,9 @@ static SG_DEFINE_SUBR(nullfile_exists3f_Stub, 1, 0, nullfile_exists3f, SG_FALSE,
 ;
 static SgObject nulldelete_file(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("delete-file");
   SgObject filename_scm;
   SgString *filename;
+  DeclareProcedureName("delete-file");
   checkArgumentLength(1);
   argumentAsString(0, filename_scm, filename);
   {
@@ -9204,8 +9192,8 @@ static SG_DEFINE_SUBR(nullcommand_line_Stub, 0, 0, nullcommand_line, SG_FALSE, N
 ;
 static SgObject nullexit(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("exit");
   SgObject obj;
+  DeclareProcedureName("exit");
   checkArgumentLengthBetween(0, 1);
   if (argc >= 1) {
     argumentRef(0, obj);
@@ -9237,8 +9225,8 @@ static SG_DEFINE_SUBR(nullexit_Stub, 0, 1, nullexit, SG_FALSE, NULL);
 ;
 static SgObject nullfixnum3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fixnum?");
   SgObject o;
+  DeclareProcedureName("fixnum?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -9293,12 +9281,12 @@ static SG_DEFINE_SUBR(nullgreatest_fixnum_Stub, 0, 0, nullgreatest_fixnum, SG_FA
 ;
 static SgObject nullfx3d3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fx=?");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
   int fx2;
   SgObject rest;
+  DeclareProcedureName("fx=?");
   checkArgumentLengthAtLeast(2);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -9345,12 +9333,12 @@ static SG_DEFINE_SUBR(nullfx3d3f_Stub, 2, 1, nullfx3d3f, SG_FALSE, NULL);
 ;
 static SgObject nullfx3c3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fx<?");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
   int fx2;
   SgObject rest;
+  DeclareProcedureName("fx<?");
   checkArgumentLengthAtLeast(2);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -9397,12 +9385,12 @@ static SG_DEFINE_SUBR(nullfx3c3f_Stub, 2, 1, nullfx3c3f, SG_FALSE, NULL);
 ;
 static SgObject nullfx3e3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fx>?");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
   int fx2;
   SgObject rest;
+  DeclareProcedureName("fx>?");
   checkArgumentLengthAtLeast(2);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -9449,12 +9437,12 @@ static SG_DEFINE_SUBR(nullfx3e3f_Stub, 2, 1, nullfx3e3f, SG_FALSE, NULL);
 ;
 static SgObject nullfx3c3d3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fx<=?");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
   int fx2;
   SgObject rest;
+  DeclareProcedureName("fx<=?");
   checkArgumentLengthAtLeast(2);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -9501,12 +9489,12 @@ static SG_DEFINE_SUBR(nullfx3c3d3f_Stub, 2, 1, nullfx3c3d3f, SG_FALSE, NULL);
 ;
 static SgObject nullfx3e3d3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fx>=?");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
   int fx2;
   SgObject rest;
+  DeclareProcedureName("fx>=?");
   checkArgumentLengthAtLeast(2);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -9553,9 +9541,9 @@ static SG_DEFINE_SUBR(nullfx3e3d3f_Stub, 2, 1, nullfx3e3d3f, SG_FALSE, NULL);
 ;
 static SgObject nullfxzero3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxzero?");
   SgObject fx_scm;
   int fx;
+  DeclareProcedureName("fxzero?");
   checkArgumentLength(1);
   argumentAsFixnum(0, fx_scm, fx);
   {
@@ -9569,9 +9557,9 @@ static SG_DEFINE_SUBR(nullfxzero3f_Stub, 1, 0, nullfxzero3f, SG_FALSE, NULL);
 ;
 static SgObject nullfxpositive3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxpositive?");
   SgObject fx_scm;
   int fx;
+  DeclareProcedureName("fxpositive?");
   checkArgumentLength(1);
   argumentAsFixnum(0, fx_scm, fx);
   {
@@ -9585,9 +9573,9 @@ static SG_DEFINE_SUBR(nullfxpositive3f_Stub, 1, 0, nullfxpositive3f, SG_FALSE, N
 ;
 static SgObject nullfxnegative3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxnegative?");
   SgObject fx_scm;
   int fx;
+  DeclareProcedureName("fxnegative?");
   checkArgumentLength(1);
   argumentAsFixnum(0, fx_scm, fx);
   {
@@ -9601,9 +9589,9 @@ static SG_DEFINE_SUBR(nullfxnegative3f_Stub, 1, 0, nullfxnegative3f, SG_FALSE, N
 ;
 static SgObject nullfxodd3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxodd?");
   SgObject fx_scm;
   int fx;
+  DeclareProcedureName("fxodd?");
   checkArgumentLength(1);
   argumentAsFixnum(0, fx_scm, fx);
   {
@@ -9617,9 +9605,9 @@ static SG_DEFINE_SUBR(nullfxodd3f_Stub, 1, 0, nullfxodd3f, SG_FALSE, NULL);
 ;
 static SgObject nullfxeven3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxeven?");
   SgObject fx_scm;
   int fx;
+  DeclareProcedureName("fxeven?");
   checkArgumentLength(1);
   argumentAsFixnum(0, fx_scm, fx);
   {
@@ -9633,10 +9621,10 @@ static SG_DEFINE_SUBR(nullfxeven3f_Stub, 1, 0, nullfxeven3f, SG_FALSE, NULL);
 ;
 static SgObject nullfxmax(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxmax");
   SgObject fx_scm;
   int fx;
   SgObject rest;
+  DeclareProcedureName("fxmax");
   checkArgumentLengthAtLeast(1);
   argumentAsFixnum(0, fx_scm, fx);
   retrieveOptionalArguments(1, rest);
@@ -9674,10 +9662,10 @@ static SG_DEFINE_SUBR(nullfxmax_Stub, 1, 1, nullfxmax, SG_FALSE, NULL);
 ;
 static SgObject nullfxmin(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxmin");
   SgObject fx_scm;
   int fx;
   SgObject rest;
+  DeclareProcedureName("fxmin");
   checkArgumentLengthAtLeast(1);
   argumentAsFixnum(0, fx_scm, fx);
   retrieveOptionalArguments(1, rest);
@@ -9716,11 +9704,11 @@ static SG_DEFINE_SUBR(nullfxmin_Stub, 1, 1, nullfxmin, SG_FALSE, NULL);
 ;
 static SgObject nullfx2b(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fx+");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
   int fx2;
+  DeclareProcedureName("fx+");
   checkArgumentLength(2);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -9746,11 +9734,11 @@ static SG_DEFINE_SUBR(nullfx2b_Stub, 2, 0, nullfx2b, SG_FALSE, NULL);
 ;
 static SgObject nullfx2a(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fx*");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
   int fx2;
+  DeclareProcedureName("fx*");
   checkArgumentLength(2);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -9776,10 +9764,10 @@ static SG_DEFINE_SUBR(nullfx2a_Stub, 2, 0, nullfx2a, SG_FALSE, NULL);
 ;
 static SgObject nullfx_(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fx-");
   SgObject fx1_scm;
   int fx1;
   SgObject o;
+  DeclareProcedureName("fx-");
   checkArgumentLengthBetween(1, 2);
   argumentAsFixnum(0, fx1_scm, fx1);
   if (argc >= 2) {
@@ -9831,11 +9819,11 @@ static SG_DEFINE_SUBR(nullfx__Stub, 1, 1, nullfx_, SG_FALSE, NULL);
 ;
 static SgObject nullfxdiv(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxdiv");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
   int fx2;
+  DeclareProcedureName("fxdiv");
   checkArgumentLength(2);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -9878,11 +9866,11 @@ static SG_DEFINE_SUBR(nullfxdiv_Stub, 2, 0, nullfxdiv, SG_FALSE, NULL);
 ;
 static SgObject nullfxmod(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxmod");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
   int fx2;
+  DeclareProcedureName("fxmod");
   checkArgumentLength(2);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -9929,11 +9917,11 @@ static SG_DEFINE_SUBR(nullfxmod_Stub, 2, 0, nullfxmod, SG_FALSE, NULL);
 ;
 static SgObject nullfxdiv0(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxdiv0");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
   int fx2;
+  DeclareProcedureName("fxdiv0");
   checkArgumentLength(2);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -10003,11 +9991,11 @@ static SG_DEFINE_SUBR(nullfxdiv0_Stub, 2, 0, nullfxdiv0, SG_FALSE, NULL);
 ;
 static SgObject nullfxmod0(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxmod0");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
   int fx2;
+  DeclareProcedureName("fxmod0");
   checkArgumentLength(2);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -10084,8 +10072,8 @@ static SG_DEFINE_SUBR(nullfxmod0_Stub, 2, 0, nullfxmod0, SG_FALSE, NULL);
 ;
 static SgObject nullfxand(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxand");
   SgObject rest;
+  DeclareProcedureName("fxand");
   retrieveOptionalArguments(0, rest);
   {
     int SG_RETURN;
@@ -10118,8 +10106,8 @@ static SG_DEFINE_SUBR(nullfxand_Stub, 0, 1, nullfxand, SG_FALSE, NULL);
 ;
 static SgObject nullfxior(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxior");
   SgObject rest;
+  DeclareProcedureName("fxior");
   retrieveOptionalArguments(0, rest);
   {
     int SG_RETURN;
@@ -10152,8 +10140,8 @@ static SG_DEFINE_SUBR(nullfxior_Stub, 0, 1, nullfxior, SG_FALSE, NULL);
 ;
 static SgObject nullfxxor(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxxor");
   SgObject rest;
+  DeclareProcedureName("fxxor");
   retrieveOptionalArguments(0, rest);
   {
     int SG_RETURN;
@@ -10186,9 +10174,9 @@ static SG_DEFINE_SUBR(nullfxxor_Stub, 0, 1, nullfxxor, SG_FALSE, NULL);
 ;
 static SgObject nullfxnot(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxnot");
   SgObject fx_scm;
   int fx;
+  DeclareProcedureName("fxnot");
   checkArgumentLength(1);
   argumentAsFixnum(0, fx_scm, fx);
   {
@@ -10202,13 +10190,13 @@ static SG_DEFINE_SUBR(nullfxnot_Stub, 1, 0, nullfxnot, SG_FALSE, NULL);
 ;
 static SgObject nullfxif(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxif");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
   int fx2;
   SgObject fx3_scm;
   int fx3;
+  DeclareProcedureName("fxif");
   checkArgumentLength(3);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -10224,9 +10212,9 @@ static SG_DEFINE_SUBR(nullfxif_Stub, 3, 0, nullfxif, SG_FALSE, NULL);
 ;
 static SgObject nullfxbit_count(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxbit-count");
   SgObject fx_scm;
   int fx;
+  DeclareProcedureName("fxbit-count");
   checkArgumentLength(1);
   argumentAsFixnum(0, fx_scm, fx);
   {
@@ -10240,9 +10228,9 @@ static SG_DEFINE_SUBR(nullfxbit_count_Stub, 1, 0, nullfxbit_count, SG_FALSE, NUL
 ;
 static SgObject nullfxlength(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxlength");
   SgObject fx_scm;
   int fx;
+  DeclareProcedureName("fxlength");
   checkArgumentLength(1);
   argumentAsFixnum(0, fx_scm, fx);
   {
@@ -10256,9 +10244,9 @@ static SG_DEFINE_SUBR(nullfxlength_Stub, 1, 0, nullfxlength, SG_FALSE, NULL);
 ;
 static SgObject nullfxfirst_bit_set(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxfirst-bit-set");
   SgObject fx_scm;
   int fx;
+  DeclareProcedureName("fxfirst-bit-set");
   checkArgumentLength(1);
   argumentAsFixnum(0, fx_scm, fx);
   {
@@ -10272,11 +10260,11 @@ static SG_DEFINE_SUBR(nullfxfirst_bit_set_Stub, 1, 0, nullfxfirst_bit_set, SG_FA
 ;
 static SgObject nullfxbit_set3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxbit-set?");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
   int fx2;
+  DeclareProcedureName("fxbit-set?");
   checkArgumentLength(2);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -10291,13 +10279,13 @@ static SG_DEFINE_SUBR(nullfxbit_set3f_Stub, 2, 0, nullfxbit_set3f, SG_FALSE, NUL
 ;
 static SgObject nullfxcopy_bit(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxcopy-bit");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
   int fx2;
   SgObject fx3_scm;
   int fx3;
+  DeclareProcedureName("fxcopy-bit");
   checkArgumentLength(3);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -10329,13 +10317,13 @@ static SG_DEFINE_SUBR(nullfxcopy_bit_Stub, 3, 0, nullfxcopy_bit, SG_FALSE, NULL)
 ;
 static SgObject nullfxbit_field(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxbit-field");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
   int fx2;
   SgObject fx3_scm;
   int fx3;
+  DeclareProcedureName("fxbit-field");
   checkArgumentLength(3);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -10373,7 +10361,6 @@ static SG_DEFINE_SUBR(nullfxbit_field_Stub, 3, 0, nullfxbit_field, SG_FALSE, NUL
 ;
 static SgObject nullfxcopy_bit_field(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxcopy-bit-field");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
@@ -10382,6 +10369,7 @@ static SgObject nullfxcopy_bit_field(SgObject *args, int argc, void *data_)
   int fx3;
   SgObject fx4_scm;
   int fx4;
+  DeclareProcedureName("fxcopy-bit-field");
   checkArgumentLength(4);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -10422,11 +10410,11 @@ static SG_DEFINE_SUBR(nullfxcopy_bit_field_Stub, 4, 0, nullfxcopy_bit_field, SG_
 ;
 static SgObject nullfxarithmetic_shift(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxarithmetic-shift");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
   int fx2;
+  DeclareProcedureName("fxarithmetic-shift");
   checkArgumentLength(2);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -10464,11 +10452,11 @@ static SG_DEFINE_SUBR(nullfxarithmetic_shift_Stub, 2, 0, nullfxarithmetic_shift,
 ;
 static SgObject nullfxarithmetic_shift_left(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxarithmetic-shift-left");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
   int fx2;
+  DeclareProcedureName("fxarithmetic-shift-left");
   checkArgumentLength(2);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -10500,11 +10488,11 @@ static SG_DEFINE_SUBR(nullfxarithmetic_shift_left_Stub, 2, 0, nullfxarithmetic_s
 ;
 static SgObject nullfxarithmetic_shift_right(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxarithmetic-shift-right");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
   int fx2;
+  DeclareProcedureName("fxarithmetic-shift-right");
   checkArgumentLength(2);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -10538,13 +10526,13 @@ typedef unsigned int uint;
 ;
 static SgObject nullfxreverse_bit_field(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fxreverse-bit-field");
   SgObject fx1_scm;
   int fx1;
   SgObject fx2_scm;
   int fx2;
   SgObject fx3_scm;
   int fx3;
+  DeclareProcedureName("fxreverse-bit-field");
   checkArgumentLength(3);
   argumentAsFixnum(0, fx1_scm, fx1);
   argumentAsFixnum(1, fx2_scm, fx2);
@@ -10601,8 +10589,8 @@ static SG_DEFINE_SUBR(nullfxreverse_bit_field_Stub, 3, 0, nullfxreverse_bit_fiel
 ;
 static SgObject nullflonum3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flonum?");
   SgObject o;
+  DeclareProcedureName("flonum?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -10616,9 +10604,9 @@ static SG_DEFINE_SUBR(nullflonum3f_Stub, 1, 0, nullflonum3f, SG_FALSE, NULL);
 ;
 static SgObject nullreal_3eflonum(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("real->flonum");
   SgObject n_scm;
   SgObject n;
+  DeclareProcedureName("real->flonum");
   checkArgumentLength(1);
   argumentAsNumber(0, n_scm, n);
   {
@@ -10646,12 +10634,12 @@ static SG_DEFINE_SUBR(nullreal_3eflonum_Stub, 1, 0, nullreal_3eflonum, SG_FALSE,
 ;
 static SgObject nullfl3d3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fl=?");
   SgObject fl1_scm;
   SgObject fl1;
   SgObject fl2_scm;
   SgObject fl2;
   SgObject rest;
+  DeclareProcedureName("fl=?");
   checkArgumentLengthAtLeast(2);
   argumentAsNumber(0, fl1_scm, fl1);
   argumentAsNumber(1, fl2_scm, fl2);
@@ -10698,12 +10686,12 @@ static SG_DEFINE_SUBR(nullfl3d3f_Stub, 2, 1, nullfl3d3f, SG_FALSE, NULL);
 ;
 static SgObject nullfl3c3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fl<?");
   SgObject fl1_scm;
   SgObject fl1;
   SgObject fl2_scm;
   SgObject fl2;
   SgObject rest;
+  DeclareProcedureName("fl<?");
   checkArgumentLengthAtLeast(2);
   argumentAsNumber(0, fl1_scm, fl1);
   argumentAsNumber(1, fl2_scm, fl2);
@@ -10750,12 +10738,12 @@ static SG_DEFINE_SUBR(nullfl3c3f_Stub, 2, 1, nullfl3c3f, SG_FALSE, NULL);
 ;
 static SgObject nullfl3e3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fl>?");
   SgObject fl1_scm;
   SgObject fl1;
   SgObject fl2_scm;
   SgObject fl2;
   SgObject rest;
+  DeclareProcedureName("fl>?");
   checkArgumentLengthAtLeast(2);
   argumentAsNumber(0, fl1_scm, fl1);
   argumentAsNumber(1, fl2_scm, fl2);
@@ -10802,12 +10790,12 @@ static SG_DEFINE_SUBR(nullfl3e3f_Stub, 2, 1, nullfl3e3f, SG_FALSE, NULL);
 ;
 static SgObject nullfl3c3d3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fl<=?");
   SgObject fl1_scm;
   SgObject fl1;
   SgObject fl2_scm;
   SgObject fl2;
   SgObject rest;
+  DeclareProcedureName("fl<=?");
   checkArgumentLengthAtLeast(2);
   argumentAsNumber(0, fl1_scm, fl1);
   argumentAsNumber(1, fl2_scm, fl2);
@@ -10854,12 +10842,12 @@ static SG_DEFINE_SUBR(nullfl3c3d3f_Stub, 2, 1, nullfl3c3d3f, SG_FALSE, NULL);
 ;
 static SgObject nullfl3e3d3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fl>=?");
   SgObject fl1_scm;
   SgObject fl1;
   SgObject fl2_scm;
   SgObject fl2;
   SgObject rest;
+  DeclareProcedureName("fl>=?");
   checkArgumentLengthAtLeast(2);
   argumentAsNumber(0, fl1_scm, fl1);
   argumentAsNumber(1, fl2_scm, fl2);
@@ -10907,9 +10895,9 @@ static SG_DEFINE_SUBR(nullfl3e3d3f_Stub, 2, 1, nullfl3e3d3f, SG_FALSE, NULL);
 ;
 static SgObject nullflinteger3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flinteger?");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("flinteger?");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -10935,9 +10923,9 @@ static SG_DEFINE_SUBR(nullflinteger3f_Stub, 1, 0, nullflinteger3f, SG_FALSE, NUL
 ;
 static SgObject nullflzero3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flzero?");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("flzero?");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -10957,9 +10945,9 @@ static SG_DEFINE_SUBR(nullflzero3f_Stub, 1, 0, nullflzero3f, SG_FALSE, NULL);
 ;
 static SgObject nullflpositive3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flpositive?");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("flpositive?");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -10979,9 +10967,9 @@ static SG_DEFINE_SUBR(nullflpositive3f_Stub, 1, 0, nullflpositive3f, SG_FALSE, N
 ;
 static SgObject nullflnegative3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flnegative?");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("flnegative?");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -11001,9 +10989,9 @@ static SG_DEFINE_SUBR(nullflnegative3f_Stub, 1, 0, nullflnegative3f, SG_FALSE, N
 ;
 static SgObject nullflodd3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flodd?");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("flodd?");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -11037,9 +11025,9 @@ static SG_DEFINE_SUBR(nullflodd3f_Stub, 1, 0, nullflodd3f, SG_FALSE, NULL);
 ;
 static SgObject nullfleven3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fleven?");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("fleven?");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -11073,9 +11061,9 @@ static SG_DEFINE_SUBR(nullfleven3f_Stub, 1, 0, nullfleven3f, SG_FALSE, NULL);
 ;
 static SgObject nullflfinite3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flfinite?");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("flfinite?");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -11095,9 +11083,9 @@ static SG_DEFINE_SUBR(nullflfinite3f_Stub, 1, 0, nullflfinite3f, SG_FALSE, NULL)
 ;
 static SgObject nullflinfinite3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flinfinite?");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("flinfinite?");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -11117,9 +11105,9 @@ static SG_DEFINE_SUBR(nullflinfinite3f_Stub, 1, 0, nullflinfinite3f, SG_FALSE, N
 ;
 static SgObject nullflnan3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flnan?");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("flnan?");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -11139,10 +11127,10 @@ static SG_DEFINE_SUBR(nullflnan3f_Stub, 1, 0, nullflnan3f, SG_FALSE, NULL);
 ;
 static SgObject nullflmax(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flmax");
   SgObject fl_scm;
   SgObject fl;
   SgObject rest;
+  DeclareProcedureName("flmax");
   checkArgumentLengthAtLeast(1);
   argumentAsNumber(0, fl_scm, fl);
   retrieveOptionalArguments(1, rest);
@@ -11194,10 +11182,10 @@ static SG_DEFINE_SUBR(nullflmax_Stub, 1, 1, nullflmax, SG_FALSE, NULL);
 ;
 static SgObject nullflmin(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flmin");
   SgObject fl_scm;
   SgObject fl;
   SgObject rest;
+  DeclareProcedureName("flmin");
   checkArgumentLengthAtLeast(1);
   argumentAsNumber(0, fl_scm, fl);
   retrieveOptionalArguments(1, rest);
@@ -11250,8 +11238,8 @@ static SG_DEFINE_SUBR(nullflmin_Stub, 1, 1, nullflmin, SG_FALSE, NULL);
 ;
 static SgObject nullfl2b(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fl+");
   SgObject rest;
+  DeclareProcedureName("fl+");
   retrieveOptionalArguments(0, rest);
   {
     SgObject SG_RETURN = SG_UNDEF;
@@ -11307,8 +11295,8 @@ static SG_DEFINE_SUBR(nullfl2b_Stub, 0, 1, nullfl2b, SG_FALSE, NULL);
 ;
 static SgObject nullfl2a(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fl*");
   SgObject rest;
+  DeclareProcedureName("fl*");
   retrieveOptionalArguments(0, rest);
   {
     SgObject SG_RETURN = SG_UNDEF;
@@ -11364,10 +11352,10 @@ static SG_DEFINE_SUBR(nullfl2a_Stub, 0, 1, nullfl2a, SG_FALSE, NULL);
 ;
 static SgObject nullfl_(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fl-");
   SgObject fl_scm;
   SgObject fl;
   SgObject rest;
+  DeclareProcedureName("fl-");
   checkArgumentLengthAtLeast(1);
   argumentAsNumber(0, fl_scm, fl);
   retrieveOptionalArguments(1, rest);
@@ -11416,10 +11404,10 @@ static SG_DEFINE_SUBR(nullfl__Stub, 1, 1, nullfl_, SG_FALSE, NULL);
 ;
 static SgObject nullfl2f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fl/");
   SgObject fl_scm;
   SgObject fl;
   SgObject rest;
+  DeclareProcedureName("fl/");
   checkArgumentLengthAtLeast(1);
   argumentAsNumber(0, fl_scm, fl);
   retrieveOptionalArguments(1, rest);
@@ -11477,11 +11465,11 @@ static SG_DEFINE_SUBR(nullfl2f_Stub, 1, 1, nullfl2f, SG_FALSE, NULL);
 ;
 static SgObject nullfldiv(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fldiv");
   SgObject fl1_scm;
   SgObject fl1;
   SgObject fl2_scm;
   SgObject fl2;
+  DeclareProcedureName("fldiv");
   checkArgumentLength(2);
   argumentAsNumber(0, fl1_scm, fl1);
   argumentAsNumber(1, fl2_scm, fl2);
@@ -11520,11 +11508,11 @@ static SG_DEFINE_SUBR(nullfldiv_Stub, 2, 0, nullfldiv, SG_FALSE, NULL);
 ;
 static SgObject nullflmod(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flmod");
   SgObject fl1_scm;
   SgObject fl1;
   SgObject fl2_scm;
   SgObject fl2;
+  DeclareProcedureName("flmod");
   checkArgumentLength(2);
   argumentAsNumber(0, fl1_scm, fl1);
   argumentAsNumber(1, fl2_scm, fl2);
@@ -11570,11 +11558,11 @@ static SG_DEFINE_SUBR(nullflmod_Stub, 2, 0, nullflmod, SG_FALSE, NULL);
 ;
 static SgObject nullfldiv0(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fldiv0");
   SgObject fl1_scm;
   SgObject fl1;
   SgObject fl2_scm;
   SgObject fl2;
+  DeclareProcedureName("fldiv0");
   checkArgumentLength(2);
   argumentAsNumber(0, fl1_scm, fl1);
   argumentAsNumber(1, fl2_scm, fl2);
@@ -11638,11 +11626,11 @@ static SG_DEFINE_SUBR(nullfldiv0_Stub, 2, 0, nullfldiv0, SG_FALSE, NULL);
 ;
 static SgObject nullflmod0(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flmod0");
   SgObject fl1_scm;
   SgObject fl1;
   SgObject fl2_scm;
   SgObject fl2;
+  DeclareProcedureName("flmod0");
   checkArgumentLength(2);
   argumentAsNumber(0, fl1_scm, fl1);
   argumentAsNumber(1, fl2_scm, fl2);
@@ -11711,9 +11699,9 @@ static SG_DEFINE_SUBR(nullflmod0_Stub, 2, 0, nullflmod0, SG_FALSE, NULL);
 ;
 static SgObject nullflnumerator(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flnumerator");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("flnumerator");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -11733,9 +11721,9 @@ static SG_DEFINE_SUBR(nullflnumerator_Stub, 1, 0, nullflnumerator, SG_FALSE, NUL
 ;
 static SgObject nullfldenominator(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fldenominator");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("fldenominator");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -11755,9 +11743,9 @@ static SG_DEFINE_SUBR(nullfldenominator_Stub, 1, 0, nullfldenominator, SG_FALSE,
 ;
 static SgObject nullflfloor(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flfloor");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("flfloor");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -11777,9 +11765,9 @@ static SG_DEFINE_SUBR(nullflfloor_Stub, 1, 0, nullflfloor, SG_FALSE, NULL);
 ;
 static SgObject nullflceiling(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flceiling");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("flceiling");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -11799,9 +11787,9 @@ static SG_DEFINE_SUBR(nullflceiling_Stub, 1, 0, nullflceiling, SG_FALSE, NULL);
 ;
 static SgObject nullfltruncate(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fltruncate");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("fltruncate");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -11821,9 +11809,9 @@ static SG_DEFINE_SUBR(nullfltruncate_Stub, 1, 0, nullfltruncate, SG_FALSE, NULL)
 ;
 static SgObject nullflround(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flround");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("flround");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -11843,9 +11831,9 @@ static SG_DEFINE_SUBR(nullflround_Stub, 1, 0, nullflround, SG_FALSE, NULL);
 ;
 static SgObject nullflexp(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flexp");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("flexp");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -11865,11 +11853,11 @@ static SG_DEFINE_SUBR(nullflexp_Stub, 1, 0, nullflexp, SG_FALSE, NULL);
 ;
 static SgObject nullflexpt(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flexpt");
   SgObject fl1_scm;
   SgObject fl1;
   SgObject fl2_scm;
   SgObject fl2;
+  DeclareProcedureName("flexpt");
   checkArgumentLength(2);
   argumentAsNumber(0, fl1_scm, fl1);
   argumentAsNumber(1, fl2_scm, fl2);
@@ -11896,10 +11884,10 @@ static SG_DEFINE_SUBR(nullflexpt_Stub, 2, 0, nullflexpt, SG_FALSE, NULL);
 ;
 static SgObject nullfllog(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fllog");
   SgObject fl1_scm;
   SgObject fl1;
   SgObject fl2;
+  DeclareProcedureName("fllog");
   checkArgumentLengthBetween(1, 2);
   argumentAsNumber(0, fl1_scm, fl1);
   if (argc >= 2) {
@@ -11936,9 +11924,9 @@ static SG_DEFINE_SUBR(nullfllog_Stub, 1, 1, nullfllog, SG_FALSE, NULL);
 ;
 static SgObject nullflsin(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flsin");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("flsin");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -11958,9 +11946,9 @@ static SG_DEFINE_SUBR(nullflsin_Stub, 1, 0, nullflsin, SG_FALSE, NULL);
 ;
 static SgObject nullflcos(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flcos");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("flcos");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -11980,9 +11968,9 @@ static SG_DEFINE_SUBR(nullflcos_Stub, 1, 0, nullflcos, SG_FALSE, NULL);
 ;
 static SgObject nullfltan(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fltan");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("fltan");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -12002,9 +11990,9 @@ static SG_DEFINE_SUBR(nullfltan_Stub, 1, 0, nullfltan, SG_FALSE, NULL);
 ;
 static SgObject nullflasin(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flasin");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("flasin");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -12024,9 +12012,9 @@ static SG_DEFINE_SUBR(nullflasin_Stub, 1, 0, nullflasin, SG_FALSE, NULL);
 ;
 static SgObject nullflacos(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flacos");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("flacos");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -12046,10 +12034,10 @@ static SG_DEFINE_SUBR(nullflacos_Stub, 1, 0, nullflacos, SG_FALSE, NULL);
 ;
 static SgObject nullflatan(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flatan");
   SgObject fl1_scm;
   SgObject fl1;
   SgObject fl2;
+  DeclareProcedureName("flatan");
   checkArgumentLengthBetween(1, 2);
   argumentAsNumber(0, fl1_scm, fl1);
   if (argc >= 2) {
@@ -12086,9 +12074,9 @@ static SG_DEFINE_SUBR(nullflatan_Stub, 1, 1, nullflatan, SG_FALSE, NULL);
 ;
 static SgObject nullflabs(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flabs");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("flabs");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -12108,9 +12096,9 @@ static SG_DEFINE_SUBR(nullflabs_Stub, 1, 0, nullflabs, SG_FALSE, NULL);
 ;
 static SgObject nullflsqrt(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("flsqrt");
   SgObject fl_scm;
   SgObject fl;
+  DeclareProcedureName("flsqrt");
   checkArgumentLength(1);
   argumentAsNumber(0, fl_scm, fl);
   {
@@ -12139,9 +12127,9 @@ static SG_DEFINE_SUBR(nullflsqrt_Stub, 1, 0, nullflsqrt, SG_FALSE, NULL);
 ;
 static SgObject nullfixnum_3eflonum(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fixnum->flonum");
   SgObject fx_scm;
   int fx;
+  DeclareProcedureName("fixnum->flonum");
   checkArgumentLength(1);
   argumentAsFixnum(0, fx_scm, fx);
   {
@@ -12155,9 +12143,9 @@ static SG_DEFINE_SUBR(nullfixnum_3eflonum_Stub, 1, 0, nullfixnum_3eflonum, SG_FA
 ;
 static SgObject nullbitwise_not(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bitwise-not");
   SgObject ei_scm;
   SgObject ei;
+  DeclareProcedureName("bitwise-not");
   checkArgumentLength(1);
   argumentAsNumber(0, ei_scm, ei);
   {
@@ -12178,9 +12166,9 @@ static SG_DEFINE_SUBR(nullbitwise_not_Stub, 1, 0, nullbitwise_not, SG_FALSE, NUL
 ;
 static SgObject nullbitwise_and(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bitwise-and");
   SgObject ei;
   SgObject rest;
+  DeclareProcedureName("bitwise-and");
   checkArgumentLengthAtLeast(1);
   argumentRef(0, ei);
   retrieveOptionalArguments(1, rest);
@@ -12214,9 +12202,9 @@ static SG_DEFINE_SUBR(nullbitwise_and_Stub, 1, 1, nullbitwise_and, SG_FALSE, NUL
 ;
 static SgObject nullbitwise_ior(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bitwise-ior");
   SgObject ei;
   SgObject rest;
+  DeclareProcedureName("bitwise-ior");
   checkArgumentLengthAtLeast(1);
   argumentRef(0, ei);
   retrieveOptionalArguments(1, rest);
@@ -12250,9 +12238,9 @@ static SG_DEFINE_SUBR(nullbitwise_ior_Stub, 1, 1, nullbitwise_ior, SG_FALSE, NUL
 ;
 static SgObject nullbitwise_xor(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bitwise-xor");
   SgObject ei;
   SgObject rest;
+  DeclareProcedureName("bitwise-xor");
   checkArgumentLengthAtLeast(1);
   argumentRef(0, ei);
   retrieveOptionalArguments(1, rest);
@@ -12287,13 +12275,13 @@ static SG_DEFINE_SUBR(nullbitwise_xor_Stub, 1, 1, nullbitwise_xor, SG_FALSE, NUL
 ;
 static SgObject nullbitwise_if(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bitwise-if");
   SgObject ei1_scm;
   SgObject ei1;
   SgObject ei2_scm;
   SgObject ei2;
   SgObject ei3_scm;
   SgObject ei3;
+  DeclareProcedureName("bitwise-if");
   checkArgumentLength(3);
   argumentAsNumber(0, ei1_scm, ei1);
   argumentAsNumber(1, ei2_scm, ei2);
@@ -12309,9 +12297,9 @@ static SG_DEFINE_SUBR(nullbitwise_if_Stub, 3, 0, nullbitwise_if, SG_FALSE, NULL)
 ;
 static SgObject nullbitwise_bit_count(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bitwise-bit-count");
   SgObject ei_scm;
   SgObject ei;
+  DeclareProcedureName("bitwise-bit-count");
   checkArgumentLength(1);
   argumentAsNumber(0, ei_scm, ei);
   {
@@ -12325,9 +12313,9 @@ static SG_DEFINE_SUBR(nullbitwise_bit_count_Stub, 1, 0, nullbitwise_bit_count, S
 ;
 static SgObject nullbitwise_length(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bitwise-length");
   SgObject ei_scm;
   SgObject ei;
+  DeclareProcedureName("bitwise-length");
   checkArgumentLength(1);
   argumentAsNumber(0, ei_scm, ei);
   {
@@ -12341,9 +12329,9 @@ static SG_DEFINE_SUBR(nullbitwise_length_Stub, 1, 0, nullbitwise_length, SG_FALS
 ;
 static SgObject nullbitwise_first_bit_set(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bitwise-first-bit-set");
   SgObject ei_scm;
   SgObject ei;
+  DeclareProcedureName("bitwise-first-bit-set");
   checkArgumentLength(1);
   argumentAsNumber(0, ei_scm, ei);
   {
@@ -12357,11 +12345,11 @@ static SG_DEFINE_SUBR(nullbitwise_first_bit_set_Stub, 1, 0, nullbitwise_first_bi
 ;
 static SgObject nullbitwise_bit_set3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bitwise-bit-set?");
   SgObject ei1_scm;
   SgObject ei1;
   SgObject ei2_scm;
   int ei2;
+  DeclareProcedureName("bitwise-bit-set?");
   checkArgumentLength(2);
   argumentAsNumber(0, ei1_scm, ei1);
   argumentAsFixnum(1, ei2_scm, ei2);
@@ -12376,13 +12364,13 @@ static SG_DEFINE_SUBR(nullbitwise_bit_set3f_Stub, 2, 0, nullbitwise_bit_set3f, S
 ;
 static SgObject nullbitwise_copy_bit(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bitwise-copy-bit");
   SgObject ei1_scm;
   SgObject ei1;
   SgObject ei2_scm;
   int ei2;
   SgObject ei3_scm;
   SgObject ei3;
+  DeclareProcedureName("bitwise-copy-bit");
   checkArgumentLength(3);
   argumentAsNumber(0, ei1_scm, ei1);
   argumentAsFixnum(1, ei2_scm, ei2);
@@ -12402,13 +12390,13 @@ static SG_DEFINE_SUBR(nullbitwise_copy_bit_Stub, 3, 0, nullbitwise_copy_bit, SG_
 ;
 static SgObject nullbitwise_bit_field(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bitwise-bit-field");
   SgObject ei1_scm;
   SgObject ei1;
   SgObject ei2_scm;
   int ei2;
   SgObject ei3_scm;
   int ei3;
+  DeclareProcedureName("bitwise-bit-field");
   checkArgumentLength(3);
   argumentAsNumber(0, ei1_scm, ei1);
   argumentAsFixnum(1, ei2_scm, ei2);
@@ -12434,7 +12422,6 @@ static SG_DEFINE_SUBR(nullbitwise_bit_field_Stub, 3, 0, nullbitwise_bit_field, S
 ;
 static SgObject nullbitwise_copy_bit_field(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bitwise-copy-bit-field");
   SgObject ei1_scm;
   SgObject ei1;
   SgObject ei2_scm;
@@ -12443,6 +12430,7 @@ static SgObject nullbitwise_copy_bit_field(SgObject *args, int argc, void *data_
   int ei3;
   SgObject ei4_scm;
   SgObject ei4;
+  DeclareProcedureName("bitwise-copy-bit-field");
   checkArgumentLength(4);
   argumentAsNumber(0, ei1_scm, ei1);
   argumentAsFixnum(1, ei2_scm, ei2);
@@ -12469,11 +12457,11 @@ static SG_DEFINE_SUBR(nullbitwise_copy_bit_field_Stub, 4, 0, nullbitwise_copy_bi
 ;
 static SgObject nullbitwise_arithmetic_shift(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bitwise-arithmetic-shift");
   SgObject ei1_scm;
   SgObject ei1;
   SgObject ei2_scm;
   int ei2;
+  DeclareProcedureName("bitwise-arithmetic-shift");
   checkArgumentLength(2);
   argumentAsNumber(0, ei1_scm, ei1);
   argumentAsFixnum(1, ei2_scm, ei2);
@@ -12488,11 +12476,11 @@ static SG_DEFINE_SUBR(nullbitwise_arithmetic_shift_Stub, 2, 0, nullbitwise_arith
 ;
 static SgObject nullbitwise_arithmetic_shift_left(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bitwise-arithmetic-shift-left");
   SgObject ei1_scm;
   SgObject ei1;
   SgObject ei2_scm;
   int ei2;
+  DeclareProcedureName("bitwise-arithmetic-shift-left");
   checkArgumentLength(2);
   argumentAsNumber(0, ei1_scm, ei1);
   argumentAsFixnum(1, ei2_scm, ei2);
@@ -12507,11 +12495,11 @@ static SG_DEFINE_SUBR(nullbitwise_arithmetic_shift_left_Stub, 2, 0, nullbitwise_
 ;
 static SgObject nullbitwise_arithmetic_shift_right(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bitwise-arithmetic-shift-right");
   SgObject ei1_scm;
   SgObject ei1;
   SgObject ei2_scm;
   int ei2;
+  DeclareProcedureName("bitwise-arithmetic-shift-right");
   checkArgumentLength(2);
   argumentAsNumber(0, ei1_scm, ei1);
   argumentAsFixnum(1, ei2_scm, ei2);
@@ -12526,8 +12514,8 @@ static SG_DEFINE_SUBR(nullbitwise_arithmetic_shift_right_Stub, 2, 0, nullbitwise
 ;
 static SgObject nullidentifier3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("identifier?");
   SgObject id;
+  DeclareProcedureName("identifier?");
   checkArgumentLength(1);
   argumentRef(0, id);
   {
@@ -12541,11 +12529,11 @@ static SG_DEFINE_SUBR(nullidentifier3f_Stub, 1, 0, nullidentifier3f, SG_FALSE, N
 ;
 static SgObject nullfree_identifier3d3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("free-identifier=?");
   SgObject id1_scm;
   SgIdentifier *id1;
   SgObject id2_scm;
   SgIdentifier *id2;
+  DeclareProcedureName("free-identifier=?");
   checkArgumentLength(2);
   argumentAsIdentifier(0, id1_scm, id1);
   argumentAsIdentifier(1, id2_scm, id2);
@@ -12560,11 +12548,11 @@ static SG_DEFINE_SUBR(nullfree_identifier3d3f_Stub, 2, 0, nullfree_identifier3d3
 ;
 static SgObject nullbound_identifier3d3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bound-identifier=?");
   SgObject id1_scm;
   SgIdentifier *id1;
   SgObject id2_scm;
   SgIdentifier *id2;
+  DeclareProcedureName("bound-identifier=?");
   checkArgumentLength(2);
   argumentAsIdentifier(0, id1_scm, id1);
   argumentAsIdentifier(1, id2_scm, id2);
@@ -12588,9 +12576,9 @@ static SG_DEFINE_SUBR(nullbound_identifier3d3f_Stub, 2, 0, nullbound_identifier3
 ;
 static SgObject nullmake_eq_hashtable(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-eq-hashtable");
   SgObject k_scm;
   int k;
+  DeclareProcedureName("make-eq-hashtable");
   checkArgumentLengthBetween(0, 1);
   if (argc >= 1) {
     argumentAsFixnum(0, k_scm, k);
@@ -12609,9 +12597,9 @@ static SG_DEFINE_SUBR(nullmake_eq_hashtable_Stub, 0, 1, nullmake_eq_hashtable, S
 ;
 static SgObject nullmake_eqv_hashtable(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-eqv-hashtable");
   SgObject k_scm;
   int k;
+  DeclareProcedureName("make-eqv-hashtable");
   checkArgumentLengthBetween(0, 1);
   if (argc >= 1) {
     argumentAsFixnum(0, k_scm, k);
@@ -12630,13 +12618,13 @@ static SG_DEFINE_SUBR(nullmake_eqv_hashtable_Stub, 0, 1, nullmake_eqv_hashtable,
 ;
 static SgObject nullmake_hashtable(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-hashtable");
   SgObject hasher_scm;
   SgProcedure *hasher;
   SgObject equiv_scm;
   SgProcedure *equiv;
   SgObject k_scm;
   int k;
+  DeclareProcedureName("make-hashtable");
   checkArgumentLengthBetween(2, 3);
   argumentAsProcedure(0, hasher_scm, hasher);
   argumentAsProcedure(1, equiv_scm, equiv);
@@ -12657,8 +12645,8 @@ static SG_DEFINE_SUBR(nullmake_hashtable_Stub, 2, 1, nullmake_hashtable, SG_FALS
 ;
 static SgObject nullhashtable3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("hashtable?");
   SgObject o;
+  DeclareProcedureName("hashtable?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -12672,9 +12660,9 @@ static SG_DEFINE_SUBR(nullhashtable3f_Stub, 1, 0, nullhashtable3f, SG_FALSE, NUL
 ;
 static SgObject nullhashtable_size(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("hashtable-size");
   SgObject ht_scm;
   SgHashTable *ht;
+  DeclareProcedureName("hashtable-size");
   checkArgumentLength(1);
   argumentAsHashTable(0, ht_scm, ht);
   {
@@ -12688,11 +12676,11 @@ static SG_DEFINE_SUBR(nullhashtable_size_Stub, 1, 0, nullhashtable_size, SG_FALS
 ;
 static SgObject nullhashtable_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("hashtable-ref");
   SgObject ht_scm;
   SgHashTable *ht;
   SgObject key;
   SgObject fallback;
+  DeclareProcedureName("hashtable-ref");
   checkArgumentLength(3);
   argumentAsHashTable(0, ht_scm, ht);
   argumentRef(1, key);
@@ -12709,11 +12697,11 @@ static SG_DEFINE_SUBR(nullhashtable_ref_Stub, 3, 0, nullhashtable_ref, SG_FALSE,
 ;
 static SgObject nullhashtable_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("hashtable-set!");
   SgObject ht_scm;
   SgHashTable *ht;
   SgObject key;
   SgObject value;
+  DeclareProcedureName("hashtable-set!");
   checkArgumentLength(3);
   argumentAsHashTable(0, ht_scm, ht);
   argumentRef(1, key);
@@ -12735,10 +12723,10 @@ static SG_DEFINE_SUBR(nullhashtable_set21_Stub, 3, 0, nullhashtable_set21, SG_FA
 ;
 static SgObject nullhashtable_delete21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("hashtable-delete!");
   SgObject ht_scm;
   SgHashTable *ht;
   SgObject key;
+  DeclareProcedureName("hashtable-delete!");
   checkArgumentLength(2);
   argumentAsHashTable(0, ht_scm, ht);
   argumentRef(1, key);
@@ -12759,10 +12747,10 @@ static SG_DEFINE_SUBR(nullhashtable_delete21_Stub, 2, 0, nullhashtable_delete21,
 ;
 static SgObject nullhashtable_contains3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("hashtable-contains?");
   SgObject ht_scm;
   SgHashTable *ht;
   SgObject key;
+  DeclareProcedureName("hashtable-contains?");
   checkArgumentLength(2);
   argumentAsHashTable(0, ht_scm, ht);
   argumentRef(1, key);
@@ -12781,11 +12769,11 @@ static SG_DEFINE_SUBR(nullhashtable_contains3f_Stub, 2, 0, nullhashtable_contain
 ;
 static SgObject nullhashtable_copy(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("hashtable-copy");
   SgObject ht_scm;
   SgHashTable *ht;
   SgObject mutableP_scm;
   int mutableP;
+  DeclareProcedureName("hashtable-copy");
   checkArgumentLengthBetween(1, 2);
   argumentAsHashTable(0, ht_scm, ht);
   if (argc >= 2) {
@@ -12805,11 +12793,11 @@ static SG_DEFINE_SUBR(nullhashtable_copy_Stub, 1, 1, nullhashtable_copy, SG_FALS
 ;
 static SgObject nullhashtable_clear21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("hashtable-clear!");
   SgObject ht_scm;
   SgHashTable *ht;
   SgObject k_scm;
   int k;
+  DeclareProcedureName("hashtable-clear!");
   checkArgumentLengthBetween(1, 2);
   argumentAsHashTable(0, ht_scm, ht);
   if (argc >= 2) {
@@ -12835,9 +12823,9 @@ static SG_DEFINE_SUBR(nullhashtable_clear21_Stub, 1, 1, nullhashtable_clear21, S
 ;
 static SgObject nullhashtable_keys(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("hashtable-keys");
   SgObject ht_scm;
   SgHashTable *ht;
+  DeclareProcedureName("hashtable-keys");
   checkArgumentLength(1);
   argumentAsHashTable(0, ht_scm, ht);
   {
@@ -12851,9 +12839,9 @@ static SG_DEFINE_SUBR(nullhashtable_keys_Stub, 1, 0, nullhashtable_keys, SG_FALS
 ;
 static SgObject nullhashtable_mutable3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("hashtable-mutable?");
   SgObject ht_scm;
   SgHashTable *ht;
+  DeclareProcedureName("hashtable-mutable?");
   checkArgumentLength(1);
   argumentAsHashTable(0, ht_scm, ht);
   {
@@ -12867,8 +12855,8 @@ static SG_DEFINE_SUBR(nullhashtable_mutable3f_Stub, 1, 0, nullhashtable_mutable3
 ;
 static SgObject nullequal_hash(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("equal-hash");
   SgObject o;
+  DeclareProcedureName("equal-hash");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -12882,10 +12870,10 @@ static SG_DEFINE_SUBR(nullequal_hash_Stub, 1, 0, nullequal_hash, SG_FALSE, NULL)
 ;
 static SgObject nullstring_hash(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string-hash");
   SgObject o_scm;
   SgString *o;
   SgObject bound;
+  DeclareProcedureName("string-hash");
   checkArgumentLengthBetween(1, 2);
   argumentAsString(0, o_scm, o);
   if (argc >= 2) {
@@ -12923,10 +12911,10 @@ static SG_DEFINE_SUBR(nullstring_hash_Stub, 1, 1, nullstring_hash, SG_FALSE, NUL
 ;
 static SgObject nullstring_ci_hash(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string-ci-hash");
   SgObject o_scm;
   SgString *o;
   SgObject bound;
+  DeclareProcedureName("string-ci-hash");
   checkArgumentLengthBetween(1, 2);
   argumentAsString(0, o_scm, o);
   if (argc >= 2) {
@@ -12964,9 +12952,9 @@ static SG_DEFINE_SUBR(nullstring_ci_hash_Stub, 1, 1, nullstring_ci_hash, SG_FALS
 ;
 static SgObject nullsymbol_hash(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("symbol-hash");
   SgObject o_scm;
   SgSymbol *o;
+  DeclareProcedureName("symbol-hash");
   checkArgumentLength(1);
   argumentAsSymbol(0, o_scm, o);
   {
@@ -12980,9 +12968,9 @@ static SG_DEFINE_SUBR(nullsymbol_hash_Stub, 1, 0, nullsymbol_hash, SG_FALSE, NUL
 ;
 static SgObject nulleval(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("eval");
   SgObject sexp;
   SgObject env;
+  DeclareProcedureName("eval");
   checkArgumentLength(2);
   argumentRef(0, sexp);
   argumentRef(1, env);
@@ -12997,9 +12985,9 @@ static SG_DEFINE_SUBR(nulleval_Stub, 2, 0, nulleval, SG_FALSE, NULL);
 ;
 static SgObject nullenvironment(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("environment");
   SgObject spec;
   SgObject more;
+  DeclareProcedureName("environment");
   checkArgumentLengthAtLeast(1);
   argumentRef(0, spec);
   retrieveOptionalArguments(1, more);
@@ -13015,9 +13003,9 @@ static SG_DEFINE_SUBR(nullenvironment_Stub, 1, 1, nullenvironment, SG_FALSE, NUL
 ;
 static SgObject nullset_car21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("set-car!");
   SgObject o;
   SgObject v;
+  DeclareProcedureName("set-car!");
   checkArgumentLength(2);
   argumentRef(0, o);
   argumentRef(1, v);
@@ -13038,9 +13026,9 @@ static SG_DEFINE_SUBR(nullset_car21_Stub, 2, 0, nullset_car21, SG_MAKE_INT(SET_C
 ;
 static SgObject nullset_cdr21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("set-cdr!");
   SgObject o;
   SgObject v;
+  DeclareProcedureName("set-cdr!");
   checkArgumentLength(2);
   argumentRef(0, o);
   argumentRef(1, v);
@@ -13061,12 +13049,12 @@ static SG_DEFINE_SUBR(nullset_cdr21_Stub, 2, 0, nullset_cdr21, SG_MAKE_INT(SET_C
 ;
 static SgObject nullstring_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string-set!");
   SgObject s_scm;
   SgString *s;
   SgObject k_scm;
   int k;
   SgObject c;
+  DeclareProcedureName("string-set!");
   checkArgumentLength(3);
   argumentAsString(0, s_scm, s);
   argumentAsFixnum(1, k_scm, k);
@@ -13106,7 +13094,6 @@ static SG_DEFINE_SUBR(nullstring_set21_Stub, 3, 0, nullstring_set21, SG_FALSE, N
 ;
 static SgObject nullstring_fill21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("string-fill!");
   SgObject s_scm;
   SgString *s;
   SgObject c;
@@ -13114,6 +13101,7 @@ static SgObject nullstring_fill21(SgObject *args, int argc, void *data_)
   int start;
   SgObject end_scm;
   int end;
+  DeclareProcedureName("string-fill!");
   checkArgumentLengthBetween(2, 4);
   argumentAsString(0, s_scm, s);
   argumentRef(1, c);
@@ -13152,8 +13140,8 @@ static SG_DEFINE_SUBR(nullstring_fill21_Stub, 2, 2, nullstring_fill21, SG_FALSE,
 ;
 static SgObject nullcondition(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("condition");
   SgObject components;
+  DeclareProcedureName("condition");
   retrieveOptionalArguments(0, components);
   {
     SgObject SG_RETURN = SG_UNDEF;
@@ -13166,8 +13154,8 @@ static SG_DEFINE_SUBR(nullcondition_Stub, 0, 1, nullcondition, SG_FALSE, NULL);
 ;
 static SgObject nullsimple_conditions(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("simple-conditions");
   SgObject obj;
+  DeclareProcedureName("simple-conditions");
   checkArgumentLength(1);
   argumentRef(0, obj);
   {
@@ -13181,8 +13169,8 @@ static SG_DEFINE_SUBR(nullsimple_conditions_Stub, 1, 0, nullsimple_conditions, S
 ;
 static SgObject nullcompound_condition_component(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("compound-condition-component");
   SgObject obj;
+  DeclareProcedureName("compound-condition-component");
   checkArgumentLength(1);
   argumentRef(0, obj);
   {
@@ -13196,8 +13184,8 @@ static SG_DEFINE_SUBR(nullcompound_condition_component_Stub, 1, 0, nullcompound_
 ;
 static SgObject nullcompound_condition3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("compound-condition?");
   SgObject obj;
+  DeclareProcedureName("compound-condition?");
   checkArgumentLength(1);
   argumentRef(0, obj);
   {
@@ -13211,8 +13199,8 @@ static SG_DEFINE_SUBR(nullcompound_condition3f_Stub, 1, 0, nullcompound_conditio
 ;
 static SgObject nullsimple_condition3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("simple-condition?");
   SgObject obj;
+  DeclareProcedureName("simple-condition?");
   checkArgumentLength(1);
   argumentRef(0, obj);
   {
@@ -13226,8 +13214,8 @@ static SG_DEFINE_SUBR(nullsimple_condition3f_Stub, 1, 0, nullsimple_condition3f,
 ;
 static SgObject nullcondition3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("condition?");
   SgObject obj;
+  DeclareProcedureName("condition?");
   checkArgumentLength(1);
   argumentRef(0, obj);
   {
@@ -13241,8 +13229,8 @@ static SG_DEFINE_SUBR(nullcondition3f_Stub, 1, 0, nullcondition3f, SG_FALSE, NUL
 ;
 static SgObject nullcondition_predicate(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("condition-predicate");
   SgObject rtd;
+  DeclareProcedureName("condition-predicate");
   checkArgumentLength(1);
   argumentRef(0, rtd);
   {
@@ -13256,9 +13244,9 @@ static SG_DEFINE_SUBR(nullcondition_predicate_Stub, 1, 0, nullcondition_predicat
 ;
 static SgObject nullcondition_accessor(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("condition-accessor");
   SgObject rtd;
   SgObject proc;
+  DeclareProcedureName("condition-accessor");
   checkArgumentLength(2);
   argumentRef(0, rtd);
   argumentRef(1, proc);
@@ -13273,11 +13261,11 @@ static SG_DEFINE_SUBR(nullcondition_accessor_Stub, 2, 0, nullcondition_accessor,
 ;
 static SgObject nullmake_record_type(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-record-type");
   SgObject name_scm;
   SgSymbol *name;
   SgObject rtd;
   SgObject rcd;
+  DeclareProcedureName("make-record-type");
   checkArgumentLength(3);
   argumentAsSymbol(0, name_scm, name);
   argumentRef(1, rtd);
@@ -13294,9 +13282,9 @@ static SG_DEFINE_SUBR(nullmake_record_type_Stub, 3, 0, nullmake_record_type, SG_
 ;
 static SgObject nullrecord_type_rtd(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("record-type-rtd");
   SgObject rt_scm;
   SgRecordType *rt;
+  DeclareProcedureName("record-type-rtd");
   checkArgumentLength(1);
   argumentAsRecordType(0, rt_scm, rt);
   {
@@ -13311,9 +13299,9 @@ static SG_DEFINE_SUBR(nullrecord_type_rtd_Stub, 1, 0, nullrecord_type_rtd, SG_FA
 ;
 static SgObject nullrecord_type_rcd(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("record-type-rcd");
   SgObject rt_scm;
   SgRecordType *rt;
+  DeclareProcedureName("record-type-rcd");
   checkArgumentLength(1);
   argumentAsRecordType(0, rt_scm, rt);
   {
@@ -13328,7 +13316,6 @@ static SG_DEFINE_SUBR(nullrecord_type_rcd_Stub, 1, 0, nullrecord_type_rcd, SG_FA
 ;
 static SgObject nullmake_record_type_descriptor(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-record-type-descriptor");
   SgObject name_scm;
   SgSymbol *name;
   SgObject parent;
@@ -13339,6 +13326,7 @@ static SgObject nullmake_record_type_descriptor(SgObject *args, int argc, void *
   int opaqueP;
   SgObject fields_scm;
   SgVector *fields;
+  DeclareProcedureName("make-record-type-descriptor");
   checkArgumentLength(6);
   argumentAsSymbol(0, name_scm, name);
   argumentRef(1, parent);
@@ -13357,10 +13345,10 @@ static SG_DEFINE_SUBR(nullmake_record_type_descriptor_Stub, 6, 0, nullmake_recor
 ;
 static SgObject nullmake_record_constructor_descriptor(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-record-constructor-descriptor");
   SgObject rtd;
   SgObject parent;
   SgObject protocol;
+  DeclareProcedureName("make-record-constructor-descriptor");
   checkArgumentLength(3);
   argumentRef(0, rtd);
   argumentRef(1, parent);
@@ -13376,8 +13364,8 @@ static SG_DEFINE_SUBR(nullmake_record_constructor_descriptor_Stub, 3, 0, nullmak
 ;
 static SgObject nullrecord3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("record?");
   SgObject o;
+  DeclareProcedureName("record?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -13391,8 +13379,8 @@ static SG_DEFINE_SUBR(nullrecord3f_Stub, 1, 0, nullrecord3f, SG_FALSE, NULL);
 ;
 static SgObject nullrecord_rtd(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("record-rtd");
   SgObject o;
+  DeclareProcedureName("record-rtd");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -13406,8 +13394,8 @@ static SG_DEFINE_SUBR(nullrecord_rtd_Stub, 1, 0, nullrecord_rtd, SG_FALSE, NULL)
 ;
 static SgObject nullrecord_type_descriptor3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("record-type-descriptor?");
   SgObject o;
+  DeclareProcedureName("record-type-descriptor?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -13421,8 +13409,8 @@ static SG_DEFINE_SUBR(nullrecord_type_descriptor3f_Stub, 1, 0, nullrecord_type_d
 ;
 static SgObject nullrecord_constructor_descriptor3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("record-constructor-descriptor?");
   SgObject o;
+  DeclareProcedureName("record-constructor-descriptor?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -13436,8 +13424,8 @@ static SG_DEFINE_SUBR(nullrecord_constructor_descriptor3f_Stub, 1, 0, nullrecord
 ;
 static SgObject nullrecord_constructor(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("record-constructor");
   SgObject rcd;
+  DeclareProcedureName("record-constructor");
   checkArgumentLength(1);
   argumentRef(0, rcd);
   {
@@ -13451,10 +13439,10 @@ static SG_DEFINE_SUBR(nullrecord_constructor_Stub, 1, 0, nullrecord_constructor,
 ;
 static SgObject nullrecord_accessor(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("record-accessor");
   SgObject rtd;
   SgObject k_scm;
   int k;
+  DeclareProcedureName("record-accessor");
   checkArgumentLength(2);
   argumentRef(0, rtd);
   argumentAsFixnum(1, k_scm, k);
@@ -13481,8 +13469,8 @@ static SG_DEFINE_SUBR(nullrecord_accessor_Stub, 2, 0, nullrecord_accessor, SG_FA
 ;
 static SgObject nullrecord_predicate(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("record-predicate");
   SgObject rtd;
+  DeclareProcedureName("record-predicate");
   checkArgumentLength(1);
   argumentRef(0, rtd);
   {
@@ -13502,10 +13490,10 @@ static SG_DEFINE_SUBR(nullrecord_predicate_Stub, 1, 0, nullrecord_predicate, SG_
 ;
 static SgObject nullrecord_mutator(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("record-mutator");
   SgObject rtd;
   SgObject k_scm;
   int k;
+  DeclareProcedureName("record-mutator");
   checkArgumentLength(2);
   argumentRef(0, rtd);
   argumentAsFixnum(1, k_scm, k);
@@ -13538,8 +13526,8 @@ static SG_DEFINE_SUBR(nullrecord_mutator_Stub, 2, 0, nullrecord_mutator, SG_FALS
 ;
 static SgObject nullrecord_type_name(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("record-type-name");
   SgObject rtd;
+  DeclareProcedureName("record-type-name");
   checkArgumentLength(1);
   argumentRef(0, rtd);
   {
@@ -13559,8 +13547,8 @@ static SG_DEFINE_SUBR(nullrecord_type_name_Stub, 1, 0, nullrecord_type_name, SG_
 ;
 static SgObject nullrecord_type_parent(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("record-type-parent");
   SgObject rtd;
+  DeclareProcedureName("record-type-parent");
   checkArgumentLength(1);
   argumentRef(0, rtd);
   {
@@ -13580,8 +13568,8 @@ static SG_DEFINE_SUBR(nullrecord_type_parent_Stub, 1, 0, nullrecord_type_parent,
 ;
 static SgObject nullrecord_type_uid(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("record-type-uid");
   SgObject rtd;
+  DeclareProcedureName("record-type-uid");
   checkArgumentLength(1);
   argumentRef(0, rtd);
   {
@@ -13601,8 +13589,8 @@ static SG_DEFINE_SUBR(nullrecord_type_uid_Stub, 1, 0, nullrecord_type_uid, SG_FA
 ;
 static SgObject nullrecord_type_generative3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("record-type-generative?");
   SgObject rtd;
+  DeclareProcedureName("record-type-generative?");
   checkArgumentLength(1);
   argumentRef(0, rtd);
   {
@@ -13622,8 +13610,8 @@ static SG_DEFINE_SUBR(nullrecord_type_generative3f_Stub, 1, 0, nullrecord_type_g
 ;
 static SgObject nullrecord_type_opaque3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("record-type-opaque?");
   SgObject rtd;
+  DeclareProcedureName("record-type-opaque?");
   checkArgumentLength(1);
   argumentRef(0, rtd);
   {
@@ -13643,8 +13631,8 @@ static SG_DEFINE_SUBR(nullrecord_type_opaque3f_Stub, 1, 0, nullrecord_type_opaqu
 ;
 static SgObject nullrecord_type_sealed3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("record-type-sealed?");
   SgObject rtd;
+  DeclareProcedureName("record-type-sealed?");
   checkArgumentLength(1);
   argumentRef(0, rtd);
   {
@@ -13664,8 +13652,8 @@ static SG_DEFINE_SUBR(nullrecord_type_sealed3f_Stub, 1, 0, nullrecord_type_seale
 ;
 static SgObject nullrtd_fields(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("rtd-fields");
   SgObject rtd;
+  DeclareProcedureName("rtd-fields");
   checkArgumentLength(1);
   argumentRef(0, rtd);
   {
@@ -13685,8 +13673,8 @@ static SG_DEFINE_SUBR(nullrtd_fields_Stub, 1, 0, nullrtd_fields, SG_FALSE, NULL)
 ;
 static SgObject nullrecord_type_field_names(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("record-type-field-names");
   SgObject rtd;
+  DeclareProcedureName("record-type-field-names");
   checkArgumentLength(1);
   argumentRef(0, rtd);
   {
@@ -13723,10 +13711,10 @@ static SG_DEFINE_SUBR(nullrecord_type_field_names_Stub, 1, 0, nullrecord_type_fi
 ;
 static SgObject nullrecord_field_mutable3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("record-field-mutable?");
   SgObject rtd;
   SgObject k_scm;
   int k;
+  DeclareProcedureName("record-field-mutable?");
   checkArgumentLength(2);
   argumentRef(0, rtd);
   argumentAsFixnum(1, k_scm, k);
@@ -13747,8 +13735,8 @@ static SG_DEFINE_SUBR(nullrecord_field_mutable3f_Stub, 2, 0, nullrecord_field_mu
 ;
 static SgObject nullrtd_inherited_field_count(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("rtd-inherited-field-count");
   SgObject rtd;
+  DeclareProcedureName("rtd-inherited-field-count");
   checkArgumentLength(1);
   argumentRef(0, rtd);
   {
@@ -13768,8 +13756,8 @@ static SG_DEFINE_SUBR(nullrtd_inherited_field_count_Stub, 1, 0, nullrtd_inherite
 ;
 static SgObject nullrtd_total_field_count(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("rtd-total-field-count");
   SgObject rtd;
+  DeclareProcedureName("rtd-total-field-count");
   checkArgumentLength(1);
   argumentRef(0, rtd);
   {
@@ -13789,9 +13777,9 @@ static SG_DEFINE_SUBR(nullrtd_total_field_count_Stub, 1, 0, nullrtd_total_field_
 ;
 static SgObject nullrtd_ancestor3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("rtd-ancestor?");
   SgObject parent;
   SgObject rtd;
+  DeclareProcedureName("rtd-ancestor?");
   checkArgumentLength(2);
   argumentRef(0, parent);
   argumentRef(1, rtd);
@@ -13818,8 +13806,8 @@ static SG_DEFINE_SUBR(nullrtd_ancestor3f_Stub, 2, 0, nullrtd_ancestor3f, SG_FALS
 ;
 static SgObject nullrcd_protocol(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("rcd-protocol");
   SgObject rcd;
+  DeclareProcedureName("rcd-protocol");
   checkArgumentLength(1);
   argumentRef(0, rcd);
   {
@@ -13833,8 +13821,8 @@ static SG_DEFINE_SUBR(nullrcd_protocol_Stub, 1, 0, nullrcd_protocol, SG_FALSE, N
 ;
 static SgObject nullrcd_parent(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("rcd-parent");
   SgObject rcd;
+  DeclareProcedureName("rcd-parent");
   checkArgumentLength(1);
   argumentRef(0, rcd);
   {
@@ -13848,10 +13836,10 @@ static SG_DEFINE_SUBR(nullrcd_parent_Stub, 1, 0, nullrcd_parent, SG_FALSE, NULL)
 ;
 static SgObject nullmake_tuple(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-tuple");
   SgObject size_scm;
   int size;
   SgObject printer;
+  DeclareProcedureName("make-tuple");
   checkArgumentLength(2);
   argumentAsFixnum(0, size_scm, size);
   argumentRef(1, printer);
@@ -13866,9 +13854,9 @@ static SG_DEFINE_SUBR(nullmake_tuple_Stub, 2, 0, nullmake_tuple, SG_FALSE, NULL)
 ;
 static SgObject nulltuple_list_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("tuple-list-set!");
   SgObject tuple;
   SgObject lst;
+  DeclareProcedureName("tuple-list-set!");
   checkArgumentLength(2);
   argumentRef(0, tuple);
   argumentRef(1, lst);
@@ -13883,10 +13871,10 @@ static SG_DEFINE_SUBR(nulltuple_list_set21_Stub, 2, 0, nulltuple_list_set21, SG_
 ;
 static SgObject nulltuple_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("tuple-ref");
   SgObject tuple;
   SgObject i_scm;
   int i;
+  DeclareProcedureName("tuple-ref");
   checkArgumentLength(2);
   argumentRef(0, tuple);
   argumentAsFixnum(1, i_scm, i);
@@ -13901,11 +13889,11 @@ static SG_DEFINE_SUBR(nulltuple_ref_Stub, 2, 0, nulltuple_ref, SG_FALSE, NULL);
 ;
 static SgObject nulltuple_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("tuple-set!");
   SgObject tuple;
   SgObject i_scm;
   int i;
   SgObject value;
+  DeclareProcedureName("tuple-set!");
   checkArgumentLength(3);
   argumentRef(0, tuple);
   argumentAsFixnum(1, i_scm, i);
@@ -13921,8 +13909,8 @@ static SG_DEFINE_SUBR(nulltuple_set21_Stub, 3, 0, nulltuple_set21, SG_FALSE, NUL
 ;
 static SgObject nulltuple_size(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("tuple-size");
   SgObject tuple;
+  DeclareProcedureName("tuple-size");
   checkArgumentLength(1);
   argumentRef(0, tuple);
   {
