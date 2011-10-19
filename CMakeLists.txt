@@ -4,6 +4,7 @@ PROJECT(Sagittarius)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckFunctionExists.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckTypeSize.cmake)
+INCLUDE(${CMAKE_ROOT}/Modules/CheckCSourceRuns.cmake)
 
 #ENABLE_TESTING()
 
@@ -114,7 +115,20 @@ CHECK_INCLUDE_FILE(dlfcn.h  HAVE_DLFCN_H)
 CHECK_INCLUDE_FILE(sched.h  HAVE_SCHED_H)
 
 # functions
-CHECK_FUNCTION_EXISTS(alloca HAVE_ALLOCA)
+# alloca needs special treatment
+IF (HAVE_ALLOCA_H)
+  # for now it is simple as much as possible.
+  CHECK_C_SOURCE_RUNS("
+#include <alloca.h>
+int main()
+{
+  alloca(1);
+  return 0;
+}
+" HAVE_ALLOCA)
+ENDIF()
+
+#CHECK_FUNCTION_EXISTS(alloca HAVE_ALLOCA)
 CHECK_FUNCTION_EXISTS(sched_yield HAVE_SCHED_YIELD)
 CHECK_FUNCTION_EXISTS(nanosleep HAVE_NANOSLEEP)
 CHECK_FUNCTION_EXISTS(select HAVE_SELECT)

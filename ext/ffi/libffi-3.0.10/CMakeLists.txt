@@ -31,11 +31,15 @@ if (MSVC)
   set(asm_file_ext ".asm")
   #set(asm_file_ext ".c")
 else()
+  enable_language(ASM)
   set(asm_file_ext ".s")
 endif()
 
 set(conftest_asm_file "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/conftest${asm_file_ext}")
-set_property (SOURCE ${conftest_asm_file} PROPERTY LANGUAGE C)
+if (NOT MSVC)
+  set_property (SOURCE ${conftest_asm_file} PROPERTY LANGUAGE C)
+endif()
+
 FILE(WRITE ${conftest_asm_file}
   ".text; foo: nop; .data; .long foo-.; .text\n")
 set(libffi_cv_as_x86_pcrel "yes")
