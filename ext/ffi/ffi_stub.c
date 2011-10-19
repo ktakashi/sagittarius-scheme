@@ -6,9 +6,9 @@
 ;
 static SgObject _sagittarius_ffi_impl_open_shared_library(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("open-shared-library");
   SgObject file_scm;
   SgString *file;
+  DeclareProcedureName("open-shared-library");
   checkArgumentLength(1);
   argumentAsString(0, file_scm, file);
   {
@@ -22,11 +22,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_open_shared_library_Stub, 1, 0, _sag
 ;
 static SgObject _sagittarius_ffi_impl_lookup_shared_library(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("lookup-shared-library");
   SgObject handle_scm;
   SgPointer *handle;
   SgObject symbol_scm;
   SgString *symbol;
+  DeclareProcedureName("lookup-shared-library");
   checkArgumentLength(2);
   argumentAsPointer(0, handle_scm, handle);
   argumentAsString(1, symbol_scm, symbol);
@@ -41,9 +41,9 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_lookup_shared_library_Stub, 2, 0, _s
 ;
 static SgObject _sagittarius_ffi_impl_close_shared_library(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("close-shared-library");
   SgObject handle_scm;
   SgPointer *handle;
+  DeclareProcedureName("close-shared-library");
   checkArgumentLength(1);
   argumentAsPointer(0, handle_scm, handle);
   {
@@ -57,7 +57,6 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_close_shared_library_Stub, 1, 0, _sa
 ;
 static SgObject _sagittarius_ffi_impl_create_function_info(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("create-function-info");
   SgObject handle_scm;
   SgPointer *handle;
   SgObject rettype_scm;
@@ -66,6 +65,7 @@ static SgObject _sagittarius_ffi_impl_create_function_info(SgObject *args, int a
   SgString *sigs;
   SgObject sret;
   SgObject sparam;
+  DeclareProcedureName("create-function-info");
   checkArgumentLength(5);
   argumentAsPointer(0, handle_scm, handle);
   argumentAsFixnum(1, rettype_scm, rettype);
@@ -83,13 +83,13 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_create_function_info_Stub, 5, 0, _sa
 ;
 static SgObject _sagittarius_ffi_impl_create_c_callback(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("create-c-callback");
   SgObject rettype_scm;
   int rettype;
   SgObject sigs_scm;
   SgString *sigs;
   SgObject proc_scm;
   SgProcedure *proc;
+  DeclareProcedureName("create-c-callback");
   checkArgumentLength(3);
   argumentAsFixnum(0, rettype_scm, rettype);
   argumentAsString(1, sigs_scm, sigs);
@@ -105,9 +105,9 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_create_c_callback_Stub, 3, 0, _sagit
 ;
 static SgObject _sagittarius_ffi_impl_free_c_callback(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("free-c-callback");
   SgObject callback_scm;
   SgCallback *callback;
+  DeclareProcedureName("free-c-callback");
   checkArgumentLength(1);
   argumentAsCallback(0, callback_scm, callback);
   {
@@ -121,9 +121,9 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_free_c_callback_Stub, 1, 0, _sagitta
 ;
 static SgObject _sagittarius_ffi_impl_c_malloc(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("c-malloc");
   SgObject size_scm;
   int size;
+  DeclareProcedureName("c-malloc");
   checkArgumentLength(1);
   argumentAsFixnum(0, size_scm, size);
   {
@@ -137,9 +137,9 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_c_malloc_Stub, 1, 0, _sagittarius_ff
 ;
 static SgObject _sagittarius_ffi_impl_c_free(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("c-free");
   SgObject p_scm;
   SgPointer *p;
+  DeclareProcedureName("c-free");
   checkArgumentLength(1);
   argumentAsPointer(0, p_scm, p);
   {
@@ -153,8 +153,8 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_c_free_Stub, 1, 0, _sagittarius_ffi_
 ;
 static SgObject _sagittarius_ffi_impl_pointer3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer?");
   SgObject o;
+  DeclareProcedureName("pointer?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -168,9 +168,9 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer3f_Stub, 1, 0, _sagittarius_f
 ;
 static SgObject _sagittarius_ffi_impl_integer_3epointer(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("integer->pointer");
   SgObject n_scm;
   int n;
+  DeclareProcedureName("integer->pointer");
   checkArgumentLength(1);
   argumentAsFixnum(0, n_scm, n);
   {
@@ -184,9 +184,9 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_integer_3epointer_Stub, 1, 0, _sagit
 ;
 static SgObject _sagittarius_ffi_impl_pointer_3einteger(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer->integer");
   SgObject p_scm;
   SgPointer *p;
+  DeclareProcedureName("pointer->integer");
   checkArgumentLength(1);
   argumentAsPointer(0, p_scm, p);
   {
@@ -200,9 +200,9 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_3einteger_Stub, 1, 0, _sagit
 ;
 static SgObject _sagittarius_ffi_impl_allocate_pointer(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("allocate-pointer");
   SgObject size_scm;
   int size;
+  DeclareProcedureName("allocate-pointer");
   checkArgumentLength(1);
   argumentAsFixnum(0, size_scm, size);
   {
@@ -221,10 +221,10 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_allocate_pointer_Stub, 1, 0, _sagitt
 ;
 static SgObject _sagittarius_ffi_impl_create_c_struct(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("create-c-struct");
   SgObject name_scm;
   SgSymbol *name;
   SgObject layouts;
+  DeclareProcedureName("create-c-struct");
   checkArgumentLength(2);
   argumentAsSymbol(0, name_scm, name);
   argumentRef(1, layouts);
@@ -239,9 +239,9 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_create_c_struct_Stub, 2, 0, _sagitta
 ;
 static SgObject _sagittarius_ffi_impl_allocate_c_struct(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("allocate-c-struct");
   SgObject st_scm;
   SgCStruct *st;
+  DeclareProcedureName("allocate-c-struct");
   checkArgumentLength(1);
   argumentAsCStruct(0, st_scm, st);
   {
@@ -260,9 +260,9 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_allocate_c_struct_Stub, 1, 0, _sagit
 ;
 static SgObject _sagittarius_ffi_impl_size_of_c_struct(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("size-of-c-struct");
   SgObject st_scm;
   SgCStruct *st;
+  DeclareProcedureName("size-of-c-struct");
   checkArgumentLength(1);
   argumentAsCStruct(0, st_scm, st);
   {
@@ -276,13 +276,13 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_size_of_c_struct_Stub, 1, 0, _sagitt
 ;
 static SgObject _sagittarius_ffi_impl_c_struct_ref(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("c-struct-ref");
   SgObject p_scm;
   SgPointer *p;
   SgObject st_scm;
   SgCStruct *st;
   SgObject name_scm;
   SgSymbol *name;
+  DeclareProcedureName("c-struct-ref");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsCStruct(1, st_scm, st);
@@ -298,7 +298,6 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_c_struct_ref_Stub, 3, 0, _sagittariu
 ;
 static SgObject _sagittarius_ffi_impl_c_struct_set21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("c-struct-set!");
   SgObject p_scm;
   SgPointer *p;
   SgObject st_scm;
@@ -306,6 +305,7 @@ static SgObject _sagittarius_ffi_impl_c_struct_set21(SgObject *args, int argc, v
   SgObject name_scm;
   SgSymbol *name;
   SgObject v;
+  DeclareProcedureName("c-struct-set!");
   checkArgumentLength(4);
   argumentAsPointer(0, p_scm, p);
   argumentAsCStruct(1, st_scm, st);
@@ -322,11 +322,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_c_struct_set21_Stub, 4, 0, _sagittar
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_uint8(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-uint8");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-uint8");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -341,11 +341,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_ref_c_uint8_Stub, 2, 0, _sag
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_int8(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-int8");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-int8");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -360,11 +360,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_ref_c_int8_Stub, 2, 0, _sagi
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_uint16(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-uint16");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-uint16");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -379,11 +379,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_ref_c_uint16_Stub, 2, 0, _sa
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_int16(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-int16");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-int16");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -398,11 +398,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_ref_c_int16_Stub, 2, 0, _sag
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_uint32(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-uint32");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-uint32");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -417,11 +417,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_ref_c_uint32_Stub, 2, 0, _sa
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_int32(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-int32");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-int32");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -436,11 +436,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_ref_c_int32_Stub, 2, 0, _sag
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_uint64(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-uint64");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-uint64");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -455,11 +455,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_ref_c_uint64_Stub, 2, 0, _sa
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_int64(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-int64");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-int64");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -481,11 +481,11 @@ typedef long long longlong;
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_unsigned_char(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-unsigned-char");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-unsigned-char");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -500,11 +500,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_ref_c_unsigned_char_Stub, 2,
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_char(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-char");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-char");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -519,11 +519,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_ref_c_char_Stub, 2, 0, _sagi
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_unsigned_short(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-unsigned-short");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-unsigned-short");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -538,11 +538,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_ref_c_unsigned_short_Stub, 2
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_short(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-short");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-short");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -557,11 +557,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_ref_c_short_Stub, 2, 0, _sag
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_unsigned_int(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-unsigned-int");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-unsigned-int");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -576,11 +576,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_ref_c_unsigned_int_Stub, 2, 
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_int(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-int");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-int");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -595,11 +595,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_ref_c_int_Stub, 2, 0, _sagit
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_unsigned_long(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-unsigned-long");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-unsigned-long");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -614,11 +614,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_ref_c_unsigned_long_Stub, 2,
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_long(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-long");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-long");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -633,11 +633,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_ref_c_long_Stub, 2, 0, _sagi
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_unsigned_long_long(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-unsigned-long-long");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-unsigned-long-long");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -652,11 +652,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_ref_c_unsigned_long_long_Stu
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_long_long(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-long-long");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-long-long");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -671,11 +671,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_ref_c_long_long_Stub, 2, 0, 
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_float(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-float");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-float");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -690,11 +690,11 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_ref_c_float_Stub, 2, 0, _sag
 ;
 static SgObject _sagittarius_ffi_impl_pointer_ref_c_double(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-ref-c-double");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
+  DeclareProcedureName("pointer-ref-c-double");
   checkArgumentLength(2);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -709,12 +709,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_ref_c_double_Stub, 2, 0, _sa
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_uint821(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-uint8!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-uint8!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -730,12 +730,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_uint821_Stub, 3, 0, _s
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_int821(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-int8!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-int8!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -751,12 +751,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_int821_Stub, 3, 0, _sa
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_uint1621(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-uint16!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-uint16!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -772,12 +772,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_uint1621_Stub, 3, 0, _
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_int1621(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-int16!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-int16!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -793,12 +793,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_int1621_Stub, 3, 0, _s
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_uint3221(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-uint32!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-uint32!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -814,12 +814,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_uint3221_Stub, 3, 0, _
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_int3221(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-int32!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-int32!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -835,12 +835,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_int3221_Stub, 3, 0, _s
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_uint6421(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-uint64!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-uint64!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -856,12 +856,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_uint6421_Stub, 3, 0, _
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_int6421(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-int64!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-int64!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -877,12 +877,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_int6421_Stub, 3, 0, _s
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_unsigned_char21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-unsigned-char!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-unsigned-char!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -898,12 +898,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_unsigned_char21_Stub, 
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_char21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-char!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-char!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -919,12 +919,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_char21_Stub, 3, 0, _sa
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_unsigned_short21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-unsigned-short!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-unsigned-short!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -940,12 +940,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_unsigned_short21_Stub,
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_short21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-short!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-short!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -961,12 +961,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_short21_Stub, 3, 0, _s
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_unsigned_int21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-unsigned-int!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-unsigned-int!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -982,12 +982,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_unsigned_int21_Stub, 3
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_int21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-int!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-int!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -1003,12 +1003,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_int21_Stub, 3, 0, _sag
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_unsigned_long21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-unsigned-long!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-unsigned-long!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -1024,12 +1024,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_unsigned_long21_Stub, 
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_long21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-long!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-long!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -1045,12 +1045,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_long21_Stub, 3, 0, _sa
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_unsigned_long_long21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-unsigned-long-long!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-unsigned-long-long!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -1066,12 +1066,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_unsigned_long_long21_S
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_long_long21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-long-long!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-long-long!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -1087,12 +1087,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_long_long21_Stub, 3, 0
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_float21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-float!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-float!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -1108,12 +1108,12 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_float21_Stub, 3, 0, _s
 ;
 static SgObject _sagittarius_ffi_impl_pointer_set_c_double21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("pointer-set-c-double!");
   SgObject p_scm;
   SgPointer *p;
   SgObject offset_scm;
   int offset;
   SgObject value;
+  DeclareProcedureName("pointer-set-c-double!");
   checkArgumentLength(3);
   argumentAsPointer(0, p_scm, p);
   argumentAsFixnum(1, offset_scm, offset);
@@ -1130,42 +1130,102 @@ static SG_DEFINE_SUBR(_sagittarius_ffi_impl_pointer_set_c_double21_Stub, 3, 0, _
 void Sg__Init_sagittarius_ffi_impl()
 {
   SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC("(sagittarius ffi impl)"), SG_LITERAL_STRING)), TRUE);
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_unsigned_long_long_Stub) = Sg_MakeString(UC("pointer-ref-c-unsigned-long-long"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-unsigned-long-long"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_unsigned_long_long_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_int1621_Stub) = Sg_MakeString(UC("pointer-set-c-int16!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-int16!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_int1621_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_unsigned_short21_Stub) = Sg_MakeString(UC("pointer-set-c-unsigned-short!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-unsigned-short!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_unsigned_short21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_long_long21_Stub) = Sg_MakeString(UC("pointer-set-c-long-long!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-long-long!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_long_long21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_open_shared_library_Stub) = Sg_MakeString(UC("open-shared-library"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("open-shared-library"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_open_shared_library_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_uint6421_Stub) = Sg_MakeString(UC("pointer-set-c-uint64!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-uint64!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_uint6421_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_int21_Stub) = Sg_MakeString(UC("pointer-set-c-int!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-int!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_int21_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_c_free_Stub) = Sg_MakeString(UC("c-free"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("c-free"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_c_free_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_c_struct_set21_Stub) = Sg_MakeString(UC("c-struct-set!"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("c-struct-set!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_c_struct_set21_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_uint64_Stub) = Sg_MakeString(UC("pointer-ref-c-uint64"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-uint64"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_uint64_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer3f_Stub) = Sg_MakeString(UC("pointer?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_uint821_Stub) = Sg_MakeString(UC("pointer-set-c-uint8!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-uint8!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_uint821_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_int_Stub) = Sg_MakeString(UC("pointer-ref-c-int"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-int"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_int_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_int6421_Stub) = Sg_MakeString(UC("pointer-set-c-int64!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-int64!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_int6421_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_open_shared_library_Stub) = Sg_MakeString(UC("open-shared-library"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("open-shared-library"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_open_shared_library_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_unsigned_long21_Stub) = Sg_MakeString(UC("pointer-set-c-unsigned-long!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-unsigned-long!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_unsigned_long21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_uint8_Stub) = Sg_MakeString(UC("pointer-ref-c-uint8"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-uint8"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_uint8_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_integer_3epointer_Stub) = Sg_MakeString(UC("integer->pointer"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("integer->pointer"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_integer_3epointer_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_int64_Stub) = Sg_MakeString(UC("pointer-ref-c-int64"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-int64"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_int64_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_unsigned_long_Stub) = Sg_MakeString(UC("pointer-ref-c-unsigned-long"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-unsigned-long"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_unsigned_long_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_int821_Stub) = Sg_MakeString(UC("pointer-set-c-int8!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-int8!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_int821_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_lookup_shared_library_Stub) = Sg_MakeString(UC("lookup-shared-library"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("lookup-shared-library"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_lookup_shared_library_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_unsigned_char21_Stub) = Sg_MakeString(UC("pointer-set-c-unsigned-char!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-unsigned-char!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_unsigned_char21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_long21_Stub) = Sg_MakeString(UC("pointer-set-c-long!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-long!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_long21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_3einteger_Stub) = Sg_MakeString(UC("pointer->integer"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer->integer"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_3einteger_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_int8_Stub) = Sg_MakeString(UC("pointer-ref-c-int8"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-int8"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_int8_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_size_of_c_struct_Stub) = Sg_MakeString(UC("size-of-c-struct"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("size-of-c-struct"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_size_of_c_struct_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_unsigned_char_Stub) = Sg_MakeString(UC("pointer-ref-c-unsigned-char"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-unsigned-char"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_unsigned_char_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_long_Stub) = Sg_MakeString(UC("pointer-ref-c-long"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-long"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_long_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_uint1621_Stub) = Sg_MakeString(UC("pointer-set-c-uint16!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-uint16!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_uint1621_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_close_shared_library_Stub) = Sg_MakeString(UC("close-shared-library"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("close-shared-library"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_close_shared_library_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_char21_Stub) = Sg_MakeString(UC("pointer-set-c-char!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-char!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_char21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_unsigned_long_long21_Stub) = Sg_MakeString(UC("pointer-set-c-unsigned-long-long!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-unsigned-long-long!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_unsigned_long_long21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_allocate_pointer_Stub) = Sg_MakeString(UC("allocate-pointer"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("allocate-pointer"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_allocate_pointer_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_uint16_Stub) = Sg_MakeString(UC("pointer-ref-c-uint16"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-uint16"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_uint16_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_char_Stub) = Sg_MakeString(UC("pointer-ref-c-char"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-char"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_char_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_unsigned_long_long_Stub) = Sg_MakeString(UC("pointer-ref-c-unsigned-long-long"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-unsigned-long-long"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_unsigned_long_long_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_unsigned_short21_Stub) = Sg_MakeString(UC("pointer-set-c-unsigned-short!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-unsigned-short!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_unsigned_short21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_int1621_Stub) = Sg_MakeString(UC("pointer-set-c-int16!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-int16!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_int1621_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_create_function_info_Stub) = Sg_MakeString(UC("create-function-info"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("create-function-info"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_create_function_info_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_long_long21_Stub) = Sg_MakeString(UC("pointer-set-c-long-long!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-long-long!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_long_long21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_create_c_struct_Stub) = Sg_MakeString(UC("create-c-struct"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("create-c-struct"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_create_c_struct_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_unsigned_short_Stub) = Sg_MakeString(UC("pointer-ref-c-unsigned-short"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-unsigned-short"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_unsigned_short_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_int16_Stub) = Sg_MakeString(UC("pointer-ref-c-int16"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-int16"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_int16_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_long_long_Stub) = Sg_MakeString(UC("pointer-ref-c-long-long"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-long-long"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_long_long_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_uint3221_Stub) = Sg_MakeString(UC("pointer-set-c-uint32!"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-uint32!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_uint3221_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_float21_Stub) = Sg_MakeString(UC("pointer-set-c-float!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-float!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_float21_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_short21_Stub) = Sg_MakeString(UC("pointer-set-c-short!"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-short!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_short21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer3f_Stub) = Sg_MakeString(UC("pointer?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_lookup_shared_library_Stub) = Sg_MakeString(UC("lookup-shared-library"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("lookup-shared-library"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_lookup_shared_library_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_integer_3epointer_Stub) = Sg_MakeString(UC("integer->pointer"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("integer->pointer"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_integer_3epointer_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_uint8_Stub) = Sg_MakeString(UC("pointer-ref-c-uint8"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-uint8"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_uint8_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_int64_Stub) = Sg_MakeString(UC("pointer-ref-c-int64"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-int64"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_int64_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_create_c_callback_Stub) = Sg_MakeString(UC("create-c-callback"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("create-c-callback"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_create_c_callback_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_float21_Stub) = Sg_MakeString(UC("pointer-set-c-float!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-float!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_float21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_free_c_callback_Stub) = Sg_MakeString(UC("free-c-callback"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("free-c-callback"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_free_c_callback_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_allocate_c_struct_Stub) = Sg_MakeString(UC("allocate-c-struct"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("allocate-c-struct"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_allocate_c_struct_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_uint32_Stub) = Sg_MakeString(UC("pointer-ref-c-uint32"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-uint32"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_uint32_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_short_Stub) = Sg_MakeString(UC("pointer-ref-c-short"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-short"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_short_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_float_Stub) = Sg_MakeString(UC("pointer-ref-c-float"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-float"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_float_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_int3221_Stub) = Sg_MakeString(UC("pointer-set-c-int32!"), SG_LITERAL_STRING);
@@ -1174,68 +1234,6 @@ void Sg__Init_sagittarius_ffi_impl()
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-unsigned-int!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_unsigned_int21_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_double21_Stub) = Sg_MakeString(UC("pointer-set-c-double!"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-double!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_double21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_3einteger_Stub) = Sg_MakeString(UC("pointer->integer"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer->integer"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_3einteger_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_close_shared_library_Stub) = Sg_MakeString(UC("close-shared-library"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("close-shared-library"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_close_shared_library_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_int8_Stub) = Sg_MakeString(UC("pointer-ref-c-int8"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-int8"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_int8_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_unsigned_char_Stub) = Sg_MakeString(UC("pointer-ref-c-unsigned-char"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-unsigned-char"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_unsigned_char_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_size_of_c_struct_Stub) = Sg_MakeString(UC("size-of-c-struct"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("size-of-c-struct"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_size_of_c_struct_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_double_Stub) = Sg_MakeString(UC("pointer-ref-c-double"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-double"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_double_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_uint6421_Stub) = Sg_MakeString(UC("pointer-set-c-uint64!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-uint64!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_uint6421_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_int21_Stub) = Sg_MakeString(UC("pointer-set-c-int!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-int!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_int21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_create_function_info_Stub) = Sg_MakeString(UC("create-function-info"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("create-function-info"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_create_function_info_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_allocate_pointer_Stub) = Sg_MakeString(UC("allocate-pointer"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("allocate-pointer"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_allocate_pointer_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_uint16_Stub) = Sg_MakeString(UC("pointer-ref-c-uint16"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-uint16"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_uint16_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_char_Stub) = Sg_MakeString(UC("pointer-ref-c-char"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-char"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_char_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_uint821_Stub) = Sg_MakeString(UC("pointer-set-c-uint8!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-uint8!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_uint821_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_int6421_Stub) = Sg_MakeString(UC("pointer-set-c-int64!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-int64!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_int6421_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_unsigned_long21_Stub) = Sg_MakeString(UC("pointer-set-c-unsigned-long!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-unsigned-long!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_unsigned_long21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_create_c_callback_Stub) = Sg_MakeString(UC("create-c-callback"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("create-c-callback"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_create_c_callback_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_create_c_struct_Stub) = Sg_MakeString(UC("create-c-struct"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("create-c-struct"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_create_c_struct_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_int16_Stub) = Sg_MakeString(UC("pointer-ref-c-int16"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-int16"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_int16_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_unsigned_short_Stub) = Sg_MakeString(UC("pointer-ref-c-unsigned-short"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-unsigned-short"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_unsigned_short_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_unsigned_long_Stub) = Sg_MakeString(UC("pointer-ref-c-unsigned-long"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-unsigned-long"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_unsigned_long_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_unsigned_char21_Stub) = Sg_MakeString(UC("pointer-set-c-unsigned-char!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-unsigned-char!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_unsigned_char21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_int821_Stub) = Sg_MakeString(UC("pointer-set-c-int8!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-int8!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_int821_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_long21_Stub) = Sg_MakeString(UC("pointer-set-c-long!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-long!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_long21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_free_c_callback_Stub) = Sg_MakeString(UC("free-c-callback"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("free-c-callback"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_free_c_callback_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_uint32_Stub) = Sg_MakeString(UC("pointer-ref-c-uint32"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-uint32"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_uint32_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_allocate_c_struct_Stub) = Sg_MakeString(UC("allocate-c-struct"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("allocate-c-struct"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_allocate_c_struct_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_short_Stub) = Sg_MakeString(UC("pointer-ref-c-short"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-short"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_short_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_long_Stub) = Sg_MakeString(UC("pointer-ref-c-long"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-long"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_long_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_uint1621_Stub) = Sg_MakeString(UC("pointer-set-c-uint16!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-uint16!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_uint1621_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_char21_Stub) = Sg_MakeString(UC("pointer-set-c-char!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-char!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_char21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_set_c_unsigned_long_long21_Stub) = Sg_MakeString(UC("pointer-set-c-unsigned-long-long!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-set-c-unsigned-long-long!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_set_c_unsigned_long_long21_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_c_malloc_Stub) = Sg_MakeString(UC("c-malloc"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("c-malloc"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_c_malloc_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_c_struct_ref_Stub) = Sg_MakeString(UC("c-struct-ref"), SG_LITERAL_STRING);
@@ -1244,4 +1242,6 @@ void Sg__Init_sagittarius_ffi_impl()
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-int32"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_int32_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_unsigned_int_Stub) = Sg_MakeString(UC("pointer-ref-c-unsigned-int"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-unsigned-int"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_unsigned_int_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_ffi_impl_pointer_ref_c_double_Stub) = Sg_MakeString(UC("pointer-ref-c-double"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pointer-ref-c-double"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_ffi_impl_pointer_ref_c_double_Stub));
 }

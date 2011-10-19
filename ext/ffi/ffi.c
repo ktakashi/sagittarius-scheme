@@ -1061,7 +1061,6 @@ static void callback_invoker(ffi_cif *cif, void *result, void **args, void *user
 
 static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
 {
-  DeclareProcedureName("%ffi-call");
   SgObject tmp, lastError;
   int retType, i;
   SgObject signatures;
@@ -1070,7 +1069,7 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
   ffi_storage *params;
   ffi_cif cif;
   void **ffi_values;
-
+  DeclareProcedureName("%ffi-call");
 #ifdef FFI_NOT_SUPPORTED
   Sg_Error(UC("ffi not supported on this architecture"));
   return SG_UNDEF;

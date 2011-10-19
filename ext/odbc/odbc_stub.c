@@ -1,4 +1,4 @@
-/* This file is autmatically generated from "/home/t.kato/projects/sagittarius/ext/odbc/odbc_stub.stub". DO NOT EDIT!!*/
+/* This file is autmatically generated from "D:/home/t.kato/projects/sagittarius.win/ext/odbc/odbc_stub.stub". DO NOT EDIT!!*/
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius.h>
 #include "odbc.h"
@@ -18,7 +18,6 @@ static SG_DEFINE_SUBR(_odbc_impl_create_odbc_env_Stub, 0, 0, _odbc_impl_create_o
 ;
 static SgObject _odbc_impl_connect21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("connect!");
   SgObject env;
   SgObject server_scm;
   SgString *server;
@@ -27,6 +26,7 @@ static SgObject _odbc_impl_connect21(SgObject *args, int argc, void *data_)
   SgObject auth_scm;
   SgString *auth;
   SgObject autoCommitP;
+  DeclareProcedureName("connect!");
   checkArgumentLengthBetween(4, 5);
   argumentRef(0, env);
   argumentAsString(1, server_scm, server);
@@ -53,11 +53,11 @@ static SG_DEFINE_SUBR(_odbc_impl_connect21_Stub, 4, 1, _odbc_impl_connect21, SG_
 ;
 static SgObject _odbc_impl_set_connect_attr21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("set-connect-attr!");
   SgObject hdbc;
   SgObject name_scm;
   int name;
   SgObject value;
+  DeclareProcedureName("set-connect-attr!");
   checkArgumentLength(3);
   argumentRef(0, hdbc);
   argumentAsFixnum(1, name_scm, name);
@@ -77,8 +77,8 @@ static SG_DEFINE_SUBR(_odbc_impl_set_connect_attr21_Stub, 3, 0, _odbc_impl_set_c
 ;
 static SgObject _odbc_impl_disconnect21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("disconnect!");
   SgObject hdbc;
+  DeclareProcedureName("disconnect!");
   checkArgumentLength(1);
   argumentRef(0, hdbc);
   {
@@ -96,8 +96,8 @@ static SG_DEFINE_SUBR(_odbc_impl_disconnect21_Stub, 1, 0, _odbc_impl_disconnect2
 ;
 static SgObject _odbc_impl_connection_open3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("connection-open?");
   SgObject hdbc;
+  DeclareProcedureName("connection-open?");
   checkArgumentLength(1);
   argumentRef(0, hdbc);
   {
@@ -115,8 +115,8 @@ static SG_DEFINE_SUBR(_odbc_impl_connection_open3f_Stub, 1, 0, _odbc_impl_connec
 ;
 static SgObject _odbc_impl_statement(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("statement");
   SgObject hdbc;
+  DeclareProcedureName("statement");
   checkArgumentLength(1);
   argumentRef(0, hdbc);
   {
@@ -134,10 +134,10 @@ static SG_DEFINE_SUBR(_odbc_impl_statement_Stub, 1, 0, _odbc_impl_statement, SG_
 ;
 static SgObject _odbc_impl_prepare(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("prepare");
   SgObject hdbc;
   SgObject text_scm;
   SgString *text;
+  DeclareProcedureName("prepare");
   checkArgumentLength(2);
   argumentRef(0, hdbc);
   argumentAsString(1, text_scm, text);
@@ -156,8 +156,8 @@ static SG_DEFINE_SUBR(_odbc_impl_prepare_Stub, 2, 0, _odbc_impl_prepare, SG_FALS
 ;
 static SgObject _odbc_impl_num_params(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("num-params");
   SgObject stmt;
+  DeclareProcedureName("num-params");
   checkArgumentLength(1);
   argumentRef(0, stmt);
   {
@@ -175,11 +175,11 @@ static SG_DEFINE_SUBR(_odbc_impl_num_params_Stub, 1, 0, _odbc_impl_num_params, S
 ;
 static SgObject _odbc_impl_bind_parameter21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("bind-parameter!");
   SgObject stmt;
   SgObject index_scm;
   int index;
   SgObject value;
+  DeclareProcedureName("bind-parameter!");
   checkArgumentLength(3);
   argumentRef(0, stmt);
   argumentAsFixnum(1, index_scm, index);
@@ -199,8 +199,8 @@ static SG_DEFINE_SUBR(_odbc_impl_bind_parameter21_Stub, 3, 0, _odbc_impl_bind_pa
 ;
 static SgObject _odbc_impl_execute21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("execute!");
   SgObject stmt;
+  DeclareProcedureName("execute!");
   checkArgumentLength(1);
   argumentRef(0, stmt);
   {
@@ -218,10 +218,10 @@ static SG_DEFINE_SUBR(_odbc_impl_execute21_Stub, 1, 0, _odbc_impl_execute21, SG_
 ;
 static SgObject _odbc_impl_execute_direct21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("execute-direct!");
   SgObject stmt;
   SgObject text_scm;
   SgString *text;
+  DeclareProcedureName("execute-direct!");
   checkArgumentLength(2);
   argumentRef(0, stmt);
   argumentAsString(1, text_scm, text);
@@ -240,8 +240,8 @@ static SG_DEFINE_SUBR(_odbc_impl_execute_direct21_Stub, 2, 0, _odbc_impl_execute
 ;
 static SgObject _odbc_impl_fetch21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("fetch!");
   SgObject stmt;
+  DeclareProcedureName("fetch!");
   checkArgumentLength(1);
   argumentRef(0, stmt);
   {
@@ -259,10 +259,10 @@ static SG_DEFINE_SUBR(_odbc_impl_fetch21_Stub, 1, 0, _odbc_impl_fetch21, SG_FALS
 ;
 static SgObject _odbc_impl_get_data(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("get-data");
   SgObject stmt;
   SgObject index_scm;
   int index;
+  DeclareProcedureName("get-data");
   checkArgumentLength(2);
   argumentRef(0, stmt);
   argumentAsFixnum(1, index_scm, index);
@@ -281,8 +281,8 @@ static SG_DEFINE_SUBR(_odbc_impl_get_data_Stub, 2, 0, _odbc_impl_get_data, SG_FA
 ;
 static SgObject _odbc_impl_row_count(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("row-count");
   SgObject stmt;
+  DeclareProcedureName("row-count");
   checkArgumentLength(1);
   argumentRef(0, stmt);
   {
@@ -300,10 +300,10 @@ static SG_DEFINE_SUBR(_odbc_impl_row_count_Stub, 1, 0, _odbc_impl_row_count, SG_
 ;
 static SgObject _odbc_impl_column_size(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("column-size");
   SgObject stmt;
   SgObject index_scm;
   int index;
+  DeclareProcedureName("column-size");
   checkArgumentLength(2);
   argumentRef(0, stmt);
   argumentAsFixnum(1, index_scm, index);
@@ -322,8 +322,8 @@ static SG_DEFINE_SUBR(_odbc_impl_column_size_Stub, 2, 0, _odbc_impl_column_size,
 ;
 static SgObject _odbc_impl_column_count(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("column-count");
   SgObject stmt;
+  DeclareProcedureName("column-count");
   checkArgumentLength(1);
   argumentRef(0, stmt);
   {
@@ -341,8 +341,8 @@ static SG_DEFINE_SUBR(_odbc_impl_column_count_Stub, 1, 0, _odbc_impl_column_coun
 ;
 static SgObject _odbc_impl_result_columns(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("result-columns");
   SgObject stmt;
+  DeclareProcedureName("result-columns");
   checkArgumentLength(1);
   argumentRef(0, stmt);
   {
@@ -360,8 +360,8 @@ static SG_DEFINE_SUBR(_odbc_impl_result_columns_Stub, 1, 0, _odbc_impl_result_co
 ;
 static SgObject _odbc_impl_commit21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("commit!");
   SgObject ctx;
+  DeclareProcedureName("commit!");
   checkArgumentLength(1);
   argumentRef(0, ctx);
   {
@@ -379,8 +379,8 @@ static SG_DEFINE_SUBR(_odbc_impl_commit21_Stub, 1, 0, _odbc_impl_commit21, SG_FA
 ;
 static SgObject _odbc_impl_rollback21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("rollback!");
   SgObject ctx;
+  DeclareProcedureName("rollback!");
   checkArgumentLength(1);
   argumentRef(0, ctx);
   {
@@ -398,8 +398,8 @@ static SG_DEFINE_SUBR(_odbc_impl_rollback21_Stub, 1, 0, _odbc_impl_rollback21, S
 ;
 static SgObject _odbc_impl_odbc_env3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odbc-env?");
   SgObject obj;
+  DeclareProcedureName("odbc-env?");
   checkArgumentLength(1);
   argumentRef(0, obj);
   {
@@ -413,8 +413,8 @@ static SG_DEFINE_SUBR(_odbc_impl_odbc_env3f_Stub, 1, 0, _odbc_impl_odbc_env3f, S
 ;
 static SgObject _odbc_impl_odbc_connection3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odbc-connection?");
   SgObject obj;
+  DeclareProcedureName("odbc-connection?");
   checkArgumentLength(1);
   argumentRef(0, obj);
   {
@@ -428,8 +428,8 @@ static SG_DEFINE_SUBR(_odbc_impl_odbc_connection3f_Stub, 1, 0, _odbc_impl_odbc_c
 ;
 static SgObject _odbc_impl_odbc_statement3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odbc-statement?");
   SgObject obj;
+  DeclareProcedureName("odbc-statement?");
   checkArgumentLength(1);
   argumentRef(0, obj);
   {
@@ -443,8 +443,8 @@ static SG_DEFINE_SUBR(_odbc_impl_odbc_statement3f_Stub, 1, 0, _odbc_impl_odbc_st
 ;
 static SgObject _odbc_impl_odbc_date3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odbc-date?");
   SgObject obj;
+  DeclareProcedureName("odbc-date?");
   checkArgumentLength(1);
   argumentRef(0, obj);
   {
@@ -458,8 +458,8 @@ static SG_DEFINE_SUBR(_odbc_impl_odbc_date3f_Stub, 1, 0, _odbc_impl_odbc_date3f,
 ;
 static SgObject _odbc_impl_odbc_time3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odbc-time?");
   SgObject obj;
+  DeclareProcedureName("odbc-time?");
   checkArgumentLength(1);
   argumentRef(0, obj);
   {
@@ -473,8 +473,8 @@ static SG_DEFINE_SUBR(_odbc_impl_odbc_time3f_Stub, 1, 0, _odbc_impl_odbc_time3f,
 ;
 static SgObject _odbc_impl_odbc_timestamp3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odbc-timestamp?");
   SgObject obj;
+  DeclareProcedureName("odbc-timestamp?");
   checkArgumentLength(1);
   argumentRef(0, obj);
   {
@@ -488,8 +488,8 @@ static SG_DEFINE_SUBR(_odbc_impl_odbc_timestamp3f_Stub, 1, 0, _odbc_impl_odbc_ti
 ;
 static SgObject _odbc_impl_odbc_date_year(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odbc-date-year");
   SgObject date;
+  DeclareProcedureName("odbc-date-year");
   checkArgumentLength(1);
   argumentRef(0, date);
   {
@@ -507,8 +507,8 @@ static SG_DEFINE_SUBR(_odbc_impl_odbc_date_year_Stub, 1, 0, _odbc_impl_odbc_date
 ;
 static SgObject _odbc_impl_odbc_date_month(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odbc-date-month");
   SgObject date;
+  DeclareProcedureName("odbc-date-month");
   checkArgumentLength(1);
   argumentRef(0, date);
   {
@@ -526,8 +526,8 @@ static SG_DEFINE_SUBR(_odbc_impl_odbc_date_month_Stub, 1, 0, _odbc_impl_odbc_dat
 ;
 static SgObject _odbc_impl_odbc_date_day(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odbc-date-day");
   SgObject date;
+  DeclareProcedureName("odbc-date-day");
   checkArgumentLength(1);
   argumentRef(0, date);
   {
@@ -545,8 +545,8 @@ static SG_DEFINE_SUBR(_odbc_impl_odbc_date_day_Stub, 1, 0, _odbc_impl_odbc_date_
 ;
 static SgObject _odbc_impl_odbc_time_hour(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odbc-time-hour");
   SgObject time;
+  DeclareProcedureName("odbc-time-hour");
   checkArgumentLength(1);
   argumentRef(0, time);
   {
@@ -564,8 +564,8 @@ static SG_DEFINE_SUBR(_odbc_impl_odbc_time_hour_Stub, 1, 0, _odbc_impl_odbc_time
 ;
 static SgObject _odbc_impl_odbc_time_minute(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odbc-time-minute");
   SgObject time;
+  DeclareProcedureName("odbc-time-minute");
   checkArgumentLength(1);
   argumentRef(0, time);
   {
@@ -583,8 +583,8 @@ static SG_DEFINE_SUBR(_odbc_impl_odbc_time_minute_Stub, 1, 0, _odbc_impl_odbc_ti
 ;
 static SgObject _odbc_impl_odbc_time_second(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odbc-time-second");
   SgObject time;
+  DeclareProcedureName("odbc-time-second");
   checkArgumentLength(1);
   argumentRef(0, time);
   {
@@ -602,8 +602,8 @@ static SG_DEFINE_SUBR(_odbc_impl_odbc_time_second_Stub, 1, 0, _odbc_impl_odbc_ti
 ;
 static SgObject _odbc_impl_odbc_timestamp_year(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odbc-timestamp-year");
   SgObject timestamp;
+  DeclareProcedureName("odbc-timestamp-year");
   checkArgumentLength(1);
   argumentRef(0, timestamp);
   {
@@ -621,8 +621,8 @@ static SG_DEFINE_SUBR(_odbc_impl_odbc_timestamp_year_Stub, 1, 0, _odbc_impl_odbc
 ;
 static SgObject _odbc_impl_odbc_timestamp_month(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odbc-timestamp-month");
   SgObject timestamp;
+  DeclareProcedureName("odbc-timestamp-month");
   checkArgumentLength(1);
   argumentRef(0, timestamp);
   {
@@ -640,8 +640,8 @@ static SG_DEFINE_SUBR(_odbc_impl_odbc_timestamp_month_Stub, 1, 0, _odbc_impl_odb
 ;
 static SgObject _odbc_impl_odbc_timestamp_day(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odbc-timestamp-day");
   SgObject timestamp;
+  DeclareProcedureName("odbc-timestamp-day");
   checkArgumentLength(1);
   argumentRef(0, timestamp);
   {
@@ -659,8 +659,8 @@ static SG_DEFINE_SUBR(_odbc_impl_odbc_timestamp_day_Stub, 1, 0, _odbc_impl_odbc_
 ;
 static SgObject _odbc_impl_odbc_timestamp_hour(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odbc-timestamp-hour");
   SgObject timestamp;
+  DeclareProcedureName("odbc-timestamp-hour");
   checkArgumentLength(1);
   argumentRef(0, timestamp);
   {
@@ -678,8 +678,8 @@ static SG_DEFINE_SUBR(_odbc_impl_odbc_timestamp_hour_Stub, 1, 0, _odbc_impl_odbc
 ;
 static SgObject _odbc_impl_odbc_timestamp_minute(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odbc-timestamp-minute");
   SgObject timestamp;
+  DeclareProcedureName("odbc-timestamp-minute");
   checkArgumentLength(1);
   argumentRef(0, timestamp);
   {
@@ -697,8 +697,8 @@ static SG_DEFINE_SUBR(_odbc_impl_odbc_timestamp_minute_Stub, 1, 0, _odbc_impl_od
 ;
 static SgObject _odbc_impl_odbc_timestamp_second(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odbc-timestamp-second");
   SgObject timestamp;
+  DeclareProcedureName("odbc-timestamp-second");
   checkArgumentLength(1);
   argumentRef(0, timestamp);
   {
@@ -716,8 +716,8 @@ static SG_DEFINE_SUBR(_odbc_impl_odbc_timestamp_second_Stub, 1, 0, _odbc_impl_od
 ;
 static SgObject _odbc_impl_odbc_timestamp_fraction(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("odbc-timestamp-fraction");
   SgObject timestamp;
+  DeclareProcedureName("odbc-timestamp-fraction");
   checkArgumentLength(1);
   argumentRef(0, timestamp);
   {
@@ -736,22 +736,52 @@ static SG_DEFINE_SUBR(_odbc_impl_odbc_timestamp_fraction_Stub, 1, 0, _odbc_impl_
 void Sg__Init_odbc_impl()
 {
   SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC("(odbc impl)"), SG_LITERAL_STRING)), TRUE);
+  SG_PROCEDURE_NAME(&_odbc_impl_create_odbc_env_Stub) = Sg_MakeString(UC("create-odbc-env"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("create-odbc-env"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_create_odbc_env_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_num_params_Stub) = Sg_MakeString(UC("num-params"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("num-params"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_num_params_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_column_size_Stub) = Sg_MakeString(UC("column-size"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("column-size"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_column_size_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_odbc_statement3f_Stub) = Sg_MakeString(UC("odbc-statement?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-statement?"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_statement3f_Stub));
   SG_PROCEDURE_NAME(&_odbc_impl_odbc_time_hour_Stub) = Sg_MakeString(UC("odbc-time-hour"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-time-hour"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_time_hour_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_disconnect21_Stub) = Sg_MakeString(UC("disconnect!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("disconnect!"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_disconnect21_Stub));
   SG_PROCEDURE_NAME(&_odbc_impl_odbc_timestamp_minute_Stub) = Sg_MakeString(UC("odbc-timestamp-minute"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-timestamp-minute"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_timestamp_minute_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_connect21_Stub) = Sg_MakeString(UC("connect!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("connect!"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_connect21_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_bind_parameter21_Stub) = Sg_MakeString(UC("bind-parameter!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bind-parameter!"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_bind_parameter21_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_column_count_Stub) = Sg_MakeString(UC("column-count"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("column-count"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_column_count_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_odbc_time_minute_Stub) = Sg_MakeString(UC("odbc-time-minute"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-time-minute"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_time_minute_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_odbc_date3f_Stub) = Sg_MakeString(UC("odbc-date?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-date?"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_date3f_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_odbc_timestamp_second_Stub) = Sg_MakeString(UC("odbc-timestamp-second"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-timestamp-second"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_timestamp_second_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_execute21_Stub) = Sg_MakeString(UC("execute!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("execute!"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_execute21_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_set_connect_attr21_Stub) = Sg_MakeString(UC("set-connect-attr!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-connect-attr!"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_set_connect_attr21_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_result_columns_Stub) = Sg_MakeString(UC("result-columns"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("result-columns"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_result_columns_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_odbc_time3f_Stub) = Sg_MakeString(UC("odbc-time?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-time?"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_time3f_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_odbc_time_second_Stub) = Sg_MakeString(UC("odbc-time-second"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-time-second"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_time_second_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_odbc_timestamp_fraction_Stub) = Sg_MakeString(UC("odbc-timestamp-fraction"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-timestamp-fraction"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_timestamp_fraction_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_disconnect21_Stub) = Sg_MakeString(UC("disconnect!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("disconnect!"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_disconnect21_Stub));
   SG_PROCEDURE_NAME(&_odbc_impl_execute_direct21_Stub) = Sg_MakeString(UC("execute-direct!"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("execute-direct!"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_execute_direct21_Stub));
   SG_PROCEDURE_NAME(&_odbc_impl_commit21_Stub) = Sg_MakeString(UC("commit!"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("commit!"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_commit21_Stub));
   SG_PROCEDURE_NAME(&_odbc_impl_odbc_timestamp3f_Stub) = Sg_MakeString(UC("odbc-timestamp?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-timestamp?"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_timestamp3f_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_odbc_timestamp_second_Stub) = Sg_MakeString(UC("odbc-timestamp-second"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-timestamp-second"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_timestamp_second_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_odbc_time_minute_Stub) = Sg_MakeString(UC("odbc-time-minute"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-time-minute"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_time_minute_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_odbc_timestamp_year_Stub) = Sg_MakeString(UC("odbc-timestamp-year"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-timestamp-year"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_timestamp_year_Stub));
   SG_PROCEDURE_NAME(&_odbc_impl_connection_open3f_Stub) = Sg_MakeString(UC("connection-open?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("connection-open?"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_connection_open3f_Stub));
   SG_PROCEDURE_NAME(&_odbc_impl_fetch21_Stub) = Sg_MakeString(UC("fetch!"), SG_LITERAL_STRING);
@@ -760,56 +790,26 @@ void Sg__Init_odbc_impl()
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("rollback!"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_rollback21_Stub));
   SG_PROCEDURE_NAME(&_odbc_impl_odbc_date_year_Stub) = Sg_MakeString(UC("odbc-date-year"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-date-year"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_date_year_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_odbc_time_second_Stub) = Sg_MakeString(UC("odbc-time-second"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-time-second"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_time_second_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_odbc_timestamp_fraction_Stub) = Sg_MakeString(UC("odbc-timestamp-fraction"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-timestamp-fraction"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_timestamp_fraction_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_get_data_Stub) = Sg_MakeString(UC("get-data"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-data"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_get_data_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_odbc_timestamp_month_Stub) = Sg_MakeString(UC("odbc-timestamp-month"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-timestamp-month"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_timestamp_month_Stub));
   SG_PROCEDURE_NAME(&_odbc_impl_statement_Stub) = Sg_MakeString(UC("statement"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("statement"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_statement_Stub));
   SG_PROCEDURE_NAME(&_odbc_impl_odbc_env3f_Stub) = Sg_MakeString(UC("odbc-env?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-env?"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_env3f_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_odbc_timestamp_year_Stub) = Sg_MakeString(UC("odbc-timestamp-year"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-timestamp-year"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_timestamp_year_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_get_data_Stub) = Sg_MakeString(UC("get-data"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-data"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_get_data_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_odbc_date_month_Stub) = Sg_MakeString(UC("odbc-date-month"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-date-month"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_date_month_Stub));
+  SG_PROCEDURE_NAME(&_odbc_impl_odbc_timestamp_day_Stub) = Sg_MakeString(UC("odbc-timestamp-day"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-timestamp-day"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_timestamp_day_Stub));
   SG_PROCEDURE_NAME(&_odbc_impl_prepare_Stub) = Sg_MakeString(UC("prepare"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("prepare"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_prepare_Stub));
   SG_PROCEDURE_NAME(&_odbc_impl_row_count_Stub) = Sg_MakeString(UC("row-count"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("row-count"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_row_count_Stub));
   SG_PROCEDURE_NAME(&_odbc_impl_odbc_connection3f_Stub) = Sg_MakeString(UC("odbc-connection?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-connection?"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_connection3f_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_create_odbc_env_Stub) = Sg_MakeString(UC("create-odbc-env"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("create-odbc-env"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_create_odbc_env_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_odbc_timestamp_month_Stub) = Sg_MakeString(UC("odbc-timestamp-month"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-timestamp-month"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_timestamp_month_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_num_params_Stub) = Sg_MakeString(UC("num-params"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("num-params"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_num_params_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_column_size_Stub) = Sg_MakeString(UC("column-size"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("column-size"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_column_size_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_odbc_statement3f_Stub) = Sg_MakeString(UC("odbc-statement?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-statement?"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_statement3f_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_odbc_timestamp_day_Stub) = Sg_MakeString(UC("odbc-timestamp-day"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-timestamp-day"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_timestamp_day_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_odbc_date_month_Stub) = Sg_MakeString(UC("odbc-date-month"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-date-month"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_date_month_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_connect21_Stub) = Sg_MakeString(UC("connect!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("connect!"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_connect21_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_bind_parameter21_Stub) = Sg_MakeString(UC("bind-parameter!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bind-parameter!"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_bind_parameter21_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_odbc_date3f_Stub) = Sg_MakeString(UC("odbc-date?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-date?"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_date3f_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_column_count_Stub) = Sg_MakeString(UC("column-count"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("column-count"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_column_count_Stub));
   SG_PROCEDURE_NAME(&_odbc_impl_odbc_date_day_Stub) = Sg_MakeString(UC("odbc-date-day"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-date-day"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_date_day_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_set_connect_attr21_Stub) = Sg_MakeString(UC("set-connect-attr!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-connect-attr!"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_set_connect_attr21_Stub));
   SG_PROCEDURE_NAME(&_odbc_impl_odbc_timestamp_hour_Stub) = Sg_MakeString(UC("odbc-timestamp-hour"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-timestamp-hour"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_timestamp_hour_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_execute21_Stub) = Sg_MakeString(UC("execute!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("execute!"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_execute21_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_result_columns_Stub) = Sg_MakeString(UC("result-columns"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("result-columns"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_result_columns_Stub));
-  SG_PROCEDURE_NAME(&_odbc_impl_odbc_time3f_Stub) = Sg_MakeString(UC("odbc-time?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odbc-time?"), SG_LITERAL_STRING)), SG_OBJ(&_odbc_impl_odbc_time3f_Stub));
 }

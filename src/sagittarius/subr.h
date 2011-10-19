@@ -169,9 +169,9 @@ struct SgSubrRec
   var = Sg_ArrayToList(args + (index), argc - (index));
 
 #define DeclareProcedureName(name)					\
-  static SgString *procedureName = SG_UNDEF;				\
+  static SgObject procedureName = SG_UNDEF;				\
   if (SG_UNDEFP(procedureName)) {					\
-    procedureName = SG_STRING(Sg_MakeString(UC(name), SG_LITERAL_STRING)); \
+    procedureName = Sg_MakeString(UC(name), SG_LITERAL_STRING);		\
   }
 
 #define checkArgumentLength(count)					\

@@ -32,6 +32,11 @@
 #ifndef SAGITTARIUS_ODBC_H_
 #define SAGITTARIUS_ODBC_H_
 
+/* we don't want to use SQLWCHAR staffs. */
+#ifdef UNICODE
+# undef UNICODE
+#endif
+
 #include <sagittarius.h>
 #if __CYGWIN__ || _WIN32
 #include <windows.h>

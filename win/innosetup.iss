@@ -35,12 +35,12 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 0,6.1
 
 [Files]
-Source: "..\build\Release\sash.exe"; DestDir: "{app}"; DestName: "{#MyAppExeName}"; Flags: ignoreversion
-Source: "..\build\Release\sagittarius.dll"; DestDir: "{app}"; DestName: "sagittarius.dll"; Flags: ignoreversion
+Source: "..\build\sash.exe"; DestDir: "{app}"; DestName: "{#MyAppExeName}"; Flags: ignoreversion
+Source: "..\build\sagittarius.dll"; DestDir: "{app}"; DestName: "sagittarius.dll"; Flags: ignoreversion
 Source: "..\src\*.h"; DestDir: "{app}\include"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\sitelib\*"; DestDir: "{app}\sitelib"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\build\modules\Release\*.dll"; DestDir: "{app}\modules"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\build\modules\*.dll"; DestDir: "{app}\modules"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\doc\sagittarius-ref.pdf"; DestDir: "{app}\doc"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 ; TODO: I don't want to write install script every time when I added ext/* module

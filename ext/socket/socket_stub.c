@@ -1,4 +1,4 @@
-/* This file is autmatically generated from "/home/t.kato/projects/sagittarius/ext/socket/socket_stub.stub". DO NOT EDIT!!*/
+/* This file is autmatically generated from "D:/home/t.kato/projects/sagittarius.win/ext/socket/socket_stub.stub". DO NOT EDIT!!*/
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius.h>
 #include "socket.h"
@@ -6,7 +6,6 @@
 ;
 static SgObject _sagittarius_socket_impl_make_client_socket(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-client-socket");
   SgObject node;
   SgObject service;
   SgObject ai_family_scm;
@@ -17,6 +16,7 @@ static SgObject _sagittarius_socket_impl_make_client_socket(SgObject *args, int 
   int ai_flags;
   SgObject ai_protocol_scm;
   int ai_protocol;
+  DeclareProcedureName("make-client-socket");
   checkArgumentLengthBetween(2, 6);
   argumentRef(0, node);
   argumentRef(1, service);
@@ -83,7 +83,6 @@ static SG_DEFINE_SUBR(_sagittarius_socket_impl_make_client_socket_Stub, 2, 4, _s
 ;
 static SgObject _sagittarius_socket_impl_make_server_socket(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-server-socket");
   SgObject service;
   SgObject ai_family_scm;
   int ai_family;
@@ -91,6 +90,7 @@ static SgObject _sagittarius_socket_impl_make_server_socket(SgObject *args, int 
   int ai_socktype;
   SgObject ai_protocol_scm;
   int ai_protocol;
+  DeclareProcedureName("make-server-socket");
   checkArgumentLengthBetween(1, 4);
   argumentRef(0, service);
   if (argc >= 2) {
@@ -142,8 +142,8 @@ static SG_DEFINE_SUBR(_sagittarius_socket_impl_make_server_socket_Stub, 1, 3, _s
 ;
 static SgObject _sagittarius_socket_impl_socket3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("socket?");
   SgObject o;
+  DeclareProcedureName("socket?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -157,8 +157,8 @@ static SG_DEFINE_SUBR(_sagittarius_socket_impl_socket3f_Stub, 1, 0, _sagittarius
 ;
 static SgObject _sagittarius_socket_impl_socket_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("socket-port");
   SgObject o;
+  DeclareProcedureName("socket-port");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -177,9 +177,9 @@ static SG_DEFINE_SUBR(_sagittarius_socket_impl_socket_port_Stub, 1, 0, _sagittar
 ;
 static SgObject _sagittarius_socket_impl_shutdown_output_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("shutdown-output-port");
   SgObject o_scm;
   SgPort *o;
+  DeclareProcedureName("shutdown-output-port");
   checkArgumentLength(1);
   argumentAsPort(0, o_scm, o);
   {
@@ -193,8 +193,8 @@ static SG_DEFINE_SUBR(_sagittarius_socket_impl_shutdown_output_port_Stub, 1, 0, 
 ;
 static SgObject _sagittarius_socket_impl_socket_accept(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("socket-accept");
   SgObject o;
+  DeclareProcedureName("socket-accept");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -213,12 +213,12 @@ static SG_DEFINE_SUBR(_sagittarius_socket_impl_socket_accept_Stub, 1, 0, _sagitt
 ;
 static SgObject _sagittarius_socket_impl_socket_send(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("socket-send");
   SgObject o;
   SgObject bv_scm;
   SgByteVector *bv;
   SgObject flags_scm;
   int flags;
+  DeclareProcedureName("socket-send");
   checkArgumentLength(3);
   argumentRef(0, o);
   argumentAsByteVector(1, bv_scm, bv);
@@ -239,12 +239,12 @@ static SG_DEFINE_SUBR(_sagittarius_socket_impl_socket_send_Stub, 3, 0, _sagittar
 ;
 static SgObject _sagittarius_socket_impl_socket_recv(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("socket-recv");
   SgObject o;
   SgObject len_scm;
   int len;
   SgObject flags_scm;
   int flags;
+  DeclareProcedureName("socket-recv");
   checkArgumentLength(3);
   argumentRef(0, o);
   argumentAsFixnum(1, len_scm, len);
@@ -270,10 +270,10 @@ static SG_DEFINE_SUBR(_sagittarius_socket_impl_socket_recv_Stub, 3, 0, _sagittar
 ;
 static SgObject _sagittarius_socket_impl_socket_shutdown(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("socket-shutdown");
   SgObject o;
   SgObject how_scm;
   int how;
+  DeclareProcedureName("socket-shutdown");
   checkArgumentLength(2);
   argumentRef(0, o);
   argumentAsFixnum(1, how_scm, how);
@@ -293,8 +293,8 @@ static SG_DEFINE_SUBR(_sagittarius_socket_impl_socket_shutdown_Stub, 2, 0, _sagi
 ;
 static SgObject _sagittarius_socket_impl_socket_close(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("socket-close");
   SgObject o;
+  DeclareProcedureName("socket-close");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -309,6 +309,10 @@ static SG_DEFINE_SUBR(_sagittarius_socket_impl_socket_close_Stub, 1, 0, _sagitta
 void Sg__Init_sagittarius_socket_impl()
 {
   SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC("(sagittarius socket impl)"), SG_LITERAL_STRING)), TRUE);
+  SG_PROCEDURE_NAME(&_sagittarius_socket_impl_shutdown_output_port_Stub) = Sg_MakeString(UC("shutdown-output-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("shutdown-output-port"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_socket_impl_shutdown_output_port_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_socket_impl_socket_accept_Stub) = Sg_MakeString(UC("socket-accept"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("socket-accept"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_socket_impl_socket_accept_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_socket_impl_socket_send_Stub) = Sg_MakeString(UC("socket-send"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("socket-send"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_socket_impl_socket_send_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_socket_impl_make_client_socket_Stub) = Sg_MakeString(UC("make-client-socket"), SG_LITERAL_STRING);
@@ -325,8 +329,4 @@ void Sg__Init_sagittarius_socket_impl()
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("socket-close"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_socket_impl_socket_close_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_socket_impl_socket_port_Stub) = Sg_MakeString(UC("socket-port"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("socket-port"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_socket_impl_socket_port_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_socket_impl_shutdown_output_port_Stub) = Sg_MakeString(UC("shutdown-output-port"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("shutdown-output-port"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_socket_impl_shutdown_output_port_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_socket_impl_socket_accept_Stub) = Sg_MakeString(UC("socket-accept"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("socket-accept"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_socket_impl_socket_accept_Stub));
 }

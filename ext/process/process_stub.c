@@ -1,12 +1,12 @@
-/* This file is autmatically generated from "/home/t.kato/projects/sagittarius/ext/process/process_stub.stub". DO NOT EDIT!!*/
+/* This file is autmatically generated from "D:/home/t.kato/projects/sagittarius.win/ext/process/process_stub.stub". DO NOT EDIT!!*/
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius.h>
 #include "process.h"
 ;
 static SgObject _sagittarius_process_impl_process3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("process?");
   SgObject o;
+  DeclareProcedureName("process?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -20,11 +20,11 @@ static SG_DEFINE_SUBR(_sagittarius_process_impl_process3f_Stub, 1, 0, _sagittari
 ;
 static SgObject _sagittarius_process_impl_make_process(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-process");
   SgObject name_scm;
   SgString *name;
   SgObject params_scm;
   SgString *params;
+  DeclareProcedureName("make-process");
   checkArgumentLength(2);
   argumentAsString(0, name_scm, name);
   argumentAsString(1, params_scm, params);
@@ -39,9 +39,9 @@ static SG_DEFINE_SUBR(_sagittarius_process_impl_make_process_Stub, 2, 0, _sagitt
 ;
 static SgObject _sagittarius_process_impl_process_input_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("process-input-port");
   SgObject p_scm;
   SgProcess *p;
+  DeclareProcedureName("process-input-port");
   checkArgumentLength(1);
   argumentAsProcess(0, p_scm, p);
   {
@@ -55,9 +55,9 @@ static SG_DEFINE_SUBR(_sagittarius_process_impl_process_input_port_Stub, 1, 0, _
 ;
 static SgObject _sagittarius_process_impl_process_output_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("process-output-port");
   SgObject p_scm;
   SgProcess *p;
+  DeclareProcedureName("process-output-port");
   checkArgumentLength(1);
   argumentAsProcess(0, p_scm, p);
   {
@@ -71,9 +71,9 @@ static SG_DEFINE_SUBR(_sagittarius_process_impl_process_output_port_Stub, 1, 0, 
 ;
 static SgObject _sagittarius_process_impl_process_error_port(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("process-error-port");
   SgObject p_scm;
   SgProcess *p;
+  DeclareProcedureName("process-error-port");
   checkArgumentLength(1);
   argumentAsProcess(0, p_scm, p);
   {
@@ -87,9 +87,9 @@ static SG_DEFINE_SUBR(_sagittarius_process_impl_process_error_port_Stub, 1, 0, _
 ;
 static SgObject _sagittarius_process_impl_process_run(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("process-run");
   SgObject p_scm;
   SgProcess *p;
+  DeclareProcedureName("process-run");
   checkArgumentLength(1);
   argumentAsProcess(0, p_scm, p);
   {
@@ -103,9 +103,9 @@ static SG_DEFINE_SUBR(_sagittarius_process_impl_process_run_Stub, 1, 0, _sagitta
 ;
 static SgObject _sagittarius_process_impl_process_call(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("process-call");
   SgObject p_scm;
   SgProcess *p;
+  DeclareProcedureName("process-call");
   checkArgumentLength(1);
   argumentAsProcess(0, p_scm, p);
   {
@@ -119,9 +119,9 @@ static SG_DEFINE_SUBR(_sagittarius_process_impl_process_call_Stub, 1, 0, _sagitt
 ;
 static SgObject _sagittarius_process_impl_process_wait(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("process-wait");
   SgObject p_scm;
   SgProcess *p;
+  DeclareProcedureName("process-wait");
   checkArgumentLength(1);
   argumentAsProcess(0, p_scm, p);
   {
@@ -136,10 +136,6 @@ static SG_DEFINE_SUBR(_sagittarius_process_impl_process_wait_Stub, 1, 0, _sagitt
 void Sg__Init_sagittarius_process_impl()
 {
   SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC("(sagittarius process impl)"), SG_LITERAL_STRING)), TRUE);
-  SG_PROCEDURE_NAME(&_sagittarius_process_impl_process_input_port_Stub) = Sg_MakeString(UC("process-input-port"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("process-input-port"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_process_impl_process_input_port_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_process_impl_process_output_port_Stub) = Sg_MakeString(UC("process-output-port"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("process-output-port"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_process_impl_process_output_port_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_process_impl_process_error_port_Stub) = Sg_MakeString(UC("process-error-port"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("process-error-port"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_process_impl_process_error_port_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_process_impl_process_run_Stub) = Sg_MakeString(UC("process-run"), SG_LITERAL_STRING);
@@ -152,4 +148,8 @@ void Sg__Init_sagittarius_process_impl()
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("process-wait"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_process_impl_process_wait_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_process_impl_process3f_Stub) = Sg_MakeString(UC("process?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("process?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_process_impl_process3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_process_impl_process_input_port_Stub) = Sg_MakeString(UC("process-input-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("process-input-port"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_process_impl_process_input_port_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_process_impl_process_output_port_Stub) = Sg_MakeString(UC("process-output-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("process-output-port"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_process_impl_process_output_port_Stub));
 }

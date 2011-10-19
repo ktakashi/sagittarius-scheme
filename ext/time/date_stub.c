@@ -1,11 +1,10 @@
-/* This file is autmatically generated from "/home/t.kato/projects/sagittarius/ext/time/date_stub.stub". DO NOT EDIT!!*/
+/* This file is autmatically generated from "D:/home/t.kato/projects/sagittarius.win/ext/time/date_stub.stub". DO NOT EDIT!!*/
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius.h>
 #include "time.h"
 ;
 static SgObject _sagittarius_date_impl_make_date(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("make-date");
   SgObject nanosecond_scm;
   int nanosecond;
   SgObject second_scm;
@@ -22,6 +21,7 @@ static SgObject _sagittarius_date_impl_make_date(SgObject *args, int argc, void 
   int year;
   SgObject zone_offset_scm;
   SgObject zone_offset;
+  DeclareProcedureName("make-date");
   checkArgumentLength(8);
   argumentAsFixnum(0, nanosecond_scm, nanosecond);
   argumentAsFixnum(1, second_scm, second);
@@ -43,8 +43,8 @@ static SG_DEFINE_SUBR(_sagittarius_date_impl_make_date_Stub, 8, 0, _sagittarius_
 ;
 static SgObject _sagittarius_date_impl_date3f(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("date?");
   SgObject o;
+  DeclareProcedureName("date?");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -58,8 +58,8 @@ static SG_DEFINE_SUBR(_sagittarius_date_impl_date3f_Stub, 1, 0, _sagittarius_dat
 ;
 static SgObject _sagittarius_date_impl_date_nanosecond(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("date-nanosecond");
   SgObject o;
+  DeclareProcedureName("date-nanosecond");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -78,8 +78,8 @@ static SG_DEFINE_SUBR(_sagittarius_date_impl_date_nanosecond_Stub, 1, 0, _sagitt
 ;
 static SgObject _sagittarius_date_impl_date_second(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("date-second");
   SgObject o;
+  DeclareProcedureName("date-second");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -98,8 +98,8 @@ static SG_DEFINE_SUBR(_sagittarius_date_impl_date_second_Stub, 1, 0, _sagittariu
 ;
 static SgObject _sagittarius_date_impl_date_minute(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("date-minute");
   SgObject o;
+  DeclareProcedureName("date-minute");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -118,8 +118,8 @@ static SG_DEFINE_SUBR(_sagittarius_date_impl_date_minute_Stub, 1, 0, _sagittariu
 ;
 static SgObject _sagittarius_date_impl_date_hour(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("date-hour");
   SgObject o;
+  DeclareProcedureName("date-hour");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -138,8 +138,8 @@ static SG_DEFINE_SUBR(_sagittarius_date_impl_date_hour_Stub, 1, 0, _sagittarius_
 ;
 static SgObject _sagittarius_date_impl_date_day(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("date-day");
   SgObject o;
+  DeclareProcedureName("date-day");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -158,8 +158,8 @@ static SG_DEFINE_SUBR(_sagittarius_date_impl_date_day_Stub, 1, 0, _sagittarius_d
 ;
 static SgObject _sagittarius_date_impl_date_month(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("date-month");
   SgObject o;
+  DeclareProcedureName("date-month");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -178,8 +178,8 @@ static SG_DEFINE_SUBR(_sagittarius_date_impl_date_month_Stub, 1, 0, _sagittarius
 ;
 static SgObject _sagittarius_date_impl_date_year(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("date-year");
   SgObject o;
+  DeclareProcedureName("date-year");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -198,8 +198,8 @@ static SG_DEFINE_SUBR(_sagittarius_date_impl_date_year_Stub, 1, 0, _sagittarius_
 ;
 static SgObject _sagittarius_date_impl_date_zone_offset(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("date-zone-offset");
   SgObject o;
+  DeclareProcedureName("date-zone-offset");
   checkArgumentLength(1);
   argumentRef(0, o);
   {
@@ -218,10 +218,10 @@ static SG_DEFINE_SUBR(_sagittarius_date_impl_date_zone_offset_Stub, 1, 0, _sagit
 ;
 static SgObject _sagittarius_date_impl_set_date_nanosecond21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("set-date-nanosecond!");
   SgObject o;
   SgObject val_scm;
   int val;
+  DeclareProcedureName("set-date-nanosecond!");
   checkArgumentLength(2);
   argumentRef(0, o);
   argumentAsFixnum(1, val_scm, val);
@@ -241,10 +241,10 @@ static SG_DEFINE_SUBR(_sagittarius_date_impl_set_date_nanosecond21_Stub, 2, 0, _
 ;
 static SgObject _sagittarius_date_impl_set_date_second21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("set-date-second!");
   SgObject o;
   SgObject val_scm;
   int val;
+  DeclareProcedureName("set-date-second!");
   checkArgumentLength(2);
   argumentRef(0, o);
   argumentAsFixnum(1, val_scm, val);
@@ -264,10 +264,10 @@ static SG_DEFINE_SUBR(_sagittarius_date_impl_set_date_second21_Stub, 2, 0, _sagi
 ;
 static SgObject _sagittarius_date_impl_set_date_minute21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("set-date-minute!");
   SgObject o;
   SgObject val_scm;
   int val;
+  DeclareProcedureName("set-date-minute!");
   checkArgumentLength(2);
   argumentRef(0, o);
   argumentAsFixnum(1, val_scm, val);
@@ -287,10 +287,10 @@ static SG_DEFINE_SUBR(_sagittarius_date_impl_set_date_minute21_Stub, 2, 0, _sagi
 ;
 static SgObject _sagittarius_date_impl_set_date_hour21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("set-date-hour!");
   SgObject o;
   SgObject val_scm;
   int val;
+  DeclareProcedureName("set-date-hour!");
   checkArgumentLength(2);
   argumentRef(0, o);
   argumentAsFixnum(1, val_scm, val);
@@ -310,10 +310,10 @@ static SG_DEFINE_SUBR(_sagittarius_date_impl_set_date_hour21_Stub, 2, 0, _sagitt
 ;
 static SgObject _sagittarius_date_impl_set_date_day21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("set-date-day!");
   SgObject o;
   SgObject val_scm;
   int val;
+  DeclareProcedureName("set-date-day!");
   checkArgumentLength(2);
   argumentRef(0, o);
   argumentAsFixnum(1, val_scm, val);
@@ -333,10 +333,10 @@ static SG_DEFINE_SUBR(_sagittarius_date_impl_set_date_day21_Stub, 2, 0, _sagitta
 ;
 static SgObject _sagittarius_date_impl_set_date_month21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("set-date-month!");
   SgObject o;
   SgObject val_scm;
   int val;
+  DeclareProcedureName("set-date-month!");
   checkArgumentLength(2);
   argumentRef(0, o);
   argumentAsFixnum(1, val_scm, val);
@@ -356,10 +356,10 @@ static SG_DEFINE_SUBR(_sagittarius_date_impl_set_date_month21_Stub, 2, 0, _sagit
 ;
 static SgObject _sagittarius_date_impl_set_date_year21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("set-date-year!");
   SgObject o;
   SgObject val_scm;
   int val;
+  DeclareProcedureName("set-date-year!");
   checkArgumentLength(2);
   argumentRef(0, o);
   argumentAsFixnum(1, val_scm, val);
@@ -379,10 +379,10 @@ static SG_DEFINE_SUBR(_sagittarius_date_impl_set_date_year21_Stub, 2, 0, _sagitt
 ;
 static SgObject _sagittarius_date_impl_set_date_zone_offset21(SgObject *args, int argc, void *data_)
 {
-  DeclareProcedureName("set-date-zone-offset!");
   SgObject o;
   SgObject val_scm;
   int val;
+  DeclareProcedureName("set-date-zone-offset!");
   checkArgumentLength(2);
   argumentRef(0, o);
   argumentAsFixnum(1, val_scm, val);
@@ -416,42 +416,42 @@ static SG_DEFINE_SUBR(_sagittarius_date_impl_local_tz_offset_Stub, 0, 0, _sagitt
 void Sg__Init_sagittarius_date_impl()
 {
   SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC("(sagittarius date impl)"), SG_LITERAL_STRING)), TRUE);
-  SG_PROCEDURE_NAME(&_sagittarius_date_impl_set_date_hour21_Stub) = Sg_MakeString(UC("set-date-hour!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-date-hour!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_set_date_hour21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_date_impl_set_date_minute21_Stub) = Sg_MakeString(UC("set-date-minute!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-date-minute!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_set_date_minute21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_date_impl_set_date_day21_Stub) = Sg_MakeString(UC("set-date-day!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-date-day!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_set_date_day21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_date_impl_set_date_year21_Stub) = Sg_MakeString(UC("set-date-year!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-date-year!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_set_date_year21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_date_impl_make_date_Stub) = Sg_MakeString(UC("make-date"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-date"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_make_date_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_date_impl_set_date_month21_Stub) = Sg_MakeString(UC("set-date-month!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-date-month!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_set_date_month21_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_date_impl_date3f_Stub) = Sg_MakeString(UC("date?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("date?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_date3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_date_impl_date_minute_Stub) = Sg_MakeString(UC("date-minute"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("date-minute"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_date_minute_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_date_impl_date_second_Stub) = Sg_MakeString(UC("date-second"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("date-second"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_date_second_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_date_impl_date_month_Stub) = Sg_MakeString(UC("date-month"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("date-month"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_date_month_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_date_impl_local_tz_offset_Stub) = Sg_MakeString(UC("local-tz-offset"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("local-tz-offset"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_local_tz_offset_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_date_impl_date_nanosecond_Stub) = Sg_MakeString(UC("date-nanosecond"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("date-nanosecond"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_date_nanosecond_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_date_impl_date_day_Stub) = Sg_MakeString(UC("date-day"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("date-day"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_date_day_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_date_impl_set_date_zone_offset21_Stub) = Sg_MakeString(UC("set-date-zone-offset!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-date-zone-offset!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_set_date_zone_offset21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_date_impl_date_hour_Stub) = Sg_MakeString(UC("date-hour"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("date-hour"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_date_hour_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_date_impl_date_zone_offset_Stub) = Sg_MakeString(UC("date-zone-offset"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("date-zone-offset"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_date_zone_offset_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_date_impl_set_date_second21_Stub) = Sg_MakeString(UC("set-date-second!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-date-second!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_set_date_second21_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_date_impl_date_year_Stub) = Sg_MakeString(UC("date-year"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("date-year"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_date_year_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_date_impl_set_date_month21_Stub) = Sg_MakeString(UC("set-date-month!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-date-month!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_set_date_month21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_date_impl_date_nanosecond_Stub) = Sg_MakeString(UC("date-nanosecond"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("date-nanosecond"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_date_nanosecond_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_date_impl_date_zone_offset_Stub) = Sg_MakeString(UC("date-zone-offset"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("date-zone-offset"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_date_zone_offset_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_date_impl_set_date_year21_Stub) = Sg_MakeString(UC("set-date-year!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-date-year!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_set_date_year21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_date_impl_date_second_Stub) = Sg_MakeString(UC("date-second"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("date-second"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_date_second_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_date_impl_set_date_nanosecond21_Stub) = Sg_MakeString(UC("set-date-nanosecond!"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-date-nanosecond!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_set_date_nanosecond21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_date_impl_set_date_zone_offset21_Stub) = Sg_MakeString(UC("set-date-zone-offset!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-date-zone-offset!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_set_date_zone_offset21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_date_impl_date_minute_Stub) = Sg_MakeString(UC("date-minute"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("date-minute"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_date_minute_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_date_impl_set_date_second21_Stub) = Sg_MakeString(UC("set-date-second!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-date-second!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_set_date_second21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_date_impl_local_tz_offset_Stub) = Sg_MakeString(UC("local-tz-offset"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("local-tz-offset"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_local_tz_offset_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_date_impl_set_date_minute21_Stub) = Sg_MakeString(UC("set-date-minute!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-date-minute!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_set_date_minute21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_date_impl_date_hour_Stub) = Sg_MakeString(UC("date-hour"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("date-hour"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_date_hour_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_date_impl_date_day_Stub) = Sg_MakeString(UC("date-day"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("date-day"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_date_day_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_date_impl_set_date_hour21_Stub) = Sg_MakeString(UC("set-date-hour!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-date-hour!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_set_date_hour21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_date_impl_make_date_Stub) = Sg_MakeString(UC("make-date"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-date"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_make_date_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_date_impl_date_month_Stub) = Sg_MakeString(UC("date-month"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("date-month"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_date_month_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_date_impl_set_date_day21_Stub) = Sg_MakeString(UC("set-date-day!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-date-day!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_date_impl_set_date_day21_Stub));
 }
