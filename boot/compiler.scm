@@ -3661,7 +3661,7 @@
 	   (arg1-size (max (pass3/rec (car args) cb renv (normal-context ctx)) 1)))
       (cb-emit0! cb PUSH)
       (pass3/emit-then-else iform cb insn
-			    (max (pass3/rec (cadr args) cb renv 'normal/top) arg1-size)
+			    (max (pass3/rec (cadr args) cb (renv-add-dummy renv) 'normal/top) arg1-size)
 			    renv ctx))))
 
 (define pass3/branch-on-false

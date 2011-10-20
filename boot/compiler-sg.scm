@@ -4072,7 +4072,9 @@
     iform
     cb
     insn
-    (max (pass3/rec (cadr args) cb renv 'normal/top) arg1-size)
+    (max
+     (pass3/rec (cadr args) cb (renv-add-dummy renv) 'normal/top)
+     arg1-size)
     renv
     ctx))))
 

@@ -1048,6 +1048,25 @@ static SgFlonum* make_flonum(double d)
   return SG_OBJ(f);
 }
 
+/* well this is flonum cache. */
+#if USE_CONST_FLONUM
+#define DEFAULT_FLONUM_CACHE_COUNT 1000
+
+static SgFlonum CONST_FLONUM[DEFAULT_FLONUM_CACHE_COUNT];
+
+static SgFlonum * search_flonum_from_cache(double d)
+{
+  if (d > 0.0) {
+    double intpart;
+    double fract = modf(d, &intpart);
+    if (fract == 0.0 && d < (double)DEFAULT_FLONUM_CACHE_COUNT) {
+      return &(CONST_FLONUM[(int)d]);
+    }
+  }
+  return make_flonum(d);
+}
+
+#endif
 
 SgObject Sg_MakeFlonum(double d)
 {
@@ -1062,8 +1081,10 @@ SgObject Sg_MakeFlonum(double d)
     }
   }
   if (isnan(d)) return SG_NAN;
-#endif
+  return search_flonum_from_cache(d);
+#else
   return make_flonum(d);
+#endif
 }
 
 static inline SgObject make_complex(SgObject real, SgObject imag)
@@ -3552,6 +3573,13 @@ void Sg__InitNumber()
   INIT_CONST_FL(SG_NEGATIVE_INFINITY, -INFINITY);
   INIT_CONST_FL(SG_FL_POSITIVE_ZERO, 0.0);
   INIT_CONST_FL(SG_FL_NEGATIVE_ZERO, -0.0);
+  {
+    int i;
+    for (i = 0; i < DEFAULT_FLONUM_CACHE_COUNT; i++) {
+      SG_SET_HEADER(&CONST_FLONUM[i], TC_FLONUM);
+      CONST_FLONUM[i].value = (double)i/1.0;
+    }
+  }
 #else
   SG_POSITIVE_INFINITY = Sg_MakeFlonum(INFINITY);
   SG_NEGATIVE_INFINITY = Sg_MakeFlonum(-INFINITY);

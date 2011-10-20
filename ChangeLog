@@ -1,3 +1,15 @@
+2011-10-20  Takashi Kato  <ktakashi@ymail.com>
+
+	* boot/compiler.scm: fixed miscompiling when builtin test instruction had
+	let clause.
+
+	* sitelib/util/file.scm (util file): Gauche like file utility has been added.
+
+	* sitelib/util/port.scm (util port): Gauche like port utility has been added.
+
+	* sitelib/srfi/%3a38/with-shared-structure.scm (srfi-38): For portability,
+	this library has been added.
+
 2011-10-17  Takashi Kato  <ktakashi@ymail.com>
 
 	* boot/lib/macro.scm (expand-syntax): fixed replacing non equal identifiers.

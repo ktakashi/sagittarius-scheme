@@ -73,7 +73,7 @@
 	    with-error-handler
 
 	    ;; io
-	    port-closed? format write/ss
+	    port-closed? format write/ss read/ss
 	    make-codec port-info
 
 	    ;; profiler
@@ -443,6 +443,14 @@
     (result (Sg_VMWithErrorHandler handler thunk)))
 
   ;; io
+  (define-cgen-stmt check-input-port
+    ((_ name p)
+     (dispatch
+      `(unless (or (SG_INPORTP ,p)
+		   (SG_INOUTPORTP ,p))
+	 (wrong-type-of-argument-violation ',name
+					   "input port"
+					   ,p)))))
   (define-cgen-stmt check-output-port
     ((_ name p)
      (dispatch
@@ -467,6 +475,11 @@
     (check-port-open write/ss p)
     (check-output-port write/ss p)
     (Sg_Write o p SG_WRITE_SHARED))
+
+  (define-c-proc read/ss (:optional (p::Port (Sg_CurrentInputPort))) ::Object
+    (check-port-open read/ss p)
+    (check-input-port read/ss p)
+    (result (Sg_Read p TRUE)))
 
   (define-c-proc format (p :rest rest) ::Object
     (cond ((SG_PORTP p)
