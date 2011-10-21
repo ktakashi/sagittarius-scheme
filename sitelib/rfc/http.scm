@@ -59,6 +59,7 @@
 	    (srfi :39 parameters)
 	    (match)
 	    (encoding decoder)
+	    (util list)
 	    (rfc :5322)
 	    (rfc uri)
 	    (rfc mime))
@@ -347,16 +348,6 @@
 		 (loop)))))))
 
   ;; query and request body composition
-  ;; if we use this alot we need to make a library for this.
-  (define (intersperse item lis)
-    (define (rec l r)
-      (if (null? l)
-	  (reverse! r)
-	  (rec (cdr l) (cons* (car l) item r))))
-    (if (null? lis)
-	'()
-	(rec (cdr lis) (list (car lis)))))
-
   (define-optional (http-compose-query path params (optional (encoding 'utf-8)))
     (define (esc s) (uri-encode-string (format "~a" s) encoding))
     (define (query-1 n&v)

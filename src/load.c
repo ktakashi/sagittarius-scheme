@@ -53,6 +53,9 @@
 static SgObject load_after(SgObject *args, int argc, void *data)
 {
   SgPort *port = SG_PORT(data);
+  SgVM *vm = Sg_VM();
+  /* restore flags */
+  vm->flags = port->vmFlags;
   Sg_ClosePort(port);
   return SG_UNDEF;
 }
@@ -76,6 +79,8 @@ static SgObject load_body(SgObject *args, int argc, void *data)
 
 SgObject Sg_VMLoadFromPort(SgPort *port)
 {
+  /* save vm flags */
+  port->vmFlags = Sg_VM()->flags;
   return Sg_VMDynamicWindC(NULL, load_body, load_after, port);
 }
 
@@ -105,7 +110,6 @@ SgObject Sg_VMLoad(SgString *path)
   if (SG_VM_LOG_LEVEL(Sg_VM(), SG_INFO_LEVEL)) {
     Sg_Printf(vm->logPort, UC("loading %S\n"), path);
   }
-
   return Sg_VMLoadFromPort(SG_PORT(tport));
 }
 

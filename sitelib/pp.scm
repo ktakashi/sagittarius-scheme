@@ -1,7 +1,8 @@
 ;; -*- scheme -*-
 #!compatible
 (library (pp)
-    (export pretty-print pretty-print-to-string)
+    (export pretty-print pretty-print-to-string
+	    pp)
     (import (core)
 	    (core base)
 	    (sagittarius)
@@ -321,4 +322,6 @@
     (generic-write obj #f (output-port-width port)
 		   (lambda (str) (set! result (cons str result)) #t))
     (reverse-string-append result)))
+
+(define pp pretty-print)
 )

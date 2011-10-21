@@ -377,7 +377,7 @@ SgObject Sg_SearchLibrary(SgObject lib)
     }									\
   }
 
-static SgObject culculate_imports(SgObject only, SgObject renames)
+static SgObject calculate_imports(SgObject only, SgObject renames)
 {
   /* 
      we construct alist for import spec like this.
@@ -408,7 +408,7 @@ static SgObject culculate_imports(SgObject only, SgObject renames)
       /* merge only and renames */
       SgObject exists = Sg_Assq(SG_CAR(first), h);
       if (SG_FALSEP(exists)) {
-	SG_APPEND1(h, t, first);
+	SG_APPEND1(h, t, Sg_Cons(SG_CAR(first), SG_CADR(first)));
       } else {
 	SG_SET_CDR(exists, SG_CADR(first));
       }
@@ -553,7 +553,7 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
       allP = TRUE;
     }
   }
-  imports = culculate_imports(only, renames);
+  imports = calculate_imports(only, renames);
   /* imported alist: ((lib1 . (only except renames prefix)) ...) */
   SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, SG_LIST4(only, except, renames, prefix),
 					SG_LIBRARY_IMPORTED(tolib));

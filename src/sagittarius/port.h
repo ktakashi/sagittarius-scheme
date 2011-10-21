@@ -145,6 +145,9 @@ struct SgPortRec
   unsigned int closed 	   : 1;
   unsigned int error  	   : 1;
 
+  /* for saved flags */
+  unsigned int vmFlags;
+
   SgInternalMutex lock;
 
   /* common methods */

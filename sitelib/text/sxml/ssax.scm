@@ -2,7 +2,12 @@
 ;; SSAX ported for Sagittarius Scheme by Takashi Kato
 #!compatible
 (library (text sxml ssax)
-    (export ssax:ncname-starting-char?
+    (export make-xml-token ;; for testing
+	    xml-token?
+	    xml-token-kind
+	    xml-token-head
+
+	    ssax:ncname-starting-char?
 	    ssax:read-NCName
 	    ssax:read-QName
 	    ssax:Prefix-XML
@@ -34,6 +39,7 @@
 	    ssax:scan-Misc
 	    ssax:read-char-data
 	    ssax:assert-token
+	    ssax:make-parser
 	    ssax:make-pi-parser
 	    ssax:make-elem-parser
 	    ssax:make-parser/positional-args
@@ -629,6 +635,8 @@
   		; we have read "<![" that must begin a CDATA section
   (define (read-cdata port)
     ;;(assert (string=? "CDATA[" (read-string 6 port)))
+    (unless (string=? "CDATA[" (read-string 6 port))
+      (assertion-violation 'read-cdata "input port has wrong CDATA"))
     (make-xml-token 'CDSECT #f))
 
   (lambda (port)

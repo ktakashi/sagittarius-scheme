@@ -6,7 +6,7 @@
 	    make-errorer
 	    begin0
 	    inc dec
-	    char-return nl
+	    char-return char-tab nl
 	    cout cerr
 	    make-char-quotator
 	    ascii->char
@@ -35,6 +35,7 @@
 
   (define char-return #\return)
   (define nl "\n")
+  (define char-tab #\tab)
 
   (define (cout . args)
     (for-each (lambda (x)

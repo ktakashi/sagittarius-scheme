@@ -1,3 +1,14 @@
+2011-10-21  Takashi Kato  <ktakashi@ymail.com>
+
+	* sitelib/util/list.scm: separated from (rfc http).
+
+	* test/tests/text/sxml/ssax.scm (ssax): ssax test case has been added.
+
+	* src/load.c (load): if target loading file had hash-bang, load did not
+	restore the previous mode. it's been fixed.
+
+	* src/library.c (import): rename import did not work. it's been fixed.
+
 2011-10-20  Takashi Kato  <ktakashi@ymail.com>
 
 	* boot/compiler.scm: fixed miscompiling when builtin test instruction had

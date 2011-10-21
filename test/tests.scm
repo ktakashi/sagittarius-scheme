@@ -10,7 +10,9 @@
 	(tests srfi :42)
 	(tests rfc base64)
 	(tests rfc quoted-printable)
-	(tests rfc mime))
+	(tests rfc mime)
+	;; text
+	(tests text sxml ssax))
 ;; srfi-64 default implementation does not report detail error.
 ;; so creates own test-runner
 (define (test-on-test-end-detail runner)
@@ -38,8 +40,8 @@
 	(newline))
       (let ((expected (test-result-ref runner 'expected-value))
 	    (actual   (test-result-ref runner 'actual-value)))
-	(display #\tab)(display "expected value: ")(display expected)(newline)
-	(display #\tab)(display "  actual value: ")(display actual)(newline)))
+	(display #\tab)(display "expected value: ")(write expected)(newline)
+	(display #\tab)(display "  actual value: ")(write actual)(newline)))
     (when (output-port? log)
       (display "Test end:" log)
       (newline log)
@@ -71,4 +73,5 @@
 (run-rfc-base64-tests)
 (run-rfc-quoted-printable-tests)
 (run-rfc-mime-test)
+(run-ssax-test)
 (test-end)
