@@ -12,7 +12,8 @@
 	(tests rfc quoted-printable)
 	(tests rfc mime)
 	;; text
-	(tests text sxml ssax))
+	(tests text sxml ssax)
+	(tests text sxml htmlprag))
 ;; srfi-64 default implementation does not report detail error.
 ;; so creates own test-runner
 (define (test-on-test-end-detail runner)
@@ -74,4 +75,5 @@
 (run-rfc-quoted-printable-tests)
 (run-rfc-mime-test)
 (run-ssax-test)
+(run-htmlprag-test)
 (test-end)

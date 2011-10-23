@@ -1,3 +1,4 @@
+;; -*- mode: scheme; coding: utf-8 -*-
 (library (tests text sxml ssax)
     (export run-ssax-test)
     (import (except (rnrs) display newline write)

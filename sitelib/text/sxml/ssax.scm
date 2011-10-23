@@ -7,6 +7,7 @@
 	    xml-token-kind
 	    xml-token-head
 
+	    ssax:skip-S
 	    ssax:ncname-starting-char?
 	    ssax:read-NCName
 	    ssax:read-QName
