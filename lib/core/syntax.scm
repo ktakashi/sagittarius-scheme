@@ -8,7 +8,7 @@
 	    unsyntax
 	    unsyntax-splicing
 	    datum->syntax
-	    syntax->datum
+	    syntax->datum datum
 	    generate-temporaries
 	    make-variable-transformer
 	    identifier?
@@ -29,10 +29,6 @@
   (define-syntax unsyntax-splicing
     (lambda (x)
       (syntax-violation (and (pair? x) (car x)) "misplaced auxiliary syntactic keyword" x)))
-
-  (define-syntax datum
-    (syntax-rules ()
-      ((_ x) (syntax->datum (syntax x)))))
 
   (define-syntax with-syntax
     (lambda (x)
@@ -56,6 +52,10 @@
 	 (with-syntax (((cl ...) (map clause (syntax (cl ...)))))
 		      (syntax
 		       (lambda (x) (syntax-case x (k ...) cl ...))))))))
+
+  (define-syntax datum
+    (syntax-rules ()
+      ((_ x) (syntax->datum (syntax x)))))
 
   ;; quasisyntax from
 
