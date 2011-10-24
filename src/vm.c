@@ -1093,8 +1093,10 @@ static void expand_stack(SgVM *vm)
 {
   SgObject *p;
 
-  if (SG_VM_LOG_LEVEL(vm, SG_INFO_LEVEL)) {
-    Sg_Printf(vm->logPort, UC("expanding stack\n"));
+  if (SG_VM_LOG_LEVEL(vm, SG_WARN_LEVEL)) {
+    Sg_Printf(vm->logPort,
+	      UC("expanding stack (fp=%d, sp=%d)\n"),
+	      FP(vm) - vm->stack, SP(vm) - vm->stack);
   }
 
   save_cont(vm);

@@ -635,9 +635,7 @@
 
   		; we have read "<![" that must begin a CDATA section
   (define (read-cdata port)
-    ;;(assert (string=? "CDATA[" (read-string 6 port)))
-    (unless (string=? "CDATA[" (read-string 6 port))
-      (assertion-violation 'read-cdata "input port has wrong CDATA"))
+    (assert (string=? "CDATA[" (read-string 6 port)))
     (make-xml-token 'CDSECT #f))
 
   (lambda (port)

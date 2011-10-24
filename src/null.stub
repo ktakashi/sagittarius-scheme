@@ -548,7 +548,7 @@
   ;; = < > <= >=
   (define-c-proc = (arg0 arg1 :rest rest) ::boolean
     (result FALSE)
-    (numcmp == Sg_NumEq))
+    (numcmp == Sg_NumCmp))
   (define-c-proc < (arg0 arg1 :rest rest) ::boolean
     (result FALSE)
     (numcmp < Sg_NumCmp))

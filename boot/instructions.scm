@@ -851,17 +851,20 @@
   (set! (SP vm) (- (SP vm) 2)))
 
 ;; combined instructions
-(define-inst LREF_PUSH (1 0 #t) :combined
-  (LREF PUSH))
+;; CONST_PUSH, LREF_PUSH and FREF_PUSH are treated specially for heavy head call
+(define-inst LREF_PUSH (1 0 #t)
+  (INSN_VAL1 val1 c)
+  (PUSH (SP vm) (REFER_LOCAL vm val1)))
 
-(define-inst FREF_PUSH (1 0 #t) :combined
-  (FREF PUSH))
+(define-inst FREF_PUSH (1 0 #t)
+  (INSN_VAL1 val1 c)
+  (PUSH (SP vm) (INDEX_CLOSURE vm val1)))
 
 (define-inst GREF_PUSH (0 1 #t) :combined
   (GREF PUSH))
 
-(define-inst CONST_PUSH (0 1 #f) :combined
-  (CONST PUSH))
+(define-inst CONST_PUSH (0 1 #f)
+  (PUSH (SP vm) (FETCH_OPERAND (PC vm))))
 
 (define-inst CONSTI_PUSH (1 0 #f) :combined
   (CONSTI PUSH))

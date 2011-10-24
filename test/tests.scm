@@ -13,6 +13,8 @@
 	(tests rfc mime)
 	;; text
 	(tests text sxml ssax)
+	(tests text sxml sxpath)
+	(tests text sxml serializer)
 	(tests text sxml htmlprag))
 ;; srfi-64 default implementation does not report detail error.
 ;; so creates own test-runner
@@ -75,5 +77,7 @@
 (run-rfc-quoted-printable-tests)
 (run-rfc-mime-test)
 (run-ssax-test)
+(run-sxpath-test)
+(run-serializer-test)
 (run-htmlprag-test)
 (test-end)

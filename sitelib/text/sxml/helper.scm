@@ -1,37 +1,56 @@
 ;; -*- scheme -*-
-
+#!compatible
 (library (text sxml helper)
     (export parser-error
 	    ssax:warn
 	    make-errorer
 	    begin0
-	    inc dec
+	    inc dec |--|
 	    char-return char-tab nl
 	    cout cerr
 	    make-char-quotator
 	    ascii->char
-	    ucscode->char)
-    (import (rnrs))
+	    ucscode->char
+	    assert
+	    string-rindex
+	    substring?
+	    )
+    (import (rnrs)
+	    (only (srfi :13 strings) string-contains string-index-right)
+	    (only (sagittarius) format)
+	    (only (sagittarius control) begin0))
 
   (define ascii->char integer->char)
   (define ucscode->char integer->char)
 
-  ;; this could be useful for somewhere, but for now
-  (define-syntax begin0
-    (syntax-rules ()
-      ((begin0 form form1 ... ) 
-       (let ((val form)) form1 ... val))))
-
   (define-syntax inc
     (syntax-rules ()
-      ((_ x)
-       (+ x 1))))
+      ((_ x) (+ x 1))))
 
   (define-syntax dec
     (syntax-rules ()
-      ((_ x)
-       (- x 1))))
+      ((_ x) (- x 1))))
 
+  (define-syntax --
+    (syntax-rules ()
+      ((_ x) (dec x))))
+
+  (define-syntax assert
+    (syntax-rules (report:)
+      ((assert "doit" (expr ...) (r-exp ...))
+       (cond
+	((and expr ...) => (lambda (x) x))
+	(else
+	 (assertion-violation 'assert
+			      (format "assertion failure: ~a" (list '(and expr ...) r-exp ...))))))
+      ((assert "collect" (expr ...))
+       (assert "doit" (expr ...) ()))
+      ((assert "collect" (expr ...) report: r-exp ...)
+       (assert "doit" (expr ...) (r-exp ...)))
+      ((assert "collect" (expr ...) expr1 stuff ...)
+       (assert "collect" (expr ... expr1) stuff ...))
+      ((assert stuff ...)
+       (assert "collect" () stuff ...))))
 
   (define char-return #\return)
   (define nl "\n")
@@ -146,4 +165,6 @@
 			 (cons quoted-char (loop (inc to) new-to)))
 			(cons quoted-char (loop (inc to) new-to))))))))))))
 
+  (define (substring? pat str) (string-contains str pat))
+  (define string-rindex string-index-right)
   )

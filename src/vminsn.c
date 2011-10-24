@@ -1024,15 +1024,13 @@ CASE(VEC_SET) {
 
 CASE(LREF_PUSH) {
   INSN_VAL1(val1, c);
-  AC(vm)=REFER_LOCAL(vm, val1);
-  PUSH(SP(vm), AC(vm));
+  PUSH(SP(vm), REFER_LOCAL(vm, val1));
   NEXT;
 }
 
 CASE(FREF_PUSH) {
   INSN_VAL1(val1, c);
-  AC(vm)=INDEX_CLOSURE(vm, val1);
-  PUSH(SP(vm), AC(vm));
+  PUSH(SP(vm), INDEX_CLOSURE(vm, val1));
   NEXT;
 }
 
@@ -1043,8 +1041,7 @@ CASE(GREF_PUSH) {
 }
 
 CASE(CONST_PUSH) {
-  AC(vm)=FETCH_OPERAND(PC(vm));
-  PUSH(SP(vm), AC(vm));
+  PUSH(SP(vm), FETCH_OPERAND(PC(vm)));
   NEXT;
 }
 

@@ -3858,7 +3858,8 @@
 		(has-tag? ($call-proc iform) $LET)
 		(all-args-simple? ($call-args iform)))
 	   (pass3/head-heavy-call iform cb renv ctx)
-	   (pass3/normal-call iform cb renv ctx))))))
+	   (pass3/normal-call iform cb renv ctx))
+       ))))
 
 ;; Local call
 ;;  PROC is always $LREF.
