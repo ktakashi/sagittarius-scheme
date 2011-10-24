@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # TODO may be get version number somewhere
-export DIST_NAME=sagittarius-0.2.1
+export DIST_NAME=sagittarius-0.2.2
 
 # just in case
 if [ -e ${DIST_NAME} ]; 
@@ -24,6 +24,7 @@ cp -r cmake/ ${DIST_NAME}
 cp -r script/ ${DIST_NAME}
 cp -r test/ ${DIST_NAME}
 cp -r unicode/ ${DIST_NAME}
+cp -r doc/ ${DIST_NAME}
 cp -r autogen.sh ${DIST_NAME}
 cp -r geninsn.sh ${DIST_NAME}
 cp -r cmake_uninstall.cmake.in ${DIST_NAME}
