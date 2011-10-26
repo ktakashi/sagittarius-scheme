@@ -393,6 +393,10 @@ static SgObject calculate_imports(SgObject only, SgObject renames)
 
  next:
   if (SG_NULLP(renames)) return h; /* short cut */
+  if (SG_NULLP(only)) {
+    /* put mark */
+    SG_APPEND1(h, t, SG_TRUE);
+  }
   SG_FOR_EACH(cp, renames) {
     first = SG_CAR(cp);
     if (!SG_PROPER_LISTP(first)) {
@@ -427,7 +431,9 @@ static SgObject rename_key(SgObject key, SgObject prefix,
   if (!SG_FALSEP(prefix)) {
     name = Sg_Intern(Sg_Sprintf(UC("%A%A"), prefix, key));
   }
-  if ((SG_NULLP(imports) || !SG_FALSEP(Sg_Assq(key, imports))) &&
+  if ((SG_NULLP(imports) || 
+       SG_TRUEP(SG_CAR(imports)) || /* no only but renames */
+       !SG_FALSEP(Sg_Assq(key, imports))) &&
       SG_FALSEP(Sg_Memq(key, except))) {
     /*
       memo:
