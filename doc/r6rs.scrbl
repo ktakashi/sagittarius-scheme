@@ -18,27 +18,27 @@ symbols from the libraries which are listed below.}
 
 Most of these libraries documentations are from R6RS specification.
 @itemlist[
- @item{@ref["rnrs.base.6"]{(rnrs base (6))}}
- @item{@ref["rnrs.unicode.6"]{(rnrs unicode (6))}}
- @item{@ref["rnrs.bytevector.6"]{(rnrs bytevector (6))}}
- @item{@ref["rnrs.lists.6"]{(rnrs lists (6))}}
- @item{@ref["rnrs.sorting.6"]{(rnrs sorting (6))}}
- @item{@ref["rnrs.control.6"]{(rnrs control (6))}}
- @item{@ref["rnrs.records.syntactic.6"]{(rnrs records syntactic (6))}}
- @item{@ref["rnrs.records.procedural.6"]{(rnrs records procedural (6))}}
- @item{@ref["rnrs.records.inspection.6"]{(rnrs records inspection (6))}}
- @item{@ref["rnrs.exceptions.6"]{(rnrs exceptions (6))}}
- @item{@ref["rnrs.conditions.6"]{(rnrs conditions (6))}}
- @item{@ref["rnrs.io.ports.6"]{(rnrs io ports (6))}}
- @item{@ref["rnrs.io.simple.6"]{(rnrs io simple (6))}}
- @item{@ref["rnrs.files.6"]{(rnrs files (6))}}
- @item{@ref["rnrs.programs.6"]{(rnrs programs (6))}}
- @item{@ref["rnrs.arithmetic.fixnums.6"]{(rnrs arithmetic fixnums (6))}}
- @item{@ref["rnrs.arithmetic.flonums.6"]{(rnrs arithmetic flonums (6))}}
- @item{@ref["rnrs.arithmetic.bitwise.6"]{(rnrs arithmetic bitwise (6))}}
- @item{@ref["rnrs.syntax-case.6"]{(rnrs syntax-case (6))}}
- @item{@ref["rnrs.hashtables.6"]{(rnrs hashtables (6))}}
- @item{@ref["rnrs.enums.6"]{(rnrs enums (6))}}
+ @item{@secref["rnrs.base.6"]{(rnrs base (6))}}
+ @item{@secref["rnrs.unicode.6"]{(rnrs unicode (6))}}
+ @item{@secref["rnrs.bytevector.6"]{(rnrs bytevector (6))}}
+ @item{@secref["rnrs.lists.6"]{(rnrs lists (6))}}
+ @item{@secref["rnrs.sorting.6"]{(rnrs sorting (6))}}
+ @item{@secref["rnrs.control.6"]{(rnrs control (6))}}
+ @item{@secref["rnrs.records.syntactic.6"]{(rnrs records syntactic (6))}}
+ @item{@secref["rnrs.records.procedural.6"]{(rnrs records procedural (6))}}
+ @item{@secref["rnrs.records.inspection.6"]{(rnrs records inspection (6))}}
+ @item{@secref["rnrs.exceptions.6"]{(rnrs exceptions (6))}}
+ @item{@secref["rnrs.conditions.6"]{(rnrs conditions (6))}}
+ @item{@secref["rnrs.io.ports.6"]{(rnrs io ports (6))}}
+ @item{@secref["rnrs.io.simple.6"]{(rnrs io simple (6))}}
+ @item{@secref["rnrs.files.6"]{(rnrs files (6))}}
+ @item{@secref["rnrs.programs.6"]{(rnrs programs (6))}}
+ @item{@secref["rnrs.arithmetic.fixnums.6"]{(rnrs arithmetic fixnums (6))}}
+ @item{@secref["rnrs.arithmetic.flonums.6"]{(rnrs arithmetic flonums (6))}}
+ @item{@secref["rnrs.arithmetic.bitwise.6"]{(rnrs arithmetic bitwise (6))}}
+ @item{@secref["rnrs.syntax-case.6"]{(rnrs syntax-case (6))}}
+ @item{@secref["rnrs.hashtables.6"]{(rnrs hashtables (6))}}
+ @item{@secref["rnrs.enums.6"]{(rnrs enums (6))}}
 ]
 
 @include-section("rnrs/base.scrbl")

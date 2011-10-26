@@ -271,6 +271,7 @@ SgObject Sg_LastPair(SgObject list)
 SgObject Sg_ListTail(SgObject list, int i, SgObject fallback)
 {
   int count = i;
+  SgObject oargs = list;
   if (i < 0) goto err;
   while (count-- > 0) {
     if (!SG_PAIRP(list)) goto err;
@@ -278,13 +279,18 @@ SgObject Sg_ListTail(SgObject list, int i, SgObject fallback)
   }
   return list;
  err:
-  if (SG_UNBOUNDP(fallback)) Sg_Error(UC("argument out of range: %d"), i);
+  if (SG_UNBOUNDP(fallback)) {
+    Sg_AssertionViolation(SG_INTERN("list-tail"),
+			  SG_MAKE_STRING("argument out of range"),
+			  SG_LIST2(oargs, SG_MAKE_INT(i)));
+  }
   return fallback;
 }
 
 SgObject Sg_ListRef(SgObject list, int i, SgObject fallback)
 {
   int k;
+  SgObject oargs = list;
   if (i < 0) goto err;
   for (k = 0; k < i; k++) {
     if (!SG_PAIRP(list)) goto err;
@@ -293,7 +299,11 @@ SgObject Sg_ListRef(SgObject list, int i, SgObject fallback)
   if (!SG_PAIRP(list)) goto err;
   return SG_CAR(list);
  err:
-  if (SG_UNBOUNDP(fallback)) Sg_Error(UC("argument out of range: %d"), i);
+  if (SG_UNBOUNDP(fallback)) {
+    Sg_AssertionViolation(SG_INTERN("list-ref"),
+			  SG_MAKE_STRING("argument out of range"),
+			  SG_LIST2(oargs, SG_MAKE_INT(i)));
+  }
   return fallback;
 }
 

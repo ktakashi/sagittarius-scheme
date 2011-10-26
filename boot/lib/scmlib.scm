@@ -480,18 +480,19 @@
 
 ;; 3 list utilities
 ;; from Ypsilon
-(define find
-  (lambda (pred lst)
-    (cond ((null? lst) #f)
-	  ((pair? lst)
-	   (let loop ((head (car lst)) (rest (cdr lst)))
-	     (cond ((pred head) head)
-		   ((null? rest) #f)
-		   ((pair? rest) (loop (car rest) (cdr rest)))
-		   (else
-		    (assertion-violation 'find (format "traversal reached to non-pair element ~s" rest) (list pred lst))))))
-	  (else
-	   (assertion-violation 'find (format "expected chain of pairs, but got ~s, as argument 2" lst) (list pred lst))))))
+;; Using SRFI-1 implementation
+;;(define find
+;;  (lambda (pred lst)
+;;    (cond ((null? lst) #f)
+;;	  ((pair? lst)
+;;	   (let loop ((head (car lst)) (rest (cdr lst)))
+;;	     (cond ((pred head) head)
+;;		   ((null? rest) #f)
+;;		   ((pair? rest) (loop (car rest) (cdr rest)))
+;;		   (else
+;;		    (assertion-violation 'find (format "traversal reached to non-pair element ~s" rest) (list pred lst))))))
+;;	  (else
+;;	   (assertion-violation 'find (format "expected chain of pairs, but got ~s, as argument 2" lst) (list pred lst))))))
 
 (define for-all
   (lambda (pred lst1 . lst2)
