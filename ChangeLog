@@ -1,5 +1,7 @@
 2011-10-27  Takashi Kato  <ktakashi@ymail.com>
 
+	* sitelib/util/hashtables.scm (util hashtables): added hashtable utils.
+
 	* sitelib/scribble.scm (scribble): adapt scribble reader to bytevector.
 
 2011-10-26  Takashi Kato  <ktakashi@ymail.com>

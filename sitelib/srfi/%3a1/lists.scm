@@ -71,7 +71,14 @@
     assoc cons* filter find fold-right for-each map member partition remove)
 
   (import 
-   (only (rnrs) define-syntax lambda syntax-case and identifier? syntax define syntax-rules ... cons let if not pair? car cdr unless integer? >= quote procedure? do - < case-lambda number? <= + * eq? null? or cond else apply list cadr caddr cadddr cddddr values zero? begin let-values let* append call-with-current-continuation reverse => letrec equal? memq _ length symbol? string? assertion-violation caar when memv list-ref caaaar caaadr caaar caadar caaddr
+   (only (rnrs) define-syntax lambda syntax-case and identifier? syntax define syntax-rules ...
+    cons let if not pair? car cdr unless integer? >= quote procedure? do - < case-lambda number?
+    <= + * eq? null? or cond else apply list cadr caddr cadddr cddddr values zero? begin let-values
+    let* append call-with-current-continuation reverse => letrec equal? memq _ length symbol? string?
+    assertion-violation caar when memv list-ref
+    ;; on Sagittarius these are the same as R6RS
+    filter partition cons* fold-right map for-each
+    caaaar caaadr caaar caadar caaddr
     caadr caar cadaar cadadr cadar caddar cadddr caddr cadr
     car cdaaar cdaadr cdaar cdadar cdaddr cdadr cdar cddaar
     cddadr cddar cdddar cddddr cdddr cddr cdr assv assq)
@@ -829,17 +836,17 @@
 
 ;;; Like %CARS+CDRS, but we pass in a final elt tacked onto the end of the
 ;;; cars list. What a hack.
-(define (%cars+cdrs+ lists cars-final)
-  (call-with-current-continuation
-    (lambda (abort)
-      (let recur ((lists lists))
-        (if (pair? lists)
-        (receive (list other-lists) (car+cdr lists)
-          (if (null-list? list) (abort '() '()) ; LIST is empty -- bail out
-          (receive (a d) (car+cdr list)
-            (receive (cars cdrs) (recur other-lists)
-              (values (cons a cars) (cons d cdrs))))))
-        (values (list cars-final) '()))))))
+;;(define (%cars+cdrs+ lists cars-final)
+;;  (call-with-current-continuation
+;;    (lambda (abort)
+;;      (let recur ((lists lists))
+;;        (if (pair? lists)
+;;        (receive (list other-lists) (car+cdr lists)
+;;          (if (null-list? list) (abort '() '()) ; LIST is empty -- bail out
+;;          (receive (a d) (car+cdr list)
+;;            (receive (cars cdrs) (recur other-lists)
+;;              (values (cons a cars) (cons d cdrs))))))
+;;        (values (list cars-final) '()))))))
 
 ;;; Like %CARS+CDRS, but blow up if any list is empty.
 (define (%cars+cdrs/no-test lists)
@@ -921,18 +928,18 @@
 ;;        (lp (cdr lis) (kons (car lis) ans))))))
 ;;
 ;;
-(define (fold-right kons knil lis1 . lists)
-  (check-arg procedure? kons fold-right)
-  (if (pair? lists)
-      (let recur ((lists (cons lis1 lists)))        ; N-ary case
-    (let ((cdrs (%cdrs lists)))
-      (if (null? cdrs) knil
-          (apply kons (%cars+ lists (recur cdrs))))))
-
-      (let recur ((lis lis1))               ; Fast path
-    (if (null-list? lis) knil
-        (let ((head (car lis)))
-          (kons head (recur (cdr lis))))))))
+;;(define (fold-right kons knil lis1 . lists)
+;;  (check-arg procedure? kons fold-right)
+;;  (if (pair? lists)
+;;      (let recur ((lists (cons lis1 lists)))        ; N-ary case
+;;    (let ((cdrs (%cdrs lists)))
+;;      (if (null? cdrs) knil
+;;          (apply kons (%cars+ lists (recur cdrs))))))
+;;
+;;      (let recur ((lis lis1))               ; Fast path
+;;    (if (null-list? lis) knil
+;;        (let ((head (car lis)))
+;;          (kons head (recur (cdr lis))))))))
 
 
 (define (pair-fold-right f zero lis1 . lists)
@@ -1075,25 +1082,25 @@
 
 
 ;;; We extend MAP to handle arguments of unequal length.
-(define map map-in-order)
+;;(define map map-in-order)
 
 ;;; Contributed by Michael Sperber since it was missing from the
 ;;; reference implementation.
-(define (for-each f lis1 . lists)
-  (if (pair? lists)
-      (let recur ((lists (cons lis1 lists)))
-    (receive (cars cdrs) (%cars+cdrs lists)
-         (if (pair? cars)
-             (begin
-               (apply f cars)   ; Do head first,
-               (recur cdrs))))) ; then tail.
-
-      ;; Fast path.
-      (let recur ((lis lis1))
-    (if (not (null-list? lis))
-        (begin
-          (f (car lis))     ; Do head first,
-          (recur (cdr lis)))))))    ; then tail.
+;;(define (for-each f lis1 . lists)
+;;  (if (pair? lists)
+;;      (let recur ((lists (cons lis1 lists)))
+;;    (receive (cars cdrs) (%cars+cdrs lists)
+;;         (if (pair? cars)
+;;             (begin
+;;               (apply f cars)   ; Do head first,
+;;               (recur cdrs))))) ; then tail.
+;;
+;;      ;; Fast path.
+;;      (let recur ((lis lis1))
+;;    (if (not (null-list? lis))
+;;        (begin
+;;          (f (car lis))     ; Do head first,
+;;          (recur (cdr lis)))))))    ; then tail.
 
 ;;; filter, remove, partition
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1192,16 +1199,16 @@
 ;;; Answers share common tail with LIS where possible;
 ;;; the technique is slightly subtle.
 
-(define (partition pred lis)
-  (check-arg procedure? pred partition)
-  (let recur ((lis lis))
-    (if (null-list? lis) (values lis lis)   ; Use NOT-PAIR? to handle dotted lists.
-    (let ((elt (car lis))
-          (tail (cdr lis)))
-      (receive (in out) (recur tail)
-        (if (pred elt)
-        (values (if (pair? out) (cons elt in) lis) out)
-        (values in (if (pair? in) (cons elt out) lis))))))))
+;;(define (partition pred lis)
+;;  (check-arg procedure? pred partition)
+;;  (let recur ((lis lis))
+;;    (if (null-list? lis) (values lis lis)   ; Use NOT-PAIR? to handle dotted lists.
+;;    (let ((elt (car lis))
+;;          (tail (cdr lis)))
+;;      (receive (in out) (recur tail)
+;;        (if (pred elt)
+;;        (values (if (pair? out) (cons elt in) lis) out)
+;;        (values in (if (pair? in) (cons elt out) lis))))))))
 
 
 

@@ -186,13 +186,6 @@
 
 ;;;;;
 ;; from Ypsilon
-(define filter
-  (lambda (pred lst)
-    (let loop ((lst lst))
-      (cond ((null? lst) '())
-            ((pred (car lst)) (cons (car lst) (loop (cdr lst))))
-            (else (loop (cdr lst)))))))
-
 
 ;; from srfi-1 start
 (define (null-list? l)

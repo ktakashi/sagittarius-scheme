@@ -752,8 +752,8 @@ is given and @var{k} is out of range, it returns @var{fallback} otherwise
 }
 
 @define[Function]{@name{map} @args{proc list1 list2 @dots{}}}
-@desc{[R6RS+] The @code{map} procedure applies @var{proc} element-wise to the
-elements of the @var{lists} and returns a list of the results, in order. The
+@desc{[R6RS+ SRFI-1] The @code{map} procedure applies @var{proc} element-wise to
+the elements of the @var{lists} and returns a list of the results, in order. The
 order in which @var{proc} is applied to the elements of the lists is unspecified.
 If multiple returns occur from @code{map}, the values returned by earlier returns
 are not mutated. If the given @var{lists} are not the same length, when the
@@ -761,13 +761,11 @@ shortest list is processed the @code{map} will stop.
 }
 
 @define[Function]{@name{for-each} @args{proc list1 list2 @dots{}}}
-@desc{[R6RS+] The @code{for-each} procedure applies @var{proc} element-wise to
-the elements of the @var{lists} for its side effects, in order from the first
+@desc{[R6RS+ SRFI-1] The @code{for-each} procedure applies @var{proc} element-wise
+to the elements of the @var{lists} for its side effects, in order from the first
 elements to the last. The return values of @code{for-each} are unspecified. If
 the given @var{lists} are not the same length, when the shortest list is
 processed the @code{for-each} will stop.
-
-These @code{map} and @code{for-each}'s behaviours are taken from Gauche.
 }
 
 @subsubsection{Symbols}
