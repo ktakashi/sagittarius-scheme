@@ -1,0 +1,188 @@
+;; -*- mode: scheme; coding: utf-8 -*- 
+(library (scribble plugin)
+    (export define-scrible-macro
+	    define-scrible-plugin
+	    lookup)
+    (import (rnrs)
+	    (sagittarius))
+  ;; alist
+  (define *macro-table* '())
+  (define *plugin-table* '())
+
+  (define (insert-macro/plugin type name var)
+    (case type
+      ((define-scrible-macro)
+       (insert-macro name var))
+      ((define-scrible-plugin)
+       (insert-plugin name var))))
+  
+  (define-syntax define-scrible-macro-macro
+    (syntax-rules ()
+      ((_ def inserter)
+       (define-syntax def
+	 (syntax-rules (lambda)
+	   ((_ (name . args) body (... ...))
+	    (def :lambda name (lambda args body (... ...))))
+	   ((_ name var)
+	    (def :var name var))
+	   ((_ :var name (lambda args body (... ...)))
+	    (def :lambda name (lambda args body (... ...))))
+	   ((_ :var name var) ;; well redefined?
+	    (inserter 'name var))
+	   ((_ :lambda name var)
+	    (inserter 'name var)))))))
+
+  (define-scrible-macro-macro define-scrible-macro insert-macro)
+
+  (define (insert-macro name var)
+    (set! *macro-table* (acons name var *macro-table*)))
+
+  (define-scrible-macro-macro define-scrible-plugin insert-plugin)
+
+  (define (insert-plugin name var)
+    (set! *plugin-table* (acons name var *plugin-table*)))
+
+  (define (lookup type name)
+    (case type
+      ((macro)
+       (cond ((assq name *macro-table*) => cdr)
+	     (else #f)))
+      ((plugin)
+       (cond ((assq name *plugin-table*) => cdr)
+	     (else #f)))
+      (else
+       (assertion-violation 'lookup
+			    "invalid type" type name))
+       ))
+)
+
+(import (rnrs)
+	(scribble)
+	(scribble plugin)
+	(sagittarius)
+	(sagittarius vm)
+	(pp))
+
+;; phase 1
+(define-scrible-macro (include-section file)
+  (if (file-exists? file)
+      (call-with-input-file file
+	(lambda (in)
+	  (scribble-parse in)))
+      (raise-continuable
+       (condition (make-warning)
+		  (make-who-condition 'include-section)
+		  (make-message-condition (format "file not found [~a]" file))
+		  (make-irritants-condition file)))))
+
+(define (expand-scrible-macro sexp)
+  (define (process-1 lst)
+    (cond ((pair? lst)
+	   (cond ((lookup 'macro (car lst))
+		  => (lambda (proc)
+		       (apply proc (cdr lst))))
+		 (else #f)))
+	  (else #f)))
+  (define (process sexp)
+    (let loop ((sexp sexp)
+	       (r '()))
+      (cond ((null? sexp) r)
+	    ((pair? sexp)
+	     (let ((expanded (process-1 (car sexp))))
+	       (if expanded
+		   (loop (cdr sexp)
+			 (append r (process expanded)))
+		   (loop (cdr sexp)
+			 (append r (list (car sexp)))))))
+	    (else (list sexp)))))
+  (with-exception-handler
+   (lambda (e)
+     (cond ((and (warning? e)
+		 (message-condition? e))
+	    (let ((msg (condition-message e)))
+	      (display msg (current-error-port))
+	      (newline (current-error-port))
+	      msg))
+	   (else #f)))
+   (lambda ()
+     (process sexp))))
+
+;; phase 2
+(define-scrible-plugin (table . items)
+  ;; stub
+  `(table ,@(filter values
+		   (map (lambda (i)
+			  (cond ((and (pair? i)
+				      (eq? (car i) 'item))
+				 `(item (@ (name ,(cadr i)))
+					,@(cddr i)))
+				(else #f)))
+			items))))
+
+(define-scrible-plugin (define cate name . args)
+  ;; stub
+  `(define (@ (category ,(format "~a" cate)))
+     ,name
+     ,@(filter values (map (lambda (arg)
+			     (if (pair? arg)
+				 arg
+				 #f))
+			   args))))
+
+(define-scrible-plugin (subsection . args)
+  ;; parse keyword
+  (let ((t (if (keyword? (car args))
+		 (cadr args)
+		 #f)))
+    (if t
+	`(subsection (@ (tag ,t)) ,@(cddr args))
+	`(subsection ,@args))))
+
+(define-scrible-plugin (snipet . args)
+  ;; parse =>
+  (let ((expected (if (symbol? (car args))
+		      (format "~a" (cadr args))
+		      #f)))
+    (if expected
+	`(snipet (@ (result ,expected)) ,@(cddr args))
+	`(snipet ,@args))))
+
+(define-scrible-plugin (eval sexp)
+  (eval (read (open-string-input-port sexp))
+	(vm-current-library))) ;; <- almost black magic ...
+
+(define-scrible-plugin (codeblock . args)
+  (let ((e (if (symbol? (car args))
+	       (format "~a" (cadr args))
+	       #f)))
+    (if e
+	`(codeblock (@ (result ,e)) ,@(cddr args))
+	`(codeblock ,@args))))
+
+(define (scribble->sxml sexp)
+  (define *top* '*TOP*)
+  (define *pi* '(*PI* xml "version=\"1.0\" encoding=\"utf-8\""))
+  (define (process-1 item)
+    (cond ((pair? item)
+	   (cond ((lookup 'plugin (car item))
+		  => (lambda (proc)
+		       (let ((r (apply proc (cdr item))))
+			 r)))
+		 (else (cons (process-1 (car item))
+			     (process-1 (cdr item))))))
+	  (else item)))
+  (append (list *top* *pi*)
+	  (list `(scribble
+		  ,@(map process-1 sexp)))))
+
+(import (text sxml serializer))
+
+(let ((r (scribble->sxml
+	  (expand-scrible-macro
+	   (call-with-input-file "sagittarius-ref.scrbl"
+	     (lambda (in)
+	       (scribble-parse in)))))))
+
+  (srl:sxml->xml r (current-output-port))
+  ;;(pp r)
+)

@@ -38,23 +38,23 @@ To avoid to lose portability or write miss-working code, you may want to know
 what are the non conformed points.
 
 @table[]{
-@item[Reader]{
+@item["Reader"]{
  Reader has two mode. One is R6RS mode and other one is compatible mode. Default
  mode is R6RS  you can switch with @code{#!compatible} hash-bang which describe
  later. In compatible mode, reader also can read keyword which start with
  @code{“:”} and more non R6RS feature will be available.}
-@item[Macro expansion]{
+@item["Macro expansion"]{
  On R6RS requires explicit macro expansion phase, however in Sagittarius we do
  not have it. A macro will expand when programs will be compiled.}
-@item[Unbound symbol]{
+@item["Unbound symbol"]{
  If you write unbound symbol in your code, Sagittarius, however, won't raise
  error until it really called. R6RS does not allow this behaviour. And also
  export symbol. If you do not define exported symbol, Sagittarius, then, won't
  raise error until it will be called. I'm not sure if this is convenient or not.
  So this behaviour may be changed.}
-@item[Toplevel]{
+@item["Toplevel"]{
  Sagittarius does not require toplevel expression which is specified in R6RS.}
-@item[Miscellaneous]{
+@item["Miscellaneous"]{
  Redefinition of exported values are allowed. The value which imported at the
  last will be used.
 
@@ -66,7 +66,7 @@ what are the non conformed points.
 
 In this manual, each entry is represented like this.
 
-@define[Category] {@name{foo} @args{arg1 arg2}}
+@define[Category]{@name{foo} @args{arg1 arg2}}
 @desc{[spec] Description foo ...}
 
 @var{Category} denotes category of the entry @bold{foo}. The following category
@@ -154,4 +154,4 @@ any command-line option processing and error handling.
   0)
 }
 
-@include-section("r6rs.scrbl")
+@include-section["r6rs.scrbl"]

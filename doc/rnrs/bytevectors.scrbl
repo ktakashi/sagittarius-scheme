@@ -60,7 +60,7 @@ If the @var{fill} argument is missing, the initial contents of the returned
 bytevector are 0.
 
 If the @var{fill} argument is present, it must be an exact integer object in the
-interval {-128, ..., 255} that specifies the initial value for the bytes of the
+interval {-128, @dots{}, 255} that specifies the initial value for the bytes of the
 bytevector: If @var{fill} is positive, it is interpreted as an octet; if it is
 negative, it is interpreted as a byte.
 }
@@ -94,7 +94,7 @@ is the length of @var{target}.
 
 The @code{bytevector-copy!} procedure copies the bytes from @var{source} at indices
 
-@var{source-start}, ... @var{source-start} + @var{k} - 1
+@var{source-start}, @dots{} @var{source-start} + @var{k} - 1
 
 to consecutive indices in @var{target} starting at @var{target-index}.
 
@@ -149,30 +149,30 @@ analogous to @code{list->vector}.
 @define[Function]{@name{bytevector-uint-set!} @args{bytevector k n endianness size}}
 @define[Function]{@name{bytevector-sint-set!} @args{bytevector k n endianness size}}
 @desc{[R6RS] @var{Size} must be a positive exact integer object.
-@var{K}, ..., @var{k} + @var{size} - 1 must be valid indices of @var{bytevector}.
+@var{K}, @dots{}, @var{k} + @var{size} - 1 must be valid indices of @var{bytevector}.
 
 The @code{bytevector-uint-ref} procedure retrieves the exact integer object
 corresponding to the unsigned representation of size @var{size} and specified
-by @var{endianness} at indices @var{k}, ..., @var{k} + @var{size} - 1.
+by @var{endianness} at indices @var{k}, @dots{}, @var{k} + @var{size} - 1.
 
 The @code{bytevector-sint-ref} procedure retrieves the exact integer object
 corresponding to the two’s-complement representation of size @var{size} and
-specified by @var{endianness} at indices @var{k}, ..., @var{k} + @var{size} - 1.
+specified by @var{endianness} at indices @var{k}, @dots{}, @var{k} + @var{size} - 1.
 
 For @code{bytevector-uint-set!}, @var{n} must be an exact integer object in the
 interval @math{{0, ..., 256 ^ "size" - 1}}
 
 The @code{bytevector-uint-set!} procedure stores the unsigned representation of
 size @var{size} and specified by @var{endianness} into @var{bytevector} at indices
-@var{k}, ..., @var{k} + @var{size} - 1.
+@var{k}, @dots{}, @var{k} + @var{size} - 1.
 
 For @code{bytevector-sint-set!}, @var{n} must be an exact integer object in the
 interval @math{{-256 ^ "size" / 2, ..., 256 ^ "size" / 2 - 1}}.
 @code{bytevector-sint-set!} stores the two’s-complement representation of size
 @var{size} and specified by @var{endianness} into @var{bytevector} at indices
-@var{k}, ..., @var{k} + @var{size} - 1.
+@var{k}, @dots{}, @var{k} + @var{size} - 1.
 
-The @code{...-set!} procedures return unspecified values.
+The @code{@dots{}-set!} procedures return unspecified values.
 }
 
 @define[Function]{@name{bytevector->uint-list} @args{bytevector endianness size}}
@@ -216,7 +216,7 @@ those with @code{s16} in their names deal with the two’s-complement representa
 The procedures with @code{native} in their names employ the native endianness,
 and work only at aligned indices: @var{k} must be a multiple of 2.
 
-The @code{...-set!} procedures return unspecified values.
+The @code{@dots{}-set!} procedures return unspecified values.
 }
 
 @subsubsection{Operation on 32-bit integers}
@@ -243,7 +243,7 @@ those with @code{s32} in their names deal with the two’s-complement representa
 The procedures with @code{native} in their names employ the native endianness,
 and work only at aligned indices: @var{k} must be a multiple of 4.
 
-The @code{...-set!} procedures return unspecified values.
+The @code{@dots{}-set!} procedures return unspecified values.
 }
 
 @subsubsection{Operation on 64-bit integers}
@@ -270,7 +270,7 @@ those with @code{s64} in their names deal with the two’s-complement representa
 The procedures with @code{native} in their names employ the native endianness,
 and work only at aligned indices: @var{k} must be a multiple of 8.
 
-The @code{...-set!} procedures return unspecified values.
+The @code{@dots{}-set!} procedures return unspecified values.
 }
 
 @subsubsection{Operation on IEEE-754 representations}

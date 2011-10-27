@@ -15,13 +15,13 @@ an element, find immediately returns that element. If @var{proc} returns #f for
 all elements of the @var{list}, find returns #f.
 }
 
-@define[Function]{@name{for-all} @args{pred list1 list2 ...}}
+@define[Function]{@name{for-all} @args{pred list1 list2 @dots{}}}
 @desc{[R6RS+] Applies @var{pred} across each element of @var{lists}, and returns
 #f as soon as @var{pred} returns #f. If all application of @var{pred} return a
 non-false value, @code{for-all} returns the last result of the applications.
 }
 
-@define[Function]{@name{exists} @args{pred list1 list2 ...}}
+@define[Function]{@name{exists} @args{pred list1 list2 @dots{}}}
 @desc{[R6RS+] Applies @var{pred} across each element of @var{lists}, and returns
 as soon as @var{pred} returns a non-false value. The return value of any is the
 non-false value @var{pred} returned. If lists are exhausted before @var{pred}
@@ -47,7 +47,7 @@ returns occur from @code{filter} or @code{partitions}, the return values returne
 by earlier returns are not mutated.
 }
 
-@define[Function]{@name{fold-left} @args{combine nil list1 list2 ...}}
+@define[Function]{@name{fold-left} @args{combine nil list1 list2 @dots{}}}
 @desc{[R6RS+] @var{Combine} must be a procedure. It should accept one more argument
 than there are @var{lists} and return a single value. It should not mutate the
 @var{list} arguments. The @code{fold-left} procedure iterates the @var{combine}
@@ -61,7 +61,7 @@ next elements of the @var{list}. This step is repeated until the end of the
 @var{list} is reached; then the accumulator value is returned.
 }
 
-@define[Function]{@name{fold-right} @args{combine nil list1 list2 ...}}
+@define[Function]{@name{fold-right} @args{combine nil list1 list2 @dots{}}}
 @desc{[R6RS+] @var{Combine} must be a procedure. It should accept one more argument
 than there are @var{lists} and return a single value. @var{Combine} should not
 mutate the @var{list} arguments. The @code{fold-right} procedure iterates the
@@ -139,6 +139,6 @@ while @code{assv} uses @code{eqv?} and @code{assq} uses @cpde{eq?}.
 Note: @code{member} and @code{assoc} procedures are the same behaviour as SRFI-1.
 }
 
-@define[Function]{@name{cons*} @args{obj1 obj2 ...}}
+@define[Function]{@name{cons*} @args{obj1 obj2 @dots{}}}
 @desc{[R6RS] Like @code{list}, but the last argument provides the tail of the
 constructed list.}

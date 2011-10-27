@@ -35,11 +35,11 @@ and ı (#\x131), @code{char-foldcase} behaves as the identity function; otherwis
 @code{char-upcase}.
 }
 
-@define[Function]{@name{char-ci=?} @args{char1 char2 char3 ...}}
-@define[Function]{@name{char-ci>?} @args{char1 char2 char3 ...}}
-@define[Function]{@name{char-ci<?} @args{char1 char2 char3 ...}}
-@define[Function]{@name{char-ci>=?} @args{char1 char2 char3 ...}}
-@define[Function]{@name{char-ci<=?} @args{char1 char2 char3 ...}}
+@define[Function]{@name{char-ci=?} @args{char1 char2 char3 @dots{}}}
+@define[Function]{@name{char-ci>?} @args{char1 char2 char3 @dots{}}}
+@define[Function]{@name{char-ci<?} @args{char1 char2 char3 @dots{}}}
+@define[Function]{@name{char-ci>=?} @args{char1 char2 char3 @dots{}}}
+@define[Function]{@name{char-ci<=?} @args{char1 char2 char3 @dots{}}}
 @desc{[R6RS] These procedures are similar to @code{char=?}, etc., but operate on
 the case-folded versions of the characters.
 }
@@ -88,11 +88,11 @@ The @code{string-titlecase} procedure converts the first cased character of each
 word via @code{char-titlecase}, and downcases all other cased characters.
 }
 
-@define[Function]{@name{string-ci=?} @args{string1 string2 string3 ...}}
-@define[Function]{@name{string-ci>?} @args{string1 string2 string3 ...}}
-@define[Function]{@name{string-ci<?} @args{string1 string2 string3 ...}}
-@define[Function]{@name{string-ci>=?} @args{string1 string2 string3 ...}}
-@define[Function]{@name{string-ci<=?} @args{string1 string2 string3 ...}}
+@define[Function]{@name{string-ci=?} @args{string1 string2 string3 @dots{}}}
+@define[Function]{@name{string-ci>?} @args{string1 string2 string3 @dots{}}}
+@define[Function]{@name{string-ci<?} @args{string1 string2 string3 @dots{}}}
+@define[Function]{@name{string-ci>=?} @args{string1 string2 string3 @dots{}}}
+@define[Function]{@name{string-ci<=?} @args{string1 string2 string3 @dots{}}}
 @desc{[R6RS] These procedures are similar to @code{string=?}, etc., but operate
 on the case-folded versions of the strings.
 }

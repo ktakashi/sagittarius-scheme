@@ -20,7 +20,7 @@ Most of these libraries documentations are from R6RS specification.
 @itemlist[
  @item{@secref["rnrs.base.6"]{(rnrs base (6))}}
  @item{@secref["rnrs.unicode.6"]{(rnrs unicode (6))}}
- @item{@secref["rnrs.bytevector.6"]{(rnrs bytevector (6))}}
+ @item{@secref["rnrs.bytevectors.6"]{(rnrs bytevectors (6))}}
  @item{@secref["rnrs.lists.6"]{(rnrs lists (6))}}
  @item{@secref["rnrs.sorting.6"]{(rnrs sorting (6))}}
  @item{@secref["rnrs.control.6"]{(rnrs control (6))}}
@@ -41,24 +41,24 @@ Most of these libraries documentations are from R6RS specification.
  @item{@secref["rnrs.enums.6"]{(rnrs enums (6))}}
 ]
 
-@include-section("rnrs/base.scrbl")
-@include-section("rnrs/unicode.scrbl")
-@include-section("rnrs/bytevector.scrbl")
-@include-section("rnrs/lists.scrbl")
-@include-section("rnrs/sorting.scrbl")
-@include-section("rnrs/control.scrbl")
-@include-section("rnrs/records/syntactic.scrbl")
-@include-section("rnrs/records/procedural.scrbl")
-@include-section("rnrs/records/inspection.scrbl")
-@include-section("rnrs/exceptions.scrbl")
-@include-section("rnrs/conditions.scrbl")
-@include-section("rnrs/io/ports.scrbl")
-@include-section("rnrs/io/simple.scrbl")
-@include-section("rnrs/files.scrbl")
-@include-section("rnrs/programs.scrbl")
-@include-section("rnrs/arithmetic/fixnums.scrbl")
-@include-section("rnrs/arithmetic/flonums.scrbl")
-@include-section("rnrs/arithmetic/bitwise.scrbl")
-@include-section("rnrs/syntax-case.scrbl")
-@include-section("rnrs/hashtables.scrbl")
-@include-section("rnrs/enums.scrbl")
+@include-section["rnrs/base.scrbl"]
+@include-section["rnrs/unicode.scrbl"]
+@include-section["rnrs/bytevectors.scrbl"]
+@include-section["rnrs/lists.scrbl"]
+@include-section["rnrs/sorting.scrbl"]
+@include-section["rnrs/control.scrbl"]
+@include-section["rnrs/records/syntactic.scrbl"]
+@include-section["rnrs/records/procedural.scrbl"]
+@include-section["rnrs/records/inspection.scrbl"]
+@include-section["rnrs/exceptions.scrbl"]
+@include-section["rnrs/conditions.scrbl"]
+@include-section["rnrs/io/ports.scrbl"]
+@include-section["rnrs/io/simple.scrbl"]
+@include-section["rnrs/files.scrbl"]
+@include-section["rnrs/programs.scrbl"]
+@include-section["rnrs/arithmetic/fixnums.scrbl"]
+@include-section["rnrs/arithmetic/flonums.scrbl"]
+@include-section["rnrs/arithmetic/bitwise.scrbl"]
+@include-section["rnrs/syntax-case.scrbl"]
+@include-section["rnrs/hashtables.scrbl"]
+@include-section["rnrs/enums.scrbl"]

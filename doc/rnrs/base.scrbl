@@ -10,8 +10,8 @@ traditionally associated with Scheme.}
 
 @define[Syntax]{@name{define} @args{variable expression}}
 @define[Syntax]{@name{define} @args{variable}}
-@define[Syntax]{@name{define} @args{(variable formals) body ...}}
-@define[Syntax]{@name{define} @args{(variable . formal) body ...}}
+@define[Syntax]{@name{define} @args{(variable formals) body @dots{}}}
+@define[Syntax]{@name{define} @args{(variable . formal) body @dots{}}}
 @desc{[R6RS] The @code{define} form is a definition used to create variable
 bindings and may appear anywhere other definitions may appear.
 
@@ -34,12 +34,12 @@ In the third form of @code{define}, @var{formals} must be either a sequence of
 zero or more variables, or a sequence of one or more variables followed by a dot
 @code{.} and another variable. This form is equivalent to
 
-@snipet{(define @var{variable} (lambda (@var{formals}) @var{body ...}))}
+@snipet{(define @var{variable} (lambda (@var{formals}) @var{body @dots{}}))}
 
 In the fourth form of @code{define}, @var{formal} must be a single variable. This
 form is equivalent to
 
-@snipet{(define @var{variable} (lambda @var{formal} @var{body ...}))}
+@snipet{(define @var{variable} (lambda @var{formal} @var{body @dots{}}))}
 }
 
 @subsubsection{Syntax definitions}
@@ -64,7 +64,7 @@ at macro-expansion time, to a transformer.
 
 @subsubsection{Procedures}
 
-@define[Syntax]{@name{lambda} @args{formals body ...}}
+@define[Syntax]{@name{lambda} @args{formals body @dots{}}}
 @desc{[R6RS]A @code{lambda} expression evaluates to a procedure. The environment
 in effect when the lambda expression is evaluated is remembered as part of the
 procedure. When the procedure is later called with some arguments, the environment
@@ -75,7 +75,7 @@ the @code{lambda} expression are evaluated sequentially in the extended environm
 The results of the last expression in the body are returned as the results of the
 procedure call.
 
-@snipet[=> a procedure]{(lambda (x) (+ x x))}
+@snipet[=> "a procedure"]{(lambda (x) (+ x x))}
 @snipet[=> 8]{((lambda (x) (+ x x)) 4)}
 @snipet[=> 11]{@codeblock{
 ((lambda (x)
@@ -90,14 +90,14 @@ procedure call.
 
 @var{Formals} must have one of the following forms:
 @itemlist[
-@item{(@var{<variable1>} ...)
+@item{(@var{<variable1>} @dots{})
  @p{The procedure takes a fixed number of arguments; when the procedure is called,
     the arguments are stored in the bindings of the corresponding variables.}}
 @item{@var{<variable>}
  @p{The procedure takes any number of arguments; when the procedure is called,
     the sequence of arguments is converted into a newly allocated list, and the
     list is stored in the binding of the @var{<variable>}.}}
-@item{(@var{<variable1>} ... @var{<variablen>} . @var{<variablen+1>})
+@item{(@var{<variable1>} @dots{} @var{<variablen>} . @var{<variablen+1>})
  @p{If a period @code{.} precedes the last variable, then the procedure takes
  @var{n} or more arguments, where @var{n} is the number of parameters before the
  period (there must be at least one). The value stored in the binding of the last
@@ -136,12 +136,12 @@ binding. In Sagittarius, however, it won't throw any error.
 
 @subsubsection{Derived conditionals}
 
-@define[Syntax]{@name{cond} @args{clause ...}}
+@define[Syntax]{@name{cond} @args{clause @dots{}}}
 @desc{[R6RS] Each @var{clause} must be the form
 
-@snipet{(@var{test} @var{expression} ...)}
+@snipet{(@var{test} @var{expression} @dots{})}
 @snipet{(@var{test} => @var{expression})}
-@snipet{(else @var{expression} ...)}
+@snipet{(else @var{expression} @dots{})}
 
 The last form can appear only in the last clause.
 
@@ -161,12 +161,12 @@ unspecified values; if there is an @code{else} clause, then its expressions are
 evaluated, and the values of the last one are returned.
 }
 
-@define[Syntax]{@name{case} @args{clause ...}}
+@define[Syntax]{@name{case} @args{clause @dots{}}}
 @desc{[R6RS] @var{Key} must be an expression. Each @var{clause} must have one of
 the following forms:
 
-@snipet{((@var{datum} ...) @var{expression} ...)}
-@snipet{(else @var{expression} ...)}
+@snipet{((@var{datum} @dots{}) @var{expression} @dots{})}
+@snipet{(else @var{expression} @dots{})}
 
 The last form can appear only in the last clause.
 
@@ -183,7 +183,7 @@ results of the last are the results of the @code{case} expression; otherwise the
 @code{case} expression returns unspecified values.
 }
 
-@define[Syntax]{@name{and} @args{test ...}}
+@define[Syntax]{@name{and} @args{test @dots{}}}
 @desc{[R6RS] If there are no @var{tests}, #t is returned. Otherwise, the
 @var{test} expressions are evaluated from left to right until a @var{test}
 returns #f or the last @var{test} is reached. In the former case, the and
@@ -196,7 +196,7 @@ latter case, the last expression is evaluated and its values are returned.
 @snipet[=> #t]{(and)}
 }
 
-@define[Syntax]{@name{or} @args{test ...}}
+@define[Syntax]{@name{or} @args{test @dots{}}}
 @desc{[R6RS] If there are no @var{tests}, #f is returned. Otherwise, the @var{test}
 expressions are evaluated from left to right until a @var{test} returns a true
 value or the last @var{test} is reached. In the former case, the or expression
@@ -211,10 +211,10 @@ the last expression is evaluated and its values are returned.
 
 @subsubsection{Binding constructs}
 
-@define[Syntax]{@name{let} @args{bindings body ...}}
+@define[Syntax]{@name{let} @args{bindings body @dots{}}}
 @desc{[R6RS] @var{Bindings} must have the form
 
-@snipet{((@var{variable1} @var{init1}) ...)}
+@snipet{((@var{variable1} @var{init1}) @dots{})}
 
 where each @var{init} is an expression. Any variable must not appear more than
 once in the @var{variables}.
@@ -225,10 +225,10 @@ extended environment, and the values of the last expression of @var{body} are
 returned. Each binding of a @var{variable} has @var{body} as its region.
 }
 
-@define[Syntax]{@name{let*} @args{bindings body ...}}
+@define[Syntax]{@name{let*} @args{bindings body @dots{}}}
 @desc{[R6RS] @var{Bindings} must have the form
 
-@snipet{((@var{variable1} @var{init1}) ...)}
+@snipet{((@var{variable1} @var{init1}) @dots{})}
 
 The @code{let*} form is similar to @code{let}, but the @var{inits} are evaluated
 and bindings created sequentially from left to right, with the region of each
@@ -237,10 +237,10 @@ binding including the bindings to its right as well as @var{body}. Thus the seco
 and initialized, and so on.
 }
 
-@define[Syntax]{@name{letrec} @args{bindings body ...}}
+@define[Syntax]{@name{letrec} @args{bindings body @dots{}}}
 @desc{[R6RS] @var{Bindings} must have the form
 
-@snipet{((@var{variable1} @var{init1}) ...)}
+@snipet{((@var{variable1} @var{init1}) @dots{})}
 
 where each @var{init} is an expression. Any variable must not appear more than
 once in the @var{variables}.
@@ -256,10 +256,10 @@ In the most common uses of @code{letrec}, all the @var{inits} are @code{lambda}
 expressions and the restriction is satisfied automatically.
 }
 
-@define[Syntax]{@name{letrec*} @args{bindings body ...}}
+@define[Syntax]{@name{letrec*} @args{bindings body @dots{}}}
 @desc{[R6RS] @var{Bindings} must have the form
 
-@snipet{((@var{variable1} @var{init1}) ...)}
+@snipet{((@var{variable1} @var{init1}) @dots{})}
 
 where each @var{init} is an expression. Any variable must not appear more than
 once in the @var{variables}.
@@ -272,10 +272,10 @@ and assignment order, each binding of a @var{variable} has the entire @code{letr
 expression as its region, making it possible to define mutually recursive procedures.
 }
 
-@define[Syntax]{@name{let-values} @args{mv-bindings body ...}}
+@define[Syntax]{@name{let-values} @args{mv-bindings body @dots{}}}
 @desc{[R6RS] @var{Mv-bindings} must have the form
 
-@snipet{((@var{formals} @var{init1}) ...)}
+@snipet{((@var{formals} @var{init1}) @dots{})}
 
 where each @var{init} is an expression. Any variable must not appear more than
 once in the set of @var{formals}.
@@ -291,10 +291,10 @@ are returned. Each binding of a variable has @var{body} as its region. If the
 is raised.
 }
 
-@define[Syntax]{@name{let*-values} @args{mv-bindings body ...}}
+@define[Syntax]{@name{let*-values} @args{mv-bindings body @dots{}}}
 @desc{[R6RS] @var{Mv-bindings} must have the form
 
-@snipet{((@var{formals} @var{init1}) ...)}
+@snipet{((@var{formals} @var{init1}) @dots{})}
 
 where each @var{init} is an expression. In each @var{formals}, any variable must
 not appear more than once.
@@ -309,8 +309,8 @@ so on.
 
 @subsubsection{Sequencing}
 
-@define[Syntax]{@name{begin} @args{form ...}}
-@define[Syntax]{@name{begin} @args{expression ...}}
+@define[Syntax]{@name{begin} @args{form @dots{}}}
+@define[Syntax]{@name{begin} @args{expression @dots{}}}
 @desc{[R6RS]The begin keyword has two different roles, depending on its context:
 @itemlist[
  @item{It may appear as a form in a body , library body, or top-level body, or
@@ -427,11 +427,11 @@ in most cases, the result of this procedure should be numerically equal to its a
 
 @subsubsection{Arithmetic operations}
 
-@define[Function]{@name{=} @args{z1 z2 z3 ...}}
-@define[Function]{@name{>} @args{x1 x2 x3 ...}}
-@define[Function]{@name{<} @args{x1 x2 x3 ...}}
-@define[Function]{@name{>=} @args{x1 x2 x3 ...}}
-@define[Function]{@name{<=} @args{x1 x2 x3 ...}}
+@define[Function]{@name{=} @args{z1 z2 z3 @dots{}}}
+@define[Function]{@name{>} @args{x1 x2 x3 @dots{}}}
+@define[Function]{@name{<} @args{x1 x2 x3 @dots{}}}
+@define[Function]{@name{>=} @args{x1 x2 x3 @dots{}}}
+@define[Function]{@name{<=} @args{x1 x2 x3 @dots{}}}
 @desc{[R6RS] These procedures return #t if their arguments are (respectively):
 equal, monotonically increasing, monotonically decreasing, monotonically
 nondecreasing, or monotonically nonincreasing, and #f otherwise.
@@ -454,16 +454,16 @@ whether it is not an infinity and not a NaN, @code{infinite?} tests whether it
 is an infinity, @code{nan?} tests whether it is a NaN.
 }
 
-@define[Function]{@name{max} @args{x1 x2 ...}}
-@define[Function]{@name{min} @args{x1 x2 ...}}
+@define[Function]{@name{max} @args{x1 x2 @dots{}}}
+@define[Function]{@name{min} @args{x1 x2 @dots{}}}
 @desc{[R6RS] These procedures return the maximum or minimum of their arguments.}
 
-@define[Function]{@name{+} @args{z ...}}
-@define[Function]{@name{*} @args{z ...}}
+@define[Function]{@name{+} @args{z @dots{}}}
+@define[Function]{@name{*} @args{z @dots{}}}
 @desc{[R6RS] These procedures return the sum or product of their arguments.}
 
-@define[Function]{@name{-} @args{z ...}}
-@define[Function]{@name{-} @args{z1 z2 ...}}
+@define[Function]{@name{-} @args{z @dots{}}}
+@define[Function]{@name{-} @args{z1 z2 @dots{}}}
 @desc{[R6RS] With two or more arguments, this procedures returns the difference
 of its arguments, associating to the left. With one argument, however, it returns
 the additive inverse of its argument.
@@ -472,8 +472,8 @@ If this procedure is applied to mixed non-rational real and non-real complex
 arguments, it returns an unspecified number object.
 }
 
-@define[Function]{@name{/} @args{z ...}}
-@define[Function]{@name{/} @args{z1 z2 ...}}
+@define[Function]{@name{/} @args{z @dots{}}}
+@define[Function]{@name{/} @args{z1 z2 @dots{}}}
 @desc{[R6RS+] If all of the arguments are exact, then the divisors must all be
 nonzero. With two or more arguments, this procedure returns the quotient of its
 arguments, associating to the left. With one argument, however, it returns the
@@ -502,8 +502,8 @@ return the results of the corresponding mathematical operations. In each case,
 otherwise, an exception with condition type @code{&assertion} is raised.
 }
 
-@define[Function]{@name{gcd} @args{n1 ...}}
-@define[Function]{@name{lcm} @args{n1 ...}}
+@define[Function]{@name{gcd} @args{n1 @dots{}}}
+@define[Function]{@name{lcm} @args{n1 @dots{}}}
 @desc{[R6RS] These procedures return the greatest common divisor or least common
 multiple of their arguments. The result is always non-negative.
 }
@@ -557,8 +557,8 @@ than every other rational number in that interval (the simpler 2/5 lies between
 @define[Function]{@name{atan} @args{z}}
 @define[Function]{@name{atan} @args{z1 z2}}
 @des{[R6RS] These procedures compute the usual transcendental functions. The
-@code{exp} procedure computes the base-e exponential of @var(z). The @code(log)
-procedure with a single argument computes the natural logarithm of @var(z) (not
+@code{exp} procedure computes the base-e exponential of @var{z}. The @code{log}
+procedure with a single argument computes the natural logarithm of @var{z} (not
 the base-ten logarithm); @code{(log @var{z1} @var{z2})} computes the base-@var{z2}
 logarithm of @var{z1}. The @code{asin}, @code{acos}, and @code{atan} procedures
 compute arcsine, arccosine, and arctangent, respectively. The two-argument
@@ -578,9 +578,9 @@ this is @math{e^{z2 log z1}}. 0.0z is 1.0 if z = 0.0, and 0.0 if @code{(real-par
 positive. For other cases in which the first argument is zero, an unspecified
 number object(@code{+nan.0+nan.0i}) is returned.
 
-For an exact real number object @var(z1) and an exact integer object @var(z2),
-@code{(expt @var(z1) @var(z2))} must return an exact result. For all other values
-of @var(z1) and @var(z2), @code{(expt @var{z1} @var{z2})} may return an inexact
+For an exact real number object @var{z1} and an exact integer object @var{z2},
+@code{(expt @var{z1} @var{z2})} must return an exact result. For all other values
+of @var{z1} and @var{z2}, @code{(expt @var{z1} @var{z2})} may return an inexact
 result, even when both @var{z1} and @var{z2} are exact.
 }
 
@@ -643,7 +643,7 @@ taken from Gauche.
 @define[Function]{@name{boolean?} @args{obj}}
 @desc{[R6RS] Returns #t if @var{obj} is either #t or #f and returns #f otherwise.}
 
-@define[Function]{@name{boolean=?} @args{bool1 bool2 bool3...}}
+@define[Function]{@name{boolean=?} @args{bool1 bool2 bool3@dots{}}}
 @desc{[R6RS] Returns #t if the booleans are the same.}
 
 @subsubsection{Pairs and lists}
@@ -719,7 +719,7 @@ lists are chains of pairs that have finite length and are terminated by the
 empty list.
 }
 
-@define[Function]{@name{list} @args{obj ...}}
+@define[Function]{@name{list} @args{obj @dots{}}}
 @desc{[R6RS] Returns a newly allocated list of its arguments.}
 
 @define[Function]{@name{length} @args{list}}
@@ -727,7 +727,7 @@ empty list.
 list, it returns -1 If the @var{list} is infinite list , it returns -2.
 }
 
-@define[Function]{@name{append} @args{list ... obj}}
+@define[Function]{@name{append} @args{list @dots{} obj}}
 @desc{[R6RS] Returns a possibly improper list consisting of the elements of the
 first @var{list} followed by the elements of the other @var{lists}, with @var{obj}
 as the cdr of the final pair. An improper list results if @var{obj} is not a list.
@@ -751,7 +751,7 @@ is given and @var{k} is out of range, it returns @var{fallback} otherwise
 @var{fallback} otherwise @code{&assertion} is raised.
 }
 
-@define[Function]{@name{map} @args{proc list1 list2 ...}}
+@define[Function]{@name{map} @args{proc list1 list2 @dots{}}}
 @desc{[R6RS+] The @code{map} procedure applies @var{proc} element-wise to the
 elements of the @var{lists} and returns a list of the results, in order. The
 order in which @var{proc} is applied to the elements of the lists is unspecified.
@@ -760,7 +760,7 @@ are not mutated. If the given @var{lists} are not the same length, when the
 shortest list is processed the @code{map} will stop.
 }
 
-@define[Function]{@name{for-each} @args{proc list1 list2 ...}}
+@define[Function]{@name{for-each} @args{proc list1 list2 @dots{}}}
 @desc{[R6RS+] The @code{for-each} procedure applies @var{proc} element-wise to
 the elements of the @var{lists} for its side effects, in order from the first
 elements to the last. The return values of @code{for-each} are unspecified. If
@@ -778,7 +778,7 @@ These @code{map} and @code{for-each}'s behaviours are taken from Gauche.
 @define[Function]{@name{symbol->string} @args{symbol}}
 @desc{[R6RS] Returns the name of @var{symbol} as an immutable string.}
 
-@define[Function]{@name{symbol=?} @args{symbol1 symbol2 symbol3 ...}}
+@define[Function]{@name{symbol=?} @args{symbol1 symbol2 symbol3 @dots{}}}
 @desc{[R6RS] Returns #t if the @var{symbols} are the same, i.e., if their names
 are spelled the same.}
 
@@ -787,7 +787,7 @@ are spelled the same.}
 
 @subsubsection{Characters}
 
-@var(Characters) are objects that represent Unicode scalar values.
+@var{Characters} are objects that represent Unicode scalar values.
 
 @define[Function]{@name{char?} @args{obj}}
 @desc{[R6RS] Returns #t if @var{obj} is a character, otherwise returns #f.}
@@ -802,11 +802,11 @@ exact integer object. For a Unicode scalar value @var{sv}, @code{integer->char}
 returns its associated character.
 }
 
-@define[Function]{@name{char=?} @args{char1 char2 char3 ...}}
-@define[Function]{@name{char<?} @args{char1 char2 char3 ...}}
-@define[Function]{@name{char>?} @args{char1 char2 char3 ...}}
-@define[Function]{@name{char<=?} @args{char1 char2 char3 ...}}
-@define[Function]{@name{char>=?} @args{char1 char2 char3 ...}}
+@define[Function]{@name{char=?} @args{char1 char2 char3 @dots{}}}
+@define[Function]{@name{char<?} @args{char1 char2 char3 @dots{}}}
+@define[Function]{@name{char>?} @args{char1 char2 char3 @dots{}}}
+@define[Function]{@name{char<=?} @args{char1 char2 char3 @dots{}}}
+@define[Function]{@name{char>=?} @args{char1 char2 char3 @dots{}}}
 @desc{[R6RS] These procedures impose a total ordering on the set of characters
 according to their Unicode scalar values.
 }
@@ -831,7 +831,7 @@ These are equivalence:
 @snipet[= @code{(make-string 10 #\space)}]{(make-string 10)}
 }
 
-@define[Function]{@name{string} @args{char ...}}
+@define[Function]{@name{string} @args{char @dots{}}}
 @desc{[R6RS] Returns a newly allocated string composed of the arguments.}
 
 @define[Function]{@name{string-length} @args{string}}
@@ -846,16 +846,16 @@ otherwise raises @code{&assertion}.
 @var{k} of string using zero-origin indexing.
 }
 
-@define[Function]{@name{string=?} @args{string1 string2 string3 ...}}
+@define[Function]{@name{string=?} @args{string1 string2 string3 @dots{}}}
 @desc{[R6RS] Returns #t if the @var{strings} are the same length and contain the
 same characters in the same positions. Otherwise, the @code{string=?} procedure
 returns #f.
 }
 
-@define[Function]{@name{string<?} @args{string1 string2 string3 ...}}
-@define[Function]{@name{string>?} @args{string1 string2 string3 ...}}
-@define[Function]{@name{string<=?} @args{string1 string2 string3 ...}}
-@define[Function]{@name{string>=?} @args{string1 string2 string3 ...}}
+@define[Function]{@name{string<?} @args{string1 string2 string3 @dots{}}}
+@define[Function]{@name{string>?} @args{string1 string2 string3 @dots{}}}
+@define[Function]{@name{string<=?} @args{string1 string2 string3 @dots{}}}
+@define[Function]{@name{string>=?} @args{string1 string2 string3 @dots{}}}
 @desc{[R6RS] These procedures are the lexicographic extensions to strings of the
 corresponding orderings on characters. For example, @code{string<?} is the
 lexicographic ordering on strings induced by the ordering @code{char<?} on
@@ -875,7 +875,7 @@ characters of string beginning with index @var{start} (inclusive) and ending wit
 index @var{end} (exclusive).
 }
 
-@define[Function]{@name{string-append} @args{string ...}}
+@define[Function]{@name{string-append} @args{string @dots{}}}
 @desc{[R6RS] Returns a newly allocated string whose characters form the
 concatenation of the given @var{strings}.
 }
@@ -894,7 +894,7 @@ The @code{string->list} and @code{list->string} procedures are inverses so far a
 @code{equal?} is concerned.
 }
 
-@define[Function]{@name{string-for-each} @args{proc string1 string2 ...}}
+@define[Function]{@name{string-for-each} @args{proc string1 string2 @dots{}}}
 @desc{[R6RS+] @var{Proc} should accept as many arguments as there are @var{strings}.
 The @code{string-for-each} procedure applies @var{proc} element-wise to the
 characters of the @var{strings} for its side effects, in order from the first
@@ -928,7 +928,7 @@ argument is given, then each element is initialized to @var{fill}. Otherwise the
 initial contents of each element is unspecified.
 }
 
-@define[Function]{@name{vector} @args{obj ...}}
+@define[Function]{@name{vector} @args{obj @dots{}}}
 @desc{[R6RS] Returns a newly allocated vector whose elements contain the given
 arguments. Analogous to @code{list}.}
 
@@ -972,7 +972,7 @@ between @var{start}-th index (inclusive) to @var{end}-th index (exclusive).
 @var{Start} defaults to zero, and @var{end} defaults to the length of @var{vector}.
 }
 
-@define[Function]{@name{vector-map} @args{proc vector1 vactor2 ...}}
+@define[Function]{@name{vector-map} @args{proc vector1 vactor2 @dots{}}}
 @desc{[R6RS+] @var{Proc} should accept as many arguments as there are @var{vectors}.
 The @code{vector-map} procedure applies @var{proc} element-wise to the elements
 of the @var{vectors} and returns a vector of the results, in order. If multiple
@@ -982,7 +982,7 @@ returns are not mutated.
 Analogous to @code{map}.
 }
 
-@define[Function]{@name{vector-for-each} @args{proc vector1 vactor2 ...}}
+@define[Function]{@name{vector-for-each} @args{proc vector1 vactor2 @dots{}}}
 @desc{[R6RS+] @var{Proc} should accept as many arguments as there are @var{vectors}.
 The @code{vector-for-each} procedure applies @var{proc} element-wise to the
 elements of the @var{vectors} for its side effects, in order from the first
@@ -993,8 +993,8 @@ Analogous to @code{for-each}.
 
 @subsubsection{Errors and violations}
 
-@define[Function]{@name{error} @args{who message irritant ...}}
-@define[Function]{@name{assertion-violation} @args{who message irritant ...}}
+@define[Function]{@name{error} @args{who message irritant @dots{}}}
+@define[Function]{@name{assertion-violation} @args{who message irritant @dots{}}}
 @desc{[R6RS] @var{Who} must be a string or a symbol or #f. @var{Message} must be
 a string. The @var{irritants} are arbitrary objects.
 
@@ -1013,11 +1013,11 @@ operation.
 
 @subsubsection{Control features}
 
-@define[Function]{@name{apply} @args{proc arg1 ... rest-args}}
+@define[Function]{@name{apply} @args{proc arg1 @dots{} rest-args}}
 @desc{[R6RS] @var{Rest-args} must be a list. @var{Proc} should accept n arguments,
 where n is number of @var{args} plus the length of @var{rest-args}. The @code{apply}
 procedure calls @var{proc} with the elements of the list
-@code{(append (list @var{arg1} ...) @var{rest-args})} as the actual arguments.
+@code{(append (list @var{arg1} @dots{}) @var{rest-args})} as the actual arguments.
 
 If a call to @code{apply} occurs in a tail context, the call to @code{proc} is
 also in a tail context.
@@ -1039,7 +1039,7 @@ The escape procedure accepts the same number of arguments as the continuation
 of the original call to @code{call-with-current-continuation}.
 }
 
-@define[Function]{@name{values} @args{obj ...}}
+@define[Function]{@name{values} @args{obj @dots{}}}
 @desc{[R6RS] Returns @var{objs} as multiple values.
 }
 
@@ -1069,7 +1069,7 @@ created by @code{call-with-current-continuation}, @code{dynamic-wind} calls
 
 @subsubsection{Iteration}
 
-@define[Syntax]{@name{let} @args{variable bindings body ...}}
+@define[Syntax]{@name{let} @args{variable bindings body @dots{}}}
 @desc{[R6RS] “Named let” is a variant on the syntax of @code{let} that provides
 a general looping construct and may also be used to express recursion. It has
 the same syntax and semantics as ordinary @code{let} except that @var{variable}
@@ -1081,8 +1081,8 @@ by invoking the procedure named by @var{variable}.
 @subsubsection{Quasiquote}
 
 @define[Syntax]{@name{quasiquote} @args{qq-template}}
-@define[Auxiliary Syntax]{@name{unquote} @args{qq-template}}
-@define[Auxiliary Syntax]{@name{unquote-splicing} @args{qq-template}}
+@define["Auxiliary Syntax"]{@name{unquote} @args{qq-template}}
+@define["Auxiliary Syntax"]{@name{unquote-splicing} @args{qq-template}}
 @desc{[R6RS] “Quasiquote” expressions is useful for constructing a list or
 vector structure when some but not all of the desired structure is known in
 advance.
@@ -1093,11 +1093,11 @@ If no @code{unquote} or @code{unquote-splicing} forms appear within the
 @var{qq-template}, the result of evaluating @code{(quasiquote @var{qq-template})}
 is equivalent to the result of evaluating @code{(quote @var{qq-template})}.
 
-If an @code{(unquote @var{expression} ...)} form appears inside a @var{qq-template},
+If an @code{(unquote @var{expression} @dots{})} form appears inside a @var{qq-template},
 however, the expressions are evaluated @code{(“unquoted”)} and their results are
 inserted into the structure instead of the @code{unquote} form.
 
-If an @code{(unquote-splicing @var{expression} ...)} form appears inside a
+If an @code{(unquote-splicing @var{expression} @dots{})} form appears inside a
 @var{qq-template}, then the expressions must evaluate to lists; the opening and
 closing parentheses of the lists are then “stripped away” and the elements of
 the lists are inserted in place of the @code{unquote-splicing} form.
@@ -1118,10 +1118,10 @@ definition, and the forms in the body must also be definitions. A @code{let-synt
 or @code{letrec-syntax} form may also appear in an expression context, in which
 case the forms within their bodies must be expressions.
 
-@define[Syntax]{@name{let-syntax} @args{bindings form ...}}
+@define[Syntax]{@name{let-syntax} @args{bindings form @dots{}}}
 @desc{[R6RS] @var{Bindings} must have the form
 
-@snipet{((@var{keyword} @var{expression}) ...)}
+@snipet{((@var{keyword} @var{expression}) @dots{})}
 
 Each @var{keyword} is an identifier, and each @var{expression} is an expression
 that evaluates, at macro-expansion time, to a transformer. Transformers may be
@@ -1136,10 +1136,10 @@ are the @var{keywords}, bound to the specified transformers. Each binding of a
 @var{keyword} has the @var{forms} as its region.
 }
 
-@define[Syntax]{@name{letrec-syntax} @args{bindings form ...}}
+@define[Syntax]{@name{letrec-syntax} @args{bindings form @dots{}}}
 @desc{[R6RS] @var{Bindings} must have the form
 
-@snipet{((@var{keyword} @var{expression}) ...)}
+@snipet{((@var{keyword} @var{expression}) @dots{})}
 
 Each @var{keyword} is an identifier, and each @var{expression} is an expression
 that evaluates, at macro-expansion time, to a transformer. Transformers may be
@@ -1163,11 +1163,11 @@ treated, whether in definition or expression context, as if wrapped in an implic
 
 @subsubsection{Macro transformers}
 
-In R6RS, it requires @code('_') @code('...') as bounded symbols but in Sagittarius
+In R6RS, it requires @code{'_'} @code{'@dots{}'} as bounded symbols but in Sagittarius
 these are not bound. And if import clause has rename or prefix these auxiliary
 syntax are not be renamed or prefixed. This behaivour may be fixed in future.
 
-@define[Syntax]{@name{syntax-rules} @args{(literal ...) rule ...}}
+@define[Syntax]{@name{syntax-rules} @args{(literal @dots{}) rule @dots{}}}
 @desc{[R6RS] Each @var{literal} must be an identifier. Each @var{rule} must have
 the following form:
 
@@ -1179,22 +1179,22 @@ an identifier or an underscore @code{_}. A @var{pattern} is an identifier,
 constant, or one of the following.
 
 @itemlist[
-@item{(pattern ...)}
-@item{(pattern pattern ... . pattern)}
-@item{(pattern ... pattern ellipsis pattern ...)}
-@item{(pattern ... pattern ellipsis pattern ... . pattern)}
-@item{#(pattern ...)}
-@item{#(pattern ... pattern ellipsis pattern ...)}
+@item{(pattern @dots{})}
+@item{(pattern pattern @dots{} . pattern)}
+@item{(pattern @dots{} pattern ellipsis pattern @dots{})}
+@item{(pattern @dots{} pattern ellipsis pattern @dots{} . pattern)}
+@item{#(pattern @dots{})}
+@item{#(pattern @dots{} pattern ellipsis pattern @dots{})}
 ]
 
-An @var{ellipsis} is the identifier @code{“...”} (three periods).
+An @var{ellipsis} is the identifier @code{“@dots{}”} (three periods).
 
 A @var{template} is a pattern variable, an identifier that is not a pattern
 variable, a pattern datum, or one of the following.
 
 @itemlist[
-@item{(subtemplate ...)}
-@item{(subtemplate ... . template)}
+@item{(subtemplate @dots{})}
+@item{(subtemplate @dots{} . template)}
 @item{#(subtemplate …)}
 ]
 
@@ -1220,7 +1220,7 @@ binding are replaced by @var{template}.
 @snipet{(define p (cons 4 5))}
 @snipet{(define-syntax p.car (identifier-syntax (car p)))}
 @snipet[=> 4]{p.car}
-@snipet[=> &syntax exception]{(set! p.car 15)}
+@snipet[=> "&syntax exception"]{(set! p.car 15)}
 
 The second, more general, form of @code{identifier-syntax} permits the transformer
 to determine what happens when @code{set!} is used. In this case, uses of the
