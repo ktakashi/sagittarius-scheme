@@ -209,6 +209,8 @@ static SgObject make_who_condition;
 static SgObject make_message_condition;
 static SgObject make_irritants_condition;
 static SgObject make_warning;
+static SgObject make_lexical_violation;
+static SgObject make_read_error;
 
 SgObject Sg_MakeNonContinuableViolation()
 {
@@ -233,6 +235,13 @@ SgObject Sg_MakeIrritantsCondition(SgObject irritants)
 SgObject Sg_MakeWarning()
 {
   return Sg_Apply0(make_warning);
+}
+
+SgObject Sg_MakeReaderCondition(SgObject msg)
+{
+  return Sg_Condition(SG_LIST3(Sg_Apply0(make_lexical_violation),
+			       Sg_Apply0(make_read_error),
+			       Sg_MakeMessageCondition(msg)));
 }
 
 SgObject Sg_DescribeCondition(SgObject con)
@@ -406,6 +415,7 @@ void Sg__InitConsitions()
     /* lexical */
     INTERN_CONDITION_WITH_PARENT(&lexical, &violation, nullvec);
     INTERN_CTR_PRED(&lexical, make-lexical-violation, lexical-violation?);
+    make_lexical_violation = ctr;
   }
   {
     /* syntax */
@@ -485,6 +495,7 @@ void Sg__InitConsitions()
     INTERN_CTR_PRED_WITH_CNAME(&io_read_type, &i/o-read,
 			       make-i/o-read-error,
 			       i/o-read-error?);
+    make_read_error = ctr;
   }
   {
     /* &i/o-write */

@@ -119,6 +119,8 @@ SG_EXTERN SgObject Sg_MakeWhoCondition(SgObject who);
 SG_EXTERN SgObject Sg_MakeMessageCondition(SgObject msg);
 SG_EXTERN SgObject Sg_MakeIrritantsCondition(SgObject irritants);
 SG_EXTERN SgObject Sg_MakeWarning();
+SG_EXTERN SgObject Sg_MakeReaderCondition(SgObject msg);
+
 
 SG_EXTERN SgObject Sg_DescribeCondition(SgObject con);
 

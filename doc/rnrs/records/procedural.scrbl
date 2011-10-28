@@ -18,7 +18,7 @@ record type, t, extends the record type @var{p} represented by @var{parent}. An
 exception with condition type @code{&assertion} is raised if parent is sealed
 (see below).
 
-The @var{uid} argument must be either #f or a symbol. If @var{uid{ is a symbol,
+The @var{uid} argument must be either #f or a symbol. If @var{uid} is a symbol,
 the record-creation operation is nongenerative i.e., a new record type is created
 only if no previous call to @code{make-record-type-descriptor} was made with the
 @var{uid}. If @var{uid} is #f, the record-creation operation is generative, 
@@ -79,7 +79,7 @@ var{constructor descriptor} for short) that specifies a @var{record constructor}
 the type specified by @var{rtd}, and which can be obtained via @code{record-constructor}.
 A constructor descriptor can also be used to create other constructor descriptors
 for subtypes of its own record type. @var{Rtd} must be a record-type descriptor.
-@var{Protocol{ must be a procedure or #f. If it is #f, a default protocol procedure
+@var{Protocol} must be a procedure or #f. If it is #f, a default protocol procedure
 is supplied.
 
 If @var{protocol} is a procedure, it is handled analogously to the protocol

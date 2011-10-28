@@ -121,16 +121,15 @@ static void lexical_error(SgPort * port, SgReaderContext *ctx, const SgChar *fmt
 
   file = Sg_FileName(port);
   if (ctx->parsingLineFrom == ctx->parsingLineTo) {
-    line = Sg_Sprintf(UC("read error: file %S, line %d"),
+    line = Sg_Sprintf(UC("file %S, line %d"),
 		      file,
 		      ctx->parsingLineFrom);
   } else {
-    line = Sg_Sprintf(UC("read error: file %S, line %d-%d"),
+    line = Sg_Sprintf(UC("file %S, line %d-%d"),
 		      file,
 		      ctx->parsingLineFrom, ctx->parsingLineTo);
   }
-  Sg_ReadError(UC("%A\n"
-		  "message: %A"), line, msg);
+  Sg_ReadError(UC("%A (%A)"), msg, line);
 }
 
 

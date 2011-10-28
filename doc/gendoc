@@ -56,133 +56,266 @@
        ))
 )
 
-(import (rnrs)
-	(scribble)
-	(scribble plugin)
-	(sagittarius)
-	(sagittarius vm)
-	(pp))
+(library (scribble sxml-converter)
+    (export scribble->sxml
+	    scribble-file->sxml)
+    (import (rnrs)
+	    (rnrs eval)
+	    (scribble)
+	    (scribble plugin)
+	    (sagittarius)
+	    (sagittarius vm)
+	    (srfi :39 parameters))
 
-;; phase 1
-(define-scrible-macro (include-section file)
-  (if (file-exists? file)
-      (call-with-input-file file
-	(lambda (in)
-	  (scribble-parse in)))
-      (raise-continuable
-       (condition (make-warning)
-		  (make-who-condition 'include-section)
-		  (make-message-condition (format "file not found [~a]" file))
-		  (make-irritants-condition file)))))
+  ;; phase 1
+  (define-scrible-macro (include-section file)
+    (if (file-exists? file)
+	(call-with-input-file file
+	  (lambda (in)
+	    (scribble-parse in)))
+	(raise-continuable
+	 (condition (make-warning)
+		    (make-who-condition 'include-section)
+		    (make-message-condition (format "file not found [~a]" file))
+		    (make-irritants-condition file)))))
 
-(define (expand-scrible-macro sexp)
-  (define (process-1 lst)
-    (cond ((pair? lst)
-	   (cond ((lookup 'macro (car lst))
-		  => (lambda (proc)
-		       (apply proc (cdr lst))))
-		 (else #f)))
-	  (else #f)))
-  (define (process sexp)
-    (let loop ((sexp sexp)
-	       (r '()))
-      (cond ((null? sexp) r)
-	    ((pair? sexp)
-	     (let ((expanded (process-1 (car sexp))))
-	       (if expanded
-		   (loop (cdr sexp)
-			 (append r (process expanded)))
-		   (loop (cdr sexp)
-			 (append r (list (car sexp)))))))
-	    (else (list sexp)))))
-  (with-exception-handler
-   (lambda (e)
-     (cond ((and (warning? e)
-		 (message-condition? e))
-	    (let ((msg (condition-message e)))
-	      (display msg (current-error-port))
-	      (newline (current-error-port))
-	      msg))
-	   (else #f)))
-   (lambda ()
-     (process sexp))))
+  (define (expand-scribble-macro sexp)
+    (define (process-1 lst)
+      (cond ((pair? lst)
+	     (cond ((lookup 'macro (car lst))
+		    => (lambda (proc)
+			 (apply proc (cdr lst))))
+		   (else #f)))
+	    (else #f)))
+    (define (process sexp)
+      (let loop ((sexp sexp)
+		 (r '()))
+	(cond ((null? sexp) r)
+	      ((pair? sexp)
+	       (let ((expanded (process-1 (car sexp))))
+		 (if expanded
+		     (loop (cdr sexp)
+			   (append r (process expanded)))
+		     (loop (cdr sexp)
+			   (append r (list (car sexp)))))))
+	      (else (list sexp)))))
+    (with-exception-handler
+     (lambda (e)
+       (cond ((and (warning? e)
+		   (message-condition? e))
+	      (let ((msg (condition-message e)))
+		(display msg (current-error-port))
+		(newline (current-error-port))
+		msg))
+	     (else #f)))
+     (lambda ()
+       (process sexp))))
 
-;; phase 2
-(define-scrible-plugin (table . items)
-  ;; stub
-  `(table ,@(filter values
-		   (map (lambda (i)
-			  (cond ((and (pair? i)
-				      (eq? (car i) 'item))
-				 `(item (@ (name ,(cadr i)))
-					,@(cddr i)))
-				(else #f)))
-			items))))
+  ;; phase 2
+  (define *phase2-processor* (make-parameter #f))
 
-(define-scrible-plugin (define cate name . args)
-  ;; stub
-  `(define (@ (category ,(format "~a" cate)))
-     ,name
-     ,@(filter values (map (lambda (arg)
-			     (if (pair? arg)
-				 arg
-				 #f))
-			   args))))
+  (define-scrible-plugin (table . items)
+    ;; stub
+    `(table ,@(filter values
+		      (map (lambda (i)
+			     (cond ((and (pair? i)
+					 (eq? (car i) 'item))
+				    `(item (@ (name ,(cadr i)))
+					   ,@((*phase2-processor*) (cddr i))))
+				   (else #f)))
+			   items))))
 
-(define-scrible-plugin (subsection . args)
-  ;; parse keyword
-  (let ((t (if (keyword? (car args))
+  (define-scrible-plugin (define cate name . args)
+    ;; stub
+    `(define (@ (category ,(format "~a" cate)))
+       ,name
+       ,@(filter values (map (lambda (arg)
+			       (if (pair? arg)
+				   ((*phase2-processor*) arg)
+				   #f))
+			     args))))
+
+  (define (process-section name . args)
+    (let ((t (if (keyword? (car args))
 		 (cadr args)
 		 #f)))
-    (if t
-	`(subsection (@ (tag ,t)) ,@(cddr args))
-	`(subsection ,@args))))
+      (if t
+	  `(,name (@ (tag ,t)) ,@((*phase2-processor*) (cddr args)))
+	  `(,name ,@((*phase2-processor*) args)))))
 
-(define-scrible-plugin (snipet . args)
-  ;; parse =>
-  (let ((expected (if (symbol? (car args))
-		      (format "~a" (cadr args))
-		      #f)))
-    (if expected
-	`(snipet (@ (result ,expected)) ,@(cddr args))
-	`(snipet ,@args))))
+  (define-scrible-plugin (subsection . args)
+    (apply process-section 'subsection args))
 
-(define-scrible-plugin (eval sexp)
-  (eval (read (open-string-input-port sexp))
-	(vm-current-library))) ;; <- almost black magic ...
+  (define-scrible-plugin (subsubsection . args)
+    (apply process-section 'subsubsection args))
 
-(define-scrible-plugin (codeblock . args)
-  (let ((e (if (symbol? (car args))
-	       (format "~a" (cadr args))
-	       #f)))
-    (if e
-	`(codeblock (@ (result ,e)) ,@(cddr args))
-	`(codeblock ,@args))))
+  (define-scrible-plugin (sub*section . args)
+    (apply process-section 'sub--section args))
 
-(define (scribble->sxml sexp)
-  (define *top* '*TOP*)
-  (define *pi* '(*PI* xml "version=\"1.0\" encoding=\"utf-8\""))
-  (define (process-1 item)
-    (cond ((pair? item)
-	   (cond ((lookup 'plugin (car item))
-		  => (lambda (proc)
-		       (let ((r (apply proc (cdr item))))
-			 r)))
-		 (else (cons (process-1 (car item))
-			     (process-1 (cdr item))))))
-	  (else item)))
-  (append (list *top* *pi*)
-	  (list `(scribble
-		  ,@(map process-1 sexp)))))
+  (define-scrible-plugin (snipet . args)
+    ;; parse =>
+    (let ((expected (if (symbol? (car args))
+			(format "~a" (cadr args))
+			#f)))
+      (if expected
+	  `(snipet (@ (result ,expected)) ,@((*phase2-processor*) (cddr args)))
+	  `(snipet ,@((*phase2-processor*) args)))))
 
-(import (text sxml serializer))
+  (define-scrible-plugin (eval sexp)
+    (eval (read (open-string-input-port sexp))
+	  (vm-current-library))) ;; <- almost black magic ...
 
-(let ((r (scribble->sxml
-	  (expand-scrible-macro
-	   (call-with-input-file "sagittarius-ref.scrbl"
-	     (lambda (in)
-	       (scribble-parse in)))))))
+  (define-scrible-plugin (codeblock . args)
+    (let ((e (if (symbol? (car args))
+		 (format "~a" (cadr args))
+		 #f)))
+      (if e
+	  `(codeblock (@ (result ,e)) ,@((*phase2-processor*) (cddr args)))
+	  `(codeblock ,@((*phase2-processor*) args)))))
 
-  (srl:sxml->xml r (current-output-port))
+  (define-scrible-plugin (secref t . args)
+    `(secref (@ (tag ,t)) ,@((*phase2-processor*) args)))
+
+  (define (scribble->sxml sexp)
+    (define *top* '*TOP*)
+    (define *pi* '(*PI* xml "version=\"1.0\" encoding=\"utf-8\""))
+    (define (process-1 item)
+      (cond ((pair? item)
+	     (cond ((lookup 'plugin (car item))
+		    => (lambda (proc)
+			 (parameterize ((*phase2-processor* process-1))
+			   (apply proc (cdr item)))))
+		   (else (cons (process-1 (car item))
+			       (process-1 (cdr item))))))
+	    (else item)))
+    (append (list *top* *pi*)
+	    (list `(scribble
+		    ,@(map process-1 (expand-scribble-macro sexp))))))
+
+  (define (scribble-file->sxml file)
+    (scribble->sxml
+     (expand-scribble-macro
+      (call-with-input-file file
+	(lambda (in)
+	  (scribble-parse in))))))
+
+)
+
+;; phase-3 generation
+
+(library (scribble generator)
+    (export generate-document)
+    (import (rnrs)
+	    (rnrs eval)
+	    (sagittarius))
+  (define (generate-document sxml type . maybe-port)
+    (let ((lib `(scribble generator ,type))
+	  (generator (string->symbol (format "~a-generator" type))))
+      (eval `(apply ,generator ',sxml ',maybe-port)
+	    (environment '(rnrs) lib))))
+)
+
+(library (scribble generator html)
+    (export html-generator)
+    (import (rnrs)
+	    (text sxml sxpath)
+	    (text sxml tools)
+	    (text sxml serializer) ;; for srl:sxml->html
+	    (srfi :39 parameters)
+	    (srfi :1 lists)
+	    (pp))
+
+  ;; collect sections
+  ;; section must be only top level
+  (define (phase1 sxml)
+    (let* ((docpath (sxpath '(scribble))) ;; get top
+	   (titlepath (sxpath '(scribble title)))
+	   (doc (car (docpath sxml)))
+	   (title (titlepath sxml)))
+      (values (if (null? title) #f (car title))
+	      (filter values
+		      (map (lambda (elem)
+			     ;;(display elem)(newline)
+			     (cond ((and (pair? elem)
+					 (memq (car elem) '(section subsection subsubsection sub*section)))
+				    elem)
+				   (else #f))) doc))
+	      (cdr doc)))
+      )
+
+  (define (center-handler element)
+    `(center ,@(phase2/dispath (cdr element))))
+
+  (define *table-of-contents* (make-parameter #f))
+
+  (define (content-list-handler element)
+    (let ((contents (*table-of-contents*)))
+      ;; todo 
+      `(table-of-contents ,@contents)
+      ))
+
+  (define (section-handler element)
+    (define (ctr tag)
+      (let ((attr (sxml:attr-list-node element)))
+	`(,tag ,(cond ((and attr
+			    (assq :tag attr))
+		       => (lambda (slot)
+			    `(@ (name ,(cadr slot)))))
+		      (else '(@)))
+	       ,@(phase2/dispath (sxml:content element)))))
+    (case (car element)
+      ((section) (ctr 'h2))
+      ((subsection) (ctr 'h3))
+      ((subsubsection) (ctr 'h4))
+      ((sub*section (ctr 'h5)))))
+
+  (define (title-handler element)
+    `(h1 ,(cadr element)))
+
+  (define *phase2/dispatcher*
+    `((centered . ,center-handler)
+      (title . ,title-handler)
+      (table-of-contents . ,content-list-handler)
+      (section . ,section-handler)
+      (subsection . ,section-handler)
+      (subsubsection . ,section-handler)
+      (sub*section . ,section-handler)
+      ))
+
+  (define (phase2/dispath element)
+    (cond ((and (pair? element)
+		(assq (car element) *phase2/dispatcher*))
+	   => (lambda (slot)
+		((cdr slot) element)))
+	  (else element)))
+
+  (define (html-generator sxml . maybe-port)
+    (let-values (((title contents doc) (phase1 sxml)))
+      (let ((html-metas `(html
+			  (head (meta (@ (http-eqiv "Content-Type")
+					 (content   "text/html; charset=utf-8")))
+				(title ,(if title (cadr title) "Auto generated by html-generator"))))))
+	(parameterize ((*table-of-contents* contents))
+	  (let ((document (append html-metas
+				  `((body ,@(map phase2/dispath doc))))))
+	    (srl:sxml->html document
+			    (if (null? maybe-port)
+				(current-output-port)
+				(car maybe-port)))))
+	))
+    ;;(pp sxml)
+    ;;(srl:sxml->xml sxml (current-output-port))
+    )
+)
+
+(import (rnrs)
+	(scribble sxml-converter)
+	(scribble generator)
+	(text sxml serializer))
+
+(let ((r (scribble-file->sxml "sagittarius-ref.scrbl")))
+
+  ;;(srl:sxml->xml r (current-output-port))
+  (generate-document r 'html "sagittarius-ref.html")
   ;;(pp r)
 )

@@ -71,7 +71,8 @@
 	    (rnrs mutable-pairs)
 	    (core misc)			; for define-macro
 	    (srfi :0 cond-expand)
-	    (text sxml helper))
+	    (text sxml helper)
+	    (text sxml sxpath private))
 
 ;;                            S X M L   T o o l s               
 ; $Revision: 3.14 $ from $Date: 2003/12/23 05:39:31 $:

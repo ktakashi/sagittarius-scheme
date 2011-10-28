@@ -32,6 +32,7 @@
 #include <stdarg.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/error.h"
+#include "sagittarius/exceptions.h"
 #include "sagittarius/file.h"
 #include "sagittarius/port.h"
 #include "sagittarius/pair.h"
@@ -76,14 +77,14 @@ void Sg_ReadError(const SgChar* fmt, ...)
   va_list ap;
   SgPort *err = SG_PORT(Sg_MakeStringOutputPort(0));
   SgObject errObj;
-  
+
   va_start(ap, fmt);
   Sg_Vprintf(err, fmt, ap, TRUE);
   va_end(ap);
 
   /* TODO I think we need an error type to catch */
   errObj = Sg_GetStringFromStringPort(err);
-  /* should continuable be true? */
+  errObj = Sg_MakeReaderCondition(errObj);
   Sg_VMThrowException(Sg_VM(), errObj, FALSE);
 }
 
@@ -123,6 +124,11 @@ void Sg_IOError(SgIOErrorType type, SgObject who, SgObject msg,
     g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-encoding-error"), SG_FALSE);
     proc = SG_GLOC_GET(g);
     Sg_Apply4(proc, who, msg, port, SG_MAKE_CHAR('?'));
+    break;
+  case SG_IO_FILENAME_ERROR:
+    g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-filename-error"), SG_FALSE);
+    proc = SG_GLOC_GET(g);
+    Sg_Apply4(proc, who, msg, file, SG_NIL);
     break;
   default:
     g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-error"), SG_FALSE);

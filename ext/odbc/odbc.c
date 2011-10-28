@@ -419,7 +419,7 @@ SgObject Sg_GetData(SgObject stmt, int index)
     break;
   case SQL_DECIMAL:		/* should decimal be here? */
   case SQL_SMALLINT: case SQL_INTEGER: {
-    long v;
+    long v = 0;
     ret = SQLGetData(SG_ODBC_CTX(stmt)->handle, index,
 		     (sqlType == SQL_SMALLINT) ? SQL_C_SSHORT : SQL_C_SLONG,
 		     &v, 0, NULL);
@@ -427,14 +427,14 @@ SgObject Sg_GetData(SgObject stmt, int index)
     return Sg_MakeInteger(v);
   }
   case SQL_BIGINT: {
-    int64_t v;
+    int64_t v = 0;
     ret = SQLGetData(SG_ODBC_CTX(stmt)->handle, index, SQL_C_SBIGINT,
 		     &v, 0, NULL);
     CHECK_ERROR(get-data, stmt, ret);
     return Sg_MakeIntegerFromS64(v);
   }
   case SQL_REAL: case SQL_FLOAT: case SQL_DOUBLE: {
-    double v;
+    double v = 0.0;
     ret = SQLGetData(SG_ODBC_CTX(stmt)->handle, index,
 		     (sqlType == SQL_DOUBLE) ? SQL_C_DOUBLE : SQL_C_FLOAT,
 		     &v, 0, NULL);

@@ -1,3 +1,8 @@
+2011-10-28  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/null.stub (delete-file): it did not raise error when deleting file
+	was failed. it's been fixed.
+
 2011-10-27  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/util/hashtables.scm (util hashtables): added hashtable utils.

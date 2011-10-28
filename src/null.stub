@@ -2760,7 +2760,10 @@
     (result (Sg_FileExistP filename)))
 
   (define-c-proc delete-file (filename::String) ::void
-    (Sg_DeleteFile filename))
+    (unless (== (Sg_DeleteFile filename) 0)
+      (Sg_IOError SG_IO_FILENAME_ERROR 'delete-file
+		  (Sg_MakeString "can't delete file" SG_LITERAL_STRING)
+		  filename SG_UNDEF)))
 
   ;; 10 Command-line access and exit values
   (define-c-proc command-line () ::Object
