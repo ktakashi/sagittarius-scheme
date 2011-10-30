@@ -67,7 +67,7 @@ what are the non conformed points.
 In this manual, each entry is represented like this.
 
 @define[Category]{@name{foo} @args{arg1 arg2}}
-@desc{[spec] Description foo ...}
+@desc{[spec] Description foo @dots{}}
 
 @var{Category} denotes category of the entry @bold{foo}. The following category
 will appear in this manual.

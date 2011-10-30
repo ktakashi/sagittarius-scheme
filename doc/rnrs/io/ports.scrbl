@@ -690,7 +690,7 @@ position.
 @desc{[R6RS] @var{Proc} must accept one argument.
 
 The @code{call-with-string-output-port} procedure creates a textual output port
-that accumulates the characters written to it and calls @var{proc{ with that
+that accumulates the characters written to it and calls @var{proc} with that
 output port as an argument. Whenever proc returns, a string consisting of all of
 the port's accumulated characters (regardless of the port's current position) is
 returned and the port is closed.

@@ -288,13 +288,13 @@ the widget field.
 
 @define[Macro]{@name{record-type-descriptor} @args{record-name}}
 @desc{[R6RS] Evaluates to the record-type descriptor (see 
-@secref["rnrs.records.procedural.6"]) associated with the type specified by
+@secref["rnrs.records.procedural.6"]{Records procedural layer}) associated with the type specified by
 @var{record-name}.
 }
 
 @define[Macro]{@name{record-constructor-descriptor} @args{record-name}}
 @desc{[R6RS] Evaluates to the record-type constructor (see
-@secref["rnrs.records.procedural.6"]) associated with the type specified by
+@secref["rnrs.records.procedural.6"]{Records procedural layer}) associated with the type specified by
 @var{record-name}.
 
 The following example uses the @code{record?} procedure from the

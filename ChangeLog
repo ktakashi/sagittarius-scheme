@@ -1,5 +1,8 @@
 2011-10-28  Takashi Kato  <ktakashi@ymail.com>
 
+	* boot/compiler.scm (let*-values): fixed wrong reference of compile time
+	environment. let*-values init form could refer formals.
+
 	* src/null.stub (delete-file): it did not raise error when deleting file
 	was failed. it's been fixed.
 

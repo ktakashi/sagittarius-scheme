@@ -1515,7 +1515,7 @@
          (next-frames (if ref? (acons LEXICAL frame next-frames) next-frames))
          (last-frames (if ref? last-frames (acons LEXICAL frame last-frames)))
          (newenv (if ref? (p1env-extend-w/o-type p1env next-frames) p1env))
-         (iexpr (pass1 (unrename-expression (car inits) new-ids) newenv)))
+         (iexpr (pass1 (unrename-expression (car inits) new-ids) p1env)))
         ($receive
          form
          reqargs

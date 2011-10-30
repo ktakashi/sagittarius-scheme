@@ -150,7 +150,7 @@
     (apply process-section 'subsubsection args))
 
   (define-scrible-plugin (sub*section . args)
-    (apply process-section 'sub--section args))
+    (apply process-section 'sub*section args))
 
   (define-scrible-plugin (snipet . args)
     ;; parse =>
@@ -218,6 +218,10 @@
 (library (scribble generator html)
     (export html-generator)
     (import (rnrs)
+	    (rnrs mutable-pairs)
+	    (sagittarius)
+	    (match)
+	    (util list)
 	    (text sxml sxpath)
 	    (text sxml tools)
 	    (text sxml serializer) ;; for srl:sxml->html
@@ -225,20 +229,53 @@
 	    (srfi :1 lists)
 	    (pp))
 
-  ;; collect sections
+  ;; collect sections and number it
   ;; section must be only top level
   (define (phase1 sxml)
+    (define (list->section-number section)
+      (call-with-string-output-port
+       (lambda (p)
+	 (for-each-with-index
+	  (lambda (index number)
+	    (if (zero? index)
+		(format p "~a" number)
+		(format p ".~a" number)))
+	  section)))
+      )
     (let* ((docpath (sxpath '(scribble))) ;; get top
 	   (titlepath (sxpath '(scribble title)))
 	   (doc (car (docpath sxml)))
-	   (title (titlepath sxml)))
+	   (title (titlepath sxml))
+	   (current-section '(0)))
+      (define (numbering elem)
+	(let-syntax ((set-section! (syntax-rules ()
+				     ((_ count)
+				      (begin
+					(unless (= (length current-section) count)
+					  (set! current-section (append current-section '(0))))
+					(set! current-section (take current-section count))
+					(set-car! (list-tail current-section (- count 1))
+						  (+ (list-ref current-section (- count 1)) 1)))))))
+	(case (car elem)
+	  ((section)
+	   (set-section! 1))
+	  ((subsection)
+	   (set-section! 2))
+	  ((subsubsection)
+	   (set-section! 3))
+	  ((sub*section)
+	   (set-section! 4)))
+	(sxml:set-attr! elem `(number ,(list->section-number current-section)))
+	(unless (assq 'tag (sxml:attr-list-node elem))
+	  (sxml:set-attr! elem `(tag ,(symbol->string (gensym)))))
+	elem))
       (values (if (null? title) #f (car title))
 	      (filter values
 		      (map (lambda (elem)
 			     ;;(display elem)(newline)
 			     (cond ((and (pair? elem)
 					 (memq (car elem) '(section subsection subsubsection sub*section)))
-				    elem)
+				    (numbering elem))
 				   (else #f))) doc))
 	      (cdr doc)))
       )
@@ -249,28 +286,160 @@
   (define *table-of-contents* (make-parameter #f))
 
   (define (content-list-handler element)
+    (define (process contents)
+      (define (li-gen content class)
+	(let* ((attrs (sxml:attr-list-node content))
+	       (tag   (cond ((assq 'tag attrs) => cadr)))
+	       (section (cond ((assq 'number attrs) => cadr)
+			      (else
+			       (assertion-violation 'li-gen
+						    "section is not defined" content)))))
+	  `(li (@ (class ,class))
+	       (a (@ (href ,(format "#~a" tag)))
+		  (span (@ (class "section.number")) ,section)
+		  ,(phase2/dispath (car (sxml:content content)))))))
+      (define (ul-gen content class)
+	`(ul (@ (class ,class))
+	     ,(li-gen content class)))
+      (define (rec contents generator top)
+	(define (rec2 contents generator top)
+	  (let loop ((contents contents)
+		     (r top))
+	    (if (null? contents)
+		(values r '())
+		(let ((content (car contents)))
+		  (let-values (((depth class generator) (generator content)))
+		    (case depth
+		      ((-1)
+		       (values (cons r (list (li-gen content class)))
+			       (cdr contents)))
+		      ((0) 
+		       (loop (cdr contents)
+			     (append r (list (li-gen content class)))))
+		      ((1)
+		       (let-values (((top next)
+				     (rec2 (cdr contents) generator
+					   (ul-gen content class))))
+			 ;; ughh, ugly
+			 (if (pair? (car top))
+			     (loop next  (append r top))
+			     (loop next `(,@r ,top)))))))))))
+	(let-values (((ret dummy) (rec2 contents generator top)))
+	  ret)
+	)
+      (let-syntax ((define-checker (er-macro-transformer
+				    (lambda (f r c)
+				      (match f
+					((_ name (sym1 class1 g1) (sym2 class2) (sym3 class3 g3))
+					 `(define (,name content)
+					   (case (car content)
+					     ((,sym1) (values -1 ,class1 ,g1))
+					     ((,sym2) (values 0 ,class2 ,name))
+					     ((,sym3) (values 1 ,class3 ,g3))
+					     (else
+					      (assertion-violation ',name
+								   "invalid tag"
+								   content))))))))))
+	(define-checker section-generator
+	  (#f #f #f)
+	  (section "section")
+	  (subsection "sub.section" subsection-generator))
+	(define-checker subsection-generator
+	  (section "section" section-generator)
+	  (subsection "sub.section")
+	  (subsubsection "sub.sub.section" subsubsection-generator))
+	(define-checker subsubsection-generator
+	  (subsection "sub.section" subsection-generator)
+	  (subsubsection "sub.sub.section")
+	  (sub*section "sub.sub.sub.section" sub*section-generator))
+	(define-checker sub*section-generator
+	  (subsubsection "sub.sub.section" subsubsection-generator)
+	  (sub*section "sub.sub.sub.section")
+	  (#f #f #f))
+	;; assume first one is section
+	(rec contents (lambda (_) (values 1 "section" section-generator)) '() )))
+
     (let ((contents (*table-of-contents*)))
-      ;; todo 
-      `(table-of-contents ,@contents)
-      ))
+      ;;`(table-of-contents ,@contents)
+      `(div (@ (class "table-of-contents"))
+	    ,@(process contents)))
+      )
 
   (define (section-handler element)
     (define (ctr tag)
-      (let ((attr (sxml:attr-list-node element)))
-	`(,tag ,(cond ((and attr
-			    (assq :tag attr))
-		       => (lambda (slot)
-			    `(@ (name ,(cadr slot)))))
-		      (else '(@)))
-	       ,@(phase2/dispath (sxml:content element)))))
+      (let* ((attr (sxml:attr-list-node element))
+	     (name (cond ((assq 'tag attr) => cadr)))
+	     (num  (cond ((assq 'number attr) => cadr))))
+	`(,tag (@ (class ,(symbol->string (car element))))
+	       (a (@ (class "section.anchor")
+		     (name ,name))
+		  ,(format "~a " num)
+		  ,@(phase2/dispath (sxml:content element))))))
     (case (car element)
       ((section) (ctr 'h2))
       ((subsection) (ctr 'h3))
       ((subsubsection) (ctr 'h4))
-      ((sub*section (ctr 'h5)))))
+      ((sub*section) (ctr 'h5))))
 
   (define (title-handler element)
     `(h1 ,(cadr element)))
+
+  (define (define-handler element)
+    (let* ((attr (sxml:attr-list-node element))
+	   (cate (cond ((assq 'category attr) => cadr))))
+      ;; todo name and args tag
+      `(div (@ (class "define"))
+	    (span (@ (class "define.category")) ,cate)
+	    ,@(phase2/dispath (sxml:content element))))
+    )
+
+  (define (codeblock-handler element)
+    ;; todo => attributes
+    (let ((attr (sxml:attr-list-node element))
+	  (code `(pre (@ (class "codeblock"))
+		      ,@(map phase2/dispath (sxml:content element)))))
+      (if attr
+	  (append! code `((span (@class "codeblock.result")
+				"=> "
+				,@(map phase2/dispath
+				       (cond ((assq 'result attr) => cdr))))))
+	  code)))
+
+  (define (snipet-handler element)
+    (let ((attr (sxml:attr-list-node element))
+	  (code `(pre (@ (class "snipet"))
+		      (span (@ (class "snipet.code"))
+			    ,@(map phase2/dispath (sxml:content element))))))
+      (if attr
+	  (append! code `((span (@ (class "snipet.result"))
+				"=> "
+				,@(map phase2/dispath
+				       (cond ((assq 'result attr) => cdr))))))
+	  code)))
+
+  (define (itemlist-handler element)
+    `(ul (@ (class "itemlist"))
+	 ,@(filter values
+		   (map (lambda (item)
+			  (cond ((and (pair? item)
+				      (eq? (car item) 'item))
+				 `(li (@ (class "itemlist.item"))
+				      ,@(map phase2/dispath (sxml:content item))))
+				(else #f))) ;; ignoge
+			(sxml:content element)))))
+  
+  (define (desc-handler element)
+    `(div (@ (class "desc"))
+	  ,@(map phase2/dispath (sxml:content element))))
+
+  (define (secref-handler element)
+    (let* ((attr (sxml:attr-list-node element))
+	   (tag  (cond ((assq 'tag attr) => cadr))))
+      `(a (@ (href ,(format "#~a" tag)))
+	  ,@(map phase2/dispath (sxml:content element)))))
+
+  (define (dots-handler element)
+    `(b (@ (class "dots")) "..."))
 
   (define *phase2/dispatcher*
     `((centered . ,center-handler)
@@ -280,14 +449,33 @@
       (subsection . ,section-handler)
       (subsubsection . ,section-handler)
       (sub*section . ,section-handler)
+      (define . ,define-handler)
+      (codeblock . ,codeblock-handler)
+      (snipet . ,snipet-handler)
+      (itemlist . ,itemlist-handler)
+      (desc . ,desc-handler)
+      (secref . ,secref-handler)
+      (dots . ,dots-handler)
       ))
+
+  (define *had-linefeed?* (make-parameter #f))
 
   (define (phase2/dispath element)
     (cond ((and (pair? element)
 		(assq (car element) *phase2/dispatcher*))
 	   => (lambda (slot)
+		(*had-linefeed?* #f)
 		((cdr slot) element)))
-	  (else element)))
+	  ((and (equal? "\n" element)
+		(*had-linefeed?*))
+	   (*had-linefeed?* #f)
+	   '(br))
+	  ((equal? "\n" element)
+	   (*had-linefeed?* #t)
+	   element)
+	  (else 
+	   (*had-linefeed?* #f)
+	   element)))
 
   (define (html-generator sxml . maybe-port)
     (let-values (((title contents doc) (phase1 sxml)))
@@ -298,24 +486,50 @@
 	(parameterize ((*table-of-contents* contents))
 	  (let ((document (append html-metas
 				  `((body ,@(map phase2/dispath doc))))))
+	    ;;(pp document)
 	    (srl:sxml->html document
 			    (if (null? maybe-port)
 				(current-output-port)
 				(car maybe-port)))))
 	))
-    ;;(pp sxml)
-    ;;(srl:sxml->xml sxml (current-output-port))
     )
 )
 
 (import (rnrs)
+	(srfi :37)
 	(scribble sxml-converter)
 	(scribble generator)
-	(text sxml serializer))
+	(text sxml serializer)
+	(pp))
 
-(let ((r (scribble-file->sxml "sagittarius-ref.scrbl")))
+(define (option-handler option name arg output files)
+  (case (if (string? name) (symbol->string name) name)
+    ((#\o output) (values arg files))
+    (else
+     (assertion-violation 'option
+			  "invalid option" name))))
 
-  ;;(srl:sxml->xml r (current-output-port))
-  (generate-document r 'html "sagittarius-ref.html")
+(define options
+  (list (option '(#\o "output") #f #t option-handler)))
+
+(let ((args (command-line)))
+  (let-values (((output files) (args-fold (cdr args)
+					  options
+					  (lambda (option name arg . seeds)
+					    (assertion-violation 'gendoc
+								 "Unrecognized option" name))
+					  (lambda (operand output files)
+					    (values output (cons operand files)))
+					  (current-output-port)
+					  '())))
+    (unless (file-exists? (car files))
+      (usage)
+      (exit -1))
+    (let ((r (scribble-file->sxml (car files))))
+      ;;(srl:sxml->xml r (current-output-port))
+      (when (string? output)
+	(if (file-exists? output)
+	    (delete-file output)))
+      (generate-document r 'html output)
   ;;(pp r)
-)
+      )))
