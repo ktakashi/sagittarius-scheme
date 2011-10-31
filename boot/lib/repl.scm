@@ -4,9 +4,11 @@
 	    current-printer
 	    current-exception-printer
 	    current-evaluator
+	    current-prompter
 	    default-exception-printer
 	    default-evaluator
-	    default-printer)
+	    default-printer
+	    default-prompter)
     (import null
 	    (core base)
 	    (core errors)
