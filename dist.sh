@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# TODO may be get version number somewhere
-export DIST_NAME=sagittarius-0.2.2
+version=`./build/sash -v | perl -e 'while (<>) {if ($_ =~ /version (\d+?\.\d+?\.\d+?)/) {print $1;}}'`
+export DIST_NAME=sagittarius-$version
 
 # just in case
 if [ -e ${DIST_NAME} ]; 
