@@ -556,7 +556,7 @@ than every other rational number in that interval (the simpler 2/5 lies between
 @define[Function]{@name{acos} @args{z}}
 @define[Function]{@name{atan} @args{z}}
 @define[Function]{@name{atan} @args{z1 z2}}
-@des{[R6RS] These procedures compute the usual transcendental functions. The
+@desc{[R6RS] These procedures compute the usual transcendental functions. The
 @code{exp} procedure computes the base-e exponential of @var{z}. The @code{log}
 procedure with a single argument computes the natural logarithm of @var{z} (not
 the base-ten logarithm); @code{(log @var{z1} @var{z2})} computes the base-@var{z2}

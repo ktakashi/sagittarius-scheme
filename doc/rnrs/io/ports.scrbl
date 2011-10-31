@@ -759,11 +759,11 @@ return the number of characters that it wrote, as an exact integer object.}}
 
 @sub*section{Binary output}
 
-@define[Function]{@name{put-u8} @args{binary-output-port octet}
+@define[Function]{@name{put-u8} @args{binary-output-port octet}}
 @desc{[R6RS] Writes @var{octet} to the output port and returns unspecified values.}
 
 @define[Function]{@name{put-bytevector}
- @args{binary-output-port bytevector :optional start count}
+ @args{binary-output-port bytevector :optional start count}}
 @desc{[R6RS] @var{Start} and @var{count} must be non-negative exact integer
 objects that default to 0 and @code{(bytevector-length @var{bytevector})} - @var{start},
 respectively. @var{Bytevector} must have a length of at least @var{start} + @var{count}.
@@ -774,11 +774,11 @@ The @code{put-bytevector} procedure writes the @var{count} bytes of the bytevect
 
 @sub*section{Textual output}
 
-@define[Function]{@name{put-char} @args{textual-output-port char}
+@define[Function]{@name{put-char} @args{textual-output-port char}}
 @desc{[R6RS] Writes @var{char} to the port and returns unspecified values.}
 
 @define[Function]{@name{put-string}
- @args{textual-output-port string :optional start count}
+ @args{textual-output-port string :optional start count}}
 @desc{[R6RS] @var{Start} and @var{count} must be non-negative exact integer
 objects. @var{String} must have a length of at least @var{start} + @var{count}.
 @var{Start} defaults to 0. @var{Count} defaults to
@@ -787,7 +787,7 @@ writes the count characters of @var{string} starting at index @var{start} to the
 port. The @code{put-string} procedure returns unspecified values.
 }
 
-@define[Function]{@name{put-datum} @args{textual-output-port datum}
+@define[Function]{@name{put-datum} @args{textual-output-port datum}}
 @desc{[R6RS] @var{Datum} should be a datum value. The @code{put-datum} procedure
 writes an external representation of @var{datum} to @var{textual-output-port}.
 }

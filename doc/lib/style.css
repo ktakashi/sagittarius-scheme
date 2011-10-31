@@ -1,0 +1,81 @@
+/* -*- mode: css; coding: utf-8 -*- */
+p {
+    clear: both;
+}
+h1.title {
+    font-size: xx-large;
+}
+
+h2.section {
+    font-size: xx-large;
+}
+
+h3.subsection {
+    font-size: x-large;
+}
+
+h4.subsubsection {
+    font-size: large;
+}
+
+h5.sub-section {
+    font-size: large;
+}
+
+span.section-number {
+    margin-right: 5px;
+}
+
+div.desc {
+    padding-top: 5px;
+    padding-left: 50px;
+}
+
+div.define {
+    font-size: medium;
+}
+
+span.define-category {
+    text-decoration: underline;
+    font-size: large;
+}
+
+span.define-category:after {
+    content: ":";
+}
+
+span.name {
+    font-family: monospace;
+    font-weight: bold;
+}
+
+span.args {
+    font-style: italic;
+}
+
+/* table of contents style */
+ul.section, ul.sub-section, ul.sub-sub-section, ul.sub-sub-sub-section {
+    list-style-type: none;
+}
+
+pre.snipet {
+    position: static;
+    clear: both;
+}
+
+span.snipet-code {
+    display: block;
+    width: 50%;
+    float: left;
+}
+
+span.snipet-arrow {
+    display: block;
+    width: 5%;
+    float: left;
+}
+
+span.snipet-result {
+    display: block;
+    width: 20%;
+}

@@ -152,6 +152,14 @@
   (define-scrible-plugin (sub*section . args)
     (apply process-section 'sub*section args))
 
+  (define-scrible-plugin (table-of-contents . maybe-id)
+    (let ((i (if (keyword? (car maybe-id))
+		  (cadr maybe-id)
+		  #f)))
+      (if i
+	  `(table-of-contents (@ (id ,i)))
+	  `(table-of-contents))))
+
   (define-scrible-plugin (snipet . args)
     ;; parse =>
     (let ((expected (if (symbol? (car args))
@@ -208,10 +216,10 @@
     (import (rnrs)
 	    (rnrs eval)
 	    (sagittarius))
-  (define (generate-document sxml type . maybe-port)
+  (define (generate-document sxml type . opt)
     (let ((lib `(scribble generator ,type))
 	  (generator (string->symbol (format "~a-generator" type))))
-      (eval `(apply ,generator ',sxml ',maybe-port)
+      (eval `(apply ,generator ',sxml ',opt)
 	    (environment '(rnrs) lib))))
 )
 
@@ -220,6 +228,8 @@
     (import (rnrs)
 	    (rnrs mutable-pairs)
 	    (sagittarius)
+	    (sagittarius regex)
+	    (sagittarius control)
 	    (match)
 	    (util list)
 	    (text sxml sxpath)
@@ -296,7 +306,7 @@
 						    "section is not defined" content)))))
 	  `(li (@ (class ,class))
 	       (a (@ (href ,(format "#~a" tag)))
-		  (span (@ (class "section.number")) ,section)
+		  (span (@ (class "section-number")) ,section)
 		  ,(phase2/dispath (car (sxml:content content)))))))
       (define (ul-gen content class)
 	`(ul (@ (class ,class))
@@ -321,9 +331,17 @@
 				     (rec2 (cdr contents) generator
 					   (ul-gen content class))))
 			 ;; ughh, ugly
-			 (if (pair? (car top))
-			     (loop next  (append r top))
-			     (loop next `(,@r ,top)))))))))))
+			 (cond ((pair? (car top))
+				(let ((ul (car top))
+				      (li (cadr top))
+				      (target (car (list-tail r (- (length r) 1)))))
+				  (set-cdr! (list-tail target (- (length target) 1)) (list ul))
+				  (loop next  (append r (list li)))))
+			       ((pair? r)
+				(let ((target (car (list-tail r (- (length r) 1)))))
+				  (set-cdr! (list-tail target (- (length target) 1)) (list top))
+				  (loop next r)))
+			       (else (loop next (list top))))))))))))
 	(let-values (((ret dummy) (rec2 contents generator top)))
 	  ret)
 	)
@@ -343,25 +361,30 @@
 	(define-checker section-generator
 	  (#f #f #f)
 	  (section "section")
-	  (subsection "sub.section" subsection-generator))
+	  (subsection "sub-section" subsection-generator))
 	(define-checker subsection-generator
 	  (section "section" section-generator)
-	  (subsection "sub.section")
-	  (subsubsection "sub.sub.section" subsubsection-generator))
+	  (subsection "sub-section")
+	  (subsubsection "sub-sub-section" subsubsection-generator))
 	(define-checker subsubsection-generator
 	  (subsection "sub.section" subsection-generator)
-	  (subsubsection "sub.sub.section")
-	  (sub*section "sub.sub.sub.section" sub*section-generator))
+	  (subsubsection "sub-sub-section")
+	  (sub*section "sub-sub-sub-section" sub*section-generator))
 	(define-checker sub*section-generator
-	  (subsubsection "sub.sub.section" subsubsection-generator)
-	  (sub*section "sub.sub.sub.section")
+	  (subsubsection "sub-sub-section" subsubsection-generator)
+	  (sub*section "sub-sub-sub-section")
 	  (#f #f #f))
 	;; assume first one is section
 	(rec contents (lambda (_) (values 1 "section" section-generator)) '() )))
 
-    (let ((contents (*table-of-contents*)))
+    (let* ((contents (*table-of-contents*))
+	   (attr (sxml:attr-list-node element))
+	   (id (if attr
+		   (cond ((assq 'id attr) => cadr)
+			 (else (symbol->string (gensym)))))))
       ;;`(table-of-contents ,@contents)
-      `(div (@ (class "table-of-contents"))
+      `(div (@ (id ,id)
+	       (class "table-of-contents"))
 	    ,@(process contents)))
       )
 
@@ -370,10 +393,11 @@
       (let* ((attr (sxml:attr-list-node element))
 	     (name (cond ((assq 'tag attr) => cadr)))
 	     (num  (cond ((assq 'number attr) => cadr))))
-	`(,tag (@ (class ,(symbol->string (car element))))
+	`(,tag (@ (class ,(regex-replace-all (regex "\\*") (symbol->string (car element)) "-")))
 	       (a (@ (class "section.anchor")
 		     (name ,name))
-		  ,(format "~a " num)
+		  (span (@ (class "section-number"))
+			,(format "~a" num))
 		  ,@(phase2/dispath (sxml:content element))))))
     (case (car element)
       ((section) (ctr 'h2))
@@ -382,15 +406,15 @@
       ((sub*section) (ctr 'h5))))
 
   (define (title-handler element)
-    `(h1 ,(cadr element)))
+    `(h1 (@ (class "title")) ,(cadr element)))
 
   (define (define-handler element)
     (let* ((attr (sxml:attr-list-node element))
 	   (cate (cond ((assq 'category attr) => cadr))))
       ;; todo name and args tag
       `(div (@ (class "define"))
-	    (span (@ (class "define.category")) ,cate)
-	    ,@(phase2/dispath (sxml:content element))))
+	    (span (@ (class "define-category")) ,cate)
+	    ,@(map phase2/dispath (sxml:content element))))
     )
 
   (define (codeblock-handler element)
@@ -399,8 +423,8 @@
 	  (code `(pre (@ (class "codeblock"))
 		      ,@(map phase2/dispath (sxml:content element)))))
       (if attr
-	  (append! code `((span (@class "codeblock.result")
-				"=> "
+	  (append! code `((span (@ (class "codeblock-arrow")) "=>")
+			  (span (@ (class "codeblock-result"))
 				,@(map phase2/dispath
 				       (cond ((assq 'result attr) => cdr))))))
 	  code)))
@@ -408,11 +432,12 @@
   (define (snipet-handler element)
     (let ((attr (sxml:attr-list-node element))
 	  (code `(pre (@ (class "snipet"))
-		      (span (@ (class "snipet.code"))
+		      (span (@ (class "snipet-code"))
 			    ,@(map phase2/dispath (sxml:content element))))))
       (if attr
-	  (append! code `((span (@ (class "snipet.result"))
-				"=> "
+	  (append! code `((span (@ (class "snipet-arrow"))
+				"=>")
+			  (span (@ (class "snipet-result"))
 				,@(map phase2/dispath
 				       (cond ((assq 'result attr) => cdr))))))
 	  code)))
@@ -423,14 +448,17 @@
 		   (map (lambda (item)
 			  (cond ((and (pair? item)
 				      (eq? (car item) 'item))
-				 `(li (@ (class "itemlist.item"))
+				 `(li (@ (class "itemlist-item"))
 				      ,@(map phase2/dispath (sxml:content item))))
 				(else #f))) ;; ignoge
 			(sxml:content element)))))
   
+  (define *in-desc* (make-parameter #f))
+
   (define (desc-handler element)
-    `(div (@ (class "desc"))
-	  ,@(map phase2/dispath (sxml:content element))))
+    (parameterize ((*in-desc* #t))
+      `(div (@ (class "desc"))
+	    ,@(map phase2/dispath (sxml:content element)))))
 
   (define (secref-handler element)
     (let* ((attr (sxml:attr-list-node element))
@@ -440,6 +468,43 @@
 
   (define (dots-handler element)
     `(b (@ (class "dots")) "..."))
+
+  (define (name-handler element)
+    `(span (@ (class "name")) 
+	   ,@(map phase2/dispath (sxml:content element))))
+
+  (define (args-handler element)
+    `(span (@ (class "args"))
+	   ,@(map phase2/dispath (sxml:content element))))
+
+  (define (dllist-handler element)
+    `(div (@ (class "dl-list-wrapper"))
+	  ,@(map phase2/dispath (sxml:content element))))
+
+  (define (dlitem-handler element)
+    (let ((name (cadr element)))
+      `(dl (@ (class "dl-list"))
+	   (dt (@ (class "dl-item-title"))
+	       ,(phase2/dispath name))
+	   (dd (@ (class "dl-item-desc"))
+	       ,@(map phase2/dispath (cddr element))))))
+
+  (define (dlitemx-handler element)
+    (let ((num (cadr element)))
+      (let-values (((dds element) (let loop ((i 0)
+					     (src (cddr element))
+					     (r '()))
+				    (if (= i num)
+					(values (reverse! r) src)
+					(loop (+ i 1)
+					      (cdr src)
+					      (cons `(dt (@ (class "dl-item-title"))
+							 ,(phase2/dispath (car src)))
+						    r))))))
+	`(dl (@ (class "dl-list"))
+	     ,@dds
+	     (dd (@ (class "dl-item-desc"))
+		 ,@(map phase2/dispath element))))))
 
   (define *phase2/dispatcher*
     `((centered . ,center-handler)
@@ -454,8 +519,13 @@
       (snipet . ,snipet-handler)
       (itemlist . ,itemlist-handler)
       (desc . ,desc-handler)
+      (name . ,name-handler)
+      (args . ,args-handler)
       (secref . ,secref-handler)
       (dots . ,dots-handler)
+      (dl-list . ,dllist-handler)
+      (dl-item . ,dlitem-handler)
+      (dl-itemx . ,dlitemx-handler)
       ))
 
   (define *had-linefeed?* (make-parameter #f))
@@ -469,7 +539,7 @@
 	  ((and (equal? "\n" element)
 		(*had-linefeed?*))
 	   (*had-linefeed?* #f)
-	   '(br))
+	   '(p))
 	  ((equal? "\n" element)
 	   (*had-linefeed?* #t)
 	   element)
@@ -477,20 +547,31 @@
 	   (*had-linefeed?* #f)
 	   element)))
 
-  (define (html-generator sxml . maybe-port)
+  (define-with-key (html-generator sxml
+				   :key (output (current-output-port))
+				        (style  #f)
+					(javascript #f)
+					(debug #f))
     (let-values (((title contents doc) (phase1 sxml)))
       (let ((html-metas `(html
 			  (head (meta (@ (http-eqiv "Content-Type")
 					 (content   "text/html; charset=utf-8")))
+				,@(filter values
+					  (list (if style
+						    `(link (@ (rel "stylesheet")
+							      (type "text/css")
+							      (href ,style)))
+						    #f)
+						(if javascript
+						    `(script (@ (type "text/javascript")
+								(src ,javascript)) " ")
+						    #f)))
 				(title ,(if title (cadr title) "Auto generated by html-generator"))))))
 	(parameterize ((*table-of-contents* contents))
 	  (let ((document (append html-metas
 				  `((body ,@(map phase2/dispath doc))))))
-	    ;;(pp document)
-	    (srl:sxml->html document
-			    (if (null? maybe-port)
-				(current-output-port)
-				(car maybe-port)))))
+	    (when debug (pp document))
+	    (srl:sxml->html document output)))
 	))
     )
 )
@@ -502,26 +583,36 @@
 	(text sxml serializer)
 	(pp))
 
-(define (option-handler option name arg output files)
-  (case (if (string? name) (symbol->string name) name)
-    ((#\o output) (values arg files))
+(define (option-handler option name arg output style javascript debug files)
+  (case (if (string? name) (string->symbol name) name)
+    ((#\o output) (values arg style javascript debug files))
+    ((#\s style)  (values output arg javascript debug files))
+    ((#\j javascript)  (values output style arg debug files))
+    ((#\d debug)  (values output style javascript #t files))
     (else
      (assertion-violation 'option
 			  "invalid option" name))))
 
 (define options
-  (list (option '(#\o "output") #f #t option-handler)))
+  (list (option '(#\o "output") #f #t option-handler)
+	(option '(#\s "style") #f #t option-handler)
+	(option '(#\j "javascript") #f #t option-handler)
+	(option '(#\d "debug") #f #f option-handler)))
 
 (let ((args (command-line)))
-  (let-values (((output files) (args-fold (cdr args)
-					  options
-					  (lambda (option name arg . seeds)
-					    (assertion-violation 'gendoc
-								 "Unrecognized option" name))
-					  (lambda (operand output files)
-					    (values output (cons operand files)))
-					  (current-output-port)
-					  '())))
+  (let-values (((output style javascript debug files)
+		(args-fold (cdr args)
+			   options
+			   (lambda (option name arg . seeds)
+			     (assertion-violation 'gendoc
+						  "Unrecognized option" name))
+			   (lambda (operand output style javascript debug files)
+			     (values output style javascript debug (cons operand files)))
+			   (current-output-port)
+			   #f
+			   #f
+			   #f
+			   '())))
     (unless (file-exists? (car files))
       (usage)
       (exit -1))
@@ -530,6 +621,10 @@
       (when (string? output)
 	(if (file-exists? output)
 	    (delete-file output)))
-      (generate-document r 'html output)
-  ;;(pp r)
+      (format #t "options: (output ~a) (style ~a) (javascript ~a) (debug ~a)~%"
+	      output style javascript debug)
+      (generate-document r 'html :output output
+			         :style style
+				 :javascript javascript
+				 :debug debug)
       )))

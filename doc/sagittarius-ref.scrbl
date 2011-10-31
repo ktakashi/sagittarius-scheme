@@ -1,11 +1,10 @@
 @; -*- mode:scribble; coding: utf-8 -*-
 @title{Sagittarius Users' Reference}
-@centered{@italic{version @eval{(sagittarius-version)}}}
 
 This document is a manual for Sagittarius, a Mostly R6RS Scheme implementation.
 This is for version @eval{(sagittarius-version)}.
 
-@table-of-contents[]
+@table-of-contents[:id "table-of-contents"]
 
 @section{Introduction}
 
@@ -37,24 +36,24 @@ requirements. That's why it's Mostly R6RS.
 To avoid to lose portability or write miss-working code, you may want to know
 what are the non conformed points.
 
-@table[]{
-@item["Reader"]{
+@dl-list[]{
+@dl-item["Reader"]{
  Reader has two mode. One is R6RS mode and other one is compatible mode. Default
  mode is R6RS  you can switch with @code{#!compatible} hash-bang which describe
  later. In compatible mode, reader also can read keyword which start with
  @code{“:”} and more non R6RS feature will be available.}
-@item["Macro expansion"]{
+@dl-item["Macro expansion"]{
  On R6RS requires explicit macro expansion phase, however in Sagittarius we do
  not have it. A macro will expand when programs will be compiled.}
-@item["Unbound symbol"]{
+@dl-item["Unbound symbol"]{
  If you write unbound symbol in your code, Sagittarius, however, won't raise
  error until it really called. R6RS does not allow this behaviour. And also
  export symbol. If you do not define exported symbol, Sagittarius, then, won't
  raise error until it will be called. I'm not sure if this is convenient or not.
  So this behaviour may be changed.}
-@item["Toplevel"]{
+@dl-item["Toplevel"]{
  Sagittarius does not require toplevel expression which is specified in R6RS.}
-@item["Miscellaneous"]{
+@dl-item["Miscellaneous"]{
  Redefinition of exported values are allowed. The value which imported at the
  last will be used.
 
@@ -72,36 +71,37 @@ In this manual, each entry is represented like this.
 @var{Category} denotes category of the entry @bold{foo}. The following category
 will appear in this manual.
 
-@itemlist[
-@item{Program - A command line program}
-@item{Function - A Scheme function}
-@item{Syntax - A syntax}
-@item{Macro - A macro}
-@item{Library - A library}
+@dl-list[
+@dl-item["Program"]{A command line program}
+@dl-item["Function"]{A Scheme function}
+@dl-item["Syntax"]{A syntax}
+@dl-item["Auxiliary Syntax"]{A auxiliary syntax}
+@dl-item["Macro"]{A macro}
+@dl-item["Library"]{A library}
+@dl-item["Condition Type"]{A condition type}
 ]
 
 For functions, syntaxes, or macros, the the entry may be followed by one or more
 arguments. In the arguments list, following notations may appear.
 
-@itemlist[
-@item{@var{arg @dots{}} @p{Indicates zero or more arguments}}
-@item{@var{:optional x y z} @var{:optional (x x-default) (y y-default) (z z-default)}
- @p{Indicates is may take up to three optional arguments. The second form
-    specifies default values for x and y. This is either builtin functions or
-    closures which defined with define-optional macro.}
-}
+@dl-list[
+@dl-item[@var{arg @dots{}}]{Indicates zero or more arguments}
+@dl-itemx[2 @var{:optional x y z} @var{:optional (x x-default) (y y-default) (z z-default)}]{
+Indicates is may take up to three optional arguments. The second form specifies
+default values for x and y. This is either builtin functions or closures which
+defined with define-optional macro.}
 ]
 
 The description of the entry follows the entry line. If the specification of the
 entry comes from some standard or implementation, its origin is noted in the
 bracket at the beginning of the description. The following origins are noted:
 
-@itemlist[
-@item{[R6RS] [R6RS+] @p{The entry works as specified in “Revised^6 Report of
- Algorithmic Language Scheme.”. If it is marked as "[R6RS+]", the entry has
- additional functionality.}}
-@item{[SRFI-n] [SRFI-n+] @p{The entry works as specified in SRFI-n. If it is
- marked as "[SRFI-n+]", the entry has additional functionality.}}
+@dl-list[
+@dl-itemx[2 "[R6RS]" "[R6RS+]"]{
+The entry works as specified in “Revised^6 Report of Algorithmic Language Scheme.”.
+If it is marked as "[R6RS+]", the entry has additional functionality.}
+@dl-itemx[2 "[SRFI-n]" "[SRFI-n+]"]{The entry works as specified in SRFI-n. If it is
+marked as "[SRFI-n+]", the entry has additional functionality.}
 ]
 
 @section{Programming in Sagittarius}

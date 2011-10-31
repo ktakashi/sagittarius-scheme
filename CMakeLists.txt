@@ -221,3 +221,9 @@ ADD_CUSTOM_TARGET(uninstall
 
 ADD_CUSTOM_TARGET(test
   COMMAND ${PROJECT_SOURCE_DIR}/build/sash run-test.scm)
+
+# make doc
+ADD_CUSTOM_TARGET(doc
+  COMMAND ${PROJECT_SOURCE_DIR}/build/sash gendoc --output=sagittarius-ref.html
+ --style=lib/style.css --javascript=lib/tools.js sagittarius-ref.scrbl
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/doc)
