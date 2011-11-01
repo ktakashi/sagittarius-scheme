@@ -1,6 +1,6 @@
 // -*- mode: javascript; coding: utf-8 -*-
 
-function toggle(elem, text) {
+function toggle(elem, link) {
     return function () {
 	var ul = getFirstChildByTagName(elem, "ul");
 	if (ul == null) return;
@@ -10,10 +10,10 @@ function toggle(elem, text) {
 	    if (li.nodeType == 1) {
 		if (li.style.display == "none") {
 		    li.style.display = "block";
-		    text.nodeValue = " - ";
+		    link.className = "opened"
 		} else {
 		    li.style.display = "none";
-		    text.nodeValue = " + ";
+		    link.className = "closed"
 		}
 	    }
 	}
@@ -39,15 +39,16 @@ function setInitialVisibility(contents, style) {
 	var li = lis.item(j);
 	if (li.nodeType == 1) {
 	    var child = getFirstChildByTagName(li, "ul");
+	    var a = getFirstChildByTagName(li, "a");
+	    var click = document.createElement("a");
+	    click.href = "javascript:void(0)";
 	    if (child != null) {
-		var a = getFirstChildByTagName(li, "a");
-		var text = document.createTextNode(" + ");
-		var click = document.createElement("a");
-		click.href = "javascript:void(0)";
-		click.appendChild(text);
-		click.onclick = toggle(li, text);
-		li.insertBefore(click, a);
+		click.className = "closed";
+		click.onclick = toggle(li, click);
+	    } else {
+		click.className = "no-child";
 	    }
+	    li.insertBefore(click, a);
 	    li.style.display = style;
 	    setInitialVisibility(li, "none");
 	}

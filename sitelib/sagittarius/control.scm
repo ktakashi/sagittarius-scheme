@@ -16,6 +16,7 @@
 	    (core errors)
 	    (core syntax)
 	    (core misc)
+	    (match)
 	    (srfi :2 and-let*)
 	    (srfi :26 cut)
 	    (sagittarius))
@@ -205,15 +206,33 @@
 				    "spec must be proper list"
 				    form
 				    ospec)))))
-       (let ((spec (cadr form))
-	     (body (cddr form))
-	     (opt  (gensym "opt")))
-	 (receive (required keys rest) (process-specs (cdr spec))
-	   `(define (,(car spec) ,@required . ,opt)
-	      (,(rename 'let-keywords*) ,opt ,(if rest 
-						 `(,@keys . ,rest)
-						 `(,@keys))
-	       ,@body)))))))
+       ;; there is no reason, internal define can have keywords.
+       ;; or could be?
+       (define (rewrite-define body)
+	 (let loop ((lst body))
+	   (cond ((null? lst) lst)
+		 ((pair? lst)
+		  (cons (loop (car lst))
+			(loop (cdr lst))))
+		 ((and (variable? lst)
+		       (eq? (identifier->symbol lst) 'define))
+		  (rename lst))
+		 (else lst))))
+       (match form
+	 ((_ (name . spec) . body)
+	  (let ((opt  (gensym "opt")))
+	    (receive (required keys rest) (process-specs spec)
+	      `(,(rename 'define) (,name ,@required . ,opt)
+		(,(rename 'let-keywords*) ,opt ,(if rest 
+						    `(,@keys . ,rest)
+						    `(,@keys))
+		 ,@(rewrite-define body))))))
+	 ;; normal define
+	 ((_ name var)
+	  `(,(rename 'define) ,name ,var))
+	 (else
+	  (syntax-violation 'define-with-key
+			    "malformed define" form))))))
 	 
 
   ;;(define-macro (let-keywords arg specs . body)

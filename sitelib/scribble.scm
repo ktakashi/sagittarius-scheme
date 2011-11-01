@@ -4,6 +4,7 @@
     (export scribble-parse
 	    scribble-read)
     (import (rnrs)
+	    (rnrs r5rs)
 	    (sagittarius)
 	    (srfi :1 lists))
 ;; scribble.scm - scribble parsing
@@ -61,7 +62,7 @@
     (let ((ch (read-char in)))
       (cond ((or (eof-object? ch) (char-delimiter? ch)) res)
             ((char-numeric? ch) (lp (+ res (* k (char-digit ch))) (* k 0.1)))
-            (else (error 'read-float-tail "invalid numeric syntax"))))))
+            (else (error 'read-float-tail "invalid numeric syntax" ch res (port-info in)))))))
 
 (define (read-number in acc base)
   (let lp ((acc acc))
@@ -74,7 +75,7 @@
         (if (= base 10)
             (begin (read-char in) (read-float-tail in (exact->inexact acc)))
             (error 'read-number "non-base-10 floating point")))
-       (else (error 'read-number "invalid numeric syntax"))))))
+       (else (error 'read-number "invalid numeric syntax" ch))))))
 
 (define (read-escaped in terminal)
   (let lp ((ls '()))
@@ -110,7 +111,7 @@
                         (error 'scrib-read "unterminated dotted list")
                         (let ((z (scrib-read in)))
                           (if (not (eq? z scribble-close))
-                              (error 'scrib-read "dot in non-terminal position in list" y z)
+                              (error 'scrib-read "dot in non-terminal position in list" y z (port-info in))
                               (append (reverse res) y))))))
                  (else (lp (cons x res)))))))
       ((#\} #\] #\)) scribble-close)
@@ -157,7 +158,7 @@
 (define (scribble-read in)
   (let ((res (scrib-read in)))
     (cond ((eq? res scribble-dot) (error 'scribble-read "invalid . in source"))
-          ((eq? res scribble-close) (error 'scribble-read "too many )'s"))
+          ((eq? res scribble-close) (error 'scribble-read "too many )'s" (port-info in)))
           (else res))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

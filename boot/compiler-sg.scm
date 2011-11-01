@@ -837,7 +837,7 @@
      (eq? (id-name v) sym)
      (null? (id-envs v))
      (cond
-      ((find-binding (p1env-library p1env) sym #f)
+      ((find-binding (id-library v) sym #f)
        =>
        (lambda
         (gloc)

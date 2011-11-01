@@ -148,6 +148,9 @@
 	  `(,name (@ (tag ,t)) ,@((*phase2-processor*) (cddr args)))
 	  `(,name ,@((*phase2-processor*) args)))))
 
+  (define-scrible-plugin (section . args)
+    (apply process-section 'section args))
+
   (define-scrible-plugin (subsection . args)
     (apply process-section 'subsection args))
 
@@ -158,7 +161,8 @@
     (apply process-section 'sub*section args))
 
   (define-scrible-plugin (table-of-contents . maybe-id)
-    (let ((i (if (keyword? (car maybe-id))
+    (let ((i (if (and (not (null? maybe-id))
+		      (keyword? (car maybe-id)))
 		  (cadr maybe-id)
 		  #f)))
       (if i
@@ -230,11 +234,12 @@
 
 (library (scribble generator html)
     (export html-generator)
-    (import (rnrs)
+    (import (except (rnrs) define)
 	    (rnrs mutable-pairs)
 	    (sagittarius)
 	    (sagittarius regex)
-	    (sagittarius control)
+	    (rename (sagittarius control)
+		    (define-with-key define))
 	    (match)
 	    (util list)
 	    (text sxml sxpath)
@@ -300,6 +305,20 @@
 
   (define *table-of-contents* (make-parameter #f))
 
+  (define *section-classes*
+    '((section       . "section")
+      (subsection    . "sub-section")
+      (subsubsection . "sub-sub-section")
+      (sub*section   . "sub-sub-sub-section")))
+
+  ;; output
+  ;;(ul (@)
+  ;;    (li (@) section1
+  ;;	  (ul (@)
+  ;;	      (li (@) subsection1
+  ;;		  (ul (@)
+  ;;		      (li (@) subsubsection1 )))))
+  ;;    (li (@) section2))
   (define (content-list-handler element)
     (define (process contents)
       (define (li-gen content class)
@@ -309,89 +328,67 @@
 			      (else
 			       (assertion-violation 'li-gen
 						    "section is not defined" content)))))
-	  `(li (@ (class ,class))
+	  `((li (@ (class ,class))
 	       (a (@ (href ,(format "#~a" tag)))
 		  (span (@ (class "section-number")) ,section)
-		  ,(phase2/dispath (car (sxml:content content)))))))
-      (define (ul-gen content class)
-	`(ul (@ (class ,class))
-	     ,(li-gen content class)))
+		  ,@(map phase2/dispath (sxml:content content)))))))
+      (define (ul-gen class)
+	`(ul (@ (class ,class))))
       (define (rec contents generator top)
-	(define (rec2 contents generator top)
-	  (let loop ((contents contents)
-		     (r top))
-	    (if (null? contents)
-		(values r '())
-		(let ((content (car contents)))
-		  (let-values (((depth class generator) (generator content)))
-		    (case depth
-		      ((-1)
-		       (values (cons r (list (li-gen content class)))
-			       (cdr contents)))
-		      ((0) 
-		       (loop (cdr contents)
-			     (append r (list (li-gen content class)))))
-		      ((1)
-		       (let-values (((top next)
-				     (rec2 (cdr contents) generator
-					   (ul-gen content class))))
-			 ;; ughh, ugly
-			 (cond ((pair? (car top))
-				(let ((ul (car top))
-				      (li (cadr top))
-				      (target (car (list-tail r (- (length r) 1)))))
-				  (set-cdr! (list-tail target (- (length target) 1)) (list ul))
-				  (loop next  (append r (list li)))))
-			       ((pair? r)
-				(let ((target (car (list-tail r (- (length r) 1)))))
-				  (set-cdr! (list-tail target (- (length target) 1)) (list top))
-				  (loop next r)))
-			       (else (loop next (list top))))))))))))
-	(let-values (((ret dummy) (rec2 contents generator top)))
-	  ret)
-	)
-      (let-syntax ((define-checker (er-macro-transformer
-				    (lambda (f r c)
-				      (match f
-					((_ name (sym1 class1 g1) (sym2 class2) (sym3 class3 g3))
-					 `(define (,name content)
-					   (case (car content)
-					     ((,sym1) (values -1 ,class1 ,g1))
-					     ((,sym2) (values 0 ,class2 ,name))
-					     ((,sym3) (values 1 ,class3 ,g3))
-					     (else
-					      (assertion-violation ',name
-								   "invalid tag"
-								   content))))))))))
-	(define-checker section-generator
-	  (#f #f #f)
-	  (section "section")
-	  (subsection "sub-section" subsection-generator))
-	(define-checker subsection-generator
-	  (section "section" section-generator)
-	  (subsection "sub-section")
-	  (subsubsection "sub-sub-section" subsubsection-generator))
-	(define-checker subsubsection-generator
-	  (subsection "sub.section" subsection-generator)
-	  (subsubsection "sub-sub-section")
-	  (sub*section "sub-sub-sub-section" sub*section-generator))
-	(define-checker sub*section-generator
-	  (subsubsection "sub-sub-section" subsubsection-generator)
-	  (sub*section "sub-sub-sub-section")
-	  (#f #f #f))
+	(let loop ((contents contents)
+		   (r top))
+	  (if (null? contents)
+	      r
+	      (let ((content (car contents)))
+		(let-values (((class depth) (generator content)))
+		  (let loop ((i 0)
+			     (r r))
+		    (if (= i depth)
+			(cond ((and (zero? i) ;; top
+				    (eq? (car r) 'ul))
+			       (append! r (li-gen content class)))
+			      (else
+			       (let ((tail (car (list-tail r (- (length r) 1)))))
+				 (cond ((eq? (car tail) 'ul)
+					(append! tail (li-gen content class))
+					r)
+				       (else
+					(let ((ul (ul-gen class)))
+					  (append! ul (li-gen content class))
+					  (if (eq? (car tail) 'li)
+					      (append! tail (list ul))
+					      (append! r (list ul)))
+					  r))))))
+			(loop (+ i 1)
+			      (let((rr (car (list-tail r (- (length r) 1)))))
+				(if (eq? (car rr) 'li)
+				    rr
+				    (car (list-tail rr (- (length rr) 1))))))))
+		  (loop (cdr contents) r))))))
+
+	(define (section-generator element)
+	  (define len (length *section-classes*))
+	  (define sections (map car *section-classes*))
+	  (cond ((assq (car element) *section-classes*)
+		 => (lambda (slot)
+		      (let ((name (car slot))
+			    (class (cdr slot)))
+			(values class (- len (length (memq name sections)))))))
+		(else
+		 (assertion-violation 'section-generator
+				      "unknown tag" element))))
 	;; assume first one is section
-	(rec contents (lambda (_) (values 1 "section" section-generator)) '() )))
+	(rec contents section-generator (ul-gen "section")))
 
     (let* ((contents (*table-of-contents*))
 	   (attr (sxml:attr-list-node element))
-	   (id (if attr
-		   (cond ((assq 'id attr) => cadr)
-			 (else (symbol->string (gensym)))))))
-      ;;`(table-of-contents ,@contents)
+	   (id   (cond ((and attr (assq 'id attr)) => cadr)
+		       (else (symbol->string (gensym))))))
       `(div (@ (id ,id)
 	       (class "table-of-contents"))
-	    ,@(process contents)))
+	    ,(process contents))
       )
+    )
 
   (define (section-handler element)
     (define (ctr tag)
@@ -447,6 +444,9 @@
 				       (cond ((assq 'result attr) => cdr))))))
 	  code)))
 
+  (define (code-handler element)
+    `(code ,@(map phase2/dispath (sxml:content element))))
+
   (define (itemlist-handler element)
     `(ul (@ (class "itemlist"))
 	 ,@(filter values
@@ -473,6 +473,8 @@
 
   (define (dots-handler element)
     `(b (@ (class "dots")) "..."))
+
+  (define (atmark-handler element) "@")
 
   (define (name-handler element)
     `(span (@ (class "name")) 
@@ -511,6 +513,10 @@
 	     (dd (@ (class "dl-item-desc"))
 		 ,@(map phase2/dispath element))))))
 
+  (define (string-handler element)
+    `(span (@ (class "string"))
+	   ,@(map phase2/dispath (cdr element))))
+
   (define *phase2/dispatcher*
     `((centered . ,center-handler)
       (title . ,title-handler)
@@ -521,6 +527,7 @@
       (sub*section . ,section-handler)
       (define . ,define-handler)
       (codeblock . ,codeblock-handler)
+      (code . ,code-handler)
       (snipet . ,snipet-handler)
       (itemlist . ,itemlist-handler)
       (desc . ,desc-handler)
@@ -528,9 +535,11 @@
       (args . ,args-handler)
       (secref . ,secref-handler)
       (dots . ,dots-handler)
+      (atmark . ,atmark-handler)
       (dl-list . ,dllist-handler)
       (dl-item . ,dlitem-handler)
       (dl-itemx . ,dlitemx-handler)
+      (string . ,string-handler)
       ))
 
   (define *had-linefeed?* (make-parameter #f))
@@ -552,11 +561,11 @@
 	   (*had-linefeed?* #f)
 	   element)))
 
-  (define-with-key (html-generator sxml
-				   :key (output (current-output-port))
-				        (style  #f)
-					(javascript #f)
-					(debug #f))
+  (define (html-generator sxml
+			  :key (output (current-output-port))
+			       (style  #f)
+			       (javascript #f)
+			       (debug #f))
     (let-values (((title contents doc) (phase1 sxml)))
       (let ((html-metas `(html
 			  (head (meta (@ (http-eqiv "Content-Type")
@@ -572,6 +581,7 @@
 								(src ,javascript)) " ")
 						    #f)))
 				(title ,(if title (cadr title) "Auto generated by html-generator"))))))
+	(when debug (pp doc))
 	(parameterize ((*table-of-contents* contents))
 	  (let ((document (append html-metas
 				  `((body ,@(map phase2/dispath doc))))))

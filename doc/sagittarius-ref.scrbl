@@ -155,3 +155,4 @@ any command-line option processing and error handling.
 }
 
 @include-section["r6rs.scrbl"]
+@include-section["sagittarius.scrbl"]

@@ -827,7 +827,7 @@
 	   (and (identifier? v)
 		(eq? (id-name v) sym)
 		(null? (id-envs v))
-		(cond ((find-binding (p1env-library p1env) sym #f)
+		(cond ((find-binding (id-library v) sym #f)
 		       => (lambda (gloc)
 			    (let ((s (gloc-ref gloc)))
 			      (and (syntax? s)

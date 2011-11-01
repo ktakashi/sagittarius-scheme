@@ -1,7 +1,4 @@
 /* -*- mode: css; coding: utf-8 -*- */
-p {
-    clear: both;
-}
 h1.title {
     font-size: xx-large;
 }
@@ -59,23 +56,45 @@ ul.section, ul.sub-section, ul.sub-sub-section, ul.sub-sub-sub-section {
 }
 
 pre.snipet {
-    position: static;
-    clear: both;
+    position: relative;
 }
 
 span.snipet-code {
-    display: block;
+    display: inline-block;
     width: 50%;
-    float: left;
 }
 
 span.snipet-arrow {
-    display: block;
+    display: inline-block;
     width: 5%;
-    float: left;
 }
 
 span.snipet-result {
-    display: block;
+    display: inline-block;
     width: 20%;
+}
+
+/* tools.js */
+a.closed {
+    background-image: url("trees.png");
+    background-position: 0 0px;
+    height: 13px;
+    width: 13px;
+    display: inline-block;
+}
+
+a.opened {
+    background-image: url("trees.png");
+    background-position: -13px 0px;
+    height: 13px;
+    width: 13px;
+    display: inline-block;
+}
+
+a.no-child {
+    background-image: url("trees.png");
+    background-position: -26px 0px;
+    height: 13px;
+    width: 13px;
+    display: inline-block;
 }

@@ -1,3 +1,10 @@
+2011-11-01  Takashi Kato  <ktakashi@ymail.com>
+
+	* boot/compiler.scm (global-eq?): fixed finding target library.
+
+	* sitelib/sagittarius/control.scm (define-with-key): fixed non-hygine
+	macro to hygine.
+
 2011-10-28  Takashi Kato  <ktakashi@ymail.com>
 
 	* boot/compiler.scm (let*-values): fixed wrong reference of compile time
