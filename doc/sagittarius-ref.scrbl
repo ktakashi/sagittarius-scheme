@@ -12,26 +12,26 @@ This is a users' guide and reference manual of Sagittarius Scheme system. Here
 I tried to describe the points which are not conformed to R6RS.
 
 The target readers are those who already know Scheme and want to write useful
-program in Sagittarius.
+programs in Sagittarius.
 
 This manual only deals with Scheme side of things. Sagittarius has another face,
-a C interface. Details of it will be discussed in a separate document to be
+a C interface. Details of it will be discussed in a separate document yet to be
 written. Those who wants to use Sagittarius as an embedded language, or wants to
 write an extension, need that volume.
 
 @subsection{Overview of Sagittarius}
 
 Sagittarius is a Scheme script engine; it reads Scheme programs, compiles it
-on-the-fly and executes it on a virtual machine. Sagittarius @bold{Mostly}
+on-the-fly and executes it on a virtual machine. Sagittarius @b{Mostly}
 conforms the language standard "Revised^6 Report on the Algorithmic Language
-Scheme" (R6RS), and supports various common libraries defined in SRFIs.
+Scheme" (R6RS), and supports various common libraries defined in 
+"Scheme Requests for Implementation" (SRFI)s.
 
 There are a lot of Scheme implementations and it has different strong and weak
-point. Frankly speaking, Sagittarius does not have much competitive point from
-other implementation. The only thing it has “Flexibility”. R6RS specifies
+point. Sagittarius focuses on "Flexibility" and "Easy to Use". R6RS specifies
 strict requirements, but sometimes you may think this is too much. For that
 purpose, Sagittarius has less strictness but it makes not to conform the
-requirements. That's why it's Mostly R6RS.
+requirements. That's why it is Mostly R6RS.
 
 To avoid to lose portability or write miss-working code, you may want to know
 what are the non conformed points.
@@ -41,14 +41,14 @@ what are the non conformed points.
  Reader has two mode. One is R6RS mode and other one is compatible mode. Default
  mode is R6RS  you can switch with @code{#!compatible} hash-bang which describe
  later. In compatible mode, reader also can read keyword which start with
- @code{“:”} and more non R6RS feature will be available.}
+ @code{":"} and more non R6RS feature will be available.}
 @dl-item["Macro expansion"]{
  On R6RS requires explicit macro expansion phase, however in Sagittarius we do
- not have it. A macro will expand when programs will be compiled.}
+ not have it. A macro is expanded when programs are compiled.}
 @dl-item["Unbound symbol"]{
- If you write unbound symbol in your code, Sagittarius, however, won't raise
+ If you write unbound symbol in your code, however Sagittarius won't raise
  error until it really called. R6RS does not allow this behaviour. And also
- export symbol. If you do not define exported symbol, Sagittarius, then, won't
+ exported symbol. If you do not define exported symbol, Sagittarius, then, won't
  raise error until it will be called. I'm not sure if this is convenient or not.
  So this behaviour may be changed.}
 @dl-item["Toplevel"]{
@@ -68,7 +68,7 @@ In this manual, each entry is represented like this.
 @define[Category]{@name{foo} @args{arg1 arg2}}
 @desc{[spec] Description foo @dots{}}
 
-@var{Category} denotes category of the entry @bold{foo}. The following category
+@var{Category} denotes category of the entry @b{foo}. The following category
 will appear in this manual.
 
 @dl-list[
@@ -77,6 +77,7 @@ will appear in this manual.
 @dl-item["Syntax"]{A syntax}
 @dl-item["Auxiliary Syntax"]{A auxiliary syntax}
 @dl-item["Macro"]{A macro}
+@dl-item["Auxiliary Macro"]{A auxiliary macro}
 @dl-item["Library"]{A library}
 @dl-item["Condition Type"]{A condition type}
 ]
@@ -98,7 +99,7 @@ bracket at the beginning of the description. The following origins are noted:
 
 @dl-list[
 @dl-itemx[2 "[R6RS]" "[R6RS+]"]{
-The entry works as specified in “Revised^6 Report of Algorithmic Language Scheme.”.
+The entry works as specified in "Revised^6 Report of Algorithmic Language Scheme.".
 If it is marked as "[R6RS+]", the entry has additional functionality.}
 @dl-itemx[2 "[SRFI-n]" "[SRFI-n+]"]{The entry works as specified in SRFI-n. If it is
 marked as "[SRFI-n+]", the entry has additional functionality.}
@@ -114,14 +115,14 @@ is a program named sash.
 
 @define[Program]{@name{sash} @args{[options] scheme-file arg @dots{}}}
 @desc{Invoking sash. If @var{scheme-file} is not given, it runs with interactive mode.
-Detail options are given with option @code{“-h”}.}
+Detail options are given with option @code{"-h"}.}
 
 @subsection{Writing Scheme scripts}
 
 When a Scheme file is given to sash, it bounds an internal variable to list of
 the remaining command-line arguments which you can get with command-line procedure,
 then loads the Scheme program. If the first line of scheme-file begins with
-@code{“#!”}, then sash ignores the entire line. This is useful to write a Scheme
+@code{"#!"}, then sash ignores the entire line. This is useful to write a Scheme
 program that works as an executable script in unix-like systems.
 
 Typical Sagittarius script has the first line like this:
@@ -156,3 +157,7 @@ any command-line option processing and error handling.
 
 @include-section["r6rs.scrbl"]
 @include-section["sagittarius.scrbl"]
+@include-section["ported.scrbl"]
+@include-section["srfi.scrbl"]
+
+@index-table[]

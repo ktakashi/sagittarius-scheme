@@ -61,6 +61,7 @@
 	    scribble-file->sxml)
     (import (rnrs)
 	    (rnrs eval)
+	    (pp)
 	    (scribble)
 	    (scribble plugin)
 	    (sagittarius)
@@ -119,16 +120,42 @@
   ;; phase 2
   (define *phase2-processor* (make-parameter #f))
 
+  (define (parse-attribute items)
+    (define (keyword->symbol keyword)
+      (string->symbol (format "~a" keyword)))
+    (let loop ((items items)
+	       (attr '()))
+      (cond ((null? items)
+	     (values attr '())) ;; should not happen
+	    ((and (pair? items)
+		  (keyword? (car items)))
+	     (loop (cddr items)
+		   (acons (keyword->symbol (car items)) (list (cadr items)) attr)))
+	    (else
+	     (values attr items)))))
+
+  (define (generic-processor tag . items)
+    (let-values (((attr contents) (parse-attribute items)))
+      `(,tag (@ ,@attr)
+	     ,@(map (*phase2-processor*) contents))))
+
+  (define-scrible-plugin (th . items)
+    (apply generic-processor 'th items))
+
+  (define-scrible-plugin (td . items)
+    (apply generic-processor 'td items))
+
+  (define-scrible-plugin (tr . items)
+    (apply generic-processor 'tr items))
+
   (define-scrible-plugin (table . items)
-    ;; stub
-    `(table ,@(filter values
-		      (map (lambda (i)
-			     (cond ((and (pair? i)
-					 (eq? (car i) 'item))
-				    `(item (@ (name ,(cadr i)))
-					   ,@((*phase2-processor*) (cddr i))))
-				   (else #f)))
-			   items))))
+    (apply generic-processor 'table items))
+
+  (define-scrible-plugin (blockquote . items)
+    (apply generic-processor 'blockquote items))
+
+  (define-scrible-plugin (hyperlink . items)
+    (apply generic-processor 'a items))
 
   (define-scrible-plugin (define cate name . args)
     ;; stub
@@ -245,8 +272,9 @@
 	    (text sxml sxpath)
 	    (text sxml tools)
 	    (text sxml serializer) ;; for srl:sxml->html
-	    (srfi :39 parameters)
 	    (srfi :1 lists)
+	    (srfi :19 time)
+	    (srfi :39 parameters)
 	    (pp))
 
   ;; collect sections and number it
@@ -390,17 +418,22 @@
       )
     )
 
+  (define *current-section* #f)
+
   (define (section-handler element)
     (define (ctr tag)
       (let* ((attr (sxml:attr-list-node element))
 	     (name (cond ((assq 'tag attr) => cadr)))
-	     (num  (cond ((assq 'number attr) => cadr))))
+	     (num  (cond ((assq 'number attr) => cadr)))
+	     (content (phase2/dispath (sxml:content element))))
+	;; bit awkward
+	(set! *current-section* (cons `(,num " ",@content) name))
 	`(,tag (@ (class ,(regex-replace-all (regex "\\*") (symbol->string (car element)) "-")))
 	       (a (@ (class "section.anchor")
 		     (name ,name))
 		  (span (@ (class "section-number"))
 			,(format "~a" num))
-		  ,@(phase2/dispath (sxml:content element))))))
+		  ,@content))))
     (case (car element)
       ((section) (ctr 'h2))
       ((subsection) (ctr 'h3))
@@ -476,9 +509,16 @@
 
   (define (atmark-handler element) "@")
 
+  ;; assume @name only has one content
+  (define *names-for-index* '())
   (define (name-handler element)
-    `(span (@ (class "name")) 
-	   ,@(map phase2/dispath (sxml:content element))))
+    (let ((tag (symbol->string (gensym)))
+	  ;; TODO maybe I need to fix this
+	  (name (car (sxml:content element))))
+      (set! *names-for-index* (acons name (cons tag *current-section*) *names-for-index*))
+      `(a (@ (name ,tag))
+	  (span (@ (class "name"))
+		,@(map phase2/dispath (sxml:content element))))))
 
   (define (args-handler element)
     `(span (@ (class "args"))
@@ -517,6 +557,44 @@
     `(span (@ (class "string"))
 	   ,@(map phase2/dispath (cdr element))))
 
+  (define (table-handler element)
+    (let* ((attr (sxml:attr-list-node element))
+	   (title (cond ((and attr
+			      (assq 'title attr)) => cadr)
+			(else #f))))
+      `(table (@ (class "table"))
+	      ,@(filter values (if title `((caption ,title)) '(#f)))
+	      ,@(map phase2/dispath (sxml:content element)))))
+
+  (define (generic-html-handler element)
+    (let ((tag (car element))
+	  (attr (sxml:attr-list-node element)))
+      `(,tag (@ ,@attr)
+	     ,@(map phase2/dispath (sxml:content element)))))
+
+  (define (index-table-handler element)
+    ;; generates index table
+    (let ((lst (list-sort (lambda (pair1 pair2)
+			    (let ((name1 (car pair1))
+				  (name2 (car pair2)))
+			      (string<=? name1 name2))) *names-for-index*))
+	  (current-letter #f))
+      `(table (@ (class "index-table"))
+	      (capture "Index")
+	      ,@(map (lambda (pair)
+		       (let* ((name (car pair))
+			      (tag  (cadr pair))
+			      (section (cddr pair))
+			      (first-letter (string-ref name 0)))
+			 (unless current-letter
+			   (set! current-letter first-letter))
+			 (unless (char-ci=? first-letter current-letter)
+			   (set! current-letter first-letter))
+			 `(tr (td (a (@ (href ,(format "#~a" tag))) ,name))
+			      (td (a (@ (href ,(format "#~a" (cdr section)))) ,@(car section))))))
+		     lst)))
+    )
+
   (define *phase2/dispatcher*
     `((centered . ,center-handler)
       (title . ,title-handler)
@@ -540,6 +618,13 @@
       (dl-item . ,dlitem-handler)
       (dl-itemx . ,dlitemx-handler)
       (string . ,string-handler)
+      (table . ,table-handler)
+      (tr . ,generic-html-handler)
+      (td . ,generic-html-handler)
+      (th . ,generic-html-handler)
+      (blockquote . ,generic-html-handler)
+      (a . ,generic-html-handler)
+      (index-table . ,index-table-handler)
       ))
 
   (define *had-linefeed?* (make-parameter #f))
@@ -584,7 +669,13 @@
 	(when debug (pp doc))
 	(parameterize ((*table-of-contents* contents))
 	  (let ((document (append html-metas
-				  `((body ,@(map phase2/dispath doc))))))
+				  `((body ,@(map phase2/dispath doc)
+					  (hr)
+					  (div 
+					   (i "This document is generated by Sagittarius gendoc. "
+					      "Generated date: " 
+					      ,(date->string (current-date) "~4")
+					       )))))))
 	    (when debug (pp document))
 	    (srl:sxml->html document output)))
 	))

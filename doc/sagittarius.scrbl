@@ -6,7 +6,7 @@ Sagittarius has its own extension libraries because even R6RS is huge however I
 know it is not sufficient to write practical program. To support to write it,
 Sagittarius provides some useful libraries.
 
-@subsection[:tag "lib.sagittarius"]{(Sagittarius) - builtin library}
+@subsection[:tag "lib.sagittarius"]{(sagittarius) - builtin library}
 
 @define[Library]{@name{(sagittarius)}}
 @desc{This library has Sagittarius specific functions which are not supported
