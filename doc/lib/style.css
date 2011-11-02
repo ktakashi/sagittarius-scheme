@@ -98,3 +98,21 @@ a.no-child {
     width: 13px;
     display: inline-block;
 }
+
+/* index table */
+div#index-table {
+    width: 100%;
+}
+
+div.index-letters {
+    width: 100%;
+    border-bottm: 1px groove;
+}
+
+td.index-name {
+    width: 300px;
+}
+
+td.index-section {
+    width: 300px;
+}

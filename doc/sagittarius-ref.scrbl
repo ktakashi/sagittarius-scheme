@@ -160,4 +160,6 @@ any command-line option processing and error handling.
 @include-section["ported.scrbl"]
 @include-section["srfi.scrbl"]
 
-@index-table[]
+@section[:appendix "A"]{Index}
+
+@index-table[:id "index-table"]
