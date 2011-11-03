@@ -55,7 +55,34 @@ function setInitialVisibility(contents, style) {
     }
 }
 
+function addNavigator() {
+    var top = document.createElement("a");
+    var back = document.createElement("a");
+    var forward = document.createElement("a");
+    var topAnchor = document.createElement("a");
+    var div = document.createElement("div");
+    var first = document.body.firstChild;
+    top.className = "navigator";
+    top.appendChild(document.createTextNode("Top"));
+    back.className = "navigator";
+    back.appendChild(document.createTextNode("<<"));
+    forward.className = "navigator";
+    forward.appendChild(document.createTextNode(">>"));
+    top.href = "#top-anchor";
+    back.href = "javascript:history.back()";
+    forward.href = "javascript:history.forward()";
+    topAnchor.name = "top-anchor"
+    div.className = "navigator"
+
+    div.appendChild(back);
+    div.appendChild(top);
+    div.appendChild(forward);
+    document.body.insertBefore(div, first);
+    document.body.insertBefore(topAnchor, first);
+}
+
 window.onload = function () {
     var contents = document.getElementById("table-of-contents");
     setInitialVisibility(contents, "block");
+    addNavigator();
 }
