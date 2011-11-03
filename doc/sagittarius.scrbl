@@ -13,6 +13,44 @@ Sagittarius provides some useful libraries.
 in R6RS such as extra file system functions and so.
 }
 
+@subsubsection{Macro transformer}
+
+@define[Function]{@name{er-macro-transformer} @args{proc}}
+@desc{@var{Proc} must take 3 arguments, @var{form}, @var{rename} and @{compare}.
+
+@dl-list[
+@dl-item[@var{form}]{The input form of this macro. It is mere s-expression.}
+@dl-item[@var{rename}]{A procedure. It takes a symbol for its argument and convert it
+to a syntax object.}
+@dl-item[@var{compare}]{A procedure. It take 2 arguments and compare if it refer the 
+same object. Almost the same as @code{free-identifier=?}.}
+]
+
+The @code{er-macro-transformer} returns explicit renaming macro transformer, so
+you can write both hygine and non-hygine macro with it. For example:
+@codeblock[=> (a a a)]{
+(define-syntax loop
+  (er-macro-transformer
+   (lambda (form rename compare)
+     (let ((body (cdr form)))
+       `(,(rename 'call/cc)
+	 (,(rename 'lambda) (break)
+	  (,(rename 'let) ,(rename 'f) () ,@body (,(rename 'f)))))))))
+
+(let ((n 3) (ls '()))
+  (loop
+    (if (= n 0) (break ls))
+    (set! ls (cons 'a ls))
+    (set! n (- n 1))))
+}
+This example has the same functionality as the example written in
+@code{datum->syntax} description. The basic of @{er-macro-transformer} is the
+opposite way of the @code{syntax-case}. The @code{syntax-case} always makes macro
+hygine, however the @code{er-macro-transformer} can make macro hygine. Moreover,
+if you do not use @var{rename}, it always makes it non-hygine.
+
+}
+
 @subsubsection{File system operations}
 
 @define[Function]{@name{file-size-in-bytes} @args{filename}}

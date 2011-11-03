@@ -13,6 +13,9 @@
 	    match:disjoint-predicates
 	    match:vector-structures
 	    match:expanders
+	    match:runtime-structures
+	    match:set-runtime-structures
+	    match:primitive-vector?
 	    ;; for (match)
 	    symbol-append
 	    )
@@ -684,7 +687,7 @@
 				  (let ((ap `(,code ,fail-sym ,@(map val bv))))
 				    `(call-with-current-continuation
 				      (lambda (,fail-sym)
-					(let ((,faile-sym (lambda ()
+					(let ((,fail-sym (lambda ()
 							    (call-with-values
 								(lambda () ,(fail sf))
 							      ,fail-sym))))
@@ -1215,4 +1218,10 @@
 
   (define match:expanders
     (list genmatch genletrec gendefine pattern-var?))
+
+  (define match:runtime-structures #f)
+  (define match:set-runtime-structures
+    (lambda (v) (set! match:runtime-structures v)))
+  (define match:primitive-vector? vector?)
+
 )

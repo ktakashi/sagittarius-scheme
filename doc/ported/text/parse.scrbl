@@ -1,6 +1,6 @@
 @; -*- mode:scribble; coding: utf-8 -*-
 
-@subsection[:tag "ported.text"]{(text parse) - Parsing input stream}
+@subsection[:tag "ported.text.parse"]{(text parse) - Parsing input stream}
 
 @define[Library]{@name{(text parse)}}
 @desc{The @code{(text parse)} library is inspired and compatible with Oleg

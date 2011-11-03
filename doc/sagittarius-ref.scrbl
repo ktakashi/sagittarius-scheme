@@ -163,3 +163,4 @@ any command-line option processing and error handling.
 @section[:appendix "A"]{Index}
 
 @index-table[:id "index-table"]
+@author["Takashi Kato"]

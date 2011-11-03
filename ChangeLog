@@ -1,3 +1,12 @@
+2011-11-03  Takashi Kato  <ktakashi@ymail.com>
+
+	* lib/compat/r7rs.scm (compat r7rs): added R7RS compatibility library.
+	currently, only syntax-rules.
+
+	* sitelib/match.scm (match): fixed unbound variable match:error
+
+	* boot/lib/match_core.scm (match): fixed unbound variable 'faile-sym.
+
 2011-11-01  Takashi Kato  <ktakashi@ymail.com>
 
 	* boot/compiler.scm (global-eq?): fixed finding target library.

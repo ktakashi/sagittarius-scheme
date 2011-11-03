@@ -141,6 +141,33 @@ The @code{datum->syntax} procedure returns a syntax-object representation of
 @var{datum} that contains the same contextual information as @var{template-id},
 with the effect that the syntax object behaves as if it were introduced into the
 code when @var{template-id} was introduced.
+
+The @code{datum->syntax} procedure allows a transformer to "bend" lexical scoping
+rules by creating implicit identifiers that behave as if they were present in the
+input form, thus permitting the definition of macros that introduce visible
+bindings for or references to identifiers that do not appear explicitly in the
+input form. For example, the following defines a @code{loop} expression that uses
+this controlled form of identifier capture to bind the variable break to an escape
+procedure within the loop body.
+
+@codeblock[=> (a a a)]{
+(define-syntax loop
+  (lambda (x)
+    (syntax-case x ()
+      [(k e ...)
+       (with-syntax
+           ([break (datum->syntax (syntax k) 'break)])
+         (syntax 
+	  (call-with-current-continuation
+	   (lambda (break)
+	     (let f () e ... (f))))))])))
+
+(let ((n 3) (ls ’()))
+  (loop
+    (if (= n 0) (break ls))
+    (set! ls (cons ’a ls))
+    (set! n (- n 1)))) 
+}
 }
 
 @define[Function]{@name{generate-temporaries} @args{l}}

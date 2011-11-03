@@ -19,6 +19,10 @@ h5.sub-section {
     font-size: large;
 }
 
+span.section-number:after {
+    content: ".";
+}
+
 span.section-number {
     margin-right: 5px;
 }
@@ -104,15 +108,46 @@ div#index-table {
     width: 100%;
 }
 
+div.index-letters:before {
+    content: "Jump to: ";
+}
+
 div.index-letters {
     width: 100%;
-    border-bottm: 1px groove;
+    padding-bottom: 10px;
+    font-weight: bold;
+    font-size: x-large;
+}
+
+a.index-letter {
+    display: inline-block;
+    width: 15px;
+    font-family: monospace;
+}
+
+div.index-table-fragment {
+    border-top: 2px groove;
+    padding-top: 5px;
+    padding-bottom: 10px;
+    width: 100%;
+}
+
+span.index-title-letter {
+    font-size: x-large;
+    font-weight: bold;
+    font-family: monospace;
+}
+
+table.index-table {
+    margin-left: 10px;
+    width: 100%;
 }
 
 td.index-name {
-    width: 300px;
+    font-family: monospace;
+    width: 50%;
 }
 
 td.index-section {
-    width: 300px;
+    width: 50%;
 }

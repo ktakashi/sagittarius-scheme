@@ -446,12 +446,23 @@ nondecreasing, or monotonically nonincreasing, and #f otherwise.
 @define[Function]{@name{infinite?} @args{z}}
 @define[Function]{@name{nan?} @args{z}}
 @desc{[R6RS] These numerical predicates test a number object for a particular
-property, returning #t or #f. The @code{zero?} procedure tests if the number
-object is @code{=} to zero, @code{positive?} tests whether it is greater than
-zero, @code{negative?} tests whether it is less than zero, @code{odd?} tests
-whether it is odd, @code{even?} tests whether it is even, @code{finite?} tests
-whether it is not an infinity and not a NaN, @code{infinite?} tests whether it
-is an infinity, @code{nan?} tests whether it is a NaN.
+property, returning #t or #f.
+
+The @code{zero?} procedure tests if the number object is @code{=} to zero.
+
+The @code{positive?} tests whether it is greater than zero.
+
+The  @code{negative?} tests whether it is less than zero.
+
+The @code{odd?} tests whether it is odd.
+
+The @code{even?} tests whether it is even
+
+The @code{finite?} tests whether it is not an infinity and not a NaN.
+
+The @code{infinite?} tests whether it is an infinity.
+
+The @code{nan?} tests whether it is a NaN.
 }
 
 @define[Function]{@name{max} @args{x1 x2 @dots{}}}
@@ -557,12 +568,17 @@ than every other rational number in that interval (the simpler 2/5 lies between
 @define[Function]{@name{atan} @args{z}}
 @define[Function]{@name{atan} @args{z1 z2}}
 @desc{[R6RS] These procedures compute the usual transcendental functions. The
-@code{exp} procedure computes the base-e exponential of @var{z}. The @code{log}
-procedure with a single argument computes the natural logarithm of @var{z} (not
-the base-ten logarithm); @code{(log @var{z1} @var{z2})} computes the base-@var{z2}
-logarithm of @var{z1}. The @code{asin}, @code{acos}, and @code{atan} procedures
-compute arcsine, arccosine, and arctangent, respectively. The two-argument
-variant of @code{atan} computes @code{(angle (make-rectangular @var{x2} @var{x1}))}.
+@code{exp} procedure computes the base-e exponential of @var{z}.
+
+The @code{log} procedure with a single argument computes the natural logarithm
+of @var{z} (not the base-ten logarithm); @code{(log @var{z1} @var{z2})} computes
+the base-@var{z2} logarithm of @var{z1}.
+
+The @code{asin}, @code{acos}, and @code{atan} procedures compute arcsine,
+arccosine, and arctangent, respectively.
+
+The two-argument variant of @code{atan} computes
+@code{(angle (make-rectangular @var{x2} @var{x1}))}.
 }
 
 @define[Function]{@name{sqrt} @args{z}}

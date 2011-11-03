@@ -10,5 +10,6 @@ In this section, I describe these libraries. However most of the documentations
 are from its manual or comments. I hava just derived from their source, manuals,
 or documents.
 
-@include-section["ported/text.scrbl"]
-@include-section["ported/ssax.scrbl"]
+@include-section["ported/match.scrbl"]
+@include-section["ported/text/parse.scrbl"]
+@include-section["ported/text/sxml/ssax.scrbl"]

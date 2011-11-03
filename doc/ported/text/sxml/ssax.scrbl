@@ -1,6 +1,6 @@
 @; -*- mode:scribble; coding: utf-8 -*-
 
-@subsection[:tag "ported.ssax"]{(text sxml ssax) - Functional XML parser}
+@subsection[:tag "ported.text.sxml.ssax"]{(text sxml ssax) - Functional XML parser}
 
 @define[Library]{@name{(text sxml ssax)}}
 @desc{@code{(text sxml *)} libraries are the adaptation of Oleg Kiselyov's SXML
@@ -40,6 +40,11 @@ captures the control pattern of the depth-first tree traversal.
 }
 Sagittarius supports the latest version of SSAX 5.1.
 }
+
+All procedures and macros are described bottom up. So you might be interested
+only in user level APIs. If so, 
+see @secref["ssax.user.api"]{Highest-level parsers: XML to SXML}.
+
 
 @subsubsection{Introduction}
 

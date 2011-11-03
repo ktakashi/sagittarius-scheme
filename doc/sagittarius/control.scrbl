@@ -6,6 +6,13 @@
 @desc{This library provides some useful macros using Sagittarius specific
 functions.}
 
+@define[Macro]{@name{define-macro} @args{name procedure}}
+@define[Macro]{@name{define-macro} @args{(name . formals) body @dots{}}}
+@desc{Defines @var{name} to be a macro whose transformer is @var{procedure}.
+The second form is a shorthand notation of the following form:
+
+@snipet{(define-macro @var{name} (lambda @var{formals} @var{body} @dots{}))}
+}
 
 @define[Macro]{@name{let-optionals*}
  @args{restargs (var-spec @dots{}) body @dots{}}}

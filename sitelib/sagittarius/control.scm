@@ -2,7 +2,8 @@
 ;; This file is a part of Sagittarius Scheme system.
 #!compatible
 (library (sagittarius control)
-    (export define-optional
+    (export define-macro
+	    define-optional
 	    let-optionals*
 	    get-optional
 	    define-with-key

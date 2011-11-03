@@ -55,8 +55,10 @@ SET(SAGITTARIUS_LIB_SOURCE
   compiler-aux.c   lib_scmlib.c
   extlib.c         lib_errors.c
   lib_arith.c      lib_macro.c
-  lib_match_core.c lib_enums.c
+  lib_enums.c
   lib_repl.c
+  # now match is replaced to Alex Shin's match
+  #lib_match_core.c
 )
 
 ADD_LIBRARY(sagittarius SHARED 
