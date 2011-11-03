@@ -102,6 +102,11 @@
 	    time-usage
 	    ;; cond-expand
 	    cond-features
+	    ;; record
+	    make-record-type
+	    record-type?
+	    record-type-rtd
+	    record-type-rcd
 	    )
     (import :null)
   (decl-code
@@ -586,4 +591,17 @@
 
   (define-c-proc cond-features () ::Object
     (result (Sg_CondFeatures)))
+
+  ;; record
+  (define-c-proc make-record-type (name::Symbol rtd rcd) ::Object
+    (result (Sg_MakeRecordType name rtd rcd)))
+
+  (define-c-proc record-type? (obj) ::boolean
+    (result (SG_RECORD_TYPEP obj)))
+
+  (define-c-proc record-type-rtd (rt::RecordType) ::Object
+    (result (SG_RECORD_TYPE_RTD rt)))
+
+  (define-c-proc record-type-rcd (rt::RecordType) ::Object
+    (result (SG_RECORD_TYPE_RCD rt)))
 )

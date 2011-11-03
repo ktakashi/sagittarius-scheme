@@ -1,6 +1,6 @@
 ;;; -*- Scheme -*-
 ;;;
-;;; http.scm - parse and construct URIs 
+;;; http.scm - HTTP protocol library.
 ;;;  
 ;;;   Copyright (c) 2000-2011  Takashi Kato  <ktakashi@ymail.com>
 ;;;   

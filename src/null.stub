@@ -365,8 +365,6 @@
 	    condition-predicate condition-accessor
 
 	    ;; record
-	    make-record-type
-	    record-type-rtd record-type-rcd
 	    make-record-type-descriptor
 	    make-record-constructor-descriptor
 	    record? record-rtd
@@ -3754,18 +3752,6 @@
     (result (Sg_ConditionAccessor rtd proc)))
 
   ;; record
-  (define-c-proc make-record-type (name::Symbol rtd rcd) ::Object
-    (result (Sg_MakeRecordType name rtd rcd)))
-  (set-toplevel-variable! make-record-type make-record-type)
-
-  (define-c-proc record-type-rtd (rt::RecordType) ::Object
-    (result (SG_RECORD_TYPE_RTD rt)))
-  (set-toplevel-variable! record-type-rtd record-type-rtd)
-
-  (define-c-proc record-type-rcd (rt::RecordType) ::Object
-    (result (SG_RECORD_TYPE_RCD rt)))
-  (set-toplevel-variable! record-type-rcd record-type-rcd)
-
   (define-c-proc make-record-type-descriptor
     (name::Symbol parent uid sealedP::boolean opaqueP::boolean fields::Vector) ::Object
     (result (Sg_MakeRecordTypeDescriptor name parent uid sealedP opaqueP fields)))

@@ -355,3 +355,4 @@ specified by @var{start} and @var{end} falls outside of the original vector, the
 @include-section["sagittarius/regex.scrbl"]
 @include-section["sagittarius/socket.scrbl"]
 @include-section["sagittarius/control.scrbl"]
+@include-section["sagittarius/record.scrbl"]
