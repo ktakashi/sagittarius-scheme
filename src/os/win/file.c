@@ -339,7 +339,8 @@ int Sg_FileExistP(SgString *path)
 
 int Sg_DeleteFile(SgString *path)
 {
-  return DeleteFileW(utf32ToUtf16(path->value));
+  /* for posix remove, it need to return 0 when succeed */
+  return DeleteFileW(utf32ToUtf16(path->value)) ? 0 : -1;
 }
 
 /* Originally from Mosh start */

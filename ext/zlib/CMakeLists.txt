@@ -18,7 +18,10 @@ IF (NOT ${ZLIB_FOUND})
 #    # use DLL which is provied by zlib.net
 #  ELSE()
     # well we need to compile it
-    FIND_FILE(${HAS_ZLIB_ARCHIVE} ${CMAKE_CURRENT_SOURCE_DIR}/zlib.tar.gz)
+    SET(HAS_ZLIB_ARCHIVE FALSE)
+    FIND_FILE(HAS_ZLIB_ARCHIVE
+      NAMES ${CMAKE_CURRENT_SOURCE_DIR}/zlib.tar.gz)
+    MESSAGE(STATUS "Looked for zlib.tar.gz: ${HAS_ZLIB_ARCHIVE}")
     IF (NOT ${HAS_ZLIB_ARCHIVE})
       MESSAGE(STATUS "donwloading zlib")
       FILE(
@@ -35,9 +38,9 @@ IF (NOT ${ZLIB_FOUND})
     # CMake add C_FLAGS to RC_FLAGS. how stupid it is, eh?
     SET(RC_FLAGS)
     ADD_SUBDIRECTORY(zlib-1.2.5 zlib)
-#    INSTALL(TARGETS zlib-1.2.5 DESTINATION bin)
     INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/zlib-1.2.5)
-#  ENDIF()
+    # for zconf.h
+    INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/zlib)
 ENDIF()
 
 SET_TARGET_PROPERTIES(sagittarius--zlib PROPERTIES PREFIX "")
