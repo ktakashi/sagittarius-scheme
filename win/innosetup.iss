@@ -37,11 +37,13 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 [Files]
 Source: "..\build\sash.exe"; DestDir: "{app}"; DestName: "{#MyAppExeName}"; Flags: ignoreversion
 Source: "..\build\sagittarius.dll"; DestDir: "{app}"; DestName: "sagittarius.dll"; Flags: ignoreversion
+Source: "..\build\*.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\src\*.h"; DestDir: "{app}\include"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\sitelib\*"; DestDir: "{app}\sitelib"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\build\modules\*.dll"; DestDir: "{app}\modules"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\doc\sagittarius-ref.pdf"; DestDir: "{app}\doc"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\doc\sagittarius-ref.html"; DestDir: "{app}\doc"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\doc\lib\*"; DestDir: "{app}\doc\lib"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 ; TODO: I don't want to write install script every time when I added ext/* module
 Source: "..\ext\socket\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -49,13 +51,13 @@ Source: "..\ext\threads\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flag
 Source: "..\ext\time\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\ext\regex\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\ext\process\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\ext\ffi\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\ext\crypto\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\ext\ffi\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm,libffi*"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\ext\crypto\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm,libtom*"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\ext\odbc\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
-
+Source: "..\ext\zlib\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm,zlib-*"; Flags: ignoreversion recursesubdirs createallsubdirs
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{group}\reference.pdf"; Filename: "{app}\doc\sagittarius-ref.pdf"
+Name: "{group}\reference.html"; Filename: "{app}\doc\sagittarius-ref.html"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 ;Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: quicklaunchicon
