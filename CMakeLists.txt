@@ -85,8 +85,9 @@ IF(WIN32)
   ENDIF()
 ELSEIF(CYGWIN)
   # compiler must be gcc
-  ADD_DEFINITIONS(-fwide-exec-charset=ucs-4le)
-  #SET(CMAKE_C_FLAGS "-fwide-exec-charset=ucs-4le")
+  #ADD_DEFINITIONS(-fwide-exec-charset=ucs-4le)
+  SET(CMAKE_C_FLAGS "-fwide-exec-charset=ucs-4le")
+  SET(CMAKE_CXX_FLAGS "-fwide-exec-charset=ucs-4le")
 ELSE()
 ENDIF()
 

@@ -11,6 +11,7 @@
 	(tests rfc base64)
 	(tests rfc quoted-printable)
 	(tests rfc mime)
+	(tests match)
 	;; text
 	(tests text sxml ssax)
 	(tests text sxml sxpath)
@@ -76,6 +77,7 @@
 (run-rfc-base64-tests)
 (run-rfc-quoted-printable-tests)
 (run-rfc-mime-test)
+(run-match-tests)
 (run-ssax-test)
 (run-sxpath-test)
 (run-serializer-test)

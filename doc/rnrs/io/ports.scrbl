@@ -302,7 +302,7 @@ closed port is still a port. The @code{close-port} procedure returns unspecified
 values.
 }
 
-@define[Function]{@name{call-with-port} @args{proc port}}
+@define[Function]{@name{call-with-port} @args{port proc}}
 @desc{[R6RS] @var{Proc} must accept one argument. The @code{call-with-port}
 procedure calls @var{proc} with @var{port} as an argument. If @var{proc} returns,
 @var{port} is closed automatically and the values returned by @var{proc} are

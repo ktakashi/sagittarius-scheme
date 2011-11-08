@@ -1,3 +1,15 @@
+2011-11-08  Takashi Kato  <ktakashi@ymail.com>
+
+	* ext/zlib/rfc/zlib.scm (rfc zlib): (rfc zlib) library has been added.
+
+	* src/null.stub (get-bytevector-n!): fixed invalid range check.
+
+	* doc/rnrs/io/ports.scrbl: fixed reversed order argument list in
+	call-with-port.
+
+	* src/port.c (custom_close): fixed not calling close procedure of
+	custom port when the port was closed.
+
 2011-11-03  Takashi Kato  <ktakashi@ymail.com>
 
 	* lib/compat/r7rs.scm (compat r7rs): added R7RS compatibility library.

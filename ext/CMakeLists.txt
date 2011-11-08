@@ -15,7 +15,7 @@ IF(${LINK_BOEHM_GC})
   ENDIF()
 ENDIF()
 
-
+ADD_SUBDIRECTORY(zlib zlib)
 ADD_SUBDIRECTORY(threads threads)
 ADD_SUBDIRECTORY(time time)
 ADD_SUBDIRECTORY(socket socket)

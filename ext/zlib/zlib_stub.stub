@@ -1,0 +1,103 @@
+;; -*- mode: scheme; coding: utf-8; -*-
+(library (sagittarius zlib)
+    (export deflate-init
+	    deflate-reset
+	    deflate-set-dictionary
+	    deflate
+	    deflate-end
+	    inflate-init
+	    inflate-reset
+	    inflate-set-dictionary
+	    inflate-sync
+	    inflate
+	    inflate-end
+	    ;; accessor
+	    zstream?
+	    zstream-total-in
+	    zstream-total-out
+	    zstream-avail-in
+	    zstream-avail-out
+	    zstream-data-type
+	    zstream-adler32
+	    zstream-read-count
+	    zstream-write-count
+	    ;; misc
+	    zlib-error-message
+	    zlib-version)
+    (import :none)
+
+  (decl-code
+   (.include "zlib.h"))
+
+  (define-c-proc deflate-init
+    (level::fixnum windowbits::fixnum memlevel::fixnum strategy::fixnum)
+    ::Object
+    (result (Sg_DeflateInit level windowbits memlevel strategy)))
+
+  (define-c-proc deflate-reset (strm::ZStream) ::fixnum
+    (result (Sg_DeflateReset strm)))
+
+  (define-c-proc deflate-set-dictionary (strm::ZStream dict::ByteVector)
+    ::fixnum
+    (result (Sg_DeflateSetDictionary strm dict)))
+
+  (define-c-proc deflate
+    (strm::ZStream data::ByteVector dest::ByteVector flush::fixnum)
+    ::fixnum
+    (result (Sg_Deflate strm data dest flush)))
+
+  (define-c-proc deflate-end (strm::ZStream) ::fixnum
+    (result (Sg_DeflateEnd strm)))
+
+  (define-c-proc inflate-init (windowbits::fixnum) ::Object
+    (result (Sg_InflateInit windowbits)))
+
+  (define-c-proc inflate-reset
+    (strm::ZStream :optional (bits::fixnum -1)) ::fixnum
+    (result (Sg_InflateReset strm bits)))
+
+  (define-c-proc inflate-set-dictionary (strm::ZStream dict::ByteVector)
+    ::fixnum
+    (result (Sg_InflateSetDictionary strm dict)))
+    
+  (define-c-proc inflate-sync (strm::ZStream) ::fixnum
+    (result (Sg_InflateSync strm)))
+
+  (define-c-proc inflate
+    (strm::ZStream data::ByteVector dest::ByteVector flush::fixnum)
+    ::fixnum
+    (result (Sg_Inflate strm data dest flush)))
+
+  (define-c-proc inflate-end (strm::ZStream flush::fixnum) ::fixnum
+    (result (Sg_InflateEnd strm flush)))
+
+  ;; accessor
+  (define-c-proc zstream? (obj) ::boolean
+    (result (SG_ZSTREAM_P obj)))
+
+  (define-c-proc zstream-total-in (strm::ZStream) ::fixnum
+    (result (-> (-> strm strm) total_in)))
+  (define-c-proc zstream-total-out (strm::ZStream) ::fixnum
+    (result (-> (-> strm strm) total_out)))
+  (define-c-proc zstream-avail-in (strm::ZStream) ::fixnum
+    (result (-> (-> strm strm) avail_in)))
+  (define-c-proc zstream-avail-out (strm::ZStream) ::fixnum
+    (result (-> (-> strm strm) avail_out)))
+  (define-c-proc zstream-data-type (strm::ZStream) ::fixnum
+    (result (-> (-> strm strm) data_type)))
+  (define-c-proc zstream-adler32 (strm::ZStream) ::fixnum
+    (result (-> (-> strm strm) adler)))
+
+  (define-c-proc zstream-read-count (strm::ZStream in::ByteVector) ::fixnum
+    (result (- (-> (-> strm strm) next_in) (SG_BVECTOR_ELEMENTS in))))
+
+  (define-c-proc zstream-write-count (strm::ZStream out::ByteVector) ::fixnum
+    (result (- (-> (-> strm strm) next_out) (SG_BVECTOR_ELEMENTS out))))
+
+  ;; misc
+  (define-c-proc zlib-error-message (strm::ZStream) ::Object
+    (result (Sg_MakeStringC (-> (-> strm strm) msg))))
+
+  (define-c-proc zlib-version () ::Object
+    (result (Sg_ZlibVersion)))
+)

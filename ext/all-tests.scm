@@ -1,7 +1,8 @@
 ;; all tests for extensions
 (add-load-path ".")
 (add-dynamic-load-path "../build")
-(import (threads test)
+(import (zlib test)
+	(threads test)
 	(time test)
 	(socket test)
 	(regex test)
@@ -59,6 +60,7 @@
 
 
 (test-begin "extension test")
+(run-zlib-test)
 ;; time must be first. it is used in thread test
 (run-time-test)
 (run-socket-test)

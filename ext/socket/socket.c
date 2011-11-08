@@ -43,7 +43,8 @@
 static void socket_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
 {
   SgSocket *socket = SG_SOCKET(self);
-  const SgChar *type = (socket->type == SG_SOCKET_CLIENT) ? UC("client") : UC("server");
+  const SgChar *type = (socket->type == SG_SOCKET_CLIENT)
+    ? UC("client") : UC("server");
   Sg_Printf(port, UC("#<socket %s %S>"), type, socket->address);
 }
 
@@ -79,7 +80,8 @@ static SgSocket* make_socket(int fd, SgSocketType type, SgString *address)
   return s;
 }
 
-static SgString* get_address_string(const struct sockaddr *addr, socklen_t addrlen)
+static SgString* get_address_string(const struct sockaddr *addr,
+				    socklen_t addrlen)
 {
   int ret;
   char host[NI_MAXHOST];
@@ -193,7 +195,8 @@ SgSocket* Sg_CreateServerSocket(const SgString *service,
 	lastError = last_error;
 	continue;
       }
-      if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char*)&optValue, sizeof(optValue)) == -1) {
+      if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char*)&optValue,
+		    sizeof(optValue)) == -1) {
 #ifdef _WIN32
 	shutdown(fd, SD_SEND);
 	closesocket(fd);
@@ -305,7 +308,8 @@ SgSocket* Sg_SocketAccept(SgSocket *socket)
       break;
     }
   }
-  return make_socket(fd, SG_SOCKET_SERVER, get_address_string((struct sockaddr *)&addr, addrlen));
+  return make_socket(fd, SG_SOCKET_SERVER,
+		     get_address_string((struct sockaddr *)&addr, addrlen));
 }
 
 void Sg_SocketShutdown(SgSocket *socket, int how)
@@ -336,7 +340,8 @@ int Sg_SocketOpenP(SgSocket *socket)
   return socket->socket != -1;
 }
 
-static SgPort* make_port(enum SgPortDirection d, enum SgPortType t, enum SgBufferMode m)
+static SgPort* make_port(enum SgPortDirection d, enum SgPortType t,
+			 enum SgBufferMode m)
 {
   SgPort *z = SG_NEW(SgPort);
   SG_SET_HEADER(z, TC_PORT);

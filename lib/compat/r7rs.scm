@@ -6,6 +6,7 @@
     (import (rename (core) (identifier? r6:identifier?))
 	    (rename (core base) (for-all every) (exists any))
 	    (core errors)
+	    (pp)
 	    (sagittarius))
 
 ;; on chibi-scheme, identifier is either symbol or syntax object.

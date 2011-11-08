@@ -160,7 +160,7 @@ any command-line option processing and error handling.
 @include-section["ported.scrbl"]
 @include-section["srfi.scrbl"]
 
-@section[:appendix "A"]{Index}
+@section[:appendix "A" :tag "index"]{Index}
 
 @index-table[:id "index-table"]
 @author["Takashi Kato"]
