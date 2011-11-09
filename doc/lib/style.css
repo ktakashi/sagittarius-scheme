@@ -1,4 +1,19 @@
 /* -*- mode: css; coding: utf-8 -*- */
+/* CSS from  http://css-eblog.com/csstechnique/position-fixed-forie6.html */
+* html, * html body {
+    height: 100%;
+    overflow-y: hidden;
+    overflow-x: auto;
+}
+
+* html #sagittarius-doc-wrapper {
+    overflow: auto;
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+/* end */
+
 h1.title {
     font-size: xx-large;
 }
@@ -155,7 +170,8 @@ td.index-section {
 /* navigator */
 div.navigator {
     background-color: #eeeeee;
-    position: fixed;
+    position: fixed !important;
+    position: absolute;
     top: 0px;
     right: 0px;
     border: 1px solid;
