@@ -6,6 +6,7 @@
 #define MyAppPublisher "Takashi Kato"
 #define MyAppURL "http://code.google.com/p/sagittarius-scheme/"
 #define MyAppExeName "sash.exe"
+#define BoehmGCVersion "7.2alpha6"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -38,7 +39,10 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 Source: "..\build\sash.exe"; DestDir: "{app}"; DestName: "{#MyAppExeName}"; Flags: ignoreversion
 Source: "..\build\sagittarius.dll"; DestDir: "{app}"; DestName: "sagittarius.dll"; Flags: ignoreversion
 Source: "..\build\*.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\src\*.h"; DestDir: "{app}\include"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\src\*.h"; DestDir: "{app}\include"; Excludes: "os*"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Well Boehm GC header also need to be installed.
+Source: "..\gc-{#BoehmGCVersion}\include\*.h"; DestDir: "{app}\include"; Excludes: "private,extra,cord.h,ec.h,javaxfc.h"; Flags: ignoreversion recursesubdirs createallsubdirs
+; TODO Do we also need to include gcmt-lib?
 Source: "..\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\sitelib\*"; DestDir: "{app}\sitelib"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\build\modules\*.dll"; DestDir: "{app}\modules"; Flags: ignoreversion recursesubdirs createallsubdirs
