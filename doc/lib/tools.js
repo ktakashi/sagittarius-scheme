@@ -82,8 +82,9 @@ function addNavigator() {
     div.appendChild(forward);
     div.appendChild(top);
     div.appendChild(index);
-    document.body.insertBefore(div, first);
-    document.body.insertBefore(topAnchor, first);
+    document.body.appendChild(div);
+    var wrapper = document.getElementById("sagittarius-doc-wrapper");
+    wrapper.insertBefore(topAnchor, wrapper.firstChild);
 }
 
 window.onload = function () {

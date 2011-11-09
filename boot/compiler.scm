@@ -265,10 +265,8 @@
   value  ; Scheme value
 )
 
-(define-syntax $const?
-  (syntax-rules ()
-    ((_ iform)
-     (has-tag? iform $CONST))))
+(define ($const? iform)
+  (has-tag? iform $CONST))
 
 (define $const-nil
   (let ((x ($const '())))
@@ -2364,8 +2362,8 @@
 
 (define pass2
   (lambda (iform library)
-    (let ((library (pass2/lookup-library iform library))
-	  (penv    (pass2/collect-inlinables iform)))
+    (let* ((library (pass2/lookup-library iform library))
+	   (penv    (pass2/collect-inlinables iform)))
       (pass2/lambda-lifting (pass2/rec iform (acons 'library library penv) #t) library))))
 
 (define pass2/$UNDEF
@@ -2389,13 +2387,13 @@
       (if (zero? (lvar-set-count lvar))
 	  (let ((initval (lvar-initval lvar)))
 	    (cond ((not (vector? initval)) iform)
-		  ((has-tag? initval $CONST)
+		  (($const? initval)
 		   ;; constant folding
 		   (lvar-ref--! lvar)
 		   (vector-set! iform 0 $CONST)
 		   ($const-value-set! iform ($const-value initval))
 		   iform)
-		  ((and (has-tag? initval $LREF)
+		  ((and ($lref? initval)
 			(zero? (lvar-set-count ($lref-lvar initval))))
 		   ;; dereference
 		   (when (eq? iform initval)
@@ -2551,30 +2549,31 @@
   (lambda (iform penv tail?)
     (let ((lvars ($let-lvars iform))
 	  (inits (imap (lambda (init) (pass2/rec init penv #f))
-		      ($let-inits iform)))
-	  (obody (pass2/rec ($let-body iform) penv tail?)))
-      (for-each pass2/optimize-closure lvars inits)
-      (receive (new-lvars new-inits removed-inits)
-	  (pass2/remove-unused-lvars lvars inits)
-	(cond ((null? new-lvars)
-	       ;; if initial variables were removed, but still we need to
-	       ;; evaluate it. so put it in front of body
-	       (if (null? removed-inits)
-		   obody
-		   ($seq (append! removed-inits (list obody)))))
-	      (else
-	       ($let-lvars-set! iform new-lvars)
-	       ($let-inits-set! iform new-inits)
-	       ($let-body-set! iform obody)
-	       (unless (null? removed-inits)
-		 (if (has-tag? obody $SEQ)
-		     ($seq-body-set! obody
-				     (append! removed-inits
-					      ($seq-body obody)))
-		     ($let-body-set! iform
-				     ($seq (append removed-inits
-						   (list obody))))))
-	       iform))))))
+		      ($let-inits iform))))
+      (for-each (lambda (lv in) (lvar-initval-set! lv in)) lvars inits)
+      (let ((obody (pass2/rec ($let-body iform) penv tail?)))
+	(for-each pass2/optimize-closure lvars inits)
+	(receive (new-lvars new-inits removed-inits)
+	    (pass2/remove-unused-lvars lvars inits)
+	  (cond ((null? new-lvars)
+		 ;; if initial variables were removed, but still we need to
+		 ;; evaluate it. so put it in front of body
+		 (if (null? removed-inits)
+		     obody
+		     ($seq (append! removed-inits (list obody)))))
+		(else
+		 ($let-lvars-set! iform new-lvars)
+		 ($let-inits-set! iform new-inits)
+		 ($let-body-set! iform obody)
+		 (unless (null? removed-inits)
+		   (if (has-tag? obody $SEQ)
+		       ($seq-body-set! obody
+				       (append! removed-inits
+						($seq-body obody)))
+		       ($let-body-set! iform
+				       ($seq (append removed-inits
+						     (list obody))))))
+		 iform)))))))
 
 (define pass2/remove-unused-lvars
   (lambda (lvars inits)
@@ -2886,10 +2885,77 @@
 
 (define pass2/$ASM
   (lambda (iform penv tail?)
-    ($asm-args-set! iform (imap (lambda (arg)
-				 (pass2/rec arg penv #f))
-			       ($asm-args iform)))
-    iform))
+    (let ((args (imap (lambda (arg)
+			(pass2/rec arg penv #f))
+		      ($asm-args iform))))
+      (pass2/check-constant-asm iform args))))      
+
+(define (pass2/check-constant-asm iform args)
+  (or (and (for-all $const? args)
+	   (case/unquote
+	    (car ($asm-insn iform))
+	    ((NOT)     (pass2/const-pred not args))
+	    ((NULLP)   (pass2/const-pred null? args))
+	    ((PAIRP)   (pass2/const-pred pair? args))
+	    ((SYMBOLP) (pass2/const-pred symbol? args))
+	    ((VECTORP) (pass2/const-pred vector? args))
+	    ((CAR)     (pass2/const-cxr car args))
+	    ((CDR)     (pass2/const-cxr cdr args))
+	    ((CAAR)    (pass2/const-cxxr car caar args))
+	    ((CADR)    (pass2/const-cxxr cdr cadr args))
+	    ((CDAR)    (pass2/const-cxxr car cdar args))
+	    ((CDDR)    (pass2/const-cxxr cdr cddr args))
+	    ((VEC_REF) (pass2/const-vecref args))
+	    ((VEC_LEN) (pass2/const-veclen args))
+	    ((EQ)      (pass2/const-op2 eq? args))
+	    ((EQV)     (pass2/const-op2 eqv? args))
+	    ((ADD)     (pass2/const-numop2 + args))
+	    ((SUB)     (pass2/const-numop2 - args))
+	    ((MUL)     (pass2/const-numop2 * args))
+	    ((DIV)     (pass2/const-numop2 / args (vm-r6rs-mode?)))
+	    ((NEG)     (pass2/const-numop1 - args))
+	    (else #f)))
+      (begin ($asm-args-set! iform args) iform)))
+
+(define (pass2/const-pred pred args)
+  (if (pred ($const-value (car args))) ($const #t) ($const #f)))
+
+(define (pass2/const-cxr proc args)
+  (let ((v ($const-value (car args))))
+    (and (pair? v) ($const (proc v)))))
+
+(define (pass2/const-cxxr proc0 proc args)
+  (let ((v ($const-value (car args))))
+    (and (pair? v)
+	 (pair? (proc0 v))
+	 ($const (proc v)))))
+
+(define (pass2/const-op2 proc args)
+  ($const (proc ($const-value (car args)) ($const-value (cadr args)))))
+
+(define (pass2/const-numop1 proc args)
+  (let ((x ($const-value (car args))))
+    (and (number? x) ($const (proc x)))))
+
+(define (pass2/const-numop2 proc args . check-zero?)
+  (let ((x ($const-value (car args)))
+	(y ($const-value (cadr args))))
+    (and (number? x) (number? y)
+	 (or (null? check-zero?)
+	     (not (zero? y)))
+	 ($const (proc x y)))))
+
+(define (pass2/const-vecref args)
+  (let ((v ($const-value (car args)))
+	(i ($const-value (cadr args))))
+    (and (vector? v) (fixnum? i)
+	 (< -1 i (vector-length v))
+	 ($const (vector-ref v i)))))
+
+(define (pass2/const-veclen args)
+  (let ((v ($const-value (car args))))
+    (and (vector? v)
+	 ($const (vector-length v)))))
 
 (define pass2/$IT
   (lambda (iform penv tail?)

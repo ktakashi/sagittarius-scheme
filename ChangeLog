@@ -1,5 +1,9 @@
 2011-11-09  Takashi Kato  <ktakashi@ymail.com>
 
+	* src/extlib.stub (current-directory): made it as a parameter.
+
+	* boot/compiler.scm: added const inliner on pass2.
+
 	* src/null.stub (make-transcoder): Fixed native EOL style problem.
 
 	* CMakeLists.txt: Supported non Boehm GC installed platform.

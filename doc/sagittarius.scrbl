@@ -100,8 +100,12 @@ If @var{new-filename} exists, it overwrite the existing file.
 not exist, it returns #f.
 }
 
-@define[Function]{@name{current-directory}}
-@desc{Returns current working directory.}
+@define[Function]{@name{current-directory} @args{:optional path}}
+@desc{Returns current working directory.
+
+If optional argument @var{path} is given, the @code{current-directory} sets
+current working directory to @var{path} and returns unspecified value.
+}
 
 @define[Function]{@name{set-current-directory} @{path}}
 @desc{Sets current working directory to @var{path}.}

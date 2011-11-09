@@ -374,8 +374,13 @@
   (define-c-proc read-directory (path::String) ::Object
     (result (Sg_ReadDirectory path)))
 
-  (define-c-proc current-directory () ::Object
-    (result (Sg_CurrentDirectory)))
+  ;; make this parameterizable
+  (define-c-proc current-directory (:optional (path::String NULL)) ::Object
+    (cond (path
+	   (Sg_SetCurrentDirectory path)
+	   (result SG_UNDEF))
+	  (else
+	   (result (Sg_CurrentDirectory)))))
 
   (define-c-proc set-current-directory (path::String) ::void
     (Sg_SetCurrentDirectory path))
