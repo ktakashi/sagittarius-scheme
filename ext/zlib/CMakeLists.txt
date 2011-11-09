@@ -18,27 +18,27 @@ IF (NOT ${ZLIB_FOUND})
 #    # use DLL which is provied by zlib.net
 #  ELSE()
     # well we need to compile it
-    SET(HAS_ZLIB_ARCHIVE FALSE)
     FIND_FILE(HAS_ZLIB_ARCHIVE
-      NAMES ${CMAKE_CURRENT_SOURCE_DIR}/zlib.tar.gz)
+      NAMES zlib.tar.gz
+      PATHS ${CMAKE_CURRENT_SOURCE_DIR})
     MESSAGE(STATUS "Looked for zlib.tar.gz: ${HAS_ZLIB_ARCHIVE}")
-    IF (NOT ${HAS_ZLIB_ARCHIVE})
+    SET(USED_ZLIB_VERSION "zlib-1.2.5")
+    IF (NOT EXISTS ${HAS_ZLIB_ARCHIVE})
       MESSAGE(STATUS "donwloading zlib")
       FILE(
-  	DOWNLOAD "http://zlib.net/zlib-1.2.5.tar.gz"
+  	DOWNLOAD "http://zlib.net/${USED_ZLIB_VERSION}.tar.gz"
                  "${CMAKE_CURRENT_SOURCE_DIR}/zlib.tar.gz"
   	SHOW_PROGRESS)
+      EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xzf
+	${CMAKE_CURRENT_SOURCE_DIR}/zlib.tar.gz
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	)
+      FILE(REMOVE ${CMAKE_CURRENT_SOURCE_DIR}/${USED_ZLIB_VERSION}/zconf.h)
+      MESSAGE(STATUS "unpacked zlib.tar.gz")
     ENDIF()
-    execute_process(COMMAND ${CMAKE_COMMAND} -E tar xzf
-      ${CMAKE_CURRENT_SOURCE_DIR}/zlib.tar.gz
-      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-      )
-    FILE(REMOVE ${CMAKE_CURRENT_SOURCE_DIR}/zlib-1.2.5/zconf.h)
-    MESSAGE(STATUS "unpacked zlib.tar.gz")
     # CMake add C_FLAGS to RC_FLAGS. how stupid it is, eh?
-    SET(RC_FLAGS)
-    ADD_SUBDIRECTORY(zlib-1.2.5 zlib)
-    INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/zlib-1.2.5)
+    ADD_SUBDIRECTORY(${USED_ZLIB_VERSION} zlib)
+    INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/${USED_ZLIB_VERSION})
     # for zconf.h
     INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/zlib)
 ENDIF()

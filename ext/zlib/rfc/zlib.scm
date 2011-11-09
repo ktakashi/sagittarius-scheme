@@ -94,7 +94,8 @@
 			          (window-bits 15)
 				  (memory-level 8)
 				  (strategy Z_DEFAULT_STRATEGY)
-				  (dictionary #f))
+				  (dictionary #f)
+				  (owner? #f))
     (or (and (binary-port? sink)
 	     (output-port? sink))
 	(assertion-violation 'open-deflating-output-port
@@ -174,7 +175,10 @@
 	    (raise-z-stream-error z-stream 'close
 				  (zlib-error-message z-stream)))
 	  ;; flush sink
-	  (flush-output-port sink)))
+	  (flush-output-port sink)
+	  ;; if the deflating port is owner, we need to close the port.
+	  (if owner?
+	      (close-output-port sink))))
 
       (when dictionary
 	(deflate-set-dictionary z-stream dictionary))
@@ -188,7 +192,8 @@
   (define-with-key (open-inflating-input-port source
 					      :key (buffer-size 4096)
 					           (window-bits 15)
-						   (dictionary #f))
+						   (dictionary #f)
+						   (owner? #f))
     (or (and (binary-port? source)
 	     (input-port? source))
 	(assertion-violation 'open-inflating-input-port
@@ -207,7 +212,9 @@
 	  (unless (= r Z_OK)
 	    (raise-z-stream-error z-stream 'inflate-end
 				  (zlib-error-message z-stream)))
-	  (close-input-port source)))
+	  ;; when the inflating port is owner, we need to close source port.
+	  (if owner?
+	      (close-input-port source))))
 
       (define (read! bv start count)
 	(define (rec bv start count diff)

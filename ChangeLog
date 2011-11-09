@@ -1,3 +1,7 @@
+2011-11-09  Takashi Kato  <ktakashi@ymail.com>
+
+	* CMakeLists.txt: Supported non Boehm GC installed platform.
+
 2011-11-08  Takashi Kato  <ktakashi@ymail.com>
 
 	* ext/zlib/rfc/zlib.scm (rfc zlib): (rfc zlib) library has been added.

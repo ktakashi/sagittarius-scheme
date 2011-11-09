@@ -54,15 +54,34 @@ MARK_AS_ADVANCED(SAGITTARIUS_VERSION SAGITTARIUS_BUGREPORT
   SAGITTARIUS_NAME SAGITTARIUS_SHARE_LIB_PATH SAGITTARIUS_LIB_PATH)
 
 IF(USE_BOEHM_GC)
+  #SET(GC_DEPENDS_TARGET false)
   CHECK_INCLUDE_FILE(gc.h HAVE_GC_H)
   SET(LINK_BOEHM_GC true)
   IF(NOT HAVE_GC_H)
     CHECK_INCLUDE_FILE(gc/gc.h HAVE_GC_GC_H)
     IF(NOT HAVE_GC_GC_H)
-      MESSAGE(FATAL "sagittarius requires boehm gc.")
-#      SET(LINK_BOEHM_GC false)
-#      ADD_SUBDIRECTORY(taurus build/taurus)
-#      SET(TAURUS_INCLUDE_DIR ${TAURUS_INCLUDE_DIR} ${PROJECT_SOURCE_DIR}/taurus/src)
+      # download boehm gc
+      # we need to use CMake conformed one, so the latest 7.2alpha6
+      SET(USED_GC_VERSION "gc-7.2alpha6")
+      FIND_FILE(HAS_BOEHM_GC_TAR
+	NAMES gc.tar.gz
+	PATHS ${CMAKE_CURRENT_SOURCE_DIR})
+      MESSAGE(STATUS "Checked Boehm GC archive file: ${HAS_BOEHM_GC_TAR}")
+      IF (NOT EXISTS ${HAS_BOEHM_GC_TAR})
+	FILE(
+	  DOWNLOAD "http://www.hpl.hp.com/personal/Hans_Boehm/gc/gc_source/${USED_GC_VERSION}.tar.gz"
+	           "${CMAKE_CURRENT_SOURCE_DIR}/gc.tar.gz"
+	  SHOW_PROGRESS)
+	EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xzf
+	  ${CMAKE_CURRENT_SOURCE_DIR}/gc.tar.gz
+	  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+	MESSAGE(STATUS "unpacked gc.tar.gz")
+      ENDIF()
+
+      ADD_SUBDIRECTORY(${USED_GC_VERSION} build/gc)
+      INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/${USED_GC_VERSION}/include)
+      SET(HAVE_GC_H 1)
+      SET(GC_DEPENDS_TARGET gcmt-lib)
     ENDIF(NOT HAVE_GC_GC_H)
   ELSE(NOT HAVE_GC_H)
 #    ADD_DEFINITIONS(-DUSE_BOEHM_GC)
@@ -78,16 +97,16 @@ IF(SAGITTARIUS_PROFILE)
 ENDIF()
 
 # compiler option for global
-IF(WIN32)
+IF(${CMAKE_SYSTEM_NAME} MATCHES Windows)
   IF (MSVC)
   ELSE()
-    # mingw? we don't support
+    MESSAGE(FATAL "On Windows Only MSVC is supported")
   ENDIF()
 ELSEIF(CYGWIN)
   # compiler must be gcc
   #ADD_DEFINITIONS(-fwide-exec-charset=ucs-4le)
-  SET(CMAKE_C_FLAGS "-fwide-exec-charset=ucs-4le")
-  SET(CMAKE_CXX_FLAGS "-fwide-exec-charset=ucs-4le")
+  SET(CMAKE_C_FLAGS "{CMAKE_C_FLAGS} -fwide-exec-charset=ucs-4le")
+  SET(CMAKE_CXX_FLAGS "{CMAKE_C_FLAGS} -fwide-exec-charset=ucs-4le")
 ELSE()
 ENDIF()
 
@@ -162,18 +181,18 @@ endif()
 
 IF(MSVC)
   ADD_DEFINITIONS(-DWIN32_LEAN_AND_MEAN)
-  foreach(flag_var CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO
-                   CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO)
-    if(${flag_var} MATCHES "/MD")
-      string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
-    endif(${flag_var} MATCHES "/MD")
-    if(${flag_var} MATCHES "/MDd")
-      string(REGEX REPLACE "/MDd" "/MTd" ${flag_var} "${${flag_var}}")
-    endif(${flag_var} MATCHES "/MDd")
-  endforeach(flag_var)
-
-  #SET(CMAKE_C_FLAGS "/MT")
-  #SET(CMAKE_CXX_FLAGS "/MT")
+#   foreach(flag_var CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO
+#                    CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO)
+#     if(${flag_var} MATCHES "/MD")
+#       string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+#     endif(${flag_var} MATCHES "/MD")
+#     if(${flag_var} MATCHES "/MDd")
+#       string(REGEX REPLACE "/MDd" "/MTd" ${flag_var} "${${flag_var}}")
+#     endif(${flag_var} MATCHES "/MDd")
+#   endforeach(flag_var)
+# 
+#   #SET(CMAKE_C_FLAGS "/MT")
+#   #SET(CMAKE_CXX_FLAGS "/MT")
 ENDIF()
 
 SET(SAGITTARIUS_INCLUDE_DIR ${SAGITTARIUS_INCLUDE_DIR} 
