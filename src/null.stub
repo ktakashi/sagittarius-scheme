@@ -1895,12 +1895,18 @@
 				  "platform native eol style not found"
 				  '())))))
 
-  (define-c-proc make-transcoder (c::Codec :optional (eol::Symbol 'lf)
+  (define-c-proc make-transcoder (c::Codec :optional eol
 					             (mode::Symbol 'replace))
-                                 ::Object
-    (let ((style::EolStyle LF)
+    ::Object
+    (unless (or (SG_UNBOUNDP eol)
+		(SG_SYMBOLP eol))
+      (wrong-type-of-argument-violation 'make-transcoder
+					"symbol" eol))
+    (let ((style::EolStyle (Sg_NativeEol))
 	  (handling::ErrorHandlingMode SG_REPLACE_ERROR))
-      (cond ((SG_EQ eol 'lf)) ;; do nothing
+      (cond ((SG_UNBOUNDP eol)) ;; do nothing
+	    ((SG_EQ eol 'lf)
+	     (set! style LF))
 	    ((SG_EQ eol 'cr)
 	     (set! style CR))
 	    ((SG_EQ eol 'ls)
