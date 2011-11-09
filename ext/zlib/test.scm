@@ -45,13 +45,13 @@
 		(map (lambda (level)
 		       (compare-file-bytevector
 			(format "./zlib/compressed-~a.bin" level)
-			(do-deflate "./zlib/rfc/zlib.scm" level)))
+			(do-deflate "./zlib/data.txt" level)))
 		     '(1 2 3 4 5 6 7 8 9)))
     (test-equal "inflate"
 		'(#t #t #t #t #t #t #t #t #t)
 		(map (lambda (level)
 		       (compare-file-bytevector
-			"./zlib/rfc/zlib.scm"
+			"./zlib/data.txt"
 			(do-inflate
 			 (format "./zlib/compressed-~a.bin" level))))
 		     '(1 2 3 4 5 6 7 8 9)))

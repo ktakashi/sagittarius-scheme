@@ -105,8 +105,8 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES Windows)
 ELSEIF(CYGWIN)
   # compiler must be gcc
   #ADD_DEFINITIONS(-fwide-exec-charset=ucs-4le)
-  SET(CMAKE_C_FLAGS "{CMAKE_C_FLAGS} -fwide-exec-charset=ucs-4le")
-  SET(CMAKE_CXX_FLAGS "{CMAKE_C_FLAGS} -fwide-exec-charset=ucs-4le")
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fwide-exec-charset=ucs-4le")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -fwide-exec-charset=ucs-4le")
 ELSE()
 ENDIF()
 
