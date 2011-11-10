@@ -30,7 +30,7 @@
 	    library-parents
 
 	    ;; gloc
-	    gloc-ref gloc-set! gloc-bound?
+	    gloc-ref gloc-set! gloc-bound? gloc-const?
 	    ;; for apropos
 	    gloc-library
 	    ;; for macro
@@ -202,7 +202,10 @@
     (SG_GLOC_SET g value))
 
   (define-c-proc gloc-bound? (g::Gloc) ::boolean
-    (result (SG_UNBOUNDP (SG_GLOC_GET g))))
+    (result (not (SG_UNBOUNDP (SG_GLOC_GET g)))))
+
+  (define-c-proc gloc-const? (g::Gloc) ::boolean
+    (result (Sg_GlocConstP g)))
 
   (define-c-proc gloc-library (g::Gloc) ::Object
     (result (-> g library)))
@@ -365,4 +368,7 @@
 
   (define-c-proc vm-nolibrary-inlining? () ::boolean
     (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_LIBRARY_INLINING)))
+
+  (define-c-proc vm-noconstant-inlining? () ::boolean
+    (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_CONST_INLINING)))
 )

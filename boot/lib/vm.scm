@@ -6,6 +6,7 @@
 (define (vm-noinline-locals?) #f)
 (define (vm-nolambda-lifting?) #f)
 (define (vm-nolibrary-inlining?) #f)
+(define (vm-noconstant-inlining?) #f)
 (define (vm-macro-expand-phase?)
   (positive? *expand-phase*))
 
@@ -13,6 +14,12 @@
   (set! *toplevel-variable* (acons sym val *toplevel-variable*)))
 (define (gloc-ref g) g)
 (define (gloc-bound? g) #t)
+(define (gloc-const? g) 
+  ;; not so good, but for booting we don't do global set! so, it's ok.
+  (or (string? g)
+      (number? g)
+      ;; vector can not be const for boot code.
+      #;(vector? g)))
 
 ;; for declare-procedure
 (define (parse-type type)

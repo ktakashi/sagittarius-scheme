@@ -1,3 +1,9 @@
+2011-11-10  Takashi Kato  <ktakashi@ymail.com>
+
+	* boot/compiler.scm (pass1/collect-inlinable!): added constable flag,
+	and fixed $gset was not treated properly.
+	(compile): added library constant fold.
+
 2011-11-09  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/extlib.stub (current-directory): made it as a parameter.

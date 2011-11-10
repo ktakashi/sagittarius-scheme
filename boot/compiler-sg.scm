@@ -1465,26 +1465,25 @@
       (cond
        ((null? vars))
        ((pair? vars)
-        (let
-         ((formals (car vars)))
-         (let
-          ((new-pool
-            (let
-             lp
-             ((formals formals) (pool pool))
-             (cond
-              ((null? formals) pool)
-              ((pair? formals)
-               (if
-                (memq (car formals) pool)
-                (syntax-error "duplicate formals in let-values" form)
-                (lp (cdr formals) (cons (car formals) pool))))
-              (else
-               (if
-                (memq formals pool)
-                (syntax-error "duplicate formals in let-values" form)
-                (cons formals pool)))))))
-          (lp (cdr vars) new-pool))))
+        (let*
+         ((formals (car vars))
+          (new-pool
+           (let
+            lp
+            ((formals formals) (pool pool))
+            (cond
+             ((null? formals) pool)
+             ((pair? formals)
+              (if
+               (memq (car formals) pool)
+               (syntax-error "duplicate formals in let-values" form)
+               (lp (cdr formals) (cons (car formals) pool))))
+             (else
+              (if
+               (memq formals pool)
+               (syntax-error "duplicate formals in let-values" form)
+               (cons formals pool)))))))
+         (lp (cdr vars) new-pool)))
        (else
         (if
          (memq vars pool)
@@ -2087,24 +2086,15 @@
    (parse-export (cdr export))
    (library-exported-set! lib (cons exports renames)))))
 
+(define (possibly-target? iform export-spec)
+  (and
+   ($define? iform)
+   (not (memq (id-name ($define-id iform)) (car export-spec)))
+   (not (assq (id-name ($define-id iform)) (cdr export-spec)))
+   iform))
+
 (define (pass1/scan-inlinable iforms library)
-  (define (target? iform export-spec)
-    (and
-     ($define? iform)
-     ($lambda? ($define-expr iform))
-     (not (memq (id-name ($define-id iform)) (car export-spec)))
-     (not (assq (id-name ($define-id iform)) (cdr export-spec)))
-     ($define-id
-      iform)))(define (id=? id1 id2)
-    (if
-     (symbol? id1)
-     (eq? id1 (id-name id2))
-     (and
-      (eq? (id-name id1) (id-name id2))
-      (eq?
-       (id-library id1)
-       (id-library
-        id2)))))(define (rec iform id ids library seen)
+  (define (rec iform id ids library seen)
     (case/unquote
      (iform-tag iform)
      (($UNDEF $IT $LIBRARY $LREF $CONST) #t)
@@ -2113,16 +2103,21 @@
       (let
        ((gid ($gref-id iform)))
        (when
-        (and id (member gid ids id=?) (not (id=? id gid)))
+        (and ids (member gid ids id=?) (not (id=? id gid)))
         (let
-         ((refs (hashtable-ref seen gid '())))
-         (hashtable-set! seen (id-name gid) (cons id refs))))
-       (and id (not (id=? id gid)))))
+         ((refs (assoc-table-ref seen gid '())))
+         (assoc-table-set! seen gid (cons id refs))))
+       (and ids (not (id=? id gid)))))
      (($LSET) (rec ($lset-expr iform) id ids library seen))
      (($GSET)
-      (and
-       (not (member ($gset-id iform) ids id=?))
-       (rec ($gset-expr iform) id ids library seen)))
+      (cond
+       (ids
+        (and
+         (not (member ($gset-id iform) ids id=?))
+         (rec ($gset-expr iform) id ids library seen)))
+       (else
+        (assoc-table-set! seen ($gset-id iform) #t)
+        (rec ($gset-expr iform) id ids library seen))))
      (($LET)
       (and
        (let
@@ -2182,62 +2177,116 @@
        'inlinable?
        "[internal error] invalid iform tag appeared"
        (iform-tag
-        iform)))))(define (check-refers iforms seen)
+        iform)))))(define (id=? id1 id2)
+    (and
+     (eq? (id-name id1) (id-name id2))
+     (eq?
+      (id-library id1)
+      (id-library
+       id2))))(define (make-assoc-table)
+    (list
+     '()))(define (assoc-table-ref table key fallback)
+    (cond
+     ((assoc key (car table) id=?) => cdr)
+     (else
+      fallback)))(define (assoc-table-set! table key value)
+    (cond
+     ((assoc key (car table) id=?) => (lambda (slot) (set-cdr! slot value)))
+     (else
+      (set-car!
+       table
+       (append!
+        (car table)
+        (list
+         (cons
+          key
+          value)))))))(define (assoc-table-keys-list table)
+    (map
+     car
+     (car
+      table)))(define (collect-duplicate-ids ids)
     (let
-     ((keys (hashtable-keys-list seen)))
-     (filter
-      values
-      (map
-       (lambda
-        (iform)
-        (and
-         (let
-          loop
-          ((keys keys))
-          (if
-           (null? keys)
-           #t
-           (let
-            ((refs (hashtable-ref seen (car keys) #f)))
-            (and
-             (or
-              (not refs)
-              (null? refs)
-              (let
-               ((tmp (member ($define-id iform) refs id=?)))
-               (or
-                (not tmp)
-                (null? tmp)
-                (let
-                 ((self (hashtable-ref seen (id-name (car tmp)) #f)))
-                 (or (not self) (not (member (car keys) self id=?)))))))
-             (loop (cdr keys))))))
-         iform))
-       iforms))))(let
-   ((export-spec (library-exported library)))
-   (let
-    ((ids
-      (let
-       loop
-       ((iforms iforms) (ret '()))
-       (cond
-        ((null? iforms) ret)
-        ((target? (car iforms) export-spec)
-         =>
-         (lambda (id) (loop (cdr iforms) (cons id ret))))
-        (else (loop (cdr iforms) ret)))))
-     (seen (make-eq-hashtable)))
-    (check-refers
+     ((seen (make-assoc-table)))
+     (let
+      loop
+      ((ids ids) (r '()))
+      (cond
+       ((pair? ids) (loop (cdr ids) (loop (car ids) r)))
+       ((identifier? ids)
+        (cond
+         ((assoc-table-ref seen ids #f) (cons ids r))
+         (else (assoc-table-set! seen ids #t) r)))
+       (else
+        r)))))(define (check-refers&gsets iforms seen gsets-table)
+    (let
+     ((keys (assoc-table-keys-list seen))
+      (gsets (assoc-table-keys-list gsets-table)))
      (filter
       values
       (map
        (lambda
         (iform)
         (let
-         ((id (target? iform (library-exported library))))
-         (if (rec iform id ids library seen) (and id iform) #f)))
-       iforms))
-     seen))))
+         ((id ($define-id iform)))
+         (and
+          (not (member id gsets id=?))
+          (let
+           loop
+           ((keys keys))
+           (if
+            (null? keys)
+            #t
+            (let
+             ((refs (assoc-table-ref seen (car keys) '())))
+             (and
+              (or
+               (null? refs)
+               (let
+                ((tmp (member id refs id=?)))
+                (or
+                 (not tmp)
+                 (let
+                  ((self (assoc-table-ref seen (car tmp) '())))
+                  (or (null? self) (not (member (car keys) self id=?)))))))
+              (loop (cdr keys))))))
+          iform)))
+       iforms))))(let*
+   ((export-spec (library-exported library))
+    (gsets (make-assoc-table))
+    (ids
+     (let
+      loop
+      ((iforms iforms) (ret '()))
+      (cond
+       ((null? iforms) ret)
+       (($define? (car iforms))
+        (rec (car iforms) ($define-id (car iforms)) #f library gsets)
+        (cond
+         ((possibly-target? (car iforms) export-spec)
+          =>
+          (lambda (iform) (loop (cdr iforms) (cons ($define-id iform) ret))))
+         (else (loop (cdr iforms) ret))))
+       (else (loop (cdr iforms) ret)))))
+    (seen (make-assoc-table))
+    (duplicates (collect-duplicate-ids ids)))
+   (check-refers&gsets
+    (filter
+     values
+     (map
+      (lambda
+       (iform)
+       (let
+        ((id (possibly-target? iform export-spec)))
+        (if
+         (and
+          id
+          (not (member ($define-id id) duplicates id=?))
+          (rec iform ($define-id id) ids library seen))
+         iform
+         #f)))
+      iforms))
+    seen
+    gsets)))
 
 (define (pass1/collect-inlinable! iforms library)
   (let
@@ -2247,9 +2296,12 @@
      (iform)
      (and
       ($define? iform)
-      ($define-flags-set!
-       iform
-       (append! ($define-flags iform) '(inlinable)))))
+      (if
+       ($lambda? ($define-expr iform))
+       ($define-flags-set! iform (append ($define-flags iform) '(inlinable)))
+       ($define-flags-set!
+        iform
+        (append ($define-flags iform) '(constable))))))
     inlinables)
    iforms))
 
@@ -2685,22 +2737,26 @@
    library))
 
 (define (pass2/collect-inlinables iform)
-  (cond
-   ((and (not (vm-nolibrary-inlining?)) (has-tag? iform $SEQ))
-    (let
-     ((r
-       (filter
-        values
-        (map
-         (lambda
-          (iform)
-          (and
-           ($define? iform)
-           (memq 'inlinable ($define-flags iform))
-           (cons (id-name ($define-id iform)) ($define-expr iform))))
-         ($seq-body iform)))))
-     (if (null? r) '() (acons 'inlinable r '()))))
-   (else '())))
+  (define (collect-inlinables/constable iform type last)
+    (cond
+     ((and (not (vm-nolibrary-inlining?)) (has-tag? iform $SEQ))
+      (let
+       ((r
+         (filter
+          values
+          (map
+           (lambda
+            (iform)
+            (and
+             ($define? iform)
+             (memq type ($define-flags iform))
+             (cons* (id-name ($define-id iform)) ($define-expr iform) iform)))
+           ($seq-body iform)))))
+       (if (null? r) last (acons type r last))))
+     (else
+      last)))(let
+   ((inlinables (collect-inlinables/constable iform 'inlinable '())))
+   (collect-inlinables/constable iform 'constable inlinables)))
 
 (define
  pass2
@@ -2719,7 +2775,9 @@
  pass2/$DEFINE
  (lambda
   (iform penv tail?)
-  ($define-expr-set! iform (pass2/rec ($define-expr iform) penv #f))
+  (unless
+   (memq 'optimized ($define-flags iform))
+   ($define-expr-set! iform (pass2/rec ($define-expr iform) penv #f)))
   iform))
 
 (define
@@ -2760,7 +2818,49 @@
   ($lset-expr-set! iform (pass2/rec ($lset-expr iform) penv #f))
   iform))
 
-(define pass2/$GREF (lambda (iform penv tail?) iform))
+(define ($gref-inlinable? iform penv)
+  (let
+   ((id ($gref-id iform)) (lib (cdr (assq 'library penv))))
+   (and
+    (eq? (id-library id) lib)
+    (library-exported lib)
+    (not (memq (id-name id) (car (library-exported lib))))
+    (not (assq (id-name id) (cdr (library-exported lib)))))))
+
+(define
+ pass2/$GREF
+ (lambda
+  (iform penv tail?)
+  (or
+   (and
+    (not (vm-nolibrary-inlining?))
+    ($gref-inlinable? iform penv)
+    (cond
+     ((assq 'constable penv)
+      =>
+      (lambda
+       (constable)
+       (let*
+        ((name (id-name ($gref-id iform))) (inliner (assq name constable)))
+        (cond
+         (inliner
+          (unless
+           (or
+            ($const? (cadr inliner))
+            (memq 'optimized ($define-flags (cddr inliner))))
+           ($define-flags-set!
+            (cddr inliner)
+            (append ($define-flags (cddr inliner)) '(optimized)))
+           (pass2/rec (cadr inliner) penv #t))
+          (if ($const? (cadr inliner)) (iform-copy (cadr inliner) '()) #f))
+         (else #f)))))
+     (else #f)))
+   (and
+    (not (vm-noconstant-inlining?))
+    (let
+     ((gloc (id->bound-gloc ($gref-id iform))))
+     (and gloc (gloc-const? gloc) ($const (gloc-ref gloc)))))
+   iform)))
 
 (define
  pass2/$GSET
@@ -3133,29 +3233,29 @@
            iform)))))
       ((and
         (has-tag? proc $GREF)
-        (let
-         ((id ($gref-id proc)) (lib (cdr (assq 'library penv))))
-         (and
-          (eq? (id-library id) lib)
-          (library-exported lib)
-          (not (memq (id-name id) (car (library-exported lib))))
-          (not (assq (id-name id) (cdr (library-exported lib))))))
+        ($gref-inlinable? proc penv)
         (assq 'inlinable penv))
        =>
        (lambda
         (inlinables)
         (let*
          ((name (id-name ($gref-id proc))) (inliner (assq name inlinables)))
+         (when
+          (and inliner (not (memq 'optimized ($define-flags (cddr inliner)))))
+          ($define-flags-set!
+           (cddr inliner)
+           (append ($define-flags (cddr inliner)) '(optimized)))
+          (pass2/rec (cadr inliner) penv #t))
          (cond
           ((and
             inliner
             (<
-             (iform-count-size-upto (cdr inliner) INLINABLE_LAMBDA_SIZE)
+             (iform-count-size-upto (cadr inliner) INLINABLE_LAMBDA_SIZE)
              INLINABLE_LAMBDA_SIZE))
            (pass2/$LET
             (expand-inlined-procedure
              ($gref-id proc)
-             (iform-copy (cdr inliner) '())
+             (iform-copy (cadr inliner) '())
              args)
             penv
             tail?))

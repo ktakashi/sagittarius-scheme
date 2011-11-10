@@ -159,7 +159,7 @@ SgObject Sg_ZlibVersion()
   return z_version;
 }
 
-extern Sg__Init_sagittarius_zlib();
+extern void Sg__Init_sagittarius_zlib();
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__zlib()
 {
@@ -168,7 +168,8 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__zlib()
 
   Sg__Init_sagittarius_zlib();
   lib = Sg_FindLibrary(SG_INTERN("(sagittarius zlib)"), FALSE);
-#define insert_binding(v) Sg_InsertBinding(lib, SG_INTERN(#v), SG_MAKE_INT(v))
+#define insert_binding(v)				\
+  Sg_MakeBinding(lib, SG_INTERN(#v), SG_MAKE_INT(v), TRUE)
 
 insert_binding(Z_NO_FLUSH     );
 insert_binding(Z_PARTIAL_FLUSH);

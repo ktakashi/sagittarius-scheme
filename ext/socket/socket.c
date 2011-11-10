@@ -548,8 +548,10 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__socket()
   Sg_AddCondFeature(UC("sagittarius.socket"));
 
   /* from Ypsilon */
-#define ARCH_CCONST(name) Sg_InsertBinding(lib, SG_INTERN(#name), SG_MAKE_INT(name))
-#define ARCH_CFALSE(name) Sg_InsertBinding(lib, SG_INTERN(#name), SG_FALSE)
+#define ARCH_CCONST(name)					\
+  Sg_MakeBinding(lib, SG_INTERN(#name), SG_MAKE_INT(name), TRUE)
+#define ARCH_CFALSE(name)			\
+  Sg_MakeBinding(lib, SG_INTERN(#name), SG_FALSE, TRUE)
 #ifdef AF_UNSPEC
   ARCH_CCONST(AF_UNSPEC);
 #else

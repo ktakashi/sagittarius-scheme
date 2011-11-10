@@ -1,7 +1,7 @@
 ;; -*- scheme -*-
 ;;
 ;; This compiler has 4 stages.
-;; pass0 - expand stage: this stage expands macros and s-expression to simpler one.
+;; pass0 - for future use.
 ;; pass1 - translation stage: this stage translate s-expression to IR.
 ;; pass2 - optimization stage:
 ;; pass3 - compile stage: compile to instruction
@@ -159,8 +159,9 @@
        (smatch form
 	 ((_ prefix)
 	  `(vector ,@(map (lambda (p)
-			    (string->symbol (string-append (symbol->string prefix) "/"
-							   (symbol->string (car p)))))
+			    (string->symbol (string-append
+					     (symbol->string prefix) "/"
+					     (symbol->string (car p)))))
 			  .intermediate-tags.))))))))
 )
 
@@ -543,7 +544,8 @@
 		      ($asm-args iform))))
 	  ((has-tag? iform $LIST)
 	   ($list ($*-src iform)
-		  (imap (lambda (arg) (iform-copy arg lv-alist)) ($*-args iform))))
+		  (imap (lambda (arg)
+			  (iform-copy arg lv-alist)) ($*-args iform))))
 	  ((has-tag? iform $IT)
 	   ($it))
 	  (else iform))))
@@ -635,7 +637,8 @@
 	  (rec (+ ind 2) ($define-expr iform))
 	  (display ")"))
 	 ((has-tag? iform $CALL)
-	  (let ((pre (cond (($call-flag iform) => (lambda (x) (format "($call[~a] " x)))
+	  (let ((pre (cond (($call-flag iform)
+			    => (lambda (x) (format "($call[~a] " x)))
 			   (else "($call "))))
 	    (display pre)
 	    (rec (+ ind (string-length pre)) ($call-proc iform))
@@ -696,7 +699,8 @@
     (cond ((symbol? arg) arg)
 	  ((identifier? arg) (id-name arg))
 	  ((lvar? arg) (lvar-name arg))
-	  (else (scheme-error 'variable-name "variable required but got:" arg)))))
+	  (else (scheme-error 
+		 'variable-name "variable required but got:" arg)))))
 
 ;; I don't think I need this for now, but maybe later.
 (define id->bound-gloc
@@ -713,9 +717,11 @@
 		     ((library? thing) thing)
 		     ((symbol? thing) (find-library thing create?))
 		     (else
-		      (scheme-error 'ensure-library
-			     (format "~a requires a library name or a library, but got: ~s"
-				     name thing))))))
+		      (scheme-error
+		       'ensure-library
+		       (format 
+			"~a requires a library name or a library, but got: ~s"
+			name thing))))))
       (or mod
 	  (scheme-error 'ensure-library
 		 (format "~a: no such library: ~s" name thing))))))
@@ -912,8 +918,9 @@
   (define-macro (define-pass1-syntax formals library . body)
     ;; for future expantion, i took module also
     (let ((lib (ensure-library-name library)))
-      (let ((name (string->symbol (string-append "syntax/"
-						 (symbol->string (car formals))))))
+      (let ((name (string->symbol (string-append
+				   "syntax/"
+				   (symbol->string (car formals))))))
 	`(let ((,name (lambda ,(cdr formals) ,@body)))
 	   (%insert-binding ',lib ',(car formals)
 			    (make-syntax ',(car formals) ,name))))))
@@ -927,8 +934,9 @@
        (smatch form
 	 ((- formals library . body)
 	  (let ((lib (ensure-library-name library)))
-	    (let ((name (string->symbol (string-append "syntax/"
-						       (symbol->string (car formals))))))
+	    (let ((name (string->symbol 
+			 (string-append "syntax/"
+					(symbol->string (car formals))))))
 	      `(let ((,name (lambda ,(cdr formals) ,@body)))
 		 (%insert-binding ',lib ',(car formals)
 				  (make-syntax ',(car formals) ,name))))))))))
@@ -1032,7 +1040,8 @@
                    `(,.list ,@body))
                   ((and (pair? tail) (eq? (car tail) .list))
                    `(,.list ,@body ,@(cdr tail)))
-                  ((and (pair? tail) (or (eq? (car tail) .cons) (eq? (car tail) .cons*)))
+                  ((and (pair? tail)
+			(or (eq? (car tail) .cons) (eq? (car tail) .cons*)))
                    `(,.cons* ,@body ,@(cdr tail)))
                   (else
                    `(,.cons* ,@body ,tail))))))
@@ -1045,7 +1054,8 @@
                    `(,.list ,head))
                   ((and (pair? tail) (eq? (car tail) .list))
                    `(,.list ,head ,@(cdr tail)))
-                  ((and (pair? tail) (or (eq? (car tail) .cons) (eq? (car tail) .cons*)))
+                  ((and (pair? tail)
+			(or (eq? (car tail) .cons) (eq? (car tail) .cons*)))
                    `(,.cons* ,head ,@(cdr tail)))
                   (else
                    `(,.cons ,head ,tail))))))
@@ -1075,11 +1085,16 @@
 				 (expand (cdr expr) 1)))
 		     (((? unquote? -) e1) e1)
 		     (((? unquote? -) . -)
-		      (syntax-error 'quasiquote "unquote appear in bad context" form expr))
+		      (syntax-error 'quasiquote
+				    "unquote appear in bad context" form expr))
 		     (((? quasiquote? -) . -)
-		      (syntax-error 'quasiquote "nested quasiquote appear in bad context" form expr))
+		      (syntax-error 
+		       'quasiquote
+		       "nested quasiquote appear in bad context" form expr))
 		     (((? unquote-splicing? -) . -)
-		      (syntax-error 'quasiquote "unquote-splicing appear in bad context" form expr))
+		      (syntax-error 
+		       'quasiquote
+		       "unquote-splicing appear in bad context" form expr))
 		     (- (emit-cons (expand (car expr) 0)
 				   (expand (cdr expr) 0))))
 		   (let ((tag (car expr)))
@@ -1148,7 +1163,7 @@
       macro)))
 
 ;; syntax-case
-;; I actually don't want to  do  this  but  since  I didn't  have  any  idea  to 
+;; I actually don't want to do this but since I didn't have any idea  to 
 ;; implement it without any specific object,  I've decided to make it like this.
 ;; NB:
 ;; SyntaxCase object contains pattern match result and template infomation.
@@ -1216,7 +1231,8 @@
 			   x (p1env-add-name p1env (variable-name n))))
 			unrenamed-ids unrenamed-spec))
 	    ;; macro must be lexical. see pass1
-	    (newenv (p1env-extend p1env (%map-cons unrenamed-ids trans) LEXICAL)))
+	    (newenv (p1env-extend p1env 
+				  (%map-cons unrenamed-ids trans) LEXICAL)))
        (pass1/body (unrename-expression body ids) newenv)))
     (else
      (syntax-error "malformed let-syntax" form))))
@@ -1244,7 +1260,9 @@
 ;; 'rename' procedure - we just return a resolved identifier
 (define (er-rename symid p1env dict)
   (unless (variable? symid)
-    (scheme-error 'er-macro-transformer "rename procrdure requires a symbol or an identifier, but got " symid))
+    (scheme-error 
+     'er-macro-transformer
+     "rename procrdure requires a symbol or an identifier, but got " symid))
   (if (symbol? symid)
       (or (hashtable-ref dict symid #f)
 	  (let ((var (p1env-lookup p1env symid SYNTAX)))
@@ -1344,10 +1362,12 @@
 			       this-lvars
 			       #f
 			       flag))
-	     (newenv (p1env-extend/proc p1env (%map-cons unrenamed-ids this-lvars)
+	     (newenv (p1env-extend/proc p1env 
+					(%map-cons unrenamed-ids this-lvars)
 					LEXICAL intform)))
 	    ($lambda-body-set! intform 
-			       (pass1/body (unrename-expression body ids) newenv))
+			       (pass1/body
+				(unrename-expression body ids) newenv))
 	    intform))))
 
 (define-pass1-syntax (lambda form p1env) :null
@@ -1362,9 +1382,11 @@
        (let* ((ids (collect-lexical-id args p1env))
 	      (unrenamed-ids (unrename-expression args ids))
 	      (lvars (imap make-lvar+ unrenamed-ids))
-	      (newenv (p1env-extend p1env (%map-cons unrenamed-ids lvars) LEXICAL)))
+	      (newenv (p1env-extend p1env
+				    (%map-cons unrenamed-ids lvars) LEXICAL)))
 	 ;; generator must be unrenamed by parent expression
-	 ($receive form reqargs opt lvars (pass1 (unrename-expression expr ids) p1env)
+	 ($receive form reqargs opt lvars
+		   (pass1 (unrename-expression expr ids) p1env)
 		   (pass1/body (unrename-expression body ids) newenv)))))
     (- (syntax-error "malformed receive" form))))
 
@@ -1378,19 +1400,23 @@
 		(pool '()))
 	 (cond ((null? vars)) ;; ok
 	       ((pair? vars)
-		(let ((formals (car vars)))
-		  (let ((new-pool (let lp ((formals formals)
-					   (pool pool))
-				    (cond ((null? formals) pool); ok
-					  ((pair? formals)
-					   (if (memq (car formals) pool)
-					       (syntax-error "duplicate formals in let-values" form)
-					       (lp (cdr formals) (cons (car formals) pool))))
-					  (else
-					   (if (memq formals pool)
-					       (syntax-error "duplicate formals in let-values" form)
-					       (cons formals pool)))))))
-		    (lp (cdr vars) new-pool))))
+		(let* ((formals (car vars))
+		       (new-pool
+			(let lp ((formals formals)
+				 (pool pool))
+			  (cond ((null? formals) pool); ok
+				((pair? formals)
+				 (if (memq (car formals) pool)
+				     (syntax-error
+				      "duplicate formals in let-values" form)
+				     (lp (cdr formals)
+					 (cons (car formals) pool))))
+				(else
+				 (if (memq formals pool)
+				     (syntax-error
+				      "duplicate formals in let-values" form)
+				     (cons formals pool)))))))
+		    (lp (cdr vars) new-pool)))
 	       (else
 		(if (memq vars pool)
 		    (syntax-error "duplicate formals in let-values" form)
@@ -1410,16 +1436,21 @@
 		    (unrenamed-ids (unrename-expression args new-ids))
 		    (lvars (imap make-lvar+ unrenamed-ids))
 		    (frame (%map-cons unrenamed-ids lvars))
-		    (next-frames (if ref? (acons LEXICAL frame next-frames) next-frames))
-		    (last-frames (if ref? last-frames (acons LEXICAL frame last-frames)))
-		    (newenv (if ref? (p1env-extend-w/o-type p1env next-frames) p1env))
-		    (iexpr (pass1 (unrename-expression (car inits) new-ids) p1env)))
+		    (next-frames
+		     (if ref? (acons LEXICAL frame next-frames) next-frames))
+		    (last-frames
+		     (if ref? last-frames (acons LEXICAL frame last-frames)))
+		    (newenv
+		     (if ref? (p1env-extend-w/o-type p1env next-frames) p1env))
+		    (iexpr
+		     (pass1 (unrename-expression (car inits) new-ids) p1env)))
 	       ($receive form reqargs opt lvars iexpr
 			 (loop (cdr vars) (cdr inits)
 			       next-frames last-frames
 			       newenv
 			       new-ids)))))))
-    (- (syntax-error (format "malformed let~a-values" (if ref? "*" "")) form)))		       
+    (- (syntax-error 
+	(format "malformed let~a-values" (if ref? "*" "")) form)))
   )
 
 
@@ -1438,10 +1469,13 @@
      (let* ((ids (collect-lexical-id var p1env))
 	    (unrenamed-ids (unrename-expression var ids))
 	    (lvars (imap make-lvar+ unrenamed-ids))
-	    (newenv (p1env-extend p1env (%map-cons unrenamed-ids lvars) LEXICAL)))
+	    (newenv (p1env-extend p1env
+				  (%map-cons unrenamed-ids lvars) LEXICAL)))
        ($let form 'let lvars
 	     (map (lambda (init lvar)
-		    (let ((iexpr (pass1 init (p1env-add-name p1env (lvar-name lvar)))))
+		    (let ((iexpr (pass1
+				  init
+				  (p1env-add-name p1env (lvar-name lvar)))))
 		      (lvar-initval-set! lvar iexpr)
 		      iexpr))
 		  expr lvars)
@@ -1454,7 +1488,8 @@
 	    (args (imap make-lvar+ unrenamed-ids))
 	    (argenv (p1env-sans-name p1env)))
        (let* ((env1 (p1env-extend p1env `((,name . ,lvar)) LEXICAL))
-	      (env2 (p1env-extend/name env1 (%map-cons unrenamed-ids args) LEXICAL name))
+	      (env2 (p1env-extend/name
+		     env1 (%map-cons unrenamed-ids args) LEXICAL name))
 	      (lmda ($lambda form name (length args) 0 args
 			     (pass1/body (unrename-expression body ids) env2))))
 	 (lvar-initval-set! lvar lmda)
@@ -1477,10 +1512,13 @@
 	   (pass1/body (unrename-expression body ids) p1env)
 	   (let* ((id (collect-lexical-id (car vars) p1env))
 		  (new-ids (if (null? id) ids (cons id ids)))
-		  (unrenamed (if (null? id) (car vars) (unrename-expression id new-ids)))
+		  (unrenamed (if (null? id)
+				 (car vars)
+				 (unrename-expression id new-ids)))
 		  (lv (make-lvar unrenamed))
 		  (newenv (p1env-extend p1env `((,(car vars) . ,lv)) LEXICAL))
-		  (iexpr (pass1 (unrename-expression (car inits) ids) ; can not refer itself in its init
+		  ;; can not refer itself in its init
+		  (iexpr (pass1 (unrename-expression (car inits) ids)
 				(p1env-add-name p1env unrenamed))))
 	     (lvar-initval-set! lv iexpr)
 	     ($let src 'let (list lv) (list iexpr)
@@ -1502,11 +1540,13 @@
        (let* ((ids (collect-lexical-id var p1env))
 	      (unrenamed-ids (unrename-expression var ids))
 	      (lvars (imap make-lvar+ unrenamed-ids))
-	      (newenv (p1env-extend p1env (%map-cons unrenamed-ids lvars) LEXICAL)))
+	      (newenv (p1env-extend p1env
+				    (%map-cons unrenamed-ids lvars) LEXICAL)))
 	 ($let form 'rec lvars
 	       (map (lambda (lv init)
 		      (let ((iexpr
-			     (pass1 init (p1env-add-name newenv (lvar-name lv)))))
+			     (pass1
+			      init (p1env-add-name newenv (lvar-name lv)))))
 			(lvar-initval-set! lv iexpr)
 			iexpr))
 		    ;; letrec's expr must be unrenamed, because it might refer
@@ -1531,7 +1571,8 @@
 		       (pass1 (unrename-expression test ids) newenv)
 		       (if (null? expr)
 			   ($it)
-			   ($seq (imap (lambda (x) (pass1 x newenv)) (unrename-expression expr ids))))
+			   ($seq (imap (lambda (x) (pass1 x newenv))
+				       (unrename-expression expr ids))))
 		       ($seq
 			(list
 			 (pass1/body (unrename-expression body ids) newenv)
@@ -1540,8 +1581,11 @@
 				(map (lambda x
 				       (smatch x
 					 ((() arg) ($lref arg))
-					 (((expr) -) (pass1 (unrename-expression expr ids) newenv))
-					 (- (syntax-error "bad update expr in do" form))))
+					 (((expr) -)
+					  (pass1 (unrename-expression expr ids) 
+						 newenv))
+					 (- (syntax-error
+					     "bad update expr in do" form))))
 				     update args)))))
 		  #f)))
        (lvar-initval-set! tmp clo)
@@ -1550,7 +1594,8 @@
 	     (list clo)
 	     ($call form
 		    ($lref tmp)
-		    (map (lambda (x) (pass1 x (p1env-sans-name p1env))) init)))))
+		    (map (lambda (x) (pass1 x (p1env-sans-name p1env)))
+			 init)))))
     (-
      (syntax-error "malformed do" form))))
 
@@ -1695,7 +1740,8 @@
 		    (cond ((macro? gval)
 			   (pass1 (call-macro-expander gval form p1env) p1env))
 			  (else
-			   ($gset (ensure-identifier var p1env) (pass1 expr p1env)))))
+			   ($gset (ensure-identifier var p1env)
+				  (pass1 expr p1env)))))
 		  ($gset (ensure-identifier var p1env) (pass1 expr p1env))))))
      #;(let ((var (p1env-lookup p1env name LEXICAL))
 	   (val (pass1 expr p1env)))
@@ -1729,7 +1775,7 @@
 ;;  
 ;;  <import spec> ::= <library reference> | <import set>
 ;;  <library reference> ::= (<identifier1> <identifier2> ...)
-;;                        | (<identifier1> <identifier2> ... <version reference>)
+;;                        | (<identifier1> <identifier2> ... <version ref>)
 ;;                        | <identifier> ;; Sagittarius extention
 ;;  <import set> ::= (only <import set> <identifier> ...)
 ;;                 | (except <import set> <identifier> ...)
@@ -1756,56 +1802,71 @@
       (lambda (spec)
 	(let loop ((spec spec))
 	  (smatch spec
-	    (((? (lambda (x) (eq? 'library (variable-name x))) -) ref) ;; library
+	    ;; library
+	    (((? (lambda (x) (eq? 'library (variable-name x))) -) ref)
 	     (values ref '() '() '() #f #f))
-	    (((? (lambda (x) (eq? 'only (variable-name x))) -) set ids ___) ;; only
+	    ;; only
+	    (((? (lambda (x) (eq? 'only (variable-name x))) -) set ids ___)
 	     (receive (ref only except renames prefix trans?)
 		 (parse-spec set)
 	       (values ref (if (null? only)
 			       ids
 			       (lset-intersection eq? only ids))
 		       except renames prefix trans?)))
-	    (((? (lambda (x) (eq? 'except (variable-name x))) -) set ids ___) ;; except
+	    ;; except
+	    (((? (lambda (x) (eq? 'except (variable-name x))) -) set ids ___)
 	     (receive (ref only except renames prefix trans?)
 		 (parse-spec set)
 	       (values ref only (append except ids) renames prefix trans?)))
-	    (((? (lambda (x) (eq? 'prefix (variable-name x))) -) set id) ;; prefix
+	    ;; prefix
+	    (((? (lambda (x) (eq? 'prefix (variable-name x))) -) set id)
 	     (receive (ref only except renames prefix trans?)
 		 (parse-spec set)
 	       (define construct-rename
 		 (lambda (prefix prev)
 		   ;; we need to think about how it nested
-		   ;;  case 1 (prefix (rename (only (rnrs) car) (car r-car)) p:)
-		   ;;  case 2 (prefix (only (rename (rnrs) (car r-car)) r-car) p:)
+		   ;;  case 1 (prefix (rename (only (rnrs) car) (car kar)) p:)
+		   ;;  case 2 (prefix (only (rename (rnrs) (car kar)) kar) p:)
 		   ;;  case 3 (prefix (only (prefix (rnrs) p1:) p1:car) p2:)
 		   (cond ((pair? renames)
-			  ;; import was called like this (prefix (rename (rnrs) (car r-car)) p:)
-			  ;; or like this  (prefix (rename (only (rnrs) car) (car r-car)) p:)
-			  ;; or like this  (prefix (only (rename (rnrs) (car r-car)) r-car) p:)
+			  ;; import was called like this
+			  ;; (prefix (rename (rnrs) (car r-car)) p:)
+			  ;; or like this
+			  ;; (prefix (rename (only (rnrs) car) (car kcar)) p:)
+			  ;; or like this
+			  ;; (prefix (only (rename (rnrs) (car kcar)) kcar) p:)
 			  (map (lambda (rename)
 				 (list (car rename)
-				       (string->symbol (format "~a~a" prefix (cadr rename)))))
+				       (string->symbol
+					(format "~a~a" prefix (cadr rename)))))
 			       renames))
 			 ((pair? only)
-			  ;; import was called like this (prefix (only (rnrs) car) p:)
+			  ;; import was called like this
+			  ;; (prefix (only (rnrs) car) p:)
 			  ;; create new rename
 			  (map (lambda (name)
-				 (list name (string->symbol (format "~a~a" prefix name))))
+				 (list name (string->symbol
+					     (format "~a~a" prefix name))))
 			       only)))))
 
 	       (if (and (null? only)
 			(null? renames))
 		   ;; simple prefix case
-		   (values ref only except renames (if prefix
-						       (string->symbol (format "~a~a" id prefix))
-						       id)
+		   (values ref only except renames 
+			   (if prefix
+			       (string->symbol (format "~a~a" id prefix))
+			       id)
 			   trans?)
 		   (let ((new-rename (construct-rename id prefix)))
-		     (values ref only except (append renames new-rename) prefix trans?)))))
-	    (((? (lambda (x) (eq? 'rename (variable-name x))) -) set rename-sets ___) ;; rename
+		     (values ref only except
+			     (append renames new-rename) prefix trans?)))))
+	    ;; rename
+	    (((? (lambda (x) 
+		   (eq? 'rename (variable-name x))) -) set rename-sets ___)
 	     (receive (ref only except renames prefix trans?)
 		 (parse-spec set)
-	       (values ref only except (append renames rename-sets) prefix trans?)))
+	       (values ref only except
+		       (append renames rename-sets) prefix trans?)))
 	    (((? (lambda (x) (eq? 'for (variable-name x))) -) set . etc) ;; for
 	     (receive (ref only except renames prefix trans?)
 		 (parse-spec set)
@@ -1818,7 +1879,8 @@
     (define process-spec
       (lambda (spec)
 	(cond ((symbol? spec)
-	       ;; SHORTCUT if it's symbol, just import is without any information
+	       ;; SHORTCUT if it's symbol, just import is without any
+	       ;; information
 	       (import-library tolib
 			       (ensure-library spec 'import #f)
 			       '() '() '() #f #f))
@@ -1864,7 +1926,8 @@
 	       ;; r6rs spec says rename must be (original renamed)
 	       (loop (cdr spec) ex (append (cdar spec) renames)))
 	      (else
-	       (syntax-error "unknown object appeared in export spec" (car spec))))))
+	       (syntax-error 
+		"unknown object appeared in export spec" (car spec))))))
     (receive (exports renames) (parse-export (cdr export))
       (library-exported-set! lib
 			     (cons exports renames)))))
@@ -1872,29 +1935,26 @@
 ;; Collect library inlinable define.
 ;; Inlinable condition:
 ;;  * only closed environment.
-;;      we do not support like this expression; (define a (let () (lambda () ...))).
+;;      we do not support like this expression;
+;;          (define a (let () (lambda () ...))).
 ;;  * non recursive.
 ;;  * non refer each other; like this one (define (a) (b)) (define (b) (a))
 ;;      those two make optimization infinite.
 ;;  * non assigned.
 ;; We collect inlinable defines with 2 steps.
 ;;  step1: scan defines
-;;   library form must be converted mere $seq. we need to lookup $define from it.
+;;   library form must be converted mere $seq. we need to lookup $define from
+;;   it.
 ;;  step2: put inlinable flag on $define
 ;;   we need to scan whole library sequence and detect $define which are
 ;;   satisfied above condition.
+(define (possibly-target? iform export-spec)
+  (and ($define? iform)
+       ;;($lambda? ($define-expr iform))
+       (not (memq (id-name ($define-id iform)) (car export-spec)))
+       (not (assq (id-name ($define-id iform)) (cdr export-spec)))
+       iform))
 (define (pass1/scan-inlinable iforms library)
-  (define (target? iform export-spec)
-    (and ($define? iform)
-	 ($lambda? ($define-expr iform))
-	 (not (memq (id-name ($define-id iform)) (car export-spec)))
-	 (not (assq (id-name ($define-id iform)) (cdr export-spec)))
-	 ($define-id iform)))
-  (define (id=? id1 id2)
-    (if (symbol? id1)
-	(eq? id1 (id-name id2))
-	(and (eq? (id-name id1) (id-name id2))
-	     (eq? (id-library id1) (id-library id2)))))
   ;; we only need to check $GREF and $GSET
   (define (rec iform id ids library seen)
     (case/unquote (iform-tag iform)
@@ -1907,18 +1967,23 @@
       (let ((gid ($gref-id iform)))
 	;; put refered id to seen
 	;; value must be list of ids.
-	(when (and id
+	(when (and ids
 		   (member gid ids id=?)
 		   (not (id=? id gid)))
-	  (let ((refs (hashtable-ref seen gid '())))
-	    (hashtable-set! seen (id-name gid) (cons id refs))))
-	(and id
+	  (let ((refs (assoc-table-ref seen gid '())))
+	    (assoc-table-set! seen gid (cons id refs))))
+	(and ids
 	     (not (id=? id gid))))
       )
      (($LSET) (rec ($lset-expr iform) id ids library seen))
      (($GSET)
-      (and (not (member ($gset-id iform) ids id=?))
-	   (rec ($gset-expr iform) id ids library seen)))
+      (cond (ids
+	     (and (not (member ($gset-id iform) ids id=?))
+		  (rec ($gset-expr iform) id ids library seen)))
+	    (else
+	     ;; collect gsets
+	     (assoc-table-set! seen ($gset-id iform) #t)
+	     (rec ($gset-expr iform) id ids library seen))))
      (($LET)
       (and (let loop ((inits ($let-inits iform)))
 	     (if (null? inits)
@@ -1964,55 +2029,105 @@
       (scheme-error 'inlinable?
 		    "[internal error] invalid iform tag appeared"
 		    (iform-tag iform)))))
+  (define (id=? id1 id2)
+    (and (eq? (id-name id1) (id-name id2))
+	 (eq? (id-library id1) (id-library id2))))
+  ;; utilities not to use hashtable     
+  (define (make-assoc-table) (list '()))
+  (define (assoc-table-ref table key fallback)
+    ;; we skip check
+    (cond ((assoc key (car table) id=?) => cdr)
+	  (else fallback)))
+  (define (assoc-table-set! table key value)
+    (cond ((assoc key (car table) id=?)
+	   => (lambda (slot)
+		(set-cdr! slot value)))
+	  (else 
+	   (set-car! table (append! (car table) (list (cons key value)))))))
+  (define (assoc-table-keys-list table)
+    (map car (car table)))
+  ;; duplicated ids are not inlinable nor constable
+  (define (collect-duplicate-ids ids)
+    (let ((seen (make-assoc-table)))
+      (let loop ((ids ids)
+		 (r '()))
+	(cond ((pair? ids)
+	       (loop (cdr ids)
+		     (loop (car ids)
+			   r)))
+	      ((identifier? ids)
+	       (cond ((assoc-table-ref seen ids #f)
+		      (cons ids r))
+		     (else 
+		      (assoc-table-set! seen ids #t)
+		      r)))
+	      (else r)))
+      ))
   ;; must be only $define
-  (define (check-refers iforms seen)
-    (let ((keys (hashtable-keys-list seen)))
-      (filter values
-	      (map (lambda (iform)
-		     (and (let loop ((keys keys))
-			    (if (null? keys)
-				#t
-				(let ((refs (hashtable-ref seen (car keys) #f)))
-				  (and (or (not refs)
-					   (null? refs)
-					   (let ((tmp (member ($define-id iform) refs id=?))) 
-					     (or (not tmp)
-						 (null? tmp)
-						 (let ((self (hashtable-ref seen (id-name (car tmp)) #f)))
-						   (or (not self)
-						       (not (member (car keys) self id=?)))))))
-				       (loop (cdr keys))))))
-			  iform))
-		   iforms)))
+  (define (check-refers&gsets iforms seen gsets-table)
+    (let ((keys (assoc-table-keys-list seen))
+	  (gsets (assoc-table-keys-list gsets-table)))
+      (filter 
+       values
+       (map (lambda (iform)
+	      (let ((id ($define-id iform)))
+		(and (not (member id gsets id=?))
+		     (let loop ((keys keys))
+		       (if (null? keys)
+			   #t
+			   (let ((refs (assoc-table-ref seen (car keys) '())))
+			     (and (or (null? refs)
+				      (let ((tmp (member id refs id=?))) 
+					(or (not tmp)
+					    (let ((self (assoc-table-ref 
+							 seen (car tmp) '())))
+					      (or (null? self)
+						  (not (member (car keys)
+							       self id=?)))))))
+				  (loop (cdr keys))))))
+		     iform)))
+	    iforms)))
     )
-  (let ((export-spec (library-exported library)))
-    (let ((ids (let loop ((iforms iforms)
-			  (ret '()))
-		 (cond ((null? iforms) ret)
-		       ((target? (car iforms) export-spec)
-			=> (lambda (id)
-			     (loop (cdr iforms) (cons id ret))))
-		       (else (loop (cdr iforms) ret)))))
-	  ;; TODO since we are using Gauche to make bootstrap,
-	  ;; we can not use make-hashtable of R6RS.
-	  (seen (make-eq-hashtable)))
-      (check-refers
-       (filter values
-	       (map (lambda (iform)
-		      (let ((id (target? iform (library-exported library))))
-			(if (rec iform id ids library seen)
-			    (and id iform)
-			    #f)))
-		    iforms))
-       seen))))
-
+  (let* ((export-spec (library-exported library))
+	 (gsets       (make-assoc-table))
+	 (ids (let loop ((iforms iforms)
+			 (ret '()))
+		(cond ((null? iforms) ret)
+		      (($define? (car iforms))
+		       ;; collect gsets
+		       (rec (car iforms) ($define-id (car iforms))
+			    #f library gsets)
+		       (cond ((possibly-target? (car iforms) export-spec)
+			      => (lambda (iform)
+				   (loop (cdr iforms)
+					 (cons ($define-id iform) ret))))
+			     (else (loop (cdr iforms) ret))))
+		      (else (loop (cdr iforms) ret)))))
+	 (seen (make-assoc-table))
+	 (duplicates (collect-duplicate-ids ids)))
+    (check-refers&gsets
+     (filter values
+	     (map (lambda (iform)
+		    (let ((id (possibly-target? iform export-spec)))
+		      (if (and id
+			       (not (member ($define-id id) duplicates id=?))
+			       (rec iform ($define-id id) ids library seen))
+			  iform
+			  #f)))
+		  iforms))
+     seen gsets)))
 
 (define (pass1/collect-inlinable! iforms library)
   (let ((inlinables (pass1/scan-inlinable iforms library)))
     (for-each (lambda (iform)
 		(and ($define? iform) ;; sanity check
-		     ($define-flags-set! iform 
-					 (append! ($define-flags iform) '(inlinable)))))
+		     (if ($lambda? ($define-expr iform))
+			 ($define-flags-set! 
+			  iform 
+			  (append ($define-flags iform) '(inlinable)))
+			 ($define-flags-set! 
+			  iform 
+			  (append ($define-flags iform) '(constable))))))
 	      inlinables)
     iforms)
   )
@@ -2075,19 +2190,29 @@
 		    (cond ((lvar? head)
 			   (pass1/body-finish intdefs intmacros exprs p1env))
 			  ((macro? head)
-			   (pass1/body-macro-expand-rec head exprs intdefs intmacros p1env))
-			  ((syntax? head) ; when (let-syntax ((xif if) (xif ...)) etc.
+			   (pass1/body-macro-expand-rec
+			    head exprs intdefs intmacros p1env))
+			  ;; when (let-syntax ((xif if) (xif ...)) etc.
+			  ((syntax? head) 
 			   (pass1/body-finish intdefs intmacros exprs p1env))
 			  ((global-eq? head 'define p1env)
 			   (let ((def (smatch args
 					(((name . formals) . body)
-					 ($src `(,name (,lambda. ,formals ,@body) . ,src) (caar exprs)))
+					 ($src `(,name (,lambda. ,formals
+								 ,@body)
+						       . ,src) (caar exprs)))
 					((var init)
-					 ($src `(,var ,init . ,src) (caar exprs)))
-					(- (syntax-error "malformed internal define" (caar exprs))))))
-			     (pass1/body-rec rest (cons def intdefs) intmacros p1env)))
+					 ($src `(,var ,init . ,src)
+					       (caar exprs)))
+					(- (syntax-error
+					    "malformed internal define"
+					    (caar exprs))))))
+			     (pass1/body-rec rest (cons def intdefs)
+					     intmacros p1env)))
 			  ((global-eq? head 'begin p1env)
-			   (pass1/body-rec (append (imap (lambda (x) (cons x src)) args) rest)
+			   (pass1/body-rec (append (imap (lambda (x)
+							   (cons x src)) args)
+						   rest)
 					   intdefs intmacros p1env))
 			  ;; 11.2.2 syntax definition
 			  ((and (vm-r6rs-mode?)
@@ -2095,8 +2220,12 @@
 			   (let ((def (smatch args
 					((name expr)
 					 (list args))
-					(- (syntax-error "malformed internal define-syntax" (caar exprs))))))
-			     (pass1/body-rec rest intdefs (cons (cons 'def def) intmacros) p1env)))
+					(- (syntax-error
+					    "malformed internal define-syntax"
+					    (caar exprs))))))
+			     (pass1/body-rec rest intdefs
+					     (cons (cons 'def def) intmacros)
+					     p1env)))
 			  ;; 11.18 binding constructs for syntactic keywords
 			  ((and (vm-r6rs-mode?)
 				(or (global-eq? head 'let-syntax p1env)
@@ -2104,20 +2233,31 @@
 			   (receive (defs body)
 			       (smatch (caar exprs)
 				 ((- ((name trans-spec) ___) body ___)
-				  (let ((type (if (global-eq? head 'letrec-syntax p1env) 'rec 'let)))
-				    (values (cons type (map list name trans-spec)) body))))
-			     (pass1/body-rec ($src `(((,begin. ,@body ,@(map car rest)))) (caar exprs))
-					     intdefs (cons defs intmacros) p1env)))
+				  (let ((type (if (global-eq? head
+							      'letrec-syntax
+							      p1env)
+						  'rec 'let)))
+				    (values (cons type 
+						  (map list name trans-spec))
+					    body))))
+			     (pass1/body-rec 
+			      ($src `(((,begin. ,@body ,@(map car rest))))
+				    (caar exprs))
+			      intdefs (cons defs intmacros) p1env)))
 			  ((identifier? head)
 			   (let ((gloc (id->bound-gloc head)))
 			     (if gloc
 				 (let ((gval (gloc-ref gloc)))
 				   (if (macro? gval)
-				       (pass1/body-macro-expand-rec gval exprs intdefs intmacros p1env)
-				       (pass1/body-finish intdefs intmacros exprs p1env)))
-				 (pass1/body-finish intdefs intmacros exprs p1env))))
+				       (pass1/body-macro-expand-rec
+					gval exprs intdefs intmacros p1env)
+				       (pass1/body-finish
+					intdefs intmacros exprs p1env)))
+				 (pass1/body-finish
+				  intdefs intmacros exprs p1env))))
 			  (else
-			   (scheme-error 'pass1/body "[internal] pass1/body" op head))))
+			   (scheme-error
+			    'pass1/body "[internal] pass1/body" op head))))
 		   (else #f))))
 	   (pass1/body-finish intdefs intmacros exprs p1env)))
       (- (pass1/body-finish intdefs intmacros exprs p1env)))))
@@ -2142,8 +2282,11 @@
 			      'let-syntax
 			      (variable-name n)
 			      x (p1env-add-name p1env (variable-name n))))
-			   unrenamed-ids (unrename-expression (map cadr exprs) ids)))
-	       (newenv (p1env-extend p1env (%map-cons unrenamed-ids trans)  LEXICAL)))
+			   unrenamed-ids
+			   (unrename-expression (map cadr exprs) ids)))
+	       (newenv (p1env-extend p1env
+				     (%map-cons unrenamed-ids trans)
+				     LEXICAL)))
 	  (values newenv ids))))
     (define letrec-syntax-parser
       (lambda (exprs p1env old-ids)
@@ -2151,7 +2294,9 @@
 	       (ids (append! (collect-lexical-id names p1env) old-ids))
 	       (unrenamed-ids (unrename-expression names ids))
 	       (bodys (imap cadr exprs))
-	       (newenv (p1env-extend p1env (%map-cons unrenamed-ids bodys) LEXICAL))
+	       (newenv (p1env-extend p1env 
+				     (%map-cons unrenamed-ids bodys)
+				     LEXICAL))
 	       (trans (map (lambda (n x)
 			     (pass1/eval-macro-rhs
 			      'letrec-syntax
@@ -2185,7 +2330,9 @@
 	     ;; only r6rs mode
 	     ;; intmacro list is like this
 	     ;; ((<type> . ((name expr) ...)) ...)
-	     ;; <type> : def, rec or let. def = define-syntax, rec = letrec-syntax
+	     ;; <type> : def, rec or let.
+	     ;;          def = define-syntax,
+	     ;;          rec = letrec-syntax
 	     (receive (macenv ids)
 		 (let loop ((exprs intmacros)
 			    ;; extend p1env for temporary.
@@ -2202,7 +2349,8 @@
 			  (receive (new-env new-ids)
 			      (let-syntax-parser (cdar exprs) env ids)
 			    (loop (cdr exprs) new-env new-ids))))))
-	       (pass1/body-rec (unrename-expression exprs ids) intdefs '() macenv)))))))
+	       (pass1/body-rec (unrename-expression exprs ids)
+			       intdefs '() macenv)))))))
 
 (define pass1/body-init
   (lambda (lvar init&src newenv)
@@ -2222,7 +2370,8 @@
 		   (if (null? (cdr exprs))
 		       (reverse (cons (pass1/body-1 (car exprs) p1env) r))
 		       (loop (cdr exprs)
-			     (cons (pass1/body-1 (car exprs) stmtenv) r))))))))))
+			     (cons (pass1/body-1 (car exprs) stmtenv) r)))))))))
+  )
 
 (define pass1/body-1
   (lambda (expr&src p1env)
@@ -2279,10 +2428,12 @@
 	  (cond ((integer? inliner)
 		 (let ((nargs (length (cdr form)))
 		       (opt?   (procedure-optional proc)))
-		   (unless (argcount-ok? (cdr form) (procedure-reqargs proc) opt?)
+		   (unless (argcount-ok? (cdr form)
+					 (procedure-reqargs proc) opt?)
 		     (scheme-error 'pass1/expand-inliner
 			    (format "wrong number of arguments: ~a requires ~a, but got ~a"
-				    (variable-name name) (procedure-reqargs proc) nargs)
+				    (variable-name name)
+				    (procedure-reqargs proc) nargs)
 			    form))
 		   ($asm form (if opt? `(,inliner ,nargs) `(,inliner))
 			 (imap (lambda (x) (pass1 x p1env)) (cdr form)))))
@@ -2294,7 +2445,9 @@
     (cond
      ((pair? form)
       (unless (list? form)
-	(scheme-error 'pass1 "proper list required for function application or macro use" (unwrap-syntax form)))
+	(scheme-error 'pass1
+		      "proper list required for function application or macro use"
+		      (unwrap-syntax form)))
       (cond ((pass1/lookup-head (car form) p1env)
 	     => (lambda (obj)
 		  (cond ((identifier? obj) (pass1/global-call obj))
@@ -2306,7 +2459,9 @@
 			((macro? obj) ;; local macro
 			 (pass1 (call-macro-expander obj form p1env) p1env))
 			(else
-			 (scheme-error 'pass1 "[internal] unknown resolution of head:" obj)))))
+			 (scheme-error 'pass1
+				       "[internal] unknown resolution of head:" 
+				       obj)))))
 	    ;; TODO there must be top-level-subr, if i make them...
 	    (else 
 	     (pass1/call form (pass1 (car form) (p1env-sans-name p1env))
@@ -2324,7 +2479,9 @@
 			      (pass1 (call-macro-expander gval form p1env) p1env))
 			     (else ($gref r))))
 		     ($gref r))))
-	      (else (scheme-error 'pass1 "[internal] p1env-lookup returned weird obj:" r)))))
+	      (else (scheme-error 'pass1
+				  "[internal] p1env-lookup returned weird obj:" 
+				  r)))))
      (else
       ($const form)))))
 
@@ -2337,7 +2494,8 @@
      iform penv tail?)))
 
 (define (pass2/lookup-library iform library)
-  ;; if it's library compilation, we should have $seq and its car must be $library
+  ;; if it's library compilation, we should have $seq and its car must be
+  ;; $library
   (or (and (has-tag? iform $SEQ)
 	   (pair? ($seq-body iform))
 	   (has-tag? (car ($seq-body iform)) $LIBRARY)
@@ -2345,26 +2503,33 @@
       library))
 
 (define (pass2/collect-inlinables iform)
-  (cond ((and (not (vm-nolibrary-inlining?))
-	      (has-tag? iform $SEQ))
-	 (let ((r (filter values
-			(map (lambda (iform)
-			       (and ($define? iform)
-				    (memq 'inlinable ($define-flags iform))
-				    (cons (id-name ($define-id iform))
-					  ($define-expr iform))))
-			     ($seq-body iform)))))
-	   (if (null? r)
-	       '()
-	       (acons 'inlinable r '()))
-	   ))
-	(else '())))
+  (define (collect-inlinables/constable iform type last)
+    (cond ((and (not (vm-nolibrary-inlining?))
+		(has-tag? iform $SEQ))
+	   (let ((r (filter values
+			    (map (lambda (iform)
+				   (and ($define? iform)
+					(memq type ($define-flags iform))
+					;; (id proc . $define)
+					(cons* (id-name ($define-id iform))
+					       ($define-expr iform)
+					       iform)))
+				 ($seq-body iform)))))
+	     (if (null? r)
+		 last
+		 (acons type r last))
+	     ))
+	  (else last)))
+  (let ((inlinables (collect-inlinables/constable iform 'inlinable '())))
+    (collect-inlinables/constable iform 'constable inlinables)))
+    
 
 (define pass2
   (lambda (iform library)
     (let* ((library (pass2/lookup-library iform library))
 	   (penv    (pass2/collect-inlinables iform)))
-      (pass2/lambda-lifting (pass2/rec iform (acons 'library library penv) #t) library))))
+      (pass2/lambda-lifting (pass2/rec iform (acons 'library library penv) #t)
+			    library))))
 
 (define pass2/$UNDEF
   (lambda (iform penv tail?)
@@ -2372,7 +2537,8 @@
 
 (define pass2/$DEFINE
   (lambda (iform penv tail?)
-    ($define-expr-set! iform (pass2/rec ($define-expr iform) penv #f))
+    (unless (memq 'optimized ($define-flags iform))
+      ($define-expr-set! iform (pass2/rec ($define-expr iform) penv #f)))
     iform))
 
 ;; LREF optimization
@@ -2398,18 +2564,14 @@
 		   ;; dereference
 		   (when (eq? iform initval)
 		      (assertion-violation
-		       'pass2/$LREF "circular reference appeared in letrec binding"
+		       'pass2/$LREF
+		       "circular reference appeared in letrec binding"
 		       (lvar-name lvar)))
 		   (lvar-ref--! lvar)
 		   (lvar-ref++! ($lref-lvar initval))
 		   ($lref-lvar-set! iform ($lref-lvar initval))
 		   ;; try derefered $lref
 		   (pass2/$LREF iform penv tail?))
-;;		  ((and (not (vm-noinline-locals?))
-;;			(= (lvar-ref-count lvar) 1))
-;;		   (lvar-ref--! lvar)
-;;		   (lvar-ref--! lvar);; make it -1 so that pass2/$LET can handle
-;;		   (pass2/rec initval penv tail?))
 		  (else iform)))
 	  iform))))
 
@@ -2418,9 +2580,48 @@
     ($lset-expr-set! iform (pass2/rec ($lset-expr iform) penv #f))
     iform))
 
+(define ($gref-inlinable? iform penv)
+  (let ((id ($gref-id iform))
+	(lib (cdr (assq 'library penv))))
+    (and (eq? (id-library id) lib)
+	 (library-exported lib)
+	 (not (memq (id-name id) (car (library-exported lib))))
+	 (not (assq (id-name id) (cdr (library-exported lib))))))
+  )
+
 (define pass2/$GREF
   (lambda (iform penv tail?)
-    iform))
+    ;; inline library constable
+    (or (and (not (vm-nolibrary-inlining?))
+	     ($gref-inlinable? iform penv)
+	     (cond ((assq 'constable penv)
+		    => (lambda (constable)
+			 (let* ((name (id-name ($gref-id iform)))
+				(inliner (assq name constable)))
+			   (cond (inliner
+				  (unless (or ($const? (cadr inliner))
+					      (memq 'optimized 
+						    ($define-flags
+						     (cddr inliner))))
+				    ($define-flags-set!
+				     (cddr inliner)
+				     (append ($define-flags (cddr inliner))
+					     '(optimized)))
+				    (pass2/rec (cadr inliner) penv #t)
+				    )
+				  (if ($const? (cadr inliner))
+				      ;; only $const can be inlined
+				      (iform-copy (cadr inliner) '())
+				      #f))
+				 (else #f)))))
+		   (else #f)))
+	(and (not (vm-noconstant-inlining?))
+	     (let ((gloc (id->bound-gloc ($gref-id iform))))
+	       ;; TODO should we throw error if nothing bounded?
+	       (and gloc
+		    (gloc-const? gloc)
+		    ($const (gloc-ref gloc)))))
+	iform)))
 
 (define pass2/$GSET
   (lambda (iform penv tail?)
@@ -2614,7 +2815,8 @@
 	       (has-tag? lambda-node $LAMBDA))
       (or (and (= (lvar-ref-count lvar) (length ($lambda-calls lambda-node)))
 	       (receive (locals recs tail-recs)
-		   (pass2/classify-calls ($lambda-calls lambda-node) lambda-node)
+		   (pass2/classify-calls ($lambda-calls lambda-node)
+					 lambda-node)
 	         (and (null? recs)
 		      (pair? locals)
 		      (or (and (null? (cdr locals))
@@ -2786,7 +2988,8 @@
 	($call-proc-set! iform (pass2/rec proc penv #f))
 	(cond
 	 ((vm-noinline-locals?)
-	  ($call-args-set! iform (imap (lambda (arg) (pass2/rec arg penv #f)) args))
+	  ($call-args-set! iform (imap (lambda (arg)
+					 (pass2/rec arg penv #f)) args))
 	  iform)
 	 (($lambda? proc) ;; ((lambda (...) ...) arg ...)
 	  ;; ((lambda (var ...) body) arg ...)
@@ -2819,25 +3022,32 @@
 	 ;; expand library non exported procedure
 	 ;; for now disabled. there were too much stuff to avoid...
 	 ((and (has-tag? proc $GREF)
-	       (let ((id ($gref-id proc))
-		     (lib (cdr (assq 'library penv))))
-		 (and (eq? (id-library id) lib)
-		      (library-exported lib)
-		      (not (memq (id-name id) (car (library-exported lib))))
-		      (not (assq (id-name id) (cdr (library-exported lib))))))
+	       ($gref-inlinable? proc penv)
 	       (assq 'inlinable penv))
 	  ;; get inlinables
 	  => (lambda (inlinables)
 	       (let* ((name (id-name ($gref-id proc)))
 		      (inliner (assq name inlinables)))
+		 (when (and inliner 
+			    (not (memq 'optimized 
+				       ($define-flags
+					(cddr inliner)))))
+		   ($define-flags-set!
+		    (cddr inliner)
+		    (append ($define-flags (cddr inliner))
+			    '(optimized)))
+		   (pass2/rec (cadr inliner) penv #t)
+		   )
 		 (cond ((and inliner
 			     ;; check size here
-			     ;; TODO should we also make proc optimized?
-			     (< (iform-count-size-upto (cdr inliner) INLINABLE_LAMBDA_SIZE)
+			     ;; TODO how to optimize inlined proc
+			     (< (iform-count-size-upto (cadr inliner)
+						       INLINABLE_LAMBDA_SIZE)
 				INLINABLE_LAMBDA_SIZE))
 			(pass2/$LET
-			 (expand-inlined-procedure ($gref-id proc) 
-						   (iform-copy (cdr inliner) '()) args)
+			 (expand-inlined-procedure 
+			  ($gref-id proc) 
+			  (iform-copy (cadr inliner) '()) args)
 			 penv tail?))
 		       (else
 			($call-args-set! iform (imap (lambda (arg)
@@ -2890,6 +3100,15 @@
 		      ($asm-args iform))))
       (pass2/check-constant-asm iform args))))      
 
+;; list and vector might be for new instance
+;; ;; for bootstrap we can not use inlined vector
+;; (cond-expand
+;;  (gauche
+;;   (define not-boot? #f))
+;;  (sagittarius
+;;   (define not-boot? #t))
+;; )
+
 (define (pass2/check-constant-asm iform args)
   (or (and (for-all $const? args)
 	   (case/unquote
@@ -2914,6 +3133,9 @@
 	    ((MUL)     (pass2/const-numop2 * args))
 	    ((DIV)     (pass2/const-numop2 / args (vm-r6rs-mode?)))
 	    ((NEG)     (pass2/const-numop1 - args))
+	    ;; list and vector might be for new instance
+	    ;;((LIST)    (pass2/const-xargs list args))
+	    ;;((VECTOR)  (and not-boot? (pass2/const-xargs vector args)))
 	    (else #f)))
       (begin ($asm-args-set! iform args) iform)))
 
@@ -2956,6 +3178,10 @@
   (let ((v ($const-value (car args))))
     (and (vector? v)
 	 ($const (vector-length v)))))
+
+;; (define (pass2/const-xargs proc args)
+;;   (let ((args-values (map (lambda (arg) ($const-value arg)) args)))
+;;     ($const (apply proc args-values))))
 
 (define pass2/$IT
   (lambda (iform penv tail?)
@@ -3005,7 +3231,8 @@
 		(if (null? lifted)
 		    iform		; shortcut
 		    (let ((iform. (pass2/subst iform (make-label-dic '()))))
-		      ($seq `(,@(map pass2/lifted-define lifted) ,iform.))))))))))
+		      ($seq `(,@(map pass2/lifted-define lifted) ,iform.)))))))
+	)))
 
 (define (pass2/lifted-define lambda-node)
   ($define ($lambda-src lambda-node)
@@ -3027,7 +3254,8 @@
 		  (if (null? ,iforms.)
 		      ,fs
 		      (loop (cdr ,iforms.)
-			    (pass2/scan (car ,iforms.) ,bs ,fs ,t? ,labels))))]))))
+			    (pass2/scan (car ,iforms.) ,bs ,fs ,t? ,labels))))])
+	 )))
 
   (define-macro (pass2/subst! access-form labels)
     (match-let1 (accessor expr) access-form
@@ -3069,7 +3297,8 @@
 			(if (null? ,iforms.)
 			    ,fs
 			    (loop (cdr ,iforms.)
-				  (pass2/scan (car ,iforms.) ,bs ,fs ,t? ,labels)))))))))))))
+				  (pass2/scan (car ,iforms.)
+					      ,bs ,fs ,t? ,labels)))))))))))))
 
   (define-syntax pass2/subst!
     (er-macro-transformer
@@ -3097,7 +3326,8 @@
 	  (let ((iforms. (gensym)))
 	    `(let ((,iforms. ,iforms))
 	       (cond ((null? ,iforms.))
-		     ((null? (cdr ,iforms.)) (pass2/subst! (car ,iforms.) ,labels))
+		     ((null? (cdr ,iforms.)) (pass2/subst! (car ,iforms.)
+							   ,labels))
 		     (else
 		      (let loop ((,iforms. ,iforms.))
 			(unless (null? ,iforms.)
@@ -3378,7 +3608,8 @@
 					   (r '()))
 				  (if (= i (pass3/frame-size))
 				      r
-				      (loop (+ i 1) (cons (make-lvar 'dummy) r))))))
+				      (loop (+ i 1)
+					    (cons (make-lvar 'dummy) r))))))
     r))
 
 ;; (define eq-hashtable-copy 
@@ -3430,13 +3661,15 @@
       (lambda (i l labels-seen)
 	(cond ((has-tag? i $CONST) '())
 	      ((has-tag? i $LET)
-	       (append ($append-map1 (lambda (fm) (rec fm l labels-seen)) ($let-inits i))
+	       (append ($append-map1 (lambda (fm) (rec fm l labels-seen))
+				     ($let-inits i))
 		       (rec ($let-body i) ($let-lvars i) labels-seen)))
 	      ((has-tag? i $RECEIVE)
 	       (append (rec ($receive-expr i) l labels-seen)
 		       (rec ($receive-body i) ($receive-lvars i) labels-seen)))
 	      ((has-tag? i $SEQ)
-	       ($append-map1 (lambda (fm) (rec fm l labels-seen)) ($seq-body i)))
+	       ($append-map1 (lambda (fm) (rec fm l labels-seen))
+			     ($seq-body i)))
 	      ((has-tag? i $LAMBDA)
 	       (rec ($lambda-body i) ($lambda-lvars i) labels-seen))
 	      ((has-tag? i $LSET)
@@ -3458,18 +3691,21 @@
 		       (rec ($if-then i) l labels-seen)
 		       (rec ($if-else i) l labels-seen)))
 	      ((has-tag? i $ASM)
-	       ($append-map1 (lambda (fm) (rec fm l labels-seen)) ($asm-args i)))
+	       ($append-map1 (lambda (fm) (rec fm l labels-seen))
+			     ($asm-args i)))
 	      ((has-tag? i $DEFINE)
 	       (rec ($define-expr i) l labels-seen))
 	      ((has-tag? i $CALL)
 	       ;; if the call is embed and we already check it,
 	       ;; we need to save some space.
 	       (if (and (eq? ($call-flag i) 'embed)
-			(has-tag? ($lambda-body ($call-proc i)) $LABEL) ;; sanity check
+			;; sanity check
+			(has-tag? ($lambda-body ($call-proc i)) $LABEL)
 			(assq ($label-label ($lambda-body ($call-proc i)))
 			      (code-builder-label-defs cb)))
 		   '()
-		   (append ($append-map1 (lambda (fm) (rec fm l labels-seen)) ($call-args i))
+		   (append ($append-map1 (lambda (fm) (rec fm l labels-seen))
+					 ($call-args i))
 			   (rec ($call-proc i) l labels-seen))))
 	      ((has-tag? i $LABEL)
 	       (if (memq i labels-seen)
@@ -3480,7 +3716,8 @@
 	      ((has-tag? i $LIST)
 	       ($append-map1 (lambda (fm) (rec fm l labels-seen)) ($*-args i)))
 	      (else
-	       (scheme-error 'pass3/find-free "unknown iform:" (iform-tag i))))))
+	       (scheme-error 'pass3/find-free "unknown iform:"
+			     (iform-tag i))))))
     (uniq (rec iform locals '()))))
 
 (define pass3/find-sets
@@ -3489,7 +3726,8 @@
       (lambda (i labels-seen)
 	(cond ((has-tag? i $CONST) '())
 	      ((has-tag? i $LET)
-	       (append ($append-map1 (lambda (init) (rec init labels-seen)) ($let-inits i))
+	       (append ($append-map1 (lambda (init) (rec init labels-seen))
+				     ($let-inits i))
 		       (rec ($let-body i) labels-seen)))
 	      ((has-tag? i $RECEIVE)
 	       (append (rec ($receive-expr i) labels-seen)
@@ -3511,11 +3749,13 @@
 		       (rec ($if-then i) labels-seen)
 		       (rec ($if-else i) labels-seen)))
 	      ((has-tag? i $ASM)
-	       ($append-map1 (lambda (arg) (rec arg labels-seen)) ($asm-args i)))
+	       ($append-map1 (lambda (arg) (rec arg labels-seen))
+			     ($asm-args i)))
 	      ((has-tag? i $DEFINE)
 	       (rec ($define-expr i) labels-seen))
 	      ((has-tag? i $CALL)
-	       (append ($append-map1 (lambda (arg) (rec arg labels-seen)) ($call-args i))
+	       (append ($append-map1 (lambda (arg) (rec arg labels-seen))
+				     ($call-args i))
 		       (rec ($call-proc i) labels-seen)))
 	      ((has-tag? i $LABEL)
 	       (if (memq i labels-seen)
@@ -3526,7 +3766,8 @@
 	      ((has-tag? i $LIST)
 	       ($append-map1 (lambda (arg) (rec arg labels-seen)) ($*-args i)))
 	      (else
-	       (scheme-error 'pass3/find-sets "unknown iform:" (iform-tag i))))))
+	       (scheme-error 'pass3/find-sets "unknown iform:" 
+			     (iform-tag i))))))
     (uniq (rec iform '()))))
 
 (define pass3/collect-free
@@ -3535,7 +3776,8 @@
 	       (reversed-frees (reverse frees)))
       (cond ((null? reversed-frees) size)
 	    (else
-	     (let ((stack-size (pass3/compile-refer (car reversed-frees) cb renv)))
+	     (let ((stack-size (pass3/compile-refer (car reversed-frees)
+						    cb renv)))
 	       (cb-emit0! cb PUSH)
 	       (loop (+ size stack-size) (cdr reversed-frees))))))))
 
@@ -3551,7 +3793,8 @@
 	      (cond ((null? free)
 		     ;; never happen, maybe...
 		     ;(return-global cb (lvar-name lvar) lvar))
-		     (scheme-error 'pass3/symbol-lookup "bug? Unknown lvar:" (lvar-name lvar)))
+		     (scheme-error 'pass3/symbol-lookup "bug? Unknown lvar:"
+				   (lvar-name lvar)))
 		    ((eq? (car free) lvar)
 		     (return-free cb n lvar))
 		    (else
@@ -3640,7 +3883,8 @@
 
 (define pass3/$LSET
   (lambda (iform cb renv ctx)
-    (let ((val-stack-size (pass3/rec ($lset-expr iform) cb renv (normal-context ctx)))
+    (let ((val-stack-size (pass3/rec ($lset-expr iform) cb renv 
+				     (normal-context ctx)))
 	  (var-stack-size (pass3/compile-assign ($lset-lvar iform) cb renv)))
       (+ val-stack-size var-stack-size))))
 
@@ -3652,7 +3896,8 @@
 
 (define pass3/$GSET
   (lambda (iform cb renv ctx)
-    (let ((val-stack-size (pass3/rec ($gset-expr iform) cb renv (normal-context ctx)))
+    (let ((val-stack-size (pass3/rec ($gset-expr iform) cb renv
+				     (normal-context ctx)))
 	  (id ($gset-id iform)))
       (cb-emit0oi! cb GSET id id)
       val-stack-size)))
@@ -3709,8 +3954,12 @@
 		      (pass3/branch-on-false iform cb renv ctx)))))
 	    ((has-tag? test $CONST)
 	     (pass3/rec (if ($const-value test)
-			    (if (has-tag? ($if-then iform) $IT) test ($if-then iform))
-			    (if (has-tag? ($if-else iform) $IT) test ($if-else iform)))
+			    (if (has-tag? ($if-then iform) $IT)
+				test
+				($if-then iform))
+			    (if (has-tag? ($if-else iform) $IT)
+				test
+				($if-else iform)))
 			cb renv ctx))
 	    (else
 	     (pass3/branch-on-false iform cb renv ctx))))))
@@ -3724,10 +3973,15 @@
 (define pass3/branch-on-arg2
   (lambda (iform insn cb renv ctx)
     (let* ((args ($asm-args ($if-test iform)))
-	   (arg1-size (max (pass3/rec (car args) cb renv (normal-context ctx)) 1)))
+	   (arg1-size (max (pass3/rec (car args) cb renv
+				      (normal-context ctx))
+			   1)))
       (cb-emit0! cb PUSH)
       (pass3/emit-then-else iform cb insn
-			    (max (pass3/rec (cadr args) cb (renv-add-dummy renv) 'normal/top) arg1-size)
+			    (max (pass3/rec (cadr args) cb 
+					    (renv-add-dummy renv)
+					    'normal/top)
+				 arg1-size)
 			    renv ctx))))
 
 (define pass3/branch-on-false
@@ -3788,11 +4042,13 @@
 				     (index (length (renv-locals renv))))
 			    (cond ((null? args) size)
 				  (else
-				   (let ((stack-size (pass3/rec (car args)
-								cb
-								new-renv
-								'normal/bottom)))
-				     (cb-emit1i! cb LSET index (lvar-name (car vars)))
+				   (let ((stack-size (pass3/rec 
+						      (car args)
+						      cb
+						      new-renv
+						      'normal/bottom)))
+				     (cb-emit1i! cb LSET index
+						 (lvar-name (car vars)))
 				     (loop (cdr args) (cdr vars)
 					   (+ stack-size size)
 					   (+ index 1)))))))
@@ -3975,8 +4231,10 @@
 	(pass3/make-boxes cb sets vars)
 	(let ((body-size (pass3/rec body cb
 				    (make-new-renv renv
-						   (append (renv-locals renv) vars)
-						   (renv-frees renv) sets vars #t)
+						   (append (renv-locals renv)
+							   vars)
+						   (renv-frees renv)
+						   sets vars #t)
 				    ctx)))
 	  (unless (tail-context? ctx)
 	    (cb-emit1! cb LEAVE nargs))
@@ -3989,7 +4247,8 @@
   (lambda (iform cb renv ctx)
     (let ((label ($lambda-body ($call-proc ($call-proc iform))))
 	  (nargs (length ($call-args iform))))
-      (let ((ret (pass3/compile-args ($call-args iform) cb (renv-copy renv) (normal-context ctx))))
+      (let ((ret (pass3/compile-args ($call-args iform) cb (renv-copy renv)
+				     (normal-context ctx))))
 	(cb-emit2! cb SHIFTJ nargs ($call-renv ($call-proc iform)))
 	;;($label-label-set! label #t)
 	(cb-emit0o! cb JUMP (pass3/ensure-label cb label))
@@ -4003,8 +4262,10 @@
       (unless tail?
         (cb-emit0o! cb FRAME end-of-frame))
       (let* ((renv (if tail? renv (renv-add-frame-dummy renv)))
-	     (proc-size (pass3/rec ($call-proc iform) cb renv (normal-context ctx)))
-	     (args-size (pass3/compile-args ($call-args iform) cb renv 'normal/top))
+	     (proc-size (pass3/rec ($call-proc iform) cb renv
+				   (normal-context ctx)))
+	     (args-size (pass3/compile-args ($call-args iform) cb renv
+					    'normal/top))
 	     (nargs (length ($call-args iform))))
 	(if tail?
 	    (cb-emit1i! cb TAIL_CALL nargs ($*-src iform))
@@ -4137,7 +4398,8 @@
 		(d1 (gensym)))
 	    `(let ((,d0 (pass3/rec ,arg0 cb renv (normal-context ctx))))
 	       (cb-emit0! cb PUSH)
-	       (let ((,d1 (pass3/rec ,arg1 cb (renv-add-dummy renv) 'normal/top)))
+	       (let ((,d1 (pass3/rec ,arg1 cb (renv-add-dummy renv)
+				     'normal/top)))
 		 (cb-emit1i! cb ,code ,param ,info)
 		 (max ,d0 (+ ,d1 1))))))))))
   (define-syntax pass3/builtin-oneargs

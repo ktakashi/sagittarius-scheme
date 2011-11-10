@@ -1586,6 +1586,8 @@ c:  compile library file to C
 lc: compile builtin libraries
 ")
   (begin
+    (set-signal-handler! SIGINT
+	(lambda _ (raise "stop") (exit)))
     (vm-init)
     (for-each (lambda (builtin-info)
 		(let ((path (car builtin-info))

@@ -43,7 +43,8 @@
 
 (define fatal-error
   (lambda x
-    (format #t "fatal-error: ~s" x)
+    (print "fatal-error: ")
+    (write/ss x)
     (exit)))
 
 (define pad-space
