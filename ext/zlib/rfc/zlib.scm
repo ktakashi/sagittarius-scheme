@@ -262,21 +262,20 @@
 		 0)
 		(else
 		 (if (eof-object? n) (set! n 0))
-		 (let ((in-buffer. 
-			(if (= (+ n next-in) buffer-size)
-			    in-buffer
-			    (let ((bv (make-bytevector (+ next-in n) 0)))
-			      (bytevector-copy! in-buffer 0 bv 0 (+ next-in n))
-			      bv))))
+		 (let loop ((in-buffer. 
+			     (if (= (+ n next-in) buffer-size)
+				 in-buffer
+				 (let ((bv (make-bytevector (+ next-in n) 0)))
+				   (bytevector-copy! in-buffer 0
+						     bv 0 (+ next-in n))
+				   bv))))
 		   (let* ((r (inflate z-stream in-buffer.
 				      out-buffer Z_SYNC_FLUSH))
 			  (avail-in (zstream-avail-in z-stream))
 			  (nwrite (zstream-write-count z-stream out-buffer)))
-		     (when (or (= r Z_STREAM_ERROR)
-			       (= r Z_NEED_DICT))
+		     (when (= r Z_STREAM_ERROR)
 		       (raise-z-stream-error z-stream 'inflate
 					     (zlib-error-message z-stream)))
-		     
 		     (cond ((> avail-in 0)
 			    (set! next-in avail-in)
 			    (bytevector-copy! in-buffer. 
@@ -286,16 +285,33 @@
 			   (else
 			    (set! next-in 0)
 			    (bytevector-fill! in-buffer 0)))
-		     (cond ((= r Z_STREAM_END)
-			    (set! stream-end? #t))
-			   ((and (= r Z_DATA_ERROR)
-				 (<= nwrite 0))
-			    (raise-z-stream-error
-			     z-stream 'inflate-data-error
-			     (zlib-error-message z-stream))))
-		     (set! current-pos 0)
-		     (set! out-buffer-size nwrite)
-		     nwrite))))))
+		     (if (= r Z_NEED_DICT)
+			 (let ((r (inflate-set-dictionary z-stream
+							  dictionary)))
+			   (unless (= r Z_OK)
+			     (raise-z-stream-error z-stream 'inflate
+						   (zlib-error-message
+						    z-stream)))
+			   (let ((avail-in (zstream-avail-in z-stream)))
+			     (bytevector-copy! in-buffer 0
+					       in-buffer. 0 avail-in)
+			     (cond ((> avail-in 0)
+				    (loop in-buffer.))
+				   (else
+				    (set! current-pos 0)
+				    (set! out-buffer-size nwrite)
+				    nwrite))))
+			 (begin
+			   (cond ((= r Z_STREAM_END)
+				  (set! stream-end? #t))
+				 ((and (= r Z_DATA_ERROR)
+				       (<= nwrite 0))
+				  (raise-z-stream-error
+				   z-stream 'inflate-data-error
+				   (zlib-error-message z-stream))))
+			   (set! current-pos 0)
+			   (set! out-buffer-size nwrite)
+			   nwrite))))))))
 
       (when dictionary
 	(inflate-set-dictionary z-stream dictionary))

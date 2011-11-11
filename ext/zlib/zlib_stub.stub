@@ -96,7 +96,10 @@
 
   ;; misc
   (define-c-proc zlib-error-message (strm::ZStream) ::Object
-    (result (Sg_MakeStringC (-> (-> strm strm) msg))))
+    (if (-> (-> strm strm) msg)
+	(result (Sg_MakeStringC (-> (-> strm strm) msg)))
+	(result (Sg_MakeString "no z-stream error message available"
+			       SG_LITERAL_STRING))))
 
   (define-c-proc zlib-version () ::Object
     (result (Sg_ZlibVersion)))

@@ -2000,15 +2000,23 @@
       (and (let loop ((args ($call-args iform)))
 	     (if (null? args)
 		 #t
-		 (and (rec (car args) id ids library seen)
-		      (loop (cdr args)))))
+		 (if ids
+		     (and (rec (car args) id ids library seen)
+			  (loop (cdr args)))
+		     (begin
+		       (rec (car args) id ids library seen)
+		       (loop (cdr args))))))
 	   (rec ($call-proc iform) id ids library seen)))
      (($SEQ)
       (let loop ((exprs ($seq-body iform)))
 	(if (null? exprs)
 	    #t
-	    (and (rec (car exprs) id ids library seen)
-		 (loop (cdr exprs))))))
+	    (if ids
+		(and (rec (car exprs) id ids library seen)
+		     (loop (cdr exprs)))
+		(begin
+		  (rec (car exprs) id ids library seen)
+		  (loop (cdr exprs)))))))
      (($IF)
       (and (rec ($if-test iform) id ids library seen)
 	   (rec ($if-then iform) id ids library seen)

@@ -55,7 +55,11 @@
 	  (mac-env (current-macro-env)))
       (define (rename s) (er-rename s mac-env dict))
       (define (compare a b)
-	(identifier=? use-env a mac-env b))
+	;;(identifier=? use-env a mac-env b))
+	(or (and (identifier? a)
+		 (identifier? b)
+		 (free-identifier=? a b))
+	    (identifier=? use-env a mac-env b)))
       (f expr rename compare))))
 
 (define safe-length

@@ -87,7 +87,8 @@ arguments. In the arguments list, following notations may appear.
 
 @dl-list[
 @dl-item[@var{arg @dots{}}]{Indicates zero or more arguments}
-@dl-itemx[2 @var{:optional x y z} @var{:optional (x x-default) (y y-default) (z z-default)}]{
+@dl-itemx[2 @var{:optional x y z} 
+	    @var{:optional (x x-default) (y y-default) (z z-default)}]{
 Indicates is may take up to three optional arguments. The second form specifies
 default values for x and y. This is either builtin functions or closures which
 defined with define-optional macro.}
@@ -99,10 +100,10 @@ bracket at the beginning of the description. The following origins are noted:
 
 @dl-list[
 @dl-itemx[2 "[R6RS]" "[R6RS+]"]{
-The entry works as specified in "Revised^6 Report of Algorithmic Language Scheme.".
-If it is marked as "[R6RS+]", the entry has additional functionality.}
-@dl-itemx[2 "[SRFI-n]" "[SRFI-n+]"]{The entry works as specified in SRFI-n. If it is
-marked as "[SRFI-n+]", the entry has additional functionality.}
+The entry works as specified in "Revised^6 Report of Algorithmic Language
+Scheme.". If it is marked as "[R6RS+]", the entry has additional functionality.}
+@dl-itemx[2 "[SRFI-n]" "[SRFI-n+]"]{The entry works as specified in SRFI-n. If
+it is marked as "[SRFI-n+]", the entry has additional functionality.}
 ]
 
 @section{Programming in Sagittarius}
@@ -110,20 +111,22 @@ marked as "[SRFI-n+]", the entry has additional functionality.}
 @subsection{Invoking sash}
 
 Sagittarius can be used either as an independent Schame interpreter or an
-embedded Scheme library. The interpreter which comes with Sagittarius destribution
-is a program named sash.
+embedded Scheme library. The interpreter which comes with Sagittarius
+destribution is a program named sash.
 
 @define[Program]{@name{sash} @args{[options] scheme-file arg @dots{}}}
-@desc{Invoking sash. If @var{scheme-file} is not given, it runs with interactive mode.
+@desc{Invoking sash. If @var{scheme-file} is not given, it runs with interactive
+mode.
 Detail options are given with option @code{"-h"}.}
 
 @subsection{Writing Scheme scripts}
 
-When a Scheme file is given to sash, it bounds an internal variable to list of
-the remaining command-line arguments which you can get with command-line procedure,
-then loads the Scheme program. If the first line of scheme-file begins with
-@code{"#!"}, then sash ignores the entire line. This is useful to write a Scheme
-program that works as an executable script in unix-like systems.
+When a Scheme file is given to @code{sash}, it bounds an internal variable to
+list of the remaining command-line arguments which you can get with the 
+code{command-line} procedure, then loads the Scheme program. If the first line
+of scheme-file begins with @code{"#!"}, then sash ignores the entire line. This 
+is useful to write a Scheme program that works as an executable script in
+unix-like systems.
 
 Typical Sagittarius script has the first line like this:
 
@@ -157,6 +160,7 @@ any command-line option processing and error handling.
 
 @include-section["r6rs.scrbl"]
 @include-section["sagittarius.scrbl"]
+@include-section["utils.scrbl"]
 @include-section["ported.scrbl"]
 @include-section["srfi.scrbl"]
 

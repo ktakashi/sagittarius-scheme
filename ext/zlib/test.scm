@@ -5,6 +5,7 @@
     (import (srfi :64 testing)
 	    (rnrs)
 	    (sagittarius)
+	    (sagittarius control)
 	    (rfc zlib))
 
   (define (do-deflate file level)
@@ -55,7 +56,19 @@
 			(do-inflate
 			 (format "./zlib/compressed-~a.bin" level))))
 		     '(1 2 3 4 5 6 7 8 9)))
-    
+
+    (test-equal "inflate dictionary"
+		"abc"
+		(let1 bv (call-with-bytevector-output-port
+			  (lambda (p)
+			    (let1 p2 (open-deflating-output-port 
+				      p :dictionary (string->utf8 "abc"))
+			      (put-bytevector p2 (string->utf8 "abc"))
+			      (close-output-port p2))))
+		  (utf8->string
+		   (get-bytevector-all (open-inflating-input-port
+					(open-bytevector-input-port bv)
+					:dictionary (string->utf8 "abc"))))))
     )
 
 )

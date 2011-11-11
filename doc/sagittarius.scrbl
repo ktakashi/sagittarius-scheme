@@ -14,7 +14,7 @@ in R6RS such as extra file system functions and so.
 }
 
 @subsubsection{Builtin Syntax}
-@defien[Syntax]{@name{define-constant} @{variable expression}}
+@define[Syntax]{@name{define-constant} @{variable expression}}
 @desc{Similar to the @code{define} however the @code{define-constant} binds
 @var{variable} as a constant value and the compiler try to fold it if it is
 constant value i.e. literal string, literal vector, literal number and so.
@@ -24,7 +24,7 @@ message on the standard error. I am not sure if it should raise an error or not,
 so this behaviour might be changed in future.
 }
 
-@defien[Syntax]{@name{receive} @{formals expression body}}
+@define[Syntax]{@name{receive} @{formals expression body}}
 @desc{[SRFI-8] @var{formals} and @var{body} the same as @code{lambda}.
 @var{Expression} must be an expression.
 

@@ -3,17 +3,14 @@
 
 (library (compat r7rs)
     (export syntax-rules)
-    (import (rename (core) (identifier? r6:identifier?))
+    (import (except (core) identifier?)
 	    (rename (core base) (for-all every) (exists any))
 	    (core errors)
-	    (pp)
-	    (sagittarius))
-
-;; on chibi-scheme, identifier is either symbol or syntax object.
-;; so we need to provide this.
-(define (identifier? id)
-  (or (symbol? id)
-      (r6:identifier? id)))
+	    (rename (sagittarius)
+		    (unwrap-syntax strip-syntactic-closures)
+		    ;; on chibi-scheme, identifier is either symbol or syntax
+		    ;; object. so we need to provide this.
+		    (variable? identifier?)))
 
 ;; from chibi-scheme
 (define-syntax syntax-rules
@@ -58,9 +55,9 @@
               (cond
                ((identifier? p)
                 (if (any (lambda (l) (compare p l)) lits)
-                    (list _and
-                          (list _compare v (list _rename (list _quote p)))
-                          (k vars))
+		    (list _and
+			  (list _compare v (list _rename (list _quote p)))
+			  (k vars))
                     (list _let (list (list p v)) (k (cons (cons p dim) vars)))))
                ((ellipsis? p)
                 (cond

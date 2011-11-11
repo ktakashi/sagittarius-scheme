@@ -14,6 +14,8 @@
 
 (define (id-name id)
   (vector-ref id 1))
+(define (id-envs id)
+  (vector-ref id 2))
 
 (define (unrename-symbol sym)
   (let loop ((lst (string->list (symbol->string sym)))
@@ -25,7 +27,9 @@
 	  (else
 	   (loop (cdr lst) (cons (car lst) r))))))
     
-				 
+(define (free-identifier=? id1 id2)
+  (and (eq? (id-name id1) (id-name id2))
+       (eq? (id-envs id1) (id-envs id2))))
 
 ;; duplicated
 (define get-binding-frame

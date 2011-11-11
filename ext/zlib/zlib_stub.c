@@ -21,7 +21,7 @@ static SgObject _sagittarius_zlib_deflate_init(SgObject *args, int argc, void *d
   argumentAsFixnum(3, strategy_scm, strategy);
   {
     SgObject SG_RETURN = SG_UNDEF;
-    SG_RETURN = (Sg_DeflateInit(level, windowbits, memlevel, strategy));
+    SG_RETURN = (    Sg_DeflateInit    (    level    ,     windowbits    ,     memlevel    ,     strategy    )    )    ;
     return SG_RETURN;
   }
 }
@@ -37,7 +37,7 @@ static SgObject _sagittarius_zlib_deflate_reset(SgObject *args, int argc, void *
   argumentAsZStream(0, strm_scm, strm);
   {
     int SG_RETURN;
-    SG_RETURN = (Sg_DeflateReset(strm));
+    SG_RETURN = (    Sg_DeflateReset    (    strm    )    )    ;
     return SG_MAKE_INT(SG_RETURN);
   }
 }
@@ -56,7 +56,7 @@ static SgObject _sagittarius_zlib_deflate_set_dictionary(SgObject *args, int arg
   argumentAsByteVector(1, dict_scm, dict);
   {
     int SG_RETURN;
-    SG_RETURN = (Sg_DeflateSetDictionary(strm, dict));
+    SG_RETURN = (    Sg_DeflateSetDictionary    (    strm    ,     dict    )    )    ;
     return SG_MAKE_INT(SG_RETURN);
   }
 }
@@ -81,7 +81,7 @@ static SgObject _sagittarius_zlib_deflate(SgObject *args, int argc, void *data_)
   argumentAsFixnum(3, flush_scm, flush);
   {
     int SG_RETURN;
-    SG_RETURN = (Sg_Deflate(strm, data, dest, flush));
+    SG_RETURN = (    Sg_Deflate    (    strm    ,     data    ,     dest    ,     flush    )    )    ;
     return SG_MAKE_INT(SG_RETURN);
   }
 }
@@ -97,7 +97,7 @@ static SgObject _sagittarius_zlib_deflate_end(SgObject *args, int argc, void *da
   argumentAsZStream(0, strm_scm, strm);
   {
     int SG_RETURN;
-    SG_RETURN = (Sg_DeflateEnd(strm));
+    SG_RETURN = (    Sg_DeflateEnd    (    strm    )    )    ;
     return SG_MAKE_INT(SG_RETURN);
   }
 }
@@ -113,7 +113,7 @@ static SgObject _sagittarius_zlib_inflate_init(SgObject *args, int argc, void *d
   argumentAsFixnum(0, windowbits_scm, windowbits);
   {
     SgObject SG_RETURN = SG_UNDEF;
-    SG_RETURN = (Sg_InflateInit(windowbits));
+    SG_RETURN = (    Sg_InflateInit    (    windowbits    )    )    ;
     return SG_RETURN;
   }
 }
@@ -137,7 +137,7 @@ static SgObject _sagittarius_zlib_inflate_reset(SgObject *args, int argc, void *
 
   {
     int SG_RETURN;
-    SG_RETURN = (Sg_InflateReset(strm, bits));
+    SG_RETURN = (    Sg_InflateReset    (    strm    ,     bits    )    )    ;
     return SG_MAKE_INT(SG_RETURN);
   }
 }
@@ -156,7 +156,7 @@ static SgObject _sagittarius_zlib_inflate_set_dictionary(SgObject *args, int arg
   argumentAsByteVector(1, dict_scm, dict);
   {
     int SG_RETURN;
-    SG_RETURN = (Sg_InflateSetDictionary(strm, dict));
+    SG_RETURN = (    Sg_InflateSetDictionary    (    strm    ,     dict    )    )    ;
     return SG_MAKE_INT(SG_RETURN);
   }
 }
@@ -172,7 +172,7 @@ static SgObject _sagittarius_zlib_inflate_sync(SgObject *args, int argc, void *d
   argumentAsZStream(0, strm_scm, strm);
   {
     int SG_RETURN;
-    SG_RETURN = (Sg_InflateSync(strm));
+    SG_RETURN = (    Sg_InflateSync    (    strm    )    )    ;
     return SG_MAKE_INT(SG_RETURN);
   }
 }
@@ -197,7 +197,7 @@ static SgObject _sagittarius_zlib_inflate(SgObject *args, int argc, void *data_)
   argumentAsFixnum(3, flush_scm, flush);
   {
     int SG_RETURN;
-    SG_RETURN = (Sg_Inflate(strm, data, dest, flush));
+    SG_RETURN = (    Sg_Inflate    (    strm    ,     data    ,     dest    ,     flush    )    )    ;
     return SG_MAKE_INT(SG_RETURN);
   }
 }
@@ -216,7 +216,7 @@ static SgObject _sagittarius_zlib_inflate_end(SgObject *args, int argc, void *da
   argumentAsFixnum(1, flush_scm, flush);
   {
     int SG_RETURN;
-    SG_RETURN = (Sg_InflateEnd(strm, flush));
+    SG_RETURN = (    Sg_InflateEnd    (    strm    ,     flush    )    )    ;
     return SG_MAKE_INT(SG_RETURN);
   }
 }
@@ -231,7 +231,7 @@ static SgObject _sagittarius_zlib_zstream3f(SgObject *args, int argc, void *data
   argumentRef(0, obj);
   {
     int SG_RETURN;
-    SG_RETURN = (SG_ZSTREAM_P(obj));
+    SG_RETURN = (    SG_ZSTREAM_P    (    obj    )    )    ;
     return SG_MAKE_BOOL(SG_RETURN);
   }
 }
@@ -247,7 +247,7 @@ static SgObject _sagittarius_zlib_zstream_total_in(SgObject *args, int argc, voi
   argumentAsZStream(0, strm_scm, strm);
   {
     int SG_RETURN;
-    SG_RETURN = (strm->strm->total_in);
+    SG_RETURN = (    strm    ->    strm    ->    total_in    )    ;
     return SG_MAKE_INT(SG_RETURN);
   }
 }
@@ -263,7 +263,7 @@ static SgObject _sagittarius_zlib_zstream_total_out(SgObject *args, int argc, vo
   argumentAsZStream(0, strm_scm, strm);
   {
     int SG_RETURN;
-    SG_RETURN = (strm->strm->total_out);
+    SG_RETURN = (    strm    ->    strm    ->    total_out    )    ;
     return SG_MAKE_INT(SG_RETURN);
   }
 }
@@ -279,7 +279,7 @@ static SgObject _sagittarius_zlib_zstream_avail_in(SgObject *args, int argc, voi
   argumentAsZStream(0, strm_scm, strm);
   {
     int SG_RETURN;
-    SG_RETURN = (strm->strm->avail_in);
+    SG_RETURN = (    strm    ->    strm    ->    avail_in    )    ;
     return SG_MAKE_INT(SG_RETURN);
   }
 }
@@ -295,7 +295,7 @@ static SgObject _sagittarius_zlib_zstream_avail_out(SgObject *args, int argc, vo
   argumentAsZStream(0, strm_scm, strm);
   {
     int SG_RETURN;
-    SG_RETURN = (strm->strm->avail_out);
+    SG_RETURN = (    strm    ->    strm    ->    avail_out    )    ;
     return SG_MAKE_INT(SG_RETURN);
   }
 }
@@ -311,7 +311,7 @@ static SgObject _sagittarius_zlib_zstream_data_type(SgObject *args, int argc, vo
   argumentAsZStream(0, strm_scm, strm);
   {
     int SG_RETURN;
-    SG_RETURN = (strm->strm->data_type);
+    SG_RETURN = (    strm    ->    strm    ->    data_type    )    ;
     return SG_MAKE_INT(SG_RETURN);
   }
 }
@@ -327,7 +327,7 @@ static SgObject _sagittarius_zlib_zstream_adler32(SgObject *args, int argc, void
   argumentAsZStream(0, strm_scm, strm);
   {
     int SG_RETURN;
-    SG_RETURN = (strm->strm->adler);
+    SG_RETURN = (    strm    ->    strm    ->    adler    )    ;
     return SG_MAKE_INT(SG_RETURN);
   }
 }
@@ -346,7 +346,7 @@ static SgObject _sagittarius_zlib_zstream_read_count(SgObject *args, int argc, v
   argumentAsByteVector(1, in_scm, in);
   {
     int SG_RETURN;
-    SG_RETURN = ((strm->strm->next_in - SG_BVECTOR_ELEMENTS(in)));
+    SG_RETURN = (    (    strm    ->    strm    ->    next_in     -     SG_BVECTOR_ELEMENTS    (    in    )    )    )    ;
     return SG_MAKE_INT(SG_RETURN);
   }
 }
@@ -365,7 +365,7 @@ static SgObject _sagittarius_zlib_zstream_write_count(SgObject *args, int argc, 
   argumentAsByteVector(1, out_scm, out);
   {
     int SG_RETURN;
-    SG_RETURN = ((strm->strm->next_out - SG_BVECTOR_ELEMENTS(out)));
+    SG_RETURN = (    (    strm    ->    strm    ->    next_out     -     SG_BVECTOR_ELEMENTS    (    out    )    )    )    ;
     return SG_MAKE_INT(SG_RETURN);
   }
 }
@@ -381,7 +381,12 @@ static SgObject _sagittarius_zlib_zlib_error_message(SgObject *args, int argc, v
   argumentAsZStream(0, strm_scm, strm);
   {
     SgObject SG_RETURN = SG_UNDEF;
-    SG_RETURN = (Sg_MakeStringC(strm->strm->msg));
+    if (    strm    ->    strm    ->    msg    ) {
+      SG_RETURN = (      Sg_MakeStringC      (      strm      ->      strm      ->      msg      )      )      ;
+    }     else {
+      SG_RETURN = (      Sg_MakeString      (      UC("no z-stream error message available")      ,       SG_LITERAL_STRING      )      )      ;
+    }    
+    ;
     return SG_RETURN;
   }
 }
@@ -394,7 +399,7 @@ static SgObject _sagittarius_zlib_zlib_version(SgObject *args, int argc, void *d
   checkArgumentLength(0);
   {
     SgObject SG_RETURN = SG_UNDEF;
-    SG_RETURN = (Sg_ZlibVersion());
+    SG_RETURN = (    Sg_ZlibVersion    (    )    )    ;
     return SG_RETURN;
   }
 }
@@ -404,48 +409,48 @@ static SG_DEFINE_SUBR(_sagittarius_zlib_zlib_version_Stub, 0, 0, _sagittarius_zl
 void Sg__Init_sagittarius_zlib()
 {
   SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC("(sagittarius zlib)"), SG_LITERAL_STRING)), TRUE);
-  SG_PROCEDURE_NAME(&_sagittarius_zlib_zstream3f_Stub) = Sg_MakeString(UC("zstream?"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zstream?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_zstream3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_zlib_zstream_read_count_Stub) = Sg_MakeString(UC("zstream-read-count"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zstream-read-count"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_zstream_read_count_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_zlib_inflate_reset_Stub) = Sg_MakeString(UC("inflate-reset"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("inflate-reset"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_inflate_reset_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_zlib_zstream_total_in_Stub) = Sg_MakeString(UC("zstream-total-in"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zstream-total-in"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_zstream_total_in_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_zlib_zstream_write_count_Stub) = Sg_MakeString(UC("zstream-write-count"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zstream-write-count"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_zstream_write_count_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_zlib_deflate_init_Stub) = Sg_MakeString(UC("deflate-init"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("deflate-init"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_deflate_init_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_zlib_inflate_set_dictionary_Stub) = Sg_MakeString(UC("inflate-set-dictionary"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("inflate-set-dictionary"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_inflate_set_dictionary_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_zlib_zstream_total_out_Stub) = Sg_MakeString(UC("zstream-total-out"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zstream-total-out"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_zstream_total_out_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_zlib_zlib_error_message_Stub) = Sg_MakeString(UC("zlib-error-message"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zlib-error-message"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_zlib_error_message_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_zlib_deflate_reset_Stub) = Sg_MakeString(UC("deflate-reset"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("deflate-reset"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_deflate_reset_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_zlib_inflate_sync_Stub) = Sg_MakeString(UC("inflate-sync"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("inflate-sync"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_inflate_sync_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_zlib_zstream_avail_in_Stub) = Sg_MakeString(UC("zstream-avail-in"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zstream-avail-in"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_zstream_avail_in_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_zlib_zlib_version_Stub) = Sg_MakeString(UC("zlib-version"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zlib-version"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_zlib_version_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_zlib_deflate_set_dictionary_Stub) = Sg_MakeString(UC("deflate-set-dictionary"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("deflate-set-dictionary"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_deflate_set_dictionary_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_zlib_deflate_reset_Stub) = Sg_MakeString(UC("deflate-reset"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("deflate-reset"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_deflate_reset_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_zlib_zstream_avail_out_Stub) = Sg_MakeString(UC("zstream-avail-out"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zstream-avail-out"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_zstream_avail_out_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_zlib_deflate_Stub) = Sg_MakeString(UC("deflate"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("deflate"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_deflate_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_zlib_inflate_sync_Stub) = Sg_MakeString(UC("inflate-sync"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("inflate-sync"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_inflate_sync_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_zlib_deflate_set_dictionary_Stub) = Sg_MakeString(UC("deflate-set-dictionary"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("deflate-set-dictionary"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_deflate_set_dictionary_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_zlib_inflate_Stub) = Sg_MakeString(UC("inflate"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("inflate"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_inflate_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_zlib_zstream_data_type_Stub) = Sg_MakeString(UC("zstream-data-type"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zstream-data-type"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_zstream_data_type_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_zlib_deflate_end_Stub) = Sg_MakeString(UC("deflate-end"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("deflate-end"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_deflate_end_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_zlib_deflate_Stub) = Sg_MakeString(UC("deflate"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("deflate"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_deflate_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_zlib_inflate_end_Stub) = Sg_MakeString(UC("inflate-end"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("inflate-end"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_inflate_end_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_zlib_zstream_adler32_Stub) = Sg_MakeString(UC("zstream-adler32"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zstream-adler32"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_zstream_adler32_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_zlib_deflate_end_Stub) = Sg_MakeString(UC("deflate-end"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("deflate-end"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_deflate_end_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_zlib_zstream3f_Stub) = Sg_MakeString(UC("zstream?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zstream?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_zstream3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_zlib_zstream_read_count_Stub) = Sg_MakeString(UC("zstream-read-count"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zstream-read-count"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_zstream_read_count_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_zlib_inflate_init_Stub) = Sg_MakeString(UC("inflate-init"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("inflate-init"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_inflate_init_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_zlib_zstream_total_in_Stub) = Sg_MakeString(UC("zstream-total-in"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zstream-total-in"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_zstream_total_in_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_zlib_zstream_write_count_Stub) = Sg_MakeString(UC("zstream-write-count"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zstream-write-count"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_zstream_write_count_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_zlib_inflate_reset_Stub) = Sg_MakeString(UC("inflate-reset"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("inflate-reset"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_inflate_reset_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_zlib_zstream_total_out_Stub) = Sg_MakeString(UC("zstream-total-out"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zstream-total-out"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_zstream_total_out_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_zlib_zlib_error_message_Stub) = Sg_MakeString(UC("zlib-error-message"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zlib-error-message"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_zlib_zlib_error_message_Stub));
 }
