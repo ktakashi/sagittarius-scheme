@@ -1,5 +1,7 @@
 2011-11-11  Takashi Kato  <ktakashi@ymail.com>
 
+	* started Version 0.2.3.
+
 	* boot/lib/scmlib.scm (er-macro-transformer): fixed compare procedure.
 
 2011-11-10  Takashi Kato  <ktakashi@ymail.com>
