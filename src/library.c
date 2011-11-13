@@ -606,7 +606,6 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
       if (SG_FALSEP(spec)) {
 	/* ignore */
       } else {
-	Sg_Printf(Sg_StandardErrorPort(), UC("%S:%A\n"), renames, spec);
 	import_variable(tolib, fromlib, SG_CADR(spec), v, imports, except,
 			prefix, SG_CAR(spec));
       }
