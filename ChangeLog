@@ -1,3 +1,8 @@
+2011-11-13  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/library.c (Sg_ImportLibraryFullSpec):
+	[Issue 2] Fixed rename export.
+
 2011-11-11  Takashi Kato  <ktakashi@ymail.com>
 
 	* started Version 0.2.3.

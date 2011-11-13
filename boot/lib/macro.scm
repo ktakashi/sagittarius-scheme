@@ -767,7 +767,9 @@
   (let ((env (if (null? (id-envs template-id))
 		 (current-usage-env)
 		 (current-macro-env))))
-    (wrap-syntax datum env)))
+    (if (eq? (vector-ref env 0) (id-library template-id))
+	datum
+	(wrap-syntax datum env))))
 
 ;; syntax->datum
 (define (syntax->datum syntax)

@@ -155,8 +155,7 @@ SgObject Sg_MakeEvalLibrary()
 {
   SgVM *vm = Sg_VM();
   SgLibrary *z = make_library();
-  z->name = Sg_MakeSymbol(Sg_MakeString(UC("(eval environment)"), SG_LITERAL_STRING),
-			  FALSE);
+  z->name = Sg_MakeSymbol(SG_MAKE_STRING("(eval environment)"), FALSE);
   z->version = SG_FALSE;
   Sg_LockMutex(&mutex);
   Sg_HashTableSet(SG_VM_LIBRARIES(vm), z->name, z, SG_HASH_NO_OVERWRITE);
@@ -205,7 +204,8 @@ static SgString* encode_string(SgString *s, int keywordP)
       SG_APPEND1(h, t, SG_MAKE_CHAR((high < 0xa) ? high + '0' : high + 0x57));
       SG_APPEND1(h, t, SG_MAKE_CHAR((low < 0xa) ? low + '0' : low + 0x57));
     } else if (ch >= 128) {
-      Sg_Error(UC("multi byte characters are not supported for library name. %A"), c);
+      Sg_Error(UC("multi byte characters are not supported"
+		  " for library name. %A"), c);
     } else {
       SG_APPEND1(h, t, c);
     }
@@ -247,7 +247,8 @@ static SgString* library_name_to_path(SgObject name)
       SgObject o = encode_string(SG_KEYWORD(SG_CAR(item))->name, TRUE);
       SG_APPEND1(h, t, o);
     } else {
-      Sg_Error(UC("library name can contain only symbols or keywords, but got %S"), SG_CAR(item));
+      Sg_Error(UC("library name can contain only symbols or keywords,"
+		  " but got %S"), SG_CAR(item));
     }
     if (!SG_NULLP(SG_CDR(item))) {
       SG_APPEND1(h, t, Sg_MakeString(separator, SG_HEAP_STRING));
@@ -278,9 +279,11 @@ static SgObject search_library(SgObject name, int onlyPath)
     SgObject p = Sg_StringAppend2(path, SG_STRING(SG_CAR(ext)));
     SgObject dir;
     SG_FOR_EACH(dir, vm->loadPath) {
-      SgObject real = Sg_StringAppend(SG_LIST3(SG_CAR(dir),
-					       Sg_MakeString(Sg_NativeFileSeparator(), SG_HEAP_STRING),
-					       p));
+      SgObject real
+	= Sg_StringAppend(SG_LIST3(SG_CAR(dir),
+				   Sg_MakeString(Sg_NativeFileSeparator(),
+						 SG_HEAP_STRING),
+				   p));
       if (Sg_FileExistP(real)) {
 	path = SG_STRING(real);
 	if (onlyPath) return path;
@@ -338,7 +341,8 @@ SgObject Sg_FindLibrary(SgObject name, int createp)
     return name;
   }
   id_version = library_name_to_id_version(name);
-  lib = Sg_HashTableRef(libraries, convert_name_to_symbol(SG_CAR(id_version)), SG_FALSE);
+  lib = Sg_HashTableRef(libraries, convert_name_to_symbol(SG_CAR(id_version)),
+			SG_FALSE);
   /* TODO check version number */
   if (SG_FALSEP(lib)) {
     if (createp) {
@@ -405,7 +409,7 @@ static SgObject calculate_imports(SgObject only, SgObject renames)
     orig = SG_CAR(first);
     target = Sg_Assq(orig, SG_CDR(cp));
     if (!SG_FALSEP(target)) {
-      SG_SET_CDR(first, SG_CADR(target));
+      SG_SET_CDR(first, SG_CDR(target));
       SG_SET_CAR(target, SG_FALSE);
     }
     if (!SG_FALSEP(SG_CAR(first))) {
@@ -457,14 +461,16 @@ static SgObject rename_key(SgObject key, SgObject prefix,
   return SG_UNBOUND;
 }
 
-static void import_variable(SgLibrary *lib, SgLibrary *fromlib, SgObject key, SgObject value,
-			    SgObject imports, SgObject except, SgObject prefix)
+static void import_variable(SgLibrary *lib, SgLibrary *fromlib, SgObject key,
+			    SgObject value, SgObject imports, SgObject except,
+			    SgObject prefix, SgObject export)
 {
   SgObject name = rename_key(key, prefix, imports, except);
   if (!SG_UNBOUNDP(name)) {
     SgObject slot = Sg_Assq(fromlib, lib->parents);
     ASSERT(!SG_FALSEP(slot));
-    SG_SET_CDR(slot, Sg_Cons(Sg_Cons(name, key), SG_CDR(slot)));
+    SG_SET_CDR(slot, Sg_Cons(Sg_Cons(name, (SG_FALSEP(export) ? key : export)),
+			     SG_CDR(slot)));
   }
 }
 
@@ -533,7 +539,8 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
   exportSpec = SG_LIBRARY_EXPORTED(fromlib);
 
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
-    Sg_Printf(vm->logPort, UC("importing library (from %S, to %S)\n"), SG_LIBRARY_NAME(from), SG_LIBRARY_NAME(to));
+    Sg_Printf(vm->logPort, UC("importing library (from %S, to %S)\n"),
+	      SG_LIBRARY_NAME(from), SG_LIBRARY_NAME(to));
   }
 
   /* resolve :all keyword first */
@@ -545,14 +552,19 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
 	SG_FALSEP(prefix)) {
       keys = Sg_HashTableKeys(SG_LIBRARY_TABLE(fromlib));
       SG_FOR_EACH(key, keys) {
-	SgObject v = Sg_HashTableRef(SG_LIBRARY_TABLE(fromlib), SG_CAR(key), SG_UNBOUND);
+	SgObject v = Sg_HashTableRef(SG_LIBRARY_TABLE(fromlib), SG_CAR(key),
+				     SG_UNBOUND);
 	if (SG_UNBOUNDP(v)) {
-	  Sg_Error(UC("target import library does not contain %S"), SG_CAR(key));
+	  Sg_Error(UC("target import library does not contain %S"),
+		   SG_CAR(key));
 	}
-	import_variable(tolib, fromlib, SG_CAR(key), v, SG_NIL, SG_NIL, SG_FALSE);
+	import_variable(tolib, fromlib, SG_CAR(key), v, SG_NIL, SG_NIL,
+			SG_FALSE, SG_FALSE);
       }
       import_parents(tolib, fromlib, SG_NIL, SG_NIL, SG_FALSE, TRUE);
-      SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, SG_LIST4(SG_NIL, SG_NIL, SG_NIL, SG_FALSE),
+      SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, 
+					    SG_LIST4(SG_NIL, SG_NIL,
+						     SG_NIL, SG_FALSE),
 					    SG_LIBRARY_IMPORTED(tolib));
       goto out;
     } else {
@@ -561,7 +573,8 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
   }
   imports = calculate_imports(only, renames);
   /* imported alist: ((lib1 . (only except renames prefix)) ...) */
-  SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, SG_LIST4(only, except, renames, prefix),
+  SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, 
+					SG_LIST4(only, except, renames, prefix),
 					SG_LIBRARY_IMPORTED(tolib));
   if (SG_NULLP(tolib->generics)) {
     tolib->generics = fromlib->generics;
@@ -571,8 +584,8 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
 
   keys = Sg_HashTableKeys(SG_LIBRARY_TABLE(fromlib));
   SG_FOR_EACH(key, keys) {
-    SgObject v = Sg_HashTableRef(SG_LIBRARY_TABLE(fromlib), SG_CAR(key), SG_UNBOUND);
-
+    SgObject v = Sg_HashTableRef(SG_LIBRARY_TABLE(fromlib), SG_CAR(key),
+				 SG_UNBOUND);
     if (SG_UNBOUNDP(v)) {
       /* TODO error? */
       Sg_Error(UC("target import library does not contain %S"), SG_CAR(key));
@@ -580,18 +593,22 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
     /* TODO no overwrite? */
     if (SG_FALSEP(exportSpec)) {
       /* this must be C library. */
-      import_variable(tolib, fromlib, SG_CAR(key), v, imports, except, prefix);
+      import_variable(tolib, fromlib, SG_CAR(key), v, imports, except, prefix,
+		      SG_FALSE);
     } else if (!SG_FALSEP(Sg_Memq(SG_CAR(key), SG_CAR(exportSpec))) ||
 	       allP) {
       /* key was in non-rename export spec or :all key word */
-      import_variable(tolib, fromlib, SG_CAR(key), v, imports, except, prefix);
+      import_variable(tolib, fromlib, SG_CAR(key), v, imports, except, prefix,
+		      SG_FALSE);
     } else {
       /* renamed export */
       SgObject spec = Sg_Assq(SG_CAR(key), SG_CDR(exportSpec));
       if (SG_FALSEP(spec)) {
 	/* ignore */
       } else {
-	import_variable(tolib, fromlib, SG_CADR(spec), v, imports, except, prefix);
+	Sg_Printf(Sg_StandardErrorPort(), UC("%S:%A\n"), renames, spec);
+	import_variable(tolib, fromlib, SG_CADR(spec), v, imports, except,
+			prefix, SG_CAR(spec));
       }
     }
   }
@@ -640,7 +657,8 @@ SgGloc* Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
 
   if (prev_const) {
     if (prev_const != flags || !Sg_EqualP(value, oldval)) {
-      Sg_Warn(UC("constant value %S bounded with %S was overwitten by %S"), oldval, symbol, value);
+      Sg_Warn(UC("constant value %S bounded with %S was overwitten by %S"),
+	      oldval, symbol, value);
     }
   }
   return g;

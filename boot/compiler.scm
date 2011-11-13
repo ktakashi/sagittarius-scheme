@@ -1930,7 +1930,7 @@
 		"unknown object appeared in export spec" (car spec))))))
     (receive (exports renames) (parse-export (cdr export))
       (library-exported-set! lib
-			     (cons exports renames)))))
+			     (cons exports (list renames))))))
 
 ;; Collect library inlinable define.
 ;; Inlinable condition:

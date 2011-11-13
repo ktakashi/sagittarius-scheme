@@ -2084,7 +2084,7 @@
   (receive
    (exports renames)
    (parse-export (cdr export))
-   (library-exported-set! lib (cons exports renames)))))
+   (library-exported-set! lib (cons exports (list renames))))))
 
 (define (possibly-target? iform export-spec)
   (and
