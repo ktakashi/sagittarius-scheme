@@ -49,6 +49,8 @@ SET(SAGITTARIUS_LIB_SOURCE
   profiler.c       weak.c
   gloc.c           load.c
   cache.c
+  treemap.c        rbtree.c
+  charset.c
   # libraries
   proclib.c        null.c
   vmlib.c          vmdebug.c

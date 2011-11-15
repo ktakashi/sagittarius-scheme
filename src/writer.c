@@ -35,6 +35,7 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/writer.h"
 #include "sagittarius/port.h"
+#include "sagittarius/charset.h"
 #include "sagittarius/code.h"
 #include "sagittarius/codec.h"
 #include "sagittarius/core.h"
@@ -1104,6 +1105,36 @@ static void write_sharedref(SgSharedRef *ref, SgPort *port, SgWriteContext *ctx)
   Sg_PutcUnsafe(port, '>');
 }
 
+static void write_charset(SgCharSet *cs, SgPort *port, SgWriteContext *ctx)
+{
+  SgObject ranges = Sg_CharSetRanges(cs), cp;
+  SgWriteContext cctx;
+
+  cctx.mode = SG_WRITE_WRITE;
+  cctx.table = NULL;
+  cctx.flags = 0;
+  cctx.sharedId = 0;
+
+  Sg_PutuzUnsafe(port, UC("#<char-set"));
+  SG_FOR_EACH(cp, ranges) {
+    SgObject cell = SG_CAR(cp);
+    SgChar start = SG_INT_VALUE(SG_CAR(cell)), end = SG_INT_VALUE(SG_CDR(cell));
+    Sg_PutcUnsafe(port, ' ');
+    if (start > SG_CHAR_SET_SMALL_CHARS) {
+      Sg_Printf(port, UC("#x%x"), start);
+    } else {
+      write_ss_rec(SG_MAKE_CHAR(start), port, &cctx);
+    }
+    Sg_PutcUnsafe(port, '-');
+    if (end > SG_CHAR_SET_SMALL_CHARS) {
+      Sg_Printf(port, UC("#x%x"), end);
+    } else {
+      write_ss_rec(SG_MAKE_CHAR(end), port, &cctx);
+    }
+  }
+  Sg_PutcUnsafe(port, '>');
+}
+
 #define SPBUFSIZ  50
 #define CASE_ITAG(obj, str)				\
   case SG_ITAG(obj): Sg_PutuzUnsafe(port, str); break;
@@ -1296,6 +1327,8 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
     write_thread(SG_VM(obj), port, ctx);
   } else if (SG_SHAREDREF_P(obj)) {
     write_sharedref(SG_SHAREDREF(obj), port, ctx);
+  } else if (SG_CHAR_SET_P(obj)) {
+    write_charset(SG_CHAR_SET(obj), port, ctx);
   } else {
     Sg_PutuzUnsafe(port, UC("#<unknown datum>"));
   }

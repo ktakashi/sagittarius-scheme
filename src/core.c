@@ -58,6 +58,7 @@ extern void Sg__InitPort();
 extern void Sg__InitLoad();
 extern void Sg__InitVM();
 extern void Sg__InitCache();
+extern void Sg__InitCharSet();
 
 /* stub files */
 extern void Sg__Init_sagittarius_compiler_procedure();
@@ -119,6 +120,7 @@ void Sg_Init()
   Sg__Initnull();
   /* Sg__InitFile(); */
   Sg__InitPair();
+  Sg__InitCharSet();
 
   Sg__Init_sagittarius();
   Sg__Init_sagittarius_vm();

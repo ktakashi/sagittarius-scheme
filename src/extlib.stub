@@ -107,6 +107,18 @@
 	    record-type?
 	    record-type-rtd
 	    record-type-rcd
+	    ;; charset
+	    char-set? char-set char-set-copy
+	    char-set-contains?
+	    ;; internal use
+	    %char-set-equal?
+	    %char-set<=?
+	    %char-set-add-chars!
+	    %char-set-add-range!
+	    %char-set-add!
+	    %char-set-complement!
+	    %char-set-ranges
+	    
 	    )
     (import :null)
   (decl-code
@@ -609,4 +621,71 @@
 
   (define-c-proc record-type-rcd (rt::RecordType) ::Object
     (result (SG_RECORD_TYPE_RCD rt)))
+
+  ;; charset
+  (define-c-proc char-set? (obj) ::boolean
+    (result (SG_CHAR_SET_P obj)))
+
+  (define-cgen-stmt char-set-add
+    ((_ cs chars)
+     (dispatch
+      `(dolist (ch ,chars)
+	 (unless (SG_CHARP ch)
+	   (wrong-type-of-argument-violation procedureName
+					     "character" ch))
+	 (Sg_CharSetAddRange ,cs (SG_CHAR_VALUE ch) (SG_CHAR_VALUE ch))))))
+
+  (define-c-proc char-set (:rest chars) ::Object
+    (let ((cs::SgCharSet* (SG_CHAR_SET (Sg_MakeEmptyCharSet))))
+      (char-set-add cs chars)
+      (result cs)))
+
+  (define-c-proc char-set-copy (cs::CharSet) ::Object
+    (result (Sg_CharSetCopy cs)))
+
+  (define-c-proc char-set-contains? (cs::CharSet ch) ::boolean
+    (unless (SG_CHARP ch)
+      (wrong-type-of-argument-violation procedureName
+					"character" ch))
+    (result (Sg_CharSetContains cs (SG_CHAR_VALUE ch))))
+
+  (define-c-proc %char-set-equal? (x::CharSet y::CharSet) ::boolean
+    (result (Sg_CharSetEq x y)))
+
+  (define-c-proc %char-set<=? (x::CharSet y::CharSet) ::boolean
+    (result (Sg_CharSetLe x y)))
+
+  (define-c-proc %char-set-add-chars! (cs::CharSet chars) ::Object
+    (char-set-add cs chars) (result cs))
+
+  (define-c-proc %char-set-add-range! (cs::CharSet from to) ::Object
+    (let ((f::long -1) (t::long -1))
+      (cond ((SG_INTP from) (set! f (SG_INT_VALUE from)))
+	    ((SG_CHARP from) (set! f (SG_CHAR_VALUE from))))
+      (when (< f 0)
+	(wrong-type-of-argument-violation procedureName
+					  "character or positive exact integer"
+					  from))
+      (when (> f SG_CHAR_MAX)
+	(assertion-violation procedureName
+			     "'from' argument out of range" from))
+      (cond ((SG_INTP to) (set! t (SG_INT_VALUE to)))
+	    ((SG_CHARP to) (set! t (SG_CHAR_VALUE to))))
+      (when (< t 0)
+	(wrong-type-of-argument-violation procedureName
+					  "character or positive exact integer"
+					  to))
+      (when (> t SG_CHAR_MAX)
+	(assertion-violation procedureName
+			     "'to' argument out of range" to))
+      (result (Sg_CharSetAddRange cs (SG_CHAR f) (SG_CHAR t)))))
+
+  (define-c-proc %char-set-add! (dst::CharSet src::CharSet) ::Object
+    (result (Sg_CharSetAdd dst src)))
+
+  (define-c-proc %char-set-complement! (cs::CharSet) ::Object
+    (result (Sg_CharSetComplement cs)))
+
+  (define-c-proc %char-set-ranges (cs::CharSet) ::Object
+    (result (Sg_CharSetRanges cs)))
 )

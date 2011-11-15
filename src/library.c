@@ -499,15 +499,16 @@ static void import_parents(SgLibrary *lib, SgLibrary *fromlib,
 	if (!SG_UNBOUNDP(renamed)) {
 	  tmp = Sg_Acons(renamed, SG_CDAR(slot2), tmp);
 	}
-      }
-      /* renamed export */
-      /* we always need to check renamed export for duplicated export.
-	 ex) on srfi-1 car is exported as car and first. */
-      spec = Sg_Assq(renamed, SG_CDR(exportSpec));
-      if (!SG_FALSEP(spec)) {
-	renamed = rename_key(SG_CADR(spec), prefix, imports, except);
-	if (!SG_UNBOUNDP(renamed)) {
-	  tmp = Sg_Acons(SG_CADR(spec), SG_CDAR(slot2), tmp);
+      } else {
+	/* renamed export */
+	/* we always need to check renamed export for duplicated export.
+	   ex) on srfi-1 car is exported as car and first. */
+	spec = Sg_Assq(renamed, SG_CADR(exportSpec));
+	if (!SG_FALSEP(spec)) {
+	  renamed = rename_key(SG_CADR(spec), prefix, imports, except);
+	  if (!SG_UNBOUNDP(renamed)) {
+	    tmp = Sg_Acons(SG_CADR(spec), SG_CDAR(slot2), tmp);
+	  }
 	}
       }
     }

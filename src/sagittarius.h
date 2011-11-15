@@ -1,4 +1,3 @@
-// -*- C -*-
 /*
  * sagittarius.h: Sagittarius scheme system header.
  *
@@ -48,6 +47,7 @@
 /* sagittarius scheme types */
 #include <sagittarius/bignum.h>
 #include <sagittarius/bytevector.h>
+#include <sagittarius/charset.h>
 #include <sagittarius/closure.h>
 #include <sagittarius/code.h>
 #include <sagittarius/codec.h>
@@ -76,6 +76,7 @@
 #include <sagittarius/system.h>
 #include <sagittarius/thread.h>
 #include <sagittarius/transcoder.h>
+#include <sagittarius/treemap.h>
 #include <sagittarius/unicode.h>
 #include <sagittarius/weak.h>
 #include <sagittarius/writer.h>

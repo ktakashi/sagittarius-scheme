@@ -165,6 +165,9 @@ struct SgSubrRec
     castArgumentType(index, tmp, var, library, SG_LIBRARYP, SG_LIBRARY); \
   }
 
+#define argumentAsCharSet(index, tmp, var)				\
+  castArgumentType(index, tmp, var, char-set, SG_CHAR_SET_P, SG_CHAR_SET)
+
 #define retrieveOptionalArguments(index, var)	\
   var = Sg_ArrayToList(args + (index), argc - (index));
 

@@ -1,3 +1,11 @@
+2011-11-15  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/charset.c :
+	[Issue 4] Added builtin charset.
+
+	* src/treemap.c, src/rbtree.c :
+	[Issue 3] Added treemap interface and implementation.
+
 2011-11-13  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/library.c (Sg_ImportLibraryFullSpec):

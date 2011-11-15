@@ -268,6 +268,7 @@ typedef struct SgSubrRec     	   SgSubr;
 typedef struct SgSymbolRec     	   SgSymbol;
 typedef struct SgSyntaxRec     	   SgSyntax;
 typedef struct SgTranscoderRec 	   SgTranscoder;
+typedef struct SgTreeMapRec        SgTreeMap;
 typedef struct SgWriteContextRec   SgWriteContext;
 typedef struct SgValuesRec         SgValues;
 typedef struct SgVectorRec         SgVector;
@@ -325,11 +326,8 @@ enum {
 
   /* for future, but we need this */
   TC_USER_DEF,
-
   TC_GLOC,
-
-  /* system header */
-  TC_DISPLAY,
+  TC_TREEMAP,
 
   TC_MASKBITS = 0x3f
 };
@@ -434,6 +432,8 @@ typedef enum  {
 #define SG_CHARP(obj)      (SG_TAG4(obj) == 2)
 #define SG_CHAR_VALUE(obj) SG_CHAR(((unsigned long)SG_WORD(obj)) >> 8)
 #define SG_MAKE_CHAR(obj)  SG_OBJ(((uintptr_t)(obj) << 8) + 0x02)
+/* SgChar is typedef of int32_t, so max value is 24 bits  */
+#define SG_CHAR_MAX        (0xffffff)
 
 /* utility for vector, string, etc
    TODO move somewhere

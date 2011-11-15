@@ -106,32 +106,40 @@ void Sg_IOError(SgIOErrorType type, SgObject who, SgObject msg,
     Sg_IOWriteError(who, msg, port);
     break;
   case SG_IO_FILE_NOT_EXIST_ERROR:
-    g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-file-does-not-exist-error"), SG_FALSE);
+    g = Sg_FindBinding(SG_INTERN("(core errors)"),
+		       SG_INTERN("raise-i/o-file-does-not-exist-error"),
+		       SG_FALSE);
     proc = SG_GLOC_GET(g);
     Sg_Apply3(proc, who, msg, file);
     break;
   case SG_IO_FILE_ALREADY_EXIST_ERROR:
-    g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-file-already-exists-error"), SG_FALSE);
+    g = Sg_FindBinding(SG_INTERN("(core errors)"),
+		       SG_INTERN("raise-i/o-file-already-exists-error"),
+		       SG_FALSE);
     proc = SG_GLOC_GET(g);
     Sg_Apply3(proc, who, msg, file);
     break;
   case SG_IO_DECODE_ERROR:
-    g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-decoding-error"), SG_FALSE);
+    g = Sg_FindBinding(SG_INTERN("(core errors)"),
+		       SG_INTERN("raise-i/o-decoding-error"), SG_FALSE);
     proc = SG_GLOC_GET(g);
     Sg_Apply3(proc, who, msg, port);
     break;
   case SG_IO_ENCODE_ERROR:
-    g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-encoding-error"), SG_FALSE);
+    g = Sg_FindBinding(SG_INTERN("(core errors)"),
+		       SG_INTERN("raise-i/o-encoding-error"), SG_FALSE);
     proc = SG_GLOC_GET(g);
     Sg_Apply4(proc, who, msg, port, SG_MAKE_CHAR('?'));
     break;
   case SG_IO_FILENAME_ERROR:
-    g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-filename-error"), SG_FALSE);
+    g = Sg_FindBinding(SG_INTERN("(core errors)"),
+		       SG_INTERN("raise-i/o-filename-error"), SG_FALSE);
     proc = SG_GLOC_GET(g);
     Sg_Apply4(proc, who, msg, file, SG_NIL);
     break;
   default:
-    g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-error"), SG_FALSE);
+    g = Sg_FindBinding(SG_INTERN("(core errors)"),
+		       SG_INTERN("raise-i/o-error"), SG_FALSE);
     proc = SG_GLOC_GET(g);
     Sg_Apply3(proc, who, msg, port);
     break;
@@ -140,7 +148,8 @@ void Sg_IOError(SgIOErrorType type, SgObject who, SgObject msg,
 
 void Sg_IOReadError(SgObject who, SgObject msg, SgObject port)
 {
-  SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-read-error"), SG_FALSE);
+  SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"),
+			     SG_INTERN("raise-i/o-read-error"), SG_FALSE);
   SgObject proc;
   if (SG_FALSEP(SG_OBJ(g))) {
     Sg_Panic("Initialization was failed.");
@@ -151,7 +160,8 @@ void Sg_IOReadError(SgObject who, SgObject msg, SgObject port)
 
 void Sg_IOWriteError(SgObject who, SgObject msg, SgObject port)
 {
-  SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("raise-i/o-write-error"), SG_FALSE);
+  SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"),
+			     SG_INTERN("raise-i/o-write-error"), SG_FALSE);
   SgObject proc;
   if (SG_FALSEP(SG_OBJ(g))) {
     Sg_Panic("Initialization was failed.");
@@ -162,7 +172,9 @@ void Sg_IOWriteError(SgObject who, SgObject msg, SgObject port)
 
 void Sg_AssertionViolation(SgObject who, SgObject message, SgObject irritants)
 {
-  SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("assertion-violation"), SG_FALSE);
+  SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"),
+			     SG_INTERN("assertion-violation"),
+			     SG_FALSE);
   SgObject proc;
   if (SG_FALSEP(SG_OBJ(g))) {
     Sg_Panic("Initialization was failed.");
@@ -171,9 +183,12 @@ void Sg_AssertionViolation(SgObject who, SgObject message, SgObject irritants)
   Sg_Apply3(proc, who, message, irritants);
 }
 
-void Sg_ImplementationRestrictionViolation(SgObject who, SgObject message, SgObject irritants)
+void Sg_ImplementationRestrictionViolation(SgObject who, SgObject message,
+					   SgObject irritants)
 {
-  SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("implementation-restriction-violation"), SG_FALSE);
+  SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"),
+			     SG_INTERN("implementation-restriction-violation"), 
+			     SG_FALSE);
   SgObject proc = SG_GLOC_GET(g);
   Sg_Apply3(proc, who, message, irritants);
 }
@@ -181,30 +196,36 @@ void Sg_ImplementationRestrictionViolation(SgObject who, SgObject message, SgObj
 void Sg_WrongTypeOfArgumentViolation(SgObject who, SgObject requiredType,
 				     SgObject gotValue, SgObject irritants)
 {
-  SgObject message = Sg_Sprintf(UC("%S required, but got %S"), requiredType, gotValue);
+  SgObject message = Sg_Sprintf(UC("%S required, but got %S"),
+				requiredType, gotValue);
   Sg_AssertionViolation(who, message, irritants);
 }
 
 void Sg_WrongNumberOfArgumentsViolation(SgObject who, int requiredCounts,
 					int gotCounts, SgObject irritants)
 {
-  SgObject message = Sg_Sprintf(UC("wrong number of arguments (required %d, but got %d)"),
+  SgObject message = Sg_Sprintf(UC("wrong number of arguments"
+				   " (required %d, but got %d)"),
 				requiredCounts, gotCounts);
   Sg_AssertionViolation(who, message, irritants);
 }
 
 void Sg_WrongNumberOfArgumentsAtLeastViolation(SgObject who, int requiredCounts,
-					       int gotCounts, SgObject irritants)
+					       int gotCounts,
+					       SgObject irritants)
 {
-  SgObject message = Sg_Sprintf(UC("wrong number of arguments (required at least %d, but got %d)"),
+  SgObject message = Sg_Sprintf(UC("wrong number of arguments"
+				   " (required at least %d, but got %d)"),
 				requiredCounts, gotCounts);
   Sg_AssertionViolation(who, message, irritants);
 }
 
-void Sg_WrongNumberOfArgumentsBetweenViolation(SgObject who, int startCounts, int endCounts,
-					       int gotCounts, SgObject irritants)
+void Sg_WrongNumberOfArgumentsBetweenViolation(SgObject who, int startCounts,
+					       int endCounts, int gotCounts,
+					       SgObject irritants)
 {
-  SgObject message = Sg_Sprintf(UC("wrong number of arguments (required beween %d and %d, but got %d)"),
+  SgObject message = Sg_Sprintf(UC("wrong number of arguments"
+				   " (required beween %d and %d, but got %d)"),
 				startCounts, endCounts, gotCounts);
   Sg_AssertionViolation(who, message, irritants);
 }
