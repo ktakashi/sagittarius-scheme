@@ -1,5 +1,4 @@
-/* -*- C -*- */
-/*
+/*                                                        -*- coding: utf-8; -*-
  * charset.c
  *
  *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
@@ -353,8 +352,9 @@ void Sg__InitCharSet()
   SgCharSet *empty = Sg_MakeEmptyCharSet(); /* for complement */
   install_charsets();
 
+  /* charset can not be serialized in cache, so it should not be constant */
 #define insert_binding(name, value)			\
-  Sg_MakeBinding(lib, SG_INTERN(#name), (value), TRUE);
+  Sg_MakeBinding(lib, SG_INTERN(#name), (value), FALSE);
   /* srfi-14 standard charsets */
   insert_binding(char-set:lower-case  , CS(SG_CHAR_SET_LOWER));
   insert_binding(char-set:upper-case  , CS(SG_CHAR_SET_UPPER));
