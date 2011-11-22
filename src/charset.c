@@ -327,6 +327,8 @@ static void install_charsets()
     if (isupper(code)) MASK_SET(CS(SG_CHAR_SET_UPPER), code);
     if (isxdigit(code)) MASK_SET(CS(SG_CHAR_SET_XDIGIT), code);
     if (isascii(code)) MASK_SET(CS(SG_CHAR_SET_ASCII), code);
+    if (isalnum(code) || code == '_')
+      MASK_SET(CS(SG_CHAR_SET_WORD), code);
     if (code == ' ' || code == '\t')
       MASK_SET(CS(SG_CHAR_SET_BLANK), code);
     
@@ -371,6 +373,20 @@ void Sg__InitCharSet()
   insert_binding(char-set:ascii       , CS(SG_CHAR_SET_ASCII));
   insert_binding(char-set:empty       , Sg_MakeEmptyCharSet());
   insert_binding(char-set:full        , Sg_CharSetComplement(empty));
+
+  /* for regexp */
+  insert_binding(:alnum:  , CS(SG_CHAR_SET_ALNUM));
+  insert_binding(:alpha:  , CS(SG_CHAR_SET_ALPHA));
+  insert_binding(:blank:  , CS(SG_CHAR_SET_BLANK));
+  insert_binding(:cntrl:  , CS(SG_CHAR_SET_CNTRL));
+  insert_binding(:digit:  , CS(SG_CHAR_SET_DIGIT));
+  insert_binding(:graph:  , CS(SG_CHAR_SET_GRAPH));
+  insert_binding(:lower:  , CS(SG_CHAR_SET_LOWER));
+  insert_binding(:print:  , CS(SG_CHAR_SET_PRINT));
+  insert_binding(:punct:  , CS(SG_CHAR_SET_PUNCT));
+  insert_binding(:space:  , CS(SG_CHAR_SET_SPACE));
+  insert_binding(:upper:  , CS(SG_CHAR_SET_UPPER));
+  insert_binding(:xdigit:  , CS(SG_CHAR_SET_XDIGIT));
 
   insert_binding(*char-code-max*      , SG_MAKE_INT(SG_CHAR_MAX));
 }

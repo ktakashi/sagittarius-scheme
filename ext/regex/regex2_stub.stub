@@ -1,0 +1,9 @@
+;; -*- mode: scheme; coding: utf-8; -*-
+(library (sagittarius regex2 impl)
+    (export compile-regex)
+    (import :none)
+
+  (define-c-proc compile-regex (p::String flags::fixnum parse_only) ::Object
+    (result (Sg_CompileRegex p flags (not (SG_FALSEP parse_only)))))
+
+)
