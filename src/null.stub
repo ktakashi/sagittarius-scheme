@@ -632,7 +632,7 @@
 	     (result r)))))
 
   (define-c-proc *. (:rest rest) ::Object
-    (let ((a (Sg_MakeFlonum 0.0)))
+    (let ((a (Sg_MakeFlonum 1.0)))
       (dolist (x rest)
 	(check-number *. x)
 	(set! a (Sg_Mul a (Sg_Inexact x))))

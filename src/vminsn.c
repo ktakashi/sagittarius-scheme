@@ -987,7 +987,7 @@ CASE(VEC_REF) {
   }
 ;
   if ((SG_INT_VALUE(AC(vm)) >= SG_VECTOR_SIZE(INDEX(SP(vm), 0)) || SG_INT_VALUE(AC(vm)) < 0)) {
-    Sg_AssertionViolation(SG_INTERN("vector-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(SG_INT_VALUE(AC(vm))));
+    Sg_AssertionViolation(SG_INTERN("vector-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_LIST2(INDEX(SP(vm), 0), SG_MAKE_INT(SG_INT_VALUE(AC(vm)))));
     return SG_UNDEF;
 ;
   }
@@ -1011,7 +1011,7 @@ CASE(VEC_SET) {
   }
 ;
   if ((SG_INT_VALUE(INDEX(SP(vm), 0)) >= SG_VECTOR_SIZE(INDEX(SP(vm), 1)) || SG_INT_VALUE(INDEX(SP(vm), 0)) < 0)) {
-    Sg_AssertionViolation(SG_INTERN("vector-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(SG_INT_VALUE(INDEX(SP(vm), 0))));
+    Sg_AssertionViolation(SG_INTERN("vector-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_LIST2(INDEX(SP(vm), 1), SG_MAKE_INT(SG_INT_VALUE(INDEX(SP(vm), 0)))));
     return SG_UNDEF;
 ;
   }
