@@ -55,14 +55,12 @@ typedef struct SgPatternRec
   SG_META_HEADER;
   SgObject pattern;		/* regex pattern: string or ast */
   SgObject ast;			/* parsed ast */
-  int      flags;		/* flags, details are above */
-  /* internal */
-  SgObject namedGroups;		/* alist from capture names to index */
-  SgObject groupNames;		/* alist from capture index to names */
-  int      captureCount;	/* number of capturing groups */
-  int      isOnePass;		/* can use onepass search */
-  prog_t  *prog;
-  prog_t  *rprog;
+  int      flags;		/* flags, details are above.
+				   this flags are initial condition, if regex
+				   has (?imx:...) in its body, matcher
+				   overwrites the flags in runtime.*/
+  SgObject root;		/* optimized ast */
+  int      groupCount;		/* captured group count */
 } SgPattern;
 
 SG_DECLARE_META_OBJ(Sg_PatternMeta);
@@ -70,8 +68,23 @@ SG_DECLARE_META_OBJ(Sg_PatternMeta);
 #define SG_PATTERN(obj)   ((SgPattern *)obj)
 #define SG_PATTERN_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_PATTERN)
 
+
+
+typedef struct SgMatcherRec
+{
+  SG_META_HEADER;
+  SgPattern *pattern;
+  SgString  *text;
+} SgMatcher;
+
+SG_DECLARE_META_OBJ(Sg_MatcherMeta);
+#define SG_META_MATCHER   (&Sg_MatcherMeta)
+#define SG_MATCHER(obj)   ((SgMatcher *)obj)
+#define SG_MATCHER_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_MATCHER)
+
+SG_CDECL_BEGIN
 SgObject Sg_CompileRegex(SgString *pattern, int flags, int parseOnly);
 
-/* matcher comes later */
+SG_CDECL_END
 
 #endif /* SAGITTARIUS_REGEX_H_ */

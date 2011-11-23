@@ -32,48 +32,47 @@
 #include "regex2.h"
 #include <sagittarius/extend.h>
 
-static SgSymbol *consant_symbol_table[40] = {NULL};
+static SgSymbol *consant_symbol_table[39] = {NULL};
 
-#define SYM_VOID    (consant_symbol_table[0])
-#define SYM_ALTER   (consant_symbol_table[1])
-#define SYM_NON_GREEDY_REP  (consant_symbol_table[2])
-#define SYM_GREEDY_REP      (consant_symbol_table[3])
-#define SYM_CLOSE_PAREN     (consant_symbol_table[4])
-#define SYM_VERTICAL_BAR    (consant_symbol_table[5])
-#define SYM_QUESTION_MARK   (consant_symbol_table[6])
-#define SYM_EVERYTHING      (consant_symbol_table[7])
-#define SYM_END_ANCHOR      (consant_symbol_table[8])
-#define SYM_INVERTED_CHAR_CLASS  (consant_symbol_table[9])
-#define SYM_MODELESS_START_ANCHOR (consant_symbol_table[10])
-#define SYM_MODELESS_END_ANCHOR   (consant_symbol_table[11])
-#define SYM_MODELESS_END_ANCHOR_NO_NEWLINE (consant_symbol_table[12])
-#define SYM_START_ANCHOR (consant_symbol_table[13])
-#define SYM_BACKREF      (consant_symbol_table[14])
-#define SYM_WORD_BOUNDARY (consant_symbol_table[15])
-#define SYM_NON_WORD_BOUNDARY (consant_symbol_table[16])
-#define SYM_BRANCH       (consant_symbol_table[17])
-#define SYM_FLAGS        (consant_symbol_table[18])
-#define SYM_OPEN_PAREN   (consant_symbol_table[19])
-#define SYM_OPEN_PAREN_PAREN (consant_symbol_table[20])
-#define SYM_OPEN_PAREN_GREATER (consant_symbol_table[21])
-#define SYM_OPEN_PAREN_EQUAL (consant_symbol_table[22])
-#define SYM_OPEN_PAREN_LESS_EXCLAMATION (consant_symbol_table[23])
-#define SYM_OPEN_PAREN_COLON (consant_symbol_table[24])
-#define SYM_OPEN_PAREN_EXCLAMATION (consant_symbol_table[25])
-#define SYM_OPEN_PAREN_LESS_LETTER (consant_symbol_table[26])
-#define SYM_REGISTER  (consant_symbol_table[27])
-#define SYM_STANDALONE (consant_symbol_table[28])
-#define SYM_LOOKAHEAD (consant_symbol_table[29])
-#define SYM_OPEN_PAREN_LESS_EQUAL (consant_symbol_table[30])
-#define SYM_CASE_INSENSITIVE (consant_symbol_table[31])
-#define SYM_CASE_SENSITIVE (consant_symbol_table[32])
-#define SYM_MULTI_LINE_MODE  (consant_symbol_table[33])
-#define SYM_NOT_MULTI_LINE_MODE (consant_symbol_table[34])
-#define SYM_SINGLE_LINE_MODE (consant_symbol_table[35])
-#define SYM_NOT_SINGLE_LINE_MODE (consant_symbol_table[36])
-#define SYM_SEQUENCE (consant_symbol_table[37])
-#define SYM_LOOKBHIND (consant_symbol_table[38])
-#define SYM_FLAGED_SEQUENCE (consant_symbol_table[39])
+#define SYM_ALTER           	  	   (consant_symbol_table[0])
+#define SYM_NON_GREEDY_REP  	  	   (consant_symbol_table[1])
+#define SYM_GREEDY_REP      	  	   (consant_symbol_table[2])
+#define SYM_CLOSE_PAREN     	  	   (consant_symbol_table[3])
+#define SYM_VERTICAL_BAR    	  	   (consant_symbol_table[4])
+#define SYM_QUESTION_MARK   	  	   (consant_symbol_table[5])
+#define SYM_EVERYTHING      	  	   (consant_symbol_table[6])
+#define SYM_END_ANCHOR      	  	   (consant_symbol_table[7])
+#define SYM_INVERTED_CHAR_CLASS   	   (consant_symbol_table[8])
+#define SYM_MODELESS_START_ANCHOR 	   (consant_symbol_table[9])
+#define SYM_MODELESS_END_ANCHOR   	   (consant_symbol_table[10])
+#define SYM_MODELESS_END_ANCHOR_NO_NEWLINE (consant_symbol_table[11])
+#define SYM_START_ANCHOR      		   (consant_symbol_table[12])
+#define SYM_BACKREF           		   (consant_symbol_table[13])
+#define SYM_WORD_BOUNDARY     		   (consant_symbol_table[14])
+#define SYM_NON_WORD_BOUNDARY 		   (consant_symbol_table[15])
+#define SYM_BRANCH             		   (consant_symbol_table[16])
+#define SYM_FLAGS              		   (consant_symbol_table[17])
+#define SYM_OPEN_PAREN         		   (consant_symbol_table[18])
+#define SYM_OPEN_PAREN_PAREN   		   (consant_symbol_table[19])
+#define SYM_OPEN_PAREN_GREATER 		   (consant_symbol_table[20])
+#define SYM_OPEN_PAREN_EQUAL 		   (consant_symbol_table[21])
+#define SYM_OPEN_PAREN_LESS_EXCLAMATION    (consant_symbol_table[22])
+#define SYM_OPEN_PAREN_COLON 	   	   (consant_symbol_table[23])
+#define SYM_OPEN_PAREN_EXCLAMATION 	   (consant_symbol_table[24])
+#define SYM_OPEN_PAREN_LESS_LETTER 	   (consant_symbol_table[25])
+#define SYM_REGISTER   		  	   (consant_symbol_table[26])
+#define SYM_STANDALONE 		  	   (consant_symbol_table[27])
+#define SYM_LOOKAHEAD  		  	   (consant_symbol_table[28])
+#define SYM_OPEN_PAREN_LESS_EQUAL 	   (consant_symbol_table[29])
+#define SYM_CASE_INSENSITIVE 		   (consant_symbol_table[30])
+#define SYM_CASE_SENSITIVE   		   (consant_symbol_table[31])
+#define SYM_MULTI_LINE_MODE  		   (consant_symbol_table[32])
+#define SYM_NOT_MULTI_LINE_MODE 	   (consant_symbol_table[33])
+#define SYM_SINGLE_LINE_MODE 	 	   (consant_symbol_table[34])
+#define SYM_NOT_SINGLE_LINE_MODE 	   (consant_symbol_table[35])
+#define SYM_SEQUENCE  	    	 	   (consant_symbol_table[36])
+#define SYM_LOOKBHIND 	    	 	   (consant_symbol_table[37])
+#define SYM_FLAGED_SEQUENCE 	 	   (consant_symbol_table[38])
 
 /* convenient macros */
 #define has(p, f) (((p)->flags & (f)) != 0)
@@ -84,6 +83,7 @@ static SgSymbol *consant_symbol_table[40] = {NULL};
 typedef struct lexer_ctx_rec_t
 {
   SgChar *str;
+  SgChar *ostr;			/* original string for error message */
   int     len;
   int     reg;
   int     pos;
@@ -104,22 +104,79 @@ typedef struct lexer_ctx_rec_t
 #define PUSH(v, l) ((l) = Sg_Cons((v), (l)))
 #define POP(l)     ((l) = SG_CDR(l))
 
+static void remove_qe_quoting(lexer_ctx_t *ctx)
+{
+  const int plen = ctx->len;
+  int i = 0, j, inQuote = TRUE;
+  SgChar *newtemp;
+  while (i < plen - 1) {
+    if (ctx->str[i] != '\\') i += 1;
+    else if (ctx->str[i+1] != 'Q') i += 2;
+    else break;
+  }
+  if (i >= plen - 1) return;	/* no \Q sequence found */
+  j = i;
+  i += 2;
+  newtemp = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar)*(j+2*(plen-i)+2));
+  memcpy(newtemp, ctx->str, j*sizeof(SgChar));
+  while (i < plen) {
+    SgChar c = ctx->str[i++];
+    if (!isascii(c) || isalnum(c)) {
+      newtemp[j++] = c;
+    } else if (c != '\\') {
+      if (inQuote) newtemp[j++] = '\\';
+      newtemp[j++] = c;
+    } else if (inQuote) {
+      if (ctx->str[i] == 'E') {
+	i++;
+	inQuote = FALSE;
+      } else {
+	newtemp[j++] = '\\';
+	newtemp[j++] = '\\';
+      }
+    } else {
+      if (ctx->str[i] == 'Q') {
+	i++;
+	inQuote = TRUE;
+      } else {
+	newtemp[j++] = c;
+	if (i != plen) newtemp[j++] = ctx->str[i++];
+      }
+    }
+  }
+  ctx->len = j;
+  ctx->str = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar)*j);
+  memcpy(ctx->str, newtemp, sizeof(SgChar)*j);
+  newtemp = NULL;		/* gc friendliness */
+}
+
 static void init_lexer(lexer_ctx_t *ctx, SgString *str, int flags)
 {
-  ctx->str = SG_STRING_VALUE(str);
+  ctx->ostr = ctx->str = SG_STRING_VALUE(str);
   ctx->len = SG_STRING_SIZE(str);
   ctx->reg = ctx->pos = 0;
   ctx->last_pos = SG_NIL;
   ctx->flags = flags;
   ctx->reg_num = 1;		/* 0 is the whole input string */
   ctx->reg_names = SG_NIL;
+  if (!has(ctx, SG_LITERAL)) {
+    /* remove \Q \E quoting now */
+    remove_qe_quoting(ctx);
+  }
 }
 
 /* error */
-static void raise_syntax_error(int pos, const SgChar *str)
+static void raise_syntax_error(lexer_ctx_t *ctx, int pos, const SgChar *str)
 {
   /* TODO create regex parser error or so */
-  Sg_Error(UC("syntax error: %s, [posision %d]"), str, pos);
+  Sg_Error(UC("bad regex syntax in %s: %s, [posision %d]"),
+	   ctx->ostr, str, pos);
+}
+
+/* null sequence */
+static SgObject null_seq()
+{
+  return SG_LIST1(SYM_SEQUENCE);
 }
 
 /* lexer functions */
@@ -141,7 +198,8 @@ static SgChar next_char_non_extended(lexer_ctx_t *ctx);
    which is interpreted as 0. error-pos is the position where
    the corresponding number started within the regex string.
  */
-static SgObject make_char_from_code(SgObject number, int error_pos)
+static SgObject make_char_from_code(lexer_ctx_t *ctx, SgObject number,
+				    int error_pos)
 {
   int code;
   if (SG_FALSEP(number)) code = 0;
@@ -150,7 +208,7 @@ static SgObject make_char_from_code(SgObject number, int error_pos)
     code = 0xFF & SG_INT_VALUE(number);
   }
   if (code <= SG_CHAR_MAX) return SG_MAKE_CHAR(code);
-  raise_syntax_error(error_pos,
+  raise_syntax_error(ctx, error_pos,
 		     UC("No character of given code"));
   return SG_UNDEF;		/* dummy */
 }
@@ -167,16 +225,17 @@ static SgObject unescape_char(lexer_ctx_t *ctx)
   int error_pos;
   SgObject n;
   if (END_OF_STRING_P(ctx)) {
-    raise_syntax_error(-1, UC("String ends with backslash."));
+    raise_syntax_error(ctx, -1, UC("String ends with backslash."));
   }
   chr = next_char_non_extended(ctx);
   switch (chr) {
-  case 'E': return SYM_VOID;
+    /* it's already resolved. */
+    /* case 'E': return SYM_VOID; */
   case 'c':
     /* \cx means control-x in Perl */
     nc = next_char_non_extended(ctx);
     if (nc == EOF) {
-      raise_syntax_error(ctx->pos,
+      raise_syntax_error(ctx, ctx->pos,
 			 UC("Character missing after '\\c'."));
     }
     return SG_MAKE_CHAR(Sg_CharUpCase(nc) | 0x40);
@@ -184,12 +243,12 @@ static SgObject unescape_char(lexer_ctx_t *ctx)
     /* \x should be followed by hexadecimal char code, two digis or less */
     error_pos = --ctx->pos;
     n = get_number(ctx, 16, 2, TRUE);
-    return make_char_from_code(n, error_pos);
+    return make_char_from_code(ctx, n, error_pos);
   case '0': case '1': case '2': case '3': case '4':
   case '5': case '6': case '7': case '8': case '9':
     error_pos = --ctx->pos;
     n = get_number(ctx, 8, 3, FALSE);
-    return make_char_from_code(n, error_pos);
+    return make_char_from_code(ctx, n, error_pos);
   case 't': return SG_MAKE_CHAR('\t');
   case 'n': return SG_MAKE_CHAR('\n');
   case 'r': return SG_MAKE_CHAR('\r');
@@ -244,7 +303,7 @@ static SgChar next_char(lexer_ctx_t *ctx)
 	while (skip_char != EOF && skip_char != ')') {
 	  skip_char = next_char_non_extended(ctx);
 	  if (skip_char == EOF) {
-	    raise_syntax_error(error_pos,
+	    raise_syntax_error(ctx, error_pos,
 			       UC("Comment group not closed"));
 	  }
 	}
@@ -319,14 +378,14 @@ static SgObject read_char_property(lexer_ctx_t *ctx, SgChar first)
     if (ctx->len-ctx->pos <= 2 ||
 	!(ctx->str[ctx->pos] == 'I' &&
 	  (ctx->str[ctx->pos + 1] == 's' || ctx->str[ctx->pos + 1] == 'n'))) {
-      raise_syntax_error(ctx->pos,
+      raise_syntax_error(ctx, ctx->pos,
 			 UC("Invalid character property name."));
     }
 
     pos = ustrchr(ctx->str+ctx->pos+2, '}', ctx->len-ctx->pos-2);
     if (pos == -1) {
       /* no closing '}' */
-      raise_syntax_error(ctx->pos,
+      raise_syntax_error(ctx, ctx->pos,
 			 UC("Character property does not have '}'"));
     }
     /* we convert property name with prefix 'char-set:' then we can look up
@@ -338,7 +397,7 @@ static SgObject read_char_property(lexer_ctx_t *ctx, SgChar first)
     es = Sg_StringDownCase(es);
     gloc = Sg_FindBinding(Sg_VM()->currentLibrary, Sg_Intern(es), SG_FALSE);
     if (SG_FALSEP(gloc) || !SG_CHAR_SET_P(SG_GLOC_GET(gloc))) {
-      raise_syntax_error(ctx->pos,
+      raise_syntax_error(ctx, ctx->pos,
 			 UC("Given character property is not supported"));
     }
     ctx->pos += pos+3;
@@ -390,7 +449,7 @@ static SgChar read_charset_xdigits(lexer_ctx_t *ctx, int ndigs, int key)
   ASSERT(ndigs <= 8);
   r = read_xdigit(ctx, ndigs, buf, &nread);
   if (r == -1) {
-    raise_syntax_error(ctx->pos,
+    raise_syntax_error(ctx, ctx->pos,
 		       UC("Character class contains invalid escaped character")
 		       );
   }
@@ -407,14 +466,14 @@ static SgObject read_defined_charset(lexer_ctx_t *ctx)
   /* first check the property has 'Is' or 'In. */
   if (ctx->len-ctx->pos < 2 ||
       ctx->str[0] != ':') {
-    raise_syntax_error(ctx->pos,
+    raise_syntax_error(ctx, ctx->pos,
 		       UC("Invalid character set name."));
   }
   /* skip first ':' */
   pos = ustrchr(ctx->str+ctx->pos+1, ':', ctx->len - ctx->pos-1);
   if (pos == -1) {
     /* no closing ':' */
-    raise_syntax_error(ctx->pos,
+    raise_syntax_error(ctx, ctx->pos,
 		       UC("Invalid charset name. You forgot ':'"));
   }
   /* we convert property name with prefix 'char-set:' then we can look up
@@ -426,7 +485,7 @@ static SgObject read_defined_charset(lexer_ctx_t *ctx)
   es = Sg_StringAppendC(SG_STRING(es), ctx->str+ctx->pos, pos+1);
   gloc = Sg_FindBinding(Sg_VM()->currentLibrary, Sg_Intern(es), SG_FALSE);
   if (SG_FALSEP(gloc) || !SG_CHAR_SET_P(SG_GLOC_GET(gloc))) {
-    raise_syntax_error(ctx->pos,
+    raise_syntax_error(ctx, ctx->pos,
 		       UC("Given character set is not supported"));
   }
   ctx->pos += pos;
@@ -581,7 +640,7 @@ static void unget_token(lexer_ctx_t *ctx)
 static SgObject fail(lexer_ctx_t *ctx)
 {
   if (SG_NULLP(ctx->last_pos)) {
-    raise_syntax_error(-1,
+    raise_syntax_error(ctx, -1,
 		       UC("last-pos stack of lexer is empty"));
   }
   ctx->pos = SG_INT_VALUE(SG_CAR(ctx->last_pos));
@@ -751,7 +810,7 @@ static SgObject parse_register_name_aux(lexer_ctx_t *ctx)
   int end_name = ustrchr(ctx->str+ctx->pos, '>', ctx->len-ctx->pos), i;
   SgObject s;
   if (end_name < 0) {
-    raise_syntax_error(ctx->pos - 1,
+    raise_syntax_error(ctx, ctx->pos - 1,
 		       UC("Opening #\\< in named group has no closing #\\>."));
   }
   s = Sg_ReserveString(end_name, 0);
@@ -760,7 +819,7 @@ static SgObject parse_register_name_aux(lexer_ctx_t *ctx)
     if (isalnum(c) || c == '-') {
       SG_STRING_VALUE_AT(s, i) = c;
     } else {
-      raise_syntax_error(ctx->pos,
+      raise_syntax_error(ctx, ctx->pos,
 			 UC("Invalid character in named register group."));
     }
   }
@@ -784,15 +843,28 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
 	 special meaning and get translated into tokens immediately
        */
     case ')': return SYM_CLOSE_PAREN;
-    case '|': return SYM_VERTICAL_BAR;
-    case '?': return SYM_QUESTION_MARK;
+    case '|':
+      /* as far as I know I've never seen this pattern, and this must be
+         error.*/
+      raise_syntax_error(ctx, SG_INT_VALUE(SG_CAR(ctx->last_pos)),
+			 UC("Please report this regex to the developper."));
+      return SG_UNDEF;		/* dummy */
+      /* return SYM_VERTICAL_BAR; */
+    case '?':
+      /* well this question mark must be error.
+	 or should this be literal character?
+       */
+      /* return SYM_QUESTION_MARK; */
+      raise_syntax_error(ctx, SG_INT_VALUE(SG_CAR(ctx->last_pos)),
+			 UC("Quantifier('?') follows nothing in regex."));
+      return SG_UNDEF;		/* dummy */
     case '.': return SYM_EVERYTHING;
     case '^': return SYM_START_ANCHOR;
     case '$': return SYM_END_ANCHOR;
     case '+': case '*':
       /* quantifiers will always be consumed by get_quantifier, they must not
 	 appear here */
-      raise_syntax_error(ctx->pos - 1,
+      raise_syntax_error(ctx, ctx->pos - 1,
 			 UC("Quanrifier '+' or '*' not allowed."));
       return SG_FALSE;		/* dummy */
     case '{':
@@ -803,7 +875,7 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
 	SgObject last = ctx->last_pos;
 	unget_token(ctx);
 	if (!SG_FALSEP(get_quantifier(ctx, NULL))) {
-	  raise_syntax_error(SG_INT_VALUE(SG_CAR(last)),
+	  raise_syntax_error(ctx, SG_INT_VALUE(SG_CAR(last)),
 			     UC("Quanrifier not allowed"));
 	}
 	ctx->pos = here;
@@ -848,7 +920,7 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
 	    }
 	  }
 	  if (SG_FALSEP(num)) {
-	    raise_syntax_error(pos,
+	    raise_syntax_error(ctx, pos,
 			       UC("Non defined named register is refered."));
 	  }
 	  return SG_LIST2(SYM_BACKREF, num);	
@@ -874,7 +946,8 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
 	    /* \10 and higher are treaded as octal character codes if we haven't
 	       opened that much register groups yet. */
 	    ctx->pos = oldpos;
-	    return make_char_from_code(get_number(ctx, 8, 3, FALSE), oldpos);
+	    return make_char_from_code(ctx, 
+				       get_number(ctx, 8, 3, FALSE), oldpos);
 	  } else {
 	    return SG_LIST2(SYM_BACKREF, num);
 	  }
@@ -883,7 +956,7 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
 	/* this always means an octal character code */
 	{
 	  int oldpos = --ctx->pos;
-	  return make_char_from_code(get_number(ctx, 8, 3, FALSE), oldpos);
+	  return make_char_from_code(ctx, get_number(ctx, 8, 3, FALSE), oldpos);
 	}
       case 'P': case 'p':
 	/* might be a named property */
@@ -904,15 +977,16 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
 	/* modifiers are only allowed if a colon or closing parenthesis are
 	   following. */
 	if (!SG_NULLP(flags) && !(nc == ':' || nc == ')')) {
-	  raise_syntax_error(SG_INT_VALUE(SG_CAR(ctx->last_pos)),
+	  raise_syntax_error(ctx, SG_INT_VALUE(SG_CAR(ctx->last_pos)),
 			     UC("Sequence not recoginzed"));
 	}
 	switch (nc) {
-	case EOF: raise_syntax_error(-1, UC("End of string following '(?'."));
+	case EOF: raise_syntax_error(ctx, -1,
+				     UC("End of string following '(?'."));
 	case ')':
 	  /* an empty group except for the flags */
 	  if (!SG_NULLP(flags)) return Sg_Cons(SYM_FLAGS, flags);
-	  return SYM_VOID;
+	  return null_seq();
 	/* branch */
 	case '(': return SYM_OPEN_PAREN_PAREN;
 	/* standalone */
@@ -938,16 +1012,16 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
 	    case '!': return SYM_OPEN_PAREN_LESS_EXCLAMATION; /* negative */
 	    case ')':
 	      /* Perl allows "(?<" and treats it like a null string*/
-	      return SYM_VOID;
+	      return null_seq();
 	    case EOF:
-	      raise_syntax_error(-1, UC("End of string following '(?<'."));
+	      raise_syntax_error(ctx, -1, UC("End of string following '(?<'."));
 	    default:
-	      raise_syntax_error(ctx->pos -1,
+	      raise_syntax_error(ctx, ctx->pos -1,
 				 UC("'(?<' is followed by illigal character."));
 	    }
 	  }
 	default:
-	  raise_syntax_error(ctx->pos -1,
+	  raise_syntax_error(ctx, ctx->pos -1,
 			     UC("'(?' is followed by illigal character."));
 	}
       } else {
@@ -1010,11 +1084,11 @@ static SgObject group(lexer_ctx_t *ctx)
       SgObject regexpr = reg_expr(ctx);
       SgObject close_token = get_token(ctx, NULL);
       if (!SG_EQ(inner_close_token, SYM_CLOSE_PAREN)) {
-	raise_syntax_error(open_paren_pos + 2,
+	raise_syntax_error(ctx, open_paren_pos + 2,
 			   UC("Opening paren has no matching closing paren"));
       }
       if (!SG_EQ(close_token, SYM_CLOSE_PAREN)) {
-	raise_syntax_error(open_paren_pos,
+	raise_syntax_error(ctx, open_paren_pos,
 			   UC("Opening paren has no matching closing paren"));
       }
       ret = SG_LIST3(SYM_BRANCH, number, regexpr);
@@ -1030,11 +1104,15 @@ static SgObject group(lexer_ctx_t *ctx)
       inner_reg_expr = group(ctx);
       regexpr = reg_expr(ctx);
       close_token = get_token(ctx, NULL);
-      /* TODO should we check inner_reg_expr if it's look-behind or
-	 look-ahead? */
       if (!SG_EQ(close_token, SYM_CLOSE_PAREN)) {
-	raise_syntax_error(open_paren_pos,
+	raise_syntax_error(ctx, open_paren_pos,
 			   UC("Opening paren has no matching closing paren."));
+      }
+      if (!(SG_PAIRP(inner_reg_expr) &&
+	    (SG_EQ(SG_CAR(inner_reg_expr), SYM_LOOKBHIND) ||
+	     SG_EQ(SG_CAR(inner_reg_expr), SYM_LOOKAHEAD)))) {
+	raise_syntax_error(ctx, open_paren_pos,
+			   UC("Branch test must be lookahead, look-behind or number"));
       }
       ret = SG_LIST3(SYM_BRANCH, inner_reg_expr, regexpr);
       goto end_group;
@@ -1062,7 +1140,7 @@ static SgObject group(lexer_ctx_t *ctx)
       ctx->reg++;
     }
     if (!SG_EQ(close_token, SYM_CLOSE_PAREN)) {
-      raise_syntax_error(open_paren_pos,
+      raise_syntax_error(ctx, open_paren_pos,
 			 UC("Opening paren has no matching closing paren."));
     }
     if (!SG_NULLP(flags)) {
@@ -1209,7 +1287,7 @@ static SgObject sequence(lexer_ctx_t *ctx)
       return quan;
     }
   }
-  return SYM_VOID;
+  return null_seq();
 }
 
 /* 
@@ -1225,12 +1303,12 @@ static SgObject reg_expr(lexer_ctx_t *ctx)
     /* if we didn't get any token we return 'void which stands for
        "empty regular expression"
      */
-    return SYM_VOID;
+    return null_seq();
   case '|':
     /* now check whether the expression started with a vertical bar,
        i.e. <seq> - the left alternation - is empty
      */
-    return SG_LIST3(SYM_ALTER, SYM_VOID, reg_expr(ctx));
+    return SG_LIST3(SYM_ALTER, null_seq(), reg_expr(ctx));
   default: {
     /* otherwise un-read the character we just saw and parse a <seq> plus
        the character following it
@@ -1270,6 +1348,23 @@ static SgObject reg_expr(lexer_ctx_t *ctx)
   }
 }
 
+static SgObject parse_string(lexer_ctx_t *ctx)
+{
+  if (has(ctx, SG_LITERAL)) {
+    /* the whole input string is just literal */
+    SgObject h = SG_NIL, t = SG_NIL;
+    int i;
+    SG_APPEND1(h, t, SYM_SEQUENCE);
+    for (i = 0; i < ctx->len; i++) {
+      SG_APPEND1(h, t, SG_MAKE_CHAR(ctx->str[i]));
+    }
+    ctx->pos = ctx->len;
+    return h;
+  } else {
+    return reg_expr(ctx);
+  }
+}
+
 /* optimization */
 /*
   cl-ppcre does convertion from s-expression tree to regex object to use generic
@@ -1282,6 +1377,16 @@ static SgObject reg_expr(lexer_ctx_t *ctx)
    - splits a repetition into constant and varying part: a{3,} -> a{3}a*
 */
 static SgObject optimize(SgObject ast, SgObject rest);
+
+/*
+  a{3,} -> a{3}a*
+  If the given regex is (abc|efg){3,}, then the back reference of $1 is "efg".
+  So we can simple omit the first register tag if there is.
+  (checked with Perl v5.10.1, with this one liner;
+   $ perl -e 'my $s="abcabcabcefg"; $s=~/(abc|efg){3,}/; print $1."\n";'
+   efg
+  )
+ */
 static SgObject maybe_split_repetition(SgObject ast, SgObject regex)
 {
   int minimum, maximum = -1;
@@ -1291,12 +1396,16 @@ static SgObject maybe_split_repetition(SgObject ast, SgObject regex)
   if (!SG_FALSEP(max)) {
     maximum = SG_INT_VALUE(max);
     /* trivial case: don't repeat at all */
-    if (maximum == 0) return SYM_VOID;
+    if (maximum == 0) return null_seq();
     /* another trivial case "repeat" exactly once */
     if (minimum == 1 && maximum == 1) return ast;
   }
   if (minimum > 0) {
-    constant = SG_LIST4(SG_CAR(ast), SG_CADR(ast), SG_CADR(ast), regex);
+    SgObject in;
+    if (SG_PAIRP(regex) && SG_EQ(SG_CAR(regex), SYM_REGISTER))
+      in = SG_CADR(SG_CDDR(regex));
+    else in = regex;
+    constant = SG_LIST4(SG_CAR(ast), SG_CADR(ast), SG_CADR(ast), in);
   }
   if (!SG_FALSEP(max) &&
       maximum == minimum) {
@@ -1381,20 +1490,40 @@ static SgObject optimize(SgObject ast, SgObject rest)
    pass2: optimize
    pass3: code generation
  */
+static void pattern_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+{
+  SgPattern *pattern = SG_PATTERN(self);
+  Sg_Printf(port, UC("#<pattern %S>"), pattern->pattern);
+}
+SG_INIT_META_OBJ(Sg_PatternMeta, &pattern_printer, NULL);
+
+static SgPattern* make_pattern(SgString *p, SgObject ast, int flags,
+			       lexer_ctx_t *ctx)
+{
+  SgPattern *pt = SG_NEW(SgPattern);
+  SG_SET_META_OBJ(pt, SG_META_PATTERN);
+  pt->pattern = p;
+  pt->root = pt->ast = ast;
+  pt->flags = flags;
+  pt->groupCount = ctx->reg_num;
+  return pt;
+}
+
 SgObject Sg_CompileRegex(SgString *pattern, int flags, int parseOnly)
 {
   SgObject ast;
   lexer_ctx_t ctx;
+  SgPattern *p;
   init_lexer(&ctx, pattern, flags);
-  ast = reg_expr(&ctx);
+  ast = parse_string(&ctx);
   if (!END_OF_STRING_P(&ctx)) {
-    raise_syntax_error(ctx.pos,
+    raise_syntax_error(&ctx, ctx.pos,
 		       UC("Expected end of string."));
   }
   if (parseOnly) return ast;
   ast = optimize(ast, SG_NIL);
-
-  return ast;
+  p = make_pattern(pattern, ast, flags, &ctx);
+  return SG_OBJ(p);
 }
 
 extern void Sg__Init_sagittarius_regex2_impl();
@@ -1405,7 +1534,17 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__regex2()
   SG_INIT_EXTENSION(sagittarius__regex2);
   Sg__Init_sagittarius_regex2_impl();
 
-  SYM_VOID = SG_INTERN("void");
+  lib = Sg_FindLibrary(SG_INTERN("(sagittarius regex2 impl)"), FALSE);
+#define insert_binding(name, value)			\
+  Sg_MakeBinding(lib, SG_INTERN(#name), SG_MAKE_INT(value), TRUE);
+  insert_binding(CASE-INSENSITIVE, SG_CASE_INSENSITIVE);
+  insert_binding(COMMENTS, SG_COMMENTS);
+  insert_binding(MULTILINE, SG_MULTILINE);
+  insert_binding(LITERAL, SG_LITERAL);
+  insert_binding(DOTAIL, SG_DOTALL);
+  insert_binding(UNICODE-CASE, SG_UNICODE_CASE);
+#undef insert_binding;
+
   SYM_ALTER = SG_INTERN("alternation");
   SYM_NON_GREEDY_REP = SG_INTERN("non-greedy-repetition");
   SYM_GREEDY_REP = SG_INTERN("greedy-repetition");
