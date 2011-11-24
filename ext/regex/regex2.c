@@ -1485,6 +1485,8 @@ static SgObject optimize(SgObject ast, SgObject rest)
   return Sg_Cons(type, seqo);
 }
 
+/* compile */
+
 /* compile takes 3 pass 
    pass1: string->ast
    pass2: optimize
@@ -1498,14 +1500,15 @@ static void pattern_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
 SG_INIT_META_OBJ(Sg_PatternMeta, &pattern_printer, NULL);
 
 static SgPattern* make_pattern(SgString *p, SgObject ast, int flags,
-			       lexer_ctx_t *ctx)
+			       lexer_ctx_t *ctx, prog_t *prog)
 {
   SgPattern *pt = SG_NEW(SgPattern);
   SG_SET_META_OBJ(pt, SG_META_PATTERN);
   pt->pattern = p;
-  pt->root = pt->ast = ast;
+  pt->ast = ast;
   pt->flags = flags;
   pt->groupCount = ctx->reg_num;
+  pt->prog = prog;
   return pt;
 }
 
@@ -1514,6 +1517,7 @@ SgObject Sg_CompileRegex(SgString *pattern, int flags, int parseOnly)
   SgObject ast;
   lexer_ctx_t ctx;
   SgPattern *p;
+
   init_lexer(&ctx, pattern, flags);
   ast = parse_string(&ctx);
   if (!END_OF_STRING_P(&ctx)) {
@@ -1521,8 +1525,11 @@ SgObject Sg_CompileRegex(SgString *pattern, int flags, int parseOnly)
 		       UC("Expected end of string."));
   }
   if (parseOnly) return ast;
+  /* optimize */
   ast = optimize(ast, SG_NIL);
-  p = make_pattern(pattern, ast, flags, &ctx);
+  /* compile */
+
+  p = make_pattern(pattern, ast, flags, &ctx, NULL);
   return SG_OBJ(p);
 }
 

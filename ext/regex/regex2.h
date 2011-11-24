@@ -45,9 +45,14 @@ enum PatternFlags {
   /* SG_CANON_EQ          = (1L << 7), */
 };
 
-typedef struct prog_rec_t
+enum Anchor {
+  UNANCHORED,         /* No anchoring */
+  ANCHOR_START,       /* Anchor at start only */
+  ANCHOR_BOTH,        /* Anchor at start and end */
+};
+
+typedef struct
 {
-  
 } prog_t;
 
 typedef struct SgPatternRec
@@ -59,8 +64,8 @@ typedef struct SgPatternRec
 				   this flags are initial condition, if regex
 				   has (?imx:...) in its body, matcher
 				   overwrites the flags in runtime.*/
-  SgObject root;		/* optimized ast */
   int      groupCount;		/* captured group count */
+  prog_t  *prog;		/* compiled regex */
 } SgPattern;
 
 SG_DECLARE_META_OBJ(Sg_PatternMeta);

@@ -598,7 +598,7 @@
 	       `(div (@ (class "index-letters"))
 		     ,@(reverse! r)))
 	      ((and current-letter
-		    (char=? current-letter (string-ref (car lst) 0)))
+		    (char-ci=? current-letter (string-ref (car lst) 0)))
 	       (loop (cdr lst) current-letter r))
 	      (else
 	       (let ((letter (substring (car lst) 0 1)))
@@ -632,7 +632,7 @@
 	       (loop (cdr lst) (string-ref (caar lst) 0)
 		     r `(table (@ (class "index-table"))
 			       ,@(gen-table (car lst)))))
-	      ((char=? current-letter (string-ref (caar lst) 0))
+	      ((char-ci=? current-letter (string-ref (caar lst) 0))
 	       (append! table (gen-table (car lst)))
 	       (loop (cdr lst) current-letter r table))
 	      (else
@@ -644,7 +644,8 @@
     (let* ((lst (list-sort (lambda (pair1 pair2)
 			     (let ((name1 (car pair1))
 				   (name2 (car pair2)))
-			       (string<=? name1 name2))) (*names-for-index*)))
+			       (string-ci<=? name1 name2)))
+			   (*names-for-index*)))
 	   (attr (sxml:attr-list-node element))
 	   (id   (cond ((and attr
 			     (assq 'id attr)) => cadr)
