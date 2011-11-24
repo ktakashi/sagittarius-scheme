@@ -1,3 +1,10 @@
+2011-11-23  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/null.stub (*.): fixed returning always 0.0.
+
+	* boot/compiler.scm (pass1/scan-inlinable): fixed mis marking for
+	constable and inlinable.
+
 2011-11-15  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/charset.c :

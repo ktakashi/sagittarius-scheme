@@ -826,7 +826,8 @@
    (dispatch 
     `(when (or (>= ,index (SG_VECTOR_SIZE ,v))
 	       (< ,index 0))
-       (assertion-violation ',name "index out of range" (SG_MAKE_INT ,index))))))
+       (assertion-violation ',name "index out of range" 
+			    (SG_LIST2 ,v (SG_MAKE_INT ,index)))))))
 
 (define-inst VEC_REF (0 0 #t)
   (if (not (SG_VECTORP (INDEX (SP vm) 0)))

@@ -2095,95 +2095,89 @@
 
 (define (pass1/scan-inlinable iforms library)
   (define (rec iform id ids library seen)
-    (case/unquote
-     (iform-tag iform)
-     (($UNDEF $IT $LIBRARY $LREF $CONST) #t)
-     (($DEFINE) (rec ($define-expr iform) id ids library seen))
-     (($GREF)
-      (let
-       ((gid ($gref-id iform)))
-       (when
-        (and ids (member gid ids id=?) (not (id=? id gid)))
-        (let
-         ((refs (assoc-table-ref seen gid '())))
-         (assoc-table-set! seen gid (cons id refs))))
-       (and ids (not (id=? id gid)))))
-     (($LSET) (rec ($lset-expr iform) id ids library seen))
-     (($GSET)
-      (cond
-       (ids
-        (and
-         (not (member ($gset-id iform) ids id=?))
-         (rec ($gset-expr iform) id ids library seen)))
-       (else
-        (assoc-table-set! seen ($gset-id iform) #t)
-        (rec ($gset-expr iform) id ids library seen))))
-     (($LET)
-      (and
+    (let-syntax
+     ((args-rec
+       (syntax-rules
+        ()
+        ((_ v)
+         (let
+          loop
+          ((args v))
+          (if
+           (null? args)
+           #t
+           (if
+            ids
+            (and (rec (car args) id ids library seen) (loop (cdr args)))
+            (begin
+             (rec (car args) id ids library seen)
+             (loop (cdr args))))))))))
+     (case/unquote
+      (iform-tag iform)
+      (($UNDEF $IT $LIBRARY $LREF $CONST) #t)
+      (($DEFINE) (rec ($define-expr iform) id ids library seen))
+      (($GREF)
+       (let
+        ((gid ($gref-id iform)))
+        (when
+         (and ids (member gid ids id=?) (not (id=? id gid)))
+         (let
+          ((refs (assoc-table-ref seen gid '())))
+          (assoc-table-set! seen gid (cons id refs))))
+        (and ids (not (id=? id gid)))))
+      (($LSET) (rec ($lset-expr iform) id ids library seen))
+      (($GSET)
+       (cond
+        (ids
+         (and
+          (not (member ($gset-id iform) ids id=?))
+          (rec ($gset-expr iform) id ids library seen)))
+        (else
+         (assoc-table-set! seen ($gset-id iform) #t)
+         (rec ($gset-expr iform) id ids library seen))))
+      (($LET)
+       (and
+        (args-rec ($let-inits iform))
+        (rec ($let-body iform) id ids library seen)))
+      (($LAMBDA) (rec ($lambda-body iform) id ids library seen))
+      (($RECEIVE)
+       (and
+        (rec ($receive-expr iform) id ids library seen)
+        (rec ($receive-body iform) id ids library seen)))
+      (($CALL)
+       (and
+        (args-rec ($call-args iform))
+        (rec ($call-proc iform) id ids library seen)))
+      (($SEQ)
        (let
         loop
-        ((inits ($let-inits iform)))
+        ((exprs ($seq-body iform)))
         (if
-         (null? inits)
-         #t
-         (and (rec (car inits) id ids library seen) (loop (cdr inits)))))
-       (rec ($let-body iform) id ids library seen)))
-     (($LAMBDA) (rec ($lambda-body iform) id ids library seen))
-     (($RECEIVE)
-      (and
-       (rec ($receive-expr iform) id ids library seen)
-       (rec ($receive-body iform) id ids library seen)))
-     (($CALL)
-      (and
-       (let
-        loop
-        ((args ($call-args iform)))
-        (if
-         (null? args)
+         (null? exprs)
          #t
          (if
           ids
-          (and (rec (car args) id ids library seen) (loop (cdr args)))
-          (begin (rec (car args) id ids library seen) (loop (cdr args))))))
-       (rec ($call-proc iform) id ids library seen)))
-     (($SEQ)
-      (let
-       loop
-       ((exprs ($seq-body iform)))
+          (and (rec (car exprs) id ids library seen) (loop (cdr exprs)))
+          (begin (rec (car exprs) id ids library seen) (loop (cdr exprs)))))))
+      (($IF)
        (if
-        (null? exprs)
-        #t
-        (if
-         ids
-         (and (rec (car exprs) id ids library seen) (loop (cdr exprs)))
-         (begin (rec (car exprs) id ids library seen) (loop (cdr exprs)))))))
-     (($IF)
-      (and
-       (rec ($if-test iform) id ids library seen)
-       (rec ($if-then iform) id ids library seen)
-       (rec ($if-else iform) id ids library seen)))
-     (($ASM)
-      (let
-       loop
-       ((args ($asm-args iform)))
-       (if
-        (null? args)
-        #t
-        (and (rec (car args) id ids library seen) (loop (cdr args))))))
-     (($LIST)
-      (let
-       loop
-       ((args ($*-args iform)))
-       (if
-        (null? args)
-        #t
-        (and (rec (car args) id ids library seen) (loop (cdr args))))))
-     (else
-      (scheme-error
-       'inlinable?
-       "[internal error] invalid iform tag appeared"
-       (iform-tag
-        iform)))))(define (id=? id1 id2)
+        ids
+        (and
+         (rec ($if-test iform) id ids library seen)
+         (rec ($if-then iform) id ids library seen)
+         (rec ($if-else iform) id ids library seen))
+        (begin
+         (rec ($if-test iform) id ids library seen)
+         (rec ($if-then iform) id ids library seen)
+         (rec ($if-else iform) id ids library seen))))
+      (($ASM) (args-rec ($asm-args iform)))
+      (($LIST) (args-rec ($*-args iform)))
+      (else
+       (scheme-error
+        'inlinable?
+        "[internal error] invalid iform tag appeared"
+        (iform-tag
+         iform))))))(define (id=? id1 id2)
     (and
      (eq? (id-name id1) (id-name id2))
      (eq?
@@ -5143,11 +5137,11 @@
 
 (define-builtin-inliner-* * MUL $const)
 
-(define-builtin-inliner-* *. MULI ensure-inexact-const)
+(define-builtin-inliner-* *. MUL ensure-inexact-const)
 
 (define-builtin-inliner-/ / DIV $const)
 
-(define-builtin-inliner-/ /. DIVI ensure-inexact-const)
+(define-builtin-inliner-/ /. DIV ensure-inexact-const)
 
 (define-builtin-inliner = :null (gen-inliner-arg2 NUM_EQ))
 
