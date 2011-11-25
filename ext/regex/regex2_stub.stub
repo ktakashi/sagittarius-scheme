@@ -1,9 +1,18 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 (library (sagittarius regex2 impl)
-    (export compile-regex)
+    (export compile-regex
+	    dump-regex)
     (import :none)
+
+  (decl-code
+   (.include "regex2.h"))
 
   (define-c-proc compile-regex (p::String flags::fixnum parse_only) ::Object
     (result (Sg_CompileRegex p flags (not (SG_FALSEP parse_only)))))
+
+  (define-c-proc dump-regex (p::Pattern :optional
+					(port::Port (Sg_CurrentOutputPort)))
+    ::void
+    (Sg_DumpRegex p port))
 
 )

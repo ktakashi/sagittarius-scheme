@@ -32,6 +32,8 @@
 #include "regex2.h"
 #include <sagittarius/extend.h>
 
+#define DEBUG_REGEX 1
+
 static SgSymbol *consant_symbol_table[39] = {NULL};
 
 #define SYM_ALTER           	  	   (consant_symbol_table[0])
@@ -157,7 +159,7 @@ static void init_lexer(lexer_ctx_t *ctx, SgString *str, int flags)
   ctx->reg = ctx->pos = 0;
   ctx->last_pos = SG_NIL;
   ctx->flags = flags;
-  ctx->reg_num = 1;		/* 0 is the whole input string */
+  ctx->reg_num = 1;		/* 0 is the whole matched string */
   ctx->reg_names = SG_NIL;
   if (!has(ctx, SG_LITERAL)) {
     /* remove \Q \E quoting now */
@@ -766,7 +768,7 @@ static SgObject get_quantifier(lexer_ctx_t *ctx, int *standalone)
   case '+':
     return SG_LIST2(SG_MAKE_INT(1), SG_FALSE); /*  1 or more times */
   case '?':
-    return SG_LIST2(SG_MAKE_INT(1), SG_MAKE_INT(1)); /* 0 or 1 */
+    return SG_LIST2(SG_MAKE_INT(0), SG_MAKE_INT(1)); /* 0 or 1 */
   case '{':
     /* one of
        {n}:   match exactly n times
@@ -1350,6 +1352,7 @@ static SgObject reg_expr(lexer_ctx_t *ctx)
 
 static SgObject parse_string(lexer_ctx_t *ctx)
 {
+  SgObject r;
   if (has(ctx, SG_LITERAL)) {
     /* the whole input string is just literal */
     SgObject h = SG_NIL, t = SG_NIL;
@@ -1359,10 +1362,11 @@ static SgObject parse_string(lexer_ctx_t *ctx)
       SG_APPEND1(h, t, SG_MAKE_CHAR(ctx->str[i]));
     }
     ctx->pos = ctx->len;
-    return h;
+    r = h;
   } else {
-    return reg_expr(ctx);
+    r = reg_expr(ctx);
   }
+  return SG_LIST4(SYM_REGISTER, SG_MAKE_INT(0), SG_FALSE, r);
 }
 
 /* optimization */
@@ -1479,13 +1483,302 @@ static SgObject optimize(SgObject ast, SgObject rest)
     }
     return Sg_Cons(SYM_ALTER, h);
   }
+  if (SG_EQ(type, SYM_SEQUENCE)) {
+    seq = SG_CDR(ast);
+    seqo = optimize_seq(seq, rest);
+    if (SG_EQ(seq, seqo)) return ast;
+    return Sg_Cons(type, seqo);
+  }
   seq = SG_CDR(ast);
-  seqo = optimize_seq(seq, rest);
+  seqo = optimize(seq, rest);
   if (SG_EQ(seq, seqo)) return ast;
   return Sg_Cons(type, seqo);
 }
 
 /* compile */
+/* Instructions */
+enum {
+  RX_ANY,			/* match everything (one character) */
+  RX_CHAR,			/* match one character */
+  RX_SET,			/* match one charset */
+  RX_NSET,			/* match one charset */
+  RX_STR,			/* match string(not supported yet) */
+  RX_SPLIT,			/* split current (virtual) thread */
+  RX_JMP,
+  RX_SAVE,			/* save current match for submatch */
+  /* add more */
+  RX_START,			/* start anchor */
+  RX_END,			/* end anchor */
+  RX_WB,			/* word boundary */
+  RX_NWB,			/* non word boundary */
+  RX_FAIL,			/* match failed */
+  RX_MATCH,			/* matched */
+};
+
+typedef struct
+{
+  inst_t *pc;			/* current pc */
+  int     flags;		/* compile time flags */
+  int     emitp;		/* flag for count or emit */
+  int     codemax;		/* max code count */
+  prog_t *prog;			/* building prog */
+  int     index;		/* current inst index */
+} compile_ctx_t;
+
+static inst_arg_t null_arg = {0};
+static inst_t     null_inst = {0};
+
+static int check_start_anchor(SgObject ast, int *modelessp)
+{
+  SgObject type;
+  if (!SG_PAIRP(ast)) 
+    type = ast;
+  else 
+    type = SG_CAR(ast);    
+
+  if (SG_EQ(type, SYM_START_ANCHOR)) return TRUE;
+  else if (SG_EQ(type, SYM_MODELESS_START_ANCHOR)) {
+    if (modelessp) *modelessp = TRUE;
+    return TRUE;
+  }
+  else return FALSE;
+}
+
+static void emit(compile_ctx_t *ctx, unsigned char opcode,
+		 inst_arg_t arg)
+{
+  if (ctx->emitp) {
+    inst_t *i = &ctx->prog->root[ctx->index++];
+    i->opcode = opcode;
+    i->arg = arg;
+    ctx->pc = ++i;
+  } else {
+    ctx->codemax++;
+  }
+}
+static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp);
+
+static void compile_seq(compile_ctx_t *ctx, SgObject seq, int lastp)
+{
+  SgObject cp;
+  /* todo look behind */
+  SG_FOR_EACH(cp, seq) {
+    SgObject item = SG_CAR(cp);
+    inst_arg_t arg;
+    if (SG_CHARP(item)) {
+      /* TODO we need to concat chars to string. but it must be done by 
+ 	      optimization.*/
+      arg.c = SG_CHAR_VALUE(item);
+      emit(ctx, RX_CHAR, arg);
+    } else {
+      int p;
+      /* TODO lookbehind */
+      p = lastp && SG_NULLP(SG_CDR(cp));
+      compile_rec(ctx, item, p);
+    }
+  }
+}
+
+static void compile_rep_seq(compile_ctx_t *ctx, SgObject seq,
+			    int count, int lastp)
+{
+  SgObject h = SG_NIL, t = SG_NIL;
+  if (count <= 0) return;
+  while (count-- > 0) {
+    SG_APPEND(h, t, Sg_CopyList(seq));
+  }
+  /* h is ((sequence ...) ...) so we can simply pass it to compile_seq
+     TODO maybe we need to flatten */
+  compile_seq(ctx, h, lastp);
+}
+
+static void compile_min_max(compile_ctx_t *ctx, SgObject type,
+			    int count, SgObject item, int lastp)
+{
+  /* TODO later */
+  Sg_Error(UC("not supported yet"));
+  return;
+}
+
+static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp)
+{
+  SgObject type;
+  inst_arg_t arg;
+  /* first, deal with atom */
+  if (!SG_PAIRP(ast)) {
+    /* a char */
+    if (SG_CHARP(ast)) {
+      /* TODO maybe we can deal with case insensitive here */
+      arg.c = SG_CHAR_VALUE(ast);
+      emit(ctx, RX_CHAR, arg);
+      return;
+    }
+    /* charset */
+    if (SG_CHAR_SET_P(ast)) {
+      arg.set = ast;
+      emit(ctx, RX_SET, arg);
+      return;
+    }
+    /* special stuff */
+    if (SG_SYMBOLP(ast)) {
+      if (SG_EQ(ast, SYM_EVERYTHING)) {
+	emit(ctx, RX_ANY, null_arg);
+	return;
+      }
+      if (SG_EQ(ast, SYM_START_ANCHOR) ||
+	  SG_EQ(ast, SYM_MODELESS_START_ANCHOR)) {
+	/* check flags */
+	arg.bol = SG_EQ(ast, SYM_START_ANCHOR);
+	emit(ctx, RX_START, arg);
+	return;
+      }
+      if (SG_EQ(ast, SYM_END_ANCHOR) ||
+	  SG_EQ(ast, SYM_MODELESS_END_ANCHOR) ||
+	  SG_EQ(ast, SYM_MODELESS_END_ANCHOR_NO_NEWLINE)) {
+	if (lastp) {
+	  /* check flags */
+	  arg.eol = SG_EQ(ast, SYM_END_ANCHOR);
+	  emit(ctx, RX_END, arg);
+	} else {
+	  /* literal character '$' */
+	  arg.c = '$';
+	  emit(ctx, RX_CHAR, arg);
+	}
+	return;
+      }
+      if (SG_EQ(ast, SYM_WORD_BOUNDARY)) {
+	emit(ctx, RX_WB, null_arg);
+	return;
+      }
+      if (SG_EQ(ast, SYM_NON_WORD_BOUNDARY)) {
+	emit(ctx, RX_NWB, null_arg);
+	return;
+      }
+      /* fallback */
+    }
+    Sg_Error(UC("[internal:regex] unrecognized AST item: %S"), ast);
+  }
+  /* structured node */
+  type = SG_CAR(ast);
+  /* do with simple ones */
+  if (SG_EQ(type, SYM_SEQUENCE)) {
+    /* we do not have any implicit sequence */
+    compile_seq(ctx, SG_CDR(ast), lastp);
+    return;
+  }
+
+  if (SG_EQ(type, SYM_INVERTED_CHAR_CLASS)) {
+    SgObject cs = SG_CADR(ast);
+    ASSERT(SG_CHAR_SET_P(cs));
+    arg.set = cs;
+    emit(ctx, RX_NSET, arg);
+    return;
+  }
+  if (SG_EQ(type, SYM_REGISTER)) {
+    /* (register <number> <name> <ast>) */
+    int grpno = SG_INT_VALUE(SG_CADR(ast));
+    arg.n = 2*grpno;
+    emit(ctx, RX_SAVE, arg);
+    compile_rec(ctx, SG_CADR(SG_CDDR(ast)), lastp);
+    arg.n = 2*grpno+1;
+    emit(ctx, RX_SAVE, arg);
+    return;
+  }
+  
+  if (SG_EQ(type, SYM_ALTER)) {
+    if (SG_PAIRP(SG_CDR(ast))) {
+      inst_t *pc1 = ctx->pc, *pc2;
+      emit(ctx, RX_SPLIT, null_arg);
+      pc1->arg.pos.x = ctx->pc;
+      compile_rec(ctx, SG_CADR(ast), lastp);
+      pc2 = ctx->pc;
+      emit(ctx, RX_JMP, null_arg);
+      pc1->arg.pos.y = ctx->pc;
+      compile_rec(ctx, SG_CAR(SG_CDDR(ast)), lastp);
+      pc2->arg.pos.x = ctx->pc;
+    } else {
+      emit(ctx, RX_FAIL, null_arg);
+    }
+    return;
+  }
+
+  if (SG_EQ(type, SYM_GREEDY_REP) || SG_EQ(type, SYM_NON_GREEDY_REP)) {
+    SgObject min = SG_CADR(ast), max = SG_CAR(SG_CDDR(ast));
+    SgObject item = SG_CADR(SG_CDDR(ast));
+    int multip = 0;
+    inst_t *pc1, *pc2;
+    if (SG_FALSEP(max) || SG_INT_VALUE(max) > 1)
+      multip = TRUE;
+    compile_rep_seq(ctx, item, SG_INT_VALUE(min), multip);
+
+    if (SG_EQ(min, max)) return; /* well, it must match exact times */
+    if (!SG_FALSEP(max)) {
+      int count = SG_INT_VALUE(max) - SG_INT_VALUE(min);
+      compile_min_max(ctx, type, count, item, lastp);
+      return;
+    }
+    /* save current instruction position */
+    pc1 = ctx->pc;
+    emit(ctx, RX_SPLIT, arg);
+    pc1->arg.pos.x = ctx->pc;
+    compile_rec(ctx, item, FALSE);
+    /* we've already resolved minimam match so let introduce jmp here */
+    arg.pos.x = pc1;
+    emit(ctx, RX_JMP, arg);
+    pc1->arg.pos.y = ctx->pc;
+    if (SG_EQ(type, SYM_NON_GREEDY_REP)) {
+      pc2 = pc1->arg.pos.x;
+      pc1->arg.pos.x = pc1->arg.pos.y;
+      pc1->arg.pos.y = pc2;
+    }
+    return;
+  }
+
+  Sg_Error(UC("unknown AST type: %S"), type);
+}
+
+static prog_t* compile(compile_ctx_t *ctx, SgObject ast)
+{
+  int n, is_start_anchor, modeless = FALSE, i;
+  prog_t *p;
+  inst_t *start, *match;
+
+  ctx->pc = &null_inst;		/* put dummy */
+  is_start_anchor = check_start_anchor(ast, &modeless);
+  ctx->emitp = FALSE;
+  compile_rec(ctx, ast, TRUE);
+  n = ctx->codemax + 1;
+
+  p = SG_NEW(prog_t);
+  p->root = SG_NEW_ARRAY(inst_t, n);
+  p->rootLength = n;
+  ctx->prog = p;
+  ctx->pc = &p->root[0];
+  ctx->index = 0;
+  ctx->emitp = TRUE;
+  compile_rec(ctx, ast, TRUE);
+
+  match = &p->root[n-1];
+  match->opcode = RX_MATCH;
+  if (!is_start_anchor) {
+    p->matchRoot = SG_NEW_ARRAY(inst_t, n + 1);
+    p->matchRootLength = n + 1;
+    start = &p->matchRoot[0];
+    start->opcode = RX_START;
+    start->arg.bol = FALSE;
+    /* copy */
+    for (i = 0; i < n; i++) {
+      p->matchRoot[i+1] = p->root[i];
+    }
+  } else {
+    /* root and matchRoot are the same */
+    p->matchRoot = p->root;
+    p->matchRootLength = p->rootLength;
+  }
+
+  return p;
+}
+
 
 /* compile takes 3 pass 
    pass1: string->ast
@@ -1517,6 +1810,8 @@ SgObject Sg_CompileRegex(SgString *pattern, int flags, int parseOnly)
   SgObject ast;
   lexer_ctx_t ctx;
   SgPattern *p;
+  prog_t *prog;
+  compile_ctx_t cctx = {0};
 
   init_lexer(&ctx, pattern, flags);
   ast = parse_string(&ctx);
@@ -1528,9 +1823,222 @@ SgObject Sg_CompileRegex(SgString *pattern, int flags, int parseOnly)
   /* optimize */
   ast = optimize(ast, SG_NIL);
   /* compile */
+  cctx.flags = flags;
+  prog = compile(&cctx, ast);
 
-  p = make_pattern(pattern, ast, flags, &ctx, NULL);
+  p = make_pattern(pattern, ast, flags, &ctx, prog);
   return SG_OBJ(p);
+}
+
+void Sg_DumpRegex(SgPattern *pattern, SgObject port)
+{
+#ifdef DEBUG_REGEX
+  int i;
+  const int size = pattern->prog->rootLength;
+  inst_t *start = &pattern->prog->root[0];
+  Sg_Printf(port, UC("input regex: %S\n"), pattern->pattern);
+
+  for (i = 0; i < size; i++) {
+    inst_t *inst = &pattern->prog->root[i];
+    switch (inst->opcode) {
+    case RX_ANY:
+      Sg_Printf(port, UC("%3d: RX_ANY\n"), i);
+      break;
+    case RX_CHAR:
+      Sg_Printf(port, UC("%3d: RX_CHAR %c\n"), i, inst->arg.c);
+      break;
+    case RX_SET:
+      Sg_Printf(port, UC("%3d: RX_SET %S\n"), i, inst->arg.set);
+      break;
+    case RX_NSET:
+      Sg_Printf(port, UC("%3d: RX_NSET %S\n"), i, inst->arg.set);
+      break;
+    case RX_STR:
+      Sg_Printf(port, UC("%3d: RX_STR\n"), i);
+      break;
+    case RX_SPLIT:
+      Sg_Printf(port, UC("%3d: RX_SPLIT %d %d\n"),
+		i, inst->arg.pos.x - start, inst->arg.pos.y - start);
+      break;
+    case RX_JMP:
+      Sg_Printf(port, UC("%3d: RX_JMP %d\n"),
+		i, inst->arg.pos.x - start);
+      break;
+    case RX_SAVE:
+      Sg_Printf(port, UC("%3d: RX_SAVE %d\n"), i, inst->arg.n);
+      break;
+    case RX_START:
+      Sg_Printf(port, UC("%3d: RX_START %s\n"), i,
+		(inst->arg.bol) ? UC("bol") : UC(""));
+      break;
+    case RX_END:
+      Sg_Printf(port, UC("%3d: RX_END %s\n"), i,
+		(inst->arg.eol) ? UC("eol") : UC(""));
+      break;
+    case RX_WB:
+      Sg_Printf(port, UC("%3d: RX_WB\n"), i);
+      break;
+    case RX_NWB:
+      Sg_Printf(port, UC("%3d: RX_NWB\n"), i);
+      break;
+    case RX_FAIL:
+      Sg_Printf(port, UC("%3d: RX_FAIL\n"), i);
+      break;
+    case RX_MATCH:
+      Sg_Printf(port, UC("%3d: RX_MATCH\n"), i);
+      break;
+    default:
+      Sg_Printf(port, UC("%3d: ??? %d\n"), i, inst->opcode);
+      break;
+    }
+  }
+#endif
+}
+
+typedef struct
+{
+  inst_t     *pc;
+  submatch_t *sub;
+} thread_t;
+
+/* We might want to swith to sparse array, so make it as abstract as possible */
+typedef struct
+{
+  int size;			/* thread size */
+  int n;			/* used size */
+  thread_t *threads[1];		/* threads */
+} thread_list_t;
+
+static thread_list_t* alloc_thread_lists(int n)
+{
+  thread_list_t *tq = SG_NEW2(thread_list_t*,
+			      sizeof(thread_list_t) + (n-1)*sizeof(thread_t*));
+  tq->size = n;
+  return tq;
+}
+
+static void thread_list_clear(thread_list_t *tq)
+{
+  int i;
+  for (i = 0; i < tq->size; i++) {
+    tq->threads[i] = NULL;
+  }
+}
+
+static int thread_list_has_index(thread_list_t *tq, int index)
+{
+  return !(tq->threads[index]);
+}
+
+static thread_t* thread_list_set_new(thread_list_t *tq, int index, thread_t *t)
+{
+  if (index >= tq->size) {
+    /* TODO throw error */
+    ASSERT(FALSE);
+    return NULL;
+  }
+  ASSERT(!thread_list_has_index(tq, index));
+  tq->threads[index] = t;
+  return t;
+}
+
+#define ALLOCATE_THREADQ(n) alloc_thread_lists(n)
+#define THREADQ_SIZE(tq)    ((tq)->n)
+#define THREADQ_REF(tq, i)  ((tq)->threads[i])
+#define THREADQ_SET(tq, i, v)  thread_list_set((tq), (i), (v))
+#define THREADQ_T           thread_list_t*
+
+/* match */
+typedef struct
+{
+  int id;			/* inst to process */
+  int j;
+  const SgChar *cap_j;
+} add_state_t;
+
+typedef struct
+{
+  SgMatcher   *m;
+  int          nstack;
+  add_state_t *astack;
+  THREADQ_T    q0;
+  THREADQ_T    q1;
+  int          matched;
+  submatch_t  *subs;
+} match_ctx_t;
+static match_ctx_t* init_match_ctx(match_ctx_t *ctx, SgMatcher *m, int size);
+
+/* internal match process
+   based on pikevm from RE1 pike.c
+ */
+static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
+			  int size)
+{
+  int i;
+  return FALSE;
+}
+
+
+/* match entry point*/
+static int matcher_match(SgMatcher *m, int from, int anchor)
+{
+  match_ctx_t ctx;
+  /* we use root, not rootMatch for looking-at */
+  init_match_ctx(&ctx, m, m->pattern->prog->matchRootLength);
+  return matcher_match0(&ctx, from, anchor, m->pattern->prog->matchRoot,
+			m->pattern->prog->matchRootLength);
+}
+
+static match_ctx_t* init_match_ctx(match_ctx_t *ctx, SgMatcher *m, int size)
+{
+  ctx->m = m;
+  ctx->nstack = size*2;
+  ctx->astack = SG_NEW_ARRAY(add_state_t, ctx->nstack);
+  ctx->q0 = ALLOCATE_THREADQ(size);
+  ctx->q1 = ALLOCATE_THREADQ(size);
+  ctx->matched = FALSE;
+  ctx->subs = m->submatch;
+  return ctx;
+}
+
+static void matcher_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+{
+  Sg_Printf(port, UC("#<matcher %S %S>"), SG_MATCHER(self)->pattern,
+	    SG_MATCHER(self)->text);
+}
+SG_INIT_META_OBJ(Sg_MatcherMeta, matcher_printer, NULL);
+
+static SgMatcher* reset_matcher(SgMatcher *m)
+{
+  m->first = -1;
+  m->from = 0;
+  m->to = SG_STRING_SIZE(m->text);
+  m->last = 0;
+  m->oldLast = -1;
+  return m;
+}
+
+static SgMatcher* make_matcher(SgPattern *p, SgString *text)
+{
+  SgMatcher *m = SG_NEW2(SgMatcher*, sizeof(SgMatcher) + 
+			 sizeof(submatch_t) * (p->groupCount-1));
+  SG_SET_META_OBJ(m, SG_META_MATCHER);
+  m->pattern = p;
+  m->text = text;
+  m->anchorBounds = TRUE;
+  return reset_matcher(m);
+}
+
+
+SgMatcher* Sg_RegexMatcher(SgPattern *pattern, SgString *text)
+{
+  SgMatcher *m = make_matcher(pattern, text);
+  return m;
+}
+
+int Sg_RegexLookingAt(SgMatcher *m)
+{
+  return matcher_match(m, m->from, UNANCHORED);
 }
 
 extern void Sg__Init_sagittarius_regex2_impl();
@@ -1550,7 +2058,7 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__regex2()
   insert_binding(LITERAL, SG_LITERAL);
   insert_binding(DOTAIL, SG_DOTALL);
   insert_binding(UNICODE-CASE, SG_UNICODE_CASE);
-#undef insert_binding;
+#undef insert_binding
 
   SYM_ALTER = SG_INTERN("alternation");
   SYM_NON_GREEDY_REP = SG_INTERN("non-greedy-repetition");

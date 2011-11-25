@@ -51,8 +51,36 @@ enum Anchor {
   ANCHOR_BOTH,        /* Anchor at start and end */
 };
 
+typedef struct inst_rec_t inst_t;
+
+typedef union {		 /* arguments for opcode */
+  SgChar c;		 /* RX_CHAR: target character */
+  unsigned int n;	 /* RX_SAVE: submatch start or end position */
+  struct {		 /* RX_SPLIT */
+    inst_t *x;		 /*   primary position to jump */
+    inst_t *y;		 /*   secondary position to jump */
+  } pos;
+  int bol;		 /* RX_START: beginning of line flag.
+			    1: ^ or multi line mode
+			    0: \A or single line mode */
+  int eol; 		 /* RX_END: end of line flag. values are the same as
+			            above. */
+  SgObject set;		 /* RX_SET: charset */
+} inst_arg_t;
+
+struct inst_rec_t
+{
+  unsigned char opcode;		/* opcode: max 255 */
+  inst_arg_t    arg;
+};
+
 typedef struct
 {
+  inst_t *root;			/* root match code */
+  inst_t *matchRoot;		/* match function root
+				   (could be the same as above) */
+  int     rootLength;
+  int     matchRootLength;
 } prog_t;
 
 typedef struct SgPatternRec
@@ -73,13 +101,27 @@ SG_DECLARE_META_OBJ(Sg_PatternMeta);
 #define SG_PATTERN(obj)   ((SgPattern *)obj)
 #define SG_PATTERN_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_PATTERN)
 
-
+typedef struct
+{
+  int start;
+  int end;
+} submatch_t;
 
 typedef struct SgMatcherRec
 {
   SG_META_HEADER;
   SgPattern *pattern;
   SgString  *text;
+  /* privates */
+  int        first;
+  int        from;
+  int        to;
+  int        last;
+  int        hitEnd;
+  int        oldLast;
+  int        acceptMode;
+  int        anchorBounds;
+  submatch_t submatch[1];
 } SgMatcher;
 
 SG_DECLARE_META_OBJ(Sg_MatcherMeta);
@@ -87,8 +129,20 @@ SG_DECLARE_META_OBJ(Sg_MatcherMeta);
 #define SG_MATCHER(obj)   ((SgMatcher *)obj)
 #define SG_MATCHER_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_MATCHER)
 
+#define argumentAsPattern(index, tmp_, var_)				\
+  castArgumentType(index, tmp_, var_, crypto, SG_PATTERN_P, SG_PATTERN)
+
+#define argumentAsMatcher(index, tmp_, var_)				\
+  castArgumentType(index, tmp_, var_, crypto, SG_MATCHER_P, SG_MATCHER)
+
+
 SG_CDECL_BEGIN
 SgObject Sg_CompileRegex(SgString *pattern, int flags, int parseOnly);
+
+SgMatcher* Sg_RegexMatcher(SgPattern *pattern, SgString *text);
+int        Sg_RegexLookingAt(SgMatcher *m);
+/* for debug */
+void     Sg_DumpRegex(SgPattern *pattern, SgObject port);
 
 SG_CDECL_END
 

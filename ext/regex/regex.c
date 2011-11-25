@@ -1584,6 +1584,8 @@ static void rxcompile(SgPattern *p)
 {
   int i;
   SgChar c;
+  SgChar buffer[32];
+  node_t *groupHeads[10] = { NULL };
 
   p->patternLength = SG_STRING_SIZE(p->pattern);
   p->temp = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar) * (p->patternLength + 2));
@@ -1595,43 +1597,41 @@ static void rxcompile(SgPattern *p)
   p->temp[i++] = 0;
   p->temp[i] = 0;
 
-  if (!has(p, SG_LITERAL)) {
-    SgChar buffer[32];
-    node_t *groupHeads[10] = { NULL };
-    buffer[31] = 0;
-    buffer[30] = 0;
-    p->buffer = buffer;
-    p->buflen = 32;		/* intial */
-    p->groupNodes = groupHeads;
-    remove_qe_quoting(p);
+  if (!has(p, SG_LITERAL)) remove_qe_quoting(p);
 
-    if (has(p, SG_LITERAL)) {
-      p->matchRoot = new_slice(p, p->temp, p->patternLength);
-      p->matchRoot->next = &last_accept_node;
-    } else {
-      p->matchRoot = expr(p, &last_accept_node);
-      if (p->patternLength != p->cursor) {
-	if (rxpeek(p) == ')') {
-	  throw_error(UC("Unmatched closing ')'"), SG_NIL);
-	} else {
-	  throw_error(UC("Unexpected internal error"), SG_NIL);
-	}
+  buffer[31] = 0;
+  buffer[30] = 0;
+  p->buffer = buffer;
+  p->buflen = 32;		/* intial */
+  p->groupNodes = groupHeads;
+
+
+  if (has(p, SG_LITERAL)) {
+    p->matchRoot = new_slice(p, p->temp, p->patternLength);
+    p->matchRoot->next = &last_accept_node;
+  } else {
+    p->matchRoot = expr(p, &last_accept_node);
+    if (p->patternLength != p->cursor) {
+      if (rxpeek(p) == ')') {
+	throw_error(UC("Unmatched closing ')'"), SG_NIL);
+      } else {
+	throw_error(UC("Unexpected internal error"), SG_NIL);
       }
     }
-    switch (p->matchRoot->type) {
-    case SLICE:
-      p->root = bnm_optimise(p->matchRoot);
-      if (p->root == p->matchRoot) {
-	p->root = make_start(p->matchRoot);
-      }
-      break;
-    case BEGIN: case FIRST:
-      p->root = p->matchRoot;
-      break;
-    default:
+  }
+  switch (p->matchRoot->type) {
+  case SLICE:
+    p->root = bnm_optimise(p->matchRoot);
+    if (p->root == p->matchRoot) {
       p->root = make_start(p->matchRoot);
-      break;
     }
+    break;
+  case BEGIN: case FIRST:
+    p->root = p->matchRoot;
+    break;
+  default:
+    p->root = make_start(p->matchRoot);
+    break;
   }
   dump_compiled_regex(p);
 
