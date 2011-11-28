@@ -15,4 +15,10 @@
     ::void
     (Sg_DumpRegex p port))
 
+
+  (define-c-proc regex-matcher (p::Pattern text::String) ::Object
+    (result (Sg_RegexMatcher p text)))
+
+  (define-c-proc regex-looking-at (m::Matcher) ::boolean
+    (result (Sg_RegexLookingAt m)))
 )

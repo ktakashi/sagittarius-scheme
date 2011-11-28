@@ -72,6 +72,7 @@ struct inst_rec_t
 {
   unsigned char opcode;		/* opcode: max 255 */
   inst_arg_t    arg;
+  int           gen;		/* ugly */
 };
 
 typedef struct
@@ -101,12 +102,6 @@ SG_DECLARE_META_OBJ(Sg_PatternMeta);
 #define SG_PATTERN(obj)   ((SgPattern *)obj)
 #define SG_PATTERN_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_PATTERN)
 
-typedef struct
-{
-  int start;
-  int end;
-} submatch_t;
-
 typedef struct SgMatcherRec
 {
   SG_META_HEADER;
@@ -121,7 +116,7 @@ typedef struct SgMatcherRec
   int        oldLast;
   int        acceptMode;
   int        anchorBounds;
-  submatch_t submatch[1];
+  SgChar    *submatch[1];
 } SgMatcher;
 
 SG_DECLARE_META_OBJ(Sg_MatcherMeta);
