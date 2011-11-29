@@ -116,6 +116,7 @@ typedef struct SgMatcherRec
   int        oldLast;
   int        acceptMode;
   int        anchorBounds;
+  int        matched;
   SgChar    *submatch[1];
 } SgMatcher;
 
@@ -136,6 +137,8 @@ SgObject Sg_CompileRegex(SgString *pattern, int flags, int parseOnly);
 
 SgMatcher* Sg_RegexMatcher(SgPattern *pattern, SgString *text);
 int        Sg_RegexLookingAt(SgMatcher *m);
+
+SgString*  Sg_RegexGroup(SgMatcher *m, int group);
 /* for debug */
 void     Sg_DumpRegex(SgPattern *pattern, SgObject port);
 

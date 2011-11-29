@@ -1,13 +1,17 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 (library (sagittarius regex2 impl)
     (export compile-regex
+	    regex-matcher
+	    regex-looking-at
+	    regex-group
 	    dump-regex)
     (import :none)
 
   (decl-code
    (.include "regex2.h"))
 
-  (define-c-proc compile-regex (p::String flags::fixnum parse_only) ::Object
+  (define-c-proc compile-regex (p::String flags::fixnum
+					  :optional (parse_only #f)) ::Object
     (result (Sg_CompileRegex p flags (not (SG_FALSEP parse_only)))))
 
   (define-c-proc dump-regex (p::Pattern :optional
@@ -21,4 +25,7 @@
 
   (define-c-proc regex-looking-at (m::Matcher) ::boolean
     (result (Sg_RegexLookingAt m)))
+
+  (define-c-proc regex-group (m::Matcher :optional (group::fixnum 0)) ::Object
+    (result (Sg_RegexGroup m group)))
 )
