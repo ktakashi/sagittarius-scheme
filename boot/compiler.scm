@@ -580,7 +580,7 @@
 	(indent ind)))
     (define id->string
       (lambda (id)
-	(format "~a" (id-name id))))
+	(format "~a#~a" (id-name id) (library-name (id-library id)))))
     (define lvar->string
       (lambda (lvar)
 	(format "~s[~a.~a]"
@@ -1990,8 +1990,10 @@
 		     (not (id=? id gid)))
 	    (let ((refs (assoc-table-ref seen gid '())))
 	      (assoc-table-set! seen gid (cons id refs))))
-	  (and ids
-	       (not (id=? id gid))))
+	  (if ids
+	      (and ids
+		   (not (id=? id gid)))
+	      #t))
 	)
        (($LSET) (rec ($lset-expr iform) id ids library seen))
        (($GSET)
@@ -2095,16 +2097,14 @@
 	 (ids (let loop ((iforms iforms)
 			 (ret '()))
 		(cond ((null? iforms) ret)
-		      (($define? (car iforms))
+		      (else
 		       ;; collect gsets
-		       (rec (car iforms) ($define-id (car iforms))
-			    #f library gsets)
+		       (rec (car iforms) #f #f library gsets)
 		       (cond ((possibly-target? (car iforms) export-spec)
 			      => (lambda (iform)
 				   (loop (cdr iforms)
 					 (cons ($define-id iform) ret))))
-			     (else (loop (cdr iforms) ret))))
-		      (else (loop (cdr iforms) ret)))))
+			     (else (loop (cdr iforms) ret)))))))
 	 (seen (make-assoc-table))
 	 (duplicates (collect-duplicate-ids ids)))
     (check-refers&gsets

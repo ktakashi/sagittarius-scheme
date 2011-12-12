@@ -603,7 +603,7 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
 		      SG_FALSE);
     } else {
       /* renamed export */
-      SgObject spec = Sg_Assq(SG_CAR(key), SG_CDR(exportSpec));
+      SgObject spec = Sg_Assq(SG_CAR(key), SG_CADR(exportSpec));
       if (SG_FALSEP(spec)) {
 	/* ignore */
       } else {
