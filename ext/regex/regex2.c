@@ -32,7 +32,7 @@
 #include "regex2.h"
 #include <sagittarius/extend.h>
 
-#define DEBUG_REGEX 1
+/* #define DEBUG_REGEX 1 */
 
 static SgSymbol *consant_symbol_table[39] = {NULL};
 
@@ -1513,6 +1513,7 @@ enum {
   RX_NWB,			/* non word boundary */
   RX_FAIL,			/* match failed */
   RX_MATCH,			/* matched */
+  RX_FLAG,			/* runtime flags */
 };
 
 typedef struct
@@ -1584,10 +1585,14 @@ static void compile_rep_seq(compile_ctx_t *ctx, SgObject seq,
 			    int count, int lastp)
 {
   SgObject h = SG_NIL, t = SG_NIL;
+  int seqp = (SG_PAIRP(seq) && SG_EQ(SG_CAR(seq), SYM_SEQUENCE));
   if (count <= 0) return;
   while (count-- > 0) {
-    if (SG_PAIRP(seq)) {
+    /* ugh.. ugly.. */
+    if (seqp) {
       SG_APPEND(h, t, Sg_CopyList(seq));
+    } else if (SG_PAIRP(seq)) {
+      SG_APPEND1(h, t, Sg_CopyList(seq));
     } else {
       SG_APPEND1(h, t, seq);
     }
@@ -1600,8 +1605,37 @@ static void compile_rep_seq(compile_ctx_t *ctx, SgObject seq,
 static void compile_min_max(compile_ctx_t *ctx, SgObject type,
 			    int count, SgObject item, int lastp)
 {
-  /* TODO later */
-  Sg_Error(UC("not supported yet"));
+  /* {m, n} pattern. it can be replaced like this.
+     x{2,5} = xx(x(x(x)?)?)?
+     VM: Instruction
+     0: char x  ;; These parts are already emited by compile_rec
+     1: char x  ;;
+     2: split 3 8
+     3: char x
+     4: split 5 8
+     5: char x
+     6: split 7 8
+     7: char x
+     8: match
+   */
+  int i;
+  inst_arg_t arg;
+  SgObject h = SG_NIL, t = SG_NIL, cp;
+
+  for (i = 0; i < count; i++) {
+    inst_t *pc1 = ctx->pc;
+    emit(ctx, RX_SPLIT, null_arg);
+    pc1->arg.pos.x = ctx->pc;
+    compile_rec(ctx, item, lastp);
+    /* save current pc to patch later */
+    if (ctx->emitp) SG_APPEND1(h, t, pc1);
+  }
+  if (ctx->emitp) {
+    SG_FOR_EACH(cp, h) {
+      inst_t *pc = (inst_t*)SG_CAR(cp);
+      pc->arg.pos.y = ctx->pc;
+    }
+  }
   return;
 }
 
@@ -1712,6 +1746,7 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp)
     SgObject item = SG_CADR(SG_CDDR(ast));
     int multip = 0;
     inst_t *pc1, *pc2;
+
     if (SG_FALSEP(max) || SG_INT_VALUE(max) > 1)
       multip = TRUE;
     compile_rep_seq(ctx, item, SG_INT_VALUE(min), multip);
@@ -1786,27 +1821,6 @@ static prog_t* compile(compile_ctx_t *ctx, SgObject ast)
   match = &p->root[n+offset-1];
   match->opcode = RX_MATCH;
 
-  if (!modeless) {
-    inst_arg_t arg;
-    offset = 1;
-    p->matchRoot = SG_NEW_ARRAY(inst_t, n + offset);
-    p->matchRootLength = n + offset;
-    /* reset index */
-    ctx->index = 0;
-    ctx->inst = p->matchRoot;
-    ctx->pc = &p->matchRoot[0];
-    arg.bol = FALSE;
-    emit(ctx, RX_START, arg);
-    compile_rec(ctx, ast, TRUE);
-    /* last instruction must be RX_MATCH */
-    match = &p->matchRoot[n+offset-1];
-    match->opcode = RX_MATCH;    
-  } else {
-    /* root and matchRoot are the same */
-    p->matchRoot = p->root;
-    p->matchRootLength = p->rootLength;
-  }
-
   return p;
 }
 
@@ -1867,8 +1881,8 @@ void Sg_DumpRegex(SgPattern *pattern, SgObject port)
   int i;
   const int size = pattern->prog->rootLength;
   inst_t *start = &pattern->prog->root[0];
-  Sg_Printf(port, UC("input regex: %S\n"), pattern->pattern);
-
+  Sg_Printf(port, UC("input regex : %S\n"), pattern->pattern);
+  Sg_Printf(port, UC(" group count: %d\n"), pattern->groupCount);
   for (i = 0; i < size; i++) {
     inst_t *inst = &pattern->prog->root[i];
     int op = inst->opcode;
@@ -1919,6 +1933,9 @@ void Sg_DumpRegex(SgPattern *pattern, SgObject port)
     case RX_MATCH:
       Sg_Printf(port, UC("%3d: RX_MATCH[%d]\n"), i, op);
       break;
+    case RX_FLAG:
+      Sg_Printf(port, UC("%3d: RX_FLAG[%d] %d\n"), i, op, inst->arg.flags);
+      break;
     default:
       Sg_Printf(port, UC("%3d: ??? %d\n"), i, op);
       break;
@@ -1926,8 +1943,6 @@ void Sg_DumpRegex(SgPattern *pattern, SgObject port)
   }
 #endif
 }
-
-typedef struct match_ctx_rec_t match_ctx_t;
 
 typedef struct thread_rec_t
 {
@@ -1944,6 +1959,7 @@ typedef struct
 {
   int size;			/* thread size */
   int n;			/* used size */
+  int *order;			/* keep inserted order here */
   thread_t *threads[1];		/* threads */
 } thread_list_t;
 
@@ -1951,7 +1967,12 @@ static thread_list_t* alloc_thread_lists(int n)
 {
   thread_list_t *tq = SG_NEW2(thread_list_t*,
 			      sizeof(thread_list_t) + (n-1)*sizeof(thread_t*));
+  int i;
   tq->size = n;
+  tq->order = SG_NEW_ATOMIC2(int *, sizeof(int) * n);
+  for (i = 0; i < n; i++) {
+    tq->order[i] = -1;
+  } 
   return tq;
 }
 
@@ -1960,6 +1981,7 @@ static void thread_list_clear(thread_list_t *tq)
   int i;
   for (i = 0; i < tq->size; i++) {
     tq->threads[i] = NULL;
+    tq->order[i] = -1;
   }
   tq->n = 0;
 }
@@ -1979,56 +2001,53 @@ static thread_t* thread_list_set_new(thread_list_t *tq, int index, thread_t *t)
   }
   ASSERT(!thread_list_has_index(tq, index));
   tq->threads[index] = t;
-  tq->n++;
+  tq->order[tq->n++] = index;
   return t;
 }
 
 typedef struct
 {
-  int index;
+  int       size;
+  int      *order;
+  int      *current;
   thread_t *value;
 } threadq_iterator_t;
 
 static thread_t *filler = (thread_t*)-1;
 
 /* auxiliary function */
-static threadq_iterator_t* thread_iterator_search(thread_list_t *tq, int from,
+static threadq_iterator_t* thread_iterator_search(thread_list_t *tq,
 						  threadq_iterator_t *i)
 {
-  i->index = -1;
   i->value = NULL;
-  if (from < 0 || tq->n == 0) return i;
-  for (; from < tq->size; from++) {
-    if (thread_list_has_index(tq, from)) {
-      i->index = from;
-      i->value = tq->threads[from];
-      return i;
-    }
-  }
+  if (tq->n == 0) return i;
+  i->value = tq->threads[*i->current];
   return i;
 }
 
 static threadq_iterator_t* thread_iterator_begin(thread_list_t *tq,
 						 threadq_iterator_t *i)
 {
-  return thread_iterator_search(tq, 0, i);
+  i->current = i->order = tq->order;
+  i->size = tq->n;
+  return thread_iterator_search(tq, i);
 }
 
 static threadq_iterator_t* thread_iterator_next(thread_list_t *tq,
 						threadq_iterator_t *i)
 {
-  thread_iterator_search(tq, i->index + 1, i);
-  return i;
+  i->current++;
+  return thread_iterator_search(tq, i);
 }
 
 static int thread_iterator_end_p(threadq_iterator_t *i)
 {
-  return (i->index < 0);
+  return (*i->current == -1 || i->order + i->size < i->current);
 }
 
 static int thread_iterator_begin_p(threadq_iterator_t *i)
 {
-  return (i->index == 0);
+  return i->order == i->current;
 }
 
 #define ALLOCATE_THREADQ(n) alloc_thread_lists(n)
@@ -2068,6 +2087,7 @@ struct match_ctx_rec_t
   thread_t    *free_threads;
   inst_t      *start;
   inst_t      *inst;
+  unsigned int flags;		/* runtime flags */
 };
 
 #if (defined DEBUG_REGEX)
@@ -2123,7 +2143,7 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
   if (id0 < 0) return;
 
   stk = ctx->astack;
-  stk[nstk++].id = id0;
+  stk[nstk++] = add_state(id0, -1, NULL);
 
   while (nstk > 0) {
     const add_state_t *a = &stk[--nstk];
@@ -2155,8 +2175,8 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
       break;
     case RX_SPLIT:
       /* explore alternatives */
-      stk[nstk++] = add_state(ip->arg.pos.x - ctx->start, -1, NULL);
       stk[nstk++] = add_state(ip->arg.pos.y - ctx->start, -1, NULL);
+      stk[nstk++] = add_state(ip->arg.pos.x - ctx->start, -1, NULL);
       break;
     case RX_SAVE:
       if ((j = ip->arg.n) < ctx->ncapture) {
@@ -2166,10 +2186,16 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
       }
       stk[nstk++] = add_state(id + 1, -1, NULL);
       break;
-    case RX_MATCH:
+    case RX_FLAG:
+      /* set flag */
+      ctx->flags = ip->arg.flags;
+      stk[nstk++] = add_state(id + 1, -1, NULL);
+      break;
+
     case RX_ANY:
     case RX_CHAR:
     case RX_SET:
+    case RX_MATCH:
       /* save state */
       t = alloc_thread(ctx);
       t->id = id;
@@ -2185,11 +2211,11 @@ static int inst_matches(inst_t *inst, SgChar c)
 {
   switch (inst->opcode) {
   case RX_SET:
-    if (!Sg_CharSetContains(inst->arg.set, c)) return FALSE;
-    return TRUE;
+    if (Sg_CharSetContains(inst->arg.set, c)) return TRUE;
+    return FALSE;
   case RX_CHAR:
-    if (inst->arg.c != c) return FALSE;
-    return TRUE;
+    if (inst->arg.c == c) return TRUE;
+    return FALSE;
   case RX_ANY:
     return TRUE;
   default:
@@ -2204,7 +2230,8 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
   THREADQ_ITERATOR_T i;
 
   THREADQ_CLEAR(nextq);
-  /* debug_printf("(%c).", c); */
+
+  debug_printf("(%c).", (c < 0) ? '\0' : c);
   THREADQ_FOR_EACH(i, runq) {
     thread_t *t = i.value;
     int id;
@@ -2212,7 +2239,7 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
     if (t == filler || t == NULL) continue;
     id = t->id;
     ip = &ctx->inst[id];
-    /* debug_printf(" %d", id); */
+    debug_printf(" %d", id);
     switch (ip->opcode) {
     default:
       Sg_Error(UC("[internal] Unhandled opcode in step: %d"), ip->opcode);
@@ -2220,24 +2247,11 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
     case RX_CHAR:
     case RX_ANY:
     case RX_SET:
-      if (inst_matches(ip, c))
+      if (inst_matches(ip, c)) {
+	debug_printf("->%d", id+1); 
 	add_to_threadq(ctx, nextq, id + 1, flags, p+1, t->capture);
-      break;
-#if 0
-    case RX_SPLIT:
-      if (!THREADQ_BEGIN_P(&i)) break;
-      else {
-	copy_capture(ctx, (const SgChar **)ctx->match, t->capture);
-	free_thread(ctx, t);
-	THREADQ_FOR_EACH_FROM_CURRENT(i, runq) {
-	  free_thread(ctx, i.value);
-	}
-	THREADQ_CLEAR(runq);
-	ctx->matched = TRUE;
-	return ip->arg.pos.x - ctx->start;
       }
       break;
-#endif
     case RX_MATCH: {
       const SgChar *old = t->capture[1];
       /* TODO end match */
@@ -2251,13 +2265,13 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
       }
       THREADQ_CLEAR(runq);
       ctx->matched = TRUE;
-      /* debug_printf(" %c", '\n'); */
+      debug_printf(" %c", '\n');
       return -1;
     }
     }
     free_thread(ctx, t);
   }
-  /* debug_printf(" %c", '\n'); */
+  debug_printf(" %c", '\n');
 
   THREADQ_CLEAR(runq);
   return -1;
@@ -2273,8 +2287,7 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
 {
   THREADQ_T *runq = ctx->q0, *nextq = ctx->q1, *tmp;
   const SgChar *bp = SG_STRING_VALUE(ctx->m->text) + from;
-  const SgChar *ep = SG_STRING_VALUE(ctx->m->text)
-    + SG_STRING_SIZE(ctx->m->text);
+  SgChar *ep = SG_STRING_VALUE(ctx->m->text) + SG_STRING_SIZE(ctx->m->text);
   SgChar *p;
   SgChar c = -1;
   int wasword = FALSE;
@@ -2303,6 +2316,7 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
       p = ep;
       for (;;) {
 	inst_t *ip = &ctx->inst[id];
+	debug_printf(" finishing: %d\n", ip->opcode);
 	switch (ip->opcode) {
 	default:
 	  Sg_Error(UC("[internal ]Unexpected opcode in short circuit: %d"),
@@ -2327,7 +2341,7 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
     if (!ctx->matched && (anchor == UNANCHORED || p == bp)) {
       ctx->match[0] = p;
       /* TODO is start alwais 0? */
-      add_to_threadq(ctx, runq, 0, flag, p, ctx->match);
+      add_to_threadq(ctx, runq, 0, flag, p, (const SgChar**)ctx->match);
       ctx->match[0] = NULL;
     }
 
@@ -2353,7 +2367,6 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
 
 static void finish_match(match_ctx_t *ctx)
 {
-  ctx->m->matched = ctx->matched;
   if (ctx->matched) {
     int i;
     SgMatcher *m = ctx->m;
@@ -2373,19 +2386,7 @@ static void finish_match(match_ctx_t *ctx)
 /* match entry point*/
 static int matcher_match(SgMatcher *m, int from, int anchor)
 {
-  match_ctx_t ctx;
-  /* we use root, not rootMatch for looking-at */
-  init_match_ctx(&ctx, m, m->pattern->prog->matchRootLength);
-  return matcher_match0(&ctx, from, anchor, m->pattern->prog->matchRoot,
-			m->pattern->prog->matchRootLength);
-}
-
-static int matcher_search(SgMatcher *m, int from, int anchor)
-{
-  match_ctx_t ctx;
-  /* we use root, not rootMatch for looking-at */
-  init_match_ctx(&ctx, m, m->pattern->prog->rootLength);
-  return matcher_match0(&ctx, from, anchor, m->pattern->prog->root,
+  return matcher_match0(m->match_ctx, from, anchor, m->pattern->prog->root,
 			m->pattern->prog->rootLength);
 }
 
@@ -2400,7 +2401,7 @@ static match_ctx_t* init_match_ctx(match_ctx_t *ctx, SgMatcher *m, int size)
   ctx->ncapture = 2 * m->pattern->groupCount;
   ctx->match = SG_NEW_ARRAY(SgChar*, ctx->ncapture);
   ctx->free_threads = NULL;
-
+  ctx->flags = m->pattern->flags;
   return ctx;
 }
 
@@ -2429,6 +2430,9 @@ static SgMatcher* make_matcher(SgPattern *p, SgString *text)
   m->pattern = p;
   m->text = text;
   m->anchorBounds = TRUE;
+  m->match_ctx = SG_NEW(match_ctx_t);
+  /* we use root, not rootMatch for looking-at */
+  init_match_ctx(m->match_ctx, m, m->pattern->prog->rootLength);
   return reset_matcher(m);
 }
 
@@ -2441,16 +2445,16 @@ SgMatcher* Sg_RegexMatcher(SgPattern *pattern, SgString *text)
 
 int Sg_RegexLookingAt(SgMatcher *m)
 {
-  return matcher_search(m, m->from, UNANCHORED);
+  return matcher_match(m, m->from, UNANCHORED);
 }
 
 SgString* Sg_RegexGroup(SgMatcher *m, int group)
 {
   SgString *s;
-  if (!m->matched) {
+  if (!m->match_ctx->matched) {
     Sg_Error(UC("no matched text"));
   }
-  if (m->pattern->groupCount < group) {
+  if (m->pattern->groupCount <= group) {
     /* TODO regexp error */
     Sg_Error(UC("group number is too big %d"), group);
   }

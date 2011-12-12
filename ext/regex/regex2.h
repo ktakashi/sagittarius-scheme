@@ -66,6 +66,7 @@ typedef union {		 /* arguments for opcode */
   int eol; 		 /* RX_END: end of line flag. values are the same as
 			            above. */
   SgObject set;		 /* RX_SET: charset */
+  unsigned int flags;	 /* RX_FLAGS */
 } inst_arg_t;
 
 struct inst_rec_t
@@ -78,10 +79,7 @@ struct inst_rec_t
 typedef struct
 {
   inst_t *root;			/* root match code */
-  inst_t *matchRoot;		/* match function root
-				   (could be the same as above) */
   int     rootLength;
-  int     matchRootLength;
 } prog_t;
 
 typedef struct SgPatternRec
@@ -102,6 +100,8 @@ SG_DECLARE_META_OBJ(Sg_PatternMeta);
 #define SG_PATTERN(obj)   ((SgPattern *)obj)
 #define SG_PATTERN_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_PATTERN)
 
+typedef struct match_ctx_rec_t match_ctx_t;
+
 typedef struct SgMatcherRec
 {
   SG_META_HEADER;
@@ -116,7 +116,7 @@ typedef struct SgMatcherRec
   int        oldLast;
   int        acceptMode;
   int        anchorBounds;
-  int        matched;
+  match_ctx_t *match_ctx;
   SgChar    *submatch[1];
 } SgMatcher;
 
