@@ -32,49 +32,43 @@
 #include "regex2.h"
 #include <sagittarius/extend.h>
 
-/* #define DEBUG_REGEX 1 */
+#define DEBUG_REGEX 1
 
-static SgSymbol *consant_symbol_table[39] = {NULL};
+static SgSymbol *constant_symbol_table[33] = {NULL};
 
-#define SYM_ALTER           	  	   (consant_symbol_table[0])
-#define SYM_NON_GREEDY_REP  	  	   (consant_symbol_table[1])
-#define SYM_GREEDY_REP      	  	   (consant_symbol_table[2])
-#define SYM_CLOSE_PAREN     	  	   (consant_symbol_table[3])
-#define SYM_VERTICAL_BAR    	  	   (consant_symbol_table[4])
-#define SYM_QUESTION_MARK   	  	   (consant_symbol_table[5])
-#define SYM_EVERYTHING      	  	   (consant_symbol_table[6])
-#define SYM_END_ANCHOR      	  	   (consant_symbol_table[7])
-#define SYM_INVERTED_CHAR_CLASS   	   (consant_symbol_table[8])
-#define SYM_MODELESS_START_ANCHOR 	   (consant_symbol_table[9])
-#define SYM_MODELESS_END_ANCHOR   	   (consant_symbol_table[10])
-#define SYM_MODELESS_END_ANCHOR_NO_NEWLINE (consant_symbol_table[11])
-#define SYM_START_ANCHOR      		   (consant_symbol_table[12])
-#define SYM_BACKREF           		   (consant_symbol_table[13])
-#define SYM_WORD_BOUNDARY     		   (consant_symbol_table[14])
-#define SYM_NON_WORD_BOUNDARY 		   (consant_symbol_table[15])
-#define SYM_BRANCH             		   (consant_symbol_table[16])
-#define SYM_FLAGS              		   (consant_symbol_table[17])
-#define SYM_OPEN_PAREN         		   (consant_symbol_table[18])
-#define SYM_OPEN_PAREN_PAREN   		   (consant_symbol_table[19])
-#define SYM_OPEN_PAREN_GREATER 		   (consant_symbol_table[20])
-#define SYM_OPEN_PAREN_EQUAL 		   (consant_symbol_table[21])
-#define SYM_OPEN_PAREN_LESS_EXCLAMATION    (consant_symbol_table[22])
-#define SYM_OPEN_PAREN_COLON 	   	   (consant_symbol_table[23])
-#define SYM_OPEN_PAREN_EXCLAMATION 	   (consant_symbol_table[24])
-#define SYM_OPEN_PAREN_LESS_LETTER 	   (consant_symbol_table[25])
-#define SYM_REGISTER   		  	   (consant_symbol_table[26])
-#define SYM_STANDALONE 		  	   (consant_symbol_table[27])
-#define SYM_LOOKAHEAD  		  	   (consant_symbol_table[28])
-#define SYM_OPEN_PAREN_LESS_EQUAL 	   (consant_symbol_table[29])
-#define SYM_CASE_INSENSITIVE 		   (consant_symbol_table[30])
-#define SYM_CASE_SENSITIVE   		   (consant_symbol_table[31])
-#define SYM_MULTI_LINE_MODE  		   (consant_symbol_table[32])
-#define SYM_NOT_MULTI_LINE_MODE 	   (consant_symbol_table[33])
-#define SYM_SINGLE_LINE_MODE 	 	   (consant_symbol_table[34])
-#define SYM_NOT_SINGLE_LINE_MODE 	   (consant_symbol_table[35])
-#define SYM_SEQUENCE  	    	 	   (consant_symbol_table[36])
-#define SYM_LOOKBHIND 	    	 	   (consant_symbol_table[37])
-#define SYM_FLAGED_SEQUENCE 	 	   (consant_symbol_table[38])
+#define SYM_ALTER           	  	   (constant_symbol_table[0])
+#define SYM_NON_GREEDY_REP  	  	   (constant_symbol_table[1])
+#define SYM_GREEDY_REP      	  	   (constant_symbol_table[2])
+#define SYM_CLOSE_PAREN     	  	   (constant_symbol_table[3])
+#define SYM_VERTICAL_BAR    	  	   (constant_symbol_table[4])
+#define SYM_QUESTION_MARK   	  	   (constant_symbol_table[5])
+#define SYM_EVERYTHING      	  	   (constant_symbol_table[6])
+#define SYM_END_ANCHOR      	  	   (constant_symbol_table[7])
+#define SYM_INVERTED_CHAR_CLASS   	   (constant_symbol_table[8])
+#define SYM_MODELESS_START_ANCHOR 	   (constant_symbol_table[9])
+#define SYM_MODELESS_END_ANCHOR   	   (constant_symbol_table[10])
+#define SYM_MODELESS_END_ANCHOR_NO_NEWLINE (constant_symbol_table[11])
+#define SYM_START_ANCHOR      		   (constant_symbol_table[12])
+#define SYM_BACKREF           		   (constant_symbol_table[13])
+#define SYM_WORD_BOUNDARY     		   (constant_symbol_table[14])
+#define SYM_NON_WORD_BOUNDARY 		   (constant_symbol_table[15])
+#define SYM_BRANCH             		   (constant_symbol_table[16])
+#define SYM_FLAGS              		   (constant_symbol_table[17])
+#define SYM_OPEN_PAREN         		   (constant_symbol_table[18])
+#define SYM_OPEN_PAREN_PAREN   		   (constant_symbol_table[19])
+#define SYM_OPEN_PAREN_GREATER 		   (constant_symbol_table[20])
+#define SYM_OPEN_PAREN_EQUAL 		   (constant_symbol_table[21])
+#define SYM_OPEN_PAREN_LESS_EXCLAMATION    (constant_symbol_table[22])
+#define SYM_OPEN_PAREN_COLON 	   	   (constant_symbol_table[23])
+#define SYM_OPEN_PAREN_EXCLAMATION 	   (constant_symbol_table[24])
+#define SYM_OPEN_PAREN_LESS_LETTER 	   (constant_symbol_table[25])
+#define SYM_REGISTER   		  	   (constant_symbol_table[26])
+#define SYM_STANDALONE 		  	   (constant_symbol_table[27])
+#define SYM_LOOKAHEAD  		  	   (constant_symbol_table[28])
+#define SYM_OPEN_PAREN_LESS_EQUAL 	   (constant_symbol_table[29])
+#define SYM_SEQUENCE  	    	 	   (constant_symbol_table[30])
+#define SYM_LOOKBHIND 	    	 	   (constant_symbol_table[31])
+#define SYM_FLAGED_SEQUENCE 	 	   (constant_symbol_table[32])
 
 /* convenient macros */
 #define has(p, f) (((p)->flags & (f)) != 0)
@@ -173,6 +167,16 @@ static void raise_syntax_error(lexer_ctx_t *ctx, int pos, const SgChar *str)
   /* TODO create regex parser error or so */
   Sg_Error(UC("bad regex syntax in %s: %s, [posision %d]"),
 	   ctx->ostr, str, pos);
+}
+
+/* compile error. this is actually for pass3, but i put it here */
+static void raise_compile_error(const SgChar *msg, SgObject irr)
+{
+  if (SG_FALSEP(irr)) {
+    Sg_Error(msg);
+  } else {
+    Sg_Error(msg, irr);
+  }
 }
 
 /* null sequence */
@@ -925,7 +929,7 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
 	    raise_syntax_error(ctx, pos,
 			       UC("Non defined named register is refered."));
 	  }
-	  return SG_LIST2(SYM_BACKREF, num);	
+	  return Sg_Cons(SYM_BACKREF, num);	
 	} else{
 	  return SG_MAKE_CHAR('k');
 	}
@@ -951,7 +955,7 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
 	    return make_char_from_code(ctx, 
 				       get_number(ctx, 8, 3, FALSE), oldpos);
 	  } else {
-	    return SG_LIST2(SYM_BACKREF, num);
+	    return Sg_Cons(SYM_BACKREF, num);
 	  }
 	}
       case '0':
@@ -1002,7 +1006,7 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
 	  if (ret) *ret = flags;
 	  return SYM_OPEN_PAREN_COLON;
 	case '<':
-	  /* might be look-behing assertion or a named group, so check next */
+	  /* might be look-behind assertion or a named group, so check next */
 	  nc = next_char_non_extended(ctx);
 	  if (isalpha(nc)) {
 	    /* we have encountered a named group. */
@@ -1514,6 +1518,13 @@ enum {
   RX_FAIL,			/* match failed */
   RX_MATCH,			/* matched */
   RX_FLAG,			/* runtime flags */
+  RX_BREF,			/* backreference */
+  /* these ahead releated use index as its argument. */
+  RX_AHEAD,			/* look ahead */
+  RX_BEHIND,			/* look behind */
+  RX_NAHEAD,			/* negative look ahead */
+  RX_NBEHIND,			/* negative look behind */
+  RX_RESTORE,			/* recover from look ahead/behind */
 };
 
 typedef struct
@@ -1525,6 +1536,7 @@ typedef struct
   prog_t *prog;			/* building prog */
   inst_t *inst;
   int     index;		/* current inst index */
+  int     max_depth;		/* ahead or behind count */
 } compile_ctx_t;
 
 static inst_arg_t null_arg = {0};
@@ -1558,9 +1570,13 @@ static void emit(compile_ctx_t *ctx, unsigned char opcode,
     ctx->codemax++;
   }
 }
-static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp);
 
-static void compile_seq(compile_ctx_t *ctx, SgObject seq, int lastp)
+#define emit2(ctx, inst1, inst2, arg)				\
+  emit((ctx), (ctx)->negative ? (inst2) : (inst1), (arg))
+
+static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp, int depth);
+
+static void compile_seq(compile_ctx_t *ctx, SgObject seq, int lastp, int depth)
 {
   SgObject cp;
   /* todo look behind */
@@ -1576,13 +1592,13 @@ static void compile_seq(compile_ctx_t *ctx, SgObject seq, int lastp)
       int p;
       /* TODO lookbehind */
       p = lastp && SG_NULLP(SG_CDR(cp));
-      compile_rec(ctx, item, p);
+      compile_rec(ctx, item, p, depth);
     }
   }
 }
 
 static void compile_rep_seq(compile_ctx_t *ctx, SgObject seq,
-			    int count, int lastp)
+			    int count, int lastp, int depth)
 {
   SgObject h = SG_NIL, t = SG_NIL;
   int seqp = (SG_PAIRP(seq) && SG_EQ(SG_CAR(seq), SYM_SEQUENCE));
@@ -1599,11 +1615,11 @@ static void compile_rep_seq(compile_ctx_t *ctx, SgObject seq,
   }
   /* h is ((sequence ...) ...) so we can simply pass it to compile_seq
      TODO maybe we need to flatten */
-  compile_seq(ctx, h, lastp);
+  compile_seq(ctx, h, lastp, depth);
 }
 
 static void compile_min_max(compile_ctx_t *ctx, SgObject type,
-			    int count, SgObject item, int lastp)
+			    int count, SgObject item, int lastp, int depth)
 {
   /* {m, n} pattern. it can be replaced like this.
      x{2,5} = xx(x(x(x)?)?)?
@@ -1626,7 +1642,7 @@ static void compile_min_max(compile_ctx_t *ctx, SgObject type,
     inst_t *pc1 = ctx->pc;
     emit(ctx, RX_SPLIT, null_arg);
     pc1->arg.pos.x = ctx->pc;
-    compile_rec(ctx, item, lastp);
+    compile_rec(ctx, item, lastp, depth);
     /* save current pc to patch later */
     if (ctx->emitp) SG_APPEND1(h, t, pc1);
   }
@@ -1639,7 +1655,7 @@ static void compile_min_max(compile_ctx_t *ctx, SgObject type,
   return;
 }
 
-static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp)
+static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp, int depth)
 {
   SgObject type;
   inst_arg_t arg;
@@ -1702,7 +1718,7 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp)
   /* do with simple ones */
   if (SG_EQ(type, SYM_SEQUENCE)) {
     /* we do not have any implicit sequence */
-    compile_seq(ctx, SG_CDR(ast), lastp);
+    compile_seq(ctx, SG_CDR(ast), lastp, depth);
     return;
   }
 
@@ -1718,7 +1734,7 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp)
     int grpno = SG_INT_VALUE(SG_CADR(ast));
     arg.n = 2*grpno;
     emit(ctx, RX_SAVE, arg);
-    compile_rec(ctx, SG_CADR(SG_CDDR(ast)), lastp);
+    compile_rec(ctx, SG_CADR(SG_CDDR(ast)), lastp, depth);
     arg.n = 2*grpno+1;
     emit(ctx, RX_SAVE, arg);
     return;
@@ -1729,11 +1745,11 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp)
       inst_t *pc1 = ctx->pc, *pc2;
       emit(ctx, RX_SPLIT, null_arg);
       pc1->arg.pos.x = ctx->pc;
-      compile_rec(ctx, SG_CADR(ast), lastp);
+      compile_rec(ctx, SG_CADR(ast), lastp, depth);
       pc2 = ctx->pc;
       emit(ctx, RX_JMP, null_arg);
       pc1->arg.pos.y = ctx->pc;
-      compile_rec(ctx, SG_CAR(SG_CDDR(ast)), lastp);
+      compile_rec(ctx, SG_CAR(SG_CDDR(ast)), lastp, depth);
       pc2->arg.pos.x = ctx->pc;
     } else {
       emit(ctx, RX_FAIL, null_arg);
@@ -1749,19 +1765,19 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp)
 
     if (SG_FALSEP(max) || SG_INT_VALUE(max) > 1)
       multip = TRUE;
-    compile_rep_seq(ctx, item, SG_INT_VALUE(min), multip);
+    compile_rep_seq(ctx, item, SG_INT_VALUE(min), multip, depth);
 
     if (SG_EQ(min, max)) return; /* well, it must match exact times */
     if (!SG_FALSEP(max)) {
       int count = SG_INT_VALUE(max) - SG_INT_VALUE(min);
-      compile_min_max(ctx, type, count, item, lastp);
+      compile_min_max(ctx, type, count, item, lastp, depth);
       return;
     }
     /* save current instruction position */
     pc1 = ctx->pc;
     emit(ctx, RX_SPLIT, arg);
     pc1->arg.pos.x = ctx->pc;
-    compile_rec(ctx, item, FALSE);
+    compile_rec(ctx, item, FALSE, depth);
     /* we've already resolved minimam match so let introduce jmp here */
     arg.pos.x = pc1;
     emit(ctx, RX_JMP, arg);
@@ -1771,6 +1787,47 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp)
       pc1->arg.pos.x = pc1->arg.pos.y;
       pc1->arg.pos.y = pc2;
     }
+    return;
+  }
+
+  if (SG_EQ(type, SYM_BACKREF)) {
+    SgObject num = SG_CDR(ast);
+    if (SG_INTP(num)) {
+      arg.index = SG_INT_VALUE(num);
+      emit(ctx, RX_BREF, arg);
+    } else {
+      raise_compile_error(UC("invalid backreference number. %S"), num);
+    }
+    return;
+  }
+
+  if (SG_EQ(type, SYM_LOOKAHEAD)) {
+    SgObject neg = SG_CADR(ast);
+    SgObject seq = SG_CAR(SG_CDDR(ast));
+    inst_t *pc1;
+    /* save max depth */
+    if (ctx->max_depth < depth + 1) {
+      ctx->max_depth++;
+    }
+    arg.index = depth;
+    emit(ctx, RX_AHEAD, arg);
+    pc1 = ctx->pc;
+    if (SG_FALSEP(neg)) {
+      /* make thread
+	 0: split 1 3
+	 1: check if matches or not
+	 2: fail
+	 3: ok process
+       */
+      emit(ctx, RX_SPLIT, null_arg);
+      pc1->arg.pos.x = ctx->pc;
+    }
+    compile_rec(ctx, seq, FALSE, depth + 1);
+    if (SG_FALSEP(neg)) {
+      emit(ctx, RX_FAIL, null_arg);
+      pc1->arg.pos.y = ctx->pc;
+    }
+    emit(ctx, RX_RESTORE, arg);
     return;
   }
 
@@ -1792,7 +1849,7 @@ static prog_t* compile(compile_ctx_t *ctx, SgObject ast)
   ctx->pc = &null_inst;		/* put dummy */
   is_start_anchor = check_start_anchor(ast, &modeless);
   ctx->emitp = FALSE;
-  compile_rec(ctx, ast, TRUE);
+  compile_rec(ctx, ast, TRUE, 0);
   n = ctx->codemax + 1;
 
   p = SG_NEW(prog_t);
@@ -1805,6 +1862,7 @@ static prog_t* compile(compile_ctx_t *ctx, SgObject ast)
   ctx->inst = p->root;
   ctx->index = 0;
   ctx->emitp = TRUE;
+  ctx->max_depth = 0;
 #if 0
   if (!modeless) {
     inst_arg_t arg;
@@ -1816,7 +1874,7 @@ static prog_t* compile(compile_ctx_t *ctx, SgObject ast)
     emit(ctx, RX_JMP, arg);
   }
 #endif
-  compile_rec(ctx, ast, TRUE);
+  compile_rec(ctx, ast, TRUE, 0);
   /* last instruction must be RX_MATCH */
   match = &p->root[n+offset-1];
   match->opcode = RX_MATCH;
@@ -1870,6 +1928,7 @@ SgObject Sg_CompileRegex(SgString *pattern, int flags, int parseOnly)
   /* compile */
   cctx.flags = flags;
   prog = compile(&cctx, ast);
+  prog->maxSavePoint = cctx.max_depth;
 
   p = make_pattern(pattern, ast, flags, &ctx, prog);
   return SG_OBJ(p);
@@ -1883,6 +1942,7 @@ void Sg_DumpRegex(SgPattern *pattern, SgObject port)
   inst_t *start = &pattern->prog->root[0];
   Sg_Printf(port, UC("input regex : %S\n"), pattern->pattern);
   Sg_Printf(port, UC(" group count: %d\n"), pattern->groupCount);
+  Sg_Printf(port, UC(" save points: %d\n"), pattern->prog->maxSavePoint);
   for (i = 0; i < size; i++) {
     inst_t *inst = &pattern->prog->root[i];
     int op = inst->opcode;
@@ -1898,9 +1958,6 @@ void Sg_DumpRegex(SgPattern *pattern, SgObject port)
       break;
     case RX_NSET:
       Sg_Printf(port, UC("%3d: RX_NSET[%d] %S\n"), i, op, inst->arg.set);
-      break;
-    case RX_STR:
-      Sg_Printf(port, UC("%3d: RX_STR[%d]\n"), i, op);
       break;
     case RX_SPLIT:
       Sg_Printf(port, UC("%3d: RX_SPLIT[%d] %d %d\n"),
@@ -1935,6 +1992,24 @@ void Sg_DumpRegex(SgPattern *pattern, SgObject port)
       break;
     case RX_FLAG:
       Sg_Printf(port, UC("%3d: RX_FLAG[%d] %d\n"), i, op, inst->arg.flags);
+      break;
+    case RX_BREF:
+      Sg_Printf(port, UC("%3d: RX_BREF[%d] %d\n"), i, op, inst->arg.index);
+      break;
+    case RX_AHEAD:
+    case RX_NAHEAD:
+      Sg_Printf(port, UC("%3d: %s[%d] %d\n"), i,
+		op == RX_AHEAD ? UC("RX_AHEAD") : UC("RX_NAHEAD"), op,
+		inst->arg.index);
+      break;
+    case RX_BEHIND:
+    case RX_NBEHIND:
+      Sg_Printf(port, UC("%3d: %s[%d] %d\n"), i,
+		op == RX_BEHIND ? UC("RX_BEHIND") : UC("RX_NBEHIND"), op,
+		inst->arg.index);
+      break;
+    case RX_RESTORE:
+      Sg_Printf(port, UC("%3d: RX_RESTORE[%d] %d\n"), i, op, inst->arg.index);
       break;
     default:
       Sg_Printf(port, UC("%3d: ??? %d\n"), i, op);
@@ -2088,6 +2163,7 @@ struct match_ctx_rec_t
   inst_t      *start;
   inst_t      *inst;
   unsigned int flags;		/* runtime flags */
+  SgChar     **saved;		/* for look ahead/behind */
 };
 
 #if (defined DEBUG_REGEX)
@@ -2191,10 +2267,23 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
       ctx->flags = ip->arg.flags;
       stk[nstk++] = add_state(id + 1, -1, NULL);
       break;
+      /* correct? */
+    case RX_NAHEAD:
+    case RX_NBEHIND:
+    case RX_BEHIND:
+    case RX_AHEAD:
+      ctx->saved[ip->arg.index] = p;
+      stk[nstk++] = add_state(id + 1, -1, NULL);
+      break;
 
+    case RX_RESTORE:
+
+    case RX_BREF:
     case RX_ANY:
     case RX_CHAR:
     case RX_SET:
+    case RX_NSET:
+    case RX_STR:
     case RX_MATCH:
       /* save state */
       t = alloc_thread(ctx);
@@ -2207,14 +2296,21 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
   }
 }
 
-static int inst_matches(inst_t *inst, SgChar c)
+static int inst_matches(match_ctx_t *ctx, inst_t *inst, SgChar c)
 {
   switch (inst->opcode) {
   case RX_SET:
-    if (Sg_CharSetContains(inst->arg.set, c)) return TRUE;
+    if (Sg_CharSetContains(inst->arg.set, c)) {
+      return TRUE;
+    }
+    return FALSE;
+  case RX_NSET:
+    if (!Sg_CharSetContains(inst->arg.set, c)) return TRUE;
     return FALSE;
   case RX_CHAR:
-    if (inst->arg.c == c) return TRUE;
+    if (inst->arg.c == c) {
+      return TRUE;
+    }
     return FALSE;
   case RX_ANY:
     return TRUE;
@@ -2224,11 +2320,33 @@ static int inst_matches(inst_t *inst, SgChar c)
   }
 }
 
+static const SgChar* retrieve_back_ref(thread_t *t, int index, int *size)
+{
+  index *= 2;
+  if (t->capture[index] != NULL && t->capture[index+1] != NULL) {
+    *size = (int)(t->capture[index+1] - t->capture[index]);
+    return t->capture[index];
+  }
+  return NULL;
+}
+
+static int match_back_ref(match_ctx_t *ctx, thread_t *t, inst_t *ip, SgChar c,
+			  const SgChar *p)
+{
+  int count = -1, i;
+  const SgChar *ref = retrieve_back_ref(t, ip->arg.index, &count);
+  if (ref == NULL || count < 0) return -1;
+  for (i = 0; i < count; i++) {
+    if (*p++ != *ref++) return -1;
+  }
+  return count;
+}
+
 static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
-		      SgChar c, int flags, const SgChar *p)
+		      SgChar c, int flags, const SgChar *p, int *diff)
 {
   THREADQ_ITERATOR_T i;
-
+  int count;
   THREADQ_CLEAR(nextq);
 
   debug_printf("(%c).", (c < 0) ? '\0' : c);
@@ -2244,10 +2362,28 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
     default:
       Sg_Error(UC("[internal] Unhandled opcode in step: %d"), ip->opcode);
       break;
-    case RX_CHAR:
+    case RX_BREF:
+      /* basic strategy is simple, check if captured group is already there
+	 and check following sequence matches it.
+       */
+      if ((count = match_back_ref(ctx, t, ip, c, p)) >= 0) {
+	debug_printf("->%d[%d]", id+1, count); 
+	*diff = count;
+	add_to_threadq(ctx, nextq, id + 1, flags, p+count, t->capture);
+      }
+      break;
+
+    case RX_RESTORE:
+      /* if look ahead/behind reaches here, it has been matched something,
+         so restore the position. */
+      *diff = ctx->saved[ip->arg.index] - p;
+      add_to_threadq(ctx, nextq, id+1, flags, p + *diff, t->capture);
+      break;
     case RX_ANY:
+    case RX_CHAR:
     case RX_SET:
-      if (inst_matches(ip, c)) {
+    case RX_NSET:
+      if (inst_matches(ctx, ip, c)) {
 	debug_printf("->%d", id+1); 
 	add_to_threadq(ctx, nextq, id + 1, flags, p+1, t->capture);
       }
@@ -2301,10 +2437,10 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
   
   /* check word boundary */
   for (p = SG_STRING_VALUE(ctx->m->text); ;p++) {
-    int flag = 0, isword = FALSE, id;
+    int flag = 0, isword = FALSE, id, diff = 0;
     /* TODO check ^, \A, $, \z and \Z */
     /* TODO check word boundary */
-    id = match_step(ctx, runq, nextq, c, flag, p-1);
+    id = match_step(ctx, runq, nextq, c, flag, p-1, &diff);
 
     /* swap */
     tmp = nextq;
@@ -2341,12 +2477,15 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
     if (!ctx->matched && (anchor == UNANCHORED || p == bp)) {
       ctx->match[0] = p;
       /* TODO is start alwais 0? */
-      add_to_threadq(ctx, runq, 0, flag, p, (const SgChar**)ctx->match);
+      add_to_threadq(ctx, runq, 0, flag, p + diff, (const SgChar**)ctx->match);
       ctx->match[0] = NULL;
     }
 
     /* if all the thread have died, stop early */
     if (THREADQ_SIZE(runq) == 0) break;
+    /* if backreference has been matched, we need to forward to last matching
+       position */
+    if (diff) p += diff-1;
 
     if (p == ep) c = 0;
     else c = *p;
@@ -2399,9 +2538,10 @@ static match_ctx_t* init_match_ctx(match_ctx_t *ctx, SgMatcher *m, int size)
   ctx->q1 = ALLOCATE_THREADQ(size);
   ctx->matched = FALSE;
   ctx->ncapture = 2 * m->pattern->groupCount;
-  ctx->match = SG_NEW_ARRAY(SgChar*, ctx->ncapture);
+  ctx->match = SG_NEW_ARRAY(SgChar *, ctx->ncapture);
   ctx->free_threads = NULL;
   ctx->flags = m->pattern->flags;
+  ctx->saved = SG_NEW_ARRAY(SgChar *, m->pattern->prog->maxSavePoint);
   return ctx;
 }
 
@@ -2513,12 +2653,6 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__regex2()
   SYM_STANDALONE = SG_INTERN("standalone");
   SYM_LOOKAHEAD = SG_INTERN("lookahead");
   SYM_OPEN_PAREN_LESS_EQUAL = SG_INTERN("open-paren-less-equal");
-  SYM_CASE_INSENSITIVE = SG_INTERN("case-insensitive");
-  SYM_CASE_SENSITIVE = SG_INTERN("case-sensitive");
-  SYM_MULTI_LINE_MODE = SG_INTERN("multi-line-mode");
-  SYM_NOT_MULTI_LINE_MODE = SG_INTERN("not-multi-line-mode");
-  SYM_SINGLE_LINE_MODE = SG_INTERN("single-line-mode");
-  SYM_NOT_SINGLE_LINE_MODE = SG_INTERN("not-single-line-mode");
   SYM_SEQUENCE = SG_INTERN("sequence");
   SYM_LOOKBHIND = SG_INTERN("lookbehind");
   SYM_FLAGED_SEQUENCE = SG_INTERN("flaged-sequence");

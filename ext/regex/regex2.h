@@ -67,6 +67,7 @@ typedef union {		 /* arguments for opcode */
 			            above. */
   SgObject set;		 /* RX_SET: charset */
   unsigned int flags;	 /* RX_FLAGS */
+  unsigned int index;	 /* RX_BREF: reference index */
 } inst_arg_t;
 
 struct inst_rec_t
@@ -80,6 +81,7 @@ typedef struct
 {
   inst_t *root;			/* root match code */
   int     rootLength;
+  int     maxSavePoint;		/* for look ahead/behind */
 } prog_t;
 
 typedef struct SgPatternRec
