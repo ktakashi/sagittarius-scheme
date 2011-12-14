@@ -1511,10 +1511,7 @@ enum {
   RX_JMP,
   RX_SAVE,			/* save current match for submatch */
   /* add more */
-  RX_START,			/* start anchor */
-  RX_END,			/* end anchor */
-  RX_WB,			/* word boundary */
-  RX_NWB,			/* non word boundary */
+  RX_EMPTY,			/* start, end anchor and word boundary */
   RX_FAIL,			/* match failed */
   RX_MATCH,			/* matched */
   RX_FLAG,			/* runtime flags */
@@ -1524,7 +1521,19 @@ enum {
   RX_BEHIND,			/* look behind */
   RX_NAHEAD,			/* negative look ahead */
   RX_NBEHIND,			/* negative look behind */
+  RX_ONCE,			/* standalone */
   RX_RESTORE,			/* recover from look ahead/behind */
+};
+
+
+enum {
+  EmptyBeginLine       = 1<<0,	/* ^ - beginning of line */
+  EmptyEndLine         = 1<<1,	/* $ - end of line */
+  EmptyBeginText       = 1<<2,	/* \A - beginning of text */
+  EmptyEndText         = 1<<3,	/* \z - end of text */
+  EmptyWordBoundary    = 1<<4,	/* \b - word boundary */
+  EmptyNonWordBoundary = 1<<5,	/* \B - not \b */
+  EmptyAllFlags        = (1<<6)-1,
 };
 
 typedef struct
@@ -1536,7 +1545,7 @@ typedef struct
   prog_t *prog;			/* building prog */
   inst_t *inst;
   int     index;		/* current inst index */
-  int     max_depth;		/* ahead or behind count */
+  int     lookbehindp;
 } compile_ctx_t;
 
 static inst_arg_t null_arg = {0};
@@ -1574,12 +1583,14 @@ static void emit(compile_ctx_t *ctx, unsigned char opcode,
 #define emit2(ctx, inst1, inst2, arg)				\
   emit((ctx), (ctx)->negative ? (inst2) : (inst1), (arg))
 
-static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp, int depth);
+static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp);
 
-static void compile_seq(compile_ctx_t *ctx, SgObject seq, int lastp, int depth)
+static void compile_seq(compile_ctx_t *ctx, SgObject seq, int lastp)
 {
   SgObject cp;
-  /* todo look behind */
+  if (ctx->emitp && ctx->lookbehindp) {
+    seq = Sg_ReverseX(seq);
+  }
   SG_FOR_EACH(cp, seq) {
     SgObject item = SG_CAR(cp);
     inst_arg_t arg;
@@ -1590,15 +1601,14 @@ static void compile_seq(compile_ctx_t *ctx, SgObject seq, int lastp, int depth)
       emit(ctx, RX_CHAR, arg);
     } else {
       int p;
-      /* TODO lookbehind */
       p = lastp && SG_NULLP(SG_CDR(cp));
-      compile_rec(ctx, item, p, depth);
+      compile_rec(ctx, item, p);
     }
   }
 }
 
 static void compile_rep_seq(compile_ctx_t *ctx, SgObject seq,
-			    int count, int lastp, int depth)
+			    int count, int lastp)
 {
   SgObject h = SG_NIL, t = SG_NIL;
   int seqp = (SG_PAIRP(seq) && SG_EQ(SG_CAR(seq), SYM_SEQUENCE));
@@ -1615,11 +1625,11 @@ static void compile_rep_seq(compile_ctx_t *ctx, SgObject seq,
   }
   /* h is ((sequence ...) ...) so we can simply pass it to compile_seq
      TODO maybe we need to flatten */
-  compile_seq(ctx, h, lastp, depth);
+  compile_seq(ctx, h, lastp);
 }
 
 static void compile_min_max(compile_ctx_t *ctx, SgObject type,
-			    int count, SgObject item, int lastp, int depth)
+			    int count, SgObject item, int lastp)
 {
   /* {m, n} pattern. it can be replaced like this.
      x{2,5} = xx(x(x(x)?)?)?
@@ -1642,7 +1652,7 @@ static void compile_min_max(compile_ctx_t *ctx, SgObject type,
     inst_t *pc1 = ctx->pc;
     emit(ctx, RX_SPLIT, null_arg);
     pc1->arg.pos.x = ctx->pc;
-    compile_rec(ctx, item, lastp, depth);
+    compile_rec(ctx, item, lastp);
     /* save current pc to patch later */
     if (ctx->emitp) SG_APPEND1(h, t, pc1);
   }
@@ -1655,7 +1665,7 @@ static void compile_min_max(compile_ctx_t *ctx, SgObject type,
   return;
 }
 
-static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp, int depth)
+static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp)
 {
   SgObject type;
   inst_arg_t arg;
@@ -1682,18 +1692,23 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp, int depth)
       }
       if (SG_EQ(ast, SYM_START_ANCHOR) ||
 	  SG_EQ(ast, SYM_MODELESS_START_ANCHOR)) {
-	/* check flags */
-	arg.bol = SG_EQ(ast, SYM_START_ANCHOR);
-	emit(ctx, RX_START, arg);
+	/* set flags */
+	/* TODO check compile time flag */
+	arg.flags = SG_EQ(ast, SYM_START_ANCHOR)
+	  ? EmptyBeginLine : EmptyBeginText;
+	emit(ctx, RX_EMPTY, arg);
 	return;
       }
       if (SG_EQ(ast, SYM_END_ANCHOR) ||
 	  SG_EQ(ast, SYM_MODELESS_END_ANCHOR) ||
 	  SG_EQ(ast, SYM_MODELESS_END_ANCHOR_NO_NEWLINE)) {
 	if (lastp) {
-	  /* check flags */
-	  arg.eol = SG_EQ(ast, SYM_END_ANCHOR);
-	  emit(ctx, RX_END, arg);
+	  /* set flags */
+	  /* TODO check compile time flag */
+	  arg.flags
+	    = SG_EQ(ast, SYM_END_ANCHOR) || SG_EQ(ast, SYM_MODELESS_END_ANCHOR)
+	    ? EmptyEndLine : EmptyEndText;
+	  emit(ctx, RX_EMPTY, arg);
 	} else {
 	  /* literal character '$' */
 	  arg.c = '$';
@@ -1702,11 +1717,13 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp, int depth)
 	return;
       }
       if (SG_EQ(ast, SYM_WORD_BOUNDARY)) {
-	emit(ctx, RX_WB, null_arg);
+	arg.flags = EmptyWordBoundary;
+	emit(ctx, RX_EMPTY, arg);
 	return;
       }
       if (SG_EQ(ast, SYM_NON_WORD_BOUNDARY)) {
-	emit(ctx, RX_NWB, null_arg);
+	arg.flags = EmptyNonWordBoundary;
+	emit(ctx, RX_EMPTY, arg);
 	return;
       }
       /* fallback */
@@ -1718,7 +1735,7 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp, int depth)
   /* do with simple ones */
   if (SG_EQ(type, SYM_SEQUENCE)) {
     /* we do not have any implicit sequence */
-    compile_seq(ctx, SG_CDR(ast), lastp, depth);
+    compile_seq(ctx, SG_CDR(ast), lastp);
     return;
   }
 
@@ -1734,7 +1751,7 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp, int depth)
     int grpno = SG_INT_VALUE(SG_CADR(ast));
     arg.n = 2*grpno;
     emit(ctx, RX_SAVE, arg);
-    compile_rec(ctx, SG_CADR(SG_CDDR(ast)), lastp, depth);
+    compile_rec(ctx, SG_CADR(SG_CDDR(ast)), lastp);
     arg.n = 2*grpno+1;
     emit(ctx, RX_SAVE, arg);
     return;
@@ -1745,11 +1762,11 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp, int depth)
       inst_t *pc1 = ctx->pc, *pc2;
       emit(ctx, RX_SPLIT, null_arg);
       pc1->arg.pos.x = ctx->pc;
-      compile_rec(ctx, SG_CADR(ast), lastp, depth);
+      compile_rec(ctx, SG_CADR(ast), lastp);
       pc2 = ctx->pc;
       emit(ctx, RX_JMP, null_arg);
       pc1->arg.pos.y = ctx->pc;
-      compile_rec(ctx, SG_CAR(SG_CDDR(ast)), lastp, depth);
+      compile_rec(ctx, SG_CAR(SG_CDDR(ast)), lastp);
       pc2->arg.pos.x = ctx->pc;
     } else {
       emit(ctx, RX_FAIL, null_arg);
@@ -1765,19 +1782,19 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp, int depth)
 
     if (SG_FALSEP(max) || SG_INT_VALUE(max) > 1)
       multip = TRUE;
-    compile_rep_seq(ctx, item, SG_INT_VALUE(min), multip, depth);
+    compile_rep_seq(ctx, item, SG_INT_VALUE(min), multip);
 
     if (SG_EQ(min, max)) return; /* well, it must match exact times */
     if (!SG_FALSEP(max)) {
       int count = SG_INT_VALUE(max) - SG_INT_VALUE(min);
-      compile_min_max(ctx, type, count, item, lastp, depth);
+      compile_min_max(ctx, type, count, item, lastp);
       return;
     }
     /* save current instruction position */
     pc1 = ctx->pc;
     emit(ctx, RX_SPLIT, arg);
     pc1->arg.pos.x = ctx->pc;
-    compile_rec(ctx, item, FALSE, depth);
+    compile_rec(ctx, item, FALSE);
     /* we've already resolved minimam match so let introduce jmp here */
     arg.pos.x = pc1;
     emit(ctx, RX_JMP, arg);
@@ -1801,33 +1818,38 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp, int depth)
     return;
   }
 
-  if (SG_EQ(type, SYM_LOOKAHEAD)) {
+  if (SG_EQ(type, SYM_LOOKAHEAD) || SG_EQ(type, SYM_LOOKBHIND)) {
     SgObject neg = SG_CADR(ast);
     SgObject seq = SG_CAR(SG_CDDR(ast));
-    inst_t *pc1;
-    /* save max depth */
-    if (ctx->max_depth < depth + 1) {
-      ctx->max_depth++;
+    inst_t *pc;
+    int saved = ctx->lookbehindp;
+    pc = ctx->pc;
+    if (SG_EQ(type, SYM_LOOKAHEAD)) {
+      emit(ctx, (SG_FALSEP(neg)) ? RX_NAHEAD : RX_AHEAD, null_arg);
+    } else {
+      emit(ctx, (SG_FALSEP(neg)) ? RX_NBEHIND : RX_BEHIND, null_arg);
+      ctx->lookbehindp = TRUE;
     }
-    arg.index = depth;
-    emit(ctx, RX_AHEAD, arg);
-    pc1 = ctx->pc;
-    if (SG_FALSEP(neg)) {
-      /* make thread
-	 0: split 1 3
-	 1: check if matches or not
-	 2: fail
-	 3: ok process
-       */
-      emit(ctx, RX_SPLIT, null_arg);
-      pc1->arg.pos.x = ctx->pc;
-    }
-    compile_rec(ctx, seq, FALSE, depth + 1);
-    if (SG_FALSEP(neg)) {
-      emit(ctx, RX_FAIL, null_arg);
-      pc1->arg.pos.y = ctx->pc;
-    }
-    emit(ctx, RX_RESTORE, arg);
+    /* Comment from Gauche regexp.c
+       Assertions can check EOF even other regexps follow, so '$'
+       in the last pos of this group should be treated as EOL.
+       (?>$) as well. It is consistent with Perl and Oniguruma. */
+    compile_rec(ctx, seq, FALSE);
+    emit(ctx, RX_RESTORE, null_arg);
+    pc->arg.pos.x = ctx->pc;
+    ctx->lookbehindp = saved;
+    return;
+  }
+
+  if (SG_EQ(type, SYM_STANDALONE)) {
+    /* almost the same as look ahead/behind */
+    SgObject seq = SG_CADR(ast);
+    inst_t *pc;
+    pc = ctx->pc;
+    emit(ctx, RX_ONCE, null_arg);
+    compile_rec(ctx, seq, FALSE);
+    emit(ctx, RX_RESTORE, null_arg);
+    pc->arg.pos.x = ctx->pc;
     return;
   }
 
@@ -1849,7 +1871,7 @@ static prog_t* compile(compile_ctx_t *ctx, SgObject ast)
   ctx->pc = &null_inst;		/* put dummy */
   is_start_anchor = check_start_anchor(ast, &modeless);
   ctx->emitp = FALSE;
-  compile_rec(ctx, ast, TRUE, 0);
+  compile_rec(ctx, ast, TRUE);
   n = ctx->codemax + 1;
 
   p = SG_NEW(prog_t);
@@ -1862,19 +1884,8 @@ static prog_t* compile(compile_ctx_t *ctx, SgObject ast)
   ctx->inst = p->root;
   ctx->index = 0;
   ctx->emitp = TRUE;
-  ctx->max_depth = 0;
-#if 0
-  if (!modeless) {
-    inst_arg_t arg;
-    arg.pos.x = &p->root[3];
-    arg.pos.y = &p->root[1];
-    emit(ctx, RX_SPLIT, arg);
-    emit(ctx, RX_ANY, null_arg);
-    arg.pos.x = &p->root[0];
-    emit(ctx, RX_JMP, arg);
-  }
-#endif
-  compile_rec(ctx, ast, TRUE, 0);
+
+  compile_rec(ctx, ast, TRUE);
   /* last instruction must be RX_MATCH */
   match = &p->root[n+offset-1];
   match->opcode = RX_MATCH;
@@ -1928,7 +1939,6 @@ SgObject Sg_CompileRegex(SgString *pattern, int flags, int parseOnly)
   /* compile */
   cctx.flags = flags;
   prog = compile(&cctx, ast);
-  prog->maxSavePoint = cctx.max_depth;
 
   p = make_pattern(pattern, ast, flags, &ctx, prog);
   return SG_OBJ(p);
@@ -1942,7 +1952,6 @@ void Sg_DumpRegex(SgPattern *pattern, SgObject port)
   inst_t *start = &pattern->prog->root[0];
   Sg_Printf(port, UC("input regex : %S\n"), pattern->pattern);
   Sg_Printf(port, UC(" group count: %d\n"), pattern->groupCount);
-  Sg_Printf(port, UC(" save points: %d\n"), pattern->prog->maxSavePoint);
   for (i = 0; i < size; i++) {
     inst_t *inst = &pattern->prog->root[i];
     int op = inst->opcode;
@@ -1970,19 +1979,8 @@ void Sg_DumpRegex(SgPattern *pattern, SgObject port)
     case RX_SAVE:
       Sg_Printf(port, UC("%3d: RX_SAVE[%d] %d\n"), i, op, inst->arg.n);
       break;
-    case RX_START:
-      Sg_Printf(port, UC("%3d: RX_START[%d] %s\n"), i, op,
-		(inst->arg.bol) ? UC("bol") : UC(""));
-      break;
-    case RX_END:
-      Sg_Printf(port, UC("%3d: RX_END[%d] %s\n"), i, op,
-		(inst->arg.eol) ? UC("eol") : UC(""));
-      break;
-    case RX_WB:
-      Sg_Printf(port, UC("%3d: RX_WB[%d]\n"), i, op);
-      break;
-    case RX_NWB:
-      Sg_Printf(port, UC("%3d: RX_NWB[%d]\n"), i, op);
+    case RX_EMPTY:
+      Sg_Printf(port, UC("%3d: RX_EMPTY[%d] %x\n"), i, op, inst->arg.flags);
       break;
     case RX_FAIL:
       Sg_Printf(port, UC("%3d: RX_FAIL[%d]\n"), i, op);
@@ -2000,13 +1998,17 @@ void Sg_DumpRegex(SgPattern *pattern, SgObject port)
     case RX_NAHEAD:
       Sg_Printf(port, UC("%3d: %s[%d] %d\n"), i,
 		op == RX_AHEAD ? UC("RX_AHEAD") : UC("RX_NAHEAD"), op,
-		inst->arg.index);
+		inst->arg.pos.x - start);
       break;
     case RX_BEHIND:
     case RX_NBEHIND:
       Sg_Printf(port, UC("%3d: %s[%d] %d\n"), i,
 		op == RX_BEHIND ? UC("RX_BEHIND") : UC("RX_NBEHIND"), op,
-		inst->arg.index);
+		inst->arg.pos.x - start);
+      break;
+    case RX_ONCE:
+      Sg_Printf(port, UC("%3d: RX_ONCE[%d] %d\n"), i, op,
+		inst->arg.pos.x - start);
       break;
     case RX_RESTORE:
       Sg_Printf(port, UC("%3d: RX_RESTORE[%d] %d\n"), i, op, inst->arg.index);
@@ -2158,12 +2160,14 @@ struct match_ctx_rec_t
   THREADQ_T   *q1;		/* nlist on pike.c */
   int          matched;
   int          ncapture;
-  SgChar     **match;
+  const SgChar **match;
   thread_t    *free_threads;
   inst_t      *start;
   inst_t      *inst;
   unsigned int flags;		/* runtime flags */
-  SgChar     **saved;		/* for look ahead/behind */
+  const SgChar *lastp;
+  int          once;
+  int          once_matched;
 };
 
 #if (defined DEBUG_REGEX)
@@ -2267,16 +2271,19 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
       ctx->flags = ip->arg.flags;
       stk[nstk++] = add_state(id + 1, -1, NULL);
       break;
-      /* correct? */
+    case RX_EMPTY:
+      if (ip->arg.flags & ~flags) break;
+      stk[nstk++] = add_state(id + 1, -1, NULL);
+      break;
+
+    /* These need to be treated in step. so just add a thread to the queue.*/
     case RX_NAHEAD:
     case RX_NBEHIND:
     case RX_BEHIND:
     case RX_AHEAD:
-      ctx->saved[ip->arg.index] = p;
-      stk[nstk++] = add_state(id + 1, -1, NULL);
-      break;
-
     case RX_RESTORE:
+
+    case RX_ONCE:
 
     case RX_BREF:
     case RX_ANY:
@@ -2342,17 +2349,23 @@ static int match_back_ref(match_ctx_t *ctx, thread_t *t, inst_t *ip, SgChar c,
   return count;
 }
 
+static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
+			  int inc);
+
 static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
-		      SgChar c, int flags, const SgChar *p, int *diff)
+		      SgChar c, int flags, const SgChar *p, int *has_diff,
+		      int *diff)
 {
   THREADQ_ITERATOR_T i;
   int count;
   THREADQ_CLEAR(nextq);
-
+  /* reset once matched flag */
+  ctx->once_matched = FALSE;
   debug_printf("(%c).", (c < 0) ? '\0' : c);
   THREADQ_FOR_EACH(i, runq) {
     thread_t *t = i.value;
     int id;
+    int cmp, once = FALSE, inc = 1;
     inst_t *ip;
     if (t == filler || t == NULL) continue;
     id = t->id;
@@ -2360,50 +2373,115 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
     debug_printf(" %d", id);
     switch (ip->opcode) {
     default:
-      Sg_Error(UC("[internal] Unhandled opcode in step: %d"), ip->opcode);
+      Sg_Error(UC("[internal] Unhandled opcode in step: id=%d opcode=%d"),
+	       id, ip->opcode);
       break;
     case RX_BREF:
       /* basic strategy is simple, check if captured group is already there
 	 and check following sequence matches it.
        */
       if ((count = match_back_ref(ctx, t, ip, c, p)) >= 0) {
-	debug_printf("->%d[%d]", id+1, count); 
+	debug_printf("->%d[%d]", id+1, count);
+	*has_diff = TRUE;
 	*diff = count;
 	add_to_threadq(ctx, nextq, id + 1, flags, p+count, t->capture);
       }
       break;
 
-    case RX_RESTORE:
-      /* if look ahead/behind reaches here, it has been matched something,
-         so restore the position. */
-      *diff = ctx->saved[ip->arg.index] - p;
-      add_to_threadq(ctx, nextq, id+1, flags, p + *diff, t->capture);
+    /*
+      Here cames a little bit tricky part. The idea is we separate instructions
+      between RX_AHEAD, RX_NAHEAD, RX_BEHIND or RX_NBEHIND and RX_RESTORE so
+      that we can check whether the sub condition matched or not. This
+      implementation is actually for negative assertions because I could not 
+      find the nicer way to figure it out.
+     */
+    case RX_AHEAD:
+      cmp = TRUE;
+      goto recur_entry;
+    case RX_NAHEAD:
+      cmp = FALSE;
+      goto recur_entry;
+    case RX_BEHIND:
+      cmp = TRUE;
+      inc = -1;
+      goto recur_entry;
+    case RX_NBEHIND:
+      cmp = FALSE;
+      inc = -1;
+      goto recur_entry;
+    case RX_ONCE:
+      cmp = TRUE;
+      once = TRUE;
+      goto recur_entry;
+    recur_entry:
+      {
+	int pos = p - SG_STRING_VALUE(ctx->m->text), matched;
+	match_ctx_t save = *ctx;
+	const SgChar *lastp;
+	debug_printf("-->%c", '\n');
+	if (once) {
+	  ctx->once = TRUE;
+	}
+	if (inc < 0) pos--;
+	matched = matcher_match0(ctx, pos, ANCHOR_START, ip+1, inc);
+	lastp = ctx->lastp;
+	*ctx = save;
+	if (matched && cmp) {
+	  add_to_threadq(ctx, nextq, ip->arg.pos.x - ctx->start, flags,
+			 p, t->capture);
+	  
+	} else if (!matched && !cmp) {
+	  add_to_threadq(ctx, nextq, ip->arg.pos.x - ctx->start, flags,
+			 p, t->capture);
+	}
+	*has_diff = TRUE;
+	if (once) {
+	  /* standalone pattern must not backtrack */
+	  /* TODO this offset stuff is so ugly and could be a bug after I
+	          implement string match. */
+	  *diff = (matched) ? -1 : 0;
+	  *diff += lastp - p;
+	  debug_printf("matched %d, diff %d\n", matched, *diff);
+	  ctx->lastp = lastp;
+	} else {
+	  if (inc > 0)
+	    *diff = 0;		/* always one char back */
+	  else *has_diff = FALSE;
+	}
+      }
       break;
+    case RX_RESTORE:
+      /* the sub match finished. just send it to RX_MATCH. */
+      goto match_entry;
     case RX_ANY:
     case RX_CHAR:
     case RX_SET:
     case RX_NSET:
       if (inst_matches(ctx, ip, c)) {
 	debug_printf("->%d", id+1); 
+	ctx->once_matched = TRUE;
 	add_to_threadq(ctx, nextq, id + 1, flags, p+1, t->capture);
+      } else if (ctx->once && c > 0) {
+	debug_printf("(%c)", c); 
       }
       break;
-    case RX_MATCH: {
-      const SgChar *old = t->capture[1];
-      /* TODO end match */
-      /* TODO longest */
-      t->capture[1] = p;
-      copy_capture(ctx, (const SgChar **)ctx->match, t->capture);
-      t->capture[0] = old;
-      free_thread(ctx, t);
-      THREADQ_FOR_EACH_FROM_CURRENT(i, runq) {
-	free_thread(ctx, i.value);
+    case RX_MATCH:
+    match_entry:
+      {
+	const SgChar *old = t->capture[1];
+	/* TODO end match */
+	t->capture[1] = p;
+	copy_capture(ctx, (const SgChar **)ctx->match, t->capture);
+	t->capture[0] = old;
+	free_thread(ctx, t);
+	THREADQ_FOR_EACH_FROM_CURRENT(i, runq) {
+	  free_thread(ctx, i.value);
+	}
+	THREADQ_CLEAR(runq);
+	ctx->matched = TRUE;
+	debug_printf(" %c", '\n');
+	return -1;
       }
-      THREADQ_CLEAR(runq);
-      ctx->matched = TRUE;
-      debug_printf(" %c", '\n');
-      return -1;
-    }
     }
     free_thread(ctx, t);
   }
@@ -2418,13 +2496,16 @@ static void finish_match(match_ctx_t *ctx);
 /* internal match process
    based on pikevm from RE1 pike.c
  */
+#define iswordchar(c) (isalnum(c) || (c) == '_')
+
 static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
-			  int size)
+			  int inc)
 {
   THREADQ_T *runq = ctx->q0, *nextq = ctx->q1, *tmp;
   const SgChar *bp = SG_STRING_VALUE(ctx->m->text) + from;
-  SgChar *ep = SG_STRING_VALUE(ctx->m->text) + SG_STRING_SIZE(ctx->m->text);
-  SgChar *p;
+  const SgChar *ep
+    = SG_STRING_VALUE(ctx->m->text) + SG_STRING_SIZE(ctx->m->text);
+  const SgChar *p;
   SgChar c = -1;
   int wasword = FALSE;
   THREADQ_ITERATOR_T i;
@@ -2436,11 +2517,34 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
   ctx->inst = inst;
   
   /* check word boundary */
-  for (p = SG_STRING_VALUE(ctx->m->text); ;p++) {
-    int flag = 0, isword = FALSE, id, diff = 0;
-    /* TODO check ^, \A, $, \z and \Z */
-    /* TODO check word boundary */
-    id = match_step(ctx, runq, nextq, c, flag, p-1, &diff);
+  for (p = bp; ;p += inc) {
+    int flag = 0, isword = FALSE, id, has_diff = FALSE, diff = 0;
+
+    /* underflow. */
+    if (inc < 0 && p < SG_STRING_VALUE(ctx->m->text)) break;
+
+    /* TODO check $, \z and \Z */
+    /* ^ and \A */
+    if (p == bp)
+      flag |= EmptyBeginText | EmptyBeginLine;
+    else if (p <= ep && p[-1] == '\n')
+      flag |= EmptyBeginLine;
+    /* $ and \z */
+    if (p == ep)
+      flag |= EmptyEndText | EmptyEndLine;
+    else if (p < ep && p[0] == '\n')
+      flag |= EmptyEndLine;
+
+    /* \b and \B */
+    /* we only check ASCII. */
+    if (p < ep)
+      isword = iswordchar(*p);
+    if (isword != wasword)
+      flag |= EmptyWordBoundary;
+    else
+      flag |= EmptyNonWordBoundary;
+
+    id = match_step(ctx, runq, nextq, c, flag, p-1, &has_diff, &diff);
 
     /* swap */
     tmp = nextq;
@@ -2485,7 +2589,7 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
     if (THREADQ_SIZE(runq) == 0) break;
     /* if backreference has been matched, we need to forward to last matching
        position */
-    if (diff) p += diff-1;
+    if (has_diff) p += diff-1;
 
     if (p == ep) c = 0;
     else c = *p;
@@ -2495,7 +2599,7 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
   THREADQ_FOR_EACH(i, runq) {
     free_thread(ctx, i.value);
   }
-
+  ctx->lastp = p;		/* save last position */
   finish_match(ctx);
   if (ctx->matched) {
     /* set submatch to matcher */
@@ -2510,7 +2614,7 @@ static void finish_match(match_ctx_t *ctx)
     int i;
     SgMatcher *m = ctx->m;
     for (i = 0; i < ctx->ncapture; i += 2) {
-      SgChar *sp = ctx->match[i], *ep = ctx->match[i+1];
+      const SgChar *sp = ctx->match[i], *ep = ctx->match[i+1];
       size_t size = ep - sp;
       SgChar *str = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar)*(size+1));
       m->submatch[i/2] = str;
@@ -2518,6 +2622,7 @@ static void finish_match(match_ctx_t *ctx)
       for (;sp < ep;) {
 	*str++ = *sp++;
       }
+      debug_printf("match[%d]=(\"%s\", size: %d)\n", i/2, m->submatch[i/2], size);
     }
   }
 }
@@ -2525,8 +2630,7 @@ static void finish_match(match_ctx_t *ctx)
 /* match entry point*/
 static int matcher_match(SgMatcher *m, int from, int anchor)
 {
-  return matcher_match0(m->match_ctx, from, anchor, m->pattern->prog->root,
-			m->pattern->prog->rootLength);
+  return matcher_match0(m->match_ctx, from, anchor, m->pattern->prog->root, 1);
 }
 
 static match_ctx_t* init_match_ctx(match_ctx_t *ctx, SgMatcher *m, int size)
@@ -2538,10 +2642,10 @@ static match_ctx_t* init_match_ctx(match_ctx_t *ctx, SgMatcher *m, int size)
   ctx->q1 = ALLOCATE_THREADQ(size);
   ctx->matched = FALSE;
   ctx->ncapture = 2 * m->pattern->groupCount;
-  ctx->match = SG_NEW_ARRAY(SgChar *, ctx->ncapture);
+  ctx->match = SG_NEW_ARRAY(const SgChar *, ctx->ncapture);
   ctx->free_threads = NULL;
   ctx->flags = m->pattern->flags;
-  ctx->saved = SG_NEW_ARRAY(SgChar *, m->pattern->prog->maxSavePoint);
+  ctx->once = FALSE;
   return ctx;
 }
 

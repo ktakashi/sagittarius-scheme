@@ -60,11 +60,6 @@ typedef union {		 /* arguments for opcode */
     inst_t *x;		 /*   primary position to jump */
     inst_t *y;		 /*   secondary position to jump */
   } pos;
-  int bol;		 /* RX_START: beginning of line flag.
-			    1: ^ or multi line mode
-			    0: \A or single line mode */
-  int eol; 		 /* RX_END: end of line flag. values are the same as
-			            above. */
   SgObject set;		 /* RX_SET: charset */
   unsigned int flags;	 /* RX_FLAGS */
   unsigned int index;	 /* RX_BREF: reference index */
@@ -81,7 +76,6 @@ typedef struct
 {
   inst_t *root;			/* root match code */
   int     rootLength;
-  int     maxSavePoint;		/* for look ahead/behind */
 } prog_t;
 
 typedef struct SgPatternRec
