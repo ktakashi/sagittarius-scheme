@@ -2352,6 +2352,21 @@ static int match_back_ref(match_ctx_t *ctx, thread_t *t, inst_t *ip, SgChar c,
 static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
 			  int inc);
 
+#if 0
+#define show_thread_order(name, tq)		\
+  do {						\
+    int i;					\
+    printf("%s (", (name));			\
+    for (i = 0; i < (tq)->n; i++) {		\
+      if (i != 0) printf(", ");			\
+      printf("%d", (tq)->order[i]);		\
+    }						\
+    printf(")\n");				\
+  } while (0)
+#else
+#define show_thread_order(name, tq) /* dummy */
+#endif
+
 static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
 		      SgChar c, int flags, const SgChar *p, int *has_diff,
 		      int *diff)
@@ -2361,6 +2376,7 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
   THREADQ_CLEAR(nextq);
   /* reset once matched flag */
   ctx->once_matched = FALSE;
+  show_thread_order("runq", runq);
   debug_printf("(%c).", (c < 0) ? '\0' : c);
   THREADQ_FOR_EACH(i, runq) {
     thread_t *t = i.value;
@@ -2434,6 +2450,7 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
 	  add_to_threadq(ctx, nextq, ip->arg.pos.x - ctx->start, flags,
 			 p, t->capture);
 	}
+	show_thread_order("nextq", nextq);
 	*has_diff = TRUE;
 	if (once) {
 	  /* standalone pattern must not backtrack */
@@ -2444,9 +2461,10 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
 	  debug_printf("matched %d, diff %d\n", matched, *diff);
 	  ctx->lastp = lastp;
 	} else {
-	  if (inc > 0)
-	    *diff = 0;		/* always one char back */
-	  else *has_diff = FALSE;
+	  debug_printf("matched %d\n", matched);
+	  /* always one char back */
+	  if (matched) { *diff = 0; }
+	  else { *has_diff = FALSE; }
 	}
       }
       break;
@@ -2520,9 +2538,6 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
   for (p = bp; ;p += inc) {
     int flag = 0, isword = FALSE, id, has_diff = FALSE, diff = 0;
 
-    /* underflow. */
-    if (inc < 0 && p < SG_STRING_VALUE(ctx->m->text)) break;
-
     /* TODO check $, \z and \Z */
     /* ^ and \A */
     if (p == bp)
@@ -2581,7 +2596,9 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
     if (!ctx->matched && (anchor == UNANCHORED || p == bp)) {
       ctx->match[0] = p;
       /* TODO is start alwais 0? */
+      show_thread_order("next runq1", runq);
       add_to_threadq(ctx, runq, 0, flag, p + diff, (const SgChar**)ctx->match);
+      show_thread_order("next runq2", runq);
       ctx->match[0] = NULL;
     }
 
@@ -2589,9 +2606,16 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
     if (THREADQ_SIZE(runq) == 0) break;
     /* if backreference has been matched, we need to forward to last matching
        position */
-    if (has_diff) p += diff-1;
+    if (has_diff) {
+      if (inc > 0)
+	p += diff-1;
+      else
+	p -= diff-1;
+    }
 
     if (p == ep) c = 0;
+    /* underflow. */
+    else if (inc < 0 && p < SG_STRING_VALUE(ctx->m->text)) c = 0;
     else c = *p;
     wasword = isword;
   }
