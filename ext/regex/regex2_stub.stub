@@ -4,6 +4,7 @@
 	    regex-matcher
 	    regex-looking-at
 	    regex-group
+	    regex-capture-count
 	    dump-regex)
     (import :none)
 
@@ -28,4 +29,7 @@
 
   (define-c-proc regex-group (m::Matcher :optional (group::fixnum 0)) ::Object
     (result (Sg_RegexGroup m group)))
+
+  (define-c-proc regex-capture-count (m::Matcher) ::fixnum
+    (result (Sg_RegexCaptureCount m)))
 )

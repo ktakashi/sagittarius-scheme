@@ -134,7 +134,9 @@ SgObject Sg_CompileRegex(SgString *pattern, int flags, int parseOnly);
 SgMatcher* Sg_RegexMatcher(SgPattern *pattern, SgString *text);
 int        Sg_RegexLookingAt(SgMatcher *m);
 
-SgString*  Sg_RegexGroup(SgMatcher *m, int group);
+SgObject   Sg_RegexGroup(SgMatcher *m, int group);
+
+int        Sg_RegexCaptureCount(SgMatcher *m);
 /* for debug */
 void     Sg_DumpRegex(SgPattern *pattern, SgObject port);
 
