@@ -439,7 +439,6 @@
       (test-equal "(a?+)b" '("ab")
 		  (match&list "a?+b" "ab"))
       ;; lookahead assertion
-#|
       (test-equal "^(?=ab(de))(abd)(e)" '("abde" "de" "abd" "e")
 		  (match&list "^(?=ab(de))(abd)(e)" "abde"))
       (test-equal "^(?!(ab)de|x)(abd)(f)" '("abdf" #f "abd" "f")
@@ -490,7 +489,7 @@
 		  (match&list "a(?=d)." "abad"))
       (test-equal "a(?=c|d)." '("ad")
 		  (match&list "a(?=c|d)." "abad"))
-|#
+
       )
     )
 

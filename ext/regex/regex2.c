@@ -2126,11 +2126,11 @@ static void thread_list_copy(thread_list_t *src, thread_list_t *dst)
   dst->n = src->n;
 }
 
-static thread_list_t* save_thread_list(thread_list_t *src)
+static thread_list_t* save_thread_list(thread_list_t *src, thread_list_t **s)
 {
-  thread_list_t *s = alloc_thread_lists(src->size);
-  thread_list_copy(src, s);
-  return s;
+  *s = alloc_thread_lists(src->size);
+  thread_list_copy(src, *s);
+  return *s;
 }
 
 typedef struct
@@ -2189,7 +2189,7 @@ static int thread_iterator_begin_p(threadq_iterator_t *i)
 #define THREADQ_ITERATOR_T  threadq_iterator_t
 #define THREADQ_BEGIN_P(i)  thread_iterator_begin_p(i)
 #define THREADQ_COPY(src, dst) thread_list_copy(src, dst)
-#define SAVE_THREADQ(src)      save_thread_list(src)
+#define SAVE_THREADQ(src, dst)   save_thread_list(src, &(dst))
 #define RESTORE_THEADQ(src, dst) THREADQ_COPY(src, dst)
 #define THREADQ_FOR_EACH(i, tq)						\
   for (thread_iterator_begin(tq, &(i)); !thread_iterator_end_p(&(i));	\
@@ -2221,6 +2221,7 @@ struct match_ctx_rec_t
   inst_t      *inst;
   unsigned int flags;		/* runtime flags */
   const SgChar *lastp;
+  char         primary_thread_matched;
 };
 
 #if (defined DEBUG_REGEX)
@@ -2317,16 +2318,16 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
 	stk[nstk++] = add_state(-1, j, capture[j]);
 	capture[j] = p;
       }
-      stk[nstk++] = add_state(id + 1, -1, NULL);
+      stk[nstk++] = add_state(id+1, -1, NULL);
       break;
     case RX_FLAG:
       /* set flag */
       ctx->flags = ip->arg.flags;
-      stk[nstk++] = add_state(id + 1, -1, NULL);
+      stk[nstk++] = add_state(id+1, -1, NULL);
       break;
     case RX_EMPTY:
       if (ip->arg.flags & ~flags) break;
-      stk[nstk++] = add_state(id + 1, -1, NULL);
+      stk[nstk++] = add_state(id+1, -1, NULL);
       break;
 
     /* These need to be treated in step. so just add a thread to the queue.*/
@@ -2405,7 +2406,32 @@ static int match_back_ref(match_ctx_t *ctx, thread_t *t, inst_t *ip, SgChar c,
 static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
 			  int inc);
 
-#if 0
+#ifdef DEBUG_REGEX
+static void dump_capture(match_ctx_t *ctx, const SgChar **capture)
+{
+  int i;
+  for (i=0; i<ctx->ncapture; i+=2) {
+    const SgChar *sp = capture[i], *ep = capture[i+1];
+
+    printf("capture[%d]=", i);
+    if (!sp || !ep) {
+      printf("*N/A*%c", (sp)?*sp:'\0');
+      goto end;
+    }
+    putc('\'', stdout);
+    while (sp < ep) {
+      printf("%c", *sp++);
+    }
+    putc('\'', stdout);
+  end:
+    putc('\n', stdout);
+  }
+}
+#else
+#define dump_capture(ctx, cap) 	/* dummy */
+#endif
+
+#if 1
 #define show_thread_order(name, tq)		\
   do {						\
     int i;					\
@@ -2429,6 +2455,11 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
   THREADQ_CLEAR(nextq);
   show_thread_order("runq", runq);
   debug_printf("(%c).", (c < 0) ? '\0' : c);
+
+  /* thread can be treated here, and next thread must have own flag, so reset
+     primary thread matched flag here. */
+  ctx->primary_thread_matched = FALSE;
+
   THREADQ_FOR_EACH(i, runq) {
     thread_t *t = i.value;
     int id;
@@ -2483,42 +2514,51 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
     recur_entry:
       {
 	int pos = p - SG_STRING_VALUE(ctx->m->text), matched;
-	match_ctx_t save = *ctx;
+	match_ctx_t save;
 	const SgChar *lastp;
 	/* FIXME: actually i don't want to use this */
-	THREADQ_T *saved_tq = SAVE_THREADQ(nextq);
-
+	THREADQ_T *saved_runq, *saved_nextq;
+	save = *ctx;
+	SAVE_THREADQ(runq, saved_runq);
+	SAVE_THREADQ(nextq, saved_nextq);
 	debug_printf("-->%c", '\n');
+	/* dump_capture(ctx, t->capture); */
 	if (inc < 0) pos--;
+	else if (ctx->primary_thread_matched) pos++;
+	/* reset match flag for different context. */
+	ctx->matched = FALSE;
 	matched = matcher_match0(ctx, pos, ANCHOR_START, ip+1, inc);
 	lastp = ctx->lastp;
 	*ctx = save;
-	RESTORE_THEADQ(saved_tq, nextq);
-	if (matched && cmp) {
+	/* dump_capture(ctx, t->capture); */
+	RESTORE_THEADQ(saved_runq, runq);
+	RESTORE_THEADQ(saved_nextq, nextq);
+	if ((matched && cmp) || (!matched && !cmp)) {
 	  add_to_threadq(ctx, nextq, ip->arg.pos.x - ctx->start, flags,
 			 p, t->capture);
-	  
-	} else if (!matched && !cmp) {
-	  add_to_threadq(ctx, nextq, ip->arg.pos.x - ctx->start, flags,
-			 p, t->capture);
-	}
-	*has_diff = TRUE;
-	if (once) {
-	  /* standalone pattern must not backtrack */
-	  /* TODO this offset stuff is so ugly and could be a bug after I
-	          implement string match. */
-	  *diff = (matched) ? -1 : 0;
-	  *diff += lastp - p;
-	  debug_printf("matched %d, diff %d\n", matched, *diff);
-	  ctx->lastp = lastp;
+	  if (once) {
+	    *has_diff = TRUE;
+	    /* standalone pattern must not backtrack */
+	    /* TODO this offset stuff is so ugly and could be a bug after I
+	       implement string match. */
+	    *diff = (matched) ? -1 : 0;
+	    *diff += lastp - p;
+	    ctx->lastp = lastp;
+	  } else {
+	    /* If this thread already have matched state, we can ignore this
+	       process. */
+	    if (ctx->primary_thread_matched) break;
+	    *has_diff = TRUE;
+	    *diff = 0;
+	  }
 	} else {
-	  debug_printf("matched %d cmp %d\n", matched, cmp);
-	  /* if look ahead/behind compromise the given condition,
-	     it needs to be one char back. */
-	  if (matched && cmp) { *diff = 0; }
-	  else if (!matched && !cmp) { *diff = 0; }
-	  else { *diff = 1; }
+	  /* well we can skip, it's not going to be match anyway. */
+	  if (!cmp && ctx->primary_thread_matched) {
+	    *has_diff = TRUE;
+	    *diff = lastp - p;
+	  }
 	}
+	debug_printf("matched %d, cmp %d, diff %d\n", matched, cmp, *diff);
       }
       break;
     case RX_RESTORE:
@@ -2530,6 +2570,7 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
     case RX_NSET:
       if (inst_matches(ctx, ip, c)) {
 	debug_printf("->%d", id+1); 
+	ctx->primary_thread_matched = TRUE;
 	add_to_threadq(ctx, nextq, id + 1, flags, p+1, t->capture);
       }
       break;
@@ -2548,7 +2589,7 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
 
 	THREADQ_CLEAR(runq);
 	ctx->matched = TRUE;
-	debug_printf(" %c", '\n');
+	debug_printf(" matched%c", '\n');
 	return -1;
       }
     }
@@ -2570,9 +2611,9 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
 			  int inc)
 {
   THREADQ_T *runq = ctx->q0, *nextq = ctx->q1, *tmp;
-  const SgChar *bp = SG_STRING_VALUE(ctx->m->text) + from;
-  const SgChar *ep
-    = SG_STRING_VALUE(ctx->m->text) + SG_STRING_SIZE(ctx->m->text);
+  const SgChar *otext = SG_STRING_VALUE(ctx->m->text);
+  const SgChar *bp = otext + from;
+  const SgChar *ep = otext + SG_STRING_SIZE(ctx->m->text);
   const SgChar *p;
   SgChar c = -1;
   int wasword = FALSE;
@@ -2583,14 +2624,14 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
   /* we finaly can set inst here */
   ctx->start = &inst[0];
   ctx->inst = inst;
-  
+
   /* check word boundary */
   for (p = bp; ;p += inc) {
     int flag = 0, isword = FALSE, id, has_diff = FALSE, diff = 0;
 
     /* TODO check $, \z and \Z */
     /* ^ and \A */
-    if (p == bp)
+    if (p == otext)
       flag |= EmptyBeginText | EmptyBeginLine;
     else if (p <= ep && p[-1] == '\n')
       flag |= EmptyBeginLine;
