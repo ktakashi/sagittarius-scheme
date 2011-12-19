@@ -2116,23 +2116,6 @@ static thread_t* thread_list_set_new(thread_list_t *tq, int index, thread_t *t)
   return t;
 }
 
-static void thread_list_copy(thread_list_t *src, thread_list_t *dst)
-{
-  int i;
-  for (i = 0; i < src->n; i++) {
-    dst->order[i] = src->order[i];
-    dst->threads[src->order[i]] = src->threads[src->order[i]];
-  }
-  dst->n = src->n;
-}
-
-static thread_list_t* save_thread_list(thread_list_t *src, thread_list_t **s)
-{
-  *s = alloc_thread_lists(src->size);
-  thread_list_copy(src, *s);
-  return *s;
-}
-
 typedef struct
 {
   int       size;
@@ -2179,6 +2162,9 @@ static int thread_iterator_begin_p(threadq_iterator_t *i)
 }
 
 #define ALLOCATE_THREADQ(n) alloc_thread_lists(n)
+/* TODO use alloca */
+#define ALLOC_TEMPORARY_THREADQ(dst, n)		\
+  (dst) = ALLOCATE_THREADQ(n)
 #define THREADQ_CAPACITY(tq) ((tq)->size)
 #define THREADQ_SIZE(tq)    ((tq)->n)
 #define THREADQ_REF(tq, i)  ((tq)->threads[i])
@@ -2188,9 +2174,6 @@ static int thread_iterator_begin_p(threadq_iterator_t *i)
 #define THREADQ_T           thread_list_t
 #define THREADQ_ITERATOR_T  threadq_iterator_t
 #define THREADQ_BEGIN_P(i)  thread_iterator_begin_p(i)
-#define THREADQ_COPY(src, dst) thread_list_copy(src, dst)
-#define SAVE_THREADQ(src, dst)   save_thread_list(src, &(dst))
-#define RESTORE_THEADQ(src, dst) THREADQ_COPY(src, dst)
 #define THREADQ_FOR_EACH(i, tq)						\
   for (thread_iterator_begin(tq, &(i)); !thread_iterator_end_p(&(i));	\
        thread_iterator_next(tq, &(i)))
@@ -2221,7 +2204,7 @@ struct match_ctx_rec_t
   inst_t      *inst;
   unsigned int flags;		/* runtime flags */
   const SgChar *lastp;
-  char         primary_thread_matched;
+  char         primary_matched;
 };
 
 #if (defined DEBUG_REGEX)
@@ -2260,6 +2243,15 @@ static void copy_capture(match_ctx_t *ctx, const SgChar **dst,
     dst[i+1] = src[i+1];
   }
 }
+
+static void clear_capture(match_ctx_t *ctx, const SgChar **cap)
+{
+  int i;
+  for (i = 0; i < ctx->ncapture; i += 2) {
+    cap[i] = cap[i+1] = NULL;
+  }
+}
+
 
 static match_ctx_t* init_match_ctx(match_ctx_t *ctx, SgMatcher *m, int size);
 
@@ -2441,6 +2433,7 @@ static void dump_capture(match_ctx_t *ctx, const SgChar **capture)
       printf("%d", (tq)->order[i]);		\
     }						\
     printf(")\n");				\
+    fflush(stdout);				\
   } while (0)
 #else
 #define show_thread_order(name, tq) /* dummy */
@@ -2455,15 +2448,11 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
   THREADQ_CLEAR(nextq);
   show_thread_order("runq", runq);
   debug_printf("(%c).", (c < 0) ? '\0' : c);
-
-  /* thread can be treated here, and next thread must have own flag, so reset
-     primary thread matched flag here. */
-  ctx->primary_thread_matched = FALSE;
-
+  ctx->primary_matched = FALSE;
   THREADQ_FOR_EACH(i, runq) {
     thread_t *t = i.value;
     int id;
-    int cmp, once = FALSE, inc = 1;
+    int cmp, once = FALSE, inc = 1, freed = FALSE;
     inst_t *ip;
     if (t == filler || t == NULL) continue;
     id = t->id;
@@ -2516,46 +2505,33 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
 	int pos = p - SG_STRING_VALUE(ctx->m->text), matched;
 	match_ctx_t save;
 	const SgChar *lastp;
-	/* FIXME: actually i don't want to use this */
-	THREADQ_T *saved_runq, *saved_nextq;
+	/* save current context */
 	save = *ctx;
-	SAVE_THREADQ(runq, saved_runq);
-	SAVE_THREADQ(nextq, saved_nextq);
-	debug_printf("-->%c", '\n');
-	/* dump_capture(ctx, t->capture); */
+	if (!cmp)
+	  ctx->match = SG_NEW_ARRAY(const SgChar*, ctx->ncapture);
+	ALLOC_TEMPORARY_THREADQ(ctx->q0, ctx->nstack/2);
+	ALLOC_TEMPORARY_THREADQ(ctx->q1, ctx->nstack/2);
+
+	debug_printf("-->%c\n", SG_STRING_VALUE_AT(ctx->m->text, pos));
 	if (inc < 0) pos--;
-	else if (ctx->primary_thread_matched) pos++;
 	/* reset match flag for different context. */
 	ctx->matched = FALSE;
+	ctx->free_threads = NULL;
 	matched = matcher_match0(ctx, pos, ANCHOR_START, ip+1, inc);
+	/* restore context */
 	lastp = ctx->lastp;
 	*ctx = save;
-	/* dump_capture(ctx, t->capture); */
-	RESTORE_THEADQ(saved_runq, runq);
-	RESTORE_THEADQ(saved_nextq, nextq);
 	if ((matched && cmp) || (!matched && !cmp)) {
-	  add_to_threadq(ctx, nextq, ip->arg.pos.x - ctx->start, flags,
-			 p, t->capture);
-	  if (once) {
-	    *has_diff = TRUE;
-	    /* standalone pattern must not backtrack */
-	    /* TODO this offset stuff is so ugly and could be a bug after I
-	       implement string match. */
-	    *diff = (matched) ? -1 : 0;
-	    *diff += lastp - p;
-	    ctx->lastp = lastp;
-	  } else {
-	    /* If this thread already have matched state, we can ignore this
-	       process. */
-	    if (ctx->primary_thread_matched) break;
+	  /* copy_capture(ctx, ctx->match, t->capture); */
+	  if (!THREADQ_HAS_INDEX(runq, ip->arg.pos.x - ctx->start)) {
+	    add_to_threadq(ctx, nextq, ip->arg.pos.x - ctx->start, flags,
+			   p, t->capture);
 	    *has_diff = TRUE;
 	    *diff = 0;
-	  }
-	} else {
-	  /* well we can skip, it's not going to be match anyway. */
-	  if (!cmp && ctx->primary_thread_matched) {
-	    *has_diff = TRUE;
-	    *diff = lastp - p;
+	    if (once) {
+	      *diff = lastp - p-1;
+	      ctx->lastp = lastp;
+	    }
 	  }
 	}
 	debug_printf("matched %d, cmp %d, diff %d\n", matched, cmp, *diff);
@@ -2569,8 +2545,8 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
     case RX_SET:
     case RX_NSET:
       if (inst_matches(ctx, ip, c)) {
-	debug_printf("->%d", id+1); 
-	ctx->primary_thread_matched = TRUE;
+	debug_printf("->%d", id+1);
+	ctx->primary_matched = TRUE;
 	add_to_threadq(ctx, nextq, id + 1, flags, p+1, t->capture);
       }
       break;
@@ -2579,7 +2555,6 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
       {
 	const SgChar *old = t->capture[1];
 
-	/* TODO end match */
 	t->capture[1] = p;
 	copy_capture(ctx, (const SgChar **)ctx->match, t->capture);
 	t->capture[0] = old;
@@ -2593,7 +2568,8 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
 	return -1;
       }
     }
-    free_thread(ctx, t);
+    if (!freed)
+      free_thread(ctx, t);
   }
   debug_printf(" %c", '\n');
   THREADQ_CLEAR(runq);
@@ -2684,7 +2660,7 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst,
     if (p > ep) break;
 
     /* start a new thread if there have not been any matches. */
-    if (!ctx->matched && (!has_diff || THREADQ_SIZE(runq) == 0) &&
+    if (!ctx->matched &&
 	(anchor == UNANCHORED || p == bp)) {
       ctx->match[0] = p;
       /* TODO is start always 0? */

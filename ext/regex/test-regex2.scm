@@ -446,7 +446,7 @@
       (test-equal "^(?=(ab(cd)))(ab)" '("ab" "abcd" "cd" "ab")
 		  (match&list "^(?=(ab(cd)))(ab)" "abcd"))
       (test-equal "\\w+(?=\\t)" '("brown")
-		  (match&list "\\w+(?=\\t)" "the quick brown\\t fox"))
+		  (match&list "\\w+(?=\\t)" "the quick brown\t fox"))
       (test-equal "foo(?!bar)(.*)" '("foolish see?" "lish see?")
 		  (match&list "foo(?!bar)(.*)" "foobar is foolish see?"))
       (test-equal "(?:(?!foo)...|^.{0,2})bar(.*)" '("rowbar etc" " etc")
