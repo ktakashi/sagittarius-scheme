@@ -88,6 +88,9 @@ typedef struct SgPatternRec
 				   has (?imx:...) in its body, matcher
 				   overwrites the flags in runtime.*/
   int      groupCount;		/* captured group count */
+  int      extendedp;		/* if the compiled code is used possesive match,
+				   backreference, lookahead or lookbehind or
+				   not*/
   prog_t  *prog;		/* compiled regex */
 } SgPattern;
 
