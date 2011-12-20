@@ -36,11 +36,11 @@ enum PatternFlags {
   /* on Sagittarius Scheme, internal line seperator is lf. */
   /* SG_UNIX_LINE         = (1L << 0), */
   SG_CASE_INSENSITIVE  = (1L << 1),
-  SG_COMMENTS          = (1L << 2),
-  SG_MULTILINE         = (1L << 3),
-  SG_LITERAL           = (1L << 4),
-  SG_DOTALL            = (1L << 5),
-  SG_UNICODE_CASE      = (1L << 6),
+  SG_DOTALL            = (1L << 2),
+  SG_UNICODE_CASE      = (1L << 3),
+  SG_COMMENTS          = (1L << 4),
+  SG_MULTILINE         = (1L << 5),
+  SG_LITERAL           = (1L << 6),
   /* we do not support canonical equivalence */
   /* SG_CANON_EQ          = (1L << 7), */
 };
@@ -72,10 +72,13 @@ typedef union {		 /* arguments for opcode */
 
 struct inst_rec_t
 {
-  unsigned char opcode;		/* opcode: max 255 */
-  int           flags;		/* ugly */
+  unsigned int  opcode;		/* opcode: max 255 */
   inst_arg_t    arg;
 };
+
+#define INST_OPCODE(i)        ((i)->opcode&0xFF)
+#define INST_FLAG(i)          ((i)->opcode>>8)
+#define INST_FLAG_SET(i, v)   ((i)->opcode=(i)->opcode|((v)<<8))
 
 typedef struct
 {

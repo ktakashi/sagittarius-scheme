@@ -1586,7 +1586,7 @@ static void emit(compile_ctx_t *ctx, unsigned char opcode,
     inst_t *i = &ctx->inst[ctx->index++];
     i->opcode = opcode;
     i->arg = arg;
-    i->flags = ctx->flags;
+    INST_FLAG_SET(i, ctx->flags);
     ctx->pc = ++i;
   } else {
     ctx->codemax++;
@@ -2114,7 +2114,7 @@ void Sg_DumpRegex(SgPattern *pattern, SgObject port)
   Sg_Printf(port, UC(" group count: %d\n"), pattern->groupCount);
   for (i = 0; i < size; i++) {
     inst_t *inst = &pattern->prog->root[i];
-    int op = inst->opcode;
+    int op = INST_OPCODE(inst);
     switch (op) {
     case RX_ANY:
       Sg_Printf(port, UC("%3d: RX_ANY[%d]\n"), i, op);
@@ -2417,10 +2417,10 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
     THREADQ_SET(q, id, filler);
     tp = &THREADQ_REF(q, id);
     ip = &ctx->inst[id];
-    switch (ip->opcode) {
+    switch (INST_OPCODE(ip)) {
     default:
       Sg_Error(UC("[internal] Unhandled opcode in add_to_threadq: %d"),
-	       ip->opcode);
+	       INST_OPCODE(ip));
       break;
     case RX_FAIL: break;
     case RX_JMP:
@@ -2453,7 +2453,7 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
     case RX_ONCE:
     case RX_BREF:
       Sg_Error(UC("[internal] Unexpected opcode in add_to_threadq: %d"),
-	       ip->opcode);
+	       INST_OPCODE(ip));
       break;
     case RX_ANY:
     case RX_CHAR:
@@ -2476,11 +2476,11 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
 
 static int inst_matches(match_ctx_t *ctx, inst_t *inst, SgChar c)
 {
-  switch (inst->opcode) {
+  switch (INST_OPCODE(inst)) {
   case RX_SET:
     if (Sg_CharSetContains(inst->arg.set, c)) {
       return TRUE;
-    } else if (FLAG_SET(inst->flags, SG_CASE_INSENSITIVE)) {
+    } else if (FLAG_SET(INST_FLAG(inst), SG_CASE_INSENSITIVE)) {
       /* TODO unicode case */
       if (Sg_CharSetContains(inst->arg.set, tolower(c)) ||
 	  Sg_CharSetContains(inst->arg.set, toupper(c))) {
@@ -2494,7 +2494,7 @@ static int inst_matches(match_ctx_t *ctx, inst_t *inst, SgChar c)
   case RX_CHAR:
     if (inst->arg.c == c) {
       return TRUE;
-    } else if (FLAG_SET(inst->flags, SG_CASE_INSENSITIVE)) {
+    } else if (FLAG_SET(INST_FLAG(inst), SG_CASE_INSENSITIVE)) {
       /* TODO unicode case */
       if (tolower(inst->arg.c) == tolower(c)) {
 	return TRUE;
@@ -2502,7 +2502,7 @@ static int inst_matches(match_ctx_t *ctx, inst_t *inst, SgChar c)
     }
     return FALSE;
   case RX_ANY:
-    if (FLAG_SET(inst->flags, SG_DOTALL)) return TRUE;
+    if (FLAG_SET(INST_FLAG(inst), SG_DOTALL)) return TRUE;
     else if (c == '\n') return FALSE;
     return TRUE;
   default:
@@ -2554,10 +2554,10 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
     id = t->id;
     ip = &ctx->inst[id];
     debug_printf(" %d", id);
-    switch (ip->opcode) {
+    switch (INST_OPCODE(ip)) {
     default:
       Sg_Error(UC("[internal] Unhandled opcode in step: id=%d opcode=%d"),
-	       id, ip->opcode);
+	       id, INST_OPCODE(ip));
       break;
     case RX_ANY:
     case RX_CHAR:
@@ -2650,11 +2650,11 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
       p = ep;
       for (;;) {
 	inst_t *ip = &ctx->inst[id];
-	debug_printf(" finishing: %d\n", ip->opcode);
+	debug_printf(" finishing: %d\n", INST_OPCODE(ip));
 	switch (ip->opcode) {
 	default:
 	  Sg_Error(UC("[internal ]Unexpected opcode in short circuit: %d"),
-		   ip->opcode);
+		   INST_OPCODE(ip));
 	  break;
 	case RX_SAVE:
 	  ctx->match[ip->arg.n] = p;
@@ -2718,7 +2718,7 @@ static int match_back_ref(match_ctx_t *ctx, inst_t *ip, const SgChar *p,
     debug_printf("  count %d\n", count);
     for (j = -1, i = count-1; i >= 0; i--, j--) {
       debug_printf("   %c:%c\n", p[j], ref[i]);
-      if (FLAG_SET(ip->flags, SG_CASE_INSENSITIVE)) {
+      if (FLAG_SET(INST_FLAG(ip), SG_CASE_INSENSITIVE)) {
 	/* TODO unicode case */
 	if (tolower(p[j]) != tolower(ref[i])) return -1;
       } else {
@@ -2728,7 +2728,7 @@ static int match_back_ref(match_ctx_t *ctx, inst_t *ip, const SgChar *p,
   } else {
     int i;
     for (i = 0; i < count; i++) {
-      if (FLAG_SET(ip->flags, SG_CASE_INSENSITIVE)) {
+      if (FLAG_SET(INST_FLAG(ip), SG_CASE_INSENSITIVE)) {
 	/* TODO unicode case */
 	if (tolower(*p++) != tolower(*ref++)) return -1;
       } else {
@@ -2773,9 +2773,9 @@ static int match_step1(match_ctx_t *ctx, inst_t *inst, int flags,
     flag |= EmptyNonWordBoundary;
   ctx->lastp = (bp+i);
 
-  debug_printf("inst %d:%d (%d:%c) %x\n", inst- ctx->start, inst->opcode,
+  debug_printf("inst %d:%d (%d:%c) %x\n", inst- ctx->start, INST_OPCODE(inst),
 	       i, (i<0)?'\0':*(bp+i), flag);
-  switch (inst->opcode) {
+  switch (INST_OPCODE(inst)) {
   case RX_ANY:
   case RX_CHAR:	
   case RX_SET:
@@ -2823,7 +2823,7 @@ static int match_step1(match_ctx_t *ctx, inst_t *inst, int flags,
   case RX_ONCE:
     if (match_step1(ctx, inst+1, flags, bp, i+offset)) {
       flags = saved;
-      if (inst->opcode == RX_ONCE) {
+      if (INST_OPCODE(inst) == RX_ONCE) {
 	ctx->wasword = isword;
 	count = ctx->lastp - (bp+i);
       }
