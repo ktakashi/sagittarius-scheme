@@ -730,12 +730,13 @@ static SgObject maybe_parse_flags(lexer_ctx_t *ctx)
       }
       break;
     case 'm':
+      /* 'm' flag is resolved during compile time. */
       if (set) {
 	ctx->flags |= SG_MULTILINE;
-	SG_APPEND1(h, t, Sg_Cons(SG_MAKE_CHAR(c), SG_TRUE));
+	/* SG_APPEND1(h, t, Sg_Cons(SG_MAKE_CHAR(c), SG_TRUE)); */
       } else {
 	ctx->flags &= ~SG_MULTILINE;
-	SG_APPEND1(h, t, Sg_Cons(SG_MAKE_CHAR(c), SG_FALSE));
+	/* SG_APPEND1(h, t, Sg_Cons(SG_MAKE_CHAR(c), SG_FALSE)); */
       }
       break;
     case 's':
@@ -865,8 +866,12 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
 			 UC("Quantifier('?') follows nothing in regex."));
       return SG_UNDEF;		/* dummy */
     case '.': return SYM_EVERYTHING;
-    case '^': return SYM_START_ANCHOR;
-    case '$': return SYM_END_ANCHOR;
+    case '^':
+      if (has(ctx, SG_MULTILINE)) return SYM_START_ANCHOR;
+      else return SYM_MODELESS_START_ANCHOR;
+    case '$': 
+      if (has(ctx, SG_MULTILINE)) return SYM_END_ANCHOR;
+      else return SYM_MODELESS_END_ANCHOR;
     case '+': case '*':
       /* quantifiers will always be consumed by get_quantifier, they must not
 	 appear here */
@@ -1518,7 +1523,6 @@ enum {
   RX_EMPTY,			/* start, end anchor and word boundary */
   RX_FAIL,			/* match failed */
   RX_MATCH,			/* matched */
-  RX_FLAG,			/* runtime flags */
   RX_BREF,			/* backreference */
   /* these ahead releated use index as its argument. */
   RX_AHEAD,			/* look ahead */
@@ -1527,6 +1531,9 @@ enum {
   RX_NBEHIND,			/* negative look behind */
   RX_ONCE,			/* standalone */
   RX_RESTORE,			/* recover from look ahead/behind */
+  /* condition */
+  RX_BRANCH,
+  RX_BRANCHA,
 };
 
 
@@ -1579,6 +1586,7 @@ static void emit(compile_ctx_t *ctx, unsigned char opcode,
     inst_t *i = &ctx->inst[ctx->index++];
     i->opcode = opcode;
     i->arg = arg;
+    i->flags = ctx->flags;
     ctx->pc = ++i;
   } else {
     ctx->codemax++;
@@ -1679,6 +1687,37 @@ static void compile_min_max(compile_ctx_t *ctx, SgObject type,
   return;
 }
 
+static int calculate_flags(int org, SgObject flags)
+{
+  SgObject cp;
+  int flag = org;
+  SG_FOR_EACH(cp, flags) {
+    SgObject slot = SG_CAR(cp);
+    ASSERT(SG_CHARP(SG_CAR(slot)));
+    switch (SG_CHAR_VALUE(SG_CAR(slot))) {
+    case 'i':
+      if (SG_FALSEP(SG_CDR(slot)))
+	flag &= ~SG_CASE_INSENSITIVE;
+      else
+	flag |= SG_CASE_INSENSITIVE;
+      break;
+    case 'm':
+      if (SG_FALSEP(SG_CDR(slot)))
+	flag &= ~SG_MULTILINE;
+      else
+	flag |= SG_MULTILINE;
+      break;
+    case 's':
+      if (SG_FALSEP(SG_CDR(slot)))
+	flag &= ~SG_DOTALL;
+      else
+	flag |= SG_DOTALL;
+      break;
+    }
+  }
+  return flag;
+}
+
 static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp)
 {
   SgObject type;
@@ -1746,6 +1785,16 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp)
   if (SG_EQ(type, SYM_SEQUENCE)) {
     /* we do not have any implicit sequence */
     compile_seq(ctx, SG_CDR(ast), lastp);
+    return;
+  }
+
+  if (SG_EQ(type, SYM_FLAGED_SEQUENCE)) {
+    SgObject flags = SG_CADR(ast);
+    SgObject seq = SG_CAR(SG_CDDR(ast));
+    int flag = calculate_flags(ctx->flags, flags), save = ctx->flags;
+    ctx->flags = arg.flags = flag;
+    compile_rec(ctx, seq, lastp);
+    ctx->flags = arg.flags = save;
     return;
   }
 
@@ -1888,6 +1937,80 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp)
     return;
   }
 
+  if (SG_EQ(type, SYM_BRANCH)) {
+    SgObject cond = SG_CADR(ast);
+    SgObject rest = SG_CAR(SG_CDDR(ast));
+
+#define NULL_SEQP(ast) (SG_PAIRP(ast) && SG_NULLP(SG_CDR(ast)))
+
+    ctx->extendedp = TRUE;
+    if (SG_INTP(cond)) {
+      /* (branch n regexp)
+	 0: branch <n> 1 3
+	 1: <yes-pattern>
+	 2: jmp 4
+	 3: <no-pattern>
+	 4: rest
+      */
+      inst_t *pc = ctx->pc, *pc2;
+      arg.cond.n = SG_INT_VALUE(cond) * 2;
+      emit(ctx, RX_BRANCH, arg);
+      pc->arg.cond.x = ctx->pc;
+      if (!NULL_SEQP(rest) && SG_PAIRP(rest)) {
+	/* check syntax */
+	if (!SG_EQ(SG_CAR(rest), SYM_ALTER)) {
+	  raise_compile_error(UC("branch has non alter regex."), ast);
+	  return;		/* dummy */
+	}
+      }
+      compile_rec(ctx, (!NULL_SEQP(rest) && SG_PAIRP(rest))
+		  ? SG_CADR(rest) : rest, lastp);
+      pc2 = ctx->pc;
+      emit(ctx, RX_JMP, null_arg);
+      pc->arg.cond.y = ctx->pc;
+      if (!NULL_SEQP(rest) && SG_PAIRP(rest)) {
+	compile_rec(ctx, SG_CAR(SG_CDDR(rest)), lastp);
+      } else {
+	emit(ctx, RX_FAIL, null_arg);
+      }
+      pc2->arg.pos.x = ctx->pc;
+    } else {
+      /*
+	(branch assert regexp)
+	0: brancha 3 5
+	1: <assert>
+	2: restore  ;; this must be in assert
+	3: <yes-pattern>
+	4: jmp 6
+	5: <no-pattern>
+	6: rest
+      */
+      inst_t *pc = ctx->pc, *pc2;
+      emit(ctx, RX_BRANCHA, null_arg);
+      compile_rec(ctx, cond, lastp);
+      pc->arg.cond.x = ctx->pc;
+      if (!NULL_SEQP(rest) && SG_PAIRP(rest)) {
+	/* check syntax */
+	if (!SG_EQ(SG_CAR(rest), SYM_ALTER)) {
+	  raise_compile_error(UC("branch has non alter regex."), ast);
+	  return;		/* dummy */
+	}
+      }
+      compile_rec(ctx, (!NULL_SEQP(rest) && SG_PAIRP(rest))
+		  ? SG_CADR(rest) : rest, lastp);
+      pc2 = ctx->pc;
+      emit(ctx, RX_JMP, null_arg);
+      pc->arg.cond.y = ctx->pc;
+      if (!NULL_SEQP(rest) && SG_PAIRP(rest)) {
+	compile_rec(ctx, SG_CAR(SG_CDDR(rest)), lastp);
+      } else {
+	emit(ctx, RX_FAIL, null_arg);
+      }
+      pc2->arg.pos.x = ctx->pc;
+    }
+    return;
+  }
+
   Sg_Error(UC("unknown AST type: %S"), type);
 }
 
@@ -2025,9 +2148,6 @@ void Sg_DumpRegex(SgPattern *pattern, SgObject port)
     case RX_MATCH:
       Sg_Printf(port, UC("%3d: RX_MATCH[%d]\n"), i, op);
       break;
-    case RX_FLAG:
-      Sg_Printf(port, UC("%3d: RX_FLAG[%d] %d\n"), i, op, inst->arg.flags);
-      break;
     case RX_BREF:
       Sg_Printf(port, UC("%3d: RX_BREF[%d] %d\n"), i, op, inst->arg.index);
       break;
@@ -2049,6 +2169,15 @@ void Sg_DumpRegex(SgPattern *pattern, SgObject port)
       break;
     case RX_RESTORE:
       Sg_Printf(port, UC("%3d: RX_RESTORE[%d] %d\n"), i, op, inst->arg.index);
+      break;
+    case RX_BRANCH:
+      Sg_Printf(port, UC("%3d: RX_BRANCH[%d] %d %d %d\n"), i, op,
+		inst->arg.cond.n, inst->arg.cond.x-start,
+		inst->arg.cond.y-start);
+      break;
+    case RX_BRANCHA:
+      Sg_Printf(port, UC("%3d: RX_BRANCHA[%d] %d %d\n"), i, op,
+		inst->arg.cond.x-start, inst->arg.cond.y-start);
       break;
     default:
       Sg_Printf(port, UC("%3d: ??? %d\n"), i, op);
@@ -2208,7 +2337,6 @@ struct match_ctx_rec_t
   thread_t    *free_threads;
   inst_t      *start;
   inst_t      *inst;
-  unsigned int flags;		/* runtime flags */
   const SgChar *lastp;
   int          wasword;
 };
@@ -2311,11 +2439,6 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
       }
       stk[nstk++] = add_state(id+1, -1, NULL);
       break;
-    case RX_FLAG:
-      /* set flag */
-      ctx->flags = ip->arg.flags;
-      stk[nstk++] = add_state(id+1, -1, NULL);
-      break;
     case RX_EMPTY:
       if (ip->arg.flags & ~flags) break;
       stk[nstk++] = add_state(id+1, -1, NULL);
@@ -2332,7 +2455,6 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
       Sg_Error(UC("[internal] Unexpected opcode in add_to_threadq: %d"),
 	       ip->opcode);
       break;
-
     case RX_ANY:
     case RX_CHAR:
     case RX_SET:
@@ -2350,12 +2472,20 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
   }
 }
 
+#define FLAG_SET(f, v) (((f)&(v))==(v))
+
 static int inst_matches(match_ctx_t *ctx, inst_t *inst, SgChar c)
 {
   switch (inst->opcode) {
   case RX_SET:
     if (Sg_CharSetContains(inst->arg.set, c)) {
       return TRUE;
+    } else if (FLAG_SET(inst->flags, SG_CASE_INSENSITIVE)) {
+      /* TODO unicode case */
+      if (Sg_CharSetContains(inst->arg.set, tolower(c)) ||
+	  Sg_CharSetContains(inst->arg.set, toupper(c))) {
+	return TRUE;
+      }
     }
     return FALSE;
   case RX_NSET:
@@ -2364,35 +2494,21 @@ static int inst_matches(match_ctx_t *ctx, inst_t *inst, SgChar c)
   case RX_CHAR:
     if (inst->arg.c == c) {
       return TRUE;
+    } else if (FLAG_SET(inst->flags, SG_CASE_INSENSITIVE)) {
+      /* TODO unicode case */
+      if (tolower(inst->arg.c) == tolower(c)) {
+	return TRUE;
+      }
     }
     return FALSE;
   case RX_ANY:
+    if (FLAG_SET(inst->flags, SG_DOTALL)) return TRUE;
+    else if (c == '\n') return FALSE;
     return TRUE;
   default:
     ASSERT(FALSE);
     return FALSE;		/* dummy */
   }
-}
-
-static const SgChar* retrieve_back_ref(match_ctx_t *ctx, int index, int *size)
-{
-  index *= 2;
-  if (ctx->match[index] != NULL && ctx->match[index+1] != NULL) {
-    *size = (int)(ctx->match[index+1] - ctx->match[index]);
-    return ctx->match[index];
-  }
-  return NULL;
-}
-
-static int match_back_ref(match_ctx_t *ctx, inst_t *ip, const SgChar *p)
-{
-  int count = -1, i;
-  const SgChar *ref = retrieve_back_ref(ctx, ip->arg.index, &count);
-  if (ref == NULL || count < 0) return -1;
-  for (i = 0; i < count; i++) {
-    if (*p++ != *ref++) return -1;
-  }
-  return count;
 }
 
 static int matcher_match1(match_ctx_t *ctx, int from, int anchor, inst_t *inst);
@@ -2421,8 +2537,6 @@ static void dump_capture(match_ctx_t *ctx, const SgChar **capture)
 #else
 #define dump_capture(ctx, cap) 	/* dummy */
 #endif
-
-static void finish_match(match_ctx_t *ctx);
 
 static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
 		      SgChar c, int flags, const SgChar *p)
@@ -2479,6 +2593,8 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
 }
 
 #define iswordchar(c) (isalnum(c) || (c) == '_')
+
+static int finish_match(match_ctx_t *ctx, int anchor);
 
 static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
 {
@@ -2569,59 +2685,107 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
     if (p >= ep) c = 0;
     else c = *p;
     wasword = isword;
+    ctx->lastp = p;
   }
   THREADQ_FOR_EACH(i, runq) {
     free_thread(ctx, i.value);
   }
-
-  if (ctx->matched) {
-    finish_match(ctx);
-    /* set submatch to matcher */
-    return TRUE;
-  }
-  return FALSE;
+  return finish_match(ctx, anchor);
 }
+
+enum extended_flags {
+  LOOK_BEHIND = 1<<0,		/* lookbehind */
+};
+
+static const SgChar* retrieve_back_ref(match_ctx_t *ctx, int index, int *size)
+{
+  index *= 2;
+  if (ctx->match[index] != NULL && ctx->match[index+1] != NULL) {
+    *size = (int)(ctx->match[index+1] - ctx->match[index]);
+    return ctx->match[index];
+  }
+  return NULL;
+}
+
+static int match_back_ref(match_ctx_t *ctx, inst_t *ip, const SgChar *p,
+			  int flag)
+{
+  int count = -1;
+  const SgChar *ref = retrieve_back_ref(ctx, ip->arg.index, &count);
+  if (ref == NULL || count < 0) return -1;
+  if (FLAG_SET(flag, LOOK_BEHIND)) {
+    int i, j;
+    debug_printf("  count %d\n", count);
+    for (j = -1, i = count-1; i >= 0; i--, j--) {
+      debug_printf("   %c:%c\n", p[j], ref[i]);
+      if (FLAG_SET(ip->flags, SG_CASE_INSENSITIVE)) {
+	/* TODO unicode case */
+	if (tolower(p[j]) != tolower(ref[i])) return -1;
+      } else {
+	if (p[j] != ref[i]) return -1;
+      }
+    }
+  } else {
+    int i;
+    for (i = 0; i < count; i++) {
+      if (FLAG_SET(ip->flags, SG_CASE_INSENSITIVE)) {
+	/* TODO unicode case */
+	if (tolower(*p++) != tolower(*ref++)) return -1;
+      } else {
+	if (*p++ != *ref++) return -1;
+      }
+    }
+  }
+  return count;
+}
+
 
 static int match_step1(match_ctx_t *ctx, inst_t *inst, int flags,
 		      const SgChar *bp, int i)
 {
   const SgChar *otext = SG_STRING_VALUE(ctx->m->text);
   const SgChar *ep = otext + SG_STRING_SIZE(ctx->m->text);
-  int flag = 0, isword = FALSE, count;
-
+  int flag = 0, isword = FALSE, count, offset=0, saved = flags;
+  /* detect underflow */
+  if (i < -1) return FALSE;
   if ((bp+i) > ep) return FALSE;
 
   /* ^ and \A */
-  if ((bp+i) == otext)
+  if ((bp+i) == otext ||
+      (FLAG_SET(flags, LOOK_BEHIND) && (bp+i) < otext))
     flag |= EmptyBeginText | EmptyBeginLine;
   else if ((bp+i) <= ep && bp[i-1] == '\n')
     flag |= EmptyBeginLine;
+
   /* $ and \z */
   if ((bp+i) == ep)
     flag |= EmptyEndText | EmptyEndLine;
-  else if ((bp+i) < ep && bp[i] == '\n')
+  else if ((bp+i) >= otext && (bp+i) < ep && bp[i] == '\n')
     flag |= EmptyEndLine;
 
   /* \b and \B */
   /* we only check ASCII. */
-  if ((bp+i) < ep)
+  if ((bp+i) >= otext && (bp+i) < ep)
     isword = iswordchar(*(bp + i));
   if (isword != ctx->wasword)
     flag |= EmptyWordBoundary;
   else
     flag |= EmptyNonWordBoundary;
   ctx->lastp = (bp+i);
-  debug_printf("inst %d:%d (%c) %x\n", inst- ctx->start, inst->opcode, *(bp+i),
-	       flag);
+
+  debug_printf("inst %d:%d (%d:%c) %x\n", inst- ctx->start, inst->opcode,
+	       i, (i<0)?'\0':*(bp+i), flag);
   switch (inst->opcode) {
   case RX_ANY:
   case RX_CHAR:	
   case RX_SET:
   case RX_NSET:
   case RX_STR:
-    if (inst_matches(ctx, inst, *(bp + i))) {
+    offset = FLAG_SET(flags, LOOK_BEHIND) ? -1 : 0;
+    if (inst_matches(ctx, inst, *(bp+i+offset))) {
       ctx->wasword = isword;
-      return match_step1(ctx, inst + 1, flags, bp, i+1);
+      offset = FLAG_SET(flags, LOOK_BEHIND) ? -1 : 1;
+      return match_step1(ctx, inst+1, flags, bp, i+offset);
     }
     return FALSE;
   case RX_SPLIT:
@@ -2646,35 +2810,50 @@ static int match_step1(match_ctx_t *ctx, inst_t *inst, int flags,
     return match_step1(ctx, inst+1, flags, bp, i);
   case RX_FAIL:
     return FALSE;
-  case RX_FLAG:
-    return match_step1(ctx, inst+1, inst->arg.flags, bp, i);
   case RX_BREF:	
-    if ((count = match_back_ref(ctx, inst, (bp+i))) >= 0) {
+    if ((count = match_back_ref(ctx, inst, (bp+i), flags)) >= 0) {
+      if (FLAG_SET(flags, LOOK_BEHIND)) count = -count;
       return match_step1(ctx, inst+1, flags, bp, i+count);
     }
     return FALSE;
   case RX_BEHIND:
-    /* todo maybe we need to set flags here */
+    saved = flags;
+    flags |= LOOK_BEHIND;
   case RX_AHEAD:
   case RX_ONCE:
-    if (match_step1(ctx, inst+1, flags, bp, i)) {
+    if (match_step1(ctx, inst+1, flags, bp, i+offset)) {
+      flags = saved;
       if (inst->opcode == RX_ONCE) {
 	ctx->wasword = isword;
 	count = ctx->lastp - (bp+i);
       }
       else count = 0;
+      if (FLAG_SET(flags, LOOK_BEHIND)) count = -count;
       return match_step1(ctx, inst->arg.pos.x, flags, bp, i+count);
     }
     return FALSE;
   case RX_NBEHIND:
+    saved = flags;
+    flags |= LOOK_BEHIND;
   case RX_NAHEAD:
-    if (match_step1(ctx, inst+1, flags, bp, i)) {
+    if (match_step1(ctx, inst+1, flags, bp, i+offset)) {
       return FALSE;
     }
+    flags = saved;
     return match_step1(ctx, inst->arg.pos.x, flags, bp, i);
   case RX_RESTORE:
   case RX_MATCH:
     return TRUE;
+  case RX_BRANCH:
+    if (ctx->match[inst->arg.cond.n] && ctx->match[inst->arg.cond.n+1]) {
+      return match_step1(ctx, inst->arg.cond.x, flags, bp, i);
+    }
+    return match_step1(ctx, inst->arg.cond.y, flags, bp, i);
+  case RX_BRANCHA:
+    if (match_step1(ctx, inst+1, flags, bp, i)) {
+      return match_step1(ctx, inst->arg.cond.x, flags, bp, i);
+    }
+    return match_step1(ctx, inst->arg.cond.y, flags, bp, i);
   }
   ASSERT(FALSE);
   return FALSE;
@@ -2703,47 +2882,43 @@ static int matcher_match1(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
     }
   }
   ctx->matched = matched;
-  if (ctx->matched) {
-    finish_match(ctx);
-    /* set submatch to matcher */
-    return TRUE;
-  }
-  return FALSE;
+  return finish_match(ctx, anchor);
 }
 
-/* todo should we do this here? or on demand? */
-static void finish_match(match_ctx_t *ctx)
+/* sets meta info for matcher. */
+static int finish_match(match_ctx_t *ctx, int anchor)
 {
-  int i;
-  SgMatcher *m = ctx->m;
-  for (i = 0; i < ctx->ncapture; i += 2) {
-    const SgChar *sp = ctx->match[i], *ep = ctx->match[i+1];
-    size_t size;
-    SgChar *str;
-    if (!sp || !ep) continue;
-    if (sp <= ep) {
-      size = ep - sp;
-      str  = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar)*(size+1));
-      m->submatch[i/2] = str;
-      str[size] = 0;
-      for (;sp < ep;) {
-	*str++ = *sp++;
-      }
-      debug_printf("%S match[%d]=(\"%s\", size: %d)\n", ctx->m, i/2,
-		   m->submatch[i/2], size);
+  if (ctx->matched) {
+    const SgChar *ep = SG_STRING_VALUE(ctx->m->text) + ctx->m->to;
+    if (anchor != UNANCHORED && ctx->lastp != ep) {
+      ctx->matched = FALSE;
+      return FALSE;
     }
+    ctx->m->first = ctx->match[0] - SG_STRING_VALUE(ctx->m->text);
   }
-
+  return ctx->matched;
 }
 
 /* match entry point*/
 static int matcher_match(SgMatcher *m, int from, int anchor)
 {
+  int ret, i;
+  ASSERT(from >= 0);
+  m->first  = from;
+  m->match_ctx->matched = FALSE;
+  for (i=0; i < m->pattern->groupCount; i++) {
+    m->submatch[i] = NULL;
+  }
   if (m->pattern->extendedp) 
-    return matcher_match1(m->match_ctx, from, anchor, m->pattern->prog->root);
+    ret = matcher_match1(m->match_ctx, from, anchor, m->pattern->prog->root);
   else
-    return matcher_match0(m->match_ctx, from, anchor, m->pattern->prog->root);
+    ret = matcher_match0(m->match_ctx, from, anchor, m->pattern->prog->root);
+  /* sync lastp */
+  if (!ret) m->first  = -1;
+  m->last = m->match_ctx->lastp - SG_STRING_VALUE(m->text);
+  return ret;
 }
+
 
 static match_ctx_t* init_match_ctx(match_ctx_t *ctx, SgMatcher *m, int size)
 {
@@ -2758,7 +2933,6 @@ static match_ctx_t* init_match_ctx(match_ctx_t *ctx, SgMatcher *m, int size)
   ctx->matched = FALSE;
   ctx->ncapture = 2 * m->pattern->groupCount;
   ctx->match = SG_NEW_ARRAY(const SgChar *, ctx->ncapture);
-  ctx->flags = m->pattern->flags;
   return ctx;
 }
 
@@ -2771,11 +2945,13 @@ SG_INIT_META_OBJ(Sg_MatcherMeta, matcher_printer, NULL);
 
 static SgMatcher* reset_matcher(SgMatcher *m)
 {
-  m->first = -1;
+  m->match_ctx->lastp = SG_STRING_VALUE(m->text);
+  m->match_ctx->matched = FALSE;
   m->from = 0;
-  m->to = SG_STRING_SIZE(m->text);
+  m->to   = SG_STRING_SIZE(m->text);
+  m->first = -1;
   m->last = 0;
-  m->oldLast = -1;
+  m->lastAppendPosition = 0;
   return m;
 }
 
@@ -2786,7 +2962,6 @@ static SgMatcher* make_matcher(SgPattern *p, SgString *text)
   SG_SET_META_OBJ(m, SG_META_MATCHER);
   m->pattern = p;
   m->text = text;
-  m->anchorBounds = TRUE;
   m->match_ctx = SG_NEW(match_ctx_t);
   /* we use root, not rootMatch for looking-at */
   init_match_ctx(m->match_ctx, m, m->pattern->prog->rootLength);
@@ -2800,14 +2975,60 @@ SgMatcher* Sg_RegexMatcher(SgPattern *pattern, SgString *text)
   return m;
 }
 
+int Sg_RegexMatches(SgMatcher *m)
+{
+  reset_matcher(m);
+  return matcher_match(m, m->from, ANCHOR_START);
+}
+
 int Sg_RegexLookingAt(SgMatcher *m)
 {
+  reset_matcher(m);
   return matcher_match(m, m->from, UNANCHORED);
+}
+
+int Sg_RegexFind(SgMatcher *m, int start)
+{
+  if (start < 0) {
+    int index = m->last;
+    return matcher_match(m, index, UNANCHORED);
+  } else if (start <= SG_STRING_SIZE(m->text)) {
+    reset_matcher(m);
+    return matcher_match(m, start, UNANCHORED);
+  } else {
+    Sg_Error(UC("Illegal start index %d"), start);
+    return FALSE;		/* dummy */
+  }
 }
 
 int Sg_RegexCaptureCount(SgMatcher *m)
 {
   return m->match_ctx->ncapture/2;
+}
+
+static void retrive_group(SgMatcher *m, int submatch)
+{
+  if (m->submatch[submatch]) return;
+  else {
+    int i = submatch*2;
+    match_ctx_t *ctx = m->match_ctx;
+    const SgChar *sp = ctx->match[i], *ep = ctx->match[i+1];
+    size_t size;
+    SgChar *str;
+    if (!sp || !ep) return;
+    /* lookbehind? */
+    if (sp > ep) {
+      sp = ctx->match[i+1];
+      ep = ctx->match[i];
+    }
+    size = ep - sp;
+    str  = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar)*(size+1));
+    m->submatch[i/2] = str;
+    str[size] = 0;
+    for (;sp < ep;) {
+      *str++ = *sp++;
+    }
+  }
 }
 
 SgObject Sg_RegexGroup(SgMatcher *m, int group)
@@ -2821,10 +3042,112 @@ SgObject Sg_RegexGroup(SgMatcher *m, int group)
     Sg_Error(UC("group number is too big %d"), group);
   }
   /* should matched string be literal? */
+  retrive_group(m, group);
   if (!m->submatch[group]) return SG_FALSE;
   s = Sg_MakeString(m->submatch[group], SG_HEAP_STRING);
   return s;
 }
+
+static void append_replacement(SgMatcher *m, SgPort *p, SgString *replacement)
+{
+  int cursor = 0, i;
+  if (m->first < 0) {
+    Sg_Error(UC("No match available"));
+  }
+  /* To avoid memory allocation */
+  for (i = m->lastAppendPosition; i < m->first; i++) {
+    Sg_PutcUnsafe(p, SG_STRING_VALUE_AT(m->text, i));
+  }
+  while (cursor < SG_STRING_SIZE(replacement)) {
+    SgChar nextChar = SG_STRING_VALUE_AT(replacement, cursor);
+    if (nextChar == '\\') {
+      cursor++;
+      nextChar = SG_STRING_VALUE_AT(replacement, cursor);
+      Sg_PutcUnsafe(p, nextChar);
+      cursor++;
+    } else if (nextChar == '$') {
+      int refNum, done = FALSE;
+      SgString *v;
+      /* Skip past $ */
+      cursor++;
+      /* The first number is always a group */
+      refNum = SG_STRING_VALUE_AT(replacement, cursor) - '0';
+      if ((refNum < 0) || (refNum > 9)) {
+	Sg_Error(UC("Illegal group reference: %A"), SG_MAKE_CHAR(refNum));
+      }
+      cursor++;
+      /* Capture the largest legal group string */
+      while (!done) {
+	int nextDigit, newRefNum;
+	if (cursor >= SG_STRING_SIZE(replacement)) break;
+	nextDigit = SG_STRING_VALUE_AT(replacement, cursor) - '0';
+	if ((nextDigit < 0) || (nextDigit > 9)) {
+	  /* not a number */
+	  break;
+	}
+	newRefNum = (refNum * 10) + nextDigit;
+	if (m->pattern->groupCount - 1 < newRefNum) {
+	  done = TRUE;
+	} else {
+	  refNum = newRefNum;
+	  cursor++;
+	}
+      }
+      v = Sg_RegexGroup(m, refNum);
+      if (!SG_FALSEP(v)) {
+	Sg_PutsUnsafe(p, v);
+      }
+    } else {
+      Sg_PutcUnsafe(p, nextChar);
+      cursor++;
+    }
+  }
+  m->lastAppendPosition = m->last;
+}
+
+static void append_tail(SgMatcher *m, SgPort *p)
+{
+  /* append the rest */
+  int i;
+  for (i = m->lastAppendPosition; i < SG_STRING_SIZE(m->text); i++) {
+    Sg_PutcUnsafe(p, SG_STRING_VALUE_AT(m->text, i));
+  }
+}
+
+SgString* Sg_RegexReplaceAll(SgMatcher *m, SgString *replacement)
+{
+  int result;
+  reset_matcher(m);
+  result = Sg_RegexFind(m, -1);
+  if (result) {
+    /* hopefully this is enough, well it'll expand anyway */
+    SgPort *p = Sg_MakeStringOutputPort(SG_STRING_SIZE(m->text) * 1.5);
+    do {
+      append_replacement(m, p, replacement);
+      result = Sg_RegexFind(m, -1);
+    } while (result);
+    append_tail(m, p);
+    return Sg_GetStringFromStringPort(p);
+  }
+  /* no replacement, we just return text */
+  return m->text;
+}
+
+SgString* Sg_RegexReplaceFirst(SgMatcher *m, SgString *replacement)
+{
+  int result;
+  reset_matcher(m);
+  result = Sg_RegexFind(m, -1);
+  if (result) {
+    SgPort *p = Sg_MakeStringOutputPort(SG_STRING_SIZE(m->text) * 1.5);
+    append_replacement(m, p, replacement);
+    append_tail(m, p);
+    return Sg_GetStringFromStringPort(p);
+  }
+  /* we don't copy. */
+  return m->text;
+}
+
 
 extern void Sg__Init_sagittarius_regex2_impl();
 
@@ -2841,7 +3164,7 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__regex2()
   insert_binding(COMMENTS, SG_COMMENTS);
   insert_binding(MULTILINE, SG_MULTILINE);
   insert_binding(LITERAL, SG_LITERAL);
-  insert_binding(DOTAIL, SG_DOTALL);
+  insert_binding(DOTALL, SG_DOTALL);
   insert_binding(UNICODE-CASE, SG_UNICODE_CASE);
 #undef insert_binding
 

@@ -28,7 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-(load-dynamic-library "sagittarius--regex")
+(load-dynamic-library "sagittarius--regex2")
 (library (sagittarius regex)
     (export compile-regex
 	    regex-matcher
@@ -36,18 +36,26 @@
 	    regex-find
 	    regex-looking-at
 	    regex-group
-	    ;; flags
+	    regex-capture-count
+	    ;; pred
 	    regex-pattern?
 	    regex-matcher?
+	    ;; accessor
+	    regex-before
+	    regex-after
+	    regex-first
+	    regex-last
 
 	    ;; flags
 	    CASE-INSENSITIVE
 	    COMMENTS
 	    MULTILINE
 	    LITERAL
-	    DOTAIL
-	    UNICODE-CASE
+	    DOTALL
+	    ;; later
+	    ;; UNICODE-CASE
 
+	    
 	    ;; syntax-sugar
 	    regex
 
@@ -59,8 +67,9 @@
 	    regex-replace-all
 	    regex-replace-first
 	    )
-    (import (except (sagittarius regex impl) regex-replace-first regex-replace-all)
-	    (prefix (only (sagittarius regex impl) regex-replace-first regex-replace-all) impl:)
+    (import (rename (sagittarius regex2 impl) 
+		    (regex-replace-first impl:regex-replace-first)
+		    (regex-replace-all impl:regex-replace-all))
 	    (core)
 	    (core errors)
 	    (sagittarius))

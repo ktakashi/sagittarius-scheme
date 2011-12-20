@@ -9,13 +9,12 @@
 	    (srfi :13 strings)
 	    (srfi :1 lists)
 	    (rnrs)
-	    (sagittarius regex2 impl)
-	    #;(sagittarius regex))
+	    (sagittarius regex2 impl))
 
-  (define (generic-match&list match-func pat text)
-    (let* ((rx (compile-regex pat 0))
+  (define (generic-match&list match-func pat text flags)
+    (let* ((rx (compile-regex pat (if (null? flags) 0 (car flags))))
 	   (m  (regex-matcher rx text)))
-      (cond ((regex-looking-at m)
+      (cond ((match-func m)
 	     (map (lambda (n)
 		    (regex-group m n))
 		  (iota (regex-capture-count m))))
@@ -23,8 +22,8 @@
       
 
   (define (run-looking-at-test)
-    (let ((match&list (lambda (pat text)
-			(generic-match&list regex-looking-at pat text))))
+    (let ((match&list (lambda (pat text . flags)
+			(generic-match&list regex-looking-at pat text flags))))
       ;; basics
       (test-equal "a" '("a")
 		  (match&list "a" "a"))
@@ -401,15 +400,65 @@
       (test-equal "(\\d{1,3}?)(\\d{0,2}?)" '("1" "1" "")
 		  (match&list "(\\d{1,3}?)(\\d{0,2}?)" "a1234b"))
       ;; uncapturing group      
-      ;; TODO
+      (test-equal "a(?:b)*c(d)" '("abcd" "d")
+		  (match&list "a(?:b)*c(d)" "abcdbcdefg"))
+      (test-equal "a(?:bcd)*e(f)"  '("abcdbcdef" "f")
+		  (match&list "a(?:bcd)*e(f)" "abcdbcdefg"))
+      (test-equal "a(?:bcd)*e(f)" '("aef" "f")
+		  (match&list "a(?:bcd)*e(f)" "aefg"))
+      (test-equal "a(?:bcd)+e(f)" #f
+		  (match&list "a(?:bcd)+e(f)" "aefg"))
+      (test-equal "a(?:bc(de(?:fg)?hi)jk)?l" '("abcdefghijkl" "defghi")
+		  (match&list "a(?:bc(de(?:fg)?hi)jk)?l" "abcdefghijkl"))
+      (test-equal "a(?:bc(de(?:fg)?hi)jk)?l" '("abcdehijkl" "dehi")
+		  (match&list "a(?:bc(de(?:fg)?hi)jk)?l" "abcdehijkl"))
+
+      (test-equal "a(?i:bc)d" '("aBCd")
+	     (match&list "a(?i:bc)d" "!aBCd!"))
+      (test-equal "a(?i:bc)d" #f
+	     (match&list "a(?i:bc)d" "!aBCD!"))
+      (test-equal "a(?i:[a-z]+)d" '("aBcd")
+	     (match&list "a(?i:[a-z]+)d" "!aBcd!"))
+      (test-equal "a(?i:[a-z]+)d" #f
+	     (match&list "a(?i:[a-z]+)d" "!ABcd!"))
+
+      ;; uncapturing case insensitive
+      (test-equal "A(?-i:Bc)D" '("ABcD")
+		  (match&list "A(?-i:Bc)D" "!ABcD!"))
+      (test-equal "A(?-i:Bc)D" #f
+		  (match&list "A(?-i:Bc)D" "!ABcd!"))
+      (test-equal "A(?-i:[A-Z]+)D" '("ABCD")
+		  (match&list "A(?-i:[A-Z]+)D" "!ABCD!"))
+      (test-equal "A(?-i:[A-Z]+)D" #f
+		  (match&list "A(?-i:[A-Z]+)D" "!abCD!"))
+
+      (test-equal "A(?-i:Bc)D" '("aBcd")
+		  (match&list "A(?-i:Bc)D" "!aBcd!" CASE-INSENSITIVE))
+      (test-equal "A(?-i:Bc)D" #f
+		  (match&list "A(?-i:Bc)D" "!abCd!" CASE-INSENSITIVE))
+      (test-equal "A(?-i:[A-Z]+)D" '("aBCd")
+		  (match&list "A(?-i:[A-Z]+)D" "!aBCd!" CASE-INSENSITIVE))
+      (test-equal "A(?-i:[A-Z]+)D" #f
+		  (match&list "A(?-i:[A-Z]+)D" "!abcd!" CASE-INSENSITIVE))
+
+      ;; multiline
+      (test-equal "(?m:^[d-z]+)" '("def")
+		  (match&list "(?m:^[d-z]+)" "abc\ndef"))
+      (test-equal "(?-m:^[d-z]+)" #f
+		  (match&list "(?-m:^[d-z]+)" "abc\ndef" MULTILINE))
+
+      ;; dot all
+      (test-equal "(?s:.*)" '("abc\ndef")
+		  (match&list "(?s:.*)" "abc\ndef"))
+      (test-equal "(?-s:.*)" '("abc")
+		  (match&list "(?-s:.*)" "abc\ndef" DOTALL))
 
       ;; backreference
       (test-equal "^(.)\\1$" '("aa" "a")
 		  (match&list "^(.)\\1$" "aa"))
       (test-equal "^(.)\\1$" #f
 		  (match&list "^(.)\\1$" "ab"))
-      ;; this test can not be passed.
-      #;(test-equal "(.+)\\1" '("123123" "123")
+      (test-equal "(.+)\\1" '("123123" "123")
 		  (match&list "(.+)\\1" "a123123j"))
       (test-equal "/(.+)\\1/i" #f
 		  (match&list "(.+)\\1" "AbCAb1"))
@@ -450,7 +499,8 @@
       (test-equal "foo(?!bar)(.*)" '("foolish see?" "lish see?")
 		  (match&list "foo(?!bar)(.*)" "foobar is foolish see?"))
       (test-equal "(?:(?!foo)...|^.{0,2})bar(.*)" '("rowbar etc" " etc")
-		  (match&list "(?:(?!foo)...|^.{0,2})bar(.*)" "foobar crowbar etc"))
+		  (match&list "(?:(?!foo)...|^.{0,2})bar(.*)"
+			      "foobar crowbar etc"))
       (test-equal "(?:(?!foo)...|^.{0,2})bar(.*)" '("barrel" "rel")
 		  (match&list "(?:(?!foo)...|^.{0,2})bar(.*)" "barrel"))
       (test-equal "(?:(?!foo)...|^.{0,2})bar(.*)" '("2barrel" "rel")
@@ -489,12 +539,169 @@
 		  (match&list "a(?=d)." "abad"))
       (test-equal "a(?=c|d)." '("ad")
 		  (match&list "a(?=c|d)." "abad"))
+      ;; lookbehind
+      (test-equal "(?<=a)b" #f
+		  (match&list "(?<=a)b" "b"))
+      (test-equal "(?<=a)b" '("b")
+		  (match&list "(?<=a)b" "ab"))
+      (test-equal "(?<=a+)b" '("b")
+		  (match&list "(?<=a+)b" "aab"))
+      (test-equal "(?<=x[yz])b" '("b")
+		  (match&list "(?<=x[yz])b" "xzb"))
+      (test-equal "(?<=zyx)b" #f
+		  (match&list "(?<=zyx)b" "xyzb"))
+      (test-equal "(?<=[ab]+)c" '("c")
+		  (match&list "(?<=[ab]+)c" "abc"))
+      (test-equal "(?<!<[^>]+)foo" #f
+		  (match&list "(?<!<[^>]*)foo" "<foo>"))
+      (test-equal "(?<!<[^>]+)foo" '("foo")
+		  (match&list "(?<!<[^>]*)foo" "<bar>foo"))
+      (test-equal "(?<=^a)b" '("b")
+		  (match&list "(?<=^a)b" "ab"))
+      (test-equal "(?<=^)b" #f
+		  (match&list "(?<=^)b" "ab"))
+      (test-equal "(?<=^)b" '("b")
+		  (match&list "(?<=^)b" "b"))
+      (test-equal ".(?<=^)b" #f
+		  (match&list ".(?<=^)b" "a^b"))
+      (test-equal "(?<=^a$)" '("")
+		  (match&list "(?<=^a$)" "a"))
+      (test-equal "(?<=^a$)b" #f
+		  (match&list "(?<=^a$)b" "a$b"))
+      (test-equal "(?<=(a))b" '("b" "a")
+		  (match&list "(?<=(a))b" "ab"))
+      (test-equal "(?<=(a)(b))c" '("c" "a" "b")
+		  (match&list "(?<=(a)(b))c" "abc"))
+      (test-equal "(?<=(a)|(b))c" '("c" #f "b")
+		  (match&list "(?<=(a)|(b))c" "bc"))
+      (test-equal "(?<=(?<!foo)bar)baz" '("baz")
+		  (match&list "(?<=(?<!foo)bar)baz" "abarbaz"))
+      (test-equal "(?<=(?<!foo)bar)baz" #f
+		  (match&list "(?<=(?<!foo)bar)baz" "foobarbaz"))
+      (test-equal "(?<=\\d{3})(?<!999)foo" '("foo")
+		  (match&list "(?<=\\d{3})(?<!999)foo" "865foo"))
+      (test-equal "(?<=\\d{3})(?<!999)foo" #f
+		  (match&list "(?<=\\d{3})(?<!999)foo" "999foo"))
+      ;; Gauche does not support this, Perl is not allow to use veriable length
+      ;; lookbehind, however Perl returned "" with #/(?<=(?>aaaa))/ expression
+      ;; which input was "aaaa". So we return "" in this expression.
+      (test-equal "(?<=(?>a*))" '("")
+		  (match&list "(?<=(?>a*))" "aaaa"))
+      (test-equal "(abc)...(?<=\\1)" '("abcabc" "abc")
+		  (match&list "(abc)...(?<=\\1)" "abcabc"))
+      (test-equal "(abC)...(?<=\\1)" '("abCAbc" "abC")
+		  (match&list "(abC)...(?<=\\1)" "abCAbc" CASE-INSENSITIVE))
+
+      ;; named group
+      (test-equal "(?<foo>a)" '("a" "a")
+		  (match&list "(?<foo>a)" "a"))
+      (test-equal "(?<foo>a)(?<bar>.*)" '("abcd" "a" "bcd")
+		  (match&list "(?<foo>a)(?<bar>.*)" "abcd"))
+      (test-equal "(?<foo>^a$)" '("a" "a")
+		  (match&list "(?<foo>^a$)" "a"))
+      (test-equal "(?<foo>^a$)" #f
+		  (match&list "(?<foo>^a$)" "ab"))
+      (test-equal "(?<name-with-hyphen>a)" '("a" "a")
+		  (match&list "(?<name-with-hyphen>a)" "a"))
+      (test-equal "(?<foo>.+)\\k<foo>" '("abcabc" "abc")
+		  (match&list "(?<foo>.+)\\k<foo>" "abcabc"))
+      (test-equal "(?<foo>.+)\\k<foo>" #f
+		  (match&list "(?<foo>.+)\\k<foo>" "abcdef"))
+
+      (let ((regex (lambda (p t)
+		     (let ((m (regex-matcher (compile-regex p 0) t)))
+		       (regex-looking-at m)
+		       m))))
+	(test-equal "regex-before" "abc"
+		    (regex-before (regex "(?<foo>def)" "abcdefghi")))
+	(test-equal "regex-after" "ghi"
+		    (regex-after (regex "(?<foo>def)" "abcdefghi")))
+	(test-equal "regex-first" 3
+		    (regex-first (regex "(?<foo>def)" "abcdefghi")))
+	(test-equal "regex-last" 6
+		    (regex-last (regex "(?<foo>def)" "abcdefghi"))))
+
+
+      ;; conditional subexpression
+      (test-equal "(a)(?(1)b)" '("ab" "a")
+	     (match&list "(a)(?(1)b)" "ab"))
+      (test-equal "(a)(?(1)b)" #f
+	     (match&list "(a)(?(1)b)" "aa"))
+      (test-equal "(a)(?(1)b|c)" #f
+	     (match&list "(a)(?(1)b)" "ac"))
+      (test-equal "(a)?(?(1)b|c)" #f
+	     (match&list "(a)?(?(1)b|c)" "xb"))
+      (test-equal "(a)?(?(1)b|c)" '("c" #f)
+		  (match&list "(a)?(?(1)b|c)" "xc"))
+      (test-equal "(?(?<=a)b)" '("b")
+		  (match&list "(?(?<=a)b)" "ab"))
+      (test-equal "(?(?<=a)b)" #f
+		  (match&list "(?(?<=a)b)" "ac"))
+      (test-equal "(?(?<=a)b)" #f
+		  (match&list "(?(?<=a)b)" "xb"))
+      (test-equal "(?(?<=a)b|c)" '("b")
+		  (match&list "(?(?<=a)b)" "ab"))
+      (test-equal "(?(?<=a)b|c)" #f
+		  (match&list "(?(?<=a)b)" "ac"))
+      (test-error "(?(?a)b|c)"
+		  (compile-regex "(?(?a)b|c)" 0))
+      (test-equal "()(?(1))" '("" "")
+		  (match&list "()(?(1))" ""))
+
+      )
+    )
+
+  ;; I'm so lazy to write this test, so just a few
+  (define (run-matches-test)
+    (let ((match&list (lambda (pat text . flags)
+			(generic-match&list regex-matches pat text flags))))
+      ;; only basics
+      (test-equal "abcde" '("abcde")
+		  (match&list "abcde" "abcde"))
+      ;; regex-matches only matches whole input string
+      (test-equal "abcde" #f
+		  (match&list "abcde" "aabcde"))
+
+      (test-equal "abcde" #f
+		  (match&list "abcde" "abcdee"))
+      ;; for extended pattern
+      (test-equal "(abc)\\1" '("abcabc" "abc")
+		  (match&list "(abc)\\1" "abcabc"))
+      (test-equal "(abc)\\1" #f
+		  (match&list "(abc)\\1" "aabcabc"))
+      (test-equal "(abc)\\1" #f
+		  (match&list "(abc)\\1" "abcabcd"))
+      )
+    )
+
+  (define (run-replace-test)
+    (let ((regex (lambda (pat text)
+		   (regex-matcher (compile-regex pat 0) text))))
+      (test-equal "regex-replace-first" "abc|def|ghi"
+		  (regex-replace-first (regex "def|DEF" "abcdefghi") "|$0|"))
+
+      (test-equal "regex-replace-first" "abc|$0|ghi"
+		  (regex-replace-first (regex "def|DEF" "abcdefghi") "|\\$0|"))
+      (test-equal "regex-replace-first"
+		  "abraabra**brabra**brabrabracadabrabrabra"
+		  (regex-replace-first
+		   (regex "a((bra)+)cadabra"
+			  "abraabraabrabracadabrabrabrabracadabrabrabra")
+		   "**$1**"))
+
+      (test-equal "regex-replace-all" "abraabra**brabra**br**brabra**brabra"
+		  (regex-replace-all
+		   (regex "a((bra)+)cadabra"
+			  "abraabraabrabracadabrabrabrabracadabrabrabra")
+		   "**$1**"))
 
       )
     )
 
   (define (run-regex-test)
     (run-looking-at-test)
+    (run-matches-test)
+    (run-replace-test)
     )
 
 )

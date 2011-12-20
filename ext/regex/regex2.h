@@ -63,13 +63,18 @@ typedef union {		 /* arguments for opcode */
   SgObject set;		 /* RX_SET: charset */
   unsigned int flags;	 /* RX_FLAGS */
   unsigned int index;	 /* RX_BREF: reference index */
+  struct {		 /* RX_BRANCH or RX_BRANCHA */
+    inst_t *x;			/* yes-pattern */
+    inst_t *y;			/* no-pattern */
+    int     n;			/* submatch */
+  } cond;
 } inst_arg_t;
 
 struct inst_rec_t
 {
   unsigned char opcode;		/* opcode: max 255 */
+  int           flags;		/* ugly */
   inst_arg_t    arg;
-  int           gen;		/* ugly */
 };
 
 typedef struct
@@ -107,14 +112,11 @@ typedef struct SgMatcherRec
   SgPattern *pattern;
   SgString  *text;
   /* privates */
-  int        first;
   int        from;
   int        to;
+  int        first;
   int        last;
-  int        hitEnd;
-  int        oldLast;
-  int        acceptMode;
-  int        anchorBounds;
+  int        lastAppendPosition;
   match_ctx_t *match_ctx;
   SgChar    *submatch[1];
 } SgMatcher;
@@ -125,19 +127,24 @@ SG_DECLARE_META_OBJ(Sg_MatcherMeta);
 #define SG_MATCHER_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_MATCHER)
 
 #define argumentAsPattern(index, tmp_, var_)				\
-  castArgumentType(index, tmp_, var_, crypto, SG_PATTERN_P, SG_PATTERN)
+  castArgumentType(index, tmp_, var_, regex-pattern, SG_PATTERN_P, SG_PATTERN)
 
 #define argumentAsMatcher(index, tmp_, var_)				\
-  castArgumentType(index, tmp_, var_, crypto, SG_MATCHER_P, SG_MATCHER)
+  castArgumentType(index, tmp_, var_, regex-matcher, SG_MATCHER_P, SG_MATCHER)
 
 
 SG_CDECL_BEGIN
 SgObject Sg_CompileRegex(SgString *pattern, int flags, int parseOnly);
 
 SgMatcher* Sg_RegexMatcher(SgPattern *pattern, SgString *text);
+int        Sg_RegexMatches(SgMatcher *m);
 int        Sg_RegexLookingAt(SgMatcher *m);
+int        Sg_RegexFind(SgMatcher *m, int start);
 
 SgObject   Sg_RegexGroup(SgMatcher *m, int group);
+
+SgString*  Sg_RegexReplaceAll(SgMatcher *m, SgString *replacement);
+SgString*  Sg_RegexReplaceFirst(SgMatcher *m, SgString *replacement);
 
 int        Sg_RegexCaptureCount(SgMatcher *m);
 /* for debug */
