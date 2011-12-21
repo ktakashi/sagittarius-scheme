@@ -52,8 +52,7 @@
 	    MULTILINE
 	    LITERAL
 	    DOTALL
-	    ;; later
-	    ;; UNICODE-CASE
+	    UNICODE-CASE
 
 	    
 	    ;; syntax-sugar

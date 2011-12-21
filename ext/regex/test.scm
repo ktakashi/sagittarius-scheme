@@ -1005,10 +1005,28 @@
 
     )
 
+  (define (run-unicode-case-test)
+    (let ((match&list (lambda (pat text . flag)
+			(generic-match&list regex-looking-at pat text
+					    (list (bitwise-ior
+						   CASE-INSENSITIVE
+						   (if (null? flag)
+						       0
+						       (car flag))))))))
+      ;; use greek letters
+      ;; Λ <-> λ
+      (test-equal "unicode-case(greek)" '("λ")
+		  (match&list "Λ" "αβλε" UNICODE-CASE))
+      (test-equal "non-unicode-case(greek)" #f
+		  (match&list "Λ" "αβλε"))
+      )
+    )
+
   (define (run-regex-test)
     (run-compat-test)
     (run-looking-at-test)
     (run-matches-test)
     (run-replace-test)
+    (run-unicode-case-test)
     )
 )

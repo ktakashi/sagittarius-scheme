@@ -748,6 +748,15 @@ static SgObject maybe_parse_flags(lexer_ctx_t *ctx)
 	SG_APPEND1(h, t, Sg_Cons(SG_MAKE_CHAR(c), SG_FALSE));
       }
       break;
+    case 'u':
+      if (set) {
+	ctx->flags |= SG_UNICODE_CASE;
+	SG_APPEND1(h, t, Sg_Cons(SG_MAKE_CHAR(c), SG_TRUE));
+      } else {
+	ctx->flags &= ~SG_UNICODE_CASE;
+	SG_APPEND1(h, t, Sg_Cons(SG_MAKE_CHAR(c), SG_FALSE));
+      }
+      break;
     default: goto end;
     }
     c = next_char_non_extended(ctx);
@@ -2481,10 +2490,16 @@ static int inst_matches(match_ctx_t *ctx, inst_t *inst, SgChar c)
     if (Sg_CharSetContains(inst->arg.set, c)) {
       return TRUE;
     } else if (FLAG_SET(INST_FLAG(inst), SG_CASE_INSENSITIVE)) {
-      /* TODO unicode case */
-      if (Sg_CharSetContains(inst->arg.set, tolower(c)) ||
-	  Sg_CharSetContains(inst->arg.set, toupper(c))) {
-	return TRUE;
+      if (FLAG_SET(INST_FLAG(inst), SG_UNICODE_CASE)) {
+	if (Sg_CharSetContains(inst->arg.set, Sg_CharUpCase(c)) ||
+	    Sg_CharSetContains(inst->arg.set, Sg_CharDownCase(c))) {
+	  return TRUE;
+	}
+      } else if (isascii(c)) {
+	if (Sg_CharSetContains(inst->arg.set, tolower(c)) ||
+	    Sg_CharSetContains(inst->arg.set, toupper(c))) {
+	  return TRUE;
+	}
       }
     }
     return FALSE;
@@ -2495,9 +2510,14 @@ static int inst_matches(match_ctx_t *ctx, inst_t *inst, SgChar c)
     if (inst->arg.c == c) {
       return TRUE;
     } else if (FLAG_SET(INST_FLAG(inst), SG_CASE_INSENSITIVE)) {
-      /* TODO unicode case */
-      if (tolower(inst->arg.c) == tolower(c)) {
-	return TRUE;
+      if (FLAG_SET(INST_FLAG(inst), SG_UNICODE_CASE)) {
+	if (Sg_CharDownCase(inst->arg.c) == Sg_CharDownCase(c)) {
+	  return TRUE;
+	}
+      } else if (isascii(inst->arg.c) && isascii(c)) {
+	if (tolower(inst->arg.c) == tolower(c)) {
+	  return TRUE;
+	}
       }
     }
     return FALSE;
@@ -2719,8 +2739,13 @@ static int match_back_ref(match_ctx_t *ctx, inst_t *ip, const SgChar *p,
     for (j = -1, i = count-1; i >= 0; i--, j--) {
       debug_printf("   %c:%c\n", p[j], ref[i]);
       if (FLAG_SET(INST_FLAG(ip), SG_CASE_INSENSITIVE)) {
-	/* TODO unicode case */
-	if (tolower(p[j]) != tolower(ref[i])) return -1;
+	if (FLAG_SET(INST_FLAG(ip), SG_UNICODE_CASE)) {
+	  if (Sg_CharDownCase(p[j]) != Sg_CharDownCase(ref[i])) return -1;
+	} else if (isascii(p[j]) && isascii(ref[i])) {
+	  if (tolower(p[j]) != tolower(ref[i])) return -1;
+	} else {
+	  return -1;
+	}
       } else {
 	if (p[j] != ref[i]) return -1;
       }
@@ -2729,8 +2754,13 @@ static int match_back_ref(match_ctx_t *ctx, inst_t *ip, const SgChar *p,
     int i;
     for (i = 0; i < count; i++) {
       if (FLAG_SET(INST_FLAG(ip), SG_CASE_INSENSITIVE)) {
-	/* TODO unicode case */
-	if (tolower(*p++) != tolower(*ref++)) return -1;
+	if (FLAG_SET(INST_FLAG(ip), SG_UNICODE_CASE)) {
+	  if (Sg_CharDownCase(*p++) != Sg_CharDownCase(*ref++)) return -1;
+	} else if (isascii(*p) && isascii(*ref)) {
+	  if (tolower(*p++) != tolower(*ref++)) return -1;
+	} else {
+	  return -1;
+	}
       } else {
 	if (*p++ != *ref++) return -1;
       }
