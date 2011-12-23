@@ -25,6 +25,7 @@ cp -r script/ ${DIST_NAME}
 cp -r test/ ${DIST_NAME}
 cp -r unicode/ ${DIST_NAME}
 cp -r doc/ ${DIST_NAME}
+cp -r ext/ ${DIST_NAME}
 cp -r autogen.sh ${DIST_NAME}
 cp -r geninsn.sh ${DIST_NAME}
 cp -r cmake_uninstall.cmake.in ${DIST_NAME}
