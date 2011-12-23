@@ -3036,9 +3036,7 @@ SgObject Sg_Gcd(SgObject x, SgObject y)
     return Sg_MakeIntegerU(ur);
   }
   ASSERT(SG_BIGNUMP(x) && SG_BIGNUMP(y));
-  if (SG_BIGNUMP(x) && SG_BIGNUMP(y)) {
-    return Sg_BignumGcd(SG_BIGNUM(x), SG_BIGNUM(y));
-  }
+  return Sg_BignumGcd(SG_BIGNUM(x), SG_BIGNUM(y));
 }
 
 SgObject Sg_Magnitude(SgObject z)
