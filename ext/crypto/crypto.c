@@ -72,9 +72,9 @@ SgObject Sg_MakeCrypto(SgCryptoType type)
   return SG_OBJ(make_crypto(type));
 }
 
-
-SgObject Sg_MakeSymmetricCipher(SgString *name, SgCryptoMode mode, SgCrypto *ckey,
-				SgObject iv, int rounds, SgObject padder, int ctr_mode)
+SgObject Sg_MakeSymmetricCipher(SgString *name, SgCryptoMode mode,
+				SgCrypto *ckey, SgObject iv, int rounds,
+				SgObject padder, int ctr_mode)
 {
   const char *cname = Sg_Utf32sToUtf8s(name);
   SgCrypto *crypto = make_crypto(CRYPTO_SYM_CIPHER);
@@ -82,13 +82,13 @@ SgObject Sg_MakeSymmetricCipher(SgString *name, SgCryptoMode mode, SgCrypto *cke
   SgByteVector *key;
   ASSERT(SG_CRYPTO(ckey)->type == CRYPTO_KEY);
   key = SG_SECRET_KEY(SG_KEY(ckey));
-
   SG_SCIPHER(crypto)->cipher = cipher;
   SG_SCIPHER(crypto)->key = SG_KEY(ckey);
   SG_SCIPHER(crypto)->iv = iv;
   SG_SCIPHER(crypto)->mode = mode;
   SG_SCIPHER(crypto)->rounds = rounds;
   SG_SCIPHER(crypto)->padder = padder;
+
   if (cipher == -1) {
     Sg_Error(UC("%S is not supported"), name);
     return SG_UNDEF;
@@ -164,8 +164,8 @@ SgObject Sg_MakeSymmetricCipher(SgString *name, SgCryptoMode mode, SgCrypto *cke
 }
 
 SgObject Sg_MakePublicKeyCipher(SgObject name, SgObject key, SgObject encrypter,
-				SgObject decrypter, SgObject padder, SgObject signer,
-				SgObject verifier)
+				SgObject decrypter, SgObject padder,
+				SgObject signer, SgObject verifier)
 {
   SgCrypto *crypto = make_crypto(CRYPTO_PUB_CIPHER); 
   SG_PCIPHER(crypto)->name = name;
@@ -189,7 +189,8 @@ int Sg_SuggestKeysize(SgString *name, int keysize)
   }
   desc= &cipher_descriptor[cipher];
   if ((err = desc->keysize(&keysize)) != CRYPT_OK) {
-    Sg_Error(UC("Failed to get key size: %A"), Sg_MakeStringC(error_to_string(err)));
+    Sg_Error(UC("Failed to get key size: %A"),
+	     Sg_MakeStringC(error_to_string(err)));
     return -1;
   }
   return keysize;
@@ -226,7 +227,8 @@ static SgObject public_key_encrypt(SgCrypto *crypto, SgByteVector *data)
   if (!SG_FALSEP(SG_PCIPHER(crypto)->padder)) {
     data = Sg_Apply2(SG_PCIPHER(crypto)->padder, data, SG_TRUE);
   }
-  return Sg_Apply2(SG_PCIPHER(crypto)->encrypter, data, SG_PCIPHER(crypto)->key);
+  return Sg_Apply2(SG_PCIPHER(crypto)->encrypter, data, 
+		   SG_PCIPHER(crypto)->key);
 }
 
 SgObject Sg_Encrypt(SgCrypto *crypto, SgByteVector *data)
@@ -287,7 +289,8 @@ static SgObject symmetric_decrypt(SgCrypto *crypto, SgByteVector *data)
 
 static SgObject public_key_decrypt(SgCrypto *crypto, SgByteVector *data)
 {
-  data = Sg_Apply2(SG_PCIPHER(crypto)->decrypter, data, SG_PCIPHER(crypto)->key);
+  data = Sg_Apply2(SG_PCIPHER(crypto)->decrypter, data,
+		   SG_PCIPHER(crypto)->key);
   if (!SG_FALSEP(SG_PCIPHER(crypto)->padder)) {
     data = Sg_Apply2(SG_PCIPHER(crypto)->padder, data, SG_FALSE);
   }
@@ -327,7 +330,8 @@ SgObject Sg_Signature(SgCrypto *crypto, SgByteVector *data, SgObject opt)
   return SG_UNDEF;		/* dummy */
 }
 
-SgObject Sg_Verify(SgCrypto *crypto, SgByteVector *M, SgByteVector *S, SgObject opt)
+SgObject Sg_Verify(SgCrypto *crypto, SgByteVector *M, SgByteVector *S,
+		   SgObject opt)
 {
   switch (crypto->type) {
   case CRYPTO_SYM_CIPHER:
@@ -361,7 +365,8 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__crypto()
   /* initialize libtomcrypt */
 #define REGISTER_CIPHER(cipher)						\
   if (register_cipher(cipher) == -1) {					\
-    Sg_Warn(UC("Unable to register %S cipher"), Sg_MakeStringC((cipher)->name)); \
+    Sg_Warn(UC("Unable to register %S cipher"),				\
+	    Sg_MakeStringC((cipher)->name));				\
   }
 
   REGISTER_CIPHER(&blowfish_desc);
@@ -387,7 +392,9 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__crypto()
   REGISTER_CIPHER(&kasumi_desc);
 
   /* put mode */
-#define MODE_CONST(name) Sg_InsertBinding(lib, SG_INTERN(#name), SG_MAKE_INT(name))
+#define MODE_CONST(name)					\
+  Sg_MakeBinding(lib, SG_INTERN(#name), SG_MAKE_INT(name), TRUE)
+
   MODE_CONST(MODE_ECB);
   MODE_CONST(MODE_CBC);
   MODE_CONST(MODE_CFB);

@@ -3035,17 +3035,10 @@ SgObject Sg_Gcd(SgObject x, SgObject y)
     ur = gcd_bigfix(SG_BIGNUM(y), ux);
     return Sg_MakeIntegerU(ur);
   }
-
-  x = Sg_Abs(x);
-  y = Sg_Abs(y);
-  if (Sg_NumCmp(x, y) < 0) { SgObject t = x; x = y; y = t; }
-
-  while (SG_MAKE_INT(0) != y) {
-    SgObject r = Sg_Modulo(x, y, TRUE);
-    x = y;
-    y = r;
+  ASSERT(SG_BIGNUMP(x) && SG_BIGNUMP(y));
+  if (SG_BIGNUMP(x) && SG_BIGNUMP(y)) {
+    return Sg_BignumGcd(SG_BIGNUM(x), SG_BIGNUM(y));
   }
-  return x;
 }
 
 SgObject Sg_Magnitude(SgObject z)

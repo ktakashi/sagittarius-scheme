@@ -231,23 +231,6 @@ SgObject Sg_BignumCopy(SgBignum *b)
 
 SgObject Sg_NormalizeBignum(SgBignum *bn)
 {
-#if 0
-  int bn_count = SG_BIGNUM_GET_COUNT(bn);
-  if (bn_count) {
-    int index = bn_count - 1;
-    while (bn->elements[index] == 0) {
-      if (--index < 0) {
-	SG_BIGNUM_SET_ZERO(bn);
-	return SG_OBJ(bn);
-      }
-    }
-    SG_BIGNUM_SET_COUNT(bn, index + 1);
-    return SG_OBJ(bn);
-
-  }
-  SG_BIGNUM_SET_ZERO(bn);
-  return SG_OBJ(bn);
-#endif
   int size = SG_BIGNUM_GET_COUNT(bn);
   int i;
   for (i = size - 1; i > 0; i--) {
@@ -349,13 +332,21 @@ double Sg_BignumToDouble(SgBignum *b)
 #if SIZEOF_LONG >= 8
   if (count == 0) return 0.0;
   else if (count == 1) ans = b->elements[0];
-  else for (i = count - 1; i >= count - 2; i--) ans += ldexp((double)b->elements[i], WORD_BITS * i);
+  else { 
+    for (i = count - 1; i >= count - 2; i--)
+      ans += ldexp((double)b->elements[i], WORD_BITS * i);
+  }
   return SG_BIGNUM_GET_SIGN(b) > 0 ? ans : -ans;
 #else
   if (count == 0) return 0.0;
-  else if (count == 1) ans = b->elements[0];
-  else if (count == 2) ans = b->elements[1] * (double)4294967296.0 + b->elements[0];
-  else for (i = count - 1; i >= count - 3; i--) ans += ldexp((double)b->elements[i], WORD_BITS * i);
+  else if (count == 1)
+    ans = b->elements[0];
+  else if (count == 2)
+    ans = b->elements[1] * (double)4294967296.0 + b->elements[0];
+  else {
+    for (i = count - 1; i >= count - 3; i--)
+      ans += ldexp((double)b->elements[i], WORD_BITS * i);
+  }
   return SG_BIGNUM_GET_SIGN(b) > 0 ? ans : -ans;
 #endif 
 }
@@ -397,7 +388,8 @@ long Sg_BignumToSI(SgBignum *b, int clamp, int *oor)
       return (long)b->elements[0];
     }
   } else {
-    if (b->elements[0] > (unsigned long)LONG_MAX + 1 || SG_BIGNUM_GET_COUNT(b) >= 2) {
+    if (b->elements[0] > (unsigned long)LONG_MAX + 1 ||
+	SG_BIGNUM_GET_COUNT(b) >= 2) {
       if (clamp & SG_CLAMP_LO) return LONG_MIN;
       else goto err;
     } else {
@@ -446,7 +438,8 @@ int32_t  Sg_BignumToS32(SgBignum *b, int clamp, int *oor)
       return (int32_t)b->elements[0];
     }
   } else {
-    if (b->elements[0] > (uint32_t)INT32_MAX + 1 || SG_BIGNUM_GET_COUNT(b) >= 2) {
+    if (b->elements[0] > (uint32_t)INT32_MAX + 1 ||
+	SG_BIGNUM_GET_COUNT(b) >= 2) {
       if (clamp & SG_CLAMP_LO) return INT32_MIN;
       else goto err;
     } else {
@@ -504,7 +497,7 @@ int64_t  Sg_BignumToS64(SgBignum *b, int clamp, int *oor)
       if (!(clamp & SG_CLAMP_HI)) goto err;
       r = (((int64_t)LONG_MAX + 1) << 32);
     } else {
-      r = -(int64_t)(((int64_t)b->elements[1] << 32) + (uint64_t)b->elements[0]);
+      r = -(int64_t)(((int64_t)b->elements[1] << 32)+(uint64_t)b->elements[0]);
     }
   }
   return r;
@@ -546,12 +539,40 @@ uint64_t Sg_BignumToU64(SgBignum *b, int clamp, int *oor)
 
 #endif
 
+
+static inline SgBignum* bignum_2scmpl(SgBignum *br)
+{
+  int rsize = SG_BIGNUM_GET_COUNT(br);
+  int i, c;
+  for (i = 0, c = 1; i < rsize; i++) {
+    unsigned long x = ~br->elements[i];
+    UADD(br->elements[i], c, x, 0);
+  }
+  return br;
+}
+
+SgObject Sg_BignumComplement(SgBignum *bx)
+{
+  SgBignum *r = SG_BIGNUM(Sg_BignumCopy(bx));
+  return SG_OBJ(bignum_2scmpl(r));
+}
+
+
 int Sg_BignumBitCount(SgBignum *b)
 {
   unsigned long *bits;
-  SgBignum *z = (SG_BIGNUM_GET_SIGN(b) > 0) ? b : SG_BIGNUM(Sg_BignumComplement(b));
-  int size = SG_BIGNUM_GET_COUNT(z) * WORD_BITS;
+  SgBignum *z;
+  int size;
+  if (SG_BIGNUM_GET_SIGN(b) > 0) {
+    z = b;
+    goto calc_bit_count;
+  }
+  ALLOC_TEMP_BIGNUM(z, SG_BIGNUM_GET_COUNT(b));
+  bignum_copy(z, b);
+  bignum_2scmpl(z);
 
+ calc_bit_count:
+  size = SG_BIGNUM_GET_COUNT(z) * WORD_BITS;
   bits = z->elements;
   if (SG_BIGNUM_GET_SIGN(b) > 0) {
     return Sg_BitsCount1(bits, 0, size);
@@ -572,14 +593,26 @@ int Sg_BignumBitSize(SgBignum *b)
 
 int Sg_BignumFirstBitSet(SgBignum *b)
 {
-  int bit = 0, i;
-  SgBignum *z = (SG_BIGNUM_GET_SIGN(b) > 0) ? b : SG_BIGNUM(Sg_BignumComplement(b));
-  for (i = 0; i < SG_BIGNUM_GET_COUNT(z); i++) {
+  int bit = 0, i, size;
+  SgBignum *z;
+  if (SG_BIGNUM_GET_SIGN(b) > 0) {
+    z = b;
+    goto calc_bit_set;
+  }
+  ALLOC_TEMP_BIGNUM(z, SG_BIGNUM_GET_COUNT(b));
+  bignum_copy(z, b);
+  bignum_2scmpl(z);
+
+ calc_bit_set:
+  size = SG_BIGNUM_GET_COUNT(z);
+  for (i = 0; i < size; i++) {
     unsigned long n = z->elements[i];
     if (n == 0) { bit += WORD_BITS; continue; }
-    bit += ntz((intptr_t)n);
+    bit += ntz(n);
+    return bit;
   }
-  return bit;
+  ASSERT(FALSE);
+  return -1;			/* dummy */
 }
 
 int Sg_BignumAbsCmp(SgBignum *bx, SgBignum *by)
@@ -618,14 +651,16 @@ static SgBignum* bignum_lshift(SgBignum *br, SgBignum *bx, int amount)
     }
     for (i = nwords - 1; i >= 0; i--) br->elements[i] = 0;
   } else {
-    if (SG_BIGNUM_GET_COUNT(br) > SG_BIGNUM_GET_COUNT(bx) + nwords) {
-      br->elements[SG_BIGNUM_GET_COUNT(bx) + nwords] =
-	bx->elements[SG_BIGNUM_GET_COUNT(bx) - 1] >> (WORD_BITS - nbits);
+    int bxsize = SG_BIGNUM_GET_COUNT(bx);
+    int brsize = SG_BIGNUM_GET_COUNT(br);
+    if (br > bxsize + nwords) {
+      br->elements[bxsize+nwords] = bx->elements[bxsize-1] >> (WORD_BITS-nbits);
     }
-    for (i = (int)SG_BIGNUM_GET_COUNT(bx) - 1; i > 0; i--) {
-      x = (bx->elements[i] << nbits) | (bx->elements[i - 1] >> (WORD_BITS - nbits));
-      if ((int)SG_BIGNUM_GET_COUNT(br) > i + nwords) br->elements[i + nwords] = x;
+    for (i = bxsize - 1; i > 0; i--) {
+      x = (bx->elements[i]<<nbits)|(bx->elements[i-1]>>(WORD_BITS-nbits));
+      if (brsize > i+nwords) br->elements[i+nwords] = x;
     }
+    ASSERT(brsize > nwords);
     br->elements[nwords] = bx->elements[0] << nbits;
     for (i = nwords - 1; i >= 0; i--) br->elements[i] = 0;
   }
@@ -659,10 +694,12 @@ static SgBignum* bignum_rshift(SgBignum *br, SgBignum *bx, int amount)
     SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
   } else {
     unsigned long x;
-    for (i = (int)nwords; i < (int)SG_BIGNUM_GET_COUNT(bx) - 1; i++) {
-      x = (bx->elements[i + 1] << (WORD_BITS - nbits)) | (bx->elements[i] >> nbits);
+    int bxsize = SG_BIGNUM_GET_COUNT(bx);
+    for (i = (int)nwords; i < bxsize - 1; i++) {
+      x = (bx->elements[i+1] << (WORD_BITS - nbits))|(bx->elements[i] >> nbits);
       br->elements[i - nwords] = x;
     }
+    ASSERT(SG_BIGNUM_GET_COUNT(br) > i-nwords);
     br->elements[i - nwords] = bx->elements[i] >> nbits;
     SG_BIGNUM_SET_COUNT(br, SG_BIGNUM_GET_COUNT(bx) - nwords);
     SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
@@ -692,24 +729,7 @@ SgObject Sg_BignumShiftRight(SgBignum *b, int shift)
   }
 }
 
-static inline SgBignum* bignum_2scmpl(SgBignum *br)
-{
-  int rsize = SG_BIGNUM_GET_COUNT(br);
-  int i, c;
-  for (i = 0, c = 1; i < rsize; i++) {
-    unsigned long x = ~br->elements[i];
-    UADD(br->elements[i], c, x, 0);
-  }
-  return br;
-}
-
-SgObject Sg_BignumComplement(SgBignum *bx)
-{
-  SgBignum *r = SG_BIGNUM(Sg_BignumCopy(bx));
-  return SG_OBJ(bignum_2scmpl(r));
-}
-
-#define DEF_BIGNUM_LOG_OP(name, op)		\
+#define DEF_BIGNUM_LOG_OP(name, op)					\
   static inline SgBignum* name(SgBignum *z, SgBignum *x, SgBignum *y,	\
 			       int compsize, int xsize, int ysize)	\
   {									\
@@ -962,6 +982,7 @@ static SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
 {
   unsigned long hi, lo, x, r0, r1, c;
   unsigned int i, j;
+  unsigned int size = SG_BIGNUM_GET_COUNT(br);
   for (i = 0; i < SG_BIGNUM_GET_COUNT(bx); i++) {
     x = bx->elements[i];
     UMUL(hi, lo, x, y);
@@ -969,13 +990,16 @@ static SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
     
     r0 = br->elements[i + off];
     UADD(r1, c, r0, lo);
+    ASSERT(size > i+off);
     br->elements[i + off] = r1;
-    
+
+    ASSERT(size > i+off+1);
     r0 = br->elements[i + off + 1];
     UADD(r1, c, r0, hi);
     br->elements[i + off + 1] = r1;
 
-    for (j = i + off + 2; c && j < SG_BIGNUM_GET_COUNT(br); j++) {
+    for (j = i + off + 2; c && j < size; j++) {
+      ASSERT(size > j);
       r0 = br->elements[j];
       UADD(r1, c, r0, 0);
       br->elements[j] = r1;
@@ -1049,15 +1073,16 @@ static SgBignum* bignum_gdiv(SgBignum *dividend, SgBignum *divisor,
   int j, k, n, m;
   unsigned long vn_1, vn_2, vv, uj, uj2, cy;
 
-#define DIGIT(num, n) (((n)%2)? HI((num)->elements[(n)/2]) : LO((num)->elements[(n)/2]))
+#define DIGIT(num, n)							\
+  (((n)%2)? HI((num)->elements[(n)/2]) : LO((num)->elements[(n)/2]))
 #define DIGIT2(num, n)							\
   (((n)%2)?								\
    ((LO((num)->elements[(n)/2+1])<<HALF_BITS)|HI((num)->elements[(n)/2])): \
    (num)->elements[(n)/2])
 #define SETDIGIT(num, n, v)						\
   (((n)%2)?								\
-   (num->elements[(n)/2] = (num->elements[(n)/2] & LOMASK)|((v) << HALF_BITS)) : \
-   (num->elements[(n)/2] = (num->elements[(n)/2] & HIMASK)|((v) & LOMASK)))
+   (num->elements[(n)/2]=(num->elements[(n)/2] & LOMASK)|((v) << HALF_BITS)): \
+   (num->elements[(n)/2]=(num->elements[(n)/2] & HIMASK)|((v) & LOMASK)))
 #define SETDIGIT2(num, n, v)						\
   (((n)%2)?								\
    ((num->elements[(n)/2] = LO(num->elements[(n)/2])|((v)<<HALF_BITS)),	\
@@ -1241,7 +1266,8 @@ SgObject Sg_MakeBignumWithSize(int size, unsigned long init)
   return b;
 }
 
-SgObject Sg_BignumAccMultAddUI(SgBignum *acc, unsigned long coef, unsigned long c)
+SgObject Sg_BignumAccMultAddUI(SgBignum *acc, unsigned long coef,
+			       unsigned long c)
 {
   SgBignum *r;
   unsigned int rsize = SG_BIGNUM_GET_COUNT(acc) + 1, i;
@@ -1285,6 +1311,124 @@ SgObject Sg_BignumToString(SgBignum *b, int radix, int use_upper)
   }
   if (SG_BIGNUM_GET_SIGN(q) < 0) SG_APPEND1(h, t, SG_MAKE_CHAR('-'));
   return Sg_ListToString(Sg_ReverseX(h));
+}
+
+/* we need this... */
+static SgBignum* normalize_bignum(SgBignum *bn)
+{
+  int size = SG_BIGNUM_GET_COUNT(bn);
+  int i;
+  for (i = size - 1; i > 0; i--) {
+    if (bn->elements[i] == 0) size--;
+    else break;
+  }
+  SG_BIGNUM_SET_COUNT(bn, size);
+  return bn;
+}
+
+/* we do this destructively */
+static int bignum_difference(SgBignum *a, SgBignum *b)
+{
+  SgBignum *br;
+  int sign = Sg_BignumCmp(a, b);
+  long diff = 0;
+  int x, y, size;
+
+  if (sign == 0) return 0;
+
+  if (sign < 0) {
+    SgBignum *tmp = a;
+    a = b;
+    b = tmp;
+  }
+  ASSERT(SG_BIGNUM_GET_COUNT(a) >= SG_BIGNUM_GET_COUNT(b));
+  bignum_sub_int(a, a, b);
+  normalize_bignum(a);
+  return sign;
+}
+
+/* avoid memory allocation as much as possible */
+static SgObject binary_gcd(SgBignum *bx, SgBignum *by)
+{
+  /* Algorithm B from Knuth section 4.5.2 */
+  SgBignum *u = SG_BIGNUM(Sg_Abs(Sg_BignumCopy(bx)));
+  SgBignum *v = SG_BIGNUM(Sg_Abs(Sg_BignumCopy(by)));
+  SgObject ret;
+  /* step B1 */
+  int s1 = Sg_BignumFirstBitSet(u);
+  int s2 = Sg_BignumFirstBitSet(v);
+  int k = min(s1, s2);
+  /* these are for step B2 */
+  int uOdd, tsign, lb;
+  SgBignum *t;
+  /* Sg_Printf(Sg_StandardErrorPort(), UC(";; x=%A, y=%A, k=%d\n"), u, v, k); */
+  if (k != 0) {
+    bignum_rshift(u, u, k);
+    bignum_rshift(v, v, k);
+    normalize_bignum(u);
+    normalize_bignum(v);
+  }
+  /* Step B2 */
+  uOdd = (k==s1);
+  t = uOdd ? v: u;
+  tsign = uOdd ? -1 : 1;
+
+  while ((lb = Sg_BignumFirstBitSet(t)) >= 0) {
+    /* Step B3 and B4 */
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("(print (= (>> %A %d) "), t, lb); */
+    bignum_rshift(t, t, lb);
+    normalize_bignum(t);
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("%A))\n"), t); */
+    /* Step B5 */
+    if (tsign > 0) u = t;
+    else v = t;
+    /* special case one word numbers */
+    if (SG_BIGNUM_GET_COUNT(u) < 2 && SG_BIGNUM_GET_COUNT(v) < 2 &&
+	u->elements[0] < SG_INT_MAX && v->elements[0] < SG_INT_MAX) {
+      long x = u->elements[0], y = v->elements[0];
+      SgBignum *r = make_bignum(1);
+      x = SG_INT_VALUE(Sg_Gcd(SG_MAKE_INT(x), SG_MAKE_INT(y)));
+      r->elements[0] = x;
+      if (k > 0) {
+	/* Sg_Printf(Sg_StandardErrorPort(), UC(";; r=%A, k=%d\n"), r, k); */
+	ret = Sg_BignumShiftLeft(r, k);
+      } else {
+	ret = Sg_NormalizeBignum(r);
+      }
+      goto end;
+    }
+    /* Step B6 */
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("(print (= (abs (- %A %A))"), u, v); */
+    if ((tsign = bignum_difference(u, v)) == 0) break;
+    t = (tsign >= 0) ? u : v;
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("%A))\n"), t); */
+  }
+  if (k > 0) {
+    /* Sg_Printf(Sg_StandardErrorPort(), UC(";; u=%A, k=%d\n"), u, k); */
+    ret = Sg_BignumShiftLeft(u, k);
+  } else {
+    ret = Sg_NormalizeBignum(u);
+  }
+ end:
+  /* Sg_Printf(Sg_StandardErrorPort(), UC(";; return=%A\n"), ret); */
+  return ret;
+}
+
+SgObject Sg_BignumGcd(SgBignum *bx, SgBignum *by)
+{
+  return binary_gcd(bx, by);
+  /* while (SG_BIGNUM_GET_COUNT(by) != 0) { */
+  /*   SgBignum *q, *r; */
+  /*   if (abs(SG_BIGNUM_GET_COUNT(bx)-SG_BIGNUM_GET_COUNT(by)) < 2) */
+  /*     return binary_gcd(bx, by); */
+
+  /*   ALLOC_TEMP_BIGNUM(q, abs(SG_BIGNUM_GET_COUNT(bx)-SG_BIGNUM_GET_COUNT(by))+1); */
+  /*   r = bignum_gdiv(bx, by, q); */
+  /*   normalize_bignum(r); */
+  /*   bx = by; */
+  /*   by = r; */
+  /* } */
+  /* return bx; */
 }
 
 /*

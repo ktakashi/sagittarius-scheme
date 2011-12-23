@@ -95,6 +95,7 @@ SG_EXTERN SgObject Sg_BignumAccMultAddUI(SgBignum *acc,
 					 unsigned long coef,
 					 unsigned long c);
 
+SG_EXTERN SgObject Sg_BignumGcd(SgBignum *bx, SgBignum *by);
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_BIGNUM_H_ */

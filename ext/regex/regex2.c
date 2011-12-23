@@ -1882,7 +1882,7 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp)
     }
     /* save current instruction position */
     pc1 = ctx->pc;
-    emit(ctx, RX_SPLIT, arg);
+    emit(ctx, RX_SPLIT, null_arg);
     pc1->arg.pos.x = ctx->pc;
     compile_rec(ctx, item, FALSE);
     /* we've already resolved minimam match so let introduce jmp here */
@@ -2612,7 +2612,7 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
   return -1;
 }
 
-#define iswordchar(c) (isalnum(c) || (c) == '_')
+#define iswordchar(c) (c <= 0xFF && (isalnum(c) || (c) == '_'))
 
 static int finish_match(match_ctx_t *ctx, int anchor);
 
