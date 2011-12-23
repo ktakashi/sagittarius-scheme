@@ -113,15 +113,8 @@ SgObject Sg_VMLoad(SgString *path)
   return Sg_VMLoadFromPort(SG_PORT(tport));
 }
 
-static SgInternalMutex load_lock = { NULL };
-static SgInternalMutex dso_lock = { NULL };
-
-#define INIT_LOCK(lock)				\
-  do {						\
-    if (!(lock).mutex) {			\
-      Sg_InitMutex(&lock, TRUE);		\
-    }						\
-  } while (0)
+static SgInternalMutex load_lock;
+static SgInternalMutex dso_lock;
 
 int Sg_Load(SgString *path)
 {
@@ -133,7 +126,6 @@ int Sg_Load(SgString *path)
      TODO: do we need to lock?
    */
   int save = vm->flags;
-  INIT_LOCK(load_lock);
   if (SG_UNDEFP(load_stub)) {
     SgObject gloc;
     Sg_LockMutex(&load_lock);
@@ -339,7 +331,6 @@ SgObject Sg_DynLoad(SgString *filename, SgObject initfn, unsigned long flags)
   SgObject spath;
   const char *initname;
   dlobj *dlo;
-  INIT_LOCK(dso_lock);
 
   spath = Sg_FindFile(filename, vm->dynamicLoadPath, dynldinfo.dso_suffix, TRUE);
   if (SG_FALSEP(spath)) {
@@ -387,6 +378,8 @@ SgObject Sg_GetSharedError()
 
 void Sg__InitLoad()
 {
+  Sg_InitMutex(&load_lock, TRUE);
+  Sg_InitMutex(&dso_lock, TRUE);
   dynldinfo.dso_suffix = Sg_MakeString(UC(SHLIB_SO_SUFFIX), SG_LITERAL_STRING);
   dynldinfo.dso_list = NULL;
 }

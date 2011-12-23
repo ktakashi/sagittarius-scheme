@@ -25,7 +25,11 @@ ADD_STUBS(sagittarius--ffi
 
 SET_TARGET_PROPERTIES(sagittarius--ffi PROPERTIES PREFIX "")
 TARGET_LINK_LIBRARIES(sagittarius--ffi sagittarius)
-TARGET_LINK_LIBRARIES(sagittarius--ffi libffi)
+IF (HAVE_FFI_H)
+  TARGET_LINK_LIBRARIES(sagittarius--ffi ffi)
+ELSE()
+  TARGET_LINK_LIBRARIES(sagittarius--ffi libffi)
+ENDIF()
 
 INSTALL(TARGETS sagittarius--ffi
   DESTINATION ${SAGITTARIUS_DYNLIB_PATH})

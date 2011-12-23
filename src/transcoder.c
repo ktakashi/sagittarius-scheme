@@ -44,6 +44,14 @@
 #define INCREASE_SIZE       (32 * sizeof(SgChar))
 #define SIZE2POS(sz)        ((int)(sz / sizeof(SgChar)))
 
+/* Linux(maybe only ubuntu) has this stupid macro. so we need to undefine it. */
+#ifdef putc
+#undef putc
+#endif
+#ifdef getc
+#undef getc
+#endif
+
 static SgObject get_mode(int mode)
 {
   switch (mode) {

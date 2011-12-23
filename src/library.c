@@ -122,20 +122,13 @@ static SgSymbol* convert_name_to_symbol(SgObject name)
   return SG_UNDEF;		/* dummy */
 }
 
-static SgInternalMutex mutex = { NULL };
+static SgInternalMutex mutex;
 SgObject Sg_MakeLibrary(SgObject name)
 {
   SgLibrary *z = make_library();
   SgVM *vm = Sg_VM();
   /* TODO if it's from Sg_FindLibrary, this is processed twice. */
   SgObject id_version = library_name_to_id_version(name);
-
-  /* This method is called in Sg_Init() to create builtin libraries.
-     So we don't have to consider mutlti thread to create mutex.
-   */
-  if (!mutex.mutex) {
-    Sg_InitMutex(&mutex, TRUE);
-  }
 
   z->name = convert_name_to_symbol(SG_CAR(id_version));
   z->version = SG_CDR(id_version);
@@ -713,6 +706,11 @@ void Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value_or_gloc)
   } else {
     Sg_Error(UC("symbol or identifier required, but got %S"), name);
   }
+}
+
+void Sg__InitLibrary()
+{
+  Sg_InitMutex(&mutex, TRUE);
 }
 
 /*

@@ -29,7 +29,9 @@
  *
  *  $Id: $
  */
+#ifdef HAVE_IO_H
 #include <io.h>
+#endif
 #include <unistd.h>
 #include <time.h>
 #include <errno.h>
@@ -50,6 +52,8 @@
 #include <sagittarius/error.h>
 #include <sagittarius/values.h>
 #include <sagittarius/number.h>
+
+extern char** environ;
 
 /* os dependent values */
 const SgChar* Sg_NativeFileSeparator()

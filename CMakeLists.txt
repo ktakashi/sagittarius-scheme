@@ -133,6 +133,7 @@ CHECK_INCLUDE_FILE(time.h   HAVE_TIME_H)
 CHECK_INCLUDE_FILE(signal.h HAVE_SIGNAL_H)
 CHECK_INCLUDE_FILE(dlfcn.h  HAVE_DLFCN_H)
 CHECK_INCLUDE_FILE(sched.h  HAVE_SCHED_H)
+CHECK_INCLUDE_FILE(io.h     HAVE_IO_H)
 
 # functions
 # alloca needs special treatment

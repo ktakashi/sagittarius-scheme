@@ -20,6 +20,7 @@
 #cmakedefine HAVE_SIGNAL_H
 #cmakedefine HAVE_DLFCN_H
 #cmakedefine HAVE_SCHED_H
+#cmakedefine HAVE_IO_H
 
 #cmakedefine HAVE_ALLOCA
 #cmakedefine HAVE_SCHED_YIELD
