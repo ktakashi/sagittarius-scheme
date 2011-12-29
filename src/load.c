@@ -56,6 +56,8 @@ static SgObject load_after(SgObject *args, int argc, void *data)
   SgVM *vm = Sg_VM();
   /* restore flags */
   vm->flags = port->vmFlags;
+  /* restore readtable template */
+  Sg_SetCurrentReadTable(port->readtable);
   Sg_ClosePort(port);
   return SG_UNDEF;
 }
@@ -81,6 +83,9 @@ SgObject Sg_VMLoadFromPort(SgPort *port)
 {
   /* save vm flags */
   port->vmFlags = Sg_VM()->flags;
+  /* save readtable template */
+  port->readtable = Sg_CurrentReadTable();
+  Sg_SetCurrentReadTable(Sg_CopyReadTable(port->readtable));
   return Sg_VMDynamicWindC(NULL, load_body, load_after, port);
 }
 

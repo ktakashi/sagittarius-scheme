@@ -1,3 +1,8 @@
+2011-12-29  Takashi Kato  <ktakashi@ymail.com>
+
+	* sitelib/sagittarius/reader.scm (sagittarius reader): 
+	added reader macro library.
+
 2011-11-23  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/null.stub (*.): fixed returning always 0.0.

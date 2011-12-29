@@ -237,6 +237,15 @@ int Sg_SetCurrentVM(SgVM *vm)
 
 #define Sg_VM() theVM
 
+readtable_t* Sg_CurrentReadTable()
+{
+  return Sg_VM()->currentReadTable;
+}
+void Sg_SetCurrentReadTable(readtable_t *newtable)
+{
+  Sg_VM()->currentReadTable = newtable;
+}
+
 /* some flags */
 /* bench mark said, it does not make that much difference.
    and made call/cc so slow.

@@ -46,6 +46,21 @@ typedef struct SgSharedRefRec
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_Read(SgObject port, int readSharedObject);
+SG_EXTERN readtable_t* Sg_CopyReadTable(readtable_t *src);
+
+/* for Scheme */
+/* returns 2 values */
+SG_EXTERN SgObject Sg_GetMacroCharacter(SgChar c, readtable_t *table);
+SG_EXTERN void     Sg_SetMacroCharacter(SgChar c, SgObject proc, int nontermP,
+					readtable_t *table);
+SG_EXTERN SgObject Sg_GetDispatchMacroCharacter(SgChar c, SgChar subc,
+						readtable_t *table);
+SG_EXTERN int      Sg_MakeDispatchMacroCharacter(SgChar c, int nontermP,
+						 readtable_t *table);
+SG_EXTERN void     Sg_SetDispatchMacroCharacter(SgChar c, SgChar subc,
+						SgObject proc,
+						readtable_t *table);
+SG_EXTERN void     Sg_EnsureLibraryReadTable(SgLibrary *library);
 
 SG_CDECL_END
 

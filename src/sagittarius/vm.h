@@ -263,6 +263,8 @@ struct SgVMRec
      when importing a library, first list will be appended.
    */
   SgObject cache;
+  /* read macro */
+  readtable_t *currentReadTable;
 };
 
 /*
@@ -423,6 +425,10 @@ SG_EXTERN void     Sg_VMSetToplevelVariable(SgSymbol *name, SgObject value);
 
 /* process time */
 SG_EXTERN void     Sg_VMProcessTime(unsigned long *sec, unsigned long *usec);
+
+/* read macro */
+SG_EXTERN readtable_t* Sg_CurrentReadTable();
+SG_EXTERN void     Sg_SetCurrentReadTable(readtable_t *newtable);
 
 SG_CDECL_END
 

@@ -65,6 +65,8 @@
 	    ;; modify
 	    regex-replace-all
 	    regex-replace-first
+	    ;; enable #/regex/
+	    :export-reader-macro
 	    )
     (import (rename (sagittarius regex2 impl) 
 		    (regex-replace-first impl:regex-replace-first)

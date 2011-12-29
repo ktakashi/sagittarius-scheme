@@ -1915,7 +1915,7 @@
 	       (loop (cdr spec) (cons (car spec) ex) renames))
 	      ((keyword? (car spec))
 	       (case (car spec)
-		 ((:all)
+		 ((:all :export-reader-macro)
 		  (loop (cdr spec) (cons (car spec) ex) renames))
 		 (else
 		  (syntax-error

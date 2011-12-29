@@ -204,6 +204,9 @@ typedef int32_t   SgChar;
 typedef void*     SgObject;
 typedef uintptr_t SgHeader;
 
+/* read macro */
+typedef struct readtable_rec_t readtable_t;
+
 /* 
    The idea from Mosh
  */

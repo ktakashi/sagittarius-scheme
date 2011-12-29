@@ -2892,7 +2892,6 @@ static int match_step1(match_ctx_t *ctx, inst_t *inst, int flags,
 /* internal match process
    based on pikevm from RE1 pike.c
  */
-#define iswordchar(c) (isalnum(c) || (c) == '_')
 
 static int matcher_match1(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
 {
@@ -3178,6 +3177,77 @@ SgString* Sg_RegexReplaceFirst(SgMatcher *m, SgString *replacement)
   return m->text;
 }
 
+/* returns (compile-regex "str" flag) */
+static SgObject read_regex_string(SgPort *port)
+{
+  SgPort *buf = Sg_MakeStringOutputPort(-1);
+  while(1) {
+    SgChar c = Sg_GetcUnsafe(port);
+    if (c == EOF) {
+      Sg_ReadError(UC("unexpected end-of-file. (file %S, line %d)"),
+		   Sg_FileName(port), Sg_LineNo(port));
+    }
+    if (c == '\\') {
+      /* escape. */
+      Sg_PutcUnsafe(buf, c);
+      Sg_PutcUnsafe(buf, Sg_GetcUnsafe(port));
+    } else if (c == '/') {
+      /* end mark */
+      int flag = 0, add = 0;
+      
+    entry:
+      c = Sg_PeekcUnsafe(port);
+      switch (c) {
+      case 'x':
+	add = SG_COMMENTS;
+	goto add_flag;
+      case 'i':
+	add = SG_CASE_INSENSITIVE;
+	goto add_flag;
+      case 'm':
+	add = SG_MULTILINE;
+	goto add_flag;
+      case 's':
+	add = SG_DOTALL;
+	goto add_flag;
+      case 'u':
+	add = SG_UNICODE_CASE;
+	goto add_flag;
+      default:
+	return SG_LIST3(SG_INTERN("compile-regex"),
+			Sg_GetStringFromStringPort(buf),
+			SG_MAKE_INT(flag));
+      }
+    add_flag:
+      flag |= add;
+      Sg_GetcUnsafe(port);
+      goto entry;
+    } else {
+      Sg_PutcUnsafe(buf, c);
+    }
+  }
+}
+
+static SgObject hash_slash_reader(SgObject *args, int argc, void *data_)
+{
+  SgObject tmp;
+  SgPort *p;
+
+  DeclareProcedureName("#/-reader");
+  argumentAsPort(0, tmp, p);
+
+  return read_regex_string(p);
+}
+
+SG_DEFINE_SUBR(hash_slash_reader_stub, 3, 0, hash_slash_reader, SG_FALSE, NULL);
+
+static void add_reader_macro(SgLibrary *lib)
+{
+  Sg_EnsureLibraryReadTable(lib);
+  Sg_MakeDispatchMacroCharacter('#', FALSE, SG_LIBRARY_READTABLE(lib));
+  Sg_SetDispatchMacroCharacter('#', '/', SG_OBJ(&hash_slash_reader_stub),
+			       SG_LIBRARY_READTABLE(lib));
+}
 
 extern void Sg__Init_sagittarius_regex2_impl();
 
@@ -3188,6 +3258,7 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__regex2()
   Sg__Init_sagittarius_regex2_impl();
 
   lib = Sg_FindLibrary(SG_INTERN("(sagittarius regex2 impl)"), FALSE);
+  add_reader_macro(lib);
 #define insert_binding(name, value)			\
   Sg_MakeBinding(lib, SG_INTERN(#name), SG_MAKE_INT(value), TRUE);
   insert_binding(CASE-INSENSITIVE, SG_CASE_INSENSITIVE);

@@ -513,18 +513,30 @@ static void import_parents(SgLibrary *lib, SgLibrary *fromlib,
   lib->parents = Sg_Append2X(lib->parents, exported);
 }
 
+static void import_reader_macro(SgLibrary *to, SgLibrary *from)
+{
+  /* try */
+  if (SG_LIBRARY_READTABLE(from)) {
+    SG_LIBRARY_READTABLE(to) = Sg_CopyReadTable(SG_LIBRARY_READTABLE(from));
+  }
+}
+
 void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
 			      SgObject only, SgObject except,
 			      SgObject renames, SgObject prefix)
 {
   static SgObject allKeyword = SG_UNDEF;
+  static SgObject readmacroKeyword = SG_UNDEF;
   SgLibrary *tolib, *fromlib;
   SgObject exportSpec, keys, key, imports;
   SgVM *vm = Sg_VM();
   int allP = FALSE;
 
   if (SG_UNDEFP(allKeyword)) {
-    allKeyword = Sg_MakeKeyword(Sg_MakeString(UC("all"), SG_LITERAL_STRING));
+    allKeyword = Sg_MakeKeyword(SG_MAKE_STRING("all"));
+  }
+  if (SG_UNDEFP(readmacroKeyword)) {
+    readmacroKeyword = Sg_MakeKeyword(SG_MAKE_STRING("export-reader-macro"));
   }
   ENSURE_LIBRARY(to, tolib);
   ENSURE_LIBRARY(from, fromlib);
@@ -607,6 +619,11 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
   }
   import_parents(tolib, fromlib, imports, except, prefix, allP);
  out:
+  if (SG_FALSEP(exportSpec) ||
+      !SG_FALSEP(Sg_Memq(readmacroKeyword, SG_CAR(exportSpec)))) {
+    import_reader_macro(tolib, fromlib);
+  }
+
   Sg_UnlockMutex(&tolib->lock);
 }
 

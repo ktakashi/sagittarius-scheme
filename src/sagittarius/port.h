@@ -147,6 +147,7 @@ struct SgPortRec
 
   /* for saved flags */
   unsigned int vmFlags;
+  readtable_t *readtable;
 
   SgInternalMutex lock;
 

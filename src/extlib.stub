@@ -118,7 +118,8 @@
 	    %char-set-add!
 	    %char-set-complement!
 	    %char-set-ranges
-	    
+
+	    ;; reader macro
 	    )
     (import :null)
   (decl-code
@@ -688,4 +689,67 @@
 
   (define-c-proc %char-set-ranges (cs::CharSet) ::Object
     (result (Sg_CharSetRanges cs)))
+
+  (define-cgen-stmt check-char
+    ((_ name c)
+     (dispatch
+      `(unless (SG_CHARP ,c)
+	 (wrong-type-of-argument-violation ',name "char" ,c)))))
+
+  (define-c-proc get-macro-character (c) ::Object
+    (check-char get-macro-character c)
+    (result (Sg_GetMacroCharacter (SG_CHAR_VALUE c) (Sg_CurrentReadTable))))
+
+  (define-c-proc set-macro-character 
+    (c proc::Procedure :optional (non_termP #f))
+    ::void
+    (check-char set-macro-character c)
+    (Sg_SetMacroCharacter (SG_CHAR_VALUE c) proc
+			  (not (SG_FALSEP non_termP))
+			  (Sg_CurrentReadTable)))
+
+  (define-c-proc make-dispatch-macro-character (c :optional (non_termP #f))
+    ::boolean
+    (check-char make-dispatch-macro-character c)
+    (result (Sg_MakeDispatchMacroCharacter (SG_CHAR_VALUE c)
+					   (not (SG_FALSEP non_termP))
+					   (Sg_CurrentReadTable))))
+
+  (define-c-proc get-dispatch-macro-character (c subc) ::Object
+    (check-char get-dispatch-macro-character c)
+    (check-char get-dispatch-macro-character subc)
+    (result (Sg_GetDispatchMacroCharacter (SG_CHAR_VALUE c)
+					  (SG_CHAR_VALUE subc)
+					  (Sg_CurrentReadTable))))
+
+  (define-c-proc set-dispatch-macro-character (c subc proc::Procedure) ::void
+    (check-char set-dispatch-macro-character c)
+    (check-char set-dispatch-macro-character subc)
+    (Sg_SetDispatchMacroCharacter (SG_CHAR_VALUE c)
+				  (SG_CHAR_VALUE subc)
+				  proc (Sg_CurrentReadTable)))
+
+  ;; for (sagittarius reader) library's define-reader-macro related
+  (define-c-proc %insert-macro-character
+    (c proc::Procedure lib::Library :optional (non_termP #f))
+    ::void
+    (check-char set-dispatch-macro-character c)
+    (Sg_EnsureLibraryReadTable lib)
+    (Sg_SetMacroCharacter (SG_CHAR_VALUE c) proc
+			  (not (SG_FALSEP non_termP))
+			  (SG_LIBRARY_READTABLE lib)))
+
+  (define-c-proc %insert-dispatch-macro-character
+    (c subc proc::Procedure lib::Library :optional (non_termP #f))
+    ::void
+    (check-char set-dispatch-macro-character c)
+    (check-char set-dispatch-macro-character subc)
+    (Sg_EnsureLibraryReadTable lib)
+    (Sg_MakeDispatchMacroCharacter (SG_CHAR_VALUE c)
+				   (not (SG_FALSEP non_termP))
+				   (SG_LIBRARY_READTABLE lib))
+    (Sg_SetDispatchMacroCharacter (SG_CHAR_VALUE c)
+				  (SG_CHAR_VALUE subc)
+				  proc
+				  (SG_LIBRARY_READTABLE lib)))
 )

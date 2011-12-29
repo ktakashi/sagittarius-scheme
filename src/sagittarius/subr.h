@@ -139,6 +139,8 @@ struct SgSubrRec
   castArgumentType(index, tmp, var, fixnum, SG_INTP, SG_INT_VALUE)
 #define argumentAsBoolean(index, tmp, var)				\
   castArgumentType(index, tmp, var, boolean, SG_BOOLP, SG_BOOL_VALUE)
+#define argumentAsChar(index, tmp, var)				\
+  castArgumentType(index, tmp, var, character, SG_CHARP, SG_CHAR_VALUE)
 #define argumentAsInstance(index, tmp, var)				\
   castArgumentType(index, tmp, var, instance, SG_INSTANCEP, SG_INSTANCE)
 #define argumentAsTranscoder(index, tmp, var)				\

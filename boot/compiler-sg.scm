@@ -2074,7 +2074,8 @@
       ((keyword? (car spec))
        (case
         (car spec)
-        ((:all) (loop (cdr spec) (cons (car spec) ex) renames))
+        ((:all :export-reader-macro)
+         (loop (cdr spec) (cons (car spec) ex) renames))
         (else
          (syntax-error
           (format "unsupported export keyword ~s" (car spec))

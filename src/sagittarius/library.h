@@ -54,6 +54,7 @@ struct SgLibraryRec
 				   <name>     : original name.
 				   transient.
 				 */
+  readtable_t *readtable;
 };
 
 #define SG_LIBRARY(obj)  ((SgLibrary*)(obj))
@@ -63,6 +64,7 @@ struct SgLibraryRec
 #define SG_LIBRARY_IMPORTED(obj) SG_LIBRARY(obj)->imported
 #define SG_LIBRARY_EXPORTED(obj) SG_LIBRARY(obj)->exported
 #define SG_LIBRARY_TABLE(obj)    SG_LIBRARY(obj)->table
+#define SG_LIBRARY_READTABLE(obj)    SG_LIBRARY(obj)->readtable
 
 SG_CDECL_BEGIN
 
