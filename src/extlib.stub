@@ -120,6 +120,13 @@
 	    %char-set-ranges
 
 	    ;; reader macro
+	    get-macro-character
+	    set-macro-character
+	    get-dispatch-macro-character
+	    set-dispatch-macro-character
+	    %insert-macro-character
+	    %insert-dispatch-macro-character
+	    read-delimited-list
 	    )
     (import :null)
   (decl-code
@@ -752,4 +759,11 @@
 				  (SG_CHAR_VALUE subc)
 				  proc
 				  (SG_LIBRARY_READTABLE lib)))
+
+  (define-c-proc read-delimited-list (c :optional (p (Sg_CurrentInputPort))
+					(shareP #t))
+    ::Object
+    (return (Sg_ReadDelimitedList p
+				  (SG_CHAR_VALUE c)
+				  (not (SG_FALSEP shareP)))))
 )

@@ -83,12 +83,6 @@ static uint8_t CHAR_MAP[] = {
 #define INITIAL_CHARP(x)   ((CHAR_MAP[x] & CHAR_MAP_INITIAL) != 0)
 #define DELIMITER_CHARP(x) ((CHAR_MAP[x] & CHAR_MAP_DELIMITER) != 0)
 
-static int delimited(SgChar c)
-{
-  if (Sg_Ucs4WhiteSpaceP(c)) return TRUE;
-  if (c > 127) return FALSE;
-  return DELIMITER_CHARP(c);
-}
 static int convert_hex_char_to_int(SgChar c)
 {
   if ((c >= '0') & (c <= '9')) return c - '0';
@@ -168,6 +162,23 @@ struct readtable_rec_t
   SgObject (*symbol_reader)(SgPort *, SgChar, SgReadContext *);
   readtab_t readtable[MAX_READTABLE_CHAR];
 };
+
+static int delimited(SgChar c)
+{
+  readtable_t *table = Sg_CurrentReadTable();
+  if (c > 127 && Sg_Ucs4WhiteSpaceP(c)) return TRUE;
+  if (c > 127) return FALSE;
+  /* return DELIMITER_CHARP(c); */
+  switch (table->readtable[c].type) {
+  case CT_NON_TERM_MACRO:
+  case CT_CONSTITUENT:
+    /* is escape a delmiter? */
+  case CT_SINGLE_ESCAPE:
+    return FALSE;
+  default: return TRUE;
+  }
+}
+
 
 static SgObject read_expr4(SgPort *port, int flags, SgChar delim, 
 			   SgReadContext *ctx);
@@ -442,7 +453,7 @@ SgObject read_r6rs_symbol(SgPort *port, SgChar initial, SgReadContext *ctx)
 static int read_compat_symbol_helper(SgPort *port, SgReadContext *ctx, 
 				     SgChar *buf, int i, SgChar c)
 {
-  if (SYMBOL_CHARP(c)) {
+  if (!delimited(c)) {
     buf[i++] = c;
     return i;
   }
@@ -1194,7 +1205,7 @@ SgObject read_expr4(SgPort *port, int flags, SgChar delim, SgReadContext *ctx)
 	return SG_EOF;
       lexical_error(port, ctx, UC("unexpected end-of-file"));
     }
-    if (Sg_Ucs4WhiteSpaceP(c)) goto top;
+    if (c > 127 && Sg_Ucs4WhiteSpaceP(c)) goto top;
     /* for reading list it does not matter either ')' or ']'
        if we got delmiter we can simply return RPAREN*/
     if (c == delim) return SG_SYMBOL_RPAREN;
@@ -1294,6 +1305,24 @@ SgObject Sg_Read(SgObject port, int readSharedObject)
   return read_with_context(SG_PORT(port), &ctx);
 }
 
+SgObject Sg_ReadDelimitedList(SgObject port, SgChar delim, int sharedP)
+{
+  SgObject obj;
+  SgReadContext ctx = {0};
+  ASSERT(SG_PORTP(port));
+  ASSERT(SG_TEXTUAL_PORTP(port));
+  /* make read context for shared object */
+  if (sharedP) {
+    ctx.graph = Sg_MakeHashTableSimple(SG_HASH_EQ, 1);
+  }  
+  ctx.graphRef = FALSE;
+  ctx.firstLine = Sg_LineNo(port);
+  obj = read_list(port, delim, &ctx);
+  if (ctx.graph && ctx.graphRef) link_graph(port, &ctx, obj);
+
+  return obj;
+}
+
 static disptab_t* alloc_disptab();
 
 static readtable_t* make_readtable(int init)
@@ -1302,7 +1331,7 @@ static readtable_t* make_readtable(int init)
   if (init) {
     readtab_t *r = tab->readtable;
     int i;
-    for (i = 0; i < ' '; i++) {
+    for (i = 0; i <= ' '; i++) {
       r[i].type = CT_WHITE_SPACE;
       r[i].cfunc = NULL;
       r[i].sfunc = SG_UNBOUND;
@@ -1637,7 +1666,7 @@ static void init_readtable(readtable_t *table, int r6rsP)
   int i;
   readtab_t *r = table->readtable;
   disptab_t *d = alloc_disptab();
-  for (i = 0; i < ' '; i++) {
+  for (i = 0; i <= ' '; i++) {
     r[i].type = CT_WHITE_SPACE;
     r[i].cfunc = NULL;
     r[i].sfunc = SG_UNBOUND;
@@ -1662,13 +1691,16 @@ static void init_readtable(readtable_t *table, int r6rsP)
   SET_TERM_MACRO(r, '`', read_quasiquote);
   SET_TERM_MACRO(r, ',', read_unquote); 
   if (!r6rsP) {
-    SET_TERM_MACRO(r, ':', read_colon);
+    SET_NONTERM_MACRO(r, ':', read_colon);
     table->symbol_reader = read_compatible_symbol;
   } else {
     table->symbol_reader = read_r6rs_symbol;
   }
-  
-  SET_NONTERM_MACRO(r, '#', dispmacro_reader);
+  if (r6rsP) {
+    SET_TERM_MACRO(r, '#', dispmacro_reader);
+  } else {
+    SET_NONTERM_MACRO(r, '#', dispmacro_reader);
+  }
   r['#'].disp = d;
 
   SET_DISP_MACRO(d, '\'', read_hash_quote);

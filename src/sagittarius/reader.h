@@ -46,6 +46,8 @@ typedef struct SgSharedRefRec
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_Read(SgObject port, int readSharedObject);
+SG_EXTERN SgObject Sg_ReadDelimitedList(SgObject port, SgChar delim,
+					int sharedP);
 SG_EXTERN readtable_t* Sg_CopyReadTable(readtable_t *src);
 
 /* for Scheme */
