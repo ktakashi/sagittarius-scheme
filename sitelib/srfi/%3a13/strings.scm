@@ -1438,12 +1438,10 @@
 ;;;    a b d  a b x
 ;;; #(-1 0 0 -1 1 2)
 
-(define (make-kmp-restart-vector pattern . maybe-c=+start+end)
-  (let-optionals* maybe-c=+start+end
-                  ((c= char=? (procedure? c=))
-		   ((start end) (lambda (args)
-				  (string-parse-start+end make-kmp-restart-vector
-							  pattern args))))
+;; modified by Takashi Kato
+(define-with-key (make-kmp-restart-vector pattern :optional
+					  (c= char=?) (start 0)
+					  (end (string-length pattern)))
     (let* ((rvlen (- end start))
 	   (rv (make-vector rvlen -1)))
       (if (> rvlen 0)
@@ -1471,7 +1469,7 @@
 			     (lp1 i1 j1 (+ k 1))))
 
 			  (else (lp2 (vector-ref rv j)))))))))
-      rv)))
+      rv))
 
 
 ;;; We've matched I chars from PAT. C is the next char from the search string.

@@ -22,75 +22,27 @@
 	    (srfi :26 cut)
 	    (sagittarius))
 
+  ;; for compatibility
   (define-syntax define-optional
-    (syntax-rules (optional)
-      ((_ (name . bindings) . bodies)
-       (define-optional "seek-optional" bindings () ((name . bindings) . bodies)))
-
-      ((_ "seek-optional" ((optional . _opt-bindings))
-	 (reqd ...) ((name . _bindings) . _bodies))
-       (define (name reqd ... . _rest)
-	 (letrec-syntax
-	     ((handle-opts
-	       (syntax-rules ()
-		 ((_ rest bodies (var init))
-		  (let ((var (if (null? rest) init
-				 (if (null? (cdr rest)) (car rest)
-				     (error 'name "extra rest" rest)))))
-		    . bodies))
-		 ((_ rest bodies var) (handle-opts rest bodies (var #f)))
-		 ((_ rest bodies (var init) . other-vars)
-		  (let ((var (if (null? rest) init (car rest)))
-			(new-rest (if (null? rest) '() (cdr rest))))
-		    (handle-opts new-rest bodies . other-vars)))
-		 ((_ rest bodies var . other-vars)
-		  (handle-opts rest bodies (var #f) . other-vars))
-		 ((_ rest bodies)		; no optional args, unlikely
-		  (let ((_ (or (null? rest) (error 'name "extra rest" rest))))
-		    . bodies)))))
-	   (handle-opts _rest _bodies . _opt-bindings))))
-
-      ((_ "seek-optional" (x . rest) (reqd ...) form)
-       (define-optional "seek-optional" rest (reqd ... x) form))
-
-      ((_ "seek-optional" not-a-pair reqd form)
-       (define . form))			; No optional found, regular define
-
-      ((_ name body)		; Just the definition for 'name',
-       (define name body))		; for compatibilibility with define
-      ))
-#|
-
- ;;; LET-OPTIONALS macros
- ;;; Copyright (c) 2001 by Olin Shivers.
-
- Copyright (c) 1993-2003 Richard Kelsey and Jonathan Rees
- Copyright (c) 1994-2003 by Olin Shivers and Brian D. Carlstrom.
- Copyright (c) 1999-2003 by Martin Gasbichler.
- Copyright (c) 2001-2003 by Michael Sperber.
- All rights reserved.
-
- Redistribution and use in source and binary forms, with or without modification, are
- permitted provided that the following conditions are met:
-
-   1. Redistributions of source code must retain the above copyright notice, this list of
-      conditions and the following disclaimer.
-   2. Redistributions in binary form must reproduce the above copyright notice, this list
-      of conditions and the following disclaimer in the documentation and/or other
-      materials provided with the distribution.
-   3. The name of the authors may not be used to endorse or promote products derived from
-      this software without specific prior written permission.
-
- THIS SOFTWARE IS PROVIDED BY THE AUTHORS ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
- INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY DIRECT,
- INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
- BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
- THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-|#
+    (er-macro-transformer
+     (lambda (form rename compare)
+       (define (convert binds)
+	 (let loop ((lst binds)
+		    (r '()))
+	   (cond ((null? lst) (reverse! r))
+		 ((pair? (car lst))
+		  (unless (eq? (identifier->symbol (caar lst)) 'optional)
+		    (syntax-violation 'define-optional
+				      "malformed define-optional bindings"
+				      form binds))
+		  (append (reverse! r) (cons :optional (cdar lst))))
+		 (else (loop (cdr lst) (cons (car lst) r))))))
+       (match form
+	 ((_ (name . bindings) . body)
+	  `(,(rename 'define-with-key) ,name
+	    (,(rename 'lambda) ,(convert bindings) ,@body)))
+	 (_ (syntax-violation 'define-optional
+			      "malformed define-optional" form))))))
 
   (define-syntax get-optional
     (syntax-rules ()
@@ -98,7 +50,8 @@
        (let ((maybe-arg rest))
          (if (pair? maybe-arg)
              (if (null? (cdr maybe-arg)) (car maybe-arg)
-                 (error 'get-optional "too many optional arguments" maybe-arg))
+                 (assertion-violation 'get-optional
+				   "too many optional arguments" maybe-arg))
              default-exp)))
 
       ((_ rest default-exp arg-test)
@@ -107,66 +60,100 @@
              (if (null? (cdr maybe-arg))
                  (let ((val (car maybe-arg)))
                    (if (arg-test val) val
-                       (error "Optional argument failed test"
-                              'arg-test val)))
-                 (error 'get-optional "too many optional arguments" maybe-arg))
+                       (assertion-violation 'get-optional
+					    "optional argument failed test"
+					    'arg-test val)))
+                 (assertion-violation 'get-optional
+				      "too many optional arguments" maybe-arg))
              default-exp)))))
 
-  (define-syntax let-optionals*
-    (syntax-rules ()
-      ((let-optionals* arg (opt-clause ...) body ...)
-       (let ((rest arg))
-         (%let-optionals* rest (opt-clause ...) body ...)))))
-
-  (define-syntax %let-optionals*
-    (syntax-rules ()
-      ((%let-optionals* arg (((var ...) xparser) opt-clause ...) body ...)
-       (receive (rest var ...) (xparser arg)
-	 (%let-optionals* rest (opt-clause ...) body ...)))
-
-      ((%let-optionals* arg ((var default) opt-clause ...) body ...)
-       (receive (var rest) (if (null? arg) (values default '())
-			       (values (car arg) (cdr arg)))
-	 (%let-optionals* rest (opt-clause ...) body ...)))
-
-      ((%let-optionals* arg ((var default test) opt-clause ...) body ...)
-       (receive (var rest) (if (null? arg) (values default '())
-                               (let ((var (car arg)))
-                                 (if test (values var (cdr arg))
-                                     (error 'let-optionals* "arg failed LET-OPT test" var))))
-	 (%let-optionals* rest (opt-clause ...) body ...)))
-
-      ((%let-optionals* arg ((var default test supplied?) opt-clause ...) body ...)
-       (receive (var supplied? rest)
-	   (if (null? arg) (values default #f '())
-	       (let ((var (car arg)))
-		 (if test (values var #t (cdr arg))
-		     (error 'let-optionals* "arg failed LET-OPT test" var))))
-	 (%let-optionals* rest (opt-clause ...) body ...)))
-
-      ((%let-optionals* arg (rest) body ...)
-       (let ((rest arg)) body ...))
-
-      ((%let-optionals* arg () body ...)
-       (if (null? arg) (begin body ...)
-           (error 'let-optionals* "Too many arguments in let-opt" arg)))))
 
   ;; from Gauche
+  (define-syntax let-optionals*
+    (er-macro-transformer
+     (lambda (form rename compare)
+       (let ((_let (rename 'let))     (_if (rename 'if))
+	     (_null? (rename 'null?)) (_unless (rename 'unless))
+	     (_car (rename 'car))     (_cdr (rename 'cdr))
+	     (_assertion-violation (rename 'assertion-violation))
+	     (_undefined (rename 'undefined)))
+	 (define (rec arg vars&inits&test rest body)
+	   (cond ((null? (cdr vars&inits&test))
+		  `((,_let ((,(caar vars&inits&test)
+			     (,_if (,_null? ,arg)
+				   ,(cadar vars&inits&test)
+				   (,_car ,arg)))
+			    ,@(if (null? rest)
+				  '()
+				  `((,rest (,_if (,_null? ,arg)
+						 '()
+						 (,_cdr ,arg))))))
+			(,_unless ,(cddar vars&inits&test)
+			   (,_assertion-violation 'let-optionals*
+				"optional argument test failed"
+				,(cddar vars&inits&test)))
+			,@body)))
+		 (else
+		  (let ((g (gensym))
+			(v (caar vars&inits&test))
+			(i (cadar vars&inits&test))
+			(t (cddar vars&inits&test)))
+		    `((,_let ((,v (,_if (,_null? ,arg) ,i (,_car ,arg)))
+			      (,g (,_if (,_null? ,arg) '() (,_cdr ,arg))))
+			 (,_unless ,t
+			   (,_assertion-violation 'let-optionals*
+				"optional argument test failed" ,v))
+			 ,@(rec g (cdr vars&inits&test) rest body)))))))
+	 (define (improper-map1 p l)
+	   (let loop ((lst l)
+		      (r '()))
+	     (cond ((null? lst) (reverse! r))
+		   ((not (pair? lst)) (reverse! r))
+		   (else (loop (cdr lst) (cons (p (car lst)) r))))))
+	 (match form
+	   ((_ arg specs . body)
+	    (let ((g (gensym)))
+	      `(,_let ((,g ,arg))
+		 ,@(rec g (improper-map1
+			   (lambda (s)
+			     (cond ((and (pair? s) (pair? (cdr s)))
+				    (cond ((null? (cddr s))
+					   (cons* (car s) (cadr s) #t))
+					  ((null? (cdddr s))
+					   (cons* (car s) (cadr s) (caddr s)))
+					  (else
+					   (syntax-violation 'let-optionals*
+					    "malformed let-optionals* bindings"
+					    form specs))))
+				   ((variable? s)
+				    (cons* s `(,_undefined) #t))
+				   (else 
+				    (syntax-violation 'let-optionals*
+				     "malformed let-optionals* bindings"
+				     form specs))))
+			   specs)
+			(cdr (last-pair specs))
+			body))))
+	   (_ (syntax-violation 'let-optionals*
+				"malformed let-optionals*" form)))))))
+
   (define-syntax let-keywords
     (er-macro-transformer
      (lambda (form rename compare)
-       (let ((arg   (cadr form))
-	     (specs (caddr form))
-	     (body  (cdddr form)))
-	 (%let-keywords-rec arg specs body (rename 'let) rename)))))
+       (match form
+	 ((_ arg specs . body)
+	  (%let-keywords-rec arg specs body (rename 'let) rename))
+	 (_ (syntax-violation 'let-keywords
+			      "malformed let-keywords" form))))))
 
   (define-syntax let-keywords*
     (er-macro-transformer
      (lambda (form rename compare)
-       (let ((arg   (cadr form))
-	     (specs (caddr form))
-	     (body  (cdddr form)))
-	 (%let-keywords-rec arg specs body (rename 'let) rename)))))
+       (match form
+	 ((_ arg specs . body)
+	  (%let-keywords-rec arg specs body (rename 'let*) rename))
+	 (_ (syntax-violation 'let-keywords
+			      "malformed let-keywords*" form))))))
 
   ;; like Gauche's :key
   ;; (define-with-key (name arg0 arg1 :key key1 (key2 #f) :allow-other-keys opt)
@@ -177,63 +164,116 @@
   ;;                            (key2 #f)
   ;;                            . opt)
   ;;     body ...))
+  (define (%define name expr rename compare)
+    (define (parse-lambda-args formals)
+      (let loop ((formals formals) (args '()) (n 0))
+	(match formals
+	  (()      (values (reverse args) n 0 '()))
+	  (((? keyword?) . _) (values (reverse args) n 1 formals))
+	  ((x . y) (loop (cdr formals) (cons (car formals) args) (+ n 1)))
+	  (x       (values (reverse (cons x args)) n 1 '())))))
+    (define (extended-lambda garg kargs body)
+        (define (collect-args xs r)
+	  (match xs
+	    (() (values (reverse r) '()))
+	    (((? keyword?) . _) (values (reverse r) xs))
+	    ((var . rest) (collect-args rest (cons var r)))))
+	(define (parse-kargs xs os ks r a)
+	  (match xs
+	    (() (expand-opt os ks r a))
+	    ((:optional . xs)
+	     (unless (null? os) (too-many :optional))
+	     (receive (os xs) (collect-args xs '()) (parse-kargs xs os ks r a)))
+	    ((:key . xs)
+	     (unless (null? ks) (too-many :key))
+	     (receive (ks xs) (collect-args xs '()) (parse-kargs xs os ks r a)))
+	    ((:rest . xs)
+	     (when r (too-many :rest))
+	     (receive (rs xs) (collect-args xs '())
+	       (match rs
+		 ((r) (parse-kargs xs os ks r a))
+		 (_ 
+		  (syntax-violation 'define-with-key
+		   ":rest keyword in the define-with-key form must be followed by exactly one argument" kargs)))))
+	    ((:allow-other-keys . xs)
+	     (when a (too-many :allow-other-keys))
+	     (receive (a xs) (collect-args xs '())
+	       (match a
+		 (()   (parse-kargs xs os ks r #t))
+		 ((av) (parse-kargs xs os ks r av))
+		 (_ (syntax-violation 'define-with-key
+		     ":allow-other-keys keyword in define-with-key form can be followed by zero or one argument" kargs)))))
+	    (_ (syntax-violation 'define-with-key
+		"invalid define-with-key list:" kargs))))
+	(define (too-many key)
+	  (syntax-violation 'define-with-key
+	   (format "too many ~s keywords in define-with-key: ~s" key kargs)
+	   name expr))
+	(define (expand-opt os ks r a)
+	  (if (null? os)
+	      (if r
+		  `(,(rename 'let) ((,r ,garg)) ,@(expand-key ks garg a))
+		  (expand-key ks garg a))
+	      (let ((binds (map (match-lambda
+				  ((? variable? o) o)
+				  ((o init) `(,o ,init))
+				  (_ (syntax-violation 'define-with-key
+				      "illegal optional argument spec" kargs)))
+				os))
+		    (rest (or r (gensym))))
+		`(,(rename 'let-optionals*) ,garg ,(append binds rest)
+		  ,@(if (and (not r) (null? ks))
+			`((,(rename 'unless) (,(rename 'null?) ,rest)
+			   (,(rename 'assertion-violation)
+			    "too many argument for" ',(unwrap-syntax expr)))
+			   (,(rename 'let) () ,@(expand-key ks rest a)))
+			(expand-key ks rest a))))))
+	(define (expand-key ks garg a)
+	  (if (null? ks)
+	      body
+	      (let ((args (map (match-lambda
+				 ((? variable? o) o)
+				 ((((? keyword? key) o) init) `(,o ,key, init))
+				 ;; for compatibility
+				 (( o (? keyword? key) init) `(,o ,key, init))
+				 ((o init) `(,o ,init))
+				 (_ (syntax-violation 'define-with-key
+				     "illegal keyword argument spec" kargs)))
+			       ks)))
+		`(,(rename 'let-keywords*) ,garg
+		   ,(if a (append args a) args)
+		   ,@body))))
+	(parse-kargs kargs '() '() #f #f))
+    (define (construct formals body)
+      (receive (args reqargs optarg kargs) (parse-lambda-args formals)
+	(if (null? kargs)
+	    `(,(rename 'define) ,name
+	      (,(rename 'lambda) ,args ,@body))
+	    (let ((g (gensym)))
+	      `(,(rename 'define) ,name
+		(,(rename 'lambda) ,(append args g)
+		 ,(extended-lambda g kargs body)))))))
+    (match expr
+      ((_ formals . body)
+       (construct formals body))
+      (_ (syntax-violation 'define-with-key
+			   "malformed define-with-key form" expr))))
+
   (define-syntax define-with-key
     (er-macro-transformer
      (lambda (form rename compare)
-       (define (process-specs ospecs)
-	 (let loop ((specs ospecs)
-		    (required '())
-		    (keys '())
-		    (key-appear? #f))
-	   (define (finish restvar)
-	     (values (reverse! required)
-		     (reverse! keys)
-		     restvar))
-	   (cond ((null? specs) (finish #f))
-		 ((pair? specs)
-		  (cond (key-appear?
-			 (if (eq? (car specs) :allow-other-keys)
-			     (finish (cadr specs))
-			     (let ((name (car specs)))
-			       (loop (cdr specs) required
-				     (cons (if (variable? name) (list name (undefined)) name) keys)
-				     #t))))
-			((eq? (car specs) :key)
-			 (loop (cdr specs) required keys #t))
-			(else
-			 (loop (cdr specs) (cons (car specs) required) keys #f))))
-		 (else
-		  (syntax-violation 'define-with-key
-				    "spec must be proper list"
-				    form
-				    ospec)))))
-       ;; there is no reason, internal define can have keywords.
-       ;; or could be?
-       (define (rewrite-define body)
-	 (let loop ((lst body))
-	   (cond ((null? lst) lst)
-		 ((pair? lst)
-		  (cons (loop (car lst))
-			(loop (cdr lst))))
-		 ((and (variable? lst)
-		       (eq? (identifier->symbol lst) 'define))
-		  (rename lst))
-		 (else lst))))
        (match form
-	 ((_ (name . spec) . body)
-	  (let ((opt  (gensym "opt")))
-	    (receive (required keys rest) (process-specs spec)
-	      `(,(rename 'define) (,name ,@required . ,opt)
-		(,(rename 'let-keywords*) ,opt ,(if rest 
-						    `(,@keys . ,rest)
-						    `(,@keys))
-		 ,@(rewrite-define body))))))
-	 ;; normal define
-	 ((_ name var)
-	  `(,(rename 'define) ,name ,var))
-	 (else
-	  (syntax-violation 'define-with-key
-			    "malformed define" form))))))
+	 ((_ (name . args) body ...)
+	  `(,(rename 'define-with-key) ,name
+	    (,(rename 'lambda) ,args ,@body)))
+	 ((_ name expr)
+	  (unless (variable? name) 
+	    (syntax-violation 'define-with-key 
+			      "invalid define-with-key name" form name))
+	  (%define name expr rename compare))
+	 (_
+	  (syntax-violation 'define-with-key "malformed define-with-key"
+			    form))))))
 	 
 
   ;;(define-macro (let-keywords arg specs . body)

@@ -39,15 +39,15 @@
 	    (sagittarius vm))
   
   (define-with-key (apropos arg :key (port (current-output-port)))
-    (let ((arg (cond ((symbol? arg) (symbol->string arg))
+    (let ((arg (cond ((symbol? arg) (regex (symbol->string arg) LITERAL))
 		     ((string? arg) (regex arg))
-		     (else (assertion-violation 'apropos (format "symbol or string required, but got ~a" arg))))))
+		     ((regex-pattern? arg) arg)
+		     (else 
+		      (assertion-violation 
+		       'apropos 
+		       (format "symbol, string or regex-pattern required, but got ~a" arg))))))
       (define (match? e)
-	(cond ((string? arg)
-	       (and (string-contains (symbol->string e) arg) e))
-	      ((regex-pattern? arg)
-	       (and (looking-at arg (symbol->string e)) e))
-	      (else #f)))
+	(and (looking-at arg (symbol->string e)) e))
       (define core (string->symbol (format "~a" '(core))))
       (define (replace-null-lib name)
 	(if (eq? name 'null)
