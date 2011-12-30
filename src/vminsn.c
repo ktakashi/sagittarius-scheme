@@ -1004,6 +1004,12 @@ CASE(VEC_SET) {
 ;
   }
 ;
+  if (SG_LITERAL_VECTORP(INDEX(SP(vm), 1))) {
+    Sg_AssertionViolation(SG_INTERN("vector-set"), Sg_MakeString(UC("attempt to modify immutable vector"), SG_LITERAL_STRING), SG_LIST1(INDEX(SP(vm), 1)));
+    return SG_UNDEF;
+;
+  }
+;
   if (!(SG_INTP(INDEX(SP(vm), 0)))) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-set!"), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), INDEX(SP(vm), 0), SG_NIL);
     return SG_UNDEF;
