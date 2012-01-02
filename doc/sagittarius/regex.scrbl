@@ -6,7 +6,8 @@ also has own regular expression library. It is influenced by Java's regular
 expression, so there are a lot of differences between the most famous Perl
 regular expression(perlre).
 
-This feature may be changed, if R7RS large requires Perl like regular expression.
+This feature may be changed, if R7RS large requires Perl like regular
+expression.
 
 Following examples show how to use Sagittarius's regular expression.
 @codeblock[=> “world!”]{
@@ -23,9 +24,7 @@ Following examples show how to use Sagittarius's regular expression.
 
 The @code{matches} procedure is total match, so it ignores boundary matcher
 @code{'^'} and @code{'$'}. The @code{looking-at} procedure is partial match, so
-it works as if perlre. Sagittarius support most of Java regular expression
-constructs, however POSIX character classes and Classes for Unicode blocks and
-categories are not supported yet.
+it works as if perlre. 
 
 @define[Library]{@name{(sagittarius regex)}}
 @desc{This library provides Sagittarius regular expression procedures.}
@@ -112,20 +111,31 @@ table is the supported regular expression constructs.
 @tr{@td{@code{\E}} @td{Nothing, but ends quoting started by \Q}}
 @tr{@th[:colspan 2]{Special constructs (non-capturing)}}
 @tr{@td{@code{(?:X)}} @td{X, as a non-capturing group}}
-@tr{@td{@code{(?idmsux-idmsux)}} @td{Nothing, but turns match flags on - off}}
-@tr{@td{@code{(?idmsux-idmsux:X)}} @td{X, as a non-capturing group with the given flags on - off}}
+@tr{@td{@code{(?imsux-imsux)}} @td{Nothing, but turns match flags on - off}}
+@tr{@td{@code{(?imsux-imsux:X)}}
+ @td{X, as a non-capturing group with the given flags on - off}}
 @tr{@td{@code{(?=X)}} @td{X, via zero-width positive lookahead}}
 @tr{@td{@code{(?!X)}} @td{X, via zero-width negative lookahead}}
 @tr{@td{@code{(?<=X)}} @td{X, via zero-width positive lookbehind}}
 @tr{@td{@code{(?<!X)}} @td{X, via zero-width negative lookbehind}}
 @tr{@td{@code{(?>X)}} @td{X, as an independent, non-capturing group}}
 }
+Since version 0.2.3, @code{\p} and @code{\P} are supported. It is cooporated
+with SRFI-14 charset. However it is kind of tricky. For example regex parser
+can reads @code{\p{InAscii}} or @code{\p{IsAscii}} and search charset named
+@code{char-set:ascii} from current library. It must have @code{In} or @code{Is}
+as its prefix.
 }
 
-@define[Function]{@name{matches} @args{regex string}}
+@define["Reader Macro"]{@name{#/-reader}}
+@desc{This reader macro provides Perl like regular expression syntax.
+It allows you to write regular expression like this @code{#/\w+?/i} instead of
+like this @code{(regex "\\w+?" CASE-INSENSITIVE)}.
+}
+
 @define[Function]{@name{looking-at} @args{regex string}}
-@desc{@var{Regex} must be regular expression object. Returns closure if @var{regex}
-matches input @var{string}.
+@desc{@var{Regex} must be regular expression object. Returns closure if
+@var{regex} matches input @var{string}.
 
 The @code{matches} procedure attempts to match the entire input string against
 the pattern of @var{regex}.

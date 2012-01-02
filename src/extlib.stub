@@ -760,9 +760,11 @@
 				  proc
 				  (SG_LIBRARY_READTABLE lib)))
 
-  (define-c-proc read-delimited-list (c :optional (p (Sg_CurrentInputPort))
+  (define-c-proc read-delimited-list (c :optional
+					(p::Port (Sg_CurrentInputPort))
 					(shareP #t))
     ::Object
+    (check-char read-delimited-list c)
     (return (Sg_ReadDelimitedList p
 				  (SG_CHAR_VALUE c)
 				  (not (SG_FALSEP shareP)))))

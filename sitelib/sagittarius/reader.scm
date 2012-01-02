@@ -7,7 +7,8 @@
 	    get-macro-character
 	    set-macro-character
 	    get-dispatch-macro-character
-	    set-dispatch-macro-character)
+	    set-dispatch-macro-character
+	    read-delimited-list)
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius vm))

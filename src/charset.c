@@ -375,6 +375,7 @@ void Sg__InitCharSet()
   insert_binding(char-set:full        , Sg_CharSetComplement(empty));
 
   /* for regexp */
+  insert_binding(:ascii:  , CS(SG_CHAR_SET_ASCII));
   insert_binding(:alnum:  , CS(SG_CHAR_SET_ALNUM));
   insert_binding(:alpha:  , CS(SG_CHAR_SET_ALPHA));
   insert_binding(:blank:  , CS(SG_CHAR_SET_BLANK));

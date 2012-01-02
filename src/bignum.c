@@ -218,6 +218,7 @@ static inline void bignum_copy(SgBignum *dst, SgBignum *src)
 {
   int i;
   int size = SG_BIGNUM_GET_COUNT(src);
+  ASSERT(SG_BIGNUM_GET_COUNT(dst) >= size);
   SG_BIGNUM_SET_SIGN(dst, SG_BIGNUM_GET_SIGN(src));
   for (i = 0; i < size; i++) dst->elements[i] = src->elements[i];
 }
@@ -238,6 +239,9 @@ SgObject Sg_NormalizeBignum(SgBignum *bn)
     else break;
   }
   if (i == 0) {
+    int sign = SG_BIGNUM_GET_SIGN(bn);
+    SG_BIGNUM_SET_ZERO(bn);
+    SG_BIGNUM_SET_SIGN(bn, sign);
     if (SG_BIGNUM_GET_SIGN(bn) == 0) {
       return SG_MAKE_INT(0);
     }
@@ -1329,10 +1333,7 @@ static SgBignum* normalize_bignum(SgBignum *bn)
 /* we do this destructively */
 static int bignum_difference(SgBignum *a, SgBignum *b)
 {
-  SgBignum *br;
   int sign = Sg_BignumCmp(a, b);
-  long diff = 0;
-  int x, y, size;
 
   if (sign == 0) return 0;
 

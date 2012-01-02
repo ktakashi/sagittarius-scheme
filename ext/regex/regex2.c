@@ -471,7 +471,7 @@ static SgObject read_defined_charset(lexer_ctx_t *ctx)
   int pos;
   /* first check the property has 'Is' or 'In. */
   if (ctx->len-ctx->pos < 2 ||
-      ctx->str[0] != ':') {
+      ctx->str[ctx->pos] != ':') {
     raise_syntax_error(ctx, ctx->pos,
 		       UC("Invalid character set name."));
   }
@@ -488,7 +488,7 @@ static SgObject read_defined_charset(lexer_ctx_t *ctx)
   /* does not seem smart solution ... */
   es = Sg_MakeEmptyString();
   /* including ':' */
-  es = Sg_StringAppendC(SG_STRING(es), ctx->str+ctx->pos, pos+1);
+  es = Sg_StringAppendC(SG_STRING(es), ctx->str+ctx->pos, pos+2);
   gloc = Sg_FindBinding(Sg_VM()->currentLibrary, Sg_Intern(es), SG_FALSE);
   if (SG_FALSEP(gloc) || !SG_CHAR_SET_P(SG_GLOC_GET(gloc))) {
     raise_syntax_error(ctx, ctx->pos,

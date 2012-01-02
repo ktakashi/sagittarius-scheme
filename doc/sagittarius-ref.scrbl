@@ -38,10 +38,10 @@ what are the non conformed points.
 
 @dl-list[]{
 @dl-item["Reader"]{
- Reader has two mode. One is R6RS mode and other one is compatible mode. Default
- mode is R6RS  you can switch with @code{#!compatible} hash-bang which describe
- later. In compatible mode, reader also can read keyword which start with
- @code{":"} and more non R6RS feature will be available.}
+ Basically reader has 2 modes. One is R6RS mode and other one is compatible
+ mode. Although, user can modify reader with reader macro. For detail, see
+ @secref["lib.sagittarius.reader.predefined"]{Predefined reader macros}.
+}
 @dl-item["Macro expansion"]{
  On R6RS requires explicit macro expansion phase, however in Sagittarius we do
  not have it. A macro is expanded when programs are compiled.}
@@ -80,6 +80,7 @@ will appear in this manual.
 @dl-item["Auxiliary Macro"]{A auxiliary macro}
 @dl-item["Library"]{A library}
 @dl-item["Condition Type"]{A condition type}
+@dl-item["Reader Macro"]{A reader macro}
 ]
 
 For functions, syntaxes, or macros, the the entry may be followed by one or more

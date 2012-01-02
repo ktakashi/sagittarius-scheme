@@ -246,12 +246,13 @@
 	(parse-kargs kargs '() '() #f #f))
     (define (construct formals body)
       (receive (args reqargs optarg kargs) (parse-lambda-args formals)
+	;; we do not make 'lambda hygenic.
 	(if (null? kargs)
 	    `(,(rename 'define) ,name
-	      (,(rename 'lambda) ,args ,@body))
+	      (lambda ,args ,@body))
 	    (let ((g (gensym)))
 	      `(,(rename 'define) ,name
-		(,(rename 'lambda) ,(append args g)
+		(lambda ,(append args g)
 		 ,(extended-lambda g kargs body)))))))
     (match expr
       ((_ formals . body)
@@ -270,7 +271,9 @@
 	  (unless (variable? name) 
 	    (syntax-violation 'define-with-key 
 			      "invalid define-with-key name" form name))
-	  (%define name expr rename compare))
+	  (if (and (pair? expr) (compare 'lambda (car expr)))
+		(%define name expr rename compare)
+	      `(,(rename 'define) ,name ,expr)))
 	 (_
 	  (syntax-violation 'define-with-key "malformed define-with-key"
 			    form))))))
