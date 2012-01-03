@@ -1,3 +1,8 @@
+2012-01-03  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/hashtable.c (equal-hash): Fixed non stop problem when given object
+	contains too many shared objects.
+
 2011-12-30  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/sagittarius/control.scm (define-with-key):
