@@ -641,6 +641,9 @@ SgObject read_quote(SgPort *port, SgChar c, SgReadContext *ctx)
     lexical_error(port, ctx,
 		  UC("unexpected end-of-file following quotation-mark(')"));
   }
+  if (SG_PAIRP(o)) {
+    o = Sg_AddConstantLiteral(o);
+  }
   return SG_LIST2(SG_SYMBOL_QUOTE, o);
 }
 
@@ -868,6 +871,7 @@ static SgObject read_bytevector(SgPort *port, SgChar *buf, SgReadContext *ctx)
 	lexical_error(port, ctx, UC("expected " s_type ", but got %S"),	\
 		      SG_CAR(lst));					\
       }									\
+      bvector = Sg_AddConstantLiteral(bvector);				\
       return bvector;							\
     }									\
   } while (0)
@@ -1012,9 +1016,7 @@ SgObject read_hash_open_paren(SgPort *port, SgChar c, dispmacro_param *param,
 			      SgReadContext *ctx)
 {
   SgObject v = Sg_ListToVector(read_list(port, ')', ctx), 0, -1);
-  if (SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE)) {
-    SG_SET_HEADER_ATTRIBUTE(v, SG_MAKEBITS(1, VECTOR_LITERAL_SHIFT));
-  }
+  v = Sg_AddConstantLiteral(v);
   return v;
 }
 
@@ -1389,6 +1391,38 @@ readtable_t* Sg_CopyReadTable(readtable_t *src)
   }
   return newr;
 }
+static SgInternalMutex obtable_mutax;
+static SgHashTable *obtable = NULL;
+
+int Sg_ConstantLiteralP(SgObject o)
+{
+  SgObject e = Sg_HashTableRef(obtable, o, SG_UNBOUND);
+  if (SG_UNBOUNDP(e)) return FALSE;
+  /* constant literal must satisfy eq? */
+  return e == o;
+}
+
+SgObject Sg_AddConstantLiteral(SgObject o)
+{
+  SgObject e;
+  Sg_LockMutex(&obtable_mutax);
+  e = Sg_HashTableRef(obtable, o, SG_UNBOUND);
+  if (SG_UNBOUNDP(e)) {
+    Sg_HashTableSet(obtable, o, o, SG_HASH_NO_OVERWRITE);
+    /* TODO after CLOS, we should not use header bits */
+    if (SG_VECTORP(o)) {
+      SG_VECTOR_SET_LITERAL(o);
+    }
+    if (SG_BVECTORP(o)) {
+      SG_BVECTOR_SET_LITERAL(o);
+    }
+  } else {
+    o = e;
+  }
+  Sg_UnlockMutex(&obtable_mutax);
+  return o;
+}
+
 
 #define SCHEME_OBJ(NAME) SG_CPP_CAT(NAME, _stub)
 #define STUB_NAME(NAME) SG_CPP_CAT(NAME, stub)
@@ -1740,6 +1774,8 @@ void Sg__InitReader()
   init_readtable(&r6rs_read_table, TRUE);
   init_readtable(&compat_read_table, FALSE);
 
+  Sg_InitMutex(&obtable_mutax, FALSE);
+  obtable = Sg_MakeHashTableSimple(SG_HASH_EQUAL, 4096);
 #define SET_READER_NAME(fn, name)			\
   (SG_PROCEDURE_NAME(&(SCHEME_OBJ(fn))) = SG_MAKE_STRING(name))
   SET_READER_NAME(read_vartical_bar,   "|-reader");

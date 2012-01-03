@@ -33,6 +33,7 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/bytevector.h"
 #include "sagittarius/bignum.h"
+#include "sagittarius/bits.h"
 #include "sagittarius/number.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/port.h"
@@ -116,36 +117,6 @@ SgObject Sg_NativeEndianness()
 #else
   return SG_INTERN("little");
 #endif
-}
-
-static inline size_t nbits32(uint32_t x) {
-  uint32_t t;
-  x = x - ((x >> 1) & 0x55555555);
-  t = ((x >> 2) & 0x33333333);
-  x = (x & 0x33333333) + t;
-  x = (x + (x >> 4)) & 0x0F0F0F0F;
-  x = x * 0x01010101;
-  return x >> 24;
-}
-
-static inline size_t nbits64(uint64_t x) {
-  static const uint64_t c1 = 0x5555555555555555LL;
-  static const uint64_t c2 = 0x3333333333333333LL;
-  static const uint64_t c3 = 0x0F0F0F0F0F0F0F0FLL;
-  static const uint64_t c4 = 0x0101010101010101LL;
-  uint64_t t;
-  x = x - ((x >> 1) & c1);
-  t = ((x >> 2) & c2);
-  x = (x & c2) + t;
-  x = (x + (x >> 4)) & c3;
-  x = x * c4;
-  return x >> 56;
-}
-
-static inline size_t nbits(intptr_t i)
-{
-  if (sizeof(intptr_t) == sizeof(uint32_t)) nbits32((uint32_t)i);
-  return nbits64((uint64_t)i);
 }
 
 static inline int is_valid_value(intptr_t value, size_t bitCount, int signP)

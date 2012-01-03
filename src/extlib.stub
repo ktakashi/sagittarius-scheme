@@ -127,6 +127,8 @@
 	    %insert-macro-character
 	    %insert-dispatch-macro-character
 	    read-delimited-list
+
+	    constant-literal?
 	    )
     (import :null)
   (decl-code
@@ -768,4 +770,7 @@
     (return (Sg_ReadDelimitedList p
 				  (SG_CHAR_VALUE c)
 				  (not (SG_FALSEP shareP)))))
+
+  (define-c-proc constant-literal? (o) ::boolean
+    (result (Sg_ConstantLiteralP o)))
 )

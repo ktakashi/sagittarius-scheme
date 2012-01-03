@@ -38,6 +38,7 @@
 #include "sagittarius/code.h"
 #include "sagittarius/library.h"
 #include "sagittarius/subr.h"
+#include "sagittarius/reader.h"
 #include "sagittarius/vm.h"
 #include "sagittarius/gloc.h"
 #include "sagittarius/builtin-symbols.h"
@@ -69,6 +70,8 @@ static SgObject unwrap_rec(SgObject form, SgObject history)
   SgObject newh;
   if (!SG_PTRP(form)) return form;
   if (!SG_FALSEP(Sg_Memq(form, history))) return form;
+
+  if (Sg_ConstantLiteralP(form)) return form;
 
   if (SG_PAIRP(form)) {
     SgObject ca, cd;

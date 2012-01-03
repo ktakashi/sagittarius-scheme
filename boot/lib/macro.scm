@@ -141,7 +141,7 @@
 (define syntax-quote. (make-identifier 'syntax-quote '() '(sagittarius compiler)))
 ;; syntax-case compiler
 (define (compile-syntax-case exp-name expr literals clauses library env mac-env)
-  (define (rewrite form aliases)
+  #;(define (rewrite form aliases)
     (let loop ((lst form))
       (cond ((pair? lst) (cons (loop (car lst)) (loop (cdr lst))))
 	    ((and (symbol? lst) (assq lst aliases)) => cdr)

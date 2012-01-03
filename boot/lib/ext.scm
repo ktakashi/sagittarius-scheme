@@ -1,4 +1,6 @@
 ;; need to move to C++
+(define (constant-literal? o) #f)
+
 ;; for dependency problem
 (define identifier?
   (lambda (id)

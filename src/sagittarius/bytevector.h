@@ -47,6 +47,13 @@ struct SgByteVectorRec
 #define SG_BVECTOR_ELEMENTS(obj)   (SG_BVECTOR(obj)->elements)
 #define SG_BVECTOR_ELEMENT(obj, i) (SG_BVECTOR(obj)->elements[i])
 
+#define BVECTOR_LITERAL_SHIFT   11
+#define BVECTOR_LITERAL_BIT     ((uintptr_t)1 << BVECTOR_LITERAL_SHIFT)
+#define SG_LITERAL_BVECTORP(obj)				\
+  (SG_BVECTORP(obj) && (SG_HDR(obj) & BVECTOR_LITERAL_BIT))
+#define SG_BVECTOR_SET_LITERAL(obj)				\
+  SG_SET_HEADER_ATTRIBUTE(obj, SG_MAKEBITS(1, BVECTOR_LITERAL_SHIFT));
+
 /* utility macros */
 #define SG_IS_BYTE(v)  (-128 <= v && v <= 127)
 #define SG_IS_OCTET(v) (0 <= v && v <= 255)

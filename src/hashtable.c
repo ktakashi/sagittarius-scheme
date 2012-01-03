@@ -31,6 +31,7 @@
  */
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/hashtable.h"
+#include "sagittarius/bytevector.h"
 #include "sagittarius/compare.h"
 #include "sagittarius/error.h"
 #include "sagittarius/pair.h"
@@ -91,7 +92,6 @@ uint32_t Sg_EqHash(SgObject obj)
 
 uint32_t Sg_EqvHash(SgObject obj)
 {
-  /* TODO implement */
   uint32_t hashval;
   if (SG_NUMBERP(obj)) {
     if (SG_INTP(obj)) {
@@ -121,12 +121,24 @@ uint32_t Sg_EqvHash(SgObject obj)
   return hashval & HASHMASK;
 }
 
-#define EQUAL_HASH_DEPTH_LIMIT 100
-/* from Ypsilon */
-static uint32_t equal_hash_rec(SgObject obj, int depth)
+#define MAX_EQUAL_HASH_DEPTH 100
+static uint32_t equal_hash_rec(SgObject obj, int depth, SgHashTable *seen)
 {
   uint32_t hashval;
-  if (depth > EQUAL_HASH_DEPTH_LIMIT) return 1;
+  if (depth == MAX_EQUAL_HASH_DEPTH) return 1;
+
+#define REGISTER(obj)						\
+  if (SG_UNBOUNDP(Sg_HashTableRef(seen, (obj), SG_UNBOUND))) {	\
+    Sg_HashTableSet(seen, (obj), SG_TRUE, 0);			\
+  }
+#define CHECK(obj)						\
+  if (!SG_FALSEP(Sg_HashTableRef(seen, (obj), SG_FALSE)))
+
+  CHECK(obj) {
+    ADDRESS_HASH(hashval, obj);
+    return hashval;
+  }
+
   if (!SG_PTRP(obj)) {
     SMALL_INT_HASH(hashval, (unsigned long)SG_WORD(obj));
     return hashval;
@@ -136,22 +148,40 @@ static uint32_t equal_hash_rec(SgObject obj, int depth)
     return Sg_StringHash(SG_STRING(obj), 0);
   } else if (SG_PAIRP(obj)) {
     unsigned long h = 0, h2;
-    h = equal_hash_rec(SG_CAR(obj), depth + 1);
-    h2 = equal_hash_rec(SG_CDR(obj), depth + 1);
+    Sg_HashTableSet(seen, obj, SG_TRUE, 0);
+    h = equal_hash_rec(SG_CAR(obj), depth+1, seen);
+    REGISTER(SG_CAR(obj));
+    CHECK(SG_CDR(obj)) {
+      h2 = equal_hash_rec(SG_CDR(obj), depth+1, seen);
+    } else {
+      h2 = 1;
+    }
     h = COMBINE(h, h2);
     return h;
   } else if (SG_VECTORP(obj)) {
     int i, size = SG_VECTOR_SIZE(obj);
     unsigned long h = 0, h2;
+    Sg_HashTableSet(seen, obj, SG_TRUE, 0);
     for (i = 0; i < size; i++) {
-      h2 = equal_hash_rec(SG_VECTOR_ELEMENT(obj, i), depth + 1);
+      CHECK(SG_VECTOR_ELEMENT(obj, i)) continue;
+      h2 = equal_hash_rec(SG_VECTOR_ELEMENT(obj, i), depth+1, seen);
       h = COMBINE(h, h2);
+      REGISTER(SG_VECTOR_ELEMENT(obj, i));
     }
     return h;
   } else if (SG_SYMBOLP(obj)) {
     return Sg_StringHash(SG_SYMBOL(obj)->name, 0);
   } else if (SG_KEYWORDP(obj)) {
     return Sg_StringHash(SG_KEYWORD_NAME(obj), 0);
+  } else if (SG_BVECTORP(obj)) {
+    /* TODO is this ok? */
+    unsigned long h = 0, h2;
+    int i, size = SG_BVECTOR_SIZE(obj);
+    for (i = 0; i < size; i++) {
+      SMALL_INT_HASH(h2, SG_BVECTOR_ELEMENT(obj, i));
+      h = COMBINE(h, h2);
+    }
+    return h;
   } else {
     ADDRESS_HASH(hashval, obj);
     return hashval;
@@ -160,7 +190,8 @@ static uint32_t equal_hash_rec(SgObject obj, int depth)
 
 uint32_t Sg_EqualHash(SgObject obj)
 {
-  return equal_hash_rec(obj, 0);
+  SgHashTable *ht = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
+  return equal_hash_rec(obj, 0, ht);
 }
 
 uint32_t Sg_StringHash(SgString *str, uint32_t bound)

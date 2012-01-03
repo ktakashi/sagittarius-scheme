@@ -883,6 +883,9 @@
 (define-inst SET_CAR (0 0 #t)
   (if (not (SG_PAIRP (INDEX (SP vm) 0)))
       (wrong-type-of-argument-violation 'set-car! "pair" (INDEX (SP vm) 0)))
+  (when (Sg_ConstantLiteralP (INDEX (SP vm) 0))
+    (assertion-violation 'set-car! "attempt to modify constant literal"
+			 (INDEX (SP vm) 0)))
   (SG_SET_CAR (INDEX (SP vm) 0) (AC vm))
   (post-- (SP vm))
   (set! (AC vm) SG_UNDEF))
@@ -890,6 +893,9 @@
 (define-inst SET_CDR (0 0 #t)
   (if (not (SG_PAIRP (INDEX (SP vm) 0)))
       (wrong-type-of-argument-violation 'set-cdr! "pair" (INDEX (SP vm) 0)))
+  (when (Sg_ConstantLiteralP (INDEX (SP vm) 0))
+    (assertion-violation 'set-cdr! "attempt to modify constant literal"
+			 (INDEX (SP vm) 0)))
   (SG_SET_CDR (INDEX (SP vm) 0) (AC vm))
   (post-- (SP vm))
   (set! (AC vm) SG_UNDEF))

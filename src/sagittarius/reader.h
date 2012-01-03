@@ -64,6 +64,9 @@ SG_EXTERN void     Sg_SetDispatchMacroCharacter(SgChar c, SgChar subc,
 						readtable_t *table);
 SG_EXTERN void     Sg_EnsureLibraryReadTable(SgLibrary *library);
 
+SG_EXTERN int      Sg_ConstantLiteralP(SgObject o);
+SG_EXTERN SgObject Sg_AddConstantLiteral(SgObject o);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_READER_H_ */

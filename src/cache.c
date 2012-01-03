@@ -446,7 +446,7 @@ static void write_number_cache(SgPort *out, SgObject o)
 static void write_list_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx *ctx)
 {
   /* o = '(a b c d . e) */
-  SgObject v = SG_NIL, t = SG_NIL;
+  SgObject v = SG_NIL, t = SG_NIL, org = o;
   int first = TRUE;
   while (SG_PAIRP(o)) {
     if (!first && SG_TRUEP(Sg_HashTableRef(ctx->sharedObjects, o, SG_FALSE))) {
@@ -468,6 +468,7 @@ static void write_list_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx *c
     int size = Sg_Length(v);
     SgObject cp;
     put_word(out, size, PLIST_TAG);
+    Sg_PutbUnsafe(out, Sg_ConstantLiteralP(org));
     SG_FOR_EACH(cp, v) {
       write_object_cache(out, SG_CAR(cp), cbs, ctx);
     }
@@ -476,6 +477,7 @@ static void write_list_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx *c
     int size = Sg_Length(v);
     SgObject cp, p;
     put_word(out, size, DLIST_TAG);
+    Sg_PutbUnsafe(out, Sg_ConstantLiteralP(org));
     p = Sg_HashTableRef(ctx->sharedObjects, o, SG_FALSE);
     if (SG_PAIRP(p)) {
       put_word(out, SG_INT_VALUE(SG_CAR(p)), DEFINING_SHARED_TAG);
@@ -541,12 +543,14 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx 
   } else if (SG_BVECTORP(o)) {
     int size = SG_BVECTOR_SIZE(o), j;
     put_word(out, size, BYTE_VECTOR_TAG);
+    Sg_PutbUnsafe(out, Sg_ConstantLiteralP(o));
     for (j = 0; j < size; j++) {
       Sg_PutbUnsafe(out, SG_BVECTOR_ELEMENT(o, j));
     }
   } else if (SG_VECTORP(o)) {
     int size = SG_VECTOR_SIZE(o), j;
     put_word(out, size, VECTOR_TAG);
+    Sg_PutbUnsafe(out, Sg_ConstantLiteralP(o));
     for (j = 0; j < size; j++) {
       write_object_cache(out, SG_VECTOR_ELEMENT(o, j), cbs, ctx);
     }
@@ -925,25 +929,34 @@ static SgObject read_identifier(SgPort *in, read_ctx *ctx)
 
 static SgObject read_bvector(SgPort *in)
 {
-  int length, i;
+  int length, i, literalp;
   SgByteVector *bv;
   length = read_word(in, BYTE_VECTOR_TAG);
+  literalp = Sg_GetbUnsafe(in);
   bv = Sg_MakeByteVector(length, 0);
   for (i = 0; i < length; i++) {
     int b = Sg_GetbUnsafe(in);
     SG_BVECTOR_ELEMENT(bv, i) = b;
+  }
+  if (literalp) {
+    bv = Sg_AddConstantLiteral(bv);
   }
   return bv;
 }
 
 static SgObject read_vector(SgPort *in, read_ctx *ctx)
 {
-  int length, i;
+  int length, i, literalp;
   SgVector *vec;
+
   length = read_word(in, VECTOR_TAG);
+  literalp = Sg_GetbUnsafe(in);
   vec = Sg_MakeVector(length, SG_UNDEF);
   for (i = 0; i < length; i++) {
     SG_VECTOR_ELEMENT(vec, i) = read_object_rec(in, ctx);
+  }
+  if (literalp) {
+    vec = Sg_AddConstantLiteral(vec);
   }
   return vec;
 }
@@ -951,12 +964,16 @@ static SgObject read_vector(SgPort *in, read_ctx *ctx)
 /* PLIST_TAG length *e1* *e2* ... */
 static SgObject read_plist(SgPort *in, read_ctx *ctx)
 {
-  int length, i;
+  int length, i, literalp;
   SgObject h = SG_NIL, t = SG_NIL;
 
   length = read_word(in, PLIST_TAG);
+  literalp = Sg_GetbUnsafe(in);
   for (i = 0; i < length; i++) {
     SG_APPEND1(h, t, read_object_rec(in, ctx));
+  }
+  if (literalp) {
+    h = Sg_AddConstantLiteral(h);
   }
   return h;
 }
@@ -964,16 +981,20 @@ static SgObject read_plist(SgPort *in, read_ctx *ctx)
 /* DLIST_TAG length *en* *e1* *e2* ... *en-1* */
 static SgObject read_dlist(SgPort *in, read_ctx *ctx)
 {
-  int length, i;
+  int length, i, literalp;
   SgObject h = SG_NIL, t = SG_NIL, o;
 
   length = read_word(in, DLIST_TAG);
+  literalp = Sg_GetbUnsafe(in);
   o = read_object_rec(in, ctx);
   for (i = 0; i < length; i++) {
     SG_APPEND1(h, t, read_object_rec(in, ctx));
   }
   /* set last element */
   SG_SET_CDR(t, o);
+  if (literalp) {
+    h = Sg_AddConstantLiteral(h);
+  }
   return h;
 }
 
@@ -1222,8 +1243,11 @@ static SgObject read_code(SgPort *in, read_ctx *ctx)
     SgObject o = read_object(in, ctx);
     if (!ctx->insnP && SG_IDENTIFIERP(o)) {
       /* resolve shared object here for identifier*/
-      read_cache_link(SG_IDENTIFIER_ENVS(o), Sg_MakeHashTableSimple(SG_HASH_EQ, 0), ctx);
-      read_cache_link(SG_IDENTIFIER_LIBRARY(o), Sg_MakeHashTableSimple(SG_HASH_EQ, 0), ctx);
+      read_cache_link(SG_IDENTIFIER_ENVS(o),
+		      Sg_MakeHashTableSimple(SG_HASH_EQ, 0), ctx);
+      read_cache_link(SG_IDENTIFIER_LIBRARY(o),
+		      Sg_MakeHashTableSimple(SG_HASH_EQ, 0), ctx);
+
     }
     code[i] = SG_WORD(o);
   }

@@ -1080,6 +1080,12 @@ CASE(SET_CAR) {
 ;
   }
 ;
+  if (Sg_ConstantLiteralP(INDEX(SP(vm), 0))) {
+    Sg_AssertionViolation(SG_INTERN("set-car!"), Sg_MakeString(UC("attempt to modify constant literal"), SG_LITERAL_STRING), INDEX(SP(vm), 0));
+    return SG_UNDEF;
+;
+  }
+;
   SG_SET_CAR(INDEX(SP(vm), 0), AC(vm));
   SP(vm)--;
   AC(vm)=SG_UNDEF;
@@ -1089,6 +1095,12 @@ CASE(SET_CAR) {
 CASE(SET_CDR) {
   if (!(SG_PAIRP(INDEX(SP(vm), 0)))) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("set-cdr!"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), INDEX(SP(vm), 0), SG_NIL);
+    return SG_UNDEF;
+;
+  }
+;
+  if (Sg_ConstantLiteralP(INDEX(SP(vm), 0))) {
+    Sg_AssertionViolation(SG_INTERN("set-cdr!"), Sg_MakeString(UC("attempt to modify constant literal"), SG_LITERAL_STRING), INDEX(SP(vm), 0));
     return SG_UNDEF;
 ;
   }
