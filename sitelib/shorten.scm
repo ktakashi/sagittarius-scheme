@@ -31,8 +31,7 @@
 #!compatible
 (library (shorten helper)
     (export %define-^)
-    (import (rnrs)
-	    (match))
+    (import (rnrs))
 
   (define (%define-^ rename symbols type)
     (define (gen-name seed need^?)
@@ -67,6 +66,7 @@
 	    ^l* ^m* ^n* ^o* ^p* ^q* ^r* ^s* ^t* ^u* ^v* ^w*
 	    ^x* ^y* ^z* ^_*)
     (import (rnrs)
+	    (match)
 	    (shorten helper)
 	    (sagittarius))
 
