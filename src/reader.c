@@ -54,11 +54,6 @@
 #include "sagittarius/weak.h"
 #include "sagittarius/library.h"
 
-/* template readtables */
-static readtable_t r6rs_read_table;
-/* including r7rs #u8() */
-static readtable_t compat_read_table;
-
 static uint8_t CHAR_MAP[] = {
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
@@ -162,6 +157,11 @@ struct readtable_rec_t
   SgObject (*symbol_reader)(SgPort *, SgChar, SgReadContext *);
   readtab_t readtable[MAX_READTABLE_CHAR];
 };
+
+/* template readtables */
+static readtable_t r6rs_read_table;
+/* including r7rs #u8() */
+static readtable_t compat_read_table;
 
 static int delimited(SgChar c)
 {
