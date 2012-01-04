@@ -522,10 +522,10 @@
 		     ((assq (caar frame) vars)
 			=> (lambda (slot)
 			     (let ((r (cadr slot)))
-			       (if (identifier=? use-env id mac-env r)
+			       (if (and (identifier? r)
+					(identifier=? use-env id mac-env r))
 				   r
-				   (loop (cdr frames))
-				   #;(loop2 (cdr frame))))))
+				   (loop2 (cdr frame))))))
 		     (else (loop2 (cdr frame))))))
 	    (else (loop (cdr frames))))))
 
@@ -768,9 +768,10 @@
   (let ((env (if (null? (id-envs template-id))
 		 (current-usage-env)
 		 (current-macro-env))))
-    (if (eq? (vector-ref env 0) (id-library template-id))
+    (wrap-syntax datum env)
+    #;(if (eq? (vector-ref env 0) (id-library template-id))
 	datum
-	(wrap-syntax datum env))))
+    (wrap-syntax datum env))))
 
 ;; syntax->datum
 (define (syntax->datum syntax)
