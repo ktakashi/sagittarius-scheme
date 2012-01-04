@@ -183,4 +183,10 @@
     (list->string
      (apply map proc (string->list str1)
 	    (map string->list str2))))
+
+  ;; FIXME: support non blocking IO
+  (define char-ready?
+    (case-lambda
+     ((port) #f)
+     (() #f)))
 )

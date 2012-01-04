@@ -524,7 +524,8 @@
 			     (let ((r (cadr slot)))
 			       (if (identifier=? use-env id mac-env r)
 				   r
-				   (loop (cdr frames))))))
+				   (loop (cdr frames))
+				   #;(loop2 (cdr frame))))))
 		     (else (loop2 (cdr frame))))))
 	    (else (loop (cdr frames))))))
 

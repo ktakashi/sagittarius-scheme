@@ -1,5 +1,8 @@
 2012-01-04  Takashi Kato  <ktakashi@ymail.com>
 
+	* src/null.stub (list->string): it accepted non list object and
+	returned empty string.
+
 	* R7RS: added first support for R7RS libraries and syntax.
 
 	* boot/compiler.scm (case): adjusted case to R7RS '=> keyword.

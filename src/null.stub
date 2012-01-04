@@ -1150,6 +1150,8 @@
     (result (Sg_StringToList s start end)))
 
   (define-c-proc list->string (o) ::Object
+    (unless (SG_LISTP o)
+      (wrong-type-of-argument-violation 'list->string "list" o))
     (result (Sg_ListToString o)))
 
   ;; we take start+end as optional arguments for srfi-13
