@@ -909,6 +909,12 @@
 ;; Do I need more?
 (define lambda. (global-id 'lambda))
 (define begin.  (global-id 'begin))
+;; for case
+(define let.  (global-id 'let))
+(define if.   (global-id 'if))
+(define eq?.  (global-id 'eq?))
+(define eqv?. (global-id 'eqv?))
+(define memv. (global-id 'memv))
 
 ;; load expander here for macro...
 (cond-expand
@@ -1702,28 +1708,43 @@
     (else (syntax-error "malformed cond" form))))
 
 (define-pass1-syntax (case form p1env) :null
-  (define expand-clauses
-    (lambda (clauses tmp)
-      (let loop ((clauses clauses))
-	(if (null? clauses)
-	    '()
-	    (if (global-eq? (caar clauses) 'else p1env)
-		clauses
-		(if (= 1 (length (caar clauses)))
-		    (cons `((eqv? ',(caaar clauses) ,tmp)
-			    ,@(cdar clauses))
-			  (loop (cdr clauses)))
-		    (cons `((memv ,tmp ',(caar clauses))
-			    ,@(cdar clauses))
-			  (loop (cdr clauses)))))))))
+  (define (expand-clauses clauses tmp)
+    (let loop ((clauses clauses))
+      (smatch clauses
+	(() (undefined))
+	((((? (lambda (x) (global-eq? x 'else p1env)) -) exprs ___) . rest)
+	 (unless (null? rest)
+	   (syntax-error "'else' clauses followed by more clauses" form))
+	 (smatch exprs
+	   (((? (lambda (x) (global-eq? x '=> p1env)) -) proc)
+	    `(,proc ,tmp))
+	   (- `(,begin. ,@exprs))))
+	(((elts exprs ___) . rest)
+	 (let ((n (length elts))
+	       ;; only symbol or 
+	       (elts (map unwrap-syntax elts)))
+	   (unless (> n 0)
+	     (syntax-error "bad clause in case" form))
+	   `(,if. ,(if (> n 1)
+		     `(,memv. ,tmp ',elts)
+		     (if (symbol? (car elts))
+			 `(,eq?. ,tmp ',(car elts))
+			 `(,eqv?. ,tmp ',(car elts))))
+		,(smatch exprs
+		   (((? (lambda (x) (global-eq? x '=> p1env)) -) proc)
+		    `(,proc ,tmp))
+		   (_ `(,begin. ,@exprs)))
+		,(loop (cdr clauses)))))
+	(- (syntax-error "at least one clauses is required for case" form)))))
+
   (smatch form
     ((-) (syntax-error "at least one clause is required for case" form))
     ((- pred clauses ___)
      (let* ((tmp (gensym))
 	    (expanded-clauses (expand-clauses clauses tmp)))
-       (let ((expr `(let ((,tmp ,pred))
-		      (cond ,@expanded-clauses))))
-       (pass1 ($src expr form) p1env))))
+       (let ((expr `(,let. ((,tmp ,pred))
+		      ,expanded-clauses)))
+	 (pass1 ($src expr form) p1env))))
     (- (syntax-error "malformed case" form))))
 
 ;; set!
@@ -1924,15 +1945,26 @@
 			 (format "unsupported export keyword ~s" (car spec))
 			 export))))
 	      ((and (pair? (car spec))
-		    (eq? (caar spec) 'rename))
-	       ;; r6rs spec says rename must be (original renamed)
-	       (loop (cdr spec) ex (append (cdar spec) renames)))
+		    (eq? (caar spec) 'rename)
+		    (car spec))
+	       => (lambda (rename)
+		    (if (and (for-all variable? rename)
+			     (= 3 (length rename)))
+			;; (rename name1 name2) assume R7RS library
+			;; need to create ((name1 name2))
+			(loop (cdr spec) ex (append (list (cons (cadr rename)
+								(cddr rename)))
+						    rename))
+			;; assume this is R6RS library
+			;; r6rs spec says rename must be (original renamed)
+			(loop (cdr spec) ex (append (cdr rename) renames)))))
 	      (else
 	       (syntax-error 
 		"unknown object appeared in export spec" (car spec))))))
     (receive (exports renames) (parse-export (cdr export))
       (library-exported-set! lib
-			     (cons exports (list renames))))))
+			     (cons exports (list renames)))
+      ($undef))))
 
 ;; Collect library inlinable define.
 ;; Inlinable condition:
@@ -2136,10 +2168,28 @@
     iforms)
   )
 
+(define-pass1-syntax (export form p1env) :null
+  (check-toplevel form p1env)
+  (pass1/export form (p1env-library p1env)))
 
 (define-pass1-syntax (import form p1env) :null
   (check-toplevel form p1env)
   (pass1/import form (p1env-library p1env)))
+
+(define (pass1/library form lib p1env)
+  (let ((save (vm-current-library))) ;; save current library
+    (dynamic-wind
+	(lambda ()
+	  (vm-current-library lib))
+	(lambda ()
+	  (let ((iforms (map (lambda (x) (pass1 x p1env)) form)))
+	    ($seq (append
+		   (list ($library lib)) ; put library here
+		   (pass1/collect-inlinable! iforms lib)
+		   (list ($undef))))))
+	(lambda ()
+	  ;; restore current library
+	  (vm-current-library save)))))
 
 (define-pass1-syntax (library form p1env) :null
   (define check
@@ -2161,21 +2211,24 @@
 	    (newenv      (make-bottom-p1env current-lib)))
        (pass1/import import current-lib)
        (pass1/export export current-lib)
-       (let ((save (vm-current-library))) ;; save current library
-	 (dynamic-wind
-	     (lambda ()
-	       (vm-current-library current-lib))
-	     (lambda ()
-	       (let ((iforms (map (lambda (x) (pass1 x newenv)) body)))
-		 ($seq (append
-			(list ($library current-lib)) ; put library here
-			#;(map (lambda (x) (pass1 x newenv)) body)
-			(pass1/collect-inlinable! iforms current-lib)
-			(list ($undef))))))
-	     (lambda ()
-	       (vm-current-library save)))))) ;; restore current library
+       (pass1/library body current-lib newenv)))
     (- (syntax-error "malformed library" form))))
 
+(define-pass1-syntax (define-library form p1env) :null
+  (check-toplevel form p1env)
+  (smatch form
+    ((- name body ___)
+     (let* ((current-lib (ensure-library name 'library #t))
+	    (newenv      (make-bottom-p1env current-lib)))
+       ;; imports some default syntax to new library
+       ;; well this is not so good, but convenient
+       (import-library current-lib (ensure-library 'null 'define-library #f)
+		       '() '() '() #f #f)
+       (import-library current-lib (ensure-library '(sagittarius)
+						   'define-library #f)
+		       '() '() '() #f #f)
+       (pass1/library body current-lib newenv)))
+    (- (syntax-error "malformed define-library" form))))
 
 (define pass1/body
   (lambda (exprs p1env)

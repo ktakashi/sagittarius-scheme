@@ -1,3 +1,9 @@
+2012-01-04  Takashi Kato  <ktakashi@ymail.com>
+
+	* R7RS: added first support for R7RS libraries and syntax.
+
+	* boot/compiler.scm (case): adjusted case to R7RS '=> keyword.
+
 2012-01-03  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/shorten.scm (shorten): Added (shorten)library.
@@ -12,7 +18,7 @@
 
 2011-12-29  Takashi Kato  <ktakashi@ymail.com>
 
-	* sitelib/sagittarius/reader.scm (sagittarius reader): 
+	* sitelib/sagittarius/reader.scm (sagittarius reader):
 	added reader macro library.
 
 2011-11-23  Takashi Kato  <ktakashi@ymail.com>

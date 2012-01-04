@@ -2195,18 +2195,20 @@
   (decl-code
    (.include <string.h>))
 
-  (define-c-proc get-u8 (p::Port) ::Object
+  (define-c-proc get-u8 (p::Port :optional (reckless #f)) ::Object
     (check-port-open get-u8 p)
-    (check-binary-port get-u8 p)
+    (when (SG_FALSEP reckless)
+      (check-binary-port get-u8 p))
     (check-input-port get-u8 p)
     (let ((b::int (Sg_Getb p)))
       (if (== EOF b)
 	  (result SG_EOF)
 	  (result (SG_MAKE_INT b)))))
   
-  (define-c-proc lookahead-u8 (p::Port) ::Object
+  (define-c-proc lookahead-u8 (p::Port :optional (reckless #f)) ::Object
     (check-port-open lookahead-u8 p)
-    (check-binary-port lookahead-u8 p)
+    (when (SG_FALSEP reckless)
+      (check-binary-port lookahead-u8 p))
     (check-input-port lookahead-u8 p)
     (let ((b::int (Sg_Peekb p)))
       (if (== EOF b)
@@ -2604,9 +2606,10 @@
 				      getter setter close)))
 
   ;; 8.2.11 binary output
-  (define-c-proc put-u8 (p::Port octet::fixnum) ::void
+  (define-c-proc put-u8 (p::Port octet::fixnum :optional (reckless #f)) ::void
     (check-port-open put-u8 p)
-    (check-binary-port put-u8 p)
+    (when (SG_FALSEP reckless)
+      (check-binary-port put-u8 p))
     (check-output-port put-u8 p)
     (check-fixnum-range put-u8 octet 0 255 <= <=)
     (Sg_Putb p octet))
@@ -2615,10 +2618,12 @@
     (p::Port bv::ByteVector
      :optional (start::fixnum 0)
                (count::fixnum (- (SG_BVECTOR_SIZE bv)
-				 start)))
+				 start))
+	       (reckless #f))
     ::void
     (check-port-open put-bytevector p)
-    (check-binary-port put-bytevector p)
+    (when (SG_FALSEP reckless)
+      (check-binary-port put-bytevector p))
     (check-output-port put-bytevector p)
     (check-non-negative-fixnum put-bytevector start)
     (check-non-negative-fixnum put-bytevector count)

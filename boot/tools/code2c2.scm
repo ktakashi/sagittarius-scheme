@@ -75,6 +75,8 @@
 	 (format out "        WORD(SG_NIL),~%"))
 	((char? o)
 	 (format out "        WORD(SG_MAKE_CHAR(~a)),~%" (char->integer o)))
+	((undefined? o)
+	 (format out "        WORD(SG_UNDEF)  /* undef */,~%"))
 	((identifier? o)
 	 (format out "        WORD(SG_UNDEF)  /* identifier#~s */,~%" (decode-start-comment (id-name o))))
 	((keyword? o)
