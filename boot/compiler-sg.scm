@@ -2413,6 +2413,67 @@
     (pass1/library body current-lib newenv)))
   (- (syntax-error "malformed define-library" form))))
 
+(define-pass1-syntax
+ (cond-expand form p1env)
+ :sagittarius
+ (define (process-clause clauses)
+   (define (cond-library? x)
+     (eq?
+      (identifier->symbol x)
+      'library))(define (cond-and/or? x)
+     (memq
+      (identifier->symbol x)
+      '(and
+       or)))(define (cond-not? x)
+     (eq?
+      (identifier->symbol x)
+      'not))(define (cond-else? x)
+     (and
+      (variable? x)
+      (eq?
+       (identifier->symbol x)
+       'else)))(define (check-cond-features req type)
+     (case
+      type
+      ((or) (not (null? (lset-intersection eq? req (cond-features)))))
+      ((and)
+       (null?
+        (lset-difference
+         eq?
+         req
+         (cond-features))))))(smatch
+    clauses
+    (() (syntax-error "unfulfilled cond-expand" form))
+    ((((? cond-else? -) body ___) . rest)
+     (unless
+      (null? rest)
+      (syntax-error "'else' clauses followed by more clauses" form))
+     (pass1 `(,begin. ,@body) p1env))
+    (((((? cond-library? -) name) body ___) . rest)
+     (if
+      (find-library name #f)
+      (pass1 `(,begin. ,@body) p1env)
+      (process-clause (cdr clauses))))
+    (((((? cond-not? -) req) body ___) . rest)
+     (if
+      (member (identifier->symbol req) (cond-features))
+      (process-clause (cdr clauses))
+      (pass1 `(,begin. ,@body) p1env)))
+    (((((? cond-and/or? c) . req) body ___) . rest)
+     (cond
+      ((check-cond-features req c) (pass1 `(,begin. ,@body) p1env))
+      (else (process-clause (cdr clauses)))))
+    (((feature-id body ___) . rest)
+     (if
+      (member (identifier->symbol feature-id) (cond-features))
+      (pass1 `(,begin. ,@body) p1env)
+      (process-clause (cdr clauses))))
+    (- (syntax-error "malformed cond-expand" form))))
+ (smatch
+  form
+  ((- clauses ___) (process-clause clauses))
+  (- (syntax-error "malformed cond-expand" form))))
+
 (define
  pass1/body
  (lambda (exprs p1env) (pass1/body-rec (map list exprs) '() '() p1env)))

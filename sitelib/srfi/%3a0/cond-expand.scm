@@ -27,9 +27,8 @@
 
 (library (srfi :0 cond-expand)
   (export cond-expand)
-  (import (rnrs)
-	  (sagittarius))
-  
+  (import (sagittarius))
+#| ;; since 0.2.4 we have builtin cond-expand
   (define-syntax cond-expand
     (lambda (stx)
       (syntax-case stx (and or not else)
@@ -68,5 +67,5 @@
          (if (member (syntax->datum #'feature-id) (cond-features))
            #'(begin body ...)
            #'(cond-expand more-clauses ...))])))
-  
+|#  
 )

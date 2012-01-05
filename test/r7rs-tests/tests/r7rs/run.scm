@@ -5,6 +5,7 @@
 	(tests r7rs lazy)
 	(tests r7rs case-lambda)
 	(tests r7rs char))
+
 (test-begin "R7RS tests")
 (run-r7rs-base-tests)
 (run-r7rs-lazy-tests)

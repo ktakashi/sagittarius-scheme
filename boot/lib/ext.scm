@@ -1,5 +1,6 @@
 ;; need to move to C++
 (define (constant-literal? o) #f)
+(define (cond-features) '(sagittarius sagittarius.scheme.vm))
 
 ;; for dependency problem
 (define identifier?

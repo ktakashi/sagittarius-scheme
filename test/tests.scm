@@ -62,8 +62,9 @@
 
 (define (test-runner-detail)
   (let ((runner (test-runner-simple)))
-      (test-runner-on-test-end! runner test-on-test-end-detail)
-      runner))
+    (test-runner-on-test-end! runner test-on-test-end-detail)
+    (test-runner-reset runner)
+    runner))
 
 (test-runner-factory test-runner-detail)
 

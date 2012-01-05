@@ -62,6 +62,7 @@
 #include "sagittarius/port.h"
 #include "sagittarius/gloc.h"
 #include "sagittarius/unicode.h"
+#include "sagittarius/weak.h"
 #include "sagittarius/builtin-symbols.h"
 #include "sagittarius/reader.h"	/* for sharedref */
 
@@ -734,6 +735,18 @@ static void write_string(SgString *obj, SgPort *port, SgWriteContext *ctx)
   } 
 }
 
+static void write_weak_vector(SgWeakVector *wvec, SgPort *port,
+			      SgWriteContext *ctx)
+{
+  int size = wvec->size, i;
+  Sg_PutuzUnsafe(port, UC("#<weak-vector"));
+  for (i = 0; i < size; i++) {
+    Sg_PutcUnsafe(port, ' ');
+    write_ss_rec(Sg_WeakVectorRef(wvec, i, SG_FALSE), port, ctx);
+  }
+  Sg_PutcUnsafe(port, '>');
+}
+
 static void write_identifier(SgIdentifier *id, SgPort *port, SgWriteContext *ctx)
 {
   Sg_PutuzUnsafe(port, UC("#<identifier "));
@@ -1279,6 +1292,8 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
       write_ss_rec(elts[i], port, ctx);
     }
     Sg_PutcUnsafe(port, ')');
+  } else if (SG_WEAK_VECTORP(obj)) {
+    write_weak_vector(obj, port, ctx);
   } else if (SG_STRINGP(obj)) {
     write_string(SG_STRING(obj), port, ctx);
   } else if (SG_SYMBOLP(obj)) {

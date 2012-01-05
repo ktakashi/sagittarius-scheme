@@ -14,7 +14,7 @@ in R6RS such as extra file system functions and so.
 }
 
 @subsubsection{Builtin Syntax}
-@define[Syntax]{@name{define-constant} @{variable expression}}
+@define[Syntax]{@name{define-constant} @args{variable expression}}
 @desc{Similar to the @code{define} however the @code{define-constant} binds
 @var{variable} as a constant value and the compiler try to fold it if it is
 constant value i.e. literal string, literal vector, literal number and so.
@@ -34,6 +34,28 @@ so this behaviour might be changed in future.
 The expressions in @var{body} are evaluated sequentially in the extended
 environment. The results of the last expression in the body are the values of
 the @code{receive}-expression.
+}
+
+@define[Syntax]{@name{cond-expand} @args{clauses @dots{}}}
+@desc{[R7RS][SRFI-0] Compile time condition. The @code{cond-expand} resolves
+platform dependencies such as C's @code{#ifdef} preprocessor.
+
+@var{clauses} must be one of these forms:
+@itemlist{
+@item{(@var{feature-identifier} @var{body} @dots{})}
+@item{((@code{library} @var{library-name}) @var{body} @dots{})}
+@item{((@code{and} @var{feature-identifier} @dots{}) @var{body} @dots{})}
+@item{((@code{or} @var{feature-identifier} @dots{}) @var{body} @dots{})}
+@item{(@code{not} @var{feature-identifier})}
+}
+@code{library} form searches the given @var{library-name} and if it is found,
+then compiles @var{body}.
+
+@code{and}, @code{or} and @code{not} are the same as usual syntax.
+
+Possible @var{feature-identifier}s are @code{sagittarius} and
+@code{sagittarius.os.@var{osname}}. @var{osname} can be @code{cygwin},
+@code{windows} or @code{linux} so on.
 }
 
 @subsubsection{Macro transformer}
@@ -336,6 +358,25 @@ used when variable is bounded by @code{define-with-key} (see
 
 @define[Function]{@name{keyword?} @args{obj}}
 @desc{Returns #t if @var{obj} is keyword, otherwise #f.
+}
+
+@subsubsection{Weak Pointer}
+@; TODO write the document.
+
+@define[Function]{@name{make-weak-vector} @args{size}}
+@desc{
+}
+
+@define[Function]{@name{weak-vector-length} @args{wvec}}
+@desc{
+}
+
+@define[Function]{@name{weak-vector-ref} @args{wvec k :optional fallback}}
+@desc{
+}
+
+@define[Function]{@name{weak-vector-set!} @args{wvec k value}}
+@desc{
 }
 
 @subsubsection{Bytevector operations}

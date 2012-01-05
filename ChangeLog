@@ -1,5 +1,9 @@
 2012-01-05  Takashi Kato  <ktakashi@ymail.com>
 
+	* src/extlib.stub (weak-vector): supported weak vector.
+
+	* boot/compiler.scm (cond-expand): added builtin cond-expand.
+
 	* README.md: changed to Markdown format.
 
 2012-01-04  Takashi Kato  <ktakashi@ymail.com>

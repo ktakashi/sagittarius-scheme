@@ -130,6 +130,11 @@
 
 	    constant-literal?
 	    digit-value
+	    ;; weak pointers
+	    make-weak-vector
+	    weak-vector-length
+	    weak-vector-ref
+	    weak-vector-set!
 	    )
     (import :null)
   (decl-code
@@ -778,4 +783,36 @@
   (define-c-proc digit-value (c) ::Object
     (check-char digit-value c)
     (return (Sg_DigitValue (SG_CHAR_VALUE c))))
+
+  (define-c-proc make-weak-vector (size::fixnum) ::Object
+    (result (Sg_MakeWeakVector size)))
+
+  (define-c-proc weak-vector-length (o) ::fixnum
+    (unless (SG_WEAK_VECTORP o)
+      (wrong-type-of-argument-violation 'weak-vector-length
+					"weak-vector" o))
+    (result (-> (SG_WEAK_VECTOR o) size)))
+
+  (define-c-proc weak-vector-ref (wvec k::fixnum :optional fallback) ::Object
+    (unless (SG_WEAK_VECTORP wvec)
+      (wrong-type-of-argument-violation 'weak-vector-ref
+					"weak-vector" wvec))
+    (cond ((or (< k 0) (>= k (-> (SG_WEAK_VECTOR wvec) size)))
+	   (if (SG_UNBOUNDP fallback)
+	       (assertion-violation 'weak-vector-ref
+				    "index out of range" 
+				    (SG_LIST2 wvec (SG_MAKE_INT k)))
+	       (result fallback)))
+	  (else
+	   (result (Sg_WeakVectorRef wvec k fallback)))))
+
+  (define-c-proc weak-vector-set! (wvec k::fixnum value) ::void
+    (unless (SG_WEAK_VECTORP wvec)
+      (wrong-type-of-argument-violation 'weak-vector-ref
+					"weak-vector" wvec))
+    (when (or (< k 0) (>= k (-> (SG_WEAK_VECTOR wvec) size)))
+      (assertion-violation 'weak-vector-ref
+			   "index out of range" 
+			   (SG_LIST2 wvec (SG_MAKE_INT k))))
+    (Sg_WeakVectorSet wvec k value))
 )
