@@ -1,3 +1,7 @@
+2012-01-05  Takashi Kato  <ktakashi@ymail.com>
+
+	* README.md: changed to Markdown format.
+
 2012-01-04  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/null.stub (list->string): it accepted non list object and
