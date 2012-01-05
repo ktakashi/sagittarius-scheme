@@ -2,4 +2,4 @@
 #!compatible
 (library (scheme lazy)
     (export lazy eager delay force)
-    (import (srif :45)))
+    (import (srfi :45)))

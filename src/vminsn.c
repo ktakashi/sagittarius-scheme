@@ -134,6 +134,7 @@ CASE(LREF) {
 CASE(LSET) {
   INSN_VAL1(val1, c);
   SG_BOX(REFER_LOCAL(vm, val1))->value=AC(vm);
+  AC(vm)=SG_UNDEF;
   NEXT;
 }
 
@@ -146,6 +147,7 @@ CASE(FREF) {
 CASE(FSET) {
   INSN_VAL1(val1, c);
   SG_BOX(INDEX_CLOSURE(vm, val1))->value=AC(vm);
+  AC(vm)=SG_UNDEF;
   NEXT;
 }
 

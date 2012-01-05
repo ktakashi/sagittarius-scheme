@@ -77,7 +77,8 @@
 
 (define-inst LSET (1 0 #t)
   (INSN_VAL1 val1 c)
-  (set! (-> (SG_BOX (REFER_LOCAL vm val1)) value) (AC vm)))
+  (set! (-> (SG_BOX (REFER_LOCAL vm val1)) value) (AC vm))
+  (set! (AC vm) SG_UNDEF))
 
 (define-inst FREF (1 0 #t)
   (INSN_VAL1 val1 c)
@@ -86,7 +87,8 @@
 
 (define-inst FSET (1 0 #t)
   (INSN_VAL1 val1 c)
-  (set! (-> (SG_BOX (INDEX_CLOSURE vm val1)) value) (AC vm)))
+  (set! (-> (SG_BOX (INDEX_CLOSURE vm val1)) value) (AC vm))
+  (set! (AC vm) SG_UNDEF))
 
 (define-inst GREF (0 1 #t)
   (GREF_INSN vm))

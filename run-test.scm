@@ -15,12 +15,20 @@
 				    (values (cons operand test)))
 				  '())))
     (define (r6rs-test)
-      ;; for R6RS test sutes
+      ;; for R6RS test suites
       (print "testing R6RS test suite")
       (flush-output-port (current-output-port))
       (add-load-path "./test/r6rs-test-suite")
       (load "./test/r6rs-test-suite/tests/r6rs/run.sps")
       (flush-output-port (current-output-port)))
+    (define (r7rs-test)
+      ;; for R7RS test
+      (print "testing R7RS tests")
+      (flush-output-port (current-output-port))
+      (add-load-path "./test/r7rs-tests")
+      (load "./test/r7rs-tests/tests/r7rs/run.scm")
+      (flush-output-port (current-output-port)))
+
     (define (sitelib-test)
       ;; for sitelib
       (print "testing sitelib")
@@ -54,11 +62,13 @@
     (if (null? test)
 	(begin
 	  (r6rs-test)
+	  (r7rs-test)
 	  (sitelib-test)
 	  (ext-test))
 	(for-each (lambda (test)
 		    (case (string->symbol test)
 		      ((r6rs) (r6rs-test))
+		      ((r7rs) (r7rs-test))
 		      ((sitelib) (sitelib-test))
 		      ((ext) (ext-test))
 		      (else

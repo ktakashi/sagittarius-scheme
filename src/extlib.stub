@@ -129,6 +129,7 @@
 	    read-delimited-list
 
 	    constant-literal?
+	    digit-value
 	    )
     (import :null)
   (decl-code
@@ -773,4 +774,8 @@
 
   (define-c-proc constant-literal? (o) ::boolean
     (result (Sg_ConstantLiteralP o)))
+
+  (define-c-proc digit-value (c) ::Object
+    (check-char digit-value c)
+    (return (Sg_DigitValue (SG_CHAR_VALUE c))))
 )

@@ -112,6 +112,8 @@ SG_EXTERN SgObject Sg_StringNormalizeNfkc(SgString *str);
 SG_EXTERN GeneralCategory Sg_CharGeneralCategory(SgChar ch);
 SG_EXTERN SgObject Sg_CategroyToSymbol(GeneralCategory cate);
 
+SG_EXTERN SgObject Sg_DigitValue(SgChar ch);
+
 /* These are not a part of method for sagittarius scheme object. */
 SG_EXTERN size_t ustrcspn(const SgChar *s1, const char *s2);
 SG_EXTERN int    ustrcmp(const SgChar *s1, const char *s2);

@@ -2271,9 +2271,9 @@
 							   (cons x src)) args)
 						   rest)
 					   intdefs intmacros p1env))
-			  ;; 11.2.2 syntax definition
-			  ((and (vm-r6rs-mode?)
-				(global-eq? head 'define-syntax p1env))
+			  ;; 11.2.2 syntax definition (R6RS)
+			  ;; 5.3 Syntax definition (R7RS)
+			  ((global-eq? head 'define-syntax p1env)
 			   (let ((def (smatch args
 					((name expr)
 					 (list args))

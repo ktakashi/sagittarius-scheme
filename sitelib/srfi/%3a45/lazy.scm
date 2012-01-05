@@ -2,7 +2,7 @@
 #!compatible
 (library (srfi :45 lazy)
     (export lazy eager delay force)
-    (import (rnrs))
+    (import (rnrs) (rnrs mutable-pairs))
 
 ;=========================================================================
 ; Boxes

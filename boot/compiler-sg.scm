@@ -2459,7 +2459,7 @@
             intdefs
             intmacros
             p1env))
-          ((and (vm-r6rs-mode?) (global-eq? head 'define-syntax p1env))
+          ((global-eq? head 'define-syntax p1env)
            (let
             ((def
               (smatch

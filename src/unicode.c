@@ -35,6 +35,7 @@
 #include "sagittarius/port.h"
 #include "sagittarius/transcoder.h"
 #include "sagittarius/codec.h"
+#include "sagittarius/number.h"
 #include "sagittarius/string.h"
 #include "sagittarius/symbol.h"
 #include "sagittarius/writer.h"
@@ -493,6 +494,20 @@ static int other_alphabetic_property_p(SgChar ch)
     }
   }
   return FALSE;
+}
+
+SgObject Sg_DigitValue(SgChar ch)
+{
+  if ('0' <= ch && ch <= '9') return SG_MAKE_INT(ch - '0');
+  else {
+    const int size = array_sizeof(s_numeric_property);
+    int i;
+    for (i = 0; i < size; i++) {
+      if (s_numeric_property[i].in == (int32_t)ch)
+	return Sg_MakeInteger(s_numeric_property[i].out);
+    }
+    return SG_FALSE;;
+  }
 }
 
 SgChar Sg_CharUpCase(SgChar ch)

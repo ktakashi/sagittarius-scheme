@@ -50,6 +50,7 @@
 	  (srfi :9)
 	  (srfi :23)
 	  (srfi :39)
+	  (only (scheme private) define-values)
 	  ;; for undefined
 	  (sagittarius))
 
@@ -75,27 +76,6 @@
   (define (bytevector-copy-partial! from start end to at)
     (bytevector-copy! from start to at (- end start)))
 
-  (define-syntax define-values
-    (lambda (x)
-      (syntax-case x ()
-	((_ (val ...) body)
-	 (with-syntax (((name ...)
-			(generate-temporaries #'(val ...)))
-		       ((tmp ...)
-			(generate-temporaries #'(val ...))))
-	   #'(begin
-	       (define name #f)
-	       ...
-	       (define bogus
-		 (begin
-		   (call-with-values (lambda () body)
-		     (lambda (tmp ...)
-		       (set! name tmp)
-		       ...
-		       ))))
-	       (define val name)
-	       ...
-	       ))))))
 
   (define (exact-integer? i) (and (integer? i) (exact? i)))
 
@@ -104,6 +84,9 @@
       (if (= count k)
 	  (set-car! cur obj)
 	  (itr (cdr cur) (+ count 1))))
+    (when (constant-literal? l)
+      (assertion-violation 'list-set!
+			   "attempt to modify literal constant" l))
     (itr l 0))
 
   (define make-list

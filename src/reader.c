@@ -780,7 +780,9 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
 	Sg_SetCurrentReadTable(Sg_CopyReadTable(&r6rs_read_table));
       }
-      if (ustrcmp(tag->value, "compatible") == 0) {
+      if (ustrcmp(tag->value, "compatible") == 0 ||
+	  /* for now it's the same as compatible */
+	  ustrcmp(tag->value, "r7rs") == 0) {
 	SG_VM_SET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
 	Sg_SetCurrentReadTable(Sg_CopyReadTable(&compat_read_table));
