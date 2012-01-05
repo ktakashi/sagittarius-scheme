@@ -12,6 +12,8 @@
 	(tests rfc quoted-printable)
 	(tests rfc mime)
 	(tests match)
+	;; syntax-case extra
+	(tests syntax-case)
 	;; text
 	(tests text sxml ssax)
 	(tests text sxml sxpath)
@@ -78,6 +80,7 @@
 (run-rfc-quoted-printable-tests)
 (run-rfc-mime-test)
 (run-match-tests)
+(run-syntax-case-tests)
 (run-ssax-test)
 (run-sxpath-test)
 (run-serializer-test)

@@ -574,7 +574,7 @@
 		   ;; If transcribed expression contains pattern variable,
 		   ;; we need to replace it.
 		   ;; still we need this. Sucks!!
-		   ;;((lookup-pattern-variable p1env vars lst))
+		   ((lookup-pattern-variable p1env vars lst))
 		   (else (wrap-syntax lst use-env renamed-ids))))
 	    ((identifier? lst) lst)
 	    ((vector? lst)
