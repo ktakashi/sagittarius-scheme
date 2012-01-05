@@ -1022,11 +1022,21 @@
       )
     )
 
+  (define (run-bug-fixed-tests)
+    (let ((match&list (lambda (pat text . flags)
+			(generic-match&list regex-looking-at pat text flags))))
+      (test-equal "uri pattern"
+		  '("buzz.host.com" #f "buzz.host.com" #f)
+		  (match&list "(?:(.*?)@)?([^:]*)(?::(\\d*))?"
+			      "buzz.host.com")))
+    )
+
   (define (run-regex-test)
     (run-compat-test)
     (run-looking-at-test)
     (run-matches-test)
     (run-replace-test)
     (run-unicode-case-test)
+    (run-bug-fixed-tests)
     )
 )

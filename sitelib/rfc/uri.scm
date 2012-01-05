@@ -59,7 +59,7 @@
   ;; from RFC3986 Appendix B. Parsing a URI Reference with a Regular Expression
   (define scheme (regex "^([a-zA-Z][a-zA-Z0-9+.-]*):"))
   (define hierarchical (regex "(?://([^/?#]*))?([^?#]*)?(?:\\?([^#]*))?(?:#(.*))?$"))
-  (define authority (regex "(?:(.*?)@)?([^:]*)(?::(\\d*))"))
+  (define authority (regex "(?:(.*?)@)?([^:]*)(?::(\\d*))?"))
 
   (define (uri-scheme&specific uri)
     (cond ((looking-at scheme uri)
