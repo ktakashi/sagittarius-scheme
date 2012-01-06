@@ -653,11 +653,12 @@ static SgBignum* bignum_lshift(SgBignum *br, SgBignum *bx, int amount)
       if ((int)SG_BIGNUM_GET_COUNT(br) > i + nwords)
 	br->elements[i + nwords] = bx->elements[i];
     }
+    ASSERT(SG_BIGNUM_GET_COUNT(br) >= nwords);
     for (i = nwords - 1; i >= 0; i--) br->elements[i] = 0;
   } else {
     int bxsize = SG_BIGNUM_GET_COUNT(bx);
     int brsize = SG_BIGNUM_GET_COUNT(br);
-    if (br > bxsize + nwords) {
+    if (brsize > bxsize + nwords) {
       br->elements[bxsize+nwords] = bx->elements[bxsize-1] >> (WORD_BITS-nbits);
     }
     for (i = bxsize - 1; i > 0; i--) {
