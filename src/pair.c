@@ -42,6 +42,7 @@
 static inline SgPair* make_pair()
 {
   SgPair *z = SG_NEW(SgPair);
+  z->constp = FALSE;
   return z;
 }
 

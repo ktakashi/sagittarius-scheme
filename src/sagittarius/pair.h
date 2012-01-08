@@ -38,6 +38,8 @@ struct SgPairRec
 {
   SgObject car;
   SgObject cdr;
+  /* benchmark said set-ca/dr! is super slow. */
+  char     constp;
 };
 
 #define SG_PAIRP(obj) 	  	 (SG_PTRP(obj) && (SG_HDR(obj) & 0xf) != 0x7)

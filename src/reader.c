@@ -1398,7 +1398,12 @@ static SgHashTable *obtable = NULL;
 
 int Sg_ConstantLiteralP(SgObject o)
 {
-  SgObject e = Sg_HashTableRef(obtable, o, SG_UNBOUND);
+  SgObject e;
+  if (SG_PAIRP(o)) {
+    /* simple check */
+    return SG_PAIR(o)->constp;
+  }
+  e = Sg_HashTableRef(obtable, o, SG_UNBOUND);
   if (SG_UNBOUNDP(e)) return FALSE;
   /* constant literal must satisfy eq? */
   return e == o;
@@ -1417,6 +1422,13 @@ SgObject Sg_AddConstantLiteral(SgObject o)
     }
     if (SG_BVECTORP(o)) {
       SG_BVECTOR_SET_LITERAL(o);
+    }
+    if (SG_PAIRP(o)) {
+      /* do the cdr parts. */
+      SG_PAIR(o)->constp = TRUE;
+      if (SG_PAIRP(SG_CDR(o))) {
+	Sg_AddConstantLiteral(SG_CDR(o));
+      }
     }
   } else {
     o = e;
