@@ -381,10 +381,22 @@ SgObject Sg_GetSharedError()
   return SG_OBJ(dl_error());
 }
 
+static void cleanup_shared_objects(void *data)
+{
+  dlobj *z;
+  for (z = dynldinfo.dso_list; z; z = z->next) {
+    if (z->handle) {
+      dl_close(z->handle);
+      z->handle = NULL;
+    }
+  }
+}
+
 void Sg__InitLoad()
 {
   Sg_InitMutex(&load_lock, TRUE);
   Sg_InitMutex(&dso_lock, TRUE);
   dynldinfo.dso_suffix = Sg_MakeString(UC(SHLIB_SO_SUFFIX), SG_LITERAL_STRING);
   dynldinfo.dso_list = NULL;
+  Sg_AddCleanupHandler(cleanup_shared_objects, NULL);
 }
