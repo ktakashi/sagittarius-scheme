@@ -2214,23 +2214,63 @@
        (pass1/library body current-lib newenv)))
     (- (syntax-error "malformed library" form))))
 
+;; R7RS define-library
+;; the syntax: 
+;;   (define-library <library name> <library declarations> ...)
+;; <library declarations> may be one of these
+;;  (export <export spec> ...)
+;;  (import <import set> ...)
+;;  (begin <command or denition> ...)
+;;  (include <filename1> <filename2> ...)
+;;  (include-ci >filename1> <filename2> ...)
+;;  (cond-expand <cond-expand clause> ...)
 (define-pass1-syntax (define-library form p1env) :null
+  (define (process-declare body current-lib p1env)
+    (let ((seq ($seq '()))
+	  (save (vm-current-library)))
+      (let-syntax ((pass1 (syntax-rules ()
+			    ((_ expr p1env)
+			     (pass1 expr p1env)))))
+	(let loop ((clauses body))
+	  (smatch clauses
+	    (() 
+	     ($seq-body-set! seq
+	      (append
+	       (list ($library current-lib))
+	       (pass1/collect-inlinable! ($seq-body seq) current-lib)
+	       (list ($undef))))
+	     seq)
+	    ((((? symbol? type) body ___) . rest)
+	     (case type
+	       ((import)
+		(pass1/import (car clauses) current-lib) (loop (cdr clauses)))
+	       ((export)
+		(pass1/export (car clauses) current-lib) (loop (cdr clauses)))
+	       ((include include-ci)
+		(let ((expr (pass1/include body p1env (eq? type 'include-ci))))	
+		  ($seq-body-set! seq (append ($seq-body seq)
+					      (list (pass1 expr p1env))))
+		  (loop (cdr clauses))))
+	       ((begin)
+		($seq-body-set! seq 
+		 (append ($seq-body seq)
+			 (map (lambda (x) (pass1 x p1env)) body)))
+		(loop (cdr clauses)))
+	       (else
+		(syntax-error "define-library: invalid library declaration"
+			      type))))
+	    (- (syntax-error "define-library: malformed library declaration"
+			     form clauses))))))
+	)
   (check-toplevel form p1env)
   (smatch form
     ((- name body ___)
      (let* ((current-lib (ensure-library name 'library #t))
 	    (newenv      (make-bottom-p1env current-lib)))
-       ;; imports some default syntax to new library
-       ;; well this is not so good, but convenient
-       (import-library current-lib (ensure-library 'null 'define-library #f)
-		       '() '() '() #f #f)
-       (import-library current-lib (ensure-library '(sagittarius)
-						   'define-library #f)
-		       '() '() '() #f #f)
-       (pass1/library body current-lib newenv)))
+       (process-declare body current-lib newenv)))
     (- (syntax-error "malformed define-library" form))))
 
-(define-pass1-syntax (cond-expand form p1env) :sagittarius
+(define (pass1/cond-expand clauses form p1env)
   (define (process-clause clauses)
     (define (cond-library? x) (eq? (identifier->symbol x) 'library))
     (define (cond-and/or? x) (memq (identifier->symbol x) '(and or)))
@@ -2270,9 +2310,13 @@
 	   (process-clause (cdr clauses))))
       (- (syntax-error "malformed cond-expand" form)))
     )
+  (process-clause clauses)
+  )
+
+(define-pass1-syntax (cond-expand form p1env) :sagittarius
   (smatch form
     ((- clauses ___)
-     (process-clause clauses))
+     (pass1/cond-expand clauses form p1env))
     (- (syntax-error "malformed cond-expand" form)))
   )
 

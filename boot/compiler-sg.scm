@@ -2387,6 +2387,52 @@
 (define-pass1-syntax
  (define-library form p1env)
  :null
+ (define (process-declare body current-lib p1env)
+   (let
+    ((seq ($seq '())) (save (vm-current-library)))
+    (let-syntax
+     ((pass1 (syntax-rules () ((_ expr p1env) (pass1 expr p1env)))))
+     (let
+      loop
+      ((clauses body))
+      (smatch
+       clauses
+       (()
+        ($seq-body-set!
+         seq
+         (append
+          (list ($library current-lib))
+          (pass1/collect-inlinable! ($seq-body seq) current-lib)
+          (list ($undef))))
+        seq)
+       ((((? symbol? type) body ___) . rest)
+        (case
+         type
+         ((import)
+          (pass1/import (car clauses) current-lib)
+          (loop (cdr clauses)))
+         ((export)
+          (pass1/export (car clauses) current-lib)
+          (loop (cdr clauses)))
+         ((include include-ci)
+          (let
+           ((expr (pass1/include body p1env (eq? type 'include-ci))))
+           ($seq-body-set!
+            seq
+            (append ($seq-body seq) (list (pass1 expr p1env))))
+           (loop (cdr clauses))))
+         ((begin)
+          ($seq-body-set!
+           seq
+           (append ($seq-body seq) (map (lambda (x) (pass1 x p1env)) body)))
+          (loop (cdr clauses)))
+         (else
+          (syntax-error "define-library: invalid library declaration" type))))
+       (-
+        (syntax-error
+         "define-library: malformed library declaration"
+         form
+         clauses)))))))
  (check-toplevel form p1env)
  (smatch
   form
@@ -2394,84 +2440,71 @@
    (let*
     ((current-lib (ensure-library name 'library #t))
      (newenv (make-bottom-p1env current-lib)))
-    (import-library
-     current-lib
-     (ensure-library 'null 'define-library #f)
-     '()
-     '()
-     '()
-     #f
-     #f)
-    (import-library
-     current-lib
-     (ensure-library '(sagittarius) 'define-library #f)
-     '()
-     '()
-     '()
-     #f
-     #f)
-    (pass1/library body current-lib newenv)))
+    (process-declare body current-lib newenv)))
   (- (syntax-error "malformed define-library" form))))
+
+(define (pass1/cond-expand clauses form p1env)
+  (define (process-clause clauses)
+    (define (cond-library? x)
+      (eq?
+       (identifier->symbol x)
+       'library))(define (cond-and/or? x)
+      (memq
+       (identifier->symbol x)
+       '(and
+        or)))(define (cond-not? x)
+      (eq?
+       (identifier->symbol x)
+       'not))(define (cond-else? x)
+      (and
+       (variable? x)
+       (eq?
+        (identifier->symbol x)
+        'else)))(define (check-cond-features req type)
+      (case
+       type
+       ((or) (not (null? (lset-intersection eq? req (cond-features)))))
+       ((and)
+        (null?
+         (lset-difference
+          eq?
+          req
+          (cond-features))))))(smatch
+     clauses
+     (() (syntax-error "unfulfilled cond-expand" form))
+     ((((? cond-else? -) body ___) . rest)
+      (unless
+       (null? rest)
+       (syntax-error "'else' clauses followed by more clauses" form))
+      (pass1 `(,begin. ,@body) p1env))
+     (((((? cond-library? -) name) body ___) . rest)
+      (if
+       (find-library name #f)
+       (pass1 `(,begin. ,@body) p1env)
+       (process-clause (cdr clauses))))
+     (((((? cond-not? -) req) body ___) . rest)
+      (if
+       (member (identifier->symbol req) (cond-features))
+       (process-clause (cdr clauses))
+       (pass1 `(,begin. ,@body) p1env)))
+     (((((? cond-and/or? c) . req) body ___) . rest)
+      (cond
+       ((check-cond-features req c) (pass1 `(,begin. ,@body) p1env))
+       (else (process-clause (cdr clauses)))))
+     (((feature-id body ___) . rest)
+      (if
+       (member (identifier->symbol feature-id) (cond-features))
+       (pass1 `(,begin. ,@body) p1env)
+       (process-clause (cdr clauses))))
+     (-
+      (syntax-error "malformed cond-expand" form))))(process-clause clauses))
 
 (define-pass1-syntax
  (cond-expand form p1env)
  :sagittarius
- (define (process-clause clauses)
-   (define (cond-library? x)
-     (eq?
-      (identifier->symbol x)
-      'library))(define (cond-and/or? x)
-     (memq
-      (identifier->symbol x)
-      '(and
-       or)))(define (cond-not? x)
-     (eq?
-      (identifier->symbol x)
-      'not))(define (cond-else? x)
-     (and
-      (variable? x)
-      (eq?
-       (identifier->symbol x)
-       'else)))(define (check-cond-features req type)
-     (case
-      type
-      ((or) (not (null? (lset-intersection eq? req (cond-features)))))
-      ((and)
-       (null?
-        (lset-difference
-         eq?
-         req
-         (cond-features))))))(smatch
-    clauses
-    (() (syntax-error "unfulfilled cond-expand" form))
-    ((((? cond-else? -) body ___) . rest)
-     (unless
-      (null? rest)
-      (syntax-error "'else' clauses followed by more clauses" form))
-     (pass1 `(,begin. ,@body) p1env))
-    (((((? cond-library? -) name) body ___) . rest)
-     (if
-      (find-library name #f)
-      (pass1 `(,begin. ,@body) p1env)
-      (process-clause (cdr clauses))))
-    (((((? cond-not? -) req) body ___) . rest)
-     (if
-      (member (identifier->symbol req) (cond-features))
-      (process-clause (cdr clauses))
-      (pass1 `(,begin. ,@body) p1env)))
-    (((((? cond-and/or? c) . req) body ___) . rest)
-     (cond
-      ((check-cond-features req c) (pass1 `(,begin. ,@body) p1env))
-      (else (process-clause (cdr clauses)))))
-    (((feature-id body ___) . rest)
-     (if
-      (member (identifier->symbol feature-id) (cond-features))
-      (pass1 `(,begin. ,@body) p1env)
-      (process-clause (cdr clauses))))
-    (- (syntax-error "malformed cond-expand" form))))
  (smatch
   form
-  ((- clauses ___) (process-clause clauses))
+  ((- clauses ___) (pass1/cond-expand clauses form p1env))
   (- (syntax-error "malformed cond-expand" form))))
 
 (define
