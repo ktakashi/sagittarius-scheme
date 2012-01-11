@@ -597,6 +597,46 @@ SgObject Sg_GetDefaultDynamicLoadPath()
   }
   return SG_LIST1(win_dynlib_path);
 }
+
+SgObject Sg_DirectoryName(SgString *path)
+{
+  int size = SG_STRING_SIZE(path), i;
+  for (i = size-1; i >= 0; i--) {
+    if (SG_STRING_VALUE_AT(path, i) == '\\') break;
+  }
+  if (i <= 0) return SG_FALSE;
+  return Sg_Substring(path, 0, i);
+}
+
+SgObject Sg_BuildPath(SgString *path, SgString *file)
+{
+  int psize = SG_STRING_SIZE(path), fsize = SG_STRING_SIZE(file);
+  int i, j, offset = 1;
+  SgObject ret;
+  if (SG_STRING_VALUE_AT(path, psize-1) == '\\') offset--;
+  ret = Sg_ReserveString(psize + fsize + offset, 0);
+  for (i = 0; i < psize - offset; i++) {
+    SG_STRING_VALUE_AT(ret, i) = SG_STRING_VALUE_AT(path, i);
+  }
+  if (offset) {
+    SG_STRING_VALUE_AT(ret, i++) = '\\';
+  }
+  for (j = 0; j < fsize; i++, j++) {
+    SG_STRING_VALUE_AT(ret, i) = SG_STRING_VALUE_AT(file, j);
+  }
+  return ret;
+}
+
+int Sg_AbsolutePathP(SgString *path)
+{
+  if (SG_STRING_VALUE_AT(path, 0) == '\\') return TRUE;
+  else if (SG_STRING_SIZE(path) > 2 && 
+	   isalpha(SG_STRING_VALUE_AT(path, 0)) &&
+	   SG_STRING_VALUE_AT(path, 1) == ':') {
+    return TRUE;
+  }
+  return FALSE;
+}
 /*
   end of file
   Local Variables:
