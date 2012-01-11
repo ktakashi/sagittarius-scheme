@@ -510,7 +510,7 @@
   (define mac-env (current-macro-env))
   (define (emit datum)
     (cond ((identifier? datum) datum)
-	  ((symbol? datum) (wrap-syntax datum use-env seen))
+	  ;;((symbol? datum) (wrap-syntax datum use-env seen))
 	  (else datum)))
   (define (lookup-pattern-variable p1env vars id)
     (let loop ((frames (vector-ref p1env 1)))

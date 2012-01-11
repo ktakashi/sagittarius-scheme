@@ -526,10 +526,10 @@
    (lambda
     (lvar)
     (format
-     "~s[~a.~a]"
+     "~a[~a.~a]"
      (if
       (identifier? (lvar-name lvar))
-      (id-name (lvar-name lvar))
+      (id->string (lvar-name lvar))
       (lvar-name lvar))
      (lvar-ref-count lvar)
      (lvar-set-count lvar))))
