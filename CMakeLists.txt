@@ -62,7 +62,11 @@ IF(USE_BOEHM_GC)
     IF(NOT HAVE_GC_GC_H)
       # download boehm gc
       # we need to use CMake conformed one, so the latest 7.2alpha6
-      SET(USED_GC_VERSION "gc-7.2alpha6")
+      IF (MSVC)
+	SET(USED_GC_VERSION "gc-7.2alpha6")
+      ELSE()
+	SET(USED_GC_VERSION "gc-7.1")
+      ENDIF()
       FIND_FILE(HAS_BOEHM_GC_TAR
 	NAMES gc.tar.gz
 	PATHS ${CMAKE_CURRENT_SOURCE_DIR})
@@ -77,11 +81,14 @@ IF(USE_BOEHM_GC)
 	  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 	MESSAGE(STATUS "unpacked gc.tar.gz")
       ENDIF()
+      IF (NOT Windows)
+	MESSAGE(FATAL_ERROR "First install Boehm GC. Go to gc directory.")
+      ENDIF()
 
       ADD_SUBDIRECTORY(${USED_GC_VERSION} build/gc)
       INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/${USED_GC_VERSION}/include)
       SET(HAVE_GC_H 1)
-      SET(GC_DEPENDS_TARGET gcmt-lib)
+      SET(GC_DEPENDS_TARGET gcmt-dll)
     ENDIF(NOT HAVE_GC_GC_H)
   ELSE(NOT HAVE_GC_H)
 #    ADD_DEFINITIONS(-DUSE_BOEHM_GC)
