@@ -284,8 +284,8 @@
 	       (handler p 0))))))
 
   (define (receive-body-chunked remote handler)
+    (define *regexp* (regex "^([0-9a-fA-F]+)"))
     (guard (e (else (handler remote -1) (raise e)))
-      (define *regexp* (regex "^([0-9a-fA-F]+)"))
       (let loop ((line (get-line remote)))
 	(when (eof-object? line)
 	  (raise-http-error 'receive-body-chunked

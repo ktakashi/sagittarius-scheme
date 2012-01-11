@@ -54,6 +54,7 @@ static SgObject load_after(SgObject *args, int argc, void *data)
 {
   SgPort *port = SG_PORT(data);
   SgVM *vm = Sg_VM();
+  vm->currentLoadPath = port->loadPath;
   /* restore flags */
   vm->flags = port->vmFlags;
   /* restore readtable template */
@@ -82,7 +83,14 @@ static SgObject load_body(SgObject *args, int argc, void *data)
 SgObject Sg_VMLoadFromPort(SgPort *port)
 {
   /* save vm flags */
-  port->vmFlags = Sg_VM()->flags;
+  SgVM *vm = Sg_VM();
+  SgObject file = Sg_FileName(port);
+
+  port->loadPath = vm->currentLoadPath;
+  if (!SG_FALSEP(file)) {
+    vm->currentLoadPath = Sg_DirectoryName(file);
+  }
+  port->vmFlags = vm->flags;
   /* save readtable template */
   port->readtable = Sg_CurrentReadTable();
   Sg_SetCurrentReadTable(Sg_CopyReadTable(port->readtable));
@@ -398,5 +406,6 @@ void Sg__InitLoad()
   Sg_InitMutex(&dso_lock, TRUE);
   dynldinfo.dso_suffix = Sg_MakeString(UC(SHLIB_SO_SUFFIX), SG_LITERAL_STRING);
   dynldinfo.dso_list = NULL;
+
   Sg_AddCleanupHandler(cleanup_shared_objects, NULL);
 }

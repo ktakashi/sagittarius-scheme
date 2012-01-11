@@ -759,7 +759,7 @@ static int read_4byte(SgPort *in)
 
 static SgWord read_word(SgPort *in, int tag_type)
 {
-  static const int WORD_SIZE = sizeof(SgObject);
+  static const int WORD_SIZE = sizeof(SgWord);
   int i;
   SgWord ret = 0;
   int tag = Sg_GetbUnsafe(in);
@@ -1154,7 +1154,10 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
   case LIBRARY_LOOKUP_TAG:
     return lookup_library(in, ctx);
   default:
-    Sg_Panic("unknown tag appeared. tag: %d, pos: %d", tag, Sg_PortPosition(in));
+    Sg_Printf(Sg_StandardErrorPort(),
+	      UC("unknown tag appeared. tag: %d, file: %A, pos: %d\n"),
+	      tag, Sg_FileName(in), Sg_PortPosition(in));
+    Sg_Abort("failed to read cache.");
     return SG_FALSE;
   }
 }

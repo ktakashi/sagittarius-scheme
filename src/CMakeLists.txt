@@ -96,19 +96,13 @@ ENDIF()
 ADD_EXECUTABLE(sash ${PLATFORM_SOURCE_FOR_SASH} main.c)
 TARGET_LINK_LIBRARIES(sash sagittarius)
 
-IF(${LINK_BOEHM_GC})
-  # temporary solution for VC
-  IF(MSVC)
-    ADD_DEFINITIONS(-DGC_NOT_DLL)
-  ENDIF()
-  IF (TARGET ${GC_DEPENDS_TARGET})
-    MESSAGE(STATUS "Adding stupid gc related target: ${GC_DEPENDS_TARGET}")
-    TARGET_LINK_LIBRARIES(sash ${GC_DEPENDS_TARGET})
-  ELSE()
-    TARGET_LINK_LIBRARIES(sash gc)
-  ENDIF()
-ELSE()
-  TARGET_LINK_LIBRARIES(sash taurus)
+# copy gcmt-dll.dll to build
+IF (MSVC)
+  ADD_CUSTOM_TARGET(copy-gc-dll
+    COMMAND copy .\\build\\gc\\gcmt-dll.dll .\\build
+    DEPENDS ${GC_DEPENDS_TARGET}
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+  ADD_DEPENDENCIES(sash copy-gc-dll)
 ENDIF()
 
 INSTALL(TARGETS sagittarius DESTINATION lib)
