@@ -185,6 +185,7 @@ struct SgVMRec
    */
   SgObject loadPath;
   SgObject dynamicLoadPath;
+  SgObject currentLoadPath;
   /*
     toplevel variables.
     alist of variable name and gloc.

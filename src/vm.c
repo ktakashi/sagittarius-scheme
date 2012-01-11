@@ -153,6 +153,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   /* TODO I'm not sure if I should use the same libraries and currentLibrary
      from proto. Should I copy it?
    */
+  v->currentLoadPath = SG_FALSE; /* should this be inherited from proto? */
   v->libraries = proto ? proto->libraries: SG_UNDEF;
   v->currentLibrary = proto ? proto->currentLibrary: SG_UNDEF;
   v->loadPath = proto ? proto->loadPath: SG_NIL;

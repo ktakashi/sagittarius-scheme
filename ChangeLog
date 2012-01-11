@@ -1,3 +1,8 @@
+2012-01-11  Takashi Kato  <ktakashi@ymail.com>
+
+	* boot/compiler.scm (include include-ci): implemented include related
+	syntax.
+
 2012-01-05  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/extlib.stub (weak-vector): supported weak vector.

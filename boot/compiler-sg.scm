@@ -2419,7 +2419,7 @@
            ((expr (pass1/include body p1env (eq? type 'include-ci))))
            ($seq-body-set!
             seq
-            (append ($seq-body seq) (list (pass1 expr p1env))))
+            (append ($seq-body seq) (list (pass1 (car expr) p1env))))
            (loop (cdr clauses))))
          ((begin)
           ($seq-body-set!
@@ -2442,6 +2442,66 @@
      (newenv (make-bottom-p1env current-lib)))
     (process-declare body current-lib newenv)))
   (- (syntax-error "malformed define-library" form))))
+
+(define (pass1/open-include-file path includer-path)
+  (define (check path)
+    (if
+     (file-exists? path)
+     (open-file-input-port path #f 'block (native-transcoder))
+     #f))(define (bad)
+    (syntax-error
+     "include file does not exists"
+     path))(cond
+   ((absolute-path? path) (or (check path) (bad)))
+   ((and includer-path (check (build-path includer-path path))))
+   ((check path))
+   (else (bad))))
+
+(define (pass1/include files p1env case-insensitive?)
+  (unless
+   (for-all string? files)
+   (syntax-error
+    "include requires string"
+    file))(let
+   ((path (current-load-path)))
+   (let
+    loop
+    ((files files) (forms '()))
+    (if
+     (null? files)
+     `((,begin. ,@(reverse forms)) unquote files)
+     (let
+      ((p (pass1/open-include-file (car files) path)))
+      (dynamic-wind
+       (lambda () #t)
+       (lambda
+        ()
+        (let
+         loop2
+         ((r (read-with-case p case-insensitive?)) (form '()))
+         (if
+          (eof-object? r)
+          (loop (cdr files) (cons `(,begin. ,@form) forms))
+          (loop2 (read-with-case p case-insensitive?) (cons r form)))))
+       (lambda () (close-input-port p))))))))
+
+(define-pass1-syntax
+ (include form p1env)
+ :sagittarius
+ (smatch
+  form
+  ((- files ___)
+   (let ((form (pass1/include files p1env #f))) (pass1 (car form) p1env)))
+  (- (syntax-error "malformed include" form))))
+
+(define-pass1-syntax
+ (include-ci form p1env)
+ :sagittarius
+ (smatch
+  form
+  ((- files ___)
+   (let ((form (pass1/include files p1env #t))) (pass1 (car form) p1env)))
+  (- (syntax-error "malformed include" form))))
 
 (define (pass1/cond-expand clauses form p1env)
   (define (process-clause clauses)
@@ -2550,6 +2610,18 @@
           ((global-eq? head 'begin p1env)
            (pass1/body-rec
             (append (imap (lambda (x) (cons x src)) args) rest)
+            intdefs
+            intmacros
+            p1env))
+          ((global-eq? head 'include p1env)
+           (pass1/body-rec
+            (cons (pass1/include args p1env #f) rest)
+            intdefs
+            intmacros
+            p1env))
+          ((global-eq? head 'include-ci p1env)
+           (pass1/body-rec
+            (cons (pass1/include args p1env #t) rest)
             intdefs
             intmacros
             p1env))
