@@ -173,83 +173,89 @@
 	  ((x . y) (loop (cdr formals) (cons (car formals) args) (+ n 1)))
 	  (x       (values (reverse (cons x args)) n 1 '())))))
     (define (extended-lambda garg kargs body)
-        (define (collect-args xs r)
-	  (match xs
-	    (() (values (reverse r) '()))
-	    (((? keyword?) . _) (values (reverse r) xs))
-	    ((var . rest) (collect-args rest (cons var r)))))
-	(define (parse-kargs xs os ks r a)
-	  (match xs
-	    (() (expand-opt os ks r a))
-	    ((:optional . xs)
-	     (unless (null? os) (too-many :optional))
-	     (receive (os xs) (collect-args xs '()) (parse-kargs xs os ks r a)))
-	    ((:key . xs)
-	     (unless (null? ks) (too-many :key))
-	     (receive (ks xs) (collect-args xs '()) (parse-kargs xs os ks r a)))
-	    ((:rest . xs)
-	     (when r (too-many :rest))
-	     (receive (rs xs) (collect-args xs '())
-	       (match rs
-		 ((r) (parse-kargs xs os ks r a))
-		 (_ 
-		  (syntax-violation 'define-with-key
-		   ":rest keyword in the define-with-key form must be followed by exactly one argument" kargs)))))
-	    ((:allow-other-keys . xs)
-	     (when a (too-many :allow-other-keys))
-	     (receive (a xs) (collect-args xs '())
-	       (match a
-		 (()   (parse-kargs xs os ks r #t))
-		 ((av) (parse-kargs xs os ks r av))
-		 (_ (syntax-violation 'define-with-key
-		     ":allow-other-keys keyword in define-with-key form can be followed by zero or one argument" kargs)))))
-	    (_ (syntax-violation 'define-with-key
-		"invalid define-with-key list:" kargs))))
-	(define (too-many key)
-	  (syntax-violation 'define-with-key
-	   (format "too many ~s keywords in define-with-key: ~s" key kargs)
-	   name expr))
-	(define (expand-opt os ks r a)
-	  (if (null? os)
-	      (if r
-		  `(,(rename 'let) ((,r ,garg)) ,@(expand-key ks garg a))
-		  (expand-key ks garg a))
-	      (let ((binds (map (match-lambda
-				  ((? variable? o) o)
-				  ((o init) `(,o ,init))
-				  (_ (syntax-violation 'define-with-key
-				      "illegal optional argument spec" kargs)))
-				os))
-		    (rest (or r (gensym))))
-		`(,(rename 'let-optionals*) ,garg ,(append binds rest)
-		  ,@(if (and (not r) (null? ks))
-			`((,(rename 'unless) (,(rename 'null?) ,rest)
-			   (,(rename 'assertion-violation)
-			    "too many argument for" ',(unwrap-syntax expr)))
-			   (,(rename 'let) () ,@(expand-key ks rest a)))
-			(expand-key ks rest a))))))
-	(define (expand-key ks garg a)
-	  (if (null? ks)
-	      body
-	      (let ((args (map (match-lambda
-				 ((? variable? o) o)
-				 ((((? keyword? key) o) init) `(,o ,key, init))
-				 ;; for compatibility
-				 (( o (? keyword? key) init) `(,o ,key, init))
-				 ((o init) `(,o ,init))
-				 (_ (syntax-violation 'define-with-key
-				     "illegal keyword argument spec" kargs)))
-			       ks)))
-		`(,(rename 'let-keywords*) ,garg
-		   ,(if a (append args a) args)
-		   ,@body))))
-	(parse-kargs kargs '() '() #f #f))
+      (define (collect-args xs r)
+	(match xs
+	  (() (values (reverse r) '()))
+	  (((? keyword?) . _) (values (reverse r) xs))
+	  ((var . rest) (collect-args rest (cons var r)))))
+      (define (parse-kargs xs os ks r a)
+	(match xs
+	  (() (expand-opt os ks r a))
+	  ((:optional . xs)
+	   (unless (null? os) (too-many :optional))
+	   (receive (os xs) (collect-args xs '()) (parse-kargs xs os ks r a)))
+	  ((:key . xs)
+	   (unless (null? ks) (too-many :key))
+	   (receive (ks xs) (collect-args xs '()) (parse-kargs xs os ks r a)))
+	  ((:rest . xs)
+	   (when r (too-many :rest))
+	   (receive (rs xs) (collect-args xs '())
+	     (match rs
+	       ((r) (parse-kargs xs os ks r a))
+	       (_ 
+		(syntax-violation 'define-with-key
+		 ":rest keyword in the define-with-key form must be followed by exactly one argument" kargs)))))
+	  ((:allow-other-keys . xs)
+	   (when a (too-many :allow-other-keys))
+	   (receive (a xs) (collect-args xs '())
+	     (match a
+	       (()   (parse-kargs xs os ks r #t))
+	       ((av) (parse-kargs xs os ks r av))
+	       (_ (syntax-violation 'define-with-key
+		   ":allow-other-keys keyword in define-with-key form can be followed by zero or one argument" kargs)))))
+	  (_ (syntax-violation 'define-with-key
+	      "invalid define-with-key list:" kargs))))
+      (define (too-many key)
+	(syntax-violation 'define-with-key
+	  (format "too many ~s keywords in define-with-key: ~s" key kargs)
+	  name expr))
+      (define (expand-opt os ks r a)
+	(if (null? os)
+	    (if r
+		`(,(rename 'let) ((,r ,garg)) ,@(expand-key ks garg a))
+		(expand-key ks garg a))
+	    (let ((binds (map (match-lambda
+			       ((? variable? o) o)
+			       ((o init) `(,o ,init))
+			       (_ (syntax-violation 'define-with-key
+				    "illegal optional argument spec" kargs)))
+			      os))
+		  (rest (or r (gensym))))
+	      `(,(rename 'let-optionals*) ,garg ,(append binds rest)
+		,@(if (and (not r) (null? ks))
+		      `((,(rename 'unless) (,(rename 'null?) ,rest)
+			 (,(rename 'assertion-violation)
+			  "too many argument for" ',(unwrap-syntax expr)))
+			(,(rename 'let) () ,@(expand-key ks rest a)))
+		      (expand-key ks rest a))))))
+      (define (expand-key ks garg a)
+	(if (null? ks)
+	    body
+	    (let ((args (map (match-lambda
+			      ((? variable? o) o)
+			      ((((? keyword? key) o) init) `(,o ,key, init))
+			      ;; for compatibility
+			      (( o (? keyword? key) init) `(,o ,key, init))
+			      ((o init) `(,o ,init))
+			      (_ (syntax-violation 'define-with-key
+				   "illegal keyword argument spec" kargs)))
+			     ks)))
+	      `(,(rename 'let-keywords*) ,garg
+		,(if a (append args a) args)
+		,@body))))
+      (parse-kargs kargs '() '() #f #f))
     (define (construct formals body)
       (receive (args reqargs optarg kargs) (parse-lambda-args formals)
 	;; we do not make 'lambda hygenic.
+	(define (make-dot-pair args)
+	  (let loop ((args args)
+		     (r '()))
+	    (cond ((and (pair? args) (null? (cdr args)))
+		   (append! (reverse r) (car args)))
+		  (else (loop (cdr args) (cons (car args) r))))))
 	(if (null? kargs)
 	    `(,(rename 'define) ,name
-	      (lambda ,args ,@body))
+	      (lambda ,(if (zero? optarg) args (make-dot-pair args)) ,@body))
 	    (let ((g (gensym)))
 	      `(,(rename 'define) ,name
 		(lambda ,(append args g)

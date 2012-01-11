@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#<(sagittarius regex)
 (library (rfc http)
     (export &http-error
 	    http-error?
@@ -46,12 +47,12 @@
 	    http-put
 	    http-delete
 	    http-request)
-    (import (rnrs)
-	    (core)
+    (import (except (rnrs) define)
+	    ;;(except (core) define)
 	    (sagittarius)
 	    (sagittarius regex)
 	    (sagittarius socket)
-	    (sagittarius control)
+	    (rename (sagittarius control) (define-with-key define))
 	    (sagittarius partcont)
 	    (srfi :1 lists)
 	    (srfi :2 and-let*)
@@ -99,7 +100,8 @@
 		    (p server socket secure-agent proxy extra-headers
 		       secure auth-handler auth-user auth-password))))))
 
-  (define http-user-agent (make-parameter (format "sagittarius.http/~a" (sagittarius-version))))
+  (define http-user-agent (make-parameter (format "sagittarius.http/~a"
+						  (sagittarius-version))))
   ;; redirect
   (define (redirect conn proto new-server)
     (let1 orig-server (http-connection-server conn)
@@ -115,20 +117,20 @@
     conn)
 
   ;; 
-  (define-with-key (http-request method server request-uri
-				 :key (host #f)
-				      (no-redirect #f)
-				      auth-handler
-				      auth-user
-				      auth-password
-				      proxy
-				      extra-headers
-				      (user-agent (http-user-agent))
-				      (secure #f)
-				      (receiver (http-string-receiver))
-				      (sender #f)
-				      (enc :request-encoding 'utf-8)
-				  :allow-other-keys otps)
+  (define (http-request method server request-uri
+			:key (host #f)
+			     (no-redirect #f)
+			     auth-handler
+			     auth-user
+			     auth-password
+			     proxy
+			     extra-headers
+			     (user-agent (http-user-agent))
+			     (secure #f)
+			     (receiver (http-string-receiver))
+			     (sender #f)
+			     (enc :request-encoding 'utf-8)
+			:allow-other-keys otps)
     (let1 conn (ensure-connection server auth-handler auth-user auth-password
 				  proxy secure extra-headers)
       (let loop ((history '())
@@ -141,18 +143,21 @@
 			 ( (string-prefix? "3" code) )
 			 (loc (assoc "location" headers)))
 		(receive (uri proto new-server path*)
-		    (canonical-uri conn (cadr loc) (http-connection-server conn))
+		    (canonical-uri conn (cadr loc)
+				   (http-connection-server conn))
 		  (when (or (member uri history)
 			    (> (length history) 20))
 		    (raise-http-error 'http-request
-				      (format "redirection is looping via ~a" uri)
+				      (format "redirection is looping via ~a"
+					      uri)
 				      (http-connection-server conn)))
 		  (loop (cons uri history)
-			(http-connection-server (redirect conn proto new-server))
+			(http-connection-server
+			 (redirect conn proto new-server))
 			path*)))
 	      (values code headers body))))))
 
-  (define *server-re* (regex "([^:]+):(\\d+)"))
+  (define *server-re* #/([^:]+):(\d+)/)
 
   (define (server->socket server)
     (cond ((matches *server-re* server)
@@ -170,7 +175,9 @@
 				       (http-connection-server conn)))
 	     (dynamic-wind
 	       (lambda () #t)
-	       (lambda () (proc (transcoded-port (socket-port s) (make-transcoder (utf-8-codec) 'lf))))
+	       (lambda ()
+		 (proc (transcoded-port (socket-port s)
+					(make-transcoder (utf-8-codec) 'lf))))
 	       (lambda ()
 		 (socket-close s)))))))
 
@@ -178,7 +185,8 @@
 			    sender receiver options enc)
     (define no-body-replies '("204" "304"))
     (receive (host uri)
-	(consider-proxy conn (or host (http-connection-server conn)) request-uri)
+	(consider-proxy conn (or host (http-connection-server conn))
+			request-uri)
       (with-connection 
        conn
        (lambda (in/out)
@@ -193,10 +201,11 @@
   (define (canonical-uri conn uri host)
     (let*-values (((scheme specific) (uri-scheme&specific uri))
 		  ((h p q f) (uri-decompose-hierarchical specific)))
-      (let ((scheme (or scheme (if (http-connection-secure conn) "https" "http")))
+      (let ((scheme (or scheme (if (http-connection-secure conn)
+				   "https" "http")))
 	    (host (or h host)))
 	(values (uri-compose :scheme scheme :host host
-			      :path p :query q :fragment f)
+			     :path p :query q :fragment f)
 		scheme
 		host
 		;; drop "//"
@@ -204,13 +213,15 @@
   
   (define (consider-proxy conn host uri)
     (if (http-connection-proxy conn)
-	(values host (uri-compose :scheme "http" :host (http-connection-secure conn) :path* uri))
+	(values host (uri-compose :scheme "http"
+				  :host (http-connection-secure conn)
+				  :path* uri))
 	(values host uri)))
 
   ;; send
   (define (send-request out method host uri sender options enc)
-    ;; this is actually not so portable. display requires textual-port but socket-port is
-    ;; binary-port. but hey!
+    ;; this is actually not so portable. display requires textual-port but
+    ;; socket-port is binary-port. but hey!
     ;;(display out (standard-error-port))(newline)
     (format out "~a ~a HTTP/1.1\r\n" method uri)
     (case method
@@ -218,7 +229,8 @@
        (sender (options->request-headers `(:host ,host @options)) enc
 	       (lambda (hdrs)
 		 (send-headers hdrs out)
-		 (let ((chunked? (equal? (rfc5322-header-ref hdrs "transfer-encoding")
+		 (let ((chunked? (equal? (rfc5322-header-ref
+					  hdrs "transfer-encoding")
 					 "chunked"))
 		       (first-time #t))
 		   (lambda (size)
@@ -242,7 +254,8 @@
       (if (or (null? options) (null? (cdr options)))
 	  (reverse r)
 	  (loop (cddr options)
-		`((,(format "~a" (car options)) ,(format "~a" (cadr options))) ,@r)))))
+		`((,(format "~a" (car options)) 
+		   ,(format "~a" (cadr options))) ,@r)))))
 
 
   ;; receive
@@ -250,7 +263,7 @@
     (receive (code reason) (parse-status-line (get-line remote))
       (values code (rfc5322-read-headers remote))))
 
-  (define *status-re* (regex "[\\w/.]+\\s+(\\d\\d\\d)\\s+(.*)"))
+  (define *status-re* #/[\w\/.]+\s+(\d\d\d)\s+(.*)/)
   (define (parse-status-line line)
     (cond ((eof-object? line)
 	   (raise-http-error 'parse-status-line
@@ -264,7 +277,8 @@
   (define (receive-body remote code headers receiver)
     (let* ((total (and-let* ((p (assoc "content-length" headers)))
 		    (string->number (cadr p))))
-	   (handler (reset (receiver code headers total (lambda () (shift k k))))))
+	   (handler (reset (receiver code headers total 
+				     (lambda () (shift k k))))))
       (cond ((assoc "transfer-encoding" headers)
 	     => (lambda (p)
 		  (unless (equal? (cadr p) "chunked")
@@ -348,7 +362,7 @@
 		 (loop)))))))
 
   ;; query and request body composition
-  (define-optional (http-compose-query path params (optional (encoding 'utf-8)))
+  (define (http-compose-query path params :optional (encoding 'utf-8))
     (define (esc s) (uri-encode-string (format "~a" s) encoding))
     (define (query-1 n&v)
       (match n&v
@@ -379,9 +393,11 @@
 		     (lambda (f r c)
 		       (let ((id (cadr f)))
 			 `(unless (undefined? ,id)
-			    (,(string->symbol (string-append "http-connection-"
-							     (symbol->string (identifier->symbol id))
-							     "-set!"))
+			    (,(string->symbol 
+			       (string-append 
+				"http-connection-"
+				(symbol->string (identifier->symbol id))
+				"-set!"))
 			     conn
 			     ,id)))))))
 	(check-override auth-handler)
@@ -409,13 +425,14 @@
   (define (http-delete server request-uri . options)
     (apply %http-request-adaptor 'DELETE server request-uri #f options))
 
-  (define-with-key (%http-request-adaptor method server request-uri body
-					  :key receiver (sink #f) (flusher #f)
-					  :allow-other-keys opts)
+  (define (%http-request-adaptor method server request-uri body
+				 :key receiver (sink #f) (flusher #f)
+				 :allow-other-keys opts)
     (define recvr
       (if (or sink flusher)
 	  (http-oport-receiver (or sink (open-output-string))
-			       (or flusher (lambda (s h) (get-output-string s))))
+			       (or flusher (lambda (s h) 
+					     (get-output-string s))))
 	  receiver))
     (apply http-request method server request-uri
 	   :sender (cond ((not body) (http-null-sender))
@@ -433,7 +450,8 @@
     (lambda (hdrs encoding header-sink)
       (let* ((data (if (string? blob) (string->utf8 blob) blob))
 	     (size (bytevector-length data))
-	     ;; TODO add "content-type: type/subtype; charset=utf-8" when blob was string
+	     ;; TODO add "content-type: type/subtype; charset=utf-8" when
+	     ;; blob was string
 	     (body-sink (header-sink `(("content-length" ,(format "~a" size))
 				       ,@hdrs)))
 	     (port (body-sink size)))
