@@ -8,6 +8,7 @@
 #define MyAppExeName "sash.exe"
 #define BoehmGCVersion "7.2alpha6"
 
+
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
 ; Do not use the same AppId value in installers for other applications.

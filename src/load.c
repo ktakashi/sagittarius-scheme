@@ -381,6 +381,7 @@ SgObject Sg_GetSharedError()
   return SG_OBJ(dl_error());
 }
 
+/* for GC issue we need to close handles */
 static void cleanup_shared_objects(void *data)
 {
   dlobj *z;
