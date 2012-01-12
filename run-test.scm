@@ -2,7 +2,8 @@
 (add-load-path "./sitelib")
 (import (srfi :0)
 	(srfi :37)
-	(rnrs))
+	(rnrs)
+	(sagittarius))
 
 (let ((args (command-line)))
   (let-values (((test) (args-fold (cdr args)
@@ -23,6 +24,8 @@
       (flush-output-port (current-output-port)))
     (define (r7rs-test)
       ;; for R7RS test
+      ;; prepare for process-context
+      (setenv "R7RS_TEST" "OK")
       (print "testing R7RS tests")
       (flush-output-port (current-output-port))
       (add-load-path "./test/r7rs-tests")

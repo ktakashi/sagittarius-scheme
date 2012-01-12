@@ -42,6 +42,7 @@
 #include "sagittarius/keyword.h"
 #include "sagittarius/builtin-symbols.h"
 #include "sagittarius/error.h"
+#include "sagittarius/gloc.h"
 #include "sagittarius/writer.h"
 #include "sagittarius/unicode.h"
 #include "sagittarius/values.h"
@@ -154,6 +155,7 @@ typedef struct
 
 struct readtable_rec_t
 {
+  int      insensitiveP;
   SgObject (*symbol_reader)(SgPort *, SgChar, SgReadContext *);
   readtab_t readtable[MAX_READTABLE_CHAR];
 };
@@ -370,7 +372,8 @@ static SgChar read_escape(SgPort *port, SgReadContext *ctx)
   return -1;			/* dummy */
 }
 
-typedef int (*read_helper)(SgPort *, SgReadContext *, SgChar *, int, SgChar);
+typedef int (*read_helper)(SgPort *, SgReadContext *, SgChar *, 
+			   int, SgChar, readtable_t *table);
 static SgObject read_symbol_generic(SgPort *port, SgChar initial,
 				    read_helper helper,
 				    SgReadContext *ctx)
@@ -378,8 +381,9 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
   SgChar buf[SYMBOL_MAX_SIZE];
   int i = 0;
   SgChar c;
+  readtable_t *table = Sg_CurrentReadTable();
   if (initial > 0)
-    buf[i++] = initial;
+    buf[i++] = (table->insensitiveP) ? Sg_CharDownCase(initial) : initial;
   while (i < array_sizeof(buf)) {
     c = Sg_PeekcUnsafe(port);
     if (c == EOF || delimited(c)) {
@@ -406,20 +410,21 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
     if (c > 127) {
       Sg_EnsureUcs4(c);
       if (i == 0) {
+	/* TODO do we need to do with non ascii char? */
 	if (Sg_Ucs4ConstituentP(c)) {
-	  buf[i++] = c;
+	  buf[i++] = (table->insensitiveP) ? Sg_CharDownCase(c) : c;
 	  continue;
 	}
       } else {
 	if (Sg_Ucs4SubsequentP(c)) {
-	  buf[i++] = c;
+	  buf[i++] = (table->insensitiveP) ? Sg_CharDownCase(c) : c;
 	  continue;
 	}
       }
       lexical_error(port, ctx,
 		    UC("invalid character %c during reading identifier"), c);
     }
-    i = helper(port, ctx, buf, i, c);
+    i = helper(port, ctx, buf, i, c, table);
   }
   lexical_error(port, ctx,
 		UC("token buffer overflow during reading identifier"));
@@ -427,16 +432,17 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
 }
 
 static int read_r6rs_symbol_helper(SgPort *port, SgReadContext *ctx, 
-				   SgChar *buf, int i, SgChar c)
+				   SgChar *buf, int i, SgChar c,
+				   readtable_t *table)
 {
   if (i == 0) {
     if (INITIAL_CHARP(c)) {
-      buf[i++] = c;
+      buf[i++] = (table->insensitiveP) ? tolower(c) : c;
       return i;
     }
   } else {
     if (SYMBOL_CHARP(c)) {
-      buf[i++] = c;
+      buf[i++] = (table->insensitiveP) ? tolower(c) : c;
       return i;
     }
   }
@@ -451,10 +457,11 @@ SgObject read_r6rs_symbol(SgPort *port, SgChar initial, SgReadContext *ctx)
 }
 
 static int read_compat_symbol_helper(SgPort *port, SgReadContext *ctx, 
-				     SgChar *buf, int i, SgChar c)
+				     SgChar *buf, int i, SgChar c,
+				     readtable_t *table)
 {
   if (!delimited(c)) {
-    buf[i++] = c;
+    buf[i++] = (table->insensitiveP) ? tolower(c) : c;
     return i;
   }
   lexical_error(port, ctx,
@@ -1327,11 +1334,42 @@ SgObject Sg_ReadDelimitedList(SgObject port, SgChar delim, int sharedP)
   return obj;
 }
 
+static SgInternalMutex read_lock;
+
+SgObject Sg_ReadWithCase(SgPort *p, int insensitiveP, int shared)
+{
+  static SgObject read_stub = SG_UNDEF;
+  static SgObject read_ss_stub = SG_UNDEF;
+  readtable_t *table;
+  int oflag;
+  SgObject obj;
+  
+#define init_stub(stub, name, lib)				\
+  if (SG_UNDEFP(stub)) {					\
+    SgObject gloc;						\
+    Sg_LockMutex(&read_lock);					\
+    gloc = Sg_FindBinding(SG_INTERN(lib),			\
+			  SG_INTERN(name), SG_UNBOUND);		\
+    if (SG_UNBOUNDP(gloc)) Sg_Panic(name " was not found");	\
+    (stub) = SG_GLOC_GET(SG_GLOC(gloc));			\
+    Sg_UnlockMutex(&read_lock);					\
+  }
+  init_stub(read_stub, "read", "null");
+  init_stub(read_ss_stub, "read/ss", "(sagittarius)");
+  table = Sg_CurrentReadTable();
+  oflag = table->insensitiveP;
+  table->insensitiveP = insensitiveP;
+  obj = (shared) ? Sg_Apply1(read_ss_stub, p) : Sg_Apply1(read_ss_stub, p);
+  table->insensitiveP = oflag;
+  return obj;
+}
+
 static disptab_t* alloc_disptab();
 
 static readtable_t* make_readtable(int init)
 {
   readtable_t *tab = SG_NEW(readtable_t);
+  tab->insensitiveP = FALSE;
   if (init) {
     readtab_t *r = tab->readtable;
     int i;
@@ -1790,6 +1828,7 @@ void Sg__InitReader()
 
   Sg_InitMutex(&obtable_mutax, FALSE);
   obtable = Sg_MakeHashTableSimple(SG_HASH_EQUAL, 4096);
+  Sg_InitMutex(&read_lock, TRUE);
 #define SET_READER_NAME(fn, name)			\
   (SG_PROCEDURE_NAME(&(SCHEME_OBJ(fn))) = SG_MAKE_STRING(name))
   SET_READER_NAME(read_vartical_bar,   "|-reader");

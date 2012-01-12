@@ -151,8 +151,8 @@
 	(vector-set! v i (string-ref s i)))))
 
   (define (vector->string v)
-    (let ((len (vector-length v))
-	  (s   (make-string len)))
+    (let* ((len (vector-length v))
+	   (s   (make-string len)))
       (do ((i 0 (+ i 1)))
 	  ((= i len) s)
 	(let ((e (vector-ref v i)))
@@ -165,7 +165,7 @@
   (define (string-map proc str1 . strs)
     (list->string
      (apply map proc (string->list str1)
-	    (map string->list str2))))
+	    (map string->list strs))))
 
   ;; FIXME: support non blocking IO
   (define char-ready?

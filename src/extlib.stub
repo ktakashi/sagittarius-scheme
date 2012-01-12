@@ -569,11 +569,12 @@
 	(set! pos (SG_MAKE_INT (Sg_PortPosition p))))
       (result (SG_LIST3 file line pos))))
 
-  (define-c-proc read-with-case (p::Port insensitiveP::boolean) ::Object
-    ;; dummy
+  (define-c-proc read-with-case (p::Port insensitiveP::boolean
+					 :optional (sharedP #f))
+    ::Object
     (check-port-open read-with-case p)
     (check-input-port read-with-case p)
-    (result (Sg_Read p TRUE)))
+    (result (Sg_ReadWithCase p insensitiveP (not (SG_FALSEP sharedP)))))
 
   ;; profiler
   (define-c-proc profiler-start () ::void

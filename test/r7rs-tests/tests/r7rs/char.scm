@@ -13,6 +13,14 @@
       (test-equal 3 (digit-value #\3))
       (test-equal 4 (digit-value #\x0664))
       (test-false (digit-value #\x0EA6))
+
+      (test-equal "abdegh" (string-map char-foldcase "AbdEgH"))
+      (test-equal "StUdLyCaPs" (string-map
+				(lambda (c k)
+				  ((if (eqv? k #\u) char-upcase char-downcase)
+				   c))
+				"studlycaps xxx"
+				"ululululul"))
       )
     )
 )

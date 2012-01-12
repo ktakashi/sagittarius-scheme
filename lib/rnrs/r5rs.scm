@@ -3,11 +3,14 @@
   (export exact->inexact inexact->exact
           quotient remainder modulo force delay
           null-environment scheme-report-environment)
-  (import (core) (core r5rs))
+  (import (core) (core r5rs) (sagittarius))
 
   (define null-environment
     (lambda (n)
-      (or (= n 5) (assertion-violation 'null-environment (format "expected 5, but got ~r, as argument 2" n)))
+      (or (= n 5)
+	  (assertion-violation 
+	   'null-environment
+	   (format "expected 5, but got ~r, as argument 2" n)))
       (environment '(only (rnrs r5rs) delay)
                    '(only (core)
                           define quote lambda if set! cond case and or let
@@ -18,7 +21,10 @@
 
   (define scheme-report-environment
     (lambda (n)
-      (or (= n 5) (assertion-violation 'scheme-report-environment (format "expected 5, but got ~r, as argument 2" n)))
+      (or (= n 5)
+	  (assertion-violation 
+	   'scheme-report-environment
+	   (format "expected 5, but got ~r, as argument 2" n)))
       (environment '(rnrs r5rs)
                    '(rnrs eval)
                    '(rnrs mutable-pairs)

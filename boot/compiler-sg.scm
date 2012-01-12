@@ -2469,7 +2469,7 @@
     ((files files) (forms '()))
     (if
      (null? files)
-     `((,begin. ,@(reverse forms)) unquote files)
+     `((,begin. ,@(reverse! forms)) unquote files)
      (let
       ((p (pass1/open-include-file (car files) path)))
       (dynamic-wind
@@ -2478,11 +2478,11 @@
         ()
         (let
          loop2
-         ((r (read-with-case p case-insensitive?)) (form '()))
+         ((r (read-with-case p case-insensitive? #t)) (form '()))
          (if
           (eof-object? r)
-          (loop (cdr files) (cons `(,begin. ,@form) forms))
-          (loop2 (read-with-case p case-insensitive?) (cons r form)))))
+          (loop (cdr files) (cons `(,begin. ,@(reverse! form)) forms))
+          (loop2 (read-with-case p case-insensitive? #t) (cons r form)))))
        (lambda () (close-input-port p))))))))
 
 (define-pass1-syntax

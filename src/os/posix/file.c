@@ -220,8 +220,7 @@ SgObject Sg_MakeFile()
 SgObject Sg_OpenFile(SgString *file, int flags)
 {
   SgFile *z = make_file(INVALID_HANDLE_VALUE);
-  z->open(z, file->value, flags);
-  if (!posix_is_open(z)) {
+  if (!posix_open(z, file->value, flags)) {
     SgObject err = get_last_error_message(z);
     return err;
   }
@@ -465,7 +464,7 @@ SgObject Sg_BuildPath(SgString *path, SgString *file)
   SgObject ret;
   if (SG_STRING_VALUE_AT(path, psize-1) == '/') offset--;
   ret = Sg_ReserveString(psize + fsize + offset, 0);
-  for (i = 0; i < psize - offset; i++) {
+  for (i = 0; i < psize; i++) {
     SG_STRING_VALUE_AT(ret, i) = SG_STRING_VALUE_AT(path, i);
   }
   if (offset) {

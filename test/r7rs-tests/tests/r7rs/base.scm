@@ -15,13 +15,6 @@
 	   (test-equal expect tmp)
 	   (test-true (exact? tmp))))))
 
-    (define-syntax test-values
-      (syntax-rules ()
-	((_ expect test)
-	 (let-values ((tmp expect)
-		      (act test))
-	   (test-equal tmp act)))))
-
     (define radix
       (make-parameter
        10
@@ -59,6 +52,17 @@
 	(let ((n 0))
 	  (lambda () (set! n (+ n 1)) 27))))
 
+    (define list-length
+      (lambda (obj)
+	(call-with-current-continuation
+	 (lambda (return)
+	   (letrec ((r
+		     (lambda (obj)
+		       (cond ((null? obj) 0)
+			     ((pair? obj)
+			      (+ (r (cdr obj)) 1))
+			     (else (return #f))))))
+	     (r obj))))))
 
     (define (run-r7rs-base-tests)
       ;; 4.1.2
@@ -358,15 +362,6 @@
       (test-false (exact-integer? 32.0))
       (test-false (exact-integer? 32/5))
 
-      (test-true (finite? 3))
-      (test-false (finite? +inf.0))
-      (test-false (finite? 3.0+inf.0i))
-
-      (test-true (nan? +nan.0))
-      (test-false (nan? 32))
-      (test-true (nan? +nan.0+5.0i))
-      (test-false (nan? 1+2i))
-
       (test-exactness 4 exact? (max 3 4))
       (test-exactness 4.0 inexact? (max 3.9 4))
 
@@ -418,8 +413,8 @@
       (test-exactness 1/3 exact? (rationalize (inexact->exact .3) 1/10))
       (test-exactness #i1/3 inexact? (rationalize .3 1/10))
 
-      (test-values (values 2 0) (exact-integer-sqrt 4))
-      (test-values (values 2 1) (exact-integer-sqrt 5))
+      (test-values (exact-integer-sqrt 4) 2 0)
+      (test-values (exact-integer-sqrt 5) 2 1)
 
       ;; 6.2.7
       (let ((radixes '(2 8 10 16)))
@@ -580,6 +575,109 @@
 	(test-error (string-set! (symbol->string 'immutable) 0 #\?)))
 
       ;; 6.8
+      (test-equal 8 (vector-ref '#(1 1 2 3 5 8 13 21) 5))
+      (test-equal '#(0 ("Sue" "Sue") "Anna")
+		  (let ((vec (vector 0 '(2 2 2 2) "Anna")))
+		    (vector-set! vec 1 '("Sue" "Sue"))
+		    vec))
+      ;; macro rewrites vector so it needs to be out side of macro
+      (let ((v '#(0 1 2)))
+	(test-error (vector-set! v 1 "doe")))
+
+      (test-equal '(dah dah didah) (vector->list '#(dah dah didah)))
+      (test-equal '#(dididit dah) (list->vector '(dididit dah)))
+
+      (test-equal '#(#\A #\B #\C) (string->vector "ABC"))
+      (test-equal "123" (vector->string '#(#\1 #\2 #\3)))
+
+      ;; 6.9
+      (test-equal "A" (utf8->string #u8(#x41)))
+      (test-equal #u8(#xCE #xBB) (string->utf8 "λ"))
+
+      ;; 6.10
+      (test-true (procedure? car))
+      (test-false (procedure? 'car))
+      (test-true (procedure? (lambda (x) (* x x))))
+      (test-false (procedure? '(lambda (x) (* x x))))
+      (test-true (call-with-current-continuation procedure?))
+
+      (test-equal 7 (apply + (list 3 4)))
+
+      (test-equal '(b e h) (map cadr '((a b) (d e) (g h))))
+      (test-equal '(1 4 27 256 3125)
+		  (map (lambda (n) (expt n n))
+		       '(1 2 3 4 5)))
+      (test-equal '(5 7 9) (map + '(1 2 3) '(4 5 6 7)))
+      (test-alts (let ((count 0))
+		   (map (lambda (ignored)
+			  (set! count (+ count 1))
+			  count)
+			'(a b))) '(1 2) '(2 1))
+
+      (test-equal "IBM" (string-map
+			 (lambda (c)
+			   (integer->char (+ 1 (char->integer c))))
+			 "HAL"))
+
+      (test-equal '#(b e h) (vector-map cadr '#((a b) (d e) (g h))))
+      (test-equal '#(1 4 27 256 3125) (vector-map (lambda (n) (expt n n))
+						  '#(1 2 3 4 5)))
+      (test-equal '#(5 7 9) (vector-map + '#(1 2 3) '#(4 5 6 7)))
+      (test-alts (let ((count 0))
+		   (vector-map
+		    (lambda (ignored)
+		      (set! count (+ count 1))
+		      count)
+		    '#(a b))) '#(1 2) '#(2 1))
+
+      (test-equal '#(0 1 4 9 16) (let ((v (make-vector 5)))
+				   (for-each (lambda (i)
+					       (vector-set! v i (* i i)))
+					     '(0 1 2 3 4))
+				   v))
+      (test-equal '(101 100 99 98 97)
+		  (let ((v '()))
+		    (string-for-each
+		     (lambda (c) (set! v (cons (char->integer c) v)))
+		     "abcde")
+		     v))
+
+      (test-equal '(0 1 4 9 16) (let ((v (make-list 5)))
+				  (vector-for-each
+				   (lambda (i) (list-set! v i (* i i)))
+				   '#(0 1 2 3 4))
+				  v))
+      (test-equal -3 (call-with-current-continuation
+		      (lambda (exit)
+			(for-each (lambda (x)
+				    (if (negative? x)
+					(exit x)))
+				  '(54 0 37 -3 245 19))
+			#t)))
+      (test-equal 4 (list-length '(1 2 3 4)))
+      (test-false (list-length '(a b . c)))
+
+      (test-equal 5 (call-with-values (lambda () (values 4 5))
+		      (lambda (a b) b)))
+      (test-equal -1 (call-with-values * -))
+
+      (test-equal '(connect talk1 disconnect connect talk2 disconnect)
+		  (let ((path '())
+			(c #f))
+		    (let ((add (lambda (s)
+				 (set! path (cons s path)))))
+		      (dynamic-wind
+			  (lambda () (add 'connect))
+			  (lambda ()
+			    (add (call-with-current-continuation
+				  (lambda (c0)
+				    (set! c c0)
+				    'talk1))))
+			  (lambda () (add 'disconnect)))
+		      (if (< (length path) 4)
+			  (c 'talk2)
+			  (reverse path)))))
+      ;; 6.11
       )
     )
 )
