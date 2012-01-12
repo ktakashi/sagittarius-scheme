@@ -334,7 +334,7 @@ int Sg_IsUTF16Console(SgObject file)
  */
 int Sg_FileExistP(SgString *path)
 {
-  return _waccess(utf32ToUtf16(path->value), F_OK) == 0; 
+  return (_waccess(utf32ToUtf16(path->value), F_OK) == 0); 
 }
 
 int Sg_DeleteFile(SgString *path)
@@ -572,9 +572,9 @@ static void initialize_path()
  recover:
   /* if above failed, we just use directory name as default load path. */
   /* TODO better solution */
-  win_sitelib_path = SG_STRING(Sg_MakeString(UC(SAGITTARIUS_SITE_LIB_PATH), SG_LITERAL_STRING));
-  win_lib_path = SG_STRING(Sg_MakeString(UC(SAGITTARIUS_SHARE_LIB_PATH), SG_LITERAL_STRING));
-  win_dynlib_path = SG_STRING(Sg_MakeString(UC(SAGITTARIUS_DYNLIB_PATH), SG_LITERAL_STRING));
+  win_sitelib_path = SG_STRING(SG_MAKE_STRING(SAGITTARIUS_SITE_LIB_PATH));
+  win_lib_path = SG_STRING(SG_MAKE_STRING(SAGITTARIUS_SHARE_LIB_PATH));
+  win_dynlib_path = SG_STRING(SG_MAKE_STRING(SAGITTARIUS_DYNLIB_PATH));
 }
 
 SgObject Sg_GetDefaultLoadPath()
@@ -615,7 +615,7 @@ SgObject Sg_BuildPath(SgString *path, SgString *file)
   SgObject ret;
   if (SG_STRING_VALUE_AT(path, psize-1) == '\\') offset--;
   ret = Sg_ReserveString(psize + fsize + offset, 0);
-  for (i = 0; i < psize - offset; i++) {
+  for (i = 0; i < psize; i++) {
     SG_STRING_VALUE_AT(ret, i) = SG_STRING_VALUE_AT(path, i);
   }
   if (offset) {
