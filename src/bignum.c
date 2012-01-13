@@ -615,6 +615,7 @@ int Sg_BignumFirstBitSet(SgBignum *b)
     bit += ntz(n);
     return bit;
   }
+  Sg_Write(b, Sg_StandardErrorPort(), 0);
   ASSERT(FALSE);
   return -1;			/* dummy */
 }
@@ -1140,7 +1141,8 @@ static SgBignum* bignum_gdiv(SgBignum *dividend, SgBignum *divisor,
       uj = DIGIT(u, j + n) + cy;
       SETDIGIT(u, j + n, uj);
     }
-    SETDIGIT(quotient, j, qq);
+    if (quotient) 
+      SETDIGIT(quotient, j, qq);
   }
   bignum_rshift(u, u, d);
   return u;
@@ -1400,7 +1402,9 @@ static SgObject binary_gcd(SgBignum *bx, SgBignum *by)
       goto end;
     }
     /* Step B6 */
-    /* Sg_Printf(Sg_StandardErrorPort(), UC("(print (= (abs (- %A %A))"), u, v); */
+    /*
+      Sg_Printf(Sg_StandardErrorPort(), UC("(print (= (abs (- %A %A))"), u, v);
+    */
     if ((tsign = bignum_difference(u, v)) == 0) break;
     t = (tsign >= 0) ? u : v;
     /* Sg_Printf(Sg_StandardErrorPort(), UC("%A))\n"), t); */
@@ -1418,19 +1422,20 @@ static SgObject binary_gcd(SgBignum *bx, SgBignum *by)
 
 SgObject Sg_BignumGcd(SgBignum *bx, SgBignum *by)
 {
-  return binary_gcd(bx, by);
-  /* while (SG_BIGNUM_GET_COUNT(by) != 0) { */
-  /*   SgBignum *q, *r; */
-  /*   if (abs(SG_BIGNUM_GET_COUNT(bx)-SG_BIGNUM_GET_COUNT(by)) < 2) */
-  /*     return binary_gcd(bx, by); */
-
-  /*   ALLOC_TEMP_BIGNUM(q, abs(SG_BIGNUM_GET_COUNT(bx)-SG_BIGNUM_GET_COUNT(by))+1); */
-  /*   r = bignum_gdiv(bx, by, q); */
-  /*   normalize_bignum(r); */
-  /*   bx = by; */
-  /*   by = r; */
-  /* } */
-  /* return bx; */
+  /* return binary_gcd(bx, by); */
+  /* hybrid was faster. */
+  while (SG_BIGNUM_GET_COUNT(by) != 0) {
+    SgBignum *r;
+    SgObject t;
+    if (abs(SG_BIGNUM_GET_COUNT(bx)-SG_BIGNUM_GET_COUNT(by)) < 2)
+      return binary_gcd(bx, by);
+    r = bignum_gdiv(bx, by, NULL);
+    t = Sg_NormalizeBignum(r);
+    if (SG_INTP(t)) return Sg_Gcd(by, t);
+    bx = by;
+    by = r;
+  }
+  return bx;
 }
 
 /*
