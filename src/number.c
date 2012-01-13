@@ -513,6 +513,7 @@ static SgObject read_real(const SgChar **strp, int *lenp,
   /* read exponent */
   if (*lenp > 0 && strchr("eEsSfFdDlL", (int)**strp)) {
     (*strp)++;
+    if (**strp == '|') return SG_FALSE; /* `10.2e|43 */
     if (--(*lenp) <= 0) return SG_FALSE;
     switch (**strp) {
     case '-': exp_minusp = TRUE;
@@ -531,6 +532,14 @@ static SgObject read_real(const SgChar **strp, int *lenp,
     }
     if (exp_minusp) exponent = -exponent;
     has_exponent = TRUE;
+  }
+  /* parse precision */
+  if (**strp == '|') {
+    SgObject pre;
+    (*strp)++, (*lenp)--;
+    /* just ignore */
+    pre = read_uint(strp, lenp, ctx, SG_FALSE);
+    if (!SG_FALSEP(pre)) ctx->exactness = INEXACT;
   }
   if (exp_overflow && IS_INEXACT(ctx)) {
     if (exp_minusp) {

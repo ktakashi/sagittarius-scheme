@@ -33,6 +33,7 @@
 #include <string.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/reader.h"
+#include "sagittarius/core.h"
 #include "sagittarius/port.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/symbol.h"
@@ -1808,7 +1809,7 @@ static void init_readtable(readtable_t *table, int r6rsP)
   }
   r['\\'].type = CT_SINGLE_ESCAPE;
 
-  SET_TERM_MACRO(r, '|', read_vartical_bar);
+  SET_NONTERM_MACRO(r, '|', read_vartical_bar);
   SET_TERM_MACRO(r, '"', read_double_quote);
   SET_TERM_MACRO(r, '\'', read_quote);
   SET_TERM_MACRO(r, '(', read_open_paren);
