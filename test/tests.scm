@@ -1,5 +1,5 @@
 ;; -*- scheme -*-
-(import (srfi :64)
+(import (srfi :64 testing)
 	(tests sagittarius)
 	(tests r6rs+ vector)
 	(tests r6rs+ string)

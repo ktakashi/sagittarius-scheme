@@ -5,10 +5,10 @@
 	  (scheme write)
 	  (scheme complex)
 	  (scheme inexact))
-  (export test test-equal test-error test-true test-false
+  (export test test-error test-true test-false
 	  test-approximate  test-unspecified test-values
 	  test-alts
-	  (rename test test-equal)
+	  test-equal
 	  test-begin test-end)
   (begin
     (define-record-type err (make-err c) err?
@@ -24,6 +24,14 @@
     (values))
 
     (define-syntax test
+      (syntax-rules ()
+	((_ expected expr)
+	 (begin
+	   (run-test 'expr
+		     (catch-exns (lambda () expr))
+		     expected)))))
+
+    (define-syntax test-equal
       (syntax-rules ()
 	((_ expected expr)
 	 (begin
