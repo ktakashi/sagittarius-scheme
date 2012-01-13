@@ -383,7 +383,7 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
   SgChar c;
   readtable_t *table = Sg_CurrentReadTable();
   if (initial > 0)
-    buf[i++] = (table->insensitiveP) ? Sg_CharDownCase(initial) : initial;
+    buf[i++] = initial;
   while (i < array_sizeof(buf)) {
     c = Sg_PeekcUnsafe(port);
     if (c == EOF || delimited(c)) {
@@ -391,9 +391,14 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
 	 able to compare with hash value.
        */
       SgChar *real = SG_NEW_ATOMIC2(SgChar *, (i + 1) * sizeof(SgChar));
+      SgObject s;
       buf[i] = 0;
       memcpy(real, buf, (i + 1) * sizeof(SgChar));
-      return Sg_MakeString(real, SG_LITERAL_STRING);
+      s = Sg_MakeString(real, SG_LITERAL_STRING);
+      if (table->insensitiveP) {
+	s = Sg_StringFoldCase(SG_STRING(s));
+      }
+      return s;
     }
     Sg_GetcUnsafe(port);
     if (c == '\\') {
@@ -412,12 +417,12 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
       if (i == 0) {
 	/* TODO do we need to do with non ascii char? */
 	if (Sg_Ucs4ConstituentP(c)) {
-	  buf[i++] = (table->insensitiveP) ? Sg_CharDownCase(c) : c;
+	  buf[i++] = c;
 	  continue;
 	}
       } else {
 	if (Sg_Ucs4SubsequentP(c)) {
-	  buf[i++] = (table->insensitiveP) ? Sg_CharDownCase(c) : c;
+	  buf[i++] = c;
 	  continue;
 	}
       }
@@ -437,12 +442,12 @@ static int read_r6rs_symbol_helper(SgPort *port, SgReadContext *ctx,
 {
   if (i == 0) {
     if (INITIAL_CHARP(c)) {
-      buf[i++] = (table->insensitiveP) ? tolower(c) : c;
+      buf[i++] = c;
       return i;
     }
   } else {
     if (SYMBOL_CHARP(c)) {
-      buf[i++] = (table->insensitiveP) ? tolower(c) : c;
+      buf[i++] = c;
       return i;
     }
   }
@@ -461,7 +466,7 @@ static int read_compat_symbol_helper(SgPort *port, SgReadContext *ctx,
 				     readtable_t *table)
 {
   if (!delimited(c)) {
-    buf[i++] = (table->insensitiveP) ? tolower(c) : c;
+    buf[i++] = c;
     return i;
   }
   lexical_error(port, ctx,
@@ -786,6 +791,7 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	SG_VM_SET_FLAG(Sg_VM(), SG_R6RS_MODE);
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
 	Sg_SetCurrentReadTable(Sg_CopyReadTable(&r6rs_read_table));
+	return NULL;
       }
       if (ustrcmp(tag->value, "compatible") == 0 ||
 	  /* for now it's the same as compatible */
@@ -793,36 +799,53 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	SG_VM_SET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
 	Sg_SetCurrentReadTable(Sg_CopyReadTable(&compat_read_table));
+	return NULL;
       }
       if (ustrcmp(tag->value, "core") == 0) {
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
 	Sg_SetCurrentReadTable(Sg_CopyReadTable(&compat_read_table));
+	return NULL;
+      }
+      if (ustrcmp(tag->value, "fold-case") == 0) {
+	table->insensitiveP = TRUE;
+	return NULL;
+      }
+      if (ustrcmp(tag->value, "no-fold-case") == 0) {
+	table->insensitiveP = FALSE;
+	return NULL;
       }
       if (ustrcmp(tag->value, "nocache") == 0) {
 	SG_VM_SET_FLAG(Sg_VM(), SG_DISABLE_CACHE);
+	return NULL;
       }
       if (ustrcmp(tag->value, "cache") == 0) {
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_DISABLE_CACHE);
+	return NULL;
       }
       if (ustrcmp(tag->value, "deprecated") == 0) {
 	Sg_Warn(UC("deprecated file is being loaded %S"), Sg_FileName(port));
+	return NULL;
       }
 
       if (ustrcmp(tag->value, "noinlineasm") == 0) {
 	SG_VM_SET_FLAG(Sg_VM(), SG_NO_INLINE_ASM);
+	return NULL;
       }
       if (ustrcmp(tag->value, "noinlinelocal") == 0) {
 	SG_VM_SET_FLAG(Sg_VM(), SG_NO_INLINE_LOCAL);
+	return NULL;
       }
       if (ustrcmp(tag->value, "nolambdalifting") == 0) {
 	SG_VM_SET_FLAG(Sg_VM(), SG_NO_LAMBDA_LIFT);
+	return NULL;
       }
       if (ustrcmp(tag->value, "nooptimization") == 0) {
 	SgVM *vm = Sg_VM();
 	SG_VM_SET_FLAG(vm, SG_NO_INLINE_ASM);
 	SG_VM_SET_FLAG(vm, SG_NO_INLINE_LOCAL);
 	SG_VM_SET_FLAG(vm, SG_NO_LAMBDA_LIFT);
+	return NULL;
       }
     }
     return NULL;
