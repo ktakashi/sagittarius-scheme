@@ -701,7 +701,13 @@ static SgObject read_quoted_symbol(SgPort *port, SgReadContext *ctx,
       memcpy(real, buf, (i + 1) * sizeof(SgChar));
       return Sg_MakeSymbol(Sg_MakeString(real, SG_LITERAL_STRING), interned);
     }
-    if (c == '\\') c = Sg_GetcUnsafe(port);
+    if (c == '\\') {
+      c = Sg_GetcUnsafe(port);
+      if (c == 'x') {
+	Sg_UngetcUnsafe(port, c);
+	c = read_escape(port, ctx);
+      }
+    }
     buf[i++] = c;
   }
   lexical_error(port, ctx,
