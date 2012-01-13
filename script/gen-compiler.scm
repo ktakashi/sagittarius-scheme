@@ -63,6 +63,7 @@
 	(format #t "         (import null (core base) ~%")
 	(format #t "                      (for (core syntax-rules) expand)~%")
 	(format #t "                      (core syntax-case)~%")
+	(format #t "                      (core errors)~%")
 	(format #t "                      (sagittarius)~%")
 	(format #t "                      (sagittarius vm)~%")
 	(format #t "                      (sagittarius vm instruction)~%")

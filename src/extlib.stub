@@ -491,8 +491,10 @@
     (result (Sg_ListToVector (Sg_HashTableValues ht) 0 -1)))
 
   ;; error
-  (define-c-proc with-error-handler (handler thunk) ::Object
-    (result (Sg_VMWithErrorHandler handler thunk)))
+  (define-c-proc with-error-handler (handler thunk :optional (rewindBefore #f))
+    ::Object
+    (result (Sg_VMWithErrorHandler handler thunk 
+				   (not (SG_FALSEP rewindBefore)))))
 
   ;; io
   (define-cgen-stmt check-input-port

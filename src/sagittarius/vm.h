@@ -103,6 +103,7 @@ typedef struct SgContinucationRec
   SgObject     ehandler;
   SgObject     xhandler;
   int          errorReporting;
+  int          rewindBefore;
 } SgContinuation;
 
 #define SG_CONTINUATION(obj)  ((SgContinuation*)obj)
@@ -409,10 +410,12 @@ SG_EXTERN SgObject Sg_VMCurrentLibrary();
 
 /* exception */
 SG_EXTERN SgObject Sg_GetStackTrace();
-SG_EXTERN SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP);
+SG_EXTERN SgObject Sg_VMThrowException(SgVM *vm, SgObject exception,
+				       int continuableP);
 SG_EXTERN void     Sg_VMDefaultExceptionHandler(SgObject exception);
 SG_EXTERN SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk);
-SG_EXTERN SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk);
+SG_EXTERN SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk,
+					 int rewindBefore);
 SG_EXTERN void     Sg_ReportError(SgObject e);
 
 /* finalizer */

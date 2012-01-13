@@ -2136,8 +2136,8 @@
     (let ((fo (Sg_OpenFile file SG_READ))
 	  (bufferMode::int SG_BUFMODE_BLOCK))
       (unless (SG_FILEP fo)
-	(throw-i/o-error SG_IO_FILE_NOT_EXIST_ERROR
-			 'open-file-input-port "file not exist" file))
+	(Sg_IOError SG_IO_FILE_NOT_EXIST_ERROR
+		    'open-file-input-port fo file SG_UNDEF))
       ;; we only support 'block or none for now.
       (if (SG_EQ mode 'none)
 	  (set! bufferMode SG_BUFMODE_NONE))
@@ -2480,9 +2480,9 @@
 				  'open-file-output-port "file already exists" file))
 	     (set! fo (Sg_OpenFile file openFlags))
 	     (unless (SG_FILEP fo)
-	       (throw-i/o-error SG_IO_FILE_NOT_EXIST_ERROR
-				'open-file-output-port
-				"file not exist" file))
+	       (Sg_IOError SG_IO_FILE_NOT_EXIST_ERROR
+			   'open-file-output-port
+			   fo file SG_UNDEF))
 	     (result (Sg_MakeFileBinaryOutputPort fo bufferMode)))
 	    (else
 	     (unless (SG_INSTANCEP option)
@@ -2518,8 +2518,8 @@
 			  (set! openFlags (logor SG_TRUNCATE openFlags)))))
 	       (set! fo (Sg_OpenFile file openFlags))
 	       (unless (SG_FILEP fo)
-		 (throw-i/o-error SG_IO_FILE_NOT_EXIST_ERROR
-				  'open-file-output-port "file not exist" file))
+		 (Sg_IOError SG_IO_FILE_NOT_EXIST_ERROR
+			     'open-file-output-port fo file SG_UNDEF))
 	       (if (SG_FALSEP transcoder)
 		   (result (Sg_MakeFileBinaryOutputPort fo bufferMode))
 		   (let ((out (Sg_MakeFileBinaryOutputPort fo bufferMode)))
@@ -2696,8 +2696,8 @@
 				  "file already exists" file))
 	     (set! fo (Sg_OpenFile file openFlags))
 	     (unless (SG_FILEP fo)
-	       (throw-i/o-error SG_IO_FILE_NOT_EXIST_ERROR
-				'open-file-input/output-port "file not exist" file))
+	       (Sg_IOError SG_IO_FILE_NOT_EXIST_ERROR
+			   'open-file-input/output-port fo file SG_UNDEF))
 	     (result (Sg_MakeFileBinaryInputOutputPort fo bufferMode)))
 	    (else
 	     (unless (SG_INSTANCEP option)
@@ -2733,8 +2733,8 @@
 			  (set! openFlags (logor SG_TRUNCATE openFlags)))))
 	       (set! fo (Sg_OpenFile file openFlags))
 	       (unless (SG_FILEP fo)
-		 (throw-i/o-error SG_IO_FILE_NOT_EXIST_ERROR
-				  'open-file-input/output-port "file not exist" file))
+		 (Sg_IOError SG_IO_FILE_NOT_EXIST_ERROR
+			     'open-file-input/output-port fo file SG_UNDEF))
 	       (if (SG_FALSEP transcoder)
 		   (result (Sg_MakeFileBinaryInputOutputPort fo bufferMode))
 		   (let ((out (Sg_MakeFileBinaryInputOutputPort fo bufferMode)))

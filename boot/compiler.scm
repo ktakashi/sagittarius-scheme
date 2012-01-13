@@ -40,7 +40,10 @@
   (define (source-info form) #f)
   (define (source-info-set! form info) #f)
   (define list-head take)
-
+  (define o-error-handler with-error-handler)
+  (define (with-error-handler h t f)
+    (o-error-handler h t :rewind-before f))
+    
   ;; load instruction definition
   (load "insn.scm")
   ;; load Vm procedures to run on scheme VM
@@ -55,6 +58,36 @@
   (include "lib/smatch.scm")
   #;(include "compiler-aux.scm"))
 )
+
+;; to avoid unneccessary stack trace, we use guard.
+;; this is not the same as the one in exceptions.scm
+;; this does not use call/cc
+(define-syntax guard
+  (syntax-rules ()
+    ((guard (var . clauses) . body)
+     (with-error-handler
+       (lambda (e)
+	 (let ((var e))
+	   (%guard-rec var e . clauses)))
+       (lambda () . body) #t))))
+
+(define-syntax %guard-rec
+  (syntax-rules (else =>)
+    ((%guard-rec var exc)
+     (raise exc))
+    ((%guard-rec var exc (else . exprs))
+     (begin . exprs))
+    ((%guard-rec var exc (test => proc) . more)
+     (let ((tmp test))
+       (if tmp
+	   (proc tmp)
+	   (%guard-rec var exc . more))))
+    ((%guard-rec var exc (test . exprs) . more)
+     (if test
+	 (begin . exprs)
+	 (%guard-rec var exc . more)))
+    ((%guard-rec var exc other . more)
+     (syntax-error "malformed guard clause" other))))
 
 
 (define-syntax $src
@@ -1904,16 +1937,29 @@
 	(cond ((symbol? spec)
 	       ;; SHORTCUT if it's symbol, just import is without any
 	       ;; information
-	       (import-library tolib
-			       (ensure-library spec 'import #f)
-			       '() '() '() #f #f))
+	       ;; TODO this might not be a good error message
+	       (guard (e (#t (raise (cons* 'import-error
+					   (cond ((message-condition? e)
+						  (condition-message e))
+						 ((string? e) e)
+						 (else #f))
+					   spec))))
+		 (import-library tolib
+				 (ensure-library spec 'import #f)
+				 '() '() '() #f #f)))
 	      ((list? spec)
 	       ;; now we need to check above specs
 	       (receive (ref only except renames prefix trans?)
 		   (parse-spec spec)
-		 (import-library tolib
-				 (ensure-library ref 'import #f)
-				 only except renames prefix trans?)))
+		 (guard (e (#t (raise (cons* 'import-error
+					     (cond ((message-condition? e)
+						    (condition-message e))
+						   ((string? e) e)
+						   (else #f))
+					     spec))))
+		   (import-library tolib
+				   (ensure-library ref 'import #f)
+				   only except renames prefix trans?))))
 	      (else
 	       (syntax-error "malformed import spec" spec)))))
     (smatch form
@@ -2301,7 +2347,7 @@
 	    (dynamic-wind
 		(lambda () #t)
 		(lambda ()
-		  (let loop2 ((r (read-with-case p case-insensitive? #t)
+		  (let loop2 ((r (read-with-case p case-insensitive? #t))
 			      (form '()))
 		    (if (eof-object? r)
 			(loop (cdr files)
@@ -4792,12 +4838,35 @@
     (let ((env (cond ((vector? env) env);; must be p1env
 		     ((library? env) (make-bottom-p1env env))
 		     (else (make-bottom-p1env)))))
-      (let ((p1 (pass1 (pass0 program env) env)))
-	(pass3 (pass2 p1 (p1env-library env))
-	       (make-code-builder)
-	       (make-renv)
-	       'tail
-	       RET)))))
+      (define (raise-error e info program)
+	(if info
+	    (raise (format "Compile Error:~%~a~%~s:~d~,,,,40:s"
+			   e (car info) (cdr info)  program))
+	    (raise (format "Compile Error:~%~a" e))))
+      (define (raise-import-error msg&lib info)
+	(if info
+	    (raise (format "Import Error: ~a~%library:~a~%~s:~d~,,,,40:s"
+			   (car msg&lib) (cdr msg&lib)
+			   (car info) (cdr info) program))
+	    (raise (format "Import Error: ~a~%library:~a" 
+			   (car msg&lib) (cdr msg&lib)))))
+      (guard (e (#t
+		 ;; TODO after introduced CLOS I might want to use
+		 ;; some dispath
+		 (let ((info (source-info program)))
+		   (cond
+		    ((and (pair? e) (eq? (car e) 'import-error))
+		     (raise-import-error (cdr e) info))
+		    ((condition? e)
+		     (raise-error (describe-condition e) info program))
+		    (else
+		     (raise-error e info program))))))
+	(let ((p1 (pass1 (pass0 program env) env)))
+	  (pass3 (pass2 p1 (p1env-library env))
+		 (make-code-builder)
+		 (make-renv)
+		 'tail
+		 RET))))))
 
 (cond-expand
  (gauche

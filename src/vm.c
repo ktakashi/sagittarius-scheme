@@ -285,55 +285,58 @@ static inline void report_error(SgObject exception)
   }
   Sg_Printf(buf,
 	    UC("*error*\n"
-	       "%A\n"
-	       "stack trace:\n"), Sg_DescribeCondition(error));
-  stackTrace = Sg_ReverseX(stackTrace);
-  SG_FOR_EACH(cur, stackTrace) {
-    SgObject obj, index, proc,
-      tmp, src, file, info, line;
-    obj = SG_CAR(cur);
-    index = SG_CAR(obj);
-    if (SG_INT_VALUE(index) > MAX_STACK_TRACE) {
-      Sg_Printf(buf,
-		UC("      ... (more stack dump truncated)\n"));
-      break;
-    }
+	       "%A\n"), Sg_DescribeCondition(error));
 
-    proc = SG_CDR(obj);		/* (proc name src) */
-    if (SG_EQ(SG_CAR(proc), SG_INTERN("*proc*"))) {
-      tmp = SG_CAR(SG_CDDR(proc));
-      if (!SG_PAIRP(tmp)) {
-	goto no_src;
-      } else {
-	src = Sg_LastPair(tmp);
-	src = SG_CDAR(src);
-	info = Sg_HashTableRef(SG_HASHTABLE(vm->sourceInfos),
-			       src, SG_FALSE);
-	/* info = SG_SOURCE_INFO(src); */
-      }
-      if (SG_FALSEP(info) || !info) {
+  if (!SG_NULLP(stackTrace)) {
+    Sg_Printf(buf, UC("stack trace:\n"));
+    stackTrace = Sg_ReverseX(stackTrace);
+    SG_FOR_EACH(cur, stackTrace) {
+      SgObject obj, index, proc,
+	tmp, src, file, info, line;
+      obj = SG_CAR(cur);
+      index = SG_CAR(obj);
+      if (SG_INT_VALUE(index) > MAX_STACK_TRACE) {
 	Sg_Printf(buf,
-		  UC("  [%A] %A: %A (location *unknown*)\n"
-		     "    src: %#50S\n"),
-		  index, SG_CAR(proc), SG_CADR(proc),
-		  Sg_UnwrapSyntax(src));
-      } else {
-	file = SG_CAR(info);
-	line = SG_CDR(info);
-	Sg_Printf(buf,
-		  UC("  [%A] %A: %A (location %S (line %A))\n"
-		     "    src: %#50S\n"),
-		  index, SG_CAR(proc), SG_CADR(proc),
-		  file, line,
-		  Sg_UnwrapSyntax(src));
+		  UC("      ... (more stack dump truncated)\n"));
+	break;
       }
+
+      proc = SG_CDR(obj);		/* (proc name src) */
+      if (SG_EQ(SG_CAR(proc), SG_INTERN("*proc*"))) {
+	tmp = SG_CAR(SG_CDDR(proc));
+	if (!SG_PAIRP(tmp)) {
+	  goto no_src;
+	} else {
+	  src = Sg_LastPair(tmp);
+	  src = SG_CDAR(src);
+	  info = Sg_HashTableRef(SG_HASHTABLE(vm->sourceInfos),
+				 src, SG_FALSE);
+	  /* info = SG_SOURCE_INFO(src); */
+	}
+	if (SG_FALSEP(info) || !info) {
+	  Sg_Printf(buf,
+		    UC("  [%A] %A: %A (location *unknown*)\n"
+		       "    src: %#50S\n"),
+		    index, SG_CAR(proc), SG_CADR(proc),
+		    Sg_UnwrapSyntax(src));
+	} else {
+	  file = SG_CAR(info);
+	  line = SG_CDR(info);
+	  Sg_Printf(buf,
+		    UC("  [%A] %A: %A (location %S (line %A))\n"
+		       "    src: %#50S\n"),
+		    index, SG_CAR(proc), SG_CADR(proc),
+		    file, line,
+		    Sg_UnwrapSyntax(src));
+	}
       
-    } else {
-    no_src:
-      /* *cproc* does not have any source info */
-      Sg_Printf(buf,
-		UC("  [%A] %A: %A \n"),
-		index, SG_CAR(proc), SG_CADR(proc));
+      } else {
+      no_src:
+	/* *cproc* does not have any source info */
+	Sg_Printf(buf,
+		  UC("  [%A] %A: %A \n"),
+		  index, SG_CAR(proc), SG_CADR(proc));
+      }
     }
   }
   Sg_Write(Sg_GetStringFromStringPort(buf), SG_PORT(Sg_StandardErrorPort()), SG_WRITE_DISPLAY);
@@ -989,7 +992,8 @@ static SgObject discard_ehandler(SgObject *args, int argc, void *data)
   return SG_UNDEF;
 }
 
-SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk)
+static SgObject with_error_handler(SgObject handler, SgObject thunk,
+				   int rewindBefore)
 {
   SgContinuation *c = SG_NEW(SgContinuation);
   SgObject before, after;
@@ -1002,6 +1006,7 @@ SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk)
   c->cstack = vm->cstack;
   c->cont = vm->cont;
   c->errorReporting = SG_VM_RUNTIME_FLAG_IS_SET(vm, SG_ERROR_BEING_REPORTED);
+  c->rewindBefore = rewindBefore;
 
   vm->escapePoint = c;
 
@@ -1009,6 +1014,13 @@ SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk)
   after  = Sg_MakeSubr(discard_ehandler, c, 0, 0, SG_FALSE);
   return Sg_VMDynamicWind(before, thunk, after);
 }
+
+SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk,
+			       int rewindBefore)
+{
+  return with_error_handler(handler, thunk, rewindBefore);
+}
+
 
 #define SKIP(vm, n)        (PC(vm) += (n))
 #define FETCH_OPERAND(pc)  SG_OBJ((*(pc)++))
@@ -1410,6 +1422,7 @@ SgObject Sg_GetStackTrace()
     /* before running */
     return SG_NIL;
   }
+  if (vm->state == COMPILING || vm->state == IMPORTING) return SG_NIL;
   for (i = 0;;) {
     if (SG_PROCEDUREP(cl)) {
       SgObject name = SG_PROCEDURE_NAME(cl);
@@ -1501,15 +1514,26 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
     SgObject result = SG_FALSE;
     SgObject target, current;
     /* never reaches for now. */
-    vm->escapePoint = c->prev;
-    SG_UNWIND_PROTECT {
-      result = Sg_Apply1(c->ehandler, e);
+    if (c->rewindBefore) {
       target = c->winders;
       current = vm->dynamicWinders;
       for (hp = current; SG_PAIRP(hp) && (hp != target); hp = SG_CDR(hp)) {
 	SgObject proc = SG_CDAR(hp);
 	vm->dynamicWinders = SG_CDR(hp);
 	Sg_Apply0(proc);
+      }
+    }
+    vm->escapePoint = c->prev;
+    SG_UNWIND_PROTECT {
+      result = Sg_Apply1(c->ehandler, e);
+      if (!c->rewindBefore) {
+	target = c->winders;
+	current = vm->dynamicWinders;
+	for (hp = current; SG_PAIRP(hp) && (hp != target); hp = SG_CDR(hp)) {
+	  SgObject proc = SG_CDAR(hp);
+	  vm->dynamicWinders = SG_CDR(hp);
+	  Sg_Apply0(proc);
+	}
       }
     }
     SG_WHEN_ERROR {

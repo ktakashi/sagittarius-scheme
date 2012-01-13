@@ -4,6 +4,7 @@
          (import null (core base) 
                       (for (core syntax-rules) expand)
                       (core syntax-case)
+                      (core errors)
                       (sagittarius)
                       (sagittarius vm)
                       (sagittarius vm instruction)
@@ -124,6 +125,29 @@
    (smatcher k (lambda (x sk fk) (sk x)) (id) arg |...|))
   ((smatcher "done" code vars x (e |...|) fk)
    (code x (lambda vars e |...|) fk))))
+(define-syntax
+ guard
+ (syntax-rules
+  ()
+  ((guard (var . clauses) . body)
+   (with-error-handler
+    (lambda (e) (let ((var e)) (%guard-rec var e . clauses)))
+    (lambda () . body)
+    #t))))
+
+(define-syntax
+ %guard-rec
+ (syntax-rules
+  (else =>)
+  ((%guard-rec var exc) (raise exc))
+  ((%guard-rec var exc (else . exprs)) (begin . exprs))
+  ((%guard-rec var exc (test => proc) . more)
+   (let ((tmp test)) (if tmp (proc tmp) (%guard-rec var exc . more))))
+  ((%guard-rec var exc (test . exprs) . more)
+   (if test (begin . exprs) (%guard-rec var exc . more)))
+  ((%guard-rec var exc other . more)
+   (syntax-error "malformed guard clause" other))))
+
 (define-syntax
  $src
  (syntax-rules () ((_ n o) (begin (source-info-set! n (source-info o)) n))))
@@ -2059,26 +2083,48 @@
     (spec)
     (cond
      ((symbol? spec)
-      (import-library
-       tolib
-       (ensure-library spec 'import #f)
-       '()
-       '()
-       '()
-       #f
-       #f))
+      (guard
+       (e
+        (#t
+         (raise
+          (cons*
+           'import-error
+           (cond
+            ((message-condition? e) (condition-message e))
+            ((string? e) e)
+            (else #f))
+           spec))))
+       (import-library
+        tolib
+        (ensure-library spec 'import #f)
+        '()
+        '()
+        '()
+        #f
+        #f)))
      ((list? spec)
       (receive
        (ref only except renames prefix trans?)
        (parse-spec spec)
-       (import-library
-        tolib
-        (ensure-library ref 'import #f)
-        only
-        except
-        renames
-        prefix
-        trans?)))
+       (guard
+        (e
+         (#t
+          (raise
+           (cons*
+            'import-error
+            (cond
+             ((message-condition? e) (condition-message e))
+             ((string? e) e)
+             (else #f))
+            spec))))
+        (import-library
+         tolib
+         (ensure-library ref 'import #f)
+         only
+         except
+         renames
+         prefix
+         trans?))))
      (else (syntax-error "malformed import spec" spec)))))
   (smatch
    form
@@ -5445,14 +5491,48 @@
       ((vector? env) env)
       ((library? env) (make-bottom-p1env env))
       (else (make-bottom-p1env)))))
-   (let
-    ((p1 (pass1 (pass0 program env) env)))
-    (pass3
-     (pass2 p1 (p1env-library env))
-     (make-code-builder)
-     (make-renv)
-     'tail
-     RET)))))
+   (define (raise-error e info program)
+     (if
+      info
+      (raise
+       (format
+        "Compile Error:~%~a~%~s:~d~,,,,40:s"
+        e
+        (car info)
+        (cdr info)
+        program))
+      (raise (format "Compile Error:~%~a" e))))
+   (define (raise-import-error msg&lib info)
+     (if
+      info
+      (raise
+       (format
+        "Import Error: ~a~%library:~a~%~s:~d~,,,,40:s"
+        (car msg&lib)
+        (cdr msg&lib)
+        (car info)
+        (cdr info)
+        program))
+      (raise
+       (format "Import Error: ~a~%library:~a" (car msg&lib) (cdr msg&lib)))))
+   (guard
+    (e
+     (#t
+      (let
+       ((info (source-info program)))
+       (cond
+        ((and (pair? e) (eq? (car e) 'import-error))
+         (raise-import-error (cdr e) info))
+        ((condition? e) (raise-error (describe-condition e) info program))
+        (else (raise-error e info program))))))
+    (let
+     ((p1 (pass1 (pass0 program env) env)))
+     (pass3
+      (pass2 p1 (p1env-library env))
+      (make-code-builder)
+      (make-renv)
+      'tail
+      RET))))))
 
 (define
  compile-p1
