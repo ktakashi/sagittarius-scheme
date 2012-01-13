@@ -541,14 +541,7 @@ static SgObject read_real(const SgChar **strp, int *lenp,
     pre = read_uint(strp, lenp, ctx, SG_FALSE);
     if (!SG_FALSEP(pre)) ctx->exactness = INEXACT;
   }
-  /* parse precision */
-  if (**strp == '|') {
-    SgObject pre;
-    (*strp)++, (*lenp)--;
-    /* just ignore */
-    pre = read_uint(strp, lenp, ctx, SG_FALSE);
-    if (!SG_FALSEP(pre)) ctx->exactness = INEXACT;
-  }
+
   if (exp_overflow && IS_INEXACT(ctx)) {
     if (exp_minusp) {
       return Sg_MakeFlonum(0.0);
@@ -2390,7 +2383,7 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
     if (SG_COMPLEXP(y)) {
       do_complex(y, bignum_again);
     }
-    goto bad_arg;
+    goto bad_argy;
   }
   if (SG_FLONUMP(x)) {
     double rem;
@@ -3231,16 +3224,73 @@ SgObject Sg_IntegerDiv0(SgObject x, SgObject y)
 
 SgObject Sg_IntegerMod(SgObject x, SgObject y)
 {
-  SgObject d = Sg_IntegerDiv(x, y);
-  SgObject m = Sg_Mul(d, y);
-  return Sg_Sub(x, m);
+  /* only for bignum */
+  if (SG_EXACT_INTP(x) && SG_EXACT_INTP(y)) {
+    /* for performance we need to use Sg_Modulo */
+    int xsign = Sg_Sign(x), ysign = Sg_Sign(y);
+    if (ysign == 0) goto err;
+    if (xsign > 0) {
+      if (ysign > 0) return Sg_Modulo(x, y, TRUE);
+      else return Sg_Modulo(x, y, TRUE);
+    } else if (xsign < 0) {
+      SgObject r = Sg_Modulo(x, y, TRUE);
+      if (SG_EQ(SG_MAKE_INT(0), r)) return r;
+      if (ysign > 0) return Sg_Add(r, y);
+      else return Sg_Sub(r, y);
+    } else if (xsign == 0) {
+      return SG_MAKE_INT(0);
+    }
+  } else {
+    SgObject d = Sg_IntegerDiv(x, y);
+    SgObject m = Sg_Mul(d, y);
+    return Sg_Sub(x, m);
+  }
+
+ err:
+  /* y was 0 */
+  Sg_Error(UC("not zero required, but got %S"), y);
+  return SG_UNDEF;		/* dummy */
 }
 
 SgObject Sg_IntegerMod0(SgObject x, SgObject y)
 {
-  SgObject d = Sg_IntegerDiv0(x, y);
-  SgObject m = Sg_Mul(d, y);
-  return Sg_Sub(x, m);
+  /* only for bignum */
+  if (SG_EXACT_INTP(x) && SG_EXACT_INTP(y)) {
+    /* for performance we need to use Sg_Modulo */
+    int xsign = Sg_Sign(x), ysign = Sg_Sign(y);
+    SgObject r;
+    if (ysign == 0) goto err;
+    r = Sg_Modulo(x, y, TRUE);
+    if (xsign >= 0) {
+      if (ysign > 0) {
+	if (Sg_NumCmp(Sg_Mul(r, SG_MAKE_INT(2)), y) >= 0)
+	  return Sg_Sub(r, y);
+	else return r;
+      } else {
+	if (Sg_NumCmp(Sg_Mul(r, SG_MAKE_INT(2)), Sg_Negate(y)) >= 0)
+	  return Sg_Add(r, y);
+	else return r;
+      }
+    } else {
+      if (ysign > 0) {
+	if (Sg_NumCmp(Sg_Mul(r, SG_MAKE_INT(2)), Sg_Negate(y)) < 0)
+	  return Sg_Add(r, y);
+	else return r;
+      } else {
+	if (Sg_NumCmp(Sg_Mul(r, SG_MAKE_INT(2)), y) < 0)
+	  return Sg_Sub(r, y);
+	else return r;
+      }
+    }
+  } else {
+    SgObject d = Sg_IntegerDiv0(x, y);
+    SgObject m = Sg_Mul(d, y);
+    return Sg_Sub(x, m);
+  }
+ err:
+  /* y was 0 */
+  Sg_Error(UC("not zero required, but got %S"), y);
+  return SG_UNDEF;		/* dummy */
 }
 
 

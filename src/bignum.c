@@ -1351,6 +1351,17 @@ static int bignum_difference(SgBignum *a, SgBignum *b)
   return sign;
 }
 
+
+static inline unsigned long gcd_fixfix(unsigned long x, unsigned long y)
+{
+  while (y > 0) {
+    unsigned long r = x % y;
+    x = y;
+    y = r;
+  }
+  return x;
+}
+
 /* avoid memory allocation as much as possible */
 static SgObject binary_gcd(SgBignum *bx, SgBignum *by)
 {
@@ -1387,17 +1398,13 @@ static SgObject binary_gcd(SgBignum *bx, SgBignum *by)
     if (tsign > 0) u = t;
     else v = t;
     /* special case one word numbers */
-    if (SG_BIGNUM_GET_COUNT(u) < 2 && SG_BIGNUM_GET_COUNT(v) < 2 &&
-	u->elements[0] < SG_INT_MAX && v->elements[0] < SG_INT_MAX) {
-      long x = u->elements[0], y = v->elements[0];
-      SgBignum *r = make_bignum(1);
-      x = SG_INT_VALUE(Sg_Gcd(SG_MAKE_INT(x), SG_MAKE_INT(y)));
-      r->elements[0] = x;
+    if (SG_BIGNUM_GET_COUNT(u) < 2 && SG_BIGNUM_GET_COUNT(v) < 2) {
+      unsigned long x = u->elements[0], y = v->elements[0];
+      x = (x >= y) ? gcd_fixfix(x, y) : gcd_fixfix(y, x);
+      ret = Sg_MakeInteger(x);
       if (k > 0) {
 	/* Sg_Printf(Sg_StandardErrorPort(), UC(";; r=%A, k=%d\n"), r, k); */
-	ret = Sg_BignumShiftLeft(r, k);
-      } else {
-	ret = Sg_NormalizeBignum(r);
+	ret = Sg_Ash(ret, k);
       }
       goto end;
     }
