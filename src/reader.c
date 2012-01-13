@@ -964,9 +964,18 @@ SgObject read_hash_t(SgPort *port, SgChar c, dispmacro_param *param,
 		     SgReadContext *ctx)
 {
   SgChar c2 = Sg_GetcUnsafe(port);
+  readtable_t *table = Sg_CurrentReadTable();
   if (c2 == EOF || delimited(c2)) {
     Sg_UngetcUnsafe(port, c2);
     return SG_TRUE;
+  }
+  /* R7RS allow #true so we need to check */
+  if ((c == 't' && c2 == 'r') ||
+      (table->insensitiveP && (c2 == 'r' || c2 == 'R'))) {
+    SgObject rest = read_compatible_symbol(port, c2, ctx);
+    if (ustrcmp(SG_STRING_VALUE(rest), "rue") == 0) {
+      return SG_TRUE;
+    }    
   }
   lexical_error(port, ctx, UC("invalid lexical syntax #%S%S"),
 		SG_MAKE_CHAR(c), SG_MAKE_CHAR(c2));
@@ -977,9 +986,18 @@ SgObject read_hash_f(SgPort *port, SgChar c, dispmacro_param *param,
 		     SgReadContext *ctx)
 {
   SgChar c2 = Sg_GetcUnsafe(port);
+  readtable_t *table = Sg_CurrentReadTable();
   if (c2 == EOF || delimited(c2)) {
     Sg_UngetcUnsafe(port, c2);
     return SG_FALSE;
+  }
+  /* R7RS allow #false so we need to check */
+  if ((c == 'f' && c2 == 'a') ||
+      (table->insensitiveP && (c2 == 'a' || c2 == 'A'))) {
+    SgObject rest = read_compatible_symbol(port, c2, ctx);
+    if (ustrcmp(SG_STRING_VALUE(rest), "alse") == 0) {
+      return SG_FALSE;
+    }    
   }
   lexical_error(port, ctx, UC("invalid lexical syntax #%S%S"),
 		SG_MAKE_CHAR(c), SG_MAKE_CHAR(c2));
