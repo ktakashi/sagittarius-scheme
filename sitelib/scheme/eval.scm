@@ -14,7 +14,8 @@
       (environment '(only (scheme base)
 			  define lambda quote quasiquote let
 			  let* letrec letrec* let-values let*-values
-			  if set! cond case and or begin do unquote
+			  if set! cond case and or when unless
+			  begin do guard parameterize unquote
 			  unquote-splicing define-syntax let-syntax
 			  letrec-syntax => else syntax-rules ... _)
 		   '(scheme case-lambda)

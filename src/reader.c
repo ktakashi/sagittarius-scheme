@@ -1082,6 +1082,7 @@ static const struct {
   int code;
 } s_char_name[] = {
   { "nul",        0x0000 },
+  { "null",        0x0000 },
   { "alarm",      0x0007 },
   { "backspace",  0x0008 },
   { "tab",        0x0009 },
