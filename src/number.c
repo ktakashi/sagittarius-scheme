@@ -541,6 +541,14 @@ static SgObject read_real(const SgChar **strp, int *lenp,
     pre = read_uint(strp, lenp, ctx, SG_FALSE);
     if (!SG_FALSEP(pre)) ctx->exactness = INEXACT;
   }
+  /* parse precision */
+  if (**strp == '|') {
+    SgObject pre;
+    (*strp)++, (*lenp)--;
+    /* just ignore */
+    pre = read_uint(strp, lenp, ctx, SG_FALSE);
+    if (!SG_FALSEP(pre)) ctx->exactness = INEXACT;
+  }
   if (exp_overflow && IS_INEXACT(ctx)) {
     if (exp_minusp) {
       return Sg_MakeFlonum(0.0);
