@@ -5,7 +5,7 @@
 	  (scheme write)
 	  (scheme complex)
 	  (scheme inexact))
-  (export test-equal test-error test-true test-false
+  (export test test-equal test-error test-true test-false
 	  test-approximate  test-unspecified test-values
 	  test-alts
 	  (rename test test-equal)
