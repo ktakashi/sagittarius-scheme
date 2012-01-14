@@ -71,6 +71,12 @@
 	 (condition-message obj)))
 
   ;; ports
+  (define (port-open? p)
+    (or (port? p)
+	(assertion-violation 'port-open?
+			     "port required" p))
+    (not (port-closed? p)))
+
   (define (open-input-bytevector bv) (open-bytevector-input-port bv))
 
   (define (bytevector-copy-partial! from start end to at)
@@ -172,4 +178,10 @@
     (case-lambda
      ((port) #f)
      (() #f)))
+
+  (define u8-ready?
+    (case-lambda
+     ((port) #f)
+     (() #f)))
+
 )
