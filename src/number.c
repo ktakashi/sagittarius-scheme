@@ -2359,20 +2359,9 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
       return SG_MAKE_INT(rem);
     }
     if (SG_BIGNUMP(y)) {
-      SgObject rem;
       bx = x;
     do_bignumy:
-      rem = SG_CDR(Sg_BignumDivRem(SG_BIGNUM(bx), SG_BIGNUM(y)));
-      if (!remp
-	  && (rem != SG_MAKE_INT(0))
-	  && (SG_BIGNUM_GET_SIGN(bx) * SG_BIGNUM_GET_SIGN(y) < 0)) {
-	if (SG_BIGNUMP(rem)) {
-	  return Sg_BignumAdd(SG_BIGNUM(y), SG_BIGNUM(rem));
-	} else {
-	  return Sg_BignumAddSI(SG_BIGNUM(y), SG_INT_VALUE(rem));
-	}
-      }
-      return rem;
+      return Sg_BignumModulo(bx, SG_BIGNUM(y), remp);
     }
     if (SG_FLONUMP(y)) {
       rx = Sg_BignumToDouble(SG_BIGNUM(x));

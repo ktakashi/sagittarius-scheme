@@ -615,7 +615,7 @@ int Sg_BignumFirstBitSet(SgBignum *b)
     bit += ntz(n);
     return bit;
   }
-  Sg_Write(b, Sg_StandardErrorPort(), 0);
+  /* Sg_Write(b, Sg_StandardErrorPort(), 0); */
   ASSERT(FALSE);
   return -1;			/* dummy */
 }
@@ -1181,6 +1181,24 @@ SgObject Sg_BignumDivRem(SgBignum *a, SgBignum *b)
   return Sg_Cons(Sg_NormalizeBignum(q), Sg_NormalizeBignum(r));
 }
 
+SgObject Sg_BignumModulo(SgBignum *a, SgBignum *b, int remp)
+{
+  SgBignum *r;
+  if (Sg_BignumAbsCmp(a, b) < 0) return SG_OBJ(a);
+  
+  r = bignum_gdiv(a, b, NULL);
+  r = Sg_NormalizeBignum(r);
+  if (!remp
+      && (r != SG_MAKE_INT(0))
+      && (SG_BIGNUM_GET_SIGN(a) * SG_BIGNUM_GET_SIGN(b) < 0)) {
+    if (SG_BIGNUMP(r)) {
+      return Sg_BignumAdd(SG_BIGNUM(b), SG_BIGNUM(r));
+    } else {
+      return Sg_BignumAddSI(SG_BIGNUM(b), SG_INT_VALUE(r));
+    }
+  }
+  return r;
+}
 
 SgObject Sg_BignumDivSI(SgBignum *a, long b, long *rem)
 {
