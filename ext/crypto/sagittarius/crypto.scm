@@ -33,8 +33,8 @@
 	    LTC_CTR_RFC3686
 	    ;; condition
 	    &crypto-error crypto-error?
-	    &encrypt-error encrypt-error?
-	    &decrypt-error decrypt-error?
+	    &encrypt-error encrypt-error? condition-encrypt-mechanism
+	    &decrypt-error decrypt-error? condition-decrypt-mechanism
 	    &encode-error encode-error?
 	    &decode-error decode-error?
 	    raise-encrypt-error

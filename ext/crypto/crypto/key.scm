@@ -10,6 +10,7 @@
 	    generate-private-key
 	    generate-public-key
 	    RSA
+	    keypair?
 	    keypair-private
 	    keypair-public
 	    private-key

@@ -361,22 +361,33 @@ used when variable is bounded by @code{define-with-key} (see
 }
 
 @subsubsection{Weak Pointer}
-@; TODO write the document.
+A weak pointer is a reference to an object that doesn’t prevent the object from
+being garbage-collected. Sagittarius provides weak pointers as a weak vector 
+bject. A weak vector is like a vector of objects, except each object can be
+garbage collected if it is not referenced from objects other than weak vectors.
+If the object is collected, the entry of the weak vector is replaced for #f.
 
 @define[Function]{@name{make-weak-vector} @args{size}}
-@desc{doc
-}
+@desc{Creates and returns a weak vector of size @var{size}.}
 
 @define[Function]{@name{weak-vector-length} @args{wvec}}
-@desc{doc
-}
+@desc{Returns the length of given weak vector @var{wvec}}
 
 @define[Function]{@name{weak-vector-ref} @args{wvec k :optional fallback}}
-@desc{doc
+@desc{Returns @var{k}-th element of a weak vector @var{wvec}.
+
+By default, @code{weak-vector-ref} raise an @code{&assertion} if @var{k} is
+negative, or greater than or equal to the size of @var{wvec}. However, if an
+optional argument @var{fallback} is given, it is returned for such case.
+
+If the element has been garbage collected, this procedure returns @var{fallback}
+if it is given, #f otherwise. 
 }
 
 @define[Function]{@name{weak-vector-set!} @args{wvec k value}}
-@desc{doc
+@desc{Sets @var{k}-th element of the weak vector @var{wvec} to @var{value}. It
+raises an @code{&assertion} if @var{k} is negative or greater than or equal to
+the size of @var{wvec}. 
 }
 
 @subsubsection{Bytevector operations}

@@ -4,6 +4,7 @@
 ;;; key pair
 (library (crypto key pair)
     (export make-keypair
+	    keypair?
 	    keypair-private
 	    keypair-public
 	    ;;

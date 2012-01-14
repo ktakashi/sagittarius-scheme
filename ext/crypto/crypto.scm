@@ -19,13 +19,9 @@
 	    generate-private-key
 	    generate-public-key
 	    RSA
+	    keypair?
 	    keypair-private
 	    keypair-public
-	    private-key
-	    private-key?
-	    public-key
-	    public-key?
-	    ;;
 	    private-key
 	    private-key?
 	    public-key
@@ -34,7 +30,7 @@
 	    pkcs5-padder
 	    pkcs-v1.5-padding
 	    PKCS-1-EME
-	    PKCS-1-EMSA
+	    pPKCS-1-EMSA
 	    pkcs1-emsa-pss-encode
 	    pkcs1-emsa-pss-verify
 	    mgf-1
@@ -75,8 +71,8 @@
 	    LTC_CTR_RFC3686
 	    ;; conditions
 	    &crypto-error crypto-error?
-	    &encrypt-error encrypt-error?
-	    &decrypt-error decrypt-error?
+	    &encrypt-error encrypt-error? condition-encrypt-mechanism
+	    &decrypt-error decrypt-error? condition-decrypt-mechanism
 	    &encode-error encode-error?
 	    &decode-error decode-error?
 	    raise-encrypt-error
