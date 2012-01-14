@@ -13,7 +13,7 @@ Sagittarius provides some useful libraries.
 in R6RS such as extra file system functions and so.
 }
 
-@subsubsection{Builtin Syntax}
+@subsubsection[:tag "lib.sagittarius.builtin.syntax"]{Builtin Syntax}
 @define[Syntax]{@name{define-constant} @args{variable expression}}
 @desc{Similar to the @code{define} however the @code{define-constant} binds
 @var{variable} as a constant value and the compiler try to fold it if it is
