@@ -10,12 +10,25 @@
     (result (SG_PRNG_P o)))
 
   ;; pseudo random
-  (define-c-proc make-pseudo-random (name::String bits::fixnum) ::Object
+  (define-c-proc make-pseudo-random (name::String :optional (seed #f)) ::Object
+    (unless (or (SG_FALSEP seed)
+		(SG_BVECTORP seed))
+      (Sg_WrongTypeOfArgumentViolation procedureName
+				       (Sg_MakeString "bytevector or #f"
+						      SG_LITERAL_STRING)
+				       seed '()))
+    (result (Sg_MakePseudoRandom name seed)))
+
+  (define-c-proc make-secure-random (name::String bits::fixnum) ::Object
     (when (< bits 0)
       (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "positive integer" SG_LITERAL_STRING)
+				       (Sg_MakeString "positive integer"
+						      SG_LITERAL_STRING)
 				       (SG_MAKE_INT bits) '()))
-    (result (Sg_MakePseudoRandom name bits)))
+    (result (Sg_MakeSecureRandom name bits)))
+
+  (define-c-proc %random-seed-set! (prng::Prng seed::ByteVector) ::void
+    (Sg_SetSeed prng seed))
 
   (define-c-proc make-custom-prng (name::String read::Procedure) ::Object
     (result (Sg_MakeCustomPrng name read)))
@@ -23,7 +36,8 @@
   (define-c-proc read-random-bytes (prng::Prng size::fixnum) ::Object
     (when (< size 0)
       (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "positive integer" SG_LITERAL_STRING)
+				       (Sg_MakeString "positive integer"
+						      SG_LITERAL_STRING)
 				       (SG_MAKE_INT size) '()))
     (result (Sg_ReadRandomBytes prng size)))
 
@@ -34,7 +48,8 @@
     (unless (or (SG_FALSEP process)
 		(SG_PROCEDUREP process))
       (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "procedure or #f" SG_LITERAL_STRING)
+				       (Sg_MakeString "procedure or #f"
+						      SG_LITERAL_STRING)
 				       process '()))
     (result (Sg_MakeHash name process)))
 

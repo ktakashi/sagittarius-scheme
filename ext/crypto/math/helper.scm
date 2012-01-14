@@ -3,19 +3,44 @@
 ;;; helper.scm math library
 ;;; 
 (library (math helper)
-    (export bytevector->integer
-	    integer->bytevector
-	    align-size)
+    (export align-size
+	    mod-inverse
+	    mod-expt)
     (import (rnrs) (sagittarius))
 
-;; moved to builtin function  
-;;  (define (bytevector->integer bv)
-;;    (let ((len (bytevector-length bv)))
-;;      (do ((i len (- i 1))
-;;	   (ans 0 (+ ans (bitwise-arithmetic-shift (bytevector-u8-ref bv (- i 1))
-;;						   (* (- len i) 8)))))
-;;	  ((= i 0) ans))))
+  (define (mod-inverse u v)
+    (let ((u1 1)
+	  (u3 u)
+	  (v1 0)
+	  (v3 v)
+	  (bi 1))
+      (do ()
+	  ((zero? v3) #t)
+	(receive (q t3) (div-and-mod u3 v3)
+	  (let* ((w (* q v1))
+		 (t1 (+ u1 w)))
+	    (set! u1 v1)
+	    (set! v1 t1)
+	    (set! u3 v3)
+	    (set! v3 t3)
+	    (set! bi (- bi)))))
+      (if (negative? bi)
+	  (- v u1)
+	  u1)))
 
+  ;; compute x ^ n mod d
+  ;; This is actually the same as (mod (expt x n) d). However,  if we use
+  ;; builtin 'expt' for this calculation, it raises an error when x or d is
+  ;; bignum. So here we define the better way to compute.
+  (define (mod-expt x n d)
+    (do ((y 1) (n n))
+	((<= n 0) y)
+      (if (odd? n)
+	  (set! y (mod (* y x) d)))
+      (set! n (bitwise-arithmetic-shift-right n 1))
+      (if (positive? n)
+	  (set! x (mod (* x x) d))))
+    )
   (define-syntax align-size
     (syntax-rules (bit)
       ((_ (bit n))
@@ -27,12 +52,4 @@
 	 (+ (bitwise-arithmetic-shift-right bitlen 3)
 	    (if (zero? (bitwise-and bitlen 7)) 0 1))))))
 
-;; moved to builtin function  
-;;   (define (integer->bytevector int)
-;;     (let* ((len (align-size int))
-;;	    (bv (make-bytevector len 0)))
-;;       (do ((int int (bitwise-arithmetic-shift-right int 8))
-;;	    (i (- len 1) (- i 1)))
-;;	   ((< i 0) bv)
-;;	 (bytevector-u8-set! bv i (bitwise-and int #xFF)))))
  )

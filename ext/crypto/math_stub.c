@@ -1,4 +1,4 @@
-/* This file is autmatically generated from "D:/home/t.kato/projects/sagittarius.win/ext/crypto/math_stub.stub". DO NOT EDIT!!*/
+/* This file is autmatically generated from "/home/takashi/projects/sagittarius/ext/crypto/math_stub.stub". DO NOT EDIT!!*/
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius.h>
 #include "math.h"
@@ -22,9 +22,36 @@ static SgObject _sagittarius_math_impl_make_pseudo_random(SgObject *args, int ar
 {
   SgObject name_scm;
   SgString *name;
+  SgObject seed;
+  DeclareProcedureName("make-pseudo-random");
+  checkArgumentLengthBetween(1, 2);
+  argumentAsString(0, name_scm, name);
+  if (argc >= 2) {
+    argumentRef(1, seed);
+  } else {
+    seed = SG_MAKE_BOOL(FALSE);
+  }
+
+  {
+    SgObject SG_RETURN = SG_UNDEF;
+    if (!((SG_FALSEP(seed) || SG_BVECTORP(seed)))) {
+      Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("bytevector or #f"), SG_LITERAL_STRING), seed, SG_NIL);
+    }
+;
+    SG_RETURN = (Sg_MakePseudoRandom(name, seed));
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_math_impl_make_pseudo_random_Stub, 1, 1, _sagittarius_math_impl_make_pseudo_random, SG_FALSE, NULL);
+
+;
+static SgObject _sagittarius_math_impl_make_secure_random(SgObject *args, int argc, void *data_)
+{
+  SgObject name_scm;
+  SgString *name;
   SgObject bits_scm;
   int bits;
-  DeclareProcedureName("make-pseudo-random");
+  DeclareProcedureName("make-secure-random");
   checkArgumentLength(2);
   argumentAsString(0, name_scm, name);
   argumentAsFixnum(1, bits_scm, bits);
@@ -34,11 +61,30 @@ static SgObject _sagittarius_math_impl_make_pseudo_random(SgObject *args, int ar
       Sg_WrongTypeOfArgumentViolation(procedureName, Sg_MakeString(UC("positive integer"), SG_LITERAL_STRING), SG_MAKE_INT(bits), SG_NIL);
     }
 ;
-    SG_RETURN = (Sg_MakePseudoRandom(name, bits));
+    SG_RETURN = (Sg_MakeSecureRandom(name, bits));
     return SG_RETURN;
   }
 }
-static SG_DEFINE_SUBR(_sagittarius_math_impl_make_pseudo_random_Stub, 2, 0, _sagittarius_math_impl_make_pseudo_random, SG_FALSE, NULL);
+static SG_DEFINE_SUBR(_sagittarius_math_impl_make_secure_random_Stub, 2, 0, _sagittarius_math_impl_make_secure_random, SG_FALSE, NULL);
+
+;
+static SgObject _sagittarius_math_impl_25random_seed_set21(SgObject *args, int argc, void *data_)
+{
+  SgObject prng_scm;
+  SgPrng *prng;
+  SgObject seed_scm;
+  SgByteVector *seed;
+  DeclareProcedureName("%random-seed-set!");
+  checkArgumentLength(2);
+  argumentAsPrng(0, prng_scm, prng);
+  argumentAsByteVector(1, seed_scm, seed);
+  {
+    SgObject SG_RETURN = SG_UNDEF;
+    Sg_SetSeed(prng, seed);
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_math_impl_25random_seed_set21_Stub, 2, 0, _sagittarius_math_impl_25random_seed_set21, SG_FALSE, NULL);
 
 ;
 static SgObject _sagittarius_math_impl_make_custom_prng(SgObject *args, int argc, void *data_)
@@ -209,26 +255,30 @@ static SG_DEFINE_SUBR(_sagittarius_math_impl_hash_oid_Stub, 1, 0, _sagittarius_m
 void Sg__Init_sagittarius_math_impl()
 {
   SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC("(sagittarius math impl)"), SG_LITERAL_STRING)), TRUE);
+  SG_PROCEDURE_NAME(&_sagittarius_math_impl_hash_init21_Stub) = Sg_MakeString(UC("hash-init!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hash-init!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_math_impl_hash_init21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_math_impl_hash_done21_Stub) = Sg_MakeString(UC("hash-done!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hash-done!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_math_impl_hash_done21_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_math_impl_hash_size_Stub) = Sg_MakeString(UC("hash-size"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hash-size"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_math_impl_hash_size_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_math_impl_read_random_bytes_Stub) = Sg_MakeString(UC("read-random-bytes"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("read-random-bytes"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_math_impl_read_random_bytes_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_math_impl_hash_process21_Stub) = Sg_MakeString(UC("hash-process!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hash-process!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_math_impl_hash_process21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_math_impl_make_custom_prng_Stub) = Sg_MakeString(UC("make-custom-prng"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-custom-prng"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_math_impl_make_custom_prng_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_math_impl_hash_oid_Stub) = Sg_MakeString(UC("hash-oid"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hash-oid"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_math_impl_hash_oid_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_math_impl_hash_algorithm3f_Stub) = Sg_MakeString(UC("hash-algorithm?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hash-algorithm?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_math_impl_hash_algorithm3f_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_math_impl_make_pseudo_random_Stub) = Sg_MakeString(UC("make-pseudo-random"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-pseudo-random"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_math_impl_make_pseudo_random_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_math_impl_hash_init21_Stub) = Sg_MakeString(UC("hash-init!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hash-init!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_math_impl_hash_init21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_math_impl_make_secure_random_Stub) = Sg_MakeString(UC("make-secure-random"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-secure-random"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_math_impl_make_secure_random_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_math_impl_hash_process21_Stub) = Sg_MakeString(UC("hash-process!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hash-process!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_math_impl_hash_process21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_math_impl_hash_oid_Stub) = Sg_MakeString(UC("hash-oid"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hash-oid"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_math_impl_hash_oid_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_math_impl_make_custom_prng_Stub) = Sg_MakeString(UC("make-custom-prng"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-custom-prng"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_math_impl_make_custom_prng_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_math_impl_make_hash_algorithm_Stub) = Sg_MakeString(UC("make-hash-algorithm"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-hash-algorithm"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_math_impl_make_hash_algorithm_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_math_impl_hash_done21_Stub) = Sg_MakeString(UC("hash-done!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hash-done!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_math_impl_hash_done21_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_math_impl_prng3f_Stub) = Sg_MakeString(UC("prng?"), SG_LITERAL_STRING);
   Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("prng?"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_math_impl_prng3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_math_impl_25random_seed_set21_Stub) = Sg_MakeString(UC("%random-seed-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("%random-seed-set!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_math_impl_25random_seed_set21_Stub));
 }

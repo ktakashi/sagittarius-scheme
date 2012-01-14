@@ -7,19 +7,42 @@
     (export (rename (prng? pseudo-random?))
 	    ;; random number generator
 	    pseudo-random
+	    secure-random
+	    random-seed-set!
 	    random
 	    read-random-bytes
-	    bytevector->number
 	    Yarrow Fortuna RC4 SOBER-128)
     (import (core)
 	    (math helper)
+	    (sagittarius)
 	    (sagittarius control)
 	    (sagittarius math))
 
-  (define-with-key (pseudo-random type :key (bits 128) (reader #f))
+  (define-with-key (pseudo-random type :key (seed #f) (reader #f))
+    (or (not seed)
+	(integer? seed)
+	(bytevector? seed)
+	(assertion-violation 'pseudo-random 
+			     "integer or bytevector required" seed))
+    (if reader
+	(make-custom-prng type reader)
+	(make-pseudo-random type (if (integer? seed)
+				     (integer->bytevector seed)
+				     seed))))
+
+  (define-with-key (secure-random type :key (bits 128) (reader #f))
     (if reader
 	(make-custom-prng type reader) 
-	(make-pseudo-random type bits)))
+	(make-secure-random type bits)))
+
+  (define (random-seed-set! prng seed)
+    (or (integer? seed)
+	(bytevector? seed)
+	(assertion-violation 'pseudo-random 
+			     "integer or bytevector required" seed))
+    (if (integer? seed)
+	(%random-seed-set! prng (integer->bytevector seed))
+	(%random-seed-set! prng seed)))
 
   ;; TODO 100 bytes read-size are good enough?
   (define-with-key (random prng size :key (read-size 100))

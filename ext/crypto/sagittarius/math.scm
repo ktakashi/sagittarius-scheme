@@ -4,6 +4,8 @@
     (export prng?
 	    read-random-bytes
 	    make-pseudo-random
+	    make-secure-random
+	    %random-seed-set!
 	    make-custom-prng
 	    Yarrow Fortuna RC4 SOBER-128
 	    ;; hash

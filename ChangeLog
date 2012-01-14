@@ -1,3 +1,8 @@
+2012-01-14  Takashi Kato  <ktakashi@ymail.com>
+
+	* ext/crypto/random.c (Sg_MakePseudoRandom): separated pseudo random and
+	secure random
+
 2012-01-11  Takashi Kato  <ktakashi@ymail.com>
 
 	* boot/compiler.scm (include include-ci): implemented include related

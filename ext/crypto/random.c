@@ -53,7 +53,7 @@ static void finalize_prng(SgObject prng, void *data)
     .done(&SG_PRNG(prng)->impl.builtin.prng);
 }
 
-SgObject Sg_MakePseudoRandom(SgString *name, int bits)
+SgObject Sg_MakePseudoRandom(SgString *name, SgObject seed)
 {
   const char *cname = Sg_Utf32sToUtf8s(name);
   int wprng = find_prng(cname), err;
@@ -66,6 +66,56 @@ SgObject Sg_MakePseudoRandom(SgString *name, int bits)
 
   prng = make_prng(SG_BUILTIN_PRNG, name);
   SG_PRNG(prng)->impl.builtin.wprng = wprng;
+  err = prng_descriptor[wprng].start(&SG_PRNG(prng)->impl.builtin.prng);
+  if (err != CRYPT_OK) goto err;
+
+  err = prng_descriptor[wprng].ready(&SG_PRNG(prng)->impl.builtin.prng);
+  if (err != CRYPT_OK) goto err;
+
+  if (!SG_FALSEP(seed)) {
+    if (SG_BVECTORP(seed)) {
+      err = prng_descriptor[wprng]
+	.add_entropy(SG_BVECTOR_ELEMENTS(seed),
+		     SG_BVECTOR_SIZE(seed),
+		     &SG_PRNG(prng)->impl.builtin.prng);
+      if (err != CRYPT_OK) goto err;
+    } else { goto err; }
+  }
+
+  Sg_RegisterFinalizer(prng, finalize_prng, NULL);
+  return SG_OBJ(prng);
+ err:
+  Sg_Error(UC("Failed to initialize pseudo random: %A"),
+	   Sg_MakeStringC(error_to_string(err)));
+  return SG_UNDEF;
+}
+
+void Sg_SetSeed(SgPrng *prng, SgByteVector *seed)
+{
+  int err;
+  if (prng->type != SG_BUILTIN_PRNG) return;
+  err = prng_descriptor[SG_PRNG(prng)->impl.builtin.wprng]
+    .add_entropy(SG_BVECTOR_ELEMENTS(seed),
+		 SG_BVECTOR_SIZE(seed),
+		 &SG_PRNG(prng)->impl.builtin.prng);
+  if (err != CRYPT_OK) {
+    Sg_Error(UC("Failed to set seed. %A"), seed);
+  }
+}
+
+SgObject Sg_MakeSecureRandom(SgString *name, int bits)
+{
+  const char *cname = Sg_Utf32sToUtf8s(name);
+  int wprng = find_prng(cname), err;
+  SgPrng *prng;
+  
+  if (wprng == -1) {
+    Sg_Error(UC("%A is not supported"), name);
+    return SG_UNDEF;
+  }
+
+  prng = make_prng(SG_SECURE_PRNG, name);
+  SG_PRNG(prng)->impl.builtin.wprng = wprng;
 
   err = rng_make_prng(bits, wprng, &SG_PRNG(prng)->impl.builtin.prng, NULL);
   if (err != CRYPT_OK) {
@@ -77,11 +127,13 @@ SgObject Sg_MakePseudoRandom(SgString *name, int bits)
   return SG_OBJ(prng);
 }
 
+
 SgObject Sg_ReadRandomBytes(SgPrng *prng, int size)
 {
   SgByteVector *buf = Sg_MakeByteVector(size, 0);
   switch (prng->type) {
   case SG_BUILTIN_PRNG:
+  case SG_SECURE_PRNG:
     if (prng_descriptor[SG_PRNG(prng)->impl.builtin.wprng]
 	  .read(SG_BVECTOR_ELEMENTS(buf), size,
 		&SG_PRNG(prng)->impl.builtin.prng) != size) {

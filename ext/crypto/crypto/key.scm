@@ -32,7 +32,10 @@
 
   (define RSA 'RSA)
 
-  (define-with-key (generate-key-pair type :key (size 1024) (prng (pseudo-random RC4)) (e 65537))
+  (define-with-key (generate-key-pair type
+				      :key (size 1024) 
+				           (prng (secure-random RC4))
+					   (e 65537))
     (case type
       ((RSA) (rsa-generate-key-pair size prng e))
       (else
@@ -53,7 +56,7 @@
        (assertion-violation 'generate-private-key
 			    (format "~a is not supporeted" type)))))
 
-  (define-with-key (public-key-cipher type key :key (prng (pseudo-random RC4))
+  (define-with-key (public-key-cipher type key :key (prng (secure-random RC4))
 				               :allow-other-keys rest)
     (case type
       ((RSA) (apply rsa-cipher key prng rest))

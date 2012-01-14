@@ -42,6 +42,7 @@
 
 enum {
   SG_BUILTIN_PRNG,
+  SG_SECURE_PRNG,
   SG_CUSTOM_PRNG,
 };
 /* pseudo random number generator */
@@ -109,7 +110,9 @@ SG_DECLARE_META_OBJ(Sg_HashAlgoMeta);
   castArgumentType(index, tmp_, var_, prng, SG_HASH_P, SG_HASH)
 
 /* random */
-SgObject Sg_MakePseudoRandom(SgString *name, int bits);
+SgObject Sg_MakePseudoRandom(SgString *name, SgObject seed);
+SgObject Sg_MakeSecureRandom(SgString *name, int bits);
+void     Sg_SetSeed(SgPrng *prng, SgByteVector *seed);
 SgObject Sg_ReadRandomBytes(SgPrng *prng, int size);
 SgObject Sg_MakeCustomPrng(SgString *name, SgObject readRandom);
 

@@ -5,7 +5,7 @@
 	    random-prime)
     (import (rnrs)
 	    (sagittarius control)
-	    (math)
+	    (sagittarius)
 	    (math helper)
 	    (math random))
 
@@ -30,7 +30,7 @@
 
   ;; Miller Rabin primality test
   (define-optional (is-prime? q (optional (k 50)
-					  (rand (pseudo-random RC4))))
+					  (rand (secure-random RC4))))
     (define (check-small-prime q)
       (let loop ((p *small-primes*))
 	(cond ((null? p) #f)
@@ -70,7 +70,7 @@
 			   #f
 			   (loop (+ i 1)))))))))))
 
-  (define-with-key (random-prime size :key (prng (pseudo-random RC4)))
+  (define-with-key (random-prime size :key (prng (secure-random RC4)))
     (let loop ()
       (let* ((bv (read-random-bytes prng size))
 	     (len (bytevector-length bv)))

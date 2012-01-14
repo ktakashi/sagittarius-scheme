@@ -73,7 +73,7 @@
 					  :key (algo :hash (hash-algorithm SHA-1))
 					       (mgf mgf-1)
 					       (salt-length #f)
-					       (prng (pseudo-random RC4)))
+					       (prng (secure-random RC4)))
     (unless salt-length
       (set! salt-length (hash-size algo)))
     (let ((hash-len (hash-size algo))

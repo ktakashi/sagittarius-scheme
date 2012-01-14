@@ -5,6 +5,7 @@
     (import (srfi :64 testing)
 	    (rnrs)
 	    (crypto)
+	    (math random)
 	    (math prime)
 	    (math hash))
 
@@ -91,7 +92,7 @@
     #vu8(1 255 255 255 255 255 255 255 255 255 255 #xFE 255 255 255 255 255 255 0 116 101 115 116 32 109 101 115 115 97 103 101))
 
   ;; 1024 bits takes too long. 512 bits can be durable.
-  (define key-pair (generate-key-pair RSA :size 512))
+  (define key-pair (generate-key-pair RSA :size 512 :prng (pseudo-random RC4)))
 
   (define (run-crypto-test)
     ;; basic test

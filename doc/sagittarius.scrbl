@@ -364,19 +364,19 @@ used when variable is bounded by @code{define-with-key} (see
 @; TODO write the document.
 
 @define[Function]{@name{make-weak-vector} @args{size}}
-@desc{
+@desc{doc
 }
 
 @define[Function]{@name{weak-vector-length} @args{wvec}}
-@desc{
+@desc{doc
 }
 
 @define[Function]{@name{weak-vector-ref} @args{wvec k :optional fallback}}
-@desc{
+@desc{doc
 }
 
 @define[Function]{@name{weak-vector-set!} @args{wvec k value}}
-@desc{
+@desc{doc
 }
 
 @subsubsection{Bytevector operations}
