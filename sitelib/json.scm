@@ -4,11 +4,10 @@
     (export json-write
 	    json-read)
     (import (rnrs)
-	    (sagittarius)
 	    (packrat)
 	    (util hashtables))
 
-(define void undefined)
+(define (void) 'null)
 
 ;; JSON implementation for Scheme
 ;; See http://www.json.org/ or http://www.crockford.com/JSON/index.html
