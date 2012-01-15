@@ -5,7 +5,7 @@
 	    json-read)
     (import (rnrs)
 	    (packrat)
-	    (rename (util hashtables) (hashtable->alist hash-table->alist)))
+	    (util hashtables))
 
 ;; JSON implementation for Scheme
 ;; See http://www.json.org/ or http://www.crockford.com/JSON/index.html
@@ -39,7 +39,7 @@
 
 
   (define (hashtable->vector ht)
-    (list->vector (hash-table->alist ht)) )
+    (list->vector (hashtable->alist ht)) )
 
   (define json-write
     (let ()
@@ -75,7 +75,7 @@
 
       (define (write-any x p)
 	(cond
-	 ((hash-table? x) (write-ht (hashtable->vector x) p))
+	 ((hashtable? x) (write-ht (hashtable->vector x) p))
 	 ((vector? x) (write-ht x p))
 	 ((pair? x) (write-array x p))
 	 ((symbol? x) (write (symbol->string x) p)) ;; for convenience
