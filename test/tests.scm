@@ -11,6 +11,7 @@
 	(tests rfc base64)
 	(tests rfc quoted-printable)
 	(tests rfc mime)
+	(tests packrat)
 	(tests match)
 	;; syntax-case extra
 	(tests syntax-case)
@@ -80,6 +81,7 @@
 (run-rfc-base64-tests)
 (run-rfc-quoted-printable-tests)
 (run-rfc-mime-test)
+(run-packrat-test)
 (run-match-tests)
 (run-syntax-case-tests)
 (run-ssax-test)
