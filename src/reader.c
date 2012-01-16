@@ -1182,21 +1182,25 @@ SgObject read_hash_hash(SgPort *port, SgChar c, dispmacro_param *param,
 SgObject read_hash_less(SgPort *port, SgChar c, dispmacro_param *param,
 			SgReadContext *ctx)
 {
-  /* #<(library) imports readtable */
-  SgObject name = read_expr(port, ctx);
-  if (SG_PAIRP(name)) {
-    SgObject lib = Sg_FindLibrary(name, FALSE);
-    if (SG_FALSEP(lib)) {
+  /* #<(library) ...> imports readtables */
+  SgObject libs = read_list(port, '>', ctx);
+  SgObject cp;
+  SG_FOR_EACH(cp, libs) {
+    SgObject name = SG_CAR(cp);
+    if (SG_PAIRP(name)) {
+      SgObject lib = Sg_FindLibrary(name, FALSE);
+      if (SG_FALSEP(lib)) {
+	lexical_error(port, ctx,
+		      UC("no library named %S"), name);
+      }
+      if (SG_LIBRARY_READTABLE(lib)) {
+	add_read_table(SG_LIBRARY_READTABLE(lib), Sg_CurrentReadTable());
+      }
+      
+    } else {
       lexical_error(port, ctx,
-		    UC("no library named %S"), name);
+		    UC("library name required but got %S"), name);
     }
-    if (SG_LIBRARY_READTABLE(lib)) {
-      add_read_table(SG_LIBRARY_READTABLE(lib), Sg_CurrentReadTable());
-    }
-    
-  } else {
-    lexical_error(port, ctx,
-		  UC("library name required but got %S"), name);
   }
   return NULL;
 }

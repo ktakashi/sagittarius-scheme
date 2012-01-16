@@ -9,6 +9,15 @@
   (define-c-proc prng? (o) ::boolean
     (result (SG_PRNG_P o)))
 
+  (define-c-proc pseudo-random? (o) ::boolean
+    (result (and (SG_PRNG_P o) (SG_EQ (-> (SG_PRNG o) type) SG_BUILTIN_PRNG))))
+
+  (define-c-proc custom-random? (o) ::boolean
+    (result (and (SG_PRNG_P o) (SG_EQ (-> (SG_PRNG o) type) SG_CUSTOM_PRNG))))
+
+  (define-c-proc secure-random? (o) ::boolean
+    (result (and (SG_PRNG_P o) (SG_EQ (-> (SG_PRNG o) type) SG_SECURE_PRNG))))
+
   ;; pseudo random
   (define-c-proc make-pseudo-random (name::String :optional (seed #f)) ::Object
     (unless (or (SG_FALSEP seed)
@@ -34,7 +43,7 @@
     (result (Sg_MakeCustomPrng name read)))
 
   (define-c-proc read-random-bytes (prng::Prng size::fixnum) ::Object
-    (when (< size 0)
+    (when (<= size 0)
       (Sg_WrongTypeOfArgumentViolation procedureName
 				       (Sg_MakeString "positive integer"
 						      SG_LITERAL_STRING)

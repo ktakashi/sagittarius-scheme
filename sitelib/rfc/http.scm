@@ -28,7 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-#<(sagittarius regex)
+#<(sagittarius regex)>
 (library (rfc http)
     (export &http-error
 	    http-error?

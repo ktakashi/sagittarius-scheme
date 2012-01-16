@@ -101,8 +101,11 @@ bracket at the beginning of the description. The following origins are noted:
 
 @dl-list[
 @dl-itemx[2 "[R6RS]" "[R6RS+]"]{
-The entry works as specified in "Revised^6 Report of Algorithmic Language
+The entry works as specified in "Revised^6 Report on the Algorithmic Language
 Scheme.". If it is marked as "[R6RS+]", the entry has additional functionality.}
+@dl-item["[R7RS]"]{
+The entry works as specified in "Revised^7 Report on the Algorithmic Language
+Scheme."(draft 5).}
 @dl-itemx[2 "[SRFI-n]" "[SRFI-n+]"]{The entry works as specified in SRFI-n. If
 it is marked as "[SRFI-n+]", the entry has additional functionality.}
 ]

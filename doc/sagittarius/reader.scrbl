@@ -7,7 +7,7 @@ The following examples explain it.
 
 Using reader macro
 @codeblock{
-#<(sagittarius regex)        ;; this imports only reader macros
+#<(sagittarius regex)>       ;; this imports only reader macros
 (import (sagittarius regex)) ;; usual import for procedures
 #/regex/i                    ;; (sagittarius regex) defines #/regex/ form
                              ;; reader macro in it. it converts it
@@ -41,7 +41,7 @@ Writing reader macro in library and export it
       (read-delimited-list #\$ port)))
 )
 
-#<(reader macro test) ;; imports reader macro
+#<(reader macro test)> ;; imports reader macro
 !define test !lambda !$ !display "hello reader macro"$$$
 !test$    ;; prints "hello reader macro"
 }
@@ -200,5 +200,8 @@ The following table explains predefined reader macros.
 @tr{@td{#\\} @td{Reads a character.}}
 @tr{@td{#\=} @td{Starts reading SRFI-38 style shared object.}}
 @tr{@td{#\#} @td{Refers SRFI-38 style shared object.}}
-@tr{@td{#\<} @td{Reads a next expression and imports reader macro from it.}}
+@tr{@td{#\<} @td{Reads expressions until '>' and imports reader macro from it.
+Note: if expressions contains symbol, which is illegal library name, at the end
+#<-reader can not detect the '>' because '>' can be symbol. So the error message
+might be a strange one.}}
 }

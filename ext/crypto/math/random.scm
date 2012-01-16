@@ -4,7 +4,10 @@
 ;;; 
 #!compatible
 (library (math random)
-    (export (rename (prng? pseudo-random?))
+    (export prng?
+	    pseudo-random?
+	    secure-random?
+	    custom-random?
 	    ;; random number generator
 	    pseudo-random
 	    secure-random
@@ -30,10 +33,8 @@
 				     (integer->bytevector seed)
 				     seed))))
 
-  (define-with-key (secure-random type :key (bits 128) (reader #f))
-    (if reader
-	(make-custom-prng type reader) 
-	(make-secure-random type bits)))
+  (define-with-key (secure-random type :key (bits 128))
+    (make-secure-random type bits))
 
   (define (random-seed-set! prng seed)
     (or (integer? seed)

@@ -1184,8 +1184,6 @@ SgObject Sg_BignumDivRem(SgBignum *a, SgBignum *b)
 SgObject Sg_BignumModulo(SgBignum *a, SgBignum *b, int remp)
 {
   SgBignum *r;
-  if (Sg_BignumAbsCmp(a, b) < 0) return SG_OBJ(a);
-  
   r = bignum_gdiv(a, b, NULL);
   r = Sg_NormalizeBignum(r);
   if (!remp

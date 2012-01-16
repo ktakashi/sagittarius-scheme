@@ -99,6 +99,11 @@
     (test-assert "crypto-object?" (crypto-object? des/cbc-cipher))
     (test-assert "cipher?" (cipher? des/cbc-cipher))
     (test-assert "key?" (key? *des-key*))
+    (test-assert "prng?" (prng? (pseudo-random RC4)))
+    (test-assert "prng?" (prng? (secure-random RC4)))
+    (test-assert "pseudo-random?" (pseudo-random? (pseudo-random RC4)))
+    (test-assert "secure-random?" (secure-random? (secure-random RC4)))
+
     ;; key suggest
     (test-equal "DES key size" 8 (cipher-keysize DES 8))
     (test-equal "DES3 key size" 24 (cipher-keysize DES3 24))

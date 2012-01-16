@@ -93,7 +93,8 @@ SgObject Sg_MakePseudoRandom(SgString *name, SgObject seed)
 void Sg_SetSeed(SgPrng *prng, SgByteVector *seed)
 {
   int err;
-  if (prng->type != SG_BUILTIN_PRNG) return;
+  if (prng->type != SG_BUILTIN_PRNG ||
+      prng->type != SG_SECURE_PRNG) return;
   err = prng_descriptor[SG_PRNG(prng)->impl.builtin.wprng]
     .add_entropy(SG_BVECTOR_ELEMENTS(seed),
 		 SG_BVECTOR_SIZE(seed),

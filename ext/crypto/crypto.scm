@@ -30,7 +30,7 @@
 	    pkcs5-padder
 	    pkcs-v1.5-padding
 	    PKCS-1-EME
-	    pPKCS-1-EMSA
+	    PKCS-1-EMSA
 	    pkcs1-emsa-pss-encode
 	    pkcs1-emsa-pss-verify
 	    mgf-1
