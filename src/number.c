@@ -2204,7 +2204,7 @@ SgObject Sg_Quotient(SgObject x, SgObject y, SgObject *rem)
   fixnum_again:
     if (SG_INTP(y)) {
       long q, r;
-      if (SG_INTP(y) == 0) {
+      if (SG_INT_VALUE(y) == 0) {
 	goto div_by_zero;
       }
       q = SG_INT_VALUE(x) / SG_INT_VALUE(y);

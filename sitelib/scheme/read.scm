@@ -2,4 +2,4 @@
 #!compatible
 (library (scheme read)
     (export read)
-    (import (rnrs)))
+    (import (rename (sagittarius) (read/ss read))))

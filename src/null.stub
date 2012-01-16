@@ -858,12 +858,24 @@
 
   ;; r5rs compatible
   (define-c-proc quotient (n1::number n2::number) ::Object
+    (when (SG_EQ n2 (SG_MAKE_INT 0))
+      (assertion-violation 'quotient
+			   "attempt to calculate a quotient by zero"
+			   (SG_LIST2 n1 n2)))
     (result (Sg_Quotient n1 n2 NULL)))
 
   (define-c-proc remainder (n1::number n2::number) ::Object
+    (when (SG_EQ n2 (SG_MAKE_INT 0))
+      (assertion-violation 'remainder
+			   "attempt to calculate a remainder by zero"
+			   (SG_LIST2 n1 n2)))
     (result (Sg_Modulo n1 n2 TRUE)))
 
   (define-c-proc modulo (n1::number n2::number) ::Object
+    (when (SG_EQ n2 (SG_MAKE_INT 0))
+      (assertion-violation 'modulo
+			   "attempt to calculate a modulo by zero"
+			   (SG_LIST2 n1 n2)))
     (result (Sg_Modulo n1 n2 FALSE)))
 
   (define-c-proc integer-length (n::number) ::fixnum
