@@ -1,5 +1,7 @@
 2012-01-16  Takashi Kato  <ktakashi@ymail.com>
 
+	* ext/*/*_stub.c: removed extra module's generated stub files.
+
 	* ext/regex/regex2.c (unescape_char): fixed reading \xhh.
 	added \uhhhh and \Uhhhhhhhh.
 
