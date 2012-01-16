@@ -247,12 +247,22 @@ static SgObject unescape_char(lexer_ctx_t *ctx)
     return SG_MAKE_CHAR(Sg_CharUpCase(nc) | 0x40);
   case 'x':
     /* \x should be followed by hexadecimal char code, two digis or less */
-    error_pos = --ctx->pos;
+    error_pos = ctx->pos - 1;
     n = get_number(ctx, 16, 2, TRUE);
+    return make_char_from_code(ctx, n, error_pos);
+  case 'u':
+    /* \u should be followed by hexadecimal char code, 4 digis or less */
+    error_pos = ctx->pos - 1;
+    n = get_number(ctx, 16, 4, TRUE);
+    return make_char_from_code(ctx, n, error_pos);
+  case 'U':
+    /* \U should be followed by hexadecimal char code, 8 digis or less */
+    error_pos = ctx->pos - 1;
+    n = get_number(ctx, 16, 8, TRUE);
     return make_char_from_code(ctx, n, error_pos);
   case '0': case '1': case '2': case '3': case '4':
   case '5': case '6': case '7': case '8': case '9':
-    error_pos = --ctx->pos;
+    error_pos = ctx->pos - 1;
     n = get_number(ctx, 8, 3, FALSE);
     return make_char_from_code(ctx, n, error_pos);
   case 't': return SG_MAKE_CHAR('\t');
@@ -670,16 +680,15 @@ static SgObject get_number(lexer_ctx_t *ctx, int radix, int maxlen,
     end = size;
   }
   for (i = 0; i < end; i++) {
-    if ((radix == 10 && isdigit(ctx->str[ctx->pos + i])) ||
+    if (((radix == 8 || radix == 10) && isdigit(ctx->str[ctx->pos + i])) ||
 	(radix == 16 && isxdigit(ctx->str[ctx->pos + i]))) {
-      n = n*i*radix + digit_to_int(ctx->str[ctx->pos + i], radix);
+      n = n*radix + digit_to_int(ctx->str[ctx->pos + i], radix);
     } else {
       if (i == 0) n = -1;
       /* something else is here */
       break;
     }
   }
-
   if (n != -1) {
     /* saniti */
     ctx->pos += i;
@@ -972,12 +981,14 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
 	    return Sg_Cons(SYM_BACKREF, num);
 	  }
 	}
+	break;
       case '0':
 	/* this always means an octal character code */
 	{
-	  int oldpos = --ctx->pos;
+	  int oldpos = ctx->pos - 1;
 	  return make_char_from_code(ctx, get_number(ctx, 8, 3, FALSE), oldpos);
 	}
+	break;
       case 'P': case 'p':
 	/* might be a named property */
 	return read_char_property(ctx, nc);
