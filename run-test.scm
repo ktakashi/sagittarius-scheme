@@ -29,6 +29,8 @@
       (print "testing R7RS tests")
       (flush-output-port (current-output-port))
       (add-load-path "./test/r7rs-tests")
+      ;; for srfi 19
+      (add-load-path "./ext/time")
       (load "./test/r7rs-tests/tests/r7rs/run.scm")
       (flush-output-port (current-output-port)))
 
