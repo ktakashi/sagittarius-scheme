@@ -157,6 +157,14 @@ The @code{regex-replace-all} procedure replaces all strings which matches
 @var{regex}.
 }
 
+@define[Function]{@name{string-split} @args{text pattern}}
+@desc{@var{text} must be a string.
+
+@var{pattern} must be a string or regex-pattern object.
+
+Split @var{text} accoding to @var{pattern}.
+}
+
 @subsubsection{Low level APIs for regular expression}
 
 The above procedures are wrapped User level API. However, you might want to use

@@ -374,6 +374,47 @@
 	  ((null? params) path)
 	  (else (format "~a?~a" path (query)))))
 
+  ;; multipart/form-data composition [RFC2388]
+  ;; <params> : (<params> ...)
+  ;; <param>  : (<name> <value>)
+  ;;          | (<name> <key> <value> <key2> <value2> ...)
+  ;; <key>    : :value | :file | :content-type | :content-transfer-encoding
+  ;;          | other keyword (used as a header name)
+  (define (http-compose-form-data params port
+				  :optional (encoding 'utf-8))
+    (define (translate-param param)
+      (match param
+	((name value) (translate-param `(,name :value ,value)))
+	((name . kvs)
+	 (unless (even? (length kvs))
+	   (assertion-violation 'http-compose-form-data
+				"invalid parameter format to create multipart/form-data") param))
+	(let-keywords kvs ((value "")
+			   (file #f)
+			   (content-type #f)
+			   (content-transfer-encoding #f) . other-keys)
+	  `(,(canonical-content-type (mime-parse-content-type content-type)
+				     value file)
+	    (("content-transfer-encoding" ,(or content-transfer-encoding "binary"))
+	     ("content-disposition" ,(make-content-disposition name file))
+	     ,@(map (lambda (x) (format "~a" x)) (slices other-keys 2)))
+	    ,(if file `(file ,file) (format "~a" file))))))
+    (define (canonical-content-type ct value file)
+      (match ct
+	((type subtype . options)
+	 (if (assoc "charset" options)
+	     ct
+	     `(,type ,subtype ("charset" . ,(format "~a" encoding)) ,@options)))))
+    (define (make-content-disposition name file)
+      (with-output-to-string
+	(lambda ()
+	  (display "form-data")
+	  (mime-compose-parameters `(("name" . ,name)
+				     ,@(cond-list (file `("filename" . ,file))))))))
+    (if (not port)
+	(mime-compose-message-string (map translate-param params))
+	(mime-compose-message (map translate-param params) port)))
+
   (define (ensure-request-uri request-uri enc)
     (match request-uri
       ((? string?) request-uri)
@@ -417,10 +458,10 @@
     (apply %http-request-adaptor 'HEAD server request-uri #f options))
 
   (define (http-post server request-uri body . options)
-    (apply %http-request-adaptor 'POST server request-uri #f options))
+    (apply %http-request-adaptor 'POST server request-uri body options))
 
   (define (http-put server request-uri body . options)
-    (apply %http-request-adaptor 'PUT server request-uri #f options))
+    (apply %http-request-adaptor 'PUT server request-uri body options))
 
   (define (http-delete server request-uri . options)
     (apply %http-request-adaptor 'DELETE server request-uri #f options))
@@ -457,6 +498,22 @@
 	     (port (body-sink size)))
 	(put-bytevector port data)
 	(body-sink 0))))
+
+  (define (http-multipart-sender params)
+    (lambda (hdrs encoding header-sink)
+      (let-values (((body boundary) (http-compose-form-data param #f encoding)))
+	(let* ((size (string-size body))
+	       (hdrs `(("content-length" ,(number->string size))
+		       ("mime-version" "1.0")
+		       ("content-type" ,(string-append
+					 "multipart/form-data; boundary=\""
+					 boundary
+					 "\""))
+		       ,@(alist-delete "content-type" hdrs equal?)))
+	       (body-sink (header-sink hdrs))
+	       (port (body-sink size)))
+	  (display body port)
+	  (body-sink 0)))))
 
   ;; authentication handling
 

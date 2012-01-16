@@ -39,14 +39,17 @@
 	    rfc5322-header-ref
 	    rfc5322-field->tokens
 	    rfc5322-quoted-string
+	    rfc5322-write-headers
+	    rfc5322-invalid-header-field
 	    ;; misc
 	    rfc5322-line-reader)
-    (import (rnrs)
+    (import (except (rnrs) define)
 	    (sagittarius)
 	    (sagittarius io)
 	    (sagittarius regex)
-	    (sagittarius control)
+	    (rename (sagittarius control) (define-with-key define))
 	    (text parse)
+	    (match)
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
 	    (srfi :14 char-set)
@@ -83,8 +86,8 @@
 		  (else r))))))
       
 
-  (define-optional (rfc5322-read-headers in (optional (strict? #f)
-						      (reader (cut rfc5322-line-reader <>))))
+  (define (rfc5322-read-headers in :optional (strict? #f)
+					     (reader (cut rfc5322-line-reader <>)))
     (define (accum name bodies r)
       (cons (list name (string-concatenate-reverse bodies)) r))
     (define drop-leading-fws string-trim)
@@ -182,4 +185,53 @@
 	    ((char=? c #\( ) (in-comment (in-comment (peek-next-char input))))
 	    (else (in-comment (peek-next-char input)))))
     (scan (peek-char input)))  
+
+  ;; write
+  (define (rfc5322-write-headers headers :key
+				 (output (current-output-port))
+				 (check :error)
+				 (continue #f))
+    (define (process headers)
+      (dolist (field headers)
+	(display (car field) output)
+	(display ": " output)
+	(display (cadr field) output)
+	(unless (string-suffix? "\r\n" (cadr field))
+	  (display "\r\n" output)))
+      (unless continue (display "\r\n" output)))
+
+    (define (bad name body reason)
+      (assertion-violation 'rfc5322-write-headers
+			   (format "Illegal RFC5322 header field data (~a)"
+				   reason)
+			   (format " ~a: ~,,,,80:a" reason name body)))
+    (if (memv check '(#f :ignore))
+	(process headers)
+	(let loop ((hs headers)
+		   (hs2 '()))
+	  (match hs
+	    (() (process (reverse hs2)))
+	    (((name body) . rest)
+	     (cond ((rfc5322-invalid-header-field
+		     (string-append name ": " body))
+		    => (lambda (reason)
+			 (if (eq? check :error)
+			     (bad name body reason)
+			     (receive (name2 body2) (check name body reason)
+			       (if (and (equal? name name2) (equal? body body2))
+				   (bad name body reason)
+				   (loop `((,name2 ,body2) . ,rest) hs2))))))
+		   (else (loop rest `((,name ,body) . ,hs2)))))
+	    (else
+	     (assertion-violation 'rfc5322-write-headers
+				  "Invalid header data" headers))))))
+
+  (define *crlf* (string->char-set "\r\n"))
+  (define (rfc5322-invalid-header-field body)
+    (let1 lines (string-split body "\r\n ")
+      (cond ((exists (lambda (s) (> (string-size s) 998)) lines)
+	     'line-too-long)
+	    ((exists (lambda (s) (string-index s *crlf*)) lines)
+	     'stray-crlf)
+	    (else #f))))
 )

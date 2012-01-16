@@ -65,6 +65,10 @@
 	    ;; modify
 	    regex-replace-all
 	    regex-replace-first
+
+	    ;; utility
+	    string-split
+
 	    ;; enable #/regex/
 	    :export-reader-macro
 	    )
@@ -72,6 +76,7 @@
 		    (regex-replace-first impl:regex-replace-first)
 		    (regex-replace-all impl:regex-replace-all))
 	    (core)
+	    (core base)
 	    (core errors)
 	    (sagittarius))
 
@@ -109,5 +114,23 @@
   (define (regex-replace-first reg text replacement)
     (let ((matcher (regex-matcher reg text)))
       (impl:regex-replace-first matcher replacement)))
+
+  (define (string-split text str/pattern)
+    (let* ((p (cond ((regex-pattern? str/pattern) str/pattern)
+		    ((string? str/pattern) (regex str/pattern))
+		    (else (assertion-violation
+			   'string-split
+			   "string or regex-pattern required" str/pattern))))
+	   (m (regex-matcher p text)))
+      (let loop ((r '())
+		 (pos 0))
+	(cond ((regex-find m)
+	       (let ((first (regex-first m))
+		     (last  (regex-last m)))
+		 (loop (cons (substring text pos first) r)
+		       last)))
+	      (else (reverse! (cons (substring text pos (string-length text))
+				    r)))))
+      ))
   
 )

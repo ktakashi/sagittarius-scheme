@@ -152,7 +152,7 @@
        (match form
 	 ((_ arg specs . body)
 	  (%let-keywords-rec arg specs body (rename 'let*) rename))
-	 (_ (syntax-violation 'let-keywords
+	 (_ (syntax-violation 'let-keywords*
 			      "malformed let-keywords*" form))))))
 
   ;; like Gauche's :key
@@ -221,13 +221,13 @@
 				    "illegal optional argument spec" kargs)))
 			      os))
 		  (rest (or r (gensym))))
-	      `(,(rename 'let-optionals*) ,garg ,(append binds rest)
-		,@(if (and (not r) (null? ks))
-		      `((,(rename 'unless) (,(rename 'null?) ,rest)
-			 (,(rename 'assertion-violation)
-			  "too many argument for" ',(unwrap-syntax expr)))
-			(,(rename 'let) () ,@(expand-key ks rest a)))
-		      (expand-key ks rest a))))))
+	      `((,(rename 'let-optionals*) ,garg ,(append binds rest)
+		 ,@(if (and (not r) (null? ks))
+		       `((,(rename 'unless) (,(rename 'null?) ,rest)
+			  (,(rename 'assertion-violation)
+			   "too many argument for" ',(unwrap-syntax expr)))
+			 (,(rename 'let) () ,@(expand-key ks rest a)))
+		       (expand-key ks rest a)))))))
       (define (expand-key ks garg a)
 	(if (null? ks)
 	    body
@@ -240,9 +240,9 @@
 			      (_ (syntax-violation 'define-with-key
 				   "illegal keyword argument spec" kargs)))
 			     ks)))
-	      `(,(rename 'let-keywords*) ,garg
-		,(if a (append args a) args)
-		,@body))))
+	      `((,(rename 'let-keywords*) ,garg
+		 ,(if a (append args a) args)
+		 ,@body)))))
       (parse-kargs kargs '() '() #f #f))
     (define (construct formals body)
       (receive (args reqargs optarg kargs) (parse-lambda-args formals)
@@ -259,7 +259,7 @@
 	    (let ((g (gensym)))
 	      `(,(rename 'define) ,name
 		(lambda ,(append args g)
-		 ,(extended-lambda g kargs body)))))))
+		  ,@(extended-lambda g kargs body)))))))
     (match expr
       ((_ formals . body)
        (construct formals body))

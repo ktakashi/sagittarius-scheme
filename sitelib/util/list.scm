@@ -32,7 +32,10 @@
 (library (util list)
     (export intersperse
 	    for-each-with-index
-	    map-with-index)
+	    map-with-index
+	    slices
+	    cond-list
+	    dolist)
     (import (rnrs)
 	    (core)
 	    (sagittarius)
@@ -84,5 +87,52 @@
             (assertion-violation 'map (wrong-type-argument-message "proper list" lst1 2) (cons* proc lst1 lst2)))
         (cond ((apply list-transpose+ lst1 lst2)
                => (lambda (lst) (map-n 0 proc lst))))))
+
+  ;; from Gauche
+  (define (slices lis k . args)
+    (unless (and (integer? k) (positive? k))
+      (assertion-violation 'slices "index must be positive integer" k))
+    (let loop ((lis lis)
+	       (r '()))
+      (if (null? lis)
+	  (reverse! r)
+	  (receive (h t) (apply split-at* lis k args)
+	    (loop t (cons h r))))))
+
+  (define-syntax cond-list
+    (syntax-rules (=> @)
+      ((_) '())
+      ((_ (test) . rest)
+       (let* ((tmp test)
+	      (r (cond-list . rest)))
+	 (if tmp (cons tmp r) r)))
+      ((_ (test => proc) . rest)
+       (let* ((tmp test)
+	      (r (cond-list . rest)))
+	 (if tmp (cons (proc tmp) r) r)))
+      ((_ (test => @ proc) . rest)
+       (let* ((tmp test)
+	      (r (cond-list . rest)))
+	 (if tmp (append (proc tmp) r) r)))
+      ((_ (test @ . expr) . rest)
+       (let* ((tmp test)
+	      (r (cond-list . rest)))
+	 (if tmp (append (begin . expr) r) r)))
+      ((_ (test . expr) . rest)
+       (let* ((tmp test)
+	      (r (cond-list . rest)))
+	 (if tmp (cons (begin . expr) r) r)))
+      ))
+
+  (define-syntax dolist
+    (syntax-rules ()
+      [(_ (var lis res) . body)
+       (begin (for-each (lambda (var) . body) lis)
+	      (let ((var '())) res))      ;bound var for CL compatibility
+       ]
+      [(_ (var lis) . body)
+       (begin (for-each (lambda (var) . body) lis) '())]
+      [(_ . other)
+       (syntax-error "malformed dolist" (dolist . other))]))
 
 )

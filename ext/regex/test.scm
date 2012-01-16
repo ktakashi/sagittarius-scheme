@@ -1003,6 +1003,12 @@
 		 "abraabraabrabracadabrabrabrabracadabrabrabra"
 		 "**$1**"))
 
+    ;; split
+    (test-equal "string-split (string)" '("abc" "def" "ghi")
+		(string-split "abcxdefxghi" "x"))
+    (test-equal "string-split (regex)" '("abc" "def" "ghi")
+		(string-split "abc*123*def*456*ghi" (regex "\\*\\d+\\*")))
+
     )
 
   (define (run-unicode-case-test)
