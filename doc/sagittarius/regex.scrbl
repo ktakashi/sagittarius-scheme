@@ -46,6 +46,8 @@ table is the supported regular expression constructs.
 @tr{@td{@code{\0mnn}} @td{The character with octal value 0mnn (0 <= m <= 3, 0 <= n <= 7)}}
 @tr{@td{@code{\xhh}} @td{The character with hexadecimal value 0xhh}}
 @tr{@td{@code{\uhhhh}} @td{The character with hexadecimal value 0xhhhh}}
+@tr{@td{@code{\Uhhhhhhhh}} @td{The character with hexadecimal value
+0xhhhhhhhh. If the value exceed the maxinum fixnum value it rases an error.}}
 @tr{@td{@code{\t}} @td{The tab character ('\u0009')}}
 @tr{@td{@code{\n}} @td{The newline (line feed) character ('\u000A')}}
 @tr{@td{@code{\r}} @td{The carriage-return character ('\u000D')}}
