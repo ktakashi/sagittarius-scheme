@@ -43,10 +43,15 @@
 
 	    http-get
 	    http-head
-	    http-port
+	    http-post
 	    http-put
 	    http-delete
-	    http-request)
+	    http-request
+
+	    ;; for convenience
+	    http-lookup-auth-handler
+	    
+	    )
     (import (except (rnrs) define)
 	    (except (core) define)
 	    (sagittarius)
@@ -63,7 +68,8 @@
 	    (util list)
 	    (rfc :5322)
 	    (rfc uri)
-	    (rfc mime))
+	    (rfc mime)
+	    (rfc base64))
 
   (define-condition-type &http-error &error
     make-http-error http-error?)
@@ -94,7 +100,7 @@
 				      (proxy #f)
 				      (extra-headers '())
 				      (secure #f)
-				      (auth-handler http-default-auth-handler)
+				      (auth-handler #f)
 				      (auth-user #f)
 				      (auth-password #f))
 		    (p server socket secure-agent proxy extra-headers
@@ -165,19 +171,27 @@
 		(make-client-socket (m 1) (m 2))))
 	  (else (make-client-socket server "80"))))
 
+  (define (invoke-auth-handler conn)
+    (and-let* ((handler  (http-connection-auth-handler conn))
+	       (user     (http-connection-auth-user conn))
+	       (password (http-connection-auth-password conn)))
+      (handler user password conn)))
+
   (define (with-connection conn proc)
     (cond ((http-connection-secure conn)
 	   (raise-http-error 'with-connection
 			     "secure connection is not supported yet"
 			     (http-connection-server conn)))
 	  (else
-	   (let1 s (server->socket (or (http-connection-proxy conn)
-				       (http-connection-server conn)))
+	   (let ((s (server->socket (or (http-connection-proxy conn)
+					(http-connection-server conn))))
+		 (auth (invoke-auth-handler conn)))
 	     (dynamic-wind
 	       (lambda () #t)
 	       (lambda ()
 		 (proc (transcoded-port (socket-port s)
-					(make-transcoder (utf-8-codec) 'lf))))
+					(make-transcoder (utf-8-codec) 'lf))
+		       auth))
 	       (lambda ()
 		 (socket-close s)))))))
 
@@ -189,8 +203,8 @@
 			request-uri)
       (with-connection 
        conn
-       (lambda (in/out)
-	 (send-request in/out method host uri sender options enc)
+       (lambda (in/out auth-header)
+	 (send-request in/out method host uri sender auth-header options enc)
 	 (receive (code headers) (receive-header in/out)
 	   (values code
 		   headers
@@ -219,7 +233,7 @@
 	(values host uri)))
 
   ;; send
-  (define (send-request out method host uri sender options enc)
+  (define (send-request out method host uri sender auth-headers options enc)
     ;; this is actually not so portable. display requires textual-port but
     ;; socket-port is binary-port. but hey!
     ;;(display out (standard-error-port))(newline)
@@ -228,7 +242,7 @@
       ((POST PUT)
        (sender (options->request-headers `(:host ,host @options)) enc
 	       (lambda (hdrs)
-		 (send-headers hdrs out)
+		 (send-headers hdrs out auth-headers)
 		 (let ((chunked? (equal? (rfc5322-header-ref
 					  hdrs "transfer-encoding")
 					 "chunked"))
@@ -240,12 +254,16 @@
 		     (flush-output-port out)
 		     out)))))
       (else
-       (send-headers (options->request-headers `(:host ,host ,@options)) out))))
+       (send-headers (options->request-headers `(:host ,host ,@options)) out
+		     auth-headers))))
 
-  (define (send-headers hdrs out)
-    (for-each (lambda (hdr)
-		(format out "~a: ~a\r\n" (car hdr) (cadr hdr)))
-	      hdrs)
+  (define (send-headers hdrs out :optional (auth-header #f))
+    (define (send hdrs)
+      (for-each (lambda (hdr)
+		  (format out "~a: ~a\r\n" (car hdr) (cadr hdr)))
+		hdrs))
+    (send hdrs)
+    (and auth-header (send auth-header))
     (display "\r\n" out)
     (flush-output-port out))
 
@@ -388,7 +406,7 @@
 	((name . kvs)
 	 (unless (even? (length kvs))
 	   (assertion-violation 'http-compose-form-data
-				"invalid parameter format to create multipart/form-data") param))
+				"invalid parameter format to create multipart/form-data") param)
 	(let-keywords kvs ((value "")
 			   (file #f)
 			   (content-type #f)
@@ -398,7 +416,7 @@
 	    (("content-transfer-encoding" ,(or content-transfer-encoding "binary"))
 	     ("content-disposition" ,(make-content-disposition name file))
 	     ,@(map (lambda (x) (format "~a" x)) (slices other-keys 2)))
-	    ,(if file `(file ,file) (format "~a" file))))))
+	    ,(if file `(file ,file) (format "~a" file)))))))
     (define (canonical-content-type ct value file)
       (match ct
 	((type subtype . options)
@@ -496,7 +514,7 @@
 	     (body-sink (header-sink `(("content-length" ,(format "~a" size))
 				       ,@hdrs)))
 	     (port (body-sink size)))
-	(put-bytevector port data)
+	(put-bytevector port data 0 (bytevector-length data) #t)
 	(body-sink 0))))
 
   (define (http-multipart-sender params)
@@ -516,8 +534,36 @@
 	  (body-sink 0)))))
 
   ;; authentication handling
-
   ;; dummy
-  (define (http-default-auth-handler . _) #f)
+
+  (define *auth-re* #/^(\w+?)\s/)
+  (define (http-lookup-auth-handler headers)
+    (and-let* ((hdr (rfc5322-header-ref headers "www-authenticate"))
+	       (m   (looking-at *auth-re* hdr))
+	       (type (string-downcase (m 1))))
+      (cond ((assoc type *supported-auth-handlers*) =>
+	     (lambda (slot)
+	       ((cdr slot) hdr)))
+	    (else #f))))
+
+  (define (http-basic-auth-handler-generator hdr)
+    (lambda (user password _)
+      (let ((msg (format "~a:~a" user password)))
+	`(("authorization" ,(format "Basic ~a" 
+				   (utf8->string
+				    (base64-encode (string->utf8 msg)))))))))
+
+  (define (http-digest-auth-handler-generator hdr)
+    ;; need to get realm and so
+    (lambda (user password conn)
+      ;; TODO
+      #f
+      ))
+
+  (define *supported-auth-handlers*
+    `(("basic"  . ,http-basic-auth-handler-generator)
+      ("digest" . ,http-digest-auth-handler-generator)))
+
+  ;;(define (http-default-auth-handler . _) #f)
 
 )
