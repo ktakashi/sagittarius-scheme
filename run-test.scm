@@ -5,6 +5,13 @@
 	(rnrs)
 	(sagittarius))
 
+;; r7rs tests also use dynamic modules
+(cond-expand
+       (sagittarius.os.windows
+	(add-dynamic-load-path "./build/modules"))
+       (else
+	(add-dynamic-load-path "./build")))
+
 (let ((args (command-line)))
   (let-values (((test) (args-fold (cdr args)
 				  '()
@@ -40,11 +47,8 @@
       (flush-output-port (current-output-port))
       (add-load-path "./test")
       (add-load-path "./ext/regex")
-      (cond-expand
-       (sagittarius.os.windows
-	(add-dynamic-load-path "./build/modules"))
-       (else
-	(add-dynamic-load-path "./build")))
+      ;; for (math)
+      (add-load-path "./ext/crypto")
       (load "./test/tests.scm")
       (flush-output-port (current-output-port)))
     (define (ext-test)

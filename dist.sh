@@ -14,6 +14,9 @@ if [ -e src/sagittarius/config.h ]; then
     rm -f src/sagittarius/config.h
 fi
 
+# make sure ext/*/*_stub.c must be removed
+rm -f ext/*/*_stub.c
+
 # copy to tmp directory
 mkdir ${DIST_NAME}
 cp -r boot/ ${DIST_NAME}
@@ -28,10 +31,9 @@ cp -r doc/ ${DIST_NAME}
 cp -r ext/ ${DIST_NAME}
 cp -r run-test.scm ${DIST_NAME}
 cp -r autogen.sh ${DIST_NAME}
-cp -r geninsn.sh ${DIST_NAME}
 cp -r cmake_uninstall.cmake.in ${DIST_NAME}
 cp -r CMakeLists.txt ${DIST_NAME}
-cp -r README ${DIST_NAME}
+cp -r README.md ${DIST_NAME}
 cp -r Copyright ${DIST_NAME}
 
 tar -czvf ${DIST_NAME}.tar.gz ${DIST_NAME}

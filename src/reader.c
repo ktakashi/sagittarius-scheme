@@ -1879,7 +1879,7 @@ void Sg__InitReader()
   init_readtable(&r6rs_read_table, TRUE);
   init_readtable(&compat_read_table, FALSE);
 
-  Sg_InitMutex(&obtable_mutax, FALSE);
+  Sg_InitMutex(&obtable_mutax, TRUE);
   obtable = Sg_MakeHashTableSimple(SG_HASH_EQUAL, 4096);
   Sg_InitMutex(&read_lock, TRUE);
 #define SET_READER_NAME(fn, name)			\

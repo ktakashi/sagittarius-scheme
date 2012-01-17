@@ -71,6 +71,8 @@ ADD_LIBRARY(sagittarius SHARED
 IF(NOT WIN32)
   TARGET_LINK_LIBRARIES(sagittarius pthread)
   TARGET_LINK_LIBRARIES(sagittarius dl)
+  # linux needs this
+  TARGET_LINK_LIBRARIES(sagittarius m)
 ENDIF()
 
 INCLUDE_DIRECTORIES(${SAGITTARIUS_INCLUDE_DIR})
