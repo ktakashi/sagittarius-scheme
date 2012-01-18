@@ -88,7 +88,7 @@ static SgBignum* make_bignum(int size)
   if (size < 0) Sg_Error(UC("[internal error] invalid bignum size: %d"), size);
   if (size > (int)BIGNUM_MAX_DIGITS) Sg_Error(UC("too large bignum"));
   b = SG_NEW_ATOMIC2(SgBignum*, BIGNUM_SIZE(size));
-  SG_SET_HEADER(b, TC_BIGNUM);
+  SG_SET_CLASS(b, SG_CLASS_INTEGER);
   SG_BIGNUM_SET_COUNT(b, size);
   SG_BIGNUM_SET_SIGN(b, 1);
   return bignum_clear(b);
@@ -97,7 +97,7 @@ static SgBignum* make_bignum(int size)
 #ifdef HAVE_ALLOCA
 #define ALLOC_TEMP_BIGNUM(var, size)		\
   (var) = SG_BIGNUM(alloca(BIGNUM_SIZE(size)));	\
-	SG_SET_HEADER(var, TC_BIGNUM);		\
+	SG_SET_CLASS(var, SG_CLASS_INTEGER);	\
 	SG_BIGNUM_SET_COUNT(var, size);		\
 	SG_BIGNUM_SET_SIGN(var, 1);		\
 	bignum_clear(var);			

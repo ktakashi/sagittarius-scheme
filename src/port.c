@@ -32,6 +32,7 @@
 #include <string.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/port.h"
+#include "sagittarius/codec.h"
 #include "sagittarius/core.h"
 #include "sagittarius/weak.h"
 #include "sagittarius/bytevector.h"
@@ -45,6 +46,101 @@
 #include "sagittarius/symbol.h"
 #include "sagittarius/writer.h"
 #include "sagittarius/number.h"
+
+static SgClass *port_cpl[] = {
+  SG_CLASS_PORT,
+  NULL
+};
+
+static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx);
+SG_DEFINE_BUILTIN_CLASS(Sg_PortClass,
+			port_print, NULL, NULL, NULL, port_cpl);
+
+static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgPort *p = SG_PORT(obj);
+  SgObject file = SG_FALSE;
+  SgObject transcoder = SG_FALSE;
+  SG_PORT_LOCK(port);
+  Sg_PutuzUnsafe(port, UC("#<"));
+  if (SG_BINARY_PORTP(p)) {
+    switch (SG_BINARY_PORT(p)->type) {
+    case SG_FILE_BINARY_PORT_TYPE:
+      Sg_PutuzUnsafe(port, UC("file"));
+      break;
+    case SG_BYTE_ARRAY_BINARY_PORT_TYPE:
+      Sg_PutuzUnsafe(port, UC("bytearray"));
+      break;
+    case SG_CUSTOM_BINARY_PORT_TYPE:
+      Sg_PutuzUnsafe(port, UC("custom"));
+      break;
+    default:
+      /* never happen */
+      Sg_PutuzUnsafe(port, UC("unknown"));
+    }
+    Sg_PutuzUnsafe(port, UC("-binary"));
+  } else if (SG_TEXTUAL_PORTP(p)) {
+    switch (SG_TEXTUAL_PORT(p)->type) {
+    case SG_TRANSCODED_TEXTUAL_PORT_TYPE:
+      Sg_PutuzUnsafe(port, UC("transcoded"));
+      break;
+    case SG_STRING_TEXTUAL_PORT_TYPE:
+      Sg_PutuzUnsafe(port, UC("string"));
+      break;
+    case SG_CUSTOM_TEXTUAL_PORT_TYPE:
+      Sg_PutuzUnsafe(port, UC("custom"));
+      break;
+    default:
+      /* never happen */
+      Sg_PutuzUnsafe(port, UC("unknown"));
+    }
+    Sg_PutuzUnsafe(port, UC("-textual"));
+  } else if (SG_CUSTOM_PORTP(p)) {
+    Sg_PutuzUnsafe(port, UC("custom"));
+    switch (SG_CUSTOM_PORT(p)->type) {
+    case SG_BINARY_CUSTOM_PORT_TYPE:
+      Sg_PutuzUnsafe(port, UC("-binary"));
+      break;
+    case SG_TEXTUAL_CUSTOM_PORT_TYPE:
+      Sg_PutuzUnsafe(port, UC("-textual"));
+      break;
+    default:
+      /* never happen */
+      Sg_PutuzUnsafe(port, UC("-unknown"));
+    }
+  } else {
+    /* never happen */
+    Sg_PutuzUnsafe(port, UC("-unknown"));
+  }
+  if (SG_INPORTP(p)) {
+    Sg_PutuzUnsafe(port, UC("-input-port"));
+  } else if (SG_OUTPORTP(p)) {
+    Sg_PutuzUnsafe(port, UC("-output-port"));
+  } else if (SG_INOUTPORTP(p)) {
+    Sg_PutuzUnsafe(port, UC("-input/output-port"));
+  }
+  if (SG_CUSTOM_PORTP(p)) {
+    Sg_PutcUnsafe(port, ' ');
+    Sg_PutsUnsafe(port, SG_CUSTOM_PORT(p)->id);
+  }
+
+  file = Sg_FileName(p);
+  if (!SG_FALSEP(file)) {
+    Sg_PutcUnsafe(port, ' ');
+    Sg_PutuzUnsafe(port, SG_FILE(file)->name);
+  }
+  transcoder = Sg_PortTranscoder(p);
+  if (!SG_FALSEP(transcoder)) {
+    Sg_PutcUnsafe(port, ' ');
+    Sg_PutsUnsafe(port, SG_CODEC_NAME(SG_TRANSCODER_CODEC(transcoder)));
+  }
+  if (Sg_PortClosedP(p)) {
+    Sg_PutcUnsafe(port, ' ');
+    Sg_PutuzUnsafe(port, UC("closed"));
+  }
+  Sg_PutcUnsafe(port, '>');
+  SG_PORT_UNLOCK(port);
+}
 
 #define PORT_DEFAULT_BUF_SIZE 8196
 
@@ -86,7 +182,7 @@ int Sg_AddPortCleanup(SgPort *port)
 static SgPort* make_port(enum SgPortDirection d, enum SgPortType t, enum SgBufferMode m)
 {
   SgPort *z = SG_NEW(SgPort);
-  SG_SET_HEADER(z, TC_PORT);
+  SG_SET_CLASS(z, SG_CLASS_PORT);
   z->direction = d;
   z->type = t;
   z->bufferMode = m;

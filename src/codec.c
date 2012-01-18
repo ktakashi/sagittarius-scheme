@@ -39,10 +39,25 @@
 #include "sagittarius/unicode.h"
 #include "sagittarius/writer.h"
 
+static SgClass *codec_cpl[] = {
+  SG_CLASS_CODEC,
+  NULL
+};
+
+static void codec_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  Sg_Putuz(port, UC("#<codec "));
+  Sg_Puts(port, SG_CODEC_NAME(obj));
+  Sg_PutcUnsafe(port, '>');
+}
+
+SG_DEFINE_BUILTIN_CLASS(Sg_CodecClass, codec_print, NULL, NULL, NULL,
+			codec_cpl);
+
 static SgCodec* make_codec()
 {
   SgCodec* z = SG_NEW(SgCodec);
-  SG_SET_HEADER(z, TC_CODEC);
+  SG_SET_CLASS(z, SG_CLASS_CODEC);
   z->type = SG_BUILTIN_CODEC;
   return z;
 }

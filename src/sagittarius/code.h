@@ -33,6 +33,7 @@
 #define SAGITTARIUS_CODE_H_
 
 #include "sagittariusdefs.h"
+#include "clos.h"
 
 typedef enum  {
   ARGUMENT0 = 0,
@@ -50,6 +51,9 @@ typedef struct SgCodePacketRec
 } SgCodePacket;
 
 #define EMPTY_PACKET { -1, EMPTY, 0, 0, SG_UNDEF }
+
+SG_CLASS_DECL(Sg_CodeBuilderClass);
+#define SG_CLASS_CODE_BUILDER (&Sg_CodeBuilderClass)
 
 struct SgCodeBuilderRec
 {
@@ -70,7 +74,7 @@ struct SgCodeBuilderRec
 };
 
 #define SG_CODE_BUILDER(obj)  ((SgCodeBuilder*)(obj))
-#define SG_CODE_BUILDERP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_CODE_BUILDER))
+#define SG_CODE_BUILDERP(obj)  SG_XTYPEP(obj, SG_CLASS_CODE_BUILDER)
 
 #define SG_CODE_BUILDER_NAME(obj)      SG_CODE_BUILDER(obj)->name
 #define SG_CODE_BUILDER_ARGC(obj)      SG_CODE_BUILDER(obj)->argc
@@ -81,7 +85,7 @@ struct SgCodeBuilderRec
 
 #define SG_STATIC_CODE_BUILDER(codeptr, name, argc, optional, freec, maxStack, size) \
   {									\
-    MAKE_HDR_VALUE(TC_CODE_BUILDER),					\
+    { SG_CLASS_STATIC_TAG(Sg_CodeBuilderClass) },			\
     codeptr,								\
     SG_OBJ(name),							\
     argc,								\
@@ -98,7 +102,7 @@ struct SgCodeBuilderRec
 
 #define SG_CODE_BUILDER_INIT(b, ptr, n, ac, o, fc, ms, s)		\
   do {									\
-    SG_SET_HEADER((b), TC_CODE_BUILDER);				\
+    SG_SET_CLASS((b), SG_CLASS_CODE_BUILDER);				\
     (b)->code = (ptr);							\
     (b)->name = (n);							\
     (b)->argc = (ac);							\

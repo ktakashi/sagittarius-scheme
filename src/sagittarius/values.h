@@ -34,6 +34,9 @@
 
 #include "sagittariusdefs.h"
 
+SG_CLASS_DECL(Sg_ValuesClass);
+#define SG_CLASS_VALUES (&Sg_ValuesClass)
+
 struct SgValuesRec
 {
   SG_HEADER;
@@ -42,7 +45,7 @@ struct SgValuesRec
 };
 
 #define SG_VALUES(obj)  ((SgValues*)(obj))
-#define SG_VALUESP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_VALUES))
+#define SG_VALUESP(obj) (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_VALUES))
 
 #define SG_VALUES_SIZE(obj)       (SG_VALUES(obj)->size)
 #define SG_VALUES_ELEMENTS(obj)   (SG_VALUES(obj)->elements)

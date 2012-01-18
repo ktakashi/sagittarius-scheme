@@ -35,9 +35,11 @@
 #include "sagittarius/closure.h"
 #include "sagittarius/error.h"
 #include "sagittarius/pair.h"
+#include "sagittarius/port.h"
 #include "sagittarius/instruction.h"
 #include "sagittarius/vector.h"
 #include "sagittarius/vm.h"
+#include "sagittarius/writer.h"
 
 #define INIT_CODE_PACKET(p, t, inst, a0, a1, o)		\
   do {							\
@@ -303,12 +305,21 @@ static void cb_put(SgCodeBuilder *cb, SgCodePacket *packet)
   }
 }
 
+static void builder_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgCodeBuilder *cb = SG_CODE_BUILDER(obj);
+  Sg_Putuz(port, UC("#<code-builder "));
+  Sg_Write(cb->name, port, ctx->mode);
+  Sg_Printf(port, UC(" (%d %d %d)>"), cb->argc, cb->optional, cb->freec);
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_CodeBuilderClass, builder_print);
 
 SgCodeBuilder* Sg_MakeCodeBuilder(int size)
 {
   SgCodeBuilder *cb = SG_NEW(SgCodeBuilder);
   SgWord *code = NULL;
-  SG_SET_HEADER(cb, TC_CODE_BUILDER);
+  SG_SET_CLASS(cb, SG_CLASS_CODE_BUILDER);
   if (size > 0) {
     code = SG_NEW_ARRAY(SgWord, size);
   }
@@ -322,7 +333,7 @@ SgCodeBuilder* Sg_MakeCodeBuilderFromCache(SgObject name, SgWord *code, int size
 					   int maxStack)
 {
   SgCodeBuilder *cb = SG_NEW(SgCodeBuilder);
-  SG_SET_HEADER(cb, TC_CODE_BUILDER);
+  SG_SET_CLASS(cb, SG_CLASS_CODE_BUILDER);
   cb->code = code;
   cb->size = size;
   cb->argc = argc;

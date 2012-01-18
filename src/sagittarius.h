@@ -48,6 +48,7 @@
 #include <sagittarius/bignum.h>
 #include <sagittarius/bytevector.h>
 #include <sagittarius/charset.h>
+#include <sagittarius/clos.h>
 #include <sagittarius/closure.h>
 #include <sagittarius/code.h>
 #include <sagittarius/codec.h>
@@ -56,7 +57,6 @@
 #include <sagittarius/error.h>
 #include <sagittarius/exceptions.h>
 #include <sagittarius/file.h>
-#include <sagittarius/generic.h>
 #include <sagittarius/gloc.h>
 #include <sagittarius/hashtable.h>
 #include <sagittarius/identifier.h>

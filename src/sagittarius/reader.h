@@ -33,6 +33,10 @@
 #define SAGITTARIUS_READER_H_
 
 #include "sagittariusdefs.h"
+#include "clos.h"
+
+SG_CLASS_DECL(Sg_SharedRefClass);
+#define SG_CLASS_SHARED_REF (&Sg_SharedRefClass)
 
 typedef struct SgSharedRefRec
 {
@@ -40,7 +44,7 @@ typedef struct SgSharedRefRec
   SgObject index;
 } SgSharedRef;
 
-#define SG_SHAREDREF_P(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_SHAREDREF))
+#define SG_SHAREDREF_P(obj) (SG_HPTRP(obj)&&SG_XTYPEP(obj, SG_CLASS_SHARED_REF))
 #define SG_SHAREDREF(obj)   ((SgSharedRef*)(obj))
 
 SG_CDECL_BEGIN

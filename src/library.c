@@ -52,10 +52,20 @@
 #include "sagittarius/reader.h"
 #include "sagittarius/identifier.h"
 
+static void library_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgLibrary *lib = obj;
+  Sg_Putuz(port, UC("#<library "));
+  Sg_Write(lib->name, port, ctx->mode);
+  Sg_Putc(port, '>');
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_LibraryClass, library_print);
+
 static SgLibrary* make_library()
 {
   SgLibrary *z = SG_NEW(SgLibrary);
-  SG_SET_HEADER(z, TC_LIBRARY);
+  SG_SET_CLASS(z, SG_CLASS_LIBRARY);
   z->table = Sg_MakeHashTableSimple(SG_HASH_EQUAL, 1024);
   z->imported = SG_NIL;
   z->exported = SG_FALSE;

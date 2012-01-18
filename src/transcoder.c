@@ -52,6 +52,42 @@
 #undef getc
 #endif
 
+static SgClass *trans_cpl[] = {
+  SG_CLASS_TRANSCODER,
+  NULL
+};
+
+static void transcoder_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgTranscoder *t = SG_TRANSCODER(obj);
+  SG_PORT_LOCK(port);
+  Sg_PutuzUnsafe(port, UC("#<transcoder "));
+  Sg_PutsUnsafe(port, SG_CODEC_NAME(SG_TRANSCODER_CODEC(t)));
+  Sg_PutcUnsafe(port, ' ');
+  switch (t->eolStyle) {
+  case LF:     Sg_PutuzUnsafe(port, UC("lf")); break;
+  case CR:     Sg_PutuzUnsafe(port, UC("cr")); break;
+  case NEL:    Sg_PutuzUnsafe(port, UC("nel")); break;
+  case LS:     Sg_PutuzUnsafe(port, UC("ls")); break;
+  case CRNEL:  Sg_PutuzUnsafe(port, UC("crnel")); break;
+  case CRLF:   Sg_PutuzUnsafe(port, UC("crlf")); break;
+  case E_NONE: Sg_PutuzUnsafe(port, UC("none")); break;
+  }
+  Sg_PutcUnsafe(port, ' ');
+  
+  switch (t->mode) {
+  case SG_RAISE_ERROR:   Sg_PutuzUnsafe(port, UC("raise")); break;
+  case SG_REPLACE_ERROR: Sg_PutuzUnsafe(port, UC("replace")); break;
+  case SG_IGNORE_ERROR:  Sg_PutuzUnsafe(port, UC("ignore")); break;
+  }
+  Sg_PutcUnsafe(port, '>');
+  SG_PORT_UNLOCK(port);
+}
+
+SG_DEFINE_BUILTIN_CLASS(Sg_TranscoderClass,
+			transcoder_print, NULL, NULL, NULL, trans_cpl);
+
+
 static SgObject get_mode(int mode)
 {
   switch (mode) {
@@ -242,7 +278,7 @@ static void put_char(SgObject self, SgPort *port, SgChar c)
 SgObject Sg_MakeTranscoder(SgCodec *codec, EolStyle eolStyle, ErrorHandlingMode mode)
 {
   SgTranscoder *z = SG_NEW(SgTranscoder);
-  SG_SET_HEADER(z, TC_TRANSCODER);
+  SG_SET_CLASS(z, SG_CLASS_TRANSCODER);
   z->codec = codec;
   z->eolStyle = eolStyle;
   z->mode = mode;

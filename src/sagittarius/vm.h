@@ -35,6 +35,7 @@
 #include "sagittariusdefs.h"
 #include "subr.h"		/* for SgSubrProc */
 #include "thread.h"
+#include "clos.h"
 #ifdef HAVE_SETJMP_H
 # include <setjmp.h>
 #else
@@ -43,6 +44,12 @@
 
 #define SG_VM_STACK_SIZE      10000
 
+SG_CLASS_DECL(Sg_BoxClass);
+SG_CLASS_DECL(Sg_VMClass);
+
+#define SG_CLASS_BOX (&Sg_BoxClass)
+#define SG_CLASS_VM  (&Sg_VMClass)
+
 struct SgBoxRec
 {
   SG_HEADER;
@@ -50,7 +57,7 @@ struct SgBoxRec
 };
 
 #define SG_BOX(obj)  ((SgBox*)(obj))
-#define SG_BOXP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_BOX))
+#define SG_BOXP(obj) SG_XTYPEP(obj, SG_CLASS_BOX)
 
 #define USE_ONE_PATH_CALL_CC 1
 
@@ -299,7 +306,7 @@ typedef enum {
 } VMFlags;
 
 #define SG_VM(obj) ((SgVM *)obj)
-#define SG_VMP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_VM))
+#define SG_VMP(obj) SG_XTYPEP(obj, SG_CLASS_VM)
 
 #define SG_VM_SET_FLAG(vm, flag)    ((vm)->flags = ((vm)->flags | (flag)))
 #define SG_VM_UNSET_FLAG(vm, flag)  ((vm)->flags = ((vm)->flags & (~(flag))))

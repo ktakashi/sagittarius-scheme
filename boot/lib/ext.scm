@@ -152,3 +152,13 @@
 	  (loop (cdr e))))
       (print e))
   (error 'raised))
+
+;; dummies
+(define (make-record-type-descriptor . _) #t)
+(define (make-record-constructor-descriptor . _) #t)
+(define (make-record-type . _) #t)
+(define (record-type-rcd . _) #t)
+(define (record-type-rtd . _) #t)
+(define (record-constructor . _) #t)
+(define (record-predicate . _) #t)
+(define (record-accessor . _) #t)

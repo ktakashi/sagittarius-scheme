@@ -31,7 +31,6 @@
  */
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/record.h"
-#include "sagittarius/generic.h"
 #include "sagittarius/compare.h"
 #include "sagittarius/symbol.h"
 #include "sagittarius/builtin-symbols.h"
@@ -48,12 +47,8 @@
 #include "sagittarius/gloc.h"
 
 #define L6(a,b,c,d,e,f) Sg_Cons(a, SG_LIST5(b,c,d,e,f))
-#define RTD_P(obj)							\
-  (SG_INSTANCEP(obj)							\
-   && SG_EQ(SG_GENERIC_NAME(SG_INSTANCE(obj)->generic), SG_SYMBOL_RTD))
-#define RCD_P(obj)							\
-  (SG_INSTANCEP(obj)							\
-   && SG_EQ(SG_GENERIC_NAME(SG_INSTANCE(obj)->generic), SG_SYMBOL_RCD))
+#define RTD_P(obj) SG_RTDP(obj)
+#define RCD_P(obj) SG_RCDP(obj)
 
 /* non-generative table*/
 static SgObject nongeneratove_record_types;
@@ -62,130 +57,98 @@ static SgObject nongeneratove_record_types;
 static inline SgObject make_rtd(SgObject name, SgObject parent, SgObject uid,
 			 int sealedP, int opaqueP, SgObject fields)
 {
-  SgObject generic, rtd;
-  generic = Sg_RetrieveGeneric(SG_SYMBOL_RTD, SG_INTERN("null"));
-  rtd =  Sg_CreateInstance(SG_GENERIC(generic));
-  Sg_GenericSet(rtd, SG_INTERN("name"), name);
-  Sg_GenericSet(rtd, SG_INTERN("parent"), parent);
-  Sg_GenericSet(rtd, SG_INTERN("uid"), uid);
-  Sg_GenericSet(rtd, SG_INTERN("sealed?"), SG_MAKE_BOOL(sealedP));
-  Sg_GenericSet(rtd, SG_INTERN("opaque?"), SG_MAKE_BOOL(opaqueP));
-  Sg_GenericSet(rtd, SG_INTERN("fields"), fields);
-  return rtd;
+  SgRTD *rtd = SG_NEW(SgRTD);
+  SG_SET_CLASS(rtd, SG_CLASS_RTD);
+  rtd->name = name;
+  rtd->parent = parent;
+  rtd->uid = uid;
+  rtd->sealedp = sealedP;
+  rtd->opaquep = opaqueP;
+  rtd->fields = fields;
+  return SG_OBJ(rtd);
 }
 
-#define RTD_NAME(rtd)    (Sg_GenericRef(rtd, SG_INTERN("name")))
-#define RTD_PARENT(rtd)  (Sg_GenericRef(rtd, SG_INTERN("parent")))
-#define RTD_UID(rtd)     (Sg_GenericRef(rtd, SG_INTERN("uid")))
-#define RTD_SEALED(rtd)  (Sg_GenericRef(rtd, SG_INTERN("sealed?")))
-#define RTD_OPAQUE(rtd)  (Sg_GenericRef(rtd, SG_INTERN("opaque?")))
-#define RTD_SEALEDP(rtd) (!SG_FALSEP(Sg_GenericRef(rtd, SG_INTERN("sealed?"))))
-#define RTD_OPAQUEP(rtd) (!SG_FALSEP(Sg_GenericRef(rtd, SG_INTERN("opaque?"))))
-#define RTD_FIELDS(rtd)  (Sg_GenericRef(rtd, SG_INTERN("fields")))
+#define RTD_NAME(rtd)    (SG_RTD(rtd)->name)
+#define RTD_PARENT(rtd)  (SG_RTD(rtd)->parent)
+#define RTD_UID(rtd)     (SG_RTD(rtd)->uid)
+#define RTD_SEALEDP(rtd) (SG_RTD(rtd)->sealedp)
+#define RTD_OPAQUEP(rtd) (SG_RTD(rtd)->opaquep)
+#define RTD_FIELDS(rtd)  (SG_RTD(rtd)->fields)
 
-
-static SgObject print_rtd(SgObject *args, int argc, void *data)
+static void print_rtd(SgObject obj, SgPort *p, SgWriteContext *ctx)
 {
-  SgObject p_scm, i_scm;
-  SgPort *p;
-  SgInstance *i;
-  DeclareProcedureName("rtd-printer");
-  checkArgumentLengthBetween(1, 2);
-  if (argc == 2) {
-    argumentAsPort(1, p_scm, p);
-  } else {
-    p = SG_PORT(Sg_CurrentOutputPort());
-  }
-  argumentAsInstance(0, i_scm, i);
   Sg_Putuz(p, UC("#<rtd "));
 
-  Sg_Write(RTD_NAME(i), p, SG_WRITE_DISPLAY);
+  Sg_Write(RTD_NAME(obj), p, SG_WRITE_DISPLAY);
   Sg_Putc(p, ' ');
-  Sg_Write(RTD_PARENT(i), p, SG_WRITE_DISPLAY);
+  Sg_Write(RTD_PARENT(obj), p, SG_WRITE_DISPLAY);
 
-  if (!SG_FALSEP(RTD_UID(i))) {
+  if (!SG_FALSEP(RTD_UID(obj))) {
     Sg_Putc(p, ' ');
-    Sg_Write(RTD_UID(i), p, SG_WRITE_DISPLAY);
+    Sg_Write(RTD_UID(obj), p, SG_WRITE_DISPLAY);
   }
-  if (RTD_SEALEDP(i)) {
+  if (RTD_SEALEDP(obj)) {
     Sg_Putuz(p, UC(" sealed"));
   }
-  if (RTD_OPAQUEP(i)) {
+  if (RTD_OPAQUEP(obj)) {
     Sg_Putuz(p, UC(" opaque"));
   }
-  //Sg_Write(RTD_FIELDS(i), p, SG_WRITE_DISPLAY);
   Sg_Putc(p, '>');
-  return SG_UNDEF;
 }
 
-static SG_DEFINE_SUBR(print_rtd_stub, 1, 1, print_rtd, SG_FALSE, NULL);
-
-static SG_STATIC_GENERIC_INIT(record_type_descriptor,
-			      SG_SYMBOL_RTD,
-			      FALSE,
-			      &print_rtd_stub,
-			      SG_FALSE,
-			      SG_FALSE);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_RTDClass, print_rtd);
 
 /* rcd */
+#define RCD_RTD(rcd)      (SG_RCD(rcd)->rtd            )
+#define RCD_PROTOCOL(rcd) (SG_RCD(rcd)->protocol       )
+#define RCD_CUSTOMP(rcd)  (SG_RCD(rcd)->customProtocolP)
+#define RCD_PARENT(rcd)   (SG_RCD(rcd)->parent         )
+
+static void print_rcd(SgObject obj, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Putuz(p, UC("#<rcd "));
+  Sg_Write(RCD_RTD(obj), p, SG_WRITE_DISPLAY);
+  Sg_Putc(p, ' ');
+  if (RCD_CUSTOMP(obj)) {
+    Sg_Putuz(p, UC("custom "));
+  }
+  Sg_Write(RCD_PROTOCOL(obj), p, SG_WRITE_DISPLAY);
+  Sg_Putc(p, ' ');
+  Sg_Write(RCD_PARENT(obj), p, SG_WRITE_DISPLAY);
+  Sg_Putc(p, '>');
+}
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_RCDClass, print_rcd);
+
 static inline SgObject make_rcd(SgObject rtd, SgObject protocol,
 				int custom_protocolP, SgObject parent)
 {
-  SgObject generic, rcd;
-  generic = Sg_RetrieveGeneric(SG_SYMBOL_RCD, SG_INTERN("null"));
-  rcd =  Sg_CreateInstance(SG_GENERIC(generic));
-  Sg_GenericSet(rcd, SG_INTERN("rtd"), rtd);
-  Sg_GenericSet(rcd, SG_INTERN("protocol"), protocol);
-  Sg_GenericSet(rcd, SG_INTERN("custom-protocol?"), SG_MAKE_BOOL(custom_protocolP));
-  Sg_GenericSet(rcd, SG_INTERN("parent"), parent);
+  SgRCD *rcd = SG_NEW(SgRCD);
+  SG_SET_CLASS(rcd, SG_CLASS_RCD);
+  rcd->rtd             = rtd;
+  rcd->protocol        = protocol;
+  rcd->customProtocolP = custom_protocolP;
+  rcd->parent          = parent;
   return SG_OBJ(rcd);
 }
 
-#define RCD_RTD(rcd)      (Sg_GenericRef(rcd, SG_INTERN("rtd")))
-#define RCD_PROTOCOL(rcd) (Sg_GenericRef(rcd, SG_INTERN("protocol")))
-#define RCD_CUSTOM(rcd)   (Sg_GenericRef(rcd, SG_INTERN("custom-protocol?")))
-#define RCD_CUSTOMP(rcd)  (!SG_FALSEP(Sg_GenericRef(rcd, SG_INTERN("custom-protocol?"))))
-#define RCD_PARENT(rcd)   (Sg_GenericRef(rcd, SG_INTERN("parent")))
-
-static SgObject print_rcd(SgObject *args, int argc, void *data)
+static void rt_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
-  SgObject p_scm, i_scm;
-  SgPort *p;
-  SgInstance *i;
-  DeclareProcedureName("rcd-printer");
-  checkArgumentLengthBetween(1, 2);
-  if (argc == 2) {
-    argumentAsPort(1, p_scm, p);
-  } else {
-    p = SG_PORT(Sg_CurrentOutputPort());
-  }
-  argumentAsInstance(0, i_scm, i);
-  Sg_Putuz(p, UC("#<rcd "));
-  Sg_Write(RCD_RTD(i), p, SG_WRITE_DISPLAY);
-  Sg_Putc(p, ' ');
-  if (RCD_CUSTOMP(i)) {
-    Sg_Putuz(p, UC("custom "));
-  }
-  Sg_Write(RCD_PROTOCOL(i), p, SG_WRITE_DISPLAY);
-  Sg_Putc(p, ' ');
-  Sg_Write(RCD_PARENT(i), p, SG_WRITE_DISPLAY);
-  Sg_Putc(p, '>');
-  return SG_UNDEF;
+  SgRecordType *rt = SG_RECORD_TYPE(obj);
+  Sg_Putuz(port, UC("#<record-type "));
+  Sg_Write(rt->name, port, 0);
+  Sg_Putc(port, ' ');
+  Sg_Write(rt->rtd, port, SG_WRITE_SHARED);
+  Sg_Putc(port, ' ');
+  Sg_Write(rt->rcd, port, SG_WRITE_SHARED);
+  Sg_Putc(port, '>');
 }
 
-static SG_DEFINE_SUBR(print_rcd_stub, 1, 1, print_rcd, SG_FALSE, NULL);
-
-static SG_STATIC_GENERIC_INIT(record_constructor_descriptor,
-			      SG_SYMBOL_RCD,
-			      FALSE,
-			      &print_rcd_stub,
-			      SG_FALSE,
-			      SG_FALSE);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_RecordTypeClass, rt_print);
 
 SgObject Sg_MakeRecordType(SgObject name, SgObject rtd, SgObject rcd)
 {
   SgRecordType *type = SG_NEW(SgRecordType);
-  SG_SET_HEADER(type, TC_RECORD_TYPE);
+  SG_SET_CLASS(type, SG_CLASS_RECORD_TYPE);
   type->name = name;
   type->rtd = rtd;
   type->rcd = rcd;
@@ -359,7 +322,7 @@ static inline int rtd_ancestor_p(SgObject parent, SgObject rtd)
     } else if (SG_FALSEP(rtd)) {
       return FALSE;
     } else {
-      if (SG_INSTANCEP(rtd)) rtd = RTD_PARENT(rtd);
+      if (SG_RTDP(rtd)) rtd = RTD_PARENT(rtd);
       else return FALSE;
     }
   }
@@ -465,7 +428,7 @@ SgObject Sg_RecordMutator(SgObject rtd, int k)
 
 int Sg_RecordP(SgObject obj)
 {
-  if (SG_INSTANCEP(obj)) {
+  if (SG_TUPLEP(obj)) {
     SgObject rtd = Sg_TupleRef(obj, 0, SG_FALSE);
     return RTD_P(rtd) && !RTD_OPAQUEP(rtd);
   } else {
@@ -572,25 +535,77 @@ int Sg_RtdInheritedFieldCount(SgObject rtd)
   }
 }
 
+static void tuple_print(SgObject obj, SgPort *p, SgWriteContext *ctx)
+{
+  SgTuple *t = SG_TUPLE(obj);
+  if (SG_FALSEP(t->printer)) {
+    int size = Sg_TupleSize(t), i;
+    Sg_Putuz(p, UC("#<tuple"));
+    for (i = 0; i < size-1; i++) {
+      Sg_Putc(p, ' ');
+      Sg_Write(Sg_TupleRef(t, i, SG_FALSE), p, ctx->mode);
+    }
+    Sg_Putc(p, ' ');
+    Sg_Write(Sg_TupleRef(t, i, SG_FALSE), p, ctx->mode);
+    Sg_Putc(p, '>');
+  } else {
+    Sg_Apply2(t->printer, t, p);
+  }
+
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_TupleClass, tuple_print);
+
+static SgTuple* make_tuple(int size, SgObject fill, SgObject printer)
+{
+  SgTuple *t = SG_NEW(SgTuple);
+  SG_SET_CLASS(t, SG_CLASS_TUPLE);
+  t->values = Sg_MakeVector(size, fill);
+  t->printer = printer;
+  return t;
+}
+
+SgObject Sg_MakeTuple(int size, SgObject fill, SgObject printer)
+{
+  return make_tuple(size, fill, printer);
+}
+
+void Sg_TupleListSet(SgObject tuple, SgObject lst)
+{
+  int i;
+  SgObject cp = lst;
+  SgVector *vec = SG_VECTOR(SG_TUPLE(tuple)->values);
+  for (i = 0, cp = lst; i < SG_VECTOR_SIZE(vec) && SG_PAIRP(cp);
+       i++, cp = SG_CDR(cp)) {
+    SG_VECTOR_ELEMENT(vec, i) = SG_CAR(cp);
+  }
+}
+
+void Sg_TupleSet(SgObject tuple, int i, SgObject value)
+{
+  SgVector *vec = SG_VECTOR(SG_TUPLE(tuple)->values);
+  SG_VECTOR_ELEMENT(vec, i) = value;
+}
+
+SgObject Sg_TupleRef(SgObject tuple, int i, SgObject fallback)
+{
+  if (!SG_TUPLEP(tuple)) {
+    return fallback;
+  }
+  return Sg_VectorRef(SG_TUPLE(tuple)->values, i, fallback);
+}
+
+int Sg_TupleSize(SgObject tuple)
+{
+  if (!SG_TUPLEP(tuple)) {
+    Sg_Error(UC("tuple required, but got %S"), tuple);
+  }
+  return SG_VECTOR_SIZE(SG_TUPLE(tuple)->values);
+}
+
+
 void Sg__InitRecord()
 {
-  SgObject rtd_fields = L6(SG_INTERN("name"),
-			   SG_INTERN("parent"),
-			   SG_INTERN("uid"),
-			   SG_INTERN("sealed?"),
-			   SG_INTERN("opaque?"),
-			   SG_INTERN("fields"));
-
-  SgObject rcd_fields = SG_LIST4(SG_INTERN("rtd"),
-				 SG_INTERN("protocol"),
-				 SG_INTERN("custom-protocol?"),
-				 SG_INTERN("parent"));
-
-  record_type_descriptor.fields = rtd_fields;
-  record_constructor_descriptor.fields = rcd_fields;
-  Sg_RegisterGeneric(SG_SYMBOL_RTD, &record_type_descriptor, SG_INTERN("null"));
-  Sg_RegisterGeneric(SG_SYMBOL_RCD, &record_constructor_descriptor, SG_INTERN("null"));
-
   /* TODO should this be weak hashtable? */
   nongeneratove_record_types = Sg_MakeHashTableSimple(SG_HASH_EQ, 200);
 }

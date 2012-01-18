@@ -31,26 +31,34 @@ SET(SAGITTARIUS_LIB_SOURCE
   ${SAGITTARIUS_LIB_SOURCE}
   codec.c          port.c
   transcoder.c     error.c
-  compare.c        pair.c
-  string.c         hashtable.c
-  symbol.c         reader.c
+  string.c         
+  symbol.c
   vector.c         number.c
   values.c         file.c
   bytevector.c     subr.c
-  generic.c        bits.c
+  hashtable.c      reader.c
+  # we won't use privious generic anymore.
+  #generic.c
+  bits.c
   unicode.c        bignum.c
-  library.c        
-  keyword.c        identifier.c
-  writer.c         compiler.c
+  library.c        pair.c
   closure.c        instruction.c
-  code.c           macro.c
-  vm.c             core.c
+  keyword.c        identifier.c
   record.c         exceptions.c
-  profiler.c       weak.c
-  gloc.c           load.c
-  cache.c
+  weak.c           gloc.c 
   treemap.c        rbtree.c
-  charset.c
+  charset.c        macro.c
+  code.c
+  cache.c
+
+  writer.c         compiler.c  
+  vm.c             core.c
+  
+  profiler.c       
+  load.c
+
+  clos.c
+  collection.c     compare.c
   # libraries
   proclib.c        null.c
   vmlib.c          vmdebug.c

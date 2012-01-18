@@ -32,6 +32,7 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/compare.h"
 #include "sagittarius/codec.h"
+#include "sagittarius/clos.h"
 #include "sagittarius/error.h"
 #include "sagittarius/identifier.h"
 #include "sagittarius/number.h"
@@ -40,7 +41,6 @@
 #include "sagittarius/string.h"
 #include "sagittarius/vector.h"
 #include "sagittarius/hashtable.h"
-#include "sagittarius/generic.h"
 #include "sagittarius/vm.h"	/* for box */
 
 int Sg_EqP(SgObject x, SgObject y)
@@ -50,6 +50,8 @@ int Sg_EqP(SgObject x, SgObject y)
 
 static int eqv_internal(SgObject x, SgObject y, int from_equal_p)
 {
+  SgClass *cx, *cy;
+  if (SG_EQ(x, y)) return TRUE;
   if (SG_NUMBERP(x)) {
     if (SG_NUMBERP(y)) {
       if (SG_FLONUMP(x)) {
@@ -87,13 +89,13 @@ static int eqv_internal(SgObject x, SgObject y, int from_equal_p)
       return FALSE;
     }
   }
-  if (from_equal_p && SG_META_OBJ_P(x)) {
-    if (SG_META_OBJ_P(y) &&
-	SG_GET_META_OBJ(x)->compare) {
-      return SG_GET_META_OBJ(x)->compare(x, y, from_equal_p);
-    }
+  if (!SG_HPTRP(x)) return SG_EQ(x, y);
+  cx = Sg_ClassOf(x);
+  cy = Sg_ClassOf(y);
+  if (cx == cy && cx->compare) {
+    return (cx->compare(x, y, TRUE) == 0);
   }
-  return SG_EQ(x, y);
+  return FALSE;
 }
 
 int Sg_EqvP(SgObject x, SgObject y)
@@ -160,7 +162,7 @@ int Sg_EqualP(SgObject x, SgObject y)
 static inline SgObject make_box(SgObject value)
 {
   SgBox *b = SG_NEW(SgBox);
-  SG_SET_HEADER(b, TC_BOX);
+  SG_SET_CLASS(b, SG_CLASS_BOX);
   b->value = value;
   return SG_OBJ(b);
 }

@@ -33,6 +33,12 @@
 #define SAGITTARIUS_MACRO_H_
 
 #include "sagittariusdefs.h"
+#include "clos.h"
+
+SG_CLASS_DECL(Sg_SyntaxClass);
+SG_CLASS_DECL(Sg_MacroClass);
+#define SG_CLASS_SYNTAX (&Sg_SyntaxClass)
+#define SG_CLASS_MACRO  (&Sg_MacroClass)
 
 /* syntax object */
 struct SgSyntaxRec
@@ -44,7 +50,7 @@ struct SgSyntaxRec
 };
 
 #define SG_SYNTAX(obj)      ((SgSyntax*)(obj))
-#define SG_SYNTAXP(obj)     (SG_PTRP(obj) && IS_TYPE(obj, TC_SYNTAX))
+#define SG_SYNTAXP(obj)     SG_XTYPEP(obj, SG_CLASS_SYNTAX)
 #define SG_SYNTAX_NAME(obj) (SG_SYNTAX(obj)->name)
 #define SG_SYNTAX_PROC(obj) (SG_SYNTAX(obj)->proc)
 
@@ -62,7 +68,7 @@ struct SgMacroRec
 };
 
 #define SG_MACRO(obj)    ((SgMacro*)(obj))
-#define SG_MACROP(obj)   (SG_PTRP(obj) && IS_TYPE(obj, TC_MACRO))
+#define SG_MACROP(obj)   SG_XTYPEP(obj, SG_CLASS_MACRO)
 
 SG_CDECL_BEGIN
 

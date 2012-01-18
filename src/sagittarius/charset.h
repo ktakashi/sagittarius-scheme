@@ -34,8 +34,12 @@
 
 /* For SRFI14 */
 #include "sagittariusdefs.h"
+#include "clos.h"
 
 #define SG_CHAR_SET_SMALL_CHARS 128
+
+SG_CLASS_DECL(Sg_CharSetClass);
+#define SG_CLASS_CHAR_SET (&Sg_CharSetClass)
 
 struct SgCharSetRec
 {
@@ -48,8 +52,7 @@ struct SgCharSetRec
 };
 
 #define SG_CHAR_SET(obj)   ((SgCharSet *)obj)
-#define SG_CHAR_SET_P(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_CHAR_SET))
-
+#define SG_CHAR_SET_P(obj) SG_XTYPEP(obj, SG_CLASS_CHAR_SET)
 
 /* predefined character set API */
 enum {

@@ -2497,12 +2497,13 @@
 			   fo file SG_UNDEF))
 	     (result (Sg_MakeFileBinaryOutputPort fo bufferMode)))
 	    (else
-	     (unless (SG_INSTANCEP option)
+	     (unless (SG_TUPLEP option)
 	       (assertion-violation 'open-file-output-port "invalid file options" option))
-	     (let ((isEmpty::int (SG_NULLP (Sg_GenericRef option 'members)))
-		   (noCreate (Sg_Memq 'no-create (Sg_GenericRef option 'members)))
-		   (noTruncate (Sg_Memq 'no-truncate (Sg_GenericRef option 'members)))
-		   (noFail (Sg_Memq 'no-fail (Sg_GenericRef option 'members))))
+	     (let ((opt (Sg_TupleRef option 2 SG_NIL))
+		   (isEmpty::int (SG_NULLP opt))
+		   (noCreate (Sg_Memq 'no-create opt))
+		   (noTruncate (Sg_Memq 'no-truncate opt))
+		   (noFail (Sg_Memq 'no-fail opt)))
 	       (cond ((and isFileExist isEmpty)
 		      (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
 				       'open-file-output-port "file already exists" file))
@@ -2712,12 +2713,13 @@
 			   'open-file-input/output-port fo file SG_UNDEF))
 	     (result (Sg_MakeFileBinaryInputOutputPort fo bufferMode)))
 	    (else
-	     (unless (SG_INSTANCEP option)
+	     (unless (SG_TUPLEP option)
 	       (assertion-violation 'open-file-output-port "invalid file options" option))
-	     (let ((isEmpty::int (SG_NULLP (Sg_GenericRef option 'members)))
-		   (noCreate (Sg_Memq 'no-create (Sg_GenericRef option 'members)))
-		   (noTruncate (Sg_Memq 'no-truncate (Sg_GenericRef option 'members)))
-		   (noFail (Sg_Memq 'no-fail (Sg_GenericRef option 'members))))
+	     (let ((opt (Sg_TupleRef option 2 SG_NIL))
+		   (isEmpty::int (SG_NULLP opt))
+		   (noCreate (Sg_Memq 'no-create opt))
+		   (noTruncate (Sg_Memq 'no-truncate opt))
+		   (noFail (Sg_Memq 'no-fail opt)))
 	       (cond ((and isFileExist isEmpty)
 		      (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
 				       'open-file-input/output-port

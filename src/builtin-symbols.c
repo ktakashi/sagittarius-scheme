@@ -2,7 +2,7 @@
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius.h>
 SgSymbol Sg_BuiltinSymbols[] = {
-#define ENTRY() {MAKE_HDR_VALUE(TC_SYMBOL), NULL, TRUE}
+#define ENTRY() {{SG_CLASS2TAG(SG_CLASS_SYMBOL)}, NULL, SG_SYMBOL_INTERNED}
   ENTRY(),
   ENTRY(),
   ENTRY(),

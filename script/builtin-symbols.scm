@@ -22,7 +22,7 @@
   (format out "#define LIBSAGITTARIUS_BODY~%")
   (format out "#include <sagittarius.h>~%")
   (format out "SgSymbol Sg_BuiltinSymbols[] = {~%")
-  (format out "#define ENTRY() {MAKE_HDR_VALUE(TC_SYMBOL), NULL, TRUE}~%")
+  (format out "#define ENTRY() {{SG_CLASS2TAG(SG_CLASS_SYMBOL)}, NULL, SG_SYMBOL_INTERNED}~%")
   (let loop ((symbols symbols))
     (unless (null? symbols)
       (format out "  ENTRY(),~%")
@@ -43,18 +43,14 @@
   (format out "#undef INTERN~%")
   (format out "}~%"))
   
-
-
 (define (generate file-out header-out)
   (header header-out)
   (body   file-out))
   
-
 (define (main args)
   (let ((c-file-out (open-output-file c-file))
 	(c-header-out (open-output-file c-header)))
     (generate c-file-out c-header-out)
-
     (close-output-port c-file-out)
     (close-output-port c-header-out)))
 
@@ -115,6 +111,17 @@
     (raise                SG_SYMBOL_RAISE)
     ;; add later
     ))
+
+(cond-expand
+ (sagittarius
+  (print "generating builtin symbold")
+  (if (file-exists? c-header)
+      (delete-file c-header))
+  (if (file-exists? c-file)
+      (delete-file c-file))
+  (main (command-line)))
+ (else 
+  (print "gauche?")))
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix

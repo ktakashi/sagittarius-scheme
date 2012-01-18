@@ -33,6 +33,7 @@
 #define SAGITTARIUS_FILE_H_
 
 #include "sagittariusdefs.h"
+#include "clos.h"
 
 enum OpenMode {
   SG_READ      = 0x00000001,
@@ -40,6 +41,9 @@ enum OpenMode {
   SG_CREATE    = 0x00000010,
   SG_TRUNCATE  = 0x00000020
 };
+
+SG_CLASS_DECL(Sg_FileClass);
+#define SG_CLASS_FILE (&Sg_FileClass)
 
 struct SgFileRec
 {
@@ -58,7 +62,7 @@ struct SgFileRec
   int     (*isUTF16Console)(SgObject self); /*  check if this file object is UTF16 console */
 };
 
-#define SG_FILEP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_FILE))
+#define SG_FILEP(obj) SG_XTYPEP(obj, SG_CLASS_FILE)
 #define SG_FILE(obj)  ((SgFile*)obj)
 
 SG_CDECL_BEGIN

@@ -31,7 +31,6 @@
  */
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/exceptions.h"
-#include "sagittarius/generic.h"
 #include "sagittarius/subr.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/symbol.h"
@@ -57,9 +56,9 @@ DEF_RECORD_TYPE(condition);
 
 static SgObject condition_printer_rec(SgObject *args, int argc, void *data)
 {
-  SgObject p_scm, i_scm, conditions;
+  SgObject p_scm, t_scm, conditions;
   SgPort *p;
-  SgInstance *i;
+  SgTuple *t;
   int len;
   DeclareProcedureName("condition-printer");
   checkArgumentLengthBetween(1, 2);
@@ -68,12 +67,12 @@ static SgObject condition_printer_rec(SgObject *args, int argc, void *data)
   } else {
     p = SG_PORT(Sg_CurrentOutputPort());
   }
-  argumentAsInstance(0, i_scm, i);
+  argumentAsTuple(0, t_scm, t);
   
-  len = Sg_TupleSize(i);
+  len = Sg_TupleSize(t);
   Sg_Putuz(p, UC("#<condition"));
   if (len > 1) {
-    conditions = Sg_TupleRef(i, 1, SG_NIL);
+    conditions = Sg_TupleRef(t, 1, SG_NIL);
     Sg_Putc(p, ' ');
     Sg_Write(conditions, p, SG_WRITE_WRITE);
   }
@@ -122,7 +121,7 @@ SgObject Sg_CompoundConditionComponent(SgObject obj)
 
 int Sg_CompoundConditionP(SgObject obj)
 {
-  return SG_INSTANCEP(obj) && SG_EQ(SG_INTERN("type:condition"), Sg_TupleRef(obj, 0, SG_FALSE));
+  return SG_TUPLEP(obj) && SG_EQ(SG_INTERN("type:condition"), Sg_TupleRef(obj, 0, SG_FALSE));
 }
 
 int Sg_SimpleConditionP(SgObject obj)

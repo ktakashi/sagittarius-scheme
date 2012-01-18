@@ -41,12 +41,13 @@ SgObject Sg_MakeClosure(SgObject code,
   SgObject info;
   ASSERT(SG_CODE_BUILDERP(code));
 
-  cl = SG_NEW2(SgClosure *, sizeof(SgClosure) + (sizeof(SgObject) * SG_CODE_BUILDER_FREEC(code)));
+  cl = SG_NEW2(SgClosure *, sizeof(SgClosure) +
+	       (sizeof(SgObject) * SG_CODE_BUILDER_FREEC(code)));
   info = Sg_CodeBuilderFullName(SG_CODE_BUILDER(code));
   req = SG_CODE_BUILDER_ARGC(code);
   opt = SG_CODE_BUILDER_OPTIONAL(code);
 
-  SG_SET_HEADER(cl, TC_PROCEDURE);
+  SG_SET_CLASS(cl, SG_CLASS_PROCEDURE);
   SG_PROCEDURE_INIT(cl, req, opt, SG_PROC_CLOSURE, info);
 
   freec = SG_CODE_BUILDER_FREEC(code);

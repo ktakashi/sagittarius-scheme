@@ -50,10 +50,10 @@
 #include "sagittarius/vector.h"
 #include "sagittarius/number.h"
 #include "sagittarius/vm.h"
-#include "sagittarius/generic.h"
 #include "sagittarius/bytevector.h"
 #include "sagittarius/unicode.h"
 #include "sagittarius/weak.h"
+#include "sagittarius/writer.h"
 #include "sagittarius/library.h"
 
 static uint8_t CHAR_MAP[] = {
@@ -88,10 +88,23 @@ static int convert_hex_char_to_int(SgChar c)
   return -1;
 }
 
+static void sref_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgSharedRef *ref = SG_SHAREDREF(obj);
+  Sg_Putuz(port, UC("#<shared-ref "));
+  if (SG_NUMBERP(ref->index)) {
+    Sg_Puts(port, Sg_NumberToString(ref->index, 10, FALSE));
+  } else {
+    Sg_Putuz(port, UC("???"));
+  }
+  Sg_Putc(port, '>');
+}
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SharedRefClass, sref_print);
+
 static SgSharedRef* make_shared_ref(int mark)
 {
   SgSharedRef *z = SG_NEW(SgSharedRef);
-  SG_SET_HEADER(z, TC_SHAREDREF);
+  SG_SET_CLASS(z, SG_CLASS_SHARED_REF);
   z->index = SG_MAKE_INT(mark);
   return z;
 }

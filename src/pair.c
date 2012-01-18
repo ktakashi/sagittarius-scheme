@@ -31,6 +31,7 @@
  */
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/pair.h"
+#include "sagittarius/collection.h"
 #include "sagittarius/compare.h"
 #include "sagittarius/error.h"
 #include "sagittarius/subr.h"
@@ -38,6 +39,17 @@
 #include "sagittarius/symbol.h"
 #include "sagittarius/library.h"
 #include "sagittarius/vm.h"
+
+static SgClass *list_cpl[] = {
+  SG_CLASS_LIST,
+  SG_CLASS_SEQUENCE,
+  SG_CLASS_COLLECTION,
+  SG_CLASS_TOP,
+  NULL
+};
+SG_DEFINE_BUILTIN_CLASS(Sg_ListClass, NULL, NULL, NULL, NULL, list_cpl+1);
+SG_DEFINE_BUILTIN_CLASS(Sg_PairClass, NULL, NULL, NULL, NULL, list_cpl);
+SG_DEFINE_BUILTIN_CLASS(Sg_NullClass, NULL, NULL, NULL, NULL, list_cpl);
 
 static inline SgPair* make_pair()
 {

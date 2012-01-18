@@ -33,19 +33,24 @@
 #define SAGITTARIUS_SUBR_H_
 
 #include "sagittariusdefs.h"
+#include "clos.h"
 
 typedef SgObject SgSubrProc(SgObject *args, int argc, void *user_data);
 
-
+SG_CLASS_DECL(Sg_ProcedureClass);
+#define SG_CLASS_PROCEDURE (&Sg_ProcedureClass)
 typedef enum {
   SG_PROC_SUBR,
-  SG_PROC_CLOSURE
+  SG_PROC_CLOSURE,
+  SG_PROC_GENERIC,
+  SG_PROC_METHOD,
+  SG_PROC_NEXT_METHOD,
 } SgProcedureType;
 
 /* TODO think about it...*/
 struct SgProcedureRec
 {
-  SG_HEADER;
+  SG_INSTANCE_HEADER;
   unsigned int required : 16;
   unsigned int optional : 8;
   SgProcedureType type;
@@ -53,8 +58,8 @@ struct SgProcedureRec
   SgObject     inliner;		/* #f, or instruction */
 };
 
-#define SG_PROCEDURE(obj)          ((SgProcedure*)(obj))
-#define SG_PROCEDUREP(obj)         (SG_PTRP(obj) && IS_TYPE(obj, TC_PROCEDURE))
+#define SG_PROCEDURE(obj)  ((SgProcedure*)(obj))
+#define SG_PROCEDUREP(obj) (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_PROCEDURE))
 #define SG_PROCEDURE_REQUIRED(obj) SG_PROCEDURE(obj)->required
 #define SG_PROCEDURE_OPTIONAL(obj) SG_PROCEDURE(obj)->optional
 #define SG_PROCEDURE_TYPE(obj)     SG_PROCEDURE(obj)->type
@@ -68,8 +73,8 @@ struct SgProcedureRec
   SG_PROCEDURE_NAME(obj) = (name),			\
   SG_PROCEDURE_INLINER(obj) = SG_FALSE			\
 
-#define SG__PROCEDURE_INITIALIZER(hdr, req, opt, type, name, inliner)	\
-  { (hdr), (req), (opt), (type), (name), (inliner) }
+#define SG__PROCEDURE_INITIALIZER(klass, req, opt, type, name, inliner)	\
+  { {(klass)}, (req), (opt), (type), (name), (inliner) }
 
 /* This is just container for procedure */
 struct SgSubrRec
@@ -88,7 +93,7 @@ struct SgSubrRec
 
 #define SG__DEFINE_SUBR_INT(cvar, req, opt, func, inliner, data)	\
   SgSubr cvar = {							\
-    SG__PROCEDURE_INITIALIZER(MAKE_HDR_VALUE(TC_PROCEDURE),		\
+    SG__PROCEDURE_INITIALIZER(SG_CLASS_STATIC_TAG(Sg_ProcedureClass),	\
 			      req, opt, SG_PROC_SUBR,			\
 			      SG_FALSE, inliner),			\
     (func), (data), {FALSE}						\
@@ -141,16 +146,14 @@ struct SgSubrRec
   castArgumentType(index, tmp, var, boolean, SG_BOOLP, SG_BOOL_VALUE)
 #define argumentAsChar(index, tmp, var)				\
   castArgumentType(index, tmp, var, character, SG_CHARP, SG_CHAR_VALUE)
-#define argumentAsInstance(index, tmp, var)				\
-  castArgumentType(index, tmp, var, instance, SG_INSTANCEP, SG_INSTANCE)
+#define argumentAsTuple(index, tmp, var)				\
+  castArgumentType(index, tmp, var, instance, SG_TUPLEP, SG_TUPLE)
 #define argumentAsTranscoder(index, tmp, var)				\
   castArgumentType(index, tmp, var, transcoder, SG_TRANSCODERP, SG_TRANSCODER)
 #define argumentAsCodec(index, tmp, var)				\
   castArgumentType(index, tmp, var, codec, SG_CODECP, SG_CODEC)
 #define argumentAsNumber(index, tmp, var)				\
   castArgumentType(index, tmp, var, number, SG_NUMBERP, SG_OBJ)
-#define argumentAsGeneric(index, tmp, var)				\
-  castArgumentType(index, tmp, var, generic, SG_GENERICP, SG_GENERIC)
 #define argumentAsRecordType(index, tmp, var)				\
   castArgumentType(index, tmp, var, record-type, SG_RECORD_TYPEP, SG_RECORD_TYPE)
 #define argumentAsGloc(index, tmp, var)				\

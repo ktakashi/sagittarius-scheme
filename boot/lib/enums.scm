@@ -17,11 +17,34 @@
 	    define-enumeration)
     (import null
 	    (core base)
-	    (for (core struct) expand)
-	    (for (core syntax-rules) expand)
+	    ;;(for (core struct) expand)
+	    ;;(for (core syntax-rules) expand)
 	    (sagittarius))
 
-  (define-struct <enum-type>
+  ;; use record api directory
+  (define <enum-type>
+    (let* ((rtd (make-record-type-descriptor '<enum-type> #f #f #f #f
+					     (vector '(immutable universe)
+						     '(immutable indexer))))
+	   (rcd (make-record-constructor-descriptor rtd #f #f)))
+      (make-record-type '<enum-type> rtd rcd)))
+  (define make-enum-type (record-constructor (record-type-rcd <enum-type>)))
+  (define enum-type? (record-predicate (record-type-rtd <enum-type>)))
+  (define enum-type-universe (record-accessor (record-type-rtd <enum-type>) 0))
+  (define enum-type-indexer (record-accessor (record-type-rtd <enum-type>) 1))
+
+  (define <enum-set>
+    (let* ((rtd (make-record-type-descriptor '<enum-set> #f #f #f #f
+					     (vector '(immutable type)
+						     '(immutable members))))
+	   (rcd (make-record-constructor-descriptor rtd #f #f)))
+      (make-record-type '<enum-set> rtd rcd)))
+  (define make-enum-set (record-constructor (record-type-rcd <enum-set>)))
+  (define enum-set? (record-predicate (record-type-rtd <enum-set>)))
+  (define enum-set-type (record-accessor (record-type-rtd <enum-set>) 0))
+  (define enum-set-members (record-accessor (record-type-rtd <enum-set>) 1))
+
+  #;(define-struct <enum-type>
     (make-enum-type universe indexer)
     enum-type?
     (lambda (i p)
@@ -29,7 +52,7 @@
     (universe enum-type-universe)
     (indexer enum-type-indexer))
 
-  (define-struct <enum-set>
+  #;(define-struct <enum-set>
     (make-enum-set type members)
     enum-set?
     (lambda (i p)

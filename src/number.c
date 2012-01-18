@@ -38,7 +38,9 @@
 #include "sagittarius/bignum.h"
 #include "sagittarius/string.h"
 #include "sagittarius/pair.h"
+#include "sagittarius/port.h"
 #include "sagittarius/core.h"
+#include "sagittarius/clos.h"
 #include "sagittarius/unicode.h"
 #include "sagittarius/error.h"
 #include "sagittarius/numconst.h"
@@ -78,6 +80,29 @@ static const int64_t iexpt_2n52 = 0x10000000000000LL; // 2^(53-1)
 static const int64_t iexpt_2n53 = 0x20000000000000LL; // 2^53
 
 static double roundeven(double v);
+
+/* classes */
+static SgClass *numeric_cpl[] = {
+  SG_CLASS_NUMBER,
+  SG_CLASS_COMPLEX,
+  SG_CLASS_REAL,
+  SG_CLASS_RATIONAL,
+  SG_CLASS_INTEGER,
+  NULL
+};
+
+static void number_print(SgObject obj, SgPort *port, SgWriteContext *ctx);
+
+SG_DEFINE_BUILTIN_CLASS(Sg_NumberClass, number_print, NULL, NULL, NULL,
+			numeric_cpl+4);
+SG_DEFINE_BUILTIN_CLASS(Sg_ComplexClass, number_print, NULL, NULL, NULL,
+			numeric_cpl+3);
+SG_DEFINE_BUILTIN_CLASS(Sg_RealClass, number_print, NULL, NULL, NULL,
+			numeric_cpl+2);
+SG_DEFINE_BUILTIN_CLASS(Sg_RationalClass, number_print, NULL, NULL, NULL,
+			numeric_cpl+1);
+SG_DEFINE_BUILTIN_CLASS(Sg_IntegerClass, number_print, NULL, NULL, NULL,
+			numeric_cpl);
 
 static inline unsigned long ipow(int r, int n)
 {
@@ -925,7 +950,7 @@ static SgRational* make_rational(SgObject nume, SgObject deno)
 {
   SgRational *z;
   z = SG_NEW(SgRational);
-  SG_SET_HEADER(z, TC_RATIONAL);
+  SG_SET_CLASS(z, SG_CLASS_RATIONAL);
   z->numerator = nume;
   z->denominator = deno;
   return z;
@@ -1053,7 +1078,7 @@ SgObject Sg_RationalMulDiv(SgObject x, SgObject y, int divide)
 static SgFlonum* make_flonum(double d)
 {
   SgFlonum *f = SG_NEW_ATOMIC(SgFlonum);
-  SG_SET_HEADER(f, TC_FLONUM);
+  SG_SET_CLASS(f, SG_CLASS_REAL);
   f->value = d;
   return SG_OBJ(f);
 }
@@ -1103,7 +1128,7 @@ static inline SgObject make_complex(SgObject real, SgObject imag)
   ASSERT(!SG_COMPLEXP(real));
   ASSERT(!SG_COMPLEXP(imag));
   c = SG_NEW(SgComplex);
-  SG_SET_HEADER(c, TC_COMPLEX);
+  SG_SET_CLASS(c, SG_CLASS_COMPLEX);
   c->real = real;
   c->imag = imag;
   return SG_OBJ(c);  
@@ -3536,6 +3561,12 @@ static void double_print(char *buf, int buflen, double val, int plus_sign)
   }
 }
 
+static void number_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgObject s = Sg_NumberToString(obj, 10, FALSE);
+  Sg_Puts(port, SG_STRING(s));
+}
+
 #define FLT_BUF 50
 
 SgObject Sg_NumberToString(SgObject obj, int radix, int use_upper)
@@ -3591,7 +3622,6 @@ SgObject Sg_NumberToString(SgObject obj, int radix, int use_upper)
   return r;
 }
 
-
 SgObject Sg__ConstObjes[SG_NUM_CONST_OBJS] = {SG_FALSE};
 
 void Sg__InitNumber()
@@ -3623,9 +3653,8 @@ void Sg__InitNumber()
 
 #if USE_CONST_FLONUM
   /* initialize const flonums */
-#define INIT_CONST_FL(n, v)					\
-  { (n) = SG_NEW_ATOMIC(SgFlonum); SG_SET_HEADER(n, TC_FLONUM);	\
-    SG_FLONUM(n)->value = (v);}
+#define INIT_CONST_FL(n, v) (n) = make_flonum(v);
+    
 
   INIT_CONST_FL(SG_NAN, NAN);
   INIT_CONST_FL(SG_POSITIVE_INFINITY, INFINITY);
@@ -3635,7 +3664,7 @@ void Sg__InitNumber()
   {
     int i;
     for (i = 0; i < DEFAULT_FLONUM_CACHE_COUNT; i++) {
-      SG_SET_HEADER(&CONST_FLONUM[i], TC_FLONUM);
+      SG_SET_CLASS(&CONST_FLONUM[i], SG_CLASS_REAL);
       CONST_FLONUM[i].value = (double)i/1.0;
     }
   }

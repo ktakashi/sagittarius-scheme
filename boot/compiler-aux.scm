@@ -8,7 +8,7 @@
       ((:sagittarius) '(sagittarius))
       ((:base) '(core base))
       (else
-       (error "invalid library tag:" tag)))))
+       (error 'ensure-library-name "invalid library tag:" tag)))))
 
 (define (parse-args vars)
   (let loop ((vars vars)

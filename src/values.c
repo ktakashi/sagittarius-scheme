@@ -31,11 +31,27 @@
  */
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/values.h"
+#include "sagittarius/port.h"
+#include "sagittarius/writer.h"
+
+static void values_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  int i;
+  SgValues *v = SG_VALUES(obj);
+  Sg_Putuz(port, UC("#<values"));
+  for (i = 0; i < v->size; i++) {
+    Sg_Putc(port, ' ');
+    Sg_Write(v->elements[i], port, ctx->mode);
+  }
+  Sg_Putc(port, '>');
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_ValuesClass, values_print);
 
 static SgValues* make_values(int size)
 {
-  SgValues *z = SG_NEW2(SgValues*, sizeof(SgValues) + sizeof(SgObject)*(size-1));;
-  SG_SET_HEADER(z, TC_VALUES);
+  SgValues *z = SG_NEW2(SgValues*, sizeof(SgValues)+sizeof(SgObject)*(size-1));
+  SG_SET_CLASS(z, SG_CLASS_VALUES);
   z->size = size;
   return z;
 }

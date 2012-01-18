@@ -76,10 +76,16 @@ static pthread_key_t the_vm_key;
 static SgSubr default_exception_handler_rec;
 #define DEFAULT_EXCEPTION_HANDLER SG_OBJ(&default_exception_handler_rec)
 
+static void box_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  Sg_Printf(port, UC("#<box 0x%x>"), obj);
+}
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_BoxClass, box_print);
+
 static inline SgObject make_box(SgObject value)
 {
   SgBox *b = SG_NEW(SgBox);
-  SG_SET_HEADER(b, TC_BOX);
+  SG_SET_CLASS(b, SG_CLASS_BOX);
   b->value = value;
   return SG_OBJ(b);
 }
@@ -94,6 +100,34 @@ static void vm_finalize(SgObject obj, void *data)
   Sg_DestroyCond(&vm->cond);
 }
 
+static void vm_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  char buf[50];
+  SgVM *vm = SG_VM(obj);
+  Sg_Printf(port, UC("#<thread %A"), vm->name);
+  switch (vm->threadState) {
+  case SG_VM_NEW:
+    Sg_Putz(port, " new");
+    break;
+  case SG_VM_RUNNABLE:
+    Sg_Putz(port, " runnable");
+    break;
+  case SG_VM_STOPPED:
+    Sg_Putz(port, " stopped");
+    break;
+  case SG_VM_TERMINATED:
+    Sg_Putz(port, " terminated");
+    break;
+  default:
+    Sg_Putz(port, " (unknonw state)");
+    break;
+  }
+  snprintf(buf, sizeof(buf), " %p>", vm);
+  Sg_Putz(port, buf);
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_VMClass, vm_print);
+
 SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 {
   SgVM *v = SG_NEW(SgVM);
@@ -101,7 +135,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   SgWord *applyCode = SG_NEW_ARRAY(SgWord,  7);
   unsigned long sec, usec;
   SgCodeBuilder *closureForEvaluateCode = Sg_MakeCodeBuilder(-1);
-  SG_SET_HEADER(v, TC_VM);
+  SG_SET_CLASS(v, SG_CLASS_VM);
 
   applyCode[0] = SG_WORD(FRAME);
   applyCode[1] = SG_WORD(SG_MAKE_INT(6));

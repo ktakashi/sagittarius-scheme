@@ -33,6 +33,10 @@
 #define SAGITTARIUS_IDENTIFIER_H_
 
 #include "sagittariusdefs.h"
+#include "clos.h"
+
+SG_CLASS_DECL(Sg_IdentifierClass);
+#define SG_CLASS_IDENTIFIER (&Sg_IdentifierClass)
 
 struct SgIdentifierRec
 {
@@ -42,18 +46,21 @@ struct SgIdentifierRec
   SgLibrary *library;
 };
 
-#define SG_IDENTIFIER(obj)   	    ((SgIdentifier*)(obj))
-#define SG_IDENTIFIERP(obj)  	    (SG_PTRP(obj) && IS_TYPE(obj, TC_IDENTIFIER))
+#define SG_IDENTIFIER(obj)   ((SgIdentifier*)(obj))
+#define SG_IDENTIFIERP(obj)  (SG_HPTRP(obj)&&SG_XTYPEP(obj,SG_CLASS_IDENTIFIER))
 #define SG_IDENTIFIER_NAME(obj)     (SG_IDENTIFIER(obj)->name)
 #define SG_IDENTIFIER_ENVS(obj)     (SG_IDENTIFIER(obj)->envs)
 #define SG_IDENTIFIER_LIBRARY(obj)  (SG_IDENTIFIER(obj)->library)
 
 SG_CDECL_BEGIN
 
-SG_EXTERN SgObject Sg_MakeIdentifier(SgSymbol *symbol, SgObject envs, SgLibrary *library);
+SG_EXTERN SgObject Sg_MakeIdentifier(SgSymbol *symbol, SgObject envs,
+				     SgLibrary *library);
 SG_EXTERN SgObject Sg_CopyIdentifier(SgIdentifier *id);
-SG_EXTERN SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env, SgObject seen, int lexicalP);
-SG_EXTERN int      Sg_IdentifierEqP(SgObject use_env, SgObject x, SgObject mac_env, SgObject y);
+SG_EXTERN SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env,
+				 SgObject seen, int lexicalP);
+SG_EXTERN int      Sg_IdentifierEqP(SgObject use_env, SgObject x,
+				    SgObject mac_env, SgObject y);
 
 SG_CDECL_END
 

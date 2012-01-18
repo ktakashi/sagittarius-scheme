@@ -253,7 +253,7 @@ static SgFile* make_file(HANDLE hd)
 {
   SgFile *z = SG_NEW(SgFile);
   FD *depend = SG_NEW(FD);
-  SG_SET_HEADER(z, TC_FILE);
+  SG_SET_CLASS(z, SG_CLASS_FILE);
   depend->desc = hd;
   depend->lastError = 0;
   depend->prevChar = -1;

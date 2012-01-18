@@ -33,17 +33,16 @@
 #define STRING_SAGITTARIUS_H_
 
 #include "sagittariusdefs.h"
+#include "clos.h"
 
-/*
-  String class must contain UCS4 char array as its body.
+SG_CLASS_DECL(Sg_StringClass);
+#define SG_CLASS_STRING (&Sg_StringClass)
 
-  string header info
-  ........ ........ .....L.. ....0111 : L: literal
- */
 struct SgStringRec
 {
   SG_HEADER;
-  int     size;
+  unsigned int literalp: 1;
+  int size             : (SIZEOF_INT*CHAR_BIT-1);
   SgChar *value;
 };
 
@@ -61,12 +60,10 @@ typedef enum {
   SG_STRING_SCAN_BOTH
 } SgStringScanType;
 
-#define STRING_LITERAL_SHIFT   	11
-#define STRING_LITERAL_BIT     ((uintptr_t)1 << STRING_LITERAL_SHIFT)
-#define READ_STRING_MAX_SIZE   	2048
-#define SG_STRINGP(obj)        	(SG_PTRP(obj) && IS_TYPE(obj, TC_STRING))
+#define READ_STRING_MAX_SIZE  2048
+#define SG_STRINGP(obj)       (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_STRING))
 #define SG_STRING(obj)         	((SgString*)(obj))
-#define SG_LITERAL_STRINGP(obj) (SG_STRINGP(obj) && (SG_HDR(obj) & STRING_LITERAL_BIT))
+#define SG_LITERAL_STRINGP(obj) (SG_STRINGP(obj) && SG_STRING(obj)->literalp)
 
 #define SG_STRING_SIZE(obj)     (SG_STRING(obj)->size)
 #define SG_STRING_VALUE(obj)    (SG_STRING(obj)->value)

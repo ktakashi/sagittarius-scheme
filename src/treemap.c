@@ -29,17 +29,28 @@
  */
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/treemap.h"
+#include "sagittarius/collection.h"
 #include "sagittarius/error.h"
 #include "sagittarius/string.h"
 #include "sagittarius/symbol.h"
 #include "sagittarius/vm.h"
+#include "sagittarius/writer.h"
+
+static void treemap_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgTreeMap *tm = SG_TREEMAP(obj);
+  Sg_Printf(port, UC("#<treemap %p (%d entries)>"), tm, tm->entryCount);
+}
+
+SG_DEFINE_BUILTIN_CLASS(Sg_TreeMapClass, treemap_print, NULL, NULL, NULL,
+			SG_CLASS_ORDERED_DICTIONARY_CPL);
 
 static SgTreeMap* make_treemap(int scm)
 {
   SgTreeMap *tc = SG_NEW(SgTreeMap);
-  SG_SET_HEADER(tc, TC_TREEMAP);
+  SG_SET_CLASS(tc, SG_CLASS_TREE_MAP);
   if (scm) {
-    SG_SET_HEADER_ATTRIBUTE(tc, SG_MAKEBITS(1, TREEMAP_SCHEME_SHIFT));
+    tc->schemep = TRUE;
   }
   tc->entryCount = 0;
   return tc;

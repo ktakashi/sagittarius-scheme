@@ -33,39 +33,43 @@
 #define SAGITTARIUS_NUMBER_H_
 
 #include "sagittariusdefs.h"
+#include "clos.h"
 
-/*
-  header:
-  cccc cccc cccc cccc .... NZ-- ---- 0111: c: count, NZ: 01(positive) 11(negative) 00(zero)
- */
+/* classes */
+SG_CLASS_DECL(Sg_NumberClass);
+SG_CLASS_DECL(Sg_ComplexClass);
+SG_CLASS_DECL(Sg_RealClass);
+SG_CLASS_DECL(Sg_RationalClass);
+SG_CLASS_DECL(Sg_IntegerClass);
+
+#define SG_CLASS_NUMBER      (&Sg_NumberClass)
+#define SG_CLASS_COMPLEX     (&Sg_ComplexClass)
+#define SG_CLASS_REAL        (&Sg_RealClass)
+#define SG_CLASS_RATIONAL    (&Sg_RationalClass)
+#define SG_CLASS_INTEGER     (&Sg_IntegerClass)
+
 struct SgBignumRec
 {
   SG_HEADER;
+  int sign : 2;
+  unsigned int size: (SIZEOF_INT*CHAR_BIT-2);
   unsigned long elements[1];
 };
 
-#define SG_BIGNUMP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_BIGNUM))
+#define SG_BIGNUMP(obj) (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_INTEGER))
 #define SG_BIGNUM(obj)  ((SgBignum*)(obj))
 
-#define BIGNUM_SIGN_SHIFT  10
-#define BIGNUM_COUNT_SHIFT 16
 #define BIGNUM_MAX_DIGITS  ((1UL<<(SIZEOF_INT*CHAR_BIT-2))-1)
 
-#define SG_BIGNUM_SET_SIGN(obj, sign)					\
-  (SG_HDR(obj) = (MAKE_HDR_VALUE(TC_BIGNUM)				\
-		  | (SG_MAKEBITS((sign & 0x3), BIGNUM_SIGN_SHIFT))	\
-		  | (SG_HDR(obj) & SG_MAKEBITS(0xFFFF, BIGNUM_COUNT_SHIFT))))
+#define SG_BIGNUM_SET_SIGN(obj, s)   (SG_BIGNUM(obj)->sign=(s))
 
-#define SG_BIGNUM_SET_COUNT(obj, count)					\
-  (SG_HDR(obj) = (MAKE_HDR_VALUE(TC_BIGNUM)				\
-		  | (SG_MAKEBITS(count, BIGNUM_COUNT_SHIFT))		\
-		  | (SG_HDR(obj) & SG_MAKEBITS(3, BIGNUM_SIGN_SHIFT))))
+#define SG_BIGNUM_SET_COUNT(obj, count) (SG_BIGNUM(obj)->size=(count))
 
-#define SG_BIGNUM_SET_ZERO(obj) SG_SET_HEADER(obj, TC_BIGNUM);
+#define SG_BIGNUM_SET_ZERO(obj)			\
+  (SG_BIGNUM_SET_SIGN(obj, 0), SG_BIGNUM_SET_COUNT(obj, 0))
 
-#define SG_BIGNUM_GET_SIGN(obj)   \
-  ((((SG_HDR(obj)>>BIGNUM_SIGN_SHIFT)&0x03) == 0) ? 0 : (1 - (int)((SG_HDR(obj)>>BIGNUM_SIGN_SHIFT)&0x03)) | 1)
-#define SG_BIGNUM_GET_COUNT(obj) (SG_HDR(obj)>>BIGNUM_COUNT_SHIFT)
+#define SG_BIGNUM_GET_SIGN(obj)  (SG_BIGNUM(obj)->sign)
+#define SG_BIGNUM_GET_COUNT(obj) (SG_BIGNUM(obj)->size)
 
 struct SgComplexRec
 {
@@ -74,7 +78,7 @@ struct SgComplexRec
   SgObject real;
 };
 
-#define SG_COMPLEXP(obj)  (SG_PTRP(obj) && IS_TYPE(obj, TC_COMPLEX))
+#define SG_COMPLEXP(obj)  (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_COMPLEX))
 #define SG_COMPLEX(obj)   ((SgComplex*)(obj))
 
 
@@ -85,7 +89,7 @@ struct SgRationalRec
   SgObject denominator;
 };
 
-#define SG_RATIONALP(obj)  (SG_PTRP(obj) && IS_TYPE(obj, TC_RATIONAL))
+#define SG_RATIONALP(obj)  (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_RATIONAL))
 #define SG_RATIONAL(obj)   ((SgRational*)(obj))
 
 struct SgFlonumRec
@@ -94,7 +98,7 @@ struct SgFlonumRec
   double value;
 };
 
-#define SG_FLONUMP(obj)   (SG_PTRP(obj) && IS_TYPE(obj, TC_FLONUM))
+#define SG_FLONUMP(obj)   (SG_PTRP(obj) && SG_XTYPEP(obj, SG_CLASS_REAL))
 #define SG_FLONUM(obj)    ((SgFlonum*)(obj))
 
 /* number type check */

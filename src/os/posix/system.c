@@ -134,7 +134,8 @@ void Sg_YieldCPU()
 SgObject Sg_Getenv(const SgChar *env)
 {
   int len = ustrlen(env);
-  SgString s = { MAKE_HDR_VALUE(TC_STRING), len, env};
+  /* TODO don't do like this */
+  SgString s = { { SG_CLASS2TAG(SG_CLASS_STRING) }, 1, len, env};
   char *key = Sg_Utf32sToUtf8s(&s);
   const char *value = getenv(key);
   if (value == NULL) return SG_FALSE;
@@ -144,12 +145,12 @@ SgObject Sg_Getenv(const SgChar *env)
 void Sg_Setenv(const SgChar *key, const SgChar *value)
 {
   int klen = ustrlen(key), vlen;
-  SgString keys = { MAKE_HDR_VALUE(TC_STRING), klen, key};
+  SgString keys = { { SG_CLASS2TAG(SG_CLASS_STRING) }, 1, klen, key};
   if (value) {
     vlen = ustrlen(value);
     {
       /* if i can use C99 ... */
-      SgString values = { MAKE_HDR_VALUE(TC_STRING), vlen, value};
+      SgString values = { { SG_CLASS2TAG(SG_CLASS_STRING) }, 1, vlen, value};
       setenv(Sg_Utf32sToUtf8s(&keys), Sg_Utf32sToUtf8s(&values), 1);
     }
   } else {

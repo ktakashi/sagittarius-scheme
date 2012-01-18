@@ -33,6 +33,7 @@
 #include "sagittarius/macro.h"
 #include "sagittarius/identifier.h"
 #include "sagittarius/pair.h"
+#include "sagittarius/port.h"
 #include "sagittarius/vector.h"
 #include "sagittarius/symbol.h"
 #include "sagittarius/code.h"
@@ -41,22 +42,37 @@
 #include "sagittarius/reader.h"
 #include "sagittarius/vm.h"
 #include "sagittarius/gloc.h"
+#include "sagittarius/writer.h"
 #include "sagittarius/builtin-symbols.h"
+
+static void syntax_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  Sg_Printf(port, UC("#<syntax %A>"), SG_SYNTAX(obj)->name);
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SyntaxClass, syntax_print);
 
 SgObject Sg_MakeSyntax(SgSymbol *name, SgObject proc, int userDefined)
 {
   SgSyntax *z = SG_NEW(SgSyntax);
-  SG_SET_HEADER(z, TC_SYNTAX);
+  SG_SET_CLASS(z, SG_CLASS_SYNTAX);
   z->name = name;
   z->proc = proc;
   z->userDefined = userDefined;
   return SG_OBJ(z);
 }
 
+static void macro_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  Sg_Printf(port, UC("#<macro %A>"), SG_MACRO(obj)->name);
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_MacroClass, macro_print);
+
 SgObject Sg_MakeMacro(SgObject name, SgObject transformer, void *data, SgObject env, SgObject maybeLibrary)
 {
   SgMacro *z = SG_NEW(SgMacro);
-  SG_SET_HEADER(z, TC_MACRO);
+  SG_SET_CLASS(z, SG_CLASS_MACRO);
   z->name = name;
   z->transformer = transformer;
   z->data = data;

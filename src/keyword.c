@@ -32,8 +32,27 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/keyword.h"
 #include "sagittarius/hashtable.h"
+#include "sagittarius/port.h"
 #include "sagittarius/string.h"
+#include "sagittarius/symbol.h"
 #include "sagittarius/thread.h"
+#include "sagittarius/writer.h"
+
+
+static void keyword_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgKeyword *k = SG_KEYWORD(obj);
+  if (SG_WRITE_MODE(ctx) == SG_WRITE_DISPLAY) {
+    Sg_Puts(port, k->name);
+  } else {
+    Sg_Putc(port, ':');
+    Sg_WriteSymbolName(k->name, port, ctx,
+		       (SG_SYMBOL_WRITER_NOESCAPE_INITIAL
+			|SG_SYMBOL_WRITER_NOESCAPE_EMPTY));
+  }
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_KeywordClass, keyword_print);
 
 static struct
 {
@@ -54,7 +73,7 @@ SgObject Sg_MakeKeyword(SgString *name)
   if (SG_KEYWORDP(r)) return r;
 
   k = SG_NEW(SgKeyword);
-  SG_SET_HEADER(k, TC_KEYWORD);
+  SG_SET_CLASS(k, SG_CLASS_KEYWORD);
   if (SG_LITERAL_STRINGP(name)) {
     k->name = name;
   } else {

@@ -33,6 +33,10 @@
 #define SAGITTARIUS_TRANSCODER_H_
 
 #include "sagittariusdefs.h"
+#include "clos.h"
+
+SG_CLASS_DECL(Sg_TranscoderClass);
+#define SG_CLASS_TRANSCODER (&Sg_TranscoderClass)
 
 /* TODO support read and write */
 struct SgTranscoderRec
@@ -53,7 +57,8 @@ struct SgTranscoderRec
   void   (*putChar)(SgObject, SgPort*, SgChar);
 };
 
-#define SG_TRANSCODERP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_TRANSCODER))
+#define SG_TRANSCODERP(obj)				\
+  (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_TRANSCODER))
 #define SG_TRANSCODER(obj)  ((SgTranscoder*)obj)
 /* accessor */
 #define SG_TRANSCODER_CODEC(obj)     (SG_TRANSCODER(obj)->codec)
