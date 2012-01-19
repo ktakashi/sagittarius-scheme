@@ -1,5 +1,10 @@
 ;; -*- Scheme -*-
 
+(cond-expand
+ (sagittarius
+  (import (rnrs)))
+ (else #t))
+
 (define c-file   "../src/builtin-symbols.c")
 (define c-header "../src/sagittarius/builtin-symbols.h")
 
@@ -120,8 +125,7 @@
   (if (file-exists? c-file)
       (delete-file c-file))
   (main (command-line)))
- (else 
-  (print "gauche?")))
+ (else #t))
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix
