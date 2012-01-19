@@ -11,7 +11,10 @@
     (import :none)
 
   (decl-code
-   (.include "process.h"))
+   (.include <sagittarius.h>)
+   (.define "LIBSAGITTARIUS_EXT_BODY")
+   (.include <sagittarius/extend.h>
+	     "process.h"))
 
   (define-c-proc process? (o) ::boolean
     (result (SG_PROCESS_P o)))

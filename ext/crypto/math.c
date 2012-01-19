@@ -29,10 +29,14 @@
  *
  *  $Id: $
  */
+#include <sagittarius.h>
+#define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
 #include "math.h"
 
+SG_CDECL_BEGIN
 extern void Sg__Init_sagittarius_math_impl();
+SG_CDECL_END
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__math()
 {

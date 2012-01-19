@@ -35,9 +35,11 @@
 # include <sys/time.h>
 #endif
 
-#define LIBSAGITTARIUS_BODY
-#include "threads.h"
+#include <sagittarius.h>
+#define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
+#include "threads.h"
+
 
 static SgObject thread_error_handler(SgObject *args, int argc, void *data)
 {
@@ -322,9 +324,10 @@ unsigned long Sg_SysNanosleep(double v)
   }
 }
 
+SG_CDECL_BEGIN
 extern void Sg__Init_sagittarius_threads_impl();
 extern void Sg__InitMutex();
-
+SG_CDECL_END
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__threads()
 {

@@ -67,7 +67,8 @@
   (define (quote-proc body dispatch k)
     (if (null? (cadr body))
 	((renderer) (format "SG_NIL"))
-	((renderer) (format "SG_INTERN(~s)" (format "~a" (cadr body)))))
+	((renderer) (format "SG_SYMBOL(SG_INTERN(~s))"
+			    (format "~a" (cadr body)))))
     (k k))
 
   ;; +
@@ -565,6 +566,17 @@
 			 (unless (null? files)
 			   ((renderer) (format "#include ~s~%" (car files)))
 			   (loop (cdr files)))))
+		      ((.define)
+		       (let* ((args (cdr b)))
+			 (case (length args)
+			   ((1)
+			    ((renderer) (format "#define ~a~%" (car args))))
+			   ((2)
+			    ((renderer) (format "#define ~a ~s~%" (car args) (cadr args))))
+			   (else
+			    (error 'decl-code
+				    (format ".define required 1 or 2 arguments, but got ~a" (length args))
+				    b)))))
 		      ((.typedef)
 		       (let ((args (cdr b)))
 			 (or (= (length args) 2)

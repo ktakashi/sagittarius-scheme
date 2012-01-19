@@ -68,15 +68,19 @@ SG_CLASS_DECL(Sg_SocketClass);
 #define SG_SOCKET(obj)   ((SgSocket*)obj)
 #define SG_SOCKET_P(obj) SG_XTYPEP(obj, SG_CLASS_SOCKET)
 
+#define argumentAsSocket(index, tmp_, var_)				\
+  castArgumentType(index, tmp_, var_, time, SG_SOCKET_P, SG_SOCKET)
+
+
 SG_CDECL_BEGIN
 
-SG_EXTERN SgSocket* Sg_CreateClientSocket(const SgString *node,
-					  const SgString *service,
+SG_EXTERN SgSocket* Sg_CreateClientSocket(SgString *node,
+					  SgString *service,
 					  int ai_family,
 					  int ai_socktype,
 					  int ai_flags,
 					  int ai_protocol);
-SG_EXTERN SgSocket* Sg_CreateServerSocket(const SgString *service,
+SG_EXTERN SgSocket* Sg_CreateServerSocket(SgString *service,
 					  int ai_family,
 					  int ai_socktype,
 					  int ai_protocol);

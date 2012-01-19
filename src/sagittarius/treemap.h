@@ -61,7 +61,7 @@ struct SgTreeMapRec
       SgTreeCompareProc  *cmp;
       SgTreeRefProc      *ref;
       SgTreeSetProc      *set;
-      SgTreeDeleteProc   *delete;
+      SgTreeDeleteProc   *remove;
       SgTreeCopyProc     *copy;
       SgTreeIterInitProc *iter;
       /* NavigationMap (optional)*/
@@ -72,7 +72,7 @@ struct SgTreeMapRec
       SgObject cmp;
       SgObject ref;
       SgObject set;
-      SgObject delete;
+      SgObject remove;
       SgObject copy;
       /* NavigationMap (optional)*/
       SgObject higher;
@@ -144,7 +144,7 @@ SG_EXTERN SgObject Sg_TreeMapDelete(SgTreeMap *tm, SgObject key);
 SG_EXTERN SgObject Sg_MakeGenericCTreeMap(SgTreeCompareProc *cmp,
 					  SgTreeRefProc *ref,
 					  SgTreeSetProc *set,
-					  SgTreeDeleteProc *delete,
+					  SgTreeDeleteProc *remove,
 					  SgTreeCopyProc *copy,
 					  SgTreeIterInitProc *iter,
 					  SgTreeRefProc *higher,
@@ -152,7 +152,7 @@ SG_EXTERN SgObject Sg_MakeGenericCTreeMap(SgTreeCompareProc *cmp,
 SG_EXTERN SgObject Sg_MakeGenericSchemeTreeMap(SgObject cmp,
 					       SgObject	ref,
 					       SgObject	set,
-					       SgObject delete,
+					       SgObject remove,
 					       SgObject copy);
 
 /* iterator these APIs are only for C */

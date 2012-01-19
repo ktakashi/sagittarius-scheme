@@ -27,7 +27,10 @@
     (import :none)
 
   (decl-code
-   (.include "zlib.h"))
+   (.include <sagittarius.h>)
+   (.define "LIBSAGITTARIUS_EXT_BODY")
+   (.include <sagittarius/extend.h>
+	     "zlib.h"))
 
   (define-c-proc deflate-init
     (level::fixnum windowbits::fixnum memlevel::fixnum strategy::fixnum)

@@ -85,6 +85,19 @@ extern SgObject key_rtd;
 
 
 /* symmetric key cryptosystem */
+typedef int (*encrypt_proc)(const unsigned char *pt,
+			    unsigned char *ct,
+			    unsigned long len,
+			    /* for future convenience */
+			    void *skey);
+typedef int (*decrypt_proc)(const unsigned char *ct,
+			    unsigned char *pt,
+			    unsigned long len,
+			    /* for future convenience */
+			    void *skey);
+typedef int (*iv_proc)(unsigned char *IV, unsigned long *len, void *skey);
+typedef int (*done_proc)(void *skey);
+
 typedef struct symmetric_cipher_rec_t
 {
   SgCryptoMode  mode;
@@ -105,21 +118,13 @@ typedef struct symmetric_cipher_rec_t
      signature.
    */
   /* XXX_encrypt will be in here */
-  int (*encrypt)(const unsigned char *pt,
-		 unsigned char *ct,
-		 unsigned long len,
-		 /* for future convenience */
-		 void *skey);
-  int (*decrypt)(const unsigned char *ct,
-		 unsigned char *pt,
-		 unsigned long len,
-		 /* for future convenience */
-		 void *skey);
+  encrypt_proc encrypt;
+  decrypt_proc decrypt;
   /* on ECB mode these will be NULL */
-  int (*getiv)(unsigned char *IV, unsigned long *len, void *skey);
-  int (*setiv)(unsigned char *IV, unsigned long *len, void *skey);
+  iv_proc getiv;
+  iv_proc setiv;
   /* clean up */
-  int (*done)(void *skey);
+  done_proc done;
 } symmetric_cipher_t;
 
 typedef struct public_key_cipher_ret_t
@@ -155,11 +160,11 @@ SG_CLASS_DECL(Sg_CryptoClass);
 
 #define SG_INIT_CIPHER(cipher, enc, dec, giv, siv, end)	\
   do {							\
-    (cipher)->encrypt = (enc);				\
-    (cipher)->decrypt = (dec);				\
-    (cipher)->getiv = (giv);				\
-    (cipher)->setiv = (siv);				\
-    (cipher)->done = (end);				\
+    (cipher)->encrypt = (encrypt_proc)(enc);		\
+    (cipher)->decrypt = (decrypt_proc)(dec);		\
+    (cipher)->getiv = (iv_proc)(giv);			\
+    (cipher)->setiv = (iv_proc)(siv);			\
+    (cipher)->done = (done_proc)(end);			\
   } while (0);
 
 

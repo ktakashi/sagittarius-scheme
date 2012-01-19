@@ -37,7 +37,10 @@
     (import :none)
   #!compatible
   (decl-code
-   (.include "threads.h"))
+   (.include <sagittarius.h>)
+   (.define "LIBSAGITTARIUS_EXT_BODY")
+   (.include <sagittarius/extend.h>
+	     "threads.h"))
 
   (define-cgen-stmt assertion-violation
     ((_ who msg)
@@ -68,7 +71,10 @@
     (result (SG_VMP obj)))
 
   (define-c-proc make-thread (thunk::Procedure 
-			      :optional (name (Sg_Gensym (Sg_MakeString "thread-" SG_LITERAL_STRING))))
+			      :optional (name (Sg_Gensym 
+					       (SG_STRING
+						(Sg_MakeString "thread-"
+							       SG_LITERAL_STRING)))))
     ::Object
     (result (Sg_MakeThread thunk name)))
 
@@ -126,7 +132,8 @@
 	 (wrong-type-of-argument-violation
 	  ',name "mutex" ,o)))))
 
-  (define-c-proc make-mutex (:optional (name (Sg_Gensym (Sg_MakeString "mutex-" SG_LITERAL_STRING))))
+  (define-c-proc make-mutex (:optional (name (Sg_Gensym (SG_STRING
+							 (Sg_MakeString "mutex-" SG_LITERAL_STRING)))))
     ::Object
     (result (Sg_MakeMutex name)))
 
@@ -171,7 +178,8 @@
     (result (SG_CONDITION_VARIABLE_P o)))
 
 
-  (define-c-proc make-condition-variable (:optional (name (Sg_Gensym (Sg_MakeString "cv-" SG_LITERAL_STRING))))
+  (define-c-proc make-condition-variable (:optional (name (Sg_Gensym 
+							   (SG_STRING (Sg_MakeString "cv-" SG_LITERAL_STRING)))))
     ::Object
     (result (Sg_MakeConditionVariable name)))
 
@@ -196,11 +204,11 @@
 
   (define-c-proc condition-variable-signal! (cv) ::void
     (check-cv cv)
-    (Sg_ConditionVariableSignal cv))
+    (Sg_ConditionVariableSignal (SG_CONDITION_VARIABLE cv)))
 
   (define-c-proc condition-variable-broadcast! (cv) ::void
     (check-cv cv)
-    (Sg_ConditionVariableBroadcast cv))
+    (Sg_ConditionVariableBroadcast (SG_CONDITION_VARIABLE cv)))
 
   (define-c-proc sys-nanosleep (n::number) ::Object
     (result (Sg_MakeInteger (Sg_SysNanosleep (Sg_GetDouble n)))))

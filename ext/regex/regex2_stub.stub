@@ -18,7 +18,10 @@
     (import :none)
 
   (decl-code
-   (.include "regex2.h"))
+   (.include <sagittarius.h>)
+   (.define "LIBSAGITTARIUS_EXT_BODY")
+   (.include <sagittarius/extend.h>
+	     "regex2.h"))
 
   (define-c-proc compile-regex (p::String :optional
 					  (flags::fixnum 0)
@@ -26,7 +29,7 @@
     (result (Sg_CompileRegex p flags (not (SG_FALSEP parse_only)))))
 
   (define-c-proc dump-regex (p::Pattern :optional
-					(port::Port (Sg_CurrentOutputPort)))
+					(port::Port (SG_PORT (Sg_CurrentOutputPort))))
     ::void
     (Sg_DumpRegex p port))
 

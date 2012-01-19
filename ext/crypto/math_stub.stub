@@ -4,7 +4,10 @@
     (import :none)
 
   (decl-code
-   (.include "math.h"))
+   (.include <sagittarius.h>)
+   (.define "LIBSAGITTARIUS_EXT_BODY")
+   (.include <sagittarius/extend.h>
+	     "math.h"))
 
   (define-c-proc prng? (o) ::boolean
     (result (SG_PRNG_P o)))

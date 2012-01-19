@@ -90,10 +90,12 @@ static int eqv_internal(SgObject x, SgObject y, int from_equal_p)
     }
   }
   if (!SG_HPTRP(x)) return SG_EQ(x, y);
-  cx = Sg_ClassOf(x);
-  cy = Sg_ClassOf(y);
-  if (cx == cy && cx->compare) {
-    return (cx->compare(x, y, TRUE) == 0);
+  if (from_equal_p) {
+    cx = Sg_ClassOf(x);
+    cy = Sg_ClassOf(y);
+    if (cx == cy && cx->compare) {
+      return (cx->compare(x, y, TRUE) == 0);
+    }
   }
   return FALSE;
 }

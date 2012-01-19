@@ -50,6 +50,8 @@ typedef struct SgZStreamRec
 #define argumentAsZStream(index, tmp_, var_)			\
   castArgumentType(index, tmp_, var_, pointer, SG_ZSTREAM_P, SG_ZSTREAM)
 
+SG_CDECL_BEGIN
+
 /* we only wrap zlib very thin. other Scheme staff must be in Scheme file. */
 SgObject Sg_DeflateInit(int level, int windowBits, int memLevel, int strategy);
 int      Sg_DeflateReset(SgZStream *strm);
@@ -68,5 +70,7 @@ int      Sg_InflateEnd(SgZStream *strm, int flush);
 
 /* misc */
 SgObject Sg_ZlibVersion();
+
+SG_CDECL_END
 
 #endif /* SAGITTARIUS_ZLIB_H_ */

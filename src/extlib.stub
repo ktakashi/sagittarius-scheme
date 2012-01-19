@@ -135,8 +135,11 @@
 	    weak-vector-set!
 	    )
     (import :null)
+
   (decl-code
-   (.include <sagittarius/cache.h>))
+   (.define "LIBSAGITTARIUS_BODY")
+   (.include <sagittarius.h>
+	     <sagittarius/cache.h>))
 
   (define-cgen-stmt assertion-violation
     ((_ who msg)

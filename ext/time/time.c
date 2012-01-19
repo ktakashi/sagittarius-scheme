@@ -30,6 +30,7 @@
  *  $Id: $
  */
 #include <math.h>
+#include <sagittarius.h>
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/extend.h>
 #include "time.h"
@@ -243,9 +244,10 @@ SgObject Sg_SubDuration(SgTime *x, SgTime *y, SgTime *r)
   return r;
 }
 
+SG_CDECL_BEGIN
 extern void Sg__Init_sagittarius_time_impl();
 extern void Sg__Init_sagittarius_date_impl();
-
+SG_CDECL_END
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__time()
 {

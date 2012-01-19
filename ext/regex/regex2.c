@@ -29,9 +29,11 @@
  */
 #include <string.h>
 #include <ctype.h>
-#define LIBSAGITTARIUS_BODY
-#include "regex2.h"
+#include <sagittarius.h>
+#define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
+#include "regex2.h"
+
 
 /* #define DEBUG_REGEX 1 */
 
@@ -411,7 +413,7 @@ static SgObject read_char_property(lexer_ctx_t *ctx, SgChar first)
     /* does not seem smart solution ... */
     es = Sg_MakeString(UC("char-set:"), SG_LITERAL_STRING);
     es = Sg_StringAppendC(SG_STRING(es), ctx->str+ctx->pos+2, pos);
-    es = Sg_StringDownCase(es);
+    es = Sg_StringDownCase(SG_STRING(es));
     gloc = Sg_FindBinding(Sg_VM()->currentLibrary, Sg_Intern(es), SG_FALSE);
     if (SG_FALSEP(gloc) || !SG_CHAR_SET_P(SG_GLOC_GET(gloc))) {
       raise_syntax_error(ctx, ctx->pos,
@@ -604,7 +606,7 @@ static SgObject read_char_set(lexer_ctx_t *ctx, int *complement_p)
       default: goto ordchar;
       }
       if (moreset_complement) {
-	moreset = SG_CHAR_SET(Sg_CharSetComplement(SG_CHAR_SET(Sg_CharSetCopy(moreset))));
+	moreset = Sg_CharSetComplement(SG_CHAR_SET(Sg_CharSetCopy(SG_CHAR_SET(moreset))));
       }
       Sg_CharSetAdd(set, SG_CHAR_SET(moreset));
       continue;
@@ -944,7 +946,7 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
 	  SG_FOR_EACH(cp, names) {
 	    /* slot: ("name" . num) */
 	    SgObject slot = SG_CAR(cp);
-	    if (Sg_StringEqual(SG_CAR(slot), name)) {
+	    if (Sg_StringEqual(SG_STRING(SG_CAR(slot)), SG_STRING(name))) {
 	      num = SG_CDR(slot);
 	      break;
 	    }
@@ -1301,7 +1303,7 @@ static SgObject sequence(lexer_ctx_t *ctx)
       } else if (is_quant_char && SG_STRINGP(seq)) {
 	SgChar ca[1];
 	ca[0] = SG_CHAR_VALUE(quan);
-	return Sg_StringAppendC(seq, ca, 1);
+	return Sg_StringAppendC(SG_STRING(seq), ca, 1);
       } else if (is_quant_char && is_seq_sequence && SG_CHARP(SG_CADR(seq))) {
 	if (SG_NULLP(SG_CDDR(seq))) {
 	  SG_SET_CDR(seq,
@@ -2499,24 +2501,24 @@ static int inst_matches(match_ctx_t *ctx, inst_t *inst, SgChar c)
 {
   switch (INST_OPCODE(inst)) {
   case RX_SET:
-    if (Sg_CharSetContains(inst->arg.set, c)) {
+    if (Sg_CharSetContains(SG_CHAR_SET(inst->arg.set), c)) {
       return TRUE;
     } else if (FLAG_SET(INST_FLAG(inst), SG_CASE_INSENSITIVE)) {
       if (FLAG_SET(INST_FLAG(inst), SG_UNICODE_CASE)) {
-	if (Sg_CharSetContains(inst->arg.set, Sg_CharUpCase(c)) ||
-	    Sg_CharSetContains(inst->arg.set, Sg_CharDownCase(c))) {
+	if (Sg_CharSetContains(SG_CHAR_SET(inst->arg.set), Sg_CharUpCase(c)) ||
+	    Sg_CharSetContains(SG_CHAR_SET(inst->arg.set), Sg_CharDownCase(c))){
 	  return TRUE;
 	}
       } else if (isascii(c)) {
-	if (Sg_CharSetContains(inst->arg.set, tolower(c)) ||
-	    Sg_CharSetContains(inst->arg.set, toupper(c))) {
+	if (Sg_CharSetContains(SG_CHAR_SET(inst->arg.set), tolower(c)) ||
+	    Sg_CharSetContains(SG_CHAR_SET(inst->arg.set), toupper(c))) {
 	  return TRUE;
 	}
       }
     }
     return FALSE;
   case RX_NSET:
-    if (!Sg_CharSetContains(inst->arg.set, c)) return TRUE;
+    if (!Sg_CharSetContains(SG_CHAR_SET(inst->arg.set), c)) return TRUE;
     return FALSE;
   case RX_CHAR:
     if (inst->arg.c == c) {
@@ -3085,7 +3087,7 @@ SgObject Sg_RegexGroup(SgMatcher *m, int group)
   /* should matched string be literal? */
   retrive_group(m, group);
   if (!m->submatch[group]) return SG_FALSE;
-  s = Sg_MakeString(m->submatch[group], SG_HEAP_STRING);
+  s = SG_STRING(Sg_MakeString(m->submatch[group], SG_HEAP_STRING));
   return s;
 }
 
@@ -3134,7 +3136,7 @@ static void append_replacement(SgMatcher *m, SgPort *p, SgString *replacement)
 	  cursor++;
 	}
       }
-      v = Sg_RegexGroup(m, refNum);
+      v = SG_STRING(Sg_RegexGroup(m, refNum));
       if (!SG_FALSEP(v)) {
 	Sg_PutsUnsafe(p, v);
       }
@@ -3162,13 +3164,13 @@ SgString* Sg_RegexReplaceAll(SgMatcher *m, SgString *replacement)
   result = Sg_RegexFind(m, -1);
   if (result) {
     /* hopefully this is enough, well it'll expand anyway */
-    SgPort *p = Sg_MakeStringOutputPort(SG_STRING_SIZE(m->text) * 1.5);
+    SgPort *p = SG_PORT(Sg_MakeStringOutputPort(SG_STRING_SIZE(m->text) * 2));
     do {
       append_replacement(m, p, replacement);
       result = Sg_RegexFind(m, -1);
     } while (result);
     append_tail(m, p);
-    return Sg_GetStringFromStringPort(p);
+    return SG_STRING(Sg_GetStringFromStringPort(p));
   }
   /* no replacement, we just return text */
   return m->text;
@@ -3180,10 +3182,10 @@ SgString* Sg_RegexReplaceFirst(SgMatcher *m, SgString *replacement)
   reset_matcher(m);
   result = Sg_RegexFind(m, -1);
   if (result) {
-    SgPort *p = Sg_MakeStringOutputPort(SG_STRING_SIZE(m->text) * 1.5);
+    SgPort *p = SG_PORT(Sg_MakeStringOutputPort(SG_STRING_SIZE(m->text) * 2));
     append_replacement(m, p, replacement);
     append_tail(m, p);
-    return Sg_GetStringFromStringPort(p);
+    return SG_STRING(Sg_GetStringFromStringPort(p));
   }
   /* we don't copy. */
   return m->text;
@@ -3192,7 +3194,7 @@ SgString* Sg_RegexReplaceFirst(SgMatcher *m, SgString *replacement)
 /* returns (compile-regex "str" flag) */
 static SgObject read_regex_string(SgPort *port)
 {
-  SgPort *buf = Sg_MakeStringOutputPort(-1);
+  SgPort *buf = SG_PORT(Sg_MakeStringOutputPort(-1));
   while(1) {
     SgChar c = Sg_GetcUnsafe(port);
     if (c == EOF) {
@@ -3261,7 +3263,9 @@ static void add_reader_macro(SgLibrary *lib)
 			       SG_LIBRARY_READTABLE(lib));
 }
 
+SG_CDECL_BEGIN
 extern void Sg__Init_sagittarius_regex2_impl();
+SG_CDECL_END
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__regex2()
 {
@@ -3269,7 +3273,7 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__regex2()
   SG_INIT_EXTENSION(sagittarius__regex2);
   Sg__Init_sagittarius_regex2_impl();
 
-  lib = Sg_FindLibrary(SG_INTERN("(sagittarius regex2 impl)"), FALSE);
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius regex2 impl)"), FALSE));
   add_reader_macro(lib);
 #define insert_binding(name, value)			\
   Sg_MakeBinding(lib, SG_INTERN(#name), SG_MAKE_INT(value), TRUE);

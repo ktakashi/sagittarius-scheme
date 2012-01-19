@@ -7,6 +7,10 @@
 	      find-procedure)
       (import :none)
 
+  (decl-code
+   (.define "LIBSAGITTARIUS_BODY")
+   (.include <sagittarius.h>))
+
   (define-cgen-stmt assertion-violation
     ((_ who msg)
      (dispatch

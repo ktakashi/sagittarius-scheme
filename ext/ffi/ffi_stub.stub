@@ -67,18 +67,21 @@
     (import :null)
 
   (decl-code
-   (.include "ffi.h")
-   (.include <string.h>))
+   (.define "LIBSAGITTARIUS_EXT_BODY")
+   (.include <sagittarius.h>
+	     "ffi.h"
+	     <string.h>))
 
   (define-c-proc open-shared-library (file::String) ::Object
     (result (Sg_MakePointer (Sg_OpenSharedObject file))))
 
   (define-c-proc lookup-shared-library (handle::Pointer symbol::String) ::Object
-    (result (Sg_MakePointer (Sg_LookupSharedObject (-> handle pointer)
+    (result (Sg_MakePointer (Sg_LookupSharedObject (cast void* 
+							 (-> handle pointer))
 						   (Sg_Utf32sToUtf8s symbol)))))
 
   (define-c-proc close-shared-library (handle::Pointer) ::void
-    (Sg_CloseSharedObject (-> handle pointer)))
+    (Sg_CloseSharedObject (cast void* (-> handle pointer))))
 
   (define-c-proc create-function-info (handle::Pointer rettype::fixnum sigs::String sret sparam)
     ::Object

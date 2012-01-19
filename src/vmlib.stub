@@ -64,7 +64,9 @@
 	    )
     (import :none)
   (decl-code
-   (.include <sagittarius/instruction.h>))
+   (.define "LIBSAGITTARIUS_BODY")
+   (.include <sagittarius.h>
+	     <sagittarius/instruction.h>))
 
   (define-cgen-stmt assertion-violation
     ((_ who msg)

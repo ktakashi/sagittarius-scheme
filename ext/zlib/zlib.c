@@ -29,7 +29,8 @@
  *
  *  $Id: $
  */
-#define LIBSAGITTARIUS_BODY
+#include <sagittarius.h>
+#define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
 #include "zlib.h"
 
@@ -160,7 +161,9 @@ SgObject Sg_ZlibVersion()
   return z_version;
 }
 
-extern void Sg__Init_sagittarius_zlib();
+SG_CDECL_BEGIN
+void Sg__Init_sagittarius_zlib();
+SG_CDECL_END
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__zlib()
 {
@@ -168,9 +171,10 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__zlib()
   SG_INIT_EXTENSION(sagittarius__zlib);
 
   Sg__Init_sagittarius_zlib();
-  lib = Sg_FindLibrary(SG_INTERN("(sagittarius zlib)"), FALSE);
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_SYMBOL(SG_INTERN("(sagittarius zlib)")),
+				  FALSE));
 #define insert_binding(v)				\
-  Sg_MakeBinding(lib, SG_INTERN(#v), SG_MAKE_INT(v), TRUE)
+  Sg_MakeBinding(lib, SG_SYMBOL(SG_INTERN(#v)), SG_MAKE_INT(v), TRUE)
 
 insert_binding(Z_NO_FLUSH     );
 insert_binding(Z_PARTIAL_FLUSH);

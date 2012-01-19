@@ -29,7 +29,8 @@
  *
  *  $Id: $
  */
-#define LIBSAGITTARIUS_BODY
+#include <sagittarius.h>
+#define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
 #include "odbc.h"
 
@@ -89,7 +90,7 @@ static SgOdbcCtx* make_odbc_ctx(SQLSMALLINT type, SgOdbcCtx *parent)
 {
   SQLRETURN ret;
   SgOdbcCtx *ctx = SG_NEW(SgOdbcCtx);
-  SQLHANDLE *hparent = NULL;
+  SQLHANDLE hparent = NULL;
   SG_SET_CLASS(ctx, SG_CLASS_ODBC_CTX);
   ctx->type = type;
   ctx->holder = NULL;
@@ -118,7 +119,7 @@ SgObject Sg_Connect(SgObject env, SgString *server, SgString *user, SgString *au
   const char *sv, *u, *a;
   SQLRETURN ret;
   ASSERT(SG_ODBC_ENV_P(env));
-  conn = make_odbc_ctx(SQL_HANDLE_DBC, env);
+  conn = make_odbc_ctx(SQL_HANDLE_DBC, SG_ODBC_CTX(env));
   sv   = Sg_Utf32sToUtf8s(server);
   u    = Sg_Utf32sToUtf8s(user);
   a    = Sg_Utf32sToUtf8s(auth);
@@ -169,7 +170,7 @@ SgObject Sg_Statement(SgObject hdbc)
   /* create empty statement */
   SgObject stmt;
   ASSERT(SG_ODBC_DBC_P(hdbc));
-  stmt = make_odbc_ctx(SQL_HANDLE_STMT, hdbc);
+  stmt = make_odbc_ctx(SQL_HANDLE_STMT, SG_ODBC_CTX(hdbc));
   return stmt;
 }
 
@@ -179,7 +180,7 @@ SgObject Sg_Prepare(SgObject hdbc, SgString *text)
   SgObject stmt;
   char *s = Sg_Utf32sToUtf8s(text);
   ASSERT(SG_ODBC_DBC_P(hdbc));
-  stmt = make_odbc_ctx(SQL_HANDLE_STMT, hdbc);
+  stmt = make_odbc_ctx(SQL_HANDLE_STMT, SG_ODBC_CTX(hdbc));
   ret = SQLPrepare(SG_ODBC_CTX(stmt)->handle, (SQLCHAR *)s, SQL_NTS);
   CHECK_ERROR(prepare, stmt, ret);
   return stmt;
@@ -274,16 +275,17 @@ static SgObject read_var_data_impl(SQLHSTMT stmt, int index, int len, int string
   while (SQLGetData(stmt, index, (stringP) ? SQL_C_CHAR: SQL_C_BINARY,
 		    buf, sizeof(buf), &ind) != SQL_NO_DATA) {
     if (SQL_NULL_DATA == ind) return SG_NIL;
-    Sg_WritebUnsafe(port, buf, 0, (ind>sizeof(buf) || ind==SQL_NO_TOTAL) ? sizeof(buf) : ind);
+    Sg_WritebUnsafe(SG_PORT(port), buf, 0,
+		    (ind>sizeof(buf) || ind==SQL_NO_TOTAL) ? sizeof(buf) : ind);
   }
-  bv = Sg_GetByteVectorFromBinaryPort(port);
+  bv = Sg_GetByteVectorFromBinaryPort(SG_PORT(port));
   if (asPortP) {
-    return Sg_MakeByteVectorInputPort(bv, 0);	/* for now */
+    return Sg_MakeByteVectorInputPort(SG_BVECTOR(bv), 0);	/* for now */
   }
   if (stringP) {    
     /* for now. */
     SgObject tran = Sg_MakeNativeTranscoder();
-    return Sg_ByteVectorToString(bv, tran, 0, -1);
+    return Sg_ByteVectorToString(SG_BVECTOR(bv), SG_TRANSCODER(tran), 0, -1);
   } else {
     return bv;
   }
@@ -523,7 +525,9 @@ int Sg_Rollback(SgObject ctx)
   return TRUE;
 }
 
+SG_CDECL_BEGIN
 extern void Sg__Init_odbc_impl();
+SG_CDECL_END
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__odbc()
 {

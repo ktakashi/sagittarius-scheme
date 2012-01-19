@@ -29,6 +29,7 @@
  *
  *  $Id: $
  */
+#include <sagittarius.h>
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/extend.h>
 #include "process.h"
@@ -59,8 +60,9 @@ static SgProcess* make_process(SgString *name, SgString *args)
 # include "posix.c"
 #endif
 
-
+SG_CDECL_BEGIN
 extern void Sg__Init_sagittarius_process_impl();
+SG_CDECL_END
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__process()
 {

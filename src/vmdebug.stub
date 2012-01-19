@@ -6,6 +6,11 @@
 	    source-info-set!
 	    )
     (import :none)
+
+  (decl-code
+   (.define "LIBSAGITTARIUS_BODY")
+   (.include <sagittarius.h>))
+
   (define-c-proc vm-dump-code (cb::CodeBuilder) ::Object
     (Sg_VMDumpCode cb)
     (result SG_UNDEF))

@@ -4,7 +4,10 @@
     (import :null)
 
   (decl-code
-   (.include "crypto.h"))
+   (.include <sagittarius.h>)
+   (.define "LIBSAGITTARIUS_EXT_BODY")
+   (.include <sagittarius/extend.h>
+	     "crypto.h"))
 
   (define-c-proc crypto-object? (o) ::boolean
     (result (SG_CRYPTO_P o)))
@@ -41,7 +44,8 @@
       (Sg_WrongTypeOfArgumentViolation procedureName
 				       (Sg_MakeString "procedure or #f" SG_LITERAL_STRING)
 				       padder '()))
-    (result (Sg_MakeSymmetricCipher name mode key iv rounds padder ctr_mode)))
+    (result (Sg_MakeSymmetricCipher name (cast SgCryptoMode mode)
+				    key iv rounds padder ctr_mode)))
 
   (define-c-proc make-public-key-cipher (name key enc::Procedure
 					 dec::Procedure padder

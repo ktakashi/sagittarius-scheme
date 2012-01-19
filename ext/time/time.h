@@ -73,6 +73,11 @@ SG_CLASS_DECL(Sg_DateClass);
 #define TM_SIDH  43200
 #define TM_TAI_EPOCH_IN_JD (double)(4881175/2)
 
+#define argumentAsTime(index, tmp_, var_)				\
+  castArgumentType(index, tmp_, var_, time, SG_TIME_P, SG_TIME)
+#define argumentAsDate(index, tmp_, var_)				\
+  castArgumentType(index, tmp_, var_, time, SG_DATE_P, SG_DATE)
+
 SG_CDECL_BEGIN
 
 SgObject Sg_MakeTime(SgObject type, int64_t sec, unsigned long nsec);

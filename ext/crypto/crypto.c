@@ -29,7 +29,8 @@
  *
  *  $Id: $
  */
-#define LIBSAGITTARIUS_BODY
+#include <sagittarius.h>
+#define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
 #include "crypto.h"
 
@@ -197,10 +198,11 @@ int Sg_SuggestKeysize(SgString *name, int keysize)
   return keysize;
 }
 
-static SgObject symmetric_encrypt(SgCrypto *crypto, SgByteVector *data)
+static SgObject symmetric_encrypt(SgCrypto *crypto, SgByteVector *d)
 {
   int len, err;
-  SgByteVector *ct;
+  SgObject ct,			/* cipher text */
+    data = d;
   ASSERT(SG_CRYPTO(crypto)->type == CRYPTO_SYM_CIPHER);
 
   if (!SG_FALSEP(SG_SCIPHER(crypto)->padder)) {
@@ -223,8 +225,9 @@ static SgObject symmetric_encrypt(SgCrypto *crypto, SgByteVector *data)
   return SG_OBJ(ct);
 }
 
-static SgObject public_key_encrypt(SgCrypto *crypto, SgByteVector *data)
+static SgObject public_key_encrypt(SgCrypto *crypto, SgByteVector *d)
 {
+  SgObject data = d;
   if (!SG_FALSEP(SG_PCIPHER(crypto)->padder)) {
     data = Sg_Apply2(SG_PCIPHER(crypto)->padder, data, SG_TRUE);
   }
@@ -250,7 +253,7 @@ static SgObject symmetric_decrypt(SgCrypto *crypto, SgByteVector *data)
   uint8_t *key = SG_BVECTOR_ELEMENTS(SG_SECRET_KEY(SG_SCIPHER(crypto)->key));
   int keylen = SG_BVECTOR_SIZE(SG_SECRET_KEY(SG_SCIPHER(crypto)->key));
   int rounds = SG_SCIPHER(crypto)->rounds;
-  SgByteVector *pt;
+  SgObject pt;			/* plain text */
   int len = SG_BVECTOR_SIZE(data), err, block_size = -1;
   ASSERT(SG_CRYPTO(crypto)->type == CRYPTO_SYM_CIPHER);
   switch (SG_SCIPHER(crypto)->mode) {
@@ -285,17 +288,18 @@ static SgObject symmetric_decrypt(SgCrypto *crypto, SgByteVector *data)
     Sg_Error(UC("%A"), error_to_string(err));
     return SG_UNDEF;
   }
-  return SG_OBJ(pt);
+  return pt;
 }
 
 static SgObject public_key_decrypt(SgCrypto *crypto, SgByteVector *data)
 {
-  data = Sg_Apply2(SG_PCIPHER(crypto)->decrypter, data,
+  SgObject d = SG_OBJ(data);
+  d = Sg_Apply2(SG_PCIPHER(crypto)->decrypter, d,
 		   SG_PCIPHER(crypto)->key);
   if (!SG_FALSEP(SG_PCIPHER(crypto)->padder)) {
-    data = Sg_Apply2(SG_PCIPHER(crypto)->padder, data, SG_FALSE);
+    d = Sg_Apply2(SG_PCIPHER(crypto)->padder, d, SG_FALSE);
   }
-  return SG_OBJ(data);
+  return d;
 }
 
 
@@ -352,8 +356,10 @@ SgObject Sg_Verify(SgCrypto *crypto, SgByteVector *M, SgByteVector *S,
   return SG_UNDEF;		/* dummy */
 }
 
+SG_CDECL_BEGIN
 extern void Sg__Init_sagittarius_crypto_impl();
 extern void Sg__InitKey(SgObject lib);
+SG_CDECL_END
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__crypto()
 {
@@ -361,7 +367,8 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__crypto()
   SG_INIT_EXTENSION(sagittarius__crypto);
 
   Sg__Init_sagittarius_crypto_impl();
-  lib = Sg_FindLibrary(SG_INTERN("(sagittarius crypto impl)"), FALSE);
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius crypto impl)"),
+				  FALSE));
   Sg__InitKey(lib);
   /* initialize libtomcrypt */
 #define REGISTER_CIPHER(cipher)						\

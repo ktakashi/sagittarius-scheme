@@ -46,11 +46,7 @@
 #  define SG_EXTERN extern SG_EXPORT
 # else
 #  define SG_EXPORT  __declspec(dllimport)
-#  if defined(__CYGWIN__)
-#    define SG_EXTERN extern SG_EXPORT
-#  else
-#    define SG_EXTERN extern
-#  endif
+#  define SG_EXTERN extern SG_EXPORT
 # endif
 #else
 # define SG_EXPORT 

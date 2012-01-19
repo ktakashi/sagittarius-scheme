@@ -31,9 +31,13 @@
  */
 #include <string.h>
 #include <errno.h>
+#include <sagittarius.h>
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/extend.h>
 #include "ffi.h"
+
+/* fuck C++!!!! */
+#define typename typname
 
 static void pointer_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
@@ -104,7 +108,7 @@ static int set_ffi_parameter_types(SgObject signatures, ffi_type **types)
       types[i] = &ffi_type_pointer; break;
     default:
       Sg_Error(UC("invalid signature %c"), sigs[i]);
-      return SG_UNDEF;
+      return -1;		/* dummy */
     }
   }
   return callback;
@@ -118,7 +122,7 @@ static SgFuncInfo* make_funcinfo(uintptr_t proc, int retType, SgObject signature
   /* signatures must be created in Scheme file */
   ASSERT(SG_STRINGP(signatures));
   fn->argc = SG_STRING_SIZE(signatures);
-  fn->parameterTypes = SG_NEW_ARRAY(ffi_type, fn->argc);
+  fn->parameterTypes = SG_NEW_ARRAY(ffi_type*, fn->argc);
   fn->signatures = signatures;
   fn->code = proc;
 
@@ -127,7 +131,7 @@ static SgFuncInfo* make_funcinfo(uintptr_t proc, int retType, SgObject signature
   if (!(ffi_prep_cif(&fn->cif, FFI_DEFAULT_ABI, fn->argc,
 		     lookup_ffi_return_type(retType), fn->parameterTypes) == FFI_OK)) {
     Sg_Error(UC("FFI initialization failed."));
-    return SG_UNDEF;
+    return SG_FUNC_INFO(SG_UNDEF);
   }
 
   fn->closureCount = callback;
@@ -178,7 +182,7 @@ SgObject Sg_CreateCallback(int rettype, SgString *signatures, SgObject proc)
   c->signatures = signatures;
   c->proc = proc;
   c->uid = uid;
-  c->closure = ffi_closure_alloc(sizeof(ffi_closure), &c->code);
+  c->closure = (ffi_closure*)ffi_closure_alloc(sizeof(ffi_closure), &c->code);
   /* store callback to static area to avoid GC. */
   Sg_HashTableSet(ctable, SG_MAKE_INT(uid), SG_OBJ(c), 0);
   return SG_OBJ(c);
@@ -313,7 +317,8 @@ static SgObject parse_member_name_rec(SgString *v, SgObject ret)
     return Sg_Cons(Sg_Intern(v), ret);
   } else {
     return Sg_Cons(Sg_Intern(SG_VALUES_ELEMENT(values, 0)),
-		   parse_member_name_rec(SG_VALUES_ELEMENT(values, 1), ret));
+		   parse_member_name_rec(SG_STRING(SG_VALUES_ELEMENT(values, 1)),
+					 ret));
   }
 }
 
@@ -518,7 +523,7 @@ static int push_ffi_type_value(SgFuncInfo *info,
       *lastError = Sg_Sprintf(UC("'int' required but got %A"), obj);
       return FALSE;
     case FFI_SIGNATURE_FLOAT:
-      storage->f32 = SG_FLONUM(obj)->value;
+      storage->f32 = (float)SG_FLONUM(obj)->value;
       return TRUE;
     case FFI_SIGNATURE_DOUBLE:
       storage->f64 = SG_FLONUM(obj)->value;
@@ -594,7 +599,7 @@ static int push_ffi_type_value(SgFuncInfo *info,
       *lastError = Sg_Sprintf(UC("'callback' required but got %A"), obj);
       return FALSE;
     case FFI_SIGNATURE_POINTER:
-      storage->ptr = (void*)(Sg_Utf32sToUtf8s(obj));
+      storage->ptr = (void*)(Sg_Utf32sToUtf8s(SG_STRING(obj)));
       return TRUE;
     default:
       ASSERT(FALSE);
@@ -850,11 +855,11 @@ static int convert_scheme_to_c_value(SgObject v, int type, void **result)
   case FFI_RETURN_TYPE_STRING  :
   case FFI_RETURN_TYPE_POINTER :
     if (SG_STRINGP(v)) {
-      *((intptr_t *)result) = Sg_Utf32sToUtf8s(v);
+      *((intptr_t *)result) = (intptr_t)Sg_Utf32sToUtf8s(SG_STRING(v));
     } else if (SG_BVECTORP(v)) {
-      *((intptr_t *)result) = SG_BVECTOR_ELEMENTS(v);
+      *((intptr_t *)result) = (intptr_t)SG_BVECTOR_ELEMENTS(v);
     } else if (SG_POINTER_P(v)) {
-      *((intptr_t *)result) = SG_POINTER(v)->pointer;
+      *((intptr_t *)result) = (intptr_t)SG_POINTER(v)->pointer;
     } else goto ret0;
     break;
   ret0:
@@ -1029,7 +1034,7 @@ static void set_callback_result(SgCallback *callback, SgObject ret, ffi_cif *cif
     cif->flags = FFI_TYPE_POINTER;
     if (SG_EXACT_INTP(ret)) {
       if (SG_BIGNUMP(ret)) {
-	*((ffi_arg *) result) = Sg_GetIntegerS64Clamp(ret, SG_CLAMP_NONE, NULL);
+	*((ffi_arg *) result) = (ffi_arg)Sg_GetIntegerS64Clamp(ret, SG_CLAMP_NONE, NULL);
       } else {
 	*((ffi_arg *) result) = SG_INT_VALUE(ret);
       }
@@ -1268,7 +1273,7 @@ static int prep_method_handler(SgCallback *callback)
 void Sg_PointerSet(SgPointer *p, int offset, int type, SgObject v)
 {
   char result[256];		/* enough? */
-  convert_scheme_to_c_value(v, type, result);
+  convert_scheme_to_c_value(v, type, (void**)result);
 
 #define case_type(ft, t) case ft: POINTER_SET(t, p, offset, *(t *)result); break
   switch (type) {
@@ -1318,13 +1323,14 @@ void Sg_CFree(SgPointer *p)
   p->pointer = NULL;
 }
 
-
+SG_CDECL_BEGIN
 extern void Sg__Init_sagittarius_ffi_impl();
+SG_CDECL_END
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__ffi()
 {
   SgLibrary *lib;
-  SgObject name = SG_INTERN("%ffi-call");
+  SgSymbol *name = SG_INTERN("%ffi-call");
 
   SG_PROCEDURE_NAME(&internal_ffi_call_stub) = name;
 
@@ -1333,12 +1339,12 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__ffi()
   SG_INIT_EXTENSION(sagittarius__ffi);
   /* init impl library first */
   Sg__Init_sagittarius_ffi_impl();
-  lib = Sg_FindLibrary(SG_INTERN("(sagittarius ffi impl)"), FALSE);
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius ffi impl)"), FALSE));
   Sg_InsertBinding(lib, name, &internal_ffi_call_stub);
   impl_lib = lib;
   /* callback storage */
-  ctable = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
-  ref_table = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
+  ctable = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_EQ, 0));
+  ref_table = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_EQ, 0));
 
 #define CONST_VALUE(name, v) Sg_InsertBinding(lib, SG_INTERN(#name), SG_MAKE_INT(v))
 #define SIZE_VALUE(name) CONST_VALUE(size-of-name, sizeof(name))

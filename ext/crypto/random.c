@@ -29,7 +29,9 @@
  *
  *  $Id: $
  */
+#include <sagittarius.h>
 #define LIBSAGITTARIUS_BODY
+#include <sagittarius/extend.h>
 #include "math.h"
 
 static void prng_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
@@ -132,7 +134,7 @@ SgObject Sg_MakeSecureRandom(SgString *name, int bits)
 
 SgObject Sg_ReadRandomBytes(SgPrng *prng, int size)
 {
-  SgByteVector *buf = Sg_MakeByteVector(size, 0);
+  SgByteVector *buf = SG_BVECTOR(Sg_MakeByteVector(size, 0));
   switch (prng->type) {
   case SG_BUILTIN_PRNG:
   case SG_SECURE_PRNG:

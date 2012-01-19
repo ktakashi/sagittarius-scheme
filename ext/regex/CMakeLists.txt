@@ -17,6 +17,14 @@ INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 # we keep the name of implementation
 ADD_LIBRARY(sagittarius--regex2 MODULE
   regex2.c regex2_stub.c)
+
+IF (MSVC)
+  # ugly solution
+  SET_SOURCE_FILES_PROPERTIES(regex2.c regex2_stub.c
+    PROPERTIES LANGUAGE CXX)
+ENDIF()
+
+
 ADD_STUBS(sagittarius--regex2
   COMMAND ${GENSTUB}
   FILES ${CMAKE_CURRENT_SOURCE_DIR}/regex2_stub.stub)

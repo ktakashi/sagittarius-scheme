@@ -73,7 +73,7 @@ SG_CDECL_BEGIN
 SG_EXTERN SgObject Sg_MakeSymbol(SgString *name, int interned);
 SG_EXTERN SgObject Sg_Gensym(SgString *prefix);
 
-#define Sg_Intern(name) Sg_MakeSymbol(name, TRUE)
+#define Sg_Intern(name) SG_SYMBOL(Sg_MakeSymbol(SG_STRING(name), TRUE))
 #define SG_INTERN(cstr) Sg_Intern(SG_STRING(Sg_MakeString(UC(cstr), SG_LITERAL_STRING)))
 
 SG_CDECL_END

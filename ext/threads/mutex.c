@@ -29,7 +29,9 @@
  *
  *  $Id: $
  */
-#define LIBSAGITTARIUS_BODY
+#include <sagittarius.h>
+#define LIBSAGITTARIUS_EXT_BODY
+#include <sagittarius/extend.h>
 #include "threads.h"
 
 static void mutex_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
@@ -267,6 +269,7 @@ static SgRecordType abandoned_mutex_exception;
 static SgRecordType terminated_thread_exception;
 static SgRecordType uncaught_exception;
 
+SG_CDECL_BEGIN
 void Sg__InitMutex()
 {
   SG_DECLARE_EXCEPTIONS("(sagittarius threads impl)", TRUE);
@@ -340,6 +343,7 @@ void Sg__InitMutex()
   sym_abandoned      = SG_INTERN("abandoned");
   sym_not_abandoned  = SG_INTERN("not-abandoned");
 }
+SG_CDECL_END
 /*
   end of file
   Local Variables:

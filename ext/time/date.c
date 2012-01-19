@@ -29,7 +29,8 @@
  *
  *  $Id: $
  */
-#define LIBSAGITTARIUS_BODY
+#include <sagittarius.h>
+#define LIBSAGITTARIUS_EXT_BODY
 #include "time.h"
 
 static void date_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
