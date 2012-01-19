@@ -117,6 +117,7 @@ typedef struct SgReadContextRec
   int          firstLine;
   int          parsingLineFrom;
   int          parsingLineTo;
+  int          escapedp;	/* for |.|, ugly */
 } SgReadContext;
 
 /* ctx utility */
@@ -199,6 +200,8 @@ static int delimited(SgChar c)
 static SgObject read_expr4(SgPort *port, int flags, SgChar delim, 
 			   SgReadContext *ctx);
 #define ACCEPT_EOF 1
+#define ACCEPT_DOT 2
+
 #define read_expr(p, c) read_expr4((p), 0, EOF, (c))
 /* one char reader */
 static SgObject read_open_paren(SgPort *port, SgChar c, SgReadContext *ctx);
@@ -546,13 +549,20 @@ SgObject macro_reader(SgPort *port, SgChar c, readtab_t *tab,
 static SgObject read_list_int(SgPort *port, SgChar closer, SgReadContext *ctx,
 			      int start_line)
 {
-  SgObject start = SG_NIL, last = SG_NIL;
+  SgObject start = SG_NIL, last = SG_NIL, item;
+  item = read_expr4(port, ACCEPT_EOF, closer, ctx);
+  if (SG_EQ(item, SG_EOF)) goto eoferr;
+  /* return '() */
+  if (SG_EQ(item, SG_SYMBOL_RPAREN)) return start;
+
+  SG_APPEND1(start, last, item);
+
   for (;;) {
-    SgObject item;
-    item = read_expr4(port, ACCEPT_EOF, closer, ctx);
+    ctx->escapedp = FALSE;
+    item = read_expr4(port, ACCEPT_EOF | ACCEPT_DOT, closer, ctx);
     if (SG_EQ(item, SG_EOF)) goto eoferr;
     if (SG_EQ(item, SG_SYMBOL_RPAREN)) return start;
-    if (SG_EQ(item, SG_SYMBOL_DOT)) {
+    if (!ctx->escapedp && SG_EQ(item, SG_SYMBOL_DOT)) {
       SG_SET_CDR(last, read_expr(port, ctx));
       item = read_expr4(port, ACCEPT_EOF, closer, ctx);
       if (!SG_EQ(item, SG_SYMBOL_RPAREN)) {
@@ -701,7 +711,7 @@ static SgObject read_quoted_symbol(SgPort *port, SgReadContext *ctx,
   SgChar buf[SYMBOL_MAX_SIZE];
   int i = 0;
   /* TODO flag check */
-
+  ctx->escapedp = TRUE;
   while (i < array_sizeof(buf)) {
     SgChar c = Sg_GetcUnsafe(port);
     if (c == EOF) {
@@ -1273,6 +1283,7 @@ SgObject read_expr4(SgPort *port, int flags, SgChar delim, SgReadContext *ctx)
 {
   SgChar c;
   readtable_t *table = Sg_CurrentReadTable();
+  SgObject item;
   while (1) {
   top:
     c = Sg_GetcUnsafe(port);
@@ -1308,12 +1319,19 @@ SgObject read_expr4(SgPort *port, int flags, SgChar delim, SgReadContext *ctx)
 	break;
       }
       default:
-	return read_symbol_or_number(port, c, table, ctx);
+	goto read_sym_or_num;
       }
     } else {
-      return read_symbol_or_number(port, c, table, ctx);
+      goto read_sym_or_num;
     }
   }
+ read_sym_or_num:
+  item = read_symbol_or_number(port, c, table, ctx);
+  if (!ctx->escapedp && SG_EQ(item, SG_SYMBOL_DOT)) {
+    if (flags & ACCEPT_DOT) return item;
+    lexical_error(port, ctx, UC("misplaced dot('.')"));    
+  }
+  return item;
 }
 static SgObject lookup_graph(SgPort *port, SgReadContext *ctx,
 			     SgSharedRef *ref)
@@ -1360,7 +1378,7 @@ static SgObject read_with_context(SgPort *port, SgReadContext *ctx)
   SgObject obj;
   ctx->firstLine = Sg_LineNo(port);
   obj = read_expr4(port, ACCEPT_EOF, EOF, ctx);
-  if (SG_EQ(obj, SG_SYMBOL_DOT)) {
+  if (!ctx->escapedp && SG_EQ(obj, SG_SYMBOL_DOT)) {
     lexical_error(port, ctx, UC("misplaced dot('.')"));
   }
   if (ctx->graph && ctx->graphRef) link_graph(port, ctx, obj);
