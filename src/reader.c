@@ -553,7 +553,7 @@ static SgObject read_list_int(SgPort *port, SgChar closer, SgReadContext *ctx,
   item = read_expr4(port, ACCEPT_EOF, closer, ctx);
   if (SG_EQ(item, SG_EOF)) goto eoferr;
   /* return '() */
-  if (SG_EQ(item, SG_SYMBOL_RPAREN)) return start;
+  if (!ctx->escapedp && SG_EQ(item, SG_SYMBOL_RPAREN)) return start;
 
   SG_APPEND1(start, last, item);
 
@@ -561,7 +561,7 @@ static SgObject read_list_int(SgPort *port, SgChar closer, SgReadContext *ctx,
     ctx->escapedp = FALSE;
     item = read_expr4(port, ACCEPT_EOF | ACCEPT_DOT, closer, ctx);
     if (SG_EQ(item, SG_EOF)) goto eoferr;
-    if (SG_EQ(item, SG_SYMBOL_RPAREN)) return start;
+    if (!ctx->escapedp && SG_EQ(item, SG_SYMBOL_RPAREN)) return start;
     if (!ctx->escapedp && SG_EQ(item, SG_SYMBOL_DOT)) {
       SG_SET_CDR(last, read_expr(port, ctx));
       item = read_expr4(port, ACCEPT_EOF, closer, ctx);
