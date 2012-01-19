@@ -5,7 +5,7 @@
 ADD_LIBRARY(sagittarius--crypto MODULE
   crypto.c key.c crypto_stub.c)
 
-IF (MSVC)
+IF (MSVC OR CYGWIN)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(crypto.c crypto_stub.c key.c
     PROPERTIES LANGUAGE CXX)
@@ -35,7 +35,7 @@ INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/crypto
 ADD_LIBRARY(sagittarius--math MODULE
   hash.c random.c math_stub.c math.c)
 
-IF (MSVC)
+IF (MSVC OR CYGWIN)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(math.c math_stub.c hash.c random.c
     PROPERTIES LANGUAGE CXX)

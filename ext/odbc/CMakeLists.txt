@@ -27,7 +27,7 @@ IF (HAVE_SQL_H)
   ADD_LIBRARY(sagittarius--odbc MODULE
     odbc.c odbc_stub.c)
 
-  IF (MSVC)
+  IF (MSVC OR CYGWIN)
     # ugly solution
     SET_SOURCE_FILES_PROPERTIES(odbc.c odbc_stub.c
       PROPERTIES LANGUAGE CXX)

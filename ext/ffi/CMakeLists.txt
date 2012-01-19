@@ -18,7 +18,7 @@ ADD_DEFINITIONS(-DHAVE_FFI_H)
 ADD_LIBRARY(sagittarius--ffi MODULE
   ffi.c ffi_stub.c)
 
-IF (MSVC)
+IF (MSVC OR CYGWIN)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(ffi.c ffi_stub.c
     PROPERTIES LANGUAGE CXX)

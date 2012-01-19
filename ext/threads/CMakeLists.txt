@@ -5,7 +5,7 @@
 ADD_LIBRARY(sagittarius--threads MODULE
   threads.c threads_stub.c mutex.c)
 
-IF (MSVC)
+IF (MSVC OR CYGWIN)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(threads.c threads_stub.c mutex.c 
     PROPERTIES LANGUAGE CXX)

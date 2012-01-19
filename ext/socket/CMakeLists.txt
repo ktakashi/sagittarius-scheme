@@ -5,7 +5,7 @@
 ADD_LIBRARY(sagittarius--socket MODULE
   socket.c socket_stub.c)
 
-IF (MSVC)
+IF (MSVC OR CYGWIN)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(socket.c socket_stub.c
     PROPERTIES LANGUAGE CXX)

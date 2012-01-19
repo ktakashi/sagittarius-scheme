@@ -52,9 +52,9 @@ static int time_compare(SgObject x, SgObject y, int equalp)
     if (SG_EQ(tx->type, ty->type) &&
 	tx->sec == ty->sec &&
 	tx->nsec == ty->nsec) {
-      return TRUE;
+      return 0;
     } else {
-      return FALSE;
+      return -1;
     }
   } else {
     if (!SG_EQ(tx->type, ty->type)) {

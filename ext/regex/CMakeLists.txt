@@ -18,7 +18,7 @@ INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 ADD_LIBRARY(sagittarius--regex2 MODULE
   regex2.c regex2_stub.c)
 
-IF (MSVC)
+IF (MSVC OR CYGWIN)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(regex2.c regex2_stub.c
     PROPERTIES LANGUAGE CXX)

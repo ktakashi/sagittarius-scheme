@@ -5,7 +5,7 @@
 ADD_LIBRARY(sagittarius--zlib MODULE
   zlib.c zlib_stub.c)
 
-IF (MSVC)
+IF (MSVC OR CYGWIN)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(zlib.c zlib_stub.c PROPERTIES LANGUAGE CXX)
 ENDIF()

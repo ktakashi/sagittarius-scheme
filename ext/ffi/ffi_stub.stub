@@ -67,8 +67,9 @@
     (import :null)
 
   (decl-code
+   (.include <sagittarius.h>)
    (.define "LIBSAGITTARIUS_EXT_BODY")
-   (.include <sagittarius.h>
+   (.include <sagittarius/extend.h>
 	     "ffi.h"
 	     <string.h>))
 

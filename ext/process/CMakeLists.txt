@@ -5,7 +5,7 @@
 ADD_LIBRARY(sagittarius--process MODULE
   process.c process_stub.c)
 
-IF (MSVC)
+IF (MSVC OR CYGWIN)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(process.c process_stub.c
     PROPERTIES LANGUAGE CXX)
