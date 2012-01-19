@@ -29,19 +29,20 @@
  *
  *  $Id: $
  */
+#define LIBSAGITTARIUS_BODY
 #include "math.h"
 
-static void hash_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void hash_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   Sg_Printf(port, UC("#<%A>"), SG_HASH(self)->name);
 }
 
-SG_INIT_META_OBJ(Sg_HashAlgoMeta, &hash_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_HashAlgoClass, hash_printer);
 
 static SgHashAlgo* make_hash(int type, SgString *name)
 {
   SgHashAlgo *h = SG_NEW(SgHashAlgo);
-  SG_SET_META_OBJ(h, SG_META_HASH);
+  SG_SET_CLASS(h, SG_CLASS_HASH);
   h->type = type;
   h->name = name;
   return h;

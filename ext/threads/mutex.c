@@ -32,7 +32,7 @@
 #define LIBSAGITTARIUS_BODY
 #include "threads.h"
 
-static void mutex_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void mutex_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgMutex *mutex = SG_MUTEX(self);
   int locked;
@@ -59,8 +59,21 @@ static void mutex_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
     Sg_Printf(port, UC("unlocked/not-abandoned>"));
   }
 }
+static SgObject mutex_allocate(SgClass *klass, SgObject initargs);
 
-SG_INIT_META_OBJ(Sg_MutexMeta, &mutex_printer, NULL);
+static SgClass *default_cpl[] = {
+  SG_CLASS_TOP,
+  NULL
+};
+
+SG_DEFINE_BASE_CLASS(Sg_MutexClass, SgMutex,
+		     mutex_printer, NULL, NULL, mutex_allocate,
+		     default_cpl);
+
+static SgObject mutex_allocate(SgClass *klass, SgObject initargs)
+{
+  return NULL; 			/* dummy for now */
+}
 
 static void mutex_finalize(SgObject obj, void *data)
 {
@@ -72,7 +85,7 @@ static void mutex_finalize(SgObject obj, void *data)
 SgObject Sg_MakeMutex(SgObject name)
 {
   SgMutex *m = SG_NEW(SgMutex);
-  SG_SET_META_OBJ(m, SG_META_MUTEX);
+  SG_SET_CLASS(m, SG_CLASS_MUTEX);
   m->name = name;
   m->specific = SG_UNDEF;
   m->locked = FALSE;
@@ -176,13 +189,21 @@ SgObject Sg_MutexUnlock(SgMutex *mutex, SgConditionVariable *cv, SgObject timeou
 }
 
 /* condition variable */
-static void cv_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void cv_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgConditionVariable *cv = SG_CONDITION_VARIABLE(self);
   Sg_Printf(port, UC("#<condition variable %S>"), cv->name);
 }
+static SgObject cv_allocate(SgClass *klass, SgObject initargs);
 
-SG_INIT_META_OBJ(Sg_ConditionVariableMeta, &cv_printer, NULL);
+SG_DEFINE_BASE_CLASS(Sg_ConditionVariableClass, SgConditionVariable,
+		     cv_printer, NULL, NULL, cv_allocate,
+		     default_cpl);
+
+static SgObject cv_allocate(SgClass *klass, SgObject initargs)
+{
+  return NULL;			/* dummy for now */
+}
 
 static void cv_finalize(SgObject obj, void *data)
 {
@@ -194,7 +215,7 @@ static void cv_finalize(SgObject obj, void *data)
 SgObject Sg_MakeConditionVariable(SgObject name)
 {
   SgConditionVariable *c = SG_NEW(SgConditionVariable);
-  SG_SET_META_OBJ(c, SG_META_CONDITION_VARIABLE);
+  SG_SET_CLASS(c, SG_CLASS_CONDITION_VARIABLE);
   c->name = name;
   c->specific = SG_UNDEF;
   Sg_InitCond(&c->cv);

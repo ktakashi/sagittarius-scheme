@@ -29,6 +29,7 @@
  *
  *  $Id: $
  */
+#define LIBSAGITTARIUS_BODY
 #include <sagittarius/extend.h>
 #include "odbc.h"
 
@@ -63,7 +64,7 @@ static SgObject make_odbc_error()
     }									\
   } while (0)
 
-static void odbc_ctx_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void odbc_ctx_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgOdbcCtx *c = SG_ODBC_CTX(self);
   const SgChar *type;
@@ -77,7 +78,7 @@ static void odbc_ctx_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
   Sg_Printf(port, UC("#<odbc %s>"), type);
 }
 
-SG_INIT_META_OBJ(Sg_OdbcCtxMeta, &odbc_ctx_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_OdbcCtxClass, odbc_ctx_printer);
 
 static void odbc_finalize(SgObject obj, void *data)
 {
@@ -89,7 +90,7 @@ static SgOdbcCtx* make_odbc_ctx(SQLSMALLINT type, SgOdbcCtx *parent)
   SQLRETURN ret;
   SgOdbcCtx *ctx = SG_NEW(SgOdbcCtx);
   SQLHANDLE *hparent = NULL;
-  SG_SET_META_OBJ(ctx, SG_META_ODBC_CTX);
+  SG_SET_CLASS(ctx, SG_CLASS_ODBC_CTX);
   ctx->type = type;
   ctx->holder = NULL;
   if (parent) {
@@ -288,7 +289,7 @@ static SgObject read_var_data_impl(SQLHSTMT stmt, int index, int len, int string
   }
 }
 
-static void odbc_date_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void odbc_date_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgOdbcDate *d = SG_ODBC_DATE(self);
   switch (d->type) {
@@ -309,12 +310,12 @@ static void odbc_date_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
   }
 }
 
-SG_INIT_META_OBJ(Sg_OdbcDateMeta, &odbc_date_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_OdbcDateClass, odbc_date_printer);
 
 static SgOdbcDate* make_odbc_date(DateType type)
 {
   SgOdbcDate *d = SG_NEW(SgOdbcDate);
-  SG_SET_META_OBJ(d, SG_META_ODBC_DATE);
+  SG_SET_CLASS(d, SG_CLASS_ODBC_DATE);
   d->type = type;
   return d;
 }

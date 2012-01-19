@@ -29,22 +29,23 @@
  *
  *  $Id: $
  */
+#define LIBSAGITTARIUS_BODY
 #include <sagittarius/extend.h>
 #include "zlib.h"
 
-static void zstream_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void zstream_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgZStream *z = SG_ZSTREAM(self);
   Sg_Printf(port, UC("#<z-stream %p>"), z->strm);
 }
 
-SG_INIT_META_OBJ(Sg_ZStreamMeta, &zstream_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_ZStreamClass, zstream_printer);
 
 static SgZStream * make_zstream()
 {
   z_streamp strm = SG_NEW_ATOMIC2(z_streamp, sizeof(z_stream));
   SgZStream *z = SG_NEW(SgZStream);
-  SG_SET_META_OBJ(z, SG_META_ZSTREAM);
+  SG_SET_CLASS(z, SG_CLASS_ZSTREAM);
   z->strm = strm;
   return z;
 }

@@ -48,7 +48,7 @@ enum {
 /* pseudo random number generator */
 typedef struct SgPrngRec
 {
-  SG_META_HEADER;
+  SG_HEADER;
   SgString  *name;
   int        type;
   union {
@@ -61,10 +61,10 @@ typedef struct SgPrngRec
   } impl;
 } SgPrng;
 
-SG_DECLARE_META_OBJ(Sg_PrngMeta);
-#define SG_META_PRNG   (&Sg_PrngMeta)
+SG_CLASS_DECL(Sg_PrngClass);
+#define SG_CLASS_PRNG   (&Sg_PrngClass)
 #define SG_PRNG(obj)   ((SgPrng *)obj)
-#define SG_PRNG_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_PRNG)
+#define SG_PRNG_P(obj) SG_XTYPEP(obj, SG_CLASS_PRNG)
 
 /* hash algorithm */
 enum {
@@ -73,7 +73,7 @@ enum {
 };
 typedef struct SgHashAlgoRec
 {
-  SG_META_HEADER;
+  SG_HEADER;
   SgString *name;
   int       type;
   int       initialized;
@@ -98,10 +98,10 @@ typedef struct SgHashAlgoRec
   } impl;
 } SgHashAlgo;
 
-SG_DECLARE_META_OBJ(Sg_HashAlgoMeta);
-#define SG_META_HASH   (&Sg_HashAlgoMeta)
+SG_CLASS_DECL(Sg_HashAlgoClass);
+#define SG_CLASS_HASH   (&Sg_HashAlgoClass)
 #define SG_HASH(obj)   ((SgHashAlgo *)obj)
-#define SG_HASH_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_HASH)
+#define SG_HASH_P(obj) SG_XTYPEP(obj, SG_CLASS_HASH)
 
 #define argumentAsPrng(index, tmp_, var_)				\
   castArgumentType(index, tmp_, var_, prng, SG_PRNG_P, SG_PRNG)

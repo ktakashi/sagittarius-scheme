@@ -136,7 +136,7 @@ typedef struct public_key_cipher_ret_t
 
 typedef struct SgCryptoRec
 {
-  SG_META_HEADER;
+  SG_HEADER;
   SgCryptoType type;
   union {
     symmetric_cipher_t  scipher;
@@ -145,10 +145,10 @@ typedef struct SgCryptoRec
   } impl;
 } SgCrypto;
 
-SG_DECLARE_META_OBJ(Sg_CryptoMeta);
-#define SG_META_CRYPTO   (&Sg_CryptoMeta)
+SG_CLASS_DECL(Sg_CryptoClass);
+#define SG_CLASS_CRYPTO   (&Sg_CryptoClass)
 #define SG_CRYPTO(obj)   ((SgCrypto *)obj)
-#define SG_CRYPTO_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_CRYPTO)
+#define SG_CRYPTO_P(obj) SG_XTYPEP(obj, SG_CLASS_CRYPTO)
 /* accessor */
 #define SG_SCIPHER(obj) (&(SG_CRYPTO(obj)->impl.scipher))
 #define SG_PCIPHER(obj) (&(SG_CRYPTO(obj)->impl.pcipher))

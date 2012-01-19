@@ -88,7 +88,7 @@ typedef struct
 
 typedef struct SgPatternRec
 {
-  SG_META_HEADER;
+  SG_HEADER;
   SgObject pattern;		/* regex pattern: string or ast */
   SgObject ast;			/* parsed ast */
   int      flags;		/* flags, details are above.
@@ -102,16 +102,16 @@ typedef struct SgPatternRec
   prog_t  *prog;		/* compiled regex */
 } SgPattern;
 
-SG_DECLARE_META_OBJ(Sg_PatternMeta);
-#define SG_META_PATTERN   (&Sg_PatternMeta)
+SG_CLASS_DECL(Sg_PatternClass);
+#define SG_CLASS_PATTERN   (&Sg_PatternClass)
 #define SG_PATTERN(obj)   ((SgPattern *)obj)
-#define SG_PATTERN_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_PATTERN)
+#define SG_PATTERN_P(obj) SG_XTYPEP(obj, SG_CLASS_PATTERN)
 
 typedef struct match_ctx_rec_t match_ctx_t;
 
 typedef struct SgMatcherRec
 {
-  SG_META_HEADER;
+  SG_HEADER;
   SgPattern *pattern;
   SgString  *text;
   /* privates */
@@ -124,10 +124,10 @@ typedef struct SgMatcherRec
   SgChar    *submatch[1];
 } SgMatcher;
 
-SG_DECLARE_META_OBJ(Sg_MatcherMeta);
-#define SG_META_MATCHER   (&Sg_MatcherMeta)
+SG_CLASS_DECL(Sg_MatcherClass);
+#define SG_CLASS_MATCHER   (&Sg_MatcherClass)
 #define SG_MATCHER(obj)   ((SgMatcher *)obj)
-#define SG_MATCHER_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_MATCHER)
+#define SG_MATCHER_P(obj) SG_XTYPEP(obj, SG_CLASS_MATCHER)
 
 #define argumentAsPattern(index, tmp_, var_)				\
   castArgumentType(index, tmp_, var_, regex-pattern, SG_PATTERN_P, SG_PATTERN)

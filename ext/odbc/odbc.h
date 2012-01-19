@@ -59,16 +59,16 @@ typedef struct param_holder_rec
 
 typedef struct SgOdbcCtxRec
 {
-  SG_META_HEADER;
+  SG_HEADER;
   SQLSMALLINT type;
   SQLHANDLE   handle;
   param_holder *holder;
 } SgOdbcCtx;
 
-SG_DECLARE_META_OBJ(Sg_OdbcCtxMeta);
-#define SG_META_ODBC_CTX    (&Sg_OdbcCtxMeta)
+SG_CLASS_DECL(Sg_OdbcCtxClass);
+#define SG_CLASS_ODBC_CTX    (&Sg_OdbcCtxClass)
 #define SG_ODBC_CTX(obj)    ((SgOdbcCtx *)obj)
-#define SG_ODBC_CTX_P(obj)  SG_META_OBJ_TYPE_P(obj, SG_META_ODBC_CTX)
+#define SG_ODBC_CTX_P(obj)  SG_XTYPEP(obj, SG_CLASS_ODBC_CTX)
 
 #define SQL_HANDLE_TYPE_P(obj, type__)					\
   (SG_ODBC_CTX_P(obj) && SG_ODBC_CTX(obj)->type == (type__))
@@ -86,7 +86,7 @@ typedef enum {
 } DateType;
 typedef struct SgOdbcDateRec
 {
-  SG_META_HEADER;
+  SG_HEADER;
   DateType type;
   union {
     SQL_TIME_STRUCT      time;
@@ -95,10 +95,10 @@ typedef struct SgOdbcDateRec
   } data;
 } SgOdbcDate;
 
-SG_DECLARE_META_OBJ(Sg_OdbcDateMeta);
-#define SG_META_ODBC_DATE   (&Sg_OdbcDateMeta)
+SG_CLASS_DECL(Sg_OdbcDateClass);
+#define SG_CLASS_ODBC_DATE   (&Sg_OdbcDateClass)
 #define SG_ODBC_DATE(obj)   ((SgOdbcDate *)obj)
-#define SG_ODBC_DATE_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_ODBC_DATE)
+#define SG_ODBC_DATE_P(obj) SG_XTYPEP(obj, SG_CLASS_ODBC_DATE)
 
 #define SG_ODBC_DATE_DATE_P(obj)					\
   (SG_ODBC_DATE_P(obj) && SG_ODBC_DATE(obj)->type == SG_SQL_DATE)

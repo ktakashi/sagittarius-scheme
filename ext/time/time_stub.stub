@@ -123,27 +123,27 @@
   (define-c-proc time<=? (x y) ::boolean
     (check-time x)
     (check-time y)
-    (result (<= ((-> (SG_GET_META_OBJ x) compare) x y FALSE) 0)))
+    (result (<= ((-> (SG_CLASS_OF x) compare) x y FALSE) 0)))
 
   (define-c-proc time<? (x y) ::boolean
     (check-time x)
     (check-time y)
-    (result (< ((-> (SG_GET_META_OBJ x) compare) x y FALSE) 0)))
+    (result (< ((-> (SG_CLASS_OF x) compare) x y FALSE) 0)))
 
   (define-c-proc time=? (x y) ::boolean
     (check-time x)
     (check-time y)
-    (result (== ((-> (SG_GET_META_OBJ x) compare) x y FALSE) 0)))
+    (result (== ((-> (SG_CLASS_OF x) compare) x y FALSE) 0)))
 
   (define-c-proc time>=? (x y) ::boolean
     (check-time x)
     (check-time y)
-    (result (>= ((-> (SG_GET_META_OBJ x) compare) x y FALSE) 0)))
+    (result (>= ((-> (SG_CLASS_OF x) compare) x y FALSE) 0)))
 
   (define-c-proc time>? (x y) ::boolean
     (check-time x)
     (check-time y)
-    (result (> ((-> (SG_GET_META_OBJ x) compare) x y FALSE) 0)))
+    (result (> ((-> (SG_CLASS_OF x) compare) x y FALSE) 0)))
 
   (define-c-proc time-difference (x y) ::Object
     (check-time x)

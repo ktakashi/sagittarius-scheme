@@ -31,21 +31,22 @@
  */
 #include <string.h>
 #include <errno.h>
+#define LIBSAGITTARIUS_BODY
 #include <sagittarius/extend.h>
 #include "ffi.h"
 
-static void pointer_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void pointer_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgPointer *p = SG_POINTER(self);
   Sg_Printf(port, UC("#<pointer %p>"), p->pointer);
 }
 
-SG_INIT_META_OBJ(Sg_PointerMeta, &pointer_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_PointerClass, pointer_printer);
 
 static SgPointer* make_pointer(uintptr_t p)
 {
   SgPointer *z = SG_NEW(SgPointer);
-  SG_SET_META_OBJ(z, SG_META_POINTER);
+  SG_SET_CLASS(z, SG_CLASS_POINTER);
   z->pointer = p;
   return z;
 }
@@ -56,13 +57,13 @@ SgObject Sg_MakePointer(void *p)
 }
 
 /* function info */
-static void funcinfo_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void funcinfo_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   Sg_Printf(port, UC("#<c-function %A (*)%A>"),
 	    SG_FUNC_INFO(self)->sReturnType, SG_FUNC_INFO(self)->sParameterTypes);
 }
 
-SG_INIT_META_OBJ(Sg_FuncInfoMeta, &funcinfo_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_FuncInfoClass, funcinfo_printer);
 
 static ffi_type* lookup_ffi_return_type(int rettype);
 
@@ -113,7 +114,7 @@ static SgFuncInfo* make_funcinfo(uintptr_t proc, int retType, SgObject signature
 {
   SgFuncInfo *fn = SG_NEW(SgFuncInfo);
   int callback = 0;
-  SG_SET_META_OBJ(fn, SG_META_FUNC_INFO);
+  SG_SET_CLASS(fn, SG_CLASS_FUNC_INFO);
   /* signatures must be created in Scheme file */
   ASSERT(SG_STRINGP(signatures));
   fn->argc = SG_STRING_SIZE(signatures);
@@ -157,23 +158,22 @@ SgObject Sg_CreateCFunction(SgPointer *handle, int rettype, SgObject sigs, SgObj
 }
 
 /* callback */
-static void callback_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void callback_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   Sg_Printf(port, UC("#<c-callback %A>"), SG_CALLBACK(self)->signatures);
 }
 
-SG_INIT_META_OBJ(Sg_CallbackMeta, &callback_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_CallbackClass, callback_printer);
 
 static uintptr_t global_uid = 0;
-static SgHashTable global_ctable = { MAKE_HDR_VALUE(TC_HASHTABLE), SG_HASH_EQ, { NULL } };
-#define ctable (&global_ctable)
+static SgHashTable *ctable;
 
 static void callback_invoker(ffi_cif *cif, void *result, void **args, void *userdata);
 SgObject Sg_CreateCallback(int rettype, SgString *signatures, SgObject proc)
 {
   SgCallback *c = SG_NEW(SgCallback);
   uintptr_t uid = global_uid++;
-  SG_SET_META_OBJ(c, SG_META_CALLBACK);
+  SG_SET_CLASS(c, SG_CLASS_CALLBACK);
   c->returnType = rettype;
   c->signatures = signatures;
   c->proc = proc;
@@ -191,12 +191,12 @@ void Sg_ReleaseCallback(SgCallback *callback)
 }
 
 /* cstruct */
-static void cstruct_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void cstruct_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   Sg_Printf(port, UC("#<c-struct %A %d>"), SG_CSTRUCT(self)->name, SG_CSTRUCT(self)->size);
 }
 
-SG_INIT_META_OBJ(Sg_CStructMeta, &cstruct_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_CStructClass, cstruct_printer);
 
 static ffi_type* lookup_ffi_return_type(int rettype);
 static int convert_scheme_to_c_value(SgObject v, int type, void **result);
@@ -205,7 +205,7 @@ static SgCStruct* make_cstruct(int size)
 {
   SgCStruct *st = SG_NEW2(SgCStruct *,
 			  sizeof(SgCStruct) + sizeof(struct_layout_t)*(size - 1));
-  SG_SET_META_OBJ(st, SG_META_CSTRUCT);
+  SG_SET_CLASS(st, SG_CLASS_CSTRUCT);
   /* initialize ffi_type */
   st->type.size = st->type.alignment = 0;
   st->type.elements = SG_NEW_ARRAY(ffi_type *, size + 1);
@@ -372,8 +372,7 @@ static size_t calculate_alignment(SgObject names, SgCStruct *st, int *foundP, in
   return align;
 }
 
-static SgHashTable REF_TABLE = { MAKE_HDR_VALUE(TC_HASHTABLE), SG_HASH_EQ, { NULL } };
-#define ref_table (&REF_TABLE)
+static SgHashTable *ref_table;
 
 static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
 {
@@ -1315,7 +1314,7 @@ SgObject Sg_CMalloc(size_t size)
 
 void Sg_CFree(SgPointer *p)
 {
-  free(p->pointer);
+  free((void*)p->pointer);
   p->pointer = NULL;
 }
 
@@ -1338,8 +1337,8 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__ffi()
   Sg_InsertBinding(lib, name, &internal_ffi_call_stub);
   impl_lib = lib;
   /* callback storage */
-  Sg_HashCoreInitSimple(&ctable->core, SG_HASH_EQ, 0, NULL);
-  Sg_HashCoreInitSimple(&ref_table->core, SG_HASH_EQ, 0, NULL);
+  ctable = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
+  ref_table = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
 
 #define CONST_VALUE(name, v) Sg_InsertBinding(lib, SG_INTERN(#name), SG_MAKE_INT(v))
 #define SIZE_VALUE(name) CONST_VALUE(size-of-name, sizeof(name))

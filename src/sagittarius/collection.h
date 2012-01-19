@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * extend.h
+/* collection.h                                           -*- coding: utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2011  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -29,43 +27,30 @@
  *
  *  $Id: $
  */
-#ifndef SAGITTARIUS_EXTEND_H_
-#define SAGITTARIUS_EXTEND_H_
+#ifndef SAGITTARIUS_COLLECTION_H_
+#define SAGITTARIUS_COLLECTION_H_
 
-#ifndef SAGITTARIUS_H_
-#include <sagittarius.h>
-#endif
+/* definition of collections */
+#include "sagittariusdefs.h"
+#include "clos.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+SG_CLASS_DECL(Sg_CollectionClass);
+SG_CLASS_DECL(Sg_SequenceClass);
+SG_CLASS_DECL(Sg_DictionaryClass);
+SG_CLASS_DECL(Sg_OrderedDictionaryClass);
 
-#if defined(__CYGWIN__)
-#define SG_INIT_EXTENSION(name)			\
-  do {						\
-    Sg_RegisterDL((void*)&_data_start__,	\
-		  (void*)&_data_end__,		\
-		  (void*)&_bss_start__,		\
-		  (void*)&_bss_end__);		\
-  } while (0)
-#else
-#define SG_INIT_EXTENSION(name)	/* nothing */
-#endif
+#define SG_CLASS_COLLECTION 	    (&Sg_CollectionClass)
+#define SG_CLASS_SEQUENCE   	    (&Sg_SequenceClass)
+#define SG_CLASS_DICTIONARY 	    (&Sg_DictionaryClass)
+#define SG_CLASS_ORDERED_DICTIONARY (&Sg_OrderedDictionaryClass)
 
-#ifdef __cplusplus
-#define SG_EXTENSION_ENTRY_QUAL extern "C"
-#else
-#define SG_EXTENSION_ENTRY_QUAL
-#endif
+extern SgClass *Sg__OrderedDictionaryCPL[];
+extern SgClass *Sg__SequenceCPL[];
 
-#if defined(SAGITTARIUS_WINDOWS)
-#define SG_EXTENSION_ENTRY SG_EXTENSION_ENTRY_QUAL __declspec(dllexport)
-#else
-#define SG_EXTENSION_ENTRY SG_EXTENSION_ENTRY_QUAL
-#endif
+#define SG_CLASS_COLLECTION_CPL 	(Sg__SequenceCPL+1)
+#define SG_CLASS_SEQUENCE_CPL   	(Sg__SequenceCPL)
+#define SG_CLASS_DICTIONARY_CPL 	(Sg__OrderedDictionaryCPL+2)
+#define SG_CLASS_ORDERED_DICTIONARY_CPL (Sg__OrderedDictionaryCPL)
 
-#ifdef __cplusplus
-}
-#endif
 
-#endif /* SAGITTARIUS_EXTEND_H_ */
+#endif /* SAGITTARIUS_COLLECTION_H_ */

@@ -35,6 +35,7 @@
 # include <sys/time.h>
 #endif
 
+#define LIBSAGITTARIUS_BODY
 #include "threads.h"
 #include <sagittarius/extend.h>
 
@@ -43,7 +44,8 @@ static SgObject thread_error_handler(SgObject *args, int argc, void *data)
   return SG_UNDEF;
 }
 
-static SG_DEFINE_SUBR(thread_error_handler_STUB, 1, 0, thread_error_handler, SG_FALSE, NULL);
+static SG_DEFINE_SUBR(thread_error_handler_STUB, 1, 0, thread_error_handler,
+		      SG_FALSE, NULL);
 
 SgObject Sg_MakeThread(SgProcedure *thunk, SgObject name)
 {

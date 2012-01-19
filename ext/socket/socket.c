@@ -37,10 +37,11 @@
 #define EINTR WSAEINTR
 #endif
 
-#include "socket.h"
+#define LIBSAGITTARIUS_BODY
 #include <sagittarius/extend.h>
+#include "socket.h"
 
-static void socket_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void socket_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgSocket *socket = SG_SOCKET(self);
   const SgChar *type = (socket->type == SG_SOCKET_CLIENT)
@@ -48,7 +49,7 @@ static void socket_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
   Sg_Printf(port, UC("#<socket %s %S>"), type, socket->address);
 }
 
-SG_INIT_META_OBJ(Sg_SocketMeta, &socket_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SocketClass, socket_printer);
 
 
 #ifdef _WIN32
@@ -71,7 +72,7 @@ static void socket_finalizer(SgObject self, void *data)
 static SgSocket* make_socket(int fd, SgSocketType type, SgString *address)
 {
   SgSocket *s = SG_NEW(SgSocket);
-  SG_SET_META_OBJ(s, SG_META_SOCKET);
+  SG_SET_CLASS(s, SG_CLASS_SOCKET);
   s->socket = fd;
   s->type = type;
   s->address = address;
@@ -126,7 +127,7 @@ SgSocket* Sg_CreateClientSocket(const SgString *node,
     if (ret != 0) {
       Sg_IOError(-1, SG_INTERN("create-client-socket"), 
 		 Sg_GetLastErrorMessageWithErrorCode(ret),
-		 SG_FALSE, SG_LIST2(node, service));
+		 SG_FALSE, SG_LIST2(SG_OBJ(node), SG_OBJ(service)));
       return NULL;
     }
 
@@ -153,7 +154,7 @@ SgSocket* Sg_CreateClientSocket(const SgString *node,
     freeaddrinfo(result);
     Sg_IOError(-1, SG_INTERN("create-client-socket"), 
 	       Sg_GetLastErrorMessageWithErrorCode(last_error),
-	       SG_FALSE, SG_LIST2(node, service));
+	       SG_FALSE, SG_LIST2(SG_OBJ(node), SG_OBJ(service)));
     return NULL;
 }
 
@@ -344,7 +345,7 @@ static SgPort* make_port(enum SgPortDirection d, enum SgPortType t,
 			 enum SgBufferMode m)
 {
   SgPort *z = SG_NEW(SgPort);
-  SG_SET_HEADER(z, TC_PORT);
+  SG_SET_CLASS(z, SG_CLASS_PORT);
   z->direction = d;
   z->type = t;
   z->bufferMode = m;

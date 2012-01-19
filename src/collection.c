@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * extend.h
+/* collection.c                                                 -*- coding: utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2011  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -29,43 +27,26 @@
  *
  *  $Id: $
  */
-#ifndef SAGITTARIUS_EXTEND_H_
-#define SAGITTARIUS_EXTEND_H_
+#define LIBSAGITTARIUS_BODY
+#include "sagittarius/collection.h"
 
-#ifndef SAGITTARIUS_H_
-#include <sagittarius.h>
-#endif
+SG_DEFINE_ABSTRACT_CLASS(Sg_CollectionClass, SG_CLASS_DEFAULT_CPL);
+SG_DEFINE_ABSTRACT_CLASS(Sg_SequenceClass, SG_CLASS_COLLECTION_CPL);
+SG_DEFINE_ABSTRACT_CLASS(Sg_DictionaryClass, SG_CLASS_COLLECTION_CPL);
+SG_DEFINE_ABSTRACT_CLASS(Sg_OrderedDictionaryClass, Sg__OrderedDictionaryCPL+1);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+SgClass *Sg__OrderedDictionaryCPL[] = {
+  SG_CLASS_ORDERED_DICTIONARY,
+  SG_CLASS_SEQUENCE,
+  SG_CLASS_DICTIONARY,
+  SG_CLASS_COLLECTION,
+  SG_CLASS_TOP,
+  NULL,
+};
 
-#if defined(__CYGWIN__)
-#define SG_INIT_EXTENSION(name)			\
-  do {						\
-    Sg_RegisterDL((void*)&_data_start__,	\
-		  (void*)&_data_end__,		\
-		  (void*)&_bss_start__,		\
-		  (void*)&_bss_end__);		\
-  } while (0)
-#else
-#define SG_INIT_EXTENSION(name)	/* nothing */
-#endif
-
-#ifdef __cplusplus
-#define SG_EXTENSION_ENTRY_QUAL extern "C"
-#else
-#define SG_EXTENSION_ENTRY_QUAL
-#endif
-
-#if defined(SAGITTARIUS_WINDOWS)
-#define SG_EXTENSION_ENTRY SG_EXTENSION_ENTRY_QUAL __declspec(dllexport)
-#else
-#define SG_EXTENSION_ENTRY SG_EXTENSION_ENTRY_QUAL
-#endif
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* SAGITTARIUS_EXTEND_H_ */
+SgClass *Sg__SequenceCPL[] = {
+  SG_CLASS_SEQUENCE,
+  SG_CLASS_COLLECTION,
+  SG_CLASS_TOP,
+  NULL,
+};

@@ -37,21 +37,21 @@
 
 typedef struct SgTimeRec
 {
-  SG_META_HEADER;
+  SG_HEADER;
   SgObject type;
   int64_t  sec;
   unsigned long nsec;
 } SgTime;
 
-SG_DECLARE_META_OBJ(Sg_TimeMeta);
-#define SG_META_TIME  (&Sg_TimeMeta)
+SG_CLASS_DECL(Sg_TimeClass);
+#define SG_CLASS_TIME  (&Sg_TimeClass)
 #define SG_TIME(obj)  ((SgTime *)obj)
-#define SG_TIME_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_TIME)
+#define SG_TIME_P(obj) SG_XTYPEP(obj, SG_CLASS_TIME)
 
 
 typedef struct SgDateRec
 {
-  SG_META_HEADER;
+  SG_HEADER;
   unsigned long nsec;
   int     nanosecond;
   int     second;
@@ -63,10 +63,10 @@ typedef struct SgDateRec
   int64_t zoneOffset;
 } SgDate;
 
-SG_DECLARE_META_OBJ(Sg_DateMeta);
-#define SG_META_DATE   (&Sg_DateMeta)
+SG_CLASS_DECL(Sg_DateClass);
+#define SG_CLASS_DATE   (&Sg_DateClass)
 #define SG_DATE(obj)   ((SgDate *)obj)
-#define SG_DATE_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_DATE)
+#define SG_DATE_P(obj) SG_XTYPEP(obj, SG_CLASS_DATE)
 
 #define TM_NANO  1.0e9
 #define TM_SID   86400

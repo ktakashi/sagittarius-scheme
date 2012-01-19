@@ -36,7 +36,7 @@
 
 typedef struct SgProcessRec
 {
-  SG_META_HEADER;
+  SG_HEADER;
   SgString  *name;		/* process name */
   SgString  *args;		/* command line args */
   uintptr_t  handle;		/* process handle
@@ -50,10 +50,10 @@ typedef struct SgProcessRec
 } SgProcess;
 
 
-SG_DECLARE_META_OBJ(Sg_ProcessMeta);
-#define SG_META_PROCESS   (&Sg_ProcessMeta)
+SG_CLASS_DECL(Sg_ProcessClass);
+#define SG_CLASS_PROCESS   (&Sg_ProcessClass)
 #define SG_PROCESS(obj)   ((SgProcess *)obj)
-#define SG_PROCESS_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_PROCESS)
+#define SG_PROCESS_P(obj) SG_XTYPEP(obj, SG_CLASS_PROCESS)
 
 #define argumentAsProcess(index, tmp_, var_)			\
   castArgumentType(index, tmp_, var_, pointer, SG_PROCESS_P, SG_PROCESS)

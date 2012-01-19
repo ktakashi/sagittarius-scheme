@@ -29,10 +29,11 @@
  *
  *  $Id: $
  */
+#define LIBSAGITTARIUS_BODY
 #include <sagittarius/extend.h>
 #include "crypto.h"
 
-static void crypto_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void crypto_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   switch (SG_CRYPTO(self)->type) {
   case CRYPTO_SYM_CIPHER: {
@@ -52,7 +53,7 @@ static void crypto_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
   }
 }
 
-SG_INIT_META_OBJ(Sg_CryptoMeta, &crypto_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_CryptoClass, crypto_printer);
 
 static void finalize_cipher(SgObject obj, void *data)
 {
@@ -62,7 +63,7 @@ static void finalize_cipher(SgObject obj, void *data)
 static SgCrypto *make_crypto(SgCryptoType type)
 {
   SgCrypto *c = SG_NEW(SgCrypto);
-  SG_SET_META_OBJ(c, SG_META_CRYPTO);
+  SG_SET_CLASS(c, SG_CLASS_CRYPTO);
   c->type = type;
   return c;
 }

@@ -29,19 +29,20 @@
  *
  *  $Id: $
  */
+#define LIBSAGITTARIUS_BODY
 #include "math.h"
 
-static void prng_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void prng_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   Sg_Printf(port, UC("#<prng %A>"), SG_PRNG(self)->name);
 }
 
-SG_INIT_META_OBJ(Sg_PrngMeta, &prng_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_PrngClass, prng_printer);
 
 static SgPrng* make_prng(int type, SgString *name)
 {
   SgPrng *prng = SG_NEW(SgPrng);
-  SG_SET_META_OBJ(prng, SG_META_PRNG);
+  SG_SET_CLASS(prng, SG_CLASS_PRNG);
   prng->type = type;
   prng->name = name;
   return prng;

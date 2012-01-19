@@ -56,40 +56,42 @@ typedef enum {
 
 typedef struct SgSocketRec
 {
-  SG_META_HEADER;
+  SG_HEADER;
   int socket;			/* fd */
   int lastError;
   SgSocketType type;
   SgString *address;		/* for print */
 } SgSocket;
 
-SG_DECLARE_META_OBJ(Sg_SocketMeta);
-#define SG_META_SOCKET   (&Sg_SocketMeta)
+SG_CLASS_DECL(Sg_SocketClass);
+#define SG_CLASS_SOCKET   (&Sg_SocketClass)
 #define SG_SOCKET(obj)   ((SgSocket*)obj)
-#define SG_SOCKET_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_SOCKET)
+#define SG_SOCKET_P(obj) SG_XTYPEP(obj, SG_CLASS_SOCKET)
 
 SG_CDECL_BEGIN
 
-SgSocket* Sg_CreateClientSocket(const SgString *node,
-				const SgString *service,
-				int ai_family,
-				int ai_socktype,
-				int ai_flags,
-				int ai_protocol);
-SgSocket* Sg_CreateServerSocket(const SgString *service,
-				int ai_family,
-				int ai_socktype,
-				int ai_protocol);
+SG_EXTERN SgSocket* Sg_CreateClientSocket(const SgString *node,
+					  const SgString *service,
+					  int ai_family,
+					  int ai_socktype,
+					  int ai_flags,
+					  int ai_protocol);
+SG_EXTERN SgSocket* Sg_CreateServerSocket(const SgString *service,
+					  int ai_family,
+					  int ai_socktype,
+					  int ai_protocol);
 
-int       Sg_SocketReceive(SgSocket *socket, uint8_t *data, int size, int flags);
-int       Sg_SocketSend(SgSocket *socket, uint8_t *data, int size, int flags);
-SgSocket* Sg_SocketAccept(SgSocket *socket);
-void      Sg_SocketShutdown(SgSocket *socket, int how);
-void      Sg_SocketClose(SgSocket *socket);
-int       Sg_SocketOpenP(SgSocket *socket);
+SG_EXTERN int       Sg_SocketReceive(SgSocket *socket, uint8_t *data,
+				     int size, int flags);
+SG_EXTERN int       Sg_SocketSend(SgSocket *socket, uint8_t *data,
+				  int size, int flags);
+SG_EXTERN SgSocket* Sg_SocketAccept(SgSocket *socket);
+SG_EXTERN void      Sg_SocketShutdown(SgSocket *socket, int how);
+SG_EXTERN void      Sg_SocketClose(SgSocket *socket);
+SG_EXTERN int       Sg_SocketOpenP(SgSocket *socket);
 
-SgObject  Sg_MakeSocketPort(SgSocket *socket);
-void      Sg_ShutdownPort(SgPort *port);
+SG_EXTERN SgObject  Sg_MakeSocketPort(SgSocket *socket);
+SG_EXTERN void      Sg_ShutdownPort(SgPort *port);
 
 SG_CDECL_END
 

@@ -29,6 +29,7 @@
  */
 #include <string.h>
 #include <ctype.h>
+#define LIBSAGITTARIUS_BODY
 #include "regex2.h"
 #include <sagittarius/extend.h>
 
@@ -2077,19 +2078,19 @@ static prog_t* compile(compile_ctx_t *ctx, SgObject ast)
    pass2: optimize
    pass3: code generation
  */
-static void pattern_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void pattern_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgPattern *pattern = SG_PATTERN(self);
   Sg_Printf(port, UC("#<pattern %S>"), pattern->pattern);
 }
-SG_INIT_META_OBJ(Sg_PatternMeta, &pattern_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_PatternClass, pattern_printer);
 
 static SgPattern* make_pattern(SgString *p, SgObject ast, int flags,
 			       lexer_ctx_t *ctx, prog_t *prog,
 			       compile_ctx_t *cctx)
 {
   SgPattern *pt = SG_NEW(SgPattern);
-  SG_SET_META_OBJ(pt, SG_META_PATTERN);
+  SG_SET_CLASS(pt, SG_CLASS_PATTERN);
   pt->pattern = p;
   pt->ast = ast;
   pt->flags = flags;
@@ -2976,12 +2977,12 @@ static match_ctx_t* init_match_ctx(match_ctx_t *ctx, SgMatcher *m, int size)
   return ctx;
 }
 
-static void matcher_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void matcher_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   Sg_Printf(port, UC("#<matcher %S %S>"), SG_MATCHER(self)->pattern,
 	    SG_MATCHER(self)->text);
 }
-SG_INIT_META_OBJ(Sg_MatcherMeta, matcher_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_MatcherClass, matcher_printer);
 
 static SgMatcher* reset_matcher(SgMatcher *m)
 {
@@ -2999,7 +3000,7 @@ static SgMatcher* make_matcher(SgPattern *p, SgString *text)
 {
   SgMatcher *m = SG_NEW2(SgMatcher*, sizeof(SgMatcher) + 
 			 sizeof(SgChar*) * (p->groupCount-1));
-  SG_SET_META_OBJ(m, SG_META_MATCHER);
+  SG_SET_CLASS(m, SG_CLASS_MATCHER);
   m->pattern = p;
   m->text = text;
   m->match_ctx = SG_NEW(match_ctx_t);
