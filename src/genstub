@@ -5,3 +5,4 @@
 (cgen "vmlib.stub")
 (cgen "vmdebug.stub")
 (cgen "extlib.stub")
+(cgen "closlib.stub")

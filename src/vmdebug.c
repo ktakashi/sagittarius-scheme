@@ -1,6 +1,7 @@
 /* This file is autmatically generated from "vmdebug.stub". DO NOT EDIT!!*/
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius.h>
+;
 static SgObject _sagittarius_vm_debug_vm_dump_code(SgObject *args, int argc, void *data_)
 {
   SgObject cb_scm;
@@ -50,13 +51,15 @@ static SgObject _sagittarius_vm_debug_source_info_set21(SgObject *args, int argc
 static SG_DEFINE_SUBR(_sagittarius_vm_debug_source_info_set21_Stub, 2, 0, _sagittarius_vm_debug_source_info_set21, SG_FALSE, NULL);
 
 ;
+SG_CDECL_BEGIN
 void Sg__Init_sagittarius_vm_debug()
 {
-  SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC("(sagittarius vm debug)"), SG_LITERAL_STRING)), TRUE);
-  SG_PROCEDURE_NAME(&_sagittarius_vm_debug_source_info_set21_Stub) = Sg_MakeString(UC("source-info-set!"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("source-info-set!"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_debug_source_info_set21_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_debug_vm_dump_code_Stub) = Sg_MakeString(UC("vm-dump-code"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vm-dump-code"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_debug_vm_dump_code_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vm_debug_source_info_Stub) = Sg_MakeString(UC("source-info"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("source-info"), SG_LITERAL_STRING)), SG_OBJ(&_sagittarius_vm_debug_source_info_Stub));
+  SgLibrary *lib = SG_LIBRARY(Sg_FindLibrary(SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("(sagittarius vm debug)")))), TRUE));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_debug_vm_dump_code_Stub) = SG_STRING(SG_MAKE_STRING("vm-dump-code"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("vm-dump-code")))), SG_OBJ(&_sagittarius_vm_debug_vm_dump_code_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_debug_source_info_set21_Stub) = SG_STRING(SG_MAKE_STRING("source-info-set!"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("source-info-set!")))), SG_OBJ(&_sagittarius_vm_debug_source_info_set21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vm_debug_source_info_Stub) = SG_STRING(SG_MAKE_STRING("source-info"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("source-info")))), SG_OBJ(&_sagittarius_vm_debug_source_info_Stub));
 }
+SG_CDECL_END

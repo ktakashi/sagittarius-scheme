@@ -60,12 +60,14 @@ extern void Sg__InitLoad();
 extern void Sg__InitVM();
 extern void Sg__InitCache();
 extern void Sg__InitCharSet();
+extern void Sg__InitClos();
 
 /* stub files */
 extern void Sg__Init_sagittarius_compiler_procedure();
 extern void Sg__Init_sagittarius_vm_debug();
 extern void Sg__Init_sagittarius_vm();
 extern void Sg__Init_sagittarius();
+extern void Sg__Init_sagittarius_clos();
 extern void Sg__InitInstruction();
 /* compiled libraries */
 extern void Sg__Initnull();
@@ -106,7 +108,8 @@ void Sg_Init()
   /* initialize default reader macro */
   Sg__InitReader();
   Sg__InitCache();
-
+  Sg__InitClos();
+  
   nullsym = SG_INTERN("null");
   coreBase = SG_INTERN("(core base)");
 
@@ -126,6 +129,7 @@ void Sg_Init()
   Sg__Init_sagittarius();
   Sg__Init_sagittarius_vm();
   Sg__Init_sagittarius_vm_debug();
+  Sg__Init_sagittarius_clos();
 
   /* this is scmlib.scm */
   Sg__Init_core_base();

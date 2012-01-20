@@ -33,14 +33,42 @@
 #include "sagittariusdefs.h"
 #include "thread.h"
 
-/* avoid conflict */
 struct SgInstanceRec
 {
   SgByte   *tag;
-  SgObject *slogs;
+  SgObject *slots;
 };
+#define SG_INSTANCE(obj) ((SgInstance*)(obj))
 
 #define SG_INSTANCE_HEADER SgInstance hdr
+
+/* accessor */
+SG_CLASS_DECL(Sg_SlotAccessorClass)
+#define SG_CLASS_SLOT_ACCESSOR (&Sg_SlotAccessorClass)
+typedef struct SgSlotAccessorRec SgSlotAccessor;
+typedef SgObject (*SgSlotGetterProc)(SgObject);
+typedef void     (*SgSlotSetterProc)(SgObject, SgObject);
+struct SgSlotAccessorRec
+{
+  SG_HEADER;
+  const char *cname;			       /* for static initilization */
+  SgObject name;			       /* field name */
+  SgClass *klass;			       /* slot class */
+  SgSlotGetterProc getter;		       /* C getter */
+  SgSlotSetterProc setter;		       /* C setter */
+  SgObject getterS;
+  SgObject setterS;
+};
+#define SG_SLOT_ACCESSOR(obj)  ((SgSlotAccessor*)(obj))
+#define SG_SLOT_ACCESSORP(obj) SG_XTYPEP(obj, SG_CLASS_SLOT_ACCESSOR)
+
+#define SG_CLASS_SLOT_SPEC(name, getter, setter)		\
+  { { SG_CLASS2TAG(SG_CLASS_SLOT_ACCESSOR) },			\
+      (name), SG_FALSE, NULL,					\
+	(SgSlotGetterProc)(getter),				\
+	(SgSlotSetterProc)(setter),				\
+	SG_FALSE, SG_FALSE }
+
 
 /* based on tiny clos. most of tricks are from Gauche */
 /* define cprocs */
@@ -82,12 +110,21 @@ struct SgClassRec
   SgObject directSlots;		/* alist of name and definition */
   SgObject slots;		/* alist of name and definition */
   SgObject fieldInitializers;	/* list of initializers */
-  SgObject gettersNSetters;
+  SgSlotAccessor **gettersNSetters; /* array of accessors, NULL terminated */
   
+  /* mutex */
+  SgInternalMutex mutex;
+  SgInternalCond  cv;
 };
 
 #define SG_CLASS(obj)  ((SgClass*)(obj))
-#define SG_CLASSP(obj) SG_XTYPE(obj, SG_CLASS_CLASS)
+#define SG_CLASSP(obj) SG_XTYPEP(obj, SG_CLASS_CLASS)
+
+#define SG_CLASS_FLAGS(obj)    (SG_CLASS(obj)->flags)
+#define SG_CLASS_CATEGORY(obj) (SG_CLASS_FLAGS(obj) & 3)
+
+#define SG_ALLOCATE(klassname, klass)		\
+  ((klassname*)Sg_AllocateInstance(klass))
 
 enum {
   SG_CLASS_BUILTIN  = 0,
@@ -141,7 +178,7 @@ extern SgClass *Sg_ObjectCPL[];
     SG_NIL,			/* directSlots */			\
     SG_NIL,			/* slots */				\
     SG_NIL,			/* fieldInitializers */			\
-    SG_NIL			/* gettersNSetters */			\
+    NULL			/* gettersNSetters */			\
   }
 
 /* for now we do not add any cache reader, it's for future */
@@ -162,7 +199,45 @@ extern SgClass *Sg_ObjectCPL[];
 
 SG_CDECL_BEGIN
 
+/* API's for CLOS */
+/* this is done by class_allocate */
+/* SG_EXTERN SgObject Sg_MakeClass(SgObject supers, SgObject slots); */
+SG_EXTERN SgObject Sg_MakeGeneric();
+SG_EXTERN SgObject Sg_MakeMethod(SgObject specializers, SgObject procedure);
+SG_EXTERN SgObject Sg_SlotRef(SgObject obj, SgObject name);
+SG_EXTERN void     Sg_SlotSet(SgObject obj, SgObject name, SgObject value);
+
+/* MOP looks like APIs */
 SG_EXTERN SgClass* Sg_ClassOf(SgObject obj);
+/* type check */
+SG_EXTERN int      Sg_TypeP(SgObject obj, SgClass *type);
+SG_EXTERN int      Sg_SubtypeP(SgClass *sub, SgClass *type);
+
+/* just access to SgClass */
+#define SG_CLASS_DIRECT_SUPERS(klass)  (SG_CLASS(klass)->directSupers)
+#define SG_CLASS_DIRECT_SLOTS(klass)   (SG_CLASS(klass)->directSlots)
+#define SG_CLASS_CPL(klass)            (SG_CLASS(klass)->cpl)
+/* for C use */
+#define SG_CLASS_CPA(klass)            (SG_CLASS(klass)->cpa)
+#define SG_CLASS_SLOTS(klass)          (SG_CLASS(klass)->slots)
+
+/* intercessory protocol */
+SG_EXTERN SgObject Sg_AllocateInstance(SgClass *klass);
+SG_EXTERN SgObject Sg_ComputeCPL(SgClass *klass);
+
+/* builtin class <object> */
+SG_EXTERN SgObject Sg_ObjectAllocate(SgClass *klass, SgObject initargs);
+
+/* internal for C. */
+SG_EXTERN void     Sg_InitStaticClass(SgClass *klass, const SgChar *name,
+				      SgLibrary *lib, SgSlotAccessor *specs);
+SG_EXTERN void     Sg_InitStaticClassWithMeta(SgClass *klass,
+					      const SgChar *name,
+					      SgLibrary *lib,
+					      SgClass   *meta,
+					      SgObject   supers,
+					      SgSlotAccessor *specs);
+				      
 
 SG_CDECL_END
 

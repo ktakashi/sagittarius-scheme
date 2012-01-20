@@ -115,6 +115,7 @@ SG_EXTERN SgObject Sg_List(SgObject elt, ...);
 SG_EXTERN SgObject Sg_VaList(va_list elts);
 SG_EXTERN SgObject Sg_ArrayToList(SgObject *array, int nelts);
 SG_EXTERN SgObject Sg_ArrayToListWithTail(SgObject *array, int nelts, SgObject tail);
+SG_EXTERN SgObject* Sg_ListToArray(SgObject list, int nullTermP);
 
 SG_EXTERN SgObject Sg_Car(SgObject obj);
 SG_EXTERN SgObject Sg_Cdr(SgObject obj);

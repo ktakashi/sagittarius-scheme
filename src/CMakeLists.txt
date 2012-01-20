@@ -60,6 +60,7 @@ SET(SAGITTARIUS_LIB_SOURCE
   clos.c
   collection.c     compare.c
   # libraries
+  closlib.c
   proclib.c        null.c
   vmlib.c          vmdebug.c
   compiler-aux.c   lib_scmlib.c

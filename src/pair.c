@@ -136,6 +136,21 @@ SgObject Sg_ArrayToListWithTail(SgObject *array, int nelts, SgObject tail)
   return array_to_list_with_tail(array, nelts, tail);
 }
 
+SgObject* Sg_ListToArray(SgObject list, int nullTermP)
+{
+  SgObject *array, lp;
+  int len = Sg_Length(list), i, offset = 0;;
+  if (len < 0) Sg_Error(UC("proper list required, but got %S"), list);
+  if (nullTermP) offset++;
+  array = SG_NEW_ARRAY(SgObject, len+offset);
+  for (i = 0, lp = list; i<len; i++, lp = SG_CDR(lp)) {
+    array[i] = SG_CAR(lp);
+  }
+  /* just in case */
+  if (nullTermP) array[len] = NULL;
+  return array;
+}
+
 #define CXR(cname, sname, body)			\
 SgObject cname (SgObject obj)			\
 {						\
