@@ -29,12 +29,20 @@
 ;;;  
 
 ;; The APIs name are from Gauche
+#<(sagittarius regex)>
 (library (util file)
     (export file->list
 	    file->string
 	    file->sexp-list
-	    file->string-list)
+	    file->string-list
+	    decompose-path
+	    path-extension
+	    path-sans-extension)
     (import (rnrs)
+	    (sagittarius regex)
+	    (srfi :0)
+	    (srfi :13 strings)
+	    (srfi :14 char-set)
 	    (srfi :38)
 	    (util port))
 
@@ -52,4 +60,37 @@
 
   (define (file->string-list path)
     (file->list get-line path))
+
+  (define *path-set* (string->char-set "\\/"))
+  (define (decompose-path path)
+    (if (looking-at #/[\/\\]$/ path)
+	(values (string-trim-right path path-set) #f #f)
+	(let* ((delim-pos (string-index-right path
+					      (cond-expand
+					       (sagittarius.os.windows #\\)
+					       (else #\/))))
+	       (dir (and delim-pos (substring path 0 delim-pos)))
+	       (base (substring path (or (and delim-pos
+					      (+ delim-pos 1))
+					 0)
+				(string-length path))))
+	  (cond ((string-index-right base #\.)
+		 => (lambda (pos)
+		      (if (zero? pos)
+			  ;; '.' at the beginning doesn't delimit extension
+			  (values dir base #f)
+			  (values dir
+				  (string-take base pos)
+				  (string-drop base (+ pos 1))))))
+		(else (value dir base #f))))))
+
+  (define (path-extension path)
+    (let-values (((dir file ext) (decompose-path path))) ext))
+
+  (define (path-sans-extension path)
+    (cond ((path-extension path)
+	   => (lambda (ext)
+		(substring path 0
+			   (- (string-length path) (string-length ext) 1))))
+	  (else path)))
 )

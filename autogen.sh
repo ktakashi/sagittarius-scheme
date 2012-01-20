@@ -1,12 +1,17 @@
 #!/bin/sh
 
+# need to use gosh?
+# export SCM="gosh -I." ./autogen.sh
+if [ x"$SCM" == x"" ]; then
+    export SCM=sash
+fi
 
 do_compile()
 {
     echo Generating c file from compiler.scm
     cd boot
     ../script/gen-compiler.scm compiler.scm sagittarius > compiler-sg.scm
-    gosh -I. vm.scm compiler-sg.scm c "(sagittarius compiler)" ../src/compiler.c
+    $SCM vm.scm compiler-sg.scm c "(sagittarius compiler)" ../src/compiler.c
     cd ../
 }
 
@@ -15,7 +20,7 @@ do_library()
     echo Generating compiled library files
     cd boot
     echo '(display "dummy")' > dummy.scm
-    gosh -I. vm.scm dummy.scm lc ../src
+    $SCM vm.scm dummy.scm lc ../src
     rm dummy.scm
     cd ../
 }
@@ -26,7 +31,7 @@ do_builtin()
     cd boot
 # we no longer need (match core)
 #    gosh -I. vm.scm ./lib/match_core.scm c "(match core)" ../src/lib_match_core.c
-    gosh -I. vm.scm ./lib/repl.scm c "(sagittarius interactive)" ../src/lib_repl.c
+    $SCM vm.scm ./lib/repl.scm c "(sagittarius interactive)" ../src/lib_repl.c
     cd ../
 }
 

@@ -956,23 +956,23 @@
 ;; i = instruction
 ;; insn must be under 255 (1 byte)
 (define (merge-insn1 insn arg1)
-  (bitwise-ior insn (bitwise-arithmatic-shift-left arg1 8)))
+  (bitwise-ior insn (bitwise-arithmetic-shift-left arg1 8)))
 
 ;; arg1 and arg2 must be under 12 bit
 ;; but on scheme vm, i'm not gonna check it
 (define (merge-insn2 insn arg1 arg2)
   (bitwise-ior insn 
-	       (bitwise-ior (bitwise-arithmatic-shift-left arg1 8)
-			    (bitwise-arithmatic-shift-left arg2 20))))
+	       (bitwise-ior (bitwise-arithmetic-shift-left arg1 8)
+			    (bitwise-arithmetic-shift-left arg2 20))))
 
 (define (get-insn-value insn num index)
   (cond ((= num 1)
-	 (bitwise-arithmatic-shift insn -8))
+	 (bitwise-arithmetic-shift insn -8))
 	((= num 2)
 	 (cond ((= index 0)
-		(bitwise-and (bitwise-arithmatic-shift insn -8) #xfff))
+		(bitwise-and (bitwise-arithmetic-shift insn -8) #xfff))
 	       ((= index 1)
-		(bitwise-arithmatic-shift insn -20))))))
+		(bitwise-arithmetic-shift insn -20))))))
 
 (define (get-insn insn)
   (bitwise-and insn #xff))
