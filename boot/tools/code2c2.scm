@@ -1,4 +1,11 @@
-(use srfi-13)
+(cond-expand
+ (gauche
+  (use srfi-13)
+  )
+ (sagittarius
+  (import (srfi :13) (srfi :6)
+	  (rename (sagittarius) (interned-symbol? symbol-interned?))))
+ )
 ;(load "../insn.scm")
 (define (library-name->string lib delim)
   (let ((s (string-map (lambda (c)

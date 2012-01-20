@@ -1,5 +1,12 @@
 ;; need to move to C++
-(define (constant-literal? o) #f)
+(cond-expand
+ (sagittarius.scheme.vm
+  (define (constant-literal? o) #f)
+  )
+ (gauche
+  (define (constant-literal? o) #f)
+  )
+ (else #t))
 (define (cond-features) '(sagittarius sagittarius.scheme.vm))
 
 ;; for dependency problem

@@ -37,6 +37,8 @@
 	    load-dynamic-library
 	    sagittarius-version
 	    report-error
+
+	    interned-symbol?
 	    ;; string
 	    string-scan
 	    ;; for srfi-13
@@ -328,6 +330,9 @@
 
   (define-c-proc report-error (e) ::void
     (Sg_ReportError e))
+
+  (define-c-proc interned-symbol? (s) ::boolean
+    (result (SG_INTERNED_SYMBOL s)))
 
   ;; filesystem
   (define-c-proc file-size-in-bytes (path::String) ::Object
