@@ -1839,13 +1839,13 @@
 ;;                 | (rename <import set> (<identifier1> <identifier2>) ...)
 ;;
 (cond-expand
- (gauche
+ ((or gauche sagittarius)
   ;; for generating boot code, we need this to avoid to import unneccessary 
   ;; libraries.
   (define check-expand-phase
     (lambda (phases)
       (memq 'expand phases))))
- (sagittarius
+ (sagittarius.scheme.vm
   ;; dummy
   (define-syntax check-expand-phase
     (er-macro-transformer

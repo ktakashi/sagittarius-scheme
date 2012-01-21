@@ -57,7 +57,7 @@
 	    (core base)
 	    (core errors)
 	    (core arithmetic)
-	    (core misc)
+	    ;;(core misc)
 	    (core syntax)
 	    (sagittarius))
 
