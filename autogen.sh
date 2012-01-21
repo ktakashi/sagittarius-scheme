@@ -10,7 +10,7 @@ do_compile()
 {
     echo Generating c file from compiler.scm
     cd boot
-    ../script/gen-compiler.scm compiler.scm sagittarius > compiler-sg.scm
+    $SCM ../script/gen-compiler.scm compiler.scm sagittarius sagittarius.scheme.vm > compiler-sg.scm
     $SCM vm.scm compiler-sg.scm c "(sagittarius compiler)" ../src/compiler.c
     cd ../
 }
