@@ -107,6 +107,8 @@ SG_EXTERN SgObject Sg_NoNextMethod(SgObject *argv, int argc, SgGeneric *gf);
 
 /* needs to be here ... */
 SG_EXTERN void     Sg_AddMethod(SgGeneric *generic, SgMethod *method);
+SG_EXTERN SgObject Sg_ComputeMethods(SgGeneric *gf, SgObject *argv, int argc);
+
 
 /* I'm not sure if these should be usable from other shared object. */
 /* The initialization protocol */
