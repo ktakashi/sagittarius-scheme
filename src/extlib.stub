@@ -80,6 +80,7 @@
 
 	    ;; io
 	    port-closed? format write/ss read/ss
+	    format/ss
 	    make-codec port-info
 	    read-with-case
 
@@ -561,6 +562,29 @@
 	  ((SG_STRINGP p)
 	   (let ((out (Sg_MakeStringOutputPort 16)))
 	     (Sg_Format out p rest FALSE)
+	     (result (Sg_GetStringFromStringPort out))))))
+
+  (define-c-proc format/ss (p :rest rest) ::Object
+    (cond ((SG_PORTP p)
+	   (check-port-open format p)
+	   (check-output-port format p)
+	   (let ((fmt::SgString* (SG_CAR rest))
+		 (objs (SG_CDR rest)))
+	     (Sg_Format p fmt objs TRUE)
+	     (result SG_UNDEF)))
+	  ((SG_BOOLP p)
+	   (let ((fmt::SgString* (SG_CAR rest))
+		 (objs (SG_CDR rest)))
+	     (if (SG_FALSEP p)
+		 (let ((out (Sg_MakeStringOutputPort 16)))
+		   (Sg_Format out fmt objs TRUE)
+		   (result (Sg_GetStringFromStringPort out)))
+		 (let ((out (Sg_CurrentOutputPort)))
+		   (Sg_Format out fmt objs TRUE)
+		   (result SG_UNDEF)))))
+	  ((SG_STRINGP p)
+	   (let ((out (Sg_MakeStringOutputPort 16)))
+	     (Sg_Format out p rest TRUE)
 	     (result (Sg_GetStringFromStringPort out))))))
 
   (define-c-proc make-codec (name::Symbol g::Procedure p::Procedure data) ::Object
