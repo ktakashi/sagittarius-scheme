@@ -103,12 +103,13 @@ void Sg_Init()
   Sg__InitLoad();
 
   Sg__InitVM();
+  /* init clos uses findlibrary. so after VM */
+  Sg__InitClos();
   /* port must be after VM to replace std ports. */
   Sg__InitPort();
   /* initialize default reader macro */
   Sg__InitReader();
   Sg__InitCache();
-  Sg__InitClos();
   
   nullsym = SG_INTERN("null");
   coreBase = SG_INTERN("(core base)");

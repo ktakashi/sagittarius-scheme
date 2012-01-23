@@ -2346,20 +2346,18 @@
 	     ;; TODO it's not *RIGHT* implementation
 	     ;; we should use string-output-port as buffer
 	     ;; but this is match faster (i guess...)
-	     (let ((buf::SgChar* (SG_NEW_ATOMIC2 SgChar* (* (sizeof SgChar) (+ count 1))))
-		   (i::int 0)
-		   (ret (Sg_MakeEmptyString)))
-	       (loop 
+	     (let ((buf::SgString* (Sg_ReserveString count 0))
+		   (i::int 0))
+	       (loop
 		(cond ((or (== i count)
 			   (== EOF (Sg_Peekc p)))
 		       (break))
 		      (else
-		       (set! (arrayref buf i) (Sg_Getc p))
+		       (set! (SG_STRING_VALUE_AT buf i) (Sg_Getc p))
 		       (post++ i))))
-	       (set! (arrayref buf count) 0)
-	       (set! (SG_STRING_SIZE ret) i)
-	       (set! (SG_STRING_VALUE ret) buf)
-	       (result ret))))))
+	       (if (== i count)
+		   (result buf)
+		   (result (Sg_Substring buf 0 i))))))))
 
   (define-c-proc get-string-n! (p::Port s::String start::fixnum count::fixnum) ::Object
     (check-port-open get-string-n! p)

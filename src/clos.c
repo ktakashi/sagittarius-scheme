@@ -30,18 +30,24 @@
 #include <string.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/clos.h"
+#include "sagittarius/bytevector.h"
 #include "sagittarius/charset.h"
+#include "sagittarius/collection.h"
 #include "sagittarius/error.h"
 #include "sagittarius/generic.h"
+#include "sagittarius/gloc.h"
 #include "sagittarius/hashtable.h"
 #include "sagittarius/library.h"
 #include "sagittarius/number.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/string.h"
+#include "sagittarius/subr.h"
 #include "sagittarius/symbol.h"
-#include "sagittarius/pair.h"
+#include "sagittarius/treemap.h"
 #include "sagittarius/unicode.h"
+#include "sagittarius/vector.h"
 #include "sagittarius/vm.h"
+#include "sagittarius/weak.h"
 #include "sagittarius/writer.h"
 
 
@@ -86,6 +92,10 @@ static SgObject class_allocate(SgClass *klass, SgObject initargs);
 static SgObject generic_allocate(SgClass *klass, SgObject initargs);
 static SgObject method_allocate(SgClass *klass, SgObject initargs);
 
+static void init_class(SgClass *klass, const SgChar *name,
+		       SgLibrary *lib, SgObject supers, SgSlotAccessor *specs,
+		       int flags);
+
 SG_DEFINE_BASE_CLASS(Sg_ObjectClass, SgInstance,
 		     NULL, NULL, NULL, Sg_ObjectAllocate,
 		     SG_CLASS_DEFAULT_CPL);
@@ -115,6 +125,40 @@ SgObject Sg_AllocateInstance(SgClass *klass)
     SG_INSTANCE(obj)->slots = slots;
   }
   return obj;
+}
+
+/*
+static SgSlotAccessor *make_slot_accessor(SgClass *klass, SgObject name)
+{
+  SgSlotAccessor *ac = SG_NEW(SgSlotAccessor);
+  SG_SET_CLASS(SG_CLASS_SLOT_ACCESSOR);
+  ac->name = name;
+  ac->klass = klass;
+  ac->getter = NULL;
+  ac->setter = NULL;
+  ac->getterS = Sg_MakeSubr
+}
+
+static SgSlotAccessor **slot_to_acc(SgClass *klass, SgObject slots)
+{
+  int size = Sg_Length(slots), i = 0;
+  SgSlotAccessor **acc = SG_NEW_ARRAY(SgSlotAccessor*, size);
+  SgObject cp;
+  SG_FOR_EACH(cp, slots) {
+    acc[i] = make_slot_accessor(klass, SG_CAR(cp));
+  }  
+}
+*/
+
+static SgObject make_class(SgObject supers);
+
+SgObject Sg_MakeClass(SgObject supers, SgObject slots)
+{
+  /* SgClass *klass = SG_CLASS(class_allocate(SG_CLASS_CLASS, SG_NIL)); */
+  /* SgSlotAccessor **acc = slot_to_acc(klass, slots); */
+  /* init_class(klass, NULL, NULL, supers, acc, TRUE); */
+  /* return SG_OBJ(klass); */
+  return make_class(supers);
 }
 
 SgObject Sg_MakeGeneric()
@@ -203,8 +247,8 @@ static SgObject build_constraints(SgClass *klass)
       if (test_(SG_CAR(l__))) {				\
 	SG_APPEND1(h__, t__, SG_CAR(l__));		\
       }							\
+      l__ = SG_CDR(l__);				\
     }							\
-    l__ = SG_CDR(l__);					\
   } while (0)
 
 static SgObject tie_breaker(SgObject partial_cpl, SgObject min_elts)
@@ -262,6 +306,35 @@ SgObject Sg_ComputeCPL(SgClass *klass)
       SG_APPEND1(result, t, choice);
     }
   }
+}
+
+int Sg_ApplicableP(SgObject c, SgObject arg)
+{
+  return !SG_FALSEP(Sg_Memq(c, SG_CLASS(Sg_ClassOf(c))->cpl));
+}
+
+static int method_every(SgObject method, SgObject *argv, int argc)
+{
+  int i;
+  SgObject specs = SG_METHOD_SPECIALIZERS(method);
+  for (i = 0; i < argc; i++) {
+    if (!Sg_ApplicableP(SG_CAR(specs), argv[i])) return FALSE;
+    /* sanity */
+    if (SG_NULLP(specs)) return FALSE;
+    specs = SG_CDR(specs);
+  }
+  return TRUE;
+}
+
+SgObject Sg_ComputeMethods(SgGeneric *gf, SgObject *argv, int argc)
+{
+  SgObject applicable;
+
+#define method_filter(x) method_every(x, argv, argc)
+  filter_in(applicable, method_filter, SG_GENERIC_METHODS(gf));
+
+  /* todo sort */
+  return applicable;
 }
 
 
@@ -501,8 +574,15 @@ static SgSlotAccessor class_slots[] = {
   SG_CLASS_SLOT_SPEC("nfields", class_nfields, NULL),
   SG_CLASS_SLOT_SPEC("field-initializers", class_field_initializers, NULL),
   SG_CLASS_SLOT_SPEC("getters-n-setters", class_getters_n_setters, NULL),
-  { NULL }
+  { { NULL } }
 };
+
+static SgObject make_class(SgObject supers)
+{
+  SgClass *klass = SG_CLASS(class_allocate(SG_CLASS_CLASS, SG_NIL));
+  init_class(klass, NULL, NULL, supers, class_slots, 0);
+  return SG_OBJ(klass);
+}
 
 static void initialize_builtin_cpl(SgClass *klass, SgObject supers)
 {
@@ -524,9 +604,8 @@ static void initialize_builtin_cpl(SgClass *klass, SgObject supers)
 }
 
 static void init_class(SgClass *klass, const SgChar *name,
-		       SgLibrary *lib, 
-		       SgObject supers,
-		       SgSlotAccessor *specs)
+		       SgLibrary *lib, SgObject supers,
+		       SgSlotAccessor *specs, int flags)
 {
   SgObject slots = SG_NIL, t = SG_NIL;
   SgObject acc = SG_NIL, sp;
@@ -534,9 +613,12 @@ static void init_class(SgClass *klass, const SgChar *name,
 
   if (klass->cpa == NULL) klass->cpa = SG_CLASS_DEFAULT_CPL;
 
-  klass->name = Sg_Intern(Sg_MakeString(name, SG_LITERAL_STRING));
   initialize_builtin_cpl(klass, supers);
-  Sg_InsertBinding(lib, SG_SYMBOL(klass->name), SG_OBJ(klass));
+
+  if (name && lib) {
+    klass->name = Sg_Intern(Sg_MakeString(name, SG_LITERAL_STRING));
+    Sg_InsertBinding(lib, SG_SYMBOL(klass->name), SG_OBJ(klass));
+  }
 
   /* initialize direct slots */
   if (specs) {
@@ -576,9 +658,9 @@ static void init_class(SgClass *klass, const SgChar *name,
 }
 
 void Sg_InitStaticClass(SgClass *klass, const SgChar *name,
-			SgLibrary *lib, SgSlotAccessor *specs)
+			SgLibrary *lib, SgSlotAccessor *specs, int flags)
 {
-  init_class(klass, name, lib, SG_FALSE, specs);
+  init_class(klass, name, lib, SG_FALSE, specs, flags);
 }
 
 /* 
@@ -598,23 +680,23 @@ static SgClass* make_implicit_meta(const SgChar *name, SgClass **cpa,
   SgClass **metas = metacpa;
   SgClass **parent;
   int numExtraMetas = 0, i;
+
   for (parent = cpa; *parent; parent++) {
     if (SG_CLASS_OF(*parent) != SG_CLASS_CLASS) {
       numExtraMetas++;
     }
-    if (numExtraMetas) {
-      metas = SG_NEW_ARRAY(SgClass*, numExtraMetas+4);
-      for (i = 0, parent = cpa; *parent; parent++) {
-	if (SG_CLASS_OF(*parent) != SG_CLASS_CLASS) {
-	  metas[i++] = SG_CLASS_OF(*parent);
-	}
+  }
+  if (numExtraMetas) {
+    metas = SG_NEW_ARRAY(SgClass*, numExtraMetas+4);
+    for (i = 0, parent = cpa; *parent; parent++) {
+      if (SG_CLASS_OF(*parent) != SG_CLASS_CLASS) {
+	metas[i++] = SG_CLASS_OF(*parent);
       }
-      metas[i++] = SG_CLASS_CLASS;
-      metas[i++] = SG_CLASS_OBJECT;
-      metas[i++] = SG_CLASS_TOP;
-      metas[i]   = NULL;
-
     }
+    metas[i++] = SG_CLASS_CLASS;
+    metas[i++] = SG_CLASS_OBJECT;
+    metas[i++] = SG_CLASS_TOP;
+    metas[i]   = NULL;
   }
   meta->name = s;
   meta->allocate = class_allocate;
@@ -631,9 +713,10 @@ static SgClass* make_implicit_meta(const SgChar *name, SgClass **cpa,
 
 void Sg_InitStaticClassWithMeta(SgClass *klass, const SgChar *name,
 				SgLibrary *lib, SgClass *meta,
-				SgObject supers, SgSlotAccessor *specs)
+				SgObject supers, SgSlotAccessor *specs,
+				int flags)
 {
-  init_class(klass, name, lib, supers, specs);
+  init_class(klass, name, lib, supers, specs, flags);
   if (meta) {
     SG_SET_CLASS(klass, meta);
   } else {
@@ -652,6 +735,51 @@ void Sg_InitStaticClassWithMeta(SgClass *klass, const SgChar *name,
   }
 }
 
+/* builtin generics */
+SG_DEFINE_GENERIC(Sg_GenericMake, Sg_NoNextMethod, NULL);
+/* SG_DEFINE_GENERIC(Sg_GenericInitialize, Sg_NoNextMethod, NULL); */
+/* SG_DEFINE_GENERIC(Sg_GenericAllocateInstance, Sg_NoNextMethod, NULL); */
+/* SG_DEFINE_GENERIC(Sg_GenericComputeGetterAndSetter, Sg_NoNextMethod, NULL); */
+/* SG_DEFINE_GENERIC(Sg_GenericComputeCPL, Sg_NoNextMethod, NULL); */
+/* SG_DEFINE_GENERIC(Sg_GenericComputeSlots, Sg_NoNextMethod, NULL); */
+/* SG_DEFINE_GENERIC(Sg_GenericComputeApplyGeneric, Sg_NoNextMethod, NULL); */
+/* SG_DEFINE_GENERIC(Sg_GenericComputeMethods, Sg_NoNextMethod, NULL); */
+/* SG_DEFINE_GENERIC(Sg_GenericComputeMethodMoreSpecificP, Sg_NoNextMethod, NULL); */
+/* SG_DEFINE_GENERIC(Sg_GenericComputeApplyMethods, Sg_NoNextMethod, NULL); */
+
+/* static SgObject object_initialize_impl(SgObject *args, int argc, void *data) */
+/* { */
+/*   return args[1]; */
+/* } */
+/* SG_DEFINE_SUBR(object_initialize, 3, 0, object_initialize_impl, SG_FALSE, NULL); */
+
+/* static SgClass *object_initialize_SPEC[] = { */
+/*   SG_CLASS_OBJECT */
+/* }; */
+
+/* static SG_DEFINE_METHOD(object_initialize_method, */
+/* 			&Sg_GenericInitialize, 3, 0, */
+/* 			object_initialize_SPEC, */
+/* 			&object_initialize, NULL); */
+
+/* static SgObject class_initialize_impl(SgObject *args, int argc, void *data) */
+/* { */
+  
+/*   return args[1]; */
+/* } */
+
+/* SG_DEFINE_SUBR(class_initialize, 3, 0, class_initialize_impl, SG_FALSE, NULL); */
+
+/* static SgClass *class_initialize_SPEC[] = { */
+/*   SG_CLASS_CLASS */
+/* }; */
+
+/* static SG_DEFINE_METHOD(class_initialize_method, */
+/* 			&Sg_GenericInitialize, 3, 0, */
+/* 			class_initialize_SPEC, */
+/* 			&class_initialize, NULL); */
+
+
 void Sg__InitClos()
 {
   /* TODO library name */
@@ -660,9 +788,9 @@ void Sg__InitClos()
 
   SG_CLASS_TOP->cpa = nullcpa;
 #define CINIT(cl, nam)					\
-  Sg_InitStaticClassWithMeta(cl, UC(nam), lib, NULL, SG_FALSE, NULL)
+  Sg_InitStaticClassWithMeta(cl, UC(nam), lib, NULL, SG_FALSE, NULL, 0)
 
-#define BINIT(cl, nam, slots) Sg_InitStaticClass(cl, UC(nam), lib, slots)
+#define BINIT(cl, nam, slots) Sg_InitStaticClass(cl, UC(nam), lib, slots, 0)
 
   BINIT(SG_CLASS_CLASS,  "<class>", class_slots);
   BINIT(SG_CLASS_TOP,    "<top>", NULL);
@@ -687,4 +815,35 @@ void Sg__InitClos()
   CINIT(SG_CLASS_REAL,      "<real>");
   CINIT(SG_CLASS_RATIONAL,  "<rational>");
   CINIT(SG_CLASS_INTEGER,   "<integer>");
+
+  /* string */
+  CINIT(SG_CLASS_STRING,    "<string>");
+
+  /* symbol */
+  CINIT(SG_CLASS_SYMBOL,    "<symbol>");
+  CINIT(SG_CLASS_GLOC,      "<gloc>");
+
+  /* abstract collection */
+  BINIT(SG_CLASS_COLLECTION, "<collection>", NULL);
+  BINIT(SG_CLASS_SEQUENCE,   "<sequence>",   NULL);
+  BINIT(SG_CLASS_DICTIONARY, "<dictionary>", NULL);
+  BINIT(SG_CLASS_ORDERED_DICTIONARY, "<ordered-dictionary>", NULL);
+
+  /* hashtable */
+  CINIT(SG_CLASS_HASHTABLE, "<hashtable>");
+  /* treemap */
+  CINIT(SG_CLASS_TREE_MAP,  "<tree-map>");
+
+  /* vector */
+  CINIT(SG_CLASS_VECTOR,    "<vector>");
+  /* bytevector */
+  CINIT(SG_CLASS_BVECTOR,   "<byte-vector>");
+  /* weak */
+  CINIT(SG_CLASS_WEAK_VECTOR,       "<weak-vector>");
+  CINIT(SG_CLASS_WEAK_HASHTABLE,    "<weak-hashtable>");
+
+#define GINIT(gf, nam)				\
+  Sg_InitBuiltinGeneric(gf, UC(nam), lib)
+
+  GINIT(&Sg_GenericMake, "make");
 }

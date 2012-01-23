@@ -197,11 +197,13 @@ extern SgClass *Sg_ObjectCPL[];
   SG_DEFINE_CLASS_COMMON(cname, sizeof(ctype), SG_CLASS_BASE,	\
 			 printer, compare, serialize, allocate, cpa)
 
+#define argumentAsClass(index, tmp, var)				\
+  castArgumentType(index, tmp, var, bytevector, SG_CLASSP, SG_CLASS)
+
 SG_CDECL_BEGIN
 
 /* API's for CLOS */
-/* this is done by class_allocate */
-/* SG_EXTERN SgObject Sg_MakeClass(SgObject supers, SgObject slots); */
+SG_EXTERN SgObject Sg_MakeClass(SgObject supers, SgObject slots);
 SG_EXTERN SgObject Sg_MakeGeneric();
 SG_EXTERN SgObject Sg_MakeMethod(SgObject specializers, SgObject procedure);
 SG_EXTERN SgObject Sg_SlotRef(SgObject obj, SgObject name);
@@ -225,18 +227,20 @@ SG_EXTERN int      Sg_SubtypeP(SgClass *sub, SgClass *type);
 SG_EXTERN SgObject Sg_AllocateInstance(SgClass *klass);
 SG_EXTERN SgObject Sg_ComputeCPL(SgClass *klass);
 
+SG_EXTERN int      Sg_ApplicableP(SgObject spec, SgObject args);
+
 /* builtin class <object> */
 SG_EXTERN SgObject Sg_ObjectAllocate(SgClass *klass, SgObject initargs);
 
 /* internal for C. */
 SG_EXTERN void     Sg_InitStaticClass(SgClass *klass, const SgChar *name,
-				      SgLibrary *lib, SgSlotAccessor *specs);
+				      SgLibrary *lib, SgSlotAccessor *specs,
+				      int flags);
 SG_EXTERN void     Sg_InitStaticClassWithMeta(SgClass *klass,
 					      const SgChar *name,
-					      SgLibrary *lib,
-					      SgClass   *meta,
-					      SgObject   supers,
-					      SgSlotAccessor *specs);
+					      SgLibrary *lib, SgClass *meta,
+					      SgObject supers,
+					      SgSlotAccessor *specs, int flags);
 				      
 
 SG_CDECL_END

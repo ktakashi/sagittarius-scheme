@@ -38,6 +38,7 @@
 #include "sagittarius/closure.h"
 #include "sagittarius/error.h"
 #include "sagittarius/file.h"
+#include "sagittarius/generic.h"
 #include "sagittarius/hashtable.h"
 #include "sagittarius/identifier.h"
 #include "sagittarius/library.h"

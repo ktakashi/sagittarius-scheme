@@ -43,7 +43,7 @@ struct SgStringRec
   SG_HEADER;
   unsigned int literalp: 1;
   int size             : (SIZEOF_INT*CHAR_BIT-1);
-  SgChar *value;
+  SgChar value[1];
 };
 
 typedef enum {

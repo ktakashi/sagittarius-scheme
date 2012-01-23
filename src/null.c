@@ -1,6 +1,7 @@
 /* This file is autmatically generated from "null.stub". DO NOT EDIT!!*/
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius.h>
+#include <sagittarius.h>
 #include <sagittarius/instruction.h>
 #include <sagittarius/builtin-symbols.h>
 ;
@@ -702,7 +703,7 @@ static SgObject null2b(SgObject *args, int argc, void *data_)
     if (!(SG_PAIRP(rest))) {
       SG_RETURN = (SG_MAKE_INT(0));
     } else if (!(SG_NUMBERP(SG_CAR(rest)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("+")), Sg_MakeString(UC("number"), SG_LITERAL_STRING), SG_CAR(rest), rest);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("+"), Sg_MakeString(UC("number"), SG_LITERAL_STRING), SG_CAR(rest), rest);
       return SG_UNDEF;
 ;
       SG_RETURN = (SG_UNDEF);
@@ -715,7 +716,7 @@ static SgObject null2b(SgObject *args, int argc, void *data_)
             {
               SgObject v = SG_CAR(cgen_1);
               if (!(SG_NUMBERP(v))) {
-                Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("+")), Sg_MakeString(UC("number"), SG_LITERAL_STRING), v, SG_NIL);
+                Sg_WrongTypeOfArgumentViolation(SG_INTERN("+"), Sg_MakeString(UC("number"), SG_LITERAL_STRING), v, SG_NIL);
                 return SG_UNDEF;
 ;
               }
@@ -752,7 +753,7 @@ static SgObject null2b2e(SgObject *args, int argc, void *data_)
           {
             SgObject x = SG_CAR(cgen_2);
             if (!(SG_NUMBERP(x))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("+.")), Sg_MakeString(UC("number"), SG_LITERAL_STRING), x, SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("+."), Sg_MakeString(UC("number"), SG_LITERAL_STRING), x, SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -781,7 +782,7 @@ static SgObject null2a(SgObject *args, int argc, void *data_)
     if (!(SG_PAIRP(rest))) {
       SG_RETURN = (SG_MAKE_INT(1));
     } else if (!(SG_NUMBERP(SG_CAR(rest)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("+")), Sg_MakeString(UC("number"), SG_LITERAL_STRING), SG_CAR(rest), rest);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("+"), Sg_MakeString(UC("number"), SG_LITERAL_STRING), SG_CAR(rest), rest);
       return SG_UNDEF;
 ;
       SG_RETURN = (SG_UNDEF);
@@ -794,7 +795,7 @@ static SgObject null2a(SgObject *args, int argc, void *data_)
             {
               SgObject v = SG_CAR(cgen_3);
               if (!(SG_NUMBERP(v))) {
-                Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("*")), Sg_MakeString(UC("number"), SG_LITERAL_STRING), v, SG_NIL);
+                Sg_WrongTypeOfArgumentViolation(SG_INTERN("*"), Sg_MakeString(UC("number"), SG_LITERAL_STRING), v, SG_NIL);
                 return SG_UNDEF;
 ;
               }
@@ -831,7 +832,7 @@ static SgObject null2a2e(SgObject *args, int argc, void *data_)
           {
             SgObject x = SG_CAR(cgen_4);
             if (!(SG_NUMBERP(x))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("*.")), Sg_MakeString(UC("number"), SG_LITERAL_STRING), x, SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("*."), Sg_MakeString(UC("number"), SG_LITERAL_STRING), x, SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -870,7 +871,7 @@ static SgObject null_(SgObject *args, int argc, void *data_)
           {
             SgObject v = SG_CAR(cgen_5);
             if (!(SG_NUMBERP(v))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("-")), Sg_MakeString(UC("number"), SG_LITERAL_STRING), v, SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("-"), Sg_MakeString(UC("number"), SG_LITERAL_STRING), v, SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -909,7 +910,7 @@ static SgObject null_2e(SgObject *args, int argc, void *data_)
           {
             SgObject x = SG_CAR(cgen_6);
             if (!(SG_NUMBERP(x))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("-.")), Sg_MakeString(UC("number"), SG_LITERAL_STRING), x, SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("-."), Sg_MakeString(UC("number"), SG_LITERAL_STRING), x, SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -951,7 +952,7 @@ static SgObject null2f(SgObject *args, int argc, void *data_)
             {
               SgObject v = SG_CAR(cgen_7);
               if (!(SG_NUMBERP(v))) {
-                Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("/")), Sg_MakeString(UC("number"), SG_LITERAL_STRING), v, SG_NIL);
+                Sg_WrongTypeOfArgumentViolation(SG_INTERN("/"), Sg_MakeString(UC("number"), SG_LITERAL_STRING), v, SG_NIL);
                 return SG_UNDEF;
 ;
               }
@@ -961,7 +962,7 @@ static SgObject null2f(SgObject *args, int argc, void *data_)
               }
 ;
               if ((exact && SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE) && Sg_ZeroP(v))) {
-                Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("/")), Sg_MakeString(UC("undefined for 0"), SG_LITERAL_STRING), Sg_Cons(arg1, rest));
+                Sg_AssertionViolation(SG_INTERN("/"), Sg_MakeString(UC("undefined for 0"), SG_LITERAL_STRING), Sg_Cons(arg1, rest));
                 return SG_UNDEF;
 ;
               }
@@ -1002,7 +1003,7 @@ static SgObject null2f2e(SgObject *args, int argc, void *data_)
           {
             SgObject x = SG_CAR(cgen_8);
             if (!(SG_NUMBERP(x))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("/")), Sg_MakeString(UC("number"), SG_LITERAL_STRING), x, SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("/"), Sg_MakeString(UC("number"), SG_LITERAL_STRING), x, SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -1080,7 +1081,7 @@ static SgObject nullfloor(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RealValuedP(x))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("floor")), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), x, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("floor"), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), x, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -1102,7 +1103,7 @@ static SgObject nullceiling(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RealValuedP(x))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("ceiling")), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), x, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("ceiling"), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), x, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -1124,7 +1125,7 @@ static SgObject nulltruncate(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RealValuedP(x))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("truncate")), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), x, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("truncate"), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), x, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -1146,7 +1147,7 @@ static SgObject nullround(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RealValuedP(x))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("round")), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), x, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("round"), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), x, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -1175,19 +1176,19 @@ static SgObject nulldiv(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_FiniteP(x))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("div")), Sg_MakeString(UC("finite"), SG_LITERAL_STRING), x, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("div"), Sg_MakeString(UC("finite"), SG_LITERAL_STRING), x, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (Sg_NanP(x)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("div")), Sg_MakeString(UC("non nan"), SG_LITERAL_STRING), x, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("div"), Sg_MakeString(UC("non nan"), SG_LITERAL_STRING), x, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (Sg_ZeroP(y)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("div")), Sg_MakeString(UC("not zero"), SG_LITERAL_STRING), y, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("div"), Sg_MakeString(UC("not zero"), SG_LITERAL_STRING), y, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -1213,19 +1214,19 @@ static SgObject nullmod(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_FiniteP(x))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("mod")), Sg_MakeString(UC("finite"), SG_LITERAL_STRING), x, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("mod"), Sg_MakeString(UC("finite"), SG_LITERAL_STRING), x, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (Sg_NanP(x)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("mod")), Sg_MakeString(UC("non nan"), SG_LITERAL_STRING), x, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("mod"), Sg_MakeString(UC("non nan"), SG_LITERAL_STRING), x, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (Sg_ZeroP(y)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("mod")), Sg_MakeString(UC("not zero"), SG_LITERAL_STRING), y, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("mod"), Sg_MakeString(UC("not zero"), SG_LITERAL_STRING), y, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -1251,19 +1252,19 @@ static SgObject nulldiv0(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_FiniteP(x))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("div0")), Sg_MakeString(UC("finite"), SG_LITERAL_STRING), x, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("div0"), Sg_MakeString(UC("finite"), SG_LITERAL_STRING), x, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (Sg_NanP(x)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("div0")), Sg_MakeString(UC("non nan"), SG_LITERAL_STRING), x, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("div0"), Sg_MakeString(UC("non nan"), SG_LITERAL_STRING), x, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (Sg_ZeroP(y)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("div0")), Sg_MakeString(UC("not zero"), SG_LITERAL_STRING), y, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("div0"), Sg_MakeString(UC("not zero"), SG_LITERAL_STRING), y, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -1289,19 +1290,19 @@ static SgObject nullmod0(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_FiniteP(x))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("mod0")), Sg_MakeString(UC("finite"), SG_LITERAL_STRING), x, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("mod0"), Sg_MakeString(UC("finite"), SG_LITERAL_STRING), x, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (Sg_NanP(x)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("mod0")), Sg_MakeString(UC("non nan"), SG_LITERAL_STRING), x, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("mod0"), Sg_MakeString(UC("non nan"), SG_LITERAL_STRING), x, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (Sg_ZeroP(y)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("mod0")), Sg_MakeString(UC("not zero"), SG_LITERAL_STRING), y, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("mod0"), Sg_MakeString(UC("not zero"), SG_LITERAL_STRING), y, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -1387,7 +1388,7 @@ static SgObject nulllog(SgObject *args, int argc, void *data_)
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_UNBOUNDP(base)) {
       if (x == SG_MAKE_INT(0)) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("log")), Sg_MakeString(UC("undefined for 0"), SG_LITERAL_STRING), x);
+        Sg_AssertionViolation(SG_INTERN("log"), Sg_MakeString(UC("undefined for 0"), SG_LITERAL_STRING), x);
         return SG_UNDEF;
 ;
       } else {
@@ -1417,13 +1418,13 @@ static SgObject nullmake_rectangular(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_REALP(a))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-rectangular")), Sg_MakeString(UC("real number required"), SG_LITERAL_STRING), a, SG_LIST2(a, b));
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-rectangular"), Sg_MakeString(UC("real number required"), SG_LITERAL_STRING), a, SG_LIST2(a, b));
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_REALP(b))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-rectangular")), Sg_MakeString(UC("real number required"), SG_LITERAL_STRING), b, SG_LIST2(a, b));
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-rectangular"), Sg_MakeString(UC("real number required"), SG_LITERAL_STRING), b, SG_LIST2(a, b));
       return SG_UNDEF;
 ;
     }
@@ -1448,13 +1449,13 @@ static SgObject nullmake_polar(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_REALP(r))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-polar")), Sg_MakeString(UC("real number required"), SG_LITERAL_STRING), r, SG_LIST2(r, t));
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-polar"), Sg_MakeString(UC("real number required"), SG_LITERAL_STRING), r, SG_LIST2(r, t));
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_REALP(t))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-polar")), Sg_MakeString(UC("real number required"), SG_LITERAL_STRING), t, SG_LIST2(r, t));
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-polar"), Sg_MakeString(UC("real number required"), SG_LITERAL_STRING), t, SG_LIST2(r, t));
       return SG_UNDEF;
 ;
     }
@@ -1480,7 +1481,7 @@ static SgObject nullreal_part(SgObject *args, int argc, void *data_)
     } else if (SG_REALP(r)) {
       SG_RETURN = (SG_MAKE_INT(0));
     } else {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("real-part")), Sg_MakeString(UC("number required"), SG_LITERAL_STRING), r, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("real-part"), Sg_MakeString(UC("number required"), SG_LITERAL_STRING), r, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -1506,7 +1507,7 @@ static SgObject nullimag_part(SgObject *args, int argc, void *data_)
     } else if (SG_REALP(r)) {
       SG_RETURN = (SG_MAKE_INT(0));
     } else {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("imag-part")), Sg_MakeString(UC("number required"), SG_LITERAL_STRING), r, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("imag-part"), Sg_MakeString(UC("number required"), SG_LITERAL_STRING), r, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -1560,7 +1561,7 @@ static SgObject nullsin(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RealValuedP(n))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("sin")), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), n, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("sin"), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), n, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -1582,7 +1583,7 @@ static SgObject nullcos(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RealValuedP(n))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("cos")), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), n, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("cos"), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), n, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -1604,7 +1605,7 @@ static SgObject nulltan(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RealValuedP(n))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("tan")), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), n, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("tan"), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), n, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -1626,7 +1627,7 @@ static SgObject nullasin(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RealValuedP(n))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("asin")), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), n, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("asin"), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), n, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -1648,7 +1649,7 @@ static SgObject nullacos(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RealValuedP(n))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("acos")), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), n, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("acos"), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), n, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -1678,14 +1679,14 @@ static SgObject nullatan(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RealValuedP(n))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("atan")), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), n, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("atan"), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), n, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (SG_UNBOUNDP(n2)) {
       if (Sg_ZeroP(n)) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("atan")), Sg_MakeString(UC("division by zero"), SG_LITERAL_STRING), n);
+        Sg_AssertionViolation(SG_INTERN("atan"), Sg_MakeString(UC("division by zero"), SG_LITERAL_STRING), n);
         return SG_UNDEF;
 ;
       }
@@ -1693,7 +1694,7 @@ static SgObject nullatan(SgObject *args, int argc, void *data_)
       SG_RETURN = (Sg_Atan(n));
     } else {
       if (!(Sg_RealValuedP(n2))) {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("atan")), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), n2, SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("atan"), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), n2, SG_NIL);
         return SG_UNDEF;
 ;
       }
@@ -1734,7 +1735,7 @@ static SgObject nullexact_integer_sqrt(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if ((Sg_NegativeP(n) || !(SG_EXACT_INTP(n)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("exact-integer-sqrt")), Sg_MakeString(UC("non-negative exact integer required"), SG_LITERAL_STRING), n, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("exact-integer-sqrt"), Sg_MakeString(UC("non-negative exact integer required"), SG_LITERAL_STRING), n, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -1759,13 +1760,13 @@ static SgObject nullrationalize(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_REALP(x))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("rationalize")), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), x, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("rationalize"), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), x, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_REALP(e))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("rationalize")), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), e, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("rationalize"), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), e, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -1790,7 +1791,7 @@ static SgObject nullquotient(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_EQ(n2, SG_MAKE_INT(0))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("quotient")), Sg_MakeString(UC("attempt to calculate a quotient by zero"), SG_LITERAL_STRING), SG_LIST2(n1, n2));
+      Sg_AssertionViolation(SG_INTERN("quotient"), Sg_MakeString(UC("attempt to calculate a quotient by zero"), SG_LITERAL_STRING), SG_LIST2(n1, n2));
       return SG_UNDEF;
 ;
     }
@@ -1815,7 +1816,7 @@ static SgObject nullremainder(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_EQ(n2, SG_MAKE_INT(0))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("remainder")), Sg_MakeString(UC("attempt to calculate a remainder by zero"), SG_LITERAL_STRING), SG_LIST2(n1, n2));
+      Sg_AssertionViolation(SG_INTERN("remainder"), Sg_MakeString(UC("attempt to calculate a remainder by zero"), SG_LITERAL_STRING), SG_LIST2(n1, n2));
       return SG_UNDEF;
 ;
     }
@@ -1840,7 +1841,7 @@ static SgObject nullmodulo(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_EQ(n2, SG_MAKE_INT(0))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("modulo")), Sg_MakeString(UC("attempt to calculate a modulo by zero"), SG_LITERAL_STRING), SG_LIST2(n1, n2));
+      Sg_AssertionViolation(SG_INTERN("modulo"), Sg_MakeString(UC("attempt to calculate a modulo by zero"), SG_LITERAL_STRING), SG_LIST2(n1, n2));
       return SG_UNDEF;
 ;
     }
@@ -1953,13 +1954,13 @@ static SgObject nullboolean3d3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_BOOLP(b1))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("boolean=?")), Sg_MakeString(UC("boolean"), SG_LITERAL_STRING), b1, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("boolean=?"), Sg_MakeString(UC("boolean"), SG_LITERAL_STRING), b1, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_BOOLP(b2))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("boolean=?")), Sg_MakeString(UC("boolean"), SG_LITERAL_STRING), b2, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("boolean=?"), Sg_MakeString(UC("boolean"), SG_LITERAL_STRING), b2, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -1977,7 +1978,7 @@ static SgObject nullboolean3d3f(SgObject *args, int argc, void *data_)
             {
               SgObject p = SG_CAR(cgen_9);
               if (!(SG_BOOLP(p))) {
-                Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("boolean=?")), Sg_MakeString(UC("boolean"), SG_LITERAL_STRING), p, SG_NIL);
+                Sg_WrongTypeOfArgumentViolation(SG_INTERN("boolean=?"), Sg_MakeString(UC("boolean"), SG_LITERAL_STRING), p, SG_NIL);
                 return SG_UNDEF;
 ;
               }
@@ -2030,7 +2031,7 @@ static SgObject nullcar(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_PAIRP(o))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("car")), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -2051,7 +2052,7 @@ static SgObject nullcdr(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_PAIRP(o))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("cdr")), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -2072,13 +2073,13 @@ static SgObject nullcaar(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_PAIRP(o))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("caar")), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("caar"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_PAIRP(SG_CAR(o)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("caar")), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("caar"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -2099,13 +2100,13 @@ static SgObject nullcadr(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_PAIRP(o))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("cadr")), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("cadr"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_PAIRP(SG_CDR(o)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("cadr")), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("cadr"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -2126,13 +2127,13 @@ static SgObject nullcdar(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_PAIRP(o))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("cdar")), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdar"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_PAIRP(SG_CAR(o)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("cdar")), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdar"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -2153,13 +2154,13 @@ static SgObject nullcddr(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_PAIRP(o))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("cddr")), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("cddr"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_PAIRP(SG_CDR(o)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("cddr")), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("cddr"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -2341,13 +2342,13 @@ static SgObject nullsymbol3d3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_SYMBOLP(s1))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("symbol=?")), Sg_MakeString(UC("symbol"), SG_LITERAL_STRING), s1, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("symbol=?"), Sg_MakeString(UC("symbol"), SG_LITERAL_STRING), s1, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_SYMBOLP(s2))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("symbol=?")), Sg_MakeString(UC("symbol"), SG_LITERAL_STRING), s2, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("symbol=?"), Sg_MakeString(UC("symbol"), SG_LITERAL_STRING), s2, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -2365,7 +2366,7 @@ static SgObject nullsymbol3d3f(SgObject *args, int argc, void *data_)
             {
               SgObject p = SG_CAR(cgen_10);
               if (!(SG_SYMBOLP(p))) {
-                Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("symbol=?")), Sg_MakeString(UC("symbol"), SG_LITERAL_STRING), p, SG_NIL);
+                Sg_WrongTypeOfArgumentViolation(SG_INTERN("symbol=?"), Sg_MakeString(UC("symbol"), SG_LITERAL_STRING), p, SG_NIL);
                 return SG_UNDEF;
 ;
               }
@@ -2427,7 +2428,7 @@ static SgObject nullchar_3einteger(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_CHARP(c))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char->integer")), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char->integer"), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -2449,7 +2450,7 @@ static SgObject nullinteger_3echar(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(((0 <= ch && ch <= 55295) || (57344 <= ch && ch <= 1114111)))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("integer->char")), Sg_MakeString(UC("code point out of range"), SG_LITERAL_STRING), SG_MAKE_INT(ch));
+      Sg_AssertionViolation(SG_INTERN("integer->char"), Sg_MakeString(UC("code point out of range"), SG_LITERAL_STRING), SG_MAKE_INT(ch));
       return SG_UNDEF;
 ;
     }
@@ -2474,13 +2475,13 @@ static SgObject nullchar3d3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_CHARP(c1))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char=?")), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c1, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char=?"), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c1, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_CHARP(c2))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char=?")), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c2, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char=?"), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c2, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -2498,7 +2499,7 @@ static SgObject nullchar3d3f(SgObject *args, int argc, void *data_)
             {
               SgObject p = SG_CAR(cgen_11);
               if (!(SG_CHARP(p))) {
-                Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char=?")), Sg_MakeString(UC("char"), SG_LITERAL_STRING), p, SG_NIL);
+                Sg_WrongTypeOfArgumentViolation(SG_INTERN("char=?"), Sg_MakeString(UC("char"), SG_LITERAL_STRING), p, SG_NIL);
                 return SG_UNDEF;
 ;
               }
@@ -2539,13 +2540,13 @@ static SgObject nullchar3c3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_CHARP(c1))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char<?")), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c1, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char<?"), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c1, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_CHARP(c2))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char<?")), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c2, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char<?"), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c2, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -2563,7 +2564,7 @@ static SgObject nullchar3c3f(SgObject *args, int argc, void *data_)
             {
               SgObject p = SG_CAR(cgen_12);
               if (!(SG_CHARP(p))) {
-                Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char<?")), Sg_MakeString(UC("char"), SG_LITERAL_STRING), p, SG_NIL);
+                Sg_WrongTypeOfArgumentViolation(SG_INTERN("char<?"), Sg_MakeString(UC("char"), SG_LITERAL_STRING), p, SG_NIL);
                 return SG_UNDEF;
 ;
               }
@@ -2603,13 +2604,13 @@ static SgObject nullchar3e3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_CHARP(c1))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char>?")), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c1, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char>?"), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c1, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_CHARP(c2))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char>?")), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c2, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char>?"), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c2, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -2627,7 +2628,7 @@ static SgObject nullchar3e3f(SgObject *args, int argc, void *data_)
             {
               SgObject p = SG_CAR(cgen_13);
               if (!(SG_CHARP(p))) {
-                Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char>?")), Sg_MakeString(UC("char"), SG_LITERAL_STRING), p, SG_NIL);
+                Sg_WrongTypeOfArgumentViolation(SG_INTERN("char>?"), Sg_MakeString(UC("char"), SG_LITERAL_STRING), p, SG_NIL);
                 return SG_UNDEF;
 ;
               }
@@ -2667,13 +2668,13 @@ static SgObject nullchar3c3d3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_CHARP(c1))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char<=?")), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c1, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char<=?"), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c1, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_CHARP(c2))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char<=?")), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c2, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char<=?"), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c2, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -2691,7 +2692,7 @@ static SgObject nullchar3c3d3f(SgObject *args, int argc, void *data_)
             {
               SgObject p = SG_CAR(cgen_14);
               if (!(SG_CHARP(p))) {
-                Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char<=?")), Sg_MakeString(UC("char"), SG_LITERAL_STRING), p, SG_NIL);
+                Sg_WrongTypeOfArgumentViolation(SG_INTERN("char<=?"), Sg_MakeString(UC("char"), SG_LITERAL_STRING), p, SG_NIL);
                 return SG_UNDEF;
 ;
               }
@@ -2731,13 +2732,13 @@ static SgObject nullchar3e3d3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_CHARP(c1))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char>=?")), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c1, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char>=?"), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c1, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_CHARP(c2))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char>=?")), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c2, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char>=?"), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c2, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -2755,7 +2756,7 @@ static SgObject nullchar3e3d3f(SgObject *args, int argc, void *data_)
             {
               SgObject p = SG_CAR(cgen_15);
               if (!(SG_CHARP(p))) {
-                Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char>=?")), Sg_MakeString(UC("char"), SG_LITERAL_STRING), p, SG_NIL);
+                Sg_WrongTypeOfArgumentViolation(SG_INTERN("char>=?"), Sg_MakeString(UC("char"), SG_LITERAL_STRING), p, SG_NIL);
                 return SG_UNDEF;
 ;
               }
@@ -2800,7 +2801,7 @@ static SgObject nullmake_string(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_CHARP(c))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-string")), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c, SG_LIST2(SG_MAKE_INT(k), c));
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-string"), Sg_MakeString(UC("char"), SG_LITERAL_STRING), c, SG_LIST2(SG_MAKE_INT(k), c));
       return SG_UNDEF;
 ;
     }
@@ -2865,7 +2866,7 @@ static SgObject nullstring_ref(SgObject *args, int argc, void *data_)
       SG_RETURN = (SG_MAKE_CHAR(SG_STRING_VALUE_AT(s, k)));
     } else {
       if (SG_UNBOUNDP(fallback)) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("string-ref")), Sg_MakeString(UC("index out of bounds"), SG_LITERAL_STRING), SG_LIST2(s, SG_MAKE_INT(k)));
+        Sg_AssertionViolation(SG_INTERN("string-ref"), Sg_MakeString(UC("index out of bounds"), SG_LITERAL_STRING), SG_LIST2(s, SG_MAKE_INT(k)));
         return SG_UNDEF;
 ;
       }
@@ -2895,13 +2896,13 @@ static SgObject nullstring3d3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_STRINGP(s1))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("string=?")), Sg_MakeString(UC("string"), SG_LITERAL_STRING), s1, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("string=?"), Sg_MakeString(UC("string"), SG_LITERAL_STRING), s1, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_STRINGP(s2))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("string=?")), Sg_MakeString(UC("string"), SG_LITERAL_STRING), s2, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("string=?"), Sg_MakeString(UC("string"), SG_LITERAL_STRING), s2, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -2919,7 +2920,7 @@ static SgObject nullstring3d3f(SgObject *args, int argc, void *data_)
             {
               SgObject p = SG_CAR(cgen_16);
               if (!(SG_STRINGP(p))) {
-                Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("string=?")), Sg_MakeString(UC("string"), SG_LITERAL_STRING), p, SG_NIL);
+                Sg_WrongTypeOfArgumentViolation(SG_INTERN("string=?"), Sg_MakeString(UC("string"), SG_LITERAL_STRING), p, SG_NIL);
                 return SG_UNDEF;
 ;
               }
@@ -2974,7 +2975,7 @@ static SgObject nullstring3c3f(SgObject *args, int argc, void *data_)
             {
               SgObject p = SG_CAR(cgen_17);
               if (!(SG_STRINGP(p))) {
-                Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("string<?")), Sg_MakeString(UC("string"), SG_LITERAL_STRING), p, SG_NIL);
+                Sg_WrongTypeOfArgumentViolation(SG_INTERN("string<?"), Sg_MakeString(UC("string"), SG_LITERAL_STRING), p, SG_NIL);
                 return SG_UNDEF;
 ;
               }
@@ -3028,7 +3029,7 @@ static SgObject nullstring3e3f(SgObject *args, int argc, void *data_)
             {
               SgObject p = SG_CAR(cgen_18);
               if (!(SG_STRINGP(p))) {
-                Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("string>?")), Sg_MakeString(UC("string"), SG_LITERAL_STRING), p, SG_NIL);
+                Sg_WrongTypeOfArgumentViolation(SG_INTERN("string>?"), Sg_MakeString(UC("string"), SG_LITERAL_STRING), p, SG_NIL);
                 return SG_UNDEF;
 ;
               }
@@ -3082,7 +3083,7 @@ static SgObject nullstring3c3d3f(SgObject *args, int argc, void *data_)
             {
               SgObject p = SG_CAR(cgen_19);
               if (!(SG_STRINGP(p))) {
-                Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("string<=?")), Sg_MakeString(UC("string"), SG_LITERAL_STRING), p, SG_NIL);
+                Sg_WrongTypeOfArgumentViolation(SG_INTERN("string<=?"), Sg_MakeString(UC("string"), SG_LITERAL_STRING), p, SG_NIL);
                 return SG_UNDEF;
 ;
               }
@@ -3136,7 +3137,7 @@ static SgObject nullstring3e3d3f(SgObject *args, int argc, void *data_)
             {
               SgObject p = SG_CAR(cgen_20);
               if (!(SG_STRINGP(p))) {
-                Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("string>=?")), Sg_MakeString(UC("string"), SG_LITERAL_STRING), p, SG_NIL);
+                Sg_WrongTypeOfArgumentViolation(SG_INTERN("string>=?"), Sg_MakeString(UC("string"), SG_LITERAL_STRING), p, SG_NIL);
                 return SG_UNDEF;
 ;
               }
@@ -3179,25 +3180,25 @@ static SgObject nullsubstring(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (start < 0) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("substring")), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(start), SG_LIST3(s, SG_MAKE_INT(start), SG_MAKE_INT(end)));
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("substring"), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(start), SG_LIST3(s, SG_MAKE_INT(start), SG_MAKE_INT(end)));
       return SG_UNDEF;
 ;
     }
 ;
     if (end < 0) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("substring")), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(end), SG_LIST3(s, SG_MAKE_INT(start), SG_MAKE_INT(end)));
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("substring"), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(end), SG_LIST3(s, SG_MAKE_INT(start), SG_MAKE_INT(end)));
       return SG_UNDEF;
 ;
     }
 ;
     if (end < start) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("substring")), Sg_MakeString(UC("end index is smaller than start index"), SG_LITERAL_STRING), SG_LIST3(s, SG_MAKE_INT(start), SG_MAKE_INT(end)));
+      Sg_AssertionViolation(SG_INTERN("substring"), Sg_MakeString(UC("end index is smaller than start index"), SG_LITERAL_STRING), SG_LIST3(s, SG_MAKE_INT(start), SG_MAKE_INT(end)));
       return SG_UNDEF;
 ;
     }
 ;
     if (SG_STRING_SIZE(s) < end) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("substring")), Sg_MakeString(UC("end index out of bounds"), SG_LITERAL_STRING), SG_LIST3(s, SG_MAKE_INT(start), SG_MAKE_INT(end)));
+      Sg_AssertionViolation(SG_INTERN("substring"), Sg_MakeString(UC("end index out of bounds"), SG_LITERAL_STRING), SG_LIST3(s, SG_MAKE_INT(start), SG_MAKE_INT(end)));
       return SG_UNDEF;
 ;
     }
@@ -3264,7 +3265,7 @@ static SgObject nulllist_3estring(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_LISTP(o))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("list->string")), Sg_MakeString(UC("list"), SG_LITERAL_STRING), o, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("list->string"), Sg_MakeString(UC("list"), SG_LITERAL_STRING), o, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -3382,7 +3383,7 @@ static SgObject nullvector_ref(SgObject *args, int argc, void *data_)
     SgObject SG_RETURN = SG_UNDEF;
     if ((i < 0 || i >= SG_VECTOR_SIZE(vec))    ) {
       if (SG_UNBOUNDP(fallback)) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("vector-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(i));
+        Sg_AssertionViolation(SG_INTERN("vector-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(i));
         return SG_UNDEF;
 ;
       }
@@ -3414,13 +3415,13 @@ static SgObject nullvector_set21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_LITERAL_VECTORP(vec)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("vector-set")), Sg_MakeString(UC("attempt to modify immutable vector"), SG_LITERAL_STRING), SG_LIST1(vec));
+      Sg_AssertionViolation(SG_INTERN("vector-set"), Sg_MakeString(UC("attempt to modify immutable vector"), SG_LITERAL_STRING), SG_LIST1(vec));
       return SG_UNDEF;
 ;
     }
 ;
     if ((i < 0 || i >= SG_VECTOR_SIZE(vec))    ) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("vector-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(i));
+      Sg_AssertionViolation(SG_INTERN("vector-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(i));
       return SG_UNDEF;
 ;
     } else {
@@ -3491,7 +3492,7 @@ static SgObject nulllist_3evector(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_LISTP(lst))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("list->vector")), Sg_MakeString(UC("propert list"), SG_LITERAL_STRING), lst, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("list->vector"), Sg_MakeString(UC("propert list"), SG_LITERAL_STRING), lst, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -3622,7 +3623,7 @@ static SgObject nullapply(SgObject *args, int argc, void *data_)
             }
 ;
             if (!(SG_PAIRP(SG_CDR(cp)))) {
-              Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("apply")), Sg_MakeString(UC("improper list not allowed"), SG_LITERAL_STRING), rest);
+              Sg_AssertionViolation(SG_INTERN("apply"), Sg_MakeString(UC("improper list not allowed"), SG_LITERAL_STRING), rest);
               return SG_UNDEF;
 ;
             }
@@ -3746,7 +3747,7 @@ static SgObject nullchar_upcase(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_CHARP(c))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char-upcase")), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char-upcase"), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -3767,7 +3768,7 @@ static SgObject nullchar_downcase(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_CHARP(c))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char-downcase")), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char-downcase"), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -3788,7 +3789,7 @@ static SgObject nullchar_titlecase(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_CHARP(c))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char-titlecase")), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char-titlecase"), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -3809,7 +3810,7 @@ static SgObject nullchar_foldcase(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_CHARP(c))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char-foldcase")), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char-foldcase"), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -3830,7 +3831,7 @@ static SgObject nullchar_general_category(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_CHARP(c))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char-general-category")), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char-general-category"), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -3851,7 +3852,7 @@ static SgObject nullchar_alphabetic3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_CHARP(c))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char-alphabetic?")), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char-alphabetic?"), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -3872,7 +3873,7 @@ static SgObject nullchar_numeric3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_CHARP(c))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char-numeric?")), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char-numeric?"), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -3893,7 +3894,7 @@ static SgObject nullchar_whitespace3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_CHARP(c))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char-whitespace?")), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char-whitespace?"), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -3914,7 +3915,7 @@ static SgObject nullchar_upper_case3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_CHARP(c))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char-upper-case?")), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char-upper-case?"), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -3935,7 +3936,7 @@ static SgObject nullchar_lower_case3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_CHARP(c))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char-lower-case?")), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char-lower-case?"), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -3956,7 +3957,7 @@ static SgObject nullchar_title_case3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_CHARP(c))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("char-title-case?")), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("char-title-case?"), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -4167,13 +4168,13 @@ static SgObject nullbytevector_copy21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (sstart < 0) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("name")), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(sstart), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("name"), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(sstart), SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (dstart < 0) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("name")), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(dstart), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("name"), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(dstart), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -4304,7 +4305,7 @@ static SgObject nullbytevector_u8_ref(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_BVECTOR_SIZE(bv) > index)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u8-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+      Sg_AssertionViolation(SG_INTERN("bytevector-u8-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
       return SG_UNDEF;
 ;
     }
@@ -4332,19 +4333,19 @@ static SgObject nullbytevector_u8_set21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_LITERAL_BVECTORP(bv)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u8-set!")), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
+      Sg_AssertionViolation(SG_INTERN("bytevector-u8-set!"), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_BVECTOR_SIZE(bv) > index)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u8-set!")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+      Sg_AssertionViolation(SG_INTERN("bytevector-u8-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_IS_OCTET(value))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u8-set!")), Sg_MakeString(UC("value out of range. must be 0 <= value <= 255"), SG_LITERAL_STRING), SG_MAKE_INT(value));
+      Sg_AssertionViolation(SG_INTERN("bytevector-u8-set!"), Sg_MakeString(UC("value out of range. must be 0 <= value <= 255"), SG_LITERAL_STRING), SG_MAKE_INT(value));
       return SG_UNDEF;
 ;
     }
@@ -4369,7 +4370,7 @@ static SgObject nullbytevector_s8_ref(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_BVECTOR_SIZE(bv) > index)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s8-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+      Sg_AssertionViolation(SG_INTERN("bytevector-s8-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
       return SG_UNDEF;
 ;
     }
@@ -4397,19 +4398,19 @@ static SgObject nullbytevector_s8_set21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_LITERAL_BVECTORP(bv)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s8-set!")), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
+      Sg_AssertionViolation(SG_INTERN("bytevector-s8-set!"), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_BVECTOR_SIZE(bv) > index)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s8-set!")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+      Sg_AssertionViolation(SG_INTERN("bytevector-s8-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_IS_BYTE(value))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s8-set!")), Sg_MakeString(UC("value out of range. must be -128 <= value <= 127"), SG_LITERAL_STRING), SG_MAKE_INT(value));
+      Sg_AssertionViolation(SG_INTERN("bytevector-s8-set!"), Sg_MakeString(UC("value out of range. must be -128 <= value <= 127"), SG_LITERAL_STRING), SG_MAKE_INT(value));
       return SG_UNDEF;
 ;
     }
@@ -4438,7 +4439,7 @@ static SgObject nullbytevector_u16_native_ref(SgObject *args, int argc, void *da
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 1 && index < (len - 1)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u16-native-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-u16-native-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -4446,7 +4447,7 @@ static SgObject nullbytevector_u16_native_ref(SgObject *args, int argc, void *da
     }
 ;
     if (!((index % 2) == 0)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u16-native-ref")), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+      Sg_AssertionViolation(SG_INTERN("bytevector-u16-native-ref"), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
       return SG_UNDEF;
 ;
     }
@@ -4474,7 +4475,7 @@ static SgObject nullbytevector_u16_native_set21(SgObject *args, int argc, void *
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_LITERAL_BVECTORP(bv)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u16-native-set!")), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
+      Sg_AssertionViolation(SG_INTERN("bytevector-u16-native-set!"), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
       return SG_UNDEF;
 ;
     }
@@ -4482,7 +4483,7 @@ static SgObject nullbytevector_u16_native_set21(SgObject *args, int argc, void *
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 1 && index < (len - 1)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u16-native-set!")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-u16-native-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -4490,7 +4491,7 @@ static SgObject nullbytevector_u16_native_set21(SgObject *args, int argc, void *
     }
 ;
     if (!((0 <= value && value <= 65535))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u16-native-set!")), Sg_MakeString(UC("value out of range %S"), SG_LITERAL_STRING), SG_MAKE_INT(value));
+      Sg_AssertionViolation(SG_INTERN("bytevector-u16-native-set!"), Sg_MakeString(UC("value out of range %S"), SG_LITERAL_STRING), SG_MAKE_INT(value));
       return SG_UNDEF;
 ;
     }
@@ -4520,19 +4521,19 @@ static SgObject nullbytevector_u16_ref(SgObject *args, int argc, void *data_)
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 1 && index < (len - 1)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u16-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-u16-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
 ;
     }
 ;
-    if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+    if (SG_EQ(endian, SG_INTERN("big"))) {
       SG_RETURN = (Sg_ByteVectorU16BigRef(bv, index));
-    } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+    } else if (SG_EQ(endian, SG_INTERN("little"))) {
       SG_RETURN = (Sg_ByteVectorU16LittleRef(bv, index));
     } else {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u16-ref")), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
+      Sg_AssertionViolation(SG_INTERN("bytevector-u16-ref"), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
       return SG_UNDEF;
 ;
     }
@@ -4563,7 +4564,7 @@ static SgObject nullbytevector_u16_set21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_LITERAL_BVECTORP(bv)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u16-set!")), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
+      Sg_AssertionViolation(SG_INTERN("bytevector-u16-set!"), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
       return SG_UNDEF;
 ;
     }
@@ -4571,7 +4572,7 @@ static SgObject nullbytevector_u16_set21(SgObject *args, int argc, void *data_)
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 1 && index < (len - 1)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u16-set!")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-u16-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -4579,17 +4580,17 @@ static SgObject nullbytevector_u16_set21(SgObject *args, int argc, void *data_)
     }
 ;
     if (!((0 <= value && value <= 65535))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u16-set!")), Sg_MakeString(UC("value out of range %S"), SG_LITERAL_STRING), SG_MAKE_INT(value));
+      Sg_AssertionViolation(SG_INTERN("bytevector-u16-set!"), Sg_MakeString(UC("value out of range %S"), SG_LITERAL_STRING), SG_MAKE_INT(value));
       return SG_UNDEF;
 ;
     }
 ;
-    if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+    if (SG_EQ(endian, SG_INTERN("big"))) {
       Sg_ByteVectorU16BigSet(bv, index, value);
-    } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+    } else if (SG_EQ(endian, SG_INTERN("little"))) {
       Sg_ByteVectorU16LittleSet(bv, index, value);
     } else {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u16-set!")), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
+      Sg_AssertionViolation(SG_INTERN("bytevector-u16-set!"), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
       return SG_UNDEF;
 ;
     }
@@ -4616,7 +4617,7 @@ static SgObject nullbytevector_s16_native_ref(SgObject *args, int argc, void *da
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 1 && index < (len - 1)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s16-native-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-s16-native-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -4624,7 +4625,7 @@ static SgObject nullbytevector_s16_native_ref(SgObject *args, int argc, void *da
     }
 ;
     if (!((index % 2) == 0)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s16-native-ref")), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+      Sg_AssertionViolation(SG_INTERN("bytevector-s16-native-ref"), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
       return SG_UNDEF;
 ;
     }
@@ -4652,7 +4653,7 @@ static SgObject nullbytevector_s16_native_set21(SgObject *args, int argc, void *
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_LITERAL_BVECTORP(bv)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s16-native-set!")), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
+      Sg_AssertionViolation(SG_INTERN("bytevector-s16-native-set!"), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
       return SG_UNDEF;
 ;
     }
@@ -4660,7 +4661,7 @@ static SgObject nullbytevector_s16_native_set21(SgObject *args, int argc, void *
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 1 && index < (len - 1)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s16-native-set!")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-s16-native-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -4668,7 +4669,7 @@ static SgObject nullbytevector_s16_native_set21(SgObject *args, int argc, void *
     }
 ;
     if (!((-32768 <= value && value <= 32767))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s16-native-set!")), Sg_MakeString(UC("value out of range %S"), SG_LITERAL_STRING), SG_MAKE_INT(value));
+      Sg_AssertionViolation(SG_INTERN("bytevector-s16-native-set!"), Sg_MakeString(UC("value out of range %S"), SG_LITERAL_STRING), SG_MAKE_INT(value));
       return SG_UNDEF;
 ;
     }
@@ -4698,19 +4699,19 @@ static SgObject nullbytevector_s16_ref(SgObject *args, int argc, void *data_)
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 1 && index < (len - 1)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s16-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-s16-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
 ;
     }
 ;
-    if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+    if (SG_EQ(endian, SG_INTERN("big"))) {
       SG_RETURN = (Sg_ByteVectorS16BigRef(bv, index));
-    } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+    } else if (SG_EQ(endian, SG_INTERN("little"))) {
       SG_RETURN = (Sg_ByteVectorS16LittleRef(bv, index));
     } else {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s16-ref")), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
+      Sg_AssertionViolation(SG_INTERN("bytevector-s16-ref"), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
       return SG_UNDEF;
 ;
     }
@@ -4741,7 +4742,7 @@ static SgObject nullbytevector_s16_set21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_LITERAL_BVECTORP(bv)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s16-set!")), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
+      Sg_AssertionViolation(SG_INTERN("bytevector-s16-set!"), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
       return SG_UNDEF;
 ;
     }
@@ -4749,7 +4750,7 @@ static SgObject nullbytevector_s16_set21(SgObject *args, int argc, void *data_)
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 1 && index < (len - 1)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s16-set!")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-s16-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -4757,17 +4758,17 @@ static SgObject nullbytevector_s16_set21(SgObject *args, int argc, void *data_)
     }
 ;
     if (!((-32768 <= value && value <= 32767))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s16-set!")), Sg_MakeString(UC("value out of range %S"), SG_LITERAL_STRING), SG_MAKE_INT(value));
+      Sg_AssertionViolation(SG_INTERN("bytevector-s16-set!"), Sg_MakeString(UC("value out of range %S"), SG_LITERAL_STRING), SG_MAKE_INT(value));
       return SG_UNDEF;
 ;
     }
 ;
-    if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+    if (SG_EQ(endian, SG_INTERN("big"))) {
       Sg_ByteVectorS16BigSet(bv, index, value);
-    } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+    } else if (SG_EQ(endian, SG_INTERN("little"))) {
       Sg_ByteVectorS16LittleSet(bv, index, value);
     } else {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s16-set!")), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
+      Sg_AssertionViolation(SG_INTERN("bytevector-s16-set!"), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
       return SG_UNDEF;
 ;
     }
@@ -4794,7 +4795,7 @@ static SgObject nullbytevector_u32_native_ref(SgObject *args, int argc, void *da
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 3 && index < (len - 3)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u32-native-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-u32-native-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -4802,7 +4803,7 @@ static SgObject nullbytevector_u32_native_ref(SgObject *args, int argc, void *da
     }
 ;
     if (!((index % 4) == 0)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u32-native-ref")), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+      Sg_AssertionViolation(SG_INTERN("bytevector-u32-native-ref"), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
       return SG_UNDEF;
 ;
     }
@@ -4830,7 +4831,7 @@ static SgObject nullbytevector_u32_native_set21(SgObject *args, int argc, void *
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_LITERAL_BVECTORP(bv)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u32-native-set!")), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
+      Sg_AssertionViolation(SG_INTERN("bytevector-u32-native-set!"), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
       return SG_UNDEF;
 ;
     }
@@ -4838,7 +4839,7 @@ static SgObject nullbytevector_u32_native_set21(SgObject *args, int argc, void *
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 3 && index < (len - 3)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u32-native-set!")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-u32-native-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -4849,7 +4850,7 @@ static SgObject nullbytevector_u32_native_set21(SgObject *args, int argc, void *
       uint32_t value = 0;
       if (SG_INTP(v)) {
         if (SG_INT_VALUE(v) < 0) {
-          Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u32-native-set!")), Sg_MakeString(UC("value out of range"), SG_LITERAL_STRING), v);
+          Sg_AssertionViolation(SG_INTERN("bytevector-u32-native-set!"), Sg_MakeString(UC("value out of range"), SG_LITERAL_STRING), v);
           return SG_UNDEF;
 ;
         }
@@ -4858,7 +4859,7 @@ static SgObject nullbytevector_u32_native_set21(SgObject *args, int argc, void *
       } else if (SG_BIGNUMP(v)) {
         value=Sg_BignumToU32(v, SG_CLAMP_NONE, NULL);
       } else {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("bytevector-u32-native-set!")), Sg_MakeString(UC("exact integer"), SG_LITERAL_STRING), v, SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("bytevector-u32-native-set!"), Sg_MakeString(UC("exact integer"), SG_LITERAL_STRING), v, SG_NIL);
         return SG_UNDEF;
 ;
       }
@@ -4891,19 +4892,19 @@ static SgObject nullbytevector_u32_ref(SgObject *args, int argc, void *data_)
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 3 && index < (len - 3)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u32-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-u32-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
 ;
     }
 ;
-    if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+    if (SG_EQ(endian, SG_INTERN("big"))) {
       SG_RETURN = (Sg_MakeIntegerFromU32(Sg_ByteVectorU32BigRef(bv, index)));
-    } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+    } else if (SG_EQ(endian, SG_INTERN("little"))) {
       SG_RETURN = (Sg_MakeIntegerFromU32(Sg_ByteVectorU32LittleRef(bv, index)));
     } else {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u32-ref")), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
+      Sg_AssertionViolation(SG_INTERN("bytevector-u32-ref"), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
       return SG_UNDEF;
 ;
     }
@@ -4934,7 +4935,7 @@ static SgObject nullbytevector_u32_set21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_LITERAL_BVECTORP(bv)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u32-set!")), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
+      Sg_AssertionViolation(SG_INTERN("bytevector-u32-set!"), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
       return SG_UNDEF;
 ;
     }
@@ -4942,7 +4943,7 @@ static SgObject nullbytevector_u32_set21(SgObject *args, int argc, void *data_)
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 3 && index < (len - 3)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u32-set!")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-u32-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -4953,7 +4954,7 @@ static SgObject nullbytevector_u32_set21(SgObject *args, int argc, void *data_)
       uint32_t value = 0;
       if (SG_INTP(v)) {
         if (SG_INT_VALUE(v) < 0) {
-          Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u32-set!")), Sg_MakeString(UC("value out of range"), SG_LITERAL_STRING), v);
+          Sg_AssertionViolation(SG_INTERN("bytevector-u32-set!"), Sg_MakeString(UC("value out of range"), SG_LITERAL_STRING), v);
           return SG_UNDEF;
 ;
         }
@@ -4962,18 +4963,18 @@ static SgObject nullbytevector_u32_set21(SgObject *args, int argc, void *data_)
       } else if (SG_BIGNUMP(v)) {
         value=Sg_BignumToU32(v, SG_CLAMP_NONE, NULL);
       } else {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("bytevector-u32-set!")), Sg_MakeString(UC("exact integer"), SG_LITERAL_STRING), v, SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("bytevector-u32-set!"), Sg_MakeString(UC("exact integer"), SG_LITERAL_STRING), v, SG_NIL);
         return SG_UNDEF;
 ;
       }
       
 ;
-      if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+      if (SG_EQ(endian, SG_INTERN("big"))) {
         Sg_ByteVectorU32BigSet(bv, index, value);
-      } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+      } else if (SG_EQ(endian, SG_INTERN("little"))) {
         Sg_ByteVectorU32LittleSet(bv, index, value);
       } else {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u32-set!")), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
+        Sg_AssertionViolation(SG_INTERN("bytevector-u32-set!"), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
         return SG_UNDEF;
 ;
       }
@@ -5002,7 +5003,7 @@ static SgObject nullbytevector_s32_native_ref(SgObject *args, int argc, void *da
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 3 && index < (len - 3)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s32-native-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-s32-native-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -5010,7 +5011,7 @@ static SgObject nullbytevector_s32_native_ref(SgObject *args, int argc, void *da
     }
 ;
     if (!((index % 4) == 0)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s32-native-ref")), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+      Sg_AssertionViolation(SG_INTERN("bytevector-s32-native-ref"), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
       return SG_UNDEF;
 ;
     }
@@ -5038,7 +5039,7 @@ static SgObject nullbytevector_s32_native_set21(SgObject *args, int argc, void *
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_LITERAL_BVECTORP(bv)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s32-native-set!")), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
+      Sg_AssertionViolation(SG_INTERN("bytevector-s32-native-set!"), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
       return SG_UNDEF;
 ;
     }
@@ -5046,7 +5047,7 @@ static SgObject nullbytevector_s32_native_set21(SgObject *args, int argc, void *
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 3 && index < (len - 3)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s32-native-set!")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-s32-native-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -5057,7 +5058,7 @@ static SgObject nullbytevector_s32_native_set21(SgObject *args, int argc, void *
       int32_t value = 0;
       if (SG_INTP(v)) {
         if (SG_INT_VALUE(v) < 0) {
-          Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s32-native-set!")), Sg_MakeString(UC("value out of range"), SG_LITERAL_STRING), v);
+          Sg_AssertionViolation(SG_INTERN("bytevector-s32-native-set!"), Sg_MakeString(UC("value out of range"), SG_LITERAL_STRING), v);
           return SG_UNDEF;
 ;
         }
@@ -5066,7 +5067,7 @@ static SgObject nullbytevector_s32_native_set21(SgObject *args, int argc, void *
       } else if (SG_BIGNUMP(v)) {
         value=Sg_BignumToS32(v, SG_CLAMP_NONE, NULL);
       } else {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("bytevector-s32-native-set!")), Sg_MakeString(UC("exact integer"), SG_LITERAL_STRING), v, SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("bytevector-s32-native-set!"), Sg_MakeString(UC("exact integer"), SG_LITERAL_STRING), v, SG_NIL);
         return SG_UNDEF;
 ;
       }
@@ -5099,19 +5100,19 @@ static SgObject nullbytevector_s32_ref(SgObject *args, int argc, void *data_)
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 3 && index < (len - 3)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s32-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-s32-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
 ;
     }
 ;
-    if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+    if (SG_EQ(endian, SG_INTERN("big"))) {
       SG_RETURN = (Sg_MakeIntegerFromS32(Sg_ByteVectorS32BigRef(bv, index)));
-    } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+    } else if (SG_EQ(endian, SG_INTERN("little"))) {
       SG_RETURN = (Sg_MakeIntegerFromS32(Sg_ByteVectorS32LittleRef(bv, index)));
     } else {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s32-ref")), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
+      Sg_AssertionViolation(SG_INTERN("bytevector-s32-ref"), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
       return SG_UNDEF;
 ;
     }
@@ -5142,7 +5143,7 @@ static SgObject nullbytevector_s32_set21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_LITERAL_BVECTORP(bv)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s32-set!")), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
+      Sg_AssertionViolation(SG_INTERN("bytevector-s32-set!"), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
       return SG_UNDEF;
 ;
     }
@@ -5150,7 +5151,7 @@ static SgObject nullbytevector_s32_set21(SgObject *args, int argc, void *data_)
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 3 && index < (len - 3)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s32-set!")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-s32-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -5161,7 +5162,7 @@ static SgObject nullbytevector_s32_set21(SgObject *args, int argc, void *data_)
       int32_t value = 0;
       if (SG_INTP(v)) {
         if (SG_INT_VALUE(v) < 0) {
-          Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s32-set!")), Sg_MakeString(UC("value out of range"), SG_LITERAL_STRING), v);
+          Sg_AssertionViolation(SG_INTERN("bytevector-s32-set!"), Sg_MakeString(UC("value out of range"), SG_LITERAL_STRING), v);
           return SG_UNDEF;
 ;
         }
@@ -5170,18 +5171,18 @@ static SgObject nullbytevector_s32_set21(SgObject *args, int argc, void *data_)
       } else if (SG_BIGNUMP(v)) {
         value=Sg_BignumToS32(v, SG_CLAMP_NONE, NULL);
       } else {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("bytevector-s32-set!")), Sg_MakeString(UC("exact integer"), SG_LITERAL_STRING), v, SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("bytevector-s32-set!"), Sg_MakeString(UC("exact integer"), SG_LITERAL_STRING), v, SG_NIL);
         return SG_UNDEF;
 ;
       }
       
 ;
-      if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+      if (SG_EQ(endian, SG_INTERN("big"))) {
         Sg_ByteVectorS32BigSet(bv, index, value);
-      } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+      } else if (SG_EQ(endian, SG_INTERN("little"))) {
         Sg_ByteVectorS32LittleSet(bv, index, value);
       } else {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s32-set!")), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
+        Sg_AssertionViolation(SG_INTERN("bytevector-s32-set!"), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
         return SG_UNDEF;
 ;
       }
@@ -5210,7 +5211,7 @@ static SgObject nullbytevector_u64_native_ref(SgObject *args, int argc, void *da
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 7 && index < (len - 7)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u64-native-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-u64-native-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -5218,7 +5219,7 @@ static SgObject nullbytevector_u64_native_ref(SgObject *args, int argc, void *da
     }
 ;
     if (!((index % 8) == 0)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u64-native-ref")), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+      Sg_AssertionViolation(SG_INTERN("bytevector-u64-native-ref"), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
       return SG_UNDEF;
 ;
     }
@@ -5246,7 +5247,7 @@ static SgObject nullbytevector_u64_native_set21(SgObject *args, int argc, void *
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_LITERAL_BVECTORP(bv)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u64-native-set!")), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
+      Sg_AssertionViolation(SG_INTERN("bytevector-u64-native-set!"), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
       return SG_UNDEF;
 ;
     }
@@ -5254,7 +5255,7 @@ static SgObject nullbytevector_u64_native_set21(SgObject *args, int argc, void *
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 7 && index < (len - 7)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u64-native-set!")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-u64-native-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -5265,7 +5266,7 @@ static SgObject nullbytevector_u64_native_set21(SgObject *args, int argc, void *
       uint64_t value = 0;
       if (SG_INTP(v)) {
         if (SG_INT_VALUE(v) < 0) {
-          Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u64-native-set!")), Sg_MakeString(UC("value out of range"), SG_LITERAL_STRING), v);
+          Sg_AssertionViolation(SG_INTERN("bytevector-u64-native-set!"), Sg_MakeString(UC("value out of range"), SG_LITERAL_STRING), v);
           return SG_UNDEF;
 ;
         }
@@ -5274,7 +5275,7 @@ static SgObject nullbytevector_u64_native_set21(SgObject *args, int argc, void *
       } else if (SG_BIGNUMP(v)) {
         value=Sg_BignumToU64(v, SG_CLAMP_NONE, NULL);
       } else {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("bytevector-u64-native-set!")), Sg_MakeString(UC("exact integer"), SG_LITERAL_STRING), v, SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("bytevector-u64-native-set!"), Sg_MakeString(UC("exact integer"), SG_LITERAL_STRING), v, SG_NIL);
         return SG_UNDEF;
 ;
       }
@@ -5307,19 +5308,19 @@ static SgObject nullbytevector_u64_ref(SgObject *args, int argc, void *data_)
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 7 && index < (len - 7)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u64-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-u64-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
 ;
     }
 ;
-    if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+    if (SG_EQ(endian, SG_INTERN("big"))) {
       SG_RETURN = (Sg_MakeIntegerFromU64(Sg_ByteVectorU64BigRef(bv, index)));
-    } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+    } else if (SG_EQ(endian, SG_INTERN("little"))) {
       SG_RETURN = (Sg_MakeIntegerFromU64(Sg_ByteVectorU64LittleRef(bv, index)));
     } else {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u64-ref")), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
+      Sg_AssertionViolation(SG_INTERN("bytevector-u64-ref"), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
       return SG_UNDEF;
 ;
     }
@@ -5350,7 +5351,7 @@ static SgObject nullbytevector_u64_set21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_LITERAL_BVECTORP(bv)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u64-set!")), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
+      Sg_AssertionViolation(SG_INTERN("bytevector-u64-set!"), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
       return SG_UNDEF;
 ;
     }
@@ -5358,7 +5359,7 @@ static SgObject nullbytevector_u64_set21(SgObject *args, int argc, void *data_)
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 7 && index < (len - 7)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u64-set!")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-u64-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -5369,7 +5370,7 @@ static SgObject nullbytevector_u64_set21(SgObject *args, int argc, void *data_)
       uint64_t value = 0;
       if (SG_INTP(v)) {
         if (SG_INT_VALUE(v) < 0) {
-          Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u64-set!")), Sg_MakeString(UC("value out of range"), SG_LITERAL_STRING), v);
+          Sg_AssertionViolation(SG_INTERN("bytevector-u64-set!"), Sg_MakeString(UC("value out of range"), SG_LITERAL_STRING), v);
           return SG_UNDEF;
 ;
         }
@@ -5378,18 +5379,18 @@ static SgObject nullbytevector_u64_set21(SgObject *args, int argc, void *data_)
       } else if (SG_BIGNUMP(v)) {
         value=Sg_BignumToU64(v, SG_CLAMP_NONE, NULL);
       } else {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("bytevector-u64-set!")), Sg_MakeString(UC("exact integer"), SG_LITERAL_STRING), v, SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("bytevector-u64-set!"), Sg_MakeString(UC("exact integer"), SG_LITERAL_STRING), v, SG_NIL);
         return SG_UNDEF;
 ;
       }
       
 ;
-      if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+      if (SG_EQ(endian, SG_INTERN("big"))) {
         Sg_ByteVectorU64BigSet(bv, index, value);
-      } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+      } else if (SG_EQ(endian, SG_INTERN("little"))) {
         Sg_ByteVectorU64LittleSet(bv, index, value);
       } else {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-u64-set!")), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
+        Sg_AssertionViolation(SG_INTERN("bytevector-u64-set!"), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
         return SG_UNDEF;
 ;
       }
@@ -5418,7 +5419,7 @@ static SgObject nullbytevector_s64_native_ref(SgObject *args, int argc, void *da
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 7 && index < (len - 7)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s64-native-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-s64-native-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -5426,7 +5427,7 @@ static SgObject nullbytevector_s64_native_ref(SgObject *args, int argc, void *da
     }
 ;
     if (!((index % 8) == 0)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s64-native-ref")), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+      Sg_AssertionViolation(SG_INTERN("bytevector-s64-native-ref"), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
       return SG_UNDEF;
 ;
     }
@@ -5454,7 +5455,7 @@ static SgObject nullbytevector_s64_native_set21(SgObject *args, int argc, void *
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_LITERAL_BVECTORP(bv)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s64-native-set!")), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
+      Sg_AssertionViolation(SG_INTERN("bytevector-s64-native-set!"), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
       return SG_UNDEF;
 ;
     }
@@ -5462,7 +5463,7 @@ static SgObject nullbytevector_s64_native_set21(SgObject *args, int argc, void *
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 7 && index < (len - 7)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s64-native-set!")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-s64-native-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -5473,7 +5474,7 @@ static SgObject nullbytevector_s64_native_set21(SgObject *args, int argc, void *
       int64_t value = 0;
       if (SG_INTP(v)) {
         if (SG_INT_VALUE(v) < 0) {
-          Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s64-native-set!")), Sg_MakeString(UC("value out of range"), SG_LITERAL_STRING), v);
+          Sg_AssertionViolation(SG_INTERN("bytevector-s64-native-set!"), Sg_MakeString(UC("value out of range"), SG_LITERAL_STRING), v);
           return SG_UNDEF;
 ;
         }
@@ -5482,7 +5483,7 @@ static SgObject nullbytevector_s64_native_set21(SgObject *args, int argc, void *
       } else if (SG_BIGNUMP(v)) {
         value=Sg_BignumToS64(v, SG_CLAMP_NONE, NULL);
       } else {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("bytevector-s64-native-set!")), Sg_MakeString(UC("exact integer"), SG_LITERAL_STRING), v, SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("bytevector-s64-native-set!"), Sg_MakeString(UC("exact integer"), SG_LITERAL_STRING), v, SG_NIL);
         return SG_UNDEF;
 ;
       }
@@ -5515,19 +5516,19 @@ static SgObject nullbytevector_s64_ref(SgObject *args, int argc, void *data_)
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 7 && index < (len - 7)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s64-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-s64-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
 ;
     }
 ;
-    if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+    if (SG_EQ(endian, SG_INTERN("big"))) {
       SG_RETURN = (Sg_MakeIntegerFromS64(Sg_ByteVectorS64BigRef(bv, index)));
-    } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+    } else if (SG_EQ(endian, SG_INTERN("little"))) {
       SG_RETURN = (Sg_MakeIntegerFromS64(Sg_ByteVectorS64LittleRef(bv, index)));
     } else {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s64-ref")), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
+      Sg_AssertionViolation(SG_INTERN("bytevector-s64-ref"), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
       return SG_UNDEF;
 ;
     }
@@ -5558,7 +5559,7 @@ static SgObject nullbytevector_s64_set21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_LITERAL_BVECTORP(bv)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s64-set!")), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
+      Sg_AssertionViolation(SG_INTERN("bytevector-s64-set!"), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
       return SG_UNDEF;
 ;
     }
@@ -5566,7 +5567,7 @@ static SgObject nullbytevector_s64_set21(SgObject *args, int argc, void *data_)
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 7 && index < (len - 7)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s64-set!")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-s64-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -5577,7 +5578,7 @@ static SgObject nullbytevector_s64_set21(SgObject *args, int argc, void *data_)
       int64_t value = 0;
       if (SG_INTP(v)) {
         if (SG_INT_VALUE(v) < 0) {
-          Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s64-set!")), Sg_MakeString(UC("value out of range"), SG_LITERAL_STRING), v);
+          Sg_AssertionViolation(SG_INTERN("bytevector-s64-set!"), Sg_MakeString(UC("value out of range"), SG_LITERAL_STRING), v);
           return SG_UNDEF;
 ;
         }
@@ -5586,18 +5587,18 @@ static SgObject nullbytevector_s64_set21(SgObject *args, int argc, void *data_)
       } else if (SG_BIGNUMP(v)) {
         value=Sg_BignumToS64(v, SG_CLAMP_NONE, NULL);
       } else {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("bytevector-s64-set!")), Sg_MakeString(UC("exact integer"), SG_LITERAL_STRING), v, SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("bytevector-s64-set!"), Sg_MakeString(UC("exact integer"), SG_LITERAL_STRING), v, SG_NIL);
         return SG_UNDEF;
 ;
       }
       
 ;
-      if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+      if (SG_EQ(endian, SG_INTERN("big"))) {
         Sg_ByteVectorS64BigSet(bv, index, value);
-      } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+      } else if (SG_EQ(endian, SG_INTERN("little"))) {
         Sg_ByteVectorS64LittleSet(bv, index, value);
       } else {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-s64-set!")), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
+        Sg_AssertionViolation(SG_INTERN("bytevector-s64-set!"), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
         return SG_UNDEF;
 ;
       }
@@ -5626,7 +5627,7 @@ static SgObject nullbytevector_ieee_single_native_ref(SgObject *args, int argc, 
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 3 && index < (len - 3)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-single-native-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-ieee-single-native-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -5634,7 +5635,7 @@ static SgObject nullbytevector_ieee_single_native_ref(SgObject *args, int argc, 
     }
 ;
     if (!((index % 4) == 0)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-single-native-ref")), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+      Sg_AssertionViolation(SG_INTERN("bytevector-ieee-single-native-ref"), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
       return SG_UNDEF;
 ;
     }
@@ -5664,19 +5665,19 @@ static SgObject nullbytevector_ieee_single_ref(SgObject *args, int argc, void *d
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 3 && index < (len - 3)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-single-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-ieee-single-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
 ;
     }
 ;
-    if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+    if (SG_EQ(endian, SG_INTERN("big"))) {
       SG_RETURN = (Sg_MakeFlonum(Sg_ByteVectorIEEESingleBigRef(bv, index)));
-    } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+    } else if (SG_EQ(endian, SG_INTERN("little"))) {
       SG_RETURN = (Sg_MakeFlonum(Sg_ByteVectorIEEESingleLittleRef(bv, index)));
     } else {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-single-ref")), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
+      Sg_AssertionViolation(SG_INTERN("bytevector-ieee-single-ref"), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
       return SG_UNDEF;
 ;
     }
@@ -5704,7 +5705,7 @@ static SgObject nullbytevector_ieee_single_native_set21(SgObject *args, int argc
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_LITERAL_BVECTORP(bv)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-single-native-set!")), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
+      Sg_AssertionViolation(SG_INTERN("bytevector-ieee-single-native-set!"), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
       return SG_UNDEF;
 ;
     }
@@ -5712,7 +5713,7 @@ static SgObject nullbytevector_ieee_single_native_set21(SgObject *args, int argc
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 3 && index < (len - 3)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-single-native-set!")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-ieee-single-native-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -5720,13 +5721,13 @@ static SgObject nullbytevector_ieee_single_native_set21(SgObject *args, int argc
     }
 ;
     if (!((index % 4) == 0)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-single-native-set!")), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+      Sg_AssertionViolation(SG_INTERN("bytevector-ieee-single-native-set!"), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_REALP(v))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-single-native-set!")), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), v, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("bytevector-ieee-single-native-set!"), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), v, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -5761,7 +5762,7 @@ static SgObject nullbytevector_ieee_single_set21(SgObject *args, int argc, void 
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_LITERAL_BVECTORP(bv)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-single-set!")), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
+      Sg_AssertionViolation(SG_INTERN("bytevector-ieee-single-set!"), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
       return SG_UNDEF;
 ;
     }
@@ -5769,7 +5770,7 @@ static SgObject nullbytevector_ieee_single_set21(SgObject *args, int argc, void 
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 3 && index < (len - 3)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-single-set!")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-ieee-single-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -5777,19 +5778,19 @@ static SgObject nullbytevector_ieee_single_set21(SgObject *args, int argc, void 
     }
 ;
     if (!(SG_REALP(v))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-single-set!")), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), v, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("bytevector-ieee-single-set!"), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), v, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     {
       double value = Sg_GetDouble(v);
-      if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+      if (SG_EQ(endian, SG_INTERN("big"))) {
         Sg_ByteVectorIEEESingleBigSet(bv, index, (float)value);
-      } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+      } else if (SG_EQ(endian, SG_INTERN("little"))) {
         Sg_ByteVectorIEEESingleLittleSet(bv, index, (float)value);
       } else {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-single-set!")), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
+        Sg_AssertionViolation(SG_INTERN("bytevector-ieee-single-set!"), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
         return SG_UNDEF;
 ;
       }
@@ -5818,7 +5819,7 @@ static SgObject nullbytevector_ieee_double_native_ref(SgObject *args, int argc, 
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 7 && index < (len - 7)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-double-native-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-ieee-double-native-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -5826,7 +5827,7 @@ static SgObject nullbytevector_ieee_double_native_ref(SgObject *args, int argc, 
     }
 ;
     if (!((index % 8) == 0)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-double-native-ref")), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+      Sg_AssertionViolation(SG_INTERN("bytevector-ieee-double-native-ref"), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
       return SG_UNDEF;
 ;
     }
@@ -5856,19 +5857,19 @@ static SgObject nullbytevector_ieee_double_ref(SgObject *args, int argc, void *d
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 7 && index < (len - 7)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-double-ref")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-ieee-double-ref"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
 ;
     }
 ;
-    if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+    if (SG_EQ(endian, SG_INTERN("big"))) {
       SG_RETURN = (Sg_MakeFlonum(Sg_ByteVectorIEEEDoubleBigRef(bv, index)));
-    } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+    } else if (SG_EQ(endian, SG_INTERN("little"))) {
       SG_RETURN = (Sg_MakeFlonum(Sg_ByteVectorIEEEDoubleLittleRef(bv, index)));
     } else {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-double-ref")), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
+      Sg_AssertionViolation(SG_INTERN("bytevector-ieee-double-ref"), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
       return SG_UNDEF;
 ;
     }
@@ -5896,7 +5897,7 @@ static SgObject nullbytevector_ieee_double_native_set21(SgObject *args, int argc
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_LITERAL_BVECTORP(bv)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-double-native-set!")), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
+      Sg_AssertionViolation(SG_INTERN("bytevector-ieee-double-native-set!"), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
       return SG_UNDEF;
 ;
     }
@@ -5904,7 +5905,7 @@ static SgObject nullbytevector_ieee_double_native_set21(SgObject *args, int argc
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 7 && index < (len - 7)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-double-native-set!")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-ieee-double-native-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -5912,13 +5913,13 @@ static SgObject nullbytevector_ieee_double_native_set21(SgObject *args, int argc
     }
 ;
     if (!((index % 8) == 0)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-double-native-set!")), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+      Sg_AssertionViolation(SG_INTERN("bytevector-ieee-double-native-set!"), Sg_MakeString(UC("index not aligned"), SG_LITERAL_STRING), SG_MAKE_INT(index));
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_REALP(v))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-double-native-set!")), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), v, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("bytevector-ieee-double-native-set!"), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), v, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -5953,7 +5954,7 @@ static SgObject nullbytevector_ieee_double_set21(SgObject *args, int argc, void 
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_LITERAL_BVECTORP(bv)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-double-set!")), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
+      Sg_AssertionViolation(SG_INTERN("bytevector-ieee-double-set!"), Sg_MakeString(UC("attempt to modify literal bytevector"), SG_LITERAL_STRING), bv);
       return SG_UNDEF;
 ;
     }
@@ -5961,7 +5962,7 @@ static SgObject nullbytevector_ieee_double_set21(SgObject *args, int argc, void 
     {
       int len = SG_BVECTOR_SIZE(bv);
       if (!((len > 7 && index < (len - 7)))) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-double-set!")), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
+        Sg_AssertionViolation(SG_INTERN("bytevector-ieee-double-set!"), Sg_MakeString(UC("index out of range"), SG_LITERAL_STRING), SG_MAKE_INT(index));
         return SG_UNDEF;
 ;
       }
@@ -5969,19 +5970,19 @@ static SgObject nullbytevector_ieee_double_set21(SgObject *args, int argc, void 
     }
 ;
     if (!(SG_REALP(v))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-double-set!")), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), v, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("bytevector-ieee-double-set!"), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), v, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     {
       double value = Sg_GetDouble(v);
-      if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+      if (SG_EQ(endian, SG_INTERN("big"))) {
         Sg_ByteVectorIEEEDoubleBigSet(bv, index, value);
-      } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+      } else if (SG_EQ(endian, SG_INTERN("little"))) {
         Sg_ByteVectorIEEEDoubleLittleSet(bv, index, value);
       } else {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bytevector-ieee-double-set!")), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
+        Sg_AssertionViolation(SG_INTERN("bytevector-ieee-double-set!"), Sg_MakeString(UC("unsupported endianness"), SG_LITERAL_STRING), endian);
         return SG_UNDEF;
 ;
       }
@@ -6066,12 +6067,12 @@ static SgObject nullutf16_3estring(SgObject *args, int argc, void *data_)
       }
 ;
       if (((!(SG_UNBOUNDP(mandatory)) && !(SG_FALSEP(mandatory))) || endianness == NO_BOM)) {
-        if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+        if (SG_EQ(endian, SG_INTERN("little"))) {
           endianness=UTF_16LE;
-        } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+        } else if (SG_EQ(endian, SG_INTERN("big"))) {
           endianness=UTF_16BE;
         } else {
-          Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("utf16->string")), Sg_MakeString(UC("endianness should be little or big"), SG_LITERAL_STRING), endian);
+          Sg_AssertionViolation(SG_INTERN("utf16->string"), Sg_MakeString(UC("endianness should be little or big"), SG_LITERAL_STRING), endian);
           return SG_UNDEF;
 ;
         }
@@ -6120,12 +6121,12 @@ static SgObject nullstring_3eutf16(SgObject *args, int argc, void *data_)
     {
       Endianness endianness = UTF_16BE;
       if (!(SG_UNBOUNDP(endian))) {
-        if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+        if (SG_EQ(endian, SG_INTERN("little"))) {
           endianness=UTF_16LE;
-        } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+        } else if (SG_EQ(endian, SG_INTERN("big"))) {
           endianness=UTF_16BE;
         } else {
-          Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("string->utf16")), Sg_MakeString(UC("endianness should be little or big"), SG_LITERAL_STRING), endian);
+          Sg_AssertionViolation(SG_INTERN("string->utf16"), Sg_MakeString(UC("endianness should be little or big"), SG_LITERAL_STRING), endian);
           return SG_UNDEF;
 ;
         }
@@ -6162,12 +6163,12 @@ static SgObject nullstring_3eutf32(SgObject *args, int argc, void *data_)
     {
       Endianness endianness = UTF_32BE;
       if (!(SG_UNBOUNDP(endian))) {
-        if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+        if (SG_EQ(endian, SG_INTERN("little"))) {
           endianness=UTF_32LE;
-        } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+        } else if (SG_EQ(endian, SG_INTERN("big"))) {
           endianness=UTF_32BE;
         } else {
-          Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("string->utf32")), Sg_MakeString(UC("endianness should be little or big"), SG_LITERAL_STRING), endian);
+          Sg_AssertionViolation(SG_INTERN("string->utf32"), Sg_MakeString(UC("endianness should be little or big"), SG_LITERAL_STRING), endian);
           return SG_UNDEF;
 ;
         }
@@ -6215,12 +6216,12 @@ static SgObject nullutf32_3estring(SgObject *args, int argc, void *data_)
       }
 ;
       if (((!(SG_UNBOUNDP(mandatory)) && !(SG_FALSEP(mandatory))) || endianness == NO_BOM)) {
-        if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("little")))) {
+        if (SG_EQ(endian, SG_INTERN("little"))) {
           endianness=UTF_32LE;
-        } else if (SG_EQ(endian, SG_SYMBOL(SG_INTERN("big")))) {
+        } else if (SG_EQ(endian, SG_INTERN("big"))) {
           endianness=UTF_32BE;
         } else {
-          Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("utf32->string")), Sg_MakeString(UC("endianness should be little or big"), SG_LITERAL_STRING), endian);
+          Sg_AssertionViolation(SG_INTERN("utf32->string"), Sg_MakeString(UC("endianness should be little or big"), SG_LITERAL_STRING), endian);
           return SG_UNDEF;
 ;
         }
@@ -6411,7 +6412,7 @@ static SgObject nullbuffer_mode3f(SgObject *args, int argc, void *data_)
   argumentRef(0, o);
   {
     int SG_RETURN;
-    SG_RETURN = ((SG_EQ(o, SG_SYMBOL(SG_INTERN("none"))) || SG_EQ(o, SG_SYMBOL(SG_INTERN("line"))) || SG_EQ(o, SG_SYMBOL(SG_INTERN("block")))));
+    SG_RETURN = ((SG_EQ(o, SG_INTERN("none")) || SG_EQ(o, SG_INTERN("line")) || SG_EQ(o, SG_INTERN("block"))));
     return SG_MAKE_BOOL(SG_RETURN);
   }
 }
@@ -6466,21 +6467,21 @@ static SgObject nullnative_eol_style(SgObject *args, int argc, void *data_)
     {
       EolStyle style = Sg_NativeEol();
       if (style == LF      ) {
-        SG_RETURN = (SG_SYMBOL(SG_INTERN("lf")));
+        SG_RETURN = (SG_INTERN("lf"));
       } else if (style == CR      ) {
-        SG_RETURN = (SG_SYMBOL(SG_INTERN("cr")));
+        SG_RETURN = (SG_INTERN("cr"));
       } else if (style == LS      ) {
-        SG_RETURN = (SG_SYMBOL(SG_INTERN("ls")));
+        SG_RETURN = (SG_INTERN("ls"));
       } else if (style == NEL      ) {
-        SG_RETURN = (SG_SYMBOL(SG_INTERN("nel")));
+        SG_RETURN = (SG_INTERN("nel"));
       } else if (style == CRNEL      ) {
-        SG_RETURN = (SG_SYMBOL(SG_INTERN("crnel")));
+        SG_RETURN = (SG_INTERN("crnel"));
       } else if (style == CRLF      ) {
-        SG_RETURN = (SG_SYMBOL(SG_INTERN("crlf")));
+        SG_RETURN = (SG_INTERN("crlf"));
       } else if (style == E_NONE      ) {
-        SG_RETURN = (SG_SYMBOL(SG_INTERN("none")));
+        SG_RETURN = (SG_INTERN("none"));
       } else {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("native-eol-style")), Sg_MakeString(UC("platform native eol style not found"), SG_LITERAL_STRING), SG_NIL);
+        Sg_AssertionViolation(SG_INTERN("native-eol-style"), Sg_MakeString(UC("platform native eol style not found"), SG_LITERAL_STRING), SG_NIL);
         return SG_UNDEF;
 ;
       }
@@ -6513,13 +6514,13 @@ static SgObject nullmake_transcoder(SgObject *args, int argc, void *data_)
   if (argc >= 3) {
     argumentAsSymbol(2, mode_scm, mode);
   } else {
-    mode = SG_SYMBOL(SG_INTERN("replace"));
+    mode = SG_INTERN("replace");
   }
 
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!((SG_UNBOUNDP(eol) || SG_SYMBOLP(eol)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-transcoder")), Sg_MakeString(UC("symbol"), SG_LITERAL_STRING), eol, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-transcoder"), Sg_MakeString(UC("symbol"), SG_LITERAL_STRING), eol, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -6528,34 +6529,34 @@ static SgObject nullmake_transcoder(SgObject *args, int argc, void *data_)
       EolStyle style = Sg_NativeEol();
       ErrorHandlingMode handling = SG_REPLACE_ERROR;
       if (SG_UNBOUNDP(eol)) {
-      } else if (SG_EQ(eol, SG_SYMBOL(SG_INTERN("lf")))) {
+      } else if (SG_EQ(eol, SG_INTERN("lf"))) {
         style=LF;
-      } else if (SG_EQ(eol, SG_SYMBOL(SG_INTERN("cr")))) {
+      } else if (SG_EQ(eol, SG_INTERN("cr"))) {
         style=CR;
-      } else if (SG_EQ(eol, SG_SYMBOL(SG_INTERN("ls")))) {
+      } else if (SG_EQ(eol, SG_INTERN("ls"))) {
         style=LS;
-      } else if (SG_EQ(eol, SG_SYMBOL(SG_INTERN("nel")))) {
+      } else if (SG_EQ(eol, SG_INTERN("nel"))) {
         style=NEL;
-      } else if (SG_EQ(eol, SG_SYMBOL(SG_INTERN("crnel")))) {
+      } else if (SG_EQ(eol, SG_INTERN("crnel"))) {
         style=CRNEL;
-      } else if (SG_EQ(eol, SG_SYMBOL(SG_INTERN("crlf")))) {
+      } else if (SG_EQ(eol, SG_INTERN("crlf"))) {
         style=CRLF;
-      } else if (SG_EQ(eol, SG_SYMBOL(SG_INTERN("none")))) {
+      } else if (SG_EQ(eol, SG_INTERN("none"))) {
         style=E_NONE;
       } else {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("make-transcoder")), Sg_MakeString(UC("invalid eol-style"), SG_LITERAL_STRING), eol);
+        Sg_AssertionViolation(SG_INTERN("make-transcoder"), Sg_MakeString(UC("invalid eol-style"), SG_LITERAL_STRING), eol);
         return SG_UNDEF;
 ;
       }
       
 ;
-      if (SG_EQ(mode, SG_SYMBOL(SG_INTERN("replace")))) {
-      } else if (SG_EQ(mode, SG_SYMBOL(SG_INTERN("raise")))) {
+      if (SG_EQ(mode, SG_INTERN("replace"))) {
+      } else if (SG_EQ(mode, SG_INTERN("raise"))) {
         handling=SG_RAISE_ERROR;
-      } else if (SG_EQ(mode, SG_SYMBOL(SG_INTERN("ignore")))) {
+      } else if (SG_EQ(mode, SG_INTERN("ignore"))) {
         handling=SG_IGNORE_ERROR;
       } else {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("make-transcoder")), Sg_MakeString(UC("invalid error-handling-mode"), SG_LITERAL_STRING), mode);
+        Sg_AssertionViolation(SG_INTERN("make-transcoder"), Sg_MakeString(UC("invalid error-handling-mode"), SG_LITERAL_STRING), mode);
         return SG_UNDEF;
 ;
       }
@@ -6611,21 +6612,21 @@ static SgObject nulltranscoder_eol_style(SgObject *args, int argc, void *data_)
     {
       EolStyle style = SG_TRANSCODER_EOL_STYLE(t);
       if (style == LF      ) {
-        SG_RETURN = (SG_SYMBOL(SG_INTERN("lf")));
+        SG_RETURN = (SG_INTERN("lf"));
       } else if (style == CR      ) {
-        SG_RETURN = (SG_SYMBOL(SG_INTERN("cr")));
+        SG_RETURN = (SG_INTERN("cr"));
       } else if (style == LS      ) {
-        SG_RETURN = (SG_SYMBOL(SG_INTERN("ls")));
+        SG_RETURN = (SG_INTERN("ls"));
       } else if (style == NEL      ) {
-        SG_RETURN = (SG_SYMBOL(SG_INTERN("nel")));
+        SG_RETURN = (SG_INTERN("nel"));
       } else if (style == CRNEL      ) {
-        SG_RETURN = (SG_SYMBOL(SG_INTERN("crnel")));
+        SG_RETURN = (SG_INTERN("crnel"));
       } else if (style == CRLF      ) {
-        SG_RETURN = (SG_SYMBOL(SG_INTERN("crlf")));
+        SG_RETURN = (SG_INTERN("crlf"));
       } else if (style == E_NONE      ) {
-        SG_RETURN = (SG_SYMBOL(SG_INTERN("none")));
+        SG_RETURN = (SG_INTERN("none"));
       } else {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("transcoder-eol-style")), Sg_MakeString(UC("transcoder had unknown eol-style. this must be a bug, please report it"), SG_LITERAL_STRING), SG_NIL);
+        Sg_AssertionViolation(SG_INTERN("transcoder-eol-style"), Sg_MakeString(UC("transcoder had unknown eol-style. this must be a bug, please report it"), SG_LITERAL_STRING), SG_NIL);
         return SG_UNDEF;
 ;
       }
@@ -6657,7 +6658,7 @@ static SgObject nulltranscoder_error_handling_mode(SgObject *args, int argc, voi
       } else if (SG_EQ(mode, SG_RAISE_ERROR)) {
         SG_RETURN = (SG_SYMBOL_RAISE);
       } else {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("transcoder-error-handling-mode")), Sg_MakeString(UC("transcoder had unknown error-handling-mode. this must be a bug, please report it"), SG_LITERAL_STRING), SG_NIL);
+        Sg_AssertionViolation(SG_INTERN("transcoder-error-handling-mode"), Sg_MakeString(UC("transcoder had unknown error-handling-mode. this must be a bug, please report it"), SG_LITERAL_STRING), SG_NIL);
         return SG_UNDEF;
 ;
       }
@@ -6828,13 +6829,13 @@ static SgObject nulltranscoded_port(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!((SG_BINARY_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_BINARY_CUSTOM_PORT_TYPE))))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("transcoded-port")), Sg_MakeString(UC("binary-port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("transcoded-port"), Sg_MakeString(UC("binary-port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("transcoded-port")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("transcoded-port"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -6847,7 +6848,7 @@ static SgObject nulltranscoded_port(SgObject *args, int argc, void *data_)
     } else if (SG_EQ(p->direction, SG_IN_OUT_PORT)) {
       SG_RETURN = (Sg_MakeTranscodedInputOutputPort(p, t));
     } else {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("transcoded-port")), Sg_MakeString(UC("port had unknown direction. this must be a bug, please report it"), SG_LITERAL_STRING), SG_NIL);
+      Sg_AssertionViolation(SG_INTERN("transcoded-port"), Sg_MakeString(UC("port had unknown direction. this must be a bug, please report it"), SG_LITERAL_STRING), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -6901,7 +6902,7 @@ static SgObject nullport_position(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("port-position")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("port-position"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -6926,7 +6927,7 @@ static SgObject nullset_port_position21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("set-port-position!")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("set-port-position!"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -6992,7 +6993,7 @@ static SgObject nullport_eof3f(SgObject *args, int argc, void *data_)
       }
 ;
     } else {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("port-eof")), Sg_MakeString(UC("custom port is not supported yet"), SG_LITERAL_STRING), p);
+      Sg_AssertionViolation(SG_INTERN("port-eof"), Sg_MakeString(UC("custom port is not supported yet"), SG_LITERAL_STRING), p);
       return SG_UNDEF;
 ;
     }
@@ -7025,7 +7026,7 @@ static SgObject nullopen_file_input_port(SgObject *args, int argc, void *data_)
   if (argc >= 3) {
     argumentAsSymbol(2, mode_scm, mode);
   } else {
-    mode = SG_SYMBOL(SG_INTERN("block"));
+    mode = SG_INTERN("block");
   }
 
   if (argc >= 4) {
@@ -7040,10 +7041,10 @@ static SgObject nullopen_file_input_port(SgObject *args, int argc, void *data_)
       SgObject fo = Sg_OpenFile(file, SG_READ);
       int bufferMode = SG_BUFMODE_BLOCK;
       if (!(SG_FILEP(fo))) {
-        Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_SYMBOL(SG_INTERN("open-file-input-port")), fo, file, SG_UNDEF);
+        Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_INTERN("open-file-input-port"), fo, file, SG_UNDEF);
       }
 ;
-      if (SG_EQ(mode, SG_SYMBOL(SG_INTERN("none")))) {
+      if (SG_EQ(mode, SG_INTERN("none"))) {
         bufferMode=SG_BUFMODE_NONE;
       }
 ;
@@ -7147,7 +7148,7 @@ static SgObject nullcurrent_input_port(SgObject *args, int argc, void *data_)
         SG_RETURN = (vm->currentInputPort);
       } else {
         if (!((SG_INPORTP(p) || SG_INOUTPORTP(p)))) {
-          Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("current-input-port")), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
+          Sg_WrongTypeOfArgumentViolation(SG_INTERN("current-input-port"), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
           return SG_UNDEF;
 ;
         }
@@ -7184,19 +7185,19 @@ static SgObject nullmake_custom_binary_input_port(SgObject *args, int argc, void
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!((SG_FALSEP(getter) || SG_PROCEDUREP(getter)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-custom-binary-input-port")), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), getter, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-custom-binary-input-port"), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), getter, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_FALSEP(setter) || SG_PROCEDUREP(setter)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-custom-binary-input-port")), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), setter, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-custom-binary-input-port"), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), setter, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_FALSEP(close) || SG_PROCEDUREP(close)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-custom-binary-input-port")), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), close, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-custom-binary-input-port"), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), close, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -7227,19 +7228,19 @@ static SgObject nullmake_custom_textual_input_port(SgObject *args, int argc, voi
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!((SG_FALSEP(getter) || SG_PROCEDUREP(getter)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-custom-textual-input-port")), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), getter, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-custom-textual-input-port"), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), getter, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_FALSEP(setter) || SG_PROCEDUREP(setter)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-custom-textual-input-port")), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), setter, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-custom-textual-input-port"), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), setter, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_FALSEP(close) || SG_PROCEDUREP(close)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-custom-textual-input-port")), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), close, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-custom-textual-input-port"), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), close, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -7270,14 +7271,14 @@ static SgObject nullget_u8(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-u8")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-u8"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (SG_FALSEP(reckless)) {
       if (!((SG_BINARY_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_BINARY_CUSTOM_PORT_TYPE))))) {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-u8")), Sg_MakeString(UC("binary-port"), SG_LITERAL_STRING), p, SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-u8"), Sg_MakeString(UC("binary-port"), SG_LITERAL_STRING), p, SG_NIL);
         return SG_UNDEF;
 ;
       }
@@ -7285,7 +7286,7 @@ static SgObject nullget_u8(SgObject *args, int argc, void *data_)
     }
 ;
     if (!((SG_INPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-u8")), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-u8"), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -7323,14 +7324,14 @@ static SgObject nulllookahead_u8(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("lookahead-u8")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("lookahead-u8"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (SG_FALSEP(reckless)) {
       if (!((SG_BINARY_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_BINARY_CUSTOM_PORT_TYPE))))) {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("lookahead-u8")), Sg_MakeString(UC("binary-port"), SG_LITERAL_STRING), p, SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("lookahead-u8"), Sg_MakeString(UC("binary-port"), SG_LITERAL_STRING), p, SG_NIL);
         return SG_UNDEF;
 ;
       }
@@ -7338,7 +7339,7 @@ static SgObject nulllookahead_u8(SgObject *args, int argc, void *data_)
     }
 ;
     if (!((SG_INPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("lookahead-u8")), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("lookahead-u8"), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -7380,14 +7381,14 @@ static SgObject nullget_bytevector_n(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-bytevector-n")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-bytevector-n"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (SG_FALSEP(reckless)) {
       if (!((SG_BINARY_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_BINARY_CUSTOM_PORT_TYPE))))) {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-bytevector-n")), Sg_MakeString(UC("binary-port"), SG_LITERAL_STRING), p, SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-bytevector-n"), Sg_MakeString(UC("binary-port"), SG_LITERAL_STRING), p, SG_NIL);
         return SG_UNDEF;
 ;
       }
@@ -7395,13 +7396,13 @@ static SgObject nullget_bytevector_n(SgObject *args, int argc, void *data_)
     }
 ;
     if (!((SG_INPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-bytevector-n")), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-bytevector-n"), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (count < 0) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("name")), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(count), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("name"), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(count), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -7449,14 +7450,14 @@ static SgObject nullget_bytevector_n21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-bytevector-n!")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-bytevector-n!"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (SG_FALSEP(reckless)) {
       if (!((SG_BINARY_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_BINARY_CUSTOM_PORT_TYPE))))) {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-bytevector-n")), Sg_MakeString(UC("binary-port"), SG_LITERAL_STRING), p, SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-bytevector-n"), Sg_MakeString(UC("binary-port"), SG_LITERAL_STRING), p, SG_NIL);
         return SG_UNDEF;
 ;
       }
@@ -7464,25 +7465,25 @@ static SgObject nullget_bytevector_n21(SgObject *args, int argc, void *data_)
     }
 ;
     if (!((SG_INPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-bytevector-n!")), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-bytevector-n!"), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (start < 0) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("name")), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(start), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("name"), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(start), SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (count < 0) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("name")), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(count), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("name"), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(count), SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_BVECTOR_SIZE(bv) >= (start + count))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("get-bytevector-n!")), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(SG_BVECTOR_SIZE(bv)));
+      Sg_AssertionViolation(SG_INTERN("get-bytevector-n!"), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(SG_BVECTOR_SIZE(bv)));
       return SG_UNDEF;
 ;
     }
@@ -7523,14 +7524,14 @@ static SgObject nullget_bytevector_some(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-bytevector-some")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-bytevector-some"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (SG_FALSEP(reckless)) {
       if (!((SG_BINARY_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_BINARY_CUSTOM_PORT_TYPE))))) {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-bytevector-n")), Sg_MakeString(UC("binary-port"), SG_LITERAL_STRING), p, SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-bytevector-n"), Sg_MakeString(UC("binary-port"), SG_LITERAL_STRING), p, SG_NIL);
         return SG_UNDEF;
 ;
       }
@@ -7538,7 +7539,7 @@ static SgObject nullget_bytevector_some(SgObject *args, int argc, void *data_)
     }
 ;
     if (!((SG_INPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-bytevector-some")), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-bytevector-some"), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -7577,14 +7578,14 @@ static SgObject nullget_bytevector_all(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-bytevector-all")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-bytevector-all"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (SG_FALSEP(reckless)) {
       if (!((SG_BINARY_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_BINARY_CUSTOM_PORT_TYPE))))) {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-bytevector-n")), Sg_MakeString(UC("binary-port"), SG_LITERAL_STRING), p, SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-bytevector-n"), Sg_MakeString(UC("binary-port"), SG_LITERAL_STRING), p, SG_NIL);
         return SG_UNDEF;
 ;
       }
@@ -7592,7 +7593,7 @@ static SgObject nullget_bytevector_all(SgObject *args, int argc, void *data_)
     }
 ;
     if (!((SG_INPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-bytevector-all")), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-bytevector-all"), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -7625,19 +7626,19 @@ static SgObject nullget_char(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-char")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-char"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_TEXTUAL_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_TEXTUAL_CUSTOM_PORT_TYPE))))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-char")), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-char"), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_INPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-char")), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-char"), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -7668,19 +7669,19 @@ static SgObject nulllookahead_char(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("lookahead-char")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("lookahead-char"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_TEXTUAL_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_TEXTUAL_CUSTOM_PORT_TYPE))))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("lookahead-char")), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("lookahead-char"), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_INPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("lookahead-char")), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("lookahead-char"), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -7714,25 +7715,25 @@ static SgObject nullget_string_n(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-string-n")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-string-n"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_TEXTUAL_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_TEXTUAL_CUSTOM_PORT_TYPE))))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-string-n")), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-string-n"), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_INPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-string-n")), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-string-n"), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (count < 0) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("name")), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(count), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("name"), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(count), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -7743,23 +7744,24 @@ static SgObject nullget_string_n(SgObject *args, int argc, void *data_)
         SG_RETURN = (SG_EOF);
       } else {
         {
-          SgChar* buf = SG_NEW_ATOMIC2(SgChar*, (sizeof(SgChar) * (count + 1)));
+          SgString* buf = Sg_ReserveString(count, 0);
           int i = 0;
-          SgObject ret = Sg_MakeEmptyString();
           while (TRUE) {
             if ((i == count || EOF == Sg_Peekc(p))            ) {
               break;
             } else {
-              buf[i]=Sg_Getc(p);
+              SG_STRING_VALUE_AT(buf, i)=Sg_Getc(p);
               i++;
             }
             
           }
 ;
-          buf[count]=0;
-          SG_STRING_SIZE(ret)=i;
-          SG_STRING_VALUE(ret)=buf;
-          SG_RETURN = (ret);
+          if (i == count) {
+            SG_RETURN = (buf);
+          } else {
+            SG_RETURN = (Sg_Substring(buf, 0, i));
+          }
+;
         }
 ;
       }
@@ -7792,43 +7794,43 @@ static SgObject nullget_string_n21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-string-n!")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-string-n!"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_TEXTUAL_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_TEXTUAL_CUSTOM_PORT_TYPE))))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-string-n!")), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-string-n!"), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_INPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-string-n!")), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-string-n!"), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (start < 0) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("name")), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(start), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("name"), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(start), SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (count < 0) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("name")), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(count), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("name"), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(count), SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_STRING_SIZE(s) >= (start + count))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("get-string-n!")), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(SG_STRING_SIZE(s)));
+      Sg_AssertionViolation(SG_INTERN("get-string-n!"), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(SG_STRING_SIZE(s)));
       return SG_UNDEF;
 ;
     }
 ;
     if (SG_LITERAL_STRINGP(s)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("get-string-n!")), Sg_MakeString(UC("attempt to modify a literal string"), SG_LITERAL_STRING), s);
+      Sg_AssertionViolation(SG_INTERN("get-string-n!"), Sg_MakeString(UC("attempt to modify a literal string"), SG_LITERAL_STRING), s);
       return SG_UNDEF;
 ;
     }
@@ -7875,19 +7877,19 @@ static SgObject nullget_string_all(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-string-all")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-string-all"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_TEXTUAL_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_TEXTUAL_CUSTOM_PORT_TYPE))))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-string-all")), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-string-all"), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_INPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-string-all")), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-string-all"), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -7936,19 +7938,19 @@ static SgObject nullget_line(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-line")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-line"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_TEXTUAL_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_TEXTUAL_CUSTOM_PORT_TYPE))))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-line")), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-line"), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_INPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-line")), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-line"), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -7997,19 +7999,19 @@ static SgObject nullget_datum(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-dutum")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-dutum"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_TEXTUAL_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_TEXTUAL_CUSTOM_PORT_TYPE))))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-datum")), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-datum"), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_INPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-dutum")), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-dutum"), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -8063,13 +8065,13 @@ static SgObject nulloutput_port_buffer_mode(SgObject *args, int argc, void *data
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_EQ(p->bufferMode, SG_BUFMODE_NONE)) {
-      SG_RETURN = (SG_SYMBOL(SG_INTERN("none")));
+      SG_RETURN = (SG_INTERN("none"));
     } else if (SG_EQ(p->bufferMode, SG_BUFMODE_LINE)) {
-      SG_RETURN = (SG_SYMBOL(SG_INTERN("line")));
+      SG_RETURN = (SG_INTERN("line"));
     } else if (SG_EQ(p->bufferMode, SG_BUFMODE_BLOCK)) {
-      SG_RETURN = (SG_SYMBOL(SG_INTERN("block")));
+      SG_RETURN = (SG_INTERN("block"));
     } else {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("output-port-buffer-mode")), Sg_MakeString(UC("port has invalid buffer mode. may be bug?"), SG_LITERAL_STRING), p);
+      Sg_AssertionViolation(SG_INTERN("output-port-buffer-mode"), Sg_MakeString(UC("port has invalid buffer mode. may be bug?"), SG_LITERAL_STRING), p);
       return SG_UNDEF;
 ;
     }
@@ -8103,7 +8105,7 @@ static SgObject nullopen_file_output_port(SgObject *args, int argc, void *data_)
   if (argc >= 3) {
     argumentAsSymbol(2, mode_scm, mode);
   } else {
-    mode = SG_SYMBOL(SG_INTERN("block"));
+    mode = SG_INTERN("block");
   }
 
   if (argc >= 4) {
@@ -8119,28 +8121,28 @@ static SgObject nullopen_file_output_port(SgObject *args, int argc, void *data_)
       int isFileExist = Sg_FileExistP(file);
       int openFlags = SG_WRITE | SG_CREATE;
       int bufferMode = SG_BUFMODE_BLOCK;
-      if (SG_EQ(mode, SG_SYMBOL(SG_INTERN("none")))) {
+      if (SG_EQ(mode, SG_INTERN("none"))) {
         bufferMode=SG_BUFMODE_NONE;
-      } else if (SG_EQ(mode, SG_SYMBOL(SG_INTERN("line")))) {
+      } else if (SG_EQ(mode, SG_INTERN("line"))) {
         bufferMode=SG_BUFMODE_LINE;
       }      
 ;
       if (SG_FALSEP(option)) {
         if (isFileExist) {
-          Sg_IOError(SG_IO_FILE_ALREADY_EXIST_ERROR, SG_SYMBOL(SG_INTERN("open-file-output-port")), Sg_MakeString(UC("file already exists"), SG_LITERAL_STRING), file, SG_UNDEF);
+          Sg_IOError(SG_IO_FILE_ALREADY_EXIST_ERROR, SG_INTERN("open-file-output-port"), Sg_MakeString(UC("file already exists"), SG_LITERAL_STRING), file, SG_UNDEF);
           return SG_UNDEF;
 ;
         }
 ;
         fo=Sg_OpenFile(file, openFlags);
         if (!(SG_FILEP(fo))) {
-          Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_SYMBOL(SG_INTERN("open-file-output-port")), fo, file, SG_UNDEF);
+          Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_INTERN("open-file-output-port"), fo, file, SG_UNDEF);
         }
 ;
         SG_RETURN = (Sg_MakeFileBinaryOutputPort(fo, bufferMode));
       } else {
         if (!(SG_TUPLEP(option))) {
-          Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("open-file-output-port")), Sg_MakeString(UC("invalid file options"), SG_LITERAL_STRING), option);
+          Sg_AssertionViolation(SG_INTERN("open-file-output-port"), Sg_MakeString(UC("invalid file options"), SG_LITERAL_STRING), option);
           return SG_UNDEF;
 ;
         }
@@ -8148,16 +8150,16 @@ static SgObject nullopen_file_output_port(SgObject *args, int argc, void *data_)
         {
           SgObject opt = Sg_TupleRef(option, 2, SG_NIL);
           int isEmpty = SG_NULLP(opt);
-          SgObject noCreate = Sg_Memq(SG_SYMBOL(SG_INTERN("no-create")), opt);
-          SgObject noTruncate = Sg_Memq(SG_SYMBOL(SG_INTERN("no-truncate")), opt);
-          SgObject noFail = Sg_Memq(SG_SYMBOL(SG_INTERN("no-fail")), opt);
+          SgObject noCreate = Sg_Memq(SG_INTERN("no-create"), opt);
+          SgObject noTruncate = Sg_Memq(SG_INTERN("no-truncate"), opt);
+          SgObject noFail = Sg_Memq(SG_INTERN("no-fail"), opt);
           if ((isFileExist && isEmpty)          ) {
-            Sg_IOError(SG_IO_FILE_ALREADY_EXIST_ERROR, SG_SYMBOL(SG_INTERN("open-file-output-port")), Sg_MakeString(UC("file already exists"), SG_LITERAL_STRING), file, SG_UNDEF);
+            Sg_IOError(SG_IO_FILE_ALREADY_EXIST_ERROR, SG_INTERN("open-file-output-port"), Sg_MakeString(UC("file already exists"), SG_LITERAL_STRING), file, SG_UNDEF);
             return SG_UNDEF;
 ;
           } else if ((!(SG_FALSEP(noCreate)) && !(SG_FALSEP(noTruncate)))          ) {
             if (!(isFileExist)) {
-              Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_SYMBOL(SG_INTERN("open-file-output-port")), Sg_MakeString(UC("file-options no-create: file not exist"), SG_LITERAL_STRING), file, SG_UNDEF);
+              Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_INTERN("open-file-output-port"), Sg_MakeString(UC("file-options no-create: file not exist"), SG_LITERAL_STRING), file, SG_UNDEF);
               return SG_UNDEF;
 ;
             }
@@ -8166,7 +8168,7 @@ static SgObject nullopen_file_output_port(SgObject *args, int argc, void *data_)
             if (isFileExist) {
               openFlags=SG_TRUNCATE | openFlags;
             } else {
-              Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_SYMBOL(SG_INTERN("open-file-output-port")), Sg_MakeString(UC("file-options no-create: file not exist"), SG_LITERAL_STRING), file, SG_UNDEF);
+              Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_INTERN("open-file-output-port"), Sg_MakeString(UC("file-options no-create: file not exist"), SG_LITERAL_STRING), file, SG_UNDEF);
               return SG_UNDEF;
 ;
             }
@@ -8180,7 +8182,7 @@ static SgObject nullopen_file_output_port(SgObject *args, int argc, void *data_)
             openFlags=SG_TRUNCATE | openFlags;
           } else if (!(SG_FALSEP(noTruncate))) {
             if (isFileExist) {
-              Sg_IOError(SG_IO_FILE_ALREADY_EXIST_ERROR, SG_SYMBOL(SG_INTERN("open-file-output-port")), Sg_MakeString(UC("file-options no-truncate: file already exist"), SG_LITERAL_STRING), file, SG_UNDEF);
+              Sg_IOError(SG_IO_FILE_ALREADY_EXIST_ERROR, SG_INTERN("open-file-output-port"), Sg_MakeString(UC("file-options no-truncate: file already exist"), SG_LITERAL_STRING), file, SG_UNDEF);
               return SG_UNDEF;
 ;
             } else {
@@ -8191,7 +8193,7 @@ static SgObject nullopen_file_output_port(SgObject *args, int argc, void *data_)
 ;
           fo=Sg_OpenFile(file, openFlags);
           if (!(SG_FILEP(fo))) {
-            Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_SYMBOL(SG_INTERN("open-file-output-port")), fo, file, SG_UNDEF);
+            Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_INTERN("open-file-output-port"), fo, file, SG_UNDEF);
           }
 ;
           if (SG_FALSEP(transcoder)) {
@@ -8256,13 +8258,13 @@ static SgObject nullget_output_bytevector(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-output-bytevector")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-output-bytevector"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_OUTPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-output-bytevector")), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-output-bytevector"), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -8306,25 +8308,25 @@ static SgObject nullget_output_string(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-output-string")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-output-string"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_OUTPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-output-string")), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-output-string"), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_TEXTUAL_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_TEXTUAL_CUSTOM_PORT_TYPE))))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-output-string")), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-output-string"), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_EQ(SG_TEXTUAL_PORT(p)->type, SG_STRING_TEXTUAL_PORT_TYPE))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("get-output-string")), Sg_MakeString(UC("string port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("get-output-string"), Sg_MakeString(UC("string port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -8383,7 +8385,7 @@ static SgObject nullcurrent_output_port(SgObject *args, int argc, void *data_)
         SG_RETURN = (vm->currentOutputPort);
       } else {
         if (!((SG_OUTPORTP(p) || SG_INOUTPORTP(p)))) {
-          Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("current-output-port")), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
+          Sg_WrongTypeOfArgumentViolation(SG_INTERN("current-output-port"), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
           return SG_UNDEF;
 ;
         }
@@ -8420,7 +8422,7 @@ static SgObject nullcurrent_error_port(SgObject *args, int argc, void *data_)
         SG_RETURN = (vm->currentErrorPort);
       } else {
         if (!((SG_OUTPORTP(p) || SG_INOUTPORTP(p)))) {
-          Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("current-error-port")), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
+          Sg_WrongTypeOfArgumentViolation(SG_INTERN("current-error-port"), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
           return SG_UNDEF;
 ;
         }
@@ -8456,19 +8458,19 @@ static SgObject nullmake_custom_binary_output_port(SgObject *args, int argc, voi
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!((SG_FALSEP(getter) || SG_PROCEDUREP(getter)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-custom-binary-output-port")), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), getter, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-custom-binary-output-port"), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), getter, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_FALSEP(setter) || SG_PROCEDUREP(setter)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-custom-binary-output-port")), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), setter, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-custom-binary-output-port"), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), setter, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_FALSEP(close) || SG_PROCEDUREP(close)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-custom-binary-output-port")), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), close, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-custom-binary-output-port"), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), close, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -8499,19 +8501,19 @@ static SgObject nullmake_custom_textual_output_port(SgObject *args, int argc, vo
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!((SG_FALSEP(getter) || SG_PROCEDUREP(getter)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-custom-textual-output-port")), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), getter, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-custom-textual-output-port"), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), getter, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_FALSEP(setter) || SG_PROCEDUREP(setter)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-custom-textual-output-port")), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), setter, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-custom-textual-output-port"), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), setter, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_FALSEP(close) || SG_PROCEDUREP(close)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-custom-textual-output-port")), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), close, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-custom-textual-output-port"), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), close, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -8543,14 +8545,14 @@ static SgObject nullput_u8(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("put-u8")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("put-u8"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (SG_FALSEP(reckless)) {
       if (!((SG_BINARY_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_BINARY_CUSTOM_PORT_TYPE))))) {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("put-u8")), Sg_MakeString(UC("binary-port"), SG_LITERAL_STRING), p, SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("put-u8"), Sg_MakeString(UC("binary-port"), SG_LITERAL_STRING), p, SG_NIL);
         return SG_UNDEF;
 ;
       }
@@ -8558,13 +8560,13 @@ static SgObject nullput_u8(SgObject *args, int argc, void *data_)
     }
 ;
     if (!((SG_OUTPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("put-u8")), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("put-u8"), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((0 <= octet && octet <= 255))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("put-u8")), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(octet));
+      Sg_AssertionViolation(SG_INTERN("put-u8"), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(octet));
       return SG_UNDEF;
 ;
     }
@@ -8612,14 +8614,14 @@ static SgObject nullput_bytevector(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("put-bytevector")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("put-bytevector"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (SG_FALSEP(reckless)) {
       if (!((SG_BINARY_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_BINARY_CUSTOM_PORT_TYPE))))) {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("put-bytevector")), Sg_MakeString(UC("binary-port"), SG_LITERAL_STRING), p, SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("put-bytevector"), Sg_MakeString(UC("binary-port"), SG_LITERAL_STRING), p, SG_NIL);
         return SG_UNDEF;
 ;
       }
@@ -8627,25 +8629,25 @@ static SgObject nullput_bytevector(SgObject *args, int argc, void *data_)
     }
 ;
     if (!((SG_OUTPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("put-bytevector")), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("put-bytevector"), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (start < 0) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("name")), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(start), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("name"), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(start), SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (count < 0) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("name")), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(count), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("name"), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(count), SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((start < SG_BVECTOR_SIZE(bv) && count <= (SG_BVECTOR_SIZE(bv) - start)))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("put-bytevector")), Sg_MakeString(UC("invalid range"), SG_LITERAL_STRING), SG_NIL);
+      Sg_AssertionViolation(SG_INTERN("put-bytevector"), Sg_MakeString(UC("invalid range"), SG_LITERAL_STRING), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -8669,25 +8671,25 @@ static SgObject nullput_char(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("put-char")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("put-char"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_OUTPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("put-char")), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("put-char"), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_TEXTUAL_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_TEXTUAL_CUSTOM_PORT_TYPE))))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("put-char")), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("put-char"), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_CHARP(ch))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("put-char")), Sg_MakeString(UC("character"), SG_LITERAL_STRING), ch, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("put-char"), Sg_MakeString(UC("character"), SG_LITERAL_STRING), ch, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -8728,37 +8730,37 @@ static SgObject nullput_string(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("put-string")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("put-string"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_OUTPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("put-string")), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("put-string"), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_TEXTUAL_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_TEXTUAL_CUSTOM_PORT_TYPE))))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("put-string")), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("put-string"), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (start < 0) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("name")), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(start), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("name"), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(start), SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (count < 0) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("name")), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(count), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("name"), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(count), SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((start < SG_STRING_SIZE(s) && count <= (SG_STRING_SIZE(s) - start)))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("put-string")), Sg_MakeString(UC("invalid range"), SG_LITERAL_STRING), SG_NIL);
+      Sg_AssertionViolation(SG_INTERN("put-string"), Sg_MakeString(UC("invalid range"), SG_LITERAL_STRING), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -8797,19 +8799,19 @@ static SgObject nullput_datum(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("put-datum")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("put-datum"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_OUTPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("put-datum")), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("put-datum"), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_TEXTUAL_PORTP(p) || (SG_CUSTOM_PORTP(p) && SG_EQ(SG_CUSTOM_PORT(p)->type, SG_TEXTUAL_CUSTOM_PORT_TYPE))))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("put-datum")), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("put-datum"), Sg_MakeString(UC("textual-port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -8842,7 +8844,7 @@ static SgObject nullopen_file_input2foutput_port(SgObject *args, int argc, void 
   if (argc >= 3) {
     argumentAsSymbol(2, mode_scm, mode);
   } else {
-    mode = SG_SYMBOL(SG_INTERN("block"));
+    mode = SG_INTERN("block");
   }
 
   if (argc >= 4) {
@@ -8858,28 +8860,28 @@ static SgObject nullopen_file_input2foutput_port(SgObject *args, int argc, void 
       int isFileExist = Sg_FileExistP(file);
       int openFlags = SG_READ | SG_WRITE | SG_CREATE;
       int bufferMode = SG_BUFMODE_BLOCK;
-      if (SG_EQ(mode, SG_SYMBOL(SG_INTERN("none")))) {
+      if (SG_EQ(mode, SG_INTERN("none"))) {
         bufferMode=SG_BUFMODE_NONE;
-      } else if (SG_EQ(mode, SG_SYMBOL(SG_INTERN("line")))) {
+      } else if (SG_EQ(mode, SG_INTERN("line"))) {
         bufferMode=SG_BUFMODE_LINE;
       }      
 ;
       if (SG_FALSEP(option)) {
         if (isFileExist) {
-          Sg_IOError(SG_IO_FILE_ALREADY_EXIST_ERROR, SG_SYMBOL(SG_INTERN("open-file-input/output-port")), Sg_MakeString(UC("file already exists"), SG_LITERAL_STRING), file, SG_UNDEF);
+          Sg_IOError(SG_IO_FILE_ALREADY_EXIST_ERROR, SG_INTERN("open-file-input/output-port"), Sg_MakeString(UC("file already exists"), SG_LITERAL_STRING), file, SG_UNDEF);
           return SG_UNDEF;
 ;
         }
 ;
         fo=Sg_OpenFile(file, openFlags);
         if (!(SG_FILEP(fo))) {
-          Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_SYMBOL(SG_INTERN("open-file-input/output-port")), fo, file, SG_UNDEF);
+          Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_INTERN("open-file-input/output-port"), fo, file, SG_UNDEF);
         }
 ;
         SG_RETURN = (Sg_MakeFileBinaryInputOutputPort(fo, bufferMode));
       } else {
         if (!(SG_TUPLEP(option))) {
-          Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("open-file-output-port")), Sg_MakeString(UC("invalid file options"), SG_LITERAL_STRING), option);
+          Sg_AssertionViolation(SG_INTERN("open-file-output-port"), Sg_MakeString(UC("invalid file options"), SG_LITERAL_STRING), option);
           return SG_UNDEF;
 ;
         }
@@ -8887,16 +8889,16 @@ static SgObject nullopen_file_input2foutput_port(SgObject *args, int argc, void 
         {
           SgObject opt = Sg_TupleRef(option, 2, SG_NIL);
           int isEmpty = SG_NULLP(opt);
-          SgObject noCreate = Sg_Memq(SG_SYMBOL(SG_INTERN("no-create")), opt);
-          SgObject noTruncate = Sg_Memq(SG_SYMBOL(SG_INTERN("no-truncate")), opt);
-          SgObject noFail = Sg_Memq(SG_SYMBOL(SG_INTERN("no-fail")), opt);
+          SgObject noCreate = Sg_Memq(SG_INTERN("no-create"), opt);
+          SgObject noTruncate = Sg_Memq(SG_INTERN("no-truncate"), opt);
+          SgObject noFail = Sg_Memq(SG_INTERN("no-fail"), opt);
           if ((isFileExist && isEmpty)          ) {
-            Sg_IOError(SG_IO_FILE_ALREADY_EXIST_ERROR, SG_SYMBOL(SG_INTERN("open-file-input/output-port")), Sg_MakeString(UC("file already exists"), SG_LITERAL_STRING), file, SG_UNDEF);
+            Sg_IOError(SG_IO_FILE_ALREADY_EXIST_ERROR, SG_INTERN("open-file-input/output-port"), Sg_MakeString(UC("file already exists"), SG_LITERAL_STRING), file, SG_UNDEF);
             return SG_UNDEF;
 ;
           } else if ((!(SG_FALSEP(noCreate)) && !(SG_FALSEP(noTruncate)))          ) {
             if (!(isFileExist)) {
-              Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_SYMBOL(SG_INTERN("open-file-input/output-port")), Sg_MakeString(UC("file-options no-create: file not exist"), SG_LITERAL_STRING), file, SG_UNDEF);
+              Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_INTERN("open-file-input/output-port"), Sg_MakeString(UC("file-options no-create: file not exist"), SG_LITERAL_STRING), file, SG_UNDEF);
               return SG_UNDEF;
 ;
             }
@@ -8905,7 +8907,7 @@ static SgObject nullopen_file_input2foutput_port(SgObject *args, int argc, void 
             if (isFileExist) {
               openFlags=SG_TRUNCATE | openFlags;
             } else {
-              Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_SYMBOL(SG_INTERN("open-file-input/output-port")), Sg_MakeString(UC("file-options no-create: file not exist"), SG_LITERAL_STRING), file, SG_UNDEF);
+              Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_INTERN("open-file-input/output-port"), Sg_MakeString(UC("file-options no-create: file not exist"), SG_LITERAL_STRING), file, SG_UNDEF);
               return SG_UNDEF;
 ;
             }
@@ -8919,7 +8921,7 @@ static SgObject nullopen_file_input2foutput_port(SgObject *args, int argc, void 
             openFlags=SG_TRUNCATE | openFlags;
           } else if (!(SG_FALSEP(noTruncate))) {
             if (isFileExist) {
-              Sg_IOError(SG_IO_FILE_ALREADY_EXIST_ERROR, SG_SYMBOL(SG_INTERN("open-file-input/output-port")), Sg_MakeString(UC("file-options no-truncate: file already exist"), SG_LITERAL_STRING), file, SG_UNDEF);
+              Sg_IOError(SG_IO_FILE_ALREADY_EXIST_ERROR, SG_INTERN("open-file-input/output-port"), Sg_MakeString(UC("file-options no-truncate: file already exist"), SG_LITERAL_STRING), file, SG_UNDEF);
               return SG_UNDEF;
 ;
             } else {
@@ -8930,7 +8932,7 @@ static SgObject nullopen_file_input2foutput_port(SgObject *args, int argc, void 
 ;
           fo=Sg_OpenFile(file, openFlags);
           if (!(SG_FILEP(fo))) {
-            Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_SYMBOL(SG_INTERN("open-file-input/output-port")), fo, file, SG_UNDEF);
+            Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_INTERN("open-file-input/output-port"), fo, file, SG_UNDEF);
           }
 ;
           if (SG_FALSEP(transcoder)) {
@@ -8978,19 +8980,19 @@ static SgObject nullmake_custom_binary_input2foutput_port(SgObject *args, int ar
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!((SG_FALSEP(getter) || SG_PROCEDUREP(getter)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-custom-binary-input/output-port")), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), getter, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-custom-binary-input/output-port"), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), getter, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_FALSEP(setter) || SG_PROCEDUREP(setter)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-custom-binary-input/output-port")), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), setter, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-custom-binary-input/output-port"), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), setter, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_FALSEP(close) || SG_PROCEDUREP(close)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-custom-binary-input/output-port")), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), close, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-custom-binary-input/output-port"), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), close, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -9024,19 +9026,19 @@ static SgObject nullmake_custom_textual_input2foutput_port(SgObject *args, int a
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!((SG_FALSEP(getter) || SG_PROCEDUREP(getter)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-custom-textual-input/output-port")), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), getter, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-custom-textual-input/output-port"), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), getter, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_FALSEP(setter) || SG_PROCEDUREP(setter)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-custom-textual-input/output-port")), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), setter, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-custom-textual-input/output-port"), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), setter, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_FALSEP(close) || SG_PROCEDUREP(close)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("make-custom-textual-input/output-port")), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), close, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-custom-textual-input/output-port"), Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING), close, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -9058,7 +9060,7 @@ static SgObject nullclose_input_port(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_INPORTP(p))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("close-input-port")), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("close-input-port"), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -9080,7 +9082,7 @@ static SgObject nullclose_output_port(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_OUTPORTP(p))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("close-output-port")), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("close-output-port"), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -9107,7 +9109,7 @@ static SgObject nullread_char(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!((SG_INPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("read-char")), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("read-char"), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -9143,7 +9145,7 @@ static SgObject nullpeek_char(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!((SG_INPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("peek-char")), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("peek-char"), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -9179,7 +9181,7 @@ static SgObject nullread(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!((SG_INPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("read")), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("read"), Sg_MakeString(UC("input port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -9208,13 +9210,13 @@ static SgObject nullwrite_char(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_CHARP(ch))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("write-char")), Sg_MakeString(UC("character"), SG_LITERAL_STRING), ch, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("write-char"), Sg_MakeString(UC("character"), SG_LITERAL_STRING), ch, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_OUTPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("write-char")), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("write-char"), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -9241,13 +9243,13 @@ static SgObject nullnewline(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("newline")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("newline"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_OUTPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("newline")), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("newline"), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -9276,13 +9278,13 @@ static SgObject nulldisplay(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("display")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("display"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_OUTPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("display")), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("display"), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -9311,13 +9313,13 @@ static SgObject nullwrite(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (Sg_PortClosedP(p)) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("write")), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("write"), Sg_MakeString(UC("opened port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!((SG_OUTPORTP(p) || SG_INOUTPORTP(p)))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("write")), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("write"), Sg_MakeString(UC("output port"), SG_LITERAL_STRING), p, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -9355,7 +9357,7 @@ static SgObject nulldelete_file(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_DeleteFile(filename) == 0)) {
-      Sg_IOError(SG_IO_FILENAME_ERROR, SG_SYMBOL(SG_INTERN("delete-file")), Sg_MakeString(UC("can't delete file"), SG_LITERAL_STRING), filename, SG_UNDEF);
+      Sg_IOError(SG_IO_FILENAME_ERROR, SG_INTERN("delete-file"), Sg_MakeString(UC("can't delete file"), SG_LITERAL_STRING), filename, SG_UNDEF);
     }
 ;
     return SG_RETURN;
@@ -9493,7 +9495,7 @@ static SgObject nullfx3d3f(SgObject *args, int argc, void *data_)
           {
             SgObject v = SG_CAR(cgen_22);
             if (!(SG_INTP(v))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fx=?")), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("fx=?"), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -9545,7 +9547,7 @@ static SgObject nullfx3c3f(SgObject *args, int argc, void *data_)
           {
             SgObject v = SG_CAR(cgen_23);
             if (!(SG_INTP(v))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fx<?")), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("fx<?"), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -9597,7 +9599,7 @@ static SgObject nullfx3e3f(SgObject *args, int argc, void *data_)
           {
             SgObject v = SG_CAR(cgen_24);
             if (!(SG_INTP(v))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fx>?")), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("fx>?"), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -9649,7 +9651,7 @@ static SgObject nullfx3c3d3f(SgObject *args, int argc, void *data_)
           {
             SgObject v = SG_CAR(cgen_25);
             if (!(SG_INTP(v))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fx<=?")), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("fx<=?"), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -9701,7 +9703,7 @@ static SgObject nullfx3e3d3f(SgObject *args, int argc, void *data_)
           {
             SgObject v = SG_CAR(cgen_26);
             if (!(SG_INTP(v))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fx>=?")), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("fx>=?"), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -9825,7 +9827,7 @@ static SgObject nullfxmax(SgObject *args, int argc, void *data_)
           {
             SgObject v = SG_CAR(cgen_27);
             if (!(SG_INTP(v))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fxmac")), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("fxmac"), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -9866,7 +9868,7 @@ static SgObject nullfxmin(SgObject *args, int argc, void *data_)
           {
             SgObject v = SG_CAR(cgen_28);
             if (!(SG_INTP(v))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fxmac")), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("fxmac"), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -9906,7 +9908,7 @@ static SgObject nullfx2b(SgObject *args, int argc, void *data_)
       if ((SG_INT_MIN <= ret && ret <= SG_INT_MAX)) {
         SG_RETURN = (ret);
       } else {
-        Sg_ImplementationRestrictionViolation(SG_SYMBOL(SG_INTERN("fx+")), Sg_MakeString(UC("sum is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
+        Sg_ImplementationRestrictionViolation(SG_INTERN("fx+"), Sg_MakeString(UC("sum is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
         return SG_UNDEF;
 ;
       }
@@ -9936,7 +9938,7 @@ static SgObject nullfx2a(SgObject *args, int argc, void *data_)
       if ((SG_INT_MIN <= ret && ret <= SG_INT_MAX)) {
         SG_RETURN = (ret);
       } else {
-        Sg_ImplementationRestrictionViolation(SG_SYMBOL(SG_INTERN("fx*")), Sg_MakeString(UC("product is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
+        Sg_ImplementationRestrictionViolation(SG_INTERN("fx*"), Sg_MakeString(UC("product is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
         return SG_UNDEF;
 ;
       }
@@ -9967,7 +9969,7 @@ static SgObject nullfx_(SgObject *args, int argc, void *data_)
     int SG_RETURN;
     if (SG_UNBOUNDP(o)) {
       if (fx1 == SG_INT_MIN) {
-        Sg_ImplementationRestrictionViolation(SG_SYMBOL(SG_INTERN("fx-")), Sg_MakeString(UC("result is not a fixnum"), SG_LITERAL_STRING), SG_MAKE_INT(fx1));
+        Sg_ImplementationRestrictionViolation(SG_INTERN("fx-"), Sg_MakeString(UC("result is not a fixnum"), SG_LITERAL_STRING), SG_MAKE_INT(fx1));
         return SG_UNDEF;
 ;
       } else {
@@ -9976,7 +9978,7 @@ static SgObject nullfx_(SgObject *args, int argc, void *data_)
 ;
     } else {
       if (!(SG_INTP(o))) {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fx-")), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), o, SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("fx-"), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), o, SG_NIL);
         return SG_UNDEF;
 ;
       }
@@ -9987,7 +9989,7 @@ static SgObject nullfx_(SgObject *args, int argc, void *data_)
         if ((SG_INT_MIN <= ret && ret <= SG_INT_MAX)) {
           SG_RETURN = (ret);
         } else {
-          Sg_ImplementationRestrictionViolation(SG_SYMBOL(SG_INTERN("fx-")), Sg_MakeString(UC("difference is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
+          Sg_ImplementationRestrictionViolation(SG_INTERN("fx-"), Sg_MakeString(UC("difference is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
           return SG_UNDEF;
 ;
         }
@@ -10017,7 +10019,7 @@ static SgObject nullfxdiv(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (fx2 == 0) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("fxdiv")), Sg_MakeString(UC("dividing by zero"), SG_LITERAL_STRING), SG_NIL);
+      Sg_AssertionViolation(SG_INTERN("fxdiv"), Sg_MakeString(UC("dividing by zero"), SG_LITERAL_STRING), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -10038,7 +10040,7 @@ static SgObject nullfxdiv(SgObject *args, int argc, void *data_)
       if ((SG_INT_MIN <= ret && ret <= SG_INT_MAX)) {
         SG_RETURN = (ret);
       } else {
-        Sg_ImplementationRestrictionViolation(SG_SYMBOL(SG_INTERN("fxdiv")), Sg_MakeString(UC("result is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
+        Sg_ImplementationRestrictionViolation(SG_INTERN("fxdiv"), Sg_MakeString(UC("result is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
         return SG_UNDEF;
 ;
       }
@@ -10064,7 +10066,7 @@ static SgObject nullfxmod(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (fx2 == 0) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("fxmod")), Sg_MakeString(UC("dividing by zero"), SG_LITERAL_STRING), SG_NIL);
+      Sg_AssertionViolation(SG_INTERN("fxmod"), Sg_MakeString(UC("dividing by zero"), SG_LITERAL_STRING), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -10087,7 +10089,7 @@ static SgObject nullfxmod(SgObject *args, int argc, void *data_)
       if ((SG_INT_MIN <= ret && ret <= SG_INT_MAX)) {
         SG_RETURN = (ret);
       } else {
-        Sg_ImplementationRestrictionViolation(SG_SYMBOL(SG_INTERN("fxmod")), Sg_MakeString(UC("result is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
+        Sg_ImplementationRestrictionViolation(SG_INTERN("fxmod"), Sg_MakeString(UC("result is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
         return SG_UNDEF;
 ;
       }
@@ -10115,7 +10117,7 @@ static SgObject nullfxdiv0(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (fx2 == 0) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("fxdiv0")), Sg_MakeString(UC("dividing by zero"), SG_LITERAL_STRING), SG_NIL);
+      Sg_AssertionViolation(SG_INTERN("fxdiv0"), Sg_MakeString(UC("dividing by zero"), SG_LITERAL_STRING), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -10163,7 +10165,7 @@ static SgObject nullfxdiv0(SgObject *args, int argc, void *data_)
       if ((SG_INT_MIN <= ret && ret <= SG_INT_MAX)) {
         SG_RETURN = (ret);
       } else {
-        Sg_ImplementationRestrictionViolation(SG_SYMBOL(SG_INTERN("fxdiv0")), Sg_MakeString(UC("result is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
+        Sg_ImplementationRestrictionViolation(SG_INTERN("fxdiv0"), Sg_MakeString(UC("result is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
         return SG_UNDEF;
 ;
       }
@@ -10189,7 +10191,7 @@ static SgObject nullfxmod0(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (fx2 == 0) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("fxmod0")), Sg_MakeString(UC("dividing by zero"), SG_LITERAL_STRING), SG_NIL);
+      Sg_AssertionViolation(SG_INTERN("fxmod0"), Sg_MakeString(UC("dividing by zero"), SG_LITERAL_STRING), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -10242,7 +10244,7 @@ static SgObject nullfxmod0(SgObject *args, int argc, void *data_)
       if ((SG_INT_MIN <= ret && ret <= SG_INT_MAX)) {
         SG_RETURN = (ret);
       } else {
-        Sg_ImplementationRestrictionViolation(SG_SYMBOL(SG_INTERN("fxmod0")), Sg_MakeString(UC("result is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
+        Sg_ImplementationRestrictionViolation(SG_INTERN("fxmod0"), Sg_MakeString(UC("result is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
         return SG_UNDEF;
 ;
       }
@@ -10272,7 +10274,7 @@ static SgObject nullfxand(SgObject *args, int argc, void *data_)
           {
             SgObject v = SG_CAR(cgen_34);
             if (!(SG_INTP(v))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fxand")), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("fxand"), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -10306,7 +10308,7 @@ static SgObject nullfxior(SgObject *args, int argc, void *data_)
           {
             SgObject v = SG_CAR(cgen_35);
             if (!(SG_INTP(v))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fxior")), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("fxior"), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -10340,7 +10342,7 @@ static SgObject nullfxxor(SgObject *args, int argc, void *data_)
           {
             SgObject v = SG_CAR(cgen_36);
             if (!(SG_INTP(v))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fxxor")), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("fxxor"), Sg_MakeString(UC("fixnum"), SG_LITERAL_STRING), v, SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -10480,13 +10482,13 @@ static SgObject nullfxcopy_bit(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!((0 <= fx2 && fx2 <= SG_INT_SIZE))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("fxcopy-bit")), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx2));
+      Sg_AssertionViolation(SG_INTERN("fxcopy-bit"), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx2));
       return SG_UNDEF;
 ;
     }
 ;
     if (!((0 <= fx3 && fx3 <= 1))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("fxcopy-bit")), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx3));
+      Sg_AssertionViolation(SG_INTERN("fxcopy-bit"), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx3));
       return SG_UNDEF;
 ;
     }
@@ -10518,19 +10520,19 @@ static SgObject nullfxbit_field(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!((0 <= fx2 && fx2 <= SG_INT_SIZE))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("fxbit-field")), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx2));
+      Sg_AssertionViolation(SG_INTERN("fxbit-field"), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx2));
       return SG_UNDEF;
 ;
     }
 ;
     if (!((0 <= fx3 && fx3 <= SG_INT_SIZE))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("fxbit-field")), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx3));
+      Sg_AssertionViolation(SG_INTERN("fxbit-field"), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx3));
       return SG_UNDEF;
 ;
     }
 ;
     if (fx2 > fx3) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("fxbit-field")), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_LIST3(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2), SG_MAKE_INT(fx3)));
+      Sg_AssertionViolation(SG_INTERN("fxbit-field"), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_LIST3(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2), SG_MAKE_INT(fx3)));
       return SG_UNDEF;
 ;
     }
@@ -10565,19 +10567,19 @@ static SgObject nullfxcopy_bit_field(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!((0 <= fx2 && fx2 <= SG_INT_SIZE))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("fxbit-field")), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx2));
+      Sg_AssertionViolation(SG_INTERN("fxbit-field"), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx2));
       return SG_UNDEF;
 ;
     }
 ;
     if (!((0 <= fx3 && fx3 <= SG_INT_SIZE))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("fxbit-field")), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx3));
+      Sg_AssertionViolation(SG_INTERN("fxbit-field"), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx3));
       return SG_UNDEF;
 ;
     }
 ;
     if (fx2 > fx3) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("fxbit-field")), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_LIST4(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2), SG_MAKE_INT(fx3), SG_MAKE_INT(fx4)));
+      Sg_AssertionViolation(SG_INTERN("fxbit-field"), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_LIST4(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2), SG_MAKE_INT(fx3), SG_MAKE_INT(fx4)));
       return SG_UNDEF;
 ;
     }
@@ -10608,7 +10610,7 @@ static SgObject nullfxarithmetic_shift(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (abs(fx2) > SG_INT_SIZE) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("fxarithmetic-shift")), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
+      Sg_AssertionViolation(SG_INTERN("fxarithmetic-shift"), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
       return SG_UNDEF;
 ;
     }
@@ -10624,7 +10626,7 @@ static SgObject nullfxarithmetic_shift(SgObject *args, int argc, void *data_)
       if ((SG_INT_MIN <= ret && ret <= SG_INT_MAX)) {
         SG_RETURN = (ret);
       } else {
-        Sg_ImplementationRestrictionViolation(SG_SYMBOL(SG_INTERN("fxarithmetic-shift")), Sg_MakeString(UC("result is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
+        Sg_ImplementationRestrictionViolation(SG_INTERN("fxarithmetic-shift"), Sg_MakeString(UC("result is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
         return SG_UNDEF;
 ;
       }
@@ -10650,7 +10652,7 @@ static SgObject nullfxarithmetic_shift_left(SgObject *args, int argc, void *data
   {
     int SG_RETURN;
     if (!((0 <= fx2 && fx2 <= SG_INT_SIZE))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("fxbit-field")), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx2));
+      Sg_AssertionViolation(SG_INTERN("fxbit-field"), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx2));
       return SG_UNDEF;
 ;
     }
@@ -10660,7 +10662,7 @@ static SgObject nullfxarithmetic_shift_left(SgObject *args, int argc, void *data
       if ((SG_INT_MIN <= ret && ret <= SG_INT_MAX)) {
         SG_RETURN = (ret);
       } else {
-        Sg_ImplementationRestrictionViolation(SG_SYMBOL(SG_INTERN("fxarithmetic-shift-left")), Sg_MakeString(UC("result is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
+        Sg_ImplementationRestrictionViolation(SG_INTERN("fxarithmetic-shift-left"), Sg_MakeString(UC("result is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
         return SG_UNDEF;
 ;
       }
@@ -10686,7 +10688,7 @@ static SgObject nullfxarithmetic_shift_right(SgObject *args, int argc, void *dat
   {
     int SG_RETURN;
     if (!((0 <= fx2 && fx2 <= SG_INT_SIZE))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("fxbit-field")), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx2));
+      Sg_AssertionViolation(SG_INTERN("fxbit-field"), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx2));
       return SG_UNDEF;
 ;
     }
@@ -10696,7 +10698,7 @@ static SgObject nullfxarithmetic_shift_right(SgObject *args, int argc, void *dat
       if ((SG_INT_MIN <= ret && ret <= SG_INT_MAX)) {
         SG_RETURN = (ret);
       } else {
-        Sg_ImplementationRestrictionViolation(SG_SYMBOL(SG_INTERN("fxarithmetic-shift-left")), Sg_MakeString(UC("result is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
+        Sg_ImplementationRestrictionViolation(SG_INTERN("fxarithmetic-shift-left"), Sg_MakeString(UC("result is not a fixnum"), SG_LITERAL_STRING), SG_LIST2(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2)));
         return SG_UNDEF;
 ;
       }
@@ -10727,19 +10729,19 @@ static SgObject nullfxreverse_bit_field(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!((0 <= fx2 && fx2 <= SG_INT_SIZE))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("fxbit-field")), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx2));
+      Sg_AssertionViolation(SG_INTERN("fxbit-field"), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx2));
       return SG_UNDEF;
 ;
     }
 ;
     if (!((0 <= fx3 && fx3 <= SG_INT_SIZE))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("fxbit-field")), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx3));
+      Sg_AssertionViolation(SG_INTERN("fxbit-field"), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_MAKE_INT(fx3));
       return SG_UNDEF;
 ;
     }
 ;
     if (fx2 > fx3) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("fxreverse-bit-field")), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_LIST3(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2), SG_MAKE_INT(fx3)));
+      Sg_AssertionViolation(SG_INTERN("fxreverse-bit-field"), Sg_MakeString(UC("out of range"), SG_LITERAL_STRING), SG_LIST3(SG_MAKE_INT(fx1), SG_MAKE_INT(fx2), SG_MAKE_INT(fx3)));
       return SG_UNDEF;
 ;
     }
@@ -10799,7 +10801,7 @@ static SgObject nullreal_3eflonum(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RealValuedP(n))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("real->flonum")), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), n, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("real->flonum"), Sg_MakeString(UC("real number"), SG_LITERAL_STRING), n, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -10846,7 +10848,7 @@ static SgObject nullfl3d3f(SgObject *args, int argc, void *data_)
           {
             SgObject v = SG_CAR(cgen_37);
             if (!(SG_FLONUMP(v))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fl=?")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("fl=?"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -10898,7 +10900,7 @@ static SgObject nullfl3c3f(SgObject *args, int argc, void *data_)
           {
             SgObject v = SG_CAR(cgen_38);
             if (!(SG_FLONUMP(v))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fl<?")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("fl<?"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -10950,7 +10952,7 @@ static SgObject nullfl3e3f(SgObject *args, int argc, void *data_)
           {
             SgObject v = SG_CAR(cgen_39);
             if (!(SG_FLONUMP(v))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fl>?")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("fl>?"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -11002,7 +11004,7 @@ static SgObject nullfl3c3d3f(SgObject *args, int argc, void *data_)
           {
             SgObject v = SG_CAR(cgen_40);
             if (!(SG_FLONUMP(v))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fl<=?")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("fl<=?"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -11054,7 +11056,7 @@ static SgObject nullfl3e3d3f(SgObject *args, int argc, void *data_)
           {
             SgObject v = SG_CAR(cgen_41);
             if (!(SG_FLONUMP(v))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fl>=?")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("fl>=?"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -11090,7 +11092,7 @@ static SgObject nullflinteger3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flinteger?")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flinteger?"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11118,7 +11120,7 @@ static SgObject nullflzero3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flzero?")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flzero?"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11140,7 +11142,7 @@ static SgObject nullflpositive3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flpositive?")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flpositive?"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11162,7 +11164,7 @@ static SgObject nullflnegative3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flnegative?")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flnegative?"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11184,7 +11186,7 @@ static SgObject nullflodd3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flodd?")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flodd?"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11199,7 +11201,7 @@ static SgObject nullflodd3f(SgObject *args, int argc, void *data_)
     if (SG_RETURN) {
       SG_RETURN = (!((SG_FLONUM(fl)->value * 0.5) == floor((SG_FLONUM(fl)->value * 0.5))));
     } else {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flodd?")), Sg_MakeString(UC("integer flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flodd?"), Sg_MakeString(UC("integer flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11220,7 +11222,7 @@ static SgObject nullfleven3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fleven?")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("fleven?"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11235,7 +11237,7 @@ static SgObject nullfleven3f(SgObject *args, int argc, void *data_)
     if (SG_RETURN) {
       SG_RETURN = ((SG_FLONUM(fl)->value * 0.5) == floor((SG_FLONUM(fl)->value * 0.5)));
     } else {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fleven?")), Sg_MakeString(UC("integer flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("fleven?"), Sg_MakeString(UC("integer flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11256,7 +11258,7 @@ static SgObject nullflfinite3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flfinite?")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flfinite?"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11278,7 +11280,7 @@ static SgObject nullflinfinite3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flinfinite?")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flinfinite?"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11300,7 +11302,7 @@ static SgObject nullflnan3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flnan?")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flnan?"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11324,7 +11326,7 @@ static SgObject nullflmax(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flmax")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flmax"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11341,7 +11343,7 @@ static SgObject nullflmax(SgObject *args, int argc, void *data_)
           {
             SgObject v = SG_CAR(cgen_42);
             if (!(SG_FLONUMP(v))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flmax")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("flmax"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -11379,7 +11381,7 @@ static SgObject nullflmin(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flmin")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flmin"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11396,7 +11398,7 @@ static SgObject nullflmin(SgObject *args, int argc, void *data_)
           {
             SgObject v = SG_CAR(cgen_43);
             if (!(SG_FLONUMP(v))) {
-              Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flmin")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
+              Sg_WrongTypeOfArgumentViolation(SG_INTERN("flmin"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
               return SG_UNDEF;
 ;
             }
@@ -11437,7 +11439,7 @@ static SgObject nullfl2b(SgObject *args, int argc, void *data_)
         int len = Sg_Length(rest);
         if (len == 1        ) {
           if (!(SG_FLONUMP(SG_CAR(rest)))) {
-            Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fl+")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(SG_CAR(rest)), SG_NIL);
+            Sg_WrongTypeOfArgumentViolation(SG_INTERN("fl+"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(SG_CAR(rest)), SG_NIL);
             return SG_UNDEF;
 ;
           }
@@ -11453,7 +11455,7 @@ static SgObject nullfl2b(SgObject *args, int argc, void *data_)
                 {
                   SgObject v = SG_CAR(cgen_44);
                   if (!(SG_FLONUMP(v))) {
-                    Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fl+")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
+                    Sg_WrongTypeOfArgumentViolation(SG_INTERN("fl+"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
                     return SG_UNDEF;
 ;
                   }
@@ -11494,7 +11496,7 @@ static SgObject nullfl2a(SgObject *args, int argc, void *data_)
         int len = Sg_Length(rest);
         if (len == 1        ) {
           if (!(SG_FLONUMP(SG_CAR(rest)))) {
-            Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fl*")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(SG_CAR(rest)), SG_NIL);
+            Sg_WrongTypeOfArgumentViolation(SG_INTERN("fl*"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(SG_CAR(rest)), SG_NIL);
             return SG_UNDEF;
 ;
           }
@@ -11510,7 +11512,7 @@ static SgObject nullfl2a(SgObject *args, int argc, void *data_)
                 {
                   SgObject v = SG_CAR(cgen_45);
                   if (!(SG_FLONUMP(v))) {
-                    Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fl*")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
+                    Sg_WrongTypeOfArgumentViolation(SG_INTERN("fl*"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
                     return SG_UNDEF;
 ;
                   }
@@ -11549,7 +11551,7 @@ static SgObject nullfl_(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fl-")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("fl-"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11566,7 +11568,7 @@ static SgObject nullfl_(SgObject *args, int argc, void *data_)
             {
               SgObject v = SG_CAR(cgen_46);
               if (!(SG_FLONUMP(v))) {
-                Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fl-")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
+                Sg_WrongTypeOfArgumentViolation(SG_INTERN("fl-"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
                 return SG_UNDEF;
 ;
               }
@@ -11601,14 +11603,14 @@ static SgObject nullfl2f(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fl/")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("fl/"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (SG_NULLP(rest)) {
       if (SG_FLONUM(fl)->value == 0.0) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("fl/")), Sg_MakeString(UC("undefined for 0"), SG_LITERAL_STRING), SG_LIST1(fl));
+        Sg_AssertionViolation(SG_INTERN("fl/"), Sg_MakeString(UC("undefined for 0"), SG_LITERAL_STRING), SG_LIST1(fl));
         return SG_UNDEF;
 ;
       } else {
@@ -11625,7 +11627,7 @@ static SgObject nullfl2f(SgObject *args, int argc, void *data_)
             {
               SgObject v = SG_CAR(cgen_47);
               if (!(SG_FLONUMP(v))) {
-                Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fl/")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
+                Sg_WrongTypeOfArgumentViolation(SG_INTERN("fl/"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(v), SG_NIL);
                 return SG_UNDEF;
 ;
               }
@@ -11663,13 +11665,13 @@ static SgObject nullfldiv(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl1))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fldiv")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl1), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("fldiv"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl1), SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_FLONUMP(fl2))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fldiv")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl2), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("fldiv"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl2), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11706,13 +11708,13 @@ static SgObject nullflmod(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl1))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flmod")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl1), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flmod"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl1), SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_FLONUMP(fl2))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flmod")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl2), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flmod"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl2), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11756,13 +11758,13 @@ static SgObject nullfldiv0(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl1))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fldiv0")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl1), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("fldiv0"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl1), SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_FLONUMP(fl2))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fldiv0")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl2), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("fldiv0"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl2), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11824,13 +11826,13 @@ static SgObject nullflmod0(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl1))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flmod0")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl1), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flmod0"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl1), SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_FLONUMP(fl2))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flmod0")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl2), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flmod0"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl2), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11894,7 +11896,7 @@ static SgObject nullflnumerator(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flnumerator")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flnumerator"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11916,7 +11918,7 @@ static SgObject nullfldenominator(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fldenominator")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("fldenominator"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11938,7 +11940,7 @@ static SgObject nullflfloor(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flfloorr")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flfloorr"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11960,7 +11962,7 @@ static SgObject nullflceiling(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flceiling")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flceiling"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -11982,7 +11984,7 @@ static SgObject nullfltruncate(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fltruncate")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("fltruncate"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -12004,7 +12006,7 @@ static SgObject nullflround(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flround")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flround"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -12026,7 +12028,7 @@ static SgObject nullflexp(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flexp")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flexp"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -12051,13 +12053,13 @@ static SgObject nullflexpt(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl1))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flexpt")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl1), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flexpt"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl1), SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_FLONUMP(fl2))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flexpt")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl2), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flexpt"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl2), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -12086,7 +12088,7 @@ static SgObject nullfllog(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl1))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fllog")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl1), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("fllog"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl1), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -12095,7 +12097,7 @@ static SgObject nullfllog(SgObject *args, int argc, void *data_)
       SG_RETURN = (Sg_MakeFlonum(log(SG_FLONUM(fl1)->value)));
     } else {
       if (!(SG_FLONUMP(fl2))) {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fllog")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl2), SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("fllog"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl2), SG_NIL);
         return SG_UNDEF;
 ;
       }
@@ -12119,7 +12121,7 @@ static SgObject nullflsin(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flsin")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flsin"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -12141,7 +12143,7 @@ static SgObject nullflcos(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flcos")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flcos"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -12163,7 +12165,7 @@ static SgObject nullfltan(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("fltan")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("fltan"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -12185,7 +12187,7 @@ static SgObject nullflasin(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flasin")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flasin"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -12207,7 +12209,7 @@ static SgObject nullflacos(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flacos")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flacos"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -12236,7 +12238,7 @@ static SgObject nullflatan(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl1))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flatan")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl1), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flatan"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl1), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -12245,7 +12247,7 @@ static SgObject nullflatan(SgObject *args, int argc, void *data_)
       SG_RETURN = (Sg_MakeFlonum(atan(SG_FLONUM(fl1)->value)));
     } else {
       if (!(SG_FLONUMP(fl2))) {
-        Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flatan")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl2), SG_NIL);
+        Sg_WrongTypeOfArgumentViolation(SG_INTERN("flatan"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl2), SG_NIL);
         return SG_UNDEF;
 ;
       }
@@ -12269,7 +12271,7 @@ static SgObject nullflabs(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flabs")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flabs"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -12291,7 +12293,7 @@ static SgObject nullflsqrt(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_FLONUMP(fl))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("flsqrt")), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("flsqrt"), Sg_MakeString(UC("flonum"), SG_LITERAL_STRING), SG_LIST1(fl), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -12338,7 +12340,7 @@ static SgObject nullbitwise_not(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_ExactP(ei))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("bitwise-not")), Sg_MakeString(UC("exact integer required"), SG_LITERAL_STRING), ei, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("bitwise-not"), Sg_MakeString(UC("exact integer required"), SG_LITERAL_STRING), ei, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -12591,7 +12593,7 @@ static SgObject nullbitwise_bit_field(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (ei2 > ei3) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("bitwise-bit-field")), Sg_MakeString(UC("2nd parameter must be less than or equal to 3rd parameter"), SG_LITERAL_STRING), SG_LIST3(ei1, SG_MAKE_INT(ei2), SG_MAKE_INT(ei3)));
+      Sg_AssertionViolation(SG_INTERN("bitwise-bit-field"), Sg_MakeString(UC("2nd parameter must be less than or equal to 3rd parameter"), SG_LITERAL_STRING), SG_LIST3(ei1, SG_MAKE_INT(ei2), SG_MAKE_INT(ei3)));
       return SG_UNDEF;
 ;
     }
@@ -12896,7 +12898,7 @@ static SgObject nullhashtable_set21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_IMMUTABLE_HASHTABLE_P(ht)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("hashtable-set!")), Sg_MakeString(UC("attemp to modify an immutable hashtable"), SG_LITERAL_STRING), ht);
+      Sg_AssertionViolation(SG_INTERN("hashtable-set!"), Sg_MakeString(UC("attemp to modify an immutable hashtable"), SG_LITERAL_STRING), ht);
       return SG_UNDEF;
 ;
     }
@@ -12920,7 +12922,7 @@ static SgObject nullhashtable_delete21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_IMMUTABLE_HASHTABLE_P(ht)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("hashtable-set!")), Sg_MakeString(UC("attemp to modify an immutable hashtable"), SG_LITERAL_STRING), ht);
+      Sg_AssertionViolation(SG_INTERN("hashtable-set!"), Sg_MakeString(UC("attemp to modify an immutable hashtable"), SG_LITERAL_STRING), ht);
       return SG_UNDEF;
 ;
     }
@@ -12996,7 +12998,7 @@ static SgObject nullhashtable_clear21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (SG_IMMUTABLE_HASHTABLE_P(ht)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("hashtable-clear!")), Sg_MakeString(UC("attemp to modify an immutable hashtable"), SG_LITERAL_STRING), ht);
+      Sg_AssertionViolation(SG_INTERN("hashtable-clear!"), Sg_MakeString(UC("attemp to modify an immutable hashtable"), SG_LITERAL_STRING), ht);
       return SG_UNDEF;
 ;
     }
@@ -13082,7 +13084,7 @@ static SgObject nullstring_hash(SgObject *args, int argc, void *data_)
       }      
 ;
       if (modulo == 0) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("string-hash")), Sg_MakeString(UC("argument out of domain"), SG_LITERAL_STRING), bound);
+        Sg_AssertionViolation(SG_INTERN("string-hash"), Sg_MakeString(UC("argument out of domain"), SG_LITERAL_STRING), bound);
         return SG_UNDEF;
 ;
       }
@@ -13123,7 +13125,7 @@ static SgObject nullstring_ci_hash(SgObject *args, int argc, void *data_)
       }      
 ;
       if (modulo == 0) {
-        Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("string-hash")), Sg_MakeString(UC("argument out of domain"), SG_LITERAL_STRING), bound);
+        Sg_AssertionViolation(SG_INTERN("string-hash"), Sg_MakeString(UC("argument out of domain"), SG_LITERAL_STRING), bound);
         return SG_UNDEF;
 ;
       }
@@ -13199,13 +13201,13 @@ static SgObject nullset_car21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_PAIRP(o))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("set-car!")), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("set-car!"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (Sg_ConstantLiteralP(o)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("set-car")), Sg_MakeString(UC("attempt to modify constant literal"), SG_LITERAL_STRING), o);
+      Sg_AssertionViolation(SG_INTERN("set-car"), Sg_MakeString(UC("attempt to modify constant literal"), SG_LITERAL_STRING), o);
       return SG_UNDEF;
 ;
     }
@@ -13228,13 +13230,13 @@ static SgObject nullset_cdr21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_PAIRP(o))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("set-cdr!")), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("set-cdr!"), Sg_MakeString(UC("pair"), SG_LITERAL_STRING), o, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (Sg_ConstantLiteralP(o)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("set-cdr")), Sg_MakeString(UC("attempt to modify constant literal"), SG_LITERAL_STRING), o);
+      Sg_AssertionViolation(SG_INTERN("set-cdr"), Sg_MakeString(UC("attempt to modify constant literal"), SG_LITERAL_STRING), o);
       return SG_UNDEF;
 ;
     }
@@ -13261,25 +13263,25 @@ static SgObject nullstring_set21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (k < 0) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("string-set!")), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(k), SG_LIST3(s, SG_MAKE_INT(k), c));
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("string-set!"), Sg_MakeString(UC("non negative exact integer"), SG_LITERAL_STRING), SG_MAKE_INT(k), SG_LIST3(s, SG_MAKE_INT(k), c));
       return SG_UNDEF;
 ;
     }
 ;
     if (k > SG_STRING_SIZE(s)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("string-set!")), Sg_MakeString(UC("index out of bounds"), SG_LITERAL_STRING), SG_LIST3(s, SG_MAKE_INT(k), c));
+      Sg_AssertionViolation(SG_INTERN("string-set!"), Sg_MakeString(UC("index out of bounds"), SG_LITERAL_STRING), SG_LIST3(s, SG_MAKE_INT(k), c));
       return SG_UNDEF;
 ;
     }
 ;
     if (!(SG_CHARP(c))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("string-set!")), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_LIST3(s, SG_MAKE_INT(k), c));
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("string-set!"), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_LIST3(s, SG_MAKE_INT(k), c));
       return SG_UNDEF;
 ;
     }
 ;
     if (SG_LITERAL_STRINGP(s)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("string-set!")), Sg_MakeString(UC("attempted to modify an immutable string"), SG_LITERAL_STRING), s);
+      Sg_AssertionViolation(SG_INTERN("string-set!"), Sg_MakeString(UC("attempted to modify an immutable string"), SG_LITERAL_STRING), s);
       return SG_UNDEF;
 ;
     }
@@ -13319,13 +13321,13 @@ static SgObject nullstring_fill21(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(SG_CHARP(c))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("string-fill!")), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("string-fill!"), Sg_MakeString(UC("character"), SG_LITERAL_STRING), c, SG_NIL);
       return SG_UNDEF;
 ;
     }
 ;
     if (SG_LITERAL_STRINGP(s)) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("string-set!")), Sg_MakeString(UC("attempted to modify an immutable string"), SG_LITERAL_STRING), s);
+      Sg_AssertionViolation(SG_INTERN("string-set!"), Sg_MakeString(UC("attempted to modify an immutable string"), SG_LITERAL_STRING), s);
       return SG_UNDEF;
 ;
     }
@@ -13593,13 +13595,13 @@ static SgObject nullrecord_accessor(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RecordTypeDescriptorP(rtd))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("record-accessor")), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_LIST2(rtd, SG_MAKE_INT(k)));
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-accessor"), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_LIST2(rtd, SG_MAKE_INT(k)));
       return SG_UNDEF;
 ;
     }
 ;
     if (!((-1 < k && k < Sg_Length(Sg_RtdFields(rtd))))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("record-accessor")), Sg_MakeString(UC("field index out of range"), SG_LITERAL_STRING), SG_NIL);
+      Sg_AssertionViolation(SG_INTERN("record-accessor"), Sg_MakeString(UC("field index out of range"), SG_LITERAL_STRING), SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -13620,7 +13622,7 @@ static SgObject nullrecord_predicate(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RecordTypeDescriptorP(rtd))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("record-predicate")), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-predicate"), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -13644,19 +13646,19 @@ static SgObject nullrecord_mutator(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RecordTypeDescriptorP(rtd))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("record-mutator")), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_LIST2(rtd, SG_MAKE_INT(k)));
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-mutator"), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_LIST2(rtd, SG_MAKE_INT(k)));
       return SG_UNDEF;
 ;
     }
 ;
     if (!((-1 < k && k < Sg_Length(Sg_RtdFields(rtd))))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("record-mutator")), Sg_MakeString(UC("field index out of range"), SG_LITERAL_STRING), SG_LIST2(rtd, SG_MAKE_INT(k)));
+      Sg_AssertionViolation(SG_INTERN("record-mutator"), Sg_MakeString(UC("field index out of range"), SG_LITERAL_STRING), SG_LIST2(rtd, SG_MAKE_INT(k)));
       return SG_UNDEF;
 ;
     }
 ;
     if (SG_FALSEP(SG_CAR(Sg_ListRef(Sg_RtdFields(rtd), k, SG_UNBOUND)))) {
-      Sg_AssertionViolation(SG_SYMBOL(SG_INTERN("record-mutator")), Sg_MakeString(UC("specified field is immutable"), SG_LITERAL_STRING), SG_LIST2(rtd, SG_MAKE_INT(k)));
+      Sg_AssertionViolation(SG_INTERN("record-mutator"), Sg_MakeString(UC("specified field is immutable"), SG_LITERAL_STRING), SG_LIST2(rtd, SG_MAKE_INT(k)));
       return SG_UNDEF;
 ;
     }
@@ -13677,7 +13679,7 @@ static SgObject nullrecord_type_name(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RecordTypeDescriptorP(rtd))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("record-type-name")), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-type-name"), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -13698,7 +13700,7 @@ static SgObject nullrecord_type_parent(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RecordTypeDescriptorP(rtd))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("record-type-name")), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-type-name"), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -13719,7 +13721,7 @@ static SgObject nullrecord_type_uid(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RecordTypeDescriptorP(rtd))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("record-type-name")), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-type-name"), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -13740,7 +13742,7 @@ static SgObject nullrecord_type_generative3f(SgObject *args, int argc, void *dat
   {
     int SG_RETURN;
     if (!(Sg_RecordTypeDescriptorP(rtd))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("record-type-name")), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-type-name"), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -13761,7 +13763,7 @@ static SgObject nullrecord_type_opaque3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(Sg_RecordTypeDescriptorP(rtd))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("record-type-name")), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-type-name"), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -13782,7 +13784,7 @@ static SgObject nullrecord_type_sealed3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(Sg_RecordTypeDescriptorP(rtd))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("record-type-name")), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-type-name"), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -13803,7 +13805,7 @@ static SgObject nullrtd_fields(SgObject *args, int argc, void *data_)
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RecordTypeDescriptorP(rtd))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("record-type-name")), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-type-name"), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -13824,7 +13826,7 @@ static SgObject nullrecord_type_field_names(SgObject *args, int argc, void *data
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RecordTypeDescriptorP(rtd))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("record-type-name")), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-type-name"), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -13865,7 +13867,7 @@ static SgObject nullrecord_field_mutable3f(SgObject *args, int argc, void *data_
   {
     SgObject SG_RETURN = SG_UNDEF;
     if (!(Sg_RecordTypeDescriptorP(rtd))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("record-type-name")), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-type-name"), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -13886,7 +13888,7 @@ static SgObject nullrtd_inherited_field_count(SgObject *args, int argc, void *da
   {
     int SG_RETURN;
     if (!(Sg_RecordTypeDescriptorP(rtd))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("record-type-name")), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-type-name"), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -13907,7 +13909,7 @@ static SgObject nullrtd_total_field_count(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(Sg_RecordTypeDescriptorP(rtd))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("record-type-name")), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-type-name"), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_NIL);
       return SG_UNDEF;
 ;
     }
@@ -13930,13 +13932,13 @@ static SgObject nullrtd_ancestor3f(SgObject *args, int argc, void *data_)
   {
     int SG_RETURN;
     if (!(Sg_RecordTypeDescriptorP(rtd))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("record-type-name")), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_LIST2(parent, rtd));
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-type-name"), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), rtd, SG_LIST2(parent, rtd));
       return SG_UNDEF;
 ;
     }
 ;
     if (!(Sg_RecordTypeDescriptorP(parent))) {
-      Sg_WrongTypeOfArgumentViolation(SG_SYMBOL(SG_INTERN("record-type-name")), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), parent, SG_LIST2(parent, rtd));
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-type-name"), Sg_MakeString(UC("record-type-descriptor"), SG_LITERAL_STRING), parent, SG_LIST2(parent, rtd));
       return SG_UNDEF;
 ;
     }
@@ -14066,929 +14068,927 @@ static SgObject nulltuple_size(SgObject *args, int argc, void *data_)
 static SG_DEFINE_SUBR(nulltuple_size_Stub, 1, 0, nulltuple_size, SG_FALSE, NULL);
 
 ;
-SG_CDECL_BEGIN
 void Sg__Initnull()
 {
-  SgLibrary *lib = SG_LIBRARY(Sg_FindLibrary(SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("null")))), TRUE));
-  SG_PROCEDURE_NAME(&nulllist_Stub) = SG_STRING(SG_MAKE_STRING("list"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("list")))), SG_OBJ(&nulllist_Stub));
-  SG_PROCEDURE_NAME(&nullexp_Stub) = SG_STRING(SG_MAKE_STRING("exp"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("exp")))), SG_OBJ(&nullexp_Stub));
-  SG_PROCEDURE_NAME(&nullasin_Stub) = SG_STRING(SG_MAKE_STRING("asin"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("asin")))), SG_OBJ(&nullasin_Stub));
-  SG_PROCEDURE_NAME(&nullangle_Stub) = SG_STRING(SG_MAKE_STRING("angle"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("angle")))), SG_OBJ(&nullangle_Stub));
-  SG_PROCEDURE_NAME(&nullhashtable_delete21_Stub) = SG_STRING(SG_MAKE_STRING("hashtable-delete!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("hashtable-delete!")))), SG_OBJ(&nullhashtable_delete21_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s64_native_set21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-s64-native-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-s64-native-set!")))), SG_OBJ(&nullbytevector_s64_native_set21_Stub));
-  SG_PROCEDURE_NAME(&nullcondition_accessor_Stub) = SG_STRING(SG_MAKE_STRING("condition-accessor"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("condition-accessor")))), SG_OBJ(&nullcondition_accessor_Stub));
-  SG_PROCEDURE_NAME(&nullflround_Stub) = SG_STRING(SG_MAKE_STRING("flround"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flround")))), SG_OBJ(&nullflround_Stub));
-  SG_PROCEDURE_NAME(&nullzero3f_Stub) = SG_STRING(SG_MAKE_STRING("zero?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("zero?")))), SG_OBJ(&nullzero3f_Stub));
-  SG_PROCEDURE_NAME(&nullfxodd3f_Stub) = SG_STRING(SG_MAKE_STRING("fxodd?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxodd?")))), SG_OBJ(&nullfxodd3f_Stub));
-  SG_PROCEDURE_NAME(&nullraise_continuable_Stub) = SG_STRING(SG_MAKE_STRING("raise-continuable"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("raise-continuable")))), SG_OBJ(&nullraise_continuable_Stub));
-  SG_PROCEDURE_NAME(&nullutf32_3estring_Stub) = SG_STRING(SG_MAKE_STRING("utf32->string"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("utf32->string")))), SG_OBJ(&nullutf32_3estring_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s16_set21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-s16-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-s16-set!")))), SG_OBJ(&nullbytevector_s16_set21_Stub));
-  SG_PROCEDURE_NAME(&nullfxxor_Stub) = SG_STRING(SG_MAKE_STRING("fxxor"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxxor")))), SG_OBJ(&nullfxxor_Stub));
-  SG_PROCEDURE_NAME(&nullfxnegative3f_Stub) = SG_STRING(SG_MAKE_STRING("fxnegative?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxnegative?")))), SG_OBJ(&nullfxnegative3f_Stub));
-  SG_PROCEDURE_NAME(&nullfxnot_Stub) = SG_STRING(SG_MAKE_STRING("fxnot"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxnot")))), SG_OBJ(&nullfxnot_Stub));
-  SG_PROCEDURE_NAME(&nullfldiv_Stub) = SG_STRING(SG_MAKE_STRING("fldiv"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fldiv")))), SG_OBJ(&nullfldiv_Stub));
-  SG_PROCEDURE_NAME(&nullcall_with_current_continuation_Stub) = SG_STRING(SG_MAKE_STRING("call-with-current-continuation"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("call-with-current-continuation")))), SG_OBJ(&nullcall_with_current_continuation_Stub));
-  SG_PROCEDURE_NAME(&nullrecord_type_name_Stub) = SG_STRING(SG_MAKE_STRING("record-type-name"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("record-type-name")))), SG_OBJ(&nullrecord_type_name_Stub));
-  SG_PROCEDURE_NAME(&nullvector_set21_Stub) = SG_STRING(SG_MAKE_STRING("vector-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("vector-set!")))), SG_OBJ(&nullvector_set21_Stub));
-  SG_PROCEDURE_NAME(&nullfxarithmetic_shift_left_Stub) = SG_STRING(SG_MAKE_STRING("fxarithmetic-shift-left"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxarithmetic-shift-left")))), SG_OBJ(&nullfxarithmetic_shift_left_Stub));
-  SG_PROCEDURE_NAME(&nullidentifier3f_Stub) = SG_STRING(SG_MAKE_STRING("identifier?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("identifier?")))), SG_OBJ(&nullidentifier3f_Stub));
-  SG_PROCEDURE_NAME(&nullfxbit_field_Stub) = SG_STRING(SG_MAKE_STRING("fxbit-field"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxbit-field")))), SG_OBJ(&nullfxbit_field_Stub));
-  SG_PROCEDURE_NAME(&nullmake_custom_binary_input_port_Stub) = SG_STRING(SG_MAKE_STRING("make-custom-binary-input-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-custom-binary-input-port")))), SG_OBJ(&nullmake_custom_binary_input_port_Stub));
-  SG_PROCEDURE_NAME(&nullbuffer_mode3f_Stub) = SG_STRING(SG_MAKE_STRING("buffer-mode?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("buffer-mode?")))), SG_OBJ(&nullbuffer_mode3f_Stub));
-  SG_PROCEDURE_NAME(&nullrational3f_Stub) = SG_STRING(SG_MAKE_STRING("rational?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("rational?")))), SG_OBJ(&nullrational3f_Stub));
-  SG_PROCEDURE_NAME(&nullpair3f_Stub) = SG_STRING(SG_MAKE_STRING("pair?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("pair?")))), SG_OBJ(&nullpair3f_Stub));
-  SG_PROCEDURE_NAME(&nullhashtable_clear21_Stub) = SG_STRING(SG_MAKE_STRING("hashtable-clear!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("hashtable-clear!")))), SG_OBJ(&nullhashtable_clear21_Stub));
-  SG_PROCEDURE_NAME(&nullput_char_Stub) = SG_STRING(SG_MAKE_STRING("put-char"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("put-char")))), SG_OBJ(&nullput_char_Stub));
-  SG_PROCEDURE_NAME(&nullstring_copy_Stub) = SG_STRING(SG_MAKE_STRING("string-copy"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string-copy")))), SG_OBJ(&nullstring_copy_Stub));
-  SG_PROCEDURE_NAME(&nullfinite3f_Stub) = SG_STRING(SG_MAKE_STRING("finite?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("finite?")))), SG_OBJ(&nullfinite3f_Stub));
-  SG_PROCEDURE_NAME(&nullassv_Stub) = SG_STRING(SG_MAKE_STRING("assv"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("assv")))), SG_OBJ(&nullassv_Stub));
-  SG_PROCEDURE_NAME(&nullstring_downcase_Stub) = SG_STRING(SG_MAKE_STRING("string-downcase"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string-downcase")))), SG_OBJ(&nullstring_downcase_Stub));
-  SG_PROCEDURE_NAME(&nullquotient_Stub) = SG_STRING(SG_MAKE_STRING("quotient"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("quotient")))), SG_OBJ(&nullquotient_Stub));
-  SG_PROCEDURE_NAME(&nullchar_title_case3f_Stub) = SG_STRING(SG_MAKE_STRING("char-title-case?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char-title-case?")))), SG_OBJ(&nullchar_title_case3f_Stub));
-  SG_PROCEDURE_NAME(&nullcddr_Stub) = SG_STRING(SG_MAKE_STRING("cddr"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("cddr")))), SG_OBJ(&nullcddr_Stub));
-  SG_PROCEDURE_NAME(&nullflonum3f_Stub) = SG_STRING(SG_MAKE_STRING("flonum?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flonum?")))), SG_OBJ(&nullflonum3f_Stub));
-  SG_PROCEDURE_NAME(&null2f_Stub) = SG_STRING(SG_MAKE_STRING("/"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("/")))), SG_OBJ(&null2f_Stub));
-  SG_PROCEDURE_NAME(&nullfxand_Stub) = SG_STRING(SG_MAKE_STRING("fxand"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxand")))), SG_OBJ(&nullfxand_Stub));
-  SG_PROCEDURE_NAME(&nullrtd_inherited_field_count_Stub) = SG_STRING(SG_MAKE_STRING("rtd-inherited-field-count"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("rtd-inherited-field-count")))), SG_OBJ(&nullrtd_inherited_field_count_Stub));
-  SG_PROCEDURE_NAME(&nullsin_Stub) = SG_STRING(SG_MAKE_STRING("sin"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("sin")))), SG_OBJ(&nullsin_Stub));
-  SG_PROCEDURE_NAME(&nulldisplay_Stub) = SG_STRING(SG_MAKE_STRING("display"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("display")))), SG_OBJ(&nulldisplay_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u64_native_set21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-u64-native-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-u64-native-set!")))), SG_OBJ(&nullbytevector_u64_native_set21_Stub));
-  SG_PROCEDURE_NAME(&nullnewline_Stub) = SG_STRING(SG_MAKE_STRING("newline"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("newline")))), SG_OBJ(&nullnewline_Stub));
-  SG_PROCEDURE_NAME(&nullopen_file_input_port_Stub) = SG_STRING(SG_MAKE_STRING("open-file-input-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("open-file-input-port")))), SG_OBJ(&nullopen_file_input_port_Stub));
-  SG_PROCEDURE_NAME(&nullsymbol3f_Stub) = SG_STRING(SG_MAKE_STRING("symbol?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("symbol?")))), SG_OBJ(&nullsymbol3f_Stub));
-  SG_PROCEDURE_NAME(&nullmake_tuple_Stub) = SG_STRING(SG_MAKE_STRING("make-tuple"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-tuple")))), SG_OBJ(&nullmake_tuple_Stub));
-  SG_PROCEDURE_NAME(&nullfx2a_Stub) = SG_STRING(SG_MAKE_STRING("fx*"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fx*")))), SG_OBJ(&nullfx2a_Stub));
-  SG_PROCEDURE_NAME(&nullput_string_Stub) = SG_STRING(SG_MAKE_STRING("put-string"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("put-string")))), SG_OBJ(&nullput_string_Stub));
-  SG_PROCEDURE_NAME(&nullmake_record_type_descriptor_Stub) = SG_STRING(SG_MAKE_STRING("make-record-type-descriptor"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-record-type-descriptor")))), SG_OBJ(&nullmake_record_type_descriptor_Stub));
-  SG_PROCEDURE_NAME(&nullflabs_Stub) = SG_STRING(SG_MAKE_STRING("flabs"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flabs")))), SG_OBJ(&nullflabs_Stub));
-  SG_PROCEDURE_NAME(&nullhashtable_ref_Stub) = SG_STRING(SG_MAKE_STRING("hashtable-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("hashtable-ref")))), SG_OBJ(&nullhashtable_ref_Stub));
-  SG_PROCEDURE_NAME(&nullopen_output_bytevector_Stub) = SG_STRING(SG_MAKE_STRING("open-output-bytevector"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("open-output-bytevector")))), SG_OBJ(&nullopen_output_bytevector_Stub));
-  SG_PROCEDURE_NAME(&nullstandard_error_port_Stub) = SG_STRING(SG_MAKE_STRING("standard-error-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("standard-error-port")))), SG_OBJ(&nullstandard_error_port_Stub));
-  SG_PROCEDURE_NAME(&nullreal_part_Stub) = SG_STRING(SG_MAKE_STRING("real-part"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("real-part")))), SG_OBJ(&nullreal_part_Stub));
-  SG_PROCEDURE_NAME(&nullcondition_predicate_Stub) = SG_STRING(SG_MAKE_STRING("condition-predicate"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("condition-predicate")))), SG_OBJ(&nullcondition_predicate_Stub));
-  SG_PROCEDURE_NAME(&nullmod_Stub) = SG_STRING(SG_MAKE_STRING("mod"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("mod")))), SG_OBJ(&nullmod_Stub));
-  SG_PROCEDURE_NAME(&null_2e_Stub) = SG_STRING(SG_MAKE_STRING("-."));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("-.")))), SG_OBJ(&null_2e_Stub));
-  SG_PROCEDURE_NAME(&nullfxmod_Stub) = SG_STRING(SG_MAKE_STRING("fxmod"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxmod")))), SG_OBJ(&nullfxmod_Stub));
-  SG_PROCEDURE_NAME(&nullhashtable_copy_Stub) = SG_STRING(SG_MAKE_STRING("hashtable-copy"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("hashtable-copy")))), SG_OBJ(&nullhashtable_copy_Stub));
-  SG_PROCEDURE_NAME(&nulleq3f_Stub) = SG_STRING(SG_MAKE_STRING("eq?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("eq?")))), SG_OBJ(&nulleq3f_Stub));
-  SG_PROCEDURE_NAME(&nulldiv_Stub) = SG_STRING(SG_MAKE_STRING("div"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("div")))), SG_OBJ(&nulldiv_Stub));
-  SG_PROCEDURE_NAME(&nullrecord_constructor_descriptor3f_Stub) = SG_STRING(SG_MAKE_STRING("record-constructor-descriptor?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("record-constructor-descriptor?")))), SG_OBJ(&nullrecord_constructor_descriptor3f_Stub));
-  SG_PROCEDURE_NAME(&nullstring_hash_Stub) = SG_STRING(SG_MAKE_STRING("string-hash"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string-hash")))), SG_OBJ(&nullstring_hash_Stub));
-  SG_PROCEDURE_NAME(&nullvector3f_Stub) = SG_STRING(SG_MAKE_STRING("vector?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("vector?")))), SG_OBJ(&nullvector3f_Stub));
-  SG_PROCEDURE_NAME(&nullchar_numeric3f_Stub) = SG_STRING(SG_MAKE_STRING("char-numeric?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char-numeric?")))), SG_OBJ(&nullchar_numeric3f_Stub));
-  SG_PROCEDURE_NAME(&nullfx3e3d3f_Stub) = SG_STRING(SG_MAKE_STRING("fx>=?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fx>=?")))), SG_OBJ(&nullfx3e3d3f_Stub));
-  SG_PROCEDURE_NAME(&nullutf_8_codec_Stub) = SG_STRING(SG_MAKE_STRING("utf-8-codec"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("utf-8-codec")))), SG_OBJ(&nullutf_8_codec_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_3eu8_list_Stub) = SG_STRING(SG_MAKE_STRING("bytevector->u8-list"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector->u8-list")))), SG_OBJ(&nullbytevector_3eu8_list_Stub));
-  SG_PROCEDURE_NAME(&nullsyntax_error_Stub) = SG_STRING(SG_MAKE_STRING("syntax-error"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("syntax-error")))), SG_OBJ(&nullsyntax_error_Stub));
-  SG_PROCEDURE_NAME(&nullport_position_Stub) = SG_STRING(SG_MAKE_STRING("port-position"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("port-position")))), SG_OBJ(&nullport_position_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_ieee_double_native_set21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-ieee-double-native-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-ieee-double-native-set!")))), SG_OBJ(&nullbytevector_ieee_double_native_set21_Stub));
-  SG_PROCEDURE_NAME(&nullrcd_parent_Stub) = SG_STRING(SG_MAKE_STRING("rcd-parent"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("rcd-parent")))), SG_OBJ(&nullrcd_parent_Stub));
-  SG_PROCEDURE_NAME(&nullreal3f_Stub) = SG_STRING(SG_MAKE_STRING("real?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("real?")))), SG_OBJ(&nullreal3f_Stub));
-  SG_PROCEDURE_NAME(&nullstring_fill21_Stub) = SG_STRING(SG_MAKE_STRING("string-fill!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string-fill!")))), SG_OBJ(&nullstring_fill21_Stub));
-  SG_PROCEDURE_NAME(&nullfleven3f_Stub) = SG_STRING(SG_MAKE_STRING("fleven?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fleven?")))), SG_OBJ(&nullfleven3f_Stub));
-  SG_PROCEDURE_NAME(&nullput_bytevector_Stub) = SG_STRING(SG_MAKE_STRING("put-bytevector"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("put-bytevector")))), SG_OBJ(&nullput_bytevector_Stub));
-  SG_PROCEDURE_NAME(&nulllast_pair_Stub) = SG_STRING(SG_MAKE_STRING("last-pair"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("last-pair")))), SG_OBJ(&nulllast_pair_Stub));
-  SG_PROCEDURE_NAME(&nullfl2f_Stub) = SG_STRING(SG_MAKE_STRING("fl/"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fl/")))), SG_OBJ(&nullfl2f_Stub));
-  SG_PROCEDURE_NAME(&nullopen_file_output_port_Stub) = SG_STRING(SG_MAKE_STRING("open-file-output-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("open-file-output-port")))), SG_OBJ(&nullopen_file_output_port_Stub));
-  SG_PROCEDURE_NAME(&nullflmod_Stub) = SG_STRING(SG_MAKE_STRING("flmod"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flmod")))), SG_OBJ(&nullflmod_Stub));
-  SG_PROCEDURE_NAME(&nullstring_3esymbol_Stub) = SG_STRING(SG_MAKE_STRING("string->symbol"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string->symbol")))), SG_OBJ(&nullstring_3esymbol_Stub));
-  SG_PROCEDURE_NAME(&nullcons2a_Stub) = SG_STRING(SG_MAKE_STRING("cons*"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("cons*")))), SG_OBJ(&nullcons2a_Stub));
-  SG_PROCEDURE_NAME(&nulllookahead_char_Stub) = SG_STRING(SG_MAKE_STRING("lookahead-char"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("lookahead-char")))), SG_OBJ(&nulllookahead_char_Stub));
-  SG_PROCEDURE_NAME(&nulltruncate_Stub) = SG_STRING(SG_MAKE_STRING("truncate"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("truncate")))), SG_OBJ(&nulltruncate_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_copy_bit_Stub) = SG_STRING(SG_MAKE_STRING("bitwise-copy-bit"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bitwise-copy-bit")))), SG_OBJ(&nullbitwise_copy_bit_Stub));
-  SG_PROCEDURE_NAME(&nullfl3c3d3f_Stub) = SG_STRING(SG_MAKE_STRING("fl<=?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fl<=?")))), SG_OBJ(&nullfl3c3d3f_Stub));
-  SG_PROCEDURE_NAME(&nullchar_downcase_Stub) = SG_STRING(SG_MAKE_STRING("char-downcase"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char-downcase")))), SG_OBJ(&nullchar_downcase_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_copy_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-copy"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-copy")))), SG_OBJ(&nullbytevector_copy_Stub));
-  SG_PROCEDURE_NAME(&nullinteger_length_Stub) = SG_STRING(SG_MAKE_STRING("integer-length"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("integer-length")))), SG_OBJ(&nullinteger_length_Stub));
-  SG_PROCEDURE_NAME(&nullmake_hashtable_Stub) = SG_STRING(SG_MAKE_STRING("make-hashtable"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-hashtable")))), SG_OBJ(&nullmake_hashtable_Stub));
-  SG_PROCEDURE_NAME(&nulltan_Stub) = SG_STRING(SG_MAKE_STRING("tan"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("tan")))), SG_OBJ(&nulltan_Stub));
-  SG_PROCEDURE_NAME(&nullinteger3f_Stub) = SG_STRING(SG_MAKE_STRING("integer?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("integer?")))), SG_OBJ(&nullinteger3f_Stub));
-  SG_PROCEDURE_NAME(&nullfl3e3d3f_Stub) = SG_STRING(SG_MAKE_STRING("fl>=?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fl>=?")))), SG_OBJ(&nullfl3e3d3f_Stub));
-  SG_PROCEDURE_NAME(&null3e_Stub) = SG_STRING(SG_MAKE_STRING(">"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING(">")))), SG_OBJ(&null3e_Stub));
-  SG_PROCEDURE_NAME(&nulltranscoded_port_Stub) = SG_STRING(SG_MAKE_STRING("transcoded-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("transcoded-port")))), SG_OBJ(&nulltranscoded_port_Stub));
-  SG_PROCEDURE_NAME(&nulllist_ref_Stub) = SG_STRING(SG_MAKE_STRING("list-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("list-ref")))), SG_OBJ(&nulllist_ref_Stub));
-  SG_PROCEDURE_NAME(&nullget_string_n21_Stub) = SG_STRING(SG_MAKE_STRING("get-string-n!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("get-string-n!")))), SG_OBJ(&nullget_string_n21_Stub));
-  SG_PROCEDURE_NAME(&nullutf_16_codec_Stub) = SG_STRING(SG_MAKE_STRING("utf-16-codec"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("utf-16-codec")))), SG_OBJ(&nullutf_16_codec_Stub));
-  SG_PROCEDURE_NAME(&nullchar_whitespace3f_Stub) = SG_STRING(SG_MAKE_STRING("char-whitespace?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char-whitespace?")))), SG_OBJ(&nullchar_whitespace3f_Stub));
-  SG_PROCEDURE_NAME(&nullinexact3f_Stub) = SG_STRING(SG_MAKE_STRING("inexact?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("inexact?")))), SG_OBJ(&nullinexact3f_Stub));
-  SG_PROCEDURE_NAME(&nulltuple_size_Stub) = SG_STRING(SG_MAKE_STRING("tuple-size"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("tuple-size")))), SG_OBJ(&nulltuple_size_Stub));
-  SG_PROCEDURE_NAME(&nullchar3e3d3f_Stub) = SG_STRING(SG_MAKE_STRING("char>=?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char>=?")))), SG_OBJ(&nullchar3e3d3f_Stub));
-  SG_PROCEDURE_NAME(&nullmake_custom_textual_input_port_Stub) = SG_STRING(SG_MAKE_STRING("make-custom-textual-input-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-custom-textual-input-port")))), SG_OBJ(&nullmake_custom_textual_input_port_Stub));
-  SG_PROCEDURE_NAME(&nulllist3f_Stub) = SG_STRING(SG_MAKE_STRING("list?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("list?")))), SG_OBJ(&nulllist3f_Stub));
-  SG_PROCEDURE_NAME(&nullhashtable_size_Stub) = SG_STRING(SG_MAKE_STRING("hashtable-size"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("hashtable-size")))), SG_OBJ(&nullhashtable_size_Stub));
-  SG_PROCEDURE_NAME(&nullset_cdr21_Stub) = SG_STRING(SG_MAKE_STRING("set-cdr!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("set-cdr!")))), SG_OBJ(&nullset_cdr21_Stub));
-  SG_PROCEDURE_NAME(&nullchar3d3f_Stub) = SG_STRING(SG_MAKE_STRING("char=?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char=?")))), SG_OBJ(&nullchar3d3f_Stub));
-  SG_PROCEDURE_NAME(&nullbound_identifier3d3f_Stub) = SG_STRING(SG_MAKE_STRING("bound-identifier=?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bound-identifier=?")))), SG_OBJ(&nullbound_identifier3d3f_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u8_ref_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-u8-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-u8-ref")))), SG_OBJ(&nullbytevector_u8_ref_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u8_set21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-u8-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-u8-set!")))), SG_OBJ(&nullbytevector_u8_set21_Stub));
-  SG_PROCEDURE_NAME(&nullfxfirst_bit_set_Stub) = SG_STRING(SG_MAKE_STRING("fxfirst-bit-set"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxfirst-bit-set")))), SG_OBJ(&nullfxfirst_bit_set_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_ieee_single_set21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-ieee-single-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-ieee-single-set!")))), SG_OBJ(&nullbytevector_ieee_single_set21_Stub));
-  SG_PROCEDURE_NAME(&nullfxmin_Stub) = SG_STRING(SG_MAKE_STRING("fxmin"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxmin")))), SG_OBJ(&nullfxmin_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u32_native_ref_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-u32-native-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-u32-native-ref")))), SG_OBJ(&nullbytevector_u32_native_ref_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s16_native_ref_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-s16-native-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-s16-native-ref")))), SG_OBJ(&nullbytevector_s16_native_ref_Stub));
-  SG_PROCEDURE_NAME(&nullfltan_Stub) = SG_STRING(SG_MAKE_STRING("fltan"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fltan")))), SG_OBJ(&nullfltan_Stub));
-  SG_PROCEDURE_NAME(&nullflzero3f_Stub) = SG_STRING(SG_MAKE_STRING("flzero?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flzero?")))), SG_OBJ(&nullflzero3f_Stub));
-  SG_PROCEDURE_NAME(&nulldenominator_Stub) = SG_STRING(SG_MAKE_STRING("denominator"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("denominator")))), SG_OBJ(&nulldenominator_Stub));
-  SG_PROCEDURE_NAME(&nullinexact_Stub) = SG_STRING(SG_MAKE_STRING("inexact"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("inexact")))), SG_OBJ(&nullinexact_Stub));
-  SG_PROCEDURE_NAME(&nullfxmax_Stub) = SG_STRING(SG_MAKE_STRING("fxmax"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxmax")))), SG_OBJ(&nullfxmax_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_3estring_Stub) = SG_STRING(SG_MAKE_STRING("bytevector->string"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector->string")))), SG_OBJ(&nullbytevector_3estring_Stub));
-  SG_PROCEDURE_NAME(&nullbinary_port3f_Stub) = SG_STRING(SG_MAKE_STRING("binary-port?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("binary-port?")))), SG_OBJ(&nullbinary_port3f_Stub));
-  SG_PROCEDURE_NAME(&nullround_Stub) = SG_STRING(SG_MAKE_STRING("round"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("round")))), SG_OBJ(&nullround_Stub));
-  SG_PROCEDURE_NAME(&nullrcd_protocol_Stub) = SG_STRING(SG_MAKE_STRING("rcd-protocol"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("rcd-protocol")))), SG_OBJ(&nullrcd_protocol_Stub));
-  SG_PROCEDURE_NAME(&nullenvironment_Stub) = SG_STRING(SG_MAKE_STRING("environment"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("environment")))), SG_OBJ(&nullenvironment_Stub));
-  SG_PROCEDURE_NAME(&nullstandard_output_port_Stub) = SG_STRING(SG_MAKE_STRING("standard-output-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("standard-output-port")))), SG_OBJ(&nullstandard_output_port_Stub));
-  SG_PROCEDURE_NAME(&nullrecord_predicate_Stub) = SG_STRING(SG_MAKE_STRING("record-predicate"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("record-predicate")))), SG_OBJ(&nullrecord_predicate_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_copy_bit_field_Stub) = SG_STRING(SG_MAKE_STRING("bitwise-copy-bit-field"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bitwise-copy-bit-field")))), SG_OBJ(&nullbitwise_copy_bit_field_Stub));
-  SG_PROCEDURE_NAME(&nullcondition_Stub) = SG_STRING(SG_MAKE_STRING("condition"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("condition")))), SG_OBJ(&nullcondition_Stub));
-  SG_PROCEDURE_NAME(&nullmake_custom_textual_output_port_Stub) = SG_STRING(SG_MAKE_STRING("make-custom-textual-output-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-custom-textual-output-port")))), SG_OBJ(&nullmake_custom_textual_output_port_Stub));
-  SG_PROCEDURE_NAME(&nullget_bytevector_n_Stub) = SG_STRING(SG_MAKE_STRING("get-bytevector-n"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("get-bytevector-n")))), SG_OBJ(&nullget_bytevector_n_Stub));
-  SG_PROCEDURE_NAME(&nullhashtable_set21_Stub) = SG_STRING(SG_MAKE_STRING("hashtable-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("hashtable-set!")))), SG_OBJ(&nullhashtable_set21_Stub));
-  SG_PROCEDURE_NAME(&nullfxarithmetic_shift_Stub) = SG_STRING(SG_MAKE_STRING("fxarithmetic-shift"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxarithmetic-shift")))), SG_OBJ(&nullfxarithmetic_shift_Stub));
-  SG_PROCEDURE_NAME(&nullrecord_type_opaque3f_Stub) = SG_STRING(SG_MAKE_STRING("record-type-opaque?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("record-type-opaque?")))), SG_OBJ(&nullrecord_type_opaque3f_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u32_native_set21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-u32-native-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-u32-native-set!")))), SG_OBJ(&nullbytevector_u32_native_set21_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_ior_Stub) = SG_STRING(SG_MAKE_STRING("bitwise-ior"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bitwise-ior")))), SG_OBJ(&nullbitwise_ior_Stub));
-  SG_PROCEDURE_NAME(&nullapply_Stub) = SG_STRING(SG_MAKE_STRING("apply"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("apply")))), SG_OBJ(&nullapply_Stub));
-  SG_PROCEDURE_NAME(&nullmake_transcoder_Stub) = SG_STRING(SG_MAKE_STRING("make-transcoder"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-transcoder")))), SG_OBJ(&nullmake_transcoder_Stub));
-  SG_PROCEDURE_NAME(&nulllatin_1_codec_Stub) = SG_STRING(SG_MAKE_STRING("latin-1-codec"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("latin-1-codec")))), SG_OBJ(&nulllatin_1_codec_Stub));
-  SG_PROCEDURE_NAME(&nullread_char_Stub) = SG_STRING(SG_MAKE_STRING("read-char"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("read-char")))), SG_OBJ(&nullread_char_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_ieee_single_ref_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-ieee-single-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-ieee-single-ref")))), SG_OBJ(&nullbytevector_ieee_single_ref_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector3d3f_Stub) = SG_STRING(SG_MAKE_STRING("bytevector=?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector=?")))), SG_OBJ(&nullbytevector3d3f_Stub));
-  SG_PROCEDURE_NAME(&nullfxif_Stub) = SG_STRING(SG_MAKE_STRING("fxif"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxif")))), SG_OBJ(&nullfxif_Stub));
-  SG_PROCEDURE_NAME(&nullfxdiv_Stub) = SG_STRING(SG_MAKE_STRING("fxdiv"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxdiv")))), SG_OBJ(&nullfxdiv_Stub));
-  SG_PROCEDURE_NAME(&nullread_Stub) = SG_STRING(SG_MAKE_STRING("read"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("read")))), SG_OBJ(&nullread_Stub));
-  SG_PROCEDURE_NAME(&nullstring_normalize_nfkc_Stub) = SG_STRING(SG_MAKE_STRING("string-normalize-nfkc"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string-normalize-nfkc")))), SG_OBJ(&nullstring_normalize_nfkc_Stub));
-  SG_PROCEDURE_NAME(&nullfxbit_count_Stub) = SG_STRING(SG_MAKE_STRING("fxbit-count"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxbit-count")))), SG_OBJ(&nullfxbit_count_Stub));
-  SG_PROCEDURE_NAME(&null2a_Stub) = SG_STRING(SG_MAKE_STRING("*"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("*")))), SG_OBJ(&null2a_Stub));
-  SG_PROCEDURE_NAME(&nullfl3e3f_Stub) = SG_STRING(SG_MAKE_STRING("fl>?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fl>?")))), SG_OBJ(&nullfl3e3f_Stub));
-  SG_PROCEDURE_NAME(&null3c_Stub) = SG_STRING(SG_MAKE_STRING("<"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("<")))), SG_OBJ(&null3c_Stub));
-  SG_PROCEDURE_NAME(&nullflpositive3f_Stub) = SG_STRING(SG_MAKE_STRING("flpositive?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flpositive?")))), SG_OBJ(&nullflpositive3f_Stub));
-  SG_PROCEDURE_NAME(&nullflexpt_Stub) = SG_STRING(SG_MAKE_STRING("flexpt"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flexpt")))), SG_OBJ(&nullflexpt_Stub));
-  SG_PROCEDURE_NAME(&nullreverse_Stub) = SG_STRING(SG_MAKE_STRING("reverse"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("reverse")))), SG_OBJ(&nullreverse_Stub));
-  SG_PROCEDURE_NAME(&nullstring_3eutf32_Stub) = SG_STRING(SG_MAKE_STRING("string->utf32"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string->utf32")))), SG_OBJ(&nullstring_3eutf32_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s16_ref_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-s16-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-s16-ref")))), SG_OBJ(&nullbytevector_s16_ref_Stub));
-  SG_PROCEDURE_NAME(&nulltuple_set21_Stub) = SG_STRING(SG_MAKE_STRING("tuple-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("tuple-set!")))), SG_OBJ(&nulltuple_set21_Stub));
-  SG_PROCEDURE_NAME(&nulleqv3f_Stub) = SG_STRING(SG_MAKE_STRING("eqv?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("eqv?")))), SG_OBJ(&nulleqv3f_Stub));
-  SG_PROCEDURE_NAME(&null2b_Stub) = SG_STRING(SG_MAKE_STRING("+"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("+")))), SG_OBJ(&null2b_Stub));
-  SG_PROCEDURE_NAME(&nullcomplex3f_Stub) = SG_STRING(SG_MAKE_STRING("complex?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("complex?")))), SG_OBJ(&nullcomplex3f_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_length_Stub) = SG_STRING(SG_MAKE_STRING("bitwise-length"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bitwise-length")))), SG_OBJ(&nullbitwise_length_Stub));
-  SG_PROCEDURE_NAME(&nullcdar_Stub) = SG_STRING(SG_MAKE_STRING("cdar"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("cdar")))), SG_OBJ(&nullcdar_Stub));
-  SG_PROCEDURE_NAME(&nullput_u8_Stub) = SG_STRING(SG_MAKE_STRING("put-u8"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("put-u8")))), SG_OBJ(&nullput_u8_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s32_set21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-s32-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-s32-set!")))), SG_OBJ(&nullbytevector_s32_set21_Stub));
-  SG_PROCEDURE_NAME(&nulleven3f_Stub) = SG_STRING(SG_MAKE_STRING("even?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("even?")))), SG_OBJ(&nulleven3f_Stub));
-  SG_PROCEDURE_NAME(&nullflfinite3f_Stub) = SG_STRING(SG_MAKE_STRING("flfinite?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flfinite?")))), SG_OBJ(&nullflfinite3f_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_fill21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-fill!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-fill!")))), SG_OBJ(&nullbytevector_fill21_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u64_native_ref_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-u64-native-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-u64-native-ref")))), SG_OBJ(&nullbytevector_u64_native_ref_Stub));
-  SG_PROCEDURE_NAME(&nullflmod0_Stub) = SG_STRING(SG_MAKE_STRING("flmod0"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flmod0")))), SG_OBJ(&nullflmod0_Stub));
-  SG_PROCEDURE_NAME(&nullchar3e3f_Stub) = SG_STRING(SG_MAKE_STRING("char>?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char>?")))), SG_OBJ(&nullchar3e3f_Stub));
-  SG_PROCEDURE_NAME(&nullfxzero3f_Stub) = SG_STRING(SG_MAKE_STRING("fxzero?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxzero?")))), SG_OBJ(&nullfxzero3f_Stub));
-  SG_PROCEDURE_NAME(&nullassertion_violation_Stub) = SG_STRING(SG_MAKE_STRING("assertion-violation"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("assertion-violation")))), SG_OBJ(&nullassertion_violation_Stub));
-  SG_PROCEDURE_NAME(&nulllist_3estring_Stub) = SG_STRING(SG_MAKE_STRING("list->string"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("list->string")))), SG_OBJ(&nulllist_3estring_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_xor_Stub) = SG_STRING(SG_MAKE_STRING("bitwise-xor"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bitwise-xor")))), SG_OBJ(&nullbitwise_xor_Stub));
-  SG_PROCEDURE_NAME(&nullfxcopy_bit_field_Stub) = SG_STRING(SG_MAKE_STRING("fxcopy-bit-field"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxcopy-bit-field")))), SG_OBJ(&nullfxcopy_bit_field_Stub));
-  SG_PROCEDURE_NAME(&nullport_eof3f_Stub) = SG_STRING(SG_MAKE_STRING("port-eof?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("port-eof?")))), SG_OBJ(&nullport_eof3f_Stub));
-  SG_PROCEDURE_NAME(&nullexact_Stub) = SG_STRING(SG_MAKE_STRING("exact"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("exact")))), SG_OBJ(&nullexact_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_ieee_double_native_ref_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-ieee-double-native-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-ieee-double-native-ref")))), SG_OBJ(&nullbytevector_ieee_double_native_ref_Stub));
-  SG_PROCEDURE_NAME(&nullstring_append_Stub) = SG_STRING(SG_MAKE_STRING("string-append"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string-append")))), SG_OBJ(&nullstring_append_Stub));
-  SG_PROCEDURE_NAME(&nullstandard_input_port_Stub) = SG_STRING(SG_MAKE_STRING("standard-input-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("standard-input-port")))), SG_OBJ(&nullstandard_input_port_Stub));
-  SG_PROCEDURE_NAME(&nullstring3d3f_Stub) = SG_STRING(SG_MAKE_STRING("string=?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string=?")))), SG_OBJ(&nullstring3d3f_Stub));
-  SG_PROCEDURE_NAME(&nulltextual_port3f_Stub) = SG_STRING(SG_MAKE_STRING("textual-port?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("textual-port?")))), SG_OBJ(&nulltextual_port3f_Stub));
-  SG_PROCEDURE_NAME(&nullmodulo_Stub) = SG_STRING(SG_MAKE_STRING("modulo"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("modulo")))), SG_OBJ(&nullmodulo_Stub));
-  SG_PROCEDURE_NAME(&nullstring_ci_hash_Stub) = SG_STRING(SG_MAKE_STRING("string-ci-hash"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string-ci-hash")))), SG_OBJ(&nullstring_ci_hash_Stub));
-  SG_PROCEDURE_NAME(&nullchar_alphabetic3f_Stub) = SG_STRING(SG_MAKE_STRING("char-alphabetic?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char-alphabetic?")))), SG_OBJ(&nullchar_alphabetic3f_Stub));
-  SG_PROCEDURE_NAME(&nullnative_eol_style_Stub) = SG_STRING(SG_MAKE_STRING("native-eol-style"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("native-eol-style")))), SG_OBJ(&nullnative_eol_style_Stub));
-  SG_PROCEDURE_NAME(&nullstring_foldcase_Stub) = SG_STRING(SG_MAKE_STRING("string-foldcase"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string-foldcase")))), SG_OBJ(&nullstring_foldcase_Stub));
-  SG_PROCEDURE_NAME(&nullcall2fcc_Stub) = SG_STRING(SG_MAKE_STRING("call/cc"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("call/cc")))), SG_OBJ(&nullcall2fcc_Stub));
-  SG_PROCEDURE_NAME(&nullsubstring_Stub) = SG_STRING(SG_MAKE_STRING("substring"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("substring")))), SG_OBJ(&nullsubstring_Stub));
-  SG_PROCEDURE_NAME(&nullrecord_rtd_Stub) = SG_STRING(SG_MAKE_STRING("record-rtd"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("record-rtd")))), SG_OBJ(&nullrecord_rtd_Stub));
-  SG_PROCEDURE_NAME(&nullequal3f_Stub) = SG_STRING(SG_MAKE_STRING("equal?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("equal?")))), SG_OBJ(&nullequal3f_Stub));
-  SG_PROCEDURE_NAME(&nullcompound_condition3f_Stub) = SG_STRING(SG_MAKE_STRING("compound-condition?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("compound-condition?")))), SG_OBJ(&nullcompound_condition3f_Stub));
-  SG_PROCEDURE_NAME(&nullfldiv0_Stub) = SG_STRING(SG_MAKE_STRING("fldiv0"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fldiv0")))), SG_OBJ(&nullfldiv0_Stub));
-  SG_PROCEDURE_NAME(&nullfl3c3f_Stub) = SG_STRING(SG_MAKE_STRING("fl<?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fl<?")))), SG_OBJ(&nullfl3c3f_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_ieee_double_ref_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-ieee-double-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-ieee-double-ref")))), SG_OBJ(&nullbytevector_ieee_double_ref_Stub));
-  SG_PROCEDURE_NAME(&nullflatan_Stub) = SG_STRING(SG_MAKE_STRING("flatan"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flatan")))), SG_OBJ(&nullflatan_Stub));
-  SG_PROCEDURE_NAME(&nullimag_part_Stub) = SG_STRING(SG_MAKE_STRING("imag-part"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("imag-part")))), SG_OBJ(&nullimag_part_Stub));
-  SG_PROCEDURE_NAME(&nullflmin_Stub) = SG_STRING(SG_MAKE_STRING("flmin"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flmin")))), SG_OBJ(&nullflmin_Stub));
-  SG_PROCEDURE_NAME(&nullchar3c3d3f_Stub) = SG_STRING(SG_MAKE_STRING("char<=?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char<=?")))), SG_OBJ(&nullchar3c3d3f_Stub));
-  SG_PROCEDURE_NAME(&nullwith_exception_handler_Stub) = SG_STRING(SG_MAKE_STRING("with-exception-handler"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("with-exception-handler")))), SG_OBJ(&nullwith_exception_handler_Stub));
-  SG_PROCEDURE_NAME(&nullmake_string_Stub) = SG_STRING(SG_MAKE_STRING("make-string"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-string")))), SG_OBJ(&nullmake_string_Stub));
-  SG_PROCEDURE_NAME(&nullcdr_Stub) = SG_STRING(SG_MAKE_STRING("cdr"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("cdr")))), SG_OBJ(&nullcdr_Stub));
-  SG_PROCEDURE_NAME(&nullfl2b_Stub) = SG_STRING(SG_MAKE_STRING("fl+"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fl+")))), SG_OBJ(&nullfl2b_Stub));
-  SG_PROCEDURE_NAME(&nulllength_Stub) = SG_STRING(SG_MAKE_STRING("length"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("length")))), SG_OBJ(&nulllength_Stub));
-  SG_PROCEDURE_NAME(&nullfxior_Stub) = SG_STRING(SG_MAKE_STRING("fxior"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxior")))), SG_OBJ(&nullfxior_Stub));
-  SG_PROCEDURE_NAME(&nullleast_fixnum_Stub) = SG_STRING(SG_MAKE_STRING("least-fixnum"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("least-fixnum")))), SG_OBJ(&nullleast_fixnum_Stub));
-  SG_PROCEDURE_NAME(&nullsymbol_hash_Stub) = SG_STRING(SG_MAKE_STRING("symbol-hash"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("symbol-hash")))), SG_OBJ(&nullsymbol_hash_Stub));
-  SG_PROCEDURE_NAME(&nullget_datum_Stub) = SG_STRING(SG_MAKE_STRING("get-datum"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("get-datum")))), SG_OBJ(&nullget_datum_Stub));
-  SG_PROCEDURE_NAME(&nullchar_lower_case3f_Stub) = SG_STRING(SG_MAKE_STRING("char-lower-case?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char-lower-case?")))), SG_OBJ(&nullchar_lower_case3f_Stub));
-  SG_PROCEDURE_NAME(&nullvector_Stub) = SG_STRING(SG_MAKE_STRING("vector"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("vector")))), SG_OBJ(&nullvector_Stub));
-  SG_PROCEDURE_NAME(&nullexact3f_Stub) = SG_STRING(SG_MAKE_STRING("exact?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("exact?")))), SG_OBJ(&nullexact3f_Stub));
-  SG_PROCEDURE_NAME(&nullvector_3elist_Stub) = SG_STRING(SG_MAKE_STRING("vector->list"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("vector->list")))), SG_OBJ(&nullvector_3elist_Stub));
-  SG_PROCEDURE_NAME(&nullfxreverse_bit_field_Stub) = SG_STRING(SG_MAKE_STRING("fxreverse-bit-field"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxreverse-bit-field")))), SG_OBJ(&nullfxreverse_bit_field_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u16_native_ref_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-u16-native-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-u16-native-ref")))), SG_OBJ(&nullbytevector_u16_native_ref_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u64_set21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-u64-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-u64-set!")))), SG_OBJ(&nullbytevector_u64_set21_Stub));
-  SG_PROCEDURE_NAME(&nullcurrent_input_port_Stub) = SG_STRING(SG_MAKE_STRING("current-input-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("current-input-port")))), SG_OBJ(&nullcurrent_input_port_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u16_ref_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-u16-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-u16-ref")))), SG_OBJ(&nullbytevector_u16_ref_Stub));
-  SG_PROCEDURE_NAME(&null2f2e_Stub) = SG_STRING(SG_MAKE_STRING("/."));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("/.")))), SG_OBJ(&null2f2e_Stub));
-  SG_PROCEDURE_NAME(&null2a2e_Stub) = SG_STRING(SG_MAKE_STRING("*."));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("*.")))), SG_OBJ(&null2a2e_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_ieee_single_native_ref_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-ieee-single-native-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-ieee-single-native-ref")))), SG_OBJ(&nullbytevector_ieee_single_native_ref_Stub));
-  SG_PROCEDURE_NAME(&nullset_port_position21_Stub) = SG_STRING(SG_MAKE_STRING("set-port-position!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("set-port-position!")))), SG_OBJ(&nullset_port_position21_Stub));
-  SG_PROCEDURE_NAME(&nulltranscoder_eol_style_Stub) = SG_STRING(SG_MAKE_STRING("transcoder-eol-style"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("transcoder-eol-style")))), SG_OBJ(&nulltranscoder_eol_style_Stub));
-  SG_PROCEDURE_NAME(&nulltranscoder_codec_Stub) = SG_STRING(SG_MAKE_STRING("transcoder-codec"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("transcoder-codec")))), SG_OBJ(&nulltranscoder_codec_Stub));
-  SG_PROCEDURE_NAME(&nullfx__Stub) = SG_STRING(SG_MAKE_STRING("fx-"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fx-")))), SG_OBJ(&nullfx__Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s32_ref_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-s32-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-s32-ref")))), SG_OBJ(&nullbytevector_s32_ref_Stub));
-  SG_PROCEDURE_NAME(&nullfltruncate_Stub) = SG_STRING(SG_MAKE_STRING("fltruncate"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fltruncate")))), SG_OBJ(&nullfltruncate_Stub));
-  SG_PROCEDURE_NAME(&nullget_output_bytevector_Stub) = SG_STRING(SG_MAKE_STRING("get-output-bytevector"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("get-output-bytevector")))), SG_OBJ(&nullget_output_bytevector_Stub));
-  SG_PROCEDURE_NAME(&nullwrite_char_Stub) = SG_STRING(SG_MAKE_STRING("write-char"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("write-char")))), SG_OBJ(&nullwrite_char_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s64_set21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-s64-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-s64-set!")))), SG_OBJ(&nullbytevector_s64_set21_Stub));
-  SG_PROCEDURE_NAME(&nullequal_hash_Stub) = SG_STRING(SG_MAKE_STRING("equal-hash"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("equal-hash")))), SG_OBJ(&nullequal_hash_Stub));
-  SG_PROCEDURE_NAME(&nullfxdiv0_Stub) = SG_STRING(SG_MAKE_STRING("fxdiv0"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxdiv0")))), SG_OBJ(&nullfxdiv0_Stub));
-  SG_PROCEDURE_NAME(&nullsqrt_Stub) = SG_STRING(SG_MAKE_STRING("sqrt"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("sqrt")))), SG_OBJ(&nullsqrt_Stub));
-  SG_PROCEDURE_NAME(&nullrtd_fields_Stub) = SG_STRING(SG_MAKE_STRING("rtd-fields"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("rtd-fields")))), SG_OBJ(&nullrtd_fields_Stub));
-  SG_PROCEDURE_NAME(&nullmake_eqv_hashtable_Stub) = SG_STRING(SG_MAKE_STRING("make-eqv-hashtable"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-eqv-hashtable")))), SG_OBJ(&nullmake_eqv_hashtable_Stub));
-  SG_PROCEDURE_NAME(&nullget_u8_Stub) = SG_STRING(SG_MAKE_STRING("get-u8"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("get-u8")))), SG_OBJ(&nullget_u8_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_bit_field_Stub) = SG_STRING(SG_MAKE_STRING("bitwise-bit-field"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bitwise-bit-field")))), SG_OBJ(&nullbitwise_bit_field_Stub));
-  SG_PROCEDURE_NAME(&nullstring_3eutf16_Stub) = SG_STRING(SG_MAKE_STRING("string->utf16"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string->utf16")))), SG_OBJ(&nullstring_3eutf16_Stub));
-  SG_PROCEDURE_NAME(&nullrational_valued3f_Stub) = SG_STRING(SG_MAKE_STRING("rational-valued?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("rational-valued?")))), SG_OBJ(&nullrational_valued3f_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u16_set21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-u16-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-u16-set!")))), SG_OBJ(&nullbytevector_u16_set21_Stub));
-  SG_PROCEDURE_NAME(&nullcompound_condition_component_Stub) = SG_STRING(SG_MAKE_STRING("compound-condition-component"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("compound-condition-component")))), SG_OBJ(&nullcompound_condition_component_Stub));
-  SG_PROCEDURE_NAME(&nullmake_custom_binary_input2foutput_port_Stub) = SG_STRING(SG_MAKE_STRING("make-custom-binary-input/output-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-custom-binary-input/output-port")))), SG_OBJ(&nullmake_custom_binary_input2foutput_port_Stub));
-  SG_PROCEDURE_NAME(&nullappend_Stub) = SG_STRING(SG_MAKE_STRING("append"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("append")))), SG_OBJ(&nullappend_Stub));
-  SG_PROCEDURE_NAME(&nullcos_Stub) = SG_STRING(SG_MAKE_STRING("cos"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("cos")))), SG_OBJ(&nullcos_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_not_Stub) = SG_STRING(SG_MAKE_STRING("bitwise-not"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bitwise-not")))), SG_OBJ(&nullbitwise_not_Stub));
-  SG_PROCEDURE_NAME(&nullflacos_Stub) = SG_STRING(SG_MAKE_STRING("flacos"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flacos")))), SG_OBJ(&nullflacos_Stub));
-  SG_PROCEDURE_NAME(&nullflmax_Stub) = SG_STRING(SG_MAKE_STRING("flmax"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flmax")))), SG_OBJ(&nullflmax_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u32_ref_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-u32-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-u32-ref")))), SG_OBJ(&nullbytevector_u32_ref_Stub));
-  SG_PROCEDURE_NAME(&nullcons_Stub) = SG_STRING(SG_MAKE_STRING("cons"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("cons")))), SG_OBJ(&nullcons_Stub));
-  SG_PROCEDURE_NAME(&nullflinfinite3f_Stub) = SG_STRING(SG_MAKE_STRING("flinfinite?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flinfinite?")))), SG_OBJ(&nullflinfinite3f_Stub));
-  SG_PROCEDURE_NAME(&nullmin_Stub) = SG_STRING(SG_MAKE_STRING("min"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("min")))), SG_OBJ(&nullmin_Stub));
-  SG_PROCEDURE_NAME(&nullrecord_field_mutable3f_Stub) = SG_STRING(SG_MAKE_STRING("record-field-mutable?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("record-field-mutable?")))), SG_OBJ(&nullrecord_field_mutable3f_Stub));
-  SG_PROCEDURE_NAME(&nullmake_custom_textual_input2foutput_port_Stub) = SG_STRING(SG_MAKE_STRING("make-custom-textual-input/output-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-custom-textual-input/output-port")))), SG_OBJ(&nullmake_custom_textual_input2foutput_port_Stub));
-  SG_PROCEDURE_NAME(&nullfl3d3f_Stub) = SG_STRING(SG_MAKE_STRING("fl=?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fl=?")))), SG_OBJ(&nullfl3d3f_Stub));
-  SG_PROCEDURE_NAME(&nullexact_integer_sqrt_Stub) = SG_STRING(SG_MAKE_STRING("exact-integer-sqrt"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("exact-integer-sqrt")))), SG_OBJ(&nullexact_integer_sqrt_Stub));
-  SG_PROCEDURE_NAME(&nullrecord_type_descriptor3f_Stub) = SG_STRING(SG_MAKE_STRING("record-type-descriptor?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("record-type-descriptor?")))), SG_OBJ(&nullrecord_type_descriptor3f_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s8_set21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-s8-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-s8-set!")))), SG_OBJ(&nullbytevector_s8_set21_Stub));
-  SG_PROCEDURE_NAME(&nullmake_bytevector_Stub) = SG_STRING(SG_MAKE_STRING("make-bytevector"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-bytevector")))), SG_OBJ(&nullmake_bytevector_Stub));
-  SG_PROCEDURE_NAME(&nullget_char_Stub) = SG_STRING(SG_MAKE_STRING("get-char"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("get-char")))), SG_OBJ(&nullget_char_Stub));
-  SG_PROCEDURE_NAME(&nullopen_file_input2foutput_port_Stub) = SG_STRING(SG_MAKE_STRING("open-file-input/output-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("open-file-input/output-port")))), SG_OBJ(&nullopen_file_input2foutput_port_Stub));
-  SG_PROCEDURE_NAME(&nullceiling_Stub) = SG_STRING(SG_MAKE_STRING("ceiling"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("ceiling")))), SG_OBJ(&nullceiling_Stub));
-  SG_PROCEDURE_NAME(&nullport_has_port_position3f_Stub) = SG_STRING(SG_MAKE_STRING("port-has-port-position?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("port-has-port-position?")))), SG_OBJ(&nullport_has_port_position3f_Stub));
-  SG_PROCEDURE_NAME(&nullget_string_all_Stub) = SG_STRING(SG_MAKE_STRING("get-string-all"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("get-string-all")))), SG_OBJ(&nullget_string_all_Stub));
-  SG_PROCEDURE_NAME(&nullchar_upcase_Stub) = SG_STRING(SG_MAKE_STRING("char-upcase"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char-upcase")))), SG_OBJ(&nullchar_upcase_Stub));
-  SG_PROCEDURE_NAME(&nullstring_3enumber_Stub) = SG_STRING(SG_MAKE_STRING("string->number"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string->number")))), SG_OBJ(&nullstring_3enumber_Stub));
-  SG_PROCEDURE_NAME(&nullfixnum_width_Stub) = SG_STRING(SG_MAKE_STRING("fixnum-width"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fixnum-width")))), SG_OBJ(&nullfixnum_width_Stub));
-  SG_PROCEDURE_NAME(&nullinteger_valued3f_Stub) = SG_STRING(SG_MAKE_STRING("integer-valued?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("integer-valued?")))), SG_OBJ(&nullinteger_valued3f_Stub));
-  SG_PROCEDURE_NAME(&null__Stub) = SG_STRING(SG_MAKE_STRING("-"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("-")))), SG_OBJ(&null__Stub));
-  SG_PROCEDURE_NAME(&nullnegative3f_Stub) = SG_STRING(SG_MAKE_STRING("negative?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("negative?")))), SG_OBJ(&nullnegative3f_Stub));
-  SG_PROCEDURE_NAME(&nullpeek_char_Stub) = SG_STRING(SG_MAKE_STRING("peek-char"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("peek-char")))), SG_OBJ(&nullpeek_char_Stub));
-  SG_PROCEDURE_NAME(&nullport3f_Stub) = SG_STRING(SG_MAKE_STRING("port?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("port?")))), SG_OBJ(&nullport3f_Stub));
-  SG_PROCEDURE_NAME(&nullrationalize_Stub) = SG_STRING(SG_MAKE_STRING("rationalize"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("rationalize")))), SG_OBJ(&nullrationalize_Stub));
-  SG_PROCEDURE_NAME(&nullfxmod0_Stub) = SG_STRING(SG_MAKE_STRING("fxmod0"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxmod0")))), SG_OBJ(&nullfxmod0_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u64_ref_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-u64-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-u64-ref")))), SG_OBJ(&nullbytevector_u64_ref_Stub));
-  SG_PROCEDURE_NAME(&nulltuple_ref_Stub) = SG_STRING(SG_MAKE_STRING("tuple-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("tuple-ref")))), SG_OBJ(&nulltuple_ref_Stub));
-  SG_PROCEDURE_NAME(&nullscheme_error_Stub) = SG_STRING(SG_MAKE_STRING("scheme-error"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("scheme-error")))), SG_OBJ(&nullscheme_error_Stub));
-  SG_PROCEDURE_NAME(&nullrecord3f_Stub) = SG_STRING(SG_MAKE_STRING("record?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("record?")))), SG_OBJ(&nullrecord3f_Stub));
-  SG_PROCEDURE_NAME(&null25gcd_Stub) = SG_STRING(SG_MAKE_STRING("%gcd"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("%gcd")))), SG_OBJ(&null25gcd_Stub));
-  SG_PROCEDURE_NAME(&nullrtd_total_field_count_Stub) = SG_STRING(SG_MAKE_STRING("rtd-total-field-count"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("rtd-total-field-count")))), SG_OBJ(&nullrtd_total_field_count_Stub));
-  SG_PROCEDURE_NAME(&nullvector_ref_Stub) = SG_STRING(SG_MAKE_STRING("vector-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("vector-ref")))), SG_OBJ(&nullvector_ref_Stub));
-  SG_PROCEDURE_NAME(&nullcurrent_output_port_Stub) = SG_STRING(SG_MAKE_STRING("current-output-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("current-output-port")))), SG_OBJ(&nullcurrent_output_port_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u32_set21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-u32-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-u32-set!")))), SG_OBJ(&nullbytevector_u32_set21_Stub));
-  SG_PROCEDURE_NAME(&nullfl2a_Stub) = SG_STRING(SG_MAKE_STRING("fl*"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fl*")))), SG_OBJ(&nullfl2a_Stub));
-  SG_PROCEDURE_NAME(&nulllog_Stub) = SG_STRING(SG_MAKE_STRING("log"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("log")))), SG_OBJ(&nulllog_Stub));
-  SG_PROCEDURE_NAME(&nulldynamic_wind_Stub) = SG_STRING(SG_MAKE_STRING("dynamic-wind"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("dynamic-wind")))), SG_OBJ(&nulldynamic_wind_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_if_Stub) = SG_STRING(SG_MAKE_STRING("bitwise-if"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bitwise-if")))), SG_OBJ(&nullbitwise_if_Stub));
-  SG_PROCEDURE_NAME(&nullstring_length_Stub) = SG_STRING(SG_MAKE_STRING("string-length"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string-length")))), SG_OBJ(&nullstring_length_Stub));
-  SG_PROCEDURE_NAME(&nullnot_Stub) = SG_STRING(SG_MAKE_STRING("not"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("not")))), SG_OBJ(&nullnot_Stub));
-  SG_PROCEDURE_NAME(&nullremainder_Stub) = SG_STRING(SG_MAKE_STRING("remainder"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("remainder")))), SG_OBJ(&nullremainder_Stub));
-  SG_PROCEDURE_NAME(&nullstring_set21_Stub) = SG_STRING(SG_MAKE_STRING("string-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string-set!")))), SG_OBJ(&nullstring_set21_Stub));
-  SG_PROCEDURE_NAME(&nullflsin_Stub) = SG_STRING(SG_MAKE_STRING("flsin"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flsin")))), SG_OBJ(&nullflsin_Stub));
-  SG_PROCEDURE_NAME(&nullflceiling_Stub) = SG_STRING(SG_MAKE_STRING("flceiling"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flceiling")))), SG_OBJ(&nullflceiling_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_ieee_single_native_set21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-ieee-single-native-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-ieee-single-native-set!")))), SG_OBJ(&nullbytevector_ieee_single_native_set21_Stub));
-  SG_PROCEDURE_NAME(&nullget_bytevector_some_Stub) = SG_STRING(SG_MAKE_STRING("get-bytevector-some"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("get-bytevector-some")))), SG_OBJ(&nullget_bytevector_some_Stub));
-  SG_PROCEDURE_NAME(&nullstring_upcase_Stub) = SG_STRING(SG_MAKE_STRING("string-upcase"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string-upcase")))), SG_OBJ(&nullstring_upcase_Stub));
-  SG_PROCEDURE_NAME(&nullchar3f_Stub) = SG_STRING(SG_MAKE_STRING("char?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char?")))), SG_OBJ(&nullchar3f_Stub));
-  SG_PROCEDURE_NAME(&nullmake_record_constructor_descriptor_Stub) = SG_STRING(SG_MAKE_STRING("make-record-constructor-descriptor"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-record-constructor-descriptor")))), SG_OBJ(&nullmake_record_constructor_descriptor_Stub));
-  SG_PROCEDURE_NAME(&nullhashtable3f_Stub) = SG_STRING(SG_MAKE_STRING("hashtable?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("hashtable?")))), SG_OBJ(&nullhashtable3f_Stub));
-  SG_PROCEDURE_NAME(&nullput_datum_Stub) = SG_STRING(SG_MAKE_STRING("put-datum"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("put-datum")))), SG_OBJ(&nullput_datum_Stub));
-  SG_PROCEDURE_NAME(&nullclose_port_Stub) = SG_STRING(SG_MAKE_STRING("close-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("close-port")))), SG_OBJ(&nullclose_port_Stub));
-  SG_PROCEDURE_NAME(&nullhashtable_mutable3f_Stub) = SG_STRING(SG_MAKE_STRING("hashtable-mutable?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("hashtable-mutable?")))), SG_OBJ(&nullhashtable_mutable3f_Stub));
-  SG_PROCEDURE_NAME(&nullrecord_accessor_Stub) = SG_STRING(SG_MAKE_STRING("record-accessor"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("record-accessor")))), SG_OBJ(&nullrecord_accessor_Stub));
-  SG_PROCEDURE_NAME(&nullu8_list_3ebytevector_Stub) = SG_STRING(SG_MAKE_STRING("u8-list->bytevector"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("u8-list->bytevector")))), SG_OBJ(&nullu8_list_3ebytevector_Stub));
-  SG_PROCEDURE_NAME(&nulleval_Stub) = SG_STRING(SG_MAKE_STRING("eval"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("eval")))), SG_OBJ(&nulleval_Stub));
-  SG_PROCEDURE_NAME(&nulllookahead_u8_Stub) = SG_STRING(SG_MAKE_STRING("lookahead-u8"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("lookahead-u8")))), SG_OBJ(&nulllookahead_u8_Stub));
-  SG_PROCEDURE_NAME(&nullget_bytevector_n21_Stub) = SG_STRING(SG_MAKE_STRING("get-bytevector-n!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("get-bytevector-n!")))), SG_OBJ(&nullget_bytevector_n21_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s8_ref_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-s8-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-s8-ref")))), SG_OBJ(&nullbytevector_s8_ref_Stub));
-  SG_PROCEDURE_NAME(&nullfx2b_Stub) = SG_STRING(SG_MAKE_STRING("fx+"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fx+")))), SG_OBJ(&nullfx2b_Stub));
-  SG_PROCEDURE_NAME(&nullprocedure3f_Stub) = SG_STRING(SG_MAKE_STRING("procedure?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("procedure?")))), SG_OBJ(&nullprocedure3f_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_bit_count_Stub) = SG_STRING(SG_MAKE_STRING("bitwise-bit-count"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bitwise-bit-count")))), SG_OBJ(&nullbitwise_bit_count_Stub));
-  SG_PROCEDURE_NAME(&nullexit_Stub) = SG_STRING(SG_MAKE_STRING("exit"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("exit")))), SG_OBJ(&nullexit_Stub));
-  SG_PROCEDURE_NAME(&nullfx3c3f_Stub) = SG_STRING(SG_MAKE_STRING("fx<?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fx<?")))), SG_OBJ(&nullfx3c3f_Stub));
-  SG_PROCEDURE_NAME(&nullraise_Stub) = SG_STRING(SG_MAKE_STRING("raise"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("raise")))), SG_OBJ(&nullraise_Stub));
-  SG_PROCEDURE_NAME(&nullboolean3f_Stub) = SG_STRING(SG_MAKE_STRING("boolean?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("boolean?")))), SG_OBJ(&nullboolean3f_Stub));
-  SG_PROCEDURE_NAME(&nullrecord_type_parent_Stub) = SG_STRING(SG_MAKE_STRING("record-type-parent"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("record-type-parent")))), SG_OBJ(&nullrecord_type_parent_Stub));
-  SG_PROCEDURE_NAME(&nullget_line_Stub) = SG_STRING(SG_MAKE_STRING("get-line"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("get-line")))), SG_OBJ(&nullget_line_Stub));
-  SG_PROCEDURE_NAME(&nullfxpositive3f_Stub) = SG_STRING(SG_MAKE_STRING("fxpositive?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxpositive?")))), SG_OBJ(&nullfxpositive3f_Stub));
-  SG_PROCEDURE_NAME(&nullnative_endianness_Stub) = SG_STRING(SG_MAKE_STRING("native-endianness"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("native-endianness")))), SG_OBJ(&nullnative_endianness_Stub));
-  SG_PROCEDURE_NAME(&nullmax_Stub) = SG_STRING(SG_MAKE_STRING("max"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("max")))), SG_OBJ(&nullmax_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_arithmetic_shift_Stub) = SG_STRING(SG_MAKE_STRING("bitwise-arithmetic-shift"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bitwise-arithmetic-shift")))), SG_OBJ(&nullbitwise_arithmetic_shift_Stub));
-  SG_PROCEDURE_NAME(&nullstring_normalize_nfd_Stub) = SG_STRING(SG_MAKE_STRING("string-normalize-nfd"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string-normalize-nfd")))), SG_OBJ(&nullstring_normalize_nfd_Stub));
-  SG_PROCEDURE_NAME(&nullhashtable_keys_Stub) = SG_STRING(SG_MAKE_STRING("hashtable-keys"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("hashtable-keys")))), SG_OBJ(&nullhashtable_keys_Stub));
-  SG_PROCEDURE_NAME(&nullcurrent_error_port_Stub) = SG_STRING(SG_MAKE_STRING("current-error-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("current-error-port")))), SG_OBJ(&nullcurrent_error_port_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s16_native_set21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-s16-native-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-s16-native-set!")))), SG_OBJ(&nullbytevector_s16_native_set21_Stub));
-  SG_PROCEDURE_NAME(&nullflnan3f_Stub) = SG_STRING(SG_MAKE_STRING("flnan?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flnan?")))), SG_OBJ(&nullflnan3f_Stub));
-  SG_PROCEDURE_NAME(&nullflinteger3f_Stub) = SG_STRING(SG_MAKE_STRING("flinteger?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flinteger?")))), SG_OBJ(&nullflinteger3f_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_bit_set3f_Stub) = SG_STRING(SG_MAKE_STRING("bitwise-bit-set?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bitwise-bit-set?")))), SG_OBJ(&nullbitwise_bit_set3f_Stub));
-  SG_PROCEDURE_NAME(&nullchar_titlecase_Stub) = SG_STRING(SG_MAKE_STRING("char-titlecase"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char-titlecase")))), SG_OBJ(&nullchar_titlecase_Stub));
-  SG_PROCEDURE_NAME(&nullclose_input_port_Stub) = SG_STRING(SG_MAKE_STRING("close-input-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("close-input-port")))), SG_OBJ(&nullclose_input_port_Stub));
-  SG_PROCEDURE_NAME(&nullhashtable_contains3f_Stub) = SG_STRING(SG_MAKE_STRING("hashtable-contains?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("hashtable-contains?")))), SG_OBJ(&nullhashtable_contains3f_Stub));
-  SG_PROCEDURE_NAME(&nullflcos_Stub) = SG_STRING(SG_MAKE_STRING("flcos"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flcos")))), SG_OBJ(&nullflcos_Stub));
-  SG_PROCEDURE_NAME(&nullfxeven3f_Stub) = SG_STRING(SG_MAKE_STRING("fxeven?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxeven?")))), SG_OBJ(&nullfxeven3f_Stub));
-  SG_PROCEDURE_NAME(&nulldiv0_Stub) = SG_STRING(SG_MAKE_STRING("div0"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("div0")))), SG_OBJ(&nulldiv0_Stub));
-  SG_PROCEDURE_NAME(&nullfx3c3d3f_Stub) = SG_STRING(SG_MAKE_STRING("fx<=?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fx<=?")))), SG_OBJ(&nullfx3c3d3f_Stub));
-  SG_PROCEDURE_NAME(&nullsymbol_3estring_Stub) = SG_STRING(SG_MAKE_STRING("symbol->string"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("symbol->string")))), SG_OBJ(&nullsymbol_3estring_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_ieee_double_set21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-ieee-double-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-ieee-double-set!")))), SG_OBJ(&nullbytevector_ieee_double_set21_Stub));
-  SG_PROCEDURE_NAME(&nullcar_Stub) = SG_STRING(SG_MAKE_STRING("car"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("car")))), SG_OBJ(&nullcar_Stub));
-  SG_PROCEDURE_NAME(&nullrecord_constructor_Stub) = SG_STRING(SG_MAKE_STRING("record-constructor"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("record-constructor")))), SG_OBJ(&nullrecord_constructor_Stub));
-  SG_PROCEDURE_NAME(&nullfxbit_set3f_Stub) = SG_STRING(SG_MAKE_STRING("fxbit-set?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxbit-set?")))), SG_OBJ(&nullfxbit_set3f_Stub));
-  SG_PROCEDURE_NAME(&nullopen_output_string_Stub) = SG_STRING(SG_MAKE_STRING("open-output-string"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("open-output-string")))), SG_OBJ(&nullopen_output_string_Stub));
-  SG_PROCEDURE_NAME(&nullchar_general_category_Stub) = SG_STRING(SG_MAKE_STRING("char-general-category"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char-general-category")))), SG_OBJ(&nullchar_general_category_Stub));
-  SG_PROCEDURE_NAME(&nullfixnum_3eflonum_Stub) = SG_STRING(SG_MAKE_STRING("fixnum->flonum"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fixnum->flonum")))), SG_OBJ(&nullfixnum_3eflonum_Stub));
-  SG_PROCEDURE_NAME(&nullchar_3einteger_Stub) = SG_STRING(SG_MAKE_STRING("char->integer"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char->integer")))), SG_OBJ(&nullchar_3einteger_Stub));
-  SG_PROCEDURE_NAME(&nullmagnitude_Stub) = SG_STRING(SG_MAKE_STRING("magnitude"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("magnitude")))), SG_OBJ(&nullmagnitude_Stub));
-  SG_PROCEDURE_NAME(&nullstring_3ebytevector_Stub) = SG_STRING(SG_MAKE_STRING("string->bytevector"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string->bytevector")))), SG_OBJ(&nullstring_3ebytevector_Stub));
-  SG_PROCEDURE_NAME(&nullport_transcoder_Stub) = SG_STRING(SG_MAKE_STRING("port-transcoder"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("port-transcoder")))), SG_OBJ(&nullport_transcoder_Stub));
-  SG_PROCEDURE_NAME(&nullboolean3d3f_Stub) = SG_STRING(SG_MAKE_STRING("boolean=?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("boolean=?")))), SG_OBJ(&nullboolean3d3f_Stub));
-  SG_PROCEDURE_NAME(&nulltranscoder_error_handling_mode_Stub) = SG_STRING(SG_MAKE_STRING("transcoder-error-handling-mode"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("transcoder-error-handling-mode")))), SG_OBJ(&nulltranscoder_error_handling_mode_Stub));
-  SG_PROCEDURE_NAME(&nullstring_normalize_nfkd_Stub) = SG_STRING(SG_MAKE_STRING("string-normalize-nfkd"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string-normalize-nfkd")))), SG_OBJ(&nullstring_normalize_nfkd_Stub));
-  SG_PROCEDURE_NAME(&nullstring3c3d3f_Stub) = SG_STRING(SG_MAKE_STRING("string<=?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string<=?")))), SG_OBJ(&nullstring3c3d3f_Stub));
-  SG_PROCEDURE_NAME(&nullnative_transcoder_Stub) = SG_STRING(SG_MAKE_STRING("native-transcoder"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("native-transcoder")))), SG_OBJ(&nullnative_transcoder_Stub));
-  SG_PROCEDURE_NAME(&nullget_bytevector_all_Stub) = SG_STRING(SG_MAKE_STRING("get-bytevector-all"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("get-bytevector-all")))), SG_OBJ(&nullget_bytevector_all_Stub));
-  SG_PROCEDURE_NAME(&nullcadr_Stub) = SG_STRING(SG_MAKE_STRING("cadr"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("cadr")))), SG_OBJ(&nullcadr_Stub));
-  SG_PROCEDURE_NAME(&nulltuple_list_set21_Stub) = SG_STRING(SG_MAKE_STRING("tuple-list-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("tuple-list-set!")))), SG_OBJ(&nulltuple_list_set21_Stub));
-  SG_PROCEDURE_NAME(&nulloutput_port3f_Stub) = SG_STRING(SG_MAKE_STRING("output-port?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("output-port?")))), SG_OBJ(&nulloutput_port3f_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_length_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-length"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-length")))), SG_OBJ(&nullbytevector_length_Stub));
-  SG_PROCEDURE_NAME(&null3c3d_Stub) = SG_STRING(SG_MAKE_STRING("<="));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("<=")))), SG_OBJ(&null3c3d_Stub));
-  SG_PROCEDURE_NAME(&nullfldenominator_Stub) = SG_STRING(SG_MAKE_STRING("fldenominator"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fldenominator")))), SG_OBJ(&nullfldenominator_Stub));
-  SG_PROCEDURE_NAME(&nullnan3f_Stub) = SG_STRING(SG_MAKE_STRING("nan?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("nan?")))), SG_OBJ(&nullnan3f_Stub));
-  SG_PROCEDURE_NAME(&nullfllog_Stub) = SG_STRING(SG_MAKE_STRING("fllog"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fllog")))), SG_OBJ(&nullfllog_Stub));
-  SG_PROCEDURE_NAME(&nullchar_upper_case3f_Stub) = SG_STRING(SG_MAKE_STRING("char-upper-case?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char-upper-case?")))), SG_OBJ(&nullchar_upper_case3f_Stub));
-  SG_PROCEDURE_NAME(&nullclose_output_port_Stub) = SG_STRING(SG_MAKE_STRING("close-output-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("close-output-port")))), SG_OBJ(&nullclose_output_port_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s64_ref_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-s64-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-s64-ref")))), SG_OBJ(&nullbytevector_s64_ref_Stub));
-  SG_PROCEDURE_NAME(&nullfxlength_Stub) = SG_STRING(SG_MAKE_STRING("fxlength"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxlength")))), SG_OBJ(&nullfxlength_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s32_native_ref_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-s32-native-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-s32-native-ref")))), SG_OBJ(&nullbytevector_s32_native_ref_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_u16_native_set21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-u16-native-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-u16-native-set!")))), SG_OBJ(&nullbytevector_u16_native_set21_Stub));
-  SG_PROCEDURE_NAME(&nullutf16_3estring_Stub) = SG_STRING(SG_MAKE_STRING("utf16->string"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("utf16->string")))), SG_OBJ(&nullutf16_3estring_Stub));
-  SG_PROCEDURE_NAME(&nullstring_titlecase_Stub) = SG_STRING(SG_MAKE_STRING("string-titlecase"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string-titlecase")))), SG_OBJ(&nullstring_titlecase_Stub));
-  SG_PROCEDURE_NAME(&null2b2e_Stub) = SG_STRING(SG_MAKE_STRING("+."));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("+.")))), SG_OBJ(&null2b2e_Stub));
-  SG_PROCEDURE_NAME(&nullrecord_type_sealed3f_Stub) = SG_STRING(SG_MAKE_STRING("record-type-sealed?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("record-type-sealed?")))), SG_OBJ(&nullrecord_type_sealed3f_Stub));
-  SG_PROCEDURE_NAME(&nullstring3f_Stub) = SG_STRING(SG_MAKE_STRING("string?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string?")))), SG_OBJ(&nullstring3f_Stub));
-  SG_PROCEDURE_NAME(&nullfxcopy_bit_Stub) = SG_STRING(SG_MAKE_STRING("fxcopy-bit"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxcopy-bit")))), SG_OBJ(&nullfxcopy_bit_Stub));
-  SG_PROCEDURE_NAME(&null3e3d_Stub) = SG_STRING(SG_MAKE_STRING(">="));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING(">=")))), SG_OBJ(&null3e3d_Stub));
-  SG_PROCEDURE_NAME(&nullchar_foldcase_Stub) = SG_STRING(SG_MAKE_STRING("char-foldcase"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char-foldcase")))), SG_OBJ(&nullchar_foldcase_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_copy21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-copy!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-copy!")))), SG_OBJ(&nullbytevector_copy21_Stub));
-  SG_PROCEDURE_NAME(&nullflodd3f_Stub) = SG_STRING(SG_MAKE_STRING("flodd?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flodd?")))), SG_OBJ(&nullflodd3f_Stub));
-  SG_PROCEDURE_NAME(&nullnull3f_Stub) = SG_STRING(SG_MAKE_STRING("null?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("null?")))), SG_OBJ(&nullnull3f_Stub));
-  SG_PROCEDURE_NAME(&nulleof_object_Stub) = SG_STRING(SG_MAKE_STRING("eof-object"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("eof-object")))), SG_OBJ(&nulleof_object_Stub));
-  SG_PROCEDURE_NAME(&nullmemq_Stub) = SG_STRING(SG_MAKE_STRING("memq"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("memq")))), SG_OBJ(&nullmemq_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s32_native_set21_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-s32-native-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-s32-native-set!")))), SG_OBJ(&nullbytevector_s32_native_set21_Stub));
-  SG_PROCEDURE_NAME(&nullmake_custom_binary_output_port_Stub) = SG_STRING(SG_MAKE_STRING("make-custom-binary-output-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-custom-binary-output-port")))), SG_OBJ(&nullmake_custom_binary_output_port_Stub));
-  SG_PROCEDURE_NAME(&nulllist_tail_Stub) = SG_STRING(SG_MAKE_STRING("list-tail"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("list-tail")))), SG_OBJ(&nulllist_tail_Stub));
-  SG_PROCEDURE_NAME(&nullsimple_condition3f_Stub) = SG_STRING(SG_MAKE_STRING("simple-condition?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("simple-condition?")))), SG_OBJ(&nullsimple_condition3f_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_and_Stub) = SG_STRING(SG_MAKE_STRING("bitwise-and"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bitwise-and")))), SG_OBJ(&nullbitwise_and_Stub));
-  SG_PROCEDURE_NAME(&nullstring_3eutf8_Stub) = SG_STRING(SG_MAKE_STRING("string->utf8"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string->utf8")))), SG_OBJ(&nullstring_3eutf8_Stub));
-  SG_PROCEDURE_NAME(&nullstring_normalize_nfc_Stub) = SG_STRING(SG_MAKE_STRING("string-normalize-nfc"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string-normalize-nfc")))), SG_OBJ(&nullstring_normalize_nfc_Stub));
-  SG_PROCEDURE_NAME(&nullfile_exists3f_Stub) = SG_STRING(SG_MAKE_STRING("file-exists?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("file-exists?")))), SG_OBJ(&nullfile_exists3f_Stub));
-  SG_PROCEDURE_NAME(&nullnumber_3estring_Stub) = SG_STRING(SG_MAKE_STRING("number->string"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("number->string")))), SG_OBJ(&nullnumber_3estring_Stub));
-  SG_PROCEDURE_NAME(&nullrecord_type_uid_Stub) = SG_STRING(SG_MAKE_STRING("record-type-uid"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("record-type-uid")))), SG_OBJ(&nullrecord_type_uid_Stub));
-  SG_PROCEDURE_NAME(&nullflfloor_Stub) = SG_STRING(SG_MAKE_STRING("flfloor"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flfloor")))), SG_OBJ(&nullflfloor_Stub));
-  SG_PROCEDURE_NAME(&nullwrite_Stub) = SG_STRING(SG_MAKE_STRING("write"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("write")))), SG_OBJ(&nullwrite_Stub));
-  SG_PROCEDURE_NAME(&nullinput_port3f_Stub) = SG_STRING(SG_MAKE_STRING("input-port?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("input-port?")))), SG_OBJ(&nullinput_port3f_Stub));
-  SG_PROCEDURE_NAME(&nullfx3e3f_Stub) = SG_STRING(SG_MAKE_STRING("fx>?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fx>?")))), SG_OBJ(&nullfx3e3f_Stub));
-  SG_PROCEDURE_NAME(&nullvector_fill21_Stub) = SG_STRING(SG_MAKE_STRING("vector-fill!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("vector-fill!")))), SG_OBJ(&nullvector_fill21_Stub));
-  SG_PROCEDURE_NAME(&nullmake_eq_hashtable_Stub) = SG_STRING(SG_MAKE_STRING("make-eq-hashtable"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-eq-hashtable")))), SG_OBJ(&nullmake_eq_hashtable_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_arithmetic_shift_left_Stub) = SG_STRING(SG_MAKE_STRING("bitwise-arithmetic-shift-left"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bitwise-arithmetic-shift-left")))), SG_OBJ(&nullbitwise_arithmetic_shift_left_Stub));
-  SG_PROCEDURE_NAME(&nullflexp_Stub) = SG_STRING(SG_MAKE_STRING("flexp"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flexp")))), SG_OBJ(&nullflexp_Stub));
-  SG_PROCEDURE_NAME(&nullgreatest_fixnum_Stub) = SG_STRING(SG_MAKE_STRING("greatest-fixnum"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("greatest-fixnum")))), SG_OBJ(&nullgreatest_fixnum_Stub));
-  SG_PROCEDURE_NAME(&nullcaar_Stub) = SG_STRING(SG_MAKE_STRING("caar"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("caar")))), SG_OBJ(&nullcaar_Stub));
-  SG_PROCEDURE_NAME(&nullfree_identifier3d3f_Stub) = SG_STRING(SG_MAKE_STRING("free-identifier=?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("free-identifier=?")))), SG_OBJ(&nullfree_identifier3d3f_Stub));
-  SG_PROCEDURE_NAME(&nullreal_valued3f_Stub) = SG_STRING(SG_MAKE_STRING("real-valued?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("real-valued?")))), SG_OBJ(&nullreal_valued3f_Stub));
-  SG_PROCEDURE_NAME(&nullassq_Stub) = SG_STRING(SG_MAKE_STRING("assq"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("assq")))), SG_OBJ(&nullassq_Stub));
-  SG_PROCEDURE_NAME(&nullstring3e3d3f_Stub) = SG_STRING(SG_MAKE_STRING("string>=?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string>=?")))), SG_OBJ(&nullstring3e3d3f_Stub));
-  SG_PROCEDURE_NAME(&nullfl__Stub) = SG_STRING(SG_MAKE_STRING("fl-"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fl-")))), SG_OBJ(&nullfl__Stub));
-  SG_PROCEDURE_NAME(&nullreal_3eflonum_Stub) = SG_STRING(SG_MAKE_STRING("real->flonum"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("real->flonum")))), SG_OBJ(&nullreal_3eflonum_Stub));
-  SG_PROCEDURE_NAME(&nullstring_Stub) = SG_STRING(SG_MAKE_STRING("string"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string")))), SG_OBJ(&nullstring_Stub));
-  SG_PROCEDURE_NAME(&nulloutput_port_buffer_mode_Stub) = SG_STRING(SG_MAKE_STRING("output-port-buffer-mode"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("output-port-buffer-mode")))), SG_OBJ(&nulloutput_port_buffer_mode_Stub));
-  SG_PROCEDURE_NAME(&null3d_Stub) = SG_STRING(SG_MAKE_STRING("="));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("=")))), SG_OBJ(&null3d_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_first_bit_set_Stub) = SG_STRING(SG_MAKE_STRING("bitwise-first-bit-set"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bitwise-first-bit-set")))), SG_OBJ(&nullbitwise_first_bit_set_Stub));
-  SG_PROCEDURE_NAME(&nullpositive3f_Stub) = SG_STRING(SG_MAKE_STRING("positive?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("positive?")))), SG_OBJ(&nullpositive3f_Stub));
-  SG_PROCEDURE_NAME(&nullfx3d3f_Stub) = SG_STRING(SG_MAKE_STRING("fx=?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fx=?")))), SG_OBJ(&nullfx3d3f_Stub));
-  SG_PROCEDURE_NAME(&nullget_output_string_Stub) = SG_STRING(SG_MAKE_STRING("get-output-string"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("get-output-string")))), SG_OBJ(&nullget_output_string_Stub));
-  SG_PROCEDURE_NAME(&nullport_has_set_port_position213f_Stub) = SG_STRING(SG_MAKE_STRING("port-has-set-port-position!?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("port-has-set-port-position!?")))), SG_OBJ(&nullport_has_set_port_position213f_Stub));
-  SG_PROCEDURE_NAME(&nullatan_Stub) = SG_STRING(SG_MAKE_STRING("atan"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("atan")))), SG_OBJ(&nullatan_Stub));
-  SG_PROCEDURE_NAME(&nullnumerator_Stub) = SG_STRING(SG_MAKE_STRING("numerator"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("numerator")))), SG_OBJ(&nullnumerator_Stub));
-  SG_PROCEDURE_NAME(&nullcondition3f_Stub) = SG_STRING(SG_MAKE_STRING("condition?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("condition?")))), SG_OBJ(&nullcondition3f_Stub));
-  SG_PROCEDURE_NAME(&nulleof_object3f_Stub) = SG_STRING(SG_MAKE_STRING("eof-object?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("eof-object?")))), SG_OBJ(&nulleof_object3f_Stub));
-  SG_PROCEDURE_NAME(&nullinfinite3f_Stub) = SG_STRING(SG_MAKE_STRING("infinite?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("infinite?")))), SG_OBJ(&nullinfinite3f_Stub));
-  SG_PROCEDURE_NAME(&nullstring3c3f_Stub) = SG_STRING(SG_MAKE_STRING("string<?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string<?")))), SG_OBJ(&nullstring3c3f_Stub));
-  SG_PROCEDURE_NAME(&nullopen_string_input_port_Stub) = SG_STRING(SG_MAKE_STRING("open-string-input-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("open-string-input-port")))), SG_OBJ(&nullopen_string_input_port_Stub));
-  SG_PROCEDURE_NAME(&nullodd3f_Stub) = SG_STRING(SG_MAKE_STRING("odd?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("odd?")))), SG_OBJ(&nullodd3f_Stub));
-  SG_PROCEDURE_NAME(&nullvector_length_Stub) = SG_STRING(SG_MAKE_STRING("vector-length"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("vector-length")))), SG_OBJ(&nullvector_length_Stub));
-  SG_PROCEDURE_NAME(&nullexpt_Stub) = SG_STRING(SG_MAKE_STRING("expt"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("expt")))), SG_OBJ(&nullexpt_Stub));
-  SG_PROCEDURE_NAME(&nullsimple_conditions_Stub) = SG_STRING(SG_MAKE_STRING("simple-conditions"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("simple-conditions")))), SG_OBJ(&nullsimple_conditions_Stub));
-  SG_PROCEDURE_NAME(&nullutf8_3estring_Stub) = SG_STRING(SG_MAKE_STRING("utf8->string"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("utf8->string")))), SG_OBJ(&nullutf8_3estring_Stub));
-  SG_PROCEDURE_NAME(&nulllist_3evector_Stub) = SG_STRING(SG_MAKE_STRING("list->vector"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("list->vector")))), SG_OBJ(&nulllist_3evector_Stub));
-  SG_PROCEDURE_NAME(&nullflnegative3f_Stub) = SG_STRING(SG_MAKE_STRING("flnegative?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flnegative?")))), SG_OBJ(&nullflnegative3f_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector3f_Stub) = SG_STRING(SG_MAKE_STRING("bytevector?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector?")))), SG_OBJ(&nullbytevector3f_Stub));
-  SG_PROCEDURE_NAME(&nullget_string_n_Stub) = SG_STRING(SG_MAKE_STRING("get-string-n"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("get-string-n")))), SG_OBJ(&nullget_string_n_Stub));
-  SG_PROCEDURE_NAME(&nullmake_polar_Stub) = SG_STRING(SG_MAKE_STRING("make-polar"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-polar")))), SG_OBJ(&nullmake_polar_Stub));
-  SG_PROCEDURE_NAME(&nullstring_ref_Stub) = SG_STRING(SG_MAKE_STRING("string-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string-ref")))), SG_OBJ(&nullstring_ref_Stub));
-  SG_PROCEDURE_NAME(&nullchar3c3f_Stub) = SG_STRING(SG_MAKE_STRING("char<?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char<?")))), SG_OBJ(&nullchar3c3f_Stub));
-  SG_PROCEDURE_NAME(&nullset_car21_Stub) = SG_STRING(SG_MAKE_STRING("set-car!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("set-car!")))), SG_OBJ(&nullset_car21_Stub));
-  SG_PROCEDURE_NAME(&nullnumber3f_Stub) = SG_STRING(SG_MAKE_STRING("number?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("number?")))), SG_OBJ(&nullnumber3f_Stub));
-  SG_PROCEDURE_NAME(&nullrecord_type_generative3f_Stub) = SG_STRING(SG_MAKE_STRING("record-type-generative?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("record-type-generative?")))), SG_OBJ(&nullrecord_type_generative3f_Stub));
-  SG_PROCEDURE_NAME(&nullbitwise_arithmetic_shift_right_Stub) = SG_STRING(SG_MAKE_STRING("bitwise-arithmetic-shift-right"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bitwise-arithmetic-shift-right")))), SG_OBJ(&nullbitwise_arithmetic_shift_right_Stub));
-  SG_PROCEDURE_NAME(&nullfloor_Stub) = SG_STRING(SG_MAKE_STRING("floor"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("floor")))), SG_OBJ(&nullfloor_Stub));
-  SG_PROCEDURE_NAME(&nullstring3e3f_Stub) = SG_STRING(SG_MAKE_STRING("string>?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string>?")))), SG_OBJ(&nullstring3e3f_Stub));
-  SG_PROCEDURE_NAME(&nulldelete_file_Stub) = SG_STRING(SG_MAKE_STRING("delete-file"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("delete-file")))), SG_OBJ(&nulldelete_file_Stub));
-  SG_PROCEDURE_NAME(&nullmake_rectangular_Stub) = SG_STRING(SG_MAKE_STRING("make-rectangular"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-rectangular")))), SG_OBJ(&nullmake_rectangular_Stub));
-  SG_PROCEDURE_NAME(&nullinteger_3echar_Stub) = SG_STRING(SG_MAKE_STRING("integer->char"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("integer->char")))), SG_OBJ(&nullinteger_3echar_Stub));
-  SG_PROCEDURE_NAME(&nullmod0_Stub) = SG_STRING(SG_MAKE_STRING("mod0"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("mod0")))), SG_OBJ(&nullmod0_Stub));
-  SG_PROCEDURE_NAME(&nullflasin_Stub) = SG_STRING(SG_MAKE_STRING("flasin"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flasin")))), SG_OBJ(&nullflasin_Stub));
-  SG_PROCEDURE_NAME(&nullmemv_Stub) = SG_STRING(SG_MAKE_STRING("memv"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("memv")))), SG_OBJ(&nullmemv_Stub));
-  SG_PROCEDURE_NAME(&nullmake_vector_Stub) = SG_STRING(SG_MAKE_STRING("make-vector"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-vector")))), SG_OBJ(&nullmake_vector_Stub));
-  SG_PROCEDURE_NAME(&nullsymbol3d3f_Stub) = SG_STRING(SG_MAKE_STRING("symbol=?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("symbol=?")))), SG_OBJ(&nullsymbol3d3f_Stub));
-  SG_PROCEDURE_NAME(&nullrecord_type_field_names_Stub) = SG_STRING(SG_MAKE_STRING("record-type-field-names"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("record-type-field-names")))), SG_OBJ(&nullrecord_type_field_names_Stub));
-  SG_PROCEDURE_NAME(&nullcommand_line_Stub) = SG_STRING(SG_MAKE_STRING("command-line"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("command-line")))), SG_OBJ(&nullcommand_line_Stub));
-  SG_PROCEDURE_NAME(&nullabs_Stub) = SG_STRING(SG_MAKE_STRING("abs"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("abs")))), SG_OBJ(&nullabs_Stub));
-  SG_PROCEDURE_NAME(&nullflnumerator_Stub) = SG_STRING(SG_MAKE_STRING("flnumerator"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flnumerator")))), SG_OBJ(&nullflnumerator_Stub));
-  SG_PROCEDURE_NAME(&nullvalues_Stub) = SG_STRING(SG_MAKE_STRING("values"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("values")))), SG_OBJ(&nullvalues_Stub));
-  SG_PROCEDURE_NAME(&nullflush_output_port_Stub) = SG_STRING(SG_MAKE_STRING("flush-output-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flush-output-port")))), SG_OBJ(&nullflush_output_port_Stub));
-  SG_PROCEDURE_NAME(&nullstring_3elist_Stub) = SG_STRING(SG_MAKE_STRING("string->list"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string->list")))), SG_OBJ(&nullstring_3elist_Stub));
-  SG_PROCEDURE_NAME(&nullflsqrt_Stub) = SG_STRING(SG_MAKE_STRING("flsqrt"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("flsqrt")))), SG_OBJ(&nullflsqrt_Stub));
-  SG_PROCEDURE_NAME(&nullrtd_ancestor3f_Stub) = SG_STRING(SG_MAKE_STRING("rtd-ancestor?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("rtd-ancestor?")))), SG_OBJ(&nullrtd_ancestor3f_Stub));
-  SG_PROCEDURE_NAME(&nullrecord_mutator_Stub) = SG_STRING(SG_MAKE_STRING("record-mutator"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("record-mutator")))), SG_OBJ(&nullrecord_mutator_Stub));
-  SG_PROCEDURE_NAME(&nullopen_bytevector_input_port_Stub) = SG_STRING(SG_MAKE_STRING("open-bytevector-input-port"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("open-bytevector-input-port")))), SG_OBJ(&nullopen_bytevector_input_port_Stub));
-  SG_PROCEDURE_NAME(&nullbytevector_s64_native_ref_Stub) = SG_STRING(SG_MAKE_STRING("bytevector-s64-native-ref"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("bytevector-s64-native-ref")))), SG_OBJ(&nullbytevector_s64_native_ref_Stub));
-  SG_PROCEDURE_NAME(&nullfixnum3f_Stub) = SG_STRING(SG_MAKE_STRING("fixnum?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fixnum?")))), SG_OBJ(&nullfixnum3f_Stub));
-  SG_PROCEDURE_NAME(&nullfxarithmetic_shift_right_Stub) = SG_STRING(SG_MAKE_STRING("fxarithmetic-shift-right"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("fxarithmetic-shift-right")))), SG_OBJ(&nullfxarithmetic_shift_right_Stub));
-  SG_PROCEDURE_NAME(&nullacos_Stub) = SG_STRING(SG_MAKE_STRING("acos"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("acos")))), SG_OBJ(&nullacos_Stub));
+  SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC("null"), SG_LITERAL_STRING)), TRUE);
+  SG_PROCEDURE_NAME(&nullflacos_Stub) = Sg_MakeString(UC("flacos"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flacos"), SG_LITERAL_STRING)), SG_OBJ(&nullflacos_Stub));
+  SG_PROCEDURE_NAME(&nullappend_Stub) = Sg_MakeString(UC("append"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("append"), SG_LITERAL_STRING)), SG_OBJ(&nullappend_Stub));
+  SG_PROCEDURE_NAME(&nullcos_Stub) = Sg_MakeString(UC("cos"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cos"), SG_LITERAL_STRING)), SG_OBJ(&nullcos_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_not_Stub) = Sg_MakeString(UC("bitwise-not"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-not"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_not_Stub));
+  SG_PROCEDURE_NAME(&nullcons_Stub) = Sg_MakeString(UC("cons"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cons"), SG_LITERAL_STRING)), SG_OBJ(&nullcons_Stub));
+  SG_PROCEDURE_NAME(&nullflmax_Stub) = Sg_MakeString(UC("flmax"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flmax"), SG_LITERAL_STRING)), SG_OBJ(&nullflmax_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u32_ref_Stub) = Sg_MakeString(UC("bytevector-u32-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u32-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u32_ref_Stub));
+  SG_PROCEDURE_NAME(&nullflinfinite3f_Stub) = Sg_MakeString(UC("flinfinite?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flinfinite?"), SG_LITERAL_STRING)), SG_OBJ(&nullflinfinite3f_Stub));
+  SG_PROCEDURE_NAME(&nullmin_Stub) = Sg_MakeString(UC("min"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("min"), SG_LITERAL_STRING)), SG_OBJ(&nullmin_Stub));
+  SG_PROCEDURE_NAME(&nullrecord_field_mutable3f_Stub) = Sg_MakeString(UC("record-field-mutable?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("record-field-mutable?"), SG_LITERAL_STRING)), SG_OBJ(&nullrecord_field_mutable3f_Stub));
+  SG_PROCEDURE_NAME(&nullfl3d3f_Stub) = Sg_MakeString(UC("fl=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fl=?"), SG_LITERAL_STRING)), SG_OBJ(&nullfl3d3f_Stub));
+  SG_PROCEDURE_NAME(&nullmake_custom_textual_input2foutput_port_Stub) = Sg_MakeString(UC("make-custom-textual-input/output-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-custom-textual-input/output-port"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_custom_textual_input2foutput_port_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s8_set21_Stub) = Sg_MakeString(UC("bytevector-s8-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s8-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s8_set21_Stub));
+  SG_PROCEDURE_NAME(&nullexact_integer_sqrt_Stub) = Sg_MakeString(UC("exact-integer-sqrt"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("exact-integer-sqrt"), SG_LITERAL_STRING)), SG_OBJ(&nullexact_integer_sqrt_Stub));
+  SG_PROCEDURE_NAME(&nullrecord_type_descriptor3f_Stub) = Sg_MakeString(UC("record-type-descriptor?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("record-type-descriptor?"), SG_LITERAL_STRING)), SG_OBJ(&nullrecord_type_descriptor3f_Stub));
+  SG_PROCEDURE_NAME(&nullmake_bytevector_Stub) = Sg_MakeString(UC("make-bytevector"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-bytevector"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_bytevector_Stub));
+  SG_PROCEDURE_NAME(&nullget_char_Stub) = Sg_MakeString(UC("get-char"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-char"), SG_LITERAL_STRING)), SG_OBJ(&nullget_char_Stub));
+  SG_PROCEDURE_NAME(&nullopen_file_input2foutput_port_Stub) = Sg_MakeString(UC("open-file-input/output-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("open-file-input/output-port"), SG_LITERAL_STRING)), SG_OBJ(&nullopen_file_input2foutput_port_Stub));
+  SG_PROCEDURE_NAME(&nullceiling_Stub) = Sg_MakeString(UC("ceiling"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("ceiling"), SG_LITERAL_STRING)), SG_OBJ(&nullceiling_Stub));
+  SG_PROCEDURE_NAME(&nullget_string_all_Stub) = Sg_MakeString(UC("get-string-all"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-string-all"), SG_LITERAL_STRING)), SG_OBJ(&nullget_string_all_Stub));
+  SG_PROCEDURE_NAME(&nullport_has_port_position3f_Stub) = Sg_MakeString(UC("port-has-port-position?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("port-has-port-position?"), SG_LITERAL_STRING)), SG_OBJ(&nullport_has_port_position3f_Stub));
+  SG_PROCEDURE_NAME(&nullstring_3enumber_Stub) = Sg_MakeString(UC("string->number"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string->number"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_3enumber_Stub));
+  SG_PROCEDURE_NAME(&nullchar_upcase_Stub) = Sg_MakeString(UC("char-upcase"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("char-upcase"), SG_LITERAL_STRING)), SG_OBJ(&nullchar_upcase_Stub));
+  SG_PROCEDURE_NAME(&nullfixnum_width_Stub) = Sg_MakeString(UC("fixnum-width"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fixnum-width"), SG_LITERAL_STRING)), SG_OBJ(&nullfixnum_width_Stub));
+  SG_PROCEDURE_NAME(&nullnegative3f_Stub) = Sg_MakeString(UC("negative?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("negative?"), SG_LITERAL_STRING)), SG_OBJ(&nullnegative3f_Stub));
+  SG_PROCEDURE_NAME(&nullinteger_valued3f_Stub) = Sg_MakeString(UC("integer-valued?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("integer-valued?"), SG_LITERAL_STRING)), SG_OBJ(&nullinteger_valued3f_Stub));
+  SG_PROCEDURE_NAME(&nullrationalize_Stub) = Sg_MakeString(UC("rationalize"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("rationalize"), SG_LITERAL_STRING)), SG_OBJ(&nullrationalize_Stub));
+  SG_PROCEDURE_NAME(&null__Stub) = Sg_MakeString(UC("-"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("-"), SG_LITERAL_STRING)), SG_OBJ(&null__Stub));
+  SG_PROCEDURE_NAME(&nullpeek_char_Stub) = Sg_MakeString(UC("peek-char"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("peek-char"), SG_LITERAL_STRING)), SG_OBJ(&nullpeek_char_Stub));
+  SG_PROCEDURE_NAME(&nullport3f_Stub) = Sg_MakeString(UC("port?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("port?"), SG_LITERAL_STRING)), SG_OBJ(&nullport3f_Stub));
+  SG_PROCEDURE_NAME(&nullfxmod0_Stub) = Sg_MakeString(UC("fxmod0"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxmod0"), SG_LITERAL_STRING)), SG_OBJ(&nullfxmod0_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u64_ref_Stub) = Sg_MakeString(UC("bytevector-u64-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u64-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u64_ref_Stub));
+  SG_PROCEDURE_NAME(&nulltuple_ref_Stub) = Sg_MakeString(UC("tuple-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("tuple-ref"), SG_LITERAL_STRING)), SG_OBJ(&nulltuple_ref_Stub));
+  SG_PROCEDURE_NAME(&nullscheme_error_Stub) = Sg_MakeString(UC("scheme-error"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("scheme-error"), SG_LITERAL_STRING)), SG_OBJ(&nullscheme_error_Stub));
+  SG_PROCEDURE_NAME(&nullrecord3f_Stub) = Sg_MakeString(UC("record?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("record?"), SG_LITERAL_STRING)), SG_OBJ(&nullrecord3f_Stub));
+  SG_PROCEDURE_NAME(&null25gcd_Stub) = Sg_MakeString(UC("%gcd"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("%gcd"), SG_LITERAL_STRING)), SG_OBJ(&null25gcd_Stub));
+  SG_PROCEDURE_NAME(&nullrtd_total_field_count_Stub) = Sg_MakeString(UC("rtd-total-field-count"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("rtd-total-field-count"), SG_LITERAL_STRING)), SG_OBJ(&nullrtd_total_field_count_Stub));
+  SG_PROCEDURE_NAME(&nullcurrent_output_port_Stub) = Sg_MakeString(UC("current-output-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("current-output-port"), SG_LITERAL_STRING)), SG_OBJ(&nullcurrent_output_port_Stub));
+  SG_PROCEDURE_NAME(&nullvector_ref_Stub) = Sg_MakeString(UC("vector-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullvector_ref_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u32_set21_Stub) = Sg_MakeString(UC("bytevector-u32-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u32-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u32_set21_Stub));
+  SG_PROCEDURE_NAME(&nullfl2a_Stub) = Sg_MakeString(UC("fl*"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fl*"), SG_LITERAL_STRING)), SG_OBJ(&nullfl2a_Stub));
+  SG_PROCEDURE_NAME(&nulllog_Stub) = Sg_MakeString(UC("log"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("log"), SG_LITERAL_STRING)), SG_OBJ(&nulllog_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_if_Stub) = Sg_MakeString(UC("bitwise-if"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-if"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_if_Stub));
+  SG_PROCEDURE_NAME(&nulldynamic_wind_Stub) = Sg_MakeString(UC("dynamic-wind"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("dynamic-wind"), SG_LITERAL_STRING)), SG_OBJ(&nulldynamic_wind_Stub));
+  SG_PROCEDURE_NAME(&nullstring_length_Stub) = Sg_MakeString(UC("string-length"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string-length"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_length_Stub));
+  SG_PROCEDURE_NAME(&nullnot_Stub) = Sg_MakeString(UC("not"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("not"), SG_LITERAL_STRING)), SG_OBJ(&nullnot_Stub));
+  SG_PROCEDURE_NAME(&nullremainder_Stub) = Sg_MakeString(UC("remainder"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("remainder"), SG_LITERAL_STRING)), SG_OBJ(&nullremainder_Stub));
+  SG_PROCEDURE_NAME(&nullstring_set21_Stub) = Sg_MakeString(UC("string-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_set21_Stub));
+  SG_PROCEDURE_NAME(&nullflsin_Stub) = Sg_MakeString(UC("flsin"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flsin"), SG_LITERAL_STRING)), SG_OBJ(&nullflsin_Stub));
+  SG_PROCEDURE_NAME(&nullflceiling_Stub) = Sg_MakeString(UC("flceiling"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flceiling"), SG_LITERAL_STRING)), SG_OBJ(&nullflceiling_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_ieee_single_native_set21_Stub) = Sg_MakeString(UC("bytevector-ieee-single-native-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-single-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_single_native_set21_Stub));
+  SG_PROCEDURE_NAME(&nullstring_upcase_Stub) = Sg_MakeString(UC("string-upcase"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string-upcase"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_upcase_Stub));
+  SG_PROCEDURE_NAME(&nullget_bytevector_some_Stub) = Sg_MakeString(UC("get-bytevector-some"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-bytevector-some"), SG_LITERAL_STRING)), SG_OBJ(&nullget_bytevector_some_Stub));
+  SG_PROCEDURE_NAME(&nullchar3f_Stub) = Sg_MakeString(UC("char?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("char?"), SG_LITERAL_STRING)), SG_OBJ(&nullchar3f_Stub));
+  SG_PROCEDURE_NAME(&nullmake_record_constructor_descriptor_Stub) = Sg_MakeString(UC("make-record-constructor-descriptor"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-record-constructor-descriptor"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_record_constructor_descriptor_Stub));
+  SG_PROCEDURE_NAME(&nullhashtable3f_Stub) = Sg_MakeString(UC("hashtable?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable?"), SG_LITERAL_STRING)), SG_OBJ(&nullhashtable3f_Stub));
+  SG_PROCEDURE_NAME(&nullput_datum_Stub) = Sg_MakeString(UC("put-datum"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("put-datum"), SG_LITERAL_STRING)), SG_OBJ(&nullput_datum_Stub));
+  SG_PROCEDURE_NAME(&nullclose_port_Stub) = Sg_MakeString(UC("close-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("close-port"), SG_LITERAL_STRING)), SG_OBJ(&nullclose_port_Stub));
+  SG_PROCEDURE_NAME(&nullrecord_accessor_Stub) = Sg_MakeString(UC("record-accessor"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("record-accessor"), SG_LITERAL_STRING)), SG_OBJ(&nullrecord_accessor_Stub));
+  SG_PROCEDURE_NAME(&nullhashtable_mutable3f_Stub) = Sg_MakeString(UC("hashtable-mutable?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-mutable?"), SG_LITERAL_STRING)), SG_OBJ(&nullhashtable_mutable3f_Stub));
+  SG_PROCEDURE_NAME(&nulllookahead_u8_Stub) = Sg_MakeString(UC("lookahead-u8"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("lookahead-u8"), SG_LITERAL_STRING)), SG_OBJ(&nulllookahead_u8_Stub));
+  SG_PROCEDURE_NAME(&nullu8_list_3ebytevector_Stub) = Sg_MakeString(UC("u8-list->bytevector"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("u8-list->bytevector"), SG_LITERAL_STRING)), SG_OBJ(&nullu8_list_3ebytevector_Stub));
+  SG_PROCEDURE_NAME(&nulleval_Stub) = Sg_MakeString(UC("eval"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("eval"), SG_LITERAL_STRING)), SG_OBJ(&nulleval_Stub));
+  SG_PROCEDURE_NAME(&nullget_bytevector_n21_Stub) = Sg_MakeString(UC("get-bytevector-n!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-bytevector-n!"), SG_LITERAL_STRING)), SG_OBJ(&nullget_bytevector_n21_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s8_ref_Stub) = Sg_MakeString(UC("bytevector-s8-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s8-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s8_ref_Stub));
+  SG_PROCEDURE_NAME(&nullfx2b_Stub) = Sg_MakeString(UC("fx+"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fx+"), SG_LITERAL_STRING)), SG_OBJ(&nullfx2b_Stub));
+  SG_PROCEDURE_NAME(&nullprocedure3f_Stub) = Sg_MakeString(UC("procedure?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("procedure?"), SG_LITERAL_STRING)), SG_OBJ(&nullprocedure3f_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_bit_count_Stub) = Sg_MakeString(UC("bitwise-bit-count"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-bit-count"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_bit_count_Stub));
+  SG_PROCEDURE_NAME(&nullexit_Stub) = Sg_MakeString(UC("exit"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("exit"), SG_LITERAL_STRING)), SG_OBJ(&nullexit_Stub));
+  SG_PROCEDURE_NAME(&nullfx3c3f_Stub) = Sg_MakeString(UC("fx<?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fx<?"), SG_LITERAL_STRING)), SG_OBJ(&nullfx3c3f_Stub));
+  SG_PROCEDURE_NAME(&nullget_line_Stub) = Sg_MakeString(UC("get-line"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-line"), SG_LITERAL_STRING)), SG_OBJ(&nullget_line_Stub));
+  SG_PROCEDURE_NAME(&nullboolean3f_Stub) = Sg_MakeString(UC("boolean?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("boolean?"), SG_LITERAL_STRING)), SG_OBJ(&nullboolean3f_Stub));
+  SG_PROCEDURE_NAME(&nullrecord_type_parent_Stub) = Sg_MakeString(UC("record-type-parent"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("record-type-parent"), SG_LITERAL_STRING)), SG_OBJ(&nullrecord_type_parent_Stub));
+  SG_PROCEDURE_NAME(&nullnative_endianness_Stub) = Sg_MakeString(UC("native-endianness"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("native-endianness"), SG_LITERAL_STRING)), SG_OBJ(&nullnative_endianness_Stub));
+  SG_PROCEDURE_NAME(&nullfxpositive3f_Stub) = Sg_MakeString(UC("fxpositive?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxpositive?"), SG_LITERAL_STRING)), SG_OBJ(&nullfxpositive3f_Stub));
+  SG_PROCEDURE_NAME(&nullmax_Stub) = Sg_MakeString(UC("max"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("max"), SG_LITERAL_STRING)), SG_OBJ(&nullmax_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_arithmetic_shift_Stub) = Sg_MakeString(UC("bitwise-arithmetic-shift"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-arithmetic-shift"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_arithmetic_shift_Stub));
+  SG_PROCEDURE_NAME(&nullstring_normalize_nfd_Stub) = Sg_MakeString(UC("string-normalize-nfd"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string-normalize-nfd"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_normalize_nfd_Stub));
+  SG_PROCEDURE_NAME(&nullhashtable_keys_Stub) = Sg_MakeString(UC("hashtable-keys"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-keys"), SG_LITERAL_STRING)), SG_OBJ(&nullhashtable_keys_Stub));
+  SG_PROCEDURE_NAME(&nullcurrent_error_port_Stub) = Sg_MakeString(UC("current-error-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("current-error-port"), SG_LITERAL_STRING)), SG_OBJ(&nullcurrent_error_port_Stub));
+  SG_PROCEDURE_NAME(&nullflinteger3f_Stub) = Sg_MakeString(UC("flinteger?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flinteger?"), SG_LITERAL_STRING)), SG_OBJ(&nullflinteger3f_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s16_native_set21_Stub) = Sg_MakeString(UC("bytevector-s16-native-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s16-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s16_native_set21_Stub));
+  SG_PROCEDURE_NAME(&nullflnan3f_Stub) = Sg_MakeString(UC("flnan?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flnan?"), SG_LITERAL_STRING)), SG_OBJ(&nullflnan3f_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_bit_set3f_Stub) = Sg_MakeString(UC("bitwise-bit-set?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-bit-set?"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_bit_set3f_Stub));
+  SG_PROCEDURE_NAME(&nullchar_titlecase_Stub) = Sg_MakeString(UC("char-titlecase"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("char-titlecase"), SG_LITERAL_STRING)), SG_OBJ(&nullchar_titlecase_Stub));
+  SG_PROCEDURE_NAME(&nullclose_input_port_Stub) = Sg_MakeString(UC("close-input-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("close-input-port"), SG_LITERAL_STRING)), SG_OBJ(&nullclose_input_port_Stub));
+  SG_PROCEDURE_NAME(&nullhashtable_contains3f_Stub) = Sg_MakeString(UC("hashtable-contains?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-contains?"), SG_LITERAL_STRING)), SG_OBJ(&nullhashtable_contains3f_Stub));
+  SG_PROCEDURE_NAME(&nullflcos_Stub) = Sg_MakeString(UC("flcos"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flcos"), SG_LITERAL_STRING)), SG_OBJ(&nullflcos_Stub));
+  SG_PROCEDURE_NAME(&nullfxeven3f_Stub) = Sg_MakeString(UC("fxeven?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxeven?"), SG_LITERAL_STRING)), SG_OBJ(&nullfxeven3f_Stub));
+  SG_PROCEDURE_NAME(&nulldiv0_Stub) = Sg_MakeString(UC("div0"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("div0"), SG_LITERAL_STRING)), SG_OBJ(&nulldiv0_Stub));
+  SG_PROCEDURE_NAME(&nullfx3c3d3f_Stub) = Sg_MakeString(UC("fx<=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fx<=?"), SG_LITERAL_STRING)), SG_OBJ(&nullfx3c3d3f_Stub));
+  SG_PROCEDURE_NAME(&nullsymbol_3estring_Stub) = Sg_MakeString(UC("symbol->string"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("symbol->string"), SG_LITERAL_STRING)), SG_OBJ(&nullsymbol_3estring_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_ieee_double_set21_Stub) = Sg_MakeString(UC("bytevector-ieee-double-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-double-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_double_set21_Stub));
+  SG_PROCEDURE_NAME(&nullcar_Stub) = Sg_MakeString(UC("car"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("car"), SG_LITERAL_STRING)), SG_OBJ(&nullcar_Stub));
+  SG_PROCEDURE_NAME(&nullrecord_constructor_Stub) = Sg_MakeString(UC("record-constructor"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("record-constructor"), SG_LITERAL_STRING)), SG_OBJ(&nullrecord_constructor_Stub));
+  SG_PROCEDURE_NAME(&nullfxbit_set3f_Stub) = Sg_MakeString(UC("fxbit-set?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxbit-set?"), SG_LITERAL_STRING)), SG_OBJ(&nullfxbit_set3f_Stub));
+  SG_PROCEDURE_NAME(&nullopen_output_string_Stub) = Sg_MakeString(UC("open-output-string"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("open-output-string"), SG_LITERAL_STRING)), SG_OBJ(&nullopen_output_string_Stub));
+  SG_PROCEDURE_NAME(&nullfixnum_3eflonum_Stub) = Sg_MakeString(UC("fixnum->flonum"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fixnum->flonum"), SG_LITERAL_STRING)), SG_OBJ(&nullfixnum_3eflonum_Stub));
+  SG_PROCEDURE_NAME(&nullchar_general_category_Stub) = Sg_MakeString(UC("char-general-category"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("char-general-category"), SG_LITERAL_STRING)), SG_OBJ(&nullchar_general_category_Stub));
+  SG_PROCEDURE_NAME(&nullchar_3einteger_Stub) = Sg_MakeString(UC("char->integer"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("char->integer"), SG_LITERAL_STRING)), SG_OBJ(&nullchar_3einteger_Stub));
+  SG_PROCEDURE_NAME(&nullmagnitude_Stub) = Sg_MakeString(UC("magnitude"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("magnitude"), SG_LITERAL_STRING)), SG_OBJ(&nullmagnitude_Stub));
+  SG_PROCEDURE_NAME(&nullstring_3ebytevector_Stub) = Sg_MakeString(UC("string->bytevector"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string->bytevector"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_3ebytevector_Stub));
+  SG_PROCEDURE_NAME(&nullboolean3d3f_Stub) = Sg_MakeString(UC("boolean=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("boolean=?"), SG_LITERAL_STRING)), SG_OBJ(&nullboolean3d3f_Stub));
+  SG_PROCEDURE_NAME(&nullport_transcoder_Stub) = Sg_MakeString(UC("port-transcoder"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("port-transcoder"), SG_LITERAL_STRING)), SG_OBJ(&nullport_transcoder_Stub));
+  SG_PROCEDURE_NAME(&nulltranscoder_error_handling_mode_Stub) = Sg_MakeString(UC("transcoder-error-handling-mode"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("transcoder-error-handling-mode"), SG_LITERAL_STRING)), SG_OBJ(&nulltranscoder_error_handling_mode_Stub));
+  SG_PROCEDURE_NAME(&nullstring_normalize_nfkd_Stub) = Sg_MakeString(UC("string-normalize-nfkd"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string-normalize-nfkd"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_normalize_nfkd_Stub));
+  SG_PROCEDURE_NAME(&nullstring3c3d3f_Stub) = Sg_MakeString(UC("string<=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string<=?"), SG_LITERAL_STRING)), SG_OBJ(&nullstring3c3d3f_Stub));
+  SG_PROCEDURE_NAME(&nullnative_transcoder_Stub) = Sg_MakeString(UC("native-transcoder"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("native-transcoder"), SG_LITERAL_STRING)), SG_OBJ(&nullnative_transcoder_Stub));
+  SG_PROCEDURE_NAME(&nullcadr_Stub) = Sg_MakeString(UC("cadr"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cadr"), SG_LITERAL_STRING)), SG_OBJ(&nullcadr_Stub));
+  SG_PROCEDURE_NAME(&nulloutput_port3f_Stub) = Sg_MakeString(UC("output-port?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("output-port?"), SG_LITERAL_STRING)), SG_OBJ(&nulloutput_port3f_Stub));
+  SG_PROCEDURE_NAME(&nullget_bytevector_all_Stub) = Sg_MakeString(UC("get-bytevector-all"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-bytevector-all"), SG_LITERAL_STRING)), SG_OBJ(&nullget_bytevector_all_Stub));
+  SG_PROCEDURE_NAME(&nulltuple_list_set21_Stub) = Sg_MakeString(UC("tuple-list-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("tuple-list-set!"), SG_LITERAL_STRING)), SG_OBJ(&nulltuple_list_set21_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_length_Stub) = Sg_MakeString(UC("bytevector-length"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-length"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_length_Stub));
+  SG_PROCEDURE_NAME(&null3c3d_Stub) = Sg_MakeString(UC("<="), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("<="), SG_LITERAL_STRING)), SG_OBJ(&null3c3d_Stub));
+  SG_PROCEDURE_NAME(&nullfldenominator_Stub) = Sg_MakeString(UC("fldenominator"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fldenominator"), SG_LITERAL_STRING)), SG_OBJ(&nullfldenominator_Stub));
+  SG_PROCEDURE_NAME(&nullnan3f_Stub) = Sg_MakeString(UC("nan?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("nan?"), SG_LITERAL_STRING)), SG_OBJ(&nullnan3f_Stub));
+  SG_PROCEDURE_NAME(&nullfllog_Stub) = Sg_MakeString(UC("fllog"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fllog"), SG_LITERAL_STRING)), SG_OBJ(&nullfllog_Stub));
+  SG_PROCEDURE_NAME(&nullclose_output_port_Stub) = Sg_MakeString(UC("close-output-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("close-output-port"), SG_LITERAL_STRING)), SG_OBJ(&nullclose_output_port_Stub));
+  SG_PROCEDURE_NAME(&nullchar_upper_case3f_Stub) = Sg_MakeString(UC("char-upper-case?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("char-upper-case?"), SG_LITERAL_STRING)), SG_OBJ(&nullchar_upper_case3f_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s64_ref_Stub) = Sg_MakeString(UC("bytevector-s64-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s64-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s64_ref_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s32_native_ref_Stub) = Sg_MakeString(UC("bytevector-s32-native-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s32-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s32_native_ref_Stub));
+  SG_PROCEDURE_NAME(&nullfxlength_Stub) = Sg_MakeString(UC("fxlength"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxlength"), SG_LITERAL_STRING)), SG_OBJ(&nullfxlength_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u16_native_set21_Stub) = Sg_MakeString(UC("bytevector-u16-native-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u16-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u16_native_set21_Stub));
+  SG_PROCEDURE_NAME(&nullutf16_3estring_Stub) = Sg_MakeString(UC("utf16->string"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("utf16->string"), SG_LITERAL_STRING)), SG_OBJ(&nullutf16_3estring_Stub));
+  SG_PROCEDURE_NAME(&nullstring_titlecase_Stub) = Sg_MakeString(UC("string-titlecase"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string-titlecase"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_titlecase_Stub));
+  SG_PROCEDURE_NAME(&null2b2e_Stub) = Sg_MakeString(UC("+."), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("+."), SG_LITERAL_STRING)), SG_OBJ(&null2b2e_Stub));
+  SG_PROCEDURE_NAME(&nullstring3f_Stub) = Sg_MakeString(UC("string?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string?"), SG_LITERAL_STRING)), SG_OBJ(&nullstring3f_Stub));
+  SG_PROCEDURE_NAME(&nullrecord_type_sealed3f_Stub) = Sg_MakeString(UC("record-type-sealed?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("record-type-sealed?"), SG_LITERAL_STRING)), SG_OBJ(&nullrecord_type_sealed3f_Stub));
+  SG_PROCEDURE_NAME(&nullfxcopy_bit_Stub) = Sg_MakeString(UC("fxcopy-bit"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxcopy-bit"), SG_LITERAL_STRING)), SG_OBJ(&nullfxcopy_bit_Stub));
+  SG_PROCEDURE_NAME(&null3e3d_Stub) = Sg_MakeString(UC(">="), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC(">="), SG_LITERAL_STRING)), SG_OBJ(&null3e3d_Stub));
+  SG_PROCEDURE_NAME(&nullchar_foldcase_Stub) = Sg_MakeString(UC("char-foldcase"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("char-foldcase"), SG_LITERAL_STRING)), SG_OBJ(&nullchar_foldcase_Stub));
+  SG_PROCEDURE_NAME(&nullflodd3f_Stub) = Sg_MakeString(UC("flodd?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flodd?"), SG_LITERAL_STRING)), SG_OBJ(&nullflodd3f_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_copy21_Stub) = Sg_MakeString(UC("bytevector-copy!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-copy!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_copy21_Stub));
+  SG_PROCEDURE_NAME(&nullmemq_Stub) = Sg_MakeString(UC("memq"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("memq"), SG_LITERAL_STRING)), SG_OBJ(&nullmemq_Stub));
+  SG_PROCEDURE_NAME(&nullnull3f_Stub) = Sg_MakeString(UC("null?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("null?"), SG_LITERAL_STRING)), SG_OBJ(&nullnull3f_Stub));
+  SG_PROCEDURE_NAME(&nulleof_object_Stub) = Sg_MakeString(UC("eof-object"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("eof-object"), SG_LITERAL_STRING)), SG_OBJ(&nulleof_object_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s32_native_set21_Stub) = Sg_MakeString(UC("bytevector-s32-native-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s32-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s32_native_set21_Stub));
+  SG_PROCEDURE_NAME(&nullmake_custom_binary_output_port_Stub) = Sg_MakeString(UC("make-custom-binary-output-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-custom-binary-output-port"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_custom_binary_output_port_Stub));
+  SG_PROCEDURE_NAME(&nulllist_tail_Stub) = Sg_MakeString(UC("list-tail"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("list-tail"), SG_LITERAL_STRING)), SG_OBJ(&nulllist_tail_Stub));
+  SG_PROCEDURE_NAME(&nullsimple_condition3f_Stub) = Sg_MakeString(UC("simple-condition?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("simple-condition?"), SG_LITERAL_STRING)), SG_OBJ(&nullsimple_condition3f_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_and_Stub) = Sg_MakeString(UC("bitwise-and"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-and"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_and_Stub));
+  SG_PROCEDURE_NAME(&nullfile_exists3f_Stub) = Sg_MakeString(UC("file-exists?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("file-exists?"), SG_LITERAL_STRING)), SG_OBJ(&nullfile_exists3f_Stub));
+  SG_PROCEDURE_NAME(&nullstring_3eutf8_Stub) = Sg_MakeString(UC("string->utf8"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string->utf8"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_3eutf8_Stub));
+  SG_PROCEDURE_NAME(&nullstring_normalize_nfc_Stub) = Sg_MakeString(UC("string-normalize-nfc"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string-normalize-nfc"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_normalize_nfc_Stub));
+  SG_PROCEDURE_NAME(&nullflfloor_Stub) = Sg_MakeString(UC("flfloor"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flfloor"), SG_LITERAL_STRING)), SG_OBJ(&nullflfloor_Stub));
+  SG_PROCEDURE_NAME(&nullnumber_3estring_Stub) = Sg_MakeString(UC("number->string"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("number->string"), SG_LITERAL_STRING)), SG_OBJ(&nullnumber_3estring_Stub));
+  SG_PROCEDURE_NAME(&nullrecord_type_uid_Stub) = Sg_MakeString(UC("record-type-uid"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("record-type-uid"), SG_LITERAL_STRING)), SG_OBJ(&nullrecord_type_uid_Stub));
+  SG_PROCEDURE_NAME(&nullwrite_Stub) = Sg_MakeString(UC("write"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("write"), SG_LITERAL_STRING)), SG_OBJ(&nullwrite_Stub));
+  SG_PROCEDURE_NAME(&nullinput_port3f_Stub) = Sg_MakeString(UC("input-port?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("input-port?"), SG_LITERAL_STRING)), SG_OBJ(&nullinput_port3f_Stub));
+  SG_PROCEDURE_NAME(&nullmake_eq_hashtable_Stub) = Sg_MakeString(UC("make-eq-hashtable"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-eq-hashtable"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_eq_hashtable_Stub));
+  SG_PROCEDURE_NAME(&nullfx3e3f_Stub) = Sg_MakeString(UC("fx>?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fx>?"), SG_LITERAL_STRING)), SG_OBJ(&nullfx3e3f_Stub));
+  SG_PROCEDURE_NAME(&nullvector_fill21_Stub) = Sg_MakeString(UC("vector-fill!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector-fill!"), SG_LITERAL_STRING)), SG_OBJ(&nullvector_fill21_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_arithmetic_shift_left_Stub) = Sg_MakeString(UC("bitwise-arithmetic-shift-left"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-arithmetic-shift-left"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_arithmetic_shift_left_Stub));
+  SG_PROCEDURE_NAME(&nullflexp_Stub) = Sg_MakeString(UC("flexp"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flexp"), SG_LITERAL_STRING)), SG_OBJ(&nullflexp_Stub));
+  SG_PROCEDURE_NAME(&nullgreatest_fixnum_Stub) = Sg_MakeString(UC("greatest-fixnum"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("greatest-fixnum"), SG_LITERAL_STRING)), SG_OBJ(&nullgreatest_fixnum_Stub));
+  SG_PROCEDURE_NAME(&nullcaar_Stub) = Sg_MakeString(UC("caar"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("caar"), SG_LITERAL_STRING)), SG_OBJ(&nullcaar_Stub));
+  SG_PROCEDURE_NAME(&nullfree_identifier3d3f_Stub) = Sg_MakeString(UC("free-identifier=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("free-identifier=?"), SG_LITERAL_STRING)), SG_OBJ(&nullfree_identifier3d3f_Stub));
+  SG_PROCEDURE_NAME(&nullstring3e3d3f_Stub) = Sg_MakeString(UC("string>=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string>=?"), SG_LITERAL_STRING)), SG_OBJ(&nullstring3e3d3f_Stub));
+  SG_PROCEDURE_NAME(&nullreal_valued3f_Stub) = Sg_MakeString(UC("real-valued?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("real-valued?"), SG_LITERAL_STRING)), SG_OBJ(&nullreal_valued3f_Stub));
+  SG_PROCEDURE_NAME(&nullassq_Stub) = Sg_MakeString(UC("assq"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("assq"), SG_LITERAL_STRING)), SG_OBJ(&nullassq_Stub));
+  SG_PROCEDURE_NAME(&nullstring_Stub) = Sg_MakeString(UC("string"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_Stub));
+  SG_PROCEDURE_NAME(&nullfl__Stub) = Sg_MakeString(UC("fl-"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fl-"), SG_LITERAL_STRING)), SG_OBJ(&nullfl__Stub));
+  SG_PROCEDURE_NAME(&nullreal_3eflonum_Stub) = Sg_MakeString(UC("real->flonum"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("real->flonum"), SG_LITERAL_STRING)), SG_OBJ(&nullreal_3eflonum_Stub));
+  SG_PROCEDURE_NAME(&nulloutput_port_buffer_mode_Stub) = Sg_MakeString(UC("output-port-buffer-mode"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("output-port-buffer-mode"), SG_LITERAL_STRING)), SG_OBJ(&nulloutput_port_buffer_mode_Stub));
+  SG_PROCEDURE_NAME(&nullpositive3f_Stub) = Sg_MakeString(UC("positive?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("positive?"), SG_LITERAL_STRING)), SG_OBJ(&nullpositive3f_Stub));
+  SG_PROCEDURE_NAME(&null3d_Stub) = Sg_MakeString(UC("="), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("="), SG_LITERAL_STRING)), SG_OBJ(&null3d_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_first_bit_set_Stub) = Sg_MakeString(UC("bitwise-first-bit-set"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-first-bit-set"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_first_bit_set_Stub));
+  SG_PROCEDURE_NAME(&nullget_output_string_Stub) = Sg_MakeString(UC("get-output-string"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-output-string"), SG_LITERAL_STRING)), SG_OBJ(&nullget_output_string_Stub));
+  SG_PROCEDURE_NAME(&nullfx3d3f_Stub) = Sg_MakeString(UC("fx=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fx=?"), SG_LITERAL_STRING)), SG_OBJ(&nullfx3d3f_Stub));
+  SG_PROCEDURE_NAME(&nullport_has_set_port_position213f_Stub) = Sg_MakeString(UC("port-has-set-port-position!?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("port-has-set-port-position!?"), SG_LITERAL_STRING)), SG_OBJ(&nullport_has_set_port_position213f_Stub));
+  SG_PROCEDURE_NAME(&nullatan_Stub) = Sg_MakeString(UC("atan"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("atan"), SG_LITERAL_STRING)), SG_OBJ(&nullatan_Stub));
+  SG_PROCEDURE_NAME(&nullnumerator_Stub) = Sg_MakeString(UC("numerator"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("numerator"), SG_LITERAL_STRING)), SG_OBJ(&nullnumerator_Stub));
+  SG_PROCEDURE_NAME(&nullcondition3f_Stub) = Sg_MakeString(UC("condition?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("condition?"), SG_LITERAL_STRING)), SG_OBJ(&nullcondition3f_Stub));
+  SG_PROCEDURE_NAME(&nulleof_object3f_Stub) = Sg_MakeString(UC("eof-object?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("eof-object?"), SG_LITERAL_STRING)), SG_OBJ(&nulleof_object3f_Stub));
+  SG_PROCEDURE_NAME(&nullinfinite3f_Stub) = Sg_MakeString(UC("infinite?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("infinite?"), SG_LITERAL_STRING)), SG_OBJ(&nullinfinite3f_Stub));
+  SG_PROCEDURE_NAME(&nullstring3c3f_Stub) = Sg_MakeString(UC("string<?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string<?"), SG_LITERAL_STRING)), SG_OBJ(&nullstring3c3f_Stub));
+  SG_PROCEDURE_NAME(&nullopen_string_input_port_Stub) = Sg_MakeString(UC("open-string-input-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("open-string-input-port"), SG_LITERAL_STRING)), SG_OBJ(&nullopen_string_input_port_Stub));
+  SG_PROCEDURE_NAME(&nullvector_length_Stub) = Sg_MakeString(UC("vector-length"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector-length"), SG_LITERAL_STRING)), SG_OBJ(&nullvector_length_Stub));
+  SG_PROCEDURE_NAME(&nullodd3f_Stub) = Sg_MakeString(UC("odd?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("odd?"), SG_LITERAL_STRING)), SG_OBJ(&nullodd3f_Stub));
+  SG_PROCEDURE_NAME(&nullutf8_3estring_Stub) = Sg_MakeString(UC("utf8->string"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("utf8->string"), SG_LITERAL_STRING)), SG_OBJ(&nullutf8_3estring_Stub));
+  SG_PROCEDURE_NAME(&nullexpt_Stub) = Sg_MakeString(UC("expt"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("expt"), SG_LITERAL_STRING)), SG_OBJ(&nullexpt_Stub));
+  SG_PROCEDURE_NAME(&nullsimple_conditions_Stub) = Sg_MakeString(UC("simple-conditions"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("simple-conditions"), SG_LITERAL_STRING)), SG_OBJ(&nullsimple_conditions_Stub));
+  SG_PROCEDURE_NAME(&nulllist_3evector_Stub) = Sg_MakeString(UC("list->vector"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("list->vector"), SG_LITERAL_STRING)), SG_OBJ(&nulllist_3evector_Stub));
+  SG_PROCEDURE_NAME(&nullflnegative3f_Stub) = Sg_MakeString(UC("flnegative?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flnegative?"), SG_LITERAL_STRING)), SG_OBJ(&nullflnegative3f_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector3f_Stub) = Sg_MakeString(UC("bytevector?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector?"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector3f_Stub));
+  SG_PROCEDURE_NAME(&nullget_string_n_Stub) = Sg_MakeString(UC("get-string-n"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-string-n"), SG_LITERAL_STRING)), SG_OBJ(&nullget_string_n_Stub));
+  SG_PROCEDURE_NAME(&nullstring_ref_Stub) = Sg_MakeString(UC("string-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_ref_Stub));
+  SG_PROCEDURE_NAME(&nullmake_polar_Stub) = Sg_MakeString(UC("make-polar"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-polar"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_polar_Stub));
+  SG_PROCEDURE_NAME(&nullchar3c3f_Stub) = Sg_MakeString(UC("char<?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("char<?"), SG_LITERAL_STRING)), SG_OBJ(&nullchar3c3f_Stub));
+  SG_PROCEDURE_NAME(&nullset_car21_Stub) = Sg_MakeString(UC("set-car!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-car!"), SG_LITERAL_STRING)), SG_OBJ(&nullset_car21_Stub));
+  SG_PROCEDURE_NAME(&nullnumber3f_Stub) = Sg_MakeString(UC("number?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("number?"), SG_LITERAL_STRING)), SG_OBJ(&nullnumber3f_Stub));
+  SG_PROCEDURE_NAME(&nullrecord_type_generative3f_Stub) = Sg_MakeString(UC("record-type-generative?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("record-type-generative?"), SG_LITERAL_STRING)), SG_OBJ(&nullrecord_type_generative3f_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_arithmetic_shift_right_Stub) = Sg_MakeString(UC("bitwise-arithmetic-shift-right"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-arithmetic-shift-right"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_arithmetic_shift_right_Stub));
+  SG_PROCEDURE_NAME(&nullfloor_Stub) = Sg_MakeString(UC("floor"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("floor"), SG_LITERAL_STRING)), SG_OBJ(&nullfloor_Stub));
+  SG_PROCEDURE_NAME(&nullstring3e3f_Stub) = Sg_MakeString(UC("string>?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string>?"), SG_LITERAL_STRING)), SG_OBJ(&nullstring3e3f_Stub));
+  SG_PROCEDURE_NAME(&nulldelete_file_Stub) = Sg_MakeString(UC("delete-file"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("delete-file"), SG_LITERAL_STRING)), SG_OBJ(&nulldelete_file_Stub));
+  SG_PROCEDURE_NAME(&nullmake_rectangular_Stub) = Sg_MakeString(UC("make-rectangular"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-rectangular"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_rectangular_Stub));
+  SG_PROCEDURE_NAME(&nullinteger_3echar_Stub) = Sg_MakeString(UC("integer->char"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("integer->char"), SG_LITERAL_STRING)), SG_OBJ(&nullinteger_3echar_Stub));
+  SG_PROCEDURE_NAME(&nullmod0_Stub) = Sg_MakeString(UC("mod0"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("mod0"), SG_LITERAL_STRING)), SG_OBJ(&nullmod0_Stub));
+  SG_PROCEDURE_NAME(&nullflasin_Stub) = Sg_MakeString(UC("flasin"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flasin"), SG_LITERAL_STRING)), SG_OBJ(&nullflasin_Stub));
+  SG_PROCEDURE_NAME(&nullmemv_Stub) = Sg_MakeString(UC("memv"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("memv"), SG_LITERAL_STRING)), SG_OBJ(&nullmemv_Stub));
+  SG_PROCEDURE_NAME(&nullsymbol3d3f_Stub) = Sg_MakeString(UC("symbol=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("symbol=?"), SG_LITERAL_STRING)), SG_OBJ(&nullsymbol3d3f_Stub));
+  SG_PROCEDURE_NAME(&nullmake_vector_Stub) = Sg_MakeString(UC("make-vector"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-vector"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_vector_Stub));
+  SG_PROCEDURE_NAME(&nullabs_Stub) = Sg_MakeString(UC("abs"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("abs"), SG_LITERAL_STRING)), SG_OBJ(&nullabs_Stub));
+  SG_PROCEDURE_NAME(&nullrecord_type_field_names_Stub) = Sg_MakeString(UC("record-type-field-names"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("record-type-field-names"), SG_LITERAL_STRING)), SG_OBJ(&nullrecord_type_field_names_Stub));
+  SG_PROCEDURE_NAME(&nullcommand_line_Stub) = Sg_MakeString(UC("command-line"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("command-line"), SG_LITERAL_STRING)), SG_OBJ(&nullcommand_line_Stub));
+  SG_PROCEDURE_NAME(&nullflnumerator_Stub) = Sg_MakeString(UC("flnumerator"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flnumerator"), SG_LITERAL_STRING)), SG_OBJ(&nullflnumerator_Stub));
+  SG_PROCEDURE_NAME(&nullvalues_Stub) = Sg_MakeString(UC("values"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("values"), SG_LITERAL_STRING)), SG_OBJ(&nullvalues_Stub));
+  SG_PROCEDURE_NAME(&nullflsqrt_Stub) = Sg_MakeString(UC("flsqrt"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flsqrt"), SG_LITERAL_STRING)), SG_OBJ(&nullflsqrt_Stub));
+  SG_PROCEDURE_NAME(&nullflush_output_port_Stub) = Sg_MakeString(UC("flush-output-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flush-output-port"), SG_LITERAL_STRING)), SG_OBJ(&nullflush_output_port_Stub));
+  SG_PROCEDURE_NAME(&nullstring_3elist_Stub) = Sg_MakeString(UC("string->list"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string->list"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_3elist_Stub));
+  SG_PROCEDURE_NAME(&nullopen_bytevector_input_port_Stub) = Sg_MakeString(UC("open-bytevector-input-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("open-bytevector-input-port"), SG_LITERAL_STRING)), SG_OBJ(&nullopen_bytevector_input_port_Stub));
+  SG_PROCEDURE_NAME(&nullrtd_ancestor3f_Stub) = Sg_MakeString(UC("rtd-ancestor?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("rtd-ancestor?"), SG_LITERAL_STRING)), SG_OBJ(&nullrtd_ancestor3f_Stub));
+  SG_PROCEDURE_NAME(&nullrecord_mutator_Stub) = Sg_MakeString(UC("record-mutator"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("record-mutator"), SG_LITERAL_STRING)), SG_OBJ(&nullrecord_mutator_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s64_native_ref_Stub) = Sg_MakeString(UC("bytevector-s64-native-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s64-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s64_native_ref_Stub));
+  SG_PROCEDURE_NAME(&nullfixnum3f_Stub) = Sg_MakeString(UC("fixnum?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fixnum?"), SG_LITERAL_STRING)), SG_OBJ(&nullfixnum3f_Stub));
+  SG_PROCEDURE_NAME(&nullfxarithmetic_shift_right_Stub) = Sg_MakeString(UC("fxarithmetic-shift-right"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxarithmetic-shift-right"), SG_LITERAL_STRING)), SG_OBJ(&nullfxarithmetic_shift_right_Stub));
+  SG_PROCEDURE_NAME(&nulllist_Stub) = Sg_MakeString(UC("list"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("list"), SG_LITERAL_STRING)), SG_OBJ(&nulllist_Stub));
+  SG_PROCEDURE_NAME(&nullacos_Stub) = Sg_MakeString(UC("acos"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("acos"), SG_LITERAL_STRING)), SG_OBJ(&nullacos_Stub));
+  SG_PROCEDURE_NAME(&nullexp_Stub) = Sg_MakeString(UC("exp"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("exp"), SG_LITERAL_STRING)), SG_OBJ(&nullexp_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s64_native_set21_Stub) = Sg_MakeString(UC("bytevector-s64-native-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s64-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s64_native_set21_Stub));
+  SG_PROCEDURE_NAME(&nullasin_Stub) = Sg_MakeString(UC("asin"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("asin"), SG_LITERAL_STRING)), SG_OBJ(&nullasin_Stub));
+  SG_PROCEDURE_NAME(&nullangle_Stub) = Sg_MakeString(UC("angle"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("angle"), SG_LITERAL_STRING)), SG_OBJ(&nullangle_Stub));
+  SG_PROCEDURE_NAME(&nullcondition_accessor_Stub) = Sg_MakeString(UC("condition-accessor"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("condition-accessor"), SG_LITERAL_STRING)), SG_OBJ(&nullcondition_accessor_Stub));
+  SG_PROCEDURE_NAME(&nullhashtable_delete21_Stub) = Sg_MakeString(UC("hashtable-delete!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-delete!"), SG_LITERAL_STRING)), SG_OBJ(&nullhashtable_delete21_Stub));
+  SG_PROCEDURE_NAME(&nullflround_Stub) = Sg_MakeString(UC("flround"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flround"), SG_LITERAL_STRING)), SG_OBJ(&nullflround_Stub));
+  SG_PROCEDURE_NAME(&nullzero3f_Stub) = Sg_MakeString(UC("zero?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("zero?"), SG_LITERAL_STRING)), SG_OBJ(&nullzero3f_Stub));
+  SG_PROCEDURE_NAME(&nullfxodd3f_Stub) = Sg_MakeString(UC("fxodd?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxodd?"), SG_LITERAL_STRING)), SG_OBJ(&nullfxodd3f_Stub));
+  SG_PROCEDURE_NAME(&nullraise_continuable_Stub) = Sg_MakeString(UC("raise-continuable"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("raise-continuable"), SG_LITERAL_STRING)), SG_OBJ(&nullraise_continuable_Stub));
+  SG_PROCEDURE_NAME(&nullutf32_3estring_Stub) = Sg_MakeString(UC("utf32->string"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("utf32->string"), SG_LITERAL_STRING)), SG_OBJ(&nullutf32_3estring_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s16_set21_Stub) = Sg_MakeString(UC("bytevector-s16-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s16-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s16_set21_Stub));
+  SG_PROCEDURE_NAME(&nullfxxor_Stub) = Sg_MakeString(UC("fxxor"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxxor"), SG_LITERAL_STRING)), SG_OBJ(&nullfxxor_Stub));
+  SG_PROCEDURE_NAME(&nullfxnegative3f_Stub) = Sg_MakeString(UC("fxnegative?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxnegative?"), SG_LITERAL_STRING)), SG_OBJ(&nullfxnegative3f_Stub));
+  SG_PROCEDURE_NAME(&nullfldiv_Stub) = Sg_MakeString(UC("fldiv"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fldiv"), SG_LITERAL_STRING)), SG_OBJ(&nullfldiv_Stub));
+  SG_PROCEDURE_NAME(&nullfxnot_Stub) = Sg_MakeString(UC("fxnot"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxnot"), SG_LITERAL_STRING)), SG_OBJ(&nullfxnot_Stub));
+  SG_PROCEDURE_NAME(&nullcall_with_current_continuation_Stub) = Sg_MakeString(UC("call-with-current-continuation"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("call-with-current-continuation"), SG_LITERAL_STRING)), SG_OBJ(&nullcall_with_current_continuation_Stub));
+  SG_PROCEDURE_NAME(&nullrecord_type_name_Stub) = Sg_MakeString(UC("record-type-name"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("record-type-name"), SG_LITERAL_STRING)), SG_OBJ(&nullrecord_type_name_Stub));
+  SG_PROCEDURE_NAME(&nullvector_set21_Stub) = Sg_MakeString(UC("vector-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullvector_set21_Stub));
+  SG_PROCEDURE_NAME(&nullfxarithmetic_shift_left_Stub) = Sg_MakeString(UC("fxarithmetic-shift-left"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxarithmetic-shift-left"), SG_LITERAL_STRING)), SG_OBJ(&nullfxarithmetic_shift_left_Stub));
+  SG_PROCEDURE_NAME(&nullidentifier3f_Stub) = Sg_MakeString(UC("identifier?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("identifier?"), SG_LITERAL_STRING)), SG_OBJ(&nullidentifier3f_Stub));
+  SG_PROCEDURE_NAME(&nullbuffer_mode3f_Stub) = Sg_MakeString(UC("buffer-mode?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("buffer-mode?"), SG_LITERAL_STRING)), SG_OBJ(&nullbuffer_mode3f_Stub));
+  SG_PROCEDURE_NAME(&nullfxbit_field_Stub) = Sg_MakeString(UC("fxbit-field"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxbit-field"), SG_LITERAL_STRING)), SG_OBJ(&nullfxbit_field_Stub));
+  SG_PROCEDURE_NAME(&nullmake_custom_binary_input_port_Stub) = Sg_MakeString(UC("make-custom-binary-input-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-custom-binary-input-port"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_custom_binary_input_port_Stub));
+  SG_PROCEDURE_NAME(&nullrational3f_Stub) = Sg_MakeString(UC("rational?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("rational?"), SG_LITERAL_STRING)), SG_OBJ(&nullrational3f_Stub));
+  SG_PROCEDURE_NAME(&nullpair3f_Stub) = Sg_MakeString(UC("pair?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("pair?"), SG_LITERAL_STRING)), SG_OBJ(&nullpair3f_Stub));
+  SG_PROCEDURE_NAME(&nullhashtable_clear21_Stub) = Sg_MakeString(UC("hashtable-clear!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-clear!"), SG_LITERAL_STRING)), SG_OBJ(&nullhashtable_clear21_Stub));
+  SG_PROCEDURE_NAME(&nullput_char_Stub) = Sg_MakeString(UC("put-char"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("put-char"), SG_LITERAL_STRING)), SG_OBJ(&nullput_char_Stub));
+  SG_PROCEDURE_NAME(&nullfinite3f_Stub) = Sg_MakeString(UC("finite?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("finite?"), SG_LITERAL_STRING)), SG_OBJ(&nullfinite3f_Stub));
+  SG_PROCEDURE_NAME(&nullstring_downcase_Stub) = Sg_MakeString(UC("string-downcase"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string-downcase"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_downcase_Stub));
+  SG_PROCEDURE_NAME(&nullstring_copy_Stub) = Sg_MakeString(UC("string-copy"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string-copy"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_copy_Stub));
+  SG_PROCEDURE_NAME(&nullassv_Stub) = Sg_MakeString(UC("assv"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("assv"), SG_LITERAL_STRING)), SG_OBJ(&nullassv_Stub));
+  SG_PROCEDURE_NAME(&nullquotient_Stub) = Sg_MakeString(UC("quotient"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("quotient"), SG_LITERAL_STRING)), SG_OBJ(&nullquotient_Stub));
+  SG_PROCEDURE_NAME(&nullchar_title_case3f_Stub) = Sg_MakeString(UC("char-title-case?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("char-title-case?"), SG_LITERAL_STRING)), SG_OBJ(&nullchar_title_case3f_Stub));
+  SG_PROCEDURE_NAME(&nullcddr_Stub) = Sg_MakeString(UC("cddr"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cddr"), SG_LITERAL_STRING)), SG_OBJ(&nullcddr_Stub));
+  SG_PROCEDURE_NAME(&nullflonum3f_Stub) = Sg_MakeString(UC("flonum?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flonum?"), SG_LITERAL_STRING)), SG_OBJ(&nullflonum3f_Stub));
+  SG_PROCEDURE_NAME(&null2f_Stub) = Sg_MakeString(UC("/"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("/"), SG_LITERAL_STRING)), SG_OBJ(&null2f_Stub));
+  SG_PROCEDURE_NAME(&nullfxand_Stub) = Sg_MakeString(UC("fxand"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxand"), SG_LITERAL_STRING)), SG_OBJ(&nullfxand_Stub));
+  SG_PROCEDURE_NAME(&nullsin_Stub) = Sg_MakeString(UC("sin"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("sin"), SG_LITERAL_STRING)), SG_OBJ(&nullsin_Stub));
+  SG_PROCEDURE_NAME(&nullrtd_inherited_field_count_Stub) = Sg_MakeString(UC("rtd-inherited-field-count"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("rtd-inherited-field-count"), SG_LITERAL_STRING)), SG_OBJ(&nullrtd_inherited_field_count_Stub));
+  SG_PROCEDURE_NAME(&nulldisplay_Stub) = Sg_MakeString(UC("display"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("display"), SG_LITERAL_STRING)), SG_OBJ(&nulldisplay_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u64_native_set21_Stub) = Sg_MakeString(UC("bytevector-u64-native-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u64-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u64_native_set21_Stub));
+  SG_PROCEDURE_NAME(&nullnewline_Stub) = Sg_MakeString(UC("newline"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("newline"), SG_LITERAL_STRING)), SG_OBJ(&nullnewline_Stub));
+  SG_PROCEDURE_NAME(&nullsymbol3f_Stub) = Sg_MakeString(UC("symbol?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("symbol?"), SG_LITERAL_STRING)), SG_OBJ(&nullsymbol3f_Stub));
+  SG_PROCEDURE_NAME(&nullmake_tuple_Stub) = Sg_MakeString(UC("make-tuple"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-tuple"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_tuple_Stub));
+  SG_PROCEDURE_NAME(&nullopen_file_input_port_Stub) = Sg_MakeString(UC("open-file-input-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("open-file-input-port"), SG_LITERAL_STRING)), SG_OBJ(&nullopen_file_input_port_Stub));
+  SG_PROCEDURE_NAME(&nullfx2a_Stub) = Sg_MakeString(UC("fx*"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fx*"), SG_LITERAL_STRING)), SG_OBJ(&nullfx2a_Stub));
+  SG_PROCEDURE_NAME(&nullput_string_Stub) = Sg_MakeString(UC("put-string"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("put-string"), SG_LITERAL_STRING)), SG_OBJ(&nullput_string_Stub));
+  SG_PROCEDURE_NAME(&nullmake_record_type_descriptor_Stub) = Sg_MakeString(UC("make-record-type-descriptor"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-record-type-descriptor"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_record_type_descriptor_Stub));
+  SG_PROCEDURE_NAME(&nullflabs_Stub) = Sg_MakeString(UC("flabs"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flabs"), SG_LITERAL_STRING)), SG_OBJ(&nullflabs_Stub));
+  SG_PROCEDURE_NAME(&nullhashtable_ref_Stub) = Sg_MakeString(UC("hashtable-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullhashtable_ref_Stub));
+  SG_PROCEDURE_NAME(&nullstandard_error_port_Stub) = Sg_MakeString(UC("standard-error-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("standard-error-port"), SG_LITERAL_STRING)), SG_OBJ(&nullstandard_error_port_Stub));
+  SG_PROCEDURE_NAME(&nullopen_output_bytevector_Stub) = Sg_MakeString(UC("open-output-bytevector"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("open-output-bytevector"), SG_LITERAL_STRING)), SG_OBJ(&nullopen_output_bytevector_Stub));
+  SG_PROCEDURE_NAME(&nullreal_part_Stub) = Sg_MakeString(UC("real-part"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("real-part"), SG_LITERAL_STRING)), SG_OBJ(&nullreal_part_Stub));
+  SG_PROCEDURE_NAME(&nullmod_Stub) = Sg_MakeString(UC("mod"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("mod"), SG_LITERAL_STRING)), SG_OBJ(&nullmod_Stub));
+  SG_PROCEDURE_NAME(&nullcondition_predicate_Stub) = Sg_MakeString(UC("condition-predicate"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("condition-predicate"), SG_LITERAL_STRING)), SG_OBJ(&nullcondition_predicate_Stub));
+  SG_PROCEDURE_NAME(&null_2e_Stub) = Sg_MakeString(UC("-."), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("-."), SG_LITERAL_STRING)), SG_OBJ(&null_2e_Stub));
+  SG_PROCEDURE_NAME(&nullfxmod_Stub) = Sg_MakeString(UC("fxmod"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxmod"), SG_LITERAL_STRING)), SG_OBJ(&nullfxmod_Stub));
+  SG_PROCEDURE_NAME(&nullhashtable_copy_Stub) = Sg_MakeString(UC("hashtable-copy"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-copy"), SG_LITERAL_STRING)), SG_OBJ(&nullhashtable_copy_Stub));
+  SG_PROCEDURE_NAME(&nulleq3f_Stub) = Sg_MakeString(UC("eq?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("eq?"), SG_LITERAL_STRING)), SG_OBJ(&nulleq3f_Stub));
+  SG_PROCEDURE_NAME(&nullrecord_constructor_descriptor3f_Stub) = Sg_MakeString(UC("record-constructor-descriptor?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("record-constructor-descriptor?"), SG_LITERAL_STRING)), SG_OBJ(&nullrecord_constructor_descriptor3f_Stub));
+  SG_PROCEDURE_NAME(&nulldiv_Stub) = Sg_MakeString(UC("div"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("div"), SG_LITERAL_STRING)), SG_OBJ(&nulldiv_Stub));
+  SG_PROCEDURE_NAME(&nullstring_hash_Stub) = Sg_MakeString(UC("string-hash"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string-hash"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_hash_Stub));
+  SG_PROCEDURE_NAME(&nullvector3f_Stub) = Sg_MakeString(UC("vector?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector?"), SG_LITERAL_STRING)), SG_OBJ(&nullvector3f_Stub));
+  SG_PROCEDURE_NAME(&nullchar_numeric3f_Stub) = Sg_MakeString(UC("char-numeric?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("char-numeric?"), SG_LITERAL_STRING)), SG_OBJ(&nullchar_numeric3f_Stub));
+  SG_PROCEDURE_NAME(&nullfx3e3d3f_Stub) = Sg_MakeString(UC("fx>=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fx>=?"), SG_LITERAL_STRING)), SG_OBJ(&nullfx3e3d3f_Stub));
+  SG_PROCEDURE_NAME(&nullutf_8_codec_Stub) = Sg_MakeString(UC("utf-8-codec"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("utf-8-codec"), SG_LITERAL_STRING)), SG_OBJ(&nullutf_8_codec_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_3eu8_list_Stub) = Sg_MakeString(UC("bytevector->u8-list"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector->u8-list"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_3eu8_list_Stub));
+  SG_PROCEDURE_NAME(&nullsyntax_error_Stub) = Sg_MakeString(UC("syntax-error"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("syntax-error"), SG_LITERAL_STRING)), SG_OBJ(&nullsyntax_error_Stub));
+  SG_PROCEDURE_NAME(&nullport_position_Stub) = Sg_MakeString(UC("port-position"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("port-position"), SG_LITERAL_STRING)), SG_OBJ(&nullport_position_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_ieee_double_native_set21_Stub) = Sg_MakeString(UC("bytevector-ieee-double-native-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-double-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_double_native_set21_Stub));
+  SG_PROCEDURE_NAME(&nullrcd_parent_Stub) = Sg_MakeString(UC("rcd-parent"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("rcd-parent"), SG_LITERAL_STRING)), SG_OBJ(&nullrcd_parent_Stub));
+  SG_PROCEDURE_NAME(&nullreal3f_Stub) = Sg_MakeString(UC("real?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("real?"), SG_LITERAL_STRING)), SG_OBJ(&nullreal3f_Stub));
+  SG_PROCEDURE_NAME(&nullstring_fill21_Stub) = Sg_MakeString(UC("string-fill!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string-fill!"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_fill21_Stub));
+  SG_PROCEDURE_NAME(&nullfleven3f_Stub) = Sg_MakeString(UC("fleven?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fleven?"), SG_LITERAL_STRING)), SG_OBJ(&nullfleven3f_Stub));
+  SG_PROCEDURE_NAME(&nullfl2f_Stub) = Sg_MakeString(UC("fl/"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fl/"), SG_LITERAL_STRING)), SG_OBJ(&nullfl2f_Stub));
+  SG_PROCEDURE_NAME(&nullput_bytevector_Stub) = Sg_MakeString(UC("put-bytevector"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("put-bytevector"), SG_LITERAL_STRING)), SG_OBJ(&nullput_bytevector_Stub));
+  SG_PROCEDURE_NAME(&nulllast_pair_Stub) = Sg_MakeString(UC("last-pair"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("last-pair"), SG_LITERAL_STRING)), SG_OBJ(&nulllast_pair_Stub));
+  SG_PROCEDURE_NAME(&nullopen_file_output_port_Stub) = Sg_MakeString(UC("open-file-output-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("open-file-output-port"), SG_LITERAL_STRING)), SG_OBJ(&nullopen_file_output_port_Stub));
+  SG_PROCEDURE_NAME(&nullflmod_Stub) = Sg_MakeString(UC("flmod"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flmod"), SG_LITERAL_STRING)), SG_OBJ(&nullflmod_Stub));
+  SG_PROCEDURE_NAME(&nullstring_3esymbol_Stub) = Sg_MakeString(UC("string->symbol"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string->symbol"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_3esymbol_Stub));
+  SG_PROCEDURE_NAME(&nulllookahead_char_Stub) = Sg_MakeString(UC("lookahead-char"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("lookahead-char"), SG_LITERAL_STRING)), SG_OBJ(&nulllookahead_char_Stub));
+  SG_PROCEDURE_NAME(&nullcons2a_Stub) = Sg_MakeString(UC("cons*"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cons*"), SG_LITERAL_STRING)), SG_OBJ(&nullcons2a_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_copy_bit_Stub) = Sg_MakeString(UC("bitwise-copy-bit"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-copy-bit"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_copy_bit_Stub));
+  SG_PROCEDURE_NAME(&nulltruncate_Stub) = Sg_MakeString(UC("truncate"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("truncate"), SG_LITERAL_STRING)), SG_OBJ(&nulltruncate_Stub));
+  SG_PROCEDURE_NAME(&nullfl3c3d3f_Stub) = Sg_MakeString(UC("fl<=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fl<=?"), SG_LITERAL_STRING)), SG_OBJ(&nullfl3c3d3f_Stub));
+  SG_PROCEDURE_NAME(&nullchar_downcase_Stub) = Sg_MakeString(UC("char-downcase"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("char-downcase"), SG_LITERAL_STRING)), SG_OBJ(&nullchar_downcase_Stub));
+  SG_PROCEDURE_NAME(&nullinteger_length_Stub) = Sg_MakeString(UC("integer-length"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("integer-length"), SG_LITERAL_STRING)), SG_OBJ(&nullinteger_length_Stub));
+  SG_PROCEDURE_NAME(&nullmake_hashtable_Stub) = Sg_MakeString(UC("make-hashtable"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-hashtable"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_hashtable_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_copy_Stub) = Sg_MakeString(UC("bytevector-copy"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-copy"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_copy_Stub));
+  SG_PROCEDURE_NAME(&nullraise_Stub) = Sg_MakeString(UC("raise"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("raise"), SG_LITERAL_STRING)), SG_OBJ(&nullraise_Stub));
+  SG_PROCEDURE_NAME(&nulltan_Stub) = Sg_MakeString(UC("tan"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("tan"), SG_LITERAL_STRING)), SG_OBJ(&nulltan_Stub));
+  SG_PROCEDURE_NAME(&nullinteger3f_Stub) = Sg_MakeString(UC("integer?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("integer?"), SG_LITERAL_STRING)), SG_OBJ(&nullinteger3f_Stub));
+  SG_PROCEDURE_NAME(&nullfl3e3d3f_Stub) = Sg_MakeString(UC("fl>=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fl>=?"), SG_LITERAL_STRING)), SG_OBJ(&nullfl3e3d3f_Stub));
+  SG_PROCEDURE_NAME(&null3e_Stub) = Sg_MakeString(UC(">"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC(">"), SG_LITERAL_STRING)), SG_OBJ(&null3e_Stub));
+  SG_PROCEDURE_NAME(&nulltranscoded_port_Stub) = Sg_MakeString(UC("transcoded-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("transcoded-port"), SG_LITERAL_STRING)), SG_OBJ(&nulltranscoded_port_Stub));
+  SG_PROCEDURE_NAME(&nulllist_ref_Stub) = Sg_MakeString(UC("list-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("list-ref"), SG_LITERAL_STRING)), SG_OBJ(&nulllist_ref_Stub));
+  SG_PROCEDURE_NAME(&nullget_string_n21_Stub) = Sg_MakeString(UC("get-string-n!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-string-n!"), SG_LITERAL_STRING)), SG_OBJ(&nullget_string_n21_Stub));
+  SG_PROCEDURE_NAME(&nullutf_16_codec_Stub) = Sg_MakeString(UC("utf-16-codec"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("utf-16-codec"), SG_LITERAL_STRING)), SG_OBJ(&nullutf_16_codec_Stub));
+  SG_PROCEDURE_NAME(&nullchar_whitespace3f_Stub) = Sg_MakeString(UC("char-whitespace?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("char-whitespace?"), SG_LITERAL_STRING)), SG_OBJ(&nullchar_whitespace3f_Stub));
+  SG_PROCEDURE_NAME(&nulltuple_size_Stub) = Sg_MakeString(UC("tuple-size"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("tuple-size"), SG_LITERAL_STRING)), SG_OBJ(&nulltuple_size_Stub));
+  SG_PROCEDURE_NAME(&nullinexact3f_Stub) = Sg_MakeString(UC("inexact?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("inexact?"), SG_LITERAL_STRING)), SG_OBJ(&nullinexact3f_Stub));
+  SG_PROCEDURE_NAME(&nullchar3e3d3f_Stub) = Sg_MakeString(UC("char>=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("char>=?"), SG_LITERAL_STRING)), SG_OBJ(&nullchar3e3d3f_Stub));
+  SG_PROCEDURE_NAME(&nullmake_custom_textual_input_port_Stub) = Sg_MakeString(UC("make-custom-textual-input-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-custom-textual-input-port"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_custom_textual_input_port_Stub));
+  SG_PROCEDURE_NAME(&nulllist3f_Stub) = Sg_MakeString(UC("list?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("list?"), SG_LITERAL_STRING)), SG_OBJ(&nulllist3f_Stub));
+  SG_PROCEDURE_NAME(&nullhashtable_size_Stub) = Sg_MakeString(UC("hashtable-size"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-size"), SG_LITERAL_STRING)), SG_OBJ(&nullhashtable_size_Stub));
+  SG_PROCEDURE_NAME(&nullchar3d3f_Stub) = Sg_MakeString(UC("char=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("char=?"), SG_LITERAL_STRING)), SG_OBJ(&nullchar3d3f_Stub));
+  SG_PROCEDURE_NAME(&nullset_cdr21_Stub) = Sg_MakeString(UC("set-cdr!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-cdr!"), SG_LITERAL_STRING)), SG_OBJ(&nullset_cdr21_Stub));
+  SG_PROCEDURE_NAME(&nullbound_identifier3d3f_Stub) = Sg_MakeString(UC("bound-identifier=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bound-identifier=?"), SG_LITERAL_STRING)), SG_OBJ(&nullbound_identifier3d3f_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u8_ref_Stub) = Sg_MakeString(UC("bytevector-u8-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u8-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u8_ref_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_ieee_single_set21_Stub) = Sg_MakeString(UC("bytevector-ieee-single-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-single-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_single_set21_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u8_set21_Stub) = Sg_MakeString(UC("bytevector-u8-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u8-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u8_set21_Stub));
+  SG_PROCEDURE_NAME(&nullfxfirst_bit_set_Stub) = Sg_MakeString(UC("fxfirst-bit-set"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxfirst-bit-set"), SG_LITERAL_STRING)), SG_OBJ(&nullfxfirst_bit_set_Stub));
+  SG_PROCEDURE_NAME(&nullfxmin_Stub) = Sg_MakeString(UC("fxmin"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxmin"), SG_LITERAL_STRING)), SG_OBJ(&nullfxmin_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u32_native_ref_Stub) = Sg_MakeString(UC("bytevector-u32-native-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u32-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u32_native_ref_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s16_native_ref_Stub) = Sg_MakeString(UC("bytevector-s16-native-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s16-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s16_native_ref_Stub));
+  SG_PROCEDURE_NAME(&nullfltan_Stub) = Sg_MakeString(UC("fltan"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fltan"), SG_LITERAL_STRING)), SG_OBJ(&nullfltan_Stub));
+  SG_PROCEDURE_NAME(&nullflzero3f_Stub) = Sg_MakeString(UC("flzero?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flzero?"), SG_LITERAL_STRING)), SG_OBJ(&nullflzero3f_Stub));
+  SG_PROCEDURE_NAME(&nulldenominator_Stub) = Sg_MakeString(UC("denominator"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("denominator"), SG_LITERAL_STRING)), SG_OBJ(&nulldenominator_Stub));
+  SG_PROCEDURE_NAME(&nullinexact_Stub) = Sg_MakeString(UC("inexact"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("inexact"), SG_LITERAL_STRING)), SG_OBJ(&nullinexact_Stub));
+  SG_PROCEDURE_NAME(&nullfxmax_Stub) = Sg_MakeString(UC("fxmax"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxmax"), SG_LITERAL_STRING)), SG_OBJ(&nullfxmax_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_3estring_Stub) = Sg_MakeString(UC("bytevector->string"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector->string"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_3estring_Stub));
+  SG_PROCEDURE_NAME(&nullround_Stub) = Sg_MakeString(UC("round"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("round"), SG_LITERAL_STRING)), SG_OBJ(&nullround_Stub));
+  SG_PROCEDURE_NAME(&nullbinary_port3f_Stub) = Sg_MakeString(UC("binary-port?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("binary-port?"), SG_LITERAL_STRING)), SG_OBJ(&nullbinary_port3f_Stub));
+  SG_PROCEDURE_NAME(&nullrcd_protocol_Stub) = Sg_MakeString(UC("rcd-protocol"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("rcd-protocol"), SG_LITERAL_STRING)), SG_OBJ(&nullrcd_protocol_Stub));
+  SG_PROCEDURE_NAME(&nullenvironment_Stub) = Sg_MakeString(UC("environment"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("environment"), SG_LITERAL_STRING)), SG_OBJ(&nullenvironment_Stub));
+  SG_PROCEDURE_NAME(&nullstandard_output_port_Stub) = Sg_MakeString(UC("standard-output-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("standard-output-port"), SG_LITERAL_STRING)), SG_OBJ(&nullstandard_output_port_Stub));
+  SG_PROCEDURE_NAME(&nullrecord_predicate_Stub) = Sg_MakeString(UC("record-predicate"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("record-predicate"), SG_LITERAL_STRING)), SG_OBJ(&nullrecord_predicate_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_copy_bit_field_Stub) = Sg_MakeString(UC("bitwise-copy-bit-field"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-copy-bit-field"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_copy_bit_field_Stub));
+  SG_PROCEDURE_NAME(&nullcondition_Stub) = Sg_MakeString(UC("condition"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("condition"), SG_LITERAL_STRING)), SG_OBJ(&nullcondition_Stub));
+  SG_PROCEDURE_NAME(&nullmake_custom_textual_output_port_Stub) = Sg_MakeString(UC("make-custom-textual-output-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-custom-textual-output-port"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_custom_textual_output_port_Stub));
+  SG_PROCEDURE_NAME(&nullget_bytevector_n_Stub) = Sg_MakeString(UC("get-bytevector-n"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-bytevector-n"), SG_LITERAL_STRING)), SG_OBJ(&nullget_bytevector_n_Stub));
+  SG_PROCEDURE_NAME(&nullhashtable_set21_Stub) = Sg_MakeString(UC("hashtable-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("hashtable-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullhashtable_set21_Stub));
+  SG_PROCEDURE_NAME(&nullfxarithmetic_shift_Stub) = Sg_MakeString(UC("fxarithmetic-shift"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxarithmetic-shift"), SG_LITERAL_STRING)), SG_OBJ(&nullfxarithmetic_shift_Stub));
+  SG_PROCEDURE_NAME(&nullrecord_type_opaque3f_Stub) = Sg_MakeString(UC("record-type-opaque?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("record-type-opaque?"), SG_LITERAL_STRING)), SG_OBJ(&nullrecord_type_opaque3f_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u32_native_set21_Stub) = Sg_MakeString(UC("bytevector-u32-native-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u32-native-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u32_native_set21_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_ior_Stub) = Sg_MakeString(UC("bitwise-ior"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-ior"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_ior_Stub));
+  SG_PROCEDURE_NAME(&nullmake_transcoder_Stub) = Sg_MakeString(UC("make-transcoder"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-transcoder"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_transcoder_Stub));
+  SG_PROCEDURE_NAME(&nullapply_Stub) = Sg_MakeString(UC("apply"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("apply"), SG_LITERAL_STRING)), SG_OBJ(&nullapply_Stub));
+  SG_PROCEDURE_NAME(&nulllatin_1_codec_Stub) = Sg_MakeString(UC("latin-1-codec"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("latin-1-codec"), SG_LITERAL_STRING)), SG_OBJ(&nulllatin_1_codec_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector3d3f_Stub) = Sg_MakeString(UC("bytevector=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector=?"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector3d3f_Stub));
+  SG_PROCEDURE_NAME(&nullread_char_Stub) = Sg_MakeString(UC("read-char"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("read-char"), SG_LITERAL_STRING)), SG_OBJ(&nullread_char_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_ieee_single_ref_Stub) = Sg_MakeString(UC("bytevector-ieee-single-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-single-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_single_ref_Stub));
+  SG_PROCEDURE_NAME(&nullfxif_Stub) = Sg_MakeString(UC("fxif"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxif"), SG_LITERAL_STRING)), SG_OBJ(&nullfxif_Stub));
+  SG_PROCEDURE_NAME(&nullfxdiv_Stub) = Sg_MakeString(UC("fxdiv"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxdiv"), SG_LITERAL_STRING)), SG_OBJ(&nullfxdiv_Stub));
+  SG_PROCEDURE_NAME(&nullstring_normalize_nfkc_Stub) = Sg_MakeString(UC("string-normalize-nfkc"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string-normalize-nfkc"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_normalize_nfkc_Stub));
+  SG_PROCEDURE_NAME(&nullread_Stub) = Sg_MakeString(UC("read"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("read"), SG_LITERAL_STRING)), SG_OBJ(&nullread_Stub));
+  SG_PROCEDURE_NAME(&null2a_Stub) = Sg_MakeString(UC("*"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("*"), SG_LITERAL_STRING)), SG_OBJ(&null2a_Stub));
+  SG_PROCEDURE_NAME(&nullfxbit_count_Stub) = Sg_MakeString(UC("fxbit-count"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxbit-count"), SG_LITERAL_STRING)), SG_OBJ(&nullfxbit_count_Stub));
+  SG_PROCEDURE_NAME(&nullfl3e3f_Stub) = Sg_MakeString(UC("fl>?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fl>?"), SG_LITERAL_STRING)), SG_OBJ(&nullfl3e3f_Stub));
+  SG_PROCEDURE_NAME(&null3c_Stub) = Sg_MakeString(UC("<"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("<"), SG_LITERAL_STRING)), SG_OBJ(&null3c_Stub));
+  SG_PROCEDURE_NAME(&nullflpositive3f_Stub) = Sg_MakeString(UC("flpositive?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flpositive?"), SG_LITERAL_STRING)), SG_OBJ(&nullflpositive3f_Stub));
+  SG_PROCEDURE_NAME(&nullflexpt_Stub) = Sg_MakeString(UC("flexpt"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flexpt"), SG_LITERAL_STRING)), SG_OBJ(&nullflexpt_Stub));
+  SG_PROCEDURE_NAME(&nullreverse_Stub) = Sg_MakeString(UC("reverse"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("reverse"), SG_LITERAL_STRING)), SG_OBJ(&nullreverse_Stub));
+  SG_PROCEDURE_NAME(&nullstring_3eutf32_Stub) = Sg_MakeString(UC("string->utf32"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string->utf32"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_3eutf32_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s16_ref_Stub) = Sg_MakeString(UC("bytevector-s16-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s16-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s16_ref_Stub));
+  SG_PROCEDURE_NAME(&nulltuple_set21_Stub) = Sg_MakeString(UC("tuple-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("tuple-set!"), SG_LITERAL_STRING)), SG_OBJ(&nulltuple_set21_Stub));
+  SG_PROCEDURE_NAME(&nulleqv3f_Stub) = Sg_MakeString(UC("eqv?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("eqv?"), SG_LITERAL_STRING)), SG_OBJ(&nulleqv3f_Stub));
+  SG_PROCEDURE_NAME(&nullcdar_Stub) = Sg_MakeString(UC("cdar"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cdar"), SG_LITERAL_STRING)), SG_OBJ(&nullcdar_Stub));
+  SG_PROCEDURE_NAME(&null2b_Stub) = Sg_MakeString(UC("+"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("+"), SG_LITERAL_STRING)), SG_OBJ(&null2b_Stub));
+  SG_PROCEDURE_NAME(&nullcomplex3f_Stub) = Sg_MakeString(UC("complex?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("complex?"), SG_LITERAL_STRING)), SG_OBJ(&nullcomplex3f_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_length_Stub) = Sg_MakeString(UC("bitwise-length"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-length"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_length_Stub));
+  SG_PROCEDURE_NAME(&nulleven3f_Stub) = Sg_MakeString(UC("even?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("even?"), SG_LITERAL_STRING)), SG_OBJ(&nulleven3f_Stub));
+  SG_PROCEDURE_NAME(&nullput_u8_Stub) = Sg_MakeString(UC("put-u8"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("put-u8"), SG_LITERAL_STRING)), SG_OBJ(&nullput_u8_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s32_set21_Stub) = Sg_MakeString(UC("bytevector-s32-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s32-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s32_set21_Stub));
+  SG_PROCEDURE_NAME(&nullflfinite3f_Stub) = Sg_MakeString(UC("flfinite?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flfinite?"), SG_LITERAL_STRING)), SG_OBJ(&nullflfinite3f_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_fill21_Stub) = Sg_MakeString(UC("bytevector-fill!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-fill!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_fill21_Stub));
+  SG_PROCEDURE_NAME(&nullflmod0_Stub) = Sg_MakeString(UC("flmod0"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flmod0"), SG_LITERAL_STRING)), SG_OBJ(&nullflmod0_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u64_native_ref_Stub) = Sg_MakeString(UC("bytevector-u64-native-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u64-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u64_native_ref_Stub));
+  SG_PROCEDURE_NAME(&nullchar3e3f_Stub) = Sg_MakeString(UC("char>?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("char>?"), SG_LITERAL_STRING)), SG_OBJ(&nullchar3e3f_Stub));
+  SG_PROCEDURE_NAME(&nullfxzero3f_Stub) = Sg_MakeString(UC("fxzero?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxzero?"), SG_LITERAL_STRING)), SG_OBJ(&nullfxzero3f_Stub));
+  SG_PROCEDURE_NAME(&nullassertion_violation_Stub) = Sg_MakeString(UC("assertion-violation"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("assertion-violation"), SG_LITERAL_STRING)), SG_OBJ(&nullassertion_violation_Stub));
+  SG_PROCEDURE_NAME(&nulllist_3estring_Stub) = Sg_MakeString(UC("list->string"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("list->string"), SG_LITERAL_STRING)), SG_OBJ(&nulllist_3estring_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_xor_Stub) = Sg_MakeString(UC("bitwise-xor"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-xor"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_xor_Stub));
+  SG_PROCEDURE_NAME(&nullfxcopy_bit_field_Stub) = Sg_MakeString(UC("fxcopy-bit-field"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxcopy-bit-field"), SG_LITERAL_STRING)), SG_OBJ(&nullfxcopy_bit_field_Stub));
+  SG_PROCEDURE_NAME(&nullport_eof3f_Stub) = Sg_MakeString(UC("port-eof?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("port-eof?"), SG_LITERAL_STRING)), SG_OBJ(&nullport_eof3f_Stub));
+  SG_PROCEDURE_NAME(&nullexact_Stub) = Sg_MakeString(UC("exact"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("exact"), SG_LITERAL_STRING)), SG_OBJ(&nullexact_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_ieee_double_native_ref_Stub) = Sg_MakeString(UC("bytevector-ieee-double-native-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-double-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_double_native_ref_Stub));
+  SG_PROCEDURE_NAME(&nullstring_append_Stub) = Sg_MakeString(UC("string-append"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string-append"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_append_Stub));
+  SG_PROCEDURE_NAME(&nullstandard_input_port_Stub) = Sg_MakeString(UC("standard-input-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("standard-input-port"), SG_LITERAL_STRING)), SG_OBJ(&nullstandard_input_port_Stub));
+  SG_PROCEDURE_NAME(&nullstring3d3f_Stub) = Sg_MakeString(UC("string=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string=?"), SG_LITERAL_STRING)), SG_OBJ(&nullstring3d3f_Stub));
+  SG_PROCEDURE_NAME(&nullstring_ci_hash_Stub) = Sg_MakeString(UC("string-ci-hash"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string-ci-hash"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_ci_hash_Stub));
+  SG_PROCEDURE_NAME(&nulltextual_port3f_Stub) = Sg_MakeString(UC("textual-port?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("textual-port?"), SG_LITERAL_STRING)), SG_OBJ(&nulltextual_port3f_Stub));
+  SG_PROCEDURE_NAME(&nullmodulo_Stub) = Sg_MakeString(UC("modulo"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("modulo"), SG_LITERAL_STRING)), SG_OBJ(&nullmodulo_Stub));
+  SG_PROCEDURE_NAME(&nullstring_foldcase_Stub) = Sg_MakeString(UC("string-foldcase"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string-foldcase"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_foldcase_Stub));
+  SG_PROCEDURE_NAME(&nullchar_alphabetic3f_Stub) = Sg_MakeString(UC("char-alphabetic?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("char-alphabetic?"), SG_LITERAL_STRING)), SG_OBJ(&nullchar_alphabetic3f_Stub));
+  SG_PROCEDURE_NAME(&nullnative_eol_style_Stub) = Sg_MakeString(UC("native-eol-style"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("native-eol-style"), SG_LITERAL_STRING)), SG_OBJ(&nullnative_eol_style_Stub));
+  SG_PROCEDURE_NAME(&nullcall2fcc_Stub) = Sg_MakeString(UC("call/cc"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("call/cc"), SG_LITERAL_STRING)), SG_OBJ(&nullcall2fcc_Stub));
+  SG_PROCEDURE_NAME(&nullsubstring_Stub) = Sg_MakeString(UC("substring"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("substring"), SG_LITERAL_STRING)), SG_OBJ(&nullsubstring_Stub));
+  SG_PROCEDURE_NAME(&nullrecord_rtd_Stub) = Sg_MakeString(UC("record-rtd"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("record-rtd"), SG_LITERAL_STRING)), SG_OBJ(&nullrecord_rtd_Stub));
+  SG_PROCEDURE_NAME(&nullcompound_condition3f_Stub) = Sg_MakeString(UC("compound-condition?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("compound-condition?"), SG_LITERAL_STRING)), SG_OBJ(&nullcompound_condition3f_Stub));
+  SG_PROCEDURE_NAME(&nullequal3f_Stub) = Sg_MakeString(UC("equal?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("equal?"), SG_LITERAL_STRING)), SG_OBJ(&nullequal3f_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_ieee_double_ref_Stub) = Sg_MakeString(UC("bytevector-ieee-double-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-double-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_double_ref_Stub));
+  SG_PROCEDURE_NAME(&nullfldiv0_Stub) = Sg_MakeString(UC("fldiv0"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fldiv0"), SG_LITERAL_STRING)), SG_OBJ(&nullfldiv0_Stub));
+  SG_PROCEDURE_NAME(&nullfl3c3f_Stub) = Sg_MakeString(UC("fl<?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fl<?"), SG_LITERAL_STRING)), SG_OBJ(&nullfl3c3f_Stub));
+  SG_PROCEDURE_NAME(&nullflatan_Stub) = Sg_MakeString(UC("flatan"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flatan"), SG_LITERAL_STRING)), SG_OBJ(&nullflatan_Stub));
+  SG_PROCEDURE_NAME(&nullflmin_Stub) = Sg_MakeString(UC("flmin"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("flmin"), SG_LITERAL_STRING)), SG_OBJ(&nullflmin_Stub));
+  SG_PROCEDURE_NAME(&nullimag_part_Stub) = Sg_MakeString(UC("imag-part"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("imag-part"), SG_LITERAL_STRING)), SG_OBJ(&nullimag_part_Stub));
+  SG_PROCEDURE_NAME(&nullwith_exception_handler_Stub) = Sg_MakeString(UC("with-exception-handler"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("with-exception-handler"), SG_LITERAL_STRING)), SG_OBJ(&nullwith_exception_handler_Stub));
+  SG_PROCEDURE_NAME(&nullchar3c3d3f_Stub) = Sg_MakeString(UC("char<=?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("char<=?"), SG_LITERAL_STRING)), SG_OBJ(&nullchar3c3d3f_Stub));
+  SG_PROCEDURE_NAME(&nullmake_string_Stub) = Sg_MakeString(UC("make-string"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-string"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_string_Stub));
+  SG_PROCEDURE_NAME(&nullcdr_Stub) = Sg_MakeString(UC("cdr"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("cdr"), SG_LITERAL_STRING)), SG_OBJ(&nullcdr_Stub));
+  SG_PROCEDURE_NAME(&nullfl2b_Stub) = Sg_MakeString(UC("fl+"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fl+"), SG_LITERAL_STRING)), SG_OBJ(&nullfl2b_Stub));
+  SG_PROCEDURE_NAME(&nullleast_fixnum_Stub) = Sg_MakeString(UC("least-fixnum"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("least-fixnum"), SG_LITERAL_STRING)), SG_OBJ(&nullleast_fixnum_Stub));
+  SG_PROCEDURE_NAME(&nulllength_Stub) = Sg_MakeString(UC("length"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("length"), SG_LITERAL_STRING)), SG_OBJ(&nulllength_Stub));
+  SG_PROCEDURE_NAME(&nullfxior_Stub) = Sg_MakeString(UC("fxior"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxior"), SG_LITERAL_STRING)), SG_OBJ(&nullfxior_Stub));
+  SG_PROCEDURE_NAME(&nullget_datum_Stub) = Sg_MakeString(UC("get-datum"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-datum"), SG_LITERAL_STRING)), SG_OBJ(&nullget_datum_Stub));
+  SG_PROCEDURE_NAME(&nullsymbol_hash_Stub) = Sg_MakeString(UC("symbol-hash"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("symbol-hash"), SG_LITERAL_STRING)), SG_OBJ(&nullsymbol_hash_Stub));
+  SG_PROCEDURE_NAME(&nullchar_lower_case3f_Stub) = Sg_MakeString(UC("char-lower-case?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("char-lower-case?"), SG_LITERAL_STRING)), SG_OBJ(&nullchar_lower_case3f_Stub));
+  SG_PROCEDURE_NAME(&nullvector_Stub) = Sg_MakeString(UC("vector"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector"), SG_LITERAL_STRING)), SG_OBJ(&nullvector_Stub));
+  SG_PROCEDURE_NAME(&nullexact3f_Stub) = Sg_MakeString(UC("exact?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("exact?"), SG_LITERAL_STRING)), SG_OBJ(&nullexact3f_Stub));
+  SG_PROCEDURE_NAME(&nullvector_3elist_Stub) = Sg_MakeString(UC("vector->list"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("vector->list"), SG_LITERAL_STRING)), SG_OBJ(&nullvector_3elist_Stub));
+  SG_PROCEDURE_NAME(&nullfxreverse_bit_field_Stub) = Sg_MakeString(UC("fxreverse-bit-field"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxreverse-bit-field"), SG_LITERAL_STRING)), SG_OBJ(&nullfxreverse_bit_field_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u16_native_ref_Stub) = Sg_MakeString(UC("bytevector-u16-native-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u16-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u16_native_ref_Stub));
+  SG_PROCEDURE_NAME(&nullcurrent_input_port_Stub) = Sg_MakeString(UC("current-input-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("current-input-port"), SG_LITERAL_STRING)), SG_OBJ(&nullcurrent_input_port_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u64_set21_Stub) = Sg_MakeString(UC("bytevector-u64-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u64-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u64_set21_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u16_ref_Stub) = Sg_MakeString(UC("bytevector-u16-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u16-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u16_ref_Stub));
+  SG_PROCEDURE_NAME(&null2f2e_Stub) = Sg_MakeString(UC("/."), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("/."), SG_LITERAL_STRING)), SG_OBJ(&null2f2e_Stub));
+  SG_PROCEDURE_NAME(&null2a2e_Stub) = Sg_MakeString(UC("*."), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("*."), SG_LITERAL_STRING)), SG_OBJ(&null2a2e_Stub));
+  SG_PROCEDURE_NAME(&nulltranscoder_eol_style_Stub) = Sg_MakeString(UC("transcoder-eol-style"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("transcoder-eol-style"), SG_LITERAL_STRING)), SG_OBJ(&nulltranscoder_eol_style_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_ieee_single_native_ref_Stub) = Sg_MakeString(UC("bytevector-ieee-single-native-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-ieee-single-native-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_ieee_single_native_ref_Stub));
+  SG_PROCEDURE_NAME(&nullset_port_position21_Stub) = Sg_MakeString(UC("set-port-position!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("set-port-position!"), SG_LITERAL_STRING)), SG_OBJ(&nullset_port_position21_Stub));
+  SG_PROCEDURE_NAME(&nulltranscoder_codec_Stub) = Sg_MakeString(UC("transcoder-codec"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("transcoder-codec"), SG_LITERAL_STRING)), SG_OBJ(&nulltranscoder_codec_Stub));
+  SG_PROCEDURE_NAME(&nullfx__Stub) = Sg_MakeString(UC("fx-"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fx-"), SG_LITERAL_STRING)), SG_OBJ(&nullfx__Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s32_ref_Stub) = Sg_MakeString(UC("bytevector-s32-ref"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s32-ref"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s32_ref_Stub));
+  SG_PROCEDURE_NAME(&nullfltruncate_Stub) = Sg_MakeString(UC("fltruncate"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fltruncate"), SG_LITERAL_STRING)), SG_OBJ(&nullfltruncate_Stub));
+  SG_PROCEDURE_NAME(&nullget_output_bytevector_Stub) = Sg_MakeString(UC("get-output-bytevector"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-output-bytevector"), SG_LITERAL_STRING)), SG_OBJ(&nullget_output_bytevector_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_s64_set21_Stub) = Sg_MakeString(UC("bytevector-s64-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-s64-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_s64_set21_Stub));
+  SG_PROCEDURE_NAME(&nullequal_hash_Stub) = Sg_MakeString(UC("equal-hash"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("equal-hash"), SG_LITERAL_STRING)), SG_OBJ(&nullequal_hash_Stub));
+  SG_PROCEDURE_NAME(&nullwrite_char_Stub) = Sg_MakeString(UC("write-char"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("write-char"), SG_LITERAL_STRING)), SG_OBJ(&nullwrite_char_Stub));
+  SG_PROCEDURE_NAME(&nullfxdiv0_Stub) = Sg_MakeString(UC("fxdiv0"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("fxdiv0"), SG_LITERAL_STRING)), SG_OBJ(&nullfxdiv0_Stub));
+  SG_PROCEDURE_NAME(&nullsqrt_Stub) = Sg_MakeString(UC("sqrt"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("sqrt"), SG_LITERAL_STRING)), SG_OBJ(&nullsqrt_Stub));
+  SG_PROCEDURE_NAME(&nullrtd_fields_Stub) = Sg_MakeString(UC("rtd-fields"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("rtd-fields"), SG_LITERAL_STRING)), SG_OBJ(&nullrtd_fields_Stub));
+  SG_PROCEDURE_NAME(&nullmake_eqv_hashtable_Stub) = Sg_MakeString(UC("make-eqv-hashtable"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-eqv-hashtable"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_eqv_hashtable_Stub));
+  SG_PROCEDURE_NAME(&nullget_u8_Stub) = Sg_MakeString(UC("get-u8"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("get-u8"), SG_LITERAL_STRING)), SG_OBJ(&nullget_u8_Stub));
+  SG_PROCEDURE_NAME(&nullbitwise_bit_field_Stub) = Sg_MakeString(UC("bitwise-bit-field"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bitwise-bit-field"), SG_LITERAL_STRING)), SG_OBJ(&nullbitwise_bit_field_Stub));
+  SG_PROCEDURE_NAME(&nullstring_3eutf16_Stub) = Sg_MakeString(UC("string->utf16"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("string->utf16"), SG_LITERAL_STRING)), SG_OBJ(&nullstring_3eutf16_Stub));
+  SG_PROCEDURE_NAME(&nullrational_valued3f_Stub) = Sg_MakeString(UC("rational-valued?"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("rational-valued?"), SG_LITERAL_STRING)), SG_OBJ(&nullrational_valued3f_Stub));
+  SG_PROCEDURE_NAME(&nullbytevector_u16_set21_Stub) = Sg_MakeString(UC("bytevector-u16-set!"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("bytevector-u16-set!"), SG_LITERAL_STRING)), SG_OBJ(&nullbytevector_u16_set21_Stub));
+  SG_PROCEDURE_NAME(&nullcompound_condition_component_Stub) = Sg_MakeString(UC("compound-condition-component"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("compound-condition-component"), SG_LITERAL_STRING)), SG_OBJ(&nullcompound_condition_component_Stub));
+  SG_PROCEDURE_NAME(&nullmake_custom_binary_input2foutput_port_Stub) = Sg_MakeString(UC("make-custom-binary-input/output-port"), SG_LITERAL_STRING);
+  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC("make-custom-binary-input/output-port"), SG_LITERAL_STRING)), SG_OBJ(&nullmake_custom_binary_input2foutput_port_Stub));
 }
-SG_CDECL_END

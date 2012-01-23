@@ -35,6 +35,7 @@
 #include "sagittarius/codec.h"
 #include "sagittarius/core.h"
 #include "sagittarius/weak.h"
+#include "sagittarius/library.h"
 #include "sagittarius/bytevector.h"
 #include "sagittarius/file.h"
 #include "sagittarius/transcoder.h"
@@ -2168,13 +2169,15 @@ SgObject Sg_StandardErrorPort()
   return SG_OBJ(sg_stderr);
 }
 
-
 void Sg__InitPort()
 {
   SgVM *vm = Sg_VM();
+  SgLibrary *clib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
   Sg_InitMutex(&active_buffered_ports.lock, FALSE);
   active_buffered_ports.ports = SG_WEAK_VECTOR(Sg_MakeWeakVector(PORT_VECTOR_SIZE));
 
+  Sg_InitStaticClass(SG_CLASS_PORT, UC("<port>"), clib, NULL, 0);
+  
   sg_stdin  = Sg_MakeFileBinaryInputPort(Sg_StandardIn(), SG_BUFMODE_NONE);
   sg_stdout = Sg_MakeFileBinaryOutputPort(Sg_StandardOut(), SG_BUFMODE_LINE);
   sg_stderr = Sg_MakeFileBinaryOutputPort(Sg_StandardError(), SG_BUFMODE_NONE);

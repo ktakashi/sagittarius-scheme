@@ -31,6 +31,7 @@
  */
 #include <sagittarius.h>
 #define LIBSAGITTARIUS_EXT_BODY
+#include <sagittarius/extend.h>
 #include "time.h"
 
 static void date_printer(SgObject self, SgPort *port, SgWriteContext *ctx)

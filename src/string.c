@@ -114,14 +114,15 @@ SG_DEFINE_BUILTIN_CLASS(Sg_StringClass, string_print, NULL, NULL, NULL,
 
 static SgString* make_string(int size)
 {
-  SgString *z = SG_NEW(SgString);
+  SgString *z = SG_NEW_ATOMIC2(SgString *,
+			       sizeof(SgString)+sizeof(SgChar)*(size+1));
   SG_SET_CLASS(z, SG_CLASS_STRING);
   z->size = size;
-  if (size < 0) {
-    z->value = NULL;
-  } else {
-    z->value = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar) * (size + 1));
-  }
+  /* if (size < 0) { */
+  /*   z->value = NULL; */
+  /* } else { */
+  /*   z->value = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar) * (size + 1)); */
+  /* } */
   z->literalp = FALSE;
   return z;
 }
@@ -159,7 +160,8 @@ SgObject Sg_MakeString(const SgChar *value, SgStringType flag)
   if (flag == SG_LITERAL_STRING) {
     Sg_LockMutex(&smutex);
     z->literalp = TRUE;
-    r = Sg_HashTableSet(stable, SG_OBJ(value), SG_OBJ(z), SG_HASH_NO_OVERWRITE);
+    r = Sg_HashTableSet(stable, SG_OBJ(z->value), SG_OBJ(z),
+			SG_HASH_NO_OVERWRITE);
     Sg_UnlockMutex(&smutex);
   } else {
     r = SG_OBJ(z);
@@ -202,7 +204,7 @@ SgObject Sg_ReserveString(size_t size, SgChar fill)
 
 SgObject Sg_MakeEmptyString()
 {
-  SgString *z = make_string(-1);
+  SgString *z = make_string(0);
   return SG_OBJ(z);
 }
 

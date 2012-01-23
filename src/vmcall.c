@@ -33,6 +33,7 @@
 
 {
   int argc;
+  SgObject nm = SG_FALSE;	/* next method */
   INSN_VAL1(argc, c);
 
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL) && vm->state == RUNNING) {
@@ -41,6 +42,8 @@
       print_frames(vm);
     }
   }
+
+  /* TODO object-apply */
 
   if (SG_SUBRP(AC(vm))) {
     CL(vm) = AC(vm);
@@ -97,6 +100,15 @@
 					 required, argc, args);
     }
     SG_PROF_COUNT_CALL(vm, CL(vm));
+  } else if (SG_PROCEDURE_TYPE(AC(vm)) == SG_PROC_GENERIC) {
+    SgObject mm;
+    if (!SG_GENERICP(AC(vm))) {
+      /* Scheme defined MOP */
+      /* TODO */
+    }
+
+    mm = Sg_ComputeMethods(AC(vm), FP(vm), argc);
+    Sg_Panic("not supported yet");
   } else {
     Sg_AssertionViolation(SG_INTERN("apply"),
 			  Sg_MakeString(UC("invalid application"), SG_LITERAL_STRING),

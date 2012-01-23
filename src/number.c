@@ -83,11 +83,16 @@ static double roundeven(double v);
 
 /* classes */
 static SgClass *numeric_cpl[] = {
-  SG_CLASS_NUMBER,
-  SG_CLASS_COMPLEX,
-  SG_CLASS_REAL,
+  /* SG_CLASS_NUMBER, */
+  /* SG_CLASS_COMPLEX, */
+  /* SG_CLASS_REAL, */
+  /* SG_CLASS_RATIONAL, */
+  /* SG_CLASS_INTEGER, */
   SG_CLASS_RATIONAL,
-  SG_CLASS_INTEGER,
+  SG_CLASS_REAL,
+  SG_CLASS_COMPLEX,
+  SG_CLASS_NUMBER,
+  SG_CLASS_TOP,
   NULL
 };
 

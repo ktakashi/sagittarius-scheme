@@ -404,14 +404,9 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
   while (i < array_sizeof(buf)) {
     c = Sg_PeekcUnsafe(port);
     if (c == EOF || delimited(c)) {
-      /* TODO ugh... maybe i need to make hash-set like Ypsilon just be 
-	 able to compare with hash value.
-       */
-      SgChar *real = SG_NEW_ATOMIC2(SgChar *, (i + 1) * sizeof(SgChar));
       SgObject s;
       buf[i] = 0;
-      memcpy(real, buf, (i + 1) * sizeof(SgChar));
-      s = Sg_MakeString(real, SG_LITERAL_STRING);
+      s = Sg_MakeString(buf, SG_LITERAL_STRING);
       if (table->insensitiveP) {
 	s = Sg_StringFoldCase(SG_STRING(s));
       }
@@ -628,10 +623,11 @@ SgObject read_double_quote(SgPort *port, SgChar c, SgReadContext *ctx)
       continue;
     }
     if (c == '"') {
-      SgChar *real = SG_NEW_ATOMIC2(SgChar *, (i + 1) * sizeof(SgChar));
+      /* SgChar *real = SG_NEW_ATOMIC2(SgChar *, (i + 1) * sizeof(SgChar)); */
       buf[i] = 0;
-      memcpy(real, buf, (i + 1) * sizeof(SgChar));
-      return Sg_MakeString(real, SG_LITERAL_STRING);
+      /* memcpy(real, buf, (i + 1) * sizeof(SgChar)); */
+      /* return Sg_MakeString(real, SG_LITERAL_STRING); */
+      return Sg_MakeString(buf, SG_LITERAL_STRING);
     }
     if (c == '\\') {
       c = Sg_GetcUnsafe(port);
@@ -748,14 +744,11 @@ SgObject read_colon(SgPort *port, SgChar c, SgReadContext *ctx)
     name = read_quoted_symbol(port, ctx, FALSE);
     return Sg_MakeKeyword(SG_SYMBOL(name)->name);
   } else {
-    SgChar *real;
     int size;
     Sg_UngetcUnsafe(port, c2);
     size = read_thing(port, ctx, buf, array_sizeof(buf), -1);
-    real = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar) * (size + 1));
-    buf[size] = 0;		/* just in case */
-    memcpy(real, buf, (size + 1) * sizeof(SgChar));
-    return Sg_MakeKeyword(Sg_MakeString(real, SG_LITERAL_STRING));
+    buf[size] = 0;
+    return Sg_MakeKeyword(Sg_MakeString(buf, SG_LITERAL_STRING));
   }
 }
 

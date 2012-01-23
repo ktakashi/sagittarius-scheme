@@ -1,15 +1,38 @@
-;; -*- mode:schem; coding: utf-8; -*-
+;; -*- mode:scheme; coding: utf-8; -*-
 (library (sagittarius clos)
-    (export)
+    (export slot-ref slot-set!
+	    add-method
+	    ;; internals
+	    make-class
+	    make-generic
+	    make-method
+	    ;; helpers
+	    )
     (import :none)
 
   (decl-code
    (.define "LIBSAGITTARIUS_BODY")
-   (.include <sagittarius.h>))
+   (.include <sagittarius.h> <sagittarius/generic.h>))
 
   (define-c-proc slot-ref (o name::Symbol) ::Object
     (result (Sg_SlotRef o name)))
 
   (define-c-proc slot-set! (o name::Symbol v) ::void
     (Sg_SlotSet o name v))
+
+  (define-c-proc add-method (gf::Generic m::Method) ::void
+    (Sg_AddMethod gf m))
+
+  (define-c-proc make-class (supers slots) ::Object
+    (result (Sg_MakeClass supers slots)))
+
+  (define-c-proc make-generic () ::Object
+    (result (Sg_MakeGeneric)))
+
+  (define-c-proc make-method (spec proc) ::Object
+    (result (Sg_MakeMethod spec proc)))
+
+  (define-c-proc compute-std-cpl (klass::Class) ::Object
+    (result (Sg_ComputeCPL klass)))
+
 )

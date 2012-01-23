@@ -75,6 +75,7 @@ SgObject Sg_MakeSymbol(SgString *name, int interned)
 
   if (interned) {
     Sg_LockMutex(&obtable_mutax);
+    ASSERT(SG_STRING_VALUE(name));
     e = Sg_HashTableRef(obtable, SG_OBJ(name), SG_FALSE);
     Sg_UnlockMutex(&obtable_mutax);
     if (!SG_FALSEP(e)) {

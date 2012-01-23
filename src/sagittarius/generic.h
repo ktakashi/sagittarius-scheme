@@ -58,11 +58,11 @@ struct SgGenericRec
 #define SG_GENERIC_MAX_REQARGS(generic)	(SG_GENERIC(generic)->maxReqargs)
 #define SG_GENERIC_MUTEX(generic)	(&(SG_GENERIC(generic)->mutex))
 
-#define SG_DEFINE_GENERIC(cvar, cfung, data)				\
+#define SG_DEFINE_GENERIC(cvar, cfunc, data)				\
   SgGeneric cvar = {							\
     SG__PROCEDURE_INITIALIZER(SG_CLASS_STATIC_TAG(Sg_GenericClass),	\
-			      0, 0, SG_PROC_GENERIC, 0,			\
-			      SG_FALSE, NULL),				\
+			      0, 0, SG_PROC_GENERIC,			\
+			      SG_FALSE, SG_FALSE),			\
     SG_NIL, 0, (cfunc), data						\
   }
 
@@ -89,10 +89,15 @@ typedef struct SgMethodRec
 #define SG_DEFINE_METHOD(cvar, gf, req, opt, specs, proc)		\
   SgMethod cvar = {							\
     SG__PROCEDURE_INITIALIZER(SG_CLASS_STATIC_TAG(Sg_MethodClass),	\
-			      req, opt, SG_PROC_METHOD, 0,		\
-			      SG_FALSE, NULL),				\
+			      req, opt, SG_PROC_METHOD,			\
+			      SG_FALSE, SG_FALSE),			\
     gf, specs, proc							\
   }
+
+#define argumentAsGeneric(index, tmp, var)				\
+  castArgumentType(index, tmp, var, generic, SG_GENERICP, SG_GENERIC)
+#define argumentAsMethod(index, tmp, var)				\
+  castArgumentType(index, tmp, var, method, SG_METHODP, SG_METHOD)
 
 SG_CDECL_BEGIN
 
@@ -105,7 +110,8 @@ SG_EXTERN void     Sg_AddMethod(SgGeneric *generic, SgMethod *method);
 
 /* I'm not sure if these should be usable from other shared object. */
 /* The initialization protocol */
-SG_EXTERN SgGeneric Sg_GenericInitializa;
+SG_EXTERN SgGeneric Sg_GenericMake;
+SG_EXTERN SgGeneric Sg_GenericInitialize;
 /* the instance structure protocol */
 SG_EXTERN SgGeneric Sg_GenericAllocateInstance;
 SG_EXTERN SgGeneric Sg_GenericComputeGetterAndSetter;
