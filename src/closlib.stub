@@ -7,6 +7,10 @@
 	    make-generic
 	    make-method
 	    ;; helpers
+	    compute-std-cpl
+	    compute-std-slots
+	    compute-std-getters-and-setters
+	    class-of
 	    )
     (import :none)
 
@@ -34,5 +38,14 @@
 
   (define-c-proc compute-std-cpl (klass::Class) ::Object
     (result (Sg_ComputeCPL klass)))
+
+  (define-c-proc compute-std-slots (klass::Class) ::Object
+    (result (Sg_ComputeSlots klass)))
+
+  (define-c-proc compute-std-getters-and-setters (klass::Class slots) ::Object
+    (result (Sg_ComputeGettersAndSetters klass slots)))
+
+  (define-c-proc class-of (o) ::Object
+    (result (Sg_ClassOf o)))
 
 )

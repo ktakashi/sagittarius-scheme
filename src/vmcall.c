@@ -31,6 +31,86 @@
  */
 /* This file is included at vm.c */
 
+
+#define ADJUST_ARGUMENT_FRAME(proc, argc)				\
+  do {									\
+    int required = SG_PROCEDURE_REQUIRED(proc);				\
+    int optargs =  SG_PROCEDURE_OPTIONAL(proc);				\
+    if (optargs) {							\
+      int extra = argc - required;					\
+      if (-1 == extra) {						\
+	/* Apply call */						\
+	SgObject *sp;							\
+	if (SP(vm) - vm->stack >= 1) {					\
+	  sp = unshift_args(SP(vm), 1);					\
+	  INDEX_SET(sp, 0, SG_NIL);					\
+	} else {							\
+	  sp = SP(vm);							\
+	  PUSH(sp, SG_NIL);						\
+	}								\
+	SP(vm) = sp;							\
+	FP(vm) = sp - required;						\
+      } else if (extra >= 0) {						\
+	SgObject *sp;							\
+	INDEX_SET(SP(vm), extra, stack_to_pair_args(SP(vm), extra+1));	\
+	sp = SP(vm) - extra;						\
+	SP(vm) = sp;							\
+	FP(vm) = sp - required;						\
+      } else {								\
+	Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),	\
+					   required-1, argc, SG_UNDEF); \
+      }									\
+    } else if (required == argc) {					\
+      FP(vm) = SP(vm) - argc;						\
+    } else {								\
+      SgObject args = SG_NIL;						\
+      int i;								\
+      for (i = 0; i < argc; i++) {					\
+	args = Sg_Cons(INDEX(SP(vm), i), args);				\
+      }									\
+      Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),	\
+					 required, argc, args);		\
+    }									\
+  } while (0)
+
+#define CALL_METHOD()							\
+  do {									\
+    ASSERT(SG_METHODP(AC(vm)));						\
+    ASSERT(!SG_FALSEP(nm));						\
+    if (SG_SUBRP(SG_METHOD_PROCEDURE(AC(vm)))) {			\
+      /* C-defined method */						\
+      SgObject subr = SG_METHOD_PROCEDURE(AC(vm));			\
+      CL(vm) = subr;							\
+      PC(vm) = SG_SUBR_RETURN_CODE(subr);				\
+      SG_SUBR_RETURN_CODE(subr)[0] = SG_WORD(RET);			\
+      FP(vm) = SP(vm) - argc;						\
+      SG_PROF_COUNT_CALL(vm, subr);					\
+      AC(vm) = SG_SUBR_FUNC(subr)(FP(vm), argc, SG_SUBR_DATA(subr));	\
+    } else {								\
+      /* closure */							\
+      SgClosure *cls = SG_CLOSURE(SG_METHOD_PROCEDURE(AC(vm)));		\
+      ASSERT(SG_CODE_BUILDERP(cls->code));				\
+      CL(vm) = cls;							\
+      PC(vm) = SG_CODE_BUILDER(cls->code)->code;			\
+      /* it's really annoying if we insert call-next-method before the	\
+	 all arguments, so the last. it's a little bit incompatible	\
+	 with tiny-clos. */						\
+      PUSH(SP(vm), nm);							\
+      argc++;								\
+      CHECK_STACK(SG_CODE_BUILDER(cls->code)->maxStack, vm);		\
+      ADJUST_ARGUMENT_FRAME(cls, argc);					\
+      SG_PROF_COUNT_CALL(vm, cls);					\
+    }									\
+  } while (0)
+
+#define CALL_FALLBACK()							\
+  do {									\
+    PC(vm) = PC_TO_RETURN;						\
+    FP(vm) = SP(vm) - argc;						\
+    SG_PROF_COUNT_CALL(vm, AC(vm));					\
+    AC(vm) = SG_GENERIC(AC(vm))->fallback(FP(vm), argc, SG_GENERIC(AC(vm))); \
+  } while (0)
+
 {
   int argc;
   SgObject nm = SG_FALSE;	/* next method */
@@ -43,62 +123,20 @@
     }
   }
 
-  /* TODO object-apply */
-
   if (SG_SUBRP(AC(vm))) {
     CL(vm) = AC(vm);
     PC(vm) = SG_SUBR_RETURN_CODE(AC(vm));
     SG_SUBR_RETURN_CODE(AC(vm))[0] = SG_WORD(RET);
     FP(vm) = SP(vm) - argc;
-    /* vm->fpOffset = CALC_OFFSET(vm, argc); */
     SG_PROF_COUNT_CALL(vm, AC(vm));
     AC(vm) = SG_SUBR_FUNC(AC(vm))(FP(vm), argc, SG_SUBR_DATA(AC(vm)));
   } else if (SG_CLOSUREP(AC(vm))) {
     SgClosure *cl = SG_CLOSURE(AC(vm));
     SgCodeBuilder *cb = SG_CODE_BUILDER(cl->code);
-    int required = SG_PROCEDURE_REQUIRED(cl);
-    int optargs =  SG_PROCEDURE_OPTIONAL(cl);
-    CHECK_STACK(cb->maxStack, vm);
     CL(vm) = AC(vm);
+    CHECK_STACK(cb->maxStack, vm);
     PC(vm) = cb->code;
-    if (optargs) {
-      int extra = argc - required;
-      if (-1 == extra) {
-	/* Apply call */
-	SgObject *sp;
-	if (SP(vm) - vm->stack >= 1) {
-	  sp = unshift_args(SP(vm), 1);
-	  INDEX_SET(sp, 0, SG_NIL);
-	} else {
-	  sp = SP(vm);
-	  PUSH(sp, SG_NIL);
-	}
-	SP(vm) = sp;
-	FP(vm) = sp - required;
-	/* vm->fpOffset = CALC_OFFSET(vm, required); */
-      } else if (extra >= 0) {
-	SgObject *sp;
-	INDEX_SET(SP(vm), extra, stack_to_pair_args(SP(vm), extra + 1));
-	sp = SP(vm) - extra;
-	SP(vm) = sp;
-	FP(vm) = sp - required;
-	/* vm->fpOffset = CALC_OFFSET(vm, required); */
-      } else {
-	Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),
-					   required - 1, argc, SG_UNDEF);
-      }
-    } else if (required == argc) {
-      FP(vm) = SP(vm) - argc;
-      /* vm->fpOffset = CALC_OFFSET(vm, argc); */
-    } else {
-      SgObject args = SG_NIL;
-      int i;
-      for (i = 0; i < argc; i++) {
-	args = Sg_Cons(INDEX(SP(vm), i), args);
-      }
-      Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),
-					 required, argc, args);
-    }
+    ADJUST_ARGUMENT_FRAME(cl, argc);
     SG_PROF_COUNT_CALL(vm, CL(vm));
   } else if (SG_PROCEDURE_TYPE(AC(vm)) == SG_PROC_GENERIC) {
     SgObject mm;
@@ -107,8 +145,37 @@
       /* TODO */
     }
 
-    mm = Sg_ComputeMethods(AC(vm), FP(vm), argc);
-    Sg_Panic("not supported yet");
+    mm = Sg_ComputeMethods(AC(vm), SP(vm)-argc, argc);
+    if (!SG_NULLP(mm)) {
+      /* methods are sorted by compute-methods.
+	 create call-next-methods */
+      nm = Sg_MakeNextMethod(SG_GENERIC(AC(vm)), SG_CDR(mm), SP(vm) - argc, 
+			     argc, TRUE);
+      AC(vm) = SG_CAR(mm);
+      CALL_METHOD();
+    } else {
+      /* no applicable methods */
+      CALL_FALLBACK();
+    }
+  } else if (SG_PROCEDURE_TYPE(AC(vm)) == SG_PROC_NEXT_METHOD) {
+      SgNextMethod *n = SG_NEXT_METHOD(AC(vm));
+      int use_saved_args = (argc == 0);
+      if (use_saved_args) {
+	CHECK_STACK(n->argc+1, vm);
+	memcpy(SP(vm), n->argv, sizeof(SgObject)*n->argc);
+	SP(vm) += n->argc;
+	argc = n->argc;
+      }
+      if (SG_NULLP(n->methods)) {
+	/* no applicable methods */
+	AC(vm) = SG_OBJ(n->generic);
+	CALL_FALLBACK();
+      } else {
+	nm = Sg_MakeNextMethod(n->generic, SG_CDR(n->methods),
+			       SP(vm)-argc, argc, TRUE);
+	AC(vm) = SG_CAR(n->methods);
+	CALL_METHOD();
+      }
   } else {
     Sg_AssertionViolation(SG_INTERN("apply"),
 			  Sg_MakeString(UC("invalid application"), SG_LITERAL_STRING),

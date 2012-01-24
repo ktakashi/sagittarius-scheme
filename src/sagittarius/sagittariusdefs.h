@@ -377,6 +377,8 @@ typedef enum  {
 #define SG_CHAR_MAX        (0xffffff)
 
 /* CLOS */
+#define SG_HOBJP(obj)  (SG_HPTRP(obj)&&(SG_HTAG(obj)==7))
+
 #define SG_CLASS2TAG(klass)  ((SgByte*)(klass) + 7)
 #define SG_CLASS_DECL(klass)			\
   SG_CDECL_BEGIN				\

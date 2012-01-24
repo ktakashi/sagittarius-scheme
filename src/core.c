@@ -61,6 +61,7 @@ extern void Sg__InitVM();
 extern void Sg__InitCache();
 extern void Sg__InitCharSet();
 extern void Sg__InitClos();
+extern void Sg__InitWrite();
 
 /* stub files */
 extern void Sg__Init_sagittarius_compiler_procedure();
@@ -107,6 +108,7 @@ void Sg_Init()
   Sg__InitClos();
   /* port must be after VM to replace std ports. */
   Sg__InitPort();
+  Sg__InitWrite();
   /* initialize default reader macro */
   Sg__InitReader();
   Sg__InitCache();

@@ -57,6 +57,7 @@
 #include <sagittarius/error.h>
 #include <sagittarius/exceptions.h>
 #include <sagittarius/file.h>
+#include <sagittarius/generic.h>
 #include <sagittarius/gloc.h>
 #include <sagittarius/hashtable.h>
 #include <sagittarius/identifier.h>

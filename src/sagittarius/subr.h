@@ -59,7 +59,8 @@ struct SgProcedureRec
 };
 
 #define SG_PROCEDURE(obj)  ((SgProcedure*)(obj))
-#define SG_PROCEDUREP(obj) (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_PROCEDURE))
+#define SG_PROCEDUREP(obj)					\
+  (SG_HOBJP(obj)&&SG_CLASS_APPLICABLE_P(SG_CLASS_OF(obj)))
 #define SG_PROCEDURE_REQUIRED(obj) SG_PROCEDURE(obj)->required
 #define SG_PROCEDURE_OPTIONAL(obj) SG_PROCEDURE(obj)->optional
 #define SG_PROCEDURE_TYPE(obj)     SG_PROCEDURE(obj)->type

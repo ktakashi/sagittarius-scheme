@@ -51,20 +51,21 @@ typedef void     (*SgSlotSetterProc)(SgObject, SgObject);
 struct SgSlotAccessorRec
 {
   SG_HEADER;
-  const char *cname;			       /* for static initilization */
-  SgObject name;			       /* field name */
-  SgClass *klass;			       /* slot class */
-  SgSlotGetterProc getter;		       /* C getter */
-  SgSlotSetterProc setter;		       /* C setter */
+  int index;			/* index */
+  const char *cname;		/* for static initilization */
+  SgObject name;		/* field name */
+  SgClass *klass;		/* slot class */
+  SgSlotGetterProc getter;	/* C getter */
+  SgSlotSetterProc setter;	/* C setter */
   SgObject getterS;
   SgObject setterS;
 };
 #define SG_SLOT_ACCESSOR(obj)  ((SgSlotAccessor*)(obj))
 #define SG_SLOT_ACCESSORP(obj) SG_XTYPEP(obj, SG_CLASS_SLOT_ACCESSOR)
 
-#define SG_CLASS_SLOT_SPEC(name, getter, setter)		\
+#define SG_CLASS_SLOT_SPEC(name, index, getter, setter)		\
   { { SG_CLASS2TAG(SG_CLASS_SLOT_ACCESSOR) },			\
-      (name), SG_FALSE, NULL,					\
+      (index), (name), SG_FALSE, NULL,				\
 	(SgSlotGetterProc)(getter),				\
 	(SgSlotSetterProc)(setter),				\
 	SG_FALSE, SG_FALSE }
@@ -123,6 +124,8 @@ struct SgClassRec
 #define SG_CLASS_FLAGS(obj)    (SG_CLASS(obj)->flags)
 #define SG_CLASS_CATEGORY(obj) (SG_CLASS_FLAGS(obj) & 3)
 
+#define SG_CLASS_APPLICABLE_P(obj) (SG_CLASS_FLAGS(obj)&SG_CLASS_APPLICABLE)
+
 #define SG_ALLOCATE(klassname, klass)		\
   ((klassname*)Sg_AllocateInstance(klass))
 
@@ -131,6 +134,9 @@ enum {
   SG_CLASS_ABSTRACT = 1,
   SG_CLASS_BASE     = 2,
   SG_CLASS_SCHEME   = 3,
+  /* A special flag that only be used for "native applicable" objects,
+     which basically inherits SgProcedure. */
+  SG_CLASS_APPLICABLE = 0x04,
 };
 
 /* built-in classes */
@@ -226,6 +232,8 @@ SG_EXTERN int      Sg_SubtypeP(SgClass *sub, SgClass *type);
 /* intercessory protocol */
 SG_EXTERN SgObject Sg_AllocateInstance(SgClass *klass);
 SG_EXTERN SgObject Sg_ComputeCPL(SgClass *klass);
+SG_EXTERN SgObject Sg_ComputeSlots(SgClass *klass);
+SG_EXTERN SgObject Sg_ComputeGettersAndSetters(SgClass *klass, SgObject slots);
 
 SG_EXTERN int      Sg_ApplicableP(SgObject spec, SgObject args);
 

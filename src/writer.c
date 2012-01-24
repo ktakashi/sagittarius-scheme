@@ -35,6 +35,7 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/writer.h"
 #include "sagittarius/port.h"
+#include "sagittarius/generic.h"
 #include "sagittarius/transcoder.h"
 #include "sagittarius/core.h"
 #include "sagittarius/clos.h"
@@ -61,6 +62,10 @@
 static void format_write(SgObject obj, SgPort *port, SgWriteContext *ctx, int sharedp);
 static void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx);
 static void write_ss(SgObject obj, SgPort *port, SgWriteContext *ctx);
+static void write_object(SgObject obj, SgPort *port, SgWriteContext *ctx);
+static SgObject write_object_fallback(SgObject *args, int nargs, SgGeneric *gf);
+
+SG_DEFINE_GENERIC(Sg_GenericWriteObject, write_object_fallback, NULL);
 
 void Sg_Write(SgObject obj, SgObject p, int mode)
 {
@@ -588,8 +593,20 @@ static const char *char_names[] = {
 
 static void write_object(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
-  /* TODO later */
-  /* Sg_Apply2(SG_OBJ(&Sg_GenericWriteObject), obj, port); */
+  Sg_Apply2(SG_OBJ(&Sg_GenericWriteObject), obj, port);
+}
+
+static SgObject write_object_fallback(SgObject *args, int argc, SgGeneric *gf)
+{
+  SgClass *klass;
+  if (argc != 2 || (argc == 2 && !SG_OUTPORTP(args[1]))) {
+    Sg_Error(UC("no applicable method for write-object with %S"),
+	     Sg_ArrayToList(args, argc));
+  }
+  klass = Sg_ClassOf(args[0]);
+  Sg_Printf(SG_PORT(args[1]), UC("#<%A %p>"),
+	    klass->name, args[0]);
+  return SG_TRUE;
 }
 
 static void write_general(SgObject obj, SgPort *port, SgWriteContext *ctx)
@@ -1164,6 +1181,14 @@ void Sg_WriteSymbolName(SgString *snam, SgPort *port,
   }
   SG_PORT_UNLOCK(port);
 }
+
+void Sg__InitWrite()
+{
+  SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
+  Sg_InitBuiltinGeneric(&Sg_GenericWriteObject, UC("write-object"), lib);
+			
+}
+
 /*
   end of file
   Local Variables:

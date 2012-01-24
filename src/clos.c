@@ -32,6 +32,7 @@
 #include "sagittarius/clos.h"
 #include "sagittarius/bytevector.h"
 #include "sagittarius/charset.h"
+#include "sagittarius/closure.h"
 #include "sagittarius/collection.h"
 #include "sagittarius/error.h"
 #include "sagittarius/generic.h"
@@ -87,6 +88,7 @@ SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_EOFObjectClass, NULL);
 static void class_print(SgObject, SgPort *, SgWriteContext *);
 static void generic_print(SgObject, SgPort *, SgWriteContext *);
 static void method_print(SgObject, SgPort *, SgWriteContext *);
+static void next_method_print(SgObject, SgPort *, SgWriteContext *);
 /* allocate */
 static SgObject class_allocate(SgClass *klass, SgObject initargs);
 static SgObject generic_allocate(SgClass *klass, SgObject initargs);
@@ -95,6 +97,33 @@ static SgObject method_allocate(SgClass *klass, SgObject initargs);
 static void init_class(SgClass *klass, const SgChar *name,
 		       SgLibrary *lib, SgObject supers, SgSlotAccessor *specs,
 		       int flags);
+
+/* helper */
+static SgObject class_array_to_names(SgClass **array, int len)
+{
+  SgObject h = SG_NIL, t = SG_NIL;
+  int i;
+  for (i = 0; i < len; i++, array++) {
+    SG_APPEND1(h, t, (*array)->name);
+  }
+  return h;
+}
+
+static SgObject class_list_to_array(SgObject lst, int len)
+{
+  SgObject cp;
+  SgClass **v, **vp;
+  v = vp = SG_NEW_ARRAY(SgClass*, len+1);
+  SG_FOR_EACH(cp, lst) {
+    if (!Sg_TypeP(SG_CAR(cp), SG_CLASS_CLASS)) {
+      Sg_Error(UC("list of classes required, but found non-class object"
+		  " %S in %S"), SG_CAR(cp), lst);
+    }
+    *vp++ = SG_CLASS(SG_CAR(cp));
+  }
+  *vp = NULL;
+  return v;
+}
 
 SG_DEFINE_BASE_CLASS(Sg_ObjectClass, SgInstance,
 		     NULL, NULL, NULL, Sg_ObjectAllocate,
@@ -108,6 +137,8 @@ SG_DEFINE_BASE_CLASS(Sg_GenericClass, SgGeneric,
 SG_DEFINE_BASE_CLASS(Sg_MethodClass, SgMethod,
 		     method_print, NULL, NULL, method_allocate,
 		     Sg_MethodCPL);
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_NextMethodClass, next_method_print);
 
 SgObject Sg_AllocateInstance(SgClass *klass)
 {
@@ -127,37 +158,24 @@ SgObject Sg_AllocateInstance(SgClass *klass)
   return obj;
 }
 
-/*
-static SgSlotAccessor *make_slot_accessor(SgClass *klass, SgObject name)
+
+static SgSlotAccessor *make_slot_accessor(SgClass *klass, SgObject name,
+					  int index)
 {
   SgSlotAccessor *ac = SG_NEW(SgSlotAccessor);
-  SG_SET_CLASS(SG_CLASS_SLOT_ACCESSOR);
+  SG_SET_CLASS(ac, SG_CLASS_SLOT_ACCESSOR);
   ac->name = name;
   ac->klass = klass;
+  ac->index = index;
   ac->getter = NULL;
   ac->setter = NULL;
-  ac->getterS = Sg_MakeSubr
+  return ac;
 }
-
-static SgSlotAccessor **slot_to_acc(SgClass *klass, SgObject slots)
-{
-  int size = Sg_Length(slots), i = 0;
-  SgSlotAccessor **acc = SG_NEW_ARRAY(SgSlotAccessor*, size);
-  SgObject cp;
-  SG_FOR_EACH(cp, slots) {
-    acc[i] = make_slot_accessor(klass, SG_CAR(cp));
-  }  
-}
-*/
 
 static SgObject make_class(SgObject supers);
 
 SgObject Sg_MakeClass(SgObject supers, SgObject slots)
 {
-  /* SgClass *klass = SG_CLASS(class_allocate(SG_CLASS_CLASS, SG_NIL)); */
-  /* SgSlotAccessor **acc = slot_to_acc(klass, slots); */
-  /* init_class(klass, NULL, NULL, supers, acc, TRUE); */
-  /* return SG_OBJ(klass); */
   return make_class(supers);
 }
 
@@ -173,8 +191,8 @@ SgObject Sg_MakeMethod(SgObject specializers, SgObject procedure)
   m = method_allocate(SG_CLASS_METHOD, SG_NIL);
   /* check */
   for (a = array; *a; a++) {
-    if (!SG_CLASSP(*a)) {
-      Sg_Error(UC("<class> required but got %S"), specializers);
+    if (!Sg_TypeP(*a, SG_CLASS_CLASS)) {
+      Sg_Error(UC("<class> required but got %S"), *a);
     }
   }
   SG_METHOD_SPECIALIZERS(m) = (SgClass**)array;
@@ -222,16 +240,16 @@ static SgObject build_constraints(SgClass *klass)
   SgObject elements = build_elements(klass);
   SgObject this_one = SG_NIL, result = SG_NIL;
   while (1) {
-    if (SG_NULLP(this_one) || SG_NULLP(result)) {
+    if (SG_NULLP(this_one) || SG_NULLP(SG_CDR(this_one))) {
       if (SG_NULLP(elements)) return result;
       ASSERT(SG_CLASSP(SG_CAR(elements)));
-      elements = SG_CDR(elements);
       this_one = Sg_Cons(SG_CAR(elements),
 			 SG_CLASS(SG_CAR(elements))->directSupers);
+      elements = SG_CDR(elements);
     } else {
-      this_one = SG_CDR(this_one);
       result = Sg_Cons(SG_LIST2(SG_CAR(this_one), SG_CADR(this_one)),
 		       result);
+      this_one = SG_CDR(this_one);
     }
   }
 }
@@ -276,7 +294,7 @@ static int cpl_every(SgObject x, SgObject constraints, SgObject result)
 {
   SgObject cp;
   SG_FOR_EACH(cp, constraints) {
-    SgObject constraint;
+    SgObject constraint = SG_CAR(cp);
     if (SG_EQ(SG_CADR(constraint), x) &&
 	SG_FALSEP(Sg_Memq(SG_CAR(constraint), result))) return FALSE;
   }
@@ -289,11 +307,13 @@ SgObject Sg_ComputeCPL(SgClass *klass)
   SgObject elements = build_elements(klass);
   SgObject constraints = build_constraints(klass);
   SgObject result = SG_NIL, t = SG_NIL;
+
   while (1) {
     SgObject can_go_in_now;
     if (SG_NULLP(elements)) return result;
 #define can_go_test(x) cpl_every(x, constraints, result)
     filter_in(can_go_in_now, can_go_test, elements);
+
     if (SG_NULLP(can_go_in_now)) {
       Sg_Error(UC("compute-std-cpl: Invalid constraints"));
       return SG_UNDEF;		/* dummy */
@@ -308,40 +328,141 @@ SgObject Sg_ComputeCPL(SgClass *klass)
   }
 }
 
+SgObject Sg_ComputeSlots(SgClass *klass)
+{
+  SgObject slots = SG_NIL;
+  SgObject cp, sp;
+  SG_FOR_EACH(cp, klass->cpl) {
+    ASSERT(SG_CLASSP(SG_CAR(cp)));
+    SG_FOR_EACH(sp, SG_CLASS(SG_CAR(cp))->directSlots) {
+      SgObject slot = SG_CAR(sp), snam, p;
+      ASSERT(SG_PAIRP(slot));
+      snam = SG_CAR(slot);
+      p = Sg_Assq(snam, slots);
+      if (SG_FALSEP(p)) {
+	slots = Sg_Cons(Sg_CopyList(slot), slots);
+      }
+    }
+  }
+  return Sg_Reverse(slots);
+}
+
+SgObject Sg_ComputeGettersAndSetters(SgClass *klass, SgObject slots)
+{
+  SgObject h = SG_NIL, t = SG_NIL;
+  SgObject sp;
+  int index = 0;
+  SG_FOR_EACH(sp, slots) {
+    SgSlotAccessor *ac = make_slot_accessor(klass, SG_CAAR(sp), index);
+    SG_APPEND1(h, t, SG_OBJ(ac));
+    index++;
+  }
+  return h;
+}
+
 int Sg_ApplicableP(SgObject c, SgObject arg)
 {
-  return !SG_FALSEP(Sg_Memq(c, SG_CLASS(Sg_ClassOf(c))->cpl));
+  return !SG_FALSEP(Sg_Memq(c, SG_CLASS(Sg_ClassOf(arg))->cpl));
 }
 
 static int method_every(SgObject method, SgObject *argv, int argc)
 {
-  int i;
-  SgObject specs = SG_METHOD_SPECIALIZERS(method);
-  for (i = 0; i < argc; i++) {
-    if (!Sg_ApplicableP(SG_CAR(specs), argv[i])) return FALSE;
-    /* sanity */
-    if (SG_NULLP(specs)) return FALSE;
-    specs = SG_CDR(specs);
+  SgClass **specs = SG_METHOD_SPECIALIZERS(method);
+  for (; *specs; specs++) {
+    int i;
+    for (i = 0; i < argc; i++, specs++) {
+      if (!Sg_ApplicableP(*specs, argv[i])) return FALSE;
+    }
   }
   return TRUE;
+}
+
+#define PREALLOC_SIZE 32
+/*
+  These functions must be generic, however for now we just put here
+  and ignore the others.
+ */
+static int more_specific_p(SgClass *c1, SgClass *c2, SgClass *arg)
+{
+  SgObject m1 = Sg_Memq(c1, arg->cpl);
+  if (!SG_FALSEP(m1)) {
+    return !SG_FALSEP(Sg_Memq(c2, m1));
+  }
+  return FALSE;
+}
+
+static int method_more_specific(SgMethod *m1, SgMethod *m2,
+				SgClass **targv, int argc)
+{
+  SgClass **spec1 = SG_METHOD_SPECIALIZERS(m1);
+  SgClass **spec2 = SG_METHOD_SPECIALIZERS(m2);
+  int i;
+  for (i = 0; i < argc; i++, spec1++, spec2++) {
+    if (!*spec1) return TRUE;
+    if (!*spec2) return FALSE;
+    if (!SG_EQ(*spec1, *spec2)) {
+      return more_specific_p(*spec1, *spec2, targv[i]);
+    }
+  }
+  Sg_Error(UC("Fewer arguments than specializers"));
+  return FALSE;			/* dummy */
+}
+
+
+static SgObject sort_method(SgObject methods, SgObject *argv, int argc)
+{
+  SgObject array_s[PREALLOC_SIZE], *array = array_s;
+  SgClass *targv_s[PREALLOC_SIZE], **targv = targv_s;
+  int count = 0, len = Sg_Length(methods), step, i, j;
+  SgObject mp;
+
+  /* TODO maybe we should use alloca */
+  if (len >= PREALLOC_SIZE)  array = SG_NEW_ARRAY(SgObject, len);
+  if (argc >= PREALLOC_SIZE) targv = SG_NEW_ARRAY(SgClass*, argc);
+
+  SG_FOR_EACH(mp, methods) {
+    if (!Sg_TypeP(SG_CAR(mp), SG_CLASS_METHOD)) {
+      Sg_Error(UC("bad method in applicable method list: %S"), SG_CAR(mp));
+    }
+    array[count++] = SG_CAR(mp);
+  }
+  for (i=0; i <argc; i++) targv[i] = Sg_ClassOf(argv[i]);
+
+  for (step = len/2; step > 0; step /=2) {
+    for (i = step; i<len; i++) {
+      for (j = i-step; j>=0; j -= step) {
+	/* TODO, use generic method */
+	if (method_more_specific(SG_METHOD(array[j]),
+				 SG_METHOD(array[j+step]),
+				 targv, argc)) {
+	  break;
+	} else {
+	  SgObject tmp = array[j+step];
+	  array[j+step] = array[j];
+	  array[j] = tmp;
+	}
+      }
+    }
+  }
+  return Sg_ArrayToList(array, len);
 }
 
 SgObject Sg_ComputeMethods(SgGeneric *gf, SgObject *argv, int argc)
 {
   SgObject applicable;
-
 #define method_filter(x) method_every(x, argv, argc)
   filter_in(applicable, method_filter, SG_GENERIC_METHODS(gf));
-
-  /* todo sort */
-  return applicable;
+  if (SG_NULLP(applicable)) return applicable;
+  return sort_method(applicable, argv, argc);
 }
-
 
 static SgSlotAccessor* lookup_slot_info(SgClass *klass, SgObject name)
 {
   SgSlotAccessor **gNs = klass->gettersNSetters;
-  SgClass *tklass = klass;
+  SgObject cpl = klass->cpl;
+  /* CPL never be '() */
+  SgClass *tklass = SG_CAR(cpl);
+  cpl = SG_CDR(cpl);
  entry:
   for (;*gNs;gNs++) {
     if (SG_EQ(name, (*gNs)->name)) {
@@ -349,8 +470,9 @@ static SgSlotAccessor* lookup_slot_info(SgClass *klass, SgObject name)
     }
   }
   /* try tag */
-  if (tklass != SG_CLASS_CLASS) {
-    tklass = SG_CLASS_OF(klass);
+  if (tklass != SG_CLASS_CLASS && !SG_NULLP(cpl)) {
+    tklass = SG_CAR(cpl);
+    cpl = SG_CDR(cpl);
     gNs = tklass->gettersNSetters;
     goto entry;
   }
@@ -361,27 +483,23 @@ static SgSlotAccessor* lookup_slot_info(SgClass *klass, SgObject name)
 
 SgObject Sg_SlotRef(SgObject obj, SgObject name)
 {
-  SgSlotAccessor *accessor = lookup_slot_info(obj, name);
+  SgSlotAccessor *accessor = lookup_slot_info(Sg_ClassOf(obj), name);
   if (accessor->getter) {
     return accessor->getter(obj);
   } else {
-    /* scheme accessor */
-    return Sg_Apply1(accessor->getterS, obj);
+    /* scheme accessor, assume obj is instance */
+    return SG_INSTANCE(obj)->slots[accessor->index];
   }
 }
 
 void Sg_SlotSet(SgObject obj, SgObject name, SgObject value)
 {
-  SgSlotAccessor *accessor = lookup_slot_info(obj, name);
+  SgSlotAccessor *accessor = lookup_slot_info(Sg_ClassOf(obj), name);
   if (accessor->setter) {
     return accessor->setter(obj, value);
   } else {
-    if (SG_FALSEP(accessor->setterS)) {
-      Sg_Error(UC("slot %A in object of %S is not malleable"));
-      return;
-    }
     /* scheme accessor */
-    Sg_Apply2(accessor->setterS, obj, value);
+    SG_INSTANCE(obj)->slots[accessor->index] = value;
   }
 }
 
@@ -457,9 +575,20 @@ static SgObject class_name(SgClass *klass)
   return klass->name;
 }
 
+static void class_name_set(SgClass *klass, SgObject name)
+{
+  klass->name = name;
+}
+
 static SgObject class_direct_supers(SgClass *klass)
 {
   return klass->directSupers;
+}
+
+static void class_direct_supers_set(SgClass *klass, SgObject supers)
+{
+  /* TODO assertion */
+  klass->directSupers = supers;
 }
 
 static SgObject class_direct_slots(SgClass *klass)
@@ -467,9 +596,90 @@ static SgObject class_direct_slots(SgClass *klass)
   return klass->directSlots;
 }
 
+static void class_direct_slots_set(SgClass *klass, SgObject slots)
+{
+  /* TODO assertion */
+  klass->directSlots = slots;
+}
+
 static SgObject class_cpl(SgClass *klass)
 {
   return klass->cpl;
+}
+
+/* subroutine for class_cpl_set. Scans klass' CPL and find out the
+   suitable allocator function, C-struct core size and some flags*/
+static void find_core_allocator(SgClass *klass)
+{
+  SgClass **p;
+  SgClass *b = NULL;	/* the base calss klass gets the allocator func */
+  int object_inherited = FALSE;
+
+  klass->allocate = NULL;
+  for (p = klass->cpa; *p; p++) {
+    if (SG_CLASS_CATEGORY(*p) == SG_CLASS_BUILTIN) {
+      Sg_Error(UC("class '%S' attempted to inherit from a builtin class "
+		  "%S; you cannnot subclass a builtin class"), klass->name, *p);
+    }
+    if ((*p)->allocate == Sg_ObjectAllocate) {
+      object_inherited = TRUE;
+      continue;
+    }
+    if ((*p)->flags & SG_CLASS_APPLICABLE) {
+      klass->flags |= SG_CLASS_APPLICABLE;
+    }
+
+    if (b &&
+	SG_CLASS_CATEGORY(*p) == SG_CLASS_BASE &&
+	b->allocate != (*p)->allocate) {
+      /* found different C-defined class. */
+      SgClass **bp = b->cpa;
+      for (; *bp; bp++) {
+	if (*bp == *p) break;
+      }
+      if (!*bp) {
+	Sg_Error(UC("class '%S' attempted to inherit multiple C-defined "
+		    "base class (%S and %S) which are not in a "
+		    "superclass-superclass relathionship"),
+		 klass->name, b, *p);
+      }
+      continue;
+    }
+    if (!b) {
+      b = *p;
+      klass->allocate = b->allocate;
+      klass->coreSize = b->coreSize;
+    }
+  }
+  if (!object_inherited) {
+    Sg_Error(UC("class %S's precedence list doesn't have a base class: %S"),
+	     klass->name, klass->cpl);
+  }
+  if (!klass->allocate) {
+    klass->allocate = Sg_ObjectAllocate;
+    klass->coreSize = sizeof(SgInstance);
+  }
+}
+
+static void class_cpl_set(SgClass *klass, SgObject cpl)
+{
+  int len;
+  SgObject cp;
+  
+  if (!SG_PAIRP(cpl)) goto err;
+  if (SG_CAR(cpl) != SG_OBJ(klass)) goto err;
+
+  cp = SG_CDR(cpl);
+  if ((len = Sg_Length(cp)) < 0) goto err;
+  klass->cpa = class_list_to_array(cp, len);
+  if (klass->cpa[len-1] != SG_CLASS_TOP) goto err;
+  klass->cpl = Sg_CopyList(cpl);
+  find_core_allocator(klass);
+  return;
+ err:
+  Sg_Error(UC("class precedence list must be a proper list of class "
+	      "metaobject, beginning from the class itself owing the list, "
+	      "and ending by the class <top>: %S"), cpl);
 }
 
 static SgObject class_slots_ref(SgClass *klass)
@@ -477,10 +687,19 @@ static SgObject class_slots_ref(SgClass *klass)
   return klass->slots;
 }
 
+static void class_slots_set(SgClass *klass, SgObject slots)
+{
+  klass->slots = slots;
+}
 
 static SgObject class_nfields(SgClass *klass)
 {
   return SG_MAKE_INT(klass->nfields);
+}
+
+static void class_nfields_set(SgClass *klass, SgObject nfields)
+{
+  klass->nfields = SG_INT_VALUE(nfields);
 }
 
 static SgObject class_field_initializers(SgClass *klass)
@@ -488,9 +707,20 @@ static SgObject class_field_initializers(SgClass *klass)
   return klass->fieldInitializers;
 }
 
+static void class_field_initializers_set(SgClass *klass, SgObject initializers)
+{
+  klass->fieldInitializers = initializers;
+}
+
 static SgObject class_getters_n_setters(SgClass *klass)
 {
   return Sg_ArrayToList((SgObject*)klass->gettersNSetters, klass->nfields);
+}
+
+static void class_getters_n_setters_set(SgClass *klass, SgObject getters)
+{
+  /* TODO check */
+  klass->gettersNSetters = (SgSlotAccessor**)Sg_ListToArray(getters, TRUE);
 }
 
 
@@ -534,6 +764,15 @@ void Sg_InitBuiltinGeneric(SgGeneric *gf, const SgChar *name, SgLibrary *lib)
   Sg_InsertBinding(lib, s, SG_OBJ(gf));
 }
 
+void Sg_InitBuiltinMethod(SgMethod *m)
+{
+  SG_PROCEDURE_NAME(m)
+    = Sg_Cons(SG_PROCEDURE_NAME(SG_METHOD_GENERIC(m)),
+	      class_array_to_names(SG_METHOD_SPECIALIZERS(m),
+				   SG_PROCEDURE_REQUIRED(m)));
+  Sg_AddMethod(SG_METHOD_GENERIC(m), m);
+}
+
 SgObject Sg_NoNextMethod(SgObject *argv, int argc, SgGeneric *gf)
 {
   Sg_AssertionViolation(SG_INTERN("call-next-method"),
@@ -562,18 +801,90 @@ static void method_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   Sg_Printf(port, UC("#<method %S>"), SG_PROCEDURE_NAME(SG_METHOD(obj)));
 }
 
+static SgObject method_specializers(SgMethod *method)
+{
+  SgClass **specs = SG_METHOD_SPECIALIZERS(method);
+  SgObject h = SG_NIL, t = SG_NIL;
+  for (;*specs; specs++) {
+    SG_APPEND1(h, t, SG_OBJ(*specs));
+  }
+  return h;
+}
+
+static void method_specializers_set(SgMethod *method, SgObject specs)
+{
+  SgClass **s = (SgClass**)Sg_ListToArray(specs, TRUE);
+  SG_METHOD_SPECIALIZERS(method) = s;
+}
+
+static SgObject method_procedure(SgMethod *method)
+{
+  return SG_METHOD_PROCEDURE(method);
+}
+
+static void method_procedure_set(SgMethod *method, SgObject proc)
+{
+  if (!SG_CLOSUREP(proc) || !SG_SUBRP(proc)) {
+    Sg_Error(UC("method procedure requires procedure but got %S"), proc);
+  }
+  SG_METHOD_PROCEDURE(method) = proc;
+}
+
+/* next method */
+static void next_method_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgNextMethod *nm = SG_NEXT_METHOD(obj);
+  SgObject args = Sg_ArrayToList(nm->argv, nm->argc);
+  Sg_Printf(port, UC("#<next-method %S %S>"), nm->methods, args);
+}
+
+SgObject Sg_MakeNextMethod(SgGeneric *gf, SgObject methods,
+			   SgObject *argv, int argc, int copyargs)
+{
+  SgNextMethod *nm = SG_NEW(SgNextMethod);
+  SG_SET_CLASS(nm, SG_CLASS_NEXT_METHOD);
+  SG_PROCEDURE_INIT(nm, 0, 0, SG_PROC_NEXT_METHOD, SG_FALSE);
+  nm->generic = gf;
+  nm->methods = methods;
+  if (copyargs) {
+    nm->argv = SG_NEW_ARRAY(SgObject, argc);
+    memcpy(nm->argv, argv, sizeof(SgObject) * argc);
+  } else {
+    nm->argv = argv;
+  }
+  nm->argc = argc;
+  return SG_OBJ(nm);
+}
+
+
 /* static initializer */
 
 /* slot initialization */
 static SgSlotAccessor class_slots[] = {
-  SG_CLASS_SLOT_SPEC("name", class_name, NULL),
-  SG_CLASS_SLOT_SPEC("direct-supers", class_direct_supers, NULL),
-  SG_CLASS_SLOT_SPEC("direct-slots", class_direct_slots, NULL),
-  SG_CLASS_SLOT_SPEC("cpl", class_cpl, NULL),
-  SG_CLASS_SLOT_SPEC("slots", class_slots_ref, NULL),
-  SG_CLASS_SLOT_SPEC("nfields", class_nfields, NULL),
-  SG_CLASS_SLOT_SPEC("field-initializers", class_field_initializers, NULL),
-  SG_CLASS_SLOT_SPEC("getters-n-setters", class_getters_n_setters, NULL),
+  SG_CLASS_SLOT_SPEC("name",               0, class_name,
+		     class_name_set),
+  SG_CLASS_SLOT_SPEC("direct-supers",      1, class_direct_supers,
+		     class_direct_supers_set),
+  SG_CLASS_SLOT_SPEC("direct-slots",       2, class_direct_slots,
+		     class_direct_slots_set),
+  SG_CLASS_SLOT_SPEC("cpl",                3, class_cpl,
+		     class_cpl_set),
+  SG_CLASS_SLOT_SPEC("slots",              4, class_slots_ref,
+		     class_slots_set),
+  SG_CLASS_SLOT_SPEC("nfields",            5, class_nfields,
+		     class_nfields_set),
+  SG_CLASS_SLOT_SPEC("field-initializers", 6, class_field_initializers,
+		     class_field_initializers_set),
+  SG_CLASS_SLOT_SPEC("getters-n-setters",  7, class_getters_n_setters,
+		     class_getters_n_setters_set),
+  { { NULL } }
+};
+
+static SgSlotAccessor method_slots[] = {
+  SG_CLASS_SLOT_SPEC("specializers",   0, method_specializers,
+		     method_specializers_set),
+  SG_CLASS_SLOT_SPEC("procedure",      1, method_procedure,
+		     method_procedure_set),
   { { NULL } }
 };
 
@@ -652,7 +963,8 @@ static void init_class(SgClass *klass, const SgChar *name,
       }
     }
   }
-  klass->gettersNSetters = (SgSlotAccessor**)Sg_ListToArray(acc, TRUE);
+  klass->gettersNSetters = (SgSlotAccessor**)Sg_ListToArray(Sg_ReverseX(acc),
+							    TRUE);
   klass->slots = slots;
   klass->nfields = Sg_Length(slots);
 }
@@ -737,48 +1049,26 @@ void Sg_InitStaticClassWithMeta(SgClass *klass, const SgChar *name,
 
 /* builtin generics */
 SG_DEFINE_GENERIC(Sg_GenericMake, Sg_NoNextMethod, NULL);
-/* SG_DEFINE_GENERIC(Sg_GenericInitialize, Sg_NoNextMethod, NULL); */
-/* SG_DEFINE_GENERIC(Sg_GenericAllocateInstance, Sg_NoNextMethod, NULL); */
-/* SG_DEFINE_GENERIC(Sg_GenericComputeGetterAndSetter, Sg_NoNextMethod, NULL); */
-/* SG_DEFINE_GENERIC(Sg_GenericComputeCPL, Sg_NoNextMethod, NULL); */
-/* SG_DEFINE_GENERIC(Sg_GenericComputeSlots, Sg_NoNextMethod, NULL); */
-/* SG_DEFINE_GENERIC(Sg_GenericComputeApplyGeneric, Sg_NoNextMethod, NULL); */
-/* SG_DEFINE_GENERIC(Sg_GenericComputeMethods, Sg_NoNextMethod, NULL); */
-/* SG_DEFINE_GENERIC(Sg_GenericComputeMethodMoreSpecificP, Sg_NoNextMethod, NULL); */
-/* SG_DEFINE_GENERIC(Sg_GenericComputeApplyMethods, Sg_NoNextMethod, NULL); */
+SG_DEFINE_GENERIC(Sg_GenericAllocateInstance, Sg_NoNextMethod, NULL);
 
-/* static SgObject object_initialize_impl(SgObject *args, int argc, void *data) */
-/* { */
-/*   return args[1]; */
-/* } */
-/* SG_DEFINE_SUBR(object_initialize, 3, 0, object_initialize_impl, SG_FALSE, NULL); */
+static SgObject allocate_impl(SgObject *args, int argc, void *data)
+{
+  SgClass *c = SG_CLASS(args[0]);
+  if (c->allocate == NULL) {
+    Sg_Error(UC("built-in class can't be allocated via allocate-instance: %S"),
+	     SG_OBJ(c));
+  }
+  return c->allocate(c, args[1]);
+}
 
-/* static SgClass *object_initialize_SPEC[] = { */
-/*   SG_CLASS_OBJECT */
-/* }; */
+SG_DEFINE_SUBR(allocate, 2, 0, allocate_impl, SG_FALSE, NULL);
 
-/* static SG_DEFINE_METHOD(object_initialize_method, */
-/* 			&Sg_GenericInitialize, 3, 0, */
-/* 			object_initialize_SPEC, */
-/* 			&object_initialize, NULL); */
+static SgClass *class_allocate_SPEC[] = {
+  SG_CLASS_CLASS, SG_CLASS_LIST
+};
 
-/* static SgObject class_initialize_impl(SgObject *args, int argc, void *data) */
-/* { */
-  
-/*   return args[1]; */
-/* } */
-
-/* SG_DEFINE_SUBR(class_initialize, 3, 0, class_initialize_impl, SG_FALSE, NULL); */
-
-/* static SgClass *class_initialize_SPEC[] = { */
-/*   SG_CLASS_CLASS */
-/* }; */
-
-/* static SG_DEFINE_METHOD(class_initialize_method, */
-/* 			&Sg_GenericInitialize, 3, 0, */
-/* 			class_initialize_SPEC, */
-/* 			&class_initialize, NULL); */
-
+static SG_DEFINE_METHOD(class_allocate_rec, &Sg_GenericAllocateInstance,
+			2, 0, class_allocate_SPEC, &allocate);
 
 void Sg__InitClos()
 {
@@ -795,6 +1085,15 @@ void Sg__InitClos()
   BINIT(SG_CLASS_CLASS,  "<class>", class_slots);
   BINIT(SG_CLASS_TOP,    "<top>", NULL);
   BINIT(SG_CLASS_OBJECT, "<object>", NULL);
+  /* generic, method and next-method */
+  BINIT(SG_CLASS_GENERIC,     "<generic>", NULL);
+  BINIT(SG_CLASS_METHOD,      "<method>",  method_slots);
+  BINIT(SG_CLASS_NEXT_METHOD, "<next-method>", NULL);
+  /* set flags for above to make them applicable(procedure? returns #t) */
+  SG_CLASS_GENERIC->flags |= SG_CLASS_APPLICABLE;
+  SG_CLASS_METHOD->flags |= SG_CLASS_APPLICABLE;
+  SG_CLASS_NEXT_METHOD->flags |= SG_CLASS_APPLICABLE;
+
   /* primitives */
   CINIT(SG_CLASS_BOOL,   "<boolean>");
   CINIT(SG_CLASS_CHAR,   "<char>");
@@ -842,8 +1141,16 @@ void Sg__InitClos()
   CINIT(SG_CLASS_WEAK_VECTOR,       "<weak-vector>");
   CINIT(SG_CLASS_WEAK_HASHTABLE,    "<weak-hashtable>");
 
+  /* procedure */
+  CINIT(SG_CLASS_PROCEDURE, "<procedure>");
+  SG_CLASS_PROCEDURE->flags |= SG_CLASS_APPLICABLE;
+
 #define GINIT(gf, nam)				\
   Sg_InitBuiltinGeneric(gf, UC(nam), lib)
 
   GINIT(&Sg_GenericMake, "make");
+  GINIT(&Sg_GenericAllocateInstance, "allocate-instance");
+
+  /* methods */
+  Sg_InitBuiltinMethod(&class_allocate_rec);
 }

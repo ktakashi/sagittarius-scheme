@@ -94,6 +94,20 @@ typedef struct SgMethodRec
     gf, specs, proc							\
   }
 
+SG_CLASS_DECL(Sg_NextMethodClass);
+#define SG_CLASS_NEXT_METHOD (&Sg_NextMethodClass)
+
+typedef struct SgNextMethodRec
+{
+  SgProcedure common;
+  SgGeneric  *generic;
+  SgObject    methods;
+  SgObject   *argv;
+  int         argc;
+} SgNextMethod;
+#define SG_NEXT_METHOD(obj)  ((SgNextMethod*)(obj))
+#define SG_NEXT_METHODP(obj) SG_XTYPEP(obj, SG_CLASS_NEXT_METHOD)
+
 #define argumentAsGeneric(index, tmp, var)				\
   castArgumentType(index, tmp, var, generic, SG_GENERICP, SG_GENERIC)
 #define argumentAsMethod(index, tmp, var)				\
@@ -103,12 +117,14 @@ SG_CDECL_BEGIN
 
 SG_EXTERN void     Sg_InitBuiltinGeneric(SgGeneric *gf, const SgChar *name,
 					 SgLibrary *lib);
+SG_EXTERN void     Sg_InitBuiltinMethod(SgMethod *m);
 SG_EXTERN SgObject Sg_NoNextMethod(SgObject *argv, int argc, SgGeneric *gf);
 
 /* needs to be here ... */
 SG_EXTERN void     Sg_AddMethod(SgGeneric *generic, SgMethod *method);
 SG_EXTERN SgObject Sg_ComputeMethods(SgGeneric *gf, SgObject *argv, int argc);
-
+SG_EXTERN SgObject Sg_MakeNextMethod(SgGeneric *gf, SgObject methods,
+				     SgObject *argv, int argc, int copyargs);
 
 /* I'm not sure if these should be usable from other shared object. */
 /* The initialization protocol */
