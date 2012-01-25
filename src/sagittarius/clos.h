@@ -204,13 +204,12 @@ extern SgClass *Sg_ObjectCPL[];
 			 printer, compare, serialize, allocate, cpa)
 
 #define argumentAsClass(index, tmp, var)				\
-  castArgumentType(index, tmp, var, bytevector, SG_CLASSP, SG_CLASS)
+  castArgumentType(index, tmp, var, class, SG_CLASSP, SG_CLASS)
 
 SG_CDECL_BEGIN
 
 /* API's for CLOS */
-SG_EXTERN SgObject Sg_MakeClass(SgObject supers, SgObject slots);
-SG_EXTERN SgObject Sg_MakeGeneric();
+SG_EXTERN SgObject Sg_MakeGeneric(SgObject name);
 SG_EXTERN SgObject Sg_MakeMethod(SgObject specializers, SgObject procedure);
 SG_EXTERN SgObject Sg_SlotRef(SgObject obj, SgObject name);
 SG_EXTERN void     Sg_SlotSet(SgObject obj, SgObject name, SgObject value);

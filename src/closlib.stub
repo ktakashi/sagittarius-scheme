@@ -3,7 +3,6 @@
     (export slot-ref slot-set!
 	    add-method
 	    ;; internals
-	    make-class
 	    make-generic
 	    make-method
 	    ;; helpers
@@ -27,11 +26,8 @@
   (define-c-proc add-method (gf::Generic m::Method) ::void
     (Sg_AddMethod gf m))
 
-  (define-c-proc make-class (supers slots) ::Object
-    (result (Sg_MakeClass supers slots)))
-
-  (define-c-proc make-generic () ::Object
-    (result (Sg_MakeGeneric)))
+  (define-c-proc make-generic (:optional (name #f)) ::Object
+    (result (Sg_MakeGeneric name)))
 
   (define-c-proc make-method (spec proc) ::Object
     (result (Sg_MakeMethod spec proc)))

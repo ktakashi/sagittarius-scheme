@@ -608,6 +608,9 @@
   (define-c-proc keyword? (o) ::boolean
     (result (SG_KEYWORDP o)))
 
+  (define-c-proc keyword->symbol (key::Keyword) ::Object
+    (result (Sg_Intern (-> key name))))
+
   ;; cache
   (define-c-proc clean-cache (:optional (target #f)) ::void
     (Sg_CleanCache target))

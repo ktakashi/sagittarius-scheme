@@ -61,6 +61,7 @@ extern void Sg__InitVM();
 extern void Sg__InitCache();
 extern void Sg__InitCharSet();
 extern void Sg__InitClos();
+extern void Sg__InitIdentifier();
 extern void Sg__InitWrite();
 
 /* stub files */
@@ -109,6 +110,7 @@ void Sg_Init()
   /* port must be after VM to replace std ports. */
   Sg__InitPort();
   Sg__InitWrite();
+  Sg__InitIdentifier();
   /* initialize default reader macro */
   Sg__InitReader();
   Sg__InitCache();

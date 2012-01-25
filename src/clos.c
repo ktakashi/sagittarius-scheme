@@ -33,17 +33,22 @@
 #include "sagittarius/bytevector.h"
 #include "sagittarius/charset.h"
 #include "sagittarius/closure.h"
+#include "sagittarius/codec.h"
 #include "sagittarius/collection.h"
+#include "sagittarius/core.h"
 #include "sagittarius/error.h"
 #include "sagittarius/generic.h"
 #include "sagittarius/gloc.h"
 #include "sagittarius/hashtable.h"
+#include "sagittarius/keyword.h"
 #include "sagittarius/library.h"
 #include "sagittarius/number.h"
 #include "sagittarius/pair.h"
+#include "sagittarius/record.h"
 #include "sagittarius/string.h"
 #include "sagittarius/subr.h"
 #include "sagittarius/symbol.h"
+#include "sagittarius/transcoder.h"
 #include "sagittarius/treemap.h"
 #include "sagittarius/unicode.h"
 #include "sagittarius/vector.h"
@@ -172,21 +177,25 @@ static SgSlotAccessor *make_slot_accessor(SgClass *klass, SgObject name,
   return ac;
 }
 
-static SgObject make_class(SgObject supers);
-
-SgObject Sg_MakeClass(SgObject supers, SgObject slots)
+SgObject Sg_MakeGeneric(SgObject name)
 {
-  return make_class(supers);
+  SgGeneric *gf = SG_GENERIC(generic_allocate(SG_CLASS_GENERIC, SG_NIL));
+  SG_PROCEDURE_NAME(gf) = name;
+  return SG_OBJ(gf);
 }
 
-SgObject Sg_MakeGeneric()
-{
-  return generic_allocate(SG_CLASS_GENERIC, SG_NIL);
-}
+#define set_method_properties(m, proc)					\
+  do {									\
+    int opt = SG_PROCEDURE_OPTIONAL(proc);				\
+    SG_PROCEDURE_OPTIONAL(m) = opt;					\
+    /* for call-next-method */						\
+    SG_PROCEDURE_REQUIRED(m) = SG_PROCEDURE_REQUIRED(proc) -1;		\
+  } while (0)
 
 SgObject Sg_MakeMethod(SgObject specializers, SgObject procedure)
 {
   SgObject *array, m, *a;
+
   array = Sg_ListToArray(specializers, TRUE);
   m = method_allocate(SG_CLASS_METHOD, SG_NIL);
   /* check */
@@ -197,62 +206,54 @@ SgObject Sg_MakeMethod(SgObject specializers, SgObject procedure)
   }
   SG_METHOD_SPECIALIZERS(m) = (SgClass**)array;
   SG_METHOD_PROCEDURE(m) = procedure;
+  set_method_properties(m, procedure);
   return m;
-}
-
-static SgObject collect_unique_methods(SgGeneric *gf, SgMethod *m)
-{
-  SgObject h = SG_NIL, t = SG_NIL, cp;
-  SG_FOR_EACH(cp, SG_GENERIC_METHODS(gf)) {
-    SgMethod *gm = SG_METHOD(SG_CAR(cp));
-    if (SG_EQ(gm, m)) continue;
-    SG_APPEND1(h, t, gm);
-  }
-  SG_APPEND1(h, t, m);
-  return h;
 }
 
 void Sg_AddMethod(SgGeneric *generic, SgMethod *method)
 {
-  SgObject methods = collect_unique_methods(generic, method);
-  SG_GENERIC_METHODS(generic) = methods;
-}
-
-/* compute-std-cpl in tiny-clos */
-static SgObject build_elements(SgClass *klass)
-{
-  SgObject result = SG_NIL, pending = SG_LIST1(klass);
-  while (1) {
-    SgObject next;
-    if (SG_NULLP(pending)) return result;
-    next = SG_CAR(pending);
-    if (SG_FALSEP(Sg_Memq(next, result))) {
-      result = Sg_Cons(next, result);
-      pending = Sg_Append2(klass->directSupers, SG_CDR(pending));
-    } else {
-      pending = SG_CDR(pending);
+  SgObject mp, pair;
+  int reqs = SG_GENERIC_MAX_REQARGS(generic), replaced = FALSE, i;
+  if (method->generic && method->generic != generic) {
+    Sg_Error(UC("method %S already added to a generic function %S"),
+	     method, method->generic);
+  }
+  if (!SG_FALSEP(Sg_Memq(SG_OBJ(method), SG_GENERIC_METHODS(generic)))) {
+    Sg_Error(UC("method %S already appears in a method list of generid %S "
+		"something wrong in MOP implementation?"),
+	     method, method->generic);
+  }
+  method->generic = generic;
+  /* pre-allcate cons pair to avoid triggering GC */
+  pair = Sg_Cons(SG_OBJ(method), SG_GENERIC_METHODS(generic));
+  if (SG_PROCEDURE_REQUIRED(method) > reqs) {
+    reqs = SG_PROCEDURE_REQUIRED(method);
+  }
+  Sg_LockMutex(&generic->mutex);
+  /* Check if a method with the same signature exists */
+  SG_FOR_EACH(mp, SG_GENERIC_METHODS(generic)) {
+    SgMethod *mm = SG_METHOD(SG_CAR(mp));
+    if (SG_PROCEDURE_REQUIRED(method) == SG_PROCEDURE_REQUIRED(mm) &&
+	SG_PROCEDURE_OPTIONAL(method) == SG_PROCEDURE_OPTIONAL(mm)) {
+      SgClass **sp1 = SG_METHOD_SPECIALIZERS(method);
+      SgClass **sp2 = SG_METHOD_SPECIALIZERS(mm);
+      for (i = 0; i < SG_PROCEDURE_REQUIRED(method); i++) {
+	if (sp1[i] != sp2[i]) break;
+      }
+      if (i == SG_PROCEDURE_REQUIRED(method)) {
+	SG_SET_CAR(mp, SG_OBJ(method));
+	replaced = TRUE;
+	break;
+      }
     }
   }
+  if (!replaced) {
+    SG_GENERIC_METHODS(generic) = pair;
+    SG_GENERIC_MAX_REQARGS(generic) = reqs;
+  }
+  Sg_UnlockMutex(&generic->mutex);
 }
 
-static SgObject build_constraints(SgClass *klass)
-{
-  SgObject elements = build_elements(klass);
-  SgObject this_one = SG_NIL, result = SG_NIL;
-  while (1) {
-    if (SG_NULLP(this_one) || SG_NULLP(SG_CDR(this_one))) {
-      if (SG_NULLP(elements)) return result;
-      ASSERT(SG_CLASSP(SG_CAR(elements)));
-      this_one = Sg_Cons(SG_CAR(elements),
-			 SG_CLASS(SG_CAR(elements))->directSupers);
-      elements = SG_CDR(elements);
-    } else {
-      result = Sg_Cons(SG_LIST2(SG_CAR(this_one), SG_CADR(this_one)),
-		       result);
-      this_one = SG_CDR(this_one);
-    }
-  }
-}
 
 #define filter_in(r_, test_, l_)			\
   do {							\
@@ -269,63 +270,137 @@ static SgObject build_constraints(SgClass *klass)
     }							\
   } while (0)
 
-static SgObject tie_breaker(SgObject partial_cpl, SgObject min_elts)
+/* 
+   from A Monotonic Superclass Linearization for Dylan, Appendix B
+   http://192.220.96.201/dylan/linearization-oopsla96.html
+
+   C3 linearization
+   sort of topological sort I guess. given list must be graphs like
+   '((menu choice-widget object)
+     (menu popup-mixin)
+     (popup-mixin object))
+   This indicates like this graph;
+   
+                <object>
+                 /   \
+   <choice-widget> ---\--------------+
+         |            <popup-mixin>  |
+       <menu>            |           |
+           \             |           |
+           <new-popup-menu> ---------+
+
+   And the result will be like this list;
+   (menu choice-widget popup-mixin object)
+
+   This is the Scheme implementation without recursive
+   (define (merge-lists sequence)
+    (let loop ((rpr '()) ;; seed
+	       (ri sequence))
+      (if (for-all null? ri)
+	  (reverse! rpr)
+	  (letrec ((candidate (lambda (c)
+				(define (tail? l) (memq c (tail l)))
+				(and (not (exists tail? ri))
+				     c)))
+		   (candidate-at-head
+		    (lambda (l)
+		      (and (not (null? l))
+			   (candidate (head l))))))
+	    (let ((next (exists candidate-at-head ri)))
+	      (if next
+		  (letrec ((remove-next (lambda (l)
+					  (if (eq? (head l) next) (tail l) l))))
+		    (loop (cons next rpr)
+				 (map remove-next ri)))
+		  (error 'merge-lists "inconsistent precedence graph")))))))
+
+
+   TODO It might be goot to export to scheme world, but I don't see any use
+   case to use this one, instead of topological sort.
+ */
+static SgObject merge_lists(SgObject sequence)
 {
-  SgObject pcpl = Sg_Reverse(partial_cpl);
-  while (1) {
-    SgObject current_elt = SG_CAR(pcpl), ds_of_ce, common;
-    ASSERT(SG_CLASSP(current_elt));
-    ds_of_ce = SG_CLASS(current_elt)->directSupers;
-#define filter_test(x) !SG_FALSEP(Sg_Memq((x), ds_of_ce))
-    filter_in(common, filter_test, min_elts);
-    if (SG_NULLP(common)) {
-      if (SG_NULLP(SG_CDR(pcpl))) {
-	Sg_Error(UC("tie-breaker: Nothing valid"));
-	return SG_UNDEF;	/* dummy */
+  SgObject rpr = SG_NIL, next;
+  int len = Sg_Length(sequence);
+  SgObject *ri, *sp, *tp;
+  /* never happen unless we export this function to the Scheme world */
+  if (len < 0) Sg_Error(UC("bad list of sequence: %S"), sequence);
+  ri = SG_NEW_ARRAY(SgObject, len);
+  for (sp = ri; sp < ri+len; sp++, sequence=SG_CDR(sequence))  {
+    *sp = SG_CAR(sequence);
+  }
+
+  for (;;) {
+    /* (for-all null? ri) */
+    for (sp = ri; sp < ri+len; sp++) {
+      if (!SG_NULLP(*sp)) break;
+    }
+    if (sp == ri+len) return Sg_ReverseX(rpr);
+    next = SG_FALSE;
+    /* candidate-at-head */
+    for (sp = ri; sp < ri+len; sp++) {
+      SgObject c;
+      if (!SG_PAIRP(*sp)) continue;
+      c = SG_CAR(*sp);
+      /* candidate */
+      for (tp = ri; tp<ri+len; tp++) {
+	if (!SG_PAIRP(*tp)) continue;
+	if (!SG_FALSEP(Sg_Memq(c, SG_CDR(*tp)))) break;
       }
-      pcpl = SG_CDR(pcpl);
-    } else {
-      return SG_CAR(common);
+      if (tp != ri+len) continue;
+      next = c;
+      break;
+    }
+    if (SG_FALSEP(next)) return SG_FALSE;
+
+    rpr = Sg_Cons(next, rpr);
+    /* remove-next */
+    for (sp = ri; sp<ri+len; sp++) {
+      if (SG_PAIRP(*sp) && SG_EQ(next, SG_CAR(*sp))) {
+	*sp = SG_CDR(*sp);
+      }
     }
   }
+  /* not reached */
 }
 
-static int cpl_every(SgObject x, SgObject constraints, SgObject result)
+static SgObject deletel(SgObject target, SgObject lst)
 {
-  SgObject cp;
-  SG_FOR_EACH(cp, constraints) {
-    SgObject constraint = SG_CAR(cp);
-    if (SG_EQ(SG_CADR(constraint), x) &&
-	SG_FALSEP(Sg_Memq(SG_CAR(constraint), result))) return FALSE;
+  SgObject h = SG_NIL, t = SG_NIL, cp;
+  SG_FOR_EACH(cp, lst) {
+    if (SG_EQ(SG_CAR(cp), target)) continue;
+    SG_APPEND1(h, t, SG_CAR(cp));
   }
-  return TRUE;
+  return h;
 }
 
-/* simple topological sort */
 SgObject Sg_ComputeCPL(SgClass *klass)
 {
-  SgObject elements = build_elements(klass);
-  SgObject constraints = build_constraints(klass);
-  SgObject result = SG_NIL, t = SG_NIL;
+  SgObject seqh = SG_NIL, seqt = SG_NIL, ds, dp, result;
+  /* a trick to ensure we have <object> <top> at the end of CPL */
+  ds = deletel(SG_OBJ(SG_CLASS_OBJECT), klass->directSupers);
+  ds = deletel(SG_OBJ(SG_CLASS_TOP), ds);
+  ds = Sg_Append2(ds, SG_LIST1(SG_OBJ(SG_CLASS_OBJECT)));
 
-  while (1) {
-    SgObject can_go_in_now;
-    if (SG_NULLP(elements)) return result;
-#define can_go_test(x) cpl_every(x, constraints, result)
-    filter_in(can_go_in_now, can_go_test, elements);
-
-    if (SG_NULLP(can_go_in_now)) {
-      Sg_Error(UC("compute-std-cpl: Invalid constraints"));
-      return SG_UNDEF;		/* dummy */
-    } else {
-      SgObject choice;
-      if (SG_NULLP(SG_CDR(can_go_in_now))) choice = SG_CAR(can_go_in_now);
-      else choice = tie_breaker(result, can_go_in_now);
-#define loop_test(x) !SG_EQ(x, choice)
-      filter_in(elements, loop_test, elements);
-      SG_APPEND1(result, t, choice);
+  /* map(cpl-list, c-direct-superclasses */
+  SG_FOR_EACH(dp, klass->directSupers) {
+    if (!Sg_TypeP(SG_CAR(dp), SG_CLASS_CLASS)) {
+      Sg_Error(UC("non-class found in direct superclass list: %S"),
+	       klass->directSupers);
     }
+    if (SG_CAR(dp) == SG_CLASS_OBJECT || SG_CAR(dp) == SG_CLASS_TOP) continue;
+    SG_APPEND1(seqh, seqt, SG_CLASS(SG_CAR(dp))->cpl);
   }
+  SG_APPEND1(seqh, seqt, SG_CLASS_OBJECT->cpl);
+  SG_APPEND1(seqh, seqt, ds);
+
+  result = merge_lists(seqh);
+  if (SG_FALSEP(result)) {
+    Sg_Error(UC("discrepancy found in class precedence lists of "
+		"the superclasses: %S(%S)"), klass->directSupers, seqh);
+  }
+  /* add klass itsself */
+  return Sg_Cons(SG_OBJ(klass), result);
 }
 
 SgObject Sg_ComputeSlots(SgClass *klass)
@@ -365,30 +440,55 @@ int Sg_ApplicableP(SgObject c, SgObject arg)
   return !SG_FALSEP(Sg_Memq(c, SG_CLASS(Sg_ClassOf(arg))->cpl));
 }
 
-static int method_every(SgObject method, SgObject *argv, int argc)
+#define PREALLOC_SIZE 32
+
+static SgObject compute_applicable_methods(SgGeneric *gf, SgObject *argv,
+					   int argc)
 {
-  SgClass **specs = SG_METHOD_SPECIALIZERS(method);
-  for (; *specs; specs++) {
-    int i;
-    for (i = 0; i < argc; i++, specs++) {
-      if (!Sg_ApplicableP(*specs, argv[i])) return FALSE;
-    }
+  SgObject methods = SG_GENERIC_METHODS(gf), mp;
+  SgObject h = SG_NIL, t = SG_NIL;
+  SgClass *typev_s[PREALLOC_SIZE], **typev = typev_s;
+  int i, nsel;
+  if (SG_NULLP(methods)) return SG_NIL;
+
+  nsel = SG_GENERIC_MAX_REQARGS(gf);
+  if (nsel > PREALLOC_SIZE) {
+    typev = SG_NEW_ATOMIC2(SgClass**, sizeof(SgClass*)*nsel);
   }
-  return TRUE;
+  for (i = 0; i < argc && nsel >= 0; i++, nsel--) {
+    typev[i] = Sg_ClassOf(argv[i]);
+  }
+  SG_FOR_EACH(mp, methods) {
+    SgMethod *m = SG_METHOD(SG_CAR(mp));
+    SgClass **tp, **sp;
+    int n;
+    if (argc < SG_PROCEDURE_REQUIRED(m)) continue;
+    if (!SG_PROCEDURE_OPTIONAL(m) && argc > SG_PROCEDURE_REQUIRED(m)) continue;
+    for (tp = typev, sp = SG_METHOD_SPECIALIZERS(m), n = 0;
+	 n < SG_PROCEDURE_REQUIRED(m);
+	 tp++, sp++, n++) {
+      if (!Sg_SubtypeP(*tp, *sp)) break;
+    }
+    if (n == SG_PROCEDURE_REQUIRED(m)) SG_APPEND1(h, t, SG_OBJ(m));
+  }
+  return h;
 }
 
-#define PREALLOC_SIZE 32
 /*
   These functions must be generic, however for now we just put here
   and ignore the others.
  */
 static int more_specific_p(SgClass *c1, SgClass *c2, SgClass *arg)
 {
-  SgObject m1 = Sg_Memq(c1, arg->cpl);
-  if (!SG_FALSEP(m1)) {
-    return !SG_FALSEP(Sg_Memq(c2, m1));
+  SgClass **cpl;
+  if (c1 == arg) return TRUE;
+  if (c2 == arg) return FALSE;
+  for (cpl = arg->cpa; *cpl; cpl++) {
+    if (c1 == *cpl) return TRUE;
+    if (c2 == *cpl) return FALSE;
   }
-  return FALSE;
+  Sg_Panic("internal error: couldn't determine more specific method.");
+  return FALSE;			/* dummy */
 }
 
 static int method_more_specific(SgMethod *m1, SgMethod *m2,
@@ -396,16 +496,16 @@ static int method_more_specific(SgMethod *m1, SgMethod *m2,
 {
   SgClass **spec1 = SG_METHOD_SPECIALIZERS(m1);
   SgClass **spec2 = SG_METHOD_SPECIALIZERS(m2);
-  int i;
-  for (i = 0; i < argc; i++, spec1++, spec2++) {
-    if (!*spec1) return TRUE;
-    if (!*spec2) return FALSE;
-    if (!SG_EQ(*spec1, *spec2)) {
+  int i, xreq = SG_PROCEDURE_REQUIRED(m1), yreq = SG_PROCEDURE_REQUIRED(m2);
+  for (i = 0; i < argc; i++) {
+    if (!SG_EQ(spec1[i], spec2[i])) {
       return more_specific_p(*spec1, *spec2, targv[i]);
     }
   }
-  Sg_Error(UC("Fewer arguments than specializers"));
-  return FALSE;			/* dummy */
+  if (xreq > yreq) return TRUE;
+  if (xreq < yreq) return FALSE;
+  if (SG_PROCEDURE_OPTIONAL(m2)) return TRUE;
+  else return FALSE;
 }
 
 
@@ -449,9 +549,7 @@ static SgObject sort_method(SgObject methods, SgObject *argv, int argc)
 
 SgObject Sg_ComputeMethods(SgGeneric *gf, SgObject *argv, int argc)
 {
-  SgObject applicable;
-#define method_filter(x) method_every(x, argv, argc)
-  filter_in(applicable, method_filter, SG_GENERIC_METHODS(gf));
+  SgObject applicable = compute_applicable_methods(gf, argv, argc);
   if (SG_NULLP(applicable)) return applicable;
   return sort_method(applicable, argv, argc);
 }
@@ -719,7 +817,16 @@ static SgObject class_getters_n_setters(SgClass *klass)
 
 static void class_getters_n_setters_set(SgClass *klass, SgObject getters)
 {
-  /* TODO check */
+  SgObject cp;
+  if (!SG_LISTP(getters))
+    Sg_Error(UC("proper list required, but got %S"), getters);
+
+  SG_FOR_EACH(cp, getters) {
+    if (!Sg_TypeP(SG_CAR(cp), SG_CLASS_SLOT_ACCESSOR)) {
+      Sg_Error(UC("list of slot-accessor required, but got %S"), getters);
+    }
+  }
+
   klass->gettersNSetters = (SgSlotAccessor**)Sg_ListToArray(getters, TRUE);
 }
 
@@ -752,6 +859,22 @@ static SgObject generic_allocate(SgClass *klass, SgObject initargs)
   Sg_InitMutex(SG_GENERIC_MUTEX(gf), FALSE);
   return SG_OBJ(gf);
 }
+
+static SgObject generic_name(SgGeneric *gf)
+{
+  return SG_PROCEDURE_NAME(gf);
+}
+
+static void generic_name_set(SgGeneric *gf, SgObject name)
+{
+  SG_PROCEDURE_NAME(gf) = name;
+}
+
+static SgObject generic_methods(SgGeneric *gf)
+{
+  return SG_GENERIC_METHODS(gf);
+}
+
 
 void Sg_InitBuiltinGeneric(SgGeneric *gf, const SgChar *name, SgLibrary *lib)
 {
@@ -813,8 +936,29 @@ static SgObject method_specializers(SgMethod *method)
 
 static void method_specializers_set(SgMethod *method, SgObject specs)
 {
-  SgClass **s = (SgClass**)Sg_ListToArray(specs, TRUE);
+  SgClass **s;
+  SgObject cp;
+  if (!SG_LISTP(specs)) {
+    Sg_Error(UC("proper list required, but got %S"), specs);
+  }
+  SG_FOR_EACH(cp, specs) {
+    if (!Sg_TypeP(SG_CAR(cp), SG_CLASS_CLASS)) {
+      Sg_Error(UC("list of class required, but got %S"), specs);
+    }
+  }
+  s = (SgClass**)Sg_ListToArray(specs, TRUE);
   SG_METHOD_SPECIALIZERS(method) = s;
+}
+
+static SgObject method_name(SgMethod *method)
+{
+  return SG_PROCEDURE_NAME(method);
+}
+
+
+static void method_name_set(SgMethod *method, SgObject name)
+{
+  SG_PROCEDURE_NAME(method) = name;
 }
 
 static SgObject method_procedure(SgMethod *method)
@@ -824,10 +968,11 @@ static SgObject method_procedure(SgMethod *method)
 
 static void method_procedure_set(SgMethod *method, SgObject proc)
 {
-  if (!SG_CLOSUREP(proc) || !SG_SUBRP(proc)) {
+  if (!SG_CLOSUREP(proc) && !SG_SUBRP(proc)) {
     Sg_Error(UC("method procedure requires procedure but got %S"), proc);
   }
   SG_METHOD_PROCEDURE(method) = proc;
+  set_method_properties(method, proc);
 }
 
 /* next method */
@@ -880,20 +1025,21 @@ static SgSlotAccessor class_slots[] = {
   { { NULL } }
 };
 
+static SgSlotAccessor generic_slots[] = {
+  SG_CLASS_SLOT_SPEC("name",    0, generic_name, generic_name_set),
+  SG_CLASS_SLOT_SPEC("methods", 1, generic_methods, NULL),
+  { { NULL } }
+};
+
 static SgSlotAccessor method_slots[] = {
   SG_CLASS_SLOT_SPEC("specializers",   0, method_specializers,
 		     method_specializers_set),
   SG_CLASS_SLOT_SPEC("procedure",      1, method_procedure,
 		     method_procedure_set),
+  SG_CLASS_SLOT_SPEC("name",      2, method_name,
+		     method_name_set),
   { { NULL } }
 };
-
-static SgObject make_class(SgObject supers)
-{
-  SgClass *klass = SG_CLASS(class_allocate(SG_CLASS_CLASS, SG_NIL));
-  init_class(klass, NULL, NULL, supers, class_slots, 0);
-  return SG_OBJ(klass);
-}
 
 static void initialize_builtin_cpl(SgClass *klass, SgObject supers)
 {
@@ -903,8 +1049,25 @@ static void initialize_builtin_cpl(SgClass *klass, SgObject supers)
   for (p = klass->cpa; *p; p++) SG_APPEND1(h, t, SG_OBJ(*p));
   klass->cpl = h;
   if (SG_PAIRP(supers)) {
-    /* for now don't support */
-    ASSERT(FALSE);
+    SgObject cp, sp = supers;
+    SG_FOR_EACH(cp, klass->cpl) {
+      if (SG_EQ(SG_CAR(cp), SG_CAR(sp))) {
+	sp = SG_CDR(sp);
+	if (SG_NULLP(sp)) break;
+      }
+    }
+    if (!SG_NULLP(sp)) {
+      /* this happens in initialization of Sagittarius itself, so we can not
+         handle any exception yet, but exit*/
+      const char *cname = "(unnamed class)";
+      if (SG_SYMBOLP(klass->name)) {
+	cname = (const char*)Sg_Utf32sToUtf8s(SG_SYMBOL(klass->name)->name);
+      }
+      Sg_Panic("Class %s is being initialized with inconsistent super class "
+	       "list. Must be an implementation error. Report to the author.",
+	       cname);
+    }
+    klass->directSupers = supers;
   } else if (SG_PAIRP(SG_CDR(h))) {
     /* Default: take the next class of CPL as the only direct super */
     klass->directSupers = SG_LIST1(SG_CADR(h));
@@ -1086,7 +1249,7 @@ void Sg__InitClos()
   BINIT(SG_CLASS_TOP,    "<top>", NULL);
   BINIT(SG_CLASS_OBJECT, "<object>", NULL);
   /* generic, method and next-method */
-  BINIT(SG_CLASS_GENERIC,     "<generic>", NULL);
+  BINIT(SG_CLASS_GENERIC,     "<generic>", generic_slots);
   BINIT(SG_CLASS_METHOD,      "<method>",  method_slots);
   BINIT(SG_CLASS_NEXT_METHOD, "<next-method>", NULL);
   /* set flags for above to make them applicable(procedure? returns #t) */
@@ -1122,6 +1285,9 @@ void Sg__InitClos()
   CINIT(SG_CLASS_SYMBOL,    "<symbol>");
   CINIT(SG_CLASS_GLOC,      "<gloc>");
 
+  /* keyword */
+  CINIT(SG_CLASS_KEYWORD,   "<keyword>");
+
   /* abstract collection */
   BINIT(SG_CLASS_COLLECTION, "<collection>", NULL);
   BINIT(SG_CLASS_SEQUENCE,   "<sequence>",   NULL);
@@ -1136,10 +1302,21 @@ void Sg__InitClos()
   /* vector */
   CINIT(SG_CLASS_VECTOR,    "<vector>");
   /* bytevector */
-  CINIT(SG_CLASS_BVECTOR,   "<byte-vector>");
+  CINIT(SG_CLASS_BVECTOR,   "<bytevector>");
   /* weak */
   CINIT(SG_CLASS_WEAK_VECTOR,       "<weak-vector>");
   CINIT(SG_CLASS_WEAK_HASHTABLE,    "<weak-hashtable>");
+
+  /* codec and transcoders */
+  CINIT(SG_CLASS_CODEC,       "<codec>");
+  CINIT(SG_CLASS_TRANSCODER,  "<transcoder>");
+
+  /* Should we export this? this might be removed in future if I can rewrite
+     record with CLOS. */
+  /* record */
+  CINIT(SG_CLASS_RECORD_TYPE, "<record-type>");
+
+  /* we do not export values. this should not be first class object. */
 
   /* procedure */
   CINIT(SG_CLASS_PROCEDURE, "<procedure>");

@@ -199,6 +199,14 @@ int Sg_IdentifierEqP(SgObject e1, SgObject id1, SgObject e2, SgObject id2)
   }
   return (id1 == id2) && (lam1 == lam2) && (lib1 == lib2);
 }
+
+void Sg__InitIdentifier()
+{
+  /* For future we might want to make identifier <object> to use slot-ref
+     but for now.*/
+  SgLibrary *clib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
+  Sg_InitStaticClass(SG_CLASS_IDENTIFIER, UC("<identifier>"), clib, NULL, 0);
+}
 /*
   end of file
   Local Variables:

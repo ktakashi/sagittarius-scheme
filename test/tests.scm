@@ -19,7 +19,8 @@
 	(tests text sxml ssax)
 	(tests text sxml sxpath)
 	(tests text sxml serializer)
-	(tests text sxml htmlprag))
+	(tests text sxml htmlprag)
+	(tests clos core))
 ;; srfi-64 default implementation does not report detail error.
 ;; so creates own test-runner
 (define (test-on-test-end-detail runner)
@@ -88,4 +89,5 @@
 (run-sxpath-test)
 (run-serializer-test)
 (run-htmlprag-test)
+(run-clos-core-tests)
 (test-end)

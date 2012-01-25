@@ -129,6 +129,8 @@ struct SgSubrRec
   castArgumentType(index, tmp, var, code-builder, SG_CODE_BUILDERP, SG_CODE_BUILDER)
 #define argumentAsSymbol(index, tmp, var)				\
   castArgumentType(index, tmp, var, symbol, SG_SYMBOLP, SG_SYMBOL)
+#define argumentAsKeyword(index, tmp, var)				\
+  castArgumentType(index, tmp, var, keyword, SG_KEYWORDP, SG_KEYWORD)
 #define argumentAsHashTable(index, tmp, var)				\
   castArgumentType(index, tmp, var, hashtable, SG_HASHTABLE_P, SG_HASHTABLE)
 #define argumentAsIdentifier(index, tmp, var)				\

@@ -189,7 +189,7 @@
 (define (null-list? l)
   (cond ((pair? l) #f)
 	((null? l) #t)
-	(else (error 'null-list? "argument out of domain" l))))
+	(else (assertion-violation 'null-list? "argument out of domain" l))))
 
 (define split-at
   (lambda (x k)
