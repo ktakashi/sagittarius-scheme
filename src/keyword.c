@@ -31,13 +31,15 @@
  */
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/keyword.h"
+#include "sagittarius/error.h"
 #include "sagittarius/hashtable.h"
+#include "sagittarius/pair.h"
 #include "sagittarius/port.h"
 #include "sagittarius/string.h"
 #include "sagittarius/symbol.h"
 #include "sagittarius/thread.h"
 #include "sagittarius/writer.h"
-
+#include "sagittarius/builtin-keywords.h"
 
 static void keyword_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
@@ -86,10 +88,29 @@ SgObject Sg_MakeKeyword(SgString *name)
   return r;
 }
 
+SgObject Sg_GetKeyword(SgObject key, SgObject list, SgObject fallback)
+{
+  SgObject cp;
+  SG_FOR_EACH(cp, list) {
+    if (!SG_PAIRP(SG_CDR(cp))) {
+      Sg_Error(UC("incomplete key list: %S"), list);
+    }
+    if (key == SG_CAR(cp)) return SG_CADR(cp);
+    cp = SG_CDR(cp);
+  }
+  if (SG_UNBOUNDP(fallback)) {
+    Sg_Error(UC("value for key %S is not provided: %S"), key, list);
+  }
+  return fallback;
+}
+
+#include "builtin-keywords.c"
+
 void Sg__InitKeyword()
 {
   Sg_InitMutex(&keywords.mutex, FALSE);
   keywords.table = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_STRING, 256));
+  init_builtin_keywords();
 }
 /*
   end of file

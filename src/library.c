@@ -51,6 +51,7 @@
 #include "sagittarius/cache.h"
 #include "sagittarius/reader.h"
 #include "sagittarius/identifier.h"
+#include "sagittarius/builtin-keywords.h"
 
 static void library_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
@@ -535,19 +536,11 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
 			      SgObject only, SgObject except,
 			      SgObject renames, SgObject prefix)
 {
-  static SgObject allKeyword = SG_UNDEF;
-  static SgObject readmacroKeyword = SG_UNDEF;
   SgLibrary *tolib, *fromlib;
   SgObject exportSpec, keys, key, imports;
   SgVM *vm = Sg_VM();
   int allP = FALSE;
 
-  if (SG_UNDEFP(allKeyword)) {
-    allKeyword = Sg_MakeKeyword(SG_MAKE_STRING("all"));
-  }
-  if (SG_UNDEFP(readmacroKeyword)) {
-    readmacroKeyword = Sg_MakeKeyword(SG_MAKE_STRING("export-reader-macro"));
-  }
   ENSURE_LIBRARY(to, tolib);
   ENSURE_LIBRARY(from, fromlib);
   Sg_LockMutex(&tolib->lock);
@@ -561,7 +554,7 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
 
   /* resolve :all keyword first */
   if (!SG_FALSEP(exportSpec) && 
-      !SG_FALSEP(Sg_Memq(allKeyword, SG_CAR(exportSpec)))) {
+      !SG_FALSEP(Sg_Memq(SG_KEYWORD_ALL, SG_CAR(exportSpec)))) {
     if (SG_NULLP(only) &&
 	SG_NULLP(renames) &&
 	SG_NULLP(except) &&
@@ -630,7 +623,7 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
   import_parents(tolib, fromlib, imports, except, prefix, allP);
  out:
   if (SG_FALSEP(exportSpec) ||
-      !SG_FALSEP(Sg_Memq(readmacroKeyword, SG_CAR(exportSpec)))) {
+      !SG_FALSEP(Sg_Memq(SG_KEYWORD_EXPORT_READER_MACRO, SG_CAR(exportSpec)))) {
     import_reader_macro(tolib, fromlib);
   }
 

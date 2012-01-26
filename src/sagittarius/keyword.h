@@ -51,6 +51,8 @@ struct SgKeywordRec
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeKeyword(SgString *name);
+SG_EXTERN SgObject Sg_GetKeyword(SgObject key, SgObject list,
+				 SgObject fallback);
 
 SG_CDECL_END
 

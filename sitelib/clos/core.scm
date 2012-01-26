@@ -48,16 +48,9 @@
 	    (srfi :26 cut)
 	    (sagittarius)
 	    (sagittarius clos))
-  (define initialize (make-generic 'initialize))
-  (define compute-cpl (make-generic 'compute-cpl))
-  (define compute-slots (make-generic 'compute-slots))
-  (define compute-getters-and-setters
-    (make-generic 'compute-getters-and-setters))
-
   (define (initialize-direct-slots obj cls init-args)
     (let loop ((slots (slot-ref cls 'direct-slots)))
-      (when (and (not (null? slots))
-		 (pair? (car slots))) ;; avoid accident to car call-next-method
+      (unless (null? slots)
 	(let ((name (caar slots)))
 	  (slot-set! obj name (getl init-args (make-keyword (caar slots))))
 	  (loop (cdr slots))))))
@@ -69,104 +62,120 @@
 				     "required argument could not be found"
 				     initargs))))
 
-  (define (class-direct-supers c)
-    (slot-ref c 'direct-supers))
+  (define (%make class . initargs)
+    (let ((obj (allocate-instance class initargs)))
+      (initialize obj initargs)
+      obj))
 
-  (define (class-direct-slots c)
-    (slot-ref c 'direct-slots))
-  
-  (define (class-cpl c)
-    (slot-ref c 'cpl))
-
-  (define (class-slots c)
-    (slot-ref c 'slots))
-
-  (define (generic-methods gf)
-    (slot-ref gf 'methods))
-
-  (define (method-specializers m)
-    (slot-ref m 'specializers))
-
-  (define (method-procedure m)
-    (slot-ref m 'procedure))
-
-  (add-method compute-cpl
-	      (make-method (list <class>)
-		(lambda (class call-next-method)
-		  (let ((cpl (compute-std-cpl class)))
-		    cpl))))
-
-  (add-method compute-slots
-	      (make-method (list <class>)
-		(lambda (class call-next-method)
-		  (compute-std-slots class))))
-
-  (add-method compute-getters-and-setters
-	      (make-method (list <class> <list>)
-		(lambda (class slots call-next-method)
-		  (compute-std-getters-and-setters class slots))))
+  (let ((body  (lambda (call-next-method class . initargs)
+		 (let ((obj (allocate-instance class initargs)))
+		   (initialize obj initargs)
+		   obj))))
+    (add-method make
+		(%make <method>
+		       :generic make
+		       :specializers  (list <class>)
+		       :lambda-list  '(class . initargs)
+		       :procedure body)))
 
   (add-method initialize
-	      (make-method (list <object> <list>)
-		(lambda (object initargs call-next-method)
-		  object)))
+	      (make <method>
+		:specializers (list <class>)
+		:generic initialize
+		:lambda-list '(class . initargs)
+		:procedure (lambda (call-next-method class initargs)
+			     (call-next-method)
+			     (slot-set! class 'name
+					(getl initargs :definition-name #f))
+			     (slot-set! class 'direct-supers
+					(getl initargs :direct-supers '()))
+			     (slot-set! class
+					'direct-slots
+					(map (lambda (s)
+					       (if (pair? s) s (list s)))
+					     (getl initargs :direct-slots '())))
+			     (slot-set! class 'cpl   (compute-cpl class))
+			     (slot-set! class 'slots (compute-slots class))
+			     (slot-set! class 'getters-n-setters
+					(compute-getters-and-setters
+					 class
+					 (slot-ref class 'slots)))
+			     (slot-set! class 'nfields
+					(length (slot-ref class 'slots))))))
 
   (add-method initialize
-	      (make-method (list <class> <list>)
-		(lambda (class initargs call-next-method)
-		  (call-next-method)
-		  (slot-set! class 'name
-			     (getl initargs :definition-name #f))
-		  (slot-set! class 'direct-supers
-			     (getl initargs :direct-supers '()))
-		  (slot-set! class
-			     'direct-slots
-			     (map (lambda (s)
-				    (if (pair? s) s (list s)))
-				  (getl initargs :direct-slots '())))
-		  (slot-set! class 'cpl   (compute-cpl class))
-		  (slot-set! class 'slots (compute-slots class))
-		  (slot-set! class 'getters-n-setters
-			     (compute-getters-and-setters
-			      class
-			      (slot-ref class 'slots)))
-		  (slot-set! class 'nfields (length (slot-ref class 'slots))))))
+	      (make <method>
+		:specializers (list <generic>)
+		:generic initialize
+		:lambda-list '(generic . initarg)
+		:procedure (lambda (call-next-method generic initarg)
+			     (call-next-method)
+			     (slot-set! generic 'name
+					(getl initarg :definition-name #f)))))
 
-  (add-method initialize
-	      (make-method (list <method> <list>)
-		(lambda (method initarg call-next-method)
-		  (call-next-method)
-		  (slot-set! method 'name
-			     (getl initarg :definition-name #f))
-		  (slot-set! method 'specializers
-			     (getl initarg :specializers))
-		  (slot-set! method 'procedure
-			     (getl initarg :procedure)))))
+  ;; make generic accessor for <class> <generic> and <method>
+  ;; <class>
+  (define class-direct-supers
+    (make <generic> :definition-name 'class-direct-supers))
+  (define class-direct-slots
+    (make <generic> :definition-name 'class-direct-slots))
+  (define class-cpl (make <generic> :definition-name 'class-cpl))
+  (define class-slots (make <generic> :definition-name 'class-slots))
 
-  (add-method initialize
-	      (make-method (list <generic> <list>)
-		(lambda (generic initarg call-next-method)
-		  (call-next-method)
-		  (slot-set! generic 'name
-			     (getl initarg :definition-name #f)))))
+  (add-method class-direct-supers
+	      (make <method>
+		:specializers (list <class>)
+		:lambda-list '(class)
+		:generic class-direct-supers
+		:procedure (lambda (call-next-method class)
+			     (slot-ref class 'direct-supers))))
+  (add-method class-direct-slots
+	      (make <method>
+		:specializers (list <class>)
+		:lambda-list '(class)
+		:generic class-direct-slots
+		:procedure (lambda (call-next-method class)
+			     (slot-ref class 'direct-slots))))
+  (add-method class-cpl
+	      (make <method>
+		:specializers (list <class>)
+		:lambda-list '(class)
+		:generic class-cpl
+		:procedure (lambda (call-next-method class)
+			     (slot-ref class 'cpl))))
+  (add-method class-slots
+	      (make <method>
+		:specializers (list <class>)
+		:lambda-list '(class)
+		:generic class-slots
+		:procedure (lambda (call-next-method class)
+			     (slot-ref class 'slots))))
+  ;; <generic>
+  (define generic-methods (make <generic> :definition-name 'generic-methods))
+  (add-method generic-methods
+	      (make <method>
+		:specializers (list <generic>)
+		:lambda-list '(generic)
+		:generic generic-methods
+		:procedure (lambda (call-next-method gf)
+			     (slot-ref gf 'methods))))
 
-  (add-method initialize
-	      (make-method (list <object> <list>)
-		(lambda (object . initarg) object)))
-
-  ;; add initial make
-  (add-method make
-	      (make-method (list <class>)
-		(lambda (class . initargs)
-		  (let ((obj (allocate-instance class initargs)))
-		    (initialize obj initargs)
-		    obj))))
-
-  ;; convenient methods
-  (define (make-class direct-supers direct-slots . name)
-    (make <class>
-      :direct-supers direct-supers
-      :direct-slots direct-slots
-      :definition-name (and (pair? name) (car name))))
-
+  ;; <method>
+  (define method-specializers
+    (make <generic> :definition-name 'method-specializers))
+  (define method-procedure (make <generic> :definition-name 'method-procedure))
+  (add-method method-specializers
+	      (make <method>
+		:specializers (list <method>)
+		:lambda-list '(method)
+		:generic method-specializers
+		:procedure (lambda (call-next-method m)
+			     (slot-ref m 'specializers))))
+  (add-method method-procedure
+	      (make <method>
+		:specializers (list <method>)
+		:lambda-list '(method)
+		:generic method-procedure
+		:procedure (lambda (call-next-method m)
+			     (slot-ref m 'procedure))))
 )

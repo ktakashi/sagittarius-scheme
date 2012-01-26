@@ -33,6 +33,7 @@
 #include "sagittarius/bytevector.h"
 #include "sagittarius/charset.h"
 #include "sagittarius/closure.h"
+#include "sagittarius/code.h"
 #include "sagittarius/codec.h"
 #include "sagittarius/collection.h"
 #include "sagittarius/core.h"
@@ -55,7 +56,7 @@
 #include "sagittarius/vm.h"
 #include "sagittarius/weak.h"
 #include "sagittarius/writer.h"
-
+#include "sagittarius/builtin-keywords.h"
 
 static void slot_acc_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
@@ -130,6 +131,16 @@ static SgObject class_list_to_array(SgObject lst, int len)
   return v;
 }
 
+static SgObject class_list_to_names(SgClass **lst, int len)
+{
+  SgObject h = SG_NIL, t = SG_NIL;
+  int i;
+  for (i=0; i<len; i++, lst++) {
+    SG_APPEND1(h, t, (*lst)->name);
+  }
+  return h;
+}
+
 SG_DEFINE_BASE_CLASS(Sg_ObjectClass, SgInstance,
 		     NULL, NULL, NULL, Sg_ObjectAllocate,
 		     SG_CLASS_DEFAULT_CPL);
@@ -177,38 +188,24 @@ static SgSlotAccessor *make_slot_accessor(SgClass *klass, SgObject name,
   return ac;
 }
 
-SgObject Sg_MakeGeneric(SgObject name)
-{
-  SgGeneric *gf = SG_GENERIC(generic_allocate(SG_CLASS_GENERIC, SG_NIL));
-  SG_PROCEDURE_NAME(gf) = name;
-  return SG_OBJ(gf);
-}
+/*
+  we need to calculate required arguments count, basically we just need to 
+  -1 for call-next-method.
 
+  NOTE: because of variable flatten in compiler, if a procedure has optional
+        argument, the original required arguments count will be +1.
+	ex) (lambda (a b . c) ...) ;; -> required argc = 3.
+	so if the procedure has optional argument, we need to reduce 2, instead
+	of 1.
+ */
 #define set_method_properties(m, proc)					\
   do {									\
-    int opt = SG_PROCEDURE_OPTIONAL(proc);				\
+    int opt = SG_PROCEDURE_OPTIONAL(proc), offset=1;			\
     SG_PROCEDURE_OPTIONAL(m) = opt;					\
     /* for call-next-method */						\
-    SG_PROCEDURE_REQUIRED(m) = SG_PROCEDURE_REQUIRED(proc) -1;		\
+    if (opt) offset++;							\
+    SG_PROCEDURE_REQUIRED(m) = SG_PROCEDURE_REQUIRED(proc)-offset;	\
   } while (0)
-
-SgObject Sg_MakeMethod(SgObject specializers, SgObject procedure)
-{
-  SgObject *array, m, *a;
-
-  array = Sg_ListToArray(specializers, TRUE);
-  m = method_allocate(SG_CLASS_METHOD, SG_NIL);
-  /* check */
-  for (a = array; *a; a++) {
-    if (!Sg_TypeP(*a, SG_CLASS_CLASS)) {
-      Sg_Error(UC("<class> required but got %S"), *a);
-    }
-  }
-  SG_METHOD_SPECIALIZERS(m) = (SgClass**)array;
-  SG_METHOD_PROCEDURE(m) = procedure;
-  set_method_properties(m, procedure);
-  return m;
-}
 
 void Sg_AddMethod(SgGeneric *generic, SgMethod *method)
 {
@@ -234,7 +231,8 @@ void Sg_AddMethod(SgGeneric *generic, SgMethod *method)
   SG_FOR_EACH(mp, SG_GENERIC_METHODS(generic)) {
     SgMethod *mm = SG_METHOD(SG_CAR(mp));
     if (SG_PROCEDURE_REQUIRED(method) == SG_PROCEDURE_REQUIRED(mm) &&
-	SG_PROCEDURE_OPTIONAL(method) == SG_PROCEDURE_OPTIONAL(mm)) {
+	SG_PROCEDURE_OPTIONAL(method) == SG_PROCEDURE_OPTIONAL(mm) &&
+	SG_EQ(SG_METHOD_QUALIFIER(method), SG_METHOD_QUALIFIER(mm))) {
       SgClass **sp1 = SG_METHOD_SPECIALIZERS(method);
       SgClass **sp2 = SG_METHOD_SPECIALIZERS(mm);
       for (i = 0; i < SG_PROCEDURE_REQUIRED(method); i++) {
@@ -254,6 +252,18 @@ void Sg_AddMethod(SgGeneric *generic, SgMethod *method)
   Sg_UnlockMutex(&generic->mutex);
 }
 
+/* void Sg_AddDirectMethod(SgClass *klass, SgMethod *m) */
+/* { */
+/*   if (SG_CLASS_CATEGORY(klass) == SG_CLASS_SCHEME) { */
+/*     SgObject p = Sg_Cons(SG_OBJ(m), SG_NIL); */
+/*     Sg_LockMutex(&klass->mutex); */
+/*     if (SG_FALSEP(Sg_Memq(klass->directMethods, SG_OBJ(m)))) { */
+/*       SG_SET_CDR(p, klass->directMethods); */
+/*       klass->directMethods = p; */
+/*     } */
+/*     Sg_UnlockMutex(&klass->mutex); */
+/*   } */
+/* } */
 
 #define filter_in(r_, test_, l_)			\
   do {							\
@@ -508,14 +518,49 @@ static int method_more_specific(SgMethod *m1, SgMethod *m2,
   else return FALSE;
 }
 
+/* :around :before :after and :primary */
+enum {
+  PRIMARY_INDEX = 0,
+  BEFORE_INDEX,
+  AFTER_INDEX,
+  AROUND_INDEX,
+  QUALIFIER_COUNT
+};
 
-static SgObject sort_method(SgObject methods, SgObject *argv, int argc)
+static SgObject* sort_method_by_qualifier(SgObject methods, SgObject *result)
+{
+  SgObject cp, art = SG_NIL, bt = SG_NIL, pt = SG_NIL, aft = SG_NIL;
+  int i;
+  for (i=0; i<QUALIFIER_COUNT; i++) result[i] = SG_NIL;
+  SG_FOR_EACH(cp, methods) {
+    SgMethod *m = SG_METHOD(SG_CAR(cp));
+    if (SG_EQ(SG_METHOD_QUALIFIER(m), SG_KEYWORD_AROUND)) {
+      SG_APPEND1(result[AROUND_INDEX], art, SG_OBJ(m));
+    } else if (SG_EQ(SG_METHOD_QUALIFIER(m), SG_KEYWORD_BEFORE)) {
+      SG_APPEND1(result[BEFORE_INDEX], bt, SG_OBJ(m));
+    } else if (SG_EQ(SG_METHOD_QUALIFIER(m), SG_KEYWORD_PRIMARY)) {
+      SG_APPEND1(result[PRIMARY_INDEX], pt, SG_OBJ(m));
+    } else if (SG_EQ(SG_METHOD_QUALIFIER(m), SG_KEYWORD_AFTER)) {
+      SG_APPEND1(result[AFTER_INDEX], aft, SG_OBJ(m));
+    } else {
+      /* invalid */
+      Sg_Error(UC("wrong method-qualifier %S in method %S"),
+	       SG_METHOD_QUALIFIER(m), m);
+    }
+  }
+  return result;
+}
+
+static SgObject sort_primary_methods(SgObject methods, SgObject *argv, int argc)
 {
   SgObject array_s[PREALLOC_SIZE], *array = array_s;
   SgClass *targv_s[PREALLOC_SIZE], **targv = targv_s;
-  int count = 0, len = Sg_Length(methods), step, i, j;
+  int count = 0, len, step, i, j;
   SgObject mp;
+  /* for safety */
+  if (SG_NULLP(methods)) return methods;
 
+  len = Sg_Length(methods);
   /* TODO maybe we should use alloca */
   if (len >= PREALLOC_SIZE)  array = SG_NEW_ARRAY(SgObject, len);
   if (argc >= PREALLOC_SIZE) targv = SG_NEW_ARRAY(SgClass*, argc);
@@ -545,6 +590,140 @@ static SgObject sort_method(SgObject methods, SgObject *argv, int argc)
     }
   }
   return Sg_ArrayToList(array, len);
+}
+
+/*
+  creates a procedure and rest of next-methods.
+  basically, only around must have next-methods, other must be called 
+ */
+static SgObject procedure_invoker(SgObject *args, int argc, void *data);
+static SgObject invoke_cc(SgObject result, void **data)
+{
+  void **dvec = (void**)data[0];
+  SgObject proc = SG_OBJ(dvec[0]);
+  SgObject *args = (SgObject*)data[1];
+  int argc = (int)data[2];
+  if (SG_NULLP(proc)) return SG_TRUE; /* no more methods */
+  return procedure_invoker(args, argc, dvec);
+}
+
+static SgObject procedure_invoker(SgObject *args, int argc, void *data)
+{
+  void **dvec = (void**)data;
+  SgObject proc;
+  SgObject h = SG_NIL, t = SG_NIL;
+  void *next[3];
+  int i;
+  /* retrive data */
+  proc = SG_CAR(SG_OBJ(dvec[0]));
+  dvec[0] = SG_CDR(SG_OBJ(dvec[0]));
+
+  ASSERT(SG_METHODP(proc));
+  next[0] = dvec;
+  next[1] = SG_OBJ(args);
+  next[2] = SG_OBJ(argc);
+
+  if (SG_EQ(SG_METHOD_QUALIFIER(proc), SG_KEYWORD_PRIMARY)) {
+    /* compute next-method */
+    SgObject rest = SG_OBJ(dvec[1]);
+    SG_APPEND1(h, t, Sg_MakeNextMethod(SG_METHOD_GENERIC(proc), rest,
+				       args, argc, FALSE));
+  } else {
+    /* dummy, :before and :after can not have next-method. */
+    SG_APPEND1(h, t, Sg_MakeNextMethod(SG_METHOD_GENERIC(proc),
+				       SG_NIL,
+				       args, argc, FALSE));
+  }
+  Sg_VMPushCC(invoke_cc, next, 3);
+  for (i = 0; i < argc; i++) {
+    SG_APPEND1(h, t, args[i]);
+  }
+  return Sg_VMApply(SG_METHOD_PROCEDURE(proc), h);
+}
+
+static SgObject compute_around_methods(SgObject around, SgObject before,
+				       SgObject primary, SgObject after,
+				       SgObject *argv, int argc)
+{
+  SgObject m, rest;
+  SgObject proc, name = SG_UNDEF;
+  SgObject result = SG_NIL, t = SG_NIL, mp;
+  SgClass **specs = NULL;
+  void **dvec;
+  int req = -1, opt = -1;
+  /* lazyness */
+  primary = sort_primary_methods(primary, argv, argc);
+  /* if there is no primary method, then it must be an error */
+  if (SG_NULLP(primary)) {
+    return SG_NIL;
+  }
+
+  around  = sort_primary_methods(around, argv, argc);
+  before  = sort_primary_methods(before, argv, argc);
+  after   = sort_primary_methods(after, argv, argc);
+
+  /* on tiny clos for R6RS, after is called in reverse order */
+  after = Sg_ReverseX(after);
+  /* calculate before primary and after first */
+  SG_FOR_EACH(mp, before) {
+    if (req < 0) {
+      req = SG_PROCEDURE_REQUIRED(SG_CAR(mp));
+    }
+    if (opt < 0) {
+      opt = SG_PROCEDURE_OPTIONAL(SG_CAR(mp));
+    }
+    SG_APPEND1(result, t, SG_CAR(mp));
+  }
+  SG_FOR_EACH(mp, primary) {
+    if (SG_UNDEFP(name)) {
+      name = SG_PROCEDURE_NAME(SG_CAR(mp));
+    }
+    if (!specs) {
+      specs = SG_METHOD_SPECIALIZERS(SG_CAR(mp));
+    }
+    SG_APPEND1(result, t, SG_CAR(mp));
+    rest = SG_CDR(mp);
+    /* primary next-method will be created in procedure_invoker */
+    break;
+  }
+  SG_FOR_EACH(mp, after) {
+    SG_APPEND1(result, t, SG_CAR(mp));
+  }
+  dvec = SG_NEW_ARRAY(void*, 2);
+  dvec[0] = result;
+  dvec[1] = rest;
+  proc = Sg_MakeSubr(procedure_invoker, dvec, req, opt, name);
+  m = method_allocate(SG_CLASS_METHOD, proc);
+  SG_METHOD_PROCEDURE(m) = proc;
+  SG_METHOD_SPECIALIZERS(m) = specs;
+  SG_PROCEDURE_REQUIRED(m) = req;
+  SG_PROCEDURE_OPTIONAL(m) = opt;
+  SG_PROCEDURE_NAME(m) = name;
+
+  if (SG_NULLP(around)) {
+    return SG_LIST1(m);
+  } else {
+    /* calculate around here */
+    return SG_LIST1(m);
+  }
+}
+
+static SgObject sort_method(SgObject methods, SgObject *argv, int argc)
+{
+  SgObject qualified_methods[QUALIFIER_COUNT];
+  SgObject primary, before, after, around;
+  sort_method_by_qualifier(methods, qualified_methods);
+  primary = qualified_methods[PRIMARY_INDEX];
+  before  = qualified_methods[BEFORE_INDEX];
+  after   = qualified_methods[AFTER_INDEX];
+  around  = qualified_methods[AROUND_INDEX];
+
+  if (SG_NULLP(around) && SG_NULLP(before) && SG_NULLP(around)) {
+    return sort_primary_methods(primary, argv, argc);
+  } else {
+    /* dummy */
+    return compute_around_methods(around, before, primary, after, argv, argc);
+  }
 }
 
 SgObject Sg_ComputeMethods(SgGeneric *gf, SgObject *argv, int argc)
@@ -921,7 +1100,9 @@ static SgObject method_allocate(SgClass *klass, SgObject initargs)
 
 static void method_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
-  Sg_Printf(port, UC("#<method %S>"), SG_PROCEDURE_NAME(SG_METHOD(obj)));
+  Sg_Printf(port, UC("#<method %S%S>"),
+	    SG_PROCEDURE_NAME(SG_METHOD(obj)),
+	    SG_METHOD_QUALIFIER(obj));
 }
 
 static SgObject method_specializers(SgMethod *method)
@@ -1210,9 +1391,23 @@ void Sg_InitStaticClassWithMeta(SgClass *klass, const SgChar *name,
   }
 }
 
+/* 
+   builtin object initializer
+   for now it the same as (lambda (call-next-method object . initargs) object)
+ */
+static SgObject builtin_initialize(SgObject *argv, int argc, SgGeneric *gf)
+{
+  ASSERT(argc >= 2);
+  return argv[1];
+}
+
 /* builtin generics */
 SG_DEFINE_GENERIC(Sg_GenericMake, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericAllocateInstance, Sg_NoNextMethod, NULL);
+SG_DEFINE_GENERIC(Sg_GenericInitialize, builtin_initialize, NULL);
+SG_DEFINE_GENERIC(Sg_GenericComputeCPL, Sg_NoNextMethod, NULL);
+SG_DEFINE_GENERIC(Sg_GenericComputeSlots, Sg_NoNextMethod, NULL);
+SG_DEFINE_GENERIC(Sg_GenericComputeGetterAndSetter, Sg_NoNextMethod, NULL);
 
 static SgObject allocate_impl(SgObject *args, int argc, void *data)
 {
@@ -1232,6 +1427,127 @@ static SgClass *class_allocate_SPEC[] = {
 
 static SG_DEFINE_METHOD(class_allocate_rec, &Sg_GenericAllocateInstance,
 			2, 0, class_allocate_SPEC, &allocate);
+
+
+static SgObject method_initialize_impl(SgObject *argv, int argc, void *data)
+{
+  SgMethod *m = SG_METHOD(argv[0]);
+  SgGeneric *g;
+  SgObject initargs = argv[1];
+  SgObject llist, quoli, generic, specs, body;
+  SgClass **specarray;
+  SgObject lp, h, t;
+  int speclen = 0, req = 0, opt = 0, i;
+  /* for sanity */
+  ASSERT(SG_METHODP(m));
+  /* get keyword arguments */
+  llist   = Sg_GetKeyword(SG_KEYWORD_LAMBDA_LIST, initargs, SG_FALSE);
+  quoli   = Sg_GetKeyword(SG_KEYWORD_QUALIFIER, initargs, SG_KEYWORD_PRIMARY);
+  generic = Sg_GetKeyword(SG_KEYWORD_GENERIC, initargs, SG_FALSE);
+  specs   = Sg_GetKeyword(SG_KEYWORD_SPECIALIZERS, initargs, SG_FALSE);
+  body    = Sg_GetKeyword(SG_KEYWORD_PROCEDURE, initargs, SG_FALSE);
+
+  if (!Sg_TypeP(generic, SG_CLASS_GENERIC)) {
+    Sg_Error(UC("generic function required for :generic argument: %S"), 
+	     generic);
+  }
+  g = SG_GENERIC(generic);
+  if (!SG_CLOSUREP(body) && !SG_SUBRP(body)) {
+    Sg_Error(UC("closure required for :body argument: %S"), body);
+  }
+  if ((speclen = Sg_Length(specs)) < 0) {
+    Sg_Error(UC("invalid specializers list: %S"), specs);
+  }
+  specarray = class_list_to_array(specs, speclen);
+
+  SG_FOR_EACH(lp, llist) req++;
+  if (!SG_NULLP(lp)) opt++;
+
+  if (SG_PROCEDURE_REQUIRED(body) != req + opt + 1) {
+    Sg_Error(UC("body doesn't match with lambda list: %S"), body);
+  }
+  if (speclen != req) {
+    Sg_Error(UC("specializer list doesn't match with lambda list: %S"), specs);
+  }
+  SG_PROCEDURE_REQUIRED(m) = req;
+  SG_PROCEDURE_OPTIONAL(m) = opt;
+  SG_PROCEDURE_NAME(m) = Sg_Cons(SG_PROCEDURE_NAME(g),
+				 class_list_to_names(specarray, speclen));
+  SG_METHOD_GENERIC(m) = g;
+  SG_METHOD_SPECIALIZERS(m) = specarray;
+  SG_METHOD_PROCEDURE(m) = body;
+  SG_METHOD_QUALIFIER(m) = quoli;
+  /* mostly true */
+  if (SG_CLOSUREP(body)) {
+    h = t = SG_NIL;
+    for (i=0; i<speclen; i++) {
+      SG_APPEND1(h, t, specarray[i]->name);
+    }
+    SG_CODE_BUILDER(SG_CLOSURE(body)->code)->name
+      = Sg_Cons(SG_PROCEDURE_NAME(g), h);
+  }
+  /* add direct methods? */
+  return SG_OBJ(m);
+}
+
+SG_DEFINE_SUBR(method_initialize, 2, 0, method_initialize_impl, SG_FALSE, NULL);
+static SgClass *method_initialize_SPEC[] = {
+  SG_CLASS_METHOD, SG_CLASS_LIST
+};
+
+static SG_DEFINE_METHOD(method_initialize_rec, &Sg_GenericInitialize,
+			2, 0,
+			method_initialize_SPEC,
+			&method_initialize);
+
+/* compute-cpl */
+static SgObject compute_cpl_impl(SgObject *args, int argc, void *data)
+{
+  return Sg_ComputeCPL(SG_CLASS(args[0]));
+}
+
+SG_DEFINE_SUBR(compute_cpl, 1, 0, compute_cpl_impl, SG_FALSE, NULL);
+
+static SgClass *compute_cpl_SPEC[] = {
+  SG_CLASS_CLASS
+};
+
+static SG_DEFINE_METHOD(compute_cpl_rec, &Sg_GenericComputeCPL,
+			1, 0,
+			compute_cpl_SPEC, &compute_cpl);
+
+/* compute-slots */
+static SgObject compute_slots_impl(SgObject *args, int argc, void *data)
+{
+  return Sg_ComputeSlots(SG_CLASS(args[0]));
+}
+
+SG_DEFINE_SUBR(compute_slots, 1, 0, compute_slots_impl, SG_FALSE, NULL);
+
+static SgClass *compute_slots_SPEC[] = {
+  SG_CLASS_CLASS
+};
+
+static SG_DEFINE_METHOD(compute_slots_rec, &Sg_GenericComputeSlots,
+			1, 0,
+			compute_slots_SPEC, &compute_slots);
+
+/* compute-getters-and-setters */
+static SgObject compute_gas_impl(SgObject *args, int argc, void *data)
+{
+  return Sg_ComputeGettersAndSetters(SG_CLASS(args[0]), args[1]);
+}
+
+SG_DEFINE_SUBR(compute_gas, 1, 0, compute_gas_impl, SG_FALSE, NULL);
+
+static SgClass *compute_gas_SPEC[] = {
+  SG_CLASS_CLASS, SG_CLASS_LIST
+};
+
+static SG_DEFINE_METHOD(compute_gas_rec, &Sg_GenericComputeGetterAndSetter,
+			2, 0,
+			compute_gas_SPEC, &compute_gas);
+
 
 void Sg__InitClos()
 {
@@ -1327,7 +1643,15 @@ void Sg__InitClos()
 
   GINIT(&Sg_GenericMake, "make");
   GINIT(&Sg_GenericAllocateInstance, "allocate-instance");
+  GINIT(&Sg_GenericInitialize, "initialize");
+  GINIT(&Sg_GenericComputeCPL, "compute-cpl");
+  GINIT(&Sg_GenericComputeSlots, "compute-slots");
+  GINIT(&Sg_GenericComputeGetterAndSetter, "compute-getters-and-setters");
 
   /* methods */
   Sg_InitBuiltinMethod(&class_allocate_rec);
+  Sg_InitBuiltinMethod(&method_initialize_rec);
+  Sg_InitBuiltinMethod(&compute_cpl_rec);
+  Sg_InitBuiltinMethod(&compute_slots_rec);
+  Sg_InitBuiltinMethod(&compute_gas_rec);
 }

@@ -73,7 +73,8 @@ SG_CLASS_DECL(Sg_MethodClass);
 typedef struct SgMethodRec
 {
   SgProcedure common;
-  SgGeneric  *generic;		/* Do we need this? */
+  SgGeneric  *generic;
+  SgKeyword  *qualifier;	/* :primary :around :before or :after */
   SgClass   **specializers;	/* list of class.
 				   must be array to initialize statically. */
   SgObject    procedure;	/* subr or closuer.
@@ -85,13 +86,14 @@ typedef struct SgMethodRec
 #define SG_METHOD_GENERIC(method)      (SG_METHOD(method)->generic)
 #define SG_METHOD_SPECIALIZERS(method) (SG_METHOD(method)->specializers)
 #define SG_METHOD_PROCEDURE(method)    (SG_METHOD(method)->procedure)
+#define SG_METHOD_QUALIFIER(method)    (SG_METHOD(method)->qualifier)
 
 #define SG_DEFINE_METHOD(cvar, gf, req, opt, specs, proc)		\
   SgMethod cvar = {							\
     SG__PROCEDURE_INITIALIZER(SG_CLASS_STATIC_TAG(Sg_MethodClass),	\
 			      req, opt, SG_PROC_METHOD,			\
 			      SG_FALSE, SG_FALSE),			\
-    gf, specs, proc							\
+    gf, SG_KEYWORD_PRIMARY, specs, proc					\
   }
 
 SG_CLASS_DECL(Sg_NextMethodClass);
@@ -137,10 +139,10 @@ SG_EXTERN SgGeneric Sg_GenericComputeGetterAndSetter;
 SG_EXTERN SgGeneric Sg_GenericComputeCPL;
 SG_EXTERN SgGeneric Sg_GenericComputeSlots;
 /* The generic invocation protocol */
-SG_EXTERN SgGeneric Sg_GenericComputeApplyGeneric;
-SG_EXTERN SgGeneric Sg_GenericComputeMethods;
-SG_EXTERN SgGeneric Sg_GenericComputeMethodMoreSpecificP;
-SG_EXTERN SgGeneric Sg_GenericComputeApplyMethods;
+/* SG_EXTERN SgGeneric Sg_GenericComputeApplyGeneric; */
+/* SG_EXTERN SgGeneric Sg_GenericComputeMethods; */
+/* SG_EXTERN SgGeneric Sg_GenericComputeMethodMoreSpecificP; */
+/* SG_EXTERN SgGeneric Sg_GenericComputeApplyMethods; */
 
 
 SG_CDECL_END

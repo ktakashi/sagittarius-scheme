@@ -208,9 +208,6 @@ extern SgClass *Sg_ObjectCPL[];
 
 SG_CDECL_BEGIN
 
-/* API's for CLOS */
-SG_EXTERN SgObject Sg_MakeGeneric(SgObject name);
-SG_EXTERN SgObject Sg_MakeMethod(SgObject specializers, SgObject procedure);
 SG_EXTERN SgObject Sg_SlotRef(SgObject obj, SgObject name);
 SG_EXTERN void     Sg_SlotSet(SgObject obj, SgObject name, SgObject value);
 

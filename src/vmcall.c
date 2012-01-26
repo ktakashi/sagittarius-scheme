@@ -92,10 +92,8 @@
       ASSERT(SG_CODE_BUILDERP(cls->code));				\
       CL(vm) = cls;							\
       PC(vm) = SG_CODE_BUILDER(cls->code)->code;			\
-      /* it's really annoying if we insert call-next-method before the	\
-	 all arguments, so the last. it's a little bit incompatible	\
-	 with tiny-clos. */						\
-      PUSH(SP(vm), nm);							\
+      unshift_args(SP(vm), 1);						\
+      INDEX_SET(SP(vm), argc, nm);					\
       argc++;								\
       CHECK_STACK(SG_CODE_BUILDER(cls->code)->maxStack, vm);		\
       ADJUST_ARGUMENT_FRAME(cls, argc);					\
