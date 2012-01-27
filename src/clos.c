@@ -603,7 +603,9 @@ static SgObject invoke_cc(SgObject result, void **data)
   SgObject proc = SG_OBJ(dvec[0]);
   SgObject *args = (SgObject*)data[1];
   int argc = (int)data[2];
-  if (SG_NULLP(proc)) return SG_TRUE; /* no more methods */
+  /* store the result of :primary methods */
+  if (dvec[2]) dvec[3] = result;
+  if (SG_NULLP(proc)) return dvec[3]; /* no more methods */
   return procedure_invoker(args, argc, dvec);
 }
 
@@ -628,11 +630,13 @@ static SgObject procedure_invoker(SgObject *args, int argc, void *data)
     SgObject rest = SG_OBJ(dvec[1]);
     SG_APPEND1(h, t, Sg_MakeNextMethod(SG_METHOD_GENERIC(proc), rest,
 				       args, argc, FALSE));
+    dvec[2] = (void*)TRUE;
   } else {
     /* dummy, :before and :after can not have next-method. */
     SG_APPEND1(h, t, Sg_MakeNextMethod(SG_METHOD_GENERIC(proc),
 				       SG_NIL,
 				       args, argc, FALSE));
+    dvec[2] = (void*)FALSE;
   }
   Sg_VMPushCC(invoke_cc, next, 3);
   for (i = 0; i < argc; i++) {
@@ -666,32 +670,33 @@ static SgObject compute_around_methods(SgObject around, SgObject before,
   after = Sg_ReverseX(after);
   /* calculate before primary and after first */
   SG_FOR_EACH(mp, before) {
-    if (req < 0) {
-      req = SG_PROCEDURE_REQUIRED(SG_CAR(mp));
-    }
-    if (opt < 0) {
-      opt = SG_PROCEDURE_OPTIONAL(SG_CAR(mp));
-    }
     SG_APPEND1(result, t, SG_CAR(mp));
   }
-  SG_FOR_EACH(mp, primary) {
-    if (SG_UNDEFP(name)) {
-      name = SG_PROCEDURE_NAME(SG_CAR(mp));
-    }
-    if (!specs) {
-      specs = SG_METHOD_SPECIALIZERS(SG_CAR(mp));
-    }
-    SG_APPEND1(result, t, SG_CAR(mp));
-    rest = SG_CDR(mp);
-    /* primary next-method will be created in procedure_invoker */
-    break;
-  }
+  mp = primary;
+  req = SG_PROCEDURE_REQUIRED(SG_CAR(mp));
+  opt = SG_PROCEDURE_OPTIONAL(SG_CAR(mp));
+  name = SG_PROCEDURE_NAME(SG_CAR(mp));
+  specs = SG_METHOD_SPECIALIZERS(SG_CAR(mp));
+  SG_APPEND1(result, t, SG_CAR(mp));
+  rest = SG_CDR(mp);
+  /* primary next-method will be created in procedure_invoker */
+
   SG_FOR_EACH(mp, after) {
     SG_APPEND1(result, t, SG_CAR(mp));
   }
-  dvec = SG_NEW_ARRAY(void*, 2);
+  /*
+    data store vector.
+    0: :before + first of :primary + :after
+    1: the rest of :primary
+    2: flag if invoke_cc needs to store the result or not
+    3: the result of invoke_cc. this will be returned as a result of this
+       generic method calling.
+   */
+  dvec = SG_NEW_ARRAY(void*, 4);
   dvec[0] = result;
   dvec[1] = rest;
+  dvec[2] = (void*)FALSE;
+  dvec[3] = SG_UNDEF;
   proc = Sg_MakeSubr(procedure_invoker, dvec, req, opt, name);
   m = method_allocate(SG_CLASS_METHOD, proc);
   SG_METHOD_PROCEDURE(m) = proc;
@@ -703,8 +708,21 @@ static SgObject compute_around_methods(SgObject around, SgObject before,
   if (SG_NULLP(around)) {
     return SG_LIST1(m);
   } else {
-    /* calculate around here */
-    return SG_LIST1(m);
+    /* calculate around.
+       around method must have call-next-method and if it is not called,
+       the method does not proceed to next. so we need to create a list
+       which contains around method and the rest of result, like this;
+       (:around m) ;; m is calculated methods.
+       however, :around itself can be multiple, so it might be multiple
+       lists, not only length 2 list.
+     */
+    SgObject h = SG_NIL, ap;
+    t = SG_NIL;			/* reuse */
+    SG_FOR_EACH(ap, around) {
+      SG_APPEND1(h, t, SG_CAR(ap));
+    }
+    SG_APPEND1(h, t, m);
+    return h;
   }
 }
 

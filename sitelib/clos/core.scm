@@ -61,18 +61,19 @@
 	  (else (assertion-violation 'getl
 				     "required argument could not be found"
 				     initargs))))
-
-  (define (%make class . initargs)
-    (let ((obj (allocate-instance class initargs)))
-      (initialize obj initargs)
-      obj))
-
-  (let ((body  (lambda (call-next-method class . initargs)
+  ;; NOTE: generic method must have call-next-method as its first argument.
+  ;;       but %make does not need this, so just a dummy
+  (let ((%make (lambda (dummy class . initargs)
+		 (let ((obj (allocate-instance class initargs)))
+		   (initialize obj initargs)
+		   obj)))
+	(body  (lambda (call-next-method class . initargs)
 		 (let ((obj (allocate-instance class initargs)))
 		   (initialize obj initargs)
 		   obj))))
     (add-method make
-		(%make <method>
+		(%make 'dummy ;; note above
+		       <method>
 		       :generic make
 		       :specializers  (list <class>)
 		       :lambda-list  '(class . initargs)

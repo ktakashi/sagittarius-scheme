@@ -1787,6 +1787,17 @@ static inline SgObject* shift_args(SgObject *fp, int m, SgObject *sp)
   return f;
 }
 
+/* for call-next-method. is there not a better way? */
+static inline SgObject* shift_one_args(SgObject *sp, int m)
+{
+  int i;
+  SgObject *tsp = sp+1;
+  for (i=0; i<m; i++) {
+    INDEX_SET(tsp, i, INDEX(sp, i));
+  }
+  return tsp;
+}
+
 static SgObject process_queued_requests_cc(SgObject result, void **data)
 {
   SgVM *vm = Sg_VM();

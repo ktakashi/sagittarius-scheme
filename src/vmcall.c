@@ -92,7 +92,8 @@
       ASSERT(SG_CODE_BUILDERP(cls->code));				\
       CL(vm) = cls;							\
       PC(vm) = SG_CODE_BUILDER(cls->code)->code;			\
-      unshift_args(SP(vm), 1);						\
+      /* shift one for call-next-method */				\
+      SP(vm) = shift_one_args(SP(vm), argc);				\
       INDEX_SET(SP(vm), argc, nm);					\
       argc++;								\
       CHECK_STACK(SG_CODE_BUILDER(cls->code)->maxStack, vm);		\
