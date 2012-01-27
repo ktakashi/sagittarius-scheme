@@ -100,8 +100,12 @@
 			       (tmp  (gensym)))
 			   `(,_begin
 			     (,_define-generic ,accessor)
+			     ;; setter
 			     (,_define-method ,accessor ((,tmp ,name))
-				(,(rename 'slot-ref) ,tmp ',slot-name)))))
+				(,(rename 'slot-ref) ,tmp ',slot-name))
+			     ;; getter
+			     (,_define-method ,accessor ((,tmp ,name) obj)
+				(,(rename 'slot-set!) ,tmp ',slot-name obj)))))
 		       accessors))
 		  )))
        (match form
