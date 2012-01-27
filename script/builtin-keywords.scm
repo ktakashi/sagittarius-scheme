@@ -70,6 +70,8 @@
     (:before          SG_KEYWORD_BEFORE)
     (:after           SG_KEYWORD_AFTER)
     (:around          SG_KEYWORD_AROUND)
+    (:init-value      SG_KEYWORD_INIT_VALUE)
+    (:init-keyword    SG_KEYWORD_INIT_KEYWORD)
     ;; for export
     (:all             SG_KEYWORD_ALL)
     (:export-reader-macro SG_KEYWORD_EXPORT_READER_MACRO)

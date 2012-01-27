@@ -1696,6 +1696,31 @@ static SgObject _sagittarius_keyword_3esymbol(SgObject *args, int argc, void *da
 static SG_DEFINE_SUBR(_sagittarius_keyword_3esymbol_Stub, 1, 0, _sagittarius_keyword_3esymbol, SG_FALSE, NULL);
 
 ;
+static SgObject _sagittarius_get_keyword(SgObject *args, int argc, void *data_)
+{
+  SgObject key_scm;
+  SgKeyword *key;
+  SgObject lst;
+  SgObject fallback;
+  DeclareProcedureName("get-keyword");
+  checkArgumentLengthBetween(2, 3);
+  argumentAsKeyword(0, key_scm, key);
+  argumentRef(1, lst);
+  if (argc >= 3) {
+    argumentRef(2, fallback);
+  } else {
+    fallback = SG_UNBOUND;
+  }
+
+  {
+    SgObject SG_RETURN = SG_UNDEF;
+    SG_RETURN = (Sg_GetKeyword(key, lst, fallback));
+    return SG_RETURN;
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_get_keyword_Stub, 2, 1, _sagittarius_get_keyword, SG_FALSE, NULL);
+
+;
 static SgObject _sagittarius_clean_cache(SgObject *args, int argc, void *data_)
 {
   SgObject target;
@@ -2634,58 +2659,6 @@ SG_CDECL_BEGIN
 void Sg__Init_sagittarius()
 {
   SgLibrary *lib = SG_LIBRARY(Sg_FindLibrary(SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("(sagittarius)")))), TRUE));
-  SG_PROCEDURE_NAME(&_sagittarius_25insert_dispatch_macro_character_Stub) = SG_STRING(SG_MAKE_STRING("%insert-dispatch-macro-character"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("%insert-dispatch-macro-character")))), SG_OBJ(&_sagittarius_25insert_dispatch_macro_character_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_port_info_Stub) = SG_STRING(SG_MAKE_STRING("port-info"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("port-info")))), SG_OBJ(&_sagittarius_port_info_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_file_size_in_bytes_Stub) = SG_STRING(SG_MAKE_STRING("file-size-in-bytes"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("file-size-in-bytes")))), SG_OBJ(&_sagittarius_file_size_in_bytes_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_build_path_Stub) = SG_STRING(SG_MAKE_STRING("build-path"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("build-path")))), SG_OBJ(&_sagittarius_build_path_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_make_dispatch_macro_character_Stub) = SG_STRING(SG_MAKE_STRING("make-dispatch-macro-character"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-dispatch-macro-character")))), SG_OBJ(&_sagittarius_make_dispatch_macro_character_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_25char_set_ranges_Stub) = SG_STRING(SG_MAKE_STRING("%char-set-ranges"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("%char-set-ranges")))), SG_OBJ(&_sagittarius_25char_set_ranges_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_create_directory_Stub) = SG_STRING(SG_MAKE_STRING("create-directory"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("create-directory")))), SG_OBJ(&_sagittarius_create_directory_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_make_weak_vector_Stub) = SG_STRING(SG_MAKE_STRING("make-weak-vector"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-weak-vector")))), SG_OBJ(&_sagittarius_make_weak_vector_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_file_stat_ctime_Stub) = SG_STRING(SG_MAKE_STRING("file-stat-ctime"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("file-stat-ctime")))), SG_OBJ(&_sagittarius_file_stat_ctime_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_absolute_path3f_Stub) = SG_STRING(SG_MAKE_STRING("absolute-path?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("absolute-path?")))), SG_OBJ(&_sagittarius_absolute_path3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_string_scan_Stub) = SG_STRING(SG_MAKE_STRING("string-scan"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string-scan")))), SG_OBJ(&_sagittarius_string_scan_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_make_keyword_Stub) = SG_STRING(SG_MAKE_STRING("make-keyword"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-keyword")))), SG_OBJ(&_sagittarius_make_keyword_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_load_Stub) = SG_STRING(SG_MAKE_STRING("load"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("load")))), SG_OBJ(&_sagittarius_load_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_unwrap_syntax_Stub) = SG_STRING(SG_MAKE_STRING("unwrap-syntax"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("unwrap-syntax")))), SG_OBJ(&_sagittarius_unwrap_syntax_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_current_directory_Stub) = SG_STRING(SG_MAKE_STRING("current-directory"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("current-directory")))), SG_OBJ(&_sagittarius_current_directory_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_add_dynamic_load_path_Stub) = SG_STRING(SG_MAKE_STRING("add-dynamic-load-path"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("add-dynamic-load-path")))), SG_OBJ(&_sagittarius_add_dynamic_load_path_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_char_set3f_Stub) = SG_STRING(SG_MAKE_STRING("char-set?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char-set?")))), SG_OBJ(&_sagittarius_char_set3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_file_directory3f_Stub) = SG_STRING(SG_MAKE_STRING("file-directory?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("file-directory?")))), SG_OBJ(&_sagittarius_file_directory3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_record_type3f_Stub) = SG_STRING(SG_MAKE_STRING("record-type?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("record-type?")))), SG_OBJ(&_sagittarius_record_type3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_wrap_syntax_Stub) = SG_STRING(SG_MAKE_STRING("wrap-syntax"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("wrap-syntax")))), SG_OBJ(&_sagittarius_wrap_syntax_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_circular_list3f_Stub) = SG_STRING(SG_MAKE_STRING("circular-list?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("circular-list?")))), SG_OBJ(&_sagittarius_circular_list3f_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_cond_features_Stub) = SG_STRING(SG_MAKE_STRING("cond-features"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("cond-features")))), SG_OBJ(&_sagittarius_cond_features_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_arity_Stub) = SG_STRING(SG_MAKE_STRING("arity"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("arity")))), SG_OBJ(&_sagittarius_arity_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_set_current_directory_Stub) = SG_STRING(SG_MAKE_STRING("set-current-directory"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("set-current-directory")))), SG_OBJ(&_sagittarius_set_current_directory_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_vector_copy_Stub) = SG_STRING(SG_MAKE_STRING("vector-copy"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("vector-copy")))), SG_OBJ(&_sagittarius_vector_copy_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_file_stat_mtime_Stub) = SG_STRING(SG_MAKE_STRING("file-stat-mtime"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("file-stat-mtime")))), SG_OBJ(&_sagittarius_file_stat_mtime_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_current_load_path_Stub) = SG_STRING(SG_MAKE_STRING("current-load-path"));
   Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("current-load-path")))), SG_OBJ(&_sagittarius_current_load_path_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_report_error_Stub) = SG_STRING(SG_MAKE_STRING("report-error"));
@@ -2746,8 +2719,6 @@ void Sg__Init_sagittarius()
   Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("hashtable-values")))), SG_OBJ(&_sagittarius_hashtable_values_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_char_set_copy_Stub) = SG_STRING(SG_MAKE_STRING("char-set-copy"));
   Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char-set-copy")))), SG_OBJ(&_sagittarius_char_set_copy_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_keyword_3esymbol_Stub) = SG_STRING(SG_MAKE_STRING("keyword->symbol"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("keyword->symbol")))), SG_OBJ(&_sagittarius_keyword_3esymbol_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_read_delimited_list_Stub) = SG_STRING(SG_MAKE_STRING("read-delimited-list"));
   Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("read-delimited-list")))), SG_OBJ(&_sagittarius_read_delimited_list_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_identifier3d3f_Stub) = SG_STRING(SG_MAKE_STRING("identifier=?"));
@@ -2840,10 +2811,10 @@ void Sg__Init_sagittarius()
   Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("%char-set<=?")))), SG_OBJ(&_sagittarius_25char_set3c3d3f_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_write2fss_Stub) = SG_STRING(SG_MAKE_STRING("write/ss"));
   Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("write/ss")))), SG_OBJ(&_sagittarius_write2fss_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_variable3f_Stub) = SG_STRING(SG_MAKE_STRING("variable?"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("variable?")))), SG_OBJ(&_sagittarius_variable3f_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_25char_set_add_range21_Stub) = SG_STRING(SG_MAKE_STRING("%char-set-add-range!"));
   Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("%char-set-add-range!")))), SG_OBJ(&_sagittarius_25char_set_add_range21_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_variable3f_Stub) = SG_STRING(SG_MAKE_STRING("variable?"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("variable?")))), SG_OBJ(&_sagittarius_variable3f_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_make_codec_Stub) = SG_STRING(SG_MAKE_STRING("make-codec"));
   Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-codec")))), SG_OBJ(&_sagittarius_make_codec_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_set_dispatch_macro_character_Stub) = SG_STRING(SG_MAKE_STRING("set-dispatch-macro-character"));
@@ -2852,10 +2823,10 @@ void Sg__Init_sagittarius()
   Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("acons")))), SG_OBJ(&_sagittarius_acons_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_hashtable_hasher_Stub) = SG_STRING(SG_MAKE_STRING("hashtable-hasher"));
   Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("hashtable-hasher")))), SG_OBJ(&_sagittarius_hashtable_hasher_Stub));
-  SG_PROCEDURE_NAME(&_sagittarius_weak_vector_set21_Stub) = SG_STRING(SG_MAKE_STRING("weak-vector-set!"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("weak-vector-set!")))), SG_OBJ(&_sagittarius_weak_vector_set21_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_format_Stub) = SG_STRING(SG_MAKE_STRING("format"));
   Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("format")))), SG_OBJ(&_sagittarius_format_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_weak_vector_set21_Stub) = SG_STRING(SG_MAKE_STRING("weak-vector-set!"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("weak-vector-set!")))), SG_OBJ(&_sagittarius_weak_vector_set21_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_get_macro_character_Stub) = SG_STRING(SG_MAKE_STRING("get-macro-character"));
   Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("get-macro-character")))), SG_OBJ(&_sagittarius_get_macro_character_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_hashtable_compare_Stub) = SG_STRING(SG_MAKE_STRING("hashtable-compare"));
@@ -2864,7 +2835,63 @@ void Sg__Init_sagittarius()
   Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("keyword?")))), SG_OBJ(&_sagittarius_keyword3f_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_dotted_list3f_Stub) = SG_STRING(SG_MAKE_STRING("dotted-list?"));
   Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("dotted-list?")))), SG_OBJ(&_sagittarius_dotted_list3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_25insert_dispatch_macro_character_Stub) = SG_STRING(SG_MAKE_STRING("%insert-dispatch-macro-character"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("%insert-dispatch-macro-character")))), SG_OBJ(&_sagittarius_25insert_dispatch_macro_character_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_unbound_Stub) = SG_STRING(SG_MAKE_STRING("unbound"));
   Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("unbound")))), SG_OBJ(&_sagittarius_unbound_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_port_info_Stub) = SG_STRING(SG_MAKE_STRING("port-info"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("port-info")))), SG_OBJ(&_sagittarius_port_info_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_file_size_in_bytes_Stub) = SG_STRING(SG_MAKE_STRING("file-size-in-bytes"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("file-size-in-bytes")))), SG_OBJ(&_sagittarius_file_size_in_bytes_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_build_path_Stub) = SG_STRING(SG_MAKE_STRING("build-path"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("build-path")))), SG_OBJ(&_sagittarius_build_path_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_make_dispatch_macro_character_Stub) = SG_STRING(SG_MAKE_STRING("make-dispatch-macro-character"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-dispatch-macro-character")))), SG_OBJ(&_sagittarius_make_dispatch_macro_character_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_25char_set_ranges_Stub) = SG_STRING(SG_MAKE_STRING("%char-set-ranges"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("%char-set-ranges")))), SG_OBJ(&_sagittarius_25char_set_ranges_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_keyword_3esymbol_Stub) = SG_STRING(SG_MAKE_STRING("keyword->symbol"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("keyword->symbol")))), SG_OBJ(&_sagittarius_keyword_3esymbol_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_create_directory_Stub) = SG_STRING(SG_MAKE_STRING("create-directory"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("create-directory")))), SG_OBJ(&_sagittarius_create_directory_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_make_weak_vector_Stub) = SG_STRING(SG_MAKE_STRING("make-weak-vector"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-weak-vector")))), SG_OBJ(&_sagittarius_make_weak_vector_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_file_stat_ctime_Stub) = SG_STRING(SG_MAKE_STRING("file-stat-ctime"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("file-stat-ctime")))), SG_OBJ(&_sagittarius_file_stat_ctime_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_absolute_path3f_Stub) = SG_STRING(SG_MAKE_STRING("absolute-path?"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("absolute-path?")))), SG_OBJ(&_sagittarius_absolute_path3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_string_scan_Stub) = SG_STRING(SG_MAKE_STRING("string-scan"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("string-scan")))), SG_OBJ(&_sagittarius_string_scan_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_make_keyword_Stub) = SG_STRING(SG_MAKE_STRING("make-keyword"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("make-keyword")))), SG_OBJ(&_sagittarius_make_keyword_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_load_Stub) = SG_STRING(SG_MAKE_STRING("load"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("load")))), SG_OBJ(&_sagittarius_load_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_unwrap_syntax_Stub) = SG_STRING(SG_MAKE_STRING("unwrap-syntax"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("unwrap-syntax")))), SG_OBJ(&_sagittarius_unwrap_syntax_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_current_directory_Stub) = SG_STRING(SG_MAKE_STRING("current-directory"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("current-directory")))), SG_OBJ(&_sagittarius_current_directory_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_add_dynamic_load_path_Stub) = SG_STRING(SG_MAKE_STRING("add-dynamic-load-path"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("add-dynamic-load-path")))), SG_OBJ(&_sagittarius_add_dynamic_load_path_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_char_set3f_Stub) = SG_STRING(SG_MAKE_STRING("char-set?"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("char-set?")))), SG_OBJ(&_sagittarius_char_set3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_file_directory3f_Stub) = SG_STRING(SG_MAKE_STRING("file-directory?"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("file-directory?")))), SG_OBJ(&_sagittarius_file_directory3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_record_type3f_Stub) = SG_STRING(SG_MAKE_STRING("record-type?"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("record-type?")))), SG_OBJ(&_sagittarius_record_type3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_wrap_syntax_Stub) = SG_STRING(SG_MAKE_STRING("wrap-syntax"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("wrap-syntax")))), SG_OBJ(&_sagittarius_wrap_syntax_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_circular_list3f_Stub) = SG_STRING(SG_MAKE_STRING("circular-list?"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("circular-list?")))), SG_OBJ(&_sagittarius_circular_list3f_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_cond_features_Stub) = SG_STRING(SG_MAKE_STRING("cond-features"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("cond-features")))), SG_OBJ(&_sagittarius_cond_features_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_get_keyword_Stub) = SG_STRING(SG_MAKE_STRING("get-keyword"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("get-keyword")))), SG_OBJ(&_sagittarius_get_keyword_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_arity_Stub) = SG_STRING(SG_MAKE_STRING("arity"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("arity")))), SG_OBJ(&_sagittarius_arity_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_set_current_directory_Stub) = SG_STRING(SG_MAKE_STRING("set-current-directory"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("set-current-directory")))), SG_OBJ(&_sagittarius_set_current_directory_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_vector_copy_Stub) = SG_STRING(SG_MAKE_STRING("vector-copy"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("vector-copy")))), SG_OBJ(&_sagittarius_vector_copy_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_file_stat_mtime_Stub) = SG_STRING(SG_MAKE_STRING("file-stat-mtime"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("file-stat-mtime")))), SG_OBJ(&_sagittarius_file_stat_mtime_Stub));
 }
 SG_CDECL_END

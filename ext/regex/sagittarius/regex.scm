@@ -118,6 +118,8 @@
   (define (string-split text str/pattern)
     (let* ((p (cond ((regex-pattern? str/pattern) str/pattern)
 		    ((string? str/pattern) (regex str/pattern))
+		    ((char? str/pattern) (regex (list->string  
+						 (list str/pattern))))
 		    (else (assertion-violation
 			   'string-split
 			   "string or regex-pattern required" str/pattern))))

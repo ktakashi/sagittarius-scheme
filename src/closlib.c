@@ -41,25 +41,6 @@ static SgObject _sagittarius_clos_slot_set21(SgObject *args, int argc, void *dat
 static SG_DEFINE_SUBR(_sagittarius_clos_slot_set21_Stub, 3, 0, _sagittarius_clos_slot_set21, SG_FALSE, NULL);
 
 ;
-static SgObject _sagittarius_clos_add_method(SgObject *args, int argc, void *data_)
-{
-  SgObject gf_scm;
-  SgGeneric *gf;
-  SgObject m_scm;
-  SgMethod *m;
-  DeclareProcedureName("add-method");
-  checkArgumentLength(2);
-  argumentAsGeneric(0, gf_scm, gf);
-  argumentAsMethod(1, m_scm, m);
-  {
-    SgObject SG_RETURN = SG_UNDEF;
-    Sg_AddMethod(gf, m);
-    return SG_RETURN;
-  }
-}
-static SG_DEFINE_SUBR(_sagittarius_clos_add_method_Stub, 2, 0, _sagittarius_clos_add_method, SG_FALSE, NULL);
-
-;
 static SgObject _sagittarius_clos_class_of(SgObject *args, int argc, void *data_)
 {
   SgObject o;
@@ -79,8 +60,6 @@ SG_CDECL_BEGIN
 void Sg__Init_sagittarius_clos()
 {
   SgLibrary *lib = SG_LIBRARY(Sg_FindLibrary(SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("(sagittarius clos)")))), TRUE));
-  SG_PROCEDURE_NAME(&_sagittarius_clos_add_method_Stub) = SG_STRING(SG_MAKE_STRING("add-method"));
-  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("add-method")))), SG_OBJ(&_sagittarius_clos_add_method_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_clos_class_of_Stub) = SG_STRING(SG_MAKE_STRING("class-of"));
   Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("class-of")))), SG_OBJ(&_sagittarius_clos_class_of_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_clos_slot_ref_Stub) = SG_STRING(SG_MAKE_STRING("slot-ref"));

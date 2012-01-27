@@ -33,21 +33,25 @@
     (import (rnrs)
 	    (odbc)
 	    (dbi)
+	    (clos user)
+	    (clos core)
 	    (sagittarius)
 	    (sagittarius control))
 
-  (define-record-type dbi-odbc-driver
-    (parent dbi-driver)
-    (fields odbc-env)
-    (protocol
-     (lambda (p)
-       (lambda (e)
-	 (let ((c (p 'odbc-driver
-		     :make-connection make-odbc-connection)))
-	   (c e))))))
+  (define-class <dbi-odbc-driver> (<dbi-driver>)
+    ((env :init-keyword :env :accessor odbc-driver-env)))
 
-  (define (make-odbc-connection driver options option-alist . auth)
-    (let ((env (dbi-odbc-driver-odbc-env driver))
+  (define-class <dbi-odbc-connection> (<dbi-connection>)
+    ((hbc :init-keyword :hbc :accessor odbc-connection-odbc-hbc)))
+
+  ;; to make method more specifig
+  (define-class <dbi-odbc-query> (<dbi-query>)
+    ()) ;; no slot
+
+  (define-method dbi-make-connection ((driver <dbi-odbc-driver>)
+				      (options <string>)
+				      (option-alist <list>) . auth)
+    (let ((env (odbc-driver-env driver))
 	  (server (assoc "server" option-alist)))
       (unless server
 	(assertion-violation 'make-odbc-connection
@@ -55,31 +59,20 @@
       (let-keywords auth ((username "")
 			  (password "")
 			  (auto-commit? #t))
-	(make-dbi-odbc-connection (connect! env (cdr server) username password auto-commit?)))))
+	(make <dbi-odbc-connection>
+	  :hbc (connect! env (cdr server) username password auto-commit?)))))
 
-  (define-record-type dbi-odbc-connection
-    (parent dbi-connection)
-    (fields odbc-hbc)
-    (protocol
-     (lambda (p)
-       (lambda (conn)
-	 (let ((c (p :open? odbc-open?
-		     :close odbc-close
-		     :prepare odbc-prepare
-		     :commit odbc-commit
-		     :rollback odbc-rollback)))
-	   (c conn))))))
-  
-  (define (odbc-open? conn)
-    (let ((c (dbi-odbc-connection-odbc-hbc conn)))
+  (define-method dbi-open? ((conn <dbi-odbc-connection>))
+    (let ((c (odbc-connection-odbc-hbc conn)))
       (connection-open? c)))
 
-  (define (odbc-close conn)
-    (let ((c (dbi-odbc-connection-odbc-hbc conn)))
+  (define-method dbi-close ((conn <dbi-odbc-connection>))
+    (let ((c (odbc-connection-odbc-hbc conn)))
       (disconnect! c)))
 
-  (define (odbc-prepare conn sql . args)
-    (let* ((c (dbi-odbc-connection-odbc-hbc conn))
+  (define-method dbi-prepare ((conn <dbi-odbc-connection>)
+			      (sql <string>) . args)
+    (let* ((c (odbc-connection-odbc-hbc conn))
 	   (stmt (prepare c sql)))
       (unless (null? args)
 	;; bind
@@ -87,27 +80,24 @@
 	     (params args (cdr params)))
 	    ((null? params) #t)
 	  (bind-parameter! stmt i (car params))))
-      (make-dbi-query c stmt :bind-parameter odbc-bind-parameter
-		             :execute odbc-execute
-			     :fetch odbc-fetch
-			     :fetch-all odbc-fetch-all
-			     :commit odbc-stmt-commit
-			     :rollback odbc-stmt-rollback
-			     :columns odbc-columns)))
+      (make <dbi-odbc-query>
+	:connection c
+	:prepared stmt)))
 
-  (define (odbc-commit conn)
-    (let ((c (dbi-odbc-connection-odbc-hbc conn)))
+  (define-method dbi-commit! ((conn <dbi-odbc-connection>))
+    (let ((c (odbc-connection-odbc-hbc conn)))
       (commit! c)))
 
-  (define (odbc-rollback conn)
-    (let ((c (dbi-odbc-connection-odbc-hbc conn)))
+  (define-method dbi-rollback! ((conn <dbi-odbc-connection>))
+    (let ((c (odbc-connection-odbc-hbc conn)))
       (rollback! c)))
 
-  (define (odbc-bind-parameter query index value . args)
+  (define-method dbi-bind-parameter! ((query <dbi-odbc-query>)
+				     (index <integer>) value . args)
     (let ((stmt (dbi-query-prepared query)))
       (bind-parameter! stmt index value)))
 
-  (define (odbc-execute query . args)
+  (define-method dbi-execute! ((query <dbi-odbc-query>) . args)
     (let ((stmt (dbi-query-prepared query)))
       (unless (null? args)
 	;; bind
@@ -117,7 +107,7 @@
 	  (bind-parameter! stmt i (car params))))
       (execute! stmt)))
 
-  (define (odbc-fetch query)
+  (define-method dbi-fetch! ((query <dbi-odbc-query>))
     (let* ((stmt (dbi-query-prepared query))
 	   (next? (fetch! stmt)))
       (if next?
@@ -134,29 +124,27 @@
 		       (vector-set! ret (- i 1) (odbc-timestamp->date data)))
 		      (else
 		       (vector-set! ret (- i 1) data))))))
-		       
 	  #f)))
 
-  (define (odbc-fetch-all query)
-    (let loop ((v (odbc-fetch query))
+  (define-method dbi-fetch-all! ((query <dbi-odbc-query>))
+    (let loop ((v (dbi-fetch! query))
 	       (r '()))
       (if v
-	  (loop (odbc-fetch query) (cons v r))
-	  (reverse! r)))
-    )
+	  (loop (dbi-fetch! query) (cons v r))
+	  (reverse! r))))
 
-  (define (odbc-stmt-commit query)
+  (define-method dbi-commit! ((query <dbi-odbc-query>))
     (let ((c (dbi-query-prepared query)))
       (commit! c)))
 
-  (define (odbc-stmt-rollback query)
+  (define-method dbi-rollback! ((query <dbi-odbc-query>))
     (let ((c (dbi-query-prepared query)))
       (rollback! c)))
 
-  (define (odbc-columns query)
+  (define-method dbi-columns ((query <dbi-odbc-query>))
     (let ((c (dbi-query-prepared query)))
       (result-columns c)))
 
   (define (make-odbc-driver)
-    (make-dbi-odbc-driver (create-odbc-env)))
+    (make <dbi-odbc-driver> :env (create-odbc-env)))
 )

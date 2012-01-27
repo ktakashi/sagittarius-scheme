@@ -52,15 +52,10 @@
     (let loop ((slots (slot-ref cls 'direct-slots)))
       (unless (null? slots)
 	(let ((name (caar slots)))
-	  (slot-set! obj name (getl init-args (make-keyword (caar slots))))
+	  (slot-set! obj name (get-keyword (make-keyword (caar slots))
+					   init-args))
 	  (loop (cdr slots))))))
 
-  (define (getl initargs name . not-found)
-    (cond ((find-tail (cut eq? name <>) initargs) => cadr)
-	  ((pair? not-found) (car not-found))
-	  (else (assertion-violation 'getl
-				     "required argument could not be found"
-				     initargs))))
   ;; NOTE: generic method must have call-next-method as its first argument.
   ;;       but %make does not need this, so just a dummy
   (let ((%make (lambda (dummy class . initargs)
@@ -87,14 +82,17 @@
 		:procedure (lambda (call-next-method class initargs)
 			     (call-next-method)
 			     (slot-set! class 'name
-					(getl initargs :definition-name #f))
+					(get-keyword :definition-name
+						     initargs #f))
 			     (slot-set! class 'direct-supers
-					(getl initargs :direct-supers '()))
+					(get-keyword :direct-supers
+						     initargs '()))
 			     (slot-set! class
 					'direct-slots
 					(map (lambda (s)
 					       (if (pair? s) s (list s)))
-					     (getl initargs :direct-slots '())))
+					     (get-keyword :direct-slots
+							  initargs '())))
 			     (slot-set! class 'cpl   (compute-cpl class))
 			     (slot-set! class 'slots (compute-slots class))
 			     (slot-set! class 'getters-n-setters
@@ -112,7 +110,8 @@
 		:procedure (lambda (call-next-method generic initarg)
 			     (call-next-method)
 			     (slot-set! generic 'name
-					(getl initarg :definition-name #f)))))
+					(get-keyword :definition-name 
+						     initarg #f)))))
 
   ;; make generic accessor for <class> <generic> and <method>
   ;; <class>

@@ -33,8 +33,8 @@
   (define sam (make <person> :name "Sam" :age 38))
   (define koch (make <painter> :name "Koch" :age 18 :pen "Pencil"))
 
-  (define person-name (make <generic> 'person-name))
-  (define person-age (make <generic> 'person-age))
+  (define person-name (make <generic> :definition-name 'person-name))
+  (define person-age (make <generic> :definition-name 'person-age))
   (add-method person-name
 	      (make <method>
 		:specializers (list <person>)
@@ -50,7 +50,7 @@
 		:procedure (lambda (call-next-method person)
 			(slot-ref person 'age))))
 
-  (define painter-pen (make <generic> 'painter-pen))
+  (define painter-pen (make <generic> :definition-name 'painter-pen))
   (add-method painter-pen
 	      (make <method>
 		:specializers (list <painter>)

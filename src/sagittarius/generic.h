@@ -123,7 +123,8 @@ SG_EXTERN void     Sg_InitBuiltinMethod(SgMethod *m);
 SG_EXTERN SgObject Sg_NoNextMethod(SgObject *argv, int argc, SgGeneric *gf);
 
 /* needs to be here ... */
-SG_EXTERN void     Sg_AddMethod(SgGeneric *generic, SgMethod *method);
+SG_EXTERN SgObject Sg_AddMethod(SgGeneric *generic, SgMethod *method);
+SG_EXTERN SgObject Sg_RemoveMethod(SgGeneric *generic, SgMethod *method);
 SG_EXTERN SgObject Sg_ComputeMethods(SgGeneric *gf, SgObject *argv, int argc);
 SG_EXTERN SgObject Sg_MakeNextMethod(SgGeneric *gf, SgObject methods,
 				     SgObject *argv, int argc, int copyargs);
@@ -138,6 +139,8 @@ SG_EXTERN SgGeneric Sg_GenericComputeGetterAndSetter;
 /* The class initialization protocol */
 SG_EXTERN SgGeneric Sg_GenericComputeCPL;
 SG_EXTERN SgGeneric Sg_GenericComputeSlots;
+SG_EXTERN SgGeneric Sg_GenericAddMethod;
+SG_EXTERN SgGeneric Sg_GenericRemoveMethod;
 /* The generic invocation protocol */
 /* SG_EXTERN SgGeneric Sg_GenericComputeApplyGeneric; */
 /* SG_EXTERN SgGeneric Sg_GenericComputeMethods; */

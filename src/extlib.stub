@@ -85,6 +85,8 @@
 	    ;; keyword
 	    make-keyword
 	    keyword?
+	    keyword->symbol
+	    get-keyword
 
 	    ;; cache
 	    clean-cache
@@ -610,6 +612,9 @@
 
   (define-c-proc keyword->symbol (key::Keyword) ::Object
     (result (Sg_Intern (-> key name))))
+
+  (define-c-proc get-keyword (key::Keyword lst :optional fallback) ::Object
+    (result (Sg_GetKeyword key lst fallback)))
 
   ;; cache
   (define-c-proc clean-cache (:optional (target #f)) ::void

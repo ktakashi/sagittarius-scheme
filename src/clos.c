@@ -207,7 +207,7 @@ static SgSlotAccessor *make_slot_accessor(SgClass *klass, SgObject name,
     SG_PROCEDURE_REQUIRED(m) = SG_PROCEDURE_REQUIRED(proc)-offset;	\
   } while (0)
 
-void Sg_AddMethod(SgGeneric *generic, SgMethod *method)
+SgObject Sg_AddMethod(SgGeneric *generic, SgMethod *method)
 {
   SgObject mp, pair;
   int reqs = SG_GENERIC_MAX_REQARGS(generic), replaced = FALSE, i;
@@ -250,6 +250,38 @@ void Sg_AddMethod(SgGeneric *generic, SgMethod *method)
     SG_GENERIC_MAX_REQARGS(generic) = reqs;
   }
   Sg_UnlockMutex(&generic->mutex);
+  return SG_UNDEF;
+}
+
+SgObject Sg_RemoveMethod(SgGeneric *gf, SgMethod *m)
+{
+  SgObject mp;
+  if (!SG_METHOD_GENERIC(m) || SG_METHOD_GENERIC(m) != gf) return SG_UNDEF;
+
+  Sg_LockMutex(&gf->mutex);
+  mp = SG_GENERIC_METHODS(gf);
+  if (SG_PAIRP(mp)) {
+    if (SG_EQ(SG_CAR(mp), SG_OBJ(m))) {
+      SG_GENERIC_METHODS(gf) = SG_CDR(mp);
+    } else {
+      while (SG_PAIRP(SG_CDR(mp))) {
+	if (SG_EQ(SG_CADR(mp), SG_OBJ(m))) {
+	  SG_CDR(mp) = SG_CDDR(mp);
+	  SG_METHOD_GENERIC(m) = NULL;
+	  break;
+	}
+	mp = SG_CDR(mp);
+      }
+    }
+  }
+  SG_FOR_EACH(mp, SG_GENERIC_METHODS(gf)) {
+    /* sync # of required selector */
+    if (SG_PROCEDURE_REQUIRED(SG_CAR(mp)) > SG_GENERIC_MAX_REQARGS(gf)) {
+      SG_GENERIC_MAX_REQARGS(gf) = SG_PROCEDURE_REQUIRED(SG_CAR(mp));
+    }
+  }
+  Sg_UnlockMutex(&gf->mutex);
+  return SG_UNDEF;
 }
 
 /* void Sg_AddDirectMethod(SgClass *klass, SgMethod *m) */
@@ -1300,7 +1332,11 @@ static void init_class(SgClass *klass, const SgChar *name,
       specs->klass = klass;
       specs->name = snam;
       acc = Sg_Cons(SG_OBJ(&*specs), acc);
-      SG_APPEND1(slots, t, SG_LIST1(snam));
+      SG_APPEND1(slots, t,
+		 Sg_List(snam,
+			 SG_KEYWORD_INIT_KEYWORD, 
+			 Sg_MakeKeyword(SG_SYMBOL(snam)->name),
+			 NULL));
     }
   }
   klass->directSlots = slots;
@@ -1426,6 +1462,8 @@ SG_DEFINE_GENERIC(Sg_GenericInitialize, builtin_initialize, NULL);
 SG_DEFINE_GENERIC(Sg_GenericComputeCPL, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericComputeSlots, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericComputeGetterAndSetter, Sg_NoNextMethod, NULL);
+SG_DEFINE_GENERIC(Sg_GenericAddMethod, Sg_NoNextMethod, NULL);
+SG_DEFINE_GENERIC(Sg_GenericRemoveMethod, Sg_NoNextMethod, NULL);
 
 static SgObject allocate_impl(SgObject *args, int argc, void *data)
 {
@@ -1445,6 +1483,50 @@ static SgClass *class_allocate_SPEC[] = {
 
 static SG_DEFINE_METHOD(class_allocate_rec, &Sg_GenericAllocateInstance,
 			2, 0, class_allocate_SPEC, &allocate);
+
+/* object-initialize */
+static SgObject object_initialize_impl(SgObject *argv, int argc, void *data)
+{
+  SgObject obj = argv[0];
+  SgObject initargs = argv[1];
+  SgObject slots = Sg_ClassOf(obj)->slots;
+  SgObject cp;
+  if (SG_NULLP(slots)) return obj;
+  SG_FOR_EACH(cp, slots) {
+    SgObject slot = SG_CAR(cp);
+    SgObject key  = Sg_Memq(SG_KEYWORD_INIT_KEYWORD, slot);
+
+    /* (1) use init-keyword */
+    if (!SG_FALSEP(key) && SG_PAIRP(SG_CDR(key)) &&
+	SG_KEYWORDP(SG_CADR(key))) {
+      SgObject v = Sg_GetKeyword(SG_CADR(key), initargs, SG_UNDEF);
+      if (!SG_UNDEFP(v)) {
+	Sg_SlotSet(obj, SG_CAR(slot), v);
+	continue;
+      }
+      /* go through */
+    }
+    /* (2) use init-value */
+    key = Sg_Memq(SG_KEYWORD_INIT_VALUE, slot);
+    if (!SG_FALSEP(key)) {
+      SgObject v = Sg_GetKeyword(SG_KEYWORD_INIT_VALUE, SG_CDR(slot), SG_UNDEF);
+      if (!SG_UNDEFP(v)) {
+	Sg_SlotSet(obj, SG_CAR(slot), v);
+	continue;
+      }
+    }
+  }
+  return SG_UNDEF;
+}
+SG_DEFINE_SUBR(object_initialize, 2, 0, object_initialize_impl, SG_FALSE, NULL);
+static SgClass *object_initialize_SPEC[] = {
+  SG_CLASS_OBJECT, SG_CLASS_LIST
+};
+
+static SG_DEFINE_METHOD(object_initialize_rec, &Sg_GenericInitialize,
+			2, 0,
+			object_initialize_SPEC,
+			&object_initialize);
 
 
 static SgObject method_initialize_impl(SgObject *argv, int argc, void *data)
@@ -1556,7 +1638,7 @@ static SgObject compute_gas_impl(SgObject *args, int argc, void *data)
   return Sg_ComputeGettersAndSetters(SG_CLASS(args[0]), args[1]);
 }
 
-SG_DEFINE_SUBR(compute_gas, 1, 0, compute_gas_impl, SG_FALSE, NULL);
+SG_DEFINE_SUBR(compute_gas, 2, 0, compute_gas_impl, SG_FALSE, NULL);
 
 static SgClass *compute_gas_SPEC[] = {
   SG_CLASS_CLASS, SG_CLASS_LIST
@@ -1566,6 +1648,36 @@ static SG_DEFINE_METHOD(compute_gas_rec, &Sg_GenericComputeGetterAndSetter,
 			2, 0,
 			compute_gas_SPEC, &compute_gas);
 
+/* add-method */
+static SgObject add_method_impl(SgObject *args, int argc, void *data)
+{
+  return Sg_AddMethod(SG_GENERIC(args[0]), SG_METHOD(args[1]));
+}
+
+SG_DEFINE_SUBR(add_method, 2, 0, add_method_impl, SG_FALSE, NULL);
+
+static SgClass *add_method_SPEC[] = {
+  SG_CLASS_GENERIC, SG_CLASS_METHOD
+};
+
+static SG_DEFINE_METHOD(add_method_rec, &Sg_GenericAddMethod,
+			2, 0,
+			add_method_SPEC, &add_method);
+/* remove-method */
+static SgObject remove_method_impl(SgObject *args, int argc, void *data)
+{
+  return Sg_RemoveMethod(SG_GENERIC(args[0]), SG_METHOD(args[1]));
+}
+
+SG_DEFINE_SUBR(remove_method, 2, 0, remove_method_impl, SG_FALSE, NULL);
+
+static SgClass *remove_method_SPEC[] = {
+  SG_CLASS_GENERIC, SG_CLASS_METHOD
+};
+
+static SG_DEFINE_METHOD(remove_method_rec, &Sg_GenericRemoveMethod,
+			2, 0,
+			remove_method_SPEC, &remove_method);
 
 void Sg__InitClos()
 {
@@ -1665,11 +1777,16 @@ void Sg__InitClos()
   GINIT(&Sg_GenericComputeCPL, "compute-cpl");
   GINIT(&Sg_GenericComputeSlots, "compute-slots");
   GINIT(&Sg_GenericComputeGetterAndSetter, "compute-getters-and-setters");
+  GINIT(&Sg_GenericAddMethod, "add-method");
+  GINIT(&Sg_GenericRemoveMethod, "remove-method");
 
   /* methods */
   Sg_InitBuiltinMethod(&class_allocate_rec);
+  Sg_InitBuiltinMethod(&object_initialize_rec);
   Sg_InitBuiltinMethod(&method_initialize_rec);
   Sg_InitBuiltinMethod(&compute_cpl_rec);
   Sg_InitBuiltinMethod(&compute_slots_rec);
   Sg_InitBuiltinMethod(&compute_gas_rec);
+  Sg_InitBuiltinMethod(&add_method_rec);
+  Sg_InitBuiltinMethod(&remove_method_rec);
 }
