@@ -32,12 +32,14 @@
     (define (r7rs-test)
       ;; for R7RS test
       ;; prepare for process-context
+      ;; R7RS now depends alot of extension libraries...
       (setenv "R7RS_TEST" "OK")
       (print "testing R7RS tests")
       (flush-output-port (current-output-port))
       (add-load-path "./test/r7rs-tests")
       ;; for srfi 19
       (add-load-path "./ext/time")
+      (add-load-path "./ext/regex")
       (load "./test/r7rs-tests/tests/r7rs/run.scm")
       (flush-output-port (current-output-port)))
 

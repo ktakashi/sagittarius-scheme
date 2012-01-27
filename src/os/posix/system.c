@@ -135,8 +135,8 @@ SgObject Sg_Getenv(const SgChar *env)
 {
   int len = ustrlen(env);
   /* TODO don't do like this */
-  SgString s = { { SG_CLASS2TAG(SG_CLASS_STRING) }, 1, len, env};
-  char *key = Sg_Utf32sToUtf8s(&s);
+  SgString *s = Sg_MakeString(env, SG_LITERAL_STRING);
+  char *key = Sg_Utf32sToUtf8s(s);
   const char *value = getenv(key);
   if (value == NULL) return SG_FALSE;
   return Sg_MakeStringC(value);
@@ -145,17 +145,17 @@ SgObject Sg_Getenv(const SgChar *env)
 void Sg_Setenv(const SgChar *key, const SgChar *value)
 {
   int klen = ustrlen(key), vlen;
-  SgString keys = { { SG_CLASS2TAG(SG_CLASS_STRING) }, 1, klen, key};
+  SgString *keys = Sg_MakeString(key, SG_LITERAL_STRING);
   if (value) {
     vlen = ustrlen(value);
     {
       /* if i can use C99 ... */
-      SgString values = { { SG_CLASS2TAG(SG_CLASS_STRING) }, 1, vlen, value};
-      setenv(Sg_Utf32sToUtf8s(&keys), Sg_Utf32sToUtf8s(&values), 1);
+      SgString *values = Sg_MakeString(value, SG_LITERAL_STRING);
+      setenv(Sg_Utf32sToUtf8s(keys), Sg_Utf32sToUtf8s(values), 1);
     }
   } else {
     /* if value was NULL, remove it */
-    unsetenv(Sg_Utf32sToUtf8s(&keys));
+    unsetenv(Sg_Utf32sToUtf8s(keys));
   }
 }
 
