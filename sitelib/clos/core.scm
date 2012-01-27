@@ -39,7 +39,7 @@
 	    write-object allocate-instance
 	    ;; helper
 	    make-class make-method make-generic
-	    initialize-direct-slots
+	    initialize-direct-slots is-a?
 	    ;; helper generics
 	    compute-cpl
 	    compute-slots)

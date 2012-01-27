@@ -56,6 +56,23 @@ static SgObject _sagittarius_clos_class_of(SgObject *args, int argc, void *data_
 static SG_DEFINE_SUBR(_sagittarius_clos_class_of_Stub, 1, 0, _sagittarius_clos_class_of, SG_FALSE, NULL);
 
 ;
+static SgObject _sagittarius_clos_is_a3f(SgObject *args, int argc, void *data_)
+{
+  SgObject o;
+  SgObject klass;
+  DeclareProcedureName("is-a?");
+  checkArgumentLength(2);
+  argumentRef(0, o);
+  argumentRef(1, klass);
+  {
+    int SG_RETURN;
+    SG_RETURN = (Sg_TypeP(o, klass));
+    return SG_MAKE_BOOL(SG_RETURN);
+  }
+}
+static SG_DEFINE_SUBR(_sagittarius_clos_is_a3f_Stub, 2, 0, _sagittarius_clos_is_a3f, SG_FALSE, NULL);
+
+;
 SG_CDECL_BEGIN
 void Sg__Init_sagittarius_clos()
 {
@@ -64,6 +81,8 @@ void Sg__Init_sagittarius_clos()
   Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("class-of")))), SG_OBJ(&_sagittarius_clos_class_of_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_clos_slot_ref_Stub) = SG_STRING(SG_MAKE_STRING("slot-ref"));
   Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("slot-ref")))), SG_OBJ(&_sagittarius_clos_slot_ref_Stub));
+  SG_PROCEDURE_NAME(&_sagittarius_clos_is_a3f_Stub) = SG_STRING(SG_MAKE_STRING("is-a?"));
+  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("is-a?")))), SG_OBJ(&_sagittarius_clos_is_a3f_Stub));
   SG_PROCEDURE_NAME(&_sagittarius_clos_slot_set21_Stub) = SG_STRING(SG_MAKE_STRING("slot-set!"));
   Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING("slot-set!")))), SG_OBJ(&_sagittarius_clos_slot_set21_Stub));
 }

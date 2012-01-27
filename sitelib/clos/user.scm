@@ -3,11 +3,33 @@
 	    initialize
 	    write-object
 
-	    <top> <object>
+	    <top> <object> <class> <generic> <method> <next-method>
+	    ;; immediates
+	    <boolean> <char> <eof-object> <undefined-object> <unknown>
+	    ;; pair
+	    <list> <pair> <null>
+	    ;; number
+	    <number> <complex> <real> <rational> <integer>
+	    ;; collection
+	    <collection> <sequence> <dictionary> <ordered-dictionary>
+	    <string> <vector> <bytevector>
+	    <hashtable> <tree-map>
+	    <weak-vector> <weak-hashtable>
+	    ;; symbol keyword
+	    <symbol> <keyword> <gloc>
+	    ;; io
+	    <port> <codec> <transcoder>
+	    ;; record
+	    <record-type>
+	    ;; procedure
+	    <procedure>
+	    ;; etc
+	    <identifier>
 
 	    slot-ref
 	    slot-set!
 	    initialize-direct-slots
+	    is-a?
 
 	    define-class
 	    define-method

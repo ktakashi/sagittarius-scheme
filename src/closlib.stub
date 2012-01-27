@@ -2,6 +2,7 @@
 (library (sagittarius clos)
     (export slot-ref slot-set!
 	    class-of
+	    is-a?
 	    )
     (import :none)
 
@@ -17,5 +18,8 @@
 
   (define-c-proc class-of (o) ::Object
     (result (Sg_ClassOf o)))
+
+  (define-c-proc is-a? (o klass) ::boolean
+    (result (Sg_TypeP o klass)))
 
 )
