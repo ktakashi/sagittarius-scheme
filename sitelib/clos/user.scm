@@ -38,7 +38,9 @@
 	    (sagittarius)
 	    (match)
 	    (shorten)
-	    (clos core))
+	    (clos core)
+	    (only (sagittarius clos) %ensure-generic-function)
+	    (sagittarius vm))
 
   ;; We provides CL like define-class
   ;; The syntax is (define-class ?name (?supers ...) ({slot-specifier}*))
@@ -99,7 +101,7 @@
 			       (accessor  (cdr slot))
 			       (tmp  (gensym)))
 			   `(,_begin
-			     (,_define-generic ,accessor)
+			     ;;(,_define-generic ,accessor)
 			     ;; setter
 			     (,_define-method ,accessor ((,tmp ,name))
 				(,(rename 'slot-ref) ,tmp ',slot-name))
@@ -150,15 +152,18 @@
 		(real-args    (if opt
 				  `(call-next-method ,@reqargs . ,opt)
 				  `(call-next-method ,@reqargs)))
-		(real-body    `(,(rename 'lambda) ,real-args ,@body)))
+		(real-body    `(,(rename 'lambda) ,real-args ,@body))
+		(gf           (gensym)))
 	   ;; TODO if generic does not exists, make it
-	   `(,(rename 'add-method) ,generic
-	     (,(rename 'make) ,(rename '<method>)
-	      :specializers  (,(rename 'list) ,@specializers)
-	      :qualifier     ,qualifier
-	      :generic       ,generic
-	      :lambda-list  ',lambda-list
-	      :procedure     ,real-body))))
+	   `(,(rename 'let) ((,gf (,(rename '%ensure-generic-function)
+				   ',generic (,(rename 'vm-current-library)))))
+	     (,(rename 'add-method) ,gf
+	       (,(rename 'make) ,(rename '<method>)
+		:specializers  (,(rename 'list) ,@specializers)
+		:qualifier     ,qualifier
+		:generic       ,generic
+		:lambda-list  ',lambda-list
+		:procedure     ,real-body)))))
 
        (match form
 	 ((_ (? keyword? qualifier) generic args . body)

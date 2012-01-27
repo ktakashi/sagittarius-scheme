@@ -117,6 +117,11 @@ typedef struct SgNextMethodRec
 
 SG_CDECL_BEGIN
 
+SG_EXTERN SgObject Sg_MakeBaseGeneric(SgObject name,
+				      SgObject (*fallback)(SgObject *, int, 
+							   SgGeneric *),
+				      void *data);
+
 SG_EXTERN void     Sg_InitBuiltinGeneric(SgGeneric *gf, const SgChar *name,
 					 SgLibrary *lib);
 SG_EXTERN void     Sg_InitBuiltinMethod(SgMethod *m);

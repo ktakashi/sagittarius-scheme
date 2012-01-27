@@ -80,6 +80,7 @@
     (set! *procedure-map* (make-eq-hashtable))
     (set! *toplevel-variables* '())
     (base:add-dispatch 'define-c-proc def-c-proc)
+    (base:add-dispatch 'define-cfn def-cfun)
     (base:add-dispatch 'set-toplevel-variable! set-toplevel-variable!))
 
   ;; get information from library
@@ -382,6 +383,29 @@
        (body-impl name args insn return c-body))
       (('define-c-proc name args return . c-body)
        (body-impl name args #f return c-body))))
+
+  (define (def-cfun body dispatch k)
+    (match body
+      ((_ name args return . body)
+       (when (keyword? (car body))
+	 ((base:renderer) (format "~a " (car body)))
+	 (set! body (cdr body)))
+       (let ((r (format "~a" return)))
+	 ((base:renderer) (substring r 1 (string-length r))))
+       ((base:renderer) (format " ~a(" name))
+       (let loop ((defs args))
+	 (unless (null? defs)
+	   (let-values (((name type)
+			 (string-scan (symbol->string (car defs)) "::" 'both)))
+	     (unless (eq? defs args)
+	       ((base:renderer) ","))
+	     ((base:renderer) (format "~a ~a" type name))
+	     (loop (cdr defs)))))
+       ((base:renderer) ") {")
+       (base:dispatch-method `(begin ,@body)
+			     base:dispatch-method (lambda (k) k))
+       ((base:renderer) "}"))))
+	     
   
   (define (set-toplevel-variable! body dispatch k)
     (or (= (length body) 3)

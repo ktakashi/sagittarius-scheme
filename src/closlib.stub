@@ -22,4 +22,19 @@
   (define-c-proc is-a? (o klass) ::boolean
     (result (Sg_TypeP o klass)))
 
+  (define-cfn call_fallback_proc (args::SgObject* nargs::int gf::SgGeneric*)
+    ::SgObject :static
+    (return (Sg_VMApply (SG_OBJ (-> gf data)) (Sg_ArrayToList args nargs))))
+
+  (define-c-proc %ensure-generic-function (name::Symbol lib::Library) ::Object
+    (let ((g::SgGloc* (Sg_FindBinding lib name #f))
+	  (val #f))
+      (when (SG_GLOCP g)
+	(set! val (SG_GLOC_GET g)))
+      (when (not (Sg_TypeP val SG_CLASS_GENERIC))
+	(if (or (SG_SUBRP val) (SG_CLOSUREP val))
+	    (set! val (Sg_MakeBaseGeneric (SG_OBJ name) call_fallback_proc val))
+	    (set! val (Sg_MakeBaseGeneric (SG_OBJ name) NULL NULL))))
+      (Sg_InsertBinding lib name val)
+      (result val)))
 )

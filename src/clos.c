@@ -1105,6 +1105,19 @@ static SgObject generic_methods(SgGeneric *gf)
 }
 
 
+SgObject Sg_MakeBaseGeneric(SgObject name,
+			    SgObject (*fallback)(SgObject *, int, SgGeneric *),
+			    void *data)
+{
+  SgGeneric *gf = SG_GENERIC(generic_allocate(SG_CLASS_GENERIC, SG_NIL));
+  SG_PROCEDURE_NAME(gf) = name;
+  if (fallback) {
+    SG_GENERIC_FALLBACK(gf) = fallback;
+    SG_GENERIC_DATA(gf) = data;
+  }
+  return SG_OBJ(gf);
+}
+
 void Sg_InitBuiltinGeneric(SgGeneric *gf, const SgChar *name, SgLibrary *lib)
 {
   SgObject s = Sg_Intern(Sg_MakeString(name, SG_LITERAL_STRING));
