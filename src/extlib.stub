@@ -64,6 +64,7 @@
 	    hashtable-keys-list hashtable-values-list
 	    hashtable-values
 	    hashtable-type hashtable-compare hashtable-hasher
+	    eqv-hash
 	    ;; extra hashtable
 	    make-equal-hashtable make-string-hashtable
 
@@ -86,6 +87,7 @@
 	    make-keyword
 	    keyword?
 	    keyword->symbol
+	    keyword->string
 	    get-keyword
 
 	    ;; cache
@@ -475,6 +477,9 @@
   (define-c-proc hashtable-values (ht::HashTable) ::Object
     (result (Sg_ListToVector (Sg_HashTableValues ht) 0 -1)))
 
+  (define-c-proc eqv-hash (o) ::Object
+    (result (Sg_MakeIntegerU (Sg_EqvHash o))))
+
   ;; error
   (define-c-proc with-error-handler (handler thunk :optional (rewindBefore #f))
     ::Object
@@ -612,6 +617,9 @@
 
   (define-c-proc keyword->symbol (key::Keyword) ::Object
     (result (Sg_Intern (-> key name))))
+
+  (define-c-proc keyword->string (key::Keyword) ::Object
+    (result (-> key name)))
 
   (define-c-proc get-keyword (key::Keyword lst :optional fallback) ::Object
     (result (Sg_GetKeyword key lst fallback)))

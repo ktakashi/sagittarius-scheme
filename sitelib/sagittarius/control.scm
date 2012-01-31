@@ -11,6 +11,8 @@
 	    let-keywords*
 	    begin0
 	    let1
+	    dotimes
+	    dolist
 	    check-arg)
     (import (core)
 	    (core base)
@@ -383,6 +385,32 @@
     (syntax-rules ()
       ((let1 var exp . body)
        (let ((var exp)) . body))))
+
+  (define-syntax dolist
+    (syntax-rules ()
+      ((_ (var lis) . body)
+       (begin (for-each (lambda (var) . body) lis) '()))
+      ((_ . other)
+       (syntax-violation 'dolist
+			 "malformed dolist"
+			 '(dolist . other)))))
+
+  (define-syntax dotimes
+    (syntax-rules ()
+      ((_ (var i res) . body)
+       (do ((limit i)
+	    (var 0 (+ var 1)))
+	   ((>= var limit) res)
+	 . body))
+      ((_ (var i) . body)
+       (do ((limit i)
+	    (var 0 (+ var 1)))
+	   ((>= var limit))
+	 . body))
+      ((_ . other)
+       (syntax-violation 'dotimes
+			 "malformed dotimes"
+			 '(dotimes . other)))))
 
   (define-syntax check-arg
     (syntax-rules ()

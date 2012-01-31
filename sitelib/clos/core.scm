@@ -6,6 +6,7 @@
 	    class-direct-supers
 	    class-direct-slots
 	    class-cpl
+	    class-slots
 	    ;; <generic>
 	    generic-methods
 	    ;; <methods>

@@ -1477,6 +1477,8 @@ SG_DEFINE_GENERIC(Sg_GenericComputeSlots, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericComputeGetterAndSetter, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericAddMethod, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericRemoveMethod, Sg_NoNextMethod, NULL);
+SG_DEFINE_GENERIC(Sg_GenericComputeApplicableMethodsGeneric,
+		  Sg_NoNextMethod, NULL);
 
 static SgObject allocate_impl(SgObject *args, int argc, void *data)
 {
@@ -1692,6 +1694,29 @@ static SG_DEFINE_METHOD(remove_method_rec, &Sg_GenericRemoveMethod,
 			2, 0,
 			remove_method_SPEC, &remove_method);
 
+/* remove-method */
+static SgObject compute_applicable_methods_impl(SgObject *args, int argc,
+						void *data)
+{
+  SgGeneric *gf = SG_GENERIC(args[0]);
+  SgObject *argv = Sg_ListToArray(args[1], FALSE);
+  int size = Sg_Length(args[1]);
+  return compute_applicable_methods(gf, argv, size);
+}
+
+SG_DEFINE_SUBR(compute_applicable_methods_subr, 2, 0,
+	       compute_applicable_methods_impl, SG_FALSE, NULL);
+
+static SgClass *compute_applicable_methods_SPEC[] = {
+  SG_CLASS_GENERIC, SG_CLASS_LIST
+};
+
+static SG_DEFINE_METHOD(compute_applicable_methods_rec,
+			&Sg_GenericComputeApplicableMethodsGeneric,
+			2, 0,
+			compute_applicable_methods_SPEC,
+			&compute_applicable_methods_subr);
+
 void Sg__InitClos()
 {
   /* TODO library name */
@@ -1792,6 +1817,8 @@ void Sg__InitClos()
   GINIT(&Sg_GenericComputeGetterAndSetter, "compute-getters-and-setters");
   GINIT(&Sg_GenericAddMethod, "add-method");
   GINIT(&Sg_GenericRemoveMethod, "remove-method");
+  GINIT(&Sg_GenericComputeApplicableMethodsGeneric,
+	"compute-applicable-methods");
 
   /* methods */
   Sg_InitBuiltinMethod(&class_allocate_rec);
@@ -1802,4 +1829,5 @@ void Sg__InitClos()
   Sg_InitBuiltinMethod(&compute_gas_rec);
   Sg_InitBuiltinMethod(&add_method_rec);
   Sg_InitBuiltinMethod(&remove_method_rec);
+  Sg_InitBuiltinMethod(&compute_applicable_methods_rec);
 }

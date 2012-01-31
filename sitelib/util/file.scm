@@ -82,7 +82,7 @@
 			  (values dir
 				  (string-take base pos)
 				  (string-drop base (+ pos 1))))))
-		(else (value dir base #f))))))
+		(else (values dir base #f))))))
 
   (define (path-extension path)
     (let-values (((dir file ext) (decompose-path path))) ext))

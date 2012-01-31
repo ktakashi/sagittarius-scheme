@@ -83,16 +83,17 @@
 	 ;; for generic make
 	 (let ((accessors (collect-accessor slot-defs))
 	       (_make     (rename 'make))  (_define (rename 'define))
-	       (_begin    (rename 'begin))
+	       (_begin    (rename 'begin)) (_quote  (rename 'quote))
+	       (_list     (rename 'list))
 	       (_define-generic (rename 'define-generic))
 	       (_define-method  (rename 'define-method)))
 	   ;; TODO check if given name is already exists as generic
 	   `(,_begin
 	     (,_define ,name
 		 (,_make ,(rename '<class>)
-			 :definition-name ',name
-			 :direct-supers   (list ,@supers)
-			 :direct-slots    ',slot-defs))
+			 :definition-name (,_quote ,name)
+			 :direct-supers   (,_list ,@supers)
+			 :direct-slots    (,_quote ,slot-defs)))
 	     ,@(if (null? accessors)
 		  `((,(rename 'undefined)))
 		  ;; build generic
@@ -104,10 +105,11 @@
 			     ;;(,_define-generic ,accessor)
 			     ;; setter
 			     (,_define-method ,accessor ((,tmp ,name))
-				(,(rename 'slot-ref) ,tmp ',slot-name))
+				(,(rename 'slot-ref) ,tmp (,_quote ,slot-name)))
 			     ;; getter
 			     (,_define-method ,accessor ((,tmp ,name) obj)
-				(,(rename 'slot-set!) ,tmp ',slot-name obj)))))
+				(,(rename 'slot-set!) ,tmp (,_quote ,slot-name)
+				 obj)))))
 		       accessors))
 		  )))
        (match form
