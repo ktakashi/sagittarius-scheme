@@ -39,7 +39,6 @@
       (add-load-path "./test/r7rs-tests")
       ;; for srfi 19
       (add-load-path "./ext/time")
-      (add-load-path "./ext/regex")
       (load "./test/r7rs-tests/tests/r7rs/run.scm")
       (flush-output-port (current-output-port)))
 
@@ -48,7 +47,6 @@
       (print "testing sitelib")
       (flush-output-port (current-output-port))
       (add-load-path "./test")
-      (add-load-path "./ext/regex")
       ;; for (math)
       (add-load-path "./ext/crypto")
       (load "./test/tests.scm")

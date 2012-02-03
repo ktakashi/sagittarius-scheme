@@ -6,7 +6,6 @@
 ;; This test contains Japanese letters with utf-8.
 ;; So make sure this can see: λ (greek small lambda)
 
-(add-load-path "./regex")
 (library (regex test)
     (export run-regex-test)
     (import (srfi :64 testing)

@@ -6,3 +6,5 @@
 (cgen-genstub "vmdebug.stub")
 (cgen-genstub "extlib.stub")
 (cgen-genstub "closlib.stub")
+;; CiSE needs regex.
+(cgen-genstub "regex_stub.stub")
