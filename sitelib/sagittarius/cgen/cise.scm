@@ -26,6 +26,7 @@
 	    (sagittarius regex)
 	    (rename (sagittarius control) (define-with-key define))
 	    (sagittarius cgen unit)
+	    (prefix (sagittarius vm debug) debug-)
 	    (match)
 	    (util list)
 	    (srfi :1  lists)
@@ -33,6 +34,7 @@
 	    (srfi :26 cut)
 	    (srfi :39 parameters))
 
+  (define cise-emit-source-line (make-parameter #t))
   ;; The global context
   (define-class <cise-context> ()
     ((macros       :init-keyword :macros)
@@ -51,6 +53,20 @@
     (context-indent (cise-context) (- (context-indent (cise-context))
 				      indent)))
 
+
+  ;; utility
+  (define-syntax inc!
+    (syntax-rules ()
+      ((_ x)
+       (inc! x 1))
+      ((_ x n)
+       (set! x (+ x n)))))
+  (define-syntax dec!
+    (syntax-rules ()
+      ((_ x)
+       (inc! x 1))
+      ((_ x n)
+       (set! x (- x n)))))
 
   ;; environment
   (define-class <cise-env> ()
@@ -97,8 +113,13 @@
 	     ((var type) `(,(cise-render-typed-var type var env) ";")))
 	 (env-decls env)))
 
-  ;; for now dummy
-  (define (source-info form env) '())
+  (define (source-info form env)
+    (if (not (cise-emit-source-line))
+	'()
+	(match (debug-source-info form)
+	  (((? string? file) . line)
+	   `((source-info ,file ,line)))
+	  (_ '()))))
 
   (define (push-static-decl! stree :optional (context (cise-context)))
     (let ((decls (slot-ref context 'static-decls)))
@@ -187,12 +208,6 @@
   (define (render-finalize stree port)
     (define current-file #f)
     (define current-line 1)
-    (define (write-with-indent x port newline?)
-      (unless (context-expr (cise-context))
-	(dotimes (i (context-indent (cise-context)))
-	  (display " " port)))
-      (display x port)
-      (when newline? (newline port)))
     (define (rec stree)
       (match stree
 	(('source-info (? string? file) line)
@@ -208,20 +223,7 @@
 	 (set! current-file #f) (set! current-line 0))
 	((x . y) (rec x) (rec y))
 	((? (lambda (x) (or (string? x) (symbol? x) (number? x))) x)
-	 (let ((emit-newline #f))
-	   (when (and (string? x) (looking-at #/\}/ x))
-	     (set! emit-newline #t)
-	     (dec-indent!))
-	   (when (and (string? x) (looking-at #/\{/ x))
-	     (set! emit-newline #t)
-	     (inc-indent!))
-	   (when (and (string? x) (looking-at #/\(/ x))
-	     (context-expr (cise-context) #t))
-	   (when (and (string? x) (looking-at #/\)/ x))
-	     (context-expr (cise-context) #f))
-	   (when (and (string? x) (looking-at #/\;/ x))
-	     (set! emit-newline #t))
-	   (write-with-indent x port emit-newline)))
+	 (display x port))
 	(_ #f)))
     (rec stree))
 

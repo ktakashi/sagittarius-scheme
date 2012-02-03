@@ -179,7 +179,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
   v->parameters = Sg_MakeHashTableSimple(SG_HASH_EQ, 64);
   /* TODO use equal hash for source info might not be good. */
-  v->sourceInfos = Sg_MakeHashTableSimple(SG_HASH_EQUAL, 4000);
+  v->sourceInfos = Sg_MakeHashTableSimple(SG_HASH_EQ, 4000);
   v->toplevelVariables = SG_NIL;
   v->commandLineArgs = SG_NIL;
 
