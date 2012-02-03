@@ -80,6 +80,7 @@
     (set! *procedure-map* (make-eq-hashtable))
     (set! *toplevel-variables* '())
     (base:add-dispatch 'define-c-proc def-c-proc)
+    (base:add-dispatch 'define-cfn def-cfun)
     (base:add-dispatch 'set-toplevel-variable! set-toplevel-variable!))
 
   ;; get information from library
@@ -100,8 +101,9 @@
   ;; write header
   (define (write-header ofile)
     ((base:renderer) (format "/* This file is autmatically generated from ~s. DO NOT EDIT!!*/~%" ofile))
-    ((base:renderer) (format "#define LIBSAGITTARIUS_BODY~%"))
-    ((base:renderer) (format "#include <sagittarius.h>~%")))
+    ;;((base:renderer) (format "#define LIBSAGITTARIUS_BODY~%"))
+    ;;((base:renderer) (format "#include <sagittarius.h>~%")))
+    )
 
   (define (is-ascii-symbol c)
     (char-set-contains? *c-delimiter-set* c)
@@ -381,6 +383,29 @@
        (body-impl name args insn return c-body))
       (('define-c-proc name args return . c-body)
        (body-impl name args #f return c-body))))
+
+  (define (def-cfun body dispatch k)
+    (match body
+      ((_ name args return . body)
+       (when (keyword? (car body))
+	 ((base:renderer) (format "~a " (car body)))
+	 (set! body (cdr body)))
+       (let ((r (format "~a" return)))
+	 ((base:renderer) (substring r 1 (string-length r))))
+       ((base:renderer) (format " ~a(" name))
+       (let loop ((defs args))
+	 (unless (null? defs)
+	   (let-values (((name type)
+			 (string-scan (symbol->string (car defs)) "::" 'both)))
+	     (unless (eq? defs args)
+	       ((base:renderer) ","))
+	     ((base:renderer) (format "~a ~a" type name))
+	     (loop (cdr defs)))))
+       ((base:renderer) ") {")
+       (base:dispatch-method `(begin ,@body)
+			     base:dispatch-method (lambda (k) k))
+       ((base:renderer) "}"))))
+	     
   
   (define (set-toplevel-variable! body dispatch k)
     (or (= (length body) 3)
@@ -405,15 +430,16 @@
 	    (else (error 'generate-init "invalid library name" 
 			 *library-name*))))
 
+    ((base:renderer) (format "SG_CDECL_BEGIN~%"))
     ((base:renderer) (format "void Sg__Init~a()~%" (generate-name)))
     ((base:renderer) (format "{~%"))
-    ((base:renderer) (format "  SgLibrary *lib = Sg_FindLibrary(Sg_Intern(Sg_MakeString(UC(\"~s\"), SG_LITERAL_STRING)), TRUE);~%"
+    ((base:renderer) (format "  SgLibrary *lib = SG_LIBRARY(Sg_FindLibrary(SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING(\"~s\")))), TRUE));~%"
 			*library-name*))
     (for-each
      (lambda (proc-name)
        (let ((subr-name (hashtable-ref *procedure-subr-map* proc-name #f)))
-	 ((base:renderer) (format "  SG_PROCEDURE_NAME(&~a) = Sg_MakeString(UC(\"~a\"), SG_LITERAL_STRING);~%" subr-name proc-name))
-	 ((base:renderer) (format "  Sg_InsertBinding(lib, Sg_Intern(Sg_MakeString(UC(\"~a\"), SG_LITERAL_STRING)), SG_OBJ(&~a));~%"
+	 ((base:renderer) (format "  SG_PROCEDURE_NAME(&~a) = SG_STRING(SG_MAKE_STRING(\"~a\"));~%" subr-name proc-name))
+	 ((base:renderer) (format "  Sg_InsertBinding(lib, SG_SYMBOL(Sg_Intern(SG_STRING(SG_MAKE_STRING(\"~a\")))), SG_OBJ(&~a));~%"
 			     proc-name subr-name))))
      (vector->list (hashtable-keys *procedure-subr-map*)))
     (for-each
@@ -422,7 +448,8 @@
 	     (value (cdr p)))
 	 ((base:renderer) (format "  Sg_VMSetToplevelVariable(SG_INTERN(\"~a\"), &~a);~%" name value))))
      *toplevel-variables*)
-    ((base:renderer) (format "}~%")))
+    ((base:renderer) (format "}~%"))
+    ((base:renderer) (format "SG_CDECL_END~%")))
 
   ;; entry point and only exported method
   (define (cgen file)

@@ -29,22 +29,24 @@
  *
  *  $Id: $
  */
+#include <sagittarius.h>
+#define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
 #include "zlib.h"
 
-static void zstream_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void zstream_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgZStream *z = SG_ZSTREAM(self);
   Sg_Printf(port, UC("#<z-stream %p>"), z->strm);
 }
 
-SG_INIT_META_OBJ(Sg_ZStreamMeta, &zstream_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_ZStreamClass, zstream_printer);
 
 static SgZStream * make_zstream()
 {
   z_streamp strm = SG_NEW_ATOMIC2(z_streamp, sizeof(z_stream));
   SgZStream *z = SG_NEW(SgZStream);
-  SG_SET_META_OBJ(z, SG_META_ZSTREAM);
+  SG_SET_CLASS(z, SG_CLASS_ZSTREAM);
   z->strm = strm;
   return z;
 }
@@ -167,9 +169,10 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__zlib()
   SG_INIT_EXTENSION(sagittarius__zlib);
 
   Sg__Init_sagittarius_zlib();
-  lib = Sg_FindLibrary(SG_INTERN("(sagittarius zlib)"), FALSE);
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_SYMBOL(SG_INTERN("(sagittarius zlib)")),
+				  FALSE));
 #define insert_binding(v)				\
-  Sg_MakeBinding(lib, SG_INTERN(#v), SG_MAKE_INT(v), TRUE)
+  Sg_MakeBinding(lib, SG_SYMBOL(SG_INTERN(#v)), SG_MAKE_INT(v), TRUE)
 
 insert_binding(Z_NO_FLUSH     );
 insert_binding(Z_PARTIAL_FLUSH);

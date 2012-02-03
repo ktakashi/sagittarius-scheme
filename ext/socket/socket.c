@@ -37,10 +37,12 @@
 #define EINTR WSAEINTR
 #endif
 
-#include "socket.h"
+#include <sagittarius.h>
+#define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
+#include "socket.h"
 
-static void socket_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void socket_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgSocket *socket = SG_SOCKET(self);
   const SgChar *type = (socket->type == SG_SOCKET_CLIENT)
@@ -48,7 +50,7 @@ static void socket_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
   Sg_Printf(port, UC("#<socket %s %S>"), type, socket->address);
 }
 
-SG_INIT_META_OBJ(Sg_SocketMeta, &socket_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SocketClass, socket_printer);
 
 
 #ifdef _WIN32
@@ -71,7 +73,7 @@ static void socket_finalizer(SgObject self, void *data)
 static SgSocket* make_socket(int fd, SgSocketType type, SgString *address)
 {
   SgSocket *s = SG_NEW(SgSocket);
-  SG_SET_META_OBJ(s, SG_META_SOCKET);
+  SG_SET_CLASS(s, SG_CLASS_SOCKET);
   s->socket = fd;
   s->type = type;
   s->address = address;
@@ -94,11 +96,11 @@ static SgString* get_address_string(const struct sockaddr *addr,
 		      serv, sizeof(serv), NI_NUMERICSERV);
   } while (EAI_AGAIN == ret);
   snprintf(name, sizeof(name), "%s:%s", host, serv);
-  return Sg_MakeStringC(name);
+  return SG_STRING(Sg_MakeStringC(name));
 }
 
-SgSocket* Sg_CreateClientSocket(const SgString *node,
-				const SgString *service,
+SgSocket* Sg_CreateClientSocket(SgString *node,
+				SgString *service,
 				int ai_family,
 				int ai_socktype,
 				int ai_flags,
@@ -124,9 +126,9 @@ SgSocket* Sg_CreateClientSocket(const SgString *node,
 
 
     if (ret != 0) {
-      Sg_IOError(-1, SG_INTERN("create-client-socket"), 
+      Sg_IOError((SgIOErrorType)-1, SG_INTERN("create-client-socket"), 
 		 Sg_GetLastErrorMessageWithErrorCode(ret),
-		 SG_FALSE, SG_LIST2(node, service));
+		 SG_FALSE, SG_LIST2(SG_OBJ(node), SG_OBJ(service)));
       return NULL;
     }
 
@@ -151,13 +153,13 @@ SgSocket* Sg_CreateClientSocket(const SgString *node,
       }
     }
     freeaddrinfo(result);
-    Sg_IOError(-1, SG_INTERN("create-client-socket"), 
+    Sg_IOError((SgIOErrorType)-1, SG_INTERN("create-client-socket"), 
 	       Sg_GetLastErrorMessageWithErrorCode(last_error),
-	       SG_FALSE, SG_LIST2(node, service));
+	       SG_FALSE, SG_LIST2(SG_OBJ(node), SG_OBJ(service)));
     return NULL;
 }
 
-SgSocket* Sg_CreateServerSocket(const SgString *service,
+SgSocket* Sg_CreateServerSocket(SgString *service,
 				int ai_family,
 				int ai_socktype,
 				int ai_protocol)
@@ -180,7 +182,7 @@ SgSocket* Sg_CreateServerSocket(const SgString *service,
 
 
     if (ret != 0) {
-      Sg_IOError(-1, SG_INTERN("create-server-socket"), 
+      Sg_IOError((SgIOErrorType)-1, SG_INTERN("create-server-socket"), 
 		 Sg_GetLastErrorMessageWithErrorCode(last_error),
 		 SG_FALSE, SG_NIL);
       return NULL;
@@ -236,7 +238,7 @@ SgSocket* Sg_CreateServerSocket(const SgString *service,
       return make_socket(fd, SG_SOCKET_SERVER, addressString);
     }
     freeaddrinfo(result);
-    Sg_IOError(-1, SG_INTERN("create-server-socket"), 
+    Sg_IOError((SgIOErrorType)-1, SG_INTERN("create-server-socket"), 
 	       Sg_GetLastErrorMessageWithErrorCode(last_error),
 	       SG_FALSE, SG_NIL);
     return NULL;
@@ -252,7 +254,7 @@ int Sg_SocketReceive(SgSocket *socket, uint8_t *data, int size, int flags)
       if (errno == EINTR) {
 	continue;
       } else {
-	Sg_IOError(-1, SG_INTERN("socket-recv"), 
+	Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-recv"), 
 		   Sg_GetLastErrorMessageWithErrorCode(last_error),
 		   SG_FALSE, SG_NIL);
 	return ret;
@@ -274,7 +276,7 @@ int Sg_SocketSend(SgSocket *socket, uint8_t *data, int size, int flags)
       if (errno == EINTR) {
 	continue;
       } else {
-	Sg_IOError(-1, SG_INTERN("socket-send"), 
+	Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-send"), 
 		   Sg_GetLastErrorMessageWithErrorCode(last_error),
 		   SG_FALSE, SG_NIL);
 	return ret;
@@ -344,7 +346,7 @@ static SgPort* make_port(enum SgPortDirection d, enum SgPortType t,
 			 enum SgBufferMode m)
 {
   SgPort *z = SG_NEW(SgPort);
-  SG_SET_HEADER(z, TC_PORT);
+  SG_SET_CLASS(z, SG_CLASS_PORT);
   z->direction = d;
   z->type = t;
   z->bufferMode = m;
@@ -462,7 +464,7 @@ static int64_t socket_read_u8_all(SgObject self, uint8_t **buf)
     } else if (0 == read_size) {
       break;
     } else {
-      Sg_WritebUnsafe(buffer, read_buf, 0, read_size);
+      Sg_WritebUnsafe(SG_PORT(buffer), read_buf, 0, read_size);
       mark += read_size;
     }
   }
@@ -515,7 +517,7 @@ SgObject Sg_MakeSocketPort(SgSocket *socket)
 void Sg_ShutdownPort(SgPort *port)
 {
   if (SG_BINARY_PORT(port)->type != SG_BINARY_CUSTOM_PORT_TYPE ||
-      !SG_SOCKET_P(SG_PORT_SOCKET(port))) {
+      !SG_SOCKETP(SG_PORT_SOCKET(port))) {
     Sg_Error(UC("socket port required but got %S"), port);
   }
   if (!Sg_PortClosedP(port)) {
@@ -543,15 +545,15 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__socket()
 #endif
   SG_INIT_EXTENSION(sagittarius__socket);
   Sg__Init_sagittarius_socket_impl();
-  lib = Sg_FindLibrary(SG_INTERN("(sagittarius socket impl)"), FALSE);
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_SYMBOL(SG_INTERN("(sagittarius socket impl)")), FALSE));
 
   Sg_AddCondFeature(UC("sagittarius.socket"));
 
   /* from Ypsilon */
 #define ARCH_CCONST(name)					\
-  Sg_MakeBinding(lib, SG_INTERN(#name), SG_MAKE_INT(name), TRUE)
+  Sg_MakeBinding(lib, SG_SYMBOL(SG_INTERN(#name)), SG_MAKE_INT(name), TRUE)
 #define ARCH_CFALSE(name)			\
-  Sg_MakeBinding(lib, SG_INTERN(#name), SG_FALSE, TRUE)
+  Sg_MakeBinding(lib, SG_SYMBOL(SG_INTERN(#name)), SG_FALSE, TRUE)
 #ifdef AF_UNSPEC
   ARCH_CCONST(AF_UNSPEC);
 #else

@@ -34,22 +34,26 @@
 
 #include <sagittarius.h>
 
+SG_CLASS_DECL(Sg_ConditionVariableClass);
+#define SG_CLASS_CONDITION_VARIABLE (&Sg_ConditionVariableClass)
+
 typedef struct SgConditionVariableRec
 {
-  SG_META_HEADER;
+  SG_INSTANCE_HEADER;
   SgInternalCond cv;
   SgObject name;
   SgObject specific;
 } SgConditionVariable;
 
-SG_DECLARE_META_OBJ(Sg_ConditionVariableMeta);
-#define SG_META_CONDITION_VARIABLE (&Sg_ConditionVariableMeta)
-#define SG_CONDITION_VARIABLE(obj) ((SgConditionVariable *)obj)
-#define SG_CONDITION_VARIABLE_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_CONDITION_VARIABLE)
 
+#define SG_CONDITION_VARIABLE(obj) ((SgConditionVariable *)obj)
+#define SG_CONDITION_VARIABLE_P(obj) SG_XTYPEP(obj, SG_CLASS_CONDITION_VARIABLE)
+
+SG_CLASS_DECL(Sg_MutexClass);
+#define SG_CLASS_MUTEX     (&Sg_MutexClass)
 typedef struct SgMutexRec
 {
-  SG_META_HEADER;
+  SG_INSTANCE_HEADER;
   SgInternalMutex mutex;
   SgInternalCond  cv;
   SgObject name;
@@ -58,10 +62,8 @@ typedef struct SgMutexRec
   SgVM *owner;
 } SgMutex;
 
-SG_DECLARE_META_OBJ(Sg_MutexMeta);
-#define SG_META_MUTEX     (&Sg_MutexMeta)
 #define SG_MUTEX(obj)     ((SgMutex *)obj)
-#define SG_MUTEX_P(obj)   SG_META_OBJ_TYPE_P(obj, SG_META_MUTEX)
+#define SG_MUTEXP(obj)   SG_XTYPEP(obj, SG_CLASS_MUTEX)
 
 #ifdef _MSC_VER
 struct timespec {

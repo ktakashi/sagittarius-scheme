@@ -40,12 +40,12 @@ SgObject Sg_GenerateSecretKey(SgString *type, SgByteVector *key)
   /* check length */
   if (len != SG_BVECTOR_SIZE(key)) {
     /* shorten */
-    SgByteVector *tmp = Sg_MakeByteVector(len, 0);
+    SgByteVector *tmp = SG_BVECTOR(Sg_MakeByteVector(len, 0));
     Sg_ByteVectorCopyX(key, 0, tmp, 0, len);
     key = tmp;
     tmp = NULL;
   }
-  crypto = Sg_MakeCrypto(CRYPTO_KEY);
+  crypto = SG_CRYPTO(Sg_MakeCrypto(CRYPTO_KEY));
   SG_SECRET_KEY(SG_KEY(crypto)) = key;
   SG_KEY(crypto)->name = SG_SYMBOL(Sg_Intern(type));
   return SG_OBJ(crypto);
@@ -54,14 +54,16 @@ SgObject Sg_GenerateSecretKey(SgString *type, SgByteVector *key)
 static SgRecordType KEY_TYPE;
 SgObject key_rtd = SG_UNDEF;
 
+SG_CDECL_BEGIN
 void Sg__InitKey(SgObject lib)
 {
   SgObject rtd, rcd, nullvec = Sg_MakeVector(0, SG_UNDEF);
-  SgObject key = SG_INTERN("key");
+  SgSymbol *key = SG_INTERN("key");
   rtd = Sg_MakeRecordTypeDescriptor(key, SG_FALSE, SG_FALSE,
-				    FALSE, FALSE, nullvec);
+				    FALSE, FALSE, SG_VECTOR(nullvec));
   rcd = Sg_MakeRecordConstructorDescriptor(rtd, SG_FALSE, SG_FALSE);
   SG_INIT_RECORD_TYPE(&KEY_TYPE, key, rtd, rcd);
-  Sg_InsertBinding(lib, key, &KEY_TYPE);
+  Sg_InsertBinding(SG_LIBRARY(lib), key, &KEY_TYPE);
   key_rtd = rtd;
 }
+SG_CDECL_END

@@ -58,16 +58,17 @@
 
 #define SG_DECLARE_EXCEPTIONS(libname, create)				\
   SgObject rtd__, rcd__, ctr__, pred__, accessor__;			\
-  SgObject lib__ = Sg_FindLibrary(SG_INTERN(libname), (create))
+  SgLibrary *lib__ = SG_LIBRARY(Sg_FindLibrary(SG_SYMBOL(SG_INTERN(libname)), \
+					       (create)))
 
 #define SG_INTERN__CONDITION(cname, sname, prtd, prcd, uid, sealed, opaque, fvec, protocol) \
   do {									\
-    rtd__ = Sg_MakeRecordTypeDescriptor(SG_INTERN(#sname),		\
+    rtd__ = Sg_MakeRecordTypeDescriptor(SG_SYMBOL(SG_INTERN(#sname)),	\
 					(prtd), (uid), (sealed),	\
-					(opaque), (fvec));		\
+					(opaque), SG_VECTOR(fvec));	\
     rcd__ = Sg_MakeRecordConstructorDescriptor(rtd__, (prcd), (protocol)); \
     SG_INIT_RECORD_TYPE(cname, SG_INTERN(#sname), rtd__, rcd__);	\
-    Sg_InsertBinding(lib__, SG_INTERN(#sname), cname);			\
+    Sg_InsertBinding(lib__, SG_SYMBOL(SG_INTERN(#sname)), cname); \
   } while (0)
 
 #define SG_INTERN__CONDITION_SIMPLE(cname, sname, prtd, prcd, fvec)	\

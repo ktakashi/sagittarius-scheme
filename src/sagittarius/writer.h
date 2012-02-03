@@ -79,6 +79,10 @@ SG_EXTERN SgObject Sg_Sprintf(const SgChar *fmt, ...);
 SG_EXTERN SgObject Sg_SprintfShared(const SgChar *fmt, ...);
 SG_EXTERN SgObject Sg_Vsprintf(const SgChar *fmt, va_list args, int sharedp);
 
+/* for convenience */
+SG_EXTERN void     Sg_WriteSymbolName(SgString *snam, SgPort *port,
+				      SgWriteContext *ctx, int flags);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_WRITER_H_ */

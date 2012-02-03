@@ -1605,6 +1605,7 @@
 		(null (core base) 
 		      (for (core syntax-case) expand)
 		      (sagittarius)
+		      (core errors)
 		      (for (sagittarius compiler match) expand))
 		#f #t)
     (,*proc-lib* (sagittarius compiler procedure) 

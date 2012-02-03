@@ -56,18 +56,24 @@ static int process_call(SgProcess *process, int waitP)
   char *args = Sg_Utf32sToUtf8s(process->args);
 
   piperet = pipe(pipefd);
-  process->in = Sg_MakeFileBinaryInputPort(Sg_MakeFileFromFD(pipefd[0]), SG_BUFMODE_NONE);
+  process->in =
+    Sg_MakeFileBinaryInputPort(SG_FILE(Sg_MakeFileFromFD(pipefd[0])),
+			       SG_BUFMODE_NONE);
   /* pipe does not have error out. why? */
-  process->out = process->err = Sg_MakeFileBinaryOutputPort(Sg_MakeFileFromFD(pipefd[1]), SG_BUFMODE_NONE);
+  process->out = process->err =
+    Sg_MakeFileBinaryOutputPort(SG_FILE(Sg_MakeFileFromFD(pipefd[1])),
+				SG_BUFMODE_NONE);
   pid = fork();
   if (pid == -1) {
-    Sg_Warn(UC("failed to create a process %A. %A"), process->name, Sg_GetLastErrorMessage());
+    Sg_Warn(UC("failed to create a process %A. %A"), process->name,
+	    Sg_GetLastErrorMessage());
     return -1;
   } else if (pid == 0) {
     if (execlp(name, name, args, (char*)NULL) == -1) {
       /* why? */
       if (execl(name, name, args, (char*)NULL) == -1) {
-	Sg_Warn(UC("failed to execute a process %A. %A"), process->name, Sg_GetLastErrorMessage());
+	Sg_Warn(UC("failed to execute a process %A. %A"), process->name,
+		Sg_GetLastErrorMessage());
 	return -1;
       }
     }

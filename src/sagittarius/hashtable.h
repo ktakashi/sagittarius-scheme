@@ -33,6 +33,7 @@
 #define SAGITTARIUS_HASHTABLE_H_
 
 #include "sagittariusdefs.h"
+#include "clos.h"
 
 typedef enum {
   SG_HASH_EQ,
@@ -72,13 +73,13 @@ struct SgHashIterRec
   void       *next;
 };
 
-/*
-  hashtable header info
-  ........ ........ .....I.. ....0111 : I: immutable
- */
+SG_CLASS_DECL(Sg_HashTableClass);
+#define SG_CLASS_HASHTABLE (&Sg_HashTableClass)
+
 struct SgHashTableRec
 {
   SG_HEADER;
+  char       immutablep;
   SgHashType type;
   SgHashCore core;
 };
@@ -100,17 +101,17 @@ typedef enum {
   SG_HASH_NO_CREATE    = (1L<<1)  /* do not create new one if no match */
 } SgHashSetFlags;
 
-#define SG_HASHTABLE_P(obj)    (SG_PTRP(obj) && IS_TYPE(obj, TC_HASHTABLE))
+#define SG_HASHTABLE_P(obj)					\
+  (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_HASHTABLE))
 #define SG_HASHTABLE(obj)      ((SgHashTable*)(obj))
 #define SG_HASHTABLE_CORE(obj) (&SG_HASHTABLE(obj)->core)
 #define SG_HASH_ENTRY_KEY(e)   SG_OBJ((e)->key)
 #define SG_HASH_ENTRY_VALUE(e) SG_OBJ((e)->value)
 #define SG_HASH_ENTRY_SET_VALUE(e, v)		\
   SG_OBJ((e)->value = (void *)v)
-/* for hashtable-copy */
-#define SG_HASHTABLE_IMMUTABLE_SHIFT   	11
-#define SG_HASHTABLE_IMMUTABLE_BIT     ((uintptr_t)1 << SG_HASHTABLE_IMMUTABLE_SHIFT)
-#define SG_IMMUTABLE_HASHTABLE_P(obj)  (SG_HASHTABLE_P(obj) && (SG_HDR(obj) & SG_HASHTABLE_IMMUTABLE_BIT))
+
+#define SG_IMMUTABLE_HASHTABLE_P(obj)					\
+  (SG_HASHTABLE_P(obj) && SG_HASHTABLE(obj)->immutablep)
 
 
 SG_CDECL_BEGIN

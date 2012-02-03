@@ -34,6 +34,10 @@
 
 #include "sagittariusdefs.h"
 #include "thread.h"
+#include "clos.h"
+
+SG_CLASS_DECL(Sg_LibraryClass);
+#define SG_CLASS_LIBRARY (&Sg_LibraryClass)
 
 struct SgLibraryRec
 {
@@ -58,7 +62,7 @@ struct SgLibraryRec
 };
 
 #define SG_LIBRARY(obj)  ((SgLibrary*)(obj))
-#define SG_LIBRARYP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_LIBRARY))
+#define SG_LIBRARYP(obj) (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_LIBRARY))
 
 #define SG_LIBRARY_NAME(obj)     SG_LIBRARY(obj)->name
 #define SG_LIBRARY_IMPORTED(obj) SG_LIBRARY(obj)->imported

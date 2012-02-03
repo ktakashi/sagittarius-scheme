@@ -1,0 +1,41 @@
+;; -*- mode:scheme; coding: utf-8; -*-
+(library (sagittarius clos)
+    (export slot-ref slot-set!
+	    class-of
+	    is-a?
+	    )
+    (import :none)
+
+  (decl-code
+   (.define "LIBSAGITTARIUS_BODY")
+   (.include <sagittarius.h> <sagittarius/generic.h>))
+
+  (define-c-proc slot-ref (o name::<symbol>) ::<top>
+    (result (Sg_SlotRef o name)))
+
+  (define-c-proc slot-set! (o name::<symbol> v) ::<void>
+    (Sg_SlotSet o name v))
+
+  (define-c-proc class-of (o) ::<top>
+    (result (Sg_ClassOf o)))
+
+  (define-c-proc is-a? (o klass) ::<boolean>
+    (result (Sg_TypeP o klass)))
+
+  (define-cfn call-fallback-proc (args::SgObject* nargs::int gf::SgGeneric*)
+    :static
+    (return (Sg_VMApply (SG_OBJ (-> gf data)) (Sg_ArrayToList args nargs))))
+
+  (define-c-proc %ensure-generic-function (name::<symbol> lib::<library>)
+    ::<top>
+    (let ((g::SgGloc* (Sg_FindBinding lib name #f))
+	  (val #f))
+      (when (SG_GLOCP g)
+	(set! val (SG_GLOC_GET g)))
+      (when (not (Sg_TypeP val SG_CLASS_GENERIC))
+	(if (or (SG_SUBRP val) (SG_CLOSUREP val))
+	    (set! val (Sg_MakeBaseGeneric (SG_OBJ name) call-fallback-proc val))
+	    (set! val (Sg_MakeBaseGeneric (SG_OBJ name) NULL NULL))))
+      (Sg_InsertBinding lib name val)
+      (result val)))
+)

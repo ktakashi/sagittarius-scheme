@@ -33,6 +33,10 @@
 #define SAGITTARIUS_GLOC_H_
 
 #include "sagittariusdefs.h"
+#include "clos.h"
+
+SG_CLASS_DECL(Sg_GlocClass);
+#define SG_CLASS_GLOC (&Sg_GlocClass)
 
 struct SgGlocRec
 {
@@ -44,7 +48,7 @@ struct SgGlocRec
 };
 
 #define SG_GLOC(obj)  ((SgGloc*)obj)
-#define SG_GLOCP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_GLOC))
+#define SG_GLOCP(obj) (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_GLOC))
 
 #define SG_GLOC_GET(gloc)      ((gloc)->value)
 #define SG_GLOC_SET(gloc, val) ((gloc)->value = (val))

@@ -58,10 +58,25 @@ extern "C" {
 #define SG_EXTENSION_ENTRY_QUAL
 #endif
 
-#if defined(SAGITTARIUS_WINDOWS)
+#if defined(__CYGWIN__) || defined(SAGITTARIUS_WINDOWS)
 #define SG_EXTENSION_ENTRY SG_EXTENSION_ENTRY_QUAL __declspec(dllexport)
 #else
 #define SG_EXTENSION_ENTRY SG_EXTENSION_ENTRY_QUAL
+#endif
+
+#undef SG_EXTERN
+#undef SG_EXPORT
+#if defined(__CYGWIN__) || defined(SAGITTARIUS_WINDOWS)
+# if defined(LIBSAGITTARIUS_BODY) || defined(LIBSAGITTARIUS_EXT_BODY)
+#  define SG_EXPORT  __declspec(dllexport)
+#  define SG_EXTERN extern SG_EXPORT
+# else
+#  define SG_EXPORT  __declspec(dllimport)
+#  define SG_EXTERN extern SG_EXPORT
+# endif
+#else
+# define SG_EXPORT 
+# define SG_EXTERN extern
 #endif
 
 

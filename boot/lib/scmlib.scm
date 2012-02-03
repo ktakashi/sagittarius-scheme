@@ -160,20 +160,14 @@
 
 (define make-simple-conser
   (lambda (desc rtd argc)
-    (let ((generic (apply make-generic 
-			  (record-type-name rtd)
-			  record-printer
-			  #f
-			  'rtd
-			  (map cdr (rtd-fields rtd)))))
-      ((rcd-protocol desc)
-       (lambda field-values
-	 (if (= (length field-values) argc)
-	     (let ((tuple (make-tuple (+ (length field-values) 1) record-printer))
-		   (all-valeus (append (list rtd) field-values)))
-	       (tuple-list-set! tuple all-valeus)
-	       tuple)
-	     (assertion-violation "record constructor" "wrong number of arguments" field-values)))))))
+    ((rcd-protocol desc)
+     (lambda field-values
+       (if (= (length field-values) argc)
+	   (let ((tuple (make-tuple (+ (length field-values) 1) record-printer))
+		 (all-valeus (append (list rtd) field-values)))
+	     (tuple-list-set! tuple all-valeus)
+	     tuple)
+	   (assertion-violation "record constructor" "wrong number of arguments" field-values))))))
 
 (define default-protocol
   (lambda (rtd)
@@ -195,7 +189,7 @@
 (define (null-list? l)
   (cond ((pair? l) #f)
 	((null? l) #t)
-	(else (error 'null-list? "argument out of domain" l))))
+	(else (assertion-violation 'null-list? "argument out of domain" l))))
 
 (define split-at
   (lambda (x k)

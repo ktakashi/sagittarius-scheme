@@ -32,11 +32,24 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/subr.h"
 #include "sagittarius/symbol.h"
+#include "sagittarius/port.h"
+#include "sagittarius/writer.h"
+
+static void proc_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  if (SG_PROCEDURE_TYPE(obj) == SG_PROC_SUBR)
+    Sg_Putuz(port, UC("#<subr "));
+  else 
+    Sg_Putuz(port, UC("#<closure "));
+  Sg_Write(SG_PROCEDURE_NAME(obj), port, SG_WRITE_DISPLAY);
+  Sg_Putc(port, '>');
+}
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_ProcedureClass, proc_print);
 
 static SgSubr* make_subr(int req, int opt, SgObject info)
 {
   SgSubr *s = SG_NEW(SgSubr);
-  SG_SET_HEADER(s, TC_PROCEDURE);
+  SG_SET_CLASS(s, SG_CLASS_PROCEDURE);
   SG_PROCEDURE_INIT(s, req, opt, SG_PROC_SUBR, info);
   return s;
 }

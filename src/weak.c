@@ -31,9 +31,36 @@
  */
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/weak.h"
+#include "sagittarius/collection.h"
 #include "sagittarius/core.h"
 #include "sagittarius/error.h"
 #include "sagittarius/pair.h"
+#include "sagittarius/port.h"
+#include "sagittarius/writer.h"
+
+static void wvector_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgWeakVector *wvec = SG_WEAK_VECTOR(obj);
+  int size = wvec->size, i;
+  Sg_Putuz(port, UC("#<weak-vector"));
+  for (i = 0; i < size; i++) {
+    Sg_Putc(port, ' ');
+    Sg_Write(Sg_WeakVectorRef(wvec, i, SG_FALSE), port, ctx->mode);
+  }
+  Sg_Putc(port, '>');
+}
+
+SG_DEFINE_BUILTIN_CLASS(Sg_WeakVectorClass, wvector_print, NULL, NULL, NULL,
+			SG_CLASS_SEQUENCE_CPL);
+
+static void whash_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  /* dummy */
+  Sg_Putuz(port, UC("#<weak-hashtable>"));
+}
+SG_DEFINE_BUILTIN_CLASS(Sg_WeakHashTableClass, whash_print, NULL, NULL, NULL,
+			SG_CLASS_DICTIONARY_CPL);
+
 
 static void weakvector_finalize(SgObject obj, void *data)
 {
@@ -54,7 +81,7 @@ SgObject Sg_MakeWeakVector(int size)
   SgObject *p;
   SgWeakVector *v = SG_NEW(SgWeakVector);
 
-  SG_SET_HEADER(v, TC_WEAK_VECTOR);
+  SG_SET_CLASS(v, SG_CLASS_WEAK_VECTOR);
   v->size = size;
   /* Allocate pointer array by ATOMIC, so that GC won't trace the
      pointers in it.
@@ -183,7 +210,7 @@ SgObject Sg_MakeWeakHashTableSimple(SgHashType type,
 				    SgObject defaultValue)
 {
   SgWeakHashTable *wh = SG_NEW(SgWeakHashTable);
-  SG_SET_HEADER(wh, TC_WEAK_HASHTABLE);
+  SG_SET_CLASS(wh, SG_CLASS_WEAK_HASHTABLE);
   wh->weakness = weakness;
   wh->type = type;
   wh->defaultValue = defaultValue;
@@ -203,7 +230,7 @@ SgObject Sg_MakeWeakHashTableSimple(SgHashType type,
 SgObject Sg_WeakHashTableCopy(SgWeakHashTable *src)
 {
   SgWeakHashTable *wh = SG_NEW(SgWeakHashTable);
-  SG_SET_HEADER(wh, TC_WEAK_HASHTABLE);
+  SG_SET_CLASS(wh, SG_CLASS_WEAK_HASHTABLE);
   wh->weakness = src->weakness;
   wh->type = src->type;
   wh->defaultValue = src->defaultValue;

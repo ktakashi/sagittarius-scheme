@@ -28,7 +28,6 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-(load-dynamic-library "sagittarius--regex2")
 (library (sagittarius regex)
     (export compile-regex
 	    regex-matcher
@@ -72,7 +71,7 @@
 	    ;; enable #/regex/
 	    :export-reader-macro
 	    )
-    (import (rename (sagittarius regex2 impl) 
+    (import (rename (sagittarius regex impl) 
 		    (regex-replace-first impl:regex-replace-first)
 		    (regex-replace-all impl:regex-replace-all))
 	    (core)
@@ -118,6 +117,8 @@
   (define (string-split text str/pattern)
     (let* ((p (cond ((regex-pattern? str/pattern) str/pattern)
 		    ((string? str/pattern) (regex str/pattern))
+		    ((char? str/pattern) (regex (list->string  
+						 (list str/pattern))))
 		    (else (assertion-violation
 			   'string-split
 			   "string or regex-pattern required" str/pattern))))

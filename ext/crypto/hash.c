@@ -29,19 +29,22 @@
  *
  *  $Id: $
  */
+#include <sagittarius.h>
+#define LIBSAGITTARIUS_EXT_BODY
+#include <sagittarius/extend.h>
 #include "math.h"
 
-static void hash_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void hash_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   Sg_Printf(port, UC("#<%A>"), SG_HASH(self)->name);
 }
 
-SG_INIT_META_OBJ(Sg_HashAlgoMeta, &hash_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_HashAlgoClass, hash_printer);
 
 static SgHashAlgo* make_hash(int type, SgString *name)
 {
   SgHashAlgo *h = SG_NEW(SgHashAlgo);
-  SG_SET_META_OBJ(h, SG_META_HASH);
+  SG_SET_CLASS(h, SG_CLASS_HASH);
   h->type = type;
   h->name = name;
   return h;
@@ -151,7 +154,7 @@ SgObject Sg_HashOid(SgHashAlgo *algo)
     /* construct oid string */
     SgObject h = SG_NIL, t = SG_NIL;
     SgObject s = SG_UNDEF, cp;	/* return string */
-    const SgObject dot = Sg_MakeString(UC("."), SG_LITERAL_STRING);
+    SgString *dot = SG_MAKE_STRING(".");
 
     if (len == 0) return SG_FALSE; /* given hash algorithm does not have OID */
     for (i = 0; i < len; i++) {
@@ -159,8 +162,8 @@ SgObject Sg_HashOid(SgHashAlgo *algo)
     }
     s = SG_CAR(h);
     SG_FOR_EACH(cp, SG_CDR(h)) {
-      s = Sg_StringAppend2(s, dot);
-      s = Sg_StringAppend2(s, SG_CAR(cp));
+      s = Sg_StringAppend2(SG_STRING(s), dot);
+      s = Sg_StringAppend2(SG_STRING(s), SG_STRING(SG_CAR(cp)));
     }
     return s;
   } else {

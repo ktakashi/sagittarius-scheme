@@ -29,20 +29,22 @@
  *
  *  $Id: $
  */
+#include <sagittarius.h>
+#define LIBSAGITTARIUS_BODY
 #include <sagittarius/extend.h>
 #include "process.h"
 
-static void process_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void process_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   Sg_Printf(port, UC("#<process %S>"), SG_PROCESS(self)->name);
 }
 
-SG_INIT_META_OBJ(Sg_ProcessMeta, &process_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_ProcessClass, process_printer);
 
 static SgProcess* make_process(SgString *name, SgString *args)
 {
   SgProcess *p = SG_NEW(SgProcess);
-  SG_SET_META_OBJ(p, SG_META_PROCESS);
+  SG_SET_CLASS(p, SG_CLASS_PROCESS);
   p->name = name;
   p->args = args;
   p->handle = 0;
@@ -57,7 +59,6 @@ static SgProcess* make_process(SgString *name, SgString *args)
 #else
 # include "posix.c"
 #endif
-
 
 extern void Sg__Init_sagittarius_process_impl();
 

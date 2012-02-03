@@ -30,10 +30,12 @@
  *  $Id: $
  */
 #include <math.h>
+#include <sagittarius.h>
+#define LIBSAGITTARIUS_BODY
 #include <sagittarius/extend.h>
 #include "time.h"
 
-static void time_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void time_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgTime *t = SG_TIME(self);
   Sg_Printf(port, UC("#<%S %S.%09lu>"), t->type, Sg_MakeIntegerFromS64(t->sec), t->nsec);
@@ -43,16 +45,16 @@ static int time_compare(SgObject x, SgObject y, int equalp)
 {
   SgTime *tx, *ty;
   /* it could be not the save meta object. see compare.c */
-  if (!SG_TIME_P(x) || !SG_TIME_P(y)) return FALSE;
+  if (!SG_TIMEP(x) || !SG_TIMEP(y)) return FALSE;
   tx = SG_TIME(x);
   ty = SG_TIME(y);
   if (equalp) {
     if (SG_EQ(tx->type, ty->type) &&
 	tx->sec == ty->sec &&
 	tx->nsec == ty->nsec) {
-      return TRUE;
+      return 0;
     } else {
-      return FALSE;
+      return -1;
     }
   } else {
     if (!SG_EQ(tx->type, ty->type)) {
@@ -69,7 +71,8 @@ static int time_compare(SgObject x, SgObject y, int equalp)
   }
 }
 
-SG_INIT_META_OBJ(Sg_TimeMeta, &time_printer, &time_compare);
+SG_DEFINE_BUILTIN_CLASS(Sg_TimeClass, time_printer, time_compare,
+			NULL, NULL, NULL);
 
 static SgObject time_utc = SG_UNDEF;
 static SgObject time_tai = SG_UNDEF;
@@ -81,7 +84,7 @@ static SgObject time_thread = SG_UNDEF;
 static SgTime* make_time_int(SgObject type)
 {
   SgTime *t = SG_NEW(SgTime);
-  SG_SET_META_OBJ(t, SG_META_TIME);
+  SG_SET_CLASS(t, SG_CLASS_TIME);
   t->type = SG_FALSEP(type) ? time_utc : type;
   return t;
 }
@@ -184,7 +187,7 @@ SgObject Sg_TimeDifference(SgTime *x, SgTime *y, SgTime *r)
     Sg_Error(UC("TIME-ERROR time-differece: imcompatible-time-types %S vs %S"), x, y);
   }
   r->type = time_duration;
-  if (SG_GET_META_OBJ(x)->compare(x, y, FALSE) == 0) {
+  if (SG_CLASS_OF(x)->compare(x, y, FALSE) == 0) {
     r->sec = 0;
     r->nsec = 0;
   } else {
@@ -243,7 +246,6 @@ SgObject Sg_SubDuration(SgTime *x, SgTime *y, SgTime *r)
 
 extern void Sg__Init_sagittarius_time_impl();
 extern void Sg__Init_sagittarius_date_impl();
-
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__time()
 {

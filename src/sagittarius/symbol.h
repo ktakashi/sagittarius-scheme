@@ -33,13 +33,17 @@
 #define SAGITTARIUS_SYMBOL_H_
 
 #include "sagittariusdefs.h"
+#include "clos.h"
 #include "string.h"
+
+SG_CLASS_DECL(Sg_SymbolClass);
+#define SG_CLASS_SYMBOL (&Sg_SymbolClass)
 
 struct SgSymbolRec
 {
   SG_HEADER;
   SgString *name;
-  int       prefix; /* for uninterned symbol */
+  int       flags; /* for uninterned symbol */
 };
 
 enum SymbolWriteFlags {
@@ -47,30 +51,29 @@ enum SymbolWriteFlags {
   SG_SYMBOL_WRITER_NOESCAPE_EMPTY   = (1L<<1)
 };
 
-/* 
-   symbol header info
-   nnnn nnnn nnnn nnnn ---- -U-- ---- 0111 :   n: size U: uninterned
-*/
+enum {
+  SG_SYMBOL_INTERNED = 1L<<0,
+};
+
 /* 16 bit */
 /*#define SYMBOL_MAX_SIZE   0xFFFF*/
 #define SYMBOL_MAX_SIZE   256
 /* higher 16 bits are size */
-#define SYMBOL_SIZE_SHIFT 16
-#define SYMBOL_UNINTERNED_SHIFT 10
-#define SYMBOL_UNINTERNED_BIT   ((uintptr_t)1 << SYMBOL_UNINTERNED_SHIFT)
 
-#define SG_SYMBOLP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_SYMBOL))
+#define SG_SYMBOLP(obj) (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_SYMBOL))
 #define SG_SYMBOL(obj)  ((SgSymbol*)(obj))
 
-#define SG_UNINTERNED_SYMBOL(obj) (SG_SYMBOLP(obj) && (SG_HDR(obj) & SYMBOL_UNINTERNED_BIT))
-#define SG_INTERNED_SYMBOL(obj)   (SG_SYMBOLP(obj) && (SG_HDR(obj) & SYMBOL_UNINTERNED_BIT) == 0)
+#define SG_UNINTERNED_SYMBOL(obj)					\
+  (SG_SYMBOLP(obj)&&!(SG_SYMBOL(obj)->flags&SG_SYMBOL_INTERNED))
+#define SG_INTERNED_SYMBOL(obj)						\
+  (SG_SYMBOLP(obj)&&SG_SYMBOL(obj)->flags&SG_SYMBOL_INTERNED)
 
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeSymbol(SgString *name, int interned);
 SG_EXTERN SgObject Sg_Gensym(SgString *prefix);
 
-#define Sg_Intern(name) Sg_MakeSymbol(name, TRUE)
+#define Sg_Intern(name) SG_SYMBOL(Sg_MakeSymbol(SG_STRING(name), TRUE))
 #define SG_INTERN(cstr) Sg_Intern(SG_STRING(Sg_MakeString(UC(cstr), SG_LITERAL_STRING)))
 
 SG_CDECL_END

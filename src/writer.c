@@ -35,17 +35,13 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/writer.h"
 #include "sagittarius/port.h"
-#include "sagittarius/charset.h"
-#include "sagittarius/code.h"
-#include "sagittarius/codec.h"
-#include "sagittarius/core.h"
-#include "sagittarius/closure.h"
-#include "sagittarius/subr.h"
-#include "sagittarius/file.h"
+#include "sagittarius/generic.h"
 #include "sagittarius/transcoder.h"
+#include "sagittarius/core.h"
+#include "sagittarius/clos.h"
+#include "sagittarius/file.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/keyword.h"
-#include "sagittarius/macro.h"
 #include "sagittarius/string.h"
 #include "sagittarius/number.h"
 #include "sagittarius/error.h"
@@ -53,18 +49,11 @@
 #include "sagittarius/identifier.h"
 #include "sagittarius/library.h"
 #include "sagittarius/vector.h"
-#include "sagittarius/values.h"
 #include "sagittarius/symbol.h"
-#include "sagittarius/generic.h"
-#include "sagittarius/bytevector.h"
-#include "sagittarius/vm.h"
 #include "sagittarius/record.h"
-#include "sagittarius/port.h"
-#include "sagittarius/gloc.h"
+#include "sagittarius/vm.h"
 #include "sagittarius/unicode.h"
-#include "sagittarius/weak.h"
 #include "sagittarius/builtin-symbols.h"
-#include "sagittarius/reader.h"	/* for sharedref */
 
 #define WRITE_LIMITED  0x10
 #define WRITE_CIRCULAR 0x20
@@ -73,6 +62,10 @@
 static void format_write(SgObject obj, SgPort *port, SgWriteContext *ctx, int sharedp);
 static void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx);
 static void write_ss(SgObject obj, SgPort *port, SgWriteContext *ctx);
+static void write_object(SgObject obj, SgPort *port, SgWriteContext *ctx);
+static SgObject write_object_fallback(SgObject *args, int nargs, SgGeneric *gf);
+
+SG_DEFINE_GENERIC(Sg_GenericWriteObject, write_object_fallback, NULL);
 
 void Sg_Write(SgObject obj, SgObject p, int mode)
 {
@@ -585,569 +578,6 @@ static int symbol_need_bar(const SgChar *s, int n)
   }
 }
 
-static void write_symbol_name(SgString *snam, SgPort *port, SgWriteContext *ctx, int flags)
-{
-  const SgChar *p = snam->value, *q;
-  int size = snam->size;
-  int escape = FALSE;
-  int r6rsMode = SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE);
-  int mode = SG_WRITE_MODE(ctx);
-
-  if (size == 0) {
-    if (!(flags & SG_SYMBOL_WRITER_NOESCAPE_EMPTY)) {
-      Sg_PutuzUnsafe(port, UC("||"));
-    }
-    return;
-  }
-  if (size == 1 && (*p == '+' || *p == '-')) {
-    Sg_PutcUnsafe(port, *p);
-    return;
-  }
-  /* R6RS does not have '|' */
-  if (mode != SG_WRITE_LIBPATH &&
-      (!(flags & SG_SYMBOL_WRITER_NOESCAPE_INITIAL))) {
-    escape = symbol_need_bar(p, size);
-  }
-  if (escape && !r6rsMode) {
-    Sg_PutcUnsafe(port, '|');
-    for (q = p; q < p + size; q++) {
-      SgChar ch = *q;
-      if (ch < 128) {
-	if (special[ch] & 8) {
-	  Sg_PutcUnsafe(port, '\\');
-	  Sg_PutcUnsafe(port, ch);
-	} else if (special[ch] & 4) {
-	  Sg_Printf(port, UC("\\x%02x"), ch);
-	} else {
-	  Sg_PutcUnsafe(port, ch);
-	}
-      } else {
-	Sg_PutcUnsafe(port, ch);
-      }
-    }
-    Sg_PutcUnsafe(port, '|');
-    return;
-  } else {
-    if (r6rsMode && (mode != SG_WRITE_LIBPATH)) {
-      for (q = p; q < p + size; q++) {
-	SgChar ch = *q;
-	if ((q == p && Sg_Ucs4ConstituentP(ch)) ||
-	    (q != p && Sg_Ucs4SubsequentP(ch))) {
-	  Sg_PutcUnsafe(port, ch);
-	} else {
-	  char buf[16];
-	  /* ... */
-	  if (q == p) {
-	    if (size == 3) {
-	      if (q[0] == '.' && q[1] == '.' && q[2] == '.') {
-		Sg_PutuzUnsafe(port, UC("..."));
-		return;
-	      }
-	    }
-	    if (size > 2) {
-	      if (q[0] == '-' && q[1] == '>') {
-		Sg_PutuzUnsafe(port, UC("->"));
-		q += 2;
-		continue;
-	      }
-	    }
-	  }
-	  snprintf(buf, sizeof(buf), "\\x%X;", ch);
-	  Sg_PutzUnsafe(port, buf);
-	}
-      }
-    } else {
-      Sg_PutsUnsafe(port, snam);
-    }
-  }
-}
-
-static void write_symbol(SgSymbol *obj, SgPort *port, SgWriteContext *ctx)
-{
-  ASSERT(SG_STRINGP(obj->name));
-  if (SG_WRITE_MODE(ctx) == SG_WRITE_DISPLAY) {
-    Sg_PutsUnsafe(port, obj->name);
-  } else {
-    if (SG_UNINTERNED_SYMBOL(obj)) Sg_PutuzUnsafe(port, UC("#:"));
-    write_symbol_name(obj->name, port, ctx, 0);
-  }
-}
-
-static void write_string(SgString *obj, SgPort *port, SgWriteContext *ctx)
-{
-  if (SG_WRITE_MODE(ctx) == SG_WRITE_DISPLAY) {
-    Sg_PutsUnsafe(port, obj);
-  } else {
-    SgChar *s = obj->value;
-    int i, size = obj->size;
-    Sg_PutcUnsafe(port, '"');
-    for (i = 0; i < size; i++) {
-      SgChar ch = s[i];
-      switch (ch) {
-      case '\\':
-	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, '\\');
-	break;
-      case '\n':
-	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, 'n');
-	break;
-      case '\a':
-	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, 'a');
-	break;
-      case '\b':
-	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, 'b');
-	break;
-      case '\t':
-	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, 't');
-	break;
-      case '\v':
-	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, 'v');
-	break;
-      case '\r':
-	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, 'r');
-	break;
-      case '\f':
-	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, 'f');
-	break;
-      case '\"':
-	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, '\"');
-	break;
-      default:
-	{
-	  const int ASCII_SPC = 0x20;
-	  const int ASCII_DEL = 0x7f;
-	  if ((ch != 0xa && ch != 0xd && ch < ASCII_SPC) ||
-	      ch == ASCII_DEL ||
-	      ch == 0x80 ||
-	      ch == 0xff ||
-	      ch == 0xD7FF ||
-	      ch == 0xE000 ||
-	      ch == 0x10FFFF) { // todo
-	    char buf[32];
-	    snprintf(buf, sizeof(buf), "\\x%X;", ch);
-	    Sg_PutzUnsafe(port, buf);
-	  } else {
-	    Sg_PutcUnsafe(port, ch);
-	  }
-	}
-      }
-    }
-    Sg_PutcUnsafe(port, '"');
-  } 
-}
-
-static void write_weak_vector(SgWeakVector *wvec, SgPort *port,
-			      SgWriteContext *ctx)
-{
-  int size = wvec->size, i;
-  Sg_PutuzUnsafe(port, UC("#<weak-vector"));
-  for (i = 0; i < size; i++) {
-    Sg_PutcUnsafe(port, ' ');
-    write_ss_rec(Sg_WeakVectorRef(wvec, i, SG_FALSE), port, ctx);
-  }
-  Sg_PutcUnsafe(port, '>');
-}
-
-static void write_identifier(SgIdentifier *id, SgPort *port, SgWriteContext *ctx)
-{
-  Sg_PutuzUnsafe(port, UC("#<identifier "));
-  write_symbol(id->name, port, ctx);
-  Sg_PutcUnsafe(port, '#');
-  write_symbol(id->library->name, port, ctx);
-#if 1
-  if (SG_WRITE_MODE(ctx) == SG_WRITE_WRITE) {
-    char buf[50];
-    snprintf(buf, sizeof(buf), "(%p)", id);
-    Sg_PutzUnsafe(port, buf);
-  }
-#endif
-  Sg_PutcUnsafe(port, '>');
-}
-
-static void write_library(SgLibrary *lib, SgPort *port, SgWriteContext *ctx)
-{
-  Sg_PutuzUnsafe(port, UC("#<library "));
-  write_symbol(lib->name, port, ctx);
-  Sg_PutcUnsafe(port, '>');
-}
-
-static void write_closure(SgClosure *cl, SgPort *port, SgWriteContext *ctx)
-{
-  Sg_PutuzUnsafe(port, UC("#<closure "));
-  write_ss_rec(SG_PROCEDURE_NAME(cl), port, ctx);
-  Sg_PutcUnsafe(port, '>');
-}
-
-static void write_subr(SgSubr *s, SgPort *port, SgWriteContext *ctx)
-{
-  int mode = ctx->mode; /* save */
-  Sg_PutuzUnsafe(port, UC("#<subr "));
-  ctx->mode = SG_WRITE_DISPLAY;
-  write_ss_rec(SG_PROCEDURE_NAME(s), port, ctx);
-  ctx->mode = mode;
-  Sg_PutcUnsafe(port, '>');
-}
-
-static void write_syntax(SgSyntax *s, SgPort *port, SgWriteContext *ctx)
-{
-  Sg_PutuzUnsafe(port, UC("#<syntax "));
-  if (SG_SYMBOLP(s->name)) {
-    write_symbol(s->name, port, ctx);
-  } else if (SG_IDENTIFIERP(s->name)) {
-    write_symbol(SG_IDENTIFIER(s->name)->name, port, ctx);
-  } else {
-    write_ss_rec(s->name, port, ctx);
-  }
-  Sg_PutcUnsafe(port, '>');
-}
-
-static void write_macro(SgMacro *m, SgPort *port, SgWriteContext *ctx)
-{
-  Sg_PutuzUnsafe(port, UC("#<macro "));
-  write_ss_rec(m->name, port, ctx);
-  Sg_PutcUnsafe(port, '>');
-}
-
-static void write_keyword(SgKeyword *k, SgPort *port, SgWriteContext *ctx)
-{
-  if (SG_WRITE_MODE(ctx) == SG_WRITE_DISPLAY) {
-    write_string(k->name, port, ctx);
-  } else {
-    Sg_PutcUnsafe(port, ':');
-    write_symbol_name(k->name, port, ctx,
-		      (SG_SYMBOL_WRITER_NOESCAPE_INITIAL
-		       |SG_SYMBOL_WRITER_NOESCAPE_EMPTY));
-  }
-}
-
-static void write_box(SgBox *b, SgPort *port, SgWriteContext *ctx)
-{
-  Sg_PutuzUnsafe(port, UC("#<box "));
-  Sg_Printf(port, UC("0x%x"), b);
-  Sg_PutcUnsafe(port, '>');
-}
-
-static void write_code_builder(SgCodeBuilder *cb, SgPort *port, SgWriteContext *ctx)
-{
-  Sg_PutuzUnsafe(port, UC("#<code-builder "));
-  write_ss_rec(cb->name, port, ctx);
-  Sg_Printf(port, UC(" (%d %d %d)>"), cb->argc, cb->optional, cb->freec);
-}
-
-static void write_hashtable(SgHashTable *ht, SgPort *port, SgWriteContext *ctx)
-{
-  Sg_PutuzUnsafe(port, UC("#<hashtable "));
-  if (SG_IMMUTABLE_HASHTABLE_P(ht)) {
-    Sg_PutuzUnsafe(port, UC("immutable "));
-  }
-  switch (ht->type) {
-  case SG_HASH_EQ:
-    Sg_PutuzUnsafe(port, UC("eq?"));
-    break;
-  case SG_HASH_EQV:
-    Sg_PutuzUnsafe(port, UC("eqv?"));
-    break;
-  case SG_HASH_EQUAL:
-    Sg_PutuzUnsafe(port, UC("equal?"));
-    break;
-  case SG_HASH_STRING:
-    Sg_PutuzUnsafe(port, UC("string=?"));
-    break;
-  case SG_HASH_GENERAL:
-    write_ss_rec(SG_HASHTABLE_CORE(ht)->generalHasher, port, ctx);
-    Sg_PutcUnsafe(port, ' ');
-    write_ss_rec(SG_HASHTABLE_CORE(ht)->generalCompare, port, ctx);
-    break;
-  }
-  Sg_PutcUnsafe(port, '>');
-}
-
-static void write_values(SgValues *v, SgPort *port, SgWriteContext *ctx)
-{
-  int i;
-  Sg_PutuzUnsafe(port, UC("#<values"));
-  for (i = 0; i < v->size; i++) {
-    Sg_PutcUnsafe(port, ' ');
-    write_ss_rec(v->elements[i], port, ctx);
-  }
-  Sg_PutcUnsafe(port, '>');
-}
-
-static void write_generic(SgGeneric *g, SgPort *port, SgWriteContext *ctx)
-{
-  Sg_PutuzUnsafe(port, UC("#<generic "));
-  write_symbol(g->name, port, ctx);
-  Sg_PutcUnsafe(port, '>');
-}
-
-static void write_instance(SgInstance *i, SgPort *port, SgWriteContext *ctx)
-{
-  SgGeneric *generic = i->generic;
-  if (!SG_NULLP(generic->printer) && SG_PROCEDUREP(generic->printer)) {
-    Sg_Apply2(generic->printer, i, port);
-    return;
-  } else {
-    /* search parent printer */
-    SgObject parents = generic->parents;
-    SgObject parent;
-  retry:
-    SG_FOR_EACH(parent, parents) {
-      SgObject gen = SG_CAR(parent);
-      /* doesn't have to be, but just in case */
-      if (SG_GENERICP(gen)) {
-	generic = SG_GENERIC(gen);
-	if (!generic->virtualP) {
-	  /* non virtual class has to be only one */
-	  if(!SG_NULLP(generic->printer) && SG_PROCEDUREP(generic->printer)) {
-	    Sg_Apply2(generic->printer, i, port);
-	    return;
-	  } else {
-	    parents = generic->parents;
-	    goto retry;
-	  }
-	}
-      }
-    }
-  }
-  Sg_PutuzUnsafe(port, UC("#<instance "));
-  write_symbol(i->generic->name, port, ctx);
-  Sg_PutcUnsafe(port, '>');
-}
-
-static void write_bytevector(SgByteVector *b, SgPort *port, SgWriteContext *ctx)
-{
-  int i, size = b->size;
-  uint8_t *u8 = b->elements;
-  char buf[32];
-  Sg_PutuzUnsafe(port, UC("#vu8("));
-  if (size != 0) {
-    for (i = 0; i < size - 1; i++) {
-      snprintf(buf, array_sizeof(buf), "%u", u8[i]);
-      Sg_PutzUnsafe(port, buf);
-      Sg_PutcUnsafe(port, ' ');
-    }
-    snprintf(buf, array_sizeof(buf), "%u", u8[i]);
-    Sg_PutzUnsafe(port, buf);
-  }
-  Sg_PutcUnsafe(port, ')');
-}
-
-static void write_port(SgPort *p, SgPort *port, SgWriteContext *ctx)
-{
-  SgObject file = SG_FALSE;
-  SgObject transcoder = SG_FALSE;
-  Sg_PutuzUnsafe(port, UC("#<"));
-  if (SG_BINARY_PORTP(p)) {
-    switch (SG_BINARY_PORT(p)->type) {
-    case SG_FILE_BINARY_PORT_TYPE:
-      Sg_PutuzUnsafe(port, UC("file"));
-      break;
-    case SG_BYTE_ARRAY_BINARY_PORT_TYPE:
-      Sg_PutuzUnsafe(port, UC("bytearray"));
-      break;
-    case SG_CUSTOM_BINARY_PORT_TYPE:
-      Sg_PutuzUnsafe(port, UC("custom"));
-      break;
-    default:
-      /* never happen */
-      Sg_PutuzUnsafe(port, UC("unknown"));
-    }
-    Sg_PutuzUnsafe(port, UC("-binary"));
-  } else if (SG_TEXTUAL_PORTP(p)) {
-    switch (SG_TEXTUAL_PORT(p)->type) {
-    case SG_TRANSCODED_TEXTUAL_PORT_TYPE:
-      Sg_PutuzUnsafe(port, UC("transcoded"));
-      break;
-    case SG_STRING_TEXTUAL_PORT_TYPE:
-      Sg_PutuzUnsafe(port, UC("string"));
-      break;
-    case SG_CUSTOM_TEXTUAL_PORT_TYPE:
-      Sg_PutuzUnsafe(port, UC("custom"));
-      break;
-    default:
-      /* never happen */
-      Sg_PutuzUnsafe(port, UC("unknown"));
-    }
-    Sg_PutuzUnsafe(port, UC("-textual"));
-  } else if (SG_CUSTOM_PORTP(p)) {
-    Sg_PutuzUnsafe(port, UC("custom"));
-    switch (SG_CUSTOM_PORT(p)->type) {
-    case SG_BINARY_CUSTOM_PORT_TYPE:
-      Sg_PutuzUnsafe(port, UC("-binary"));
-      break;
-    case SG_TEXTUAL_CUSTOM_PORT_TYPE:
-      Sg_PutuzUnsafe(port, UC("-textual"));
-      break;
-    default:
-      /* never happen */
-      Sg_PutuzUnsafe(port, UC("-unknown"));
-    }
-  } else {
-    /* never happen */
-    Sg_PutuzUnsafe(port, UC("-unknown"));
-  }
-  if (SG_INPORTP(p)) {
-    Sg_PutuzUnsafe(port, UC("-input-port"));
-  } else if (SG_OUTPORTP(p)) {
-    Sg_PutuzUnsafe(port, UC("-output-port"));
-  } else if (SG_INOUTPORTP(p)) {
-    Sg_PutuzUnsafe(port, UC("-input/output-port"));
-  }
-  if (SG_CUSTOM_PORTP(p)) {
-    Sg_PutcUnsafe(port, ' ');
-    Sg_PutsUnsafe(port, SG_CUSTOM_PORT(p)->id);
-  }
-
-  file = Sg_FileName(p);
-  if (!SG_FALSEP(file)) {
-    Sg_PutcUnsafe(port, ' ');
-    Sg_PutuzUnsafe(port, SG_FILE(file)->name);
-  }
-  transcoder = Sg_PortTranscoder(p);
-  if (!SG_FALSEP(transcoder)) {
-    Sg_PutcUnsafe(port, ' ');
-    write_ss_rec(SG_CODEC_NAME(SG_TRANSCODER_CODEC(transcoder)), port, ctx);
-  }
-  if (Sg_PortClosedP(p)) {
-    Sg_PutcUnsafe(port, ' ');
-    Sg_PutuzUnsafe(port, UC("closed"));
-  }
-  Sg_PutcUnsafe(port, '>');
-}
-
-static void write_record_type(SgRecordType *rt, SgPort *port, SgWriteContext *ctx)
-{
-  SgWriteContext rtctx;
-  Sg_PutuzUnsafe(port, UC("#<record-type "));
-  write_symbol(rt->name, port, ctx);
-  Sg_PutcUnsafe(port, ' ');
-  write_ss(rt->rtd, port, &rtctx);
-  Sg_PutcUnsafe(port, ' ');
-  write_ss_rec(rt->rcd, port, &rtctx);
-  Sg_PutcUnsafe(port, '>');
-}
-
-static void write_gloc(SgGloc *g, SgPort *port, SgWriteContext *ctx)
-{
-  Sg_PutuzUnsafe(port, UC("#<gloc "));
-  write_symbol(g->name, port, ctx);
-  Sg_PutcUnsafe(port, ' ');
-  write_library(g->library, port, ctx);
-  Sg_PutcUnsafe(port, '>');
-}
-
-static void write_transcoder(SgTranscoder *t, SgPort *port, SgWriteContext *ctx)
-{
-  Sg_PutuzUnsafe(port, UC("#<transcoder "));
-  Sg_PutsUnsafe(port, SG_CODEC_NAME(SG_TRANSCODER_CODEC(t)));
-  Sg_PutcUnsafe(port, ' ');
-  switch (t->eolStyle) {
-  case LF:     write_symbol(SG_INTERN("lf"), port, ctx); break;
-  case CR:     write_symbol(SG_INTERN("cr"), port, ctx); break;
-  case NEL:    write_symbol(SG_INTERN("nel"), port, ctx); break;
-  case LS:     write_symbol(SG_INTERN("ls"), port, ctx); break;
-  case CRNEL:  write_symbol(SG_INTERN("crnel"), port, ctx); break;
-  case CRLF:   write_symbol(SG_INTERN("crlf"), port, ctx); break;
-  case E_NONE: write_symbol(SG_INTERN("none"), port, ctx); break;
-  }
-  Sg_PutcUnsafe(port, ' ');
-  
-  switch (t->mode) {
-  case SG_RAISE_ERROR:   write_symbol(SG_INTERN("raise"), port, ctx); break;
-  case SG_REPLACE_ERROR: write_symbol(SG_INTERN("replace"), port, ctx); break;
-  case SG_IGNORE_ERROR:  write_symbol(SG_INTERN("ignore"), port, ctx); break;
-  }
-  Sg_PutcUnsafe(port, '>');
-}
-
-static void write_codec(SgCodec *c, SgPort *port, SgWriteContext *ctx)
-{
-  int save = SG_WRITE_MODE(ctx);
-  ctx->mode = SG_WRITE_DISPLAY;
-  Sg_PutuzUnsafe(port, UC("#<codec "));
-  write_ss_rec(SG_CODEC_NAME(c), port, ctx);
-  Sg_PutcUnsafe(port, '>');
-  ctx->mode = save;
-}
-
-static void write_meta_obj(SgObject *m, SgPort *port, SgWriteContext *ctx)
-{
-  if (SG_GET_META_OBJ(m)->printer) {
-    SG_GET_META_OBJ(m)->printer(port, m, ctx);
-  } else {
-    Sg_PutuzUnsafe(port, UC("#<ext-obj>"));
-  }
-}
-
-static void write_thread(SgVM *vm, SgPort *port, SgWriteContext *ctx)
-{
-  char buf[50];
-  Sg_PutuzUnsafe(port, UC("#<thread "));
-  write_ss_rec(vm->name, port, ctx);
-  switch (vm->threadState) {
-  case SG_VM_NEW:
-    Sg_PutzUnsafe(port, " new");
-    break;
-  case SG_VM_RUNNABLE:
-    Sg_PutzUnsafe(port, " runnable");
-    break;
-  case SG_VM_STOPPED:
-    Sg_PutzUnsafe(port, " stopped");
-    break;
-  case SG_VM_TERMINATED:
-    Sg_PutzUnsafe(port, " terminated");
-    break;
-  default:
-    Sg_PutzUnsafe(port, " (unknonw state)");
-    break;
-  }
-  snprintf(buf, sizeof(buf), " %p>", vm);
-  Sg_PutzUnsafe(port, buf);
-}
-
-static void write_sharedref(SgSharedRef *ref, SgPort *port, SgWriteContext *ctx)
-{
-  Sg_PutuzUnsafe(port, UC("#<shared-ref "));
-  if (SG_NUMBERP(ref->index)) {
-    short mode = SG_WRITE_MODE(ctx); /* save */
-    ctx->mode = SG_WRITE_DISPLAY;    /* number must be display mode */
-    write_string(Sg_NumberToString(ref->index, 10, FALSE), port, ctx);
-    ctx->mode = mode;
-  } else {
-    Sg_PutuzUnsafe(port, UC("???"));
-  }
-  Sg_PutcUnsafe(port, '>');
-}
-
-static void write_charset(SgCharSet *cs, SgPort *port, SgWriteContext *ctx)
-{
-  SgObject ranges = Sg_CharSetRanges(cs), cp;
-  SgWriteContext cctx;
-
-  cctx.mode = SG_WRITE_WRITE;
-  cctx.table = NULL;
-  cctx.flags = 0;
-  cctx.sharedId = 0;
-
-  Sg_PutuzUnsafe(port, UC("#<char-set"));
-  SG_FOR_EACH(cp, ranges) {
-    SgObject cell = SG_CAR(cp);
-    SgChar start = SG_INT_VALUE(SG_CAR(cell)), end = SG_INT_VALUE(SG_CDR(cell));
-    Sg_PutcUnsafe(port, ' ');
-    if (start > SG_CHAR_SET_SMALL_CHARS) {
-      Sg_Printf(port, UC("#x%x"), start);
-    } else {
-      write_ss_rec(SG_MAKE_CHAR(start), port, &cctx);
-    }
-    Sg_PutcUnsafe(port, '-');
-    if (end > SG_CHAR_SET_SMALL_CHARS) {
-      Sg_Printf(port, UC("#x%x"), end);
-    } else {
-      write_ss_rec(SG_MAKE_CHAR(end), port, &cctx);
-    }
-  }
-  Sg_PutcUnsafe(port, '>');
-}
-
 #define SPBUFSIZ  50
 #define CASE_ITAG(obj, str)				\
   case SG_ITAG(obj): Sg_PutuzUnsafe(port, str); break;
@@ -1160,6 +590,32 @@ static const char *char_names[] = {
     "x18",    "x19",   "x1a",    "esc",   "x1c",   "x1d",   "x1e",   "x1f",
     "space"
 };
+
+static void write_object(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  Sg_Apply2(SG_OBJ(&Sg_GenericWriteObject), obj, port);
+}
+
+static SgObject write_object_fallback(SgObject *args, int argc, SgGeneric *gf)
+{
+  SgClass *klass;
+  if (argc != 2 || (argc == 2 && !SG_OUTPORTP(args[1]))) {
+    Sg_Error(UC("no applicable method for write-object with %S"),
+	     Sg_ArrayToList(args, argc));
+  }
+  klass = Sg_ClassOf(args[0]);
+  Sg_Printf(SG_PORT(args[1]), UC("#<%A %p>"),
+	    klass->name, args[0]);
+  return SG_TRUE;
+}
+
+static void write_general(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgClass *c = Sg_ClassOf(obj);
+  if (c->printer) c->printer(obj, port, ctx);
+  else          write_object(obj, port, ctx);
+}
+
 
 void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
@@ -1208,11 +664,7 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
   }
 
   if (SG_NUMBERP(obj)) {
-    SgObject numStr = Sg_NumberToString(obj, 10, FALSE);
-    short mode = SG_WRITE_MODE(ctx); /* save */
-    ctx->mode = SG_WRITE_DISPLAY;    /* number must be display mode */
-    write_string(numStr, port, ctx);
-    ctx->mode = mode;
+    write_general(obj, port, ctx);
     return;
   }
 
@@ -1292,60 +744,8 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
       write_ss_rec(elts[i], port, ctx);
     }
     Sg_PutcUnsafe(port, ')');
-  } else if (SG_WEAK_VECTORP(obj)) {
-    write_weak_vector(obj, port, ctx);
-  } else if (SG_STRINGP(obj)) {
-    write_string(SG_STRING(obj), port, ctx);
-  } else if (SG_SYMBOLP(obj)) {
-    write_symbol(SG_SYMBOL(obj), port, ctx);
-  } else if (SG_IDENTIFIERP(obj)) {
-    write_identifier(SG_IDENTIFIER(obj), port, ctx);
-  } else if (SG_LIBRARYP(obj)) {
-    write_library(SG_LIBRARY(obj), port, ctx);
-  } else if (SG_CLOSUREP(obj)) {
-    write_closure(SG_CLOSURE(obj), port, ctx);
-  } else if (SG_SUBRP(obj)) {
-    write_subr(SG_SUBR(obj), port, ctx);
-  } else if (SG_SYNTAXP(obj)) {
-    write_syntax(SG_SYNTAX(obj), port, ctx);
-  } else if (SG_MACROP(obj)) {
-    write_macro(SG_MACRO(obj), port, ctx);
-  } else if (SG_KEYWORDP(obj)) {
-    write_keyword(SG_KEYWORD(obj), port, ctx);
-  } else if (SG_BOXP(obj)) {
-    write_box(SG_BOX(obj), port, ctx);
-  } else if (SG_CODE_BUILDERP(obj)) {
-    write_code_builder(SG_CODE_BUILDER(obj), port, ctx);
-  } else if (SG_HASHTABLE_P(obj)) {
-    write_hashtable(SG_HASHTABLE(obj), port, ctx);
-  } else if (SG_VALUESP(obj)) {
-    write_values(SG_VALUES(obj), port, ctx);
-  } else if (SG_GENERICP(obj)) {
-    write_generic(SG_GENERIC(obj), port, ctx);
-  } else if (SG_INSTANCEP(obj)) {
-    write_instance(SG_INSTANCE(obj), port, ctx);
-  } else if (SG_BVECTORP(obj)) {
-    write_bytevector(SG_BVECTOR(obj), port, ctx);
-  } else if (SG_PORTP(obj)) {
-    write_port(SG_PORT(obj), port, ctx);
-  } else if (SG_RECORD_TYPEP(obj)) {
-    write_record_type(SG_RECORD_TYPE(obj), port, ctx);
-  } else if (SG_GLOCP(obj)) {
-    write_gloc(SG_GLOC(obj), port, ctx);
-  } else if (SG_TRANSCODERP(obj)) {
-    write_transcoder(SG_TRANSCODER(obj), port, ctx);
-  } else if (SG_CODECP(obj)) {
-    write_codec(SG_CODEC(obj), port, ctx);
-  } else if (SG_META_OBJ_P(obj)) {
-    write_meta_obj(obj, port, ctx);
-  } else if (SG_VMP(obj)) {
-    write_thread(SG_VM(obj), port, ctx);
-  } else if (SG_SHAREDREF_P(obj)) {
-    write_sharedref(SG_SHAREDREF(obj), port, ctx);
-  } else if (SG_CHAR_SET_P(obj)) {
-    write_charset(SG_CHAR_SET(obj), port, ctx);
   } else {
-    Sg_PutuzUnsafe(port, UC("#<unknown datum>"));
+    write_general(obj, port, ctx);
   }
   return;
 }
@@ -1700,6 +1100,93 @@ SgObject Sg_Vsprintf(const SgChar *fmt, va_list args, int sharedp)
   SgObject port = Sg_MakeStringOutputPort(0);
   Sg_Vprintf(port, fmt, args, sharedp);
   return Sg_GetStringFromStringPort(port);
+}
+
+void Sg_WriteSymbolName(SgString *snam, SgPort *port,
+			SgWriteContext *ctx, int flags)
+{
+  const SgChar *p = snam->value, *q;
+  int size = snam->size;
+  int escape = FALSE;
+  int r6rsMode = SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE);
+  int mode = SG_WRITE_MODE(ctx);
+
+  SG_PORT_LOCK(port);
+  if (size == 0) {
+    if (!(flags & SG_SYMBOL_WRITER_NOESCAPE_EMPTY)) {
+      Sg_PutuzUnsafe(port, UC("||"));
+    }
+    return;
+  }
+  if (size == 1 && (*p == '+' || *p == '-')) {
+    Sg_PutcUnsafe(port, *p);
+    return;
+  }
+  /* R6RS does not have '|' */
+  if (mode != SG_WRITE_LIBPATH &&
+      (!(flags & SG_SYMBOL_WRITER_NOESCAPE_INITIAL))) {
+    escape = symbol_need_bar(p, size);
+  }
+  if (escape && !r6rsMode) {
+    Sg_PutcUnsafe(port, '|');
+    for (q = p; q < p + size; q++) {
+      SgChar ch = *q;
+      if (ch < 128) {
+	if (special[ch] & 8) {
+	  Sg_PutcUnsafe(port, '\\');
+	  Sg_PutcUnsafe(port, ch);
+	} else if (special[ch] & 4) {
+	  Sg_Printf(port, UC("\\x%02x"), ch);
+	} else {
+	  Sg_PutcUnsafe(port, ch);
+	}
+      } else {
+	Sg_PutcUnsafe(port, ch);
+      }
+    }
+    Sg_PutcUnsafe(port, '|');
+    return;
+  } else {
+    if (r6rsMode && (mode != SG_WRITE_LIBPATH)) {
+      for (q = p; q < p + size; q++) {
+	SgChar ch = *q;
+	if ((q == p && Sg_Ucs4ConstituentP(ch)) ||
+	    (q != p && Sg_Ucs4SubsequentP(ch))) {
+	  Sg_PutcUnsafe(port, ch);
+	} else {
+	  char buf[16];
+	  /* ... */
+	  if (q == p) {
+	    if (size == 3) {
+	      if (q[0] == '.' && q[1] == '.' && q[2] == '.') {
+		Sg_PutuzUnsafe(port, UC("..."));
+		return;
+	      }
+	    }
+	    if (size > 2) {
+	      if (q[0] == '-' && q[1] == '>') {
+		Sg_PutuzUnsafe(port, UC("->"));
+		q += 2;
+		continue;
+	      }
+	    }
+	  }
+	  snprintf(buf, sizeof(buf), "\\x%X;", ch);
+	  Sg_PutzUnsafe(port, buf);
+	}
+      }
+    } else {
+      Sg_PutsUnsafe(port, snam);
+    }
+  }
+  SG_PORT_UNLOCK(port);
+}
+
+void Sg__InitWrite()
+{
+  SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
+  Sg_InitBuiltinGeneric(&Sg_GenericWriteObject, UC("write-object"), lib);
+			
 }
 
 /*

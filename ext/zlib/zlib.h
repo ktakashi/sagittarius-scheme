@@ -35,19 +35,19 @@
 #include <sagittarius.h>
 #include <zlib.h>
 
+SG_CLASS_DECL(Sg_ZStreamClass);
+#define SG_CLASS_ZSTREAM (&Sg_ZStreamClass)
+
 typedef struct SgZStreamRec
 {
-  SG_META_HEADER;
+  SG_HEADER;
   z_streamp strm;
 } SgZStream;
 
-SG_DECLARE_META_OBJ(Sg_ZStreamMeta);
-#define SG_META_ZSTREAM   (&Sg_ZStreamMeta)
 #define SG_ZSTREAM(obj)   ((SgZStream*)obj)
-#define SG_ZSTREAM_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_ZSTREAM)
+#define SG_ZSTREAM_P(obj) SG_XTYPEP(obj, SG_CLASS_ZSTREAM)
 
-#define argumentAsZStream(index, tmp_, var_)			\
-  castArgumentType(index, tmp_, var_, pointer, SG_ZSTREAM_P, SG_ZSTREAM)
+SG_CDECL_BEGIN
 
 /* we only wrap zlib very thin. other Scheme staff must be in Scheme file. */
 SgObject Sg_DeflateInit(int level, int windowBits, int memLevel, int strategy);
@@ -67,5 +67,7 @@ int      Sg_InflateEnd(SgZStream *strm, int flush);
 
 /* misc */
 SgObject Sg_ZlibVersion();
+
+SG_CDECL_END
 
 #endif /* SAGITTARIUS_ZLIB_H_ */

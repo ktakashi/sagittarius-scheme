@@ -46,11 +46,7 @@
 #  define SG_EXTERN extern SG_EXPORT
 # else
 #  define SG_EXPORT  __declspec(dllimport)
-#  if defined(__CYGWIN__)
-#    define SG_EXTERN extern SG_EXPORT
-#  else
-#    define SG_EXTERN extern
-#  endif
+#  define SG_EXTERN extern SG_EXPORT
 # endif
 #else
 # define SG_EXPORT 
@@ -194,16 +190,18 @@
 #define SG_NEW_ATOMIC(type)         ((type*)(SG_MALLOC_ATOMIC(sizeof(type))))
 #define SG_NEW_ATOMIC2(type, size)  ((type)(SG_MALLOC_ATOMIC(size)))
 
-/** @defgroup Typedefs Sagittarius objects*/
-/** @{ */
-/**
-   @typedef SgWord
-   @brief word type to hold pointers and immediage values.
- */
-typedef intptr_t  SgWord;
-typedef int32_t   SgChar;
-typedef void*     SgObject;
-typedef uintptr_t SgHeader;
+
+typedef unsigned char SgByte;
+typedef intptr_t      SgWord;
+typedef int32_t       SgChar;
+typedef void*         SgObject;
+/* typedef uintptr_t SgHeader; */
+/* A common header for heap-allocated objects */
+typedef struct SgHeaderRec
+{
+  SgByte *tag;
+} SgHeader;
+
 
 /* read macro */
 typedef struct readtable_rec_t readtable_t;
@@ -236,9 +234,9 @@ SG_CDECL_END
   Sagittarius Tag construction
   
   immediate:
-  nnnn nnnn  nnnn nnnn  nnnn nnnn  nnnn nnn1 : fixnum
-  cccc cccc  cccc cccc  cccc cccc  0000 0010 : char
-  ---- ----  ---- ----  ---- ----  0000 1010 : #f, #t, '(), eof-object, undefined, unbound
+  nnnn nnnn  nnnn nnnn  nnnn nnnn  nnnn nn01 : fixnum
+  cccc cccc  cccc cccc  cccc cccc  0000 0011 : char
+  ---- ----  ---- ----  ---- ----  0000 1011 : #f, #t, '(), eof-object, undefined, unbound
 
   object header:
   ---- ----  ---- ----  ---- ----  ---- -111 : heap object
@@ -248,11 +246,11 @@ typedef struct SgBignumRec     	   SgBignum;
 typedef struct SgBoxRec            SgBox;
 typedef struct SgByteVectorRec     SgByteVector;
 typedef struct SgCharSetRec        SgCharSet;
+typedef struct SgClassRec          SgClass;
 typedef struct SgClosureRec        SgClosure;
 typedef struct SgCodeBuilderRec	   SgCodeBuilder;
 typedef struct SgCodecRec      	   SgCodec;
 typedef struct SgComplexRec    	   SgComplex;
-typedef struct SgGenericRec        SgGeneric;
 typedef struct SgGlocRec           SgGloc;
 typedef struct SgFileRec       	   SgFile;
 typedef struct SgFlonumRec     	   SgFlonum;
@@ -286,56 +284,6 @@ typedef struct SgVMRec             SgVM;
 # define FATAL(c) /* */
 #endif
 
-enum {
-  /* primitive */
-  TC_FLONUM,
-  TC_BVECTOR,
-
-  TC_BIGNUM,
-  TC_SYMBOL,
-  TC_STRING,
-  TC_KEYWORD,
-  TC_BOX,
-
-  TC_SHAREDREF,
-  TC_VECTOR,
-  TC_VALUES,
-  TC_HASHTABLE,
-  TC_CODE_BUILDER,
-  TC_FILE,
-  TC_PORT,
-  TC_CODEC,
-  TC_TRANSCODER,
-
-  TC_CLOSURE,
-  TC_PROCEDURE,
-
-  TC_SYNTAX,
-  TC_MACRO,
-  TC_RECORD_TYPE,
-  TC_CHAR_SET,
-
-  TC_COMPLEX,
-  TC_RATIONAL,
-
-  TC_LIBRARY,
-  TC_IDENTIFIER,
-  TC_GENERIC,
-  TC_INSTANCE,
-  TC_VM,
-
-  /* weak objects */
-  TC_WEAK_VECTOR,
-  TC_WEAK_HASHTABLE,
-
-  /* for future, but we need this */
-  TC_USER_DEF,
-  TC_GLOC,
-  TC_TREEMAP,
-
-  TC_MASKBITS = 0x3f
-};
-
 typedef enum {
   SG_RAISE_ERROR,    ///< Raises error when it's occured
   SG_REPLACE_ERROR,  ///< Replace
@@ -358,22 +306,17 @@ typedef enum  {
   SG_END
 } Whence;
 
-
-/*
-  ex)
-  bvector:
-    tc  0000 0001
-    hdr 0000 0000  0000 0000  0000 0000  0001 0111
- */
-#define MAKE_HDR_VALUE(v)  ((v) << 4 | 0x7)
-#define HDR_TYPE_MASKBITS  0x3ff
-#define IS_TYPE(obj, t)    ((SG_HDR(obj) & HDR_TYPE_MASKBITS) == MAKE_HDR_VALUE(t))
-
-/** @} */
-
 /* Type coercer */
 #define SG_OBJ(obj)    ((SgObject)(obj))
 #define SG_WORD(obj)   ((SgWord)(obj))
+
+/* 
+   get header value
+   assume(I will write) object's header is located
+   the first member.
+ */
+#define SG_HDR(obj)             ((SgHeader*)(obj))
+#define SG_HEADER         	SgHeader hdr
 
 /* Tag accessor */
 #define SG_TAG1(obj)   (SG_WORD(obj) & 0x01)
@@ -383,25 +326,19 @@ typedef enum  {
 #define SG_TAG8(obj)   (SG_WORD(obj) & 0xff)
 
 /* check if the object is a pointer */
-#define SG_PTRP(obj)   (SG_TAG2(obj) == 0)
+#define SG_PTRP(obj)   (SG_TAG1(obj) == 0)
+
+#define SG_HPTRP(obj)  (SG_TAG2(obj) == 0)
+
+#define SG_HTAG(obj)   (SG_WORD(SG_HDR(obj)->tag)&7)
 
 /* Immediate objects*/
-#define SG_IMMEDIATEP(obj) (SG_TAG8(obj) == 0x0a)
+#define SG_IMMEDIATEP(obj) (SG_TAG8(obj) == 0x0b)
 #define SG_ITAG(obj)       (SG_WORD(obj)>>8)
-/* 
-   get header value
-   assume(I will write) object's header is located
-   the first member.
- */
-#define SG_HDR(obj)             (*(SgHeader*)(obj))
-#define SG_HEADER         	SgHeader hdr
-#define SG_SET_HEADER(obj, tag) (SG_HDR(obj) = MAKE_HDR_VALUE(tag))
-#define SG_SET_HEADER_ATTRIBUTE(obj, v)		\
-  (SG_HDR(obj) = (SG_HDR(obj) | v))
 
 #define SG_MAKEBITS(v, shift)   ((intptr_t)(v)<<shift)
 
-#define SG__MAKE_ITAG(num) (((num)<<8) + 0x0a)
+#define SG__MAKE_ITAG(num) (((num)<<8) + 0x0b)
 #define SG_FALSE           SG_OBJ(SG__MAKE_ITAG(0)) /* #f */
 #define SG_TRUE            SG_OBJ(SG__MAKE_ITAG(1)) /* #t */
 #define SG_NIL             SG_OBJ(SG__MAKE_ITAG(2)) /* '() */
@@ -424,7 +361,7 @@ typedef enum  {
 #define SG_EQ(x, y)        ((x) == (y))
 
 /* fixnum */
-#define SG_INTP(obj)       (SG_TAG1(obj) == 1)
+#define SG_INTP(obj)       (SG_TAG2(obj) == 1)
 #define SG_INT_VALUE(obj)  (((signed long int)SG_WORD(obj)) >> 2)
 #define SG_MAKE_INT(obj)   SG_OBJ(((intptr_t)(obj) << 2) + 1)
 #define SG_UINTP(obj)      (SG_INTP(obj) && ((signed long int)SG_WORD(obj) >= 0))
@@ -433,11 +370,31 @@ typedef enum  {
 #define SG_INT_MIN         (-SG_INT_MAX - 1)
 
 #define SG_CHAR(obj)       ((SgChar)(obj))
-#define SG_CHARP(obj)      (SG_TAG4(obj) == 2)
+#define SG_CHARP(obj)      (SG_TAG8(obj) == 3)
 #define SG_CHAR_VALUE(obj) SG_CHAR(((unsigned long)SG_WORD(obj)) >> 8)
-#define SG_MAKE_CHAR(obj)  SG_OBJ(((uintptr_t)(obj) << 8) + 0x02)
+#define SG_MAKE_CHAR(obj)  SG_OBJ(((uintptr_t)(obj) << 8) + 0x03)
 /* SgChar is typedef of int32_t, so max value is 24 bits  */
 #define SG_CHAR_MAX        (0xffffff)
+
+/* CLOS */
+#define SG_HOBJP(obj)  (SG_HPTRP(obj)&&(SG_HTAG(obj)==7))
+
+#define SG_CLASS2TAG(klass)  ((SgByte*)(klass) + 7)
+#define SG_CLASS_DECL(klass)			\
+  SG_CDECL_BEGIN				\
+  SG_EXTERN SgClass klass;			\
+  SG_CDECL_END
+
+#define SG_CLASS_STATIC_PTR(klass) (&klass)
+#define SG_CLASS_STATIC_TAG(klass) SG_CLASS2TAG(&klass)
+/* tag - 0b111 = pointer */
+#define SG_CLASS_OF(obj)           SG_CLASS((SG_HDR(obj)->tag- 7))
+#define SG_SET_CLASS(obj, k)       (SG_HDR(obj)->tag = (SgByte*)(k) + 7)
+#define SG_XTYPEP(obj, klass)			\
+  (SG_HPTRP(obj)&&(SG_HDR(obj)->tag == SG_CLASS2TAG(klass)))
+
+/* safe coercer */
+#define SG_OBJ_SAFE(obj) ((obj)?SG_OBJ(obj):SG_UNDEF)
 
 /* utility for vector, string, etc
    TODO move somewhere

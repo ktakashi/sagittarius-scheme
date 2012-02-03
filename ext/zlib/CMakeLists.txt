@@ -5,6 +5,12 @@
 ADD_LIBRARY(sagittarius--zlib MODULE
   zlib.c zlib_stub.c)
 
+IF (MSVC OR CYGWIN)
+  # ugly solution
+  SET_SOURCE_FILES_PROPERTIES(zlib.c zlib_stub.c PROPERTIES LANGUAGE CXX)
+ENDIF()
+
+
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 ADD_STUBS(sagittarius--zlib
   COMMAND ${GENSTUB}

@@ -34,6 +34,7 @@
 
 #include "sagittariusdefs.h"
 #include "thread.h"
+#include "clos.h"
 
 typedef int64_t SgPortPositionFn(SgPort *);
 typedef void    SgSetPortPositionFn(SgPort *, int64_t);
@@ -136,6 +137,9 @@ typedef struct SgCustomPortRec
   } impl;
 } SgCustomPort;
 
+SG_CLASS_DECL(Sg_PortClass);
+#define SG_CLASS_PORT (&Sg_PortClass)
+
 struct SgPortRec
 {
   SG_HEADER;
@@ -204,7 +208,7 @@ enum SgCustomPortType {
   SG_TEXTUAL_CUSTOM_PORT_TYPE,
 };
 
-#define SG_PORTP(obj) 	      (SG_PTRP(obj) && IS_TYPE(obj, TC_PORT))
+#define SG_PORTP(obj) 	      (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_PORT))
 #define SG_PORT(obj)  	      ((SgPort*)obj)
 #define SG_INPORTP(obj)       (SG_PORTP(obj) && SG_PORT(obj)->direction == SG_INPUT_PORT)
 #define SG_OUTPORTP(obj)      (SG_PORTP(obj) && SG_PORT(obj)->direction == SG_OUTPUT_PORT)

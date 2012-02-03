@@ -36,6 +36,27 @@
 #include "sagittarius/pair.h"
 #include "sagittarius/vector.h"
 #include "sagittarius/hashtable.h"
+#include "sagittarius/writer.h"
+#include "sagittarius/port.h"
+
+static void id_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgIdentifier *id = SG_IDENTIFIER(obj);
+  Sg_Putuz(port, UC("#<identifier "));
+  Sg_Write(id->name, port, ctx->mode);
+  Sg_Putc(port, '#');
+  Sg_Write(id->library->name, port, ctx->mode);
+#if 1
+  if (SG_WRITE_MODE(ctx) == SG_WRITE_WRITE) {
+    char buf[50];
+    snprintf(buf, sizeof(buf), "(%p)", id);
+    Sg_Putz(port, buf);
+  }
+#endif
+  Sg_Putc(port, '>');
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_IdentifierClass, id_print);
 
 static SgObject get_binding_frame(SgObject var, SgObject env)
 {
@@ -52,7 +73,7 @@ static SgObject get_binding_frame(SgObject var, SgObject env)
 SgObject Sg_MakeIdentifier(SgSymbol *symbol, SgObject envs, SgLibrary *library)
 {
   SgIdentifier *id = SG_NEW(SgIdentifier);
-  SG_SET_HEADER(id, TC_IDENTIFIER);
+  SG_SET_CLASS(id, SG_CLASS_IDENTIFIER);
   id->name = symbol;
   id->library = library;
   id->envs = (envs == SG_NIL) ? SG_NIL : get_binding_frame(SG_OBJ(symbol), envs);
@@ -177,6 +198,14 @@ int Sg_IdentifierEqP(SgObject e1, SgObject id1, SgObject e2, SgObject id2)
     lib1 = lib2 = NULL;
   }
   return (id1 == id2) && (lam1 == lam2) && (lib1 == lib2);
+}
+
+void Sg__InitIdentifier()
+{
+  /* For future we might want to make identifier <object> to use slot-ref
+     but for now.*/
+  SgLibrary *clib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
+  Sg_InitStaticClass(SG_CLASS_IDENTIFIER, UC("<identifier>"), clib, NULL, 0);
 }
 /*
   end of file

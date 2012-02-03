@@ -34,6 +34,7 @@
 #include "sagittarius/bytevector.h"
 #include "sagittarius/bignum.h"
 #include "sagittarius/bits.h"
+#include "sagittarius/collection.h"
 #include "sagittarius/number.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/port.h"
@@ -41,12 +42,36 @@
 #include "sagittarius/error.h"
 #include "sagittarius/symbol.h"
 
+static void bvector_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgByteVector *b = SG_BVECTOR(obj);
+  int i, size = b->size;
+  uint8_t *u8 = b->elements;
+  char buf[32];
+  Sg_Putuz(port, UC("#vu8("));
+  if (size != 0) {
+    for (i = 0; i < size - 1; i++) {
+      snprintf(buf, array_sizeof(buf), "%u", u8[i]);
+      Sg_Putz(port, buf);
+      Sg_Putc(port, ' ');
+    }
+    snprintf(buf, array_sizeof(buf), "%u", u8[i]);
+    Sg_Putz(port, buf);
+  }
+  Sg_Putc(port, ')');
+}
+
+SG_DEFINE_BUILTIN_CLASS(Sg_ByteVectorClass, bvector_print, NULL, NULL, NULL,
+			SG_CLASS_SEQUENCE_CPL);
+
+
 SgByteVector* make_bytevector(size_t size)
 {
   SgByteVector *z = SG_NEW_ATOMIC2(SgByteVector *, 
 			    sizeof(SgByteVector) + sizeof(uint8_t)*(size - 1));
-  SG_SET_HEADER(z, TC_BVECTOR);
+  SG_SET_CLASS(z, SG_CLASS_BVECTOR);
   z->size = size;
+  z->literalp = FALSE;
   return z;
 }
 

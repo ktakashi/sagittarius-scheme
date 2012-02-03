@@ -39,14 +39,14 @@
 
 typedef struct SgPointerRec
 {
-  SG_META_HEADER;
+  SG_HEADER;
   uintptr_t pointer;
 } SgPointer;
 
-SG_DECLARE_META_OBJ(Sg_PointerMeta);
-#define SG_META_POINTER   (&Sg_PointerMeta)
+SG_CLASS_DECL(Sg_PointerClass);
+#define SG_CLASS_POINTER   (&Sg_PointerClass)
 #define SG_POINTER(obj)   ((SgPointer *)obj)
-#define SG_POINTER_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_POINTER)
+#define SG_POINTERP(obj) SG_XTYPEP(obj, SG_CLASS_POINTER)
 
 #define POINTER_REF(T, p__, offset__) (*((T*)(SG_POINTER(p__)->pointer + offset__)))
 #define POINTER_SET(T, p__, offset__, value__)			\
@@ -69,7 +69,7 @@ enum {
 
 typedef struct SgFuncInfoRec
 {
-  SG_META_HEADER;
+  SG_HEADER;
   ffi_cif    cif;
   ffi_type  *returnType;
   ffi_type **parameterTypes;
@@ -87,14 +87,14 @@ typedef struct SgFuncInfoRec
   SgObject   sParameterTypes;
 } SgFuncInfo;
 
-SG_DECLARE_META_OBJ(Sg_FuncInfoMeta);
-#define SG_META_FUNC_INFO   (&Sg_FuncInfoMeta)
+SG_CLASS_DECL(Sg_FuncInfoClass);
+#define SG_CLASS_FUNC_INFO   (&Sg_FuncInfoClass)
 #define SG_FUNC_INFO(obj)   ((SgFuncInfo *)obj)
-#define SG_FUNC_INFO_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_FUNC_INFO)
+#define SG_FUNC_INFO_P(obj) SG_XTYPEP(obj, SG_CLASS_FUNC_INFO)
 
 typedef struct SgCallbackRec
 {
-  SG_META_HEADER;
+  SG_HEADER;
   uintptr_t uid;
   int returnType;
   SgString *signatures;
@@ -108,10 +108,10 @@ typedef struct SgCallbackRec
   void         *code;
 } SgCallback;
 
-SG_DECLARE_META_OBJ(Sg_CallbackMeta);
-#define SG_META_CALLBACK   (&Sg_CallbackMeta)
+SG_CLASS_DECL(Sg_CallbackClass);
+#define SG_CLASS_CALLBACK   (&Sg_CallbackClass)
 #define SG_CALLBACK(obj)   ((SgCallback *)obj)
-#define SG_CALLBACK_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_CALLBACK)
+#define SG_CALLBACKP(obj) SG_XTYPEP(obj, SG_CLASS_CALLBACK)
 
 
 /* c-struct
@@ -132,7 +132,7 @@ typedef struct struct_layout_rec_t
 
 struct SgCStructRec
 {
-  SG_META_HEADER;
+  SG_HEADER;
   SgObject  name;
   size_t    size;
   int       fieldCount;
@@ -140,22 +140,10 @@ struct SgCStructRec
   struct_layout_t layouts[1];
 };
 
-SG_DECLARE_META_OBJ(Sg_CStructMeta);
-#define SG_META_CSTRUCT   (&Sg_CStructMeta)
+SG_CLASS_DECL(Sg_CStructClass);
+#define SG_CLASS_CSTRUCT   (&Sg_CStructClass)
 #define SG_CSTRUCT(obj)   ((SgCStruct *)obj)
-#define SG_CSTRUCT_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_CSTRUCT)
-
-#define argumentAsPointer(index, tmp_, var_)			\
-  castArgumentType(index, tmp_, var_, pointer, SG_POINTER_P, SG_POINTER)
-
-#define argumentAsFuncInfo(index, tmp_, var_)			\
-  castArgumentType(index, tmp_, var_, pointer, SG_FUNC_INFO_P, SG_FUNC_INFO)
-
-#define argumentAsCallback(index, tmp_, var_)			\
-  castArgumentType(index, tmp_, var_, pointer, SG_CALLBACK_P, SG_CALLBACK)
-
-#define argumentAsCStruct(index, tmp_, var_)			\
-  castArgumentType(index, tmp_, var_, pointer, SG_CSTRUCT_P, SG_CSTRUCT)
+#define SG_CSTRUCTP(obj) SG_XTYPEP(obj, SG_CLASS_CSTRUCT)
 
 #define FFI_RETURN_TYPE_VOID        0x0000
 #define FFI_RETURN_TYPE_BOOL        0x0001

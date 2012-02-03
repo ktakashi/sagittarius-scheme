@@ -33,6 +33,7 @@
 #define SAGITTARIUS_CODEC_H_
 
 #include "sagittariusdefs.h"
+#include "clos.h"
 
 typedef enum {
   UTF_16BE,
@@ -74,7 +75,10 @@ struct SgCodecRec
   } impl;
 };
 
-#define SG_CODECP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_CODEC))
+SG_CLASS_DECL(Sg_CodecClass);
+#define SG_CLASS_CODEC      (&Sg_CodecClass)
+
+#define SG_CODECP(obj) (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_CODEC))
 #define SG_CODEC(obj)  ((SgCodec*)obj)
 /* accessor */
 #define SG_CODEC_NAME(obj)   (SG_CODEC(obj)->name)

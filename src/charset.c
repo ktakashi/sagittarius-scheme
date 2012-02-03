@@ -35,8 +35,10 @@
 #include "sagittarius/error.h"
 #include "sagittarius/library.h"
 #include "sagittarius/pair.h"
+#include "sagittarius/port.h"
 #include "sagittarius/symbol.h"
 #include "sagittarius/treemap.h"
+#include "sagittarius/writer.h"
 
 static int compare(SgTreeMap *tm, intptr_t a, intptr_t b)
 {
@@ -45,11 +47,55 @@ static int compare(SgTreeMap *tm, intptr_t a, intptr_t b)
   return 0;
 }
 
+static void charset_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgCharSet *cs = SG_CHAR_SET(obj);
+  SgObject ranges = Sg_CharSetRanges(cs), cp;
+
+  Sg_Putuz(port, UC("#<char-set"));
+  SG_FOR_EACH(cp, ranges) {
+    SgObject cell = SG_CAR(cp);
+    SgChar start = SG_INT_VALUE(SG_CAR(cell)), end = SG_INT_VALUE(SG_CDR(cell));
+    Sg_Putc(port, ' ');
+    if (start > SG_CHAR_SET_SMALL_CHARS) {
+      Sg_Printf(port, UC("#x%x"), start);
+    } else {
+      Sg_Write(SG_MAKE_CHAR(start), port, SG_WRITE_WRITE);
+    }
+    Sg_Putc(port, '-');
+    if (end > SG_CHAR_SET_SMALL_CHARS) {
+      Sg_Printf(port, UC("#x%x"), end);
+    } else {
+      Sg_Write(SG_MAKE_CHAR(end), port, SG_WRITE_WRITE);
+    }
+  }
+  Sg_Putc(port, '>');
+}
+
+static int charset_compare(SgObject x, SgObject y, int equalp)
+{
+  SgCharSet *xx = SG_CHAR_SET(x);
+  SgCharSet *yy = SG_CHAR_SET(y);
+
+  if (equalp) {
+    return Sg_CharSetEq(xx, yy)? 0 : 1;
+  } else {
+    if (Sg_CharSetEq(xx, yy)) return 0;
+    if (Sg_CharSetLe(xx, yy)) return -1;
+    if (Sg_CharSetLe(yy, xx)) return 1;
+    Sg_Error(UC("cannot compare char-set: %S vs %S"), x, y);
+    return 0;			/* dummy */
+  }
+}
+
+SG_DEFINE_BUILTIN_CLASS(Sg_CharSetClass,
+			charset_print, charset_compare, NULL, NULL,
+			SG_CLASS_DEFAULT_CPL);
 
 static SgCharSet* make_charset()
 {
   SgCharSet *cs = SG_NEW(SgCharSet);
-  SG_SET_HEADER(cs, TC_CHAR_SET);
+  SG_SET_CLASS(cs, SG_CLASS_CHAR_SET);
   /* bits set */
   memset(cs->small, 0, SG_CHAR_SET_SMALL_CHARS);
   cs->large = Sg_MakeRBTreeMap(compare);

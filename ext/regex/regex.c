@@ -31,6 +31,8 @@
  */
 #include <string.h>
 #include <ctype.h>
+#include <sagittarius.h>
+#define LIBSAGITTARIUS_EXT_BODY
 #include "regex.h"
 #include <sagittarius/extend.h>
 
@@ -3047,7 +3049,9 @@ SgString* Sg_RegexReplaceFirst(SgMatcher *m, SgString *replacement)
   return m->text;
 }
 
+SG_CDECL_BEGIN
 extern void Sg__Init_sagittarius_regex_impl();
+SG_CDECL_END
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__regex()
 {

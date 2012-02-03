@@ -16,99 +16,77 @@
     (import :none)
   #!compatible
   (decl-code
-   (.include "time.h"))
+   (.include <sagittarius.h>)
+   (.define "LIBSAGITTARIUS_EXT_BODY")
+   (.include <sagittarius/extend.h>
+	     "time.h"))
 
-  (define-c-proc make-date (nanosecond::fixnum
-			    second::fixnum
-			    minute::fixnum
-			    hour::fixnum
-			    day::fixnum
-			    month::fixnum
-			    year::fixnum
-			    zone_offset::number)
-    ::Object
+  (define-c-proc make-date (nanosecond::<fixnum>
+			    second::<fixnum>
+			    minute::<fixnum>
+			    hour::<fixnum>
+			    day::<fixnum>
+			    month::<fixnum>
+			    year::<fixnum>
+			    zone_offset::<integer>)
+    
     (result (Sg_MakeDate nanosecond second minute hour day month year
 			 (Sg_GetIntegerS64Clamp zone_offset SG_CLAMP_NONE NULL))))
+  (define-type <date> "SgDate*")
 
   ;; accessor
-  (define-cgen-stmt check-date
-    ((_ o)
-     (dispatch
-      `(unless (SG_DATE_P ,o)
-	 (Sg_WrongTypeOfArgumentViolation procedureName
-					  (Sg_MakeString "date" SG_LITERAL_STRING)
-					  ,o
-					  '())
-	 (return SG_UNDEF)))))
+  (define-c-proc date? (o) ::<boolean>
+    (result (SG_DATEP o)))
 
-  (define-c-proc date? (o) ::boolean
-    (result (SG_DATE_P o)))
-
-  (define-c-proc date-nanosecond (o) ::fixnum
-    (check-date o)
+  (define-c-proc date-nanosecond (o::<date>) ::<fixnum>
     (result (-> (SG_DATE o) nanosecond)))
 
-  (define-c-proc date-second (o) ::fixnum
-    (check-date o)
+  (define-c-proc date-second (o::<date>) ::<fixnum>
     (result (-> (SG_DATE o) second)))
 
-  (define-c-proc date-minute (o) ::fixnum
-    (check-date o)
+  (define-c-proc date-minute (o::<date>) ::<fixnum>
     (result (-> (SG_DATE o) minute)))
 
-  (define-c-proc date-hour (o) ::fixnum
-    (check-date o)
+  (define-c-proc date-hour (o::<date>) ::<fixnum>
     (result (-> (SG_DATE o) hour)))
 
-  (define-c-proc date-day (o) ::fixnum
-    (check-date o)
+  (define-c-proc date-day (o::<date>) ::<fixnum>
     (result (-> (SG_DATE o) day)))
 
-  (define-c-proc date-month (o) ::fixnum
-    (check-date o)
+  (define-c-proc date-month (o::<date>) ::<fixnum>
     (result (-> (SG_DATE o) month)))
 
-  (define-c-proc date-year (o) ::fixnum
-    (check-date o)
+  (define-c-proc date-year (o::<date>) ::<fixnum>
     (result (-> (SG_DATE o) year)))
 
-  (define-c-proc date-zone-offset (o) ::fixnum
-    (check-date o)
+  (define-c-proc date-zone-offset (o::<date>) ::<fixnum>
     (result (-> (SG_DATE o) zoneOffset)))
 
-  (define-c-proc set-date-nanosecond! (o val::fixnum) ::void
-    (check-date o)
+  (define-c-proc set-date-nanosecond! (o::<date> val::<fixnum>) ::<void>
     (set! (-> (SG_DATE o) nanosecond) val))
 
-  (define-c-proc set-date-second! (o val::fixnum) ::void
-    (check-date o)
+  (define-c-proc set-date-second! (o::<date> val::<fixnum>) ::<void>
     (set! (-> (SG_DATE o) second) val))
 
-  (define-c-proc set-date-minute! (o val::fixnum) ::void
-    (check-date o)
+  (define-c-proc set-date-minute! (o::<date> val::<fixnum>) ::<void>
     (set! (-> (SG_DATE o) minute) val))
 
-  (define-c-proc set-date-hour! (o val::fixnum) ::void
-    (check-date o)
+  (define-c-proc set-date-hour! (o::<date> val::<fixnum>) ::<void>
     (set! (-> (SG_DATE o) hour) val))
 
-  (define-c-proc set-date-day! (o val::fixnum) ::void
-    (check-date o)
+  (define-c-proc set-date-day! (o::<date> val::<fixnum>) ::<void>
     (set! (-> (SG_DATE o) day) val))
 
-  (define-c-proc set-date-month! (o val::fixnum) ::void
-    (check-date o)
+  (define-c-proc set-date-month! (o::<date> val::<fixnum>) ::<void>
     (set! (-> (SG_DATE o) month) val))
 
-  (define-c-proc set-date-year! (o val::fixnum) ::void
-    (check-date o)
+  (define-c-proc set-date-year! (o::<date> val::<fixnum>) ::<void>
     (set! (-> (SG_DATE o) year) val))
 
-  (define-c-proc set-date-zone-offset! (o val::fixnum) ::void
-    (check-date o)
+  (define-c-proc set-date-zone-offset! (o::<date> val::<fixnum>) ::<void>
     (set! (-> (SG_DATE o) zoneOffset) val))
 
-  (define-c-proc local-tz-offset () ::Object
+  (define-c-proc local-tz-offset ()
     (result (Sg_LocalTzOffset)))
 
 )

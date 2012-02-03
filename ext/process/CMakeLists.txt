@@ -5,6 +5,13 @@
 ADD_LIBRARY(sagittarius--process MODULE
   process.c process_stub.c)
 
+IF (MSVC OR CYGWIN)
+  # ugly solution
+  SET_SOURCE_FILES_PROPERTIES(process.c process_stub.c
+    PROPERTIES LANGUAGE CXX)
+ENDIF()
+
+
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 ADD_STUBS(sagittarius--process
   COMMAND ${GENSTUB}

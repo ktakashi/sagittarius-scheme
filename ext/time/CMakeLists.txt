@@ -5,6 +5,13 @@
 ADD_LIBRARY(sagittarius--time MODULE
   time.c date.c time_stub.c date_stub.c)
 
+IF (MSVC OR CYGWIN)
+  # ugly solution
+  SET_SOURCE_FILES_PROPERTIES(time.c date.c time_stub.c date_stub.c
+    PROPERTIES LANGUAGE CXX)
+ENDIF()
+
+
 ADD_STUBS(sagittarius--time
   COMMAND ${GENSTUB}
   FILES ${CMAKE_CURRENT_SOURCE_DIR}/time_stub.stub

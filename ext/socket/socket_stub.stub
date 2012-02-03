@@ -15,106 +15,96 @@
 
   #!compatible
   (decl-code
-   (.include "socket.h"))
+   (.include <sagittarius.h>)
+   (.define "LIBSAGITTARIUS_EXT_BODY")
+   (.include <sagittarius/extend.h>
+	     "socket.h"))
 
-  (define-cgen-stmt check-string-or-false
-    ((_ o)
-     (dispatch
-      `(unless (or (SG_STRINGP ,o)
-		   (SG_FALSEP ,o))
-	 (Sg_WrongTypeOfArgumentViolation procedureName
-					  (Sg_MakeString "string or #f" SG_LITERAL_STRING)
-					  ,o
-					  '())
-	 (return SG_UNDEF)))))
+  (define-cise-stmt check-string-or-false
+    ((_ name o)
+     `(unless (or (SG_STRINGP ,o)
+		  (SG_FALSEP ,o))
+	(Sg_WrongTypeOfArgumentViolation ',name
+					 (SG_MAKE_STRING "string or #f")
+					 ,o
+					 '()))))
 
-  (define-c-proc make-client-socket (node
-				     service
-				     :optional
-				     (ai_family::fixnum AF_INET)
-				     (ai_socktype::fixnum SOCK_STREAM)
-				     (ai_flags::fixnum (+ AI_V4MAPPED AI_ADDRCONFIG))
-				     (ai_protocol::fixnum 0))
-    ::Object
-    (check-string-or-false node)
-    (check-string-or-false service)
+  (define-type <socket> "SgSocket*")
+
+  (define-c-proc make-client-socket 
+    (node service :optional
+	  (ai_family::<fixnum> AF_INET)
+	  (ai_socktype::<fixnum> SOCK_STREAM)
+	  (ai_flags::<fixnum> (SG_MAKE_INT (+ AI_V4MAPPED AI_ADDRCONFIG)))
+	  (ai_protocol::<fixnum> 0))
+    
+    (check-string-or-false make-client-socket node)
+    (check-string-or-false make-client-socket service)
     (when (SG_FALSEP node)
       (set! node NULL))
     (when (SG_FALSEP service)
       (set! service NULL))
-    (let ((sock (Sg_CreateClientSocket node service
+    (let ((sock (Sg_CreateClientSocket (SG_STRING node)
+				       (SG_STRING service)
 				       ai_family
 				       ai_socktype
 				       ai_flags
 				       ai_protocol)))
-      (if (Sg_SocketOpenP sock)
+      (if (Sg_SocketOpenP (SG_SOCKET sock))
 	  (result sock)
-	  (begin
-	    (Sg_IOError -1 procedureName
-			(Sg_GetLastErrorMessageWithErrorCode (-> (SG_SOCKET sock) lastError))
-			#f (SG_LIST2 node service))
-	    (result SG_UNDEF)))))
+	  (Sg_IOError (cast SgIOErrorType -1) 'make-client-socket
+		      (Sg_GetLastErrorMessageWithErrorCode
+		       (-> (SG_SOCKET sock) lastError))
+		      #f (SG_LIST2 node service)))))
 
-  (define-c-proc make-server-socket (service 
-				     :optional
-				     (ai_family::fixnum AF_INET)
-				     (ai_socktype::fixnum SOCK_STREAM)
-				     (ai_protocol::fixnum 0))
-    ::Object
-    (check-string-or-false service)
+  (define-c-proc make-server-socket 
+    (service :optional
+	     (ai_family::<fixnum> AF_INET)
+	     (ai_socktype::<fixnum> SOCK_STREAM)
+	     (ai_protocol::<fixnum> 0))
+    (check-string-or-false make-server-socket service)
     (when (SG_FALSEP service)
       (set! service NULL))
-    (let ((sock (Sg_CreateServerSocket service ai_family ai_socktype ai_protocol)))
-      (if (Sg_SocketOpenP sock)
+    (let ((sock (Sg_CreateServerSocket (SG_STRING service)
+				       ai_family ai_socktype ai_protocol)))
+      (if (Sg_SocketOpenP (SG_SOCKET sock))
 	  (result sock)
-	  (begin
-	    (Sg_IOError -1 procedureName
-			(Sg_GetLastErrorMessageWithErrorCode (-> (SG_SOCKET sock) lastError))
-			#f service)
-	    (result SG_UNDEF)))))
-	  
-  (define-cgen-stmt check-socket
-    ((_ o)
-     (dispatch
-      `(unless (SG_SOCKET_P ,o)
-	 (Sg_WrongTypeOfArgumentViolation procedureName
-					  (Sg_MakeString "socket" SG_LITERAL_STRING)
-					  ,o
-					  '())
-	 (return SG_UNDEF)))))
+	  (Sg_IOError (cast SgIOErrorType -1)
+		      'make-server-socket
+		      (Sg_GetLastErrorMessageWithErrorCode 
+		       (-> (SG_SOCKET sock) lastError))
+		      #f service))))
 
-  (define-c-proc socket? (o) ::boolean
-    (result (SG_SOCKET_P o)))
+  (define-c-proc socket? (o) ::<boolean>
+    (result (SG_SOCKETP o)))
 
-
-  (define-c-proc socket-port (o) ::Object
-    (check-socket o)
+  (define-c-proc socket-port (o::<socket>) 
     (result (Sg_MakeSocketPort (SG_SOCKET o))))
 
-  (define-c-proc shutdown-output-port (o::Port) ::void
+  (define-c-proc shutdown-output-port (o::<port>) ::<void>
     (Sg_ShutdownPort o))
 
-  (define-c-proc socket-accept (o) ::Object
-    (check-socket o)
+  (define-c-proc socket-accept (o::<socket>) 
     (result (Sg_SocketAccept (SG_SOCKET o))))
 
-  (define-c-proc socket-send (o bv::ByteVector flags::fixnum) ::fixnum
-    (check-socket o)
+  (define-c-proc socket-send
+    (o::<socket> bv::<bytevector> flags::<fixnum>) ::<fixnum>
     (result (Sg_SocketSend (SG_SOCKET o)
 			   (SG_BVECTOR_ELEMENTS bv)
 			   (SG_BVECTOR_SIZE bv)
 			   flags)))
 
-  (define-c-proc socket-recv (o len::fixnum flags::fixnum) ::Object
-    (check-socket o)
-    (let ((data::uint8_t* (SG_NEW_ATOMIC2 uint8_t* len))
+  (decl-code
+   (.typedef "uint8_t*" "uint8_t_ptr"))
+
+  (define-c-proc socket-recv (o len::<fixnum> flags::<fixnum>) 
+    (let ((data::uint8_t* (SG_NEW_ATOMIC2 uint8_t_ptr len))
 	  (result::int (Sg_SocketReceive (SG_SOCKET o) data len flags)))
       (result (Sg_MakeByteVectorFromU8Array data result))))
 
-  (define-c-proc socket-shutdown (o how::fixnum) ::void
-    (check-socket o)
+  (define-c-proc socket-shutdown (o how::<fixnum>) ::<void>
     (Sg_SocketShutdown (SG_SOCKET o) how))
 
-  (define-c-proc socket-close  (o) ::void
+  (define-c-proc socket-close  (o::<socket>) ::<void>
     (Sg_SocketClose (SG_SOCKET o)))
 )

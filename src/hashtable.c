@@ -32,15 +32,19 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/hashtable.h"
 #include "sagittarius/bytevector.h"
+#include "sagittarius/collection.h"
 #include "sagittarius/compare.h"
 #include "sagittarius/error.h"
 #include "sagittarius/pair.h"
+#include "sagittarius/port.h"
 #include "sagittarius/string.h"
 #include "sagittarius/number.h"
 #include "sagittarius/symbol.h"
 #include "sagittarius/keyword.h"
 #include "sagittarius/vector.h"
 #include "sagittarius/vm.h"
+#include "sagittarius/writer.h"
+
 
 typedef struct EntryRec
 {
@@ -601,6 +605,41 @@ SgHashEntry* Sg_HashIterNext(SgHashIter *itr)
   return (SgHashEntry*)e; /*NULL*/
 }
 
+static void hash_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgHashTable *ht = SG_HASHTABLE(obj);
+  SG_PORT_LOCK(port);
+  Sg_PutuzUnsafe(port, UC("#<hashtable "));
+  if (SG_IMMUTABLE_HASHTABLE_P(ht)) {
+    Sg_PutuzUnsafe(port, UC("immutable "));
+  }
+  switch (ht->type) {
+  case SG_HASH_EQ:
+    Sg_PutuzUnsafe(port, UC("eq?"));
+    break;
+  case SG_HASH_EQV:
+    Sg_PutuzUnsafe(port, UC("eqv?"));
+    break;
+  case SG_HASH_EQUAL:
+    Sg_PutuzUnsafe(port, UC("equal?"));
+    break;
+  case SG_HASH_STRING:
+    Sg_PutuzUnsafe(port, UC("string=?"));
+    break;
+  case SG_HASH_GENERAL:
+    Sg_Write(SG_HASHTABLE_CORE(ht)->generalHasher, port, ctx->mode);
+    Sg_PutcUnsafe(port, ' ');
+    Sg_Write(SG_HASHTABLE_CORE(ht)->generalCompare, port, ctx->mode);
+    break;
+  }
+  Sg_PutcUnsafe(port, '>');
+  SG_PORT_UNLOCK(port);
+}
+
+SG_DEFINE_BUILTIN_CLASS(Sg_HashTableClass, hash_print, NULL, NULL, NULL,
+			SG_CLASS_DICTIONARY_CPL);
+
+
 SgObject Sg_MakeHashTableSimple(SgHashType type, int initSize)
 {
   SgHashTable *z;
@@ -608,7 +647,7 @@ SgObject Sg_MakeHashTableSimple(SgHashType type, int initSize)
     Sg_Error(UC("Sg_MakeHashTableSimple: wrong type arg: %d"), type);
   }
   z = SG_NEW(SgHashTable);
-  SG_SET_HEADER(z, TC_HASHTABLE);
+  SG_SET_CLASS(z, SG_CLASS_HASHTABLE);
   Sg_HashCoreInitSimple(&z->core, type, initSize, NULL);
   z->type = type;
   return SG_OBJ(z);
@@ -617,7 +656,7 @@ SgObject Sg_MakeHashTableSimple(SgHashType type, int initSize)
 SgObject Sg_MakeHashTable(SgHashProc *hasher, SgHashCompareProc *compre, int initSize)
 {
   SgHashTable *z = SG_NEW(SgHashTable);
-  SG_SET_HEADER(z, TC_HASHTABLE);
+  SG_SET_CLASS(z, SG_CLASS_HASHTABLE);
   Sg_HashCoreInitGeneral(&z->core, hasher, compre, initSize, NULL);
   z->type = SG_HASH_GENERAL;
   return SG_OBJ(z);
@@ -634,11 +673,11 @@ SgObject Sg_MakeHashTableForScheme(SgObject hasher, SgObject compare, int initSi
 SgObject Sg_HashTableCopy(SgHashTable *src, int mutableP)
 {
   SgHashTable *dst = SG_NEW(SgHashTable);
-  SG_SET_HEADER(dst, TC_HASHTABLE);
+  SG_SET_CLASS(dst, SG_CLASS_HASHTABLE);
   Sg_HashCoreCopy(SG_HASHTABLE_CORE(dst), SG_HASHTABLE_CORE(src));
   dst->type = src->type;
   if (!mutableP) {
-    SG_SET_HEADER_ATTRIBUTE(dst, SG_HASHTABLE_IMMUTABLE_BIT);
+    dst->immutablep = TRUE;
   }
   return SG_OBJ(dst);
 }

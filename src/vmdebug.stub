@@ -6,16 +6,21 @@
 	    source-info-set!
 	    )
     (import :none)
-  (define-c-proc vm-dump-code (cb::CodeBuilder) ::Object
+
+  (decl-code
+   (.define "LIBSAGITTARIUS_BODY")
+   (.include <sagittarius.h>))
+
+  (define-c-proc vm-dump-code (cb::<code-builder>) ::<top>
     (Sg_VMDumpCode cb)
     (result SG_UNDEF))
 
-  (define-c-proc source-info (o) ::Object
+  (define-c-proc source-info (o) ::<top>
     (result (Sg_HashTableRef (SG_HASHTABLE (-> (Sg_VM) sourceInfos))
 			     o
 			     #f)))
 
-  (define-c-proc source-info-set! (o i) ::void
+  (define-c-proc source-info-set! (o i) ::<void>
     (Sg_HashTableSet (SG_HASHTABLE (-> (Sg_VM) sourceInfos))
 		     o i 0))
 )

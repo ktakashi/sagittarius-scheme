@@ -33,6 +33,7 @@
 #define SAGITTARIUS_PAIR_HPP_
 
 #include "sagittariusdefs.h"
+#include "clos.h"
 
 struct SgPairRec
 {
@@ -42,7 +43,15 @@ struct SgPairRec
   char     constp;
 };
 
-#define SG_PAIRP(obj) 	  	 (SG_PTRP(obj) && (SG_HDR(obj) & 0xf) != 0x7)
+SG_CLASS_DECL(Sg_ListClass);
+SG_CLASS_DECL(Sg_PairClass);
+SG_CLASS_DECL(Sg_NullClass);
+
+#define SG_CLASS_LIST       (&Sg_ListClass)
+#define SG_CLASS_PAIR       (&Sg_PairClass)
+#define SG_CLASS_NULL       (&Sg_NullClass)
+
+#define SG_PAIRP(obj) 	  	 (SG_HPTRP(obj)&&SG_HTAG(obj) != 0x7)
 #define SG_PAIR(obj)  	  	 ((SgPair*)obj)
 #define SG_CAR(obj)   	  	 (SG_PAIR(obj)->car)
 #define SG_CDR(obj)   	  	 (SG_PAIR(obj)->cdr)
@@ -106,6 +115,7 @@ SG_EXTERN SgObject Sg_List(SgObject elt, ...);
 SG_EXTERN SgObject Sg_VaList(va_list elts);
 SG_EXTERN SgObject Sg_ArrayToList(SgObject *array, int nelts);
 SG_EXTERN SgObject Sg_ArrayToListWithTail(SgObject *array, int nelts, SgObject tail);
+SG_EXTERN SgObject* Sg_ListToArray(SgObject list, int nullTermP);
 
 SG_EXTERN SgObject Sg_Car(SgObject obj);
 SG_EXTERN SgObject Sg_Cdr(SgObject obj);

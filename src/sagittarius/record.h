@@ -33,6 +33,7 @@
 #define SAGITTARIUS_RECORD_H_
 
 #include "sagittariusdefs.h"
+#include "clos.h"
 
 /*
   R6RS record
@@ -58,7 +59,43 @@
   TODO: how to implements default-protocol?
  */
 
-struct SgRecordTypeRec {
+SG_CLASS_DECL(Sg_RTDClass);
+SG_CLASS_DECL(Sg_RCDClass);
+SG_CLASS_DECL(Sg_RecordTypeClass);
+SG_CLASS_DECL(Sg_TupleClass);
+
+#define SG_CLASS_RTD         (&Sg_RTDClass)
+#define SG_CLASS_RCD         (&Sg_RCDClass)
+#define SG_CLASS_RECORD_TYPE (&Sg_RecordTypeClass)
+#define SG_CLASS_TUPLE       (&Sg_TupleClass)
+
+typedef struct SgRTDRec
+{
+  SG_HEADER;
+  SgObject name;
+  SgObject parent;
+  SgObject uid;
+  int      sealedp;
+  int      opaquep;
+  SgObject fields;
+} SgRTD;
+
+#define SG_RTD(obj)  ((SgRTD*)obj)
+#define SG_RTDP(obj) (SG_HPTRP(obj)&&SG_XTYPEP(obj, SG_CLASS_RTD))
+
+typedef struct SgRCDRec
+{
+  SG_HEADER;
+  SgObject rtd;
+  SgObject protocol;
+  int      customProtocolP;
+  SgObject parent;
+} SgRCD;
+#define SG_RCD(obj)  ((SgRCD*)obj)
+#define SG_RCDP(obj) (SG_HPTRP(obj)&&SG_XTYPEP(obj, SG_CLASS_RCD))
+
+struct SgRecordTypeRec
+{
   SG_HEADER;
   SgObject name;		/* record type name */
   SgObject rtd;			/* record type descriptor */
@@ -66,17 +103,29 @@ struct SgRecordTypeRec {
 };
 
 #define SG_RECORD_TYPE(obj)    	((SgRecordType*)obj)
-#define SG_RECORD_TYPEP(obj)   	(SG_PTRP(obj) && IS_TYPE(obj, TC_RECORD_TYPE))
+#define SG_RECORD_TYPEP(obj)				\
+  (SG_HPTRP(obj)&&SG_XTYPEP(obj, SG_CLASS_RECORD_TYPE))
 #define SG_RECORD_TYPE_RTD(obj) (SG_RECORD_TYPE(obj)->rtd)
 #define SG_RECORD_TYPE_RCD(obj) (SG_RECORD_TYPE(obj)->rcd)
 
 #define SG_INIT_RECORD_TYPE(rt, name_, rtd_, rcd_)	\
   do {							\
-    SG_SET_HEADER((rt), TC_RECORD_TYPE);		\
+    SG_SET_CLASS((rt), SG_CLASS_RECORD_TYPE);		\
     (rt)->name = name_;					\
     (rt)->rtd = rtd_;					\
     (rt)->rcd = rcd_;					\
   } while (0)
+
+/* for now. */
+typedef struct SgTupleRec
+{
+  SG_HEADER;
+  SgObject     values;
+  SgObject     printer;
+} SgTuple;
+#define SG_TUPLE(obj)  ((SgTuple*)obj)
+#define SG_TUPLEP(obj) (SG_HPTRP(obj)&&SG_XTYPEP(obj, SG_CLASS_TUPLE))
+
 
 SG_CDECL_BEGIN
 
@@ -109,6 +158,13 @@ SG_EXTERN SgObject Sg_RcdProtocol(SgObject rcd);
 /* utilities */
 SG_EXTERN int      Sg_RtdTotalFieldCount(SgObject rtd);
 SG_EXTERN int      Sg_RtdInheritedFieldCount(SgObject rtd);
+
+/* record instance is tuple */
+SG_EXTERN SgObject Sg_MakeTuple(int size, SgObject fill, SgObject printer);
+SG_EXTERN void     Sg_TupleListSet(SgObject tuple, SgObject lst);
+SG_EXTERN void     Sg_TupleSet(SgObject tuple, int i, SgObject value);
+SG_EXTERN SgObject Sg_TupleRef(SgObject tuple, int i, SgObject fallback);
+SG_EXTERN int      Sg_TupleSize(SgObject tuple);
 
 SG_CDECL_END
 

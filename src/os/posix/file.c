@@ -196,7 +196,7 @@ static SgFile* make_file(int handle)
 {
   SgFile *file = SG_NEW(SgFile);
   FD     *fd = SG_NEW(FD);
-  SG_SET_HEADER(file, TC_FILE);
+  SG_SET_CLASS(file, SG_CLASS_FILE);
   fd->fd = handle;
   file->osdependance = (void*)fd;
   file->read = posix_read;

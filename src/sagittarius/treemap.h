@@ -55,12 +55,13 @@ struct SgTreeMapRec
   /* These are could be Scheme object or C pointer */
   intptr_t root;
   int      entryCount;
+  int      schemep;
   union {
     struct {
       SgTreeCompareProc  *cmp;
       SgTreeRefProc      *ref;
       SgTreeSetProc      *set;
-      SgTreeDeleteProc   *delete;
+      SgTreeDeleteProc   *remove;
       SgTreeCopyProc     *copy;
       SgTreeIterInitProc *iter;
       /* NavigationMap (optional)*/
@@ -71,7 +72,7 @@ struct SgTreeMapRec
       SgObject cmp;
       SgObject ref;
       SgObject set;
-      SgObject delete;
+      SgObject remove;
       SgObject copy;
       /* NavigationMap (optional)*/
       SgObject higher;
@@ -79,6 +80,9 @@ struct SgTreeMapRec
     } scm;
   } procs;
 };
+
+SG_CLASS_DECL(Sg_TreeMapClass);
+#define SG_CLASS_TREE_MAP  (&Sg_TreeMapClass)
 
 #define SG_TREEMAP_PROC(__tc, __type, __proc)	\
   (SG_TREEMAP(__tc)->procs.__type.__proc)
@@ -117,13 +121,10 @@ enum SgTreeFlags{
   SG_TREE_NO_CREATE    = (1L<<1)  /* do not create new one if no match */
 };
 
-#define TREEMAP_SCHEME_SHIFT   	11
-#define TREEMAP_SCHEME_BIT     	((uintptr_t)1 << TREEMAP_SCHEME_SHIFT)
-
 #define SG_TREEMAP(obj)     ((SgTreeMap*)obj)
-#define SG_TREEMAP_P(obj)   (SG_PTRP(obj) && IS_TYPE(obj, TC_TREEMAP))
+#define SG_TREEMAP_P(obj)   SG_XTYPEP(obj, SG_CLASS_TREE_MAP)
 #define SG_SCHEME_TREEMAP_P(obj)				\
-  (SG_TREEMAP_P(obj) && (SG_HDR(obj) & TREEMAP_SCHEME_BIT))
+  (SG_TREEMAP_P(obj) && SG_TREEMAP(obj)->schemep)
 
 SG_CDECL_BEGIN
 
@@ -143,7 +144,7 @@ SG_EXTERN SgObject Sg_TreeMapDelete(SgTreeMap *tm, SgObject key);
 SG_EXTERN SgObject Sg_MakeGenericCTreeMap(SgTreeCompareProc *cmp,
 					  SgTreeRefProc *ref,
 					  SgTreeSetProc *set,
-					  SgTreeDeleteProc *delete,
+					  SgTreeDeleteProc *remove,
 					  SgTreeCopyProc *copy,
 					  SgTreeIterInitProc *iter,
 					  SgTreeRefProc *higher,
@@ -151,7 +152,7 @@ SG_EXTERN SgObject Sg_MakeGenericCTreeMap(SgTreeCompareProc *cmp,
 SG_EXTERN SgObject Sg_MakeGenericSchemeTreeMap(SgObject cmp,
 					       SgObject	ref,
 					       SgObject	set,
-					       SgObject delete,
+					       SgObject remove,
 					       SgObject copy);
 
 /* iterator these APIs are only for C */

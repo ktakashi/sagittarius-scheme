@@ -198,7 +198,9 @@ static void show_usage()
 	  "      no-optimization   Not optimiza.\n"
 	  "  -I<library>,--import=<library> Import specified library to user library\n"
 	  "                                 before sash will be executed.\n"
+#if 0
 	  "  -6,--r6rs                      Runs sash with R6RS mode\n"
+#endif
 	  "  -L<path>,--loadpath=<path>     Adds <path> to the head of the load path list.\n"
 	  "  -D<path>,--dynloadpath=<path>  Adds <path> to the head of the dynamic load path list.\n"
 	  "  -C,--clean-cache               Cleans compiled cache.\n"
@@ -278,7 +280,7 @@ int main(int argc, char **argv)
     {"help", 0, 0, 'h'},
     {"interactive", 0, 0, 'i'},
     {"import", 0, 0, 'I'},
-    {"r6rs", 0, 0, '6'},
+    /* {"r6rs", 0, 0, '6'}, */
     {"version", 0, 0, 'v'},
     {"clean-cache", 0, 0, 'C'},
     {"disable-cache", 0, 0, 'd'},
@@ -296,7 +298,7 @@ int main(int argc, char **argv)
   Sg_Init();
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
-  while ((opt = getopt_long(argc, argv, "L:D:f:I:hEviCdp:6P:s", long_options, &optionIndex)) != -1) {
+  while ((opt = getopt_long(argc, argv, "L:D:f:I:hEviCdp:P:s", long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 'E':
       if (strcmp("trace", optarg) == 0) {
@@ -331,10 +333,12 @@ int main(int argc, char **argv)
     case 'I':
       Sg_ImportLibrary(vm->currentLibrary, Sg_Intern(Sg_MakeStringC(optarg)));
       break;
+#if 0
     case '6':
       SG_VM_SET_FLAG(vm, SG_R6RS_MODE);
       SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
       break;
+#endif
     case 'L':
       Sg_AddLoadPath(SG_STRING(Sg_MakeStringC(optarg)));
       break;

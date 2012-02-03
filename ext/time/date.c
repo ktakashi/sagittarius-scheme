@@ -29,9 +29,12 @@
  *
  *  $Id: $
  */
+#include <sagittarius.h>
+#define LIBSAGITTARIUS_EXT_BODY
+#include <sagittarius/extend.h>
 #include "time.h"
 
-static void date_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void date_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgDate *d = SG_DATE(self);
   Sg_Printf(port, UC("#<date %d/%d/%d %d:%d:%d.%d>"),
@@ -39,12 +42,12 @@ static void date_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
 	    d->hour, d->minute, d->second, d->nanosecond);
 }
 
-SG_INIT_META_OBJ(Sg_DateMeta, &date_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_DateClass, date_printer);
 
 SgObject Sg_MakeDate(int nano, int sec, int min, int hour, int day, int mon, int year, int64_t zone)
 {
   SgDate *d = SG_NEW(SgDate);
-  SG_SET_META_OBJ(d, SG_META_DATE);
+  SG_SET_CLASS(d, SG_CLASS_DATE);
   d->nanosecond = nano;
   d->second = sec;
   d->minute = min;

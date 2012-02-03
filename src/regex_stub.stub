@@ -1,0 +1,82 @@
+;; -*- mode: scheme; coding: utf-8; -*-
+(library (sagittarius regex impl)
+    (export compile-regex
+	    regex-matcher
+	    regex-match
+	    regex-looking-at
+	    regex-find
+	    regex-group
+	    regex-capture-count
+	    regex-replace-all
+	    regex-replace-first
+
+	    ;; pred
+	    regex-pattern?
+	    regex-matcher?
+
+	    dump-regex)
+    (import :none)
+
+  (decl-code
+   (.define "LIBSAGITTARIUS_BODY")
+   (.include <sagittarius.h> <sagittarius/regex.h>))
+
+  (define-c-proc compile-regex (p::<string> :optional
+					    (flags::<fixnum> 0)
+					    (parse_only::<boolean> #f))
+    (result (Sg_CompileRegex p flags parse_only)))
+
+  (define-c-proc dump-regex (p::<pattern> :optional
+					  (port::<port> (Sg_CurrentOutputPort)))
+    ::<void>
+    (Sg_DumpRegex p port))
+
+
+  (define-c-proc regex-matcher (p::<pattern> text::<string>)
+    (result (Sg_RegexMatcher p text)))
+
+  (define-c-proc regex-matches (m::<matcher>) ::<boolean>
+    (result (Sg_RegexMatches m)))
+
+  (define-c-proc regex-looking-at (m::<matcher>) ::<boolean>
+    (result (Sg_RegexLookingAt m)))
+
+  (define-c-proc regex-find (m::<matcher> :optional (start::<fixnum> -1))
+    ::<boolean>
+    (result (Sg_RegexFind m start)))
+
+  (define-c-proc regex-group (m::<matcher> :optional (group::<fixnum> 0))
+    (result (Sg_RegexGroup m group)))
+
+  (define-c-proc regex-after (m::<matcher>)
+    (result (Sg_Substring (-> m text)
+			  (-> m last)
+			  (-> m to))))
+
+  (define-c-proc regex-before (m::<matcher>)
+    (result (Sg_Substring (-> m text)
+			  0
+			  (-> m first))))
+
+  (define-c-proc regex-capture-count (m::<matcher>) ::<fixnum>
+    (result (Sg_RegexCaptureCount m)))
+
+  (define-c-proc regex-first (m::<matcher>) ::<fixnum>
+    (result (-> m first)))
+
+  (define-c-proc regex-last (m::<matcher>) ::<fixnum>
+    (result (-> m last)))
+
+  (define-c-proc regex-replace-all (m::<matcher> replacement::<string>)
+    (result (Sg_RegexReplaceAll m replacement)))
+
+  (define-c-proc regex-replace-first (m::<matcher> replacement::<string>)
+    (result (Sg_RegexReplaceFirst m replacement)))
+
+  ;; pred
+  (define-c-proc regex-pattern? (o) ::<boolean>
+    (result (SG_PATTERNP o)))
+
+  (define-c-proc regex-matcher? (o) ::<boolean>
+    (result (SG_MATCHERP o)))
+)

@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#<(sagittarius regex)>
 (library (dbi)
     (export &dbi-error make-dbi-error dbi-error?
 	    &dbi-driver-not-exist make-dbi-driver-not-exist
@@ -37,25 +38,31 @@
 	    raise-dbi-error
 	    ;; dbi objects
 	    ;; These are for DBD APIs
-	    dbi-driver dbi-driver? make-dbi-driver
-	    dbi-connection dbi-connection? make-dbi-connection
-	    dbi-query dbi-query? make-dbi-query dbi-query-prepared
+	    <dbi-driver>
+	    <dbi-connection>
+	    <dbi-query>  dbi-query-prepared
 	    ;; User level APIs
 	    dbi-connect
 	    dbi-prepare
-	    dbi-bind-parameter
+	    dbi-bind-parameter!
 	    dbi-execute!
 	    dbi-fetch!
 	    dbi-fetch-all!
 	    dbi-columns
 	    dbi-open?
 	    dbi-close
+	    dbi-commit!
+	    dbi-rollback!
+
+	    ;; DBD level APIs
+	    dbi-make-connection
 
 	    ;; Low level APIs
 	    dbi-parse-dsn
 	    )
     (import (rnrs)
 	    (rnrs eval)
+	    (clos user)
 	    (srfi :13 strings)
 	    (sagittarius)
 	    (sagittarius regex)
@@ -93,104 +100,16 @@
   ;; Since Sagittarius does not support generic method, it must have some driver
   ;; specific method in it. And DBD library must have make-<driver-name>-driver
   ;; procedure.
-  (define-record-type dbi-driver
-    (fields driver-name
-	    ;; driver interface
-	    make-connection)
-    (protocol
-     (lambda (p)
-       (lambda (name . args)
-	 (let-keywords args ((make-connection 
-			      (lambda args (raise-dbi-error (make-dbi-unsupported)
-							    'dbi-make-connection
-							    "method is not supported")))
-			     
-			     )
-	   (p name make-connection))))))
-  ;; connection class
-  (define-record-type dbi-connection
-    (fields open?
-	    close
-	    prepare
-	    escape-sql
-	    commit
-	    rollback)
-    (protocol
-     (lambda (p)
-       (lambda args
-	 (let-keywords args ((open? (lambda (obj) #t))
-			     (close (lambda (obj) (undefined)))
-			     (prepare (lambda (c sql . args)
-					(raise-dbi-error (make-dbi-unsupported)
-							 'dbi-prepare
-							 "method is not supported")))
-			     
-			     (escape-sql (lambda (c str)
-					   ;; default implementation will come later
-					   (raise-dbi-error (make-dbi-unsupported)
-							    'dbi-escape-sql
-							    "method is not supported")))
-			     (commit (lambda (c)
-					   ;; default implementation will come later
-					   (raise-dbi-error (make-dbi-unsupported)
-							    'dbi-commit
-							    "method is not supported")))
-			     (rollback (lambda (c)
-					   ;; default implementation will come later
-					 (raise-dbi-error (make-dbi-unsupported)
-							  'dbi-rollback
-							  "method is not supported"))))
-	   (p open? close prepare escape-sql commit rollback))))))
- 
-  ;; prepared query
-  (define-record-type dbi-query
-    (fields connection
-	    prepared
-	    execute
-	    bind-parameter
-	    fetch
-	    fetch-all
-	    commit
-	    rollback
-	    columns
-	    )
-    (protocol
-     (lambda (p)
-       (lambda (connection prepared . args)
-	 (let-keywords args ((bind-parameter (lambda (q index value)
-					       (raise-dbi-error (make-dbi-unsupported)
-								'dbi-bind-parameter
-								"method is not supported")))
-			     (execute (lambda (obj . params)
-					(raise-dbi-error (make-dbi-unsupported)
-							 'dbi-execute
-							 "method is not supported")))
-			     (fetch (lambda (q)
-				      (raise-dbi-error (make-dbi-unsupported)
-							 'dbi-execute
-							 "method is not supported")))
-			     (fetch-all (lambda (q)
-					  (raise-dbi-error (make-dbi-unsupported)
-							   'dbi-execute
-							   "method is not supported")))
-			     (commit (lambda (c)
-					   ;; default implementation will come later
-					   (raise-dbi-error (make-dbi-unsupported)
-							    'dbi-commit
-							    "method is not supported")))
-			     (rollback (lambda (c)
-					   ;; default implementation will come later
-					 (raise-dbi-error (make-dbi-unsupported)
-							  'dbi-rollback
-							  "method is not supported")))
-			     (columns (lambda (q)
-					   ;; default implementation will come later
-					 (raise-dbi-error (make-dbi-unsupported)
-							  'dbi-columns
-							  "method is not supported"))))
-	   (p connection prepared execute bind-parameter fetch fetch-all
-	      commit rollback columns))))))
-  
+
+  (define-class <dbi-driver> ()
+    ((driver-name :init-keyword :driver-name)))
+
+  (define-class <dbi-connection> () ())
+
+  (define-class <dbi-query> ()
+    ((connection :init-keyword :connection)
+     (prepared   :init-keyword :prepared :accessor dbi-query-prepared)))
+
   ;;--------------------------
   ;; User level APIs
 
@@ -202,96 +121,44 @@
   ;; Connection-options is like "name1=value1;name2=value2;...".
   (define (dbi-connect dsn . args)
     (let-values (((driver-name options option-alist) (dbi-parse-dsn dsn)))
-      (let ((driver (dbi-make-driver driver-name)))
-	(apply (dbi-driver-make-connection driver)
-	       driver options option-alist args))))
+      (apply dbi-make-connection
+	     (dbi-make-driver driver-name) options option-alist args)))
 
-  ;; connection object interface
-  (define (dbi-open? con)
-    (or (dbi-connection? con)
-	(assertion-violation 'dbi-open?
-			     (format "dbi-connection required, but got ~s" con)
-			     con))
-    ((dbi-connection-open? con) con))
+  ;; generic methods
+  ;; We do not provide any default method. So if no body implements DBD,
+  ;; this will raise no method condition.
+  (define-generic dbi-prepare)
+  (define-generic dbi-execute!)
+  (define-generic dbi-execute-using-connection!)
+  (define-generic dbi-fetch!)
+  (define-generic dbi-fetch-all!)
+  (define-generic dbi-columns)
+  (define-generic dbi-bind-parameter!)
+  ;;(define-generic dbi-do)
+  (define-generic dbi-escape-sql)
+  (define-generic dbi-commit!)
+  (define-generic dbi-rollback!)
 
-  (define (dbi-close con)
-    (or (dbi-connection? con)
-	(assertion-violation 'dbi-close
-			     (format "dbi-connection required, but got ~s" con)
-			     con))
-    ((dbi-connection-close con) con))
+  ;; DBD level APIs
+  (define-generic dbi-make-connection)
+  (define-generic dbi-open?)
+  (define-generic dbi-close)
 
-  ;; make prepared statement.
-  (define (dbi-prepare con sql . args)
-    (or (dbi-connection? con)
-	(assertion-violation 'dbi-prepare
-			     (format "dbi-connection required, but got ~s" con)
-			     con sql args))
-    (apply (dbi-connection-prepare con) con sql args))
-
-  (define (dbi-bind-parameter query index value . args)
-    (or (dbi-query? query)
-	(assertion-violation 'dbi-execute
-			     (format "dbi-query required, but got ~s" query)
-			     query sql args))
-    (apply (dbi-query-bind-parameter query)
-	   query index value args))
-  
-  ;; execute query
-  (define (dbi-execute! query . params)
-    (or (dbi-query? query)
-	(assertion-violation 'dbi-execute
-			     (format "dbi-query required, but got ~s" query)
-			     query sql args))
-    (apply (dbi-query-execute query) query params))
-
-  (define (dbi-fetch! query)
-    (or (dbi-query? query)
-	(assertion-violation 'dbi-fetch!
-			     (format "dbi-query required, but got ~s" query)
-			     query))
-    ((dbi-query-fetch query) query))
-
-  (define (dbi-fetch-all! query)
-    (or (dbi-query? query)
-	(assertion-violation 'dbi-fetch-all!
-			     (format "dbi-query required, but got ~s" query)
-			     query))
-    ((dbi-query-fetch-all query) query))
-
-  (define (dbi-columns query)
-    (or (dbi-query? query)
-	(assertion-violation 'dbi-columns
-			     (format "dbi-query required, but got ~s" query)
-			     query))
-    ((dbi-query-columns query) query))
 
   ;;--------------------------
   ;; Low level APIs
-  (define *dsn-regex* (regex "^dbi:([\\w-]+)(?::(.*))?$"))
+  (define *dsn-regex* #/^dbi:([\w-]+)(?::(.*))?$/)
   (define (dbi-parse-dsn dsn)
     (cond ((looking-at *dsn-regex* dsn)
 	   => (lambda (m)
 		(let ((driver (m 1))
 		      (options (m 2)))
 		  (if (and options (not (string-null? options)))
-		      ;; TODO maybe I need to make string-split like Gauche.
-		      (let1 alist (let loop ((options options)
-					     (r '()))
-				    (let ((index (string-scan options #\; 'index)))
-				      (cond (index
-					     (let*-values (((nv rest) (string-scan options #\; 'both))
-							   ((n v) (string-scan nv "=" 'both)))
-					       (if n 
-						   (loop rest (acons n v r))
-						   (loop rest (acons nv #t r)))))
-					     ;; option is either null-string or a=b form
-					     ((string-null? options) r)
-					     (else
-					      (let-values (((n v) (string-scan options "=" 'both)))
-						(if n
-						    (acons n v r)
-						    (acons options #t r)))))))
+		      (let1 alist (map (lambda (nv)
+					 (receive (n v)
+					     (string-scan nv "=" 'both)
+					   (if n (cons n v) (cons nv #t))))
+				       (string-split options #\;))
 			(values driver options alist))
 		      (values driver "" '())))))
 	  (else
@@ -306,8 +173,10 @@
       (guard (e (else
 		 (raise-dbi-error (make-dbi-driver-not-exist driver-name)
 				  'dbi-make-driver
-				  (format "could not load driver ~a or it does not have procedure make-~a-driver"
-					  lib driver-name)
+				  (if (message-condition? e)
+				      (condition-message e)
+				      (format "could not load driver ~a or it does not have procedure make-~a-driver"
+					      lib driver-name))
 				  e)))
 	(eval ctr (environment lib)))))
   )

@@ -31,14 +31,24 @@
  */
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/vector.h"
+#include "sagittarius/collection.h"
 #include "sagittarius/error.h"
 #include "sagittarius/compare.h"
 #include "sagittarius/pair.h"
 
+static void vector_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  /* do nothing, vector will be treated in writer.c */
+}
+
+SG_DEFINE_BUILTIN_CLASS(Sg_VectorClass, vector_print, NULL, NULL, NULL,
+			SG_CLASS_SEQUENCE_CPL);
+
+
 static SgVector* make_vector(int size)
 {
-  SgVector *v = SG_NEW2(SgVector*, sizeof(SgVector) + sizeof(SgObject)*(size-1));
-  SG_SET_HEADER(v, TC_VECTOR);
+  SgVector *v = SG_NEW2(SgVector*, sizeof(SgVector)+sizeof(SgObject)*(size-1));
+  SG_SET_CLASS(v, SG_CLASS_VECTOR);
   v->size = size;
   return v;
 }

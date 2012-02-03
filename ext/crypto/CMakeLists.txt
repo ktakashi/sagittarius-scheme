@@ -5,6 +5,12 @@
 ADD_LIBRARY(sagittarius--crypto MODULE
   crypto.c key.c crypto_stub.c)
 
+IF (MSVC OR CYGWIN)
+  # ugly solution
+  SET_SOURCE_FILES_PROPERTIES(crypto.c crypto_stub.c key.c
+    PROPERTIES LANGUAGE CXX)
+ENDIF()
+
 ADD_SUBDIRECTORY(libtomcrypt-1.17 libtomcrypt)
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/libtomcrypt-1.17/src/headers)
@@ -28,6 +34,13 @@ INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/crypto
 # sagittarius--random
 ADD_LIBRARY(sagittarius--math MODULE
   hash.c random.c math_stub.c math.c)
+
+IF (MSVC OR CYGWIN)
+  # ugly solution
+  SET_SOURCE_FILES_PROPERTIES(math.c math_stub.c hash.c random.c
+    PROPERTIES LANGUAGE CXX)
+ENDIF()
+
 ADD_STUBS(sagittarius--math
   COMMAND ${GENSTUB}
   FILES ${CMAKE_CURRENT_SOURCE_DIR}/math_stub.stub)

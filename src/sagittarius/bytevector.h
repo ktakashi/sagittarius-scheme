@@ -34,25 +34,27 @@
 
 #include "sagittariusdefs.h"
 
+SG_CLASS_DECL(Sg_ByteVectorClass);
+#define SG_CLASS_BVECTOR (&Sg_ByteVectorClass)
+
 struct SgByteVectorRec
 {
   SG_HEADER;
-  size_t  size;
+  int     literalp: 1;
+  int size             : (SIZEOF_INT*CHAR_BIT-1);
   uint8_t elements[1];
 };
 
-#define SG_BVECTOR(obj)      	   ((SgByteVector*)obj)
-#define SG_BVECTORP(obj)     	   (SG_PTRP(obj) && IS_TYPE(obj, TC_BVECTOR))
+#define SG_BVECTOR(obj)      ((SgByteVector*)obj)
+#define SG_BVECTORP(obj)     (SG_PTRP(obj) && SG_XTYPEP(obj, SG_CLASS_BVECTOR))
 #define SG_BVECTOR_SIZE(obj)       (SG_BVECTOR(obj)->size)
 #define SG_BVECTOR_ELEMENTS(obj)   (SG_BVECTOR(obj)->elements)
 #define SG_BVECTOR_ELEMENT(obj, i) (SG_BVECTOR(obj)->elements[i])
 
-#define BVECTOR_LITERAL_SHIFT   11
-#define BVECTOR_LITERAL_BIT     ((uintptr_t)1 << BVECTOR_LITERAL_SHIFT)
 #define SG_LITERAL_BVECTORP(obj)				\
-  (SG_BVECTORP(obj) && (SG_HDR(obj) & BVECTOR_LITERAL_BIT))
+  (SG_BVECTORP(obj) && SG_BVECTOR(obj)->literalp)
 #define SG_BVECTOR_SET_LITERAL(obj)				\
-  SG_SET_HEADER_ATTRIBUTE(obj, SG_MAKEBITS(1, BVECTOR_LITERAL_SHIFT));
+  (SG_BVECTOR(obj)->literalp = TRUE)
 
 /* utility macros */
 #define SG_IS_BYTE(v)  (-128 <= v && v <= 127)

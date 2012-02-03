@@ -31,11 +31,25 @@
  */
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/gloc.h"
+#include "sagittarius/port.h"
+#include "sagittarius/writer.h"
+
+static void gloc_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgGloc *g = SG_GLOC(obj);
+  Sg_Putuz(port, UC("#<gloc "));
+  Sg_Write(g->name, port, ctx->mode);
+  Sg_Putc(port, ' ');
+  Sg_Write(g->library, port, ctx->mode);
+  Sg_Putc(port, '>');
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_GlocClass, gloc_print);
 
 SgObject Sg_MakeGloc(SgSymbol *name, SgLibrary *library)
 {
   SgGloc *g = SG_NEW(SgGloc);
-  SG_SET_HEADER(g, TC_GLOC);
+  SG_SET_CLASS(g, SG_CLASS_GLOC);
   g->name = name;
   g->library = library;
   g->value = SG_UNBOUND;

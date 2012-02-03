@@ -29,17 +29,28 @@
  */
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/treemap.h"
+#include "sagittarius/collection.h"
 #include "sagittarius/error.h"
 #include "sagittarius/string.h"
 #include "sagittarius/symbol.h"
 #include "sagittarius/vm.h"
+#include "sagittarius/writer.h"
+
+static void treemap_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgTreeMap *tm = SG_TREEMAP(obj);
+  Sg_Printf(port, UC("#<treemap %p (%d entries)>"), tm, tm->entryCount);
+}
+
+SG_DEFINE_BUILTIN_CLASS(Sg_TreeMapClass, treemap_print, NULL, NULL, NULL,
+			SG_CLASS_ORDERED_DICTIONARY_CPL);
 
 static SgTreeMap* make_treemap(int scm)
 {
   SgTreeMap *tc = SG_NEW(SgTreeMap);
-  SG_SET_HEADER(tc, TC_TREEMAP);
+  SG_SET_CLASS(tc, SG_CLASS_TREE_MAP);
   if (scm) {
-    SG_SET_HEADER_ATTRIBUTE(tc, SG_MAKEBITS(1, TREEMAP_SCHEME_SHIFT));
+    tc->schemep = TRUE;
   }
   tc->entryCount = 0;
   return tc;
@@ -48,18 +59,18 @@ static SgTreeMap* make_treemap(int scm)
 SgObject Sg_MakeGenericCTreeMap(SgTreeCompareProc *cmp,
 				SgTreeRefProc *ref,
 				SgTreeSetProc *set,
-				SgTreeDeleteProc *delete,
+				SgTreeDeleteProc *remove,
 				SgTreeCopyProc *copy,
 				SgTreeIterInitProc *iter,
 				SgTreeRefProc *higher,
 				SgTreeRefProc *lower)
 {
   SgTreeMap *tc = make_treemap(FALSE);
-  ASSERT(cmp && ref && set && delete && copy && iter);
+  ASSERT(cmp && ref && set && remove && copy && iter);
   SG_TREEMAP_C_PROC(tc, cmp) = cmp;
   SG_TREEMAP_C_PROC(tc, ref) = ref;
   SG_TREEMAP_C_PROC(tc, set) = set;
-  SG_TREEMAP_C_PROC(tc, delete) = delete;
+  SG_TREEMAP_C_PROC(tc, remove) = remove;
   SG_TREEMAP_C_PROC(tc, copy) = copy;
   SG_TREEMAP_C_PROC(tc, iter) = iter;
   SG_TREEMAP_C_PROC(tc, higher) = higher;
@@ -71,14 +82,14 @@ SgObject Sg_MakeGenericCTreeMap(SgTreeCompareProc *cmp,
 SgObject Sg_MakeGenericSchemeTreeMap(SgObject cmp,
 				     SgObject ref,
 				     SgObject set,
-				     SgObject delete,
+				     SgObject remove,
 				     SgObject copy)
 {
   SgTreeMap *tc = make_treemap(TRUE);
   SG_TREEMAP_SCM_PROC(tc, cmp) = cmp;
   SG_TREEMAP_SCM_PROC(tc, ref) = ref;
   SG_TREEMAP_SCM_PROC(tc, set) = set;
-  SG_TREEMAP_SCM_PROC(tc, delete) = delete;
+  SG_TREEMAP_SCM_PROC(tc, remove) = remove;
   SG_TREEMAP_SCM_PROC(tc, copy) = copy;
   tc->root = (intptr_t)SG_FALSE;
   return SG_OBJ(tc);
@@ -100,7 +111,7 @@ SgObject Sg_TreeMapCopy(const SgTreeMap *src)
     SG_TREEMAP_SCM_PROC(tc, cmp)    = SG_TREEMAP_SCM_PROC(src, cmp);
     SG_TREEMAP_SCM_PROC(tc, ref)    = SG_TREEMAP_SCM_PROC(src, ref);
     SG_TREEMAP_SCM_PROC(tc, set)    = SG_TREEMAP_SCM_PROC(src, set);
-    SG_TREEMAP_SCM_PROC(tc, delete) = SG_TREEMAP_SCM_PROC(src, delete);
+    SG_TREEMAP_SCM_PROC(tc, remove) = SG_TREEMAP_SCM_PROC(src, remove);
     SG_TREEMAP_SCM_PROC(tc, copy)   = SG_TREEMAP_SCM_PROC(src, copy);
     tc->root = (intptr_t)root;
     tc->entryCount = src->entryCount;
@@ -147,9 +158,9 @@ SgObject Sg_TreeMapSet(SgTreeMap *tm, SgObject key, SgObject value,
 SgObject Sg_TreeMapDelete(SgTreeMap *tm, SgObject key)
 {
   if (SG_SCHEME_TREEMAP_P(tm)) {
-    return Sg_Apply1(SG_TREEMAP_SCM_PROC(tm, delete), key);
+    return Sg_Apply1(SG_TREEMAP_SCM_PROC(tm, remove), key);
   } else {
-    return SG_TREEMAP_C_PROC(tm, delete)(tm, key);
+    return SG_TREEMAP_C_PROC(tm, remove)(tm, key);
   }
 }
 

@@ -33,7 +33,8 @@
     (export port->list
 	    port->string
 	    port->sexp-list
-	    port->string-list)
+	    port->string-list
+	    port-fold)
     (import (rnrs)
 	    (srfi :1)
 	    (srfi :38))
@@ -52,4 +53,11 @@
 
   (define (port->string-list port)
     (port->list get-line port))
+
+  (define (port-fold fn knil reader)
+    (let loop ((item (reader))
+	       (r    knil))
+      (if (eof-object? item)
+	  r
+	  (loop (reader) (fn item r)))))
 )

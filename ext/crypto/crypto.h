@@ -85,6 +85,19 @@ extern SgObject key_rtd;
 
 
 /* symmetric key cryptosystem */
+typedef int (*encrypt_proc)(const unsigned char *pt,
+			    unsigned char *ct,
+			    unsigned long len,
+			    /* for future convenience */
+			    void *skey);
+typedef int (*decrypt_proc)(const unsigned char *ct,
+			    unsigned char *pt,
+			    unsigned long len,
+			    /* for future convenience */
+			    void *skey);
+typedef int (*iv_proc)(unsigned char *IV, unsigned long *len, void *skey);
+typedef int (*done_proc)(void *skey);
+
 typedef struct symmetric_cipher_rec_t
 {
   SgCryptoMode  mode;
@@ -105,21 +118,13 @@ typedef struct symmetric_cipher_rec_t
      signature.
    */
   /* XXX_encrypt will be in here */
-  int (*encrypt)(const unsigned char *pt,
-		 unsigned char *ct,
-		 unsigned long len,
-		 /* for future convenience */
-		 void *skey);
-  int (*decrypt)(const unsigned char *ct,
-		 unsigned char *pt,
-		 unsigned long len,
-		 /* for future convenience */
-		 void *skey);
+  encrypt_proc encrypt;
+  decrypt_proc decrypt;
   /* on ECB mode these will be NULL */
-  int (*getiv)(unsigned char *IV, unsigned long *len, void *skey);
-  int (*setiv)(unsigned char *IV, unsigned long *len, void *skey);
+  iv_proc getiv;
+  iv_proc setiv;
   /* clean up */
-  int (*done)(void *skey);
+  done_proc done;
 } symmetric_cipher_t;
 
 typedef struct public_key_cipher_ret_t
@@ -136,7 +141,7 @@ typedef struct public_key_cipher_ret_t
 
 typedef struct SgCryptoRec
 {
-  SG_META_HEADER;
+  SG_HEADER;
   SgCryptoType type;
   union {
     symmetric_cipher_t  scipher;
@@ -145,25 +150,25 @@ typedef struct SgCryptoRec
   } impl;
 } SgCrypto;
 
-SG_DECLARE_META_OBJ(Sg_CryptoMeta);
-#define SG_META_CRYPTO   (&Sg_CryptoMeta)
+SG_CLASS_DECL(Sg_CryptoClass);
+#define SG_CLASS_CRYPTO   (&Sg_CryptoClass)
 #define SG_CRYPTO(obj)   ((SgCrypto *)obj)
-#define SG_CRYPTO_P(obj) SG_META_OBJ_TYPE_P(obj, SG_META_CRYPTO)
+#define SG_CRYPTOP(obj) SG_XTYPEP(obj, SG_CLASS_CRYPTO)
 /* accessor */
 #define SG_SCIPHER(obj) (&(SG_CRYPTO(obj)->impl.scipher))
 #define SG_PCIPHER(obj) (&(SG_CRYPTO(obj)->impl.pcipher))
 
 #define SG_INIT_CIPHER(cipher, enc, dec, giv, siv, end)	\
   do {							\
-    (cipher)->encrypt = (enc);				\
-    (cipher)->decrypt = (dec);				\
-    (cipher)->getiv = (giv);				\
-    (cipher)->setiv = (siv);				\
-    (cipher)->done = (end);				\
+    (cipher)->encrypt = (encrypt_proc)(enc);		\
+    (cipher)->decrypt = (decrypt_proc)(dec);		\
+    (cipher)->getiv = (iv_proc)(giv);			\
+    (cipher)->setiv = (iv_proc)(siv);			\
+    (cipher)->done = (done_proc)(end);			\
   } while (0);
 
 
-#define SG_KEY_P(obj) (SG_CRYPTO(obj)->type == CRYPTO_KEY)
+#define SG_KEYP(obj) (SG_CRYPTO(obj)->type == CRYPTO_KEY)
 #define SG_KEY(obj)   (&(SG_CRYPTO(obj)->impl.key))
 
 #define argumentAsCrypto(index, tmp_, var_)				\

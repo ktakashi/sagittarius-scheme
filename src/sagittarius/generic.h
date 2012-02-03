@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * generic.h
+/* generic.h                                             -*- coding: utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2011  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -33,131 +31,130 @@
 #define SAGITTARIUS_GENERIC_H_
 
 #include "sagittariusdefs.h"
+#include "thread.h"
+#include "subr.h"
+#include "clos.h"
 
-/*
-  SgGeneric.
+/* generic */
+SG_CLASS_DECL(Sg_GenericClass);
+#define SG_CLASS_GENERIC (&Sg_GenericClass)
 
-  This is the base template for user defined types. The concept of user defined
-  typeds are serializable. So the template should have printer(serializer) and
-  constructor(deserializer). 
-  A user type must be extendable, so it also needs to have parent classes. If
-  a type extends other type and it doesn't have printer, use parent printer as
-  default. So is constructor.
- */
+typedef struct SgGenericRec SgGeneric;
 struct SgGenericRec
 {
-  SG_HEADER;
-  SgSymbol    *name;		/* type name */
-  int          virtualP;	/* if this class is virtual.
-				   this is acually for diamond inheritance.
-				 */
-  SgObject     printer;		/* serializer, must be closure or subr which
-				   take this object and port(optional) as 
-				   arguments */
-  SgObject     reader;		/* reader for reader macro */
-  SgObject     constructor;	/* constructor */
-  SgObject     parents;		/* list of parent class */
-  SgObject     fields;		/* list of field names */
+  SgProcedure common;
+  SgObject methods;		/* list of applicable procedures */
+  int      maxReqargs;
+  /* generic defined in C can have C function for the very last method */
+  SgObject (*fallback)(SgObject *argv, int argc, SgGeneric *gf);
+  void     *data;
+  SgInternalMutex mutex;
 };
+#define SG_GENERIC(obj)  ((SgGeneric*)(obj))
+#define SG_GENERICP(obj) SG_XTYPEP(obj, SG_CLASS_GENERIC)
+#define SG_GENERIC_METHODS(generic)    	(SG_GENERIC(generic)->methods)
+#define SG_GENERIC_FALLBACK(generic)   	(SG_GENERIC(generic)->fallback)
+#define SG_GENERIC_DATA(generic)       	(SG_GENERIC(generic)->data)
+#define SG_GENERIC_MAX_REQARGS(generic)	(SG_GENERIC(generic)->maxReqargs)
+#define SG_GENERIC_MUTEX(generic)	(&(SG_GENERIC(generic)->mutex))
 
-struct SgInstanceRec
+#define SG_DEFINE_GENERIC(cvar, cfunc, data)				\
+  SgGeneric cvar = {							\
+    SG__PROCEDURE_INITIALIZER(SG_CLASS_STATIC_TAG(Sg_GenericClass),	\
+			      0, 0, SG_PROC_GENERIC,			\
+			      SG_FALSE, SG_FALSE),			\
+    SG_NIL, 0, (cfunc), data						\
+  }
+
+/* method */
+SG_CLASS_DECL(Sg_MethodClass);
+#define SG_CLASS_METHOD (&Sg_MethodClass)
+
+typedef struct SgMethodRec
 {
-  SG_HEADER;
-  SgGeneric   *generic;		/* generic information */
-  SgObject     values;		/* filed hash table.
-				   TODO it must be something else but for now
-				 */
-};
+  SgProcedure common;
+  SgGeneric  *generic;
+  SgKeyword  *qualifier;	/* :primary :around :before or :after */
+  SgClass   **specializers;	/* list of class.
+				   must be array to initialize statically. */
+  SgObject    procedure;	/* subr or closuer.
+				   (lambda (call-next-method generic) ...) */
+} SgMethod;
+#define SG_METHOD(obj)  ((SgMethod*)(obj))
+#define SG_METHODP(obj) SG_XTYPEP(obj, SG_CLASS_METHOD)
 
-#define SG_GENERIC(obj)      ((SgGeneric*)(obj))
-#define SG_GENERICP(obj)     (SG_PTRP(obj) && IS_TYPE(obj, TC_GENERIC))
+#define SG_METHOD_GENERIC(method)      (SG_METHOD(method)->generic)
+#define SG_METHOD_SPECIALIZERS(method) (SG_METHOD(method)->specializers)
+#define SG_METHOD_PROCEDURE(method)    (SG_METHOD(method)->procedure)
+#define SG_METHOD_QUALIFIER(method)    (SG_METHOD(method)->qualifier)
 
-#define SG_GENERIC_NAME(obj)        (SG_GENERIC(obj)->name)
-#define SG_GENERIC_PRINTER(obj)     (SG_GENERIC(obj)->printer)
-#define SG_GENERIC_READER(obj)      (SG_GENERIC(obj)->reader)
-#define SG_GENERIC_CONSTRUCTOR(obj) (SG_GENERIC(obj)->constructor)
-#define SG_GENERIC_FIELDS(obj)      (SG_GENERIC(obj)->fields)
+#define SG_DEFINE_METHOD(cvar, gf, req, opt, specs, proc)		\
+  SgMethod cvar = {							\
+    SG__PROCEDURE_INITIALIZER(SG_CLASS_STATIC_TAG(Sg_MethodClass),	\
+			      req, opt, SG_PROC_METHOD,			\
+			      SG_FALSE, SG_FALSE),			\
+    gf, SG_KEYWORD_PRIMARY, specs, proc					\
+  }
 
-#define SG_INSTANCE(obj)     ((SgInstance*)obj)
-#define SG_INSTANCEP(obj)    (SG_PTRP(obj) && IS_TYPE(obj, TC_INSTANCE))
+SG_CLASS_DECL(Sg_NextMethodClass);
+#define SG_CLASS_NEXT_METHOD (&Sg_NextMethodClass)
 
-/* 
-   For internal convenience.
-   It initialize printer and constructor. So make sure somewhere it needs to be
-   initialized with fields. Because we don't have static list initializer.
-   NB: name must be in builtin symbols. Or else we can't initialize it.
- */
-#define SG__STATIC_GENERIC_INIT(name, virtual, prin, read, ctr)		\
-  { MAKE_HDR_VALUE(TC_GENERIC), (name), (virtual),			\
-      (prin), (read), (ctr), SG_NIL, SG_NIL }
-#define SG_STATIC_GENERIC_INIT(cvar, name, virtual, print, read, ctr)	\
-  SgGeneric cvar = SG__STATIC_GENERIC_INIT(name, virtual, print, read, ctr)
-
-
-/* I'm not sure if here is good location to put UserDef */
-typedef void SgMetaObjectPrinter(SgPort *p, SgObject self, SgWriteContext *ctx);
-typedef int  SgMetaObjectCompare(SgObject x, SgObject y, int equalp);
-
-typedef struct SgMetaObjectRec
+typedef struct SgNextMethodRec
 {
-  /* for now only printer */
-  SgMetaObjectPrinter *printer;
-  SgMetaObjectCompare *compare;
-} SgMetaObject;
+  SgProcedure common;
+  SgGeneric  *generic;
+  SgObject    methods;
+  SgObject   *argv;
+  int         argc;
+} SgNextMethod;
+#define SG_NEXT_METHOD(obj)  ((SgNextMethod*)(obj))
+#define SG_NEXT_METHODP(obj) SG_XTYPEP(obj, SG_CLASS_NEXT_METHOD)
 
-typedef struct SgMetaHeaderRec
-{
-  SG_HEADER;
-  SgMetaObject *meta;
-} SgMetaHeader;
-
-#define SG_META_HEADER SgMetaHeader hdr
-#define SG_METAHDR(obj) ((SgMetaHeader *)obj)
-/* this must be used for extension modules.
-   so i think i don't have to consider VC's __impl_ problem.
- */
-#define SG_META_OBJ(obj)   ((SgMetaObject *)obj)
-#define SG_META_OBJ_P(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_USER_DEF))
-#define SG_DECLARE_META_OBJ(meta)   extern SgMetaObject meta
-#define SG_SET_META_OBJ(obj, meta_)		\
-  do {						\
-    SG_SET_HEADER(obj, TC_USER_DEF);		\
-    SG_METAHDR(obj)->meta = (meta_);		\
-  } while (0)
-
-#define SG_GET_META_OBJ(obj)          (SG_METAHDR(obj)->meta)
-#define SG_META_OBJ_TYPE_P(obj, type) (SG_META_OBJ_P(obj) && SG_METAHDR(obj)->meta == (type))
-#define SG_INIT_META_OBJ(name, printer, compare)	\
-  SgMetaObject (name) = { (printer), (compare) }
+#define argumentAsGeneric(index, tmp, var)				\
+  castArgumentType(index, tmp, var, generic, SG_GENERICP, SG_GENERIC)
+#define argumentAsMethod(index, tmp, var)				\
+  castArgumentType(index, tmp, var, method, SG_METHODP, SG_METHOD)
 
 SG_CDECL_BEGIN
 
-SG_EXTERN SgObject Sg_MakeGeneric(SgSymbol *name, SgObject printer,
-				  SgObject constructor, SgObject fields);
-SG_EXTERN void     Sg_RegisterGeneric(SgSymbol *name, SgGeneric *generic, SgObject library);
-SG_EXTERN SgObject Sg_CreateInstance(SgGeneric *generic);
-SG_EXTERN SgObject Sg_RetrieveGeneric(SgSymbol *name, SgObject maybeLibrary);
-/* simple accessor */
-SG_EXTERN SgObject Sg_GenericRef(SgObject obj, SgObject name);
-SG_EXTERN void     Sg_GenericSet(SgObject obj, SgObject name, SgObject value);
-SG_EXTERN int      Sg_GenericHasField(SgObject obj, SgObject name);
+SG_EXTERN SgObject Sg_MakeBaseGeneric(SgObject name,
+				      SgObject (*fallback)(SgObject *, int, 
+							   SgGeneric *),
+				      void *data);
 
-/*
-  for record, we need a vector like object. for now we expand instance type for this.
- */
-SG_EXTERN SgObject Sg_MakeTuple(int size, SgObject fill, SgObject printer);
-SG_EXTERN void     Sg_TupleListSet(SgObject tuple, SgObject lst);
-SG_EXTERN void     Sg_TupleSet(SgObject tuple, int i, SgObject value);
-SG_EXTERN SgObject Sg_TupleRef(SgObject tuple, int i, SgObject fallback);
-SG_EXTERN int      Sg_TupleSize(SgObject tuple);
+SG_EXTERN void     Sg_InitBuiltinGeneric(SgGeneric *gf, const SgChar *name,
+					 SgLibrary *lib);
+SG_EXTERN void     Sg_InitBuiltinMethod(SgMethod *m);
+SG_EXTERN SgObject Sg_NoNextMethod(SgObject *argv, int argc, SgGeneric *gf);
+
+/* needs to be here ... */
+SG_EXTERN SgObject Sg_AddMethod(SgGeneric *generic, SgMethod *method);
+SG_EXTERN SgObject Sg_RemoveMethod(SgGeneric *generic, SgMethod *method);
+SG_EXTERN SgObject Sg_ComputeMethods(SgGeneric *gf, SgObject *argv, int argc);
+SG_EXTERN SgObject Sg_MakeNextMethod(SgGeneric *gf, SgObject methods,
+				     SgObject *argv, int argc, int copyargs);
+
+/* I'm not sure if these should be usable from other shared object. */
+/* The initialization protocol */
+SG_EXTERN SgGeneric Sg_GenericMake;
+SG_EXTERN SgGeneric Sg_GenericInitialize;
+/* the instance structure protocol */
+SG_EXTERN SgGeneric Sg_GenericAllocateInstance;
+SG_EXTERN SgGeneric Sg_GenericComputeGetterAndSetter;
+/* The class initialization protocol */
+SG_EXTERN SgGeneric Sg_GenericComputeCPL;
+SG_EXTERN SgGeneric Sg_GenericComputeSlots;
+SG_EXTERN SgGeneric Sg_GenericAddMethod;
+SG_EXTERN SgGeneric Sg_GenericRemoveMethod;
+
+SG_EXTERN SgGeneric Sg_GenericComputeApplicableMethodsGeneric;
+/* The generic invocation protocol */
+/* SG_EXTERN SgGeneric Sg_GenericComputeApplyGeneric; */
+/* SG_EXTERN SgGeneric Sg_GenericComputeMethods; */
+/* SG_EXTERN SgGeneric Sg_GenericComputeMethodMoreSpecificP; */
+/* SG_EXTERN SgGeneric Sg_GenericComputeApplyMethods; */
+
 
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_GENERIC_H_ */
-
-/*
-  end of file
-  Local Variables:
-  coding: utf-8-unix
-  End:
-*/

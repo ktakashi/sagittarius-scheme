@@ -7,38 +7,43 @@
 	      find-procedure)
       (import :none)
 
-  (define-cgen-stmt assertion-violation
+  (decl-code
+   (.define "LIBSAGITTARIUS_BODY")
+   (.include <sagittarius.h>))
+
+  (define-cise-stmt assertion-violation
     ((_ who msg)
-     (dispatch
-      `(Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) '())))
+     `(begin
+	(Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) '())))
     ((_ who msg irritants)
-     (dispatch
-      `(Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,irritants))))
+     `(begin
+	(Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) ,irritants)
+	 )))
 
-    (define-c-proc procedure-name (arg0::Procedure) ::Object
-      (result (SG_PROCEDURE_NAME arg0)))
+  (define-c-proc procedure-name (arg0::<procedure>) ::<top>
+    (result (SG_PROCEDURE_NAME arg0)))
 
-    (define-c-proc procedure-inliner (arg0::Procedure) ::Object
-      (result (SG_PROCEDURE_INLINER arg0)))
+  (define-c-proc procedure-inliner (arg0::<procedure>) ::<top>
+    (result (SG_PROCEDURE_INLINER arg0)))
 
-    (define-c-proc procedure-inliner-set! (arg0::Procedure arg1::Object) ::Object
-      (set! (SG_PROCEDURE_INLINER arg0) arg1)
-      (result SG_UNDEF))
+  (define-c-proc procedure-inliner-set! (arg0::<procedure> arg1) ::<top>
+    (set! (SG_PROCEDURE_INLINER arg0) arg1)
+    (result SG_UNDEF))
 
-    (define-c-proc procedure-reqargs (arg0::Procedure) ::fixnum
-      (result (SG_PROCEDURE_REQUIRED arg0)))
+  (define-c-proc procedure-reqargs (arg0::<procedure>) ::<fixnum>
+    (result (SG_PROCEDURE_REQUIRED arg0)))
 
-    (define-c-proc procedure-optional (arg0::Procedure) ::boolean
-      (result (SG_PROCEDURE_OPTIONAL arg0)))
+  (define-c-proc procedure-optional (arg0::<procedure>) ::<boolean>
+    (result (SG_PROCEDURE_OPTIONAL arg0)))
 
-    (define-c-proc inline? (arg0::Object) ::boolean
-      (result (and (SG_PROCEDUREP arg0)
-		   (not (SG_FALSEP (SG_PROCEDURE_INLINER arg0)))
-		   (not (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_INLINE_ASM)))))
+  (define-c-proc inline? (arg0) ::<boolean>
+    (result (and (SG_PROCEDUREP arg0)
+		 (not (SG_FALSEP (SG_PROCEDURE_INLINER arg0)))
+		 (not (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_INLINE_ASM)))))
 
-    (define-c-proc find-procedure (name::Symbol lib::Object) ::Object
-      (let ((g (Sg_FindBinding lib name SG_UNBOUND)))
-	(if (SG_UNBOUNDP g)
-	    (result SG_FALSE)
-	    (result (SG_GLOC_GET (SG_GLOC g)))))))
-	  
+  (define-c-proc find-procedure (name::<symbol> lib) ::<top>
+    (let ((g (Sg_FindBinding lib name SG_UNBOUND)))
+      (if (SG_UNBOUNDP g)
+	  (result SG_FALSE)
+	  (result (SG_GLOC_GET (SG_GLOC g)))))))
+

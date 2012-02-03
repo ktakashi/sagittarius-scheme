@@ -643,7 +643,6 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs, cach
 
 static void write_macro_cache(SgPort *out, SgLibrary *lib, SgObject cbs, cache_ctx *ctx)
 {
-  SgVM* vm = Sg_VM();
   SgObject keys = Sg_HashTableKeys(SG_LIBRARY_TABLE(lib));
   SgObject macros = SG_NIL, t = SG_NIL;
   SgObject cp;
@@ -920,7 +919,7 @@ static SgObject read_identifier(SgPort *in, read_ctx *ctx)
 
   /* we need to resolve shread object later */
   id = SG_NEW(SgIdentifier);
-  SG_SET_HEADER(id, TC_IDENTIFIER);
+  SG_SET_CLASS(id, SG_CLASS_IDENTIFIER);
   id->name = Sg_Intern(name);
   id->library = lib;
   id->envs = envs;
@@ -1039,7 +1038,7 @@ static SgObject read_closure(SgPort *in, read_ctx *ctx)
 static SgSharedRef* make_shared_ref(int mark)
 {
   SgSharedRef *z = SG_NEW(SgSharedRef);
-  SG_SET_HEADER(z, TC_SHAREDREF);
+  SG_SET_CLASS(z, SG_CLASS_SHARED_REF);
   z->index = SG_MAKE_INT(mark);
   return z;
 }
@@ -1211,6 +1210,7 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
     from = SG_CAAR(key);
     import = SG_CDAR(key);
     ASSERT(!SG_FALSEP(import));
+    ASSERT(SG_PAIRP(import));
     /* import must be (only rename except prefix)
        see library.c
      */

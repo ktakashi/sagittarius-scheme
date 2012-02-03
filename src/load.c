@@ -328,8 +328,10 @@ static void call_initfn(dlobj *dlo, const char *name)
 	dl_close(dlo->handle);
 	dlo->handle = NULL;
 	Sg_Error(UC("dynamic linking of %S failed: "
-		    "couldn't find initialization function %S"),
-		 dlo->path, Sg_MakeStringC(name));
+		    "couldn't find initialization function %S"
+		    "(%A)"),
+		 dlo->path, Sg_MakeStringC(name),
+		 dl_error());
       }
     }
   }

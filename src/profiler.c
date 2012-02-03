@@ -46,6 +46,8 @@
 #define SAMPLING_PERIOD 10000
 
 #ifdef __CYGWIN__
+#undef ITIMER_PROF
+#undef SIGPROF
 #define ITIMER_PROF ITIMER_REAL
 #define SIGPROF     SIGALRM
 #endif

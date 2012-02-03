@@ -32,20 +32,98 @@
 #include <string.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/string.h"
+#include "sagittarius/collection.h"
 #include "sagittarius/hashtable.h"
 #include "sagittarius/unicode.h"
 #include "sagittarius/pair.h"
+#include "sagittarius/port.h"
 #include "sagittarius/error.h"
 #include "sagittarius/number.h"
 #include "sagittarius/thread.h"
 #include "sagittarius/values.h"
+#include "sagittarius/writer.h"
+
+static void string_print(SgObject o, SgPort *port, SgWriteContext *ctx)
+{
+  SgString *obj = SG_STRING(o);
+  SG_PORT_LOCK(port);
+  if (SG_WRITE_MODE(ctx) == SG_WRITE_DISPLAY) {
+    Sg_PutsUnsafe(port, obj);
+  } else {
+    SgChar *s = obj->value;
+    int i, size = obj->size;
+    Sg_PutcUnsafe(port, '"');
+    for (i = 0; i < size; i++) {
+      SgChar ch = s[i];
+      switch (ch) {
+      case '\\':
+	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, '\\');
+	break;
+      case '\n':
+	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, 'n');
+	break;
+      case '\a':
+	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, 'a');
+	break;
+      case '\b':
+	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, 'b');
+	break;
+      case '\t':
+	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, 't');
+	break;
+      case '\v':
+	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, 'v');
+	break;
+      case '\r':
+	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, 'r');
+	break;
+      case '\f':
+	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, 'f');
+	break;
+      case '\"':
+	Sg_PutcUnsafe(port, '\\'); Sg_PutcUnsafe(port, '\"');
+	break;
+      default:
+	{
+	  const int ASCII_SPC = 0x20;
+	  const int ASCII_DEL = 0x7f;
+	  if ((ch != 0xa && ch != 0xd && ch < ASCII_SPC) ||
+	      ch == ASCII_DEL ||
+	      ch == 0x80 ||
+	      ch == 0xff ||
+	      ch == 0xD7FF ||
+	      ch == 0xE000 ||
+	      ch == 0x10FFFF) { // todo
+	    char buf[32];
+	    snprintf(buf, sizeof(buf), "\\x%X;", ch);
+	    Sg_PutzUnsafe(port, buf);
+	  } else {
+	    Sg_PutcUnsafe(port, ch);
+	  }
+	}
+      }
+    }
+    Sg_PutcUnsafe(port, '"');
+  } 
+  SG_PORT_UNLOCK(port);
+}
+
+SG_DEFINE_BUILTIN_CLASS(Sg_StringClass, string_print, NULL, NULL, NULL,
+			SG_CLASS_SEQUENCE_CPL);
+
 
 static SgString* make_string(int size)
 {
-  SgString *z = SG_NEW(SgString);
-  SG_SET_HEADER(z, TC_STRING);
+  SgString *z = SG_NEW_ATOMIC2(SgString *,
+			       sizeof(SgString)+sizeof(SgChar)*(size+1));
+  SG_SET_CLASS(z, SG_CLASS_STRING);
   z->size = size;
-  z->value = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar) * (size + 1));
+  /* if (size < 0) { */
+  /*   z->value = NULL; */
+  /* } else { */
+  /*   z->value = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar) * (size + 1)); */
+  /* } */
+  z->literalp = FALSE;
   return z;
 }
 
@@ -58,8 +136,7 @@ static SgString* make_string(int size)
   } while (0)
 
 static SgInternalMutex smutex;
-static SgHashTable STABLE = { MAKE_HDR_VALUE(TC_HASHTABLE), SG_HASH_GENERAL, { NULL } };
-#define stable (&STABLE)
+static SgHashTable *stable;
 
 SgObject Sg_MakeString(const SgChar *value, SgStringType flag)
 {
@@ -82,8 +159,9 @@ SgObject Sg_MakeString(const SgChar *value, SgStringType flag)
   /* store it if it's literal */
   if (flag == SG_LITERAL_STRING) {
     Sg_LockMutex(&smutex);
-    SG_SET_HEADER_ATTRIBUTE(z, SG_MAKEBITS(1, STRING_LITERAL_SHIFT));
-    r = Sg_HashTableSet(stable, SG_OBJ(value), SG_OBJ(z), SG_HASH_NO_OVERWRITE);
+    z->literalp = TRUE;
+    r = Sg_HashTableSet(stable, SG_OBJ(z->value), SG_OBJ(z),
+			SG_HASH_NO_OVERWRITE);
     Sg_UnlockMutex(&smutex);
   } else {
     r = SG_OBJ(z);
@@ -126,10 +204,7 @@ SgObject Sg_ReserveString(size_t size, SgChar fill)
 
 SgObject Sg_MakeEmptyString()
 {
-  SgString *z = SG_NEW(SgString);
-  SG_SET_HEADER(z, TC_STRING);
-  z->size = 0;
-  z->value = NULL;
+  SgString *z = make_string(0);
   return SG_OBJ(z);
 }
 
@@ -448,8 +523,7 @@ static int string_compare(const SgHashCore *ht, intptr_t key, intptr_t entryKey)
 void Sg__InitString()
 {
   Sg_InitMutex(&smutex, FALSE);
-  /* stable = Sg_MakeHashTable(string_hash, string_compare, 4096); */
-  Sg_HashCoreInitGeneral(&stable->core, string_hash, string_compare, 4096, NULL);
+  stable = Sg_MakeHashTable(string_hash, string_compare, 4096);
 }
 
 /*

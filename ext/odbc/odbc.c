@@ -29,6 +29,8 @@
  *
  *  $Id: $
  */
+#include <sagittarius.h>
+#define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
 #include "odbc.h"
 
@@ -63,7 +65,7 @@ static SgObject make_odbc_error()
     }									\
   } while (0)
 
-static void odbc_ctx_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void odbc_ctx_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgOdbcCtx *c = SG_ODBC_CTX(self);
   const SgChar *type;
@@ -77,7 +79,7 @@ static void odbc_ctx_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
   Sg_Printf(port, UC("#<odbc %s>"), type);
 }
 
-SG_INIT_META_OBJ(Sg_OdbcCtxMeta, &odbc_ctx_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_OdbcCtxClass, odbc_ctx_printer);
 
 static void odbc_finalize(SgObject obj, void *data)
 {
@@ -88,8 +90,8 @@ static SgOdbcCtx* make_odbc_ctx(SQLSMALLINT type, SgOdbcCtx *parent)
 {
   SQLRETURN ret;
   SgOdbcCtx *ctx = SG_NEW(SgOdbcCtx);
-  SQLHANDLE *hparent = NULL;
-  SG_SET_META_OBJ(ctx, SG_META_ODBC_CTX);
+  SQLHANDLE hparent = NULL;
+  SG_SET_CLASS(ctx, SG_CLASS_ODBC_CTX);
   ctx->type = type;
   ctx->holder = NULL;
   if (parent) {
@@ -117,7 +119,7 @@ SgObject Sg_Connect(SgObject env, SgString *server, SgString *user, SgString *au
   const char *sv, *u, *a;
   SQLRETURN ret;
   ASSERT(SG_ODBC_ENV_P(env));
-  conn = make_odbc_ctx(SQL_HANDLE_DBC, env);
+  conn = make_odbc_ctx(SQL_HANDLE_DBC, SG_ODBC_CTX(env));
   sv   = Sg_Utf32sToUtf8s(server);
   u    = Sg_Utf32sToUtf8s(user);
   a    = Sg_Utf32sToUtf8s(auth);
@@ -168,7 +170,7 @@ SgObject Sg_Statement(SgObject hdbc)
   /* create empty statement */
   SgObject stmt;
   ASSERT(SG_ODBC_DBC_P(hdbc));
-  stmt = make_odbc_ctx(SQL_HANDLE_STMT, hdbc);
+  stmt = make_odbc_ctx(SQL_HANDLE_STMT, SG_ODBC_CTX(hdbc));
   return stmt;
 }
 
@@ -178,7 +180,7 @@ SgObject Sg_Prepare(SgObject hdbc, SgString *text)
   SgObject stmt;
   char *s = Sg_Utf32sToUtf8s(text);
   ASSERT(SG_ODBC_DBC_P(hdbc));
-  stmt = make_odbc_ctx(SQL_HANDLE_STMT, hdbc);
+  stmt = make_odbc_ctx(SQL_HANDLE_STMT, SG_ODBC_CTX(hdbc));
   ret = SQLPrepare(SG_ODBC_CTX(stmt)->handle, (SQLCHAR *)s, SQL_NTS);
   CHECK_ERROR(prepare, stmt, ret);
   return stmt;
@@ -273,22 +275,23 @@ static SgObject read_var_data_impl(SQLHSTMT stmt, int index, int len, int string
   while (SQLGetData(stmt, index, (stringP) ? SQL_C_CHAR: SQL_C_BINARY,
 		    buf, sizeof(buf), &ind) != SQL_NO_DATA) {
     if (SQL_NULL_DATA == ind) return SG_NIL;
-    Sg_WritebUnsafe(port, buf, 0, (ind>sizeof(buf) || ind==SQL_NO_TOTAL) ? sizeof(buf) : ind);
+    Sg_WritebUnsafe(SG_PORT(port), buf, 0,
+		    (ind>sizeof(buf) || ind==SQL_NO_TOTAL) ? sizeof(buf) : ind);
   }
-  bv = Sg_GetByteVectorFromBinaryPort(port);
+  bv = Sg_GetByteVectorFromBinaryPort(SG_PORT(port));
   if (asPortP) {
-    return Sg_MakeByteVectorInputPort(bv, 0);	/* for now */
+    return Sg_MakeByteVectorInputPort(SG_BVECTOR(bv), 0);	/* for now */
   }
   if (stringP) {    
     /* for now. */
     SgObject tran = Sg_MakeNativeTranscoder();
-    return Sg_ByteVectorToString(bv, tran, 0, -1);
+    return Sg_ByteVectorToString(SG_BVECTOR(bv), SG_TRANSCODER(tran), 0, -1);
   } else {
     return bv;
   }
 }
 
-static void odbc_date_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
+static void odbc_date_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgOdbcDate *d = SG_ODBC_DATE(self);
   switch (d->type) {
@@ -309,12 +312,12 @@ static void odbc_date_printer(SgPort *port, SgObject self, SgWriteContext *ctx)
   }
 }
 
-SG_INIT_META_OBJ(Sg_OdbcDateMeta, &odbc_date_printer, NULL);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_OdbcDateClass, odbc_date_printer);
 
 static SgOdbcDate* make_odbc_date(DateType type)
 {
   SgOdbcDate *d = SG_NEW(SgOdbcDate);
-  SG_SET_META_OBJ(d, SG_META_ODBC_DATE);
+  SG_SET_CLASS(d, SG_CLASS_ODBC_DATE);
   d->type = type;
   return d;
 }

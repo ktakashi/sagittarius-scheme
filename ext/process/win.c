@@ -51,9 +51,9 @@ SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
   SgProcess *p = make_process(name, commandLine);
   PROCESS_INFORMATION pi;
   STARTUPINFO si;
-  SgString *command = Sg_StringAppend(SG_LIST3(name,
-					       Sg_MakeString(UC(" "), SG_LITERAL_STRING),
-					       commandLine));
+  SgString *command = SG_STRING(Sg_StringAppend(SG_LIST3(name,
+							 SG_MAKE_STRING(" "),
+							 commandLine)));
 #if 0
   HANDLE in_r, in_w, in_t, out_r, out_w, out_t, err;
   SECURITY_ATTRIBUTES sa;
@@ -99,7 +99,7 @@ SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
 		      &si,
 		      &pi)) {
     Sg_Warn(UC("failed to create a process %A, %A"), name, Sg_GetLastErrorMessage());
-    p->handle = SG_FALSE;
+    p->handle = (uintptr_t)SG_FALSE;
     return p;
   }
   /*
@@ -109,10 +109,11 @@ SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
   CloseHandle(in_w);
   CloseHandle(out_r);
   */
-  p->in = Sg_MakeFileBinaryInputPort(Sg_MakeFileFromFD(si.hStdInput), SG_BUFMODE_NONE);
-  p->out = Sg_MakeFileBinaryOutputPort(Sg_MakeFileFromFD(si.hStdOutput), SG_BUFMODE_LINE);
-  p->err = Sg_MakeFileBinaryOutputPort(Sg_MakeFileFromFD(si.hStdError), SG_BUFMODE_NONE);
-  p->handle = (uintptr_t)Sg_Cons(pi.hThread, pi.hProcess);
+  p->in = Sg_MakeFileBinaryInputPort(SG_FILE(Sg_MakeFileFromFD((uintptr_t)si.hStdInput)),
+						SG_BUFMODE_NONE);
+  p->out = Sg_MakeFileBinaryOutputPort(SG_FILE(Sg_MakeFileFromFD((uintptr_t)si.hStdOutput)), SG_BUFMODE_LINE);
+  p->err = Sg_MakeFileBinaryOutputPort(SG_FILE(Sg_MakeFileFromFD((uintptr_t)si.hStdError)), SG_BUFMODE_NONE);
+  p->handle = (uintptr_t)Sg_Cons(SG_OBJ(pi.hThread), SG_OBJ(pi.hProcess));
   return p;
 }
 

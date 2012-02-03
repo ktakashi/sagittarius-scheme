@@ -33,30 +33,29 @@
 #define SAGITTARIUS_VECTOR_H_
 
 #include "sagittariusdefs.h"
+#include "clos.h"
 
-/*
-  vector header info
-  ........ ........ .....L.. ....0111 : L: literal
- */
+SG_CLASS_DECL(Sg_VectorClass);
+#define SG_CLASS_VECTOR (&Sg_VectorClass)
+
 struct SgVectorRec
 {
   SG_HEADER;
-  int size;
+  unsigned int literalp: 1;
+  int size             : (SIZEOF_INT*CHAR_BIT-1);
   SgObject elements[1];
 };
 
-#define SG_VECTOR(obj)        	  ((SgVector*)obj)
-#define SG_VECTORP(obj)       	  (SG_PTRP(obj) && IS_TYPE(obj, TC_VECTOR))
+#define SG_VECTOR(obj)       ((SgVector*)obj)
+#define SG_VECTORP(obj)      (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_VECTOR))
 #define SG_VECTOR_SIZE(obj)   	  (SG_VECTOR(obj)->size)
 #define SG_VECTOR_ELEMENTS(obj)   (SG_VECTOR(obj)->elements)
 #define SG_VECTOR_ELEMENT(obj, i) (SG_VECTOR(obj)->elements[i])
 
-#define VECTOR_LITERAL_SHIFT   	11
-#define VECTOR_LITERAL_BIT     ((uintptr_t)1 << VECTOR_LITERAL_SHIFT)
 #define SG_LITERAL_VECTORP(obj)				\
-  (SG_VECTORP(obj) && (SG_HDR(obj) & VECTOR_LITERAL_BIT))
+  (SG_VECTORP(obj) && SG_VECTOR(obj)->literalp)
 #define SG_VECTOR_SET_LITERAL(obj)					\
-  SG_SET_HEADER_ATTRIBUTE(obj, SG_MAKEBITS(1, VECTOR_LITERAL_SHIFT));
+  (SG_VECTOR(obj)->literalp = 1)
 
 SG_CDECL_BEGIN
 

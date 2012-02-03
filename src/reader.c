@@ -50,10 +50,10 @@
 #include "sagittarius/vector.h"
 #include "sagittarius/number.h"
 #include "sagittarius/vm.h"
-#include "sagittarius/generic.h"
 #include "sagittarius/bytevector.h"
 #include "sagittarius/unicode.h"
 #include "sagittarius/weak.h"
+#include "sagittarius/writer.h"
 #include "sagittarius/library.h"
 
 static uint8_t CHAR_MAP[] = {
@@ -88,10 +88,23 @@ static int convert_hex_char_to_int(SgChar c)
   return -1;
 }
 
+static void sref_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgSharedRef *ref = SG_SHAREDREF(obj);
+  Sg_Putuz(port, UC("#<shared-ref "));
+  if (SG_NUMBERP(ref->index)) {
+    Sg_Puts(port, Sg_NumberToString(ref->index, 10, FALSE));
+  } else {
+    Sg_Putuz(port, UC("???"));
+  }
+  Sg_Putc(port, '>');
+}
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SharedRefClass, sref_print);
+
 static SgSharedRef* make_shared_ref(int mark)
 {
   SgSharedRef *z = SG_NEW(SgSharedRef);
-  SG_SET_HEADER(z, TC_SHAREDREF);
+  SG_SET_CLASS(z, SG_CLASS_SHARED_REF);
   z->index = SG_MAKE_INT(mark);
   return z;
 }
@@ -391,14 +404,9 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
   while (i < array_sizeof(buf)) {
     c = Sg_PeekcUnsafe(port);
     if (c == EOF || delimited(c)) {
-      /* TODO ugh... maybe i need to make hash-set like Ypsilon just be 
-	 able to compare with hash value.
-       */
-      SgChar *real = SG_NEW_ATOMIC2(SgChar *, (i + 1) * sizeof(SgChar));
       SgObject s;
       buf[i] = 0;
-      memcpy(real, buf, (i + 1) * sizeof(SgChar));
-      s = Sg_MakeString(real, SG_LITERAL_STRING);
+      s = Sg_MakeString(buf, SG_LITERAL_STRING);
       if (table->insensitiveP) {
 	s = Sg_StringFoldCase(SG_STRING(s));
       }
@@ -615,10 +623,11 @@ SgObject read_double_quote(SgPort *port, SgChar c, SgReadContext *ctx)
       continue;
     }
     if (c == '"') {
-      SgChar *real = SG_NEW_ATOMIC2(SgChar *, (i + 1) * sizeof(SgChar));
+      /* SgChar *real = SG_NEW_ATOMIC2(SgChar *, (i + 1) * sizeof(SgChar)); */
       buf[i] = 0;
-      memcpy(real, buf, (i + 1) * sizeof(SgChar));
-      return Sg_MakeString(real, SG_LITERAL_STRING);
+      /* memcpy(real, buf, (i + 1) * sizeof(SgChar)); */
+      /* return Sg_MakeString(real, SG_LITERAL_STRING); */
+      return Sg_MakeString(buf, SG_LITERAL_STRING);
     }
     if (c == '\\') {
       c = Sg_GetcUnsafe(port);
@@ -735,14 +744,11 @@ SgObject read_colon(SgPort *port, SgChar c, SgReadContext *ctx)
     name = read_quoted_symbol(port, ctx, FALSE);
     return Sg_MakeKeyword(SG_SYMBOL(name)->name);
   } else {
-    SgChar *real;
     int size;
     Sg_UngetcUnsafe(port, c2);
     size = read_thing(port, ctx, buf, array_sizeof(buf), -1);
-    real = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar) * (size + 1));
-    buf[size] = 0;		/* just in case */
-    memcpy(real, buf, (size + 1) * sizeof(SgChar));
-    return Sg_MakeKeyword(Sg_MakeString(real, SG_LITERAL_STRING));
+    buf[size] = 0;
+    return Sg_MakeKeyword(Sg_MakeString(buf, SG_LITERAL_STRING));
   }
 }
 
@@ -1551,21 +1557,31 @@ SgObject Sg_AddConstantLiteral(SgObject o)
 #define STUB_NAME(NAME) SG_CPP_CAT(NAME, stub)
 
 /* initialize */
-#define DEFINE_MACRO_STUB(FN, NAME)			\
-  static SgObject STUB_NAME(FN)				\
-  (SgObject *args, int argc, void *data_)		\
-  {							\
-    SgReadContext ctx = {0};				\
-    SgObject arg0_scm, arg1_scm;			\
-    SgPort *p;						\
-    SgChar c;						\
-    DeclareProcedureName(NAME);				\
-    checkArgumentLength(2);				\
-    argumentAsPort(0, arg0_scm, p);			\
-    argumentAsChar(1, arg1_scm, c);			\
-    return (FN)(p, c, &ctx);				\
-  }							\
-  SG_DEFINE_SUBR(SCHEME_OBJ(FN), 2, 0,			\
+#define DEFINE_MACRO_STUB(FN, NAME)					\
+  static SgObject STUB_NAME(FN) (SgObject *args, int argc, void *data_)	\
+  {									\
+    SgReadContext ctx = {0};						\
+    SgPort *p;								\
+    SgChar c;								\
+    if (argc != 2) {							\
+      Sg_WrongNumberOfArgumentsAtLeastViolation(SG_INTERN(NAME),	\
+						2, argc, SG_NIL);	\
+    }									\
+    if (!SG_PORTP(args[0])) {						\
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN(NAME),			\
+				      SG_MAKE_STRING("port"),		\
+				      args[0], SG_NIL);			\
+    }									\
+    if (!SG_CHARP(args[1])) {						\
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN(NAME),			\
+				      SG_MAKE_STRING("char"),		\
+				      args[1], SG_NIL);			\
+    }									\
+    p = SG_PORT(args[0]);						\
+    c = SG_CHAR_VALUE(args[1]);						\
+    return (FN)(p, c, &ctx);						\
+  }									\
+  SG_DEFINE_SUBR(SCHEME_OBJ(FN), 2, 0,					\
 		 STUB_NAME(FN), SG_FALSE, NULL)
 
 #define DEFINE_DISPMACRO_STUB(FN, NAME)				\
@@ -1573,15 +1589,27 @@ SgObject Sg_AddConstantLiteral(SgObject o)
   (SgObject *args, int argc, void *data_)			\
   {								\
     SgReadContext ctx = {0};					\
-    SgObject arg0_scm, arg1_scm, param_scm;			\
+    SgObject param_scm;						\
     SgPort *p;							\
     SgChar c;							\
     dispmacro_param param;					\
-    DeclareProcedureName(NAME);					\
-    checkArgumentLength(3);					\
-    argumentAsPort(0, arg0_scm, p);				\
-    argumentAsChar(1, arg1_scm, c);				\
-    argumentRef(2, param_scm);					\
+    if (argc != 3) {						\
+      Sg_WrongNumberOfArgumentsAtLeastViolation(SG_INTERN(NAME),\
+						3, argc, SG_NIL);\
+    }								\
+    if (!SG_PORTP(args[0])) {					\
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN(NAME),		\
+				      SG_MAKE_STRING("port"),	\
+				      args[0], SG_NIL);		\
+    }								\
+    if (!SG_CHARP(args[1])) {					\
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN(NAME),		\
+				      SG_MAKE_STRING("char"),	\
+				      args[1], SG_NIL);		\
+    }								\
+    p = SG_PORT(args[0]);					\
+    c = SG_CHAR_VALUE(args[1]);					\
+    param_scm = args[2];					\
     if (SG_FALSEP(param_scm)) {					\
       param.present = FALSE;					\
       param.value = 0;						\

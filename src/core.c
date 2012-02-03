@@ -60,12 +60,17 @@ extern void Sg__InitLoad();
 extern void Sg__InitVM();
 extern void Sg__InitCache();
 extern void Sg__InitCharSet();
+extern void Sg__InitClos();
+extern void Sg__InitIdentifier();
+extern void Sg__InitWrite();
+extern void Sg__InitRegex();
 
 /* stub files */
 extern void Sg__Init_sagittarius_compiler_procedure();
 extern void Sg__Init_sagittarius_vm_debug();
 extern void Sg__Init_sagittarius_vm();
 extern void Sg__Init_sagittarius();
+extern void Sg__Init_sagittarius_clos();
 extern void Sg__InitInstruction();
 /* compiled libraries */
 extern void Sg__Initnull();
@@ -101,12 +106,16 @@ void Sg_Init()
   Sg__InitLoad();
 
   Sg__InitVM();
+  /* init clos uses findlibrary. so after VM */
+  Sg__InitClos();
   /* port must be after VM to replace std ports. */
   Sg__InitPort();
+  Sg__InitWrite();
+  Sg__InitIdentifier();
   /* initialize default reader macro */
   Sg__InitReader();
   Sg__InitCache();
-
+  
   nullsym = SG_INTERN("null");
   coreBase = SG_INTERN("(core base)");
 
@@ -123,9 +132,13 @@ void Sg_Init()
   Sg__InitPair();
   Sg__InitCharSet();
 
+  /* regex */
+  Sg__InitRegex();
+
   Sg__Init_sagittarius();
   Sg__Init_sagittarius_vm();
   Sg__Init_sagittarius_vm_debug();
+  Sg__Init_sagittarius_clos();
 
   /* this is scmlib.scm */
   Sg__Init_core_base();
