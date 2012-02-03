@@ -19,3 +19,16 @@ FOREACH (file ${files})
         MESSAGE(STATUS "File \"$ENV{DESTDIR}${file}\" does not exist.")
     ENDIF (EXISTS "$ENV{DESTDIR}${file}")
 ENDFOREACH(file)
+
+MESSAGE(STATUS "Deleting Installed directries")
+FOREACH(dir "${SAGITTARIUS_SHARE_LIB_PATH};${SAGITTARIUS_SITE_LIB_PATH};${SAGITTARIUS_DYNLIB_PATH}")
+IF (EXISTS "$ENV{DESTDIR}${dir}")
+  EXECUTE_PROCESS(
+    COMMAND @CMAKE_COMMAND@ -E remove "$ENV{DESTDIR}${dir}"
+    OUTPUT_VARIABLE rm_out
+    RESULT_VARIABLE rm_retval
+    )
+  IF(NOT ${rm_retval} EQUAL 0)
+    MESSAGE(FATAL_ERROR "Problem when removing \"$ENV{DESTDIR}${file}\"")
+  ENDIF (NOT ${rm_retval} EQUAL 0)
+ENDIF()
