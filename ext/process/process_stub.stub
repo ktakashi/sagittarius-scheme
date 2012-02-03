@@ -16,27 +16,29 @@
    (.include <sagittarius/extend.h>
 	     "process.h"))
 
-  (define-c-proc process? (o) ::boolean
-    (result (SG_PROCESS_P o)))
+  (define-type <process> "SgProcess*")
 
-  (define-c-proc make-process (name::String params::String) ::Object
+  (define-c-proc process? (o) ::<boolean>
+    (result (SG_PROCESSP o)))
+
+  (define-c-proc make-process (name::<string> params::<string>) 
     (result (Sg_MakeProcess name params)))
 
-  (define-c-proc process-input-port (p::Process) ::Object
+  (define-c-proc process-input-port (p::<process>) 
     (result (-> p in)))
 
-  (define-c-proc process-output-port (p::Process) ::Object
+  (define-c-proc process-output-port (p::<process>) 
     (result (-> p out)))
 
-  (define-c-proc process-error-port (p::Process) ::Object
+  (define-c-proc process-error-port (p::<process>)
     (result (-> p err)))
 
-  (define-c-proc process-run (p::Process) ::fixnum
+  (define-c-proc process-run (p::<process>) ::<fixnum>
     (result (Sg_ProcessRun p)))
 
-  (define-c-proc process-call (p::Process) ::void
+  (define-c-proc process-call (p::<process>) ::<void>
     (Sg_ProcessCall p))
 
-  (define-c-proc process-wait (p::Process) ::fixnum
+  (define-c-proc process-wait (p::<process>) ::<fixnum>
     (result (Sg_ProcessWait p)))
 )

@@ -37,7 +37,7 @@
 	    <identifier>
 
 	    ;; builtin generic
-	    write-object allocate-instance
+	    write-object allocate-instance compute-applicable-methods
 	    ;; helper
 	    make-class make-method make-generic
 	    initialize-direct-slots is-a?

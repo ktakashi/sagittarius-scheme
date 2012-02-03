@@ -427,8 +427,10 @@ static SgObject do_transpose(int shortest_len, int argc, SgObject args[])
 
 static SgObject list_transpose(SgObject *args, int argc, void *data)
 {
-  DeclareProcedureName("list-transpose+");
-  checkArgumentLengthAtLeast(1);
+  if (argc < 1) {
+    Sg_WrongNumberOfArgumentsAtLeastViolation(SG_INTERN("list-transpose+"),
+					      1, argc, SG_NIL);
+  }
   if (SG_LISTP(args[0])) {
     int each_len = Sg_Length(args[0]), i;
     for (i = 1; i < argc; i++) {

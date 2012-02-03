@@ -66,11 +66,7 @@ typedef struct SgSocketRec
 SG_CLASS_DECL(Sg_SocketClass);
 #define SG_CLASS_SOCKET   (&Sg_SocketClass)
 #define SG_SOCKET(obj)   ((SgSocket*)obj)
-#define SG_SOCKET_P(obj) SG_XTYPEP(obj, SG_CLASS_SOCKET)
-
-#define argumentAsSocket(index, tmp_, var_)				\
-  castArgumentType(index, tmp_, var_, time, SG_SOCKET_P, SG_SOCKET)
-
+#define SG_SOCKETP(obj) SG_XTYPEP(obj, SG_CLASS_SOCKET)
 
 SG_CDECL_BEGIN
 

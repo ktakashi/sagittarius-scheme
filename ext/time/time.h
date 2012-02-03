@@ -46,7 +46,7 @@ typedef struct SgTimeRec
 SG_CLASS_DECL(Sg_TimeClass);
 #define SG_CLASS_TIME  (&Sg_TimeClass)
 #define SG_TIME(obj)  ((SgTime *)obj)
-#define SG_TIME_P(obj) SG_XTYPEP(obj, SG_CLASS_TIME)
+#define SG_TIMEP(obj) SG_XTYPEP(obj, SG_CLASS_TIME)
 
 
 typedef struct SgDateRec
@@ -66,17 +66,12 @@ typedef struct SgDateRec
 SG_CLASS_DECL(Sg_DateClass);
 #define SG_CLASS_DATE   (&Sg_DateClass)
 #define SG_DATE(obj)   ((SgDate *)obj)
-#define SG_DATE_P(obj) SG_XTYPEP(obj, SG_CLASS_DATE)
+#define SG_DATEP(obj) SG_XTYPEP(obj, SG_CLASS_DATE)
 
 #define TM_NANO  1.0e9
 #define TM_SID   86400
 #define TM_SIDH  43200
 #define TM_TAI_EPOCH_IN_JD (double)(4881175/2)
-
-#define argumentAsTime(index, tmp_, var_)				\
-  castArgumentType(index, tmp_, var_, time, SG_TIME_P, SG_TIME)
-#define argumentAsDate(index, tmp_, var_)				\
-  castArgumentType(index, tmp_, var_, time, SG_DATE_P, SG_DATE)
 
 SG_CDECL_BEGIN
 

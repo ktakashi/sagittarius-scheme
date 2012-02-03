@@ -153,7 +153,7 @@ typedef struct SgCryptoRec
 SG_CLASS_DECL(Sg_CryptoClass);
 #define SG_CLASS_CRYPTO   (&Sg_CryptoClass)
 #define SG_CRYPTO(obj)   ((SgCrypto *)obj)
-#define SG_CRYPTO_P(obj) SG_XTYPEP(obj, SG_CLASS_CRYPTO)
+#define SG_CRYPTOP(obj) SG_XTYPEP(obj, SG_CLASS_CRYPTO)
 /* accessor */
 #define SG_SCIPHER(obj) (&(SG_CRYPTO(obj)->impl.scipher))
 #define SG_PCIPHER(obj) (&(SG_CRYPTO(obj)->impl.pcipher))
@@ -168,7 +168,7 @@ SG_CLASS_DECL(Sg_CryptoClass);
   } while (0);
 
 
-#define SG_KEY_P(obj) (SG_CRYPTO(obj)->type == CRYPTO_KEY)
+#define SG_KEYP(obj) (SG_CRYPTO(obj)->type == CRYPTO_KEY)
 #define SG_KEY(obj)   (&(SG_CRYPTO(obj)->impl.key))
 
 #define argumentAsCrypto(index, tmp_, var_)				\

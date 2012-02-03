@@ -517,7 +517,7 @@ SgObject Sg_MakeSocketPort(SgSocket *socket)
 void Sg_ShutdownPort(SgPort *port)
 {
   if (SG_BINARY_PORT(port)->type != SG_BINARY_CUSTOM_PORT_TYPE ||
-      !SG_SOCKET_P(SG_PORT_SOCKET(port))) {
+      !SG_SOCKETP(SG_PORT_SOCKET(port))) {
     Sg_Error(UC("socket port required but got %S"), port);
   }
   if (!Sg_PortClosedP(port)) {
@@ -526,9 +526,7 @@ void Sg_ShutdownPort(SgPort *port)
   }
 }
 
-SG_CDECL_BEGIN
 extern void Sg__Init_sagittarius_socket_impl();
-SG_CDECL_END
 
 #ifdef _WIN32
 static void finish_winsock(void *data)

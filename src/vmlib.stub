@@ -68,114 +68,117 @@
    (.include <sagittarius.h>
 	     <sagittarius/instruction.h>))
 
-  (define-cgen-stmt assertion-violation
+  (define-cise-stmt assertion-violation
     ((_ who msg)
-     (dispatch
-      `(Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) '())))
+     `(begin
+	(Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) '())))
     ((_ who msg irritants)
-     (dispatch
-      `(Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,irritants))))
+     `(begin
+	(Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) ,irritants)
+	 )))
 
-  (define-cgen-stmt wrong-type-of-argument-violation
+  (define-cise-stmt wrong-type-of-argument-violation
     ((_ who msg got)
-     (dispatch
-      `(Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got '())))
+     `(begin
+	(Sg_WrongTypeOfArgumentViolation ,who (SG_MAKE_STRING ,msg) ,got '())))
     ((_ who msg got irritants)
-     (dispatch
-      `(Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got ,irritants))))
+     `(begin
+	(Sg_WrongTypeOfArgumentViolation ,who (SG_MAKE_STRING ,msg) ,got ,irritants))))
 
-
-  (define-c-proc insn-name (insn::fixnum) ::Object
+  (define-c-proc insn-name (insn::<fixnum>) ::<top>
     (let ((info::InsnInfo* (Sg_LookupInsnName insn)))
-      (result (Sg_MakeStringC info->name))))
+      (result (Sg_MakeStringC (-> info name)))))
 
   ;; identifier
-  (define-c-proc make-identifier (name::Symbol envs library::Library) ::Object
-    (result (Sg_MakeIdentifier name envs library)))
+  (define-c-proc make-identifier (name::<symbol> envs maybe-library) ::<top>
+    ;; well, not so good actually
+    (unless (SG_LIBRARYP maybe-library)
+      (set! maybe-library (Sg_FindLibrary maybe-library FALSE)))
+    (result (Sg_MakeIdentifier name envs maybe-library)))
 
-  (define-c-proc id-envs (id::Identifier) ::Object
+  (define-c-proc id-envs (id::<identifier>) ::<top>
     (result (SG_IDENTIFIER_ENVS id)))
 
-  (define-c-proc id-library (id::Identifier) ::Object
+  (define-c-proc id-library (id::<identifier>) ::<top>
     (result (SG_IDENTIFIER_LIBRARY id)))
 
-  (define-c-proc copy-identifier (id::Identifier) ::Object
+  (define-c-proc copy-identifier (id::<identifier>) ::<top>
     (result (Sg_CopyIdentifier id)))
 
-  (define-c-proc bound-id->symbol (id::Identifier) ::Object
+  (define-c-proc bound-id->symbol (id::<identifier>) ::<top>
     (if (SG_NULLP (SG_IDENTIFIER_ENVS id))
-	(let ((s (Sg_Sprintf "%A.%x" (SG_IDENTIFIER_NAME id) id)))
+	(let ((s (Sg_Sprintf (UC "%A.%x") (SG_IDENTIFIER_NAME id) id)))
 	  (result (Sg_Intern s)))
 	(result id)))
 
   ;; syntax
-  (define-c-proc make-syntax (name::Symbol proc :optional (userDefined::boolean FALSE)) ::Object
+  (define-c-proc make-syntax (name::<symbol> proc :optional (userDefined::<boolean> FALSE)) ::<top>
     (result (Sg_MakeSyntax name proc userDefined)))
 
-  (define-c-proc syntax-name (arg0::Syntax) ::Object
+  (define-c-proc syntax-name (arg0::<syntax>) ::<top>
     (result (SG_SYNTAX_NAME arg0)))
 
-  (define-c-proc syntax-proc (arg0::Syntax) ::Object
+  (define-c-proc syntax-proc (arg0::<syntax>) ::<top>
     (result (SG_SYNTAX_PROC arg0)))
 
-  (define-c-proc syntax? (arg0) ::boolean
+  (define-c-proc syntax? (arg0) ::<boolean>
     (result (SG_SYNTAXP arg0)))
 
-  (define-c-proc call-syntax-handler (s::Syntax expr p1env) ::Object
+  (define-c-proc call-syntax-handler (s::<syntax> expr p1env) ::<top>
     (result (Sg_VMApply2 (SG_SYNTAX_PROC s) expr p1env)))
 
   ;; macro
-  (define-c-proc macro? (obj) ::boolean
+  (define-c-proc macro? (obj) ::<boolean>
     (result (SG_MACROP obj)))
 
-  (define-c-proc make-macro (name transformer data p1env :optional (maybe_library #f)) ::Object
+  (define-c-proc make-macro (name transformer data p1env :optional (maybe_library #f)) ::<top>
     (result (Sg_MakeMacro name transformer data p1env maybe_library)))
 
-  (define-c-proc make-macro-transformer (name proc p1env library) ::Object
+  (define-c-proc make-macro-transformer (name proc p1env library) ::<top>
     (result (Sg_MakeMacroTransformer name proc p1env library)))
 
-  (define-c-proc call-macro-expander (macro::Macro expr p1env) ::Object
+  (define-c-proc call-macro-expander (macro::<macro> expr p1env) ::<top>
     (result (Sg_VMApply4 (-> macro transformer)
 			 macro expr p1env (-> macro data))))
 
-  (define-c-proc %internal-macro-expand (expr p1env onceP::boolean) ::Object
+  (define-c-proc %internal-macro-expand (expr p1env onceP::<boolean>) ::<top>
     (result (Sg_MacroExpand expr p1env onceP)))
 
   ;; library
-  (define-c-proc make-library (name) ::Object
+  (define-c-proc make-library (name) ::<top>
     (result (Sg_MakeLibrary name)))
 
-  (define-c-proc library? (arg0) ::boolean
+  (define-c-proc library? (arg0) ::<boolean>
     (result (SG_LIBRARYP arg0)))
 
-  (define-c-proc library-name (arg0::Library) ::Object
+  (define-c-proc library-name (arg0::<library>) ::<top>
     (result (SG_LIBRARY_NAME arg0)))
 
-  (define-c-proc library-imported (arg0::Library) ::Object
+  (define-c-proc library-imported (arg0::<library>) ::<top>
     (result (SG_LIBRARY_IMPORTED arg0)))
 
-  (define-c-proc library-imported-set! (arg0::Library arg1) ::void
+  (define-c-proc library-imported-set! (arg0::<library> arg1) ::<void>
     (set! (SG_LIBRARY_IMPORTED arg0) arg1))
 
-  (define-c-proc library-exported (arg0::Library) ::Object
+  (define-c-proc library-exported (arg0::<library>) ::<top>
     (result (SG_LIBRARY_EXPORTED arg0)))
 
-  (define-c-proc library-exported-set! (arg0::Library arg1) ::void
+  (define-c-proc library-exported-set! (arg0::<library> arg1) ::<void>
     (set! (SG_LIBRARY_EXPORTED arg0) arg1))
 
-  (define-c-proc library-table (lib::Library) ::Object
+  (define-c-proc library-table (lib::<library>) ::<top>
     (result (SG_LIBRARY_TABLE lib)))
 
-  (define-c-proc library-parents (lib::Library) ::Object
+  (define-c-proc library-parents (lib::<library>) ::<top>
     (result (-> lib parents)))
 
-  #;(define-c-proc %set-library (arg0::Library) ::void
+  #;(define-c-proc %set-library (arg0::<library>) ::<void>
     (Sg_SetLibrary arg0))
 
-  (define-c-proc find-library (arg0 createp::boolean) ::Object
+  (define-c-proc find-library (arg0 createp::<boolean>) ::<top>
     (result (Sg_FindLibrary arg0 createp)))
 
-  (define-c-proc %insert-binding (libname name value) ::void
+  (define-c-proc %insert-binding (libname name value) ::<void>
     (unless (or (SG_SYMBOLP name)
 		(SG_IDENTIFIERP name))
       (wrong-type-of-argument-violation '%insert-binding
@@ -184,88 +187,88 @@
     (let ((lib::SgObject (Sg_FindLibrary libname TRUE)))
       (Sg_InsertBinding lib name value)))
 
-  (define-c-proc find-binding (arg0 arg1::Symbol callback) ::Object
+  (define-c-proc find-binding (arg0 arg1::<symbol> callback) ::<top>
     (result (Sg_FindBinding arg0 arg1 callback)))
 
-  (define-c-proc import-library (to from only except rename prefix transp) ::void
+  (define-c-proc import-library (to from only except rename prefix transp) ::<void>
     (Sg_ImportLibraryFullSpec to from only except rename prefix))
 
-  (define-c-proc vm-current-library (:optional (name::Library SG_UNBOUND)) ::Object
+  (define-c-proc vm-current-library (:optional name::<library>) ::<top>
     (let ((vm::SgVM* (Sg_VM)))
       (if (SG_UNBOUNDP name)
-	  (result vm->currentLibrary)
+	  (result (-> vm currentLibrary))
 	  (begin
-	    (set! vm->currentLibrary name)
+	    (set! (-> vm currentLibrary) name)
 	    ; dummy
 	    (result SG_UNDEF)))))
 
   ;; gloc
-  (define-c-proc gloc-ref (g::Gloc) ::Object
+  (define-c-proc gloc-ref (g::<gloc>) ::<top>
     (result (SG_GLOC_GET g)))
 
-  (define-c-proc gloc-set! (g::Gloc value) ::void
+  (define-c-proc gloc-set! (g::<gloc> value) ::<void>
     (SG_GLOC_SET g value))
 
-  (define-c-proc gloc-bound? (g::Gloc) ::boolean
+  (define-c-proc gloc-bound? (g::<gloc>) ::<boolean>
     (result (not (SG_UNBOUNDP (SG_GLOC_GET g)))))
 
-  (define-c-proc gloc-const? (g::Gloc) ::boolean
+  (define-c-proc gloc-const? (g::<gloc>) ::<boolean>
     (result (Sg_GlocConstP g)))
 
-  (define-c-proc gloc-library (g::Gloc) ::Object
+  (define-c-proc gloc-library (g::<gloc>) ::<top>
     (result (-> g library)))
 
-  (define-c-proc gloc-name (g::Gloc) ::Object
+  (define-c-proc gloc-name (g::<gloc>) ::<top>
     (result (-> g name)))
 
   ;; code-builder
-  (define-c-proc make-code-builder () ::Object
+  (define-c-proc make-code-builder () ::<top>
     (result (Sg_MakeCodeBuilder 2)))
 
-  (define-c-proc cb-emit0! (cb::CodeBuilder insn::fixnum) ::void
+  (define-c-proc cb-emit0! (cb::<code-builder> insn::<fixnum>) ::<void>
     (Sg_CodeBuilderEmit cb insn ARGUMENT0 0 0 SG_UNDEF))
 
-  (define-c-proc cb-emit1! (cb::CodeBuilder insn::fixnum arg0::fixnum) ::void
+  (define-c-proc cb-emit1! (cb::<code-builder> insn::<fixnum> arg0::<fixnum>) ::<void>
     (Sg_CodeBuilderEmit cb insn ARGUMENT0 arg0 0 SG_UNDEF))
 
-  (define-c-proc cb-emit2! (cb::CodeBuilder insn::fixnum arg0::fixnum arg1::fixnum) ::void
+  (define-c-proc cb-emit2! (cb::<code-builder> insn::<fixnum> arg0::<fixnum> arg1::<fixnum>) ::<void>
     (Sg_CodeBuilderEmit cb insn ARGUMENT0 arg0 arg1 SG_UNDEF))
 
-  (define-c-proc cb-emit0i! (cb::CodeBuilder insn::fixnum src) ::void    
+  (define-c-proc cb-emit0i! (cb::<code-builder> insn::<fixnum> src) ::<void>    
     (Sg_CodeBuilderEmit cb insn ARGUMENT0 0 0 SG_UNDEF)
     (Sg_CodeBuilderAddSrc cb insn src))
 
-  (define-c-proc cb-emit1i! (cb::CodeBuilder insn::fixnum arg0::fixnum src) ::void
+  (define-c-proc cb-emit1i! (cb::<code-builder> insn::<fixnum> arg0::<fixnum> src) ::<void>
     (Sg_CodeBuilderEmit cb insn ARGUMENT0 arg0 0 SG_UNDEF)
     (Sg_CodeBuilderAddSrc cb insn src))
 
-  (define-c-proc cb-emit2i! (cb::CodeBuilder insn::fixnum arg0::fixnum arg1::fixnum src) ::void
+  (define-c-proc cb-emit2i! (cb::<code-builder> insn::<fixnum> arg0::<fixnum> arg1::<fixnum> src) ::<void>
     (Sg_CodeBuilderEmit cb insn ARGUMENT0 arg0 arg1 SG_UNDEF)
     (Sg_CodeBuilderAddSrc cb insn src))
 
-  (define-c-proc cb-emit0o! (cb::CodeBuilder insn::fixnum obj) ::void
+  (define-c-proc cb-emit0o! (cb::<code-builder> insn::<fixnum> obj) ::<void>
     (Sg_CodeBuilderEmit cb insn ARGUMENT1 0 0 obj))
 
-  (define-c-proc cb-emit0oi! (cb::CodeBuilder insn::fixnum obj src) ::void
+  (define-c-proc cb-emit0oi! (cb::<code-builder> insn::<fixnum> obj src) ::<void>
     (Sg_CodeBuilderEmit cb insn ARGUMENT1 0 0 obj)
     (Sg_CodeBuilderAddSrc cb insn src))
 
-  (define-c-proc cb-emit1oi! (cb::CodeBuilder insn::fixnum arg0::fixnum obj src) ::void
+  (define-c-proc cb-emit1oi! (cb::<code-builder> insn::<fixnum> arg0::<fixnum> obj src) ::<void>
     (Sg_CodeBuilderEmit cb insn ARGUMENT1 arg0 0 obj)
     (Sg_CodeBuilderAddSrc cb insn src))
 
-  (define-c-proc cb-label-set! (cb::CodeBuilder label) ::void
+  (define-c-proc cb-label-set! (cb::<code-builder> label) ::<void>
     (Sg_CodeBuilderLabelSet cb label))
 
-  (define-c-proc cb-emit-closure! (cb::CodeBuilder 
-				   insn::fixnum
-				   lambda_cb::CodeBuilder
+  (define-c-proc cb-emit-closure! (cb::<code-builder> 
+				   insn::<fixnum>
+				   lambda_cb::<code-builder>
 				   name 
-				   req_argc::fixnum
-				   opt::boolean
-				   freec::fixnum
-				   max_stack::fixnum
-				   src) ::void
+				   req_argc::<fixnum>
+				   opt::<boolean>
+				   freec::<fixnum>
+				   max_stack::<fixnum>
+				   src) ::<void>
     (set! (SG_CODE_BUILDER_NAME lambda_cb) name)
     (set! (SG_CODE_BUILDER_ARGC lambda_cb) req_argc)
     (set! (SG_CODE_BUILDER_OPTIONAL lambda_cb) opt)
@@ -275,18 +278,18 @@
     (Sg_CodeBuilderEmit cb insn ARGUMENT1 0 0 lambda_cb)
     (Sg_CodeBuilderAddSrc lambda_cb insn src))
 
-  (define-c-proc code-builder-label-defs (cb::CodeBuilder) ::Object
+  (define-c-proc code-builder-label-defs (cb::<code-builder>) ::<top>
     (result (-> cb labelDefs)))
 
-  (define-c-proc code-builder-finish-builder (cb::CodeBuilder last::fixnum) ::Object
+  (define-c-proc code-builder-finish-builder (cb::<code-builder> last::<fixnum>) ::<top>
     (result (Sg_CodeBuilderFinishBuilder cb last)))
 
   ;; misc
-  (define-c-proc vm-r6rs-mode? () ::boolean
+  (define-c-proc vm-r6rs-mode? () ::<boolean>
     (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_R6RS_MODE)))
 
   ;; (%map-cons l1 l2) = (map cons l1 l2)
-  (define-c-proc %map-cons (l1 l2) ::Object
+  (define-c-proc %map-cons (l1 l2) ::<top>
     (let ((h SG_NIL) (t SG_NIL))
       (while (and (SG_PAIRP l1) (SG_PAIRP l2))
 	(SG_APPEND1 h t (Sg_Cons (SG_CAR l1) (SG_CAR l2)))
@@ -296,7 +299,7 @@
 
   ;; for better performance.
   ;; NB: we skip some test, because we assume the frame is well-formed.
-  (define-c-proc p1env-lookup (p1env::Vector name lookup_as) ::Object
+  (define-c-proc p1env-lookup (p1env::<vector> name lookup_as) ::<top>
     (let ((name_identp::int (SG_IDENTIFIERP name))
 	  (frames (SG_VECTOR_ELEMENT p1env 1)))
       (dopairs (fp frames)
@@ -314,7 +317,7 @@
 	    (result (Sg_MakeIdentifier (SG_SYMBOL name) '() (SG_LIBRARY lib))))
 	  (result name))))
 
-  (define-c-proc p1env-toplevel? (p1env) ::boolean
+  (define-c-proc p1env-toplevel? (p1env) ::<boolean>
     (result TRUE)
     (dolist (fp (SG_VECTOR_ELEMENT p1env 1))
       (if (== (SG_CAR fp) (SG_MAKE_INT 0)) (result FALSE))))
@@ -323,7 +326,7 @@
   ;; lookup pvar from p1env.
   ;; when we change the value of PATTERN in macro.scm(for now we don't use it
   ;; in compiler.scm), it needs to be changed as well.
-  (define-c-proc p1env-pvar-lookup (p1env::Vector name) ::Object
+  (define-c-proc p1env-pvar-lookup (p1env::<vector> name) ::<top>
     (let ((name_identp::int (SG_IDENTIFIERP name))
 	  (frames (SG_VECTOR_ELEMENT p1env 1))
 	  ;; for identifier=? we need a size 2 vector.
@@ -352,31 +355,30 @@
 				       (SG_LIBRARY lib))))
 	  (result name))))
 
-  (define-c-proc pass3/frame-size () ::fixnum
+  (define-c-proc pass3/frame-size () ::<fixnum>
     (result SG_FRAME_SIZE))
 
-  (define-c-proc pass3/let-frame-size () ::fixnum
+  (define-c-proc pass3/let-frame-size () ::<fixnum>
     (result SG_LET_FRAME_SIZE))
 
-  (define-c-proc print-stack-frames () ::void
+  (define-c-proc print-stack-frames () ::<void>
     (Sg_VMPrintFrame))
 
-  (define-c-proc get-stack-trace-object () ::Object
+  (define-c-proc get-stack-trace-object () ::<top>
     (result (Sg_GetStackTrace)))
 
   ;; optimize
-  (define-c-proc vm-noinline-locals? () ::boolean
+  (define-c-proc vm-noinline-locals? () ::<boolean>
     (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_INLINE_LOCAL)))
 
-  (define-c-proc vm-nolambda-lifting? () ::boolean
+  (define-c-proc vm-nolambda-lifting? () ::<boolean>
     (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_LAMBDA_LIFT)))
 
-  (define-c-proc vm-nolibrary-inlining? () ::boolean
+  (define-c-proc vm-nolibrary-inlining? () ::<boolean>
     (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_LIBRARY_INLINING)))
 
-  (define-c-proc vm-noconstant-inlining? () ::boolean
+  (define-c-proc vm-noconstant-inlining? () ::<boolean>
     (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_CONST_INLINING)))
 
-  (define-c-proc gc () ::void
-    (Sg_GC))
+  (define-c-proc gc () ::<void> Sg_GC)
 )

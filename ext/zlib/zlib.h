@@ -47,9 +47,6 @@ typedef struct SgZStreamRec
 #define SG_ZSTREAM(obj)   ((SgZStream*)obj)
 #define SG_ZSTREAM_P(obj) SG_XTYPEP(obj, SG_CLASS_ZSTREAM)
 
-#define argumentAsZStream(index, tmp_, var_)			\
-  castArgumentType(index, tmp_, var_, pointer, SG_ZSTREAM_P, SG_ZSTREAM)
-
 SG_CDECL_BEGIN
 
 /* we only wrap zlib very thin. other Scheme staff must be in Scheme file. */

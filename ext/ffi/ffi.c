@@ -262,7 +262,7 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts)
 	  return SG_UNDEF;
 	}
 	st2 = SG_GLOC_GET(SG_GLOC(gloc));
-	if (!SG_CSTRUCT_P(st2)) {
+	if (!SG_CSTRUCTP(st2)) {
 	  Sg_Error(UC("c-struct required, but got %S"), st2);
 	  return SG_UNDEF;
 	}
@@ -635,7 +635,7 @@ static int push_ffi_type_value(SgFuncInfo *info,
       ASSERT(FALSE);
       return FALSE;
     }
-  } else if (SG_POINTER_P(obj)) {
+  } else if (SG_POINTERP(obj)) {
     switch (signature) {
     case FFI_SIGNATURE_BOOL:
       *lastError = Sg_Sprintf(UC("'bool' required but got %A"), obj);
@@ -693,7 +693,7 @@ static int push_ffi_type_value(SgFuncInfo *info,
       ASSERT(FALSE);
       return FALSE;
     }
-  } else if (SG_CALLBACK_P(obj)) {
+  } else if (SG_CALLBACKP(obj)) {
     switch (signature) {
     case FFI_SIGNATURE_BOOL:
       *lastError = Sg_Sprintf(UC("'bool' required but got %A"), obj);
@@ -837,7 +837,7 @@ static int convert_scheme_to_c_value(SgObject v, int type, void **result)
       } else {
 	*((intptr_t *)result) = Sg_GetIntegerClamp(v, SG_CLAMP_NONE, NULL);
       }      
-    } else if (SG_POINTER_P(v)) {
+    } else if (SG_POINTERP(v)) {
       *((intptr_t *)result) = SG_POINTER(v)->pointer;
     } else goto ret0;
     break;
@@ -848,7 +848,7 @@ static int convert_scheme_to_c_value(SgObject v, int type, void **result)
       } else {
 	*((uintptr_t *)result) = Sg_GetUIntegerClamp(v, SG_CLAMP_NONE, NULL);
       }      
-    } else if (SG_POINTER_P(v)) {
+    } else if (SG_POINTERP(v)) {
       *((uintptr_t *)result) = SG_POINTER(v)->pointer;
     } else goto ret0;
     break;
@@ -858,7 +858,7 @@ static int convert_scheme_to_c_value(SgObject v, int type, void **result)
       *((intptr_t *)result) = (intptr_t)Sg_Utf32sToUtf8s(SG_STRING(v));
     } else if (SG_BVECTORP(v)) {
       *((intptr_t *)result) = (intptr_t)SG_BVECTOR_ELEMENTS(v);
-    } else if (SG_POINTER_P(v)) {
+    } else if (SG_POINTERP(v)) {
       *((intptr_t *)result) = (intptr_t)SG_POINTER(v)->pointer;
     } else goto ret0;
     break;
@@ -1039,7 +1039,7 @@ static void set_callback_result(SgCallback *callback, SgObject ret, ffi_cif *cif
 	*((ffi_arg *) result) = SG_INT_VALUE(ret);
       }
       break;
-    } else if (SG_POINTER_P(ret)) {
+    } else if (SG_POINTERP(ret)) {
       *((ffi_arg *) result) = SG_POINTER(ret)->pointer;
       break;
     }
@@ -1065,7 +1065,7 @@ static void callback_invoker(ffi_cif *cif, void *result, void **args, void *user
 
 static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
 {
-  SgObject tmp, lastError;
+  SgObject lastError;
   int retType, i;
   SgObject signatures;
   SgFuncInfo *func;
@@ -1073,15 +1073,27 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
   ffi_storage *params;
   ffi_cif cif;
   void **ffi_values;
-  DeclareProcedureName("%ffi-call");
+
 #ifdef FFI_NOT_SUPPORTED
   Sg_Error(UC("ffi not supported on this architecture"));
   return SG_UNDEF;
 #endif
 
-  checkArgumentLengthAtLeast(2);
-  argumentAsFixnum(0, tmp, retType);
-  argumentAsFuncInfo(1, tmp, func);
+  if (argc < 2) {
+    Sg_WrongNumberOfArgumentsAtLeastViolation(SG_INTERN("%ffi-call"),
+					      2, argc, SG_NIL);
+  }
+  if (!SG_INTP(args[0])) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("%ffi-call"),
+				    SG_MAKE_STRING("fixnum"), args[0], SG_NIL);
+  }
+  if (!SG_FUNC_INFO_P(args[1])) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("%ffi-call"),
+				    SG_MAKE_STRING("func-info"),
+				    args[0], SG_NIL);
+  }
+  retType = SG_INT_VALUE(args[0]);
+  func = SG_FUNC_INFO(args[1]);
 
   signatures = func->signatures;
   /* check if the argument count is correct */
@@ -1298,7 +1310,7 @@ void Sg_PointerSet(SgPointer *p, int offset, int type, SgObject v)
     case_type(FFI_RETURN_TYPE_POINTER , void*);
     case_type(FFI_RETURN_TYPE_STRUCT  , void*);
   case FFI_RETURN_TYPE_CALLBACK: {
-    if (!SG_CALLBACK_P(v)) Sg_Error(UC("callback required, but got %S "), v);
+    if (!SG_CALLBACKP(v)) Sg_Error(UC("callback required, but got %S "), v);
     if (prep_method_handler(SG_CALLBACK(v))) {
       POINTER_SET(void*, p, offset, SG_CALLBACK(v)->code);
       Sg_HashTableSet(ref_table, SG_CALLBACK(v)->code, v, 0);
@@ -1323,9 +1335,7 @@ void Sg_CFree(SgPointer *p)
   p->pointer = NULL;
 }
 
-SG_CDECL_BEGIN
 extern void Sg__Init_sagittarius_ffi_impl();
-SG_CDECL_END
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__ffi()
 {

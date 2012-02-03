@@ -334,9 +334,12 @@ static SgObject make_predicate_rec(SgObject *args, int argc, void *data)
 {
   SgObject obj, rtd;
   int pred = FALSE;
-  DeclareProcedureName("make-predicate");
-  checkArgumentLength(1);
-  argumentRef(0, obj);
+
+  if (argc != 1) {
+    Sg_WrongNumberOfArgumentsViolation(SG_INTERN("make-predicate"), 1, argc,
+				       SG_NIL);
+  }
+  obj = args[0];
   rtd = (SgObject)data;
 
   obj = Sg_TupleRef(obj, 0, SG_FALSE);
@@ -357,9 +360,11 @@ SgObject Sg_RecordPredicate(SgObject rtd)
 static SgObject make_accessor_rec(SgObject *args, int argc, void *data)
 {
   SgObject rtd, k, obj, rec_rtd;
-  DeclareProcedureName("make-accessor");
-  checkArgumentLength(1);
-  argumentRef(0, obj);
+  if (argc != 1) {
+    Sg_WrongNumberOfArgumentsViolation(SG_INTERN("make-accessor"), 1, argc,
+				       SG_NIL);
+  }
+  obj = args[0];
   rtd = SG_CAR(SG_OBJ(data));
   k = SG_CDR(SG_OBJ(data));	/* index */
 
@@ -394,10 +399,12 @@ SgObject Sg_RecordAccessor(SgObject rtd, int k)
 static SgObject make_mutator_rec(SgObject *args, int argc, void *data)
 {
   SgObject obj, datum, rtd, k, rec_rtd;
-  DeclareProcedureName("make-mutator");
-  checkArgumentLength(2);
-  argumentRef(0, obj);
-  argumentRef(1, datum);
+  if (argc != 2) {
+    Sg_WrongNumberOfArgumentsViolation(SG_INTERN("make-mutator"), 1, argc,
+				       SG_NIL);
+  }
+  obj = args[0];
+  datum = args[1];
 
   rtd = SG_CAR(SG_OBJ(data));
   k = SG_CDR(SG_OBJ(data));	/* field index */

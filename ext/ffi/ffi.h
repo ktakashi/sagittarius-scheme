@@ -46,7 +46,7 @@ typedef struct SgPointerRec
 SG_CLASS_DECL(Sg_PointerClass);
 #define SG_CLASS_POINTER   (&Sg_PointerClass)
 #define SG_POINTER(obj)   ((SgPointer *)obj)
-#define SG_POINTER_P(obj) SG_XTYPEP(obj, SG_CLASS_POINTER)
+#define SG_POINTERP(obj) SG_XTYPEP(obj, SG_CLASS_POINTER)
 
 #define POINTER_REF(T, p__, offset__) (*((T*)(SG_POINTER(p__)->pointer + offset__)))
 #define POINTER_SET(T, p__, offset__, value__)			\
@@ -111,7 +111,7 @@ typedef struct SgCallbackRec
 SG_CLASS_DECL(Sg_CallbackClass);
 #define SG_CLASS_CALLBACK   (&Sg_CallbackClass)
 #define SG_CALLBACK(obj)   ((SgCallback *)obj)
-#define SG_CALLBACK_P(obj) SG_XTYPEP(obj, SG_CLASS_CALLBACK)
+#define SG_CALLBACKP(obj) SG_XTYPEP(obj, SG_CLASS_CALLBACK)
 
 
 /* c-struct
@@ -143,19 +143,7 @@ struct SgCStructRec
 SG_CLASS_DECL(Sg_CStructClass);
 #define SG_CLASS_CSTRUCT   (&Sg_CStructClass)
 #define SG_CSTRUCT(obj)   ((SgCStruct *)obj)
-#define SG_CSTRUCT_P(obj) SG_XTYPEP(obj, SG_CLASS_CSTRUCT)
-
-#define argumentAsPointer(index, tmp_, var_)			\
-  castArgumentType(index, tmp_, var_, pointer, SG_POINTER_P, SG_POINTER)
-
-#define argumentAsFuncInfo(index, tmp_, var_)			\
-  castArgumentType(index, tmp_, var_, pointer, SG_FUNC_INFO_P, SG_FUNC_INFO)
-
-#define argumentAsCallback(index, tmp_, var_)			\
-  castArgumentType(index, tmp_, var_, pointer, SG_CALLBACK_P, SG_CALLBACK)
-
-#define argumentAsCStruct(index, tmp_, var_)			\
-  castArgumentType(index, tmp_, var_, pointer, SG_CSTRUCT_P, SG_CSTRUCT)
+#define SG_CSTRUCTP(obj) SG_XTYPEP(obj, SG_CLASS_CSTRUCT)
 
 #define FFI_RETURN_TYPE_VOID        0x0000
 #define FFI_RETURN_TYPE_BOOL        0x0001

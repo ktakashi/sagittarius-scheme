@@ -525,9 +525,7 @@ int Sg_Rollback(SgObject ctx)
   return TRUE;
 }
 
-SG_CDECL_BEGIN
 extern void Sg__Init_odbc_impl();
-SG_CDECL_END
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__odbc()
 {

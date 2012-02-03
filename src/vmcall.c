@@ -121,6 +121,11 @@
       print_frames(vm);
     }
   }
+  if (!SG_PROCEDUREP(AC(vm))) {
+    Sg_AssertionViolation(SG_INTERN("apply"),
+			  SG_MAKE_STRING("invalid application"),
+			  AC(vm));
+  }
 
   if (SG_SUBRP(AC(vm))) {
     CL(vm) = AC(vm);
@@ -177,7 +182,7 @@
       }
   } else {
     Sg_AssertionViolation(SG_INTERN("apply"),
-			  Sg_MakeString(UC("invalid application"), SG_LITERAL_STRING),
+			  SG_MAKE_STRING("invalid application"),
 			  AC(vm));
   }
 }

@@ -29,10 +29,12 @@
  */
 #include <string.h>
 #include <ctype.h>
-#include <sagittarius.h>
-#define LIBSAGITTARIUS_EXT_BODY
-#include <sagittarius/extend.h>
-#include "regex2.h"
+#define LIBSAGITTARIUS_BODY
+#include "sagittarius/regex.h"
+#include "sagittarius/error.h"
+#include "sagittarius/port.h"
+#include "sagittarius/string.h"
+#include "sagittarius/symbol.h"
 
 
 /* #define DEBUG_REGEX 1 */
@@ -3244,11 +3246,13 @@ static SgObject read_regex_string(SgPort *port)
 
 static SgObject hash_slash_reader(SgObject *args, int argc, void *data_)
 {
-  SgObject tmp;
   SgPort *p;
 
-  DeclareProcedureName("#/-reader");
-  argumentAsPort(0, tmp, p);
+  if (!SG_PORTP(args[0])) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("#/-reader"),
+				    SG_MAKE_STRING("port"), args[0], SG_NIL);
+  }
+  p = SG_PORT(args[0]);
 
   return read_regex_string(p);
 }
@@ -3264,16 +3268,14 @@ static void add_reader_macro(SgLibrary *lib)
 }
 
 SG_CDECL_BEGIN
-extern void Sg__Init_sagittarius_regex2_impl();
+extern void Sg__Init_sagittarius_regex_impl();
 SG_CDECL_END
 
-SG_EXTENSION_ENTRY void Sg_Init_sagittarius__regex2()
+void Sg__InitRegex()
 {
   SgLibrary *lib;
-  SG_INIT_EXTENSION(sagittarius__regex2);
-  Sg__Init_sagittarius_regex2_impl();
-
-  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius regex2 impl)"), FALSE));
+  Sg__Init_sagittarius_regex_impl();
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius regex impl)"), FALSE));
   add_reader_macro(lib);
 #define insert_binding(name, value)			\
   Sg_MakeBinding(lib, SG_INTERN(#name), SG_MAKE_INT(value), TRUE);

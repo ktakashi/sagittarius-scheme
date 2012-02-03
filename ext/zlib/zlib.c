@@ -161,9 +161,7 @@ SgObject Sg_ZlibVersion()
   return z_version;
 }
 
-SG_CDECL_BEGIN
-void Sg__Init_sagittarius_zlib();
-SG_CDECL_END
+extern void Sg__Init_sagittarius_zlib();
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__zlib()
 {

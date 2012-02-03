@@ -356,8 +356,9 @@ SgObject Sg_Verify(SgCrypto *crypto, SgByteVector *M, SgByteVector *S,
   return SG_UNDEF;		/* dummy */
 }
 
-SG_CDECL_BEGIN
+
 extern void Sg__Init_sagittarius_crypto_impl();
+SG_CDECL_BEGIN
 extern void Sg__InitKey(SgObject lib);
 SG_CDECL_END
 

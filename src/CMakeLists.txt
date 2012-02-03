@@ -59,6 +59,7 @@ SET(SAGITTARIUS_LIB_SOURCE
 
   clos.c
   collection.c     compare.c
+  regex.c          regex_stub.c
   # libraries
   closlib.c
   proclib.c        null.c

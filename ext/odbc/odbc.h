@@ -78,6 +78,11 @@ SG_CLASS_DECL(Sg_OdbcCtxClass);
 #define SG_ODBC_STMT_P(obj) SQL_HANDLE_TYPE_P(obj, SQL_HANDLE_STMT)
 #define SG_ODBC_DESC_P(obj) SQL_HANDLE_TYPE_P(obj, SQL_HANDLE_DESC)
 
+#define SG_ODBC_ENV  SG_ODBC_CTX
+#define SG_ODBC_DBC  SG_ODBC_CTX
+#define SG_ODBC_STMT SG_ODBC_CTX
+#define SG_ODBC_DESC SG_ODBC_CTX
+
 /* for SQL type compatibility */
 typedef enum {
   SG_SQL_DATE,
@@ -106,6 +111,11 @@ SG_CLASS_DECL(Sg_OdbcDateClass);
   (SG_ODBC_DATE_P(obj) && SG_ODBC_DATE(obj)->type == SG_SQL_TIME)
 #define SG_ODBC_DATE_TIMESTAMP_P(obj)					\
   (SG_ODBC_DATE_P(obj) && SG_ODBC_DATE(obj)->type == SG_SQL_TIMESTAMP)
+
+/* for stub */
+#define SG_ODBC_DATE_DATE      SG_ODBC_DATE
+#define SG_ODBC_DATE_TIME      SG_ODBC_DATE
+#define SG_ODBC_DATE_TIMESTAMP SG_ODBC_DATE
 
 SgObject Sg_CreateOdbcCtx(SQLSMALLINT type, SgObject parent);
 SgObject Sg_Connect(SgObject env, SgString *server, SgString *user, SgString *auth, int autoCommitP);

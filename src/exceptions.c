@@ -56,18 +56,29 @@ DEF_RECORD_TYPE(condition);
 
 static SgObject condition_printer_rec(SgObject *args, int argc, void *data)
 {
-  SgObject p_scm, t_scm, conditions;
+  SgObject conditions;
   SgPort *p;
   SgTuple *t;
   int len;
-  DeclareProcedureName("condition-printer");
-  checkArgumentLengthBetween(1, 2);
+
+  if (argc != 2) {
+    Sg_WrongNumberOfArgumentsBetweenViolation(SG_INTERN("condition-printer"),
+					      1, 2, argc, SG_NIL);
+  }
   if (argc == 2) {
-    argumentAsPort(1, p_scm, p);
+    if (!SG_PORTP(args[1])) {
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("condition-printer"),
+				      SG_MAKE_STRING("port"), args[1], SG_NIL);
+    }
+    p = SG_PORT(args[1]);
   } else {
     p = SG_PORT(Sg_CurrentOutputPort());
   }
-  argumentAsTuple(0, t_scm, t);
+  if (!SG_TUPLEP(args[0])) {
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("condition-printer"),
+				      SG_MAKE_STRING("tuple"), args[0], SG_NIL);
+  }
+  t = SG_TUPLE(args[0]);
   
   len = Sg_TupleSize(t);
   Sg_Putuz(p, UC("#<condition"));
@@ -138,9 +149,11 @@ int Sg_ConditionP(SgObject obj)
 static SgObject condition_predicate_rec(SgObject *args, int argc, void *data)
 {
   SgObject obj, rtd;
-  DeclareProcedureName("condition-predicate");
-  checkArgumentLength(1);
-  argumentRef(0, obj);
+  if (argc != 1) {
+    Sg_WrongNumberOfArgumentsViolation(SG_INTERN("condition-predicate"),
+				       1, argc, SG_NIL);
+  }
+  obj = args[0];
   rtd = SG_OBJ(data);
   if (Sg_SimpleConditionP(obj)) {
     return SG_MAKE_BOOL(Sg_RtdAncestorP(rtd, Sg_RecordRtd(obj)));
@@ -167,9 +180,11 @@ SgObject Sg_ConditionPredicate(SgObject rtd)
 static SgObject condition_accessor_rec(SgObject *args, int argc, void *data)
 {
   SgObject obj, rtd, proc;
-  DeclareProcedureName("condition-accessor");
-  checkArgumentLength(1);
-  argumentRef(0, obj);
+  if (argc != 1) {
+    Sg_WrongNumberOfArgumentsViolation(SG_INTERN("condition-accessor"),
+				       1, argc, SG_NIL);
+  }
+  obj = args[0];
   rtd = SG_CAR(SG_OBJ(data));
   proc = SG_CDR(SG_OBJ(data));
 

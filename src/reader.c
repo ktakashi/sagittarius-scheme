@@ -1557,21 +1557,31 @@ SgObject Sg_AddConstantLiteral(SgObject o)
 #define STUB_NAME(NAME) SG_CPP_CAT(NAME, stub)
 
 /* initialize */
-#define DEFINE_MACRO_STUB(FN, NAME)			\
-  static SgObject STUB_NAME(FN)				\
-  (SgObject *args, int argc, void *data_)		\
-  {							\
-    SgReadContext ctx = {0};				\
-    SgObject arg0_scm, arg1_scm;			\
-    SgPort *p;						\
-    SgChar c;						\
-    DeclareProcedureName(NAME);				\
-    checkArgumentLength(2);				\
-    argumentAsPort(0, arg0_scm, p);			\
-    argumentAsChar(1, arg1_scm, c);			\
-    return (FN)(p, c, &ctx);				\
-  }							\
-  SG_DEFINE_SUBR(SCHEME_OBJ(FN), 2, 0,			\
+#define DEFINE_MACRO_STUB(FN, NAME)					\
+  static SgObject STUB_NAME(FN) (SgObject *args, int argc, void *data_)	\
+  {									\
+    SgReadContext ctx = {0};						\
+    SgPort *p;								\
+    SgChar c;								\
+    if (argc != 2) {							\
+      Sg_WrongNumberOfArgumentsAtLeastViolation(SG_INTERN(NAME),	\
+						2, argc, SG_NIL);	\
+    }									\
+    if (!SG_PORTP(args[0])) {						\
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN(NAME),			\
+				      SG_MAKE_STRING("port"),		\
+				      args[0], SG_NIL);			\
+    }									\
+    if (!SG_CHARP(args[1])) {						\
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN(NAME),			\
+				      SG_MAKE_STRING("char"),		\
+				      args[1], SG_NIL);			\
+    }									\
+    p = SG_PORT(args[0]);						\
+    c = SG_CHAR_VALUE(args[1]);						\
+    return (FN)(p, c, &ctx);						\
+  }									\
+  SG_DEFINE_SUBR(SCHEME_OBJ(FN), 2, 0,					\
 		 STUB_NAME(FN), SG_FALSE, NULL)
 
 #define DEFINE_DISPMACRO_STUB(FN, NAME)				\
@@ -1579,15 +1589,27 @@ SgObject Sg_AddConstantLiteral(SgObject o)
   (SgObject *args, int argc, void *data_)			\
   {								\
     SgReadContext ctx = {0};					\
-    SgObject arg0_scm, arg1_scm, param_scm;			\
+    SgObject param_scm;						\
     SgPort *p;							\
     SgChar c;							\
     dispmacro_param param;					\
-    DeclareProcedureName(NAME);					\
-    checkArgumentLength(3);					\
-    argumentAsPort(0, arg0_scm, p);				\
-    argumentAsChar(1, arg1_scm, c);				\
-    argumentRef(2, param_scm);					\
+    if (argc != 3) {						\
+      Sg_WrongNumberOfArgumentsAtLeastViolation(SG_INTERN(NAME),\
+						3, argc, SG_NIL);\
+    }								\
+    if (!SG_PORTP(args[0])) {					\
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN(NAME),		\
+				      SG_MAKE_STRING("port"),	\
+				      args[0], SG_NIL);		\
+    }								\
+    if (!SG_CHARP(args[1])) {					\
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN(NAME),		\
+				      SG_MAKE_STRING("char"),	\
+				      args[1], SG_NIL);		\
+    }								\
+    p = SG_PORT(args[0]);					\
+    c = SG_CHAR_VALUE(args[1]);					\
+    param_scm = args[2];					\
     if (SG_FALSEP(param_scm)) {					\
       param.present = FALSE;					\
       param.value = 0;						\

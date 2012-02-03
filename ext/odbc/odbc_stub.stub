@@ -54,239 +54,134 @@
 	     "odbc.h")
    )
 
-  (define-c-proc create-odbc-env () ::Object
+  (define-type <odbc-ctx> "SgOdbcCtx*")
+  (define-type <odbc-env> "SgOdbcCtx*")
+  (define-type <odbc-dbc> "SgOdbcCtx*")
+  (define-type <odbc-stmt> "SgOdbcCtx*")
+
+  (define-c-proc create-odbc-env ()
     (result (Sg_CreateOdbcCtx SQL_HANDLE_ENV NULL)))
 
-  (define-c-proc connect! (env server::String user::String auth::String :optional (autoCommitP #t))
-    ::Object
-    (unless (SG_ODBC_ENV_P env)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc env" SG_LITERAL_STRING)
-				       env SG_NIL))
-    (result (Sg_Connect env server user auth (not (SG_FALSEP autoCommitP)))))
+  (define-c-proc connect!
+    (env::<odbc-env> server::<string> user::<string> auth::<string>
+		     :optional (autoCommitP::<boolean> #t))
+    (result (Sg_Connect env server user auth autoCommitP)))
 
-  (define-c-proc set-connect-attr! (hdbc name::fixnum value) ::boolean
-    (unless (SG_ODBC_DBC_P hdbc)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc connection" SG_LITERAL_STRING)
-				       hdbc SG_NIL))
+  (define-c-proc set-connect-attr!
+    (hdbc::<odbc-dbc> name::<fixnum> value) ::<boolean>
     (result (Sg_SetConnectAttr hdbc name value)))
 
-  (define-c-proc disconnect! (hdbc) ::boolean
-    (unless (SG_ODBC_DBC_P hdbc)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc connection" SG_LITERAL_STRING)
-				       hdbc SG_NIL))
+  (define-c-proc disconnect! (hdbc::<odbc-dbc>) ::<boolean>
     (result (Sg_Disconnect hdbc)))
 
-  (define-c-proc connection-open? (hdbc) ::boolean
-    (unless (SG_ODBC_DBC_P hdbc)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc connection" SG_LITERAL_STRING)
-				       hdbc SG_NIL))
+  (define-c-proc connection-open? (hdbc::<odbc-dbc>) ::<boolean>
     (result (Sg_OpenP hdbc)))
 
-  (define-c-proc statement (hdbc) ::Object
-    (unless (SG_ODBC_DBC_P hdbc)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc connection" SG_LITERAL_STRING)
-				       hdbc SG_NIL))
+  (define-c-proc statement (hdbc::<odbc-dbc>)
     (result (Sg_Statement hdbc)))
 
-  (define-c-proc prepare (hdbc text::String) ::Object
-    (unless (SG_ODBC_DBC_P hdbc)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc connection" SG_LITERAL_STRING)
-				       hdbc SG_NIL))
+  (define-c-proc prepare (hdbc::<odbc-dbc> text::<string>)
     (result (Sg_Prepare hdbc text)))
 
-  (define-c-proc num-params (stmt) ::fixnum
-    (unless (SG_ODBC_STMT_P stmt)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
-				       stmt SG_NIL))
+  (define-c-proc num-params (stmt::<odbc-stmt>) ::<fixnum>
     (result (Sg_NumParams stmt)))
 
-  (define-c-proc bind-parameter! (stmt index::fixnum value) ::boolean
-    (unless (SG_ODBC_STMT_P stmt)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
-				       stmt SG_NIL))
+  (define-c-proc bind-parameter!
+    (stmt::<odbc-stmt> index::<fixnum> value) ::<boolean>
     (result (Sg_BindParameter stmt index value)))
 
-  (define-c-proc execute! (stmt) ::boolean
-    (unless (SG_ODBC_STMT_P stmt)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
-				       stmt SG_NIL))
+  (define-c-proc execute! (stmt::<odbc-stmt>) ::<boolean>
     (result (Sg_Execute stmt)))
 
-  (define-c-proc execute-direct! (stmt text::String) ::boolean
-    (unless (SG_ODBC_STMT_P stmt)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
-				       stmt SG_NIL))
+  (define-c-proc execute-direct! (stmt::<odbc-stmt> text::<string>) ::<boolean>
     (result (Sg_ExecuteDirect stmt text)))
 
-  (define-c-proc fetch! (stmt) ::boolean
-    (unless (SG_ODBC_STMT_P stmt)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
-				       stmt SG_NIL))
+  (define-c-proc fetch! (stmt::<odbc-stmt>) ::<boolean>
     (result (Sg_Fetch stmt)))
 
-  (define-c-proc get-data (stmt index::fixnum) ::Object
-    (unless (SG_ODBC_STMT_P stmt)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
-				       stmt SG_NIL))
+  (define-c-proc get-data (stmt::<odbc-stmt> index::<fixnum>)
     (result (Sg_GetData stmt index)))
 
-  (define-c-proc row-count (stmt) ::fixnum
-    (unless (SG_ODBC_STMT_P stmt)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
-				       stmt SG_NIL))
+  (define-c-proc row-count (stmt::<odbc-stmt>) ::<fixnum>
     (result (Sg_RowCount stmt)))
 
-  (define-c-proc column-size (stmt index::fixnum) ::fixnum
-    (unless (SG_ODBC_STMT_P stmt)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
-				       stmt SG_NIL))
+  (define-c-proc column-size (stmt::<odbc-stmt> index::<fixnum>) ::<fixnum>
     (result (Sg_ColumnSize stmt index)))
 
-  (define-c-proc column-count (stmt) ::fixnum
-    (unless (SG_ODBC_STMT_P stmt)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
-				       stmt SG_NIL))
+  (define-c-proc column-count (stmt::<odbc-stmt>) ::<fixnum>
     (result (Sg_ColumnCount stmt)))
 
-  (define-c-proc result-columns (stmt) ::Object
-    (unless (SG_ODBC_STMT_P stmt)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc statement" SG_LITERAL_STRING)
-				       stmt SG_NIL))
+  (define-c-proc result-columns (stmt::<odbc-stmt>)
     (result (Sg_ResultColumns stmt)))
 
-  (define-c-proc commit! (ctx) ::boolean
-    (unless (SG_ODBC_CTX_P ctx)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc" SG_LITERAL_STRING)
-				       ctx SG_NIL))
+  (define-c-proc commit! (ctx::<odbc-ctx>) ::<boolean>
     (result (Sg_Commit ctx)))
 
-  (define-c-proc rollback! (ctx) ::boolean
-    (unless (SG_ODBC_CTX_P ctx)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc" SG_LITERAL_STRING)
-				       ctx SG_NIL))
+  (define-c-proc rollback! (ctx::<odbc-ctx>) ::<boolean>
     (result (Sg_Rollback ctx)))
 
-  (define-c-proc odbc-env? (obj) ::boolean
+  (define-c-proc odbc-env? (obj) ::<boolean>
     (result (SG_ODBC_ENV_P obj)))
-  (define-c-proc odbc-connection? (obj) ::boolean
+  (define-c-proc odbc-connection? (obj) ::<boolean>
     (result (SG_ODBC_DBC_P obj)))
-  (define-c-proc odbc-statement? (obj) ::boolean
+  (define-c-proc odbc-statement? (obj) ::<boolean>
     (result (SG_ODBC_STMT_P obj)))
 
-  (define-c-proc odbc-date? (obj) ::boolean
+  (define-type <odbc-date-date> "SgOdbcDate*")
+  (define-type <odbc-date-time> "SgOdbcDate*")
+  (define-type <odbc-date-timestamp> "SgOdbcDate*")
+
+  (define-c-proc odbc-date? (obj) ::<boolean>
     (result (SG_ODBC_DATE_DATE_P obj)))
-  (define-c-proc odbc-time? (obj) ::boolean
+  (define-c-proc odbc-time? (obj) ::<boolean>
     (result (SG_ODBC_DATE_TIME_P obj)))
-  (define-c-proc odbc-timestamp? (obj) ::boolean
+  (define-c-proc odbc-timestamp? (obj) ::<boolean>
     (result (SG_ODBC_DATE_TIMESTAMP_P obj)))
 
   ;; accessors
-  (define-c-proc odbc-date-year (date) ::fixnum
-    (unless (SG_ODBC_DATE_DATE_P date)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc-date" SG_LITERAL_STRING)
-				       date SG_NIL))
-    (result (-> (SG_ODBC_DATE date) data.date.year)))
+  (define-c-proc odbc-date-year (date::<odbc-date-date>) ::<fixnum>
+    (result (ref (pointer date) data date year)))
 
-  (define-c-proc odbc-date-month (date) ::fixnum
-    (unless (SG_ODBC_DATE_DATE_P date)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc-date" SG_LITERAL_STRING)
-				       date SG_NIL))
-    (result (-> (SG_ODBC_DATE date) data.date.month)))
+  (define-c-proc odbc-date-month (date::<odbc-date-date>) ::<fixnum>
+    (result (ref (pointer date) data date month)))
 
-  (define-c-proc odbc-date-day (date) ::fixnum
-    (unless (SG_ODBC_DATE_DATE_P date)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc-date" SG_LITERAL_STRING)
-				       date SG_NIL))
-    (result (-> (SG_ODBC_DATE date) data.date.day)))
+  (define-c-proc odbc-date-day (date::<odbc-date-date>) ::<fixnum>
+    (result (ref (pointer date) data date day)))
 
-  (define-c-proc odbc-time-hour (time) ::fixnum
-    (unless (SG_ODBC_DATE_TIME_P time)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc-time" SG_LITERAL_STRING)
-				       time SG_NIL))
-    (result (-> (SG_ODBC_DATE time) data.time.hour)))
+  (define-c-proc odbc-time-hour (time::<odbc-date-time>) ::<fixnum>
+    (result (ref (pointer time) data time hour)))
 
-  (define-c-proc odbc-time-minute (time) ::fixnum
-    (unless (SG_ODBC_DATE_TIME_P time)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc-time" SG_LITERAL_STRING)
-				       time SG_NIL))
-    (result (-> (SG_ODBC_DATE time) data.time.minute)))
+  (define-c-proc odbc-time-minute (time::<odbc-date-time>) ::<fixnum>
+    (result (ref (pointer time) data time minute)))
 
-  (define-c-proc odbc-time-second (time) ::fixnum
-    (unless (SG_ODBC_DATE_TIME_P time)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc-time" SG_LITERAL_STRING)
-				       time SG_NIL))
-    (result (-> (SG_ODBC_DATE time) data.time.second)))
+  (define-c-proc odbc-time-second (time::<odbc-date-time>) ::<fixnum>
+    (result (ref (pointer time) data time second)))
 
-  (define-c-proc odbc-timestamp-year (timestamp) ::fixnum
-    (unless (SG_ODBC_DATE_TIMESTAMP_P timestamp)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc-timestamp" SG_LITERAL_STRING)
-				       timestamp SG_NIL))
-    (result (-> (SG_ODBC_DATE timestamp) data.timestamp.year)))
+  (define-c-proc odbc-timestamp-year
+    (timestamp::<odbc-date-timestamp>) ::<fixnum>
+    (result (ref (pointer timestamp) data timestamp year)))
 
-  (define-c-proc odbc-timestamp-month (timestamp) ::fixnum
-    (unless (SG_ODBC_DATE_TIMESTAMP_P timestamp)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc-timestamp" SG_LITERAL_STRING)
-				       timestamp SG_NIL))
-    (result (-> (SG_ODBC_DATE timestamp) data.timestamp.month)))
+  (define-c-proc odbc-timestamp-month
+    (timestamp::<odbc-date-timestamp>) ::<fixnum>
+    (result (ref (pointer timestamp) data timestamp month)))
 
-  (define-c-proc odbc-timestamp-day (timestamp) ::fixnum
-    (unless (SG_ODBC_DATE_TIMESTAMP_P timestamp)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc-timestamp" SG_LITERAL_STRING)
-				       timestamp SG_NIL))
-    (result (-> (SG_ODBC_DATE timestamp) data.timestamp.day)))
+  (define-c-proc odbc-timestamp-day
+    (timestamp::<odbc-date-timestamp>) ::<fixnum>
+    (result (ref (pointer timestamp) data timestamp day)))
 
-  (define-c-proc odbc-timestamp-hour (timestamp) ::fixnum
-    (unless (SG_ODBC_DATE_TIMESTAMP_P timestamp)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc-timestamp" SG_LITERAL_STRING)
-				       timestamp SG_NIL))
-    (result (-> (SG_ODBC_DATE timestamp) data.timestamp.hour)))
+  (define-c-proc odbc-timestamp-hour
+    (timestamp::<odbc-date-timestamp>) ::<fixnum>
+    (result (ref (pointer timestamp) data timestamp hour)))
 
-  (define-c-proc odbc-timestamp-minute (timestamp) ::fixnum
-    (unless (SG_ODBC_DATE_TIMESTAMP_P timestamp)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc-timestamp" SG_LITERAL_STRING)
-				       timestamp SG_NIL))
-    (result (-> (SG_ODBC_DATE timestamp) data.timestamp.minute)))
+  (define-c-proc odbc-timestamp-minute 
+    (timestamp::<odbc-date-timestamp>) ::<fixnum>
+    (result (ref (pointer timestamp) data timestamp minute)))
 
-  (define-c-proc odbc-timestamp-second (timestamp) ::fixnum
-    (unless (SG_ODBC_DATE_TIMESTAMP_P timestamp)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc-timestamp" SG_LITERAL_STRING)
-				       timestamp SG_NIL))
-    (result (-> (SG_ODBC_DATE timestamp) data.timestamp.second)))
+  (define-c-proc odbc-timestamp-second
+    (timestamp::<odbc-date-timestamp>) ::<fixnum>
+    (result (ref (pointer timestamp) data timestamp second)))
 
-  (define-c-proc odbc-timestamp-fraction (timestamp) ::fixnum
-    (unless (SG_ODBC_DATE_TIMESTAMP_P timestamp)
-      (Sg_WrongTypeOfArgumentViolation procedureName
-				       (Sg_MakeString "odbc-timestamp" SG_LITERAL_STRING)
-				       timestamp SG_NIL))
-    (result (-> (SG_ODBC_DATE timestamp) data.timestamp.fraction)))
+  (define-c-proc odbc-timestamp-fraction
+    (timestamp::<odbc-date-timestamp>) ::<fixnum>
+    (result (ref (pointer timestamp) data timestamp fraction)))
 )

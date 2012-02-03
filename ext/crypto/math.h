@@ -64,7 +64,7 @@ typedef struct SgPrngRec
 SG_CLASS_DECL(Sg_PrngClass);
 #define SG_CLASS_PRNG   (&Sg_PrngClass)
 #define SG_PRNG(obj)   ((SgPrng *)obj)
-#define SG_PRNG_P(obj) SG_XTYPEP(obj, SG_CLASS_PRNG)
+#define SG_PRNGP(obj) SG_XTYPEP(obj, SG_CLASS_PRNG)
 
 /* hash algorithm */
 enum {
@@ -103,11 +103,8 @@ SG_CLASS_DECL(Sg_HashAlgoClass);
 #define SG_HASH(obj)   ((SgHashAlgo *)obj)
 #define SG_HASH_P(obj) SG_XTYPEP(obj, SG_CLASS_HASH)
 
-#define argumentAsPrng(index, tmp_, var_)				\
-  castArgumentType(index, tmp_, var_, prng, SG_PRNG_P, SG_PRNG)
-
-#define argumentAsHashAlgo(index, tmp_, var_)				\
-  castArgumentType(index, tmp_, var_, prng, SG_HASH_P, SG_HASH)
+#define SG_HASH_ALGO   SG_HASH
+#define SG_HASH_ALGO_P SG_HASH_P
 
 /* random */
 SgObject Sg_MakePseudoRandom(SgString *name, SgObject seed);

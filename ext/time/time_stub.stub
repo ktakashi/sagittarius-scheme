@@ -35,112 +35,112 @@
    (.include <sagittarius/extend.h>
 	     "time.h"))
 
-  (define-cgen-stmt assertion-violation
+  (define-cise-stmt assertion-violation
     ((_ who msg)
-     (dispatch
-      `(begin
-	 (Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) '())
-	 (return SG_UNDEF))))
+     `(begin
+	(Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) '())))
     ((_ who msg irritants)
-     (dispatch
-      `(begin
-	 (Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,irritants)
-	 (return SG_UNDEF)))))
+     `(begin
+	(Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) ,irritants)
+	)))
 
-  (define-cgen-stmt wrong-type-of-argument-violation
+  (define-cise-stmt wrong-type-of-argument-violation
     ((_ who msg got)
-     (dispatch
-      `(begin
-	 (Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got '())
-	 (return SG_UNDEF))))
+     `(begin
+	(Sg_WrongTypeOfArgumentViolation ,who (SG_MAKE_STRING ,msg) ,got '())))
     ((_ who msg got irritants)
-     (dispatch
-      `(begin
-	 (Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got ,irritants)
-	 (return SG_UNDEF)))))
+     `(begin
+	(Sg_WrongTypeOfArgumentViolation ,who (SG_MAKE_STRING ,msg) ,got ,irritants))))
+  (define-type <time> "SgTime*")
 
-  (define-c-proc make-time (type::Symbol nsec::number sec::number) ::Object
+  (define-c-proc make-time (type::<symbol> nsec::<number> sec::<number>) 
     (result (Sg_MakeTime type (Sg_GetIntegerS64Clamp sec SG_CLAMP_NONE NULL)
 			 (Sg_GetIntegerClamp nsec SG_CLAMP_NONE NULL))))
 
-  (define-c-proc time? (o) ::boolean
-    (result (SG_TIME_P o)))
+  (define-c-proc time? (o) ::<boolean>
+    (result (SG_TIMEP o)))
 
-  (define-c-proc time-type (o::Time) ::Object
+  (define-c-proc time-type (o::<time>) 
     (result (-> (SG_TIME o) type)))
 
-  (define-c-proc time-nanosecond (o::Time) ::Object
+  (define-c-proc time-nanosecond (o::<time>) 
     (result (Sg_MakeInteger (-> (SG_TIME o) nsec))))
 
-  (define-c-proc time-second (o::Time) ::Object
+  (define-c-proc time-second (o::<time>) 
     (result (Sg_MakeIntegerFromS64 (-> (SG_TIME o) sec))))
 
-  (define-c-proc set-time-type! (o type::Symbol) ::void
+  (define-c-proc set-time-type! (o type::<symbol>) ::<void>
     (set! (-> (SG_TIME o) type) type))
 
-  (define-c-proc set-time-nanosecond! (o nsec::number) ::Object
+  (define-c-proc set-time-nanosecond! (o nsec::<number>) 
     (set! (-> (SG_TIME o) nsec) (Sg_GetIntegerClamp nsec SG_CLAMP_NONE NULL)))
 
-  (define-c-proc set-time-second! (o sec::number) ::Object
+  (define-c-proc set-time-second! (o sec::<number>) 
     (set! (-> (SG_TIME o) sec) (Sg_GetIntegerS64Clamp sec SG_CLAMP_NONE NULL)))
 
-  (define-c-proc copy-time (o::Time) ::Object
+  (define-c-proc copy-time (o::<time>) 
     (result (Sg_MakeTime (-> (SG_TIME o) type)
 			 (-> (SG_TIME o) sec)
 			 (-> (SG_TIME o) nsec))))
 
-  (define-c-proc time-resolution (:optional (type::Symbol 'time-utc)) ::fixnum
+  (define-c-proc time-resolution
+    (:optional (type::<symbol> 'time-utc)) ::<fixnum>
     (cond ((SG_EQ type 'time-tai) (result 10000))
 	  ((SG_EQ type 'time-utc) (result 10000))
 	  ((SG_EQ type 'time-monotonic) (result 10000))
 	  ((SG_EQ type 'time-thread) (result 10000))
 	  ((SG_EQ type 'time-process) (result 10000))
 	  (else 
-	   (assertion-violation procedureName
+	   (assertion-violation 'time-resolution
 				"invalid-clock-type"
 				type))))
 
-  (define-c-proc current-time (:optional (type::Symbol 'time-utc)) ::Object
+  (define-c-proc current-time (:optional (type::<symbol> 'time-utc)) 
     (result (Sg_CurrentTime type)))
 
-  (define-c-proc time->seconds (o::Time) ::Object
+  (define-c-proc time->seconds (o::<time>) 
     (result (Sg_TimeToSeconds (SG_TIME o))))
 
-  (define-c-proc seconds->time (o::number) ::Object
+  (define-c-proc seconds->time (o::<number>) 
     (result (Sg_SecondsToTime (Sg_GetIntegerS64Clamp o SG_CLAMP_NONE NULL))))
 
-  (define-c-proc time<=? (x::Time y::Time) ::boolean
-    (result (<= ((-> (SG_CLASS_OF x) compare) x y FALSE) 0)))
+  (define-c-proc time<=? (x::<time> y::<time>) ::<boolean>
+    (let ((compare::SgClassCompareProc (-> (SG_CLASS_OF x) compare)))
+      (result (<= (compare x y FALSE) 0))))
 
-  (define-c-proc time<? (x::Time y::Time) ::boolean
-    (result (< ((-> (SG_CLASS_OF x) compare) x y FALSE) 0)))
+  (define-c-proc time<? (x::<time> y::<time>) ::<boolean>
+    (let ((compare::SgClassCompareProc (-> (SG_CLASS_OF x) compare)))
+      (result (< (compare x y FALSE) 0))))
 
-  (define-c-proc time=? (x::Time y::Time) ::boolean
-    (result (== ((-> (SG_CLASS_OF x) compare) x y FALSE) 0)))
+  (define-c-proc time=? (x::<time> y::<time>) ::<boolean>
+    (let ((compare::SgClassCompareProc (-> (SG_CLASS_OF x) compare)))
+      (result (== (compare x y FALSE) 0))))
 
-  (define-c-proc time>=? (x::Time y::Time) ::boolean
-    (result (>= ((-> (SG_CLASS_OF x) compare) x y FALSE) 0)))
+  (define-c-proc time>=? (x::<time> y::<time>) ::<boolean>
+    (let ((compare::SgClassCompareProc (-> (SG_CLASS_OF x) compare)))
+      (result (>= (compare x y FALSE) 0))))
 
-  (define-c-proc time>? (x::Time y::Time) ::boolean
-    (result (> ((-> (SG_CLASS_OF x) compare) x y FALSE) 0)))
+  (define-c-proc time>? (x::<time> y::<time>) ::<boolean>
+    (let ((compare::SgClassCompareProc (-> (SG_CLASS_OF x) compare)))
+      (result (> (compare x y FALSE) 0))))
 
-  (define-c-proc time-difference (x::Time y::Time) ::Object
+  (define-c-proc time-difference (x::<time> y::<time>) 
     (result (Sg_TimeDifference x y (SG_TIME (Sg_MakeTime #f 0 0)))))
 
-  (define-c-proc time-difference! (x::Time y::Time) ::Object
+  (define-c-proc time-difference! (x::<time> y::<time>) 
     (result (Sg_TimeDifference x y x)))
 
-  (define-c-proc add-duration (x::Time y::Time) ::Object
+  (define-c-proc add-duration (x::<time> y::<time>) 
     (result (Sg_AddDuration x y 
 			    (SG_TIME (Sg_MakeTime (-> (SG_TIME x) type) 0 0)))))
 
-  (define-c-proc add-duration! (x::Time y::Time) ::Object
+  (define-c-proc add-duration! (x::<time> y::<time>) 
     (result (Sg_AddDuration x y x)))
 
-  (define-c-proc subtract-duration (x::Time y::Time) ::Object
+  (define-c-proc subtract-duration (x::<time> y::<time>) 
     (result (Sg_SubDuration x y 
 			    (SG_TIME (Sg_MakeTime (-> (SG_TIME x) type) 0 0)))))
 
-  (define-c-proc subtract-duration! (x::Time y::Time) ::Object
+  (define-c-proc subtract-duration! (x::<time> y::<time>) 
     (result (Sg_SubDuration x y x)))
 )

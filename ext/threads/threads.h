@@ -63,7 +63,7 @@ typedef struct SgMutexRec
 } SgMutex;
 
 #define SG_MUTEX(obj)     ((SgMutex *)obj)
-#define SG_MUTEX_P(obj)   SG_XTYPEP(obj, SG_CLASS_MUTEX)
+#define SG_MUTEXP(obj)   SG_XTYPEP(obj, SG_CLASS_MUTEX)
 
 #ifdef _MSC_VER
 struct timespec {

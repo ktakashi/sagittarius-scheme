@@ -53,10 +53,7 @@ typedef struct SgProcessRec
 SG_CLASS_DECL(Sg_ProcessClass);
 #define SG_CLASS_PROCESS   (&Sg_ProcessClass)
 #define SG_PROCESS(obj)   ((SgProcess *)obj)
-#define SG_PROCESS_P(obj) SG_XTYPEP(obj, SG_CLASS_PROCESS)
-
-#define argumentAsProcess(index, tmp_, var_)			\
-  castArgumentType(index, tmp_, var_, pointer, SG_PROCESS_P, SG_PROCESS)
+#define SG_PROCESSP(obj) SG_XTYPEP(obj, SG_CLASS_PROCESS)
 
 SgObject Sg_MakeProcess(SgString *name, SgString *commandLine);
 void     Sg_ProcessCall(SgProcess *process);

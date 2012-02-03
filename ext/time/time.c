@@ -45,7 +45,7 @@ static int time_compare(SgObject x, SgObject y, int equalp)
 {
   SgTime *tx, *ty;
   /* it could be not the save meta object. see compare.c */
-  if (!SG_TIME_P(x) || !SG_TIME_P(y)) return FALSE;
+  if (!SG_TIMEP(x) || !SG_TIMEP(y)) return FALSE;
   tx = SG_TIME(x);
   ty = SG_TIME(y);
   if (equalp) {
@@ -244,10 +244,8 @@ SgObject Sg_SubDuration(SgTime *x, SgTime *y, SgTime *r)
   return r;
 }
 
-SG_CDECL_BEGIN
 extern void Sg__Init_sagittarius_time_impl();
 extern void Sg__Init_sagittarius_date_impl();
-SG_CDECL_END
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__time()
 {

@@ -103,104 +103,13 @@ struct SgSubrRec
 #define SG_DEFINE_SUBR(cvar, req, opt, func, inliner, data)	\
   SG__DEFINE_SUBR_INT(cvar, req, opt, func, inliner, data)
 
-#define argumentRef(index, var)			\
-  (var) = args[index]
+#define SG_ENTER_SUBR(name)
+#define SG_ARGREF(count)   (SG_FP[count])
+#define SG_RETURN(value)   return value
 
-/* convenient macro for cprocedures */
-#define castArgumentType(index, tmp, var, required, pred, cast)		\
-  argumentRef(index, tmp);						\
-  if (!pred(tmp)) {							\
-    Sg_WrongTypeOfArgumentViolation(SG_OBJ(procedureName),		\
-				    Sg_MakeString(UC(#required),	\
-						  SG_LITERAL_STRING),	\
-				    tmp,				\
-				    SG_NIL);				\
-    return SG_UNDEF;							\
-  }									\
-  var = cast(tmp);
-
-#define argumentAsByteVector(index, tmp, var)				\
-  castArgumentType(index, tmp, var, bytevector, SG_BVECTORP, SG_BVECTOR)
-#define argumentAsProcedure(index, tmp, var)				\
-  castArgumentType(index, tmp, var, procudure, SG_PROCEDUREP, SG_PROCEDURE)
-#define argumentAsPort(index, tmp, var)				\
-  castArgumentType(index, tmp, var, port, SG_PORTP, SG_PORT)
-#define argumentAsCodeBuilder(index, tmp, var)				\
-  castArgumentType(index, tmp, var, code-builder, SG_CODE_BUILDERP, SG_CODE_BUILDER)
-#define argumentAsSymbol(index, tmp, var)				\
-  castArgumentType(index, tmp, var, symbol, SG_SYMBOLP, SG_SYMBOL)
-#define argumentAsKeyword(index, tmp, var)				\
-  castArgumentType(index, tmp, var, keyword, SG_KEYWORDP, SG_KEYWORD)
-#define argumentAsHashTable(index, tmp, var)				\
-  castArgumentType(index, tmp, var, hashtable, SG_HASHTABLE_P, SG_HASHTABLE)
-#define argumentAsIdentifier(index, tmp, var)				\
-  castArgumentType(index, tmp, var, identifier, SG_IDENTIFIERP, SG_IDENTIFIER)
-#define argumentAsString(index, tmp, var)				\
-  castArgumentType(index, tmp, var, string, SG_STRINGP, SG_STRING)
-#define argumentAsSyntax(index, tmp, var)				\
-  castArgumentType(index, tmp, var, syntax, SG_SYNTAXP, SG_SYNTAX)
-#define argumentAsMacro(index, tmp, var)				\
-  castArgumentType(index, tmp, var, macro, SG_MACROP, SG_MACRO)
-#define argumentAsVector(index, tmp, var)				\
-  castArgumentType(index, tmp, var, vector, SG_VECTORP, SG_VECTOR)
-#define argumentAsFixnum(index, tmp, var)				\
-  castArgumentType(index, tmp, var, fixnum, SG_INTP, SG_INT_VALUE)
-#define argumentAsBoolean(index, tmp, var)				\
-  castArgumentType(index, tmp, var, boolean, SG_BOOLP, SG_BOOL_VALUE)
-#define argumentAsChar(index, tmp, var)				\
-  castArgumentType(index, tmp, var, character, SG_CHARP, SG_CHAR_VALUE)
-#define argumentAsTuple(index, tmp, var)				\
-  castArgumentType(index, tmp, var, instance, SG_TUPLEP, SG_TUPLE)
-#define argumentAsTranscoder(index, tmp, var)				\
-  castArgumentType(index, tmp, var, transcoder, SG_TRANSCODERP, SG_TRANSCODER)
-#define argumentAsCodec(index, tmp, var)				\
-  castArgumentType(index, tmp, var, codec, SG_CODECP, SG_CODEC)
-#define argumentAsNumber(index, tmp, var)				\
-  castArgumentType(index, tmp, var, number, SG_NUMBERP, SG_OBJ)
-#define argumentAsRecordType(index, tmp, var)				\
-  castArgumentType(index, tmp, var, record-type, SG_RECORD_TYPEP, SG_RECORD_TYPE)
-#define argumentAsGloc(index, tmp, var)				\
-  castArgumentType(index, tmp, var, gloc, SG_GLOCP, SG_GLOC)
-#define argumentAsVM(index, tmp, var)				\
-  castArgumentType(index, tmp, var, gloc, SG_VMP, SG_VM)
-
-/* for library we need special treat */
-#define argumentAsLibrary(index, tmp, var)				\
-  argumentRef(index, tmp);						\
-  if (!SG_LIBRARYP(tmp)) {						\
-    var = SG_LIBRARY(Sg_FindLibrary(tmp, FALSE));			\
-  } else {								\
-    castArgumentType(index, tmp, var, library, SG_LIBRARYP, SG_LIBRARY); \
-  }
-
-#define argumentAsCharSet(index, tmp, var)				\
-  castArgumentType(index, tmp, var, char-set, SG_CHAR_SET_P, SG_CHAR_SET)
-
-#define retrieveOptionalArguments(index, var)	\
-  var = Sg_ArrayToList(args + (index), argc - (index));
-
-#define DeclareProcedureName(name)					\
-  static SgObject procedureName = SG_UNDEF;				\
-  if (SG_UNDEFP(procedureName)) {					\
-    procedureName = Sg_MakeString(UC(name), SG_LITERAL_STRING);		\
-  }
-
-#define checkArgumentLength(count)					\
-  if (argc != (count)) {						\
-    Sg_WrongNumberOfArgumentsViolation(SG_OBJ(procedureName), (count), argc, SG_NIL); \
-    return SG_UNDEF;							\
-  }
-#define checkArgumentLengthBetween(start, end)				\
-  if (argc < (start) || argc > (end)) {					\
-    Sg_WrongNumberOfArgumentsBetweenViolation(SG_OBJ(procedureName), (start), (end), argc, SG_NIL); \
-    return SG_UNDEF;							\
-  }
-#define checkArgumentLengthAtLeast(count)				\
-  if (argc < (count)) {							\
-    Sg_WrongNumberOfArgumentsAtLeastViolation(SG_OBJ(procedureName), (count), argc, SG_NIL); \
-    return SG_UNDEF;							\
-  }
-    
+#define SG_MAYBE_P(pred, obj)     (SG_FALSEP(obj)||(pred(obj)))
+#define SG_MAYBE(unboxer, obj) 	  (SG_FALSEP(obj)?NULL:(unboxer(obj)))
+#define SG_MAKE_MAYBE(boxer, obj) ((obj)?(boxer(obj)):SG_FALSE)
 
 SG_CDECL_BEGIN
 

@@ -393,6 +393,9 @@ typedef enum  {
 #define SG_XTYPEP(obj, klass)			\
   (SG_HPTRP(obj)&&(SG_HDR(obj)->tag == SG_CLASS2TAG(klass)))
 
+/* safe coercer */
+#define SG_OBJ_SAFE(obj) ((obj)?SG_OBJ(obj):SG_UNDEF)
+
 /* utility for vector, string, etc
    TODO move somewhere
  */

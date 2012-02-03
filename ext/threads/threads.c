@@ -324,8 +324,8 @@ unsigned long Sg_SysNanosleep(double v)
   }
 }
 
-SG_CDECL_BEGIN
 extern void Sg__Init_sagittarius_threads_impl();
+SG_CDECL_BEGIN
 extern void Sg__InitMutex();
 SG_CDECL_END
 

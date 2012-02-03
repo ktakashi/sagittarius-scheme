@@ -58,7 +58,7 @@
     (er-macro-transformer
      (lambda (form rename compare)
        (define (collect-accessor slot-defs)
-	 (let loop ((defs slot-defs)
+	 (let loop ((defs (unwrap-syntax slot-defs))
 		    (r '()))
 	   (match defs
 	     (() r)
@@ -69,16 +69,28 @@
 				    (symbol? (cadr s)))
 			 (syntax-violation 'define-class
 					   "malformed slot specifier"
-					   form
-					   (car def)))
+					   (unwrap-syntax form)
+					   (unwrap-syntax (car def))))
 		       (loop (cdr defs)
 			     (acons (caar defs) (cadr s) r)))
 		      (else (loop (cdr defs) r)))))
 	     (_
 	      ;; error
 	      (syntax-violation 'define-class
-				"malformed slot specifier" form (car defs))))))
+				"malformed slot specifier"
+				(unwrap-syntax form)
+				(unwrap-syntax (car defs)))))))
        (define (build name supers slot-defs)
+	 ;; ugly kluge
+	 (define (remove-quote rest)
+	   (let loop ((v rest)
+		      (r '()))
+	     (cond ((null? v) (reverse! r))
+		   ((and (eq? (car v) :init-value)
+			 (pair? (cadr v))
+			 (eq? (caadr v) (quote quote)))
+		    (loop (cddr v) (cons* (cadadr v) :init-value r)))
+		   (else (loop (cdr v) (cons (car v) r))))))
 	 ;; we creates generic accessor and the rest will be
 	 ;; for generic make
 	 (let ((accessors (collect-accessor slot-defs))
@@ -93,7 +105,10 @@
 		 (,_make ,(rename '<class>)
 			 :definition-name (,_quote ,name)
 			 :direct-supers   (,_list ,@supers)
-			 :direct-slots    (,_quote ,slot-defs)))
+			 :direct-slots    ',(map (^s (cons 
+						      (car s)
+						      (remove-quote (cdr s))))
+						 slot-defs)))
 	     ,@(if (null? accessors)
 		  `((,(rename 'undefined)))
 		  ;; build generic
