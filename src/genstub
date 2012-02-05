@@ -1,9 +1,11 @@
 ;; -*- Scheme -*-
+#<(sagittarius regex)>
 (import (sagittarius cgen stub)
+	(sagittarius regex)
 	(util file)
 	(shorten))
 
-(define (gen . files)
+(define (gen files)
   (print "generating files:" files)
   (for-each (^f (let* ((b (path-sans-extension f))
 		       (c (format "~a.c" b))
@@ -17,8 +19,11 @@
 		  (unless exit?
 		    (cgen-genstub f))))
 	    files))
-
-(gen "proclib.stub"
+(gen
+ (filter values
+	 (map (^f (if (looking-at #/\.stub$/ f) f #f))
+	      (read-directory "."))))
+#;(gen "proclib.stub"
      "null.stub"
      "vmlib.stub"
      "vmdebug.stub"
