@@ -2166,23 +2166,25 @@
 			     "out of range"
 			     (SG_MAKE_INT ,t)))))
 
-  (decl-code
-   (.typedef "uint8_t*" "uint8_t_ptr"))
-
-  (define-c-proc get-bytevector-n (p::<port> count::<fixnum> :optional (reckless #f)) ::<top>
+  (define-c-proc get-bytevector-n
+    (p::<port> count::<fixnum> :optional (reckless #f))
     (check-port-open get-bytevector-n p)
     (when (SG_FALSEP reckless)
       (check-binary-port get-bytevector-n p))
     (check-input-port get-bytevector-n p)
     (check-non-negative-fixnum get-bytevector-n count)
-    (let ((buf::uint8_t* (SG_NEW_ATOMIC2 uint8_t_ptr count))
-	  (res::int64_t (Sg_Readb p buf count)))
-      (if (== res 0)
-	  (result SG_EOF)
-	  (result (Sg_MakeByteVectorFromU8Array buf res)))))
+    (let ((buf (Sg_MakeByteVector count 0))
+	  (res::int64_t (Sg_Readb p (SG_BVECTOR_ELEMENTS buf) count)))
+      (cond ((== res 0)
+	     (result SG_EOF))
+	    (else
+	     (unless (== count res)
+	       (set! (SG_BVECTOR_SIZE buf) res))
+	     (result buf)))))
 
   (define-c-proc get-bytevector-n!
-    (p::<port> bv::<bytevector> start::<fixnum> count::<fixnum> :optional (reckless #f)) ::<top>
+    (p::<port> bv::<bytevector> start::<fixnum> count::<fixnum>
+	       :optional (reckless #f))
     (check-port-open get-bytevector-n! p)
     (when (SG_FALSEP reckless)
       (check-binary-port get-bytevector-n p))
@@ -2191,14 +2193,10 @@
     (check-non-negative-fixnum get-bytevector-n! count)
     (check-fixnum-range get-bytevector-n! (SG_BVECTOR_SIZE bv)
 			(+ start count) >=)
-    (let ((buf::uint8_t* (SG_NEW_ATOMIC2 uint8_t_ptr count))
-	  (res::int64_t (Sg_Readb p buf count)))
-      (cond ((== res 0)
-	     (result SG_EOF))
-	    (else
-	     (memcpy (+ (SG_BVECTOR_ELEMENTS bv) start)
-		     buf res)
-	     (result (SG_MAKE_INT res))))))
+    (let ((res::int64_t (Sg_Readb p (+ (SG_BVECTOR_ELEMENTS bv) start) count)))
+      (if (== res 0)
+	  (result SG_EOF)
+	  (result (SG_MAKE_INT res)))))
 
   ;; TODO this allocates memory twice.
   (define-c-proc get-bytevector-some (p::<port> :optional (reckless #f)) ::<top>
@@ -2206,11 +2204,14 @@
     (when (SG_FALSEP reckless)
       (check-binary-port get-bytevector-n p))
     (check-input-port get-bytevector-some p)
-    (let ((buf::uint8_t* (SG_NEW_ATOMIC2 uint8_t_ptr 512)) ;; some
-	  (res::int64_t (Sg_Readb p buf 512)))
-      (if (== res 0)
-	  (result SG_EOF)
-	  (result (Sg_MakeByteVectorFromU8Array buf res)))))
+    (let ((buf (Sg_MakeByteVector 512 0)) ;; some
+	  (res::int64_t (Sg_Readb p (SG_BVECTOR_ELEMENTS buf) 512)))
+      (cond ((== res 0)
+	     (result SG_EOF))
+	    (else
+	     (unless (== res 512)
+	       (set! (SG_BVECTOR_SIZE buf) res))
+	     (result buf)))))
 
   (define-c-proc get-bytevector-all (p::<port> :optional (reckless #f)) ::<top>
     (check-port-open get-bytevector-all p)

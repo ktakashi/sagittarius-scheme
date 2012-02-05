@@ -94,13 +94,11 @@
 			   (SG_BVECTOR_SIZE bv)
 			   flags)))
 
-  (decl-code
-   (.typedef "uint8_t*" "uint8_t_ptr"))
-
   (define-c-proc socket-recv (o::<socket> len::<fixnum> flags::<fixnum>) 
-    (let ((data::uint8_t* (SG_NEW_ATOMIC2 uint8_t_ptr len))
-	  (result::int (Sg_SocketReceive (SG_SOCKET o) data len flags)))
-      (result (Sg_MakeByteVectorFromU8Array data result))))
+    (let ((data (Sg_MakeByteVector len 0))
+	  (result::int (Sg_SocketReceive (SG_SOCKET o)
+					 (SG_BVECTOR_ELEMENTS data) len flags)))
+      (result data)))
 
   (define-c-proc socket-shutdown (o::<socket> how::<fixnum>) ::<void>
     (Sg_SocketShutdown (SG_SOCKET o) how))
