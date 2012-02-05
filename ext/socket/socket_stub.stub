@@ -33,8 +33,8 @@
 
   (define-c-proc make-client-socket 
     (node service :optional
-	  (ai_family::<fixnum> AF_INET)
-	  (ai_socktype::<fixnum> SOCK_STREAM)
+	  (ai_family::<fixnum> (SG_MAKE_INT AF_INET))
+	  (ai_socktype::<fixnum> (SG_MAKE_INT SOCK_STREAM))
 	  (ai_flags::<fixnum> (SG_MAKE_INT (+ AI_V4MAPPED AI_ADDRCONFIG)))
 	  (ai_protocol::<fixnum> 0))
     
@@ -59,8 +59,8 @@
 
   (define-c-proc make-server-socket 
     (service :optional
-	     (ai_family::<fixnum> AF_INET)
-	     (ai_socktype::<fixnum> SOCK_STREAM)
+	     (ai_family::<fixnum> (SG_MAKE_INT AF_INET))
+	     (ai_socktype::<fixnum> (SG_MAKE_INT SOCK_STREAM))
 	     (ai_protocol::<fixnum> 0))
     (check-string-or-false make-server-socket service)
     (when (SG_FALSEP service)

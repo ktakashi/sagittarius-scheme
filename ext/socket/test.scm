@@ -1,4 +1,4 @@
-;; -*- scheme --*-
+;; -*- scheme -*-
 
 (add-load-path "./socket")
 (library (socket test)
