@@ -8,9 +8,9 @@
 #include <sagittarius.h>
 
 static struct sg__rcRec {
-  SgObject d735[7];
+  SgObject d472[7];
 } sg__rc = {
-  {  /* SgObject d735 */
+  {  /* SgObject d472 */
     SG_UNBOUND,
     SG_UNBOUND,
     SG_UNBOUND,
@@ -31,7 +31,7 @@ static SgObject proclib_procedure_name(SgObject *SG_FP, int SG_ARGC, void *data_
   arg0_scm = SG_ARGREF(0);
   if (!SG_PROCEDUREP(arg0_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d735[0], SG_MAKE_STRING("procedure"), arg0_scm, SG_NIL);
+       sg__rc.d472[0], SG_MAKE_STRING("procedure"), arg0_scm, SG_NIL);
   arg0 = SG_PROCEDURE(arg0_scm);
   {
 {
@@ -56,7 +56,7 @@ static SgObject proclib_procedure_inliner(SgObject *SG_FP, int SG_ARGC, void *da
   arg0_scm = SG_ARGREF(0);
   if (!SG_PROCEDUREP(arg0_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d735[1], SG_MAKE_STRING("procedure"), arg0_scm, SG_NIL);
+       sg__rc.d472[1], SG_MAKE_STRING("procedure"), arg0_scm, SG_NIL);
   arg0 = SG_PROCEDURE(arg0_scm);
   {
 {
@@ -83,7 +83,7 @@ static SgObject proclib_procedure_inliner_setX(SgObject *SG_FP, int SG_ARGC, voi
   arg0_scm = SG_ARGREF(0);
   if (!SG_PROCEDUREP(arg0_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d735[2], SG_MAKE_STRING("procedure"), arg0_scm, SG_NIL);
+       sg__rc.d472[2], SG_MAKE_STRING("procedure"), arg0_scm, SG_NIL);
   arg0 = SG_PROCEDURE(arg0_scm);
   arg1_scm = SG_ARGREF(1);
   arg1 = (arg1_scm);
@@ -113,7 +113,7 @@ static SgObject proclib_procedure_reqargs(SgObject *SG_FP, int SG_ARGC, void *da
   arg0_scm = SG_ARGREF(0);
   if (!SG_PROCEDUREP(arg0_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d735[3], SG_MAKE_STRING("procedure"), arg0_scm, SG_NIL);
+       sg__rc.d472[3], SG_MAKE_STRING("procedure"), arg0_scm, SG_NIL);
   arg0 = SG_PROCEDURE(arg0_scm);
   {
 {
@@ -138,7 +138,7 @@ static SgObject proclib_procedure_optional(SgObject *SG_FP, int SG_ARGC, void *d
   arg0_scm = SG_ARGREF(0);
   if (!SG_PROCEDUREP(arg0_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d735[4], SG_MAKE_STRING("procedure"), arg0_scm, SG_NIL);
+       sg__rc.d472[4], SG_MAKE_STRING("procedure"), arg0_scm, SG_NIL);
   arg0 = SG_PROCEDURE(arg0_scm);
   {
 {
@@ -189,7 +189,7 @@ static SgObject proclib_find_procedure(SgObject *SG_FP, int SG_ARGC, void *data_
   name_scm = SG_ARGREF(0);
   if (!SG_SYMBOLP(name_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d735[6], SG_MAKE_STRING("symbol"), name_scm, SG_NIL);
+       sg__rc.d472[6], SG_MAKE_STRING("symbol"), name_scm, SG_NIL);
   name = SG_SYMBOL(name_scm);
   lib_scm = SG_ARGREF(1);
   lib = (lib_scm);
@@ -210,25 +210,25 @@ static SG_DEFINE_SUBR(proclib_find_procedure__STUB, 2, 0,proclib_find_procedure,
 
 void Sg__Init_sagittarius_compiler_procedure () {
   SgLibrary *lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius compiler procedure)"), TRUE));
-  sg__rc.d735[0] = SG_MAKE_STRING("procedure-name");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d735[0]), &proclib_procedure_name__STUB);
-  SG_PROCEDURE_NAME(&proclib_procedure_name__STUB) = sg__rc.d735[0];
-  sg__rc.d735[1] = SG_MAKE_STRING("procedure-inliner");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d735[1]), &proclib_procedure_inliner__STUB);
-  SG_PROCEDURE_NAME(&proclib_procedure_inliner__STUB) = sg__rc.d735[1];
-  sg__rc.d735[2] = SG_MAKE_STRING("procedure-inliner-set!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d735[2]), &proclib_procedure_inliner_setX__STUB);
-  SG_PROCEDURE_NAME(&proclib_procedure_inliner_setX__STUB) = sg__rc.d735[2];
-  sg__rc.d735[3] = SG_MAKE_STRING("procedure-reqargs");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d735[3]), &proclib_procedure_reqargs__STUB);
-  SG_PROCEDURE_NAME(&proclib_procedure_reqargs__STUB) = sg__rc.d735[3];
-  sg__rc.d735[4] = SG_MAKE_STRING("procedure-optional");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d735[4]), &proclib_procedure_optional__STUB);
-  SG_PROCEDURE_NAME(&proclib_procedure_optional__STUB) = sg__rc.d735[4];
-  sg__rc.d735[5] = SG_MAKE_STRING("inline?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d735[5]), &proclib_inlineP__STUB);
-  SG_PROCEDURE_NAME(&proclib_inlineP__STUB) = sg__rc.d735[5];
-  sg__rc.d735[6] = SG_MAKE_STRING("find-procedure");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d735[6]), &proclib_find_procedure__STUB);
-  SG_PROCEDURE_NAME(&proclib_find_procedure__STUB) = sg__rc.d735[6];
+  sg__rc.d472[0] = SG_MAKE_STRING("procedure-name");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d472[0]), &proclib_procedure_name__STUB);
+  SG_PROCEDURE_NAME(&proclib_procedure_name__STUB) = sg__rc.d472[0];
+  sg__rc.d472[1] = SG_MAKE_STRING("procedure-inliner");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d472[1]), &proclib_procedure_inliner__STUB);
+  SG_PROCEDURE_NAME(&proclib_procedure_inliner__STUB) = sg__rc.d472[1];
+  sg__rc.d472[2] = SG_MAKE_STRING("procedure-inliner-set!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d472[2]), &proclib_procedure_inliner_setX__STUB);
+  SG_PROCEDURE_NAME(&proclib_procedure_inliner_setX__STUB) = sg__rc.d472[2];
+  sg__rc.d472[3] = SG_MAKE_STRING("procedure-reqargs");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d472[3]), &proclib_procedure_reqargs__STUB);
+  SG_PROCEDURE_NAME(&proclib_procedure_reqargs__STUB) = sg__rc.d472[3];
+  sg__rc.d472[4] = SG_MAKE_STRING("procedure-optional");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d472[4]), &proclib_procedure_optional__STUB);
+  SG_PROCEDURE_NAME(&proclib_procedure_optional__STUB) = sg__rc.d472[4];
+  sg__rc.d472[5] = SG_MAKE_STRING("inline?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d472[5]), &proclib_inlineP__STUB);
+  SG_PROCEDURE_NAME(&proclib_inlineP__STUB) = sg__rc.d472[5];
+  sg__rc.d472[6] = SG_MAKE_STRING("find-procedure");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d472[6]), &proclib_find_procedure__STUB);
+  SG_PROCEDURE_NAME(&proclib_find_procedure__STUB) = sg__rc.d472[6];
 }

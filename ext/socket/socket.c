@@ -247,6 +247,7 @@ SgSocket* Sg_CreateServerSocket(SgString *service,
 
 int Sg_SocketReceive(SgSocket *socket, uint8_t *data, int size, int flags)
 {
+  int count = 0, osize = size;
   ASSERT(Sg_SocketOpenP(socket));
   for (;;) {
     const int ret = recv(socket->socket, (char*)data, size, flags);
@@ -260,7 +261,12 @@ int Sg_SocketReceive(SgSocket *socket, uint8_t *data, int size, int flags)
 	return ret;
       }
     }
-    return ret;
+    if (ret == 0) return count;
+    count += ret;
+    if (count >= osize)
+      return count;
+    data += ret;
+    size -= ret;
   }
 }
 

@@ -2555,8 +2555,7 @@
     (check-output-port put-bytevector p)
     (check-non-negative-fixnum put-bytevector start)
     (check-non-negative-fixnum put-bytevector count)
-    (unless (and (< start (SG_BVECTOR_SIZE bv))
-		 (<= count (- (SG_BVECTOR_SIZE bv) start)))
+    (unless (<= (+ count start) (SG_BVECTOR_SIZE bv))
       (assertion-violation 'put-bytevector
 			   "invalid range"))
     (Sg_Writeb p (SG_BVECTOR_ELEMENTS bv) start count))
@@ -2578,20 +2577,15 @@
     (check-textual-port put-string p)
     (check-non-negative-fixnum put-string start)
     (check-non-negative-fixnum put-string count)
-    (unless (and (< start (SG_STRING_SIZE s))
-		 (<= count (- (SG_STRING_SIZE s) start)))
+    (unless (<= (+ count start) (SG_STRING_SIZE s))
       (assertion-violation 'put-string
 			   "invalid range"))
     ;; TODO not so pretty
     (SG_PORT_LOCK p)
     (let ((i::int start))
-      (loop
-       (cond ((== i (+ count start))
-	      (break))
-	     (else
-	      (Sg_PutcUnsafe p (SG_STRING_VALUE_AT s i))
-	      (post++ i))))
-      (SG_PORT_UNLOCK p)))
+      (for (() (< i (+ count start)) (post++ i))
+	   (Sg_PutcUnsafe p (SG_STRING_VALUE_AT s i))))
+    (SG_PORT_UNLOCK p))
 
   (define-c-proc put-datum (p::<port> datum) ::<void>
     (check-port-open put-datum p)
