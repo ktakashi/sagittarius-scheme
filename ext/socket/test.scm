@@ -26,7 +26,6 @@
 	      (let lp2 ((r (get-line p)))
 		(unless (and (string? r)
 			     (string=? r "test-end"))
-		  ;;(eof-object? r)
 		  (put-string p r)
 		  (put-string p "\r\n")
 		  (lp2 (get-line p)))))))))

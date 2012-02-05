@@ -395,7 +395,7 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
 				    read_helper helper,
 				    SgReadContext *ctx)
 {
-  SgChar buf[SYMBOL_MAX_SIZE];
+  SgChar buf[READ_STRING_MAX_SIZE];
   int i = 0;
   SgChar c;
   readtable_t *table = Sg_CurrentReadTable();
