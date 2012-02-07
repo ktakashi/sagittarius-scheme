@@ -206,4 +206,7 @@ insert_binding(Z_UNKNOWN);
 
 #undef insert_binding
  z_version = SG_MAKE_STRING(ZLIB_VERSION);
+ /* well this class should not be used, but for consistancy */
+ Sg_InitStaticClassWithMeta(SG_CLASS_ZSTREAM, UC("<z-stream>"), lib, NULL,
+			    SG_FALSE, NULL, 0);
 }

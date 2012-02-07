@@ -75,7 +75,10 @@
 	    MSG_ERRQUEUE
 	    MSG_NOSIGNAL
 	    MSG_MORE
-	    MSG_EOF)
+	    MSG_EOF
+	    ;; clos
+	    <socket>
+	    )
     (import (core)
 	    (sagittarius)
 	    (sagittarius socket impl))

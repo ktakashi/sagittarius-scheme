@@ -118,6 +118,8 @@
 
 	    ;; converte to string
 	    date->string string->date
+	    ;; clos
+	    <time> <date>
 	    )
     (import (core)
 	    (core base)

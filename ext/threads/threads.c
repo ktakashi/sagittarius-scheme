@@ -336,6 +336,7 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__threads()
   Sg__Init_sagittarius_threads_impl();
   SG_PROCEDURE_NAME(&thread_error_handler_STUB)
     = Sg_MakeString(UC("thread-exception-handler"), SG_LITERAL_STRING);
+  
 }
 
 /*

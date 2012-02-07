@@ -249,6 +249,7 @@ extern void Sg__Init_sagittarius_date_impl();
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__time()
 {
+  SgLibrary *tlib, *dlib;
   SG_INIT_EXTENSION(sagittarius__time);
   time_utc = SG_INTERN("time-utc");
   time_tai = SG_INTERN("time-tai");
@@ -258,5 +259,14 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__time()
   time_thread = SG_INTERN("time-thread");
   Sg__Init_sagittarius_time_impl();
   Sg__Init_sagittarius_date_impl();
+
+  tlib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius time impl)"),
+				   FALSE));
+  dlib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius date impl)"),
+				   FALSE));
+  Sg_InitStaticClassWithMeta(SG_CLASS_TIME, UC("<time>"), tlib, NULL,
+			     SG_FALSE, NULL, 0);
+  Sg_InitStaticClassWithMeta(SG_CLASS_DATE, UC("<date>"), dlib, NULL,
+			     SG_FALSE, NULL, 0); 
 }
 

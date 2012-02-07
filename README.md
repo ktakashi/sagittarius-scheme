@@ -79,8 +79,10 @@ file `innosetup.iss`. Go to [Build] - [Compile], then it will create the
 installer. For more detail, please see Inno Setup's document.
 
 # How to develop it?
-Sagittarius requires [Gauche](http://practical-scheme.net/gauche/index.html) to
-develop boot code, such as compiler and builtin Scheme libraries.
-
 We provide `autogen.sh` for developper and it generates boot code, VM
 instrustions and generated code from stub file. For more detail, see the file.
+
+NOTE:
+If Sagittarius itself is so unstable to generate boot code, you can also use
+[Gauche](http://practical-scheme.net/gauche/index.html) for it.
+

@@ -272,6 +272,7 @@ static SgRecordType uncaught_exception;
 SG_CDECL_BEGIN
 void Sg__InitMutex()
 {
+  SgLibrary *lib;
   SG_DECLARE_EXCEPTIONS("(sagittarius threads impl)", TRUE);
   SgObject null_lib = Sg_FindLibrary(SG_INTERN("null"), FALSE);
   /* TODO should parent be &assertion? */
@@ -342,6 +343,14 @@ void Sg__InitMutex()
   sym_not_owned      = SG_INTERN("not-owned");
   sym_abandoned      = SG_INTERN("abandoned");
   sym_not_abandoned  = SG_INTERN("not-abandoned");
+  
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius threads impl)"),
+				  FALSE));
+  Sg_InitStaticClassWithMeta(SG_CLASS_MUTEX, UC("<mutex>"), lib, NULL,
+			     SG_FALSE, NULL, 0);
+  Sg_InitStaticClassWithMeta(SG_CLASS_CONDITION_VARIABLE,
+			     UC("<condition-variable>"), lib, NULL,
+			     SG_FALSE, NULL, 0);
 }
 SG_CDECL_END
 /*

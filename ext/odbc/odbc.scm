@@ -61,7 +61,10 @@
 	    ;; converter
 	    odbc-date->date
 	    odbc-time->time
-	    odbc-timestamp->date)
+	    odbc-timestamp->date
+	    ;; clos
+	    <odbc-ctx> <odbc-date>
+	    )
     (import (odbc impl)
 	    (rnrs)
 	    (sagittarius)

@@ -41,6 +41,8 @@
 	    raise-decrypt-error
 	    raise-encode-error
 	    raise-decode-error
+	    ;;
+	    <crypto>
 	    )
     (import (rnrs)
 	    (sagittarius crypto impl))

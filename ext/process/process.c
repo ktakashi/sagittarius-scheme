@@ -64,7 +64,12 @@ extern void Sg__Init_sagittarius_process_impl();
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__process()
 {
+  SgLibrary *lib;
   SG_INIT_EXTENSION(sagittarius__process);
   init_process();
   Sg__Init_sagittarius_process_impl();
+  lib = 
+    SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius process impl)"), FALSE));
+  Sg_InitStaticClassWithMeta(SG_CLASS_PROCESS, UC("<process>"), lib, NULL,
+			     SG_FALSE, NULL, 0);
 }

@@ -47,7 +47,8 @@
 	    process-run
 	    process-call
 	    process-wait
-	    run)
+	    run
+	    <process>)
     (import (core)
 	    (sagittarius process impl))
 

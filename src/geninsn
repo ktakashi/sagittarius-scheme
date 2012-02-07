@@ -1,9 +1,4 @@
 ;; -*- scheme -*-
-#|
-(import (rnrs)
-	(sagittarius cgen vminsn))
-(gen-insn "../boot/instructions.scm")
-|#
 (import (rnrs)
 	(sagittarius io)
 	(sagittarius vm)
@@ -80,9 +75,7 @@
 
 (define (populate-insn-info definsns)
   (let1 insns (map-with-index parse-define-inst definsns)
-    #;(dolist (insn insns)
-      (and-let* ((comb (slot-ref insn'combined)))
-	))
+    ;; do we need to do something here?
     insns))
 
 (define insn-alist (make-parameter '()))

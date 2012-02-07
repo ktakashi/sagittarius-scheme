@@ -1356,6 +1356,15 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__ffi()
   ctable = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_EQ, 0));
   ref_table = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_EQ, 0));
 
+  Sg_InitStaticClassWithMeta(SG_CLASS_POINTER, UC("<pointer>"), lib, NULL,
+			     SG_FALSE, NULL, 0);
+  Sg_InitStaticClassWithMeta(SG_CLASS_FUNC_INFO, UC("<function-info>"),
+			     lib, NULL, SG_FALSE, NULL, 0);
+  Sg_InitStaticClassWithMeta(SG_CLASS_CALLBACK, UC("<callback>"),
+			     lib, NULL, SG_FALSE, NULL, 0);
+  Sg_InitStaticClassWithMeta(SG_CLASS_CSTRUCT, UC("<c-struct>"),
+			     lib, NULL, SG_FALSE, NULL, 0);
+
 #define CONST_VALUE(name, v) Sg_InsertBinding(lib, SG_INTERN(#name), SG_MAKE_INT(v))
 #define SIZE_VALUE(name) CONST_VALUE(size-of-name, sizeof(name))
   /* bool is not C type */

@@ -412,4 +412,7 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__crypto()
   MODE_CONST(CTR_COUNTER_LITTLE_ENDIAN);
   MODE_CONST(CTR_COUNTER_BIG_ENDIAN);
   MODE_CONST(LTC_CTR_RFC3686);
+
+  Sg_InitStaticClassWithMeta(SG_CLASS_CRYPTO, UC("<crypto>"), lib, NULL,
+			     SG_FALSE, NULL, 0);
 }

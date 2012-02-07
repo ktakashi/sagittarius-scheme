@@ -128,6 +128,8 @@
 	    ;; utility
 	    null-pointer
 	    null-pointer?
+	    ;; clos
+	    <pointer> <function-info> <callback> <c-struct>
 	    )
     (import (core)
 	    (core base)

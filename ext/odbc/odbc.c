@@ -529,6 +529,7 @@ extern void Sg__Init_odbc_impl();
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__odbc()
 {
+  SgLibrary *lib;
   SG_DECLARE_EXCEPTIONS("(odbc impl)", TRUE);
   SgObject null_lib = Sg_FindLibrary(SG_INTERN("null"), FALSE);
   SgObject parent = Sg_FindBinding(SG_LIBRARY(null_lib), SG_INTERN("&error"), SG_UNBOUND);
@@ -552,4 +553,10 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__odbc()
   SG_INTERN__CONDITION_CTR(&odbc_error, make-odbc-error);
   SG_INTERN__CONDITION_PRED(&odbc_error, odbc-error?);
   SG_SET_CONSTRUCTOR(odbc_error_ctr);
+
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(odbc impl)"), FALSE));
+  Sg_InitStaticClassWithMeta(SG_CLASS_ODBC_CTX, UC("<odbc-ctx>"), lib, NULL,
+			     SG_FALSE, NULL, 0);
+  Sg_InitStaticClassWithMeta(SG_CLASS_ODBC_DATE, UC("<odbc-date>"), lib, NULL,
+			     SG_FALSE, NULL, 0);
 }

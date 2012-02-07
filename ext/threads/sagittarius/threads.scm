@@ -73,6 +73,8 @@
 
 	    sys-nanosleep
 	    thread-guard
+	    ;; clos
+	    <thread> <mutex> <condition-variable>
 	    )
     (import (core)
 	    (core syntax)

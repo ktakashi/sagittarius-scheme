@@ -554,7 +554,8 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__socket()
   lib = SG_LIBRARY(Sg_FindLibrary(SG_SYMBOL(SG_INTERN("(sagittarius socket impl)")), FALSE));
 
   Sg_AddCondFeature(UC("sagittarius.socket"));
-
+  Sg_InitStaticClassWithMeta(SG_CLASS_SOCKET, UC("<socket>"), lib, NULL,
+			     SG_FALSE, NULL, 0);
   /* from Ypsilon */
 #define ARCH_CCONST(name)					\
   Sg_MakeBinding(lib, SG_SYMBOL(SG_INTERN(#name)), SG_MAKE_INT(name), TRUE)

@@ -20,6 +20,8 @@
 	    SHA-256 RIPEMD-256 SHA-224 SHA-224   
 	    Tiger-192 SHA-1 RIPEMD-160 RIPEMD-128
 	    MD5 MD4 MD2
+	    ;; clos
+	    <prng> <hash-algorithm>
 	    )
     (import (core) (sagittarius math impl))
   ;; pseudo-random type
