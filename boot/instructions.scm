@@ -69,12 +69,12 @@
 	   (let ((value (Sg_FindBinding (SG_IDENTIFIER_LIBRARY var)
 					(SG_IDENTIFIER_NAME var)
 					SG_UNBOUND)))
-	     (cond ((SG_UNBOUNDP value)
-		    (assertion-violation "vm"
-					 "unbound variable" var))
-		   ((SG_GLOCP value)
+	     (cond ((SG_GLOCP value)
 		    (set! (AC vm) (SG_GLOC_GET (SG_GLOC value))
 			  (pointer (- (PC vm) 1)) (SG_WORD value)))
+		   ((SG_UNBOUNDP value)
+		    (assertion-violation "vm"
+					 "unbound variable" var))
 		   (else (ASSERT FALSE)))))
 	  (else (ASSERT FALSE)))))
 

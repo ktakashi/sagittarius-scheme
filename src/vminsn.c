@@ -183,12 +183,12 @@ SG_IDENTIFIERP(var)){
 {SgObject value=Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var),
 SG_IDENTIFIER_NAME(var),SG_UNBOUND);
 #line 72 "../boot/instructions.scm"
-if (SG_UNBOUNDP(value)){
-{Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}}else if(
-#line 75 "../boot/instructions.scm"
-SG_GLOCP(value)){
+if (SG_GLOCP(value)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(value))),
-(*((PC(vm))-(1)))=(SG_WORD(value));} else {
+(*((PC(vm))-(1)))=(SG_WORD(value));}else if(
+SG_UNBOUNDP(value)){
+{Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}} else {
+#line 78 "../boot/instructions.scm"
 ASSERT(FALSE);}}} else {
 ASSERT(FALSE);}}}
   NEXT;
@@ -901,12 +901,12 @@ SG_IDENTIFIERP(var)){
 {SgObject value=Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var),
 SG_IDENTIFIER_NAME(var),SG_UNBOUND);
 #line 72 "../boot/instructions.scm"
-if (SG_UNBOUNDP(value)){
-{Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}}else if(
-#line 75 "../boot/instructions.scm"
-SG_GLOCP(value)){
+if (SG_GLOCP(value)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(value))),
-(*((PC(vm))-(1)))=(SG_WORD(value));} else {
+(*((PC(vm))-(1)))=(SG_WORD(value));}else if(
+SG_UNBOUNDP(value)){
+{Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}} else {
+#line 78 "../boot/instructions.scm"
 ASSERT(FALSE);}}} else {
 ASSERT(FALSE);}}}
 {
@@ -944,12 +944,12 @@ SG_IDENTIFIERP(var)){
 {SgObject value=Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var),
 SG_IDENTIFIER_NAME(var),SG_UNBOUND);
 #line 72 "../boot/instructions.scm"
-if (SG_UNBOUNDP(value)){
-{Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}}else if(
-#line 75 "../boot/instructions.scm"
-SG_GLOCP(value)){
+if (SG_GLOCP(value)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(value))),
-(*((PC(vm))-(1)))=(SG_WORD(value));} else {
+(*((PC(vm))-(1)))=(SG_WORD(value));}else if(
+SG_UNBOUNDP(value)){
+{Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}} else {
+#line 78 "../boot/instructions.scm"
 ASSERT(FALSE);}}} else {
 ASSERT(FALSE);}}}
 {
@@ -969,12 +969,12 @@ SG_IDENTIFIERP(var)){
 {SgObject value=Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var),
 SG_IDENTIFIER_NAME(var),SG_UNBOUND);
 #line 72 "../boot/instructions.scm"
-if (SG_UNBOUNDP(value)){
-{Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}}else if(
-#line 75 "../boot/instructions.scm"
-SG_GLOCP(value)){
+if (SG_GLOCP(value)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(value))),
-(*((PC(vm))-(1)))=(SG_WORD(value));} else {
+(*((PC(vm))-(1)))=(SG_WORD(value));}else if(
+SG_UNBOUNDP(value)){
+{Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}} else {
+#line 78 "../boot/instructions.scm"
 ASSERT(FALSE);}}} else {
 ASSERT(FALSE);}}}
 {
@@ -1192,12 +1192,12 @@ SG_IDENTIFIERP(var)){
 {SgObject value=Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var),
 SG_IDENTIFIER_NAME(var),SG_UNBOUND);
 #line 72 "../boot/instructions.scm"
-if (SG_UNBOUNDP(value)){
-{Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}}else if(
-#line 75 "../boot/instructions.scm"
-SG_GLOCP(value)){
+if (SG_GLOCP(value)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(value))),
-(*((PC(vm))-(1)))=(SG_WORD(value));} else {
+(*((PC(vm))-(1)))=(SG_WORD(value));}else if(
+SG_UNBOUNDP(value)){
+{Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}} else {
+#line 78 "../boot/instructions.scm"
 ASSERT(FALSE);}}} else {
 ASSERT(FALSE);}}}
 {
@@ -1219,12 +1219,12 @@ SG_IDENTIFIERP(var)){
 {SgObject value=Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var),
 SG_IDENTIFIER_NAME(var),SG_UNBOUND);
 #line 72 "../boot/instructions.scm"
-if (SG_UNBOUNDP(value)){
-{Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}}else if(
-#line 75 "../boot/instructions.scm"
-SG_GLOCP(value)){
+if (SG_GLOCP(value)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(value))),
-(*((PC(vm))-(1)))=(SG_WORD(value));} else {
+(*((PC(vm))-(1)))=(SG_WORD(value));}else if(
+SG_UNBOUNDP(value)){
+{Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}} else {
+#line 78 "../boot/instructions.scm"
 ASSERT(FALSE);}}} else {
 ASSERT(FALSE);}}}
 {
@@ -1318,12 +1318,12 @@ SG_IDENTIFIERP(var)){
 {SgObject value=Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var),
 SG_IDENTIFIER_NAME(var),SG_UNBOUND);
 #line 72 "../boot/instructions.scm"
-if (SG_UNBOUNDP(value)){
-{Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}}else if(
-#line 75 "../boot/instructions.scm"
-SG_GLOCP(value)){
+if (SG_GLOCP(value)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(value))),
-(*((PC(vm))-(1)))=(SG_WORD(value));} else {
+(*((PC(vm))-(1)))=(SG_WORD(value));}else if(
+SG_UNBOUNDP(value)){
+{Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}} else {
+#line 78 "../boot/instructions.scm"
 ASSERT(FALSE);}}} else {
 ASSERT(FALSE);}}}
 {
@@ -1348,12 +1348,12 @@ SG_IDENTIFIERP(var)){
 {SgObject value=Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var),
 SG_IDENTIFIER_NAME(var),SG_UNBOUND);
 #line 72 "../boot/instructions.scm"
-if (SG_UNBOUNDP(value)){
-{Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}}else if(
-#line 75 "../boot/instructions.scm"
-SG_GLOCP(value)){
+if (SG_GLOCP(value)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(value))),
-(*((PC(vm))-(1)))=(SG_WORD(value));} else {
+(*((PC(vm))-(1)))=(SG_WORD(value));}else if(
+SG_UNBOUNDP(value)){
+{Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}} else {
+#line 78 "../boot/instructions.scm"
 ASSERT(FALSE);}}} else {
 ASSERT(FALSE);}}}
 {
