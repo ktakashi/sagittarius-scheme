@@ -5,55 +5,26 @@
 ;;     most of macros are also defined in vm.c
 #!compatible
 
-(define-cgen-stmt assertion-violation
-    ((_ who msg)
-     (dispatch
-      `(begin
-	 (Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) '())
-	 (return SG_UNDEF))))
-    ((_ who msg irritants)
-     (dispatch
-      `(begin
-	 (Sg_AssertionViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,irritants)
-	 (return SG_UNDEF)))))
-      
+(define-cise-stmt assertion-violation
+  ((_ who msg)
+   `(begin
+      (Sg_AssertionViolation (SG_INTERN ,who) (SG_MAKE_STRING ,msg) '())))
+  ((_ who msg irritants)
+   `(begin
+      (Sg_AssertionViolation (SG_INTERN ,who) (SG_MAKE_STRING ,msg) ,irritants)
+      )))
 
-(define-cgen-stmt wrong-type-of-argument-violation
-    ((_ who msg got)
-     (dispatch
-      `(begin
-	 (Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got '())
-	 (return SG_UNDEF))))
-    ((_ who msg got irritants)
-     (dispatch
-      `(begin
-	 (Sg_WrongTypeOfArgumentViolation ,who (Sg_MakeString ,msg SG_LITERAL_STRING) ,got ,irritants)
-	 (return SG_UNDEF)))))
+(define-cise-stmt wrong-type-of-argument-violation
+  ((_ who msg got)
+   `(begin
+      (Sg_WrongTypeOfArgumentViolation (SG_INTERN ,who)
+				       (SG_MAKE_STRING ,msg) ,got '())))
+  ((_ who msg got irritants)
+   `(begin
+      (Sg_WrongTypeOfArgumentViolation (SG_INTERN ,who)
+				       (SG_MAKE_STRING ,msg) ,got ,irritants))))
 
-;; utility statement.
-(define-cgen-stmt for
-  ((_ init cond incl . more)
-   ((renderer) "for (")
-   (renderer-no-indent #t)
-   (unless (null? init)
-     (dispatch init))
-   (renderer-no-indent #t)
-   ((renderer) ";")
-   (unless (null? cond)
-     (dispatch cond))
-   (renderer-no-indent #t)
-   ((renderer) ";")
-   (unless (null? incl)
-     (dispatch incl))
-   (renderer-no-indent #t)
-   ((renderer) (format ") {~%"))
-   (renderer-no-indent #f)
-   (renderer-indent-incl!)
-   (dispatch `(begin ,@more))
-   (renderer-indent-decl!)
-   ((renderer) "}")))
-
-(define-inst NOP (0 0 #f) (:value 0)
+(define-inst NOP (0 0 #f) ;;(:value 0)
   ;; do nothing
   )
 
@@ -95,15 +66,14 @@
 
 (define-inst GSET (0 1 #t)
   (let ((var (FETCH_OPERAND (PC vm))))
-    (ASSERT (or (SG_IDENTIFIERP var)
-		(SG_GLOCP var)))
+    (ASSERT (or (SG_IDENTIFIERP var) (SG_GLOCP var)))
     (if (SG_GLOCP var)
 	(SG_GLOC_SET (SG_GLOC var) (AC vm))
 	(let ((oldval (Sg_FindBinding (SG_IDENTIFIER_LIBRARY var)
 				      (SG_IDENTIFIER_NAME var)
 				      SG_UNBOUND)))
 	  (when (SG_UNBOUNDP oldval)
-	    (assertion-violation 'set!
+	    (assertion-violation "set!"
 				 "unbound variable"
 				 (SG_IDENTIFIER_NAME var)))
 	  ;;(SG_GLOC_SET (SG_GLOC oldval) (AC vm))
@@ -194,7 +164,7 @@
   (when (and exact
 	     (SG_VM_IS_SET_FLAG vm SG_R6RS_MODE)
 	     (Sg_ZeroP (AC vm)))
-    (assertion-violation '/
+    (assertion-violation "/"
 			 "undefined for 0"
 			 (SG_LIST2 (INDEX (SP vm) 0) (AC vm))))
   (BUILTIN_TWO_ARGS vm Sg_Div)))
@@ -224,24 +194,23 @@
   #;(shiftj_process vm val2 val1)
   (set! (SP vm) (shift_args (+ (FP vm) val2) val1 (SP vm))))
 
-(define-cgen-stmt branch-number-test
+(define-cise-stmt branch-number-test
   ((_ op func)
-   (dispatch
-    `(let ((n (PEEK_OPERAND (PC vm)))
-	   (s (INDEX (SP vm) 0))
-	   (t::int FALSE))
-       (cond ((and (SG_INTP (AC vm))
-		   (SG_INTP s))
-	      (set! t (,op (cast intptr_t s) (cast intptr_t (AC vm)))))
-	     (else
-	      (set! t (,func s (AC vm)))))
-       (cond (t
-	      (set! (AC vm) SG_TRUE)
-	      (post++ (PC vm)))
-	     (else
-	      (set! (AC vm) SG_FALSE)
-	      (set! (PC vm) (+ (PC vm) (SG_INT_VALUE n)))))
-       (post-- (SP vm))))))
+   `(let ((n (PEEK_OPERAND (PC vm)))
+	  (s (INDEX (SP vm) 0))
+	  (t::int FALSE))
+      (cond ((and (SG_INTP (AC vm))
+		  (SG_INTP s))
+	     (set! t (,op (cast intptr_t s) (cast intptr_t (AC vm)))))
+	    (else
+	     (set! t (,func s (AC vm)))))
+      (cond (t
+	     (set! (AC vm) SG_TRUE)
+	     (post++ (PC vm)))
+	    (else
+	     (set! (AC vm) SG_FALSE)
+	     (set! (PC vm) (+ (PC vm) (SG_INT_VALUE n)))))
+      (post-- (SP vm)))))
 
 (define-inst BNNUME (0 1 #t) :label
   ;;(BRANCH_TEST2 Sg_NumEq))
@@ -300,17 +269,16 @@
       (set! (AC vm) SG_TRUE)
       (set! (AC vm) SG_FALSE)))
 
-(define-cgen-stmt builtin-number-compare
+(define-cise-stmt builtin-number-compare
   ((_ op func)
-   (dispatch
-    `(let ((s (INDEX (SP vm) 0)))
-       (cond ((and (SG_INTP (AC vm))
-		   (SG_INTP s))
-	      (set! (AC vm) (SG_MAKE_BOOL (,op (cast intptr_t s)
-					       (cast intptr_t (AC vm))))))
-	     (else
-	      (set! (AC vm) (SG_MAKE_BOOL (,func s (AC vm))))))
-       (post-- (SP vm))))))
+   `(let ((s (INDEX (SP vm) 0)))
+      (cond ((and (SG_INTP (AC vm))
+		  (SG_INTP s))
+	     (set! (AC vm) (SG_MAKE_BOOL (,op (cast intptr_t s)
+					      (cast intptr_t (AC vm))))))
+	    (else
+	     (set! (AC vm) (SG_MAKE_BOOL (,func s (AC vm))))))
+      (post-- (SP vm)))))
 
 (define-inst NUM_EQ (0 0 #t)
   ;;(BUILTIN_TWO_ARGS_COMPARE vm Sg_NumEq))
@@ -395,12 +363,12 @@
 	(set! numValues 1)
 	(set! numValues (SG_VALUES_SIZE (AC vm))))
     (if (< numValues val1)
-	(assertion-violation 'receive
+	(assertion-violation "receive"
 			     "recieved fewer values than expected"
 			     (AC vm)))
     (if (and (== val2 0)
 	     (> numValues val1))
-	(assertion-violation 'receive
+	(assertion-violation "receive"
 			     "recieved more values than expected"
 			     (AC vm)))
     (cond ((== val2 0)
@@ -409,7 +377,7 @@
 		  ;; (values 'a) creates non values object
 		  (PUSH (SP vm) (AC vm)))
 		 ((> val1 0)
-		  (for (set! i 0) (< i val1) (post++ i)
+		  (for ((set! i 0) (< i val1) (post++ i))
 		   (PUSH (SP vm) (SG_VALUES_ELEMENT (AC vm) i))))))
 	  ((== val1 0)
 	   ;; (receive a ...)
@@ -417,14 +385,14 @@
 		 (t '()))
 	     (if (== numValues 1)
 		 (SG_APPEND1 h t (AC vm))
-		 (for (set! i 0) (< i numValues) (post++ i)
+		 (for ((set! i 0) (< i numValues) (post++ i))
 		      (SG_APPEND1 h t (SG_VALUES_ELEMENT (AC vm) i))))
 	     (PUSH (SP vm) h)))
 	  (else
 	   ;; (receive (a b . c) ...)
 	   (let ((h '())
 		 (t '()))
-	     (for (set! i 0) () (post++ i)
+	     (for ((set! i 0) () (post++ i))
 		  (cond ((< i val1)
 			 (PUSH (SP vm) (SG_VALUES_ELEMENT (AC vm) i)))
 			((< i (SG_VALUES_SIZE (AC vm)))
@@ -447,7 +415,7 @@
 (define-inst CLOSURE (0 1 #f)
   (let ((cb (FETCH_OPERAND (PC vm))))
     (if (not (SG_CODE_BUILDERP cb))
-	(wrong-type-of-argument-violation 'closure
+	(wrong-type-of-argument-violation "closure"
 					  "code-builder"
 					  cb))
     (set! (AC vm) (Sg_MakeClosure cb (- (SP vm) (SG_CODE_BUILDER_FREEC cb))))
@@ -475,13 +443,14 @@
 	(proc (INDEX (SP vm) nargc))
 	(fp::SgObject* (- (SP vm) (- val1 1))))
     (when (< rargc 0)
-      (assertion-violation 'apply "improper list not allowed" (AC vm)))
+      (assertion-violation "apply" "improper list not allowed" (AC vm)))
     (shift_args fp nargc (SP vm))
     (cond ((== rargc 0)
 	   (set! (SP vm) (- (SP vm) 1))
 	   (when val2
 	     (set! (SP vm) (shift_args (FP vm) nargc (SP vm))))
-	   (set! (-> vm (arrayref callCode 0)) (MERGE_INSN_VALUE1 CALL nargc))
+	   (set! (arrayref (ref (pointer vm) callCode) 0)
+		 (MERGE_INSN_VALUE1 CALL nargc))
 	   (set! (PC vm) (-> vm callCode)))
 	  (else
 	   (INDEX_SET (SP vm) 0 (SG_CAR (AC vm)))
@@ -489,7 +458,7 @@
 	     (PUSH (SP vm) v))
 	   (when val2
 	     (set! (SP vm) (shift_args (FP vm) (+ nargc rargc) (SP vm))))
-	   (set! (-> vm (arrayref callCode 0))
+	   (set! (arrayref (ref (pointer vm) callCode) 0)
 		 (MERGE_INSN_VALUE1 CALL (+ nargc rargc)))
 	   (set! (PC vm) (-> vm callCode))))
     (set! (AC vm) proc))
@@ -522,8 +491,7 @@
       }
 |#
 (define-inst CALL (1 0 #t)
-  (decl-code
-   (.include "vmcall.c")))
+  (.include "vmcall.c"))
 
 #|
       CASE(LOCAL_CALL) {
@@ -544,8 +512,7 @@
 |#
 (define-inst TAIL_CALL (1 0 #t)
   (TAIL_CALL_INSN vm c)
-  (decl-code
-   (.include "vmcall.c")))
+  (.include "vmcall.c"))
 
 #|
       CASE(LOCAL_TAIL_CALL) {
@@ -643,7 +610,7 @@
 |#
 (define-inst CAR (0 0 #t)
   (if (not (SG_PAIRP (AC vm)))
-      (wrong-type-of-argument-violation 'car "pair" (AC vm)))
+      (wrong-type-of-argument-violation "car" "pair" (AC vm)))
   (BUILTIN_ONE_ARG vm SG_CAR))
 
 #|
@@ -657,7 +624,7 @@
 |#
 (define-inst CDR (0 0 #t)
   (if (not (SG_PAIRP (AC vm)))
-      (wrong-type-of-argument-violation 'cdr "pair" (AC vm)))
+      (wrong-type-of-argument-violation "cdr" "pair" (AC vm)))
   (BUILTIN_ONE_ARG vm SG_CDR))
 
 #|
@@ -692,7 +659,7 @@
 	(ret '()))
     (when (> val1 0)
       (set! ret (Sg_Cons (AC vm) ret))
-      (for (set! i 0) (< i n) (post++ i)
+      (for ((set! i 0) (< i n) (post++ i))
 	   (set! ret (Sg_Cons (INDEX (SP vm) i) ret)))
       (set! (SP vm) (- (SP vm) n)))
     (set! (AC vm) ret)))
@@ -704,9 +671,9 @@
 	(ret '()))
     (when (> nargs 0)
       (set! ret (AC vm))
-      (for () (< i nargs) (post++ i)
+      (for (() (< i nargs) (post++ i))
 	   (when (< (Sg_Length (INDEX (SP vm) i)) 0)
-	     (wrong-type-of-argument-violation 'append
+	     (wrong-type-of-argument-violation "append"
 					       "list" (INDEX (SP vm) i)))
 	   (set! ret (Sg_Append2 (INDEX (SP vm) i) ret)))
       (set! (SP vm) (- (SP vm) nargs)))
@@ -740,7 +707,7 @@
 	  (let ((i::int 0)
 		(n::int (- val1 1)))
 	    (set! (SG_VALUES_ELEMENT v n) (AC vm))
-	    (for (set! i 0) (< i n) (post++ i)
+	    (for ((set! i 0) (< i n) (post++ i))
 		 (set! (SG_VALUES_ELEMENT v (- n i 1))
 		       (INDEX (SP vm) i)))
 	    (set! (SP vm) (- (SP vm) n))))
@@ -793,7 +760,7 @@
 	(let ((i::int 0)
 	      (n::int (- val1 1)))
 	  (set! (SG_VECTOR_ELEMENT v n) (AC vm))
-	  (for (set! i 0) (< i n) (post++ i)
+	  (for ((set! i 0) (< i n) (post++ i))
 	       (set! (SG_VECTOR_ELEMENT v (- n i 1))
 		     (INDEX (SP vm) i)))
 	  (set! (SP vm) (- (SP vm) n))))
@@ -819,37 +786,37 @@
 |#
 (define-inst VEC_LEN (0 0 #t)
   (if (not (SG_VECTORP (AC vm)))
-      (wrong-type-of-argument-violation 'vector-length
+      (wrong-type-of-argument-violation "vector-length"
 					"vector" (AC vm)))
   (set! (AC vm) (SG_MAKE_INT (SG_VECTOR_SIZE (AC vm)))))
 
-(define-cgen-stmt check-vector-range
+(define-cise-stmt check-vector-range
   ((_ name v index)
-   (dispatch 
-    `(when (or (>= ,index (SG_VECTOR_SIZE ,v))
-	       (< ,index 0))
-       (assertion-violation ',name "index out of range" 
-			    (SG_LIST2 ,v (SG_MAKE_INT ,index)))))))
+   `(when (or (>= ,index (SG_VECTOR_SIZE ,v))
+	      (< ,index 0))
+      (assertion-violation ,name "index out of range" 
+			   (SG_LIST2 ,v (SG_MAKE_INT ,index))))))
 
 (define-inst VEC_REF (0 0 #t)
   (if (not (SG_VECTORP (INDEX (SP vm) 0)))
-      (wrong-type-of-argument-violation 'vector-ref "vector" (INDEX (SP vm) 0)))
+      (wrong-type-of-argument-violation "vector-ref" "vector"
+					(INDEX (SP vm) 0)))
   (if (not (SG_INTP (AC vm)))
-      (wrong-type-of-argument-violation 'vector-ref "fixnum" (AC vm)))
-  (check-vector-range vector-ref (INDEX (SP vm) 0) (SG_INT_VALUE (AC vm)))
+      (wrong-type-of-argument-violation "vector-ref" "fixnum" (AC vm)))
+  (check-vector-range "vector-ref" (INDEX (SP vm) 0) (SG_INT_VALUE (AC vm)))
   (set! (AC vm) (SG_VECTOR_ELEMENT (INDEX (SP vm) 0) (SG_INT_VALUE (AC vm))))
   (post-- (SP vm))
   #;(set! (SP vm) (- (SP vm) 1)))
 
 (define-inst VEC_SET (0 0 #t)
   (when (not (SG_VECTORP (INDEX (SP vm) 1)))
-    (wrong-type-of-argument-violation 'vector-set! "vector" (INDEX (SP vm) 1)))
+    (wrong-type-of-argument-violation "vector-set!" "vector" (INDEX (SP vm) 1)))
   (when (SG_LITERAL_VECTORP (INDEX (SP vm) 1))
-    (assertion-violation 'vector-set "attempt to modify immutable vector"
+    (assertion-violation "vector-set" "attempt to modify immutable vector"
 			 (SG_LIST1 (INDEX (SP vm) 1))))
   (when (not (SG_INTP (INDEX (SP vm) 0)))
-    (wrong-type-of-argument-violation 'vector-set! "fixnum" (INDEX (SP vm) 0)))
-  (check-vector-range vector-set! (INDEX (SP vm) 1)
+    (wrong-type-of-argument-violation "vector-set!" "fixnum" (INDEX (SP vm) 0)))
+  (check-vector-range "vector-set!" (INDEX (SP vm) 1)
 		      (SG_INT_VALUE (INDEX (SP vm) 0)))
   (set! (SG_VECTOR_ELEMENT (INDEX (SP vm) 1)
 			   (SG_INT_VALUE (INDEX (SP vm) 0)))
@@ -884,9 +851,9 @@
 
 (define-inst SET_CAR (0 0 #t)
   (if (not (SG_PAIRP (INDEX (SP vm) 0)))
-      (wrong-type-of-argument-violation 'set-car! "pair" (INDEX (SP vm) 0)))
+      (wrong-type-of-argument-violation "set-car!" "pair" (INDEX (SP vm) 0)))
   (when (Sg_ConstantLiteralP (INDEX (SP vm) 0))
-    (assertion-violation 'set-car! "attempt to modify constant literal"
+    (assertion-violation "set-car!" "attempt to modify constant literal"
 			 (INDEX (SP vm) 0)))
   (SG_SET_CAR (INDEX (SP vm) 0) (AC vm))
   (post-- (SP vm))
@@ -894,9 +861,9 @@
 
 (define-inst SET_CDR (0 0 #t)
   (if (not (SG_PAIRP (INDEX (SP vm) 0)))
-      (wrong-type-of-argument-violation 'set-cdr! "pair" (INDEX (SP vm) 0)))
+      (wrong-type-of-argument-violation "set-cdr!" "pair" (INDEX (SP vm) 0)))
   (when (Sg_ConstantLiteralP (INDEX (SP vm) 0))
-    (assertion-violation 'set-cdr! "attempt to modify constant literal"
+    (assertion-violation "set-cdr!" "attempt to modify constant literal"
 			 (INDEX (SP vm) 0)))
   (SG_SET_CDR (INDEX (SP vm) 0) (AC vm))
   (post-- (SP vm))
