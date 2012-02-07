@@ -1842,31 +1842,6 @@ static void process_queued_requests(SgVM *vm)
   INSN_VAL1(val1, code);			\
   AC(vm) = INDEX_CLOSURE(vm, val1)
 
-#define GREF_INSN(vm)							\
-  SgObject var = FETCH_OPERAND(PC(vm));					\
-  if (SG_GLOCP(var)) {							\
-    AC(vm) = SG_GLOC_GET(SG_GLOC(var));					\
-  } else {								\
-    SgObject value;							\
-    SgGloc *g;								\
-    if (!SG_IDENTIFIERP(var)) {						\
-      Sg_Error(UC("[internal error] (GREF) identifier required but got %S\n"), var); \
-    }									\
-    ASSERT(SG_IDENTIFIERP(var));					\
-    value = Sg_FindBinding(SG_IDENTIFIER(var)->library,			\
-			   SG_IDENTIFIER(var)->name, SG_UNBOUND);	\
-    if (SG_UNBOUNDP(value)) {						\
-      Sg_AssertionViolation(SG_INTERN("vm"),				\
-			    Sg_Sprintf(UC("unbound variable %A"), var),	\
-			    var);					\
-      return SG_UNDEF;							\
-    }									\
-    ASSERT(SG_GLOCP(value));						\
-    g = SG_GLOC(value);							\
-    AC(vm) = SG_GLOC_GET(g);						\
-    *(PC(vm) - 1) = SG_WORD(g);						\
-  }
-
 #define TAIL_CALL_INSN(vm, code)			\
   {							\
     INSN_VAL1(val1, code);				\

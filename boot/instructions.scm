@@ -62,7 +62,21 @@
   (set! (AC vm) SG_UNDEF))
 
 (define-inst GREF (0 1 #t)
-  (GREF_INSN vm))
+  (let ((var (FETCH_OPERAND (PC vm))))
+    (cond ((SG_GLOCP var)
+	   (set! (AC vm) (SG_GLOC_GET (SG_GLOC var))))
+	  ((SG_IDENTIFIERP var)
+	   (let ((value (Sg_FindBinding (SG_IDENTIFIER_LIBRARY var)
+					(SG_IDENTIFIER_NAME var)
+					SG_UNBOUND)))
+	     (cond ((SG_UNBOUNDP value)
+		    (assertion-violation "vm"
+					 "unbound variable" var))
+		   ((SG_GLOCP value)
+		    (set! (AC vm) (SG_GLOC_GET (SG_GLOC value))
+			  (pointer (- (PC vm) 1)) (SG_WORD value)))
+		   (else (ASSERT FALSE)))))
+	  (else (ASSERT FALSE)))))
 
 (define-inst GSET (0 1 #t)
   (let ((var (FETCH_OPERAND (PC vm))))
@@ -790,39 +804,40 @@
 					"vector" (AC vm)))
   (set! (AC vm) (SG_MAKE_INT (SG_VECTOR_SIZE (AC vm)))))
 
-(define-cise-stmt check-vector-range
-  ((_ name v index)
-   `(when (or (>= ,index (SG_VECTOR_SIZE ,v))
-	      (< ,index 0))
-      (assertion-violation ,name "index out of range" 
-			   (SG_LIST2 ,v (SG_MAKE_INT ,index))))))
-
 (define-inst VEC_REF (0 0 #t)
-  (if (not (SG_VECTORP (INDEX (SP vm) 0)))
-      (wrong-type-of-argument-violation "vector-ref" "vector"
-					(INDEX (SP vm) 0)))
-  (if (not (SG_INTP (AC vm)))
-      (wrong-type-of-argument-violation "vector-ref" "fixnum" (AC vm)))
-  (check-vector-range "vector-ref" (INDEX (SP vm) 0) (SG_INT_VALUE (AC vm)))
-  (set! (AC vm) (SG_VECTOR_ELEMENT (INDEX (SP vm) 0) (SG_INT_VALUE (AC vm))))
-  (post-- (SP vm))
-  #;(set! (SP vm) (- (SP vm) 1)))
+  (let ((obj (INDEX (SP vm) 0)))
+    (if (SG_VECTORP obj)
+	(if (SG_INTP (AC vm))
+	    (let ((index::int (SG_INT_VALUE (AC vm))))
+	      (if (or (>= index (SG_VECTOR_SIZE obj))
+		      (< index 0))
+		  (assertion-violation "vector-ref" "index out of range"
+				       (SG_LIST2 obj (AC vm)))
+		  (set! (AC vm) (SG_VECTOR_ELEMENT obj index))))
+	    (wrong-type-of-argument-violation "vector-ref" "fixnum" (AC vm)))
+	(wrong-type-of-argument-violation "vector-ref" "vector" obj))
+    (post-- (SP vm))))
 
 (define-inst VEC_SET (0 0 #t)
-  (when (not (SG_VECTORP (INDEX (SP vm) 1)))
-    (wrong-type-of-argument-violation "vector-set!" "vector" (INDEX (SP vm) 1)))
-  (when (SG_LITERAL_VECTORP (INDEX (SP vm) 1))
-    (assertion-violation "vector-set" "attempt to modify immutable vector"
-			 (SG_LIST1 (INDEX (SP vm) 1))))
-  (when (not (SG_INTP (INDEX (SP vm) 0)))
-    (wrong-type-of-argument-violation "vector-set!" "fixnum" (INDEX (SP vm) 0)))
-  (check-vector-range "vector-set!" (INDEX (SP vm) 1)
-		      (SG_INT_VALUE (INDEX (SP vm) 0)))
-  (set! (SG_VECTOR_ELEMENT (INDEX (SP vm) 1)
-			   (SG_INT_VALUE (INDEX (SP vm) 0)))
-	(AC vm))
-  (set! (AC vm) SG_UNDEF)
-  (set! (SP vm) (- (SP vm) 2)))
+  (let ((obj (INDEX (SP vm) 1))
+	(index (INDEX (SP vm) 0)))
+    (if (SG_VECTORP obj)
+	(if (SG_LITERAL_VECTORP obj)
+	    (assertion-violation "vector-set!"
+				 "attempt to modify immutable vector"
+				 (SG_LIST1 obj))
+	    (if (SG_INTP index)
+		(let ((i::int (SG_INT_VALUE index)))
+		  (if (or (>= i (SG_VECTOR_SIZE obj))
+			  (< i 0))
+		      (assertion-violation "vector-set!" "index out of range"
+					   (SG_LIST2 obj index))
+		      (set! (SG_VECTOR_ELEMENT obj i) (AC vm))))
+		(wrong-type-of-argument-violation "vector-set!"
+						  "fixnum" index)))
+	(wrong-type-of-argument-violation "vector-set!" "vector" obj))
+    (set! (AC vm) SG_UNDEF)
+    (set! (SP vm) (- (SP vm) 2))))
 
 ;; combined instructions
 ;; CONST_PUSH, LREF_PUSH and FREF_PUSH are treated specially for heavy head call
