@@ -1461,7 +1461,7 @@
   (define (expand-opt os ks r a)
     (if (null? os)
 	(if r
-	    `(,let. ((,r ,garg)) ,@(expand-key ks garg a))
+	    `((,let. ((,r ,garg)) ,@(expand-key ks garg a)))
 	    (expand-key ks garg a))
 	(let ((binds (map (lambda (expr)
 			    (smatch expr
