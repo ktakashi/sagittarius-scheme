@@ -2142,7 +2142,7 @@
            (if gloc
              (let ((gval (gloc-ref gloc)))
                (cond ((macro? gval)
-                      (pass1 (call-macro-expander gval form p1env)
+                      (pass1 ($src (call-macro-expander gval form p1env) form)
                              p1env))
                      (else
                       ($gset (ensure-identifier var p1env)
@@ -2917,7 +2917,8 @@
 (define pass1/body-macro-expand-rec
   (lambda (mac exprs intdefs intmacros p1env)
     (pass1/body-rec
-      (acons (call-macro-expander mac (caar exprs) p1env)
+      (acons ($src (call-macro-expander mac (caar exprs) p1env)
+                   (caar exprs))
              (cdar exprs)
              (cdr exprs))
       intdefs
@@ -3068,7 +3069,7 @@
           (if gloc
             (let ((gval (gloc-ref gloc)))
               (cond ((macro? gval)
-                     (pass1 (call-macro-expander gval form p1env)
+                     (pass1 ($src (call-macro-expander gval form p1env) form)
                             p1env))
                     ((syntax? gval)
                      (call-syntax-handler gval form p1env))
@@ -3119,7 +3120,8 @@
                           ((syntax? obj)
                            (call-syntax-handler obj form p1env))
                           ((macro? obj)
-                           (pass1 (call-macro-expander obj form p1env)
+                           (pass1 ($src (call-macro-expander obj form p1env)
+                                        form)
                                   p1env))
                           (else
                            (scheme-error
@@ -3136,14 +3138,19 @@
            (let ((r (p1env-lookup p1env form LEXICAL)))
              (cond ((lvar? r) ($lref r))
                    ((macro? r)
-                    (pass1 (call-macro-expander r form p1env) p1env))
+                    (pass1 ($src (call-macro-expander r form p1env) form)
+                           p1env))
                    ((identifier? r)
                     (let* ((lib (id-library r))
                            (gloc (find-binding lib (id-name r) #f)))
                       (if gloc
                         (let ((gval (gloc-ref gloc)))
                           (cond ((macro? gval)
-                                 (pass1 (call-macro-expander gval form p1env)
+                                 (pass1 ($src (call-macro-expander
+                                                gval
+                                                form
+                                                p1env)
+                                              form)
                                         p1env))
                                 (else ($gref r))))
                         ($gref r))))

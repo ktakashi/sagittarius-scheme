@@ -8,6 +8,7 @@
 	(sagittarius cgen syntax)
 	(match)
 	(shorten)
+	(pp)
 	(srfi :2 and-let*)
 	(srfi :26 cut)
 	(srfi :39 parameters)
