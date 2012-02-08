@@ -219,6 +219,8 @@ SgObject Sg_ConditionAccessor(SgObject rtd, SgObject proc)
 
 /* for c use conditions */
 static SgObject make_non_continuable_violation;
+static SgObject make_assertion_violation;
+static SgObject make_implementation_restriction_violation;
 static SgObject make_who_condition;
 static SgObject make_message_condition;
 static SgObject make_irritants_condition;
@@ -229,6 +231,16 @@ static SgObject make_read_error;
 SgObject Sg_MakeNonContinuableViolation()
 {
   return Sg_Apply0(make_non_continuable_violation);
+}
+
+SgObject Sg_MakeAssertionViolation()
+{
+  return Sg_Apply0(make_assertion_violation);
+}
+
+SgObject Sg_MakeImplementationRestrictionViolation()
+{
+  return Sg_Apply0(make_implementation_restriction_violation);
 }
 
 SgObject Sg_MakeWhoCondition(SgObject who)
@@ -404,6 +416,7 @@ void Sg__InitConsitions()
     /* assertion */
     INTERN_CONDITION_WITH_PARENT(&assertion, &violation, nullvec);
     INTERN_CTR_PRED(&assertion, make-assertion-violation, assertion-violation?);
+    make_assertion_violation = ctr;
   }
   {
     /* irritants */
@@ -472,6 +485,7 @@ void Sg__InitConsitions()
 			       &implementation-restriction,
 			       make-implementation-restriction-violation,
 			       implementation-restriction-violation?);
+    make_implementation_restriction_violation = ctr;
   }
   {
     /* no-infinities */

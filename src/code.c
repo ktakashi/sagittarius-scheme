@@ -368,8 +368,13 @@ void Sg_CodeBuilderAddSrc(SgCodeBuilder *cb, int insn, SgObject src)
     /* other
        ((index . src) !here)
      */
-    SgObject tail = Sg_LastPair(cb->src);
-    SG_SET_CDR(tail, SG_LIST1(Sg_Cons(SG_MAKE_INT(index), src)));
+    SgObject tail = Sg_Assq(SG_MAKE_INT(index), cb->src);
+    if (!SG_FALSEP(tail)) {
+      SG_SET_CDR(tail, src);
+    } else {
+      tail = Sg_LastPair(cb->src);
+      SG_SET_CDR(tail, SG_LIST1(Sg_Cons(SG_MAKE_INT(index), src)));
+    }
   }
 }
 

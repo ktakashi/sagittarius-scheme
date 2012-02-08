@@ -289,7 +289,7 @@ static SgObject search_library(SgObject name, int onlyPath)
 						 SG_HEAP_STRING),
 				   p));
       if (Sg_FileExistP(real)) {
-	path = SG_STRING(real);
+	path = Sg_AbsolutePath(SG_STRING(real));
 	if (onlyPath) return path;
 	goto goal;
       }

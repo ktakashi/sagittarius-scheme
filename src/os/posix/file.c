@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <limits.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/file.h"
 #include "sagittarius/unicode.h"
@@ -479,6 +480,16 @@ SgObject Sg_BuildPath(SgString *path, SgString *file)
 int Sg_AbsolutePathP(SgString *path)
 {
   return (SG_STRING_VALUE_AT(path, 0) == '/');
+}
+
+SgObject Sg_AbsolutePath(SgString *path)
+{
+  char buf[PATH_MAX];
+  char *ret = realpath(Sg_Utf32sToUtf8s(path), buf);
+  if (ret) {
+    return Sg_MakeStringC(buf);
+  }
+  return SG_FALSE;
 }
 /*
   end of file

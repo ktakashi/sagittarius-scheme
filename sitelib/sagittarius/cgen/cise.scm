@@ -197,7 +197,10 @@
 		  ((expr #t)  (expr-env (null-env)))
 		  (else (error 'cise-render "invalid context" ctx))))
 	   (stree (render-rec form env)))
-      (render-finalize `(,@(render-env-decls env) ,stree) port)))
+      (render-finalize (if (or (eq? ctx 'expr) (eq? ctx 'toplevel))
+			   `(,@(render-env-decls env) ,stree)
+			   `("{" ,@(render-env-decls env) ,stree "}"))
+		       port)))
 
   (define (cise-render-to-string form :optional (ctx #f))
     (call-with-output-string (cut cise-render form ctx <>)))

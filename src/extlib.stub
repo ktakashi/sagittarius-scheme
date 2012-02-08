@@ -58,6 +58,7 @@
 	    ;; path utility
 	    build-path
 	    absolute-path?
+	    absolute-path
 	    current-load-path
 
 	    ;; hashtable
@@ -412,6 +413,9 @@
 
   (define-c-proc absolute-path? (path::<string>) ::<boolean>
     (result (Sg_AbsolutePathP path)))
+
+  (define-c-proc absolute-path (path::<string>)
+    (result (Sg_AbsolutePath path)))
 
   (define-c-proc current-load-path () ::<top>
     (result (-> (Sg_VM) currentLoadPath)))

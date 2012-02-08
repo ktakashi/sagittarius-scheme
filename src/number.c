@@ -37,6 +37,7 @@
 #include "sagittarius/number.h"
 #include "sagittarius/bignum.h"
 #include "sagittarius/string.h"
+#include "sagittarius/symbol.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/port.h"
 #include "sagittarius/core.h"
@@ -1853,7 +1854,9 @@ SgObject Sg_Add(SgObject x, SgObject y)
       return oprtr_norm_complex(real, imag);
     }
   }
-  Sg_Error(UC("Sg_Add: wrong type of argument(x %S, y %S)"), x, y);
+  Sg_WrongTypeOfArgumentViolation(SG_INTERN("+"),
+				  SG_MAKE_STRING("number"),
+				  SG_LIST2(x, y),  SG_NIL);
   return SG_UNDEF;		/* dummy */
 }
 
@@ -1952,7 +1955,9 @@ SgObject Sg_Sub(SgObject x, SgObject y)
       return oprtr_norm_complex(real, imag);
     }
   }
-  Sg_Error(UC("Sg_Sub: wrong type of argument(x %S, y %S)"), x, y);
+  Sg_WrongTypeOfArgumentViolation(SG_INTERN("-"),
+				  SG_MAKE_STRING("number"),
+				  SG_LIST2(x, y),  SG_NIL);
   return SG_UNDEF;		/* dummy */
 }
 
@@ -2068,7 +2073,9 @@ SgObject Sg_Mul(SgObject x, SgObject y)
       return oprtr_norm_complex(real, imag);
     }
   }
-  Sg_Error(UC("Sg_Mul: wrong type of argument(x %S, y %S)"), x, y);
+  Sg_WrongTypeOfArgumentViolation(SG_INTERN("*"),
+				  SG_MAKE_STRING("number"),
+				  SG_LIST2(x, y),  SG_NIL);
   return SG_UNDEF;		/* dummy */
 }
 
@@ -2201,7 +2208,9 @@ SgObject Sg_Div(SgObject x, SgObject y)
       return oprtr_norm_complex(real3, imag3);
     }
   }
-  Sg_Error(UC("Sg_Div: wrong type of argument(x %S, y %S)"), x, y);
+  Sg_WrongTypeOfArgumentViolation(SG_INTERN("/"),
+				  SG_MAKE_STRING("number"),
+				  SG_LIST2(x, y),  SG_NIL);
   return SG_UNDEF;		/* dummy */
 
  a_normal:

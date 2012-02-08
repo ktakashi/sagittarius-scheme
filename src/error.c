@@ -172,25 +172,35 @@ void Sg_IOWriteError(SgObject who, SgObject msg, SgObject port)
 
 void Sg_AssertionViolation(SgObject who, SgObject message, SgObject irritants)
 {
-  SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"),
-			     SG_INTERN("assertion-violation"),
-			     SG_FALSE);
-  SgObject proc;
-  if (SG_FALSEP(SG_OBJ(g))) {
-    Sg_Panic("Initialization was failed.");
+  SgObject cond;
+  if (!SG_FALSEP(who)) {
+    cond = Sg_Condition(SG_LIST4(Sg_MakeAssertionViolation(),
+				 Sg_MakeWhoCondition(who),
+				 Sg_MakeMessageCondition(message),
+				 Sg_MakeIrritantsCondition(irritants)));
+  } else {
+    cond = Sg_Condition(SG_LIST3(Sg_MakeAssertionViolation(),
+				 Sg_MakeMessageCondition(message),
+				 Sg_MakeIrritantsCondition(irritants)));
   }
-  proc = SG_GLOC_GET(g);
-  Sg_Apply3(proc, who, message, irritants);
+  Sg_Raise(cond, FALSE);
 }
 
 void Sg_ImplementationRestrictionViolation(SgObject who, SgObject message,
 					   SgObject irritants)
 {
-  SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"),
-			     SG_INTERN("implementation-restriction-violation"), 
-			     SG_FALSE);
-  SgObject proc = SG_GLOC_GET(g);
-  Sg_Apply3(proc, who, message, irritants);
+  SgObject cond;
+  if (!SG_FALSEP(who)) {
+    cond = Sg_Condition(SG_LIST4(Sg_MakeImplementationRestrictionViolation(),
+				 Sg_MakeWhoCondition(who),
+				 Sg_MakeMessageCondition(message),
+				 Sg_MakeIrritantsCondition(irritants)));
+  } else {
+    cond = Sg_Condition(SG_LIST3(Sg_MakeImplementationRestrictionViolation(),
+				 Sg_MakeMessageCondition(message),
+				 Sg_MakeIrritantsCondition(irritants)));
+  }
+  Sg_Raise(cond, FALSE);
 }
 
 void Sg_WrongTypeOfArgumentViolation(SgObject who, SgObject requiredType,

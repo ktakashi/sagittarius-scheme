@@ -150,8 +150,8 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->applyCode = applyCode;
   v->callCode = callCode;
  
-  closureForEvaluateCode->src = Sg_MakeString(UC("<top-level>"), SG_LITERAL_STRING);
-  closureForEvaluateCode->name = SG_INTERN("closure-for-evaluate-code");
+  closureForEvaluateCode->src = SG_NIL;
+  closureForEvaluateCode->name = SG_INTERN("*toplevel*");
   v->closureForEvaluate = Sg_MakeClosure(closureForEvaluateCode, NULL);
 
   v->name = name;
@@ -1447,35 +1447,58 @@ SgObject Sg_AddDynamicLoadPath(SgString *path)
 SgObject Sg_GetStackTrace()
 {
   SgVM *vm = Sg_VM();
-  SgObject r = SG_NIL;
-  SgObject cur = SG_NIL;
+  SgObject r = SG_NIL, cur = SG_NIL, prev = SG_UNDEF;
   SgContFrame *cont = CONT(vm);
   SgObject cl = CL(vm);
-  SgObject prev = SG_UNDEF;
+  SgWord *pc = PC(vm);
   int i;
   if (!cl) {
     /* before running */
     return SG_NIL;
   }
   if (vm->state == COMPILING || vm->state == IMPORTING) return SG_NIL;
+  /* get current posision's src */
+
   for (i = 0;;) {
     if (SG_PROCEDUREP(cl)) {
       SgObject name = SG_PROCEDURE_NAME(cl);
-      SgObject src = SG_NIL;
-      if (Sg_EqvP(name, prev)) {
-	goto next_cont;
-      }
+      if (SG_EQ(prev, name)) goto next_cont;
       prev = name;
       switch (SG_PROCEDURE_TYPE(cl)) {
       case SG_PROC_SUBR:
-	r = SG_LIST3(SG_INTERN("*cproc*"), name, src);
+	if (SG_FALSEP(name)) goto next_cont;
+	r = SG_LIST3(SG_INTERN("*cproc*"), name, SG_NIL);
 	break;
       case SG_PROC_CLOSURE:
 	if (SG_CLOSURE(cl)->code
 	    && SG_CODE_BUILDERP(SG_CLOSURE(cl)->code)) {
-	  src = SG_CODE_BUILDER(SG_CLOSURE(cl)->code)->src;
+	  /* we need to check pc-1(for *CALL, or os) or pc-2(for GREF_*CALL) */
+	  SgCodeBuilder *cb = SG_CODE_BUILDER(SG_CLOSURE(cl)->code);
+	  InsnInfo *info;
+	  SgObject src = SG_FALSE;
+	  int index = -1, i;
+	  /* search previous src, max 2 */
+	  for (i = 0; i < 3; i++) {
+	    info = Sg_LookupInsnName(INSN(*(pc-i)));
+	    if (info && info->hasSrc) break;
+	  }
+	  /* for sanity */
+	  if (info && info->hasSrc) {
+	    index = (pc - i) - cb->code;
+	  }
+	  if (index > 0) {
+	    src = Sg_Assv(SG_MAKE_INT(index), cb->src);
+	  }
+	  if (SG_FALSEP(src)) {
+	    src = cb->src;
+	  } else {
+	    /* need to be alist */
+	    src = SG_LIST1(src);
+	  }
+	  r = SG_LIST3(SG_INTERN("*proc*"), name, src);
+	} else {
+	  r = SG_LIST3(SG_INTERN("*proc*"), name, SG_NIL);
 	}
-	r = SG_LIST3(SG_INTERN("*proc*"), name, src);
 	break;
       }
       i++;
@@ -1483,12 +1506,14 @@ SgObject Sg_GetStackTrace()
       /* should not be here */
       ASSERT(FALSE);
     }
+
     cur = Sg_Acons(SG_MAKE_INT(i), r, cur);
   next_cont:
     if ((uintptr_t)cont > (uintptr_t)vm->stack) {
 
       SgContFrame *nextCont;
       cl = cont->cl;
+      pc = cont->pc;
       if (!cl) break;
       if (!SG_PROCEDUREP(cl)) {
 	break;
@@ -1830,86 +1855,6 @@ static void process_queued_requests(SgVM *vm)
     SG_INTERNAL_MUTEX_SAFE_LOCK_END();
   }
 }
-
-#define CONST_INSN(vm)				\
-  AC(vm) = FETCH_OPERAND(PC(vm))
-#define PUSH_INSN(vm)				\
-  PUSH(SP(vm), AC(vm))
-#define LREF_INSN(vm, code)			\
-  INSN_VAL1(val1, code);			\
-  AC(vm) = REFER_LOCAL(vm, val1)
-#define FREF_INSN(vm, code)			\
-  INSN_VAL1(val1, code);			\
-  AC(vm) = INDEX_CLOSURE(vm, val1)
-
-#define TAIL_CALL_INSN(vm, code)			\
-  {							\
-    INSN_VAL1(val1, code);				\
-    SP(vm) = shift_args(FP(vm), val1, SP(vm));		\
-  }
-
-#define LOCAL_CALL_INSN(vm, c)						\
-  {									\
-    SgClosure *cl;							\
-    SgCodeBuilder *cb;							\
-    INSN_VAL1(val1, c);							\
-    ASSERT(SG_CLOSUREP(AC(vm)));					\
-    if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL) && vm->state == RUNNING) {	\
-      Sg_Printf(vm->logPort, UC("calling %S\n"), AC(vm));		\
-      if (SG_VM_LOG_LEVEL(vm, SG_TRACE_LEVEL) && vm->state == RUNNING) { \
-	print_frames(vm);						\
-      }									\
-    }									\
-    cl = SG_CLOSURE(AC(vm));						\
-    cb = SG_CODE_BUILDER(cl->code);					\
-    CL(vm) = AC(vm);							\
-    PC(vm) = cb->code;							\
-    FP(vm) = SP(vm) - val1;						\
-    /* vm->fpOffset = CALC_OFFSET(vm, val1); */				\
-  }
-
-#define BUILTIN_TWO_ARGS(vm, proc)		\
-  do {						\
-    AC(vm) = proc(INDEX(SP(vm)--, 0), AC(vm));	\
-    /* SP(vm)--; */				\
-  } while (0)
-
-#define BUILTIN_TWO_ARGS_COMPARE(vm, proc)		\
-  do {							\
-    AC(vm) = SG_MAKE_BOOL(proc(INDEX(SP(vm)--, 0),	\
-			       AC(vm)));		\
-    /* SP(vm)--; */					\
-  } while(0)
-
-#define BUILTIN_ONE_ARG(vm, proc)		\
-  AC(vm) = proc(AC(vm));
-
-#define BUILTIN_ONE_ARG_WITH_INSN_VALUE(vm, proc, code)		\
-  AC(vm) = proc(SG_MAKE_INT(val1), AC(vm));
-
-#define BRANCH_TEST2(test)			\
-  {						\
-    SgObject n = PEEK_OPERAND(PC(vm));		\
-    if (test(INDEX(SP(vm)--, 0), AC(vm))) {	\
-      AC(vm) = SG_TRUE;				\
-      PC(vm)++;					\
-    } else {					\
-      PC(vm) += SG_INT_VALUE(n);		\
-      AC(vm) = SG_FALSE;			\
-    }						\
-    /* SP(vm)--; */				\
-  }
-#define BRANCH_TEST1(test)			\
-  {						\
-    SgObject n = PEEK_OPERAND(PC(vm));		\
-    if (test(AC(vm))) {				\
-      AC(vm) = SG_TRUE;				\
-      PC(vm)++;					\
-    } else {					\
-      PC(vm) += SG_INT_VALUE(n);		\
-      AC(vm) = SG_FALSE;			\
-    }						\
-  }
 
 #define RET_INSN()						\
   do {								\

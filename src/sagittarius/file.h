@@ -109,6 +109,7 @@ SG_EXTERN void     Sg_SetCurrentDirectory(SgString *path);
 SG_EXTERN SgObject Sg_DirectoryName(SgString *path);
 SG_EXTERN SgObject Sg_BuildPath(SgString *path, SgString *file);
 SG_EXTERN int      Sg_AbsolutePathP(SgString *path);
+SG_EXTERN SgObject Sg_AbsolutePath(SgString *path);
 
 SG_CDECL_END
 

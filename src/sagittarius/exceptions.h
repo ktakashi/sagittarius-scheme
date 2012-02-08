@@ -116,6 +116,8 @@ SG_EXTERN SgObject Sg_ConditionAccessor(SgObject rtd, SgObject proc);
 
 /* for c use constructor */
 SG_EXTERN SgObject Sg_MakeNonContinuableViolation();
+SG_EXTERN SgObject Sg_MakeAssertionViolation();
+SG_EXTERN SgObject Sg_MakeImplementationRestrictionViolation();
 SG_EXTERN SgObject Sg_MakeWhoCondition(SgObject who);
 SG_EXTERN SgObject Sg_MakeMessageCondition(SgObject msg);
 SG_EXTERN SgObject Sg_MakeIrritantsCondition(SgObject irritants);

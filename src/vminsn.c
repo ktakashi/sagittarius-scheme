@@ -102,457 +102,409 @@ DEFINSN(CONST_RET, 0, 1, FALSE, FALSE)
 #endif /* DEFINSN */
 #ifdef VM_LOOP
 CASE(NOP) {
-
   NEXT;
 }
 CASE(HALT) {
-
   return AC(vm);
 }
 CASE(UNDEF) {
 
-{
-#line 34 "../boot/instructions.scm"
-AC(vm)=(SG_UNDEF);}
+#line 32 "../boot/instructions.scm"
+AC(vm)=(SG_UNDEF);
   NEXT;
 }
 CASE(CONST) {
 
-{
-#line 37 "../boot/instructions.scm"
-AC(vm)=(FETCH_OPERAND(PC(vm)));}
+#line 35 "../boot/instructions.scm"
+AC(vm)=(FETCH_OPERAND(PC(vm)));
   NEXT;
 }
 CASE(CONSTI) {
 
-{
-#line 41 "../boot/instructions.scm"
+#line 38 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 42 "../boot/instructions.scm"
-AC(vm)=(SG_MAKE_INT(val1));}
+#line 39 "../boot/instructions.scm"
+AC(vm)=(SG_MAKE_INT(val1));
   NEXT;
 }
 CASE(LREF) {
 
-{
-#line 45 "../boot/instructions.scm"
+#line 42 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 46 "../boot/instructions.scm"
-AC(vm)=(REFER_LOCAL(vm,val1));}
+#line 43 "../boot/instructions.scm"
+AC(vm)=(REFER_LOCAL(vm,val1));
   NEXT;
 }
 CASE(LSET) {
 
-{
-#line 50 "../boot/instructions.scm"
+#line 46 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 51 "../boot/instructions.scm"
-(SG_BOX(REFER_LOCAL(vm,val1)))->value=(AC(vm));
-#line 52 "../boot/instructions.scm"
-AC(vm)=(SG_UNDEF);}
+#line 47 "../boot/instructions.scm"
+(SG_BOX(REFER_LOCAL(vm,val1)))->value=(AC(vm)),
+AC(vm)=(SG_UNDEF);
   NEXT;
 }
 CASE(FREF) {
 
-{
-#line 55 "../boot/instructions.scm"
+#line 51 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 56 "../boot/instructions.scm"
-AC(vm)=(INDEX_CLOSURE(vm,val1));}
+#line 52 "../boot/instructions.scm"
+AC(vm)=(INDEX_CLOSURE(vm,val1));
   NEXT;
 }
 CASE(FSET) {
 
-{
-#line 60 "../boot/instructions.scm"
+#line 55 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 61 "../boot/instructions.scm"
-(SG_BOX(INDEX_CLOSURE(vm,val1)))->value=(AC(vm));
-#line 62 "../boot/instructions.scm"
-AC(vm)=(SG_UNDEF);}
+#line 56 "../boot/instructions.scm"
+(SG_BOX(INDEX_CLOSURE(vm,val1)))->value=(AC(vm)),
+AC(vm)=(SG_UNDEF);
   NEXT;
 }
 CASE(GREF) {
 
-{
-#line 65 "../boot/instructions.scm"
+#line 60 "../boot/instructions.scm"
 {SgObject var=FETCH_OPERAND(PC(vm));
 if (SG_GLOCP(var)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(var)));}else if(
 SG_IDENTIFIERP(var)){
 {SgObject value=Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var),
 SG_IDENTIFIER_NAME(var),SG_UNBOUND);
-#line 72 "../boot/instructions.scm"
+#line 67 "../boot/instructions.scm"
 if (SG_GLOCP(value)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(value))),
 (*((PC(vm))-(1)))=(SG_WORD(value));}else if(
 SG_UNBOUNDP(value)){
 {Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}} else {
-#line 78 "../boot/instructions.scm"
+#line 73 "../boot/instructions.scm"
 ASSERT(FALSE);}}} else {
-ASSERT(FALSE);}}}
+ASSERT(FALSE);}}
   NEXT;
 }
 CASE(GSET) {
 
-{
-#line 82 "../boot/instructions.scm"
+#line 77 "../boot/instructions.scm"
 {SgObject var=FETCH_OPERAND(PC(vm));
-ASSERT((SG_IDENTIFIERP(var))||(SG_GLOCP(var)));
 if (SG_GLOCP(var)){
-SG_GLOC_SET(SG_GLOC(var),AC(vm));} else {
+SG_GLOC_SET(SG_GLOC(var),AC(vm));}else if(
+SG_IDENTIFIERP(var)){
 {SgObject oldval=Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var),
 SG_IDENTIFIER_NAME(var),SG_UNBOUND);
-#line 89 "../boot/instructions.scm"
-if (SG_UNBOUNDP(oldval)){{
+#line 84 "../boot/instructions.scm"
+if (SG_UNBOUNDP(oldval)){
 {Sg_AssertionViolation(SG_INTERN("set!"),SG_MAKE_STRING("unbound variable"),
-#line 92 "../boot/instructions.scm"
-SG_IDENTIFIER_NAME(var));}}}
-#line 95 "../boot/instructions.scm"
+#line 87 "../boot/instructions.scm"
+SG_IDENTIFIER_NAME(var));}} else {
 {SgObject g=Sg_MakeBinding(SG_IDENTIFIER_LIBRARY(var),
 SG_IDENTIFIER_NAME(var),
 AC(vm),0);
-#line 99 "../boot/instructions.scm"
-(*((PC(vm))-(1)))=(SG_WORD(g));}}}
-AC(vm)=(SG_UNDEF);}}
+#line 92 "../boot/instructions.scm"
+(*((PC(vm))-(1)))=(SG_WORD(g));}}}} else {
+ASSERT(FALSE);}}
+#line 94 "../boot/instructions.scm"
+AC(vm)=(SG_UNDEF);
   NEXT;
 }
 CASE(PUSH) {
 
-{
-#line 103 "../boot/instructions.scm"
-PUSH(SP(vm),AC(vm));}
+#line 97 "../boot/instructions.scm"
+PUSH(SP(vm),AC(vm));
   NEXT;
 }
 CASE(BOX) {
 
-{
-#line 107 "../boot/instructions.scm"
+#line 100 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 108 "../boot/instructions.scm"
-INDEX_SET(SP(vm),val1,make_box(INDEX(SP(vm),val1)));}
+#line 101 "../boot/instructions.scm"
+INDEX_SET(SP(vm),val1,make_box(INDEX(SP(vm),val1)));
   NEXT;
 }
 CASE(UNBOX) {
 
-{
-#line 111 "../boot/instructions.scm"
+#line 104 "../boot/instructions.scm"
 ASSERT(SG_BOXP(AC(vm)));
-#line 112 "../boot/instructions.scm"
-AC(vm)=((SG_BOX(AC(vm)))->value);}
+#line 105 "../boot/instructions.scm"
+AC(vm)=((SG_BOX(AC(vm)))->value);
   NEXT;
 }
 CASE(ADD) {
 
-{
-#line 115 "../boot/instructions.scm"
-if ((SG_INTP(AC(vm)))&&(
-SG_INTP(INDEX(SP(vm),0)))){
-{long n=(SG_INT_VALUE(INDEX(SP(vm),0)))+(
-SG_INT_VALUE(AC(vm)));
+#line 114 "../boot/instructions.scm"
+{SgObject obj=INDEX(SP(vm),0);
+if ((SG_INTP(AC(vm)))&&(SG_INTP(obj))){
+{long n=(SG_INT_VALUE(obj))+(SG_INT_VALUE(AC(vm)));
 (SP(vm))--;
 if (((SG_INT_MIN)<=(n))&&(
 (SG_INT_MAX)>=(n))){
 AC(vm)=(SG_MAKE_INT(n));} else {
 AC(vm)=(Sg_MakeBignumFromSI(n));}}} else {
-#line 125 "../boot/instructions.scm"
-BUILTIN_TWO_ARGS(vm,Sg_Add);}}
+#line 123 "../boot/instructions.scm"
+{AC(vm)=(Sg_Add(obj,AC(vm)));(SP(vm))--;}}}
   NEXT;
 }
 CASE(ADDI) {
 
-{
-#line 128 "../boot/instructions.scm"
+#line 130 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 129 "../boot/instructions.scm"
+#line 131 "../boot/instructions.scm"
 if (SG_INTP(AC(vm))){
 {long n=(val1)+(SG_INT_VALUE(AC(vm)));
 if (((SG_INT_MIN)<=(n))&&(
 (SG_INT_MAX)>=(n))){
 AC(vm)=(SG_MAKE_INT(n));} else {
 AC(vm)=(Sg_MakeBignumFromSI(n));}}} else {
-#line 136 "../boot/instructions.scm"
-BUILTIN_ONE_ARG_WITH_INSN_VALUE(vm,Sg_Add,c);}}
+#line 138 "../boot/instructions.scm"
+AC(vm)=(Sg_Add(SG_MAKE_INT(val1),AC(vm)));}
   NEXT;
 }
 CASE(SUB) {
 
-{
-#line 139 "../boot/instructions.scm"
-if ((SG_INTP(AC(vm)))&&(
-SG_INTP(INDEX(SP(vm),0)))){
-{long n=(SG_INT_VALUE(INDEX(SP(vm),0)))-(
-SG_INT_VALUE(AC(vm)));
+#line 141 "../boot/instructions.scm"
+{SgObject obj=INDEX(SP(vm),0);
+if ((SG_INTP(AC(vm)))&&(SG_INTP(obj))){
+{long n=(SG_INT_VALUE(obj))-(SG_INT_VALUE(AC(vm)));
 (SP(vm))--;
 if (((SG_INT_MIN)<=(n))&&(
 (SG_INT_MAX)>=(n))){
 AC(vm)=(SG_MAKE_INT(n));} else {
 AC(vm)=(Sg_MakeBignumFromSI(n));}}} else {
-#line 149 "../boot/instructions.scm"
-BUILTIN_TWO_ARGS(vm,Sg_Sub);}}
+#line 150 "../boot/instructions.scm"
+{AC(vm)=(Sg_Sub(obj,AC(vm)));(SP(vm))--;}}}
   NEXT;
 }
 CASE(SUBI) {
 
-{
-#line 152 "../boot/instructions.scm"
-INSN_VAL1(val1,c);
 #line 153 "../boot/instructions.scm"
+INSN_VAL1(val1,c);
+#line 154 "../boot/instructions.scm"
 if (SG_INTP(AC(vm))){
 {long n=(val1)-(SG_INT_VALUE(AC(vm)));
 if (((SG_INT_MIN)<=(n))&&(
 (SG_INT_MAX)>=(n))){
 AC(vm)=(SG_MAKE_INT(n));} else {
 AC(vm)=(Sg_MakeBignumFromSI(n));}}} else {
-#line 160 "../boot/instructions.scm"
-BUILTIN_ONE_ARG_WITH_INSN_VALUE(vm,Sg_Sub,c);}}
+#line 161 "../boot/instructions.scm"
+AC(vm)=(Sg_Sub(SG_MAKE_INT(val1),AC(vm)));}
   NEXT;
 }
 CASE(MUL) {
 
-{
-#line 163 "../boot/instructions.scm"
-BUILTIN_TWO_ARGS(vm,Sg_Mul);}
+#line 164 "../boot/instructions.scm"
+{AC(vm)=(Sg_Mul(INDEX(SP(vm),0),AC(vm)));(SP(vm))--;}
   NEXT;
 }
 CASE(MULI) {
 
-{
-#line 166 "../boot/instructions.scm"
-INSN_VAL1(val1,c);
 #line 167 "../boot/instructions.scm"
-BUILTIN_ONE_ARG_WITH_INSN_VALUE(vm,Sg_Mul,c);}
+INSN_VAL1(val1,c);
+#line 168 "../boot/instructions.scm"
+AC(vm)=(Sg_Mul(SG_MAKE_INT(val1),AC(vm)));
   NEXT;
 }
 CASE(DIV) {
 
-{
-#line 176 "../boot/instructions.scm"
-{int exact=(Sg_ExactP(INDEX(SP(vm),0)))&&(
-Sg_ExactP(AC(vm)));
+#line 177 "../boot/instructions.scm"
+{SgObject obj=INDEX(SP(vm),0);int exact=
+(Sg_ExactP(obj))&&(Sg_ExactP(AC(vm)));
 if (((exact)&&(
 SG_VM_IS_SET_FLAG(vm,SG_R6RS_MODE)))&&(
-Sg_ZeroP(AC(vm)))){{
+Sg_ZeroP(AC(vm)))){
 {Sg_AssertionViolation(SG_INTERN("/"),SG_MAKE_STRING("undefined for 0"),
-#line 183 "../boot/instructions.scm"
-SG_LIST2(INDEX(SP(vm),0),AC(vm)));}}}
-BUILTIN_TWO_ARGS(vm,Sg_Div);}}
+SG_LIST2(obj,AC(vm)));}} else {
+{AC(vm)=(Sg_Div(obj,AC(vm)));(SP(vm))--;}}}
   NEXT;
 }
 CASE(DIVI) {
 
-{
 #line 187 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
 #line 188 "../boot/instructions.scm"
-BUILTIN_ONE_ARG_WITH_INSN_VALUE(vm,Sg_Div,c);}
+AC(vm)=(Sg_Div(SG_MAKE_INT(val1),AC(vm)));
   NEXT;
 }
 CASE(NEG) {
 
-{
-#line 191 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,Sg_Negate);}
+#line 195 "../boot/instructions.scm"
+AC(vm)=(Sg_Negate(AC(vm)));
   NEXT;
 }
 CASE(TEST) {
 
-{
-#line 194 "../boot/instructions.scm"
+#line 198 "../boot/instructions.scm"
 if (SG_FALSEP(AC(vm))){
 {SgObject n=PEEK_OPERAND(PC(vm));
 ASSERT(SG_INTP(n));
 PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}} else {
-#line 199 "../boot/instructions.scm"
-(PC(vm))++;}}
+#line 203 "../boot/instructions.scm"
+(PC(vm))++;}
   NEXT;
 }
 CASE(JUMP) {
 
-{
-#line 202 "../boot/instructions.scm"
+#line 206 "../boot/instructions.scm"
 {SgObject n=PEEK_OPERAND(PC(vm));
 ASSERT(SG_INTP(n));
-PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}}
+PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}
   NEXT;
 }
 CASE(SHIFTJ) {
 
-{
-#line 207 "../boot/instructions.scm"
+#line 211 "../boot/instructions.scm"
 INSN_VAL2(val1,val2,c);
-#line 209 "../boot/instructions.scm"
-SP(vm)=(shift_args((FP(vm))+(val2),val1,SP(vm)));}
+#line 212 "../boot/instructions.scm"
+SP(vm)=(shift_args((FP(vm))+(val2),val1,SP(vm)));
   NEXT;
 }
 CASE(BNNUME) {
 
-{
-#line 231 "../boot/instructions.scm"
-{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);int t=FALSE;if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){t=((((intptr_t )(s)))==(((intptr_t )(AC(vm)))));} else {t=(Sg_NumEq(s,AC(vm)));}if (t){AC(vm)=(SG_TRUE);(PC(vm))++;} else {AC(vm)=(SG_FALSE);PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}(SP(vm))--;}}
+#line 237 "../boot/instructions.scm"
+{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);int t=FALSE;if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){if ((((intptr_t )(s)))==(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}} else {if (Sg_NumEq(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}}(SP(vm))--;}
   NEXT;
 }
 CASE(BNLT) {
 
-{
-#line 235 "../boot/instructions.scm"
-{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);int t=FALSE;if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){t=((((intptr_t )(s)))<(((intptr_t )(AC(vm)))));} else {t=(Sg_NumLt(s,AC(vm)));}if (t){AC(vm)=(SG_TRUE);(PC(vm))++;} else {AC(vm)=(SG_FALSE);PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}(SP(vm))--;}}
+#line 240 "../boot/instructions.scm"
+{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);int t=FALSE;if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){if ((((intptr_t )(s)))<(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}} else {if (Sg_NumLt(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}}(SP(vm))--;}
   NEXT;
 }
 CASE(BNLE) {
 
-{
-#line 239 "../boot/instructions.scm"
-{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);int t=FALSE;if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){t=((((intptr_t )(s)))<=(((intptr_t )(AC(vm)))));} else {t=(Sg_NumLe(s,AC(vm)));}if (t){AC(vm)=(SG_TRUE);(PC(vm))++;} else {AC(vm)=(SG_FALSE);PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}(SP(vm))--;}}
+#line 243 "../boot/instructions.scm"
+{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);int t=FALSE;if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){if ((((intptr_t )(s)))<=(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}} else {if (Sg_NumLe(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}}(SP(vm))--;}
   NEXT;
 }
 CASE(BNGT) {
 
-{
-#line 243 "../boot/instructions.scm"
-{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);int t=FALSE;if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){t=((((intptr_t )(s)))>(((intptr_t )(AC(vm)))));} else {t=(Sg_NumGt(s,AC(vm)));}if (t){AC(vm)=(SG_TRUE);(PC(vm))++;} else {AC(vm)=(SG_FALSE);PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}(SP(vm))--;}}
+#line 246 "../boot/instructions.scm"
+{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);int t=FALSE;if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){if ((((intptr_t )(s)))>(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}} else {if (Sg_NumGt(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}}(SP(vm))--;}
   NEXT;
 }
 CASE(BNGE) {
 
-{
-#line 247 "../boot/instructions.scm"
-{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);int t=FALSE;if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){t=((((intptr_t )(s)))>=(((intptr_t )(AC(vm)))));} else {t=(Sg_NumGe(s,AC(vm)));}if (t){AC(vm)=(SG_TRUE);(PC(vm))++;} else {AC(vm)=(SG_FALSE);PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}(SP(vm))--;}}
+#line 249 "../boot/instructions.scm"
+{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);int t=FALSE;if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){if ((((intptr_t )(s)))>=(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}} else {if (Sg_NumGe(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}}(SP(vm))--;}
   NEXT;
 }
 CASE(BNEQ) {
 
-{
-#line 256 "../boot/instructions.scm"
-BRANCH_TEST2(SG_EQ);}
+#line 264 "../boot/instructions.scm"
+{SgObject n=PEEK_OPERAND(PC(vm));if (SG_EQ(INDEX(SP(vm),0),AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{(PC(vm))+=(SG_INT_VALUE(n));AC(vm)=(SG_FALSE);}}(SP(vm))--;}
   NEXT;
 }
 CASE(BNEQV) {
 
-{
-#line 265 "../boot/instructions.scm"
-BRANCH_TEST2(Sg_EqvP);}
+#line 267 "../boot/instructions.scm"
+{SgObject n=PEEK_OPERAND(PC(vm));if (Sg_EqvP(INDEX(SP(vm),0),AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{(PC(vm))+=(SG_INT_VALUE(n));AC(vm)=(SG_FALSE);}}(SP(vm))--;}
   NEXT;
 }
 CASE(BNNULL) {
 
-{
-#line 274 "../boot/instructions.scm"
-BRANCH_TEST1(SG_NULLP);}
+#line 281 "../boot/instructions.scm"
+{SgObject n=PEEK_OPERAND(PC(vm));if (SG_NULLP(AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{(PC(vm))+=(SG_INT_VALUE(n));AC(vm)=(SG_FALSE);}}}
   NEXT;
 }
 CASE(NOT) {
 
-{
-#line 282 "../boot/instructions.scm"
+#line 284 "../boot/instructions.scm"
 if (SG_FALSEP(AC(vm))){
 AC(vm)=(SG_TRUE);} else {
-AC(vm)=(SG_FALSE);}}
+AC(vm)=(SG_FALSE);}
   NEXT;
 }
 CASE(NUM_EQ) {
 
-{
-#line 299 "../boot/instructions.scm"
-{SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){AC(vm)=(SG_MAKE_BOOL((((intptr_t )(s)))==(((intptr_t )(AC(vm))))));} else {AC(vm)=(SG_MAKE_BOOL(Sg_NumEq(s,AC(vm))));}(SP(vm))--;}}
+#line 298 "../boot/instructions.scm"
+{SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){AC(vm)=(SG_MAKE_BOOL((((intptr_t )(s)))==(((intptr_t )(AC(vm))))));} else {AC(vm)=(SG_MAKE_BOOL(Sg_NumEq(s,AC(vm))));}(SP(vm))--;}
   NEXT;
 }
 CASE(NUM_LT) {
 
-{
-#line 303 "../boot/instructions.scm"
-{SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){AC(vm)=(SG_MAKE_BOOL((((intptr_t )(s)))<(((intptr_t )(AC(vm))))));} else {AC(vm)=(SG_MAKE_BOOL(Sg_NumLt(s,AC(vm))));}(SP(vm))--;}}
+#line 301 "../boot/instructions.scm"
+{SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){AC(vm)=(SG_MAKE_BOOL((((intptr_t )(s)))<(((intptr_t )(AC(vm))))));} else {AC(vm)=(SG_MAKE_BOOL(Sg_NumLt(s,AC(vm))));}(SP(vm))--;}
   NEXT;
 }
 CASE(NUM_LE) {
 
-{
-#line 307 "../boot/instructions.scm"
-{SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){AC(vm)=(SG_MAKE_BOOL((((intptr_t )(s)))<=(((intptr_t )(AC(vm))))));} else {AC(vm)=(SG_MAKE_BOOL(Sg_NumLe(s,AC(vm))));}(SP(vm))--;}}
+#line 304 "../boot/instructions.scm"
+{SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){AC(vm)=(SG_MAKE_BOOL((((intptr_t )(s)))<=(((intptr_t )(AC(vm))))));} else {AC(vm)=(SG_MAKE_BOOL(Sg_NumLe(s,AC(vm))));}(SP(vm))--;}
   NEXT;
 }
 CASE(NUM_GT) {
 
-{
-#line 311 "../boot/instructions.scm"
-{SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){AC(vm)=(SG_MAKE_BOOL((((intptr_t )(s)))>(((intptr_t )(AC(vm))))));} else {AC(vm)=(SG_MAKE_BOOL(Sg_NumGt(s,AC(vm))));}(SP(vm))--;}}
+#line 307 "../boot/instructions.scm"
+{SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){AC(vm)=(SG_MAKE_BOOL((((intptr_t )(s)))>(((intptr_t )(AC(vm))))));} else {AC(vm)=(SG_MAKE_BOOL(Sg_NumGt(s,AC(vm))));}(SP(vm))--;}
   NEXT;
 }
 CASE(NUM_GE) {
 
-{
-#line 315 "../boot/instructions.scm"
-{SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){AC(vm)=(SG_MAKE_BOOL((((intptr_t )(s)))>=(((intptr_t )(AC(vm))))));} else {AC(vm)=(SG_MAKE_BOOL(Sg_NumGe(s,AC(vm))));}(SP(vm))--;}}
+#line 310 "../boot/instructions.scm"
+{SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){AC(vm)=(SG_MAKE_BOOL((((intptr_t )(s)))>=(((intptr_t )(AC(vm))))));} else {AC(vm)=(SG_MAKE_BOOL(Sg_NumGe(s,AC(vm))));}(SP(vm))--;}
   NEXT;
 }
 CASE(RECEIVE) {
 
-{
-#line 373 "../boot/instructions.scm"
+#line 313 "../boot/instructions.scm"
 INSN_VAL2(val1,val2,c);
-#line 374 "../boot/instructions.scm"
-{int i=0;int numValues=0;
-#line 376 "../boot/instructions.scm"
-if ((!(SG_VALUESP(AC(vm))))){
-numValues=(1);} else {
-numValues=(SG_VALUES_SIZE(AC(vm)));}
+#line 314 "../boot/instructions.scm"
+{int numValues=0;
+if (SG_VALUESP(AC(vm))){
+numValues=(SG_VALUES_SIZE(AC(vm)));} else {
+numValues=(1);}
 if ((numValues)<(val1)){
 {Sg_AssertionViolation(SG_INTERN("receive"),SG_MAKE_STRING("recieved fewer values than expected"),
-#line 382 "../boot/instructions.scm"
+#line 321 "../boot/instructions.scm"
 AC(vm));}}
 if (((val2)==(0))&&(
 (numValues)>(val1))){
 {Sg_AssertionViolation(SG_INTERN("receive"),SG_MAKE_STRING("recieved more values than expected"),
-#line 387 "../boot/instructions.scm"
+#line 326 "../boot/instructions.scm"
 AC(vm));}}
 if ((val2)==(0)){
-#line 390 "../boot/instructions.scm"
+#line 329 "../boot/instructions.scm"
 if ((val1)==(1)){
-#line 392 "../boot/instructions.scm"
+#line 331 "../boot/instructions.scm"
 PUSH(SP(vm),AC(vm));}else if(
 (val1)>(0)){
-for (i=(0);(i)<(val1);(i)++){
-PUSH(SP(vm),SG_VALUES_ELEMENT(AC(vm),i));}}}else if(
+{int i=0;int cise__18=val1;for (;(i)<(cise__18);(i)++){
+PUSH(SP(vm),SG_VALUES_ELEMENT(AC(vm),i));}}}}else if(
 (val1)==(0)){
-#line 398 "../boot/instructions.scm"
+#line 337 "../boot/instructions.scm"
 {SgObject h=SG_NIL;SgObject t=SG_NIL;
-#line 400 "../boot/instructions.scm"
+#line 339 "../boot/instructions.scm"
 if ((numValues)==(1)){
 SG_APPEND1(h,t,AC(vm));} else {
-for (i=(0);(i)<(numValues);(i)++){
-SG_APPEND1(h,t,SG_VALUES_ELEMENT(AC(vm),i));}}
+{int i=0;int cise__17=numValues;for (;(i)<(cise__17);(i)++){
+SG_APPEND1(h,t,SG_VALUES_ELEMENT(AC(vm),i));}}}
 PUSH(SP(vm),h);}} else {
-#line 407 "../boot/instructions.scm"
-{SgObject h=SG_NIL;SgObject t=SG_NIL;
-#line 409 "../boot/instructions.scm"
-for (i=(0);;(i)++){
+#line 346 "../boot/instructions.scm"
+{SgObject h=SG_NIL;SgObject t=SG_NIL;int i=0;
+#line 349 "../boot/instructions.scm"
+for (;;(i)++){
 if ((i)<(val1)){
 PUSH(SP(vm),SG_VALUES_ELEMENT(AC(vm),i));}else if(
 (i)<(SG_VALUES_SIZE(AC(vm)))){
 SG_APPEND1(h,t,SG_VALUES_ELEMENT(AC(vm),i));} else {
-#line 415 "../boot/instructions.scm"
+#line 355 "../boot/instructions.scm"
 PUSH(SP(vm),h);
-break;}}}}}}
+break;}}}}}
   NEXT;
 }
 CASE(CLOSURE) {
 
-{
-#line 430 "../boot/instructions.scm"
+#line 359 "../boot/instructions.scm"
 {SgObject cb=FETCH_OPERAND(PC(vm));
 if ((!(SG_CODE_BUILDERP(cb)))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("closure"),SG_MAKE_STRING("code-builder"),cb,SG_NIL);}}
-#line 435 "../boot/instructions.scm"
-AC(vm)=(Sg_MakeClosure(cb,(SP(vm))-(SG_CODE_BUILDER_FREEC(cb))));
-SP(vm)=((SP(vm))-(SG_CODE_BUILDER_FREEC(cb)));}}
+#line 364 "../boot/instructions.scm"
+AC(vm)=(Sg_MakeClosure(cb,(SP(vm))-(SG_CODE_BUILDER_FREEC(cb)))),
+SP(vm)=((SP(vm))-(SG_CODE_BUILDER_FREEC(cb)));}
   NEXT;
 }
 CASE(APPLY) {
 
-{
-#line 454 "../boot/instructions.scm"
-INSN_VAL2(val1,val2,c);SgObject cise__17;
-#line 455 "../boot/instructions.scm"
+#line 383 "../boot/instructions.scm"
+INSN_VAL2(val1,val2,c);SgObject cise__19;
+#line 384 "../boot/instructions.scm"
 {int rargc=Sg_Length(AC(vm));int nargc=
 (val1)-(2);SgObject proc=
 INDEX(SP(vm),nargc);SgObject* fp=
@@ -565,238 +517,215 @@ SP(vm)=((SP(vm))-(1));
 if (val2){{
 SP(vm)=(shift_args(FP(vm),nargc,SP(vm)));}}
 (((*(vm))).callCode)[0]=(
-MERGE_INSN_VALUE1(CALL,nargc));
+MERGE_INSN_VALUE1(CALL,nargc)),
 PC(vm)=((vm)->callCode);} else {
-#line 470 "../boot/instructions.scm"
+#line 399 "../boot/instructions.scm"
 INDEX_SET(SP(vm),0,SG_CAR(AC(vm)));
-SG_FOR_EACH(cise__17,SG_CDR(AC(vm))) {{SgObject v=SG_CAR(cise__17);
+SG_FOR_EACH(cise__19,SG_CDR(AC(vm))) {{SgObject v=SG_CAR(cise__19);
 PUSH(SP(vm),v);}}
 if (val2){{
 SP(vm)=(shift_args(FP(vm),(nargc)+(rargc),SP(vm)));}}
 (((*(vm))).callCode)[0]=(
-MERGE_INSN_VALUE1(CALL,(nargc)+(rargc)));
+MERGE_INSN_VALUE1(CALL,(nargc)+(rargc))),
 PC(vm)=((vm)->callCode);}
-AC(vm)=(proc);}}
+AC(vm)=(proc);}
   NEXT;
 }
 CASE(CALL) {
 
-{
-#line 508 "../boot/instructions.scm"
+#line 410 "../boot/instructions.scm"
 #include "vmcall.c"
-}
+
   NEXT;
 }
 CASE(LOCAL_CALL) {
 
-{
-#line 517 "../boot/instructions.scm"
+#line 431 "../boot/instructions.scm"
 CHECK_STACK(SG_CLOSURE_MAX_STACK(AC(vm)),vm);
-#line 518 "../boot/instructions.scm"
-LOCAL_CALL_INSN(vm,c);}
+#line 432 "../boot/instructions.scm"
+{INSN_VAL1(val1,c);if (SG_CLOSUREP(AC(vm))){if ((SG_VM_LOG_LEVEL(vm,SG_DEBUG_LEVEL))&&(((vm)->state)==(RUNNING))){{Sg_Printf((vm)->logPort,UC("calling %S\n"),AC(vm));if ((SG_VM_LOG_LEVEL(vm,SG_TRACE_LEVEL))&&(((vm)->state)==(RUNNING))){{print_frames(vm);}}}}{SgCodeBuilder* cb=(SG_CLOSURE(AC(vm)))->code;CL(vm)=(AC(vm)),PC(vm)=((cb)->code),FP(vm)=((SP(vm))-(val1));}} else {ASSERT(FALSE);}}
   NEXT;
 }
 CASE(TAIL_CALL) {
 
-{
-#line 528 "../boot/instructions.scm"
-TAIL_CALL_INSN(vm,c);
-#line 529 "../boot/instructions.scm"
+#line 441 "../boot/instructions.scm"
+{INSN_VAL1(val1,c);SP(vm)=(shift_args(FP(vm),val1,SP(vm)));}
+#line 442 "../boot/instructions.scm"
 #include "vmcall.c"
-}
+
   NEXT;
 }
 CASE(LOCAL_TAIL_CALL) {
 
-{
-#line 539 "../boot/instructions.scm"
+#line 445 "../boot/instructions.scm"
 CHECK_STACK(SG_CLOSURE_MAX_STACK(AC(vm)),vm);
-#line 540 "../boot/instructions.scm"
-TAIL_CALL_INSN(vm,c);
-#line 541 "../boot/instructions.scm"
-LOCAL_CALL_INSN(vm,c);}
+#line 446 "../boot/instructions.scm"
+{INSN_VAL1(val1,c);SP(vm)=(shift_args(FP(vm),val1,SP(vm)));}
+#line 447 "../boot/instructions.scm"
+{INSN_VAL1(val1,c);if (SG_CLOSUREP(AC(vm))){if ((SG_VM_LOG_LEVEL(vm,SG_DEBUG_LEVEL))&&(((vm)->state)==(RUNNING))){{Sg_Printf((vm)->logPort,UC("calling %S\n"),AC(vm));if ((SG_VM_LOG_LEVEL(vm,SG_TRACE_LEVEL))&&(((vm)->state)==(RUNNING))){{print_frames(vm);}}}}{SgCodeBuilder* cb=(SG_CLOSURE(AC(vm)))->code;CL(vm)=(AC(vm)),PC(vm)=((cb)->code),FP(vm)=((SP(vm))-(val1));}} else {ASSERT(FALSE);}}
   NEXT;
 }
 CASE(RET) {
 
-{
-#line 556 "../boot/instructions.scm"
-RET_INSN();}
+#line 450 "../boot/instructions.scm"
+RET_INSN();
   NEXT;
 }
 CASE(FRAME) {
 
-{
-#line 576 "../boot/instructions.scm"
+#line 453 "../boot/instructions.scm"
 {SgObject n=FETCH_OPERAND(PC(vm));
 ASSERT(SG_INTP(n));
-PUSH_CONT(vm,(PC(vm))+((SG_INT_VALUE(n))-(1)));}}
+PUSH_CONT(vm,(PC(vm))+((SG_INT_VALUE(n))-(1)));}
   NEXT;
 }
 CASE(ENTER) {
 
-{
-#line 589 "../boot/instructions.scm"
+#line 459 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 590 "../boot/instructions.scm"
-FP(vm)=((SP(vm))-(val1));}
+#line 460 "../boot/instructions.scm"
+FP(vm)=((SP(vm))-(val1));
   NEXT;
 }
 CASE(LEAVE) {
 
-{
-#line 594 "../boot/instructions.scm"
+#line 463 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 596 "../boot/instructions.scm"
-SP(vm)=((SP(vm))-(val1));}
+#line 464 "../boot/instructions.scm"
+SP(vm)=((SP(vm))-(val1));
   NEXT;
 }
 CASE(DEFINE) {
 
-{
-#line 600 "../boot/instructions.scm"
+#line 467 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 601 "../boot/instructions.scm"
+#line 468 "../boot/instructions.scm"
 {SgObject var=FETCH_OPERAND(PC(vm));
 ASSERT(SG_IDENTIFIERP(var));
 Sg_MakeBinding(SG_IDENTIFIER_LIBRARY(var),
 SG_IDENTIFIER_NAME(var),
 AC(vm),val1);
-#line 607 "../boot/instructions.scm"
-AC(vm)=(SG_UNDEF);}}
+#line 474 "../boot/instructions.scm"
+AC(vm)=(SG_UNDEF);}
   NEXT;
 }
 CASE(LIBRARY) {
 
-{
-#line 613 "../boot/instructions.scm"
+#line 480 "../boot/instructions.scm"
 {SgObject lib=Sg_FindLibrary(FETCH_OPERAND(PC(vm)),FALSE);
-(vm)->currentLibrary=(((SgLibrary* )(lib)));}}
+(vm)->currentLibrary=(((SgLibrary* )(lib)));}
   NEXT;
 }
 CASE(CAR) {
 
-{
-#line 626 "../boot/instructions.scm"
+#line 484 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 628 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CAR);}
+#line 486 "../boot/instructions.scm"
+AC(vm)=(SG_CAR(AC(vm)));
   NEXT;
 }
 CASE(CDR) {
 
-{
-#line 640 "../boot/instructions.scm"
+#line 489 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 642 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CDR);}
+#line 491 "../boot/instructions.scm"
+AC(vm)=(SG_CDR(AC(vm)));
   NEXT;
 }
 CASE(CONS) {
 
-{
-#line 651 "../boot/instructions.scm"
-BUILTIN_TWO_ARGS(vm,Sg_Cons);}
+#line 494 "../boot/instructions.scm"
+{AC(vm)=(Sg_Cons(INDEX(SP(vm),0),AC(vm)));(SP(vm))--;}
   NEXT;
 }
 CASE(LIST) {
 
-{
-#line 670 "../boot/instructions.scm"
+#line 497 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 671 "../boot/instructions.scm"
-{int i=0;int n=
-(val1)-(1);SgObject ret=SG_NIL;
-#line 674 "../boot/instructions.scm"
+#line 498 "../boot/instructions.scm"
+{int n=(val1)-(1);SgObject ret=SG_NIL;
+#line 500 "../boot/instructions.scm"
 if ((val1)>(0)){{
 ret=(Sg_Cons(AC(vm),ret));
-for (i=(0);(i)<(n);(i)++){
-ret=(Sg_Cons(INDEX(SP(vm),i),ret));}
+{int i=0;int cise__20=n;for (;(i)<(cise__20);(i)++){
+ret=(Sg_Cons(INDEX(SP(vm),i),ret));}}
 SP(vm)=((SP(vm))-(n));}}
-AC(vm)=(ret);}}
+AC(vm)=(ret);}
   NEXT;
 }
 CASE(APPEND) {
 
-{
-#line 682 "../boot/instructions.scm"
+#line 508 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 683 "../boot/instructions.scm"
-{int nargs=(val1)-(1);int i=0;SgObject ret=SG_NIL;
-#line 686 "../boot/instructions.scm"
+#line 509 "../boot/instructions.scm"
+{int nargs=(val1)-(1);SgObject ret=SG_NIL;
+#line 511 "../boot/instructions.scm"
 if ((nargs)>(0)){{
 ret=(AC(vm));
-for (;(i)<(nargs);(i)++){
-if ((Sg_Length(INDEX(SP(vm),i)))<(0)){{
-{Sg_WrongTypeOfArgumentViolation(SG_INTERN("append"),SG_MAKE_STRING("list"),
-INDEX(SP(vm),i),SG_NIL);}}}
-ret=(Sg_Append2(INDEX(SP(vm),i),ret));}
+{int i=0;int cise__21=nargs;for (;(i)<(cise__21);(i)++){
+{SgObject obj=INDEX(SP(vm),i);
+if ((Sg_Length(obj))<(0)){{
+{Sg_WrongTypeOfArgumentViolation(SG_INTERN("append"),SG_MAKE_STRING("list"),obj,SG_NIL);}}}
+#line 518 "../boot/instructions.scm"
+ret=(Sg_Append2(obj,ret));}}}
 SP(vm)=((SP(vm))-(nargs));}}
-AC(vm)=(ret);}}
+AC(vm)=(ret);}
   NEXT;
 }
 CASE(VALUES) {
 
-{
-#line 715 "../boot/instructions.scm"
+#line 523 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 716 "../boot/instructions.scm"
+#line 524 "../boot/instructions.scm"
 if ((val1)==(0)){
 AC(vm)=(Sg_MakeValues(0));} else {
 {SgObject v=AC(vm);
 if ((val1)>(1)){{
 v=(Sg_MakeValues(val1));
-{int i=0;int n=
-(val1)-(1);
+{int n=(val1)-(1);
 SG_VALUES_ELEMENT(v,n)=(AC(vm));
-for (i=(0);(i)<(n);(i)++){
+{int i=0;int cise__22=n;for (;(i)<(cise__22);(i)++){
 SG_VALUES_ELEMENT(v,((n)-(i))-(1))=(
-INDEX(SP(vm),i));}
+INDEX(SP(vm),i));}}
 SP(vm)=((SP(vm))-(n));}}}
-AC(vm)=(v);}}}
+AC(vm)=(v);}}
   NEXT;
 }
 CASE(EQ) {
 
-{
-#line 731 "../boot/instructions.scm"
-BUILTIN_TWO_ARGS_COMPARE(vm,SG_EQ);}
+#line 544 "../boot/instructions.scm"
+{AC(vm)=(SG_MAKE_BOOL(SG_EQ(INDEX(SP(vm),0),AC(vm))));(SP(vm))--;}
   NEXT;
 }
 CASE(EQV) {
 
-{
-#line 734 "../boot/instructions.scm"
-BUILTIN_TWO_ARGS_COMPARE(vm,Sg_EqvP);}
+#line 547 "../boot/instructions.scm"
+{AC(vm)=(SG_MAKE_BOOL(Sg_EqvP(INDEX(SP(vm),0),AC(vm))));(SP(vm))--;}
   NEXT;
 }
 CASE(NULLP) {
 
-{
-#line 743 "../boot/instructions.scm"
-AC(vm)=(SG_MAKE_BOOL(SG_NULLP(AC(vm))));}
+#line 550 "../boot/instructions.scm"
+AC(vm)=(SG_MAKE_BOOL(SG_NULLP(AC(vm))));
   NEXT;
 }
 CASE(PAIRP) {
 
-{
-#line 746 "../boot/instructions.scm"
-AC(vm)=(SG_MAKE_BOOL(SG_PAIRP(AC(vm))));}
+#line 553 "../boot/instructions.scm"
+AC(vm)=(SG_MAKE_BOOL(SG_PAIRP(AC(vm))));
   NEXT;
 }
 CASE(SYMBOLP) {
 
-{
-#line 749 "../boot/instructions.scm"
-AC(vm)=(SG_MAKE_BOOL(SG_SYMBOLP(AC(vm))));}
+#line 556 "../boot/instructions.scm"
+AC(vm)=(SG_MAKE_BOOL(SG_SYMBOLP(AC(vm))));
   NEXT;
 }
 CASE(VECTOR) {
 
-{
-#line 770 "../boot/instructions.scm"
+#line 559 "../boot/instructions.scm"
 {SgObject v=SG_UNDEF;
 INSN_VAL1(val1,c);
 v=(Sg_MakeVector(val1,SG_UNDEF));
@@ -808,31 +737,28 @@ for (i=(0);(i)<(n);(i)++){
 SG_VECTOR_ELEMENT(v,((n)-(i))-(1))=(
 INDEX(SP(vm),i));}
 SP(vm)=((SP(vm))-(n));}}
-AC(vm)=(v);}}
+AC(vm)=(v);}
   NEXT;
 }
 CASE(VECTORP) {
 
-{
-#line 790 "../boot/instructions.scm"
-AC(vm)=(SG_MAKE_BOOL(SG_VECTORP(AC(vm))));}
+#line 573 "../boot/instructions.scm"
+AC(vm)=(SG_MAKE_BOOL(SG_VECTORP(AC(vm))));
   NEXT;
 }
 CASE(VEC_LEN) {
 
-{
-#line 802 "../boot/instructions.scm"
+#line 576 "../boot/instructions.scm"
 if ((!(SG_VECTORP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-length"),SG_MAKE_STRING("vector"),
 AC(vm),SG_NIL);}}
-#line 805 "../boot/instructions.scm"
-AC(vm)=(SG_MAKE_INT(SG_VECTOR_SIZE(AC(vm))));}
+#line 579 "../boot/instructions.scm"
+AC(vm)=(SG_MAKE_INT(SG_VECTOR_SIZE(AC(vm))));
   NEXT;
 }
 CASE(VEC_REF) {
 
-{
-#line 808 "../boot/instructions.scm"
+#line 582 "../boot/instructions.scm"
 {SgObject obj=INDEX(SP(vm),0);
 if (SG_VECTORP(obj)){
 if (SG_INTP(AC(vm))){
@@ -841,22 +767,22 @@ if (((index)>=(SG_VECTOR_SIZE(obj)))||(
 (index)<(0))){
 {Sg_AssertionViolation(SG_INTERN("vector-ref"),SG_MAKE_STRING("index out of range"),
 SG_LIST2(obj,AC(vm)));}} else {
-AC(vm)=(SG_VECTOR_ELEMENT(obj,index));}}} else {
+{
+AC(vm)=(SG_VECTOR_ELEMENT(obj,index));
+(SP(vm))--;}}}} else {
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-ref"),SG_MAKE_STRING("fixnum"),AC(vm),SG_NIL);}}} else {
-{Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-ref"),SG_MAKE_STRING("vector"),obj,SG_NIL);}}
-(SP(vm))--;}}
+{Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-ref"),SG_MAKE_STRING("vector"),obj,SG_NIL);}}}
   NEXT;
 }
 CASE(VEC_SET) {
 
-{
-#line 822 "../boot/instructions.scm"
+#line 597 "../boot/instructions.scm"
 {SgObject obj=INDEX(SP(vm),1);SgObject index=
 INDEX(SP(vm),0);
 if (SG_VECTORP(obj)){
 if (SG_LITERAL_VECTORP(obj)){
 {Sg_AssertionViolation(SG_INTERN("vector-set!"),SG_MAKE_STRING("attempt to modify immutable vector"),
-#line 828 "../boot/instructions.scm"
+#line 603 "../boot/instructions.scm"
 SG_LIST1(obj));}} else {
 if (SG_INTP(index)){
 {int i=SG_INT_VALUE(index);
@@ -864,517 +790,484 @@ if (((i)>=(SG_VECTOR_SIZE(obj)))||(
 (i)<(0))){
 {Sg_AssertionViolation(SG_INTERN("vector-set!"),SG_MAKE_STRING("index out of range"),
 SG_LIST2(obj,index));}} else {
-SG_VECTOR_ELEMENT(obj,i)=(AC(vm));}}} else {
+SG_VECTOR_ELEMENT(obj,i)=(AC(vm)),
+AC(vm)=(SG_UNDEF),
+SP(vm)=((SP(vm))-(2));}}} else {
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-set!"),SG_MAKE_STRING("fixnum"),index,SG_NIL);}}}} else {
-#line 838 "../boot/instructions.scm"
-{Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-set!"),SG_MAKE_STRING("vector"),obj,SG_NIL);}}
-AC(vm)=(SG_UNDEF);
-SP(vm)=((SP(vm))-(2));}}
+#line 615 "../boot/instructions.scm"
+{Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-set!"),SG_MAKE_STRING("vector"),obj,SG_NIL);}}}
   NEXT;
 }
 CASE(LREF_PUSH) {
 
-{
-#line 845 "../boot/instructions.scm"
+#line 620 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 846 "../boot/instructions.scm"
-PUSH(SP(vm),REFER_LOCAL(vm,val1));}
+#line 621 "../boot/instructions.scm"
+PUSH(SP(vm),REFER_LOCAL(vm,val1));
   NEXT;
 }
 CASE(FREF_PUSH) {
 
-{
-#line 849 "../boot/instructions.scm"
+#line 624 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 850 "../boot/instructions.scm"
-PUSH(SP(vm),INDEX_CLOSURE(vm,val1));}
+#line 625 "../boot/instructions.scm"
+PUSH(SP(vm),INDEX_CLOSURE(vm,val1));
   NEXT;
 }
 CASE(GREF_PUSH) {
 
-{
-#line 65 "../boot/instructions.scm"
+#line 60 "../boot/instructions.scm"
 {SgObject var=FETCH_OPERAND(PC(vm));
 if (SG_GLOCP(var)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(var)));}else if(
 SG_IDENTIFIERP(var)){
 {SgObject value=Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var),
 SG_IDENTIFIER_NAME(var),SG_UNBOUND);
-#line 72 "../boot/instructions.scm"
+#line 67 "../boot/instructions.scm"
 if (SG_GLOCP(value)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(value))),
 (*((PC(vm))-(1)))=(SG_WORD(value));}else if(
 SG_UNBOUNDP(value)){
 {Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}} else {
-#line 78 "../boot/instructions.scm"
+#line 73 "../boot/instructions.scm"
 ASSERT(FALSE);}}} else {
-ASSERT(FALSE);}}}
-{
-#line 103 "../boot/instructions.scm"
-PUSH(SP(vm),AC(vm));}
+ASSERT(FALSE);}}
+
+#line 97 "../boot/instructions.scm"
+PUSH(SP(vm),AC(vm));
   NEXT;
 }
 CASE(CONST_PUSH) {
 
-{
-#line 856 "../boot/instructions.scm"
-PUSH(SP(vm),FETCH_OPERAND(PC(vm)));}
+#line 631 "../boot/instructions.scm"
+PUSH(SP(vm),FETCH_OPERAND(PC(vm)));
   NEXT;
 }
 CASE(CONSTI_PUSH) {
 
-{
-#line 41 "../boot/instructions.scm"
+#line 38 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 42 "../boot/instructions.scm"
-AC(vm)=(SG_MAKE_INT(val1));}
-{
-#line 103 "../boot/instructions.scm"
-PUSH(SP(vm),AC(vm));}
+#line 39 "../boot/instructions.scm"
+AC(vm)=(SG_MAKE_INT(val1));
+
+#line 97 "../boot/instructions.scm"
+PUSH(SP(vm),AC(vm));
   NEXT;
 }
 CASE(GREF_CALL) {
 
-{
-#line 65 "../boot/instructions.scm"
+#line 60 "../boot/instructions.scm"
 {SgObject var=FETCH_OPERAND(PC(vm));
 if (SG_GLOCP(var)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(var)));}else if(
 SG_IDENTIFIERP(var)){
 {SgObject value=Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var),
 SG_IDENTIFIER_NAME(var),SG_UNBOUND);
-#line 72 "../boot/instructions.scm"
+#line 67 "../boot/instructions.scm"
 if (SG_GLOCP(value)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(value))),
 (*((PC(vm))-(1)))=(SG_WORD(value));}else if(
 SG_UNBOUNDP(value)){
 {Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}} else {
-#line 78 "../boot/instructions.scm"
+#line 73 "../boot/instructions.scm"
 ASSERT(FALSE);}}} else {
-ASSERT(FALSE);}}}
-{
-#line 508 "../boot/instructions.scm"
+ASSERT(FALSE);}}
+
+#line 410 "../boot/instructions.scm"
 #include "vmcall.c"
-}
+
   NEXT;
 }
 CASE(GREF_TAIL_CALL) {
 
-{
-#line 65 "../boot/instructions.scm"
+#line 60 "../boot/instructions.scm"
 {SgObject var=FETCH_OPERAND(PC(vm));
 if (SG_GLOCP(var)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(var)));}else if(
 SG_IDENTIFIERP(var)){
 {SgObject value=Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var),
 SG_IDENTIFIER_NAME(var),SG_UNBOUND);
-#line 72 "../boot/instructions.scm"
+#line 67 "../boot/instructions.scm"
 if (SG_GLOCP(value)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(value))),
 (*((PC(vm))-(1)))=(SG_WORD(value));}else if(
 SG_UNBOUNDP(value)){
 {Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}} else {
-#line 78 "../boot/instructions.scm"
+#line 73 "../boot/instructions.scm"
 ASSERT(FALSE);}}} else {
-ASSERT(FALSE);}}}
-{
-#line 528 "../boot/instructions.scm"
-TAIL_CALL_INSN(vm,c);
-#line 529 "../boot/instructions.scm"
+ASSERT(FALSE);}}
+
+#line 441 "../boot/instructions.scm"
+{INSN_VAL1(val1,c);SP(vm)=(shift_args(FP(vm),val1,SP(vm)));}
+#line 442 "../boot/instructions.scm"
 #include "vmcall.c"
-}
+
   NEXT;
 }
 CASE(SET_CAR) {
 
+#line 643 "../boot/instructions.scm"
+{SgObject obj=INDEX(SP(vm),0);
+if (SG_PAIRP(obj)){
+if (Sg_ConstantLiteralP(obj)){
+{Sg_AssertionViolation(SG_INTERN("set-car!"),SG_MAKE_STRING("attempt to modify constant literal"),obj);}} else {
+#line 648 "../boot/instructions.scm"
 {
-#line 868 "../boot/instructions.scm"
-if ((!(SG_PAIRP(INDEX(SP(vm),0))))){
-{Sg_WrongTypeOfArgumentViolation(SG_INTERN("set-car!"),SG_MAKE_STRING("pair"),INDEX(SP(vm),0),SG_NIL);}}
-#line 870 "../boot/instructions.scm"
-if (Sg_ConstantLiteralP(INDEX(SP(vm),0))){{
-{Sg_AssertionViolation(SG_INTERN("set-car!"),SG_MAKE_STRING("attempt to modify constant literal"),
-INDEX(SP(vm),0));}}}
-#line 873 "../boot/instructions.scm"
-SG_SET_CAR(INDEX(SP(vm),0),AC(vm));
-#line 874 "../boot/instructions.scm"
+SG_SET_CAR(obj,AC(vm));
 (SP(vm))--;
-#line 875 "../boot/instructions.scm"
-AC(vm)=(SG_UNDEF);}
+AC(vm)=(SG_UNDEF);}}} else {
+{Sg_WrongTypeOfArgumentViolation(SG_INTERN("set-car!"),SG_MAKE_STRING("pair"),obj,SG_NIL);}}}
   NEXT;
 }
 CASE(SET_CDR) {
 
+#line 656 "../boot/instructions.scm"
+{SgObject obj=INDEX(SP(vm),0);
+if (SG_PAIRP(obj)){
+if (Sg_ConstantLiteralP(obj)){
+{Sg_AssertionViolation(SG_INTERN("set-cdr!"),SG_MAKE_STRING("attempt to modify constant literal"),obj);}} else {
+#line 661 "../boot/instructions.scm"
 {
-#line 878 "../boot/instructions.scm"
-if ((!(SG_PAIRP(INDEX(SP(vm),0))))){
-{Sg_WrongTypeOfArgumentViolation(SG_INTERN("set-cdr!"),SG_MAKE_STRING("pair"),INDEX(SP(vm),0),SG_NIL);}}
-#line 880 "../boot/instructions.scm"
-if (Sg_ConstantLiteralP(INDEX(SP(vm),0))){{
-{Sg_AssertionViolation(SG_INTERN("set-cdr!"),SG_MAKE_STRING("attempt to modify constant literal"),
-INDEX(SP(vm),0));}}}
-#line 883 "../boot/instructions.scm"
-SG_SET_CDR(INDEX(SP(vm),0),AC(vm));
-#line 884 "../boot/instructions.scm"
+SG_SET_CDR(obj,AC(vm));
 (SP(vm))--;
-#line 885 "../boot/instructions.scm"
-AC(vm)=(SG_UNDEF);}
+AC(vm)=(SG_UNDEF);}}} else {
+{Sg_WrongTypeOfArgumentViolation(SG_INTERN("set-cdr!"),SG_MAKE_STRING("pair"),obj,SG_NIL);}}}
   NEXT;
 }
 CASE(CAAR) {
 
-{
-#line 626 "../boot/instructions.scm"
+#line 484 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 628 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CAR);}
-{
-#line 626 "../boot/instructions.scm"
+#line 486 "../boot/instructions.scm"
+AC(vm)=(SG_CAR(AC(vm)));
+
+#line 484 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 628 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CAR);}
+#line 486 "../boot/instructions.scm"
+AC(vm)=(SG_CAR(AC(vm)));
   NEXT;
 }
 CASE(CADR) {
 
-{
-#line 640 "../boot/instructions.scm"
+#line 489 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 642 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CDR);}
-{
-#line 626 "../boot/instructions.scm"
+#line 491 "../boot/instructions.scm"
+AC(vm)=(SG_CDR(AC(vm)));
+
+#line 484 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 628 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CAR);}
+#line 486 "../boot/instructions.scm"
+AC(vm)=(SG_CAR(AC(vm)));
   NEXT;
 }
 CASE(CDAR) {
 
-{
-#line 626 "../boot/instructions.scm"
+#line 484 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 628 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CAR);}
-{
-#line 640 "../boot/instructions.scm"
+#line 486 "../boot/instructions.scm"
+AC(vm)=(SG_CAR(AC(vm)));
+
+#line 489 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 642 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CDR);}
+#line 491 "../boot/instructions.scm"
+AC(vm)=(SG_CDR(AC(vm)));
   NEXT;
 }
 CASE(CDDR) {
 
-{
-#line 640 "../boot/instructions.scm"
+#line 489 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 642 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CDR);}
-{
-#line 640 "../boot/instructions.scm"
+#line 491 "../boot/instructions.scm"
+AC(vm)=(SG_CDR(AC(vm)));
+
+#line 489 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 642 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CDR);}
+#line 491 "../boot/instructions.scm"
+AC(vm)=(SG_CDR(AC(vm)));
   NEXT;
 }
 CASE(CAR_PUSH) {
 
-{
-#line 626 "../boot/instructions.scm"
+#line 484 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 628 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CAR);}
-{
-#line 103 "../boot/instructions.scm"
-PUSH(SP(vm),AC(vm));}
+#line 486 "../boot/instructions.scm"
+AC(vm)=(SG_CAR(AC(vm)));
+
+#line 97 "../boot/instructions.scm"
+PUSH(SP(vm),AC(vm));
   NEXT;
 }
 CASE(CDR_PUSH) {
 
-{
-#line 640 "../boot/instructions.scm"
+#line 489 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 642 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CDR);}
-{
-#line 103 "../boot/instructions.scm"
-PUSH(SP(vm),AC(vm));}
+#line 491 "../boot/instructions.scm"
+AC(vm)=(SG_CDR(AC(vm)));
+
+#line 97 "../boot/instructions.scm"
+PUSH(SP(vm),AC(vm));
   NEXT;
 }
 CASE(CONS_PUSH) {
 
-{
-#line 651 "../boot/instructions.scm"
-BUILTIN_TWO_ARGS(vm,Sg_Cons);}
-{
-#line 103 "../boot/instructions.scm"
-PUSH(SP(vm),AC(vm));}
+#line 494 "../boot/instructions.scm"
+{AC(vm)=(Sg_Cons(INDEX(SP(vm),0),AC(vm)));(SP(vm))--;}
+
+#line 97 "../boot/instructions.scm"
+PUSH(SP(vm),AC(vm));
   NEXT;
 }
 CASE(LREF_CAR) {
 
-{
-#line 45 "../boot/instructions.scm"
+#line 42 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 46 "../boot/instructions.scm"
-AC(vm)=(REFER_LOCAL(vm,val1));}
-{
-#line 626 "../boot/instructions.scm"
+#line 43 "../boot/instructions.scm"
+AC(vm)=(REFER_LOCAL(vm,val1));
+
+#line 484 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 628 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CAR);}
+#line 486 "../boot/instructions.scm"
+AC(vm)=(SG_CAR(AC(vm)));
   NEXT;
 }
 CASE(LREF_CDR) {
 
-{
-#line 45 "../boot/instructions.scm"
+#line 42 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 46 "../boot/instructions.scm"
-AC(vm)=(REFER_LOCAL(vm,val1));}
-{
-#line 640 "../boot/instructions.scm"
+#line 43 "../boot/instructions.scm"
+AC(vm)=(REFER_LOCAL(vm,val1));
+
+#line 489 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 642 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CDR);}
+#line 491 "../boot/instructions.scm"
+AC(vm)=(SG_CDR(AC(vm)));
   NEXT;
 }
 CASE(FREF_CAR) {
 
-{
-#line 55 "../boot/instructions.scm"
+#line 51 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 56 "../boot/instructions.scm"
-AC(vm)=(INDEX_CLOSURE(vm,val1));}
-{
-#line 626 "../boot/instructions.scm"
+#line 52 "../boot/instructions.scm"
+AC(vm)=(INDEX_CLOSURE(vm,val1));
+
+#line 484 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 628 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CAR);}
+#line 486 "../boot/instructions.scm"
+AC(vm)=(SG_CAR(AC(vm)));
   NEXT;
 }
 CASE(FREF_CDR) {
 
-{
-#line 55 "../boot/instructions.scm"
+#line 51 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 56 "../boot/instructions.scm"
-AC(vm)=(INDEX_CLOSURE(vm,val1));}
-{
-#line 640 "../boot/instructions.scm"
+#line 52 "../boot/instructions.scm"
+AC(vm)=(INDEX_CLOSURE(vm,val1));
+
+#line 489 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 642 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CDR);}
+#line 491 "../boot/instructions.scm"
+AC(vm)=(SG_CDR(AC(vm)));
   NEXT;
 }
 CASE(GREF_CAR) {
 
-{
-#line 65 "../boot/instructions.scm"
+#line 60 "../boot/instructions.scm"
 {SgObject var=FETCH_OPERAND(PC(vm));
 if (SG_GLOCP(var)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(var)));}else if(
 SG_IDENTIFIERP(var)){
 {SgObject value=Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var),
 SG_IDENTIFIER_NAME(var),SG_UNBOUND);
-#line 72 "../boot/instructions.scm"
+#line 67 "../boot/instructions.scm"
 if (SG_GLOCP(value)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(value))),
 (*((PC(vm))-(1)))=(SG_WORD(value));}else if(
 SG_UNBOUNDP(value)){
 {Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}} else {
-#line 78 "../boot/instructions.scm"
+#line 73 "../boot/instructions.scm"
 ASSERT(FALSE);}}} else {
-ASSERT(FALSE);}}}
-{
-#line 626 "../boot/instructions.scm"
+ASSERT(FALSE);}}
+
+#line 484 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 628 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CAR);}
+#line 486 "../boot/instructions.scm"
+AC(vm)=(SG_CAR(AC(vm)));
   NEXT;
 }
 CASE(GREF_CDR) {
 
-{
-#line 65 "../boot/instructions.scm"
+#line 60 "../boot/instructions.scm"
 {SgObject var=FETCH_OPERAND(PC(vm));
 if (SG_GLOCP(var)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(var)));}else if(
 SG_IDENTIFIERP(var)){
 {SgObject value=Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var),
 SG_IDENTIFIER_NAME(var),SG_UNBOUND);
-#line 72 "../boot/instructions.scm"
+#line 67 "../boot/instructions.scm"
 if (SG_GLOCP(value)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(value))),
 (*((PC(vm))-(1)))=(SG_WORD(value));}else if(
 SG_UNBOUNDP(value)){
 {Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}} else {
-#line 78 "../boot/instructions.scm"
+#line 73 "../boot/instructions.scm"
 ASSERT(FALSE);}}} else {
-ASSERT(FALSE);}}}
-{
-#line 640 "../boot/instructions.scm"
+ASSERT(FALSE);}}
+
+#line 489 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 642 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CDR);}
+#line 491 "../boot/instructions.scm"
+AC(vm)=(SG_CDR(AC(vm)));
   NEXT;
 }
 CASE(LREF_CAR_PUSH) {
 
-{
-#line 45 "../boot/instructions.scm"
+#line 42 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 46 "../boot/instructions.scm"
-AC(vm)=(REFER_LOCAL(vm,val1));}
-{
-#line 626 "../boot/instructions.scm"
+#line 43 "../boot/instructions.scm"
+AC(vm)=(REFER_LOCAL(vm,val1));
+
+#line 484 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 628 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CAR);}
-{
-#line 103 "../boot/instructions.scm"
-PUSH(SP(vm),AC(vm));}
+#line 486 "../boot/instructions.scm"
+AC(vm)=(SG_CAR(AC(vm)));
+
+#line 97 "../boot/instructions.scm"
+PUSH(SP(vm),AC(vm));
   NEXT;
 }
 CASE(LREF_CDR_PUSH) {
 
-{
-#line 45 "../boot/instructions.scm"
+#line 42 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 46 "../boot/instructions.scm"
-AC(vm)=(REFER_LOCAL(vm,val1));}
-{
-#line 640 "../boot/instructions.scm"
+#line 43 "../boot/instructions.scm"
+AC(vm)=(REFER_LOCAL(vm,val1));
+
+#line 489 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 642 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CDR);}
-{
-#line 103 "../boot/instructions.scm"
-PUSH(SP(vm),AC(vm));}
+#line 491 "../boot/instructions.scm"
+AC(vm)=(SG_CDR(AC(vm)));
+
+#line 97 "../boot/instructions.scm"
+PUSH(SP(vm),AC(vm));
   NEXT;
 }
 CASE(FREF_CAR_PUSH) {
 
-{
-#line 55 "../boot/instructions.scm"
+#line 51 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 56 "../boot/instructions.scm"
-AC(vm)=(INDEX_CLOSURE(vm,val1));}
-{
-#line 626 "../boot/instructions.scm"
+#line 52 "../boot/instructions.scm"
+AC(vm)=(INDEX_CLOSURE(vm,val1));
+
+#line 484 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 628 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CAR);}
-{
-#line 103 "../boot/instructions.scm"
-PUSH(SP(vm),AC(vm));}
+#line 486 "../boot/instructions.scm"
+AC(vm)=(SG_CAR(AC(vm)));
+
+#line 97 "../boot/instructions.scm"
+PUSH(SP(vm),AC(vm));
   NEXT;
 }
 CASE(FREF_CDR_PUSH) {
 
-{
-#line 55 "../boot/instructions.scm"
+#line 51 "../boot/instructions.scm"
 INSN_VAL1(val1,c);
-#line 56 "../boot/instructions.scm"
-AC(vm)=(INDEX_CLOSURE(vm,val1));}
-{
-#line 640 "../boot/instructions.scm"
+#line 52 "../boot/instructions.scm"
+AC(vm)=(INDEX_CLOSURE(vm,val1));
+
+#line 489 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 642 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CDR);}
-{
-#line 103 "../boot/instructions.scm"
-PUSH(SP(vm),AC(vm));}
+#line 491 "../boot/instructions.scm"
+AC(vm)=(SG_CDR(AC(vm)));
+
+#line 97 "../boot/instructions.scm"
+PUSH(SP(vm),AC(vm));
   NEXT;
 }
 CASE(GREF_CAR_PUSH) {
 
-{
-#line 65 "../boot/instructions.scm"
+#line 60 "../boot/instructions.scm"
 {SgObject var=FETCH_OPERAND(PC(vm));
 if (SG_GLOCP(var)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(var)));}else if(
 SG_IDENTIFIERP(var)){
 {SgObject value=Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var),
 SG_IDENTIFIER_NAME(var),SG_UNBOUND);
-#line 72 "../boot/instructions.scm"
+#line 67 "../boot/instructions.scm"
 if (SG_GLOCP(value)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(value))),
 (*((PC(vm))-(1)))=(SG_WORD(value));}else if(
 SG_UNBOUNDP(value)){
 {Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}} else {
-#line 78 "../boot/instructions.scm"
+#line 73 "../boot/instructions.scm"
 ASSERT(FALSE);}}} else {
-ASSERT(FALSE);}}}
-{
-#line 626 "../boot/instructions.scm"
+ASSERT(FALSE);}}
+
+#line 484 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 628 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CAR);}
-{
-#line 103 "../boot/instructions.scm"
-PUSH(SP(vm),AC(vm));}
+#line 486 "../boot/instructions.scm"
+AC(vm)=(SG_CAR(AC(vm)));
+
+#line 97 "../boot/instructions.scm"
+PUSH(SP(vm),AC(vm));
   NEXT;
 }
 CASE(GREF_CDR_PUSH) {
 
-{
-#line 65 "../boot/instructions.scm"
+#line 60 "../boot/instructions.scm"
 {SgObject var=FETCH_OPERAND(PC(vm));
 if (SG_GLOCP(var)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(var)));}else if(
 SG_IDENTIFIERP(var)){
 {SgObject value=Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var),
 SG_IDENTIFIER_NAME(var),SG_UNBOUND);
-#line 72 "../boot/instructions.scm"
+#line 67 "../boot/instructions.scm"
 if (SG_GLOCP(value)){
 AC(vm)=(SG_GLOC_GET(SG_GLOC(value))),
 (*((PC(vm))-(1)))=(SG_WORD(value));}else if(
 SG_UNBOUNDP(value)){
 {Sg_AssertionViolation(SG_INTERN("vm"),SG_MAKE_STRING("unbound variable"),var);}} else {
-#line 78 "../boot/instructions.scm"
+#line 73 "../boot/instructions.scm"
 ASSERT(FALSE);}}} else {
-ASSERT(FALSE);}}}
-{
-#line 640 "../boot/instructions.scm"
+ASSERT(FALSE);}}
+
+#line 489 "../boot/instructions.scm"
 if ((!(SG_PAIRP(AC(vm))))){
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);}}
-#line 642 "../boot/instructions.scm"
-BUILTIN_ONE_ARG(vm,SG_CDR);}
-{
-#line 103 "../boot/instructions.scm"
-PUSH(SP(vm),AC(vm));}
+#line 491 "../boot/instructions.scm"
+AC(vm)=(SG_CDR(AC(vm)));
+
+#line 97 "../boot/instructions.scm"
+PUSH(SP(vm),AC(vm));
   NEXT;
 }
 CASE(CONST_RET) {
 
-{
-#line 37 "../boot/instructions.scm"
-AC(vm)=(FETCH_OPERAND(PC(vm)));}
-{
-#line 556 "../boot/instructions.scm"
-RET_INSN();}
+#line 35 "../boot/instructions.scm"
+AC(vm)=(FETCH_OPERAND(PC(vm)));
+
+#line 450 "../boot/instructions.scm"
+RET_INSN();
   NEXT;
 }
 #endif /* VM_LOOP */

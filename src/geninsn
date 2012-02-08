@@ -24,7 +24,7 @@
     :name "vminsn"
     :preamble *preamble*
     :c-file   "vminsn.c"
-    :h-file   "sagittarius/instruction.h"
+    ;;:h-file   "sagittarius/instruction.h"
     :init-prologue ""
     :init-epilogue ""))
 
@@ -45,6 +45,7 @@
 	  (match form
 	    (('define-inst . _) (cons form seed))
 	    (('define-cise-stmt . _) (eval form (vm-current-library)) seed)
+	    (('define-cise-expr . _) (eval form (vm-current-library)) seed)
 	    (else (error 'expand-toplevels
 			 "invalid form in vm instruction definition" form))))
 	'()
@@ -80,7 +81,7 @@
 
 (define insn-alist (make-parameter '()))
 (define (case-label insn)
-    (cgen-body (format "CASE(~a) {~%" (slot-ref insn'name))))
+    (cgen-body (format "CASE(~a) {" (slot-ref insn'name))))
 
 (define (do-combined insn comb)
   (for-each (^c (cond 
@@ -95,7 +96,7 @@
     (^p (for-each (^c (cise-render c 'stmt p)) cise))))
 (define (render cise)
   (or (null? cise)
-      (cgen-body (format "{~a}" (cise->string cise)))
+      (cgen-body (cise->string cise))
       #t))
 (define (render1 insn)
   (or (and-let* ((cise (slot-ref insn'body)))     (render cise))

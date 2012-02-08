@@ -637,6 +637,19 @@ int Sg_AbsolutePathP(SgString *path)
   }
   return FALSE;
 }
+
+SgObject Sg_AbsolutePath(SgString *path)
+{
+  wchat_t buf[MAX_PATH], *part;
+  DWORD ret = GetFullPathName(utf32ToUtf16(path->value),
+			      sizeof(buf)/sizeof(buf[0]),
+			      buf,
+			      &part);
+  if (ret) {
+    return SG_OBJ(utf16ToUtf32(buf));
+  }
+  return SG_FALSE;
+}
 /*
   end of file
   Local Variables:

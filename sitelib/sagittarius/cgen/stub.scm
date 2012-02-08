@@ -142,7 +142,7 @@
       (if (string? c)
 	  (cgen-decl c)
 	  (cgen-decl (call-with-output-string
-		       (cut cise-render c 'stmt <>))))))
+		       (cut cise-render c 'toplevel <>))))))
 
   (define (name->type name)
     (or (cgen-type-from-name name)
@@ -175,7 +175,7 @@
 	   (lambda (default)
 	     ;; assume pair is expression
 	     (if (pair? default)
-		 (cise-render-to-string default)
+		 (cise-render-to-string default 'expr)
 		 (cgen-cexpr default))))
 	  (else "SG_UNBOUND")))
 
