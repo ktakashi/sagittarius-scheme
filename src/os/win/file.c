@@ -640,7 +640,7 @@ int Sg_AbsolutePathP(SgString *path)
 
 SgObject Sg_AbsolutePath(SgString *path)
 {
-  wchat_t buf[MAX_PATH], *part;
+  wchar_t buf[MAX_PATH], *part;
   DWORD ret = GetFullPathName(utf32ToUtf16(path->value),
 			      sizeof(buf)/sizeof(buf[0]),
 			      buf,
