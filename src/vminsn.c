@@ -465,7 +465,7 @@ if ((val1)==(1)){
 #line 331 "../boot/instructions.scm"
 PUSH(SP(vm),AC(vm));}else if(
 (val1)>(0)){
-{int i=0;int cise__98=val1;for (;(i)<(cise__98);(i)++){
+{int i=0;int cise__18=val1;for (;(i)<(cise__18);(i)++){
 PUSH(SP(vm),SG_VALUES_ELEMENT(AC(vm),i));}}}}else if(
 (val1)==(0)){
 #line 337 "../boot/instructions.scm"
@@ -473,7 +473,7 @@ PUSH(SP(vm),SG_VALUES_ELEMENT(AC(vm),i));}}}}else if(
 #line 339 "../boot/instructions.scm"
 if ((numValues)==(1)){
 SG_APPEND1(h,t,AC(vm));} else {
-{int i=0;int cise__97=numValues;for (;(i)<(cise__97);(i)++){
+{int i=0;int cise__17=numValues;for (;(i)<(cise__17);(i)++){
 SG_APPEND1(h,t,SG_VALUES_ELEMENT(AC(vm),i));}}}
 PUSH(SP(vm),h);}} else {
 #line 346 "../boot/instructions.scm"
@@ -503,7 +503,7 @@ SP(vm)=((SP(vm))-(SG_CODE_BUILDER_FREEC(cb)));}}
 CASE(APPLY) {
 {
 #line 383 "../boot/instructions.scm"
-INSN_VAL2(val1,val2,c);}{SgObject cise__99;
+INSN_VAL2(val1,val2,c);}{SgObject cise__19;
 #line 384 "../boot/instructions.scm"
 {int rargc=Sg_Length(AC(vm));int nargc=
 (val1)-(2);SgObject proc=
@@ -521,7 +521,7 @@ MERGE_INSN_VALUE1(CALL,nargc)),
 PC(vm)=((vm)->callCode);} else {
 #line 399 "../boot/instructions.scm"
 INDEX_SET(SP(vm),0,SG_CAR(AC(vm)));
-SG_FOR_EACH(cise__99,SG_CDR(AC(vm))) {{SgObject v=SG_CAR(cise__99);
+SG_FOR_EACH(cise__19,SG_CDR(AC(vm))) {{SgObject v=SG_CAR(cise__19);
 PUSH(SP(vm),v);}}
 if (val2){{
 SP(vm)=(shift_args(FP(vm),(nargc)+(rargc),SP(vm)));}}
@@ -649,7 +649,7 @@ INSN_VAL1(val1,c);}{
 #line 500 "../boot/instructions.scm"
 if ((val1)>(0)){{
 ret=(Sg_Cons(AC(vm),ret));
-{int i=0;int cise__100=n;for (;(i)<(cise__100);(i)++){
+{int i=0;int cise__20=n;for (;(i)<(cise__20);(i)++){
 ret=(Sg_Cons(INDEX(SP(vm),i),ret));}}
 SP(vm)=((SP(vm))-(n));}}
 AC(vm)=(ret);}}
@@ -664,7 +664,7 @@ INSN_VAL1(val1,c);}{
 #line 511 "../boot/instructions.scm"
 if ((nargs)>(0)){{
 ret=(AC(vm));
-{int i=0;int cise__101=nargs;for (;(i)<(cise__101);(i)++){
+{int i=0;int cise__21=nargs;for (;(i)<(cise__21);(i)++){
 {SgObject obj=INDEX(SP(vm),i);
 if ((Sg_Length(obj))<(0)){{
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("append"),SG_MAKE_STRING("list"),obj,SG_NIL);}}}
@@ -686,7 +686,7 @@ if ((val1)>(1)){{
 v=(Sg_MakeValues(val1));
 {int n=(val1)-(1);
 SG_VALUES_ELEMENT(v,n)=(AC(vm));
-{int i=0;int cise__102=n;for (;(i)<(cise__102);(i)++){
+{int i=0;int cise__22=n;for (;(i)<(cise__22);(i)++){
 SG_VALUES_ELEMENT(v,((n)-(i))-(1))=(
 INDEX(SP(vm),i));}}
 SP(vm)=((SP(vm))-(n));}}}

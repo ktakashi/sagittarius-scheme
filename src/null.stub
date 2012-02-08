@@ -2157,14 +2157,10 @@
     ((_ name t start end start-op end-op)
      `(unless (and (,start-op ,start ,t)
 		   (,end-op ,t ,end))
-	(assertion-violation ',name
-			     "out of range"
-			     (SG_MAKE_INT ,t))))
+	(assertion-violation ',name "out of range" (SG_MAKE_INT ,t))))
     ((_ name t range op)
      `(unless (,op ,t ,range)
-	(assertion-violation ',name
-			     "out of range"
-			     (SG_MAKE_INT ,t)))))
+	(assertion-violation ',name "out of range" (SG_MAKE_INT ,t)))))
 
   (define-c-proc get-bytevector-n
     (p::<port> count::<fixnum> :optional (reckless #f))
@@ -2191,8 +2187,7 @@
     (check-input-port get-bytevector-n! p)
     (check-non-negative-fixnum get-bytevector-n! start)
     (check-non-negative-fixnum get-bytevector-n! count)
-    (check-fixnum-range get-bytevector-n! (SG_BVECTOR_SIZE bv)
-			(+ start count) >=)
+    (check-fixnum-range get-bytevector-n! (SG_BVECTOR_SIZE bv)(+ start count)>=)
     (let ((res::int64_t (Sg_Readb p (+ (SG_BVECTOR_ELEMENTS bv) start) count)))
       (if (== res 0)
 	  (result SG_EOF)
@@ -2288,8 +2283,7 @@
     (check-input-port get-string-n! p)
     (check-non-negative-fixnum get-string-n! start)
     (check-non-negative-fixnum get-string-n! count)
-    (check-fixnum-range get-string-n! (SG_STRING_SIZE s)
-			(+ start count) >=)
+    (check-fixnum-range get-string-n! (SG_STRING_SIZE s) (+ start count) >=)
     ;; string must not be literal
     (when (SG_LITERAL_STRINGP s)
       (assertion-violation 'get-string-n!
