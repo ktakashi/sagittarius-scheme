@@ -6,6 +6,7 @@
     (import (srfi :64 testing)
 	    (srfi :13 strings)
 	    (rnrs)
+	    (srfi :0 cond-expand)
 	    (sagittarius socket)
 	    ;; use thread for testing
 	    (sagittarius threads))
@@ -27,7 +28,13 @@
 		(unless (and (string? r)
 			     (string=? r "test-end"))
 		  (put-string p r)
-		  (put-string p "\r\n")
+		  ;; FIXME, on Windows, string port automatically converts
+		  ;; \n to \r\n.
+		  (cond-expand
+		   (sagittarius.os.windows
+		    (put-string p "\n"))
+		   (else
+		    (put-string p "\r\n")))
 		  (lp2 (get-line p)))))))))
       (loop (socket-accept echo-server-socket))))
 
