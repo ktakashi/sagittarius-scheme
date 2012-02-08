@@ -43,6 +43,7 @@
  (sagittarius
   (import (except (rnrs) syntax-rules open-output-file)
 	  (srfi :1) (match) (util file)
+	  (srfi :2 and-let*)
 	  (srfi :39)
 	  (compat r7rs) ;; if we use r6rs syntax-rules, we kick sleeping dragon.
 	  (core misc)   ;; for define-macro
@@ -1181,7 +1182,7 @@
 	     (close-output-port out)))
 	  ((lc)
 	   (or (>= (length opt) 2)
-	       (error "option c requires following parameter: &output-dir"))
+	       (errorf "option c requires following parameter: &output-dir"))
 	   (vm-no-debug-info #t)
 	   (let ((dir (cadr opt)))
 	     (for-each (lambda (builtin-info)

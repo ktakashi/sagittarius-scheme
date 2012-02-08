@@ -991,18 +991,18 @@
            (cons (car l) (formals->list (cdr l))))
           (else (list l)))))
 
-(define parse-lambda-args
-  (lambda (formals)
-    (let loop ((formals formals) (args '()))
-      (cond ((null? formals)
-             (values (reverse args) (length args) 0))
-            ((pair? formals)
-             (loop (cdr formals) (cons (car formals) args)))
-            (else
-             (values
-               (reverse (cons formals args))
-               (length args)
-               1))))))
+(define (parse-lambda-args formals)
+  (let loop ((formals formals) (args '()) (n 0))
+    (smatch
+      formals
+      (() (values (reverse! args) n 0 '()))
+      (((? keyword? k) . _)
+       (values (reverse! args) n 1 formals))
+      ((x . y)
+       (loop (cdr formals)
+             (cons (car formals) args)
+             (+ n 1)))
+      (x (values (reverse! (cons x args)) n 1 '())))))
 
 (define argcount-ok?
   (lambda (args reqargs optarg?)
@@ -1042,16 +1042,6 @@
         (split-at iargs reqargs)
         (append! reqs (list ($list #f opts)))))))
 
-(define parse-lambda-vars
-  (lambda (vars)
-    (let loop ((vars vars) (args '()) (n 0))
-      (smatch
-        vars
-        (() (values (reverse args) n 0))
-        ((x . y)
-         (loop (cdr vars) (cons (car vars) args) (+ n 1)))
-        (x (values (reverse (cons x args)) n 1))))))
-
 (define pass1/find-symbol-in-lvars
   (lambda (symbol lvars)
     (cond ((null? lvars) #f)
@@ -1070,6 +1060,8 @@
 
 (define let. (global-id 'let))
 
+(define let*. (global-id 'let*))
+
 (define if. (global-id 'if))
 
 (define eq?. (global-id 'eq?))
@@ -1077,6 +1069,16 @@
 (define eqv?. (global-id 'eqv?))
 
 (define memv. (global-id 'memv))
+
+(define car. (global-id 'car))
+
+(define cdr. (global-id 'cdr))
+
+(define error. (global-id 'error))
+
+(define null?. (global-id 'null?))
+
+(define unless. (global-id 'unless))
 
 (define-syntax
   define-pass1-syntax
@@ -1487,7 +1489,7 @@
     (variable? symid)
     (scheme-error
       'er-macro-transformer
-      "rename procrdure requires a symbol or an identifier, but got "
+      "rename procedure requires a symbol or an identifier, but got "
       symid))
   (if (symbol? symid)
     (or (hashtable-ref dict symid #f)
@@ -1556,35 +1558,157 @@
              (bound-id->symbol expr))
             (else expr)))))
 
-(define pass1/lambda
-  (lambda (form formals body p1env flag)
-    (receive
-      (vars reqargs opt)
-      (parse-lambda-vars formals)
-      (let* ((ids (collect-lexical-id vars p1env))
-             (unrenamed-ids (unrename-expression vars ids))
-             (this-lvars (imap make-lvar+ unrenamed-ids))
-             (intform
-               ($lambda
-                 form
-                 (p1env-exp-name p1env)
-                 reqargs
-                 opt
-                 this-lvars
-                 #f
-                 flag))
-             (newenv
-               (p1env-extend/proc
-                 p1env
-                 (%map-cons unrenamed-ids this-lvars)
-                 LEXICAL
-                 intform)))
-        ($lambda-body-set!
-          intform
-          (pass1/body
-            (unrename-expression body ids)
-            newenv))
-        intform))))
+(define (pass1/lambda form formals body p1env flag)
+  (receive
+    (vars reqargs opt kargs)
+    (parse-lambda-args formals)
+    (cond ((null? kargs)
+           (let* ((ids (collect-lexical-id vars p1env))
+                  (unrenamed-ids (unrename-expression vars ids))
+                  (this-lvars (imap make-lvar+ unrenamed-ids))
+                  (intform
+                    ($lambda
+                      form
+                      (p1env-exp-name p1env)
+                      reqargs
+                      opt
+                      this-lvars
+                      #f
+                      flag))
+                  (newenv
+                    (p1env-extend/proc
+                      p1env
+                      (%map-cons unrenamed-ids this-lvars)
+                      LEXICAL
+                      intform)))
+             ($lambda-body-set!
+               intform
+               (pass1/body
+                 (unrename-expression body ids)
+                 newenv))
+             intform))
+          (else
+           (let ((g (gensym)))
+             (pass1/lambda
+               form
+               (append vars g)
+               (pass1/extended-lambda form g kargs body)
+               p1env
+               #t))))))
+
+(define (pass1/extended-lambda form garg kargs body)
+  (define _let-keywords*
+    (global-id 'let-keywords*))
+  (define _let-optionals*
+    (global-id 'let-optionals*))
+  (define (collect-args xs r)
+    (smatch
+      xs
+      (() (values (reverse r) '()))
+      (((? keyword? k) . _) (values (reverse r) xs))
+      ((var . rest) (collect-args rest (cons var r)))))
+  (define (parse-kargs xs os ks r a)
+    (smatch
+      xs
+      (() (expand-opt os ks r a))
+      (((? keyword? k) . xs)
+       (case k
+         ((:optional)
+          (unless (null? os) (too-many :optional))
+          (receive
+            (os xs)
+            (collect-args xs '())
+            (parse-kargs xs os ks r a)))
+         ((:key)
+          (unless (null? ks) (too-many :key))
+          (receive
+            (ks xs)
+            (collect-args xs '())
+            (parse-kargs xs os ks r a)))
+         ((:rest)
+          (when r (too-many :rest))
+          (receive
+            (rs xs)
+            (collect-args xs '())
+            (smatch
+              rs
+              ((r) (parse-kargs xs os ks r a))
+              (_ (syntax-error
+                   ":rest keyword in the extended lambda form must be followed by exactly one argument"
+                   kargs)))))
+         ((:allow-other-keys)
+          (when a (too-many :allow-other-keys))
+          (receive
+            (a xs)
+            (collect-args xs '())
+            (smatch
+              a
+              (() (parse-kargs xs os ks r #t))
+              ((av) (parse-kargs xs os ks r av))
+              (_ (syntax-error
+                   ":allow-other-keys keyword in extended lambda form can be followed by zero or one argument"
+                   kargs)))))
+         (else
+          (syntax-error
+            "invalid keyword in extended lambda"
+            k))))
+      (_ (syntax-error
+           "invalid extended lambda list:"
+           kargs))))
+  (define (too-many key)
+    (syntax-error
+      (format
+        "too many ~s keywords in extended lambda ~s"
+        key
+        kargs)
+      name
+      body))
+  (define (expand-opt os ks r a)
+    (if (null? os)
+      (if r
+        `(,'let. ((,r ,garg)) ,@(expand-key ks garg a))
+        (expand-key ks garg a))
+      (let ((binds (map (lambda (expr)
+                          (smatch
+                            expr
+                            ((? variable? o) o)
+                            ((o init) `(,o ,init))
+                            (_ (syntax-error
+                                 "illegal optional argument spec"
+                                 kargs))))
+                        os))
+            (rest (or r (gensym))))
+        `((,_let-optionals*
+           ,garg
+           ,(append binds rest)
+           ,@(if (and (not r) (null? ks))
+               `((,unless.
+                  (,null?. ,rest)
+                  (,error.
+                   'lambda
+                   "too many argument for"
+                   ',(unwrap-syntax body)))
+                 (,let. () ,@(expand-key ks rest a)))
+               (expand-key ks rest a)))))))
+  (define (expand-key ks garg a)
+    (if (null? ks)
+      body
+      (let ((args (map (lambda (expr)
+                         (smatch
+                           expr
+                           ((? variable? o) o)
+                           ((((? keyword? key) o) init) `(,o ,key ,init))
+                           ((o (? keyword? key) init) `(,o ,key ,init))
+                           ((o init) `(,o ,init))
+                           (_ (syntax-error
+                                "illegal keyword argument spec"
+                                kargs))))
+                       ks)))
+        `((,_let-keywords*
+           ,garg
+           ,(if a (append args a) args)
+           ,@body)))))
+  (parse-kargs kargs '() '() #f #f))
 
 (define-pass1-syntax
   (lambda form p1env)
@@ -1592,7 +1716,7 @@
   (smatch
     form
     ((- formals . body)
-     (pass1/lambda form formals body p1env #f))
+     (pass1/lambda form formals body p1env #t))
     (- (syntax-error "malformed lambda" form))))
 
 (define-pass1-syntax
@@ -1602,8 +1726,13 @@
     form
     ((- formals expr body ___)
      (receive
-       (args reqargs opt)
+       (args reqargs opt kargs)
        (parse-lambda-args formals)
+       (unless
+         (null? kargs)
+         (syntax-error
+           "exptended lambda list isn't allowed in receive"
+           form))
        (let* ((ids (collect-lexical-id args p1env))
               (unrenamed-ids (unrename-expression args ids))
               (lvars (imap make-lvar+ unrenamed-ids))
@@ -1667,8 +1796,13 @@
            (unrename-expression body ids)
            (p1env-extend-w/o-type p1env last-frames))
          (receive
-           (args reqargs opt)
+           (args reqargs opt kargs)
            (parse-lambda-args (car vars))
+           (unless
+             (null? kargs)
+             (syntax-error
+               "exptended lambda list isn't allowed in let-values"
+               form))
            (let* ((id (collect-lexical-id args p1env))
                   (new-ids (if (null? id) ids (cons id ids)))
                   (unrenamed-ids
@@ -1705,6 +1839,280 @@
          (format
            "malformed let~a-values"
            (if ref? "*" ""))
+         form))))
+
+(define-pass1-syntax
+  (and-let* form p1env)
+  :sagittarius
+  (define (process-binds binds body p1env)
+    (smatch
+      binds
+      (() (pass1/body body p1env))
+      (((exp) . more)
+       ($if form
+            (pass1 exp (p1env-sans-name p1env))
+            (process-binds more body p1env)
+            ($it)))
+      (((? variable? var) . more)
+       ($if form
+            (pass1 var (p1env-sans-name p1env))
+            (process-binds more body p1env)
+            ($it)))
+      ((((? variable? var) init) . more)
+       (let* ((lvar (make-lvar var))
+              (newenv
+                (p1env-extend
+                  p1env
+                  `((,var unquote lvar))
+                  LEXICAL))
+              (itree (pass1 init (p1env-add-name p1env var))))
+         (lvar-initval-set! lvar itree)
+         ($let form
+               'let
+               (list lvar)
+               (list itree)
+               ($if form
+                    ($lref lvar)
+                    (process-binds more body newenv)
+                    ($it)))))
+      (_ (syntax-error "malformed and-let*" form))))
+  (smatch
+    form
+    ((_ binds . body)
+     (process-binds binds body p1env))
+    (_ (syntax-error "malformed and-let*" form))))
+
+(define-pass1-syntax
+  (let-optionals* form p1env)
+  :sagittarius
+  (define (rec arg vars&inits&test rest body)
+    (cond ((null? (cdr vars&inits&test))
+           `((,let.
+              ((,(caar vars&inits&test)
+                (,if.
+                 (,null?. ,arg)
+                 ,(cadar vars&inits&test)
+                 (,car. ,arg)))
+               ,@(if (null? rest)
+                   '()
+                   `((,rest (,if. (,null?. ,arg) '() (,cdr. ,arg))))))
+              (,unless.
+               ,(cddar vars&inits&test)
+               (,error.
+                'let-optionals*
+                "optional argument test failed"
+                ,(cddar vars&inits&test)))
+              ,@body)))
+          (else
+           (let ((g (gensym))
+                 (v (caar vars&inits&test))
+                 (i (cadar vars&inits&test))
+                 (t (cddar vars&inits&test)))
+             `((,let.
+                ((,v (,if. (,null?. ,arg) ,i (,car. ,arg)))
+                 (,g (,if. (,null?. ,arg) '() (,cdr. ,arg))))
+                (,unless.
+                 ,t
+                 (,error.
+                  'let-optionals*
+                  "optional argument test failed"
+                  ,v))
+                ,@(rec g (cdr vars&inits&test) rest body)))))))
+  (define (improper-map1 p l)
+    (let loop ((lst l) (r '()))
+      (cond ((null? lst) (reverse! r))
+            ((not (pair? lst)) (reverse! r))
+            (else (loop (cdr lst) (cons (p (car lst)) r))))))
+  (smatch
+    form
+    ((_ arg specs . body)
+     (let ((g (gensym))
+           (_undefined (global-id 'undefined)))
+       (pass1 ($src `(,let.
+                      ((,g ,arg))
+                      ,@(rec g
+                             (improper-map1
+                               (lambda (s)
+                                 (cond ((and (pair? s) (pair? (cdr s)))
+                                        (cond ((null? (cddr s))
+                                               (cons* (car s) (cadr s) #t))
+                                              ((null? (cdddr s))
+                                               (cons* (car s)
+                                                      (cadr s)
+                                                      (caddr s)))
+                                              (else
+                                               (syntax-error
+                                                 "malformed let-optionals* bindings"
+                                                 form
+                                                 specs))))
+                                       ((variable? s)
+                                        (cons* s `(,_undefined) #t))
+                                       (else
+                                        (syntax-error
+                                          "malformed let-optionals* bindings"
+                                          form
+                                          specs))))
+                               specs)
+                             (cdr (last-pair specs))
+                             body))
+                    form)
+              p1env)))
+    (_ (syntax-error "malformed let-optionals*" form))))
+
+(define (pass1/let-keywords
+         form
+         arg
+         specs
+         body
+         %let
+         p1env)
+  (define (triplet var&default)
+    (or (and-let*
+          (((list? var&default))
+           (var (unwrap-syntax (car var&default)))
+           ((symbol? var)))
+          (case (length var&default)
+            ((2)
+             (values
+               (car var&default)
+               (make-keyword var)
+               (cadr var&default)))
+            ((3)
+             (values
+               (car var&default)
+               (unwrap-syntax (cadr var&default))
+               (caddr var&default)))
+            (else #f)))
+        (and-let*
+          ((var (unwrap-syntax var&default))
+           ((symbol? var)))
+          (values var (make-keyword var) (undefined)))
+        (syntax-error
+          "bad binding form in let-keywords"
+          var&default)))
+  (define (process-specs specs)
+    (let loop ((specs specs)
+               (vars '())
+               (keys '())
+               (defaults '())
+               (tmps '()))
+      (define (finish restvar)
+        (values
+          (reverse! vars)
+          (reverse! keys)
+          (reverse! defaults)
+          (reverse! tmps)
+          restvar))
+      (cond ((null? specs) (finish #f))
+            ((pair? specs)
+             (receive
+               (var key default)
+               (triplet (car specs))
+               (loop (cdr specs)
+                     (cons var vars)
+                     (cons key keys)
+                     (cons default defaults)
+                     (cons (gensym) tmps))))
+            (else (finish (or specs #t))))))
+  (let ((argvar (gensym "args"))
+        (loop (gensym "loop"))
+        (_undefined? (global-id 'undefined?))
+        (_cond (global-id 'cond))
+        (_case (global-id 'case))
+        (_else (global-id 'else)))
+    (receive
+      (vars keys defaults tmps restvar)
+      (process-specs specs)
+      (pass1 ($src `(,let.
+                     ,loop
+                     ((,argvar ,arg)
+                      ,@(if (boolean? restvar) '() `((,restvar '())))
+                      ,@(map (lambda (x) (list x (undefined))) tmps))
+                     (,_cond
+                      ((,null?. ,argvar)
+                       (,%let
+                        ,(map (lambda (var tmp default)
+                                `(,var
+                                  (,if. (,_undefined? ,tmp) ,default ,tmp)))
+                              vars
+                              tmps
+                              defaults)
+                        ,@body))
+                      ((,null?. (,cdr. ,argvar))
+                       (,error.
+                        'let-keywords
+                        "keyword list not even"
+                        ,argvar))
+                      (,_else
+                       (,_case
+                        (,car. ,argvar)
+                        ,@(map (lambda (key)
+                                 `((,key)
+                                   (,loop
+                                    (,cdr. (,cdr. ,argvar))
+                                    ,@(if (boolean? restvar) '() `(,restvar))
+                                    ,@(map (lambda (k t)
+                                             (if (eq? key k)
+                                               `(,car. (,cdr. ,argvar))
+                                               t))
+                                           keys
+                                           tmps))))
+                               keys)
+                        (,_else
+                         ,(cond ((eq? restvar #t)
+                                 `(,loop (,cdr. (,cdr. ,argvar)) ,@tmps))
+                                ((eq? restvar #f)
+                                 `(,begin.
+                                   (,error.
+                                    'let-keywords
+                                    "unknown keyword"
+                                    (,car. ,argvar))
+                                   (,loop (,cdr. (,cdr. ,argvar)) ,@tmps)))
+                                (else
+                                 `(,loop
+                                   (,cdr. (,cdr. ,argvar))
+                                   (,.cons*
+                                    (,car. ,argvar)
+                                    (,car. (,cdr. ,argvar))
+                                    ,restvar)
+                                   ,@tmps))))))))
+                   form)
+             p1env))))
+
+(define-pass1-syntax
+  (let-keywords form p1env)
+  :sagittarius
+  (smatch
+    form
+    ((_ arg specs . body)
+     (pass1/let-keywords
+       form
+       arg
+       specs
+       body
+       let.
+       p1env))
+    (_ (syntax-error
+         'let-keywords
+         "malformed let-keywords"
+         form))))
+
+(define-pass1-syntax
+  (let-keywords* form p1env)
+  :sagittarius
+  (smatch
+    form
+    ((_ arg specs . body)
+     (pass1/let-keywords
+       form
+       arg
+       specs
+       body
+       let*.
+       p1env))
+    (_ (syntax-error
+         'let-keywords
+         "malformed let-keywords"
          form))))
 
 (define-pass1-syntax
@@ -2142,7 +2550,7 @@
            (if gloc
              (let ((gval (gloc-ref gloc)))
                (cond ((macro? gval)
-                      (pass1 ($src (call-macro-expander gval form p1env) form)
+                      (pass1 (call-macro-expander gval form p1env)
                              p1env))
                      (else
                       ($gset (ensure-identifier var p1env)
@@ -2917,8 +3325,7 @@
 (define pass1/body-macro-expand-rec
   (lambda (mac exprs intdefs intmacros p1env)
     (pass1/body-rec
-      (acons ($src (call-macro-expander mac (caar exprs) p1env)
-                   (caar exprs))
+      (acons (call-macro-expander mac (caar exprs) p1env)
              (cdar exprs)
              (cdr exprs))
       intdefs
@@ -3069,7 +3476,7 @@
           (if gloc
             (let ((gval (gloc-ref gloc)))
               (cond ((macro? gval)
-                     (pass1 ($src (call-macro-expander gval form p1env) form)
+                     (pass1 (call-macro-expander gval form p1env)
                             p1env))
                     ((syntax? gval)
                      (call-syntax-handler gval form p1env))
@@ -3120,8 +3527,7 @@
                           ((syntax? obj)
                            (call-syntax-handler obj form p1env))
                           ((macro? obj)
-                           (pass1 ($src (call-macro-expander obj form p1env)
-                                        form)
+                           (pass1 (call-macro-expander obj form p1env)
                                   p1env))
                           (else
                            (scheme-error
@@ -3138,19 +3544,14 @@
            (let ((r (p1env-lookup p1env form LEXICAL)))
              (cond ((lvar? r) ($lref r))
                    ((macro? r)
-                    (pass1 ($src (call-macro-expander r form p1env) form)
-                           p1env))
+                    (pass1 (call-macro-expander r form p1env) p1env))
                    ((identifier? r)
                     (let* ((lib (id-library r))
                            (gloc (find-binding lib (id-name r) #f)))
                       (if gloc
                         (let ((gval (gloc-ref gloc)))
                           (cond ((macro? gval)
-                                 (pass1 ($src (call-macro-expander
-                                                gval
-                                                form
-                                                p1env)
-                                              form)
+                                 (pass1 (call-macro-expander gval form p1env)
                                         p1env))
                                 (else ($gref r))))
                         ($gref r))))

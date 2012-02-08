@@ -1,5 +1,7 @@
 2012-02-08  Takashi Kato  <ktakashi@ymail.com>
 
+	* boot/compiler.scm (and-let*): added and-let* as a builtin syntax.
+
 	* src/library.c (search_library): modified to use full path to save
 	cache file.
 
