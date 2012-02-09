@@ -403,9 +403,16 @@ int main(int argc, char **argv)
   Sg_AddCleanupHandler(cleanup_main, NULL);
 
   if (optind < argc) {
+    SgObject proc;
     Sg_ImportLibrary(vm->currentLibrary, SG_OBJ(SG_INTERN("(core base)")));
-    /* Sg_ImportLibrary(vm->currentLibrary, SG_OBJ(SG_INTERN("(sagittarius compiler)"))); */
+
     exit_code = Sg_Load(SG_STRING(Sg_MakeStringC(argv[optind])));
+    /* SRFI-22 */
+    proc = Sg_FindBinding(SG_INTERN("user"), SG_INTERN("main"), SG_UNBOUND);
+    if (!SG_UNBOUNDP(proc)) {
+      SgObject ret = Sg_Apply1(SG_GLOC_GET(SG_GLOC(proc)), vm->commandLineArgs);
+      if (SG_INTP(ret)) exit_code = SG_INT_VALUE(ret);
+    }
     if (forceInteactiveP) goto repl;
   } else {
   repl:
