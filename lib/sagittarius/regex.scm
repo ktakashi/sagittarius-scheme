@@ -68,6 +68,8 @@
 	    ;; utility
 	    string-split
 
+	    ;; clos
+	    <pattern> <matcher>
 	    ;; enable #/regex/
 	    :export-reader-macro
 	    )

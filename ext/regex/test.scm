@@ -1033,7 +1033,26 @@
       (test-equal "uri pattern"
 		  '("buzz.host.com" #f "buzz.host.com" #f)
 		  (match&list "(?:(.*?)@)?([^:]*)(?::(\\d*))?"
-			      "buzz.host.com")))
+			      "buzz.host.com"))
+      ;; \Z
+      (test-equal "abc def" #f
+		  (match&list "abc\\Z" "abc def"))
+      (test-equal "def abc" '("abc")
+		  (match&list "abc\\Z" "def abc"))
+      (test-equal "abc\ndef" #f
+		  (match&list "abc\\Z" "abc\ndef"))
+      (test-equal "def abc\n" '("abc")
+		  (match&list "abc\\Z" "def abc\n"))
+      ;; \z
+      (test-equal "abc def" #f
+		  (match&list "abc\\z" "abc def"))
+      (test-equal "def abc" '("abc")
+		  (match&list "abc\\z" "def abc"))
+      (test-equal "abc\ndef" #f
+		  (match&list "abc\\z" "abc\ndef"))
+      (test-equal "def abc\n" #f
+		  (match&list "abc\\z" "def abc\n"))
+      )
     )
 
   (define (run-regex-test)

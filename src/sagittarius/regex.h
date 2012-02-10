@@ -140,8 +140,8 @@ SG_EXTERN int        Sg_RegexFind(SgMatcher *m, int start);
 
 SG_EXTERN SgObject   Sg_RegexGroup(SgMatcher *m, int group);
 
-SG_EXTERN SgString*  Sg_RegexReplaceAll(SgMatcher *m, SgString *replacement);
-SG_EXTERN SgString*  Sg_RegexReplaceFirst(SgMatcher *m, SgString *replacement);
+SG_EXTERN SgString*  Sg_RegexReplaceAll(SgMatcher *m, SgObject replacement);
+SG_EXTERN SgString*  Sg_RegexReplaceFirst(SgMatcher *m, SgObject replacement);
 
 SG_EXTERN int        Sg_RegexCaptureCount(SgMatcher *m);
 /* for debug */

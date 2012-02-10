@@ -67,10 +67,20 @@
   (define-c-proc regex-last (m::<matcher>) ::<fixnum>
     (result (-> m last)))
 
-  (define-c-proc regex-replace-all (m::<matcher> replacement::<string>)
+  (define-c-proc regex-replace-all (m::<matcher> replacement)
+    (unless (or (SG_STRINGP replacement)
+		(SG_PROCEDUREP replacement))
+      (Sg_WrongTypeOfArgumentViolation 'regex-replace-all
+				       (SG_MAKE_STRING "string or procedure")
+				       replacement SG_NIL))
     (result (Sg_RegexReplaceAll m replacement)))
 
-  (define-c-proc regex-replace-first (m::<matcher> replacement::<string>)
+  (define-c-proc regex-replace-first (m::<matcher> replacement)
+    (unless (or (SG_STRINGP replacement)
+		(SG_PROCEDUREP replacement))
+      (Sg_WrongTypeOfArgumentViolation 'regex-replace-all
+				       (SG_MAKE_STRING "string or procedure")
+				       replacement SG_NIL))
     (result (Sg_RegexReplaceFirst m replacement)))
 
   ;; pred

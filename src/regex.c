@@ -1563,13 +1563,14 @@ enum {
 
 
 enum {
-  EmptyBeginLine       = 1<<0,	/* ^ - beginning of line */
-  EmptyEndLine         = 1<<1,	/* $ - end of line */
-  EmptyBeginText       = 1<<2,	/* \A - beginning of text */
-  EmptyEndText         = 1<<3,	/* \z - end of text */
-  EmptyWordBoundary    = 1<<4,	/* \b - word boundary */
-  EmptyNonWordBoundary = 1<<5,	/* \B - not \b */
-  EmptyAllFlags        = (1<<6)-1,
+  EmptyBeginLine       	= 1<<0,	/* ^ - beginning of line */
+  EmptyEndLine         	= 1<<1,	/* $ - end of line */
+  EmptyBeginText       	= 1<<2,	/* \A - beginning of text */
+  EmptyEndText         	= 1<<3,	/* \z - end of text */
+  EmptyEndTextNoNewLine = 1<<4,	/* \Z - end of text(last \n will be match) */
+  EmptyWordBoundary     = 1<<5,	/* \b - word boundary */
+  EmptyNonWordBoundary  = 1<<6,	/* \B - not \b */
+  EmptyAllFlags         = (1<<7)-1,
 };
 
 typedef struct
@@ -1784,9 +1785,14 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp)
 	   But we do as defact standard(Perl) way.*/
 	/* set flags */
 	/* TODO check compile time flag */
-	arg.flags
-	  = SG_EQ(ast, SYM_END_ANCHOR) || SG_EQ(ast, SYM_MODELESS_END_ANCHOR)
-	  ? EmptyEndLine : EmptyEndText;
+	if (SG_EQ(ast, SYM_END_ANCHOR)) {
+	  arg.flags = EmptyEndLine;
+	} else if (SG_EQ(ast, SYM_MODELESS_END_ANCHOR)) {
+	  /* '$' without multiline mode flag is the same as \\Z */
+	  arg.flags = EmptyEndTextNoNewLine;
+	} else {
+	  arg.flags = EmptyEndText;
+	}
 	emit(ctx, RX_EMPTY, arg);
 	return;
       }
@@ -2131,7 +2137,7 @@ SgObject Sg_CompileRegex(SgString *pattern, int flags, int parseOnly)
 
 void Sg_DumpRegex(SgPattern *pattern, SgObject port)
 {
-#ifdef DEBUG_REGEX
+#if 1
   int i;
   const int size = pattern->prog->rootLength;
   inst_t *start = &pattern->prog->root[0];
@@ -2465,6 +2471,8 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
       stk[nstk++] = add_state(id+1, -1, NULL);
       break;
     case RX_EMPTY:
+      /* printf("\nflags: %x %x, %x %d\n", ip->arg.flags, flags, ~flags, */
+      /* 	     (ip->arg.flags & ~flags)); */
       if (ip->arg.flags & ~flags) break;
       stk[nstk++] = add_state(id+1, -1, NULL);
       break;
@@ -2653,16 +2661,18 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
   for (p = bp; ;p++) {
     int flag = 0, isword = FALSE, id;
 
-    /* TODO check $, \z and \Z */
     /* ^ and \A */
     if (p == otext)
       flag |= EmptyBeginText | EmptyBeginLine;
     else if (p <= ep && p[-1] == '\n')
       flag |= EmptyBeginLine;
-    /* $ and \z */
+
+    /* $, \Z and \z */
     if (p == ep)
-      flag |= EmptyEndText | EmptyEndLine;
-    else if (p < ep && p[0] == '\n')
+      flag |= EmptyEndText | EmptyEndLine | EmptyEndTextNoNewLine;
+    else if (p+1 == ep && p[0] == '\n') {
+      flag |= EmptyEndTextNoNewLine | EmptyEndLine;
+    } else if (p < ep && p[0] == '\n')
       flag |= EmptyEndLine;
 
     /* \b and \B */
@@ -2805,7 +2815,9 @@ static int match_step1(match_ctx_t *ctx, inst_t *inst, int flags,
 
   /* $ and \z */
   if ((bp+i) == ep)
-    flag |= EmptyEndText | EmptyEndLine;
+    flag |= EmptyEndText | EmptyEndLine | EmptyEndTextNoNewLine;
+  else if ((bp+i+1) == ep && bp[i] == '\n')
+    flag |= EmptyEndTextNoNewLine | EmptyEndLine;
   else if ((bp+i) >= otext && (bp+i) < ep && bp[i] == '\n')
     flag |= EmptyEndLine;
 
@@ -3093,16 +3105,10 @@ SgObject Sg_RegexGroup(SgMatcher *m, int group)
   return s;
 }
 
-static void append_replacement(SgMatcher *m, SgPort *p, SgString *replacement)
+static void append_string_replacement(SgMatcher *m, SgPort *p,
+				      SgString *replacement)
 {
-  int cursor = 0, i;
-  if (m->first < 0) {
-    Sg_Error(UC("No match available"));
-  }
-  /* To avoid memory allocation */
-  for (i = m->lastAppendPosition; i < m->first; i++) {
-    Sg_PutcUnsafe(p, SG_STRING_VALUE_AT(m->text, i));
-  }
+  int cursor = 0;
   while (cursor < SG_STRING_SIZE(replacement)) {
     SgChar nextChar = SG_STRING_VALUE_AT(replacement, cursor);
     if (nextChar == '\\') {
@@ -3147,6 +3153,23 @@ static void append_replacement(SgMatcher *m, SgPort *p, SgString *replacement)
       cursor++;
     }
   }
+}
+
+static void append_replacement(SgMatcher *m, SgPort *p, SgObject replacement)
+{
+  int i;
+  if (m->first < 0) {
+    Sg_Error(UC("No match available"));
+  }
+  /* To avoid memory allocation */
+  for (i = m->lastAppendPosition; i < m->first; i++) {
+    Sg_PutcUnsafe(p, SG_STRING_VALUE_AT(m->text, i));
+  }
+  if (SG_STRINGP(replacement)) {
+    append_string_replacement(m, p, SG_STRING(replacement));
+  } else {
+    Sg_Apply2(replacement, m, p);
+  }
   m->lastAppendPosition = m->last;
 }
 
@@ -3159,7 +3182,7 @@ static void append_tail(SgMatcher *m, SgPort *p)
   }
 }
 
-SgString* Sg_RegexReplaceAll(SgMatcher *m, SgString *replacement)
+SgString* Sg_RegexReplaceAll(SgMatcher *m, SgObject replacement)
 {
   int result;
   reset_matcher(m);
@@ -3178,7 +3201,7 @@ SgString* Sg_RegexReplaceAll(SgMatcher *m, SgString *replacement)
   return m->text;
 }
 
-SgString* Sg_RegexReplaceFirst(SgMatcher *m, SgString *replacement)
+SgString* Sg_RegexReplaceFirst(SgMatcher *m, SgObject replacement)
 {
   int result;
   reset_matcher(m);
@@ -3275,7 +3298,12 @@ void Sg__InitRegex()
 {
   SgLibrary *lib;
   Sg__Init_sagittarius_regex_impl();
-  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius regex impl)"), FALSE));
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius regex impl)"),
+				  FALSE));
+
+  Sg_InitStaticClass(SG_CLASS_PATTERN, UC("<pattern>"), lib, NULL, 0);
+  Sg_InitStaticClass(SG_CLASS_MATCHER, UC("<matcher>"), lib, NULL, 0);
+
   add_reader_macro(lib);
 #define insert_binding(name, value)			\
   Sg_MakeBinding(lib, SG_INTERN(#name), SG_MAKE_INT(value), TRUE);
