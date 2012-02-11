@@ -398,12 +398,12 @@
     (result (Sg_ReadDirectory path)))
 
   ;; make this parameterizable
-  (define-c-proc current-directory (:optional (path::<string> NULL)) ::<top>
-    (cond (path
-	   (Sg_SetCurrentDirectory path)
-	   (result SG_UNDEF))
+  (define-c-proc current-directory (:optional path::<string>) ::<top>
+    (cond ((SG_UNBOUNDP path)
+	   (result (Sg_CurrentDirectory)))
 	  (else
-	   (result (Sg_CurrentDirectory)))))
+	   (Sg_SetCurrentDirectory path)
+	   (result SG_UNDEF))))
 
   (define-c-proc set-current-directory (path::<string>) ::<void>
     (Sg_SetCurrentDirectory path))

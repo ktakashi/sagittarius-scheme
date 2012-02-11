@@ -16,6 +16,7 @@
 	;; syntax-case extra
 	(tests syntax-case)
 	;; text
+	(tests text csv)
 	(tests text sxml ssax)
 	(tests text sxml sxpath)
 	(tests text sxml serializer)
@@ -86,6 +87,7 @@
 (run-packrat-test)
 (run-match-tests)
 (run-syntax-case-tests)
+(run-text-csv-tests)
 (run-ssax-test)
 (run-sxpath-test)
 (run-serializer-test)

@@ -1,3 +1,9 @@
+2012-02-11  Takashi Kato  <ktakashi@ymail.com>
+
+	* sitelib/text/csv.scm (text csv): added csv parse library.
+
+	* src/extlib.stub (current-directory): fixed segv.
+
 2012-02-08  Takashi Kato  <ktakashi@ymail.com>
 
 	* boot/compiler.scm (and-let*): added and-let* as a builtin syntax.
