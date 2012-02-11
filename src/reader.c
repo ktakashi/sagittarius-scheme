@@ -263,6 +263,8 @@ static SgObject read_hash_hash(SgPort *port, SgChar c, dispmacro_param *param,
 			       SgReadContext *ctx);
 static SgObject read_hash_less(SgPort *port, SgChar c, dispmacro_param *param,
 			       SgReadContext *ctx);
+static SgObject read_hash_colon(SgPort *port, SgChar c, dispmacro_param *param,
+				SgReadContext *ctx);
 
 /* mode  */
 static SgObject read_r6rs_symbol(SgPort *port, SgChar c, SgReadContext *ctx);
@@ -1221,6 +1223,14 @@ SgObject read_hash_less(SgPort *port, SgChar c, dispmacro_param *param,
   return NULL;
 }
 
+SgObject read_hash_colon(SgPort *port, SgChar c, dispmacro_param *param,
+			 SgReadContext *ctx)
+{
+  /* TODO how to handle |? */
+  SgString *s = read_compatible_symbol(port, -1, ctx);
+  return Sg_MakeSymbol(s, FALSE);
+}
+
 SgObject dispmacro_reader(SgPort *port, SgChar c, SgReadContext *ctx)
 {
   readtable_t *table;
@@ -1661,6 +1671,7 @@ DEFINE_DISPMACRO_STUB(read_hash_escape,     "#\\-reader");
 DEFINE_DISPMACRO_STUB(read_hash_equal,      "#=-reader");
 DEFINE_DISPMACRO_STUB(read_hash_hash,       "##-reader");
 DEFINE_DISPMACRO_STUB(read_hash_less,       "#<-reader");
+DEFINE_DISPMACRO_STUB(read_hash_colon,      "#:-reader");
 
 
 SgObject Sg_GetMacroCharacter(SgChar c, readtable_t *table)
@@ -1765,7 +1776,8 @@ static dispmacro_function get_dispatch_macro_function(SgObject fn)
     macro_function_item(read_hash_escape),
     macro_function_item(read_hash_equal),
     macro_function_item(read_hash_hash),
-    macro_function_item(read_hash_less)
+    macro_function_item(read_hash_less),
+    macro_function_item(read_hash_colon)
   };
   int i;
   for (i = 0; i < array_sizeof(x); i++) {
@@ -1893,8 +1905,10 @@ static void init_readtable(readtable_t *table, int r6rsP)
   SET_DISP_MACRO(d, ',', read_hash_unquote);
   SET_DISP_MACRO(d, '!', read_hash_bang);
   SET_DISP_MACRO(d, 'v', read_hash_v);
-  if (!r6rsP)
+  if (!r6rsP) {
     SET_DISP_MACRO(d, 'u', read_hash_u);
+    SET_DISP_MACRO(d, ':', read_hash_colon);
+  }
   SET_DISP_MACRO(d, 't', read_hash_t);
   SET_DISP_MACRO(d, 'T', read_hash_t);
   SET_DISP_MACRO(d, 'f', read_hash_f);
@@ -1964,6 +1978,7 @@ void Sg__InitReader()
   SET_READER_NAME(read_hash_equal,      "#=-reader");
   SET_READER_NAME(read_hash_hash,       "##-reader");
   SET_READER_NAME(read_hash_less,       "#<-reader");
+  SET_READER_NAME(read_hash_colon,      "#:-reader");
 
   Sg_SetCurrentReadTable(&compat_read_table);
 }
