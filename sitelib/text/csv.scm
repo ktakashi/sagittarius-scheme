@@ -118,7 +118,7 @@
        file)
 
      (file     ((h <- header crlf r <- records) (cons h r))
-	       ((h <- header) h))
+	       ((h <- header) (list h)))
      ;; supports both crlf and lf
      (crlf     (((/ ((token "\r\n")) ((token "\n")))) "\r\n"))
      (header   ((comments n <- names) (cons :header n)))
