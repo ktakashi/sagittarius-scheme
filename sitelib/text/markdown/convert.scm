@@ -135,6 +135,20 @@
 	    (((:image . param) . rest)
 	     (loop (cdr sexp) (cons (gen-link 'img param) acc)))
 	    )))
+
+      (define (collect-codes first rest)
+	(define (rec code)
+	  (detail->sxml code))
+	(let loop ((codes rest) (acc (rec first)))
+	  (match codes
+	    (((:code-block . code) . rest)
+	     ;; ((:code-block ...) (:code-block ...) ...)
+	     ;; must be one <pre> so we need to add linefeed
+	     (loop (cdr codes) (append acc '("\n") (rec code))))
+	    (_ (values acc codes))
+	  ))
+	)
+
       (let loop ((sexp sexp) (acc '()))
 	;; TODO add style
 	(match sexp
@@ -142,7 +156,7 @@
 	  (((:header (? keyword? type) content) . rest)
 	   (loop (cdr sexp) (cons `(,(keyword->symbol type) ,content) acc)))
 	  (((:block-quote . content) . rest)
-	   (loop (cdr sexp) (cons `(block-quote ,@(detail->sxml content)) acc)))
+	   (loop (cdr sexp) (cons `(blockquote ,@(detail->sxml content)) acc)))
 	  (((:line) . rest)
 	   (loop (cdr sexp) (cons `(hr) acc)))
 	  (((:html (:tag . name) (:attr . attr) content) . rest)
@@ -160,6 +174,11 @@
 						`(li ,@(detail->sxml item)))
 					      items))
 				  acc)))
+	  (((:code-block . code) . rest)
+	   ;; we need special treat for this
+	   (let-values (((codes next) (collect-codes code rest)))
+	     (loop next (cons `(pre ,@codes) acc))))
+
 	  ))
       ))
 
