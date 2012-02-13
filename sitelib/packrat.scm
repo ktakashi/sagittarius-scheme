@@ -57,6 +57,7 @@
 
 	    packrat-parser)
     (import (rnrs)
+	    (rnrs r5rs)
 	    (srfi :1)
 	    ;; for format
 	    (sagittarius))

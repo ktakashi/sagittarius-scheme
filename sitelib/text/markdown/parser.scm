@@ -115,7 +115,7 @@
       (exists (cut <> ch) preds)))
 
   ;; should not contain linefeed
-  (define *any-sets* (char-set-delete char-set:full #\linefeed #\return))
+  (define *any-sets* (char-set-delete char-set:full #\linefeed #\return  #\`))
   ;; id should not contain #\[ and #\]
   (define *id-sets* (char-set-delete *any-sets* #\" #\[ #\]))
   ;; RFC 2396 (#\( and #\) are not in it)
@@ -250,14 +250,14 @@ Reference ::= SP{0,3} '[' ID ']' ':' URL ('"' Text '"')?
      ;; inline elements
      (inlines ((i <- inline is <- inlines) (cons i is))
 	      (() '()))
-     (inline ((e <- emphasis) (list :inline e))
-	     ((i <- image) (list :inline i)) ;; image must be higher
-	     ((l <- link) (list :inline l))
-	     ((c <- code-span) (list :inline i))
-	     ((i <- inline-html) (list :inline i))
+     (inline ((e <- emphasis) e)
+	     ((i <- image) i) ;; image must be higher
+	     ((l <- link) l)
+	     ((c <- code-span) c)
+	     ((i <- inline-html) i)
 	     ;; ah, i want a smart solution
-	     ((p <- plain) (list :inline p))
-	     ((t <- text) (list :inline t)))
+	     ((p <- plain) p)
+	     ((t <- text) t))
      ;; headers
      (header ((h <- atx-style linefeed)    (cons :header h))
 	     ((h <- setext-style linefeed) (cons :header h)))
@@ -351,9 +351,9 @@ Reference ::= SP{0,3} '[' ID ']' ':' URL ('"' Text '"')?
      ;; reference (tag (:url . url) id)
      (reference (((min-max #\space 0 3) '#\[ i <- id '#\]
 		  '#\: space+ u <- url space+ '#\" t <- title '#\")
-		 (list :reference (cons :url u) i))
+		 (cons* :reference i u))
 		(((min-max #\space 0 3) '#\[ i <- id '#\] '#\: space+ u <- url)
-		 (list :reference (cons :url u) i)))
+		 (cons* :reference i u)))
      ;; linefeed can be \n, \r or \r\n
      (linefeed (('#\linefeed) "\n")
 	       (('#\return) "\n")
@@ -374,11 +374,22 @@ Reference ::= SP{0,3} '[' ID ']' ':' URL ('"' Text '"')?
 		(make-who-condition who)
 		(make-message-condition msg))))
 
+  (define (remove-separator lst)
+    ;; :separator must be only toplevel
+    (let loop ((acc '())
+	       (lst lst))
+      (cond ((null? lst) (reverse! acc))
+	    ((eq? (car lst) :separator)
+	     (loop acc (cdr lst)))
+	    (else (loop (cons (car lst) acc) (cdr lst))))))
+
   ;; entry point
   (define (parse-markdown p :key (parser markdown-parser)
 			         ;; additional tags
 			         (inline-tag '())
-				 (block-tag '()))
+				 (block-tag '())
+			    ;; we don't use but need this
+			    :allow-other-keys)
     (parameterize ((inline-tags *known-inline-tags*)
 		   (block-tags *known-block-tags*))
       (unless (or (null? inline-tag)
@@ -395,7 +406,7 @@ Reference ::= SP{0,3} '[' ID ']' ':' URL ('"' Text '"')?
       (block-tags (append (block-tags) block-tag))
       (let ((result (parser (base-generator->results (generator p)))))
 	(if (parse-result-successful? result)
-	    (parse-result-semantic-value result)
+	    (remove-separator (parse-result-semantic-value result))
 	    (let ((e (parse-result-error result)))
 	      (raise-markdown-perser-error 'parse-markdown
 					   (parse-error-messages e)
