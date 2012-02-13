@@ -150,7 +150,17 @@
 				    (@ ,@(alist->attr attr)) ,content) acc)))
 	  (((:paragraph . content) . rest)
 	   (loop (cdr sexp) (cons `(p ,@(detail->sxml content)) acc)))
-	  ))	  
+	  (((:star-list . items) . rest)
+	   (loop (cdr sexp) (cons `(ul ,@(map (lambda (item)
+						`(li ,@(detail->sxml item)))
+					      items))
+				  acc)))
+	  (((:number-list . items) . rest)
+	   (loop (cdr sexp) (cons `(ol ,@(map (lambda (item)
+						`(li ,@(detail->sxml item)))
+					      items))
+				  acc)))
+	  ))
       ))
 
   (define (markdown-sexp->string sexp . opts)
@@ -158,4 +168,3 @@
       (srl:sxml->html sxml)))
 
   )
-	    
