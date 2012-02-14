@@ -191,17 +191,20 @@
       (define (collect-blockquote first rest)
 	(merge-by-tag :block-quote first rest))
       ;; TODO refactor
-      (define (rec sexp)
+      (define (rec sexp in-html?)
 	(let loop ((sexp sexp) (acc '()))
 	  ;; TODO add style
 	  (match sexp
-	    (() (append `(div (@ ,@(let ((s style) (c class));; to avoid the bug
-				     (cond ((and s c)
-					    `((style ,s) (class ,c)))
-					   (s `((style ,s)))
-					   (c `((class ,c)))
-					   (else '())))))
-			(reverse! acc)))
+	    (() 
+	     (if in-html?
+		 (reverse! acc)
+		 (append `(div (@ ,@(let ((s style) (c class))
+				      (cond ((and s c)
+					     `((style ,s) (class ,c)))
+					    (s `((style ,s)))
+					    (c `((class ,c)))
+					    (else '())))))
+			 (reverse! acc))))
 	    (((:header (? keyword? type) content) . rest)
 	     (loop (cdr sexp) (cons `(,(keyword->symbol type)
 				      ,(let ((try (get-attribute type)))
@@ -218,7 +221,7 @@
 	    (((:html (:tag . name) (:attr . attr) . content) . rest)
 	     (loop (cdr sexp) (cons `(,(string->symbol name)
 				      (@ ,@(alist->attr attr))
-				      ,(rec content)) acc)))
+				      ,@(rec content #t)) acc)))
 	    (((:paragraph . content) . rest)
 	     ;; the same as code-block
 	     (let-values (((para next) (collect-paragraph content rest)))
@@ -251,7 +254,7 @@
 	    (_ (assertion-violation 'markdown-sexp->sxml
 				    "invalid block sexp form" sexp))
 	    )))
-      (rec sexp)
+      (rec sexp #f)
       ))
 
   (define (markdown-sexp->string sexp . opts)
