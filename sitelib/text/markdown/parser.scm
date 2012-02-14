@@ -73,15 +73,18 @@
 		  (make-expected-result
 		   (parse-results-position starting-results) str)))))))
 
-  (define (min-max char/pred :optional (min 0) (max #f))
-    (let ((pred (cond ((char? char/pred) (lambda (c) (char=? char/pred c)))
-		      ((procedure? char/pred) char/pred)
+  (define (min-max char/pred/charset :optional (min 0) (max #f))
+    (let ((pred (cond ((char? char/pred/charset)
+		       (lambda (c) (char=? char/pred/charset c)))
+		      ((procedure? char/pred/charset) char/pred/charset)
+		      ((char-set? char/pred/charset)
+		       (lambda (c) (char-set-contains? char/pred/charset c)))
 		      (else
 		       (assertion-violation 
 			'min-max
 			(format "character or procedure required but got ~s"
 				char/pred) char/pred))))
-	  (required (format "~a{~a,~a}" char/pred min (if max max ""))))
+	  (required (format "~a{~a,~a}" char/pred/charset min (if max max ""))))
       (lambda (starting-results)
 	(let loop ((count 0) (results starting-results) (acc '()))
 	  (let ((c (parse-results-token-value results)))
@@ -115,18 +118,17 @@
       (exists (cut <> ch) preds)))
 
   ;; should not contain linefeed
-  (define *any-sets* (char-set-delete char-set:full #\linefeed #\return  #\`))
+  (define *any-sets* (char-set-delete char-set:full #\linefeed #\return))
   ;; id should not contain #\[ and #\]
   (define *id-sets* (char-set-delete *any-sets* #\" #\[ #\]))
   ;; RFC 2396 (#\( and #\) are not in it)
   (define *url-sets* (char-set-union
 		      char-set:letter+digit
 		      (string->char-set "-_.!~*'%;/?:@&=+$,")))
-  (define *code-span-sets*  (char-set-delete char-set:full
-					     #\`
-					     #\linefeed #\return))
+  (define *code-span-sets* 
+    (char-set-delete char-set:full #\` #\linefeed #\return))
   (define *plain-sets*
-    (char-set-delete (char-set-difference char-set:full char-set:whitespace)
+    (char-set-delete char-set:full #\linefeed #\return #\`
 		     #\_ #\- #\* #\[ #\] #\: #\< #\= #\" #\! #\#))
   (define *no-linefeed-ws-sets*
     (char-set-delete char-set:whitespace #\return #\linefeed))
@@ -224,6 +226,21 @@ Reference ::= SP{0,3} '[' ID ']' ':' URL ('"' Text '"')?
 	 (token-with-charset *url-sets* results))
        (define (h-chars results)
 	 (token-with-charset *header-char-sets* results))
+       ;; for line
+       (define (line-def char)
+	 (lambda (starting-results)
+	   (let loop ((results starting-results) (appear 0))
+	     (let ((ch (parse-results-token-value results)))
+	       (cond ((and ch
+			   (or (char=? ch char)
+			       (char-set-contains? *no-linefeed-ws-sets* ch)))
+		      (loop (parse-results-next results)
+			    (if (char=? ch char) (+ appear 1) appear)))
+		     ((and (positive? appear) ch (char=? ch #\linefeed))
+		      (make-result "---" results))
+		     (else
+		      (make-expected-result
+		       (parse-results-position starting-results) "---")))))))
        doc)
      (doc ((es <- elements) (cons :doc es))
 	  (() (list :doc))) ;; empty document
@@ -242,7 +259,9 @@ Reference ::= SP{0,3} '[' ID ']' ':' URL ('"' Text '"')?
 	    ((p <- paragraph)   p))
      ;; TODO Should we store this to somewhere or into the AST?
      ;; first the most toplevel elements
-     (paragraph ((i <- inlines separator) (cons :paragraph i)))
+     (paragraph ((i <- inlines separator)
+		 (cons* :paragraph i)))
+     (p-entry ((i <- inlines linefeed) i))
      (separator (((min-max (lambda (c)
 			     (char-set-contains? *no-linefeed-ws-sets* c)) 0)
 		  linefeed) :separator)
@@ -270,33 +289,33 @@ Reference ::= SP{0,3} '[' ID ']' ':' URL ('"' Text '"')?
 		(((token "##") t <- h-chars (min-max #\#))     (list :h2 t))
 		(((token "#") t <- h-chars (min-max #\#))      (list :h1 t)))
      ;; block quote
-     (block-quote (('#\> (min-max char-whitespace?) p <- inlines)
-		   (cons :block-quote p))
-		  (('#\> (min-max char-whitespace?) linefeed b <- block-quote)
+     (block-quote (('#\> (min-max char-whitespace?) p <- paragraph)
+		   (list :block-quote p))
+		  ;;(('#\> (min-max char-whitespace?) i <- inlines linefeed)
+		  ;; (cons :block-quote i))		  
+		  (('#\> (min-max char-whitespace?) linefeed
+		    b <- block-quote)
 		   b))
      ;; lists
      (mlist ((l <- star-lists linefeed) (cons :star-list l))
 	    ((l <- number-lists linefeed) (cons :number-list l)))
      (star-lists ((l <- star-list ls <- star-lists) (cons l ls))
 		 (() '()))
-     (star-list ((space* '#\* space+ i <- inlines linefeed) i))
+     (star-list ((space* (/ ('#\*) ('#\-)) space+ i <- inlines linefeed) i))
      (number-lists ((l <- number-list ls <- number-lists) (cons l ls))
 		   (() '()))
      (number-list ((space* number '#\. space+ i <- inlines linefeed) i))
      ;; line
-     (line (((min-max (combine-pred char-whitespace?
-				    (lambda (c) (char=? c #\-))) 3) linefeed)
-	     (list :line))
-	   (((min-max (combine-pred char-whitespace?
-				    (lambda (c) (char=? c #\*))) 3) linefeed)
-	     (list :line)))
+     (line (((line-def #\-) linefeed) (list :line))
+	   (((line-def #\*) linefeed) (list :line)))
      ;; code block
-     (code-block (((min-max char-whitespace? 4) c <- inlines linefeed)
+     ;; for now we only supports space
+     (code-block (((min-max #\space 4) c <- inlines linefeed)
 		  (cons :code-block c)))
      ;; block html
      (block-html (('#\< s <- block-tag attr <- html-attributes space* '#\>
 		   h <- block-contents
-		   (token "</") e <- block-tag '#\> separator)
+		   (token "</") e <- block-tag '#\> linefeed)
 		  ;; TODO check tag
 		  (cons* :html (cons :tag s) (cons :attr attr) h)))
      (block-tag ((t <- (one-of-token (block-tags))) t))
@@ -325,10 +344,12 @@ Reference ::= SP{0,3} '[' ID ']' ':' URL ('"' Text '"')?
      ;; basic inline elements
      (text ((t <- any-chars) (list :text t)))
      (plain ((p <- plain-chars) (list :plain p)))
-     (emphasis ((space* '#\* t <- plain '#\*) (cons :italic t))
-	       ((space* (token "**") t <- plain (token "**")) (cons :bold t))
-	       ((space* '#\_ t <- plain '#\_) (cons :italic t))
-	       ((space* (token "__") t <- plain (token "__")) (cons :bold t)))
+     (emphasis ((space* '#\* t <- plain '#\*) (cons :italic (cadr t)))
+	       ((space* (token "**") t <- plain (token "**"))
+		(cons :bold (cadr t)))
+	       ((space* '#\_ t <- plain '#\_) (cons :italic (cadr t)))
+	       ((space* (token "__") t <- plain (token "__"))
+		(cons :bold (cadr t))))
      (link ((space* '#\[ i <- id '#\] '#\( u <- url '#\))
 	    (list :link (cons :url u) i))
 	   ((space*  '#\[ i <- id '#\]
@@ -351,15 +372,15 @@ Reference ::= SP{0,3} '[' ID ']' ':' URL ('"' Text '"')?
      ;; reference (tag (:url . url) id)
      (reference (((min-max #\space 0 3) '#\[ i <- id '#\]
 		  '#\: space+ u <- url space+ '#\" t <- title '#\")
-		 (cons* :reference i u))
+		 (cons* :reference i u t))
 		(((min-max #\space 0 3) '#\[ i <- id '#\] '#\: space+ u <- url)
-		 (cons* :reference i u)))
+		 (cons* :reference i u #f)))
      ;; linefeed can be \n, \r or \r\n
      (linefeed (('#\linefeed) "\n")
 	       (('#\return) "\n")
 	       (((token "\r\n")) "\n"))
-     (space+ (((min-max char-whitespace? 1)) '()))
-     (space* (((min-max char-whitespace?)) '()))
+     (space+ (((min-max *no-linefeed-ws-sets* 1)) '()))
+     (space* (((min-max *no-linefeed-ws-sets*)) '()))
      ))
 
   ;; condition
@@ -374,7 +395,7 @@ Reference ::= SP{0,3} '[' ID ']' ':' URL ('"' Text '"')?
 		(make-who-condition who)
 		(make-message-condition msg))))
 
-  (define (remove-separator lst)
+  #;(define (remove-separator lst)
     ;; :separator must be only toplevel
     (let loop ((acc '())
 	       (lst lst))
@@ -406,7 +427,7 @@ Reference ::= SP{0,3} '[' ID ']' ':' URL ('"' Text '"')?
       (block-tags (append (block-tags) block-tag))
       (let ((result (parser (base-generator->results (generator p)))))
 	(if (parse-result-successful? result)
-	    (remove-separator (parse-result-semantic-value result))
+	    (parse-result-semantic-value result)
 	    (let ((e (parse-result-error result)))
 	      (raise-markdown-perser-error 'parse-markdown
 					   (parse-error-messages e)

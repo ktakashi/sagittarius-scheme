@@ -31,8 +31,8 @@
 
 (library (text csv)
     (export csv->list
-	    read-csv
-	    write-csv
+	    csv-read
+	    csv-write
 
 	    ;; CLOS
 	    <csv>
@@ -184,16 +184,16 @@
 	     (assertion-violation 'process-parsed-csv
 				  "invalid csv list" lst)))))
 
-  (define-method read-csv ((p <port>) . opt)
+  (define-method csv-read ((p <port>) . opt)
     (let ((csv-list (apply csv->list p opt)))
       ;; get two lists, header and records
       (let-values (((header records) (process-parsed-csv csv-list)))
 	(make <csv> :header header :records records))))
   ;; assume this is csv string
-  (define-method read-csv ((s <string>) . opt)
-    (apply read-csv (open-string-input-port s) opt))
+  (define-method csv-read ((s <string>) . opt)
+    (apply csv-read (open-string-input-port s) opt))
 
-  (define-method write-csv ((csv <csv>) . opt)
+  (define-method csv-write ((csv <csv>) . opt)
     (let ((out (if (null? opt) (current-output-port) (car opt))))
       (let ((header (csv-header csv))
 	    (records (csv-records csv)))
@@ -220,7 +220,7 @@
 
   ;; Should we define this? 
   #;(define-method write-object ((csv <csv>) (p <port>))
-    (write-csv csv p))
+    (csv-write csv p))
 
   ;; User level APIs
   ;; given string must be a valid csv line and it will be parsed by reader

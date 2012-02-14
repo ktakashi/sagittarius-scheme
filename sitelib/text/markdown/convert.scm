@@ -35,6 +35,7 @@
 	    (match)
 	    (sagittarius)
 	    (srfi :1 lists) ;; reverse!
+	    (srfi :26 cut)
 	    (text sxml serializer)
 	    (text markdown parser))
 
@@ -57,8 +58,9 @@
   ;; Second convert to sxml (shtml)
   ;; style keyword arguments must be alist with these structure keyword and
   ;; detail keywords (ex :inline) to specify its style.
-  (define (markdown-sexp->sxml sexp :key (style '())
-			            :allow-other-keys)
+  (define (markdown-sexp->sxml sexp :key (style #f) ;; for the top most
+			                 (class #f)
+			            :allow-other-keys attributes)
     ;; under the :doc
     (define (collect-reference sexp)
       (let loop ((sexp sexp) (acc '()) (ref '()))
@@ -74,6 +76,8 @@
 		  (assertion-violation 'markdown-sexp->sxml
 				       "invalid keyword in the given list"
 				       (caar sexp) sexp))))
+	      ((eq? (car sexp) :separator) (loop (cdr sexp)
+						 (cons :separator acc) ref))
 	      (else
 	       ;; invalid list
 	       (assertion-violation 'markdown-sexp->sxml
@@ -101,23 +105,42 @@
 				    "invalid reference"
 				    ref sexp))))
 
+      (define (get-attribute key)
+	(cond ((get-keyword key attributes #f)
+	       => (cut append '(@) <>))
+	      (else '(@))))
+
       (define (detail->sxml sexp)
-	(define (gen-link name param)
+	(define (gen-link param attrs)
 	  (let loop ((param param) (attr '()))
 	    (match param
 	      (((:url . url) . rest)
 	       (loop (cdr param)
-		     (cons `(,(case name
-				((a) 'href)
-				((img) 'src)) ,url) attr)))
+		     (cons `(href ,url) attr)))
 	      (((:title . t) . rest)
 	       (loop (cdr param) (cons `(title ,t) attr)))
 	      (((:id . ref) . rest)
-	       ;; TODO check consistancy with :url
-	       (loop (cdr param) (cons `(,(case name ((a) 'href) ((img) 'src))
-					 ,(lookup-reference ref)) attr)))
+	       (let ((r (lookup-reference ref)))
+		 (loop (cdr param) (cons* `(href ,(car r))
+					  (if (cdr r) `(title ,(cdr r)) '())
+					  attr))))
 	      (((? string? title))
-	       `(,name (@ ,@attr) ,title)))))
+	       `(a ,(append attrs attr) ,title)))))
+	(define (gen-img-link param attrs)
+	  (let loop ((param param) (attr '()))
+	    (match param
+	      (((:url . url) . rest)
+	       (loop (cdr param)
+		     (cons `(src ,url) attr)))
+	      (((:title . t) . rest)
+	       (loop (cdr param) (cons `(title ,t) attr)))
+	      (((:id . ref) . rest)
+	       (let ((r (lookup-reference ref)))
+		 (loop (cdr param) (cons* `(src ,(car r))
+					  (if (cdr r) `(title ,(cdr r)) '())
+					  attr))))
+	      (((? string? title))
+	       `(img ,(append attrs attr `((alt ,title))))))))
 
 	(let loop ((sexp sexp) (acc '()))
 	  (match sexp
@@ -126,59 +149,102 @@
 	     (loop (cdr sexp) (cons content acc)))
 	    (((:text content) . rest)
 	     (loop (cdr sexp) (cons content acc)))
-	    (((:bold content) . rest)
-	     (loop (cdr sexp) (cons `(strong ,content) acc)))
-	    (((:italic content) . rest)
-	     (loop (cdr sexp) (cons `(i ,content) acc)))
+	    (((:bold . content) . rest)
+	     (loop (cdr sexp) (cons `(strong ,(get-attribute :bold)
+					     ,content) acc)))
+	    (((:italic . content) . rest)
+	     (loop (cdr sexp) (cons `(em ,(get-attribute :italic)
+					 ,content) acc)))
 	    (((:link . param) . rest)
-	     (loop (cdr sexp) (cons (gen-link 'a param) acc)))
+	     (loop (cdr sexp) (cons (gen-link param (get-attribute :link))
+				    acc)))
 	    (((:image . param) . rest)
-	     (loop (cdr sexp) (cons (gen-link 'img param) acc)))
+	     (loop (cdr sexp) (cons (gen-img-link param (get-attribute :image))
+				    acc)))
+	    (((:code-span . content) . rest)
+	     (loop (cdr sexp) (cons `(code ,(get-attribute :code-span) ,content)
+				    acc)))
+	    ;; inline html can be here
+	    (((:html (:tag . name) (:attr . attr) content) . rest)
+	     (loop (cdr sexp) (cons `(,(string->symbol name)
+				      (@ ,@(alist->attr attr)) ,content) acc)))
+	    ;; block-quote can have paragraph
+	    (((:paragraph . content) . rest)
+	     (loop (cdr sexp) (cons `(p ,(get-attribute :paragraph)
+					,@(detail->sxml content)) acc)))
+	    (_ (assertion-violation 'markdown-sexp->sxml
+				    "invalid inline sexp form" sexp))
 	    )))
 
+      (define (merge-by-tag tag first rest)
+	(let loop ((lst rest) (acc (detail->sxml first)))
+	  (if (and (pair? lst) (pair? (car lst))
+		   (eq? (caar lst) tag))
+	      (loop (cdr lst)
+		    (append acc '("\n") (detail->sxml (cdar lst))))
+	      (values acc lst))))
+
       (define (collect-codes first rest)
-	(define (rec code)
-	  (detail->sxml code))
-	(let loop ((codes rest) (acc (rec first)))
-	  (match codes
-	    (((:code-block . code) . rest)
-	     ;; ((:code-block ...) (:code-block ...) ...)
-	     ;; must be one <pre> so we need to add linefeed
-	     (loop (cdr codes) (append acc '("\n") (rec code))))
-	    (_ (values acc codes))
-	  ))
-	)
+	(merge-by-tag :code-block first rest))
+      (define (collect-paragraph first rest)
+	(merge-by-tag :paragraph first rest))
+      (define (collect-blockquote first rest)
+	(merge-by-tag :block-quote first rest))
 
       (let loop ((sexp sexp) (acc '()))
 	;; TODO add style
 	(match sexp
-	  (() (append '(div) (reverse! acc)))
+	  (() (append `(div (@ ,@(let ((s style) (c class)) ;; to avoid the bug
+				  (cond ((and s c)
+					 `((style ,s) (class ,c)))
+					(s `((style ,s)))
+					(c `((class ,c)))
+					(else '())))))
+		      (reverse! acc)))
 	  (((:header (? keyword? type) content) . rest)
-	   (loop (cdr sexp) (cons `(,(keyword->symbol type) ,content) acc)))
+	   (loop (cdr sexp) (cons `(,(keyword->symbol type)
+				    ,(let ((try (get-attribute type)))
+				       (if (null? try)
+					   (get-attribute :header)
+					   try))
+				    ,content) acc)))
 	  (((:block-quote . content) . rest)
-	   (loop (cdr sexp) (cons `(blockquote ,@(detail->sxml content)) acc)))
+	   (let-values (((bq next) (collect-blockquote content rest)))
+	     (loop next (cons `(blockquote ,(get-attribute :block-quote)
+					   ,@bq) acc))))
 	  (((:line) . rest)
-	   (loop (cdr sexp) (cons `(hr) acc)))
+	   (loop (cdr sexp) (cons `(hr ,(get-attribute :line)) acc)))
 	  (((:html (:tag . name) (:attr . attr) content) . rest)
 	   (loop (cdr sexp) (cons `(,(string->symbol name)
 				    (@ ,@(alist->attr attr)) ,content) acc)))
 	  (((:paragraph . content) . rest)
-	   (loop (cdr sexp) (cons `(p ,@(detail->sxml content)) acc)))
+	   ;; the same as code-block
+	   (let-values (((para next) (collect-paragraph content rest)))
+	     (loop next (cons `(p ,(get-attribute :paragraph) ,@para) acc))))
 	  (((:star-list . items) . rest)
-	   (loop (cdr sexp) (cons `(ul ,@(map (lambda (item)
-						`(li ,@(detail->sxml item)))
-					      items))
+	   (loop (cdr sexp) (cons `(ul ,(get-attribute :star-list)
+				    ,@(map (lambda (item)
+					     `(li ,(get-attribute :list-item)
+						  ,@(detail->sxml item)))
+					   items))
 				  acc)))
 	  (((:number-list . items) . rest)
-	   (loop (cdr sexp) (cons `(ol ,@(map (lambda (item)
-						`(li ,@(detail->sxml item)))
-					      items))
+	   (loop (cdr sexp) (cons `(ol ,(get-attribute :number-list)
+				    ,@(map (lambda (item)
+					     `(li ,(get-attribute :list-item)
+						  ,@(detail->sxml item)))
+					   items))
 				  acc)))
 	  (((:code-block . code) . rest)
 	   ;; we need special treat for this
 	   (let-values (((codes next) (collect-codes code rest)))
-	     (loop next (cons `(pre ,@codes) acc))))
-
+	     (loop next (cons `(pre ,(get-attribute :code-block) ,@codes)
+			      acc))))
+	  ((:separator . rest)
+	   ;; just a seperator ignore
+	   (loop (cdr sexp) acc))
+	  (_ (assertion-violation 'markdown-sexp->sxml
+				  "invalid block sexp form" sexp))
 	  ))
       ))
 
