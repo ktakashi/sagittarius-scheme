@@ -138,6 +138,9 @@
 
   (define *header-char-sets*
     (char-set-delete char-set:full #\linefeed #\return #\#))
+
+  (define *attribute-value-sets*
+    (char-set-delete char-set:full #\"))
   
   ;; parameters
   (define inline-tags (make-parameter '()))
@@ -226,6 +229,8 @@ Reference ::= SP{0,3} '[' ID ']' ':' URL ('"' Text '"')?
 	 (token-with-charset *url-sets* results))
        (define (h-chars results)
 	 (token-with-charset *header-char-sets* results))
+       (define (attr-chars results)
+	 (token-with-charset *attribute-value-sets* results))
        ;; for line
        (define (line-def char)
 	 (lambda (starting-results)
@@ -339,8 +344,8 @@ Reference ::= SP{0,3} '[' ID ']' ':' URL ('"' Text '"')?
      (html-attributes ((attr <- html-attribute attrs <- html-attributes)
 		       (cons attr attrs))
 		      (() '()))
-     (html-attribute ((space+ name <- plain '#\= '#\" value <- plain '#\")
-		      (cons (cadr name) (cadr value))))
+     (html-attribute ((space+ name <- plain '#\= '#\" value <- attr-chars '#\")
+		      (cons (cadr name) value)))
      ;; basic inline elements
      (text ((t <- any-chars) (list :text t)))
      (plain ((p <- plain-chars) (list :plain p)))

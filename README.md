@@ -61,7 +61,7 @@ might not work properly.
     % cmake .
 
 Before generating MakeFile, you might need to add the following line to
-gc-7.2alpha6/CMakeLists.txt around line number 200.
+`gc-7.2alpha6/CMakeLists.txt` around line number 200.
 
     ADD_DEFINITIONS("-DGC_WIN32_THREADS")
 
