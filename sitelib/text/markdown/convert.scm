@@ -176,20 +176,21 @@
 				    "invalid inline sexp form" sexp))
 	    )))
 
-      (define (merge-by-tag tag first rest)
+      (define (merge-by-tag tag first rest sep)
 	(let loop ((lst rest) (acc (detail->sxml first)))
 	  (if (and (pair? lst) (pair? (car lst))
 		   (eq? (caar lst) tag))
 	      (loop (cdr lst)
-		    (append acc '("\n") (detail->sxml (cdar lst))))
+		    (append acc sep (detail->sxml (cdar lst))))
 	      (values acc lst))))
 
       (define (collect-codes first rest)
-	(merge-by-tag :code-block first rest))
+	(merge-by-tag :code-block first rest '("\n")))
       (define (collect-paragraph first rest)
-	(merge-by-tag :paragraph first rest))
+	(merge-by-tag :paragraph first rest '("\n")))
       (define (collect-blockquote first rest)
-	(merge-by-tag :block-quote first rest))
+	(merge-by-tag :block-quote first rest '((br))))
+
       ;; TODO refactor
       (define (rec sexp in-html?)
 	(let loop ((sexp sexp) (acc '()))
