@@ -315,7 +315,7 @@ Reference ::= SP{0,3} '[' ID ']' ':' URL ('"' Text '"')?
 	   (((line-def #\*) linefeed) (list :line)))
      ;; code block
      ;; for now we only supports space
-     (code-block (((min-max #\space 4) c <- inlines linefeed)
+     (code-block (((token "    ") c <- inlines linefeed)
 		  (cons :code-block c)))
      ;; block html
      (block-html (('#\< s <- block-tag attr <- html-attributes space* '#\>
