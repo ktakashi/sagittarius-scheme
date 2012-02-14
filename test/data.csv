@@ -1,0 +1,8 @@
+# the first data line will be header
+header,value
+# from here it will be records
+r1,r2,r3
+# must be read 4 elements
+r4,r5,r6,
+# double quote must be escape `,` and `""`
+"a,"",a",b,c
