@@ -96,9 +96,14 @@
 
   (define-c-proc socket-recv (o::<socket> len::<fixnum> flags::<fixnum>) 
     (let ((data (Sg_MakeByteVector len 0))
-	  (result::int (Sg_SocketReceive (SG_SOCKET o)
-					 (SG_BVECTOR_ELEMENTS data) len flags)))
-      (result data)))
+	  (res::int (Sg_SocketReceive (SG_SOCKET o)
+				      (SG_BVECTOR_ELEMENTS data) len flags)))
+      (if (== len res)
+	  (result data)
+	  ;; shrink
+	  (let ((r (Sg_MakeByteVector res 0)))
+	    (Sg_ByteVectorCopyX (SG_BVECTOR data) 0 (SG_BVECTOR r) 0 res)
+	    (result r)))))
 
   (define-c-proc socket-shutdown (o::<socket> how::<fixnum>) ::<void>
     (Sg_SocketShutdown (SG_SOCKET o) how))
