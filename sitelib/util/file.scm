@@ -2,7 +2,7 @@
 ;;;
 ;;; file.scm - file utility
 ;;;  
-;;;   Copyright (c) 2000-2011  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,7 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; The APIs name are from Gauche
+;; The API's names are from Gauche
 #<(sagittarius regex)>
 (library (util file)
     (export file->list

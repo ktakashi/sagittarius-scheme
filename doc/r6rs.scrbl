@@ -3,18 +3,19 @@
 @section{R6RS Libraries}
 
 Sagittarius works with library even toplevel expressions are belong to a library
-named @code{“user”}. Here I list up all R6RS libraries. Some libraries contain
-the same procedure ie. assoc which is in @code{(rnrs (6))} and @code{(srfi :1 lists)}.
-In this case I will put a pointer to other library's section.
+named @code{"user"}. Here I list up all R6RS libraries. Some libraries contain
+the same procedure ie. assoc which is in @code{(rnrs (6))} and
+@code{(srfi :1 lists)}. In this case I will put a pointer to other library's
+section.
 
-If library specifies its version, Sagittarius, however, ignores it. This behaviour
-may change in future.
+If library specifies its version, Sagittarius, however, ignores it. This
+behaviour may change in future.
 
 @subsection{Top library}
 
 @define[Library]{@name{(rnrs (6))}}
-@desc{[R6RS] The library @code{(rnrs (6))} is required by R6RS. It just export all
-symbols from the libraries which are listed below.}
+@desc{[R6RS] The library @code{(rnrs (6))} is required by R6RS. It just export
+all symbols from the libraries which are listed below.}
 
 Most of these libraries documentations are from R6RS specification.
 @itemlist[

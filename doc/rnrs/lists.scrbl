@@ -122,7 +122,7 @@ elements of @var{list}, while @code{memv} uses @code{eqv?} and @code{memq} uses
 @define[Function]{@name{assc} @args{obj alist :optional =}}
 @define[Function]{@name{assv} @args{obj alist}}
 @define[Function]{@name{assq} @args{obj alist}}
-@desc{[R6RS+] @var{Alist} (for “association list”) should be a list of pairs.
+@desc{[R6RS+] @var{Alist} (for "association list") should be a list of pairs.
 @var{Proc} should accept one argument and return a single value. @var{Proc}
 should not mutate @var{alist}.
 

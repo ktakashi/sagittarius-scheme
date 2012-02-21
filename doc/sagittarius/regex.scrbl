@@ -146,10 +146,27 @@ The @code{looking-at} procedure attempts to match the input string against the
 pattern of @var{regex}.
 }
 
-@define[Function]{@name{regex-replace-first} @args{regex string1 string2}}
-@define[Function]{@name{regex-replace-all} @args{regex string1 string2}}
-@desc{@var{Regex} must be regular expression object. Replaces part of @var{string1}
-where @var{regex} matches to @var{string2}.
+@define[Function]{@name{regex-replace-first} @args{regex text replacement}}
+@define[Function]{@name{regex-replace-all} @args{regex text replacement}}
+@desc{@var{Regex} must be pattern object.
+
+@var{Text} must be string.
+
+@var{Replacement} must be either string or procedure which takes matcher object
+and string port as its arguments respectively.
+
+Replaces part of @var{text} where @var{regex} matches with @var{replacement}.
+
+If @var{replacement} is a string, the procedure replace @var{text} with given
+string. @var{Replacement} can refer the match result with `@code{$@var{n}}`.
+@var{n} must be group number of given @var{regex}.
+
+If @var{replacement} is a procedure, it will receive two arguments, the first
+one is current matcher and the second one string output port. User may write
+string to the given port and will be the replacement string.
+
+Note: The given matcher object is low level. So to access captured group you
+need to use @code{regex-group} procedure.
 
 The @code{regex-replace-first} procedure replaces the first match.
 
@@ -196,9 +213,23 @@ the input string against input pattern, otherwise #f.
 }
 
 @define[Function]{@name{regex-find} @args{matcher :optional start}}
-@desc{@var{Matcher} must be matcher object. Resets @var{matcher} and then attempts
-to find the next subsequence of the input string that matches the pattern, starting
-at the specified index if optional argument is given otherwise from the beginning.
+@desc{@var{Matcher} must be matcher object. Resets @var{matcher} and then
+attempts to find the next subsequence of the input string that matches the
+pattern, starting at the specified index if optional argument is given
+otherwise from the beginning.
+}
+
+@define[Function]{@name{regex-group} @args{matcher index}}
+@desc{@var{Matcher} must be matcher object. @var{Index} must be non negative
+exact integer.
+
+Retrieve captured group value from @var{matcher}.
+}
+
+@define[Function]{@name{regex-capture-count} @args{matcher}}
+@desc{@var{Matcher} must be matcher object.
+
+Returns number of captured groups.
 }
 
 @subsubsection{Regular expression flags}

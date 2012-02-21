@@ -3,7 +3,7 @@
 @subsection[:tag "rnrs.bytevectors.6"]{Bytevectors}
 
 Many applications deal with blocks of binary data by accessing them in various
-ways—extracting signed or unsigned numbers of various sizes. Therefore, the 
+ways-extracting signed or unsigned numbers of various sizes. Therefore, the 
 @code{(rnrs bytevectors (6))}library provides a single type for blocks of binary
 data with multiple ways to access that data. It deals with integers and
 floating-point representations in various sizes with specified endianness.
@@ -12,7 +12,7 @@ Bytevectorsare objects of a disjoint type. Conceptually, a bytevector represents
 a sequence of 8-bit bytes. The description of bytevectors uses the term byte for
 an exact integer object in the interval { - 128, ..., 127} and the term octet for
 an exact integer object in the interval {0, ..., 255}. A byte corresponds to its
-two’s complement representation as an octet.
+two's complement representation as an octet.
 
 The length of a bytevector is the number of bytes it contains. This number is
 fixed. A valid index into a bytevector is an exact, non-negative integer object
@@ -22,7 +22,7 @@ less than the length of the bytevector. The first byte of a bytevector has index
 Generally, the access procedures come in different flavors according to the size
 of the represented integer and the endianness of the representation. The procedures
 also distinguish signed and unsigned representations. The signed representations
-all use two’s complement.
+all use two's complement.
 
 Like string literals, literals representing bytevectors do not need to be quoted:
 @snipet[=> #vu8(12 23 123)]{#vu8(12 23 123)}
@@ -70,9 +70,9 @@ negative, it is interpreted as a byte.
 @var{bytevector}.}
 
 @define[Function]{@name{bytevector=?} @args{bytevector1 bytevector2}}
-@desc{[R6RS] Returns #t if @var{bytevector1} and @var{bytevector2} are equal—that
-is, if they have the same length and equal bytes at all valid indices. It
-returns #f otherwise.
+@desc{[R6RS] Returns #t if @var{bytevector1} and @var{bytevector2} are
+equal-that is, if they have the same length and equal bytes at all valid
+indices. It returns #f otherwise.
 }
 
 @define[Function]{@name{bytevector-fill!} @args{bytevector fill}}
@@ -86,8 +86,8 @@ Analogous to @code{vector-fill!}.
 @desc{[R6RS] @var{Source} and @var{target} must be bytevectors. @var{Source-start},
 @var{target-start}, and @var{k} must be non-negative exact integer objects that satisfy
 
-0 ≤ @var{source-start} ≤ @var{source-start} + @var{k} ≤ @var{source-length}
-0 ≤ @var{target-start} ≤ @var{target-start} + @var{k} ≤ @var{target-length}
+0 <= @var{source-start} <= @var{source-start} + @var{k} <= @var{source-length}
+0 <= @var{target-start} <= @var{target-start} + @var{k} <= @var{target-length}
 
 where @var{source-length} is the length of @var{source} and @var{target-length}
 is the length of @var{target}.
@@ -124,7 +124,7 @@ The @code{bytevector-s8-ref} procedure returns the byte at index @var{k} of
 The @code{bytevector-u8-set!} procedure stores @var{octet} in element @var{k}
 of @var{bytevector}.
 
-The @code{bytevector-s8-set!} procedure stores the two’s-complement
+The @code{bytevector-s8-set!} procedure stores the two's-complement
 representation of @var{byte} in element @var{k} of @var{bytevector}.
 
 Both procedures return unspecified values.
@@ -156,7 +156,7 @@ corresponding to the unsigned representation of size @var{size} and specified
 by @var{endianness} at indices @var{k}, @dots{}, @var{k} + @var{size} - 1.
 
 The @code{bytevector-sint-ref} procedure retrieves the exact integer object
-corresponding to the two’s-complement representation of size @var{size} and
+corresponding to the two's-complement representation of size @var{size} and
 specified by @var{endianness} at indices @var{k}, @dots{}, @var{k} + @var{size} - 1.
 
 For @code{bytevector-uint-set!}, @var{n} must be an exact integer object in the
@@ -168,7 +168,7 @@ size @var{size} and specified by @var{endianness} into @var{bytevector} at indic
 
 For @code{bytevector-sint-set!}, @var{n} must be an exact integer object in the
 interval @math{{-256 ^ "size" / 2, ..., 256 ^ "size" / 2 - 1}}.
-@code{bytevector-sint-set!} stores the two’s-complement representation of size
+@code{bytevector-sint-set!} stores the two's-complement representation of size
 @var{size} and specified by @var{endianness} into @var{bytevector} at indices
 @var{k}, @dots{}, @var{k} + @var{size} - 1.
 
@@ -211,7 +211,7 @@ must be an exact integer object in the interval @math{{-2 ^ 15, ..., 2 ^ 15 - 1}
 These retrieve and set two-byte representations of numbers at indices @var{k}
 and @var{k} + 1, according to the endianness specified by @var{endianness}.
 The procedures with @code{u16} in their names deal with the unsigned representation;
-those with @code{s16} in their names deal with the two’s-complement representation.
+those with @code{s16} in their names deal with the two's-complement representation.
 
 The procedures with @code{native} in their names employ the native endianness,
 and work only at aligned indices: @var{k} must be a multiple of 2.
@@ -238,7 +238,7 @@ must be an exact integer object in the interval @math{{-2 ^ 31, ..., 2 ^ 32 - 1}
 These retrieve and set two-byte representations of numbers at indices @var{k}
 and @var{k} + 3, according to the endianness specified by @var{endianness}.
 The procedures with @code{u32} in their names deal with the unsigned representation;
-those with @code{s32} in their names deal with the two’s-complement representation.
+those with @code{s32} in their names deal with the two's-complement representation.
 
 The procedures with @code{native} in their names employ the native endianness,
 and work only at aligned indices: @var{k} must be a multiple of 4.
@@ -265,7 +265,7 @@ must be an exact integer object in the interval @math{{-2 ^ 63, ..., 2 ^ 64 - 1}
 These retrieve and set two-byte representations of numbers at indices @var{k}
 and @var{k} + 7, according to the endianness specified by @var{endianness}.
 The procedures with @code{u64} in their names deal with the unsigned representation;
-those with @code{s64} in their names deal with the two’s-complement representation.
+those with @code{s64} in their names deal with the two's-complement representation.
 
 The procedures with @code{native} in their names employ the native endianness,
 and work only at aligned indices: @var{k} must be a multiple of 8.

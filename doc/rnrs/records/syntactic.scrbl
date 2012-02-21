@@ -314,9 +314,9 @@ The following example uses the @code{record?} procedure from the
                    ((n x y) (color->rgb c)))))
   (fields (mutable rgb cpoint-rgb cpoint-rgb-set!)))
 }
-@snipet{(define (color->rgb c) (cons ’rgb c))}
+@snipet{(define (color->rgb c) (cons 'rgb c))}
 @snipet{(define p1 (make-point 1 2))}
-@snipet{(define p2 (make-cpoint 3 4 ’red))}
+@snipet{(define p2 (make-cpoint 3 4 'red))}
 
 @snipet[=> #t]{(point? p1)}
 @snipet[=> #t]{(point? p2)}
@@ -374,7 +374,7 @@ The following example uses the @code{record?} procedure from the
   (parent cpoint)
   (protocol (lambda (n)
                  (lambda (x y t)
-                   (let ((r ((n x y ’red) t)))
+                   (let ((r ((n x y 'red) t)))
                      (set! *ex3-instance* r)
                      r))))
   (fields  (mutable thickness))

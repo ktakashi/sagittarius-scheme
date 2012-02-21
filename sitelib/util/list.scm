@@ -2,7 +2,7 @@
 ;;;
 ;;; list.scm - list utility
 ;;;  
-;;;   Copyright (c) 2000-2011  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -34,8 +34,7 @@
 	    for-each-with-index
 	    map-with-index
 	    slices
-	    cond-list
-	    dolist)
+	    cond-list)
     (import (rnrs)
 	    (core)
 	    (sagittarius)
@@ -123,16 +122,4 @@
 	      (r (cond-list . rest)))
 	 (if tmp (cons (begin . expr) r) r)))
       ))
-
-  (define-syntax dolist
-    (syntax-rules ()
-      [(_ (var lis res) . body)
-       (begin (for-each (lambda (var) . body) lis)
-	      (let ((var '())) res))      ;bound var for CL compatibility
-       ]
-      [(_ (var lis) . body)
-       (begin (for-each (lambda (var) . body) lis) '())]
-      [(_ . other)
-       (syntax-error "malformed dolist" (dolist . other))]))
-
 )

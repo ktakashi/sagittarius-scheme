@@ -1,6 +1,6 @@
 (library (clos core)
     (export slot-ref slot-set!
-	    make initialize add-method
+	    make initialize add-method remove-method
 	    ;; <class>
 	    class-of
 	    class-direct-supers
@@ -39,7 +39,6 @@
 	    ;; builtin generic
 	    write-object allocate-instance compute-applicable-methods
 	    ;; helper
-	    make-class make-method make-generic
 	    initialize-direct-slots is-a?
 	    ;; helper generics
 	    compute-cpl

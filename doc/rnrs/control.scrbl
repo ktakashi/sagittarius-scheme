@@ -57,7 +57,7 @@ A @var{step} may be omitted, in which case the effect is the same as if
   (vector-set! vec i i))}
 
 @codeblock[=> 25]{
-(let ((x ’(1 3 5 7 9)))
+(let ((x '(1 3 5 7 9)))
   (do ((x x (cdr x))
         (sum 0 (+ sum (car x))))
        ((null? x) sum)))

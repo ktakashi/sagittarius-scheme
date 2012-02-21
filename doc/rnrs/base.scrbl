@@ -1041,7 +1041,7 @@ also in a tail context.
 @define[Function]{@name{call/cc} @args{proc}}
 @desc{[R6RS] @var{Proc} should accept one argument. The procedure 
 @code{call-with-current-continuation} (which is the same as the procedure
-@code{call/cc}) packages the current continuation as an “escape procedure” and
+@code{call/cc}) packages the current continuation as an "escape procedure" and
 passes it as an argument to @var{proc}. The escape procedure is a Scheme procedure
 that, if it is later called, will abandon whatever continuation is in effect a
 that later time and will instead reinstate the continuation that was in effect
@@ -1097,7 +1097,7 @@ by invoking the procedure named by @var{variable}.
 @define[Syntax]{@name{quasiquote} @args{qq-template}}
 @define["Auxiliary Syntax"]{@name{unquote} @args{qq-template}}
 @define["Auxiliary Syntax"]{@name{unquote-splicing} @args{qq-template}}
-@desc{[R6RS] “Quasiquote” expressions is useful for constructing a list or
+@desc{[R6RS] "Quasiquote" expressions is useful for constructing a list or
 vector structure when some but not all of the desired structure is known in
 advance.
 
@@ -1108,12 +1108,12 @@ If no @code{unquote} or @code{unquote-splicing} forms appear within the
 is equivalent to the result of evaluating @code{(quote @var{qq-template})}.
 
 If an @code{(unquote @var{expression} @dots{})} form appears inside a @var{qq-template},
-however, the expressions are evaluated @code{(“unquoted”)} and their results are
+however, the expressions are evaluated @code{("unquoted")} and their results are
 inserted into the structure instead of the @code{unquote} form.
 
 If an @code{(unquote-splicing @var{expression} @dots{})} form appears inside a
 @var{qq-template}, then the expressions must evaluate to lists; the opening and
-closing parentheses of the lists are then “stripped away” and the elements of
+closing parentheses of the lists are then "stripped away" and the elements of
 the lists are inserted in place of the @code{unquote-splicing} form.
 
 Any @code{unquote-splicing} or multi-operand unquote form must appear only within
@@ -1140,7 +1140,7 @@ case the forms within their bodies must be expressions.
 Each @var{keyword} is an identifier, and each @var{expression} is an expression
 that evaluates, at macro-expansion time, to a transformer. Transformers may be
 created by @code{syntax-rules} or @code{identifier-syntax} or by one of the other
-mechanisms described in library chapter on @secref["rnrs.syntax-case.6"]{“syntax-case”}.
+mechanisms described in library chapter on @secref["rnrs.syntax-case.6"]{"syntax-case"}.
 It is a syntax violation for @var{keyword} to appear more than once in the list
 of keywords being bound.
 
@@ -1158,7 +1158,7 @@ are the @var{keywords}, bound to the specified transformers. Each binding of a
 Each @var{keyword} is an identifier, and each @var{expression} is an expression
 that evaluates, at macro-expansion time, to a transformer. Transformers may be
 created by @code{syntax-rules} or @code{identifier-syntax} or by one of the other
-mechanisms described in library chapter on @secref["rnrs.syntax-case.6"]{“syntax-case”}.
+mechanisms described in library chapter on @secref["rnrs.syntax-case.6"]{"syntax-case"}.
 It is a syntax violation for @var{keyword} to appear more than once in the list
 of keywords being bound.
 
@@ -1201,7 +1201,7 @@ constant, or one of the following.
 @item{#(pattern @dots{} pattern ellipsis pattern @dots{})}
 ]
 
-An @var{ellipsis} is the identifier @code{“@dots{}”} (three periods).
+An @var{ellipsis} is the identifier @code{"@dots{}"} (three periods).
 
 A @var{template} is a pattern variable, an identifier that is not a pattern
 variable, a pattern datum, or one of the following.
@@ -1209,7 +1209,7 @@ variable, a pattern datum, or one of the following.
 @itemlist[
 @item{(subtemplate @dots{})}
 @item{(subtemplate @dots{} . template)}
-@item{#(subtemplate …)}
+@item{#(subtemplate @dots{})}
 ]
 
 A @var{subtemplate} is a @var{template} followed by zero or more ellipses.

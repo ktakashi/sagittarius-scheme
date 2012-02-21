@@ -82,6 +82,10 @@
 
   (define-syntax dolist
     (syntax-rules ()
+      ((_ (var lis res) . body)
+       (begin (for-each (lambda (var) . body) lis)
+	      (let ((var '())) res))      ;bound var for CL compatibility
+       )
       ((_ (var lis) . body)
        (begin (for-each (lambda (var) . body) lis) '()))
       ((_ . other)

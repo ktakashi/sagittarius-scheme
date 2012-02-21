@@ -162,10 +162,10 @@ procedure within the loop body.
 	   (lambda (break)
 	     (let f () e ... (f))))))])))
 
-(let ((n 3) (ls ’()))
+(let ((n 3) (ls '()))
   (loop
     (if (= n 0) (break ls))
-    (set! ls (cons ’a ls))
+    (set! ls (cons 'a ls))
     (set! n (- n 1)))) 
 }
 }

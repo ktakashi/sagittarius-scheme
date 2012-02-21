@@ -160,7 +160,7 @@ The following table explains predefined reader macros.
  @td{Dispatch macro character.}}
 }
 
-@table[:title "Sub character macro of '#'"]{
+@table[:title "Sub characters of '#' reader macro"]{
 @tr{@th{Sub character} @th{Explanation}}
 @tr{@td{#\'}
  @td{Reads a next expression and returns @code{(syntax @var{expr})}.}}

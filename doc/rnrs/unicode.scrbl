@@ -8,8 +8,8 @@ provide access to some aspects of the Unicode semantics for characters and strin
 category information, case-independent comparisons, case mappings, and normalization.
 
 Some of the procedures that operate on characters or strings ignore the difference
-between upper case and lower case. These procedures have “-ci” (for “case insensitive”)
-embedded in their names.
+between upper case and lower case. These procedures have "-ci"
+(for "case insensitive") embedded in their names.
 }
 
 @subsubsection{Characters}
@@ -54,10 +54,10 @@ the case-folded versions of the characters.
 whitespace, upper-case, lower-case, or title-case characters, respectively;
 otherwise they return #f.
 
-A character is alphabetic if it has the Unicode “Alphabetic” property. A character
-is numeric if it has the Unicode “Numeric” property. A character is whitespace if
-has the Unicode “White_Space” property. A character is upper case if it has the
-Unicode “Uppercase” property, lower case if it has the “Lowercase” property, and
+A character is alphabetic if it has the Unicode "Alphabetic" property. A character
+is numeric if it has the Unicode "Numeric" property. A character is whitespace if
+has the Unicode "White_Space" property. A character is upper case if it has the
+Unicode "Uppercase" property, lower case if it has the "Lowercase" property, and
 title case if it is in the Lt general category.
 }
 
@@ -74,7 +74,7 @@ Sc, Sm, Sk, So, Zs, Zp, Zl, Cc, Cf, Cs, Co, or Cn.
 @define[Function]{@name{string-titlecase} @args{string}}
 @define[Function]{@name{string-foldcase} @args{string}}
 @desc{[R6RS] These procedures take a string argument and return a string result.
-They are defined in terms of Unicode’s locale-independent case mappings from
+They are defined in terms of Unicode's locale-independent case mappings from
 Unicode scalar-value sequences to scalar-value sequences. In particular, the
 length of the result string can be different from the length of the input string.
 When the specified result is equal in the sense of @code{string=?} to the argument,

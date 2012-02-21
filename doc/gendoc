@@ -753,7 +753,13 @@
 						    (current-date) "~4"))))
 					   )))))
 	    (when debug (pp document))
-	    (srl:sxml->html document output)))
+	    ;; for some reason, SXML does not accept doctype so write it
+	    ;; manually
+	    (call-with-output-file output
+	      (lambda (out)
+		(display "<!DOCTYPE html>" out)
+		(newline out)
+		(srl:sxml->html document out)))))
 	))
     )
 )

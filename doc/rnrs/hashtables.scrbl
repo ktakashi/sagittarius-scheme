@@ -6,7 +6,7 @@ The @code{(rnrs hashtables (6))}library provides a set of operations on hashtabl
 A @var{hashtable} is a data structure that associates keys with values. Any object
 can be used as a key, provided a @var{hash function} and a suitable
 @var{equivalence function} is available. A hash function is a procedure that maps
-keys to exact integer objects. It is the programmer’s responsibility to ensure 
+keys to exact integer objects. It is the programmer's responsibility to ensure 
 that the hash function is compatible with the equivalence function, which is a
 procedure that accepts two keys and returns true if they are equivalent and #f
 otherwise. Standard hashtables for arbitrary objects based on the @code{eq?} and
