@@ -21,7 +21,7 @@ assigning the value of @var{expression} to it.
 @snipet{(define add3 (lambda (x) (+ x 3)))}
 @snipet[=> 6]{(add3 3)}
 @snipet{(define first car)}
-@snipet[=> 1]{(first ’(1 2))}
+@snipet[=> 1]{(first '(1 2))}
 
 The second form of @code{define} is equivalent to
 
