@@ -22,10 +22,12 @@ This section does not describe CLOS itself.
 
 @var{Slots} must be following structure:
 
+@codeblock{
 @var{slots} ::= (@var{slot} ...)
 @var{slot}  ::= (@var{slot-name} @var{specifiers}*)
 @var{specifiers} ::= @code{:init-keyword} @var{keyword} 
 		 | @code{:init-value} @var{value}
+}
 
 Defines a new class.
 
@@ -44,9 +46,11 @@ Creates a new generic function.
 
 @var{Specifiers} must be following structure:
 
+@codeblock{
 @var{specifiers} ::= (@var{spec} ... @var{rest})
 @var{spec} ::= (@var{argument-name} @var{class}) | (@var{argument-name})
 @var{rest} ::= '() | symbol
+}
 
 Adds defined method to @var{name} generic. If the generic does not exist, this
 will create a new generic function implicitly.
