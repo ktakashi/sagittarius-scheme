@@ -352,7 +352,7 @@ custom codecs.
 Sagittarius has keyword objects which starts with @code{':'}. It has almost the
 same feature as symbol, however it can not be bounded with any values. It can be
 used when variable is bounded by @code{define-with-key} (see
-@secref["sagittarius.control"]{@code{(sagittarius control)}}library).
+@secref["lib.sagittarius.control"]{@code{(sagittarius control)}}library).
 
 @define[Function]{@name{make-keyword} @args{symbol}}
 @desc{Creates a new keyword from @var{symbol}.}

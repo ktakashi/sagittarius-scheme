@@ -109,7 +109,7 @@
   
   ;; over write
   (define-scribble-plugin (secref t . args)
-    `(a (@ (href ,t)) ,@(map scribble->sxml-inner args)))
+    `(a (@ (href ,(string-append "#" t))) ,@(map scribble->sxml-inner args)))
 
   (define-scribble-plugin (codeblock . args)
     (let* ((e (if (eq? (car args) '=>) (format "~a" (cadr args)) #f))
