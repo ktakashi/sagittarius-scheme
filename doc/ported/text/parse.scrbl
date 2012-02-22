@@ -30,14 +30,15 @@ That denotes a set of characters. If a symbol @code{*eof*} is included, the EOF
 condition is also included.  Without @code{*eof*}, the EOF condition is regarded
 as an error.
 
-@define[Functions]{@name{assert-curr-char} @{char-list string :optional port}}
-@desc{Reads a character from the @var{port} and looks it up in the @var{char-list}
-of expected characters. If the read character was found among the expected, it is
-returned. Otherwise, the procedure writes a nasty message using @var{string} as a
-comment, and quits.
+@define[Functions]{@name{assert-curr-char}
+ @args{char-list string :optional port}}
+@desc{Reads a character from the @var{port} and looks it up in the
+@var{char-list} of expected characters. If the read character was found among
+the expected, it is returned. Otherwise, the procedure writes a nasty message
+using @var{string} as a comment, and quits.
 }
 
-@define[Functions]{@name{skip-until} @{char-list/number :optional port}}
+@define[Functions]{@name{skip-until} @args{char-list/number :optional port}}
 @desc{@var{Char-list/number} must be either char-list or number.
 
 If it is a number; skips the specified number of characters from the port and
@@ -49,13 +50,13 @@ characters are specified as the char-list. This list may include EOF, which is
 to be coded as a symbol @code{*eof*}.
 }
 
-@define[Functions]{@name{skip-while} @{char-list :optional port}}
+@define[Functions]{@name{skip-while} @args{char-list :optional port}}
 @desc{Advances the @var{port} to the first character that is not a member of the
 @var{char-list} -- or till the EOF, whichever occurs sooner. This character or
 the EOF object is returned. This character is left on the stream.
 }
 
-@define[Functions]{@name{peek-next-char} @{:optional port}}
+@define[Functions]{@name{peek-next-char} @args{:optional port}}
 @desc{Advances to the next character in the port and peeks at it. This function
 is useful when parsing LR(1)-type languages.
 }

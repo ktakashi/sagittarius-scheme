@@ -13,7 +13,7 @@ it only provides the highest level APIs.
 
 This condition is raised when zlib process is finished unsuccessfully. You can
 obtain the cause z-stream with the @code{condition-zlib-stream} procedure and
-get the detail message with the @{zlib-error-message} procedure. When error
+get the detail message with the @code{zlib-error-message} procedure. When error
 occurred, however, it is raised with @code{message-condition} and it has the
 error message with. So you can simply get it with @code{condition-message}
 procedure.

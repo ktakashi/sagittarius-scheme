@@ -842,7 +842,7 @@ is given, then all elements of the string are initialized to @var{char}, otherwi
 the contents of the string are @code{#\space}.
 
 These are equivalence:
-@snipet[= @code{(make-string 10 #\space)}]{(make-string 10)}
+@snipet[=> @code{(make-string 10 #\space)}]{(make-string 10)}
 }
 
 @define[Function]{@name{string} @args{char @dots{}}}

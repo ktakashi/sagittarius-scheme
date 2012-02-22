@@ -127,7 +127,7 @@ Detail options are given with option @code{"-h"}.}
 
 When a Scheme file is given to @code{sash}, it bounds an internal variable to
 list of the remaining command-line arguments which you can get with the 
-code{command-line} procedure, then loads the Scheme program. If the first line
+@code{command-line} procedure, then loads the Scheme program. If the first line
 of scheme-file begins with @code{"#!"}, then sash ignores the entire line. This 
 is useful to write a Scheme program that works as an executable script in
 unix-like systems.

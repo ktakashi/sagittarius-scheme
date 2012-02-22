@@ -818,7 +818,7 @@ it must be a procedure and should behave as specified in the description of
 }
 
 @define[Function]{@name{make-custom-textual-input/output-port}
- @args id read! write! get-position set-position! close}}
+ @args{id read! write! get-position set-position! close}}
 @desc{[R6RS] Returns a newly created textual input/output port whose byte source
 and sink are arbitrary algorithms represented by the @var{read!} and @var{write!}
 procedures. @var{Id} must be a string naming the new port, provided for

@@ -24,7 +24,7 @@ message on the standard error. I am not sure if it should raise an error or not,
 so this behaviour might be changed in future.
 }
 
-@define[Syntax]{@name{receive} @{formals expression body}}
+@define[Syntax]{@name{receive} @args{formals expression body}}
 @desc{[SRFI-8] @var{formals} and @var{body} the same as @code{lambda}.
 @var{Expression} must be an expression.
 
@@ -61,7 +61,8 @@ Possible @var{feature-identifier}s are @code{sagittarius} and
 @subsubsection{Macro transformer}
 
 @define[Function]{@name{er-macro-transformer} @args{proc}}
-@desc{@var{Proc} must take 3 arguments, @var{form}, @var{rename} and @{compare}.
+@desc{@var{Proc} must take 3 arguments, @var{form}, @var{rename} and
+@var{compare}.
 
 @dl-list[
 @dl-item[@var{form}]{The input form of this macro. It is mere s-expression.}
@@ -80,7 +81,7 @@ you can write both hygine and non-hygine macro with it. For example:
      (let ((body (cdr form)))
        `(,(rename 'call/cc)
 	 (,(rename 'lambda) (break)
-	  (,(rename 'let) ,(rename 'f) () ,@body (,(rename 'f)))))))))
+	  (,(rename 'let) ,(rename 'f) () ,@atmark{}body (,(rename 'f)))))))))
 
 (let ((n 3) (ls '()))
   (loop
@@ -89,8 +90,8 @@ you can write both hygine and non-hygine macro with it. For example:
     (set! n (- n 1))))
 }
 This example has the same functionality as the example written in
-@code{datum->syntax} description. The basic of @{er-macro-transformer} is the
-opposite way of the @code{syntax-case}. The @code{syntax-case} always makes
+@code{datum->syntax} description. The basic of @code{er-macro-transformer} is
+the opposite way of the @code{syntax-case}. The @code{syntax-case} always makes
 macro hygine, however the @code{er-macro-transformer} can make macro hygine.
 Moreover, if you do not use @var{rename}, it always makes it non-hygine.
 
@@ -152,7 +153,7 @@ If optional argument @var{path} is given, the @code{current-directory} sets
 current working directory to @var{path} and returns unspecified value.
 }
 
-@define[Function]{@name{set-current-directory} @{path}}
+@define[Function]{@name{set-current-directory} @args{path}}
 @desc{Sets current working directory to @var{path}.}
 
 @subsubsection{Hashtables}
@@ -253,8 +254,8 @@ are written and a string @code{" @dots{}"} is attached after it.
 
 @snipet[=> "|oops|"       ]{(format #f "|~a|" "oops")}
 @snipet[=> "|oops      |" ]{(format #f "|~10a|" "oops")}
-@snipet[=> "|      oops|" ]{(format #f "|~10@a|" "oops")}
-@snipet[=> "|******oops|" ]{(format #f "|~10,,,'*@a|" "oops")}
+@snipet[=> "|      oops|" ]{(format #f "|~10@atmark{}a|" "oops")}
+@snipet[=> "|******oops|" ]{(format #f "|~10,,,'*@atmatk{}a|" "oops")}
 @snipet[=> "|abc def gh|" ]{(format #f "|~,,,,10a|" '(abc def ghi jkl))}
 @snipet[=> "|abc de ...|" ]{(format #f "|~,,,,10:a|" '(abc def ghi jkl))}
 }
@@ -264,8 +265,8 @@ semantics of parameters and flags are the same as @b{~A} directive.
 
 @snipet[=> "|\"oops\"|"	   ]{(format #f "|~s|" "oops")}
 @snipet[=> "|\"oops\"    |"]{(format #f "|~10s|" "oops")}
-@snipet[=> "|    \"oops\"|"]{(format #f "|~10@s|" "oops")}
-@snipet[=> "|****\"oops\"|"]{(format #f "|~10,,,'*@s|" "oops")}
+@snipet[=> "|    \"oops\"|"]{(format #f "|~10@atmark{}s|" "oops")}
+@snipet[=> "|****\"oops\"|"]{(format #f "|~10,,,'*@atmatk{}s|" "oops")}
 }
 
 @dl-item[@string{~@var{mincol},@var{padchar},@var{commachar},@var{interval}@b{D}}]{

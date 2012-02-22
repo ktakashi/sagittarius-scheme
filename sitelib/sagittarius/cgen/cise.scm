@@ -138,7 +138,7 @@
 
   (define (cise-context-copy :optional (context (cise-context)))
     (make <cise-context>
-      :macros (hashtable-copy (slot-ref context 'macro) #t)
+      :macros (hashtable-copy (slot-ref context 'macros) #t)
       :static-decls (slot-ref context 'static-decls)))
 
   (define-syntax define-cise-macro

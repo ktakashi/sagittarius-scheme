@@ -242,8 +242,7 @@ ADD_CUSTOM_TARGET(test
 ADD_CUSTOM_TARGET(doc
   COMMAND ${PROJECT_SOURCE_DIR}/build/sash
   -L${PROJECT_SOURCE_DIR}/lib -L${PROJECT_SOURCE_DIR}/sitelib
-  -L${PROJECT_SOURCE_DIR}/ext/time -L${PROJECT_SOURCE_DIR}/ext/regex
-  -D${PROJECT_SOURCE_DIR}/build 
+  -L${PROJECT_SOURCE_DIR}/ext/time -D${PROJECT_SOURCE_DIR}/build 
   gendoc --output=sagittarius-ref.html
   --style=lib/style.css --javascript=lib/tools.js sagittarius-ref.scrbl
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/doc)

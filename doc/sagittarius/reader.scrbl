@@ -150,10 +150,10 @@ The following table explains predefined reader macros.
 @tr{@td{#\`} @td{#t}
  @td{Reads a next expression and returns @code{(quasiquote @var{expr})}}}
 @tr{@td{#\,} @td{#t}
- @td{Check next character if it is @code{@atmark} and reads a next expression.
+ @td{Check next character if it is @code{@atmark{}} and reads a next expression.
 
      Returns @code{(unquote-splicing @var{expr})} if next character was
-     @code{@atmark}, otherwise @code{(unquote @var{expr})}}}
+     @code{@atmark{}}, otherwise @code{(unquote @var{expr})}}}
 @tr{@td{#\:} @td{#f}
  @td{Only compatible mode. Reads a next expression and returns a keyword.}}
 @tr{@td{#\#} @td{#t(R6RS mode)}
@@ -167,10 +167,10 @@ The following table explains predefined reader macros.
 @tr{@td{#\`}
  @td{Reads a next expression and returns @code{(quasisyntax @var{expr})}}}
 @tr{@td{#\,}
- @td{Check next character if it is @code{@atmark} and reads a next expression.
+ @td{Check next character if it is @code{@atmark{}} and reads a next expression.
 
      Returns @code{(unsyntax-splicing @var{expr})} if next character was
-     @code{@atmark}, otherwise @code{(unsyntax @var{expr})}}}
+     @code{@atmark{}}, otherwise @code{(unsyntax @var{expr})}}}
 @tr{@td{#\!}
  @td{Reads next expression and set flags described below.
   @dl-list{

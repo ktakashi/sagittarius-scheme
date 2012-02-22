@@ -36,7 +36,7 @@
 	    slices
 	    cond-list)
     (import (rnrs)
-	    (core)
+	    (core base)
 	    (sagittarius)
 	    (srfi :1))
   (define (intersperse item lis)
@@ -65,7 +65,9 @@
     (if (null? lst2)
         (if (list? lst1)
             (for-each-1 0 proc lst1)
-            (assertion-violation 'for-each (wrong-type-argument-message "proper list" lst1 2) (cons* proc lst1 lst2)))
+            (assertion-violation 'for-each
+				 (wrong-type-argument-message
+				  "proper list" lst1 2) (cons* proc lst1 lst2)))
         (cond ((apply list-transpose+ lst1 lst2)
                => (lambda (lst) (for-each-n 0 proc lst))))))
 

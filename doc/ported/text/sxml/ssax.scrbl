@@ -645,7 +645,7 @@ This procedure parses an ExternalID production:
 [11] SystemLiteral ::= ('"' [^"]* '"') | ("'" [^']* "'") 
 [12] PubidLiteral ::=  '"' PubidChar* '"' | "'" (PubidChar - "'")* "'"
 [13] PubidChar ::=  #x20 | #xD | #xA | [a-zA-Z0-9]
-                         | [-'()+,./:=?;!*#@$_%]
+                         | [-'()+,./:=?;!*#@atmark{}$_%]
 }
 This procedure is supposed to be called when an ExternalID is expected;
 that is, the current character must be either #\S or #\P that start
