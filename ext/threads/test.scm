@@ -10,8 +10,30 @@
     (import (srfi :64 testing)
 	    (rnrs)
 	    (core base)
+	    (sagittarius)
 	    (sagittarius threads)
 	    (sagittarius time))
+  ;; because of internal define and macro problem...
+  (define (mt-fib n)
+    (let ((threads (make-vector n)))
+      (let loop ((i 0))
+	(unless (= i n)
+	  (vector-set! 
+	   threads i
+	   (make-thread
+	    (case i
+	      ((0) (lambda () 1))
+	      ((1) (lambda () 1))
+	      (else
+	       (lambda ()
+		 (+ (thread-join! (vector-ref threads (- i 1)))
+		    (thread-join! (vector-ref threads (- i 2)))))))))
+	  (loop (+ i 1))))
+      (let loop ((i 0))
+	(unless (= i n)
+	  (thread-start! (vector-ref threads (- n i 1)))
+	  (loop (+ i 1))))
+      (thread-join! (vector-ref threads (- n 1)))))
 
   (define (run-threads-test)
     ;; most test cases are from Gauche 
@@ -34,26 +56,7 @@
 		     (thread-join! t)))))
 
     ;; calculate fibonacchi in awful way
-    (print "mt-fib")
-    (let ()
-      (define (mt-fib n)
-	(let ((threads (make-vector n)))
-	  (let loop ((i 0))
-	    (unless (= i n)
-	      (vector-set! threads i
-			   (make-thread
-			    (case i
-			      ((0) (lambda () 1))
-			      ((1) (lambda () 1))
-			      (else (lambda () (+ (thread-join! (vector-ref threads (- i 1)))
-						  (thread-join! (vector-ref threads (- i 2)))))))))
-	      (loop (+ i 1))))
-	  (let loop ((i 0))
-	    (unless (= i n)
-	      (thread-start! (vector-ref threads (- n i 1)))
-	      (loop (+ i 1))))
-	  (thread-join! (vector-ref threads (- n 1)))))
-      (test-equal "thread-join!" 1346269 (mt-fib 31)))
+    (test-equal "thread-join!" 1346269 (mt-fib 31))
     (let ((t1 (make-thread (lambda ()
 			     (let loop ()
 			       (sys-nanosleep #e5e8)

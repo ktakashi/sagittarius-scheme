@@ -65,7 +65,7 @@
 (run-time-test)
 (run-socket-test)
 ;; somehow it sometimes won't back.
-;;(run-threads-test)
+(run-threads-test)
 (run-regex-test)
 (run-ffi-test)
 (run-crypto-test)
