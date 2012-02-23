@@ -121,7 +121,11 @@ SgObject Sg_ThreadStart(SgVM *vm)
   } else {
     ASSERT(vm->thunk);
     vm->threadState = SG_VM_RUNNABLE;
-    Sg_InternalThreadStart(&vm->thread, (SgThreadEntryFunc *)thread_entry, vm);
+    if (!Sg_InternalThreadStart(&vm->thread, (SgThreadEntryFunc *)thread_entry,
+				vm)) {
+      vm->threadState = SG_VM_NEW;
+      err_state = TRUE;
+    }
   }
   Sg_UnlockMutex(&vm->vmlock);
   if (err_state) Sg_Error(UC("attempt to start an already-started thread: %S"), vm);

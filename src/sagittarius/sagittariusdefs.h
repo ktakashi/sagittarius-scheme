@@ -163,16 +163,9 @@
 /* TODO 64 bits */
 # ifdef _MSC_VER
 #  define GC_WIN32_THREADS
+# else
+#  define GC_THREADS
 # endif	 /* _MSC_VER */
-/* since we use gcmt-dll for msvc we don't need this. */
-/* # if defined(LIBSAGITTARIUS_BODY) */
-/* #  if !defined (GC_DLL) */
-/* #   define GC_DLL */
-/* #  endif */
-/* #  if !defined(GC_BUILD) */
-/* #   define GC_BUILD */
-/* #  endif */
-/* # endif */
 # if defined(HAVE_GC_H)
 #  include <gc.h>
 # elif defined(HAVE_GC_GC_H)

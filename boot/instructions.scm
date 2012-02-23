@@ -222,8 +222,7 @@
 (define-cise-stmt branch-number-test
   ((_ op func)
    `(let ((n (PEEK_OPERAND (PC vm)))
-	  (s (INDEX (SP vm) 0))
-	  (t::int FALSE))
+	  (s (INDEX (SP vm) 0)))
       (if (and (SG_INTP (AC vm)) (SG_INTP s))
 	  (if (,op (cast intptr_t s) (cast intptr_t (AC vm)))
 	      (branch-number-test-helper)

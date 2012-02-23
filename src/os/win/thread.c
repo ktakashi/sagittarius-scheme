@@ -69,14 +69,16 @@ static DWORD ExceptionFilter(EXCEPTION_POINTERS *ep, DWORD *ei)
   return EXCEPTION_EXECUTE_HANDLER;
 }
 
-void Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry, void *param)
+int Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry,
+			   void *param)
 {
   DWORD ei[] = { 0, 0, 0 };
   __try {
     thread->thread = (HANDLE)_beginthreadex(NULL, 0, entry, param, 0, NULL);
   } __except (ExceptionFilter(GetExceptionInformation(), ei)) {
-    /* do nothing... */
+    return FALSE;
   }
+  return TRUE;
 }
 
 void Sg_InternalThreadYield()

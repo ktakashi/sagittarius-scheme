@@ -173,6 +173,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->escapeData[1] = NULL;
   v->defaultEscapeHandler = SG_FALSE;
   v->cache = SG_NIL;
+  v->cstack = NULL;
 
   v->dynamicWinders = SG_NIL;
   v->parentExHandler = SG_FALSE;
@@ -193,7 +194,6 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->currentLibrary = proto ? proto->currentLibrary: SG_UNDEF;
   v->loadPath = proto ? proto->loadPath: SG_NIL;
   v->dynamicLoadPath = proto ? proto->dynamicLoadPath: SG_NIL;
-  v->cstack = proto ? proto->cstack : NULL;
   v->flags = proto? proto->flags : 0;
   v->currentInputPort = proto 
     ? proto->currentInputPort
@@ -215,8 +215,8 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 				  : Sg_MakeNativeTranscoder());
   v->logPort = proto ? proto->logPort : v->currentErrorPort;
   /* macro env */
-  v->usageEnv = proto ? proto->usageEnv : SG_FALSE;
-  v->macroEnv = proto ? proto->macroEnv : SG_FALSE;
+  v->usageEnv = SG_FALSE;
+  v->macroEnv = SG_FALSE;
 
   /* thread, mutex, etc */
   SG_INTERNAL_THREAD_INIT(&v->thread);

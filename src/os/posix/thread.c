@@ -72,10 +72,17 @@ void Sg_DestroyMutex(SgInternalMutex *mutex)
   pthread_mutex_destroy(&mutex->mutex);
 }
 
-void Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry, void *param)
+int Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry, void *param)
 {
-  pthread_create(&thread->thread, NULL, entry, param);
-  pthread_detach(thread->thread);
+  int ok = TRUE;
+  pthread_attr_t thattr;
+  pthread_attr_init(&thattr);
+  pthread_attr_setdetachstate(&thattr, PTHREAD_CREATE_DETACHED);
+  if (pthread_create(&thread->thread, &thattr, entry, param) != 0) {
+    ok = FALSE;
+  }
+  pthread_attr_destroy(&thattr);
+  return ok;
 }
 
 void Sg_InternalThreadYield()
