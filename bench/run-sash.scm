@@ -170,3 +170,5 @@
 (time-bench ray 1)
 (time-bench scheme 3000)
 (newline)
+;; since we support srfi-22, to avoid re-run the last test.
+(define (main . x) #f)
