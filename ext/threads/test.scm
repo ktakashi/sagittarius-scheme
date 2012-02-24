@@ -34,6 +34,10 @@
 	  (thread-start! (vector-ref threads (- n i 1)))
 	  (loop (+ i 1))))
       (thread-join! (vector-ref threads (- n 1)))))
+  
+  (define *thr1-val* #f)
+  (define *thr2-val* #f)
+  (define p (make-parameter 3))
 
   (define (run-threads-test)
     ;; most test cases are from Gauche 
@@ -43,7 +47,8 @@
     (test-equal "thread?" '(#t #f) (list (thread? (current-thread))
 					 (thread? 'foo)))
     (test-assert "make-thread" (thread? (make-thread (lambda () #f))))
-    (test-equal "thread-name" 'foo (thread-name (make-thread (lambda () #f) 'foo)))
+    (test-equal "thread-name" 'foo (thread-name (make-thread
+						 (lambda () #f) 'foo)))
     (test-equal "thread-specific" "hello"
 		(begin
 		  (thread-specific-set! (current-thread) "hello")
@@ -52,7 +57,8 @@
     (test-equal "thread-start!" "hello"
 		(call-with-string-output-port
 		 (lambda (p)
-		   (let ((t (thread-start! (make-thread (lambda () (display "hello" p))))))
+		   (let ((t (thread-start! (make-thread 
+					    (lambda () (display "hello" p))))))
 		     (thread-join! t)))))
 
     ;; calculate fibonacchi in awful way
@@ -82,12 +88,14 @@
     ;; thread and error
     (print "thread and error")
     (test-assert "uncaught-exception"
-		 (let ((t (make-thread (lambda () (assertion-violation 'who "foo")))))
+		 (let ((t (make-thread (lambda ()
+					 (assertion-violation 'who "foo")))))
 		   (thread-start! t)
 		   (with-error-handler
 		     (lambda (e)
 		       (and (uncaught-exception? e)
-			    (assertion-violation? (uncaught-exception-reason e))))
+			    (assertion-violation?
+			     (uncaught-exception-reason e))))
 		     (lambda () (thread-join! t)))))
 
     (test-assert "uncaught-exception"
@@ -100,10 +108,11 @@
 		     (lambda () (thread-join! t)))))
 
     (test-assert "uncaught-exception"
-		 (let ((t (make-thread (lambda ()
-					 (with-error-handler
-					   (lambda (e) e)
-					   (lambda () (assertion-violation 'who "foo")))))))
+		 (let ((t (make-thread
+			   (lambda ()
+			     (with-error-handler
+			       (lambda (e) e)
+			       (lambda () (assertion-violation 'who "foo")))))))
 		   (thread-start! t)
 		   (with-error-handler
 		     (lambda (e) e)
@@ -241,25 +250,21 @@
            (reverse log))))
 
     ;; thread local parameters
-    #;(let ()
-      (define *thr1-val* #f)
-      (define *thr2-val* #f)
-      (define p (make-parameter 3))
-      (test-equal "check locality of parameters"
-		  '(3 4 5)
-		  (let ((th1 (make-thread
-			      (lambda ()
-				(p 4)
-				(set! *thr1-val* (p)))))
-			(th2 (make-thread
-			      (lambda ()
-				(p 5)
-				(set! *thr2-val* (p))))))
-		    (thread-start! th1)
-		    (thread-start! th2)
-		    (thread-join! th1)
-		    (thread-join! th2)
-		    (list (p) *thr1-val* *thr2-val*))))
+    (test-equal "check locality of parameters"
+		'(3 4 5)
+		(let ((th1 (make-thread
+			    (lambda ()
+			      (p 4)
+			      (set! *thr1-val* (p)))))
+		      (th2 (make-thread
+			    (lambda ()
+			      (p 5)
+			      (set! *thr2-val* (p))))))
+		  (thread-start! th1)
+		  (thread-start! th2)
+		  (thread-join! th1)
+		  (thread-join! th2)
+		  (list (p) *thr1-val* *thr2-val*)))
       
     )
 )

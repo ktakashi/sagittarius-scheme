@@ -48,6 +48,72 @@ static wchar_t* utf32ToUtf16(const SgChar *s)
 
 SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
 {
+  HANDLE pipe0[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
+  HANDLE pipe1[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
+  HANDLE pipe2[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
+  const SgChar *sysfunc = NULL;
+  SgString *command = SG_STRING(Sg_StringAppend(SG_LIST3(name,
+							 SG_MAKE_STRING(" "),
+							 commandLine)))
+  SECURITY_ATTRIBUTES sa;
+  STARTUPINFO startup;
+  PROCESS_INFORMATION process;
+  SgFile *in, *out, *err;
+
+  sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+  sa.lpSecurityDescriptor = NULL;
+  sa.bInheritHandle = TRUE;
+  sysfunc = UC("CreatePipe");
+  if (CreatePipe(&pipe0[0], &pipe0[1], &sa, 0) == 0) goto pipe_fail;
+  if (CreatePipe(&pipe1[0], &pipe1[1], &sa, 0) == 0) goto pipe_fail;
+  if (CreatePipe(&pipe2[0], &pipe2[1], &sa, 0) == 0) goto pipe_fail;
+
+  memset(&startup, 0, sizeof(STARTUPINFO));
+  startup.cb = sizeof(STARTUPINFO);
+  startup.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
+  startup.wShowWindow = SW_HIDE;
+  startup.hStdInput = pipe0[0];
+  startup.hStdOutput = pipe1[1];
+  startup.hStdError = pipe2[1];
+  sysfunc = UC("CreateProcess");
+
+  if (!CreateProcessW(NULL,
+		      utf32ToUtf16(SG_STRING_VALUE(command)),
+		      NULL, NULL,
+		      TRUE,
+		      CREATE_SUSPENDED, /* process must be invoked manually */
+		      NULL, NULL,
+		      &startup,
+		      &process)  == 0) goto create_fail;
+  CloseHandle(pipe0[0]);
+  CloseHandle(pipe1[1]);
+  CloseHandle(pipe2[1]);
+  /* CloseHandle(process.hThread); */
+  p->handle = (uintptr_t)Sg_Cons(SG_OBJ(process.hThread),
+				 SG_OBJ(process.hProcess));
+  in  = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe0[1]));
+  out = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe1[0]));
+  err = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe2[0]))
+  p->in = Sg_MakeFileBinaryInputPort(in, SG_BUFMODE_BLOCK);
+  p->out = Sg_MakeFileBinaryInputPort(out, SG_BUFMODE_BLOCK);
+  p->err = Sg_MakeFileBinaryInputPort(err, SG_BUFMODE_BLOCK);
+  return p;
+ pipe_fail:
+ create_fail:
+  {
+    SgObject msg = Sg_GetLastErrorMessage();
+    if (pipe0[0] != INVALID_HANDLE_VALUE) CloseHandle(pipe0[0]);
+    if (pipe0[1] != INVALID_HANDLE_VALUE) CloseHandle(pipe0[1]);
+    if (pipe1[0] != INVALID_HANDLE_VALUE) CloseHandle(pipe1[0]);
+    if (pipe1[1] != INVALID_HANDLE_VALUE) CloseHandle(pipe1[1]);
+    if (pipe2[0] != INVALID_HANDLE_VALUE) CloseHandle(pipe2[0]);
+    if (pipe2[1] != INVALID_HANDLE_VALUE) CloseHandle(pipe2[1]);
+    Sg_Error(UC("%s() failed. %A"), sysfunc, msg);
+  }
+  return SG_UNDEF;		/* dummy */
+}
+#if 0
+{
   SgProcess *p = make_process(name, commandLine);
   PROCESS_INFORMATION pi;
   STARTUPINFO si;
@@ -109,13 +175,14 @@ SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
   CloseHandle(in_w);
   CloseHandle(out_r);
   */
-  p->in = Sg_MakeFileBinaryInputPort(SG_FILE(Sg_MakeFileFromFD((uintptr_t)si.hStdInput)),
+  p->in = Sg_MakeFileBinaryOutputPort(SG_FILE(Sg_MakeFileFromFD((uintptr_t)si.hStdInput)),
 						SG_BUFMODE_NONE);
-  p->out = Sg_MakeFileBinaryOutputPort(SG_FILE(Sg_MakeFileFromFD((uintptr_t)si.hStdOutput)), SG_BUFMODE_LINE);
-  p->err = Sg_MakeFileBinaryOutputPort(SG_FILE(Sg_MakeFileFromFD((uintptr_t)si.hStdError)), SG_BUFMODE_NONE);
+  p->out = Sg_MakeFileBinaryInputPort(SG_FILE(Sg_MakeFileFromFD((uintptr_t)si.hStdOutput)), SG_BUFMODE_LINE);
+  p->err = Sg_MakeFileBinaryInputPort(SG_FILE(Sg_MakeFileFromFD((uintptr_t)si.hStdError)), SG_BUFMODE_NONE);
   p->handle = (uintptr_t)Sg_Cons(SG_OBJ(pi.hThread), SG_OBJ(pi.hProcess));
   return p;
 }
+#endif
 
 static int process_wait(SgProcess *process)
 {

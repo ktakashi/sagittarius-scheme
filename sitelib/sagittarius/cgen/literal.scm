@@ -350,4 +350,18 @@
 	     (cgen-c-name (slot-ref self 'symbol-name))
 	     (cgen-safe-comment (slot-ref self 'value))))
     (static (self) #f))
+
+  (define-cgen-literal <cgen-scheme-keyword> <keyword>
+    ((keyword-name :init-keyword :keyword-name))
+    (make (value)
+      (make <cgen-scheme-keyword> :value value
+	    :c-name (cgen-allocate-static-datum)
+	    :keyword-name (cgen-literal (keyword->string value))))
+    (pred (self) "SG_KEYWORDP")
+    (init (self)
+      (print "  " (cgen-c-name self)
+	     " = Sg_MakeKeyword(SG_STRING("
+	     (cgen-cexpr (slot-ref self 'keyword-name))
+	     ")); /* " (cgen-safe-comment (slot-ref self 'value)) " */"))
+    (static (self) #f))
 )

@@ -128,7 +128,7 @@ static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   file = Sg_FileName(p);
   if (!SG_FALSEP(file)) {
     Sg_PutcUnsafe(port, ' ');
-    Sg_PutuzUnsafe(port, SG_FILE(file)->name);
+    Sg_Write(file, port, SG_WRITE_DISPLAY);
   }
   transcoder = Sg_PortTranscoder(p);
   if (!SG_FALSEP(transcoder)) {

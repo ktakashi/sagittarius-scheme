@@ -161,6 +161,7 @@
   (define-class <required-arg> (<arg>) ())
   (define-class <optional-arg> (<arg>) ((opt-count :init-keyword :opt-count)))
   (define-class <rest-arg>     (<arg>) ())
+  (define-class <keyword-arg>  (<arg>) ((keyword)))
 
   (define-method write-object ((self <arg>) out)
     (format out "#<~a ~a>" (class-of self) (slot-ref self 'name)))
@@ -169,6 +170,11 @@
     (call-next-method)
     (slot-set! self 'c-name   (get-c-name "" (slot-ref self 'name)))
     (slot-set! self 'scm-name (string-append (slot-ref self 'c-name) "_scm")))
+
+  (define-method initialize ((self <keyword-arg>) initargs)
+    (call-next-method)
+    (slot-set! self 'keyword (cgen-literal (make-keyword 
+					    (slot-ref self'name)))))
 
   (define (get-arg-default arg)
     (cond ((slot-ref arg 'default) => 
@@ -205,15 +211,17 @@
 	    (cgen-unit-toplevel-nodes (cgen-current-unit))))
 
   (define-class <procstub> (<stub>)
-    ((args            :init-value () :init-keyword :args)
-     (num-reqargs     :init-value 0   :init-keyword :num-reqargs)
-     (num-optargs     :init-value 0   :init-keyword :num-optargs)
-     (have-rest-args? :init-value #f  :init-keyword :have-rest-arg?)
-     (return-type     :init-value #f  :init-keyword :return-type)
-     (decls           :init-value ())
-     (stmts           :init-value ())
+    ((args            	:init-value () :init-keyword :args)
+     (keyword-args    	:init-value () :init-keyword :keyword-args)
+     (num-reqargs     	:init-value 0  :init-keyword :num-reqargs)
+     (num-optargs     	:init-value 0  :init-keyword :num-optargs)
+     (have-rest-args? 	:init-value #f :init-keyword :have-rest-arg?)
+     (allow-other-keys? :init-value #f :init-keyword :allow-other-keys?)
+     (return-type     	:init-value #f :init-keyword :return-type)
+     (decls           	:init-value ())
+     (stmts           	:init-value ())
      ;; for future, like :constant or something
-     (flags           :init-value () :init-keyword :flags)))
+     (flags             :init-value () :init-keyword :flags)))
 
   (define (get-arg cproc arg) (find (^x (eq? arg (slot-ref x 'name)))
 				    (slot-ref cproc 'args)))
@@ -238,7 +246,7 @@
 
     (check-arg symbol? scheme-name 'define-c-proc)
     (check-arg list argspec 'define-c-proc)
-    (let*-values (((args nreqs nopts rest?)
+    (let*-values (((args keyargs nreqs nopts rest? other-keys?)
 		   (process-c-proc-args scheme-name argspec))
 		  ((body rettype) (extract-rettype body))
 		  ((flags body)   (extract-flags body)))
@@ -250,11 +258,15 @@
 		    :proc-name (make-literal (symbol->string scheme-name))
 		    :return-type rettype :flags flags
 		    :args args
+		    :keyword-args keyargs
 		    :num-reqargs nreqs
 		    :num-optargs nopts
-		    :have-rest-arg? rest?)
+		    :have-rest-arg? rest?
+		    :allow-other-keys? other-keys?)
 	;; set arg-proc here
 	(for-each (lambda (arg) (arg-proc arg cproc)) args)
+	(unless (null? keyargs)
+	  (for-each (lambda (arg) (arg-proc arg cproc)) keyargs))
 	(process-body cproc body)
 	(cgen-add! cproc))))
 
@@ -278,9 +290,14 @@
 	     "bad argument in argspec" arg nam))
     (define (required specs args nreqs)
       (match specs
-	(()                  (values (reverse args) nreqs 0 #f))
+	(()                  (values (reverse args) '() nreqs 0 #f #f))
 	((:optional . specs) (optional specs args nreqs 0))
-	((:rest     . specs) (rest specs args nreqs 0))
+	((:rest     . specs) (rest specs args '() nreqs 0 #f))
+	((:key      . specs) (keyword specs args '() nreqs 0))
+	((:allow-other-keys . specs)
+	 (error 'define-c-proc
+		"misplaced :allow-other-keys parameter"
+		argspec name))
 	(((? symbol? sym) . specs)
 	 (required specs
 		   (cons (make-arg <required-arg> sym nreqs) args)
@@ -288,10 +305,16 @@
 	(_ (badarg (car specs)))))
     (define (optional specs args nreqs nopts)
       (match specs
-	(()                  (values (reverse args) nreqs nopts #f))
+	(()                  (values (reverse args) '() nreqs nopts #f #f))
 	((:optional . specs)
 	 (error 'define-c-proc "extra :optional parameter" name))
-	((:rest     . specs) (rest specs args nreqs nopts))
+	((:key . specs)
+	 (error 'define-c-proc
+		":key and :optional can't be used together" name))
+	((:rest     . specs) (rest specs args '() nreqs nopts #f))
+	((:allow-other-keys . specs)
+	 (error 'define-c-proc
+		"misplaced :allow-other-keys parameter" name))
 	(((? symbol? sym) . specs)
 	 (optional specs
 		   (cons (make-arg <optional-arg> sym (+ nreqs nopts)
@@ -313,12 +336,43 @@
 		   nreqs
 		   (+ nopts 1)))
 	(_ (badarg (car specs)))))
-    (define (rest specs args nreqs nopts)
+    (define (keyword specs args keyargs nreqs nopts)
       (match specs
-	(() (values (reverse args) nreqs nopts #t))
+	(() (values (reverse args) (reverse keyargs) nreqs nopts #f #f))
+	((:allow-other-keys)
+	 (values (reverse args) (reverse keyargs) nreqs nopts #f #t))
+	#;((:allow-other-keys :rest . specs)
+	 (rest specs args keyargs nreqs nopts #t))
+	((:allow-other-keys . specs)
+	 (error 'define-c-proc
+		"misplaced :allow-other-keys parameter" name))
+	((:key . specs)
+	 (error 'define-c-proc "extra :key parameter" name))
+	((:optional . specs)
+	 (error 'define-c-proc "extra :optional parameter" name))
+	((:rest . specs)
+	 (error 'define-c-proc ":key and :rest can't be used together" name))
+	 ;;(rest specs args keyargs nreqs nopts #f))
+	(((? symbol? sym) . specs)
+	 (keyword specs args
+		  (cons (make-arg <keyword-arg> sym (+ nreqs nopts))
+			keyargs)
+		  nreqs (+ nopts 2)))
+	((((? symbol? sym) default) . specs)
+	 (keyword specs args
+		  (cons (make-arg <keyword-arg> sym (+ nreqs nopts)
+				  :default (make-literal default))
+			keyargs)
+		  nreqs (+ nopts 2)))
+	(_ (badarg (car specs)))))
+    (define (rest specs args keyargs nreqs nopts other-keys?)
+      (match specs
+	(() (values (reverse args)
+		    (reverse keyargs) nreqs nopts #t other-keys?))
 	(((? symbol? sym))
 	 (values (reverse (cons (make-arg <rest-arg> sym (+ nreqs nopts)) args))
-		 nreqs (+ nopts 1) #t))
+		 (reverse keyargs)
+		 nreqs (+ nopts 1) #t other-keys?))
 	(_ (badarg (car specs)))))
     (required argspecs '() 0))
 
@@ -380,6 +434,11 @@
        "(SgObject *SG_FP, int SG_ARGC, void *data_)")
     (p "{")
     (for-each emit-arg-decl (slot-ref cproc 'args))
+    (for-each emit-arg-decl (slot-ref cproc 'keyword-args))
+    (unless (null? (slot-ref cproc 'keyword-args))
+      (let ((arg (car (slot-ref cproc 'keyword-args))))
+	(f "  SgObject SG_OPTARGS = Sg_ArrayToList(SG_FP+~d, SG_ARGC-~d);"
+	   (slot-ref arg'count) (slot-ref arg'count))))
     (p "  SG_ENTER_SUBR(\"" (slot-ref cproc 'scheme-name) "\");")
     ;; argument count check
     (cond ((and (> (slot-ref cproc 'num-optargs) 0)
@@ -402,6 +461,8 @@
 	   (f "     SG_INTERN(\"~a\"), ~d, SG_ARGC, SG_NIL);~%"
 	      (slot-ref cproc'scheme-name) (slot-ref cproc'num-reqargs))))
     (for-each emit-arg-unbox (slot-ref cproc 'args))
+    (unless (null? (slot-ref cproc 'keyword-args))
+      (emit-keyword-args-unbox cproc))
     (p "  {")
     (for-each p (slot-ref cproc'stmts))
     (p "  }")
@@ -434,6 +495,11 @@
 
   (define-method emit-arg-decl ((arg <arg>))
     (p "  SgObject " (slot-ref arg'scm-name) ";")
+    (p "  " (slot-ref (slot-ref arg'type) 'c-type) " " 
+       (slot-ref arg'c-name) ";"))
+
+  (define-method emit-arg-decl ((arg <keyword-arg>))
+    (p "  SgObject " (slot-ref arg'scm-name) " = " (get-arg-default arg) ";")
     (p "  " (slot-ref (slot-ref arg'type) 'c-type) " " 
        (slot-ref arg'c-name) ";"))
 
@@ -481,6 +547,33 @@
 	       (slot-ref arg'count) (slot-ref arg'count)))
     (emit-arg-unbox-rec arg))
 
+  (define (emit-keyword-args-unbox cproc)
+    (let ((args (slot-ref cproc 'keyword-args))
+	  (other-keys? (slot-ref cproc 'allow-other-keys?)))
+      (p "  if (Sg_Length(SG_OPTARGS) % 2)")
+      (f "    Sg_AssertionViolation(~a, \
+               SG_MAKE_STRING(\"keyword list not even\"), SG_OPTARGS);~%"
+	 (cgen-c-name (slot-ref cproc 'proc-name)))
+      (p "  while (!SG_NULLP(SG_OPTARGS)) {")
+      (pair-for-each 
+       (lambda (args)
+	 (let ((arg (car args))
+	       (tail? (null? (cdr args))))
+	   (f "    if (SG_EQ(SG_CAR(SG_OPTARGS), ~a)) {~%"
+	      (cgen-c-name (slot-ref arg 'keyword)))
+	   (f "      ~a = SG_CADR(SG_OPTARGS);~%" (slot-ref arg 'scm-name))
+	   (if tail?
+	       (p "    }")
+	       (p "    } else "))))
+       args)
+      (unless other-keys?
+	(f "    else Sg_AssertionViolation(~a, \
+                     SG_MAKE_STRING(\"unknown keyword\"), SG_CAR (SG_OPTARGS));"
+	   (cgen-c-name (slot-ref cproc 'proc-name)))
+	(p))
+      (p "    SG_OPTARGS = SG_CDDR(SG_OPTARGS);")
+      (p "  }")
+      (for-each emit-arg-unbox-rec args)))
 
   ;; boolean handler
   (define-method render-boolean ((b <boolean>) env)

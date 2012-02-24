@@ -36,7 +36,7 @@
 
 SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
 {
-  SgProcess *p = make_process(name, commandLine);  
+  SgProcess *p = make_process(name, commandLine);
   return p;
 }
 
@@ -47,44 +47,110 @@ static void sigchild_handler(int signo)
   wait(&status);
 }
 
+static void pipe_finalize(SgObject obj, void *data)
+{
+  close((int)data);
+}
+
 static int process_call(SgProcess *process, int waitP)
 {
   int status = 0, piperet;
   pid_t pid;
-  int pipefd[2];
+  int pipe0[2] = { -1, -1 };
+  int pipe1[2] = { -1, -1 };
+  int pipe2[2] = { -1, -1 };
   char *name = Sg_Utf32sToUtf8s(process->name);
   char *args = Sg_Utf32sToUtf8s(process->args);
+  int open_max;
+  const char *sysfunc = NULL;
 
-  piperet = pipe(pipefd);
-  process->in =
-    Sg_MakeFileBinaryInputPort(SG_FILE(Sg_MakeFileFromFD(pipefd[0])),
-			       SG_BUFMODE_NONE);
-  /* pipe does not have error out. why? */
-  process->out = process->err =
-    Sg_MakeFileBinaryOutputPort(SG_FILE(Sg_MakeFileFromFD(pipefd[1])),
-				SG_BUFMODE_NONE);
+  sysfunc = "sysconf";
+  if ((open_max = sysconf(_SC_OPEN_MAX)) < 0) goto sysconf_fail;
+
+  sysfunc = "pipe";
+  if (pipe(pipe0)) goto pipe_fail;
+  if (pipe(pipe1)) goto pipe_fail;
+  if (pipe(pipe2)) goto pipe_fail;
+
+  sysfunc = "fork";
   pid = fork();
-  if (pid == -1) {
-    Sg_Warn(UC("failed to create a process %A. %A"), process->name,
-	    Sg_GetLastErrorMessage());
-    return -1;
-  } else if (pid == 0) {
+  if (pid == -1) goto fork_fail;
+  if (pid == 0) {
+    int i;
+    if (close(pipe0[1])) goto close_fail;
+    if (close(pipe1[0])) goto close_fail;
+    if (close(pipe2[0])) goto close_fail;
+    if (close(0)) goto close_fail;
+    if (dup(pipe0[0]) == -1) goto dup_fail;
+    if (close(1)) goto close_fail;
+    if (dup(pipe1[1]) == -1) goto dup_fail;
+    if (close(2)) goto close_fail;
+    if (dup(pipe2[1]) == -1) goto dup_fail;
+
+    for (i = 3; i < open_max; i++) {
+      if (i == pipe0[0]) continue;
+      if (i == pipe1[1]) continue;
+      if (i == pipe2[1]) continue;
+      close(i);
+    }
+
     if (execlp(name, name, args, (char*)NULL) == -1) {
       /* why? */
       if (execl(name, name, args, (char*)NULL) == -1) {
-	Sg_Warn(UC("failed to execute a process %A. %A"), process->name,
-		Sg_GetLastErrorMessage());
-	return -1;
+	goto exec_fail;
       }
     }
+    goto exec_fail;
     /* never reached */
   } else {
+    SgFile *in, *out, *err;
+    close(pipe0[0]);
+    close(pipe1[1]);
+    close(pipe2[1]);
     process->handle = (uintptr_t)pid;
+
+    in = SG_FILE(Sg_MakeFileFromFD(pipe0[1]));
+    out = SG_FILE(Sg_MakeFileFromFD(pipe1[0]));
+    err = SG_FILE(Sg_MakeFileFromFD(pipe2[0]));
+    in->name = UC("process-stdin");
+    out->name = UC("process-stdout");
+    err->name = UC("process-stderr");
+
+    process->in = Sg_MakeFileBinaryOutputPort(in, SG_BUFMODE_BLOCK);
+    process->out = Sg_MakeFileBinaryInputPort(out, SG_BUFMODE_BLOCK);
+    process->err = Sg_MakeFileBinaryInputPort(err, SG_BUFMODE_BLOCK);
+
+    Sg_RegisterFinalizer(SG_OBJ(in), pipe_finalize, (void*)pipe0[1]);
+    Sg_RegisterFinalizer(SG_OBJ(out), pipe_finalize, (void*)pipe1[0]);
+    Sg_RegisterFinalizer(SG_OBJ(err), pipe_finalize, (void*)pipe2[0]);
+
     if (waitP) {
       waitpid((pid_t)process->handle, &status, 0);
     }
   }
   return status;
+ sysconf_fail:
+ pipe_fail:
+ fork_fail:
+  {
+    char message[256];
+    SgObject msg = Sg_GetLastErrorMessage();
+    snprintf(message, sizeof(message), "%s failed.", sysfunc);
+    if (pipe0[0] != -1) close(pipe0[0]);
+    if (pipe0[1] != -1) close(pipe0[1]);
+    if (pipe1[0] != -1) close(pipe1[0]);
+    if (pipe1[1] != -1) close(pipe1[1]);
+    if (pipe2[0] != -1) close(pipe2[0]);
+    if (pipe2[1] != -1) close(pipe2[1]);
+    Sg_Error(UC("command: `%A %A`.\n"
+		"message %A %A"),
+	     process->name, process->args, Sg_MakeStringC(message), msg);
+    return -1;
+  }
+ close_fail:
+ dup_fail:
+ exec_fail:
+  exit(127);
 }
 
 void Sg_ProcessCall(SgProcess *process)
