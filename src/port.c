@@ -360,14 +360,14 @@ static void file_flush(SgObject self)
 static void file_fill_buffer(SgObject self)
 {
   int64_t read_size = 0;
-  if (SG_BINARY_PORT(self)->dirty &&
-      SG_PORT(self)->direction == SG_IN_OUT_PORT) {
+  SgBinaryPort *bp = SG_BINARY_PORT(self);
+  if (bp->dirty && SG_PORT(self)->direction == SG_IN_OUT_PORT) {
     file_flush(self);
   }
   while (read_size < PORT_DEFAULT_BUF_SIZE) {
     int64_t result = SG_PORT_FILE(self)->read(SG_PORT_FILE(self),
-					      SG_BINARY_PORT(self)->buffer + read_size,
-					      PORT_DEFAULT_BUF_SIZE - read_size);
+					      bp->buffer + read_size,
+					      PORT_DEFAULT_BUF_SIZE-read_size);
     ASSERT(result >= 0);	/* file raises error */
     if (result == 0) {
       break;			/* EOF */
@@ -376,36 +376,36 @@ static void file_fill_buffer(SgObject self)
     }
   }
   ASSERT(read_size <= PORT_DEFAULT_BUF_SIZE);
-  SG_BINARY_PORT(self)->bufferSize = read_size;
-  SG_BINARY_PORT(self)->bufferIndex = 0;
+  bp->bufferSize = read_size;
+  bp->bufferIndex = 0;
 }
 
-/* To use this both input and input/output port, this does not change position */
-static int64_t file_read_from_buffer(SgObject self, uint8_t *dest, int64_t req_size)
+/* To use this both input and input/output port, this does not change
+   position
+ */
+static int64_t file_read_from_buffer(SgObject self, uint8_t *dest,
+				     int64_t req_size)
 {
   int64_t opos = SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), 0, SG_CURRENT);
   int64_t read_size = 0;
   int need_unwind = FALSE;
+  SgBinaryPort *bp = SG_BINARY_PORT(self);
 
   while (read_size < req_size) {
-    int64_t buf_diff = SG_BINARY_PORT(self)->bufferSize - SG_BINARY_PORT(self)->bufferIndex;
+    int64_t buf_diff = bp->bufferSize - bp->bufferIndex;
     int64_t size_diff = req_size - read_size;
-    ASSERT(SG_BINARY_PORT(self)->bufferSize >= SG_BINARY_PORT(self)->bufferIndex);
+    ASSERT(bp->bufferSize >= bp->bufferIndex);
     if (buf_diff >= size_diff) {
-      memcpy(dest + read_size,
-	     SG_BINARY_PORT(self)->buffer + SG_BINARY_PORT(self)->bufferIndex,
-	     size_diff);
-      SG_BINARY_PORT(self)->bufferIndex += size_diff;
+      memcpy(dest + read_size, bp->buffer + bp->bufferIndex, size_diff);
+      bp->bufferIndex += size_diff;
       read_size += size_diff;
       break;
     } else {
-      memcpy(dest + read_size,
-	     SG_BINARY_PORT(self)->buffer + SG_BINARY_PORT(self)->bufferIndex,
-	     buf_diff);
+      memcpy(dest + read_size, bp->buffer + bp->bufferIndex, buf_diff);
       read_size += buf_diff;
       file_fill_buffer(self);
       need_unwind = TRUE;
-      if (SG_BINARY_PORT(self)->bufferSize == 0) {
+      if (bp->bufferSize == 0) {
 	/* EOF */
 	break;
       }

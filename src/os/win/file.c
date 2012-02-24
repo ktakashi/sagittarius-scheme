@@ -90,6 +90,13 @@ static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
     }
   } else {
     isOK = ReadFile(SG_FD(file)->desc, buf, size, &readSize, NULL);
+    if (!isOK) {
+      DWORD err = GetLastError();
+      switch (err) {
+      case ERROR_BROKEN_PIPE: return 0;
+      default: break;
+      }
+    }
   }
   setLastError(file);
   if (isOK) {

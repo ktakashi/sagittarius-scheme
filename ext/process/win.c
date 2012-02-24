@@ -45,20 +45,27 @@ static wchar_t* utf32ToUtf16(const SgChar *s)
   return (wchar_t*)Sg_GetByteArrayFromBinaryPort(out);
 }
 
+static void pipe_finalize(SgObject obj, void *data)
+{
+  CloseHandle((HANDLE)data);
+}
 
 SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
+#if 1
 {
+  SgProcess *p = make_process(name, commandLine);
   HANDLE pipe0[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
   HANDLE pipe1[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
   HANDLE pipe2[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
   const SgChar *sysfunc = NULL;
   SgString *command = SG_STRING(Sg_StringAppend(SG_LIST3(name,
 							 SG_MAKE_STRING(" "),
-							 commandLine)))
+							 commandLine)));
   SECURITY_ATTRIBUTES sa;
   STARTUPINFO startup;
   PROCESS_INFORMATION process;
   SgFile *in, *out, *err;
+  HANDLE *handles;
 
   sa.nLength = sizeof(SECURITY_ATTRIBUTES);
   sa.lpSecurityDescriptor = NULL;
@@ -77,23 +84,31 @@ SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
   startup.hStdError = pipe2[1];
   sysfunc = UC("CreateProcess");
 
-  if (!CreateProcessW(NULL,
-		      utf32ToUtf16(SG_STRING_VALUE(command)),
-		      NULL, NULL,
-		      TRUE,
-		      CREATE_SUSPENDED, /* process must be invoked manually */
-		      NULL, NULL,
-		      &startup,
-		      &process)  == 0) goto create_fail;
+  if (CreateProcessW(NULL,
+		     utf32ToUtf16(SG_STRING_VALUE(command)),
+		     NULL, NULL,
+		     TRUE,
+		     CREATE_SUSPENDED, /* process must be invoked manually */
+		     NULL, NULL,
+		     &startup,
+		     &process) == 0) goto create_fail;
   CloseHandle(pipe0[0]);
   CloseHandle(pipe1[1]);
   CloseHandle(pipe2[1]);
   /* CloseHandle(process.hThread); */
-  p->handle = (uintptr_t)Sg_Cons(SG_OBJ(process.hThread),
-				 SG_OBJ(process.hProcess));
+  handles = SG_NEW_ARRAY(HANDLE, 2);
+  handles[0] = process.hThread;
+  handles[1] = process.hProcess;
+  p->handle = (uintptr_t)handles;
+  
   in  = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe0[1]));
   out = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe1[0]));
-  err = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe2[0]))
+  err = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe2[0]));
+
+  Sg_RegisterFinalizer(SG_OBJ(in), pipe_finalize, (void*)pipe0[1]);
+  Sg_RegisterFinalizer(SG_OBJ(out), pipe_finalize, (void*)pipe1[0]);
+  Sg_RegisterFinalizer(SG_OBJ(err), pipe_finalize, (void*)pipe2[0]);
+
   p->in = Sg_MakeFileBinaryInputPort(in, SG_BUFMODE_BLOCK);
   p->out = Sg_MakeFileBinaryInputPort(out, SG_BUFMODE_BLOCK);
   p->err = Sg_MakeFileBinaryInputPort(err, SG_BUFMODE_BLOCK);
@@ -112,7 +127,7 @@ SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
   }
   return SG_UNDEF;		/* dummy */
 }
-#if 0
+#else
 {
   SgProcess *p = make_process(name, commandLine);
   PROCESS_INFORMATION pi;
@@ -120,33 +135,6 @@ SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
   SgString *command = SG_STRING(Sg_StringAppend(SG_LIST3(name,
 							 SG_MAKE_STRING(" "),
 							 commandLine)));
-#if 0
-  HANDLE in_r, in_w, in_t, out_r, out_w, out_t, err;
-  SECURITY_ATTRIBUTES sa;
-
-  /* prepare */
-  sa.nLength = sizeof(SECURITY_ATTRIBUTES);
-  sa.lpSecurityDescriptor = NULL;
-  sa.bInheritHandle = TRUE;
-  
-  /* create the child output pipe*/
-  CreatePipe(&out_t, &out_w, &sa, 0);
-  DuplicateHandle(GetCurrentProcess(), out_w,
-		  GetCurrentProcess(), &err, 0,
-		  TRUE, DUPLICATE_SAME_ACCESS);
-  /* create the child input pipe */
-  CreatePipe(&in_r, &in_t, &sa, 0);
-  DuplicateHandle(GetCurrentProcess(), out_t,
-		  GetCurrentProcess(), &out_r,
-		  0, FALSE, DUPLICATE_SAME_ACCESS);
-  DuplicateHandle(GetCurrentProcess(), in_t,
-		  GetCurrentProcess(), &in_r,
-		  0, FALSE,
-		  DUPLICATE_SAME_ACCESS);
-
-  CloseHandle(out_t);
-  CloseHandle(in_t);
-#endif
   ZeroMemory(&si,sizeof(si));
   si.cb = sizeof(si);
   si.dwFlags = STARTF_USESTDHANDLES;
@@ -168,13 +156,6 @@ SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
     p->handle = (uintptr_t)SG_FALSE;
     return p;
   }
-  /*
-  CloseHandle(in_r);
-  CloseHandle(out_w);
-  CloseHandle(err);
-  CloseHandle(in_w);
-  CloseHandle(out_r);
-  */
   p->in = Sg_MakeFileBinaryOutputPort(SG_FILE(Sg_MakeFileFromFD((uintptr_t)si.hStdInput)),
 						SG_BUFMODE_NONE);
   p->out = Sg_MakeFileBinaryInputPort(SG_FILE(Sg_MakeFileFromFD((uintptr_t)si.hStdOutput)), SG_BUFMODE_LINE);
@@ -186,21 +167,25 @@ SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
 
 static int process_wait(SgProcess *process)
 {
+  HANDLE *handles;
   if (SG_FALSEP(SG_OBJ(process->handle))) {
     return -1;
   }
-  WaitForSingleObject(SG_CDR(SG_OBJ(process->handle)), INFINITE);
-  CloseHandle(SG_CAR(SG_OBJ(process->handle)));
-  CloseHandle(SG_CDR(SG_OBJ(process->handle)));
+  handles = (HANDLE*)process->handle;
+  WaitForSingleObject(handles[1], INFINITE);
+  CloseHandle(handles[0]);
+  CloseHandle(handles[1]);
   return 0;
 }
 
 static int process_call(SgProcess *process, int waitP)
 {
+  HANDLE *handles;
   if (SG_FALSEP(SG_OBJ(process->handle))) {
     return -1;
   }
-  ResumeThread(SG_CAR(SG_OBJ(process->handle)));
+  handles = (HANDLE*)process->handle;
+  ResumeThread(handles[0]);
   if (waitP) {
     process_wait(process);
   }
