@@ -485,13 +485,35 @@ static int64_t file_read_u8(SgObject self, uint8_t *buf, int64_t size)
   return result;
 }
 
+static int64_t file_try_read_all(SgObject self, uint8_t **buf)
+{
+  int result = file_look_ahead_u8(self);
+  if (result != EOF) {
+    int count = 0;
+    SgObject bp = Sg_MakeByteArrayOutputPort(256);
+    while ((result = file_get_u8(self)) != EOF) {
+      Sg_PutbUnsafe(bp, (uint8_t)result);
+      count++;
+    }
+    *buf = Sg_GetByteArrayFromBinaryPort(bp);
+    file_forward_position(self, count);
+    return count;
+  } else {
+    return 0;
+  }
+}
+
 static int64_t file_read_u8_all(SgObject self, uint8_t **buf)
 {
   int64_t rest_size = 0, result = 0;
   uint8_t *dest;
 
   rest_size = SG_PORT_FILE(self)->size(SG_PORT_FILE(self)) - SG_BINARY_PORT(self)->position;
-  if (rest_size <= 0) return 0;
+  if (rest_size < 0) return 0;
+
+  /* if file is pipe or fd, file->size method returns 0, however we know,
+     it can have something, so try to read as bytevector. */
+  if (rest_size == 0) return file_try_read_all(self, buf);
 
   dest = SG_NEW_ATOMIC2(uint8_t *, rest_size);
   *buf = dest;
