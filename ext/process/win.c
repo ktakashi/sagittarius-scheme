@@ -56,8 +56,8 @@ static SgString *string_append(SgObject args)
   SgObject ret = Sg_MakeEmptyString();
   SgString *sep = SG_MAKE_STRING(" ");
   SG_FOR_EACH(cp, args) {
-    ret = Sg_StringAppend2(ret, SG_STRING(SG_CAR(cp)));
-    ret = Sg_StringAppend2(ret, sep);
+    ret = Sg_StringAppend2(SG_STRING(ret), SG_STRING(SG_CAR(cp)));
+    ret = Sg_StringAppend2(SG_STRING(ret), sep);
   }
   return SG_STRING(ret);
 }
