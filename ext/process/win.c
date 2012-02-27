@@ -50,7 +50,19 @@ static void pipe_finalize(SgObject obj, void *data)
   CloseHandle((HANDLE)data);
 }
 
-SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
+static SgString *string_append(SgObject args)
+{
+  SgObject cp;
+  SgObject ret = Sg_MakeEmptyString();
+  SgString *sep = SG_MAKE_STRING(" ");
+  SG_FOR_EACH(cp, args) {
+    ret = Sg_StringAppend2(ret, SG_STRING(SG_CAR(cp)));
+    ret = Sg_StringAppend2(ret, sep);
+  }
+  return SG_STRING(ret);
+}
+
+SgObject Sg_MakeProcess(SgString *name, SgObject commandLine)
 #if 1
 {
   SgProcess *p = make_process(name, commandLine);
@@ -58,9 +70,10 @@ SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
   HANDLE pipe1[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
   HANDLE pipe2[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
   const SgChar *sysfunc = NULL;
-  SgString *command = SG_STRING(Sg_StringAppend(SG_LIST3(name,
-							 SG_MAKE_STRING(" "),
-							 commandLine)));
+  SgString *command
+    = SG_STRING(Sg_StringAppend(SG_LIST3(name,
+					 SG_MAKE_STRING(" "),
+					 string_append(commandLine))));
   SECURITY_ATTRIBUTES sa;
   STARTUPINFO startup;
   PROCESS_INFORMATION process;

@@ -38,7 +38,7 @@ typedef struct SgProcessRec
 {
   SG_HEADER;
   SgString  *name;		/* process name */
-  SgString  *args;		/* command line args */
+  SgObject   args;		/* command line args */
   uintptr_t  handle;		/* process handle
 				   on Windows, this will be handle for process,
 				   on POSIX, this will be PID.
@@ -55,7 +55,7 @@ SG_CLASS_DECL(Sg_ProcessClass);
 #define SG_PROCESS(obj)   ((SgProcess *)obj)
 #define SG_PROCESSP(obj) SG_XTYPEP(obj, SG_CLASS_PROCESS)
 
-SgObject Sg_MakeProcess(SgString *name, SgString *commandLine);
+SgObject Sg_MakeProcess(SgString *name, SgObject commandLines);
 void     Sg_ProcessCall(SgProcess *process);
 int      Sg_ProcessRun(SgProcess *process);
 int      Sg_ProcessWait(SgProcess *process);

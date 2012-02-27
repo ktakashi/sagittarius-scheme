@@ -21,7 +21,7 @@
   (define-c-proc process? (o) ::<boolean>
     (result (SG_PROCESSP o)))
 
-  (define-c-proc make-process (name::<string> params::<string>) 
+  (define-c-proc make-process (name::<string> params::<list>) 
     (result (Sg_MakeProcess name params)))
 
   (define-c-proc process-input-port (p::<process>) 

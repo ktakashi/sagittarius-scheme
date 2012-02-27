@@ -33,8 +33,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <ctype.h>
 
-SgObject Sg_MakeProcess(SgString *name, SgString *commandLine)
+SgObject Sg_MakeProcess(SgString *name, SgObject commandLine)
 {
   SgProcess *p = make_process(name, commandLine);
   return p;
@@ -54,13 +55,11 @@ static void pipe_finalize(SgObject obj, void *data)
 
 static int process_call(SgProcess *process, int waitP)
 {
-  int status = 0, piperet;
+  int status = 0;
   pid_t pid;
   int pipe0[2] = { -1, -1 };
   int pipe1[2] = { -1, -1 };
   int pipe2[2] = { -1, -1 };
-  char *name = Sg_Utf32sToUtf8s(process->name);
-  char *args = Sg_Utf32sToUtf8s(process->args);
   int open_max;
   const char *sysfunc = NULL;
 
@@ -77,6 +76,14 @@ static int process_call(SgProcess *process, int waitP)
   if (pid == -1) goto fork_fail;
   if (pid == 0) {
     int i;
+    int count = Sg_Length(process->args);
+    char *name = Sg_Utf32sToUtf8s(process->name);
+    SgObject cp;
+#ifdef HAVE_ALLOCA
+    char **args = (char**)alloca(sizeof(char*) * (count + 1));
+#else
+    char **args = SG_NEW_ARRAY(char*, count+2);
+#endif
     if (close(pipe0[1])) goto close_fail;
     if (close(pipe1[0])) goto close_fail;
     if (close(pipe2[0])) goto close_fail;
@@ -93,13 +100,13 @@ static int process_call(SgProcess *process, int waitP)
       if (i == pipe2[1]) continue;
       close(i);
     }
-
-    if (execlp(name, name, args, (char*)NULL) == -1) {
-      /* why? */
-      if (execl(name, name, args, (char*)NULL) == -1) {
-	goto exec_fail;
-      }
+    i = 0;
+    args[i++] = name;
+    SG_FOR_EACH(cp, process->args) {
+      args[i++] = Sg_Utf32sToUtf8s(SG_STRING(SG_CAR(cp)));
     }
+    args[i] = NULL;
+    execvp(name, args);
     goto exec_fail;
     /* never reached */
   } else {

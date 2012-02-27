@@ -41,7 +41,7 @@ static void process_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_ProcessClass, process_printer);
 
-static SgProcess* make_process(SgString *name, SgString *args)
+static SgProcess* make_process(SgString *name, SgObject args)
 {
   SgProcess *p = SG_NEW(SgProcess);
   SG_SET_CLASS(p, SG_CLASS_PROCESS);
