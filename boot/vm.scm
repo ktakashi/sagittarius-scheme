@@ -478,7 +478,7 @@
        (let ((const? (insn-value1 insn))
 	     (var (fetch)))
 	 (or (identifier? var)
-	     (error "runtime error: DEFINE instruction requires identifier for its argument but got:" var))
+	     (error 'VM "runtime error: DEFINE instruction requires identifier for its argument but got:" var))
 	 (let ((name (id-name var))
 	       (old  (find-binding (id-library var) (id-name var) #f)))
 	   (when (and old
@@ -655,7 +655,7 @@
       ((GSET)
        (let ((var (fetch)))
 	 (or (identifier? var)
-	     (error "runtime error: GPUT instruction requires identifier for ist argument but got:" var))
+	     (error 'VM "runtime error: GPUT instruction requires identifier for ist argument but got:" var))
 	 #;(namespace-set! (id-name var) a)
 	 (%insert-binding (id-library var) (id-name var) a)
 	 (VM x (skip) a c f s)))
@@ -740,15 +740,15 @@
        (let ((reqargs (insn-value1-with-mask insn))
 	     (optargs (insn-value2 insn)))
 	 (or (values? a)
-	     (error "receive requires values but got " a))
+	     (error 'VM "receive requires values but got " a))
 	 (let* ((v  (valuez-valuez a))
 		(vl (vector-length v)))
 
 	   (and (< vl reqargs)
-		(error "received fewer values than expected" reqargs))
+		(error 'VM "received fewer values than expected" reqargs))
 	   (and (and (zero? optargs)
 		     (> vl reqargs))
-		(error "received more values than expected" reqargs))
+		(error 'VM "received more values than expected" reqargs))
 
 	   (cond ((zero? optargs)
 		  ;; (receive (a b c) ...)
@@ -1661,7 +1661,7 @@ lc: compile builtin libraries
     (vm-debug-step #t)
     (load-file (cadr args) (cddr args) #f #f #f #t))))
 
-(cond-expand
+#;(cond-expand
  (sagittarius
   (main (command-line)))
  (gauche #t))

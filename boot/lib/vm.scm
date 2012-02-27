@@ -828,7 +828,7 @@
 	 (combine-insn-arg1 cb packet))
 	((= (packet-type packet) ARGUMENT2)
 	 (combine-insn-arg2 cb packet))
-	(else (error "[internal] code-builder failed to emit code."))))
+	(else (error 'cb-put "[internal] code-builder failed to emit code."))))
 
 (define (combine-insn-arg0 cb packet)
   (cond ((= (packet-insn packet) PUSH)

@@ -2786,13 +2786,11 @@
 			      intdefs (cons defs intmacros) p1env)))
 			  ((identifier? head)
 			   (let ((gloc (id->bound-gloc head)))
-			     (if gloc
-				 (let ((gval (gloc-ref gloc)))
-				   (if (macro? gval)
-				       (pass1/body-macro-expand-rec
-					gval exprs intdefs intmacros p1env)
-				       (pass1/body-finish
-					intdefs intmacros exprs p1env)))
+			     (or (and-let* (( gloc )
+					    (gval (gloc-ref gloc))
+					    ( (macro? gval) ))
+				   (pass1/body-macro-expand-rec
+				    gval exprs intdefs intmacros p1env))
 				 (pass1/body-finish
 				  intdefs intmacros exprs p1env))))
 			  (else
@@ -2802,95 +2800,144 @@
 	   (pass1/body-finish intdefs intmacros exprs p1env)))
       (- (pass1/body-finish intdefs intmacros exprs p1env)))))
 
-(define pass1/body-macro-expand-rec
-  (lambda (mac exprs intdefs intmacros p1env)
-    (pass1/body-rec
-     (acons (call-macro-expander mac (caar exprs) p1env)
-	    (cdar exprs) ; src
-	    (cdr exprs)) ; rest
-     intdefs intmacros p1env)))
+;; pass1/body-macro-expand-rec also needs these
+(define (let-syntax-parser exprs p1env old-ids)
+  (let* ((names (imap car exprs))
+	 (ids (append! (collect-lexical-id names p1env) old-ids))
+	 (unrenamed-ids (unrename-expression names ids))
+	 (trans (map (lambda (n x)
+		       (pass1/eval-macro-rhs 'let-syntax
+			     (variable-name n)
+			     x (p1env-add-name p1env (variable-name n))))
+		     unrenamed-ids
+		     (unrename-expression (map cadr exprs) ids)))
+	 (newenv (p1env-extend p1env
+			       (%map-cons unrenamed-ids trans)
+			       LEXICAL)))
+    (values newenv ids)))
 
-(define pass1/body-finish
-  (lambda (intdefs intmacros exprs p1env)
-    (define let-syntax-parser
-      (lambda (exprs p1env old-ids)
-	(let* ((names (imap car exprs))
-	       (ids (append! (collect-lexical-id names p1env) old-ids))
-	       (unrenamed-ids (unrename-expression names ids))
-	       (trans (map (lambda (n x)
-			     (pass1/eval-macro-rhs
-			      'let-syntax
-			      (variable-name n)
-			      x (p1env-add-name p1env (variable-name n))))
-			   unrenamed-ids
-			   (unrename-expression (map cadr exprs) ids)))
-	       (newenv (p1env-extend p1env
-				     (%map-cons unrenamed-ids trans)
-				     LEXICAL)))
-	  (values newenv ids))))
-    (define letrec-syntax-parser
-      (lambda (exprs p1env old-ids)
-	(let* ((names (imap car exprs))
-	       (ids (append! (collect-lexical-id names p1env) old-ids))
-	       (unrenamed-ids (unrename-expression names ids))
-	       (bodys (imap cadr exprs))
-	       (newenv (p1env-extend p1env 
-				     (%map-cons unrenamed-ids bodys)
-				     LEXICAL))
-	       (trans (map (lambda (n x)
-			     (pass1/eval-macro-rhs
-			      'letrec-syntax
-			      (variable-name n)
-			      x (p1env-add-name newenv (variable-name n))))
-			   unrenamed-ids (unrename-expression bodys ids))))
-	  (for-each set-cdr! (cdar (p1env-frames newenv)) trans)
-	  (values newenv ids))))
+(define (letrec-syntax-parser exprs p1env old-ids)
+  (let* ((names (imap car exprs))
+	 (ids (append! (collect-lexical-id names p1env) old-ids))
+	 (unrenamed-ids (unrename-expression names ids))
+	 (bodys (imap cadr exprs))
+	 (newenv (p1env-extend p1env 
+			       (%map-cons unrenamed-ids bodys)
+			       LEXICAL))
+	 (trans (map (lambda (n x)
+		       (pass1/eval-macro-rhs
+			'letrec-syntax
+			(variable-name n)
+			x (p1env-add-name newenv (variable-name n))))
+		     unrenamed-ids (unrename-expression bodys ids))))
+    (for-each set-cdr! (cdar (p1env-frames newenv)) trans)
+    (values newenv ids)))
 
-    (let* ((intdefs. (reverse intdefs))
-	   (vars (map car intdefs.))
-	   ;; filter if p1env already has id
-	   (lvars (map (lambda (var)
-			 (let ((r (p1env-lookup p1env var LEXICAL)))
-			   (if (and (identifier? var)
-				    (lvar? r))
-			       r
-			       (make-lvar var)))) vars))
-	   (newenv (p1env-extend p1env (%map-cons vars lvars) LEXICAL)))
+;; Almost the same process as pass1/body-finish but we still need to
+;; continue.
+;; Resolve all internal defines and macros so far we collect.
+(define (pass1/body-macro-expand-rec mac exprs intdefs intmacros p1env)
+  (let* ((intdefs. (reverse intdefs))
+	 (vars (map car intdefs.))
+	 ;; filter if p1env already has id
+	 (lvars (map (lambda (var)
+		       (let ((r (p1env-lookup p1env var LEXICAL)))
+			 (if (and (identifier? var)
+				  (lvar? r))
+			     r
+			     (make-lvar var)))) vars))
+	 (newenv (p1env-extend p1env (%map-cons vars lvars) LEXICAL)))
+    (cond ((and (null? intdefs)
+		(null? intmacros))
+	   (pass1/body-rec
+	    (acons (call-macro-expander mac (caar exprs) p1env)
+		   (cdar exprs) ; src
+		   (cdr exprs)) ; rest
+	    intdefs intmacros p1env))
+	  ((null? intmacros)
+	   ($let #f 'rec lvars
+		 (map (lambda (lv def)
+			(pass1/body-init lv def newenv))
+		      lvars (map cdr intdefs.))
+		 (pass1/body-rec
+		  (acons (call-macro-expander mac (caar exprs) newenv)
+			 (cdar exprs) ; src
+			 (cdr exprs)) ; rest
+		  '() '() newenv)))
+	  (else
+	   ;; intmacro list is like this
+	   ;; ((<type> . ((name expr) ...)) ...)
+	   ;; <type> : def, rec or let.
+	   ;;          def = define-syntax,
+	   ;;          rec = letrec-syntax
+	   (receive (macenv ids)
+	       (let loop ((exprs intmacros)
+			  ;; extend p1env for temporary.
+			  (env newenv)
+			  (ids '()))
+		 (if (null? exprs)
+		     (values env ids)
+		     (case (caar exprs)
+		       ((def rec)
+			(receive (new-env new-ids)
+			    (letrec-syntax-parser (cdar exprs) env ids)
+			  (loop (cdr exprs) new-env new-ids)))
+		       ((let)
+			(receive (new-env new-ids)
+			    (let-syntax-parser (cdar exprs) env ids)
+			  (loop (cdr exprs) new-env new-ids))))))
+	     (pass1/body-rec
+		  (acons (call-macro-expander mac (caar exprs) macenv)
+			 (cdar exprs) ; src
+			 (cdr exprs)) ; rest
+		  '() '() macenv))))))
 
-      (cond ((and (null? intdefs)
-		  (null? intmacros))
-	     (pass1/body-rest exprs p1env))
-	    ((null? intmacros)
-	     ($let #f 'rec lvars
-		   (map (lambda (lv def)
-			  (pass1/body-init lv def newenv))
-			lvars (map cdr intdefs.))
-		   (pass1/body-rest exprs newenv)))
-	    (else
-	     ;; only r6rs mode
-	     ;; intmacro list is like this
-	     ;; ((<type> . ((name expr) ...)) ...)
-	     ;; <type> : def, rec or let.
-	     ;;          def = define-syntax,
-	     ;;          rec = letrec-syntax
-	     (receive (macenv ids)
-		 (let loop ((exprs intmacros)
-			    ;; extend p1env for temporary.
-			    (env newenv)
-			    (ids '()))
-		   (if (null? exprs)
-		       (values env ids)
-		       (case (caar exprs)
-			 ((def rec)
-			  (receive (new-env new-ids)
-			      (letrec-syntax-parser (cdar exprs) env ids)
-			    (loop (cdr exprs) new-env new-ids)))
-			 ((let)
-			  (receive (new-env new-ids)
-			      (let-syntax-parser (cdar exprs) env ids)
-			    (loop (cdr exprs) new-env new-ids))))))
-	       (pass1/body-rec (unrename-expression exprs ids)
-			       intdefs '() macenv)))))))
+(define (pass1/body-finish intdefs intmacros exprs p1env)
+  (let* ((intdefs. (reverse intdefs))
+	 (vars (map car intdefs.))
+	 ;; filter if p1env already has id
+	 (lvars (map (lambda (var)
+		       (let ((r (p1env-lookup p1env var LEXICAL)))
+			 (if (and (identifier? var)
+				  (lvar? r))
+			     r
+			     (make-lvar var)))) vars))
+	 (newenv (p1env-extend p1env (%map-cons vars lvars) LEXICAL)))
+
+    (cond ((and (null? intdefs)
+		(null? intmacros))
+	   (pass1/body-rest exprs p1env))
+	  ((null? intmacros)
+	   ($let #f 'rec lvars
+		 (map (lambda (lv def)
+			(pass1/body-init lv def newenv))
+		      lvars (map cdr intdefs.))
+		 (pass1/body-rest exprs newenv)))
+	  (else
+	   ;; only r6rs mode
+	   ;; intmacro list is like this
+	   ;; ((<type> . ((name expr) ...)) ...)
+	   ;; <type> : def, rec or let.
+	   ;;          def = define-syntax,
+	   ;;          rec = letrec-syntax
+	   (receive (macenv ids)
+	       (let loop ((exprs intmacros)
+			  ;; extend p1env for temporary.
+			  (env newenv)
+			  (ids '()))
+		 (if (null? exprs)
+		     (values env ids)
+		     (case (caar exprs)
+		       ((def rec)
+			(receive (new-env new-ids)
+			    (letrec-syntax-parser (cdar exprs) env ids)
+			  (loop (cdr exprs) new-env new-ids)))
+		       ((let)
+			(receive (new-env new-ids)
+			    (let-syntax-parser (cdar exprs) env ids)
+			  (loop (cdr exprs) new-env new-ids))))))
+	     (pass1/body-rec (unrename-expression exprs ids)
+			     intdefs '() macenv))))))
 
 (define pass1/body-init
   (lambda (lvar init&src newenv)

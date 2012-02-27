@@ -14,30 +14,6 @@
 	    (sagittarius threads)
 	    (sagittarius time))
   ;; because of internal define and macro problem...
-  (define (mt-fib n)
-    (let ((threads (make-vector n)))
-      (let loop ((i 0))
-	(unless (= i n)
-	  (vector-set! 
-	   threads i
-	   (make-thread
-	    (case i
-	      ((0) (lambda () 1))
-	      ((1) (lambda () 1))
-	      (else
-	       (lambda ()
-		 (+ (thread-join! (vector-ref threads (- i 1)))
-		    (thread-join! (vector-ref threads (- i 2)))))))))
-	  (loop (+ i 1))))
-      (let loop ((i 0))
-	(unless (= i n)
-	  (thread-start! (vector-ref threads (- n i 1)))
-	  (loop (+ i 1))))
-      (thread-join! (vector-ref threads (- n 1)))))
-  
-  (define *thr1-val* #f)
-  (define *thr2-val* #f)
-  (define p (make-parameter 3))
 
   (define (run-threads-test)
     ;; most test cases are from Gauche 
@@ -62,7 +38,28 @@
 		     (thread-join! t)))))
 
     ;; calculate fibonacchi in awful way
-    (test-equal "thread-join!" 1346269 (mt-fib 31))
+    (let ()
+      (define (mt-fib n)
+	(let ((threads (make-vector n)))
+	  (let loop ((i 0))
+	    (unless (= i n)
+	      (vector-set! 
+	       threads i
+	       (make-thread
+		(case i
+		  ((0) (lambda () 1))
+		  ((1) (lambda () 1))
+		  (else
+		   (lambda ()
+		     (+ (thread-join! (vector-ref threads (- i 1)))
+			(thread-join! (vector-ref threads (- i 2)))))))))
+	      (loop (+ i 1))))
+	  (let loop ((i 0))
+	    (unless (= i n)
+	      (thread-start! (vector-ref threads (- n i 1)))
+	      (loop (+ i 1))))
+	  (thread-join! (vector-ref threads (- n 1)))))
+      (test-equal "thread-join!" 1346269 (mt-fib 31)))
     (let ((t1 (make-thread (lambda ()
 			     (let loop ()
 			       (sys-nanosleep #e5e8)
@@ -250,21 +247,26 @@
            (reverse log))))
 
     ;; thread local parameters
-    (test-equal "check locality of parameters"
-		'(3 4 5)
-		(let ((th1 (make-thread
-			    (lambda ()
-			      (p 4)
-			      (set! *thr1-val* (p)))))
-		      (th2 (make-thread
-			    (lambda ()
-			      (p 5)
-			      (set! *thr2-val* (p))))))
-		  (thread-start! th1)
-		  (thread-start! th2)
-		  (thread-join! th1)
-		  (thread-join! th2)
-		  (list (p) *thr1-val* *thr2-val*)))
+    (let ()        
+      (define *thr1-val* #f)
+      (define *thr2-val* #f)
+      (define p (make-parameter 3))
+      
+      (test-equal "check locality of parameters"
+		  '(3 4 5)
+		  (let ((th1 (make-thread
+			      (lambda ()
+				(p 4)
+				(set! *thr1-val* (p)))))
+			(th2 (make-thread
+			      (lambda ()
+				(p 5)
+				(set! *thr2-val* (p))))))
+		    (thread-start! th1)
+		    (thread-start! th2)
+		    (thread-join! th1)
+		    (thread-join! th2)
+		    (list (p) *thr1-val* *thr2-val*))))
       
     )
 )
