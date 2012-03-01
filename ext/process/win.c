@@ -186,7 +186,6 @@ static int process_wait(SgProcess *process)
   }
   handles = (HANDLE*)process->handle;
   WaitForSingleObject(handles[1], INFINITE);
-  CloseHandle(handles[0]);
   CloseHandle(handles[1]);
   return 0;
 }
@@ -198,7 +197,13 @@ static int process_call(SgProcess *process, int waitP)
     return -1;
   }
   handles = (HANDLE*)process->handle;
-  ResumeThread(handles[0]);
+  if (handles[0]) {
+    ResumeThread(handles[0]);
+    CloseHandle(handles[0]);	/* we don't need this anymore */
+    handles[0] = NULL;
+  } else {
+    Sg_Error(UC("%S is already started."), process);
+  }
   if (waitP) {
     process_wait(process);
   }
@@ -217,6 +222,10 @@ int Sg_ProcessRun(SgProcess *process)
 
 int Sg_ProcessWait(SgProcess *process)
 {
+  /* before waiting, ensure the process is already started */
+  if (((HANDLE*)process->handle)[0]) {
+    Sg_Error(UC("%S is not started."), process);
+  }
   return process_wait(process);
 }
 

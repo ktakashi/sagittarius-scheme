@@ -173,6 +173,9 @@ int Sg_ProcessRun(SgProcess *process)
 int Sg_ProcessWait(SgProcess *process)
 {
   int status = 0;
+  if (process->handle == 0) {
+    Sg_Error(UC("%S is not started."), process);
+  }
   waitpid((pid_t)process->handle, &status, 0);
   return status;
 }
