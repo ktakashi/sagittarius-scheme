@@ -47,19 +47,67 @@
 	    process-run
 	    process-call
 	    process-wait
+	    <process>
+
+	    ;; user level APIs
 	    run
-	    <process>)
+	    call
+	    create-process
+	    )
     (import (core)
+	    (sagittarius threads)
 	    (sagittarius process impl))
 
-  (define (create-process name args)
-    (lambda ()
-      (let ((process (make-process name args)))
-	(values (process-run process)
-		(process-input-port process)
-		(process-output-port process)
-		(process-error-port process)))))
+  (define (create-process name args :key (stdout #f)
+			                 (stderr #f)
+					 (call? #t)
+					 (reader async-process-read))
+    (when (and (not call?) (not (output-port? stdout)))
+      (assertion-violation 
+       'create-process
+       "keyword argument :stdout must be output port, when :call? is #f"
+       stdout call?))
+    (let ((process (make-process name args)))
+      (cond ((and call? stdout)
+	     (reader process stdout (if stderr stderr stdout))
+	     (process-call process))
+	    (call?
+	     (process-call process))
+	    (else
+	     (reader process stdout (if stderr stderr stdout))
+	     (process-run process)))
+      process))
 
-  (define (run name args)
-    ((create-process name args)))
+  ;; handle both output and 
+  (define (async-process-read process stdout stderr)
+    (let ((out-thread (make-thread
+		       (lambda ()
+			 (let ((in (process-output-port process)))
+			   (let loop ((r (get-u8 in)))
+			     (unless (eof-object? r)
+			       (display (integer->char r) stdout)
+			       (loop (get-u8 in))))))))
+	  (err-thread (make-thread
+		       (lambda ()
+			 (let ((in (process-error-port process)))
+			   (let loop ((r (get-u8 in)))
+			     (unless (eof-object? r)
+			       (display (integer->char r) stderr)
+			       (loop (get-u8 in)))))))))
+      (thread-start! out-thread)
+      (thread-start! err-thread)))
+
+  (define (run name . args)
+    (create-process name
+		    args
+		    :stdout (current-output-port)
+		    :stderr (current-error-port)
+		    :call? #f))
+
+  (define (call name . args)
+    (create-process name
+		    args
+		    :stdout (current-output-port)
+		    :stderr (current-error-port)))
+
 )
