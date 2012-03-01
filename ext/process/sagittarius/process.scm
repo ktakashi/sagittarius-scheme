@@ -69,8 +69,9 @@
        stdout call?))
     (let ((process (make-process name args)))
       (cond ((and call? stdout)
-	     (reader process stdout (if stderr stderr stdout))
-	     (process-call process))
+	     (process-call process)
+	     ;; well user might not want to create threads.
+	     (reader process stdout (if stderr stderr stdout)))
 	    (call?
 	     (process-call process))
 	    (else
