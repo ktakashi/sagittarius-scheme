@@ -117,14 +117,17 @@ SgObject Sg_MakeProcess(SgString *name, SgObject commandLine)
   in  = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe0[1]));
   out = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe1[0]));
   err = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe2[0]));
+  in->name = UC("process-stdin");
+  out->name = UC("process-stdout");
+  err->name = UC("process-stderr");
 
   Sg_RegisterFinalizer(SG_OBJ(in), pipe_finalize, (void*)pipe0[1]);
   Sg_RegisterFinalizer(SG_OBJ(out), pipe_finalize, (void*)pipe1[0]);
   Sg_RegisterFinalizer(SG_OBJ(err), pipe_finalize, (void*)pipe2[0]);
 
-  p->in = Sg_MakeFileBinaryInputPort(in, SG_BUFMODE_BLOCK);
-  p->out = Sg_MakeFileBinaryInputPort(out, SG_BUFMODE_BLOCK);
-  p->err = Sg_MakeFileBinaryInputPort(err, SG_BUFMODE_BLOCK);
+  p->in = Sg_MakeFileBinaryOutputPort(in, SG_BUFMODE_NONE);
+  p->out = Sg_MakeFileBinaryInputPort(out, SG_BUFMODE_NONE);
+  p->err = Sg_MakeFileBinaryInputPort(err, SG_BUFMODE_NONE);
   return p;
  pipe_fail:
  create_fail:
