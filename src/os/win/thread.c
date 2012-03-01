@@ -140,22 +140,21 @@ int Sg_NotifyAll(SgInternalCond *cond)
   return TRUE;
 }
 
-static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex, int msecs)
+static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex,
+			 int msecs)
 {
   int last_waiter;
   EnterCriticalSection(&cond->waiters_count_lock);
   cond->waiters_count++;
   LeaveCriticalSection(&cond->waiters_count_lock);
-
-  if (WAIT_TIMEOUT == SignalObjectAndWait(mutex->mutex, cond->semaphore, msecs, FALSE)) {
+  if (WAIT_TIMEOUT == SignalObjectAndWait(mutex->mutex, cond->semaphore,
+					  msecs, FALSE)) {
     return FALSE;
   }
-
   EnterCriticalSection(&cond->waiters_count_lock);
   cond->waiters_count--;
   last_waiter = cond->was_broadcast && cond->waiters_count == 0;
   LeaveCriticalSection(&cond->waiters_count_lock);
-
   if (last_waiter) {
     SignalObjectAndWait(cond->waiters_done, mutex->mutex, INFINITE, FALSE);
   } else {

@@ -598,33 +598,37 @@ static int64_t file_write_to_block_buffer(SgObject self, uint8_t *v, int64_t req
   return write_size;
 }
 
-static int64_t file_write_to_line_buffer(SgObject self, uint8_t *v, int64_t req_size)
+static int64_t file_write_to_line_buffer(SgObject self, uint8_t *v,
+					 int64_t req_size)
 {
   int64_t write_size = 0;
   int64_t opos = SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), 0, SG_CURRENT);
   int need_unwind = FALSE;
+  SgBinaryPort *bp = SG_BINARY_PORT(self);
 
   if (req_size > 0) {
-    SG_BINARY_PORT(self)->dirty = TRUE;
+    bp->dirty = TRUE;
   }
   while (write_size < req_size) {
-    int64_t buf_diff =  PORT_DEFAULT_BUF_SIZE - SG_BINARY_PORT(self)->bufferIndex;
+    int64_t buf_diff =  PORT_DEFAULT_BUF_SIZE - bp->bufferIndex;
     if (buf_diff == 0) {
       file_flush_internal(self);
       need_unwind = TRUE;
     }
-    *(SG_BINARY_PORT(self)->buffer + SG_BINARY_PORT(self)->bufferIndex) = *(v + write_size);
-    SG_BINARY_PORT(self)->bufferIndex++;
+    *(bp->buffer + bp->bufferIndex) = *(v + write_size);
+    bp->bufferIndex++;
     write_size++;
-    if (SG_BINARY_PORT(self)->buffer[SG_BINARY_PORT(self)->bufferIndex - 1] == '\n') {
-      /* on Windows console, when 0x0a is written after 0x0a it must be one more character.
-	 however, if we flush here, it'll skip and cause something we don't want to.
-	 TODO: we need to detect it.
+    if (bp->buffer[bp->bufferIndex - 1] == '\n') {
+      /* for win utf16, 0x0a will be 0x0a00, so we need to put the next byte.
+	 FIXME: this might be too naive.
        */
-      /*
-	file_flush_internal(self);
-	need_unwind = TRUE;
-      */
+      if (Sg_UTF16ConsolePortP(self)) {
+	*(bp->buffer + bp->bufferIndex) = *(v + write_size);
+	bp->bufferIndex++;
+	write_size++;
+      }
+      file_flush_internal(self);
+      need_unwind = TRUE;
     }
   }
   if (need_unwind && SG_PORT(self)->direction == SG_IN_OUT_PORT) {

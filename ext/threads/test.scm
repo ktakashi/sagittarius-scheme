@@ -38,6 +38,7 @@
 		     (thread-join! t)))))
 
     ;; calculate fibonacchi in awful way
+    (print "mt-fib")
     (let ()
       (define (mt-fib n)
 	(let ((threads (make-vector n)))
@@ -60,6 +61,8 @@
 	      (loop (+ i 1))))
 	  (thread-join! (vector-ref threads (- n 1)))))
       (test-equal "thread-join!" 1346269 (mt-fib 31)))
+
+    (print "thread state")
     (let ((t1 (make-thread (lambda ()
 			     (let loop ()
 			       (sys-nanosleep #e5e8)
