@@ -22,7 +22,7 @@ SET(CMAKE_INSTALL_PREFIX ${INSTALL_PREFIX} CACHE INTERNAL "Prefix prepended to i
 
 #SET(SAGITTARIUS_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}"
 #  CACHE STRING "Sagittarius release version string")
-SET(SAGITTARIUS_VERSION "0.3.0" CACHE STRING "Sagittarius release version string" FORCE)
+SET(SAGITTARIUS_VERSION "0.3.1" CACHE STRING "Sagittarius release version string" FORCE)
 
 IF(WIN32 AND NOT CYGWIN)
   # On Windows platform, we resolve library path relatively.
