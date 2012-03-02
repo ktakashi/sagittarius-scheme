@@ -1998,11 +1998,11 @@
 	   ;; TODO custom port
 	   (result #f))))
 
-  (define-c-proc textual-port? (p::<port>) ::<boolean>
-    (result (SG_TEXTUAL_PORTP p)))
+  (define-c-proc textual-port? (p) ::<boolean>
+    (result (and (SG_PORTP p) (SG_TEXTUAL_PORTP p))))
 
-  (define-c-proc binary-port? (p::<port>) ::<boolean>
-    (result (SG_BINARY_PORTP p)))
+  (define-c-proc binary-port? (p) ::<boolean>
+    (result (and (SG_PORTP p) (SG_BINARY_PORTP p))))
 
   (define-c-proc transcoded-port (p::<port> t::<transcoder>) ::<top>
     (check-binary-port transcoded-port p)

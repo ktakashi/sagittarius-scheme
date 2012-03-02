@@ -250,21 +250,23 @@ and has an associated transcoder, and returns #f if @var{port} is binary or does
 not have an associated transcoder.
 }
 
-@define[Function]{@name{textual-port?} @args{port}}
-@define[Function]{@name{binary-port?} @args{port}}
-@desc{[R6RS] The @code{textual-port?} procedure returns #t if @var{port} is textual,
-and returns #f otherwise.
-The @code{binary-port?} procedure returns #t if port is binary, and returns #f
-otherwise.}
+@define[Function]{@name{textual-port?} @args{obj}}
+@define[Function]{@name{binary-port?} @args{obj}}
+@desc{[R6RS+] [R7RS] The @code{textual-port?} procedure returns #t if @var{obj}
+is textual port, otherwise #f.
+
+The @code{binary-port?} procedure returns #t if @var{obj} is binary port,
+otherwise #f.}
 
 @define[Function]{@name{transcoded-port} @args{binary-port transcoder}}
-@desc{[R6RS] The @code{transcoded-port} procedure returns a new textual port with
-the specified @var{transcoder}. Otherwise the new textual port's state is largely
-the same as that of @var{binary-port}. If @var{binary-port} is an input port, the
-new textual port will be an input port and will transcode the bytes that have not
-yet been read from @var{binary-port}. If @var{binary-port} is an output port, the
-new textual port will be an output port and will transcode output characters into
-bytes that are written to the byte sink represented by @var{binary-port}.
+@desc{[R6RS] The @code{transcoded-port} procedure returns a new textual port
+with the specified @var{transcoder}. Otherwise the new textual port's state is
+largely the same as that of @var{binary-port}. If @var{binary-port} is an input
+port, the new textual port will be an input port and will transcode the bytes
+that have not yet been read from @var{binary-port}. If @var{binary-port} is an
+output port, the new textual port will be an output port and will transcode
+output characters into bytes that are written to the byte sink represented by
+@var{binary-port}.
 }
 
 @define[Function]{@name{port-has-port-position?} @args{port}}
