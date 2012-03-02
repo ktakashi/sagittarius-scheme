@@ -123,9 +123,9 @@ static int process_call(SgProcess *process, int waitP)
     out->name = UC("process-stdout");
     err->name = UC("process-stderr");
 
-    process->in = Sg_MakeFileBinaryOutputPort(in, SG_BUFMODE_BLOCK);
-    process->out = Sg_MakeFileBinaryInputPort(out, SG_BUFMODE_BLOCK);
-    process->err = Sg_MakeFileBinaryInputPort(err, SG_BUFMODE_BLOCK);
+    process->in = Sg_MakeFileBinaryOutputPort(in, SG_BUFMODE_NONE);
+    process->out = Sg_MakeFileBinaryInputPort(out, SG_BUFMODE_NONE);
+    process->err = Sg_MakeFileBinaryInputPort(err, SG_BUFMODE_NONE);
 
     Sg_RegisterFinalizer(SG_OBJ(in), pipe_finalize, (void*)pipe0[1]);
     Sg_RegisterFinalizer(SG_OBJ(out), pipe_finalize, (void*)pipe1[0]);

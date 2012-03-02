@@ -1,0 +1,20 @@
+#!/bin/sh
+
+target_dir=@CMAKE_RUNTIME_OUTPUT_DIRECTORY@
+dest=dlls.txt
+
+echo 'Collecting .dll files from '${target_dir}
+
+if [ -f ${dest} ]; then
+    rm ${dest}
+fi
+
+for file in `ls -1 ${target_dir}/*.dll`
+do
+    echo $file >> ${dest}
+done
+
+echo 'done'
+echo 'results:'
+cat ${dest}
+

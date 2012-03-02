@@ -61,7 +61,8 @@
   (define (create-process name args :key (stdout #f)
 			                 (stderr #f)
 					 (call? #t)
-					 (reader async-process-read))
+					 (reader async-process-read)
+					 (transcoder #f))
     (when (and (not call?) (not (output-port? stdout)))
       (assertion-violation 
        'create-process
@@ -71,30 +72,43 @@
       (cond ((and call? stdout)
 	     (process-call process)
 	     ;; well user might not want to create threads.
-	     (reader process stdout (if stderr stderr stdout)))
+	     (reader process stdout (if stderr stderr stdout) transcoder)
+	     process)
 	    (call?
-	     (process-call process))
+	     (process-call process)
+	     process)
 	    (else
-	     (reader process stdout (if stderr stderr stdout))
-	     (process-run process)))
-      process))
+	     ;; on POSIX envirionment, pipe is not created yet, so we need to
+	     ;; emulate process-run like this.
+	     (process-call process)
+	     (reader process stdout (if stderr stderr stdout) transcoder)
+	     (process-wait process)))))
 
-  ;; handle both output and 
-  (define (async-process-read process stdout stderr)
+  ;; handle both stdout and stderr
+  (define (async-process-read process stdout stderr transcoder)
+    (define (pipe-read in out reader converter)
+      (let loop ((r (reader in)))
+	(unless (eof-object? r)
+	  (display (converter r) out)
+	  (loop (reader in)))))
     (let ((out-thread (make-thread
 		       (lambda ()
 			 (let ((in (process-output-port process)))
-			   (let loop ((r (get-u8 in)))
-			     (unless (eof-object? r)
-			       (display (integer->char r) stdout)
-			       (loop (get-u8 in))))))))
+			   (if transcoder
+			       (pipe-read (transcoded-port in transcoder)
+					  stdout
+					  get-char
+					  (lambda (x) x))
+			       (pipe-read in stdout get-u8 integer->char))))))
 	  (err-thread (make-thread
 		       (lambda ()
 			 (let ((in (process-error-port process)))
-			   (let loop ((r (get-u8 in)))
-			     (unless (eof-object? r)
-			       (display (integer->char r) stderr)
-			       (loop (get-u8 in)))))))))
+			   (if transcoder
+			       (pipe-read (transcoded-port in transcoder)
+					  stderr
+					  get-char
+					  (lambda (x) x))
+			       (pipe-read in stderr get-u8 integer->char)))))))
       (thread-start! out-thread)
       (thread-start! err-thread)))
 
@@ -103,12 +117,14 @@
 		    args
 		    :stdout (current-output-port)
 		    :stderr (current-error-port)
+		    :transcoder (native-transcoder)
 		    :call? #f))
 
   (define (call name . args)
     (create-process name
 		    args
 		    :stdout (current-output-port)
-		    :stderr (current-error-port)))
+		    :stderr (current-error-port)
+		    :transcoder (native-transcoder)))
 
 )

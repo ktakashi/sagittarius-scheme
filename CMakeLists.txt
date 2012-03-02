@@ -228,9 +228,9 @@ INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/src/sagittarius
 
 # uninstall target
 CONFIGURE_FILE(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
-    IMMEDIATE @ONLY)
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+  IMMEDIATE @ONLY)
 
 ADD_CUSTOM_TARGET(uninstall
     COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
@@ -246,3 +246,32 @@ ADD_CUSTOM_TARGET(doc
   gendoc --output=sagittarius-ref.html
   --style=lib/style.css --javascript=lib/tools.js sagittarius-ref.scrbl
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/doc)
+
+# for Cygwin rebase problem
+IF (CYGWIN)
+  CONFIGURE_FILE(
+    "${CMAKE_CURRENT_SOURCE_DIR}/rebase.sh.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/rebase.sh"
+    IMMEDIATE @ONLY)
+MESSAGE("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+MESSAGE("!!                        I M P O R T A N T                             !!")
+MESSAGE("!!                                                                      !!")
+MESSAGE("!! On Cygwin environment, you need to do more stuff before you install. !!")
+MESSAGE("!! Run 'make rebase' and you need to run 'rebaseall' with the following !!")
+MESSAGE("!! command line in this directory,  before  running  'make install' or  !!")
+MESSAGE("!! even 'make test'.                                                    !!")
+MESSAGE("!!                                                                      !!")
+MESSAGE("!!                 $ /bin/rebaseall -v -T dlls.txt                      !!")
+MESSAGE("!!                                                                      !!")
+MESSAGE("!! It must be run without running other Cygwin processes but ash.       !!")
+MESSAGE("!! (You must not even run bash.  Close all cygwin windows, open Windows !!")
+MESSAGE("!! command prompt, run \\cygwin\\bin\\ash (the actual path may differ      !!")
+MESSAGE("!! depending on how you install cygwin), cd to your build directory,    !!")
+MESSAGE("!! then run the above command.)                                         !!")
+MESSAGE("!! See http://www.tishler.net/jason/software/rebase/rebase-2.4.2.README !!")
+MESSAGE("!! for more details.                                                    !!")
+MESSAGE("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
+ADD_CUSTOM_TARGET(rebase COMMAND /bin/sh rebase.sh)
+
+ENDIF()
