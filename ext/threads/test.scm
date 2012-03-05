@@ -83,7 +83,7 @@
 				  (thread-state t1))
 				 (else
 				  (print e)))
-		    (thread-join! t1)))))
+		    (thread-join! t1))))
 
     ;; thread and error
     (print "thread and error")
