@@ -32,6 +32,7 @@
 #include <windows.h>
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/thread.h>
+#include <sagittarius/vm.h>
 
 #ifdef USE_BOEHM_GC
 # define _beginthreadex GC_beginthreadex
@@ -69,15 +70,41 @@ static DWORD ExceptionFilter(EXCEPTION_POINTERS *ep, DWORD *ei)
   return EXCEPTION_EXECUTE_HANDLER;
 }
 
-int Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry,
-			   void *param)
+typedef struct ThreadParams
 {
+  SgThreadEntryFunc *start;
+  void *arg;
+} ThreadParams;
+
+static unsigned int __stdcall win32_thread_entry(void *params)
+{
+  ThreadParams *threadParams = (ThreadParams *)params;
+  SgThreadEntryFunc *start;
+  void *arg;
   DWORD ei[] = { 0, 0, 0 };
+  unsigned int status;
+  
+  start = threadParams->start;
+  arg = threadParams->arg;
+  /* temporary storage is no longer needed. */
+  free(threadParams);
   __try {
-    thread->thread = (HANDLE)_beginthreadex(NULL, 0, entry, param, 0, NULL);
+    status = (*start)(arg);
   } __except (ExceptionFilter(GetExceptionInformation(), ei)) {
     return FALSE;
   }
+  return status;
+}
+
+int Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry,
+			   void *param)
+{
+  /* this heap must be freed in win32_thread_entry */
+  ThreadParams *params = (ThreadParams*)malloc(sizeof(ThreadParams));
+  params->start = entry;
+  params->arg = param;
+  thread->thread = (HANDLE)_beginthreadex(NULL, 0, win32_thread_entry,
+					  params, 0, NULL);
   return TRUE;
 }
 
@@ -207,7 +234,7 @@ void Sg_ExitThread(SgInternalThread *thread, void *ret)
 #error Module contains CPU-specific code; modify and recompile.
 #endif
 
-static void CALLBACK cancel_self(DWORD unused)
+static void cancel_self(DWORD unused)
 {
   DWORD exceptionInformation[3];
   exceptionInformation[0] = (DWORD)(2);
@@ -220,7 +247,17 @@ static void CALLBACK cancel_self(DWORD unused)
 void Sg_TerminateThread(SgInternalThread *thread)
 {
   /* FIXME I'm not sure if it's valid or not */
+  /* Get current thread */
+  HANDLE selfH = Sg_VM()->thread.thread;
   HANDLE threadH = thread->thread;
+  if (SG_EQ(selfH, threadH)) {
+    /* self termination.
+       we do not support this, so just ignore.
+       TODO: should we throw error?
+     */
+    return;
+  }
+
   SuspendThread(threadH);
   if (WaitForSingleObject(threadH, 0) == WAIT_TIMEOUT) {
     CONTEXT context;

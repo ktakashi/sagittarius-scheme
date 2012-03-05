@@ -77,16 +77,13 @@
       (thread-cont! t1)
       (test-equal "thread-state" 'runnable (thread-state t1))
       (thread-terminate! t1)
-      (cond-expand
-       (sagittarius.os.windows #t)
-       (else
-	(test-equal "thread-state" 'terminated
-		    (thread-guard (e 
-				   ((terminated-thread-exception? e)
-				    (thread-state t1))
-				   (else
-				    (print e)))
-		      (thread-join! t1))))))
+      (test-equal "thread-state" 'terminated
+		  (thread-guard (e 
+				 ((terminated-thread-exception? e)
+				  (thread-state t1))
+				 (else
+				  (print e)))
+		    (thread-join! t1)))))
 
     ;; thread and error
     (print "thread and error")
