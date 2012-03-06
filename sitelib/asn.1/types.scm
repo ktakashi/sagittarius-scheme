@@ -2,7 +2,7 @@
 ;;;
 ;;; types.scm - ASN.1 basic types
 ;;;
-;;;   Copyright (c) 2000-2011  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2009-2012  Takashi Kato  <ktakashi@ymail.com>
 ;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,343 +28,744 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
-
+;; based on bouncycastle implementation
 ;; For now we just implemented only the part which RKCS#1 v1.5 encode requires.
 (library (asn.1 types)
-    (export
-     TAG_BOOLEAN
-     TAG_INTEGER
-     TAG_BIT_STRING
-     TAG_OCTET_STRING
-     TAG_NULL
-     TAG_OBJECT_IDENTIFIER
-     TAG_OBJECT_DESCRIPTOR
-     TAG_EXTERNAL
-     TAG_REAL
-     TAG_ENUMERATED
-     TAG_UTF8_STRING
-     TAG_RELATIVE_OID
-     TAG_SEQUENCE
-     TAG_SET
-     TAG_NUMERIC_STRING
-     TAG_PRINTABLE_STRING
-     TAG_TELETEX_STRING
-     TAG_VIDEOTEX_STRING
-     TAG_IA5_STRING
-     TAG_UTC_TIME
-     TAG_GENERALIZED_TIME
-     TAG_GRAPHIC_STRING
-     TAG_VISIBLE_STRING
-     TAG_GENERAL_STRING
-     TAG_CHARACTER_STRING
-     TAG_BMP_STRING
+    (export <der-encodable>
+	    <asn.1-encodable>
+	    <der-object>
+	    <asn.1-object>
+	    <asn.1-string>
+	    <asn.1-tagged-object>
+	    <asn.1-sequence>
+	    <asn.1-null>
+	    <asn.1-octet-string>
+	    <asn.1-set>
 
-     CLASS_UNIVERSAL
-     CLASS_APPLICATION
-     CLASS_CONTEXT
-     CLASS_PRIVATE
+	    <der-application-specific>
+	    <der-string>
+	    <der-bit-string>
+	    <der-bmp-string>
+	    <der-octet-string>
+	    <der-general-string>
+	    <der-ia5-string>
+	    <der-numeric-string>
+	    <der-printable-string>
+	    <der-t61-string>
+	    <der-universal-string>
+	    <der-utf8-string>
+	    <der-visible-string>
+	    <der-boolean>
+	    <der-enumerated>
+	    <der-integer>
+	    <der-object-identifier>
+	    <der-sequence>
+	    <der-set>
+	    <der-null>
+	    <der-generalized-time>
+	    <der-utc-time>
+	    <der-tagged-object>
+	    <der-external>
+	    <der-unknown-tag>
+	    ;; constructors
+	    make-der-application-specific
+	    make-der-bit-string
+	    make-der-bmp-string
+	    make-der-octet-string
+	    make-der-general-string
+	    make-der-ia5-string
+	    make-der-numeric-string
+	    make-der-printable-string
+	    make-der-t61-string
+	    make-der-universal-string
+	    make-der-utf8-string
+	    make-der-visible-string
+	    make-der-boolean
+	    make-der-enumerated
+	    make-der-integer
+	    make-der-object-identifier
+	    make-der-sequence
+	    make-der-set
+	    make-der-null
+	    make-der-generalized-time
+	    make-der-utc-time
+	    make-der-tagged-object
+	    make-der-external
+	    make-der-unknown-tag
 
-     TAG_PRIMITIVE
-     TAG_CONSTRUCTIVE
-
-     ;; type
-     make-asn.1-type        asn.1-type?
-     asn.1-type-name        asn.1-type-name-set!
-     asn.1-type-tag	    asn.1-type-tag-set!
-     asn.1-type-type	    asn.1-type-type-set!
-     asn.1-type-child	    asn.1-type-child-set!
-     asn.1-type-loop	    asn.1-type-loop-set!
-     asn.1-type-optional    asn.1-type-optional-set!
-     asn.1-type-defined-by  asn.1-type-defined-by-set!
-     ;; util
-     tag-explicit!
-     tag-constructive!
-     encode-tag
-     ;; condition
-     &asn.1-error asn.1-error?
-     raise-asn.1-error
-     ;; misc
-     *base-types*
-     ;; asn.1-object
-     make-asn.1-object      asn.1-object?
-     asn.1-object-tag
-     asn.1-object-value     asn.1-object-value-set!
-     asn.1-object-tagging
-     asn.1-object-tag-class
-     ;; constructors
-     make-asn.1-boolean
-     make-asn.1-integer
-     make-asn.1-bit-string
-     make-asn.1-octet-string
-     make-asn.1-string
-     make-asn.1-null
-     make-asn.1-oid
-     make-asn.1-real
-     make-asn.1-enum
-     make-asn.1-relative-oid
-     make-asn.1-sequence
-     make-asn.1-set
-     make-asn.1-object-descriptor
-     make-asn.1-utf8-string
-     make-asn.1-numeric-string
-     make-asn.1-teletex-string
-     make-asn.1-t61-string
-     make-asn.1-videotex-string
-     make-asn.1-ia5-string
-     make-asn.1-utc-time
-     make-asn.1-generalized-time
-     make-asn.1-graphic-string
-     make-asn.1-general-string
-     make-asn.1-visible-string
-     make-asn.1-iso64-string
-     make-asn.1-character-string
-     make-asn.1-universal-string
-     make-asn.1-printable-string
-     make-asn.1-bmp-string
-     make-asn.1-bcd-string
-     ;;
-     asn.1-sequence
-     asn.1-set
-     )
+	    ;; methods
+	    der-encodable->der-object
+	    asn.1-encodable->asn.1-object
+	    asn.1-string->string
+	    asn.1-sequence-add
+	    der-encode
+	    )
     (import (rnrs)
-	    (srfi :19 time)
+	    (clos user)
 	    (sagittarius)
-	    (sagittarius control))
+	    (sagittarius control)
+	    (sagittarius time) ;; for <date>
+	    (asn.1 der tags)
+	    (asn.1 der encode)
+	    (srfi :13 strings)
+	    (srfi :14 char-set))
+  ;; the class hierarchy is base on bouncycastle.
 
-  ;; ASN.1 tag values
-  (define TAG_BOOLEAN		#x01)
-  (define TAG_INTEGER		#x02)
-  (define TAG_BIT_STRING	#x03)
-  (define TAG_OCTET_STRING	#x04)
-  (define TAG_NULL		#x05)
-  (define TAG_OBJECT_IDENTIFIER	#x06)
-  (define TAG_OBJECT_DESCRIPTOR #x07)
-  (define TAG_EXTERNAL		#x08)
-  (define TAG_REAL		#x09)
-  (define TAG_ENUMERATED	#x0a)
-  (define TAG_UTF8_STRING	#x0c)
-  (define TAG_RELATIVE_OID	#x0d)
-  (define TAG_SEQUENCE		#x10)
-  (define TAG_SET		#x11)
-  (define TAG_NUMERIC_STRING	#x12)
-  (define TAG_PRINTABLE_STRING	#x13)
-  (define TAG_TELETEX_STRING	#x14)
-  (define TAG_VIDEOTEX_STRING	#x15)
-  (define TAG_IA5_STRING	#x16)
-  (define TAG_UTC_TIME		#x17)
-  (define TAG_GENERALIZED_TIME	#x18)
-  (define TAG_GRAPHIC_STRING	#x19)
-  (define TAG_VISIBLE_STRING	#x1a)
-  (define TAG_GENERAL_STRING	#x1b)
-  (define TAG_CHARACTER_STRING	#x1c)
-  (define TAG_BMP_STRING	#x1e)
+  ;; DEREncodable and ASN1Encodable (abstract)
+  ;; TODO I don't think we need this encodable class.
+  (define-class <der-encodable> () ())
+  (define-method der-encodable->der-object ((o <der-encodable>))
+    (assertion-violation 
+     'der-encodable->der-object
+     "subclass must implement der-encodable->der-object method" o))
 
-  ;; ASN.1 tag classes
-  (define CLASS_UNIVERSAL	#x00)
-  (define CLASS_APPLICATION	#x40)
-  (define CLASS_CONTEXT		#x80)
-  (define CLASS_PRIVATE		#xc0)
-
-  ;; primitive or constructive
-  (define TAG_PRIMITIVE		#x00)
-  (define TAG_CONSTRUCTIVE	#x20)
-
-  (define-record-type asn.1-type
-    (fields (mutable name)
-	    (mutable tag)
-	    (mutable type)
-	    (mutable child)
-	    (mutable loop)
-	    (mutable optional)
-	    (mutable defined-by))
-    (protocol (lambda (p)
-		(lambda args
-		  (let-keywords args ((name #f)
-				      (tag -1)
-				      (type #f)
-				      (child #f)
-				      (defined-by #f)
-				      (loop #f)
-				      (optional #f))
-		    (p name tag type child loop optional defined-by))))))
-
-  (define (tag-explicit! type)
-    (let ((new-op (make-asn.1-type :type (asn.1-type-type type)
-				   :child (asn.1-type-child type)
-				   :loop (asn.1-type-loop type)
-				   :optional #f)))
-      (asn.1-type-type-set! type "SEQUENCE")
-      (asn.1-type-child-set! type (list new-op))
-      (asn.1-type-loop-set! type #f)
-      type))
-
-  (define (tag-constructive! self)
-    (when (and (asn.1-type-tag self)
-	       (zero? (bitwise-and (asn.1-type-tag self)
-				   TAG_CONSTRUCTIVE)))
-      (asn.1-type-tag-set! self (bitwise-ior (asn.1-type-tag self)
-					     TAG_CONSTRUCTIVE)))
-    self)
-
-  (define (encode-tag tag-class val)
-    (define classes `(,CLASS_UNIVERSAL ,CLASS_APPLICATION ,CLASS_CONTEXT ,CLASS_PRIVATE))
-    (unless (memv tag-class classes)
-      (raise-asn.1-error 'encode-tag "Bad tag class" (number->string tag-class 16)))
-    (unless (zero? (bitwise-and val #xffe00000))
-      (raise-asn.1-error 'encode-tag "Tag value too big" (number->string val 16)))
-    ;; bits: tttt tttt vvvv vvvv vvvv vvvv vvvv vvvv
-    ;; t: class tag
-    ;; v: value
-    ;; for now we don't do any thing about encoding just merge
-    ;; tag class is 1 byte
-    (bitwise-and (bitwise-arithmetic-shift-left tag-class 24)
-		 val))
-
-  (define-condition-type &asn.1-error &error
-    make-asn.1-error asn.1-error?)
-
-  (define (raise-asn.1-error who message . irritants)
-    (raise
-     (apply condition
-	    (filter values
-		    (list (make-asn.1-error)
-			  (and who (make-who-condition who))
-			  (make-message-condition message)
-			  (make-irritants-condition irritants))))))
-
-  ;; for compiler
-  (define *base-types*
-    `(("BOOLEAN"      	   ,TAG_BOOLEAN           . BOOLEAN)
-      ("INTEGER"      	   ,TAG_INTEGER           . INTEGER)
-      ("BIT-STRING"   	   ,TAG_BIT_STRING        . BIT-STRING)
-      ("OCTET-STRING" 	   ,TAG_OCTET_STRING      . STRING)
-      ("STRING"       	   ,TAG_OCTET_STRING      . STRING)
-      ("NULL"         	   ,TAG_NULL              . NULL)
-      ("OBJECT-IDENTIFIER" ,TAG_OBJECT_DESCRIPTOR . OBJECT-IDENTIFIER)
-      ("REAL"              ,TAG_REAL              . REAL)
-      ("ENUMERATED"        ,TAG_ENUMERATED        . INTEGER)
-      ("ENUM"              ,TAG_ENUMERATED        . INTEGER)
-      ("RELATIVE-OID"      ,TAG_RELATIVE_OID      . ROID)
-
-      ("SEQUENCE"          ,(bitwise-ior TAG_SEQUENCE TAG_CONSTRUCTIVE) . SEQUENCE)
-      ("SET"               ,(bitwise-ior TAG_SET      TAG_CONSTRUCTIVE) . SET)
-
-      ("ObjectDescriptor"  ,TAG_OBJECT_DESCRIPTOR . STRING)
-      ("UTF8String"        ,TAG_UTF8_STRING       . STRING)
-      ("NumericString"     ,TAG_NUMERIC_STRING    . STRING)
-      ("TeletexString"     ,TAG_TELETEX_STRING    . STRING)
-      ("T61String"         ,TAG_TELETEX_STRING    . STRING)
-      ("VideotexString"    ,TAG_VIDEOTEX_STRING   . STRING)
-      ("IA5String"         ,TAG_IA5_STRING        . STRING)
-      ("UTCTime"           ,TAG_UTC_TIME          . UTIME)
-      ("GeneralizedTime"   ,TAG_GENERALIZED_TIME  . GTIME)
-      ("GraphicString"     ,TAG_GRAPHIC_STRING    . STRING)
-      ("VisibleString"     ,TAG_VISIBLE_STRING    . STRING)
-      ("ISO64String"       ,TAG_VISIBLE_STRING    . STRING)
-      ("GeneralString"     ,TAG_GENERAL_STRING    . STRING)
-      ("CharacterString"   ,TAG_CHARACTER_STRING  . STRING)
-      ("UniversalString"   ,TAG_CHARACTER_STRING  . STRING)
-      ("PrintableString"   ,TAG_PRINTABLE_STRING  . STRING)
-      ("BMPString"         ,TAG_BMP_STRING        . STRING)
-      ("BCDString"         ,TAG_OCTET_STRING      . BCD)
-
-      ("CHOICE" #f . CHOICE)
-      ("ANY"    #f . ANY)))
-
-  ;; asn.1-object
-  (define-record-type asn.1-object
-    (fields tag
-	    (mutable value)
-	    ;; do we need this?
-	    tagging
-	    tag-class)
-    (protocol
+  (define-class <asn.1-encodable> (<der-encodable>) ())
+  (define-method asn.1-encodable->asn.1-object ((o <asn.1-encodable>))
+    (assertion-violation 
+     'asn.1-encodable->asn.1-object
+     "subclass must implement asn.1-encodable->asn.1-object method" o))
+  (define-method der-encodable->der-object ((o <asn.1-encodable>))
+    (asn.1-encodable->asn.1-object o))
+  (define-method asn.1-encodable-encoded ((o <asn.1-encodable>))
+    (call-with-bytevector-output-port
      (lambda (p)
-       (lambda (tag value . opts)
-	 (let-keywords opts ((tagging 'IMPLICIT)
-			     (tag-class CLASS_UNIVERSAL))
-	   (unless (or (eq? tagging 'IMPLICIT)
-		       (eq? tagging 'EXPLICIT))
-	     (assertion-violation 'make-asn.1-object
-				  "invalid tagging mode" tagging))
-	   (unless (or (= tag-class CLASS_UNIVERSAL)
-		       (= tag-class CLASS_PRIVATE)
-		       (= tag-class CLASS_CONTEXT)
-		       (= tag-class CLASS_APPLICATION))
-	     (assertion-violation 'make-asn.1-object
-				  "invalid tag class" tag-class))
-	   (p tag value tagging tag-class))))))
+       (der-write-object o p))))
+  (define-method asn.1-encodable-encoded ((o <asn.1-encodable>)
+					  (encoding <string>))
+    ;; on bouncycastle I didn't see any difference. why?
+    (asn.1-encodable-encoded o))
+  
 
-  ;; constructors for primitive types
-  (define-syntax constructor-generator
-    (lambda (x)
-      (syntax-case x ()
-	((k type validator tag)
-	 (with-syntax ((name (datum->syntax #'k (string->symbol
-						 (format "make-asn.1-~a" (syntax->datum #'type))))))
-	   #'(define (name value . opts)
-	       (check-arg validator value name)
-	       (apply make-asn.1-object tag value opts)))))))
+  ;; DERObject (abstract)
+  (define-class <der-object> (<asn.1-encodable>) ())
+  (define-method asn.1-encodable->asn.1-object ((o <der-object>)) o)
+  (define-method der-encode ((o <der-object>) (p <port>))
+    (assertion-violation 'der-encode
+			 "subclass must implement der-encode method" o))
 
-  (constructor-generator boolean      boolean?    TAG_BOOLEAN)
-  (constructor-generator integer      integer?    TAG_INTEGER)
-  (constructor-generator bit-string   string?     TAG_BIT_STRING)
-  (constructor-generator octet-string bytevector? TAG_OCTET_STRING)
-  (constructor-generator string       string?     TAG_STRING)
-  (constructor-generator null         null?       TAG_NULL)
-  ;; TODO OID check method
-  (constructor-generator oid          string?     TAG_OBJECT_IDENTIFIER)
-  (constructor-generator real         real?       TAG_REAL)
-  (constructor-generator enum         positive?   TAG_ENUMERATED)
-  ;; TODO correct?
-  (constructor-generator relative-oid string?     TAG_RELATIVE_OID)
+  ;; base class for all DER and BER objects
+  (define-class <asn.1-object> (<der-object>) ())
+  
+  ;; DER classes are the super classes for all ASN1 classes.
+  ;; TODO: this hierarchy is weird for me, re-consider it.
 
-  ;; contstructive
-  ;; to avoid unnecessary calculation
-  ;;(define sequence_tag (bitwise-ior TAG_SEQUENCE TAG_CONSTRUCTIVE))
-  ;;(define set_tag      (bitwise-ior TAG_SET      TAG_CONSTRUCTIVE))
-  (define (check-vector-contents v)
-    (check-arg vector? v check-vector-contents)
-    (let ((l (vector->list v)))
-      (for-all asn.1-object? l)))
-  (constructor-generator sequence check-vector-contents TAG_SEQUENCE)
-  (constructor-generator set      check-vector-contents TAG_SET)
+  ;; DERApplicationSpecific
+  (define-class <der-application-specific> (<asn.1-object>)
+    ((constructed? :init-keyword :constructed?)
+     (tag          :init-keyword :tag)
+     (octets       :init-keyword :octets)))
 
-  ;; for convenience
-  (define-syntax asn.1-sequence
-    (er-macro-transformer
-     (lambda (form rename compare)
-       (let ((args (cdr form)))
-	 `(make-asn.1-sequence (vector ,@args))))))
+  (define-method make-der-application-specific
+    ((constructed? <boolean>) (tag <integer>) (octets <bytevector>))
+    (make <der-application-specific>
+      :constructed? constructed? :tag tag :octets octets))
 
-  (define-syntax asn.1-set
-    (er-macro-transformer
-     (lambda (form rename compare)
-       (let ((args (cdr form)))
-	 `(make-asn.1-set (vector ,@args))))))
+  (define-method make-der-application-specific
+    ((tag <integer>) (octets <bytevector>))
+    (make-der-application-specific #f tag octets))
 
-  ;; pre-defined string
-  (constructor-generator object-descriptor string? TAG_OBJECT_DESCRIPTOR)
-  (constructor-generator utf8-string       string? TAG_UTF8_STRING)
-  (constructor-generator numeric-string    string? TAG_NUMERIC_STRING)
-  (constructor-generator teletex-string    string? TAG_TELETEX_STRING)
-  (constructor-generator t61-string        string? TAG_TELETEX_STRING)
-  (constructor-generator videotex-string   string? TAG_VIDEOTEX_STRING)
-  (constructor-generator ia5-string        string? TAG_IA5_STRING)
-  (constructor-generator utc-time          time?   TAG_UTC_TIME)
-  (constructor-generator generalized-time  time?   TAG_GENERALIZED_TIME)
-  (constructor-generator general-string    string? TAG_GENERAL_STRING)
-  (constructor-generator graphic-string    string? TAG_GRAPHIC_STRING)
-  (constructor-generator visible-string    string? TAG_VISIBLE_STRING)
-  (constructor-generator iso64-string      string? TAG_VISIBLE_STRING)
-  (constructor-generator character-string  string? TAG_CHARACTER_STRING)
-  (constructor-generator universal-string  string? TAG_CHARACTER_STRING)
-  (constructor-generator printable-string  string? TAG_PRINTABLE_STRING)
-  (constructor-generator bmp-string        string? TAG_BMP_STRING)
-  (constructor-generator bcd-string        string? TAG_OCTET_STRING)
-  ;; TODO do we need choice and any?
+  (define-method make-der-application-specific
+    ((explicit <boolean>) (tag <integer>) (object <der-encodable>))
+    (let ((data (der-encode (der-encodable->der-object object))))
+      (define (get-length-of-length data)
+	(do ((count 2 (+ count 1))) ; TODO assumes only a 1 byte tag number
+	    ((zero? (bitwise-and (bytevector-u8-ref data (- count 1)) #x80))
+	     count)))
+      (make <der-application-specific>
+	:constructed? explicit :tag tag
+	:octets (if explicit
+		    data
+		    (let* ((len (get-length-of-length data))
+			   (tmp (make-bytevector
+				 (- (bytevector-length data) len))))
+		      (bytevector-copy! data len tmp 0 (bytevector-length tmp))
+		      tmp)))
+      ))
+    (define-method make-der-application-specific
+      ((tag <integer>) (object <der-encodable>))
+      (make-der-application-specific #t tag object))
 
-)
+    (define-method der-encode ((o <der-application-specific>) (p <port>))
+      ;; assume p is binary port
+      (let ((class-bits APPLICATION))
+	(when (slot-ref o 'constructed?)
+	  (set! class-bits (bitwise-ior class-bits CONSTRUCTED)))
+	(der-write-encoded class-bits (slot-ref o 'tag) (slot-ref o 'octets)))
+      )
+
+    ;; ASN1String
+    (define-class <asn.1-string> () ())
+    (define-method asn.1-string->string ((o <asn.1-string>))
+      (assertion-violation 
+       'asn.1-string->string
+       "subclass must implement asn.1-string->string method" o))
+    (define-class <der-string> (<asn.1-string>) ())
+
+    ;; ASN1TaggedObject
+    (define-class <asn.1-tagged-object> (<asn.1-object>)
+      ((tag-no 	  :init-keyword :tag-no)
+       (empty? 	  :init-keyword :empty? :init-value #f)
+       (explicit? :init-keyword :explicit? :init-value #t)
+       (obj       :init-keyword :obj)))
+
+    ;; ASN1Sequence
+    (define-class <asn.1-sequence> (<asn.1-object>)
+      ((sequence :init-keyword :sequence :init-value '())))
+    (define-method asn.1-sequence-add ((self <asn.1-sequence>)
+				       (o <der-encodable>))
+      (slot-set! self 'sequence
+		 (append (slot-ref self 'sequence) (list o))))
+
+    ;; ASN1Null
+    (define-class <asn.1-null> (<asn.1-object>) ())
+
+    ;; ASN1OctetString
+    (define-class <asn.1-octet-string> (<asn.1-object>)
+      ((string :init-keyword :string))) ;; bytevector
+
+    ;; ASN1Set
+    (define-class <asn.1-set> (<asn.1-object>)
+      ((set :init-keyword :set :init-value '())))
+    (define-method asn.1-set-add ((self <asn.1-set>)
+				  (o <der-encodable>))
+      (slot-set! self 'set (append (slot-ref self 'set) (list o))))
+
+    ;; DERBitString
+    (define-class <der-bit-string> (<asn.1-object> <der-string>)
+      ((data         :init-keyword :data)
+       (padding-bits :init-keyword :padding-bits)))
+    (define-method make-der-bit-string ((data <bytevector>) (pad <integer>))
+      (make <der-bit-string> :data data :padding-bits pad))
+    (define-method make-der-bit-string ((data <bytevector>))
+      (make-der-bit-string data 0))
+    ;; encode
+    (define-method der-encode ((o <der-bit-string>) (p <port>))
+      (let* ((data (slot-ref o 'data))
+	     (len  (bytevector-length data))
+	     (bytes (make-bytevector (+ len 1))))
+	(bytevector-u8-set! bytes 0 (slot-ref o 'padding-bits))
+	(bytevector-copy! data 0 bytes 1 len)
+	(der-write-encoded BIT-STRING bytes p)
+	))
+
+    (define-constant *table* "0123456789ABCDEF")
+    (define-method asn.1-string->string ((o <der-bit-string>))
+      (let ((string (call-with-bytevector-output-port
+		     (lambda (p)
+		       (der-write-object o p)))))
+	(call-with-string-output-port
+	 (lambda (p)
+	   (dotimes (i (bytevector-length string))
+	     (let ((b (bytevector-u8-ref string i)))
+	       (put-char p (string-ref
+			    *table*
+			    (bitwise-and (bitwise-arithmetic-shift-right b 4)
+					 #xf)))
+	       (put-char p (string-ref *table* (bitwise-and b #xf))))
+	     )))
+	)
+      )
+    
+    ;; DERBMPString (assume this is UTF16)
+    (define-class <der-bmp-string> (<asn.1-object> <der-string>)
+      ((string :init-keyword :string)))
+    (define-method make-der-bmp-string ((bytes <bytevector>))
+      (make <der-bmp-string> :string (utf16->string bytes 'big)))
+    (define-method make-der-bmp-string ((string <string>))
+      (make <der-bmp-string> :string string))
+    (define-method der-encode ((o <der-bmp-string>) (p <port>))
+      (der-write-encoded BMP-STRING (string-utf16 (slot-ref o 'string)) p))
+    (define-method asn.1-string->string ((o <der-bmp-string>))
+      (slot-ref o 'string))
+
+    ;; DEROctetString
+    (define-class <der-octet-string> (<asn.1-octet-string>) ())
+    (define-method make-der-octet-string ((b <bytevector>))
+      (make <der-octet-string> :string b))
+    (define-method make-der-octet-string ((o <der-encodable>))
+      (make-der-octet-string (asn.1-encodable-encoded
+			      (asn.1-encodable->asn.1-object o))))
+    (define-method der-encode ((o <der-octet-string>) (p <port>))
+      (der-write-encoded OCTET-STRING (slot-ref o 'string) p))
+
+    ;; DERGeneralString
+    (define-class <der-general-string> (<asn.1-object> <der-string>)
+      ((string :init-keyword :string)))
+    (define-method make-der-general-string ((s <string>))
+      (make <der-general-string> :string s))
+    (define-method make-der-general-string ((b <bytevector>))
+      (make <der-general-string> :string (utf8->string b)))
+    (define-method der-encode ((o <der-general-string>) (p <port>))
+      (der-write-encoded GENERAL-STRING (string->utf8 (slot-ref o 'string))
+			 p))
+    (define-method asn.1-string->string ((o <der-general-string>))
+      (slot-ref o 'string))
+
+    ;; DERIA5String
+    (define-class <der-ia5-string> (<asn.1-object> <der-string>)
+      ((string :init-keyword :string)))
+    (define (is-ia5-string s)
+      (for-all (lambda (ch) (> (char->integer ch) #x007f))
+	       (string->list s)))
+    (define-method make-der-ia5-string ((s <string>))
+      (make-der-ia5-string s #f))
+    (define-method make-der-ia5-string ((s <string>) (validate? <boolean>))
+      (when (and validate? (not (is5-string? s)))
+	(assertion-violation 'make-der-ia5-string
+			     "string contains illegal characters" s))
+      (make <der-ia5-string> :string s))
+    (define-method make-der-ia5-string ((b <bytevector>))
+      ;; this is actually incorrect, we need to convert all bytes to char,
+      ;; as if bytes are latin-1. but for now
+      (make-der-ia5-string (utf8->string b) #f))
+    (define-method der-encode ((o <der-ia5-string>) (p <port>))
+      (der-write-encoded IA5-STRING (string->utf8 (slot-ref o 'string)) p))
+    (define-method asn.1-string->string ((o <der-ia5-string>))
+      (slot-ref l 'string))
+
+    ;; DERNumericString
+    (define-class <der-numeric-string> (<asn.1-object> <der-string>)
+      ((string :init-keyword :string)))
+    (define (numeric-string? s)
+      (for-all (lambda (ch) (or (char<=? #\0 ch #\9)
+				(char=? ch #\space)))
+	       (string->list s)))
+    (define-method make-der-numeric-string ((s <string>))
+      (make-der-numeric-string s #f))
+    (define-method make-der-numeric-string ((s <string>) (validate? <boolean>))
+      (when (and validate? (not (numeric-string? s)))
+	(assertion-violation 'make-der-numeric-string
+			     "string contains illegal characters" s))
+      (make <der-numeric-string> :string s))
+    (define-method make-der-numeric-string ((b <bytevector>))
+      (make-der-numeric-string (utf8->string b) #f))
+    (define-method der-encode ((o <der-numeric-string>) (p <port>))
+      (der-write-encoded NUMERIC-STRING (string->utf8 (slot-ref o 'string)) p))
+    (define-method asn.1-string->string ((o <der-numeric-string>))
+      (slot-ref o 'string))
+
+    ;; DERPrintableString
+    (define-class <der-printable-string> (<asn.1-object> <der-string>)
+      ((string :init-keyword :string)))
+    (define (printable-string? s)
+      (for-all (lambda (ch)
+		 (char-set-contains? char-set:printing ch))
+	       (string->list s)))
+    (define-method make-der-printable-string ((s <string>))
+      (make-der-printable-string s #f))
+    (define-method make-der-printable-string ((s <string>)
+					      (validate? <boolean>))
+      (when (and validate? (not (printable-string? s)))
+	(assertion-violation 'make-der-printable-string
+			     "string contains illegal characters" s))
+      (make <der-printable-string> :string s))
+    (define-method make-der-printable-string ((b <bytevector>))
+      (make-der-printable-string (utf8->string b) #f))
+    (define-method der-encode ((o <der-printable-string>) (p <port>))
+      (der-write-encoded PRINTABLE-STRING 
+			 (string->utf8 (slot-ref o 'string)) p))
+    (define-method asn.1-string->string ((o <der-printable-string>))
+      (slot-ref o 'string))
+
+    ;; DERUTF16String
+    (define-class <der-t61-string> (<asn.1-object> <der-string>)
+      ((string :init-keyword :string)))
+    (define-method make-der-t61-string ((s <string>))
+      (make <der-t61-string> :string s))
+    (define-method make-der-t61-string ((b <bytevector>))
+      (make <der-t61-string> :string (utf8->string b)))
+    (define-method der-encode ((o <der-t61-string>) (p <port>))
+      (der-write-encoded T61-STRING (string->utf8 (slot-ref o 'string)) p))
+    (define-method asn.1-string->string ((o <der-t61-string>))
+      (slot-ref o 'string))
+
+    ;; DERUniversalString
+    (define-class <der-universal-string> (<asn.1-object> <der-string>)
+      ((string :init-keyword :string)))
+    (define-method make-der-universal-string ((b <bytevector>))
+      (make <der-universal-string> :string b))
+    (define-method der-encode ((o <der-universal-string>) (p <port>))
+      (der-write-encoded UNIVERSAL-STRING (slot-ref o 'string) p))
+    (define-method asn.1-string->string ((o <der-universal-string>))
+      (let ((string (call-with-bytevector-output-port
+		     (lambda (p)
+		       (der-write-object o p)))))
+	(call-with-string-output-port
+	 (lambda (p)
+	   (dotimes (i (bytevector-length string))
+	     (let ((b (bytevector-u8-ref string i)))
+	       (put-char p (string-ref
+			    *table*
+			    (bitwise-and (bitwise-arithmetic-shift-right b 4)
+					 #xf)))
+	       (put-char p (string-ref *table* (bitwise-and b #xf)))))))))
+
+    ;; DERUTF8String
+    (define-class <der-utf8-string> (<asn.1-object> <der-string>)
+      ((string :init-keyword :string)))
+    (define-method make-der-utf8-string ((s <string>))
+      (make <der-utf8-string> :string s))
+    (define-method make-der-utf8-string ((b <bytevector>))
+      (make <der-utf8-string> :string (utf8->string b)))
+    (define-method der-encode ((o <der-utf8-string>) (p <port>))
+      (der-write-encoded UTF8-STRING (string->utf8 (slot-ref o 'string)) p))
+    (define-method asn.1-string->string ((o <der-utf8-string>))
+      (slot-ref o 'string))
+
+    ;; DERVisibleString
+    (define-class <der-visible-string> (<asn.1-object> <der-string>)
+      ((string :init-keyword :string)))
+    (define-method make-der-visible-string ((s <string>))
+      (make <der-visible-string> :string s))
+    (define-method make-der-visible-string ((b <bytevector>))
+      (make <der-visible-string> :string (utf8->string b)))
+    (define-method der-encode ((o <der-visible-string>) (p <port>))
+      (der-write-encoded VISIBLE-STRING (string->utf8 (slot-ref o 'string)) p))
+    (define-method asn.1-string->string ((o <der-visible-string>))
+      (slot-ref o 'string))
+
+    ;; DERBoolean
+    (define-class <der-boolean> (<asn.1-object>)
+      ((value :init-keyword :value)))
+    (define-method make-der-boolean ((b <boolean>))
+      (make <der-boolean> :value (if b #xff 0)))
+    (define-method make-der-boolean ((b <bytevector>))
+      (unless (= (bytevector-length b) 1)
+	(assertion-violation 'make-der-boolean
+			     "byte value should have 1 byte" b))
+      (make <der-boolean> :value (bytevector-u8-ref b 0)))
+    (define-method der-encode ((o <der-boolean>) (p <port>))
+      (let ((bytes (make-bytevector 1 (slot-ref o 'value))))
+	(der-write-encoded BOOLEAN bytes p)))
+
+    ;; DEREnumerated
+    (define-class <der-enumerated> (<asn.1-object>) 
+      ((bytes :init-keyword :bytes)))
+    (define-method make-der-enumerated ((bytes <bytevector>))
+      (make <der-enumerated> :bytes bytes))
+    (define-method make-der-enumerated ((value <integer>))
+      (make-der-enumerated (integer->bytevector)))
+    (define-method der-encode ((o <der-enumerated>) (p <port>))
+      (der-write-encoded ENUMERATED (slot-ref o 'bytes) p))
+
+    ;; DERInteger
+    (define-class <der-integer> (<asn.1-object>)
+      ((bytes :init-keyword :bytes)))
+    (define-method make-der-integer ((i <integer>))
+      (make <der-integer> :bytes (integer->bytevector i)))
+    (define-method make-der-integer ((b <bytevector>))
+      (make <der-integer> :bytes b))
+    (define-method der-encode ((o <der-integer>) (p <port>))
+      (der-write-encoded INTEGER (slot-ref o 'bytes) p))
+
+    ;; DERObjectIdentifier
+    ;; helper
+    (define-class <oid-tokenizer> ()
+      ((oid   :init-keyword :oid)
+       (index :init-keyword :index :init-value 0)))
+    (define (make-oid-tokenizer s)
+      (make <oid-tokenizer> :oid s))
+    (define-method has-more-tokens? ((o <oid-tokenizer>))
+      (slot-ref o 'index))
+    (define-method next-token ((o <oid-tokenizer>))
+      (let ((index (slot-ref o 'index))
+	    (oid   (slot-ref o 'oid)))
+	(cond ((not index) #f)
+	      (else
+	       (let ((end (string-index oid #\. index)))
+		 (if end
+		     (let ((token (substring oid index end)))
+		       (slot-set! o 'index (+ end 1))
+		       token)
+		     (let ((token (substring oid index (string-length oid))))
+		       (slot-set! o 'index #f)
+		       token)))))))
+
+    (define-class <der-object-identifier> (<asn.1-object>)
+      ((identifier :init-keyword :identifier)))
+    (define-method make-der-object-identifier ((s <string>))
+      (define (valid-identifier? s)
+	(cond ((or (< (string-length s) 3)
+		   (not (char=? (string-ref s 1) #\.))) #f)
+	      ((or (char<? (string-ref s 0) #\0)
+		   (char>? (string-ref s 0) #\2)) #f)
+	      (else
+	       (let loop ((i (- (string-length s) 1))
+			  (period-allowed? #f))
+		 (cond ((< i 2) period-allowed?)
+		       (else
+			(let ((ch (string-ref s i)))
+			  (cond ((char<=? #\0 ch #\9)
+				 (loop (- i 1) #t))
+				((char=? ch #\.)
+				 (if period-allowed?
+				     (loop (- i 1) #f)
+				     #f))
+				(else #f)))))))
+	      ))
+      (unless (valid-identifier? s)
+	(assertion-violation 'make-der-object-identifier
+			     "given string is not OID" s))
+      (make <der-object-identifier> :identifier s))
+
+    (define-method make-der-object-identifier ((bytes <bytevector>))
+      (make <der-object-identifier>
+	:identifier (call-with-string-output-port
+		     (lambda (p)
+		       (let ((value 0)
+			     (first #t))
+			 (dotimes (i (bytevector-length bytes))
+			   (let ((b (bitwise-and (bytevector-u8-ref bytes i)
+						 #xff)))
+			     (set! value (+ (* value 128)
+					    (bitwise-and b #x7f)))
+			     (when (zero? (bitwise-and b #x80))
+			       (when first
+				 (case (div value 40)
+				   ((0) (put-char p #\0))
+				   ((1)
+				    (put-char p #\1)
+				    (set! value (- value 40)))
+				   (else
+				    (put-char p #\0)
+				    (set! value (- value 40))))
+				 (set! first #f))
+			       (put-char p #\.)
+			       (put-string p (number->string value))
+			       (set! value 0)))))))))
+
+    (define-method der-encode ((o <der-object-identifier>) (p <port>))
+      (define (write-field f p)
+	(let ((byte-count (div (+ (bitwise-length f) 6) 7)))
+	  (cond ((zero? byte-count) (put-u8 p 0))
+		(else 
+		 (let ((tmp (make-bytevector byte-count)))
+		   (do ((i (- byte-count 1) (- i 1))
+			(f f (bitwise-arithmetic-shift-right f 7)))
+		       ((< i 0) #t)
+		     (bytevector-u8-set! 
+		      tmp i (bitwise-ior (bitwise-and f #x7f) #x80)))
+		   (bytevector-u8-set!
+		    tmp (- byte-count 1)
+		    (bitwise-and (bytevector-u8-ref tmp (- byte-count 1)) #x7f))
+		   (put-bytevector p tmp)
+		   ))))
+	)
+      (der-write-encoded
+       OBJECT-IDENTIFIER
+       (call-with-bytevector-output-port
+	(lambda (p)
+	  (let ((tok (make-oid-tokenizer (slot-ref o 'identifier))))
+	    (write-field (+ (* (string->number (next-token tok)) 40)
+			    (string->number (next-token tok))) p)
+	    (let loop ()
+	      (when (has-more-tokens? tok)
+		(let ((token (next-token tok)))
+		  (write-field (string->number token) p))
+		(loop)))
+	    )
+	  ))
+       p))
+
+    ;; DERSequence
+    (define-class <der-sequence> (<asn.1-sequence>) ())
+    (define-method make-der-sequence () (make <der-sequence>))    
+    (define-method make-der-sequence ((o <der-encodable>))
+      (make <der-sequence> :sequence (list o)))
+    (define-method make-der-sequence l
+      (or (for-all (lambda (o) (is-a? o <der-encodable>)) l)
+	  (assertion-violation 'make-der-sequcne
+			       "list of <der-encodable> required" l))
+      (make <der-sequence> :sequence l))
+    (define-method der-encode ((o <der-sequence>) (p <port>))
+      (der-write-encoded
+       (bitwise-ior SEQUENCE CONSTRUCTED)
+       (call-with-bytevector-output-port
+	(lambda (p)
+	  (let loop ((l (slot-ref o 'sequence)))
+	    (unless (null? l)
+	      (der-write-object (car l) p)
+	      (loop (cdr l))))))
+       p))
+
+    ;; DERSet
+    (define-class <der-set> (<asn.1-set>) ())
+    (define-method initialize #;:around ((self <der-set>) initargs)
+      (define (get-encoded encodable)
+	(call-with-bytevector-output-port
+	 (lambda (p)
+	   (der-write-object encodable p))))
+      ;; sort
+      (call-next-method)
+      (let ((set (slot-ref self 'set)))
+	(slot-set! self 'set
+		   (list-sort (lambda (a b)
+				(let* ((ea (get-encoded a))
+				       (eb (get-encoded b))
+				       (len (min (bytevector-length ea)
+						 (bytevector-length eb))))
+				  (let loop ((i 0))
+				    (cond ((= i len)
+					   (= len (bytevector-length ea)))
+					  ((not (= (bytevector-u8-ref ea i)
+						   (bytevector-u8-ref eb i)))
+					   (< (bytevector-u8-ref ea i)
+					      (bytevector-u8-ref eb i)))
+					  (else (loop (+ i 1))))
+				    ))) set))))
+    (define-method make-der-set () (make <der-set>))    
+    (define-method make-der-set ((o <der-encodable>))
+      (make <der-set> :set (list o)))
+    (define-method make-der-set l
+      (or (for-all (lambda (o) (is-a? o <der-encodable>)) l)
+	  (assertion-violation 'make-der-sequcne
+			       "list of <der-encodable> required" l))
+      (make <der-set> :set l))
+    (define-method der-encode ((o <der-set>) (p <port>))
+      (der-write-encoded
+       (bitwise-ior SET CONSTRUCTED)
+       (call-with-bytevector-output-port
+	(lambda (p)
+	  (let loop ((l (slot-ref o 'set)))
+	    (unless (null? l)
+	      (der-write-object (car l) p)
+	      (loop (cdr l))))))
+       p))
+    ;; DERNull
+    (define-class <der-null> (<asn.1-null>) ())
+    (define *der-null* (make <der-null>))
+    (define-method make-der-null () *der-null*)
+    (define-method der-encode ((o <der-null>) (p <port>))
+      (der-write-encoded NULL #vu8() p))
+
+    ;; DERGeneralizedTime
+    (define-class <der-generalized-time> (<asn.1-object>)
+      ((time :init-keyword :time)))
+    ;; helper
+    (define (get-time s) #t) ;; dummy
+    (define-method make-der-generalized-time ((s <string>))
+      (unless (get-time s)
+	(assertion-violation 'make-der-generalized-time
+			     "invalid time format" s))
+      (make <der-generalized-time> :time s))
+    (define-method make-der-generalized-time ((b <bytevector>))
+      (let ((s (utf8->string b)))
+	(unless (get-time s)
+	  (assertion-violation 'make-der-generalized-time
+			       "invalid time format" s))
+	(make <der-generalized-time> :time s)))
+    (define-method make-der-generalized-time ((t <date>))
+      (make <der-generalized-time>
+	:time (date->string t "~Y~m~d~H~M~S'~z'")))
+    (define-method der-encode ((o <der-generalized-time>) (p <port>))
+      (der-write-encoded GENERALIZED-TIME (string->utf8 (slot-ref o 'time)) p))
+
+    ;; DERUTCTime
+    (define-class <der-utc-time> (<asn.1-object>)
+      ((time :init-keyword time)))
+    (define-method make-der-utc-time ((s <string>))
+      (string->date s "~Y~m~d~H~M~S~z") ;; check
+      (make <der-utc-time> :time s))
+    (define-method make-der-utc-time ((d <date>))
+      (make <der-utc-time> :time (date->string s "~Y~m~d~H~M~S~Z")))
+    (define-method der-encode ((o <der-utc-time>) (p <port>))
+      (der-write-encoded UTC-TIME (string->utf8 (slot-ref o 'time)) p))
+
+    ;; Tagged object
+    ;; TODO should we create object parser?
+    (define-class <der-tagged-object> (<asn.1-tagged-object>) ())
+    (define-method make-der-tagged-object
+      ((explicit? <boolean>) (tag-no <integer>) (obj <der-encodable>))
+      (make <der-tagged-object> 
+	:tag-no tag-no
+	:explicit? (if (is-a? obj <asn.1-choice>) #t explicit?)
+	:obj obj))
+    (define-method make-der-tagged-object
+      ((tag-no <integer>) (obj <der-encodable>))
+      (make <der-tagged-object> :tag-no tag-no :obj obj))
+    (define-method make-der-tagged-object ((tag-no <integer>))
+      (make <der-tagged-object> 
+	:explicit? #f :tag-no tag-no :obj (make-der-sequence)))
+    (define-method der-encode ((o <der-tagged-object>) (p <port>))
+      (cond ((slot-ref 'o empty?)
+	     (der-write-encoded (bitwise-ior CONSTRUCTED TAGGED)
+				(slot-ref o 'tag-no) #vu8() p))
+	    (else
+	     (let* ((obj (slot-ref o 'obj))
+		    (bytes (asn.1-encodable-encoded
+			    (der-encodable->der-object obj))))
+	       (cond ((slot-ref o 'explicit?)
+		      (der-write-encoded (bitwise-ior CONSTRUCTED TAGGED)
+					 (slot-ref o 'tag-no) bytes p))
+		     (else
+		      (let ((flag (cond ((zero? (bitwise-and
+						 (bytevector-u8-ref bytes 0)
+						 CONSTRUCTED))
+					 (bitwise-ior CONSTRUCTED TAGGED))
+					(else TAGGED))))
+			(der-write-tag flag (slot-ref o 'tag-no) p)
+			(put-bytevector p bytes 1 (- (bytevector-length bytes)
+						     1)))
+		      ))))))
+
+    ;; DERExternal
+    ;; TODO direct-reference, indirect-reference and data-value-descriptor
+    ;;      can be NULL.
+    (define-class <der-external> (<asn.1-object>)
+      ((direct-reference      :init-keyword :direct-reference)
+       (indirect-reference    :init-keyword :indirect-reference)
+       (data-value-descriptor :init-keyword :data-value-descriptor)
+       (encoding              :init-keyword :encoding)
+       (external-content      :init-keyword :external-content)))
+    (define-method make-der-external
+      ((dr <der-object-identifier>) (idr <der-integer>) (dvd <asn.1-object>)
+       (ed <der-tagged-object>))
+      (make-der-external dv idr dvd (slot-ref ed 'tag-no)
+			 (der-encodable->der-object ed)))
+    (define-method make-der-external
+      ((dr <der-object-identifier>) (idr <der-integer>) (dvd <asn.1-object>)
+       (encoding <integer>) (ed <der-object>))
+      (make <der-external>
+	:direct-reference dr
+	:indirect-reference idr
+	:data-value-descriptor dvd
+	:encoding encoding
+	:external-content (der-encodable->der-object ed)))
+
+    (define-method der-encode ((o <der-external>) (p <port>))
+      (let ((dr  (slot-ref o 'direct-reference))
+	    (idr (slot-ref o 'indirect-reference))
+	    (dvd (slot-ref o 'data-value-descriptor))
+	    (obj (make-der-tagged-object (slot-ref o 'encoding)
+					 (slot-ref o 'external-content))))
+	(der-write-encoded CONSTRUCTED EXTERNAL
+			   (call-with-bytevector-output-port
+			    (lambda (p)
+			      (der-encode dr p)
+			      (der-encode idr p)
+			      (der-encode dvd p)
+			      (der-encode obj p)))
+			   p)))
+
+
+    ;; unknown tag. we insert one of these when we find a tag we don't know
+    (define-class <der-unknown-tag> (<der-object>)
+      ((constructed? :init-keyword :constructed?)
+       (tag          :init-keyword :tag)
+       (data         :init-keyword :data)))
+    (define-method make-der-unknown-tag ((b <boolean>) (t <integer>)
+					 (data <bytevector>))
+      (make <der-unknown-tag> :constructed? b :tag t :data data))
+    (define-method make-der-unknown-tag ((t <integer>) (data <bytevector>))
+      (make <der-unknown-tag> :constructed? #f :tag t :data data))
+    (define-method der-encode ((o <der-unknown-tag>) (p <port>))
+      (der-write-encoded (if (slot-ref o 'constructed?)
+			     CONSTRUCTED
+			     0)
+			 (slot-ref o 'tag)
+			 (slot-ref o 'data)
+			 p))
+    )
 
 ;; Local Variables:
 ;; coding: utf-8

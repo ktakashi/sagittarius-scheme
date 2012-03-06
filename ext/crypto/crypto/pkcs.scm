@@ -69,11 +69,11 @@
 	(bytevector-copy! (hash hasher buf) 0 T (* counter len) len))))
 
   ;; section 9.1.1
-  (define-with-key (pkcs1-emsa-pss-encode m em-bits
-					  :key (algo :hash (hash-algorithm SHA-1))
-					       (mgf mgf-1)
-					       (salt-length #f)
-					       (prng (secure-random RC4)))
+  (define (pkcs1-emsa-pss-encode m em-bits
+				 :key (algo :hash (hash-algorithm SHA-1))
+				      (mgf mgf-1)
+				      (salt-length #f)
+				      (prng (secure-random RC4)))
     (unless salt-length
       (set! salt-length (hash-size algo)))
     (let ((hash-len (hash-size algo))
@@ -114,10 +114,10 @@
 	      EM))))))
 
   ;; section 9.1.2
-  (define-with-key (pkcs1-emsa-pss-verify m em em-bits
-					  :key (algo :hash (hash-algorithm SHA-1))
-					       (mgf mgf-1)
-					       (salt-length #f))
+  (define (pkcs1-emsa-pss-verify m em em-bits
+				 :key (algo :hash (hash-algorithm SHA-1))
+				      (mgf mgf-1)
+				      (salt-length #f))
     (unless salt-length
       (set! salt-length (hash-size algo)))
     (let ((hash-len (hash-size algo))
@@ -158,7 +158,8 @@
 	    (raise-decode-error 'pkcs1-emsa-pss-verify
 				"inconsistent"))
 	  (let ((salt (make-bytevector salt-length 0)))
-	    (bytevector-copy! DB (- (bytevector-length DB) salt-length) salt 0 salt-length)
+	    (bytevector-copy! DB (- (bytevector-length DB) salt-length)
+			      salt 0 salt-length)
 	    (let ((m-dash (make-bytevector (+ 8 hash-len salt-length) 0)))
 	      (bytevector-copy! m-hash 0 m-dash 8 hash-len)
 	      (bytevector-copy! salt 0 m-dash (+ 8 hash-len) salt-length)
@@ -169,20 +170,25 @@
 				"inconsistent")))))))))
 
   ;; section 9.2
-  (define-with-key (pkcs1-emsa-v1.5-encode m em-bits
-					   :key (algo :hash (hash-algorithm SHA-1)))
+  (define (pkcs1-emsa-v1.5-encode m em-bits
+				  :key (algo :hash (hash-algorithm SHA-1)))
     (let ((em-len (align-size (bit em-bits)))
 	  (h      (hash algo m))
 	  (oid    (hash-oid algo)))
       (unless oid
-	(assertion-violation 'pkcs1-emsa-v1.5-encode "given hash algorithm does not have OID" algo))
+	(assertion-violation 'pkcs1-emsa-v1.5-encode
+			     "given hash algorithm does not have OID" algo))
       ;; compute digest info
-      (let* ((digest (asn.1-sequence (asn.1-sequence (make-asn.1-oid oid) (make-asn.1-null '()))
-				     (make-asn.1-octet-string h)))
+      (let* ((digest (make-der-sequence (make-der-sequence
+					 (make-der-object-identifier oid)
+					 (make-der-null))
+					(make-der-octet-string h)))
 	     (T (encode digest))
 	     (t-len (bytevector-length T)))
 	(when (< em-len (+ t-len 11))
-	  (raise-encode-error 'pkcs1-emsa-v1.5-encode "intended encoded message length too short" em-len))
+	  (raise-encode-error 'pkcs1-emsa-v1.5-encode
+			      "intended encoded message length too short"
+			      em-len))
 	(let* ((PS-len (- em-len t-len 3))
 	       ;; Initialize with PS value
 	       (EM (make-bytevector (+ PS-len 3 t-len) #xFF)))
@@ -193,11 +199,11 @@
 	  EM)))
     )
 
-  (define-with-key (pkcs1-emsa-v1.5-verify m em em-bits
-					   :key (algo :hash (hash-algorithm SHA-1)))
+  (define (pkcs1-emsa-v1.5-verify m em em-bits
+				  :key (algo :hash (hash-algorithm SHA-1)))
     ;; verify is the same as encode
     (let1 EM (pkcs1-emsa-v1.5-encode m em-bits :hash algo)
-      ;; to remove 0, we need to convert bv to integer and integer to bv. sucks!!
+      ;; to remove 0, we need to convert bv to integer and integer to bv. sucks!
       (if (= (bytevector->integer em) (bytevector->integer EM))
 	  #t
 	  (raise-decode-error 'pkcs1-emsa-v1.5-verify
