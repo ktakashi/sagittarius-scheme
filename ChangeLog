@@ -1,3 +1,9 @@
+2012-03-07  Takashi Kato  <ktakashi@ymail.com>
+
+	* sitelib/util/port.scm (util): added port-fold-right.
+
+	* src/clos.c (Sg_NoNextMethod): fixed infinite loop.
+
 2012-03-05  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/os/win/thread.c (Sg_InternalThreadStart): fixed thread-terminate! related error on Windows.

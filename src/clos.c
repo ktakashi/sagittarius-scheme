@@ -1140,10 +1140,13 @@ void Sg_InitBuiltinMethod(SgMethod *m)
 
 SgObject Sg_NoNextMethod(SgObject *argv, int argc, SgGeneric *gf)
 {
+  SgObject h = SG_NIL, t = SG_NIL, cp, args = Sg_ArrayToList(argv, argc);
+  SG_FOR_EACH(cp, args) {
+    SG_APPEND1(h, t, Sg_ClassOf(SG_CAR(cp)));
+  }
   Sg_AssertionViolation(SG_INTERN("call-next-method"),
 			Sg_Sprintf(UC("no applicable method for %S with "
-				      "arguments %S"), SG_OBJ(gf),
-				   Sg_ArrayToList(argv, argc)),
+				      "arguments %S"), SG_OBJ(gf), h),
 			SG_NIL);
   return SG_UNDEF;		/* dummy */
 }

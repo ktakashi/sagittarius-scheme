@@ -34,7 +34,8 @@
 	    port->string
 	    port->sexp-list
 	    port->string-list
-	    port-fold)
+	    port-fold
+	    port-fold-right)
     (import (rnrs)
 	    (srfi :1)
 	    (srfi :38))
@@ -60,4 +61,10 @@
       (if (eof-object? item)
 	  r
 	  (loop (reader) (fn item r)))))
+
+  (define (port-fold-right fn knil reader)
+    (let loop ((item (reader)))
+      (if (eof-object? item)
+	  knil
+	  (fn item (loop (reader))))))
 )

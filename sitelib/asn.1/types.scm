@@ -41,6 +41,7 @@
 	    <asn.1-null>
 	    <asn.1-octet-string>
 	    <asn.1-set>
+	    <asn.1-choice>
 
 	    <der-application-specific>
 	    <der-string>
@@ -99,6 +100,11 @@
 	    asn.1-string->string
 	    asn.1-sequence-add
 	    der-encode
+
+	    ;; misc
+	    *current-indent*
+	    (rename (generic-write der-generic-write))
+	    der-list->string
 	    )
     (import (rnrs)
 	    (clos user)
@@ -108,7 +114,22 @@
 	    (asn.1 der tags)
 	    (asn.1 der encode)
 	    (srfi :13 strings)
-	    (srfi :14 char-set))
+	    (srfi :14 char-set)
+	    (srfi :39 parameters))
+  ;; for write-object
+  (define *current-indent* (make-parameter #f))
+  (define (generic-write class value p)
+    (let ((indent (*current-indent*)))
+      (parameterize ((*current-indent* (if indent (+ indent 2) 0)))
+	(dotimes (i (*current-indent*))
+	  (display #\space p))
+	(format p "#<~a ~a>" class value))))
+  ;; explicitly convert to string
+  (define (bytevector->string b) 
+    (list->string (map (lambda (u)
+			 (integer->char (bitwise-and u #xff)))
+		       (bytevector->u8-list b))))
+
   ;; the class hierarchy is base on bouncycastle.
 
   ;; DEREncodable and ASN1Encodable (abstract)
@@ -230,6 +251,10 @@
 				  (o <der-encodable>))
       (slot-set! self 'set (append (slot-ref self 'set) (list o))))
 
+    ;; ASN1Choice
+    ;; This is just a marker interface
+    (define-class <asn.1-choice> () ())
+
     ;; DERBitString
     (define-class <der-bit-string> (<asn.1-object> <der-string>)
       ((data         :init-keyword :data)
@@ -245,8 +270,7 @@
 	     (bytes (make-bytevector (+ len 1))))
 	(bytevector-u8-set! bytes 0 (slot-ref o 'padding-bits))
 	(bytevector-copy! data 0 bytes 1 len)
-	(der-write-encoded BIT-STRING bytes p)
-	))
+	(der-write-encoded BIT-STRING bytes p)))
 
     (define-constant *table* "0123456789ABCDEF")
     (define-method asn.1-string->string ((o <der-bit-string>))
@@ -261,10 +285,10 @@
 			    *table*
 			    (bitwise-and (bitwise-arithmetic-shift-right b 4)
 					 #xf)))
-	       (put-char p (string-ref *table* (bitwise-and b #xf))))
-	     )))
-	)
-      )
+	       (put-char p (string-ref *table* (bitwise-and b #xf)))))))))
+    (define-method write-object ((o <der-bit-string>) (p <port>))
+      (generic-write "der-bit-string" (asn.1-string->string o) p))
+
     
     ;; DERBMPString (assume this is UTF16)
     (define-class <der-bmp-string> (<asn.1-object> <der-string>)
@@ -277,6 +301,8 @@
       (der-write-encoded BMP-STRING (string-utf16 (slot-ref o 'string)) p))
     (define-method asn.1-string->string ((o <der-bmp-string>))
       (slot-ref o 'string))
+    (define-method write-object ((o <der-bmp-string>) (p <port>))
+      (generic-write "der-bmp-string" (asn.1-string->string o) p))
 
     ;; DEROctetString
     (define-class <der-octet-string> (<asn.1-octet-string>) ())
@@ -287,6 +313,8 @@
 			      (asn.1-encodable->asn.1-object o))))
     (define-method der-encode ((o <der-octet-string>) (p <port>))
       (der-write-encoded OCTET-STRING (slot-ref o 'string) p))
+    (define-method write-object ((o <der-octet-string>) (p <port>))
+      (generic-write "der-octet-string" (slot-ref o 'string) p))
 
     ;; DERGeneralString
     (define-class <der-general-string> (<asn.1-object> <der-string>)
@@ -300,6 +328,8 @@
 			 p))
     (define-method asn.1-string->string ((o <der-general-string>))
       (slot-ref o 'string))
+    (define-method write-object ((o <der-general-string>) (p <port>))
+      (generic-write "der-general-string" (slot-ref o 'string) p))
 
     ;; DERIA5String
     (define-class <der-ia5-string> (<asn.1-object> <der-string>)
@@ -322,6 +352,8 @@
       (der-write-encoded IA5-STRING (string->utf8 (slot-ref o 'string)) p))
     (define-method asn.1-string->string ((o <der-ia5-string>))
       (slot-ref l 'string))
+    (define-method write-object ((o <der-ia5-string>) (p <port>))
+      (generic-write "der-ia5-string" (slot-ref o 'string) p))
 
     ;; DERNumericString
     (define-class <der-numeric-string> (<asn.1-object> <der-string>)
@@ -343,6 +375,8 @@
       (der-write-encoded NUMERIC-STRING (string->utf8 (slot-ref o 'string)) p))
     (define-method asn.1-string->string ((o <der-numeric-string>))
       (slot-ref o 'string))
+    (define-method write-object ((o <der-numeric-string>) (p <port>))
+      (generic-write "der-numeric-string" (slot-ref o 'string) p))
 
     ;; DERPrintableString
     (define-class <der-printable-string> (<asn.1-object> <der-string>)
@@ -366,6 +400,8 @@
 			 (string->utf8 (slot-ref o 'string)) p))
     (define-method asn.1-string->string ((o <der-printable-string>))
       (slot-ref o 'string))
+    (define-method write-object ((o <der-printable-string>) (p <port>))
+      (generic-write "der-printable-string" (slot-ref o 'string) p))
 
     ;; DERUTF16String
     (define-class <der-t61-string> (<asn.1-object> <der-string>)
@@ -378,6 +414,8 @@
       (der-write-encoded T61-STRING (string->utf8 (slot-ref o 'string)) p))
     (define-method asn.1-string->string ((o <der-t61-string>))
       (slot-ref o 'string))
+    (define-method write-object ((o <der-t61-string>) (p <port>))
+      (generic-write "der-t61-string" (slot-ref o 'string) p))
 
     ;; DERUniversalString
     (define-class <der-universal-string> (<asn.1-object> <der-string>)
@@ -399,6 +437,8 @@
 			    (bitwise-and (bitwise-arithmetic-shift-right b 4)
 					 #xf)))
 	       (put-char p (string-ref *table* (bitwise-and b #xf)))))))))
+    (define-method write-object ((o <der-universal-string>) (p <port>))
+      (generic-write "der-universal-string" (asn.1-string->string o) p))
 
     ;; DERUTF8String
     (define-class <der-utf8-string> (<asn.1-object> <der-string>)
@@ -411,6 +451,8 @@
       (der-write-encoded UTF8-STRING (string->utf8 (slot-ref o 'string)) p))
     (define-method asn.1-string->string ((o <der-utf8-string>))
       (slot-ref o 'string))
+    (define-method write-object ((o <der-utf8-string>) (p <port>))
+      (generic-write "der-utf8-string" (slot-ref o 'string) p))
 
     ;; DERVisibleString
     (define-class <der-visible-string> (<asn.1-object> <der-string>)
@@ -423,6 +465,8 @@
       (der-write-encoded VISIBLE-STRING (string->utf8 (slot-ref o 'string)) p))
     (define-method asn.1-string->string ((o <der-visible-string>))
       (slot-ref o 'string))
+    (define-method write-object ((o <der-visible-string>) (p <port>))
+      (generic-write "der-visible-string" (slot-ref o 'string) p))
 
     ;; DERBoolean
     (define-class <der-boolean> (<asn.1-object>)
@@ -437,6 +481,8 @@
     (define-method der-encode ((o <der-boolean>) (p <port>))
       (let ((bytes (make-bytevector 1 (slot-ref o 'value))))
 	(der-write-encoded BOOLEAN bytes p)))
+    (define-method write-object ((o <der-boolean>) (p <port>))
+      (generic-write "der-boolean" (if (zero? (slot-ref o 'value)) #f #t) p))
 
     ;; DEREnumerated
     (define-class <der-enumerated> (<asn.1-object>) 
@@ -447,6 +493,8 @@
       (make-der-enumerated (integer->bytevector)))
     (define-method der-encode ((o <der-enumerated>) (p <port>))
       (der-write-encoded ENUMERATED (slot-ref o 'bytes) p))
+    (define-method write-object ((o <der-enumerated>) (p <port>))
+      (generic-write "der-enumerated" (slot-ref o 'bytes) p))
 
     ;; DERInteger
     (define-class <der-integer> (<asn.1-object>)
@@ -457,6 +505,9 @@
       (make <der-integer> :bytes b))
     (define-method der-encode ((o <der-integer>) (p <port>))
       (der-write-encoded INTEGER (slot-ref o 'bytes) p))
+    (define-method write-object ((o <der-integer>) (p <port>))
+      (generic-write "der-integer"
+		     (bytevector->integer (slot-ref o 'bytes)) p))
 
     ;; DERObjectIdentifier
     ;; helper
@@ -527,8 +578,8 @@
 				    (put-char p #\1)
 				    (set! value (- value 40)))
 				   (else
-				    (put-char p #\0)
-				    (set! value (- value 40))))
+				    (put-char p #\2)
+				    (set! value (- value 80))))
 				 (set! first #f))
 			       (put-char p #\.)
 			       (put-string p (number->string value))
@@ -566,6 +617,8 @@
 	    )
 	  ))
        p))
+    (define-method write-object ((o <der-object-identifier>) (p <port>))
+      (generic-write "der-object-identifier" (slot-ref o 'identifier)  p))
 
     ;; DERSequence
     (define-class <der-sequence> (<asn.1-sequence>) ())
@@ -587,32 +640,46 @@
 	      (der-write-object (car l) p)
 	      (loop (cdr l))))))
        p))
+    (define (der-list->string dl)
+      (call-with-string-output-port
+       (lambda (p)
+	 (define (pl o) (display o p) (newline p))
+	 (let ((indent (*current-indent*)))
+	   (parameterize ((*current-indent* (if indent (+ indent 2) 0)))
+	     (newline p)
+	     (for-each pl dl)
+	     (dotimes (i (*current-indent*)) (display #\space p)))))))
+    
+    (define-method write-object ((o <der-sequence>) (p <port>))
+      (generic-write "der-sequence"
+		     (der-list->string (slot-ref o 'sequence)) p))
 
     ;; DERSet
     (define-class <der-set> (<asn.1-set>) ())
-    (define-method initialize #;:around ((self <der-set>) initargs)
+    (define-method initialize ((self <der-set>) initargs)
       (define (get-encoded encodable)
 	(call-with-bytevector-output-port
 	 (lambda (p)
 	   (der-write-object encodable p))))
       ;; sort
       (call-next-method)
-      (let ((set (slot-ref self 'set)))
-	(slot-set! self 'set
-		   (list-sort (lambda (a b)
-				(let* ((ea (get-encoded a))
-				       (eb (get-encoded b))
-				       (len (min (bytevector-length ea)
-						 (bytevector-length eb))))
-				  (let loop ((i 0))
-				    (cond ((= i len)
-					   (= len (bytevector-length ea)))
-					  ((not (= (bytevector-u8-ref ea i)
-						   (bytevector-u8-ref eb i)))
-					   (< (bytevector-u8-ref ea i)
-					      (bytevector-u8-ref eb i)))
-					  (else (loop (+ i 1))))
-				    ))) set))))
+      (when (get-keyword :need-sort? initargs #t)
+	(let ((set (slot-ref self 'set)))
+	  (slot-set! self 'set
+		     (list-sort (lambda (a b)
+				  (let* ((ea (get-encoded a))
+					 (eb (get-encoded b))
+					 (len (min (bytevector-length ea)
+						   (bytevector-length eb))))
+				    (let loop ((i 0))
+				      (cond ((= i len)
+					     (= len (bytevector-length ea)))
+					    ((not (= (bytevector-u8-ref ea i)
+						     (bytevector-u8-ref eb i)))
+					     (< (bytevector-u8-ref ea i)
+						(bytevector-u8-ref eb i)))
+					    (else (loop (+ i 1))))
+				      ))) set)))))
     (define-method make-der-set () (make <der-set>))    
     (define-method make-der-set ((o <der-encodable>))
       (make <der-set> :set (list o)))
@@ -631,12 +698,17 @@
 	      (der-write-object (car l) p)
 	      (loop (cdr l))))))
        p))
+    (define-method write-object ((o <der-set>) (p <port>))
+      (generic-write "der-set" (der-list->string (slot-ref o 'set)) p))
+
     ;; DERNull
     (define-class <der-null> (<asn.1-null>) ())
     (define *der-null* (make <der-null>))
     (define-method make-der-null () *der-null*)
     (define-method der-encode ((o <der-null>) (p <port>))
       (der-write-encoded NULL #vu8() p))
+    (define-method write-object ((o <der-null>) (p <port>))
+      (generic-write "der-null" "" p))
 
     ;; DERGeneralizedTime
     (define-class <der-generalized-time> (<asn.1-object>)
@@ -659,17 +731,23 @@
 	:time (date->string t "~Y~m~d~H~M~S'~z'")))
     (define-method der-encode ((o <der-generalized-time>) (p <port>))
       (der-write-encoded GENERALIZED-TIME (string->utf8 (slot-ref o 'time)) p))
+    (define-method write-object ((o <der-generalized-time>) (p <port>))
+      (generic-write "der-generalized-time" (slot-ref o 'time) p))
 
     ;; DERUTCTime
     (define-class <der-utc-time> (<asn.1-object>)
-      ((time :init-keyword time)))
+      ((time :init-keyword :time)))
     (define-method make-der-utc-time ((s <string>))
       (string->date s "~Y~m~d~H~M~S~z") ;; check
       (make <der-utc-time> :time s))
     (define-method make-der-utc-time ((d <date>))
       (make <der-utc-time> :time (date->string s "~Y~m~d~H~M~S~Z")))
+    (define-method make-der-utc-time ((b <bytevector>))
+      (make <der-utc-time> :time (bytevector->string b)))
     (define-method der-encode ((o <der-utc-time>) (p <port>))
       (der-write-encoded UTC-TIME (string->utf8 (slot-ref o 'time)) p))
+    (define-method write-object ((o <der-utc-time>) (p <port>))
+      (generic-write "der-utc-time" (slot-ref o 'time) p))
 
     ;; Tagged object
     ;; TODO should we create object parser?
@@ -687,7 +765,7 @@
       (make <der-tagged-object> 
 	:explicit? #f :tag-no tag-no :obj (make-der-sequence)))
     (define-method der-encode ((o <der-tagged-object>) (p <port>))
-      (cond ((slot-ref 'o empty?)
+      (cond ((slot-ref o 'empty?)
 	     (der-write-encoded (bitwise-ior CONSTRUCTED TAGGED)
 				(slot-ref o 'tag-no) #vu8() p))
 	    (else
@@ -707,6 +785,13 @@
 			(put-bytevector p bytes 1 (- (bytevector-length bytes)
 						     1)))
 		      ))))))
+    (define-method write-object ((o <der-tagged-object>) (p <port>))
+      (generic-write "der-tagged-object" 
+		     (format "[~a] ~a~a" (slot-ref o 'tag-no)
+					 (slot-ref o 'explicit?)
+					 (der-list->string 
+					  (list (slot-ref o 'obj))))
+		     p))
 
     ;; DERExternal
     ;; TODO direct-reference, indirect-reference and data-value-descriptor
@@ -746,7 +831,14 @@
 			      (der-encode dvd p)
 			      (der-encode obj p)))
 			   p)))
-
+    (define-method write-object ((o <der-external>) (p <port>))
+      (generic-write "der-external" 
+		     (der-list->string (list (slot-ref o 'direct-reference)
+					     (slot-ref o 'indirect-reference)
+					     (slot-ref o 'data-value-descriptor)
+					     (slot-ref o 'encoding)
+					     (slot-ref o 'external-content)))
+		     p))
 
     ;; unknown tag. we insert one of these when we find a tag we don't know
     (define-class <der-unknown-tag> (<der-object>)
@@ -765,6 +857,12 @@
 			 (slot-ref o 'tag)
 			 (slot-ref o 'data)
 			 p))
+    (define-method write-object ((o <der-unknown-tag>) (p <port>))
+      (generic-write "der-unknown-tag" 
+		     (format "~a ~a ~a" (slot-ref o 'constructed?)
+					(slot-ref o 'tag)
+					(slot-ref o 'data))
+		     p))
     )
 
 ;; Local Variables:

@@ -51,7 +51,7 @@
 	    GRAPHIC-STRING
 	    VISIBLE-STRING
 	    GENERAL-STRING
-	    CHARACTER-STRING
+	    UNIVERSAL-STRING
 	    BMP-STRING
 	    UTF8-STRING
 	    CONSTRUCTED		
@@ -82,7 +82,7 @@
   (define-constant GRAPHIC-STRING	#x19)
   (define-constant VISIBLE-STRING	#x1a)
   (define-constant GENERAL-STRING	#x1b)
-  (define-constant CHARACTER-STRING	#x1c)
+  (define-constant UNIVERSAL-STRING	#x1c)
   (define-constant BMP-STRING		#x1e)
   (define-constant UTF8-STRING		#x0c)
 

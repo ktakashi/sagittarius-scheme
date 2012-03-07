@@ -50,8 +50,8 @@
 	     (put-u8 p (bitwise-ior size #x80))
 	     (do ((i (* (- size 1) 8) (- i 8)))
 		 ((< i 0))
-	       (put-u8 p (bitwise-arithmetic-shift-right len i)))
-	     ))
+	       (put-u8 p (bitwise-and (bitwise-arithmetic-shift-right len i)
+				      #xff)))))
 	  (else (put-u8 p len))))
 
   (define-method der-write-object ((o <object>) (p <port>))
@@ -68,7 +68,7 @@
 
   (define-method der-write-encoded
     ((flags <integer>) (tag-no <integer>) (bytes <bytevector>) (p <port>))
-    (write-tag flags tag-no p)
+    (der-write-tag flags tag-no p)
     (write-length (bytevector-length bytes) p)
     (put-bytevector p bytes))
 
@@ -89,6 +89,5 @@
 					 (- (bytevector-length stack) pos)))
 		      (bytevector-u8-set! stack pos 
 					  (bitwise-ior (bitwise-and tag-no #x7f)
-						       #x80)))
-		    ))))))
+						       #x80)))))))))
   )
