@@ -38,23 +38,38 @@
 	    (asn.1 der tags)
 	    (asn.1 ber types))
 
+  ;; kinda ugly solution
+  (define (read-octet-strings in)
+    (define (skip-0 in)
+      (do ((b (lookahead-u8 in) (lookahead-u8 in)))
+	  ((> b 0) #t)
+	(get-u8 in)))
+    (call-with-bytevector-output-port
+     (lambda (out)
+       (do ((tag (get-u8 in) (get-u8 in))
+	    (i 0 (+ i 1)))
+	   ((zero? tag) (skip-0 in))
+	 (let ((tag-no (read-tag-number in tag))
+	       (len    (read-length in)))
+	   (put-bytevector out (get-bytevector-n in len)))))))
+
   (define (do-indefinite-length in tag tag-no constructed?)
     (unless constructed?
       (assertion-violation 'do-indefinite-length
 			   "indefinite length primitive encoding encountered"))
     (cond ((not (zero? (bitwise-and tag APPLICATION)))
-	   (apply make-ber-application-specific tag-no (read-objects in)))
+	   (apply make-ber-application-specific tag-no (read-objects in #t)))
 	  ((not (zero? (bitwise-and tag TAGGED)))
-	   (make-ber-tagged-object constructed? tag-no
-				   (read-tagged-object #t in constructed?
-						       tag-no)))
+	   (make-ber-tagged-object 
+		     constructed? tag-no
+		     (read-tagged-object #t in constructed? tag-no)))
 	  ((= tag-no OCTET-STRING)
 	   ;; TODO correct?
-	   (make-ber-constructed-octet-string (get-bytevector-all in)))
+	   (make-ber-constructed-octet-string (read-octet-strings in)))
 	  ((= tag-no SEQUENCE)
-	   (apply make-ber-sequence (read-objects in)))
+	   (apply make-ber-sequence (read-objects in #t)))
 	  ((= tag-no SET)
-	   (apply make-ber-set (read-objects in)))
+	   (apply make-ber-set (read-objects in #t)))
 	  ((= tag-no EXTERNAL)
 	   ;; TODO this is actually not correct, but for now.
 	   (apply make-der-external (read-objects in)))
@@ -63,8 +78,8 @@
 	   (assertion-violation 'do-indefinite-length
 				"unknown BER object encountered" tag-no))))
 
-  (define (read-objects in)
-    (port-fold-right cons '() (lambda () (let ((r (read-asn.1-object in)))
+  (define (read-objects in :optional (skip? #f))
+    (port-fold-right cons '() (lambda () (let ((r (read-object in skip?)))
 					   (if r r (eof-object))))))
 
   (define (create-der-bit-string bytes)
@@ -99,22 +114,24 @@
       (,VISIBLE-STRING    . ,make-der-visible-string)))
 
   (define (create-primitive-der-object tag-no bytes)
-    (let ((ctr (cond ((assv tag-no *constructors*) => cdr))))
+    (let ((ctr (cond ((assv tag-no *constructors*) => cdr)
+		     (else #f))))
       (if ctr
 	  (ctr bytes)
 	  (make-der-unknown-tag #f tag-no bytes))))
 
   (define (read-tagged-object ber? in constructed? tag)
     (cond (constructed? 
-	   (let* ((objs (read-objects in))
+	   (let* ((objs (read-objects in ber?))
 		  (len  (length objs))
 		  (make-tagged (if ber?
 				   make-ber-tagged-object 
 				   make-der-tagged-object))
 		  (make-seq (if ber? make-ber-sequence make-der-sequence)))
-	     (if (= len 1)
-		 (make-tagged #t tag (car objs))
-		 (make-tagged #f tag (apply make-seq objs)))))
+	     (cond ((= len 1)
+		    (make-tagged #t tag (car objs)))
+		   (else
+		    (make-tagged #f tag (apply make-seq objs))))))
 	  (else 
 	   (make-der-tagged-object 
 	    #f tag
@@ -201,15 +218,14 @@
 	    (else len))
       ))
 
-  (define (read-asn.1-object in)
-    (unless (binary-port? in)
-      (assertion-violation 'read-asn.1-object
-			   "binary port required" in))
+  (define (read-object in :optional (skip? #f))
     (let ((tag (get-u8 in)))
       (cond ((eof-object? tag) #f)
-	    ((zero? tag)
+	    ((and (not skip?) (zero? tag))
 	     (assertion-violation 'read-asn.1-object
-				      "unexpected enf-of-contents marker"))
+				  "unexpected enf-of-contents marker"
+				  (get-bytevector-all in)))
+	    ((and skip? (zero? tag)) #f)
 	    (else
 	     (let* ((tag-no (read-tag-number in tag))
 		    (constructed? (not (zero? (bitwise-and tag CONSTRUCTED))))
@@ -217,4 +233,11 @@
 	       (if (negative? len)
 		   (do-indefinite-length in tag tag-no constructed?)
 		   (build-object tag tag-no len in)))))))
+
+  (define (read-asn.1-object in)
+    (unless (binary-port? in)
+      (assertion-violation 'read-asn.1-object
+			   "binary port required" in))
+    (read-object in)
+    )
   )
