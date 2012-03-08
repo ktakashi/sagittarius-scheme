@@ -57,8 +57,8 @@
     ((octs :init-keyword :octs)))
   (define-method make-ber-constructed-octet-string ((b <bytevector>))
     (let* ((len (bytevector-length b))
-	   (l (do ((i 0 (+ i 1)) (r '()))
-		  ((= i len) (reverse! r))
+	   (l (do ((i 0 (+ i *max-length*)) (r '()))
+		  ((>= i len) (reverse r))
 		(let* ((end (if (> (+ i *max-length*) len)
 				len 
 				(+ i *max-length*)))
@@ -100,9 +100,9 @@
     ;; TODO this must be separated path for DER and BER
     (der-write-tag (bitwise-ior CONSTRUCTED TAGGED) (slot-ref o 'tag-no) p)
     (put-u8 p #x80)
-    (unless (slot-ref o 'empty)
+    (unless (slot-ref o 'empty?)
       (cond ((slot-ref o 'explicit?)
-	     (der-write-object (slot-ref o 'obj)))
+	     (der-write-object (slot-ref o 'obj) p))
 	    (else
 	     (let* ((obj (slot-ref o 'obj))
 		    (e (cond 
@@ -118,7 +118,9 @@
 			(else
 			 (assertion-violation 'der-encode
 					      "not implemented" obj)))))
-	       (for-each (lambda (o) (der-write-object o p)) e))))))
+	       (for-each (lambda (o) (der-write-object o p)) e)))))
+    (put-u8 p #x00)
+    (put-u8 p #x00))
   (define-method write-object ((o <ber-tagged-object>) (p <port>))
     (der-generic-write "ber-tagged-object" 
 		   (format "[~a] ~a~a" (slot-ref o 'tag-no)

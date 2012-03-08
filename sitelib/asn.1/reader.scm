@@ -40,15 +40,11 @@
 
   ;; kinda ugly solution
   (define (read-octet-strings in)
-    (define (skip-0 in)
-      (do ((b (lookahead-u8 in) (lookahead-u8 in)))
-	  ((> b 0) #t)
-	(get-u8 in)))
     (call-with-bytevector-output-port
      (lambda (out)
-       (do ((tag (get-u8 in) (get-u8 in))
-	    (i 0 (+ i 1)))
-	   ((zero? tag) (skip-0 in))
+       (do ((tag (lookahead-u8 in) (lookahead-u8 in)))
+	   ((zero? tag) (get-bytevector-n in 2)) ;; read terminate mark
+	 (get-u8 in)
 	 (let ((tag-no (read-tag-number in tag))
 	       (len    (read-length in)))
 	   (put-bytevector out (get-bytevector-n in len)))))))
@@ -60,9 +56,7 @@
     (cond ((not (zero? (bitwise-and tag APPLICATION)))
 	   (apply make-ber-application-specific tag-no (read-objects in #t)))
 	  ((not (zero? (bitwise-and tag TAGGED)))
-	   (make-ber-tagged-object 
-		     constructed? tag-no
-		     (read-tagged-object #t in constructed? tag-no)))
+	   (read-tagged-object #t in constructed? tag-no))
 	  ((= tag-no OCTET-STRING)
 	   ;; TODO correct?
 	   (make-ber-constructed-octet-string (read-octet-strings in)))
@@ -215,8 +209,7 @@
 		 (assertion-violation 'read-length
 				      "corrupted stream - negative length found"))
 	       len))
-	    (else len))
-      ))
+	    (else len))))
 
   (define (read-object in :optional (skip? #f))
     (let ((tag (get-u8 in)))
@@ -225,7 +218,10 @@
 	     (assertion-violation 'read-asn.1-object
 				  "unexpected enf-of-contents marker"
 				  (get-bytevector-all in)))
-	    ((and skip? (zero? tag)) #f)
+	    ((and skip? (zero? tag) (zero? (lookahead-u8 in)))
+	     ;; from do-indefinite-length. so read all terminate mark
+	     (get-u8 in)
+	     #f)
 	    (else
 	     (let* ((tag-no (read-tag-number in tag))
 		    (constructed? (not (zero? (bitwise-and tag CONSTRUCTED))))
