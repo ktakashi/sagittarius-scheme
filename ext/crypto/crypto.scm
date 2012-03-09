@@ -36,6 +36,11 @@
 	    mgf-1
 	    pkcs1-emsa-v1.5-encode
 	    pkcs1-emsa-v1.5-verify
+	    ;; external representive
+	    export-public-key
+	    export-private-key
+	    import-public-key
+	    import-private-key
 	    ;; supported algorithms
 	    Blowfish
 	    X-Tea

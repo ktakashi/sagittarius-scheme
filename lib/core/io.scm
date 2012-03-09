@@ -24,13 +24,11 @@
 	    (sagittarius)
 	    (core io helper))
 
-  (define open-input-file
-    (lambda (filename)
-      (open-file-input-port filename (make-file-options '()) 'block (native-transcoder))))
+  (define (open-input-file filename :key (transcoder (native-transcoder)))
+    (open-file-input-port filename (make-file-options '()) 'block transcoder))
   
-  (define open-output-file
-    (lambda (filename)
-      (open-file-output-port filename (make-file-options '()) 'block (native-transcoder))))
+  (define (open-output-file filename :key (transcoder (native-transcoder)))
+    (open-file-output-port filename (make-file-options '()) 'block transcoder))
 
   (define-syntax file-options
     (er-macro-transformer
@@ -69,28 +67,26 @@
 
   ;; 8.3 simmple i/o
   ;; originally from Ypsilon
-  (define call-with-input-file
-    (lambda (filename proc)
-      (call-with-port (open-input-file filename) proc)))
+  (define (call-with-input-file filename proc . opt)
+    (call-with-port (apply open-input-file filename opt) proc))
 
-  (define call-with-output-file
-    (lambda (filename proc)
-      (call-with-port (open-output-file filename) proc)))
+  (define (call-with-output-file filename proc . opt)
+    (call-with-port (apply open-output-file filename opt) proc))
 
-  (define with-input-from-file
-    (lambda (filename thunk)
-      (let ((port (open-input-file filename)) (save (current-input-port)))
-	(dynamic-wind
-	    (lambda () (current-input-port port))
-	    (lambda () (let ((ans (thunk))) (close-input-port port) ans))
-	    (lambda () (current-input-port save))))))
+  (define (with-input-from-file filename thunk . opt)
+    (let ((port (apply open-input-file filename opt))
+	  (save (current-input-port)))
+      (dynamic-wind
+	  (lambda () (current-input-port port))
+	  (lambda () (let ((ans (thunk))) (close-input-port port) ans))
+	  (lambda () (current-input-port save)))))
 
-  (define with-output-to-file
-    (lambda (filename thunk)
-      (let ((port (open-output-file filename)) (save (current-output-port)))
-	(dynamic-wind
-	    (lambda () (current-output-port port))
-	    (lambda () (let ((ans (thunk))) (close-output-port port) ans))
-	    (lambda () (current-output-port save))))))
+  (define (with-output-to-file filename thunk . opt)
+    (let ((port (apply open-output-file filename opt))
+	  (save (current-output-port)))
+      (dynamic-wind
+	  (lambda () (current-output-port port))
+	  (lambda () (let ((ans (thunk))) (close-output-port port) ans))
+	  (lambda () (current-output-port save)))))
 
 )

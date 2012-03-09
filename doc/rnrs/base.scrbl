@@ -6,7 +6,7 @@
 @desc{[R6RS] This library exports many of the procedure and syntax bindings that are
 traditionally associated with Scheme.}
 
-@subsubsection{Variable definitions}
+@subsubsection[:tag "rnrs.base.6.variable.definitions"]{Variable definitions}
 
 @define[Syntax]{@name{define} @args{variable expression}}
 @define[Syntax]{@name{define} @args{variable}}
@@ -27,8 +27,8 @@ The second form of @code{define} is equivalent to
 
 @snipet{(define @var{variable} @var{unspecified})}
 
-where @var{unspecified} is a side-effect-free expression returning an unspecified
-value.
+where @var{unspecified} is a side-effect-free expression returning an
+unspecified value.
 
 In the third form of @code{define}, @var{formals} must be either a sequence of
 zero or more variables, or a sequence of one or more variables followed by a dot
@@ -36,8 +36,8 @@ zero or more variables, or a sequence of one or more variables followed by a dot
 
 @snipet{(define @var{variable} (lambda (@var{formals}) @var{body @dots{}}))}
 
-In the fourth form of @code{define}, @var{formal} must be a single variable. This
-form is equivalent to
+In the fourth form of @code{define}, @var{formal} must be a single variable.
+This form is equivalent to
 
 @snipet{(define @var{variable} (lambda @var{formal} @var{body @dots{}}))}
 }
@@ -65,15 +65,15 @@ at macro-expansion time, to a transformer.
 @subsubsection{Procedures}
 
 @define[Syntax]{@name{lambda} @args{formals body @dots{}}}
-@desc{[R6RS]A @code{lambda} expression evaluates to a procedure. The environment
-in effect when the lambda expression is evaluated is remembered as part of the
-procedure. When the procedure is later called with some arguments, the environment
-in which the @code{lambda} expression was evaluated is extended by binding the
-variables in the parameter list to fresh locations, and the resulting argument
-values are stored in those locations. Then, the expressions in the @var{body} of
-the @code{lambda} expression are evaluated sequentially in the extended environment.
-The results of the last expression in the body are returned as the results of the
-procedure call.
+@desc{[R6RS+]A @code{lambda} expression evaluates to a procedure. The
+environment in effect when the lambda expression is evaluated is remembered as
+part of the procedure. When the procedure is later called with some arguments,
+the environment in which the @code{lambda} expression was evaluated is extended 
+by binding the variables in the parameter list to fresh locations, and the
+resulting argument values are stored in those locations. Then, the expressions
+in the @var{body} of the @code{lambda} expression are evaluated sequentially in
+the extended environment. The results of the last expression in the body are
+returned as the results of the procedure call.
 
 @snipet[=> "a procedure"]{(lambda (x) (+ x x))}
 @snipet[=> 8]{((lambda (x) (+ x x)) 4)}
@@ -91,23 +91,160 @@ procedure call.
 @var{Formals} must have one of the following forms:
 @itemlist[
 @item{(@var{<variable1>} @dots{})
- @p{The procedure takes a fixed number of arguments; when the procedure is called,
-    the arguments are stored in the bindings of the corresponding variables.}}
+ @p{The procedure takes a fixed number of arguments; when the procedure is
+    called, the arguments are stored in the bindings of the corresponding
+    variables.}}
 @item{@var{<variable>}
  @p{The procedure takes any number of arguments; when the procedure is called,
     the sequence of arguments is converted into a newly allocated list, and the
     list is stored in the binding of the @var{<variable>}.}}
 @item{(@var{<variable1>} @dots{} @var{<variablen>} . @var{<variablen+1>})
  @p{If a period @code{.} precedes the last variable, then the procedure takes
- @var{n} or more arguments, where @var{n} is the number of parameters before the
- period (there must be at least one). The value stored in the binding of the last
- variable is a newly allocated list of the arguments left over after all the other
- arguments have been matched up against the other parameters.
+    @var{n} or more arguments, where @var{n} is the number of parameters before
+    the period (there must be at least one). The value stored in the binding of
+    the last variable is a newly allocated list of the arguments left over after
+    all the other arguments have been matched up against the other
+    parameters.
 
- @snipet[=> (3 4 5 6)]{((lambda x x) 3 4 5 6)}
- @snipet[=> (5 6)]{((lambda (x y . z) z)  3 4 5 6)}
+    @snipet[=> (3 4 5 6)]{((lambda x x) 3 4 5 6)}
+    @snipet[=> (5 6)]{((lambda (x y . z) z)  3 4 5 6)}
 
- Any @var{variable} must not appear more than once in @var{formals}.}}
+    Any @var{variable} must not appear more than once in @var{formals}.}}
+@item{(@var{<variable> @dots{} @var{<extended-spec>} @dots{}})
+  
+  Extended argument specification. Zero or more variables that specifies
+  required formal argument, followed by an @var{<extended-spec>}, a list
+  begginning with a keyword @code{:optional}, @code{:key} or @code{:rest}.
+
+  The @var{<extended-spec>} part consists of the optional argument spec, the
+  keyword argument spec and the rest argument spec. They can appear in any
+  combinations.
+
+  @dl-list[]{
+    @dl-item[@code{:optional @var{optspec} @dots{}}]{
+      Specifies optional arguments. Each @var{optspec} can be either one of the
+      following forms:
+
+      @snipet{@var{variable}}
+      @snipet{(@var{variable} @var{init-expr})}
+
+      The @var{variable} names the formal argument, which is bound to the value
+      of the actual argument if given, or the value of the expression
+      @var{init-expr} otherwise. If @var{optspec} is just a variable, and the
+      actual argument is not given, then it will be unspecified value.
+
+      The expression @var{init-expr} is only evaluated if the actual argument is
+      not given. The scope in which @var{init-expr} is evaluated includes the
+      preceding formal arguments.
+
+      @codeblock[=> (1 2 3)]{
+((lambda (a b :optional (c (+ a b))) (list a b c)) 1 2)
+      }
+      @codeblock[=> (1 2 -1)]{
+((lambda (a b :optional (c (+ a b))) (list a b c)) 1 2 -1)
+      }
+      @codeblock[=> (1 2 "#<unspecified>")]{
+((lambda (a b :optional c) (list a b c)) 1 2)
+      }
+      @codeblock[=> (1 2)]{
+((lambda (:optional (a 0) (b (+ a 1))) (list a b)))
+      }
+
+      The procedure raises an @code{&serious} if more actual arguments than the
+      number of required and optional arguments are given, unless it also has
+      @code{:key} or @code{:rest} arguments spec.
+
+      @codeblock[=> &serious]{
+((lambda (:optional a b) (list a b)) 1 2 3)
+      }
+      @codeblock[=> (1 2 (3))]{
+((lambda (:optional a b :rest r) (list a b r)) 1 2 3)
+      }
+    }
+    @dl-item[@code{:key @var{keyspec} @dots{} [:allow-other-keys [@var{variable}]]}]{
+      Specifies keyword arguments. Each @var{keyspec} can be one of the
+      following forms.
+
+      @snipet{@var{variable}}
+      @snipet{(@var{variable} @var{init-expr})}
+      @snipet{((@var{keyword} @var{variable}) @var{init-expr})}
+      @snipet{(@var{variable} @var{keyword} @var{init-expr})}
+
+      The @var{variable} names the formal argument, which is bound to the actual
+      argument given with the keyword of the same name as @var{variable}. When
+      the actual is not given, @var{init-expr} is evaluated and the result is
+      bound to @var{variable} in the second, third and fourth form, or
+      unspecified value is bound in the first form.
+
+      @codeblock{
+(define f (lambda (a :key (b (+ a 1)) (c (+ b 1)))
+            (list a b c)))
+      }
+      @snipet[=> (10 11 12)]{(f 10)}
+      @snipet[=> (10 4 5)]{(f 10 :b 4)}
+      @snipet[=> (10 11 8)]{(f 10 :c 8)}
+      @snipet[=> (10 3 1)]{(f 10 :c 1 :b 3)}
+
+      With the third and fourth form you can name the formal argument
+      differently from the keyword to specify the argument.
+
+      @snipet[=> 2]{((lambda (:key ((:aa a) -1)) a) ::aa 2)}
+      @snipet[=> 2]{((lambda (:key (a :aa -1)) a) ::aa 2)}
+
+      By default, the procedure with keyword argument spec raises
+      @code{&serious} if a keyword argument with an unrecognized keyword is
+      given. Giving @code{:allow-other-keys} in the formals suppresses this
+      behaviour. If you give @var{variable} after @code{:allow-other-keys}, the
+      list of unrecognized keywords and their arguments are bound to it.
+
+      @snipet[=> &serious]{((lambda (:key a) a) :a 1 :b 2)}
+      @snipet[=> 1]{((lambda (:key a :allow-other-keys) a) :a 1 :b 2)}
+      @codeblock[=> (1 (:b 2))]{
+((lambda (:key a :allow-other-keys z) (list a z)) :a 1 :b 2)
+      }
+
+      When used with @code{:optional} argument spec, the keyword arguments are
+      searched after all the optional arguments are bound.
+
+      @codeblock[=> (1 2 3)]{
+((lambda (:optional a b :key c) (list a b c)) 1 2 :c 3)
+      }
+      @codeblock[=> (:c 3 "#<unspecified>")]{
+((lambda (:optional a b :key c) (list a b c)) :c 3)
+      }
+      @codeblock[=> &serious]{
+((lambda (:optional a b :key c) (list a b c)) 1 :c 3)
+      }
+    }
+    @dl-item[@code{:rest @var{variable}}]{
+      Specifies the rest argument. If specified without @code{:optional}
+      argument spec, a list of remaining arguments after required arguments are
+      taken is bound to @var{variable}. If specified with @code{:optional}
+      argument spec, the actual arguments are first bound to required and all
+      optional arguments, and the remaining arguments are bound to
+      @var{variable}.
+
+      @codeblock[=> (1 2 (3 4 5))]{
+((lambda (a b :rest z) (list a b z)) 1 2 3 4 5)
+      }
+      @codeblock[=> (1 2 3 4 (5))]{
+((lambda (a b :optional c d :rest z) (list a b z)) 1 2 3 4 5)
+      }
+      @codeblock[=> (1 2 3 "#<unspecified>" ())]{
+      ((lambda (a b :optional c d :rest z) (list a b z)) 1 2 3)
+      }
+
+      When the rest argument spec is used with the keyword argument spec, both
+      accesses the same list of actual argument -- the remaining arguments after
+      required and optional arguments are taken
+
+      @codeblock[=> (1 (:k 3) 3)]{
+((lambda (:optional a :rest r :key k) (list a r k)) 1 :k 3)
+      }
+    }
+  }
+  }
+     
 ]
 }
 

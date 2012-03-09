@@ -22,7 +22,8 @@
 	(tests text sxml serializer)
 	(tests text sxml htmlprag)
 	(tests clos core)
-	(tests dbi))
+	(tests dbi)
+	(tests asn.1))
 ;; srfi-64 default implementation does not report detail error.
 ;; so creates own test-runner
 (define (test-on-test-end-detail runner)
@@ -94,4 +95,5 @@
 (run-htmlprag-test)
 (run-clos-core-tests)
 (run-dbi-tests)
+(run-asn.1-tests)
 (test-end)

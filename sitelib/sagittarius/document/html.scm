@@ -265,7 +265,9 @@
 		  (loop (cdr contents) r))))))
 
       (define (generate-classname element)
-	"dummy")
+	(if (null? (cdar element))
+	    "top-content"
+	    "child-content"))
 
       (define (section-generator element)
 	(values (generate-classname element)
