@@ -20,6 +20,32 @@ function toggle(elem, link) {
     };
 }
 
+function toggleAll(text) {
+    var all =  function () {
+	var isOpen = text.className == "closedAll";
+	var lis = document.getElementsByTagName("li");
+	for (var i = 0; i < lis.length; i++) {
+	    var li = lis.item(i);
+	    var link = getFirstChildByTagName(li, "a");
+	    if (li.className == "child-content") {
+		var style = (isOpen) ? "block" : "none";
+		var className = (isOpen) ? "opened" : "closed";
+
+		li.style.display = style;
+		if (link.className != 'no-child') {
+		    link.className = className;
+		}
+	    } else if (li.className == "top-content") {
+		if (link.className != "no-child") {
+		    link.className = (isOpen) ? "opened" : "closed";
+		}
+	    }
+	}
+	text.className = (isOpen)? "openedAll" : "closedAll";
+    };
+    return all;
+}
+
 function getFirstChildByTagName(elem, tag) {
     var nodes = elem.childNodes;
     for (var i = 0; i < nodes.length; i++) {
@@ -29,6 +55,14 @@ function getFirstChildByTagName(elem, tag) {
 	}
     }
     return null;
+}
+
+function createOpenAll(ul) {
+    var a = document.createElement("a");
+    a.href = "javascript:void(0)";
+    a.className = "closedAll";
+    a.onclick = toggleAll(a);
+    return a;
 }
 
 function setInitialVisibility(contents, style) {
@@ -53,6 +87,7 @@ function setInitialVisibility(contents, style) {
 	    setInitialVisibility(li, "none");
 	}
     }
+    return ul;
 }
 
 function addNavigator() {
@@ -89,6 +124,8 @@ function addNavigator() {
 
 window.onload = function () {
     var contents = document.getElementById("table-of-contents");
-    setInitialVisibility(contents, "block");
+    var ul = setInitialVisibility(contents, "block");
+    var openAll = createOpenAll(ul);
+    contents.insertBefore(openAll, ul);
     addNavigator();
 }

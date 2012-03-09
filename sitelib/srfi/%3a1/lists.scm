@@ -27,10 +27,7 @@
     proper-list? circular-list? dotted-list? not-pair? null-list? list=
     circular-list length+
     iota
-    (rename (car first)
-	    (cadr second)
-	    (caddr third)
-	    (cadddr fourth))
+    first second third fourth
     fifth sixth seventh eighth ninth tenth
     car+cdr
     take       drop
@@ -533,10 +530,10 @@
 ;(define (cddddr x) (cdddr (cdr x)))
 
 
-;;(define first  car)
-;;(define second cadr)
-;;(define third  caddr)
-;;(define fourth cadddr)
+(define first  car)
+(define second cadr)
+(define third  caddr)
+(define fourth cadddr)
 (define (fifth   x) (car    (cddddr x)))
 (define (sixth   x) (cadr   (cddddr x)))
 (define (seventh x) (caddr  (cddddr x)))

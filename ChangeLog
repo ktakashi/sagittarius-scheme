@@ -1,3 +1,11 @@
+2012-03-09  Takashi Kato  <ktakashi@ymail.com>
+
+	* ext/crypto/crypto/key.scm (crypto): added public/private key export
+	and import.
+
+	* sitelib/asn.1/types.scm (asn.1): <der-integer> fixed invalid
+	conversion when it got 0 as its value.
+
 2012-03-07  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/util/port.scm (util): added port-fold-right.

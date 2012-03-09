@@ -94,6 +94,9 @@
 	    make-der-external
 	    make-der-unknown-tag
 
+	    ;;
+	    asn.1-object?
+
 	    ;; methods
 	    der-encodable->der-object
 	    asn.1-encodable->asn.1-object
@@ -166,6 +169,7 @@
 
   ;; base class for all DER and BER objects
   (define-class <asn.1-object> (<der-object>) ())
+  (define (asn.1-object? o) (is-a? o <asn.1-object>))
   
   ;; DER classes are the super classes for all ASN1 classes.
   ;; TODO: this hierarchy is weird for me, re-consider it.
@@ -500,7 +504,8 @@
     (define-class <der-integer> (<asn.1-object>)
       ((bytes :init-keyword :bytes)))
     (define-method make-der-integer ((i <integer>))
-      (make <der-integer> :bytes (integer->bytevector i)))
+      (make <der-integer> :bytes 
+	    (if (zero? i) #vu8(0) (integer->bytevector i))))
     (define-method make-der-integer ((b <bytevector>))
       (make <der-integer> :bytes b))
     (define-method der-encode ((o <der-integer>) (p <port>))

@@ -13,7 +13,8 @@
 	    let1
 	    dotimes
 	    dolist
-	    check-arg)
+	    check-arg
+	    with-library)
     (import (core)
 	    (rename (only (core) define) (define define-with-key))
 	    (core base)
@@ -22,7 +23,8 @@
 	    (core misc)
 	    (match)
 	    (srfi :26 cut)
-	    (sagittarius))
+	    (sagittarius)
+	    (sagittarius vm))
 
   ;; for compatibility
   (define-syntax define-optional
@@ -117,6 +119,15 @@
            val
            (assertion-violation
             'proc
-            (format "invalid argument, assertion failed in expression ~s" (list 'pred 'val))
+            (format "invalid argument, assertion failed in expression ~s" 
+		    (list 'pred 'val))
             (list pred val))))))
+
+  (define-syntax with-library
+    (syntax-rules ()
+      ((_ lib var)
+       (let ((g (find-binding 'lib 'var #f)))
+	 (or (and g (gloc-ref g))
+	     (assertion-violation 'with-library
+				  "unbound variable" 'var))))))
 )

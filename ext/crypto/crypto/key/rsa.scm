@@ -18,7 +18,12 @@
 	    rsa-decrypt
 	    ;; signing/verify
 	    rsa-sign
-	    rsa-verify)
+	    rsa-verify
+
+	    rsa-export-public-key
+	    rsa-export-private-key
+	    rsa-import-public-key
+	    rsa-import-private-key)
     (import (rnrs)
 	    (crypto pkcs)
 	    (crypto key pair)
@@ -27,6 +32,10 @@
 	    (math random)
 	    (math prime)
 	    (math helper)
+	    (asn.1)
+	    (asn.1 reader)
+	    (clos user)
+	    (srfi :1 lists)
 	    (sagittarius)
 	    (sagittarius control)
 	    (sagittarius crypto))
@@ -66,10 +75,10 @@
   (define *rsa-min-keysize* 256)
   (define *rsa-max-keysize* 4096)
 
-  (define-with-key (rsa-generate-private-key modulus private-exponent
-					     :key (public-exponent #f)
-					          (p #f)
-						  (q #f))
+  (define (rsa-generate-private-key modulus private-exponent
+				    :key (public-exponent #f)
+					 (p #f)
+					 (q #f))
     ;; if crt-key missing one of them
     (when (and (or public-exponent p q)
 	       (not (and public-exponent p q)))
@@ -114,9 +123,11 @@
 	(generate-key-pair n e d p q))))
 
   ;; cipher
-  (define-with-key (rsa-cipher key prng :key (padding pkcs-v1.5-padding) (block-type PKCS-1-EME))
+  (define (rsa-cipher key prng :key (padding pkcs-v1.5-padding)
+				    (block-type PKCS-1-EME))
     (let ((padder (if padding (padding prng key block-type) #f)))
-      (make-public-key-cipher 'RSA key rsa-encrypt rsa-decrypt padder rsa-sign rsa-verify)))
+      (make-public-key-cipher 'RSA key rsa-encrypt rsa-decrypt
+			      padder rsa-sign rsa-verify)))
 
   ;; util
   (define (rsa-mod-expt bv key)
@@ -182,8 +193,8 @@
       (rsa-mod-expt bv key)))
 
 
-  (define-with-key (rsa-sign bv key :key (encode pkcs1-emsa-pss-encode)
-				    :allow-other-keys opt)
+  (define (rsa-sign bv key :key (encode pkcs1-emsa-pss-encode)
+			   :allow-other-keys opt)
     (or (rsa-private-key? key)
 	(raise-encrypt-error 'rsa-sign "invalid key" 'RSA))
     (let* ((modulus (rsa-private-key-modulus key))
@@ -224,7 +235,8 @@
 		  ((= i ps-length) #t)
 		;; transform zero bytes (if any) to non-zero random bytes
 		(when (zero? (bytevector-u8-ref ps i))
-		  (bytevector-u8-set! ps i (bytevector-u8-ref (read-random-bytes prng 1) 0)))))
+		  (bytevector-u8-set! ps i (bytevector-u8-ref
+					    (read-random-bytes prng 1) 0)))))
 	  (let ((bv (make-bytevector (+ 2 ps-length 1 message-length) 0)))
 	    ;; set block-type
 	    (bytevector-u8-set! bv 1 block-type)
@@ -272,4 +284,105 @@
       (if pad?
 	  (encode data modulus)
 	  (decode data modulus)))))
+
+  #|
+      RSAPublicKey ::= SEQUENCE {
+          modulus           INTEGER,  -- n
+          publicExponent    INTEGER   -- e
+      }
+  |#
+  (define (rsa-export-public-key key)
+    (let ((der (make-der-sequence
+		(make-der-integer (rsa-public-key-modulus key))
+		(make-der-integer (rsa-public-key-exponent key)))))
+      (encode der)))
+  (define (rsa-import-public-key in)
+    (let ((public (read-asn.1-object in)))
+      ;; validate
+      (unless (is-a? public <asn.1-sequence>)
+	(assertion-violation 'rsa-import-public-key 
+			     "invalid der object" public))
+      (let ((objects (slot-ref public 'sequence)))
+	(unless (= 2 (length objects))
+	  (assertion-violation 'rsa-import-public-key
+			       "bad sequence size" public))
+	(or (for-all (lambda (o) (is-a? o <der-integer>)) objects)
+	    (assertion-violation 'rsa-import-public-key
+				 "all sequence componenet must be <der-integer>"
+				 objects))
+	(rsa-generate-public-key (bytevector->integer
+				  (slot-ref (car objects) 'bytes))
+				 (bytevector->integer
+				  (slot-ref (cadr objects) 'bytes))))))
+
+  #|
+      RSAPrivateKey ::= SEQUENCE {
+          version           Version,
+          modulus           INTEGER,  -- n
+          publicExponent    INTEGER,  -- e
+          privateExponent   INTEGER,  -- d
+          prime1            INTEGER,  -- p
+          prime2            INTEGER,  -- q
+          exponent1         INTEGER,  -- d mod (p-1)
+          exponent2         INTEGER,  -- d mod (q-1)
+          coefficient       INTEGER,  -- (inverse of q) mod p
+          otherPrimeInfos   OtherPrimeInfos OPTIONAL -- We do not support this.
+      }
+      Version ::= INTEGER { two-prime(0), multi(1) }
+         (CONSTRAINED BY
+         {-- version must be multi if otherPrimeInfos present --})
+  |#
+  (define (rsa-export-private-key key)
+    (check-arg rsa-private-crt-key? key rsa-export-private-key)
+    (let ((der (make-der-sequence
+		;; version must be always 0 since we do not support
+		;; otherPrimeInfos.
+		(make-der-integer 0)
+		(make-der-integer (rsa-private-key-modulus private))
+		(make-der-integer (rsa-private-crt-key-public-exponent private))
+		(make-der-integer (rsa-private-key-private-exponent private))
+		(make-der-integer (rsa-private-crt-key-p private))
+		(make-der-integer (rsa-private-crt-key-q private))
+		(make-der-integer (rsa-private-crt-key-dP private))
+		(make-der-integer (rsa-private-crt-key-dQ private))
+		(make-der-integer (rsa-private-crt-key-qP private)))))
+      (encode der)))
+  
+  (define (rsa-import-private-key in)
+    (let ((private (read-asn.1-object in)))
+      ;; validate
+      (unless (is-a? private <asn.1-sequence>)
+	(assertion-violation 'rsa-import-private-key 
+			     "invalid der object" private))
+      (let ((objects (slot-ref private 'sequence)))
+	(unless (<= 9 (length objects) 10)
+	  (assertion-violation 'rsa-import-private-key
+			       "bad sequence size" private))
+	(do ((i 0 (+ i 1)) (o objects (cdr o)))
+	    ((= i 9))
+	  (unless (is-a? (car o) <der-integer>)
+	    (assertion-violation 'rsa-import-private-key
+				 "invalid object" i (car o))))
+	(let ((version (car objects))
+	      (modulus (cadr objects))
+	      (public-exponent (third objects))
+	      (private-exponent (fourth objects))
+	      (p (fifth objects))
+	      (q (sixth objects))
+	      ;; the rest we don't need
+	      )
+	  (unless (<= 0 (bytevector->integer (slot-ref version 'bytes)) 1)
+	    (assertion-violation 'rsa-import-private-key
+				 "wrong version for RSA private key" version))
+	  (rsa-generate-private-key 
+	   (bytevector->integer
+	    (slot-ref modulus 'bytes))
+	   (bytevector->integer
+	    (slot-ref private-exponent 'bytes))
+	   :public-exponent (bytevector->integer
+			     (slot-ref public-exponent 'bytes))
+	   :p (bytevector->integer (slot-ref p 'bytes))
+	   :q (bytevector->integer (slot-ref q 'bytes))))))
+    )
+
 )

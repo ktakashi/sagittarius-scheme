@@ -33,8 +33,8 @@
     (import (asn.1 types)
 	    (asn.1 encode)
 	    (asn.1 der tags)
-	    (asn.1 der encode))
-
+	    (asn.1 der encode)
+	    (asn.1 der reader))
 )
 
 ;; Local Variables:

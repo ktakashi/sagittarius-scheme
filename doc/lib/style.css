@@ -110,6 +110,31 @@ a.opened {
     display: inline-block;
 }
 
+a.closedAll {
+    background-image: url("trees.png");
+    background-position: 0 0px;
+    height: 13px;
+    width: 13px;
+    display: inline-block;
+}
+
+a.closedAll:after {
+    margin-left: 13px;
+    content: "open";
+}
+
+a.openedAll {
+    background-image: url("trees.png");
+    background-position: -13px 0px;
+    height: 13px;
+    width: 13px;
+    display: inline-block;
+}
+a.openedAll:after {
+    margin-left: 13px;
+    content: "close";
+}
+
 a.no-child {
     background-image: url("trees.png");
     background-position: -26px 0px;
