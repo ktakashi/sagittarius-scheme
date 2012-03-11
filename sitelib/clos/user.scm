@@ -81,16 +81,6 @@
 				(unwrap-syntax form)
 				(unwrap-syntax (car defs)))))))
        (define (build name supers slot-defs)
-	 ;; ugly kluge
-	 (define (remove-quote rest)
-	   (let loop ((v rest)
-		      (r '()))
-	     (cond ((null? v) (reverse! r))
-		   ((and (eq? (car v) :init-value)
-			 (pair? (cadr v))
-			 (eq? (caadr v) (quote quote)))
-		    (loop (cddr v) (cons* (cadadr v) :init-value r)))
-		   (else (loop (cdr v) (cons (car v) r))))))
 	 ;; we creates generic accessor and the rest will be
 	 ;; for generic make
 	 (let ((accessors (collect-accessor slot-defs))
@@ -99,16 +89,28 @@
 	       (_list     (rename 'list))
 	       (_define-generic (rename 'define-generic))
 	       (_define-method  (rename 'define-method)))
+	   (define (process-slot-definition sdef)
+	     (if (pair? sdef)
+		 (let loop ((opts (cdr sdef)) (r '()))
+		   (cond ((null? opts) `(,_list ',(car sdef) ,@(reverse! r)))
+			 ((not (and (pair? opts) (pair? (cdr opts))))
+			  (syntax-violation 'define-class
+			   "bad slot specification" sdef))
+			 (else
+			  (case (car opts)
+			    ;; TODO init-form?
+			    (else (loop (cddr opts) (cons* (cadr opts)
+							   (car opts)
+							   r)))))))
+		 `'(,sdef)))
 	   ;; TODO check if given name is already exists as generic
 	   `(,_begin
 	     (,_define ,name
 		 (,_make ,(rename '<class>)
 			 :definition-name (,_quote ,name)
 			 :direct-supers   (,_list ,@supers)
-			 :direct-slots    ',(map (^s (cons 
-						      (car s)
-						      (remove-quote (cdr s))))
-						 slot-defs)))
+			 :direct-slots    (,_list ,@(map process-slot-definition
+							 slot-defs))))
 	     ,@(if (null? accessors)
 		  `((,(rename 'undefined)))
 		  ;; build generic
