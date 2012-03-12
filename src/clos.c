@@ -100,6 +100,9 @@ static SgObject class_allocate(SgClass *klass, SgObject initargs);
 static SgObject generic_allocate(SgClass *klass, SgObject initargs);
 static SgObject method_allocate(SgClass *klass, SgObject initargs);
 
+static SgSlotAccessor* lookup_slot_info(SgClass *klass, SgObject name,
+					int raise);
+
 static void init_class(SgClass *klass, const SgChar *name,
 		       SgLibrary *lib, SgObject supers, SgSlotAccessor *specs,
 		       int flags);
@@ -185,6 +188,8 @@ static SgSlotAccessor *make_slot_accessor(SgClass *klass, SgObject name,
   ac->index = index;
   ac->getter = NULL;
   ac->setter = NULL;
+  ac->getterS = SG_FALSE;
+  ac->setterS = SG_FALSE;
   return ac;
 }
 
@@ -450,7 +455,7 @@ SgObject Sg_ComputeSlots(SgClass *klass)
   SgObject slots = SG_NIL;
   SgObject cp, sp;
   SG_FOR_EACH(cp, klass->cpl) {
-    ASSERT(SG_CLASSP(SG_CAR(cp)));
+    ASSERT(Sg_TypeP(SG_CAR(cp), SG_CLASS_CLASS));
     SG_FOR_EACH(sp, SG_CLASS(SG_CAR(cp))->directSlots) {
       SgObject slot = SG_CAR(sp), snam, p;
       ASSERT(SG_PAIRP(slot));
@@ -467,10 +472,24 @@ SgObject Sg_ComputeSlots(SgClass *klass)
 SgObject Sg_ComputeGettersAndSetters(SgClass *klass, SgObject slots)
 {
   SgObject h = SG_NIL, t = SG_NIL;
-  SgObject sp;
+  /* direct-slots must be set before compute-getters-and-setters is called
+     see clos/core.scm */
+  SgObject sp, ds = klass->directSlots;
   int index = 0;
   SG_FOR_EACH(sp, slots) {
     SgSlotAccessor *ac = make_slot_accessor(klass, SG_CAAR(sp), index);
+    SgObject rcpl = Sg_Reverse(SG_CDR(klass->cpl)), cp;
+    SG_FOR_EACH(cp, rcpl) {
+      SgObject check = Sg_Assq(SG_CAAR(sp), ds);
+      if (SG_FALSEP(check)) {
+	SgSlotAccessor *sac = lookup_slot_info(SG_CLASS(SG_CAR(cp)),
+					       SG_CAAR(sp), FALSE);
+	if (SG_UNDEFP(sac)) continue;
+	if (sac->getter) ac->getter = sac->getter;
+	if (sac->setter) ac->setter = sac->setter;
+      }
+    }
+
     SG_APPEND1(h, t, SG_OBJ(ac));
     index++;
   }
@@ -783,7 +802,8 @@ SgObject Sg_ComputeMethods(SgGeneric *gf, SgObject *argv, int argc)
   return sort_method(applicable, argv, argc);
 }
 
-static SgSlotAccessor* lookup_slot_info(SgClass *klass, SgObject name)
+static SgSlotAccessor* lookup_slot_info(SgClass *klass, SgObject name,
+					int raise)
 {
   SgSlotAccessor **gNs = klass->gettersNSetters;
   SgObject cpl = klass->cpl;
@@ -803,33 +823,60 @@ static SgSlotAccessor* lookup_slot_info(SgClass *klass, SgObject name)
     gNs = tklass->gettersNSetters;
     goto entry;
   }
-
-  Sg_Error(UC("object of class %S doesn't have such slot: %S"), klass, name);
+  if (raise) {
+    Sg_Error(UC("object of class %S doesn't have such slot: %S"), klass, name);
+  }
   return SG_UNDEF;		/* dummy */
 }
 
 SgObject Sg_SlotRef(SgObject obj, SgObject name)
 {
-  SgSlotAccessor *accessor = lookup_slot_info(Sg_ClassOf(obj), name);
+  SgSlotAccessor *accessor = lookup_slot_info(Sg_ClassOf(obj), name, TRUE);
   if (accessor->getter) {
     return accessor->getter(obj);
   } else {
     /* scheme accessor, assume obj is instance */
-    return SG_INSTANCE(obj)->slots[accessor->index];
+    if (SG_FALSEP(accessor->getterS)) {
+      return SG_INSTANCE(obj)->slots[accessor->index];
+    } else {
+      return Sg_Apply1(accessor->getterS, obj);
+    }
   }
 }
 
 void Sg_SlotSet(SgObject obj, SgObject name, SgObject value)
 {
-  SgSlotAccessor *accessor = lookup_slot_info(Sg_ClassOf(obj), name);
+  SgSlotAccessor *accessor = lookup_slot_info(Sg_ClassOf(obj), name, TRUE);
   if (accessor->setter) {
     return accessor->setter(obj, value);
   } else {
     /* scheme accessor */
-    SG_INSTANCE(obj)->slots[accessor->index] = value;
+    if (SG_FALSEP(accessor->setterS)) {
+      SG_INSTANCE(obj)->slots[accessor->index] = value;
+    } else {
+      Sg_Apply2(accessor->setterS, obj, value);
+    }
   }
 }
 
+/* For now, these 2 are really simple */
+SgObject Sg_SlotRefUsingAccessor(SgObject obj, SgSlotAccessor *ac)
+{
+  if (ac->getter) {
+    return ac->getter(obj);
+  } else {
+    return SG_INSTANCE(obj)->slots[ac->index];
+  }
+}
+
+void Sg_SlotSetUsingAccessor(SgObject obj, SgSlotAccessor *ac, SgObject value)
+{
+  if (ac->setter) {
+    ac->setter(obj, value);
+  } else {
+    SG_INSTANCE(obj)->slots[ac->index] = value;
+  }
+}
 
 SgClass* Sg_ClassOf(SgObject obj)
 {
@@ -1248,6 +1295,23 @@ SgObject Sg_MakeNextMethod(SgGeneric *gf, SgObject methods,
   return SG_OBJ(nm);
 }
 
+/* slot accessor */
+static SgObject sa_getter(SgSlotAccessor *sa)
+{
+  return sa->getterS;
+}
+static void sa_getter_set(SgSlotAccessor *sa, SgObject proc)
+{
+  sa->getterS = proc;
+}
+static SgObject sa_setter(SgSlotAccessor *sa)
+{
+  return sa->setterS;
+}
+static void sa_setter_set(SgSlotAccessor *sa, SgObject proc)
+{
+  sa->setterS = proc;
+}
 
 /* static initializer */
 
@@ -1285,6 +1349,12 @@ static SgSlotAccessor method_slots[] = {
 		     method_procedure_set),
   SG_CLASS_SLOT_SPEC("name",      2, method_name,
 		     method_name_set),
+  { { NULL } }
+};
+
+static SgSlotAccessor slot_accessor_slots[] = {
+  SG_CLASS_SLOT_SPEC("getter",   0, sa_getter, sa_getter_set),
+  SG_CLASS_SLOT_SPEC("setter",   1, sa_setter, sa_setter_set),
   { { NULL } }
 };
 
@@ -1533,6 +1603,16 @@ static SgObject object_initialize_impl(SgObject *argv, int argc, void *data)
 	continue;
       }
     }
+    /* (2) use init-thunk */
+    key = Sg_Memq(SG_KEYWORD_INIT_THUNK, slot);
+    if (!SG_FALSEP(key)) {
+      SgObject v = Sg_GetKeyword(SG_KEYWORD_INIT_THUNK, SG_CDR(slot), SG_UNDEF);
+      if (!SG_UNDEFP(v)) {
+	Sg_SlotSet(obj, SG_CAR(slot), Sg_Apply0(v));
+	continue;
+      }
+    }
+    
   }
   return SG_UNDEF;
 }
@@ -1739,6 +1819,7 @@ void Sg__InitClos()
   BINIT(SG_CLASS_GENERIC,     "<generic>", generic_slots);
   BINIT(SG_CLASS_METHOD,      "<method>",  method_slots);
   BINIT(SG_CLASS_NEXT_METHOD, "<next-method>", NULL);
+  BINIT(SG_CLASS_SLOT_ACCESSOR, "<slot-accessor>", slot_accessor_slots);
   /* set flags for above to make them applicable(procedure? returns #t) */
   SG_CLASS_GENERIC->flags |= SG_CLASS_APPLICABLE;
   SG_CLASS_METHOD->flags |= SG_CLASS_APPLICABLE;

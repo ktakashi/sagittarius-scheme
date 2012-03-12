@@ -53,6 +53,14 @@
   (body   file-out))
   
 (define (main args)
+  (cond-expand
+   (sagittarius
+    (print "generating builtin symbold")
+    (if (file-exists? c-header)
+	(delete-file c-header))
+    (if (file-exists? c-file)
+	(delete-file c-file)))
+   (else #t))
   (let ((c-file-out (open-output-file c-file))
 	(c-header-out (open-output-file c-header)))
     (generate c-file-out c-header-out)
@@ -72,20 +80,12 @@
     (:around          SG_KEYWORD_AROUND)
     (:init-value      SG_KEYWORD_INIT_VALUE)
     (:init-keyword    SG_KEYWORD_INIT_KEYWORD)
+    (:init-thunk      SG_KEYWORD_INIT_THUNK)
     ;; for export
     (:all             SG_KEYWORD_ALL)
     (:export-reader-macro SG_KEYWORD_EXPORT_READER_MACRO)
     ))
 
-(cond-expand
- (sagittarius
-  (print "generating builtin symbold")
-  (if (file-exists? c-header)
-      (delete-file c-header))
-  (if (file-exists? c-file)
-      (delete-file c-file))
-  (main (command-line)))
- (else #t))
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix

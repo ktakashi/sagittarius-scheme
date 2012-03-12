@@ -1,5 +1,5 @@
 (library (clos core)
-    (export slot-ref slot-set!
+    (export slot-ref slot-set! slot-ref-using-accessor slot-set-using-accessor!
 	    make initialize add-method remove-method
 	    ;; <class>
 	    class-of
@@ -12,8 +12,14 @@
 	    ;; <methods>
 	    method-specializers
 	    method-procedure
+	    ;; slots
+	    slot-definition-name
+	    slot-definition-options
+	    slot-definition-option
+	    slot-definition-accessor
 	    ;; builtin class
 	    <top> <object> <class> <generic> <method> <next-method>
+	    <slot-accessor>
 	    ;; immediates
 	    <boolean> <char> <eof-object> <undefined-object> <unknown>
 	    ;; pair
@@ -42,7 +48,8 @@
 	    initialize-direct-slots is-a?
 	    ;; helper generics
 	    compute-cpl
-	    compute-slots)
+	    compute-slots
+	    compute-getters-and-setters)
     (import (rnrs)
 	    (srfi :1 lists)
 	    (srfi :26 cut)
@@ -178,4 +185,21 @@
 		:generic method-procedure
 		:procedure (lambda (call-next-method m)
 			     (slot-ref m 'procedure))))
+
+  ;; low level slot APIs
+  (define (slot-definition-name slot) (car slot))
+  (define (slot-definition-options slot) (cdr slot))
+  (define (slot-definition-option slot key . default)
+    (apply get-keyword key (cdr slot) default))
+  (define (slot-definition-accessor slot)
+    (get-keyword :accessor (cdr slot) #f))
+
+  ;; write-object for <class>
+  (add-method write-object
+	      (make <method>
+		:specializers (list <class> <port>)
+		:lambda-list '(c p)
+		:generic write-object
+		:procedure (lambda (call-next-method c p)
+			     (format p "#<class ~a>" (slot-ref c 'name)))))
 )

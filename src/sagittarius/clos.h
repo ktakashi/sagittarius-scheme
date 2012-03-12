@@ -210,6 +210,10 @@ SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_SlotRef(SgObject obj, SgObject name);
 SG_EXTERN void     Sg_SlotSet(SgObject obj, SgObject name, SgObject value);
+/* for MOP */
+SG_EXTERN SgObject Sg_SlotRefUsingAccessor(SgObject obj, SgSlotAccessor *ac);
+SG_EXTERN void     Sg_SlotSetUsingAccessor(SgObject obj, SgSlotAccessor *ac,
+					   SgObject value);
 
 /* MOP looks like APIs */
 SG_EXTERN SgClass* Sg_ClassOf(SgObject obj);

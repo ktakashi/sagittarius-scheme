@@ -124,6 +124,7 @@
 (declare-procedure values rest (:inline VALUES) :null values)
 
 (declare-procedure apply (a . b) (:inline APPLY) :null apply)
+(declare-procedure cons* x (:inline -1) :null cons*)
 
 ;; dummy
 ;;(declare-procedure map (p l1 . l2) (:inline -1) :base map)

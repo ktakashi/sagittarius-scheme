@@ -1,3 +1,8 @@
+2012-03-12  Takashi Kato  <ktakashi@ymail.com>
+
+	* sitelib/sagittarius/mop/allocation.scm (sagittarius mop allocation): 
+	added :allocation supported metaclass.
+
 2012-03-09  Takashi Kato  <ktakashi@ymail.com>
 
 	* ext/crypto/crypto/key.scm (crypto): added public/private key export

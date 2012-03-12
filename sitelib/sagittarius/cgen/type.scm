@@ -111,6 +111,8 @@
      (<class> "SgClass*" "class" "SG_CLASSP" "SG_CLASS")
      (<method> "SgMethod*" "method" "SG_METHODP" "SG_METHOD")
      (<generic> "SgGeneric*" "generic" "SG_GENERICP" "SG_GENERIC")
+     (<slot-accessor> "SgSlotAccessor*" "slot-accessor" "SG_SLOT_ACCESSORP"
+		      "SG_SLOT_ACCESSOR")
      ;; thread, no mutex nor condition variable
      (<thread> "SgVM*" "thread" "SG_VMP" "SG_VM")
      ;; weak
