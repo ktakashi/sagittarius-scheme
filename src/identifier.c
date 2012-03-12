@@ -70,19 +70,29 @@ static SgObject get_binding_frame(SgObject var, SgObject env)
   return SG_NIL;
 }
 
-SgObject Sg_MakeIdentifier(SgSymbol *symbol, SgObject envs, SgLibrary *library)
+static SgIdentifier* make_identifier()
 {
   SgIdentifier *id = SG_NEW(SgIdentifier);
   SG_SET_CLASS(id, SG_CLASS_IDENTIFIER);
+  return id;
+}
+
+SgObject Sg_MakeIdentifier(SgSymbol *symbol, SgObject envs, SgLibrary *library)
+{
+  SgIdentifier *id = make_identifier();
   id->name = symbol;
   id->library = library;
-  id->envs = (envs == SG_NIL) ? SG_NIL : get_binding_frame(SG_OBJ(symbol), envs);
+  id->envs = (envs == SG_NIL)? SG_NIL : get_binding_frame(SG_OBJ(symbol), envs);
   return SG_OBJ(id);
 }
 
 SgObject Sg_CopyIdentifier(SgIdentifier *id)
 {
-  return Sg_MakeIdentifier(id->name, id->envs, id->library);
+  SgIdentifier *z = make_identifier();
+  z->name = id->name;
+  z->library = id->library;
+  z->envs = id->envs;
+  return SG_OBJ(z);
 }
 
 /* TODO this is almost the same as one in vmlib.stub */
@@ -99,10 +109,11 @@ static SgObject p1env_lookup(SgObject form, SgVector *p1env, int lookup_as)
       }
     }
   }
-  return SG_NIL;
+  return SG_FALSE;
 }
 
-static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen, int lexicalP)
+static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen,
+			 int lexicalP)
 {
   if (SG_NULLP(form)) {
     return form;
@@ -110,8 +121,9 @@ static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen, int 
     return Sg_Cons(wrap_rec(SG_CAR(form), p1env, seen, lexicalP),
 		   wrap_rec(SG_CDR(form), p1env, seen, lexicalP));
   } else if (SG_VECTORP(form)) {
-    return Sg_ListToVector(wrap_rec(Sg_VectorToList(form, 0, -1), p1env, seen, lexicalP), 0, -1);
-  } else if (SG_SYMBOLP(form)) {
+    return Sg_ListToVector(wrap_rec(Sg_VectorToList(form, 0, -1),
+				    p1env, seen, lexicalP), 0, -1);
+  } else if (SG_SYMBOLP(form) || SG_IDENTIFIERP(form)) {
     /* lookup from p1env.
        exists: we need to wrap with the env which contains this symbol.
        not exist: we just need to wrap it.
@@ -120,14 +132,31 @@ static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen, int 
     SgObject id = Sg_HashTableRef(seen, form, SG_FALSE);
     if (SG_FALSEP(id)) {
       SgObject env = p1env_lookup(form, p1env, 0);
-      if (SG_NULLP(env) && !lexicalP) {
-	id = Sg_MakeIdentifier(form,
-			       SG_VECTOR_ELEMENT(p1env, 1),
-			       SG_VECTOR_ELEMENT(p1env, 0));
-      } else if (!SG_NULLP(env)) {
-	id = Sg_MakeIdentifier(form, env, SG_VECTOR_ELEMENT(p1env, 0));
+      if (SG_FALSEP(env) && !lexicalP) {
+	if (SG_IDENTIFIERP(form)) {
+	  /* check pattern variable */
+	  env = p1env_lookup(form, p1env, 2);
+	  if (SG_FALSEP(env)) {
+	    /* global id */
+	    id = Sg_CopyIdentifier(SG_IDENTIFIER(form));
+	  } else {
+	    /* keep pattern variable */
+	    id = form;
+	  }
+	} else {
+	  id = Sg_MakeIdentifier(form,
+				 SG_VECTOR_ELEMENT(p1env, 1),
+				 SG_VECTOR_ELEMENT(p1env, 0));
+	}
+      } else if (!SG_FALSEP(env)) {
+	if (SG_IDENTIFIERP(form)) {
+	  id = form;		/* we do not rename lexical identifier */
+	} else {
+	  id = Sg_MakeIdentifier(form, env, SG_VECTOR_ELEMENT(p1env, 0));
+	}
       } else {
-	/* if it's partial wrap and symbol is not lexical bounded, just return */
+	/* if it's partial wrap and symbol is not lexical bounded,
+	   just return */
 	return form;
       }
       Sg_HashTableSet(seen, form, id, 0);
@@ -142,7 +171,8 @@ static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen, int 
 }
 
 /* wrap form to identifier */
-SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env, SgObject seen, int lexicalP)
+SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env, SgObject seen,
+		       int lexicalP)
 {
   if (!seen) {
     seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
