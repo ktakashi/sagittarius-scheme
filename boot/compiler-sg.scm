@@ -3281,9 +3281,7 @@
          (vars (map car intdefs.))
          (lvars (map (lambda (var)
                        (let ((r (p1env-lookup p1env var LEXICAL)))
-                         (if (and (identifier? var) (lvar? r))
-                           r
-                           (make-lvar var))))
+                         (if (lvar? r) r (make-lvar var))))
                      vars))
          (newenv
            (p1env-extend
@@ -3337,9 +3335,7 @@
          (vars (map car intdefs.))
          (lvars (map (lambda (var)
                        (let ((r (p1env-lookup p1env var LEXICAL)))
-                         (if (and (identifier? var) (lvar? r))
-                           r
-                           (make-lvar var))))
+                         (if (lvar? r) r (make-lvar var))))
                      vars))
          (newenv
            (p1env-extend
@@ -9448,9 +9444,7 @@
          (vars (map car intdefs.))
          (lvars (map (lambda (var)
                        (let ((r (p1env-lookup p1env var LEXICAL)))
-                         (if (and (identifier? var) (lvar? r))
-                           r
-                           (make-lvar var))))
+                         (if (lvar? r) r (make-lvar var))))
                      vars))
          (newenv
            (p1env-extend
@@ -9504,9 +9498,7 @@
          (vars (map car intdefs.))
          (lvars (map (lambda (var)
                        (let ((r (p1env-lookup p1env var LEXICAL)))
-                         (if (and (identifier? var) (lvar? r))
-                           r
-                           (make-lvar var))))
+                         (if (lvar? r) r (make-lvar var))))
                      vars))
          (newenv
            (p1env-extend

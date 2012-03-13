@@ -45,13 +45,14 @@ static void id_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   Sg_Putuz(port, UC("#<identifier "));
   Sg_Write(id->name, port, ctx->mode);
   Sg_Putc(port, '#');
-  Sg_Write(id->library->name, port, ctx->mode);
+  Sg_Write(id->library->name, port, 0);
 #if 1
   if (SG_WRITE_MODE(ctx) == SG_WRITE_WRITE) {
     char buf[50];
     snprintf(buf, sizeof(buf), "(%p)", id);
     Sg_Putz(port, buf);
   }
+  Sg_Write(id->envs, port, SG_WRITE_SHARED);
 #endif
   Sg_Putc(port, '>');
 }
@@ -101,7 +102,7 @@ static SgObject p1env_lookup(SgObject form, SgVector *p1env, int lookup_as)
   SgObject frames = SG_VECTOR_ELEMENT(p1env, 1);
   SgObject fp, vp, vtmp;
   SG_FOR_EACH(fp, frames) {
-    if (SG_INT_VALUE(SG_CAAR(fp)) > lookup_as) continue;
+    if (SG_INT_VALUE(SG_CAAR(fp)) == lookup_as) continue;
     SG_FOR_EACH(vtmp, SG_CDAR(fp)) {
       vp = SG_CAR(vtmp);
       if (SG_EQ(form, SG_CAR(vp))) {
@@ -111,6 +112,7 @@ static SgObject p1env_lookup(SgObject form, SgVector *p1env, int lookup_as)
   }
   return SG_FALSE;
 }
+
 
 static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen,
 			 int lexicalP)
@@ -150,7 +152,7 @@ static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen,
 	}
       } else if (!SG_FALSEP(env)) {
 	if (SG_IDENTIFIERP(form)) {
-	  id = form;		/* we do not rename lexical identifier */
+	  id = form;
 	} else {
 	  id = Sg_MakeIdentifier(form, env, SG_VECTOR_ELEMENT(p1env, 0));
 	}
