@@ -473,8 +473,7 @@
 		    (if (identifier? v)
 			'()
 			'.vars)))
-	  (env    (vector-copy mac-env))
-	  (template (wrap-syntax template mac-env)))
+	  (env    (vector-copy mac-env)))
       ;; we don't need current-proc for this
       ;; this makes compiled cache size much smaller.
       (vector-set! env 3 #f)
@@ -583,8 +582,8 @@
 		   (else lst)))
 	    ((null? lst) '())
 	    ((symbol? lst)
-	     (cond ((hashtable-ref renamed-ids lst #f) => (lambda (id) id))
-		   ((hashtable-ref seen lst #f) => (lambda (id) id))
+	     (cond ((hashtable-ref renamed-ids lst #f))
+		   ((hashtable-ref seen lst #f))
 		   ;; If transcribed expression contains pattern variable,
 		   ;; we need to replace it.
 		   ;; still we need this. Sucks!!
@@ -690,9 +689,14 @@
 			(emit (emit (cadr slot)))
 			(else (cadr slot)))))
 	    (else
-	     (syntax-violation "syntax template" "subforms have different size of matched input (variable)"
-			       `(template: ,(unwrap-syntax in-form))
-			       `(subforms: ,@(unwrap-syntax vars))))))
+	     (syntax-violation 
+	      "syntax template"
+	      "subforms have different size of matched input (variable)"
+	      `(template: ,(unwrap-syntax in-form) ,tmpl)
+	      `(subforms: ,@(%map-cons (map car vars)
+				       (map (lambda (var)
+					      (unwrap-syntax (cdr var)))
+					    vars)))))))
     (define (expand-ellipsis-var tmpl vars)
       (cond ((exists (lambda (slot)
 		       (if (and (eq? (id-envs tmpl) (id-envs (car slot)))

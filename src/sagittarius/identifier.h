@@ -44,6 +44,7 @@ struct SgIdentifierRec
   SgSymbol  *name;
   SgObject   envs;
   SgLibrary *library;
+  SgObject   parent;
 };
 
 #define SG_IDENTIFIER(obj)   ((SgIdentifier*)(obj))
@@ -51,6 +52,7 @@ struct SgIdentifierRec
 #define SG_IDENTIFIER_NAME(obj)     (SG_IDENTIFIER(obj)->name)
 #define SG_IDENTIFIER_ENVS(obj)     (SG_IDENTIFIER(obj)->envs)
 #define SG_IDENTIFIER_LIBRARY(obj)  (SG_IDENTIFIER(obj)->library)
+#define SG_IDENTIFIER_PARENT(obj)   (SG_IDENTIFIER(obj)->parent)
 
 SG_CDECL_BEGIN
 

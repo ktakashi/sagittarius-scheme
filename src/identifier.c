@@ -47,12 +47,13 @@ static void id_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   Sg_Putc(port, '#');
   Sg_Write(id->library->name, port, 0);
 #if 1
-  if (SG_WRITE_MODE(ctx) == SG_WRITE_WRITE) {
+  if (SG_WRITE_MODE(ctx) == SG_WRITE_WRITE ||
+      SG_WRITE_MODE(ctx) == SG_WRITE_SHARED) {
     char buf[50];
-    snprintf(buf, sizeof(buf), "(%p)", id);
+    snprintf(buf, sizeof(buf), "(%p %p)", (id->parent), id);
     Sg_Putz(port, buf);
   }
-  Sg_Write(id->envs, port, SG_WRITE_SHARED);
+  /* Sg_Write(id->envs, port, SG_WRITE_SHARED); */
 #endif
   Sg_Putc(port, '>');
 }
@@ -75,6 +76,7 @@ static SgIdentifier* make_identifier()
 {
   SgIdentifier *id = SG_NEW(SgIdentifier);
   SG_SET_CLASS(id, SG_CLASS_IDENTIFIER);
+  id->parent = NULL;		/* for sanity */
   return id;
 }
 
@@ -93,6 +95,7 @@ SgObject Sg_CopyIdentifier(SgIdentifier *id)
   z->name = id->name;
   z->library = id->library;
   z->envs = id->envs;
+  z->parent = id;
   return SG_OBJ(z);
 }
 
@@ -101,8 +104,10 @@ static SgObject p1env_lookup(SgObject form, SgVector *p1env, int lookup_as)
 {
   SgObject frames = SG_VECTOR_ELEMENT(p1env, 1);
   SgObject fp, vp, vtmp;
+
+ entry:
   SG_FOR_EACH(fp, frames) {
-    if (SG_INT_VALUE(SG_CAAR(fp)) == lookup_as) continue;
+    if (SG_INT_VALUE(SG_CAAR(fp)) != lookup_as) continue;
     SG_FOR_EACH(vtmp, SG_CDAR(fp)) {
       vp = SG_CAR(vtmp);
       if (SG_EQ(form, SG_CAR(vp))) {
@@ -110,6 +115,12 @@ static SgObject p1env_lookup(SgObject form, SgVector *p1env, int lookup_as)
       }
     }
   }
+  /* try the parent. */
+  if (SG_IDENTIFIERP(form) && SG_IDENTIFIER_PARENT(form)) {
+    form = SG_IDENTIFIER_PARENT(form);
+    goto entry;
+  }
+
   return SG_FALSE;
 }
 
@@ -139,8 +150,10 @@ static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen,
 	  /* check pattern variable */
 	  env = p1env_lookup(form, p1env, 2);
 	  if (SG_FALSEP(env)) {
-	    /* global id */
-	    id = Sg_CopyIdentifier(SG_IDENTIFIER(form));
+	    /* global id, creates a new identifier */
+	    id = Sg_MakeIdentifier(SG_IDENTIFIER_NAME(form),
+				   SG_VECTOR_ELEMENT(p1env, 1),
+				   SG_VECTOR_ELEMENT(p1env, 0));
 	  } else {
 	    /* keep pattern variable */
 	    id = form;
@@ -152,7 +165,16 @@ static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen,
 	}
       } else if (!SG_FALSEP(env)) {
 	if (SG_IDENTIFIERP(form)) {
-	  id = form;
+	  /* id = form; */
+	  /* here we need to copy the variable which bounded locally.
+	     The parent field keeps the original identifier so that
+	     p1env-lookup can see the hierarchy and find the right lvar */
+	  SgObject env2 = p1env_lookup(form, p1env, 2);
+	  if (SG_FALSEP(env2)) {
+	    id = Sg_CopyIdentifier(SG_IDENTIFIER(form));
+	  } else {
+	    id = form;
+	  }
 	} else {
 	  id = Sg_MakeIdentifier(form, env, SG_VECTOR_ELEMENT(p1env, 0));
 	}

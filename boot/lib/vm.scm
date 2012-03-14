@@ -496,7 +496,8 @@
 			      id)
 			     (else form))))))
 	      (else form))))
-    (let ((seen (if (null? opts) (make-eq-hashtable) (car opts)))
+    form
+    #;(let ((seen (if (null? opts) (make-eq-hashtable) (car opts)))
 	  (partial? (if (or (null? opts)
 			    (null? (cdr opts)))
 			#f
