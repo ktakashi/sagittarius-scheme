@@ -8,6 +8,8 @@
   (lambda (obj)
     (and (vector? obj) (eq? (vector-ref obj 0) 'lvar))))
 
+(define .vars (make-identifier '.vars '() '(core syntax-case)))
+
 ;; mac-env must be p1env
 (define (lookup-lexical-name id mac-env)
   ;; lookup env and bindings
@@ -164,7 +166,7 @@
     
     (values .match-syntax-case
 	    lites
-	    (p1env-lookup mac-env '.vars LEXICAL)
+	    (p1env-lookup mac-env .vars LEXICAL)
 	    (map (lambda (clause)
 		   (let ((seen (make-eq-hashtable)))
 		     (smatch clause
@@ -174,16 +176,16 @@
 			    (parse-pattern (wrap-syntax p mac-env seen))
 			  (cons `(,.list (,syntax-quote. ,pattern)
 					 #f
-					 (lambda (.vars)
+					 (lambda (,.vars)
 					   ,(wrap-syntax expr mac-env seen)))
 				env)))
 		       ((p fender expr)
 			(receive (pattern env)
 			    (parse-pattern (wrap-syntax p mac-env seen))
 			  (cons `(,.list (,syntax-quote. ,pattern)
-					 (lambda (.vars)
+					 (lambda (,.vars)
 					   ,(wrap-syntax fender mac-env seen))
-					 (lambda (.vars)
+					 (lambda (,.vars)
 					   ,(wrap-syntax expr mac-env seen)))
 				env))))))
 		 clauses))))
@@ -469,10 +471,10 @@
 			     ids))))
     ;; later
     (check-template template ranks)
-    (let ((patvar (let ((v (p1env-lookup mac-env '.vars LEXICAL)))
+    (let ((patvar (let ((v (p1env-lookup mac-env .vars LEXICAL)))
 		    (if (identifier? v)
 			'()
-			'.vars)))
+			.vars)))
 	  (env    (vector-copy mac-env)))
       ;; we don't need current-proc for this
       ;; this makes compiled cache size much smaller.

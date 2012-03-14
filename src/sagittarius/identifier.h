@@ -60,7 +60,7 @@ SG_EXTERN SgObject Sg_MakeIdentifier(SgSymbol *symbol, SgObject envs,
 				     SgLibrary *library);
 SG_EXTERN SgObject Sg_CopyIdentifier(SgIdentifier *id);
 SG_EXTERN SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env,
-				 SgObject seen, int lexicalP);
+				 SgObject seen, int lexicalP, int constantP);
 SG_EXTERN int      Sg_IdentifierEqP(SgObject use_env, SgObject x,
 				    SgObject mac_env, SgObject y);
 

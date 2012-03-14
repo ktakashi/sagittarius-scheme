@@ -290,11 +290,12 @@
 
   (define-c-proc wrap-syntax (form p1env::<vector>
 				   :optional seen::<hashtable>
-				             (partialP::<boolean> #f))
+				             (partialP::<boolean> #f)
+					     (constantP::<boolean> #f))
     ::<top>
     (when (SG_UNBOUNDP seen)
       (set! seen NULL))
-    (result (Sg_WrapSyntax form p1env seen partialP)))
+    (result (Sg_WrapSyntax form p1env seen partialP constantP)))
 
   (define-c-proc current-dynamic-environment (:optional other::<hashtable>)
     ::<top>

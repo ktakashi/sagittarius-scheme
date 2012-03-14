@@ -38,6 +38,7 @@
 #include "sagittarius/hashtable.h"
 #include "sagittarius/writer.h"
 #include "sagittarius/port.h"
+#include "sagittarius/reader.h"
 
 static void id_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
@@ -124,24 +125,47 @@ static SgObject p1env_lookup(SgObject form, SgVector *p1env, int lookup_as)
   return SG_FALSE;
 }
 
-
-static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen,
-			 int lexicalP)
+typedef struct
 {
+  SgVector    *p1env;
+  SgHashTable *seen;
+  int          lexicalP;
+  int          constantP;
+} wrap_ctx;
+
+static SgObject wrap_rec(SgObject form, wrap_ctx *ctx)
+{
+  int constantP = ctx->constantP;
   if (SG_NULLP(form)) {
     return form;
   } else if (SG_PAIRP(form)) {
-    return Sg_Cons(wrap_rec(SG_CAR(form), p1env, seen, lexicalP),
-		   wrap_rec(SG_CDR(form), p1env, seen, lexicalP));
+    SgObject a = wrap_rec(SG_CAR(form), ctx);
+    SgObject d = wrap_rec(SG_CDR(form), ctx);
+    if (constantP && Sg_ConstantLiteralP(form)) {
+      if (SG_EQ(a, SG_CAR(form)) && SG_EQ(d, SG_CDR(form))) return form;
+    }
+    return Sg_Cons(a, d);
   } else if (SG_VECTORP(form)) {
-    return Sg_ListToVector(wrap_rec(Sg_VectorToList(form, 0, -1),
-				    p1env, seen, lexicalP), 0, -1);
+    SgObject ret = Sg_ListToVector(wrap_rec(Sg_VectorToList(form, 0, -1), ctx),
+				   0, -1);
+    if (constantP && Sg_ConstantLiteralP(form)) {
+      int size = SG_VECTOR_SIZE(ret), i;
+      for (i = 0; i < size; i++) {
+	if (!SG_EQ(SG_VECTOR_ELEMENT(ret, i), SG_VECTOR_ELEMENT(form, i)))
+	  return ret;
+      }
+      return form;
+    }
+    return ret;
   } else if (SG_SYMBOLP(form) || SG_IDENTIFIERP(form)) {
     /* lookup from p1env.
        exists: we need to wrap with the env which contains this symbol.
        not exist: we just need to wrap it.
      */
     /* TODO lexical? */
+    SgHashTable *seen = ctx->seen;
+    SgVector *p1env = ctx->p1env;
+    int lexicalP = ctx->lexicalP;
     SgObject id = Sg_HashTableRef(seen, form, SG_FALSE);
     if (SG_FALSEP(id)) {
       SgObject env = p1env_lookup(form, p1env, 0);
@@ -152,8 +176,8 @@ static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen,
 	  if (SG_FALSEP(env)) {
 	    /* global id, creates a new identifier */
 	    id = Sg_MakeIdentifier(SG_IDENTIFIER_NAME(form),
-				   SG_VECTOR_ELEMENT(p1env, 1),
-				   SG_VECTOR_ELEMENT(p1env, 0));
+				   SG_IDENTIFIER_ENVS(form),
+				   SG_IDENTIFIER_LIBRARY(form));
 	  } else {
 	    /* keep pattern variable */
 	    id = form;
@@ -176,7 +200,12 @@ static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen,
 	    id = form;
 	  }
 	} else {
-	  id = Sg_MakeIdentifier(form, env, SG_VECTOR_ELEMENT(p1env, 0));
+	  if (constantP) {
+	    /* symbol must be symbol, when constantP is TRUE */
+	    id = form;
+	  } else {
+	    id = Sg_MakeIdentifier(form, env, SG_VECTOR_ELEMENT(p1env, 0));
+	  }
 	}
       } else {
 	/* if it's partial wrap and symbol is not lexical bounded,
@@ -184,6 +213,7 @@ static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen,
 	return form;
       }
       Sg_HashTableSet(seen, form, id, 0);
+
       return id;
     } else {
       return id;
@@ -196,13 +226,18 @@ static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen,
 
 /* wrap form to identifier */
 SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env, SgObject seen,
-		       int lexicalP)
+		       int lexicalP, int constantP)
 {
+  wrap_ctx ctx;
   if (!seen) {
     seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
   }
   ASSERT(SG_HASHTABLE_P(seen));
-  return wrap_rec(form, p1env, SG_HASHTABLE(seen), lexicalP);
+  ctx.seen = seen;
+  ctx.p1env = p1env;
+  ctx.lexicalP = lexicalP;
+  ctx.constantP = constantP;
+  return wrap_rec(form, &ctx);
 }
 
 /* originally from chibi scheme */
