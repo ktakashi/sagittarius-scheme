@@ -569,8 +569,8 @@
 		   (else lst)))
 	    ((null? lst) '())
 	    ((symbol? lst)
-	     (cond ((hashtable-ref renamed-ids lst #f) => (lambda (id) id))
-		   ((hashtable-ref seen lst #f) => (lambda (id) id))
+	     (cond ((hashtable-ref renamed-ids lst #f))
+		   ((hashtable-ref seen lst #f))
 		   ;; If transcribed expression contains pattern variable,
 		   ;; we need to replace it.
 		   ;; still we need this. Sucks!!
