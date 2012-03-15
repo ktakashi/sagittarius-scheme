@@ -300,18 +300,22 @@
 			       (acons lib
 				      export-spec
 				      (library-imported to))))
-      (hashtable-for-each
-       (lambda (k v)
-	 (cond ((not export-spec)
-		;; maybe null or user library
-		(hashtable-set! (library-table to) k v))
-	       ((memq k (car export-spec))
-		;; no rename just put
-		(hashtable-set! (library-table to) k v))
-	       ((assq k (cdr export-spec)) =>
-		(lambda (spec)
-		  (hashtable-set! (library-table to) (cdr spec) v)))))
-	 (library-table lib)))))
+      (if (and export-spec (memq :all (car export-spec)))
+	  (hashtable-for-each
+	   (lambda (k v) (hashtable-set! (library-table to) k v))
+	   (library-table lib))
+	  (hashtable-for-each
+	   (lambda (k v)
+	     (cond ((not export-spec)
+		    ;; maybe null or user library
+		    (hashtable-set! (library-table to) k v))
+		   ((memq k (car export-spec))
+		    ;; no rename just put
+		    (hashtable-set! (library-table to) k v))
+		   ((assq k (cdr export-spec)) =>
+		    (lambda (spec)
+		      (hashtable-set! (library-table to) (cdr spec) v)))))
+	   (library-table lib))))))
 ;; for vm.scm
 (define (load-library to . from)
   (let loop ((from from))
@@ -496,8 +500,7 @@
 			      id)
 			     (else form))))))
 	      (else form))))
-    form
-    #;(let ((seen (if (null? opts) (make-eq-hashtable) (car opts)))
+    (let ((seen (if (null? opts) (make-eq-hashtable) (car opts)))
 	  (partial? (if (or (null? opts)
 			    (null? (cdr opts)))
 			#f
@@ -1031,7 +1034,7 @@
     (cond ((assq label label-defs)
 	   => cdr)
 	  (else 
-	   (error "a label was refered but not defined.")
+	   (error 'builder-label-def "a label was refered but not defined.")
 	   -1)))
 
   (define (rec cb)

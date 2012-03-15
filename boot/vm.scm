@@ -41,7 +41,8 @@
 
 (cond-expand
  (sagittarius
-  (import (except (rnrs) syntax-rules open-output-file)
+  (import (rename (except (rnrs) syntax-rules open-output-file)
+		  (guard rnrs:guard))
 	  (srfi :1) (match) (util file)
 	  (srfi :2 and-let*)
 	  (srfi :39)
@@ -83,6 +84,7 @@
   (define bytevector? (lambda (o) #f)) ;; dummy for quasiquote
   (define for-all every)
   (define exists any)
+  (define rnrs:guard guard)
   )
  )
 
@@ -1044,10 +1046,11 @@
   (cond ((closure? o)
 	 (format "#<closure-s ~a>" (shorten-object (closure-src o))))
 	((identifier? o)
-	 (format "#<identifier ~s#~s>" (id-name o)
+	 (format "#<identifier ~s#~s(~s)>" (id-name o)
 		 (if (library? (id-library o))
 		     (library-name (id-library o))
-		     (id-library o))))
+		     (id-library o))
+		 (vector-ref o 4)))
 	((library? o)
 	 (format "#<library ~s>" (library-name o)))
 	((pair? o)
@@ -1498,21 +1501,14 @@
   (if lib
       (let ((form (construct-library file lib imports exports)))
 	(let ((r (execute form opt)))
-	  (when show?
-	    (print r)
-	    (flush))))
+	  (when show? (print r))))
       (with-input-from-file file
 	(lambda ()
-	  (let loop ((s (read))
-		     (ret '()))
-	    (if (eof-object? s)
-		'()
-		(begin 
-		  (let ((r (execute s opt)))
-		    (when show?
-		      (print r)
-		      (flush))
-		    (loop (read) ret)))))))))
+	  (let loop ((s (read)) (ret '()))
+	    (unless (eof-object? s)
+	      (let ((r (execute s opt)))
+		(when show? (print r))
+		(loop (read) ret))))))))
 
 (define (dump-library-symbols lib . search)
   (let ((lib (find-library lib #f)))

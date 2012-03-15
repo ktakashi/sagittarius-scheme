@@ -490,18 +490,18 @@
 	(namespaces
 	 `((#f '"UHTML" . ,urn-html)
 	   ('"A"  '"UA" . ,urn-a)))
-	  (test
-	   (lambda (tag-head-name elems str)
-	     (call-with-input-string str
-		(lambda (port)
-		  (call-with-values
-		      (lambda ()
-			      (ssax:complete-start-tag
-			       (call-with-input-string tag-head-name
-				      (lambda (port) (ssax:read-QName port)))
-			       port
-			       elems '() namespaces))
-		    list))))))
+	(test
+	 (lambda (tag-head-name elems str)
+	   (call-with-input-string str
+	     (lambda (port)
+	       (call-with-values
+		   (lambda ()
+		     (ssax:complete-start-tag
+		      (call-with-input-string tag-head-name
+			(lambda (port) (ssax:read-QName port)))
+		      port
+		      elems '() namespaces))
+		 list))))))
 
    ; First test with no validation of elements
    ;(test "TAG1" #f "")

@@ -224,9 +224,29 @@
 
 (define pass0 (lambda (form env) form))
 
-(define (wrap-expression var p1env . opt)
-  (let ((seen (if (null? opt) (make-eq-hashtable) (car opt))))
-    (wrap-syntax var p1env seen #f #t)))
+(define (rewrite-var var)
+  (if (and (identifier? var) (not (eq? .vars var)))
+    (cons var (copy-identifier var))
+    (cons var var)))
+
+(define (rewrite-vars vars)
+  (let loop ((vars vars) (r '()))
+    (cond ((null? vars) (reverse! r))
+          (else
+           (let ((v (car vars)))
+             (loop (cdr vars) (cons (rewrite-var v) r)))))))
+
+(define (rewrite-expr oexpr vars)
+  (let loop ((expr oexpr))
+    (cond ((null? expr) '())
+          ((pair? expr)
+           (cond ((constant-literal? expr) expr)
+                 (else
+                  (set-car! expr (loop (car expr)))
+                  (set-cdr! expr (loop (cdr expr)))
+                  expr)))
+          ((assq expr vars) => cdr)
+          (else expr))))
 
 (define-constant SMALL_LAMBDA_SIZE 12)
 
@@ -1434,9 +1454,9 @@
   (smatch
     form
     ((- ((name trans-spec) ___) body ___)
-     (let* ((seen (make-eq-hashtable))
-            (name (wrap-expression name p1env seen))
-            (body (wrap-expression body p1env seen))
+     (let* ((ids (rewrite-vars name))
+            (name (imap cdr ids))
+            (body (rewrite-expr body ids))
             (trans (map (lambda (n x)
                           (pass1/eval-macro-rhs
                             'let-syntax
@@ -1459,11 +1479,10 @@
   (smatch
     form
     ((- ((name trans-spec) ___) body ___)
-     (let* ((seen (make-eq-hashtable))
-            (name (wrap-expression name p1env seen))
-            (trans-spec
-              (wrap-expression trans-spec p1env seen))
-            (body (wrap-expression body p1env seen))
+     (let* ((ids (rewrite-vars name))
+            (name (imap cdr ids))
+            (trans-spec (rewrite-expr trans-spec ids))
+            (body (rewrite-expr body ids))
             (newenv
               (p1env-extend
                 p1env
@@ -1528,35 +1547,38 @@
   (receive
     (vars reqargs opt kargs)
     (parse-lambda-args formals)
-    (cond ((null? kargs)
-           (let* ((this-lvars (imap make-lvar+ vars))
-                  (intform
-                    ($lambda
-                      form
-                      (p1env-exp-name p1env)
-                      reqargs
-                      opt
-                      this-lvars
-                      #f
-                      flag))
-                  (newenv
-                    (p1env-extend/proc
-                      p1env
-                      (%map-cons vars this-lvars)
-                      LEXICAL
-                      intform)))
-             ($lambda-body-set!
-               intform
-               (pass1/body body newenv))
-             intform))
-          (else
-           (let ((g (gensym)))
-             (pass1/lambda
-               form
-               (append vars g)
-               (pass1/extended-lambda form g kargs body)
-               p1env
-               #t))))))
+    (let* ((ids (rewrite-vars vars))
+           (vars (imap cdr ids))
+           (body (rewrite-expr body ids)))
+      (cond ((null? kargs)
+             (let* ((this-lvars (imap make-lvar+ vars))
+                    (intform
+                      ($lambda
+                        form
+                        (p1env-exp-name p1env)
+                        reqargs
+                        opt
+                        this-lvars
+                        #f
+                        flag))
+                    (newenv
+                      (p1env-extend/proc
+                        p1env
+                        (%map-cons vars this-lvars)
+                        LEXICAL
+                        intform)))
+               ($lambda-body-set!
+                 intform
+                 (pass1/body body newenv))
+               intform))
+            (else
+             (let ((g (gensym)))
+               (pass1/lambda
+                 form
+                 (append vars g)
+                 (pass1/extended-lambda form g kargs body)
+                 p1env
+                 #t)))))))
 
 (define (pass1/extended-lambda form garg kargs body)
   (define _let-keywords*
@@ -1678,11 +1700,7 @@
   (smatch
     form
     ((- formals . body)
-     (let* ((seen (make-eq-hashtable)))
-       (hashtable-set! seen .vars .vars)
-       (let ((formals (wrap-expression formals p1env seen))
-             (body (wrap-expression body p1env seen)))
-         (pass1/lambda form formals body p1env #t))))
+     (pass1/lambda form formals body p1env #t))
     (- (syntax-error "malformed lambda" form))))
 
 (define-pass1-syntax
@@ -1691,74 +1709,73 @@
   (smatch
     form
     ((- formals expr body ___)
-     (let* ((seen (make-eq-hashtable))
-            (formals (wrap-expression formals p1env seen))
-            (expr (wrap-expression expr p1env seen))
-            (body (wrap-expression body p1env seen)))
-       (receive
-         (args reqargs opt kargs)
-         (parse-lambda-args formals)
-         (unless
-           (null? kargs)
-           (syntax-error
-             "exptended lambda list isn't allowed in receive"
-             form))
-         (let* ((lvars (imap make-lvar+ args))
-                (newenv
-                  (p1env-extend
-                    p1env
-                    (%map-cons args lvars)
-                    LEXICAL)))
-           ($receive
-             form
-             reqargs
-             opt
-             lvars
-             (pass1 expr p1env)
-             (pass1/body body newenv))))))
+     (receive
+       (args reqargs opt kargs)
+       (parse-lambda-args formals)
+       (unless
+         (null? kargs)
+         (syntax-error
+           "exptended lambda list isn't allowed in receive"
+           form))
+       (let* ((ids (rewrite-vars args))
+              (args (imap cdr ids))
+              (body (rewrite-expr body ids))
+              (lvars (imap make-lvar+ args))
+              (newenv
+                (p1env-extend
+                  p1env
+                  (%map-cons args lvars)
+                  LEXICAL)))
+         ($receive
+           form
+           reqargs
+           opt
+           lvars
+           (pass1 expr p1env)
+           (pass1/body body newenv)))))
     (- (syntax-error "malformed receive" form))))
 
 (define (pass1/let-values form p1env ref?)
+  (define (check-formals vars form)
+    (let lp ((vars vars) (pool '()))
+      (cond ((null? vars))
+            ((pair? vars)
+             (let* ((formals (car vars))
+                    (new-pool
+                      (let lp ((formals formals) (pool pool))
+                        (cond ((null? formals) pool)
+                              ((pair? formals)
+                               (if (memq (car formals) pool)
+                                 (syntax-error
+                                   "duplicate formals in let-values"
+                                   form)
+                                 (lp (cdr formals) (cons (car formals) pool))))
+                              (else
+                               (if (memq formals pool)
+                                 (syntax-error
+                                   "duplicate formals in let-values"
+                                   form)
+                                 (cons formals pool)))))))
+               (lp (cdr vars) new-pool)))
+            (else
+             (if (memq vars pool)
+               (syntax-error
+                 "duplicate formals in let-values"
+                 form)
+               (lp (cdr vars) (cons vars pool)))))))
   (smatch
     form
     ((- ((vars expr) ___) body ___)
-     (unless
-       ref?
-       (let lp ((vars vars) (pool '()))
-         (cond ((null? vars))
-               ((pair? vars)
-                (let* ((formals (car vars))
-                       (new-pool
-                         (let lp ((formals formals) (pool pool))
-                           (cond ((null? formals) pool)
-                                 ((pair? formals)
-                                  (if (memq (car formals) pool)
-                                    (syntax-error
-                                      "duplicate formals in let-values"
-                                      form)
-                                    (lp (cdr formals)
-                                        (cons (car formals) pool))))
-                                 (else
-                                  (if (memq formals pool)
-                                    (syntax-error
-                                      "duplicate formals in let-values"
-                                      form)
-                                    (cons formals pool)))))))
-                  (lp (cdr vars) new-pool)))
-               (else
-                (if (memq vars pool)
-                  (syntax-error
-                    "duplicate formals in let-values"
-                    form)
-                  (lp (cdr vars) (cons vars pool)))))))
+     (unless ref? (check-formals vars form))
      (let loop ((vars vars)
                 (inits expr)
                 (next-frames '())
                 (last-frames '())
-                (p1env p1env))
+                (p1env p1env)
+                (oids '()))
        (if (null? vars)
          (pass1/body
-           body
+           (rewrite-expr body oids)
            (p1env-extend-w/o-type p1env last-frames))
          (receive
            (args reqargs opt kargs)
@@ -1768,7 +1785,10 @@
              (syntax-error
                "exptended lambda list isn't allowed in let-values"
                form))
-           (let* ((lvars (imap make-lvar+ args))
+           (let* ((ids (rewrite-vars args))
+                  (args (imap cdr ids))
+                  (new-ids (append! ids oids))
+                  (lvars (imap make-lvar+ args))
                   (frame (%map-cons args lvars))
                   (next-frames
                     (if ref?
@@ -1782,7 +1802,7 @@
                     (if ref?
                       (p1env-extend-w/o-type p1env next-frames)
                       p1env))
-                  (iexpr (pass1 (car inits) p1env)))
+                  (iexpr (pass1 (rewrite-expr (car inits) new-ids) p1env)))
              ($receive
                form
                reqargs
@@ -1793,7 +1813,8 @@
                      (cdr inits)
                      next-frames
                      last-frames
-                     newenv)))))))
+                     newenv
+                     new-ids)))))))
     (- (syntax-error
          (format
            "malformed let~a-values"
@@ -1801,24 +1822,36 @@
          form))))
 
 (define-pass1-syntax
+  (let-values form p1env)
+  :null
+  (pass1/let-values form p1env #f))
+
+(define-pass1-syntax
+  (let*-values form p1env)
+  :null
+  (pass1/let-values form p1env #t))
+
+(define-pass1-syntax
   (and-let* form p1env)
   :sagittarius
-  (define (process-binds binds body p1env)
+  (define (process-binds binds body p1env ids)
     (smatch
       binds
-      (() (pass1/body body p1env))
+      (() (pass1/body (rewrite-expr body ids) p1env))
       (((exp) . more)
        ($if form
             (pass1 exp (p1env-sans-name p1env))
-            (process-binds more body p1env)
+            (process-binds more body p1env ids)
             ($it)))
       (((? variable? var) . more)
        ($if form
             (pass1 var (p1env-sans-name p1env))
-            (process-binds more body p1env)
+            (process-binds more body p1env ids)
             ($it)))
       ((((? variable? var) init) . more)
-       (let* ((lvar (make-lvar var))
+       (let* ((id (rewrite-var var))
+              (var (cdr id))
+              (lvar (make-lvar var))
               (newenv
                 (p1env-extend
                   p1env
@@ -1832,16 +1865,13 @@
                (list itree)
                ($if form
                     ($lref lvar)
-                    (process-binds more body newenv)
+                    (process-binds more body newenv (cons id ids))
                     ($it)))))
       (_ (syntax-error "malformed and-let*" form))))
   (smatch
     form
     ((_ binds . body)
-     (let* ((seen (make-eq-hashtable))
-            (binds (wrap-expression binds p1env seen))
-            (body (wrap-expression body p1env seen)))
-       (process-binds binds body p1env)))
+     (process-binds binds body p1env '()))
     (_ (syntax-error "malformed and-let*" form))))
 
 (define-pass1-syntax
@@ -1888,11 +1918,7 @@
   (smatch
     form
     ((_ arg specs . body)
-     (let* ((seen (make-eq-hashtable))
-            (arg (wrap-expression arg p1env seen))
-            (specs (wrap-expression specs p1env seen))
-            (body (wrap-expression body p1env seen))
-            (g (gensym))
+     (let* ((g (gensym))
             (_undefined (global-id 'undefined)))
        (pass1 ($src `(,let.
                       ((,g ,arg))
@@ -2051,17 +2077,13 @@
   (smatch
     form
     ((_ arg specs . body)
-     (let* ((seen (make-eq-hashtable))
-            (arg (wrap-expression arg p1env seen))
-            (specs (wrap-expression specs p1env seen))
-            (body (wrap-expression body p1env seen)))
-       (pass1/let-keywords
-         form
-         arg
-         specs
-         body
-         let.
-         p1env)))
+     (pass1/let-keywords
+       form
+       arg
+       specs
+       body
+       let.
+       p1env))
     (_ (syntax-error
          'let-keywords
          "malformed let-keywords"
@@ -2073,37 +2095,17 @@
   (smatch
     form
     ((_ arg specs . body)
-     (let* ((seen (make-eq-hashtable))
-            (arg (wrap-expression arg p1env seen))
-            (specs (wrap-expression specs p1env seen))
-            (body (wrap-expression body p1env seen)))
-       (pass1/let-keywords
-         form
-         arg
-         specs
-         body
-         let*.
-         p1env)))
+     (pass1/let-keywords
+       form
+       arg
+       specs
+       body
+       let*.
+       p1env))
     (_ (syntax-error
          'let-keywords
          "malformed let-keywords"
          form))))
-
-(define-pass1-syntax
-  (let-values form p1env)
-  :null
-  (pass1/let-values
-    (wrap-expression form p1env)
-    p1env
-    #f))
-
-(define-pass1-syntax
-  (let*-values form p1env)
-  :null
-  (pass1/let-values
-    (wrap-expression form p1env)
-    p1env
-    #t))
 
 (define-pass1-syntax
   (let form p1env)
@@ -2112,9 +2114,9 @@
     form
     ((- () body ___) (pass1/body body p1env))
     ((- ((var expr) ___) body ___)
-     (let* ((seen (make-eq-hashtable))
-            (var (wrap-expression var p1env seen))
-            (body (wrap-expression body p1env seen))
+     (let* ((ids (rewrite-vars var))
+            (var (imap cdr ids))
+            (body (rewrite-expr body ids))
             (lvars (imap make-lvar+ var))
             (newenv
               (p1env-extend
@@ -2138,20 +2140,19 @@
      (unless
        (variable? name)
        (syntax-error "bad name for named let" name))
-     (let* ((seen (make-eq-hashtable))
-            (var (wrap-expression var p1env seen))
-            (name (wrap-expression name p1env seen))
-            (body (wrap-expression body p1env seen))
+     (let* ((var-ids (rewrite-vars var))
+            (var (imap cdr var-ids))
+            (name-id (rewrite-var name))
+            (name (cdr name-id))
+            (ids (cons name-id var-ids))
+            (body (rewrite-expr body ids))
             (lvar (make-lvar name))
             (args (imap make-lvar+ var))
             (argenv (p1env-sans-name p1env)))
-       (let* ((env1 (p1env-extend
-                      p1env
-                      `((,name unquote lvar))
-                      LEXICAL))
+       (let* ((env1 (p1env-extend p1env (%map-cons var args) LEXICAL))
               (env2 (p1env-extend/name
                       env1
-                      (%map-cons var args)
+                      `((,name unquote lvar))
                       LEXICAL
                       name))
               (lmda ($lambda
@@ -2177,29 +2178,30 @@
   (smatch
     form
     ((- ((var expr) ___) body ___)
-     (let ((seen (make-eq-hashtable)))
-       (let loop ((vars (wrap-expression var p1env seen))
-                  (inits (wrap-expression expr p1env seen))
-                  (p1env p1env)
-                  (src form))
-         (if (null? vars)
-           (pass1/body
-             (wrap-expression body p1env seen)
-             p1env)
-           (let* ((lv (make-lvar (car vars)))
-                  (newenv
-                    (p1env-extend
-                      p1env
-                      `((,(car vars) unquote lv))
-                      LEXICAL))
-                  (iexpr (pass1 (car inits)
-                                (p1env-add-name p1env (car vars)))))
-             (lvar-initval-set! lv iexpr)
-             ($let src
-                   'let
-                   (list lv)
-                   (list iexpr)
-                   (loop (cdr vars) (cdr inits) newenv #f)))))))
+     (let loop ((vars var)
+                (inits expr)
+                (p1env p1env)
+                (src form)
+                (ids '()))
+       (if (null? vars)
+         (pass1/body (rewrite-expr body ids) p1env)
+         (let* ((id (rewrite-var (car vars)))
+                (var (cdr id))
+                (lv (make-lvar var))
+                (newenv
+                  (p1env-extend p1env `((,var unquote lv)) LEXICAL))
+                (iexpr (pass1 (rewrite-expr (car inits) ids)
+                              (p1env-add-name p1env (car vars)))))
+           (lvar-initval-set! lv iexpr)
+           ($let src
+                 'let
+                 (list lv)
+                 (list iexpr)
+                 (loop (cdr vars)
+                       (cdr inits)
+                       newenv
+                       #f
+                       (cons id ids)))))))
     (- (syntax-error "malformed let*" form))))
 
 (define-pass1-syntax
@@ -2218,10 +2220,10 @@
       form
       ((- () body ___) (pass1/body body p1env))
       ((- ((var expr) ___) body ___)
-       (let* ((seen (make-eq-hashtable))
-              (var (wrap-expression var p1env seen))
-              (expr (wrap-expression expr p1env seen))
-              (body (wrap-expression body p1env seen))
+       (let* ((ids (rewrite-vars var))
+              (var (imap cdr ids))
+              (expr (rewrite-expr expr ids))
+              (body (rewrite-expr body ids))
               (lvars (imap make-lvar+ var))
               (newenv
                 (p1env-extend
@@ -2253,13 +2255,12 @@
         (test expr ___)
         body
         ___)
-     (let* ((seen (make-eq-hashtable))
-            (var (wrap-expression var p1env seen))
-            (init (wrap-expression init p1env seen))
-            (update (wrap-expression update p1env seen))
-            (test (wrap-expression test p1env seen))
-            (expr (wrap-expression expr p1env seen))
-            (body (wrap-expression body p1env seen))
+     (let* ((ids (rewrite-vars var))
+            (var (imap cdr ids))
+            (update (rewrite-expr update ids))
+            (test (rewrite-expr test ids))
+            (expr (rewrite-expr expr ids))
+            (body (rewrite-expr body ids))
             (tmp (make-lvar 'do-proc))
             (args (imap make-lvar+ var))
             (newenv
@@ -3294,8 +3295,9 @@
            (pass1/body-finish intdefs intmacros exprs p1env)))
       (- (pass1/body-finish intdefs intmacros exprs p1env)))))
 
-(define (let-syntax-parser exprs p1env)
-  (let* ((names (imap car exprs))
+(define (let-syntax-parser exprs p1env old-ids)
+  (let* ((ids (rewrite-vars (imap car exprs)))
+         (names (imap cdr ids))
          (trans (map (lambda (n x)
                        (pass1/eval-macro-rhs
                          'let-syntax
@@ -3303,16 +3305,18 @@
                          x
                          (p1env-add-name p1env (variable-name n))))
                      names
-                     (map cadr exprs)))
+                     (imap cadr exprs)))
          (newenv
            (p1env-extend
              p1env
              (%map-cons names trans)
              LEXICAL)))
-    newenv))
+    (values newenv (append! ids old-ids))))
 
-(define (letrec-syntax-parser exprs p1env)
-  (let* ((names (imap car exprs))
+(define (letrec-syntax-parser exprs p1env old-ids)
+  (let* ((ids (rewrite-vars (imap car exprs)))
+         (new-ids (append! ids old-ids))
+         (names (imap cdr ids))
          (bodys (imap cadr exprs))
          (newenv
            (p1env-extend
@@ -3326,12 +3330,12 @@
                          x
                          (p1env-add-name newenv (variable-name n))))
                      names
-                     bodys)))
+                     (rewrite-expr bodys new-ids))))
     (for-each
       set-cdr!
       (cdar (p1env-frames newenv))
       trans)
-    newenv))
+    (values newenv new-ids)))
 
 (define (pass1/body-macro-expand-rec
          mac
@@ -3374,16 +3378,16 @@
                    newenv)))
           (else
            (let ((macenv
-                   (let loop ((exprs intmacros) (env newenv))
+                   (let loop ((exprs intmacros) (env newenv) (ids '()))
                      (if (null? exprs)
                        env
-                       (let ((new-env
-                               (case (caar exprs)
-                                 ((def rec)
-                                  (letrec-syntax-parser (cdar exprs) env))
-                                 ((let)
-                                  (let-syntax-parser (cdar exprs) env)))))
-                         (loop (cdr exprs) new-env))))))
+                       (receive
+                         (new-env new-ids)
+                         (case (caar exprs)
+                           ((def rec)
+                            (letrec-syntax-parser (cdar exprs) env ids))
+                           ((let) (let-syntax-parser (cdar exprs) env ids)))
+                         (loop (cdr exprs) new-env new-ids))))))
              (pass1/body-rec
                (acons (call-macro-expander mac (caar exprs) macenv)
                       (cdar exprs)
@@ -3415,18 +3419,23 @@
                       (map cdr intdefs.))
                  (pass1/body-rest exprs newenv)))
           (else
-           (let ((macenv
-                   (let loop ((exprs intmacros) (env newenv))
-                     (if (null? exprs)
-                       env
-                       (let ((new-env
-                               (case (caar exprs)
-                                 ((def rec)
-                                  (letrec-syntax-parser (cdar exprs) env))
-                                 ((let)
-                                  (let-syntax-parser (cdar exprs) env)))))
-                         (loop (cdr exprs) new-env))))))
-             (pass1/body-rec exprs intdefs '() macenv))))))
+           (receive
+             (macenv ids)
+             (let loop ((exprs intmacros) (env newenv) (ids '()))
+               (if (null? exprs)
+                 (values env ids)
+                 (receive
+                   (new-env new-ids)
+                   (case (caar exprs)
+                     ((def rec)
+                      (letrec-syntax-parser (cdar exprs) env ids))
+                     ((let) (let-syntax-parser (cdar exprs) env ids)))
+                   (loop (cdr exprs) new-env new-ids))))
+             (pass1/body-rec
+               (rewrite-expr exprs ids)
+               intdefs
+               '()
+               macenv))))))
 
 (define pass1/body-init
   (lambda (lvar init&src newenv)
@@ -6449,9 +6458,29 @@
 
 (define pass0 (lambda (form env) form))
 
-(define (wrap-expression var p1env . opt)
-  (let ((seen (if (null? opt) (make-eq-hashtable) (car opt))))
-    (wrap-syntax var p1env seen #f #t)))
+(define (rewrite-var var)
+  (if (and (identifier? var) (not (eq? .vars var)))
+    (cons var (copy-identifier var))
+    (cons var var)))
+
+(define (rewrite-vars vars)
+  (let loop ((vars vars) (r '()))
+    (cond ((null? vars) (reverse! r))
+          (else
+           (let ((v (car vars)))
+             (loop (cdr vars) (cons (rewrite-var v) r)))))))
+
+(define (rewrite-expr oexpr vars)
+  (let loop ((expr oexpr))
+    (cond ((null? expr) '())
+          ((pair? expr)
+           (cond ((constant-literal? expr) expr)
+                 (else
+                  (set-car! expr (loop (car expr)))
+                  (set-cdr! expr (loop (cdr expr)))
+                  expr)))
+          ((assq expr vars) => cdr)
+          (else expr))))
 
 (define-constant SMALL_LAMBDA_SIZE 12)
 
@@ -7659,9 +7688,9 @@
   (smatch
     form
     ((- ((name trans-spec) ___) body ___)
-     (let* ((seen (make-eq-hashtable))
-            (name (wrap-expression name p1env seen))
-            (body (wrap-expression body p1env seen))
+     (let* ((ids (rewrite-vars name))
+            (name (imap cdr ids))
+            (body (rewrite-expr body ids))
             (trans (map (lambda (n x)
                           (pass1/eval-macro-rhs
                             'let-syntax
@@ -7684,11 +7713,10 @@
   (smatch
     form
     ((- ((name trans-spec) ___) body ___)
-     (let* ((seen (make-eq-hashtable))
-            (name (wrap-expression name p1env seen))
-            (trans-spec
-              (wrap-expression trans-spec p1env seen))
-            (body (wrap-expression body p1env seen))
+     (let* ((ids (rewrite-vars name))
+            (name (imap cdr ids))
+            (trans-spec (rewrite-expr trans-spec ids))
+            (body (rewrite-expr body ids))
             (newenv
               (p1env-extend
                 p1env
@@ -7753,35 +7781,38 @@
   (receive
     (vars reqargs opt kargs)
     (parse-lambda-args formals)
-    (cond ((null? kargs)
-           (let* ((this-lvars (imap make-lvar+ vars))
-                  (intform
-                    ($lambda
-                      form
-                      (p1env-exp-name p1env)
-                      reqargs
-                      opt
-                      this-lvars
-                      #f
-                      flag))
-                  (newenv
-                    (p1env-extend/proc
-                      p1env
-                      (%map-cons vars this-lvars)
-                      LEXICAL
-                      intform)))
-             ($lambda-body-set!
-               intform
-               (pass1/body body newenv))
-             intform))
-          (else
-           (let ((g (gensym)))
-             (pass1/lambda
-               form
-               (append vars g)
-               (pass1/extended-lambda form g kargs body)
-               p1env
-               #t))))))
+    (let* ((ids (rewrite-vars vars))
+           (vars (imap cdr ids))
+           (body (rewrite-expr body ids)))
+      (cond ((null? kargs)
+             (let* ((this-lvars (imap make-lvar+ vars))
+                    (intform
+                      ($lambda
+                        form
+                        (p1env-exp-name p1env)
+                        reqargs
+                        opt
+                        this-lvars
+                        #f
+                        flag))
+                    (newenv
+                      (p1env-extend/proc
+                        p1env
+                        (%map-cons vars this-lvars)
+                        LEXICAL
+                        intform)))
+               ($lambda-body-set!
+                 intform
+                 (pass1/body body newenv))
+               intform))
+            (else
+             (let ((g (gensym)))
+               (pass1/lambda
+                 form
+                 (append vars g)
+                 (pass1/extended-lambda form g kargs body)
+                 p1env
+                 #t)))))))
 
 (define (pass1/extended-lambda form garg kargs body)
   (define _let-keywords*
@@ -7903,11 +7934,7 @@
   (smatch
     form
     ((- formals . body)
-     (let* ((seen (make-eq-hashtable)))
-       (hashtable-set! seen .vars .vars)
-       (let ((formals (wrap-expression formals p1env seen))
-             (body (wrap-expression body p1env seen)))
-         (pass1/lambda form formals body p1env #t))))
+     (pass1/lambda form formals body p1env #t))
     (- (syntax-error "malformed lambda" form))))
 
 (define-pass1-syntax
@@ -7916,74 +7943,73 @@
   (smatch
     form
     ((- formals expr body ___)
-     (let* ((seen (make-eq-hashtable))
-            (formals (wrap-expression formals p1env seen))
-            (expr (wrap-expression expr p1env seen))
-            (body (wrap-expression body p1env seen)))
-       (receive
-         (args reqargs opt kargs)
-         (parse-lambda-args formals)
-         (unless
-           (null? kargs)
-           (syntax-error
-             "exptended lambda list isn't allowed in receive"
-             form))
-         (let* ((lvars (imap make-lvar+ args))
-                (newenv
-                  (p1env-extend
-                    p1env
-                    (%map-cons args lvars)
-                    LEXICAL)))
-           ($receive
-             form
-             reqargs
-             opt
-             lvars
-             (pass1 expr p1env)
-             (pass1/body body newenv))))))
+     (receive
+       (args reqargs opt kargs)
+       (parse-lambda-args formals)
+       (unless
+         (null? kargs)
+         (syntax-error
+           "exptended lambda list isn't allowed in receive"
+           form))
+       (let* ((ids (rewrite-vars args))
+              (args (imap cdr ids))
+              (body (rewrite-expr body ids))
+              (lvars (imap make-lvar+ args))
+              (newenv
+                (p1env-extend
+                  p1env
+                  (%map-cons args lvars)
+                  LEXICAL)))
+         ($receive
+           form
+           reqargs
+           opt
+           lvars
+           (pass1 expr p1env)
+           (pass1/body body newenv)))))
     (- (syntax-error "malformed receive" form))))
 
 (define (pass1/let-values form p1env ref?)
+  (define (check-formals vars form)
+    (let lp ((vars vars) (pool '()))
+      (cond ((null? vars))
+            ((pair? vars)
+             (let* ((formals (car vars))
+                    (new-pool
+                      (let lp ((formals formals) (pool pool))
+                        (cond ((null? formals) pool)
+                              ((pair? formals)
+                               (if (memq (car formals) pool)
+                                 (syntax-error
+                                   "duplicate formals in let-values"
+                                   form)
+                                 (lp (cdr formals) (cons (car formals) pool))))
+                              (else
+                               (if (memq formals pool)
+                                 (syntax-error
+                                   "duplicate formals in let-values"
+                                   form)
+                                 (cons formals pool)))))))
+               (lp (cdr vars) new-pool)))
+            (else
+             (if (memq vars pool)
+               (syntax-error
+                 "duplicate formals in let-values"
+                 form)
+               (lp (cdr vars) (cons vars pool)))))))
   (smatch
     form
     ((- ((vars expr) ___) body ___)
-     (unless
-       ref?
-       (let lp ((vars vars) (pool '()))
-         (cond ((null? vars))
-               ((pair? vars)
-                (let* ((formals (car vars))
-                       (new-pool
-                         (let lp ((formals formals) (pool pool))
-                           (cond ((null? formals) pool)
-                                 ((pair? formals)
-                                  (if (memq (car formals) pool)
-                                    (syntax-error
-                                      "duplicate formals in let-values"
-                                      form)
-                                    (lp (cdr formals)
-                                        (cons (car formals) pool))))
-                                 (else
-                                  (if (memq formals pool)
-                                    (syntax-error
-                                      "duplicate formals in let-values"
-                                      form)
-                                    (cons formals pool)))))))
-                  (lp (cdr vars) new-pool)))
-               (else
-                (if (memq vars pool)
-                  (syntax-error
-                    "duplicate formals in let-values"
-                    form)
-                  (lp (cdr vars) (cons vars pool)))))))
+     (unless ref? (check-formals vars form))
      (let loop ((vars vars)
                 (inits expr)
                 (next-frames '())
                 (last-frames '())
-                (p1env p1env))
+                (p1env p1env)
+                (oids '()))
        (if (null? vars)
          (pass1/body
-           body
+           (rewrite-expr body oids)
            (p1env-extend-w/o-type p1env last-frames))
          (receive
            (args reqargs opt kargs)
@@ -7993,7 +8019,10 @@
              (syntax-error
                "exptended lambda list isn't allowed in let-values"
                form))
-           (let* ((lvars (imap make-lvar+ args))
+           (let* ((ids (rewrite-vars args))
+                  (args (imap cdr ids))
+                  (new-ids (append! ids oids))
+                  (lvars (imap make-lvar+ args))
                   (frame (%map-cons args lvars))
                   (next-frames
                     (if ref?
@@ -8007,7 +8036,7 @@
                     (if ref?
                       (p1env-extend-w/o-type p1env next-frames)
                       p1env))
-                  (iexpr (pass1 (car inits) p1env)))
+                  (iexpr (pass1 (rewrite-expr (car inits) new-ids) p1env)))
              ($receive
                form
                reqargs
@@ -8018,7 +8047,8 @@
                      (cdr inits)
                      next-frames
                      last-frames
-                     newenv)))))))
+                     newenv
+                     new-ids)))))))
     (- (syntax-error
          (format
            "malformed let~a-values"
@@ -8026,24 +8056,36 @@
          form))))
 
 (define-pass1-syntax
+  (let-values form p1env)
+  :null
+  (pass1/let-values form p1env #f))
+
+(define-pass1-syntax
+  (let*-values form p1env)
+  :null
+  (pass1/let-values form p1env #t))
+
+(define-pass1-syntax
   (and-let* form p1env)
   :sagittarius
-  (define (process-binds binds body p1env)
+  (define (process-binds binds body p1env ids)
     (smatch
       binds
-      (() (pass1/body body p1env))
+      (() (pass1/body (rewrite-expr body ids) p1env))
       (((exp) . more)
        ($if form
             (pass1 exp (p1env-sans-name p1env))
-            (process-binds more body p1env)
+            (process-binds more body p1env ids)
             ($it)))
       (((? variable? var) . more)
        ($if form
             (pass1 var (p1env-sans-name p1env))
-            (process-binds more body p1env)
+            (process-binds more body p1env ids)
             ($it)))
       ((((? variable? var) init) . more)
-       (let* ((lvar (make-lvar var))
+       (let* ((id (rewrite-var var))
+              (var (cdr id))
+              (lvar (make-lvar var))
               (newenv
                 (p1env-extend
                   p1env
@@ -8057,16 +8099,13 @@
                (list itree)
                ($if form
                     ($lref lvar)
-                    (process-binds more body newenv)
+                    (process-binds more body newenv (cons id ids))
                     ($it)))))
       (_ (syntax-error "malformed and-let*" form))))
   (smatch
     form
     ((_ binds . body)
-     (let* ((seen (make-eq-hashtable))
-            (binds (wrap-expression binds p1env seen))
-            (body (wrap-expression body p1env seen)))
-       (process-binds binds body p1env)))
+     (process-binds binds body p1env '()))
     (_ (syntax-error "malformed and-let*" form))))
 
 (define-pass1-syntax
@@ -8113,11 +8152,7 @@
   (smatch
     form
     ((_ arg specs . body)
-     (let* ((seen (make-eq-hashtable))
-            (arg (wrap-expression arg p1env seen))
-            (specs (wrap-expression specs p1env seen))
-            (body (wrap-expression body p1env seen))
-            (g (gensym))
+     (let* ((g (gensym))
             (_undefined (global-id 'undefined)))
        (pass1 ($src `(,let.
                       ((,g ,arg))
@@ -8276,17 +8311,13 @@
   (smatch
     form
     ((_ arg specs . body)
-     (let* ((seen (make-eq-hashtable))
-            (arg (wrap-expression arg p1env seen))
-            (specs (wrap-expression specs p1env seen))
-            (body (wrap-expression body p1env seen)))
-       (pass1/let-keywords
-         form
-         arg
-         specs
-         body
-         let.
-         p1env)))
+     (pass1/let-keywords
+       form
+       arg
+       specs
+       body
+       let.
+       p1env))
     (_ (syntax-error
          'let-keywords
          "malformed let-keywords"
@@ -8298,37 +8329,17 @@
   (smatch
     form
     ((_ arg specs . body)
-     (let* ((seen (make-eq-hashtable))
-            (arg (wrap-expression arg p1env seen))
-            (specs (wrap-expression specs p1env seen))
-            (body (wrap-expression body p1env seen)))
-       (pass1/let-keywords
-         form
-         arg
-         specs
-         body
-         let*.
-         p1env)))
+     (pass1/let-keywords
+       form
+       arg
+       specs
+       body
+       let*.
+       p1env))
     (_ (syntax-error
          'let-keywords
          "malformed let-keywords"
          form))))
-
-(define-pass1-syntax
-  (let-values form p1env)
-  :null
-  (pass1/let-values
-    (wrap-expression form p1env)
-    p1env
-    #f))
-
-(define-pass1-syntax
-  (let*-values form p1env)
-  :null
-  (pass1/let-values
-    (wrap-expression form p1env)
-    p1env
-    #t))
 
 (define-pass1-syntax
   (let form p1env)
@@ -8337,9 +8348,9 @@
     form
     ((- () body ___) (pass1/body body p1env))
     ((- ((var expr) ___) body ___)
-     (let* ((seen (make-eq-hashtable))
-            (var (wrap-expression var p1env seen))
-            (body (wrap-expression body p1env seen))
+     (let* ((ids (rewrite-vars var))
+            (var (imap cdr ids))
+            (body (rewrite-expr body ids))
             (lvars (imap make-lvar+ var))
             (newenv
               (p1env-extend
@@ -8363,20 +8374,19 @@
      (unless
        (variable? name)
        (syntax-error "bad name for named let" name))
-     (let* ((seen (make-eq-hashtable))
-            (var (wrap-expression var p1env seen))
-            (name (wrap-expression name p1env seen))
-            (body (wrap-expression body p1env seen))
+     (let* ((var-ids (rewrite-vars var))
+            (var (imap cdr var-ids))
+            (name-id (rewrite-var name))
+            (name (cdr name-id))
+            (ids (cons name-id var-ids))
+            (body (rewrite-expr body ids))
             (lvar (make-lvar name))
             (args (imap make-lvar+ var))
             (argenv (p1env-sans-name p1env)))
-       (let* ((env1 (p1env-extend
-                      p1env
-                      `((,name unquote lvar))
-                      LEXICAL))
+       (let* ((env1 (p1env-extend p1env (%map-cons var args) LEXICAL))
               (env2 (p1env-extend/name
                       env1
-                      (%map-cons var args)
+                      `((,name unquote lvar))
                       LEXICAL
                       name))
               (lmda ($lambda
@@ -8402,29 +8412,30 @@
   (smatch
     form
     ((- ((var expr) ___) body ___)
-     (let ((seen (make-eq-hashtable)))
-       (let loop ((vars (wrap-expression var p1env seen))
-                  (inits (wrap-expression expr p1env seen))
-                  (p1env p1env)
-                  (src form))
-         (if (null? vars)
-           (pass1/body
-             (wrap-expression body p1env seen)
-             p1env)
-           (let* ((lv (make-lvar (car vars)))
-                  (newenv
-                    (p1env-extend
-                      p1env
-                      `((,(car vars) unquote lv))
-                      LEXICAL))
-                  (iexpr (pass1 (car inits)
-                                (p1env-add-name p1env (car vars)))))
-             (lvar-initval-set! lv iexpr)
-             ($let src
-                   'let
-                   (list lv)
-                   (list iexpr)
-                   (loop (cdr vars) (cdr inits) newenv #f)))))))
+     (let loop ((vars var)
+                (inits expr)
+                (p1env p1env)
+                (src form)
+                (ids '()))
+       (if (null? vars)
+         (pass1/body (rewrite-expr body ids) p1env)
+         (let* ((id (rewrite-var (car vars)))
+                (var (cdr id))
+                (lv (make-lvar var))
+                (newenv
+                  (p1env-extend p1env `((,var unquote lv)) LEXICAL))
+                (iexpr (pass1 (rewrite-expr (car inits) ids)
+                              (p1env-add-name p1env (car vars)))))
+           (lvar-initval-set! lv iexpr)
+           ($let src
+                 'let
+                 (list lv)
+                 (list iexpr)
+                 (loop (cdr vars)
+                       (cdr inits)
+                       newenv
+                       #f
+                       (cons id ids)))))))
     (- (syntax-error "malformed let*" form))))
 
 (define-pass1-syntax
@@ -8443,10 +8454,10 @@
       form
       ((- () body ___) (pass1/body body p1env))
       ((- ((var expr) ___) body ___)
-       (let* ((seen (make-eq-hashtable))
-              (var (wrap-expression var p1env seen))
-              (expr (wrap-expression expr p1env seen))
-              (body (wrap-expression body p1env seen))
+       (let* ((ids (rewrite-vars var))
+              (var (imap cdr ids))
+              (expr (rewrite-expr expr ids))
+              (body (rewrite-expr body ids))
               (lvars (imap make-lvar+ var))
               (newenv
                 (p1env-extend
@@ -8478,13 +8489,12 @@
         (test expr ___)
         body
         ___)
-     (let* ((seen (make-eq-hashtable))
-            (var (wrap-expression var p1env seen))
-            (init (wrap-expression init p1env seen))
-            (update (wrap-expression update p1env seen))
-            (test (wrap-expression test p1env seen))
-            (expr (wrap-expression expr p1env seen))
-            (body (wrap-expression body p1env seen))
+     (let* ((ids (rewrite-vars var))
+            (var (imap cdr ids))
+            (update (rewrite-expr update ids))
+            (test (rewrite-expr test ids))
+            (expr (rewrite-expr expr ids))
+            (body (rewrite-expr body ids))
             (tmp (make-lvar 'do-proc))
             (args (imap make-lvar+ var))
             (newenv
@@ -9519,8 +9529,9 @@
            (pass1/body-finish intdefs intmacros exprs p1env)))
       (- (pass1/body-finish intdefs intmacros exprs p1env)))))
 
-(define (let-syntax-parser exprs p1env)
-  (let* ((names (imap car exprs))
+(define (let-syntax-parser exprs p1env old-ids)
+  (let* ((ids (rewrite-vars (imap car exprs)))
+         (names (imap cdr ids))
          (trans (map (lambda (n x)
                        (pass1/eval-macro-rhs
                          'let-syntax
@@ -9528,16 +9539,18 @@
                          x
                          (p1env-add-name p1env (variable-name n))))
                      names
-                     (map cadr exprs)))
+                     (imap cadr exprs)))
          (newenv
            (p1env-extend
              p1env
              (%map-cons names trans)
              LEXICAL)))
-    newenv))
+    (values newenv (append! ids old-ids))))
 
-(define (letrec-syntax-parser exprs p1env)
-  (let* ((names (imap car exprs))
+(define (letrec-syntax-parser exprs p1env old-ids)
+  (let* ((ids (rewrite-vars (imap car exprs)))
+         (new-ids (append! ids old-ids))
+         (names (imap cdr ids))
          (bodys (imap cadr exprs))
          (newenv
            (p1env-extend
@@ -9551,12 +9564,12 @@
                          x
                          (p1env-add-name newenv (variable-name n))))
                      names
-                     bodys)))
+                     (rewrite-expr bodys new-ids))))
     (for-each
       set-cdr!
       (cdar (p1env-frames newenv))
       trans)
-    newenv))
+    (values newenv new-ids)))
 
 (define (pass1/body-macro-expand-rec
          mac
@@ -9599,16 +9612,16 @@
                    newenv)))
           (else
            (let ((macenv
-                   (let loop ((exprs intmacros) (env newenv))
+                   (let loop ((exprs intmacros) (env newenv) (ids '()))
                      (if (null? exprs)
                        env
-                       (let ((new-env
-                               (case (caar exprs)
-                                 ((def rec)
-                                  (letrec-syntax-parser (cdar exprs) env))
-                                 ((let)
-                                  (let-syntax-parser (cdar exprs) env)))))
-                         (loop (cdr exprs) new-env))))))
+                       (receive
+                         (new-env new-ids)
+                         (case (caar exprs)
+                           ((def rec)
+                            (letrec-syntax-parser (cdar exprs) env ids))
+                           ((let) (let-syntax-parser (cdar exprs) env ids)))
+                         (loop (cdr exprs) new-env new-ids))))))
              (pass1/body-rec
                (acons (call-macro-expander mac (caar exprs) macenv)
                       (cdar exprs)
@@ -9640,18 +9653,23 @@
                       (map cdr intdefs.))
                  (pass1/body-rest exprs newenv)))
           (else
-           (let ((macenv
-                   (let loop ((exprs intmacros) (env newenv))
-                     (if (null? exprs)
-                       env
-                       (let ((new-env
-                               (case (caar exprs)
-                                 ((def rec)
-                                  (letrec-syntax-parser (cdar exprs) env))
-                                 ((let)
-                                  (let-syntax-parser (cdar exprs) env)))))
-                         (loop (cdr exprs) new-env))))))
-             (pass1/body-rec exprs intdefs '() macenv))))))
+           (receive
+             (macenv ids)
+             (let loop ((exprs intmacros) (env newenv) (ids '()))
+               (if (null? exprs)
+                 (values env ids)
+                 (receive
+                   (new-env new-ids)
+                   (case (caar exprs)
+                     ((def rec)
+                      (letrec-syntax-parser (cdar exprs) env ids))
+                     ((let) (let-syntax-parser (cdar exprs) env ids)))
+                   (loop (cdr exprs) new-env new-ids))))
+             (pass1/body-rec
+               (rewrite-expr exprs ids)
+               intdefs
+               '()
+               macenv))))))
 
 (define pass1/body-init
   (lambda (lvar init&src newenv)

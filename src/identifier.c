@@ -95,7 +95,7 @@ SgObject Sg_CopyIdentifier(SgIdentifier *id)
   SgIdentifier *z = make_identifier();
   z->name = id->name;
   z->library = id->library;
-  z->envs = id->envs;
+  z->envs = SG_NIL; /* id->envs; */
   z->parent = id;
   return SG_OBJ(z);
 }
@@ -105,9 +105,13 @@ static SgObject p1env_lookup(SgObject form, SgVector *p1env, int lookup_as)
 {
   SgObject frames = SG_VECTOR_ELEMENT(p1env, 1);
   SgObject fp, vp, vtmp;
+  int identp = SG_IDENTIFIERP(form);
 
  entry:
   SG_FOR_EACH(fp, frames) {
+    if (identp && SG_EQ(SG_IDENTIFIER_ENVS(form), fp))
+      form = SG_IDENTIFIER_NAME(form);
+
     if (SG_INT_VALUE(SG_CAAR(fp)) != lookup_as) continue;
     SG_FOR_EACH(vtmp, SG_CDAR(fp)) {
       vp = SG_CAR(vtmp);
@@ -117,7 +121,8 @@ static SgObject p1env_lookup(SgObject form, SgVector *p1env, int lookup_as)
     }
   }
   /* try the parent. */
-  if (SG_IDENTIFIERP(form) && SG_IDENTIFIER_PARENT(form)) {
+  if (SG_IDENTIFIERP(form) && SG_IDENTIFIER_PARENT(form) &&
+      !SG_NULLP(frames)) {
     form = SG_IDENTIFIER_PARENT(form);
     goto entry;
   }
@@ -130,33 +135,16 @@ typedef struct
   SgVector    *p1env;
   SgHashTable *seen;
   int          lexicalP;
-  int          constantP;
 } wrap_ctx;
 
 static SgObject wrap_rec(SgObject form, wrap_ctx *ctx)
 {
-  int constantP = ctx->constantP;
   if (SG_NULLP(form)) {
     return form;
   } else if (SG_PAIRP(form)) {
-    SgObject a = wrap_rec(SG_CAR(form), ctx);
-    SgObject d = wrap_rec(SG_CDR(form), ctx);
-    if (constantP && Sg_ConstantLiteralP(form)) {
-      if (SG_EQ(a, SG_CAR(form)) && SG_EQ(d, SG_CDR(form))) return form;
-    }
-    return Sg_Cons(a, d);
+    return Sg_Cons(wrap_rec(SG_CAR(form), ctx), wrap_rec(SG_CDR(form), ctx));
   } else if (SG_VECTORP(form)) {
-    SgObject ret = Sg_ListToVector(wrap_rec(Sg_VectorToList(form, 0, -1), ctx),
-				   0, -1);
-    if (constantP && Sg_ConstantLiteralP(form)) {
-      int size = SG_VECTOR_SIZE(ret), i;
-      for (i = 0; i < size; i++) {
-	if (!SG_EQ(SG_VECTOR_ELEMENT(ret, i), SG_VECTOR_ELEMENT(form, i)))
-	  return ret;
-      }
-      return form;
-    }
-    return ret;
+    return Sg_ListToVector(wrap_rec(Sg_VectorToList(form, 0, -1), ctx), 0, -1);
   } else if (SG_SYMBOLP(form) || SG_IDENTIFIERP(form)) {
     /* lookup from p1env.
        exists: we need to wrap with the env which contains this symbol.
@@ -200,12 +188,7 @@ static SgObject wrap_rec(SgObject form, wrap_ctx *ctx)
 	    id = form;
 	  }
 	} else {
-	  if (constantP) {
-	    /* symbol must be symbol, when constantP is TRUE */
-	    id = form;
-	  } else {
-	    id = Sg_MakeIdentifier(form, env, SG_VECTOR_ELEMENT(p1env, 0));
-	  }
+	  id = Sg_MakeIdentifier(form, env, SG_VECTOR_ELEMENT(p1env, 0));
 	}
       } else {
 	/* if it's partial wrap and symbol is not lexical bounded,
@@ -226,7 +209,7 @@ static SgObject wrap_rec(SgObject form, wrap_ctx *ctx)
 
 /* wrap form to identifier */
 SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env, SgObject seen,
-		       int lexicalP, int constantP)
+		       int lexicalP)
 {
   wrap_ctx ctx;
   if (!seen) {
@@ -236,7 +219,6 @@ SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env, SgObject seen,
   ctx.seen = seen;
   ctx.p1env = p1env;
   ctx.lexicalP = lexicalP;
-  ctx.constantP = constantP;
   return wrap_rec(form, &ctx);
 }
 
