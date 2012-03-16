@@ -8,6 +8,12 @@
 	    (sagittarius vm)
 	    (srfi :64))
 
+  (define-syntax define-lambda
+    (syntax-rules ()
+      ((_ name formals body ...)
+       (define name (lambda formals body ...)))))
+  (define-lambda f (t rest) `(t ,t))
+
   (define (run-sagittarius-tests)
     (test-equal "bytevector->integer"
 		#x12345678
@@ -26,17 +32,22 @@
     ;;(test-assert "literal list" (eq? '(a b . c) '(a b . c)))
     ;;(test-assert "literal vector" (eq? #(a b c) #(a b c)))
     (test-assert "literal bytevector" (eq? #vu8(1 2 3) #vu8(1 2 3)))
-#| macro copies all pair and vector. so this test does not pass.
-    (test-error "literal list set!"
-		(lambda (e) (assertion-violation? e))
-		(set-car! '(a b c) 'e))
-    (test-error "literal list set!" 
-		(lambda (e) (assertion-violation? e))
-		(set-car! '(a b . c) 'e))
-    (test-error "literal vector set!" 
-		(lambda (e) (assertion-violation? e))
-		(vector-set! '#(a b c) 0 'e))
-|#
+
+    (test-equal "`(t ,t)" (f 'a 'b) '(t a))
+
+    (let ((l1 '(a b c))
+	  (l2 '(a b . c))
+	  (v  '#(a b c)))
+      (test-error "literal list set!"
+		  (lambda (e) (assertion-violation? e))
+		  (set-car! l1 'e))
+      (test-error "literal list set!" 
+		  (lambda (e) (assertion-violation? e))
+		  (set-car! l2 'e))
+      (test-error "literal vector set!" 
+		  (lambda (e) (assertion-violation? e))
+		  (vector-set! v 0 'e)))
+
     (test-error "literal bytevector u8 set!"
 		(lambda (e) (assertion-violation? e))
 		(bytevector-u8-set! #vu8(1 2 3) 0 4))

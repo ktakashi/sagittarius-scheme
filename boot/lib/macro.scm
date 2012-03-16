@@ -534,12 +534,14 @@
 	     (let loop2 ((frame (cdar frames)))
 	       (cond ((null? frame) (loop (cdr frames)))
 		     ((and (identifier=? use-env id frame (caar frame))
-			    (assq (caar frame) vars))
+			   (assq (caar frame) vars))
 		       => (lambda (slot)
 			    (let ((r (cadr slot)))
 			      ;; pattern variable must not be list
 			      ;; so if it's a list, move to next
-			      (if (variable? r)
+			      (if (and (variable? r)
+				       (identifier=? use-env (car slot)
+						     frame r))
 				  r
 				  (loop2 (cdr frame))))))
 		     (else (loop2 (cdr frame))))))

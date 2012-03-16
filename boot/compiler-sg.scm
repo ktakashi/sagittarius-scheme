@@ -240,11 +240,9 @@
   (let loop ((expr oexpr))
     (cond ((null? expr) '())
           ((pair? expr)
-           (cond ((constant-literal? expr) expr)
-                 (else
-                  (set-car! expr (loop (car expr)))
-                  (set-cdr! expr (loop (cdr expr)))
-                  expr)))
+           (if (constant-literal? expr)
+             expr
+             (cons (loop (car expr)) (loop (cdr expr)))))
           ((assq expr vars) => cdr)
           (else expr))))
 
@@ -808,9 +806,13 @@
                  (for-each
                    (lambda (var init)
                      (if first (set! first #f) (nl xind))
-                     (let ((z (format "(~a " (lvar->string var))))
+                     (let* ((z (format "(~a " (lvar->string var)))
+                            (hlen (string-length z))
+                            (blen (string-length hdr)))
                        (display z)
-                       (rec (+ xind (string-length z)) init)
+                       (if (> hlen 10) (nl (+ ind blen 2)))
+                       (rec (+ (if (> hlen 10) (+ 2 ind) xind) blen)
+                            init)
                        (display ")")))
                    ($let-lvars iform)
                    ($let-inits iform))
@@ -6474,11 +6476,9 @@
   (let loop ((expr oexpr))
     (cond ((null? expr) '())
           ((pair? expr)
-           (cond ((constant-literal? expr) expr)
-                 (else
-                  (set-car! expr (loop (car expr)))
-                  (set-cdr! expr (loop (cdr expr)))
-                  expr)))
+           (if (constant-literal? expr)
+             expr
+             (cons (loop (car expr)) (loop (cdr expr)))))
           ((assq expr vars) => cdr)
           (else expr))))
 
@@ -7042,9 +7042,13 @@
                  (for-each
                    (lambda (var init)
                      (if first (set! first #f) (nl xind))
-                     (let ((z (format "(~a " (lvar->string var))))
+                     (let* ((z (format "(~a " (lvar->string var)))
+                            (hlen (string-length z))
+                            (blen (string-length hdr)))
                        (display z)
-                       (rec (+ xind (string-length z)) init)
+                       (if (> hlen 10) (nl (+ ind blen 2)))
+                       (rec (+ (if (> hlen 10) (+ 2 ind) xind) blen)
+                            init)
                        (display ")")))
                    ($let-lvars iform)
                    ($let-inits iform))
