@@ -68,8 +68,9 @@
 		    (set! (AC vm) (SG_GLOC_GET (SG_GLOC value))
 			  (pointer (- (PC vm) 1)) (SG_WORD value)))
 		   ((SG_UNBOUNDP value)
-		    (assertion-violation "vm"
-					 "unbound variable" var))
+		    (Sg_AssertionViolation 
+		     (SG_MAKE_STRING "vm")
+		     (Sg_Sprintf (UC "unbound variable %S") var) var))
 		   (else (ASSERT FALSE)))))
 	  (else (ASSERT FALSE)))))
 
@@ -82,9 +83,9 @@
 					 (SG_IDENTIFIER_NAME var)
 					 SG_UNBOUND)))
 	     (if (SG_UNBOUNDP oldval)
-		 (assertion-violation "set!"
-				      "unbound variable"
-				      (SG_IDENTIFIER_NAME var))
+		 (Sg_AssertionViolation 
+		     (SG_MAKE_STRING "set")
+		     (Sg_Sprintf (UC "unbound variable %S") var) var)
 		 (let ((g (Sg_MakeBinding (SG_IDENTIFIER_LIBRARY var)
 					  (SG_IDENTIFIER_NAME var)
 					  (AC vm)

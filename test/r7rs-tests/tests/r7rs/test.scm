@@ -97,9 +97,9 @@
     (define-syntax test-error
       (syntax-rules ()
 	((_ expr)
-	 (test (guard (c (#t (make-expected-exception)))
-		 expr)
-	       (make-expected-exception)))))
+	 (test (make-expected-exception)
+	       (guard (c (#t (make-expected-exception)))
+		 expr)))))
 
     (define-syntax test-values
       (syntax-rules ()

@@ -302,6 +302,7 @@
   (define-c-proc p1env-lookup (p1env::<vector> name lookup_as) ::<top>
     (let ((name_identp::int (SG_IDENTIFIERP name))
 	  (frames (SG_VECTOR_ELEMENT p1env 1)))
+      (label entry)
       (dopairs (fp frames)
 	(when (and name_identp
 		   (== (SG_IDENTIFIER_ENVS name) fp))
@@ -312,6 +313,16 @@
 	(dolist (vp (SG_CDAR fp))
 	  (when (SG_EQ name (SG_CAR vp))
 	    (return (SG_CDR vp)))))
+      ;; if the target reaches here and still an identifier,
+      ;; which means either global variable or lexical variable but
+      ;; copied identifier.
+      ;; if the latter case, then we need to check parent as well.
+      (when (and (SG_IDENTIFIERP name) (SG_IDENTIFIER_PARENT name)
+		 (not (SG_NULLP frames)))
+	(set! name (SG_IDENTIFIER_PARENT name))
+	;; we need to lookup parent means environment must also be one up
+	;;(set! frames (SG_CDR frames))
+	(goto entry))
       (if (SG_SYMBOLP name)
 	  (let ((lib (SG_VECTOR_ELEMENT p1env 0)))
 	    (result (Sg_MakeIdentifier (SG_SYMBOL name) '() (SG_LIBRARY lib))))

@@ -38,6 +38,7 @@
 #include "sagittarius/hashtable.h"
 #include "sagittarius/writer.h"
 #include "sagittarius/port.h"
+#include "sagittarius/reader.h"
 
 static void id_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
@@ -45,13 +46,15 @@ static void id_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   Sg_Putuz(port, UC("#<identifier "));
   Sg_Write(id->name, port, ctx->mode);
   Sg_Putc(port, '#');
-  Sg_Write(id->library->name, port, ctx->mode);
+  Sg_Write(id->library->name, port, 0);
 #if 1
-  if (SG_WRITE_MODE(ctx) == SG_WRITE_WRITE) {
+  if (SG_WRITE_MODE(ctx) == SG_WRITE_WRITE ||
+      SG_WRITE_MODE(ctx) == SG_WRITE_SHARED) {
     char buf[50];
-    snprintf(buf, sizeof(buf), "(%p)", id);
+    snprintf(buf, sizeof(buf), "(%p %p)", (id->parent), id);
     Sg_Putz(port, buf);
   }
+  /* Sg_Write(id->envs, port, SG_WRITE_SHARED); */
 #endif
   Sg_Putc(port, '>');
 }
@@ -70,19 +73,31 @@ static SgObject get_binding_frame(SgObject var, SgObject env)
   return SG_NIL;
 }
 
-SgObject Sg_MakeIdentifier(SgSymbol *symbol, SgObject envs, SgLibrary *library)
+static SgIdentifier* make_identifier()
 {
   SgIdentifier *id = SG_NEW(SgIdentifier);
   SG_SET_CLASS(id, SG_CLASS_IDENTIFIER);
+  id->parent = NULL;		/* for sanity */
+  return id;
+}
+
+SgObject Sg_MakeIdentifier(SgSymbol *symbol, SgObject envs, SgLibrary *library)
+{
+  SgIdentifier *id = make_identifier();
   id->name = symbol;
   id->library = library;
-  id->envs = (envs == SG_NIL) ? SG_NIL : get_binding_frame(SG_OBJ(symbol), envs);
+  id->envs = (envs == SG_NIL)? SG_NIL : get_binding_frame(SG_OBJ(symbol), envs);
   return SG_OBJ(id);
 }
 
 SgObject Sg_CopyIdentifier(SgIdentifier *id)
 {
-  return Sg_MakeIdentifier(id->name, id->envs, id->library);
+  SgIdentifier *z = make_identifier();
+  z->name = id->name;
+  z->library = id->library;
+  z->envs = SG_NIL; /* id->envs; */
+  z->parent = id;
+  return SG_OBJ(z);
 }
 
 /* TODO this is almost the same as one in vmlib.stub */
@@ -90,8 +105,14 @@ static SgObject p1env_lookup(SgObject form, SgVector *p1env, int lookup_as)
 {
   SgObject frames = SG_VECTOR_ELEMENT(p1env, 1);
   SgObject fp, vp, vtmp;
+  int identp = SG_IDENTIFIERP(form);
+
+ entry:
   SG_FOR_EACH(fp, frames) {
-    if (SG_INT_VALUE(SG_CAAR(fp)) > lookup_as) continue;
+    if (identp && SG_EQ(SG_IDENTIFIER_ENVS(form), fp))
+      form = SG_IDENTIFIER_NAME(form);
+
+    if (SG_INT_VALUE(SG_CAAR(fp)) != lookup_as) continue;
     SG_FOR_EACH(vtmp, SG_CDAR(fp)) {
       vp = SG_CAR(vtmp);
       if (SG_EQ(form, SG_CAR(vp))) {
@@ -99,38 +120,83 @@ static SgObject p1env_lookup(SgObject form, SgVector *p1env, int lookup_as)
       }
     }
   }
-  return SG_NIL;
+  /* try the parent. */
+  if (SG_IDENTIFIERP(form) && SG_IDENTIFIER_PARENT(form) &&
+      !SG_NULLP(frames)) {
+    form = SG_IDENTIFIER_PARENT(form);
+    goto entry;
+  }
+
+  return SG_FALSE;
 }
 
-static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen, int lexicalP)
+typedef struct
+{
+  SgVector    *p1env;
+  SgHashTable *seen;
+  int          lexicalP;
+} wrap_ctx;
+
+static SgObject wrap_rec(SgObject form, wrap_ctx *ctx)
 {
   if (SG_NULLP(form)) {
     return form;
   } else if (SG_PAIRP(form)) {
-    return Sg_Cons(wrap_rec(SG_CAR(form), p1env, seen, lexicalP),
-		   wrap_rec(SG_CDR(form), p1env, seen, lexicalP));
+    return Sg_Cons(wrap_rec(SG_CAR(form), ctx), wrap_rec(SG_CDR(form), ctx));
   } else if (SG_VECTORP(form)) {
-    return Sg_ListToVector(wrap_rec(Sg_VectorToList(form, 0, -1), p1env, seen, lexicalP), 0, -1);
-  } else if (SG_SYMBOLP(form)) {
+    return Sg_ListToVector(wrap_rec(Sg_VectorToList(form, 0, -1), ctx), 0, -1);
+  } else if (SG_SYMBOLP(form) || SG_IDENTIFIERP(form)) {
     /* lookup from p1env.
        exists: we need to wrap with the env which contains this symbol.
        not exist: we just need to wrap it.
      */
     /* TODO lexical? */
+    SgHashTable *seen = ctx->seen;
+    SgVector *p1env = ctx->p1env;
+    int lexicalP = ctx->lexicalP;
     SgObject id = Sg_HashTableRef(seen, form, SG_FALSE);
     if (SG_FALSEP(id)) {
       SgObject env = p1env_lookup(form, p1env, 0);
-      if (SG_NULLP(env) && !lexicalP) {
-	id = Sg_MakeIdentifier(form,
-			       SG_VECTOR_ELEMENT(p1env, 1),
-			       SG_VECTOR_ELEMENT(p1env, 0));
-      } else if (!SG_NULLP(env)) {
-	id = Sg_MakeIdentifier(form, env, SG_VECTOR_ELEMENT(p1env, 0));
+      if (SG_FALSEP(env) && !lexicalP) {
+	if (SG_IDENTIFIERP(form)) {
+	  /* check pattern variable */
+	  env = p1env_lookup(form, p1env, 2);
+	  if (SG_FALSEP(env)) {
+	    /* global id, creates a new identifier */
+	    id = Sg_MakeIdentifier(SG_IDENTIFIER_NAME(form),
+				   SG_IDENTIFIER_ENVS(form),
+				   SG_IDENTIFIER_LIBRARY(form));
+	  } else {
+	    /* keep pattern variable */
+	    id = form;
+	  }
+	} else {
+	  id = Sg_MakeIdentifier(form,
+				 SG_VECTOR_ELEMENT(p1env, 1),
+				 SG_VECTOR_ELEMENT(p1env, 0));
+	}
+      } else if (!SG_FALSEP(env)) {
+	if (SG_IDENTIFIERP(form)) {
+	  /* id = form; */
+	  /* here we need to copy the variable which bounded locally.
+	     The parent field keeps the original identifier so that
+	     p1env-lookup can see the hierarchy and find the right lvar */
+	  SgObject env2 = p1env_lookup(form, p1env, 2);
+	  if (SG_FALSEP(env2)) {
+	    id = Sg_CopyIdentifier(SG_IDENTIFIER(form));
+	  } else {
+	    id = form;
+	  }
+	} else {
+	  id = Sg_MakeIdentifier(form, env, SG_VECTOR_ELEMENT(p1env, 0));
+	}
       } else {
-	/* if it's partial wrap and symbol is not lexical bounded, just return */
+	/* if it's partial wrap and symbol is not lexical bounded,
+	   just return */
 	return form;
       }
       Sg_HashTableSet(seen, form, id, 0);
+
       return id;
     } else {
       return id;
@@ -142,13 +208,31 @@ static SgObject wrap_rec(SgObject form, SgVector *p1env, SgHashTable *seen, int 
 }
 
 /* wrap form to identifier */
-SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env, SgObject seen, int lexicalP)
+SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env, SgObject seen,
+		       int lexicalP)
 {
+  wrap_ctx ctx;
   if (!seen) {
     seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
   }
   ASSERT(SG_HASHTABLE_P(seen));
-  return wrap_rec(form, p1env, SG_HASHTABLE(seen), lexicalP);
+  ctx.seen = seen;
+  ctx.p1env = p1env;
+  ctx.lexicalP = lexicalP;
+  return wrap_rec(form, &ctx);
+}
+
+/* if id has a parent, then equal identifier just need to check,
+   both ids have the same parent. */
+static int follow_parent(SgIdentifier *id1, SgIdentifier *id2)
+{
+  /* do it awkward way for now */
+  for (; id1; id1 = id1->parent) {
+    for (; id2; id2 = id2->parent) {
+      if (SG_EQ(id1, id2)) return TRUE;
+    }
+  }
+  return FALSE;
 }
 
 /* originally from chibi scheme */
@@ -159,6 +243,11 @@ int Sg_IdentifierEqP(SgObject e1, SgObject id1, SgObject e2, SgObject id2)
   int both = 0;
   /* short cut */
   if (SG_EQ(id1, id2)) return TRUE;
+
+  if (SG_IDENTIFIERP(id1) && SG_IDENTIFIERP(id2) &&
+      (SG_IDENTIFIER_PARENT(id1) || SG_IDENTIFIER_PARENT(id2))) {
+    return follow_parent(SG_IDENTIFIER(id1), SG_IDENTIFIER(id2));
+  }
 
   /* strip p1env to frames*/
   e1 = (SG_VECTORP(e1))

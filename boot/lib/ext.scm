@@ -158,7 +158,7 @@
 	  (display (car e))(newline)
 	  (loop (cdr e))))
       (print e))
-  (error 'raised))
+  (error 'raise "error has been raised"))
 
 ;; dummies
 (define (make-record-type-descriptor . _) #t)

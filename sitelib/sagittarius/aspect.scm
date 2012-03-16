@@ -5,7 +5,6 @@
     (import (core)
 	    (core base)
 	    (core errors)
-	    (match)
 	    (sagittarius)
 	    (sagittarius vm))
 
@@ -23,9 +22,13 @@
 		  (loop (cdr lst) (cons (car lst) r)))
 		 (else
 		  (values (reverse! r) lst)))))
-       (match form
-	 ((_ lib name value)
-	  (let* ((lib   (find-library lib #f))
+       (unless (= (length form) 4)
+	 (syntax-violation 'point-cut
+			   "malformed point-cut" form))
+       (let ((lib (cadr form))
+	     (name (caddr form))
+	     (value (cadddr form)))
+	 (let* ((lib   (find-library lib #f))
 		 (gloc (find-binding lib name #f)))
 	    (if gloc
 		(let ((bind (gloc-ref gloc)))
@@ -54,5 +57,5 @@
 			 (gloc-set! ,gloc ,name)))))
 	       (assertion-violation 'point-cut
 				    "unbound variable"
-				    name))))))))
+				    name)))))))
 )
