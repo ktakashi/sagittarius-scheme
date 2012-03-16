@@ -1842,12 +1842,14 @@
       (() (pass1/body (rewrite-expr body ids) p1env))
       (((exp) . more)
        ($if form
-            (pass1 exp (p1env-sans-name p1env))
+            (pass1 (rewrite-expr exp ids)
+                   (p1env-sans-name p1env))
             (process-binds more body p1env ids)
             ($it)))
       (((? variable? var) . more)
        ($if form
-            (pass1 var (p1env-sans-name p1env))
+            (pass1 (rewrite-expr var ids)
+                   (p1env-sans-name p1env))
             (process-binds more body p1env ids)
             ($it)))
       ((((? variable? var) init) . more)
@@ -8078,12 +8080,14 @@
       (() (pass1/body (rewrite-expr body ids) p1env))
       (((exp) . more)
        ($if form
-            (pass1 exp (p1env-sans-name p1env))
+            (pass1 (rewrite-expr exp ids)
+                   (p1env-sans-name p1env))
             (process-binds more body p1env ids)
             ($it)))
       (((? variable? var) . more)
        ($if form
-            (pass1 var (p1env-sans-name p1env))
+            (pass1 (rewrite-expr var ids)
+                   (p1env-sans-name p1env))
             (process-binds more body p1env ids)
             ($it)))
       ((((? variable? var) init) . more)

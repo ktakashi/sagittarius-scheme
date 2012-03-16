@@ -30,33 +30,42 @@
 
 #!compatible
 (library (shorten helper)
-    (export %define-^)
+    (export constructor)
     (import (rnrs))
 
-  (define (%define-^ rename symbols type)
-    (define (gen-name seed need^?)
-      (let ((seed (string-append (if need^? "^" "") seed)))
-	(if type
-	    (string->symbol (string-append seed type))
-	    (string->symbol seed))))
-    (let ((_define-syntax (rename 'define-syntax))
-	  (_lambda (rename 'lambda))
-	  (_er-macro-transformer (rename 'er-macro-transformer))
-	  (_match (rename 'match))
-	  (_cons* (rename 'cons*))
-	  (_form  (rename 'form)))
-      (map (lambda (symbol)
-	     (let* ((name (gen-name (symbol->string symbol) #t))
-		    (args (gen-name (symbol->string symbol) #f))
-		    (larg (if type args `(,args))))
-	       `(,_define-syntax ,name
-		  (,_er-macro-transformer
-		   (,_lambda (,_form . ignore)
-		     (,_match ,_form
-		       ((_ args ...)
-		        (,_cons*
-		         ',_lambda ',larg args))))))))
-	   symbols)))
+  (define (constructor args mark)
+    (define (ctr arg)
+      (syntax-case (list arg) ()
+	((k)
+	 (with-syntax ((name (datum->syntax
+			      arg
+			      (string->symbol
+			       (string-append
+				(symbol->string (syntax->datum arg))
+				mark))))
+		       (arg-name (datum->syntax 
+				  arg
+				  (string->symbol
+				   (string-append
+				    "^"
+				    (symbol->string (syntax->datum arg))
+				    mark)))))
+	   (with-syntax ((formals (if (zero? (string-length mark))
+				      (list #'name)
+				      #'name)))
+	     #`(define-syntax arg-name
+		 (lambda (x)
+		   (syntax-case x ()
+		     ((k body (... ...))
+		      (with-syntax ((name (datum->syntax #'k 'name)))
+			(syntax (lambda formals body (... ...)))))))))
+	   ))))
+    (define (qs args r* k)
+      (syntax-case args ()
+	((arg args ...)
+	 (qs #'(args ...) (cons (ctr #'arg) r*) k))
+	(() (k r*))))
+    (qs args '() (lambda (r) #`(begin #,@r))))
 )
 
 (library (shorten)
@@ -64,11 +73,9 @@
 	    ^o ^p ^q ^r ^s ^t ^u ^v ^w ^x ^y ^z ^_ ^
 	    ^a* ^b* ^c* ^d* ^e* ^f* ^g* ^h* ^i* ^j* ^k*
 	    ^l* ^m* ^n* ^o* ^p* ^q* ^r* ^s* ^t* ^u* ^v* ^w*
-	    ^x* ^y* ^z* ^_*)
-    (import (rnrs)
-	    (match)
-	    (shorten helper)
-	    (sagittarius))
+	    ^x* ^y* ^z* ^_*
+	    )
+    (import (rnrs) (shorten helper))
 
   (define-syntax ^
     (syntax-rules ()
@@ -76,19 +83,17 @@
        (lambda args ...))))
 
   (define-syntax define-^
-    (er-macro-transformer
-     (lambda (form rename compare)
-       (let ((syms (cdr form)))
-	 `(,(rename 'begin)
-	   ,@(%define-^ rename syms #f))))))
+    (lambda (x)
+      (syntax-case x ()
+	((_ args ...)
+	 (constructor #'(args ...) "")))))
 
   (define-syntax define-^*
-    (er-macro-transformer
-     (lambda (form rename compare)
-       (let ((syms (cdr form)))
-	 `(,(rename 'begin)
-	   ,@(%define-^ rename syms "*"))))))
+    (lambda (x)
+      (syntax-case x ()
+	((_ args ...)
+	 (constructor #'(args ...) "*")))))
 
   (define-^ _ a b c d e f g h i j k l m n o p q r s t u v w x y z)
   (define-^* _ a b c d e f g h i j k l m n o p q r s t u v w x y z)
-)
+  )
