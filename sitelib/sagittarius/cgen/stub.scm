@@ -92,7 +92,7 @@
 		   (else form)))))
 
   (define (cgen-stub-parser key)
-    (cond ((find (^p (eq? key (slot-ref p 'name))) *instance-pool*)
+    (cond ((find (^(p) (eq? key (slot-ref p 'name))) *instance-pool*)
 	   => (lambda (parser) 
 		(cut invoke parser <>)))
 	  (else #f)))
@@ -223,7 +223,7 @@
      ;; for future, like :constant or something
      (flags             :init-value () :init-keyword :flags)))
 
-  (define (get-arg cproc arg) (find (^x (eq? arg (slot-ref x 'name)))
+  (define (get-arg cproc arg) (find (^(x) (eq? arg (slot-ref x 'name)))
 				    (slot-ref cproc 'args)))
   (define (push-stmt! cproc stmt)
     (slot-set! cproc 'stmts (append (slot-ref cproc 'stmts) (list stmt))))

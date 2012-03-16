@@ -205,8 +205,8 @@
 		 ((not (pair? ss))  (values (reverse! rs) ss))
 		 (else (loop (cdr ss) (cons (car ss) rs))))))
        (define (build qualifier generic qargs opt body)
-	 (let* ((specializers (map (^s (if (pair? s) (cadr s) '<top>)) qargs))
-		(reqargs      (map (^s (if (pair? s) (car s) s)) qargs))
+	 (let* ((specializers (map (^(s) (if (pair? s) (cadr s) '<top>)) qargs))
+		(reqargs      (map (^(s) (if (pair? s) (car s) s)) qargs))
 		(lambda-list  (if opt `(,@reqargs . ,opt) reqargs))
 		(real-args    (if opt
 				  `(call-next-method ,@reqargs . ,opt)
