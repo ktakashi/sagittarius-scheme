@@ -158,7 +158,7 @@ SgWeakBox* Sg_MakeWeakBox(void *value)
 
 int Sg_WeakBoxEmptyP(SgWeakBox *wbox)
 {
-  return (wbox->registered && wbox->ptr == NULL && wbox->ptr != (uintptr_t)-1);
+  return (wbox->registered && wbox->ptr == NULL);
 }
 
 void Sg_WeakBoxSet(SgWeakBox *wbox, void *value)

@@ -2415,7 +2415,10 @@ static match_ctx_t* init_match_ctx(match_ctx_t *ctx, SgMatcher *m, int size);
 
 static add_state_t add_state(int id, int j, const SgChar *cap_j)
 {
-  add_state_t a = {id, j, cap_j};
+  add_state_t a;
+  a.id = id;
+  a.j  = j;
+  a.cap_j = cap_j;
   return a;
 }
 

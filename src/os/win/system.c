@@ -33,7 +33,7 @@
 #include <shlwapi.h>
 #include <wchar.h>
 #include <io.h>
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 #pragma comment(lib, "shlwapi.lib")
 #endif
 #define LIBSAGITTARIUS_BODY
@@ -99,7 +99,8 @@ SgObject Sg_Getenv(const SgChar *env)
 
 void Sg_Setenv(const SgChar *env, const SgChar *value)
 {
-  SetEnvironmentVariable(utf32ToUtf16(env), (value) ? utf32ToUtf16(value) : NULL);
+  SetEnvironmentVariableW(utf32ToUtf16(env), 
+			  (value) ? utf32ToUtf16(value) : NULL);
 }
 
 SgObject Sg_GetenvAlist()
@@ -140,7 +141,7 @@ SgObject Sg_GetTemporaryDirectory()
   /* temporary directory path is too long */
   if (length > MAX_PATH) return SG_FALSE;
   PathAppendW(value, NAME);
-  if (PathFileExists(value)) {
+  if (PathFileExistsW(value)) {
     /* something is exists */
     if (!PathIsDirectoryW(value)) return SG_FALSE;
   } else {

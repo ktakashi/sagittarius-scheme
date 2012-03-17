@@ -78,6 +78,15 @@ After these commands, you need to go to `win/` directory and double click the
 file `innosetup.iss`. Go to [Build] - [Compile], then it will create the
 installer. For more detail, please see Inno Setup's document.
 
+## Build on Windows with Open Watcom
+This feature is still experimental. However it can build Sagittarius with a
+little bit of modification of some CMakeFiles.txt
+
+If you don't have zlib library on your environment, you need to add this line to
+ext/zlib/zlib-{version}/CMakeLists.txt;
+
+    `include_directories(${CMAKE_CURRENT_SOURCE_DIR})`
+
 # How to develop it?
 We provide `autogen.sh` for developper and it generates boot code, VM
 instrustions and generated code from stub file. For more detail, see the file.

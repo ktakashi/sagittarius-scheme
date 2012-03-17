@@ -34,9 +34,11 @@
 #include "sagittarius/sagittariusdefs.h"
 
 //#if SIZEOF_WCHAR_T < 4
-#if defined (_MSC_VER)
+#if defined (_MSC_VER) || defined(_SG_WIN_SUPPORT)
 // for now, it's really corner-cutting
 // from Mosh
+#undef min
+#undef max
 #include <map>
 #include <list>
 #include <vector>

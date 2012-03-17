@@ -63,7 +63,6 @@ static SgString *string_append(SgObject args)
 }
 
 SgObject Sg_MakeProcess(SgString *name, SgObject commandLine)
-#if 1
 {
   SgProcess *p = make_process(name, commandLine);
   HANDLE pipe0[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
@@ -75,7 +74,7 @@ SgObject Sg_MakeProcess(SgString *name, SgObject commandLine)
 					 SG_MAKE_STRING(" "),
 					 string_append(commandLine))));
   SECURITY_ATTRIBUTES sa;
-  STARTUPINFO startup;
+  STARTUPINFOW startup;
   PROCESS_INFORMATION process;
   SgFile *in, *out, *err;
   HANDLE *handles;
@@ -143,43 +142,6 @@ SgObject Sg_MakeProcess(SgString *name, SgObject commandLine)
   }
   return SG_UNDEF;		/* dummy */
 }
-#else
-{
-  SgProcess *p = make_process(name, commandLine);
-  PROCESS_INFORMATION pi;
-  STARTUPINFO si;
-  SgString *command = SG_STRING(Sg_StringAppend(SG_LIST3(name,
-							 SG_MAKE_STRING(" "),
-							 commandLine)));
-  ZeroMemory(&si,sizeof(si));
-  si.cb = sizeof(si);
-  si.dwFlags = STARTF_USESTDHANDLES;
-  /* for now we just redirect to standard i/o.
-     as future task, we might want to redirect to files or something.
-   */
-  si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
-  si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE); 
-  si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-  if (!CreateProcessW(NULL,
-		      utf32ToUtf16(SG_STRING_VALUE(command)),
-		      NULL, NULL,
-		      TRUE,
-		      CREATE_SUSPENDED,
-		      NULL, NULL,
-		      &si,
-		      &pi)) {
-    Sg_Warn(UC("failed to create a process %A, %A"), name, Sg_GetLastErrorMessage());
-    p->handle = (uintptr_t)SG_FALSE;
-    return p;
-  }
-  p->in = Sg_MakeFileBinaryOutputPort(SG_FILE(Sg_MakeFileFromFD((uintptr_t)si.hStdInput)),
-						SG_BUFMODE_NONE);
-  p->out = Sg_MakeFileBinaryInputPort(SG_FILE(Sg_MakeFileFromFD((uintptr_t)si.hStdOutput)), SG_BUFMODE_LINE);
-  p->err = Sg_MakeFileBinaryInputPort(SG_FILE(Sg_MakeFileFromFD((uintptr_t)si.hStdError)), SG_BUFMODE_NONE);
-  p->handle = (uintptr_t)Sg_Cons(SG_OBJ(pi.hThread), SG_OBJ(pi.hProcess));
-  return p;
-}
-#endif
 
 static int process_wait(SgProcess *process)
 {

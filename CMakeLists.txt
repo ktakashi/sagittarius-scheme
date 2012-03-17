@@ -8,6 +8,10 @@ INCLUDE(${CMAKE_ROOT}/Modules/CheckCSourceRuns.cmake)
 
 #ENABLE_TESTING()
 
+if (WATCOM)
+  message(STATUS "*CAUTION* open watcom is experimental")
+endif()
+
 # basic info for project
 SET(SAGITTARIUS_NAME "sagittarius" CACHE STRING "Sagittarius PACKAGE_NAME")
 SET(SAGITTARIUS_BUGREPORT "ktakashi@ymail.com" CACHE STRING "bugreport mail address")
@@ -38,7 +42,11 @@ IF(WIN32 AND NOT CYGWIN)
     ${SAGITTARIUS_SITE_LIB_PATH} "sitelib")
   SET(SAGITTARIUS_DYNLIB_PATH
     ${SAGITTARIUS_DYNLIB_PATH} "modules")
-  ADD_DEFINITIONS("-D_UNICODE -DUNICODE")
+  IF (MSVC)
+    ADD_DEFINITIONS("-D_UNICODE -DUNICODE")
+  ELSEIF (WATCOM)
+    ADD_DEFINITIONS("-D_SG_WIN_SUPPORT")
+  ENDIF()
 ELSE()
   SET(SAGITTARIUS_SHARE_LIB_PATH
     ${SAGITTARIUS_SHARE_LIB_PATH}
@@ -62,7 +70,7 @@ IF(USE_BOEHM_GC)
     IF(NOT HAVE_GC_GC_H)
       # download boehm gc
       # we need to use CMake conformed one, so the latest 7.2alpha6
-      IF (MSVC)
+      IF (MSVC OR WATCOM)
 	SET(USED_GC_VERSION "gc-7.2alpha6")
       ELSE()
 	SET(USED_GC_VERSION "gc-7.1")
@@ -81,7 +89,7 @@ IF(USE_BOEHM_GC)
 	  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 	MESSAGE(STATUS "unpacked gc.tar.gz")
       ENDIF()
-      IF (NOT MSVC)
+      IF (NOT MSVC AND NOT WATCOM)
 	MESSAGE(FATAL_ERROR "First install Boehm GC. Go to gc directory.")
       ENDIF()
 
@@ -105,9 +113,9 @@ ENDIF()
 
 # compiler option for global
 IF(${CMAKE_SYSTEM_NAME} MATCHES Windows)
-  IF (MSVC)
+  IF (MSVC OR WATCOM)
   ELSE()
-    MESSAGE(FATAL "On Windows Only MSVC is supported")
+    MESSAGE(FATAL_ERROR "On Windows Only MSVC is supported")
   ENDIF()
 ELSEIF(CYGWIN)
   # compiler must be gcc
@@ -182,12 +190,16 @@ ADD_DEFINITIONS(-DHAVE_CONFIG_H)
 
 # TODO check if it's ok
 #SET(CMAKE_C_FLAGS "-W -Wall -O0 -g3 -gdwarf-2")
-if (NOT MSVC)
+if (GCC)
   SET(CMAKE_C_FLAGS "-Wall -O3 ${CMAKE_C_FLAGS}")
   SET(CMAKE_CXX_FLAGS "-Wall -O3 ${CMAKE_CXX_FLAGS}")
+elseif(WATCOM)
+  # watcom's default alignment is 4, so we need to specify it.
+  SET(CMAKE_C_FLAGS "-ox ${CMAKE_C_FLAGS}")
+  SET(CMAKE_CXX_FLAGS "-ox -xs ${CMAKE_CXX_FLAGS}")
 endif()
 
-IF(MSVC)
+IF(MSVC OR WATCOM)
   ADD_DEFINITIONS(-DWIN32_LEAN_AND_MEAN)
 ENDIF()
 
@@ -199,7 +211,7 @@ SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY
   ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
   ${PROJECT_SOURCE_DIR}/build)
 
-IF (MSVC)
+IF (MSVC OR WATCOM)
   SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY
     ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
     ${PROJECT_SOURCE_DIR}/build/modules)

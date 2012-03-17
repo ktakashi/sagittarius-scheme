@@ -2744,7 +2744,15 @@ int Sg_NumCmp(SgObject x, SgObject y)
       return 0;
     }
     if (SG_FLONUMP(y)) {
-      double r = SG_FLONUM(x)->value - SG_FLONUM(y)->value;
+      double r;
+      /* on WATCOM, somehow NAN is bigger than 0 */
+#ifdef __WATCOMC__
+      if (isnan(SG_FLONUM(x)->value) &&
+	  isnan(SG_FLONUM(y)->value)) {
+	return 0;
+      }
+#endif
+      r = SG_FLONUM(x)->value - SG_FLONUM(y)->value;
       if (r < 0) return -1;
       if (r > 0) return 1;
       return 0;

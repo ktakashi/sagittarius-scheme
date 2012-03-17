@@ -8,8 +8,14 @@
 # 
 
 # reset c flags
-SET(CMAKE_C_FLAGS "-Wall -O2")
-SET(CMAKE_CXX_FLAGS "-Wall -O2")
+IF (GCC)
+  SET(CMAKE_C_FLAGS "-Wall -O2")
+  SET(CMAKE_CXX_FLAGS "-Wall -O2")
+ELSEIF (WATCOM)
+  # watcom does not allow to modify.
+  ADD_DEFINITIONS(-DLTC_NO_PROTOTYPES)
+ENDIF()
+
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/src/headers)
 
 IF (WIN32)

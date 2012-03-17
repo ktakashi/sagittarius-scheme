@@ -122,6 +122,11 @@
     }
   }
   if (!SG_PROCEDUREP(AC(vm))) {
+    printf("insn: %x, fp: %p\n", INSN(c), FP(vm));
+    Sg_VMPrintFrame();
+    if (SG_CLOSUREP(CL(vm))) {
+      Sg_VMDumpCode(SG_CODE_BUILDER(SG_CLOSURE(CL(vm))->code));
+    }
     Sg_AssertionViolation(SG_INTERN("apply"),
 			  SG_MAKE_STRING("invalid application"),
 			  AC(vm));

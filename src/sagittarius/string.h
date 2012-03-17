@@ -61,7 +61,7 @@ typedef enum {
 } SgStringScanType;
 
 #define READ_STRING_MAX_SIZE  2048
-#define SG_STRINGP(obj)       (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_STRING))
+#define SG_STRINGP(obj)       SG_XTYPEP(obj, SG_CLASS_STRING)
 #define SG_STRING(obj)         	((SgString*)(obj))
 #define SG_LITERAL_STRINGP(obj) (SG_STRINGP(obj) && SG_STRING(obj)->literalp)
 

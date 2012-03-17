@@ -47,7 +47,7 @@ typedef struct SgWeakVectorRec
 } SgWeakVector;
 
 #define SG_WEAK_VECTOR(obj)  ((SgWeakVector*)(obj))
-#define SG_WEAK_VECTORP(obj) (SG_HPTRP(obj)&&SG_XTYPEP(obj,SG_CLASS_WEAK_VECTOR))
+#define SG_WEAK_VECTORP(obj) SG_XTYPEP(obj,SG_CLASS_WEAK_VECTOR)
 
 /* weak box for weak hashtable */
 typedef struct SgWeakBoxRec SgWeakBox;
@@ -79,8 +79,7 @@ typedef struct SgWeakHashIterRec
 } SgWeakHashIter;
 
 #define SG_WEAK_HASHTABLE(obj)      ((SgWeakHashTable*)obj)
-#define SG_WEAK_HASHTABLE_P(obj)			\
-  (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_WEAK_HASHTABLE))
+#define SG_WEAK_HASHTABLE_P(obj)    SG_XTYPEP(obj, SG_CLASS_WEAK_HASHTABLE)
 #define SG_WEAK_HASHTABLE_CORE(obj) (&SG_WEAK_HASHTABLE(obj)->core)
 
 SG_CDECL_BEGIN

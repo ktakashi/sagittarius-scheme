@@ -66,7 +66,7 @@ static SgInternalMutex global_lock;
 
 static SgVM *rootVM = NULL;
 
-#if _MSC_VER
+#if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 static __declspec(thread) SgVM *theVM;
 #else
 #include <pthread.h>
@@ -251,7 +251,7 @@ int Sg_AttachVM(SgVM *vm)
   if (SG_INTERNAL_THREAD_INITIALIZED_P(&vm->thread)) return FALSE;
   if (theVM != NULL) return FALSE;
 
-#if _MSC_VER
+#if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
   theVM = vm;
 #else
   if (pthread_setspecific(the_vm_key, vm) != 0) return FALSE;
@@ -263,7 +263,7 @@ int Sg_AttachVM(SgVM *vm)
 
 int Sg_SetCurrentVM(SgVM *vm)
 {
-#if _MSC_VER
+#if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
   theVM = vm;
 #else
   if (pthread_setspecific(the_vm_key, vm) != 0) return FALSE;
@@ -1967,7 +1967,7 @@ static void print_frames(SgVM *vm)
       if (cont->fp == C_CONT_MARK) c_func = TRUE;
       else c_func = FALSE;
 	
-      current = cont;
+      current = (SgObject*)cont;
       size = cont->size;
       /* cont's size is argc of previous cont frame */
       /* dump arguments */
@@ -2087,7 +2087,7 @@ void Sg__InitVM()
 {  
   SgObject initialEnv = Sg_MakeVector(4, SG_UNDEF);
   /* TODO multi thread and etc */
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
   rootVM = theVM = Sg_NewVM(NULL, Sg_MakeString(UC("root"), SG_LITERAL_STRING));
 #else
   if (pthread_key_create(&the_vm_key, NULL) != 0) {

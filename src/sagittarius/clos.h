@@ -165,7 +165,7 @@ extern SgClass *Sg_ObjectCPL[];
 #define SG_CLASS_OBJECT_CPL    (Sg_ObjectCPL)
 
 #define SG_DEFINE_CLASS_COMMON(cname, coreSize, flag, printer, compare, serialize, allocate, cpa) \
-  SgClass cname = {							\
+  SgClass CLASS_KEYWORD cname = {					\
     {{ SG_CLASS_STATIC_TAG(Sg_ClassClass), NULL }},			\
     printer,								\
     compare,								\

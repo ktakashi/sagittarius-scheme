@@ -848,7 +848,7 @@ void Sg_SlotSet(SgObject obj, SgObject name, SgObject value)
 {
   SgSlotAccessor *accessor = lookup_slot_info(Sg_ClassOf(obj), name, TRUE);
   if (accessor->setter) {
-    return accessor->setter(obj, value);
+    accessor->setter(obj, value);
   } else {
     /* scheme accessor */
     if (SG_FALSEP(accessor->setterS)) {

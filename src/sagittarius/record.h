@@ -81,7 +81,7 @@ typedef struct SgRTDRec
 } SgRTD;
 
 #define SG_RTD(obj)  ((SgRTD*)obj)
-#define SG_RTDP(obj) (SG_HPTRP(obj)&&SG_XTYPEP(obj, SG_CLASS_RTD))
+#define SG_RTDP(obj) SG_XTYPEP(obj, SG_CLASS_RTD)
 
 typedef struct SgRCDRec
 {
@@ -92,7 +92,7 @@ typedef struct SgRCDRec
   SgObject parent;
 } SgRCD;
 #define SG_RCD(obj)  ((SgRCD*)obj)
-#define SG_RCDP(obj) (SG_HPTRP(obj)&&SG_XTYPEP(obj, SG_CLASS_RCD))
+#define SG_RCDP(obj) SG_XTYPEP(obj, SG_CLASS_RCD)
 
 struct SgRecordTypeRec
 {
@@ -103,8 +103,7 @@ struct SgRecordTypeRec
 };
 
 #define SG_RECORD_TYPE(obj)    	((SgRecordType*)obj)
-#define SG_RECORD_TYPEP(obj)				\
-  (SG_HPTRP(obj)&&SG_XTYPEP(obj, SG_CLASS_RECORD_TYPE))
+#define SG_RECORD_TYPEP(obj)	SG_XTYPEP(obj, SG_CLASS_RECORD_TYPE)
 #define SG_RECORD_TYPE_RTD(obj) (SG_RECORD_TYPE(obj)->rtd)
 #define SG_RECORD_TYPE_RCD(obj) (SG_RECORD_TYPE(obj)->rcd)
 
@@ -124,7 +123,7 @@ typedef struct SgTupleRec
   SgObject     printer;
 } SgTuple;
 #define SG_TUPLE(obj)  ((SgTuple*)obj)
-#define SG_TUPLEP(obj) (SG_HPTRP(obj)&&SG_XTYPEP(obj, SG_CLASS_TUPLE))
+#define SG_TUPLEP(obj) SG_XTYPEP(obj, SG_CLASS_TUPLE)
 
 
 SG_CDECL_BEGIN

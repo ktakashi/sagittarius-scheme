@@ -319,7 +319,7 @@ unsigned long Sg_SysNanosleep(double v)
   else {
     /* returns remaind nanosecond */
     unsigned long r = 0;
-    while (rem.tv_sec >= 0) {
+    while (rem.tv_sec > 0) {
       r += 1000000000L;
       rem.tv_sec -= 1000000000L;
     }

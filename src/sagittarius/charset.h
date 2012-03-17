@@ -41,6 +41,11 @@
 SG_CLASS_DECL(Sg_CharSetClass);
 #define SG_CLASS_CHAR_SET (&Sg_CharSetClass)
 
+/* somehow WATCOM has keyword small, sucks!! */
+#ifdef _SG_WIN_SUPPORT
+#undef small
+#endif
+
 struct SgCharSetRec
 {
   SG_HEADER;

@@ -348,7 +348,12 @@ SgCodeBuilder* Sg_MakeCodeBuilderFromCache(SgObject name, SgWord *code, int size
 void Sg_CodeBuilderEmit(SgCodeBuilder *cb, SgWord insn, PacketType type,
 			int arg0, int arg1, SgObject obj)
 {
-  SgCodePacket packet = {insn, type, arg0, arg1, obj};
+  SgCodePacket packet;
+  packet.insn = insn;
+  packet.type = type;
+  packet.arg0 = arg0;
+  packet.arg1 = arg1;
+  packet.obj  = obj;
   cb_put(cb, &packet);
 }
 
