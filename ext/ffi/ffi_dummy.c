@@ -1,6 +1,6 @@
 /* -*- C -*- */
 /*
- * extend.h
+ * ffi_dummy.c: dummy implementation of ffi module
  *
  *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
  *
@@ -29,64 +29,11 @@
  *
  *  $Id: $
  */
-#ifndef SAGITTARIUS_EXTEND_H_
-#define SAGITTARIUS_EXTEND_H_
-
-#ifndef SAGITTARIUS_H_
 #include <sagittarius.h>
-#endif
+#define LIBSAGITTARIUS_BODY
+#include <sagittarius/extend.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#if defined(__CYGWIN__)
-#define SG_INIT_EXTENSION(name)			\
-  do {						\
-    Sg_RegisterDL((void*)&_data_start__,	\
-		  (void*)&_data_end__,		\
-		  (void*)&_bss_start__,		\
-		  (void*)&_bss_end__);		\
-  } while (0)
-#else
-#define SG_INIT_EXTENSION(name)	/* nothing */
-#endif
-
-#ifdef __cplusplus
-#define SG_EXTENSION_ENTRY_QUAL extern "C"
-#else
-#define SG_EXTENSION_ENTRY_QUAL
-#endif
-
-#ifdef __WATCOMC__
-# define CDECL __cdecl
-#else
-# define CDECL
-#endif
-
-#if defined(__CYGWIN__) || defined(SAGITTARIUS_WINDOWS)
-#define SG_EXTENSION_ENTRY SG_EXTENSION_ENTRY_QUAL __declspec(dllexport)
-#else
-#define SG_EXTENSION_ENTRY SG_EXTENSION_ENTRY_QUAL
-#endif
-
-#undef SG_EXTERN
-#undef SG_EXPORT
-#if defined(__CYGWIN__) || defined(SAGITTARIUS_WINDOWS)
-# if defined(LIBSAGITTARIUS_BODY) || defined(LIBSAGITTARIUS_EXT_BODY)
-#  define SG_EXPORT __declspec(dllexport)
-# else
-#  define SG_EXPORT __declspec(dllimport)
-# endif
-# define SG_EXTERN extern SG_EXPORT
-#else
-# define SG_EXPORT 
-# define SG_EXTERN extern
-#endif
-
-
-#ifdef __cplusplus
+SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__ffi()
+{
+  /* do nothing. */
 }
-#endif
-
-#endif /* SAGITTARIUS_EXTEND_H_ */

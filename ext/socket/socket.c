@@ -541,7 +541,7 @@ static void finish_winsock(void *data)
 }
 #endif
 
-SG_EXTENSION_ENTRY void Sg_Init_sagittarius__socket()
+SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
 {
   SgLibrary *lib;
 #ifdef _WIN32

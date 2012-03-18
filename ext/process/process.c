@@ -62,7 +62,7 @@ static SgProcess* make_process(SgString *name, SgObject args)
 
 extern void Sg__Init_sagittarius_process_impl();
 
-SG_EXTENSION_ENTRY void Sg_Init_sagittarius__process()
+SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__process()
 {
   SgLibrary *lib;
   SG_INIT_EXTENSION(sagittarius__process);

@@ -42,12 +42,11 @@
 #undef SG_EXTERN
 #if defined(__CYGWIN__) || defined(SAGITTARIUS_WINDOWS)
 # if defined(LIBSAGITTARIUS_BODY)
-#  define SG_EXPORT  __declspec(dllexport)
-#  define SG_EXTERN extern SG_EXPORT
+#  define SG_EXPORT __declspec(dllexport)
 # else
-#  define SG_EXPORT  __declspec(dllimport)
-#  define SG_EXTERN extern SG_EXPORT
+#  define SG_EXPORT __declspec(dllimport)
 # endif
+# define SG_EXTERN extern SG_EXPORT
 #else
 # define SG_EXPORT 
 # define SG_EXTERN extern

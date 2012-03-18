@@ -234,19 +234,13 @@ static void unlock_dlobj(dlobj *dlo)
   Sg_NotifyAll(&dlo->cv);
   Sg_UnlockMutex(&dlo->mutex);
 }
-#ifdef __WATCOMC__
-#define DYNLOAD_PREFIX "Sg_Init_"
-#define DYNLOAD_SUFFIX "_"
-#else
+
 #define DYNLOAD_PREFIX "_Sg_Init_"
-#define DYNLOAD_SUFFIX ""
-#endif
 
 static const char* derive_dynload_initfn(const char *filename)
 {
   const char *head, *tail, *s;
   char *name, *d;
-  const size_t fixsize = sizeof(DYNLOAD_PREFIX) + sizeof(DYNLOAD_SUFFIX);
 
   head = strrchr(filename, '/');
   if (head == NULL) {
@@ -258,14 +252,11 @@ static const char* derive_dynload_initfn(const char *filename)
   tail = strchr(head, '.');
   if (tail == NULL) tail = filename + strlen(filename);
 
-  name = SG_NEW_ATOMIC2(char *, fixsize + tail - head);
+  name = SG_NEW_ATOMIC2(char *, sizeof(DYNLOAD_PREFIX) + tail - head);
   strcpy(name, DYNLOAD_PREFIX);
   for (s = head, d = name + sizeof(DYNLOAD_PREFIX) - 1; s < tail; s++, d++) {
     if (isalnum(*s)) *d = tolower(*s);
     else *d = '_';
-  }
-  for (s = DYNLOAD_SUFFIX; *s; s++, d++) {
-    *d = *s;
   }
   *d = '\0';
   return name;
