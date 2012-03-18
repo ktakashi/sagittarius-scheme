@@ -1,16 +1,19 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
 (add-load-path "./ffi")
-(library (ffi test)
-    (export run-ffi-test)
-    (import (srfi :64 testing)
-	    (srfi :0 cond-expand)
-	    (rnrs)
-	    (core base)
-	    (sagittarius)
-	    (sagittarius vm)
-	    (sagittarius ffi))
+;; use R7RS define-library
+(define-library (ffi test)
+  (import (srfi :64 testing)
+	  (srfi :0 cond-expand)
+	  (rnrs)
+	  (core base)
+	  (sagittarius)
+	  (sagittarius vm)
+	  )
+  (export run-ffi-test)
+  
   (cond-expand
    (sagittarius.ffi
+    (import (sagittarius ffi))
     (define ffi-test-lib (open-shared-library "test-lib.so"))
 
     (define array (u8-list->bytevector '(6 6 1 4 2 9 3 7)))
@@ -126,8 +129,8 @@
       (pointer-ref-test uint32_t #t)
       (pointer-ref-test uint64_t #t)
       ;;(pointer-ref-test uintptr_t #t)
-      )
-    )
+      ))
    (else
-    (define (run-ffi-test) )))
+    (begin
+      (define (run-ffi-test) ))))
 )

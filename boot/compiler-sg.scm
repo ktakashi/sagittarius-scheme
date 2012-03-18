@@ -430,6 +430,12 @@
       (car exprs)
       (vector $SEQ exprs))))
 
+(define-syntax
+  $seq?
+  (syntax-rules
+    ()
+    ((_ iform) (has-tag? iform $SEQ))))
+
 (define-simple-struct
   $call
   $CALL
@@ -3018,6 +3024,13 @@
                   (append
                     ($seq-body seq)
                     (map (lambda (x) (pass1 x p1env)) body)))
+                (loop (cdr clauses)))
+               ((cond-expand)
+                (let ((r (pass1 (car clauses) p1env)))
+                  (when ($seq? r)
+                        ($seq-body-set!
+                          seq
+                          (append ($seq-body seq) ($seq-body r)))))
                 (loop (cdr clauses)))
                (else
                 (syntax-error
@@ -6668,6 +6681,12 @@
       (car exprs)
       (vector $SEQ exprs))))
 
+(define-syntax
+  $seq?
+  (syntax-rules
+    ()
+    ((_ iform) (has-tag? iform $SEQ))))
+
 (define-simple-struct
   $call
   $CALL
@@ -9256,6 +9275,13 @@
                   (append
                     ($seq-body seq)
                     (map (lambda (x) (pass1 x p1env)) body)))
+                (loop (cdr clauses)))
+               ((cond-expand)
+                (let ((r (pass1 (car clauses) p1env)))
+                  (when ($seq? r)
+                        ($seq-body-set!
+                          seq
+                          (append ($seq-body seq) ($seq-body r)))))
                 (loop (cdr clauses)))
                (else
                 (syntax-error
