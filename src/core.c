@@ -400,6 +400,18 @@ static void init_cond_features()
 {
   Sg_AddCondFeature(UC("sagittarius"));
   Sg_AddCondFeature(UC("sagittarius.os."SAGITTARIUS_PLATFORM));
+  /* R7RS appendix B */
+  Sg_AddCondFeature(UC("r7rs"));
+  Sg_AddCondFeature(UC("ratios"));
+  Sg_AddCondFeature(UC("exact-complex"));
+  Sg_AddCondFeature(UC("full-unicode"));
+  Sg_AddCondFeature(UC(SAGITTARIUS_PLATFORM));
+#ifdef WORDS_BIGENDIAN
+  Sg_AddCondFeature(UC("big-endian"));
+#else
+  Sg_AddCondFeature(UC("little-endian"));
+#endif
+  Sg_AddCondFeature(UC("sagittarius-"SAGITTARIUS_VERSION));
 }
 
 /* somehow Visual Studio 2010 requires this to create dll.*/
