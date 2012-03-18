@@ -272,13 +272,13 @@ SgObject Sg_MakeReaderCondition(SgObject msg)
 
 static SgObject list_parents(SgObject rtd)
 {
-  SgObject h = SG_NIL, t = SG_NIL;
+  SgObject lst = SG_NIL;
   for (;;) {
     SgObject p = Sg_RtdParent(rtd);
     if (SG_FALSEP(p)) {
-      return h;
+      return Sg_ReverseX(SG_CDR(lst));
     } else {
-      SG_APPEND1(h, t, Sg_RtdName(p));
+      lst = Sg_Cons(Sg_RtdName(p), lst);
       rtd = p;
     }
   }
