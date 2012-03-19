@@ -247,7 +247,7 @@ SgObject Sg_SubDuration(SgTime *x, SgTime *y, SgTime *r)
 extern void Sg__Init_sagittarius_time_impl();
 extern void Sg__Init_sagittarius_date_impl();
 
-SG_EXTENSION_ENTRY void Sg_Init_sagittarius__time()
+SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__time()
 {
   SgLibrary *tlib, *dlib;
   SG_INIT_EXTENSION(sagittarius__time);

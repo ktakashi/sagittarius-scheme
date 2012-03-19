@@ -3130,22 +3130,33 @@
   (define-cise-expr flonum-value
     ((_ fl)
      `(-> (SG_FLONUM ,fl) value)))
+  ;; Again Watcom, I love it!!!
+  (define-cise-expr nan-return
+    ((_ d)
+     `(is-nan? ,d 0.0))
+    ((_ d1 d2)     
+     `(.if "defined(__WATCOMC__)"
+	   (when (or (isnan ,d1) (isnan ,d2)) (return #f))
+	   ;; for other we skip, because it can handle properly.
+	   )))
+
 
   (define-cise-stmt flonum-compare
     ((_ name compare first second rest)
      `(begin
-	(unless (,compare (flonum-value ,first)
-			  (flonum-value ,second))
+	(nan-return (flonum-value ,first) (flonum-value ,second))
+	(unless (,compare (flonum-value ,first) (flonum-value ,second))
 	  (return #f))
 	(let ((prev::double (flonum-value ,second))
 	      (target::double 0.0))
 	  (dolist (v ,rest)
 	    (check-flonum ,name v)
 	    (set! target (flonum-value v))
+	    (nan-return prev target)
 	    (unless (,compare prev target)
 	      (return #f))
 	    (set! prev target))
-	  (result TRUE)))))
+	  (return #t)))))
 
   (define-c-proc fl=? (fl1::<number> fl2::<number> :rest rest) ::<boolean>
     (flonum-compare fl=? == fl1 fl2 rest))
@@ -3398,14 +3409,22 @@
     (check-flonum flexpt fl2)
     (result (Sg_MakeFlonum (pow (flonum-value fl1) (flonum-value fl2)))))
 
+  ;; Yeah!! Watcom!!!
+  (define-cfn log_impl (d::double) ::double :static
+    (.if "defined(__WATCOMC__)"
+	 (if (== d (- INFINITY))
+	     (return NAN)
+	     (return (log d)))
+	 (return (log d))))
+
   (define-c-proc fllog (fl1::<number> :optional fl2) ::<top>
     (check-flonum fllog fl1)
     (if (SG_UNBOUNDP fl2)
-	(result (Sg_MakeFlonum (log (flonum-value fl1))))
+	(result (Sg_MakeFlonum (log_impl (flonum-value fl1))))
 	(begin
 	  (check-flonum fllog fl2)
-	  (result (Sg_MakeFlonum (/ (log (flonum-value fl1))
-				    (log (flonum-value fl2))))))))
+	  (result (Sg_MakeFlonum (/ (log_impl (flonum-value fl1))
+				    (log_impl (flonum-value fl2))))))))
   
   (define-c-proc flsin (fl::<number>) ::<top>
     (check-flonum flsin fl)

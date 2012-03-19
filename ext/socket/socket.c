@@ -33,7 +33,7 @@
 #include <string.h>
 #include <signal.h>
 /* we assume _WIN32 is only VC */
-#if _MSC_VER
+#if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 #define EINTR WSAEINTR
 #endif
 
@@ -541,7 +541,7 @@ static void finish_winsock(void *data)
 }
 #endif
 
-SG_EXTENSION_ENTRY void Sg_Init_sagittarius__socket()
+SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
 {
   SgLibrary *lib;
 #ifdef _WIN32

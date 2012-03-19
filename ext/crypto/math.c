@@ -36,7 +36,7 @@
 
 extern void Sg__Init_sagittarius_math_impl();
 
-SG_EXTENSION_ENTRY void Sg_Init_sagittarius__math()
+SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__math()
 {
   SgLibrary *lib;
   Sg__Init_sagittarius_math_impl();

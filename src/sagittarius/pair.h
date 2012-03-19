@@ -51,7 +51,7 @@ SG_CLASS_DECL(Sg_NullClass);
 #define SG_CLASS_PAIR       (&Sg_PairClass)
 #define SG_CLASS_NULL       (&Sg_NullClass)
 
-#define SG_PAIRP(obj) 	  	 (SG_HPTRP(obj)&&SG_HTAG(obj) != 0x7)
+#define SG_PAIRP(obj) 	  	 (SG_HPTRP(obj)&&SG_HTAG(obj)!=0x7)
 #define SG_PAIR(obj)  	  	 ((SgPair*)obj)
 #define SG_CAR(obj)   	  	 (SG_PAIR(obj)->car)
 #define SG_CDR(obj)   	  	 (SG_PAIR(obj)->cdr)

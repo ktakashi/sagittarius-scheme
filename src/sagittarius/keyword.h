@@ -45,7 +45,7 @@ struct SgKeywordRec
 };
 
 #define SG_KEYWORD(obj)      ((SgKeyword*)(obj))
-#define SG_KEYWORDP(obj)     (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_KEYWORD))
+#define SG_KEYWORDP(obj)     SG_XTYPEP(obj, SG_CLASS_KEYWORD)
 #define SG_KEYWORD_NAME(obj) (SG_KEYWORD(obj)->name)
 
 SG_CDECL_BEGIN

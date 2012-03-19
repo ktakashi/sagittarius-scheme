@@ -527,7 +527,7 @@ int Sg_Rollback(SgObject ctx)
 
 extern void Sg__Init_odbc_impl();
 
-SG_EXTENSION_ENTRY void Sg_Init_sagittarius__odbc()
+SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__odbc()
 {
   SgLibrary *lib;
   SG_DECLARE_EXCEPTIONS("(odbc impl)", TRUE);

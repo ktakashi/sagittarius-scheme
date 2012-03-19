@@ -270,12 +270,69 @@ SgObject Sg_MakeReaderCondition(SgObject msg)
 			       Sg_MakeMessageCondition(msg)));
 }
 
+static SgObject list_parents(SgObject rtd)
+{
+  SgObject lst = SG_NIL;
+  for (;;) {
+    SgObject p = Sg_RtdParent(rtd);
+    if (SG_FALSEP(p)) {
+      return Sg_ReverseX(SG_CDR(lst));
+    } else {
+      lst = Sg_Cons(Sg_RtdName(p), lst);
+      rtd = p;
+    }
+  }
+}
+
 SgObject Sg_DescribeCondition(SgObject con)
 {
   if (Sg_ConditionP(con)) {
-    SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("describe-condition"), SG_FALSE);
-    SgObject proc = SG_GLOC_GET(g);
-    return Sg_Apply1(proc, con);
+    /* SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"), SG_INTERN("describe-condition"), SG_FALSE); */
+    /* SgObject proc = SG_GLOC_GET(g); */
+    /* return Sg_Apply1(proc, con); */
+    SgObject out = Sg_MakeStringOutputPort(512);
+    SgObject lst = Sg_SimpleConditions(con), cp;
+    Sg_Printf(out, UC("  #<condition\n"));
+    SG_FOR_EACH(cp, lst) {
+      SgObject rec = SG_CAR(cp);
+      SgObject rtd, name, parents, fields;
+      int count;
+      rtd = Sg_RecordRtd(rec);
+      name = Sg_RtdName(rtd);
+      parents = list_parents(rtd);
+      fields = Sg_RtdFields(rtd);
+      count = Sg_Length(fields);
+      Sg_Printf(out, UC("\n    %A"), name);
+      if (SG_PAIRP(parents)) {
+	Sg_Printf(out, UC(" %A"), parents);
+      }
+      if (count == 1) {
+	SgObject acc = Sg_RecordAccessor(rtd, 0);
+	SgObject obj, args[1];
+	args[0] = rec;
+	obj = SG_SUBR_FUNC(acc)(args, 1, SG_SUBR_DATA(acc));
+	if (SG_STRINGP(obj)) {
+	  Sg_Printf(out, UC(" %A"), obj);
+	} else {
+	  Sg_Printf(out, UC(" %S"), obj);
+	}
+      } else if (count > 1) {
+	SgObject obj, args[1], lst;
+	int i = 0;;
+	SG_FOR_EACH(lst, fields) {
+	  SgObject acc = Sg_RecordAccessor(rtd, i++);
+	  args[0] = rec;
+	  obj = SG_SUBR_FUNC(acc)(args, 1, SG_SUBR_DATA(acc));
+	  if (SG_STRINGP(obj)) {
+	    Sg_Printf(out, UC("      %A: %A"), SG_CAR(lst), obj);
+	  } else {
+	    Sg_Printf(out, UC("      %A: %S"), SG_CAR(lst), obj);
+	  }
+	}
+      }
+    }
+    Sg_Printf(out, UC("\n  >\n"));
+    return Sg_GetStringFromStringPort(out);
   } else {
     return con;
   }

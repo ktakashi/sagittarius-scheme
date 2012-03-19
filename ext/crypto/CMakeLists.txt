@@ -13,6 +13,10 @@ ENDIF()
 
 ADD_SUBDIRECTORY(libtomcrypt-1.17 libtomcrypt)
 
+IF (WATCOM)
+  ADD_DEFINITIONS(-DLTC_NO_PROTOTYPES)
+ENDIF()
+
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/libtomcrypt-1.17/src/headers)
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 ADD_STUBS(sagittarius--crypto

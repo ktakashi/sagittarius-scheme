@@ -63,14 +63,9 @@ static void mutex_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 }
 static SgObject mutex_allocate(SgClass *klass, SgObject initargs);
 
-static SgClass *default_cpl[] = {
-  SG_CLASS_TOP,
-  NULL
-};
-
 SG_DEFINE_BASE_CLASS(Sg_MutexClass, SgMutex,
 		     mutex_printer, NULL, NULL, mutex_allocate,
-		     default_cpl);
+		     NULL);
 
 static SgObject mutex_allocate(SgClass *klass, SgObject initargs)
 {
@@ -200,7 +195,7 @@ static SgObject cv_allocate(SgClass *klass, SgObject initargs);
 
 SG_DEFINE_BASE_CLASS(Sg_ConditionVariableClass, SgConditionVariable,
 		     cv_printer, NULL, NULL, cv_allocate,
-		     default_cpl);
+		     NULL);
 
 static SgObject cv_allocate(SgClass *klass, SgObject initargs)
 {

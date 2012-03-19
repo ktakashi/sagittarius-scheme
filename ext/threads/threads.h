@@ -65,7 +65,15 @@ typedef struct SgMutexRec
 #define SG_MUTEX(obj)     ((SgMutex *)obj)
 #define SG_MUTEXP(obj)   SG_XTYPEP(obj, SG_CLASS_MUTEX)
 
-#ifdef _MSC_VER
+#ifdef __WATCOMC__
+# ifndef _TIME_T_DEFINED
+#  define _TIME_T_DEFINED
+#  define _TIME_T_DEFINED_
+typedef unsigned long time_t;
+# endif
+#endif
+
+#if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 struct timespec {
     time_t tv_sec;
     long   tv_nsec;

@@ -319,7 +319,7 @@ unsigned long Sg_SysNanosleep(double v)
   else {
     /* returns remaind nanosecond */
     unsigned long r = 0;
-    while (rem.tv_sec >= 0) {
+    while (rem.tv_sec > 0) {
       r += 1000000000L;
       rem.tv_sec -= 1000000000L;
     }
@@ -333,7 +333,7 @@ SG_CDECL_BEGIN
 extern void Sg__InitMutex();
 SG_CDECL_END
 
-SG_EXTENSION_ENTRY void Sg_Init_sagittarius__threads()
+SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__threads()
 {
   SG_INIT_EXTENSION(sagittarius__threads);
   Sg__InitMutex();

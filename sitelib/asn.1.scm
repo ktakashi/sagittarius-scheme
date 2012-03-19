@@ -34,6 +34,7 @@
 	    (asn.1 encode)
 	    (asn.1 der tags)
 	    (asn.1 der encode)
+	    (asn.1 ber types)
 	    (asn.1 reader))
 )
 

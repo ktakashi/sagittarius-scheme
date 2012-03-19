@@ -954,7 +954,7 @@ static SgChar transGetChar(SgObject self)
 
 static void transUnGetChar(SgObject self, SgChar c)
 {
-  return SG_TPORT_TRANSCODER(self)->unGetChar(SG_TPORT_TRANSCODER(self), c);
+  SG_TPORT_TRANSCODER(self)->unGetChar(SG_TPORT_TRANSCODER(self), c);
 }
 
 static int transClose(SgObject self)
@@ -1868,7 +1868,7 @@ void Sg_UngetcUnsafe(SgPort *port, SgChar ch)
     SG_TEXTUAL_PORT(port)->unGetChar(port, ch);
   } else if (SG_CUSTOM_PORTP(port)) {
     ASSERT(SG_CUSTOM_PORT(port)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE);
-    return SG_CUSTOM_TEXTUAL_PORT(port)->unGetChar(port, ch);
+    SG_CUSTOM_TEXTUAL_PORT(port)->unGetChar(port, ch);
   } else {
     Sg_Error(UC("textual port required, but got %S"), port);
   }

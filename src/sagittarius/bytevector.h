@@ -46,7 +46,7 @@ struct SgByteVectorRec
 };
 
 #define SG_BVECTOR(obj)      ((SgByteVector*)obj)
-#define SG_BVECTORP(obj)     (SG_PTRP(obj) && SG_XTYPEP(obj, SG_CLASS_BVECTOR))
+#define SG_BVECTORP(obj)     SG_XTYPEP(obj, SG_CLASS_BVECTOR)
 #define SG_BVECTOR_SIZE(obj)       (SG_BVECTOR(obj)->size)
 #define SG_BVECTOR_ELEMENTS(obj)   (SG_BVECTOR(obj)->elements)
 #define SG_BVECTOR_ELEMENT(obj, i) (SG_BVECTOR(obj)->elements[i])

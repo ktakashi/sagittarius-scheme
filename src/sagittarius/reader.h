@@ -44,7 +44,7 @@ typedef struct SgSharedRefRec
   SgObject index;
 } SgSharedRef;
 
-#define SG_SHAREDREF_P(obj) (SG_HPTRP(obj)&&SG_XTYPEP(obj, SG_CLASS_SHARED_REF))
+#define SG_SHAREDREF_P(obj) SG_XTYPEP(obj, SG_CLASS_SHARED_REF)
 #define SG_SHAREDREF(obj)   ((SgSharedRef*)(obj))
 
 SG_CDECL_BEGIN

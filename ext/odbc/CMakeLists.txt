@@ -3,6 +3,7 @@
 # Build file for odbc
 
 INCLUDE(${CMAKE_ROOT}/Modules/CheckIncludeFiles.cmake)
+
 IF (CYGWIN)
   MESSAGE(STATUS "checking ODBC on CYGWIN")
   CHECK_INCLUDE_FILES("windows.h;sql.h" HAVE_SQL_H)
@@ -59,5 +60,5 @@ IF (HAVE_SQL_H)
     DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH}/dbd)
 
 ELSE()
-  MESSAGE(WARN " Platform does not support ODBC.")
+  MESSAGE(WARNING "Platform does not support ODBC.")
 ENDIF()

@@ -41,7 +41,7 @@
 #endif
 
 /* thread function and some macros */
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 typedef struct SgInternalMutexRec
 {
   HANDLE mutex;
@@ -85,7 +85,7 @@ typedef struct  SgInternalCondRec
 #endif
 
 /* emulate pthread_cleanup_push/pop*/
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 /* emulation code from pthread for win32 */
 typedef void (* ptw32_cleanup_callback_t)(void *);
 typedef struct ptw32_cleanup_rec_t

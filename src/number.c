@@ -1457,7 +1457,15 @@ int Sg_PositiveP(SgObject obj)
 {
   if (SG_INTP(obj)) return SG_INT_VALUE(obj) > 0;
   if (SG_BIGNUMP(obj)) return SG_BIGNUM_GET_SIGN(obj) > 0;
-  if (SG_FLONUMP(obj)) return SG_FLONUM(obj)->value > 0.0;
+  if (SG_FLONUMP(obj)) {
+#if __WATCOMC__
+    /* on Watcom, +nan.0 is bigger than 0 */
+    if (isnan(SG_FLONUM(obj)->value)) return FALSE;
+    else return SG_FLONUM(obj)->value > 0.0;
+#else
+    return SG_FLONUM(obj)->value > 0.0;
+#endif
+  }
   if (SG_RATIONALP(obj)) return Sg_PositiveP(SG_RATIONAL(obj)->numerator);
   if (SG_COMPLEXP(obj)) return Sg_PositiveP(SG_COMPLEX(obj)->real);
   Sg_Error(UC("number required, but got %S"), obj);
@@ -1469,16 +1477,35 @@ SgObject Sg_Exact(SgObject obj)
   if (SG_FLONUMP(obj)) {
     double d = SG_FLONUM(obj)->value;
     double f, i;
+#ifdef __WATCOMC__
+    /* Yes, on Watcom if +inf.0 or +nan.0 is passed to modf,
+       it returns +nan.0. Sucks!!! */
+    if ((f = modf(d, &i)) == 0.0 ||
+	isinf(d) || isnan(d)) {
+      if (isnan(d)) {
+	return SG_MAKE_INT(0);
+      } else if (d < SG_INT_MIN || d > SG_INT_MAX) {
+	obj = Sg_MakeBignumFromDouble(d);
+      } else {
+	obj = SG_MAKE_INT((long)d);
+      }
+    }
+#else
     if ((f = modf(d, &i)) == 0.0) {
       if (d < SG_INT_MIN || d > SG_INT_MAX) {
 	obj = Sg_MakeBignumFromDouble(d);
       } else {
 	obj = SG_MAKE_INT((long)d);
       }
-    } else {
+    }
+#endif
+    else {
       SgObject m;
       int exp, sign;
       m = Sg_DecodeFlonum(d, &exp, &sign);
+      if (exp >= 0) {
+	Sg_ReportError(SG_MAKE_STRING("exp >= 0"));
+      }
       ASSERT(exp < 0); /* exp >= case should be handled above */
       obj = Sg_Div(m, Sg_Ash(SG_MAKE_INT(1), -exp));
       if (sign < 0) obj = Sg_Negate(obj);
@@ -2703,6 +2730,13 @@ int Sg_NumEq(SgObject x, SgObject y)
 int Sg_NumCmp(SgObject x, SgObject y)
 {
   SgObject badnum;
+    /* on WATCOM, somehow NAN is bigger than 0 */
+#ifdef __WATCOMC__
+#define nan_return(_r) do { if (isnan(_r)) return 0; } while(0)
+#else
+#define nan_return(_r) 		/* dummy */
+#endif
+
   if (SG_INTP(x)) {
     if (SG_INTP(y)) {
       intptr_t r = SG_INT_VALUE(x) - SG_INT_VALUE(y);
@@ -2712,6 +2746,7 @@ int Sg_NumCmp(SgObject x, SgObject y)
     }
     if (SG_FLONUMP(y)) {
       double r = SG_INT_VALUE(x) - SG_FLONUM(y)->value;
+      nan_return(r);
       if (r < 0) return -1;
       if (r > 0) return 1;
       return 0;
@@ -2739,18 +2774,21 @@ int Sg_NumCmp(SgObject x, SgObject y)
   else if (SG_FLONUMP(x)) {
     if (SG_INTP(y)) {
       double r = SG_FLONUM(x)->value - SG_INT_VALUE(y);
+      nan_return(r);
       if (r < 0) return -1;
       if (r > 0) return 1;
       return 0;
     }
     if (SG_FLONUMP(y)) {
-      double r = SG_FLONUM(x)->value - SG_FLONUM(y)->value;
+      double  r = SG_FLONUM(x)->value - SG_FLONUM(y)->value;
+      nan_return(r);
       if (r < 0) return -1;
       if (r > 0) return 1;
       return 0;
     }
     if (SG_BIGNUMP(y) || SG_RATIONALP(y)) {
       double r = SG_FLONUM(x)->value - Sg_GetDouble(y);
+      nan_return(r);
       if (r < 0) return -1;
       if (r > 0) return 1;
       return 0;

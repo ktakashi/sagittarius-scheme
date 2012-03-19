@@ -496,29 +496,29 @@
     (ensure-stmt-or-toplevel-ctx form env)
     (match form
       ((_ var)
-       `("#define " ,(format "~a" var) "\n" |#reset-line|))
+       `("\n#define " ,(format "~a" var) "\n" |#reset-line|))
       ((_ var val)
-       `("#define " ,(format "~a ~a" var val) "\n" |#reset-line|))))
+       `("\n#define " ,(format "~a ~a" var val) "\n" |#reset-line|))))
 
   (define-cise-macro (.if form env)
     (ensure-stmt-or-toplevel-ctx form env)
     (match form
       ((_ condition stmt1)
-       `("#if " ,(format "~a" condition) "\n" |#reset-line|
+       `("\n#if " ,(format "~a" condition) "\n" |#reset-line|
 	 ,(render-rec stmt1 env) "\n"
-	 "#endif /* " (format "~a" condition) " */\n" |#reset-line|))
+	 "#endif /* " ,(format "~a" condition) " */\n" |#reset-line|))
       ((_ condition stmt1 stmt2)
-       `("#if " ,(format "~a" condition) "\n" |#reset-line|
+       `("\n#if " ,(format "~a" condition) "\n" |#reset-line|
 	 ,(render-rec stmt1 env) "\n"
 	 "#else /* !" ,(format "~a" condition) " */\n" |#reset-line|
-	 ,(render-rec stmt1 env) "\n"
-	 "#endif /* " (format "~a" condition) " */\n" |#reset-line|))))
+	 ,(render-rec stmt2 env) "\n"
+	 "#endif /* " ,(format "~a" condition) " */\n" |#reset-line|))))
 
   (define-cise-macro (.cond form env)
     (ensure-stmt-or-toplevel-ctx form env)
     (match form
       ((_ (condition . stmts) ...)
-       `("#if 0 /* dummy */\n"
+       `("\n#if 0 /* dummy */\n"
 	 ,@(fold-right (lambda (c ss seed)
 			 `(,(cond ((eq? c 'else) '("#else"))
 				  (else `("#elif " ,(format "~a" c))))

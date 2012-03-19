@@ -1337,11 +1337,12 @@ void Sg_CFree(SgPointer *p)
 
 extern void Sg__Init_sagittarius_ffi_impl();
 
-SG_EXTENSION_ENTRY void Sg_Init_sagittarius__ffi()
+SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__ffi()
 {
   SgLibrary *lib;
   SgSymbol *name = SG_INTERN("%ffi-call");
 
+  Sg_AddCondFeature(UC("sagittarius.ffi"));
   SG_PROCEDURE_NAME(&internal_ffi_call_stub) = name;
 
   SYMBOL_STRUCT = SG_INTERN("struct");

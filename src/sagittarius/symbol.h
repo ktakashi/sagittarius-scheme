@@ -60,7 +60,7 @@ enum {
 #define SYMBOL_MAX_SIZE   256
 /* higher 16 bits are size */
 
-#define SG_SYMBOLP(obj) (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_SYMBOL))
+#define SG_SYMBOLP(obj) SG_XTYPEP(obj, SG_CLASS_SYMBOL)
 #define SG_SYMBOL(obj)  ((SgSymbol*)(obj))
 
 #define SG_UNINTERNED_SYMBOL(obj)					\

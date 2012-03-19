@@ -54,7 +54,7 @@ static SgProcess* make_process(SgString *name, SgObject args)
   return p;
 }
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 # include "win.c"
 #else
 # include "posix.c"
@@ -62,7 +62,7 @@ static SgProcess* make_process(SgString *name, SgObject args)
 
 extern void Sg__Init_sagittarius_process_impl();
 
-SG_EXTENSION_ENTRY void Sg_Init_sagittarius__process()
+SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__process()
 {
   SgLibrary *lib;
   SG_INIT_EXTENSION(sagittarius__process);

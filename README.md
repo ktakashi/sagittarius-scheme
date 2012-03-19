@@ -66,9 +66,20 @@ Before generating MakeFile, you might need to add the following line to
     ADD_DEFINITIONS("-DGC_WIN32_THREADS")
 
 This is because Sagittarius is using threads but some how current alpha archive
-does not set this macro. If you are using command line `cmake`, make sure you 
-delete CMakeCache.txt and re-run `cmake`. If you are using `cmake-gui`, then
-just press `Generate` button.
+does not set this macro. 
+
+And if you don't have zlib on your developping environment, you also need to add
+the following line to `ext/zlib/zlib-{current-zlib-version}/CMakeLists.txt`.
+
+    INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
+
+The place does not matter as long as `cmake` can recognise it. My suggestion is
+after line number 75 (if cmake downloads version 1.2.6) where it adds other
+include directory.
+
+
+If you are using command line `cmake`, make sure you  delete CMakeCache.txt and
+re-run `cmake`. If you are using `cmake-gui`, then just press `Generate` button.
 
     % nmake
     % nmake test
