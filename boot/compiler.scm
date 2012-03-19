@@ -2500,12 +2500,12 @@
 	      inlinables)
     iforms)
   )
-
-(define-pass1-syntax (export form p1env) :null
+;; these two are not defined R6RS, so put it (sagittarius) library
+(define-pass1-syntax (export form p1env) :sagittarius
   (check-toplevel form p1env)
   (pass1/export form (p1env-library p1env)))
 
-(define-pass1-syntax (import form p1env) :null
+(define-pass1-syntax (import form p1env) :sagittarius
   (check-toplevel form p1env)
   (pass1/import form (p1env-library p1env)))
 
@@ -2591,9 +2591,12 @@
 		(loop (cdr clauses)))
 	       ((cond-expand)
 		(let ((r (pass1 (car clauses) p1env)))
-		  (when ($seq? r)
-		    ($seq-body-set! seq
-				    (append ($seq-body seq) ($seq-body r)))))
+		  ;; if only one element in ($seq), it will elliminate it.
+		  (if ($seq? r)
+		      ($seq-body-set! seq
+				      (append ($seq-body seq) ($seq-body r)))
+		      ($seq-body-set! seq
+				      (append ($seq-body seq) (list r)))))
 		(loop (cdr clauses)))
 	       (else
 		(syntax-error "define-library: invalid library declaration"

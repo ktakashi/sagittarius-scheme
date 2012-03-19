@@ -3415,7 +3415,7 @@
 	 (if (== d (- INFINITY))
 	     (return NAN)
 	     (return (log d)))
-	 (log d)))
+	 (return (log d))))
 
   (define-c-proc fllog (fl1::<number> :optional fl2) ::<top>
     (check-flonum fllog fl1)

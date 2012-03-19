@@ -13591,7 +13591,7 @@ return (log(d));}
 #else /* !defined(__WATCOMC__) */
 
 #line 3418 "null.stub"
-log(d);
+return (log(d));
 #endif /* defined(__WATCOMC__) */
 }}}
 static SgObject null_fllog(SgObject *SG_FP, int SG_ARGC, void *data_)

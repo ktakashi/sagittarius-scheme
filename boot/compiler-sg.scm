@@ -2933,13 +2933,13 @@
 
 (define-pass1-syntax
   (export form p1env)
-  :null
+  :sagittarius
   (check-toplevel form p1env)
   (pass1/export form (p1env-library p1env)))
 
 (define-pass1-syntax
   (import form p1env)
-  :null
+  :sagittarius
   (check-toplevel form p1env)
   (pass1/import form (p1env-library p1env)))
 
@@ -3027,10 +3027,13 @@
                 (loop (cdr clauses)))
                ((cond-expand)
                 (let ((r (pass1 (car clauses) p1env)))
-                  (when ($seq? r)
-                        ($seq-body-set!
-                          seq
-                          (append ($seq-body seq) ($seq-body r)))))
+                  (if ($seq? r)
+                    ($seq-body-set!
+                      seq
+                      (append ($seq-body seq) ($seq-body r)))
+                    ($seq-body-set!
+                      seq
+                      (append ($seq-body seq) (list r)))))
                 (loop (cdr clauses)))
                (else
                 (syntax-error
@@ -9184,13 +9187,13 @@
 
 (define-pass1-syntax
   (export form p1env)
-  :null
+  :sagittarius
   (check-toplevel form p1env)
   (pass1/export form (p1env-library p1env)))
 
 (define-pass1-syntax
   (import form p1env)
-  :null
+  :sagittarius
   (check-toplevel form p1env)
   (pass1/import form (p1env-library p1env)))
 
@@ -9278,10 +9281,13 @@
                 (loop (cdr clauses)))
                ((cond-expand)
                 (let ((r (pass1 (car clauses) p1env)))
-                  (when ($seq? r)
-                        ($seq-body-set!
-                          seq
-                          (append ($seq-body seq) ($seq-body r)))))
+                  (if ($seq? r)
+                    ($seq-body-set!
+                      seq
+                      (append ($seq-body seq) ($seq-body r)))
+                    ($seq-body-set!
+                      seq
+                      (append ($seq-body seq) (list r)))))
                 (loop (cdr clauses)))
                (else
                 (syntax-error
