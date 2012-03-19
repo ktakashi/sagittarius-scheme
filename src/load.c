@@ -264,10 +264,15 @@ static const char* derive_dynload_initfn(const char *filename)
 
 const char* get_initfn_name(SgObject initfn, SgString *dsopath)
 {
-  /* TODO we might want to derive dynload init function */
   if (SG_STRINGP(initfn)) {
-    SgObject _initfn = Sg_StringAppend2(SG_STRING(Sg_MakeString(UC("_"), SG_LITERAL_STRING)),
+    /* WATCOM has weird export symbol name */
+#ifdef __WATCOMC__
+    SgObject _initfn = Sg_StringAppend2(SG_STRING(initfn),
+					SG_STRING(SG_MAKE_STRING("_")));
+#else
+    SgObject _initfn = Sg_StringAppend2(SG_STRING(SG_MAKE_STRING("_")),
 					SG_STRING(initfn));
+#endif
     return Sg_Utf32sToUtf8s(SG_STRING(_initfn));
   } else {
     return derive_dynload_initfn(Sg_Utf32sToUtf8s(dsopath));
@@ -276,7 +281,7 @@ const char* get_initfn_name(SgObject initfn, SgString *dsopath)
 
 #ifdef HAVE_DLFCN_H
 # include "dl_dlopen.c"
-#elif _MSC_VER
+#elif defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 # include "dl_win.c"
 #else
 # include "dl_dummy.c"

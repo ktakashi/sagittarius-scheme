@@ -47,7 +47,7 @@
 #include <sagittarius/unicode.h>
 #include <sagittarius/number.h>
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 #pragma comment(lib, "shlwapi.lib")
 #endif
 
@@ -421,7 +421,7 @@ int Sg_FileRename(SgString *oldpath, SgString *newpath)
 		     MOVEFILE_REPLACE_EXISTING);
 }
 
-typedef BOOL (WINAPI* ProcCreateSymbolicLink) (LPCTSTR, LPCTSTR, DWORD);
+typedef BOOL (WINAPI* ProcCreateSymbolicLink) (LPCWSTR, LPCWSTR, DWORD);
 
 int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
 {
@@ -508,7 +508,7 @@ SgObject Sg_FileSize(SgString *path)
 
 SgObject Sg_ReadDirectory(SgString *path)
 {
-  WIN32_FIND_DATA data;
+  WIN32_FIND_DATAW data;
   HANDLE hdl;
 
   SgObject h = SG_NIL, t = SG_NIL;
@@ -556,21 +556,48 @@ static SgString *win_dynlib_path = NULL;
 
 #define _U(s) SG_CPP_CAT(L, s)
 
+#ifdef _SG_WIN_SUPPORT
+/* somehow WATCOM does not work with swprintf_s. */
+static void concat_w(wchar_t *buf, size_t n, wchar_t *a, wchar_t *b)
+{
+  int i;
+  for (i = 0; i < n && *a; i++) {
+    buf[i] = *a++;
+  }
+  for (; i < n && *b; i++) {
+    buf[i] = *b++;
+  }
+}
+#endif
+
 static void initialize_path()
 {
   wchar_t tmp[MAX_PATH];
   wchar_t path[MAX_PATH];
   if (GetModuleFileNameW(NULL, tmp, MAX_PATH)) {
     if (PathRemoveFileSpecW(tmp)) {
+      static const wchar_t *fmt = L"%s%s";
       PathAddBackslashW(tmp);
       /* sitelib */
-      swprintf_s(path, MAX_PATH, L"%s%s", tmp, _U(SAGITTARIUS_SITE_LIB_PATH));
+#if _MSC_VER
+      swprintf_s(path, MAX_PATH, fmt, tmp, _U(SAGITTARIUS_SITE_LIB_PATH));
+#else
+      concat_w(path, MAX_PATH, tmp, _U(SAGITTARIUS_SITE_LIB_PATH));
+#endif
       win_sitelib_path = utf16ToUtf32(path);
       /* lib */
-      swprintf_s(path, MAX_PATH, L"%s%s", tmp, _U(SAGITTARIUS_SHARE_LIB_PATH));
+#if _MSC_VER
+      swprintf_s(path, MAX_PATH, fmt, tmp, _U(SAGITTARIUS_SHARE_LIB_PATH));
+#else
+      concat_w(path, MAX_PATH, tmp, _U(SAGITTARIUS_SHARE_LIB_PATH));
+#endif
       win_lib_path = utf16ToUtf32(path);
       /* module */
-      swprintf_s(path, MAX_PATH, L"%s%s", tmp, _U(SAGITTARIUS_DYNLIB_PATH));
+#if _MSC_VER
+      swprintf_s(path, MAX_PATH, fmt, tmp, _U(SAGITTARIUS_DYNLIB_PATH));
+#else
+      concat_w(path, MAX_PATH, tmp, _U(SAGITTARIUS_DYNLIB_PATH));
+#endif
       win_dynlib_path = utf16ToUtf32(path);
       return;
     }
@@ -648,10 +675,10 @@ int Sg_AbsolutePathP(SgString *path)
 SgObject Sg_AbsolutePath(SgString *path)
 {
   wchar_t buf[MAX_PATH], *part;
-  DWORD ret = GetFullPathName(utf32ToUtf16(path->value),
-			      sizeof(buf)/sizeof(buf[0]),
-			      buf,
-			      &part);
+  DWORD ret = GetFullPathNameW(utf32ToUtf16(path->value),
+			       sizeof(buf)/sizeof(buf[0]),
+			       buf,
+			       &part);
   if (ret) {
     return SG_OBJ(utf16ToUtf32(buf));
   }

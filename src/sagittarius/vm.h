@@ -114,8 +114,6 @@ typedef struct SgContinucationRec
 } SgContinuation;
 
 #define SG_CONTINUATION(obj)  ((SgContinuation*)obj)
-#define SG_CONTINUATIONP(obj) (SG_PTRP(obj) && IS_TYPE(obj, TC_CONTINUATION))
-
 
 typedef struct SgVMProfilerRec SgVMProfiler;
 

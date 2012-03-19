@@ -48,7 +48,7 @@ struct SgIdentifierRec
 };
 
 #define SG_IDENTIFIER(obj)   ((SgIdentifier*)(obj))
-#define SG_IDENTIFIERP(obj)  (SG_HPTRP(obj)&&SG_XTYPEP(obj,SG_CLASS_IDENTIFIER))
+#define SG_IDENTIFIERP(obj)  SG_XTYPEP(obj,SG_CLASS_IDENTIFIER)
 #define SG_IDENTIFIER_NAME(obj)     (SG_IDENTIFIER(obj)->name)
 #define SG_IDENTIFIER_ENVS(obj)     (SG_IDENTIFIER(obj)->envs)
 #define SG_IDENTIFIER_LIBRARY(obj)  (SG_IDENTIFIER(obj)->library)

@@ -57,8 +57,7 @@ struct SgTranscoderRec
   void   (*putChar)(SgObject, SgPort*, SgChar);
 };
 
-#define SG_TRANSCODERP(obj)				\
-  (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_TRANSCODER))
+#define SG_TRANSCODERP(obj) SG_XTYPEP(obj, SG_CLASS_TRANSCODER)
 #define SG_TRANSCODER(obj)  ((SgTranscoder*)obj)
 /* accessor */
 #define SG_TRANSCODER_CODEC(obj)     (SG_TRANSCODER(obj)->codec)

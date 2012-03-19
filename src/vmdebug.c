@@ -8,9 +8,9 @@
 #include <sagittarius.h>
 
 static struct sg__rcRec {
-  SgObject d209[3];
+  SgObject d72[3];
 } sg__rc = {
-  {  /* SgObject d209 */
+  {  /* SgObject d72 */
     SG_UNBOUND,
     SG_UNBOUND,
     SG_UNBOUND,
@@ -27,7 +27,7 @@ static SgObject vmdebug_vm_dump_code(SgObject *SG_FP, int SG_ARGC, void *data_)
   cb_scm = SG_ARGREF(0);
   if (!SG_CODE_BUILDERP(cb_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d209[0], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
+       sg__rc.d72[0], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
   cb = SG_CODE_BUILDER(cb_scm);
   {
 {
@@ -91,13 +91,13 @@ static SG_DEFINE_SUBR(vmdebug_source_info_setX__STUB, 2, 0,vmdebug_source_info_s
 
 void Sg__Init_sagittarius_vm_debug () {
   SgLibrary *lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius vm debug)"), TRUE));
-  sg__rc.d209[0] = SG_MAKE_STRING("vm-dump-code");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d209[0]), &vmdebug_vm_dump_code__STUB);
-  SG_PROCEDURE_NAME(&vmdebug_vm_dump_code__STUB) = sg__rc.d209[0];
-  sg__rc.d209[1] = SG_MAKE_STRING("source-info");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d209[1]), &vmdebug_source_info__STUB);
-  SG_PROCEDURE_NAME(&vmdebug_source_info__STUB) = sg__rc.d209[1];
-  sg__rc.d209[2] = SG_MAKE_STRING("source-info-set!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d209[2]), &vmdebug_source_info_setX__STUB);
-  SG_PROCEDURE_NAME(&vmdebug_source_info_setX__STUB) = sg__rc.d209[2];
+  sg__rc.d72[0] = SG_MAKE_STRING("vm-dump-code");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d72[0]), &vmdebug_vm_dump_code__STUB);
+  SG_PROCEDURE_NAME(&vmdebug_vm_dump_code__STUB) = sg__rc.d72[0];
+  sg__rc.d72[1] = SG_MAKE_STRING("source-info");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d72[1]), &vmdebug_source_info__STUB);
+  SG_PROCEDURE_NAME(&vmdebug_source_info__STUB) = sg__rc.d72[1];
+  sg__rc.d72[2] = SG_MAKE_STRING("source-info-set!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d72[2]), &vmdebug_source_info_setX__STUB);
+  SG_PROCEDURE_NAME(&vmdebug_source_info_setX__STUB) = sg__rc.d72[2];
 }

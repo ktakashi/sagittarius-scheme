@@ -78,7 +78,7 @@ struct SgCodecRec
 SG_CLASS_DECL(Sg_CodecClass);
 #define SG_CLASS_CODEC      (&Sg_CodecClass)
 
-#define SG_CODECP(obj) (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_CODEC))
+#define SG_CODECP(obj) SG_XTYPEP(obj, SG_CLASS_CODEC)
 #define SG_CODEC(obj)  ((SgCodec*)obj)
 /* accessor */
 #define SG_CODEC_NAME(obj)   (SG_CODEC(obj)->name)

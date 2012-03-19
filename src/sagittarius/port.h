@@ -208,7 +208,7 @@ enum SgCustomPortType {
   SG_TEXTUAL_CUSTOM_PORT_TYPE,
 };
 
-#define SG_PORTP(obj) 	      (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_PORT))
+#define SG_PORTP(obj) 	      SG_XTYPEP(obj, SG_CLASS_PORT)
 #define SG_PORT(obj)  	      ((SgPort*)obj)
 #define SG_INPORTP(obj)       (SG_PORTP(obj) && SG_PORT(obj)->direction == SG_INPUT_PORT)
 #define SG_OUTPORTP(obj)      (SG_PORTP(obj) && SG_PORT(obj)->direction == SG_OUTPUT_PORT)

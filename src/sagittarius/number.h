@@ -56,7 +56,7 @@ struct SgBignumRec
   unsigned long elements[1];
 };
 
-#define SG_BIGNUMP(obj) (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_INTEGER))
+#define SG_BIGNUMP(obj) SG_XTYPEP(obj, SG_CLASS_INTEGER)
 #define SG_BIGNUM(obj)  ((SgBignum*)(obj))
 
 #define BIGNUM_MAX_DIGITS  ((1UL<<(SIZEOF_INT*CHAR_BIT-2))-1)
@@ -78,7 +78,7 @@ struct SgComplexRec
   SgObject real;
 };
 
-#define SG_COMPLEXP(obj)  (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_COMPLEX))
+#define SG_COMPLEXP(obj)  SG_XTYPEP(obj, SG_CLASS_COMPLEX)
 #define SG_COMPLEX(obj)   ((SgComplex*)(obj))
 
 
@@ -89,7 +89,7 @@ struct SgRationalRec
   SgObject denominator;
 };
 
-#define SG_RATIONALP(obj)  (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_RATIONAL))
+#define SG_RATIONALP(obj)  SG_XTYPEP(obj, SG_CLASS_RATIONAL)
 #define SG_RATIONAL(obj)   ((SgRational*)(obj))
 
 struct SgFlonumRec
@@ -98,7 +98,7 @@ struct SgFlonumRec
   double value;
 };
 
-#define SG_FLONUMP(obj)   (SG_PTRP(obj) && SG_XTYPEP(obj, SG_CLASS_REAL))
+#define SG_FLONUMP(obj)   SG_XTYPEP(obj, SG_CLASS_REAL)
 #define SG_FLONUM(obj)    ((SgFlonum*)(obj))
 
 /* number type check */

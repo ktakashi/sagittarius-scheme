@@ -47,7 +47,7 @@ struct SgVectorRec
 };
 
 #define SG_VECTOR(obj)       ((SgVector*)obj)
-#define SG_VECTORP(obj)      (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_VECTOR))
+#define SG_VECTORP(obj)      SG_XTYPEP(obj, SG_CLASS_VECTOR)
 #define SG_VECTOR_SIZE(obj)   	  (SG_VECTOR(obj)->size)
 #define SG_VECTOR_ELEMENTS(obj)   (SG_VECTOR(obj)->elements)
 #define SG_VECTOR_ELEMENT(obj, i) (SG_VECTOR(obj)->elements[i])

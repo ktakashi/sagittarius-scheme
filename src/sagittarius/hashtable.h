@@ -101,8 +101,7 @@ typedef enum {
   SG_HASH_NO_CREATE    = (1L<<1)  /* do not create new one if no match */
 } SgHashSetFlags;
 
-#define SG_HASHTABLE_P(obj)					\
-  (SG_HPTRP(obj) && SG_XTYPEP(obj, SG_CLASS_HASHTABLE))
+#define SG_HASHTABLE_P(obj)    SG_XTYPEP(obj, SG_CLASS_HASHTABLE)
 #define SG_HASHTABLE(obj)      ((SgHashTable*)(obj))
 #define SG_HASHTABLE_CORE(obj) (&SG_HASHTABLE(obj)->core)
 #define SG_HASH_ENTRY_KEY(e)   SG_OBJ((e)->key)

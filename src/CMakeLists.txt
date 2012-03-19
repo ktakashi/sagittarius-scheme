@@ -17,7 +17,7 @@ ELSE()
     os/posix/system.c os/posix/thread.c)
 ENDIF()
 
-IF(MSVC)
+IF(MSVC OR WATCOM)
   SET(PLATFORM_SOURCE_UCS4
     ${PLATFORM_SOURCE_UCS4}
     ucs4.cpp)
@@ -98,7 +98,7 @@ ELSE()
   TARGET_LINK_LIBRARIES(sagittarius taurus)
 ENDIF()
 
-IF(MSVC)
+IF(MSVC OR WATCOM)
   SET(PLATFORM_SOURCE_FOR_SASH ${PLATFORM_SOURCE_FOR_SASH}
     ../win/sash.rc)
 ELSE()
@@ -109,7 +109,7 @@ ADD_EXECUTABLE(sash ${PLATFORM_SOURCE_FOR_SASH} main.c)
 TARGET_LINK_LIBRARIES(sash sagittarius)
 
 # copy gcmt-dll.dll to build
-IF (MSVC)
+IF (MSVC OR WATCOM)
   ADD_CUSTOM_TARGET(copy-gc-dll
     COMMAND copy .\\build\\gc\\gcmt-dll.dll .\\build
     DEPENDS ${GC_DEPENDS_TARGET}

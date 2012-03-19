@@ -1,6 +1,17 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 (load-dynamic-library "sagittarius--ffi")
-(library (sagittarius ffi)
+;; we need to use define-library to define proper library
+(define-library (sagittarius ffi)
+  (import (core)
+	  (core base)
+	  (core errors)
+	  (core syntax)
+	  (core misc)
+	  (sagittarius)
+	  (sagittarius vm)
+	  (sagittarius ffi impl))
+  (cond-expand
+   (sagittarius.ffi
     (export open-shared-library
 	    lookup-shared-library
 	    close-shared-library
@@ -122,238 +133,245 @@
 	    align-of-uintptr_t
 	    ;; c-primitives
 	    void
-	    char short int long unsigned-short unsigned-int unsigned-long int8_t int16_t int32_t uint8_t uint16_t uint32_t size_t
+	    char short int long unsigned-short unsigned-int unsigned-long
+	    int8_t int16_t int32_t uint8_t uint16_t uint32_t size_t
 	    int64_t uint64_t long-long unsigned-long-long
 	    bool void* char* float double callback struct
 	    ;; utility
 	    null-pointer
 	    null-pointer?
 	    ;; clos
-	    <pointer> <function-info> <callback> <c-struct>
-	    )
-    (import (core)
-	    (core base)
-	    (core errors)
-	    (core syntax)
-	    (core misc)
-	    (sagittarius)
-	    (sagittarius vm)
-	    (sagittarius ffi impl))
+	    <pointer> <function-info> <callback> <c-struct>)
 
-  (define void               'void)
-  (define char               'char)
-  (define short		     'short)
-  (define int		     'int)
-  (define long		     'long)
-  (define unsigned-short     'unsigned-short)
-  (define unsigned-int	     'unsigned-int)
-  (define unsigned-long	     'unsigned-long)
-  (define int8_t	     'int8_t)
-  (define int16_t	     'int16_t)
-  (define int32_t	     'int32_t)
-  (define uint8_t	     'uint8_t)
-  (define uint16_t	     'uint16_t)
-  (define uint32_t	     'uint32_t)
-  (define size_t	     'size_t)
-  (define int64_t	     'int64_t)
-  (define uint64_t	     'uint64_t)
-  (define long-long	     'long-long)
-  (define unsigned-long-long 'unsigned-long-long)
-  (define bool		     'bool)
-  (define void*		     'void*)
-  (define char*		     'char*)
-  (define float		     'float)
-  (define double	     'double)
-  (define callback           'callback)
-  (define struct             'struct)
+    (define void               'void)
+    (define char               'char)
+    (define short		     'short)
+    (define int		     'int)
+    (define long		     'long)
+    (define unsigned-short     'unsigned-short)
+    (define unsigned-int	     'unsigned-int)
+    (define unsigned-long	     'unsigned-long)
+    (define int8_t	     'int8_t)
+    (define int16_t	     'int16_t)
+    (define int32_t	     'int32_t)
+    (define uint8_t	     'uint8_t)
+    (define uint16_t	     'uint16_t)
+    (define uint32_t	     'uint32_t)
+    (define size_t	     'size_t)
+    (define int64_t	     'int64_t)
+    (define uint64_t	     'uint64_t)
+    (define long-long	     'long-long)
+    (define unsigned-long-long 'unsigned-long-long)
+    (define bool		     'bool)
+    (define void*		     'void*)
+    (define char*		     'char*)
+    (define float		     'float)
+    (define double	     'double)
+    (define callback           'callback)
+    (define struct             'struct)
 
-  (define null-pointer (integer->pointer 0))
-  (define (null-pointer? p)
-    (and (pointer? p)
-	 (= (pointer->integer p) 0)))
+    (define null-pointer (integer->pointer 0))
+    (define (null-pointer? p)
+      (and (pointer? p)
+	   (= (pointer->integer p) 0)))
 
-  (define-syntax define-c-typedef
-    (syntax-rules (* s*)      
-      ((_ old (* new) rest ...)
-       (begin
-	 (define new void*)
-	 (define-c-typedef old rest ...)))
-      ((_ old (s* new) rest ...)
-       (begin
-	 (define new char*)
-	 (define-c-typedef old rest ...)))
-      ((_ old new rest ...)
-       (begin
-	 (define new old)
-	 (define-c-typedef old rest ...)))
-      ((_ old)
-       #t)))
+    (define-syntax define-c-typedef
+      (syntax-rules (* s*)      
+	((_ old (* new) rest ...)
+	 (begin
+	   (define new void*)
+	   (define-c-typedef old rest ...)))
+	((_ old (s* new) rest ...)
+	 (begin
+	   (define new char*)
+	   (define-c-typedef old rest ...)))
+	((_ old new rest ...)
+	 (begin
+	   (define new old)
+	   (define-c-typedef old rest ...)))
+	((_ old)
+	 #t)))
 
-  (define (pointer->c-function pointer ret-type name arg-types)
-    (let* ((stub-ret-type (assoc ret-type c-function-return-type-alist))
-	   (signatures (list->string (make-sigunatures arg-types)))
-	   (function (create-function-info pointer (cdr stub-ret-type) signatures
-					   (car stub-ret-type) arg-types)))
-      (unless stub-ret-type
-	(assertion-violation 'c-function "wrong return type" ret-type))
-      (lambda args
-	(unless (= (length arg-types) (length args))
-	  (assertion-violation name (format "wrong arguments number ~d required, but got ~d"
-					    (length arg-types)
-					    (length args)) args))
-	(apply %ffi-call
-	       (cdr stub-ret-type)
-	       function
-	       args))))
+    (define (pointer->c-function pointer ret-type name arg-types)
+      (let* ((stub-ret-type (assoc ret-type c-function-return-type-alist))
+	     (signatures (list->string (make-sigunatures arg-types)))
+	     (function (create-function-info pointer (cdr stub-ret-type)
+					     signatures
+					     (car stub-ret-type) arg-types)))
+	(unless stub-ret-type
+	  (assertion-violation 'c-function "wrong return type" ret-type))
+	(lambda args
+	  (unless (= (length arg-types) (length args))
+	    (assertion-violation 
+	     name
+	     (format "wrong arguments number ~d required, but got ~d"
+		     (length arg-types)
+		     (length args)) args))
+	  (apply %ffi-call
+		 (cdr stub-ret-type)
+		 function
+		 args))))
 
-  (define (make-sigunatures arg-types)
-    (map (lambda (arg-type)
-	   (case arg-type
-	     ((char short int long unsigned-short int8_t int16_t int32_t uint8_t uint16_t)
-	      #\i)
-	     ((unsigned-int unsigned-long uint32_t size_t)
-	      #\u)
-	     ((int64_t long-long)
-	      #\x)
-	     ((uint64_t unsigned-long-long)
-	      #\U)
-	     ((bool) #\b)
-	     ((void* char*) #\p)
-	     ((float) #\f)
-	     ((double) #\d)
-	     ((callback) #\c)
-	     (else (assertion-violation 'make-sigunatures "invalid argument type" arg-type))))
-       arg-types))
+    (define (make-sigunatures arg-types)
+      (map (lambda (arg-type)
+	     (case arg-type
+	       ((char short int long unsigned-short int8_t
+		      int16_t int32_t uint8_t uint16_t)
+		#\i)
+	       ((unsigned-int unsigned-long uint32_t size_t)
+		#\u)
+	       ((int64_t long-long)
+		#\x)
+	       ((uint64_t unsigned-long-long)
+		#\U)
+	       ((bool) #\b)
+	       ((void* char*) #\p)
+	       ((float) #\f)
+	       ((double) #\d)
+	       ((callback) #\c)
+	       (else (assertion-violation 'make-sigunatures "invalid argument type" arg-type))))
+	   arg-types))
 
-  (define-syntax c-function
-    (lambda (x)
-      (syntax-case x ()
-	((_ lib ret func (args ...))
-	 #'(make-c-function lib ret 'func (list args ...))))))
+    (define-syntax c-function
+      (lambda (x)
+	(syntax-case x ()
+	  ((_ lib ret func (args ...))
+	   #'(make-c-function lib ret 'func (list args ...))))))
 
-  (define (make-c-function lib ret-type name arg-types)
-    (let ((func (lookup-shared-library lib (symbol->string name))))
-      (unless func
-	(assertion-violation 'c-function "c-function not found" name))
-      (pointer->c-function func ret-type name arg-types)))
+    (define (make-c-function lib ret-type name arg-types)
+      (let ((func (lookup-shared-library lib (symbol->string name))))
+	(unless func
+	  (assertion-violation 'c-function "c-function not found" name))
+	(pointer->c-function func ret-type name arg-types)))
 
 
-  ;; callback
-  (define (make-callback-signature name ret args)
-    (apply string
-	   (map (lambda (a)
-		  (cond ((assq a callback-argument-type-class) => cdr)
-			(else (assertion-violation name (format "invalid argument type ~a" a)
-						   (list ret args)))))
-		args)))
+    ;; callback
+    (define (make-callback-signature name ret args)
+      (apply string
+	     (map (lambda (a)
+		    (cond ((assq a callback-argument-type-class) => cdr)
+			  (else (assertion-violation name (format "invalid argument type ~a" a)
+						     (list ret args)))))
+		  args)))
 
-  (define-syntax c-callback
-    (lambda (x)
-      (syntax-case x ()
-	((_ ret (args ...) proc)
-	 #'(make-c-callback ret (list args ...) proc)))))
+    (define-syntax c-callback
+      (lambda (x)
+	(syntax-case x ()
+	  ((_ ret (args ...) proc)
+	   #'(make-c-callback ret (list args ...) proc)))))
 
-  (define (make-c-callback ret args proc)
-    (cond ((assq ret c-function-return-type-alist)
-	   => (lambda (type)
-		(create-c-callback (cdr type)
-				 (make-callback-signature 'make-c-callback ret args)
-				 proc)))
-	  (else
-	   (assertion-violation 'make-c-callback (format "invalid return type ~a" ret)
-				(list ret args proc)))))
+    (define (make-c-callback ret args proc)
+      (cond ((assq ret c-function-return-type-alist)
+	     => (lambda (type)
+		  (create-c-callback (cdr type)
+				     (make-callback-signature
+				      'make-c-callback ret args)
+				     proc)))
+	    (else
+	     (assertion-violation 'make-c-callback
+				  (format "invalid return type ~a" ret)
+				  (list ret args proc)))))
 
-  ;; c-struct
-  (define (make-c-struct name defs)
-    (let ((layouts (map (lambda (def)
-			  (cond ((and (eq? 'struct (car def))
-				      (= (length def) 3))
-				 `(,(caddr def) -1 struct . ,(cadr def)))
-				((eq? 'callback (car def))
-				 ;; speciall case
-				 `(,(cadr def), #x16 . callback))
-				((and (eq? 'array (cadr def))
-				      (= (length def) 4)
-				      (assq (car def) c-function-return-type-alist))
-				 => (lambda (type)
-				      `(,(cadddr def) ,(cdr type) ,(caddr def) . ,(car type))))
-				((assq (car def) c-function-return-type-alist)
-				 => (lambda (type)
-				      `(,(cadr def) ,(cdr type) . ,(car type))))
-				(else
-				 (assertion-violation 'make-c-struct
-						      (format "invalid struct declaration ~a" def)
-						      (list name defs)))))
-			defs)))
-      (unless (unique-id-list? (map car layouts))
-	(assertion-violation 'make-c-struct
-			     "struct declaration contains duplicated member name"
-			     (list name defs)))
-      (create-c-struct name layouts)))
+    ;; c-struct
+    (define (make-c-struct name defs)
+      (let ((layouts
+	     (map (lambda (def)
+		    (cond 
+		     ((and (eq? 'struct (car def))
+			   (= (length def) 3))
+		      `(,(caddr def) -1 struct . ,(cadr def)))
+		     ((eq? 'callback (car def))
+		      ;; speciall case
+		      `(,(cadr def), #x16 . callback))
+		     ((and (eq? 'array (cadr def))
+			   (= (length def) 4)
+			   (assq (car def) c-function-return-type-alist))
+		      => (lambda (type)
+			   `(,(cadddr def) ,(cdr type)
+			     ,(caddr def) . ,(car type))))
+		     ((assq (car def) c-function-return-type-alist)
+		      => (lambda (type)
+			   `(,(cadr def) ,(cdr type) . ,(car type))))
+		     (else
+		      (assertion-violation 
+		       'make-c-struct
+		       (format "invalid struct declaration ~a" def)
+		       (list name defs)))))
+		  defs)))
+	(unless (unique-id-list? (map car layouts))
+	  (assertion-violation 
+	   'make-c-struct
+	   "struct declaration contains duplicated member name"
+	   (list name defs)))
+	(create-c-struct name layouts)))
 
-  ;; (define-c-struct name (int x) (int y) (struct st s))
-  (define-syntax define-c-struct
-    (lambda (x)
-      (syntax-case x ()
-	((_ name (type . rest) ...)
-	 ;; black magic ...
-	 #'(begin
-	     ;; if there are more than one struct in the same library,
-	     ;; and if one of them refere it, it cause unbound variable error.
-	     ;; to avoid it, we need to do this. ugly...
-	     (%insert-binding (vm-current-library)
-			      'name
-			      (make-c-struct 'name (map cons (list type ...) '(rest ...))))
-	     (define name (make-c-struct 'name (map cons (list type ...) '(rest ...)))))))))
+    ;; (define-c-struct name (int x) (int y) (struct st s))
+    (define-syntax define-c-struct
+      (lambda (x)
+	(syntax-case x ()
+	  ((_ name (type . rest) ...)
+	   ;; black magic ...
+	   #'(begin
+	       ;; if there are more than one struct in the same library,
+	       ;; and if one of them refere it, it cause unbound variable error.
+	       ;; to avoid it, we need to do this. ugly...
+	       (%insert-binding (vm-current-library)
+				'name
+				(make-c-struct 
+				 'name 
+				 (map cons (list type ...) '(rest ...))))
+	       (define name (make-c-struct 'name (map cons (list type ...)
+						      '(rest ...)))))))))
 
-  (define c-function-return-type-alist
-    '((void               . #x00)    ; FFI_RETURN_TYPE_VOID
-      (bool               . #x01)    ; FFI_RETURN_TYPE_BOOL
-      (char               . #x0c)    ; FFI_RETURN_TYPE_INT8_T
-      (short              . #x02)    ; FFI_RETURN_TYPE_SHORT
-      (int                . #x03)    ; FFI_RETURN_TYPE_INT
-      (long               . #x04)    ; FFI_RETURN_TYPE_INTPTR
-      (long-long          . #x12)    ; FFI_RETURN_TYPE_INT64_T
-      (unsigned-short     . #x05)    ; FFI_RETURN_TYPE_USHORT
-      (unsigned-int       . #x06)    ; FFI_RETURN_TYPE_UINT
-      (unsigned-long      . #x07)    ; FFI_RETURN_TYPE_UINTPTR
-      (unsigned-long-long . #x13)    ; FFI_RETURN_TYPE_UINT64_T
-      (float              . #x08)    ; FFI_RETURN_TYPE_FLOAT
-      (double             . #x09)    ; FFI_RETURN_TYPE_DOUBLE
-      (void*              . #x14)    ; FFI_RETURN_TYPE_POINTER
-      (char*              . #x0a)    ; FFI_RETURN_TYPE_STRING
-      (size_t             . #x0b)    ; FFI_RETURN_TYPE_SIZE_T
-      (int8_t             . #x0c)    ; FFI_RETURN_TYPE_INT8_T
-      (uint8_t            . #x0d)    ; FFI_RETURN_TYPE_UINT8_T
-      (int16_t            . #x0e)    ; FFI_RETURN_TYPE_INT16_T
-      (uint16_t           . #x0f)    ; FFI_RETURN_TYPE_UINT16_T
-      (int32_t            . #x10)    ; FFI_RETURN_TYPE_INT32_T
-      (uint32_t           . #x11)    ; FFI_RETURN_TYPE_UINT32_T
-      (int64_t            . #x12)    ; FFI_RETURN_TYPE_INT64_T
-      (uint64_t           . #x13)))  ; FFI_RETURN_TYPE_UINT64_T
+    (define c-function-return-type-alist
+      '((void               . #x00)    ; FFI_RETURN_TYPE_VOID
+	(bool               . #x01)    ; FFI_RETURN_TYPE_BOOL
+	(char               . #x0c)    ; FFI_RETURN_TYPE_INT8_T
+	(short              . #x02)    ; FFI_RETURN_TYPE_SHORT
+	(int                . #x03)    ; FFI_RETURN_TYPE_INT
+	(long               . #x04)    ; FFI_RETURN_TYPE_INTPTR
+	(long-long          . #x12)    ; FFI_RETURN_TYPE_INT64_T
+	(unsigned-short     . #x05)    ; FFI_RETURN_TYPE_USHORT
+	(unsigned-int       . #x06)    ; FFI_RETURN_TYPE_UINT
+	(unsigned-long      . #x07)    ; FFI_RETURN_TYPE_UINTPTR
+	(unsigned-long-long . #x13)    ; FFI_RETURN_TYPE_UINT64_T
+	(float              . #x08)    ; FFI_RETURN_TYPE_FLOAT
+	(double             . #x09)    ; FFI_RETURN_TYPE_DOUBLE
+	(void*              . #x14)    ; FFI_RETURN_TYPE_POINTER
+	(char*              . #x0a)    ; FFI_RETURN_TYPE_STRING
+	(size_t             . #x0b)    ; FFI_RETURN_TYPE_SIZE_T
+	(int8_t             . #x0c)    ; FFI_RETURN_TYPE_INT8_T
+	(uint8_t            . #x0d)    ; FFI_RETURN_TYPE_UINT8_T
+	(int16_t            . #x0e)    ; FFI_RETURN_TYPE_INT16_T
+	(uint16_t           . #x0f)    ; FFI_RETURN_TYPE_UINT16_T
+	(int32_t            . #x10)    ; FFI_RETURN_TYPE_INT32_T
+	(uint32_t           . #x11)    ; FFI_RETURN_TYPE_UINT32_T
+	(int64_t            . #x12)    ; FFI_RETURN_TYPE_INT64_T
+	(uint64_t           . #x13)))  ; FFI_RETURN_TYPE_UINT64_T
 
-  (define callback-argument-type-class
-    `((bool               . #\l)
-      (char               . #\b)
-      (short              . #\h)
-      (int                . ,(if (= size-of-int 4) #\w #\q))
-      (long               . ,(if (= size-of-long 4) #\w #\q))
-      (long-long          . #\q)
-      (unsigned-char      . #\B)
-      (unsigned-short     . #\H)
-      (unsigned-int       . ,(if (= size-of-int 4) #\W #\Q))
-      (unsigned-long      . ,(if (= size-of-long 4) #\W #\Q))
-      (unsigned-long-long . #\Q)
-      (int8_t             . #\b)
-      (int16_t            . #\h)
-      (int32_t            . #\w)
-      (int64_t            . #\Q)
-      (uint8_t            . #\B)
-      (uint16_t           . #\H)
-      (uint32_t           . #\W)
-      (uint64_t           . #\Q)
-      (float              . #\f)
-      (double             . #\d)
-      (size_t             . ,(if (= size-of-size_t 4) #\W #\Q))
-      (void*              . #\p)))
-)
+    (define callback-argument-type-class
+      `((bool               . #\l)
+	(char               . #\b)
+	(short              . #\h)
+	(int                . ,(if (= size-of-int 4) #\w #\q))
+	(long               . ,(if (= size-of-long 4) #\w #\q))
+	(long-long          . #\q)
+	(unsigned-char      . #\B)
+	(unsigned-short     . #\H)
+	(unsigned-int       . ,(if (= size-of-int 4) #\W #\Q))
+	(unsigned-long      . ,(if (= size-of-long 4) #\W #\Q))
+	(unsigned-long-long . #\Q)
+	(int8_t             . #\b)
+	(int16_t            . #\h)
+	(int32_t            . #\w)
+	(int64_t            . #\Q)
+	(uint8_t            . #\B)
+	(uint16_t           . #\H)
+	(uint32_t           . #\W)
+	(uint64_t           . #\Q)
+	(float              . #\f)
+	(double             . #\d)
+	(size_t             . ,(if (= size-of-size_t 4) #\W #\Q))
+	(void*              . #\p)))
+    )
+   (else #f)))

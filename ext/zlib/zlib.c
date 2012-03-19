@@ -163,7 +163,7 @@ SgObject Sg_ZlibVersion()
 
 extern void Sg__Init_sagittarius_zlib();
 
-SG_EXTENSION_ENTRY void Sg_Init_sagittarius__zlib()
+SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__zlib()
 {
   SgLibrary *lib;
   SG_INIT_EXTENSION(sagittarius__zlib);

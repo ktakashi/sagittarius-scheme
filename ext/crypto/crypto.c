@@ -362,7 +362,7 @@ SG_CDECL_BEGIN
 extern void Sg__InitKey(SgObject lib);
 SG_CDECL_END
 
-SG_EXTENSION_ENTRY void Sg_Init_sagittarius__crypto()
+SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__crypto()
 {
   SgLibrary *lib;
   SG_INIT_EXTENSION(sagittarius__crypto);

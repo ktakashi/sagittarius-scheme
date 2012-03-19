@@ -34,11 +34,6 @@
 #include <sagittarius/thread.h>
 #include <sagittarius/vm.h>
 
-#ifdef USE_BOEHM_GC
-# define _beginthreadex GC_beginthreadex
-# define _endthreadex GC_endthreadex
-#endif
-
 void Sg_InitMutex(SgInternalMutex *mutex, int recursive)
 {
   mutex->mutex = CreateMutex(NULL, FALSE, NULL);

@@ -35,19 +35,18 @@
 /*
   Macro Definitions and typedefs
  */
-#if defined(__MINGW32__) || defined(_MSC_VER)
+#if defined(__MINGW32__) || defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 #define SAGITTARIUS_WINDOWS 1
 #endif
 
 #undef SG_EXTERN
 #if defined(__CYGWIN__) || defined(SAGITTARIUS_WINDOWS)
 # if defined(LIBSAGITTARIUS_BODY)
-#  define SG_EXPORT  __declspec(dllexport)
-#  define SG_EXTERN extern SG_EXPORT
+#  define SG_EXPORT __declspec(dllexport)
 # else
-#  define SG_EXPORT  __declspec(dllimport)
-#  define SG_EXTERN extern SG_EXPORT
+#  define SG_EXPORT __declspec(dllimport)
 # endif
+# define SG_EXTERN extern SG_EXPORT
 #else
 # define SG_EXPORT 
 # define SG_EXTERN extern
@@ -161,7 +160,7 @@
 #if defined(USE_BOEHM_GC)
 /* for win32 multi thread. see boehm gc README.win */
 /* TODO 64 bits */
-# ifdef _MSC_VER
+# if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 #  define GC_WIN32_THREADS
 # else
 #  define GC_THREADS
@@ -212,7 +211,7 @@ SG_CDECL_END
 # define UC(x)  (const SgChar*)(UC_(x))
 #endif
 */
-#if defined (_MSC_VER)
+#if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 SG_CDECL_BEGIN
 SG_EXTERN const SgChar* UC(const char *str);
 SG_CDECL_END
@@ -232,7 +231,7 @@ SG_CDECL_END
   ---- ----  ---- ----  ---- ----  0000 1011 : #f, #t, '(), eof-object, undefined, unbound
 
   object header:
-  ---- ----  ---- ----  ---- ----  ---- -111 : heap object
+  ---- ----  ---- ----  ---- ----  ---- --10 : heap object
   
  */
 typedef struct SgBignumRec     	   SgBignum;
@@ -323,7 +322,7 @@ typedef enum  {
 
 #define SG_HPTRP(obj)  (SG_TAG2(obj) == 0)
 
-#define SG_HTAG(obj)   (SG_WORD(SG_HDR(obj)->tag)&7)
+#define SG_HTAG(obj)   (SG_TAG3(SG_HDR(obj)->tag))
 
 /* Immediate objects*/
 #define SG_IMMEDIATEP(obj) (SG_TAG8(obj) == 0x0b)
@@ -370,12 +369,19 @@ typedef enum  {
 #define SG_CHAR_MAX        (0xffffff)
 
 /* CLOS */
-#define SG_HOBJP(obj)  (SG_HPTRP(obj)&&(SG_HTAG(obj)==7))
+#define SG_HOBJP(obj)  (SG_HPTRP(obj)&&(SG_HTAG(obj)==0x7))
+
+/* kludge for WATCOM */
+#ifdef __WATCOMC__
+#define CLASS_KEYWORD __far
+#else
+#define CLASS_KEYWORD
+#endif
 
 #define SG_CLASS2TAG(klass)  ((SgByte*)(klass) + 7)
 #define SG_CLASS_DECL(klass)			\
   SG_CDECL_BEGIN				\
-  SG_EXTERN SgClass klass;			\
+  SG_EXTERN SgClass CLASS_KEYWORD klass;	\
   SG_CDECL_END
 
 #define SG_CLASS_STATIC_PTR(klass) (&klass)

@@ -54,7 +54,7 @@ static const wchar_t* utf32ToUtf16(const SgChar *s)
 static void* dl_open(const SgString *path)
 {
   wchar_t *xpath = utf32ToUtf16(SG_STRING_VALUE(path));
-  return (void*)LoadLibrary(xpath);
+  return (void*)LoadLibraryW(xpath);
 }
 
 static const SgString* dl_error(void)

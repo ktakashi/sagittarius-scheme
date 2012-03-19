@@ -430,6 +430,12 @@
       (car exprs)
       (vector $SEQ exprs))))
 
+(define-syntax
+  $seq?
+  (syntax-rules
+    ()
+    ((_ iform) (has-tag? iform $SEQ))))
+
 (define-simple-struct
   $call
   $CALL
@@ -2927,13 +2933,13 @@
 
 (define-pass1-syntax
   (export form p1env)
-  :null
+  :sagittarius
   (check-toplevel form p1env)
   (pass1/export form (p1env-library p1env)))
 
 (define-pass1-syntax
   (import form p1env)
-  :null
+  :sagittarius
   (check-toplevel form p1env)
   (pass1/import form (p1env-library p1env)))
 
@@ -3018,6 +3024,16 @@
                   (append
                     ($seq-body seq)
                     (map (lambda (x) (pass1 x p1env)) body)))
+                (loop (cdr clauses)))
+               ((cond-expand)
+                (let ((r (pass1 (car clauses) p1env)))
+                  (if ($seq? r)
+                    ($seq-body-set!
+                      seq
+                      (append ($seq-body seq) ($seq-body r)))
+                    ($seq-body-set!
+                      seq
+                      (append ($seq-body seq) (list r)))))
                 (loop (cdr clauses)))
                (else
                 (syntax-error
@@ -6668,6 +6684,12 @@
       (car exprs)
       (vector $SEQ exprs))))
 
+(define-syntax
+  $seq?
+  (syntax-rules
+    ()
+    ((_ iform) (has-tag? iform $SEQ))))
+
 (define-simple-struct
   $call
   $CALL
@@ -9165,13 +9187,13 @@
 
 (define-pass1-syntax
   (export form p1env)
-  :null
+  :sagittarius
   (check-toplevel form p1env)
   (pass1/export form (p1env-library p1env)))
 
 (define-pass1-syntax
   (import form p1env)
-  :null
+  :sagittarius
   (check-toplevel form p1env)
   (pass1/import form (p1env-library p1env)))
 
@@ -9256,6 +9278,16 @@
                   (append
                     ($seq-body seq)
                     (map (lambda (x) (pass1 x p1env)) body)))
+                (loop (cdr clauses)))
+               ((cond-expand)
+                (let ((r (pass1 (car clauses) p1env)))
+                  (if ($seq? r)
+                    ($seq-body-set!
+                      seq
+                      (append ($seq-body seq) ($seq-body r)))
+                    ($seq-body-set!
+                      seq
+                      (append ($seq-body seq) (list r)))))
                 (loop (cdr clauses)))
                (else
                 (syntax-error
