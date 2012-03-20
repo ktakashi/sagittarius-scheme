@@ -3553,7 +3553,8 @@
     (result (or (SG_IDENTIFIERP id)
 		(SG_USER_DEFINED_SYNTXP id))))
 
-  (define-c-proc free-identifier=? (id1::<identifier> id2::<identifier>) ::<boolean>
+  (define-c-proc free-identifier=? (id1::<identifier> id2::<identifier>)
+    ::<boolean>
     (result (and (SG_EQ (SG_IDENTIFIER_NAME id1)
 			(SG_IDENTIFIER_NAME id2))
 		 (SG_EQ (SG_IDENTIFIER_ENVS id1)

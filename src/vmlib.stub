@@ -9,7 +9,6 @@
 	    id-library-set!
 	    copy-identifier
 	    identifier-binding-eqv?
-	    bound-id->symbol
 	    
 	    ;; syntax
 	    make-syntax syntax? syntax-name syntax-proc
@@ -105,11 +104,16 @@
   (define-c-proc copy-identifier (id::<identifier>) ::<top>
     (result (Sg_CopyIdentifier id)))
 
-  (define-c-proc bound-id->symbol (id::<identifier>) ::<top>
-    (if (SG_NULLP (SG_IDENTIFIER_ENVS id))
-	(let ((s (Sg_Sprintf (UC "%A.%x") (SG_IDENTIFIER_NAME id) id)))
-	  (result (Sg_Intern s)))
-	(result id)))
+  (define-c-proc id-has-parent? (id::<identifier>)
+    ::<boolean>
+    (result (SG_IDENTIFIER_PARENT id)))
+
+  (define-c-proc id-has-same-parent? (id1::<identifier> id2::<identifier>)
+    ::<boolean>
+    (for (() id1 (set! id1 (SG_IDENTIFIER_PARENT id1)))
+	 (for (() id2 (set! id2 (SG_IDENTIFIER_PARENT id2)))
+	      (if (SG_EQ id1 id2) (return #t))))
+    (result FALSE))
 
   ;; syntax
   (define-c-proc make-syntax (name::<symbol> proc :optional (userDefined::<boolean> FALSE)) ::<top>
