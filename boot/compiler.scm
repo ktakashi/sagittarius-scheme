@@ -38,7 +38,7 @@
   (define (flush-output-port p) (flush))
   (define inexact exact->inexact)
   (define (source-info form) #f)
-  (define (source-info-set! form info) #f)
+  (define (source-info-set! form info) form)
   (define list-head take)
   (define o-error-handler with-error-handler)
   (define (with-error-handler h t f)
@@ -93,9 +93,7 @@
 (define-syntax $src
   (syntax-rules ()
     ((_ n o)
-     (begin
-       (source-info-set! n (source-info o))
-       n))))
+     (source-info-set! n (source-info o)))))
 
 (define-syntax imap
   (syntax-rules ()
@@ -194,8 +192,10 @@
 		 expr
 		 (let ((a (loop (car expr)))
 		       (d (loop (cdr expr))))
-		   (cons ($src a (car expr))
-			 ($src d (cdr expr))))))
+		   (if (and (eq? a (car expr))
+			    (eq? d (cdr expr)))
+		       expr
+		       ($src (cons a d) expr)))))
 	    ((assq expr vars) => cdr)
 	    (else expr))))
 

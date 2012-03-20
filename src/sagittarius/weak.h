@@ -70,6 +70,8 @@ typedef struct SgWeakHashTableRec
   SgHashProc        *hasher;
   SgHashCompareProc *compare;
   unsigned int goneEntries;
+  /* for SG_WEAK_KEY we need to store keys somewhere */
+  SgWeakVector *keyStore;
 } SgWeakHashTable;
 
 typedef struct SgWeakHashIterRec

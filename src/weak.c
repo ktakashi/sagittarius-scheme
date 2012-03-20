@@ -221,6 +221,7 @@ SgObject Sg_MakeWeakHashTableSimple(SgHashType type,
     if (!Sg_HashCoreTypeToProcs(type, &wh->hasher, &wh->compare)) {
       Sg_Error(UC("[internal error] Sg_MakeWeakHashTableSimple: unsupported type: %d"), type);
     }
+    wh->keyStore = Sg_MakeWeakVector(initSize);
     Sg_HashCoreInitGeneral(&wh->core, weak_key_hash, weak_key_compare,
 			   initSize, wh);
   } else {
@@ -238,16 +239,48 @@ SgObject Sg_WeakHashTableCopy(SgWeakHashTable *src)
   wh->defaultValue = src->defaultValue;
   wh->hasher = src->hasher;
   wh->compare = src->compare;
+  if (wh->weakness & SG_WEAK_KEY) {
+    int i;
+    wh->keyStore = Sg_MakeWeakVector(wh->keyStore->size);
+    for (i = 0; i < wh->keyStore->size; i++) {
+      Sg_WeakVectorSet(wh->keyStore, i,
+		       Sg_WeakVectorRef(wh->keyStore, i, SG_FALSE));
+    }
+  }
   Sg_HashCoreCopy(&wh->core, &src->core);
   return SG_OBJ(wh);
+}
+
+static SgWeakBox* search_box(SgWeakVector *wvec, void *key)
+{
+  int i;
+  for (i = 0; i < wvec->size; i++) {
+    SgObject box = Sg_WeakVectorRef(wvec, i, SG_FALSE);
+    if (!SG_FALSEP(box) && !Sg_WeakBoxEmptyP((SgWeakBox *)box) &&
+	Sg_WeakBoxRef((SgWeakBox *)box) == key) {
+      return (SgWeakBox *)box;
+    }
+  }
+  return NULL;
 }
 
 SgObject Sg_WeakHashTableRef(SgWeakHashTable *table,
 			     SgObject key, SgObject fallback)
 {
-  SgHashEntry *e = Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table),
-				     (intptr_t)key, SG_HASH_GET);
+  SgHashEntry *e;
+  /* first check weakness */
+  if (table->weakness & SG_WEAK_KEY) {
+    SgWeakBox *p = search_box(table->keyStore, key);
+    if (!p) {
+      /* no key or GCed*/
+      return fallback;
+    } else {
+      key = (SgObject)p;
+    }
+  }
 
+  e = Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table),
+			(intptr_t)key, SG_HASH_GET);
   if (!e) return fallback;
   if (table->weakness & SG_WEAK_VALUE) {
     void *val = Sg_WeakBoxRef((SgWeakBox*)e->value);
@@ -259,6 +292,32 @@ SgObject Sg_WeakHashTableRef(SgWeakHashTable *table,
   }
 }
 
+static void set_to_available_box(SgWeakVector **wvec, void *key)
+{
+  SgWeakVector *wv = *wvec, *tmp;
+  int i, size;
+  SgWeakBox *ret;
+  for (i = 0; i < wv->size; i++) {
+    SgObject box = Sg_WeakVectorRef(wv, i, SG_FALSE);
+    /* must be weak box if it's not #f */
+    if (!SG_FALSEP(box)) {
+      Sg_WeakBoxSet((SgWeakBox *)box, key);
+      return;
+    }
+  }
+  /* key store is full, we need to expand it */
+  size = wv->size * 2;
+  tmp = Sg_MakeWeakVector(size);
+  for (i = 0; i < wv->size; i++) {
+    /* copy */
+    Sg_WeakVectorSet(tmp, i, Sg_WeakVectorRef(wv, i, SG_FALSE));
+  }
+  /* set dummy */
+  ret = Sg_MakeWeakBox(key);
+  Sg_WeakVectorSet(tmp, wv->size, ret);
+  *wvec = tmp;			/* swap */
+}
+
 SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
 			     SgObject key, SgObject value, int flags)
 {
@@ -267,6 +326,7 @@ SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
 
   if (table->weakness & SG_WEAK_KEY) {
     proxy = (intptr_t)Sg_MakeWeakBox(key);
+    set_to_available_box(&table->keyStore, (void *)proxy);
   } else {
     proxy = (intptr_t)key;
   }
@@ -296,8 +356,20 @@ SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
 SgObject Sg_WeakHashTableDelete(SgWeakHashTable *table,
 				SgObject key)
 {
-  SgHashEntry *e = Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table),
-				     (intptr_t)key, SG_HASH_DELETE);
+  SgHashEntry *e;
+    /* first check weakness */
+  if (table->weakness & SG_WEAK_KEY) {
+    SgWeakBox *p = search_box(table->keyStore, key);
+    if (!p) {
+      /* no key or GCed, thus value must be GCed */
+      return SG_UNBOUND;
+    } else {
+      key = (SgObject)p;
+    }
+  }
+
+  e= Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table),
+		       (intptr_t)key, SG_HASH_DELETE);
   if (e && e->value) {
     if (table->weakness & SG_WEAK_VALUE) {
       void *val = Sg_WeakBoxRef((SgWeakBox*)e->value);

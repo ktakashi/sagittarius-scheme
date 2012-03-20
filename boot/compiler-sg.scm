@@ -182,8 +182,7 @@
   $src
   (syntax-rules
     ()
-    ((_ n o)
-     (begin (source-info-set! n (source-info o)) n))))
+    ((_ n o) (source-info-set! n (source-info o)))))
 
 (define-syntax
   imap
@@ -243,7 +242,9 @@
            (if (constant-literal? expr)
              expr
              (let ((a (loop (car expr))) (d (loop (cdr expr))))
-               (cons ($src a (car expr)) ($src d (cdr expr))))))
+               (if (and (eq? a (car expr)) (eq? d (cdr expr)))
+                 expr
+                 ($src (cons a d) expr)))))
           ((assq expr vars) => cdr)
           (else expr))))
 
@@ -6431,8 +6432,7 @@
   $src
   (syntax-rules
     ()
-    ((_ n o)
-     (begin (source-info-set! n (source-info o)) n))))
+    ((_ n o) (source-info-set! n (source-info o)))))
 
 (define-syntax
   imap
@@ -6492,7 +6492,9 @@
            (if (constant-literal? expr)
              expr
              (let ((a (loop (car expr))) (d (loop (cdr expr))))
-               (cons ($src a (car expr)) ($src d (cdr expr))))))
+               (if (and (eq? a (car expr)) (eq? d (cdr expr)))
+                 expr
+                 ($src (cons a d) expr)))))
           ((assq expr vars) => cdr)
           (else expr))))
 

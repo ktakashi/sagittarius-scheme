@@ -118,6 +118,8 @@
      ;; weak
      (<weak-vector> "SgWeakVector*" "weak vector" "SG_WEAK_VECTOR_P"
 		    "SG_WEAK_VECTOR")
+     (<weak-hashtable> "SgWeakHashTable*" "weak hashtable" "SG_WEAK_HASHTABLE_P"
+		    "SG_WEAK_HASHTABLE")
      ;; for compiler
      (<code-builder> "SgCodeBuilder*" "code-builder" "SG_CODE_BUILDERP"
 		     "SG_CODE_BUILDER")

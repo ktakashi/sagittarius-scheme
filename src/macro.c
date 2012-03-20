@@ -134,7 +134,7 @@ static SgObject macro_tranform(SgObject *args, int argc, void *data_)
   SgObject ue_save = vm->usageEnv;
   SgObject me_save = vm->macroEnv;
   SgObject data;
-  SgObject result, si;
+  SgObject result;
   macro = args[0];
   ASSERT(SG_MACROP(macro));
   form = args[1];

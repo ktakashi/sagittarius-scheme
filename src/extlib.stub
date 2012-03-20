@@ -141,6 +141,14 @@
 	    weak-vector-length
 	    weak-vector-ref
 	    weak-vector-set!
+
+	    make-weak-eq-hashtable
+	    weak-hashtable-ref
+	    weak-hashtable-set!
+	    weak-hashtable-delete!
+	    weak-hashtable-keys-list
+	    weak-hashtable-values-list
+	    weak-hashtable-copy
 	    )
     (import :null)
 
@@ -829,4 +837,29 @@
 			   "index out of range" 
 			   (SG_LIST2 wvec (SG_MAKE_INT k))))
     (Sg_WeakVectorSet wvec k value))
+
+  (define-c-proc make-weak-eq-hashtable (:optional (k::<fixnum> 200))
+    (result (Sg_MakeWeakHashTableSimple SG_HASH_EQ SG_WEAK_KEY
+					k SG_UNDEF)))
+
+  (define-c-proc weak-hashtable? (o) ::<boolean>
+    (result (SG_WEAK_HASHTABLE_P o)))
+
+  (define-c-proc weak-hashtable-ref (wh::<weak-hashtable> key fallback)
+    (result (Sg_WeakHashTableRef wh key fallback)))
+
+  (define-c-proc weak-hashtable-set! (wh::<weak-hashtable> key value) ::<void>
+    (Sg_WeakHashTableSet wh key value 0))
+
+  (define-c-proc weak-hashtable-delete! (wh::<weak-hashtable> key) ::<void>
+    (Sg_WeakHashTableDelete wh key))
+
+  (define-c-proc weak-hashtable-keys-list (wh::<weak-hashtable>)
+    (result (Sg_WeakHashTableKeys wh)))
+
+  (define-c-proc weak-hashtable-values-list (wh::<weak-hashtable>)
+    (result (Sg_WeakHashTableValues wh)))
+
+  (define-c-proc weak-hashtable-copy (wh::<weak-hashtable>)
+    (result (Sg_WeakHashTableCopy wh)))
 )
