@@ -1,5 +1,6 @@
 ;; -*- scheme -*-
 #!compatible
+#!nobacktrace
 (library (tests srfi :42)
     (export run-srfi-42-tests)
     (import (rnrs)

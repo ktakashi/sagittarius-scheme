@@ -1,4 +1,5 @@
 ;; -*- scheme -*-
+#!nobacktrace
 (library (text sxml private to-html-ext)
     (export make-header
 	    make-navbar

@@ -1,6 +1,6 @@
 ;; -*- mode: scheme; coding: utf-8 -*- 
 ;; serializer.scm - sxml serializer ported to Sagittarius by Takashi Kato
-
+#!nobacktrace
 (library (text sxml serializer)
     (export srl:sxml->xml
 	    srl:sxml->xml-noindent

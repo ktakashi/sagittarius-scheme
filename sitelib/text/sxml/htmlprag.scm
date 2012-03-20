@@ -1,5 +1,6 @@
 ;; -*- scheme -*-
 ;; HtmlPrag ported for Sagittarius Scheme by Takashi Kato
+#!nobacktrace
 (library (text sxml htmlprag)
     (export shtml-comment-symbol
 	    shtml-decl-symbol

@@ -1,4 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
+#!nobacktrace
 (library (text sxml txpath-parser)
     (export txp:param-value
 	    txp:parameterize-parser

@@ -1,5 +1,6 @@
 ;; -*- mode:scheme; coding: utf-8 -*-
 ;; tools.scm - SXML tools
+#!nobacktrace
 (library (text sxml tools)
     (export filter-and-map
 	    check-list

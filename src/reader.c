@@ -583,9 +583,12 @@ static SgObject read_list(SgPort *port, SgChar closer, SgReadContext *ctx)
   int line = Sg_LineNo(port);
   SgObject r = read_list_int(port, closer, ctx, line);
   if (SG_PAIRP(r) && line >= 0) {
-    Sg_WeakHashTableSet(SG_WEAK_HASHTABLE(Sg_VM()->sourceInfos),
-			r, Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line)),
-			0);
+    SgVM *vm = Sg_VM();
+    if (!SG_VM_IS_SET_FLAG(vm, SG_NO_DEBUG_INFO)) {
+      Sg_WeakHashTableSet(SG_WEAK_HASHTABLE(vm->sourceInfos),
+			  r, Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line)),
+			  0);
+    }
   }
   return r;
 }
@@ -871,6 +874,11 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	SG_VM_SET_FLAG(vm, SG_NO_INLINE_ASM);
 	SG_VM_SET_FLAG(vm, SG_NO_INLINE_LOCAL);
 	SG_VM_SET_FLAG(vm, SG_NO_LAMBDA_LIFT);
+	return NULL;
+      }
+      if (ustrcmp(tag->value, "nobacktrace") == 0) {
+	SgVM *vm = Sg_VM();
+	SG_VM_SET_FLAG(vm, SG_NO_DEBUG_INFO);
 	return NULL;
       }
     }

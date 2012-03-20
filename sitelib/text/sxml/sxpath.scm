@@ -5,7 +5,7 @@
 ;;   - sxpath.scm
 ;;   - sxpath-ext.scm
 ;;   - txpath.scm
-
+#!nobacktrace
 (library (text sxml sxpath)
     (export sxpath nodeset? as-nodeset sxml:element? ntype-names??
 	    ntype?? ntype-namespace-id?? sxml:invert node-eq? node-equal?

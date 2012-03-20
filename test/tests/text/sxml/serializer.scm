@@ -1,4 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
+#!nobacktrace
 (library (tests text sxml serializer)
     (export run-serializer-test)
     (import (rnrs)

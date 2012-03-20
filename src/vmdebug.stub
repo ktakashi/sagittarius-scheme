@@ -20,8 +20,10 @@
 				 o #f)))
 
   (define-c-proc source-info-set! (o i) 
-    (Sg_WeakHashTableSet (SG_WEAK_HASHTABLE (-> (Sg_VM) sourceInfos))
-			 o i 0)
-    (result o))
+    (let* ((vm::SgVM* (Sg_VM)))
+      (unless (SG_VM_IS_SET_FLAG vm SG_NO_DEBUG_INFO)
+	(Sg_WeakHashTableSet (SG_WEAK_HASHTABLE (-> vm sourceInfos))
+			     o i 0))
+      (result o)))
 )
 

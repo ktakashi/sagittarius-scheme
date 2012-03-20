@@ -1,5 +1,6 @@
 ;; -*- Scheme -*-
 ;; ported by Takashi Kato for Sagittarius Scheme
+#!nobacktrace
 (library (text sxml tree-trans)
     (export SRV:send-reply
 	    pre-post-order

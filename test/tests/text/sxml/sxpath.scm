@@ -1,4 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
+#!nobacktrace
 (library (tests text sxml sxpath)
     (export run-sxpath-test)
     (import (except (rnrs) display newline write)
