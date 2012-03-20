@@ -344,14 +344,13 @@
 				     (format out "WORD(&sg__wc.cb[~a]);~%" (cdr info))
 				     (format out "  sg__wc.cb[~a].name = ~a;~%" (cdr info)
 					     (cond ((identifier?  name)
-						    (format "SYMBOL(~s)" (string-append (symbol->string (id-name name))
-											(format "#~s" (library-name (id-library name))))))
+						    (format "SYMBOL(~s)" (symbol->string (id-name name))))
 						   ((symbol? name)
 						    (format "SYMBOL(~s)" (symbol->string name)))
 						   ((boolean? name)
 						    (format "SG_MAKE_BOOL(~s)" (if name 'TRUE 'FALSE)))
 						   (else
-						    (format "SG_MAKE_BOOL(FALSE)")))))))))))
+						    (format "SYMBOL(\"~a\")" name)))))))))))
 		      pos-list)
 	    (loop (cdr keys)))))
       (resolve-collected-id out collected-ids 

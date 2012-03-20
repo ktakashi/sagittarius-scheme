@@ -134,7 +134,7 @@ static SgObject macro_tranform(SgObject *args, int argc, void *data_)
   SgObject ue_save = vm->usageEnv;
   SgObject me_save = vm->macroEnv;
   SgObject data;
-  SgObject result;
+  SgObject result, si;
   macro = args[0];
   ASSERT(SG_MACROP(macro));
   form = args[1];
@@ -147,7 +147,8 @@ static SgObject macro_tranform(SgObject *args, int argc, void *data_)
   vm->usageEnv = p1env;
   vm->macroEnv = mac_env;
   if (SG_MACROP(data)) {
-    result = Sg_Apply4(SG_MACRO(data)->transformer, data, form, mac_env, SG_MACRO(data)->data);
+    result = Sg_Apply4(SG_MACRO(data)->transformer,
+		       data, form, mac_env, SG_MACRO(data)->data);
   } else {
     result = Sg_Apply1(data, form);
   }

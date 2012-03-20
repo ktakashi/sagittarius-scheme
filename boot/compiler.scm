@@ -1,4 +1,4 @@
-;; -*- scheme -*-
+;; -*- mode:scheme; coding:utf-8; -*-
 ;;
 ;; This compiler has 4 stages.
 ;; pass0 - for future use.
@@ -2085,12 +2085,7 @@
 			  (else
 			   ($gset (ensure-identifier var p1env)
 				  (pass1 expr p1env)))))
-		  ($gset (ensure-identifier var p1env) (pass1 expr p1env))))))
-     #;(let ((var (p1env-lookup p1env name LEXICAL))
-	   (val (pass1 expr p1env)))
-       (if (lvar? var)
-	   ($lset var val)
-	   ($gset (ensure-identifier var p1env) val))))
+		  ($gset (ensure-identifier var p1env) (pass1 expr p1env)))))))
     (- (syntax-error "malformed set!" form))))
 
 ;; begin
@@ -3984,37 +3979,31 @@
 (define *pass2/lambda-lifting-table* (generate-dispatch-table pass2-scan))
 
 (define (pass2/lift lambda-nodes library)
-  (let ((top-name #f))
+  (let ((top-name #f)
+	(results '()))
     (let loop ((lms lambda-nodes))
-      (when (pair? lms)
-	(or (and ($lambda-lifted-var (car lms))
-		 (let ((n ($lambda-name (car lms))))
-		   (and n
-			(set! top-name (if (identifier? n)
-					   (id-name n)
-					   n)))))
-	    (loop (cdr lms)))))
-    (let ((results '()))
-      (let loop ((lms lambda-nodes))
-	(cond ((null? lms))
-	      (($lambda-lifted-var (car lms))
-	       ($lambda-lifted-var-set! (car lms) #f)
-	       (loop (cdr lms)))
-	      (else
-	       (let* ((lm (car lms))
-		      (fvs ($lambda-free-lvars lm)))
-		 (when (or (null? fvs)
-			   (and (null? (cdr fvs))
-				(zero? (lvar-set-count (car fvs)))
-				(eq? (lvar-initval (car fvs)) lm)))
-		   (let ((gvar (make-identifier (gensym) '() library)))
-		     ($lambda-name-set! lm (list top-name
-						 (or ($lambda-name lm)
-						     (id-name gvar))))
-		     ($lambda-lifted-var-set! lm gvar)
-		     (set! results (cons lm results))))
-		 (loop (cdr lms))))))
-      results)))
+      (cond ((null? lms))
+	    (($lambda-lifted-var (car lms))
+	     (let ((n ($lambda-name (car lms))))
+	       (set! top-name (if (identifier? n) (id-name n) n)))
+	     ($lambda-lifted-var-set! (car lms) #f)
+	     (loop (cdr lms)))
+	    (else
+	     (let* ((lm (car lms))
+		    (fvs ($lambda-free-lvars lm)))
+	       (when (or (null? fvs)
+			 (and (null? (cdr fvs))
+			      (zero? (lvar-set-count (car fvs)))
+			      (eq? (lvar-initval (car fvs)) lm)))
+		 (let ((gvar (make-identifier (gensym "#:")
+					      '() library)))
+		   ($lambda-name-set! lm (list top-name
+					       (or ($lambda-name lm)
+						   (id-name gvar))))
+		   ($lambda-lifted-var-set! lm gvar)
+		   (set! results (cons lm results))))
+	       (loop (cdr lms))))))
+    results))
 
 (define (pass2/subst iform labels)
   ((vector-ref *pass2/subst-table* (iform-tag iform)) iform labels))
@@ -5222,8 +5211,3 @@
 
 (define init-compiler
   (lambda () #f))
-	    
-;;;; end of file
-;; Local Variables:
-;; coding: utf-8-unix
-;; End:

@@ -350,27 +350,28 @@ static inline void report_error(SgObject exception)
 	}
 	if (SG_FALSEP(info) || !info) {
 	  Sg_Printf(buf,
-		    UC("  [%A] %A: %A (location *unknown*)\n"
+		    UC("  [%A] %A\n"
 		       "    src: %#50S\n"),
-		    index, SG_CAR(proc), SG_CADR(proc),
+		    index, SG_CADR(proc),
 		    Sg_UnwrapSyntax(src));
 	} else {
 	  file = SG_CAR(info);
 	  line = SG_CDR(info);
 	  Sg_Printf(buf,
-		    UC("  [%A] %A: %A (location %S (line %A))\n"
-		       "    src: %#50S\n"),
-		    index, SG_CAR(proc), SG_CADR(proc),
-		    file, line,
-		    Sg_UnwrapSyntax(src));
+		    UC("  [%A] %A\n"
+		       "    src: %#50S\n"
+		       "    %S:%A\n"),
+		    index, SG_CADR(proc),
+		    Sg_UnwrapSyntax(src),
+		    file, line);
 	}
       
       } else {
       no_src:
 	/* *cproc* does not have any source info */
 	Sg_Printf(buf,
-		  UC("  [%A] %A: %A \n"),
-		  index, SG_CAR(proc), SG_CADR(proc));
+		  UC("  [%A] %A\n"),
+		  index, SG_CADR(proc));
       }
     }
   }
@@ -1477,6 +1478,10 @@ SgObject Sg_GetStackTrace()
 	  InsnInfo *info;
 	  SgObject src = SG_FALSE;
 	  int index = -1, i;
+	  if (SG_FALSEP(name)) {
+	    /* try codebuilder name */
+	    name = Sg_CodeBuilderFullName(cb);
+	  }
 	  /* search previous src, max 2 */
 	  for (i = 0; i < 3; i++) {
 	    info = Sg_LookupInsnName(INSN(*(pc-i)));

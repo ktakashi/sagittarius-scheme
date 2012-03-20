@@ -448,17 +448,17 @@
 					"bad type of argument for server: must be an <http-connection> object or a string of the server's name" 
 					server)))
       (let-syntax ((check-override
-		    (er-macro-transformer
-		     (lambda (f r c)
-		       (let ((id (cadr f)))
-			 `(unless (undefined? ,id)
-			    (,(string->symbol 
-			       (string-append 
-				"http-connection-"
-				(symbol->string (identifier->symbol id))
-				"-set!"))
-			     conn
-			     ,id)))))))
+		    (lambda (x)
+		      (syntax-case x ()
+			((k id)
+			 (with-syntax ((name 
+					(datum->syntax 
+					 #'k
+					 (string->symbol
+					  (format "http-connection-~a-set!"
+						  (syntax->datum #'id))))))
+			   #'(unless (undefined? id)
+			       (name conn id))))))))
 	(check-override auth-handler)
 	(check-override auth-user)
 	(check-override auth-password)

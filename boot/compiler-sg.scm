@@ -4485,36 +4485,30 @@
   (generate-dispatch-table pass2-scan))
 
 (define (pass2/lift lambda-nodes library)
-  (let ((top-name #f))
+  (let ((top-name #f) (results '()))
     (let loop ((lms lambda-nodes))
-      (when (pair? lms)
-            (or (and ($lambda-lifted-var (car lms))
-                     (let ((n ($lambda-name (car lms))))
-                       (and n
-                            (set! top-name
-                              (if (identifier? n) (id-name n) n)))))
-                (loop (cdr lms)))))
-    (let ((results '()))
-      (let loop ((lms lambda-nodes))
-        (cond ((null? lms))
-              (($lambda-lifted-var (car lms))
-               ($lambda-lifted-var-set! (car lms) #f)
-               (loop (cdr lms)))
-              (else
-               (let* ((lm (car lms)) (fvs ($lambda-free-lvars lm)))
-                 (when (or (null? fvs)
-                           (and (null? (cdr fvs))
-                                (zero? (lvar-set-count (car fvs)))
-                                (eq? (lvar-initval (car fvs)) lm)))
-                       (let ((gvar (make-identifier (gensym) '() library)))
-                         ($lambda-name-set!
-                           lm
-                           (list top-name
-                                 (or ($lambda-name lm) (id-name gvar))))
-                         ($lambda-lifted-var-set! lm gvar)
-                         (set! results (cons lm results))))
-                 (loop (cdr lms))))))
-      results)))
+      (cond ((null? lms))
+            (($lambda-lifted-var (car lms))
+             (let ((n ($lambda-name (car lms))))
+               (set! top-name
+                 (if (identifier? n) (id-name n) n)))
+             ($lambda-lifted-var-set! (car lms) #f)
+             (loop (cdr lms)))
+            (else
+             (let* ((lm (car lms)) (fvs ($lambda-free-lvars lm)))
+               (when (or (null? fvs)
+                         (and (null? (cdr fvs))
+                              (zero? (lvar-set-count (car fvs)))
+                              (eq? (lvar-initval (car fvs)) lm)))
+                     (let ((gvar (make-identifier (gensym "#:") '() library)))
+                       ($lambda-name-set!
+                         lm
+                         (list top-name
+                               (or ($lambda-name lm) (id-name gvar))))
+                       ($lambda-lifted-var-set! lm gvar)
+                       (set! results (cons lm results))))
+               (loop (cdr lms))))))
+    results))
 
 (define (pass2/subst iform labels)
   ((vector-ref
@@ -10739,36 +10733,30 @@
   (generate-dispatch-table pass2-scan))
 
 (define (pass2/lift lambda-nodes library)
-  (let ((top-name #f))
+  (let ((top-name #f) (results '()))
     (let loop ((lms lambda-nodes))
-      (when (pair? lms)
-            (or (and ($lambda-lifted-var (car lms))
-                     (let ((n ($lambda-name (car lms))))
-                       (and n
-                            (set! top-name
-                              (if (identifier? n) (id-name n) n)))))
-                (loop (cdr lms)))))
-    (let ((results '()))
-      (let loop ((lms lambda-nodes))
-        (cond ((null? lms))
-              (($lambda-lifted-var (car lms))
-               ($lambda-lifted-var-set! (car lms) #f)
-               (loop (cdr lms)))
-              (else
-               (let* ((lm (car lms)) (fvs ($lambda-free-lvars lm)))
-                 (when (or (null? fvs)
-                           (and (null? (cdr fvs))
-                                (zero? (lvar-set-count (car fvs)))
-                                (eq? (lvar-initval (car fvs)) lm)))
-                       (let ((gvar (make-identifier (gensym) '() library)))
-                         ($lambda-name-set!
-                           lm
-                           (list top-name
-                                 (or ($lambda-name lm) (id-name gvar))))
-                         ($lambda-lifted-var-set! lm gvar)
-                         (set! results (cons lm results))))
-                 (loop (cdr lms))))))
-      results)))
+      (cond ((null? lms))
+            (($lambda-lifted-var (car lms))
+             (let ((n ($lambda-name (car lms))))
+               (set! top-name
+                 (if (identifier? n) (id-name n) n)))
+             ($lambda-lifted-var-set! (car lms) #f)
+             (loop (cdr lms)))
+            (else
+             (let* ((lm (car lms)) (fvs ($lambda-free-lvars lm)))
+               (when (or (null? fvs)
+                         (and (null? (cdr fvs))
+                              (zero? (lvar-set-count (car fvs)))
+                              (eq? (lvar-initval (car fvs)) lm)))
+                     (let ((gvar (make-identifier (gensym "#:") '() library)))
+                       ($lambda-name-set!
+                         lm
+                         (list top-name
+                               (or ($lambda-name lm) (id-name gvar))))
+                       ($lambda-lifted-var-set! lm gvar)
+                       (set! results (cons lm results))))
+               (loop (cdr lms))))))
+    results))
 
 (define (pass2/subst iform labels)
   ((vector-ref
