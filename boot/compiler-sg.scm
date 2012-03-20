@@ -242,7 +242,8 @@
           ((pair? expr)
            (if (constant-literal? expr)
              expr
-             (cons (loop (car expr)) (loop (cdr expr)))))
+             (let ((a (loop (car expr))) (d (loop (cdr expr))))
+               (cons ($src a (car expr)) ($src d (cdr expr))))))
           ((assq expr vars) => cdr)
           (else expr))))
 
@@ -6490,7 +6491,8 @@
           ((pair? expr)
            (if (constant-literal? expr)
              expr
-             (cons (loop (car expr)) (loop (cdr expr)))))
+             (let ((a (loop (car expr))) (d (loop (cdr expr))))
+               (cons ($src a (car expr)) ($src d (cdr expr))))))
           ((assq expr vars) => cdr)
           (else expr))))
 

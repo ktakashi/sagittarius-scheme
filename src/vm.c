@@ -179,8 +179,8 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->parentExHandler = SG_FALSE;
   v->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
   v->parameters = Sg_MakeHashTableSimple(SG_HASH_EQ, 64);
-  /* TODO use equal hash for source info might not be good. */
-  v->sourceInfos = Sg_MakeHashTableSimple(SG_HASH_EQ, 4000);
+  v->sourceInfos = Sg_MakeWeakHashTableSimple(SG_HASH_EQ, SG_WEAK_VALUE,
+					      4000, SG_FALSE);
   v->toplevelVariables = SG_NIL;
   v->commandLineArgs = SG_NIL;
 
@@ -344,8 +344,8 @@ static inline void report_error(SgObject exception)
 	} else {
 	  src = Sg_LastPair(tmp);
 	  src = SG_CDAR(src);
-	  info = Sg_HashTableRef(SG_HASHTABLE(vm->sourceInfos),
-				 src, SG_FALSE);
+	  info = Sg_WeakHashTableRef(SG_WEAK_HASHTABLE(vm->sourceInfos),
+				     src, SG_FALSE);
 	  /* info = SG_SOURCE_INFO(src); */
 	}
 	if (SG_FALSEP(info) || !info) {

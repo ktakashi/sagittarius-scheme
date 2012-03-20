@@ -183,6 +183,7 @@ static uint32_t weak_key_hash(const SgHashCore *hc, intptr_t key)
   SgWeakHashTable *wh = SG_WEAK_HASHTABLE(hc->data);
   SgWeakBox *box = (SgWeakBox *)key;
   intptr_t realkey = (intptr_t)Sg_WeakBoxRef(box);
+
   if (Sg_WeakBoxEmptyP(box)) {
     return 0;
   } else {
@@ -220,7 +221,8 @@ SgObject Sg_MakeWeakHashTableSimple(SgHashType type,
     if (!Sg_HashCoreTypeToProcs(type, &wh->hasher, &wh->compare)) {
       Sg_Error(UC("[internal error] Sg_MakeWeakHashTableSimple: unsupported type: %d"), type);
     }
-    Sg_HashCoreInitGeneral(&wh->core, weak_key_hash, weak_key_compare, initSize, wh);
+    Sg_HashCoreInitGeneral(&wh->core, weak_key_hash, weak_key_compare,
+			   initSize, wh);
   } else {
     Sg_HashCoreInitSimple(&wh->core, type, initSize, wh);
   }
@@ -245,6 +247,7 @@ SgObject Sg_WeakHashTableRef(SgWeakHashTable *table,
 {
   SgHashEntry *e = Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table),
 				     (intptr_t)key, SG_HASH_GET);
+
   if (!e) return fallback;
   if (table->weakness & SG_WEAK_VALUE) {
     void *val = Sg_WeakBoxRef((SgWeakBox*)e->value);
@@ -269,7 +272,8 @@ SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
   }
 
   e = Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table), proxy,
-			(flags & SG_HASH_NO_CREATE) ? SG_HASH_GET: SG_HASH_CREATE);
+			(flags & SG_HASH_NO_CREATE)
+			   ? SG_HASH_GET: SG_HASH_CREATE);
   if (!e) return SG_UNBOUND;
   if (table->weakness & SG_WEAK_VALUE) {
     if (flags & SG_HASH_NO_OVERWRITE && e->value) {

@@ -38,6 +38,7 @@
 #include "sagittarius/pair.h"
 #include "sagittarius/symbol.h"
 #include "sagittarius/hashtable.h"
+#include "sagittarius/weak.h"
 #include "sagittarius/transcoder.h"
 #include "sagittarius/compare.h"
 #include "sagittarius/keyword.h"
@@ -582,9 +583,9 @@ static SgObject read_list(SgPort *port, SgChar closer, SgReadContext *ctx)
   int line = Sg_LineNo(port);
   SgObject r = read_list_int(port, closer, ctx, line);
   if (SG_PAIRP(r) && line >= 0) {
-    Sg_HashTableSet(SG_HASHTABLE(Sg_VM()->sourceInfos),
-		    r, Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line)),
-		    0);
+    Sg_WeakHashTableSet(SG_WEAK_HASHTABLE(Sg_VM()->sourceInfos),
+			r, Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line)),
+			0);
   }
   return r;
 }

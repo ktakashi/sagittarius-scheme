@@ -188,13 +188,16 @@
 ;;   created rewrite-vars
 (define (rewrite-expr oexpr vars)
   (let loop ((expr oexpr))
-    (cond ((null? expr) '())
-	  ((pair? expr)
-	   (if (constant-literal? expr)
-	       expr
-	       (cons (loop (car expr)) (loop (cdr expr)))))
-	  ((assq expr vars) => cdr)
-	  (else expr))))
+      (cond ((null? expr) '())
+	    ((pair? expr)
+	     (if (constant-literal? expr)
+		 expr
+		 (let ((a (loop (car expr)))
+		       (d (loop (cdr expr))))
+		   (cons ($src a (car expr))
+			 ($src d (cdr expr))))))
+	    ((assq expr vars) => cdr)
+	    (else expr))))
 
 ;; Maximum size of $LAMBDA node I allow to duplicate and inline.
 (define-constant SMALL_LAMBDA_SIZE 12)
