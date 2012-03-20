@@ -1,7 +1,22 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
+(library (issue :10)
+    (export loop-10)
+    (import (rnrs))
+  (define-syntax loop-10
+    (lambda (x)
+      (syntax-case x ()
+        [(k e ...)
+         (with-syntax
+             ([break (datum->syntax #'k 'break)])
+           #'(call-with-current-continuation
+              (lambda (break)
+                (let f () e ... (f)))))])))
+)
+
 (library (tests syntax-case)
     (export run-syntax-case-tests)
     (import (rnrs)
+	    (issue :10)
 	    (srfi :64))
 
   ;; from mosh issue 138
@@ -47,6 +62,13 @@
     (test-equal "loop"
 		'(a a a)
 		(loop-test))
+
+    (test-equal "loop-10" '(a a a)
+		(let ((n 3) (ls '()))
+		  (loop-10
+		   (if (= n 0) (break ls))
+		   (set! ls (cons 'a ls))
+		   (set! n (- n 1)))))
     )
 
 
