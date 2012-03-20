@@ -608,8 +608,6 @@
       '()
       (let ((form (transcribe-template template ranks vars)))
 	(cond ((null? form) '())
-	      ((eq? use-env mac-env) ;; do we still need this?
-	       (wrap-id form))
 	      ((identifier? form) form)
 	      ((symbol? form) 
 	       (wrap-syntax form use-env seen))
