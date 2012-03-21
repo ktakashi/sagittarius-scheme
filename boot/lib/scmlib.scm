@@ -970,15 +970,17 @@
   (lambda (key)
     (lambda value
       (if (null? value)
-          (hashtable-ref  (current-dynamic-environment) key #f)
-          (hashtable-set! (current-dynamic-environment) key (car value))))))
+          (weak-hashtable-ref  (current-dynamic-environment) key #f)
+          (weak-hashtable-set! (current-dynamic-environment)
+			       key (car value))))))
 
 (define parameter-proc-1
   (lambda (key proc)
     (lambda value
       (if (null? value)
-          (hashtable-ref  (current-dynamic-environment) key #f)
-          (hashtable-set! (current-dynamic-environment) key (proc (car value)))))))
+          (weak-hashtable-ref  (current-dynamic-environment) key #f)
+          (weak-hashtable-set! (current-dynamic-environment)
+			       key (proc (car value)))))))
 
 ;;;; end of file
 ;; Local Variables:

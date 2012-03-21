@@ -50,6 +50,7 @@ typedef struct SgWeakVectorRec
 #define SG_WEAK_VECTORP(obj) SG_XTYPEP(obj,SG_CLASS_WEAK_VECTOR)
 
 /* weak box for weak hashtable */
+SG_CLASS_DECL(Sg_WeakBoxClass);
 typedef struct SgWeakBoxRec SgWeakBox;
 
 #include "hashtable.h"
@@ -70,8 +71,6 @@ typedef struct SgWeakHashTableRec
   SgHashProc        *hasher;
   SgHashCompareProc *compare;
   unsigned int goneEntries;
-  /* for SG_WEAK_KEY we need to store keys somewhere */
-  SgWeakVector *keyStore;
 } SgWeakHashTable;
 
 typedef struct SgWeakHashIterRec
