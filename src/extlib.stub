@@ -839,19 +839,31 @@
     (Sg_WeakVectorSet wvec k value))
 
   (define-c-proc make-weak-eq-hashtable (:optional (k::<fixnum> 200))
-    (result (Sg_MakeWeakHashTableSimple SG_HASH_EQ SG_WEAK_KEY
+    (result (Sg_MakeWeakHashTableSimple SG_HASH_EQ SG_WEAK_BOTH
 					k SG_UNDEF)))
 
   (define-c-proc weak-hashtable? (o) ::<boolean>
     (result (SG_WEAK_HASHTABLE_P o)))
 
   (define-c-proc weak-hashtable-ref (wh::<weak-hashtable> key fallback)
+    (unless (SG_PTRP key)
+      (Sg_ImplementationRestrictionViolation
+       'weak-hashtable-ref (SG_MAKE_STRING "key must be non fixed value object")
+       key))
     (result (Sg_WeakHashTableRef wh key fallback)))
 
   (define-c-proc weak-hashtable-set! (wh::<weak-hashtable> key value) ::<void>
+    (unless (SG_PTRP key)
+      (Sg_ImplementationRestrictionViolation
+       'weak-hashtable-ref (SG_MAKE_STRING "key must be non fixed value object")
+       key))
     (Sg_WeakHashTableSet wh key value 0))
 
   (define-c-proc weak-hashtable-delete! (wh::<weak-hashtable> key) ::<void>
+    (unless (SG_PTRP key)
+      (Sg_ImplementationRestrictionViolation
+       'weak-hashtable-ref (SG_MAKE_STRING "key must be non fixed value object")
+       key))
     (Sg_WeakHashTableDelete wh key))
 
   (define-c-proc weak-hashtable-keys-list (wh::<weak-hashtable>)

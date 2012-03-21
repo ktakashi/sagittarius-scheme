@@ -197,11 +197,13 @@ static int weak_key_compare(const SgHashCore *hc, intptr_t key,
 {
   SgWeakHashTable *wh = SG_WEAK_HASHTABLE(hc->data);
   SgWeakBox *box = (SgWeakBox *)key;
+  SgWeakBox *ebox = (SgWeakBox *)entryKey;
   intptr_t realkey = (intptr_t)Sg_WeakBoxRef(box);
-  if (Sg_WeakBoxEmptyP(box)) {
+  intptr_t realentrykey = (intptr_t)Sg_WeakBoxRef(ebox);
+  if (Sg_WeakBoxEmptyP(box) || Sg_WeakBoxEmptyP(ebox)) {
     return FALSE;
   } else {
-    return wh->compare(hc, key, realkey);
+    return wh->compare(hc, realkey, realentrykey);
   }
 }
 
@@ -292,17 +294,24 @@ SgObject Sg_WeakHashTableRef(SgWeakHashTable *table,
   }
 }
 
-static void set_to_available_box(SgWeakVector **wvec, void *key)
+static intptr_t set_to_available_box(SgWeakHashTable *table, void *key)
 {
-  SgWeakVector *wv = *wvec, *tmp;
+  SgWeakVector *wv = table->keyStore, *tmp;
   int i, size;
   SgWeakBox *ret;
   for (i = 0; i < wv->size; i++) {
     SgObject box = Sg_WeakVectorRef(wv, i, SG_FALSE);
     /* must be weak box if it's not #f */
-    if (!SG_FALSEP(box)) {
+    if (SG_FALSEP(box)) {
+      ret = Sg_MakeWeakBox(key);
+      Sg_WeakVectorSet(wv, i, ret);
+      return (intptr_t)ret;
+    } else if (Sg_WeakBoxEmptyP(box) ||
+	       table->compare(SG_WEAK_HASHTABLE_CORE(table),
+			      (intptr_t)Sg_WeakBoxRef(box),
+			      (intptr_t)key)) {
       Sg_WeakBoxSet((SgWeakBox *)box, key);
-      return;
+      return (intptr_t)box;
     }
   }
   /* key store is full, we need to expand it */
@@ -312,10 +321,10 @@ static void set_to_available_box(SgWeakVector **wvec, void *key)
     /* copy */
     Sg_WeakVectorSet(tmp, i, Sg_WeakVectorRef(wv, i, SG_FALSE));
   }
-  /* set dummy */
   ret = Sg_MakeWeakBox(key);
   Sg_WeakVectorSet(tmp, wv->size, ret);
-  *wvec = tmp;			/* swap */
+  table->keyStore = tmp;
+  return (intptr_t)ret;
 }
 
 SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
@@ -325,8 +334,7 @@ SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
   intptr_t proxy;
 
   if (table->weakness & SG_WEAK_KEY) {
-    proxy = (intptr_t)Sg_MakeWeakBox(key);
-    set_to_available_box(&table->keyStore, (void *)proxy);
+    proxy = set_to_available_box(table, (void *)key);
   } else {
     proxy = (intptr_t)key;
   }

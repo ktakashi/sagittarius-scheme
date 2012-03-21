@@ -16,14 +16,17 @@
     (result SG_UNDEF))
 
   (define-c-proc source-info (o) ::<top>
-    (result (Sg_WeakHashTableRef (SG_WEAK_HASHTABLE (-> (Sg_VM) sourceInfos))
-				 o #f)))
+    (if (SG_PTRP o)
+	(result (Sg_WeakHashTableRef 
+		 (SG_WEAK_HASHTABLE (-> (Sg_VM) sourceInfos)) o #f))
+	(result SG_FALSE)))
 
   (define-c-proc source-info-set! (o i) 
-    (let* ((vm::SgVM* (Sg_VM)))
-      (unless (SG_VM_IS_SET_FLAG vm SG_NO_DEBUG_INFO)
-	(Sg_WeakHashTableSet (SG_WEAK_HASHTABLE (-> vm sourceInfos))
-			     o i 0))
-      (result o)))
+    (when (SG_PTRP o)
+      (let* ((vm::SgVM* (Sg_VM)))
+	(unless (SG_VM_IS_SET_FLAG vm SG_NO_DEBUG_INFO)
+	  (Sg_WeakHashTableSet (SG_WEAK_HASHTABLE (-> vm sourceInfos))
+			       o i 0))))
+    (result o))
 )
 
