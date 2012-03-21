@@ -1,6 +1,7 @@
 ;; -*- scheme -*-
 ;; SRFI 26 ported for Sagittarius Scheme by Takashi Kato
-
+#!nobacktrace
+#!compatible
 (library (srfi :26 cut)
     (export cut cute)
     (import (core)

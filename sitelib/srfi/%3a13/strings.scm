@@ -1,6 +1,7 @@
 ;; -*- scheme -*-
 ;; SRFI 13 ported for Sagittarius Scheme by Takashi Kato
-
+#!compatible
+#!nobacktrace
 (library (srfi :13 strings)
     (export
      ;; predicates

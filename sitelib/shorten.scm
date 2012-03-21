@@ -29,6 +29,7 @@
 ;;;  
 
 #!compatible
+#!nobacktrace
 (library (shorten helper)
     (export constructor)
     (import (rnrs))

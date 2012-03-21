@@ -1,5 +1,6 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
-;; cond-expand ported for Sagittarius by Takashi Kato
+;; eager-comprehensions ported for Sagittarius by Takashi Kato
+#!nobacktrace
 
 ;; originally from Gauche
 
