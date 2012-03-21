@@ -688,6 +688,8 @@ static void write_macro_cache(SgPort *out, SgLibrary *lib, SgObject cbs, cache_c
   Sg_PutbUnsafe(out, MACRO_SECTION_END_TAG);
 }
 
+static SgInternalMutex cache_mutex;
+
 int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 {
   SgVM *vm = Sg_VM();
@@ -700,6 +702,15 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
     Sg_Printf(vm->logPort, UC("caching id=%A cache=%A\n"), id, cache_path);
   }
+  /* for multithreading load, we need to get lock here and check
+     if the cache is already exists
+   */
+  Sg_LockMutex(&cache_mutex);
+  if (Sg_FileExistP(cache_path)) {
+    /* the cache is already created, we don't do it twice */
+    Sg_UnlockMutex(&cache_mutex);
+    return TRUE;
+  }
   file = Sg_OpenFile(cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
   out = Sg_MakeFileBinaryOutputPort(file, SG_BUFMODE_BLOCK);
 
@@ -707,18 +718,22 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
     if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
       Sg_VMDumpCode(SG_CAR(cache));
     }
-    if ((index = write_cache(name, SG_CODE_BUILDER(SG_CAR(cache)), out, index)) < 0) return FALSE;
+    if ((index = write_cache(name, SG_CODE_BUILDER(SG_CAR(cache)),
+			     out, index)) < 0) {
+      Sg_UnlockMutex(&cache_mutex);
+      return FALSE;
+    }
   }
 
   Sg_ClosePort(out);
   timestamp = Sg_FileModifyTime(cache_path);
-  cache_path = Sg_StringAppend2(cache_path, Sg_MakeString(UC(".timestamp"), SG_LITERAL_STRING));
+  cache_path = Sg_StringAppend2(cache_path, SG_MAKE_STRING(".timestamp"));
   file = Sg_OpenFile(cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
   out = Sg_MakeFileBinaryOutputPort(file, SG_BUFMODE_BLOCK);
   /* put validate tag */
   Sg_WritebUnsafe(out, (const uint8_t *)VALIDATE_TAG, 0, TAG_LENGTH);
-  /* Sg_Write(Sg_MakeString(UC(VALIDATE_TAG), SG_LITERAL_STRING), out, SG_WRITE_WRITE); */
   Sg_ClosePort(out);
+  Sg_UnlockMutex(&cache_mutex);
   return TRUE;
 }
 /*
@@ -1400,4 +1415,5 @@ void Sg__InitCache()
 {
   CACHE_DIR = Sg_GetTemporaryDirectory();
   TAG_LENGTH = strlen(VALIDATE_TAG);
+  Sg_InitMutex(&cache_mutex, FALSE);
 }

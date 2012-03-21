@@ -67,10 +67,10 @@ static SgObject get_last_error_message(SgObject file)
   return Sg_MakeStringC(msg);  
 }
 
-static int posix_open(SgObject self, const SgChar* path, int flags)
+static int posix_open_ex(SgObject self, SgString *path, int flags)
 {
   int mode = 0;
-  SG_FILE(self)->name = path;
+  SG_FILE(self)->name = path->value;
   if ((flags & SG_READ) && (flags & SG_WRITE)) {
     mode |= O_RDWR;
   } else {
@@ -87,10 +87,14 @@ static int posix_open(SgObject self, const SgChar* path, int flags)
   if (flags & SG_TRUNCATE) {
     mode |= O_TRUNC;
   }
-  SG_FD(self)->fd = open(Sg_Utf32sToUtf8s(Sg_MakeString(path, SG_HEAP_STRING)),
-			 mode, 0644);
+  SG_FD(self)->fd = open(Sg_Utf32sToUtf8s(path), mode, 0644);
   setLastError(self);
   return SG_FILE(self)->isOpen(self);
+}
+
+static int posix_open(SgObject self, const SgChar* path, int flags)
+{
+  return posix_open_ex(self, Sg_MakeString(path, SG_HEAP_STRING), flags);
 }
 
 static int posix_is_open(SgObject self)
@@ -221,7 +225,7 @@ SgObject Sg_MakeFile()
 SgObject Sg_OpenFile(SgString *file, int flags)
 {
   SgFile *z = make_file(INVALID_HANDLE_VALUE);
-  if (!posix_open(z, file->value, flags)) {
+  if (!posix_open_ex(z, file, flags)) {
     SgObject err = get_last_error_message(z);
     return err;
   }

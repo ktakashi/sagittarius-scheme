@@ -168,6 +168,17 @@ SgObject Sg_MakeEvalLibrary()
   return z;
 }
 
+SgObject Sg_MakeChildLibrary(SgVM *vm, SgObject name)
+{
+  SgLibrary *z = make_library();
+  z->name = Sg_MakeSymbol(SG_MAKE_STRING("(eval environment)"), FALSE);
+  z->version = SG_FALSE;
+  Sg_LockMutex(&mutex);
+  Sg_HashTableSet(SG_VM_LIBRARIES(vm), z->name, z, SG_HASH_NO_OVERWRITE);
+  Sg_UnlockMutex(&mutex);
+  return z;
+}
+
 void Sg_RemoveLibrary(SgLibrary *lib)
 {
   SgVM *vm = Sg_VM();

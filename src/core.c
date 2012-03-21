@@ -382,8 +382,11 @@ static struct {
   SgInternalMutex mutex;
 } cond_features = { SG_NIL };
 
-void  Sg_AddCondFeature(const SgChar *feature)
+void Sg_AddCondFeature(const SgChar *feature)
 {
+  if (!Sg_MainThreadP()) {
+    Sg_Error(UC("child thread can not add cond-feature"));
+  }
   Sg_LockMutex(&cond_features.mutex);
   cond_features.list = Sg_Cons(Sg_Intern(Sg_MakeString(feature,
 						       SG_LITERAL_STRING)),

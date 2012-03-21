@@ -9,9 +9,9 @@
 #include <sagittarius.h>
 
 static struct sg__rcRec {
-  SgObject d428[3];
+  SgObject d11[3];
 } sg__rc = {
-  {  /* SgObject d428 */
+  {  /* SgObject d11 */
     SG_UNBOUND,
     SG_UNBOUND,
     SG_UNBOUND,
@@ -28,7 +28,7 @@ static SgObject vmdebug_vm_dump_code(SgObject *SG_FP, int SG_ARGC, void *data_)
   cb_scm = SG_ARGREF(0);
   if (!SG_CODE_BUILDERP(cb_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d428[0], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
+       sg__rc.d11[0], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
   cb = SG_CODE_BUILDER(cb_scm);
   {
 {
@@ -89,7 +89,7 @@ static SgObject vmdebug_source_info_setX(SgObject *SG_FP, int SG_ARGC, void *dat
 SgObject SG_RESULT = (SgObject)NULL;
 {
 #line 25 "vmdebug.stub"
-if (SG_PTRP(o)){{
+if ((SG_PTRP(o))&&((!(SG_FALSEP(i))))){{
 {SgVM* vm=Sg_VM();
 if ((!(SG_VM_IS_SET_FLAG(vm,SG_NO_DEBUG_INFO)))){{
 Sg_WeakHashTableSet(SG_WEAK_HASHTABLE((vm)->sourceInfos),o,i,0);}}}}}}
@@ -104,13 +104,13 @@ static SG_DEFINE_SUBR(vmdebug_source_info_setX__STUB, 2, 0,vmdebug_source_info_s
 
 void Sg__Init_sagittarius_vm_debug () {
   SgLibrary *lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius vm debug)"), TRUE));
-  sg__rc.d428[0] = SG_MAKE_STRING("vm-dump-code");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d428[0]), &vmdebug_vm_dump_code__STUB);
-  SG_PROCEDURE_NAME(&vmdebug_vm_dump_code__STUB) = sg__rc.d428[0];
-  sg__rc.d428[1] = SG_MAKE_STRING("source-info");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d428[1]), &vmdebug_source_info__STUB);
-  SG_PROCEDURE_NAME(&vmdebug_source_info__STUB) = sg__rc.d428[1];
-  sg__rc.d428[2] = SG_MAKE_STRING("source-info-set!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d428[2]), &vmdebug_source_info_setX__STUB);
-  SG_PROCEDURE_NAME(&vmdebug_source_info_setX__STUB) = sg__rc.d428[2];
+  sg__rc.d11[0] = SG_MAKE_STRING("vm-dump-code");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d11[0]), &vmdebug_vm_dump_code__STUB);
+  SG_PROCEDURE_NAME(&vmdebug_vm_dump_code__STUB) = sg__rc.d11[0];
+  sg__rc.d11[1] = SG_MAKE_STRING("source-info");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d11[1]), &vmdebug_source_info__STUB);
+  SG_PROCEDURE_NAME(&vmdebug_source_info__STUB) = sg__rc.d11[1];
+  sg__rc.d11[2] = SG_MAKE_STRING("source-info-set!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d11[2]), &vmdebug_source_info_setX__STUB);
+  SG_PROCEDURE_NAME(&vmdebug_source_info_setX__STUB) = sg__rc.d11[2];
 }

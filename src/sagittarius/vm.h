@@ -440,6 +440,9 @@ SG_EXTERN void     Sg_VMProcessTime(unsigned long *sec, unsigned long *usec);
 SG_EXTERN readtable_t* Sg_CurrentReadTable();
 SG_EXTERN void     Sg_SetCurrentReadTable(readtable_t *newtable);
 
+/* root? */
+SG_EXTERN int      Sg_MainThreadP();
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_VM_H_ */

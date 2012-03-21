@@ -22,7 +22,7 @@
 	(result SG_FALSE)))
 
   (define-c-proc source-info-set! (o i) 
-    (when (SG_PTRP o)
+    (when (and (SG_PTRP o) (not (SG_FALSEP i)))
       (let* ((vm::SgVM* (Sg_VM)))
 	(unless (SG_VM_IS_SET_FLAG vm SG_NO_DEBUG_INFO)
 	  (Sg_WeakHashTableSet (SG_WEAK_HASHTABLE (-> vm sourceInfos))

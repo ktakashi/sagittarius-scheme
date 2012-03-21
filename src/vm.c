@@ -190,11 +190,21 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
      from proto. Should I copy it?
    */
   v->currentLoadPath = SG_FALSE; /* should this be inherited from proto? */
-  v->libraries = proto ? proto->libraries: SG_UNDEF;
-  v->currentLibrary = proto ? proto->currentLibrary: SG_UNDEF;
+  v->libraries = proto ? Sg_HashTableCopy(proto->libraries, TRUE)
+    		       : SG_UNDEF;
+  if (proto) {
+    SgObject nl = 
+      Sg_MakeChildLibrary(v, Sg_MakeSymbol(SG_MAKE_STRING("child"), FALSE));
+    Sg_ImportLibrary(nl, proto->currentLibrary);
+    v->currentLibrary = nl;
+  } else {
+    v->currentLibrary = SG_UNDEF;
+  }
   v->loadPath = proto ? proto->loadPath: SG_NIL;
   v->dynamicLoadPath = proto ? proto->dynamicLoadPath: SG_NIL;
   v->flags = proto? proto->flags : 0;
+  /* the very first one will be set later. */
+  v->currentReadTable = proto? proto->currentReadTable : NULL;
   v->currentInputPort = proto 
     ? proto->currentInputPort
     : Sg_MakeTranscodedInputPort(Sg_StandardInputPort(),
@@ -269,6 +279,11 @@ int Sg_SetCurrentVM(SgVM *vm)
   if (pthread_setspecific(the_vm_key, vm) != 0) return FALSE;
 #endif
   return TRUE;
+}
+
+int Sg_MainThreadP()
+{
+  return theVM == rootVM;
 }
 
 #define Sg_VM() theVM
