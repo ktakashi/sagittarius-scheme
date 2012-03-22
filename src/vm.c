@@ -201,8 +201,9 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   } else {
     v->currentLibrary = SG_UNDEF;
   }
-  v->loadPath = proto ? proto->loadPath: SG_NIL;
-  v->dynamicLoadPath = proto ? proto->dynamicLoadPath: SG_NIL;
+  /* child thread should not affect parent load-path*/
+  v->loadPath = proto ? Sg_CopyList(proto->loadPath): SG_NIL;
+  v->dynamicLoadPath = proto ? Sg_CopyList(proto->dynamicLoadPath): SG_NIL;
   v->flags = proto? proto->flags : 0;
   /* the very first one will be set later. */
   v->currentReadTable = proto? proto->currentReadTable : NULL;
