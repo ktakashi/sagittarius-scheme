@@ -10,7 +10,6 @@
 
 (cond-expand
  (sagittarius.ffi
-  
   (define ffi-test-lib (open-shared-library "test-lib.so"))
 
   (define array (u8-list->bytevector '(6 6 1 4 2 9 3 7)))
@@ -80,7 +79,6 @@
 
 
   (test-begin "(run-ffi-test)")
-  (print "ffi test")
   (test-equal "simple call"
 	      3
 	      (let ((add (c-function ffi-test-lib int add (int int))))
@@ -108,7 +106,6 @@
 			       (c-struct-ref st data-to-store 'inner.value2)
 			       (c-struct-ref st data-to-store 'inner.str))))
 		  r)))
-  (print "ffi ref tests")
     ;;(pointer-ref-test bool #t)
     
   (pointer-ref-test char #t)

@@ -7,7 +7,6 @@
 (add-load-path "./time/")
 (import (srfi :64 testing)
 	(rnrs)
-	(core base)
 	(sagittarius)
 	(sagittarius threads)
 	(sagittarius time))
@@ -16,7 +15,6 @@
 (test-begin "(run-threads-test)")
 ;; most test cases are from Gauche 
 ;; basic API
-(print "basic API")
 (test-assert "current-thread" (eq? (current-thread) (current-thread)))
 (test-equal "thread?" '(#t #f) (list (thread? (current-thread))
 				     (thread? 'foo)))
@@ -36,7 +34,6 @@
 		 (thread-join! t)))))
 
 ;; calculate fibonacchi in awful way
-(print "mt-fib")
 (let ()
   (define (mt-fib n)
     (let ((threads (make-vector n)))
@@ -60,7 +57,6 @@
       (thread-join! (vector-ref threads (- n 1)))))
   (test-equal "thread-join!" 1346269 (mt-fib 31)))
 
-(print "thread state")
 (let ((t1 (make-thread (lambda ()
 			 (let loop ()
 			   (sys-nanosleep #e5e8)
@@ -84,7 +80,6 @@
 			    (thread-join! t1))))
 
 ;; thread and error
-(print "thread and error")
 (test-assert "uncaught-exception"
 	     (let ((t (make-thread (lambda ()
 				     (assertion-violation 'who "foo")))))
