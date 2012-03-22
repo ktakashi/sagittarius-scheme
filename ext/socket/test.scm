@@ -1,5 +1,6 @@
 ;; -*- scheme -*-
 (add-load-path "./socket")
+(add-load-path "./threads")
 
 (import (srfi :64 testing)
 	(srfi :13 strings)

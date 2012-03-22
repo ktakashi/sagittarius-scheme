@@ -179,15 +179,16 @@ static int win_is_open(SgObject self)
 
 #include "win_util.c"
 
-static int win_open(SgObject self, const SgChar* path, int flags)
+static int win_open_ex(SgObject self, SgString *path, int flags)
 {
   SgFile *file = SG_FILE(self);
-  file->name = path;
+  file->name = path->value;
   if (file->isOpen(file)) {
     return FALSE;
   } else {
     DWORD access = 0, disposition = 0;
     DWORD share = FILE_SHARE_READ | FILE_SHARE_WRITE;
+    wchar_t *u16path;
     switch (flags) {
     case SG_READ | SG_WRITE | SG_CREATE:
         access = GENERIC_READ | GENERIC_WRITE;
@@ -212,11 +213,17 @@ static int win_open(SgObject self, const SgChar* path, int flags)
     default:
         ASSERT(0);
     }
-    SG_FD(file)->desc = CreateFileW(utf32ToUtf16(path), access, share, NULL,
+    u16path = utf32ToUtf16(path);
+    SG_FD(file)->desc = CreateFileW(u16path, access, share, NULL,
 				    disposition, FILE_ATTRIBUTE_NORMAL, NULL);
   }
   setLastError(file);
   return file->isOpen(file);
+}
+
+static int win_open(SgObject self, const SgChar* path, int flags)
+{
+  return win_open_ex(self, Sg_MakeString(path, SG_LITERAL_STRING), flags);
 }
 
 static int win_close(SgObject self)
@@ -286,7 +293,7 @@ SgObject Sg_MakeFile()
 SgObject Sg_OpenFile(SgString *file, int flags)
 {
   SgFile *z = make_file(INVALID_HANDLE_VALUE);
-  z->open(z, file->value, flags);
+  win_open_ex(z, file, flags);
   if (!win_is_open(z)) {
     return get_last_error(SG_FD(z)->lastError);
   }
@@ -341,29 +348,30 @@ int Sg_IsUTF16Console(SgObject file)
  */
 int Sg_FileExistP(SgString *path)
 {
-  return (_waccess(utf32ToUtf16(path->value), F_OK) == 0); 
+  return (_waccess(utf32ToUtf16(path), F_OK) == 0); 
 }
 
 int Sg_DeleteFile(SgString *path)
 {
   /* for posix remove, it need to return 0 when succeed */
-  return DeleteFileW(utf32ToUtf16(path->value)) ? 0 : -1;
+  return DeleteFileW(utf32ToUtf16(path)) ? 0 : -1;
 }
 
 /* Originally from Mosh start */
 int Sg_FileWritableP(SgString *path)
 {
-  return _waccess(utf32ToUtf16(path->value), W_OK | F_OK) == 0; 
+  return _waccess(utf32ToUtf16(path), W_OK | F_OK) == 0; 
 }
 
 int Sg_FileReadableP(SgString *path)
 {
-  return _waccess(utf32ToUtf16(path->value), R_OK) == 0; 
+  return _waccess(utf32ToUtf16(path), R_OK) == 0; 
 }
 
 int Sg_FileRegularP(SgString *path)
 {
-    HANDLE fd = CreateFileW(utf32ToUtf16(SG_STRING_VALUE(path)), 0, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE fd = CreateFileW(utf32ToUtf16(path), 0, 0,
+			    NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (fd != INVALID_HANDLE_VALUE) {
         DWORD type = GetFileType(fd) & ~FILE_TYPE_REMOTE;
         CloseHandle(fd);
@@ -374,7 +382,7 @@ int Sg_FileRegularP(SgString *path)
 
 int Sg_FileSymbolicLinkP(SgString *path)
 {
-    DWORD attr = GetFileAttributesW(utf32ToUtf16(SG_STRING_VALUE(path)));
+    DWORD attr = GetFileAttributesW(utf32ToUtf16(path));
     if (attr == INVALID_FILE_ATTRIBUTES) {
         return FALSE;
     }
@@ -406,18 +414,18 @@ int Sg_FileExecutableP(SgString *path)
 
 int Sg_DirectoryP(SgString *path)
 {
-  return PathIsDirectoryW(utf32ToUtf16(SG_STRING_VALUE(path)));
+  return PathIsDirectoryW(utf32ToUtf16(path));
 }
 
 int Sg_DeleteFileOrDirectory(SgString *path)
 {
-  return DeleteFileW(utf32ToUtf16(SG_STRING_VALUE(path)));
+  return DeleteFileW(utf32ToUtf16(path));
 }
 
 int Sg_FileRename(SgString *oldpath, SgString *newpath)
 {
-  return MoveFileExW(utf32ToUtf16(SG_STRING_VALUE(oldpath)),
-		     utf32ToUtf16(SG_STRING_VALUE(newpath)),
+  return MoveFileExW(utf32ToUtf16(oldpath),
+		     utf32ToUtf16(newpath),
 		     MOVEFILE_REPLACE_EXISTING);
 }
 
@@ -425,11 +433,14 @@ typedef BOOL (WINAPI* ProcCreateSymbolicLink) (LPCWSTR, LPCWSTR, DWORD);
 
 int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
 {
-    ProcCreateSymbolicLink win32CreateSymbolicLink = (ProcCreateSymbolicLink)GetProcAddress(LoadLibraryA("kernel32"), "CreateSymbolicLinkW");
+    ProcCreateSymbolicLink win32CreateSymbolicLink
+      = (ProcCreateSymbolicLink)GetProcAddress(LoadLibraryA("kernel32"),
+					       "CreateSymbolicLinkW");
     if (win32CreateSymbolicLink) {
-      const wchar_t* newPathW = utf32ToUtf16(SG_STRING_VALUE(newpath));
-      DWORD flag = PathIsDirectoryW(newPathW) ? 1 : 0; /* SYMBOLIC_LINK_FLAG_DIRECTORY == 1 */
-      if (win32CreateSymbolicLink(newPathW, utf32ToUtf16(SG_STRING_VALUE(oldpath)), flag)) {
+      const wchar_t* newPathW = utf32ToUtf16(newpath);
+      /* SYMBOLIC_LINK_FLAG_DIRECTORY == 1 */
+      DWORD flag = PathIsDirectoryW(newPathW) ? 1 : 0;
+      if (win32CreateSymbolicLink(newPathW, utf32ToUtf16(oldpath), flag)) {
 	return TRUE;
       }
     }
@@ -438,18 +449,21 @@ int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
 
 int Sg_CreateDirectory(SgString *path)
 {
-  return CreateDirectoryW(utf32ToUtf16(SG_STRING_VALUE(path)), NULL);
+  return CreateDirectoryW(utf32ToUtf16(path), NULL);
 }
 
 SgObject Sg_FileModifyTime(SgString *path)
 {
-  HANDLE fd = CreateFileW(utf32ToUtf16(SG_STRING_VALUE(path)), 0, 0, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_NORMAL, NULL);
+  HANDLE fd = CreateFileW(utf32ToUtf16(path), 0, 0, NULL, OPEN_EXISTING,
+			  FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_NORMAL,
+			  NULL);
   if (fd != INVALID_HANDLE_VALUE) {
     BY_HANDLE_FILE_INFORMATION fileInfo;
     if (GetFileInformationByHandle(fd, &fileInfo)) {
       int64_t tm;
       CloseHandle(fd);
-      tm = ((int64_t)fileInfo.ftLastWriteTime.dwHighDateTime << 32) + fileInfo.ftLastWriteTime.dwLowDateTime;
+      tm = ((int64_t)fileInfo.ftLastWriteTime.dwHighDateTime << 32)
+	+ fileInfo.ftLastWriteTime.dwLowDateTime;
       return Sg_MakeIntegerFromS64(tm);
     }
     CloseHandle(fd);
@@ -459,7 +473,9 @@ SgObject Sg_FileModifyTime(SgString *path)
 
 SgObject Sg_FileAccessTime(SgString *path)
 {
-  HANDLE fd = CreateFileW(utf32ToUtf16(SG_STRING_VALUE(path)), 0, 0, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_NORMAL, NULL);
+  HANDLE fd = CreateFileW(utf32ToUtf16(path), 0, 0, NULL, OPEN_EXISTING,
+			  FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_NORMAL,
+			  NULL);
   if (fd != INVALID_HANDLE_VALUE) {
     BY_HANDLE_FILE_INFORMATION fileInfo;
     if (GetFileInformationByHandle(fd, &fileInfo)) {
@@ -475,7 +491,9 @@ SgObject Sg_FileAccessTime(SgString *path)
 
 SgObject Sg_FileChangeTime(SgString *path)
 {
-  HANDLE fd = CreateFileW(utf32ToUtf16(SG_STRING_VALUE(path)), 0, 0, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_NORMAL, NULL);
+  HANDLE fd = CreateFileW(utf32ToUtf16(path), 0, 0, NULL, OPEN_EXISTING,
+			  FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_NORMAL,
+			  NULL);
   if (fd != INVALID_HANDLE_VALUE) {
     BY_HANDLE_FILE_INFORMATION fileInfo;
     if (GetFileInformationByHandle(fd, &fileInfo)) {
@@ -491,7 +509,7 @@ SgObject Sg_FileChangeTime(SgString *path)
 
 SgObject Sg_FileSize(SgString *path)
 {
-  HANDLE fd = CreateFileW(utf32ToUtf16(SG_STRING_VALUE(path)), 
+  HANDLE fd = CreateFileW(utf32ToUtf16(path), 
 			  GENERIC_READ,
 			  FILE_SHARE_READ | FILE_SHARE_WRITE,
 			  NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -513,12 +531,9 @@ SgObject Sg_ReadDirectory(SgString *path)
 
   SgObject h = SG_NIL, t = SG_NIL;
   static const SgChar suf[] = { '\\', '*', 0 };
-  int size = sizeof(SgChar) * (SG_STRING_SIZE(path) + 3);
-  SgChar *buf = SG_NEW_ATOMIC2(SgChar *, size);
-  memcpy(buf, SG_STRING_VALUE(path), sizeof(SgChar) * SG_STRING_SIZE(path));
-  memcpy(buf + SG_STRING_SIZE(path), suf, sizeof(SgChar) * 2);
+  wchar_t *u16path = utf32ToUtf16(SG_STRING(Sg_StringAppendC(path, suf, 2)));
 
-  hdl = FindFirstFileW(utf32ToUtf16(buf), &data);
+  hdl = FindFirstFileW(u16path, &data);
   if (hdl != INVALID_HANDLE_VALUE) {
     do {
       SG_APPEND1(h, t, utf16ToUtf32(data.cFileName));
@@ -543,7 +558,7 @@ SgObject Sg_CurrentDirectory()
 
 void Sg_SetCurrentDirectory(SgString *path)
 {
-  wchar_t *ucs2 = utf32ToUtf16(SG_STRING_VALUE(path));
+  wchar_t *ucs2 = utf32ToUtf16(path);
   if (!SetCurrentDirectoryW(ucs2)) {
     Sg_IOError(-1, SG_INTERN("set-current-directory"),
 	       Sg_GetLastErrorMessage(), SG_FALSE, SG_FALSE);
@@ -675,7 +690,7 @@ int Sg_AbsolutePathP(SgString *path)
 SgObject Sg_AbsolutePath(SgString *path)
 {
   wchar_t buf[MAX_PATH], *part;
-  DWORD ret = GetFullPathNameW(utf32ToUtf16(path->value),
+  DWORD ret = GetFullPathNameW(utf32ToUtf16(path),
 			       sizeof(buf)/sizeof(buf[0]),
 			       buf,
 			       &part);

@@ -42,6 +42,7 @@
 #include "sagittarius/pair.h"
 #include "sagittarius/error.h"
 #include "sagittarius/values.h"
+#include "sagittarius/number.h"
 
 #include "win_util.c"
 
@@ -81,7 +82,8 @@ SgObject Sg_GetLastErrorMessageWithErrorCode(int code)
 
 static int get_env(const SgChar *env, wchar_t *buf, int size)
 {
-  int envsize = GetEnvironmentVariableW(utf32ToUtf16(env), buf, size);
+  SgString *s = Sg_MakeString(env, SG_LITERAL_STRING);
+  int envsize = GetEnvironmentVariableW(utf32ToUtf16(s), buf, size);
   if (envsize == 0 || envsize > size) {
     return FALSE;
   }
@@ -99,8 +101,10 @@ SgObject Sg_Getenv(const SgChar *env)
 
 void Sg_Setenv(const SgChar *env, const SgChar *value)
 {
-  SetEnvironmentVariableW(utf32ToUtf16(env), 
-			  (value) ? utf32ToUtf16(value) : NULL);
+  SgString *s = Sg_MakeString(env, SG_LITERAL_STRING);
+  SgString *v = Sg_MakeString(value, SG_LITERAL_STRING);
+  SetEnvironmentVariableW(utf32ToUtf16(s), 
+			  (value) ? utf32ToUtf16(v) : NULL);
 }
 
 SgObject Sg_GetenvAlist()

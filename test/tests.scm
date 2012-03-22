@@ -54,7 +54,13 @@
 |#
 
 (import (rnrs) (util file) (core errors) (scheme load))
-(let* ((files (find-files "test/tests" :pattern ".scm"))
+(cond-expand
+ (sagittarius.os.windows
+  (define-constant path "test\\tests"))
+ (else
+  (define-constant path "test/tests")))
+
+(let* ((files (find-files path :pattern ".scm" :all #f))
        (thunks (map (lambda (file)
 		      (lambda () (load file (environment '(rnrs)
 							 '(sagittarius)))))

@@ -33,15 +33,17 @@
 #include <sagittarius/transcoder.h>
 #include <sagittarius/codec.h>
 #include <sagittarius/string.h>
+#include <sagittarius/port.h>
 
 /* from mosh */
-static const wchar_t* utf32ToUtf16(const SgChar *s)
+static const wchar_t* utf32ToUtf16(SgString *path)
 {
-  int size = ustrlen(s), i;
+  int size = SG_STRING_SIZE(path), i;
   SgPort *out = Sg_MakeByteArrayOutputPort(sizeof(wchar_t) * (size + 1));
   SgCodec *codec = Sg_MakeUtf16Codec(UTF_16LE);
   SgTranscoder *tcoder = Sg_MakeTranscoder(codec, LF, SG_REPLACE_ERROR);
-  
+  const SgChar *s = SG_STRING_VALUE(path);
+
   for (i = 0; i < size; i++) {
     tcoder->putChar(tcoder, out, s[i]);
   }
