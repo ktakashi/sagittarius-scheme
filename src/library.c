@@ -157,25 +157,18 @@ SgObject Sg_MakeLibrary(SgObject name)
 /* creates anonymous library */
 SgObject Sg_MakeEvalLibrary()
 {
-  SgVM *vm = Sg_VM();
-  SgLibrary *z = make_library();
-  z->name = Sg_MakeSymbol(SG_MAKE_STRING("(eval environment)"), FALSE);
-  z->version = SG_FALSE;
-  Sg_LockMutex(&mutex);
-  Sg_HashTableSet(SG_VM_LIBRARIES(vm), z->name, z, SG_HASH_NO_OVERWRITE);
-  Sg_UnlockMutex(&mutex);
-
-  return z;
+  SgObject name = Sg_MakeSymbol(SG_MAKE_STRING("(eval environment)"), FALSE);
+  return Sg_MakeChildLibrary(Sg_VM(), name);
 }
 
 SgObject Sg_MakeChildLibrary(SgVM *vm, SgObject name)
 {
   SgLibrary *z = make_library();
-  z->name = Sg_MakeSymbol(SG_MAKE_STRING("(eval environment)"), FALSE);
+  z->name = name;
   z->version = SG_FALSE;
-  Sg_LockMutex(&mutex);
+  Sg_LockMutex(&vm->vmlock);
   Sg_HashTableSet(SG_VM_LIBRARIES(vm), z->name, z, SG_HASH_NO_OVERWRITE);
-  Sg_UnlockMutex(&mutex);
+  Sg_UnlockMutex(&vm->vmlock);
   return z;
 }
 
