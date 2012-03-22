@@ -178,7 +178,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->dynamicWinders = SG_NIL;
   v->parentExHandler = SG_FALSE;
   v->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
-  v->parameters = Sg_MakeHashTableSimple(SG_HASH_EQ, 64);
+
   v->sourceInfos = Sg_MakeWeakHashTableSimple(SG_HASH_EQ, SG_WEAK_BOTH,
 					      4000, SG_FALSE);
   v->toplevelVariables = SG_NIL;
@@ -186,19 +186,17 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 
   /* from proto */
   /* if proto was NULL, this will be initialized Sg__InitVM */
-  /* TODO I'm not sure if I should use the same libraries and currentLibrary
-     from proto. Should I copy it?
-   */
   v->currentLoadPath = SG_FALSE; /* should this be inherited from proto? */
-  v->libraries = proto ? Sg_HashTableCopy(proto->libraries, TRUE)
-    		       : SG_UNDEF;
+  v->libraries = proto ? proto->libraries : SG_UNDEF;
   if (proto) {
     SgObject nl = 
       Sg_MakeChildLibrary(v, Sg_MakeSymbol(SG_MAKE_STRING("child"), FALSE));
     Sg_ImportLibrary(nl, proto->currentLibrary);
     v->currentLibrary = nl;
+    v->parameters = Sg_HashTableCopy(proto->parameters, TRUE);
   } else {
     v->currentLibrary = SG_UNDEF;
+    v->parameters = Sg_MakeHashTableSimple(SG_HASH_EQ, 64);
   }
   /* child thread should not affect parent load-path*/
   v->loadPath = proto ? Sg_CopyList(proto->loadPath): SG_NIL;

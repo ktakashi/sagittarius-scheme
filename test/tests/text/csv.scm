@@ -1,9 +1,9 @@
 ;; -*- mode:scheme; coding:utf-8; -*-
 #!compatible
-    (import (rnrs)
-	    (sagittarius)
-	    (text csv)
-	    (srfi :64))
+(import (rnrs)
+	(sagittarius)
+	(text csv)
+	(srfi :64))
 
 
 (define csv-file (string-append (current-directory) "/test/data.csv"))

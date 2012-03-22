@@ -166,9 +166,9 @@ SgObject Sg_MakeChildLibrary(SgVM *vm, SgObject name)
   SgLibrary *z = make_library();
   z->name = name;
   z->version = SG_FALSE;
-  Sg_LockMutex(&vm->vmlock);
+  Sg_LockMutex(&mutex);
   Sg_HashTableSet(SG_VM_LIBRARIES(vm), z->name, z, SG_HASH_NO_OVERWRITE);
-  Sg_UnlockMutex(&vm->vmlock);
+  Sg_UnlockMutex(&mutex);
   return z;
 }
 
