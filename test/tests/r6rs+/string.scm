@@ -1,12 +1,9 @@
 ;; -*- scheme -*-
-(library (tests r6rs+ string)
-    (export run-r6rs+-string-tests)
-    (import (rnrs)
-	    (srfi :64))
+(import (rnrs)
+	(srfi :64))
+(test-begin "(run-r6rs+-string-tests)")
+;; fallback
+(test-assert "string-ref fallback" (boolean? (string-ref "abc" 3 #f)))
+(test-end)
 
-  (define (run-r6rs+-string-tests)
-    ;; fallback
-    (test-assert "string-ref fallback" (boolean? (string-ref "abc" 3 #f)))
-    )
-)
 

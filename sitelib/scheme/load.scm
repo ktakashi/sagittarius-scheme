@@ -1,12 +1,13 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
 #!compatible
 (library (scheme load)
-    (export load)
+    (export (rename r7rs:load load))
     (import (rnrs)
+	    (rnrs eval)
 	    (sagittarius)
 	    (util file))
 
-  (define load
+  (define r7rs:load
     (case-lambda
      ((file env)
       (let ((source (file->sexp-list file)))

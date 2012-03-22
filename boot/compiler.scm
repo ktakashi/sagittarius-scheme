@@ -2522,7 +2522,7 @@
 	  ;; restore current library
 	  (vm-current-library save)))))
 
-(define-pass1-syntax (library form p1env) :null
+(define-pass1-syntax (library form p1env) :sagittarius
   (define check
     (lambda (tag clause name)
       (or (eq? (car clause) tag)
@@ -2555,7 +2555,7 @@
 ;;  (include <filename1> <filename2> ...)
 ;;  (include-ci >filename1> <filename2> ...)
 ;;  (cond-expand <cond-expand clause> ...)
-(define-pass1-syntax (define-library form p1env) :null
+(define-pass1-syntax (define-library form p1env) :sagittarius
   (define (process-declare body current-lib p1env)
     (let ((seq ($seq '()))
 	  (save (vm-current-library)))

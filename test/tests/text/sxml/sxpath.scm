@@ -1,23 +1,22 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
 #!nobacktrace
-(library (tests text sxml sxpath)
-    (export run-sxpath-test)
-    (import (except (rnrs) display newline write)
-	    (rename (only (rnrs) display newline write)
-		    (display r6rs:display)
-		    (newline r6rs:newline)
-		    (write r6rs:write))
-	    (text sxml sxpath)
-	    (except (text sxml helper) cout cerr)
-	    (text parse)
-	    (core misc)
-	    (sagittarius)
-	    (sagittarius io)
-	    (util list)
-	    (prefix (pp) pp:)
-	    (srfi :6)
-	    (srfi :13)
-	    (srfi :64))
+
+(import (except (rnrs) display newline write)
+	(rename (only (rnrs) display newline write)
+		(display r6rs:display)
+		(newline r6rs:newline)
+		(write r6rs:write))
+	(text sxml sxpath)
+	(except (text sxml helper) cout cerr)
+	(text parse)
+	(core misc)
+	(sagittarius)
+	(sagittarius io)
+	(util list)
+	(prefix (pp) pp:)
+	(srfi :6)
+	(srfi :13)
+	(srfi :64))
 
 (define (list-intersperse lst item)
   (intersperse item lst))
@@ -38,6 +37,7 @@
 (define cerr cout)
 
 (define (pp o) (pp:pp o *log-port*))
+(test-begin "sxpath")
 
 (define-syntax xtest-assert
   (syntax-rules ()
@@ -49,13 +49,6 @@
   (let ((res (gensym)))
     `(let ((,res (,selector ,node)))
        (test-equal ',selector ,expected-result ,res))))
-
-#;(define-syntax sxp:run-test
-  (syntax-rules ()
-    ((_ selector node expected)
-     (test-equal 'selector
-		 expected
-		 (selector node)))))
 
 ;; Validation tests for "sxpathlib.scm"
 ;
@@ -409,7 +402,7 @@
         (lst vtxp:doc (cons `(*root* . ,vtxp:doc) var-binding)))))
 
 
-(define (run-sxpathlib-test)
+
 ; Location path, full form: child::para 
 ; Location path, abbreviated form: para
 ; selects the para element children of the context node
@@ -1064,9 +1057,9 @@
 )
 
 (cout nl "Sxpathlib tests passed successfully!" nl)
-)
 
-(define (run-sxpathext-test)
+
+
 ; sxml:string
 (xtest-assert ; Expected result:
 "some string"
@@ -5110,9 +5103,7 @@ node3
 )
 
 (cout nl "SXPath-ext tests passed successfully!" nl)
-)
 
-(define (run-txpath-test)
 
 ;=========================================================================
 ; Test assertions are performed here
@@ -7556,11 +7547,5 @@ vtxp:doc
 )
 
 (cout nl "TXPath tests passed successfully!" nl)
-)
-
-(define (run-sxpath-test)
-  (run-sxpathlib-test)
-  (run-sxpathext-test)
-  (run-txpath-test)
-  )
-)
+(close-output-port *log-port*)
+(test-end)

@@ -2959,7 +2959,7 @@
 
 (define-pass1-syntax
   (library form p1env)
-  :null
+  :sagittarius
   (define check
     (lambda (tag clause name)
       (or (eq? (car clause) tag)
@@ -2984,7 +2984,7 @@
 
 (define-pass1-syntax
   (define-library form p1env)
-  :null
+  :sagittarius
   (define (process-declare body current-lib p1env)
     (let ((seq ($seq '())) (save (vm-current-library)))
       (let-syntax
@@ -9209,7 +9209,7 @@
 
 (define-pass1-syntax
   (library form p1env)
-  :null
+  :sagittarius
   (define check
     (lambda (tag clause name)
       (or (eq? (car clause) tag)
@@ -9234,7 +9234,7 @@
 
 (define-pass1-syntax
   (define-library form p1env)
-  :null
+  :sagittarius
   (define (process-declare body current-lib p1env)
     (let ((seq ($seq '())) (save (vm-current-library)))
       (let-syntax

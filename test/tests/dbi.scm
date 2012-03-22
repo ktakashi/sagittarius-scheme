@@ -66,29 +66,27 @@
     (make <dbi-test-driver>))
 )
 
-(library (tests dbi)
-    (export run-dbi-tests)
-    (import (rnrs)
-	    (dbi)
-	    (srfi :64))
 
-  (define conn (dbi-connect "dbi:test"))
+(import (rnrs)
+	(dbi)
+	(srfi :64))
 
-  (define (run-dbi-tests)
-    (test-assert (dbi-open? conn))
-    (let ((query (dbi-prepare conn "select id from dummy")))
-      (test-assert (dbi-execute! query))
-      (test-equal '#(ID) (dbi-columns query))
-      (test-equal '#(1) (dbi-fetch! query))
-      ;; it's just a test
-      (test-equal '(#(1) #(2)) (dbi-fetch-all! query))
-      ;; query level commit and rollback
-      (test-assert (dbi-commit! query))
-      (test-assert (dbi-rollback! query))
-      (test-assert (dbi-bind-parameter! query 0 "value"))
-      )
-    ;; connection level commit and rollback
-    (test-assert (dbi-commit! conn))
-    (test-assert (dbi-rollback! conn))
-    )
-)
+(define conn (dbi-connect "dbi:test"))
+
+(test-begin "DBI test")
+(test-assert (dbi-open? conn))
+(let ((query (dbi-prepare conn "select id from dummy")))
+  (test-assert (dbi-execute! query))
+  (test-equal '#(ID) (dbi-columns query))
+  (test-equal '#(1) (dbi-fetch! query))
+  ;; it's just a test
+  (test-equal '(#(1) #(2)) (dbi-fetch-all! query))
+  ;; query level commit and rollback
+  (test-assert (dbi-commit! query))
+  (test-assert (dbi-rollback! query))
+  (test-assert (dbi-bind-parameter! query 0 "value"))
+  )
+;; connection level commit and rollback
+(test-assert (dbi-commit! conn))
+(test-assert (dbi-rollback! conn))
+(test-end)

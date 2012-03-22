@@ -1,29 +1,32 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
 #!nobacktrace
-(library (tests text sxml ssax)
-    (export run-ssax-test)
-    (import (except (rnrs) display newline write)
-	    (rename (only (rnrs) display newline write)
-		    (display r6rs:display)
-		    (newline r6rs:newline)
-		    (write r6rs:write))
-	    (text sxml ssax)
-	    (except (text sxml helper) cout cerr)
-	    (text parse)
-	    (sagittarius)
-	    (sagittarius io)
-	    (util list)
-	    (prefix (pp) pp:)
-	    (srfi :6)
-	    (srfi :13)
-	    (srfi :64))
+
+(import (except (rnrs) display newline write)
+	(rename (only (rnrs) display newline write)
+		(display r6rs:display)
+		(newline r6rs:newline)
+		(write r6rs:write))
+	;; test case redefine ssax:warn
+	(except (text sxml ssax) ssax:warn)
+	(except (text sxml helper) cout cerr)
+	(text parse)
+	(sagittarius)
+	(sagittarius io)
+	(core misc)
+	(util list)
+	(prefix (pp) pp:)
+	(sagittarius aspect)
+	(srfi :6)
+	(srfi :13)
+	(srfi :64))
 
 (define (list-intersperse lst item)
   (intersperse item lst))
 
 ;; it'll be closed when testing finished. bit awkward.
 (define *log-port*
-  (open-file-output-port "ssax-test-result.log" (file-options no-fail) 'block (native-transcoder)))
+  (open-file-output-port "ssax-test-result.log" 
+			 (file-options no-fail) 'block (native-transcoder)))
 
 (define (display o) (r6rs:display o *log-port*))
 (define (newline)   (r6rs:newline *log-port*))
@@ -37,6 +40,57 @@
 (define cerr cout)
 
 (define (pp o) (pp:pp o *log-port*))
+
+;; we need to hook ssax:warn in (text sxml ssax)
+;; it raises &warning
+(point-cut
+ (text sxml helper)
+ ssax:warn
+ (lambda (port msg . other-msg)
+   (with-exception-handler
+    (lambda (e)
+      (cond ((warning? e)
+	     (display (condition-message e)) (newline)
+	     #t)
+	    (else #f)))
+    (lambda () (proceed)))))
+
+(test-begin "ssax test")
+
+;; added for Sagittarius
+(define-syntax assert
+  (syntax-rules (equal_? equal?)
+    ((_ (equal? result expected) rest ...)
+     (assert (equal_? result expected) rest ...))
+    ((_ (equal_? result expected) rest ...)
+     (begin
+       ;; equal_? is for case sensitive. which means we can use equal?
+       (test-equal (format "~,,,,50s" expected)
+		   expected result)
+       (assert rest ...)))
+    ((_ exp rest ...)
+     (begin
+       (test-assert (format "~a" 'exp) exp)
+       (assert rest ...)))
+    ((_ exp)
+     (begin
+       (test-assert (format "~a" 'exp) exp)
+       (assert)))
+    ((_) #t)))
+
+(define-macro run-test
+  (lambda body
+    (define (re-write body)
+      (cond
+       ((vector? body)
+	(list->vector (re-write (vector->list body))))
+       ((not (pair? body)) body)
+       ((and (eq? 'quote (car body)) (pair? (cdr body))
+	     (string? (cadr body)))
+	(string->symbol (cadr body)))
+       (else (cons (re-write (car body)) (re-write (cdr body))))))
+    (cons 'begin (re-write body))))
+
 
 ; Here's the previous version of run-test, implemented as a low-level
 ; macro. 
@@ -133,70 +187,70 @@
 ; top-level macro.
 
 
-(define-syntax run-test
- (syntax-rules (define)
-   ((run-test "scan-exp" (define vars body))
-    (define vars (run-test "scan-exp" body)))
-   ((run-test "scan-exp" ?body)
-    (letrec-syntax
-      ((scan-exp			; (scan-exp body k)
-	 (syntax-rules (quote quasiquote !)
-	   ((scan-exp '() (k-head ! . args))
-	     (k-head '() . args))
-	   ((scan-exp (quote (hd . tl)) k)
-	     (scan-lit-lst (hd . tl) (do-wrap ! quasiquote k)))
-	   ((scan-exp (quasiquote (hd . tl)) k)
-	     (scan-lit-lst (hd . tl) (do-wrap ! quasiquote k)))
-	   ((scan-exp (quote x) (k-head ! . args))
-	     (k-head 
-	       (if (string? (quote x)) (string->symbol (quote x)) (quote x))
-	       . args))
-	   ((scan-exp (hd . tl) k)
-	     (scan-exp hd (do-tl ! scan-exp tl k)))
-	   ((scan-exp x (k-head ! . args))
-	     (k-head x . args))))
-	(do-tl
-	  (syntax-rules (!)
-	    ((do-tl processed-hd fn () (k-head ! . args))
-	      (k-head (processed-hd) . args))
-	    ((do-tl processed-hd fn old-tl k)
-	      (fn old-tl (do-cons ! processed-hd k)))))
-	(do-cons
-	  (syntax-rules (!)
-	    ((do-cons processed-tl processed-hd (k-head ! . args))
-	      (k-head (processed-hd . processed-tl) . args))))
-	(do-wrap
-	  (syntax-rules (!)
-	    ((do-wrap val fn (k-head ! . args))
-	      (k-head (fn val) . args))))
-	(do-finish
-	  (syntax-rules ()
-	    ((do-finish new-body) new-body)))
-
-	(scan-lit-lst			; scan literal list
-	  (syntax-rules (quote unquote unquote-splicing !)
-	   ((scan-lit-lst '() (k-head ! . args))
-	     (k-head '() . args))
-	   ((scan-lit-lst (quote (hd . tl)) k)
-	     (do-tl quote scan-lit-lst ((hd . tl)) k))
-	   ((scan-lit-lst (unquote x) k)
-	     (scan-exp x (do-wrap ! unquote k)))
-	   ((scan-lit-lst (unquote-splicing x) k)
-	     (scan-exp x (do-wrap ! unquote-splicing k)))
-	   ((scan-lit-lst (quote x) (k-head ! . args))
-	     (k-head 
-	       ,(if (string? (quote x)) (string->symbol (quote x)) (quote x))
-	       . args))
-	    ((scan-lit-lst (hd . tl) k)
-	      (scan-lit-lst hd (do-tl ! scan-lit-lst tl k)))
-	    ((scan-lit-lst x (k-head ! . args))
-	      (k-head x . args))))
-	)
-      (scan-exp ?body (do-finish !))))
-  ((run-test body ...)
-   (begin
-     (run-test "scan-exp" body) ...))
-))
+;; (define-syntax run-test
+;;  (syntax-rules (define)
+;;    ((run-test "scan-exp" (define vars body))
+;;     (define vars (run-test "scan-exp" body)))
+;;    ((run-test "scan-exp" ?body)
+;;     (letrec-syntax
+;;       ((scan-exp			; (scan-exp body k)
+;; 	 (syntax-rules (quote quasiquote !)
+;; 	   ((scan-exp '() (k-head ! . args))
+;; 	     (k-head '() . args))
+;; 	   ((scan-exp (quote (hd . tl)) k)
+;; 	     (scan-lit-lst (hd . tl) (do-wrap ! quasiquote k)))
+;; 	   ((scan-exp (quasiquote (hd . tl)) k)
+;; 	     (scan-lit-lst (hd . tl) (do-wrap ! quasiquote k)))
+;; 	   ((scan-exp (quote x) (k-head ! . args))
+;; 	     (k-head 
+;; 	       (if (string? (quote x)) (string->symbol (quote x)) (quote x))
+;; 	       . args))
+;; 	   ((scan-exp (hd . tl) k)
+;; 	     (scan-exp hd (do-tl ! scan-exp tl k)))
+;; 	   ((scan-exp x (k-head ! . args))
+;; 	     (k-head x . args))))
+;; 	(do-tl
+;; 	  (syntax-rules (!)
+;; 	    ((do-tl processed-hd fn () (k-head ! . args))
+;; 	      (k-head (processed-hd) . args))
+;; 	    ((do-tl processed-hd fn old-tl k)
+;; 	      (fn old-tl (do-cons ! processed-hd k)))))
+;; 	(do-cons
+;; 	  (syntax-rules (!)
+;; 	    ((do-cons processed-tl processed-hd (k-head ! . args))
+;; 	      (k-head (processed-hd . processed-tl) . args))))
+;; 	(do-wrap
+;; 	  (syntax-rules (!)
+;; 	    ((do-wrap val fn (k-head ! . args))
+;; 	      (k-head (fn val) . args))))
+;; 	(do-finish
+;; 	  (syntax-rules ()
+;; 	    ((do-finish new-body) new-body)))
+;; 
+;; 	(scan-lit-lst			; scan literal list
+;; 	  (syntax-rules (quote unquote unquote-splicing !)
+;; 	   ((scan-lit-lst '() (k-head ! . args))
+;; 	     (k-head '() . args))
+;; 	   ((scan-lit-lst (quote (hd . tl)) k)
+;; 	     (do-tl quote scan-lit-lst ((hd . tl)) k))
+;; 	   ((scan-lit-lst (unquote x) k)
+;; 	     (scan-exp x (do-wrap ! unquote k)))
+;; 	   ((scan-lit-lst (unquote-splicing x) k)
+;; 	     (scan-exp x (do-wrap ! unquote-splicing k)))
+;; 	   ((scan-lit-lst (quote x) (k-head ! . args))
+;; 	     (k-head 
+;; 	       ,(if (string? (quote x)) (string->symbol (quote x)) (quote x))
+;; 	       . args))
+;; 	    ((scan-lit-lst (hd . tl) k)
+;; 	      (scan-lit-lst hd (do-tl ! scan-lit-lst tl k)))
+;; 	    ((scan-lit-lst x (k-head ! . args))
+;; 	      (k-head x . args))))
+;; 	)
+;;       (scan-exp ?body (do-finish !))))
+;;   ((run-test body ...)
+;;    (begin
+;;      (run-test "scan-exp" body) ...))
+;; ))
 
 ;   ssax:warn PORT MESSAGE SPECIALISING-MSG*
 ; to notify the user about warnings that are NOT errors but still
@@ -280,36 +334,6 @@
 		       (else (error "bad %-char in unesc-string:" cchar)))
 		     frags))))))))))
 )
-
-;; added for Sagittarius
-(define-syntax assert
-  (syntax-rules (equal_? equal?)
-    ((_ (equal? result expected) rest ...)
-     (assert (equal_? result expected) rest ...))
-    ((_ (equal_? result expected) rest ...)
-     (begin
-       ;; equal_? is for case sensitive. which means we can use equal?
-       (test-equal (format "~,,,,50s" expected)
-		   expected result)
-       (assert rest ...)))
-    ((_ exp rest ...)
-     (begin
-       (test-assert (format "~a" 'exp) exp)
-       (assert rest ...)))
-    ((_ exp)
-     (begin
-       (test-assert (format "~a" 'exp) exp)
-       (assert)))
-    ((_) #t)))
-
-(define (run-ssax-test)
-;; for &warning condition, we need to use with-exception-handler
-(with-exception-handler
- (lambda (e)
-   (cond ((message-condition? e)
-	  (display (condition-message e))(newline))
-	 (else #f)))
- (lambda ()
 
 (run-test
  (assert (eq? '_
@@ -1277,7 +1301,4 @@
  (display "All tests passed")
  (newline)
 )
-)
-
-))
-)
+(test-end)

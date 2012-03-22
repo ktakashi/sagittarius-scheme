@@ -103,8 +103,9 @@
 		 (r '()))
 	(if (null? contents)
 	    r
-	    (let ((path (build-path dir (car contents))))
-	      (cond ((looking-at #/^\./ (car contents))
+	    (let* ((content (car contents))
+		   (path (build-path dir content)))
+	      (cond ((looking-at #/^\./ content)
 		     (cond ((file-directory? path) ;; . .. must be ignored
 			    (loop (cdr contents) r))
 			   (all
@@ -116,7 +117,7 @@
 		    (else
 		     (loop (cdr contents)
 			   (if (or (not pattern) 
-				   (looking-at (regex pattern) path))
+				   (looking-at (regex pattern) content))
 			       (cons path r)
 			       r))))))))
     (if (file-directory? target)

@@ -178,8 +178,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->dynamicWinders = SG_NIL;
   v->parentExHandler = SG_FALSE;
   v->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
-  v->parameters = Sg_MakeWeakHashTableSimple(SG_HASH_EQ, SG_WEAK_BOTH,
-					     64, SG_FALSE);
+  v->parameters = Sg_MakeHashTableSimple(SG_HASH_EQ, 64);
   v->sourceInfos = Sg_MakeWeakHashTableSimple(SG_HASH_EQ, SG_WEAK_BOTH,
 					      4000, SG_FALSE);
   v->toplevelVariables = SG_NIL;
