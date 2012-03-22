@@ -37,8 +37,11 @@
 	    file->string-list
 	    decompose-path
 	    path-extension
-	    path-sans-extension)
+	    path-sans-extension
+	    
+	    find-files)
     (import (rnrs)
+	    (sagittarius)
 	    (sagittarius regex)
 	    (srfi :0)
 	    (srfi :13 strings)
@@ -93,4 +96,31 @@
 		(substring path 0
 			   (- (string-length path) (string-length ext) 1))))
 	  (else path)))
+
+  (define (find-files target :key (pattern #f) (all #t) (sort string<=?))
+    (define (rec dir)
+      (let loop ((contents (read-directory dir))
+		 (r '()))
+	(if (null? contents)
+	    r
+	    (let ((path (build-path dir (car contents))))
+	      (cond ((looking-at #/^\./ (car contents))
+		     (cond ((file-directory? path) ;; . .. must be ignored
+			    (loop (cdr contents) r))
+			   (all
+			    (loop (cdr contents) (cons path r)))
+			   (else
+			    (loop (cdr contents) r))))
+		    ((file-directory? path) 
+		     (loop (cdr contents) (append r (rec path))))
+		    (else
+		     (loop (cdr contents)
+			   (if (or (not pattern) 
+				   (looking-at (regex pattern) path))
+			       (cons path r)
+			       r))))))))
+    (if (file-directory? target)
+	(let ((r (rec target)))
+	  (if sort (list-sort sort r) r))
+	'()))
 )
