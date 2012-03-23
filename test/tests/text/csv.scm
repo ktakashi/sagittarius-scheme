@@ -3,7 +3,7 @@
 (import (rnrs)
 	(sagittarius)
 	(text csv)
-	(srfi :64))
+	(srfi :64 testing))
 
 
 (define csv-file (string-append (current-directory) "/test/data.csv"))
