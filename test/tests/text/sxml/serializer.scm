@@ -2,7 +2,7 @@
 #!nobacktrace
 (import (rnrs)
 	(text sxml serializer)
-	(srfi :64))
+	(srfi :64 testing))
 
 ;; not so good test cases.
     

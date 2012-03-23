@@ -69,7 +69,7 @@
 
 (import (rnrs)
 	(dbi)
-	(srfi :64))
+	(srfi :64 testing))
 
 (define conn (dbi-connect "dbi:test"))
 

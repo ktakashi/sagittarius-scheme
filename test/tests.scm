@@ -1,15 +1,12 @@
 ;; -*- scheme -*-
 
-#|
-;; multithread version does not work correctly yet.
-;; load with multithread is really buggy.
-;; at least it's working with separated test, ex) run-test.scm sitelib
-;; but it can not handle the whole test yet.
 (import (rnrs)
 	(clos user)
 	(core errors)
 	;;(srfi :18 multithreading)
 	(sagittarius threads)
+	;; child thread can not access to default parameter value,
+	;; so parent must import this.
 	(srfi :64 testing)
 	(util file)
 	(sagittarius io))
@@ -49,6 +46,8 @@
   (let ((promise (future-promise f)))
     (eq? (thread-state (promise-thread promise)) 'terminated)))
 
+;; Do we even want to know if the promise is finished or not?
+;; I don't think this does not affect any performance.
 (define (get-finished-future promises)
   (let loop ((p promises)
 	     (r '()))
@@ -68,13 +67,6 @@
 		(else
 		 (loop (cdr p) (cons (car p) r))))))))
 
-;; ugly dependency resolver for test cases.
-;; TODO this needs to be removed.
-;;      I think the reason why it needs here is because of the reading cache
-;;      or creating a new library. it does not lock any thing, so the timing
-;;      problem occures when child threads import the same library.
-(import (packrat))
-
 (let* ((files (find-files "test/tests" :pattern ".scm"))
        (promises (map (lambda (file)
 			(let ((p (make-promise 
@@ -85,11 +77,21 @@
 			  (promise-specific p file)
 			  p))
 		      files)))
-  (let loop ((r (get-finished-future promises)))
+  (for-each (lambda (file p)
+	      (let* ((f (get-future p))
+		     (r (get f)))
+		(print file)
+		(cond ((uncaught-exception? r)
+		       (print (describe-condition
+			       (uncaught-exception-reason r))))
+		      (else
+		       (print (get f))))))
+	    files promises)
+  #;(let loop ((r (get-finished-future promises)))
     (unless (null? r)
       (loop (get-finished-future r)))))
-|#
 
+#|
 (import (rnrs) (util file) (core errors) (scheme load))
 (cond-expand
  (sagittarius.os.windows
@@ -110,3 +112,4 @@
 	      (print))
 	    files thunks))
 
+|#

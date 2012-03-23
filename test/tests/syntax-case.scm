@@ -14,7 +14,7 @@
 )
 (import (rnrs)
 	(issue :10)
-	(srfi :64))
+	(srfi :64 testing))
 
 ;; from mosh issue 138
 (define-syntax doit

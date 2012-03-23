@@ -5,7 +5,7 @@
 	(rnrs mutable-pairs)
 	(sagittarius)
 	(sagittarius vm)
-	(srfi :64))
+	(srfi :64 testing))
 
 (define-syntax define-lambda
   (syntax-rules ()

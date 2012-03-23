@@ -5,7 +5,7 @@
 (import (rnrs)
 	(rnrs mutable-strings)
 	(sagittarius)
-	(srfi :64)
+	(srfi :64 testing)
 	(srfi :42))
 
 (define (my-open-output-file filename)

@@ -2,7 +2,7 @@
 
 (import (rnrs)
 	(sagittarius)
-	(srfi :64)
+	(srfi :64 testing)
 	(srfi :14))
 
 (define (vowel? c) (member c '(#\a #\e #\i #\o #\u)))

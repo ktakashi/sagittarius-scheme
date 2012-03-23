@@ -1,7 +1,7 @@
 ;; -*- scheme -*-
 
 (import (rnrs)
-	(srfi :64))
+	(srfi :64 testing))
 
 (define v '#(1 2 3 4 5 6))
 (define l '(1 2 3 4 5 6))

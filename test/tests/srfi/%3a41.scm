@@ -1,7 +1,7 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
 
 (import (rnrs)
-	(srfi :64)
+	(srfi :64 testing)
 	(srfi :41))
 
 (define power-table

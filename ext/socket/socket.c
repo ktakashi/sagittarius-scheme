@@ -551,9 +551,12 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
 #endif
   SG_INIT_EXTENSION(sagittarius__socket);
   Sg__Init_sagittarius_socket_impl();
-  lib = SG_LIBRARY(Sg_FindLibrary(SG_SYMBOL(SG_INTERN("(sagittarius socket impl)")), FALSE));
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius socket impl)"),
+				  FALSE));
 
-  Sg_AddCondFeature(UC("sagittarius.socket"));
+  /* for multithreading issue, we do not add this cond-feature.
+     we always support this anyway */
+  /* Sg_AddCondFeature(UC("sagittarius.socket")); */
   Sg_InitStaticClassWithMeta(SG_CLASS_SOCKET, UC("<socket>"), lib, NULL,
 			     SG_FALSE, NULL, 0);
   /* from Ypsilon */

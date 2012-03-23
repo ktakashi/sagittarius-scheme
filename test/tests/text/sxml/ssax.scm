@@ -18,7 +18,7 @@
 	(sagittarius aspect)
 	(srfi :6)
 	(srfi :13)
-	(srfi :64))
+	(srfi :64 testing))
 
 (define (list-intersperse lst item)
   (intersperse item lst))

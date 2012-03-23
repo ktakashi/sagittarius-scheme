@@ -3,7 +3,7 @@
 
 (import (rnrs)
 	(match)
-	(srfi :64))
+	(srfi :64 testing))
 
 (define-record-type employee
   (fields name title))

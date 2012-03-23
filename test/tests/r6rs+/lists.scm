@@ -2,7 +2,7 @@
 (import (rnrs)
 	(rnrs mutable-pairs)
 	(core errors)
-	(srfi :64))
+	(srfi :64 testing))
 
 
 (test-begin "(run-r6rs+-lists-tests)")

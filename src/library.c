@@ -134,6 +134,7 @@ static SgSymbol* convert_name_to_symbol(SgObject name)
 }
 
 static SgInternalMutex mutex;
+static SgInternalMutex cacheLock;
 SgObject Sg_MakeLibrary(SgObject name)
 {
   SgLibrary *z = make_library();
@@ -273,7 +274,7 @@ static SgObject extentions = NULL;
 static SgObject search_library(SgObject name, int onlyPath)
 {
   SgString *path = library_name_to_path(name);
-  SgObject ext;
+  SgObject ext, libname;
   SgVM *vm = Sg_VM();
   SgHashTable *libraries;
   /* initialize extentions */
@@ -300,9 +301,22 @@ static SgObject search_library(SgObject name, int onlyPath)
     }
   }
  goal:
+  libraries = SG_VM_LIBRARIES(vm);
+  libname = convert_name_to_symbol(name);
   /* this must creates a new library */
   if (Sg_FileExistP(path)) {
-    int state = Sg_ReadCache(path);
+    int state;
+    SgObject lib;
+    /* once library is created, then it must not be re-created.
+       so we need to get lock for reading cache. */
+    Sg_LockMutex(&cacheLock);
+    lib = Sg_HashTableRef(libraries, libname, SG_FALSE);
+    if (!SG_FALSEP(lib)) {
+      Sg_UnlockMutex(&cacheLock);
+      return lib;
+    }
+    state = Sg_ReadCache(path);
+    Sg_UnlockMutex(&cacheLock);
     if (state != CACHE_READ) {
       int save = vm->state;
       vm->state = IMPORTING;
@@ -325,8 +339,7 @@ static SgObject search_library(SgObject name, int onlyPath)
     /* first creation or no file. */
     return SG_FALSE;
   }
-  libraries = SG_VM_LIBRARIES(vm);
-  return Sg_HashTableRef(libraries, convert_name_to_symbol(name), SG_FALSE);
+  return Sg_HashTableRef(libraries, libname, SG_FALSE);
 }
 
 /* for cache */
@@ -735,6 +748,7 @@ void Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value_or_gloc)
 void Sg__InitLibrary()
 {
   Sg_InitMutex(&mutex, TRUE);
+  Sg_InitMutex(&cacheLock, TRUE);
 }
 
 /*

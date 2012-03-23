@@ -1,5 +1,7 @@
 ;; all tests for extensions
 (add-load-path ".")
+(add-load-path "../lib")
+(add-load-path "../sitelib")
 (cond-expand
  (sagittarius.os.windows
   (add-dynamic-load-path "../build/modules"))

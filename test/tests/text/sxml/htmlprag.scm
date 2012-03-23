@@ -2,7 +2,7 @@
 #!nobacktrace
 (import (rnrs)
 	(text sxml htmlprag)
-	(srfi :64))
+	(srfi :64 testing))
 
 (define %htmlprag:a2c integer->char)
 

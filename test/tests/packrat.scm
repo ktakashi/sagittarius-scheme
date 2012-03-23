@@ -3,7 +3,7 @@
 
 (import (rnrs)
 	(packrat)
-	(srfi :64))
+	(srfi :64 testing))
 
 ;; from packrat.pdf
 (define (generator tokens)

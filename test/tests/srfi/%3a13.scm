@@ -1,7 +1,7 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
 (import (srfi :13 strings)
 	(except (rnrs) string?) ;; to avoid confliction
-	(srfi :64))
+	(srfi :64 testing))
 
 
 (test-begin "(run-srfi-13-tests)")
