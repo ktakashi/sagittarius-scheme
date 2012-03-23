@@ -67,7 +67,13 @@
 		(else
 		 (loop (cdr p) (cons (car p) r))))))))
 
-(let* ((files (find-files "test/tests" :pattern ".scm"))
+(cond-expand
+ (sagittarius.os.windows
+  (define-constant path "test\\tests"))
+ (else
+  (define-constant path "test/tests")))
+
+(let* ((files (find-files path :pattern ".scm"))
        (promises (map (lambda (file)
 			(let ((p (make-promise 
 				  (lambda (f)
