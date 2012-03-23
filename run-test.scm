@@ -47,7 +47,8 @@
       (print "testing sitelib")
       (flush-output-port (current-output-port))
       (add-load-path "./test")
-      ;; for (math)
+      ;; now we are using multithreading test
+      (add-load-path "./ext/threads")
       (add-load-path "./ext/crypto")
       (load "./test/tests.scm")
       (flush-output-port (current-output-port)))
