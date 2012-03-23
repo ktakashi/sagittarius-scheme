@@ -14,7 +14,7 @@
 
 ;; addr is client socket
 (define (server-run)
-  (let loop ((addr (socket-accept echo-server-socket)))
+  (let ((addr (socket-accept echo-server-socket)))
     (call-with-socket
      addr
      (lambda (sock)
@@ -34,8 +34,7 @@
 		  (put-string p "\n"))
 		 (else
 		  (put-string p "\r\n")))
-		(lp2 (get-line p)))))))))
-    (loop (socket-accept echo-server-socket))))
+		(lp2 (get-line p)))))))))))
 
 (define server-thread (make-thread server-run))
 
@@ -69,7 +68,6 @@
       ;; end test
       (put-string text-port "test-end\r\n")
       )))
-;; somehow it doesn't return without time out.
-(thread-join! server-thread 10 #t)
+(thread-join! server-thread)
 
 (test-end)
