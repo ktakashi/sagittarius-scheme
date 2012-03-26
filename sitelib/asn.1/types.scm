@@ -101,7 +101,10 @@
 	    der-encodable->der-object
 	    asn.1-encodable->asn.1-object
 	    asn.1-string->string
-	    asn.1-sequence-add
+      	    asn.1-sequence-add
+	    asn.1-sequence-get
+	    asn.1-sequence-size
+	    der-integer->integer
 	    der-encode
 
 	    ;; misc
@@ -240,6 +243,11 @@
 				       (o <der-encodable>))
       (slot-set! self 'sequence
 		 (append (slot-ref self 'sequence) (list o))))
+    (define-method asn.1-sequence-get ((self <asn.1-sequence>)
+				       (i <integer>))
+      (list-ref (slot-ref self 'sequence) i))
+    (define-method asn.1-sequence-size ((self <asn.1-sequence>))
+      (length (slot-ref self 'sequence)))
 
     ;; ASN1Null
     (define-class <asn.1-null> (<asn.1-object>) ())
@@ -302,7 +310,7 @@
     (define-method make-der-bmp-string ((string <string>))
       (make <der-bmp-string> :string string))
     (define-method der-encode ((o <der-bmp-string>) (p <port>))
-      (der-write-encoded BMP-STRING (string-utf16 (slot-ref o 'string)) p))
+      (der-write-encoded BMP-STRING (string->utf16 (slot-ref o 'string)) p))
     (define-method asn.1-string->string ((o <der-bmp-string>))
       (slot-ref o 'string))
     (define-method write-object ((o <der-bmp-string>) (p <port>))
@@ -508,6 +516,8 @@
 	    (if (zero? i) #vu8(0) (integer->bytevector i))))
     (define-method make-der-integer ((b <bytevector>))
       (make <der-integer> :bytes b))
+    (define-method der-integer->integer ((o <der-integer>))
+      (bytevector->integer (slot-ref o 'bytes)))
     (define-method der-encode ((o <der-integer>) (p <port>))
       (der-write-encoded INTEGER (slot-ref o 'bytes) p))
     (define-method write-object ((o <der-integer>) (p <port>))
@@ -624,6 +634,9 @@
        p))
     (define-method write-object ((o <der-object-identifier>) (p <port>))
       (generic-write "der-object-identifier" (slot-ref o 'identifier)  p))
+    (define-method object-equal? ((x <der-object-identifier>)
+				  (y <der-object-identifier>))
+      (string=? (slot-ref x 'identifier) (slot-ref y 'identifier)))
 
     ;; DERSequence
     (define-class <der-sequence> (<asn.1-sequence>) ())
@@ -797,6 +810,8 @@
 					 (der-list->string 
 					  (list (slot-ref o 'obj))))
 		     p))
+    (define-method der-encodable->der-object ((o <der-tagged-object>))
+      (asn.1-encodable->asn.1-object (slot-ref o 'obj)))
 
     ;; DERExternal
     ;; TODO direct-reference, indirect-reference and data-value-descriptor

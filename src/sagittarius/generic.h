@@ -154,6 +154,7 @@ SG_EXTERN SgGeneric Sg_GenericComputeApplicableMethodsGeneric;
 /* SG_EXTERN SgGeneric Sg_GenericComputeMethodMoreSpecificP; */
 /* SG_EXTERN SgGeneric Sg_GenericComputeApplyMethods; */
 
+SG_EXTERN SgGeneric Sg_GenericObjectEqualP;
 
 SG_CDECL_END
 

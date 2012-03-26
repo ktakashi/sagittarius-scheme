@@ -1,7 +1,8 @@
+;; -*- mode:scheme; coding: utf-8; -*-
 (library (clos user)
     (export make
 	    initialize
-	    write-object
+	    write-object object-equal?
 
 	    <top> <object> <class> <generic> <method> <next-method>
 	    <slot-accessor>

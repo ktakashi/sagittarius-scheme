@@ -100,6 +100,9 @@ static SgObject class_allocate(SgClass *klass, SgObject initargs);
 static SgObject generic_allocate(SgClass *klass, SgObject initargs);
 static SgObject method_allocate(SgClass *klass, SgObject initargs);
 
+/* compare */
+static int object_compare(SgObject x, SgObject y, int equalp);
+
 static SgSlotAccessor* lookup_slot_info(SgClass *klass, SgObject name,
 					int raise);
 
@@ -925,7 +928,7 @@ static SgObject class_allocate(SgClass *klass, SgObject initargs)
   SG_SET_CLASS(instance, klass);
   instance->allocate = NULL;
   instance->printer = NULL;
-  instance->compare = NULL; /* object_compare; */
+  instance->compare = object_compare;
   instance->serialize = NULL;
   instance->cpa = NULL;
   instance->nfields = 0;
@@ -1552,6 +1555,7 @@ SG_DEFINE_GENERIC(Sg_GenericAddMethod, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericRemoveMethod, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericComputeApplicableMethodsGeneric,
 		  Sg_NoNextMethod, NULL);
+SG_DEFINE_GENERIC(Sg_GenericObjectEqualP, Sg_NoNextMethod, NULL);
 
 static SgObject allocate_impl(SgObject *args, int argc, void *data)
 {
@@ -1625,6 +1629,34 @@ static SG_DEFINE_METHOD(object_initialize_rec, &Sg_GenericInitialize,
 			2, 0,
 			object_initialize_SPEC,
 			&object_initialize);
+
+static int object_compare(SgObject x, SgObject y, int equalp)
+{
+  SgObject r;
+  if (equalp) {
+    r = Sg_Apply2(SG_OBJ(&Sg_GenericObjectEqualP), x, y);
+    return (SG_FALSEP(r) ? -1: 0);
+  } else {
+    /* not supported yet */
+    Sg_Error(UC("object %S and %S can't be ordered"), x, y);
+    return 0;			/* dummy */
+  }
+}
+
+/* fallback */
+static SgObject object_equalp_impl(SgObject *argv, int argc, void *data)
+{
+  return SG_FALSE;
+}
+
+SG_DEFINE_SUBR(object_equalp_default, 2, 0, object_equalp_impl, SG_FALSE, NULL);
+static SgClass *object_equalp_SPEC[] = {
+  SG_CLASS_TOP, SG_CLASS_TOP
+};
+static SG_DEFINE_METHOD(object_equalp_rec, &Sg_GenericObjectEqualP,
+			2, 0,
+			object_equalp_SPEC,
+			&object_equalp_default);
 
 
 static SgObject method_initialize_impl(SgObject *argv, int argc, void *data)
@@ -1903,6 +1935,7 @@ void Sg__InitClos()
   GINIT(&Sg_GenericRemoveMethod, "remove-method");
   GINIT(&Sg_GenericComputeApplicableMethodsGeneric,
 	"compute-applicable-methods");
+  GINIT(&Sg_GenericObjectEqualP, "object-equal?");
 
   /* methods */
   Sg_InitBuiltinMethod(&class_allocate_rec);
@@ -1914,4 +1947,5 @@ void Sg__InitClos()
   Sg_InitBuiltinMethod(&add_method_rec);
   Sg_InitBuiltinMethod(&remove_method_rec);
   Sg_InitBuiltinMethod(&compute_applicable_methods_rec);
+  Sg_InitBuiltinMethod(&object_equalp_rec);
 }
