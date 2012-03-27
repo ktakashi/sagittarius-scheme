@@ -17,6 +17,8 @@
 	    MD5 MD4 MD2
 	    ;; for convenience
 	    hash
+
+	    <hash-algorithm>
 	    )
 
     (import (core)

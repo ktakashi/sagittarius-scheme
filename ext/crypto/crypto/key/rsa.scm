@@ -4,10 +4,7 @@
 ;;; 
 #!compatible
 (library (crypto key rsa)
-    (export rsa-generate-key-pair
-	    rsa-generate-private-key
-	    rsa-generate-public-key
-	    ;; padding block type
+    (export ;; padding block type
 	    pkcs-v1.5-padding
 	    PKCS-1-EME
 	    PKCS-1-EMSA
@@ -19,12 +16,11 @@
 	    ;; signing/verify
 	    rsa-sign
 	    rsa-verify
-
-	    rsa-export-public-key
-	    rsa-export-private-key
-	    rsa-import-public-key
-	    rsa-import-private-key)
+	    ;; marker
+	    RSA
+	    )
     (import (rnrs)
+	    (crypto marker)
 	    (crypto pkcs)
 	    (crypto key pair)
 	    (math)
@@ -40,37 +36,41 @@
 	    (sagittarius control)
 	    (sagittarius crypto))
 
-  (define-record-type rsa-private-key
-    (parent private-key)
-    (fields (immutable modulus)
-	    (immutable private-exponent))
-    (protocol (lambda (p)
-		(lambda (m pe)
-		  (let ((c (p)))
-		    (c m pe))))))
+  (define-class <rsa-private-key> (<private-key>)
+    ((modulus :init-keyword :modulus)
+     (private-exponent :init-keyword :private-exponent)))
+  (define (make-rsa-private-key m pe)
+    (make <rsa-private-key>
+      :modulus m :private-exponent pe))
+  (define (rsa-private-key? o) (is-a? o <rsa-private-key>))
 
-  (define-record-type rsa-private-crt-key
-    (parent rsa-private-key)
-    (fields (immutable public-exponent)
-	    ;; for CRT
-	    (immutable p)		;; prime factor 1
-	    (immutable q)		;; prime factor 2
-	    (immutable dP)		;; e*dP = 1 mod p-1
-	    (immutable dQ)		;; e*dQ = 1 mod q-1
-	    (immutable qP)		;; q*qP = 1/q mod p
-	    )
-    (protocol (lambda (n)
-		(lambda (m e d p q)
-		  (let ((c (n m d)))
-		    (c e p q
-		       (mod d (- p 1))
-		       (mod d (- q 1))
-		       (mod-inverse q p)))))))
+  (define-class <rsa-private-crt-key> (<rsa-private-key>)
+    ((public-exponent :init-keyword :public-exponent)
+     (p :init-keyword :p)	;; prime factor 1  
+     (q :init-keyword :q)	;; prime factor 2  
+     (dP :init-keyword :dP)	;; e*dP = 1 mod p-1P
+     (dQ :init-keyword :dQ)	;; e*dQ = 1 mod q-1
+     (qP :init-keyword :qP)))	;; q*qP = 1/q mod p
+  (define (make-rsa-private-crt-key m e d p q)
+    (make <rsa-private-crt-key>
+      :modulus m :private-exponent d
+      :public-exponent e
+      :p p :q q
+      :dP (mod d (- p 1))
+      :dQ (mod d (- q 1))
+      :qP (mod-inverse q p)))
+  (define (rsa-private-crt-key? o) (is-a? o <rsa-private-crt-key>))
 
-  (define-record-type rsa-public-key
-    (parent public-key)
-    (fields (immutable modulus)
-	    (immutable exponent)))
+  (define-class <rsa-public-key> (<public-key>)
+    ((modulus :init-keyword :modulus)
+     (exponent :init-keyword :exponent)))
+  (define (make-rsa-public-key m e)
+    (make <rsa-public-key> :modulus m :exponent e))
+  (define (rsa-public-key? o) (is-a? o <rsa-public-key>))
+
+  ;; marker class for generic functions
+  (define-class <rsa> (<marker>) ())
+  (define RSA (make <rsa> :name "RSA"))
 
   (define *rsa-min-keysize* 256)
   (define *rsa-max-keysize* 4096)
@@ -88,13 +88,21 @@
     (if (and public-exponent p q)
 	(make-rsa-private-crt-key modulus public-exponent private-exponent p q)
 	(make-rsa-private-key modulus private-exponent)))
-					     
-  (define (rsa-generate-public-key modulus exponent)
-    (make-rsa-public-key modulus exponent))
+  
+  (define-method generate-private-key ((marker <rsa>)
+				       (m <integer>)
+				       (pe <integer>)
+				       . rest)
+    (apply rsa-generate-private-key m pe rest))
+
+  (define-method generate-public-key ((marker <rsa>)
+				      (m <integer>)
+				      (e <integer>))
+    (make-rsa-public-key m e))
 
   ;; RSA key-pair generator
   (define (rsa-generate-key-pair size prng e)
-    (define (generate-key-pair n e d p q)
+    (define (create-key-pair n e d p q)
       (let ((private (make-rsa-private-crt-key n e d p q))
 	    (public (make-rsa-public-key n e)))
 	(make-keypair private public)))
@@ -120,14 +128,40 @@
 	   (n (* p q))
 	   (phi (* (- p 1) (- q 1))))
       (let ((d (mod-inverse e phi)))
-	(generate-key-pair n e d p q))))
+	(create-key-pair n e d p q))))
+
+  (define-method generate-key-pair ((marker <rsa>) . args)
+    (let-keywords args
+	((e 65537)
+	 (size 1024)
+	 (prng (secure-random RC4))
+	 . others)
+      (rsa-generate-key-pair size prng e)))
 
   ;; cipher
-  (define (rsa-cipher key prng :key (padding pkcs-v1.5-padding)
-				    (block-type PKCS-1-EME))
-    (let ((padder (if padding (padding prng key block-type) #f)))
-      (make-public-key-cipher 'RSA key rsa-encrypt rsa-decrypt
-			      padder rsa-sign rsa-verify)))
+  (define-class <rsa-cipher-spi> (<cipher-spi>) ())
+  (define-method initialize ((o <rsa-cipher-spi>) initargs)
+    (let ((key (car initargs))
+	  (rest (cdr initargs)))
+      (let-keywords rest
+	  ((prng (secure-random RC4))
+	   (padding pkcs-v1.5-padding)
+	   (block-type PKCS-1-EME)
+	   . others)
+	(let ((padder (if padding (padding prng key block-type) #f)))
+	  (slot-set! o 'name 'RSA)
+	  (slot-set! o 'key key)
+	  (slot-set! o 'encrypt rsa-encrypt)
+	  (slot-set! o 'decrypt rsa-decrypt)
+	  (slot-set! o 'padder padder)
+	  (slot-set! o 'signer rsa-sign)
+	  (slot-set! o 'verifier rsa-verify)
+	  (slot-set! o 'keysize rsa-keysize)
+	  o))))
+
+  (register-spi "RSA" <rsa-cipher-spi>)
+
+  (define (rsa-keysize keysize) *rsa-max-keysize*)
 
   ;; util
   (define (rsa-mod-expt bv key)
@@ -137,15 +171,15 @@
 	 (cond ((rsa-public-key? key)
 		(put-bytevector port (integer->bytevector
 				      (mod-expt chunk
-						(rsa-public-key-exponent key)
-						(rsa-public-key-modulus key)))))
+						(slot-ref key 'exponent)
+						(slot-ref key 'modulus)))))
 	       ((rsa-private-crt-key? key)
 		;; use CRT
-		(let ((p  (rsa-private-crt-key-p key))
-		      (q  (rsa-private-crt-key-q key))
-		      (dp (rsa-private-crt-key-dP key))
-		      (dq (rsa-private-crt-key-dQ key))
-		      (qp (rsa-private-crt-key-qP key)))
+		(let ((p  (slot-ref key 'p))
+		      (q  (slot-ref key 'q))
+		      (dp (slot-ref key 'dP))
+		      (dq (slot-ref key 'dQ))
+		      (qp (slot-ref key 'qP)))
 		  ;; b = chunk
 		  (let* ((a (mod-expt chunk dp p)) ; b ^ dP mod p
 			 (b (mod-expt chunk dq q)) ; b ^ dQ mod q
@@ -153,8 +187,8 @@
 			 (d (+ b (* q c))))	   ; b + q * c
 		    (put-bytevector port (integer->bytevector d)))))
 	       ((rsa-private-key? key)
-		(let* ((modulus (rsa-private-key-modulus key))
-		       (private-exponent (rsa-private-key-private-exponent key))
+		(let* ((modulus (slot-ref key 'modulus))
+		       (private-exponent (slot-ref key 'private-exponent))
 		       (a (mod-expt chunk private-exponent modulus)))
 		  (put-bytevector port (integer->bytevector a))))
 	       (else
@@ -169,7 +203,7 @@
       (raise-encrypt-error 'rsa-encrypt
 			   "public key required"
 			   'RSA key))
-    (let ((key-length (align-size (rsa-public-key-modulus key)))
+    (let ((key-length (align-size (slot-ref key 'modulus)))
 	  (data-length (bytevector-length bv)))
       ;; for consistancy with JCE
       (when (> data-length key-length)
@@ -183,7 +217,7 @@
       (raise-decrypt-error 'rsa-encrypt
 			   "private key required"
 			   'RSA key))
-    (let ((key-length (align-size (rsa-private-key-modulus key)))
+    (let ((key-length (align-size (slot-ref key 'modulus)))
 	  (data-length (bytevector-length bv)))
       ;; for consistancy with JCE
       (when (> data-length key-length)
@@ -197,7 +231,7 @@
 			   :allow-other-keys opt)
     (or (rsa-private-key? key)
 	(raise-encrypt-error 'rsa-sign "invalid key" 'RSA))
-    (let* ((modulus (rsa-private-key-modulus key))
+    (let* ((modulus (slot-ref key 'modulus))
 	   (len (bitwise-length modulus))
 	   (data (apply encode bv len opt)))
       (rsa-mod-expt data key)))
@@ -206,7 +240,7 @@
 				       :allow-other-keys opt)
     (or (rsa-public-key? key)
 	(raise-decrypt-error 'rsa-verify "invalid key" 'RSA))
-    (let* ((modulus (rsa-public-key-modulus key))
+    (let* ((modulus (slot-ref key 'modulus))
 	   (k       (align-size modulus)))
       ;; length check
       (unless (= k (bytevector-length S))
@@ -279,8 +313,8 @@
 				"private key required"
 				key)))
       (let ((modulus (if (rsa-public-key? key)
-			 (rsa-public-key-modulus key)
-			 (rsa-private-key-modulus key))))
+			 (slot-ref key 'modulus)
+			 (slot-ref key 'modulus))))
       (if pad?
 	  (encode data modulus)
 	  (decode data modulus)))))
@@ -293,9 +327,12 @@
   |#
   (define (rsa-export-public-key key)
     (let ((der (make-der-sequence
-		(make-der-integer (rsa-public-key-modulus key))
-		(make-der-integer (rsa-public-key-exponent key)))))
+		(make-der-integer (slot-ref key 'modulus))
+		(make-der-integer (slot-ref key 'exponent)))))
       (encode der)))
+  (define-method export-public-key ((marker <rsa>) (key <rsa-public-key>))
+    (rsa-export-public-key key))
+
   (define (rsa-import-public-key in)
     (let ((public (read-asn.1-object in)))
       ;; validate
@@ -310,10 +347,13 @@
 	    (assertion-violation 'rsa-import-public-key
 				 "all sequence componenet must be <der-integer>"
 				 objects))
-	(rsa-generate-public-key (bytevector->integer
-				  (slot-ref (car objects) 'bytes))
-				 (bytevector->integer
-				  (slot-ref (cadr objects) 'bytes))))))
+	(generate-public-key RSA
+			     (bytevector->integer
+			      (slot-ref (car objects) 'bytes))
+			     (bytevector->integer
+			      (slot-ref (cadr objects) 'bytes))))))
+  (define-method import-public-key ((marker <rsa>) (in <port>))
+    (rsa-import-public-key in))
 
   #|
       RSAPrivateKey ::= SEQUENCE {
@@ -333,20 +373,21 @@
          {-- version must be multi if otherPrimeInfos present --})
   |#
   (define (rsa-export-private-key key)
-    (check-arg rsa-private-crt-key? key rsa-export-private-key)
     (let ((der (make-der-sequence
 		;; version must be always 0 since we do not support
 		;; otherPrimeInfos.
 		(make-der-integer 0)
-		(make-der-integer (rsa-private-key-modulus private))
-		(make-der-integer (rsa-private-crt-key-public-exponent private))
-		(make-der-integer (rsa-private-key-private-exponent private))
-		(make-der-integer (rsa-private-crt-key-p private))
-		(make-der-integer (rsa-private-crt-key-q private))
-		(make-der-integer (rsa-private-crt-key-dP private))
-		(make-der-integer (rsa-private-crt-key-dQ private))
-		(make-der-integer (rsa-private-crt-key-qP private)))))
+		(make-der-integer (slot-ref private 'modulus))
+		(make-der-integer (slot-ref private 'public-exponent))
+		(make-der-integer (slot-ref private 'private-exponent))
+		(make-der-integer (slot-ref private 'p))
+		(make-der-integer (slot-ref private 'q))
+		(make-der-integer (slot-ref private 'dP))
+		(make-der-integer (slot-ref private 'dQ))
+		(make-der-integer (slot-ref private 'dP)))))
       (encode der)))
+  (define-method export-private-key ((marker <rsa>) (key <rsa-private-crt-key>))
+    (rsa-export-private-key key))
   
   (define (rsa-import-private-key in)
     (let ((private (read-asn.1-object in)))
@@ -384,5 +425,6 @@
 	   :p (bytevector->integer (slot-ref p 'bytes))
 	   :q (bytevector->integer (slot-ref q 'bytes))))))
     )
-
+  (define-method import-private-key ((marker <rsa>) (in <port>))
+    (rsa-import-private-key in))
 )

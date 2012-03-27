@@ -29,14 +29,53 @@
  *
  *  $Id: $
  */
+#include <sagittarius.h>
+#define LIBSAGITTARIUS_EXT_BODY
+#include <sagittarius/extend.h>
+#include <sagittarius/builtin-keywords.h>
 #include "crypto.h"
 
-SgObject Sg_GenerateSecretKey(SgString *type, SgByteVector *key)
+SgClass *Sg__KeyCPL[] = {
+  SG_CLASS_KEY,
+  SG_CLASS_CRYPTO,
+  SG_CLASS_TOP,
+  NULL,
+};
+SG_DEFINE_ABSTRACT_CLASS(Sg_KeyClass, Sg__KeyCPL+1);
+SG_DEFINE_ABSTRACT_CLASS(Sg_AsymmetricKeyClass, Sg__KeyCPL);
+
+static void symmetric_key_print(SgObject self, SgPort *port, 
+				SgWriteContext *ctx)
+{
+  Sg_Printf(port, UC("#<%A-key>"), SG_SYMMETRIC_KEY(self)->name);
+}
+
+SG_DEFINE_BUILTIN_CLASS(Sg_SymmetricKeyClass, symmetric_key_print,
+			NULL, NULL, NULL, Sg__KeyCPL);
+
+
+static SgSymmetricKey *make_skey()
+{
+  SgSymmetricKey *z = SG_NEW(SgSymmetricKey);
+  SG_SET_CLASS(z, SG_CLASS_SYMMETRIC_KEY);
+  return z;
+}
+
+/* for backward compatibility */
+SgObject Sg_GenerateSecretKey(SgString *name, SgByteVector *key)
 {
   int len = SG_BVECTOR_SIZE(key);
-  SgCrypto *crypto;
+  SgSymmetricKey *skey;
+  const char *cname = Sg_Utf32sToUtf8s(name);
+  int cipher = find_cipher(cname), err;
+
   /* check key length */
-  len = Sg_SuggestKeysize(type, len);
+  if ((err = cipher_descriptor[cipher].keysize(&len)) != CRYPT_OK) {
+    Sg_Error(UC("Failed to get key size: %A"),
+	     Sg_MakeStringC(error_to_string(err)));
+    return SG_FALSE;
+  }
+
   /* check length */
   if (len != SG_BVECTOR_SIZE(key)) {
     /* shorten */
@@ -45,25 +84,33 @@ SgObject Sg_GenerateSecretKey(SgString *type, SgByteVector *key)
     key = tmp;
     tmp = NULL;
   }
-  crypto = SG_CRYPTO(Sg_MakeCrypto(CRYPTO_KEY));
-  SG_SECRET_KEY(SG_KEY(crypto)) = key;
-  SG_KEY(crypto)->name = SG_SYMBOL(Sg_Intern(type));
-  return SG_OBJ(crypto);
+  skey = make_skey();
+  skey->name = name;
+  skey->secretKey = key;
+
+  return SG_OBJ(skey);
 }
 
-static SgRecordType KEY_TYPE;
-SgObject key_rtd = SG_UNDEF;
+SG_DEFINE_GENERIC(Sg_GenericGenerateSecretKey, Sg_NoNextMethod, NULL);
+
+static SgObject gen_secret_impl(SgObject *args, int argc, void *data)
+{
+  /* type must be check by here */
+  return Sg_GenerateSecretKey(SG_STRING(args[0]), SG_BVECTOR(args[1]));
+}
+SG_DEFINE_SUBR(gen_secret, 2, 0, gen_secret_impl, SG_FALSE, NULL);
+static SgClass *generate_secret_key_SPEC[] = {
+  SG_CLASS_STRING, SG_CLASS_BVECTOR
+};
+static SG_DEFINE_METHOD(generate_secret_key_rec,
+			&Sg_GenericGenerateSecretKey,
+			2, 0, generate_secret_key_SPEC, &gen_secret);
 
 SG_CDECL_BEGIN
 void Sg__InitKey(SgObject lib)
 {
-  SgObject rtd, rcd, nullvec = Sg_MakeVector(0, SG_UNDEF);
-  SgSymbol *key = SG_INTERN("key");
-  rtd = Sg_MakeRecordTypeDescriptor(key, SG_FALSE, SG_FALSE,
-				    FALSE, FALSE, SG_VECTOR(nullvec));
-  rcd = Sg_MakeRecordConstructorDescriptor(rtd, SG_FALSE, SG_FALSE);
-  SG_INIT_RECORD_TYPE(&KEY_TYPE, key, rtd, rcd);
-  Sg_InsertBinding(SG_LIBRARY(lib), key, &KEY_TYPE);
-  key_rtd = rtd;
+  Sg_InitBuiltinGeneric(&Sg_GenericGenerateSecretKey,
+			UC("generate-secret-key"), SG_LIBRARY(lib));
+  Sg_InitBuiltinMethod(&generate_secret_key_rec);
 }
 SG_CDECL_END

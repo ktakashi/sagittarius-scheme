@@ -14,7 +14,9 @@
 	    random-seed-set!
 	    random
 	    read-random-bytes
-	    Yarrow Fortuna RC4 SOBER-128)
+	    Yarrow Fortuna RC4 SOBER-128
+
+	    <prng>)
     (import (core)
 	    (math helper)
 	    (sagittarius)

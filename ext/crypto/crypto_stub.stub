@@ -9,91 +9,69 @@
    (.include <sagittarius/extend.h>
 	     "crypto.h"))
 
-  (define-type <crypto> "SgCrypto*")
+  (define-type <cipher> "SgCipher*")
+  (define-type <cipher-spi> "SgCipherSpi*")
+  (define-type <key> "SgKey*")
+  (define-type <symmetric-key> "SgSymmetricKey*")
 
   (define-c-proc crypto-object? (o) ::<boolean>
-    (result (SG_CRYPTOP o)))
+    (result (Sg_TypeP o SG_CLASS_CRYPTO)))
 
   (define-c-proc cipher? (o) ::<boolean>
-    (result (and (SG_CRYPTOP o)
-		 (or (== (-> (SG_CRYPTO o) type) CRYPTO_SYM_CIPHER)
-		     (== (-> (SG_CRYPTO o) type) CRYPTO_PUB_CIPHER)))))
+    (result (SG_CIPHERP o)))
 
   (define-c-proc key? (o) ::<boolean>
-    (result (or (and (SG_CRYPTOP o)
-		     (== (-> (SG_CRYPTO o) type) CRYPTO_KEY))
-		(and (Sg_RecordP o)
-		     (Sg_RtdAncestorP key_rtd (Sg_RecordRtd o))))))
+    (result (Sg_TypeP o SG_CLASS_KEY)))
 
   ;; key
-  (define-c-proc generate-secret-key (type::<string> key::<bytevector>) 
-    (result (Sg_GenerateSecretKey type key)))
+  ;; this is now generic
+  ;;(define-c-proc generate-secret-key (type::<string> key::<bytevector>) 
+  ;;    (result (Sg_GenerateSecretKey type key)))
 
-  (define-c-proc make-symmetric-cipher
-    (name::<string> mode::<fixnum> key::<crypto>
+  (define-c-proc make-builtin-cipher-spi
+    (name::<string> mode::<fixnum> key::<symmetric-key>
 		    iv rounds::<fixnum> padder ctr_mode::<fixnum>)
     
-    (unless (SG_KEYP key)
-      (Sg_WrongTypeOfArgumentViolation 'make-symmetric-cipher
-				       (SG_MAKE_STRING "key")
-				       key '()))
     (unless (or (SG_FALSEP iv)
 		(SG_BVECTORP iv))
-      (Sg_WrongTypeOfArgumentViolation 'make-symmetric-cipher
+      (Sg_WrongTypeOfArgumentViolation 'make-builtin-cipher-spi
 				       (SG_MAKE_STRING "bytevector or #f")
 				       iv '()))
     (unless (or (SG_FALSEP padder)
 		(SG_PROCEDUREP padder))
-      (Sg_WrongTypeOfArgumentViolation 'make-symmetric-cipher
+      (Sg_WrongTypeOfArgumentViolation 'make-builtin-cipher-spi
 				       (SG_MAKE_STRING "procedure or #f")
 				       padder '()))
-    (result (Sg_MakeSymmetricCipher name (cast SgCryptoMode mode)
-				    key iv rounds padder ctr_mode)))
+    (result (Sg_MakeBuiltinCipherSpi name (cast SgCryptoMode mode)
+				     key iv rounds padder ctr_mode)))
 
-  (define-c-proc make-public-key-cipher (name key enc::<procedure>
-					 dec::<procedure> padder
-					 signer::<procedure>
-					 verifier::<procedure>) 
-    (unless (or (SG_FALSEP padder)
-		(SG_PROCEDUREP padder))
-      (Sg_WrongTypeOfArgumentViolation 'make-public-key-cipher
-				       (SG_MAKE_STRING "procedure or #f")
-				       padder '()))
-    (result (Sg_MakePublicKeyCipher name key enc dec padder signer verifier)))
+  (define-c-proc make-cipher (spi)
+    (unless (Sg_TypeP spi SG_CLASS_CIPHER_SPI)
+      (Sg_WrongTypeOfArgumentViolation 'make-cipher
+				       (SG_MAKE_STRING "<cipher-spi>")
+				       spi '()))
+    (result (Sg_MakeCipher spi)))
 
-  (define-c-proc encrypt (crypto::<crypto> pt::<bytevector>) 
-    (unless (or (== (-> crypto type) CRYPTO_SYM_CIPHER)
-		(== (-> crypto type) CRYPTO_PUB_CIPHER))
-      (Sg_WrongTypeOfArgumentViolation 'encrypt
-				       (SG_MAKE_STRING "cipher")
-				       crypto '()))
+  (define-c-proc encrypt (crypto::<cipher> pt::<bytevector>) 
     (result (Sg_Encrypt crypto pt)))
 
-  (define-c-proc decrypt (crypto::<crypto> ct::<bytevector>) 
-    (unless (or (== (-> crypto type) CRYPTO_SYM_CIPHER)
-		(== (-> crypto type) CRYPTO_PUB_CIPHER))
-      (Sg_WrongTypeOfArgumentViolation 'decrypt
-				       (SG_MAKE_STRING "cipher")
-				       crypto '()))
+  (define-c-proc decrypt (crypto::<cipher> ct::<bytevector>) 
     (result (Sg_Decrypt crypto ct)))
 
-  (define-c-proc suggest-keysize (name::<string> size::<fixnum>) ::<fixnum>
+  (define-c-proc suggest-keysize (name::<cipher> size::<fixnum>) ::<fixnum>
     (result (Sg_SuggestKeysize name size)))
 
-
   ;; sign
-  (define-c-proc sign (crypto::<crypto> data::<bytevector> :rest opt) 
-    (unless (== (-> crypto type) CRYPTO_PUB_CIPHER)
-      (Sg_WrongTypeOfArgumentViolation 'sign
-				       (SG_MAKE_STRING "publick key cipher")
-				       crypto '()))
+  (define-c-proc sign (crypto::<cipher> data::<bytevector> :rest opt) 
     (result (Sg_Signature crypto data opt)))
 
-  (define-c-proc verify
-    (crypto::<crypto> M::<bytevector> S::<bytevector> :rest opt) 
-    (unless (== (-> crypto type) CRYPTO_PUB_CIPHER)
-      (Sg_WrongTypeOfArgumentViolation 'verify
-				       (SG_MAKE_STRING "publick key cipher")
-				       crypto '()))
+  (define-c-proc verify 
+    (crypto::<cipher> M::<bytevector> S::<bytevector> :rest opt) 
     (result (Sg_Verify crypto M S opt)))
-)
+
+  (define-c-proc register-spi (name::<string> spi::<class>) ::<boolean>
+    (result (Sg_RegisterSpi name spi)))
+
+  (define-c-proc lookup-spi (name::<string>)
+    (result (Sg_LoookupSpi name)))
+  )

@@ -34,74 +34,85 @@
 #include <sagittarius/extend.h>
 #include "crypto.h"
 
-static void crypto_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
+static void cipher_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
-  switch (SG_CRYPTO(self)->type) {
-  case CRYPTO_SYM_CIPHER: {
-    struct ltc_cipher_descriptor *desc 
-      = &cipher_descriptor[SG_SCIPHER(self)->cipher];
-    Sg_Printf(port, UC("#<cipher %S block-size %d, key-length %d>"),
-	      Sg_MakeStringC(desc->name), desc->block_length,
-	      desc->min_key_length);
-    break;
-  }
-  case CRYPTO_PUB_CIPHER:
-    Sg_Printf(port, UC("#<cipher %A>"), SG_PCIPHER(self)->name);
-    break;
-  case CRYPTO_KEY:
-    Sg_Printf(port, UC("#<%A-key>"), SG_KEY(self)->name);
-    break;
-  }
+  Sg_Printf(port, UC("#<cipher %S>"), SG_CIPHER(self)->spi);
 }
 
-SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_CryptoClass, crypto_printer);
+SgClass *Sg__CipherCPL[] = {
+  SG_CLASS_CRYPTO,
+  SG_CLASS_TOP,
+  NULL,
+};
 
-static void finalize_cipher(SgObject obj, void *data)
+SgClass *Sg__CipherSpiCPL[] = {
+  SG_CLASS_CIPHER_SPI,
+  SG_CLASS_CRYPTO,
+  SG_CLASS_TOP,
+  NULL,
+};
+
+SG_DEFINE_ABSTRACT_CLASS(Sg_CryptoClass, NULL);
+SG_DEFINE_ABSTRACT_CLASS(Sg_CipherSpiClass, Sg__CipherSpiCPL+1);
+
+SG_DEFINE_BUILTIN_CLASS(Sg_CipherClass, cipher_printer,
+			NULL, NULL, NULL, Sg__CipherCPL);
+
+
+static void builtin_cipher_spi_print(SgObject self, SgPort *port,
+				     SgWriteContext *ctx)
 {
-  SG_SCIPHER(obj)->done(&SG_SCIPHER(obj)->skey);
+  Sg_Printf(port, UC("#<spi %A>"), SG_BUILTIN_CIPHER_SPI(self)->name);
+}
+SG_DEFINE_BUILTIN_CLASS(Sg_BuiltinCipherSpiClass, builtin_cipher_spi_print,
+			NULL, NULL, NULL, Sg__CipherSpiCPL);
+
+static void finalize_cipher_spi(SgObject obj, void *data)
+{
+  SG_BUILTIN_CIPHER_SPI(obj)->done(&SG_BUILTIN_CIPHER_SPI(obj)->skey);
 }
 
-static SgCrypto *make_crypto(SgCryptoType type)
+static SgBuiltinCipherSpi *make_builtin_cipher_spi()
 {
-  SgCrypto *c = SG_NEW(SgCrypto);
-  SG_SET_CLASS(c, SG_CLASS_CRYPTO);
-  c->type = type;
+  SgBuiltinCipherSpi *c = SG_NEW(SgBuiltinCipherSpi);
+  SG_SET_CLASS(c, SG_CLASS_BUILTIN_CIPHER_SPI);
   return c;
 }
 
-SgObject Sg_MakeCrypto(SgCryptoType type)
-{
-  return SG_OBJ(make_crypto(type));
-}
-
-SgObject Sg_MakeSymmetricCipher(SgString *name, SgCryptoMode mode,
-				SgCrypto *ckey, SgObject iv, int rounds,
-				SgObject padder, int ctr_mode)
+SgObject Sg_MakeBuiltinCipherSpi(SgString *name, SgCryptoMode mode,
+				 SgObject ckey, SgObject iv, int rounds,
+				 SgObject padder, int ctr_mode)
 {
   const char *cname = Sg_Utf32sToUtf8s(name);
-  SgCrypto *crypto = make_crypto(CRYPTO_SYM_CIPHER);
+  SgBuiltinCipherSpi *spi = make_builtin_cipher_spi();
   int cipher = find_cipher(cname), err;
   SgByteVector *key;
-  ASSERT(SG_CRYPTO(ckey)->type == CRYPTO_KEY);
-  key = SG_SECRET_KEY(SG_KEY(ckey));
-  SG_SCIPHER(crypto)->cipher = cipher;
-  SG_SCIPHER(crypto)->key = SG_KEY(ckey);
-  SG_SCIPHER(crypto)->iv = iv;
-  SG_SCIPHER(crypto)->mode = mode;
-  SG_SCIPHER(crypto)->rounds = rounds;
-  SG_SCIPHER(crypto)->padder = padder;
+  keysize_proc keysize;
+
+  ASSERT(SG_SYMMETRIC_KEY_P(ckey));
+
+  key = SG_SYMMETRIC_KEY(ckey)->secretKey;
+  spi->name = name;
+  spi->cipher = cipher;
+  spi->key = SG_SYMMETRIC_KEY(ckey);
+  spi->iv = iv;
+  spi->mode = mode;
+  spi->rounds = rounds;
+  spi->padder = padder;
 
   if (cipher == -1) {
     Sg_Error(UC("%S is not supported"), name);
     return SG_UNDEF;
   }
+  keysize = cipher_descriptor[cipher].keysize;
+
   /* set up mode */
   switch (mode) {
   case MODE_ECB:
     err = ecb_start(cipher, SG_BVECTOR_ELEMENTS(key), SG_BVECTOR_SIZE(key),
-		    rounds, &SG_SCIPHER(crypto)->skey.ecb_key);
-    SG_INIT_CIPHER(SG_SCIPHER(crypto),
-		   ecb_encrypt, ecb_decrypt, NULL, NULL, ecb_done);
+		    rounds, &spi->skey.ecb_key);
+    SG_INIT_CIPHER(spi, ecb_encrypt, ecb_decrypt,
+		   NULL, NULL, ecb_done, keysize);
     break;
   case MODE_CBC:
     if (!SG_BVECTOR(iv)) {
@@ -110,9 +121,10 @@ SgObject Sg_MakeSymmetricCipher(SgString *name, SgCryptoMode mode,
     }
     err = cbc_start(cipher, SG_BVECTOR_ELEMENTS(iv),
 		    SG_BVECTOR_ELEMENTS(key), SG_BVECTOR_SIZE(key),
-		    rounds, &SG_SCIPHER(crypto)->skey.cbc_key);
-    SG_INIT_CIPHER(SG_SCIPHER(crypto),
-		   cbc_encrypt, cbc_decrypt, cbc_getiv, cbc_setiv, cbc_done);
+		    rounds, &spi->skey.cbc_key);
+    SG_INIT_CIPHER(spi,
+		   cbc_encrypt, cbc_decrypt, cbc_getiv, cbc_setiv,
+		   cbc_done, keysize);
     break;
   case MODE_CFB:
     if (!SG_BVECTOR(iv)) {
@@ -121,9 +133,10 @@ SgObject Sg_MakeSymmetricCipher(SgString *name, SgCryptoMode mode,
     }
     err = cfb_start(cipher, SG_BVECTOR_ELEMENTS(iv),
 		    SG_BVECTOR_ELEMENTS(key), SG_BVECTOR_SIZE(key),
-		    rounds, &SG_SCIPHER(crypto)->skey.cfb_key);
-    SG_INIT_CIPHER(SG_SCIPHER(crypto),
-		   cfb_encrypt, cfb_decrypt, cfb_getiv, cfb_setiv, cfb_done);
+		    rounds, &spi->skey.cfb_key);
+    SG_INIT_CIPHER(spi,
+		   cfb_encrypt, cfb_decrypt, cfb_getiv, cfb_setiv,
+		   cfb_done, keysize);
     break;
   case MODE_OFB:
     if (!SG_BVECTOR(iv)) {
@@ -132,9 +145,10 @@ SgObject Sg_MakeSymmetricCipher(SgString *name, SgCryptoMode mode,
     }
     err =ofb_start(cipher, SG_BVECTOR_ELEMENTS(iv),
 		   SG_BVECTOR_ELEMENTS(key), SG_BVECTOR_SIZE(key),
-		   rounds, &SG_SCIPHER(crypto)->skey.ofb_key);
-    SG_INIT_CIPHER(SG_SCIPHER(crypto),
-		   ofb_encrypt, ofb_decrypt, ofb_getiv, ofb_setiv, ofb_done);
+		   rounds, &spi->skey.ofb_key);
+    SG_INIT_CIPHER(spi,
+		   ofb_encrypt, ofb_decrypt, ofb_getiv, ofb_setiv,
+		   ofb_done, keysize);
     break;
   case MODE_CTR:
     if (!SG_BVECTOR(iv)) {
@@ -148,9 +162,9 @@ SgObject Sg_MakeSymmetricCipher(SgString *name, SgCryptoMode mode,
 		       (using a full block length. see libtomcrypto manual.)
 		    */
 		    ctr_mode,
-		    &SG_SCIPHER(crypto)->skey.ctr_key);
-    SG_INIT_CIPHER(SG_SCIPHER(crypto),
-		   ctr_encrypt, ctr_decrypt, NULL, NULL, ctr_done);
+		    &spi->skey.ctr_key);
+    SG_INIT_CIPHER(spi,
+		   ctr_encrypt, ctr_decrypt, NULL, NULL, ctr_done, keysize);
     break;
   default:
     Sg_Error(UC("invalid mode %d"), mode);
@@ -161,63 +175,59 @@ SgObject Sg_MakeSymmetricCipher(SgString *name, SgCryptoMode mode,
 	     name, Sg_MakeStringC(error_to_string(err)));
     return SG_UNDEF;
   }
-  Sg_RegisterFinalizer(crypto, finalize_cipher, NULL);
-  return SG_OBJ(crypto);
+  Sg_RegisterFinalizer(spi, finalize_cipher_spi, NULL);
+  return SG_OBJ(spi);
 }
 
-SgObject Sg_MakePublicKeyCipher(SgObject name, SgObject key, SgObject encrypter,
-				SgObject decrypter, SgObject padder,
-				SgObject signer, SgObject verifier)
+SgObject Sg_MakeCipher(SgObject spi)
 {
-  SgCrypto *crypto = make_crypto(CRYPTO_PUB_CIPHER); 
-  SG_PCIPHER(crypto)->name = name;
-  SG_PCIPHER(crypto)->key = key;
-  SG_PCIPHER(crypto)->encrypter = encrypter;
-  SG_PCIPHER(crypto)->decrypter = decrypter;
-  SG_PCIPHER(crypto)->padder = padder;
-  SG_PCIPHER(crypto)->signer = signer;
-  SG_PCIPHER(crypto)->verifier = verifier;
-  return SG_OBJ(crypto);
+  SgCipher *c = SG_NEW(SgCipher);
+  SG_SET_CLASS(c, SG_CLASS_CIPHER);
+  c->spi = spi;
+  return SG_OBJ(c);
 }
 
-int Sg_SuggestKeysize(SgString *name, int keysize)
+int Sg_SuggestKeysize(SgCipher *cipher, int keysize)
 {
-  int cipher = find_cipher(Sg_Utf32sToUtf8s(name));
-  int err;
-  struct ltc_cipher_descriptor *desc;
-  if (cipher == -1) {
-    Sg_Error(UC("%A is not supported"), name);
-    return -1;
+  SgObject spi = cipher->spi;
+
+  if (SG_BUILTIN_CIPHER_SPI_P(spi)) {
+    int err;
+    if ((err = SG_BUILTIN_CIPHER_SPI(spi)->keysize(&keysize)) != CRYPT_OK) {
+      Sg_Error(UC("Failed to get key size: %A"),
+	       Sg_MakeStringC(error_to_string(err)));
+      return -1;
+    }
+    return keysize;
+  } else {
+    /* must be others */
+    SgObject r = Sg_Apply1(SG_CIPHER_SPI(spi)->keysize, SG_MAKE_INT(keysize));
+    if (SG_INTP(r)) return SG_INT_VALUE(r);
+    else {
+      Sg_Error(UC("Failed to get key size: %A"), r);
+      return -1;
+    }
   }
-  desc= &cipher_descriptor[cipher];
-  if ((err = desc->keysize(&keysize)) != CRYPT_OK) {
-    Sg_Error(UC("Failed to get key size: %A"),
-	     Sg_MakeStringC(error_to_string(err)));
-    return -1;
-  }
-  return keysize;
 }
 
-static SgObject symmetric_encrypt(SgCrypto *crypto, SgByteVector *d)
+static SgObject symmetric_encrypt(SgCipher *crypto, SgByteVector *d)
 {
   int len, err;
-  SgObject ct,			/* cipher text */
-    data = d;
-  ASSERT(SG_CRYPTO(crypto)->type == CRYPTO_SYM_CIPHER);
+  SgObject data = d, ct;	/* cipher text */
+  SgBuiltinCipherSpi *spi = SG_BUILTIN_CIPHER_SPI(crypto->spi);
 
-  if (!SG_FALSEP(SG_SCIPHER(crypto)->padder)) {
+  ASSERT(SG_BUILTIN_CIPHER_SPI_P(spi));
+
+  if (!SG_FALSEP(spi->padder)) {
     struct ltc_cipher_descriptor *desc
-      = &cipher_descriptor[SG_SCIPHER(crypto)->cipher];
+      = &cipher_descriptor[spi->cipher];
     int block_size = desc->block_length;
-    data = Sg_Apply3(SG_SCIPHER(crypto)->padder,
-		     data, SG_MAKE_INT(block_size), SG_TRUE);
+    data = Sg_Apply3(spi->padder, data, SG_MAKE_INT(block_size), SG_TRUE);
   }
   len = SG_BVECTOR_SIZE(data);
   ct = Sg_MakeByteVector(len, 0);
-  err = SG_SCIPHER(crypto)->encrypt(SG_BVECTOR_ELEMENTS(data),
-				    SG_BVECTOR_ELEMENTS(ct),
-				    len,
-				    &SG_SCIPHER(crypto)->skey);
+  err = spi->encrypt(SG_BVECTOR_ELEMENTS(data), SG_BVECTOR_ELEMENTS(ct),
+		     len, &spi->skey);
   if (err != CRYPT_OK) {
     Sg_Error(UC("%A"), error_to_string(err));
     return SG_UNDEF;
@@ -225,136 +235,299 @@ static SgObject symmetric_encrypt(SgCrypto *crypto, SgByteVector *d)
   return SG_OBJ(ct);
 }
 
-static SgObject public_key_encrypt(SgCrypto *crypto, SgByteVector *d)
+static SgObject public_key_encrypt(SgCipher *crypto, SgByteVector *d)
 {
   SgObject data = d;
-  if (!SG_FALSEP(SG_PCIPHER(crypto)->padder)) {
-    data = Sg_Apply2(SG_PCIPHER(crypto)->padder, data, SG_TRUE);
+  if (!SG_FALSEP(SG_CIPHER_SPI(crypto->spi)->padder)) {
+    data = Sg_Apply2(SG_CIPHER_SPI(crypto->spi)->padder, data, SG_TRUE);
   }
-  return Sg_Apply2(SG_PCIPHER(crypto)->encrypter, data, 
-		   SG_PCIPHER(crypto)->key);
+  return Sg_Apply2(SG_CIPHER_SPI(crypto->spi)->encrypter, data, 
+		   SG_CIPHER_SPI(crypto->spi)->key);
 }
 
-SgObject Sg_Encrypt(SgCrypto *crypto, SgByteVector *data)
+SgObject Sg_Encrypt(SgCipher *crypto, SgByteVector *data)
 {
-  switch (crypto->type) {
-  case CRYPTO_SYM_CIPHER:
+  if (SG_BUILTIN_CIPHER_SPI_P(crypto->spi)) {
     return symmetric_encrypt(crypto, data);
-  case CRYPTO_PUB_CIPHER:
+  } else {
     return public_key_encrypt(crypto, data);
-  default:
-    Sg_Error(UC("encrypt requires cipher, but got %S"), crypto);
   }
-  return SG_UNDEF;		/* dummy */
 }
 
-static SgObject symmetric_decrypt(SgCrypto *crypto, SgByteVector *data)
+static SgObject symmetric_decrypt(SgCipher *crypto, SgByteVector *data)
 {
-  uint8_t *key = SG_BVECTOR_ELEMENTS(SG_SECRET_KEY(SG_SCIPHER(crypto)->key));
-  int keylen = SG_BVECTOR_SIZE(SG_SECRET_KEY(SG_SCIPHER(crypto)->key));
-  int rounds = SG_SCIPHER(crypto)->rounds;
+  SgBuiltinCipherSpi *spi = SG_BUILTIN_CIPHER_SPI(crypto->spi);
+  uint8_t *key = SG_BVECTOR_ELEMENTS(SG_SECRET_KEY(spi->key));
+  int keylen = SG_BVECTOR_SIZE(SG_SECRET_KEY(spi->key));
+  int rounds = spi->rounds;
   SgObject pt;			/* plain text */
   int len = SG_BVECTOR_SIZE(data), err, block_size = -1;
-  ASSERT(SG_CRYPTO(crypto)->type == CRYPTO_SYM_CIPHER);
-  switch (SG_SCIPHER(crypto)->mode) {
+
+  switch (spi->mode) {
   case MODE_ECB:
-    ecb_start(SG_SCIPHER(crypto)->cipher, key, keylen, rounds,
-	      &SG_SCIPHER(crypto)->skey.ecb_key);
+    ecb_start(spi->cipher, key, keylen, rounds,
+	      &spi->skey.ecb_key);
     goto entry;
   case MODE_CBC:
-    cbc_start(SG_SCIPHER(crypto)->cipher,
-	      SG_BVECTOR_ELEMENTS(SG_SCIPHER(crypto)->iv),
+    cbc_start(spi->cipher,
+	      SG_BVECTOR_ELEMENTS(spi->iv),
 	      key, keylen, rounds,
-	      &SG_SCIPHER(crypto)->skey.cbc_key);
+	      &spi->skey.cbc_key);
   entry: {
       struct ltc_cipher_descriptor *desc
-	= &cipher_descriptor[SG_SCIPHER(crypto)->cipher];
+	= &cipher_descriptor[spi->cipher];
       block_size = desc->block_length;
     }
     break;
   default: break;
   }
   pt = Sg_MakeByteVector(len, 0);
-  err = SG_SCIPHER(crypto)->decrypt(SG_BVECTOR_ELEMENTS(data),
-				    SG_BVECTOR_ELEMENTS(pt),
-				    len,
-				    &SG_SCIPHER(crypto)->skey);
-  if (!SG_FALSEP(SG_SCIPHER(crypto)->padder)) {
-    /* drop padding */
-    pt = Sg_Apply3(SG_SCIPHER(crypto)->padder,
-		   pt, SG_MAKE_INT(block_size), SG_FALSE);
-  }
+  err = spi->decrypt(SG_BVECTOR_ELEMENTS(data), SG_BVECTOR_ELEMENTS(pt),
+		     len, &spi->skey);
   if (err != CRYPT_OK) {
     Sg_Error(UC("%A"), error_to_string(err));
     return SG_UNDEF;
   }
+
+  if (!SG_FALSEP(spi->padder)) {
+    /* drop padding */
+    pt = Sg_Apply3(spi->padder, pt, SG_MAKE_INT(block_size), SG_FALSE);
+  }
   return pt;
 }
 
-static SgObject public_key_decrypt(SgCrypto *crypto, SgByteVector *data)
+static SgObject public_key_decrypt(SgCipher *crypto, SgByteVector *data)
 {
   SgObject d = SG_OBJ(data);
-  d = Sg_Apply2(SG_PCIPHER(crypto)->decrypter, d,
-		   SG_PCIPHER(crypto)->key);
-  if (!SG_FALSEP(SG_PCIPHER(crypto)->padder)) {
-    d = Sg_Apply2(SG_PCIPHER(crypto)->padder, d, SG_FALSE);
+  d = Sg_Apply2(SG_CIPHER_SPI(crypto->spi)->decrypter, d,
+		   SG_CIPHER_SPI(crypto->spi)->key);
+  if (!SG_FALSEP(SG_CIPHER_SPI(crypto->spi)->padder)) {
+    d = Sg_Apply2(SG_CIPHER_SPI(crypto->spi)->padder, d, SG_FALSE);
   }
   return d;
 }
 
 
-SgObject Sg_Decrypt(SgCrypto *crypto, SgByteVector *data)
+SgObject Sg_Decrypt(SgCipher *crypto, SgByteVector *data)
 {
-  switch (crypto->type) {
-  case CRYPTO_SYM_CIPHER:
+  if (SG_BUILTIN_CIPHER_SPI_P(crypto->spi)) {
     return symmetric_decrypt(crypto, data);
-  case CRYPTO_PUB_CIPHER:
+  } else {
     return public_key_decrypt(crypto, data);
-  default:
-    Sg_Error(UC("decrypt requires cipher, but got %S"), crypto);
   }
-  return SG_UNDEF;		/* dummy */
 }
 
-SgObject Sg_Signature(SgCrypto *crypto, SgByteVector *data, SgObject opt)
+SgObject Sg_Signature(SgCipher *crypto, SgByteVector *data, SgObject opt)
 {
-  switch (crypto->type) {
-  case CRYPTO_SYM_CIPHER:
-    Sg_Error(UC("symmetric cipher does not support signing, %S"), crypto);
-    break;
-  case CRYPTO_PUB_CIPHER: {
+  if (SG_BUILTIN_CIPHER_SPI_P(crypto->spi)) {
+    Sg_Error(UC("builtin cipher does not support signing, %S"), crypto);
+    return SG_UNDEF;		/* dummy */
+  } else {
     SgObject h = SG_NIL, t = SG_NIL;
     SG_APPEND1(h, t, data);
-    SG_APPEND1(h, t, SG_PCIPHER(crypto)->key);
+    SG_APPEND1(h, t, SG_CIPHER_SPI(crypto->spi)->key);
     SG_APPEND(h, t, opt);
-    return Sg_Apply(SG_PCIPHER(crypto)->signer, h);
+    return Sg_Apply(SG_CIPHER_SPI(crypto->spi)->signer, h);
   }
-  default:
-    Sg_Error(UC("decrypt requires cipher, but got %S"), crypto);
-  }
-  return SG_UNDEF;		/* dummy */
 }
 
-SgObject Sg_Verify(SgCrypto *crypto, SgByteVector *M, SgByteVector *S,
+SgObject Sg_Verify(SgCipher *crypto, SgByteVector *M, SgByteVector *S,
 		   SgObject opt)
 {
-  switch (crypto->type) {
-  case CRYPTO_SYM_CIPHER:
-    Sg_Error(UC("symmetric cipher does not support verify, %S"), crypto);
-    break;
-  case CRYPTO_PUB_CIPHER: {
+  if (SG_BUILTIN_CIPHER_SPI_P(crypto->spi)) {
+    Sg_Error(UC("builtin cipher does not support verify, %S"), crypto);
+    return SG_UNDEF;		/* dummy */
+  } else {
     SgObject h = SG_NIL, t = SG_NIL;
     SG_APPEND1(h, t, M);
     SG_APPEND1(h, t, S);
-    SG_APPEND1(h, t, SG_PCIPHER(crypto)->key);
+    SG_APPEND1(h, t, SG_CIPHER_SPI(crypto->spi)->key);
     SG_APPEND(h, t, opt);
-    return Sg_Apply(SG_PCIPHER(crypto)->verifier, h);
+    return Sg_Apply(SG_CIPHER_SPI(crypto->spi)->verifier, h);
   }
-  default:
-    Sg_Error(UC("decrypt requires cipher, but got %S"), crypto);
+}
+
+struct table_entry_t
+{
+  SgString *name;
+  SgObject spi;
+  struct table_entry_t *next;
+};
+
+static struct
+{
+  int dummy;
+  struct table_entry_t *entries;
+} table = { 1, NULL };
+
+static SgInternalMutex lock;
+
+int Sg_RegisterSpi(SgString *name, SgObject spiClass)
+{
+  struct table_entry_t *e, *all;
+  Sg_LockMutex(&lock);
+  for (all = table.entries; all; all = all->next) {
+    if (Sg_StringEqual(name, all->name)) {
+      Sg_UnlockMutex(&lock);
+      /* should we raise error? */
+      return FALSE;
+    }
   }
+  e = SG_NEW(struct table_entry_t);
+  e->name = name;
+  e->spi = spiClass;
+  e->next = table.entries;
+  table.entries = e;
+  Sg_UnlockMutex(&lock);
+  return TRUE;
+}
+
+SgObject Sg_LoookupSpi(SgString *name)
+{
+  struct table_entry_t *all;
+  char *cname;
+  Sg_LockMutex(&lock);
+  for (all = table.entries; all; all = all->next) {
+    if (Sg_StringEqual(name, all->name)) {
+      Sg_UnlockMutex(&lock);
+      return all->spi;
+    }
+  }
+  Sg_UnlockMutex(&lock);
+  /* now we need to check builtin */
+  cname = Sg_Utf32sToUtf8s(name);
+  if(find_cipher(cname) != -1) return SG_TRUE;
+  return SG_FALSE;
+}
+
+
+
+static SgObject ci_name(SgCipherSpi *spi)
+{
+  return spi->name;
+}
+
+static SgObject ci_key(SgCipherSpi *spi)
+{
+  return spi->key;
+}
+
+static SgObject ci_encrypt(SgCipherSpi *spi)
+{
+  return spi->encrypter;
+}
+
+static SgObject ci_decrypt(SgCipherSpi *spi)
+{
+  return spi->decrypter;
+}
+
+static SgObject ci_padder(SgCipherSpi *spi)
+{
+  return spi->padder;
+}
+
+static SgObject ci_signer(SgCipherSpi *spi)
+{
+  return spi->signer;
+}
+
+static SgObject ci_verifier(SgCipherSpi *spi)
+{
+  return spi->verifier;
+}
+
+static SgObject ci_keysize(SgCipherSpi *spi)
+{
+  return spi->keysize;
+}
+
+static SgObject ci_data(SgCipherSpi *spi)
+{
+  return spi->data;
+}
+
+static void ci_name_set(SgCipherSpi *spi, SgObject value)
+{
+  spi->name = value;
+}
+static void ci_key_set(SgCipherSpi *spi, SgObject value)
+{
+  spi->key = value;
+}
+static void ci_encrypt_set(SgCipherSpi *spi, SgObject value)
+{
+  spi->encrypter = value;
+}
+static void ci_decrypt_set(SgCipherSpi *spi, SgObject value)
+{
+  spi->decrypter = value;
+}
+static void ci_padder_set(SgCipherSpi *spi, SgObject value)
+{
+  spi->padder = value;
+}
+static void ci_signer_set(SgCipherSpi *spi, SgObject value)
+{
+  spi->signer = value;
+}
+static void ci_verifier_set(SgCipherSpi *spi, SgObject value)
+{
+  spi->verifier = value;
+}
+static void ci_keysize_set(SgCipherSpi *spi, SgObject value)
+{
+  spi->keysize = value;
+}
+static void ci_data_set(SgCipherSpi *spi, SgObject value)
+{
+  spi->data = value;
+}
+
+/* slots for cipher-spi */
+static SgSlotAccessor cipher_spi_slots[] = {
+  SG_CLASS_SLOT_SPEC("name",     0, ci_name,    ci_name_set),
+  SG_CLASS_SLOT_SPEC("key",      1, ci_key,     ci_key_set),
+  SG_CLASS_SLOT_SPEC("encrypt",  2, ci_encrypt, ci_encrypt_set),
+  SG_CLASS_SLOT_SPEC("decrypt",  3, ci_decrypt, ci_decrypt_set),
+  SG_CLASS_SLOT_SPEC("padder",   4, ci_padder,  ci_padder_set),
+  SG_CLASS_SLOT_SPEC("signer",   5, ci_signer,  ci_signer_set),
+  SG_CLASS_SLOT_SPEC("verifier", 6, ci_verifier,ci_verifier_set),
+  SG_CLASS_SLOT_SPEC("keysize",  7, ci_keysize, ci_keysize_set),
+  SG_CLASS_SLOT_SPEC("data",     8, ci_data,    ci_data_set),
+  { { NULL } }
+};
+
+
+static SgObject bci_name(SgBuiltinCipherSpi *spi)
+{
+  return spi->name;
+}
+
+static SgObject invalid_ref(SgBuiltinCipherSpi *spi)
+{
+  Sg_Error(UC("can not refer builtin spi slots"));
   return SG_UNDEF;		/* dummy */
 }
+
+static void invalid_set(SgBuiltinCipherSpi *spi, SgObject value)
+{
+  Sg_Error(UC("can not set builtin spi slots"));
+}
+
+static SgSlotAccessor builtin_cipher_spi_slots[] = {
+  SG_CLASS_SLOT_SPEC("name",     0, bci_name,    invalid_set),
+  SG_CLASS_SLOT_SPEC("key",      1, invalid_ref, invalid_set),
+  SG_CLASS_SLOT_SPEC("encrypt",  2, invalid_ref, invalid_set),
+  SG_CLASS_SLOT_SPEC("decrypt",  3, invalid_ref, invalid_set),
+  SG_CLASS_SLOT_SPEC("padder",   4, invalid_ref, invalid_set),
+  SG_CLASS_SLOT_SPEC("signer",   5, invalid_ref, invalid_set),
+  SG_CLASS_SLOT_SPEC("verifier", 6, invalid_ref, invalid_set),
+  SG_CLASS_SLOT_SPEC("keysize",  7, invalid_ref, invalid_set),
+  SG_CLASS_SLOT_SPEC("data",     8, invalid_ref, invalid_set),
+  { { NULL } }
+};
+
 
 
 extern void Sg__Init_sagittarius_crypto_impl();
@@ -371,6 +544,8 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__crypto()
   lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius crypto impl)"),
 				  FALSE));
   Sg__InitKey(lib);
+
+  Sg_InitMutex(&lock, FALSE);
   /* initialize libtomcrypt */
 #define REGISTER_CIPHER(cipher)						\
   if (register_cipher(cipher) == -1) {					\
@@ -413,6 +588,19 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__crypto()
   MODE_CONST(CTR_COUNTER_BIG_ENDIAN);
   MODE_CONST(LTC_CTR_RFC3686);
 
-  Sg_InitStaticClassWithMeta(SG_CLASS_CRYPTO, UC("<crypto>"), lib, NULL,
-			     SG_FALSE, NULL, 0);
+  Sg_InitStaticClass(SG_CLASS_CRYPTO, UC("<crypto>"), lib, NULL, 0);
+  Sg_InitStaticClass(SG_CLASS_CIPHER, UC("<cipher>"), lib, NULL, 0);
+  /* TODO add slots */
+  Sg_InitStaticClass(SG_CLASS_CIPHER_SPI, UC("<cipher-spi>"), lib,
+		     cipher_spi_slots, 0);
+  /* TODO add dummy slots to raise error */
+  Sg_InitStaticClass(SG_CLASS_BUILTIN_CIPHER_SPI,
+		     UC("<builtin-cipher-spi>"), lib,
+		     builtin_cipher_spi_slots, 0);
+
+  Sg_InitStaticClass(SG_CLASS_KEY, UC("<key>"), lib, NULL, 0);
+  Sg_InitStaticClass(SG_CLASS_SYMMETRIC_KEY,
+		     UC("<symmetric-key>"), lib, NULL, 0);
+  Sg_InitStaticClass(SG_CLASS_ASYMMETRIC_KEY, UC("<asymmetric-key>"),
+		     lib, NULL, 0);
 }

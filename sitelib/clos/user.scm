@@ -131,7 +131,7 @@
 		   (cond ((null? opts) `(,_list ',(car sdef) ,@(reverse! r)))
 			 ((not (and (pair? opts) (pair? (cdr opts))))
 			  (syntax-violation 'define-class
-			   "bad slot specification" sdef))
+					    "bad slot specification" sdef))
 			 (else
 			  (case (car opts)
 			    ((:init-form)
@@ -147,29 +147,29 @@
 	   ;; TODO check if given name is already exists as generic
 	   `(,_begin
 	     (,_define ,name
-		 (,_make ,metaclass
-			 :definition-name (,_quote ,name)
-			 :direct-supers   (,_list ,@supers)
-			 :direct-slots    (,_list ,@(map process-slot-definition
-							 slot-defs))))
+		       (,_make ,metaclass
+			       :definition-name (,_quote ,name)
+			       :direct-supers   (,_list ,@supers)
+			       :direct-slots    (,_list ,@(map process-slot-definition
+							       slot-defs))))
 	     ,@(if (null? accessors)
-		  `((,(rename 'undefined)))
-		  ;; build generic
-		  (map (lambda (slot)
-			 (let ((slot-name (car slot))
-			       (accessor  (cdr slot))
-			       (tmp  (gensym)))
-			   `(,_begin
-			     ;;(,_define-generic ,accessor)
-			     ;; setter
-			     (,_define-method ,accessor ((,tmp ,name))
-				(,(rename 'slot-ref) ,tmp (,_quote ,slot-name)))
-			     ;; getter
-			     (,_define-method ,accessor ((,tmp ,name) obj)
-				(,(rename 'slot-set!) ,tmp (,_quote ,slot-name)
-				 obj)))))
-		       accessors))
-		  )))
+		   `((,(rename 'undefined)))
+		   ;; build generic
+		   (map (lambda (slot)
+			  (let ((slot-name (car slot))
+				(accessor  (cdr slot))
+				(tmp  (gensym)))
+			    `(,_begin
+			      ;;(,_define-generic ,accessor)
+			      ;; setter
+			      (,_define-method ,accessor ((,tmp ,name))
+					       (,(rename 'slot-ref) ,tmp (,_quote ,slot-name)))
+			      ;; getter
+			      (,_define-method ,accessor ((,tmp ,name) obj)
+					       (,(rename 'slot-set!) ,tmp (,_quote ,slot-name)
+						obj)))))
+			accessors))
+	     )))
        (match form
 	 ((_ name () slot-defs . options)
 	  `(,(rename 'define-class) ,name (<object>) ,slot-defs ,@options))
@@ -178,18 +178,9 @@
 	    (syntax-violation 'define-class
 			      "malformed define-class" (unwrap-syntax form)))
 	  (build name supers slot-defs options))
-	 (_ (syntax-violation 'define-class
-			      "malformed define-class" (unwrap-syntax form))))))
-
-    #;(syntax-rules ()
-      ((_ name () slot-def ...)
-       (define-class name (<object>) slot-def ...))
-      ((_ name (super ...) slot-def ...)
-       (define name
-	 (make <class>
-	   :definition-name 'name
-	   :direct-supers   (list super ...)
-	   :direct-slots   '(slot-def ...))))))
+	 (_ (syntax-violation 
+	     'define-class
+	     "malformed define-class" (unwrap-syntax form)))))))
 
   (define-syntax define-generic
     (syntax-rules ()

@@ -105,8 +105,10 @@
 
 ;; key suggest
 
-(test-equal "DES key size" 8 (cipher-keysize DES 8))
-(test-equal "DES3 key size" 24 (cipher-keysize DES3 24))
+;;(test-equal "DES key size" 8 (cipher-keysize DES 8))
+(test-equal "DES key size" 8 (cipher-keysize des/ecb-cipher 8))
+;;(test-equal "DES3 key size" 24 (cipher-keysize DES3 24))
+(test-equal "DES3 key size" 24 (cipher-keysize des3/ecb-cipher 24))
 ;; encryption
 
 (test-equal "DES/ECB encrypt"

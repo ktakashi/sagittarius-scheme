@@ -93,7 +93,7 @@ typedef struct SgMethodRec
     SG__PROCEDURE_INITIALIZER(SG_CLASS_STATIC_TAG(Sg_MethodClass),	\
 			      req, opt, SG_PROC_METHOD,			\
 			      SG_FALSE, SG_FALSE),			\
-    gf, SG_KEYWORD_PRIMARY, specs, proc					\
+    gf, SG_KEYWORD(SG_KEYWORD_PRIMARY), specs, proc			\
   }
 
 SG_CLASS_DECL(Sg_NextMethodClass);

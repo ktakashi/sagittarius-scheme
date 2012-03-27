@@ -7,20 +7,20 @@
 (library (sagittarius crypto)
     (export crypto-object?
 	    cipher?
-	    make-symmetric-cipher
-	    make-public-key-cipher
+	    make-builtin-cipher-spi
+	    make-cipher
 	    encrypt
 	    decrypt
 	    suggest-keysize
 	    sign
 	    verify
+	    ;;
+	    register-spi
+	    lookup-spi
+
 	    ;; key
-	    key
 	    key?
 	    generate-secret-key
-	    ;; random number generator
-	    make-pseudo-random
-	    read-random-bytes
 	    ;; supported modes
 	    MODE_ECB
 	    MODE_CBC
@@ -43,6 +43,11 @@
 	    raise-decode-error
 	    ;;
 	    <crypto>
+	    <cipher>
+	    <cipher-spi>
+	    <key>
+	    <symmetric-key>
+	    <asymmetric-key>
 	    )
     (import (rnrs)
 	    (sagittarius crypto impl))

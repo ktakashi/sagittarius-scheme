@@ -45,12 +45,22 @@
 	    ;; ctr conter mode
 	    CTR_COUNTER_LITTLE_ENDIAN
 	    CTR_COUNTER_BIG_ENDIAN
-	    LTC_CTR_RFC3686)
+	    LTC_CTR_RFC3686
+
+	    <crypto>
+	    <cipher>
+	    <cipher-spi>
+	    <key>
+	    <symmetric-key>
+	    <asymmetric-key>
+	    )
     (import (core)
 	    (core base)
 	    (crypto key)
+	    (crypto marker)
 	    (crypto pkcs)
 	    (sagittarius)
+	    (clos core)
 	    (sagittarius control)
 	    (sagittarius crypto))
 
@@ -78,29 +88,36 @@
   (define-constant SEED        "seed")
   (define-constant KASUMI      "kasumi")
 
-  (define-constant *symmetric-types*
-    '("blowfish" "xtea" "rc2" "rc5" "rc6"
-      "safer+" "safer-k64" "safer-sk64"
-      "safer-k128" "safer-sk128"
-      "aes" "twofish" "des" "3des"
-      "cast5" "noekeon" "skipjack"
-      "khazad" "seed" "kasumi"))
+  (define (cipher-keysize cipher test)
+    (unless (cipher? cipher)
+      (assertion-violation 'cipher-keysize
+			   (format "cipher required but got ~s" cipher)))
+    (suggest-keysize cipher test))
 
-  (define (cipher-keysize type test)
-    (suggest-keysize type test))
-
-  (define-with-key (cipher type key 
-			   :key (mode MODE_ECB)
-			        (iv #f)
-				(padder pkcs5-padder)
-				(rounds 0)
-				(ctr-mode CTR_COUNTER_LITTLE_ENDIAN)
-			   :allow-other-keys rest)
-    (unless (or (= mode MODE_ECB)
-		(bytevector? iv))
+  (define (cipher type key 
+		  :key (mode MODE_ECB)
+		  (iv #f)
+		  (padder pkcs5-padder)
+		  (rounds 0)
+		  (ctr-mode CTR_COUNTER_LITTLE_ENDIAN)
+		  :allow-other-keys
+		  :rest rest)
+    (unless (or (= mode MODE_ECB) (bytevector? iv))
       (assertion-violation 'cipher
 			   "on the given mode iv id required"))
-    (if (member type *symmetric-types*)
-	(make-symmetric-cipher type mode key iv rounds padder ctr-mode)
-	(apply public-key-cipher type key rest)))
+    (let ((type (cond ((string? type) type)
+		      ((is-a? type <marker>) (slot-ref type 'name))
+		      (else
+		       (assertion-violation 'cipher
+					    "invalid type" type)))))
+      (let ((spi (cond ((lookup-spi type)
+			=> (lambda (spi)
+			     (if (boolean? spi)
+				 (make-builtin-cipher-spi
+				  type mode key iv rounds padder ctr-mode)
+				 (apply make spi key rest))))
+		       (else
+			(assertion-violation 'cipher
+					     "unknown cipher type" type)))))
+	(make-cipher spi))))
 )

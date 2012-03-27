@@ -34,14 +34,6 @@
 
 #include <sagittarius.h>
 #include <tomcrypt.h>
-/*
-
- */
-typedef enum {
-  CRYPTO_SYM_CIPHER,
-  CRYPTO_PUB_CIPHER,
-  CRYPTO_KEY,
-} SgCryptoType;
 
 typedef enum {
   MODE_ECB,
@@ -59,29 +51,76 @@ typedef enum {
   SG_SECRET,
 } SgKeyType;
 
-typedef struct SgKeyRec
+/*
+  27-3-2012 Re-writing
+  won't change Scheme APIs.
+
+  Use CLOS class for cipher and keys.
+  the hierarchy is like this;
+
+     +------- <crypto> ------+
+     |           |           |
+  <cipher>  <cipher-spi>   <key>
+                 |
+        <builtin-cipher-spi>
+
+
+          +------ <key> ------+
+          |                   |
+    <symmetric-key>    <asymmetric-key>
+
+  The whole purpose of this hierarchy is to make adding a new algorithm easier.
+  The name spi is actually Service Provider Interface but in this case we do 
+  not have any other providers, so actually just for algorithm.
+ */
+/* class declaration */
+SG_CLASS_DECL(Sg_CryptoClass);
+SG_CLASS_DECL(Sg_CipherClass);
+SG_CLASS_DECL(Sg_CipherSpiClass);
+SG_CLASS_DECL(Sg_BuiltinCipherSpiClass);
+SG_CLASS_DECL(Sg_KeyClass);
+SG_CLASS_DECL(Sg_SymmetricKeyClass);
+SG_CLASS_DECL(Sg_AsymmetricKeyClass);
+
+#define SG_CLASS_CRYPTO             (&Sg_CryptoClass)
+#define SG_CLASS_CIPHER             (&Sg_CipherClass)
+#define SG_CLASS_CIPHER_SPI         (&Sg_CipherSpiClass)
+#define SG_CLASS_BUILTIN_CIPHER_SPI (&Sg_BuiltinCipherSpiClass)
+#define SG_CLASS_KEY                (&Sg_KeyClass)
+#define SG_CLASS_SYMMETRIC_KEY      (&Sg_SymmetricKeyClass)
+#define SG_CLASS_ASYMMETRIC_KEY     (&Sg_AsymmetricKeyClass)
+
+/* <crypto>, <key> and <asymmetric-key> are abstract */
+#define SG_CRYPTOP(obj) SG_XTYPEP(obj, SG_CLASS_CRYPTO)
+
+#define SG_CIPHER(obj)  ((SgCipher*)obj)
+#define SG_CIPHERP(obj) SG_XTYPEP(obj, SG_CLASS_CIPHER)
+
+#define SG_CIPHER_SPI(obj)  ((SgCipherSpi*)obj)
+#define SG_CIPHER_SPI_P(obj) SG_XTYPEP(obj, SG_CLASS_CIPHER_SPI)
+
+#define SG_BUILTIN_CIPHER_SPI(obj)  ((SgBuiltinCipherSpi*)obj)
+#define SG_BUILTIN_CIPHER_SPI_P(obj) SG_XTYPEP(obj, SG_CLASS_BUILTIN_CIPHER_SPI)
+
+#define SG_KEYP(obj) SG_XTYPEP(obj, SG_CLASS_KEY)
+
+#define SG_SYMMETRIC_KEY(obj)   ((SgSymmetricKey*)obj)
+#define SG_SYMMETRIC_KEY_P(obj) SG_XTYPEP(obj, SG_CLASS_SYMMETRIC_KEY)
+
+#define SG_ASYMMETRIC_KEY_P(obj) SG_XTYPEP(obj, SG_CLASS_ASYMMETRIC_KEY)
+
+
+typedef struct SgSymmetricKeyRec
 {
-  SgSymbol *name;
-  SgKeyType type;
-  union {
-#if 0
-    union {
-      dsa_key dsa;
-      rsa_key rsa;
-    } privateKey, publicKey;	/* both are the same key */
-#endif
-    /* raw key value */
-    SgByteVector *secretKey;
-  } impl;
-} SgKey;
+  SG_HEADER;
+  SgObject name;
+  SgByteVector *secretKey;
+} SgSymmetricKey;
 
 /* key record type for procedure key? */
 extern SgObject key_rtd;
 
-/* for convenience */
-#define SG_PRIVATE_KEY(obj) (&((obj)->impl.privateKey))
-#define SG_PUBLIC_KEY(obj)  (&((obj)->impl.publicKey))
-#define SG_SECRET_KEY(obj)  ((obj)->impl.secretKey)
+#define SG_SECRET_KEY(obj)  ((obj)->secretKey)
 
 
 /* symmetric key cryptosystem */
@@ -97,15 +136,18 @@ typedef int (*decrypt_proc)(const unsigned char *ct,
 			    void *skey);
 typedef int (*iv_proc)(unsigned char *IV, unsigned long *len, void *skey);
 typedef int (*done_proc)(void *skey);
+typedef int (*keysize_proc)(int *keysize);
 
 typedef struct symmetric_cipher_rec_t
 {
-  SgCryptoMode  mode;
-  SgObject      iv;   /* bytevector or #f, cf) ECB does not need iv */
-  int           cipher;	    /* the index into the cipher_descriptor */
-  int           rounds;	    /* # of round */
-  SgObject      padder;	    /* to padding */
-  SgKey        *key;	    /* raw key */
+  SG_HEADER;
+  SgObject       name;
+  SgCryptoMode   mode;
+  SgObject       iv;	    /* bytevector or #f, cf) ECB does not need iv */
+  int            cipher;    /* the index into the cipher_descriptor */
+  int            rounds;    /* # of round */
+  SgObject       padder;    /* to padding */
+  SgSymmetricKey *key;	    /* raw key */
   union {
     symmetric_CBC cbc_key;
     symmetric_CTR ctr_key;
@@ -125,72 +167,59 @@ typedef struct symmetric_cipher_rec_t
   iv_proc setiv;
   /* clean up */
   done_proc done;
-} symmetric_cipher_t;
+  keysize_proc keysize;
+} SgBuiltinCipherSpi;
 
+/* hopefully we have enough */
 typedef struct public_key_cipher_ret_t
 {
+  SG_HEADER;
   SgObject name;
-  SgObject key;			/* public/private key */
-  SgObject encrypter;		/* if key was public */
-  SgObject decrypter;		/* if key was private */
+  SgObject key;
+  SgObject encrypter;
+  SgObject decrypter;
   SgObject padder;
   SgObject signer;
   SgObject verifier;
-} public_key_cipher_t;
+  SgObject keysize;
+  SgObject data;
+} SgCipherSpi;
 
 
-typedef struct SgCryptoRec
+typedef struct SgCipherRec
 {
   SG_HEADER;
-  SgCryptoType type;
-  union {
-    symmetric_cipher_t  scipher;
-    public_key_cipher_t pcipher;
-    SgKey               key;
-  } impl;
-} SgCrypto;
+  SgObject spi;
+} SgCipher;
 
-SG_CLASS_DECL(Sg_CryptoClass);
-#define SG_CLASS_CRYPTO   (&Sg_CryptoClass)
-#define SG_CRYPTO(obj)   ((SgCrypto *)obj)
-#define SG_CRYPTOP(obj) SG_XTYPEP(obj, SG_CLASS_CRYPTO)
-/* accessor */
-#define SG_SCIPHER(obj) (&(SG_CRYPTO(obj)->impl.scipher))
-#define SG_PCIPHER(obj) (&(SG_CRYPTO(obj)->impl.pcipher))
-
-#define SG_INIT_CIPHER(cipher, enc, dec, giv, siv, end)	\
-  do {							\
-    (cipher)->encrypt = (encrypt_proc)(enc);		\
-    (cipher)->decrypt = (decrypt_proc)(dec);		\
-    (cipher)->getiv = (iv_proc)(giv);			\
-    (cipher)->setiv = (iv_proc)(siv);			\
-    (cipher)->done = (done_proc)(end);			\
+#define SG_INIT_CIPHER(cipher, enc, dec, giv, siv, end, keysiz)	\
+  do {								\
+    (cipher)->encrypt = (encrypt_proc)(enc);			\
+    (cipher)->decrypt = (decrypt_proc)(dec);			\
+    (cipher)->getiv = (iv_proc)(giv);				\
+    (cipher)->setiv = (iv_proc)(siv);				\
+    (cipher)->done = (done_proc)(end);				\
+    (cipher)->keysize = (keysize_proc)(keysiz);			\
   } while (0);
 
+SgObject Sg_MakeBuiltinCipherSpi(SgString *name, SgCryptoMode mode,
+				 SgObject key, SgObject iv, int rounds,
+				 SgObject padder, int ctr_mode);
+SgObject Sg_MakeCipher(SgObject spi);
+int      Sg_SuggestKeysize(SgCipher *cipher, int keysize);
 
-#define SG_KEYP(obj) (SG_CRYPTO(obj)->type == CRYPTO_KEY)
-#define SG_KEY(obj)   (&(SG_CRYPTO(obj)->impl.key))
+SgObject Sg_Encrypt(SgCipher *crypto, SgByteVector *data);
+SgObject Sg_Decrypt(SgCipher *crypto, SgByteVector *data);
 
-#define argumentAsCrypto(index, tmp_, var_)				\
-  castArgumentType(index, tmp_, var_, crypto, SG_CRYPTO_P, SG_CRYPTO)
-
-SgObject Sg_MakeCrypto(SgCryptoType type);
-
-SgObject Sg_MakeSymmetricCipher(SgString *name, SgCryptoMode mode, SgCrypto *key,
-				SgObject iv, int rounds, SgObject padder, int ctr_mode);
-SgObject Sg_MakePublicKeyCipher(SgObject name, SgObject key, SgObject encrypter,
-				SgObject decrypter, SgObject padder, SgObject signer,
-				SgObject verifier);
-int      Sg_SuggestKeysize(SgString *name, int keysize);
-
-SgObject Sg_Encrypt(SgCrypto *crypto, SgByteVector *data);
-SgObject Sg_Decrypt(SgCrypto *crypto, SgByteVector *data);
-
-SgObject Sg_Signature(SgCrypto *crypto, SgByteVector *data, SgObject opt);
-SgObject Sg_Verify(SgCrypto *crypto, SgByteVector *M, SgByteVector *S, SgObject opt);
+SgObject Sg_Signature(SgCipher *crypto, SgByteVector *data, SgObject opt);
+SgObject Sg_Verify(SgCipher *crypto, SgByteVector *M, SgByteVector *S,
+		   SgObject opt);
 
 /* keys */
-SgObject Sg_GenerateSecretKey(SgString *type, SgByteVector *key);
+SgObject Sg_GenerateSecretKey(SgString *name, SgByteVector *key);
 
+/* plugin */
+int      Sg_RegisterSpi(SgString *name, SgObject spi);
+SgObject Sg_LoookupSpi(SgString *name);
 
 #endif /* SAGITTARIUS_CRYPTO_H_ */
