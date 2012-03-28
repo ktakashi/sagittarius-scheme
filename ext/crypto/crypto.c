@@ -89,12 +89,12 @@ SgObject Sg_MakeBuiltinCipherSpi(SgString *name, SgCryptoMode mode,
   SgByteVector *key;
   keysize_proc keysize;
 
-  ASSERT(SG_SYMMETRIC_KEY_P(ckey));
+  ASSERT(SG_BUILTIN_SYMMETRIC_KEY_P(ckey));
 
-  key = SG_SYMMETRIC_KEY(ckey)->secretKey;
+  key = SG_BUILTIN_SYMMETRIC_KEY(ckey)->secretKey;
   spi->name = name;
   spi->cipher = cipher;
-  spi->key = SG_SYMMETRIC_KEY(ckey);
+  spi->key = SG_BUILTIN_SYMMETRIC_KEY(ckey);
   spi->iv = iv;
   spi->mode = mode;
   spi->rounds = rounds;
@@ -349,7 +349,7 @@ SgObject Sg_Verify(SgCipher *crypto, SgByteVector *M, SgByteVector *S,
 
 struct table_entry_t
 {
-  SgString *name;
+  SgObject name;
   SgObject spi;
   struct table_entry_t *next;
 };
@@ -362,17 +362,16 @@ static struct
 
 static SgInternalMutex lock;
 
-int Sg_RegisterSpi(SgString *name, SgObject spiClass)
+int Sg_RegisterSpi(SgObject name, SgObject spiClass)
 {
-  struct table_entry_t *e, *all;
+  struct table_entry_t *e;
+  SgObject r = Sg_LoookupSpi(name);
+  /* already there, we won't overwrite.
+     TODO, should we overwrite this?
+   */
+  if (!SG_FALSEP(r)) return FALSE;
+
   Sg_LockMutex(&lock);
-  for (all = table.entries; all; all = all->next) {
-    if (Sg_StringEqual(name, all->name)) {
-      Sg_UnlockMutex(&lock);
-      /* should we raise error? */
-      return FALSE;
-    }
-  }
   e = SG_NEW(struct table_entry_t);
   e->name = name;
   e->spi = spiClass;
@@ -382,21 +381,22 @@ int Sg_RegisterSpi(SgString *name, SgObject spiClass)
   return TRUE;
 }
 
-SgObject Sg_LoookupSpi(SgString *name)
+SgObject Sg_LoookupSpi(SgObject name)
 {
   struct table_entry_t *all;
-  char *cname;
   Sg_LockMutex(&lock);
   for (all = table.entries; all; all = all->next) {
-    if (Sg_StringEqual(name, all->name)) {
+    if (Sg_EqualP(name, all->name)) {
       Sg_UnlockMutex(&lock);
       return all->spi;
     }
   }
   Sg_UnlockMutex(&lock);
   /* now we need to check builtin */
-  cname = Sg_Utf32sToUtf8s(name);
-  if(find_cipher(cname) != -1) return SG_TRUE;
+  if (SG_STRINGP(name)) {
+    const char *cname = Sg_Utf32sToUtf8s(SG_STRING(name));
+    if(find_cipher(cname) != -1) return SG_TRUE;
+  }
   return SG_FALSE;
 }
 
@@ -601,6 +601,8 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__crypto()
   Sg_InitStaticClass(SG_CLASS_KEY, UC("<key>"), lib, NULL, 0);
   Sg_InitStaticClass(SG_CLASS_SYMMETRIC_KEY,
 		     UC("<symmetric-key>"), lib, NULL, 0);
+  Sg_InitStaticClass(SG_CLASS_BUILTIN_SYMMETRIC_KEY,
+		     UC("<bultin-symmetric-key>"), lib, NULL, 0);
   Sg_InitStaticClass(SG_CLASS_ASYMMETRIC_KEY, UC("<asymmetric-key>"),
 		     lib, NULL, 0);
 }

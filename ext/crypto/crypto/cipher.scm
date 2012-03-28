@@ -57,7 +57,6 @@
     (import (core)
 	    (core base)
 	    (crypto key)
-	    (crypto marker)
 	    (crypto pkcs)
 	    (sagittarius)
 	    (clos core)
@@ -105,19 +104,14 @@
     (unless (or (= mode MODE_ECB) (bytevector? iv))
       (assertion-violation 'cipher
 			   "on the given mode iv id required"))
-    (let ((type (cond ((string? type) type)
-		      ((is-a? type <marker>) (slot-ref type 'name))
-		      (else
-		       (assertion-violation 'cipher
-					    "invalid type" type)))))
-      (let ((spi (cond ((lookup-spi type)
-			=> (lambda (spi)
-			     (if (boolean? spi)
-				 (make-builtin-cipher-spi
-				  type mode key iv rounds padder ctr-mode)
-				 (apply make spi key rest))))
-		       (else
-			(assertion-violation 'cipher
-					     "unknown cipher type" type)))))
-	(make-cipher spi))))
+    (let ((spi (cond ((lookup-spi type)
+		      => (lambda (spi)
+			   (if (boolean? spi)
+			       (make-builtin-cipher-spi
+				type mode key iv rounds padder ctr-mode)
+			       (apply make spi key rest))))
+		     (else
+		      (assertion-violation 'cipher
+					   "unknown cipher type" type)))))
+	(make-cipher spi)))
 )

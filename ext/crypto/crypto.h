@@ -68,6 +68,8 @@ typedef enum {
           +------ <key> ------+
           |                   |
     <symmetric-key>    <asymmetric-key>
+          |
+  <buitlin-symmetric-key>
 
   The whole purpose of this hierarchy is to make adding a new algorithm easier.
   The name spi is actually Service Provider Interface but in this case we do 
@@ -80,15 +82,17 @@ SG_CLASS_DECL(Sg_CipherSpiClass);
 SG_CLASS_DECL(Sg_BuiltinCipherSpiClass);
 SG_CLASS_DECL(Sg_KeyClass);
 SG_CLASS_DECL(Sg_SymmetricKeyClass);
+SG_CLASS_DECL(Sg_BuiltinSymmetricKeyClass);
 SG_CLASS_DECL(Sg_AsymmetricKeyClass);
 
-#define SG_CLASS_CRYPTO             (&Sg_CryptoClass)
-#define SG_CLASS_CIPHER             (&Sg_CipherClass)
-#define SG_CLASS_CIPHER_SPI         (&Sg_CipherSpiClass)
-#define SG_CLASS_BUILTIN_CIPHER_SPI (&Sg_BuiltinCipherSpiClass)
-#define SG_CLASS_KEY                (&Sg_KeyClass)
-#define SG_CLASS_SYMMETRIC_KEY      (&Sg_SymmetricKeyClass)
-#define SG_CLASS_ASYMMETRIC_KEY     (&Sg_AsymmetricKeyClass)
+#define SG_CLASS_CRYPTO                (&Sg_CryptoClass)
+#define SG_CLASS_CIPHER                (&Sg_CipherClass)
+#define SG_CLASS_CIPHER_SPI            (&Sg_CipherSpiClass)
+#define SG_CLASS_BUILTIN_CIPHER_SPI    (&Sg_BuiltinCipherSpiClass)
+#define SG_CLASS_KEY                   (&Sg_KeyClass)
+#define SG_CLASS_SYMMETRIC_KEY         (&Sg_SymmetricKeyClass)
+#define SG_CLASS_BUILTIN_SYMMETRIC_KEY (&Sg_BuiltinSymmetricKeyClass)
+#define SG_CLASS_ASYMMETRIC_KEY        (&Sg_AsymmetricKeyClass)
 
 /* <crypto>, <key> and <asymmetric-key> are abstract */
 #define SG_CRYPTOP(obj) SG_XTYPEP(obj, SG_CLASS_CRYPTO)
@@ -104,24 +108,23 @@ SG_CLASS_DECL(Sg_AsymmetricKeyClass);
 
 #define SG_KEYP(obj) SG_XTYPEP(obj, SG_CLASS_KEY)
 
-#define SG_SYMMETRIC_KEY(obj)   ((SgSymmetricKey*)obj)
 #define SG_SYMMETRIC_KEY_P(obj) SG_XTYPEP(obj, SG_CLASS_SYMMETRIC_KEY)
+
+#define SG_BUILTIN_SYMMETRIC_KEY(obj)   ((SgBuiltinSymmetricKey*)obj)
+#define SG_BUILTIN_SYMMETRIC_KEY_P(obj)			\
+  SG_XTYPEP(obj, SG_CLASS_BUILTIN_SYMMETRIC_KEY)
 
 #define SG_ASYMMETRIC_KEY_P(obj) SG_XTYPEP(obj, SG_CLASS_ASYMMETRIC_KEY)
 
 
-typedef struct SgSymmetricKeyRec
+typedef struct
 {
   SG_HEADER;
   SgObject name;
   SgByteVector *secretKey;
-} SgSymmetricKey;
+} SgBuiltinSymmetricKey;
 
-/* key record type for procedure key? */
-extern SgObject key_rtd;
-
-#define SG_SECRET_KEY(obj)  ((obj)->secretKey)
-
+#define SG_SECRET_KEY(k) (k)->secretKey
 
 /* symmetric key cryptosystem */
 typedef int (*encrypt_proc)(const unsigned char *pt,
@@ -147,7 +150,7 @@ typedef struct symmetric_cipher_rec_t
   int            cipher;    /* the index into the cipher_descriptor */
   int            rounds;    /* # of round */
   SgObject       padder;    /* to padding */
-  SgSymmetricKey *key;	    /* raw key */
+  SgBuiltinSymmetricKey *key;	/* raw key */
   union {
     symmetric_CBC cbc_key;
     symmetric_CTR ctr_key;
@@ -219,7 +222,7 @@ SgObject Sg_Verify(SgCipher *crypto, SgByteVector *M, SgByteVector *S,
 SgObject Sg_GenerateSecretKey(SgString *name, SgByteVector *key);
 
 /* plugin */
-int      Sg_RegisterSpi(SgString *name, SgObject spi);
-SgObject Sg_LoookupSpi(SgString *name);
+int      Sg_RegisterSpi(SgObject name, SgObject spi);
+SgObject Sg_LoookupSpi(SgObject name);
 
 #endif /* SAGITTARIUS_CRYPTO_H_ */

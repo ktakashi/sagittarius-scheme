@@ -20,7 +20,6 @@
 	    RSA
 	    )
     (import (rnrs)
-	    (crypto marker)
 	    (crypto pkcs)
 	    (crypto key pair)
 	    (math)
@@ -69,8 +68,8 @@
   (define (rsa-public-key? o) (is-a? o <rsa-public-key>))
 
   ;; marker class for generic functions
-  (define-class <rsa> (<marker>) ())
-  (define RSA (make <rsa> :name "RSA"))
+  (define-class <rsa> () ())
+  (define RSA (make <rsa>))
 
   (define *rsa-min-keysize* 256)
   (define *rsa-max-keysize* 4096)
@@ -158,8 +157,8 @@
 	  (slot-set! o 'verifier rsa-verify)
 	  (slot-set! o 'keysize rsa-keysize)
 	  o))))
-
-  (register-spi "RSA" <rsa-cipher-spi>)
+  ;; use marker
+  (register-spi RSA <rsa-cipher-spi>)
 
   (define (rsa-keysize keysize) *rsa-max-keysize*)
 

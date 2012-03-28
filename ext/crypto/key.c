@@ -36,28 +36,30 @@
 #include "crypto.h"
 
 SgClass *Sg__KeyCPL[] = {
+  SG_CLASS_SYMMETRIC_KEY,
   SG_CLASS_KEY,
   SG_CLASS_CRYPTO,
   SG_CLASS_TOP,
   NULL,
 };
-SG_DEFINE_ABSTRACT_CLASS(Sg_KeyClass, Sg__KeyCPL+1);
-SG_DEFINE_ABSTRACT_CLASS(Sg_AsymmetricKeyClass, Sg__KeyCPL);
+SG_DEFINE_ABSTRACT_CLASS(Sg_KeyClass, Sg__KeyCPL+2);
+SG_DEFINE_ABSTRACT_CLASS(Sg_AsymmetricKeyClass, Sg__KeyCPL+1);
+SG_DEFINE_ABSTRACT_CLASS(Sg_SymmetricKeyClass, Sg__KeyCPL+1);
 
 static void symmetric_key_print(SgObject self, SgPort *port, 
 				SgWriteContext *ctx)
 {
-  Sg_Printf(port, UC("#<%A-key>"), SG_SYMMETRIC_KEY(self)->name);
+  Sg_Printf(port, UC("#<%A-key>"), SG_BUILTIN_SYMMETRIC_KEY(self)->name);
 }
 
-SG_DEFINE_BUILTIN_CLASS(Sg_SymmetricKeyClass, symmetric_key_print,
+SG_DEFINE_BUILTIN_CLASS(Sg_BuiltinSymmetricKeyClass, symmetric_key_print,
 			NULL, NULL, NULL, Sg__KeyCPL);
 
 
-static SgSymmetricKey *make_skey()
+static SgBuiltinSymmetricKey *make_skey()
 {
-  SgSymmetricKey *z = SG_NEW(SgSymmetricKey);
-  SG_SET_CLASS(z, SG_CLASS_SYMMETRIC_KEY);
+  SgBuiltinSymmetricKey *z = SG_NEW(SgBuiltinSymmetricKey);
+  SG_SET_CLASS(z, SG_CLASS_BUILTIN_SYMMETRIC_KEY);
   return z;
 }
 
@@ -65,7 +67,7 @@ static SgSymmetricKey *make_skey()
 SgObject Sg_GenerateSecretKey(SgString *name, SgByteVector *key)
 {
   int len = SG_BVECTOR_SIZE(key);
-  SgSymmetricKey *skey;
+  SgBuiltinSymmetricKey *skey;
   const char *cname = Sg_Utf32sToUtf8s(name);
   int cipher = find_cipher(cname), err;
 

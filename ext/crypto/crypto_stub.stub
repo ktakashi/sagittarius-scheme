@@ -12,7 +12,7 @@
   (define-type <cipher> "SgCipher*")
   (define-type <cipher-spi> "SgCipherSpi*")
   (define-type <key> "SgKey*")
-  (define-type <symmetric-key> "SgSymmetricKey*")
+  (define-type <builtin-symmetric-key> "SgBuiltinSymmetricKey*")
 
   (define-c-proc crypto-object? (o) ::<boolean>
     (result (Sg_TypeP o SG_CLASS_CRYPTO)))
@@ -29,7 +29,7 @@
   ;;    (result (Sg_GenerateSecretKey type key)))
 
   (define-c-proc make-builtin-cipher-spi
-    (name::<string> mode::<fixnum> key::<symmetric-key>
+    (name::<string> mode::<fixnum> key::<builtin-symmetric-key>
 		    iv rounds::<fixnum> padder ctr_mode::<fixnum>)
     
     (unless (or (SG_FALSEP iv)
@@ -69,9 +69,9 @@
     (crypto::<cipher> M::<bytevector> S::<bytevector> :rest opt) 
     (result (Sg_Verify crypto M S opt)))
 
-  (define-c-proc register-spi (name::<string> spi::<class>) ::<boolean>
+  (define-c-proc register-spi (name spi::<class>) ::<boolean>
     (result (Sg_RegisterSpi name spi)))
 
-  (define-c-proc lookup-spi (name::<string>)
+  (define-c-proc lookup-spi (name)
     (result (Sg_LoookupSpi name)))
   )

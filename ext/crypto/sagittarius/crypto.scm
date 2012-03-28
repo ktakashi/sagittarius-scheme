@@ -45,8 +45,10 @@
 	    <crypto>
 	    <cipher>
 	    <cipher-spi>
+	    <builtin-cipher-spi>
 	    <key>
 	    <symmetric-key>
+	    <builtin-symmetric-key>
 	    <asymmetric-key>
 	    )
     (import (rnrs)
