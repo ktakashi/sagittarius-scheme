@@ -275,6 +275,12 @@
       (make <der-bit-string> :data data :padding-bits pad))
     (define-method make-der-bit-string ((data <bytevector>))
       (make-der-bit-string data 0))
+    (define-method make-der-bit-string ((obj <asn.1-tagged-object>)
+					(explicit <boolean>))
+      (let ((o (der-encodable->der-object obj)))
+	(if (or explicit (is-a? o <der-bit-string>))
+	    o
+	    (make-der-bit-string (slot-ref o 'string)))))
     ;; encode
     (define-method der-encode ((o <der-bit-string>) (p <port>))
       (let* ((data (slot-ref o 'data))
@@ -516,6 +522,17 @@
 	    (if (zero? i) #vu8(0) (integer->bytevector i))))
     (define-method make-der-integer ((b <bytevector>))
       (make <der-integer> :bytes b))
+    (define-method make-der-integer ((obj <asn.1-tagged-object>)
+				     (explicit <boolean>))
+      (let ((o (der-encodable->der-object obj)))
+	;; assume it's <der-integer> even if it's explicit
+	(cond ((or explicit (is-a? o <der-integer>)) o) 
+	      ((is-a? o <asn.1-octet-string>)
+	       (make-der-integer (slot-ref o 'string)))
+	      (else
+	       (assertion-violation 'make-der-integer
+				    "invalid object was given" obj)))))
+
     (define-method der-integer->integer ((o <der-integer>))
       (bytevector->integer (slot-ref o 'bytes)))
     (define-method der-encode ((o <der-integer>) (p <port>))
