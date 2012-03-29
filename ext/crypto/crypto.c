@@ -39,6 +39,11 @@ static void cipher_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
   Sg_Printf(port, UC("#<cipher %S>"), SG_CIPHER(self)->spi);
 }
 
+static void spi_print(SgObject self, SgPort *port, SgWriteContext *ctx)
+{
+  Sg_Printf(port, UC("#<cipher-spi %S>"), SG_CIPHER_SPI(self)->name);
+}
+
 SgClass *Sg__CipherCPL[] = {
   SG_CLASS_CRYPTO,
   SG_CLASS_TOP,
@@ -53,7 +58,9 @@ SgClass *Sg__CipherSpiCPL[] = {
 };
 
 SG_DEFINE_ABSTRACT_CLASS(Sg_CryptoClass, NULL);
-SG_DEFINE_ABSTRACT_CLASS(Sg_CipherSpiClass, Sg__CipherSpiCPL+1);
+SG_DEFINE_BASE_CLASS(Sg_CipherSpiClass, SgCipherSpi,
+		     spi_print, NULL, NULL, Sg_ObjectAllocate,
+		     Sg__CipherSpiCPL+1);
 
 SG_DEFINE_BUILTIN_CLASS(Sg_CipherClass, cipher_printer,
 			NULL, NULL, NULL, Sg__CipherCPL);
