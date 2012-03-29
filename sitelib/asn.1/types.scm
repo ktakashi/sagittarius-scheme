@@ -104,8 +104,13 @@
       	    asn.1-sequence-add
 	    asn.1-sequence-get
 	    asn.1-sequence-size
+	    asn.1-set-add
+	    asn.1-set-get
+	    asn.1-set-size
 	    der-integer->integer
 	    der-encode
+	    der-boolean->boolean
+	    der-time->date
 
 	    ;; misc
 	    *current-indent*
@@ -262,6 +267,11 @@
     (define-method asn.1-set-add ((self <asn.1-set>)
 				  (o <der-encodable>))
       (slot-set! self 'set (append (slot-ref self 'set) (list o))))
+    (define-method asn.1-set-get ((self <asn.1-set>)
+				       (i <integer>))
+      (list-ref (slot-ref self 'set) i))
+    (define-method asn.1-set-size ((self <asn.1-set>))
+      (length (slot-ref self 'set)))
 
     ;; ASN1Choice
     ;; This is just a marker interface
@@ -369,7 +379,7 @@
     (define-method der-encode ((o <der-ia5-string>) (p <port>))
       (der-write-encoded IA5-STRING (string->utf8 (slot-ref o 'string)) p))
     (define-method asn.1-string->string ((o <der-ia5-string>))
-      (slot-ref l 'string))
+      (slot-ref o 'string))
     (define-method write-object ((o <der-ia5-string>) (p <port>))
       (generic-write "der-ia5-string" (slot-ref o 'string) p))
 
@@ -501,6 +511,8 @@
 	(der-write-encoded BOOLEAN bytes p)))
     (define-method write-object ((o <der-boolean>) (p <port>))
       (generic-write "der-boolean" (if (zero? (slot-ref o 'value)) #f #t) p))
+    (define-method der-boolean->boolean ((o <der-boolean>))
+      (not (= (slot-ref o 'value) 0)))
 
     ;; DEREnumerated
     (define-class <der-enumerated> (<asn.1-object>) 
@@ -768,6 +780,27 @@
       (der-write-encoded GENERALIZED-TIME (string->utf8 (slot-ref o 'time)) p))
     (define-method write-object ((o <der-generalized-time>) (p <port>))
       (generic-write "der-generalized-time" (slot-ref o 'time) p))
+    (define-method der-time->date ((o <der-generalized-time>))
+      (define (has-fraction-seconds time)
+	(let ((i (string-index time #\.)))
+	  (if i
+	      (= i 14)
+	      #f)))
+      (define (get-format time)
+	(cond ((string-suffix? "Z" time)
+	       (if (has-fraction-seconds time)
+		   "~Y~m~d~H~M~S.~~~~~~'~z'"
+		   "~Y~m~d~H~M~S'~z'"))
+	      ((or (string-index time #\-)
+		   (string-index time #\+))
+	       (assertion-violation 'der-time->date
+				    "not supported yet"))
+	      (else
+	       (if (has-fraction-seconds time)
+		   "~Y~m~d~H~M~S.~~~~~~"
+		   "~Y~m~d~H~M~S"))))
+      (let ((time (slot-ref o 'time)))
+	(string->date time (get-format time))))
 
     ;; DERUTCTime
     (define-class <der-utc-time> (<asn.1-object>)
@@ -783,6 +816,9 @@
       (der-write-encoded UTC-TIME (string->utf8 (slot-ref o 'time)) p))
     (define-method write-object ((o <der-utc-time>) (p <port>))
       (generic-write "der-utc-time" (slot-ref o 'time) p))
+    (define-method der-time->date ((o <der-utc-time>))
+      (string->date (slot-ref o 'time) "~y~m~d~H~M~S~z"))
+
 
     ;; Tagged object
     ;; TODO should we create object parser?

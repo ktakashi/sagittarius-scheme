@@ -103,8 +103,8 @@ SG_CLASS_DECL(Sg_HashAlgoClass);
 #define SG_HASH(obj)   ((SgHashAlgo *)obj)
 #define SG_HASH_P(obj) SG_XTYPEP(obj, SG_CLASS_HASH)
 
-#define SG_HASH_ALGO   SG_HASH
-#define SG_HASH_ALGO_P SG_HASH_P
+#define SG_HASH_ALGORITHM   SG_HASH
+#define SG_HASH_ALGORITHM_P SG_HASH_P
 
 /* random */
 SgObject Sg_MakePseudoRandom(SgString *name, SgObject seed);

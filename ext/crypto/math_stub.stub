@@ -10,7 +10,7 @@
 	     "math.h"))
 
   (define-type <prng> "SgPrng*")
-  (define-type <hash-algo> "SgHashAlgo*")
+  (define-type <hash-algorithm> "SgHashAlgo*")
 
   (define-c-proc prng? (o) ::<boolean>
     (result (SG_PRNGP o)))
@@ -64,18 +64,26 @@
 				       process '()))
     (result (Sg_MakeHash name process)))
 
-  (define-c-proc hash-init! (h::<hash-algo>) ::<boolean>
+  (define-c-proc hash-init! (h::<hash-algorithm>) ::<boolean>
     (result (Sg_HashInit h)))
 
-  (define-c-proc hash-process! (h::<hash-algo> in::<bytevector>) ::<void>
+  (define-c-proc hash-process! (h::<hash-algorithm> in::<bytevector>) ::<void>
     (Sg_HashProcess h in))
 
-  (define-c-proc hash-done! (h::<hash-algo> out::<bytevector>) ::<void>
+  (define-c-proc hash-done! (h::<hash-algorithm> out::<bytevector>) ::<void>
     (Sg_HashDone h out))
 
-  (define-c-proc hash-size (h::<hash-algo>) 
+  (define-c-proc hash-size (h::<hash-algorithm>) 
     (result (Sg_HashSize h)))
 
-  (define-c-proc hash-oid (h::<hash-algo>) 
-    (result (Sg_HashOid h)))
+  (define-c-proc hash-oid (h)
+    (unless (or (SG_HASH_P h)
+		(SG_STRINGP h))
+      (Sg_WrongTypeOfArgumentViolation 
+       'hash-oid
+       (SG_MAKE_STRING "<string> or <hash-algorithm> required")
+       h '()))
+    (when (SG_STRINGP h)
+      (set! h (Sg_MakeHash (SG_STRING h) SG_FALSE)))
+    (result (Sg_HashOid (SG_HASH h))))
 )

@@ -59,6 +59,22 @@
       :dQ (mod d (- q 1))
       :qP (mod-inverse q p)))
   (define (rsa-private-crt-key? o) (is-a? o <rsa-private-crt-key>))
+  (define-method write-object ((o <rsa-private-crt-key>) (p <port>))
+    (let ((buf (call-with-string-output-port
+		(lambda (out)
+		  (format out "#<rsa-private-crt-key~%")
+		  (format out "            modulus: ~x~%" (slot-ref o 'modulus))
+		  (format out "    public exponent: ~x~%"
+			  (slot-ref o 'public-exponent))
+		  (format out "   private exponent: ~x~%"
+			  (slot-ref o 'private-exponent))
+		  (format out "           prime P: ~x~%" (slot-ref o 'p))
+		  (format out "           prime Q: ~x~%" (slot-ref o 'q))
+		  (format out "  prime exponent P: ~x~%" (slot-ref o 'dP))
+		  (format out "  prime exponent Q: ~x~%" (slot-ref o 'dQ))
+		  (format out "   crt coefficient: ~x~%" (slot-ref o 'qP))
+		  (display #\> out)))))
+      (display buf p)))
 
   (define-class <rsa-public-key> (<public-key>)
     ((modulus :init-keyword :modulus)
@@ -66,6 +82,15 @@
   (define (make-rsa-public-key m e)
     (make <rsa-public-key> :modulus m :exponent e))
   (define (rsa-public-key? o) (is-a? o <rsa-public-key>))
+  (define-method write-object ((o <rsa-public-key>) (p <port>))
+    (let ((buf (call-with-string-output-port
+		(lambda (out)
+		  (format out "#<rsa-pubic-key~%")
+		  (format out "            modulus: ~x~%" (slot-ref o 'modulus))
+		  (format out "    public exponent: ~x~%"
+			  (slot-ref o 'exponent))
+		  (display #\> out)))))
+      (display buf p)))
 
   ;; marker class for generic functions
   (define-class <rsa> () ())

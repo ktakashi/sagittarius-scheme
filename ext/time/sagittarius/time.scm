@@ -123,6 +123,7 @@
 	    )
     (import (core)
 	    (core base)
+	    (core errors)
 	    (sagittarius)
 	    (sagittarius time impl)
 	    (sagittarius date impl)
@@ -437,6 +438,17 @@
     (tm:find (lambda (x)
                (= second (- (+ (car x) (cdr x)) 1)))
              tm:leap-second-table))
+
+  (define (tm:natural-year n)
+    (let* ( (current-year (date-year (current-date)))
+	    (current-century (* (quotient current-year 100) 100)) )
+      (cond
+       ((>= n 100) n)
+       ((<  n 0) n)
+       ((<=  (- (+ current-century n) current-year) 50)
+	(+ current-century n))
+       (else
+	(+ (- current-century 100) n)))))
 
   (define (date->julian-day date)
     (let ((nanosecond (date-nanosecond date))

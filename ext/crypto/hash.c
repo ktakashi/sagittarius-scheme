@@ -57,6 +57,9 @@ SgObject Sg_MakeHash(SgString *name, SgObject process)
   if (SG_FALSEP(process)) {
     const char *cname = Sg_Utf32sToUtf8s(name);
     int index = find_hash(cname);
+    if (index < 0) {
+      Sg_Error(UC("non supported hash name %A"), name);
+    }
     hash = make_hash(SG_BUILTIN_HASH, name);
     hash->impl.builtin.index = index;
     hash_descriptor[index].init(&hash->impl.builtin.state);
