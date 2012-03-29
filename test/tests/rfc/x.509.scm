@@ -51,6 +51,15 @@
 	     (open-bytevector-input-port
 	      (base64-decode (string->utf8 certificate))))))
   (test-assert "x509-certificate?" (x509-certificate? x509))
+  ;; basic information check
+  (test-equal "version" 1 (x509-certificate-get-version x509))
+  (test-equal "serial number"
+	      #x00f9e5f373734585ed
+	      (x509-certificate-get-serial-number x509))
+  (test-equal "serial number algorithm"
+	      "1.2.840.113549.1.1.5"
+	      (x509-certificate-get-signature-algorithm x509))
+
   (test-assert "default verify" (verify x509 message external-signature))
   ;; invalid hash type
   (test-error "default verify (failed)" 
