@@ -324,6 +324,7 @@ SgObject Sg_Signature(SgCipher *crypto, SgByteVector *data, SgObject opt)
     return SG_UNDEF;		/* dummy */
   } else {
     SgObject h = SG_NIL, t = SG_NIL;
+    ASSERT(SG_CIPHER_SPI(crypto->spi)->signer);
     SG_APPEND1(h, t, data);
     SG_APPEND1(h, t, SG_CIPHER_SPI(crypto->spi)->key);
     SG_APPEND(h, t, opt);
@@ -339,6 +340,7 @@ SgObject Sg_Verify(SgCipher *crypto, SgByteVector *M, SgByteVector *S,
     return SG_UNDEF;		/* dummy */
   } else {
     SgObject h = SG_NIL, t = SG_NIL;
+    ASSERT(SG_CIPHER_SPI(crypto->spi)->verifier);
     SG_APPEND1(h, t, M);
     SG_APPEND1(h, t, S);
     SG_APPEND1(h, t, SG_CIPHER_SPI(crypto->spi)->key);

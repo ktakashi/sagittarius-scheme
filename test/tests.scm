@@ -1,5 +1,7 @@
 ;; -*- scheme -*-
 
+#|
+;; again it's really buggy with (crypto) library.
 (import (rnrs)
 	(clos user)
 	(core errors)
@@ -96,8 +98,8 @@
   #;(let loop ((r (get-finished-future promises)))
     (unless (null? r)
       (loop (get-finished-future r)))))
+|#
 
-#|
 (import (rnrs) (util file) (core errors) (scheme load))
 (cond-expand
  (sagittarius.os.windows
@@ -118,4 +120,3 @@
 	      (print))
 	    files thunks))
 
-|#

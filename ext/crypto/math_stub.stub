@@ -73,8 +73,16 @@
   (define-c-proc hash-done! (h::<hash-algorithm> out::<bytevector>) ::<void>
     (Sg_HashDone h out))
 
-  (define-c-proc hash-size (h::<hash-algorithm>) 
-    (result (Sg_HashSize h)))
+  (define-c-proc hash-size (h) 
+    (unless (or (SG_HASH_P h)
+		(SG_STRINGP h))
+      (Sg_WrongTypeOfArgumentViolation 
+       'hash-oid
+       (SG_MAKE_STRING "<string> or <hash-algorithm> required")
+       h '()))
+    (when (SG_STRINGP h)
+      (set! h (Sg_MakeHash (SG_STRING h) SG_FALSE)))
+    (result (Sg_HashSize (SG_HASH h))))
 
   (define-c-proc hash-oid (h)
     (unless (or (SG_HASH_P h)

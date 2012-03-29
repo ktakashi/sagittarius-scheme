@@ -30,6 +30,7 @@
 
 (library (rfc x.509)
     (export make-x509-certificate
+	    x509-certificate?
 	    <x509-certificate>
 	    x509-certificate-get-version
 	    x509-certificate-get-serial-number
@@ -41,7 +42,7 @@
 	    x509-certificate-get-signature-algorithm
 	    x509-certificate-get-public-key
 	    verify
-	    check-veridity)
+	    check-validity)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
@@ -351,6 +352,8 @@
 	:c c
 	:basic-constraints constraints
 	:key-usage key-usage)))
+  (define (x509-certificate? o) (is-a? o <x509-certificate>))
+
   ;; accessor
   (define (x509-certificate-get-version cert)
     (let ((c (slot-ref (slot-ref cert 'c) 'tbs-cert)))
@@ -466,7 +469,7 @@
       (crypto:verify rsa-cipher message signature
 		     :verify verify :hash hash)))
 
-  (define (check-veridity cert :optional (date (current-date)))
+  (define (check-validity cert :optional (date (current-date)))
     (let ((time (date->time-utc date)))
       (when (time>? time (date->time-utc (x509-certificate-get-not-after cert)))
 	(assertion-violation 'check-veridity
