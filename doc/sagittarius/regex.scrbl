@@ -10,16 +10,16 @@ This feature may be changed, if R7RS large requires Perl like regular
 expression.
 
 Following examples show how to use Sagittarius's regular expression.
-@codeblock[=> “world!”]{
+@codeblock[=> "world!"]{
 ;; For Perl like
-(cond ((looking-at (regex “^hello\\s*(.+)”) “hello world!”)
+(cond ((looking-at (regex "^hello\\s*(.+)") "hello world!")
             => (lambda (m) (m 1))))
 }
 
 @codeblock{
 ;; For Java like
-(cond ((matches (regex “(\\w+?)\\s*(.+)”) “123hello world!”)) ;; this won't match
-          (else “incovenient eh?”))
+(cond ((matches (regex "(\\w+?)\\s*(.+)") "123hello world!")) ;; this won't match
+          (else "incovenient eh?"))
 }
 
 The @code{matches} procedure is total match, so it ignores boundary matcher
