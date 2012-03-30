@@ -6,8 +6,6 @@ INCLUDE(${CMAKE_ROOT}/Modules/CheckFunctionExists.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckTypeSize.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckCSourceRuns.cmake)
 
-#ENABLE_TESTING()
-
 if (WATCOM)
   message(STATUS "*CAUTION* open watcom is experimental")
 endif()
@@ -227,7 +225,6 @@ SET(SAGITTARIUS_EXT_WORK_DIRECTORY
 
 ADD_SUBDIRECTORY(src build/src)
 ADD_SUBDIRECTORY(ext ${SAGITTARIUS_EXT_WORK_DIRECTORY})
-#ADD_SUBDIRECTORY(test build/test)
 
 INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/lib
   DESTINATION share/sagittarius/${SAGITTARIUS_VERSION})
