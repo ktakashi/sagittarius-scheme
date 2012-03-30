@@ -705,10 +705,8 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   /* for multithreading load, we need to get lock here and check
      if the cache is already exists
    */
-  Sg_LockMutex(&cache_mutex);
   if (Sg_FileExistP(cache_path)) {
     /* the cache is already created, we don't do it twice */
-    Sg_UnlockMutex(&cache_mutex);
     return TRUE;
   }
   file = Sg_OpenFile(cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
@@ -720,7 +718,6 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
     }
     if ((index = write_cache(name, SG_CODE_BUILDER(SG_CAR(cache)),
 			     out, index)) < 0) {
-      Sg_UnlockMutex(&cache_mutex);
       return FALSE;
     }
   }
@@ -733,7 +730,6 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   /* put validate tag */
   Sg_WritebUnsafe(out, (const uint8_t *)VALIDATE_TAG, 0, TAG_LENGTH);
   Sg_ClosePort(out);
-  Sg_UnlockMutex(&cache_mutex);
   return TRUE;
 }
 /*

@@ -135,6 +135,7 @@ static SgSymbol* convert_name_to_symbol(SgObject name)
 
 static SgInternalMutex mutex;
 static SgInternalMutex cacheLock;
+static SgInternalMutex write_mutex;
 SgObject Sg_MakeLibrary(SgObject name)
 {
   SgLibrary *z = make_library();
@@ -319,6 +320,13 @@ static SgObject search_library(SgObject name, int onlyPath)
     Sg_UnlockMutex(&cacheLock);
     if (state != CACHE_READ) {
       int save = vm->state;
+      /* compiling a library must be once */
+      Sg_LockMutex(&write_mutex);
+      lib = Sg_HashTableRef(libraries, libname, SG_FALSE);
+      if (!SG_FALSEP(lib)) {
+	Sg_UnlockMutex(&write_mutex);
+	return lib;
+      }
       vm->state = IMPORTING;
       /* creates new cache */
       vm->cache = Sg_Cons(SG_NIL, vm->cache);
@@ -334,6 +342,7 @@ static SgObject search_library(SgObject name, int onlyPath)
       vm->cache = SG_CDR(vm->cache);
       /* restore state */
       vm->state = save;
+      Sg_UnlockMutex(&write_mutex);
     }
   } else {
     /* first creation or no file. */
@@ -749,6 +758,7 @@ void Sg__InitLibrary()
 {
   Sg_InitMutex(&mutex, TRUE);
   Sg_InitMutex(&cacheLock, TRUE);
+  Sg_InitMutex(&write_mutex, TRUE);
 }
 
 /*
