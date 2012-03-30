@@ -165,8 +165,8 @@ any command-line option processing and error handling.
 @include-section["r6rs.scrbl"]
 @include-section["r7rs.scrbl"]
 @include-section["sagittarius.scrbl"]
-@include-section["utils.scrbl"]
 @include-section["clos.scrbl"]
+@include-section["utils.scrbl"]
 @include-section["ported.scrbl"]
 @include-section["srfi.scrbl"]
 

@@ -203,10 +203,14 @@ int Sg_SuggestKeysize(SgCipher *cipher, int keysize)
     return keysize;
   } else {
     /* must be others */
-    SgObject r = Sg_Apply1(SG_CIPHER_SPI(spi)->keysize, SG_MAKE_INT(keysize));
+    SgObject r;
+    if (!SG_PROCEDUREP(SG_CIPHER_SPI(spi)->keysize)) {
+      Sg_Error(UC("cipher does not support keysize %S"), cipher);
+      return -1;		/* dummy */
+    }
+    r = Sg_Apply1(SG_CIPHER_SPI(spi)->keysize, SG_MAKE_INT(keysize));
     if (SG_INTP(r)) return SG_INT_VALUE(r);
     else {
-      Sg_Error(UC("Failed to get key size: %A"), r);
       return -1;
     }
   }
@@ -327,6 +331,9 @@ SgObject Sg_Signature(SgCipher *crypto, SgByteVector *data, SgObject opt)
   } else {
     SgObject h = SG_NIL, t = SG_NIL;
     ASSERT(SG_CIPHER_SPI(crypto->spi)->signer);
+    if (!SG_PROCEDUREP(SG_CIPHER_SPI(crypto->spi)->signer)) {
+      Sg_Error(UC("cipher does not support signing, %S"), crypto);
+    }
     SG_APPEND1(h, t, data);
     SG_APPEND1(h, t, SG_CIPHER_SPI(crypto->spi)->key);
     SG_APPEND(h, t, opt);
@@ -343,6 +350,9 @@ SgObject Sg_Verify(SgCipher *crypto, SgByteVector *M, SgByteVector *S,
   } else {
     SgObject h = SG_NIL, t = SG_NIL;
     ASSERT(SG_CIPHER_SPI(crypto->spi)->verifier);
+    if (!SG_PROCEDUREP(SG_CIPHER_SPI(crypto->spi)->verifier)) {
+      Sg_Error(UC("cipher does not support verify, %S"), crypto);
+    }
     SG_APPEND1(h, t, M);
     SG_APPEND1(h, t, S);
     SG_APPEND1(h, t, SG_CIPHER_SPI(crypto->spi)->key);
@@ -461,15 +471,27 @@ static void ci_key_set(SgCipherSpi *spi, SgObject value)
 }
 static void ci_encrypt_set(SgCipherSpi *spi, SgObject value)
 {
+  if (!SG_PROCEDUREP(value)) {
+    Sg_Error(UC("procedure required, but got %S"), value);
+    return;
+  }
   spi->encrypter = value;
 }
 static void ci_decrypt_set(SgCipherSpi *spi, SgObject value)
 {
+  if (!SG_PROCEDUREP(value)) {
+    Sg_Error(UC("procedure required, but got %S"), value);
+    return;
+  }
   spi->decrypter = value;
 }
 static void ci_padder_set(SgCipherSpi *spi, SgObject value)
 {
-  spi->padder = value;
+  if (SG_FALSEP(value) || SG_PROCEDUREP(value)) {
+    spi->padder = value;
+  } else {
+    Sg_Error(UC("padder must be #f or procedure, but got %S."), value);
+  }
 }
 static void ci_signer_set(SgCipherSpi *spi, SgObject value)
 {
