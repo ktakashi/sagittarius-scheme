@@ -1,6 +1,7 @@
 ;; -*- scheme -*-
 (import (rnrs)
 	(rfc base64)
+	(srfi :0 cond-expand)
 	(srfi :64 testing))
 
 (define *long-string* 
@@ -16,7 +17,13 @@
 (test-equal "base64 decode" "abcdefg" (base64-decode-string "YWJjZGVmZw=="))
 
 (test-equal "base64 encode long"
-	    *encoded-long-string* (base64-encode-string *long-string*))
+	    *encoded-long-string* 
+	    (base64-encode-string *long-string*
+				  (cond-expand
+				   (sagittarius.os.windows
+				    (make-transcoder (utf-8-codec) 'lf))
+				   (else
+				    (native-transcoder)))))
 (test-equal "base64 decode long"
 	    *long-string* (base64-decode-string *encoded-long-string*))
 (test-end)

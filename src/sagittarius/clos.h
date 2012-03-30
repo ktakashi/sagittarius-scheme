@@ -203,9 +203,6 @@ extern SgClass *Sg_ObjectCPL[];
   SG_DEFINE_CLASS_COMMON(cname, sizeof(ctype), SG_CLASS_BASE,	\
 			 printer, compare, serialize, allocate, cpa)
 
-#define argumentAsClass(index, tmp, var)				\
-  castArgumentType(index, tmp, var, class, SG_CLASSP, SG_CLASS)
-
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_SlotRef(SgObject obj, SgObject name);

@@ -93,7 +93,7 @@ typedef struct SgMethodRec
     SG__PROCEDURE_INITIALIZER(SG_CLASS_STATIC_TAG(Sg_MethodClass),	\
 			      req, opt, SG_PROC_METHOD,			\
 			      SG_FALSE, SG_FALSE),			\
-    gf, SG_KEYWORD(SG_KEYWORD_PRIMARY), specs, proc			\
+    gf, SG_KEYWORD(SG_FALSE), specs, proc				\
   }
 
 SG_CLASS_DECL(Sg_NextMethodClass);
@@ -109,11 +109,6 @@ typedef struct SgNextMethodRec
 } SgNextMethod;
 #define SG_NEXT_METHOD(obj)  ((SgNextMethod*)(obj))
 #define SG_NEXT_METHODP(obj) SG_XTYPEP(obj, SG_CLASS_NEXT_METHOD)
-
-#define argumentAsGeneric(index, tmp, var)				\
-  castArgumentType(index, tmp, var, generic, SG_GENERICP, SG_GENERIC)
-#define argumentAsMethod(index, tmp, var)				\
-  castArgumentType(index, tmp, var, method, SG_METHODP, SG_METHOD)
 
 SG_CDECL_BEGIN
 

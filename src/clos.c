@@ -1185,6 +1185,7 @@ void Sg_InitBuiltinMethod(SgMethod *m)
     = Sg_Cons(SG_PROCEDURE_NAME(SG_METHOD_GENERIC(m)),
 	      class_array_to_names(SG_METHOD_SPECIALIZERS(m),
 				   SG_PROCEDURE_REQUIRED(m)));
+  SG_METHOD_QUALIFIER(m) = SG_KEYWORD(SG_KEYWORD_PRIMARY);
   Sg_AddMethod(SG_METHOD_GENERIC(m), m);
 }
 
