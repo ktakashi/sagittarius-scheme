@@ -10,6 +10,7 @@
 	    hash-process!
 	    hash-done!
 	    hash-size
+	    hash-block-size
 	    hash-oid
 	    WHIRLPOOL SHA-512 SHA-384 RIPEMD-320
 	    SHA-256 RIPEMD-256 SHA-224 SHA-224   
@@ -17,21 +18,32 @@
 	    MD5 MD4 MD2
 	    ;; for convenience
 	    hash
-
+	    register-hash
+	    lookup-hash
 	    <hash-algorithm>
+	    <user-hash-algorithm>
+	    <builtin-hash-algorithm>
 	    )
 
     (import (core)
+	    (clos core)
 	    (sagittarius control)
 	    (sagittarius math))
 
-  (define-with-key (hash-algorithm name :key (process #f))
-    (make-hash-algorithm name process))
+  (define (hash-algorithm name . opts)
+    (cond ((lookup-hash name)
+	   => (lambda (clazz)
+		(if (boolean? clazz)
+		    (make-hash-algorithm name)
+		    (apply make clazz opts))))
+	  (else
+	   (assertion-violation 'hash-algorithm
+				"unknown hash" name))))
 
-  (define-with-key (hash type bv :key (process #f))
+  (define (hash type bv . opts)
     (let* ((algo (if (hash-algorithm? type)
 		     type
-		     (hash-algorithm type :process process)))
+		     (apply hash-algorithm type opts)))
 	   (out  (make-bytevector (hash-size algo) 0)))
       (hash-init! algo)
       (hash-process! algo bv)

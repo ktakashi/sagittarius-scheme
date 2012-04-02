@@ -109,10 +109,19 @@ static SG_DEFINE_METHOD(generate_secret_key_rec,
 			2, 0, generate_secret_key_SPEC, &gen_secret);
 
 SG_CDECL_BEGIN
-void Sg__InitKey(SgObject lib)
+void Sg__InitKey(SgLibrary *lib)
 {
   Sg_InitBuiltinGeneric(&Sg_GenericGenerateSecretKey,
 			UC("generate-secret-key"), SG_LIBRARY(lib));
   Sg_InitBuiltinMethod(&generate_secret_key_rec);
+
+
+  Sg_InitStaticClass(SG_CLASS_KEY, UC("<key>"), lib, NULL, 0);
+  Sg_InitStaticClass(SG_CLASS_SYMMETRIC_KEY,
+		     UC("<symmetric-key>"), lib, NULL, 0);
+  Sg_InitStaticClass(SG_CLASS_BUILTIN_SYMMETRIC_KEY,
+		     UC("<bultin-symmetric-key>"), lib, NULL, 0);
+  Sg_InitStaticClass(SG_CLASS_ASYMMETRIC_KEY, UC("<asymmetric-key>"),
+		     lib, NULL, 0);
 }
 SG_CDECL_END

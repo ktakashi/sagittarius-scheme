@@ -191,7 +191,7 @@ typedef struct public_key_cipher_ret_t
 
 typedef struct SgCipherRec
 {
-  SG_HEADER;
+  SG_INSTANCE_HEADER;
   SgObject spi;
 } SgCipher;
 
@@ -223,6 +223,6 @@ SgObject Sg_GenerateSecretKey(SgString *name, SgByteVector *key);
 
 /* plugin */
 int      Sg_RegisterSpi(SgObject name, SgObject spi);
-SgObject Sg_LoookupSpi(SgObject name);
+SgObject Sg_LookupSpi(SgObject name);
 
 #endif /* SAGITTARIUS_CRYPTO_H_ */

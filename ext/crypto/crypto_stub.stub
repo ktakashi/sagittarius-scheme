@@ -73,5 +73,5 @@
     (result (Sg_RegisterSpi name spi)))
 
   (define-c-proc lookup-spi (name)
-    (result (Sg_LoookupSpi name)))
+    (result (Sg_LookupSpi name)))
   )

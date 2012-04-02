@@ -1423,10 +1423,9 @@ static void init_class(SgClass *klass, const SgChar *name,
       specs->name = snam;
       acc = Sg_Cons(SG_OBJ(&*specs), acc);
       SG_APPEND1(slots, t,
-		 Sg_List(snam,
-			 SG_KEYWORD_INIT_KEYWORD, 
-			 Sg_MakeKeyword(SG_SYMBOL(snam)->name),
-			 NULL));
+		 SG_LIST3(snam,
+			  SG_KEYWORD_INIT_KEYWORD, 
+			  Sg_MakeKeyword(SG_SYMBOL(snam)->name)));
     }
   }
   klass->directSlots = slots;

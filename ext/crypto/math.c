@@ -34,19 +34,20 @@
 #include <sagittarius/extend.h>
 #include "math.h"
 
+extern void Sg__InitHash(SgLibrary *lib);
 extern void Sg__Init_sagittarius_math_impl();
 
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__math()
 {
   SgLibrary *lib;
+  SG_INIT_EXTENSION(sagittarius__math);
   Sg__Init_sagittarius_math_impl();
 
   lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius math impl)"), FALSE));
   Sg_InitStaticClassWithMeta(SG_CLASS_PRNG, UC("<prng>"), lib, NULL,
 			     SG_FALSE, NULL, 0);
-  Sg_InitStaticClassWithMeta(SG_CLASS_HASH, UC("<hash-algorithm>"), lib, NULL,
-			     SG_FALSE, NULL, 0);
 
+  Sg__InitHash(lib);
 #define REGISTER_PRNG(prng)						\
   if (register_prng(prng) == -1) {					\
     Sg_Warn(UC("Unable to register %S pseudo random number generator "), \
@@ -58,26 +59,5 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__math()
   REGISTER_PRNG(&rc4_desc);
   REGISTER_PRNG(&sober128_desc);
   REGISTER_PRNG(&sprng_desc);
-
-#define REGISTER_HASH(hash)						\
-  if (register_hash(hash) == -1) {					\
-    Sg_Warn(UC("Unable to register %S hash algorithm "),		\
-	    Sg_MakeStringC((hash)->name));				\
-  }
-  
-  REGISTER_HASH(&whirlpool_desc);
-  REGISTER_HASH(&sha512_desc);
-  REGISTER_HASH(&sha384_desc);
-  REGISTER_HASH(&rmd160_desc);
-  REGISTER_HASH(&sha256_desc);
-  REGISTER_HASH(&rmd320_desc);
-  REGISTER_HASH(&sha224_desc);
-  REGISTER_HASH(&tiger_desc);
-  REGISTER_HASH(&sha1_desc);
-  REGISTER_HASH(&rmd256_desc);
-  REGISTER_HASH(&rmd128_desc);
-  REGISTER_HASH(&md5_desc);
-  REGISTER_HASH(&md4_desc);
-  REGISTER_HASH(&md2_desc);
 }
 

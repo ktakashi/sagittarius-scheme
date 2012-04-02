@@ -34,31 +34,20 @@ ADD_LIBRARY(misc STATIC
   src/misc/burn_stack.c
   src/misc/crypt/crypt.c
   src/misc/crypt/crypt_argchk.c
+  src/misc/crypt/crypt_fsa.c
+  #src/misc/crypt/crypt_ltc_mp_descriptor.c
+  )
+
+# ciphers
+ADD_LIBRARY(ciphers STATIC
   src/misc/crypt/crypt_cipher_descriptor.c
   src/misc/crypt/crypt_cipher_is_valid.c
   src/misc/crypt/crypt_find_cipher.c
   src/misc/crypt/crypt_find_cipher_any.c
   src/misc/crypt/crypt_find_cipher_id.c
-  src/misc/crypt/crypt_find_hash.c
-  src/misc/crypt/crypt_find_hash_any.c
-  src/misc/crypt/crypt_find_hash_id.c
-  src/misc/crypt/crypt_find_hash_oid.c
-  src/misc/crypt/crypt_find_prng.c
-  src/misc/crypt/crypt_fsa.c
-  src/misc/crypt/crypt_hash_descriptor.c
-  src/misc/crypt/crypt_hash_is_valid.c
-  src/misc/crypt/crypt_ltc_mp_descriptor.c
-  src/misc/crypt/crypt_prng_descriptor.c
-  src/misc/crypt/crypt_prng_is_valid.c
   src/misc/crypt/crypt_register_cipher.c
-  src/misc/crypt/crypt_register_hash.c
-  src/misc/crypt/crypt_register_prng.c
   src/misc/crypt/crypt_unregister_cipher.c
-  src/misc/crypt/crypt_unregister_hash.c
-  src/misc/crypt/crypt_unregister_prng.c)
 
-# ciphers
-ADD_LIBRARY(ciphers STATIC
   src/ciphers/des.c
   src/ciphers/anubis.c
   src/ciphers/blowfish.c
@@ -86,6 +75,15 @@ ADD_LIBRARY(ciphers STATIC
 # hashes
 # we don't need helpers
 ADD_LIBRARY(hashes STATIC
+  src/misc/crypt/crypt_find_hash.c
+  src/misc/crypt/crypt_find_hash_any.c
+  src/misc/crypt/crypt_find_hash_id.c
+  src/misc/crypt/crypt_find_hash_oid.c
+  src/misc/crypt/crypt_register_hash.c
+  src/misc/crypt/crypt_unregister_hash.c
+  src/misc/crypt/crypt_hash_descriptor.c
+  src/misc/crypt/crypt_hash_is_valid.c
+
   src/hashes/md2.c
   src/hashes/md4.c
   src/hashes/md5.c
@@ -149,10 +147,15 @@ ADD_LIBRARY(modes STATIC
   src/modes/ofb/ofb_getiv.c
   src/modes/ofb/ofb_setiv.c
   src/modes/ofb/ofb_start.c)
-TARGET_LINK_LIBRARIES(modes misc)
 
 #prngs
 ADD_LIBRARY(prngs STATIC
+  src/misc/crypt/crypt_find_prng.c
+  src/misc/crypt/crypt_prng_descriptor.c
+  src/misc/crypt/crypt_prng_is_valid.c
+  src/misc/crypt/crypt_register_prng.c
+  src/misc/crypt/crypt_unregister_prng.c
+
   src/prngs/fortuna.c
   src/prngs/rc4.c
   src/prngs/rng_get_bytes.c
@@ -160,7 +163,6 @@ ADD_LIBRARY(prngs STATIC
   src/prngs/sober128.c
   src/prngs/sprng.c
   src/prngs/yarrow.c)
-TARGET_LINK_LIBRARIES(prngs hashes misc aes_enc ciphers modes)
 
 SET(DUMMY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/libtomcrypt.c)
 ADD_LIBRARY(libtomcrypt STATIC
@@ -172,5 +174,5 @@ IF (NOT EXISTS ${DUMMY_FILE})
   FILE(WRITE ${DUMMY_FILE} "#include <tomcrypt.h>\nint main() { return 0; }")
 ENDIF()
 
-TARGET_LINK_LIBRARIES(libtomcrypt misc ciphers hashes modes prngs)
+TARGET_LINK_LIBRARIES(libtomcrypt prngs modes ciphers hashes aes_enc misc)
 

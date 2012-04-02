@@ -49,7 +49,8 @@ ADD_STUBS(sagittarius--math
   COMMAND ${GENSTUB}
   FILES ${CMAKE_CURRENT_SOURCE_DIR}/math_stub.stub)
 SET_TARGET_PROPERTIES(sagittarius--math PROPERTIES PREFIX "")
-TARGET_LINK_LIBRARIES(sagittarius--math sagittarius prngs)
+TARGET_LINK_LIBRARIES(sagittarius--math sagittarius libtomcrypt)
+
 INSTALL(TARGETS sagittarius--math
   DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
 INSTALL(FILES sagittarius/math.scm

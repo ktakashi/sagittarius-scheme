@@ -39,12 +39,6 @@ static void cipher_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
   Sg_Printf(port, UC("#<cipher %S>"), SG_CIPHER(self)->spi);
 }
 
-SgClass *Sg__CipherCPL[] = {
-  SG_CLASS_CRYPTO,
-  SG_CLASS_TOP,
-  NULL,
-};
-
 SgClass *Sg__CipherSpiCPL[] = {
   SG_CLASS_CIPHER_SPI,
   SG_CLASS_CRYPTO,
@@ -58,7 +52,7 @@ SG_DEFINE_BASE_CLASS(Sg_CipherSpiClass, SgCipherSpi,
 		     Sg__CipherSpiCPL+1);
 
 SG_DEFINE_BUILTIN_CLASS(Sg_CipherClass, cipher_printer,
-			NULL, NULL, NULL, Sg__CipherCPL);
+			NULL, NULL, NULL, Sg__CipherSpiCPL+1);
 
 
 static void builtin_cipher_spi_print(SgObject self, SgPort *port,
@@ -379,7 +373,7 @@ static SgInternalMutex lock;
 int Sg_RegisterSpi(SgObject name, SgObject spiClass)
 {
   struct table_entry_t *e;
-  SgObject r = Sg_LoookupSpi(name);
+  SgObject r = Sg_LookupSpi(name);
   /* already there, we won't overwrite.
      TODO, should we overwrite this?
    */
@@ -395,7 +389,7 @@ int Sg_RegisterSpi(SgObject name, SgObject spiClass)
   return TRUE;
 }
 
-SgObject Sg_LoookupSpi(SgObject name)
+SgObject Sg_LookupSpi(SgObject name)
 {
   struct table_entry_t *all;
   Sg_LockMutex(&lock);
@@ -558,7 +552,7 @@ static SgSlotAccessor builtin_cipher_spi_slots[] = {
 
 extern void Sg__Init_sagittarius_crypto_impl();
 SG_CDECL_BEGIN
-extern void Sg__InitKey(SgObject lib);
+extern void Sg__InitKey(SgLibrary *lib);
 SG_CDECL_END
 
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__crypto()
@@ -623,12 +617,4 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__crypto()
   Sg_InitStaticClass(SG_CLASS_BUILTIN_CIPHER_SPI,
 		     UC("<builtin-cipher-spi>"), lib,
 		     builtin_cipher_spi_slots, 0);
-
-  Sg_InitStaticClass(SG_CLASS_KEY, UC("<key>"), lib, NULL, 0);
-  Sg_InitStaticClass(SG_CLASS_SYMMETRIC_KEY,
-		     UC("<symmetric-key>"), lib, NULL, 0);
-  Sg_InitStaticClass(SG_CLASS_BUILTIN_SYMMETRIC_KEY,
-		     UC("<bultin-symmetric-key>"), lib, NULL, 0);
-  Sg_InitStaticClass(SG_CLASS_ASYMMETRIC_KEY, UC("<asymmetric-key>"),
-		     lib, NULL, 0);
 }

@@ -66,44 +66,47 @@ SG_CLASS_DECL(Sg_PrngClass);
 #define SG_PRNG(obj)   ((SgPrng *)obj)
 #define SG_PRNGP(obj) SG_XTYPEP(obj, SG_CLASS_PRNG)
 
-/* hash algorithm */
-enum {
-  SG_BUILTIN_HASH,
-  SG_CUSTOM_HASH,
-};
-typedef struct SgHashAlgoRec
+/* hash algorithm
+             <hash-algorithm>
+             /              \
+   <user-hash-algorith> <builtin-hash-algorith>
+ */
+typedef struct SgBuiltinHashAlgoRec
 {
   SG_HEADER;
-  SgString *name;
-  int       type;
-  int       initialized;
+  SgString  *name;
+  int        initialized;
+  int        index;
+  hash_state state;
+} SgBuiltinHashAlgo;
 
-  union {
-    struct {
-      int        index;
-      hash_state state;
-    } builtin;
-    struct {
-      SgObject   state;
-      /* 
-	 process will be (lambda (state in out type) ...)
-	 state = hash state
-	 in    = if type = 'process' bytevector, otherwise #f
-	 out   = if type = 'done bytevector, otherwise #f
-	 type  = must be one of them, 'init 'process 'done or 'size
-	 on 'init, process must return a state.
-       */
-      SgObject   process;
-    } custom;
-  } impl;
-} SgHashAlgo;
+typedef struct SgUserHashAlgoRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject init;
+  SgObject process;
+  SgObject done;
+  SgObject hashSize;
+  SgObject blockSize;
+  SgObject oid;
+  SgObject state;
+} SgUserHashAlgo;
 
 SG_CLASS_DECL(Sg_HashAlgoClass);
+SG_CLASS_DECL(Sg_BuiltinHashAlgoClass);
+SG_CLASS_DECL(Sg_UserHashAlgoClass);
 #define SG_CLASS_HASH   (&Sg_HashAlgoClass)
-#define SG_HASH(obj)   ((SgHashAlgo *)obj)
-#define SG_HASH_P(obj) SG_XTYPEP(obj, SG_CLASS_HASH)
+#define SG_HASH_P(obj) Sg_TypeP(obj, SG_CLASS_HASH)
 
-#define SG_HASH_ALGORITHM   SG_HASH
+#define SG_CLASS_BUILTIN_HASH  (&Sg_BuiltinHashAlgoClass)
+#define SG_BUILTIN_HASH(obj)   ((SgBuiltinHashAlgo *)obj)
+#define SG_BUILTIN_HASH_P(obj) SG_XTYPEP(obj, SG_CLASS_BUILTIN_HASH)
+
+#define SG_CLASS_USER_HASH  (&Sg_UserHashAlgoClass)
+#define SG_USER_HASH(obj)   ((SgUserHashAlgo *)obj)
+#define SG_USER_HASH_P(obj) SG_XTYPEP(obj, SG_CLASS_USER_HASH)
+
+#define SG_HASH_ALGORITHM   SG_OBJ
 #define SG_HASH_ALGORITHM_P SG_HASH_P
 
 /* random */
@@ -113,11 +116,15 @@ void     Sg_SetSeed(SgPrng *prng, SgByteVector *seed);
 SgObject Sg_ReadRandomBytes(SgPrng *prng, int size);
 SgObject Sg_MakeCustomPrng(SgString *name, SgObject readRandom);
 
-SgObject Sg_MakeHash(SgString *name, SgObject process);
-int      Sg_HashInit(SgHashAlgo *algo);
-void     Sg_HashProcess(SgHashAlgo *algo, SgByteVector *in);
-void     Sg_HashDone(SgHashAlgo *algo, SgByteVector *out);
-SgObject Sg_HashSize(SgHashAlgo *algo);
-SgObject Sg_HashOid(SgHashAlgo *algo);
+SgObject Sg_MakeHash(SgString *name);
+int      Sg_HashInit(SgObject algo);
+void     Sg_HashProcess(SgObject algo, SgByteVector *in);
+void     Sg_HashDone(SgObject algo, SgByteVector *out);
+SgObject Sg_HashSize(SgObject algo);
+SgObject Sg_HashBlockSize(SgObject algo);
+SgObject Sg_HashOid(SgObject algo);
+
+int      Sg_RegisterHash(SgObject name, SgObject algo);
+SgObject Sg_LookupHash(SgObject name);
 
 #endif /* SAGITTARIUS_MATH_H_ */
