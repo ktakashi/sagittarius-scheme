@@ -394,7 +394,7 @@ Raises @code{&encode-error}.
 Raises @code{&decode-error}.
 }
 
-@subsubsection{Creating own cipher}
+@subsubsection[:tag "custom.cipher"]{Creating own cipher}
 
 If Sagittarius does not support sufficient cipher algorithm for you, then you
 can write own cipher such as DSA. For this purpose, you might need to know how

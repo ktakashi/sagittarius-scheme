@@ -92,11 +92,11 @@ Reads @var{size} bytes of random byte from @var{prng}.
 @define[Library]{@name{(math hash)}}
 @desc{This library exports procedures for hash (digest) operations.}
 
-@define[Function]{@name{hash-algorithm} @args{name :key (process #f)}}
+@define[Function]{@name{hash-algorithm} @args{name . options}}
 @desc{@var{name} must be a string.
 
 Creates a hash-algorithm object. @var{name} specifies its algorithm. The
-possible algorithms are blow:
+predefined algorithms are blow:
 @define[Constant]{@name{WHIRLPOOL}}
 @define[Constant]{@name{SHA-512}}
 @define[Constant]{@name{SHA-384}}
@@ -113,14 +113,9 @@ possible algorithms are blow:
 @define[Constant]{@name{MD4}}
 @define[Constant]{@name{MD2}}
 
-If keyword argument @var{process} is given, it creates custom hash-algorithm
-object. It uses @var{process} as its hash provider. The @var{process} must be
-a procedure and accept 4 arguments. The first argument is state of its hash
-state. The second and the third are #f or a bytevector. The forth is processing
-stage, one of @code{init}, @code{process}, @code{done}, @code{size} or
-@code{oid}.
-
-Note: @var{process} argument mechanism is experimental, this is not well tested.
+If you want to use other hash algorithm, you can also create a new hash
+algorithm. It is described the section
+@secref["custom.hash"]{Custom hash algorithm}.
 }
 
 @define[Function]{@name{hash-algorithm?} @args{obj}}
@@ -131,19 +126,22 @@ Note: @var{process} argument mechanism is experimental, this is not well tested.
 
 @sub*section{User level APIs of hash operations}
 
-@define[Function]{@name{hash} @args{type bv :key (process #f)}}
+@define[Function]{@name{hash} @args{type bv . options}}
 @desc{@var{type} must be a string which specifies hash algorithms or
 hash-algorithm object.
 
 The @code{hash} procedure generates digest from given bytevector @var{bv}
 according to the given algorithm. The result digest will be a bytevector.
 
-If keyword argument @var{process} is given and @var{type} is not hash-algorithm
-object. It will be used as a hash provider.
+If @var{type} is not a hash algorithm object nor predefined hash algorithm,
+then @var{options} will be passed to the custom hash algorithm creation.
 }
 
 @define[Function]{@name{hash-size} @args{hash-algorithm}}
 @desc{Returns hash size of given @var{hash-algorithm}.}
+
+@define[Function]{@name{hash-block-size} @args{hash-algorithm}}
+@desc{Returns hash block size of given @var{hash-algorithm}.}
 
 @sub*section{Low level APIs of hash operations}
 
@@ -170,6 +168,58 @@ Flushes stored hash result in @var{hash-algorithm} into @var{out}.
 Once this procedure is called @var{hash-algorithm}'s state will be changed. If
 you want to reuse it, you need to call @code{hash-init!}.
 }
+
+@sub*section[:tag "custom.hash"]{Custom hash algorithm}
+
+Since version 0.3.1, user can create a custom hash algorithm. Similar with
+cipher spi described section @secref["custom.cipher"]{Creating own cipher}.
+
+The following example describes how to make it.
+
+@codeblock{
+(import (rnrs) (sagittarius) (math) (clos user))
+;; hash operations
+(define (foo-init hash) #t)
+(define (foo-process hash bv)
+  (let ((len (bytevector-length bv)))
+    (bytevector-copy! bv 0 (slot-ref hash 'buffer) 0 (min len 16))))
+(define (foo-done hash out)
+  (let ((v (integer->bytevector (equal-hash (slot-ref hash 'buffer)))))
+    (bytevector-copy! v 0 out 0 (min 8 (bytevector-length v)))))
+
+(define-class <foo-hash> (<user-hash-algorithm>)
+  ((buffer :init-form (make-bytevector 16))))
+(define-method initialize ((o <foo-hash>) initargs)
+  (call-next-method)
+  (slot-set! o 'init foo-init)
+  (slot-set! o 'process foo-process)
+  (slot-set! o 'done foo-done)
+  (slot-set! o 'block-size 16)
+  (slot-set! o 'hash-size 8)
+  (slot-set! o 'oid #f)
+  (slot-set! o 'state #f))
+;; marker
+(define-class <foo-marker> () ())
+(define FOO (make <foo-marker>))
+(register-hash FOO <foo-hash>)
+
+;; use with APIs
+(hash FOO (string->utf8 "hash")) ;; -> #vu8(245 221 54 232 0 0 0 0)
+}
+
+The slots @code{init}, @code{process} and @code{done} must be set with a
+procedure which will be called by @code{hash-init!}, @code{hash-process!} and
+@code{hash-done!} respectively.
+
+The slots @code{block-size} and @code{hash-size} must be non negative exact
+integer and will be returned by @code{hash-block-size} and @code{hash-size}
+procedures respectively.
+
+The slot @code{oid} must be set #f or string which represent OID of the custom
+hash algorithm. If you don't have it, it's better to set #f.
+
+The slot @code{state} can be anything, this slot is for storing the hash state
+if you need.
 
 @subsubsection{Prime number operations}
 
