@@ -17,7 +17,7 @@
 	    Tiger-192 SHA-1 RIPEMD-160 RIPEMD-128
 	    MD5 MD4 MD2
 	    ;; for convenience
-	    hash
+	    hash hash!
 	    register-hash
 	    lookup-hash
 	    <hash-algorithm>
@@ -44,7 +44,17 @@
     (let* ((algo (if (hash-algorithm? type)
 		     type
 		     (apply hash-algorithm type opts)))
-	   (out  (make-bytevector (hash-size algo) 0)))
+	   (out (make-bytevector (hash-size algo))))
+      (apply hash! algo out bv opts)))
+
+  (define (hash! type out bv . opts)
+    (let* ((algo (if (hash-algorithm? type)
+		     type
+		     (apply hash-algorithm type opts)))
+	   (size (hash-size algo)))
+      (when (< (bytevector-length out) size)
+	(assertion-violation 'hash!
+			     "output buffer is too short"))
       (hash-init! algo)
       (hash-process! algo bv)
       (hash-done! algo out)

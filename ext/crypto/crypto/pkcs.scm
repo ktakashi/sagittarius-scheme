@@ -15,6 +15,7 @@
     (import (rnrs)
 	    (rnrs r5rs)
 	    (asn.1)
+	    (util bytevector)
 	    (math hash)
 	    (math helper)
 	    (math random)
@@ -41,16 +42,6 @@
 	       (new (make-bytevector (- len pad) 0)))
 	  (bytevector-copy! bv 0 new 0 (- len pad))
 	  new)))
-
-  (define (bytevector-xor a b)
-    (let* ((len (bytevector-length a))
-	   (ret (bytevector-copy a)))
-      (do ((i 0 (+ i 1)))
-	  ((= i len) ret)
-	(bytevector-u8-set! ret i
-			    (bitwise-xor (bytevector-u8-ref a i)
-					 (bytevector-u8-ref b i)))))
-    )
 
   ;; PKCS #1 EMSA-PSS-ENCODE
   ;; reference http://www.rsa.com/rsalabs/node.asp?id=2125
