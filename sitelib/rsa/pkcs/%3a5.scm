@@ -32,7 +32,7 @@
 ;; PBES2 and MAC are not yet.
 (library (rsa pkcs :5)
     (export pbkdf-1 pbkdf-2 derive-key
-	    PKCS5-S1
+	    PKCS5-S1 PKCS5-S2
 	    pbe-with-md5-and-des pbe-with-sha1-and-des
 	    make-pbe-parameter generate-secret-key
 	    ;; To reuse cipher, we also need to export this method
@@ -126,6 +126,7 @@
 
   ;; markers
   (define-class <pkcs5-s1> () ())
+  (define-class <pkcs5-s2> () ())
   ;; PKCS#5 defines combination of MD5, SHA1 and DES, RC2.
   ;; but we do not support RC2
   ;; PBEWithMD5AndDES
@@ -134,6 +135,7 @@
   (define-class <pbe-sha1-des> () ())
 
   (define PKCS5-S1 (make <pkcs5-s1>))
+  (define PKCS5-S2 (make <pkcs5-s2>))
   ;; the names are used also for cipher
   (define pbe-with-md5-and-des (make <pbe-md5-des>))
   (define pbe-with-sha1-and-des (make <pbe-sha1-des>))
@@ -169,27 +171,35 @@
   ;; for pbe-cipher-spi we need derive derived key and iv from given
   ;; secret key and parameter(salt and iteration count)
   ;; see PKCS#5 or RFC2898 section 6.1.1 Encryption Operation
-  (define-method derive-key&iv ((marker <pkcs5-s1>)
-				(key <pbe-secret-key>)
-				(param <pbe-parameter>))
-    (define (derive-pkcs5-s1-key key parameter)
+  (define (derive-key&iv-internal key param . option)
+    (define (derive-pkcs5-key key parameter)
       (define (separate-key-iv dk key-len iv-len)
 	(let ((k (make-bytevector key-len))
 	      (iv (make-bytevector iv-len)))
 	  (bytevector-copy! dk 0 k 0 key-len)
 	  (bytevector-copy! dk key-len iv 0 iv-len)
 	  (cons k iv)))
-      (let ((derived-key (derive-key (string->utf8 (slot-ref key 'password))
-				     (slot-ref parameter 'salt)
-				     (slot-ref parameter 'iteration)
-				     (hash-size (slot-ref key 'hash))
-				     :kdf pbkdf-1
-				     :hash (slot-ref key 'hash))))
-	(separate-key-iv derived-key
-			 (slot-ref key 'length) 
-			 (slot-ref key 'iv-size))))
-    (derive-pkcs5-s1-key key param))
+      (let* ((key-len (slot-ref key 'length))
+	     (iv-len (slot-ref key 'iv-size))
+	     (derived-key (apply derive-key
+				 (string->utf8 (slot-ref key 'password))
+				 (slot-ref parameter 'salt)
+				 (slot-ref parameter 'iteration)
+				 (+ key-len iv-len)
+				 ;;(hash-size (slot-ref key 'hash))
+				 option)))
+	(separate-key-iv derived-key key-len iv-len)))
+    (derive-pkcs5-key key param))
 
+  (define-method derive-key&iv ((marker <pkcs5-s1>)
+				(key <pbe-secret-key>)
+				(param <pbe-parameter>))
+    (derive-key&iv-internal key param :kdf pbkdf-1 :hash (slot-ref key 'hash)))
+
+  (define-method derive-key&iv ((marker <pkcs5-s2>)
+				(key <pbe-secret-key>)
+				(param <pbe-parameter>))
+    (derive-key&iv-internal key param))
   ;; The PKCS#5 cipher. This can be used by PKCS#12 too.
   (define-class <pbe-cipher-spi> (<cipher-spi>)
     ((parameter :init-keyword :parameter)

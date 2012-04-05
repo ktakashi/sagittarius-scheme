@@ -82,4 +82,28 @@
 	   #x93 #x3C #x10 #x34 #xEB #x4F #x5A #x17)
       pbe-with-sha1-and-des "password" "salt" 1024)
 
+;; PBES2 test
+;; I couldn't find any example of PBES2. This should be OK.
+
+(import (clos user) (rfc hmac) (math))
+(define-class <pbkef2-with-hmac-sha1-des3> () ())
+(define pbkdf2-with-hmac-sha1-des3 (make <pbkef2-with-hmac-sha1-des3>))
+(define-method generate-secret-key ((mark <pbkef2-with-hmac-sha1-des3>)
+				    (password <string>))
+  (make <pbe-secret-key> :password  password :hash (hash-algorithm HMAC)
+	:scheme DES3 :iv-size 8 :length 24
+	:type PKCS5-S2))
+(register-spi pbkdf2-with-hmac-sha1-des3 <pbe-cipher-spi>)
+
+(let* ((c 1024)
+       (param (make-pbe-parameter (string->utf8 "saltsalt") c))
+       (key (generate-secret-key pbkdf2-with-hmac-sha1-des3 "password"))
+       (pbe-cipher (cipher pbkdf2-with-hmac-sha1-des3
+			   key :parameter param))
+       (ciphertext (encrypt pbe-cipher 
+			    (string->utf8 "This is an example."))))
+  (test-equal "PBES2 test" 
+	      "This is an example."
+	      (utf8->string (decrypt pbe-cipher ciphertext))))
+
 (test-end)
