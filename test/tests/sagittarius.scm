@@ -67,4 +67,7 @@
 	    (lambda (e) (assertion-violation? e))
 	    (bytevector-s16-set! #vu8(1 2 3 4) 1 5))
 
+;; Issue 12
+(test-equal "\\x0; test" #vu8(0) (string->utf8 "\x0;"))
+
 (test-end)
