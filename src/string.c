@@ -30,6 +30,29 @@
  *  $Id: $
  */
 #include <string.h>
+
+#ifndef __GNUC__
+# ifdef HAVE_ALLOCA_H
+#  include <alloca.h>
+# else
+#  ifdef _AIX
+#pragma alloca
+#  else
+#   ifndef alloca /* predefined by HP cc +Olibcalls */
+char *alloca ();
+#   endif
+#  endif
+# endif
+#else
+# ifdef HAVE_ALLOCA_H
+#  include <alloca.h>
+# endif
+# ifdef HAVE_MALLOC_H
+/* MinGW helds alloca() in "malloc.h" instead of "alloca.h" */
+#  include <malloc.h>
+# endif
+#endif
+
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/string.h"
 #include "sagittarius/collection.h"
@@ -111,18 +134,14 @@ static void string_print(SgObject o, SgPort *port, SgWriteContext *ctx)
 SG_DEFINE_BUILTIN_CLASS(Sg_StringClass, string_print, NULL, NULL, NULL,
 			SG_CLASS_SEQUENCE_CPL);
 
+#define STRING_ALLOC_SIZE(size)			\
+  (sizeof(SgString)+sizeof(SgChar)*(size+1))
 
 static SgString* make_string(int size)
 {
-  SgString *z = SG_NEW_ATOMIC2(SgString *,
-			       sizeof(SgString)+sizeof(SgChar)*(size+1));
+  SgString *z = SG_NEW_ATOMIC2(SgString *, STRING_ALLOC_SIZE(size));
   SG_SET_CLASS(z, SG_CLASS_STRING);
   z->size = size;
-  /* if (size < 0) { */
-  /*   z->value = NULL; */
-  /* } else { */
-  /*   z->value = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar) * (size + 1)); */
-  /* } */
   z->literalp = FALSE;
   return z;
 }
@@ -138,13 +157,28 @@ static SgString* make_string(int size)
 static SgInternalMutex smutex;
 static SgHashTable *stable;
 
-SgObject Sg_MakeString(const SgChar *value, SgStringType flag)
+#ifdef HAVE_ALLOCA
+#define ALLOC_TEMP_STRING(var, size)					\
+    (var) = SG_STRING(alloca(STRING_ALLOC_SIZE(size)));			\
+    SG_SET_CLASS(var, SG_CLASS_STRING);					\
+    SG_STRING_SIZE(var) = size;
+#else
+#define ALLOC_TEMP_STRING(var, size) (var) = make_string(size);
+#endif
+
+
+
+SgObject Sg_MakeStringEx(const SgChar *value, SgStringType flag, size_t length)
 {
   SgObject r;
   SgString *z;
+
   if (flag == SG_LITERAL_STRING) {
+    SgString *tmp;
     Sg_LockMutex(&smutex);
-    r = Sg_HashTableRef(stable, SG_OBJ(value), SG_FALSE);
+    ALLOC_TEMP_STRING(tmp, length);
+    COPY_STRING(tmp, value, length, 0);
+    r = Sg_HashTableRef(stable, SG_OBJ(tmp), SG_FALSE);
     Sg_UnlockMutex(&smutex);
     if (!SG_FALSEP(r)) {
       ASSERT(SG_STRINGP(r));
@@ -152,7 +186,7 @@ SgObject Sg_MakeString(const SgChar *value, SgStringType flag)
     }
   }
 
-  z = make_string(ustrlen(value));
+  z = make_string(length);
   COPY_STRING(z, value, z->size, 0);
   z->value[z->size] = 0;
 
@@ -160,13 +194,19 @@ SgObject Sg_MakeString(const SgChar *value, SgStringType flag)
   if (flag == SG_LITERAL_STRING) {
     Sg_LockMutex(&smutex);
     z->literalp = TRUE;
-    r = Sg_HashTableSet(stable, SG_OBJ(z->value), SG_OBJ(z),
+    r = Sg_HashTableSet(stable, SG_OBJ(z), SG_OBJ(z),
 			SG_HASH_NO_OVERWRITE);
     Sg_UnlockMutex(&smutex);
   } else {
     r = SG_OBJ(z);
   }
   return r;
+}
+
+SgObject Sg_MakeString(const SgChar *value, SgStringType flag)
+{
+  size_t len = ustrlen(value);
+  return Sg_MakeStringEx(value, flag, len);
 }
 
 /* This method assumes given value as ASCII for now */
@@ -500,7 +540,7 @@ SgObject Sg_MaybeSubstring(SgString *s, int start, int end)
     }								\
   } while (0)
 
-
+#if 0
 static uint32_t string_hash(const SgHashCore *ht, intptr_t key)
 {
   SgChar *p = (SgChar*)key;
@@ -521,11 +561,13 @@ static int string_compare(const SgHashCore *ht, intptr_t key, intptr_t entryKey)
     return *s1 - *s2 == 0;
   }
 }
+#endif
 
 void Sg__InitString()
 {
   Sg_InitMutex(&smutex, FALSE);
-  stable = Sg_MakeHashTable(string_hash, string_compare, 4096);
+  /* stable = Sg_MakeHashTable(string_hash, string_compare, 4096); */
+  stable = Sg_MakeHashTableSimple(SG_HASH_STRING, 4096);
 }
 
 /*

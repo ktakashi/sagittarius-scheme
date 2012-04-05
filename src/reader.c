@@ -409,7 +409,7 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
     if (c == EOF || delimited(c)) {
       SgObject s;
       buf[i] = 0;
-      s = Sg_MakeString(buf, SG_LITERAL_STRING);
+      s = Sg_MakeStringEx(buf, SG_LITERAL_STRING, i);
       if (table->insensitiveP) {
 	s = Sg_StringFoldCase(SG_STRING(s));
       }
@@ -629,11 +629,8 @@ SgObject read_double_quote(SgPort *port, SgChar c, SgReadContext *ctx)
       continue;
     }
     if (c == '"') {
-      /* SgChar *real = SG_NEW_ATOMIC2(SgChar *, (i + 1) * sizeof(SgChar)); */
       buf[i] = 0;
-      /* memcpy(real, buf, (i + 1) * sizeof(SgChar)); */
-      /* return Sg_MakeString(real, SG_LITERAL_STRING); */
-      return Sg_MakeString(buf, SG_LITERAL_STRING);
+      return Sg_MakeStringEx(buf, SG_LITERAL_STRING, i);
     }
     if (c == '\\') {
       c = Sg_GetcUnsafe(port);
@@ -724,7 +721,8 @@ static SgObject read_quoted_symbol(SgPort *port, SgReadContext *ctx,
       SgChar *real = SG_NEW_ATOMIC2(SgChar *, (i + 1) * sizeof(SgChar));
       buf[i] = 0;
       memcpy(real, buf, (i + 1) * sizeof(SgChar));
-      return Sg_MakeSymbol(Sg_MakeString(real, SG_LITERAL_STRING), interned);
+      return Sg_MakeSymbol(Sg_MakeStringEx(real, SG_LITERAL_STRING, i),
+			   interned);
     }
     if (c == '\\') {
       c = Sg_GetcUnsafe(port);
@@ -754,7 +752,7 @@ SgObject read_colon(SgPort *port, SgChar c, SgReadContext *ctx)
     Sg_UngetcUnsafe(port, c2);
     size = read_thing(port, ctx, buf, array_sizeof(buf), -1);
     buf[size] = 0;
-    return Sg_MakeKeyword(Sg_MakeString(buf, SG_LITERAL_STRING));
+    return Sg_MakeKeyword(Sg_MakeStringEx(buf, SG_LITERAL_STRING, size));
   }
 }
 
