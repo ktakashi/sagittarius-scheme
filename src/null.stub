@@ -1282,7 +1282,7 @@
   (define-cise-stmt check-non-negative-fixnum
     ((_ name n)
      `(when (< ,n 0)
-	(wrong-type-of-argument-violation 'name
+	(wrong-type-of-argument-violation ',name
 					  "non negative exact integer"
 					  (SG_MAKE_INT ,n)))))
 
@@ -1290,8 +1290,8 @@
 				   dst::<bytevector> dstart::<fixnum>
 				   k::<fixnum>)
     ::<void>
-    (check-non-negative-fixnum 'bytevector-copy! sstart)
-    (check-non-negative-fixnum 'bytevector-copy! dstart)
+    (check-non-negative-fixnum bytevector-copy! sstart)
+    (check-non-negative-fixnum bytevector-copy! dstart)
     (Sg_ByteVectorCopyX src sstart dst dstart k))
 
   (define-c-proc make-bytevector (len::<fixnum> :optional (fill::<fixnum> 0)) ::<top>
