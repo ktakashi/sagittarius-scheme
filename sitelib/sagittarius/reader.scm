@@ -8,8 +8,14 @@
 	    set-macro-character
 	    get-dispatch-macro-character
 	    set-dispatch-macro-character
-	    read-delimited-list)
+	    read-delimited-list
+	    delimited-char?
+
+	    ;; for error
+	    raise-i/o-read-error
+	    )
     (import (rnrs)
+	    (core errors)
 	    (sagittarius)
 	    (sagittarius vm))
 

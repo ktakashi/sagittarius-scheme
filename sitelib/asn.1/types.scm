@@ -732,7 +732,7 @@
       (make <der-set> :set (list o)))
     (define-method make-der-set l
       (or (for-all (lambda (o) (is-a? o <der-encodable>)) l)
-	  (assertion-violation 'make-der-sequcne
+	  (assertion-violation 'make-der-set
 			       "list of <der-encodable> required" l))
       (make <der-set> :set l))
     (define-method der-encode ((o <der-set>) (p <port>))

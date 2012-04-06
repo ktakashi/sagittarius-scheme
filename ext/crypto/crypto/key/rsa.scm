@@ -413,42 +413,43 @@
   (define-method export-private-key ((marker <rsa>) (key <rsa-private-crt-key>))
     (rsa-export-private-key key))
   
-  (define (rsa-import-private-key in)
-    (let ((private (read-asn.1-object in)))
-      ;; validate
-      (unless (is-a? private <asn.1-sequence>)
-	(assertion-violation 'rsa-import-private-key 
-			     "invalid der object" private))
-      (let ((objects (slot-ref private 'sequence)))
-	(unless (<= 9 (length objects) 10)
+  (define (rsa-import-private-key private)
+    ;; validate
+    (unless (is-a? private <asn.1-sequence>)
+      (assertion-violation 'rsa-import-private-key 
+			   "invalid der object" private))
+    (let ((objects (slot-ref private 'sequence)))
+      (unless (<= 9 (length objects) 10)
+	(assertion-violation 'rsa-import-private-key
+			     "bad sequence size" private))
+      (do ((i 0 (+ i 1)) (o objects (cdr o)))
+	  ((= i 9))
+	(unless (is-a? (car o) <der-integer>)
 	  (assertion-violation 'rsa-import-private-key
-			       "bad sequence size" private))
-	(do ((i 0 (+ i 1)) (o objects (cdr o)))
-	    ((= i 9))
-	  (unless (is-a? (car o) <der-integer>)
-	    (assertion-violation 'rsa-import-private-key
-				 "invalid object" i (car o))))
-	(let ((version (car objects))
-	      (modulus (cadr objects))
-	      (public-exponent (third objects))
-	      (private-exponent (fourth objects))
-	      (p (fifth objects))
-	      (q (sixth objects))
-	      ;; the rest we don't need
-	      )
-	  (unless (<= 0 (bytevector->integer (slot-ref version 'bytes)) 1)
-	    (assertion-violation 'rsa-import-private-key
-				 "wrong version for RSA private key" version))
-	  (rsa-generate-private-key 
-	   (bytevector->integer
-	    (slot-ref modulus 'bytes))
-	   (bytevector->integer
-	    (slot-ref private-exponent 'bytes))
-	   :public-exponent (bytevector->integer
-			     (slot-ref public-exponent 'bytes))
-	   :p (bytevector->integer (slot-ref p 'bytes))
-	   :q (bytevector->integer (slot-ref q 'bytes))))))
-    )
+			       "invalid object" i (car o))))
+      (let ((version (car objects))
+	    (modulus (cadr objects))
+	    (public-exponent (third objects))
+	    (private-exponent (fourth objects))
+	    (p (fifth objects))
+	    (q (sixth objects))
+	    ;; the rest we don't need
+	    )
+	(unless (<= 0 (bytevector->integer (slot-ref version 'bytes)) 1)
+	  (assertion-violation 'rsa-import-private-key
+			       "wrong version for RSA private key" version))
+	(rsa-generate-private-key 
+	 (bytevector->integer
+	  (slot-ref modulus 'bytes))
+	 (bytevector->integer
+	  (slot-ref private-exponent 'bytes))
+	 :public-exponent (bytevector->integer
+			   (slot-ref public-exponent 'bytes))
+	 :p (bytevector->integer (slot-ref p 'bytes))
+	 :q (bytevector->integer (slot-ref q 'bytes))))))
+
   (define-method import-private-key ((marker <rsa>) (in <port>))
+    (import-private-key RSA (read-asn.1-object in)))
+  (define-method import-private-key ((marker <rsa>) (in <asn.1-sequence>))
     (rsa-import-private-key in))
 )
