@@ -133,6 +133,7 @@
 	    %insert-macro-character
 	    %insert-dispatch-macro-character
 	    read-delimited-list
+	    delimited-char?
 
 	    constant-literal?
 	    digit-value
@@ -794,11 +795,14 @@
 				   (SG_LIBRARY_READTABLE lib))
     (Sg_SetDispatchMacroCharacter c subc proc (SG_LIBRARY_READTABLE lib)))
 
-  (define-c-proc read-delimited-list (c::<char> :optional
-						(p::<port> (Sg_CurrentInputPort))
-						(shareP::<boolean> #t))
-    ::<top>
+  (define-c-proc read-delimited-list 
+    (c::<char> :optional
+	       (p::<port> (Sg_CurrentInputPort))
+	       (shareP::<boolean> #t))
     (return (Sg_ReadDelimitedList p c shareP)))
+
+  (define-c-proc delimited-char? (c::<char>) ::<boolean>
+    (result (Sg_DelimitedCharP c)))
 
   (define-c-proc constant-literal? (o) ::<boolean>
     (result (Sg_ConstantLiteralP o)))

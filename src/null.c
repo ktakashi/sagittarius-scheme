@@ -5287,7 +5287,7 @@ static SgObject null_bytevector_u16_native_setX(SgObject *SG_FP, int SG_ARGC, vo
   {
 {if (SG_LITERAL_BVECTORP(bv)){{{Sg_AssertionViolation(sg__rc.d10[238],SG_MAKE_STRING("attempt to modify literal bytevector"),bv);}}}}
 {{int len=SG_BVECTOR_SIZE(bv);if ((!(((len)>(1))&&((index)<((len)-(1)))))){{{Sg_AssertionViolation(sg__rc.d10[238],SG_MAKE_STRING("index out of range"),SG_MAKE_INT(index));}}}}}
-{if ((!(((0)<=(value))&&((value)<=(65535))))){{{Sg_AssertionViolation(sg__rc.d10[238],SG_MAKE_STRING("value out of range %S"),SG_MAKE_INT(value));}}}}
+{if ((!(((0)<=(value))&&((value)<=(65535))))){{{Sg_AssertionViolation(sg__rc.d10[238],SG_MAKE_STRING("value out of range"),SG_MAKE_INT(value));}}}}
 {Sg_ByteVectorU16NativeSet(bv,index,value);}
 SG_RETURN(SG_UNDEF);
   }
@@ -5369,7 +5369,7 @@ static SgObject null_bytevector_u16_setX(SgObject *SG_FP, int SG_ARGC, void *dat
   {
 {if (SG_LITERAL_BVECTORP(bv)){{{Sg_AssertionViolation(sg__rc.d10[246],SG_MAKE_STRING("attempt to modify literal bytevector"),bv);}}}}
 {{int len=SG_BVECTOR_SIZE(bv);if ((!(((len)>(1))&&((index)<((len)-(1)))))){{{Sg_AssertionViolation(sg__rc.d10[246],SG_MAKE_STRING("index out of range"),SG_MAKE_INT(index));}}}}}
-{if ((!(((0)<=(value))&&((value)<=(65535))))){{{Sg_AssertionViolation(sg__rc.d10[246],SG_MAKE_STRING("value out of range %S"),SG_MAKE_INT(value));}}}}
+{if ((!(((0)<=(value))&&((value)<=(65535))))){{{Sg_AssertionViolation(sg__rc.d10[246],SG_MAKE_STRING("value out of range"),SG_MAKE_INT(value));}}}}
 {if (SG_EQ(endian,sg__rc.d10[243])){Sg_ByteVectorU16BigSet(bv,index,value);}else if(SG_EQ(endian,sg__rc.d10[241])){Sg_ByteVectorU16LittleSet(bv,index,value);} else {{Sg_AssertionViolation(sg__rc.d10[246],SG_MAKE_STRING("unsupported endianness"),endian);}}}
 SG_RETURN(SG_UNDEF);
   }
@@ -5438,7 +5438,7 @@ static SgObject null_bytevector_s16_native_setX(SgObject *SG_FP, int SG_ARGC, vo
   {
 {if (SG_LITERAL_BVECTORP(bv)){{{Sg_AssertionViolation(sg__rc.d10[250],SG_MAKE_STRING("attempt to modify literal bytevector"),bv);}}}}
 {{int len=SG_BVECTOR_SIZE(bv);if ((!(((len)>(1))&&((index)<((len)-(1)))))){{{Sg_AssertionViolation(sg__rc.d10[250],SG_MAKE_STRING("index out of range"),SG_MAKE_INT(index));}}}}}
-{if ((!(((-32768)<=(value))&&((value)<=(32767))))){{{Sg_AssertionViolation(sg__rc.d10[250],SG_MAKE_STRING("value out of range %S"),SG_MAKE_INT(value));}}}}
+{if ((!(((-32768)<=(value))&&((value)<=(32767))))){{{Sg_AssertionViolation(sg__rc.d10[250],SG_MAKE_STRING("value out of range"),SG_MAKE_INT(value));}}}}
 {Sg_ByteVectorS16NativeSet(bv,index,value);}
 SG_RETURN(SG_UNDEF);
   }
@@ -5520,7 +5520,7 @@ static SgObject null_bytevector_s16_setX(SgObject *SG_FP, int SG_ARGC, void *dat
   {
 {if (SG_LITERAL_BVECTORP(bv)){{{Sg_AssertionViolation(sg__rc.d10[254],SG_MAKE_STRING("attempt to modify literal bytevector"),bv);}}}}
 {{int len=SG_BVECTOR_SIZE(bv);if ((!(((len)>(1))&&((index)<((len)-(1)))))){{{Sg_AssertionViolation(sg__rc.d10[254],SG_MAKE_STRING("index out of range"),SG_MAKE_INT(index));}}}}}
-{if ((!(((-32768)<=(value))&&((value)<=(32767))))){{{Sg_AssertionViolation(sg__rc.d10[254],SG_MAKE_STRING("value out of range %S"),SG_MAKE_INT(value));}}}}
+{if ((!(((-32768)<=(value))&&((value)<=(32767))))){{{Sg_AssertionViolation(sg__rc.d10[254],SG_MAKE_STRING("value out of range"),SG_MAKE_INT(value));}}}}
 {if (SG_EQ(endian,sg__rc.d10[243])){Sg_ByteVectorS16BigSet(bv,index,value);}else if(SG_EQ(endian,sg__rc.d10[241])){Sg_ByteVectorS16LittleSet(bv,index,value);} else {{Sg_AssertionViolation(sg__rc.d10[254],SG_MAKE_STRING("unsupported endianness"),endian);}}}
 SG_RETURN(SG_UNDEF);
   }

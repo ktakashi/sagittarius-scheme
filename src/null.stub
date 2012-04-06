@@ -1369,7 +1369,7 @@
     ((_ name value min max)
      `(unless (and (<= ,min ,value)
 		   (<= ,value ,max))
-	(assertion-violation ',name "value out of range %S"
+	(assertion-violation ',name "value out of range"
 			     (SG_MAKE_INT ,value)))))
   ;; 2.5 operations on 16-bit integers
   ;; u16

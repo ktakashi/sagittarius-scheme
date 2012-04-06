@@ -1569,6 +1569,10 @@ SgObject Sg_AddConstantLiteral(SgObject o)
   return o;
 }
 
+int Sg_DelimitedCharP(SgChar c)
+{
+  return delimited(c);
+}
 
 #define SCHEME_OBJ(NAME) SG_CPP_CAT(NAME, _stub)
 #define STUB_NAME(NAME) SG_CPP_CAT(NAME, stub)

@@ -73,6 +73,8 @@ SG_EXTERN SgObject Sg_AddConstantLiteral(SgObject o);
 
 SG_EXTERN SgObject Sg_ReadWithCase(SgPort *p, int insensitiveP, int shared);
 
+SG_EXTERN int      Sg_DelimitedCharP(SgChar c);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_READER_H_ */

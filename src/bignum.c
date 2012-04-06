@@ -497,7 +497,8 @@ int64_t  Sg_BignumToS64(SgBignum *b, int clamp, int *oor)
   } else {
     if (SG_BIGNUM_GET_COUNT(b) == 1) {
       r = b->elements[0];
-    } else if (SG_BIGNUM_GET_COUNT(b) > 2 || b->elements[1] > LONG_MAX) {
+    } else if (SG_BIGNUM_GET_COUNT(b) > 2 ||
+	       b->elements[1] > (unsigned long)LONG_MAX+1) {
       if (!(clamp & SG_CLAMP_HI)) goto err;
       r = (((int64_t)LONG_MAX + 1) << 32);
     } else {
