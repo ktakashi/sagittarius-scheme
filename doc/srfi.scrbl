@@ -17,6 +17,10 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     @td{(srfi :1 lists)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-2/srfi-2.html"]{SRFI-2}}
     @td{(srfi :2 and-let*)}}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-4/srfi-4.html"]{SRFI-4}}
+    @td{(srfi :4)
+
+        This SRFI also contains reader macro described below this section.}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-6/srfi-6.html"]{SRFI-6}}
     @td{(srfi :6 basic-string-ports)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-8/srfi-8.html"]{SRFI-8}}
@@ -54,3 +58,17 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 Each library can be imported like this:
 @snipet{(import (srfi :1))}
 So you don't have to type the long name.
+
+@subsection[:tag "srfi.reader.macro"]{Reader macros for SRFIs}
+
+@subsubsection{SRFI-4}
+
+The SRFI-4 also defines its reader macro. Sagittarius also suppots these. It
+defines tagged vector and the tags can be @code{s8}, @code{u8}, @code{s16},
+@code{u16}, @code{s32}, @code{u32}, @code{s64}, @code{u64}, @code{f32} or
+@code{f64}. For each value of tags, the external representation of instances of
+the vector is @code{#@var{tag}(... elements ...)}
+
+On Sagittarius, these reader macros are not automatically enabled. You need to
+explicitly import it. For more detail, see
+@secref["lib.sagittarius.reader"]{(sagittarius reader) - reader macro library}.
