@@ -863,7 +863,7 @@ static SgString* read_string(SgPort *in, int length)
   SgChar *buf = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar)*(length + 1));
   Sg_ReadbUnsafe(in, (uint8_t *)buf, sizeof(SgChar)*length);
   buf[length] = 0;
-  return Sg_MakeString(buf, SG_LITERAL_STRING);
+  return Sg_MakeStringEx(buf, SG_LITERAL_STRING, length);
 }
 
 static SgObject read_symbol(SgPort *in, int internP)
