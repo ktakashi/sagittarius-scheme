@@ -727,7 +727,7 @@
 						(bytevector-u8-ref eb i)))
 					    (else (loop (+ i 1))))
 				      ))) set)))))
-    (define-method make-der-set () (make <der-set>))    
+    (define-method make-der-set () (make <der-set>))
     (define-method make-der-set ((o <der-encodable>))
       (make <der-set> :set (list o)))
     (define-method make-der-set l

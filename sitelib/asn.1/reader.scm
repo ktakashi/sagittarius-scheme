@@ -195,7 +195,7 @@
       (cond ((= len #x80) -1)
 	    ((> len 127)
 	     (let ((size (bitwise-and len #x7f))
-		   (len  0))
+		   (rlen  0))
 	       (when (> size 4)
 		 (assertion-violation 'read-length
 				      "DER length more than 4 bytes" size))
@@ -204,11 +204,12 @@
 		   (when (eof-object? next)
 		     (assertion-violation 'read-length
 					  "EOF found reading length"))
-		   (set! len (+ (bitwise-arithmetic-shift len 8) next))))
-	       (when (negative? len)
+		   (set! rlen (+ (bitwise-arithmetic-shift rlen 8)
+				    next))))
+	       (when (negative? rlen)
 		 (assertion-violation 'read-length
 				      "corrupted stream - negative length found"))
-	       len))
+	       rlen))
 	    (else len))))
 
   (define (read-object in :optional (skip? #f))

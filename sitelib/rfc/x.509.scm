@@ -304,6 +304,8 @@
     ((c :init-keyword :c)
      (basic-constraints :init-keyword :basic-constraints)
      (key-usage :init-keyword :key-usage)))
+  (define-method make-x509-certificate ((bv <bytevector>))
+    (make-x509-certificate (open-bytevector-input-port bv)))
   (define-method make-x509-certificate ((p <port>))
     (make-x509-certificate (read-asn.1-object p)))
   (define-method make-x509-certificate ((s <asn.1-sequence>))
