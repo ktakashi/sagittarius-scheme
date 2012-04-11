@@ -28,12 +28,13 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; Key derivation and PBES1 are supported.
-;; PBES2 and MAC are not yet.
+;; Key derivation, PBES1 and PBES2 are supported.
+;; MAC is not yet.
 (library (rsa pkcs :5)
     (export pbkdf-1 pbkdf-2 derive-key
 	    PKCS5-S1 PKCS5-S2
 	    pbe-with-md5-and-des pbe-with-sha1-and-des
+	    pbe-with-md5-and-rc2 pbe-with-sha1-and-rc2
 	    make-pbe-parameter generate-secret-key
 	    ;; To reuse cipher, we also need to export this method
 	    derive-key&iv
@@ -128,17 +129,22 @@
   (define-class <pkcs5-s1> () ())
   (define-class <pkcs5-s2> () ())
   ;; PKCS#5 defines combination of MD5, SHA1 and DES, RC2.
-  ;; but we do not support RC2
-  ;; PBEWithMD5AndDES
-  ;; PBEWithSHA1AndDES
+  ;;(define-class <pbe-md2-des> () ())
   (define-class <pbe-md5-des> () ())
   (define-class <pbe-sha1-des> () ())
+  ;;(define-class <pbe-md2-rc2> () ())
+  (define-class <pbe-md5-rc2> () ())
+  (define-class <pbe-sha1-rc2> () ())
 
   (define PKCS5-S1 (make <pkcs5-s1>))
   (define PKCS5-S2 (make <pkcs5-s2>))
   ;; the names are used also for cipher
+  ;;(define pbe-with-md2-and-des (make <pbe-md2-des>))
   (define pbe-with-md5-and-des (make <pbe-md5-des>))
   (define pbe-with-sha1-and-des (make <pbe-sha1-des>))
+  ;;(define pbe-with-md2-and-rc2 (make <pbe-md2-rc2>))
+  (define pbe-with-md5-and-rc2 (make <pbe-md5-rc2>))
+  (define pbe-with-sha1-and-rc2 (make <pbe-sha1-rc2>))
 
   ;; PBE parameter, it holds salt and iteration count.
   (define-class <pbe-parameter> ()
@@ -157,6 +163,13 @@
 
   ;; secret key generation
   ;; DES: key length 8, iv length 8
+#|
+  (define-method generate-secret-key ((marker <pbe-md2-des>)
+				      (password <string>))
+    (make <pbe-secret-key> :password password :hash (hash-algorithm MD2)
+	  :scheme DES :iv-size 8 :length 8
+	  :type PKCS5-S1))
+|#
   (define-method generate-secret-key ((marker <pbe-md5-des>)
 				      (password <string>))
     (make <pbe-secret-key> :password password :hash (hash-algorithm MD5)
@@ -166,6 +179,24 @@
 				      (password <string>))
     (make <pbe-secret-key> :password password :hash (hash-algorithm SHA-1)
 	  :scheme DES :iv-size 8 :length 8
+	  :type PKCS5-S1))
+  ;; RC2 key length 8, iv length 8
+#|
+  (define-method generate-secret-key ((marker <pbe-md2-rc2>)
+				      (password <string>))
+    (make <pbe-secret-key> :password password :hash (hash-algorithm MD2)
+	  :scheme RC2 :iv-size 8 :length 8
+	  :type PKCS5-S1))
+|#
+  (define-method generate-secret-key ((marker <pbe-md5-rc2>)
+				      (password <string>))
+    (make <pbe-secret-key> :password password :hash (hash-algorithm MD5)
+	  :scheme RC2 :iv-size 8 :length 8
+	  :type PKCS5-S1))
+  (define-method generate-secret-key ((marker <pbe-sha1-rc2>)
+				      (password <string>))
+    (make <pbe-secret-key> :password password :hash (hash-algorithm SHA-1)
+	  :scheme RC2 :iv-size 8 :length 8
 	  :type PKCS5-S1))
 
   ;; for pbe-cipher-spi we need derive derived key and iv from given
@@ -238,6 +269,12 @@
 	  (slot-set! spi 'verifier #f)
 	  (slot-set! spi 'keysize (slot-ref key 'length))))))
 
+  ;; DES
+  ;;(register-spi pbe-with-md2-and-des <pbe-cipher-spi>)
   (register-spi pbe-with-md5-and-des <pbe-cipher-spi>)
   (register-spi pbe-with-sha1-and-des <pbe-cipher-spi>)
+  ;; RC2
+  ;;(register-spi pbe-with-md2-and-rc2 <pbe-cipher-spi>)
+  (register-spi pbe-with-md5-and-rc2 <pbe-cipher-spi>)
+  (register-spi pbe-with-sha1-and-rc2 <pbe-cipher-spi>)
 )

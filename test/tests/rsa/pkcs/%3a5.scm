@@ -57,10 +57,13 @@
 	 (key (generate-secret-key algorithm password))
 	 (pbe-cipher (cipher algorithm key :parameter param))
 	 (ciphertext (encrypt pbe-cipher 
-			      (string->utf8 "This is an example."))))
-    (test-equal algorithm expected ciphertext)))
+			      (string->utf8 "This is an example.")))
+	 (decrypted (decrypt pbe-cipher expected)))
+    (test-equal algorithm expected ciphertext)
+    (test-equal algorithm (string->utf8 "This is an example.")
+		decrypted)))
 
-
+;; The test data were created by Java JCE with bouncy castle provider.
 ;; algorithm PBEWithMD5AndDES, password "password", salt "", count 1024
 (test #vu8(#xDD #xFA #x2D #x7E #x00 #x1E #xEE #x47 
 	   #x8E #x48 #x96 #x8A #xF6 #x3E #x12 #x67 
@@ -81,6 +84,27 @@
 	   #x21 #xC0 #xA1 #xD7 #x1C #x75 #xA9 #x81 
 	   #x93 #x3C #x10 #x34 #xEB #x4F #x5A #x17)
       pbe-with-sha1-and-des "password" "salt" 1024)
+
+;; algorithm PBEWithMD5AndRC2, password "password", salt "", count 1024
+(test #vu8(#xAC #xDB #x9D #x5E #x5A #x9B #x4F #xBF 
+	   #x72 #xEB #x8B #x24 #x0B #x56 #x6D #x6D 
+	   #x77 #x18 #x1E #xAA #xE3 #xE0 #x0F #xB0)
+      pbe-with-md5-and-rc2 "password" "" 1024)
+;; algorithm PBEWithMD5AndRC2, password "password", salt "salt", count 1024
+(test #vu8(#xFB #xA9 #x35 #x53 #x95 #x5C #xF9 #xA7 
+	   #xD5 #xE7 #xC1 #x57 #x86 #xAC #x53 #x02 
+	   #xE9 #xDA #x7C #x00 #xE6 #x7A #xFF #xDC)
+      pbe-with-md5-and-rc2 "password" "salt" 1024)
+;; algorithm PBEWithSHA1AndRC2, password "password", salt "", count 1024
+(test #vu8(#xCD #xE5 #x67 #x98 #x64 #x34 #x87 #xAE 
+	   #xD8 #x2D #xA9 #x4B #x33 #x70 #x8B #xA7 
+	   #x74 #x03 #x15 #x66 #xD6 #x30 #x13 #x1A)
+      pbe-with-sha1-and-rc2 "password" "" 1024)
+;; algorithm PBEWithSHA1AndRC2, password "password", salt "salt", count 1024
+(test #vu8(#x18 #x93 #xB1 #x87 #x9F #xA0 #x17 #x6B 
+	   #xFA #xD8 #x57 #x14 #x80 #xFB #xFD #x6D 
+	   #x52 #x75 #x09 #x02 #x6F #xA8 #x14 #xF4)
+      pbe-with-sha1-and-rc2 "password" "salt" 1024)
 
 ;; PBES2 test
 ;; I couldn't find any example of PBES2. This should be OK.
