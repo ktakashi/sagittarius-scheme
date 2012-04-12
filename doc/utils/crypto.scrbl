@@ -1,9 +1,9 @@
 @; -*- coding: utf-8 -*-
 @subsection[:tag "crypto"]{(crypto) - Cryptographic library}
 
-This documentation does not describe cryptographic itself. For example, it does
+This documentation does not describe cryptography itself. For example, it does
 not describe what initial vector is and how long it must be. So users must know
-aboud cryptographics this library supports.
+about cryptography's this library supports.
 
 This library uses @code{libtomcrypt}'s functionalities. The library is public
 domain. Thank you for the great library.
@@ -17,7 +17,7 @@ wrong documentation, pleas report it.
 @desc{This library is the top most library, it exports all the other libraries
 procedures. Users must import only this and not to use the others.
 
-@code{(crypto)} library supports both symmetric cryptographic and public/private
+@code{(crypto)} library supports both symmetric cryptography and public/private
 key mechanism. For public/private key, it only supports RSA for now.
 }
 
@@ -36,10 +36,10 @@ key mechanism. For public/private key, it only supports RSA for now.
  :rest options}}
 @desc{Creates a cipher object.
 
-@var{type} must be known cryptographic altorithm. Currently, @code{(crypto)}
-library exports the alogorithm below.
+@var{type} must be known cryptographic algorithm. Currently, @code{(crypto)}
+library exports the algorithm below.
 
-The simmetric key alogorithms.
+The symmetric key algorithms.
 @define[Constant]{@name{Blowfish}}
 @define[Constant]{@name{X-Tea}}
 @define[Constant]{@name{RC2}}
@@ -63,7 +63,7 @@ The simmetric key alogorithms.
 @define[Constant]{@name{SEED}}
 @define[Constant]{@name{KASUMI}}
 
-The public key alogorithm
+The public key algorithm
 @define[Constant]{@name{RSA}}
 
 @var{key} must be a key object which will be created by key generate procedures
@@ -119,7 +119,7 @@ to use.
 
 @var{ct} must be a bytevector.
 
-@code{decrypt} decrypts given encripted text @var{ct} according to the given
+@code{decrypt} decrypts given encrypted text @var{ct} according to the given
 @var{cipher}.
 }
 
@@ -135,7 +135,7 @@ implementations. Currently Sagittarius supports only RSA sign.
 @var{opt} can specify the signer behaviour. Default supported RSA cipher can
 accept keyword argument @var{encode}.
 
-@var{encode} specifies the encoder. The defaule encoder is
+@var{encode} specifies the encoder. The default encoder is
 @code{pkcs1-emsa-pss-encode}. And the rest keyword arguments will be passed to
 encoder. Supported encoders are described below.
 }
