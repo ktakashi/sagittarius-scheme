@@ -44,374 +44,375 @@
 #include "sagittarius/hashtable.h"
 #include "sagittarius/identifier.h"
 #include "sagittarius/instruction.h"
-#include "sagittarius/keyword.h"
-#include "sagittarius/library.h"
-#include "sagittarius/macro.h"
-#include "sagittarius/number.h"
-#include "sagittarius/pair.h"
-#include "sagittarius/port.h"
-#include "sagittarius/reader.h"	/* for shared reference */
-#include "sagittarius/string.h"
-#include "sagittarius/symbol.h"
-#include "sagittarius/system.h"
-#include "sagittarius/thread.h"
-#include "sagittarius/transcoder.h"
-#include "sagittarius/unicode.h"
-#include "sagittarius/vector.h"
-#include "sagittarius/vm.h"
-#include "sagittarius/writer.h"
+ #include "sagittarius/keyword.h"
+ #include "sagittarius/library.h"
+ #include "sagittarius/macro.h"
+ #include "sagittarius/number.h"
+ #include "sagittarius/pair.h"
+ #include "sagittarius/port.h"
+ #include "sagittarius/reader.h"	/* for shared reference */
+ #include "sagittarius/string.h"
+ #include "sagittarius/symbol.h"
+ #include "sagittarius/system.h"
+ #include "sagittarius/thread.h"
+ #include "sagittarius/transcoder.h"
+ #include "sagittarius/unicode.h"
+ #include "sagittarius/vector.h"
+ #include "sagittarius/vm.h"
+ #include "sagittarius/writer.h"
 
-#define VALIDATE_TAG  "Sagittarius version "SAGITTARIUS_VERSION
+ #define VALIDATE_TAG  "Sagittarius version "SAGITTARIUS_VERSION
 
-static SgString *CACHE_DIR = NULL;
-static int TAG_LENGTH = 0;
+ static SgString *CACHE_DIR = NULL;
+ static int TAG_LENGTH = 0;
 
-/* #define CACHE_DEBUG 1 */
-#ifdef CACHE_DEBUG
-#define debug_print(fmt, ...) Sg_Printf(Sg_StandardErrorPort(), UC(fmt), __VA_ARGS__)
-#else
-#define debug_print(fmt, ...)	/* dummy */
-#endif
+ /* #define CACHE_DEBUG 1 */
+ #ifdef CACHE_DEBUG
+ #define debug_print(fmt, ...) Sg_Printf(Sg_StandardErrorPort(), UC(fmt), __VA_ARGS__)
+ #else
+ #define debug_print(fmt, ...)	/* dummy */
+ #endif
 
-/* assume id is path. however just in case, we encode invalid path characters */
-static SgString* id_to_filename(SgString *id)
-{
-  SgObject sl = Sg_StringToList(id, 0, -1);
-  SgObject cp, h = SG_NIL, t = SG_NIL;
-  static const SgObject perc = SG_MAKE_CHAR('%');
+ /* assume id is path. however just in case, we encode invalid path characters */
+ static SgString* id_to_filename(SgString *id)
+ {
+   SgObject sl = Sg_StringToList(id, 0, -1);
+   SgObject cp, h = SG_NIL, t = SG_NIL;
+   static const SgObject perc = SG_MAKE_CHAR('%');
 
-  SG_FOR_EACH(cp, sl) {
-    SgObject c = SG_CAR(cp);
-    SgChar ch = SG_CHAR_VALUE(c);
-    if (ch == '/' || ch == '.') {
-      SG_APPEND1(h, t, SG_MAKE_CHAR('_'));
-    } else if (!isalnum(ch)){
-      int high = (ch >> 4) & 0xF;
-      int low  = ch & 0xF;
-      SG_APPEND1(h, t, perc);
-      SG_APPEND1(h, t, SG_MAKE_CHAR((high < 0xa) ? high + '0' : high + 0x57));
-      SG_APPEND1(h, t, SG_MAKE_CHAR((low < 0xa) ? low + '0' : low + 0x57));
-    } else {
-      SG_APPEND1(h, t, c);
-    }
-  }
-  return Sg_StringAppend(SG_LIST4(CACHE_DIR,
-				  Sg_MakeString(Sg_NativeFileSeparator(), SG_LITERAL_STRING),
-				  Sg_ListToString(h),
-				  Sg_MakeString(UC(".cache"), SG_LITERAL_STRING)));
-}
+   SG_FOR_EACH(cp, sl) {
+     SgObject c = SG_CAR(cp);
+     SgChar ch = SG_CHAR_VALUE(c);
+     if (ch == '/' || ch == '.') {
+       SG_APPEND1(h, t, SG_MAKE_CHAR('_'));
+     } else if (!isalnum(ch)){
+       int high = (ch >> 4) & 0xF;
+       int low  = ch & 0xF;
+       SG_APPEND1(h, t, perc);
+       SG_APPEND1(h, t, SG_MAKE_CHAR((high < 0xa) ? high + '0' : high + 0x57));
+       SG_APPEND1(h, t, SG_MAKE_CHAR((low < 0xa) ? low + '0' : low + 0x57));
+     } else {
+       SG_APPEND1(h, t, c);
+     }
+   }
+   return Sg_StringAppend(SG_LIST4(CACHE_DIR,
+				   Sg_MakeString(Sg_NativeFileSeparator(), SG_LITERAL_STRING),
+				   Sg_ListToString(h),
+				   Sg_MakeString(UC(".cache"), SG_LITERAL_STRING)));
+ }
 
-/*
-  compiled cashe tags.
-  
-  we do not cache all objects. if we can not cache it cache file will be marked
-  as invalid cache. the files will be marked as invalid are using quasiquote and
-  try to create non readable object which are written like #<something> or
-  extended object such as thread, regex etc.
-  we might support these objects, but for now only primitives.
-  NB: tag must be read as signed char because we use -1 as invalid cache.
- */
-enum {
-  INVALID_CACHE_TAG = -1,
-  /* tag len insn */
-  INSTRUCTION_TAG = 1,
-  /* tag len # for reference */
-  MARK_TAG,			/* mark tag for closure */
-  CODE_BUILDER_TAG,
-  CODE_BUILDER_END_TAG,
-  /* tag len ${object}(library name) */
-  LIBRARY_TAG,
-  IMPORT_TAG,
-  EXPORT_TAG,
-  LIBRARY_LOOKUP_TAG,
-  IMMEDIATE_TAG,		/* fixnum, char, boolean etc. */
-  /* primitives */
-  STRING_TAG,
-  INTERNED_SYMBOL_TAG,
-  UNINTERNED_SYMBOL_TAG,
-  KEYWORD_TAG,
-  NUMBER_TAG,			/* this number is not fixnum */
-  IDENTIFIER_TAG,
-  BYTE_VECTOR_TAG,
-  CLOSURE_TAG,
-  /* these can contain other pointers */
-  VECTOR_TAG,
-  PLIST_TAG,
-  DLIST_TAG,
-  /* macro needs special treat */
-  MACRO_SECTION_TAG,
-  MACRO_TAG,
-  MACRO_END_TAG,
-  MACRO_SECTION_END_TAG,
-  LIBRARY_REF_TAG,
-  LOOKUP_TAG,
-  DEFINING_SHARED_TAG,
-  BOUNDARY_TAG,			/* boundary */
-};
+ /*
+   compiled cashe tags.
 
-/* symbol, string, keyword, identifier, bytevector, vector,
-   pair, number, macro
- */
-#define cachable_p(obj)							\
-  (SG_SYMBOLP(obj) || SG_STRINGP(obj) || SG_KEYWORD(obj) ||		\
-   SG_IDENTIFIERP(obj) || SG_BVECTORP(obj) || SG_VECTORP(obj) ||	\
-   SG_PAIRP(obj) || SG_NUMBERP(obj) || SG_MACROP(obj) || SG_GLOCP(obj))
+   we do not cache all objects. if we can not cache it cache file will be marked
+   as invalid cache. the files will be marked as invalid are using quasiquote and
+   try to create non readable object which are written like #<something> or
+   extended object such as thread, regex etc.
+   we might support these objects, but for now only primitives.
+   NB: tag must be read as signed char because we use -1 as invalid cache.
+  */
+ enum {
+   INVALID_CACHE_TAG = -1,
+   /* tag len insn */
+   INSTRUCTION_TAG = 1,
+   /* tag len # for reference */
+   MARK_TAG,			/* mark tag for closure */
+   CODE_BUILDER_TAG,
+   CODE_BUILDER_END_TAG,
+   /* tag len ${object}(library name) */
+   LIBRARY_TAG,
+   IMPORT_TAG,
+   EXPORT_TAG,
+   LIBRARY_LOOKUP_TAG,
+   IMMEDIATE_TAG,		/* fixnum, char, boolean etc. */
+   /* primitives */
+   STRING_TAG,
+   INTERNED_SYMBOL_TAG,
+   UNINTERNED_SYMBOL_TAG,
+   KEYWORD_TAG,
+   NUMBER_TAG,			/* this number is not fixnum */
+   IDENTIFIER_TAG,
+   BYTE_VECTOR_TAG,
+   CLOSURE_TAG,
+   /* these can contain other pointers */
+   VECTOR_TAG,
+   PLIST_TAG,
+   DLIST_TAG,
+   /* macro needs special treat */
+   MACRO_SECTION_TAG,
+   MACRO_TAG,
+   MACRO_END_TAG,
+   MACRO_SECTION_END_TAG,
+   LIBRARY_REF_TAG,
+   LOOKUP_TAG,
+   DEFINING_SHARED_TAG,
+   BOUNDARY_TAG,			/* boundary */
+ };
 
-#define put_4byte(v)				\
-  do {						\
-    Sg_PutbUnsafe(out, ((v) >> 24) & 0xFF);	\
-    Sg_PutbUnsafe(out, ((v) >> 16) & 0xFF);	\
-    Sg_PutbUnsafe(out, ((v) >> 8) & 0xFF);	\
-    Sg_PutbUnsafe(out, (v) & 0xFF);		\
-  } while (0)
+ /* symbol, string, keyword, identifier, bytevector, vector,
+    pair, number, macro
+  */
+ #define cachable_p(obj)							\
+   (SG_SYMBOLP(obj) || SG_STRINGP(obj) || SG_KEYWORD(obj) ||		\
+    SG_IDENTIFIERP(obj) || SG_BVECTORP(obj) || SG_VECTORP(obj) ||	\
+    SG_PAIRP(obj) || SG_NUMBERP(obj) || SG_MACROP(obj) || SG_GLOCP(obj))
 
-static void put_word(SgPort *out, SgWord w, int tag)
-{
-  static const int WORD_SIZE = sizeof(SgObject);
-  int i;
-  Sg_PutbUnsafe(out, tag);
-  for (i = 0; i < WORD_SIZE; i++) {
-    /* write order:
-       value-> 0xaabbccdd
-       write-> dd cc bb aa
-     */
-    Sg_PutbUnsafe(out, (uintptr_t)w & 0xFF);
-    w = ((uintptr_t)w >> 8);
-  }
-}
+ #define put_4byte(v)				\
+   do {						\
+     Sg_PutbUnsafe(out, ((v) >> 24) & 0xFF);	\
+     Sg_PutbUnsafe(out, ((v) >> 16) & 0xFF);	\
+     Sg_PutbUnsafe(out, ((v) >> 8) & 0xFF);	\
+     Sg_PutbUnsafe(out, (v) & 0xFF);		\
+   } while (0)
 
-static void emit_immediate(SgPort *out, SgObject o)
-{
-  put_word(out, SG_WORD(o), IMMEDIATE_TAG);
-}
+ static void put_word(SgPort *out, SgWord w, int tag)
+ {
+   static const int WORD_SIZE = sizeof(SgObject);
+   int i;
+   Sg_PutbUnsafe(out, tag);
+   for (i = 0; i < WORD_SIZE; i++) {
+     /* write order:
+	value-> 0xaabbccdd
+	write-> dd cc bb aa
+      */
+     Sg_PutbUnsafe(out, (uintptr_t)w & 0xFF);
+     w = ((uintptr_t)w >> 8);
+   }
+ }
 
-/*
-  Basic strategy of writing compiled cache.
-  We need 2 pass to write cache.
+ static void emit_immediate(SgPort *out, SgObject o)
+ {
+   put_word(out, SG_WORD(o), IMMEDIATE_TAG);
+ }
 
-  Pass1: walk.
-  we need to collect pointers(Symbol, Pair, etc) and closures(CodeBuilder).
-  basically, we don't much care aboud pointers when we write, but closures.
-  other instructions and immediate value can be ignored.
-  
-  Pass2: write
-  write cache to file. we need to put tag before it, so that reader can know
-  which data was written. the tag structure is like this:
-  *tag* *length of data* *data* ...
-  tag is one byte which specifies data type.
-  length is byte length and must be 2bytes.
-  data can be either immediate value or pointer value. for reading closure, we
-  use mark tag.
-  NB: we also need to write macros which need to be treated kind of special.
-      because it is not in compiled code, but in library already. so we need to
-      specify which library is compiled. we can know it from identifier, then
-      retrieve it.
-  TODO: what if somebody defined macro outside of library and use it as library?
-        right now, it will be duplicated.
+ /*
+   Basic strategy of writing compiled cache.
+   We need 2 pass to write cache.
 
-  we try to cache as much as possible. but for now, we do not support all
-  objects, especially objects which are not able to be read by reader such as
-  codec, transcoder etc. see above tag definition.
- */
-typedef struct cache_ctx_rec cache_ctx;
-static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r, SgLibrary **lib, cache_ctx *ctx);
-static void     write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject r, cache_ctx *ctx);
-static void     write_macro_cache(SgPort *out, SgLibrary *lib, SgObject cbs, cache_ctx *ctx);
-static void     write_string_cache(SgPort *out, SgString *s, int tag);
-static void     write_symbol_cache(SgPort *out, SgSymbol *s);
-static void     write_object_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx *ctx);
+   Pass1: walk.
+   we need to collect pointers(Symbol, Pair, etc) and closures(CodeBuilder).
+   basically, we don't much care aboud pointers when we write, but closures.
+   other instructions and immediate value can be ignored.
 
-struct cache_ctx_rec
-{
-  SgHashTable *sharedObjects;
-  int          uid;
-  /* for pass1 */
-  jmp_buf      escape;
-  int          index;		/* code builder index */
-};
+   Pass2: write
+   write cache to file. we need to put tag before it, so that reader can know
+   which data was written. the tag structure is like this:
+   *tag* *length of data* *data* ...
+   tag is one byte which specifies data type.
+   length is byte length and must be 2bytes.
+   data can be either immediate value or pointer value. for reading closure, we
+   use mark tag.
+   NB: we also need to write macros which need to be treated kind of special.
+       because it is not in compiled code, but in library already. so we need to
+       specify which library is compiled. we can know it from identifier, then
+       retrieve it.
+   TODO: what if somebody defined macro outside of library and use it as library?
+	 right now, it will be duplicated.
 
-static int write_library(SgPort *out, SgLibrary *lib)
-{
-  /* for now we don't support generic object */
-  /* if (!SG_NULLP(lib->generics)) return FALSE; */
-  Sg_PutbUnsafe(out, LIBRARY_TAG);
-  /* we can just ignore cbs and index */
-  write_symbol_cache(out, lib->name);
-  return TRUE;
-}
+   we try to cache as much as possible. but for now, we do not support all
+   objects, especially objects which are not able to be read by reader such as
+   codec, transcoder etc. see above tag definition.
+  */
+ typedef struct cache_ctx_rec cache_ctx;
+ static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r, SgLibrary **lib, cache_ctx *ctx);
+ static void     write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject r, cache_ctx *ctx);
+ static void     write_macro_cache(SgPort *out, SgLibrary *lib, SgObject cbs, cache_ctx *ctx);
+ static void     write_string_cache(SgPort *out, SgString *s, int tag);
+ static void     write_symbol_cache(SgPort *out, SgSymbol *s);
+ static void     write_object_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx *ctx);
 
-static int write_dependancy(SgPort *out, SgLibrary *lib, cache_ctx *ctx)
-{
-  SgObject cp;
-  int len;
-  if (!write_library(out, lib)) return FALSE;
+ struct cache_ctx_rec
+ {
+   SgHashTable *sharedObjects;
+   int          uid;
+   /* for pass1 */
+   jmp_buf      escape;
+   int          index;		/* code builder index */
+ };
 
-  /* write import spec */
-  len = Sg_Length(lib->imported);
-  put_word(out, len, IMPORT_TAG);
-  SG_FOR_EACH(cp, lib->imported) {
-    SgObject slot = SG_CAR(cp);
-    write_symbol_cache(out, SG_LIBRARY_NAME(SG_CAR(slot)));
-    write_object_cache(out, SG_CDR(slot), SG_NIL, ctx);
-  }
-  len = Sg_Length(lib->exported);
-  put_word(out, len, EXPORT_TAG);
-  write_object_cache(out, lib->exported, SG_NIL, ctx);
-  Sg_PutbUnsafe(out, BOUNDARY_TAG);
-  return TRUE;
-}
+ static int write_library(SgPort *out, SgLibrary *lib)
+ {
+   /* for now we don't support generic object */
+   /* if (!SG_NULLP(lib->generics)) return FALSE; */
+   Sg_PutbUnsafe(out, LIBRARY_TAG);
+   /* we can just ignore cbs and index */
+   write_symbol_cache(out, lib->name);
+   return TRUE;
+ }
 
-static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
-{
-  SgVM *vm = Sg_VM();
-  SgLibrary *lib = NULL;		/* for macro */
-  SgObject closures, closure;
-  SgHashTable *sharedObjects = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
-  cache_ctx ctx;
+ static int write_dependancy(SgPort *out, SgLibrary *lib, cache_ctx *ctx)
+ {
+   SgObject cp;
+   int len;
+   if (!write_library(out, lib)) return FALSE;
 
-  ctx.sharedObjects = sharedObjects;
-  ctx.uid = 0;
-  ctx.index = index;
-  if (setjmp(ctx.escape) == 0) {
-    /* pass1 collect closure and library */
-    SgObject first = Sg_Acons(cb, SG_MAKE_INT(ctx.index++), SG_NIL);
-    closures = write_cache_pass1(cb, first, &lib, &ctx);
-  } else {
-    /* if there is non cachable objects in compiled code, 
-       we discard all cache.
-     */
-    if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
-      Sg_Printf(vm->logPort, UC("non-cachable object appeared. %S\n"), name);
-    }
-    Sg_SetPortPosition(out, 0);
-    Sg_PutbUnsafe(out, (uint8_t)INVALID_CACHE_TAG);
-    return -1;
-  }
+   /* write import spec */
+   len = Sg_Length(lib->imported);
+   put_word(out, len, IMPORT_TAG);
+   SG_FOR_EACH(cp, lib->imported) {
+     SgObject slot = SG_CAR(cp);
+     write_symbol_cache(out, SG_LIBRARY_NAME(SG_CAR(slot)));
+     write_object_cache(out, SG_CDR(slot), SG_NIL, ctx);
+   }
+   len = Sg_Length(lib->exported);
+   put_word(out, len, EXPORT_TAG);
+   write_object_cache(out, lib->exported, SG_NIL, ctx);
+   Sg_PutbUnsafe(out, BOUNDARY_TAG);
+   return TRUE;
+ }
 
-  /* before write cache, we need to write library info */
-  /* when writing a cache, the library must be created. */
-  if (lib != NULL && !write_dependancy(out, lib, &ctx)) {
-    if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
-      Sg_Printf(vm->logPort, UC("failed to write library. %S\n"), lib);
-    }
-    Sg_SetPortPosition(out, 0);
-    Sg_PutbUnsafe(out, (uint8_t)INVALID_CACHE_TAG);
-    return -1;
-  }
+ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
+ {
+   SgVM *vm = Sg_VM();
+   SgLibrary *lib = NULL;		/* for macro */
+   SgObject closures, closure;
+   SgHashTable *sharedObjects = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
+   cache_ctx ctx;
 
-  if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
-    Sg_Printf(vm->logPort, UC("collected closures: %S\n"), closures);
-  }
-  /* pass2 write cache. */
-  write_cache_pass2(out, cb, closures, &ctx);
-  SG_FOR_EACH(closure, SG_CDR(Sg_Reverse(closures))) {
-    SgObject slot = SG_CAR(closure);
-    Sg_PutbUnsafe(out, CLOSURE_TAG);
-    write_cache_pass2(out, SG_CODE_BUILDER(SG_CAR(slot)), closures, &ctx);
-  }
-  /* if library is NULL, the given code was empty. see core.scm */
-  if (lib != NULL) {
-    /* write macro */
-    if (setjmp(ctx.escape) == 0) {
-      write_macro_cache(out, lib, closures, &ctx);
-    } else {
-      /* macro has something weird objects */
-      Sg_SetPortPosition(out, 0);
-      Sg_PutbUnsafe(out, (uint8_t)INVALID_CACHE_TAG);
-      return -1;
-    }
-  } else {
-    put_word(out, 0, MACRO_SECTION_TAG);
-    write_symbol_cache(out, SG_INTERN("user"));
-    Sg_PutbUnsafe(out, MACRO_SECTION_END_TAG);
-  }
-  Sg_PutbUnsafe(out, BOUNDARY_TAG);
-  return ctx.index;
-}
+   ctx.sharedObjects = sharedObjects;
+   ctx.uid = 0;
+   ctx.index = index;
+   if (setjmp(ctx.escape) == 0) {
+     /* pass1 collect closure and library */
+     SgObject first = Sg_Acons(cb, SG_MAKE_INT(ctx.index++), SG_NIL);
+     closures = write_cache_pass1(cb, first, &lib, &ctx);
+   } else {
+     /* if there is non cachable objects in compiled code, 
+	we discard all cache.
+      */
+     if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
+       Sg_Printf(vm->logPort, UC("non-cachable object appeared. %S\n"), name);
+     }
+     Sg_SetPortPosition(out, 0);
+     Sg_PutbUnsafe(out, (uint8_t)INVALID_CACHE_TAG);
+     return -1;
+   }
 
-#define interesting_p(obj)					\
-  (SG_STRINGP(obj) || SG_SYMBOLP(obj) || SG_KEYWORDP(obj) ||	\
-   SG_IDENTIFIERP(obj) || SG_MACROP(obj) ||			\
-   SG_PAIRP(obj) || SG_VECTORP(obj) || SG_CLOSUREP(obj))
+   /* before write cache, we need to write library info */
+   /* when writing a cache, the library must be created. */
+   if (lib != NULL && !write_dependancy(out, lib, &ctx)) {
+     if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
+       Sg_Printf(vm->logPort, UC("failed to write library. %S\n"), lib);
+     }
+     Sg_SetPortPosition(out, 0);
+     Sg_PutbUnsafe(out, (uint8_t)INVALID_CACHE_TAG);
+     return -1;
+   }
 
-static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
-{
-  SgObject value;
- loop:
-  if (!cachable_p(obj)) longjmp(ctx->escape, 1);
-  if (!interesting_p(obj)) return cbs;
+   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
+     Sg_Printf(vm->logPort, UC("collected closures: %S\n"), closures);
+   }
+   /* pass2 write cache. */
+   write_cache_pass2(out, cb, closures, &ctx);
+   SG_FOR_EACH(closure, SG_CDR(Sg_Reverse(closures))) {
+     SgObject slot = SG_CAR(closure);
+     Sg_PutbUnsafe(out, CLOSURE_TAG);
+     write_cache_pass2(out, SG_CODE_BUILDER(SG_CAR(slot)), closures, &ctx);
+   }
+   /* if library is NULL, the given code was empty. see core.scm */
+   if (lib != NULL) {
+     /* write macro */
+     if (setjmp(ctx.escape) == 0) {
+       write_macro_cache(out, lib, closures, &ctx);
+     } else {
+       /* macro has something weird objects */
+       Sg_SetPortPosition(out, 0);
+       Sg_PutbUnsafe(out, (uint8_t)INVALID_CACHE_TAG);
+       return -1;
+     }
+   } else {
+     put_word(out, 0, MACRO_SECTION_TAG);
+     write_symbol_cache(out, SG_INTERN("user"));
+     Sg_PutbUnsafe(out, MACRO_SECTION_END_TAG);
+   }
+   Sg_PutbUnsafe(out, BOUNDARY_TAG);
+   return ctx.index;
+ }
 
-  value = Sg_HashTableRef(ctx->sharedObjects, obj, SG_UNBOUND);
-  if (SG_FALSEP(value)) {
-    Sg_HashTableSet(ctx->sharedObjects, obj, SG_TRUE, 0);
-    return cbs;
-  } else if (SG_TRUEP(value)) {
-    return cbs;
-  } else {
-    Sg_HashTableSet(ctx->sharedObjects, obj, SG_FALSE, 0);
-    if (SG_PAIRP(obj)) {
-      cbs = write_cache_scan(SG_CAR(obj), cbs, ctx);
-      obj = SG_CDR(obj);
-      goto loop;
-    } else if (SG_VECTORP(obj)) {
-      int i, size = SG_VECTOR_SIZE(obj);
-      for (i = 0; i < size; i++) {
-	cbs = write_cache_scan(SG_VECTOR_ELEMENT(obj, i), cbs, ctx);
-      }
-    } else if (SG_CLOSUREP(obj)) {
-      cbs = Sg_Acons(SG_CLOSURE(obj)->code, SG_MAKE_INT(ctx->index), cbs);
-      cbs = write_cache_pass1(SG_CLOSURE(obj)->code, cbs, NULL, ctx);
-    } else if (SG_IDENTIFIERP(obj)) {
-      cbs = write_cache_scan(SG_IDENTIFIER_ENVS(obj), cbs, ctx);
-      cbs = write_cache_scan(SG_IDENTIFIER_LIBRARY(obj)->name, cbs, ctx);
-    } else if (SG_MACROP(obj)) {
-      /* local macro in transformersEnv */
-      cbs = write_cache_scan(SG_MACRO(obj)->name, cbs, ctx);
-      cbs = write_cache_scan(SG_MACRO(obj)->env, cbs, ctx);
-      if (SG_CLOSUREP(SG_MACRO(obj)->data)) {
-	cbs = Sg_Acons(SG_CLOSURE(SG_MACRO(obj)->data)->code, SG_MAKE_INT(ctx->index), cbs);
-	cbs = write_cache_pass1(SG_CLOSURE(SG_MACRO(obj)->data)->code, cbs, NULL, ctx);
-      }
-      if (SG_CLOSUREP(SG_MACRO(obj)->transformer)) {
-	cbs = Sg_Acons(SG_CLOSURE(SG_MACRO(obj)->transformer)->code, SG_MAKE_INT(ctx->index), cbs);
-	cbs = write_cache_pass1(SG_CLOSURE(SG_MACRO(obj)->transformer)->code, cbs, NULL, ctx);
-      }
-      cbs = write_cache_scan(SG_MACRO(obj)->maybeLibrary, cbs, ctx);
-    }
-  }
-  return cbs;
-}
+ #define interesting_p(obj)					\
+   (SG_STRINGP(obj) || SG_SYMBOLP(obj) || SG_KEYWORDP(obj) ||	\
+    SG_IDENTIFIERP(obj) || SG_MACROP(obj) ||			\
+    SG_PAIRP(obj) || SG_VECTORP(obj) || SG_CLOSUREP(obj))
 
-/* correct code builders in code*/
-static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r, SgLibrary **lib, cache_ctx *ctx)
-{
-  SgWord *code = cb->code;
-  int i, len = cb->size;
-  for (i = 0; i < len;) {
-    InsnInfo *info = Sg_LookupInsnName(INSN(code[i]));
-    int j;
-    for (j = 0; j < info->argc; j++) {
-      SgObject o = SG_OBJ(code[i+j+1]);
-      if (SG_CODE_BUILDERP(o)) {
-	r = Sg_Acons(o, SG_MAKE_INT(ctx->index++), r);
-	/* we need to check it recursively */
-	r = write_cache_pass1(SG_CODE_BUILDER(o), r, lib, ctx);
-      }
-      if (info->number == LIBRARY && lib != NULL) {
-	/* LIBRARY instruction is a mark for this.
-	   FIXME: actually I don't like this, so remove it.
+ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
+ {
+   SgObject value;
+  loop:
+   if (!cachable_p(obj)) longjmp(ctx->escape, 1);
+   if (!interesting_p(obj)) return cbs;
+
+   value = Sg_HashTableRef(ctx->sharedObjects, obj, SG_UNBOUND);
+   if (SG_FALSEP(value)) {
+     Sg_HashTableSet(ctx->sharedObjects, obj, SG_TRUE, 0);
+     return cbs;
+   } else if (SG_TRUEP(value)) {
+     return cbs;
+   } else {
+     Sg_HashTableSet(ctx->sharedObjects, obj, SG_FALSE, 0);
+     if (SG_PAIRP(obj)) {
+       cbs = write_cache_scan(SG_CAR(obj), cbs, ctx);
+       obj = SG_CDR(obj);
+       goto loop;
+     } else if (SG_VECTORP(obj)) {
+       int i, size = SG_VECTOR_SIZE(obj);
+       for (i = 0; i < size; i++) {
+	 cbs = write_cache_scan(SG_VECTOR_ELEMENT(obj, i), cbs, ctx);
+       }
+     } else if (SG_CLOSUREP(obj)) {
+       cbs = Sg_Acons(SG_CLOSURE(obj)->code, SG_MAKE_INT(ctx->index), cbs);
+       cbs = write_cache_pass1(SG_CLOSURE(obj)->code, cbs, NULL, ctx);
+     } else if (SG_IDENTIFIERP(obj)) {
+       cbs = write_cache_scan(SG_IDENTIFIER_ENVS(obj), cbs, ctx);
+       cbs = write_cache_scan(SG_IDENTIFIER_LIBRARY(obj)->name, cbs, ctx);
+     } else if (SG_MACROP(obj)) {
+       /* local macro in transformersEnv */
+       cbs = write_cache_scan(SG_MACRO(obj)->name, cbs, ctx);
+       cbs = write_cache_scan(SG_MACRO(obj)->env, cbs, ctx);
+       if (SG_CLOSUREP(SG_MACRO(obj)->data)) {
+	 cbs = Sg_Acons(SG_CLOSURE(SG_MACRO(obj)->data)->code, SG_MAKE_INT(ctx->index), cbs);
+	 cbs = write_cache_pass1(SG_CLOSURE(SG_MACRO(obj)->data)->code, cbs, NULL, ctx);
+       }
+       if (SG_CLOSUREP(SG_MACRO(obj)->transformer)) {
+	 cbs = Sg_Acons(SG_CLOSURE(SG_MACRO(obj)->transformer)->code, SG_MAKE_INT(ctx->index), cbs);
+	 cbs = write_cache_pass1(SG_CLOSURE(SG_MACRO(obj)->transformer)->code, cbs, NULL, ctx);
+       }
+       cbs = write_cache_scan(SG_MACRO(obj)->maybeLibrary, cbs, ctx);
+     }
+   }
+   return cbs;
+ }
+
+ /* correct code builders in code*/
+ static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r,
+				   SgLibrary **lib, cache_ctx *ctx)
+ {
+   SgWord *code = cb->code;
+   int i, len = cb->size;
+   for (i = 0; i < len;) {
+     InsnInfo *info = Sg_LookupInsnName(INSN(code[i]));
+     int j;
+     for (j = 0; j < info->argc; j++) {
+       SgObject o = SG_OBJ(code[i+j+1]);
+       if (SG_CODE_BUILDERP(o)) {
+	 r = Sg_Acons(o, SG_MAKE_INT(ctx->index++), r);
+	 /* we need to check it recursively */
+	 r = write_cache_pass1(SG_CODE_BUILDER(o), r, lib, ctx);
+       }
+       if (info->number == LIBRARY && lib != NULL) {
+	 /* LIBRARY instruction is a mark for this.
+	    FIXME: actually I don't like this, so remove it.
 	 */
-	*lib = SG_LIBRARY(o);
-	/* we know after this check we don't have any interest in
-	   this object. so go to next.
+	 *lib = SG_LIBRARY(o);
+	 /* we know after this check we don't have any interest in
+	    this object. so go to next.
 	 */
-	break;
-      }
-      if (!cachable_p(o)) longjmp(ctx->escape, 1);
-      if (interesting_p(o)) {
-	r = write_cache_scan(o, r, ctx);
-      }
-    }
+	 break;
+       }
+       if (!cachable_p(o)) longjmp(ctx->escape, 1);
+       if (interesting_p(o)) {
+	 r = write_cache_scan(o, r, ctx);
+       }
+     }
     i += 1 + info->argc;
   }
   return r;
@@ -433,7 +434,9 @@ static void write_string_cache(SgPort *out, SgString *s, int tag)
 
 static void write_symbol_cache(SgPort *out, SgSymbol *s)
 {
-  write_string_cache(out, SG_SYMBOL(s)->name, (SG_INTERNED_SYMBOL(s)) ? INTERNED_SYMBOL_TAG : UNINTERNED_SYMBOL_TAG);
+  write_string_cache(out, SG_SYMBOL(s)->name,
+		     (SG_INTERNED_SYMBOL(s)) ? INTERNED_SYMBOL_TAG
+					     : UNINTERNED_SYMBOL_TAG);
 }
 
 static void write_number_cache(SgPort *out, SgObject o)
@@ -443,14 +446,16 @@ static void write_number_cache(SgPort *out, SgObject o)
   write_string_cache(out, SG_STRING(str), NUMBER_TAG);
 }
 
-static void write_list_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx *ctx)
+static void write_list_cache(SgPort *out, SgObject o, SgObject cbs,
+			     cache_ctx *ctx)
 {
   /* o = '(a b c d . e) */
   SgObject v = SG_NIL, t = SG_NIL, org = o;
   int first = TRUE;
   while (SG_PAIRP(o)) {
     if (!first && SG_TRUEP(Sg_HashTableRef(ctx->sharedObjects, o, SG_FALSE))) {
-      Sg_HashTableSet(ctx->sharedObjects, o, SG_LIST1(SG_MAKE_INT(ctx->uid++)), 0);
+      Sg_HashTableSet(ctx->sharedObjects, o, 
+		      SG_LIST1(SG_MAKE_INT(ctx->uid++)), 0);
       break;
     }
     if (!first && SG_INTP(Sg_HashTableRef(ctx->sharedObjects, o, SG_FALSE))) {
@@ -473,7 +478,8 @@ static void write_list_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx *c
       write_object_cache(out, SG_CAR(cp), cbs, ctx);
     }
   } else {
-    /* DLIST_TAG 4 (symbol 'e) (symbol 'a) (symbol 'b) (symbol 'c) (symbol 'd) */
+    /* DLIST_TAG 4
+       (symbol 'e) (symbol 'a) (symbol 'b) (symbol 'c) (symbol 'd) */
     int size = Sg_Length(v);
     SgObject cp, p;
     put_word(out, size, DLIST_TAG);
@@ -493,7 +499,8 @@ static void write_list_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx *c
   }
 }
 
-static void write_macro(SgPort *out, SgMacro *macro, SgObject closures, cache_ctx *ctx)
+static void write_macro(SgPort *out, SgMacro *macro, SgObject closures,
+			cache_ctx *ctx)
 {
   SgObject closure;
   int subrP = SG_SUBRP(SG_MACRO(macro)->transformer);
@@ -505,9 +512,11 @@ static void write_macro(SgPort *out, SgMacro *macro, SgObject closures, cache_ct
   write_object_cache(out, SG_MACRO(macro)->env, closures, ctx);
   write_object_cache(out, SG_MACRO(macro)->maybeLibrary, closures, ctx);
   if (subrP) {
-    write_cache_pass2(out, SG_CLOSURE(SG_MACRO(macro)->data)->code, closures, ctx);
+    write_cache_pass2(out, SG_CLOSURE(SG_MACRO(macro)->data)->code,
+		      closures, ctx);
   } else {
-    write_cache_pass2(out, SG_CLOSURE(SG_MACRO(macro)->transformer)->code, closures, ctx);
+    write_cache_pass2(out, SG_CLOSURE(SG_MACRO(macro)->transformer)->code,
+		      closures, ctx);
   }
   SG_FOR_EACH(closure, SG_CDR(Sg_Reverse(closures))) {
     SgObject slot = SG_CAR(closure);
@@ -517,7 +526,8 @@ static void write_macro(SgPort *out, SgMacro *macro, SgObject closures, cache_ct
   Sg_PutbUnsafe(out, MACRO_END_TAG);
 }
 
-static void write_object_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx *ctx)
+static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
+			       cache_ctx *ctx)
 {
   SgObject sharedState = Sg_HashTableRef(ctx->sharedObjects, o, SG_FALSE);
   if (SG_INTP(sharedState)) {
@@ -561,8 +571,10 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx 
        only for optimization.
        p1env ::= #( library frames exp-name current-proc )
     */
-    write_string_cache(out, SG_SYMBOL(SG_IDENTIFIER(o)->name)->name, IDENTIFIER_TAG);
-    write_object_cache(out, SG_LIBRARY(SG_IDENTIFIER_LIBRARY(o))->name, cbs, ctx);
+    write_string_cache(out, SG_SYMBOL(SG_IDENTIFIER(o)->name)->name,
+		       IDENTIFIER_TAG);
+    write_object_cache(out, SG_LIBRARY(SG_IDENTIFIER_LIBRARY(o))->name,
+		       cbs, ctx);
     write_object_cache(out, SG_IDENTIFIER_ENVS(o), cbs, ctx);
   } else if (SG_CLOSUREP(o)) {
     write_cache_pass2(out, SG_CLOSURE(o)->code, cbs, ctx);
@@ -570,7 +582,8 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx 
     /* at this point, this library has already been written.
        so just put lookup tag.
      */
-    write_string_cache(out, SG_SYMBOL(SG_LIBRARY_NAME(o))->name, LIBRARY_LOOKUP_TAG);
+    write_string_cache(out, SG_SYMBOL(SG_LIBRARY_NAME(o))->name,
+		       LIBRARY_LOOKUP_TAG);
     /* write_symbol_cache(out, SG_LIBRARY_NAME(o)); */
   } else if (SG_GLOCP(o)) {
     /* gloc is for performance thing, it can be replaced by identifier */
@@ -586,13 +599,15 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs, cache_ctx 
     SgVM *vm = Sg_VM();
     /* never happen? */
     if (SG_VM_LOG_LEVEL(vm, SG_WARN_LEVEL)) {
-      Sg_Printf(vm->logPort, UC("Non-cachable object appeared in writing phase %S\n"), o);
+      Sg_Printf(vm->logPort,
+		UC("Non-cachable object appeared in writing phase %S\n"), o);
     }
     longjmp(ctx->escape, 1);
   }
 }
 
-static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs, cache_ctx *ctx)
+static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs,
+			      cache_ctx *ctx)
 {
   int i, len = cb->size;
   SgWord *code = cb->code;
@@ -614,7 +629,8 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs, cach
   put_4byte(cb->freec);
   put_4byte(SG_INT_VALUE(SG_CDR(this_slot)));
   write_object_cache(out, cb->name, cbs, ctx);
-  debug_print("written code builder length: %d, pos: %d\n", len, Sg_PortPosition(out));
+  debug_print("written code builder length: %d, pos: %d\n", len,
+	      Sg_PortPosition(out));
   for (i = 0; i < len;) {
     InsnInfo *info = Sg_LookupInsnName(INSN(code[i]));
     int j;
@@ -625,7 +641,8 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs, cach
       if (SG_CODE_BUILDERP(o)) {
 	SgObject slot = Sg_Assq(o, cbs);
 	/* never happen but just in case */
-	if (SG_FALSEP(slot)) Sg_Panic("non collected compiled code appeared during writing cache.");
+	if (SG_FALSEP(slot))
+	  Sg_Panic("non collected compiled code appeared during writing cache");
 	/* set mark.
 	   maximum 0xffffffff index
 	   i think this is durable.
@@ -641,7 +658,8 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs, cach
   Sg_PutbUnsafe(out, CODE_BUILDER_END_TAG);
 }
 
-static void write_macro_cache(SgPort *out, SgLibrary *lib, SgObject cbs, cache_ctx *ctx)
+static void write_macro_cache(SgPort *out, SgLibrary *lib, SgObject cbs,
+			      cache_ctx *ctx)
 {
   SgObject keys = Sg_HashTableKeys(SG_LIBRARY_TABLE(lib));
   SgObject macros = SG_NIL, t = SG_NIL;
@@ -673,13 +691,16 @@ static void write_macro_cache(SgPort *out, SgLibrary *lib, SgObject cbs, cache_c
 
     /* for usual macros */
     if (SG_CLOSUREP(SG_MACRO(macro)->data)) {
-      closures = Sg_Acons(SG_CLOSURE(SG_MACRO(macro)->data)->code, SG_MAKE_INT(ctx->index++), closures);
+      closures = Sg_Acons(SG_CLOSURE(SG_MACRO(macro)->data)->code,
+			  SG_MAKE_INT(ctx->index++), closures);
       /* we don't need to check library here */
-      closures = write_cache_pass1(SG_CLOSURE(SG_MACRO(macro)->data)->code, closures, NULL, ctx); 
+      closures = write_cache_pass1(SG_CLOSURE(SG_MACRO(macro)->data)->code,
+				   closures, NULL, ctx); 
     }
     /* for make-variable-transformer */
     if (SG_CLOSUREP(SG_MACRO(macro)->transformer)) {
-      closures = Sg_Acons(SG_CLOSURE(SG_MACRO(macro)->transformer)->code, SG_MAKE_INT(ctx->index++), closures);
+      closures = Sg_Acons(SG_CLOSURE(SG_MACRO(macro)->transformer)->code,
+			  SG_MAKE_INT(ctx->index++), closures);
       /* we don't need to check library here */
       closures = write_cache_pass1(SG_CLOSURE(SG_MACRO(macro)->transformer)->code, closures, NULL, ctx); 
     }
@@ -728,7 +749,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   file = Sg_OpenFile(cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
   out = Sg_MakeFileBinaryOutputPort(file, SG_BUFMODE_BLOCK);
   /* put validate tag */
-  Sg_WritebUnsafe(out, (const uint8_t *)VALIDATE_TAG, 0, TAG_LENGTH);
+  Sg_WritebUnsafe(out, (uint8_t *)VALIDATE_TAG, 0, TAG_LENGTH);
   Sg_ClosePort(out);
   return TRUE;
 }
@@ -774,7 +795,8 @@ static SgWord read_word(SgPort *in, int tag_type)
   SgWord ret = 0;
   int tag = Sg_GetbUnsafe(in);
   if (tag != tag_type) {
-    Sg_Panic("unexpected cache tag appeared. (expected %d, got %d)\n", tag_type, tag);
+    Sg_Panic("unexpected cache tag appeared. (expected %d, got %d)\n",
+	     tag_type, tag);
   }
   /* dd cc bb aa -> aa bb cc dd */
   for (i = 0; i < WORD_SIZE; i++) {
@@ -800,10 +822,6 @@ static SgObject link_cb(SgObject cb, read_ctx *ctx)
 	  SgObject index = SG_SHAREDREF(o)->index;
 	  SgObject new_cb = Sg_HashTableRef(ctx->seen, index, SG_FALSE);
 	  debug_print("linking ... %A\n", o);
-#if 0
-	  Sg_Printf(Sg_StandardErrorPort(), UC("index %A, keys %S, values %S\n"), index,
-		    Sg_HashTableKeys(ctx->seen), Sg_HashTableValues(ctx->seen));
-#endif
 	  ASSERT(SG_CODE_BUILDERP(new_cb));
 	  code[i+j+1] = SG_WORD(new_cb);
 	  link_cb(new_cb, ctx);
@@ -870,7 +888,8 @@ static SgObject read_symbol(SgPort *in, int internP)
 {
   int length;
   SgString *name;
-  length = read_word(in, (internP) ? INTERNED_SYMBOL_TAG : UNINTERNED_SYMBOL_TAG);
+  length = read_word(in, (internP) ? INTERNED_SYMBOL_TAG 
+				   : UNINTERNED_SYMBOL_TAG);
   name = read_string(in, length);
   return Sg_MakeSymbol(name, internP);
 }
@@ -1302,12 +1321,13 @@ int Sg_ReadCache(SgString *id)
   SgFile *file;
   SgPort *in;
   SgObject obj, vtime, otime;
-  SgHashTable *seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 128);
-  SgHashTable *shared = Sg_MakeHashTableSimple(SG_HASH_EQ, 256);
+  SgHashTable *seen;
+  SgHashTable *shared;
   SgLibrary *save = vm->currentLibrary;
   read_ctx ctx;
   char tagbuf[50], *alldata;
-  int b, size;
+  int b;
+  int64_t size;
 
   if (SG_VM_IS_SET_FLAG(vm, SG_DISABLE_CACHE)) {
     return INVALID_CACHE;
@@ -1332,8 +1352,6 @@ int Sg_ReadCache(SgString *id)
 
   file = Sg_OpenFile(timestamp, SG_READ);
   in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_BLOCK);
-  /* in = Sg_MakeTranscodedInputPort(in, Sg_MakeNativeTranscoder()); */
-  /* validate_tag = Sg_Read(in, TRUE); */
   size = Sg_ReadbUnsafe(in, tagbuf, 50);
   tagbuf[size] = 0;
   if (strcmp(tagbuf, VALIDATE_TAG) != 0) {
@@ -1345,21 +1363,31 @@ int Sg_ReadCache(SgString *id)
 
   file = Sg_OpenFile(cache_path, SG_READ);
   in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_BLOCK);
-  size = Sg_ReadbAllUnsafe(in, &alldata);
+  size = Sg_ReadbAll(in, &alldata);
   Sg_ClosePort(in);
   in = Sg_MakeByteArrayInputPort(alldata, size);
+
+  seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 128);
+  shared = Sg_MakeHashTableSimple(SG_HASH_EQ, 256);
 
   ctx.seen = seen;
   ctx.sharedObjects = shared;
   ctx.insnP = FALSE;
   ctx.isLinkNeeded = FALSE;
+  SG_PORT_LOCK(in);
   /* check if it's invalid cache or not */
   b = Sg_PeekbUnsafe(in);
-  if (b == INVALID_CACHE_TAG) return INVALID_CACHE;
+  if (b == INVALID_CACHE_TAG) {
+    return INVALID_CACHE;
+  }
 
   while ((obj = read_toplevel(in, MACRO_SECTION_TAG, &ctx)) != SG_EOF) {
     /* toplevel cache never be #f */
-    if (SG_FALSEP(obj)) return RE_CACHE_NEEDED;
+    if (SG_FALSEP(obj)) {
+      SG_PORT_UNLOCK(in);
+      Sg_ClosePort(in);
+      return RE_CACHE_NEEDED;
+    }
     if (SG_LIBRARYP(obj)) {
       save = vm->currentLibrary;
       vm->currentLibrary = SG_LIBRARY(obj);
@@ -1376,6 +1404,7 @@ int Sg_ReadCache(SgString *id)
   }
   /* for no content library */
   vm->currentLibrary = save;
+  SG_PORT_UNLOCK(in);
   Sg_ClosePort(in);
   return CACHE_READ;
 }

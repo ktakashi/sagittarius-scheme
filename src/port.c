@@ -380,6 +380,19 @@ static void file_fill_buffer(SgObject self)
   bp->bufferIndex = 0;
 }
 
+static void* memcpy64(void *s1, const void *s2, uint64_t n)
+{
+  register char *ss1 = s1;
+  register const char *ss2 = s2;
+  if (n != 0) {
+    register const char *t = ss2 + n;
+    do {
+      *ss1++ = *ss2++;
+    } while (ss2 != t);
+  }
+  return s1;
+}
+
 /* To use this both input and input/output port, this does not change
    position
  */
@@ -396,12 +409,12 @@ static int64_t file_read_from_buffer(SgObject self, uint8_t *dest,
     int64_t size_diff = req_size - read_size;
     ASSERT(bp->bufferSize >= bp->bufferIndex);
     if (buf_diff >= size_diff) {
-      memcpy(dest + read_size, bp->buffer + bp->bufferIndex, size_diff);
+      memcpy64(dest + read_size, bp->buffer + bp->bufferIndex, size_diff);
       bp->bufferIndex += size_diff;
       read_size += size_diff;
       break;
     } else {
-      memcpy(dest + read_size, bp->buffer + bp->bufferIndex, buf_diff);
+      memcpy64(dest + read_size, bp->buffer + bp->bufferIndex, buf_diff);
       read_size += buf_diff;
       file_fill_buffer(self);
       need_unwind = TRUE;
@@ -507,17 +520,19 @@ static int64_t file_read_u8_all(SgObject self, uint8_t **buf)
 {
   int64_t rest_size = 0, result = 0;
   uint8_t *dest;
+  SgBinaryPort *bport = SG_BINARY_PORT(self);
+  SgFile *file = SG_PORT_FILE(self);
 
-  rest_size = SG_PORT_FILE(self)->size(SG_PORT_FILE(self)) - SG_BINARY_PORT(self)->position;
+  rest_size = file->size(file) - bport->position;
   if (rest_size < 0) return 0;
 
   /* if file is pipe or fd, file->size method returns 0, however we know,
      it can have something, so try to read as bytevector. */
   if (rest_size == 0) return file_try_read_all(self, buf);
 
-  dest = SG_NEW_ATOMIC2(uint8_t *, rest_size);
+  dest = SG_NEW_ATOMIC2(uint8_t *, (size_t)rest_size);
   *buf = dest;
-  if (SG_BINARY_PORT(self)->buffer) {
+  if (bport->buffer) {
     result = file_read_from_buffer(self, dest, rest_size);
   } else {
     int offset = 0;
@@ -525,7 +540,7 @@ static int64_t file_read_u8_all(SgObject self, uint8_t **buf)
       dest[offset++] = SG_PORT_U8_AHEAD(self);
       SG_PORT_U8_AHEAD(self) = EOF;
     }
-    result = SG_PORT_FILE(self)->read(SG_PORT_FILE(self), dest + offset, rest_size - offset);
+    result = file->read(file, dest + offset, rest_size - offset);
     result += offset;
   }
   file_forward_position(self, result);
@@ -579,13 +594,13 @@ static int64_t file_write_to_block_buffer(SgObject self, uint8_t *v, int64_t req
     ASSERT(buf_diff >= 0);
     ASSERT(req_size > write_size);
     if (buf_diff >= size_diff) {
-      memcpy(SG_BINARY_PORT(self)->buffer + SG_BINARY_PORT(self)->bufferIndex,
-	     v + write_size, size_diff);
+      memcpy64(SG_BINARY_PORT(self)->buffer + SG_BINARY_PORT(self)->bufferIndex,
+	       v + write_size, size_diff);
       SG_BINARY_PORT(self)->bufferIndex += size_diff;
       write_size += size_diff;
     } else {
-      memcpy(SG_BINARY_PORT(self)->buffer + SG_BINARY_PORT(self)->bufferIndex,
-	     v + write_size, buf_diff);
+      memcpy64(SG_BINARY_PORT(self)->buffer + SG_BINARY_PORT(self)->bufferIndex,
+	       v + write_size, buf_diff);
       SG_BINARY_PORT(self)->bufferIndex += buf_diff;
       write_size += buf_diff;
       file_flush_internal(self);
@@ -762,8 +777,8 @@ static int64_t byte_array_read_u8(SgObject self, uint8_t *buf, int64_t size)
   SgByteVector *bvec = bp->src.buffer.bvec;
   int bsize = SG_BVECTOR_SIZE(bvec);
   int bindex = bp->src.buffer.index;
-  int rest = bsize - bindex;
-  int i, read_size = (rest >= size) ? size : rest;
+  size_t rest = bsize - bindex;
+  int i, read_size = (rest >= (size_t)size) ? (size_t)size : rest;
 
   for (i = 0; i < read_size; i++) {
     buf[i] = Sg_ByteVectorU8Ref(bvec, bindex + i);
@@ -819,7 +834,8 @@ SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size)
   z->flush = NULL;
   z->close = byte_array_close;
   /* initialize binary input port */
-  b->src.buffer.bvec = SG_BVECTOR(Sg_MakeByteVectorFromU8Array(src, size));
+  b->src.buffer.bvec = SG_BVECTOR(Sg_MakeByteVectorFromU8Array(src,
+							       (size_t)size));
   b->src.buffer.index = 0;
   b->open = byte_array_open;
   b->getU8 = byte_array_get_u8;
@@ -846,7 +862,8 @@ static int obyte_array_close(SgObject self)
   return TRUE;
 }
 
-static int64_t put_byte_array_u8_array(SgObject self, uint8_t *buf, int64_t size)
+static int64_t put_byte_array_u8_array(SgObject self, uint8_t *buf,
+				       int64_t size)
 {
   SgBinaryPort *bp = SG_BINARY_PORT(self);
   SgByteVector *bvec = bp->src.buffer.bvec;
@@ -859,7 +876,7 @@ static int64_t put_byte_array_u8_array(SgObject self, uint8_t *buf, int64_t size
       This may be too much but if it's overflowing now, next time will also
       overflow. Why not allocate bigger to avoid memory allocating?
      */
-    int new_size = current_size + size + INCREASE_BUFFER_SIZE;
+    int new_size = current_size + (size_t)size + INCREASE_BUFFER_SIZE;
     SgByteVector *tmp = Sg_MakeByteVector(new_size, 0);
     Sg_ByteVectorCopyX(bvec, 0, tmp, 0, current_index);
     bp->src.buffer.bvec = tmp;
@@ -868,7 +885,7 @@ static int64_t put_byte_array_u8_array(SgObject self, uint8_t *buf, int64_t size
   for (i = 0; i < size; i++) {
     Sg_ByteVectorU8Set(bvec, current_index + i, buf[i]);
   }
-  bp->src.buffer.index += size;
+  bp->src.buffer.index += (size_t)size;
   return size;
 }
 
@@ -1276,17 +1293,19 @@ static int64_t custom_binary_put_u8(SgObject self, uint8_t b)
 		    bv, start, count);
   if (!SG_INTP(result)) {
     Sg_IOWriteError(SG_INTERN("put-u8"),
-		    Sg_Sprintf(UC("custom port write! returned invalid value, %S"), result),
+		    Sg_Sprintf(UC("custom port write!"
+				  " returned invalid value, %S"), result),
 		    result);
   }
   return SG_INT_VALUE(result);
 }
 
-static int64_t custom_binary_put_u8_array(SgObject self, uint8_t *v, int64_t size)
+static int64_t custom_binary_put_u8_array(SgObject self, uint8_t *v,
+					  int64_t size)
 {
   static const SgObject start = SG_MAKE_INT(0);
   SgObject bv, result, count;
-  bv = Sg_MakeByteVectorFromU8Array(v, size);
+  bv = Sg_MakeByteVectorFromU8Array(v, (size_t)size);
   /* for now, we assume nobody use such a big file or buffer.
      so just use fixnum.
    */
@@ -1295,7 +1314,8 @@ static int64_t custom_binary_put_u8_array(SgObject self, uint8_t *v, int64_t siz
 		    bv, start, count);
   if (!SG_INTP(result)) {
     Sg_IOWriteError(SG_INTERN("put-bytevector"),
-		    Sg_Sprintf(UC("custom port write! returned invalid value, %S"), result),
+		    Sg_Sprintf(UC("custom port write!"
+				  " returned invalid value, %S"), result),
 		    result);
   }
   return SG_INT_VALUE(result);
@@ -2051,14 +2071,15 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset)
       SG_BINARY_PORT(port)->position = offset;
       break;
     case SG_BYTE_ARRAY_BINARY_PORT_TYPE:
-      SG_BINARY_PORT(port)->src.buffer.index = offset;
+      SG_BINARY_PORT(port)->src.buffer.index = (size_t)offset;
       break;
     case SG_CUSTOM_BINARY_PORT_TYPE: {
       SgSetPortPositionFn *fn = SG_BINARY_PORT(port)->src.custom.setPosition;
       if (fn) {
 	fn(port, offset);
       } else {
-	Sg_Error(UC("given custom binary port does not support set-port-position!")); 
+	Sg_Error(UC("given custom binary port does not support"
+		    " set-port-position!")); 
 	return;
       }
       break;
@@ -2071,10 +2092,11 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset)
   } else if (SG_TEXTUAL_PORTP(port)) {
     switch (SG_TEXTUAL_PORT(port)->type) {
     case SG_TRANSCODED_TEXTUAL_PORT_TYPE:
-      Sg_Error(UC("transcoded textual port does not support set-port-position!")); 
+      Sg_Error(UC("transcoded textual port does not support"
+		  " set-port-position!")); 
       break;
     case SG_STRING_TEXTUAL_PORT_TYPE:
-      SG_TEXTUAL_PORT(port)->src.buffer.index = offset;
+      SG_TEXTUAL_PORT(port)->src.buffer.index = (size_t)offset;
       break;
     case SG_CUSTOM_TEXTUAL_PORT_TYPE: {
       SgSetPortPositionFn *fn = SG_TEXTUAL_PORT(port)->src.custom.setPosition;

@@ -53,8 +53,17 @@ static const wchar_t* utf32ToUtf16(const SgChar *s)
 
 static void* dl_open(const SgString *path)
 {
-  wchar_t *xpath = utf32ToUtf16(SG_STRING_VALUE(path));
-  return (void*)LoadLibraryW(xpath);
+  const wchar_t *xpath = utf32ToUtf16(SG_STRING_VALUE(path));
+  void *result;
+  /* TODO: seeing Boehm GC's GC_dlopen, it's actually collecting some,
+     before stop GC to make some space for loading. maybe we need to do
+     the same.
+   */
+  /* disable GC */
+  GC_disable();
+  result = (void*)LoadLibraryW(xpath);
+  GC_enable();
+  return result;
 }
 
 static const SgString* dl_error(void)

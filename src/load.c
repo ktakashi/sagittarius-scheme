@@ -185,7 +185,7 @@ struct dlobj_initfn_rec
 struct dlobj_rec
 {
   dlobj *next;
-  const SgString *path;
+  SgString *path;
   int loaded;
   void *handle;
   SgVM *loader;
@@ -239,10 +239,18 @@ static void unlock_dlobj(dlobj *dlo)
 
 #define DYNLOAD_PREFIX "_Sg_Init_"
 
+#ifdef _MSC_VER
+#define s_strcpy(dst, src, size) strcpy_s(dst, size, src)
+#else
+#define s_strcpy(dst, src, size) strcpy(dst, src)
+#endif
+
+
 static const char* derive_dynload_initfn(const char *filename)
 {
   const char *head, *tail, *s;
   char *name, *d;
+  size_t size;
 
   head = strrchr(filename, '/');
   if (head == NULL) {
@@ -254,8 +262,9 @@ static const char* derive_dynload_initfn(const char *filename)
   tail = strchr(head, '.');
   if (tail == NULL) tail = filename + strlen(filename);
 
-  name = SG_NEW_ATOMIC2(char *, sizeof(DYNLOAD_PREFIX) + tail - head);
-  strcpy(name, DYNLOAD_PREFIX);
+  size = sizeof(DYNLOAD_PREFIX) + tail - head;
+  name = SG_NEW_ATOMIC2(char *, size);
+  s_strcpy(name, DYNLOAD_PREFIX, size);
   for (s = head, d = name + sizeof(DYNLOAD_PREFIX) - 1; s < tail; s++, d++) {
     if (isalnum(*s)) *d = tolower(*s);
     else *d = '_';
