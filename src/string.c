@@ -135,7 +135,7 @@ SG_DEFINE_BUILTIN_CLASS(Sg_StringClass, string_print, NULL, NULL, NULL,
 			SG_CLASS_SEQUENCE_CPL);
 
 #define STRING_ALLOC_SIZE(size)			\
-  (sizeof(SgString)+sizeof(SgChar)*(size+1))
+  (sizeof(SgString)+sizeof(SgChar)*size)
 
 static SgString* make_string(int size)
 {

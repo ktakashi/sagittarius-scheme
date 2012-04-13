@@ -150,7 +150,7 @@ static inline int is_valid_value(intptr_t value, size_t bitCount, int signP)
   uintptr_t unsigned_max = (1 << bitCount) - 1;        /* cf) bitCount = 8, max = 256 */
   intptr_t signed_max = (1 << (bitCount - 1)) - 1;    /* cf) bitCount = 8, max = 127 */
   intptr_t min = -(1 << (bitCount - 1));               /* cf) bitCount = 8, max = -128 */
-  if (nbits(value) > bitCount) {
+  if ((size_t)nbits(value) > bitCount) {
     return FALSE;
   }
   /* check max and min value */
@@ -292,7 +292,8 @@ void Sg_ByteVectorFill(SgByteVector *bv, int value)
   memset(SG_BVECTOR_ELEMENTS(bv), value, SG_BVECTOR_SIZE(bv));
 }
 
-SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder, size_t start, int size)
+SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder,
+			       size_t start, int size)
 {
   SgPort *accum;
   SgPort *bin;
@@ -302,7 +303,7 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder, size_
   if (size < 0) {
     size = SG_BVECTOR_SIZE(bv);
   } else {
-    if (size > (SG_BVECTOR_SIZE(bv) - start)) {
+    if ((size_t)size > (SG_BVECTOR_SIZE(bv) - start)) {
       Sg_Error(UC("out of range %d"), size);
     }
   }
@@ -315,7 +316,8 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder, size_
   return Sg_GetStringFromStringPort(accum);
 }
 
-SgObject Sg_StringToByteVector(SgString *s, SgTranscoder *transcoder, size_t start, int size)
+SgObject Sg_StringToByteVector(SgString *s, SgTranscoder *transcoder,
+			       size_t start, int size)
 {
   SgPort* accum;
   SgPort* out;
@@ -324,7 +326,7 @@ SgObject Sg_StringToByteVector(SgString *s, SgTranscoder *transcoder, size_t sta
   if (size < 0) {
     size = SG_STRING_SIZE(s);
   } else {
-    if (size > (SG_STRING_SIZE(s) - start)) {
+    if ((size_t)size > (SG_STRING_SIZE(s) - start)) {
       Sg_Error(UC("out of range %d"), size);
     }
   }
@@ -551,26 +553,26 @@ void Sg_ByteVectorU64NativeSet(SgByteVector *bv, size_t index, uint64_t value)
 
 void Sg_ByteVectorU64LittleSet(SgByteVector *bv, size_t index, uint64_t value)
 {
-  SG_BVECTOR_ELEMENT(bv, index + 7) = value >> 54;
-  SG_BVECTOR_ELEMENT(bv, index + 6) = value >> 48;
-  SG_BVECTOR_ELEMENT(bv, index + 5) = value >> 40;
-  SG_BVECTOR_ELEMENT(bv, index + 4) = value >> 32;
-  SG_BVECTOR_ELEMENT(bv, index + 3) = value >> 24;
-  SG_BVECTOR_ELEMENT(bv, index + 2) = value >> 16;
-  SG_BVECTOR_ELEMENT(bv, index + 1) = value >> 8;
-  SG_BVECTOR_ELEMENT(bv, index + 0) = value & 0xff;
+  SG_BVECTOR_ELEMENT(bv, index + 7) = (uint8_t)(value >> 54);
+  SG_BVECTOR_ELEMENT(bv, index + 6) = (uint8_t)(value >> 48);
+  SG_BVECTOR_ELEMENT(bv, index + 5) = (uint8_t)(value >> 40);
+  SG_BVECTOR_ELEMENT(bv, index + 4) = (uint8_t)(value >> 32);
+  SG_BVECTOR_ELEMENT(bv, index + 3) = (uint8_t)(value >> 24);
+  SG_BVECTOR_ELEMENT(bv, index + 2) = (uint8_t)(value >> 16);
+  SG_BVECTOR_ELEMENT(bv, index + 1) = (uint8_t)(value >> 8);
+  SG_BVECTOR_ELEMENT(bv, index + 0) = (uint8_t)(value & 0xff);
 }
 
 void Sg_ByteVectorU64BigSet(SgByteVector *bv, size_t index, uint64_t value)
 {
-  SG_BVECTOR_ELEMENT(bv, index + 0) = value >> 54;
-  SG_BVECTOR_ELEMENT(bv, index + 1) = value >> 48;
-  SG_BVECTOR_ELEMENT(bv, index + 2) = value >> 40;
-  SG_BVECTOR_ELEMENT(bv, index + 3) = value >> 32;
-  SG_BVECTOR_ELEMENT(bv, index + 4) = value >> 24;
-  SG_BVECTOR_ELEMENT(bv, index + 5) = value >> 16;
-  SG_BVECTOR_ELEMENT(bv, index + 6) = value >> 8;
-  SG_BVECTOR_ELEMENT(bv, index + 7) = value & 0xff;
+  SG_BVECTOR_ELEMENT(bv, index + 0) = (uint8_t)(value >> 54);
+  SG_BVECTOR_ELEMENT(bv, index + 1) = (uint8_t)(value >> 48);
+  SG_BVECTOR_ELEMENT(bv, index + 2) = (uint8_t)(value >> 40);
+  SG_BVECTOR_ELEMENT(bv, index + 3) = (uint8_t)(value >> 32);
+  SG_BVECTOR_ELEMENT(bv, index + 4) = (uint8_t)(value >> 24);
+  SG_BVECTOR_ELEMENT(bv, index + 5) = (uint8_t)(value >> 16);
+  SG_BVECTOR_ELEMENT(bv, index + 6) = (uint8_t)(value >> 8);
+  SG_BVECTOR_ELEMENT(bv, index + 7) = (uint8_t)(value & 0xff);
 }
 
 int64_t Sg_ByteVectorS64NativeRef(SgByteVector *bv, size_t index)
@@ -609,26 +611,26 @@ void Sg_ByteVectorS64NativeSet(SgByteVector *bv, size_t index, int64_t value)
 
 void Sg_ByteVectorS64LittleSet(SgByteVector *bv, size_t index, int64_t value)
 {
-  SG_BVECTOR_ELEMENT(bv, index + 7) = value >> 54;
-  SG_BVECTOR_ELEMENT(bv, index + 6) = value >> 48;
-  SG_BVECTOR_ELEMENT(bv, index + 5) = value >> 40;
-  SG_BVECTOR_ELEMENT(bv, index + 4) = value >> 32;
-  SG_BVECTOR_ELEMENT(bv, index + 3) = value >> 24;
-  SG_BVECTOR_ELEMENT(bv, index + 2) = value >> 16;
-  SG_BVECTOR_ELEMENT(bv, index + 1) = value >> 8;
-  SG_BVECTOR_ELEMENT(bv, index + 0) = value & 0xff;
+  SG_BVECTOR_ELEMENT(bv, index + 7) = (uint8_t)(value >> 54);
+  SG_BVECTOR_ELEMENT(bv, index + 6) = (uint8_t)(value >> 48);
+  SG_BVECTOR_ELEMENT(bv, index + 5) = (uint8_t)(value >> 40);
+  SG_BVECTOR_ELEMENT(bv, index + 4) = (uint8_t)(value >> 32);
+  SG_BVECTOR_ELEMENT(bv, index + 3) = (uint8_t)(value >> 24);
+  SG_BVECTOR_ELEMENT(bv, index + 2) = (uint8_t)(value >> 16);
+  SG_BVECTOR_ELEMENT(bv, index + 1) = (uint8_t)(value >> 8);
+  SG_BVECTOR_ELEMENT(bv, index + 0) = (uint8_t)(value & 0xff);
 }
 
 void Sg_ByteVectorS64BigSet(SgByteVector *bv, size_t index, int64_t value)
 {
-  SG_BVECTOR_ELEMENT(bv, index + 0) = value >> 54;
-  SG_BVECTOR_ELEMENT(bv, index + 1) = value >> 48;
-  SG_BVECTOR_ELEMENT(bv, index + 2) = value >> 40;
-  SG_BVECTOR_ELEMENT(bv, index + 3) = value >> 32;
-  SG_BVECTOR_ELEMENT(bv, index + 4) = value >> 24;
-  SG_BVECTOR_ELEMENT(bv, index + 5) = value >> 16;
-  SG_BVECTOR_ELEMENT(bv, index + 6) = value >> 8;
-  SG_BVECTOR_ELEMENT(bv, index + 7) = value & 0xff;
+  SG_BVECTOR_ELEMENT(bv, index + 0) = (uint8_t)(value >> 54);
+  SG_BVECTOR_ELEMENT(bv, index + 1) = (uint8_t)(value >> 48);
+  SG_BVECTOR_ELEMENT(bv, index + 2) = (uint8_t)(value >> 40);
+  SG_BVECTOR_ELEMENT(bv, index + 3) = (uint8_t)(value >> 32);
+  SG_BVECTOR_ELEMENT(bv, index + 4) = (uint8_t)(value >> 24);
+  SG_BVECTOR_ELEMENT(bv, index + 5) = (uint8_t)(value >> 16);
+  SG_BVECTOR_ELEMENT(bv, index + 6) = (uint8_t)(value >> 8);
+  SG_BVECTOR_ELEMENT(bv, index + 7) = (uint8_t)(value & 0xff);
 }
 
 /* float accessor */
@@ -815,7 +817,8 @@ SgObject Sg_ByteVectorToInteger(SgByteVector *bv, int start, int end)
   SgObject ans = SG_MAKE_INT(0);
   SG_CHECK_START_END(start, end, len);
   for (i = end; start < i; i--) {
-    SgObject tmp = Sg_Ash(SG_MAKE_INT(SG_BVECTOR_ELEMENT(bv, i-1)), ((len-i) << 3));
+    SgObject tmp = Sg_Ash(SG_MAKE_INT(SG_BVECTOR_ELEMENT(bv, i-1)), 
+			  ((len-i) << 3));
     ans = Sg_Add(ans, tmp);
   }
   return ans;
@@ -828,7 +831,7 @@ SgObject Sg_IntegerToByteVector(SgObject num)
   int len = (bitlen>>3) + ((bitlen & 7) == 0 ? 0 : 1);
   SgByteVector *bv = make_bytevector(len);
   for (i = len - 1; 0 <= i; i--) {
-    SG_BVECTOR_ELEMENT(bv, i) = SG_INT_VALUE(Sg_LogAnd(num, MASK));
+    SG_BVECTOR_ELEMENT(bv, i) = (uint8_t)SG_INT_VALUE(Sg_LogAnd(num, MASK));
     num = Sg_Ash(num, -8);
   }
   return bv;

@@ -8,13 +8,12 @@
 
 ;; key derivation tests
 (define (test-derive-key expected password salt count key-length)
-  (let ((d-key (derive-key (string->utf8 password)
+  (test-equal (format "derive key(password ~a salt ~a count ~a length ~a)" 
+			password salt count key-length)
+		expected (derive-key (string->utf8 password)
 			   (string->utf8 salt)
 			   count
 			   key-length)))
-    (test-equal (format "derive key(password ~a salt ~a count ~a length ~a)" 
-			password salt count key-length)
-		expected d-key)))
 
 ;; The expected data is from RFC 6070
 (test-derive-key #vu8(#x0c #x60 #xc8 #x0f #x96 #x1f #x0e #x71

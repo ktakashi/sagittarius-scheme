@@ -43,8 +43,7 @@ struct SgClosureRec
   /* SgObject   *mark; */	/* mark for frame pointer */
   int         mark;
   SgObject    prev;
-  SgObject    frees[];
-  
+  SgObject    frees[1];
 };
 
 #define SG_CLOSURE(obj)   ((SgClosure*)(obj))

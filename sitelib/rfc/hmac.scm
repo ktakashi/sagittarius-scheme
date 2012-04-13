@@ -87,7 +87,6 @@
       (bytevector-copy! buffer 0 out 0 (min hashsize (bytevector-length out)))
       out))
 
-
   (define-class <hmac> (<user-hash-algorithm>)
     ((hash :init-keyword :hash)
      (i-key :init-keyword :i-key)

@@ -60,7 +60,7 @@ int Sg_GetTimeOfDay(unsigned long *sec, unsigned long *nsec)
   GetSystemTimeAsFileTime(&ft);
   ft64 = ((uint64_t)ft.dwLowDateTime + (((uint64_t)ft.dwHighDateTime) << 32)) / 10 - 11644473600000000LL;
   *nsec = ft64 % 1000000;
-  *sec = ft64 / 1000000;
+  *sec = (unsigned long)(ft64 / 1000000);
   return 0;
 }
 
@@ -111,9 +111,9 @@ SgObject Sg_GetenvAlist()
 {
   static const wchar_t equ = L'=';
   SgObject ret = SG_NIL;
-  const wchar_t *env = GetEnvironmentStringsW();
+  wchar_t *env = GetEnvironmentStringsW();
   for (;;) {
-    const wchar_t *p = wcschr(env + (*env == equ ? 1 : 0), equ);
+    wchar_t *p = wcschr(env + (*env == equ ? 1 : 0), equ);
     if (p) {
       SgString *key = utf16ToUtf32WithRegion(env, p);
       size_t len = wcslen(p + 1);

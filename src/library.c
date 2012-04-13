@@ -67,7 +67,7 @@ static SgLibrary* make_library()
 {
   SgLibrary *z = SG_NEW(SgLibrary);
   SG_SET_CLASS(z, SG_CLASS_LIBRARY);
-  z->table = Sg_MakeHashTableSimple(SG_HASH_EQUAL, 1024);
+  z->table = Sg_MakeHashTableSimple(SG_HASH_EQ, 1024);
   z->imported = SG_NIL;
   z->exported = SG_FALSE;
   z->generics = SG_NIL;

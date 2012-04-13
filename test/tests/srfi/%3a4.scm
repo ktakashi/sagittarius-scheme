@@ -2,6 +2,7 @@
 (import (rnrs)
 	(srfi :4)
 	(srfi :64 testing)
+	(clos user)
 	(sagittarius control))
 
 ;; reader test helper
