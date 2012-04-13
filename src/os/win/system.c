@@ -133,12 +133,16 @@ SgObject Sg_GetTemporaryDirectory()
 {
   static const wchar_t NAME[] = L"Sagittarius";
   wchar_t value[MAX_PATH];
-  int length = get_env(UC("TEMP"), value, MAX_PATH);
-  if (PathIsDirectoryW(value)) goto next;
-  /* maybe TMP? */
-  length = get_env(UC("TMP"), value, MAX_PATH);
-  if (PathIsDirectoryW(value)) goto next;
-  /* give up */
+  int length;
+#define find_env(e)					\
+  do {							\
+    length = get_env(UC(e), value, MAX_PATH);		\
+    if (PathIsDirectoryW(value)) goto next;		\
+  } while (0)
+
+  find_env("SAGITTARIUS_CACHE_DIR");
+  find_env("TEMP");
+  find_env("TMP");
   return SG_FALSE;
 
  next:
