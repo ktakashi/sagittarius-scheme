@@ -1365,7 +1365,8 @@ int Sg_ReadCache(SgString *id)
   /* end check timestamp */
 
   file = Sg_OpenFile(cache_path, SG_READ);
-  in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_BLOCK);
+  /* buffer mode none can be a little bit better performance to read all. */
+  in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_NONE);
   size = Sg_ReadbAll(in, &alldata);
   Sg_ClosePort(in);
   in = Sg_MakeByteArrayInputPort(alldata, size);
