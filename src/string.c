@@ -29,6 +29,7 @@
  *
  *  $Id: $
  */
+#include "sagittarius/config.h"
 #include <string.h>
 
 #ifndef __GNUC__

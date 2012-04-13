@@ -195,6 +195,9 @@ static struct
   int dummy;
   struct table_entry_t *entries;
 } table = { 1, NULL };
+
+/* WATCOM has somehow the same name already */
+#define lock lock_
 static SgInternalMutex lock;
 
 int Sg_RegisterHash(SgObject name, SgObject algo)

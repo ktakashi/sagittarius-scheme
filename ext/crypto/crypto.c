@@ -368,6 +368,8 @@ static struct
   struct table_entry_t *entries;
 } table = { 1, NULL };
 
+/* WATCOM has somehow the same name already */
+#define lock lock_
 static SgInternalMutex lock;
 
 int Sg_RegisterSpi(SgObject name, SgObject spiClass)
