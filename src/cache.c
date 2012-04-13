@@ -780,6 +780,7 @@ struct read_ctx_rec
   SgHashTable *seen;
   int isLinkNeeded;
   int insnP;			/* for temporary flag */
+  SgString    *file;
 };
 
 static int read_4byte(SgPort *in)
@@ -1188,7 +1189,7 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
   default:
     Sg_Printf(Sg_StandardErrorPort(),
 	      UC("unknown tag appeared. tag: %d, file: %A, pos: %d\n"),
-	      tag, Sg_FileName(in), Sg_PortPosition(in));
+	      tag, ctx->file, Sg_PortPosition(in));
     Sg_Abort("failed to read cache.");
     return SG_FALSE;
   }
@@ -1267,7 +1268,8 @@ static SgObject read_code(SgPort *in, read_ctx *ctx)
   index = read_4byte(in);
   name = read_object(in, ctx);
   code = SG_NEW_ARRAY(SgWord, len);
-  debug_print("read code builder length: %d, pos: %d\n", len, Sg_PortPosition(in));
+  debug_print("read code builder length: %d, pos: %d\n", len,
+	      Sg_PortPosition(in));
   /* now we need to construct code builder */
   /*
   i = 0;
@@ -1289,7 +1291,8 @@ static SgObject read_code(SgPort *in, read_ctx *ctx)
   }
   tag = Sg_GetbUnsafe(in);
   ASSERT(tag == CODE_BUILDER_END_TAG);
-  cb = Sg_MakeCodeBuilderFromCache(name, code, len, argc, optional, freec, maxStack);
+  cb = Sg_MakeCodeBuilderFromCache(name, code, len, argc, optional, 
+				   freec, maxStack);
   /* store seen */
   Sg_HashTableSet(ctx->seen, SG_MAKE_INT(index), cb, 0);
   return cb;
@@ -1343,7 +1346,8 @@ int Sg_ReadCache(SgString *id)
     Sg_Printf(vm->logPort, UC("reading cache of %S\n"), id);
   }
   /* check timestamp */
-  timestamp = Sg_StringAppend2(cache_path, Sg_MakeString(UC(".timestamp"), SG_LITERAL_STRING));
+  timestamp = Sg_StringAppend2(cache_path, Sg_MakeString(UC(".timestamp"),
+							 SG_LITERAL_STRING));
   if (!Sg_FileExistP(timestamp)) {
     return RE_CACHE_NEEDED;
   }
@@ -1378,6 +1382,7 @@ int Sg_ReadCache(SgString *id)
   ctx.sharedObjects = shared;
   ctx.insnP = FALSE;
   ctx.isLinkNeeded = FALSE;
+  ctx.file = cache_path;
   SG_PORT_LOCK(in);
   /* check if it's invalid cache or not */
   b = Sg_PeekbUnsafe(in);
