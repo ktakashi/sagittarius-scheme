@@ -80,7 +80,7 @@ static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
       *buf = (uint8_t)(SG_FD(self)->prevChar);
       SG_FD(self)->prevChar = -1;
     } else {
-      wchar_t wc;
+      wchar_t wc = 0;
       isOK = ReadConsole(SG_FD(self)->desc, &wc, 1, &readSize, NULL);
       if (isOK) {
 	readSize = 1;
@@ -130,7 +130,7 @@ static int64_t win_write(SgObject self, uint8_t *buf, int64_t size)
     writeSize = size;
 #else
     isOK = WriteFile(SG_FD(file)->desc, buf, size, &writeSize, NULL);
-#endif 0
+#endif
   } else {
     isOK = WriteFile(SG_FD(file)->desc, buf, size, &writeSize, NULL);
   }
@@ -188,7 +188,7 @@ static int win_open_ex(SgObject self, SgString *path, int flags)
   } else {
     DWORD access = 0, disposition = 0;
     DWORD share = FILE_SHARE_READ | FILE_SHARE_WRITE;
-    wchar_t *u16path;
+    const wchar_t *u16path;
     switch (flags) {
     case SG_READ | SG_WRITE | SG_CREATE:
         access = GENERIC_READ | GENERIC_WRITE;
@@ -531,7 +531,8 @@ SgObject Sg_ReadDirectory(SgString *path)
 
   SgObject h = SG_NIL, t = SG_NIL;
   static const SgChar suf[] = { '\\', '*', 0 };
-  wchar_t *u16path = utf32ToUtf16(SG_STRING(Sg_StringAppendC(path, suf, 2)));
+  const wchar_t *u16path
+    = utf32ToUtf16(SG_STRING(Sg_StringAppendC(path, suf, 2)));
 
   hdl = FindFirstFileW(u16path, &data);
   if (hdl != INVALID_HANDLE_VALUE) {
@@ -558,7 +559,7 @@ SgObject Sg_CurrentDirectory()
 
 void Sg_SetCurrentDirectory(SgString *path)
 {
-  wchar_t *ucs2 = utf32ToUtf16(path);
+  const wchar_t *ucs2 = utf32ToUtf16(path);
   if (!SetCurrentDirectoryW(ucs2)) {
     Sg_IOError(-1, SG_INTERN("set-current-directory"),
 	       Sg_GetLastErrorMessage(), SG_FALSE, SG_FALSE);

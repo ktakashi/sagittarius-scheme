@@ -335,7 +335,7 @@ static SgChar read_hex_scalar_value(SgPort *port, SgReadContext *ctx)
   }
   if (delimited(c)) {
     lexical_error(port, ctx,
-		  UC("expected hex digit, but got %U, while reading hex scalar value"), c);
+		  UC("expected hex digit, but got %c, while reading hex scalar value"), c);
   }
   Sg_UngetcUnsafe(port, c);
 
@@ -348,7 +348,7 @@ static SgChar read_hex_scalar_value(SgPort *port, SgReadContext *ctx)
     n = convert_hex_char_to_int(c);
     if (n < 0) {
       lexical_error(port, ctx,
-		    UC("expected hex digit, but got %U, while reading hex scalar value"), c);
+		    UC("expected hex digit, but got %c, while reading hex scalar value"), c);
     }
     ucs4 = (ucs4 << 4) + n;
     if (ucs4 > 0x10ffff) {
