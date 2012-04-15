@@ -80,8 +80,8 @@ static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
       *buf = (uint8_t)(SG_FD(self)->prevChar);
       SG_FD(self)->prevChar = -1;
     } else {
-      wchar_t wc = 0;
-      isOK = ReadConsole(SG_FD(self)->desc, &wc, 1, &readSize, NULL);
+      wchar_t wc;
+      isOK = ReadConsoleW(SG_FD(self)->desc, &wc, 1, &readSize, NULL);
       if (isOK) {
 	readSize = 1;
 	*buf = (uint8_t)(wc);
@@ -116,11 +116,14 @@ static int64_t win_write(SgObject self, uint8_t *buf, int64_t size)
 #if 1
     unsigned int destSize = 0;
     uint8_t *dest = NULL;
-    if ((destSize = WideCharToMultiByte(GetConsoleOutputCP(), 0, (const wchar_t *)buf, size / 2, (LPSTR)NULL, 0, NULL, NULL)) == 0) {
+    if ((destSize = WideCharToMultiByte(GetConsoleOutputCP(), 0,
+					(const wchar_t *)buf, size / 2, 
+					(LPSTR)NULL, 0, NULL, NULL)) == 0) {
       Sg_IOWriteError(SG_INTERN("write"), Sg_GetLastErrorMessage(), SG_UNDEF);
     }
     dest = SG_NEW_ATOMIC2(uint8_t *, destSize + 1);
-    if (WideCharToMultiByte(GetConsoleOutputCP(), 0, (const wchar_t *)buf, size / 2, (LPSTR)dest, destSize, NULL, NULL) == 0) {
+    if (WideCharToMultiByte(GetConsoleOutputCP(), 0, (const wchar_t *)buf,
+			    size / 2, (LPSTR)dest, destSize, NULL, NULL) == 0) {
       Sg_IOWriteError(SG_INTERN("write"), Sg_GetLastErrorMessage(), SG_UNDEF);
     }
     isOK = WriteFile(SG_FD(file)->desc, dest, destSize, &writeSize, NULL);
@@ -156,7 +159,8 @@ static int64_t win_seek(SgObject self, int64_t offset, Whence whence)
   case SG_END:
     posMode = FILE_END; break;
   }
-  isOK = SetFilePointerEx(SG_FD(SG_FILE(self))->desc, largePos, &resultPos, posMode);
+  isOK = SetFilePointerEx(SG_FD(SG_FILE(self))->desc, largePos, &resultPos,
+			  posMode);
   setLastError(SG_FILE(self));
   if (isOK) {
     return resultPos.QuadPart;
@@ -481,7 +485,8 @@ SgObject Sg_FileAccessTime(SgString *path)
     if (GetFileInformationByHandle(fd, &fileInfo)) {
       int64_t tm;
       CloseHandle(fd);
-      tm = ((int64_t)fileInfo.ftLastAccessTime.dwHighDateTime << 32) + fileInfo.ftLastAccessTime.dwLowDateTime;
+      tm = ((int64_t)fileInfo.ftLastAccessTime.dwHighDateTime << 32) + 
+	fileInfo.ftLastAccessTime.dwLowDateTime;
       return Sg_MakeIntegerFromS64(tm);
     }
     CloseHandle(fd);
@@ -499,7 +504,8 @@ SgObject Sg_FileChangeTime(SgString *path)
     if (GetFileInformationByHandle(fd, &fileInfo)) {
       int64_t tm;
       CloseHandle(fd);
-      tm = ((int64_t)fileInfo.ftCreationTime.dwHighDateTime << 32) + fileInfo.ftCreationTime.dwLowDateTime;
+      tm = ((int64_t)fileInfo.ftCreationTime.dwHighDateTime << 32) + 
+	fileInfo.ftCreationTime.dwLowDateTime;
       return Sg_MakeIntegerFromS64(tm);
     }
     CloseHandle(fd);
