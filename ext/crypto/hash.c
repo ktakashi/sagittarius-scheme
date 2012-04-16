@@ -34,6 +34,8 @@
 #include <sagittarius/extend.h>
 #include "math.h"
 
+static SgObject hash_allocate(SgClass *klass, SgObject initargs);
+
 static void hash_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   Sg_Printf(port, UC("#<%A>"), SG_BUILTIN_HASH(self)->name);
@@ -50,8 +52,14 @@ SgClass *Sg__HashCPL[] = {
 SG_DEFINE_BUILTIN_CLASS(Sg_BuiltinHashAlgoClass, hash_printer,
 			NULL, NULL, NULL, Sg__HashCPL);
 SG_DEFINE_BASE_CLASS(Sg_UserHashAlgoClass, SgUserHashAlgo,
-		     NULL, NULL, NULL, Sg_ObjectAllocate, Sg__HashCPL);
+		     NULL, NULL, NULL, hash_allocate, Sg__HashCPL);
 
+static SgObject hash_allocate(SgClass *klass, SgObject initargs)
+{
+  SgUserHashAlgo *algo = SG_ALLOCATE(SgUserHashAlgo, klass);
+  SG_SET_CLASS(algo, klass);
+  return SG_OBJ(algo);
+}
 
 static SgBuiltinHashAlgo* make_hash(SgString *name)
 {

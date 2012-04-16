@@ -39,6 +39,8 @@ static void cipher_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
   Sg_Printf(port, UC("#<cipher %S>"), SG_CIPHER(self)->spi);
 }
 
+static SgObject spi_allocate(SgClass *klass, SgObject initargs);
+
 SgClass *Sg__CipherSpiCPL[] = {
   SG_CLASS_CIPHER_SPI,
   SG_CLASS_CRYPTO,
@@ -48,7 +50,7 @@ SgClass *Sg__CipherSpiCPL[] = {
 
 SG_DEFINE_ABSTRACT_CLASS(Sg_CryptoClass, NULL);
 SG_DEFINE_BASE_CLASS(Sg_CipherSpiClass, SgCipherSpi,
-		     NULL, NULL, NULL, Sg_ObjectAllocate,
+		     NULL, NULL, NULL, spi_allocate,
 		     Sg__CipherSpiCPL+1);
 
 SG_DEFINE_BUILTIN_CLASS(Sg_CipherClass, cipher_printer,
@@ -67,6 +69,14 @@ static void finalize_cipher_spi(SgObject obj, void *data)
 {
   SG_BUILTIN_CIPHER_SPI(obj)->done(&SG_BUILTIN_CIPHER_SPI(obj)->skey);
 }
+
+static SgObject spi_allocate(SgClass *klass, SgObject initargs)
+{
+  SgCipherSpi *spi = SG_ALLOCATE(SgCipherSpi, klass);
+  SG_SET_CLASS(spi, klass);
+  return SG_OBJ(spi);
+}
+
 
 static SgBuiltinCipherSpi *make_builtin_cipher_spi()
 {

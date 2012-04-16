@@ -409,6 +409,7 @@ static void init_cond_features()
   Sg_AddCondFeature(UC("exact-complex"));
   Sg_AddCondFeature(UC("full-unicode"));
   Sg_AddCondFeature(UC(SAGITTARIUS_PLATFORM));
+  Sg_AddCondFeature(UC(SAGITTARIUS_PROCESSOR));
 #ifdef WORDS_BIGENDIAN
   Sg_AddCondFeature(UC("big-endian"));
 #else
