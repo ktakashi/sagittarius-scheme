@@ -3169,39 +3169,31 @@
 	 (not (assq (id-name id) (cdr (library-exported lib))))))
   )
 
-(define pass2/$GREF
-  (lambda (iform penv tail?)
-    ;; inline library constable
-    (or (and (not (vm-nolibrary-inlining?))
-	     ($gref-inlinable? iform penv)
-	     (cond ((assq 'constable penv)
-		    => (lambda (constable)
-			 (let* ((name (id-name ($gref-id iform)))
-				(inliner (assq name constable)))
-			   (cond (inliner
-				  (unless (or ($const? (cadr inliner))
-					      (memq 'optimized 
-						    ($define-flags
-						     (cddr inliner))))
-				    ($define-flags-set!
-				     (cddr inliner)
-				     (append ($define-flags (cddr inliner))
-					     '(optimized)))
-				    (pass2/rec (cadr inliner) penv #t)
-				    )
-				  (if ($const? (cadr inliner))
-				      ;; only $const can be inlined
-				      (iform-copy (cadr inliner) '())
-				      #f))
-				 (else #f)))))
-		   (else #f)))
-	(and (not (vm-noconstant-inlining?))
-	     (let ((gloc (id->bound-gloc ($gref-id iform))))
-	       ;; TODO should we throw error if nothing bounded?
-	       (and gloc
-		    (gloc-const? gloc)
-		    ($const (gloc-ref gloc)))))
-	iform)))
+(define (pass2/$GREF iform penv tail?)
+  ;; inline library constable
+  (or (and-let* (( (not (vm-nolibrary-inlining?)) ) 
+		 ( ($gref-inlinable? iform penv) )
+		 (constable (assq 'constable penv))
+		 (name (id-name ($gref-id iform)))
+		 (inliner (assq name constable)))
+	(unless (or ($const? (cadr inliner))
+		    (memq 'optimized ($define-flags (cddr inliner))))
+	  ($define-flags-set! (cddr inliner)
+			      (append ($define-flags (cddr inliner))
+				      '(optimized)))
+	  (pass2/rec (cadr inliner) penv #t))
+	(if ($const? (cadr inliner))
+	    ;; only $const can be inlined
+	    (iform-copy (cadr inliner) '())
+	    #f))
+      (and-let* (( (not (vm-noconstant-inlining?)) )
+		 (gloc (id->bound-gloc ($gref-id iform)))
+		 ( (gloc-const? gloc) )
+		 ;; TODO should we throw error if nothing bounded?
+		 (v (gloc-ref gloc))
+		 ( (cachable? v)))
+	($const v))
+      iform))
 
 (define pass2/$GSET
   (lambda (iform penv tail?)

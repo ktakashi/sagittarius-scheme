@@ -74,9 +74,12 @@ SG_EXTERN void Sg_CleanCache(SgObject target);
 /* cache helper */
 SG_EXTERN SgObject Sg_WriteCacheScanRec(SgObject obj, SgObject cbs,
 					SgWriteCacheCtx *ctx);
-SG_EXTERN void  Sg_WriteObjectCache(SgObject o, SgPort *out,
-				    SgWriteCacheCtx *ctx);
+SG_EXTERN void Sg_WriteObjectCache(SgObject o, SgPort *out,
+				   SgWriteCacheCtx *ctx);
 SG_EXTERN SgObject Sg_ReadCacheObject(SgPort *p, SgReadCacheCtx *ctx);
+
+/* for compiler */
+SG_EXTERN int  Sg_CachableP(SgObject o);
 
 SG_CDECL_END
 

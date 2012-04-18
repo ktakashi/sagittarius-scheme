@@ -21,6 +21,9 @@
       ;; vector can not be const for boot code.
       #;(vector? g)))
 
+(define (cachable? o)
+  (or (string? o) (number? o) (symbol? o)))
+
 ;; for declare-procedure
 (define (parse-type type)
   (if (and (pair? type)

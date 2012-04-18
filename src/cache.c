@@ -1518,6 +1518,10 @@ void Sg_CleanCache(SgObject target)
   }
 }
 
+int Sg_CachableP(SgObject o)
+{
+  return cachable_p(o);
+}
 
 void Sg__InitCache()
 {

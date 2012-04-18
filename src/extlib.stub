@@ -92,7 +92,7 @@
 	    get-keyword
 
 	    ;; cache
-	    clean-cache
+	    clean-cache cachable?
 	    ;; env
 	    getenv
 	    setenv
@@ -639,6 +639,8 @@
   ;; cache
   (define-c-proc clean-cache (:optional (target #f)) ::<void>
     (Sg_CleanCache target))
+
+  (define-c-proc cachable? (o) ::<boolean> (result (Sg_CachableP o)))
 
   ;; getenv
   (define-c-proc getenv (path::<string>) ::<top>
