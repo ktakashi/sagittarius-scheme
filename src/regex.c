@@ -2092,7 +2092,24 @@ static prog_t* compile(compile_ctx_t *ctx, SgObject ast)
 static void pattern_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgPattern *pattern = SG_PATTERN(self);
-  Sg_Printf(port, UC("#<pattern %S>"), pattern->pattern);
+
+  Sg_Printf(port, UC("#/%A/"), pattern->pattern);
+  /* flags */
+  if (has(pattern, SG_COMMENTS)) {
+    Sg_Putc(port, 'x');
+  }
+  if (has(pattern, SG_CASE_INSENSITIVE)) {
+    Sg_Putc(port, 'i');
+  }
+  if (has(pattern, SG_MULTILINE)) {
+    Sg_Putc(port, 'm');
+  }
+  if (has(pattern, SG_DOTALL)) {
+    Sg_Putc(port, 's');
+  }
+  if (has(pattern, SG_UNICODE_CASE)) {
+    Sg_Putc(port, 'u');
+  }
 }
 
 static SgObject pattern_cache_reader(SgPort *port, SgReadCacheCtx *ctx)
