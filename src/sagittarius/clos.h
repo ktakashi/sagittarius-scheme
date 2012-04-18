@@ -114,6 +114,11 @@ struct SgClassRec
   SgObject slots;		/* alist of name and definition */
   SgObject fieldInitializers;	/* list of initializers */
   SgSlotAccessor **gettersNSetters; /* array of accessors, NULL terminated */
+
+  /* scheme cache */
+  SgObject creader;
+  SgObject cscanner;
+  SgObject cwriter;
   
   /* mutex */
   SgInternalMutex mutex;
@@ -186,7 +191,10 @@ extern SgClass *Sg_ObjectCPL[];
     SG_NIL,			/* directSlots */			\
     SG_NIL,			/* slots */				\
     SG_NIL,			/* fieldInitializers */			\
-    NULL			/* gettersNSetters */			\
+    NULL,			/* gettersNSetters */			\
+    SG_FALSE,			/* creader */				\
+    SG_FALSE,			/* cscanner */				\
+    SG_FALSE, 			/* cwriter */				\
   }
 
 #define SG_DEFINE_CLASS_COMMON(cname, coreSize, flag, printer, compare, serialize, allocate, cpa) \

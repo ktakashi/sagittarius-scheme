@@ -940,6 +940,9 @@ static SgObject class_allocate(SgClass *klass, SgObject initargs)
   instance->gettersNSetters = SG_NIL;
   instance->cpl = SG_NIL;
   instance->fieldInitializers = SG_NIL;
+  instance->creader = SG_FALSE;
+  instance->cscanner = SG_FALSE;
+  instance->cwriter = SG_FALSE;
 
   Sg_InitMutex(&instance->mutex, FALSE);
   Sg_InitCond(&instance->cv);
@@ -1107,6 +1110,45 @@ static void class_getters_n_setters_set(SgClass *klass, SgObject getters)
   }
 
   klass->gettersNSetters = (SgSlotAccessor**)Sg_ListToArray(getters, TRUE);
+}
+
+static SgObject class_cache_reader(SgClass *klass)
+{
+  return klass->creader;
+}
+
+static void class_cache_reader_set(SgClass *klass, SgObject proc)
+{
+  if (!SG_PROCEDUREP(proc)) {
+    Sg_Error(UC("procedure required, but got %S"), proc);
+  }
+  klass->creader = proc;
+}
+
+static SgObject class_cache_writer(SgClass *klass)
+{
+  return klass->cwriter;
+}
+
+static void class_cache_writer_set(SgClass *klass, SgObject proc)
+{
+  if (!SG_PROCEDUREP(proc)) {
+    Sg_Error(UC("procedure required, but got %S"), proc);
+  }
+  klass->cwriter = proc;
+}
+
+static SgObject class_cache_scanner(SgClass *klass)
+{
+  return klass->cscanner;
+}
+
+static void class_cache_scanner_set(SgClass *klass, SgObject proc)
+{
+  if (!SG_PROCEDUREP(proc)) {
+    Sg_Error(UC("procedure required, but got %S"), proc);
+  }
+  klass->cscanner = proc;
 }
 
 
@@ -1337,6 +1379,12 @@ static SgSlotAccessor class_slots[] = {
 		     class_field_initializers_set),
   SG_CLASS_SLOT_SPEC("getters-n-setters",  7, class_getters_n_setters,
 		     class_getters_n_setters_set),
+  SG_CLASS_SLOT_SPEC("cache-reader",       8, class_cache_reader,
+		     class_cache_reader_set),
+  SG_CLASS_SLOT_SPEC("cache-scanner",      9, class_cache_scanner,
+		     class_cache_scanner_set),
+  SG_CLASS_SLOT_SPEC("cache-writer",      10, class_cache_writer,
+		     class_cache_writer_set),
   { { NULL } }
 };
 
@@ -1921,6 +1969,9 @@ void Sg__InitClos()
   /* procedure */
   CINIT(SG_CLASS_PROCEDURE, "<procedure>");
   SG_CLASS_PROCEDURE->flags |= SG_CLASS_APPLICABLE;
+
+  /* fasl: we just need a meta class.  */
+  make_implicit_meta(UC("<fasl-meta>"), SG_CLASS_CLASS->cpa, lib);
 
 #define GINIT(gf, nam)				\
   Sg_InitBuiltinGeneric(gf, UC(nam), lib)

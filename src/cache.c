@@ -74,6 +74,19 @@ static int TAG_LENGTH = 0;
 #define debug_print(fmt, ...)	/* dummy */
 #endif
 
+/* for Scheme world */
+static void write_ctx_print(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<write-cache-ctx>"));
+}
+static void read_ctx_print(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<read-cache-ctx>"));
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_WriteCacheCtxClass, write_ctx_print);
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_ReadCacheCtxClass, read_ctx_print);
+
 /* assume id is path. however just in case, we encode invalid path characters */
 static SgString* id_to_filename(SgString *id)
 {
@@ -168,7 +181,8 @@ static int cachable_p(SgObject obj)
   if (builtin_cachable_p(obj)) return TRUE;
   else {
     SgClass *klass = Sg_ClassOf(obj);
-    return klass->cacheReader && klass->cacheWriter;
+    return (klass->cacheReader && klass->cacheWriter) ||
+      (SG_PROCEDUREP(klass->creader) && SG_PROCEDUREP(klass->cwriter));
   }
 }
 
@@ -277,6 +291,7 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
   SgHashTable *sharedObjects = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
   cache_ctx ctx;
 
+  SG_SET_CLASS(&ctx, SG_CLASS_WRITE_CACHE_CTX);
   ctx.sharedObjects = sharedObjects;
   ctx.uid = 0;
   ctx.index = index;
@@ -347,7 +362,7 @@ static int interesting_p(SgObject obj)
   if (builtin_interesting_p(obj)) return TRUE;
   else {
     SgClass *klass = Sg_ClassOf(obj);
-    return klass->cacheScanner != NULL;
+    return klass->cacheScanner != NULL || SG_PROCEDUREP(klass->cscanner);
   }
 }
 
@@ -400,7 +415,9 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
       cbs = write_cache_scan(SG_MACRO(obj)->maybeLibrary, cbs, ctx);
     } else {
       SgClass *klass = Sg_ClassOf(obj);
-      if (klass->cacheScanner) {
+      if (SG_PROCEDUREP(klass->cscanner)) {
+	cbs = Sg_Apply3(klass->cscanner, obj, cbs, ctx);
+      } else if (klass->cacheScanner) {
 	cbs = klass->cacheScanner(obj, cbs, (void *)ctx);
       }
     }
@@ -628,7 +645,11 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
     write_macro(out, o, cbs, ctx);
   } else {
     SgClass *klass = Sg_ClassOf(o);
-    if (klass->cacheWriter) {
+    if (SG_PROCEDUREP(klass->cwriter)) {
+      Sg_PutbUnsafe(out, USER_DEFINED_OBJECT_TAG);
+      write_object_cache(out, klass->name, cbs, ctx);
+      Sg_Apply3(klass->cwriter, o, out, ctx);
+    } else if (klass->cacheWriter) {
       /* put USER_DEFINED_OBJECT_TAG and class name */
       Sg_PutbUnsafe(out, USER_DEFINED_OBJECT_TAG);
       write_object_cache(out, klass->name, cbs, ctx);
@@ -1124,7 +1145,11 @@ static SgObject read_user_defined_object(SgPort *in, read_ctx *ctx)
   } else {
     SgObject obj;
     klass = SG_GLOC_GET(target);
-    obj = SG_CLASS(klass)->cacheReader(in, (void *)ctx);
+    if (SG_PROCEDUREP(SG_CLASS(klass)->creader)) {
+      obj = Sg_Apply2(SG_CLASS(klass)->creader, in, ctx);
+    } else {
+      obj = SG_CLASS(klass)->cacheReader(in, (void *)ctx);
+    }
     /* sanity check */
     if (!SG_XTYPEP(obj, klass)) {
       longjmp(ctx->escape, 1);
@@ -1451,6 +1476,7 @@ int Sg_ReadCache(SgString *id)
   seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 128);
   shared = Sg_MakeHashTableSimple(SG_HASH_EQ, 256);
 
+  SG_SET_CLASS(&ctx, SG_CLASS_READ_CACHE_CTX);
   ctx.seen = seen;
   ctx.sharedObjects = shared;
   ctx.insnP = FALSE;
@@ -1525,7 +1551,12 @@ int Sg_CachableP(SgObject o)
 
 void Sg__InitCache()
 {
+  SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
   CACHE_DIR = Sg_GetTemporaryDirectory();
   TAG_LENGTH = strlen(VALIDATE_TAG);
   Sg_InitMutex(&cache_mutex, FALSE);
+
+#define BINIT(cl, nam) Sg_InitStaticClass(cl, UC(nam), lib, NULL, 0)
+  BINIT(SG_CLASS_WRITE_CACHE_CTX, "<write-cache-ctx>");
+  BINIT(SG_CLASS_READ_CACHE_CTX, "<read-cache-ctx>");
 }

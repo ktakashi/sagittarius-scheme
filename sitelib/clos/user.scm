@@ -26,7 +26,7 @@
 	    ;; procedure
 	    <procedure>
 	    ;; etc
-	    <identifier>
+	    <identifier> <fasl-meta>
 
 	    slot-ref
 	    slot-set!

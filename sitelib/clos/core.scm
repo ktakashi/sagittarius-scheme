@@ -40,7 +40,7 @@
 	    ;; procedure
 	    <procedure>
 	    ;; etc
-	    <identifier>
+	    <identifier> <fasl-meta>
 
 	    ;; builtin generic
 	    write-object allocate-instance compute-applicable-methods

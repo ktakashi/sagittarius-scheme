@@ -41,9 +41,15 @@ enum {
   INVALID_CACHE,
 };
 
+SG_CLASS_DECL(Sg_WriteCacheCtxClass);
+SG_CLASS_DECL(Sg_ReadCacheCtxClass);
+#define SG_CLASS_WRITE_CACHE_CTX (&Sg_WriteCacheCtxClass)
+#define SG_CLASS_READ_CACHE_CTX (&Sg_ReadCacheCtxClass)
+
 /* we need to show this for write cache */
 struct cache_ctx_rec
 {
+  SG_HEADER;
   SgHashTable *sharedObjects;
   int          uid;
   /* for pass1 */
@@ -56,6 +62,7 @@ typedef struct cache_ctx_rec SgWriteCacheCtx;
 
 struct read_ctx_rec
 {
+  SG_HEADER;
   SgHashTable *sharedObjects;
   SgHashTable *seen;
   int isLinkNeeded;
