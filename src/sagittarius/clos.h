@@ -81,8 +81,9 @@ typedef int  (*SgClassSerializeProc)(SgObject obj, SgPort *port,
 				     SgObject context);
 typedef SgObject (*SgClassAllocateProc)(SgClass *klass, SgObject initargs);
 /* For future use, define read/write own object cache */
-typedef SgObject (*SgReadCacheProc)(SgPort *port);
-typedef int      (*SgWriteCacheProc)(SgObject obj, SgPort *port);
+typedef SgObject (*SgReadCacheProc)(SgPort *port, void *ctx);
+typedef SgObject (*SgWriteCacheScanProc)(SgObject obj, SgObject cbs, void *ctx);
+typedef void     (*SgWriteCacheProc)(SgObject obj, SgPort *port, void *ctx);
 
 struct SgClassRec
 {
@@ -95,9 +96,10 @@ struct SgClassRec
   SgClassCompareProc   compare;
   SgClassSerializeProc serialize;
   SgClassAllocateProc  allocate;
-  /* for future */
-  /* SgReadCacheProc      cacheReader; */
-  /* SgWriteCacheProc     cacheWriter; */
+  /* cache procs */
+  SgReadCacheProc      cacheReader;
+  SgWriteCacheScanProc cacheScanner;
+  SgWriteCacheProc     cacheWriter;
 
   SgClass **cpa;
   int       nfields;		/* need this? */
@@ -164,16 +166,16 @@ extern SgClass *Sg_ObjectCPL[];
 #define SG_CLASS_DEFAULT_CPL   (Sg_DefaultCPL)
 #define SG_CLASS_OBJECT_CPL    (Sg_ObjectCPL)
 
-#define SG_DEFINE_CLASS_COMMON(cname, coreSize, flag, printer, compare, serialize, allocate, cpa) \
+#define SG_DEFINE_CLASS_FULL(cname, coreSize, flag, reader, scanner, writer, printer, compare, serialize, allocate, cpa) \
   SgClass CLASS_KEYWORD cname = {					\
     {{ SG_CLASS_STATIC_TAG(Sg_ClassClass), NULL }},			\
     printer,								\
     compare,								\
     serialize,								\
     allocate,								\
-    /* for future */							\
-    /* reader, */							\
-    /* writer, */							\
+    reader,								\
+    scanner,								\
+    writer,								\
     cpa,								\
     0,				/* nfields */				\
     coreSize,			/* coreSize */				\
@@ -187,7 +189,17 @@ extern SgClass *Sg_ObjectCPL[];
     NULL			/* gettersNSetters */			\
   }
 
-/* for now we do not add any cache reader, it's for future */
+#define SG_DEFINE_CLASS_COMMON(cname, coreSize, flag, printer, compare, serialize, allocate, cpa) \
+  SG_DEFINE_CLASS_FULL(cname, coreSize, flag, NULL, NULL, NULL,		\
+		       printer, compare, serialize, allocate, cpa)
+
+#define SG_DEFINE_BUILTIN_CLASS_WITH_CACHE(cname, reader, cacher, writer, printer, compare, serialize, allocate, cpa) \
+  SG_DEFINE_CLASS_FULL(cname, 0, SG_CLASS_BUILTIN, reader, cacher, writer, \
+		       printer, compare, serialize, allocate, cpa)
+#define SG_DEFINE_BUILTIN_CLASS_SIMPLE_WITH_CACHE(cname, reader, cacher, writer, printer) \
+  SG_DEFINE_CLASS_FULL(cname, 0, SG_CLASS_BUILTIN, reader, cacher, writer, \
+		       printer, NULL, NULL, NULL, NULL)
+
 #define SG_DEFINE_BUILTIN_CLASS(cname, printer, compare, serialize, allocate, cpa) \
   SG_DEFINE_CLASS_COMMON(cname, 0, SG_CLASS_BUILTIN,			\
 			 printer, compare, serialize, allocate, cpa)

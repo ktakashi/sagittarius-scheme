@@ -41,11 +41,42 @@ enum {
   INVALID_CACHE,
 };
 
+/* we need to show this for write cache */
+struct cache_ctx_rec
+{
+  SgHashTable *sharedObjects;
+  int          uid;
+  /* for pass1 */
+  jmp_buf      escape;
+  int          index;		/* code builder index */
+};
+typedef struct cache_ctx_rec SgWriteCacheCtx;
+
+/* for reading cache */
+
+struct read_ctx_rec
+{
+  SgHashTable *sharedObjects;
+  SgHashTable *seen;
+  int isLinkNeeded;
+  int insnP;			/* for temporary flag */
+  SgString    *file;
+  jmp_buf      escape;
+};
+typedef struct read_ctx_rec SgReadCacheCtx;
+
 SG_CDECL_BEGIN
 
 SG_EXTERN int  Sg_WriteCache(SgObject name, SgString *id, SgObject cache);
 SG_EXTERN int  Sg_ReadCache(SgString *id);
 SG_EXTERN void Sg_CleanCache(SgObject target);
+
+/* cache helper */
+SG_EXTERN SgObject Sg_WriteCacheScanRec(SgObject obj, SgObject cbs,
+					SgWriteCacheCtx *ctx);
+SG_EXTERN void  Sg_WriteObjectCache(SgObject o, SgPort *out,
+				    SgWriteCacheCtx *ctx);
+SG_EXTERN SgObject Sg_ReadCacheObject(SgPort *p, SgReadCacheCtx *ctx);
 
 SG_CDECL_END
 

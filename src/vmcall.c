@@ -115,11 +115,8 @@
   SgObject nm = SG_FALSE;	/* next method */
   INSN_VAL1(argc, c);
 
-  if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL) && vm->state == RUNNING) {
+  if (SG_VM_LOG_LEVEL(vm, SG_TRACE_LEVEL) && vm->state == RUNNING) {
     Sg_Printf(vm->logPort, UC("calling %S\n"), AC(vm));
-    if (SG_VM_LOG_LEVEL(vm, SG_TRACE_LEVEL) && vm->state == RUNNING) {
-      print_frames(vm);
-    }
   }
   if (!SG_PROCEDUREP(AC(vm))) {
     Sg_AssertionViolation(SG_INTERN("apply"),

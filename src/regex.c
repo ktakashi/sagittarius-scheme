@@ -35,6 +35,7 @@
 #include "sagittarius/port.h"
 #include "sagittarius/string.h"
 #include "sagittarius/symbol.h"
+#include "sagittarius/cache.h"
 
 
 /* #define DEBUG_REGEX 1 */
@@ -2093,7 +2094,40 @@ static void pattern_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
   SgPattern *pattern = SG_PATTERN(self);
   Sg_Printf(port, UC("#<pattern %S>"), pattern->pattern);
 }
-SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_PatternClass, pattern_printer);
+
+static SgObject pattern_cache_reader(SgPort *port, SgReadCacheCtx *ctx)
+{
+  /* assume next object is pattern */
+  SgObject pattern = Sg_ReadCacheObject(port, ctx);
+  SgObject flags = Sg_ReadCacheObject(port, ctx);
+  if (SG_STRINGP(pattern) && SG_INTP(flags)) {
+    return Sg_CompileRegex(pattern, SG_INT_VALUE(flags), FALSE);
+  } else {
+    return SG_FALSE;
+  }
+}
+
+static SgObject pattern_cache_scanner(SgObject obj, SgObject cbs,
+				      SgWriteCacheCtx *ctx)
+{
+  /* since we don't have any compiler from AST, we can assume pattern
+     has original pattern. */
+  return Sg_WriteCacheScanRec(SG_PATTERN(obj)->pattern, cbs, ctx);;
+}
+
+static void pattern_cache_writer(SgObject obj, SgPort *port,
+				 SgWriteCacheCtx *ctx)
+{
+  /* just put original pattern and flags*/
+  Sg_WriteObjectCache(SG_PATTERN(obj)->pattern, port, ctx);
+  Sg_WriteObjectCache(SG_MAKE_INT(SG_PATTERN(obj)->flags), port, ctx);
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE_WITH_CACHE(Sg_PatternClass,
+					  pattern_cache_reader,
+					  pattern_cache_scanner,
+					  pattern_cache_writer,
+					  pattern_printer);
 
 static SgPattern* make_pattern(SgString *p, SgObject ast, int flags,
 			       lexer_ctx_t *ctx, prog_t *prog,
@@ -3256,9 +3290,10 @@ static SgObject read_regex_string(SgPort *port)
 	add = SG_UNICODE_CASE;
 	goto add_flag;
       default:
-	return SG_LIST3(SG_INTERN("compile-regex"),
-			Sg_GetStringFromStringPort(buf),
-			SG_MAKE_INT(flag));
+	/* return SG_LIST3(SG_INTERN("compile-regex"), */
+	/* 		Sg_GetStringFromStringPort(buf), */
+	/* 		SG_MAKE_INT(flag)); */
+	return Sg_CompileRegex(Sg_GetStringFromStringPort(buf), flag, FALSE);
       }
     add_flag:
       flag |= add;
