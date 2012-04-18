@@ -197,13 +197,27 @@
 		 ((not (pair? ss))  (values (reverse! rs) ss))
 		 (else (loop (cdr ss) (cons (car ss) rs))))))
        (define (build qualifier generic qargs opt body)
+	 ;; ugly kludge
+	 (define (rewrite body)
+	   (let loop ((body body))
+	     (cond ((null? body) '())
+		   ((pair? body)
+		    (let ((a (rewrite (car body)))
+			  (d (rewrite (cdr body))))
+		      (if (and (eq? a (car body)) (eq? d (cdr body)))
+			  body
+			  (cons a d))))
+		   ((and (identifier? body)
+			 (compare body 'call-next-method))
+		    'call-next-method)
+		   (else body))))
 	 (let* ((specializers (map (^(s) (if (pair? s) (cadr s) '<top>)) qargs))
 		(reqargs      (map (^(s) (if (pair? s) (car s) s)) qargs))
 		(lambda-list  (if opt `(,@reqargs . ,opt) reqargs))
 		(real-args    (if opt
 				  `(call-next-method ,@reqargs . ,opt)
 				  `(call-next-method ,@reqargs)))
-		(real-body    `(,(rename 'lambda) ,real-args ,@body))
+		(real-body    `(,(rename 'lambda) ,real-args ,@(rewrite body)))
 		(gf           (gensym)))
 	   ;; TODO if generic does not exists, make it
 	   `(,(rename 'let) ((,gf (,(rename '%ensure-generic-function)

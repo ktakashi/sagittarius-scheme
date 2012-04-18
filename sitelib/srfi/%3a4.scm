@@ -80,6 +80,15 @@
       (write (getter bv i) port))
     (display #\) port))
 
+  (define (generate-reader ctr)
+    (lambda (in ctx)
+      (let* ((bv (read-cache-object in ctx))
+	     (r (ctr (bytevector-length bv))))
+	(slot-set! r 'value bv)
+	r)))
+  (define (cache-writer o out ctx)
+    (write-object-cache (slot-ref o 'value) out ctx))
+
   (define-syntax define-tagged-vector
     (lambda (x)
       (syntax-case x ()
@@ -87,7 +96,9 @@
 	   (let ((name (format "~avector" (syntax->datum #'tag)))
 		 (formats (lambda (f name)
 			    (string->symbol (format f name)))))
-	     (with-syntax ((class (datum->syntax #'k (formats "<~a>" name)))
+	     (with-syntax ((meta (datum->syntax #'k (formats "<~a-meta>" name)))
+			   (mix (datum->syntax #'k (formats "<~a-mixin>" name)))
+			   (class (datum->syntax #'k (formats "<~a>" name)))
 			   (ctr   (datum->syntax #'k (formats "make-~a" name)))
 			   (pred  (datum->syntax #'k (formats "~a?" name)))
 			   (len  (datum->syntax #'k (formats "~a-length" name)))
@@ -98,12 +109,8 @@
 			   (list-> (datum->syntax #'k
 						  (formats "list->~a" name))))
 	       #'(begin
-		   (define-class class (<sequence>)
-		     ((value :init-keyword :value)))
-		   (define-method write-object ((o class) (p <port>))
-		     (write-vector (slot-ref o 'value) tag offset getter p))
-		   (define-method object-equal? ((a class) (b class))
-		     (bytevector=? (slot-ref a 'value) (slot-ref b 'value)))
+		   (define-class meta (<fasl-meta>) ())
+		   ;; ctr is used in initialize, so it must be here
 		   (define (ctr n :optional (value 0))
 		     (let* ((len (* n offset))
 			    (v (make-bytevector len)))
@@ -111,6 +118,22 @@
 			   ((= i len))
 			 (setter v i value))
 		       (make class :value v)))
+
+		   (define-method initialize ((klass meta) initargs)
+		     (call-next-method)
+		     ;; we don't need scanner
+		     (slot-set! klass 'cache-reader (generate-reader ctr))
+		     (slot-set! klass 'cache-writer cache-writer))
+
+		   (define-class class (<sequence>)
+		     ((value :init-keyword :value))
+		     :metaclass meta)
+
+		   (define-method write-object ((o class) (p <port>))
+		     (write-vector (slot-ref o 'value) tag offset getter p))
+		   (define-method object-equal? ((a class) (b class))
+		     (bytevector=? (slot-ref a 'value) (slot-ref b 'value)))
+		   
 		   (define (pred o) (is-a? o class))
 		   (define (len bv)
 		     (unless (pred bv)

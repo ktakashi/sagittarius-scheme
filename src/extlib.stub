@@ -93,6 +93,8 @@
 
 	    ;; cache
 	    clean-cache cachable?
+	    scan-cache-object write-object-cache read-cache-object
+
 	    ;; env
 	    getenv
 	    setenv
@@ -637,10 +639,23 @@
     (result (Sg_GetKeyword key lst fallback)))
 
   ;; cache
+  (define-type <write-cache-ctx> "SgWriteCacheCtx*")
+  (define-type <read-cache-ctx> "SgReadCacheCtx*")
+
   (define-c-proc clean-cache (:optional (target #f)) ::<void>
     (Sg_CleanCache target))
 
   (define-c-proc cachable? (o) ::<boolean> (result (Sg_CachableP o)))
+
+  (define-c-proc scan-cache-object (o cbs ctx::<write-cache-ctx>)
+    (result (Sg_WriteCacheScanRec o cbs ctx)))
+
+  (define-c-proc write-object-cache (o out::<port> ctx::<write-cache-ctx>)
+    ::<void>
+    (Sg_WriteObjectCache o out ctx))
+
+  (define-c-proc read-cache-object (in::<port> ctx::<read-cache-ctx>)
+    (result (Sg_ReadCacheObject in ctx)))
 
   ;; getenv
   (define-c-proc getenv (path::<string>) ::<top>

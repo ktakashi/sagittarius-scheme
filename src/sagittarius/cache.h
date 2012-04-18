@@ -58,6 +58,9 @@ struct cache_ctx_rec
 };
 typedef struct cache_ctx_rec SgWriteCacheCtx;
 
+#define SG_WRITE_CACHE_CTX(obj)   ((SgWriteCacheCtx *)obj)
+#define SG_WRITE_CACHE_CTX_P(obj) SG_XTYPEP(obj, SG_CLASS_WRITE_CACHE_CTX)
+
 /* for reading cache */
 
 struct read_ctx_rec
@@ -71,6 +74,10 @@ struct read_ctx_rec
   jmp_buf      escape;
 };
 typedef struct read_ctx_rec SgReadCacheCtx;
+
+#define SG_READ_CACHE_CTX(obj)   ((SgReadCacheCtx *)obj)
+#define SG_READ_CACHE_CTX_P(obj) SG_XTYPEP(obj, SG_CLASS_READ_CACHE_CTX)
+
 
 SG_CDECL_BEGIN
 

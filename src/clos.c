@@ -1884,6 +1884,7 @@ void Sg__InitClos()
 {
   /* TODO library name */
   SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
+  SgClass *fasl_meta;
   static SgClass *nullcpa[1] = {NULL};
 
   SG_CLASS_TOP->cpa = nullcpa;
@@ -1971,7 +1972,9 @@ void Sg__InitClos()
   SG_CLASS_PROCEDURE->flags |= SG_CLASS_APPLICABLE;
 
   /* fasl: we just need a meta class.  */
-  make_implicit_meta(UC("<fasl-meta>"), SG_CLASS_CLASS->cpa, lib);
+  fasl_meta = make_implicit_meta(UC("<fasl-meta>"), SG_CLASS_CLASS->cpa, lib);
+  find_core_allocator(fasl_meta);
+
 
 #define GINIT(gf, nam)				\
   Sg_InitBuiltinGeneric(gf, UC(nam), lib)
