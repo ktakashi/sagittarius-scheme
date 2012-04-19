@@ -1,3 +1,8 @@
+2012-04-19  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/port.c (Sg_MakeByteArrayOutputPort): improved performance of
+	bytevector-output-port and string-output-port.
+
 2012-03-29  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/rfc/x.509.scm: added x509 utility library.
