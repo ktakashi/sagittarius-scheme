@@ -863,35 +863,6 @@ static int obyte_array_close(SgObject self)
   return TRUE;
 }
 
-#if 0
-static int64_t put_byte_array_u8_array(SgObject self, uint8_t *buf,
-				       int64_t size)
-{
-  SgBinaryPort *bp = SG_BINARY_PORT(self);
-  SgByteVector *bvec = bp->src.buffer.bvec;
-  int current_size = SG_BVECTOR_SIZE(bvec);
-  int current_index = bp->src.buffer.index;
-  int i;
-
-  if (current_index + size >= current_size) {
-    /*
-      This may be too much but if it's overflowing now, next time will also
-      overflow. Why not allocate bigger to avoid memory allocating?
-     */
-    int new_size = current_size + (size_t)size + INCREASE_BUFFER_SIZE;
-    SgByteVector *tmp = Sg_MakeByteVector(new_size, 0);
-    Sg_ByteVectorCopyX(bvec, 0, tmp, 0, current_index);
-    bp->src.buffer.bvec = tmp;
-    bvec = tmp;			/* for convenience */
-  }
-  for (i = 0; i < size; i++) {
-    Sg_ByteVectorU8Set(bvec, current_index + i, buf[i]);
-  }
-  bp->src.buffer.index += (size_t)size;
-  return size;
-}
-#endif
-
 static int64_t put_byte_array_u8_array(SgObject self, uint8_t *ba,
 				       int64_t size)
 {
@@ -922,16 +893,10 @@ SgObject Sg_MakeByteArrayOutputPort(int size)
   SgPort *z = make_port(SG_OUTPUT_PORT, SG_BINARY_PORT_TYPE, SG_BUFMODE_NONE);
   SgBinaryPort *b = make_binary_port(SG_BYTE_ARRAY_BINARY_PORT_TYPE);
 
-  /* int actual_size = (size > 0) ? size : DEFAULT_BUFFER_SIZE; */
-
   z->closed = FALSE;
   z->flush = flush_byte_array;
   z->close = obyte_array_close;
   /* initialize binary output port */
-#if 0
-  b->src.buffer.bvec = SG_BVECTOR(Sg_MakeByteVector(actual_size, 0));
-  b->src.buffer.index = 0;
-#endif
   b->src.obuf.start = b->src.obuf.current = SG_NEW(byte_buffer);
   b->open = byte_array_open;
   b->getU8 = NULL;
@@ -1124,29 +1089,9 @@ static int string_oport_close(SgObject self)
 {
   SG_PORT(self)->closed = TRUE;
   SG_TEXTUAL_PORT(self)->src.ostr.start = NULL;
+  SG_TEXTUAL_PORT(self)->src.ostr.current = NULL;
   return TRUE;
 }
-
-#if 0
-static void string_oport_putchar(SgObject self, SgChar c)
-{
-  SgTextualPort *tp = SG_TEXTUAL_PORT(self);
-  SgString *str = tp->src.buffer.str;
-  int current_size = SG_STRING_SIZE(str);
-  int current_index = tp->src.buffer.index;
-
-  if (current_index + 1 >= current_size) {
-    int new_size = current_size + INCREASE_BUFFER_SIZE;
-    SgString *tmp = Sg_ReserveString(new_size, ' ');
-    memcpy(SG_STRING_VALUE(tmp), SG_STRING_VALUE(str),
-	   current_index * sizeof(SgChar));
-    tp->src.buffer.str = tmp;
-    str = tmp;
-  }
-  SG_STRING_VALUE_AT(str, current_index) = c;
-  tp->src.buffer.index++;
-}
-#endif
 
 static void string_oport_putchar(SgObject self, SgChar c)
 {
@@ -1191,15 +1136,11 @@ SgObject Sg_MakeStringOutputPort(int bufferSize)
 {
   SgPort *z = make_port(SG_OUTPUT_PORT, SG_TEXTUAL_PORT_TYPE, SG_BUFMODE_NONE);
   SgTextualPort *t = make_textual_port(SG_STRING_TEXTUAL_PORT_TYPE);
-  /* int size = (bufferSize > 0) ? bufferSize : DEFAULT_BUFFER_SIZE; */
 
   z->closed = FALSE;
   z->flush = string_port_flush;
   z->close = string_oport_close;
 
-  /* t->src.buffer.str = Sg_ReserveString(size, ' '); */
-  /* t->src.buffer.index = 0; */
-  /* t->src.buffer.lineNo = -1; */
   t->src.ostr.start = t->src.ostr.current = SG_NEW(char_buffer);
   t->getChar = NULL;
   t->unGetChar = NULL;
