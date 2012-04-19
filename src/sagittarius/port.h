@@ -39,6 +39,16 @@
 typedef int64_t SgPortPositionFn(SgPort *);
 typedef void    SgSetPortPositionFn(SgPort *, int64_t);
 
+#define SG_MAKE_STREAM_BUFFER(type, data)		\
+  typedef struct type##_rec				\
+  {							\
+    data buf;						\
+    struct type##_rec *next;				\
+  } type;
+
+SG_MAKE_STREAM_BUFFER(byte_buffer, uint8_t);
+SG_MAKE_STREAM_BUFFER(char_buffer, SgChar);
+
 typedef struct SgBinaryPortRec
 {
   /* only binary port has open */
@@ -56,7 +66,11 @@ typedef struct SgBinaryPortRec
   int     closed;		/* it may have, closed pseudo_closed or open */
   union {
     SgFile        *file;   /* file port */
-    /* use bytevector for buffer */
+    struct {
+      byte_buffer *start;
+      byte_buffer *current;
+    } obuf;
+    /* use bytevector for input port buffer */
     struct {
       SgByteVector *bvec;
       int           index;
@@ -97,7 +111,12 @@ typedef struct SgTextualPortRec
       SgTranscoder *transcoder;
       SgPort       *port;
     } transcoded;
-    /* string port uses string as src */
+    /* string oport uses char_buffer */
+    struct {
+      char_buffer *start;
+      char_buffer *current;
+    } ostr;
+    /* string iport uses string as src */
     struct {
       SgString *str;
       int       index;
