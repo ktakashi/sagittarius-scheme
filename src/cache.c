@@ -304,7 +304,7 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
        we discard all cache.
     */
     if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
-      Sg_Printf(vm->logPort, UC("non-cachable object appeared. %S\n"), name);
+      Sg_Printf(vm->logPort, UC(";; non-cachable object appeared. %S\n"), name);
     }
     Sg_SetPortPosition(out, 0);
     Sg_PutbUnsafe(out, (uint8_t)INVALID_CACHE_TAG);
@@ -315,7 +315,7 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
   /* when writing a cache, the library must be created. */
   if (lib != NULL && !write_dependancy(out, lib, &ctx)) {
     if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
-      Sg_Printf(vm->logPort, UC("failed to write library. %S\n"), lib);
+      Sg_Printf(vm->logPort, UC(";; failed to write library. %S\n"), lib);
     }
     Sg_SetPortPosition(out, 0);
     Sg_PutbUnsafe(out, (uint8_t)INVALID_CACHE_TAG);
@@ -323,7 +323,7 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
   }
 
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
-    Sg_Printf(vm->logPort, UC("collected closures: %S\n"), closures);
+    Sg_Printf(vm->logPort, UC(";; collected closures: %S\n"), closures);
   }
   /* pass2 write cache. */
   write_cache_pass2(out, cb, closures, &ctx);
@@ -660,7 +660,8 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
       /* never happen? */
       if (SG_VM_LOG_LEVEL(vm, SG_WARN_LEVEL)) {
 	Sg_Printf(vm->logPort,
-		  UC("Non-cachable object appeared in writing phase %S\n"), o);
+		  UC(";; Non-cachable object appeared in writing phase %S\n"),
+		  o);
       }
       longjmp(ctx->escape, 1);
     }
@@ -787,8 +788,8 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   int index = 0;
 
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
-    Sg_Printf(vm->logPort, UC("caching id=%A\n"
-			      "        cache=%A\n"), id, cache_path);
+    Sg_Printf(vm->logPort, UC(";; caching id=%A\n"
+			      ";;         cache=%A\n"), id, cache_path);
   }
 
   file = Sg_OpenFile(cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
@@ -1439,7 +1440,7 @@ int Sg_ReadCache(SgString *id)
     return RE_CACHE_NEEDED;
   }
   if (SG_VM_LOG_LEVEL(vm, SG_INFO_LEVEL)) {
-    Sg_Printf(vm->logPort, UC("reading cache of %S\n"), id);
+    Sg_Printf(vm->logPort, UC(";; reading cache of %S\n"), id);
   }
   /* check timestamp */
   timestamp = Sg_StringAppend2(cache_path, Sg_MakeString(UC(".timestamp"),

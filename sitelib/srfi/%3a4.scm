@@ -97,7 +97,6 @@
 		 (formats (lambda (f name)
 			    (string->symbol (format f name)))))
 	     (with-syntax ((meta (datum->syntax #'k (formats "<~a-meta>" name)))
-			   (mix (datum->syntax #'k (formats "<~a-mixin>" name)))
 			   (class (datum->syntax #'k (formats "<~a>" name)))
 			   (ctr   (datum->syntax #'k (formats "make-~a" name)))
 			   (pred  (datum->syntax #'k (formats "~a?" name)))
@@ -109,7 +108,7 @@
 			   (list-> (datum->syntax #'k
 						  (formats "list->~a" name))))
 	       #'(begin
-		   (define-class meta (<fasl-meta>) ())
+		   (define-class meta (<class>) ())
 		   ;; ctr is used in initialize, so it must be here
 		   (define (ctr n :optional (value 0))
 		     (let* ((len (* n offset))

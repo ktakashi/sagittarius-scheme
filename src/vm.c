@@ -438,15 +438,19 @@ static void vm_dump_code_rec(SgCodeBuilder *cb, int indent)
   InsnInfo *info;
   SgWord *code = cb->code;
 
-  for (ind = 0; ind < indent; ind++) {
-    Sg_Write(SG_MAKE_CHAR(' '), vm->logPort, SG_WRITE_DISPLAY);
+#define write_indent()							\
+  Sg_Write(SG_MAKE_STRING(";; "), vm->logPort, SG_WRITE_DISPLAY);	\
+  for (ind = 0; ind < indent; ind++) {					\
+    Sg_Write(SG_MAKE_CHAR(' '), vm->logPort, SG_WRITE_DISPLAY);		\
   }
+
+  write_indent();
   Sg_Printf(vm->logPort, UC("size: %d\n"), size);
   for (i = 0; i < size;) {
+    int need_line_break = TRUE;
     info = Sg_LookupInsnName(INSN(code[i]));
-    for (ind = 0; ind < indent; ind++) {
-      Sg_Write(SG_MAKE_CHAR(' '), vm->logPort, SG_WRITE_DISPLAY);
-    }
+
+    write_indent();
     Sg_Printf(vm->logPort, UC("%d: %A"), i, Sg_MakeStringC(info->name));
     if (info->instValues != 0) {
       int val1, val2;
@@ -468,6 +472,7 @@ static void vm_dump_code_rec(SgCodeBuilder *cb, int indent)
       if (SG_CODE_BUILDERP(arg)) {
 	Sg_Printf(vm->logPort, UC(" %S\n"), arg);
 	vm_dump_code_rec(SG_CODE_BUILDER(arg), indent + 2);
+	need_line_break = FALSE;
       } else {
 	Sg_Printf(vm->logPort, UC(" %#S"), arg);
       }
@@ -484,7 +489,9 @@ static void vm_dump_code_rec(SgCodeBuilder *cb, int indent)
 	Sg_Printf(vm->logPort, UC(" ;; #f"));
       }
     }
-    Sg_Printf(vm->logPort, UC("\n"));
+    if (need_line_break) {
+      Sg_Printf(vm->logPort, UC("\n"));
+    }
     i += 1 + info->argc;
   }
 }
@@ -1167,7 +1174,7 @@ static void expand_stack(SgVM *vm)
 
   if (SG_VM_LOG_LEVEL(vm, SG_WARN_LEVEL)) {
     Sg_Printf(vm->logPort,
-	      UC("expanding stack (fp=%d, sp=%d)\n"),
+	      UC(";; expanding stack (fp=%d, sp=%d)\n"),
 	      FP(vm) - vm->stack, SP(vm) - vm->stack);
   }
 
@@ -1254,7 +1261,7 @@ static void expand_stack(SgVM *vm)
   int diff = SP(vm) - FP(vm);
 
   if (SG_VM_LOG_LEVEL(vm, SG_INFO_LEVEL)) {
-    Sg_Printf(vm->logPort, UC("expanding stack\n"));
+    Sg_Printf(vm->logPort, UC(";; expanding stack\n"));
   }
 
   /* clear stack */
@@ -1940,17 +1947,17 @@ static void print_frames(SgVM *vm)
   SgObject *stack = vm->stack, *sp = SP(vm);
   SgObject *current = sp - 1;
   int below_cont = FALSE, size = cont->size, c_func = FALSE;
-  SgString *fmt   = Sg_MakeString(UC("+    o=~38,,,,39a +~%"), SG_LITERAL_STRING);
-  SgString *clfmt = Sg_MakeString(UC("+   cl=~38,,,,39s +~%"), SG_LITERAL_STRING);
+  /* SgString *fmt   = SG_MAKE_STRING("+    o=~38,,,,39a +~%"); */
+  SgString *clfmt = SG_MAKE_STRING("+   cl=~38,,,,39s +~%");
 
-  Sg_Printf(vm->logPort, UC("stack: 0x%x\n"), stack);
-  Sg_Printf(vm->logPort, UC("0x%x +---------------------------------------------+ <== sp(0x%x)\n"), sp, sp);
+  Sg_Printf(vm->logPort, UC(";; stack: 0x%x\n"), stack);
+  Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+ < sp(0x%x)\n"), sp, sp);
   /* first we dump from top until cont frame. */
   while ((stack < current && current <= sp)) {
     if (current == (SgObject*)cont + CONT_FRAME_SIZE) {
       break;
     }
-    Sg_Printf(vm->logPort, UC("0x%x +   p=%#39x +\n"), current, *current);
+    Sg_Printf(vm->logPort, UC(";; 0x%x +   p=%#39x +\n"), current, *current);
     current--;
   }
   /* now we know we just need to trace cont frames
@@ -1960,28 +1967,28 @@ static void print_frames(SgVM *vm)
     int i;
     /* the very first arguments are ignored */
     while (current > (SgObject *)cont + CONT_FRAME_SIZE) {
-      Sg_Printf(vm->logPort, UC("0x%x +   p=%#39x +\n"), current, *current);
+      Sg_Printf(vm->logPort, UC(";; 0x%x +   p=%#39x +\n"), current, *current);
       current--;
     }
-    Sg_Printf(vm->logPort, UC("0x%x +   p=%#39x +\n"), current, *current);
+    Sg_Printf(vm->logPort, UC(";; 0x%x +   p=%#39x +\n"), current, *current);
 
     /* todo, dump display closure. */
-    Sg_Printf(vm->logPort, UC("0x%x +---------------------------------------------+\n"), current);
+    Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+\n"), current);
     if (!BOUNDARY_FRAME_MARK_P(cont)) {
-      Sg_Printf(vm->logPort, UC("0x%x + size=%#38d +\n"),
+      Sg_Printf(vm->logPort, UC(";; 0x%x + size=%#38d +\n"),
 		(uintptr_t)cont + offsetof(SgContFrame, size), cont->size);
-      Sg_Printf(vm->logPort, UC("0x%x +   pc=%#38x +\n"),
+      Sg_Printf(vm->logPort, UC(";; 0x%x +   pc=%#38x +\n"),
 		(uintptr_t)cont + offsetof(SgContFrame, pc), cont->pc);
-      Sg_Printf(vm->logPort, UC("0x%x "), (uintptr_t)cont + offsetof(SgContFrame, cl));
+      Sg_Printf(vm->logPort, UC(";; 0x%x "), (uintptr_t)cont + offsetof(SgContFrame, cl));
       Sg_Format(vm->logPort, clfmt, SG_LIST1(cont->cl), TRUE);
-      Sg_Printf(vm->logPort, UC("0x%x +   fp=%#38x +\n"),
+      Sg_Printf(vm->logPort, UC(";; 0x%x +   fp=%#38x +\n"),
 		(uintptr_t)cont + offsetof(SgContFrame, fp), cont->fp);
-      Sg_Printf(vm->logPort, UC("0x%x + prev=%#38x +\n"),
+      Sg_Printf(vm->logPort, UC(";; 0x%x + prev=%#38x +\n"),
 		(uintptr_t)cont + offsetof(SgContFrame, prev), cont->prev);
       if (cont == CONT(vm)) {
-	Sg_Printf(vm->logPort, UC("0x%x +---------------------------------------------+ <== cont(0x%x)\n"), cont, cont);
+	Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+ < cont(0x%x)\n"), cont, cont);
       } else if (cont->prev) {
-	Sg_Printf(vm->logPort, UC("0x%x +---------------------------------------------+ <== prev(0x%x)\n"), cont, cont);
+	Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+ < prev(0x%x)\n"), cont, cont);
       }
       if (cont->fp == C_CONT_MARK) c_func = TRUE;
       else c_func = FALSE;
@@ -1993,13 +2000,13 @@ static void print_frames(SgVM *vm)
       if (IN_STACK_P((SgObject*)cont, vm)) {
 	if (!c_func) {
 	  for (i = 0; i < size; i++, current--) {
-	    Sg_Printf(vm->logPort, UC("0x%x +   p=%#39x +\n"), current, *(current));
+	    Sg_Printf(vm->logPort, UC(";; 0x%x +   p=%#39x +\n"), current, *(current));
 	  }
 	}
       } else {
 	if (!c_func) {
 	  for (i = 0; i < size; i++) {
-	    Sg_Printf(vm->logPort, UC("0x%x +   p=%#39x +\n"), cont->env+i, *(cont->env+i));
+	    Sg_Printf(vm->logPort, UC(";; 0x%x +   p=%#39x +\n"), cont->env+i, *(cont->env+i));
 	  }
 	}
 	break;
@@ -2009,12 +2016,12 @@ static void print_frames(SgVM *vm)
       continue;
     } else {
       for (i = 0; i < CONT_FRAME_SIZE; i++) {
-	Sg_Printf(vm->logPort, UC("0x%x +   p=%#39x +\n"), current-i, *(current-i));
+	Sg_Printf(vm->logPort, UC(";; 0x%x +   p=%#39x +\n"), current-i, *(current-i));
       }
       break;
     }
   }
-  Sg_Printf(vm->logPort, UC("0x%x +---------------------------------------------+\n"), stack);
+  Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+\n"), stack);
 }
 
 void Sg_VMPrintFrame()

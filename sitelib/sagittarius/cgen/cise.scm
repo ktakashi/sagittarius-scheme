@@ -533,7 +533,7 @@
     (match form
       ((_ item ...)
        (map (lambda (f)
-	      `("#include "
+	      `("\n#include "
 		,(cond ((string? f) (format "~s" f))
 		       ((symbol? f) (format "~a" f))
 		       (else (error '.include "bad argument" f)))

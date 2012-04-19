@@ -1971,11 +1971,6 @@ void Sg__InitClos()
   CINIT(SG_CLASS_PROCEDURE, "<procedure>");
   SG_CLASS_PROCEDURE->flags |= SG_CLASS_APPLICABLE;
 
-  /* fasl: we just need a meta class.  */
-  fasl_meta = make_implicit_meta(UC("<fasl-meta>"), SG_CLASS_CLASS->cpa, lib);
-  find_core_allocator(fasl_meta);
-
-
 #define GINIT(gf, nam)				\
   Sg_InitBuiltinGeneric(gf, UC(nam), lib)
 

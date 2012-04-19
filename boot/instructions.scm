@@ -421,7 +421,7 @@
       (cond ((SG_CLOSUREP (AC vm))
 	     (when (and (SG_VM_LOG_LEVEL vm SG_DEBUG_LEVEL)
 			(== (-> vm state) RUNNING))
-	       (Sg_Printf (-> vm logPort) (UC "calling %S\n") (AC vm))
+	       (Sg_Printf (-> vm logPort) (UC ";; calling %S\n") (AC vm))
 	       (when (and (SG_VM_LOG_LEVEL vm SG_TRACE_LEVEL)
 			  (== (-> vm state) RUNNING))
 		 (print_frames vm)))

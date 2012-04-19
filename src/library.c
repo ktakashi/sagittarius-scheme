@@ -151,7 +151,7 @@ SgObject Sg_MakeLibrary(SgObject name)
   Sg_UnlockMutex(&mutex);
 
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
-    Sg_Printf(vm->logPort, UC("library %S has been created\n"), name);
+    Sg_Printf(vm->logPort, UC(";; library %S has been created\n"), name);
   }
   return SG_OBJ(z);
 }
@@ -566,7 +566,7 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
   exportSpec = SG_LIBRARY_EXPORTED(fromlib);
 
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
-    Sg_Printf(vm->logPort, UC("importing library (from %S, to %S)\n"),
+    Sg_Printf(vm->logPort, UC(";; importing library (from %S, to %S)\n"),
 	      SG_LIBRARY_NAME(from), SG_LIBRARY_NAME(to));
   }
 

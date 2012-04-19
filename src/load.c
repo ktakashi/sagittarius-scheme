@@ -123,7 +123,7 @@ SgObject Sg_VMLoad(SgString *path)
   tport = Sg_MakeTranscodedInputPort(SG_PORT(bport), SG_TRANSCODER(Sg_MakeNativeTranscoder()));
   
   if (SG_VM_LOG_LEVEL(Sg_VM(), SG_INFO_LEVEL)) {
-    Sg_Printf(vm->logPort, UC("loading %S\n"), path);
+    Sg_Printf(vm->logPort, UC(";; loading %S\n"), path);
   }
   return Sg_VMLoadFromPort(SG_PORT(tport));
 }
@@ -302,7 +302,7 @@ static void load_dlo(dlobj *dlo)
 {
   SgVM *vm = Sg_VM();
   if (SG_VM_LOG_LEVEL(Sg_VM(), SG_INFO_LEVEL)) {
-    Sg_Printf(vm->logPort, UC("Dynamically Loading %S...\n"), dlo->path);
+    Sg_Printf(vm->logPort, UC(";; Dynamically Loading %S...\n"), dlo->path);
   }
   dlo->handle = dl_open(dlo->path);
   if (dlo->handle == NULL) {
