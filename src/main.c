@@ -184,8 +184,8 @@ static int getopt_long(int argc, char **argv, const char *optstring,
 static void show_usage()
 {
   fprintf(stderr,
-	  "Usage: sash [-hvi6][-L<path>][-D<path>][-f<flag>][-I<library>][--clean-cache][--disable-cache]"
-	  "[--debug-exec=<flags>][-p<file> or --logport=<file>]\n"
+	  "Usage: sash [-hvicd][-L<path>][-D<path>][-f<flag>][-I<library>]"
+	  "[-E<flags>][-p<file>][--] [file]\n"
 	  "options:\n"
 	  "  -v,--version                   Prints version and exits.\n"
 	  "  -h,--help                      Prints this usage and exits.\n"
@@ -202,20 +202,21 @@ static void show_usage()
 	  "  -6,--r6rs                      Runs sash with R6RS mode\n"
 #endif
 	  "  -L<path>,--loadpath=<path>     Adds <path> to the head of the load path list.\n"
-	  "  -D<path>,--dynloadpath=<path>  Adds <path> to the head of the dynamic load path list.\n"
-	  "  -C,--clean-cache               Cleans compiled cache.\n"
+	  "  -D<path>,--dynloadpath=<path>  Adds <path> to the head of the dynamic load\n"
+	  "                                 path list.\n"
+	  "  -c,--clean-cache               Cleans compiled cache.\n"
 	  "  -d,--disable-cache             Disable compiled cache.\n"
 	  "  -E,--debug-exec=<flags>        Sets <flags> for VM debugging.\n"
-	  "    		warn        Shows warning level log.\n"
-	  "    		info        Shows warning level + loading files.\n"
-	  "    		debug       Shows info level + calling function names.\n"
-	  "    		trace       Shows info debug + stack frames.\n"
-	  "  -p<file>, --logport=<file>     Sets <file> as log port. This port will be\n"
-	  "                                 used for above option's.\n"
+	  "    	warn        Shows warning level log.\n"
+	  "    	info        Shows warning level + loading files.\n"
+	  "    	debug       Shows info level + calling function names.\n"
+	  "    	trace       Shows info debug + stack frames.\n"
+	  "  -p<file>,--logport=<file>      Sets <file> as log port. This port will be\n"
+	  "                                 used for above options.\n"
 #ifdef SAGITTARIUS_PROFILE
-	  "  -P<time>, --profile<time>      Run with profiler, see below for <time> options.\n"
-	  "             time        Sort by time\n"
-	  "             count       Sort by count\n"
+	  "  -P<time>,--profile<time>       Run with profiler.\n"
+	  "     time        Sort by time\n"
+	  "     count       Sort by count\n"
 #endif
 	  );
   exit(1);
@@ -252,7 +253,8 @@ static void cleanup_main(void *data)
     if (!SG_FALSEP(lib)) {
       gloc = Sg_FindBinding(lib, SG_INTERN("profiler-show"), SG_UNBOUND);
       if (!SG_UNBOUNDP(gloc)) {
-	Sg_Apply3(SG_GLOC_GET(SG_GLOC(gloc)), SG_FALSE, profiler_option, SG_MAKE_INT(50));
+	Sg_Apply3(SG_GLOC_GET(SG_GLOC(gloc)), SG_FALSE, profiler_option,
+		  SG_MAKE_INT(50));
       }
     }
   }
@@ -282,7 +284,7 @@ int main(int argc, char **argv)
     {"import", 0, 0, 'I'},
     /* {"r6rs", 0, 0, '6'}, */
     {"version", 0, 0, 'v'},
-    {"clean-cache", 0, 0, 'C'},
+    {"clean-cache", 0, 0, 'c'},
     {"disable-cache", 0, 0, 'd'},
     {"debug-exec", optional_argument, 0, 'E'},
     {"logport", optional_argument, 0, 'p'},
@@ -298,7 +300,7 @@ int main(int argc, char **argv)
   Sg_Init();
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
-  while ((opt = getopt_long(argc, argv, "L:D:f:I:hE:viCdp:P:s", 
+  while ((opt = getopt_long(argc, argv, "L:D:f:I:hE:vicdp:P:s", 
 			    long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 'E':
@@ -348,13 +350,15 @@ int main(int argc, char **argv)
       break;
     case 'p':
       {
-	SgObject log = Sg_OpenFile(SG_STRING(Sg_MakeStringC(optarg)), SG_CREATE | SG_WRITE | SG_TRUNCATE);
+	SgObject log = Sg_OpenFile(SG_STRING(Sg_MakeStringC(optarg)),
+				   SG_CREATE | SG_WRITE | SG_TRUNCATE);
 	SgObject bp;
 	if (!SG_FILEP(log)) {
-	  Sg_Warn(UC("given log log file could not open. log port was not set!"));
+	  Sg_Warn(UC("given log file could not open. log port was not set!"));
 	} else {
 	  bp = Sg_MakeFileBinaryOutputPort(SG_FILE(log), SG_BUFMODE_NONE);
-	  vm->logPort = SG_PORT(Sg_MakeTranscodedOutputPort(SG_PORT(bp), SG_TRANSCODER(Sg_MakeNativeTranscoder())));
+	  vm->logPort = SG_PORT(Sg_MakeTranscodedOutputPort(SG_PORT(bp),
+				    SG_TRANSCODER(Sg_MakeNativeTranscoder())));
 	}
 	break;
       }
@@ -367,7 +371,7 @@ int main(int argc, char **argv)
     case 'i':
       forceInteactiveP = TRUE;
       break;
-    case 'C':
+    case 'c':
       Sg_CleanCache(SG_FALSE);
       break;
     case 'd':
