@@ -66,15 +66,16 @@
       #\=
     ))
 
-  (define-optional 
-    (base64-decode-string string (optional (transcoder (native-transcoder))))
+  (define (base64-decode-string string
+				:optional (transcoder (native-transcoder)))
       (or (string? string)
 	  (assertion-violation 'base64-decode-string
 			       (format "string required, but got ~s" string)
 			       string))
-      (bytevector->string
-       (base64-decode (string->utf8 string))
-       transcoder))
+      (let ((bv (base64-decode (string->utf8 string))))
+	(if transcoder
+	    (bytevector->string bv transcoder)
+	    bv)))
 
   (define (base64-decode bv)
     (or (bytevector? bv)

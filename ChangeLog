@@ -1,3 +1,8 @@
+2012-04-20  Takashi Kato  <ktakashi@ymail.com>
+
+	* sitelib/rfc/base64.scm (base64-decode-string): modified to return
+	bytevector when optional transcoder was #f.
+
 2012-04-19  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/port.c (Sg_MakeByteArrayOutputPort): improved performance of
