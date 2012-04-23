@@ -35,6 +35,7 @@
     (import (rnrs)
 	    (clos user)
 	    (rsa pkcs :12 cipher)
+	    (rfc x.509)
 	    (crypto)
 	    (asn.1)
 	    (sagittarius)
@@ -241,7 +242,12 @@
 
   (define *rsa-private-key-oid* "1.2.840.113549.1.1.1")
 
-  (define (load-keystore in-file password)
+  (define (default-extra-data-handler data)
+    ;; do nothing
+    )
+
+  (define (load-keystore in-file password
+			 :key (extra-data-handler default-extra-data-handler))
 
     (define (cipher-util alg-id password data processer)
       (let ((alg-name (cond ((assoc (get-id alg-id) *mapping*) => cdr)
@@ -315,17 +321,19 @@
       (let* ((obj (read-asn.1-object 
 		   (open-bytevector-input-port
 		    (slot-ref (slot-ref c 'content) 'string))))
-	     (chain '()))
-	(dotimes (i (asn.1-sequence-size obj))
-	  (let ((b (make-safe-bag (asn.1-sequence-get obj i))))
+	     (size (asn.1-sequence-size obj)))
+	(let loop ((i 0) (r '()))
+	  (if (= i size)
+	      (reverse! r)
+	      (let ((b (make-safe-bag (asn.1-sequence-get obj i))))
 	    (cond ((equal? (slot-ref b 'id) *pkcs-8-shrouded-key-bag*)
-		   (process-shrouded-key-bag b keystore #t))
+		   (process-shrouded-key-bag b keystore #t)
+		   (loop (+ i 1) r))
 		  ((equal? (slot-ref b 'id) *pkcs-12-cert-bag*)
-		   (append! chain (list b)))
+		   (loop (+ i 1) (cons b r)))
 		  (else
-		   ;; todo add extra data handler
-		   ))))
-	chain))
+		   (extra-data-handler b)
+		   (loop (+ i 1) r))))))))
 
     (define (process-encrypted-data c keystore)
       (let* ((d (make-encrypted-data (slot-ref c 'content)))
@@ -333,19 +341,22 @@
 				 password 
 				 (slot-ref (slot-ref d 'content) 'string)))
 	     (seq (read-asn.1-object (open-bytevector-input-port octets)))
-	     (chain '()))
-	(dotimes (i (asn.1-sequence-size seq))
-	  (let ((b (make-safe-bag (asn.1-sequence-get seq i))))
-	    (cond ((equal? (slot-ref b 'id) *pkcs-12-cert-bag*)
-		   (append! chain (list b)))
-		  ((equal? (slot-ref b 'id) *pkcs-8-shrouded-key-bag*)
-		   (process-shrouded-key-bag b keystore #t))
-		  ((equal? (slot-ref b 'id) *pkcs-12-key-bag*)
-		   (process-shrouded-key-bag b keystore #f))
-		  (else
-		   ;; todo add extra data handler
-		   ))))
-	chain))
+	     (size (asn.1-sequence-size seq)))
+	(let loop ((i 0) (r '()))
+	  (if (= i size)
+	      (reverse! r)
+	      (let ((b (make-safe-bag (asn.1-sequence-get seq i))))
+		(cond ((equal? (slot-ref b 'id) *pkcs-12-cert-bag*)
+		       (loop (+ i 1) (cons b r)))
+		      ((equal? (slot-ref b 'id) *pkcs-8-shrouded-key-bag*)
+		       (process-shrouded-key-bag b keystore #t)
+		       (loop (+ i 1) r))
+		      ((equal? (slot-ref b 'id) *pkcs-12-key-bag*)
+		       (process-shrouded-key-bag b keystore #f)
+		       (loop (+ i 1) r))
+		      (else
+		       (extra-data-handler b)
+		       (loop (+ i 1) r))))))))
 
     (call-with-input-file in-file
       (lambda (in)
@@ -365,14 +376,13 @@
 	       (lambda (c)
 		 (cond ((equal? *pkcs-7-data*
 				(slot-ref c 'content-type))
-			(append! chain (process-data c keystore)))
+			(set! chain (append chain (process-data c keystore))))
 		       ((equal? *pkcs-7-encrypted-data*
 				(slot-ref c 'content-type))
-			(append! chain (process-encrypted-data
-					c keystore)))
+			(set! chain (append chain (process-encrypted-data
+						    c keystore))))
 		       (else
-			;; tod add extra data hanlder
-			)))
+			(extra-data-handler c))))
 	       ac)))
 	  ;; then certs
 	  (dolist (b chain)
@@ -408,8 +418,8 @@
 		      (hashtable-set! (slot-ref keystore 'key-certs)
 				      name cert)))
 		  (when alias
-		    (hashtable-set! (slot-ref key-certs 'certs)
-				    alias certs))))))
+		    (hashtable-set! (slot-ref keystore 'certs)
+				    alias cert))))))
 	  keystore))
       :transcoder #f))
 )

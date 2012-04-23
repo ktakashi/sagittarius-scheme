@@ -1,3 +1,10 @@
+2012-04-23  Takashi Kato  <ktakashi@ymail.com>
+
+	* sitelib/rsa/pkcs/%3a12/keystore.scm (load-keystore): fixed loading
+	certificates. it did not load any certificate before.
+
+	* src/port.c (port_cpl): fixed class hierachy of port.
+
 2012-04-20  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/rfc/base64.scm (base64-decode-string): modified to return

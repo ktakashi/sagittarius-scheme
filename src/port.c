@@ -50,6 +50,7 @@
 
 static SgClass *port_cpl[] = {
   SG_CLASS_PORT,
+  SG_CLASS_TOP,
   NULL
 };
 
