@@ -35,6 +35,7 @@
 #include "math.h"
 
 extern void Sg__InitHash(SgLibrary *lib);
+extern void Sg__InitPrng(SgLibrary *lib);
 extern void Sg__Init_sagittarius_math_impl();
 
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__math()
@@ -44,20 +45,8 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__math()
   Sg__Init_sagittarius_math_impl();
 
   lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius math impl)"), FALSE));
-  Sg_InitStaticClassWithMeta(SG_CLASS_PRNG, UC("<prng>"), lib, NULL,
-			     SG_FALSE, NULL, 0);
 
   Sg__InitHash(lib);
-#define REGISTER_PRNG(prng)						\
-  if (register_prng(prng) == -1) {					\
-    Sg_Warn(UC("Unable to register %S pseudo random number generator "), \
-	    Sg_MakeStringC((prng)->name));				\
-  }
-
-  REGISTER_PRNG(&yarrow_desc);
-  REGISTER_PRNG(&fortuna_desc);
-  REGISTER_PRNG(&rc4_desc);
-  REGISTER_PRNG(&sober128_desc);
-  REGISTER_PRNG(&sprng_desc);
+  Sg__InitPrng(lib);
 }
 

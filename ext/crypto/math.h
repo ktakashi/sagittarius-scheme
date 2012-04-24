@@ -40,31 +40,51 @@
 #include <sagittarius.h>
 #include <tomcrypt.h>
 
-enum {
-  SG_BUILTIN_PRNG,
-  SG_SECURE_PRNG,
-  SG_CUSTOM_PRNG,
-};
+
 /* pseudo random number generator */
-typedef struct SgPrngRec
+/* PRNG
+              <prng>
+           /          \
+  <builtin-prng>   <user-prng>
+
+  extra interface <secure-random>
+
+  <builtin-prng> is always <secure-random> 
+ */
+
+typedef struct SgBuiltinPrngRec
 {
   SG_HEADER;
   SgString  *name;
-  int        type;
-  union {
-    struct {
-      int        wprng;
-      prng_state prng;
-    } builtin;
-    /* we might need state or so, but for now */
-    SgObject     readRandom;
-  } impl;
-} SgPrng;
+  int        wprng;
+  prng_state prng;
+} SgBuiltinPrng;
+
+typedef struct SgUserPrngRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject setSeed;
+  SgObject readRandom;
+} SgUserPrng;
 
 SG_CLASS_DECL(Sg_PrngClass);
-#define SG_CLASS_PRNG   (&Sg_PrngClass)
-#define SG_PRNG(obj)   ((SgPrng *)obj)
-#define SG_PRNGP(obj) SG_XTYPEP(obj, SG_CLASS_PRNG)
+SG_CLASS_DECL(Sg_BuiltinPrngClass);
+SG_CLASS_DECL(Sg_UserPrngClass);
+SG_CLASS_DECL(Sg_SecureRandomClass);
+#define SG_CLASS_PRNG (&Sg_PrngClass)
+#define SG_PRNGP(obj) Sg_TypeP(obj, SG_CLASS_PRNG)
+#define SG_PRNG       SG_OBJ
+
+#define SG_CLASS_BUILTIN_PRNG (&Sg_BuiltinPrngClass)
+#define SG_BUILTIN_PRNG(obj)   ((SgBuiltinPrng *)obj)
+#define SG_BUILTIN_PRNG_P(obj) SG_XTYPEP(obj, SG_CLASS_BUILTIN_PRNG)
+
+#define SG_CLASS_USER_PRNG  (&Sg_UserPrngClass)
+#define SG_USER_PRNG(obj)   ((SgUserPrng *)obj)
+#define SG_USER_PRNG_P(obj) SG_XTYPEP(obj, SG_CLASS_USER_PRNG)
+
+#define SG_CLASS_SECURE_RANDOM  (&Sg_SecureRandomClass)
+#define SG_SECURE_RANDOM_P(obj) Sg_TypeP(obj, SG_CLASS_SECURE_RANDOM)
 
 /* hash algorithm
              <hash-algorithm>
@@ -112,9 +132,10 @@ SG_CLASS_DECL(Sg_UserHashAlgoClass);
 /* random */
 SgObject Sg_MakePseudoRandom(SgString *name, SgObject seed);
 SgObject Sg_MakeSecureRandom(SgString *name, int bits);
-void     Sg_SetSeed(SgPrng *prng, SgByteVector *seed);
-SgObject Sg_ReadRandomBytes(SgPrng *prng, int size);
-SgObject Sg_MakeCustomPrng(SgString *name, SgObject readRandom);
+void     Sg_SetSeed(SgObject prng, SgByteVector *seed);
+SgObject Sg_ReadRandomBytes(SgObject prng, int size);
+/* for Scheme secure random creation */
+SgObject Sg_ReadSysRandom(int bits);
 
 SgObject Sg_MakeHash(SgString *name);
 int      Sg_HashInit(SgObject algo);
@@ -124,7 +145,11 @@ SgObject Sg_HashSize(SgObject algo);
 SgObject Sg_HashBlockSize(SgObject algo);
 SgObject Sg_HashOid(SgObject algo);
 
+/* registers */
 int      Sg_RegisterHash(SgObject name, SgObject algo);
 SgObject Sg_LookupHash(SgObject name);
+
+int      Sg_RegisterPrng(SgObject name, SgObject prng);
+SgObject Sg_LookupPrng(SgObject name);
 
 #endif /* SAGITTARIUS_MATH_H_ */

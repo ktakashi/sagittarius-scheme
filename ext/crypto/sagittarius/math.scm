@@ -2,11 +2,13 @@
 (load-dynamic-library "sagittarius--math")
 (library (sagittarius math)
     (export prng?
+	    pseudo-random?
+	    secure-random?
 	    read-random-bytes
 	    make-pseudo-random
 	    make-secure-random
 	    %random-seed-set!
-	    make-custom-prng
+	    read-sys-random
 	    Yarrow Fortuna RC4 SOBER-128
 	    ;; hash
 	    hash-algorithm?
@@ -22,12 +24,14 @@
 	    Tiger-192 SHA-1 RIPEMD-160 RIPEMD-128
 	    MD5 MD4 MD2
 	    ;; clos
-	    <prng>
+	    <prng> <user-prng> <builtin-prng> <secure-random>
 	    <hash-algorithm> <user-hash-algorithm>
 	    <builtin-hash-algorithm>
 	    ;; register
 	    register-hash
 	    lookup-hash
+	    register-prng
+	    lookup-prng
 	    )
     (import (sagittarius) (sagittarius math impl))
   ;; pseudo-random type

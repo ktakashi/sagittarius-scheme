@@ -9,20 +9,17 @@
    (.include <sagittarius/extend.h>
 	     "math.h"))
 
-  (define-type <prng> "SgPrng*")
+  (define-type <prng> "SgObject")
   (define-type <hash-algorithm> "SgObject")
 
   (define-c-proc prng? (o) ::<boolean>
     (result (SG_PRNGP o)))
 
   (define-c-proc pseudo-random? (o) ::<boolean>
-    (result (and (SG_PRNGP o) (SG_EQ (-> (SG_PRNG o) type) SG_BUILTIN_PRNG))))
-
-  (define-c-proc custom-random? (o) ::<boolean>
-    (result (and (SG_PRNGP o) (SG_EQ (-> (SG_PRNG o) type) SG_CUSTOM_PRNG))))
+    (result (SG_PRNGP o)))
 
   (define-c-proc secure-random? (o) ::<boolean>
-    (result (and (SG_PRNGP o) (SG_EQ (-> (SG_PRNG o) type) SG_SECURE_PRNG))))
+    (result (and (SG_PRNGP o) (SG_SECURE_RANDOM_P o))))
 
   ;; pseudo random
   (define-c-proc make-pseudo-random (name::<string> :optional (seed #f)) 
@@ -43,8 +40,8 @@
   (define-c-proc %random-seed-set! (prng::<prng> seed::<bytevector>) ::<void>
     (Sg_SetSeed prng seed))
 
-  (define-c-proc make-custom-prng (name::<string> read::<procedure>) 
-    (result (Sg_MakeCustomPrng name read)))
+  (define-c-proc read-sys-random (bits::<fixnum>) 
+    (result (Sg_ReadSysRandom bits)))
 
   (define-c-proc read-random-bytes (prng::<prng> size::<fixnum>) 
     (when (<= size 0)
@@ -53,6 +50,13 @@
 				       (SG_MAKE_INT size) '()))
     (result (Sg_ReadRandomBytes prng size)))
 
+  (define-c-proc register-prng (name clazz) ::<boolean>
+    (result (Sg_RegisterPrng name clazz)))
+
+  (define-c-proc lookup-prng (name)
+    (result (Sg_LookupPrng name)))
+
+  ;; hash
   (define-c-proc hash-algorithm? (o) ::<boolean>
     (result (SG_HASH_P o)))
 
