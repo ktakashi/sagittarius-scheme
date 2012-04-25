@@ -1,4 +1,4 @@
-;;; -*- Scheme -*-
+;;; -*- mode: scheme; coding: utf-8; -*-
 ;;;
 ;;; mt-random.scm - Mersenne Twister random
 ;;;  
@@ -189,11 +189,10 @@
 		;; src can be less than 8 bytes, so we need to calculate
 		;; proper offset here.
 		(let* ((src (integer->bytevector x))
-		       (len (bytevector-length src))
-		       (off (+ offset (- 8 len))))
-		  (if (>= (- len offset) 8)
+		       (off (+ offset (- 8 (bytevector-length src)))))
+		  (if (>= (- len off) 8)
 		      (bytevector-copy! src 0 bv off (bytevector-length src))
-		      (bytevector-copy! src 0 bv off (- len offset)))
+		      (bytevector-copy! src 0 bv off (- len off)))
 		  (loop (+ i 1) (+ offset 8)))))))))
     ;; check size the reading process read 8 byte in once.
     (let ((count (ceiling (/ bytes 8)))
@@ -216,6 +215,23 @@
       (when seed
 	(mt-set-seed o seed))))
 
+  (define-method prng-state ((prng <mersenne-twister>))
+    (slot-ref prng 'state))
+
+  (define-method prng-state ((prng <mersenne-twister>) state)
+    (assertion-violation 'prng-state "state must be bytevector"
+			 state))
+  (define-method prng-state ((prng <mersenne-twister>)
+			     (state <bytevector>))
+    ;; assume state is proper state
+    (unless (= (*8 (+ NN 1)) (bytevector-length state))
+      (assertion-violation 
+       'prng-state
+       (format 
+	"64 bit aligned bytevector of length ~a is required, but got length %d"
+	(*8 (+ NN 1)) (bytevector-length state))))
+    (slot-set! prng 'state state)
+    (slot-set! prng 'mti (mt-ref state NN)))
 
   ;; register
   (define-class <mt> () ())

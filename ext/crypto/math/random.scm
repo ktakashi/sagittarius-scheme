@@ -17,7 +17,11 @@
 
 	    register-prng
 	    lookup-prng
-	    <prng> <builtin-prng> <user-prng> <secure-random>)
+	    <prng> <builtin-prng> <user-prng> <secure-random>
+	    prng-state
+	    ;; utility
+	    read-sys-random
+	    )
     (import (core)
 	    (math helper)
 	    (clos core)
@@ -72,9 +76,12 @@
 	(%random-seed-set! prng (integer->bytevector seed))
 	(%random-seed-set! prng seed)))
 
-  ;; TODO 100 bytes read-size are good enough?
-  (define (random prng size :key (read-size 100))
-    (let* ((bv (read-random-bytes prng read-size))
+  ;; FIXME: this might not be random enough
+  (define (random prng size :key (read-size #f))
+    (let* ((bv (read-random-bytes prng 
+				  (if read-size
+				      read-size
+				      (ceiling (/ (bitwise-length size) 8)))))
 	   (rnd (bytevector->integer bv)))
       (if (> rnd size)
 	  (modulo rnd size)

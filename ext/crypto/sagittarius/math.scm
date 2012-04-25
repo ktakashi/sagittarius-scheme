@@ -27,6 +27,7 @@
 	    <prng> <user-prng> <builtin-prng> <secure-random>
 	    <hash-algorithm> <user-hash-algorithm>
 	    <builtin-hash-algorithm>
+	    prng-state
 	    ;; register
 	    register-hash
 	    lookup-hash

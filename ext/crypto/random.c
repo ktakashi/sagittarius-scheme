@@ -271,6 +271,29 @@ static SgSlotAccessor user_prng_slots[] = {
   SG_CLASS_SLOT_SPEC("read-random", 1, up_read, up_read_set),
   { { NULL } }
 };
+/* actually for SRFI-27 */
+SG_DEFINE_GENERIC(Sg_GenericPrngState, Sg_NoNextMethod, NULL);
+
+static SgObject prng_state_impl(SgObject *args, int argc, void *data)
+{
+  /* do nothing for default behaviour */
+  return SG_FALSE;
+}
+
+SG_DEFINE_SUBR(prng_state_get, 1, 0, prng_state_impl, SG_FALSE, NULL);
+SG_DEFINE_SUBR(prng_state_set, 2, 0, prng_state_impl, SG_FALSE, NULL);
+static SgClass *prng_state_get_SPEC[] = {
+  SG_CLASS_PRNG
+};
+static SgClass *prng_state_set_SPEC[] = {
+  SG_CLASS_PRNG, SG_CLASS_TOP
+};
+static SG_DEFINE_METHOD(prng_state_get_rec,
+			&Sg_GenericPrngState, 1, 0, prng_state_get_SPEC,
+			&prng_state_get);
+static SG_DEFINE_METHOD(prng_state_set_rec,
+			&Sg_GenericPrngState, 2, 0, prng_state_set_SPEC,
+			&prng_state_set);
 
 void Sg__InitPrng(SgLibrary *lib)
 {
@@ -293,4 +316,8 @@ void Sg__InitPrng(SgLibrary *lib)
   Sg_InitStaticClass(SG_CLASS_USER_PRNG, UC("<user-prng>"), lib, 
 		     user_prng_slots, 0);
   Sg_InitStaticClass(SG_CLASS_PRNG, UC("<secure-random>"), lib, NULL, 0);
+
+  Sg_InitBuiltinGeneric(&Sg_GenericPrngState, UC("prng-state"), lib);
+  Sg_InitBuiltinMethod(&prng_state_get_rec);
+  Sg_InitBuiltinMethod(&prng_state_set_rec);
 }
