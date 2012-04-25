@@ -142,8 +142,8 @@
 	      ((= j (- NN MM)) (set! i j))
 	    (set! x (bitwise-ior
 		     (bitwise-and (mt-ref mt j) UM)
-		     (bitwise-and (mt-ref mt  (+ j 1)) LM)))
-	    (let ((v (bitwise-xor (mt-ref mt (+ i MM))
+		     (bitwise-and (mt-ref mt (+ j 1)) LM)))
+	    (let ((v (bitwise-xor (mt-ref mt (+ j MM))
 				  (bitwise-arithmetic-shift-right x 1)
 				  (mt-ref mag01 (bitwise-and x 1)))))
 	      (mt-set! mt j v)))
@@ -152,7 +152,7 @@
 	    (set! x (bitwise-ior
 		     (bitwise-and (mt-ref mt j) UM)
 		     (bitwise-and (mt-ref mt (+ j 1)) LM)))
-	    (let ((v (bitwise-xor (mt-ref mt (+ i (- MM NN)))
+	    (let ((v (bitwise-xor (mt-ref mt (+ j (- MM NN)))
 				  (bitwise-arithmetic-shift-right x 1)
 				  (mt-ref mag01 (bitwise-and x 1)))))
 	      (mt-set! mt j v)))
@@ -173,7 +173,7 @@
 	      (when (>= (slot-ref prng 'mti) NN)
 		(reset prng))
 	      (let* ((mti (slot-ref prng 'mti))
-		     (x (bytevector-u64-native-ref mt (*8 mti))))
+		     (x (mt-ref mt mti)))
 		(slot-set! prng 'mti (+ mti 1))
 		(set! x (bitwise-xor x
 			 (bitwise-and (bitwise-arithmetic-shift-right x 29)
@@ -186,10 +186,14 @@
 				      #xFFF7EEE000000000)))
 		(set! x (bitwise-xor x (bitwise-arithmetic-shift-right x 43)))
 		;; copy to result buffer
-		(let ((src (integer->bytevector x)))
+		;; src can be less than 8 bytes, so we need to calculate
+		;; proper offset here.
+		(let* ((src (integer->bytevector x))
+		       (len (bytevector-length src))
+		       (off (+ offset (- 8 len))))
 		  (if (>= (- len offset) 8)
-		      (bytevector-copy! src 0 bv offset (bytevector-length src))
-		      (bytevector-copy! src 0 bv offset (- len offset)))
+		      (bytevector-copy! src 0 bv off (bytevector-length src))
+		      (bytevector-copy! src 0 bv off (- len offset)))
 		  (loop (+ i 1) (+ offset 8)))))))))
     ;; check size the reading process read 8 byte in once.
     (let ((count (ceiling (/ bytes 8)))
