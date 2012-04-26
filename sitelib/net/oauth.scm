@@ -515,7 +515,7 @@
     (string-append (string-upcase (format "~a" request-method))
 		   "&" (oauth-uri-encode (normalize-uri uri))
 		   "&" (oauth-uri-encode
-			(alist->query-string parameters))))
+			(oauth-compose-query parameters))))
 
   ;; uri
   ;; 9.1.2
