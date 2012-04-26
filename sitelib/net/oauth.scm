@@ -193,7 +193,12 @@
 
   (define (build-auth-string parameters)
     (format "OAuth ~a"
-	    (string-join (map (cut string-join <> "=") parameters) ", ")))
+	    (%-fix
+	     (string-join (map (lambda (p)
+				 (string-append (oauth-uri-encode (car p))
+						"="
+						(oauth-uri-encode (cadr p))))
+			       parameters) ", "))))
   (define (oauth-http-request uri
 			      :key (auth-location :header)
 				   (method 'GET)
@@ -332,7 +337,7 @@
 				 => (lambda (it) `(("oauth_verifier" ,it))))
 				(else '()))))
 	     (sbs (signature-base-string :uri uri :request-method request-method
-					 :parameters (sort-parameters
+					 :parameters (sort-parameters 
 						      parameters)))
 	     (signature (oauth-signature signature-method sbs
 					 (token-secret consumer-token)
@@ -533,12 +538,13 @@
   (define (oauth-signature method sbs consumer-secret
 			   :optional (token-secret ""))
     (utf8->string
-     (base64-encode
-      (case method
-	((:hmac-sha1)
-	 (hash (hash-algorithm HMAC
-			       :key (string->utf8 (string-append consumer-secret
-								 "&"
-								 token-secret)))
-	       (string->utf8 sbs)))))))
+      (base64-encode
+       (case method
+	 ((:hmac-sha1)
+	  (hash (hash-algorithm 
+		 HMAC
+		 :key (string->utf8 (string-append consumer-secret
+						   "&"
+						   token-secret)))
+		(string->utf8 sbs)))))))
   )
