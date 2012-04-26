@@ -49,6 +49,7 @@
 
   ;; we need mask (64 bits)
   (define-constant *mask*   #xFFFFFFFFFFFFFFFF)
+
   (define (mask v) (bitwise-and *mask* v))
   ;; for convenient
   (define (*8 v) (* v 8))
@@ -57,19 +58,10 @@
   (define (mt-set! bv i value)
     (bytevector-u64-native-set! bv (*8 i) value))
 
-  ;; this is ugly
-  (define mag01 (make-bytevector 16))
-  (begin
-    (bytevector-u64-native-set! mag01 0 0)
-    (bytevector-u64-native-set! mag01 8 MATRIX_A))
-
-  (define (print-state prng)
-    (do ((i 0 (+ i 1)))
-	((= i NN))
-      (format #t "~20' a " (mt-ref (slot-ref prng 'state) i))
-      (when (= (mod i 3) 2)
-	(newline)))
-     (newline))
+  (define-constant mag01 (let ((bv (make-bytevector 16)))
+			   (bytevector-u64-native-set! bv 0 0)
+			   (bytevector-u64-native-set! bv 8 MATRIX_A)
+			   bv))
 
   (define (init-genrand prng seed)
     (let ((mt (slot-ref prng 'state)))

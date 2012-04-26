@@ -9,6 +9,7 @@
 	    with-output-to-port)
     (import (core)
 	    (core base)
+	    (sagittarius)
 	    (srfi :6 basic-string-ports)
 	    (srfi :39 parameters))
 

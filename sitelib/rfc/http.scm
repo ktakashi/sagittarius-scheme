@@ -48,17 +48,25 @@
 	    http-delete
 	    http-request
 
+	    ;; senders
+	    http-null-sender
+	    http-multipart-sender
+	    http-blob-sender
+	    ;; receiver
+	    http-string-receiver
+	    http-oport-receiver
+
 	    ;; for convenience
 	    http-lookup-auth-handler
 	    
 	    )
-    (import (except (rnrs) define)
-	    (except (core) define)
+    (import (rnrs)
 	    (sagittarius)
 	    (sagittarius regex)
 	    (sagittarius socket)
-	    (rename (sagittarius control) (define-with-key define))
+	    (sagittarius control)
 	    (sagittarius partcont)
+	    (clos user)
 	    (srfi :1 lists)
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
@@ -82,29 +90,31 @@
 				(make-message-condition msg)
 				(make-irritants-condition irritants))))))
 
-  (define-record-type http-connection
-    (fields (mutable server)		; server[:port]
-	    (mutable socket)		; A socket for persistent connection.
-	    (mutable secure-agent)
-	    (mutable proxy)
-	    (mutable extra-headers)
-	    (mutable secure)
-	    (mutable auth-handler)	; unused
-	    (mutable auth-user)		; unused
-	    (mutable auth-password)	; unused
-	    )
-    (protocol (lambda (p)
-		(lambda (server . args)
-		  (let-keywords args ((socket #f)
-				      (secure-agent #f)
-				      (proxy #f)
-				      (extra-headers '())
-				      (secure #f)
-				      (auth-handler #f)
-				      (auth-user #f)
-				      (auth-password #f))
-		    (p server socket secure-agent proxy extra-headers
-		       secure auth-handler auth-user auth-password))))))
+  (define-class <http-connection> ()
+    (;; server[:port]
+     (server :init-keyword :server :init-value #f
+	     :accessor http-connection-server)
+     ;; A socket for persistent connection.
+     (socket :init-keyword :socket :init-value #f
+	     :accessor http-connection-socket)
+     (secure-agent :init-keyword :secure-agent :init-value #f
+		   :accessor http-connection-secure-agent)
+     (proxy  :init-keyword :proxy :init-value #f
+	     :accessor http-connection-proxy)
+     (extra-headers :init-keyword :extra-headers :init-value '()
+		    :accessor http-connection-extra-headers)
+     (secure :init-keyword :secure :init-value #f
+	     :accessor http-connection-secure)
+     (auth-handler :init-keyword :auth-handler :init-value #f
+		   :accessor http-connection-auth-handler)
+     (auth-user :init-keyword :auth-user :init-value #f
+		:accessor http-connection-auth-user)
+     (auth-password :init-keyword :auth-password :init-value #f
+		    :accessor http-connection-auth-password)))
+  (define (make-http-connection server . args)
+    (apply make <http-connection> :server server args))
+  (define (http-connection? o) (is-a? o <http-connection>))
+
 
   (define http-user-agent (make-parameter (format "sagittarius.http/~a"
 						  (sagittarius-version))))
@@ -117,9 +127,9 @@
 	(and-let* ((s (http-connection-socket conn)))
 	  (socket-shutdown s)
 	  (socket-close s)
-	  (http-connection-socket-set! conn #f))
-	(http-connection-server-set! conn new-server)
-	(http-connection-secure-set! conn (equal? proto "https"))))
+	  (http-connection-socket conn #f))
+	(http-connection-server conn new-server)
+	(http-connection-secure conn (equal? proto "https"))))
     conn)
 
   ;; 
@@ -136,7 +146,7 @@
 			     (receiver (http-string-receiver))
 			     (sender #f)
 			     (enc :request-encoding 'utf-8)
-			:allow-other-keys otps)
+			:allow-other-keys opts)
     (let1 conn (ensure-connection server auth-handler auth-user auth-password
 				  proxy secure extra-headers)
       (let loop ((history '())
@@ -163,19 +173,17 @@
 			path*)))
 	      (values code headers body))))))
 
-  (define *server-re* #/([^:]+):(\d+)/)
-
   (define (server->socket server)
-    (cond ((matches *server-re* server)
+    (cond ((matches #/([^:]+):(\d+)/ server)
 	   => (lambda (m) 
 		(make-client-socket (m 1) (m 2))))
 	  (else (make-client-socket server "80"))))
 
   (define (invoke-auth-handler conn)
-    (and-let* ((handler  (http-connection-auth-handler conn))
-	       (user     (http-connection-auth-user conn))
-	       (password (http-connection-auth-password conn)))
-      (handler user password conn)))
+    (and-let* ((handler  (http-connection-auth-handler conn)))
+      (let ((user     (http-connection-auth-user conn))
+	    (password (http-connection-auth-password conn)))
+	(handler user password conn))))
 
   (define (with-connection conn proc)
     (cond ((http-connection-secure conn)
@@ -281,12 +289,11 @@
     (receive (code reason) (parse-status-line (get-line remote))
       (values code (rfc5322-read-headers remote))))
 
-  (define *status-re* #/[\w\/.]+\s+(\d\d\d)\s+(.*)/)
   (define (parse-status-line line)
     (cond ((eof-object? line)
 	   (raise-http-error 'parse-status-line
 			     "http reply contains no data"))
-	  ((looking-at *status-re* line)
+	  ((looking-at #/[\w\/.]+\s+(\d\d\d)\s+(.*)/ line)
 	   => (lambda (m) (values (m 1) (m 2))))
 	  (else (raise-http-error 'parse-status-line
 				  "bad reply from server"
@@ -374,7 +381,7 @@
     (lambda (code hdrs totla retr)
       (let loop ()
 	(receive (remote size) (retr)
-	  (cond ((= size 0) (flushre sink hdrs))
+	  (cond ((= size 0) (flusher sink hdrs))
 		((> size 0)
 		 (put-bytevector sink (get-bytevector-n remote size #t))
 		 (loop)))))))
@@ -455,7 +462,7 @@
 					(datum->syntax 
 					 #'k
 					 (string->symbol
-					  (format "http-connection-~a-set!"
+					  (format "http-connection-~a"
 						  (syntax->datum #'id))))))
 			   #'(unless (undefined? id)
 			       (name conn id))))))))
@@ -489,9 +496,9 @@
 				 :allow-other-keys opts)
     (define recvr
       (if (or sink flusher)
-	  (http-oport-receiver (or sink (open-output-string))
+	  (http-oport-receiver (or sink (open-output-bytevector))
 			       (or flusher (lambda (s h) 
-					     (get-output-string s))))
+					     (get-output-bytevector s))))
 	  receiver))
     (apply http-request method server request-uri
 	   :sender (cond ((not body) (http-null-sender))
@@ -536,10 +543,9 @@
   ;; authentication handling
   ;; dummy
 
-  (define *auth-re* #/^(\w+?)\s/)
   (define (http-lookup-auth-handler headers)
     (and-let* ((hdr (rfc5322-header-ref headers "www-authenticate"))
-	       (m   (looking-at *auth-re* hdr))
+	       (m   (looking-at #/^(\w+?)\s/ hdr))
 	       (type (string-downcase (m 1))))
       (cond ((assoc type *supported-auth-handlers*) =>
 	     (lambda (slot)

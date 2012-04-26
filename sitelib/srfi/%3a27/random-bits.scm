@@ -70,10 +70,10 @@
       (assertion-violation 'random-source-randomize!
 			   "random-source required" s))
     ;; well mt-random uses 64 bit seed, so read 16 bytes from system random
-    (let ((seed (read-sys-random 16)))
+    (let ((seed (read-sys-random (* 16 8))))
       (random-seed-set! s seed)))
 
-  ;; implementation bases on Gauche
+  ;; implementation based on Gauche
   (define (random-source-pseudo-randomize! s i j)
     ;; This procedure is effectively required to map integers (i,j) into
     ;; a seed value in a deterministic way.

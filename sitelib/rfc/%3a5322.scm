@@ -2,7 +2,7 @@
 ;;;
 ;;; 5322.scm - RFC5322 Internet Message Format
 ;;;  
-;;;   Copyright (c) 2000-2011  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2009-2011  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -72,7 +72,8 @@
 
   (define wsp '(#\space #\tab))
 
-  (define rfc5322-char-set (char-set-difference char-set:printing (string->char-set ":")))
+  (define rfc5322-char-set
+    (char-set-difference char-set:printing (string->char-set ":")))
 
   (define (rfc5322-line-reader port)
     (let1 r (get-line port)

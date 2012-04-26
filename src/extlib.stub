@@ -78,6 +78,10 @@
 	    format/ss
 	    make-codec port-info
 	    read-with-case
+	    open-output-bytevector
+	    get-output-bytevector
+	    open-output-string
+	    get-output-string
 
 	    ;; profiler
 	    profiler-start profiler-stop profiler-reset
@@ -604,6 +608,52 @@
     (check-port-open read-with-case p)
     (check-input-port read-with-case p)
     (result (Sg_ReadWithCase p insensitiveP (not (SG_FALSEP sharedP)))))
+
+  (define-c-proc open-output-bytevector (:optional (t::<transcoder> #f)) ::<top>
+    (let ((bp (Sg_MakeByteArrayOutputPort -1)))
+      (if (SG_FALSEP t)
+	  (result bp)
+	  (result (Sg_MakeTranscodedOutputPort bp t)))))
+
+  (define-c-proc get-output-bytevector (p::<port>) ::<top>
+    (check-port-open get-output-bytevector p)
+    (check-output-port get-output-bytevector p)
+    ;; I'm not quite sure if I should reset the port position
+    ;; if it's textual port.
+    (cond ((SG_BINARY_PORTP p)
+	   (result (Sg_GetByteVectorFromBinaryPort p))
+	   (Sg_SetPortPosition p 0))
+	  (else
+	   (result (Sg_GetByteVectorFromBinaryPort 
+		    (ref (pointer (SG_TEXTUAL_PORT p))
+			 src transcoded port)))
+	   (Sg_SetPortPosition (ref (pointer (SG_TEXTUAL_PORT p))
+				    src transcoded port)  0)
+	   ;; we also need to reset transcoder's buffer position,
+	   ;; but we don't reset buffer.
+	   (set! (-> (SG_TRANSCODED_TEXTUAL_PORT_TRANSCODER p) bufferPosition)
+		 0))))
+  
+  ;; these functions are for open-string-output-port
+  (define-c-proc open-output-string () ::<top>
+    (result (Sg_MakeStringOutputPort 32)))
+
+  (define-cise-stmt check-textual-port
+    ((_ name p)
+     `(unless (or (SG_TEXTUAL_PORTP ,p)
+		  (and (SG_CUSTOM_PORTP ,p)
+		       (SG_EQ (-> (SG_CUSTOM_PORT ,p) type)
+			      SG_TEXTUAL_CUSTOM_PORT_TYPE)))
+	(wrong-type-of-argument-violation ',name "textual-port" ,p))))
+  (define-c-proc get-output-string (p::<port>) ::<top>
+    (check-port-open get-output-string p)
+    (check-output-port get-output-string p)
+    (check-textual-port get-output-string p)
+    (unless (SG_EQ (-> (SG_TEXTUAL_PORT p) type)
+		   SG_STRING_TEXTUAL_PORT_TYPE)
+      (wrong-type-of-argument-violation 'get-output-string "string port" p))
+    (result (Sg_GetStringFromStringPort p))
+    (Sg_SetPortPosition p 0))
 
   ;; profiler
   (define-c-proc profiler-start () ::<void>

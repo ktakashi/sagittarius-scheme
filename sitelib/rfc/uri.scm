@@ -33,6 +33,7 @@
 ;; <http://www.ietf.org/rfc/rfc3986.txt>
 
 #!compatible
+#< (sagittarius regex) >
 (library (rfc uri)
     (export uri-parse
 	    uri-scheme&specific
@@ -57,9 +58,9 @@
 	    (sagittarius regex))
 
   ;; from RFC3986 Appendix B. Parsing a URI Reference with a Regular Expression
-  (define scheme (regex "^([a-zA-Z][a-zA-Z0-9+.-]*):"))
-  (define hierarchical (regex "(?://([^/?#]*))?([^?#]*)?(?:\\?([^#]*))?(?:#(.*))?$"))
-  (define authority (regex "(?:(.*?)@)?([^:]*)(?::(\\d*))?"))
+  (define scheme #/^([a-zA-Z][a-zA-Z0-9+.-]*):/)
+  (define hierarchical #/(?:\/\/([^\/?#]*))?([^?#]*)?(?:\?([^#]*))?(?:#(.*))?$/)
+  (define authority #/(?:(.*?)@)?([^:]*)(?::(\d*))?/)
 
   (define (uri-scheme&specific uri)
     (cond ((looking-at scheme uri)
@@ -84,21 +85,22 @@
       (and (string? str)
 	   (not (string-null? str))
 	   str))
-    (receive (scheme specific) (uri-scheme&specific uri)
-      (receive (auth path query frag) (uri-decompose-hierarchical specific)
-	(receive (user-info host port) (uri-decompose-authority auth)
-	  (values scheme
-		  user-info
-		  (filter-non-empty-string host)
-		  (and port (string->number port))
-		  (filter-non-empty-string path)
-		  query
-		  frag)))))
+    (let*-values (((scheme specific) (uri-scheme&specific uri))
+		  ((auth path query frag)
+		   (uri-decompose-hierarchical specific))
+		  ((user-info host port) (uri-decompose-authority auth)))
+      (values scheme
+	      user-info
+	      (filter-non-empty-string host)
+	      (and port (string->number port))
+	      (filter-non-empty-string path)
+	      query
+	      frag)))
 
   ;; compose
-  (define-with-key (uri-compose :key (scheme #f) (userinfo #f) (host #f) (port #f)
-				(authority #f) (path  #f) (path* #f) (query #f)
-				(fragment #f) (specific #f))
+  (define (uri-compose :key (scheme #f) (userinfo #f) (host #f) (port #f)
+			    (authority #f) (path  #f) (path* #f) (query #f)
+			    (fragment #f) (specific #f))
       (with-output-to-string
 	(lambda ()
 	  (when scheme (display scheme) (display ":"))
@@ -130,7 +132,7 @@
   ;; encoding & decoding
   ;; This is for internal.
   ;; in and out must be binary-port
-  (define-optional (uri-decode in out (optional (cgi-decode #f)))
+  (define (uri-decode in out :optional (cgi-decode #f))
     (define (hex-char? n)
       (cond ((<= #x30 n #x39) ;; #\0 - #\9
 	     (- n #x30))
@@ -148,12 +150,14 @@
 		     ((hex-char? c1)
 		      => (lambda (i1)
 			   (let1 c2 (get-u8 in)
-			     (cond ((eof-object? c2) (put-u8 out c) (put-u8 out c1))
+			     (cond ((eof-object? c2)
+				    (put-u8 out c) (put-u8 out c1))
 				   ((hex-char? c2)
 				    => (lambda (i2)
 					 (put-u8 out (+ (* i1 16) i2))
 					 (loop (get-u8 in))))
-				   (else (put-u8 out c) (put-u8 out c1) (loop c2))))))
+				   (else (put-u8 out c) (put-u8 out c1)
+					 (loop c2))))))
 		     (else (put-u8 out c) (loop c1)))))
 	    ((= c #x2b) ;; +
 	     (if cgi-decode
@@ -162,8 +166,8 @@
 	     (loop (get-u8 in)))
 	    (else (put-u8 out c) (loop (get-u8 in))))))
 
-  (define-optional (uri-decode-string string (optional (encoding 'utf-8)
-						       (cgi-decode #f)))
+  (define (uri-decode-string string :optional (encoding 'utf-8)
+					      (cgi-decode #f))
     ;; decoder is mere codec.
     (let ((decoder (lookup-decoder encoding)))
       (if decoder
@@ -176,15 +180,15 @@
 	  string)))
 
   ;; 2396 -_.!~*'() + [0-9a-zA-Z]
-  (define *rfc2396-unreserved-char-set* (char-set-union (string->char-set "-_.!~*'()")
-							(char-set-difference char-set:letter+digit
-									     char-set:ascii)))
+  (define *rfc2396-unreserved-char-set*
+    (char-set-union (string->char-set "-_.!~*'()")
+		    char-set:letter+digit))
   ;; 3986 -_.~ + [0-9a-zA-Z]
-  (define *rfc3986-unreserved-char-set* (char-set-union (string->char-set "-_.~")
-							(char-set-difference char-set:letter+digit
-									     char-set:ascii)))
+  (define *rfc3986-unreserved-char-set*
+    (char-set-union (string->char-set "-_.~")
+		    char-set:letter+digit))
 
-  (define-optional (uri-encode in out (optional (echars *rfc3986-unreserved-char-set*)))
+  (define (uri-encode in out :optional (echars *rfc3986-unreserved-char-set*))
     (define (hex->char-integer h)
       (cond ((<= 0 h 9) (+ h #x30))
 	    ((<= #xa h #xf) (+ h (- #x61 10)))
@@ -195,7 +199,7 @@
       (unless (eof-object? b)
 	(if (and (< b #x80)
 		 (char-set-contains? echars (integer->char b)))
-	    (put-u8 b)
+	    (put-u8 out b)
 	    (begin
 	      (put-u8 out #x25) ;; %
 	      (let ((hi (fxand (fxarithmetic-shift-right b 4) #xf))
@@ -204,17 +208,16 @@
 		(put-u8 out (hex->char-integer lo)))))
 	(loop (get-u8 in)))))
 
-  (define-optional (uri-encode-string string (optional (encoding 'utf-8)
-						       (echars *rfc3986-unreserved-char-set*)))
+  (define (uri-encode-string string :optional (encoding 'utf-8)
+					      (echars 
+					       *rfc3986-unreserved-char-set*))
     (let ((decoder (lookup-decoder encoding)))
       (if decoder
 	  (let ((bv (string->bytevector string (make-transcoder decoder))))
 	    (bytevector->string
 	     (call-with-bytevector-output-port
 	      (lambda (out)
-		(uri-encode (open-bytevector-input-port bv)
-			    out
-			    echars)))
+		(uri-encode (open-bytevector-input-port bv) out echars)))
 	     (make-transcoder decoder)))
 	  string)))
 )

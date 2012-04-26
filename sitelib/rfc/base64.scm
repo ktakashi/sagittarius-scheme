@@ -125,9 +125,9 @@
 	      (else (d2 (get-u8 in) hi))))
       (d0 (get-u8 in))))    
 
-  (define-optional
-    (base64-encode-string string (optional (transcoder (native-transcoder))
-					   (line-width 76)))
+  (define
+    (base64-encode-string string :optional (transcoder (native-transcoder))
+					   (line-width 76))
     (or (string? string)
 	(assertion-violation 'base64-encode-string
 			     (format "string required, but got ~s" string)
@@ -135,7 +135,7 @@
     (utf8->string
      (base64-encode (string->bytevector string transcoder) line-width)))
 
-  (define-optional (base64-encode bv (optional (line-width 76)))
+  (define (base64-encode bv :optional (line-width 76))
     (or (bytevector? bv)
 	(assertion-violation 'base64-encode
 			     (format "bytevector required, but got ~s" bv)
