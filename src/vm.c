@@ -1079,6 +1079,9 @@ SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk,
 }
 
 
+static SgWord boundaryFrameMark = NOP;
+#define BOUNDARY_FRAME_MARK_P(cont) ((cont)->pc == &boundaryFrameMark)
+
 #define SKIP(vm, n)        (PC(vm) += (n))
 #define FETCH_OPERAND(pc)  SG_OBJ((*(pc)++))
 #define PEEK_OPERAND(pc)   SG_OBJ((*(pc)))
@@ -1086,7 +1089,6 @@ SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk,
 #define REFER_LOCAL(vm, n)   *(FP(vm) + n)
 #define INDEX_CLOSURE(vm, n)  SG_CLOSURE(CL(vm))->frees[n]
 
-#if USE_ONE_PATH_CALL_CC
 
 #define FORWARDED_CONT_P(c) ((c)&&((c)->size == -1))
 #define FORWARDED_CONT(c)   ((c)->prev)
@@ -1186,103 +1188,6 @@ static void expand_stack(SgVM *vm)
   for (p = SP(vm); p < vm->stackEnd; p++) *p = NULL;
 }
 
-#else
-
-static inline Stack* save_stack(SgVM* vm, void *end)
-{
-  int size = (SgObject*)end - vm->stack;
-  Stack *s = SG_NEW2(Stack *, sizeof(Stack) + sizeof(SgObject)*(size - 1));
-  s->size = size;
-  memcpy(s->stack, vm->stack, sizeof(SgObject) * size);
-  return s;
-}
-
-static inline int restore_stack(Stack *s, SgObject *to)
-{
-  memcpy(to, s->stack, s->size * sizeof(SgObject));
-  return s->size;
-}
-
-
-/*
-  we reuse stack area. so we need to save current stack to somewhere.
-  for now we do like this.
-
-  +---------+        +---------+
-  |   old   |        |   new   |
-  |  stack  |   -->  |  stack  |
-  |         |        |         |
-  |         |        +---------+
-  |         |        |  cont   |
-  +---------+        +---------+
-
-  detail drawing
-+---------------------------------------------+ <== sp(0x51ec24)
-+   p=                                      0 +
-+   o=#(9 (#<identifier lambda#(tests r6rs te +
-+---------------------------------------------+
-+ size=                                     2 +
-+   pc=                            0x6a5d8dcc +
-+   cl=#<closure #f>                          +
-+   dc=#<closure #f>                          +
-+   fp=                              0x51ec00 +
-+ prev=                              0x51ebe8 +
-+---------------------------------------------+ <== cont(0x51ec08)
-+   p=                               0x51ebe8 +
-+   o=(#(9 (#<identifier lambda#(tests r6rs t +
-+   o=#<closure pass2/lifted-define>          +
-+---------------------------------------------+ <== fp(0x51ec00)
-+ size=                                     3 +
-+   pc=                            0x6a5d8df4 +
-+   cl=#<closure #f>                          +
-+   dc=#<closure #f>                          +
-+   fp=                              0x51ebdc +
-+ prev=                              0x51ebc4 +
-+---------------------------------------------+ <== prev(0x51ebe8)
-
-  We need the last frame pointer to refer local variables.
-  So copy from fp - CONT_FRAME_SIZE address.
- */
-static SgObject restore_stack_cc(SgObject ac, void **data)
-{
-  Stack *stack = (Stack*)data[0];
-  SgVM *vm = Sg_VM();
-  SP(vm) = vm->stack + restore_stack(stack, vm->stack);
-  FP(vm) = (SgObject*)data[1];
-  return ac;
-}
-
-static void expand_stack(SgVM *vm)
-{
-  Stack *stack = save_stack(vm, CONT(vm));
-  SgObject *s = vm->stack, *fp_diff = FP(vm) - CONT_FRAME_SIZE, *sp = SP(vm);
-  SgObject dc;
-  void *data[2];
-  int diff = SP(vm) - FP(vm);
-
-  if (SG_VM_LOG_LEVEL(vm, SG_INFO_LEVEL)) {
-    Sg_Printf(vm->logPort, UC(";; expanding stack\n"));
-  }
-
-  /* clear stack */
-  while (s != fp_diff) *s++ = NULL;
-  SP(vm) = vm->stack;
-  /* create marker cont frame */
-  data[0] = stack;
-  data[1] = FP(vm);
-  Sg_VMPushCC(restore_stack_cc, data, 2);
-  /* slide the last frame to top */
-  memmove(SP(vm), fp_diff, (sp - fp_diff) * sizeof(SgObject));
-  /* FIXME, this doesn't work */
-  SP(vm) += (sp - fp_diff);
-  FP(vm) = SP(vm) - diff;
-
-  if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
-    print_frames(vm);
-  }
-}
-#endif
-
 static SgWord return_code[1] = {SG_WORD(RET)};
 
 #define PC_TO_RETURN return_code
@@ -1309,6 +1214,14 @@ static SgObject throw_continuation_body(SgObject handlers,
     vm->dynamicWinders = chain;
     return Sg_VMApply0(handler);
   }
+  /* 
+     if the target continuation is a full continuation, we can abandon
+     the current continuation. however, if the target continuation is
+     partial, we must return to the current continuation after executing
+     the partial continuation.
+   */
+  if (c->cstack == NULL) save_cont(vm);
+
   argc = Sg_Length(args);
   
   /* store arguments of the continuation to ac */
@@ -1326,15 +1239,8 @@ static SgObject throw_continuation_body(SgObject handlers,
   } else {
     vm->ac = SG_CAR(args);
   }
-  /* restore stack */
-#if USE_ONE_PATH_CALL_CC
-  /* do nothing */
-#else
-  vm->sp = vm->stack + restore_stack(c->stack, vm->stack);
-  vm->fp = vm->sp - argc;
-#endif
-  vm->cont = c->cont;
 
+  vm->cont = c->cont;
   vm->pc = return_code;
   vm->dynamicWinders = c->winders;
 
@@ -1406,15 +1312,8 @@ SgObject Sg_VMCallCC(SgObject proc)
   SgObject contproc;
   SgVM *vm = Sg_VM();
   
-#if USE_ONE_PATH_CALL_CC
   save_cont(vm);
   cont = SG_NEW(SgContinuation);
-#else
-  Stack *stack;
-  stack = save_stack(vm, SP(vm));
-  cont = SG_NEW(SgContinuation);
-  cont->stack = stack;
-#endif
   cont->winders = vm->dynamicWinders;
   cont->cont = vm->cont;
   cont->cstack = vm->cstack;
@@ -1426,6 +1325,45 @@ SgObject Sg_VMCallCC(SgObject proc)
 			 Sg_MakeString(UC("continucation"),
 				       SG_LITERAL_STRING));
   return Sg_VMApply1(proc, contproc);
+}
+
+/*
+  call with partial contnuation.
+ */
+SgObject Sg_VMCallPC(SgObject proc)
+{
+  SgContinuation *cont;
+  SgContFrame *c, *cp;
+  SgObject contproc;
+  SgVM *vm = Sg_VM();
+
+  /*
+    save the continuation. we only need to save th portion above the
+    latest boundary frame, but for now, we save everything to make things
+    easier.
+   */
+  save_cont(vm);
+  for (c = vm->cont, cp = NULL;
+       c && !BOUNDARY_FRAME_MARK_P(c);
+       cp = c, c = c->prev)
+    /* do nothing */;
+
+  if (cp != NULL) cp->prev = NULL; /* cut the dynamic chain */
+
+  cont = SG_NEW(SgContinuation);
+  cont->winders = vm->dynamicWinders;
+  cont->cont = vm->cont;
+  cont->prev = NULL;
+  cont->ehandler = SG_FALSE;
+  cont->cstack = NULL;		/* so that the partial continuation can be
+				   run on any cstack state. */
+
+
+  contproc = Sg_MakeSubr(throw_continuation, cont, 0, 1,
+			 SG_MAKE_STRING("partial continucation"));
+  /* Remove the saved continuation chain */
+  vm->cont = c;
+  return Sg_VMApply1(proc, contproc);  
 }
 
 /* given load path must be unshifted.
@@ -1713,9 +1651,6 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
     }									\
   } while (0)
 
-static SgWord boundaryFrameMark = NOP;
-#define BOUNDARY_FRAME_MARK_P(cont) ((cont)->pc == &boundaryFrameMark)
-
 SgObject evaluate_safe(SgObject program, SgWord *code)
 {
   SgCStack cstack;
@@ -1748,7 +1683,16 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
     if (vm->cont == cstack.cont) {
       POP_CONT();
       PC(vm) = prev_pc;
+    } else if (vm->cont == NULL) {
+      /* we're finished with executing partial continuation */
+      vm->cont = cstack.cont;
+      POP_CONT();
+      PC(vm) = prev_pc;
     }
+    /* FIXME
+       We actually have ghost continuation problem. if we raise an error
+       here then SRFI-41 test can not pass. But I have no idea where.
+       so for now just ignore... */
   } else {
     if (vm->escapeReason == SG_VM_ESCAPE_CONT) {
       SgContinuation *c = (SgContinuation*)vm->escapeData[0];

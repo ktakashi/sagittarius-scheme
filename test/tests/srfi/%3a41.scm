@@ -10,7 +10,7 @@
 	      (m in (stream-from 1)))
    (n in (stream-from 2))))
 
-(test-begin "(run-srfi-41-tests)")
+(test-begin "SRFI-41 test")
 
 (test-equal "power-table"
 	    '(1 8 27 64 125 216 343 512 729 1000)

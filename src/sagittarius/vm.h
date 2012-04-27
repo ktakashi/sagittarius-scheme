@@ -59,17 +59,6 @@ struct SgBoxRec
 #define SG_BOX(obj)  ((SgBox*)(obj))
 #define SG_BOXP(obj) SG_XTYPEP(obj, SG_CLASS_BOX)
 
-#define USE_ONE_PATH_CALL_CC 1
-
-#if USE_ONE_PATH_CALL_CC
-#else
-typedef struct StackRec
-{
-  int      size;
-  SgObject stack[1];
-} Stack;
-#endif
-
 /* continuation frame */
 typedef struct SgContFrameRec
 {
@@ -101,10 +90,6 @@ typedef struct SgContinucationRec
 {
   struct SgContinucationRec * prev;
   SgContFrame *cont;
-#if USE_ONE_PATH_CALL_CC
-#else
-  Stack       *stack;
-#endif
   SgObject     winders;
   SgCStack    *cstack;
   SgObject     ehandler;
@@ -388,6 +373,7 @@ SG_EXTERN SgObject Sg_VMApply3(SgObject proc, SgObject arg0, SgObject arg1, SgOb
 SG_EXTERN SgObject Sg_VMApply4(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2, SgObject arg3);
 SG_EXTERN SgObject Sg_VMApply(SgObject proc, SgObject args);
 SG_EXTERN SgObject Sg_VMCallCC(SgObject proc);
+SG_EXTERN SgObject Sg_VMCallPC(SgObject proc);
 SG_EXTERN SgVM*    Sg_VM();	/* get vm */
 SG_EXTERN int      Sg_SetCurrentVM(SgVM *vm);
 SG_EXTERN int      Sg_AttachVM(SgVM *vm);

@@ -225,7 +225,9 @@ static SgObject extlib_identifier_3dP(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 int SG_RESULT = (int)NULL;
-{SG_RESULT=(Sg_IdentifierEqP(use_env,x,mac_env,y));}
+{
+#line 187 "extlib.stub"
+SG_RESULT=(Sg_IdentifierEqP(use_env,x,mac_env,y));}
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
   }
@@ -245,7 +247,14 @@ static SgObject extlib_id_name(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-{if (SG_IDENTIFIERP(id)){SG_RESULT=(SG_IDENTIFIER_NAME(id));}else if(SG_USER_DEFINED_SYNTXP(id)){SG_RESULT=(SG_SYNTAX_NAME(id));} else {{Sg_WrongTypeOfArgumentViolation(sg__rc.d10[2],SG_MAKE_STRING("identifier"),id,SG_NIL);}}}
+{
+#line 190 "extlib.stub"
+if (SG_IDENTIFIERP(id)){
+SG_RESULT=(SG_IDENTIFIER_NAME(id));}else if(
+SG_USER_DEFINED_SYNTXP(id)){
+SG_RESULT=(SG_SYNTAX_NAME(id));} else {
+#line 195 "extlib.stub"
+{Sg_WrongTypeOfArgumentViolation(sg__rc.d10[2],SG_MAKE_STRING("identifier"),id,SG_NIL);}}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -265,8 +274,16 @@ static SgObject extlib_identifier_TOsymbol(SgObject *SG_FP, int SG_ARGC, void *d
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-{if ((!((SG_SYMBOLP(id))||(SG_IDENTIFIERP(id))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d10[4],SG_MAKE_STRING("symbol or identifier"),id,SG_NIL);}}}}
-{if (SG_SYMBOLP(id)){SG_RESULT=(id);} else {SG_RESULT=(SG_IDENTIFIER_NAME(id));}}
+{
+#line 200 "extlib.stub"
+if ((!((SG_SYMBOLP(id))||(
+SG_IDENTIFIERP(id))))){{
+{Sg_WrongTypeOfArgumentViolation(sg__rc.d10[4],SG_MAKE_STRING("symbol or identifier"),id,SG_NIL);}}}}
+{
+#line 205 "extlib.stub"
+if (SG_SYMBOLP(id)){
+SG_RESULT=(id);} else {
+SG_RESULT=(SG_IDENTIFIER_NAME(id));}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -290,7 +307,11 @@ static SgObject extlib_id_memq(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-{if (SG_IDENTIFIERP(id)){SG_RESULT=(Sg_Memq(SG_IDENTIFIER_NAME(id),lst));} else {SG_RESULT=(Sg_Memq(id,lst));}}
+{
+#line 210 "extlib.stub"
+if (SG_IDENTIFIERP(id)){
+SG_RESULT=(Sg_Memq(SG_IDENTIFIER_NAME(id),lst));} else {
+SG_RESULT=(Sg_Memq(id,lst));}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -310,7 +331,9 @@ static SgObject extlib_closureP(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 int SG_RESULT = (int)NULL;
-{SG_RESULT=(SG_CLOSUREP(cl));}
+{
+#line 216 "extlib.stub"
+SG_RESULT=(SG_CLOSUREP(cl));}
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
   }
@@ -333,7 +356,9 @@ static SgObject extlib_make_toplevel_closure(SgObject *SG_FP, int SG_ARGC, void 
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-{SG_RESULT=(Sg_MakeClosure(cb,NULL));}
+{
+#line 220 "extlib.stub"
+SG_RESULT=(Sg_MakeClosure(cb,NULL));}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -353,7 +378,9 @@ static SgObject extlib_dotted_listP(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 int SG_RESULT = (int)NULL;
-{SG_RESULT=(SG_DOTTED_LISTP(lst));}
+{
+#line 224 "extlib.stub"
+SG_RESULT=(SG_DOTTED_LISTP(lst));}
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
   }
@@ -373,7 +400,9 @@ static SgObject extlib_circular_listP(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 int SG_RESULT = (int)NULL;
-{SG_RESULT=(SG_CIRCULAR_LISTP(lst));}
+{
+#line 227 "extlib.stub"
+SG_RESULT=(SG_CIRCULAR_LISTP(lst));}
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
   }
@@ -393,7 +422,9 @@ static SgObject extlib_reverseX(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-{SG_RESULT=(Sg_ReverseX(lis));}
+{
+#line 230 "extlib.stub"
+SG_RESULT=(Sg_ReverseX(lis));}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -421,7 +452,9 @@ static SgObject extlib_acons(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-{SG_RESULT=(Sg_Acons(a,b,alist));}
+{
+#line 233 "extlib.stub"
+SG_RESULT=(Sg_Acons(a,b,alist));}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -441,7 +474,18 @@ static SgObject extlib_appendX(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-{SgObject cp;{SgObject h=SG_NIL;SgObject t=SG_NIL;SG_FOR_EACH(cp,lst){if (((!(SG_PAIRP(SG_CAR(cp)))))&&(SG_NULLP(SG_CDR(cp)))){{if (SG_NULLP(h)){h=(SG_CAR(cp));} else {SG_SET_CDR(t,SG_CAR(cp));}break;}}SG_APPEND(h,t,SG_CAR(cp));}SG_RESULT=(h);}}
+{SgObject cp;
+#line 236 "extlib.stub"
+{SgObject h=SG_NIL;SgObject t=SG_NIL;
+SG_FOR_EACH(cp,lst){
+if (((!(SG_PAIRP(SG_CAR(cp)))))&&(
+SG_NULLP(SG_CDR(cp)))){{
+if (SG_NULLP(h)){
+h=(SG_CAR(cp));} else {
+SG_SET_CDR(t,SG_CAR(cp));}
+break;}}
+SG_APPEND(h,t,SG_CAR(cp));}
+SG_RESULT=(h);}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -495,7 +539,9 @@ static SgObject extlib_vector_copy(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-{SG_RESULT=(Sg_VectorCopy(vec,start,end,fill));}
+{
+#line 251 "extlib.stub"
+SG_RESULT=(Sg_VectorCopy(vec,start,end,fill));}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -520,7 +566,13 @@ static SgObject extlib_current_exception_handler(SgObject *SG_FP, int SG_ARGC, v
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-{if (SG_UNBOUNDP(handle)){SG_RESULT=((Sg_VM())->exceptionHandler);} else {{(Sg_VM())->exceptionHandler=(handle);SG_RESULT=(SG_UNDEF);}}}
+{
+#line 254 "extlib.stub"
+if (SG_UNBOUNDP(handle)){
+SG_RESULT=((Sg_VM())->exceptionHandler);} else {
+{
+(Sg_VM())->exceptionHandler=(handle);
+SG_RESULT=(SG_UNDEF);}}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -545,7 +597,13 @@ static SgObject extlib_parent_exception_handler(SgObject *SG_FP, int SG_ARGC, vo
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-{if (SG_UNBOUNDP(handle)){SG_RESULT=((Sg_VM())->parentExHandler);} else {{(Sg_VM())->parentExHandler=(handle);SG_RESULT=(SG_UNDEF);}}}
+{
+#line 261 "extlib.stub"
+if (SG_UNBOUNDP(handle)){
+SG_RESULT=((Sg_VM())->parentExHandler);} else {
+{
+(Sg_VM())->parentExHandler=(handle);
+SG_RESULT=(SG_UNDEF);}}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -565,7 +623,10 @@ static SgObject extlib_variableP(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 int SG_RESULT = (int)NULL;
-{SG_RESULT=((SG_SYMBOLP(o))||(SG_IDENTIFIERP(o)));}
+{
+#line 269 "extlib.stub"
+SG_RESULT=((SG_SYMBOLP(o))||(
+SG_IDENTIFIERP(o)));}
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
   }
@@ -588,7 +649,13 @@ static SgObject extlib_arity(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-{{int req=SG_PROCEDURE_REQUIRED(p);int opt=SG_PROCEDURE_OPTIONAL(p);if ((opt)>(0)){SG_RESULT=(Sg_Cons(SG_MAKE_INT(req),SG_TRUE));} else {SG_RESULT=(Sg_Cons(SG_MAKE_INT(req),SG_FALSE));}}}
+{
+#line 277 "extlib.stub"
+{int req=SG_PROCEDURE_REQUIRED(p);int opt=
+SG_PROCEDURE_OPTIONAL(p);
+if ((opt)>(0)){
+SG_RESULT=(Sg_Cons(SG_MAKE_INT(req),SG_TRUE));} else {
+SG_RESULT=(Sg_Cons(SG_MAKE_INT(req),SG_FALSE));}}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -604,7 +671,9 @@ static SgObject extlib_unbound(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-{SG_RESULT=(SG_UNBOUND);}
+{
+#line 284 "extlib.stub"
+SG_RESULT=(SG_UNBOUND);}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }

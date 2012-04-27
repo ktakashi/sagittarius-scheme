@@ -58,6 +58,10 @@
 	    rename-id
 	    renamed-id?
 
+	    ;; call/pc
+	    %apply0
+	    %call/pc
+
 	    ;; should this be here?
 	    gc
 	    )
@@ -396,4 +400,10 @@
     (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_CONST_INLINING)))
 
   (define-c-proc gc () ::<void> Sg_GC)
+
+  ;; call/pc
+  (define-c-proc %call/pc (p::<procedure>)
+    (result (Sg_VMCallPC p)))
+
+  (define-c-proc %apply0 (p) Sg_Apply0)
 )
