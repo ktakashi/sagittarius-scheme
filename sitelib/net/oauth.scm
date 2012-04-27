@@ -179,7 +179,15 @@
 				  access-token)))
 	       (time>? (current-time) expires)))))
 
-  ;; consumer functions
+  ;;;;;;;;;;;;
+  ;;; consumer functions
+
+  ;; Message translator
+  ;; if something wrong happens within oauth process, http response has
+  ;; the error message, however we don't know which format it uses.
+  ;; so let user handle it.
+  (define (default-message-translator status header body) body)
+
   ;; helper
   ;; OAuth expects upper case somehow...
   (define (%-fix str)
@@ -230,7 +238,7 @@
 							    signature-method)))
 			("oauth_timestamp" ,(number->string timestamp))
 			("oauth_nonce" ,(number->string
-					 (random-integer (greatest-fixnum))))
+					 (random-source (greatest-fixnum))))
 			("oauth_version" ,(format "~a" version)))))
       (if token
 	  (cons `("oauth_token" ,(uri-decode-string (token-key token)
@@ -239,15 +247,16 @@
 	  parameters)))
 
   ;; Additional parameters will be stored in the user-data slot of the token.
-  (define (obtain-request-token uri consumer-token
-				:key (version :1.0)
-				     (user-parameters '())
-				     (timestamp (time-second (current-time)))
-				     (auth-location :header)
-				     (request-method 'POST)
-				     (callback-uri #f)
-				     (additional-headers '())
-				     (signature-method :hmac-sha1))
+  (define (obtain-request-token uri consumer-token :key
+				(version :1.0)
+				(user-parameters '())
+				(timestamp (time-second (current-time)))
+				(auth-location :header)
+				(request-method 'POST)
+				(callback-uri #f)
+				(additional-headers '())
+				(signature-method :hmac-sha1)
+				(error-translator default-message-translator))
     (let* ((callback-uri (or callback-uri "oob"))
 	   (auth-parameters (cons `("oauth_callback" ,callback-uri)
 				  (generate-auth-parameters consumer-token
@@ -270,7 +279,8 @@
 			      :parameters user-parameters
 			      :additional-headers additional-headers)
 	(unless (string=? status "200")
-	  (assertion-violation 'obtain-request-token body))
+	  (assertion-violation 'obtain-request-token
+			       (error-translator status header body)))
 	(let* ((response (query-string->alist body))
 	       (key (cond ((assoc "oauth_token" response) => cadr)
 			  (else #f)))
@@ -318,7 +328,8 @@
 			       (auth-location :header)
 			       (version :1.0)
 			       (timestamp (time-second (current-time)))
-			       (signature-method :hmac-sha1))
+			       (signature-method :hmac-sha1)
+			       (error-translator default-message-translator))
     (let1 refresh? (is-a? token <access-token>)
       (unless refresh?
 	(or (request-token-authorized? token)
@@ -355,7 +366,8 @@
 		  (else #f)))
 
 	  (unless (string=? status "200")
-	    (assertion-violation 'obtain-access-token body))
+	    (assertion-violation 'obtain-access-token
+				 (error-translator status header body)))
 	  (let* ((response (query-string->alist body))
 		 (key (field "oauth_token" response))
 		 (secret (field "oauth_token_secret" response))
@@ -428,7 +440,9 @@
 				     (version :1.0)
 				     (auth-location :header)
 				     (request-method 'GET)
-				     (signature-method :hmac-sha1))
+				     (signature-method :hmac-sha1)
+				     (error-translator 
+				      default-message-translator))
     (set! access-token (maybe-refresh-access-token access-token on-refresh))
     (receive (normalized-uri query-string-parameters) (normalize-uri uri #t)
       (let* ((auth-parameters (generate-auth-parameters consumer-token
@@ -456,7 +470,7 @@
 				:parameters user-parameters
 				:additional-headers additional-headers)
 	  (if (string=? status "200")
-	      (values body status #f #f)
+	      (values body header #f #f)
 	      (let* ((problem-report (get-problem-report header body))
 		     (problem-hint (and-let* ((r (assoc "oauth_problem"
 							problem-report)))
@@ -472,7 +486,9 @@
 			 (apply access-protected-resource uri new-token 
 				kwargs)))
 		      (else
-		       (values body status problem-hint problem-advice)))))))))
+		       (values (error-translator status header body)
+			       header
+			       problem-hint problem-advice)))))))))
 
   ;; parameters
   ;; Sort parameters according to the OAuth spec.
