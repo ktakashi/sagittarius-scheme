@@ -1,6 +1,6 @@
 ;;; -*- Scheme -*-
 ;;;
-;;; oauth.scm - OAuth 1.0 library.
+;;; parameters.scm - OAuth 1.0 library.
 ;;;  
 ;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -28,13 +28,27 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+(library (net oauth parameters)
+    (export sort-parameters
+	    oauth-parameter?
+	    remove-oauth-parameters)
+    (import (rnrs)
+	    (srfi :1 lists)
+	    (srfi :13 strings))
+    ;; Sort parameters according to the OAuth spec.
+  (define (sort-parameters parameters)
+    (when (assoc "oauth_signature" parameters)
+      (assertion-violation 'sort-parameters
+			   "oauth_signature must not be in parameters"
+			   parameters))
+    (list-sort (lambda (a b)
+		 (string< (car a) (car b))) parameters))
 
-;; based on cl-oauth
-;; for now we don't support service provider.
-#< (sagittarius regex) >
-(library (net oauth)
-    (export :all)
-    (import (net oauth consumer)
-	    (net oauth token))
-  ;;(define *protocol-version* :1.0)
+  ;; Return #t if parameter start with "oauth_".
+  (define (oauth-parameter? parameter)
+    (string-prefix? "oauth_" parameter))
+
+  (define (remove-oauth-parameters parameters)
+    (remove (lambda (p) (oauth-parameter? (car p))) parameters))
+
   )

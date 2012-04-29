@@ -1,6 +1,6 @@
 ;;; -*- Scheme -*-
 ;;;
-;;; oauth.scm - OAuth 1.0 library.
+;;; query-string.scm - OAuth 1.0 library.
 ;;;  
 ;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -28,13 +28,31 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+(library (net oauth query-string)
+    (export alist->query-string
+	    query-string->alist)
+    (import (rnrs)
+	    (sagittarius regex)
+	    (net oauth misc)
+	    (srfi :13 strings)
+	    (srfi :26 cut))
 
-;; based on cl-oauth
-;; for now we don't support service provider.
-#< (sagittarius regex) >
-(library (net oauth)
-    (export :all)
-    (import (net oauth consumer)
-	    (net oauth token))
-  ;;(define *protocol-version* :1.0)
-  )
+  ;; query string
+  ;; TODO move this to somewhere, this is too general only for OAuth
+  (define (alist->query-string alist :key (url-encode #f))
+    (string-join
+     (map (cut string-join <> "=")
+	  (if url-encode
+	      (map (lambda (l) (list (oauth-uri-encode (car l))
+				     (oauth-uri-encode (cadr l)))) alist)
+	      alist))
+     "&"))
+
+  (define (query-string->alist qs)
+    (let ((kv-pairs (string-split qs "&")))
+      (map (lambda (kv-pair)
+	     (string-split kv-pair "="))
+	   kv-pairs)))
+
+
+)

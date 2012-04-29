@@ -1,6 +1,6 @@
 ;;; -*- Scheme -*-
 ;;;
-;;; oauth.scm - OAuth 1.0 library.
+;;; signature.scm - OAuth 1.0 library.
 ;;;  
 ;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -28,13 +28,38 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+(library (net oauth signature)
+    (export signature-base-string
+	    oauth-signature)
+    (import (rnrs)
+	    (math)
+	    (rfc hmac)
+	    (rfc base64)
+	    (net oauth misc))
 
-;; based on cl-oauth
-;; for now we don't support service provider.
-#< (sagittarius regex) >
-(library (net oauth)
-    (export :all)
-    (import (net oauth consumer)
-	    (net oauth token))
-  ;;(define *protocol-version* :1.0)
+
+  ;; signature
+  ;; for now we only support consumer so no default
+  (define (signature-base-string :key (uri #f)
+				      (request-method #f)
+				      (parameters #f))
+    ;; assume request-method is symbol
+    (string-append (string-upcase (symbol->string request-method))
+		   "&" (oauth-uri-encode (normalize-uri uri))
+		   "&" (oauth-uri-encode
+			(oauth-compose-query parameters))))
+
+  ;; hash
+  (define (oauth-signature method sbs consumer-secret
+			   :optional (token-secret ""))
+    (utf8->string
+      (base64-encode
+       (case method
+	 ((:hmac-sha1)
+	  (hash (hash-algorithm 
+		 HMAC
+		 :key (string->utf8 (string-append consumer-secret
+						   "&"
+						   token-secret)))
+		(string->utf8 sbs)))))))
   )
