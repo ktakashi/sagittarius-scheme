@@ -26,14 +26,13 @@
 	    (let lp2 ((r (get-line p)))
 	      (unless (and (string? r)
 			   (string=? r "test-end"))
-		(put-string p r)
-		;; FIXME, on Windows, string port automatically converts
-		;; \n to \r\n.
-		(cond-expand
-		 (sagittarius.os.windows
-		  (put-string p "\n"))
-		 (else
-		  (put-string p "\r\n")))
+		;; FIXME
+		;; for testing, we need to avoid to put string to
+		;; the socket port, otherwise socket-recv can not
+		;; receive all data with one hit. We need to implements
+		;; textual-port not to put one by one.
+		(let ((res (string->utf8 (string-append r "\r\n"))))
+		  (put-bytevector p res 0 (bytevector-length res) #t))
 		(lp2 (get-line p)))))))))))
 
 (define server-thread (make-thread server-run))
@@ -42,21 +41,24 @@
 ;; start echo server
 (thread-start! server-thread)
 (let ((client-socket (make-client-socket "localhost" "5000")))
-  (test-assert (socket? client-socket))
-  (test-equal (+ (string-length "hello") 2) ;; for \r\n
+  (test-assert "socket?"(socket? client-socket))
+  (test-equal "raw socket-send"
+	      (+ (string-length "hello") 2) ;; for \r\n
 	      (socket-send client-socket (string->utf8 "hello\r\n") 0))
-  (test-equal (string->utf8 "hello\r\n")
+  (test-equal "raw socket-recv"
+	      (string->utf8 "hello\r\n")
 	      (socket-recv client-socket (+ (string-length "hello") 2) 0))
 
   ;; make port
   (let ((port (socket-port client-socket)))
-    (test-assert (port? port))
-    (test-assert (binary-port? port))
-    (test-assert (input-port? port))
-    (test-assert (output-port? port))
+    (test-assert "port?" (port? port))
+    (test-assert "binary-port?" (binary-port? port))
+    (test-assert "input-port?" (input-port? port))
+    (test-assert "output-port?" (output-port? port))
 
     (put-bytevector port (string->utf8 "put from port\r\n"))
-    (test-equal (string->utf8 "put from port\r\n")
+    (test-equal "get-bytevector-n"
+		(string->utf8 "put from port\r\n")
 		(get-bytevector-n port
 				  (string-length "put from port\r\n")))
     ;; textual
@@ -64,7 +66,7 @@
 				      (make-transcoder (utf-8-codec)
 						       'crlf))))
       (put-string text-port "put from text port\r\n")
-      (test-equal "put from text port" (get-line text-port))
+      (test-equal "get-line" "put from text port" (get-line text-port))
       ;; end test
       (put-string text-port "test-end\r\n")
       )))

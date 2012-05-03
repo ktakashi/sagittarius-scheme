@@ -1,3 +1,8 @@
+2012-05-03  Takashi Kato  <ktakashi@ymail.com>
+
+	* ext/socket/socket.c (socket_read_u8_all): fixed reading all binary
+	data from socket. Before it wasn't finish.
+
 2012-04-23  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/rsa/pkcs/%3a12/keystore.scm (load-keystore): fixed loading
