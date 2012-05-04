@@ -262,14 +262,6 @@ int Sg_SocketReceive(SgSocket *socket, uint8_t *data, int size, int flags)
       }
     }
     return ret;
-#if 0
-    if (ret == 0) return count;
-    count += ret;
-    if (count >= osize)
-      return count;
-    data += ret;
-    size -= ret;
-#endif
   }
 }
 

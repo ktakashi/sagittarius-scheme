@@ -293,10 +293,10 @@
 		(if ca
 		    (set! path-len (asn.1-sequence-get s 1))
 		    (assertion-violation 'make-basic-constrains
-					 "wrong sequence in constructor"))))
-	    (make <basic-constraints>
-	      :ca ca
-	      :path-length-constraint path-len)))))
+					 "wrong sequence in constructor")))
+	      (make <basic-constraints>
+		:ca ca
+		:path-length-constraint path-len))))))
 
   ;; should we make <certificate>?
   ;; based on bouncy castle X509CertificateObject

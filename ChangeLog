@@ -1,3 +1,8 @@
+2012-05-04  Takashi Kato  <ktakashi@ymail.com>
+
+	* sitelib/rfc/x.509.scm (rfc x.509): fixed unbound variable error
+	calling make-basic-constrains.
+
 2012-05-03  Takashi Kato  <ktakashi@ymail.com>
 
 	* ext/socket/socket.c (socket_read_u8_all): fixed reading all binary
