@@ -220,6 +220,18 @@ int Sg_SuggestKeysize(SgCipher *cipher, int keysize)
   }
 }
 
+int Sg_CipherBlockSize(SgCipher *cipher)
+{
+  SgObject spi = cipher->spi;
+  if (SG_BUILTIN_CIPHER_SPI_P(spi)) {
+    return cipher_descriptor[SG_BUILTIN_CIPHER_SPI(spi)->cipher].block_length;
+  } else {
+    SgObject r = SG_CIPHER_SPI(spi)->blocksize;
+    if (SG_INTP(r)) return SG_INT_VALUE(r);
+    else return -1;
+  }
+}
+
 static SgObject symmetric_encrypt(SgCipher *crypto, SgByteVector *d)
 {
   int len, err;
@@ -467,6 +479,11 @@ static SgObject ci_data(SgCipherSpi *spi)
   return spi->data;
 }
 
+static SgObject ci_blocksize(SgCipherSpi *spi)
+{
+  return spi->blocksize;
+}
+
 static void ci_name_set(SgCipherSpi *spi, SgObject value)
 {
   spi->name = value;
@@ -516,6 +533,11 @@ static void ci_data_set(SgCipherSpi *spi, SgObject value)
   spi->data = value;
 }
 
+static void ci_blocksize_set(SgCipherSpi *spi, SgObject value)
+{
+  spi->blocksize = value;
+}
+
 /* slots for cipher-spi */
 static SgSlotAccessor cipher_spi_slots[] = {
   SG_CLASS_SLOT_SPEC("name",     0, ci_name,    ci_name_set),
@@ -527,6 +549,7 @@ static SgSlotAccessor cipher_spi_slots[] = {
   SG_CLASS_SLOT_SPEC("verifier", 6, ci_verifier,ci_verifier_set),
   SG_CLASS_SLOT_SPEC("keysize",  7, ci_keysize, ci_keysize_set),
   SG_CLASS_SLOT_SPEC("data",     8, ci_data,    ci_data_set),
+  SG_CLASS_SLOT_SPEC("blocksize",9, ci_blocksize,  ci_blocksize_set),
   { { NULL } }
 };
 
@@ -557,6 +580,7 @@ static SgSlotAccessor builtin_cipher_spi_slots[] = {
   SG_CLASS_SLOT_SPEC("verifier", 6, invalid_ref, invalid_set),
   SG_CLASS_SLOT_SPEC("keysize",  7, invalid_ref, invalid_set),
   SG_CLASS_SLOT_SPEC("data",     8, invalid_ref, invalid_set),
+  SG_CLASS_SLOT_SPEC("blocksize",9, invalid_ref, invalid_set),
   { { NULL } }
 };
 

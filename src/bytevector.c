@@ -109,10 +109,15 @@ int Sg_ByteVectorEqP(SgByteVector *bv1, SgByteVector *bv2)
   }
 }
 
-SgObject Sg_ByteVectorCopy(SgByteVector *src)
+SgObject Sg_ByteVectorCopy(SgByteVector *src, int start, int end)
 {
-  SgByteVector *dst = make_bytevector(SG_BVECTOR_SIZE(src));
-  memcpy(SG_BVECTOR_ELEMENTS(dst), SG_BVECTOR_ELEMENTS(src), SG_BVECTOR_SIZE(src));
+  SgByteVector *dst;
+  int len = SG_BVECTOR_SIZE(src);
+  SG_CHECK_START_END(start, end, len);
+
+  dst = make_bytevector(end - start);
+  memcpy(SG_BVECTOR_ELEMENTS(dst), SG_BVECTOR_ELEMENTS(src) + start,
+	 (end-start) * sizeof(uint8_t));
   return SG_OBJ(dst);
 }
 

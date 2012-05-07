@@ -12,6 +12,7 @@
 	    encrypt
 	    decrypt
 	    suggest-keysize
+	    cipher-blocksize
 	    sign
 	    verify
 	    ;;

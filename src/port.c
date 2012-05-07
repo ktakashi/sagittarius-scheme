@@ -2021,7 +2021,12 @@ int64_t Sg_PortPosition(SgPort *port)
       }
       break;
     case SG_BYTE_ARRAY_BINARY_PORT_TYPE:
-      pos = (int64_t)SG_BINARY_PORT(port)->src.buffer.index;
+      if (SG_INPORTP(port)) {
+	pos = (int64_t)SG_BINARY_PORT(port)->src.buffer.index;
+      } else {
+	byte_buffer *c = SG_BINARY_PORT(port)->src.obuf.start;
+	for (pos = 0; c->next; pos++, c = c->next);
+      }
       break;
     case SG_CUSTOM_BINARY_PORT_TYPE: {
       SgPortPositionFn *fn = SG_BINARY_PORT(port)->src.custom.position;
@@ -2045,7 +2050,14 @@ int64_t Sg_PortPosition(SgPort *port)
       Sg_Error(UC("transcoded textual port does not support port-position")); 
       return -1;
     case SG_STRING_TEXTUAL_PORT_TYPE:
-      pos = (int64_t)SG_TEXTUAL_PORT(port)->src.buffer.index;
+      if (SG_INPORTP(port)) {
+	pos = (int64_t)SG_TEXTUAL_PORT(port)->src.buffer.index;
+      } else {
+	char_buffer *c = SG_TEXTUAL_PORT(port)->src.ostr.start;
+	for (pos = 0; c->next; pos++, c = c->next);
+      }
+      break;
+
       break;
     case SG_CUSTOM_TEXTUAL_PORT_TYPE: {
       SgPortPositionFn *fn = SG_TEXTUAL_PORT(port)->src.custom.position;
@@ -2106,7 +2118,7 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset)
       } else {
 	int64_t i;
 	byte_buffer *c = SG_BINARY_PORT(port)->src.obuf.start;
-	for (i = 0; i < offset; i++, c = c->next);
+	for (i = 0; i < offset && c->next; i++, c = c->next);
 	SG_BINARY_PORT(port)->src.obuf.current = c;
       }
       break;
@@ -2138,7 +2150,7 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset)
       } else {
 	int64_t i;
 	char_buffer *c = SG_TEXTUAL_PORT(port)->src.ostr.start;
-	for (i = 0; i < offset; i++, c = c->next);
+	for (i = 0; i < offset && c->next; i++, c = c->next);
 	SG_TEXTUAL_PORT(port)->src.ostr.current = c;
       }
       break;

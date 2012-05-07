@@ -6,6 +6,7 @@
 (library (crypto cipher)
     (export crypto-object?
 	    cipher-keysize
+	    cipher-blocksize
 	    cipher
 	    cipher?
 	    encrypt

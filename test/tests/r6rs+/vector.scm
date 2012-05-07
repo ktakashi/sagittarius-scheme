@@ -6,7 +6,7 @@
 (define v '#(1 2 3 4 5 6))
 (define l '(1 2 3 4 5 6))
 
-(test-begin "(run-r6rs+-vector-tests)")
+(test-begin "Sagittarius extension of vector and bytevector tests")
 ;; fallback
 (test-assert "vector fallback" (boolean? (vector-ref v 6 #f)))
 (test-equal "vector->list with start" 
@@ -36,5 +36,14 @@
 		    (vector-fill! v 3)
 		    v)
 		  ))
+
+(test-equal "bytevector-copy"
+	    #vu8(2 3 4 5 6)
+	    (bytevector-copy #vu8(1 2 3 4 5 6) 1))
+
+(test-equal "bytevector-copy"
+	    #vu8(2 3 4 5)
+	    (bytevector-copy #vu8(1 2 3 4 5 6) 1 5))
+
 (test-end)
 

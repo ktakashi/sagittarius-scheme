@@ -1272,8 +1272,10 @@
   (define-c-proc bytevector=? (bv1::<bytevector> bv2::<bytevector>) ::<boolean>
     (result (Sg_ByteVectorEqP bv1 bv2)))
 
-  (define-c-proc bytevector-copy (src::<bytevector>) ::<top>
-    (result (Sg_ByteVectorCopy src)))
+  (define-c-proc bytevector-copy (src::<bytevector> :optional 
+						    (start::<fixnum> 0)
+						    (end::<fixnum> -1))
+    (result (Sg_ByteVectorCopy src start end)))
 
   (define-cise-stmt check-non-negative-fixnum
     ((_ name n)
@@ -1290,7 +1292,7 @@
     (check-non-negative-fixnum bytevector-copy! dstart)
     (Sg_ByteVectorCopyX src sstart dst dstart k))
 
-  (define-c-proc make-bytevector (len::<fixnum> :optional (fill::<fixnum> 0)) ::<top>
+  (define-c-proc make-bytevector (len::<fixnum> :optional (fill::<fixnum> 0))
     (result (Sg_MakeByteVector len fill)))
 
   (define-c-proc bytevector? (o) ::<boolean>

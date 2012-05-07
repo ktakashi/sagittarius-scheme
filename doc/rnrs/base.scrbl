@@ -1054,8 +1054,15 @@ characters to the last. The return values of @code{string-for-each} are unspecif
 Analogous to for-each.
 }
 
-@define[Function]{@name{string-copy} @args{string}}
-@desc{[R6RS] Returns a newly allocated copy of the given @var{string}.}
+@define[Function]{@name{string-copy} @args{string :optional (start 0) (end -1)}}
+@desc{[R6RS+] Returns a newly allocated copy of the given @var{string}.
+
+If optional argument @var{start} was given, the procedure copies from the given
+@var{start} index.
+
+If optional argument @var{end} was given, the procedure copies to the given
+@var{end} index (exclusive).
+}
 
 @subsubsection{Vectors}
 

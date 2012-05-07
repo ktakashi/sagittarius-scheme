@@ -1,3 +1,12 @@
+2012-05-07  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/extlib.stub (get-output-bytevector): fixed to reset buffer.
+
+	* src/port.c (Sg_SetPortPosition): fixed set port position.
+
+	* src/null.stub (null): modified bytevector-copy to take start and end
+	optional paraemeters.
+
 2012-05-04  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/rfc/x.509.scm (rfc x.509): fixed unbound variable error

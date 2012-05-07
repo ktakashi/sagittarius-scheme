@@ -186,6 +186,7 @@ typedef struct public_key_cipher_ret_t
   SgObject verifier;
   SgObject keysize;
   SgObject data;
+  SgObject blocksize;
 } SgCipherSpi;
 
 
@@ -210,6 +211,7 @@ SgObject Sg_MakeBuiltinCipherSpi(SgString *name, SgCryptoMode mode,
 				 SgObject padder, int ctr_mode);
 SgObject Sg_MakeCipher(SgObject spi);
 int      Sg_SuggestKeysize(SgCipher *cipher, int keysize);
+int      Sg_CipherBlockSize(SgCipher *cipher);
 
 SgObject Sg_Encrypt(SgCipher *crypto, SgByteVector *data);
 SgObject Sg_Decrypt(SgCipher *crypto, SgByteVector *data);

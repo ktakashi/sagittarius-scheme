@@ -260,8 +260,8 @@
 	   (data (apply encode bv len opt)))
       (rsa-mod-expt data key)))
 
-  (define-with-key (rsa-verify M S key :key (verify pkcs1-emsa-pss-verify)
-				       :allow-other-keys opt)
+  (define (rsa-verify M S key :key (verify pkcs1-emsa-pss-verify)
+			      :allow-other-keys opt)
     (or (rsa-public-key? key)
 	(raise-decrypt-error 'rsa-verify "invalid key" 'RSA))
     (let* ((modulus (slot-ref key 'modulus))
@@ -336,9 +336,8 @@
 	    (raise-decode-error 'pkcs-v1.5-padding
 				"private key required"
 				key)))
-      (let ((modulus (if (rsa-public-key? key)
-			 (slot-ref key 'modulus)
-			 (slot-ref key 'modulus))))
+      ;; both public and private key has the same slot
+      (let ((modulus (slot-ref key 'modulus)))
       (if pad?
 	  (encode data modulus)
 	  (decode data modulus)))))

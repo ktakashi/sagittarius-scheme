@@ -71,7 +71,7 @@ SG_EXTERN SgObject Sg_MakeByteVectorFromU8Array(const uint8_t *buf, size_t size)
 
 SG_EXTERN SgObject Sg_NativeEndianness();
 SG_EXTERN int      Sg_ByteVectorEqP(SgByteVector *bv1, SgByteVector *bv2);
-SG_EXTERN SgObject Sg_ByteVectorCopy(SgByteVector *src);
+SG_EXTERN SgObject Sg_ByteVectorCopy(SgByteVector *src, int start, int end);
 SG_EXTERN void     Sg_ByteVectorCopyX(SgByteVector *src, int srcStart,
 				      SgByteVector *dst, int dstStart,
 				      int size);

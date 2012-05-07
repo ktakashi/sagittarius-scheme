@@ -101,8 +101,16 @@ to consecutive indices in @var{target} starting at @var{target-index}.
 This returns unspecified values.
 }
 
-@define[Function]{@name{bytevector-copy} @args{bytevector}}
-@desc{[R6RS] Returns a newly allocated copy of @var{bytevector}.}
+@define[Function]{@name{bytevector-copy} @args{bytevector
+ :optional (start 0)  (end -1)}}
+@desc{[R6RS+] Returns a newly allocated copy of @var{bytevector}.
+
+If optional argument @var{start} was given, the procedure copies from the given
+@var{start} index.
+
+If optional argument @var{end} was given, the procedure copies to the given
+@var{end} index (exclusive).
+}
 
 @subsubsection{Operation on bytes and octets}
 

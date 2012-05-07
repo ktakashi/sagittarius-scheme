@@ -61,6 +61,9 @@
   (define-c-proc suggest-keysize (name::<cipher> size::<fixnum>) ::<fixnum>
     (result (Sg_SuggestKeysize name size)))
 
+  (define-c-proc cipher-blocksize (name::<cipher>) ::<fixnum>
+    (result (Sg_CipherBlockSize name)))
+
   ;; sign
   (define-c-proc sign (crypto::<cipher> data::<bytevector> :rest opt) 
     (result (Sg_Signature crypto data opt)))
@@ -74,4 +77,5 @@
 
   (define-c-proc lookup-spi (name)
     (result (Sg_LookupSpi name)))
+  
   )

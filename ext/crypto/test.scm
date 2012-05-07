@@ -109,6 +109,10 @@
 (test-equal "DES key size" 8 (cipher-keysize des/ecb-cipher 8))
 ;;(test-equal "DES3 key size" 24 (cipher-keysize DES3 24))
 (test-equal "DES3 key size" 24 (cipher-keysize des3/ecb-cipher 24))
+
+;; block size
+(test-equal "DES block size" 8 (cipher-blocksize des/ecb-cipher))
+(test-equal "DES3 block size" 8 (cipher-blocksize des3/ecb-cipher))
 ;; encryption
 
 (test-equal "DES/ECB encrypt"

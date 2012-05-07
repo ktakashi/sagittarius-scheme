@@ -609,7 +609,7 @@
     (check-input-port read-with-case p)
     (result (Sg_ReadWithCase p insensitiveP (not (SG_FALSEP sharedP)))))
 
-  (define-c-proc open-output-bytevector (:optional (t::<transcoder> #f)) ::<top>
+  (define-c-proc open-output-bytevector (:optional (t::<transcoder> #f))
     (let ((bp (Sg_MakeByteArrayOutputPort -1)))
       (if (SG_FALSEP t)
 	  (result bp)
@@ -621,8 +621,18 @@
     ;; I'm not quite sure if I should reset the port position
     ;; if it's textual port.
     (cond ((SG_BINARY_PORTP p)
+	   (unless (== (-> (SG_BINARY_PORT p) type)
+		       SG_BYTE_ARRAY_BINARY_PORT_TYPE)
+	     (wrong-type-of-argument-violation 'get-output-bytevector
+					       "bytevector-output-port"
+					       p)
+	     )
 	   (result (Sg_GetByteVectorFromBinaryPort p))
-	   (Sg_SetPortPosition p 0))
+	   (Sg_SetPortPosition p 0)
+	   (set! (ref (pointer (SG_BINARY_PORT p)) src obuf start)
+		 (SG_NEW byte_buffer))
+	   (set! (ref (pointer (SG_BINARY_PORT p)) src obuf current)
+		 (ref (pointer (SG_BINARY_PORT p)) src obuf start)))
 	  (else
 	   (result (Sg_GetByteVectorFromBinaryPort 
 		    (ref (pointer (SG_TEXTUAL_PORT p))
@@ -653,7 +663,13 @@
 		   SG_STRING_TEXTUAL_PORT_TYPE)
       (wrong-type-of-argument-violation 'get-output-string "string port" p))
     (result (Sg_GetStringFromStringPort p))
-    (Sg_SetPortPosition p 0))
+    (Sg_SetPortPosition p 0)
+    ;; reset
+    (set! (ref (pointer (SG_TEXTUAL_PORT p)) src ostr start)
+	  (SG_NEW char_buffer))
+    (set! (ref (pointer (SG_TEXTUAL_PORT p)) src ostr current)
+	  (ref (pointer (SG_TEXTUAL_PORT p)) src ostr start))
+    )
 
   ;; profiler
   (define-c-proc profiler-start () ::<void>

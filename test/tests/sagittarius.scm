@@ -70,4 +70,25 @@
 ;; Issue 12
 (test-equal "\\x0; test" #vu8(0) (string->utf8 "\x0;"))
 
+;; bytevector output-port
+(let-values (((out getter) (open-bytevector-output-port)))
+  (put-bytevector out #vu8(1 2))
+  (test-equal "port-position(binary port)" 2 (port-position out))
+  (let ((save (port-position out)))
+    (set-port-position! out 0)
+    (put-bytevector out #vu8(1 2 3 4 5))
+    (set-port-position! out save)
+    (put-bytevector out #vu8(1 2 3 4 5)))
+  (test-equal "getter" #vu8(1 2 1 2 3 4 5) (getter)))
+
+(let-values (((out getter) (open-string-output-port)))
+  (put-string out "12")
+  (test-equal "port-position(binary port)" 2 (port-position out))
+  (let ((save (port-position out)))
+    (set-port-position! out 0)
+    (put-string out "12345")
+    (set-port-position! out save)
+    (put-string out "12345"))
+  (test-equal "getter" "1212345" (getter)))
+
 (test-end)
