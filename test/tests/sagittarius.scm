@@ -91,4 +91,6 @@
     (put-string out "12345"))
   (test-equal "getter" "1212345" (getter)))
 
+;; issue 15
+(test-equal "heavy call" 1 ((let ((c (lambda (n) n))) c) 1))
 (test-end)

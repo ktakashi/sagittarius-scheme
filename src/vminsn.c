@@ -260,7 +260,7 @@ CASE(NUM_GE) {
   NEXT;
 }
 CASE(RECEIVE) {
-{INSN_VAL2(val1,val2,c);}{{int numValues=0;if (SG_VALUESP(AC(vm))){numValues=(SG_VALUES_SIZE(AC(vm)));} else {numValues=(1);}if ((numValues)<(val1)){{Sg_AssertionViolation(SG_INTERN("receive"),SG_MAKE_STRING("recieved fewer values than expected"),AC(vm));}}if (((val2)==(0))&&((numValues)>(val1))){{Sg_AssertionViolation(SG_INTERN("receive"),SG_MAKE_STRING("recieved more values than expected"),AC(vm));}}if ((val2)==(0)){if ((val1)==(1)){PUSH(SP(vm),AC(vm));}else if((val1)>(0)){{int i=0;int cise__98=val1;for (;(i)<(cise__98);(i)++){PUSH(SP(vm),SG_VALUES_ELEMENT(AC(vm),i));}}}}else if((val1)==(0)){{SgObject h=SG_NIL;SgObject t=SG_NIL;if ((numValues)==(1)){SG_APPEND1(h,t,AC(vm));} else {{int i=0;int cise__97=numValues;for (;(i)<(cise__97);(i)++){SG_APPEND1(h,t,SG_VALUES_ELEMENT(AC(vm),i));}}}PUSH(SP(vm),h);}} else {{SgObject h=SG_NIL;SgObject t=SG_NIL;int i=0;for (;;(i)++){if ((i)<(val1)){PUSH(SP(vm),SG_VALUES_ELEMENT(AC(vm),i));}else if((i)<(SG_VALUES_SIZE(AC(vm)))){SG_APPEND1(h,t,SG_VALUES_ELEMENT(AC(vm),i));} else {PUSH(SP(vm),h);break;}}}}}}
+{INSN_VAL2(val1,val2,c);}{{int numValues=0;if (SG_VALUESP(AC(vm))){numValues=(SG_VALUES_SIZE(AC(vm)));} else {numValues=(1);}if ((numValues)<(val1)){{Sg_AssertionViolation(SG_INTERN("receive"),SG_MAKE_STRING("recieved fewer values than expected"),AC(vm));}}if (((val2)==(0))&&((numValues)>(val1))){{Sg_AssertionViolation(SG_INTERN("receive"),SG_MAKE_STRING("recieved more values than expected"),AC(vm));}}if ((val2)==(0)){if ((val1)==(1)){PUSH(SP(vm),AC(vm));}else if((val1)>(0)){{int i=0;int cise__18=val1;for (;(i)<(cise__18);(i)++){PUSH(SP(vm),SG_VALUES_ELEMENT(AC(vm),i));}}}}else if((val1)==(0)){{SgObject h=SG_NIL;SgObject t=SG_NIL;if ((numValues)==(1)){SG_APPEND1(h,t,AC(vm));} else {{int i=0;int cise__17=numValues;for (;(i)<(cise__17);(i)++){SG_APPEND1(h,t,SG_VALUES_ELEMENT(AC(vm),i));}}}PUSH(SP(vm),h);}} else {{SgObject h=SG_NIL;SgObject t=SG_NIL;int i=0;for (;;(i)++){if ((i)<(val1)){PUSH(SP(vm),SG_VALUES_ELEMENT(AC(vm),i));}else if((i)<(SG_VALUES_SIZE(AC(vm)))){SG_APPEND1(h,t,SG_VALUES_ELEMENT(AC(vm),i));} else {PUSH(SP(vm),h);break;}}}}}}
   NEXT;
 }
 CASE(CLOSURE) {
@@ -268,7 +268,7 @@ CASE(CLOSURE) {
   NEXT;
 }
 CASE(APPLY) {
-{INSN_VAL2(val1,val2,c);}{SgObject cise__99;{int rargc=Sg_Length(AC(vm));int nargc=(val1)-(2);SgObject proc=INDEX(SP(vm),nargc);SgObject* fp=(SP(vm))-((val1)-(1));if ((rargc)<(0)){{{Sg_AssertionViolation(SG_INTERN("apply"),SG_MAKE_STRING("improper list not allowed"),AC(vm));}}}shift_args(fp,nargc,SP(vm));if ((rargc)==(0)){SP(vm)=((SP(vm))-(1));if (val2){{SP(vm)=(shift_args(FP(vm),nargc,SP(vm)));}}(((*(vm))).callCode)[0]=(MERGE_INSN_VALUE1(CALL,nargc)),PC(vm)=((vm)->callCode);} else {INDEX_SET(SP(vm),0,SG_CAR(AC(vm)));SG_FOR_EACH(cise__99,SG_CDR(AC(vm))) {{SgObject v=SG_CAR(cise__99);PUSH(SP(vm),v);}}if (val2){{SP(vm)=(shift_args(FP(vm),(nargc)+(rargc),SP(vm)));}}(((*(vm))).callCode)[0]=(MERGE_INSN_VALUE1(CALL,(nargc)+(rargc))),PC(vm)=((vm)->callCode);}AC(vm)=(proc);}}
+{INSN_VAL2(val1,val2,c);}{SgObject cise__19;{int rargc=Sg_Length(AC(vm));int nargc=(val1)-(2);SgObject proc=INDEX(SP(vm),nargc);SgObject* fp=(SP(vm))-((val1)-(1));if ((rargc)<(0)){{{Sg_AssertionViolation(SG_INTERN("apply"),SG_MAKE_STRING("improper list not allowed"),AC(vm));}}}shift_args(fp,nargc,SP(vm));if ((rargc)==(0)){SP(vm)=((SP(vm))-(1));if (val2){{SP(vm)=(shift_args(FP(vm),nargc,SP(vm)));}}(((*(vm))).callCode)[0]=(MERGE_INSN_VALUE1(CALL,nargc)),PC(vm)=((vm)->callCode);} else {INDEX_SET(SP(vm),0,SG_CAR(AC(vm)));SG_FOR_EACH(cise__19,SG_CDR(AC(vm))) {{SgObject v=SG_CAR(cise__19);PUSH(SP(vm),v);}}if (val2){{SP(vm)=(shift_args(FP(vm),(nargc)+(rargc),SP(vm)));}}(((*(vm))).callCode)[0]=(MERGE_INSN_VALUE1(CALL,(nargc)+(rargc))),PC(vm)=((vm)->callCode);}AC(vm)=(proc);}}
   NEXT;
 }
 CASE(CALL) {
@@ -328,15 +328,15 @@ CASE(CONS) {
   NEXT;
 }
 CASE(LIST) {
-{INSN_VAL1(val1,c);}{{int n=(val1)-(1);SgObject ret=SG_NIL;if ((val1)>(0)){{ret=(Sg_Cons(AC(vm),ret));{int i=0;int cise__100=n;for (;(i)<(cise__100);(i)++){ret=(Sg_Cons(INDEX(SP(vm),i),ret));}}SP(vm)=((SP(vm))-(n));}}AC(vm)=(ret);}}
+{INSN_VAL1(val1,c);}{{int n=(val1)-(1);SgObject ret=SG_NIL;if ((val1)>(0)){{ret=(Sg_Cons(AC(vm),ret));{int i=0;int cise__20=n;for (;(i)<(cise__20);(i)++){ret=(Sg_Cons(INDEX(SP(vm),i),ret));}}SP(vm)=((SP(vm))-(n));}}AC(vm)=(ret);}}
   NEXT;
 }
 CASE(APPEND) {
-{INSN_VAL1(val1,c);}{{int nargs=(val1)-(1);SgObject ret=SG_NIL;if ((nargs)>(0)){{ret=(AC(vm));{int i=0;int cise__101=nargs;for (;(i)<(cise__101);(i)++){{SgObject obj=INDEX(SP(vm),i);if ((Sg_Length(obj))<(0)){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("append"),SG_MAKE_STRING("list"),obj,SG_NIL);}}}ret=(Sg_Append2(obj,ret));}}}SP(vm)=((SP(vm))-(nargs));}}AC(vm)=(ret);}}
+{INSN_VAL1(val1,c);}{{int nargs=(val1)-(1);SgObject ret=SG_NIL;if ((nargs)>(0)){{ret=(AC(vm));{int i=0;int cise__21=nargs;for (;(i)<(cise__21);(i)++){{SgObject obj=INDEX(SP(vm),i);if ((Sg_Length(obj))<(0)){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("append"),SG_MAKE_STRING("list"),obj,SG_NIL);}}}ret=(Sg_Append2(obj,ret));}}}SP(vm)=((SP(vm))-(nargs));}}AC(vm)=(ret);}}
   NEXT;
 }
 CASE(VALUES) {
-{INSN_VAL1(val1,c);}{if ((val1)==(0)){AC(vm)=(Sg_MakeValues(0));} else {{SgObject v=AC(vm);if ((val1)>(1)){{v=(Sg_MakeValues(val1));{int n=(val1)-(1);SG_VALUES_ELEMENT(v,n)=(AC(vm));{int i=0;int cise__102=n;for (;(i)<(cise__102);(i)++){SG_VALUES_ELEMENT(v,((n)-(i))-(1))=(INDEX(SP(vm),i));}}SP(vm)=((SP(vm))-(n));}}}AC(vm)=(v);}}}
+{INSN_VAL1(val1,c);}{if ((val1)==(0)){AC(vm)=(Sg_MakeValues(0));} else {{SgObject v=AC(vm);if ((val1)>(1)){{v=(Sg_MakeValues(val1));{int n=(val1)-(1);SG_VALUES_ELEMENT(v,n)=(AC(vm));{int i=0;int cise__22=n;for (;(i)<(cise__22);(i)++){SG_VALUES_ELEMENT(v,((n)-(i))-(1))=(INDEX(SP(vm),i));}}SP(vm)=((SP(vm))-(n));}}}AC(vm)=(v);}}}
   NEXT;
 }
 CASE(EQ) {
@@ -397,8 +397,7 @@ CASE(CONST_PUSH) {
   NEXT;
 }
 CASE(CONSTI_PUSH) {
-{INSN_VAL1(val1,c);}{AC(vm)=(SG_MAKE_INT(val1));}
-{PUSH(SP(vm),AC(vm));}
+{INSN_VAL1(val1,c);}{PUSH(SP(vm),SG_MAKE_INT(val1));}
   NEXT;
 }
 CASE(GREF_CALL) {

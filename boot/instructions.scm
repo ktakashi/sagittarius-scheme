@@ -634,8 +634,9 @@
 (define-inst CONST_PUSH (0 1 #f)
   (PUSH (SP vm) (FETCH_OPERAND (PC vm))))
 
-(define-inst CONSTI_PUSH (1 0 #f) :combined
-  (CONSTI PUSH))
+(define-inst CONSTI_PUSH (1 0 #f)
+  (INSN_VAL1 val1 c)
+  (PUSH (SP vm) (SG_MAKE_INT val1)))
 
 (define-inst GREF_CALL (1 1 #t) :combined
   (GREF CALL))
