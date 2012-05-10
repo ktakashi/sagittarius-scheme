@@ -93,4 +93,28 @@
 
 ;; issue 15
 (test-equal "heavy call" 1 ((let ((c (lambda (n) n))) c) 1))
+
+
+(library (inner)
+    (export (rename (fuga buzz) (car first)))
+    (import (rnrs))
+  (define fuga 'fuga))
+
+(library (test)
+    (export)
+    (import (rnrs) (sagittarius) (inner))
+  (define test '*test*)
+  (define test1 'oops)
+  
+  (export test1 buzz first)
+  (export test (rename cdr test3) (rename car test2))
+  )
+(import (test))
+(test-equal "multi export syntax" car first)
+(test-equal "multi export syntax" car test2)
+(test-equal "multi export syntax" buzz 'fuga)
+(test-equal "multi export syntax" test1 'oops)
+(test-equal "multi export syntax" test '*test*)
+
+
 (test-end)
