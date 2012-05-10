@@ -2285,7 +2285,7 @@
 			;; need to create ((name1 name2))
 			(loop (cdr spec) ex (append (list (cons (cadr rename)
 								(cddr rename)))
-						    rename))
+						    renames))
 			;; assume this is R6RS library
 			;; r6rs spec says rename must be (original renamed)
 			(loop (cdr spec) ex (append (cdr rename) renames)))))
@@ -2294,7 +2294,7 @@
 		"unknown object appeared in export spec" (car spec))))))
     (receive (exports renames) (parse-export (cdr export))
       (library-exported-set! lib
-			     (cons exports (list renames)))
+			     (cons exports renames))
       ($undef))))
 
 ;; Collect library inlinable define.

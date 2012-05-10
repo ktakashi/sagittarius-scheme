@@ -172,7 +172,13 @@
     (result (SG_LIBRARY_EXPORTED arg0)))
 
   (define-c-proc library-exported-set! (arg0::<library> arg1) ::<void>
-    (set! (SG_LIBRARY_EXPORTED arg0) arg1))
+    (if (SG_FALSEP (SG_LIBRARY_EXPORTED arg0)) ;; not set yet
+	(set! (SG_LIBRARY_EXPORTED arg0)  arg1)
+	(let* ((exports (SG_CAR (SG_LIBRARY_EXPORTED arg0)))
+	       (renames (SG_CDR (SG_LIBRARY_EXPORTED arg0))))
+	  (set! (SG_LIBRARY_EXPORTED arg0)
+		(Sg_Cons (Sg_Append2X exports (SG_CAR arg1))
+			 (Sg_Append2X renames (SG_CDR arg1)))))))
 
   (define-c-proc library-table (lib::<library>) ::<top>
     (result (SG_LIBRARY_TABLE lib)))

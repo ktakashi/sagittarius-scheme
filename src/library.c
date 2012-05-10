@@ -525,7 +525,7 @@ static void import_parents(SgLibrary *lib, SgLibrary *fromlib,
 	/* renamed export */
 	/* we always need to check renamed export for duplicated export.
 	   ex) on srfi-1 car is exported as car and first. */
-	spec = Sg_Assq(renamed, SG_CADR(exportSpec));
+	spec = Sg_Assq(renamed, SG_CDR(exportSpec));
 	if (!SG_FALSEP(spec)) {
 	  renamed = rename_key(SG_CADR(spec), prefix, imports, except);
 	  if (!SG_UNBOUNDP(renamed)) {
@@ -629,7 +629,7 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
 		      SG_FALSE);
     } else {
       /* renamed export */
-      SgObject spec = Sg_Assq(SG_CAR(key), SG_CADR(exportSpec));
+      SgObject spec = Sg_Assq(SG_CAR(key), SG_CDR(exportSpec));
       if (SG_FALSEP(spec)) {
 	/* ignore */
       } else {
@@ -714,6 +714,7 @@ SgGloc* Sg_FindBinding(SgObject library, SgObject name, SgObject callback)
       /* (<lib> . ((<imported> . <name>) ...)) */
       SgObject alist = SG_CDAR(cp);
       SgObject slot = Sg_Assq(name, alist);
+      /* check renamed import first */
       if (!SG_FALSEP(slot)) {
 	SgObject oname = SG_CDR(slot);
 	ret = Sg_HashTableRef(SG_LIBRARY_TABLE(SG_CAAR(cp)), oname, SG_UNBOUND);
