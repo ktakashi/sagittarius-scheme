@@ -7,6 +7,7 @@
     (export crypto-object?
 	    cipher-keysize
 	    cipher-blocksize
+	    cipher-iv
 	    cipher
 	    cipher?
 	    encrypt

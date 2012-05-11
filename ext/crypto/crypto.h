@@ -187,6 +187,7 @@ typedef struct public_key_cipher_ret_t
   SgObject keysize;
   SgObject data;
   SgObject blocksize;
+  SgObject iv;
 } SgCipherSpi;
 
 

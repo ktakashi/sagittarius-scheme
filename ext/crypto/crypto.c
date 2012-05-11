@@ -484,6 +484,11 @@ static SgObject ci_blocksize(SgCipherSpi *spi)
   return spi->blocksize;
 }
 
+static SgObject ci_iv(SgCipherSpi *spi)
+{
+  return spi->iv;
+}
+
 static void ci_name_set(SgCipherSpi *spi, SgObject value)
 {
   spi->name = value;
@@ -538,6 +543,11 @@ static void ci_blocksize_set(SgCipherSpi *spi, SgObject value)
   spi->blocksize = value;
 }
 
+static void ci_iv_set(SgCipherSpi *spi, SgObject value)
+{
+  spi->iv = value;
+}
+
 /* slots for cipher-spi */
 static SgSlotAccessor cipher_spi_slots[] = {
   SG_CLASS_SLOT_SPEC("name",     0, ci_name,    ci_name_set),
@@ -550,6 +560,7 @@ static SgSlotAccessor cipher_spi_slots[] = {
   SG_CLASS_SLOT_SPEC("keysize",  7, ci_keysize, ci_keysize_set),
   SG_CLASS_SLOT_SPEC("data",     8, ci_data,    ci_data_set),
   SG_CLASS_SLOT_SPEC("blocksize",9, ci_blocksize,  ci_blocksize_set),
+  SG_CLASS_SLOT_SPEC("iv",       10, ci_iv,  ci_iv_set),
   { { NULL } }
 };
 
@@ -557,6 +568,33 @@ static SgSlotAccessor cipher_spi_slots[] = {
 static SgObject bci_name(SgBuiltinCipherSpi *spi)
 {
   return spi->name;
+}
+
+static SgObject bci_iv(SgBuiltinCipherSpi *spi)
+{
+  if (spi->getiv) {
+    unsigned long len = cipher_descriptor[spi->cipher].block_length;
+    SgObject iv = Sg_MakeByteVector(len, 0);
+    spi->getiv(SG_BVECTOR_ELEMENTS(iv), &len, &spi->skey);
+    return iv;
+  }
+  return SG_FALSE;
+}
+
+static void bci_iv_set(SgBuiltinCipherSpi *spi, SgObject value)
+{
+  unsigned long len;
+  if (spi->setiv) {
+    Sg_Error(UC("target cipher does not have iv"), spi);
+  }
+  if (!SG_BVECTORP(value)) {
+    Sg_Error(UC("iv must be bytevector"), value);
+  }
+  len = cipher_descriptor[spi->cipher].block_length;
+  if (SG_BVECTOR_SIZE(value) != len) {
+    Sg_Error(UC("invalid size of iv"), value);
+  }
+  spi->setiv(SG_BVECTOR_ELEMENTS(value), &len, &spi->skey);
 }
 
 static SgObject invalid_ref(SgBuiltinCipherSpi *spi)
@@ -581,6 +619,7 @@ static SgSlotAccessor builtin_cipher_spi_slots[] = {
   SG_CLASS_SLOT_SPEC("keysize",  7, invalid_ref, invalid_set),
   SG_CLASS_SLOT_SPEC("data",     8, invalid_ref, invalid_set),
   SG_CLASS_SLOT_SPEC("blocksize",9, invalid_ref, invalid_set),
+  SG_CLASS_SLOT_SPEC("iv",       10, bci_iv, bci_iv_set),
   { { NULL } }
 };
 

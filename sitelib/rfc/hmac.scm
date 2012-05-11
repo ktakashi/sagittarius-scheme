@@ -108,6 +108,8 @@
 	(slot-set! o 'state 'init)
 	(slot-set! o 'i-key key)
 	(slot-set! o 'key (make-bytevector (hash-block-size hash))))))
+  (define-method write-object ((o <hmac>) out)
+    (format out "#<hmac ~a>" (slot-ref o 'hash)))
 
   (define-class <hmac-marker> () ())
   (define HMAC (make <hmac-marker>))

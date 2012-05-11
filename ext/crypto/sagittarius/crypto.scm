@@ -13,6 +13,7 @@
 	    decrypt
 	    suggest-keysize
 	    cipher-blocksize
+	    cipher-iv
 	    sign
 	    verify
 	    ;;

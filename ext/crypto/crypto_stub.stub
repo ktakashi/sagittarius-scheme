@@ -64,6 +64,12 @@
   (define-c-proc cipher-blocksize (name::<cipher>) ::<fixnum>
     (result (Sg_CipherBlockSize name)))
 
+  (define-c-proc cipher-iv (cipher::<cipher> :optional iv::<bytevector>)
+    (result SG_UNDEF)
+    (if (SG_UNBOUNDP iv)
+	(result (Sg_SlotRef (-> cipher spi) 'iv))
+	(Sg_SlotSet (-> cipher spi) 'iv iv)))
+
   ;; sign
   (define-c-proc sign (crypto::<cipher> data::<bytevector> :rest opt) 
     (result (Sg_Signature crypto data opt)))
