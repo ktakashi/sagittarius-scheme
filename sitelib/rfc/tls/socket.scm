@@ -34,6 +34,7 @@
 	    tls-socket-send
 	    tls-socket-recv
 	    tls-socket-close
+	    tls-socket-closed?
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -93,9 +94,10 @@
      (session-key    :init-value #f)
      ;; RSA or DH parameters
      (params         :init-value #f)
+     (closed?        :init-value #f)
      ;; for key schedules, we need this
-     (encrypt-cipher :init-value #f)
-     (decrypt-cipher :init-value #f)
+     ;;(encrypt-cipher :init-value #f)
+     ;;(decrypt-cipher :init-value #f)
      (session-encrypted? :init-value #f)
      ;; all handshake messages without record layer...
      (messages :init-form (open-output-bytevector))))
@@ -108,9 +110,18 @@
      (session    :init-keyword :session)
      (socket-type :init-keyword :socket-type)))
   (define-method write-object ((o <tls-socket>) out)
-    (format out "#<tls-socket ~x>" 
-	    (slot-ref (slot-ref o 'session) 'version)))
-	      
+    (let1 session (slot-ref o 'session)
+      (format out "#<tls-socket ~x~a~a>" 
+	      (slot-ref session 'version)
+	      (if (slot-ref session 'closed?)
+		  " session-closed"
+		  "")
+	      (if (slot-ref o 'raw-socket)
+		  ""
+		  " closed"))))
+  (define (tls-socket-closed? socket)
+    (let1 session (slot-ref socket 'session)
+      (slot-ref session 'closed?)))
 
   (define (negotiated-version socket)
     (let1 session (slot-ref socket 'session)
@@ -422,8 +433,7 @@
       (read-record-from-port in socket)))
   (define (read-record-from-port in socket)
     (define (get-decrypt-cipher session)
-      (or (slot-ref session 'decrypt-cipher)
-	  (let* ((cipher&keysize (lookup-cipher&keysize session))
+      (let* ((cipher&keysize (lookup-cipher&keysize session))
 		 (session-key (slot-ref session 'session-key))
 		 (read-key (generate-secret-key 
 			     (car cipher&keysize)
@@ -433,8 +443,8 @@
 			    ;; we can not use pkcs5padding
 			    :padder #f
 			    :iv iv :mode MODE_CBC)))
-	    (slot-set! session 'decrypt-cipher c)
-	    c)))
+	;;(slot-set! session 'decrypt-cipher c)
+	c))
     (define (decrypt-data session em)
       (let* ((decrypt-cipher (get-decrypt-cipher session))
 	     (message (decrypt decrypt-cipher em))
@@ -450,6 +460,8 @@
 			      (cipher-blocksize decrypt-cipher)
 			      0))
 	     (data (bytevector-copy message data-offset mac-offset)))
+	(slot-set! (slot-ref session 'session-key) 'read-iv
+		   (cipher-iv decrypt-cipher))
 	;; TODO verify
 	;; TODO what should we do with iv?
 	data))
@@ -478,9 +490,13 @@
 			      (is-dh? session)))
 	     ((= type *alert*)
 	      (let1 alert (read-alert (open-bytevector-input-port message))
-		(if (= *close-notify* (slot-ref alert 'description))
-		    #vu8() ;; session closed
-		    alert)))
+		(cond ((= *close-notify* (slot-ref alert 'description))
+		       ;; session closed
+		       (slot-set! session 'closed? #t)
+		       ;; user wants application data
+		       #vu8())
+		      (else
+		       alert))))
 	     ((= type *change-cipher-spec*)
 	      (read-change-cipher-spec (open-bytevector-input-port message)))
 	     ((= type *application-data*)
@@ -653,11 +669,13 @@
 
   (define (dump-hex bv :optional (title #f))
     (when title (display title)(newline))
-    (dotimes (i (bytevector-length bv))
-      (format #t "~2,'0X " (bytevector-u8-ref bv i))
-      (when (zero? (mod (+ i 1) 16))
-	(newline)))
-    (newline))
+    (let1 len (bytevector-length bv)
+      (format #t "length ~d~%" len)
+      (dotimes (i len)
+	(format #t "~2,'0X " (bytevector-u8-ref bv i))
+	(when (zero? (mod (+ i 1) 16))
+	  (newline)))
+      (newline)))
 
   (define (calculate-session-key socket)
     (define (process-key-block! key-block session-key
@@ -772,6 +790,9 @@
   
   ;; SSL/TLS send packet on record layer protocl
   (define (tls-socket-send socket data flags)
+    (when (tls-socket-closed? socket)
+      (assertion-violation 'tls-socket-send
+			   "tls socket is alresy closed"))
     (tls-socket-send-inner socket data flags *application-data* #t))
 
   (define (tls-socket-send-inner socket data flags type encrypt?)
@@ -782,8 +803,7 @@
 
     (define (encrypt-data session version data)
       (define (get-encrypt-cipher)
-	(or (slot-ref session 'encrypt-cipher)
-	    (let* ((cipher&keysize (lookup-cipher&keysize session))
+	(let* ((cipher&keysize (lookup-cipher&keysize session))
 		   (session-key (slot-ref session 'session-key))
 		   (write-key (generate-secret-key 
 			       (car cipher&keysize)
@@ -793,8 +813,8 @@
 			      ;; we need to pad by our self ... hmm
 			      :padder #f
 			      :iv iv :mode MODE_CBC)))
-	      (slot-set! session 'encrypt-cipher c)
-	      c)))
+	  ;;(slot-set! session 'encrypt-cipher c)
+	  c))
       ;; all toplevel data structures have the same slots.
       (let* ((body (if (= type *application-data*)
 		       data
@@ -807,38 +827,39 @@
 	     (encrypt-cipher (get-encrypt-cipher))
 	     (padding (calculate-padding encrypt-cipher
 					 (+ (bytevector-length body)
-					    (bytevector-length mac) 1))))
-	(make-tls-ciphered-data
-	 (encrypt encrypt-cipher
-		    (call-with-bytevector-output-port
-		     (lambda (p)
-		       (when (>= (slot-ref session 'version) #x0302)
-			 ;; add IV
-			 (put-bytevector p (cipher-iv encrypt-cipher)))
-		       (put-bytevector p body)
-		       (put-bytevector p mac)
-		       (put-bytevector p padding)
-		       (put-u8 p (bytevector-length padding))))))))
+					    (bytevector-length mac) 1)))
+	     (em (encrypt encrypt-cipher
+			  (call-with-bytevector-output-port
+			   (lambda (p)
+			     (when (>= (slot-ref session 'version) #x0302)
+			       ;; add IV
+			       (put-bytevector p (cipher-iv encrypt-cipher)))
+			     (put-bytevector p body)
+			     (put-bytevector p mac)
+			     (put-bytevector p padding)
+			     (put-u8 p (bytevector-length padding)))))))
+	(slot-set! (slot-ref session 'session-key) 'write-iv
+		   (cipher-iv encrypt-cipher))
+	(make-tls-ciphered-data em)))
     
-    (let1 session (slot-ref socket 'session)
-      
-      (let* ((version (negotiated-version socket))
-	     (record (make-tls-record-layer type version
-					    (if encrypt?
-						(encrypt-data session version
-							      data)
-						data)))
-	     (packet (call-with-bytevector-output-port
-		      (lambda (p) (write-tls-packet record p)))))
-	(when encrypt?
-	  (slot-set! session 'write-sequence
-		     (+ (slot-ref session 'write-sequence) 1)))
-	(when (and (tls-handshake? data)
-		   (not (tls-hello-request? (tls-handshake-body data)))
-		   (not (tls-finished? (tls-handshake-body data))))
-	  (write-tls-packet data (slot-ref session 'messages)))
-	(let1 raw-socket (slot-ref socket 'raw-socket)
-	  (socket-send raw-socket packet flags)))))
+    (let* ((session (slot-ref socket 'session))
+	   (version (negotiated-version socket))
+	   (record (make-tls-record-layer type version
+					  (if encrypt?
+					      (encrypt-data session version
+							    data)
+					      data)))
+	   (packet (call-with-bytevector-output-port
+		    (lambda (p) (write-tls-packet record p)))))
+      (when encrypt?
+	(slot-set! session 'write-sequence
+		   (+ (slot-ref session 'write-sequence) 1)))
+      (when (and (tls-handshake? data)
+		 (not (tls-hello-request? (tls-handshake-body data)))
+		 (not (tls-finished? (tls-handshake-body data))))
+	(write-tls-packet data (slot-ref session 'messages)))
+      (let1 raw-socket (slot-ref socket 'raw-socket)
+	(socket-send raw-socket packet flags))))
 
   (define (tls-socket-recv socket flags)
     ;; maintain sequence number
@@ -855,6 +876,8 @@
 
   (define (tls-socket-close socket)
     (send-alert socket *warning* *close-notify*)
-    (socket-close (slot-ref socket 'raw-socket)))
+    (socket-close (slot-ref socket 'raw-socket))
+    ;; if we don't have any socket, we can't reconnect
+    (slot-set! socket 'raw-socket #f))
 
   )
