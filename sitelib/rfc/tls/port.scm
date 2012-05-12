@@ -29,7 +29,27 @@
 ;;;  
 
 ;; Caution this library is not well tested and not secure yet.
-(library (rfc tls)
-    (export :all)
-    (import (rfc tls socket)
-	    (rfc tls port)))
+(library (rfc tls port)
+    (export tls-socket-port)
+    (import (rnrs)
+	    (rfc tls socket))
+
+  ;; make custom port
+  (define (tls-socket-port socket)
+    (define (read! bv start count)
+      (let* ((buf (tls-socket-recv socket count 0))
+	     (len (bytevector-length buf)))
+	(bytevector-copy! buf 0 bv start len)
+	len))
+    (define (write! bv start count)
+      ;; for sagittarius implementation bv starts always 0, but just in case
+      (let ((buf (bytevector-copy bv start)))
+	(tls-socket-send socket bv 0))
+      count)
+    (define (close)
+      (tls-socket-close socket))
+    (make-custom-binary-input/output-port
+     "tls-socket-port" read! write! #f #f close)
+    )
+
+  )

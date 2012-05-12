@@ -1,3 +1,8 @@
+2012-05-12  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/port.c (get or read binary operations): fixed reckless label to
+	be allow to get custom port.
+
 2012-05-10  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/vmlib.stub (library-exported-set!): modified the behaviour to

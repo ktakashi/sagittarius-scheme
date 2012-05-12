@@ -378,7 +378,7 @@
   ;; sink must be binary-port
   (define (http-oport-receiver sink flusher)
     (check-arg binary-port? sink 'http-oport-receiver)
-    (lambda (code hdrs totla retr)
+    (lambda (code hdrs total retr)
       (let loop ()
 	(receive (remote size) (retr)
 	  (cond ((= size 0) (flusher sink hdrs))

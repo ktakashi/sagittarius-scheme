@@ -212,7 +212,8 @@ SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
   uint8_t first;
 
  retry:
-  ASSERT(SG_BINARY_PORTP(port));
+  /* since we have reckless flag we should not check this here... */
+  /* ASSERT(SG_BINARY_PORTP(port)); */
 
   f = Sg_GetbUnsafe(port);
   if (f == EOF) return EOF;

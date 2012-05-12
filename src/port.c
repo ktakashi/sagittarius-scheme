@@ -1774,8 +1774,8 @@ void Sg_Puts(SgPort *port, SgString *str)
 
 void Sg_PutbUnsafe(SgPort *port, uint8_t b)
 {
+ reckless:
   if (SG_BINARY_PORTP(port)) {
-  reckless:
     SG_BINARY_PORT(port)->putU8(port, b);
   } else if (SG_CUSTOM_PORTP(port)) {
     ASSERT(SG_CUSTOM_PORT(port)->type == SG_BINARY_CUSTOM_PORT_TYPE);
@@ -1842,8 +1842,8 @@ void Sg_PutsUnsafe(SgPort *port, SgString *str)
 
 int Sg_GetbUnsafe(SgPort *port)
 {
+ reckless:
   if (SG_BINARY_PORTP(port)) {
-  reckless:
     return SG_BINARY_PORT(port)->getU8(port);
   } else if (SG_CUSTOM_PORTP(port)) {
     ASSERT(SG_CUSTOM_PORT(port)->type == SG_BINARY_CUSTOM_PORT_TYPE);
@@ -1861,8 +1861,11 @@ int Sg_GetbUnsafe(SgPort *port)
 
 int64_t Sg_ReadbUnsafe(SgPort *port, uint8_t *buf, int64_t size)
 {
+  /* if it's reckless then, we also have chance to get custom port.
+     see rfc/tls/port.scm
+   */
+ reckless:
   if (SG_BINARY_PORTP(port)) {
-  reckless:
     return SG_BINARY_PORT(port)->readU8(port, buf, size);
   } else if (SG_CUSTOM_PORTP(port)) {
     ASSERT(SG_CUSTOM_PORT(port)->type == SG_BINARY_CUSTOM_PORT_TYPE);
@@ -1881,8 +1884,8 @@ int64_t Sg_ReadbUnsafe(SgPort *port, uint8_t *buf, int64_t size)
 
 int64_t Sg_ReadbAllUnsafe(SgPort *port, uint8_t **buf)
 {
+ reckless:
   if (SG_BINARY_PORTP(port)) {
-  reckless:
     return SG_BINARY_PORT(port)->readU8All(port, buf);
   } else if (SG_CUSTOM_PORTP(port)) {
     ASSERT(SG_CUSTOM_PORT(port)->type == SG_BINARY_CUSTOM_PORT_TYPE);
@@ -1927,8 +1930,8 @@ void Sg_UngetcUnsafe(SgPort *port, SgChar ch)
 
 int Sg_PeekbUnsafe(SgPort *port)
 {
+ reckless:
   if (SG_BINARY_PORTP(port)) {
-  reckless:
     return SG_BINARY_PORT(port)->lookAheadU8(port);
   } else if (SG_CUSTOM_PORTP(port)) {
     ASSERT(SG_CUSTOM_PORT(port)->type == SG_BINARY_CUSTOM_PORT_TYPE);

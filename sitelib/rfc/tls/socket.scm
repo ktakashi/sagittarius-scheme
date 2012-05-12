@@ -72,14 +72,13 @@
     ((session-id :init-keyword :session-id)
      ;; negotiated version
      (version :init-keyword :version :init-value #f)
-     ;; state of this session
-     (state :init-keyword :state :init-value *handshake*)
      ;; for server-certificate
      (need-certificate? :init-value #f)
      ;; random data
      (client-random     :init-value #f)
      (server-random     :init-value #f)
-     ;; compression methods
+     ;; compression methods 
+     ;; XXX for now we don't check any where
      (methods     :init-keyword :methods)
      ;; this must be defined by server
      (cipher-suite :init-value #f)
@@ -95,9 +94,6 @@
      ;; RSA or DH parameters
      (params         :init-value #f)
      (closed?        :init-value #f)
-     ;; for key schedules, we need this
-     ;;(encrypt-cipher :init-value #f)
-     ;;(decrypt-cipher :init-value #f)
      (session-encrypted? :init-value #f)
      ;; all handshake messages without record layer...
      (messages :init-form (open-output-bytevector))))
@@ -108,7 +104,11 @@
      (version    :init-keyword :version :init-value *ssl-version*)
      (prng       :init-keyword :prng)
      (session    :init-keyword :session)
-     (socket-type :init-keyword :socket-type)))
+     (socket-type :init-keyword :socket-type)
+     ;; for tls-socket-recv, we need to store application data
+     ;; in this buffer to be able to take size argument.
+     (buffer     :init-value #f)))
+
   (define-method write-object ((o <tls-socket>) out)
     (let1 session (slot-ref o 'session)
       (format out "#<tls-socket ~x~a~a>" 
@@ -284,7 +284,7 @@
 	       (sign rsa-cipher message))))))
 
     (define (wait-and-process-server socket)
-      (let loop ((o (tls-socket-recv socket 0)))
+      (let loop ((o (read-record socket 0)))
 	;; finished or server-hello-done is the marker
 	(cond ((tls-server-hello-done? o) #t)
 	      ((tls-finished? o)
@@ -304,7 +304,7 @@
 		     (else
 		      (assertion-violation 'tls-handshake
 					   "unexpected object" o)))
-	       (loop (tls-socket-recv socket 0))))))
+	       (loop (read-record socket 0))))))
     
     (let ((hello (make-client-hello socket))
 	  (session (slot-ref socket 'session)))
@@ -428,10 +428,7 @@
 	 (random->bytevector (slot-ref session 'client-random)
 			     (slot-ref session 'server-random))))
 
-  (define (read-record socket)
-    (let1 in (socket-port (slot-ref socket 'raw-socket))
-      (read-record-from-port in socket)))
-  (define (read-record-from-port in socket)
+  (define (read-record socket flags)
     (define (get-decrypt-cipher session)
       (let* ((cipher&keysize (lookup-cipher&keysize session))
 		 (session-key (slot-ref session 'session-key))
@@ -465,47 +462,68 @@
 	;; TODO verify
 	;; TODO what should we do with iv?
 	data))
-    (or
-     (and-let* ((type (get-u8 in))
-		( (integer? type) )
-		(version (bytevector->integer (get-bytevector-n in 2)))
-		(size-bv (get-bytevector-n in 2))
-		(size    (bytevector->integer size-bv))
-		(message (get-bytevector-n in size))
-		(session (slot-ref socket 'session)))
-       (unless (= size (bytevector-length message))
-	 (assertion-violation 'read-record-from-port
-			      "given size and actual data size is different"
-			      size))
-       (when (slot-ref session 'session-encrypted?)
-	 ;; okey now we are in the secured session
-	 (set! message (decrypt-data session message)))
-       (cond ((= type *handshake*)
-	      ;; for Finish message
-	      (when (and (not (= (bytevector-u8-ref message 0) *hello-request*))
-			 (= (slot-ref session 'state) *handshake*))
-		(let1 out (slot-ref session 'messages)
-		  (put-bytevector out message)))
-	      (read-handshake (open-bytevector-input-port message)
-			      (is-dh? session)))
-	     ((= type *alert*)
-	      (let1 alert (read-alert (open-bytevector-input-port message))
-		(cond ((= *close-notify* (slot-ref alert 'description))
-		       ;; session closed
-		       (slot-set! session 'closed? #t)
-		       ;; user wants application data
-		       #vu8())
-		      (else
-		       alert))))
-	     ((= type *change-cipher-spec*)
-	      (read-change-cipher-spec (open-bytevector-input-port message)))
-	     ((= type *application-data*)
-	      ;; we can simply return the message
-	      message)
-	     (else
-	      (assertion-violation 'read-record-from-port
-				   "not supported yet" type))))
-     #vu8()))
+
+    (define (recv-n size raw-socket)
+      (call-with-bytevector-output-port
+       (lambda (p)
+	 (let loop ((read-length 0)
+		    (diff size))
+	   (unless (= read-length size)
+	     (let* ((buf (socket-recv raw-socket diff flags))
+		    (len (bytevector-length buf)))
+	       (put-bytevector p buf)
+	       (loop (+ read-length len) (- diff len))))))))
+
+    (let* ((raw-socket (slot-ref socket 'raw-socket))
+	   ;; the first 5 octets must be record header
+	   (buf (socket-recv raw-socket 5 flags)))
+      (unless (= (bytevector-length buf) 5)
+	(assertion-violation 'read-record
+			     "invalid record header" buf))
+      (or
+       (and-let* ((type (bytevector-u8-ref buf 0))
+		  (version (bytevector->integer 
+			    (bytevector-copy buf 1 3)))
+		  (size-bv (bytevector-copy buf 3))
+		  (size    (bytevector->integer size-bv))
+		  (message (recv-n size raw-socket))
+		  (session (slot-ref socket 'session)))
+	 (unless (= size (bytevector-length message))
+	   (assertion-violation 'read-record
+				"given size and actual data size is different"
+				size (bytevector-length message)))
+	 ;; we finally read all message from the server now is the time to
+	 ;; maintain read sequence number
+	 (slot-set! session 'read-sequence 
+		    (+ (slot-ref session 'read-sequence)1))
+	 (when (slot-ref session 'session-encrypted?)
+	   ;; okey now we are in the secured session
+	   (set! message (decrypt-data session message)))
+	 (cond ((= type *handshake*)
+		;; for Finish message
+		(when (not (= (bytevector-u8-ref message 0) *hello-request*))
+		  (let1 out (slot-ref session 'messages)
+		    (put-bytevector out message)))
+		(read-handshake (open-bytevector-input-port message)
+				(is-dh? session)))
+	       ((= type *alert*)
+		(let1 alert (read-alert (open-bytevector-input-port message))
+		  (cond ((= *close-notify* (slot-ref alert 'description))
+			 ;; session closed
+			 (slot-set! session 'closed? #t)
+			 ;; user wants application data
+			 #vu8())
+			(else
+			 alert))))
+	       ((= type *change-cipher-spec*)
+		(read-change-cipher-spec (open-bytevector-input-port message)))
+	       ((= type *application-data*)
+		;; we can simply return the message
+		message)
+	       (else
+		(assertion-violation 'read-record
+				     "not supported yet" type))))
+       #vu8())))
 
   (define (read-variable-vector in n)
     (let* ((size (bytevector->integer (get-bytevector-n in n)))
@@ -861,12 +879,25 @@
       (let1 raw-socket (slot-ref socket 'raw-socket)
 	(socket-send raw-socket packet flags))))
 
-  (define (tls-socket-recv socket flags)
-    ;; maintain sequence number
-    (let1 session (slot-ref socket 'session)
-      (slot-set! session 'read-sequence (+ (slot-ref session 'read-sequence)
-					   1)))
-    (read-record socket))
+  ;; this is only used from out side of the world, means the received message
+  ;; is always application data.
+  (define (tls-socket-recv socket size flags)
+    (or (and-let* ((in (slot-ref socket 'buffer))
+		   (buf (get-bytevector-n in size))
+		   ( (not (eof-object? buf)) ))
+	  ;; if the actual read size was equal or less than the requires size
+	  ;; the buffer is now empty so, we need to set the slot #f
+	  (when (< (bytevector-length buf) size)
+	    (slot-set! socket 'buffer #f))
+	  buf)
+	(and-let* ((record (read-record socket flags))
+		   ( (bytevector? record) )
+		   (in (open-bytevector-input-port record)))
+	  (slot-set! socket 'buffer in)
+	  (get-bytevector-n in size))
+	;; something is wrong
+	(assertion-violation 'tls-socket-recv
+			     "invalid socket state")))
 
   (define (send-alert socket level description)
     (let1 alert (make-tls-alert level description)
