@@ -1792,8 +1792,8 @@ void Sg_PutbUnsafe(SgPort *port, uint8_t b)
 
 void Sg_WritebUnsafe(SgPort *port, uint8_t *b, int start, int count)
 {
-  if (SG_BINARY_PORTP(port)) {
   reckless:
+  if (SG_BINARY_PORTP(port)) {
     SG_BINARY_PORT(port)->putU8Array(port, b + start, count);
   } else if (SG_CUSTOM_PORTP(port)) {
     ASSERT(SG_CUSTOM_PORT(port)->type == SG_BINARY_CUSTOM_PORT_TYPE);

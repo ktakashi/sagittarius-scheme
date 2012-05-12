@@ -64,20 +64,11 @@ static SgCodec* make_codec()
 }
 
 /* To handle custom binary port */
-/* TODO this macro is also in port.c */
-#define SG_CUSTOM_BINARY_PORT(obj)  (SG_CUSTOM_PORT(obj)->impl.bport)
-#define put_binary_array(port, buf, size)				\
-  do {									\
-    if (SG_BINARY_PORTP(port)) {					\
-      return (int)(SG_BINARY_PORT(port)->putU8Array(port, buf, size));	\
-    } else if (SG_CUSTOM_PORTP(port)) {					\
-      ASSERT(SG_CUSTOM_PORT(port)->type == SG_BINARY_CUSTOM_PORT_TYPE);	\
-      return (int)(SG_CUSTOM_BINARY_PORT(port)->putU8Array(port, buf, size)); \
-    } else {								\
-      Sg_Panic("[internal] codec got textual port");			\
-      return -1;		/* dummy */				\
-    }									\
-  } while (0)
+#define put_binary_array(port, buf, size)	\
+  do {						\
+    Sg_WritebUnsafe(port, buf, 0, size);	\
+    return (size);				\
+  } while (0);
 
 static int put_utf8_char(SgObject self, SgPort *port, SgChar c,
 			 ErrorHandlingMode mode)

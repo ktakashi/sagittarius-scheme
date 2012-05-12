@@ -85,6 +85,7 @@
 	(http-request method host (if (eq? method 'GET)
 				      (string-append path "?" body)
 				      path)
+		      :secure (string=? scheme "https")
 		      :sender sender
 		      :auth-handler (lambda _ headers)))))
 

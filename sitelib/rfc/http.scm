@@ -77,7 +77,8 @@
 	    (rfc :5322)
 	    (rfc uri)
 	    (rfc mime)
-	    (rfc base64))
+	    (rfc base64)
+	    (rfc tls))
 
   (define-condition-type &http-error &error
     make-http-error http-error?)
@@ -123,11 +124,6 @@
     (let1 orig-server (http-connection-server conn)
       (unless (and (string=? orig-server new-server)
 		   (eq? (http-connection-secure conn) (equal? proto "https")))
-	(shutdown-secure-agent conn)
-	(and-let* ((s (http-connection-socket conn)))
-	  (socket-shutdown s)
-	  (socket-close s)
-	  (http-connection-socket conn #f))
 	(http-connection-server conn new-server)
 	(http-connection-secure conn (equal? proto "https"))))
     conn)
@@ -173,11 +169,11 @@
 			path*)))
 	      (values code headers body))))))
 
-  (define (server->socket server)
+  (define (server->socket server port make-socket)
     (cond ((matches #/([^:]+):(\d+)/ server)
 	   => (lambda (m) 
-		(make-client-socket (m 1) (m 2))))
-	  (else (make-client-socket server "80"))))
+		(make-socket (m 1) (m 2))))
+	  (else (make-socket server port))))
 
   (define (invoke-auth-handler conn)
     (and-let* ((handler  (http-connection-auth-handler conn)))
@@ -186,22 +182,22 @@
 	(handler user password conn))))
 
   (define (with-connection conn proc)
-    (cond ((http-connection-secure conn)
-	   (raise-http-error 'with-connection
-			     "secure connection is not supported yet"
-			     (http-connection-server conn)))
-	  (else
-	   (let ((s (server->socket (or (http-connection-proxy conn)
-					(http-connection-server conn))))
-		 (auth (invoke-auth-handler conn)))
-	     (dynamic-wind
-	       (lambda () #t)
-	       (lambda ()
-		 (proc (transcoded-port (socket-port s)
-					(make-transcoder (utf-8-codec) 'lf))
-		       auth))
-	       (lambda ()
-		 (socket-close s)))))))
+    (let* ((secure? (http-connection-secure conn))
+	   (make-socket (if secure? make-client-tls-socket make-client-socket))
+	   (close-socket (if secure? tls-socket-close socket-close))
+	   (port-convert (if secure? tls-socket-port socket-port))
+	   (port (if secure? "443" "80")))
+      (let ((s (server->socket (or (http-connection-proxy conn)
+				   (http-connection-server conn))
+			       port make-socket))
+	    (auth (invoke-auth-handler conn)))
+	(dynamic-wind
+	    (lambda () #t)
+	    (lambda ()
+	      (proc (transcoded-port (port-convert s)
+				     (make-transcoder (utf-8-codec) 'lf))
+		    auth))
+	    (lambda () (close-socket s))))))
 
   (define (request-response method conn host request-uri
 			    sender receiver options enc)
@@ -348,9 +344,6 @@
 				 "bad line in chunked data"
 				 line))))))
 
-  ;; secure
-  ;; dummy
-  (define (shutdown-secure-agent conn) #f)
 	
   (define (lookup-encoding hdrs)
     (or (and-let* ((c (rfc5322-header-ref hdrs "content-type"))
