@@ -35,6 +35,11 @@
 	    tls-socket-recv
 	    tls-socket-close
 	    tls-socket-closed?
+
+	    ;; for the user who wants to specify TSL version
+	    *tls-version-1.2*
+	    *tls-version-1.1*
+	    *tls-version-1.0*
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -101,7 +106,7 @@
   (define-class <tls-socket> ()
     ((raw-socket :init-keyword :raw-socket)
      ;; should this be in session?
-     (version    :init-keyword :version :init-value *ssl-version*)
+     (version    :init-keyword :version)
      (prng       :init-keyword :prng)
      (session    :init-keyword :session)
      (socket-type :init-keyword :socket-type)
@@ -166,7 +171,7 @@
 
   (define (make-client-tls-socket server service
 				  :key (prng (secure-random RC4))
-				  (version *ssl-version*)
+				  (version *tls-version-1.2*)
 				  (session #f)
 				  :allow-other-keys opt)
     (let* ((raw-socket (apply make-client-socket server service opt))
@@ -183,7 +188,12 @@
     (define (process-server-hello socket sh)
       (let1 session (slot-ref socket 'session)
 	(slot-set! session 'session-id (slot-ref sh 'session-id))
-	(slot-set! session 'version (slot-ref sh 'version))
+	(let1 version (slot-ref sh 'version)
+	  (when (or (< version *tls-version-1.0*)
+		    (> version *tls-version-1.2*))
+	    (assertion-violation 'tls-handshake
+				 "non supported TLS version" version))
+	  (slot-set! session 'version version))
 	(slot-set! session 'server-random (slot-ref sh 'random))
 	(slot-set! session 'cipher-suite (slot-ref sh 'cipher-suite))
 	(slot-set! session 'methods (slot-ref sh 'compression-method))))
@@ -222,10 +232,8 @@
 		(slot-set! session 'master-secret 
 			   (compute-master-secret session
 						  (integer->bytevector K)))))
-	    
 	    ;; TODO RSA?
 	    )))
-	  
 
     (define (process-certificate socke tls-certs)
       ;; the first certificate is the server certificate and the rest 
@@ -269,7 +277,7 @@
 	     (message (get-output-bytevector in)))
 	;; restore
 	(put-bytevector in message)
-	(if (< (slot-ref session 'version) #x0303)
+	(if (< (slot-ref session 'version) *tls-version-1.2*)
 	    (make-tls-client-verify
 	     ;; TODO get it from cipher-suite
 	     (let1 rsa-cipher (cipher RSA (slot-ref session 'public-key)
@@ -281,30 +289,49 @@
 	     (let1 rsa-cipher (cipher RSA (slot-ref session 'public-key)
 				      ;; block type 1 (correct?)
 				      :block-type PKCS-1-EMSA)
+	       ;; TODO 1.2 hash
 	       (sign rsa-cipher message))))))
 
+    (define (finish-message-hash session label handshake-messages)
+      (PRF session 12 ;; For 1.2 check cipher
+	   (slot-ref session 'master-secret) label
+	   (if (< (slot-ref session 'version) *tls-version-1.2*)
+	       ;; use md5 + sha1
+	       (bytevector-concat (hash MD5 handshake-messages)
+				  (hash SHA-1 handshake-messages))
+	       (let1 algo (session-signature-algorithm session #t)
+		 ;; TODO I'm not sure this is correct or not
+		 (hash algo handshake-messages)))))
+
     (define (wait-and-process-server socket)
-      (let loop ((o (read-record socket 0)))
-	;; finished or server-hello-done is the marker
-	(cond ((tls-server-hello-done? o) #t)
-	      ((tls-finished? o)
-	       ;; TODO verify
-	       )
-	      (else
-	       (cond ((tls-server-hello? o)
-		      (process-server-hello socket o))
-		     ((tls-certificate? o)
-		      (process-certificate socket o))
-		     ((tls-server-key-exchange? o)
-		      (process-server-key-exchange socket o))
-		     ((tls-change-cipher-spec? o)
-		      (slot-set! (slot-ref socket 'session)
-				 'session-encrypted?
-				 #t))
-		     (else
-		      (assertion-violation 'tls-handshake
-					   "unexpected object" o)))
-	       (loop (read-record socket 0))))))
+      (let1 session (slot-ref socket 'session)
+	(let loop ((o (read-record socket 0)))
+	  ;; finished or server-hello-done is the marker
+	  (cond ((tls-server-hello-done? o) #t)
+		((tls-finished? o)
+		 (let* ((messages 
+			 (get-output-bytevector (slot-ref session 'messages)))
+			(server-verify (tls-finished-data o))
+			(verify (finish-message-hash session
+						     *server-finished-label*
+						     messages)))
+		   ;; verify message again
+		   (unless (bytevector=? server-verify verify)
+		     (assertion-violation 'tls-handshake
+					  "MAC verification failed"))))
+		(else
+		 (cond ((tls-server-hello? o)
+			(process-server-hello socket o))
+		       ((tls-certificate? o)
+			(process-certificate socket o))
+		       ((tls-server-key-exchange? o)
+			(process-server-key-exchange socket o))
+		       ((tls-change-cipher-spec? o)
+			(slot-set! session 'session-encrypted? #t))
+		       (else
+			(assertion-violation 'tls-handshake
+					     "unexpected object" o)))
+		 (loop (read-record socket 0)))))))
     
     (let ((hello (make-client-hello socket))
 	  (session (slot-ref socket 'session)))
@@ -335,25 +362,16 @@
 			     0 *change-cipher-spec* #f)
 
       ;; finish
-      (let1 handshake-messages 
-	  (get-output-bytevector (slot-ref session 'messages)) 
-	(define (hash-message handshake-messages)
-	  (if (< (slot-ref session 'version) #x0303)
-	      ;; use md5 + sha1
-	      (bytevector-concat (hash MD5 handshake-messages)
-				 (hash SHA-1 handshake-messages))
-	      (let1 algo (session-signature-algorithm session #t)
-		;; TODO I'm not sure this is correct or not
-		(hash algo handshake-messages))))
-
+      (let* ((out (slot-ref session 'messages))
+	     (handshake-messages (get-output-bytevector out)))
+	;; add message again
+	(put-bytevector out handshake-messages)
 	(tls-socket-send-inner 
 	 socket
 	 (make-tls-handshake *finished*
-	  (make-tls-finished (PRF session
-				  12 ;; TODO check cipher
-				  (slot-ref session 'master-secret)
-				  *finished-label*
-				  (hash-message handshake-messages))))
+	  (make-tls-finished (finish-message-hash session
+						  *client-finished-label*
+						  handshake-messages)))
 	 0 *handshake* #t))
       (wait-and-process-server socket)))
 
@@ -366,7 +384,8 @@
 
   ;; internals
   (define-constant *master-secret-label* (string->utf8 "master secret"))
-  (define-constant *finished-label* (string->utf8 "client finished"))
+  (define-constant *client-finished-label* (string->utf8 "client finished"))
+  (define-constant *server-finished-label* (string->utf8 "server finished"))
   (define-constant *key-expansion-label* (string->utf8 "key expansion"))
 
   (define (session-signature-algorithm session consider-version?)
@@ -375,7 +394,7 @@
       (or (and-let* ((algorithm (lookup-hash session)))
 	    (if consider-version?
 		;; we need to use SHA-256 if the version is 1.2
-		(if (= version #x0303)
+		(if (= version *tls-version-1.2*)
 		    SHA-256
 		    algorithm)
 		algorithm))
@@ -405,7 +424,7 @@
 		 (bytevector-copy! buf 0 r offset size)
 		 (loop (+ i 1) (+ offset size) (hash hmac A1)))))))
 
-    (if (< (slot-ref session 'version) #x0303)
+    (if (< (slot-ref session 'version) *tls-version-1.2*)
 	;; TODO for odd, must be one longer (S2)
 	(let* ((len (ceiling (/ (bytevector-length secret) 2)))
 	       (S1 (bytevector-copy secret 0 len))
@@ -442,7 +461,7 @@
 			    :iv iv :mode MODE_CBC)))
 	;;(slot-set! session 'decrypt-cipher c)
 	c))
-    (define (decrypt-data session em)
+    (define (decrypt-data session em type)
       (let* ((decrypt-cipher (get-decrypt-cipher session))
 	     (message (decrypt decrypt-cipher em))
 	     (algo (lookup-hash session))
@@ -451,15 +470,20 @@
 	     ;; this must have data, MAC and padding
 	     (pad-len (bytevector-u8-ref message (- len 1)))
 	     (mac-offset (- len pad-len size 1))
-	     (mac  (bytevector-copy message mac-offset
-				    (- len pad-len 1)))
-	     (data-offset (if (>= (slot-ref session 'version) #x0302)
+	     (mac  (bytevector-copy message mac-offset (- len pad-len 1)))
+	     (data-offset (if (>= (slot-ref session 'version) *tls-version-1.1*)
 			      (cipher-blocksize decrypt-cipher)
 			      0))
 	     (data (bytevector-copy message data-offset mac-offset)))
 	(slot-set! (slot-ref session 'session-key) 'read-iv
 		   (cipher-iv decrypt-cipher))
-	;; TODO verify
+	;; verify HMAC from server
+	(unless (bytevector=? mac (calculate-read-mac
+				   socket type
+				   (slot-ref session 'version) data))
+	  ;; TODO should we send alert to the server?
+	  (assertion-violation 'decrypt-data
+			       "MAC verification failed"))
 	;; TODO what should we do with iv?
 	data))
 
@@ -492,16 +516,19 @@
 	   (assertion-violation 'read-record
 				"given size and actual data size is different"
 				size (bytevector-length message)))
-	 ;; we finally read all message from the server now is the time to
-	 ;; maintain read sequence number
-	 (slot-set! session 'read-sequence 
-		    (+ (slot-ref session 'read-sequence)1))
 	 (when (slot-ref session 'session-encrypted?)
 	   ;; okey now we are in the secured session
-	   (set! message (decrypt-data session message)))
+	   (set! message (decrypt-data session message type))
+	   ;; we finally read all message from the server now is the time to
+	   ;; maintain read sequence number
+	   (slot-set! session 'read-sequence 
+		      (+ (slot-ref session 'read-sequence) 1)))
 	 (cond ((= type *handshake*)
 		;; for Finish message
-		(when (not (= (bytevector-u8-ref message 0) *hello-request*))
+		;; FIXME it didn't consider for server socket
+		(when (and 
+		       (not (= (bytevector-u8-ref message 0) *finished*))
+		       (not (= (bytevector-u8-ref message 0) *hello-request*)))
 		  (let1 out (slot-ref session 'messages)
 		    (put-bytevector out message)))
 		(read-handshake (open-bytevector-input-port message)
@@ -750,6 +777,22 @@
       (slot-set! session 'session-key session-key)
       session-key))
 
+  (define (calculate-mac session type version seq secret-deriver body)
+    (let* ((algo (hash-algorithm HMAC :key (secret-deriver session)
+				 :hash (lookup-hash session)))
+	   (bv (make-bytevector (hash-size algo))))
+      (hash! algo bv 
+	     (let1 data
+		 (call-with-bytevector-output-port
+		  (lambda (p)
+		    (put-u64 p (slot-ref session seq))
+		    (put-u8 p type)
+		    (put-u16 p version)
+		    (put-u16 p (bytevector-length body))
+		    (put-bytevector p body)))
+	       data))
+      bv))
+
   (define (calculate-write-mac socket type version body)
     (define (derive-write-mac-secret session)
       (let1 session-key (slot-ref session 'session-key)
@@ -757,22 +800,16 @@
 	  (calculate-session-key socket)
 	  (set! session-key (slot-ref session 'session-key)))
 	(slot-ref session-key 'write-mac-secret)))
-    (let* ((session (slot-ref socket 'session))
-	   (write-secret (derive-write-mac-secret session))
-	   (algo (hash-algorithm HMAC :key write-secret
-				 :hash (lookup-hash session)))
-	   (bv (make-bytevector (hash-size algo))))
-      (hash! algo bv 
-	     (let1 data
-		 (call-with-bytevector-output-port
-		  (lambda (p)
-		    (put-u64 p (slot-ref session 'write-sequence))
-		    (put-u8 p type)
-		    (put-u16 p version)
-		    (put-u16 p (bytevector-length body))
-		    (put-bytevector p body)))
-	       data))
-      bv))
+    (calculate-mac (slot-ref socket 'session) type version 'write-sequence
+		   derive-write-mac-secret body))
+
+  (define (calculate-read-mac socket type version body)
+    (define (derive-read-mac-secret session)
+      (let1 session-key (slot-ref session 'session-key)
+	;; if we reach here, means we must have session key
+	(slot-ref session-key 'read-mac-secret)))
+    (calculate-mac (slot-ref socket 'session) type version 'read-sequence
+		   derive-read-mac-secret body))
 
   ;; until here the key-block must be calculated
   (define (derive-final-write-key session label)
@@ -822,15 +859,15 @@
     (define (encrypt-data session version data)
       (define (get-encrypt-cipher)
 	(let* ((cipher&keysize (lookup-cipher&keysize session))
-		   (session-key (slot-ref session 'session-key))
-		   (write-key (generate-secret-key 
-			       (car cipher&keysize)
-			       (slot-ref session-key 'write-key)))
-		   (iv (slot-ref session-key 'write-iv))
-		   (c (cipher (car cipher&keysize) write-key
-			      ;; we need to pad by our self ... hmm
-			      :padder #f
-			      :iv iv :mode MODE_CBC)))
+	       (session-key (slot-ref session 'session-key))
+	       (write-key (generate-secret-key 
+			   (car cipher&keysize)
+			   (slot-ref session-key 'write-key)))
+	       (iv (slot-ref session-key 'write-iv))
+	       (c (cipher (car cipher&keysize) write-key
+			  ;; we need to pad by our self ... hmm
+			  :padder #f
+			  :iv iv :mode MODE_CBC)))
 	  ;;(slot-set! session 'encrypt-cipher c)
 	  c))
       ;; all toplevel data structures have the same slots.
@@ -849,7 +886,8 @@
 	     (em (encrypt encrypt-cipher
 			  (call-with-bytevector-output-port
 			   (lambda (p)
-			     (when (>= (slot-ref session 'version) #x0302)
+			     (when (>= (slot-ref session 'version)
+				       *tls-version-1.1*)
 			       ;; add IV
 			       (put-bytevector p (cipher-iv encrypt-cipher)))
 			     (put-bytevector p body)
@@ -873,8 +911,7 @@
 	(slot-set! session 'write-sequence
 		   (+ (slot-ref session 'write-sequence) 1)))
       (when (and (tls-handshake? data)
-		 (not (tls-hello-request? (tls-handshake-body data)))
-		 (not (tls-finished? (tls-handshake-body data))))
+		 (not (tls-hello-request? (tls-handshake-body data))))
 	(write-tls-packet data (slot-ref session 'messages)))
       (let1 raw-socket (slot-ref socket 'raw-socket)
 	(socket-send raw-socket packet flags))))

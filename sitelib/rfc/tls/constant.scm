@@ -30,7 +30,9 @@
 
 ;; Caution this library is not well tested and not secure yet.
 (library (rfc tls constant)
-    (export *ssl-version*
+    (export *tls-version-1.2*
+	    *tls-version-1.1*
+	    *tls-version-1.0*
 	    ;; ciphers
 	    TLS-NULL-WITH-NULL-NULL
 	    TLS-RSA-WITH-NULL-MD5
@@ -73,7 +75,11 @@
   ;; default client version.
   ;; but we also need to support TLS 1.0 or else
   ;; most of servers don't support 1.2 ...
-  (define-constant *ssl-version* #x0303)
+  (define-constant *tls-version-1.2* #x0303)
+  (define-constant *tls-version-1.1* #x0302)
+  (define-constant *tls-version-1.0* #x0301)
+
+
   ;; A.5. The Cipher Suite
   ;; cipher suites
   (define-constant TLS-NULL-WITH-NULL-NULL         #x0000)

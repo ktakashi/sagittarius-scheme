@@ -67,7 +67,7 @@
 	    tls-finished?
 	    ;; handshake accessor
 	    tls-handshake-body
-
+	    tls-finished-data
 	    ;; utility
 	    put-u16
 	    put-u32
@@ -381,6 +381,7 @@
     (put-bytevector out (slot-ref o 'verify-data)))
   (define (make-tls-finished data) (make <tls-finished> :verify-data data))
   (define (tls-finished? o) (is-a? o <tls-finished>))
+  (define (tls-finished-data o) (slot-ref o 'verify-data))
 
   ;; ciphered data
   ;; this class is just for convenience
