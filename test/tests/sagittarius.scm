@@ -116,5 +116,19 @@
 (test-equal "multi export syntax" test1 'oops)
 (test-equal "multi export syntax" test '*test*)
 
+;; issue 16
+(define (make-test-binary-port out)
+  (define (write! bv start count)
+    (put-bytevector out bv start (+ start count))
+    count)
+  (make-custom-binary-output-port "test port" write! #f #f #f))
+
+(test-equal "custom binary output port"
+	    (string->utf8 "test")
+	    (call-with-bytevector-output-port
+	     (lambda (out)
+	       (let* ((bin (make-test-binary-port out))
+		      (tin (transcoded-port bin (native-transcoder))))
+		 (display "test" tin)))))
 
 (test-end)
