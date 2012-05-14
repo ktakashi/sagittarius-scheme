@@ -31,7 +31,6 @@
 
 ;; based on cl-oauth
 ;; for now we don't support service provider.
-#< (sagittarius regex) >
 (library (net oauth)
     (export :all)
     (import (net oauth consumer)
