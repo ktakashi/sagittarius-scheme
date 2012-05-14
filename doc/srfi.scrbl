@@ -37,7 +37,9 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     @td{(srfi :23 error)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-26/srfi-26.html"]{SRFI-26}}
     @td{(srfi :26 cut)}}
-@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-37/srfi-37.html"]{SRFI-37}}
+@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-27/srfi-27.html"]{SRFI-27}}
+    @td{(srfi :27 random-bits)}}
+@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-37/srfi-27.html"]{SRFI-37}}
     @td{(srfi :37 args-fold)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-38/srfi-38.html"]{SRFI-38}}
     @td{(srfi :38 with-shared-structure)}}

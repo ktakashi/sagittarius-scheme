@@ -5,6 +5,7 @@
 @include-section["utils/crypto.scrbl"]
 @include-section["utils/math.scrbl"]
 @include-section["utils/rfc/zlib.scrbl"]
+@include-section["utils/rfc/hmac.scrbl"]
 @include-section["utils/rfc/tls.scrbl"]
 @include-section["utils/asn.1.scrbl"]
 @include-section["utils/rfc/x.509.scrbl"]

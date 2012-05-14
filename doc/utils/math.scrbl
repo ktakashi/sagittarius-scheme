@@ -62,7 +62,6 @@ Creates secure random object.
 
 @define[Function]{@name{prng?} @args{obj}}
 @define[Function]{@name{pseudo-random?} @args{obj}}
-@define[Function]{@name{custom-random?} @args{obj}}
 @define[Function]{@name{secure-random?} @args{obj}}
 @desc{Returns #t if @var{obj} is prng object, builtin pseudo random objcet,
 custom random object or secure random object respectively.
@@ -87,7 +86,55 @@ Keyword argument @var{read-size} will be passed to @code{read-random-bytes}.
 Reads @var{size} bytes of random byte from @var{prng}.
 }
 
-@subsubsection{Hash operations}
+@define[Method]{@name{prng-state} @args{(prng <prng>)}}
+@desc{Returns given @var{prng}'s state if the pseudo random implementation
+allows.
+
+For default built in pseudo randoms return #f.
+
+NOTE: if <secure-random> is implemented, then the pseudo random implementation
+should not return the state.
+}
+
+@define[Function]{@name{read-sys-random} @args{bis}}
+@desc{Returns given @var{bits} bits of random bytevector.}
+
+@sub*section{Custom pseudo random operations}
+
+Since version 0.3.2, pseudo random also has custom operations. Similar with
+cipher spi or hash algorithm.
+
+The following example describes how to make it.
+
+@codeblock{
+;; the code snipet is from math/mt-random
+(define-class <mersenne-twister> (<user-prng>)
+  (;; The array for the state vector
+   ;; using bytevector, it needs to be 64 bit aligned.
+   (state :init-keyword :state :init-form (make-bytevector (* NN 8)))
+   ;; mti==NN+1 means MT[NN] is not initialized
+   (mti   :init-keyword :mti   :init-form (+ NN 1))))
+(define-method initialize ((o <mersenne-twister>) initargs)
+  (call-next-method)
+  (let ((seed (get-keyword :seed initargs #f)))
+    (slot-set! o 'set-seed! mt-set-seed)
+    (slot-set! o 'read-random mt-read-random)
+    (when seed
+      (mt-set-seed o seed))))
+}
+
+User just need to set the slots @code{set-seed!} and @code{read-random}. Then
+other process is done by lower layer.
+
+Following describes the meaning of these slots.
+
+The slot @code{set-seed!} requires a procedure which accepts 2 arguments,
+target pseudo random and @var{seed}. @var{seed} must be bytevector.
+
+The slot @code{read-random} requires a pseudo which accepts 2 arguments,
+target pseudo random and @var{bytes}. @var{bytes} must be a non negative fixnum.
+
+@subsubsection[:tag "math.hash"]{Hash operations}
 
 @define[Library]{@name{(math hash)}}
 @desc{This library exports procedures for hash (digest) operations.}
@@ -244,7 +291,7 @@ the test.
 @code{1 <= p <= 251}.
 
 Keyword argument @var{prng} specifies which pseudo random uses to find a prime
-nubmer.
+number.
 }
 
 @subsubsection{Misc arithmetic operations}
