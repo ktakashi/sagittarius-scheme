@@ -751,7 +751,7 @@ static int byte_array_close(SgObject self)
 
 static int byte_array_open(SgObject self)
 {
-  return TRUE;
+  return !SG_PORT(self)->closed;
 }
 
 static int byte_array_get_u8(SgObject self)
@@ -1208,7 +1208,7 @@ static SgCustomPort *make_custom_port(enum SgCustomPortType type)
 /* I'm not sure if we still need this method. */
 static int custom_binary_open(SgObject self)
 {
-  return TRUE;
+  return !SG_PORT(self)->closed;
 }
 
 static int custom_binary_get_u8(SgObject self)
@@ -1222,11 +1222,11 @@ static int custom_binary_get_u8(SgObject self)
     return c;
   }
   bv = Sg_MakeByteVector(1, 0);
-  result = Sg_Apply3(SG_CUSTOM_PORT(self)->read,
-		     bv, start, count);
+  result = Sg_Apply3(SG_CUSTOM_PORT(self)->read, bv, start, count);
   if (!SG_INTP(result)) {
     Sg_IOReadError(SG_INTERN("get-u8"),
-		   Sg_Sprintf(UC("custom port read! returned invalid value, %S"), result),
+		   Sg_Sprintf(UC("custom port read! returned invalid value %S"),
+			      result),
 		   result);
   }
   if (result == SG_MAKE_INT(0)) {
@@ -1244,11 +1244,11 @@ static int custom_binary_lookahead_u8(SgObject self)
     return SG_CUSTOM_U8_AHEAD(self);
   }
   bv = Sg_MakeByteVector(1, 0);
-  result = Sg_Apply3(SG_CUSTOM_PORT(self)->read,
-		    bv, start, count);
+  result = Sg_Apply3(SG_CUSTOM_PORT(self)->read, bv, start, count);
   if (!SG_INTP(result)) {
     Sg_IOReadError(SG_INTERN("lookahead-u8"),
-		   Sg_Sprintf(UC("custom port read! returned invalid value, %S"), result),
+		   Sg_Sprintf(UC("custom port read! returned invalid value %S"),
+			      result),
 		   result);
   }
   if (result == SG_MAKE_INT(0)) {
@@ -1260,23 +1260,53 @@ static int custom_binary_lookahead_u8(SgObject self)
 
 static int64_t custom_binary_read(SgObject self, uint8_t *buf, int64_t size)
 {
-  int64_t i;
-  for (i = 0; i < size; i++) {
-    int v = custom_binary_get_u8(self);
-    if (EOF == v) break;
-    buf[i] = v;
+  SgObject bv, result;
+  int start = 0;
+  int64_t read = 0;
+  bv = Sg_MakeByteVector(size, 0);
+  if (SG_CUSTOM_HAS_U8_AHEAD(self)) {
+    Sg_ByteVectorU8Set(bv, 0, SG_CUSTOM_U8_AHEAD(self));
+    SG_CUSTOM_U8_AHEAD(self) = EOF;
+    start++;
+    size--;
+    read++;
   }
-  return i;
+  /* we need to calculate the read size, see port.sls in r6rs test suite... */
+  for (; size; ) {
+    int r;
+    result = Sg_Apply3(SG_CUSTOM_PORT(self)->read, bv,
+		       SG_MAKE_INT(start), SG_MAKE_INT(size));
+    
+    if (!SG_INTP(result)) {
+      Sg_IOReadError(SG_INTERN("get-bytevector"),
+		     Sg_Sprintf(UC("custom port read! "
+				   "returned invalid value %S"), result),
+		     result);
+    }
+    if (result == SG_MAKE_INT(0)) {
+      break;
+    }
+    r = SG_INT_VALUE(result);
+    read += r;
+    size -= r;
+    start += r;
+  }
+  if (read == 0) return 0;	/* short cut */
+  memcpy(buf, SG_BVECTOR_ELEMENTS(bv), read);
+  return read;
 }
 
 static int64_t custom_binary_read_all(SgObject self, uint8_t **buf)
 {
   SgObject accum = Sg_MakeByteArrayOutputPort(PORT_DEFAULT_BUF_SIZE);
   int64_t read_size = 0;
-  for (;; read_size++) {
-    int v = custom_binary_get_u8(self);
-    if (v == EOF) break;
-    Sg_PutbUnsafe(accum, v);
+  uint8_t rbuf[1024];
+
+  for (;;) {
+    int size = custom_binary_read(self, rbuf, 1024);
+    if (size == 0) break;
+    read_size += size;
+    Sg_WritebUnsafe(accum, rbuf, 0, size);
   }
   *buf = Sg_GetByteArrayFromBinaryPort(accum);
   return read_size;
@@ -1308,19 +1338,16 @@ static int64_t custom_binary_put_u8_array(SgObject self, uint8_t *v,
   static const SgObject start = SG_MAKE_INT(0);
   SgObject bv, result, count;
   bv = Sg_MakeByteVectorFromU8Array(v, (size_t)size);
-  /* for now, we assume nobody use such a big file or buffer.
-     so just use fixnum.
-   */
-  count = SG_MAKE_INT(size);
-  result = Sg_Apply3(SG_CUSTOM_PORT(self)->write,
-		    bv, start, count);
+
+  count = Sg_MakeIntegerFromS64(size);
+  result = Sg_Apply3(SG_CUSTOM_PORT(self)->write, bv, start, count);
   if (!SG_INTP(result)) {
     Sg_IOWriteError(SG_INTERN("put-bytevector"),
 		    Sg_Sprintf(UC("custom port write!"
 				  " returned invalid value, %S"), result),
 		    result);
   }
-  return SG_INT_VALUE(result);
+  return Sg_GetIntegerS64Clamp(result, SG_CLAMP_NONE, NULL);
 }
 
 static int custom_close(SgObject self)

@@ -72,6 +72,7 @@
 	    zlib-error-message
 	    )
     (import (rnrs)
+	    (sagittarius)
 	    (sagittarius control)
 	    (rfc zlib impl))
 
@@ -238,10 +239,10 @@
 			      (bytevector-u8-set! bv index1
 						  (bytevector-u8-ref out-buffer
 								     index2))))
-		       (n2 (fill-buffer!)))
+			 (n2 (fill-buffer!)))
 		     (if (zero? n2)
 			 (begin
-			   (set! current-pos (+ current-pos count))
+			   (set! current-pos (+ current-pos n))
 			   n)
 			 (rec bv (+ start n) (- count n) n))))
 		  (else

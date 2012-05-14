@@ -43,7 +43,7 @@
 	len))
     (define (write! bv start count)
       ;; for sagittarius implementation bv starts always 0, but just in case
-      (let ((buf (bytevector-copy bv start)))
+      (let ((buf (bytevector-copy bv start (+ start count))))
 	(tls-socket-send socket bv 0))
       count)
     (define (close)

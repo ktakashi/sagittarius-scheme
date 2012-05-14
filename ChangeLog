@@ -1,3 +1,11 @@
+2012-05-14  Takashi Kato  <ktakashi@ymail.com>
+
+	* ext/zlib/rfc/zlib.scm (open-inflating-input-port): fixed read!
+	procedure.
+
+	* src/port.c (Sg_MakeCustomBinaryPort): improved
+	custom_binary_put_u8_array performance.
+
 2012-05-12  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/port.c (get or read binary operations): fixed reckless label to
