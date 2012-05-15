@@ -448,46 +448,54 @@ static void vm_dump_code_rec(SgCodeBuilder *cb, int indent)
   Sg_Printf(vm->logPort, UC("size: %d\n"), size);
   for (i = 0; i < size;) {
     int need_line_break = TRUE;
+    SgObject s;
+    SgPort *out = SG_PORT(Sg_MakeStringOutputPort(-1));
     info = Sg_LookupInsnName(INSN(code[i]));
 
     write_indent();
-    Sg_Printf(vm->logPort, UC("%d: %A"), i, Sg_MakeStringC(info->name));
+    Sg_Printf(out, UC("%4d: %A"), i, Sg_MakeStringC(info->name));
     if (info->instValues != 0) {
       int val1, val2;
-      Sg_Printf(vm->logPort, UC("("));
       switch (info->instValues) {
       case 1:
 	INSN_VAL1(val1, code[i]);
-	Sg_Printf(vm->logPort, UC("%d"), val1);
+	Sg_Printf(out, UC("(%d)"), val1);
 	break;
       case 2:
 	INSN_VAL2(val1, val2, code[i]);
-	Sg_Printf(vm->logPort, UC("%d %d"), val1, val2);
+	Sg_Printf(out, UC("(%d %d)"), val1, val2);
       }
-      Sg_Printf(vm->logPort, UC(")"));
     }
     if (info->argc != 0) {
       /* for now insn argument is only one */
       SgObject arg = SG_OBJ(code[i + 1]);
       if (SG_CODE_BUILDERP(arg)) {
+	s = Sg_GetStringFromStringPort(out);
+	Sg_Puts(vm->logPort, SG_STRING(s));
 	Sg_Printf(vm->logPort, UC(" %S\n"), arg);
 	vm_dump_code_rec(SG_CODE_BUILDER(arg), indent + 2);
 	need_line_break = FALSE;
       } else {
-	Sg_Printf(vm->logPort, UC(" %#S"), arg);
-      }
-    }
-    if (info->hasSrc) {
-      if (SG_PAIRP(cb->src)) {
-	SgObject src = Sg_Assv(SG_MAKE_INT(i), cb->src);
-	if (SG_FALSEP(src)) {
-	  Sg_Printf(vm->logPort, UC(" ;; #f"));
-	} else {
-	  Sg_Printf(vm->logPort, UC(" ;; %#20S"), Sg_UnwrapSyntax(SG_CDR(src)));
+	Sg_Printf(out, UC(" %#S"), arg);
+	s = Sg_GetStringFromStringPort(out);
+	Sg_Puts(vm->logPort, SG_STRING(s));
+	if (info->hasSrc) {
+	  if (SG_PAIRP(cb->src)) {
+	    SgObject src = Sg_Assv(SG_MAKE_INT(i), cb->src);
+	    int len = SG_STRING_SIZE(s);
+	    for (; len<32; len++) {
+	      Sg_Putc(vm->logPort, ' ');
+	    }
+	    if (!SG_FALSEP(src)) {
+	      Sg_Printf(vm->logPort, UC("; %#30.1S"), 
+			Sg_UnwrapSyntax(SG_CDR(src)));
+	    }
+	  }
 	}
-      } else {
-	Sg_Printf(vm->logPort, UC(" ;; #f"));
       }
+    } else {
+      s = Sg_GetStringFromStringPort(out);
+      Sg_Puts(vm->logPort, SG_STRING(s));
     }
     if (need_line_break) {
       Sg_Printf(vm->logPort, UC("\n"));
