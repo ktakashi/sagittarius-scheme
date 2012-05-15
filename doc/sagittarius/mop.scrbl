@@ -1,5 +1,5 @@
 @; -*- mode:scribble; coding:utf-8; -*-
-@section[:tag "sagittarius.mop"]{Sagittarius MOP}
+@subsection[:tag "sagittarius.mop"]{Sagittarius MOP}
 
 MOP is "meta object protocol". As far as I know, there is no standard
 specification even the name is really famous and most of CLOS is implemented
@@ -9,7 +9,7 @@ Then we decided to take the APIs and its behaviour from Tiny CLOS. The following
 libraries are implemented with the APIs and can be examples for Sagittarius'
 MOP.
 
-@subsection{(sagittarius mop allocation)}
+@subsubsection{(sagittarius mop allocation)}
 
 @define[Library]{@name{(sagittarius mop allocation)}}
 @desc{Supporting @code{:allocation} option for @code{define-class}.}
@@ -57,7 +57,7 @@ The following code is the whole definition of this classes.
 }
 }
 
-@subsection{(sagittarius mop validator)}
+@subsubsection{(sagittarius mop validator)}
 
 @define[Library]{@name{(sagittarius mop validator)}}
 @desc{Supporting @code{:validator} and @code{observer} options for
