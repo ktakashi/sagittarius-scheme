@@ -52,13 +52,15 @@
 		     (begin
 		       (put-u8 port (bitwise-and (bitwise-arithmetic-shift-right euc 8) #xFF))
 		       (put-u8 port (bitwise-and euc #xFF))))))
-	       ((eq? mode 'ignore) ) ;; ignore
-	       ((eq? mode 'replace)
-		(put-u8 port #xFF)
-		(put-u8 port #xFD))
-	       (else
-		(raise-i/o-encoding-error 'euc-codec
-					  (format "character out of euc range ~a:~s" c euc)
+	      ;; check ascii
+	      ((<= #x00 utf16 #x7F) (put-u8 port utf16))
+	      ((eq? mode 'ignore) ) ;; ignore
+	      ((eq? mode 'replace)
+	       (put-u8 port #xFF)
+	       (put-u8 port #xFD))
+	      (else
+	       (raise-i/o-encoding-error 'euc-codec
+					 (format "character out of euc range ~a:~s" c euc)
 					  port c)))))
     (make-codec 'euc-jp-codec getc putc #f))
 

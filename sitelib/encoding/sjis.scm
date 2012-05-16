@@ -52,14 +52,16 @@
 		     (begin
 		       (put-u8 port (bitwise-and (bitwise-arithmetic-shift-right sjis 8) #xFF))
 		       (put-u8 port (bitwise-and sjis #xFF))))))
-	       ((eq? mode 'ignore) ) ;; ignore
-	       ((eq? mode 'replace)
-		(put-u8 port #xFF)
-		(put-u8 port #xFD))
-	       (else
-		(raise-i/o-encoding-error 'sjis-codec
-					  (format "character out of sjis range ~a:~s" c sjis)
-					  port c)))))
+	      ;; check ascii
+	      ((<= #x00 utf16 #x7F) (put-u8 port utf16))
+	      ((eq? mode 'ignore) ) ;; ignore
+	      ((eq? mode 'replace)
+	       (put-u8 port #xFF)
+	       (put-u8 port #xFD))
+	      (else
+	       (raise-i/o-encoding-error 'sjis-codec
+					 (format "character out of sjis range ~a:~s" c sjis)
+					 port c)))))
     (make-codec 'sjis-codec getc putc #f))
 
 )

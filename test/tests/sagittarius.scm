@@ -131,4 +131,41 @@
 		      (tin (transcoded-port bin (native-transcoder))))
 		 (display "test" tin)))))
 
+;; custom codec test
+;; This must be run on UTF-8 file λ
+(import (encoding sjis) (encoding euc-jp))
+;; sjis
+(let ((tr (make-transcoder (sjis-codec) 'lf))
+      (file  (string-append (current-directory)
+			    "/test/sjis.txt")))
+  ;; read
+  (test-equal "read from sjis file" "あいうえお"
+	      (call-with-input-file file
+		get-line
+		:transcoder tr))
+  ;; write
+  ;; bytevector contains \n as well
+  (let ((bv (call-with-input-file file get-bytevector-all :transcoder #f)))
+    (let-values (((out getter) (open-bytevector-output-port tr)))
+      (put-string out "あいうえお\n")
+      (test-equal "write sjis" bv (getter))))
+  )
+;; euc-jp
+(let ((tr (make-transcoder (euc-jp-codec) 'lf))
+      (file  (string-append (current-directory)
+			    "/test/euc-jp.txt")))
+  ;; read
+  (test-equal "read from euc-jp file" "あいうえお"
+	      (call-with-input-file file
+		get-line
+		:transcoder tr))
+  ;; write
+  ;; bytevector contains \n as well
+  (let ((bv (call-with-input-file file get-bytevector-all :transcoder #f)))
+    (let-values (((out getter) (open-bytevector-output-port tr)))
+      (put-string out "あいうえお\n")
+      (test-equal "write euc-jp" bv (getter))))
+  )
+
+
 (test-end)
