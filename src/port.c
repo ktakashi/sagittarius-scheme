@@ -1032,14 +1032,11 @@ static void transPutChar(SgObject self, SgChar c)
 				     c);
 }
 
-static int64_t trans_put_string(SgObject self, SgString *str,
-				int64_t start, int64_t count)
+static int64_t trans_put_string(SgObject self, SgChar *str, int64_t count)
 {
-  if (start != 0 || count != SG_STRING_SIZE(str)) {
-    str = Sg_Substring(str, start, start + count);
-  }
   return SG_TPORT_TRANSCODER(self)->putString(SG_TPORT_TRANSCODER(self),
-					      SG_TPORT_PORT(self), str);
+					      SG_TPORT_PORT(self),
+					      str, count);
 }
 
 static void transFlush(SgObject self)
@@ -1129,13 +1126,13 @@ static void string_oport_putchar(SgObject self, SgChar c)
   tp->src.ostr.current = buf->next;
 }
 
-static int64_t string_oport_put_string(SgObject self, SgString *str,
-				       int64_t start, int64_t count)
+static int64_t string_oport_put_string(SgObject self, SgChar *str,
+				       int64_t count)
 {
   int64_t i;
   /* TODO: we might want to improve this */
   for (i = 0; i < count; i++) {
-    string_oport_putchar(self, SG_STRING_VALUE_AT(str, i + start));
+    string_oport_putchar(self, str[i]);
   }
   return i;
 }
@@ -1563,12 +1560,12 @@ static void custom_textual_put_char(SgObject self, SgChar ch)
   }
 }
 
-static int64_t custom_textual_put_string(SgObject self, SgString *str,
-					 int64_t start, int64_t count)
+static int64_t custom_textual_put_string(SgObject self, SgChar *str,
+					 int64_t count)
 {
   int64_t i;
   for (i = 0; i < count; i++) {
-    custom_textual_put_char(self, SG_STRING_VALUE_AT(str, i + start));
+    custom_textual_put_char(self, str[i]);
   }
   return i;
 }
@@ -1876,20 +1873,20 @@ void Sg_Puts(SgPort *port, SgString *str)
   SG_PORT_UNLOCK(port);
 }
 
-void Sg_Writes(SgPort *port, SgString *s, int start, int count)
+void Sg_Writes(SgPort *port, SgChar *s, int count)
 {
   SG_PORT_LOCK(port);
-  Sg_WritesUnsafe(port, s, start, count);
+  Sg_WritesUnsafe(port, s, count);
   SG_PORT_UNLOCK(port);
 }
 
-void Sg_WritesUnsafe(SgPort *port, SgString *s, int start, int count)
+void Sg_WritesUnsafe(SgPort *port, SgChar *s, int count)
 {
   if (SG_TEXTUAL_PORTP(port)) {
-    SG_TEXTUAL_PORT(port)->putString(port, s, start, count);
+    SG_TEXTUAL_PORT(port)->putString(port, s, count);
   } else if (SG_CUSTOM_PORTP(port)) {
     ASSERT(SG_CUSTOM_PORT(port)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE);
-    SG_CUSTOM_TEXTUAL_PORT(port)->putString(port, s, start, count);
+    SG_CUSTOM_TEXTUAL_PORT(port)->putString(port, s, count);
   } else {
     Sg_Error(UC("textual port required, but got %S"), port);
   }  
@@ -1957,10 +1954,13 @@ void Sg_PutuzUnsafe(SgPort *port, const SgChar *str)
 void Sg_PutsUnsafe(SgPort *port, SgString *str)
 {
   if (SG_TEXTUAL_PORTP(port)) {
-    SG_TEXTUAL_PORT(port)->putString(port, str, 0, SG_STRING_SIZE(str));
+    SG_TEXTUAL_PORT(port)->putString(port, SG_STRING_VALUE(str),
+				     SG_STRING_SIZE(str));
   } else if (SG_CUSTOM_PORTP(port)) {
     ASSERT(SG_CUSTOM_PORT(port)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE);
-    SG_CUSTOM_TEXTUAL_PORT(port)->putString(port, str, 0, SG_STRING_SIZE(str));
+    SG_CUSTOM_TEXTUAL_PORT(port)->putString(port,
+					    SG_STRING_VALUE(str),
+					    SG_STRING_SIZE(str));
   } else {
     Sg_Error(UC("textual port required, but got %S"), port);
   }

@@ -56,7 +56,7 @@ struct SgTranscoderRec
   void    (*unGetChar)(SgObject, SgChar);
   void    (*putChar)(SgObject, SgPort*, SgChar);
   int64_t (*getString)(SgObject, SgPort*, SgChar *, int64_t);
-  int64_t (*putString)(SgObject, SgPort*, SgString*);
+  int64_t (*putString)(SgObject, SgPort*, SgChar *, int64_t);
 };
 
 #define SG_TRANSCODERP(obj) SG_XTYPEP(obj, SG_CLASS_TRANSCODER)

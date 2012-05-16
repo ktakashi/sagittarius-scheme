@@ -276,22 +276,27 @@ static void put_char(SgObject self, SgPort *port, SgChar c)
   }
 }
 
-#define dispatch_putstring(codec, p, s, mode)				\
+#define dispatch_putstring(codec, p, s, c, mode, new_s)			\
   do {									\
     if ((codec)->type == SG_BUILTIN_CODEC) {				\
-      return SG_CODEC_BUILTIN(codec)->writec(codec, (p), (s), mode);	\
+      return SG_CODEC_BUILTIN(codec)->writec(codec, (p), (s), (c), mode); \
     } else {								\
-      SgObject i = Sg_Apply4(SG_CODEC_CUSTOM(codec)->writec, (p), (s),	\
-			     get_mode(mode), SG_CODEC_CUSTOM(codec)->data); \
+      SgObject i;							\
+      if (!(new_s)) {							\
+	(new_s) = Sg_MakeString(s, SG_LITERAL_STRING);			\
+      }									\
+      i = Sg_Apply4(SG_CODEC_CUSTOM(codec)->writec, (p), (new_s),	\
+		    get_mode(mode), SG_CODEC_CUSTOM(codec)->data);	\
       return Sg_GetIntegerS64Clamp(i, SG_CLAMP_NONE, NULL);		\
     }									\
   } while (0)
 
 
 
-static int64_t put_string(SgObject self, SgPort *port, SgString *s)
+static int64_t put_string(SgObject self, SgPort *port, SgChar *s, int64_t count)
 {
   SgTranscoder *tran = SG_TRANSCODER(self);
+  SgObject new_s = NULL;
   int i;
   if (tran->bufferPosition != 0) {
     tran->bufferPosition--;
@@ -301,8 +306,8 @@ static int64_t put_string(SgObject self, SgPort *port, SgString *s)
    */
   if (tran->eolStyle != E_NONE) {
     SgObject out = Sg_MakeStringOutputPort(-1);
-    for (i = 0; i < SG_STRING_SIZE(s); i++) {
-      SgChar c = SG_STRING_VALUE_AT(s, i);
+    for (i = 0; i < count; i++) {
+      SgChar c = s[i];
       if (c == LF) {
 	switch (tran->eolStyle) {
 	case LF:
@@ -327,10 +332,12 @@ static int64_t put_string(SgObject self, SgPort *port, SgString *s)
 	Sg_PutcUnsafe(out, c);
       }
     }
-    s = Sg_GetStringFromStringPort(out);
+    new_s = Sg_GetStringFromStringPort(out);
+    s = SG_STRING_VALUE(new_s);
+    count = SG_STRING_SIZE(new_s);
   }
-  dispatch_putstring(SG_TRANSCODER_CODEC(self), port, s,
-		     SG_TRANSCODER_MODE(self));
+  dispatch_putstring(SG_TRANSCODER_CODEC(self), port, s, count,
+		     SG_TRANSCODER_MODE(self), new_s);
 }
 
 SgObject Sg_MakeTranscoder(SgCodec *codec, EolStyle eolStyle,

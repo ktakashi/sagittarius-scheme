@@ -2531,7 +2531,7 @@
     (unless (<= (+ count start) (SG_STRING_SIZE s))
       (assertion-violation 'put-string
 			   "invalid range"))
-    (Sg_Writes p s start count))
+    (Sg_Writes p (+ (SG_STRING_VALUE s) start) count))
 
   (define-c-proc put-datum (p::<port> datum) ::<void>
     (check-port-open put-datum p)

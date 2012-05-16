@@ -60,8 +60,10 @@ struct SgCodecRec
       /* TODO read and write; */
       int     (*putc)(SgObject, SgPort*, SgChar, ErrorHandlingMode);
       SgChar  (*getc)(SgObject, SgPort*, ErrorHandlingMode, int);
-      int64_t (*readc)(SgObject, SgPort*, SgChar*, int64_t, ErrorHandlingMode, int);
-      int64_t (*writec)(SgObject, SgPort*, SgString *, ErrorHandlingMode);
+      int64_t (*readc)(SgObject, SgPort*, SgChar*, int64_t,
+		       ErrorHandlingMode, int);
+      int64_t (*writec)(SgObject, SgPort*, SgChar *, int64_t, 
+			ErrorHandlingMode);
       Endianness endian;
     } builtin;
     struct {

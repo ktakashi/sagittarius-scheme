@@ -101,17 +101,17 @@ static int64_t read_utf8(SgObject self, SgPort *port, SgChar *buf, int64_t size,
 /* According to Wikipedia, UTF-8 can have max 6 bytes. */
 #define MAX_UTF8_SIZE 6
 
-static int64_t write_utf8(SgObject self, SgPort* port, SgString *str,
-			  ErrorHandlingMode mode)
+static int64_t write_utf8(SgObject self, SgPort* port, SgChar *str,
+			  int64_t count, ErrorHandlingMode mode)
 {
   /* we at lease need 'size' size buffer. */
   uint8_t tmp[TMP_BUF_SIZE];
   int64_t i, converted_size = 0;
 
   /* we can not know the real size until we convert. */
-  for (i = 0; i < SG_STRING_SIZE(str); i++) {
+  for (i = 0; i < count; i++) {
     /* put_utf8_char(self, port, buf[i], mode); */
-    SgChar c = SG_STRING_VALUE_AT(str, i);
+    SgChar c = str[i];
     converted_size += Sg_ConvertUcs4ToUtf8(c, tmp + converted_size, mode);
     if (converted_size >= TMP_BUF_SIZE - MAX_UTF8_SIZE) {
       /* flush */
@@ -165,16 +165,16 @@ static int64_t read_utf16(SgObject self, SgPort *port, SgChar *buf,
   return i;
 }
 
-static int64_t write_utf16(SgObject self, SgPort* port,
-			   SgString *str, ErrorHandlingMode mode)
+static int64_t write_utf16(SgObject self, SgPort* port, SgChar *str,
+			   int64_t count, ErrorHandlingMode mode)
 {
   /* we at lease need 'size' size buffer. */
   uint8_t tmp[TMP_BUF_SIZE];
   int64_t i, converted_size = 0;
   int littlep = SG_CODEC(self)->impl.builtin.endian == UTF_16LE;
   /* we can not know the real size until we convert. */
-  for (i = 0; i < SG_STRING_SIZE(str); i++) {
-    SgChar c = SG_STRING_VALUE_AT(str, i);
+  for (i = 0; i < count; i++) {
+    SgChar c = str[i];
     converted_size += Sg_ConvertUcs4ToUtf16(c, tmp + converted_size,
 					    mode, littlep);
     if (converted_size >= TMP_BUF_SIZE) {
@@ -288,13 +288,13 @@ static int64_t read_utf32(SgObject self, SgPort *port, SgChar *buf,
   return i;
 }
 
-static int64_t write_utf32(SgObject self, SgPort* port, SgString *s,
-			   ErrorHandlingMode mode)
+static int64_t write_utf32(SgObject self, SgPort* port, SgChar *s,
+			   int64_t count, ErrorHandlingMode mode)
 {
   uint8_t tmp[TMP_BUF_SIZE];
   int64_t i, converted = 0;
-  for (i = 0; i < SG_STRING_SIZE(s); i++) {
-    char_to_utf8_array(self, SG_STRING_VALUE_AT(s, i), tmp + converted);
+  for (i = 0; i < count; i++) {
+    char_to_utf8_array(self, s[i], tmp + converted);
     converted += 4;
     if (converted >= TMP_BUF_SIZE) {
       Sg_WritebUnsafe(port, tmp, 0, converted);
@@ -343,10 +343,9 @@ SgObject Sg_MakeUtf32Codec(Endianness endian)
   return SG_OBJ(z);
 }
 
-static int put_latin1_char(SgObject self, SgPort *port, SgChar c,
-			   ErrorHandlingMode mode)
+static int convert_latin1(SgPort *port, SgChar c,
+			  uint8_t *buf, ErrorHandlingMode mode)
 {
-  uint8_t buf[1];
   int size = 0;
   if (c <= 0xFF) {
     buf[0] = c;
@@ -366,6 +365,14 @@ static int put_latin1_char(SgObject self, SgPort *port, SgChar c,
       size = 0;
     }
   }
+  return size;
+}
+
+static int put_latin1_char(SgObject self, SgPort *port, SgChar c,
+			   ErrorHandlingMode mode)
+{
+  uint8_t buf[1];
+  int size = convert_latin1(port, c, buf, mode);
   put_binary_array(port, buf, size);
 }
 
@@ -384,7 +391,6 @@ static SgChar get_latin1_char(SgObject self, SgPort *port,
   return ' ';
 }
 
-
 static int64_t read_latin1(SgObject self, SgPort *port, SgChar *buf,
 			   int64_t size, ErrorHandlingMode mode, int checkBOM)
 {
@@ -396,13 +402,22 @@ static int64_t read_latin1(SgObject self, SgPort *port, SgChar *buf,
   return i;
 }
 
-static int64_t write_latin1(SgObject self, SgPort* port, 
-			    SgString *s, ErrorHandlingMode mode)
+static int64_t write_latin1(SgObject self, SgPort* port, SgChar *s,
+			    int64_t count, ErrorHandlingMode mode)
 {
-  /* for now super naive implementation */
-  int64_t i;
-  for (i = 0; i < SG_STRING_SIZE(s); i++) {
-    put_latin1_char(self, port, SG_STRING_VALUE_AT(s, i), mode);
+  /* actually, we can just dump it, but for checking... */
+  uint8_t tmp[TMP_BUF_SIZE];
+  int64_t i, converted = 0;
+  for (i = 0; i < count; i++) {
+    converted += convert_latin1(port, s[i], tmp + converted, mode);
+    if (converted >= TMP_BUF_SIZE) {
+      Sg_WritebUnsafe(port, tmp, 0, converted);
+      converted = 0;
+    }
+  }
+  if (converted != 0) {
+    Sg_WritebUnsafe(port, tmp, 0, converted);
+    converted = 0;
   }
   return i;
 }
