@@ -37,6 +37,7 @@
 #include "sagittarius/symbol.h"
 #include "sagittarius/builtin-symbols.h"
 #include "sagittarius/core.h"
+#include "sagittarius/number.h"
 #include "sagittarius/vm.h"
 #include "sagittarius/error.h"
 
@@ -137,15 +138,14 @@ static void unget_char(SgObject self, SgChar c)
 }
 
 
-#define dispatch_getchar(codec, p, c, mode) 
-
 static SgChar get_char_internal(SgObject self, SgPort *port)
 {
   SgTranscoder *tran = SG_TRANSCODER(self);
   if (tran->isBegin) {
     tran->isBegin = FALSE;
     if (tran->codec->type == SG_BUILTIN_CODEC) {
-      return SG_CODEC_BUILTIN(tran->codec)->getc(tran->codec, port, tran->mode, TRUE);
+      return SG_CODEC_BUILTIN(tran->codec)->getc(tran->codec, port,
+						 tran->mode, TRUE);
     } else {
       SgObject c = Sg_Apply4(SG_CODEC_CUSTOM(tran->codec)->getc,
 			     port, get_mode(tran->mode), SG_TRUE,
@@ -162,7 +162,8 @@ static SgChar get_char_internal(SgObject self, SgPort *port)
     SgChar c;
     if (tran->buffer == NULL || tran->bufferPosition == 0) {
       if (tran->codec->type == SG_BUILTIN_CODEC) {
-	c = SG_CODEC_BUILTIN(tran->codec)->getc(tran->codec, port, tran->mode, FALSE);
+	c = SG_CODEC_BUILTIN(tran->codec)->getc(tran->codec, port, 
+						tran->mode, FALSE);
       } else {
 	SgObject co = Sg_Apply4(SG_CODEC_CUSTOM(tran->codec)->getc,
 				port, get_mode(tran->mode), SG_FALSE,
@@ -218,6 +219,18 @@ static SgChar get_char(SgObject self, SgPort *port)
   }
 }
 
+static int64_t get_string(SgObject self, SgPort *port,
+			  SgChar *buf, int64_t size)
+{
+  int64_t i;
+  for (i = 0; i < size; i++) {
+    SgChar c = get_char(self, port);
+    if (c == EOF) return i;
+    buf[i] = c;
+  }
+  return i;
+}
+
 #define dispatch_putchar(codec, p, c, mode)				\
   do {									\
     if ((codec)->type == SG_BUILTIN_CODEC) {				\
@@ -236,7 +249,6 @@ static void put_char(SgObject self, SgPort *port, SgChar c)
     tran->bufferPosition--;
   }
   if (tran->eolStyle == E_NONE) {
-    /* tran->codec->putChar(tran->codec, port, c, tran->mode); */
     dispatch_putchar(tran->codec, port, c, tran->mode);
     return;
   } else if (c == LF) {
@@ -245,37 +257,84 @@ static void put_char(SgObject self, SgPort *port, SgChar c)
     case CR:
     case NEL:
     case LS:
-      /* tran->codec->putChar(tran->codec, port, tran->eolStyle, tran->mode); */
       dispatch_putchar(tran->codec, port, tran->eolStyle, tran->mode);
       break;
     case E_NONE:
-      /* tran->codec->putChar(tran->codec, port, c, tran->mode); */
       dispatch_putchar(tran->codec, port, c, tran->mode);
       break;
     case CRLF:
-      /*
-      tran->codec->putChar(tran->codec, port, CR, tran->mode);
-      tran->codec->putChar(tran->codec, port, LF, tran->mode);
-      */
       dispatch_putchar(tran->codec, port, CR, tran->mode);
       dispatch_putchar(tran->codec, port, LF, tran->mode);
       break;
     case CRNEL:
-      /*
-      tran->codec->putChar(tran->codec, port, CR, tran->mode);
-      tran->codec->putChar(tran->codec, port, NEL, tran->mode);
-      */
       dispatch_putchar(tran->codec, port, CR, tran->mode);
       dispatch_putchar(tran->codec, port, NEL, tran->mode);
       break;
     }
   } else {
-    /* tran->codec->putChar(tran->codec, port, c, tran->mode); */
     dispatch_putchar(tran->codec, port, c, tran->mode);
   }
 }
 
-SgObject Sg_MakeTranscoder(SgCodec *codec, EolStyle eolStyle, ErrorHandlingMode mode)
+#define dispatch_putstring(codec, p, s, mode)				\
+  do {									\
+    if ((codec)->type == SG_BUILTIN_CODEC) {				\
+      return SG_CODEC_BUILTIN(codec)->writec(codec, (p), (s), mode);	\
+    } else {								\
+      SgObject i = Sg_Apply4(SG_CODEC_CUSTOM(codec)->writec, (p), (s),	\
+			     get_mode(mode), SG_CODEC_CUSTOM(codec)->data); \
+      return Sg_GetIntegerS64Clamp(i, SG_CLAMP_NONE, NULL);		\
+    }									\
+  } while (0)
+
+
+
+static int64_t put_string(SgObject self, SgPort *port, SgString *s)
+{
+  SgTranscoder *tran = SG_TRANSCODER(self);
+  int i;
+  if (tran->bufferPosition != 0) {
+    tran->bufferPosition--;
+  }
+  /* a bit ugly and slow solution. create string buffer and construct
+     proper linefeed there.
+   */
+  if (tran->eolStyle != E_NONE) {
+    SgObject out = Sg_MakeStringOutputPort(-1);
+    for (i = 0; i < SG_STRING_SIZE(s); i++) {
+      SgChar c = SG_STRING_VALUE_AT(s, i);
+      if (c == LF) {
+	switch (tran->eolStyle) {
+	case LF:
+	case CR:
+	case NEL:
+	case LS:
+	  Sg_PutcUnsafe(out, tran->eolStyle);
+	  break;
+	case E_NONE:
+	  Sg_PutcUnsafe(out, c);
+	  break;
+	case CRLF:
+	  Sg_PutcUnsafe(out, CR);
+	  Sg_PutcUnsafe(out, LF);
+	  break;
+	case CRNEL:
+	  Sg_PutcUnsafe(out, CR);
+	  Sg_PutcUnsafe(out, NEL);
+	  break;
+	}
+      } else {
+	Sg_PutcUnsafe(out, c);
+      }
+    }
+    s = Sg_GetStringFromStringPort(out);
+  }
+  dispatch_putstring(SG_TRANSCODER_CODEC(self), port, s,
+		     SG_TRANSCODER_MODE(self));
+}
+
+SgObject Sg_MakeTranscoder(SgCodec *codec, EolStyle eolStyle,
+			   ErrorHandlingMode mode)
 {
   SgTranscoder *z = SG_NEW(SgTranscoder);
   SG_SET_CLASS(z, SG_CLASS_TRANSCODER);
@@ -287,8 +346,10 @@ SgObject Sg_MakeTranscoder(SgCodec *codec, EolStyle eolStyle, ErrorHandlingMode 
   z->bufferSize = 0;
   z->isBegin = TRUE;
   z->getChar = get_char;
+  z->getString = get_string;
   z->unGetChar = unget_char;
   z->putChar = put_char;
+  z->putString = put_string;
   return SG_OBJ(z);
 }
 

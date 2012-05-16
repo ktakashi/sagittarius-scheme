@@ -52,9 +52,11 @@ struct SgTranscoderRec
   int    		 isBegin;
 
   /* the first object is self */
-  SgChar (*getChar)(SgObject, SgPort*);
-  void   (*unGetChar)(SgObject, SgChar);
-  void   (*putChar)(SgObject, SgPort*, SgChar);
+  SgChar  (*getChar)(SgObject, SgPort*);
+  void    (*unGetChar)(SgObject, SgChar);
+  void    (*putChar)(SgObject, SgPort*, SgChar);
+  int64_t (*getString)(SgObject, SgPort*, SgChar *, int64_t);
+  int64_t (*putString)(SgObject, SgPort*, SgString*);
 };
 
 #define SG_TRANSCODERP(obj) SG_XTYPEP(obj, SG_CLASS_TRANSCODER)
@@ -67,7 +69,8 @@ struct SgTranscoderRec
 
 SG_CDECL_BEGIN
 
-SG_EXTERN SgObject Sg_MakeTranscoder(SgCodec *codec, EolStyle eolStyle, ErrorHandlingMode mode);
+SG_EXTERN SgObject Sg_MakeTranscoder(SgCodec *codec, EolStyle eolStyle,
+				     ErrorHandlingMode mode);
 /* These two are OS dependent. see os/${os}/transcoder.c */
 SG_EXTERN SgObject Sg_MakeNativeConsoleTranscoder();
 SG_EXTERN SgObject Sg_MakeNativeTranscoder();

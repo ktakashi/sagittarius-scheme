@@ -37,8 +37,10 @@
 #include "sagittarius/error.h"
 #include "sagittarius/string.h"
 #include "sagittarius/symbol.h"
+#include "sagittarius/subr.h"
 #include "sagittarius/unicode.h"
 #include "sagittarius/writer.h"
+#include "sagittarius/vm.h"
 
 static SgClass *codec_cpl[] = {
   SG_CLASS_CODEC,
@@ -95,14 +97,33 @@ static int64_t read_utf8(SgObject self, SgPort *port, SgChar *buf, int64_t size,
   return i;
 }
 
-static int64_t write_utf8(SgObject self, SgPort* port, const SgChar* buf,
-			  int64_t size, ErrorHandlingMode mode)
+#define TMP_BUF_SIZE 1024
+/* According to Wikipedia, UTF-8 can have max 6 bytes. */
+#define MAX_UTF8_SIZE 6
+
+static int64_t write_utf8(SgObject self, SgPort* port, SgString *str,
+			  ErrorHandlingMode mode)
 {
-  /* for now super naive implementation */
-  int64_t i;
-  for (i = 0; i < size; i++) {
-    put_utf8_char(self, port, buf[i], mode);
+  /* we at lease need 'size' size buffer. */
+  uint8_t tmp[TMP_BUF_SIZE];
+  int64_t i, converted_size = 0;
+
+  /* we can not know the real size until we convert. */
+  for (i = 0; i < SG_STRING_SIZE(str); i++) {
+    /* put_utf8_char(self, port, buf[i], mode); */
+    SgChar c = SG_STRING_VALUE_AT(str, i);
+    converted_size += Sg_ConvertUcs4ToUtf8(c, tmp + converted_size, mode);
+    if (converted_size >= TMP_BUF_SIZE - MAX_UTF8_SIZE) {
+      /* flush */
+      Sg_WritebUnsafe(port, tmp, 0, converted_size);
+      converted_size = 0;
+    }
   }
+  if (converted_size != 0) {
+    /* flush the rest */
+    Sg_WritebUnsafe(port, tmp, 0, converted_size);
+  }
+
   return i;
 }
 
@@ -144,13 +165,27 @@ static int64_t read_utf16(SgObject self, SgPort *port, SgChar *buf,
   return i;
 }
 
-static int64_t write_utf16(SgObject self, SgPort* port, const SgChar* buf,
-			   int64_t size, ErrorHandlingMode mode)
+static int64_t write_utf16(SgObject self, SgPort* port,
+			   SgString *str, ErrorHandlingMode mode)
 {
-  /* for now super naive implementation */
-  int64_t i;
-  for (i = 0; i < size; i++) {
-    put_utf16_char(self, port, buf[i], mode);
+  /* we at lease need 'size' size buffer. */
+  uint8_t tmp[TMP_BUF_SIZE];
+  int64_t i, converted_size = 0;
+  int littlep = SG_CODEC(self)->impl.builtin.endian == UTF_16LE;
+  /* we can not know the real size until we convert. */
+  for (i = 0; i < SG_STRING_SIZE(str); i++) {
+    SgChar c = SG_STRING_VALUE_AT(str, i);
+    converted_size += Sg_ConvertUcs4ToUtf16(c, tmp + converted_size,
+					    mode, littlep);
+    if (converted_size >= TMP_BUF_SIZE) {
+      /* flush */
+      Sg_WritebUnsafe(port, tmp, 0, converted_size);
+      converted_size = 0;
+    }
+  }
+  if (converted_size != 0) {
+    /* flush the rest */
+    Sg_WritebUnsafe(port, tmp, 0, converted_size);
   }
   return i;
 }
@@ -184,11 +219,8 @@ SgObject Sg_MakeUtf16Codec(Endianness endian)
     goto retry;								\
   }
 
-
-static int put_utf32_char(SgObject self, SgPort *port, SgChar u,
-			  ErrorHandlingMode mode)
+static void char_to_utf8_array(SgObject self, SgChar u, uint8_t *buf)
 {
-  uint8_t buf[4];
   if (SG_CODEC_ENDIAN(self) == UTF_32LE) {
     buf[0] = u;
     buf[1] = u >> 8;
@@ -199,7 +231,14 @@ static int put_utf32_char(SgObject self, SgPort *port, SgChar u,
     buf[1] = u >> 16;
     buf[2] = u >> 8;
     buf[3] = u;
-  }
+  }  
+}
+
+static int put_utf32_char(SgObject self, SgPort *port, SgChar u,
+			  ErrorHandlingMode mode)
+{
+  uint8_t buf[4];
+  char_to_utf8_array(self, u, buf);
   put_binary_array(port, buf, 4);
 }
 
@@ -249,13 +288,22 @@ static int64_t read_utf32(SgObject self, SgPort *port, SgChar *buf,
   return i;
 }
 
-static int64_t write_utf32(SgObject self, SgPort* port, const SgChar* buf,
-			   int64_t size, ErrorHandlingMode mode)
+static int64_t write_utf32(SgObject self, SgPort* port, SgString *s,
+			   ErrorHandlingMode mode)
 {
-  /* for now super naive implementation */
-  int64_t i;
-  for (i = 0; i < size; i++) {
-    put_utf32_char(self, port, buf[i], mode);
+  uint8_t tmp[TMP_BUF_SIZE];
+  int64_t i, converted = 0;
+  for (i = 0; i < SG_STRING_SIZE(s); i++) {
+    char_to_utf8_array(self, SG_STRING_VALUE_AT(s, i), tmp + converted);
+    converted += 4;
+    if (converted >= TMP_BUF_SIZE) {
+      Sg_WritebUnsafe(port, tmp, 0, converted);
+      converted = 0;
+    }
+  }
+  if (converted != 0) {
+    Sg_WritebUnsafe(port, tmp, 0, converted);
+    converted = 0;
   }
   return i;
 }
@@ -348,13 +396,13 @@ static int64_t read_latin1(SgObject self, SgPort *port, SgChar *buf,
   return i;
 }
 
-static int64_t write_latin1(SgObject self, SgPort* port, const SgChar* buf,
-			    int64_t size, ErrorHandlingMode mode)
+static int64_t write_latin1(SgObject self, SgPort* port, 
+			    SgString *s, ErrorHandlingMode mode)
 {
   /* for now super naive implementation */
   int64_t i;
-  for (i = 0; i < size; i++) {
-    put_latin1_char(self, port, buf[i], mode);
+  for (i = 0; i < SG_STRING_SIZE(s); i++) {
+    put_latin1_char(self, port, SG_STRING_VALUE_AT(s, i), mode);
   }
   return i;
 }
@@ -411,6 +459,57 @@ Endianness Sg_Utf32CheckBOM(SgByteVector *bv)
   }
 }
 
+static SgObject readc_proc(SgObject *args, int argc, void *data)
+{
+  SgObject codec, port, size, mode, sdata, out;
+  int count, i;
+  codec = SG_OBJ(data);
+  if (argc != 4) {
+    Sg_WrongNumberOfArgumentsViolation(SG_INTERN("default-codec-readc"),
+				       4, argc, codec);
+  }
+  port = args[0];
+  size = args[1];
+  mode = args[2];
+  sdata = args[3];
+  count = SG_INT_VALUE(size);
+  out = Sg_MakeStringOutputPort(-1);
+  /* transcoder should handle the first character */
+  for (i = 0; i < count; i++) {
+    SgObject c = Sg_Apply4(SG_CODEC_CUSTOM(codec)->getc, port, mode, SG_FALSE,
+			   SG_CODEC_CUSTOM(codec)->data);
+    if (SG_CHARP(c)) {
+      Sg_PutcUnsafe(out, SG_CHAR_VALUE(c));
+    } else {
+      Sg_AssertionViolation(SG_INTERN("default-codec-readc"),
+			    SG_MAKE_STRING("getc procedure returned non character object"), c);
+    }
+  }
+  return Sg_GetStringFromStringPort(out);
+}
+
+static SgObject writec_proc(SgObject *args, int argc, void *data)
+{
+  SgObject codec, port, str, mode, sdata;
+  int i;
+  codec = SG_OBJ(data);
+  if (argc != 4) {
+    Sg_WrongNumberOfArgumentsViolation(SG_INTERN("default-codec-writec"),
+				       4, argc, codec);
+  }
+  port = args[0];
+  str = args[1];
+  mode = args[2];
+  sdata = args[3];
+  /* transcoder should handle the first character */
+  for (i = 0; i < SG_STRING_SIZE(str); i++) {
+    Sg_Apply4(SG_CODEC_CUSTOM(codec)->putc, port,
+	      SG_MAKE_CHAR(SG_STRING_VALUE_AT(str, i)), mode,
+	      SG_CODEC_CUSTOM(codec)->data);
+  }
+  return SG_MAKE_INT(i);
+}
+
 SgObject Sg_MakeCustomCodecSimple(SgObject name, SgObject getc,
 				  SgObject putc, SgObject data)
 {
@@ -421,8 +520,8 @@ SgObject Sg_MakeCustomCodecSimple(SgObject name, SgObject getc,
   SG_CODEC_CUSTOM(z)->getc = getc;
   SG_CODEC_CUSTOM(z)->data = data;
   /* TODO default read and write */
-  SG_CODEC_CUSTOM(z)->readc  = SG_UNDEF;
-  SG_CODEC_CUSTOM(z)->writec = SG_UNDEF;
+  SG_CODEC_CUSTOM(z)->readc  = Sg_MakeSubr(readc_proc, z, 4, 0, SG_FALSE);
+  SG_CODEC_CUSTOM(z)->writec = Sg_MakeSubr(writec_proc, z, 4, 0, SG_FALSE);
   return SG_OBJ(z);
 }
 

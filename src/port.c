@@ -978,12 +978,20 @@ static int transGetLineNo(SgObject self)
 
 static SgChar transGetChar(SgObject self)
 {
-  return SG_TPORT_TRANSCODER(self)->getChar(SG_TPORT_TRANSCODER(self), SG_TPORT_PORT(self));
+  return SG_TPORT_TRANSCODER(self)->getChar(SG_TPORT_TRANSCODER(self),
+					    SG_TPORT_PORT(self));
 }
 
 static void transUnGetChar(SgObject self, SgChar c)
 {
   SG_TPORT_TRANSCODER(self)->unGetChar(SG_TPORT_TRANSCODER(self), c);
+}
+
+static int64_t trans_get_string(SgObject self, SgChar *buf, int64_t size)
+{
+  return SG_TPORT_TRANSCODER(self)->getString(SG_TPORT_TRANSCODER(self),
+					      SG_TPORT_PORT(self),
+					      buf, size);
 }
 
 static int transClose(SgObject self)
@@ -1008,7 +1016,9 @@ SgObject Sg_MakeTranscodedInputPort(SgPort *port, SgTranscoder *transcoder)
   t->unGetChar = transUnGetChar;
   t->getLineNo = transGetLineNo;
   t->lookAheadChar = lookAheadChar;
+  t->getString = trans_get_string;
   t->putChar = NULL;
+  t->putString = NULL;
 
   z->impl.tport = t;
   return SG_OBJ(z);
@@ -1020,6 +1030,16 @@ static void transPutChar(SgObject self, SgChar c)
   SG_TPORT_TRANSCODER(self)->putChar(SG_TPORT_TRANSCODER(self),
 				     SG_TPORT_PORT(self),
 				     c);
+}
+
+static int64_t trans_put_string(SgObject self, SgString *str,
+				int64_t start, int64_t count)
+{
+  if (start != 0 || count != SG_STRING_SIZE(str)) {
+    str = Sg_Substring(str, start, start + count);
+  }
+  return SG_TPORT_TRANSCODER(self)->putString(SG_TPORT_TRANSCODER(self),
+					      SG_TPORT_PORT(self), str);
 }
 
 static void transFlush(SgObject self)
@@ -1042,7 +1062,9 @@ SgObject Sg_MakeTranscodedOutputPort(SgPort *port, SgTranscoder *transcoder)
   t->unGetChar = NULL;
   t->getLineNo = NULL;
   t->lookAheadChar = NULL;
+  t->getString = NULL;
   t->putChar = transPutChar;
+  t->putString = trans_put_string;
 
   z->impl.tport = t;
   return SG_OBJ(z);
@@ -1063,7 +1085,9 @@ SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port, SgTranscoder *transcoder
   t->unGetChar = transUnGetChar;
   t->getLineNo = transGetLineNo;
   t->lookAheadChar = lookAheadChar;
+  t->getString = trans_get_string;
   t->putChar = transPutChar;
+  t->putString = trans_put_string;
 
   z->impl.tport = t;
   return SG_OBJ(z);
@@ -1105,6 +1129,17 @@ static void string_oport_putchar(SgObject self, SgChar c)
   tp->src.ostr.current = buf->next;
 }
 
+static int64_t string_oport_put_string(SgObject self, SgString *str,
+				       int64_t start, int64_t count)
+{
+  int64_t i;
+  /* TODO: we might want to improve this */
+  for (i = 0; i < count; i++) {
+    string_oport_putchar(self, SG_STRING_VALUE_AT(str, i + start));
+  }
+  return i;
+}
+
 static SgChar string_iport_getchar(SgObject self)
 {
   SgChar ch;
@@ -1128,6 +1163,21 @@ static void string_iport_ungetchar(SgObject self, SgChar c)
   SG_TEXTUAL_PORT(self)->src.buffer.index--;
 }
 
+static int64_t string_iport_get_string(SgObject self, SgChar *buf, int64_t size)
+{
+  int64_t i;
+  SgTextualPort *port = SG_TEXTUAL_PORT(self);
+  SgString *str = port->src.buffer.str;
+  for (i = 0; i < size && i < SG_STRING_SIZE(str);
+       i++, port->src.buffer.index++) {
+    buf[i] = SG_STRING_VALUE_AT(str, i);
+    if (buf[i] == '\n') {
+      port->src.buffer.lineNo++;
+    }
+  }
+  return i;
+}
+
 static int string_iport_getlineno(SgObject self)
 {
   return SG_TEXTUAL_PORT(self)->src.buffer.lineNo;
@@ -1148,6 +1198,7 @@ SgObject Sg_MakeStringOutputPort(int bufferSize)
   t->getLineNo = NULL;
   t->lookAheadChar = NULL;
   t->putChar = string_oport_putchar;
+  t->putString = string_oport_put_string;
 
   z->impl.tport = t;
   return SG_OBJ(z); 
@@ -1170,6 +1221,7 @@ SgObject Sg_MakeStringInputPort(SgString *s, int private)
   t->unGetChar = string_iport_ungetchar;
   t->getLineNo = string_iport_getlineno;
   t->lookAheadChar = lookAheadChar;
+  t->getString = string_iport_get_string;
   t->putChar = NULL;
 
   z->impl.tport = t;
@@ -1483,6 +1535,18 @@ static void custom_textual_unget_char(SgObject self, SgChar ch)
   SG_CUSTOM_PORT(self)->buffer[SG_CUSTOM_PORT(self)->index++] = ch;
 }
 
+static int64_t custom_textual_get_string(SgObject self, SgChar *buf,
+					 int64_t size)
+{
+  int64_t i;
+  for (i = 0; i < size; i++) {
+    SgChar c = custom_textual_get_char(self);
+    if (c == EOF) return i;
+    buf[i] = c;
+  }
+  return i;
+}
+
 static void custom_textual_put_char(SgObject self, SgChar ch)
 {
   static const SgObject start = SG_MAKE_INT(0);
@@ -1497,6 +1561,16 @@ static void custom_textual_put_char(SgObject self, SgChar ch)
 		    Sg_Sprintf(UC("custom port write! returned invalid value, %S"), result),
 		    result);
   }
+}
+
+static int64_t custom_textual_put_string(SgObject self, SgString *str,
+					 int64_t start, int64_t count)
+{
+  int64_t i;
+  for (i = 0; i < count; i++) {
+    custom_textual_put_char(self, SG_STRING_VALUE_AT(str, i + start));
+  }
+  return i;
 }
 
 SgObject Sg_MakeCustomTextualPort(SgString *id,
@@ -1527,15 +1601,18 @@ SgObject Sg_MakeCustomTextualPort(SgString *id,
   switch (direction) {
   case SG_IN_OUT_PORT:
     SG_CUSTOM_TEXTUAL_PORT(z)->putChar = custom_textual_put_char;
-    /* fall through for lazyness */
+    SG_CUSTOM_TEXTUAL_PORT(z)->putString = custom_textual_put_string;
+    /* fall through for laziness */
   case SG_INPUT_PORT:
     SG_CUSTOM_TEXTUAL_PORT(z)->getLineNo = custom_textual_get_line_no;
     SG_CUSTOM_TEXTUAL_PORT(z)->getChar = custom_textual_get_char;
+    SG_CUSTOM_TEXTUAL_PORT(z)->getString = custom_textual_get_string;
     SG_CUSTOM_TEXTUAL_PORT(z)->lookAheadChar = custom_textual_lookahead_char;
     SG_CUSTOM_TEXTUAL_PORT(z)->unGetChar = custom_textual_unget_char;
     break;
   case SG_OUTPUT_PORT:
     SG_CUSTOM_TEXTUAL_PORT(z)->putChar = custom_textual_put_char;
+    SG_CUSTOM_TEXTUAL_PORT(z)->putString = custom_textual_put_string;
     break;
   }
 
@@ -1799,6 +1876,25 @@ void Sg_Puts(SgPort *port, SgString *str)
   SG_PORT_UNLOCK(port);
 }
 
+void Sg_Writes(SgPort *port, SgString *s, int start, int count)
+{
+  SG_PORT_LOCK(port);
+  Sg_WritesUnsafe(port, s, start, count);
+  SG_PORT_UNLOCK(port);
+}
+
+void Sg_WritesUnsafe(SgPort *port, SgString *s, int start, int count)
+{
+  if (SG_TEXTUAL_PORTP(port)) {
+    SG_TEXTUAL_PORT(port)->putString(port, s, start, count);
+  } else if (SG_CUSTOM_PORTP(port)) {
+    ASSERT(SG_CUSTOM_PORT(port)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE);
+    SG_CUSTOM_TEXTUAL_PORT(port)->putString(port, s, start, count);
+  } else {
+    Sg_Error(UC("textual port required, but got %S"), port);
+  }  
+}
+
 void Sg_PutbUnsafe(SgPort *port, uint8_t b)
 {
  reckless:
@@ -1847,6 +1943,7 @@ void Sg_PutcUnsafe(SgPort *port, SgChar ch)
   }
 }
 
+/* putz and putuz are only used in C */
 void Sg_PutzUnsafe(SgPort *port, const char *str)
 {
   for (;*str;) Sg_PutcUnsafe(port, ((SgChar)*str++));
@@ -1859,12 +1956,14 @@ void Sg_PutuzUnsafe(SgPort *port, const SgChar *str)
 
 void Sg_PutsUnsafe(SgPort *port, SgString *str)
 {
-  const SgChar *p;
-  int i, size;
-
-  p = SG_STRING_VALUE(str);
-  size = SG_STRING_SIZE(str);
-  for (i = 0; i < size; i++) Sg_PutcUnsafe(port, p[i]);
+  if (SG_TEXTUAL_PORTP(port)) {
+    SG_TEXTUAL_PORT(port)->putString(port, str, 0, SG_STRING_SIZE(str));
+  } else if (SG_CUSTOM_PORTP(port)) {
+    ASSERT(SG_CUSTOM_PORT(port)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE);
+    SG_CUSTOM_TEXTUAL_PORT(port)->putString(port, str, 0, SG_STRING_SIZE(str));
+  } else {
+    Sg_Error(UC("textual port required, but got %S"), port);
+  }
 }
 
 int Sg_GetbUnsafe(SgPort *port)

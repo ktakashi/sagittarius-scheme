@@ -61,7 +61,7 @@ struct SgCodecRec
       int     (*putc)(SgObject, SgPort*, SgChar, ErrorHandlingMode);
       SgChar  (*getc)(SgObject, SgPort*, ErrorHandlingMode, int);
       int64_t (*readc)(SgObject, SgPort*, SgChar*, int64_t, ErrorHandlingMode, int);
-      int64_t (*writec)(SgObject, SgPort*, const SgChar*, int64_t, ErrorHandlingMode);
+      int64_t (*writec)(SgObject, SgPort*, SgString *, ErrorHandlingMode);
       Endianness endian;
     } builtin;
     struct {

@@ -2531,12 +2531,7 @@
     (unless (<= (+ count start) (SG_STRING_SIZE s))
       (assertion-violation 'put-string
 			   "invalid range"))
-    ;; TODO not so pretty
-    (SG_PORT_LOCK p)
-    (let ((i::int start))
-      (for (() (< i (+ count start)) (post++ i))
-	   (Sg_PutcUnsafe p (SG_STRING_VALUE_AT s i))))
-    (SG_PORT_UNLOCK p))
+    (Sg_Writes p s start count))
 
   (define-c-proc put-datum (p::<port> datum) ::<void>
     (check-port-open put-datum p)

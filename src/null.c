@@ -8588,9 +8588,7 @@ static SgObject null_put_string(SgObject *SG_FP, int SG_ARGC, void *data_)
 {if ((start)<(0)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d10[447],SG_MAKE_STRING("non negative exact integer"),SG_MAKE_INT(start),SG_NIL);}}}}
 {if ((count)<(0)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d10[447],SG_MAKE_STRING("non negative exact integer"),SG_MAKE_INT(count),SG_NIL);}}}}
 {if ((!(((count)+(start))<=(SG_STRING_SIZE(s))))){{{Sg_AssertionViolation(sg__rc.d10[447],SG_MAKE_STRING("invalid range"),SG_NIL);}}}}
-{SG_PORT_LOCK(p);}
-{{int i=start;for (;(i)<((count)+(start));(i)++){Sg_PutcUnsafe(p,SG_STRING_VALUE_AT(s,i));}}}
-{SG_PORT_UNLOCK(p);}
+{Sg_Writes(p,s,start,count);}
 SG_RETURN(SG_UNDEF);
   }
 }

@@ -100,6 +100,8 @@ typedef struct SgTextualPortRec
   SgChar   (*lookAheadChar)(SgObject);
   void     (*unGetChar)(SgObject, SgChar);
   void     (*putChar)(SgObject, SgChar);
+  int64_t  (*getString)(SgObject, SgChar *, int64_t);
+  int64_t  (*putString)(SgObject, SgString *, int64_t, int64_t);
   int      type;
   /* 
      for string port
@@ -320,7 +322,13 @@ SG_EXTERN void     Sg_Putuz(SgPort *port, const SgChar *str);
 SG_EXTERN void     Sg_Puts(SgPort *port, SgString *str);
 
 SG_EXTERN void     Sg_PutbUnsafe(SgPort *port, uint8_t b);
-SG_EXTERN void     Sg_WritebUnsafe(SgPort *port, uint8_t *b, int start, int count);
+SG_EXTERN void     Sg_WritebUnsafe(SgPort *port, uint8_t *b, int start,
+				   int count);
+/* for textual port */
+SG_EXTERN void     Sg_Writes(SgPort *port, SgString *s, int start, int count);
+SG_EXTERN void     Sg_WritesUnsafe(SgPort *port, SgString *s,
+				   int start, int count);
+
 SG_EXTERN void     Sg_PutcUnsafe(SgPort *port, SgChar ch);
 SG_EXTERN void     Sg_PutzUnsafe(SgPort *port, const char *str);
 /* is this too similar? */
