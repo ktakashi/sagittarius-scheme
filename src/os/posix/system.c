@@ -71,15 +71,17 @@ SgObject Sg_GetLastErrorMessage()
   return Sg_GetLastErrorMessageWithErrorCode(errno);
 }
 
+
 SgObject Sg_GetDefaultLoadPath()
 {
-  return SG_LIST2(Sg_MakeString(UC(SAGITTARIUS_SITE_LIB_PATH), SG_LITERAL_STRING),
-		  Sg_MakeString(UC(SAGITTARIUS_SHARE_LIB_PATH), SG_LITERAL_STRING));
+  return SG_LIST2(SG_MAKE_STRING(SAGITTARIUS_SITE_LIB_PATH),
+		  SG_MAKE_STRING(SAGITTARIUS_SHARE_LIB_PATH));
 }
 
 SgObject Sg_GetDefaultDynamicLoadPath()
 {
-  return SG_LIST1(Sg_MakeString(UC(SAGITTARIUS_DYNLIB_PATH), SG_LITERAL_STRING));
+  return SG_LIST2(SG_MAKE_STRING(SAGITTARIUS_DYNLIB_PATH),
+		  SG_MAKE_STRING(SAGITTARIUS_SITE_DYNLIB_PATH));
 }
 
 int Sg_GetTimeOfDay(unsigned long *sec, unsigned long *usec)
@@ -133,8 +135,6 @@ void Sg_YieldCPU()
 
 SgObject Sg_Getenv(const SgChar *env)
 {
-  int len = ustrlen(env);
-  /* TODO don't do like this */
   SgString *s = Sg_MakeString(env, SG_LITERAL_STRING);
   char *key = Sg_Utf32sToUtf8s(s);
   const char *value = getenv(key);
@@ -144,15 +144,10 @@ SgObject Sg_Getenv(const SgChar *env)
 
 void Sg_Setenv(const SgChar *key, const SgChar *value)
 {
-  int klen = ustrlen(key), vlen;
   SgString *keys = Sg_MakeString(key, SG_LITERAL_STRING);
   if (value) {
-    vlen = ustrlen(value);
-    {
-      /* if i can use C99 ... */
-      SgString *values = Sg_MakeString(value, SG_LITERAL_STRING);
-      setenv(Sg_Utf32sToUtf8s(keys), Sg_Utf32sToUtf8s(values), 1);
-    }
+    SgString *values = Sg_MakeString(value, SG_LITERAL_STRING);
+    setenv(Sg_Utf32sToUtf8s(keys), Sg_Utf32sToUtf8s(values), 1);
   } else {
     /* if value was NULL, remove it */
     unsetenv(Sg_Utf32sToUtf8s(keys));

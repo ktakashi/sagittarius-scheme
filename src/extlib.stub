@@ -289,7 +289,7 @@
   (define-c-proc undefined? (o) ::<boolean>
     (result (SG_UNDEFP o)))
 
-  (define-c-proc add-load-path (path::<string>) ::<top>
+  (define-c-proc add-load-path (path::<string>)
     (result (Sg_AddLoadPath path)))
 
   (define-c-proc load (path::<string>) ::<top>

@@ -363,7 +363,8 @@ SgObject Sg_DynLoad(SgString *filename, SgObject initfn, unsigned long flags)
   const char *initname;
   dlobj *dlo;
 
-  spath = Sg_FindFile(filename, vm->dynamicLoadPath, dynldinfo.dso_suffix, TRUE);
+  spath = Sg_FindFile(filename, vm->dynamicLoadPath, 
+		      dynldinfo.dso_suffix, TRUE);
   if (SG_FALSEP(spath)) {
     Sg_Error(UC("can't find dlopen-able library %S"), filename);
   }

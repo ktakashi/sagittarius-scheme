@@ -572,6 +572,7 @@ void Sg_SetCurrentDirectory(SgString *path)
   }
 }
 
+/* site dynload path is the same path as dynload path, so we don't make it */
 static SgString *win_lib_path = NULL;
 static SgString *win_sitelib_path = NULL;
 static SgString *win_dynlib_path = NULL;

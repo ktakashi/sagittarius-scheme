@@ -1884,7 +1884,6 @@ void Sg__InitClos()
 {
   /* TODO library name */
   SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
-  SgClass *fasl_meta;
   static SgClass *nullcpa[1] = {NULL};
 
   SG_CLASS_TOP->cpa = nullcpa;

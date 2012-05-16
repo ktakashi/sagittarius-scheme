@@ -99,8 +99,9 @@
 # endif
 #endif
 
+/* we need to include config.h here */
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include <sagittarius/config.h>
 #else
 #error "config.h is required"
 #endif

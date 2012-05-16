@@ -30,7 +30,7 @@
  *  $Id: $
  */
 
-#include "sagittarius/config.h"
+#include <sagittarius/config.h>
 
 #ifndef __GNUC__
 # ifdef HAVE_ALLOCA_H
