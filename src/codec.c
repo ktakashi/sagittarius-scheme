@@ -92,7 +92,9 @@ static int64_t read_utf8(SgObject self, SgPort *port, SgChar *buf, int64_t size,
   /* for now super naive implementation */
   int64_t i;
   for (i = 0; i < size; i++) {
-    buf[i] = get_utf8_char(self, port, mode, checkBOM);
+    SgChar c = get_utf8_char(self, port, mode, checkBOM);
+    if (c == EOF) return i;
+    buf[i] = c;
   }
   return i;
 }
@@ -160,7 +162,9 @@ static int64_t read_utf16(SgObject self, SgPort *port, SgChar *buf,
   /* for now super naive implementation */
   int64_t i;
   for (i = 0; i < size; i++) {
-    buf[i] = get_utf16_char(self, port, mode, checkBOM);
+    SgChar c = get_utf16_char(self, port, mode, checkBOM);
+    if (c == EOF) return i;
+    buf[i] = c;
   }
   return i;
 }
@@ -283,7 +287,9 @@ static int64_t read_utf32(SgObject self, SgPort *port, SgChar *buf,
   /* for now super naive implementation */
   int64_t i;
   for (i = 0; i < size; i++) {
-    buf[i] = get_utf32_char(self, port, mode, checkBOM);
+    SgChar c = get_utf32_char(self, port, mode, checkBOM);
+    if (c == EOF) return i;
+    buf[i] = c;
   }
   return i;
 }
@@ -397,7 +403,9 @@ static int64_t read_latin1(SgObject self, SgPort *port, SgChar *buf,
   /* for now super naive implementation */
   int64_t i;
   for (i = 0; i < size; i++) {
-    buf[i] = get_latin1_char(self, port, mode, checkBOM);
+    SgChar c = get_latin1_char(self, port, mode, checkBOM);
+    if (c == EOF) return i;
+    buf[i] = c;
   }
   return i;
 }
@@ -489,7 +497,7 @@ static SgObject readc_proc(SgObject *args, int argc, void *data)
   sdata = args[3];
   count = SG_INT_VALUE(size);
   out = Sg_MakeStringOutputPort(-1);
-  /* transcoder should handle the first character */
+  /* transcoder must handle the first character */
   for (i = 0; i < count; i++) {
     SgObject c = Sg_Apply4(SG_CODEC_CUSTOM(codec)->getc, port, mode, SG_FALSE,
 			   SG_CODEC_CUSTOM(codec)->data);

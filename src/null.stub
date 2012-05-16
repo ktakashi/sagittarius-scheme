@@ -2250,9 +2250,8 @@
 	  (result SG_EOF)
 	  (result (SG_MAKE_CHAR c)))))
 
-  ;; TODO this implementation might waste some memory
   ;; when the port doesn't have enough character
-  (define-c-proc get-string-n (p::<port> count::<fixnum>) ::<top>
+  (define-c-proc get-string-n (p::<port> count::<fixnum>)
     (check-port-open get-string-n p)
     (check-textual-port get-string-n p)
     (check-input-port get-string-n p)
@@ -2261,23 +2260,15 @@
       (cond ((== ch EOF)
 	     (result SG_EOF))
 	    (else
-	     ;; TODO it's not *RIGHT* implementation
-	     ;; we should use string-output-port as buffer
-	     ;; but this is match faster (i guess...)
-	     (let ((buf::SgString* (Sg_ReserveString count 0))
-		   (i::int 0))
-	       (loop
-		(cond ((or (== i count)
-			   (== EOF (Sg_Peekc p)))
-		       (break))
-		      (else
-		       (set! (SG_STRING_VALUE_AT buf i) (Sg_Getc p))
-		       (post++ i))))
-	       (if (== i count)
+	     (let* ((buf::SgString* (Sg_ReserveString count 0))
+		    (len::int64_t (Sg_Reads p (SG_STRING_VALUE buf) count)))
+	       (if (== len count)
 		   (result buf)
-		   (result (Sg_Substring buf 0 i))))))))
+		   (result (Sg_Substring buf 0 len))))))))
 
-  (define-c-proc get-string-n! (p::<port> s::<string> start::<fixnum> count::<fixnum>) ::<top>
+  (define-c-proc get-string-n!
+    (p::<port> s::<string> start::<fixnum> count::<fixnum>)
+
     (check-port-open get-string-n! p)
     (check-textual-port get-string-n! p)
     (check-input-port get-string-n! p)
@@ -2287,22 +2278,14 @@
     ;; string must not be literal
     (when (SG_LITERAL_STRINGP s)
       (assertion-violation 'get-string-n!
-			   "attempt to modify a literal string"
-			   s))
+			   "attempt to modify a literal string" s))
     (let ((ch::SgChar (Sg_Peekc p)))
       (cond ((== ch EOF)
 	     (result SG_EOF))
 	    (else
-	     (let ((buf::SgChar* (SG_STRING_VALUE s))
-		   (i::int start))
-	       (loop 
-		(cond ((or (== i count)
-			   (== EOF (Sg_Peekc p)))
-		       (break))
-		      (else
-		       (set! (arrayref buf i) (Sg_Getc p))
-		       (post++ i))))
-	       (result (SG_MAKE_INT (- i start))))))))
+	     (let ((len::int64_t (Sg_Reads p (+ (SG_STRING_VALUE s) start)
+					   count)))
+	       (result (SG_MAKE_INT len)))))))
 
   (define-c-proc get-string-all (p::<port>) ::<top>
     (check-port-open get-string-all p)

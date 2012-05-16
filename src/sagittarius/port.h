@@ -327,6 +327,8 @@ SG_EXTERN void     Sg_WritebUnsafe(SgPort *port, uint8_t *b, int start,
 /* for textual port */
 SG_EXTERN void     Sg_Writes(SgPort *port, SgChar *s, int count);
 SG_EXTERN void     Sg_WritesUnsafe(SgPort *port, SgChar *s, int count);
+SG_EXTERN int64_t  Sg_Reads(SgPort *port, SgChar *s, int count);
+SG_EXTERN int64_t  Sg_ReadsUnsafe(SgPort *port, SgChar *s, int count);
 
 SG_EXTERN void     Sg_PutcUnsafe(SgPort *port, SgChar ch);
 SG_EXTERN void     Sg_PutzUnsafe(SgPort *port, const char *str);

@@ -1165,9 +1165,9 @@ static int64_t string_iport_get_string(SgObject self, SgChar *buf, int64_t size)
   int64_t i;
   SgTextualPort *port = SG_TEXTUAL_PORT(self);
   SgString *str = port->src.buffer.str;
-  for (i = 0; i < size && i < SG_STRING_SIZE(str);
+  for (i = 0; i < size && port->src.buffer.index < SG_STRING_SIZE(str);
        i++, port->src.buffer.index++) {
-    buf[i] = SG_STRING_VALUE_AT(str, i);
+    buf[i] = SG_STRING_VALUE_AT(str, port->src.buffer.index);
     if (buf[i] == '\n') {
       port->src.buffer.lineNo++;
     }
@@ -1481,7 +1481,8 @@ static SgChar custom_textual_get_char(SgObject self)
 			       s, start, count);
     if (!SG_INTP(result)) {
       Sg_IOReadError(SG_INTERN("get-char"),
-		     Sg_Sprintf(UC("custom port read! returned invalid value, %S"), result),
+		     Sg_Sprintf(UC("custom port read! "
+				   "returned invalid value %S"), result),
 		     result);
     }
     if (result == SG_MAKE_INT(0)) {
@@ -1535,13 +1536,47 @@ static void custom_textual_unget_char(SgObject self, SgChar ch)
 static int64_t custom_textual_get_string(SgObject self, SgChar *buf,
 					 int64_t size)
 {
-  int64_t i;
-  for (i = 0; i < size; i++) {
-    SgChar c = custom_textual_get_char(self);
-    if (c == EOF) return i;
-    buf[i] = c;
+  SgObject s, result;
+  int start;
+  int64_t read = 0, offset = 0, i;
+
+  /* resolve buffer first */
+  if (SG_CUSTOM_PORT(self)->buffer != NULL && 
+      SG_CUSTOM_PORT(self)->index != 0) {
+    for (; SG_CUSTOM_PORT(self)->index && read < size;
+	 SG_CUSTOM_PORT(self)->index--, offset++) 
+      *buf++ = SG_CUSTOM_PORT(self)->buffer[SG_CUSTOM_PORT(self)->index - 1];
   }
-  return i;
+  size -= offset;
+  /* unget buffer was enough */
+  if (!size) return offset;
+
+  s = Sg_ReserveString(size, 0);
+  for (start = 0; size; ) {
+    int r;
+    result = Sg_Apply3(SG_CUSTOM_PORT(self)->read, s, 
+		       SG_MAKE_INT(start), 
+		       SG_MAKE_INT(size));
+    if (!SG_INTP(result)) {
+      Sg_IOReadError(SG_INTERN("get-char"),
+		     Sg_Sprintf(UC("custom port read! "
+				   "returned invalid value %S"), result),
+		     result);
+    }
+    if (result == SG_MAKE_INT(0)) {
+      break;
+    }
+    r = SG_INT_VALUE(result);
+    read += r;
+    size -= r;
+    start += r;
+  }
+
+  if (read == 0) return 0;	/* short cut */
+  for (i = 0; i < read; i++) {
+    buf[i] = SG_STRING_VALUE_AT(s, i);
+  }
+  return read + offset;
 }
 
 static void custom_textual_put_char(SgObject self, SgChar ch)
@@ -1889,7 +1924,28 @@ void Sg_WritesUnsafe(SgPort *port, SgChar *s, int count)
     SG_CUSTOM_TEXTUAL_PORT(port)->putString(port, s, count);
   } else {
     Sg_Error(UC("textual port required, but got %S"), port);
-  }  
+  }
+}
+
+int64_t Sg_Reads(SgPort *port, SgChar *s, int count)
+{
+  int64_t size;
+  SG_PORT_LOCK(port);
+  size = Sg_ReadsUnsafe(port, s, count);
+  SG_PORT_UNLOCK(port);
+  return size;
+}
+int64_t Sg_ReadsUnsafe(SgPort *port, SgChar *s, int count)
+{
+  if (SG_TEXTUAL_PORTP(port)) {
+    return SG_TEXTUAL_PORT(port)->getString(port, s, count);
+  } else if (SG_CUSTOM_PORTP(port)) {
+    ASSERT(SG_CUSTOM_PORT(port)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE);
+    return SG_CUSTOM_TEXTUAL_PORT(port)->getString(port, s, count);
+  } else {
+    Sg_Error(UC("textual port required, but got %S"), port);
+  }
+  return -1;			/* dummy */
 }
 
 void Sg_PutbUnsafe(SgPort *port, uint8_t b)
