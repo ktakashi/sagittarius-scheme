@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Sagittarius"
-#define MyAppVersion "0.3.2"
+#define MyAppVersion "0.3.3"
 #define MyAppPublisher "Takashi Kato"
 #define MyAppURL "http://code.google.com/p/sagittarius-scheme/"
 #define MyAppExeName "sash.exe"

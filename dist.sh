@@ -40,3 +40,5 @@ tar -czvf ${DIST_NAME}.tar.gz ${DIST_NAME}
 
 # clean up
 rm -rf ${DIST_NAME}
+
+echo done!
