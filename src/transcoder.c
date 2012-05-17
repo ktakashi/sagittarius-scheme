@@ -105,7 +105,7 @@ static SgObject get_mode(int mode)
 }
 
 
-static void unget_char(SgObject self, SgChar c)
+void Sg_TranscoderUngetc(SgObject self, SgChar c)
 {
   SgTranscoder *tran = SG_TRANSCODER(self);
   if (EOF == c) return;
@@ -186,7 +186,7 @@ static SgChar get_char_internal(SgObject self, SgPort *port)
   return -1;			/* dummy */
 }
 
-static SgChar get_char(SgObject self, SgPort *port)
+SgChar Sg_TranscoderGetc(SgObject self, SgPort *port)
 {
   SgTranscoder *tran = SG_TRANSCODER(self);
   SgChar c = get_char_internal(self, port);
@@ -210,7 +210,7 @@ static SgChar get_char(SgObject self, SgPort *port)
     case NEL:
       return LF;
     default:
-      unget_char(self, c2);
+      Sg_TranscoderUngetc(self, c2);
       return LF;
     }
   }
@@ -219,58 +219,67 @@ static SgChar get_char(SgObject self, SgPort *port)
   }
 }
 
-static SgObject resolve_eol(SgTranscoder *tran, SgChar *s, int64_t count)
+/* 
+   This must be
+   +---+---+---+----+----+---+
+   | a | b | c | \r | \n | d | ...
+   +---+---+---+----+----+---+
+   like this
+   +---+---+---+----+---+
+   | a | b | c | \n | d | ...
+   +---+---+---+----+---+
+   We want to share the memory.
+ */
+static int resolve_eol(SgTranscoder *tran, SgChar *dst, SgChar 
+		       *src, int64_t count)
 {
-  SgObject out = Sg_MakeStringOutputPort(-1);
   int64_t i;
-  for (i = 0; i < count;) {
-    SgChar c = s[i++];
+  int diff = 0;
+  for (i = 0; i < count; i++) {
     if (tran->eolStyle == E_NONE) {
-      if (c == LF) {
+      if (*src == LF) {
 	tran->lineNo++;
       }
-      Sg_PutcUnsafe(out, c);
+      *dst++ = *src++;
       continue;
     }
-    switch (c) {
+    switch (*src) {
     case LF: case NEL: case LS:
       tran->lineNo++;
-      Sg_PutcUnsafe(out, LF);
+      *dst++ = LF;
+      src++;
       break;
     case CR: {
-      SgChar c2 = s[i++];
       tran->lineNo++;
-      switch (c2) {
+      switch (*++src) {
       case LF: case NEL:
-	Sg_PutcUnsafe(out, LF);
-	break;
+	diff++; count++; src++;	/* 2 -> 1 */
+	/* fall through */
       default:
-	i--; 			/* unget */
-	Sg_PutcUnsafe(out, LF);
+	*dst++ = LF;
 	break;
       }
       break;
     }
     default:
-      Sg_PutcUnsafe(out, c);
+      *dst++ = *src++;
       break;
     }
   }
-  return Sg_GetStringFromStringPort(out);
+  return diff;
 }
 
-static int64_t get_string(SgObject self, SgPort *port,
+int64_t Sg_TranscoderRead(SgObject self, SgPort *port, 
 			  SgChar *buf, int64_t size)
 {
   int64_t read = 0;
-  int i;
+  int diff;
   /* we need to resolve 2 things, begin flag and unget char buffer. */
   SgTranscoder *trans = SG_TRANSCODER(self);
   SgChar c;
-  SgObject rs;
   if (trans->isBegin) {
     /* yes we need to make it not begein */
-    c = get_char(self, port);
+    c = Sg_TranscoderGetc(self, port);
     if (c == EOF) return 0;
     buf[read++] = c;
   }
@@ -295,7 +304,7 @@ static int64_t get_string(SgObject self, SgPort *port,
 	  c = LF;
 	  break;
 	default:
-	  unget_char(self, c2);
+	  Sg_TranscoderUngetc(self, c2);
 	  c = LF;
 	  break;
 	}
@@ -313,7 +322,8 @@ static int64_t get_string(SgObject self, SgPort *port,
 					      trans->mode, FALSE);
     /* ok length 0 is EOF, to avoid infinite loop */
     if (r == 0) goto end;
-    rs = resolve_eol(trans, buf+read, r);
+    diff = resolve_eol(trans, buf+read, buf+read, r);
+    read += r - diff;
   } else {
     SgObject r;
     r = Sg_Apply4(SG_CODEC_CUSTOM(trans->codec)->readc,
@@ -325,13 +335,12 @@ static int64_t get_string(SgObject self, SgPort *port,
       return -1;		/* dummy */
     } else {
       if (SG_STRING_SIZE(r) == 0) goto end; /* the same as builtin */
-      rs = resolve_eol(trans, SG_STRING_VALUE(r), SG_STRING_SIZE(r));
+      diff = resolve_eol(trans, buf+read, SG_STRING_VALUE(r),
+			 SG_STRING_SIZE(r));
+      read += SG_STRING_SIZE(r) - diff;
     }
   }
-  /* copy the result */
-  for (i = 0; i < SG_STRING_SIZE(rs); i++) {
-    buf[read++] = SG_STRING_VALUE_AT(rs, i);
-  }
+
   /* resolve_eol compress the size */
   if (read != size) goto retry;
  end:
@@ -349,7 +358,7 @@ static int64_t get_string(SgObject self, SgPort *port,
   } while (0)
 
 
-static void put_char(SgObject self, SgPort *port, SgChar c)
+void Sg_TranscoderPutc(SgObject self, SgPort *port, SgChar c)
 {
   SgTranscoder *tran = SG_TRANSCODER(self);
   if (tran->bufferPosition != 0) {
@@ -398,9 +407,8 @@ static void put_char(SgObject self, SgPort *port, SgChar c)
     }									\
   } while (0)
 
-
-
-static int64_t put_string(SgObject self, SgPort *port, SgChar *s, int64_t count)
+int64_t Sg_TranscoderWrite(SgObject self, SgPort *port,
+			   SgChar *s, int64_t count)
 {
   SgTranscoder *tran = SG_TRANSCODER(self);
   SgObject new_s = NULL;
@@ -457,11 +465,7 @@ SgObject Sg_MakeTranscoder(SgCodec *codec, EolStyle eolStyle,
   z->buffer = NULL;
   z->bufferSize = 0;
   z->isBegin = TRUE;
-  z->getChar = get_char;
-  z->getString = get_string;
-  z->unGetChar = unget_char;
-  z->putChar = put_char;
-  z->putString = put_string;
+
   return SG_OBJ(z);
 }
 

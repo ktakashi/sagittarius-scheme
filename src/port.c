@@ -978,20 +978,18 @@ static int transGetLineNo(SgObject self)
 
 static SgChar transGetChar(SgObject self)
 {
-  return SG_TPORT_TRANSCODER(self)->getChar(SG_TPORT_TRANSCODER(self),
-					    SG_TPORT_PORT(self));
+  return Sg_TranscoderGetc(SG_TPORT_TRANSCODER(self), SG_TPORT_PORT(self));
 }
 
 static void transUnGetChar(SgObject self, SgChar c)
 {
-  SG_TPORT_TRANSCODER(self)->unGetChar(SG_TPORT_TRANSCODER(self), c);
+  Sg_TranscoderUngetc(SG_TPORT_TRANSCODER(self), c);
 }
 
 static int64_t trans_get_string(SgObject self, SgChar *buf, int64_t size)
 {
-  return SG_TPORT_TRANSCODER(self)->getString(SG_TPORT_TRANSCODER(self),
-					      SG_TPORT_PORT(self),
-					      buf, size);
+  return Sg_TranscoderRead(SG_TPORT_TRANSCODER(self), 
+			   SG_TPORT_PORT(self), buf, size);
 }
 
 static int transClose(SgObject self)
@@ -1027,16 +1025,13 @@ SgObject Sg_MakeTranscodedInputPort(SgPort *port, SgTranscoder *transcoder)
 
 static void transPutChar(SgObject self, SgChar c)
 {
-  SG_TPORT_TRANSCODER(self)->putChar(SG_TPORT_TRANSCODER(self),
-				     SG_TPORT_PORT(self),
-				     c);
+  Sg_TranscoderPutc(SG_TPORT_TRANSCODER(self), SG_TPORT_PORT(self), c);
 }
 
 static int64_t trans_put_string(SgObject self, SgChar *str, int64_t count)
 {
-  return SG_TPORT_TRANSCODER(self)->putString(SG_TPORT_TRANSCODER(self),
-					      SG_TPORT_PORT(self),
-					      str, count);
+  return Sg_TranscoderWrite(SG_TPORT_TRANSCODER(self),
+			    SG_TPORT_PORT(self), str, count);
 }
 
 static void transFlush(SgObject self)

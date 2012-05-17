@@ -50,13 +50,6 @@ struct SgTranscoderRec
   int    	         bufferSize;
   int    		 bufferPosition;
   int    		 isBegin;
-
-  /* the first object is self */
-  SgChar  (*getChar)(SgObject, SgPort*);
-  void    (*unGetChar)(SgObject, SgChar);
-  void    (*putChar)(SgObject, SgPort*, SgChar);
-  int64_t (*getString)(SgObject, SgPort*, SgChar *, int64_t);
-  int64_t (*putString)(SgObject, SgPort*, SgChar *, int64_t);
 };
 
 #define SG_TRANSCODERP(obj) SG_XTYPEP(obj, SG_CLASS_TRANSCODER)
@@ -75,6 +68,14 @@ SG_EXTERN SgObject Sg_MakeTranscoder(SgCodec *codec, EolStyle eolStyle,
 SG_EXTERN SgObject Sg_MakeNativeConsoleTranscoder();
 SG_EXTERN SgObject Sg_MakeNativeTranscoder();
 SG_EXTERN EolStyle Sg_NativeEol();
+
+SG_EXTERN SgChar   Sg_TranscoderGetc(SgObject self, SgPort *port);
+SG_EXTERN void     Sg_TranscoderUngetc(SgObject self, SgChar c);
+SG_EXTERN void     Sg_TranscoderPutc(SgObject self, SgPort *port, SgChar c);
+SG_EXTERN int64_t  Sg_TranscoderRead(SgObject self, SgPort *port,
+				     SgChar *buf, int64_t size);
+SG_EXTERN int64_t  Sg_TranscoderWrite(SgObject self, SgPort *port,
+				      SgChar *buf, int64_t size);
 
 SG_CDECL_END
 

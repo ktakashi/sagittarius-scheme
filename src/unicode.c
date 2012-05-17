@@ -298,7 +298,10 @@ static int buffer_u8_reader(void *data)
   if (ctx->pos < ctx->buf_size) {
     return ctx->buf[ctx->pos++];
   } else {
-    return Sg_GetbUnsafe(ctx->port);
+    if (ctx->port)
+      return Sg_GetbUnsafe(ctx->port);
+    else
+      return EOF;
   }
 }
 
@@ -395,45 +398,41 @@ DEFINE_BUFFER_CONVERTOR(Sg_ConvertUtf16BufferToUcs4, utf16_reader);
 SgChar Sg_EnsureUcs4(SgChar c)
 {
   ASSERT(c >= 0);
-  if (c > 0x10ffff) Sg_Error(UC("code point out of range, U+%X"), c);
-  if (c >= 0xd800 && c <= 0xdfff) Sg_Error(UC("code point in excluded range, U+%X"), c);
+  if (c > 0x10ffff)
+    Sg_Error(UC("code point out of range, U+%X"), c);
+  if (c >= 0xd800 && c <= 0xdfff)
+    Sg_Error(UC("code point in excluded range, U+%X"), c);
   return c;
 }
 
 SgObject Sg_Utf8sToUtf32s(const char *s, int len)
 {
-  SgPort *p = Sg_MakeByteArrayInputPort((uint8_t *)s, len);
-  SgTranscoder *t = Sg_MakeTranscoder(Sg_MakeUtf8Codec(), LF, SG_IGNORE_ERROR);
-  SgPort *sp = Sg_MakeStringOutputPort(len * sizeof(SgChar));
-  int i;
-  for (i = 0; i < len; i++) {
-    Sg_Putc(sp, t->getChar(t, p));
-  }
-  return Sg_GetStringFromStringPort(sp);
+  /* we know utf8 length will be less than ucs4 */
+  SgObject ss = Sg_ReserveString(len, 0);
+  int64_t r = Sg_ConvertUtf8BufferToUcs4(Sg_MakeUtf8Codec(), (uint8_t*)s, len,
+					 SG_STRING_VALUE(ss), len, NULL,
+					 SG_IGNORE_ERROR, FALSE);
+  SG_STRING_SIZE(ss) = r;
+  return ss;
 }
 
 SgObject Sg_Utf16sToUtf32s(const char *s, int len)
 {
-  SgPort *p = Sg_MakeByteArrayInputPort((uint8_t *)s, len);
-  SgTranscoder *t = Sg_MakeTranscoder(Sg_MakeUtf16Codec(UTF_16CHECK_BOM), LF, SG_IGNORE_ERROR);
-  SgPort *sp = Sg_MakeStringOutputPort(len * sizeof(SgChar));
-  int i;
-  for (i = 0; i < len; i++) {
-    Sg_Putc(sp, t->getChar(t, p));
-  }
-  return Sg_GetStringFromStringPort(sp);
+  /* we know utf16->ucs32 less than len. (well actuall len/2 is enough) */
+  SgObject ss = Sg_ReserveString(len/2, 0);
+  int64_t r = Sg_ConvertUtf16BufferToUcs4(Sg_MakeUtf16Codec(UTF_16CHECK_BOM),
+					  (uint8_t*)s, len,
+					  SG_STRING_VALUE(ss), len/2, NULL,
+					  SG_IGNORE_ERROR, FALSE);
+  SG_STRING_SIZE(ss) = r;
+  return ss;
 }
 
 char* Sg_Utf32sToUtf8s(const SgString *s)
 {
   SgPort *p = Sg_MakeByteArrayOutputPort(s->size + sizeof(SgChar));
   SgTranscoder *t = Sg_MakeTranscoder(Sg_MakeUtf8Codec(), LF, SG_IGNORE_ERROR);
-  int i, len = s->size;
-  SgChar *value = s->value;
-  for (i = 0; i < len; i++) {
-    t->putChar(t, p, *(value + i));
-  }
-  t->putChar(t, p, '\0');
+  Sg_TranscoderWrite(t, p, SG_STRING_VALUE(s), SG_STRING_SIZE(s));
   return (char*)Sg_GetByteArrayFromBinaryPort(p);
 }
 
@@ -867,7 +866,8 @@ static int downcase_subsequence(int index, SgString *in, SgPort *out)
 	Sg_PutcUnsafe(out, ch);
       } else {
 	Sg_PutcUnsafe(out, ch);
-	i += titlecase_first_char(++i, in, out);
+	i++;
+	i += titlecase_first_char(i, in, out);
       }
       break;
     case Nd:
@@ -875,7 +875,8 @@ static int downcase_subsequence(int index, SgString *in, SgPort *out)
       break;
     default:
       Sg_PutcUnsafe(out, ch);
-      i += titlecase_first_char(++i, in, out);
+      i++;
+      i += titlecase_first_char(i, in, out);
     }
   }
   return i - index;
@@ -890,7 +891,8 @@ static int titlecase_first_char(int index, SgString *in, SgPort *out)
     switch (Sg_CharGeneralCategory(ch)) {
     case Ll: case Lu: case Lt:
       Sg_PutcUnsafe(out, Sg_CharTitleCase(ch));
-      i += downcase_subsequence(++i, in, out);
+      i++;
+      i += downcase_subsequence(i, in, out);
       break;
     default:
       Sg_PutcUnsafe(out, ch);
