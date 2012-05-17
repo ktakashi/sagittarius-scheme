@@ -8055,7 +8055,7 @@ SgObject SG_RESULT = (SgObject)NULL;
 {if (Sg_PortClosedP(p)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d10[411],SG_MAKE_STRING("opened port"),p,SG_NIL);}}}}
 {if ((!((SG_TEXTUAL_PORTP(p))||((SG_CUSTOM_PORTP(p))&&(SG_EQ((SG_CUSTOM_PORT(p))->type,SG_TEXTUAL_CUSTOM_PORT_TYPE)))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d10[411],SG_MAKE_STRING("textual-port"),p,SG_NIL);}}}}
 {if ((!((SG_INPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d10[411],SG_MAKE_STRING("input port"),p,SG_NIL);}}}}
-{{SgChar ch=Sg_Peekc(p);if ((ch)==(EOF)){SG_RESULT=(SG_EOF);} else {{SgObject buf=Sg_MakeStringOutputPort(512);for (;;) {{SgChar c=Sg_Getc(p);if ((c)==(EOF)){break;} else {Sg_PutcUnsafe(buf,c);}}}SG_RESULT=(Sg_GetStringFromStringPort(buf));}}}}
+{{SgChar ch=Sg_Peekc(p);if ((ch)==(EOF)){SG_RESULT=(SG_EOF);} else {SG_PORT_LOCK(p);{SgObject buf=Sg_ReserveString(1024,0);SgObject out=SG_FALSE;int firstP=TRUE;for (;;) {{int64_t len=Sg_ReadsUnsafe(p,SG_STRING_VALUE(buf),1024);if ((len)==(0)){if (firstP){{SG_PORT_UNLOCK(p);return (SG_EOF);}}break;}else if((len)<(1024)){if (firstP){{SG_PORT_UNLOCK(p);return (Sg_Substring(buf,0,len));}}Sg_Writes(out,SG_STRING_VALUE(buf),len);break;} else {if (firstP){out=(Sg_MakeStringOutputPort(-1));}Sg_PutsUnsafe(out,buf);}}}SG_PORT_UNLOCK(p);SG_RESULT=(Sg_GetStringFromStringPort(out));}}}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -8081,7 +8081,7 @@ SgObject SG_RESULT = (SgObject)NULL;
 {if (Sg_PortClosedP(p)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d10[413],SG_MAKE_STRING("opened port"),p,SG_NIL);}}}}
 {if ((!((SG_TEXTUAL_PORTP(p))||((SG_CUSTOM_PORTP(p))&&(SG_EQ((SG_CUSTOM_PORT(p))->type,SG_TEXTUAL_CUSTOM_PORT_TYPE)))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d10[413],SG_MAKE_STRING("textual-port"),p,SG_NIL);}}}}
 {if ((!((SG_INPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d10[413],SG_MAKE_STRING("input port"),p,SG_NIL);}}}}
-{{SgChar ch=Sg_Peekc(p);if ((ch)==(EOF)){SG_RESULT=(SG_EOF);} else {{SgObject buf=Sg_MakeStringOutputPort(512);for (;;) {{SgChar c=Sg_Getc(p);if (((c)==(LF))||((c)==(EOF))){break;} else {Sg_PutcUnsafe(buf,c);}}}SG_RESULT=(Sg_GetStringFromStringPort(buf));}}}}
+{{SgChar ch=Sg_Peekc(p);if ((ch)==(EOF)){SG_RESULT=(SG_EOF);} else {{SgObject buf=Sg_MakeStringOutputPort(512);SG_PORT_LOCK(p);for (;;) {{SgChar c=Sg_GetcUnsafe(p);if (((c)==(LF))||((c)==(EOF))){break;} else {Sg_PutcUnsafe(buf,c);}}}SG_PORT_UNLOCK(p);SG_RESULT=(Sg_GetStringFromStringPort(buf));}}}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }

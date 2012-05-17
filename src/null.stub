@@ -2250,7 +2250,6 @@
 	  (result SG_EOF)
 	  (result (SG_MAKE_CHAR c)))))
 
-  ;; when the port doesn't have enough character
   (define-c-proc get-string-n (p::<port> count::<fixnum>)
     (check-port-open get-string-n p)
     (check-textual-port get-string-n p)
@@ -2295,15 +2294,31 @@
       (cond ((== ch EOF)
 	     (result SG_EOF))
 	    (else
+	     (SG_PORT_LOCK p)
 	     ;; TODO how much should we allocate as default size?
-	     (let ((buf (Sg_MakeStringOutputPort 512)))
+	     (let ((buf (Sg_ReserveString 1024 0))
+		   (out SG_FALSE)
+		   (firstP::int TRUE)) ;; to avoid unnecessary allocation
 	       (loop
-		(let ((c::SgChar (Sg_Getc p)))
-		  (cond ((== c EOF)
+		(let ((len::int64_t 
+		       (Sg_ReadsUnsafe p (SG_STRING_VALUE buf) 1024)))
+		  ;; ok if len is less, then read everything
+		  (cond ((== len 0)
+			 (when firstP 
+			   (SG_PORT_UNLOCK p)
+			   (return SG_EOF))
+			 (break))
+			((< len 1024)
+			 (when firstP 
+			   (SG_PORT_UNLOCK p)
+			   (return (Sg_Substring buf 0 len)))
+			 (Sg_Writes out (SG_STRING_VALUE buf) len)
 			 (break))
 			(else
-			 (Sg_PutcUnsafe buf c)))))
-	       (result (Sg_GetStringFromStringPort buf)))))))
+			 (if firstP (set! out (Sg_MakeStringOutputPort -1)))
+			 (Sg_PutsUnsafe out buf)))))
+	       (SG_PORT_UNLOCK p)
+	       (result (Sg_GetStringFromStringPort out)))))))
 
   (define-c-proc get-line (p::<port>) ::<top>
     (check-port-open get-line p)
@@ -2315,8 +2330,9 @@
 	    (else
 	     ;; TODO how much should we allocate as default size?
 	     (let ((buf (Sg_MakeStringOutputPort 512)))
+	       (SG_PORT_LOCK p)
 	       (loop
-		(let ((c::SgChar (Sg_Getc p)))
+		(let ((c::SgChar (Sg_GetcUnsafe p)))
 		  ;; transcoder return LF as eol.
 		  ;; TODO string-port doesn't have any indication for eol
 		  (cond ((or (== c LF)
@@ -2324,6 +2340,7 @@
 			 (break))
 			(else
 			 (Sg_PutcUnsafe buf c)))))
+	       (SG_PORT_UNLOCK p)
 	       (result (Sg_GetStringFromStringPort buf)))))))
 
   (define-c-proc get-datum (p::<port>) ::<top>

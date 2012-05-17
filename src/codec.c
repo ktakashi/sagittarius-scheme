@@ -86,22 +86,32 @@ static SgChar get_utf8_char(SgObject self, SgPort *port,
   return Sg_ConvertUtf8ToUcs4(port, mode);
 }
 
-static int64_t read_utf8(SgObject self, SgPort *port, SgChar *buf, int64_t size,
-			 ErrorHandlingMode mode, int checkBOM)
-{
-  /* for now super naive implementation */
-  int64_t i;
-  for (i = 0; i < size; i++) {
-    SgChar c = get_utf8_char(self, port, mode, checkBOM);
-    if (c == EOF) return i;
-    buf[i] = c;
-  }
-  return i;
-}
-
 #define TMP_BUF_SIZE 1024
 /* According to Wikipedia, UTF-8 can have max 6 bytes. */
 #define MAX_UTF8_SIZE 6
+
+#define DEFINE_READER(cname, convertor, calc)				\
+  static int64_t cname(SgObject self, SgPort *port, SgChar *buf,	\
+		       int64_t size, ErrorHandlingMode mode,		\
+		       int checkBOM)					\
+  {									\
+    uint8_t tmp[TMP_BUF_SIZE], *read_buf;				\
+    int64_t i, reading_size, read_size;					\
+    reading_size = (calc);						\
+    if (reading_size > TMP_BUF_SIZE) {					\
+      read_buf = SG_NEW_ATOMIC2(uint8_t *, reading_size);		\
+    } else {								\
+      read_buf = tmp;							\
+    }									\
+    read_size = Sg_ReadbUnsafe(port, read_buf, reading_size);		\
+    i = convertor(SG_CODEC(self), read_buf, read_size,			\
+		  buf, size, port, mode, checkBOM);			\
+    return i;								\
+  }
+
+/* calculate read size. for UTF-8 we read size, because we don't know
+   how many bytes one character may contain. */
+DEFINE_READER(read_utf8, Sg_ConvertUtf8BufferToUcs4, size);
 
 static int64_t write_utf8(SgObject self, SgPort* port, SgChar *str,
 			  int64_t count, ErrorHandlingMode mode)
@@ -156,18 +166,8 @@ static SgChar get_utf16_char(SgObject self, SgPort *port,
   return Sg_ConvertUtf16ToUcs4(port, mode, SG_CODEC(self), checkBOM);
 }
 
-static int64_t read_utf16(SgObject self, SgPort *port, SgChar *buf,
-			  int64_t size, ErrorHandlingMode mode, int checkBOM)
-{
-  /* for now super naive implementation */
-  int64_t i;
-  for (i = 0; i < size; i++) {
-    SgChar c = get_utf16_char(self, port, mode, checkBOM);
-    if (c == EOF) return i;
-    buf[i] = c;
-  }
-  return i;
-}
+/* we know utf16 definitely have 2 bytes character. */
+DEFINE_READER(read_utf16, Sg_ConvertUtf16BufferToUcs4, size*2);
 
 static int64_t write_utf16(SgObject self, SgPort* port, SgChar *str,
 			   int64_t count, ErrorHandlingMode mode)
@@ -246,22 +246,23 @@ static int put_utf32_char(SgObject self, SgPort *port, SgChar u,
   put_binary_array(port, buf, 4);
 }
 
-static SgChar get_utf32_char(SgObject self, SgPort *port, 
-			     ErrorHandlingMode mode, int checkBOM)
+static SgChar get_utf32(int (*u8_reader)(void *), SgObject self, 
+			SgPort *port,
+			ErrorHandlingMode mode, void *data)
 {
   int a, b, c, d;
  retry:
-  a = Sg_GetbUnsafe(port);
+  a = u8_reader(data);
   if (a == EOF) return EOF;
-  b = Sg_GetbUnsafe(port);
+  b = u8_reader(data);
   if (b == EOF) {
     decodeError(SG_INTERN("utf32-codec"));
   }
-  c = Sg_GetbUnsafe(port);
+  c = u8_reader(data);
   if (c == EOF) {
     decodeError(SG_INTERN("utf32-codec"));
   }
-  d = Sg_GetbUnsafe(port);
+  d = u8_reader(data);
   if (d == EOF) {
     decodeError(SG_INTERN("utf32-codec"));
   }
@@ -277,22 +278,59 @@ static SgChar get_utf32_char(SgObject self, SgPort *port,
       ((uint8_t)c) << 8  |
       ((uint8_t)b) << 16 |
       ((uint8_t)a) << 24;
-  }
+  }  
 }
 
-
-static int64_t read_utf32(SgObject self, SgPort *port, SgChar *buf,
-			  int64_t size, ErrorHandlingMode mode, int checkBOM)
+static int port_u8_reader(void *data)
 {
-  /* for now super naive implementation */
+  return Sg_GetbUnsafe(SG_PORT(data));
+}
+
+static SgChar get_utf32_char(SgObject self, SgPort *port, 
+			     ErrorHandlingMode mode, int checkBOM)
+{
+  return get_utf32(port_u8_reader, self, port, mode, port);
+}
+
+typedef struct
+{
+  int64_t  pos;
+  uint8_t *buf;
+  int64_t  buf_size;
+  SgPort  *port;
+} u8_reader_ctx;
+static int buffer_u8_reader(void *data)
+{
+  u8_reader_ctx *ctx = (u8_reader_ctx *)data;
+  if (ctx->pos < ctx->buf_size) {
+    return ctx->buf[ctx->pos++];
+  } else {
+    return Sg_GetbUnsafe(ctx->port);
+  }
+}
+static int64_t convert_utf32_buffer_ucs32(SgCodec *codec,
+					  uint8_t *u8buf, int64_t u8size,
+					  SgChar *buf, int64_t size,
+					  SgPort *port,
+					  ErrorHandlingMode mode,
+					  int checkBOM)
+{
   int64_t i;
+  u8_reader_ctx ctx;
+  ctx.pos = 0;
+  ctx.buf = u8buf;
+  ctx.buf_size = u8size;
+  ctx.port = port;
   for (i = 0; i < size; i++) {
-    SgChar c = get_utf32_char(self, port, mode, checkBOM);
+    SgChar c = get_utf32(buffer_u8_reader, codec, port, mode, &ctx);
     if (c == EOF) return i;
     buf[i] = c;
   }
   return i;
 }
+
+/* UTF32 is always 4 byte */
+DEFINE_READER(read_utf32, convert_utf32_buffer_ucs32, size*4);
 
 static int64_t write_utf32(SgObject self, SgPort* port, SgChar *s,
 			   int64_t count, ErrorHandlingMode mode)
@@ -386,29 +424,42 @@ static SgChar get_latin1_char(SgObject self, SgPort *port,
 			      ErrorHandlingMode mode, int checkBOM)
 {
   int f;
- retry:
   f = Sg_GetbUnsafe(port);
   if (f == EOF) return EOF;
-  if (f <= 0xFF) {
-    return (SgChar)f;
-  } else {
-    decodeError(SG_INTERN("latin-1-codec"));
-  }
-  return ' ';
+  return (SgChar)f;
 }
 
-static int64_t read_latin1(SgObject self, SgPort *port, SgChar *buf,
-			   int64_t size, ErrorHandlingMode mode, int checkBOM)
+static int get_latin1_from_ctx(u8_reader_ctx *ctx)
 {
-  /* for now super naive implementation */
+  int f;
+  f = buffer_u8_reader(ctx);
+  if (f == EOF) return EOF;
+  return (SgChar)f;
+}
+
+static int64_t convert_latin1_buffer_ucs32(SgCodec *codec,
+					   uint8_t *u8buf, int64_t u8size,
+					   SgChar *buf, int64_t size,
+					   SgPort *port,
+					   ErrorHandlingMode mode,
+					   int checkBOM)
+{
   int64_t i;
+  u8_reader_ctx ctx;
+  ctx.pos = 0;
+  ctx.buf = u8buf;
+  ctx.buf_size = u8size;
+  ctx.port = port;
   for (i = 0; i < size; i++) {
-    SgChar c = get_latin1_char(self, port, mode, checkBOM);
+    SgChar c = get_latin1_from_ctx(&ctx);
     if (c == EOF) return i;
     buf[i] = c;
   }
   return i;
 }
+
+/* latin1 is always one byte */
+DEFINE_READER(read_latin1, convert_latin1_buffer_ucs32, size);
 
 static int64_t write_latin1(SgObject self, SgPort* port, SgChar *s,
 			    int64_t count, ErrorHandlingMode mode)

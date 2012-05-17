@@ -74,11 +74,27 @@ SG_EXTERN int 	 Sg_Ucs4ConstituentP(SgChar c);
 SG_EXTERN int 	 Sg_Ucs4SubsequentP(SgChar c);
 SG_EXTERN int 	 Sg_Ucs4WhiteSpaceP(SgChar c);
 SG_EXTERN int 	 Sg_Ucs4IntralineWhiteSpaceP(SgChar c);
-SG_EXTERN int 	 Sg_ConvertUcs4ToUtf8(SgChar c, uint8_t utf8[4], ErrorHandlingMode mode);
-SG_EXTERN int 	 Sg_ConvertUcs4ToUtf16(SgChar c, uint8_t utf8[4], ErrorHandlingMode mode, int littelp);
+SG_EXTERN int 	 Sg_ConvertUcs4ToUtf8(SgChar c, uint8_t utf8[4],
+				      ErrorHandlingMode mode);
+SG_EXTERN int 	 Sg_ConvertUcs4ToUtf16(SgChar c, uint8_t utf8[4],
+				       ErrorHandlingMode mode, int littelp);
 SG_EXTERN SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode);
-SG_EXTERN SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode, SgCodec *codec, int checkBOMNow);
+SG_EXTERN SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode,
+				       SgCodec *codec, int checkBOMNow);
 SG_EXTERN SgChar Sg_EnsureUcs4(SgChar c);
+
+SG_EXTERN int64_t Sg_ConvertUtf8BufferToUcs4(SgCodec *codec,
+					     uint8_t *u8buf, int64_t u8size,
+					     SgChar *buf, int64_t size,
+					     SgPort *port,
+					     ErrorHandlingMode mode,
+					     int checkBOM);
+SG_EXTERN int64_t Sg_ConvertUtf16BufferToUcs4(SgCodec *codec,
+					      uint8_t *u8buf, int64_t u8size,
+					      SgChar *buf, int64_t size,
+					      SgPort *port,
+					      ErrorHandlingMode mode,
+					      int checkBOM);
 
 /* string convertion */
 SG_EXTERN SgObject Sg_Utf8sToUtf32s(const char *s, int len);

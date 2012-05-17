@@ -59,10 +59,13 @@ int Sg_Ucs4SubsequentP(SgChar c)
 
 int Sg_Ucs4WhiteSpaceP(SgChar c)
 {
-  if (c == 0x0020) return TRUE;                   /*; White_Space # Zs       SPACE */
-  if (c >= 0x0009 && c <= 0x000d) return TRUE;    /*; White_Space # Cc   [5] <control-0009>..<control-000D> */
+  /*; White_Space # Zs       SPACE */
+  if (c == 0x0020) return TRUE;
+  /*; White_Space # Cc   [5] <control-0009>..<control-000D> */
+  if (c >= 0x0009 && c <= 0x000d) return TRUE;
   if (c <= 0x007F) return FALSE;
-  if (c >= 0x2000 && c <= 0x200a) return TRUE;    /*; White_Space # Zs  [11] EN QUAD..HAIR SPACE */
+  /*; White_Space # Zs  [11] EN QUAD..HAIR SPACE */
+  if (c >= 0x2000 && c <= 0x200a) return TRUE;
   switch (c) {
   case 0x0085:    /*; White_Space # Cc       <control-0085> */
   case 0x00A0:    /*; White_Space # Zs       NO-BREAK SPACE */
@@ -80,10 +83,13 @@ int Sg_Ucs4WhiteSpaceP(SgChar c)
 
 int Sg_Ucs4IntralineWhiteSpaceP(SgChar c)
 {
-  if (c == 0x0020) return TRUE;                   /*; White_Space # Zs       SPACE */
-  if (c == 0x0009) return TRUE;                   /*; White_Space # Cc   [5] <control-0009> */
+  /*; White_Space # Zs       SPACE */
+  if (c == 0x0020) return TRUE;
+  /*; White_Space # Cc   [5] <control-0009> */
+  if (c == 0x0009) return TRUE;
   if (c <= 0x007F) return FALSE;
-  if (c >= 0x2000 && c <= 0x200a) return TRUE;    /*; White_Space # Zs  [11] EN QUAD..HAIR SPACE */
+  /*; White_Space # Zs  [11] EN QUAD..HAIR SPACE */
+  if (c >= 0x2000 && c <= 0x200a) return TRUE;
   switch (c) {
   case 0x00A0:    /*; White_Space # Zs       NO-BREAK SPACE */
   case 0x1680:    /*; White_Space # Zs       OGHAM SPACE MARK */
@@ -138,7 +144,8 @@ int Sg_ConvertUcs4ToUtf8(SgChar ucs4, uint8_t utf8[4], ErrorHandlingMode mode)
   return 0; /* dummy */
 }
 
-int Sg_ConvertUcs4ToUtf16(SgChar ucs4, uint8_t utf8[4], ErrorHandlingMode mode, int littlep)
+int Sg_ConvertUcs4ToUtf16(SgChar ucs4, uint8_t utf8[4], ErrorHandlingMode mode,
+			  int littlep)
 {
 #define put2byte(buf, in)			\
   if (littlep) {				\
@@ -206,16 +213,17 @@ static inline int isUtf8Tail(uint8_t b)
     return (0x80 <= b && b <= 0xbf);
 }
 
-SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
+static SgChar utf8_reader(int (*u8reader)(void *),
+			  SgCodec *codec, /* not used */
+			  SgPort *port, ErrorHandlingMode mode,
+			  int checkBOM, /* not used */
+			  void *data)
 {
   int f;
   uint8_t first;
 
  retry:
-  /* since we have reckless flag we should not check this here... */
-  /* ASSERT(SG_BINARY_PORTP(port)); */
-
-  f = Sg_GetbUnsafe(port);
+  f = u8reader(data);
   if (f == EOF) return EOF;
   first = (uint8_t)(f & 0xff);
 
@@ -224,7 +232,7 @@ SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
     return first;
     /* UTF8-2 = %xC2-DF UTF8-tail */
   } else if (0xc2 <= first && first <= 0xdf) {
-    uint8_t second = Sg_GetbUnsafe(port);
+    uint8_t second = u8reader(data);
     if (isUtf8Tail(second)) {
       return ((first & 0x1f) << 6) | (second & 0x3f);
     } else {
@@ -233,8 +241,8 @@ SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
     /* UTF8-3 = %xE0 %xA0-BF UTF8-tail / %xE1-EC 2( UTF8-tail ) /  */
     /*          %xED %x80-9F UTF8-tail / %xEE-EF 2( UTF8-tail )    */
   } else if (0xe0 <= first && first <= 0xef) {
-    uint8_t second = Sg_GetbUnsafe(port);
-    uint8_t third =  Sg_GetbUnsafe(port);
+    uint8_t second = u8reader(data);
+    uint8_t third =  u8reader(data);
     if (!isUtf8Tail(third)) {
       decodeError(SG_INTERN("convert-utf8-to-ucs4"));
     } else if ((0xe0 == first && 0xa0 <= second && second <= 0xbf)    ||
@@ -248,25 +256,78 @@ SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
     /* UTF8-4 = %xF0 %x90-BF 2( UTF8-tail ) / %xF1-F3 3( UTF8-tail ) /  */
     /*          %xF4 %x80-8F 2( UTF8-tail )  */
   } else if (0xf0 <= first && first <= 0xf4) {
-    uint8_t second = Sg_GetbUnsafe(port);
-    uint8_t third =  Sg_GetbUnsafe(port);
-    uint8_t fourth = Sg_GetbUnsafe(port);
+    uint8_t second = u8reader(data);
+    uint8_t third =  u8reader(data);
+    uint8_t fourth = u8reader(data);
     if (!isUtf8Tail(third) || !isUtf8Tail(fourth)) {
       decodeError(SG_INTERN("convert-utf8-to-ucs4"));
     } else if ((0xf0 == first && 0x90 <= second && second <= 0xbf)     ||
 	       (0xf4 == first && 0x80 <= second && second <= 0x8f)     ||
 	       (0xf1 <= first && first <= 0xf3 && isUtf8Tail(second))) {
-      return ((first & 0x7) << 18) | ((second & 0x3f) << 12) | ((third & 0x3f) << 6) | fourth;
+      return (((first & 0x7) << 18) | ((second & 0x3f) << 12) |
+	      ((third & 0x3f) << 6) | fourth);
     } else {
       decodeError(SG_INTERN("convert-utf8-to-ucs4"));
     }
   } else {
     decodeError(SG_INTERN("convert-utf8-to-ucs4"));
   }
-  return ' ';
+  return ' ';  
 }
 
-SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode, SgCodec *codec, int checkBOMNow)
+static int port_u8_reader(void *data)
+{
+  return Sg_GetbUnsafe(SG_PORT(data));
+}
+
+SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
+{
+  return utf8_reader(port_u8_reader, NULL, port, mode, FALSE, (void*)port);
+}
+
+typedef struct
+{
+  int64_t  pos;
+  uint8_t *buf;
+  int64_t  buf_size;
+  SgPort  *port;
+} u8_reader_ctx;
+static int buffer_u8_reader(void *data)
+{
+  u8_reader_ctx *ctx = (u8_reader_ctx *)data;
+  if (ctx->pos < ctx->buf_size) {
+    return ctx->buf[ctx->pos++];
+  } else {
+    return Sg_GetbUnsafe(ctx->port);
+  }
+}
+
+#define DEFINE_BUFFER_CONVERTOR(cname, char_reader)			\
+  int64_t cname(SgCodec *codec, uint8_t *u8buf, int64_t u8size,		\
+		SgChar *buf, int64_t size, SgPort *port,		\
+		ErrorHandlingMode mode, int checkBOM)			\
+  {									\
+    int64_t i;								\
+    u8_reader_ctx ctx;							\
+    ctx.pos = 0;							\
+    ctx.buf = u8buf;							\
+    ctx.buf_size = u8size;						\
+    ctx.port = port;							\
+    for (i = 0; i < size; i++) {					\
+      SgChar c = char_reader(buffer_u8_reader, codec, port, mode,	\
+			     checkBOM, &ctx);				\
+      if (c == EOF) return i;						\
+      buf[i] = c;							\
+    }									\
+    return i;								\
+  }
+
+DEFINE_BUFFER_CONVERTOR(Sg_ConvertUtf8BufferToUcs4, utf8_reader);
+
+
+static SgChar utf16_reader(int (*u8reader)(void *), SgCodec *codec,
+			   SgPort *port, ErrorHandlingMode mode,
+			   int checkBOMNow, void *data)
 {
   uint16_t hi;
   uint16_t lo;
@@ -279,9 +340,8 @@ SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode, SgCodec *code
 
 #define isLittleEndian(c) (SG_CODEC_ENDIAN(c) == UTF_16LE)
  retry:
-  /* TODO assert */
-  a = Sg_GetbUnsafe(port);
-  b = Sg_GetbUnsafe(port);
+  a = u8reader(data);
+  b = u8reader(data);
 
   if (a == EOF) return EOF;
   if (b == EOF) {
@@ -291,10 +351,10 @@ SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode, SgCodec *code
   if (checkBOMNow && SG_CODEC_ENDIAN(codec) == UTF_16CHECK_BOM) {
     if (a == 0xFE && b == 0xFF) {
       SG_CODEC_ENDIAN(codec) = UTF_16BE;
-      return Sg_ConvertUtf16ToUcs4(port, mode, codec, FALSE);
+      return utf16_reader(u8reader, codec, port, mode, FALSE, data);
     } else if (a == 0xFF && b == 0xFE) {
       SG_CODEC_ENDIAN(codec) = UTF_16LE;
-      return Sg_ConvertUtf16ToUcs4(port, mode, codec, FALSE);
+      return utf16_reader(u8reader, codec, port, mode, FALSE, data);
     } else {
       SG_CODEC_ENDIAN(codec) = UTF_16BE;
       /* correct? */
@@ -305,11 +365,11 @@ SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode, SgCodec *code
   if (val1 < 0xD800 || val1 > 0xDFFF) {
     return val1;
   }
-  c = Sg_GetbUnsafe(port);
+  c = u8reader(data);
   if (EOF == c) {
     decodeError(SG_INTERN("convert-utf16-to-ucs4"));
   }
-  d = Sg_GetbUnsafe(port);
+  d = u8reader(data);
   if (EOF == d) {
     decodeError(SG_INTERN("convert-utf16-to-ucs4"));
   }
@@ -321,8 +381,16 @@ SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode, SgCodec *code
   W = (hi >> 6) & ((1 << 5) - 1);
   U = W + 1;
   C = U << 16 | X;
-  return C;
+  return C;  
 }
+
+SgChar Sg_ConvertUtf16ToUcs4(SgPort *port, ErrorHandlingMode mode,
+			     SgCodec *codec, int checkBOMNow)
+{
+  return utf16_reader(port_u8_reader, codec, port, mode, checkBOMNow, port);
+}
+
+DEFINE_BUFFER_CONVERTOR(Sg_ConvertUtf16BufferToUcs4, utf16_reader);
 
 SgChar Sg_EnsureUcs4(SgChar c)
 {
@@ -790,12 +858,12 @@ static int downcase_subsequence(int index, SgString *in, SgPort *out)
 	Sg_PutcUnsafe(out, Sg_CharDownCase(ch));
 	break;
     case Po: case Pf:
-      if (ch == 0x0027 ||	/* mid letter # Po apostrophe */
-	  ch == 0x003A ||	/* mid letter # Po colon */
-	  ch == 0x00B7 ||	/* mid letter # Po middle dot */
-	  ch == 0x05F4 ||	/* mid letter # Po hebrew punctuation gershayim */
-	  ch == 0x2019 ||	/* mid letter # Po right single quotation mark */
-	  ch == 0x2027) {	/* mid letter # Po hyphenation point */
+      if (ch == 0x0027 ||   /* mid letter # Po apostrophe */
+	  ch == 0x003A ||   /* mid letter # Po colon */
+	  ch == 0x00B7 ||   /* mid letter # Po middle dot */
+	  ch == 0x05F4 ||   /* mid letter # Po hebrew punctuation gershayim */
+	  ch == 0x2019 ||   /* mid letter # Po right single quotation mark */
+	  ch == 0x2027) {   /* mid letter # Po hyphenation point */
 	Sg_PutcUnsafe(out, ch);
       } else {
 	Sg_PutcUnsafe(out, ch);
