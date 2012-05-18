@@ -167,5 +167,11 @@
       (test-equal "write euc-jp" bv (getter))))
   )
 
+;; some illegal character reading
+(test-error "ascii 0 read" (read (open-string-input-port "\x0;")))
+(test-error "ascii 1 read" (read (open-string-input-port "\x1;")))
+(test-error "ascii 2 read" (read (open-string-input-port "\x2;")))
+(test-error "ascii 3 read" (read (open-string-input-port "\x3;")))
+
 
 (test-end)

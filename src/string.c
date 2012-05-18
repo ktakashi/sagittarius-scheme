@@ -368,7 +368,7 @@ SgObject Sg_ListToString(SgObject chars)
     *bufp++ = ch;
   }
   *bufp = 0;
-  return Sg_MakeString(buf, SG_HEAP_STRING);
+  return Sg_MakeStringEx(buf, SG_HEAP_STRING, len);
 }
 
 SgObject Sg_CopyString(SgString *a)

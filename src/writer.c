@@ -559,9 +559,8 @@ static int symbol_need_bar(const SgChar *s, int n)
     if (s[3] == 0) return FALSE;
     return TRUE;
   }
-  if (s[0] >= 0xFF) {
-    return TRUE;
-  } else if (isdigit(s[0])) {
+
+  if (isdigit(s[0])) {
     return TRUE;
   } else {
     SgChar c;

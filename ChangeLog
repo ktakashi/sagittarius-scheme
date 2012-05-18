@@ -1,3 +1,10 @@
+2012-05-18  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/reader.c (read_symbol_or_number): modified lexical syntax check in
+	R6RS mode not to raise io error when the first letter was geater than
+	0x7F.
+	(readtable): introduced CT_ILLEGAL to handle illegal control characters.
+
 2012-05-14  Takashi Kato  <ktakashi@ymail.com>
 
 	* ext/zlib/rfc/zlib.scm (open-inflating-input-port): fixed read!

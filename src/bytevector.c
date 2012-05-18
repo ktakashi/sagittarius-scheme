@@ -315,8 +315,8 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder,
   bin = Sg_MakeByteVectorInputPort(bv, start);
   tin = Sg_MakeTranscodedInputPort(bin, transcoder);
   accum = Sg_MakeStringOutputPort(size);
-  while ((ch = Sg_Getc(tin)) != EOF) {
-    Sg_Putc(accum, ch);
+  while ((ch = Sg_GetcUnsafe(tin)) != EOF) {
+    Sg_PutcUnsafe(accum, ch);
   }
   return Sg_GetStringFromStringPort(accum);
 }
@@ -340,7 +340,7 @@ SgObject Sg_StringToByteVector(SgString *s, SgTranscoder *transcoder,
   out = Sg_MakeTranscodedOutputPort(accum, transcoder);
   for (i = start; i < SG_STRING_SIZE(s); i++) {
     /* TODO try catch */
-    Sg_Putc(out, SG_STRING_VALUE_AT(s, i));
+    Sg_PutcUnsafe(out, SG_STRING_VALUE_AT(s, i));
   }
   return Sg_GetByteVectorFromBinaryPort(accum);
 }

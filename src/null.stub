@@ -2090,7 +2090,7 @@
 	  (result bp)
 	  (result (Sg_MakeTranscodedInputPort bp t)))))
 
-  (define-c-proc open-string-input-port (s::<string>) ::<top>
+  (define-c-proc open-string-input-port (s::<string>)
     (result (Sg_MakeStringInputPort s FALSE)))
 
   (define-c-proc standard-input-port () ::<top>

@@ -334,7 +334,7 @@
 	      (match&list "a" "Aa"))
   (test-equal "a(null)" #f ;; input null str
 	      (match&list "a" ""))
-  (test-equal "a(contains null)" #f ;; input includes NUL character
+  (test-equal "a(contains null)" '("a") ;; input includes NUL character
 	      (match&list "a" (string (integer->char 0) #\a #\b)))
 
   (test-equal "abc" '("abc")

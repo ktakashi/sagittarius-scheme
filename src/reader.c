@@ -145,6 +145,7 @@ typedef SgObject (*dispmacro_function)(SgPort *, SgChar,
 				       dispmacro_param *, SgReadContext *);
 
 typedef enum {
+  CT_ILLEGAL,
   CT_CONSTITUENT,
   CT_SINGLE_ESCAPE,
   CT_WHITE_SPACE,
@@ -212,7 +213,7 @@ static SgObject read_quote(SgPort *port, SgChar c, SgReadContext *ctx);
 static SgObject read_quasiquote(SgPort *port, SgChar c, SgReadContext *ctx);
 static SgObject read_unquote(SgPort *port, SgChar c, SgReadContext *ctx);
 static SgObject read_colon(SgPort *port, SgChar c, SgReadContext *ctx);
-static SgObject read_vartical_bar(SgPort *port, SgChar c, SgReadContext *ctx);
+static SgObject read_vertical_bar(SgPort *port, SgChar c, SgReadContext *ctx);
 static SgObject read_open_bracket(SgPort *port, SgChar c, SgReadContext *ctx);
 static SgObject read_close_bracket(SgPort *port, SgChar c, SgReadContext *ctx);
 static SgObject read_semicolon(SgPort *port, SgChar c, SgReadContext *ctx);
@@ -402,8 +403,29 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
   int i = 0;
   SgChar c;
   readtable_t *table = Sg_CurrentReadTable();
-  if (initial > 0)
-    buf[i++] = initial;
+
+  if (initial > 0) {
+    if (initial > 127) {
+      Sg_EnsureUcs4(initial);
+      if (i == 0) {
+	if (Sg_Ucs4ConstituentP(initial)) {
+	  buf[i++] = initial;
+	  goto next;
+	}
+      } else {
+	if (Sg_Ucs4SubsequentP(initial)) {
+	  buf[i++] = initial;
+	  goto next;
+	}
+      }
+      lexical_error(port, ctx,
+		    UC("invalid character %c during reading identifier"),
+		    initial);
+    } else {
+      i = helper(port, ctx, buf, i, initial, table);
+    }
+  }
+ next:
   while (i < array_sizeof(buf)) {
     c = Sg_PeekcUnsafe(port);
     if (c == EOF || delimited(c)) {
@@ -430,14 +452,13 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
     if (c > 127) {
       Sg_EnsureUcs4(c);
       if (i == 0) {
-	/* TODO do we need to do with non ascii char? */
 	if (Sg_Ucs4ConstituentP(c)) {
-	  buf[i++] = c;
+	  buf[i++] = (c);
 	  continue;
 	}
       } else {
 	if (Sg_Ucs4SubsequentP(c)) {
-	  buf[i++] = c;
+	  buf[i++] = (c);
 	  continue;
 	}
       }
@@ -448,21 +469,26 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
   }
   lexical_error(port, ctx,
 		UC("token buffer overflow during reading identifier"));
-  return SG_UNDEF;  
+  return SG_UNDEF;
+#undef check_range
 }
 
 static int read_r6rs_symbol_helper(SgPort *port, SgReadContext *ctx, 
 				   SgChar *buf, int i, SgChar c,
 				   readtable_t *table)
 {
+  if (c > 127) {
+    if (buf != NULL) buf[i++] = c;
+    return i;
+  }
   if (i == 0) {
     if (INITIAL_CHARP(c)) {
-      buf[i++] = c;
+      if (buf != NULL) buf[i++] = c;
       return i;
     }
   } else {
     if (SYMBOL_CHARP(c)) {
-      buf[i++] = c;
+      if (buf != NULL) buf[i++] = c;
       return i;
     }
   }
@@ -511,7 +537,8 @@ SgObject read_symbol_or_number(SgPort *port, SgChar c,
     return SG_SYMBOL_DOT;
   /* well for now we do not check */
   if (table->symbol_reader == read_r6rs_symbol &&
-      !INITIAL_CHARP(SG_STRING_VALUE_AT(str, 0))) {
+      SG_STRING_VALUE_AT(str, 0) < 128) {
+    int i;
     if (SG_STRING_SIZE(str) == 1 &&
 	(SG_STRING_VALUE_AT(str, 0)=='+' || SG_STRING_VALUE_AT(str, 0)=='-')) {
       return Sg_Intern(str);
@@ -529,7 +556,12 @@ SgObject read_symbol_or_number(SgPort *port, SgChar c,
       }
       return Sg_Intern(str);
     }
-    lexical_error(port, ctx, UC("invalid lexical syntax %A"), str);
+    /* People, do not use R6RS mode on Sagittarius, this mode is slow. */
+    for (i = 0; i < SG_STRING_SIZE(str); i++) {
+      read_r6rs_symbol_helper(port, ctx, NULL, i,
+			      SG_STRING_VALUE_AT(str, i), table);
+    }
+    /* lexical_error(port, ctx, UC("invalid lexical syntax %A"), str); */
   }
   return Sg_Intern(str);
 
@@ -619,15 +651,24 @@ SgObject read_double_quote(SgPort *port, SgChar c, SgReadContext *ctx)
 {
   SgChar buf[READ_STRING_MAX_SIZE];
   int i = 0;
+
+#define handle_linefeed(c, hndl)				\
+  switch (c) {							\
+  case CR:							\
+    (c) = Sg_GetcUnsafe(port);					\
+    if ((c) != LF && (c) != NEL) Sg_UngetcUnsafe(port, c);	\
+  case LF: case NEL: case LS:					\
+    hndl;							\
+  }
+
   while (i < array_sizeof(buf)) {
     SgChar c = Sg_GetcUnsafe(port);
     if (c == EOF)
       lexical_error(port, ctx,
 		    UC("unexpected end-of-file while reading string"));
-    if (c == LF) {
-      buf[i++] = LF;
-      continue;
-    }
+
+    handle_linefeed(c, { buf[i++] = LF; continue; });
+
     if (c == '"') {
       buf[i] = 0;
       return Sg_MakeStringEx(buf, SG_LITERAL_STRING, i);
@@ -644,20 +685,23 @@ SgObject read_double_quote(SgPort *port, SgChar c, SgReadContext *ctx)
 	  }
 	} while (Sg_Ucs4IntralineWhiteSpaceP(c));
 	/* internal line feed is LF*/
-	if (c != LF) {
-	  lexical_error(port, ctx,
-			UC("unexpected character %U while"
-			   " reading intraline whitespace"), c);
-	}
+	handle_linefeed(c, break; default:
+			lexical_error(port, ctx,
+				      UC("unexpected character %U while"
+					 " reading intraline whitespace"), c)
+			);
 	do { c = Sg_GetcUnsafe(port); } while (Sg_Ucs4IntralineWhiteSpaceP(c));
 	Sg_UngetcUnsafe(port, c);
 	continue;
       }
-      if (c == LF) {
-	do { c = Sg_GetcUnsafe(port); } while (Sg_Ucs4IntralineWhiteSpaceP(c));
-	Sg_UngetcUnsafe(port, c);
-	continue;
-      }
+      handle_linefeed(c,
+		      {
+			do { c = Sg_GetcUnsafe(port); }
+			while (Sg_Ucs4IntralineWhiteSpaceP(c));
+			Sg_UngetcUnsafe(port, c);
+			continue;
+		      }
+		      );
       Sg_UngetcUnsafe(port, c);
       c = read_escape(port, ctx);
       buf[i++] = c;
@@ -756,7 +800,7 @@ SgObject read_colon(SgPort *port, SgChar c, SgReadContext *ctx)
   }
 }
 
-SgObject read_vartical_bar(SgPort *port, SgChar c, SgReadContext *ctx)
+SgObject read_vertical_bar(SgPort *port, SgChar c, SgReadContext *ctx)
 {
   return read_quoted_symbol(port, ctx, TRUE);
 }
@@ -1328,6 +1372,10 @@ SgObject read_expr4(SgPort *port, int flags, SgChar delim, SgReadContext *ctx)
 	if (o) return o;
 	break;
       }
+      case CT_ILLEGAL:
+	lexical_error(port, ctx,
+		      UC("invalid character %c during reading identifier"), c);
+	break;
       default:
 	goto read_sym_or_num;
       }
@@ -1468,7 +1516,7 @@ static readtable_t* make_readtable(int init)
     readtab_t *r = tab->readtable;
     int i;
     for (i = 0; i <= ' '; i++) {
-      r[i].type = CT_WHITE_SPACE;
+      r[i].type = CT_ILLEGAL;
       r[i].cfunc = NULL;
       r[i].sfunc = SG_UNBOUND;
       r[i].disp = NULL;
@@ -1648,7 +1696,7 @@ int Sg_DelimitedCharP(SgChar c)
   SG_DEFINE_SUBR(SCHEME_OBJ(FN), 3, 0,				\
 		 STUB_NAME(FN), SG_FALSE, NULL)
 
-DEFINE_MACRO_STUB(read_vartical_bar,   "|-reader");
+DEFINE_MACRO_STUB(read_vertical_bar,   "|-reader");
 DEFINE_MACRO_STUB(read_double_quote,   "\"-reader");
 DEFINE_MACRO_STUB(read_quote,          "'-reader");
 DEFINE_MACRO_STUB(read_open_paren,     "(-reader");
@@ -1706,7 +1754,7 @@ static macro_function get_macro_function(SgObject fn)
     macro_function f;
     SgObject s;
   } x[] = {
-    macro_function_item(read_vartical_bar),
+    macro_function_item(read_vertical_bar),
     macro_function_item(read_double_quote),
     macro_function_item(read_quote),
     macro_function_item(read_open_paren),
@@ -1875,7 +1923,7 @@ static void init_readtable(readtable_t *table, int r6rsP)
   readtab_t *r = table->readtable;
   disptab_t *d = alloc_disptab();
   for (i = 0; i <= ' '; i++) {
-    r[i].type = CT_WHITE_SPACE;
+    r[i].type = CT_ILLEGAL;
     r[i].cfunc = NULL;
     r[i].sfunc = SG_UNBOUND;
     r[i].disp = NULL;
@@ -1886,9 +1934,18 @@ static void init_readtable(readtable_t *table, int r6rsP)
     r[i].sfunc = SG_UNBOUND;
     r[i].disp = NULL;
   }
+  r['\t'].type = CT_WHITE_SPACE;
+  r['\n'].type = CT_WHITE_SPACE;
+  r['\v'].type = CT_WHITE_SPACE;
+  r['\f'].type = CT_WHITE_SPACE;
+  r['\r'].type = CT_WHITE_SPACE;
+  r[' '].type = CT_WHITE_SPACE;
   r['\\'].type = CT_SINGLE_ESCAPE;
 
-  SET_NONTERM_MACRO(r, '|', read_vartical_bar);
+  if (!r6rsP) {
+    /* Larceny bench mark doesn't like this. */
+    SET_NONTERM_MACRO(r, '|', read_vertical_bar);
+  }
   SET_TERM_MACRO(r, '"', read_double_quote);
   SET_TERM_MACRO(r, '\'', read_quote);
   SET_TERM_MACRO(r, '(', read_open_paren);
@@ -1955,7 +2012,7 @@ void Sg__InitReader()
   Sg_InitMutex(&read_lock, TRUE);
 #define SET_READER_NAME(fn, name)			\
   (SG_PROCEDURE_NAME(&(SCHEME_OBJ(fn))) = SG_MAKE_STRING(name))
-  SET_READER_NAME(read_vartical_bar,   "|-reader");
+  SET_READER_NAME(read_vertical_bar,   "|-reader");
   SET_READER_NAME(read_double_quote,   "\"-reader");
   SET_READER_NAME(read_quote,          "'-reader");
   SET_READER_NAME(read_open_paren,     "(-reader");

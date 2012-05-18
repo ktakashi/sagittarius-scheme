@@ -270,7 +270,7 @@ static void cleanup_main(void *data)
 int main(int argc, char **argv)
 {
   int opt, optionIndex = 0;
-  int forceInteactiveP = FALSE;
+  int forceInteactiveP = FALSE, noMainP = FALSE;
   int exit_code = 0;
   SgVM *vm;
   SgObject repl, lib;
@@ -289,6 +289,7 @@ int main(int argc, char **argv)
     {"debug-exec", optional_argument, 0, 'E'},
     {"logport", optional_argument, 0, 'p'},
     {"stat", 0, 0, 's'},
+    {"no-main", 0, 0, 'n'},
 #ifdef SAGITTARIUS_PROFILE
     {"profile", optional_argument, 0, 'P'},
 #endif
@@ -300,7 +301,7 @@ int main(int argc, char **argv)
   Sg_Init();
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
-  while ((opt = getopt_long(argc, argv, "L:D:f:I:hE:vicdp:P:s", 
+  while ((opt = getopt_long(argc, argv, "L:D:f:I:hE:vicdp:P:sn", 
 			    long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 'E':
@@ -392,6 +393,9 @@ int main(int argc, char **argv)
     case 's':
       stat = TRUE;
       break;
+    case 'n':
+      noMainP = TRUE;
+      break;
     default:
   usage:
       fprintf(stderr, "invalid option -- %c\n", opt);
@@ -412,11 +416,15 @@ int main(int argc, char **argv)
     Sg_ImportLibrary(vm->currentLibrary, SG_OBJ(SG_INTERN("(core base)")));
 
     exit_code = Sg_Load(SG_STRING(Sg_MakeStringC(argv[optind])));
-    /* SRFI-22 */
-    proc = Sg_FindBinding(SG_INTERN("user"), SG_INTERN("main"), SG_UNBOUND);
-    if (!SG_UNBOUNDP(proc)) {
-      SgObject ret = Sg_Apply1(SG_GLOC_GET(SG_GLOC(proc)), vm->commandLineArgs);
-      if (SG_INTP(ret)) exit_code = SG_INT_VALUE(ret);
+    /* to run R6RS bench ... */
+    if (!noMainP) {
+      /* SRFI-22 */
+      proc = Sg_FindBinding(SG_INTERN("user"), SG_INTERN("main"), SG_UNBOUND);
+      if (!SG_UNBOUNDP(proc)) {
+	SgObject ret = Sg_Apply1(SG_GLOC_GET(SG_GLOC(proc)),
+				 vm->commandLineArgs);
+	if (SG_INTP(ret)) exit_code = SG_INT_VALUE(ret);
+      }
     }
     if (forceInteactiveP) goto repl;
   } else {
