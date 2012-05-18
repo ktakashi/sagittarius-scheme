@@ -1,5 +1,7 @@
 2012-05-18  Takashi Kato  <ktakashi@ymail.com>
 
+	* src/unicode.c (utf8_reader): fixed utf8 treatment.
+
 	* src/reader.c (read_symbol_or_number): modified lexical syntax check in
 	R6RS mode not to raise io error when the first letter was geater than
 	0x7F.

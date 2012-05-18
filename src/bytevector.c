@@ -303,7 +303,8 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder,
   SgPort *accum;
   SgPort *bin;
   SgPort *tin;
-  SgChar ch;
+  SgChar buf[256];
+  int64_t len;
 
   if (size < 0) {
     size = SG_BVECTOR_SIZE(bv);
@@ -315,8 +316,13 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder,
   bin = Sg_MakeByteVectorInputPort(bv, start);
   tin = Sg_MakeTranscodedInputPort(bin, transcoder);
   accum = Sg_MakeStringOutputPort(size);
-  while ((ch = Sg_GetcUnsafe(tin)) != EOF) {
-    Sg_PutcUnsafe(accum, ch);
+  for (;;) {
+    len = Sg_ReadsUnsafe(tin, buf, 256);
+    if (len < 256) break;
+    Sg_WritesUnsafe(accum, buf, len);
+  }
+  if (len != 0) {
+    Sg_WritesUnsafe(accum, buf, len);
   }
   return Sg_GetStringFromStringPort(accum);
 }
@@ -326,7 +332,6 @@ SgObject Sg_StringToByteVector(SgString *s, SgTranscoder *transcoder,
 {
   SgPort* accum;
   SgPort* out;
-  int i;
   
   if (size < 0) {
     size = SG_STRING_SIZE(s);
@@ -338,10 +343,7 @@ SgObject Sg_StringToByteVector(SgString *s, SgTranscoder *transcoder,
 
   accum = Sg_MakeByteArrayOutputPort(size);
   out = Sg_MakeTranscodedOutputPort(accum, transcoder);
-  for (i = start; i < SG_STRING_SIZE(s); i++) {
-    /* TODO try catch */
-    Sg_PutcUnsafe(out, SG_STRING_VALUE_AT(s, i));
-  }
+  Sg_WritesUnsafe(out, SG_STRING_VALUE(s) + start,  size);
   return Sg_GetByteVectorFromBinaryPort(accum);
 }
 

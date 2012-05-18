@@ -213,7 +213,7 @@ static inline int isUtf8Tail(uint8_t b)
     return (0x80 <= b && b <= 0xbf);
 }
 
-static SgChar utf8_reader(int (*u8reader)(void *),
+static SgChar utf8_reader(int (*u8reader)(void *, int),
 			  SgCodec *codec, /* not used */
 			  SgPort *port, ErrorHandlingMode mode,
 			  int checkBOM, /* not used */
@@ -223,7 +223,7 @@ static SgChar utf8_reader(int (*u8reader)(void *),
   uint8_t first;
 
  retry:
-  f = u8reader(data);
+  f = u8reader(data, TRUE);
   if (f == EOF) return EOF;
   first = (uint8_t)(f & 0xff);
 
@@ -232,52 +232,66 @@ static SgChar utf8_reader(int (*u8reader)(void *),
     return first;
     /* UTF8-2 = %xC2-DF UTF8-tail */
   } else if (0xc2 <= first && first <= 0xdf) {
-    uint8_t second = u8reader(data);
+    uint8_t second = u8reader(data, TRUE);
     if (isUtf8Tail(second)) {
       return ((first & 0x1f) << 6) | (second & 0x3f);
     } else {
+      u8reader(data, FALSE);
       decodeError(SG_INTERN("convert-utf8-to-ucs4"));
     }
     /* UTF8-3 = %xE0 %xA0-BF UTF8-tail / %xE1-EC 2( UTF8-tail ) /  */
     /*          %xED %x80-9F UTF8-tail / %xEE-EF 2( UTF8-tail )    */
   } else if (0xe0 <= first && first <= 0xef) {
-    uint8_t second = u8reader(data);
-    uint8_t third =  u8reader(data);
+    int second = u8reader(data, TRUE);
+    int third =  u8reader(data, TRUE);
     if (!isUtf8Tail(third)) {
-      decodeError(SG_INTERN("convert-utf8-to-ucs4"));
+      goto err3;
     } else if ((0xe0 == first && 0xa0 <= second && second <= 0xbf)    ||
 	       (0xed == first && 0x80 <= second && second <= 0x9f)    ||
 	       (0xe1 <= first && first <= 0xec && isUtf8Tail(second)) ||
 	       ((0xee == first || 0xef == first) && isUtf8Tail(second))) {
-      return ((first & 0xf) << 12) | ((second & 0x3f) << 6) | (third & 0x3f);
-    } else {
-      decodeError(SG_INTERN("convert-utf8-to-ucs4"));
+      SgChar c = (((first & 0xf) << 12) | ((second & 0x3f) << 6) 
+		  | (third & 0x3f));
+
+      return c;
     }
+  err3:
+    if (second != EOF) u8reader(data, FALSE);
+    if (third != EOF)  u8reader(data, FALSE);
+    decodeError(SG_INTERN("convert-utf8-to-ucs4"));
+    
     /* UTF8-4 = %xF0 %x90-BF 2( UTF8-tail ) / %xF1-F3 3( UTF8-tail ) /  */
     /*          %xF4 %x80-8F 2( UTF8-tail )  */
   } else if (0xf0 <= first && first <= 0xf4) {
-    uint8_t second = u8reader(data);
-    uint8_t third =  u8reader(data);
-    uint8_t fourth = u8reader(data);
+    int second = u8reader(data, TRUE);
+    int third =  u8reader(data, TRUE);
+    int fourth = u8reader(data, TRUE);
     if (!isUtf8Tail(third) || !isUtf8Tail(fourth)) {
-      decodeError(SG_INTERN("convert-utf8-to-ucs4"));
+      goto err4;
     } else if ((0xf0 == first && 0x90 <= second && second <= 0xbf)     ||
 	       (0xf4 == first && 0x80 <= second && second <= 0x8f)     ||
 	       (0xf1 <= first && first <= 0xf3 && isUtf8Tail(second))) {
       return (((first & 0x7) << 18) | ((second & 0x3f) << 12) |
-	      ((third & 0x3f) << 6) | fourth);
-    } else {
-      decodeError(SG_INTERN("convert-utf8-to-ucs4"));
+	      ((third & 0x3f) << 6) | (fourth & 0x3f));
     }
+  err4:
+    if (second != EOF) u8reader(data, FALSE);
+    if (third != EOF)  u8reader(data, FALSE);
+    if (fourth != EOF) u8reader(data, FALSE);
+    decodeError(SG_INTERN("convert-utf8-to-ucs4"));
   } else {
     decodeError(SG_INTERN("convert-utf8-to-ucs4"));
   }
-  return ' ';  
+  return ' ';
 }
 
-static int port_u8_reader(void *data)
+static int port_u8_reader(void *data, int getP)
 {
-  return Sg_GetbUnsafe(SG_PORT(data));
+  if (getP) {
+    return Sg_GetbUnsafe(SG_PORT(data));
+  } else {
+    return -1;
+  }
 }
 
 SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
@@ -292,16 +306,25 @@ typedef struct
   int64_t  buf_size;
   SgPort  *port;
 } u8_reader_ctx;
-static int buffer_u8_reader(void *data)
+static int buffer_u8_reader(void *data, int getP)
 {
   u8_reader_ctx *ctx = (u8_reader_ctx *)data;
   if (ctx->pos < ctx->buf_size) {
-    return ctx->buf[ctx->pos++];
+    if (getP) {
+      return ctx->buf[ctx->pos++];
+    }
+    ctx->pos--;
+    return -1;
   } else {
-    if (ctx->port)
-      return Sg_GetbUnsafe(ctx->port);
-    else
-      return EOF;
+    if (getP) {
+      if (ctx->port) {
+	return Sg_GetbUnsafe(ctx->port);
+      } else
+	return EOF;
+    } else {
+      ctx->pos--;
+      return -1;
+    }
   }
 }
 
@@ -328,7 +351,7 @@ static int buffer_u8_reader(void *data)
 DEFINE_BUFFER_CONVERTOR(Sg_ConvertUtf8BufferToUcs4, utf8_reader);
 
 
-static SgChar utf16_reader(int (*u8reader)(void *), SgCodec *codec,
+static SgChar utf16_reader(int (*u8reader)(void *, int), SgCodec *codec,
 			   SgPort *port, ErrorHandlingMode mode,
 			   int checkBOMNow, void *data)
 {
@@ -343,8 +366,8 @@ static SgChar utf16_reader(int (*u8reader)(void *), SgCodec *codec,
 
 #define isLittleEndian(c) (SG_CODEC_ENDIAN(c) == UTF_16LE)
  retry:
-  a = u8reader(data);
-  b = u8reader(data);
+  a = u8reader(data, TRUE);
+  b = u8reader(data, TRUE);
 
   if (a == EOF) return EOF;
   if (b == EOF) {
@@ -368,11 +391,11 @@ static SgChar utf16_reader(int (*u8reader)(void *), SgCodec *codec,
   if (val1 < 0xD800 || val1 > 0xDFFF) {
     return val1;
   }
-  c = u8reader(data);
+  c = u8reader(data, TRUE);
   if (EOF == c) {
     decodeError(SG_INTERN("convert-utf16-to-ucs4"));
   }
-  d = u8reader(data);
+  d = u8reader(data, TRUE);
   if (EOF == d) {
     decodeError(SG_INTERN("convert-utf16-to-ucs4"));
   }

@@ -251,6 +251,7 @@ static SgChar get_utf32(int (*u8_reader)(void *), SgObject self,
 			ErrorHandlingMode mode, void *data)
 {
   int a, b, c, d;
+  SgChar sv;
  retry:
   a = u8_reader(data);
   if (a == EOF) return EOF;
@@ -267,18 +268,22 @@ static SgChar get_utf32(int (*u8_reader)(void *), SgObject self,
     decodeError(SG_INTERN("utf32-codec"));
   }
   if (SG_CODEC_ENDIAN(self) == UTF_32LE) {
-    return
-      ((uint8_t)a)       |
-      ((uint8_t)b) << 8  |
-      ((uint8_t)c) << 16 |
-      ((uint8_t)d) << 24;
+    sv = (((uint8_t)a)       |
+	 ((uint8_t)b) << 8  |
+	 ((uint8_t)c) << 16 |
+	 ((uint8_t)d) << 24);
   } else {
-    return
-      ((uint8_t)d)       |
-      ((uint8_t)c) << 8  |
-      ((uint8_t)b) << 16 |
-      ((uint8_t)a) << 24;
-  }  
+    sv = (((uint8_t)d)       |
+	 ((uint8_t)c) << 8  |
+	 ((uint8_t)b) << 16 |
+	 ((uint8_t)a) << 24);
+  }
+
+  if (sv > 0x10FFFF || (0xD800 <= sv && sv <= 0xDFFF)) {
+    decodeError(SG_INTERN("utf32-codec"));
+  }
+
+  return sv;
 }
 
 static int port_u8_reader(void *data)
