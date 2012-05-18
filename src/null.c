@@ -6470,7 +6470,7 @@ static SgObject null_utf8_TOstring(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-{{SgObject transcoder=Sg_MakeTranscoder(Sg_MakeUtf8Codec(),LF,SG_REPLACE_ERROR);SG_RESULT=(Sg_ByteVectorToString(bv,transcoder,0,-1));}}
+{{SgObject transcoder=Sg_MakeTranscoder(Sg_MakeUtf8Codec(),E_NONE,SG_REPLACE_ERROR);SG_RESULT=(Sg_ByteVectorToString(bv,transcoder,0,-1));}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -6493,7 +6493,7 @@ static SgObject null_string_TOutf8(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-{{SgObject transcoder=Sg_MakeTranscoder(Sg_MakeUtf8Codec(),LF,SG_REPLACE_ERROR);SG_RESULT=(Sg_StringToByteVector(s,transcoder,0,-1));}}
+{{SgObject transcoder=Sg_MakeTranscoder(Sg_MakeUtf8Codec(),E_NONE,SG_REPLACE_ERROR);SG_RESULT=(Sg_StringToByteVector(s,transcoder,0,-1));}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -6532,7 +6532,7 @@ static SgObject null_utf16_TOstring(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-{{Endianness endianness=NO_BOM;int skipBOM=FALSE;if (SG_UNBOUNDP(mandatory)){{endianness=(Sg_Utf16CheckBOM(bv));if ((!((endianness)==(NO_BOM)))){skipBOM=(TRUE);}}}if ((((!(SG_UNBOUNDP(mandatory))))&&((!(SG_FALSEP(mandatory)))))||((endianness)==(NO_BOM))){{if (SG_EQ(endian,sg__rc.d10[241])){endianness=(UTF_16LE);}else if(SG_EQ(endian,sg__rc.d10[243])){endianness=(UTF_16BE);} else {{Sg_AssertionViolation(sg__rc.d10[306],SG_MAKE_STRING("endianness should be little or big"),endian);}}}}{int skipSize=0;SgObject codec=SG_UNDEF;SgObject transcoder=SG_UNDEF;if (skipBOM){skipSize=(2);}codec=(Sg_MakeUtf16Codec(endianness));transcoder=(Sg_MakeTranscoder(codec,LF,SG_REPLACE_ERROR));SG_RESULT=(Sg_ByteVectorToString(bv,transcoder,skipSize,(SG_BVECTOR_SIZE(bv))-(skipSize)));}}}
+{{Endianness endianness=NO_BOM;int skipBOM=FALSE;if (SG_UNBOUNDP(mandatory)){{endianness=(Sg_Utf16CheckBOM(bv));if ((!((endianness)==(NO_BOM)))){skipBOM=(TRUE);}}}if ((((!(SG_UNBOUNDP(mandatory))))&&((!(SG_FALSEP(mandatory)))))||((endianness)==(NO_BOM))){{if (SG_EQ(endian,sg__rc.d10[241])){endianness=(UTF_16LE);}else if(SG_EQ(endian,sg__rc.d10[243])){endianness=(UTF_16BE);} else {{Sg_AssertionViolation(sg__rc.d10[306],SG_MAKE_STRING("endianness should be little or big"),endian);}}}}{int skipSize=0;SgObject codec=SG_UNDEF;SgObject transcoder=SG_UNDEF;if (skipBOM){skipSize=(2);}codec=(Sg_MakeUtf16Codec(endianness));transcoder=(Sg_MakeTranscoder(codec,E_NONE,SG_REPLACE_ERROR));SG_RESULT=(Sg_ByteVectorToString(bv,transcoder,skipSize,(SG_BVECTOR_SIZE(bv))-(skipSize)));}}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -6567,7 +6567,7 @@ static SgObject null_string_TOutf16(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-{{Endianness endianness=UTF_16BE;if ((!(SG_UNBOUNDP(endian)))){if (SG_EQ(endian,sg__rc.d10[241])){endianness=(UTF_16LE);}else if(SG_EQ(endian,sg__rc.d10[243])){endianness=(UTF_16BE);} else {{Sg_AssertionViolation(sg__rc.d10[308],SG_MAKE_STRING("endianness should be little or big"),endian);}}}SG_RESULT=(Sg_StringToByteVector(s,Sg_MakeTranscoder(Sg_MakeUtf16Codec(endianness),LF,SG_REPLACE_ERROR),0,-1));}}
+{{Endianness endianness=UTF_16BE;if ((!(SG_UNBOUNDP(endian)))){if (SG_EQ(endian,sg__rc.d10[241])){endianness=(UTF_16LE);}else if(SG_EQ(endian,sg__rc.d10[243])){endianness=(UTF_16BE);} else {{Sg_AssertionViolation(sg__rc.d10[308],SG_MAKE_STRING("endianness should be little or big"),endian);}}}SG_RESULT=(Sg_StringToByteVector(s,Sg_MakeTranscoder(Sg_MakeUtf16Codec(endianness),E_NONE,SG_REPLACE_ERROR),0,-1));}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -6602,7 +6602,7 @@ static SgObject null_string_TOutf32(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-{{Endianness endianness=UTF_32BE;if ((!(SG_UNBOUNDP(endian)))){if (SG_EQ(endian,sg__rc.d10[241])){endianness=(UTF_32LE);}else if(SG_EQ(endian,sg__rc.d10[243])){endianness=(UTF_32BE);} else {{Sg_AssertionViolation(sg__rc.d10[310],SG_MAKE_STRING("endianness should be little or big"),endian);}}}SG_RESULT=(Sg_StringToByteVector(s,Sg_MakeTranscoder(Sg_MakeUtf32Codec(endianness),LF,SG_REPLACE_ERROR),0,-1));}}
+{{Endianness endianness=UTF_32BE;if ((!(SG_UNBOUNDP(endian)))){if (SG_EQ(endian,sg__rc.d10[241])){endianness=(UTF_32LE);}else if(SG_EQ(endian,sg__rc.d10[243])){endianness=(UTF_32BE);} else {{Sg_AssertionViolation(sg__rc.d10[310],SG_MAKE_STRING("endianness should be little or big"),endian);}}}SG_RESULT=(Sg_StringToByteVector(s,Sg_MakeTranscoder(Sg_MakeUtf32Codec(endianness),E_NONE,SG_REPLACE_ERROR),0,-1));}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -6641,7 +6641,7 @@ static SgObject null_utf32_TOstring(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-{{Endianness endianness=NO_BOM;int skipBOM=FALSE;if (SG_UNBOUNDP(mandatory)){{endianness=(Sg_Utf32CheckBOM(bv));if ((!((endianness)==(NO_BOM)))){skipBOM=(TRUE);}}}if ((((!(SG_UNBOUNDP(mandatory))))&&((!(SG_FALSEP(mandatory)))))||((endianness)==(NO_BOM))){{if (SG_EQ(endian,sg__rc.d10[241])){endianness=(UTF_32LE);}else if(SG_EQ(endian,sg__rc.d10[243])){endianness=(UTF_32BE);} else {{Sg_AssertionViolation(sg__rc.d10[312],SG_MAKE_STRING("endianness should be little or big"),endian);}}}}{int skipSize=0;SgObject codec=SG_UNDEF;SgObject transcoder=SG_UNDEF;if (skipBOM){skipSize=(4);}codec=(Sg_MakeUtf32Codec(endianness));transcoder=(Sg_MakeTranscoder(codec,LF,SG_REPLACE_ERROR));SG_RESULT=(Sg_ByteVectorToString(bv,transcoder,skipSize,(SG_BVECTOR_SIZE(bv))-(skipSize)));}}}
+{{Endianness endianness=NO_BOM;int skipBOM=FALSE;if (SG_UNBOUNDP(mandatory)){{endianness=(Sg_Utf32CheckBOM(bv));if ((!((endianness)==(NO_BOM)))){skipBOM=(TRUE);}}}if ((((!(SG_UNBOUNDP(mandatory))))&&((!(SG_FALSEP(mandatory)))))||((endianness)==(NO_BOM))){{if (SG_EQ(endian,sg__rc.d10[241])){endianness=(UTF_32LE);}else if(SG_EQ(endian,sg__rc.d10[243])){endianness=(UTF_32BE);} else {{Sg_AssertionViolation(sg__rc.d10[312],SG_MAKE_STRING("endianness should be little or big"),endian);}}}}{int skipSize=0;SgObject codec=SG_UNDEF;SgObject transcoder=SG_UNDEF;if (skipBOM){skipSize=(4);}codec=(Sg_MakeUtf32Codec(endianness));transcoder=(Sg_MakeTranscoder(codec,E_NONE,SG_REPLACE_ERROR));SG_RESULT=(Sg_ByteVectorToString(bv,transcoder,skipSize,(SG_BVECTOR_SIZE(bv))-(skipSize)));}}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }

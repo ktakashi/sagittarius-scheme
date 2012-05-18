@@ -1703,16 +1703,19 @@
   ;; 2.9 operations on strings
   ;; converter
   ;; utf8 <-> string
-  (define-c-proc utf8->string (bv::<bytevector>) ::<top>
-    (let ((transcoder (Sg_MakeTranscoder (Sg_MakeUtf8Codec) LF SG_REPLACE_ERROR)))
+  (define-c-proc utf8->string (bv::<bytevector>)
+    (let ((transcoder (Sg_MakeTranscoder (Sg_MakeUtf8Codec)
+					 E_NONE SG_REPLACE_ERROR)))
       (result (Sg_ByteVectorToString bv transcoder 0 -1))))
 
-  (define-c-proc string->utf8 (s::<string>) ::<top>
-    (let ((transcoder (Sg_MakeTranscoder (Sg_MakeUtf8Codec) LF SG_REPLACE_ERROR)))
+  (define-c-proc string->utf8 (s::<string>)
+    (let ((transcoder (Sg_MakeTranscoder (Sg_MakeUtf8Codec)
+					 E_NONE SG_REPLACE_ERROR)))
       (result (Sg_StringToByteVector s transcoder 0 -1))))
 
   ;; utf16 <-> string
-  (define-c-proc utf16->string (bv::<bytevector> endian::<symbol> :optional mandatory) ::<top>
+  (define-c-proc utf16->string (bv::<bytevector> endian::<symbol>
+						 :optional mandatory) ::<top>
     (let ((endianness::Endianness NO_BOM)
 	  (skipBOM::int FALSE))
       (when (SG_UNBOUNDP mandatory)
@@ -1727,18 +1730,21 @@
 	      ((SG_EQ endian 'big)
 	       (set! endianness UTF_16BE))
 	      (else
-	       (assertion-violation 'utf16->string "endianness should be little or big" endian))))
+	       (assertion-violation 
+		'utf16->string "endianness should be little or big" endian))))
       (let ((skipSize::int 0)
 	    (codec SG_UNDEF)
 	    (transcoder SG_UNDEF))
 	(if skipBOM
 	    (set! skipSize 2))
 	(set! codec (Sg_MakeUtf16Codec endianness))
-	(set! transcoder (Sg_MakeTranscoder codec LF SG_REPLACE_ERROR))
+	(set! transcoder (Sg_MakeTranscoder codec E_NONE
+					    SG_REPLACE_ERROR))
 	;; TODO guard
-	(result (Sg_ByteVectorToString bv transcoder skipSize (- (SG_BVECTOR_SIZE bv) skipSize))))))
+	(result (Sg_ByteVectorToString bv transcoder skipSize
+				       (- (SG_BVECTOR_SIZE bv) skipSize))))))
 
-  (define-c-proc string->utf16 (s::<string> :optional endian::<symbol>) ::<top>
+  (define-c-proc string->utf16 (s::<string> :optional endian::<symbol>)
     (let ((endianness::Endianness UTF_16BE))
       (if (not (SG_UNBOUNDP endian))
 	  (cond ((SG_EQ endian 'little)
@@ -1746,14 +1752,17 @@
 		((SG_EQ endian 'big)
 		 (set! endianness UTF_16BE))
 		(else
-		 (assertion-violation 'string->utf16 "endianness should be little or big"  endian))))
-      (result (Sg_StringToByteVector s (Sg_MakeTranscoder (Sg_MakeUtf16Codec endianness)
-							  LF
-							  SG_REPLACE_ERROR)
-				     0 -1))))
+		 (assertion-violation
+		  'string->utf16 "endianness should be little or big" endian))))
+      (result (Sg_StringToByteVector 
+	       s 
+	       (Sg_MakeTranscoder (Sg_MakeUtf16Codec endianness)
+				  E_NONE
+				  SG_REPLACE_ERROR)
+	       0 -1))))
 
 
-  (define-c-proc string->utf32 (s::<string> :optional endian::<symbol>) ::<top>
+  (define-c-proc string->utf32 (s::<string> :optional endian::<symbol>)
     (let ((endianness::Endianness UTF_32BE))
       (if (not (SG_UNBOUNDP endian))
 	  (cond ((SG_EQ endian 'little)
@@ -1761,13 +1770,16 @@
 		((SG_EQ endian 'big)
 		 (set! endianness UTF_32BE))
 		(else
-		 (assertion-violation 'string->utf32 "endianness should be little or big"  endian))))
-      (result (Sg_StringToByteVector s (Sg_MakeTranscoder (Sg_MakeUtf32Codec endianness)
-							  LF
-							  SG_REPLACE_ERROR)
-				     0 -1))))
+		 (assertion-violation
+		  'string->utf32 "endianness should be little or big" endian))))
+      (result (Sg_StringToByteVector
+	       s (Sg_MakeTranscoder (Sg_MakeUtf32Codec endianness)
+				    E_NONE
+				    SG_REPLACE_ERROR)
+	       0 -1))))
 
-  (define-c-proc utf32->string (bv::<bytevector> endian::<symbol> :optional mandatory) ::<top>
+  (define-c-proc utf32->string (bv::<bytevector> endian::<symbol> 
+						 :optional mandatory)
     (let ((endianness::Endianness NO_BOM)
 	  (skipBOM::int FALSE))
       (when (SG_UNBOUNDP mandatory)
@@ -1782,16 +1794,18 @@
 	      ((SG_EQ endian 'big)
 	       (set! endianness UTF_32BE))
 	      (else
-	       (assertion-violation 'utf32->string "endianness should be little or big" endian))))
+	       (assertion-violation
+		'utf32->string "endianness should be little or big" endian))))
       (let ((skipSize::int 0)
 	    (codec SG_UNDEF)
 	    (transcoder SG_UNDEF))
 	(if skipBOM
 	    (set! skipSize 4))
 	(set! codec (Sg_MakeUtf32Codec endianness))
-	(set! transcoder (Sg_MakeTranscoder codec LF SG_REPLACE_ERROR))
+	(set! transcoder (Sg_MakeTranscoder codec E_NONE SG_REPLACE_ERROR))
 	;; TODO guard
-	(result (Sg_ByteVectorToString bv transcoder skipSize (- (SG_BVECTOR_SIZE bv) skipSize))))))
+	(result (Sg_ByteVectorToString bv transcoder skipSize 
+				       (- (SG_BVECTOR_SIZE bv) skipSize))))))
   
   ;; 3 List utilities
   (define-c-proc memq (arg0 arg1) ::<top>
