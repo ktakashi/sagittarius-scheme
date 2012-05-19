@@ -40,6 +40,7 @@
 #include "sagittarius/symbol.h"
 #include "sagittarius/writer.h"
 #include "sagittarius/bytevector.h"
+#include "sagittarius/hashtable.h"
 
 #include "../unicode/lexeme.inc"
 
@@ -708,16 +709,26 @@ int Sg_CharTitleCaseP(SgChar ch)
   return Sg_CharGeneralCategory(ch) == Lt;
 }
 
+static SgHashTable *general_category = NULL;
+
 GeneralCategory Sg_CharGeneralCategory(SgChar ch)
 {
+#if 0
   const int cate1_size = array_sizeof(s_general_category_1);
   const int cate2_size = array_sizeof(s_general_category_2);
   int i;
+
   for (i = 0; i < cate1_size; i++) {
     if (s_general_category_1[i].in == ch) return s_general_category_1[i].out;
   }
   for (i = 0; i < cate2_size; i++) {
     if (s_general_category_2[i].in == ch) return s_general_category_2[i].out;
+  }
+#endif
+  SgObject c;
+  c = Sg_HashTableRef(general_category, SG_MAKE_CHAR(ch), SG_FALSE);
+  if (!SG_FALSEP(c)) {
+    return SG_INT_VALUE(c);
   }
   if (0x3400 <= ch && ch <= 0x4DB5) return Lo;
   else if (0x4E00 <= ch && ch <= 0x9FBB) return Lo;
@@ -1162,6 +1173,26 @@ SgObject Sg_StringNormalizeNfkc(SgString *str)
   SgByteVector *bv = decompose_rec(str, FALSE);
   sort_combining_marks(bv);
   return compose_rec(bv);
+}
+
+void Sg__InitUnicode()
+{
+  size_t i;
+  const size_t size_1 = array_sizeof(s_general_category_1);
+  const size_t size_2 = array_sizeof(s_general_category_2);
+  general_category = Sg_MakeHashTableSimple(SG_HASH_EQV, size_1 + size_2);
+  for (i = 0; i < size_1; i++) {
+    Sg_HashTableSet(general_category,
+		    SG_MAKE_CHAR(s_general_category_1[i].in),
+		    SG_MAKE_INT(s_general_category_1[i].out),
+		    0);
+  }
+  for (i = 0; i < size_2; i++) {
+    Sg_HashTableSet(general_category,
+		    SG_MAKE_CHAR(s_general_category_2[i].in),
+		    SG_MAKE_INT(s_general_category_2[i].out),
+		    0);
+  }
 }
 
 /*

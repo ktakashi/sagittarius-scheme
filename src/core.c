@@ -64,6 +64,7 @@ extern void Sg__InitClos();
 extern void Sg__InitIdentifier();
 extern void Sg__InitWrite();
 extern void Sg__InitRegex();
+extern void Sg__InitUnicode();
 
 /* stub files */
 extern void Sg__Init_sagittarius_compiler_procedure();
@@ -104,6 +105,7 @@ void Sg_Init()
   Sg__InitKeyword();
   Sg__InitLibrary();
   Sg__InitLoad();
+  Sg__InitUnicode();
 
   Sg__InitVM();
   /* init clos uses findlibrary. so after VM */
