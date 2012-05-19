@@ -141,8 +141,20 @@ void Sg_TranscoderUngetc(SgObject self, SgChar c)
 static SgChar get_char_internal(SgObject self, SgPort *port)
 {
   SgTranscoder *tran = SG_TRANSCODER(self);
-  if (tran->isBegin) {
-    tran->isBegin = FALSE;
+  int64_t mark;
+  /* we know here only binary or custom binary port can reach */
+  if (SG_BINARY_PORTP(port)) {
+    mark = SG_BINARY_PORT(port)->position;
+  } else if (SG_CUSTOM_PORTP(port)) {
+    ASSERT(SG_CUSTOM_PORT(port) == SG_BINARY_CUSTOM_PORT_TYPE);
+    mark = SG_CUSTOM_PORT(port)->impl.bport->position;
+  } else {
+    Sg_Panic("[internal error] transcoder got textual port");
+    return -1;			/* dummy */
+  }
+  /* if the port has not read anything yet, then check bom */
+  if (mark == 0) {
+    /* tran->isBegin = FALSE; */
     if (tran->codec->type == SG_BUILTIN_CODEC) {
       return SG_CODEC_BUILTIN(tran->codec)->getc(tran->codec, port,
 						 tran->mode, TRUE);

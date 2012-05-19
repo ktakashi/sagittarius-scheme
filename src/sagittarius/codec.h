@@ -65,6 +65,8 @@ struct SgCodecRec
       int64_t (*writec)(SgObject, SgPort*, SgChar *, int64_t, 
 			ErrorHandlingMode);
       Endianness endian;
+      /* only for utf16 and utf32 */
+      int     littlep;
     } builtin;
     struct {
       /* TODO read and write */

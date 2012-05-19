@@ -408,6 +408,7 @@ static int socket_get_u8(SgObject self)
 		     self);
       return -1;
     } else {
+      SG_BINARY_PORT(self)->position += ret;
       return c;
     }
   }
@@ -443,10 +444,11 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
     size -= now;
     readSize += now;
     offset += now;
-    if (now == 0) return readSize;
+    if (now == 0) break;
     if (size == 0) break;
     /* loop */
   }
+  SG_BINARY_PORT(self)->position += readSize;
   return readSize;
 }
 
@@ -473,6 +475,7 @@ static int64_t socket_read_u8_all(SgObject self, uint8_t **buf)
       }
     }
   }
+  SG_BINARY_PORT(self)->position += mark;
   *buf = Sg_GetByteArrayFromBinaryPort(SG_PORT(buffer));
   return mark;
 }

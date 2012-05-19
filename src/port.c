@@ -759,6 +759,7 @@ static int byte_array_get_u8(SgObject self)
   int index = SG_BINARY_PORT(self)->src.buffer.index;
   int size =  SG_BVECTOR_SIZE(SG_BINARY_PORT(self)->src.buffer.bvec);
   if (index >= size) return EOF;
+  SG_BINARY_PORT(self)->position++;
   return Sg_ByteVectorU8Ref(SG_BINARY_PORT(self)->src.buffer.bvec,
 			    SG_BINARY_PORT(self)->src.buffer.index++);
 }
@@ -785,6 +786,7 @@ static int64_t byte_array_read_u8(SgObject self, uint8_t *buf, int64_t size)
     buf[i] = Sg_ByteVectorU8Ref(bvec, bindex + i);
   }
   SG_BINARY_PORT(self)->src.buffer.index += read_size;
+  SG_BINARY_PORT(self)->position += read_size;
   return read_size;
 }
 
@@ -1276,6 +1278,8 @@ static int custom_binary_get_u8(SgObject self)
   if (result == SG_MAKE_INT(0)) {
     return EOF;
   }
+  /* make binary port's position as a mark */
+  SG_CUSTOM_BINARY_PORT(self)->position += SG_INT_VALUE(result);
   return Sg_ByteVectorU8Ref(bv, 0);
 }
 
@@ -1336,6 +1340,7 @@ static int64_t custom_binary_read(SgObject self, uint8_t *buf, int64_t size)
     start += r;
   }
   if (read == 0) return 0;	/* short cut */
+  SG_CUSTOM_BINARY_PORT(self)->position += read;
   memcpy(buf, SG_BVECTOR_ELEMENTS(bv), read);
   return read;
 }

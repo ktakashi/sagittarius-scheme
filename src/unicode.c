@@ -361,7 +361,6 @@ static SgChar utf16_reader(int (*u8reader)(void *, int), SgCodec *codec,
 
   /* const uint32_t SURROGATE_OFFSET = 0x10000 - (0xD800 << 10) - 0xDC00;; */
 
-#define isLittleEndian(c) (SG_CODEC_ENDIAN(c) == UTF_16LE)
  retry:
   a = u8reader(data, TRUE);
   b = u8reader(data, TRUE);
@@ -373,18 +372,18 @@ static SgChar utf16_reader(int (*u8reader)(void *, int), SgCodec *codec,
 
   if (checkBOMNow && SG_CODEC_ENDIAN(codec) == UTF_16CHECK_BOM) {
     if (a == 0xFE && b == 0xFF) {
-      SG_CODEC_ENDIAN(codec) = UTF_16BE;
+      SG_CODEC_BUILTIN(codec)->littlep = FALSE;
       return utf16_reader(u8reader, codec, port, mode, FALSE, data);
     } else if (a == 0xFF && b == 0xFE) {
-      SG_CODEC_ENDIAN(codec) = UTF_16LE;
+      SG_CODEC_BUILTIN(codec)->littlep = TRUE;
       return utf16_reader(u8reader, codec, port, mode, FALSE, data);
     } else {
-      SG_CODEC_ENDIAN(codec) = UTF_16BE;
+      SG_CODEC_BUILTIN(codec)->littlep = FALSE;
       /* correct? */
     }
   }
 
-  val1 = isLittleEndian(codec) ? ((b << 8) | a) : ((a << 8) | b);
+  val1 = SG_CODEC_BUILTIN(codec)->littlep ? ((b << 8) | a) : ((a << 8) | b);
   if (val1 < 0xD800 || 0xDFFF < val1) {
     return val1;
   }
@@ -396,7 +395,7 @@ static SgChar utf16_reader(int (*u8reader)(void *, int), SgCodec *codec,
   if (EOF == d) {
     decodeError(SG_INTERN("convert-utf16-to-ucs4"));
   }
-  val2 = isLittleEndian(codec) ? ((d << 8) | c) : ((c << 8) | d);
+  val2 = SG_CODEC_BUILTIN(codec)->littlep ? ((d << 8) | c) : ((c << 8) | d);
 
   /* http://unicode.org/faq/utf_bom.html#utf16-4 */
   C = ((val1-0xD800) << 10) + (val2-0xDC00) + 0x010000;

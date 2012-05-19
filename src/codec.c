@@ -155,7 +155,7 @@ static int put_utf16_char(SgObject self, SgPort *port, SgChar c,
 			  ErrorHandlingMode mode)
 {
   uint8_t buf[4];
-  int littlep = SG_CODEC(self)->impl.builtin.endian == UTF_16LE;
+  int littlep = SG_CODEC(self)->impl.builtin.littlep;
   int64_t size = Sg_ConvertUcs4ToUtf16(c, buf, mode, littlep);
   put_binary_array(port, buf, size);
 }
@@ -175,7 +175,7 @@ static int64_t write_utf16(SgObject self, SgPort* port, SgChar *str,
   /* we at lease need 'size' size buffer. */
   uint8_t tmp[TMP_BUF_SIZE];
   int64_t i, converted_size = 0;
-  int littlep = SG_CODEC(self)->impl.builtin.endian == UTF_16LE;
+  int littlep = SG_CODEC(self)->impl.builtin.littlep;
   /* we can not know the real size until we convert. */
   for (i = 0; i < count; i++) {
     SgChar c = str[i];
@@ -200,6 +200,7 @@ SgObject Sg_MakeUtf16Codec(Endianness endian)
   SgCodec* z;
   ASSERT(endian == UTF_16BE || endian == UTF_16LE || endian == UTF_16CHECK_BOM);
   z = make_codec();
+  SG_CODEC_BUILTIN(z)->littlep = (endian == UTF_16LE);
   SG_CODEC_BUILTIN(z)->putc = put_utf16_char;
   SG_CODEC_BUILTIN(z)->getc = get_utf16_char;
   SG_CODEC_BUILTIN(z)->readc = read_utf16;
