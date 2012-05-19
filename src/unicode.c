@@ -535,7 +535,7 @@ size_t ustrlen(const SgChar *value)
 #include "../unicode/special-casing-upper.inc"
 #include "../unicode/decompose.inc"
 
-#define DECLARE_SIMPLE_CASE(name)				\
+#define DECLARE_SIMPLE_CASE(name, how)				\
   static SgChar name (SgChar ch)				\
   {								\
     const int size = array_sizeof(SG_CPP_CAT(s_, name));	\
@@ -545,14 +545,14 @@ size_t ustrlen(const SgChar *value)
 	return SG_CPP_CAT(s_, name)[i].out;			\
       }								\
     }								\
-    return ch;							\
+    return how? ch: 0;						\
   }
 
-DECLARE_SIMPLE_CASE(simple_uppercase);
-DECLARE_SIMPLE_CASE(simple_lowercase);
-DECLARE_SIMPLE_CASE(simple_titlecase);
-DECLARE_SIMPLE_CASE(canonical_class);
-DECLARE_SIMPLE_CASE(compose);
+DECLARE_SIMPLE_CASE(simple_uppercase, TRUE);
+DECLARE_SIMPLE_CASE(simple_lowercase, TRUE);
+DECLARE_SIMPLE_CASE(simple_titlecase, TRUE);
+DECLARE_SIMPLE_CASE(canonical_class, FALSE);
+DECLARE_SIMPLE_CASE(compose, FALSE);
 
 #define DECLARE_BOOL_CASE(name)					\
   static int name (SgChar ch)					\
@@ -569,6 +569,25 @@ DECLARE_SIMPLE_CASE(compose);
 
 DECLARE_BOOL_CASE(compatibility);
 
+#define DECLARE_OTHER_CASE_PRED(name)					\
+  static int SG_CPP_CAT(name, _property_p) (SgChar ch)			\
+  {									\
+    if (0x345 <= ch && ch <= 0x10A0F) {					\
+      const int size = array_sizeof(SG_CPP_CAT(s_, name));		\
+      int i;								\
+      for (i = 0; i < size; i++) {					\
+	if (SG_CPP_CAT(s_, name)[i].in <= ch &&				\
+	    SG_CPP_CAT(s_, name)[i].out <= ch) {			\
+	  return TRUE;							\
+	}								\
+      }									\
+    }									\
+    return FALSE;							\
+  }
+DECLARE_OTHER_CASE_PRED(other_alphabetic);
+DECLARE_OTHER_CASE_PRED(other_lowercase);
+DECLARE_OTHER_CASE_PRED(other_uppercase);
+#if 0
 static int other_alphabetic_property_p(SgChar ch)
 {
   if (0x345 <= ch && ch <= 0x10A0F) {
@@ -583,6 +602,7 @@ static int other_alphabetic_property_p(SgChar ch)
   }
   return FALSE;
 }
+#endif
 
 SgObject Sg_DigitValue(SgChar ch)
 {
@@ -660,7 +680,7 @@ int Sg_CharUpperCaseP(SgChar ch)
     case Lu:
       return TRUE;
     case Nl: case So:
-      return other_alphabetic_property_p(ch);
+      return other_uppercase_property_p(ch);
     default:
       return FALSE;
     }
@@ -676,7 +696,7 @@ int Sg_CharLowerCaseP(SgChar ch)
     case Ll:
       return TRUE;
     case Lm: case Mn: case Nl: case So:
-      return other_alphabetic_property_p(ch);
+      return other_lowercase_property_p(ch);
     default:
       return FALSE;
     }
@@ -981,8 +1001,7 @@ static void recursive_decomposition(int canonicalP, SgChar sv, SgPort *out)
 {
   int dindex = decompose(sv), sindex = sv - SBase, i;
 
-  if (dindex >= 0 &&
-      !(canonicalP && compatibility(sv))) {
+  if (dindex >= 0 && !(canonicalP && compatibility(sv))) {
     const int size = array_sizeof(s_decompose[dindex].out);
     for (i = 0; i < size; i++) {
       SgChar ch = s_decompose[dindex].out[i];
@@ -1008,12 +1027,15 @@ static SgByteVector* decompose_rec(SgString *in, int canonicalP)
   int i, size = SG_STRING_SIZE(in);
   SgPort *out = SG_PORT(Sg_MakeStringOutputPort(size));
   /* TODO this could be non memmory allocate */
-  SgTranscoder *trans = Sg_MakeTranscoder(Sg_MakeUtf32Codec(UTF_32USE_NATIVE_ENDIAN), LF, SG_RAISE_ERROR);
+  SgTranscoder *trans = 
+    Sg_MakeTranscoder(Sg_MakeUtf32Codec(UTF_32USE_NATIVE_ENDIAN),
+		      E_NONE, SG_REPLACE_ERROR);
   for (i = 0; i < size; i++) {
     SgChar ch = SG_STRING_VALUE_AT(in, i);
     recursive_decomposition(canonicalP, ch, out);
   }
-  return SG_BVECTOR(Sg_StringToByteVector(Sg_GetStringFromStringPort(out), trans, 0, -1));
+  return SG_BVECTOR(Sg_StringToByteVector(Sg_GetStringFromStringPort(out),
+					  trans, 0, -1));
 }
 
 static SgByteVector* sort_combining_marks(SgByteVector *bv)
@@ -1043,8 +1065,9 @@ static SgByteVector* sort_combining_marks(SgByteVector *bv)
 
 SgObject Sg_StringNormalizeNfd(SgString *str)
 {
-  SgTranscoder *trans = Sg_MakeTranscoder(Sg_MakeUtf32Codec(UTF_32USE_NATIVE_ENDIAN),
-					  LF, SG_RAISE_ERROR);
+  SgTranscoder *trans = 
+    Sg_MakeTranscoder(Sg_MakeUtf32Codec(UTF_32USE_NATIVE_ENDIAN),
+		      E_NONE, SG_REPLACE_ERROR);
   SgByteVector *bv = decompose_rec(str, TRUE);
   sort_combining_marks(bv);
   return Sg_ByteVectorToString(bv, trans, 0, -1);
@@ -1052,20 +1075,21 @@ SgObject Sg_StringNormalizeNfd(SgString *str)
 
 SgObject Sg_StringNormalizeNfkd(SgString *str)
 {
-  SgTranscoder *trans = Sg_MakeTranscoder(Sg_MakeUtf32Codec(UTF_32USE_NATIVE_ENDIAN),
-					  LF, SG_RAISE_ERROR);
+  SgTranscoder *trans =
+    Sg_MakeTranscoder(Sg_MakeUtf32Codec(UTF_32USE_NATIVE_ENDIAN),
+		      E_NONE, SG_REPLACE_ERROR);
   SgByteVector *bv = decompose_rec(str, FALSE);
   sort_combining_marks(bv);
   return Sg_ByteVectorToString(bv, trans, 0, -1);
 }
 
-static uint32_t pair_wise_composition(uint32_t first, uint32_t second)
+static int32_t pair_wise_composition(uint32_t first, uint32_t second)
 {
   if (first < 0        ||		/* happen? */
       first > 0x10FFFF ||
       second < 0       ||		/* happen? */
       second > 0x10FFFF) {
-    return FALSE;
+    return -1;
   } else {
     int32_t lindex = first - LBase;
     int32_t vindex = second - VBase;
@@ -1073,54 +1097,58 @@ static uint32_t pair_wise_composition(uint32_t first, uint32_t second)
     int32_t tindex = second - TBase;
     if ((-1 < lindex && lindex < LCount) &&
 	(-1 < vindex && vindex < VCount)) {
-      return SBase + (TCount * (vindex + (lindex + VCount)));
+      return SBase + (TCount * (vindex + (lindex * VCount)));
     } else if ((-1 < sindex && sindex < SCount) &&
 	       (-1 < tindex && tindex < TCount) &&
 	       ((sindex % TCount) == 0)) {
       return first + tindex;
     } else {
       int64_t val = (first * 0x10000) + second;
-      return compose(val);
+      int32_t r = compose(val);
+      return r ? r : -1;
     }
   }
 }
 
 static SgObject compose_rec(SgByteVector *bv)
 {
-  SgTranscoder *trans = Sg_MakeTranscoder(Sg_MakeUtf32Codec(UTF_32USE_NATIVE_ENDIAN),
-					  LF, SG_RAISE_ERROR);
+  SgTranscoder *trans =
+    Sg_MakeTranscoder(Sg_MakeUtf32Codec(UTF_32USE_NATIVE_ENDIAN),
+		      E_NONE, SG_REPLACE_ERROR);
   SgByteVector *out;
   int size = SG_BVECTOR_SIZE(bv);
   uint32_t first = Sg_ByteVectorU32NativeRef(bv, 0);
-  int32_t first_cc = (canonical_class(first) == first) ? 0 : 256;
+  int32_t first_cc = (canonical_class(first) == 0) ? 0 : 256;
   
   uint32_t starter = first;
   int32_t starter_cc = first_cc;
-  int starter_pos = 0, comp_pos = 4, i;
+  int starter_pos, comp_pos, i;
 
-  for (i = 4; i < size; i += 4) {
-    uint32_t this = Sg_ByteVectorU32NativeRef(bv, i);
-    int32_t this_cc = canonical_class(this);
-    if ((starter_cc == 0 || starter_cc < this_cc)) {
-      uint32_t composit = pair_wise_composition(starter, this);
-      if (composit) {
+  for (i = 4, comp_pos = 4, starter_pos = 0;; i += 4) {
+    if (i >= size) {
+      out = Sg_MakeByteVector(comp_pos, 0);
+      Sg_ByteVectorCopyX(bv, 0, out, 0, comp_pos);
+      return Sg_ByteVectorToString(out, trans, 0, -1);  
+    } else {
+      uint32_t this = Sg_ByteVectorU32NativeRef(bv, i);
+      int32_t this_cc = canonical_class(this), composit;
+      if ((starter_cc == 0 || starter_cc < this_cc) &&
+	  (composit = pair_wise_composition(starter, this)) >= 0) {
+	ASSERT(composit >= 0);
 	Sg_ByteVectorU32NativeSet(bv, starter_pos, composit);
 	starter = composit;
 	starter_cc = canonical_class(composit);
-	continue;
+      } else {
+	Sg_ByteVectorU32NativeSet(bv, comp_pos, this);
+	if (this_cc == 0) {
+	  starter = this;
+	  starter_pos = comp_pos;
+	}
+	starter_cc = this_cc;
+	comp_pos += 4;
       }
     }
-    Sg_ByteVectorU32NativeSet(bv, comp_pos, this);
-    if (this_cc == 0) {
-      starter = this;
-      starter_pos = comp_pos;
-    }
-    starter_cc = this_cc;
-    comp_pos += 4;
   }
-  out = Sg_MakeByteVector(comp_pos, 0);
-  Sg_ByteVectorCopyX(bv, 0, out, 0, comp_pos);
-  return Sg_ByteVectorToString(out, trans, 0, -1);  
 }
 
 SgObject Sg_StringNormalizeNfc(SgString *str)

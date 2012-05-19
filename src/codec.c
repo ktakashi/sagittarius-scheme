@@ -211,16 +211,20 @@ SgObject Sg_MakeUtf16Codec(Endianness endian)
 
 
 #define decodeError(who)						\
-  if (mode == SG_RAISE_ERROR) {						\
+  switch (mode) {							\
+  case SG_RAISE_ERROR:							\
     Sg_IOError(SG_IO_DECODE_ERROR, who,					\
-	       Sg_Sprintf(UC("invalid encode. %S, %s:%x"),		\
+	       Sg_Sprintf(UC("invalid encode. %S, %s:%d"),		\
 			  self, UC(__FILE__), __LINE__),		\
 	       SG_UNDEF, port);						\
-  } else if (mode == SG_REPLACE_ERROR) {				\
+    return -1;			/* dummy */				\
+  case SG_REPLACE_ERROR:						\
     return 0xFFFD;							\
-  } else {								\
-    ASSERT(mode == SG_IGNORE_ERROR);					\
+  case SG_IGNORE_ERROR:							\
     goto retry;								\
+ default:								\
+   Sg_Panic("[internal error] unknown error mode.");			\
+   return -1;			/* dummy */				\
   }
 
 static void char_to_utf8_array(SgObject self, SgChar u, uint8_t *buf)
