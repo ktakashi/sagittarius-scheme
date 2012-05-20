@@ -452,7 +452,8 @@ char* Sg_Utf32sToUtf8s(const SgString *s)
 {
   SgPort *p = Sg_MakeByteArrayOutputPort(s->size + sizeof(SgChar));
   SgTranscoder *t = Sg_MakeTranscoder(Sg_MakeUtf8Codec(), LF, SG_IGNORE_ERROR);
-  Sg_TranscoderWrite(t, p, SG_STRING_VALUE(s), SG_STRING_SIZE(s));
+  SgPort *tp = Sg_MakeTranscodedOutputPort(p, t);
+  Sg_TranscoderWrite(t, tp, SG_STRING_VALUE(s), SG_STRING_SIZE(s));
   return (char*)Sg_GetByteArrayFromBinaryPort(p);
 }
 

@@ -37,6 +37,7 @@
 
 ;; The api names are from Gauche.
 #!compatible
+#< (sagittarius regex) >
 (library (rfc mime)
     (export mime-parse-version
 	    mime-parse-content-type
@@ -81,7 +82,7 @@
 	    (util list)
 	    (math))
 
-  (define *version-regex* (regex "^(\\d+)\\.(\\d+)$"))
+  (define *version-regex* #/^(\d+)\.(\d+)$/)
 
   ;; returns list of major and minor versions in integers
   (define (mime-parse-version field)
@@ -142,7 +143,7 @@
   ;; ((paramter . value) ...) => ;parameter=value;parameter=value ...
   (define (mime-compose-parameters pvs :key (port (current-output-port))
 				            (start-column 0))
-    (define quote-re (regex "[\"\\\\]"))
+    (define quote-re #/[\"\\]/)
     (define (quote-value v)
       (if (string-every *ct-token-chars* v)
 	  v
@@ -175,8 +176,8 @@ v	      (match pv
 
   ;; RFC2047 header field encoding
 
-  (define *mime-encoded-header-re* 
-    (regex "^=\\?([-!#-'*+\\w\\^-~]+)\\?([-!#-'*+\\w\\^-~]+)\\?([!->@-~]+)\\?="))
+  (define *mime-encoded-header-re*
+    #/^=\?([-!#-'*+\w\^-~]+)\?([-!#-'*+\w\^-~]+)\?([!->@-~]+)\?=/)
 
   (define (%mime-decode-word word charset encoding body)
     (let ((decoder (lookup-decoder charset)))
@@ -245,10 +246,14 @@ v	      (match pv
 	  (+ 6 cslen
 	     (if (eq? enc 'B)
 		 (ceiling (* (+ na (* (- i na) 3)) 4/3))
-		 (let1 ng (string-count s (char-set-union (ucs-range->char-set (char->integer #\!)
-									       (char->integer #\<))
-							  (ucs-range->char-set (char->integer #\>)
-									       (char->integer #\~))))
+		 (let1 ng (string-count 
+			   s
+			   (char-set-union (ucs-range->char-set 
+					    (char->integer #\!)
+					    (char->integer #\<))
+					   (ucs-range->char-set
+					    (char->integer #\>)
+					    (char->integer #\~))))
 		   (+ (- na ng) (* 3 (+ ng (* (- i na) 3)))))))))
       (define (encode-word w)
 	(mime-encode-word w charset enc))

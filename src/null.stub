@@ -2007,7 +2007,7 @@
 	  ((SG_TEXTUAL_PORTP p)
 	   (if (== (-> (SG_TEXTUAL_PORT p) type)
 		   SG_TRANSCODED_TEXTUAL_PORT_TYPE)
-	       (result (SG_TRANSCODED_TEXTUAL_PORT_TRANSCODER p))
+	       (result (SG_TRANSCODED_PORT_TRANSCODER p))
 	       (result #f)))
 	  (else
 	   ;; TODO custom port

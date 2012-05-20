@@ -112,6 +112,10 @@ typedef struct SgTextualPortRec
     struct {
       SgTranscoder *transcoder;
       SgPort       *port;
+      /* we need to manage buffer by port.
+	 to make is simpler, this is a char list. */
+      SgObject      ungetBuffer;
+      int           lineNo;
     } transcoded;
     /* string oport uses char_buffer */
     struct {
@@ -244,10 +248,16 @@ enum SgCustomPortType {
 #define SG_TEXTUAL_PORTP(obj) (SG_PORTP(obj) && SG_PORT(obj)->type == SG_TEXTUAL_PORT_TYPE)
 #define SG_TEXTUAL_PORT(obj)  (SG_PORT(obj)->impl.tport)
 
-#define SG_TRANSCODED_TEXTUAL_PORT_TRANSCODER(obj)	\
-  SG_TEXTUAL_PORT(obj)->src.transcoded.transcoder
-#define SG_ERROR_HANDLING_MODE(obj)		\
-  SG_TEXTUAL_PORT(obj)->src.transcoded.transcoder->mode
+#define SG_TRANSCODED_PORT_TRANSCODER(obj)	\
+  (SG_TEXTUAL_PORT(obj)->src.transcoded.transcoder)
+#define SG_TRANSCODED_PORT_BUFFER(obj)	\
+  (SG_TEXTUAL_PORT(obj)->src.transcoded.ungetBuffer)
+#define SG_TRANSCODED_PORT_SRC_PORT(obj)	\
+  (SG_TEXTUAL_PORT(obj)->src.transcoded.port)
+#define SG_TRANSCODED_PORT_LINE_NO(obj)		\
+  (SG_TEXTUAL_PORT(obj)->src.transcoded.lineNo)
+#define SG_TRNASCODED_PORT_MODE(obj)		\
+  (SG_TEXTUAL_PORT(obj)->src.transcoded.transcoder->mode)
 
 #define SG_CUSTOM_PORTP(obj)  (SG_PORTP(obj) && SG_PORT(obj)->type == SG_CUSTOM_PORT_TYPE)
 #define SG_CUSTOM_PORT(obj)   (SG_PORT(obj)->impl.cport)

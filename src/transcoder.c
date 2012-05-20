@@ -41,10 +41,6 @@
 #include "sagittarius/vm.h"
 #include "sagittarius/error.h"
 
-#define DEFAULT_BUFFER_SIZE (128 * sizeof(SgChar))
-#define INCREASE_SIZE       (32 * sizeof(SgChar))
-#define SIZE2POS(sz)        ((int)(sz / sizeof(SgChar)))
-
 /* Linux(maybe only ubuntu) has this stupid macro. so we need to undefine it. */
 #ifdef putc
 #undef putc
@@ -104,63 +100,38 @@ static SgObject get_mode(int mode)
   return SG_UNDEF;		/* dummy */
 }
 
-
-void Sg_TranscoderUngetc(SgObject self, SgChar c)
-{
-  SgTranscoder *tran = SG_TRANSCODER(self);
-  if (EOF == c) return;
-  if (tran->buffer == NULL) {
-    /* manual alloc */
-    tran->bufferSize = DEFAULT_BUFFER_SIZE;
-    tran->buffer = SG_NEW_ATOMIC2(SgChar*, sizeof(SgChar) * tran->bufferSize);
-    tran->bufferPosition = 0;
-  }
-  
-  if (tran->bufferPosition == SIZE2POS(tran->bufferSize)) {
-    int nextBufferSize = tran->bufferSize + INCREASE_SIZE;
-    SgChar *tmp = SG_NEW_ATOMIC2(SgChar*, sizeof(SgChar) * nextBufferSize);
-    if (tmp == NULL) {
-      /** @todo error handling */
-      exit(-1);
-    }
-    memcpy(tran->buffer, tmp, tran->bufferSize);
-    tran->buffer = NULL; /* maybe gc frendliness? */
-    tran->buffer = tmp;
-    tran->bufferSize = nextBufferSize;
-  }
-  ASSERT(tran->buffer != NULL);
-  ASSERT(tran->bufferSize != 0);
-  ASSERT(SIZE2POS(tran->bufferSize) > tran->bufferPosition);
-  tran->buffer[tran->bufferPosition++] = c;
-  if (c == LF) {
-    tran->lineNo--;
-  }
-}
-
+#define PORT_MARK(mark, src_port, port)					\
+  do {									\
+    ASSERT(SG_TEXTUAL_PORTP(port));					\
+    ASSERT(SG_TEXTUAL_PORT(port)->type==SG_TRANSCODED_TEXTUAL_PORT_TYPE);\
+    src_port = SG_TRANSCODED_PORT_SRC_PORT(port);			\
+    if (SG_BINARY_PORTP(src_port)) {					\
+      (mark) = SG_BINARY_PORT(src_port)->position;			\
+    } else if (SG_CUSTOM_PORTP(src_port)) {				\
+      ASSERT(SG_CUSTOM_PORT(src_port)->type == SG_BINARY_CUSTOM_PORT_TYPE); \
+      (mark) = SG_CUSTOM_PORT(src_port)->impl.bport->position;		\
+    } else {								\
+      Sg_Panic("[internal error] transcoder got textual port");		\
+      (mark) = -1;		/* dummy */				\
+    }									\
+  } while (0);
 
 static SgChar get_char_internal(SgObject self, SgPort *port)
 {
   SgTranscoder *tran = SG_TRANSCODER(self);
   int64_t mark;
+  SgPort *src_port;
   /* we know here only binary or custom binary port can reach */
-  if (SG_BINARY_PORTP(port)) {
-    mark = SG_BINARY_PORT(port)->position;
-  } else if (SG_CUSTOM_PORTP(port)) {
-    ASSERT(SG_CUSTOM_PORT(port) == SG_BINARY_CUSTOM_PORT_TYPE);
-    mark = SG_CUSTOM_PORT(port)->impl.bport->position;
-  } else {
-    Sg_Panic("[internal error] transcoder got textual port");
-    return -1;			/* dummy */
-  }
+  PORT_MARK(mark, src_port, port);
+
   /* if the port has not read anything yet, then check bom */
   if (mark == 0) {
-    /* tran->isBegin = FALSE; */
     if (tran->codec->type == SG_BUILTIN_CODEC) {
-      return SG_CODEC_BUILTIN(tran->codec)->getc(tran->codec, port,
+      return SG_CODEC_BUILTIN(tran->codec)->getc(tran->codec, src_port,
 						 tran->mode, TRUE);
     } else {
       SgObject c = Sg_Apply4(SG_CODEC_CUSTOM(tran->codec)->getc,
-			     port, get_mode(tran->mode), SG_TRUE,
+			     src_port, get_mode(tran->mode), SG_TRUE,
 			     SG_CODEC_CUSTOM(tran->codec)->data);
       if (SG_CHARP(c)) {
 	return SG_CHAR_VALUE(c);
@@ -172,26 +143,21 @@ static SgChar get_char_internal(SgObject self, SgPort *port)
     }
   } else {
     SgChar c;
-    if (tran->buffer == NULL || tran->bufferPosition == 0) {
-      if (tran->codec->type == SG_BUILTIN_CODEC) {
-	c = SG_CODEC_BUILTIN(tran->codec)->getc(tran->codec, port, 
-						tran->mode, FALSE);
-      } else {
-	SgObject co = Sg_Apply4(SG_CODEC_CUSTOM(tran->codec)->getc,
-				port, get_mode(tran->mode), SG_FALSE,
-				SG_CODEC_CUSTOM(tran->codec)->data);
-	if (SG_CHARP(co)) {
-	  c =  SG_CHAR_VALUE(co);
-	} else if (SG_EOFP(co)) {
-	  return EOF;
-	} else {
-	  Sg_Error(UC("codec returned invalid object %S"), co);
-	  return -1;		/* dummy */
-	}
-      }
+    if (tran->codec->type == SG_BUILTIN_CODEC) {
+      c = SG_CODEC_BUILTIN(tran->codec)->getc(tran->codec, src_port, 
+					      tran->mode, FALSE);
     } else {
-      c = tran->buffer[tran->bufferPosition - 1];
-      tran->bufferPosition--;
+      SgObject co = Sg_Apply4(SG_CODEC_CUSTOM(tran->codec)->getc,
+			      src_port, get_mode(tran->mode), SG_FALSE,
+			      SG_CODEC_CUSTOM(tran->codec)->data);
+      if (SG_CHARP(co)) {
+	c =  SG_CHAR_VALUE(co);
+      } else if (SG_EOFP(co)) {
+	return EOF;
+      } else {
+	Sg_Error(UC("codec returned invalid object %S"), co);
+	return -1;		/* dummy */
+      }
     }
     return c;
   }
@@ -204,7 +170,7 @@ SgChar Sg_TranscoderGetc(SgObject self, SgPort *port)
   SgChar c = get_char_internal(self, port);
   if (tran->eolStyle == E_NONE) {
     if (c == LF) {
-      tran->lineNo++;
+      SG_TRANSCODED_PORT_LINE_NO(port)++;
     }
     return c;
   }
@@ -212,17 +178,18 @@ SgChar Sg_TranscoderGetc(SgObject self, SgPort *port)
   case LF:
   case NEL:
   case LS:
-    tran->lineNo++;
+    SG_TRANSCODED_PORT_LINE_NO(port)++;
     return LF;
   case CR: {
     SgChar c2 = get_char_internal(self, port);
-    tran->lineNo++;
+    SG_TRANSCODED_PORT_LINE_NO(port)++;
     switch (c2) {
     case LF:
     case NEL:
       return LF;
     default:
-      Sg_TranscoderUngetc(self, c2);
+      /* call ports ungetc */
+      Sg_UngetcUnsafe(port, c2);
       return LF;
     }
   }
@@ -242,7 +209,8 @@ SgChar Sg_TranscoderGetc(SgObject self, SgPort *port)
    +---+---+---+----+---+
    We want to share the memory.
  */
-static int resolve_eol(SgTranscoder *tran, SgChar *dst, SgChar 
+static int resolve_eol(SgPort *port, 
+		       SgTranscoder *tran, SgChar *dst, SgChar 
 		       *src, int64_t count)
 {
   int64_t i;
@@ -250,19 +218,19 @@ static int resolve_eol(SgTranscoder *tran, SgChar *dst, SgChar
   for (i = 0; i < count; i++) {
     if (tran->eolStyle == E_NONE) {
       if (*src == LF) {
-	tran->lineNo++;
+	SG_TRANSCODED_PORT_LINE_NO(port)++;
       }
       *dst++ = *src++;
       continue;
     }
     switch (*src) {
     case LF: case NEL: case LS:
-      tran->lineNo++;
+      SG_TRANSCODED_PORT_LINE_NO(port)++;
       *dst++ = LF;
       src++;
       break;
     case CR: {
-      tran->lineNo++;
+      SG_TRANSCODED_PORT_LINE_NO(port)++;
       switch (*++src) {
       case LF: case NEL:
 	diff++; count++; src++;	/* 2 -> 1 */
@@ -284,62 +252,36 @@ static int resolve_eol(SgTranscoder *tran, SgChar *dst, SgChar
 int64_t Sg_TranscoderRead(SgObject self, SgPort *port, 
 			  SgChar *buf, int64_t size)
 {
-  int64_t read = 0;
+  int64_t read = 0, mark;
   int diff;
-  /* we need to resolve 2 things, begin flag and unget char buffer. */
   SgTranscoder *trans = SG_TRANSCODER(self);
   SgChar c;
-  if (trans->isBegin) {
+  SgPort *src_port;
+  /* we need to resolve a thing, begin flag */
+  PORT_MARK(mark, src_port, port);
+  if (mark == 0) {
     /* yes we need to make it not begein */
     c = Sg_TranscoderGetc(self, port);
     if (c == EOF) return 0;
     buf[read++] = c;
   }
   if (read == size) return read;
-  if (trans->buffer != NULL && trans->bufferPosition != 0) {
-    SgChar c2;
-    for (; trans->bufferPosition; ) {
-      c = trans->buffer[--trans->bufferPosition];
-      switch (c) {
-      case LF: case NEL: case LS:
-	trans->lineNo++;
-	c = LF;
-	break;
-      case CR: 
-	/* just in case */
-	c2 = (trans->bufferPosition)
-	  ? trans->buffer[--trans->bufferPosition]
-	  : get_char_internal(self, port);
-	trans->lineNo++;
-	switch (c2) {
-	case LF: case NEL:
-	  c = LF;
-	  break;
-	default:
-	  Sg_TranscoderUngetc(self, c2);
-	  c = LF;
-	  break;
-	}
-      }  
-      buf[read++] = c;
-      if (read == size) return read;
-    }
-  }
+
   /* now we can finally read from port */
  retry:
   if (trans->codec->type == SG_BUILTIN_CODEC) {
     int64_t r;
-    r = SG_CODEC_BUILTIN(trans->codec)->readc(trans->codec, port,
+    r = SG_CODEC_BUILTIN(trans->codec)->readc(trans->codec, src_port,
 					      buf+read, size-read,
 					      trans->mode, FALSE);
     /* ok length 0 is EOF, to avoid infinite loop */
     if (r == 0) goto end;
-    diff = resolve_eol(trans, buf+read, buf+read, r);
+    diff = resolve_eol(port, trans, buf+read, buf+read, r);
     read += r - diff;
   } else {
     SgObject r;
     r = Sg_Apply4(SG_CODEC_CUSTOM(trans->codec)->readc,
-		  port, SG_MAKE_INT(size-read),
+		  src_port, SG_MAKE_INT(size-read),
 		  get_mode(trans->mode),
 		  SG_CODEC_CUSTOM(trans->codec)->data);
     if (!SG_STRINGP(r)) {
@@ -347,7 +289,7 @@ int64_t Sg_TranscoderRead(SgObject self, SgPort *port,
       return -1;		/* dummy */
     } else {
       if (SG_STRING_SIZE(r) == 0) goto end; /* the same as builtin */
-      diff = resolve_eol(trans, buf+read, SG_STRING_VALUE(r),
+      diff = resolve_eol(port, trans, buf+read, SG_STRING_VALUE(r),
 			 SG_STRING_SIZE(r));
       read += SG_STRING_SIZE(r) - diff;
     }
@@ -370,12 +312,12 @@ int64_t Sg_TranscoderRead(SgObject self, SgPort *port,
   } while (0)
 
 
-void Sg_TranscoderPutc(SgObject self, SgPort *port, SgChar c)
+void Sg_TranscoderPutc(SgObject self, SgPort *tport, SgChar c)
 {
   SgTranscoder *tran = SG_TRANSCODER(self);
-  if (tran->bufferPosition != 0) {
-    tran->bufferPosition--;
-  }
+  int64_t dummy;
+  SgPort *port;
+  PORT_MARK(dummy, port, tport);
   if (tran->eolStyle == E_NONE) {
     dispatch_putchar(tran->codec, port, c, tran->mode);
     return;
@@ -419,15 +361,14 @@ void Sg_TranscoderPutc(SgObject self, SgPort *port, SgChar c)
     }									\
   } while (0)
 
-int64_t Sg_TranscoderWrite(SgObject self, SgPort *port,
+int64_t Sg_TranscoderWrite(SgObject self, SgPort *tport,
 			   SgChar *s, int64_t count)
 {
   SgTranscoder *tran = SG_TRANSCODER(self);
   SgObject new_s = NULL;
-
-  if (tran->bufferPosition != 0) {
-    tran->bufferPosition--;
-  }
+  int64_t dummy;
+  SgPort *port;
+  PORT_MARK(dummy, port, tport);
   /* a bit ugly and slow solution. create string buffer and construct
      proper linefeed there.
    */
@@ -473,10 +414,6 @@ SgObject Sg_MakeTranscoder(SgCodec *codec, EolStyle eolStyle,
   z->codec = codec;
   z->eolStyle = eolStyle;
   z->mode = mode;
-  z->lineNo = 1;
-  z->buffer = NULL;
-  z->bufferSize = 0;
-  z->isBegin = TRUE;
 
   return SG_OBJ(z);
 }

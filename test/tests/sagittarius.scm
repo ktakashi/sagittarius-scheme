@@ -150,6 +150,7 @@
       (put-string out "あいうえお\n")
       (test-equal "write sjis" bv (getter))))
   )
+
 ;; euc-jp
 (let ((tr (make-transcoder (euc-jp-codec) 'lf))
       (file  (string-append (current-directory)
@@ -173,5 +174,18 @@
 (test-error "ascii 2 read" (read (open-string-input-port "\x2;")))
 (test-error "ascii 3 read" (read (open-string-input-port "\x3;")))
 
+;; Textual port buffer problem
+(define tr (make-transcoder (utf-8-codec)))
+(call-with-port
+ (open-bytevector-input-port (string->utf8 "xyzzy") tr)
+ (lambda (in)
+   (test-equal "first get char" #\x (get-char in))
+   (test-equal "first lookahead char" #\y (lookahead-char in))))
+(call-with-port
+ (open-bytevector-input-port (string->utf8 "abcdef") tr)
+ (lambda (in)
+   (test-equal "second get char" #\a (get-char in))
+   ;; actually, this is the only problem
+   (test-equal "sedond lookahead char" #\b (lookahead-char in))))
 
 (test-end)

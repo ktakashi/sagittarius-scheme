@@ -45,11 +45,6 @@ struct SgTranscoderRec
   SgCodec               *codec;
   EolStyle               eolStyle;
   ErrorHandlingMode      mode;
-  int    		 lineNo;
-  SgChar 	        *buffer;
-  int    	         bufferSize;
-  int    		 bufferPosition;
-  int    		 isBegin;
 };
 
 #define SG_TRANSCODERP(obj) SG_XTYPEP(obj, SG_CLASS_TRANSCODER)
@@ -70,7 +65,6 @@ SG_EXTERN SgObject Sg_MakeNativeTranscoder();
 SG_EXTERN EolStyle Sg_NativeEol();
 
 SG_EXTERN SgChar   Sg_TranscoderGetc(SgObject self, SgPort *port);
-SG_EXTERN void     Sg_TranscoderUngetc(SgObject self, SgChar c);
 SG_EXTERN void     Sg_TranscoderPutc(SgObject self, SgPort *port, SgChar c);
 SG_EXTERN int64_t  Sg_TranscoderRead(SgObject self, SgPort *port,
 				     SgChar *buf, int64_t size);

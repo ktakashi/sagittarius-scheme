@@ -975,23 +975,55 @@ static SgChar lookAheadChar(SgObject self)
 
 static int transGetLineNo(SgObject self)
 {
-  return SG_TPORT_TRANSCODER(self)->lineNo;
+  return SG_TRANSCODED_PORT_LINE_NO(self);
 }
 
 static SgChar transGetChar(SgObject self)
 {
-  return Sg_TranscoderGetc(SG_TPORT_TRANSCODER(self), SG_TPORT_PORT(self));
+  if (SG_NULLP(SG_TRANSCODED_PORT_BUFFER(self))) {
+    return Sg_TranscoderGetc(SG_TPORT_TRANSCODER(self), self);
+  } else {
+    SgObject c = SG_CAR(SG_TRANSCODED_PORT_BUFFER(self));
+    SG_TRANSCODED_PORT_BUFFER(self) =
+      SG_CDR(SG_TRANSCODED_PORT_BUFFER(self));
+    if (SG_EOFP(c)) {
+      return EOF;
+    } else {
+      return SG_CHAR_VALUE(c);
+    }
+  }
+
 }
 
-static void transUnGetChar(SgObject self, SgChar c)
+static void trans_un_get_char(SgObject self, SgChar c)
 {
-  Sg_TranscoderUngetc(SG_TPORT_TRANSCODER(self), c);
+  if (c == LF) {
+    SG_TRANSCODED_PORT_LINE_NO(self)--;
+  }
+  if (c == EOF) {
+    SG_TRANSCODED_PORT_BUFFER(self) = Sg_Cons(SG_EOF,
+					      SG_TRANSCODED_PORT_BUFFER(self));
+  } else {
+    SG_TRANSCODED_PORT_BUFFER(self) = Sg_Cons(SG_MAKE_CHAR(c),
+					      SG_TRANSCODED_PORT_BUFFER(self));
+  }
 }
 
 static int64_t trans_get_string(SgObject self, SgChar *buf, int64_t size)
 {
-  return Sg_TranscoderRead(SG_TPORT_TRANSCODER(self), 
-			   SG_TPORT_PORT(self), buf, size);
+  int64_t offset = 0, readSize;
+  if (!SG_NULLP(SG_TRANSCODED_PORT_BUFFER(self))) {
+    SgObject cp;
+    SG_FOR_EACH(cp, SG_TRANSCODED_PORT_BUFFER(self)) {
+      SgChar c = SG_CHAR_VALUE(SG_CAR(cp));
+      if (c == EOF) return offset;
+      buf[offset++] = c;
+    }
+    SG_TRANSCODED_PORT_BUFFER(self) = SG_NIL;
+  }
+  readSize = Sg_TranscoderRead(SG_TPORT_TRANSCODER(self), 
+			       self, buf+offset, size-offset);
+  return readSize + offset;
 }
 
 static int transClose(SgObject self)
@@ -1012,8 +1044,9 @@ SgObject Sg_MakeTranscodedInputPort(SgPort *port, SgTranscoder *transcoder)
 
   t->src.transcoded.transcoder = transcoder;
   t->src.transcoded.port = port;
+  t->src.transcoded.ungetBuffer = SG_NIL;
   t->getChar = transGetChar;
-  t->unGetChar = transUnGetChar;
+  t->unGetChar = trans_un_get_char;
   t->getLineNo = transGetLineNo;
   t->lookAheadChar = lookAheadChar;
   t->getString = trans_get_string;
@@ -1027,13 +1060,12 @@ SgObject Sg_MakeTranscodedInputPort(SgPort *port, SgTranscoder *transcoder)
 
 static void transPutChar(SgObject self, SgChar c)
 {
-  Sg_TranscoderPutc(SG_TPORT_TRANSCODER(self), SG_TPORT_PORT(self), c);
+  Sg_TranscoderPutc(SG_TPORT_TRANSCODER(self), self, c);
 }
 
 static int64_t trans_put_string(SgObject self, SgChar *str, int64_t count)
 {
-  return Sg_TranscoderWrite(SG_TPORT_TRANSCODER(self),
-			    SG_TPORT_PORT(self), str, count);
+  return Sg_TranscoderWrite(SG_TPORT_TRANSCODER(self), self, str, count);
 }
 
 static void transFlush(SgObject self)
@@ -1052,6 +1084,7 @@ SgObject Sg_MakeTranscodedOutputPort(SgPort *port, SgTranscoder *transcoder)
 
   t->src.transcoded.transcoder = transcoder;
   t->src.transcoded.port = port;
+  t->src.transcoded.ungetBuffer = SG_NIL;
   t->getChar = NULL;
   t->unGetChar = NULL;
   t->getLineNo = NULL;
@@ -1075,8 +1108,9 @@ SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port, SgTranscoder *transcoder
 
   t->src.transcoded.transcoder = transcoder;
   t->src.transcoded.port = port;
+  t->src.transcoded.ungetBuffer = SG_NIL;
   t->getChar = transGetChar;
-  t->unGetChar = transUnGetChar;
+  t->unGetChar = trans_un_get_char;
   t->getLineNo = transGetLineNo;
   t->lookAheadChar = lookAheadChar;
   t->getString = trans_get_string;
@@ -2306,6 +2340,7 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset)
 	for (i = 0; i < offset && c->next; i++, c = c->next);
 	SG_BINARY_PORT(port)->src.obuf.current = c;
       }
+      SG_BINARY_PORT(port)->position = offset;
       break;
     case SG_CUSTOM_BINARY_PORT_TYPE: {
       SgSetPortPositionFn *fn = SG_BINARY_PORT(port)->src.custom.setPosition;
@@ -2316,6 +2351,7 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset)
 		    " set-port-position!")); 
 	return;
       }
+      SG_BINARY_PORT(port)->position = offset;
       break;
     }
     default:
@@ -2374,6 +2410,14 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset)
       return;
     }
     Sg_Apply1(SG_CUSTOM_PORT(port)->setPosition, Sg_MakeIntegerFromS64(offset));
+    switch (SG_CUSTOM_PORT(port)->type) {
+    case SG_BINARY_CUSTOM_PORT_TYPE:
+      /* must be after set position succeeded */
+      SG_CUSTOM_BINARY_PORT(port)->position = offset;
+      break;
+    default:
+      break;
+    }
     return;
   }
   Sg_Error(UC("port required, but got %S"), port);
