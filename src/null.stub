@@ -962,8 +962,9 @@
     (x=? check-symbol SG_EQ symbol=? s1 s2 rest))
 
   (define-c-proc string->symbol (z::<string>) ::<top>
-    (if (SG_LITERAL_STRINGP z)
-	(let ((s (Sg_MakeString (SG_STRING_VALUE z) SG_LITERAL_STRING)))
+    (if (not (SG_LITERAL_STRINGP z))
+	(let ((s (Sg_MakeStringEx (SG_STRING_VALUE z) SG_LITERAL_STRING
+				  (SG_STRING_SIZE z))))
 	  (result (Sg_Intern s)))
 	(result (Sg_Intern z))))
 

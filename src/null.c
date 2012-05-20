@@ -3257,7 +3257,7 @@ static SgObject null_string_TOsymbol(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-{if (SG_LITERAL_STRINGP(z)){{SgObject s=Sg_MakeString(SG_STRING_VALUE(z),SG_LITERAL_STRING);SG_RESULT=(Sg_Intern(s));}} else {SG_RESULT=(Sg_Intern(z));}}
+{if ((!(SG_LITERAL_STRINGP(z)))){{SgObject s=Sg_MakeStringEx(SG_STRING_VALUE(z),SG_LITERAL_STRING,SG_STRING_SIZE(z));SG_RESULT=(Sg_Intern(s));}} else {SG_RESULT=(Sg_Intern(z));}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
