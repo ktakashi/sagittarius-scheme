@@ -239,7 +239,7 @@ SgObject Sg_ReserveString(size_t size, SgChar fill)
   for (i = 0; i < size; i++) {
     z->value[i] = fill;
   }
-  
+  z->value[size] = 0;
   return SG_OBJ(z);
 }
 

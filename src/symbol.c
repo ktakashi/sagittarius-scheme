@@ -84,7 +84,12 @@ SgObject Sg_MakeSymbol(SgString *name, int interned)
     }
   }
   /* symbol can be literal */
-  sname = Sg_MakeString(name->value, SG_LITERAL_STRING);
+  if (SG_LITERAL_STRINGP(name)) {
+    sname = name;
+  } else {
+    sname = Sg_MakeStringEx(SG_STRING_VALUE(name),
+			    SG_LITERAL_STRING, SG_STRING_SIZE(name));
+  }
   sym = make_symbol(sname, interned);
   if (!interned) return SG_OBJ(sym);
 
