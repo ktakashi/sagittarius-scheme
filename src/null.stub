@@ -2363,7 +2363,8 @@
     (check-textual-port get-datum p)
     (check-input-port get-dutum p)
     ;; TODO should get-datum read shared-object too?
-    (result (Sg_Read p FALSE)))
+    (let ((ctx::SgReadContext SG_STATIC_READ_CONTEXT))
+      (result (Sg_ReadWithContext p (& ctx)))))
 
   ;; 8.2.10 output port
   (define-cise-stmt check-output-port
@@ -2665,7 +2666,9 @@
 
   (define-c-proc read (:optional (p::<port> (Sg_CurrentInputPort))) ::<top>
     (check-input-port read p)
-    (result (Sg_Read p FALSE)))
+    (let ((ctx::SgReadContext SG_STATIC_READ_CONTEXT))
+      (set! (ref ctx graph)  (Sg_MakeHashTableSimple SG_HASH_EQ 1))
+      (result (Sg_ReadWithContext p (& ctx)))))
 
   (define-c-proc write-char (ch::<char> :optional
 					(p::<port> (Sg_CurrentOutputPort)))

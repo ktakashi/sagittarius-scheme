@@ -44,12 +44,31 @@ typedef struct SgSharedRefRec
   SgObject index;
 } SgSharedRef;
 
+enum {
+  SG_READ_SOURCE_INFO = 1L,
+};
+
+/* reader context this is not a Scheme object*/
+typedef struct SgReadContextRec
+{
+  SgHashTable *graph; /* for shared object*/
+  int          graphRef;
+  int          firstLine;
+  int          parsingLineFrom;
+  int          parsingLineTo;
+  int          escapedp;	/* for |.|, ugly */
+  int          flags;
+} SgReadContext;
+#define SG_STATIC_READ_CONTEXT {NULL, FALSE, 0, 0, 0, 0}
+
+
 #define SG_SHAREDREF_P(obj) SG_XTYPEP(obj, SG_CLASS_SHARED_REF)
 #define SG_SHAREDREF(obj)   ((SgSharedRef*)(obj))
 
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_Read(SgObject port, int readSharedObject);
+SG_EXTERN SgObject Sg_ReadWithContext(SgObject port, SgReadContext *ctx);
 SG_EXTERN SgObject Sg_ReadDelimitedList(SgObject port, SgChar delim,
 					int sharedP);
 SG_EXTERN readtable_t* Sg_CopyReadTable(readtable_t *src);

@@ -110,17 +110,6 @@ static SgSharedRef* make_shared_ref(int mark)
   return z;
 }
 
-/* reader context */
-typedef struct SgReadContextRec
-{
-  SgHashTable *graph; /* for shared object*/
-  int          graphRef;
-  int          firstLine;
-  int          parsingLineFrom;
-  int          parsingLineTo;
-  int          escapedp;	/* for |.|, ugly */
-} SgReadContext;
-
 /* ctx utility */
 static void parsing_range(SgReadContext *ctx, int from, int to)
 {
@@ -618,7 +607,7 @@ static SgObject read_list(SgPort *port, SgChar closer, SgReadContext *ctx)
     SgVM *vm = Sg_VM();
     if (!SG_VM_IS_SET_FLAG(vm, SG_NO_DEBUG_INFO)) {
       SgObject info = Sg_FileName(port);
-      if (!SG_FALSEP(info)) {
+      if (!SG_FALSEP(info) && ctx->flags & SG_READ_SOURCE_INFO) {
 	Sg_WeakHashTableSet(SG_WEAK_HASHTABLE(vm->sourceInfos),
 			    r, Sg_Cons(info, SG_MAKE_INT(line)),
 			    0);
@@ -1434,7 +1423,7 @@ static void link_graph(SgPort *port, SgReadContext *ctx, SgObject obj)
   }
 }
 
-static SgObject read_with_context(SgPort *port, SgReadContext *ctx)
+SgObject Sg_ReadWithContext(SgObject port, SgReadContext *ctx)
 {
   SgObject obj;
   ctx->firstLine = Sg_LineNo(port);
@@ -1447,7 +1436,6 @@ static SgObject read_with_context(SgPort *port, SgReadContext *ctx)
   return obj;
 }
 
-
 SgObject Sg_Read(SgObject port, int readSharedObject)
 {
   SgReadContext ctx = {0};
@@ -1458,7 +1446,7 @@ SgObject Sg_Read(SgObject port, int readSharedObject)
     ctx.graph = Sg_MakeHashTableSimple(SG_HASH_EQ, 1);
   }  
   ctx.graphRef = FALSE;
-  return read_with_context(SG_PORT(port), &ctx);
+  return Sg_ReadWithContext(SG_PORT(port), &ctx);
 }
 
 SgObject Sg_ReadDelimitedList(SgObject port, SgChar delim, int sharedP)
