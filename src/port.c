@@ -181,7 +181,8 @@ int Sg_AddPortCleanup(SgPort *port)
   return TRUE;
 }
 
-static SgPort* make_port(enum SgPortDirection d, enum SgPortType t, enum SgBufferMode m)
+static SgPort* make_port(enum SgPortDirection d, enum SgPortType t,
+			 enum SgBufferMode m)
 {
   SgPort *z = SG_NEW(SgPort);
   SG_SET_CLASS(z, SG_CLASS_PORT);
@@ -323,6 +324,7 @@ static int file_close(SgObject self)
 	unregister_buffered_port(SG_PORT(self));
       }
       SG_PORT_FILE(self)->close(SG_PORT_FILE(self));
+      SG_BINARY_PORT(self)->buffer = NULL; /* GC friendliness */
       Sg_UnregisterFinalizer(self);
     }
   }
@@ -332,19 +334,20 @@ static int file_close(SgObject self)
 static void file_flush_internal(SgObject self)
 {
   uint8_t *buf = SG_BINARY_PORT(self)->buffer;
+  SgBinaryPort *bport = SG_BINARY_PORT(self);
   /* for shared buffered port such as stdout */
   SG_PORT_LOCK(SG_PORT(self));
   while (SG_BINARY_PORT(self)->bufferIndex > 0) {
     int64_t written_size = SG_PORT_FILE(self)->write(SG_PORT_FILE(self),
 						     buf,
-						     SG_BINARY_PORT(self)->bufferIndex);
+						     bport->bufferIndex);
     buf += written_size;
-    SG_BINARY_PORT(self)->bufferIndex -= written_size;
-    ASSERT(SG_BINARY_PORT(self)->bufferIndex >= 0);
+    bport->bufferIndex -= written_size;
+    ASSERT(bport->bufferIndex >= 0);
   }
   ASSERT(SG_BINARY_PORT(self)->bufferIndex == 0);
-  SG_BINARY_PORT(self)->bufferIndex = 0;
-  SG_BINARY_PORT(self)->bufferSize = 0;
+  bport->bufferIndex = 0;
+  bport->bufferSize = 0;
   SG_PORT_UNLOCK(SG_PORT(self));
 }
 
@@ -980,17 +983,12 @@ static int transGetLineNo(SgObject self)
 
 static SgChar transGetChar(SgObject self)
 {
-  if (SG_NULLP(SG_TRANSCODED_PORT_BUFFER(self))) {
+  if (SG_TRANSCODED_PORT_BUFFER(self) == EOF) {
     return Sg_TranscoderGetc(SG_TPORT_TRANSCODER(self), self);
   } else {
-    SgObject c = SG_CAR(SG_TRANSCODED_PORT_BUFFER(self));
-    SG_TRANSCODED_PORT_BUFFER(self) =
-      SG_CDR(SG_TRANSCODED_PORT_BUFFER(self));
-    if (SG_EOFP(c)) {
-      return EOF;
-    } else {
-      return SG_CHAR_VALUE(c);
-    }
+    SgChar c = SG_TRANSCODED_PORT_BUFFER(self);
+    SG_TRANSCODED_PORT_BUFFER(self) = EOF;
+    return c;
   }
 
 }
@@ -1000,26 +998,20 @@ static void trans_un_get_char(SgObject self, SgChar c)
   if (c == LF) {
     SG_TRANSCODED_PORT_LINE_NO(self)--;
   }
-  if (c == EOF) {
-    SG_TRANSCODED_PORT_BUFFER(self) = Sg_Cons(SG_EOF,
-					      SG_TRANSCODED_PORT_BUFFER(self));
-  } else {
-    SG_TRANSCODED_PORT_BUFFER(self) = Sg_Cons(SG_MAKE_CHAR(c),
-					      SG_TRANSCODED_PORT_BUFFER(self));
+  if (SG_TRANSCODED_PORT_BUFFER(self) != EOF) {
+    Sg_IOError(-1, SG_INTERN("unget-char"),
+	       SG_MAKE_STRING("unget buffer overflow!"), SG_FALSE,
+	       self);
   }
+  SG_TRANSCODED_PORT_BUFFER(self) = c;
 }
 
 static int64_t trans_get_string(SgObject self, SgChar *buf, int64_t size)
 {
   int64_t offset = 0, readSize;
-  if (!SG_NULLP(SG_TRANSCODED_PORT_BUFFER(self))) {
-    SgObject cp;
-    SG_FOR_EACH(cp, SG_TRANSCODED_PORT_BUFFER(self)) {
-      SgChar c = SG_CHAR_VALUE(SG_CAR(cp));
-      if (c == EOF) return offset;
-      buf[offset++] = c;
-    }
-    SG_TRANSCODED_PORT_BUFFER(self) = SG_NIL;
+  if (SG_TRANSCODED_PORT_BUFFER(self) != EOF) {
+    buf[offset++] = SG_TRANSCODED_PORT_BUFFER(self);
+    SG_TRANSCODED_PORT_BUFFER(self) = EOF;
   }
   readSize = Sg_TranscoderRead(SG_TPORT_TRANSCODER(self), 
 			       self, buf+offset, size-offset);
@@ -1044,7 +1036,7 @@ SgObject Sg_MakeTranscodedInputPort(SgPort *port, SgTranscoder *transcoder)
 
   t->src.transcoded.transcoder = transcoder;
   t->src.transcoded.port = port;
-  t->src.transcoded.ungetBuffer = SG_NIL;
+  t->src.transcoded.ungetBuffer = EOF;
   t->getChar = transGetChar;
   t->unGetChar = trans_un_get_char;
   t->getLineNo = transGetLineNo;
@@ -1084,7 +1076,7 @@ SgObject Sg_MakeTranscodedOutputPort(SgPort *port, SgTranscoder *transcoder)
 
   t->src.transcoded.transcoder = transcoder;
   t->src.transcoded.port = port;
-  t->src.transcoded.ungetBuffer = SG_NIL;
+  t->src.transcoded.ungetBuffer = EOF;
   t->getChar = NULL;
   t->unGetChar = NULL;
   t->getLineNo = NULL;
@@ -1108,7 +1100,7 @@ SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port, SgTranscoder *transcoder
 
   t->src.transcoded.transcoder = transcoder;
   t->src.transcoded.port = port;
-  t->src.transcoded.ungetBuffer = SG_NIL;
+  t->src.transcoded.ungetBuffer = EOF;
   t->getChar = transGetChar;
   t->unGetChar = trans_un_get_char;
   t->getLineNo = transGetLineNo;

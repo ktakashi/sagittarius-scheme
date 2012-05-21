@@ -132,9 +132,8 @@
 /* what a stupid macro definition on windows.h */
 #undef CONST
 #endif
-typedef enum {")
-(define *header-suffix*  "} Instruction;
-typedef struct InsnInfoRec InsnInfo;
+")
+(define *header-suffix*  "typedef struct InsnInfoRec InsnInfo;
 struct InsnInfoRec
 {
   const char *name;
@@ -168,6 +167,7 @@ SG_CDECL_END
     ;; for header
     (cgen-extern *header-prefix*)
     (cgen-body "#ifdef DEFINSN")
+    (cgen-extern "typedef enum {")
     (dolist (insn insns)
       (cgen-extern (format "  ~a = 0x~2,'0x,"
 			   (slot-ref insn'name) (slot-ref insn'code)))
@@ -177,8 +177,9 @@ SG_CDECL_END
 			 (slot-ref insn 'argc)
 			 (if (slot-ref insn 'src?) 'TRUE 'FALSE)
 			 (if (slot-ref insn 'label?) 'TRUE 'FALSE))))
+    (cgen-extern "} Instruction;")
     (cgen-extern (format 
-		  "  INSTRUCTION_COUNT = ~a, /** number of instructions */"
+		  "#define INSTRUCTION_COUNT ~a /** number of instructions */"
 		  (length insns)))
     (cgen-body "#endif /* DEFINSN */")
     ;; emit body

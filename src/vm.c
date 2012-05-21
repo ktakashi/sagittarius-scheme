@@ -1184,14 +1184,15 @@ static void expand_stack(SgVM *vm)
 
   if (SG_VM_LOG_LEVEL(vm, SG_WARN_LEVEL)) {
     Sg_Printf(vm->logPort,
-	      UC(";; expanding stack (fp=%d, sp=%d)\n"),
-	      FP(vm) - vm->stack, SP(vm) - vm->stack);
+	      UC(";; expanding stack in %S (fp=%d, sp=%d)\n"),
+	      CL(vm), FP(vm) - vm->stack, SP(vm) - vm->stack);
   }
 
   save_cont(vm);
   memmove(vm->stack, FP(vm), (SP(vm) - FP(vm))*sizeof(SgObject));
   SP(vm) -= FP(vm) - vm->stack;
   FP(vm) = vm->stack;
+
   /* for GC friendliness */
   for (p = SP(vm); p < vm->stackEnd; p++) *p = NULL;
 }
@@ -1480,6 +1481,7 @@ SgObject Sg_GetStackTrace()
 	  r = SG_LIST3(SG_INTERN("*proc*"), name, SG_NIL);
 	}
 	break;
+      default: break;		/* do nothing */
       }
       i++;
     } else {
@@ -1904,7 +1906,7 @@ static void print_frames(SgVM *vm)
   SgContFrame *cont = CONT(vm);
   SgObject *stack = vm->stack, *sp = SP(vm);
   SgObject *current = sp - 1;
-  int below_cont = FALSE, size = cont->size, c_func = FALSE;
+  int size = cont->size, c_func = FALSE;
   /* SgString *fmt   = SG_MAKE_STRING("+    o=~38,,,,39a +~%"); */
   SgString *clfmt = SG_MAKE_STRING("+   cl=~38,,,,39s +~%");
 

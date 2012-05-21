@@ -612,100 +612,63 @@
 	    ((pred (car lst)) (loop (cdr lst) (cons (car lst) acc1) acc2))
 	    (else (loop (cdr lst) acc1 (cons (car lst) acc2)))))))
 
-(define map
-  (lambda (proc lst1 . lst2)
-    (define map-1
-      (lambda (proc lst)
-        (cond ((null? lst) '())
-              (else
-               (cons (proc (car lst))
-                     (map-1 proc (cdr lst)))))))
-    (define map-n
-      (lambda (proc lst)
-        (cond ((null? lst) '())
-              (else
-               (cons (apply proc (car lst))
-                     (map-n proc (cdr lst)))))))
-    (if (null? lst2)
-        (if (list? lst1)
-            (map-1 proc lst1)
-            (assertion-violation 'map (wrong-type-argument-message "proper list" lst1 2) (cons* proc lst1 lst2)))
-        (cond ((apply list-transpose+ lst1 lst2)
-               => (lambda (lst) (map-n proc lst)))
-              (else
-               (assertion-violation 'map "expected same length proper lists" (cons* proc lst1 lst2)))))))
-
-(define for-each
-  (lambda (proc lst1 . lst2)
-    (define for-each-1
-      (lambda (proc lst)
-	(if (null? lst)
-	    (undefined)
-	    (begin
-	      (proc (car lst))
-	      (for-each-1 proc (cdr lst))))))
-    (define for-each-n
-      (lambda (proc lst)
-	(cond ((null? lst) (undefined))
+(define (map proc lst1 . lst2)
+  (if (null? lst2)
+      (let loop ((xs lst1) (r '()))
+	(cond ((pair? xs) (loop (cdr xs) (cons (proc (car xs)) r)))
+	      ((null? xs) (reverse! r))
 	      (else
-	       (apply proc (car lst))
-	       (for-each-n proc (cdr lst))))))
-    (if (null? lst2)
-        (if (list? lst1)
-            (for-each-1 proc lst1)
-            (assertion-violation 'for-each (wrong-type-argument-message "proper list" lst1 2) (cons* proc lst1 lst2)))
-        (cond ((apply list-transpose+ lst1 lst2)
-               => (lambda (lst) (for-each-n proc lst)))
-              (else
-               (assertion-violation 'for-each "expected same length proper lists" (cons* proc lst1 lst2)))))))
-
-(define fold-left
-  (lambda (proc seed lst1 . lst2)
-    ;; shift down
-    (define fold-left-1
-      (lambda (proc seed lst)
-	(cond ((null? lst) seed)
+	       (assertion-violation 
+		'map 
+		(wrong-type-argument-message "proper list" lst1 2)
+		(list proc lst1 lst2)))))
+      (let loop ((xs (apply list-transpose* lst1 lst2)) (r '()))
+	(cond ((pair? xs) (loop (cdr xs) (cons (apply proc (car xs)) r)))
+	      ((null? xs) (reverse! r))
 	      (else
-	       (fold-left-1 proc (proc seed (car lst)) (cdr lst))))))
-    
-    (define fold-left-n
-      (lambda (proc seed lst)
-	(cond ((null? lst) seed)
-	      (else
-	       (fold-left-n proc (apply proc (append (list seed) (car lst))) (cdr lst))))))
+	       (assertion-violation 
+		'map 
+		(wrong-type-argument-message "proper list" lst1 2)
+		(list proc lst1 lst2)))))))
 
-    (if (null? lst2)
-        (if (list? lst1)
-            (fold-left-1 proc seed lst1)
-            (assertion-violation 'fold-left (format "expected proper list, but got ~a, as argument 3" lst1) (cons* proc seed lst1 lst2)))
-        (cond ((apply list-transpose+ lst1 lst2)
-               => (lambda (lst) (fold-left-n proc seed lst)))
-              (else
-               (assertion-violation 'fold-left "expected same length proper lists" (cons* proc seed lst1 lst2)))))))
-
-(define fold-right
-  (lambda (proc seed lst1 . lst2)
-    ;; shift down
-    (define fold-right-1
-      (lambda (proc seed lst)
-	(cond ((null? lst) seed)
+(define (for-each proc lst1 . lst2)
+  (if (null? lst2)
+      (let loop ((xs lst1))
+	(cond ((pair? xs) (proc (car xs)) (loop (cdr xs)))
+	      ((null? xs) (undefined))
 	      (else
-	       (proc (car lst) (fold-right-1 proc seed (cdr lst)))))))
-    
-    (define fold-right-n
-      (lambda (proc seed lst)
-	(cond ((null? lst) seed)
+	       (assertion-violation 
+		'for-each 
+		(wrong-type-argument-message "proper list" lst1 2)
+		(list proc lst1 lst2)))))
+      (let loop ((xs (apply list-transpose* lst1 lst2)))
+	(cond ((pair? xs) (apply proc (car xs)) (loop (cdr xs)))
+	      ((null? xs) (undefined))
 	      (else
-	       (apply proc (append (car lst) (list (fold-right-n proc seed (cdr lst)))))))))
+	       (assertion-violation 
+		'for-each
+		(wrong-type-argument-message "proper list" lst1 2)
+		(list proc lst1 lst2)))))))
 
-    (if (null? lst2)
-        (if (list? lst1)
-            (fold-right-1 proc seed lst1)
-            (assertion-violation 'fold-right (format "expected proper list, but got ~a, as argument 3" lst1) (cons* proc seed lst1 lst2)))
-        (cond ((apply list-transpose+ lst1 lst2)
-               => (lambda (lst) (fold-right-n proc seed lst)))
-              (else
-               (assertion-violation 'fold-right "expected same length proper lists" (cons* proc seed lst1 lst2)))))))
+(define (fold-left proc seed lst1 . lst2)
+  (if (null? lst2)
+      (let loop ((lis lst1) (knil seed))
+	(if (null-list? lis) knil (loop (cdr lis) (proc knil (car lis)))))
+      (let loop ((lis (apply list-transpose* lst1 lst2)) (knil seed))
+	(if (null-list? lis)
+	    knil 
+	    (loop (cdr lis) (apply proc knil (car lis)))))))
+
+(define (fold-right proc seed lst1 . lst2)
+  (if (null? lst2)
+      (let loop ((lis lst1))
+	(if (null-list? lis)
+	    seed 
+	    (proc (car lis) (loop (cdr lis)))))
+      (let loop ((lis (apply list-transpose* lst1 lst2)) (knil seed))
+	(if (null-list? lis)
+	    knil 
+	    (apply proc (append! (car lis) (list (loop (cdr lis) knil))))))))
 
 (define remp
   (lambda (pred lst)

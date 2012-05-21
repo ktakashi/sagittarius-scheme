@@ -1164,7 +1164,7 @@ static SgObject group(lexer_ctx_t *ctx)
 	     SG_EQ(open_token, SYM_OPEN_PAREN_LESS_EXCLAMATION) ||
 	     SG_EQ(open_token, SYM_OPEN_PAREN_LESS_LETTER)) {
     /* we saw one of the six token representing opening parentheses */
-    int saved_reg_num;
+    int saved_reg_num = 0;
     int open_paren_pos = SG_INT_VALUE(SG_CAR(ctx->last_pos));
     SgObject register_name = (SG_EQ(open_token, SYM_OPEN_PAREN_LESS_LETTER))
       ? parse_register_name_aux(ctx) : SG_FALSE;
@@ -2140,11 +2140,13 @@ static void pattern_cache_writer(SgObject obj, SgPort *port,
   Sg_WriteObjectCache(SG_MAKE_INT(SG_PATTERN(obj)->flags), port, ctx);
 }
 
-SG_DEFINE_BUILTIN_CLASS_SIMPLE_WITH_CACHE(Sg_PatternClass,
-					  pattern_cache_reader,
-					  pattern_cache_scanner,
-					  pattern_cache_writer,
-					  pattern_printer);
+#define DEFINE_CLASS_WITH_CACHE SG_DEFINE_BUILTIN_CLASS_SIMPLE_WITH_CACHE
+
+DEFINE_CLASS_WITH_CACHE(Sg_PatternClass,
+			pattern_cache_reader,
+			pattern_cache_scanner,
+			pattern_cache_writer,
+			pattern_printer);
 
 static SgPattern* make_pattern(SgString *p, SgObject ast, int flags,
 			       lexer_ctx_t *ctx, prog_t *prog,

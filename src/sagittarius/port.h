@@ -112,9 +112,8 @@ typedef struct SgTextualPortRec
     struct {
       SgTranscoder *transcoder;
       SgPort       *port;
-      /* we need to manage buffer by port.
-	 to make is simpler, this is a char list. */
-      SgObject      ungetBuffer;
+      /* Assume we only need one buffer. */
+      SgChar        ungetBuffer;
       int           lineNo;
     } transcoded;
     /* string oport uses char_buffer */

@@ -51,43 +51,47 @@
   ;; is there a smart way not to copy&paste from scmlib.scm?
   ;; index start with 0
   (define (for-each-with-index proc lst1 . lst2)
-    (define (for-each-1 index proc lst)
-      (if (null? lst)
-	  (undefined)
-	  (begin
-	    (proc index (car lst))
-	    (for-each-1 (+ index 1) proc (cdr lst)))))
-    (define (for-each-n index proc lst)
-      (cond ((null? lst) (undefined))
-	    (else
-	     (apply proc index (car lst))
-	     (for-each-n (+ index 1) proc (cdr lst)))))
     (if (null? lst2)
-        (if (list? lst1)
-            (for-each-1 0 proc lst1)
-            (assertion-violation 'for-each
-				 (wrong-type-argument-message
-				  "proper list" lst1 2) (cons* proc lst1 lst2)))
-        (cond ((apply list-transpose+ lst1 lst2)
-               => (lambda (lst) (for-each-n 0 proc lst))))))
+	(let loop ((index 0) (xs lst1))
+	  (cond ((pair? xs) (proc index (car xs)) (loop (+ index 1) (cdr xs)))
+		((null? xs) (undefined))
+		(else
+		 (assertion-violation 
+		  'for-each 
+		  (wrong-type-argument-message "proper list" lst1 2)
+		  (list proc lst1 lst2)))))
+	(let loop ((index 0) (xs (apply list-transpose* lst1 lst2)))
+	  (cond ((pair? xs)
+		 (apply proc index (car xs))
+		 (loop (+ index 1) (cdr xs)))
+		((null? xs) (undefined))
+		(else
+		 (assertion-violation 
+		  'for-each
+		  (wrong-type-argument-message "proper list" lst1 2)
+		  (list proc lst1 lst2)))))))
 
   (define (map-with-index proc lst1 . lst2)
-    (define (map-1 index proc lst)
-      (cond ((null? lst) '())
-	    (else
-	     (cons (proc index (car lst))
-		   (map-1 (+ index 1) proc (cdr lst))))))
-    (define (map-n index proc lst)
-      (cond ((null? lst) '())
-	    (else
-	     (cons (apply proc index (car lst))
-		   (map-n (+ index 1) proc (cdr lst))))))
     (if (null? lst2)
-        (if (list? lst1)
-            (map-1 0 proc lst1)
-            (assertion-violation 'map (wrong-type-argument-message "proper list" lst1 2) (cons* proc lst1 lst2)))
-        (cond ((apply list-transpose+ lst1 lst2)
-               => (lambda (lst) (map-n 0 proc lst))))))
+	(let loop ((index 0) (xs lst1) (r '()))
+	  (cond ((pair? xs)
+		 (loop (+ index 1) (cdr xs) (cons (proc index (car xs)) r)))
+		((null? xs) (reverse! r))
+		(else
+		 (assertion-violation 
+		  'map 
+		  (wrong-type-argument-message "proper list" lst1 2)
+		  (list proc lst1 lst2)))))
+	(let loop ((index 0) (xs (apply list-transpose* lst1 lst2)) (r '()))
+	  (cond ((pair? xs)
+		 (loop (+ index 1) (cdr xs)
+		       (cons (apply proc index (car xs)) r)))
+		((null? xs) (reverse! r))
+		(else
+		 (assertion-violation 
+		  'map 
+		  (wrong-type-argument-message "proper list" lst1 2)
+		  (list proc lst1 lst2)))))))
 
   ;; from Gauche
   (define (slices lis k . args)

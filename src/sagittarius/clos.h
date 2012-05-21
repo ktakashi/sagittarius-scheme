@@ -178,9 +178,9 @@ extern SgClass *Sg_ObjectCPL[];
     compare,								\
     serialize,								\
     allocate,								\
-    reader,								\
-    scanner,								\
-    writer,								\
+    (SgReadCacheProc     )reader,					\
+    (SgWriteCacheScanProc)scanner,					\
+    (SgWriteCacheProc    )writer,					\
     cpa,								\
     0,				/* nfields */				\
     coreSize,			/* coreSize */				\

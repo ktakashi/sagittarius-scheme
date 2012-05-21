@@ -637,7 +637,7 @@
 		    (ref (pointer (SG_TEXTUAL_PORT p))
 			 src transcoded port)))
 	   (Sg_SetPortPosition (SG_TRANSCODED_PORT_SRC_PORT p) 0)
-	   (set! (SG_TRANSCODED_PORT_BUFFER p) SG_NIL))))
+	   (set! (SG_TRANSCODED_PORT_BUFFER p) EOF))))
   
   ;; these functions are for open-string-output-port
   (define-c-proc open-output-string () ::<top>

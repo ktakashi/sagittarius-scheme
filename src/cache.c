@@ -1458,7 +1458,7 @@ int Sg_ReadCache(SgString *id)
 
   file = Sg_OpenFile(timestamp, SG_READ);
   in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_BLOCK);
-  size = Sg_ReadbUnsafe(in, tagbuf, 50);
+  size = Sg_ReadbUnsafe(in, (uint8_t *)tagbuf, 50);
   tagbuf[size] = 0;
   if (strcmp(tagbuf, VALIDATE_TAG) != 0) {
     Sg_ClosePort(in);
@@ -1470,9 +1470,9 @@ int Sg_ReadCache(SgString *id)
   file = Sg_OpenFile(cache_path, SG_READ);
   /* buffer mode none can be a little bit better performance to read all. */
   in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_NONE);
-  size = Sg_ReadbAll(in, &alldata);
+  size = Sg_ReadbAll(in, (uint8_t **)&alldata);
   Sg_ClosePort(in);
-  in = Sg_MakeByteArrayInputPort(alldata, size);
+  in = Sg_MakeByteArrayInputPort((const uint8_t *)alldata, size);
 
   seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 128);
   shared = Sg_MakeHashTableSimple(SG_HASH_EQ, 256);

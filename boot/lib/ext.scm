@@ -125,8 +125,8 @@
   (let ((r (t)))
     (a)
     r))
-;; simple list-transpose+
-(define (list-transpose+ . rest)
+;; simple list-transpose*
+(define (list-transpose* . rest)
   (let ((len (length (car rest))))
     (let loop ((i 0)
 	       (rest rest)
@@ -134,8 +134,20 @@
       (if (= i len)
 	  (reverse r)
 	  (loop (+ i 1)
-		(map cdr rest)
-		(cons (map car rest) r))))))
+		(let loop ((r '())
+			   (p rest))
+		  (if (null? p)
+		      (reverse r)
+		      (loop (cons (cdr (car p)) r) (cdr p))))
+		(cons 
+		 (let loop ((r '())
+			   (p rest))
+		  (if (null? p)
+		      (reverse r)
+		      (loop (cons (car (car p)) r) (cdr p))))
+		 r))))))
+;; for boot code, we don't have any different length list
+(define list-transpose+ list-transpose*)
 
 ;; stub
 (define (condition . components)

@@ -88,7 +88,7 @@ static void sampler_sample(int sig)
     return;
   }
   i = vm->profiler->currentSample++;
-  if (vm->pc == RET) {
+  if (*vm->pc == RET) {
     vm->profiler->samples[i].func = vm->ac;
     vm->profiler->samples[i].pc = NULL;
   } else {

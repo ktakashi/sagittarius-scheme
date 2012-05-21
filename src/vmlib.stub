@@ -110,7 +110,7 @@
 
   (define-c-proc id-has-parent? (id::<identifier>)
     ::<boolean>
-    (result (SG_IDENTIFIER_PARENT id)))
+    (result (cast int (SG_IDENTIFIER_PARENT id))))
 
   (define-c-proc id-has-same-parent? (id1::<identifier> id2::<identifier>)
     ::<boolean>

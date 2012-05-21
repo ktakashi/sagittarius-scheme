@@ -425,10 +425,10 @@ static SgObject do_transpose(int shortest_len, int argc, SgObject args[])
   return ans;
 }
 
-static SgObject list_transpose(SgObject *args, int argc, void *data)
+static SgObject list_transpose_s(SgObject *args, int argc, void *data)
 {
   if (argc < 1) {
-    Sg_WrongNumberOfArgumentsAtLeastViolation(SG_INTERN("list-transpose+"),
+    Sg_WrongNumberOfArgumentsAtLeastViolation(SG_INTERN("list-transpose*"),
 					      1, argc, SG_NIL);
   }
   if (SG_LISTP(args[0])) {
@@ -446,13 +446,42 @@ static SgObject list_transpose(SgObject *args, int argc, void *data)
   return SG_FALSE;
 }
 
-static SG_DEFINE_SUBR(list_transpose_stub, 1, 0, list_transpose, SG_FALSE, NULL);
+static SG_DEFINE_SUBR(list_transpose_s_stub, 1, 0, list_transpose_s,
+		      SG_FALSE, NULL);
+
+static SgObject list_transpose_p(SgObject *args, int argc, void *data)
+{
+  if (argc < 1) {
+    Sg_WrongNumberOfArgumentsAtLeastViolation(SG_INTERN("list-transpose+"),
+					      1, argc, SG_NIL);
+  }
+  if (SG_LISTP(args[0])) {
+    int each_len = Sg_Length(args[0]), i;
+    for (i = 1; i < argc; i++) {
+      if (SG_LISTP(args[i])) {
+	int len = Sg_Length(args[i]);
+	if (len != each_len) return SG_FALSE;
+	continue;
+      }
+    }
+    return do_transpose(each_len, argc, args);
+  }
+  return SG_FALSE;
+}
+
+static SG_DEFINE_SUBR(list_transpose_p_stub, 1, 0, list_transpose_p,
+		      SG_FALSE, NULL);
+
 
 void Sg__InitPair()
 {
   SgLibrary *lib = Sg_FindLibrary(SG_INTERN("null"), FALSE);
-  SG_PROCEDURE_NAME(&list_transpose_stub) = Sg_MakeString(UC("list-transpose+"), SG_LITERAL_STRING);
-  Sg_InsertBinding(lib, SG_INTERN("list-transpose+"), SG_OBJ(&list_transpose_stub));
+  SG_PROCEDURE_NAME(&list_transpose_s_stub) = SG_MAKE_STRING("list-transpose*");
+  Sg_InsertBinding(lib, SG_INTERN("list-transpose*"),
+		   SG_OBJ(&list_transpose_s_stub));
+  SG_PROCEDURE_NAME(&list_transpose_p_stub) = SG_MAKE_STRING("list-transpose+");
+  Sg_InsertBinding(lib, SG_INTERN("list-transpose+"),
+		   SG_OBJ(&list_transpose_p_stub));
 }
   
 /*

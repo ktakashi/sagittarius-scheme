@@ -14,6 +14,7 @@
 /* what a stupid macro definition on windows.h */
 #undef CONST
 #endif
+
 typedef enum {
   NOP = 0x00,
   HALT = 0x01,
@@ -113,8 +114,8 @@ typedef enum {
   GREF_CAR_PUSH = 0x5f,
   GREF_CDR_PUSH = 0x60,
   CONST_RET = 0x61,
-  INSTRUCTION_COUNT = 98, /** number of instructions */
 } Instruction;
+#define INSTRUCTION_COUNT 98 /** number of instructions */
 typedef struct InsnInfoRec InsnInfo;
 struct InsnInfoRec
 {
