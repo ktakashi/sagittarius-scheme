@@ -617,9 +617,12 @@ static SgObject read_list(SgPort *port, SgChar closer, SgReadContext *ctx)
   if (SG_PAIRP(r) && line >= 0) {
     SgVM *vm = Sg_VM();
     if (!SG_VM_IS_SET_FLAG(vm, SG_NO_DEBUG_INFO)) {
-      Sg_WeakHashTableSet(SG_WEAK_HASHTABLE(vm->sourceInfos),
-			  r, Sg_Cons(Sg_FileName(port), SG_MAKE_INT(line)),
-			  0);
+      SgObject info = Sg_FileName(port);
+      if (!SG_FALSEP(info)) {
+	Sg_WeakHashTableSet(SG_WEAK_HASHTABLE(vm->sourceInfos),
+			    r, Sg_Cons(info, SG_MAKE_INT(line)),
+			    0);
+      }
     }
   }
   return r;

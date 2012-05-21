@@ -288,6 +288,16 @@ SgObject Sg_WeakHashTableRef(SgWeakHashTable *table,
   }
 }
 
+/* ugly solution for managing entry count of weak hash table. */
+static void key_finalizer(SgObject z, void *data)
+{
+  /* when key is gone, means the entry is gone.
+     so we want to decrease the entry count to avoid the unnecessary
+     rehash operation.
+   */
+  SG_WEAK_HASHTABLE_CORE(data)->entryCount--;
+}
+
 SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
 			     SgObject key, SgObject value, int flags)
 {
@@ -296,6 +306,7 @@ SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
 
   if (table->weakness & SG_WEAK_KEY) {
     proxy = (intptr_t)Sg_MakeWeakBox(key);
+    Sg_RegisterFinalizer(key, key_finalizer, table);
   } else {
     proxy = (intptr_t)key;
   }
