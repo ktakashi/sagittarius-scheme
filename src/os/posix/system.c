@@ -171,9 +171,25 @@ SgObject Sg_GetenvAlist()
 SgObject Sg_GetTemporaryDirectory()
 {
   static const char *NAME = "/.sagittarius";
-  const char *home = getenv("HOME");
-  int len = strlen(home) + 13;	/* 13 is the length of /.sagittarius */
-  char *real = SG_NEW_ATOMIC2(char *, len + 1);
+  static const char *ENVS[] = {"SAGITTARIUS_CACHE_DIR", "HOME"};
+  const char *home;
+  int len, i;
+  char *real;
+  struct stat st;
+  
+  for (i = 0; i < array_sizeof(ENVS); i++) {
+    home = getenv(ENVS[i]);
+    if (stat(home, &st) == 0) {
+      if (S_ISDIR(st.st_mode)) {
+	goto entry;
+      }
+    }
+  }
+  home = "/tmp";
+  
+ entry:
+  len = strlen(home) + 13;	/* 13 is the length of /.sagittarius */
+  real = SG_NEW_ATOMIC2(char *, len + 1);
   /* We know the length, so don't worry */
   strcpy(real, home);
   strcat(real, NAME);
