@@ -1,12 +1,40 @@
 ;; -*- scheme -*-
-
 (import (rnrs)
+	(rnrs mutable-pairs)
+	(core errors)
 	(srfi :64 testing))
+
+
+(test-begin "R6RS+ functionality tests")
+;; map
+(test-equal "map with different length"
+	    '((a . d) (b . e) (c . f))
+	    (map cons '(a b c d e f) '(d e f)))
+;; for-each
+(test-equal "for-each with different length"
+	    '((g . j) (h . k) (i . l))
+	    (let* ((r `((a . d) (b . e) (c . f)))
+		   (c r))
+	      (guard (e (else (describe-condition e)))
+		(for-each (lambda (a b)
+			    (let ((t (car c)))
+			      (set! c (cdr c))
+			      (set-car! t a)
+			      (set-cdr! t b)))
+			  '(g h i j k l) '(j k l))
+		r)))
+
+(test-assert "string-ref fallback" (boolean? (string-ref "abc" 3 #f)))
+(test-equal "string-copy" 
+	    "bcdef"
+	    (string-copy "abcdef" 1))
+(test-equal "string-copy" 
+	    "bcd"
+	    (string-copy "abcdef" 1 4))
 
 (define v '#(1 2 3 4 5 6))
 (define l '(1 2 3 4 5 6))
 
-(test-begin "Sagittarius extension of vector and bytevector tests")
 ;; fallback
 (test-assert "vector fallback" (boolean? (vector-ref v 6 #f)))
 (test-equal "vector->list with start" 
@@ -45,5 +73,5 @@
 	    #vu8(2 3 4 5)
 	    (bytevector-copy #vu8(1 2 3 4 5 6) 1 5))
 
-(test-end)
 
+(test-end)
