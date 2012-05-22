@@ -1,9 +1,10 @@
+MESSAGE(STATUS "Uninstalling")
 IF (NOT EXISTS "@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt")
     MESSAGE(FATAL_ERROR "Cannot find install manifest: \"@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt\"")
 ENDIF(NOT EXISTS "@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt")
 
 FILE(READ "@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt" files)
-STRING(REGEX REPLACE "\n" ";" files "${files}")
+STRING(REPLACE "\n" ";" files "${files}")
 FOREACH (file ${files})
     MESSAGE(STATUS "Uninstalling \"$ENV{DESTDIR}${file}\"")
     IF (EXISTS "$ENV{DESTDIR}${file}")
@@ -21,14 +22,17 @@ FOREACH (file ${files})
 ENDFOREACH(file)
 
 MESSAGE(STATUS "Deleting Installed directries")
-FOREACH(dir "${SAGITTARIUS_SHARE_LIB_PATH};${SAGITTARIUS_SITE_LIB_PATH};${SAGITTARIUS_DYNLIB_PATH}")
-IF (EXISTS "$ENV{DESTDIR}${dir}")
-  EXECUTE_PROCESS(
-    COMMAND @CMAKE_COMMAND@ -E remove "$ENV{DESTDIR}${dir}"
-    OUTPUT_VARIABLE rm_out
-    RESULT_VARIABLE rm_retval
-    )
-  IF(NOT ${rm_retval} EQUAL 0)
-    MESSAGE(FATAL_ERROR "Problem when removing \"$ENV{DESTDIR}${file}\"")
-  ENDIF (NOT ${rm_retval} EQUAL 0)
-ENDIF()
+SET(dirs "@SAGITTARIUS_SHARE_LIB_PATH@;@SAGITTARIUS_DYNLIB_PATH@;@CMAKE_INSTALL_PREFIX@/share/@SAGITTARIUS_NAME@/@SAGITTARIUS_VERSION@")
+FOREACH(dir ${dirs})
+  MESSAGE(STATUS "Uninstalling \"$ENV{DESTDIR}${dir}\"")
+  IF (EXISTS "$ENV{DESTDIR}${dir}")
+    EXECUTE_PROCESS(
+      COMMAND @CMAKE_COMMAND@ -E remove_directory "$ENV{DESTDIR}${dir}"
+      OUTPUT_VARIABLE rm_out
+      RESULT_VARIABLE rm_retval
+      )
+    IF(NOT ${rm_retval} EQUAL 0)
+      MESSAGE(FATAL_ERROR "Problem when removing \"$ENV{DESTDIR}${dir}\"")
+    ENDIF (NOT ${rm_retval} EQUAL 0)
+  ENDIF()
+ENDFOREACH()
