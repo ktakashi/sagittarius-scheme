@@ -217,7 +217,7 @@
 	   (build #'qualifier #'generic qargs opt #'body)))
 	((_ generic qualifier args . body)
 	 (keyword? #'qualifier)
-	 #'(define-method qualifier generic ,args . body))
+	 #'(define-method qualifier generic args . body))
 	((_ generic args . body)
 	 #'(define-method :primary generic args . body)))))
 
