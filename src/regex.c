@@ -3224,7 +3224,23 @@ static void append_replacement(SgMatcher *m, SgPort *p, SgObject replacement)
   if (SG_STRINGP(replacement)) {
     append_string_replacement(m, p, SG_STRING(replacement));
   } else {
-    Sg_Apply2(replacement, m, p);
+    /* for compatibility */
+    SgObject r;
+    switch (SG_PROCEDURE_REQUIRED(replacement)) {
+    case 2:
+      Sg_Apply2(replacement, m, p);
+      break;
+    case 1:
+      r = Sg_Apply1(replacement, m);
+      if (!SG_STRINGP(r)) {
+    	Sg_Error(UC("replacement procedure returned non string object. %S"), r);
+      }
+      Sg_PutsUnsafe(p, r);
+      break;
+    default:
+      Sg_Error(UC("replacement procedure requires 1 or 2 arguments."));
+      break;
+    }
   }
   m->lastAppendPosition = m->last;
 }
@@ -3233,9 +3249,8 @@ static void append_tail(SgMatcher *m, SgPort *p)
 {
   /* append the rest */
   int i;
-  for (i = m->lastAppendPosition; i < SG_STRING_SIZE(m->text); i++) {
-    Sg_PutcUnsafe(p, SG_STRING_VALUE_AT(m->text, i));
-  }
+  Sg_WritesUnsafe(p, SG_STRING_VALUE(m->text)+m->lastAppendPosition,
+		  SG_STRING_SIZE(m->text) - m->lastAppendPosition);
 }
 
 SgString* Sg_RegexReplaceAll(SgMatcher *m, SgObject replacement)

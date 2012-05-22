@@ -1044,6 +1044,33 @@
   (test-equal "def abc\n" #f
 	      (match&list "abc\\z" "def abc\n"))
   )
-  
+
+;; replace procedures tests
+#< (sagittarius regex) >
+(test-equal "replace-first with procedure (new)"
+	    "abc**def**ghi"
+	    (regex-replace-first #/def/ "abcdefghi"
+				 (lambda (m)
+				   (string-append "**" (m 0) "**"))))
+(test-equal "replace-first with procedure (old)"
+	    "abc**def**ghi"
+	    (regex-replace-first #/def/ "abcdefghi"
+				 (lambda (m p)
+				   (put-string p "**")
+				   (put-string p (m 0))
+				   (put-string p "**"))))
+
+(test-equal "replace-all with procedure (new)"
+	    "abc**def**ghi**def**"
+	    (regex-replace-all #/def/ "abcdefghidef"
+				 (lambda (m)
+				   (string-append "**" (m 0) "**"))))
+(test-equal "replace-all with procedure (old)"
+	    "abc**def**ghi**def**"
+	    (regex-replace-all #/def/ "abcdefghidef"
+				 (lambda (m p)
+				   (put-string p "**")
+				   (put-string p (m 0))
+				   (put-string p "**"))))
 
 (test-end)

@@ -79,7 +79,9 @@
 	    (core)
 	    (core base)
 	    (core errors)
-	    (sagittarius))
+	    (sagittarius)
+	    (clos core)
+	    (clos user))
 
   (define regex compile-regex)
 
@@ -87,25 +89,32 @@
   (define (matches reg text)
     (let ((matcher (regex-matcher reg text)))
       (if (regex-matches matcher)
-	  (lambda (group)
-	    (regex-group matcher group))
+	  matcher
 	  #f)))
 
   (define (looking-at reg text)
     (let ((matcher (regex-matcher reg text)))
       (if (regex-looking-at matcher)
-	  (lambda (group)
-	    (cond ((number? group)
-		   (regex-group matcher group))
-		  ((eq? 'after group)
-		   (regex-after matcher))
-		  ((eq? 'before group)
-		   (regex-before matcher))
-		  (else
-		   (assertion-violation 'looking-at
-					(format "number, 'after or 'before required but got ~a" group)
-					group))))
+	  matcher
 	  #f)))
+
+  ;; since version 0.3.3, we have object-apply and
+  ;; CLOS libraries are in lib.
+  (define-method object-apply ((self <pattern>) (s <string>))
+    (looking-at self s))
+  (define-method object-apply ((self <matcher>) (group <integer>))
+    (regex-group self group))
+  (define-method object-apply ((self <matcher>) (group <symbol>))
+    (case group
+      ((before)
+       (regex-before self))
+      ((after)
+       (regex-after self))
+      (else
+       (assertion-violation 
+		    'matcher
+		    (format "'after or 'before required but got ~a" group)
+		    group))))
   
   ;; for convenience, we wrap
   (define (regex-replace-all reg text replacement)

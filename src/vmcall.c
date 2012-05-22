@@ -119,9 +119,17 @@
     Sg_Printf(vm->logPort, UC(";; calling %S\n"), AC(vm));
   }
   if (!SG_PROCEDUREP(AC(vm))) {
-    Sg_AssertionViolation(SG_INTERN("apply"),
-			  SG_MAKE_STRING("invalid application"),
-			  AC(vm));
+    int i;
+    CHECK_STACK(1, vm);
+    for (i = 0; i < argc; i++) {
+      *(SP(vm)-i) = *(SP(vm)-i-1);
+    }
+    *(SP(vm)-argc) = AC(vm);
+    SP(vm)++; argc++;
+    AC(vm) = SG_OBJ(&Sg_GenericObjectApply);
+    /* Sg_AssertionViolation(SG_INTERN("apply"), */
+    /* 			  SG_MAKE_STRING("invalid application"), */
+    /* 			  AC(vm)); */
   }
 
   if (SG_SUBRP(AC(vm))) {
@@ -144,6 +152,7 @@
     if (!SG_GENERICP(AC(vm))) {
       /* Scheme defined MOP */
       /* TODO */
+      Sg_Panic("unknown procedure type.");
     }
 
     mm = Sg_ComputeMethods(AC(vm), SP(vm)-argc, argc);

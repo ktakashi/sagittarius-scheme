@@ -1231,6 +1231,14 @@ void Sg_InitBuiltinMethod(SgMethod *m)
   Sg_AddMethod(SG_METHOD_GENERIC(m), m);
 }
 
+SgObject Sg_InvalidApply(SgObject *argv, int argc, SgGeneric *gf)
+{
+  Sg_AssertionViolation(SG_INTERN("apply"),
+			SG_MAKE_STRING("invalid application"),
+			Sg_ArrayToList(argv, argc));
+  return SG_UNDEF;
+}
+
 SgObject Sg_NoNextMethod(SgObject *argv, int argc, SgGeneric *gf)
 {
   SgObject h = SG_NIL, t = SG_NIL, cp, args = Sg_ArrayToList(argv, argc);
@@ -1604,6 +1612,7 @@ SG_DEFINE_GENERIC(Sg_GenericRemoveMethod, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericComputeApplicableMethodsGeneric,
 		  Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericObjectEqualP, Sg_NoNextMethod, NULL);
+SG_DEFINE_GENERIC(Sg_GenericObjectApply, Sg_InvalidApply, NULL);
 
 static SgObject allocate_impl(SgObject *args, int argc, void *data)
 {
@@ -1984,6 +1993,7 @@ void Sg__InitClos()
   GINIT(&Sg_GenericComputeApplicableMethodsGeneric,
 	"compute-applicable-methods");
   GINIT(&Sg_GenericObjectEqualP, "object-equal?");
+  GINIT(&Sg_GenericObjectApply, "object-apply");
 
   /* methods */
   Sg_InitBuiltinMethod(&class_allocate_rec);

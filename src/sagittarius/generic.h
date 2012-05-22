@@ -121,6 +121,7 @@ SG_EXTERN void     Sg_InitBuiltinGeneric(SgGeneric *gf, const SgChar *name,
 					 SgLibrary *lib);
 SG_EXTERN void     Sg_InitBuiltinMethod(SgMethod *m);
 SG_EXTERN SgObject Sg_NoNextMethod(SgObject *argv, int argc, SgGeneric *gf);
+SG_EXTERN SgObject Sg_InvalidApply(SgObject *argv, int argc, SgGeneric *gf);
 
 /* needs to be here ... */
 SG_EXTERN SgObject Sg_AddMethod(SgGeneric *generic, SgMethod *method);
@@ -150,6 +151,7 @@ SG_EXTERN SgGeneric Sg_GenericComputeApplicableMethodsGeneric;
 /* SG_EXTERN SgGeneric Sg_GenericComputeApplyMethods; */
 
 SG_EXTERN SgGeneric Sg_GenericObjectEqualP;
+SG_EXTERN SgGeneric Sg_GenericObjectApply;
 
 SG_CDECL_END
 
