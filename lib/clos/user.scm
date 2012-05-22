@@ -2,7 +2,7 @@
 (library (clos user)
     (export make
 	    initialize
-	    write-object object-equal?
+	    write-object object-equal? object-apply
 
 	    <top> <object> <class> <generic> <method> <next-method>
 	    <slot-accessor>

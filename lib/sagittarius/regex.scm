@@ -80,7 +80,6 @@
 	    (core base)
 	    (core errors)
 	    (sagittarius)
-	    (clos core)
 	    (clos user))
 
   (define regex compile-regex)
