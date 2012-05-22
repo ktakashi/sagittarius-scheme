@@ -987,6 +987,9 @@ static SgChar transGetChar(SgObject self)
     return Sg_TranscoderGetc(SG_TPORT_TRANSCODER(self), self);
   } else {
     SgChar c = SG_TRANSCODED_PORT_BUFFER(self);
+    if (c == LF) {
+      SG_TRANSCODED_PORT_LINE_NO(self)++;
+    }
     SG_TRANSCODED_PORT_BUFFER(self) = EOF;
     return c;
   }
@@ -1037,6 +1040,7 @@ SgObject Sg_MakeTranscodedInputPort(SgPort *port, SgTranscoder *transcoder)
   t->src.transcoded.transcoder = transcoder;
   t->src.transcoded.port = port;
   t->src.transcoded.ungetBuffer = EOF;
+  t->src.transcoded.lineNo = 1;
   t->getChar = transGetChar;
   t->unGetChar = trans_un_get_char;
   t->getLineNo = transGetLineNo;
@@ -1101,6 +1105,7 @@ SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port, SgTranscoder *transcoder
   t->src.transcoded.transcoder = transcoder;
   t->src.transcoded.port = port;
   t->src.transcoded.ungetBuffer = EOF;
+  t->src.transcoded.lineNo = 1;
   t->getChar = transGetChar;
   t->unGetChar = trans_un_get_char;
   t->getLineNo = transGetLineNo;

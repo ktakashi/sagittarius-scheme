@@ -10,9 +10,11 @@
 #include <sagittarius.h>
 
 static struct sg__rcRec {
-  SgObject d101[3];
+  SgObject d10[5];
 } sg__rc = {
-  {  /* SgObject d101 */
+  {  /* SgObject d10 */
+    SG_UNBOUND,
+    SG_UNBOUND,
     SG_UNBOUND,
     SG_UNBOUND,
     SG_UNBOUND,
@@ -29,7 +31,7 @@ static SgObject vmdebug_vm_dump_code(SgObject *SG_FP, int SG_ARGC, void *data_)
   cb_scm = SG_ARGREF(0);
   if (!SG_CODE_BUILDERP(cb_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d101[0], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
+       sg__rc.d10[0], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
   cb = SG_CODE_BUILDER(cb_scm);
   {
 {
@@ -103,15 +105,73 @@ SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
 static SG_DEFINE_SUBR(vmdebug_source_info_setX__STUB, 2, 0,vmdebug_source_info_setX, SG_FALSE, NULL);
 
+static SgObject vmdebug_lookup_expansion_history(SgObject *SG_FP, int SG_ARGC, void *data_)
+{
+  SgObject o_scm;
+  SgObject o;
+  SG_ENTER_SUBR("lookup-expansion-history");
+  if (SG_ARGC != 1)
+    Sg_WrongNumberOfArgumentsViolation(
+     SG_INTERN("lookup-expansion-history"), 1, SG_ARGC, SG_NIL);
+  o_scm = SG_ARGREF(0);
+  o = (o_scm);
+  {
+{
+SgObject SG_RESULT = (SgObject)NULL;
+{
+#line 27 "vmdebug.stub"
+SG_RESULT=(Sg_Assq(o,(Sg_VM())->transEnv));}
+SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
+}
+  }
+}
+static SG_DEFINE_SUBR(vmdebug_lookup_expansion_history__STUB, 1, 0,vmdebug_lookup_expansion_history, SG_FALSE, NULL);
+
+static SgObject vmdebug_save_expansion_historyX(SgObject *SG_FP, int SG_ARGC, void *data_)
+{
+  SgObject n_scm;
+  SgObject n;
+  SgObject o_scm;
+  SgObject o;
+  SG_ENTER_SUBR("save-expansion-history!");
+  if (SG_ARGC != 2)
+    Sg_WrongNumberOfArgumentsViolation(
+     SG_INTERN("save-expansion-history!"), 2, SG_ARGC, SG_NIL);
+  n_scm = SG_ARGREF(0);
+  n = (n_scm);
+  o_scm = SG_ARGREF(1);
+  o = (o_scm);
+  {
+{
+SgObject SG_RESULT = (SgObject)NULL;
+{
+#line 30 "vmdebug.stub"
+{SgVM* vm=Sg_VM();
+(vm)->transEnv=(Sg_Acons(n,o,(vm)->transEnv));}}
+{
+#line 32 "vmdebug.stub"
+SG_RESULT=(n);}
+SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
+}
+  }
+}
+static SG_DEFINE_SUBR(vmdebug_save_expansion_historyX__STUB, 2, 0,vmdebug_save_expansion_historyX, SG_FALSE, NULL);
+
 void Sg__Init_sagittarius_vm_debug () {
   SgLibrary *lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius vm debug)"), TRUE));
-  sg__rc.d101[0] = SG_MAKE_STRING("vm-dump-code");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d101[0]), &vmdebug_vm_dump_code__STUB);
-  SG_PROCEDURE_NAME(&vmdebug_vm_dump_code__STUB) = sg__rc.d101[0];
-  sg__rc.d101[1] = SG_MAKE_STRING("source-info");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d101[1]), &vmdebug_source_info__STUB);
-  SG_PROCEDURE_NAME(&vmdebug_source_info__STUB) = sg__rc.d101[1];
-  sg__rc.d101[2] = SG_MAKE_STRING("source-info-set!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d101[2]), &vmdebug_source_info_setX__STUB);
-  SG_PROCEDURE_NAME(&vmdebug_source_info_setX__STUB) = sg__rc.d101[2];
+  sg__rc.d10[0] = SG_MAKE_STRING("vm-dump-code");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d10[0]), &vmdebug_vm_dump_code__STUB);
+  SG_PROCEDURE_NAME(&vmdebug_vm_dump_code__STUB) = sg__rc.d10[0];
+  sg__rc.d10[1] = SG_MAKE_STRING("source-info");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d10[1]), &vmdebug_source_info__STUB);
+  SG_PROCEDURE_NAME(&vmdebug_source_info__STUB) = sg__rc.d10[1];
+  sg__rc.d10[2] = SG_MAKE_STRING("source-info-set!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d10[2]), &vmdebug_source_info_setX__STUB);
+  SG_PROCEDURE_NAME(&vmdebug_source_info_setX__STUB) = sg__rc.d10[2];
+  sg__rc.d10[3] = SG_MAKE_STRING("lookup-expansion-history");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d10[3]), &vmdebug_lookup_expansion_history__STUB);
+  SG_PROCEDURE_NAME(&vmdebug_lookup_expansion_history__STUB) = sg__rc.d10[3];
+  sg__rc.d10[4] = SG_MAKE_STRING("save-expansion-history!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d10[4]), &vmdebug_save_expansion_historyX__STUB);
+  SG_PROCEDURE_NAME(&vmdebug_save_expansion_historyX__STUB) = sg__rc.d10[4];
 }

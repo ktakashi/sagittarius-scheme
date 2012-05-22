@@ -4,6 +4,7 @@
 	    ;; source info
 	    source-info
 	    source-info-set!
+	    expansion-history
 	    )
     (import :none)
 
@@ -28,5 +29,15 @@
 	  (Sg_WeakHashTableSet (SG_WEAK_HASHTABLE (-> vm sourceInfos))
 			       o i 0))))
     (result o))
+
+  ;; expansion-history is only debug purpose
+  (define-c-proc lookup-expansion-history (o)
+    (result (Sg_Assq o (-> (Sg_VM) transEnv))))
+
+  (define-c-proc save-expansion-history! (n o)
+    (let ((vm::SgVM* (Sg_VM)))
+      (set! (-> vm transEnv) (Sg_Acons n o (-> vm transEnv))))
+    (result n))
+  
 )
 

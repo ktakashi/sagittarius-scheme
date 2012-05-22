@@ -43,7 +43,8 @@
   (define o-error-handler with-error-handler)
   (define (with-error-handler h t f)
     (o-error-handler h t :rewind-before f))
-    
+  (define (save-expansion-history! n o) n)
+  (define (lookup-expansion-history n) #f)
   ;; load instruction definition
   (load "insn.scm")
   ;; load Vm procedures to run on scheme VM
@@ -94,6 +95,14 @@
   (syntax-rules ()
     ((_ n o)
      (source-info-set! n (source-info o)))))
+
+(define-syntax $history
+  (syntax-rules ()
+    ((_ n o)
+     (save-expansion-history! ($src n o) o))
+    ((_ n)
+     (let ((s (lookup-expansion-history n)))
+       (if s (cdr s) n)))))
 
 (define-syntax imap
   (syntax-rules ()
@@ -2084,7 +2093,9 @@
 	     (if gloc
 		  (let ((gval (gloc-ref gloc)))
 		    (cond ((macro? gval)
-			   (pass1 (call-macro-expander gval form p1env) p1env))
+			   (pass1 ($history
+				   (call-macro-expander gval form p1env)
+				   form) p1env))
 			  (else
 			   ($gset (ensure-identifier var p1env)
 				  (pass1 expr p1env)))))
@@ -2855,7 +2866,8 @@
     (cond ((and (null? intdefs)
 		(null? intmacros))
 	   (pass1/body-rec
-	    (acons (call-macro-expander mac (caar exprs) p1env)
+	    (acons ($history (call-macro-expander mac (caar exprs) p1env)
+			     (caar exprs))
 		   (cdar exprs) ; src
 		   (cdr exprs)) ; rest
 	    intdefs intmacros p1env))
@@ -2865,7 +2877,8 @@
 			(pass1/body-init lv def newenv))
 		      lvars (map cdr intdefs.))
 		 (pass1/body-rec
-		  (acons (call-macro-expander mac (caar exprs) newenv)
+		  (acons ($history (call-macro-expander mac (caar exprs) newenv)
+				   (caar exprs))
 			 (cdar exprs) ; src
 			 (cdr exprs)) ; rest
 		  '() '() newenv)))
@@ -2887,9 +2900,10 @@
 			       (let-syntax-parser (cdar exprs) env ids)))
 			  (loop (cdr exprs) new-env new-ids))))))
 	     (pass1/body-rec
-		  (acons (call-macro-expander mac (caar exprs) macenv)
-			 (cdar exprs) ; src
-			 (cdr exprs)) ; rest
+	      (acons ($history (call-macro-expander mac (caar exprs) macenv)
+			       (caar exprs))
+		     (cdar exprs) ; src
+		     (cdr exprs)) ; rest
 		  '() '() macenv))))))
 
 (define (pass1/body-finish intdefs intmacros exprs p1env)
@@ -2959,13 +2973,13 @@
       (pass1 (car expr&src) p1env))))
 
 
-(define pass1/call
-  (lambda (form proc args p1env)
+(define (pass1/call form proc args p1env)
+  (let ((src ($history form)))
     (cond ((null? args)
-	   ($call form proc '()))
+	   ($call src proc '()))
 	  (else
 	   (let ((p1env (p1env-sans-name p1env)))
-	     ($call form proc (imap (lambda (arg) (pass1 arg p1env)) args)))))))
+	     ($call src proc (imap (lambda (arg) (pass1 arg p1env)) args)))))))
 
 (define pass1/lookup-head
   (lambda (head p1env)
@@ -2991,7 +3005,8 @@
 	      (let ((gval (gloc-ref gloc)))
 		(cond 
 		 ((macro? gval)
-		  (pass1 (call-macro-expander gval form p1env) p1env))
+		  (pass1 ($history (call-macro-expander gval form p1env)
+				   form) p1env))
 		 ((syntax? gval)
 		  (call-syntax-handler gval form p1env))
 		 ((inline? gval)
@@ -3037,7 +3052,8 @@
 			 ;; locally rebound syntax
 			 (call-syntax-handler obj form p1env))
 			((macro? obj) ;; local macro
-			 (pass1 (call-macro-expander obj form p1env) p1env))
+			 (pass1 ($history (call-macro-expander obj form p1env)
+					  form) p1env))
 			(else
 			 (scheme-error 'pass1
 				       "[internal] unknown resolution of head:" 
@@ -3049,14 +3065,17 @@
      ((variable? form)
       (let ((r (p1env-lookup p1env form LEXICAL)))
 	(cond ((lvar? r)   ($lref r))
-	      ((macro? r)  (pass1 (call-macro-expander r form p1env) p1env))
+	      ((macro? r)
+	       (pass1 ($history (call-macro-expander r form p1env) form) p1env))
 	      ((identifier? r)
 	       (let* ((lib (id-library r))
 		      (gloc (find-binding lib (id-name r) #f)))
 		 (if gloc
 		     (let ((gval (gloc-ref gloc)))
 		       (cond ((macro? gval)
-			      (pass1 (call-macro-expander gval form p1env) p1env))
+			      (pass1
+			       ($history (call-macro-expander gval form p1env)
+					 form) p1env))
 			     (else ($gref r))))
 		     ($gref r))))
 	      (else (scheme-error 'pass1

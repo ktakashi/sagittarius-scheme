@@ -52,8 +52,6 @@
 	    compute-slots
 	    compute-getters-and-setters)
     (import (rnrs)
-	    (srfi :1 lists)
-	    (srfi :26 cut)
 	    (sagittarius)
 	    (sagittarius clos))
   (define (initialize-direct-slots obj cls init-args)

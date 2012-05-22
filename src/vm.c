@@ -226,6 +226,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   /* macro env */
   v->usageEnv = SG_FALSE;
   v->macroEnv = SG_FALSE;
+  v->transEnv = SG_NIL;
 
   /* thread, mutex, etc */
   SG_INTERNAL_THREAD_INIT(&v->thread);
@@ -537,7 +538,7 @@ SgObject Sg_VMCurrentLibrary()
 SgObject Sg_Compile(SgObject o, SgObject e)
 {
   static SgObject compiler = SG_UNDEF;
-
+  SgObject r;
   /* compiler is initialized after VM. so we need to look it up first */
   if (SG_UNDEFP(compiler)) {
     SgObject compile_library;
@@ -548,7 +549,10 @@ SgObject Sg_Compile(SgObject o, SgObject e)
     compiler = SG_GLOC_GET(g);
     Sg_UnlockMutex(&global_lock);
   }
-  return Sg_Apply2(compiler, o, e);
+  Sg_VM()->transEnv = SG_NIL;
+  r = Sg_Apply2(compiler, o, e);
+  Sg_VM()->transEnv = SG_NIL;
+  return r;
 }
 
 /* 
@@ -2091,9 +2095,6 @@ void Sg__InitVM()
   rootVM->threadState = SG_VM_RUNNABLE;
   rootVM->libraries = Sg_MakeHashTableSimple(SG_HASH_EQ, 64);
   rootVM->currentLibrary = Sg_FindLibrary(SG_INTERN("user"), TRUE);
-
-  /* initialization is not here. in reader.c */
-  rootVM->defaultConstructors = SG_NIL;
 
   /* load path */
   rootVM->loadPath = Sg_GetDefaultLoadPath();

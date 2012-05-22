@@ -1616,8 +1616,12 @@
 
     (,*enum-lib* #f () #f #t)
     ))
-  
-    
+
+(cond-expand
+ (sagittarius-0.3.3
+  (define (save-expansion-history! n o) n)
+  (define (lookup-expansion-history n) #f))
+ (else #t))
 
 (define (main args)
   (if (< (length args) 2)

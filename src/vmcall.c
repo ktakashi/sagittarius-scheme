@@ -90,14 +90,14 @@
       /* closure */							\
       SgClosure *cls = SG_CLOSURE(SG_METHOD_PROCEDURE(AC(vm)));		\
       ASSERT(SG_CODE_BUILDERP(cls->code));				\
-      CL(vm) = cls;							\
-      PC(vm) = SG_CODE_BUILDER(cls->code)->code;			\
       /* shift one for call-next-method */				\
       SP(vm) = shift_one_args(SP(vm), argc);				\
       INDEX_SET(SP(vm), argc, nm);					\
       argc++;								\
       CHECK_STACK(SG_CODE_BUILDER(cls->code)->maxStack, vm);		\
       ADJUST_ARGUMENT_FRAME(cls, argc);					\
+      CL(vm) = cls;							\
+      PC(vm) = SG_CODE_BUILDER(cls->code)->code;			\
       SG_PROF_COUNT_CALL(vm, cls);					\
     }									\
   } while (0)
@@ -134,10 +134,10 @@
   } else if (SG_CLOSUREP(AC(vm))) {
     SgClosure *cl = SG_CLOSURE(AC(vm));
     SgCodeBuilder *cb = SG_CODE_BUILDER(cl->code);
-    CL(vm) = AC(vm);
     CHECK_STACK(cb->maxStack, vm);
-    PC(vm) = cb->code;
     ADJUST_ARGUMENT_FRAME(cl, argc);
+    CL(vm) = AC(vm);
+    PC(vm) = cb->code;
     SG_PROF_COUNT_CALL(vm, CL(vm));
   } else if (SG_PROCEDURE_TYPE(AC(vm)) == SG_PROC_GENERIC) {
     SgObject mm;

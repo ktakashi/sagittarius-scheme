@@ -39,8 +39,6 @@
 	    define-generic)
     (import (rnrs) 
 	    (sagittarius)
-	    (match)
-	    (shorten)
 	    (clos core)
 	    (only (sagittarius clos) %ensure-generic-function)
 	    (sagittarius vm))
@@ -86,158 +84,146 @@
 		  (find-metaclass (reverse! needed))))))))
 
   (define-syntax define-class
-    (er-macro-transformer
-     (lambda (form rename compare)
-       (define (collect-accessor slot-defs)
-	 (let loop ((defs (unwrap-syntax slot-defs))
-		    (r '()))
-	   (match defs
-	     (() r)
-	     ((((? symbol? name) . acc) . rest)
-	      (let ((s (memq :accessor acc)))
-		(cond (s
-		       (unless (and (pair? (cdr s))
-				    (symbol? (cadr s)))
+    (lambda (x)
+      (define (collect-accessor slot-defs)
+	(let loop ((defs (unwrap-syntax slot-defs)) (r '()))
+	  (syntax-case defs ()
+	    (() r)
+	    (((name . acc) . rest)
+	     (identifier? #'name)
+	     (let ((s (memq :accessor #'acc)))
+	       (cond (s
+		      (unless (and (pair? (cdr s))
+				   (identifier? (cadr s)))
+			(syntax-violation 'define-class
+					  "malformed slot specifier"
+					  (unwrap-syntax x)
+					  (unwrap-syntax (car defs))))
+		      (loop (cdr defs)
+			    (acons (identifier->symbol #'name)
+				   (identifier->symbol (cadr s)) r)))
+		     (else (loop (cdr defs) r)))))
+	    (((name) . rest)
+	     (identifier? #'name)
+	     (loop (cdr defs) r))
+	    (_ (syntax-violation 'define-class
+				 "malformed slot specifier"
+				 (unwrap-syntax x)
+				 (unwrap-syntax (car defs)))))))
+      (define (build name supers slot-defs options)
+	;; we creates generic accessor and the rest will be
+	;; for generic make
+	(let* ((accessors (collect-accessor slot-defs))
+	       (metaclass (or (get-keyword :metaclass options #f)
+			      #`(%get-default-metaclass 
+				 (list #,@supers)))))
+	  (define (process-slot-definition sdef)
+	    (if (pair? sdef)
+		(let loop ((opts (cdr sdef)) (r '()))
+		  (cond ((null? opts) `(list ',(car sdef) ,@(reverse! r)))
+			((not (and (pair? opts) (pair? (cdr opts))))
 			 (syntax-violation 'define-class
-					   "malformed slot specifier"
-					   (unwrap-syntax form)
-					   (unwrap-syntax (car def))))
-		       (loop (cdr defs)
-			     (acons (caar defs) (cadr s) r)))
-		      (else (loop (cdr defs) r)))))
-	     (((? symbol? name) . rest)
-	      (loop (cdr defs) r))
-	     (_
-	      ;; error
-	      (syntax-violation 'define-class
-				"malformed slot specifier"
-				(unwrap-syntax form)
-				(unwrap-syntax (car defs)))))))
-       (define (build name supers slot-defs options)
-	 ;; we creates generic accessor and the rest will be
-	 ;; for generic make
-	 (let* ((accessors (collect-accessor slot-defs))
-		(_make     (rename 'make))  (_define (rename 'define))
-		(_begin    (rename 'begin)) (_quote  (rename 'quote))
-		(_list     (rename 'list))
-		(_define-generic (rename 'define-generic))
-		(_define-method  (rename 'define-method))
-		(metaclass (or (get-keyword :metaclass options #f)
-			       `(,(rename '%get-default-metaclass) 
-				 (,_list ,@supers)))))
-	   (define (process-slot-definition sdef)
-	     (if (pair? sdef)
-		 (let loop ((opts (cdr sdef)) (r '()))
-		   (cond ((null? opts) `(,_list ',(car sdef) ,@(reverse! r)))
-			 ((not (and (pair? opts) (pair? (cdr opts))))
-			  (syntax-violation 'define-class
-					    "bad slot specification" sdef))
-			 (else
-			  (case (car opts)
-			    ((:init-form)
-			     (loop (cddr opts)
-				   `((lambda () ,(cadr opts)) :init-thunk ,@r)))
-			    ((:accessor)
-			     (loop (cddr opts) 
-				   `(',(cadr opts) ,(car opts) ,@r)))
-			    (else 
-			     (loop (cddr opts)
-				   (cons* (cadr opts) (car opts) r)))))))
-		 `'(,sdef)))
-	   ;; TODO check if given name is already exists as generic
-	   `(,_begin
-	     (,_define ,name
-		       (,_make ,metaclass
-			       :definition-name (,_quote ,name)
-			       :direct-supers   (,_list ,@supers)
-			       :direct-slots    (,_list ,@(map process-slot-definition
-							       slot-defs))))
-	     ,@(if (null? accessors)
-		   `((,(rename 'undefined)))
-		   ;; build generic
-		   (map (lambda (slot)
-			  (let ((slot-name (car slot))
-				(accessor  (cdr slot))
-				(tmp  (gensym)))
-			    `(,_begin
-			      ;;(,_define-generic ,accessor)
-			      ;; setter
-			      (,_define-method ,accessor ((,tmp ,name))
-					       (,(rename 'slot-ref) ,tmp (,_quote ,slot-name)))
-			      ;; getter
-			      (,_define-method ,accessor ((,tmp ,name) obj)
-					       (,(rename 'slot-set!) ,tmp (,_quote ,slot-name)
-						obj)))))
-			accessors))
-	     )))
-       (match form
-	 ((_ name () slot-defs . options)
-	  `(,(rename 'define-class) ,name (<object>) ,slot-defs ,@options))
-	 ((_ name (supers ...) slot-defs . options)
-	  (unless (or (null? slot-defs) (pair? slot-defs))
-	    (syntax-violation 'define-class
-			      "malformed define-class" (unwrap-syntax form)))
-	  (build name supers slot-defs options))
-	 (_ (syntax-violation 
-	     'define-class
-	     "malformed define-class" (unwrap-syntax form)))))))
+					   "bad slot specification" sdef))
+			(else
+			 (case (car opts)
+			   ((:init-form)
+			    (loop (cddr opts)
+				  `((lambda () ,(cadr opts)) :init-thunk ,@r)))
+			   ((:accessor)
+			    (loop (cddr opts) 
+				  `(',(cadr opts) ,(car opts) ,@r)))
+			   (else 
+			    (loop (cddr opts)
+				  (cons* (cadr opts) (car opts) r)))))))
+		`'(,sdef)))
+	  ;; TODO check if given name is already exists as generic
+	  #`(begin
+	      (define #,name
+		(make #,metaclass
+		  :definition-name (quote #,name)
+		  :direct-supers   (list #,@supers)
+		  :direct-slots    (list #,@(map process-slot-definition
+						 slot-defs))))
+	      #,@(if (null? accessors)
+		     #`((undefined))
+		     ;; build generic
+		     (map (lambda (slot)
+			    (let ((slot-name (car slot))
+				  (accessor  (cdr slot))
+				  (tmp  (gensym)))
+			      #`(begin
+				  (define-method #,accessor ((#,tmp #,name))
+				    (slot-ref #,tmp (quote #,slot-name)))
+				  ;; getter
+				  (define-method #,accessor ((#,tmp #,name) obj)
+				    (slot-set! #,tmp (quote #,slot-name) obj)))))
+			  accessors)))))
+      (syntax-case x ()
+	((_ name () slot-defs . options)
+	 #'(define-class name (<object>) slot-defs . options))
+	((_ name (supers ...) slot-defs . options)
+	 (or (null? #'slot-defs) (pair? #'slot-defs))
+	 (build #'name #'(supers ...) #'slot-defs #'options))
+	(_ (syntax-violation
+	    'define-class
+	    "malformed define-class" (unwrap-syntax x))))))
+
+  (define-syntax define-method
+    (lambda (x)
+      (define (analyse args)
+	(let loop ((ss args) (rs '()))
+	  (cond ((null? ss)        (values (reverse! rs) #f))
+		((not (pair? ss))  (values (reverse! rs) ss))
+		(else (loop (cdr ss) (cons (car ss) rs))))))
+      (define (build qualifier generic qargs opt body)
+	;; ugly kludge
+	(define (rewrite body)
+	  (let loop ((body body))
+	    (cond ((null? body) '())
+		  ((pair? body)
+		   (let ((a (rewrite (car body)))
+			 (d (rewrite (cdr body))))
+		     (if (and (eq? a (car body)) (eq? d (cdr body)))
+			 body
+			 (cons a d))))
+		  ((and (identifier? body)
+			(free-identifier=? body #'call-next-method))
+		   'call-next-method)
+		  (else body))))
+	(let* ((specializers (map (lambda (s)
+				    (if (pair? s) (cadr s) '<top>)) qargs))
+	       (reqargs      (map (lambda (s) 
+				    (if (pair? s) (car s) s)) qargs))
+	       (lambda-list  (if opt `(,@reqargs . ,opt) reqargs))
+	       (real-args    (if opt
+				 `(call-next-method ,@reqargs . ,opt)
+				 `(call-next-method ,@reqargs)))
+	       (real-body    `(lambda ,real-args ,@(rewrite body)))
+	       (gf           (gensym)))
+	  ;; TODO if generic does not exists, make it
+	  #`(let ((#,gf (%ensure-generic-function
+			 '#,generic (vm-current-library))))
+	      (add-method #,gf
+			  (make <method>
+			    :specializers  (list #,@specializers)
+			    :qualifier     #,qualifier
+			    :generic       #,generic
+			    :lambda-list  '#,lambda-list
+			    :procedure     #,real-body)))))
+      (syntax-case x ()
+	((_ qualifier generic args . body)
+	 (keyword? #'qualifier)
+	 (let-values (((qargs opt) (analyse #'args)))
+	   (build #'qualifier #'generic qargs opt #'body)))
+	((_ generic qualifier args . body)
+	 (keyword? #'qualifier)
+	 #'(define-method qualifier generic ,args . body))
+	((_ generic args . body)
+	 #'(define-method :primary generic args . body)))))
 
   (define-syntax define-generic
     (syntax-rules ()
       ((_ name)
        (define name (make <generic> :definition-name 'name)))))
 
-  ;; I actually should use syntax-case but yeah, we have bugs in it...
-  (define-syntax define-method
-    (er-macro-transformer
-     (lambda (form rename compare)
-       (define (analyse args)
-	 (let loop ((ss args) (rs '()))
-	   (cond ((null? ss)        (values (reverse! rs) #f))
-		 ((not (pair? ss))  (values (reverse! rs) ss))
-		 (else (loop (cdr ss) (cons (car ss) rs))))))
-       (define (build qualifier generic qargs opt body)
-	 ;; ugly kludge
-	 (define (rewrite body)
-	   (let loop ((body body))
-	     (cond ((null? body) '())
-		   ((pair? body)
-		    (let ((a (rewrite (car body)))
-			  (d (rewrite (cdr body))))
-		      (if (and (eq? a (car body)) (eq? d (cdr body)))
-			  body
-			  (cons a d))))
-		   ((and (identifier? body)
-			 (compare body 'call-next-method))
-		    'call-next-method)
-		   (else body))))
-	 (let* ((specializers (map (^(s) (if (pair? s) (cadr s) '<top>)) qargs))
-		(reqargs      (map (^(s) (if (pair? s) (car s) s)) qargs))
-		(lambda-list  (if opt `(,@reqargs . ,opt) reqargs))
-		(real-args    (if opt
-				  `(call-next-method ,@reqargs . ,opt)
-				  `(call-next-method ,@reqargs)))
-		(real-body    `(,(rename 'lambda) ,real-args ,@(rewrite body)))
-		(gf           (gensym)))
-	   ;; TODO if generic does not exists, make it
-	   `(,(rename 'let) ((,gf (,(rename '%ensure-generic-function)
-				   ',generic (,(rename 'vm-current-library)))))
-	     (,(rename 'add-method) ,gf
-	       (,(rename 'make) ,(rename '<method>)
-		:specializers  (,(rename 'list) ,@specializers)
-		:qualifier     ,qualifier
-		:generic       ,generic
-		:lambda-list  ',lambda-list
-		:procedure     ,real-body)))))
-
-       (match form
-	 ((_ (? keyword? qualifier) generic args . body)
-	  (let-values (((qargs opt) (analyse args)))
-	    (build qualifier generic qargs opt body)))
-	 ((_ generic (? keyword? qualifier) args . body)
-	  `(,(rename 'define-method) ,qualifier ,generic ,args . ,body))
-	 ((_ generic args . body)
-	  `(,(rename 'define-method) :primary ,generic ,args . ,body)))
-       )))
-    
 )

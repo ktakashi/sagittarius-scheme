@@ -67,7 +67,6 @@ typedef struct SgContFrameRec
   SgWord        *pc;		/* next PC */
   SgObject       cl;		/* cl register value */
   SgObject      *fp;		/* fp register value */
-  /* int            fp; */
   SgObject      *env;		/* saved arguments */
 } SgContFrame;
 
@@ -167,10 +166,8 @@ struct SgVMRec
   /* macro expansion */
   SgObject usageEnv;
   SgObject macroEnv;
-  /*
-    default reader macro symbols
-   */
-  SgObject defaultConstructors;
+  /* to store macro expansion history alist */
+  SgObject transEnv;
   /* 
      load path
    */
