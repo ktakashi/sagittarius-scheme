@@ -33,4 +33,45 @@
 	     (equal? (make <person> :name "Marion" :age 26)
 		     (make <person> :name "Marion" :age 26)))
 
+;; qualifier tests
+(define-method say-hi :before ((o <person>))
+  (display "before hi "))
+(define-method say-hi :after ((o <person>))
+  (display " after hi"))
+
+(import (sagittarius io))
+
+(define-method say-hi ((o <person>)) 
+  (display "hi"))
+(test-equal "say-hi" "before hi hi after hi"
+	    (with-output-to-string
+	      (lambda ()
+		(say-hi (make <person>)))))
+
+(define-method say-hi ((o <singer>)) 
+  (display "lalala"))
+(test-equal "say-hi" "before hi lalala after hi"
+	    (with-output-to-string
+	      (lambda ()
+		(say-hi (make <singer>)))))
+
+(define-method say-hi :around ((o <person>))
+  (display "around (")
+  (call-next-method)
+  (display ")"))
+
+(define-method say-hi :around ((o <singer>))
+  (display "around singer (")
+  (call-next-method)
+  (display ")"))
+(test-equal "say-hi with around" "around (before hi hi after hi)"
+	    (with-output-to-string
+	      (lambda ()
+		(say-hi (make <person>)))))
+(test-equal "say-hi with around"
+	    "around singer (around (before hi lalala after hi))"
+	    (with-output-to-string
+	      (lambda ()
+		(say-hi (make <singer>)))))
+
 (test-end)
