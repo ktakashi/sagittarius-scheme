@@ -16,6 +16,22 @@
 	    ;; '_' as literals. but it makes macro *really* slow.
 	    (compat r7rs))
 
+  ;; we don't want to export this confusing procedures.
+  ;; so make it private here.
+  (define (is-a? record record-type)
+    (and (record? record)
+	 (record-type? record-type)
+	 (let* ((rtd (record-type-rtd record-type))
+		(pred (record-predicate rtd)))
+	   (pred record))))
+
+  (define (slot-ref record-type record k)
+    (and (record? record)
+	 (record-type? record-type)
+	 (let* ((rtd (record-rtd record))
+		(pred (record-accessor rtd k)))
+	   (pred record))))
+
 ;;;; match.scm -- portable hygienic pattern matcher -*- coding: utf-8 -*-
 ;;
 ;; This code is written by Alex Shinn and placed in the

@@ -31,26 +31,9 @@
 ;; This file is a part of Sagittarius Scheme system.
 #!compatible
 (library (sagittarius record)
-    (export is-a?
-	    slot-ref
-	    record-type?
+    (export record-type?
 	    make-record-type
 	    record-type-rtd
 	    record-type-rcd)
-    (import (rnrs)
-	    (sagittarius))
-
-  (define (is-a? record record-type)
-    (and (record? record)
-	 (record-type? record-type)
-	 (let* ((rtd (record-type-rtd record-type))
-		(pred (record-predicate rtd)))
-	   (pred record))))
-
-  (define (slot-ref record-type record k)
-    (and (record? record)
-	 (record-type? record-type)
-	 (let* ((rtd (record-rtd record))
-		(pred (record-accessor rtd k)))
-	   (pred record))))
+    (import (sagittarius))
 )
