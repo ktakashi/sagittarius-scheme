@@ -2667,7 +2667,6 @@
   (define-c-proc read (:optional (p::<port> (Sg_CurrentInputPort))) ::<top>
     (check-input-port read p)
     (let ((ctx::SgReadContext SG_STATIC_READ_CONTEXT))
-      (set! (ref ctx graph)  (Sg_MakeHashTableSimple SG_HASH_EQ 1))
       (result (Sg_ReadWithContext p (& ctx)))))
 
   (define-c-proc write-char (ch::<char> :optional

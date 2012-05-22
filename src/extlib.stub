@@ -541,7 +541,9 @@
   (define-c-proc read/ss (:optional (p::<port> (Sg_CurrentInputPort))) ::<top>
     (check-port-open read/ss p)
     (check-input-port read/ss p)
-    (result (Sg_Read p TRUE)))
+    (let ((ctx::SgReadContext SG_STATIC_READ_CONTEXT))
+      (set! (ref ctx graph)  (Sg_MakeHashTableSimple SG_HASH_EQ 1))
+      (result (Sg_ReadWithContext p (& ctx)))))
 
   (define-c-proc format (p :rest rest) ::<top>
     (cond ((SG_PORTP p)

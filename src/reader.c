@@ -1446,6 +1446,7 @@ SgObject Sg_Read(SgObject port, int readSharedObject)
     ctx.graph = Sg_MakeHashTableSimple(SG_HASH_EQ, 1);
   }  
   ctx.graphRef = FALSE;
+  ctx.flags = SG_READ_SOURCE_INFO;
   return Sg_ReadWithContext(SG_PORT(port), &ctx);
 }
 
