@@ -1,0 +1,89 @@
+#!@CMAKE_INSTALL_PREFIX@/bin/sash
+
+#< (sagittarius regex) >
+(import (rnrs) (sagittarius control)
+	(sagittarius regex))
+
+(define *installed-version* "@SAGITTARIUS_VERSION@")
+
+(define (check-version)
+  (or (string=? *installed-version* (sagittarius-version))
+      (error 'sagittarius-config
+	     "installed version and Sagittarius version are different")))
+
+(define *one-char-table* '((I . include-path)
+			   (V . version)
+			   (L . library-path)
+			   (l . libraries)))
+
+(define (usage)
+  (print "Usage sagittarius-config [option]
+
+General parameter
+  -V	the current Sagittarius version
+
+Paremters to compile an application using Sagittarius
+  -I	include paths required to compile programs using Sagittarius.
+  -L	library paths required to link Sagittarius installation directory.
+  -l	libraries required to link programs using Sagittarius.
+  --arch
+	prints the architecture signature.
+  --c-flags
+	prints the used CFLAGS.
+  --cxx-flags
+	prints the used CXXFLAGS.
+")
+  (exit 1))
+
+(define (emit s)
+  (display s) (display #\space))
+
+(define (parse-argument args)
+  (let loop ((args args)
+	     (r '()))
+    (cond ((null? args) (reverse! r))
+	  ((matches #/-(\w)/ (car args)) ;; one char
+	   => (lambda (m) 
+		(or (and-let* ((s (string->symbol (m 1)))
+			       (def (assq s *one-char-table*)))
+		      (loop (cdr args)
+			    (cons (cdr def) r)))
+		    (usage))))
+	  ((matches #/--([\w-]+)/ (car args))
+	   => (lambda (m)
+		;; let resolve-flag do it
+		(loop (cdr args)
+		      (cons (string->symbol (m 1)) r))))
+	  (else (usage)))))
+
+(define (resolve-flag flag)
+  (case flag
+    ((include-path)
+     (emit "-I${CMAKE_INSTALL_PREFIX}/${SAGITTARIUS_CURRENT_LIB}/include"))
+    ((version)
+     (emit *installed-version*))
+    ((libraries)
+     ;; FIXME I want to get this from CMake definitions
+     (emit "-lpthread -ldl -lm -lsagittarius"))
+    ((c-flags)
+     (emit "@CMAKE_C_FLAGS@"))
+    ((cxx-flags)
+     (emit "@CMAKE_CXX_FLAGS@"))
+    ((library-path)
+     (emit "-L@SAGITTARIUS_DYNLIB_PATH@"))
+    ((arch)
+     (emit "@SAGITTARIUS_TRIPLE@"))
+    ((incdir)
+     (emit "${CMAKE_INSTALL_PREFIX}/${SAGITTARIUS_CURRENT_LIB}/include"))
+    (else
+     (usage))))
+
+(define (main args)
+  (check-version)
+  (let1 flags (parse-argument (cdr args))
+    (when (null? flags)
+      (usage))
+    (for-each (lambda (flag)
+		(resolve-flag flag)) flags))
+  (newline)
+  0)
