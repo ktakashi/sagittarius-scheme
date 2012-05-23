@@ -119,3 +119,8 @@ ENDIF()
 
 INSTALL(TARGETS sagittarius DESTINATION lib)
 INSTALL(TARGETS sash sagittarius DESTINATION bin)
+# for version control
+# default dynamic load path like /usr/local/lib/sagittarius/${version}/${triple}
+# so let's put it there.
+INSTALL(TARGETS sagittarius DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
+INSTALL(TARGETS sash sagittarius DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
