@@ -85,6 +85,7 @@
 	    pointer-ref-c-long-long
 	    pointer-ref-c-float
 	    pointer-ref-c-double
+	    pointer-ref-c-pointer
 	    ;; set!
 	    pointer-set-c-uint8!
 	    pointer-set-c-int8!
@@ -137,9 +138,12 @@
 	    int8_t int16_t int32_t uint8_t uint16_t uint32_t size_t
 	    int64_t uint64_t long-long unsigned-long-long
 	    bool void* char* float double callback struct
+
 	    ;; utility
 	    null-pointer
 	    null-pointer?
+	    pointer->string
+	    deref
 	    ;; clos
 	    <pointer> <function-info> <callback> <c-struct>)
 
@@ -174,6 +178,17 @@
     (define (null-pointer? p)
       (and (pointer? p)
 	   (= (pointer->integer p) 0)))
+
+    (define (pointer->string pointer
+			     :optional (transcoder (native-transcoder)))
+      (let-values (((out getter) (open-bytevector-output-port)))
+	(do ((i 0 (+ i 1)))
+	    ((zero? (pointer-ref-c-uint8 pointer i))
+	     (bytevector->string (getter) transcoder))
+	  (put-u8 out (pointer-ref-c-uint8 pointer i)))))
+
+    (define (deref pointer offset)
+      (pointer-ref-c-pointer pointer (* size-of-void* offset)))
 
     (define-syntax define-c-typedef
       (syntax-rules (* s*)      

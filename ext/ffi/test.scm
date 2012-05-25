@@ -8,6 +8,7 @@
 	(sagittarius vm)
 	(sagittarius ffi))
 
+(test-begin "(run-ffi-test)")
 (cond-expand
  (sagittarius.ffi
   (define ffi-test-lib (open-shared-library "test-lib.so"))
@@ -77,8 +78,6 @@
 			  (loop (+ i 1)
 				(cons (ref p (* size i)) r)))))))))))))
 
-
-  (test-begin "(run-ffi-test)")
   (test-equal "simple call"
 	      3
 	      (let ((add (c-function ffi-test-lib int add (int int))))
@@ -102,12 +101,13 @@
 		     (store (c-function ffi-test-lib void store_data 
 					(void*))))
 		(store st)
+
 		(let ((r (list (c-struct-ref st data-to-store 'value1)
 			       (c-struct-ref st data-to-store 'inner.value2)
 			       (c-struct-ref st data-to-store 'inner.str))))
 		  r)))
-    ;;(pointer-ref-test bool #t)
-    
+  ;;(pointer-ref-test bool #t)
+
   (pointer-ref-test char #t)
   (pointer-ref-test short #t)
   (pointer-ref-test unsigned-short #t)
@@ -117,8 +117,8 @@
   (pointer-ref-test unsigned-long #t)
   (pointer-ref-test long-long #t)
   (pointer-ref-test unsigned-long-long #t)
-    ;; we don't test void*
-    ;;(pointer-ref-test size_t #t)
+  ;; we don't test void*
+  ;;(pointer-ref-test size_t #t)
     
   (pointer-ref-test float #f)
   (pointer-ref-test double #f)
@@ -126,14 +126,37 @@
   (pointer-ref-test int16_t #t)
   (pointer-ref-test int32_t #t)
   (pointer-ref-test int64_t #t)
-    ;;(pointer-ref-test intptr_t #t)
+  ;;(pointer-ref-test intptr_t #t)
     
   (pointer-ref-test uint8_t #t)
   (pointer-ref-test uint16_t #t)
   (pointer-ref-test uint32_t #t)
   (pointer-ref-test uint64_t #t)
-    ;;(pointer-ref-test uintptr_t #t)
-  (test-end)
-    )
+  ;;(pointer-ref-test uintptr_t #t)
+
+  
+  (let* ((size (string-length "abcde"))
+	 (bv   (string->utf8 "abcde"))
+	 (p (allocate-pointer (+ size 1))))
+    (do ((i 0 (+ i 1)))
+	((= i size))
+      (pointer-set-c-uint8! p i (bytevector-u8-ref bv i)))
+    (test-equal "pointer->string" "abcde" (pointer->string p)))
+  
+  (define-c-struct env-holder (void* envp))
+  (test-equal "ref-c-pointer" '("test" "buzz")
+	      (let ((st (allocate-c-struct env-holder))
+		    (f (c-function ffi-test-lib void setTest (void*))))
+		(f st)
+		(let ((envp (c-struct-ref st env-holder 'envp)))
+		  (let loop ((i 0) (r '()))
+		    (let ((p (deref envp i)))
+		      (if (null-pointer? p)
+			  (reverse! r)
+			  (let* ((s (pointer->string p)))
+			    (loop (+ i 1) (cons s r)))))))))
+
+  )
  (else
   #t))
+(test-end)

@@ -118,7 +118,8 @@
     (result (Sg_MakeIntegerU (-> p pointer))))
 
   (decl-code
-   (.typedef "char*" "char_ptr"))
+   (.typedef "char*" "char_ptr")
+   (.typedef "void*" "void_ptr"))
   (define-c-proc allocate-pointer (size::<fixnum>) 
     (let ((p::char* (SG_NEW_ATOMIC2 char_ptr size)))
       (memset p 0 size)
@@ -131,7 +132,7 @@
   ;; allocates c-struct with GC
   (define-c-proc allocate-c-struct (st::<cstruct>) 
     ;; allocates byte
-    (let ((p::char* (SG_NEW_ATOMIC2 char_ptr (-> st size))))
+    (let ((p::char* (SG_NEW2 char_ptr (-> st size))))
       (memset p 0 (-> st size))
       (result (Sg_MakePointer p))))
 
@@ -168,6 +169,9 @@
 
   (define-c-proc pointer-ref-c-int64 (p::<pointer> offset::<fixnum>) 
     (result (Sg_MakeIntegerFromS64 (POINTER_REF int64_t p offset))))
+
+  (define-c-proc pointer-ref-c-pointer (p::<pointer> offset::<fixnum>) 
+    (result (Sg_MakePointer (POINTER_REF void_ptr p offset))))
 
   ;; to use POINTER_REF macro.
   (decl-code

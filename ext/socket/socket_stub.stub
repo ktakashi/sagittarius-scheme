@@ -10,7 +10,10 @@
 	    socket-send
 	    socket-recv
 	    socket-shutdown
-	    socket-close)
+	    socket-close
+	    ;; for ffi
+	    socket-fd
+	    )
     (import :none)
 
   #!compatible
@@ -110,4 +113,7 @@
 
   (define-c-proc socket-close  (o::<socket>) ::<void>
     (Sg_SocketClose (SG_SOCKET o)))
+
+  (define-c-proc socket-fd (o::<socket>) ::<fixnum>
+    (result (-> o socket)))
 )

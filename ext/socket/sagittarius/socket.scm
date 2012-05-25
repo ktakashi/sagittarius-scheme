@@ -42,6 +42,7 @@
 	    socket-recv
 	    socket-shutdown
 	    socket-close
+	    socket-fd
 	    AF_UNSPEC
 	    AF_INET
 	    AF_INET6

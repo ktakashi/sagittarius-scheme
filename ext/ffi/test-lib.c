@@ -9,6 +9,19 @@
 # define EXPORT
 #endif
 
+typedef struct 
+{
+  char **envp;
+} test;
+
+static char *values[] = { "test", "buzz", 0};
+
+EXPORT void setTest(test *t)
+{
+  t->envp = values;
+}
+
+
 EXPORT int add(int x, int y)
 {
   return x + y;

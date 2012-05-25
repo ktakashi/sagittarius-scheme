@@ -9,6 +9,8 @@
   (add-dynamic-load-path "../build")))
 
 (import (rnrs) (util file) (core errors))
+;; to avoid to use installed time library. for ext/thread
+(add-load-path "./time")
 (let* ((files (find-files "." :pattern "^test.scm"))
        (thunks (map (lambda (file) (lambda () (load file))) files)))
   (for-each (lambda (file thunk)
