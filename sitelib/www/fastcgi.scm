@@ -12,6 +12,8 @@
 	    ;; high level WSGI style API
 	    make-serve-function
 	    ;; server
+	    simple-server
+	    simple-server-threaded
 	    socket-server
 	    socket-server-threaded
 
@@ -200,10 +202,10 @@
 	      (fcgx-puts request (format "~A" item))))))))
 
   ;; servers
-  (define (server-run proc sock)
+  (define (server-on-fd proc fd)
     (fcgx-init)
     (let ((req (make-fcgx-request)))
-      (fcgx-init-request req (socket-fd sock) 1)
+      (fcgx-init-request req fd 1)
       (let loop ((rc (fcgx-accept req)))
 	(cond ((zero? rc)
 	       (proc req)
@@ -211,12 +213,17 @@
 	      (else
 	       "ACCEPT_ERROR")))))
 
-  (define (server-run-threaded proc sock threads)
+  (define (server-on-fd-threaded proc sock threads)
     (fcgx-init)
     (dotimes (count (- threads 1))
       (thread-start! (make-thread (lambda ()
 				    (server-run proc sock)))))
     (server-run proc sock))
+
+  (define (simple-server proc)
+    (server-on-fd proc 0))
+  (define (simple-server-threaded proc :key (threads 4))
+    (server-on-fd-threaded proc 0 threads))
 
   (define (socket-server proc :key
 			 (port "9000")
@@ -226,7 +233,7 @@
       (with-exception-handler
        (lambda (e) (socket-close socket) (raise e))
        (lambda ()
-	 (server-run proc socket)
+	 (server-on-fd proc (socket-fd socket))
 	 (socket-close socket)))))
 
   (define (socket-server-threaded proc :key
@@ -238,7 +245,7 @@
       (with-exception-handler
        (lambda (e) (socket-close socket) (raise e))
        (lambda ()
-	 (server-run-threaded proc socket threads)
+	 (server-on-fd-threaded proc (socket-fd socket) threads)
 	 (socket-close socket)))))
 
  
