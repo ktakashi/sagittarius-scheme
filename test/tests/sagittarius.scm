@@ -37,6 +37,7 @@
 
 (let ((l1 '(a b c))
       (l2 '(a b . c))
+      (l3 '((a b) . c))
       (v  '#(a b c)))
   (test-error "literal list set!"
 	      (lambda (e) (assertion-violation? e))
@@ -44,6 +45,9 @@
   (test-error "literal list set!" 
 	      (lambda (e) (assertion-violation? e))
 	      (set-car! l2 'e))
+  (test-error "literal list set!" 
+	      (lambda (e) (assertion-violation? e))
+	      (set-car! (car l3) 'e))
   (test-error "literal vector set!" 
 	      (lambda (e) (assertion-violation? e))
 	      (vector-set! v 0 'e)))

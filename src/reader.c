@@ -1601,6 +1601,9 @@ SgObject Sg_AddConstantLiteral(SgObject o)
     if (SG_PAIRP(o)) {
       /* do the cdr parts. */
       SG_PAIR(o)->constp = TRUE;
+      if (SG_PAIRP(SG_CAR(o))) {
+	SG_SET_CAR(o, Sg_AddConstantLiteral(SG_CAR(o)));
+      }
       if (SG_PAIRP(SG_CDR(o))) {
 	SG_SET_CDR(o, Sg_AddConstantLiteral(SG_CDR(o)));
       }
