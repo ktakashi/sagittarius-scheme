@@ -538,10 +538,13 @@
     (check-output-port write/ss p)
     (Sg_Write o p SG_WRITE_SHARED))
 
-  (define-c-proc read/ss (:optional (p::<port> (Sg_CurrentInputPort))) ::<top>
+  (define-c-proc read/ss (:optional (p::<port> (Sg_CurrentInputPort))
+			  :key (source-info?::<boolean> #f))
     (check-port-open read/ss p)
     (check-input-port read/ss p)
     (let ((ctx::SgReadContext SG_STATIC_READ_CONTEXT))
+      (when source-info?
+	(set! (ref ctx flags) SG_READ_SOURCE_INFO))
       (set! (ref ctx graph)  (Sg_MakeHashTableSimple SG_HASH_EQ 1))
       (result (Sg_ReadWithContext p (& ctx)))))
 

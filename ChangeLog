@@ -1,3 +1,8 @@
+2012-05-26  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/reader.c (read_hash_equal): fixed SEGV when reading #= with
+	read or get-datum.
+
 2012-05-18  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/unicode.c (utf8_reader): fixed utf8 treatment.

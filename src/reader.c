@@ -1205,6 +1205,9 @@ SgObject read_hash_escape(SgPort *port, SgChar c, dispmacro_param *param,
 SgObject read_hash_equal(SgPort *port, SgChar c, dispmacro_param *param,
 			 SgReadContext *ctx)
 {
+  if (!ctx->graph) {
+    lexical_error(port, ctx, UC("invalid lexical syntax #="));
+  }
   if (param->present) {
     SgObject obj = read_expr(port, ctx);
     intptr_t mark = param->value;

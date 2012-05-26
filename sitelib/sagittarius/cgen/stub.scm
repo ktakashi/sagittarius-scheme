@@ -29,6 +29,9 @@
   (define-class <cgen-stub-unit> (<cgen-unit>)
     ((c-name-prefix :init-keyword :c-name-prefix)))
 
+  (define (read-with-source)
+    (read (current-input-port) :source-info? #t))
+
   (define (cgen-genstub stubfile :key (predef-syms '()))
     (unless (file-readable? stubfile)
       (error 'cgen-genstub
@@ -51,7 +54,7 @@
 		   (cond ((and decl-strings? (string? form))
 			  (cgen-decl form) #t)
 			 (else (cgen-stub-parse-form form) #f)))
-		 #t read))
+		 #t read-with-source))
 	  (cgen-emit-c (cgen-current-unit))))))
   ;; utilities
   (define (f fmt . args) (apply format #t fmt args))
@@ -287,7 +290,7 @@
   (define (process-c-proc-args name argspecs)
     (define (badarg arg)
       (error 'define-c-proc
-	     "bad argument in argspec" arg nam))
+	     "bad argument in argspec" arg name))
     (define (required specs args nreqs)
       (match specs
 	(()                  (values (reverse args) '() nreqs 0 #f #f))
@@ -309,7 +312,8 @@
 	((:optional . specs)
 	 (error 'define-c-proc "extra :optional parameter" name))
 	((:key . specs)
-	 (error 'define-c-proc
+	 (keyword specs args '() nreqs nopts)
+	 #;(error 'define-c-proc
 		":key and :optional can't be used together" name))
 	((:rest     . specs) (rest specs args '() nreqs nopts #f))
 	((:allow-other-keys . specs)
@@ -429,6 +433,11 @@
       (_ (error 'define-c-proc "invalid cproc return type" rettype))))
 
   ;; emit
+  (define (calculate-required args)
+    (let loop ((args args) (n 0))
+      (cond ((null? args) n)
+	    ((is-a? (car args) <required-arg>) (loop (cdr args) (+ n 1)))
+	    (else (loop (cdr args) n)))))
   (define-method cgen-emit-body ((cproc <c-proc>))
     (p "static SgObject " (slot-ref cproc 'c-name)
        "(SgObject *SG_FP, int SG_ARGC, void *data_)")
@@ -436,9 +445,9 @@
     (for-each emit-arg-decl (slot-ref cproc 'args))
     (for-each emit-arg-decl (slot-ref cproc 'keyword-args))
     (unless (null? (slot-ref cproc 'keyword-args))
-      (let ((arg (car (slot-ref cproc 'keyword-args))))
-	(f "  SgObject SG_OPTARGS = Sg_ArrayToList(SG_FP+~d, SG_ARGC-~d);"
-	   (slot-ref arg'count) (slot-ref arg'count))))
+      (let ((req-count (calculate-required (slot-ref cproc 'args))))
+	(f "  SgObject SG_OPTARGS = Sg_ArrayToList(SG_FP+~d, SG_ARGC-~d);~%"
+	   req-count req-count)))
     (p "  SG_ENTER_SUBR(\"" (slot-ref cproc 'scheme-name) "\");")
     ;; argument count check
     (cond ((and (> (slot-ref cproc 'num-optargs) 0)
@@ -535,9 +544,12 @@
 
   (define-method emit-arg-unbox ((arg <optional-arg>))
     (p "  if (SG_ARGC >= " (slot-ref arg'count) "+1) {")
-    (p "  "(slot-ref arg'scm-name) " = SG_ARGREF(" (slot-ref arg'count) ");")
+    (p "    "(slot-ref arg'scm-name) " = SG_ARGREF(" (slot-ref arg'count) ");")
+    ;; if proc has keyword arguments, then it must have SG_OPTARGS.
+    (unless (null? (slot-ref (slot-ref arg 'proc) 'keyword-args))
+      (p "    SG_OPTARGS = SG_CDR(SG_OPTARGS);"))
     (p "  } else {")
-    (p "  "(slot-ref arg'scm-name) " = " (get-arg-default arg) ";")
+    (p "    "(slot-ref arg'scm-name) " = " (get-arg-default arg) ";")
     (p "  }")
     (emit-arg-unbox-rec arg))
 

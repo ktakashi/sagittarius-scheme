@@ -2129,7 +2129,7 @@
 					  ,proc))))
 
   (define-c-proc make-custom-binary-input-port
-    (id::<string> read::<procedure> getter setter close) ::<top>
+    (id::<string> read::<procedure> getter setter close)
     (check-procedure-or-false make-custom-binary-input-port getter)
     (check-procedure-or-false make-custom-binary-input-port setter)
     (check-procedure-or-false make-custom-binary-input-port close)
@@ -2137,7 +2137,7 @@
 				     getter setter close)))
 
   (define-c-proc make-custom-textual-input-port
-    (id::<string> read::<procedure> getter setter close) ::<top>
+    (id::<string> read::<procedure> getter setter close)
     (check-procedure-or-false make-custom-textual-input-port getter)
     (check-procedure-or-false make-custom-textual-input-port setter)
     (check-procedure-or-false make-custom-textual-input-port close)
@@ -2664,9 +2664,15 @@
 	  (result SG_EOF)
 	  (result (SG_MAKE_CHAR c)))))
 
-  (define-c-proc read (:optional (p::<port> (Sg_CurrentInputPort))) ::<top>
+  (define-c-proc read (:optional (p::<port> (Sg_CurrentInputPort))
+		       :key (source-info?::<boolean> #f)
+			    (read-shared?::<boolean> #f))
     (check-input-port read p)
     (let ((ctx::SgReadContext SG_STATIC_READ_CONTEXT))
+      (when source-info?
+	(set! (ref ctx flags) SG_READ_SOURCE_INFO))
+      (when read-shared?
+	(set! (ref ctx graph) (Sg_MakeHashTableSimple SG_HASH_EQ 1)))
       (result (Sg_ReadWithContext p (& ctx)))))
 
   (define-c-proc write-char (ch::<char> :optional
