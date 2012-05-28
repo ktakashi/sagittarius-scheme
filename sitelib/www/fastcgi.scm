@@ -209,7 +209,8 @@
       (let loop ((rc (fcgx-accept req)))
 	(cond ((zero? rc)
 	       (proc req)
-	       (fcgx-finish req))
+	       (fcgx-finish req)
+	       (loop (fcgx-accept req)))
 	      (else
 	       "ACCEPT_ERROR")))))
 
@@ -220,9 +221,11 @@
 				    (server-run proc sock)))))
     (server-run proc sock))
 
-  (define (simple-server proc)
+  (define (simple-server proc :key (fcgi-path #f))
+    (init-fcgi (make-fcgi-context (or fcgi-path (search-libfcgi))))
     (server-on-fd proc 0))
-  (define (simple-server-threaded proc :key (threads 4))
+  (define (simple-server-threaded proc :key (fcgi-path #f) (threads 4))
+    (init-fcgi (make-fcgi-context (or fcgi-path (search-libfcgi))))
     (server-on-fd-threaded proc 0 threads))
 
   (define (socket-server proc :key
