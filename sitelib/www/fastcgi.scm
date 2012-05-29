@@ -29,7 +29,6 @@
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius ffi)
-	    (sagittarius regex)
 	    (sagittarius socket)
 	    (sagittarius control)
 	    (srfi :1  lists)
@@ -167,9 +166,9 @@
 	(let1 p (deref env i)
 	  (if (null-pointer? p)
 	      (reverse! r)
-	      (let* ((s (pointer->string p transcoder))
-		     (pair (string-split s "=")))
-		(loop (+ i 1) (acons (car pair) (cadr pair) r))))))))
+	      (let1 s (pointer->string p transcoder)
+		(receive (name value) (string-scan s "=" 'both)
+		  (loop (+ i 1) (acons name value r)))))))))
 
 
   ;; High level WSGI style APIs
