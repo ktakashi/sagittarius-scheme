@@ -2268,45 +2268,47 @@
 ;; added export information in env and library
 ;; inside of export spec is like this:
 ;;  ((non-renamed symbols) ((org renamed) ...))
-(define pass1/export
-  (lambda (export lib)
-    (define (parse-export spec)
-      (let loop ((spec spec)
-		 (ex '())
-		 (renames '()))
-	(cond ((null? spec)
-	       (values ex renames))
-	      ((symbol? (car spec))
-	       (loop (cdr spec) (cons (car spec) ex) renames))
-	      ((keyword? (car spec))
-	       (case (car spec)
-		 ((:all :export-reader-macro)
-		  (loop (cdr spec) (cons (car spec) ex) renames))
-		 (else
-		  (syntax-error
-			 (format "unsupported export keyword ~s" (car spec))
-			 export))))
-	      ((and (pair? (car spec))
-		    (eq? (caar spec) 'rename)
-		    (car spec))
-	       => (lambda (rename)
-		    (if (and (for-all variable? rename)
-			     (= 3 (length rename)))
-			;; (rename name1 name2) assume R7RS library
-			;; need to create ((name1 name2))
-			(loop (cdr spec) ex (append (list (cons (cadr rename)
-								(cddr rename)))
-						    renames))
-			;; assume this is R6RS library
-			;; r6rs spec says rename must be (original renamed)
-			(loop (cdr spec) ex (append (cdr rename) renames)))))
-	      (else
-	       (syntax-error 
-		"unknown object appeared in export spec" (car spec))))))
-    (receive (exports renames) (parse-export (cdr export))
+(define (pass1/export export lib)
+  (define (parse-export spec)
+    (let loop ((spec spec)
+	       (ex '())
+	       (renames '()))
+      (cond ((null? spec)
+	     (values ex renames))
+	    ((symbol? (car spec))
+	     (loop (cdr spec) (cons (car spec) ex) renames))
+	    ((identifier? (car spec))
+	     (loop (cdr spec) (cons (identifier->symbol (car spec)) ex)
+		   renames))
+	    ((keyword? (car spec))
+	     (case (car spec)
+	       ((:all :export-reader-macro)
+		(loop (cdr spec) (cons (car spec) ex) renames))
+	       (else
+		(syntax-error
+		 (format "unsupported export keyword ~s" (car spec))
+		 export))))
+	    ((and (pair? (car spec))
+		  (eq? (caar spec) 'rename)
+		  (car spec))
+	     => (lambda (rename)
+		  (if (and (for-all variable? rename)
+			   (= 3 (length rename)))
+		      ;; (rename name1 name2) assume R7RS library
+		      ;; need to create ((name1 name2))
+		      (loop (cdr spec) ex (append (list (cons (cadr rename)
+							      (cddr rename)))
+						  renames))
+		      ;; assume this is R6RS library
+		      ;; r6rs spec says rename must be (original renamed)
+		      (loop (cdr spec) ex (append (cdr rename) renames)))))
+	    (else
+	     (syntax-error 
+	      "unknown object appeared in export spec" (car spec))))))
+  (receive (exports renames) (parse-export (cdr export))
       (library-exported-set! lib
 			     (cons exports renames))
-      ($undef))))
+      ($undef)))
 
 ;; Collect library inlinable define.
 ;; Inlinable condition:

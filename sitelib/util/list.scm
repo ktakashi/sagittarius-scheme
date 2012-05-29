@@ -34,6 +34,8 @@
 	    for-each-with-index
 	    map-with-index
 	    slices
+	    split-at*
+	    take*
 	    cond-list)
     (import (rnrs)
 	    (core base)
@@ -103,6 +105,23 @@
 	  (reverse! r)
 	  (receive (h t) (apply split-at* lis k args)
 	    (loop t (cons h r))))))
+
+  (define (split-at* lis k :optional (fill? #f) (padding #f))
+    (unless (and (integer? k) (positive? k))
+      (assertion-violation 'split-at "index must be positive integer" k))
+    (let loop ((i 0)
+	       (lis lis)
+	       (r '()))
+      (cond ((= i k) (values (reverse! r) lis))
+	    ((null? lis)
+	     (values (if fill?
+			 (append! (reverse! r) (make-list (- k i) padding))
+			 (reverse! r))
+		     lis))
+	    (else (loop (+ i 1) (cdr lis) (cons (car lis) r))))))
+
+  (define (take* lis k . args)
+    (receive (h t) (apply split-at* lis k args) h))
 
   (define-syntax cond-list
     (syntax-rules (=> @)

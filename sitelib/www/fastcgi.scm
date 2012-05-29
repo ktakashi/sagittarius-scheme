@@ -179,7 +179,8 @@
       (lambda (status headers)
 	(when status
 	  (set! save-status status))
-	(set! save-headers (merge-headers save-headers headers))
+	(when headers
+	  (set! save-headers (merge-headers save-headers headers)))
 	(values save-status save-headers))))
 
   (define (make-serve-function app)
@@ -258,5 +259,5 @@
 
   (define (merge-headers old new)
     (lset-union (lambda (a b)
-		  (string=? (car a) (car b))) old new))
+		  (string=? (car a) (car b))) new old))
 )
