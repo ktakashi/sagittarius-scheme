@@ -101,7 +101,7 @@
 			("oauth_version" ,(format "~a" version)))))
       (if token
 	  (cons `("oauth_token" ,(uri-decode-string (token-key token)
-						    'utf-8 #t))
+						    :cgi-decode #t))
 		parameters)
 	  parameters)))
 
@@ -212,7 +212,7 @@
 	     (signature (oauth-signature signature-method sbs
 					 (token-secret consumer-token)
 					 (uri-decode-string (token-secret token)
-							    'utf-8 #t)))
+							    :cgi-decode #t)))
 	     (signed-parameters (cons `("oauth_signature" ,signature)
 				      parameters)))
 	(receive (status header body)
@@ -247,8 +247,8 @@
 	       'obtain-access-token
 	       "oauth_token or/and oauth_token_secret field(s) are not returned"))
 	    (make-access-token :consumer consumer-token
-			       :key (uri-decode-string key 'utf-8 #t)
-			       :secret (uri-decode-string secret 'utf-8 #t)
+			       :key (uri-decode-string key :cgi-decode #t)
+			       :secret (uri-decode-string secret :cgi-decode #t)
 			       :session-handle session-handle
 			       :expires expires
 			       :authorization-expires authorization-expires

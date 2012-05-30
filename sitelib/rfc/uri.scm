@@ -132,7 +132,7 @@
   ;; encoding & decoding
   ;; This is for internal.
   ;; in and out must be binary-port
-  (define (uri-decode in out :optional (cgi-decode #f))
+  (define (uri-decode in out :key (cgi-decode #f))
     (define (hex-char? n)
       (cond ((<= #x30 n #x39) ;; #\0 - #\9
 	     (- n #x30))
@@ -166,8 +166,10 @@
 	     (loop (get-u8 in)))
 	    (else (put-u8 out c) (loop (get-u8 in))))))
 
-  (define (uri-decode-string string :optional (encoding 'utf-8)
-					      (cgi-decode #f))
+  (define (uri-decode-string string 
+			     :key
+			     (encoding 'utf-8)
+			     (cgi-decode #f))
     ;; decoder is mere codec.
     (let ((decoder (lookup-decoder encoding)))
       (if decoder
@@ -175,7 +177,8 @@
 	    (bytevector->string
 	     (call-with-bytevector-output-port
 	      (lambda (out)
-		(uri-decode (open-bytevector-input-port bv) out cgi-decode)))
+		(uri-decode (open-bytevector-input-port bv) out
+			    :cgi-decode cgi-decode)))
 	     (make-transcoder decoder)))
 	  string)))
 
