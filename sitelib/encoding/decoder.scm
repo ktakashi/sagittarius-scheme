@@ -10,6 +10,7 @@
 
   (define *supported-encoding*
     `((iso-8859-1 . ,(latin-1-codec))
+      (us-ascii   . ,(latin-1-codec)) ;; should this be other codec?
       (sjis       . ,(sjis-codec))
       (shift_jis  . ,(sjis-codec))
       (euc-jp     . ,(euc-jp-codec))
@@ -19,18 +20,19 @@
 
   (define (lookup-decoder charset)
     (cond ((and (string? charset)
-		(assq (string->symbol (string-downcase charset)) *supported-encoding*))
+		(assq (string->symbol (string-downcase charset))
+		      *supported-encoding*))
 	   => cdr)
 	  ((and (symbol? charset)
 		(assq charset *supported-encoding*))
 	   => cdr)
 	  (else
 	   (assertion-violation 'lookup-decoder
-				(format "string or symbol required, but got ~s" charset)
+				"Given charset is not supported"
 				charset))))
 
   ;; decoder is just a codec
-  (define-optional (decode decoder bytes (optional (eol-style 'lf)))
+  (define (decode decoder bytes :optional (eol-style 'lf))
     (let* ((tr (make-transcoder decoder eol-style))
 	   (in (open-bytevector-input-port bytes tr)))
       (get-string-all in)))

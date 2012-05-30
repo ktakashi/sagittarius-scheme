@@ -467,7 +467,10 @@ static int file_look_ahead_u8(SgObject self)
   int64_t result;
   if (SG_BINARY_PORT(self)->buffer) {
     result = file_read_from_buffer(self, &buf, 1);
-    SG_BINARY_PORT(self)->bufferIndex--;
+    /* result == 0 means EOF, so we must not reduce buffer index. */
+    if (result != 0) {
+      SG_BINARY_PORT(self)->bufferIndex--;
+    }
   } else {
     if (SG_PORT_HAS_U8_AHEAD(self)) {
       return SG_PORT_U8_AHEAD(self);

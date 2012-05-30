@@ -1,3 +1,8 @@
+2012-05-30  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/port.c (file_look_ahead_u8): Fixed when EOF is read buffer index
+	was decreased and it causes infinite loop with combination of get-u8.
+
 2012-05-26  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/reader.c (read_hash_equal): fixed SEGV when reading #= with

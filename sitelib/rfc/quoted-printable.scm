@@ -2,7 +2,7 @@
 ;;;
 ;;; quoted-printable - quoted-printable encoding/decoding routine
 ;;;  
-;;;   Copyright (c) 2000-2011  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2009-2012  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -40,27 +40,32 @@
 	    (only (sagittarius) format)
 	    (sagittarius control))
 
-  (define-optional 
-    (quoted-printable-encode-string str (optional ;; we need to use transcoder with crlf
-						  (transcoder (make-transcoder (utf-8-codec) (eol-style crlf)))
-						  (line-width 76)
-						  (binary? #f)))
+  (define (quoted-printable-encode-string str 
+					  ;; we need to use transcoder with crlf
+					  :optional
+					  (transcoder (make-transcoder
+						       (utf-8-codec)
+						       'none))
+					  (line-width 76)
+					  (binary? #f))
     (or (string? str)
 	(assertion-violation 'quoted-printable-encode-string
 			     (format "string required, but got ~s" str)
 			     str))
-    (bytevector->string
-     (quoted-printable-encode (string->bytevector str transcoder) line-width binary?)
-     transcoder))
+    (let1 buf (quoted-printable-encode (string->bytevector str transcoder)
+				       line-width binary?)
+      (utf8->string buf)))
 
-  (define-optional (quoted-printable-encode bv (optional (line-width 76)
-							 (binary? #f)))
+  (define (quoted-printable-encode bv :optional
+				   (line-width 76)
+				   (binary? #f))
     (or (bytevector? bv)
 	(assertion-violation 'quoted-printable-encode
 			     (format "bytevector required, but got ~s" bv)
 			     bv))
     (let ((limit (if (and line-width (>= line-width 4)) (- line-width 3) #f)))
-      (quoted-printable-encode-impl (open-bytevector-input-port bv) limit binary?)))
+      (quoted-printable-encode-impl (open-bytevector-input-port bv)
+				    limit binary?)))
 
   (define (quoted-printable-encode-impl bport limit binary?)
     (define =crlf (string->utf8 "=\r\n"))
@@ -83,7 +88,8 @@
 		(loop (get-u8 bport) (+ line-count 1)))
 	       ((= c #x0d)
 		(let ((c1 (get-u8 bport)))
-		  (cond ((= c1 #x0a) (put-bytevector port crlf)(loop (get-u8 bport) 0))
+		  (cond ((= c1 #x0a)
+			 (put-bytevector port crlf)(loop (get-u8 bport) 0))
 			(else (put-bytevector port crlf)(loop c1 0)))))
 	       ((= c #x0a)
 		(put-bytevector port crlf)(loop (get-u8 bport) 0))
@@ -94,27 +100,32 @@
 		(put-bytevector port (string->utf8 (format "=~2,'0X" c)))
 		(loop (get-u8 bport) (+ line-count 3))))))))
 
-  (define-optional
-    (quoted-printable-decode-string str (optional ;; we need to use transcoder with crlf
-						  (transcoder (make-transcoder (utf-8-codec) (eol-style crlf)))
-						  (line-width 76)
-						  (binary? #f)))
+  (define (quoted-printable-decode-string str
+					  :optional
+					  ;; we need to use transcoder with crlf
+					  (transcoder (make-transcoder 
+						       (utf-8-codec)
+						       'none))
+					  (line-width 76)
+					  (binary? #f))
     (or (string? str)
 	(assertion-violation 'quoted-printable-decode-string
 			     (format "string required, but got ~s" str)
 			     str))
-    (bytevector->string
-     (quoted-printable-decode (string->bytevector str transcoder) line-width binary?)
-     transcoder))
+    (let1 buf (quoted-printable-decode (string->utf8 str) line-width binary?)
+      (if transcoder
+	  (bytevector->string buf transcoder)
+	  buf)))
 
-  (define-optional (quoted-printable-decode bv (optional (line-width 76)
-							 (binary? #f)))
+  (define (quoted-printable-decode bv :optional (line-width 76)
+				   (binary? #f))
     (or (bytevector? bv)
 	(assertion-violation 'quoted-printable-encode
 			     (format "bytevector required, but got ~s" bv)
 			     bv))
     (let ((limit (if (and line-width (>= line-width 4)) (- line-width 3) #f)))
-      (quoted-printable-decode-impl (open-bytevector-input-port bv) limit binary?)))
+      (quoted-printable-decode-impl (open-bytevector-input-port bv)
+				    limit binary?)))
 
   (define (quoted-printable-decode-impl bport limit binary?)
     (define (hex-char? n)
@@ -132,7 +143,8 @@
 	 (cond ((eof-object? c) #t)
 	       ((= c #x3d) ;; =
 		(let ((c1 (get-u8 bport)))
-		  (cond ((eof-object? c1) #t) ;; illegal, but we recognize it as a soft newline
+		  ;; illegal, but we recognize it as a soft newline
+		  (cond ((eof-object? c1) #t)
 			((= c1 #x0a) (loop (get-u8 bport))) ;; soft newline
 			((= c1 #x0d) ; soft newline
 			 (let ((c2 (get-u8 bport)))
@@ -166,7 +178,8 @@
 						    (+ (* num1 16) num2))
 					    (loop (get-u8 bport))))
 				      (else
-				       (put-u8 port c) (put-u8 port c1) (loop c2))))))
+				       (put-u8 port c) (put-u8 port c1)
+				       (loop c2))))))
 			(else
 			 (put-u8 port c)(loop c1)))))
 	       (else

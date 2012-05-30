@@ -132,24 +132,22 @@
 	transcoder) ostr)))
 
   ;; fcgx-read and fcgx-read-all are for reading POST data
-  ;; and the data must be encoded to ASCII, so we can simply convert it
-  ;; to string with utf8->string
   (define (fcgx-read req size :optional (context (default-context)))
     (let* ((buf (make-bytevector size 0))
 	   (istr (c-struct-ref req fcgx-request 'in))
 	   (readn ((call-fcgi-func context FCGX_GetStr int char* int void*)
 		   buf size istr)))
       (if (= readn size)
-	  (utf8->string buf)
-	  (utf8->string (bytevector-copy buf 0 readn)))))
+	  buf
+	  (bytevector-copy buf 0 readn))))
 
   (define (fcgx-read-all req :optional (context (default-context)))
     (let  ((buf-size (context-buffer-size context))
-	   (out (open-output-string)))
+	   (out (open-output-bytevector)))
       (let loop ((content (fcgx-read req buf-size context)))
-	(put-string out content)
-	(if (< (string-length content) buf-size)
-	    (get-output-string out)
+	(put-bytevector out content)
+	(if (< (bytevector-length content) buf-size)
+	    (get-output-bytevector out)
 	    (loop (fcgx-read req buf-size context))))))
 
   (define (fcgx-getparam req key :optional (context (default-context))

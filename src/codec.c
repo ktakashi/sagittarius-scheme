@@ -564,6 +564,8 @@ static SgObject readc_proc(SgObject *args, int argc, void *data)
 			   SG_CODEC_CUSTOM(codec)->data);
     if (SG_CHARP(c)) {
       Sg_PutcUnsafe(out, SG_CHAR_VALUE(c));
+    } else if (SG_EOFP(c)) {
+      break;
     } else {
       Sg_AssertionViolation(SG_INTERN("default-codec-readc"),
 			    SG_MAKE_STRING("getc procedure returned non character object"), c);
