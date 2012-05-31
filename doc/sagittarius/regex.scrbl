@@ -121,6 +121,7 @@ table is the supported regular expression constructs.
 @tr{@td{@code{(?<=X)}} @td{X, via zero-width positive lookbehind}}
 @tr{@td{@code{(?<!X)}} @td{X, via zero-width negative lookbehind}}
 @tr{@td{@code{(?>X)}} @td{X, as an independent, non-capturing group}}
+@tr{@td{@code{(?#...)}} @td{comment.}}
 }
 Since version 0.2.3, @code{\p} and @code{\P} are supported. It is cooporated
 with SRFI-14 charset. However it is kind of tricky. For example regex parser
@@ -237,10 +238,12 @@ Returns number of captured groups.
 Regular expression compiler can take following flags.
 
 @dl-list[
-@dl-item["CASE-INSENSITIVE"]{Enables case-insensitive matching.}
-@dl-item["COMMENTS"]{Permits whitespace and comments in pattern.}
-@dl-item["MULTILINE"]{Enables multiline mode.}
+@dl-item["CASE-INSENSITIVE"]{Enables case-insensitive matching. @code{i} as a 
+flag}
+@dl-item["COMMENTS"]{Permits whitespace and comments in pattern. @code{x} as a 
+flag}
+@dl-item["MULTILINE"]{Enables multiline mode. @code{m} as a flag}
 @dl-item["LITERAL"]{Enables literal parsing of the pattern.}
-@dl-item["DOTAIL"]{Enables dotall mode.}
-@dl-item["UNICODE-CASE"]{Enables Unicode-aware case folding.}
+@dl-item["DOTAIL"]{Enables dotall mode. @code{s} as a flag}
+@dl-item["UNICODE-CASE"]{Enables Unicode-aware case folding. @code{u} as a flag}
 ]
