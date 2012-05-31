@@ -38,6 +38,7 @@
 	    cgi-add-temporary-file
 	    cgi-temporary-files
 	    with-cgi-parameters
+	    cgi-get-parameter
 	    cgi-header
 	    &cgi-error)
     (import (rnrs)
@@ -267,6 +268,14 @@
 	   (result (mime-parse-message in `(("content-type" ,ctype))
 				       handle-part)))
       (filter-map (cut mime-part-content <>) (mime-part-content result))))
+
+  (define (default-converter x) x)
+  (define (cgi-get-parameter name params :key
+			     ((:list lis) #f)
+			     (default (if lis '() #f))
+			     ((:convert cv) default-converter))
+    (cond ((assoc name params) => (^p (if lis (map cv (cdr p)) (cv (cadr p)))))
+	  (else default)))
 
   (define (cgi-header :key
 		      (content-type #f)
