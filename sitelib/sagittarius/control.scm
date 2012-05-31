@@ -130,4 +130,5 @@
 	 (or (and g (gloc-ref g))
 	     (assertion-violation 'with-library
 				  "unbound variable" 'var))))))
+
 )

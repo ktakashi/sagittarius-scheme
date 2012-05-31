@@ -35,7 +35,9 @@
 	    port->sexp-list
 	    port->string-list
 	    port-fold
-	    port-fold-right)
+	    port-fold-right
+	    copy-binary-port
+	    )
     (import (rnrs)
 	    (srfi :1)
 	    (srfi :38))
@@ -67,4 +69,13 @@
       (if (eof-object? item)
 	  knil
 	  (fn item (loop (reader))))))
+
+  (define (copy-binary-port dst src :key (size -1))
+    (if (and size (integer? size) (positive? size))
+	(put-bytevector dst (get-bytevector-n src size #t))
+	(let ((buf (make-bytevector 4096)))
+	  (let loop ((n (get-bytevector-n! src buf 0 4096 #t)))
+	    (unless (eof-object? n)
+	      (put-bytevector dst buf 0 n))))))
+
 )

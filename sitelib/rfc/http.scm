@@ -55,6 +55,7 @@
 	    ;; receiver
 	    http-string-receiver
 	    http-oport-receiver
+	    http-file-receiver
 	    http-cond-receiver
 
 	    ;; for convenience
@@ -75,6 +76,8 @@
 	    (match)
 	    (encoding decoder)
 	    (util list)
+	    (util port)
+	    (util file)
 	    (rfc :5322)
 	    (rfc uri)
 	    (rfc mime)
@@ -192,13 +195,12 @@
 				   (http-connection-server conn))
 			       port make-socket))
 	    (auth (invoke-auth-handler conn)))
-	(dynamic-wind
-	    (lambda () #t)
-	    (lambda ()
-	      (proc (transcoded-port (port-convert s)
-				     (make-transcoder (utf-8-codec) 'lf))
-		    auth))
-	    (lambda () (close-socket s))))))
+	(guard (e (else (close-socket s) (raise e)))
+	  (let ((r (proc (transcoded-port (port-convert s)
+					  (make-transcoder (utf-8-codec) 'lf))
+			 auth)))
+	    (close-socket s)
+	    r)))))
 
   (define (request-response method conn host request-uri
 			    sender receiver options enc)
@@ -313,11 +315,8 @@
 	     (handler remote 0))
 	    (else
 	     ;; length is unknown
-	     (let* ((content (get-string-all remote))
-		    (size (string-length size content))
-		    (p (open-string-input-port content)))
-	       (when (> size 0) (set! handler (handler p size)))
-	       (handler p 0))))))
+	     (set! handler (handler remote #f))
+	     (handler remote 0)))))
 
   (define (receive-body-chunked remote handler)
     (guard (e (else (handler remote -1) (raise e)))
@@ -362,11 +361,11 @@
     (lambda (code hdrs total retr)
       (let loop ((sink (open-output-bytevector)))
 	(receive (remote size) (retr)
-	  (cond ((= size 0) 
+	  (cond ((eqv? size 0) 
 		 (bytevector->string (get-output-bytevector sink)
 				     (make-transcoder (lookup-encoding hdrs))))
-		((> size 0)
-		 (put-bytevector sink (get-bytevector-n remote size #t))
+		((or (not size) (> size 0))
+		 (copy-binary-port sink remote :size size)
 		 (loop sink)))))))
 
   ;; sink must be binary-port
@@ -375,10 +374,24 @@
     (lambda (code hdrs total retr)
       (let loop ()
 	(receive (remote size) (retr)
-	  (cond ((= size 0) (flusher sink hdrs))
-		((> size 0)
-		 (put-bytevector sink (get-bytevector-n remote size #t))
+	  (cond ((and size (<= size 0)) (flusher sink hdrs))
+		(else
+		 (copy-binary-port sink remote :size size)
 		 (loop)))))))
+
+  (define (http-file-receiver filename :key (temporary? #f))
+    (lambda (code hdrs total retr)
+      (receive (port tmpname) (make-temporary-file filename)
+	(let loop ()
+	  (receive (remote size) (retr)
+	    (cond ((or (not size) (> size 0))
+		   (copy-binary-port port remote :size size) (loop))
+		  ((= size 0)
+		   (close-output-port port)
+		   (if temporary?
+		       tmpname
+		       (begin (rename-file tmpname filename) filename)))
+		  (else (close-output-port port) (delete-file tmpname))))))))
 
   (define-syntax http-cond-receiver
     (syntax-rules (else =>)
