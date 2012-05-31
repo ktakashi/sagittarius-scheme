@@ -55,6 +55,7 @@
 	    ;; receiver
 	    http-string-receiver
 	    http-oport-receiver
+	    http-cond-receiver
 
 	    ;; for convenience
 	    http-lookup-auth-handler
@@ -378,6 +379,34 @@
 		((> size 0)
 		 (put-bytevector sink (get-bytevector-n remote size #t))
 		 (loop)))))))
+
+  (define-syntax http-cond-receiver
+    (syntax-rules (else =>)
+      ((_) (http-null-receiver))
+      ((_ (else . exprs)) (begin . exprs))
+      ((_ (cc => proc) . rest)
+       (lambda (code hdrs total retr)
+	 ((if (match-status-code? cc code)
+	      proc
+	      (http-cond-receiver . rest))
+	  code hdrs total retr)))
+      ((_ (cc . exprs) . rest)
+       (lambda (code hdrs total retr)
+	 ((if (match-status-code? cc code '(cc . exprs))
+	      (begin . exprs)
+	      (http-cond-receiver . rest))
+	  code hdrs total retr)))
+      ((_ other . rest)
+       (syntax-violation 'http-cond-receiver
+			 "invalid clause in http-cond-receiver"
+			 other))))
+
+  (define (match-status-code? pattern code clause)
+    (cond ((string? pattern) (equal? pattern code))
+	  ((regexp? pattern) (rxmatch pattern code))
+	  (else (error 'match-status-code?
+		       "invalid pattern in a clause of http-cond-receiver"
+		       clause))))
 
   ;; query and request body composition
   (define (http-compose-query path params :optional (encoding 'utf-8))
