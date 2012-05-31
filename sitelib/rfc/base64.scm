@@ -67,7 +67,7 @@
     ))
 
   (define (base64-decode-string string
-				:optional (transcoder (native-transcoder)))
+				:key (transcoder (native-transcoder)))
       (or (string? string)
 	  (assertion-violation 'base64-decode-string
 			       (format "string required, but got ~s" string)
@@ -125,17 +125,18 @@
 	      (else (d2 (get-u8 in) hi))))
       (d0 (get-u8 in))))    
 
-  (define
-    (base64-encode-string string :optional (transcoder (native-transcoder))
-					   (line-width 76))
+  (define (base64-encode-string string :key
+				(transcoder (native-transcoder))
+				(line-width 76))
     (or (string? string)
 	(assertion-violation 'base64-encode-string
 			     (format "string required, but got ~s" string)
 			     string))
     (utf8->string
-     (base64-encode (string->bytevector string transcoder) line-width)))
+     (base64-encode (string->bytevector string transcoder)
+		    :line-width line-width)))
 
-  (define (base64-encode bv :optional (line-width 76))
+  (define (base64-encode bv :key (line-width 76))
     (or (bytevector? bv)
 	(assertion-violation 'base64-encode
 			     (format "bytevector required, but got ~s" bv)
@@ -155,7 +156,7 @@
 			     ((_ col idx idx2 ...)
 			      (begin
 				(put-u8 out (char->integer (vector-ref *encode-table* idx)))
-				(let ((col2 (cond ((= col max-col)
+				(let ((col2 (cond ((eqv? col max-col)
 						   (put-u8 out #x0a) 0) ;; newline
 						  (else (+ col 1)))))
 				  (emit* col2 idx2 ...)))))))

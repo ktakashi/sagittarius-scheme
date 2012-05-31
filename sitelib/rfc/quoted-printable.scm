@@ -42,7 +42,7 @@
 
   (define (quoted-printable-encode-string str 
 					  ;; we need to use transcoder with crlf
-					  :optional
+					  :key
 					  (transcoder (make-transcoder
 						       (utf-8-codec)
 						       'none))
@@ -53,10 +53,11 @@
 			     (format "string required, but got ~s" str)
 			     str))
     (let1 buf (quoted-printable-encode (string->bytevector str transcoder)
-				       line-width binary?)
+				       :line-width line-width
+				       :binary? binary?)
       (utf8->string buf)))
 
-  (define (quoted-printable-encode bv :optional
+  (define (quoted-printable-encode bv :key
 				   (line-width 76)
 				   (binary? #f))
     (or (bytevector? bv)
@@ -101,7 +102,7 @@
 		(loop (get-u8 bport) (+ line-count 3))))))))
 
   (define (quoted-printable-decode-string str
-					  :optional
+					  :key
 					  ;; we need to use transcoder with crlf
 					  (transcoder (make-transcoder 
 						       (utf-8-codec)
@@ -112,12 +113,15 @@
 	(assertion-violation 'quoted-printable-decode-string
 			     (format "string required, but got ~s" str)
 			     str))
-    (let1 buf (quoted-printable-decode (string->utf8 str) line-width binary?)
+    (let1 buf (quoted-printable-decode (string->utf8 str)
+				       :line-width line-width
+				       :binary? binary?)
       (if transcoder
 	  (bytevector->string buf transcoder)
 	  buf)))
 
-  (define (quoted-printable-decode bv :optional (line-width 76)
+  (define (quoted-printable-decode bv :key
+				   (line-width 76)
 				   (binary? #f))
     (or (bytevector? bv)
 	(assertion-violation 'quoted-printable-encode

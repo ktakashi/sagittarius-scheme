@@ -32,6 +32,7 @@
 ;; RFC5322 URI Generic Syntax
 ;; <http://www.ietf.org/rfc/rfc5322.txt>
 
+#< (sagittarius regex) >
 (library (rfc :5322)
     (export &rfc5322-parse-error
 	    rfc5322-read-headers
@@ -40,23 +41,29 @@
 	    rfc5322-field->tokens
 	    rfc5322-quoted-string
 	    rfc5322-write-headers
+	    rfc5322-parse-date
 	    rfc5322-invalid-header-field
 	    ;; misc
 	    rfc5322-line-reader
 	    rfc5322-dot-atom
 	    ;; charsets
 	    *rfc5322-atext-chars*
+	    date->rfc5322-date
 	    )
-    (import (except (rnrs) define)
+    (import (rnrs)
+	    (rnrs r5rs)
 	    (sagittarius)
 	    (sagittarius io)
 	    (sagittarius regex)
-	    (rename (sagittarius control) (define-with-key define))
+	    (sagittarius control)
 	    (text parse)
+	    (shorten)
 	    (match)
+	    (srfi :1 lists)
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
 	    (srfi :14 char-set)
+	    (srfi :19 time)
 	    (srfi :26 cut))
 
   (define-condition-type &rfc5322-parse-error &assertion
@@ -145,7 +152,7 @@
 		(loop (proc port) (cons l r))))))))
 
   (define *rfc5322-atext-chars*
-    (string->char-set "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&'*+/=?^_`{|}~-"))
+    (string->char-set "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&'*+/=?^_`{|}~-0123456789"))
   (define (rfc5322-dot-atom input)
     (next-token-of `(,*rfc5322-atext-chars* #\.) input))
   (define *quote-set* (string->char-set "\""))
@@ -232,11 +239,84 @@
 				  "Invalid header data" headers))))))
 
   (define *crlf* (string->char-set "\r\n"))
+  (define *invalid-char* (char-set-union
+			  (char-set-difference char-set:full char-set:ascii)
+			  (string->char-set "\x0;")))
   (define (rfc5322-invalid-header-field body)
-    (let1 lines (string-split body "\r\n ")
-      (cond ((exists (lambda (s) (> (string-size s) 998)) lines)
-	     'line-too-long)
-	    ((exists (lambda (s) (string-index s *crlf*)) lines)
-	     'stray-crlf)
-	    (else #f))))
+    (if (string-index body *invalid-char*)
+	'bad-character
+	(let1 lines (string-split body "\r\n ")
+	  (cond ((exists (lambda (s) (> (string-length s) 998)) lines)
+		 'line-too-long)
+		((exists (lambda (s) (string-index s *crlf*)) lines)
+		 'stray-crlf)
+		(else #f)))))
+
+  ;; date section 3.3
+  (define (rfc5322-parse-date s)
+    (define (dow->number dow)
+      (list-index (cut string=? <> dow)
+		  '("Sun" "Mon" "Tue" "Wed" "Thu" "Fri" "Sat")))
+    (define (month->number mon)
+      (+ 1 (list-index (cut string=? <> mon)
+		       '("Jan" "Feb" "Mar" "Apr" "May" "Jun"
+			 "Jul" "Aug" "Sep" "Oct" "Nov" "Dec"))))
+    (define (year->number year)
+      (let1 y (string->number year)
+	(and y
+	     (cond ((< y 50)  (+ y 2000))
+		   ((< y 100) (+ y 1900))
+		   (else y)))))
+    (define (tz->number tz)
+      (cond ((equal? tz "-0000") #f)
+	    ((string->number tz))
+	    ((assoc tz '(("UT" . 0) ("GMT" . 0) ("EDT" . -400) ("EST" . -500)
+			 ("CDT" . -500) ("CST" . -600) ("MDT" . -600)
+			 ("MST" . -700) ("PDT" . -700) ("PST" . -800)))
+	     => cdr)
+	    (else #f)))
+    (cond ((#/
+	    # [day-of-week ","]
+	    (?:(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s*,)?\s*
+	    # date = day month year 
+	    # day = {[FWS] 1*2DIGIT FWS} \/ obs-day
+	    (\d+)\s*
+	    # month
+	    (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s* # for emacs|)
+	    # year = {FWS 4*DIGIT FWS} \/ obs-year
+	    (\d{2}(?:\d{2})?)\s+
+	    # time = time-of-day zone
+	    (?# time-of-day = hour ":" minute [":" second])
+	    (\d{2})\s*:\s*(\d{2})(?:\s*:\s*(\d{2}))?
+	    # zone = {FWS ["+" \/ "-"] 4DIGIT} \/ obs-zone
+	    (?:\s+([+-]\d{4}|[A-Z][A-Z][A-Z]?))? # we ignore military zone|))
+	    /x s)
+	   => (^m (values (year->number (m 4))    ; year
+			  (month->number (m 3))	  ; month
+			  (string->number (m 2))  ; dom
+			  (string->number (m 5))  ; hour
+			  (string->number (m 6))  ; min
+			  (cond ((m 7) => string->number) (else #f)) ; sec
+			  (cond ((m 8) => tz->number) (else #f)) ; tz
+			  (cond ((m 1) => dow->number) (else #f)) ; dow
+			  )))
+	  (else (values #f #f #f #f #f #f #f #f))))
+
+  (define (date->rfc5322-date date)
+    ;; we can not use this because of ~z formatter...
+    ;;(date->string date "~a, ~e ~b ~Y ~3 ~z")
+    (let1 tz (date-zone-offset date)
+      (format "~a, ~2d ~a ~4d ~2,'0d:~2,'0d:~2,'0d ~a~2,'0d~2,'0d"
+	      (vector-ref '#("Sun" "Mon" "Tue" "Wed" "Thu" "Fri" "Sat")
+			  (date-week-day date))
+	      (date-day date)
+	      (vector-ref '#("" "Jan" "Feb" "Mar" "Apr" "May" "Jun"
+			     "Jul" "Aug" "Sep" "Oct" "Nov" "Dec")
+			  (date-month date))
+	      (date-year date)
+	      (date-hour date) (date-minute date) (date-second date)
+	      (if (>= tz 0) "+" "-")
+	      (quotient (abs tz) 3600)
+	      (modulo (quotient (abs tz) 60) 60)))
+    )
 )

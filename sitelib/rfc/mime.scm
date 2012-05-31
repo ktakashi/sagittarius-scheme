@@ -241,7 +241,7 @@
 	      ((if (eq? enc 'B)
 		   base64-encode-string
 		   quoted-printable-encode-string)
-	       word (make-transcoder decoder (eol-style crlf))))))
+	       word :transcoder (make-transcoder decoder (eol-style crlf))))))
 
   (define (mime-encode-text body :key (charset 'utf-8)
 			    (transfer-encoding 'base64)
@@ -539,7 +539,7 @@
 
     (define (read-base64)
       (define (base64-output string out)
-	(put-bytevector out (base64-decode-string string #f)))
+	(put-bytevector out (base64-decode-string string :transcoder #f)))
 
       (let1 o (call-with-output-string
 		(lambda (buf)
@@ -553,7 +553,7 @@
       (cond ((string-ci=? enc "base64") (read-base64))
 	    ((string-ci=? enc "quoted-printable")
 	     (read-text (lambda (s)
-			  (quoted-printable-decode-string s #f))))
+			  (quoted-printable-decode-string s :transcoder #f))))
 	    ((member enc '("7bit" "8bit" "binary"))
 	     (let1 bv (get-bytevector-all inp #t)
 	       (unless (eof-object? bv)
