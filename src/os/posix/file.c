@@ -339,6 +339,14 @@ int Sg_FileRename(SgString *oldpath, SgString *newpath)
   return rename(Sg_Utf32sToUtf8s(oldpath), Sg_Utf32sToUtf8s(newpath)) == 0;
 }
 
+void Sg_ChangeFileMode(SgString *path, int mode)
+{
+  if (chmod(Sg_Utf32sToUtf8s(path), mode) < 0) {
+    Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_INTERN("change-file-mode"),
+	       Sg_GetLastErrorMessage(), path, SG_FALSE);
+  }
+}
+
 int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
 {
   return symlink(Sg_Utf32sToUtf8s(oldpath), Sg_Utf32sToUtf8s(newpath)) == 0;

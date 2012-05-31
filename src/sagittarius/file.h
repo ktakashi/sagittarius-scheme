@@ -96,6 +96,7 @@ SG_EXTERN int      Sg_FileExecutableP(SgString *path);
 SG_EXTERN int      Sg_DirectoryP(SgString *path);
 SG_EXTERN int      Sg_DeleteFileOrDirectory(SgString *path);
 SG_EXTERN int      Sg_FileRename(SgString *oldpath, SgString *newpath);
+SG_EXTERN void     Sg_ChangeFileMode(SgString *path, int mode);
 SG_EXTERN int      Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath);
 SG_EXTERN int      Sg_CreateDirectory(SgString *path);
 SG_EXTERN SgObject Sg_FileModifyTime(SgString *path);

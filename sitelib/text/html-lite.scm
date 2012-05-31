@@ -31,7 +31,7 @@
 ;; API names are taken from Gauche
 (library (text html-lite)
     (export html-escape
-	    html-excape-string
+	    html-escape-string
 	    html-doctype
 	    ;; here I actually need to list up the exported procedures,
 	    ;; but sorry I'm lazy so I used (export ...) syntax...

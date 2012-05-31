@@ -42,7 +42,11 @@
 	    rfc5322-write-headers
 	    rfc5322-invalid-header-field
 	    ;; misc
-	    rfc5322-line-reader)
+	    rfc5322-line-reader
+	    rfc5322-dot-atom
+	    ;; charsets
+	    *rfc5322-atext-chars*
+	    )
     (import (except (rnrs) define)
 	    (sagittarius)
 	    (sagittarius io)

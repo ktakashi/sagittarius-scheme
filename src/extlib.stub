@@ -50,6 +50,7 @@
 	    create-symbolic-link
 	    create-hard-link
 	    rename-file
+	    change-file-mode
 	    delete-directory
 	    create-directory
 	    read-directory
@@ -396,6 +397,9 @@
       (Sg_AssertionViolation 'rename-file
 			     (Sg_GetLastErrorMessage)
 			     (SG_LIST2 oldpath newpath))))
+
+  (define-c-proc change-file-mode (file::<string> mode::<fixnum>) ::<void>
+    (Sg_ChangeFileMode file mode))
 
   (define-c-proc delete-directory (path::<string>) ::<void>
     (unless (Sg_DeleteFileOrDirectory path)

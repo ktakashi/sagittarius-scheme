@@ -6,7 +6,7 @@
 ;;;
 
 (library (text tree)
-    (export wirte-tree
+    (export write-tree
 	    tree->string)
     (import (rnrs) (clos user) (sagittarius io))
 

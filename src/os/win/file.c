@@ -433,6 +433,15 @@ int Sg_FileRename(SgString *oldpath, SgString *newpath)
 		     MOVEFILE_REPLACE_EXISTING);
 }
 
+void Sg_ChangeFileMode(SgString *path, int mode)
+{
+  /* no operation on windows */
+  if (!Sg_FileExistP(path)) {
+    Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_INTERN("change-file-mode"),
+	       Sg_GetLastErrorMessage(), path, SG_FALSE);
+  }
+}
+
 typedef BOOL (WINAPI* ProcCreateSymbolicLink) (LPCWSTR, LPCWSTR, DWORD);
 
 int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)

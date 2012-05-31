@@ -46,11 +46,13 @@
 	    uri-encode-string
 
 	    uri-compose
+	    uri-merge
 	    *rfc3986-unreserved-char-set*
 	    *rfc2396-unreserved-char-set*)
     (import (rnrs)
 	    (srfi :13 strings)
 	    (srfi :14 char-set)
+	    (shorten)
 	    (sagittarius)
 	    (sagittarius io)
 	    (encoding decoder)
@@ -59,7 +61,7 @@
 
   ;; from RFC3986 Appendix B. Parsing a URI Reference with a Regular Expression
   (define scheme #/^([a-zA-Z][a-zA-Z0-9+.-]*):/)
-  (define hierarchical #/(?:\/\/([^\/?#]*))?([^?#]*)?(?:\?([^#]*))?(?:#(.*))?$/)
+  (define hierarchical #/(?:\/\/([^\/?#]*))?([^?#]+)?(?:\?([^#]*))?(?:#(.*))?$/)
   (define authority #/(?:(.*?)@)?([^:]*)(?::(\d*))?/)
 
   (define (uri-scheme&specific uri)
@@ -70,13 +72,13 @@
   ;; returns (values authority path query fragments)
   (define (uri-decompose-hierarchical specific)
     (cond ((looking-at hierarchical specific)
-	   => (lambda (m) (values (m 1) (m 2) (m 3) (m 4))))
+	   => (^m (values (m 1) (m 2) (m 3) (m 4))))
 	  (else (values #f #f #f #f))))
 
   ;; returns (values userinfo host port)
   (define (uri-decompose-authority auth)
-    (cond ((looking-at authority auth)
-	   => (lambda (m) (values (m 1) (m 2) (m 3))))
+    (cond ((and (string? auth) (looking-at authority auth))
+	   => (^m (values (m 1) (m 2) (m 3))))
 	  (else (values #f #f #f))))
 
   ;; returns (scheme user-info host port path query fragments)
@@ -128,6 +130,69 @@
 		))
 	  )))
 
+  ;; RFC 3986 section 5
+  (define (uri-merge base-uri rel-uri . more-rels)
+    (define (rec base-uri rel-uri more initial?)
+      (if (null? more)
+	  (uri-merge-1 base-uri rel-uri initial?)
+	  (rec (uri-merge-1 base-uri rel-uri initial?)
+	       (car more) (cdr more) #f)))
+    (rec base-uri rel-uri more-rels #t))
+
+  (define (uri-merge-1 base-uri rel-uri pre-norm?)
+    (define (split uri)
+      (let*-values (((scheme specific) (uri-scheme&specific uri))
+		    ((authority path query fragment)
+		     (uri-decompose-hierarchical specific)))
+	(values scheme authority path query fragment)))
+    ;; 5.2.3
+    (define (merge base-path rel-path base-auth)
+      (cond ((and base-auth (string-null? base-path))
+	     (string-append "/" rel-path))
+	    ((matches #/(.*)\/[\/]*/ base-path)
+	     => (^m (string-append (m 1) "/" rel-path)))
+	    (else rel-path)))
+    ;; 5.2.4
+    (define (remove-dot-segment path)
+      (let loop ((input path) (output '()))
+	(cond ((not input) (string-concatenate (reverse! output)))
+	      ;; 2.A
+	      ((matches #/\.{1,2}\/(.*)/ input) => (^m (loop (m 1) output)))
+	      ;; 2.B
+	      ((matches #/(?:\/\.\/(.*)|\/\.)/ input) ;; for emacs |))
+	       => (^m (loop (string-append "/" (or (m 1) "")) output)))
+	      ;; 2.C
+	      ((matches #/^(?:\/\.\.\/(.*)|\/\.\.)/ input) ;; for emacs |))
+	       => (^m (loop (string-append "/" (or (m 1) ""))
+			    (if (null? output) output (cdr output)))))
+	      ;; 2.D
+	      ((matches #/\.{1,2}/ input) (loop #f output))
+	      ;; 2.E
+	      ((matches #/(\/?[^\/]+)(\/.*)/ input) 
+	       => (^m (loop (m 2) (cons (m 1) output))))
+	      (else (loop #f (cons input output))))))
+    ;; 5.3
+    (define (recompose scheme auth path query frag)
+      (call-with-string-output-port
+	(lambda (out)
+	  (when scheme (display scheme out) (display ":" out))
+	  (when auth (display "//" out) (display auth out))
+	  (display path out)
+	  (when query (display "?" out) (display query out))
+	  (when frag (display "#" out) (display frag out)))))
+
+    (let-values (((b.scheme b.auth b.path b.query b.frag) (split base-uri))
+		 ((r.scheme r.auth r.path r.query r.frag) (split rel-uri)))
+      (when pre-norm? (set! b.path (remove-dot-segment b.path))) ; 5.2.1
+      ;; 5.2.2
+      (recompose (or r.scheme b.scheme)
+		 (if r.scheme r.auth (or r.auth b.auth))
+		 (cond ((or r.scheme r.auth) (remove-dot-segment r.path))
+		       ((not r.path) b.path)
+		       ((string-prefix? "/" r.path) (remove-dot-segment r.path))
+		       (else (remove-dot-segment (merge b.path r.path b.auth))))
+		 (if (or r.scheme r.auth r.path r.query) r.query b.query)
+		 r.frag)))
 
   ;; encoding & decoding
   ;; This is for internal.
@@ -191,13 +256,13 @@
     (char-set-union (string->char-set "-_.~")
 		    char-set:letter+digit))
 
-  (define (uri-encode in out :optional (echars *rfc3986-unreserved-char-set*))
+  (define (uri-encode in out :key ((:noescape echars)
+				   *rfc3986-unreserved-char-set*))
     (define (hex->char-integer h)
       (cond ((<= 0 h 9) (+ h #x30))
 	    ((<= #xa h #xf) (+ h (- #x61 10)))
 	    (else (assertion-violation 'hex->char-integer
-				       "invalid hex number"
-				       h))))
+				       "invalid hex number" h))))
     (let loop ((b (get-u8 in)))
       (unless (eof-object? b)
 	(if (and (< b #x80)
@@ -211,16 +276,15 @@
 		(put-u8 out (hex->char-integer lo)))))
 	(loop (get-u8 in)))))
 
-  (define (uri-encode-string string :optional (encoding 'utf-8)
-					      (echars 
-					       *rfc3986-unreserved-char-set*))
+  (define (uri-encode-string string :key (encoding 'utf-8)
+			     :allow-other-keys args)
     (let ((decoder (lookup-decoder encoding)))
       (if decoder
 	  (let ((bv (string->bytevector string (make-transcoder decoder))))
 	    (bytevector->string
 	     (call-with-bytevector-output-port
 	      (lambda (out)
-		(uri-encode (open-bytevector-input-port bv) out echars)))
+		(apply uri-encode (open-bytevector-input-port bv) out args)))
 	     (make-transcoder decoder)))
 	  string)))
 )

@@ -39,6 +39,9 @@
 	    path-extension
 	    path-sans-extension
 	    
+	    temporary-directory
+	    make-temporary-file
+
 	    find-files)
     (import (rnrs)
 	    (sagittarius)
@@ -46,7 +49,9 @@
 	    (srfi :0)
 	    (srfi :13 strings)
 	    (srfi :14 char-set)
+	    (srfi :27 random-bits)
 	    (srfi :38)
+	    (srfi :39 parameters)
 	    (util port))
 
   ;; TODO should this get transcoder?
@@ -96,6 +101,24 @@
 		(substring path 0
 			   (- (string-length path) (string-length ext) 1))))
 	  (else path)))
+
+  (define %tmp
+    (cond ((getenv "TMP"))
+	  ((getenv "TEMP"))
+	  ((getenv "USERPROFILE"))
+	  ((getenv "TMPDIR"))
+	  (else
+	   (cond-expand
+	    (windows (build-path (getenv "windir") "Temp"))
+	    (else "/tmp"))))) ;; assume else is posix
+  (define temporary-directory (make-parameter %tmp))
+  (define (make-temporary-file prefix)
+    (define (gen) 
+      (string-append prefix (number->string (random-integer (expt 2 64)) 32)))
+    (let loop ((file (gen)))
+      (if (file-exists? file)
+	  (loop (gen))
+	  (values (open-file-output-port file) file))))
 
   (define (find-files target :key (pattern #f) (all #t) (sort string<=?))
     (define (rec dir)

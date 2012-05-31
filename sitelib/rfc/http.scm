@@ -381,7 +381,7 @@
 
   ;; query and request body composition
   (define (http-compose-query path params :optional (encoding 'utf-8))
-    (define (esc s) (uri-encode-string (format "~a" s) encoding))
+    (define (esc s) (uri-encode-string (format "~a" s) :encoding encoding))
     (define (query-1 n&v)
       (match n&v
 	((name value) (format "~a=~a" (esc name) (esc value)))
