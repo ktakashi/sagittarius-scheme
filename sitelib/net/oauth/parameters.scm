@@ -31,11 +31,49 @@
 (library (net oauth parameters)
     (export sort-parameters
 	    oauth-parameter?
-	    remove-oauth-parameters)
+	    remove-oauth-parameters
+	    parameter
+	    normalized-parameters
+	    *signature-cache*)
     (import (rnrs)
+	    (sagittarius)
+	    (net oauth request-adapter)
 	    (srfi :1 lists)
-	    (srfi :13 strings))
-    ;; Sort parameters according to the OAuth spec.
+	    (srfi :2 and-let*)
+	    (srfi :13 strings)
+	    (srfi :39 parameters))
+
+  ;; the cache allows us to call normalized-parameters repeatedly
+  ;; without excessive processing penalty.
+  (define *parameters-cache* (make-parameter (make-weak-eq-hashtable)))
+  ;; this is much more simple than maintaining multiple caches
+  ;; for different parameter list flavors.
+  (define *signature-cache* (make-parameter (make-weak-eq-hashtable)))
+
+  ;; Collect request parameters and remove those excluded by the standard.
+  ;; See 9.1.1.
+  ;; Note: REMOVE-DUPLICATES-P has no effect right now.
+  (define (normalized-parameters :key (remove-duplicates? #f))
+    (define (remove-car name lis)
+      (remove  (lambda (a) (equal? name (car a))) lis))
+    (or (weak-hashtable-ref (*parameters-cache*) (request) #f)
+	(let ((parameters (append (remove-car "realm" (auth-parameters))
+				  (post-parameters)
+				  (get-parameters))))
+	  (weak-hashtable-set!
+	   (*signature-cache*) (request)
+	   (and-let* ((s (assoc "oauth_signature" parameters)))
+	     (cadr s)))
+	  (let* ((parameters (remove-car "oauth_signature" parameters))
+		 (sorted-parameters (sort-parameters parameters)))
+	    ;; for now we don't support removing duplicated parameters
+	    sorted-parameters))))
+
+  (define (parameter name :key (test equal?))
+    (and-let* ((s (assoc name (normalized-parameters) test)))
+      (cadr s)))
+
+  ;; Sort parameters according to the OAuth spec.
   (define (sort-parameters parameters)
     (when (assoc "oauth_signature" parameters)
       (assertion-violation 'sort-parameters

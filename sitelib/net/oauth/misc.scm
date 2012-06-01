@@ -69,12 +69,12 @@
   (define (normalize-uri uri :optional (need-query? #f))
     (receive (scheme user-info host port path query frag) (uri-parse uri)
       (let ((uri (string-append
-		  (string-downcase scheme)
+		  (if scheme (string-downcase scheme) "")
 		  "://"
-		  (string-downcase host)
+		  (if host (string-downcase host) "/")
 		  (cond ((not port) "")
-			((and (string=? scheme "http") (= port 80)) "")
-			((and (string=? scheme "https") (= port 443)) "")
+			((and (equal? scheme "http") (= port 80)) "")
+			((and (equal? scheme "https") (= port 443)) "")
 			(else (string-append ":" (number->string port))))
 		  path)))
 	(if need-query?

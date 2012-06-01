@@ -937,21 +937,21 @@
     (result (SG_WEAK_HASHTABLE_P o)))
 
   (define-c-proc weak-hashtable-ref (wh::<weak-hashtable> key fallback)
-    (unless (SG_PTRP key)
+    #;(unless (SG_PTRP key)
       (Sg_ImplementationRestrictionViolation
        'weak-hashtable-ref (SG_MAKE_STRING "key must be non fixed value object")
        key))
     (result (Sg_WeakHashTableRef wh key fallback)))
 
   (define-c-proc weak-hashtable-set! (wh::<weak-hashtable> key value) ::<void>
-    (unless (SG_PTRP key)
+    #;(unless (SG_PTRP key)
       (Sg_ImplementationRestrictionViolation
        'weak-hashtable-ref (SG_MAKE_STRING "key must be non fixed value object")
        key))
     (Sg_WeakHashTableSet wh key value 0))
 
   (define-c-proc weak-hashtable-delete! (wh::<weak-hashtable> key) ::<void>
-    (unless (SG_PTRP key)
+    #;(unless (SG_PTRP key)
       (Sg_ImplementationRestrictionViolation
        'weak-hashtable-ref (SG_MAKE_STRING "key must be non fixed value object")
        key))

@@ -32,17 +32,18 @@
     (export signature-base-string
 	    oauth-signature)
     (import (rnrs)
+	    (net oauth misc)
+	    (net oauth parameters)
+	    (net oauth request-adapter)
 	    (math)
 	    (rfc hmac)
-	    (rfc base64)
-	    (net oauth misc))
-
+	    (rfc base64))
 
   ;; signature
   ;; for now we only support consumer so no default
-  (define (signature-base-string :key (uri #f)
-				      (request-method #f)
-				      (parameters #f))
+  (define (signature-base-string :key (uri (request-uri))
+				      (request-method (request-method))
+				      (parameters (normalized-parameters)))
     ;; assume request-method is symbol
     (string-append (string-upcase (symbol->string request-method))
 		   "&" (oauth-uri-encode (normalize-uri uri))

@@ -38,6 +38,7 @@
 
 	    <consumer-token>
 	    make-consumer-token
+	    consumer-token-last-timestamp
 
 	    <request-token>
 	    make-request-token

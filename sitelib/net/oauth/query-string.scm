@@ -39,14 +39,19 @@
 
   ;; query string
   ;; TODO move this to somewhere, this is too general only for OAuth
-  (define (alist->query-string alist :key (url-encode #f))
-    (string-join
-     (map (cut string-join <> "=")
-	  (if url-encode
-	      (map (lambda (l) (list (oauth-uri-encode (car l))
-				     (oauth-uri-encode (cadr l)))) alist)
-	      alist))
-     "&"))
+  (define (alist->query-string alist :key (url-encode #f)
+			       (include-leading-ampersand #t))
+    (let ((result (string-join
+		   (map (cut string-join <> "=")
+			(if url-encode
+			    (map (lambda (l) 
+				   (list (oauth-uri-encode (car l))
+					 (oauth-uri-encode (cadr l)))) alist)
+			    alist))
+		   "&")))
+      (if (or (zero? (string-length result)) include-leading-ampersand)
+	  result
+	  (string-copy result 1))))
 
   (define (query-string->alist qs)
     (let ((kv-pairs (string-split qs "&")))
