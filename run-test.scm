@@ -39,6 +39,8 @@
       (flush-output-port (current-output-port))
       (add-load-path "./test/r7rs-tests")
       ;; for srfi 19
+      ;; where?
+      (add-load-path "./ext/crypto")
       (load "./test/r7rs-tests/tests/r7rs/run.scm")
       (flush-output-port (current-output-port)))
 
@@ -50,6 +52,7 @@
       ;; now we are using multithreading test
       (add-load-path "./ext/threads")
       (add-load-path "./ext/crypto")
+      (add-load-path "./ext/socket")
       (load "./test/tests.scm")
       (flush-output-port (current-output-port)))
     (define (ext-test)
