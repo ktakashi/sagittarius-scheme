@@ -1616,7 +1616,8 @@
 	      (var  (cdr id))
 	      (lvar (make-lvar var))
 	      (newenv (p1env-extend p1env `((,var . ,lvar)) LEXICAL))
-	      (itree (pass1 init (p1env-add-name p1env var))))
+	      (itree (pass1 (rewrite-expr init ids)
+			    (p1env-add-name p1env var))))
 	 (lvar-initval-set! lvar itree)
 	 ($let form 'let
 	       (list lvar)

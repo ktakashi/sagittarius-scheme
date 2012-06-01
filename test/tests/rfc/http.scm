@@ -2,6 +2,7 @@
 #< (sagittarius regex) >
 (import (rnrs)
 	(rfc http)
+	(rfc mime)
 	(rfc :5322)
 	(sagittarius io)
 	(sagittarius regex)
@@ -66,7 +67,7 @@
   (let loop ()
     (let* ([client  (socket-accept socket)]
 	   [in/out  (transcoded-port (socket-port client)
-				     (make-transcoder (utf-8-codec) 'crlf))]
+				     (make-transcoder (utf-8-codec) 'lf))]
 	   [request-line (get-line in/out)])
       (cond ((#/^(\S+) (\S+) HTTP\/1\.1$/ request-line)
 	     => (lambda (m)
@@ -81,22 +82,27 @@
 			 [body (get-bytevector-n in/out bodylen #t)])
 		    (cond
 		     [(equal? request-uri "/exit")
-		      (socket-close client)
-		      ;; ugly
-		      (raise "exit")]
+		      (display "HTTP/1.x 200 OK\nContent-Type: text/plain\n\n" in/out)
+		      (display "exit" in/out)
+		      (socket-close client)]
 		     [(hashtable-ref %predefined-contents request-uri #f)
-		      => (cut for-each (cut display <> in/out) <>)]
+		      => (lambda (x)
+			   (for-each (cut display <> in/out) x)
+			   (socket-close client)
+			   (loop))]
 		     [else
 		      (display "HTTP/1.x 200 OK\nContent-Type: text/plain\n\n" in/out)
-		      (write `(("method" ,method)
-			       ("request-uri" ,request-uri)
-			       ("request-body" ,(if (eof-object? body)
-						    ""
-						    (utf8->string body)))
-			       ,@headers)
-			     in/out)])
-		    (socket-close client)
-		    (loop))))
+		      ;; to avoid SIGPIPE
+		      (unless (string=? method "HEAD")
+			(write `(("method" ,method)
+				 ("request-uri" ,request-uri)
+				 ("request-body" ,(if (eof-object? body)
+						      ""
+						      (utf8->string body)))
+				 ,@headers)
+			       in/out))
+		      (socket-close client)
+		      (loop)]))))
 	    (else
 	     (error 'http-server "malformed request line:" request-line))))))
 
@@ -230,8 +236,8 @@
                                              `(HEAD . "/foofoo")))
          body))
 
-(test-equal "http-get (loop)" &http-error
-       (http-request 'GET (format "localhost:~a" *http-port*) "/loop1"))
+(test-error "http-get (loop)" &http-error
+	    (http-request 'GET (format "localhost:~a" *http-port*) "/loop1"))
 
 (test-equal "http-get (chunked body)" "OK"
        (receive (code headers body)
@@ -277,24 +283,23 @@
     (test-equal 
      (format "http-post (multipart/form-data) ~a" msg) expected
      (receive (code headers body) (thunk)
-       
        (and-let* ([ (equal? code "200") ]
 		  [ (equal? headers '(("content-type" "text/plain"))) ]
 		  [r (read-from-string body)]
 		  [body (assoc "request-body" r)]
-		  [part (call-with-input-string (cadr body)
-			  (cut mime-parse-message <> r mime-body->string))]
+		  [part (mime-parse-message-string (cadr body)
+						   r mime-body->string)]
 		  [ (is-a? part <mime-part>) ]
-		  [ (list? (ref part'content)) ])
+		  [ (list? (mime-part-content part)) ])
 	 (map (lambda (p)
 		(match (mime-parse-content-disposition
-			(rfc5322-header-ref (ref p'headers)
+			(rfc5322-header-ref (mime-part-headers p)
 					   "content-disposition"))
 		  [("form-data" ("name" . name))
-		   (list name (ref p'content))]
+		   (list name (mime-part-content p))]
 		  [else
-		   (list (ref p'headers) (ref p'content))]))
-	      (ref part'content))))))
+		   (list (mime-part-headers p) (mime-part-content p))]))
+	      (mime-part-content part))))))
 
   (tester "(new API)"
           (lambda ()
@@ -308,8 +313,9 @@
   )
 ;; stop
 (test-equal "exit" "exit"
-	    (guard (e (else e))
-	      (http-request 'GET (format "localhost:~a" *http-port*) "/exit")))
-;;(test-assert (thread-join! server-thread 10))
+	    (receive (s h b) 
+		(http-request 'GET (format "localhost:~a" *http-port*) "/exit")
+	      b))
+(test-assert (thread-join! server-thread 10))
 
 (test-end)

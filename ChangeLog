@@ -1,3 +1,8 @@
+2012-06-01  Takashi Kato  <ktakashi@ymail.com>
+
+	* boot/compiler.scm (and-let*): modified to rewrite initial expression
+	to avoid unbound variable exception after macro expansion.
+
 2012-05-30  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/port.c (file_look_ahead_u8): Fixed when EOF is read buffer index

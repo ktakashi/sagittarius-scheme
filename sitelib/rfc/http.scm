@@ -52,12 +52,14 @@
 	    http-null-sender
 	    http-multipart-sender
 	    http-blob-sender
+	    http-string-sender
 	    ;; receiver
 	    http-string-receiver
 	    http-oport-receiver
 	    http-file-receiver
 	    http-cond-receiver
 
+	    http-default-redirect-handler
 	    ;; for convenience
 	    http-lookup-auth-handler
 	    
@@ -132,9 +134,22 @@
 	(http-connection-secure conn (equal? proto "https"))))
     conn)
 
+  (define http-default-redirect-handler
+    (make-parameter
+     (lambda (method code headers body)
+       (and-let* ((loc (rfc5322-header-ref headers "location")))
+	 (case (string->number code)
+	   ((300 301 305 307)
+	    (case method ((GET HEAD) `(,method . ,loc)) (else #f)))
+	   ((302 303)
+	    (case method
+	      ((GET HEAD) `(,method . ,loc))
+	      (else `(GET . ,loc))))
+	   (else #f))))))
   ;; 
   (define (http-request method server request-uri
 			:key (host #f)
+			     (redirect-handler #t)
 			     (no-redirect #f)
 			     auth-handler
 			     auth-user
@@ -151,16 +166,22 @@
 				  proxy secure extra-headers)
       (let loop ((history '())
 		 (host host)
+		 (method method)
 		 (request-uri (ensure-request-uri request-uri enc)))
 	(receive (code headers body)
 	    (request-response method conn host request-uri sender receiver
-			      `(:user-agent ,user-agent) enc)
+			      `(:user-agent ,user-agent ,@opts) enc)
 	  (or (and-let* (( (not no-redirect) )
 			 ( (string-prefix? "3" code) )
-			 (loc (assoc "location" headers)))
+			 (h (case redirect-handler
+			      ((#t) (http-default-redirect-handler))
+			      ((#f) #f)
+			      (else redirect-handler)))
+			 (r (h method code headers body))
+			 (method (car r))
+			 (loc (cdr r)))
 		(receive (uri proto new-server path*)
-		    (canonical-uri conn (cadr loc)
-				   (http-connection-server conn))
+		    (canonical-uri conn loc (http-connection-server conn))
 		  (when (or (member uri history)
 			    (> (length history) 20))
 		    (raise-http-error 'http-request
@@ -170,6 +191,7 @@
 		  (loop (cons uri history)
 			(http-connection-server
 			 (redirect conn proto new-server))
+			method
 			path*)))
 	      (values code headers body))))))
 
@@ -195,12 +217,13 @@
 				   (http-connection-server conn))
 			       port make-socket))
 	    (auth (invoke-auth-handler conn)))
-	(guard (e (else (close-socket s) (raise e)))
-	  (let ((r (proc (transcoded-port (port-convert s)
-					  (make-transcoder (utf-8-codec) 'lf))
-			 auth)))
-	    (close-socket s)
-	    r)))))
+	(dynamic-wind
+	    (lambda () #t)
+	    (lambda () 
+	      (proc (transcoded-port (port-convert s)
+				     (make-transcoder (utf-8-codec) 'lf))
+		    auth))
+	    (lambda () (close-socket s))))))
 
   (define (request-response method conn host request-uri
 			    sender receiver options enc)
@@ -247,7 +270,7 @@
     (format out "~a ~a HTTP/1.1\r\n" method uri)
     (case method
       ((POST PUT)
-       (sender (options->request-headers `(:host ,host @options)) enc
+       (sender (options->request-headers `(:host ,host ,@options)) enc
 	       (lambda (hdrs)
 		 (send-headers hdrs out auth-headers)
 		 (let ((chunked? (equal? (rfc5322-header-ref
@@ -320,20 +343,18 @@
 
   (define (receive-body-chunked remote handler)
     (guard (e (else (handler remote -1) (raise e)))
-      (define *regexp*  #/^([0-9a-fA-F]+)/)
       (let loop ((line (get-line remote)))
 	(when (eof-object? line)
 	  (raise-http-error 'receive-body-chunked
 			    "chunked body ended prematurely"))
-	(cond ((looking-at *regexp* line)
+	(cond ((#/^([0-9a-fA-F]+)/ line)
 	       => (lambda (m)
 		    (let* ((digits (m 1))
 			   (chunk-size (string->number digits 16)))
 		      (if (zero? chunk-size)
 			  (do ((line (get-line remote) (get-line remote)))
 			      ((or (eof-object? line) (string-null? line))
-			       (handler remote 0))
-			    #f)
+			       (handler remote 0)))
 			  (begin
 			    (set! handler (handler remote chunk-size))
 			    (get-line remote) ; skip the following CRLF
@@ -447,30 +468,38 @@
 	((name value) (translate-param `(,name :value ,value)))
 	((name . kvs)
 	 (unless (even? (length kvs))
-	   (assertion-violation 'http-compose-form-data
-				"invalid parameter format to create multipart/form-data") param)
-	(let-keywords kvs ((value "")
-			   (file #f)
-			   (content-type #f)
-			   (content-transfer-encoding #f) . other-keys)
-	  `(,(canonical-content-type (mime-parse-content-type content-type)
-				     value file)
-	    (("content-transfer-encoding" ,(or content-transfer-encoding "binary"))
-	     ("content-disposition" ,(make-content-disposition name file))
-	     ,@(map (lambda (x) (format "~a" x)) (slices other-keys 2)))
-	    ,(if file `(file ,file) (format "~a" file)))))))
+	   (assertion-violation
+	    'http-compose-form-data
+	    "invalid parameter format to create multipart/form-data") param)
+	 (let-keywords kvs ((value "")
+			    (file #f)
+			    (content-type #f)
+			    (content-transfer-encoding #f) . other-keys)
+	   `(,(canonical-content-type (mime-parse-content-type content-type)
+				      value file)
+	     (("content-transfer-encoding" 
+	       ,(or content-transfer-encoding "binary"))
+	      ("content-disposition" ,(make-content-disposition name file))
+	      ,@(map (lambda (x) (format "~a" x)) (slices other-keys 2)))
+	     ,(if file `(file ,file) (format "~a" value)))))))
     (define (canonical-content-type ct value file)
       (match ct
+	(#f (if (or file (bytevector? value))
+		'("application" "octet-stream")
+		`("text" "plain" ("charset" . ,(symbol->string encoding)))))
 	((type subtype . options)
 	 (if (assoc "charset" options)
 	     ct
-	     `(,type ,subtype ("charset" . ,(format "~a" encoding)) ,@options)))))
+	     `(,type ,subtype ("charset" . 
+			       ,(format "~a" encoding)) ,@options)))))
     (define (make-content-disposition name file)
-      (with-output-to-string
-	(lambda ()
-	  (display "form-data")
+      (call-with-string-output-port
+	(lambda (out)
+	  (display "form-data" out)
 	  (mime-compose-parameters `(("name" . ,name)
-				     ,@(cond-list (file `("filename" . ,file))))))))
+				     ,@(cond-list 
+					(file `("filename" . ,file))))
+				   out))))
     (if (not port)
 	(mime-compose-message-string (map translate-param params))
 	(mime-compose-message (map translate-param params) port)))
@@ -547,22 +576,34 @@
       (let ((body-sink (header-sink `(("content-length" "0") ,@hdrs))))
 	(body-sink 0))))
 
+  (define (http-string-sender str)
+    (lambda (hdrs encoding header-sink)
+      (let* ((encoder (make-transcoder (lookup-decoder encoding) 'none))
+	     (body (string->bytevector str encoder))
+	     (size (bytevector-length body))
+	     (body-sink (header-sink `(("content-length" ,(number->string size))
+				       ,@hdrs)))
+	     (port (body-sink size)))
+	(put-bytevector port body 0 size #t)
+	(body-sink 0))))
+
   (define (http-blob-sender blob)
     (lambda (hdrs encoding header-sink)
       (let* ((data (if (string? blob) (string->utf8 blob) blob))
 	     (size (bytevector-length data))
 	     ;; TODO add "content-type: type/subtype; charset=utf-8" when
 	     ;; blob was string
-	     (body-sink (header-sink `(("content-length" ,(format "~a" size))
+	     (body-sink (header-sink `(("content-length" ,(number->string size))
 				       ,@hdrs)))
 	     (port (body-sink size)))
-	(put-bytevector port data 0 (bytevector-length data) #t)
+	(put-bytevector port data 0 size #t)
 	(body-sink 0))))
 
   (define (http-multipart-sender params)
     (lambda (hdrs encoding header-sink)
-      (let-values (((body boundary) (http-compose-form-data param #f encoding)))
-	(let* ((size (string-size body))
+      (let-values (((body boundary) 
+		    (http-compose-form-data params #f encoding)))
+	(let* ((size (string-length body))
 	       (hdrs `(("content-length" ,(number->string size))
 		       ("mime-version" "1.0")
 		       ("content-type" ,(string-append

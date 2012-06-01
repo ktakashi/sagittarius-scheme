@@ -66,7 +66,9 @@
 	    mime-part-content
 	    mime-part-source
 
-	    mime-parse-message)
+	    mime-parse-content-disposition
+	    mime-parse-message
+	    mime-parse-message-string)
     (import (rnrs)
 	    (rnrs r5rs)
 	    (srfi :1 lists)
@@ -449,6 +451,13 @@
     (apply make <mime-part> args))
   (define (mime-part? o) (is-a? o <mime-part>))
   
+
+  (define (mime-parse-message-string str headers handler
+				     :key (transcoder
+					   (make-transcoder (utf-8-codec) 'lf)))
+    (let* ((bv (string->bytevector str transcoder))
+	   (port (open-bytevector-input-port bv)))
+      (mime-parse-message port headers handler)))
 
   (define (mime-parse-message port headers handler)
     (internal-parse port headers handler #f 0
