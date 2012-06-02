@@ -51,7 +51,7 @@
 	    ;; condition
 	    &oauth-error make-oauth-error oauth-error?
 	    &bad-request make-bad-request bad-request?
-	    &unauthorised make-unauthorised unauthroised?
+	    &unauthorised make-unauthorised unauthorised?
 	    raise-oauth-error
 	    )
     (import (rnrs)
@@ -70,14 +70,14 @@
   (define-condition-type &bad-request &oauth-error
     make-bad-request bad-request?)
   (define-condition-type &unauthorised &oauth-error make-unauthorised
-    unauthroised?)
+    unauthorised?)
   
   (define (raise-oauth-error ctr who message . irr)
     (raise (apply condition
-	    (filter values (list (ctr)
-				 (and who (make-who-condition who))
-				 (make-message-condition message)
-				 (make-irritants-condition irr))))))
+		  (filter values (list (ctr)
+				       (and who (make-who-condition who))
+				       (make-message-condition message)
+				       (make-irritants-condition irr))))))
 
   (define (finalize-callback-uri request-token)
     (let ((uri (request-token-callback-uri request-token)))
@@ -119,9 +119,11 @@
 	   (consumer-sec (and-let* ((t (get-consumer-token 
 					(parameter "oauth_consumer_key"))))
 			   (token-secret t)))
-	   (token-sec (and-let* ((t (or (get-supplied-request-token)
-					(get-supplied-access-token))))
-			(token-secret t))))
+	   (token-sec (and-let* ((t (or (get-supplied-request-token
+					     :raise-error? #f)
+					    (get-supplied-access-token
+					     :raise-error? #f))))
+			    (token-secret t))))
       (unless supplied-signature
 	(raise-oauth-error make-bad-request 'check-signature
 			   "This request is not signed"))
@@ -169,7 +171,7 @@
   (define (check-verification-code)
     (unless (equal? (parameter "oauth_verifier")
 		    (request-token-verification-code
-		     (get-supplied-access-token)))
+		     (get-supplied-request-token)))
       (raise-oauth-error make-unauthorised 'check-verification-code
 			 "Invalid verification code"))
     #t)
@@ -244,14 +246,15 @@
   ;; Utility function that extracts the Consumer-supplied request token
   ;; from a list of normalized parameters. Guards against non-existing
   ;; and unknown tokens. Returns the request token on success.
-  (define (get-supplied-request-token :key (check-verification-code? #f))
+  (define (get-supplied-request-token :key (check-verification-code? #f)
+				      (raise-error? #t))
     (let ((request-token-key (parameter "oauth_token")))
-      (unless request-token-key
+      (unless (or request-token-key (not raise-error?))
 	(raise-oauth-error make-bad-request 'get-supplied-request-token
 			   "Missing request token"))
       (let ((request-token (hashtable-ref (*issued-request-tokens*)
 					  request-token-key #f)))
-	(unless request-token
+	(unless (or request-token-key (not raise-error?))
 	  (raise-oauth-error make-unauthorised 'get-supplied-request-token
 			     "Invalid request token"))
 	(when check-verification-code?
@@ -270,7 +273,7 @@
     (define (check-parameters param)
       (receive (low high) (case (*protocol-version*)
 			    ((:1.0) (values 5 6))
-			    (else (value 6 7)))
+			    (else (values 6 7)))
 	(<= low (length param) high)))
     ;; no user-supplied parameters allowed here, and the
     ;; spec forbids duplicate oauth args per section 5.
@@ -305,14 +308,14 @@
   ;; Utility function that extracts the Consumer-supplied request token
   ;; from a list of normalized parameters. Guards against non-existing
   ;; and unknown tokens. Returns the request token on success.  
-  (define (get-supplied-access-token)
+  (define (get-supplied-access-token :key (raise-error? #t))
     (let ((access-token-key (parameter "oauth_token")))
-      (unless access-token-key
+      (unless (or access-token-key (not raise-error?))
 	(raise-oauth-error make-bad-request 'get-supplied-access-token
 			   "Missing access token"))
       (let ((access-token (hashtable-ref (*issued-access-tokens*)
 					 access-token-key #f)))
-	(unless access-token
+	(unless (or access-token-key (not raise-error?))
 	  (raise-oauth-error make-unauthorised 'get-supplied-access-token
 			     "Invalid access token"))
 	access-token)))

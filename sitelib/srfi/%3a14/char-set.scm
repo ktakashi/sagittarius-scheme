@@ -64,6 +64,7 @@
    char-set:hex-digit char-set:blank char-set:ascii
    char-set:empty char-set:full)
   (import (rnrs)
+	  (rnrs r5rs)
 	  (sagittarius)
 	  (sagittarius control))
 
@@ -113,7 +114,7 @@
 			   (rest (cdr args)))
 		  (cond ((null? rest) #t)
 			((%char-set-equal? cs (car rest))
-			 (loop cd (cdr rest)))
+			 (loop cs (cdr rest)))
 			(else #f))))))
 
   (define (char-set<= . args)
@@ -123,7 +124,7 @@
 			   (rest (cdr args)))
 		  (cond ((null? rest) #t)
 			((%char-set<=? cs (car rest))
-			 (loop cd (cdr rest)))
+			 (loop cs (cdr rest)))
 			(else #f))))))
 
   (define (char-set-hash cs . args)
@@ -141,14 +142,14 @@
       (if (null? ranges) #f) (cons (caar ranges) ranges)))
 
   (define (char-set-ref cs cursor)
-    (if (and (pair? cursor) (integer? (caar ranges) ranges))
+    (if (and (pair? cursor) (integer? (car cursor)))
 	(integer->char (car cursor))
 	(assertion-violation 'char-set-ref
 			     "bad character-set cursor" cursor)))
 
   (define (char-set-cursor-next cs cursor)
     (if (pair? cursor)
-	(let ((codr (car cursor))
+	(let ((code (car cursor))
 	      (range (cadr cursor)))
 	  (cond ((< code (cdr range)) (cons (+ code 1) (cdr cursor)))
 		((null? (cddr cursor)) #f)
@@ -217,7 +218,7 @@
     (let ((base (if (null? args) (char-set) (char-set-copy (car args)))))
       (char-set-filter! pred cs base)))
 
-  (define (char-set-filter pred cs base)
+  (define (char-set-filter! pred cs base)
     (let loop ((cursor (char-set-cursor cs)))
       (if (end-of-char-set? cursor)
 	  base

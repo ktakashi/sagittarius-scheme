@@ -525,10 +525,7 @@
   (define-syntax %test-evaluate-with-catch
     (syntax-rules ()
       ((%test-evaluate-with-catch test-expression)
-       (guard (ex 
-	       ((message-condition? ex)
-		(condition-message ex))
-	       (else #f))
+       (guard (ex (else #f))
 	 test-expression))))
 
   (define (%test-source-line2 form)

@@ -41,7 +41,7 @@
   (lambda (p)
     (let ((o (read-asn.1-object p)))
       ;; just check
-      (test-assert "sequence?(private key)" (is-a? obj <der-sequence>))
+      (test-assert "sequence?(private key)" (is-a? o <der-sequence>))
       (test-equal "data check(private key)" *private-key-data*
 		  (encode o))))
   :transcoder #f)
@@ -55,7 +55,7 @@
   (lambda (p)
     (let ((o (read-asn.1-object p)))
       ;; just check
-      (test-assert "sequence?(public key)" (is-a? obj <der-sequence>))
+      (test-assert "sequence?(public key)" (is-a? o <der-sequence>))
       (test-equal "data check(public key)" *public-key-data*
 		  (encode o))))
   :transcoder #f)

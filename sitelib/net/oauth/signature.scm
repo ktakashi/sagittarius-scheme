@@ -61,6 +61,7 @@
 		 HMAC
 		 :key (string->utf8 (string-append consumer-secret
 						   "&"
-						   token-secret)))
+						   (or token-secret
+						       ""))))
 		(string->utf8 sbs)))))))
   )

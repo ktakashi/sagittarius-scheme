@@ -68,6 +68,10 @@
        (test-equal (format "~,,,,50s" expected)
 		   expected result)
        (assert rest ...)))
+    ((_ (failed? expr) rest ...)
+     (begin
+       (test-error (format "~,,,,50s" 'expr) expr)
+       (assert rest ...)))
     ((_ exp rest ...)
      (begin
        (test-assert (format "~a" 'exp) exp)

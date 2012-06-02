@@ -3,6 +3,7 @@
 	(net oauth)
 	(net oauth signature) ;; for oauth-signature
 	(net oauth parameters);; for *signature-cache*
+	(net oauth query-string);; for query-string->alist
 	(srfi :19 time)
 	(srfi :27 random-bits)
 	(srfi :39 parameters)
@@ -27,8 +28,6 @@
 (define (init-test-request-adapter)
   (init-request-adapter (make-test-request-adapter)))
 
-(define *default-token* (make-request-token))
-
 (init-test-request-adapter)
 
 (define-syntax with-signed-request
@@ -43,7 +42,7 @@
 	    (signature-override #f)
 	    (signature-method "HMAC-SHA1")
 	    (consumer-token (make-consumer-token))
-	    (token *default-token*)
+	    (token #f)
 	    (verification-code #f))
        #`(begin
 	   (register-token #,consumer-token)
@@ -81,6 +80,30 @@
 		 body ...)))))))))
 
 (test-begin "OAuth tests")
+
+;; signatures
+(define *sample-signature-base-string* 
+  "GET&http%3A%2F%2Fphotos.example.net%2Fphotos\
+   &file%3Dvacation.jpg%26oauth_consumer_key\
+   %3Ddpf43f3p2l4k3l03%26oauth_nonce%3Dkllo9940pd9333jh\
+   %26oauth_signature_method%3DHMAC-SHA1%26oauth_timestamp\
+   %3D1191242096%26oauth_token%3Dnnch734d00sl2jdk\
+   %26oauth_version%3D1.0%26size%3Doriginal")
+
+;; A.5.1
+(define test-parameters
+  "file=vacation.jpg&oauth_consumer_key=dpf43f3p2l4k3l03\
+   &oauth_nonce=kllo9940pd9333jh&oauth_signature_method=HMAC-SHA1\
+   &oauth_timestamp=1191242096&oauth_token=nnch734d00sl2jdk\
+   &oauth_version=1.0&size=original")
+
+(test-equal "signature-base-string/spec"
+	    *sample-signature-base-string*
+	    (parameterize ((*request-method* 'GET))
+	      (let* ((uri "http://photos.example.net/photos")
+		     (parameters-alist (query-string->alist test-parameters)))
+		(signature-base-string :parameters parameters-alist :uri uri))))
+
 
 (test-assert "check-version (valid)"
 	     (parameterize ((*get-parameters* '(("oauth_version" "1.0"))))
@@ -121,5 +144,28 @@
 	    (with-signed-request
 	     (:user-parameters '(("oauth_callback"  "oob")))
 	     (validate-request-token-request :allow-oob-callback? #f)))
+
+(test-assert "validate-request-token-request (callback-uri)"
+	     (with-signed-request
+	      (:user-parameters '(("oauth_callback"  "http://example.com/bar")))
+	      (is-a? (validate-request-token-request :allow-oob-callback? #f)
+		     <request-token>)))
+;; phase 2
+(test-assert "validate-access-token-request (valid-request-token)"
+	     (let ((request-token (make-request-token)))
+	       (parameterize ((*protocol-version* :1.0a))
+		 (request-token-authorized-set! request-token #t)
+		 (with-signed-request 
+		  (:token request-token)
+		  (is-a?  (validate-access-token-request) <access-token>)))))
+;; TODO more tests, exp. for invalid requests
+
+;;; phase 3
+(test-assert "validate-access-token (valid)"
+	     (let ((access-token (make-access-token)))
+	       (with-signed-request 
+		(:token access-token)
+		(validate-access-token))))
+
 
 (test-end)

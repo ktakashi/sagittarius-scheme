@@ -80,12 +80,15 @@
 	(signature-sha256-pkcs1.5 (sign rsa-private-cipher message
 					:encode pkcs1-emsa-v1.5-encode
 					:hash SHA-256)))
+    
     (test-assert "SHA-1 EMSA-PSS" (verify x509 message signature-sha1-emsa-pss
-					  :verify pkcs1-emsa-pss-encode))
-    (test-assert "SHA-256 EMSA-PSS" (verify x509 message signature-sha1-emsa-pss
-					  :verify pkcs1-emsa-pss-encode
-					  :hash SHA-256))
-    (test-assert "SHA-256 PKCS-1.5" (verify x509 message signature-sha1-emsa-pss
+					  :verify pkcs1-emsa-pss-verify))
+    (test-assert "SHA-256 EMSA-PSS" (verify x509 message
+					    signature-sha256-emsa-pss
+					    :verify pkcs1-emsa-pss-verify
+					    :hash SHA-256))
+    (test-assert "SHA-256 PKCS-1.5" (verify x509 message
+					    signature-sha256-pkcs1.5
 					    :hash SHA-256))
 
     (test-error "SHA-1 EMSA-PSS (error)"

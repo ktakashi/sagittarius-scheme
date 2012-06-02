@@ -353,7 +353,7 @@ SgObject Sg_Signature(SgCipher *crypto, SgByteVector *data, SgObject opt)
     SG_APPEND1(h, t, data);
     SG_APPEND1(h, t, SG_CIPHER_SPI(crypto->spi)->key);
     SG_APPEND(h, t, opt);
-    return Sg_Apply(SG_CIPHER_SPI(crypto->spi)->signer, h);
+    return Sg_VMApply(SG_CIPHER_SPI(crypto->spi)->signer, h);
   }
 }
 
@@ -373,7 +373,7 @@ SgObject Sg_Verify(SgCipher *crypto, SgByteVector *M, SgByteVector *S,
     SG_APPEND1(h, t, S);
     SG_APPEND1(h, t, SG_CIPHER_SPI(crypto->spi)->key);
     SG_APPEND(h, t, opt);
-    return Sg_Apply(SG_CIPHER_SPI(crypto->spi)->verifier, h);
+    return Sg_VMApply(SG_CIPHER_SPI(crypto->spi)->verifier, h);
   }
 }
 
