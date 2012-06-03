@@ -34,7 +34,7 @@
 
 #< (sagittarius regex) >
 (library (rfc :5322)
-    (export &rfc5322-parse-error
+    (export &rfc5322-parse-error rfc5322-parse-error?
 	    rfc5322-read-headers
 	    rfc5322-next-token
 	    rfc5322-header-ref
