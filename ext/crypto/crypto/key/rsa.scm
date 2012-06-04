@@ -257,7 +257,7 @@
 	(raise-encrypt-error 'rsa-sign "invalid key" 'RSA))
     (let* ((modulus (slot-ref key 'modulus))
 	   (len (bitwise-length modulus))
-	   (data (apply encode bv len opt)))
+	   (data (apply encode bv (- len 1) opt)))
       (rsa-mod-expt data key)))
 
   (define (rsa-verify M S key :key (verify pkcs1-emsa-pss-verify)
@@ -269,8 +269,15 @@
       ;; length check
       (unless (= k (bytevector-length S))
 	(raise-decrypt-error 'rsa-verify "invalid signature" 'RSA))
-      (let ((EM (rsa-mod-expt S key)))
-	(apply verify M EM (bitwise-length modulus) opt))))
+      (let* ((EM (rsa-mod-expt S key))
+	     (len (bitwise-length modulus))
+	     (k (align-size (bit len))))
+	;; padding 0, if the length is not the same as modulus
+	(unless (= (bytevector-length EM) k)
+	  (let ((new (make-bytevector k 0)))
+	    (bytevector-copy! EM 0 new 1 (bytevector-length EM))
+	    (set! EM new)))
+	(apply verify M EM (- len 1) opt))))
       
   ;; padding
   ;; PKCS#1 EME
@@ -395,7 +402,7 @@
          (CONSTRAINED BY
          {-- version must be multi if otherPrimeInfos present --})
   |#
-  (define (rsa-export-private-key key)
+  (define (rsa-export-private-key private)
     (let ((der (make-der-sequence
 		;; version must be always 0 since we do not support
 		;; otherPrimeInfos.

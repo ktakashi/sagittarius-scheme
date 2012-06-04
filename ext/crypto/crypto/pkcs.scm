@@ -49,15 +49,20 @@
   (define (mgf-1 mgf-seed mask-length hasher)
     (when (> mask-length 2^32)
       (raise-encode-error 'mgf-1 "mask too long"))
-    (let* ((limit (- (div mask-length (hash-size hasher)) 1))
+    (let* ((hash-len (hash-size hasher))
+	   (limit (+ 1 (div mask-length hash-len)))
 	   (len   (bytevector-length mgf-seed))
 	   (buf   (make-bytevector (+ len 4) 0))
 	   (T     (make-bytevector mask-length 0)))
       (bytevector-copy! mgf-seed 0 buf 0 len)
       (do ((counter 0 (+ counter 1)))
-	  ((>= counter limit) T)
+	  ((= counter limit) T)
 	(bytevector-u32-set! buf len counter 'big)
-	(bytevector-copy! (hash hasher buf) 0 T (* counter len) len))))
+	(let ((index (* counter hash-len)))
+	  (if (> (+ index hash-len) mask-length)
+	      (bytevector-copy! (hash hasher buf) 0 T index
+				(- mask-length index))
+	      (bytevector-copy! (hash hasher buf) 0 T index hash-len))))))
 
   ;; section 9.1.1
   (define (pkcs1-emsa-pss-encode m em-bits
@@ -85,9 +90,8 @@
 	(let* ((H (hash algo m-dash))
 	       (PS-len (- em-len salt-length hash-len 2))
 	       (PS (make-bytevector PS-len 0))
-	       (DB (make-bytevector (+ PS-len salt-length 1))))
+	       (DB (make-bytevector (+ PS-len salt-length 1) #0x1)))
 	  (bytevector-copy! PS 0 DB 0 PS-len)
-	  (bytevector-u8-set! DB PS-len #x01)
 	  (bytevector-copy! salt 0 DB (+ PS-len 1) salt-length)
 	  (let* ((db-mask (mgf H (- em-len hash-len 1) algo))
 		 ;; xor
@@ -98,11 +102,12 @@
 	      (bytevector-u8-set! masked-db i 0))
 	    (let* ((m-len (bytevector-length masked-db))
 		   (h-len (bytevector-length H))
-		   (EM (make-bytevector (+ m-len h-len 1))))
+		   (EM (make-bytevector (+ m-len h-len 1) #xBC)))
 	      (bytevector-copy! masked-db 0 EM 0 m-len)
 	      (bytevector-copy! H 0 EM m-len h-len)
-	      (bytevector-u8-set! EM (+ m-len h-len) #xBC)
 	      EM))))))
+
+  (define (print . args) (for-each write args) (newline))
 
   ;; section 9.1.2
   (define (pkcs1-emsa-pss-verify m em em-bits
@@ -113,8 +118,9 @@
       (set! salt-length (hash-size algo)))
     (let ((hash-len (hash-size algo))
 	  (em-len   (align-size (bit em-bits))))
-      (when (and (< em-len (+ hash-len salt-length 2))
-		 (= #xbc (bytevector-u8-ref em (- (bytevector-length em) 1))))
+      (when (or (< em-len (+ hash-len salt-length 2))
+		(not (= #xbc 
+			(bytevector-u8-ref em (- (bytevector-length em) 1)))))
 	(raise-decode-error 'pkcs1-emsa-pss-verify
 			    "inconsistent"))
       (let* ((m-hash (hash algo m))	; step 2
