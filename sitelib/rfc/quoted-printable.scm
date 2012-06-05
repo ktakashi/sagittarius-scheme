@@ -106,32 +106,24 @@
 					  ;; we need to use transcoder with crlf
 					  (transcoder (make-transcoder 
 						       (utf-8-codec)
-						       'none))
-					  (line-width 76)
-					  (binary? #f))
+						       'none)))
     (or (string? str)
 	(assertion-violation 'quoted-printable-decode-string
 			     (format "string required, but got ~s" str)
 			     str))
-    (let1 buf (quoted-printable-decode (string->utf8 str)
-				       :line-width line-width
-				       :binary? binary?)
+    (let1 buf (quoted-printable-decode (string->utf8 str))
       (if transcoder
 	  (bytevector->string buf transcoder)
 	  buf)))
 
-  (define (quoted-printable-decode bv :key
-				   (line-width 76)
-				   (binary? #f))
+  (define (quoted-printable-decode bv)
     (or (bytevector? bv)
 	(assertion-violation 'quoted-printable-encode
 			     (format "bytevector required, but got ~s" bv)
 			     bv))
-    (let ((limit (if (and line-width (>= line-width 4)) (- line-width 3) #f)))
-      (quoted-printable-decode-impl (open-bytevector-input-port bv)
-				    limit binary?)))
+    (quoted-printable-decode-impl (open-bytevector-input-port bv)))
 
-  (define (quoted-printable-decode-impl bport limit binary?)
+  (define (quoted-printable-decode-impl bport)
     (define (hex-char? n)
       (cond ((<= #x30 n #x39) ;; #\0 - #\9
 	     (- n #x30))
