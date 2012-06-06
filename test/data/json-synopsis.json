@@ -1,0 +1,11 @@
+{
+	"some" : {
+	       "partial" : [42]
+	},
+	"other" : {
+		"partial" : "a string"
+	},
+	"more" : {
+	       "more" : "stuff"
+	}
+}
