@@ -1,3 +1,7 @@
+2012-06-07  Takashi Kato  <ktakashi@ymail.com>
+
+	* sitelib/text/csv.scm (text): fixed multiple line comments reading.
+
 2012-06-01  Takashi Kato  <ktakashi@ymail.com>
 
 	* boot/compiler.scm (and-let*): modified to rewrite initial expression

@@ -125,7 +125,7 @@
      (records  ((comments f <- fields crlf r <- records)
 		(cons (cons :record f) r))
 	       ((comments f <- fields) (list (cons :record f))))
-     (comments (('#\# comment crlf) '())
+     (comments (('#\# comment crlf comments) '())
 	       (() '()))
      (fields   ((f <- field-entry '#\, fs <- fields) (cons f fs))
 	       ((f <- field-entry) (list f)))
