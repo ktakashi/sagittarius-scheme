@@ -35,7 +35,7 @@
 	    csv-write
 
 	    ;; CLOS
-	    <csv>
+	    <csv> csv?
 	    ;; low level APIs
 	    csv-header
 	    csv-records
@@ -170,6 +170,7 @@
 	      :accessor csv-header)
      (records :init-keyword :records  :init-value '()
 	      :accessor csv-records)))
+  (define (csv? o) (is-a? o <csv>))
 
   (define (process-parsed-csv lst)
     (let loop ((lst lst) (header '()) (records '()))
