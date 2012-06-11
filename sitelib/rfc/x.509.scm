@@ -63,7 +63,7 @@
   (define (rdn-get-first rdn)
     (let ((p (asn.1-set-get (slot-ref rdn 'values) 0)))
       (cons (asn.1-sequence-get p 0) (asn.1-sequence-get p 1))))
-  (define *defailt-symbols*
+  (define *default-symbols*
     `((,(make-der-object-identifier "2.5.4.6") . C)
       (,(make-der-object-identifier "2.5.4.10") . O)
       (,(make-der-object-identifier "2.5.4.11") . OU)
@@ -76,7 +76,8 @@
       (,(make-der-object-identifier "2.5.4.9") . STREET)
       (,(make-der-object-identifier "2.5.4.4") . SURNAME)
       (,(make-der-object-identifier "2.5.4.44") . GENERATION)
-      (,(make-der-object-identifier "2.5.4.26") . DN)))
+      (,(make-der-object-identifier "2.5.4.26") . DN)
+      (,(make-der-object-identifier "2.5.4.42") . GIVENNAME)))
 
   (define-class <x500-name> (<asn.1-encodable>)
     ((style :init-keyword :style :init-value #f)
@@ -93,7 +94,7 @@
     (define (print-type-and-value p out)
       (let ((type (car p))
 	    (value (cdr p)))
-	(cond ((assoc type *defailt-symbols*) =>
+	(cond ((assoc type *default-symbols*) =>
 	       (lambda (slot) (display (cdr slot) out)))
 	      (else
 	       (display (slot-ref type 'identifier) out)))
