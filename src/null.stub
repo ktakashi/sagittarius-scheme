@@ -2331,7 +2331,8 @@
 			 (break))
 			(else
 			 (if firstP (set! out (Sg_MakeStringOutputPort -1)))
-			 (Sg_PutsUnsafe out buf)))))
+			 (Sg_PutsUnsafe out buf)))
+		  (set! firstP FALSE)))
 	       (SG_PORT_UNLOCK p)
 	       (result (Sg_GetStringFromStringPort out)))))))
 

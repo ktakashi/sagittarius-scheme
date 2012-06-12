@@ -1,0 +1,13 @@
+;; -*- mode:scheme -*-
+(library $stub-library-name$
+    (export :all)
+    (import :none)
+
+  (decl-code
+   (.include <sagittarius.h>)
+   (.define "LIBSAGITTARIUS_EXT_BODY")
+   (.include <sagittarius/extend.h>
+	     "$header$"))
+  
+
+)

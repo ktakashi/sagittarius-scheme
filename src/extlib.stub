@@ -157,6 +157,9 @@
 	    weak-hashtable-keys-list
 	    weak-hashtable-values-list
 	    weak-hashtable-copy
+
+	    ;; misc
+	    microsecond
 	    )
     (import :null)
 
@@ -965,4 +968,10 @@
 
   (define-c-proc weak-hashtable-copy (wh::<weak-hashtable>)
     (result (Sg_WeakHashTableCopy wh)))
+
+  (define-c-proc microsecond ()
+    (let ((sec::long 0)
+	  (usec::long 0))
+      (Sg_GetTimeOfDay (& sec) (& usec))
+      (result (Sg_MakeIntegerFromS64 (+ (* (cast int64_t sec) 1000000) usec)))))
 )

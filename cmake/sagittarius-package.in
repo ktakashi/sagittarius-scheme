@@ -1,0 +1,164 @@
+#!@CMAKE_INSTALL_PREFIX@/bin/sash
+
+#< (sagittarius regex) >
+(import (rnrs)
+	(getopt)
+	(util file)
+	(shorten)
+	(srfi :13 strings)
+	(srfi :39 parameters)
+	(sagittarius cgen stub)
+	(sagittarius control)
+	(sagittarius regex))
+
+(define *script-name* (make-parameter #f))
+
+(define-constant scheme-template
+  "@CMAKE_INSTALL_PREFIX@/@SAGITTARIUS_CURRENT_SHARE@/template.scm")
+(define-constant h-template
+  "@CMAKE_INSTALL_PREFIX@/@SAGITTARIUS_CURRENT_SHARE@/template.h")
+(define-constant c-template 
+  "@CMAKE_INSTALL_PREFIX@/@SAGITTARIUS_CURRENT_SHARE@/template.c")
+(define-constant stub-template
+  "@CMAKE_INSTALL_PREFIX@/@SAGITTARIUS_CURRENT_SHARE@/template.stub")
+(define-constant cmake-template
+  "@CMAKE_INSTALL_PREFIX@/@SAGITTARIUS_CURRENT_SHARE@/CMakeLists.txt.template")
+(define-constant uninstall-template
+  "@CMAKE_INSTALL_PREFIX@/@SAGITTARIUS_CURRENT_SHARE@/cmake_uninstall.cmake.in")
+
+(define (genstub files)
+  (print "generating files:" files)
+  (for-each (^f (let* ((b (path-sans-extension f))
+		       (c (format "~a.c" b))
+		       (exit? #f))
+		  (when (file-exists? c)
+		    (let ((stub-mtime (file-stat-mtime f))
+			  (out-mtime  (file-stat-mtime c)))
+		      (when (< stub-mtime out-mtime)
+			(print "generated file is older than stub file. " c)
+			(set! exit? #t))))
+		  (unless exit?
+		    (cgen-genstub f))))
+	    files))
+
+(define (create-template-file template dest parameters)
+  (let1 template (car (file->string template))
+    (if (file-exists? dest)
+	(delete-file dest))
+    (call-with-output-file dest
+      (lambda (out)
+	(put-string out (regex-replace-all 
+			 #/(\$[a-zA-Z0-9-_]+?\$)/ template
+			 (lambda (m)
+			   (or (and-let* ((mark (m 1))
+					  (slot (assoc mark parameters)))
+				 (cdr slot))
+			       (m 1)))))))
+    dest))
+
+(define (generate args)
+  (define (generate-usage)
+    (print "Usage: " (*script-name*) " generate package-name [library-name]")
+    (exit -1))
+  (define (generate-scheme-file package-name library-name)
+    (if (eq? package-name library-name)
+	(create-template-file scheme-template 
+			      (string-append library-name ".scm")
+			      `(("$library-name$" . 
+				 ,(string-append "(" library-name ")"))
+				("$package-name$" . ,package-name)))
+	(let1 libname (read (open-string-input-port library-name))
+	  (unless (pair? libname)
+	    (generate-usage))
+	  (let loop ((dirs libname)
+		     (path ""))
+	    (if (null? (cdr dirs))
+		(create-template-file scheme-template
+				      (string-append path 
+						     (symbol->string (car dirs))
+						     ".scm")
+				      `(("$library-name$" . ,library-name)
+					("$package-name$" . ,package-name)))
+		(let1 dir (string-append path (symbol->string (car dirs)) "/")
+		  (unless (file-directory? dir)
+		    (create-directory dir))
+		  (loop (cdr dirs) dir)))))))
+  (define (flat-package-name package-name)
+    (list->string (map (^c (if (or (char-alphabetic? c)
+				   (char-numeric? c))
+			       (char-downcase c)
+			       #\_)) (string->list package-name))))
+  (define (derive-library-directory library-path)
+    (receive (dir base ext) (decompose-path library-path)
+      (or dir "")))
+  (let-optionals* args
+      ((package-name #f)
+       (library-name package-name))
+    (unless package-name
+      (generate-usage))
+    (unless (file-directory? package-name)
+      (create-directory package-name))
+    (parameterize ((current-directory package-name))
+      ;; generate scheme file
+      (let1 library-path (generate-scheme-file package-name library-name)
+	;; cmake file
+	(create-template-file cmake-template
+			      "CMakeLists.txt"
+			      `(("$package-name$" . ,package-name)
+				("$library-name$" . ,library-path)
+				("$library-directory$" .
+				 ,(derive-library-directory library-path)))))
+      ;; generate c file
+      (let ((c-file (string-append package-name ".c"))
+	    (h-file (string-append package-name ".h"))
+	    (stub-file (string-append package-name "lib.stub"))
+	    (flat-name (flat-package-name package-name)))
+	(define (generate-stub-names library-name)
+	  (let1 lib (read (open-string-input-port library-name))
+	    (if (symbol? lib)
+		(values (string-append "(" library-name " stub)")
+			(string-append library-name "_stub"))
+		(values (format "~a" (append lib '(stub)))
+			(string-append
+			 (string-join (map symbol->string lib) "_")
+			 "_stub")))))
+	(let-values (((stub-library stub-func)
+		      (generate-stub-names library-name)))
+	  (create-template-file h-template h-file
+				`(("$include-guard$" .
+				   ,(string-append
+				     (string-upcase flat-name) "_H"))))
+	  (create-template-file c-template c-file 
+				`(("$header$" . ,h-file)
+				  ("$stub-init$" . ,stub-func)
+				  ("$package-name$" . ,package-name)
+				  ("$flat-name$" . ,flat-name)))
+	  (create-template-file stub-template stub-file 
+				`(("$stub-library-name$" . ,stub-library)
+				  ("$header$" . ,h-file)))
+	  ;; we only need to copy it
+	  (create-template-file uninstall-template
+				"cmake_uninstall.cmake.in"
+				'()))))))
+
+(define (usage)
+  (print "Usage: " (*script-name*) "<command> [options] <args> ...")
+  (print "Commands:")
+  (print "  generate    - Generate template source tree for a new Sagittarius extension")
+  (print "  genstub     - Generate .c file from .stub files")
+  (eixt -1))
+
+(define (main args)
+  (parameterize ((*script-name* (car args)))
+    (when (null? (cdr args))
+      (usage))
+    (case (string->symbol (cadr args))
+      ((genstub) (genstub (cddr args)))
+      ((generate) (generate (cddr args)))
+      (else (usage))))
+  0)
+
+;; Local Variables:
+;; mode: scheme
+;; coding: utf-8
+;; End:

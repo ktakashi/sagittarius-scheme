@@ -1,0 +1,73 @@
+# -*- mode: CMake; coding: utf-8; -*-
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.4)
+PROJECT($package-name$)
+
+SET(SAGITTARIUS_CONFIG  "sagittarius-config")
+SET(SAGITTARIUS_PACKAGE "sagittarius-package")
+
+EXECUTE_PROCESS(
+  COMMAND ${SAGITTARIUS_CONFIG} --sysincdir
+  OUTPUT_VARIABLE SAGITTARIUS_INCLUDE_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+EXECUTE_PROCESS(
+  COMMAND ${SAGITTARIUS_CONFIG} --sysarchdir
+  OUTPUT_VARIABLE SAGITTARIUS_LIB_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+EXECUTE_PROCESS(
+  COMMAND ${SAGITTARIUS_CONFIG} --sharedir
+  OUTPUT_VARIABLE SAGITTARIUS_SHARE_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+EXECUTE_PROCESS(
+  COMMAND ${SAGITTARIUS_CONFIG} --pkgarchdir
+  OUTPUT_VARIABLE SAGITTARIUS_SITE_ARCH_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+EXECUTE_PROCESS(
+  COMMAND ${SAGITTARIUS_CONFIG} --pkglibdir
+  OUTPUT_VARIABLE SAGITTARIUS_SITE_LIB_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+MESSAGE(STATUS "Sagittarius include directory: ${SAGITTARIUS_INCLUDE_DIR}")
+MESSAGE(STATUS "Sagittarius share directory:   ${SAGITTARIUS_SHARE_DIR}")
+MESSAGE(STATUS "Sagittarius library directory: ${SAGITTARIUS_LIB_DIR}")
+
+INCLUDE_DIRECTORIES(${SAGITTARIUS_INCLUDE_DIR})
+
+ADD_LIBRARY($package-name$ MODULE
+  $package-name$.c $package-name$lib.c)
+
+# For these broken linkers, we are using C++ instead of C, so we need to
+# set the property to let cmake know that we are using C++.
+IF (MSVC OR CYGWIN)
+  SET_SOURCE_FILES_PROPERTIES($package-name$.c $package-name$lib.c
+    PROPERTIES LANGUAGE CXX)
+ENDIF()
+
+INCLUDE(${SAGITTARIUS_SHARE_DIR}/cmake/addstub.cmake)
+# sagittariusdef.h checks this.
+ADD_DEFINITIONS(-DHAVE_CONFIG_H)
+ADD_STUBS($package-name$
+  COMMAND ${SAGITTARIUS_PACKAGE} genstub
+  FILES ${CMAKE_CURRENT_SOURCE_DIR}/$package-name$lib.stub)
+
+# Somehow LINK_DIRECTORIES does not work as I expect.
+# So use the ugly way for now.
+# TODO remove this workaround when I find the proper way.
+FIND_LIBRARY(LIB_SAGITTARIUS sagittarius PATH ${SAGITTARIUS_LIB_DIR})
+
+SET_TARGET_PROPERTIES($package-name$ PROPERTIES PREFIX "")
+LINK_DIRECTORIES(${SAGITTARIUS_LIB_DIR})
+TARGET_LINK_LIBRARIES($package-name$ ${LIB_SAGITTARIUS})
+
+INSTALL(TARGETS $package-name$
+  DESTINATION ${SAGITTARIUS_SITE_ARCH_DIR})
+INSTALL(FILES $library-name$
+  DESTINATION ${SAGITTARIUS_SITE_LIB_DIR}/$library-directory$)
+
+# uninstall target
+CONFIGURE_FILE(
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+  IMMEDIATE @ONLY)
+
+ADD_CUSTOM_TARGET(uninstall
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)

@@ -73,8 +73,19 @@ Paremters to compile an application using Sagittarius
      (emit "-L@SAGITTARIUS_DYNLIB_PATH@"))
     ((arch)
      (emit "@SAGITTARIUS_TRIPLE@"))
-    ((incdir)
+    ((incdir sysincdir)
      (emit "${CMAKE_INSTALL_PREFIX}/${SAGITTARIUS_CURRENT_LIB}/include"))
+    ((sharedir)
+     (emit "${CMAKE_INSTALL_PREFIX}/${SAGITTARIUS_CURRENT_SHARE}"))
+    ;; for now only pkg and sys
+    ((syslibdir)
+     (emit "${CMAKE_INSTALL_PREFIX}/${SAGITTARIUS_CURRENT_SHARE}/lib"))
+    ((sysarchdir)
+     (emit "@SAGITTARIUS_DYNLIB_PATH@"))
+    ((pkglibdir)
+     (emit "${SAGITTARIUS_SHARE_SUFFIX}/sitelib"))
+    ((pkgarchdir)
+     (emit "${SAGITTARIUS_LIB_SUFFIX}/sitelib/${SAGITTARIUS_TRIPLE}"))
     (else
      (usage))))
 
@@ -87,3 +98,8 @@ Paremters to compile an application using Sagittarius
 		(resolve-flag flag)) flags))
   (newline)
   0)
+
+;; Local Variables:
+;; mode: scheme
+;; coding: utf-8
+;; End:
