@@ -67,6 +67,11 @@
 
 	    ;; utility
 	    string-split
+	    regex-match-let
+	    regex-match-if
+	    regex-match-cond
+	    regex-match-case
+
 
 	    ;; clos
 	    <pattern> <matcher>
@@ -143,5 +148,86 @@
 	      (else (reverse! (cons (substring text pos (string-length text))
 				    r)))))
       ))
-  
+
+  ;; from Gauche, modified to use syntax-case
+  (define-syntax regex-match-bind*
+    (lambda (x)
+      (syntax-case x ()
+	((_ ?n ?match () ?form ...)
+	 #'(begin ?form ...))
+	((_ ?n ?match (#f ?vars ...) ?form ...)
+	 #'(regex-match-bind* (+ ?n 1) ?match (?vars ...) ?form ...))
+	((_ ?n ?match (?var ?vars ...) ?form ...)
+	 #'(let ((?var (regex-group ?match ?n)))
+	   (regex-match-bind* (+ ?n 1) ?match (?vars ...) ?form ...))))))
+
+  (define-syntax regex-match-let
+    (lambda (x)
+      (syntax-case x ()
+	((_ ?expr (?var ...) ?form ...)
+	 #'(cond (?expr => (lambda (m) 
+			     (regex-match-bind* 0 m (?var ...) ?form ...)))
+		 (else (assertion-violation 'regex-match-let
+					    "match failed" '?expr))))
+	(_ (syntax-violation 'regex-match-let
+			     "malformed regex-match-let"
+			     (unwrap-syntax x))))))
+
+  (define-syntax regex-match-if
+    (lambda (x)
+      (syntax-case x ()
+	((_ ?expr (?var ...) ?then ?else)
+	 #'(cond (?expr => (lambda (m)
+			     (regex-match-bind* 0 m (?var ...) ?then)))
+		 (else ?else)))
+	(_ (syntax-violation 'regex-match-if
+			     "malformed regex-match-if"
+			     (unwrap-syntax x))))))
+
+  (define-syntax regex-match-cond
+    (lambda (x)
+      (syntax-case x (test else =>)
+	((_) #'#f)
+	((_ (else ?form ...))
+	 #'(begin ?form ...))
+	((_ (test ?expr => ?obj) ?clause ...)
+	 #'(cond (?expr => ?obj) (else (regex-match-cond ?clause ...))))
+	((_ (test ?expr ?form ...) ?clause ...)
+	 #'(if ?expr (begin ?form ...) (regex-match-cond ?clause ...)))
+	((_ (?matchexp ?bind ?form ...) ?clause ...)
+	 #'(regex-match-if ?matchexp ?bind
+			   (begin ?form ...)
+			   (regex-match-cond ?clause ...)))
+	(_ (syntax-violation 'regex-match-cond
+			     "malformed regex-match-cond"
+			     (unwrap-syntax x))))))
+
+  (define-syntax regex-match-case
+    (lambda (x)
+      (syntax-case x (test else =>)
+	((_ #t ?temp ?strp) #'#f)
+	((_ #t ?temp ?strp (else => ?proc))
+	 #'(?proc ?temp))
+	((_ #t ?temp ?strp (else ?form ...))
+	 #'(begin ?form ...))
+	((_ #t ?temp ?strp (test ?proc => ?obj) ?clause ...)
+	 #'(cond ((?proc ?temp) => ?obj)
+		 (else (regex-match-case #t ?temp ?strp ?clause ...))))
+	((_ #t ?temp ?strp (test ?proc ?form ...) ?clause ...)
+	 #'(if (?proc ?temp)
+	       (begin ?form ...)
+	       (regex-match-case #t ?temp ?strp ?clause ...)))
+	((_ #t ?temp ?strp (?re ?bind ?form ...) ?clause ...)
+	 #'(regex-match-if (and ?strp (looking-at ?re ?temp))
+			   ?bind
+			   (begin ?form ...)
+			   (regex-match-case #t ?temp ?strp ?clause ...)))
+	((_ #t ?temp strip ?clause)
+	 (syntax-violation 'regex-match-case
+			   "malformed regex-match-case"
+			   (unwrap-syntax x)))
+	((_ ?str ?clause ...)
+	 #'(let* ((temp ?str)
+		(strp (string? temp)))
+	   (regex-match-case #t temp strp ?clause ...))))))
 )

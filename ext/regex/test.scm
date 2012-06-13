@@ -5,6 +5,7 @@
 (import (srfi :64 testing)
 	(srfi :13 strings)
 	(srfi :1 lists)
+	(srfi :26 cut)
 	(rnrs)
 	(sagittarius regex))
 
@@ -1072,5 +1073,76 @@
 				   (put-string p "**")
 				   (put-string p (m 0))
 				   (put-string p "**"))))
+
+;; regexp macros
+
+(test-equal "regex-match-let" '("23:59:58" "23" "59" "58")
+	    (regex-match-let (looking-at #/(\d+):(\d+):(\d+)/
+					 "Jan  1 23:59:58, 2001")
+			     (time hh mm ss)
+			     (list time hh mm ss)))
+(test-equal "regex-match-let" '("23" "59")
+	    (regex-match-let (looking-at #/(\d+):(\d+):(\d+)/
+					 "Jan  1 23:59:58, 2001")
+			     (#f hh mm)
+			     (list hh mm)))
+
+(test-equal "regex-match-if" "time is 11:22"
+	    (regex-match-if (looking-at #/(\d+:\d+)/ "Jan 1 11:22:33")
+			    (time)
+			    (format #f "time is ~a" time)
+			    "unknown time"))
+(test-equal "regex-match-if" "unknown time"
+	    (regex-match-if (looking-at #/(\d+:\d+)/ "Jan 1 11-22-33")
+			    (time)
+			    (format #f "time is ~a" time)
+			    "unknown time"))
+
+(define (test-parse-date str)
+  (regex-match-cond
+    (test (not (string? str)) #f)
+    ((looking-at #/^(\d\d?)\/(\d\d?)\/(\d\d\d\d)$/ str)
+     (#f mm dd yyyy)
+     (map string->number (list yyyy mm dd)))
+    ((looking-at #/^(\d\d\d\d)\/(\d\d?)\/(\d\d?)$/ str)
+     (#f yyyy mm dd)
+     (map string->number (list yyyy mm dd)))
+    ((looking-at #/^\d+\/\d+\/\d+$/ str)
+     (#f)
+     (error "ambiguous:" str))
+    (else (error "bogus:" str))))
+
+(test-equal "regex-match-cond" '(2001 2 3)
+       (test-parse-date "2001/2/3"))
+(test-equal "regex-match-cond" '(1999 12 25)
+       (test-parse-date "1999/12/25"))
+(test-equal "regex-match-cond" #f
+       (test-parse-date 'abc))
+
+(define (test-parse-date2 str)
+  (regex-match-case str
+    (test (lambda (s) (not (string? s))) #f)
+    (#/^(\d\d?)\/(\d\d?)\/(\d\d\d\d)$/ (#f mm dd yyyy)
+        (map string->number (list yyyy mm dd)))
+    (#/^(\d\d\d\d)\/(\d\d?)\/(\d\d?)$/ (#f yyyy mm dd)
+        (map string->number (list yyyy mm dd)))
+    (#/^\d+\/\d+\/\d+$/  (#f) (error "ambiguous:" str))
+    (else (error "bogus:" str))))
+
+(test-equal "regex-match-case" '(2001 2 3)
+	    (test-parse-date2 "2001/2/3"))
+(test-equal "regex-match-case" '(1999 12 25)
+	    (test-parse-date2 "1999/12/25"))
+(test-equal "regex-match-case" #f
+	    (test-parse-date2 'abc))
+
+(define (test-parse-date3 str)
+  (regex-match-case str
+    (#/^(\d\d\d\d)\/(\d\d?)\/(\d\d?)$/ (#f yyyy mm dd)
+        (map string->number (list yyyy mm dd)))
+    (else => (cut format "bogus: ~a" <>))))
+(test-equal "regex-match-case (else)" "bogus: 100/2/3"
+       (test-parse-date3 "100/2/3"))
+
 
 (test-end)
