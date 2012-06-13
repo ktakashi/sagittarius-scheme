@@ -179,7 +179,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->parentExHandler = SG_FALSE;
   v->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
 
-  v->sourceInfos = Sg_MakeWeakHashTableSimple(SG_HASH_EQ, SG_WEAK_BOTH,
+  v->sourceInfos = Sg_MakeWeakHashTableSimple(SG_HASH_EQ, SG_WEAK_KEY,
 					      4000, SG_FALSE);
   v->toplevelVariables = SG_NIL;
   v->commandLineArgs = SG_NIL;
