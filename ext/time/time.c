@@ -244,12 +244,12 @@ SgObject Sg_SubDuration(SgTime *x, SgTime *y, SgTime *r)
   return r;
 }
 
-extern void Sg__Init_sagittarius_time_impl();
-extern void Sg__Init_sagittarius_date_impl();
+extern void Sg__Init_time_stub(SgLibrary *lib);
+extern void Sg__Init_date_stub(SgLibrary *lib);
 
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__time()
 {
-  SgLibrary *tlib, *dlib;
+  SgLibrary *lib;
   SG_INIT_EXTENSION(sagittarius__time);
   time_utc = SG_INTERN("time-utc");
   time_tai = SG_INTERN("time-tai");
@@ -257,16 +257,15 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__time()
   time_duration = SG_INTERN("time-duration");
   time_process = SG_INTERN("time-process");
   time_thread = SG_INTERN("time-thread");
-  Sg__Init_sagittarius_time_impl();
-  Sg__Init_sagittarius_date_impl();
 
-  tlib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius time impl)"),
-				   FALSE));
-  dlib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius date impl)"),
-				   FALSE));
-  Sg_InitStaticClassWithMeta(SG_CLASS_TIME, UC("<time>"), tlib, NULL,
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius time)"),
+				  FALSE));
+  Sg__Init_time_stub(lib);
+  Sg__Init_date_stub(lib);
+
+  Sg_InitStaticClassWithMeta(SG_CLASS_TIME, UC("<time>"), lib, NULL,
 			     SG_FALSE, NULL, 0);
-  Sg_InitStaticClassWithMeta(SG_CLASS_DATE, UC("<date>"), dlib, NULL,
+  Sg_InitStaticClassWithMeta(SG_CLASS_DATE, UC("<date>"), lib, NULL,
 			     SG_FALSE, NULL, 0); 
 }
 

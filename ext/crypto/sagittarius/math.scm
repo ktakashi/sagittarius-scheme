@@ -1,5 +1,4 @@
 ;;; -*- mode: scheme; coding: utf-8 -*-
-(load-dynamic-library "sagittarius--math")
 (library (sagittarius math)
     (export prng?
 	    pseudo-random?
@@ -34,7 +33,8 @@
 	    register-prng
 	    lookup-prng
 	    )
-    (import (sagittarius) (sagittarius math impl))
+    (import (sagittarius))
+  (load-dynamic-library "sagittarius--math")
   ;; pseudo-random type
   (define-constant Yarrow "yarrow")
   (define-constant Fortuna "fortuna")

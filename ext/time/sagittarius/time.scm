@@ -28,7 +28,6 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-(load-dynamic-library "sagittarius--time")
 (library (sagittarius time)
     (export make-time
 	    time?
@@ -125,10 +124,8 @@
 	    (core base)
 	    (core errors)
 	    (sagittarius)
-	    (sagittarius time impl)
-	    (sagittarius date impl)
 	    (srfi :6 basic-string-ports))
-
+  (load-dynamic-library "sagittarius--time")
   (define (tm:time-error caller type value)
     (if (member type tm:time-error-types)
         (if value

@@ -625,7 +625,7 @@ static SgSlotAccessor builtin_cipher_spi_slots[] = {
 
 
 
-extern void Sg__Init_sagittarius_crypto_impl();
+extern void Sg__Init_crypto_stub(SgLibrary *lib);
 SG_CDECL_BEGIN
 extern void Sg__InitKey(SgLibrary *lib);
 SG_CDECL_END
@@ -635,9 +635,10 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__crypto()
   SgLibrary *lib;
   SG_INIT_EXTENSION(sagittarius__crypto);
 
-  Sg__Init_sagittarius_crypto_impl();
-  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius crypto impl)"),
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius crypto)"),
 				  FALSE));
+  Sg__Init_crypto_stub(lib);
+
   Sg__InitKey(lib);
 
   Sg_InitMutex(&lock, FALSE);

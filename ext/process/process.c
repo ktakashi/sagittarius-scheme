@@ -60,16 +60,15 @@ static SgProcess* make_process(SgString *name, SgObject args)
 # include "posix.c"
 #endif
 
-extern void Sg__Init_sagittarius_process_impl();
+extern void Sg__Init_process_stub(SgLibrary *lib);
 
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__process()
 {
   SgLibrary *lib;
   SG_INIT_EXTENSION(sagittarius__process);
   init_process();
-  Sg__Init_sagittarius_process_impl();
-  lib = 
-    SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius process impl)"), FALSE));
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius process)"), FALSE));
+  Sg__Init_process_stub(lib);
   Sg_InitStaticClassWithMeta(SG_CLASS_PROCESS, UC("<process>"), lib, NULL,
 			     SG_FALSE, NULL, 0);
 }

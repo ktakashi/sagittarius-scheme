@@ -1,187 +1,139 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
-(library (odbc impl)
-    (export create-odbc-env
-	    connect!
-	    set-connect-attr!
-	    disconnect!
-	    connection-open?
-	    statement
-	    prepare
-	    num-params
-	    bind-parameter!
-	    execute!
-	    execute-direct!
-	    fetch!
-	    get-data
-	    row-count
-	    column-size
-	    column-count
-	    result-columns
-	    commit!
-	    rollback!
-	    ;; predicate
-	    odbc-env?
-	    odbc-connection?
-	    odbc-statement?
 
-	    odbc-date?
-	    odbc-time?
-	    odbc-timestamp?
-	    
-	    ;; accessor
-	    odbc-date-year
-	    odbc-date-month
-	    odbc-date-day
+(decl-code
+ (.include <sagittarius.h>)
+ (.define "LIBSAGITTARIUS_EXT_BODY")
+ (.include <sagittarius/extend.h>
+	   "odbc.h")
+ )
 
-	    odbc-time-hour
-	    odbc-time-minute
-	    odbc-time-second
+(define-type <odbc-ctx> "SgOdbcCtx*")
+(define-type <odbc-env> "SgOdbcCtx*")
+(define-type <odbc-dbc> "SgOdbcCtx*")
+(define-type <odbc-stmt> "SgOdbcCtx*")
 
-	    odbc-timestamp-year
-	    odbc-timestamp-month
-	    odbc-timestamp-day
-	    odbc-timestamp-hour
-	    odbc-timestamp-minute
-	    odbc-timestamp-second
-	    odbc-timestamp-fraction
-	    )
-    (import :none)
+(define-c-proc create-odbc-env ()
+  (result (Sg_CreateOdbcCtx SQL_HANDLE_ENV NULL)))
 
-  (decl-code
-   (.include <sagittarius.h>)
-   (.define "LIBSAGITTARIUS_EXT_BODY")
-   (.include <sagittarius/extend.h>
-	     "odbc.h")
-   )
+(define-c-proc connect!
+  (env::<odbc-env> server::<string> user::<string> auth::<string>
+		   :optional (autoCommitP::<boolean> #t))
+  (result (Sg_Connect env server user auth autoCommitP)))
 
-  (define-type <odbc-ctx> "SgOdbcCtx*")
-  (define-type <odbc-env> "SgOdbcCtx*")
-  (define-type <odbc-dbc> "SgOdbcCtx*")
-  (define-type <odbc-stmt> "SgOdbcCtx*")
+(define-c-proc set-connect-attr!
+  (hdbc::<odbc-dbc> name::<fixnum> value) ::<boolean>
+  (result (Sg_SetConnectAttr hdbc name value)))
 
-  (define-c-proc create-odbc-env ()
-    (result (Sg_CreateOdbcCtx SQL_HANDLE_ENV NULL)))
+(define-c-proc disconnect! (hdbc::<odbc-dbc>) ::<boolean>
+  (result (Sg_Disconnect hdbc)))
 
-  (define-c-proc connect!
-    (env::<odbc-env> server::<string> user::<string> auth::<string>
-		     :optional (autoCommitP::<boolean> #t))
-    (result (Sg_Connect env server user auth autoCommitP)))
+(define-c-proc connection-open? (hdbc::<odbc-dbc>) ::<boolean>
+  (result (Sg_OpenP hdbc)))
 
-  (define-c-proc set-connect-attr!
-    (hdbc::<odbc-dbc> name::<fixnum> value) ::<boolean>
-    (result (Sg_SetConnectAttr hdbc name value)))
+(define-c-proc statement (hdbc::<odbc-dbc>)
+  (result (Sg_Statement hdbc)))
 
-  (define-c-proc disconnect! (hdbc::<odbc-dbc>) ::<boolean>
-    (result (Sg_Disconnect hdbc)))
+(define-c-proc prepare (hdbc::<odbc-dbc> text::<string>)
+  (result (Sg_Prepare hdbc text)))
 
-  (define-c-proc connection-open? (hdbc::<odbc-dbc>) ::<boolean>
-    (result (Sg_OpenP hdbc)))
+(define-c-proc num-params (stmt::<odbc-stmt>) ::<fixnum>
+  (result (Sg_NumParams stmt)))
 
-  (define-c-proc statement (hdbc::<odbc-dbc>)
-    (result (Sg_Statement hdbc)))
+(define-c-proc bind-parameter!
+  (stmt::<odbc-stmt> index::<fixnum> value) ::<boolean>
+  (result (Sg_BindParameter stmt index value)))
 
-  (define-c-proc prepare (hdbc::<odbc-dbc> text::<string>)
-    (result (Sg_Prepare hdbc text)))
+(define-c-proc execute! (stmt::<odbc-stmt>) ::<boolean>
+  (result (Sg_Execute stmt)))
 
-  (define-c-proc num-params (stmt::<odbc-stmt>) ::<fixnum>
-    (result (Sg_NumParams stmt)))
+(define-c-proc execute-direct! (stmt::<odbc-stmt> text::<string>) ::<boolean>
+  (result (Sg_ExecuteDirect stmt text)))
 
-  (define-c-proc bind-parameter!
-    (stmt::<odbc-stmt> index::<fixnum> value) ::<boolean>
-    (result (Sg_BindParameter stmt index value)))
+(define-c-proc fetch! (stmt::<odbc-stmt>) ::<boolean>
+  (result (Sg_Fetch stmt)))
 
-  (define-c-proc execute! (stmt::<odbc-stmt>) ::<boolean>
-    (result (Sg_Execute stmt)))
+(define-c-proc get-data (stmt::<odbc-stmt> index::<fixnum>)
+  (result (Sg_GetData stmt index)))
 
-  (define-c-proc execute-direct! (stmt::<odbc-stmt> text::<string>) ::<boolean>
-    (result (Sg_ExecuteDirect stmt text)))
+(define-c-proc row-count (stmt::<odbc-stmt>) ::<fixnum>
+  (result (Sg_RowCount stmt)))
 
-  (define-c-proc fetch! (stmt::<odbc-stmt>) ::<boolean>
-    (result (Sg_Fetch stmt)))
+(define-c-proc column-size (stmt::<odbc-stmt> index::<fixnum>) ::<fixnum>
+  (result (Sg_ColumnSize stmt index)))
 
-  (define-c-proc get-data (stmt::<odbc-stmt> index::<fixnum>)
-    (result (Sg_GetData stmt index)))
+(define-c-proc column-count (stmt::<odbc-stmt>) ::<fixnum>
+  (result (Sg_ColumnCount stmt)))
 
-  (define-c-proc row-count (stmt::<odbc-stmt>) ::<fixnum>
-    (result (Sg_RowCount stmt)))
+(define-c-proc result-columns (stmt::<odbc-stmt>)
+  (result (Sg_ResultColumns stmt)))
 
-  (define-c-proc column-size (stmt::<odbc-stmt> index::<fixnum>) ::<fixnum>
-    (result (Sg_ColumnSize stmt index)))
+(define-c-proc commit! (ctx::<odbc-ctx>) ::<boolean>
+  (result (Sg_Commit ctx)))
 
-  (define-c-proc column-count (stmt::<odbc-stmt>) ::<fixnum>
-    (result (Sg_ColumnCount stmt)))
+(define-c-proc rollback! (ctx::<odbc-ctx>) ::<boolean>
+  (result (Sg_Rollback ctx)))
 
-  (define-c-proc result-columns (stmt::<odbc-stmt>)
-    (result (Sg_ResultColumns stmt)))
+(define-c-proc odbc-env? (obj) ::<boolean>
+  (result (SG_ODBC_ENV_P obj)))
+(define-c-proc odbc-connection? (obj) ::<boolean>
+  (result (SG_ODBC_DBC_P obj)))
+(define-c-proc odbc-statement? (obj) ::<boolean>
+  (result (SG_ODBC_STMT_P obj)))
 
-  (define-c-proc commit! (ctx::<odbc-ctx>) ::<boolean>
-    (result (Sg_Commit ctx)))
+(define-type <odbc-date-date> "SgOdbcDate*")
+(define-type <odbc-date-time> "SgOdbcDate*")
+(define-type <odbc-date-timestamp> "SgOdbcDate*")
 
-  (define-c-proc rollback! (ctx::<odbc-ctx>) ::<boolean>
-    (result (Sg_Rollback ctx)))
+(define-c-proc odbc-date? (obj) ::<boolean>
+  (result (SG_ODBC_DATE_DATE_P obj)))
+(define-c-proc odbc-time? (obj) ::<boolean>
+  (result (SG_ODBC_DATE_TIME_P obj)))
+(define-c-proc odbc-timestamp? (obj) ::<boolean>
+  (result (SG_ODBC_DATE_TIMESTAMP_P obj)))
 
-  (define-c-proc odbc-env? (obj) ::<boolean>
-    (result (SG_ODBC_ENV_P obj)))
-  (define-c-proc odbc-connection? (obj) ::<boolean>
-    (result (SG_ODBC_DBC_P obj)))
-  (define-c-proc odbc-statement? (obj) ::<boolean>
-    (result (SG_ODBC_STMT_P obj)))
+;; accessors
+(define-c-proc odbc-date-year (date::<odbc-date-date>) ::<fixnum>
+  (result (ref (pointer date) data date year)))
 
-  (define-type <odbc-date-date> "SgOdbcDate*")
-  (define-type <odbc-date-time> "SgOdbcDate*")
-  (define-type <odbc-date-timestamp> "SgOdbcDate*")
+(define-c-proc odbc-date-month (date::<odbc-date-date>) ::<fixnum>
+  (result (ref (pointer date) data date month)))
 
-  (define-c-proc odbc-date? (obj) ::<boolean>
-    (result (SG_ODBC_DATE_DATE_P obj)))
-  (define-c-proc odbc-time? (obj) ::<boolean>
-    (result (SG_ODBC_DATE_TIME_P obj)))
-  (define-c-proc odbc-timestamp? (obj) ::<boolean>
-    (result (SG_ODBC_DATE_TIMESTAMP_P obj)))
+(define-c-proc odbc-date-day (date::<odbc-date-date>) ::<fixnum>
+  (result (ref (pointer date) data date day)))
 
-  ;; accessors
-  (define-c-proc odbc-date-year (date::<odbc-date-date>) ::<fixnum>
-    (result (ref (pointer date) data date year)))
+(define-c-proc odbc-time-hour (time::<odbc-date-time>) ::<fixnum>
+  (result (ref (pointer time) data time hour)))
 
-  (define-c-proc odbc-date-month (date::<odbc-date-date>) ::<fixnum>
-    (result (ref (pointer date) data date month)))
+(define-c-proc odbc-time-minute (time::<odbc-date-time>) ::<fixnum>
+  (result (ref (pointer time) data time minute)))
 
-  (define-c-proc odbc-date-day (date::<odbc-date-date>) ::<fixnum>
-    (result (ref (pointer date) data date day)))
+(define-c-proc odbc-time-second (time::<odbc-date-time>) ::<fixnum>
+  (result (ref (pointer time) data time second)))
 
-  (define-c-proc odbc-time-hour (time::<odbc-date-time>) ::<fixnum>
-    (result (ref (pointer time) data time hour)))
+(define-c-proc odbc-timestamp-year
+  (timestamp::<odbc-date-timestamp>) ::<fixnum>
+  (result (ref (pointer timestamp) data timestamp year)))
 
-  (define-c-proc odbc-time-minute (time::<odbc-date-time>) ::<fixnum>
-    (result (ref (pointer time) data time minute)))
+(define-c-proc odbc-timestamp-month
+  (timestamp::<odbc-date-timestamp>) ::<fixnum>
+  (result (ref (pointer timestamp) data timestamp month)))
 
-  (define-c-proc odbc-time-second (time::<odbc-date-time>) ::<fixnum>
-    (result (ref (pointer time) data time second)))
+(define-c-proc odbc-timestamp-day
+  (timestamp::<odbc-date-timestamp>) ::<fixnum>
+  (result (ref (pointer timestamp) data timestamp day)))
 
-  (define-c-proc odbc-timestamp-year
-    (timestamp::<odbc-date-timestamp>) ::<fixnum>
-    (result (ref (pointer timestamp) data timestamp year)))
+(define-c-proc odbc-timestamp-hour
+  (timestamp::<odbc-date-timestamp>) ::<fixnum>
+  (result (ref (pointer timestamp) data timestamp hour)))
 
-  (define-c-proc odbc-timestamp-month
-    (timestamp::<odbc-date-timestamp>) ::<fixnum>
-    (result (ref (pointer timestamp) data timestamp month)))
+(define-c-proc odbc-timestamp-minute 
+  (timestamp::<odbc-date-timestamp>) ::<fixnum>
+  (result (ref (pointer timestamp) data timestamp minute)))
 
-  (define-c-proc odbc-timestamp-day
-    (timestamp::<odbc-date-timestamp>) ::<fixnum>
-    (result (ref (pointer timestamp) data timestamp day)))
+(define-c-proc odbc-timestamp-second
+  (timestamp::<odbc-date-timestamp>) ::<fixnum>
+  (result (ref (pointer timestamp) data timestamp second)))
 
-  (define-c-proc odbc-timestamp-hour
-    (timestamp::<odbc-date-timestamp>) ::<fixnum>
-    (result (ref (pointer timestamp) data timestamp hour)))
-
-  (define-c-proc odbc-timestamp-minute 
-    (timestamp::<odbc-date-timestamp>) ::<fixnum>
-    (result (ref (pointer timestamp) data timestamp minute)))
-
-  (define-c-proc odbc-timestamp-second
-    (timestamp::<odbc-date-timestamp>) ::<fixnum>
-    (result (ref (pointer timestamp) data timestamp second)))
-
-  (define-c-proc odbc-timestamp-fraction
-    (timestamp::<odbc-date-timestamp>) ::<fixnum>
-    (result (ref (pointer timestamp) data timestamp fraction)))
-)
+(define-c-proc odbc-timestamp-fraction
+  (timestamp::<odbc-date-timestamp>) ::<fixnum>
+  (result (ref (pointer timestamp) data timestamp fraction)))

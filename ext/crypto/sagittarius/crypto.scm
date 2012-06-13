@@ -3,7 +3,6 @@
 ;;; crypto.scm Cryptographic library
 ;;; 
 ;;; This library is a wrapper for tomcrypto.
-(load-dynamic-library "sagittarius--crypto")
 (library (sagittarius crypto)
     (export crypto-object?
 	    cipher?
@@ -54,7 +53,9 @@
 	    <asymmetric-key>
 	    )
     (import (rnrs)
-	    (sagittarius crypto impl))
+	    (sagittarius))
+
+  (load-dynamic-library "sagittarius--crypto")
 
   (define-condition-type &crypto-error &error
     make-crypto-error crypto-error?)

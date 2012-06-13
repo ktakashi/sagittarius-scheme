@@ -28,7 +28,6 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-(load-dynamic-library "sagittarius--odbc")
 (library (odbc)
     (export create-odbc-env
 	    connect!
@@ -65,11 +64,10 @@
 	    ;; clos
 	    <odbc-ctx> <odbc-date>
 	    )
-    (import (odbc impl)
-	    (rnrs)
+    (import (rnrs)
 	    (sagittarius)
 	    (srfi :19 time))
-
+  (load-dynamic-library "sagittarius--odbc")
   (define (odbc-date->date date)
     (or (odbc-date? date)
 	(assertion-violation 'odbc-date->date

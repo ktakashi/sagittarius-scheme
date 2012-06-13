@@ -28,7 +28,6 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-(load-dynamic-library "sagittarius--socket")
 (library (sagittarius socket)
     (export make-client-socket
 	    make-server-socket
@@ -82,8 +81,9 @@
 	    )
     (import (core)
 	    (sagittarius)
-	    (sagittarius socket impl))
-
+	    #;(sagittarius socket impl)
+	    )
+  (load-dynamic-library "sagittarius--socket")
   (define call-with-socket
     (lambda (socket proc)
       (receive args (proc socket)

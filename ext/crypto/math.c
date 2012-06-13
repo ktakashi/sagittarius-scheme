@@ -36,15 +36,15 @@
 
 extern void Sg__InitHash(SgLibrary *lib);
 extern void Sg__InitPrng(SgLibrary *lib);
-extern void Sg__Init_sagittarius_math_impl();
+extern void Sg__Init_math_stub(SgLibrary *lib);
 
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__math()
 {
   SgLibrary *lib;
   SG_INIT_EXTENSION(sagittarius__math);
-  Sg__Init_sagittarius_math_impl();
 
-  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius math impl)"), FALSE));
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius math)"), FALSE));
+  Sg__Init_math_stub(lib);
 
   Sg__InitHash(lib);
   Sg__InitPrng(lib);

@@ -73,8 +73,8 @@
 	    )
     (import (rnrs)
 	    (sagittarius)
-	    (sagittarius control)
-	    (rfc zlib impl))
+	    (sagittarius control))
+  (load-dynamic-library "sagittarius--zlib")
 
   (define-condition-type &zlib-error &error make-zlib-error
     zlib-error?

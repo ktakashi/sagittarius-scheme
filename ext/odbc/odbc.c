@@ -525,36 +525,39 @@ int Sg_Rollback(SgObject ctx)
   return TRUE;
 }
 
-extern void Sg__Init_odbc_impl();
+extern void Sg__Init_odbc_stub(SgLibrary *lib);
 
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__odbc()
 {
   SgLibrary *lib;
-  SG_DECLARE_EXCEPTIONS("(odbc impl)", TRUE);
-  SgObject null_lib = Sg_FindLibrary(SG_INTERN("null"), FALSE);
-  SgObject parent = Sg_FindBinding(SG_LIBRARY(null_lib), SG_INTERN("&error"), SG_UNBOUND);
-  SgObject nullfield = Sg_MakeVector(0, SG_UNDEF);
-  SgObject parent_rtd = SG_FALSE, parent_rcd = SG_FALSE;
-
-  if (SG_UNBOUNDP(parent)) {
-    /* fail safe */
-    /* TODO should this be panic? */
-    parent = SG_FALSE;
-  } else {
-    parent = SG_GLOC_GET(SG_GLOC(parent));
-    parent_rtd = SG_RECORD_TYPE_RTD(parent);
-    parent_rcd = SG_RECORD_TYPE_RCD(parent);
-  }
-
   SG_INIT_EXTENSION(sagittarius__odbc);
-  Sg__Init_odbc_impl();
 
-  SG_INTERN__CONDITION_SIMPLE(&odbc_error, &odbc-error, parent_rtd, parent_rcd, nullfield);
-  SG_INTERN__CONDITION_CTR(&odbc_error, make-odbc-error);
-  SG_INTERN__CONDITION_PRED(&odbc_error, odbc-error?);
-  SG_SET_CONSTRUCTOR(odbc_error_ctr);
+  {
+    /* conditions */
+    SG_DECLARE_EXCEPTIONS("(odbc)", TRUE);
+    SgObject null_lib = Sg_FindLibrary(SG_INTERN("null"), FALSE);
+    SgObject parent = Sg_FindBinding(SG_LIBRARY(null_lib),
+				     SG_INTERN("&error"), SG_UNBOUND);
+    SgObject nullfield = Sg_MakeVector(0, SG_UNDEF);
+    SgObject parent_rtd = SG_FALSE, parent_rcd = SG_FALSE;
+    if (SG_UNBOUNDP(parent)) {
+      /* fail safe */
+      /* TODO should this be panic? */
+      parent = SG_FALSE;
+    } else {
+      parent = SG_GLOC_GET(SG_GLOC(parent));
+      parent_rtd = SG_RECORD_TYPE_RTD(parent);
+      parent_rcd = SG_RECORD_TYPE_RCD(parent);
+    }
+    SG_INTERN__CONDITION_SIMPLE(&odbc_error, &odbc-error,
+				parent_rtd, parent_rcd, nullfield);
+    SG_INTERN__CONDITION_CTR(&odbc_error, make-odbc-error);
+    SG_INTERN__CONDITION_PRED(&odbc_error, odbc-error?);
+    SG_SET_CONSTRUCTOR(odbc_error_ctr);
+  }
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(odbc)"), FALSE));
+  Sg__Init_odbc_stub(lib);
 
-  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(odbc impl)"), FALSE));
   Sg_InitStaticClassWithMeta(SG_CLASS_ODBC_CTX, UC("<odbc-ctx>"), lib, NULL,
 			     SG_FALSE, NULL, 0);
   Sg_InitStaticClassWithMeta(SG_CLASS_ODBC_DATE, UC("<odbc-date>"), lib, NULL,

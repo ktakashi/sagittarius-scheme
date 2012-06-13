@@ -328,18 +328,21 @@ unsigned long Sg_SysNanosleep(double v)
   }
 }
 
-extern void Sg__Init_sagittarius_threads_impl();
+extern void Sg__Init_threads_stub(SgLibrary *lib);
 SG_CDECL_BEGIN
-extern void Sg__InitMutex();
+extern void Sg__InitMutex(SgLibrary *lib);
 SG_CDECL_END
 
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__threads()
 {
+  SgLibrary *lib;
   SG_INIT_EXTENSION(sagittarius__threads);
-  Sg__InitMutex();
-  Sg__Init_sagittarius_threads_impl();
-  SG_PROCEDURE_NAME(&thread_error_handler_STUB)
-    = Sg_MakeString(UC("thread-exception-handler"), SG_LITERAL_STRING);
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius threads)"),
+				  FALSE));
+  Sg__InitMutex(lib);
+  Sg__Init_threads_stub(lib);
+  SG_PROCEDURE_NAME(&thread_error_handler_STUB) 
+    = SG_MAKE_STRING("thread-exception-handler");
   
 }
 

@@ -1,113 +1,108 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
-(library (sagittarius math impl)
-    (export :all)
-    (import :none)
+(decl-code
+ (.include <sagittarius.h>)
+ (.define "LIBSAGITTARIUS_EXT_BODY")
+ (.include <sagittarius/extend.h>
+	   "math.h"))
 
-  (decl-code
-   (.include <sagittarius.h>)
-   (.define "LIBSAGITTARIUS_EXT_BODY")
-   (.include <sagittarius/extend.h>
-	     "math.h"))
+(define-type <prng> "SgObject")
+(define-type <hash-algorithm> "SgObject")
 
-  (define-type <prng> "SgObject")
-  (define-type <hash-algorithm> "SgObject")
+(define-c-proc prng? (o) ::<boolean>
+  (result (SG_PRNGP o)))
 
-  (define-c-proc prng? (o) ::<boolean>
-    (result (SG_PRNGP o)))
+(define-c-proc pseudo-random? (o) ::<boolean>
+  (result (SG_PRNGP o)))
 
-  (define-c-proc pseudo-random? (o) ::<boolean>
-    (result (SG_PRNGP o)))
+(define-c-proc secure-random? (o) ::<boolean>
+  (result (and (SG_PRNGP o) (SG_SECURE_RANDOM_P o))))
 
-  (define-c-proc secure-random? (o) ::<boolean>
-    (result (and (SG_PRNGP o) (SG_SECURE_RANDOM_P o))))
+;; pseudo random
+(define-c-proc make-pseudo-random (name::<string> :optional (seed #f)) 
+  (unless (or (SG_FALSEP seed)
+	      (SG_BVECTORP seed))
+    (Sg_WrongTypeOfArgumentViolation 'make-pseudo-random
+				     (SG_MAKE_STRING "bytevector or #f")
+				     seed '()))
+  (result (Sg_MakePseudoRandom name seed)))
 
-  ;; pseudo random
-  (define-c-proc make-pseudo-random (name::<string> :optional (seed #f)) 
-    (unless (or (SG_FALSEP seed)
-		(SG_BVECTORP seed))
-      (Sg_WrongTypeOfArgumentViolation 'make-pseudo-random
-				       (SG_MAKE_STRING "bytevector or #f")
-				       seed '()))
-    (result (Sg_MakePseudoRandom name seed)))
+(define-c-proc make-secure-random (name::<string> bits::<fixnum>) 
+  (when (< bits 0)
+    (Sg_WrongTypeOfArgumentViolation 'make-secure-random
+				     (SG_MAKE_STRING "positive integer")
+				     (SG_MAKE_INT bits) '()))
+  (result (Sg_MakeSecureRandom name bits)))
 
-  (define-c-proc make-secure-random (name::<string> bits::<fixnum>) 
-    (when (< bits 0)
-      (Sg_WrongTypeOfArgumentViolation 'make-secure-random
-				       (SG_MAKE_STRING "positive integer")
-				       (SG_MAKE_INT bits) '()))
-    (result (Sg_MakeSecureRandom name bits)))
+(define-c-proc %random-seed-set! (prng::<prng> seed::<bytevector>) ::<void>
+  (Sg_SetSeed prng seed))
 
-  (define-c-proc %random-seed-set! (prng::<prng> seed::<bytevector>) ::<void>
-    (Sg_SetSeed prng seed))
+(define-c-proc read-sys-random (bits::<fixnum>) 
+  (result (Sg_ReadSysRandom bits)))
 
-  (define-c-proc read-sys-random (bits::<fixnum>) 
-    (result (Sg_ReadSysRandom bits)))
+(define-c-proc read-random-bytes (prng::<prng> size::<fixnum>) 
+  (when (<= size 0)
+    (Sg_WrongTypeOfArgumentViolation 'read-random-bytes
+				     (SG_MAKE_STRING "positive integer")
+				     (SG_MAKE_INT size) '()))
+  (result (Sg_ReadRandomBytes prng size)))
 
-  (define-c-proc read-random-bytes (prng::<prng> size::<fixnum>) 
-    (when (<= size 0)
-      (Sg_WrongTypeOfArgumentViolation 'read-random-bytes
-				       (SG_MAKE_STRING "positive integer")
-				       (SG_MAKE_INT size) '()))
-    (result (Sg_ReadRandomBytes prng size)))
+(define-c-proc register-prng (name clazz) ::<boolean>
+  (result (Sg_RegisterPrng name clazz)))
 
-  (define-c-proc register-prng (name clazz) ::<boolean>
-    (result (Sg_RegisterPrng name clazz)))
+(define-c-proc lookup-prng (name)
+  (result (Sg_LookupPrng name)))
 
-  (define-c-proc lookup-prng (name)
-    (result (Sg_LookupPrng name)))
+;; hash
+(define-c-proc hash-algorithm? (o) ::<boolean>
+  (result (SG_HASH_P o)))
 
-  ;; hash
-  (define-c-proc hash-algorithm? (o) ::<boolean>
-    (result (SG_HASH_P o)))
+(define-c-proc make-hash-algorithm (name::<string>) 
+  (result (Sg_MakeHash name)))
 
-  (define-c-proc make-hash-algorithm (name::<string>) 
-    (result (Sg_MakeHash name)))
+(define-c-proc hash-init! (h::<hash-algorithm>) ::<boolean>
+  (result (Sg_HashInit h)))
 
-  (define-c-proc hash-init! (h::<hash-algorithm>) ::<boolean>
-    (result (Sg_HashInit h)))
+(define-c-proc hash-process! (h::<hash-algorithm> in::<bytevector>) ::<void>
+  (Sg_HashProcess h in))
 
-  (define-c-proc hash-process! (h::<hash-algorithm> in::<bytevector>) ::<void>
-    (Sg_HashProcess h in))
+(define-c-proc hash-done! (h::<hash-algorithm> out::<bytevector>) ::<void>
+  (Sg_HashDone h out))
 
-  (define-c-proc hash-done! (h::<hash-algorithm> out::<bytevector>) ::<void>
-    (Sg_HashDone h out))
+(define-c-proc hash-size (h) 
+  (unless (or (SG_HASH_P h)
+	      (SG_STRINGP h))
+    (Sg_WrongTypeOfArgumentViolation 
+     'hash-oid
+     (SG_MAKE_STRING "<string> or <hash-algorithm> required")
+     h '()))
+  (when (SG_STRINGP h)
+    (set! h (Sg_MakeHash (SG_STRING h))))
+  (result (Sg_HashSize h)))
 
-  (define-c-proc hash-size (h) 
-    (unless (or (SG_HASH_P h)
-		(SG_STRINGP h))
-      (Sg_WrongTypeOfArgumentViolation 
-       'hash-oid
-       (SG_MAKE_STRING "<string> or <hash-algorithm> required")
-       h '()))
-    (when (SG_STRINGP h)
-      (set! h (Sg_MakeHash (SG_STRING h))))
-    (result (Sg_HashSize h)))
+(define-c-proc hash-block-size (h) 
+  (unless (or (SG_HASH_P h)
+	      (SG_STRINGP h))
+    (Sg_WrongTypeOfArgumentViolation 
+     'hash-oid
+     (SG_MAKE_STRING "<string> or <hash-algorithm> required")
+     h '()))
+  (when (SG_STRINGP h)
+    (set! h (Sg_MakeHash (SG_STRING h))))
+  (result (Sg_HashBlockSize h)))
 
-  (define-c-proc hash-block-size (h) 
-    (unless (or (SG_HASH_P h)
-		(SG_STRINGP h))
-      (Sg_WrongTypeOfArgumentViolation 
-       'hash-oid
-       (SG_MAKE_STRING "<string> or <hash-algorithm> required")
-       h '()))
-    (when (SG_STRINGP h)
-      (set! h (Sg_MakeHash (SG_STRING h))))
-    (result (Sg_HashBlockSize h)))
+(define-c-proc hash-oid (h)
+  (unless (or (SG_HASH_P h)
+	      (SG_STRINGP h))
+    (Sg_WrongTypeOfArgumentViolation 
+     'hash-oid
+     (SG_MAKE_STRING "<string> or <hash-algorithm> required")
+     h '()))
+  (when (SG_STRINGP h)
+    (set! h (Sg_MakeHash (SG_STRING h))))
+  (result (Sg_HashOid h)))
 
-  (define-c-proc hash-oid (h)
-    (unless (or (SG_HASH_P h)
-		(SG_STRINGP h))
-      (Sg_WrongTypeOfArgumentViolation 
-       'hash-oid
-       (SG_MAKE_STRING "<string> or <hash-algorithm> required")
-       h '()))
-    (when (SG_STRINGP h)
-      (set! h (Sg_MakeHash (SG_STRING h))))
-    (result (Sg_HashOid h)))
+(define-c-proc register-hash (name clazz) ::<boolean>
+  (result (Sg_RegisterHash name clazz)))
 
-  (define-c-proc register-hash (name clazz) ::<boolean>
-    (result (Sg_RegisterHash name clazz)))
-
-  (define-c-proc lookup-hash (name)
-    (result (Sg_LookupHash name)))
-)
+(define-c-proc lookup-hash (name)
+  (result (Sg_LookupHash name)))

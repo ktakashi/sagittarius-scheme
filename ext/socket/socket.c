@@ -534,7 +534,7 @@ void Sg_ShutdownPort(SgPort *port)
   }
 }
 
-extern void Sg__Init_sagittarius_socket_impl();
+extern void Sg__Init_socket_stub(SgLibrary *lib);
 
 #ifdef _WIN32
 static void finish_winsock(void *data)
@@ -552,9 +552,9 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
   Sg_AddCleanupHandler(finish_winsock, NULL);
 #endif
   SG_INIT_EXTENSION(sagittarius__socket);
-  Sg__Init_sagittarius_socket_impl();
-  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius socket impl)"),
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius socket)"),
 				  FALSE));
+  Sg__Init_socket_stub(lib);
 
   /* for multithreading issue, we do not add this cond-feature.
      we always support this anyway */

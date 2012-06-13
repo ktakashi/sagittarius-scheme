@@ -28,8 +28,6 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; load (sagittarius threads impl) library
-(load-dynamic-library "sagittarius--threads")
 (library (sagittarius threads)
     (export thread?
 	    make-thread
@@ -78,9 +76,8 @@
 	    )
     (import (core)
 	    (core syntax)
-	    (sagittarius)
-	    (sagittarius threads impl))
-
+	    (sagittarius))
+  (load-dynamic-library "sagittarius--threads")
   ;; NB: actually, we can make mutex recursively by default.
   ;;     I'm not sure if it's a good proposal or not, so for now,
   ;;     like this.

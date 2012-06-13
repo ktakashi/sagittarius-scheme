@@ -132,7 +132,11 @@
 				`(("$header$" . ,h-file)
 				  ("$stub-init$" . ,stub-func)
 				  ("$package-name$" . ,package-name)
-				  ("$flat-name$" . ,flat-name)))
+				  ("$flat-name$" . ,flat-name)
+				  ("$library-name$" .
+				   ,(if (eq? package-name library-name)
+					(string-append "(" library-name ")")
+					library-name))))
 	  (create-template-file stub-template stub-file 
 				`(("$stub-library-name$" . ,stub-library)
 				  ("$header$" . ,h-file)))

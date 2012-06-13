@@ -161,16 +161,17 @@ SgObject Sg_ZlibVersion()
   return z_version;
 }
 
-extern void Sg__Init_sagittarius_zlib();
+extern void Sg__Init_zlib_stub(SgLibrary *lib);
 
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__zlib()
 {
   SgLibrary *lib;
   SG_INIT_EXTENSION(sagittarius__zlib);
 
-  Sg__Init_sagittarius_zlib();
-  lib = SG_LIBRARY(Sg_FindLibrary(SG_SYMBOL(SG_INTERN("(sagittarius zlib)")),
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_SYMBOL(SG_INTERN("(rfc zlib)")),
 				  FALSE));
+  Sg__Init_zlib_stub(lib);
+
 #define insert_binding(v)				\
   Sg_MakeBinding(lib, SG_SYMBOL(SG_INTERN(#v)), SG_MAKE_INT(v), TRUE)
 

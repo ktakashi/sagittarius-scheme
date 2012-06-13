@@ -1,5 +1,6 @@
-(load-dynamic-library "$package-name$")
 (library $library-name$
     (export :all)
-    (import (rnrs))
+    (import (rnrs)
+	    (sagittarius))
+  (load-dynamic-library "$package-name$")
 )

@@ -1,87 +1,82 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
-(library (sagittarius crypto impl)
-    (export)
-    (import :null)
+(decl-code
+ (.include <sagittarius.h>)
+ (.define "LIBSAGITTARIUS_EXT_BODY")
+ (.include <sagittarius/extend.h>
+	   "crypto.h"))
 
-  (decl-code
-   (.include <sagittarius.h>)
-   (.define "LIBSAGITTARIUS_EXT_BODY")
-   (.include <sagittarius/extend.h>
-	     "crypto.h"))
+(define-type <cipher> "SgCipher*")
+(define-type <cipher-spi> "SgCipherSpi*")
+(define-type <key> "SgKey*")
+(define-type <builtin-symmetric-key> "SgBuiltinSymmetricKey*")
 
-  (define-type <cipher> "SgCipher*")
-  (define-type <cipher-spi> "SgCipherSpi*")
-  (define-type <key> "SgKey*")
-  (define-type <builtin-symmetric-key> "SgBuiltinSymmetricKey*")
+(define-c-proc crypto-object? (o) ::<boolean>
+  (result (Sg_TypeP o SG_CLASS_CRYPTO)))
 
-  (define-c-proc crypto-object? (o) ::<boolean>
-    (result (Sg_TypeP o SG_CLASS_CRYPTO)))
+(define-c-proc cipher? (o) ::<boolean>
+  (result (SG_CIPHERP o)))
 
-  (define-c-proc cipher? (o) ::<boolean>
-    (result (SG_CIPHERP o)))
+(define-c-proc key? (o) ::<boolean>
+  (result (Sg_TypeP o SG_CLASS_KEY)))
 
-  (define-c-proc key? (o) ::<boolean>
-    (result (Sg_TypeP o SG_CLASS_KEY)))
+;; key
+;; this is now generic
+;;(define-c-proc generate-secret-key (type::<string> key::<bytevector>) 
+;;    (result (Sg_GenerateSecretKey type key)))
 
-  ;; key
-  ;; this is now generic
-  ;;(define-c-proc generate-secret-key (type::<string> key::<bytevector>) 
-  ;;    (result (Sg_GenerateSecretKey type key)))
-
-  (define-c-proc make-builtin-cipher-spi
-    (name::<string> mode::<fixnum> key::<builtin-symmetric-key>
-		    iv rounds::<fixnum> padder ctr_mode::<fixnum>)
-    
-    (unless (or (SG_FALSEP iv)
-		(SG_BVECTORP iv))
-      (Sg_WrongTypeOfArgumentViolation 'make-builtin-cipher-spi
-				       (SG_MAKE_STRING "bytevector or #f")
-				       iv '()))
-    (unless (or (SG_FALSEP padder)
-		(SG_PROCEDUREP padder))
-      (Sg_WrongTypeOfArgumentViolation 'make-builtin-cipher-spi
-				       (SG_MAKE_STRING "procedure or #f")
-				       padder '()))
-    (result (Sg_MakeBuiltinCipherSpi name (cast SgCryptoMode mode)
-				     key iv rounds padder ctr_mode)))
-
-  (define-c-proc make-cipher (spi)
-    (unless (Sg_TypeP spi SG_CLASS_CIPHER_SPI)
-      (Sg_WrongTypeOfArgumentViolation 'make-cipher
-				       (SG_MAKE_STRING "<cipher-spi>")
-				       spi '()))
-    (result (Sg_MakeCipher spi)))
-
-  (define-c-proc encrypt (crypto::<cipher> pt::<bytevector>) 
-    (result (Sg_Encrypt crypto pt)))
-
-  (define-c-proc decrypt (crypto::<cipher> ct::<bytevector>) 
-    (result (Sg_Decrypt crypto ct)))
-
-  (define-c-proc suggest-keysize (name::<cipher> size::<fixnum>) ::<fixnum>
-    (result (Sg_SuggestKeysize name size)))
-
-  (define-c-proc cipher-blocksize (name::<cipher>) ::<fixnum>
-    (result (Sg_CipherBlockSize name)))
-
-  (define-c-proc cipher-iv (cipher::<cipher> :optional iv::<bytevector>)
-    (result SG_UNDEF)
-    (if (SG_UNBOUNDP iv)
-	(result (Sg_SlotRef (-> cipher spi) 'iv))
-	(Sg_SlotSet (-> cipher spi) 'iv iv)))
-
-  ;; sign
-  (define-c-proc sign (crypto::<cipher> data::<bytevector> :rest opt) 
-    (result (Sg_Signature crypto data opt)))
-
-  (define-c-proc verify 
-    (crypto::<cipher> M::<bytevector> S::<bytevector> :rest opt) 
-    (result (Sg_Verify crypto M S opt)))
-
-  (define-c-proc register-spi (name spi::<class>) ::<boolean>
-    (result (Sg_RegisterSpi name spi)))
-
-  (define-c-proc lookup-spi (name)
-    (result (Sg_LookupSpi name)))
+(define-c-proc make-builtin-cipher-spi
+  (name::<string> mode::<fixnum> key::<builtin-symmetric-key>
+		  iv rounds::<fixnum> padder ctr_mode::<fixnum>)
   
-  )
+  (unless (or (SG_FALSEP iv)
+	      (SG_BVECTORP iv))
+    (Sg_WrongTypeOfArgumentViolation 'make-builtin-cipher-spi
+				     (SG_MAKE_STRING "bytevector or #f")
+				     iv '()))
+  (unless (or (SG_FALSEP padder)
+	      (SG_PROCEDUREP padder))
+    (Sg_WrongTypeOfArgumentViolation 'make-builtin-cipher-spi
+				     (SG_MAKE_STRING "procedure or #f")
+				     padder '()))
+  (result (Sg_MakeBuiltinCipherSpi name (cast SgCryptoMode mode)
+				   key iv rounds padder ctr_mode)))
+
+(define-c-proc make-cipher (spi)
+  (unless (Sg_TypeP spi SG_CLASS_CIPHER_SPI)
+    (Sg_WrongTypeOfArgumentViolation 'make-cipher
+				     (SG_MAKE_STRING "<cipher-spi>")
+				     spi '()))
+  (result (Sg_MakeCipher spi)))
+
+(define-c-proc encrypt (crypto::<cipher> pt::<bytevector>) 
+  (result (Sg_Encrypt crypto pt)))
+
+(define-c-proc decrypt (crypto::<cipher> ct::<bytevector>) 
+  (result (Sg_Decrypt crypto ct)))
+
+(define-c-proc suggest-keysize (name::<cipher> size::<fixnum>) ::<fixnum>
+  (result (Sg_SuggestKeysize name size)))
+
+(define-c-proc cipher-blocksize (name::<cipher>) ::<fixnum>
+  (result (Sg_CipherBlockSize name)))
+
+(define-c-proc cipher-iv (cipher::<cipher> :optional iv::<bytevector>)
+  (result SG_UNDEF)
+  (if (SG_UNBOUNDP iv)
+      (result (Sg_SlotRef (-> cipher spi) 'iv))
+      (Sg_SlotSet (-> cipher spi) 'iv iv)))
+
+;; sign
+(define-c-proc sign (crypto::<cipher> data::<bytevector> :rest opt) 
+  (result (Sg_Signature crypto data opt)))
+
+(define-c-proc verify 
+  (crypto::<cipher> M::<bytevector> S::<bytevector> :rest opt) 
+  (result (Sg_Verify crypto M S opt)))
+
+(define-c-proc register-spi (name spi::<class>) ::<boolean>
+  (result (Sg_RegisterSpi name spi)))
+
+(define-c-proc lookup-spi (name)
+  (result (Sg_LookupSpi name)))
+

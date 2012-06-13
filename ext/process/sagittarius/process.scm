@@ -37,7 +37,6 @@
 ;;  process-wait -- wait for the process.
 ;;  run          -- convenient method
 ;;  create-process -- ditto
-(load-dynamic-library "sagittarius--process")
 (library (sagittarius process)
     (export make-process
 	    process?
@@ -55,8 +54,9 @@
 	    create-process
 	    )
     (import (core)
-	    (sagittarius threads)
-	    (sagittarius process impl))
+	    (sagittarius)
+	    (sagittarius threads))
+  (load-dynamic-library "sagittarius--process")
 
   (define (create-process name args :key (stdout #f)
 			                 (stderr #f)
