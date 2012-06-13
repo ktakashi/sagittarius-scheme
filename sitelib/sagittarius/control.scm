@@ -14,11 +14,13 @@
 	    dotimes
 	    dolist
 	    check-arg
-	    with-library)
+	    with-library
+	    unwind-protect)
     (import (core)
 	    (rename (only (core) define) (define define-with-key))
 	    (core base)
 	    (core errors)
+	    (core exceptions)
 	    (core syntax)
 	    (core misc)
 	    (match)
@@ -131,4 +133,14 @@
 	     (assertion-violation 'with-library
 				  "unbound variable" 'var))))))
 
+  (define-syntax unwind-protect
+    (lambda (x)
+      (syntax-case x ()
+	((_ body handler ...)
+	 #'(let ((h (lambda () handler ...)))
+	     (receive r (guard (e (else (h) (raise e))) body)
+	       (h)
+	       (apply values r))))
+	(_ (syntax-violation 'unwind-protect
+			     "malformed unwind-protect" (unwrap-syntax x))))))
 )

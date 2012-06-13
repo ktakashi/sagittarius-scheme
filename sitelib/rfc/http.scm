@@ -217,13 +217,11 @@
 				   (http-connection-server conn))
 			       port make-socket))
 	    (auth (invoke-auth-handler conn)))
-	(dynamic-wind
-	    (lambda () #t)
-	    (lambda () 
-	      (proc (transcoded-port (port-convert s)
-				     (make-transcoder (utf-8-codec) 'lf))
-		    auth))
-	    (lambda () (close-socket s))))))
+	(unwind-protect
+	 (proc (transcoded-port (port-convert s)
+				(make-transcoder (utf-8-codec) 'lf))
+	       auth)
+	 (close-socket s)))))
 
   (define (request-response method conn host request-uri
 			    sender receiver options enc)
