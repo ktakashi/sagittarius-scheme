@@ -1,3 +1,8 @@
+2012-06-14  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/bytevector.c (Sg_ByteVectorToInteger): improved
+	bytevector->integer performance.
+
 2012-06-12  Takashi Kato  <ktakashi@ymail.com>
 
 	* src/null.stub (get-string-all): Fixed to read all string. Enbuged

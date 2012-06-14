@@ -54,13 +54,14 @@
 	    (util port))
 
   ;; TODO should this get transcoder?
-  (define (file->list reader path)
+  (define (file->list reader path :key (transcoder (native-transcoder)))
     (call-with-input-file path
       (lambda (p)
-	(port->list reader p))))
+	(port->list reader p))
+      :transcoder transcoder))
 
   (define (file->string path)
-    (file->list get-string-all path))
+    (car (file->list get-string-all path)))
 
   (define (file->sexp-list path)
     (file->list read/ss path))

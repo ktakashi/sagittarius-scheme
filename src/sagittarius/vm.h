@@ -88,6 +88,7 @@ typedef struct SgCStackRec
 typedef struct SgContinucationRec
 {
   struct SgContinucationRec * prev;
+  struct SgContinucationRec * floating;
   SgContFrame *cont;
   SgObject     winders;
   SgCStack    *cstack;
@@ -98,6 +99,17 @@ typedef struct SgContinucationRec
 } SgContinuation;
 
 #define SG_CONTINUATION(obj)  ((SgContinuation*)obj)
+#define SG_VM_FLOATING_EP(vm)			\
+  ((vm)->escapePoint? (vm)->escapePoint->floating : (vm)->escapePointFloating)
+#define SG_VM_FLOATING_EP_SET(vm, ep)		\
+  do {						\
+    if ((vm)->escapePoint) {			\
+      (vm)->escapePoint->floating = (ep);	\
+    } else {					\
+      (vm)->escapePointFloating = (ep);		\
+    }						\
+  } while (0)
+
 
 typedef struct SgVMProfilerRec SgVMProfiler;
 
@@ -209,6 +221,7 @@ struct SgVMRec
   /* return point */
   SgCStack  *cstack;
   SgContinuation *escapePoint;
+  SgContinuation *escapePointFloating;
   SgVMEscapeReason escapeReason;
   void      *escapeData[2];
   SgObject   defaultEscapeHandler; /* for multi threading */

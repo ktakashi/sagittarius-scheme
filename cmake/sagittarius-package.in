@@ -42,7 +42,7 @@
 	    files))
 
 (define (create-template-file template dest parameters)
-  (let1 template (car (file->string template))
+  (let1 template (file->string template)
     (if (file-exists? dest)
 	(delete-file dest))
     (call-with-output-file dest

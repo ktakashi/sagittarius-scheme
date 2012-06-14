@@ -20,7 +20,6 @@
 	    (rename (only (core) define) (define define-with-key))
 	    (core base)
 	    (core errors)
-	    (core exceptions)
 	    (core syntax)
 	    (core misc)
 	    (match)
@@ -138,7 +137,10 @@
       (syntax-case x ()
 	((_ body handler ...)
 	 #'(let ((h (lambda () handler ...)))
-	     (receive r (guard (e (else (h) (raise e))) body)
+	     (receive r (with-error-handler
+			  (lambda (e) (h) (raise e))
+			  (lambda () body)
+			  #t)
 	       (h)
 	       (apply values r))))
 	(_ (syntax-violation 'unwind-protect

@@ -29,8 +29,7 @@
       947 953 967 971 977 983 991 997))
 
   ;; Miller Rabin primality test
-  (define-optional (is-prime? q (optional (k 50)
-					  (rand (secure-random RC4))))
+  (define (is-prime? q :optional (k 50) (rand (secure-random RC4)))
     (define (check-small-prime q)
       (let loop ((p *small-primes*))
 	(cond ((null? p) #f)
@@ -70,12 +69,14 @@
 			   #f
 			   (loop (+ i 1)))))))))))
 
-  (define-with-key (random-prime size :key (prng (secure-random RC4)))
+  (define (random-prime size :key (prng (secure-random RC4)))
     (let loop ()
       (let* ((bv (read-random-bytes prng size))
 	     (len (bytevector-length bv)))
-	(bytevector-u8-set! bv 0 (bitwise-ior (bytevector-u8-ref bv 0) #x80 #x40))
-	(bytevector-u8-set! bv (- len 1) (bitwise-ior (bytevector-u8-ref bv (- len 1)) #x01))
+	(bytevector-u8-set!
+	 bv 0 (bitwise-ior (bytevector-u8-ref bv 0) #x80 #x40))
+	(bytevector-u8-set!
+	 bv (- len 1) (bitwise-ior (bytevector-u8-ref bv (- len 1)) #x01))
 	(let ((ret (bytevector->integer bv)))
 	  (if (is-prime? ret)
 	      ret

@@ -30,6 +30,7 @@
 	    load-dynamic-library
 	    sagittarius-version
 	    report-error
+	    describe-condition
 
 	    interned-symbol?
 	    ;; string
@@ -335,6 +336,8 @@
   (define-c-proc report-error (e) ::<void>
     (Sg_ReportError e))
 
+  (define-c-proc describe-condition (e) Sg_DescribeCondition)
+
   (define-c-proc interned-symbol? (s) ::<boolean>
     (result (SG_INTERNED_SYMBOL s)))
 
@@ -509,10 +512,10 @@
     (result (Sg_MakeIntegerU (Sg_EqvHash o))))
 
   ;; error
-  (define-c-proc with-error-handler (handler thunk :optional (rewindBefore #f))
-    ::<top>
-    (result (Sg_VMWithErrorHandler handler thunk 
-				   (not (SG_FALSEP rewindBefore)))))
+  (define-c-proc with-error-handler
+    (handler::<procedure> thunk::<procedure>
+			  :optional (rewindBefore::<boolean> #f))
+    (result (Sg_VMWithErrorHandler handler thunk rewindBefore)))
 
   ;; io
   (define-cise-stmt check-input-port
@@ -940,24 +943,12 @@
     (result (SG_WEAK_HASHTABLE_P o)))
 
   (define-c-proc weak-hashtable-ref (wh::<weak-hashtable> key fallback)
-    #;(unless (SG_PTRP key)
-      (Sg_ImplementationRestrictionViolation
-       'weak-hashtable-ref (SG_MAKE_STRING "key must be non fixed value object")
-       key))
     (result (Sg_WeakHashTableRef wh key fallback)))
 
   (define-c-proc weak-hashtable-set! (wh::<weak-hashtable> key value) ::<void>
-    #;(unless (SG_PTRP key)
-      (Sg_ImplementationRestrictionViolation
-       'weak-hashtable-ref (SG_MAKE_STRING "key must be non fixed value object")
-       key))
     (Sg_WeakHashTableSet wh key value 0))
 
   (define-c-proc weak-hashtable-delete! (wh::<weak-hashtable> key) ::<void>
-    #;(unless (SG_PTRP key)
-      (Sg_ImplementationRestrictionViolation
-       'weak-hashtable-ref (SG_MAKE_STRING "key must be non fixed value object")
-       key))
     (Sg_WeakHashTableDelete wh key))
 
   (define-c-proc weak-hashtable-keys-list (wh::<weak-hashtable>)

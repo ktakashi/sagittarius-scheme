@@ -823,10 +823,38 @@ SgObject Sg_ByteVectorToInteger(SgByteVector *bv, int start, int end)
   int len = SG_BVECTOR_SIZE(bv), i;
   SgObject ans = SG_MAKE_INT(0);
   SG_CHECK_START_END(start, end, len);
-  for (i = end; start < i; i--) {
-    SgObject tmp = Sg_Ash(SG_MAKE_INT(SG_BVECTOR_ELEMENT(bv, i-1)), 
-			  ((len-i) << 3));
-    ans = Sg_Add(ans, tmp);
+
+  /*
+    We can make bignum directly if we see the given bytevector's size.
+   */
+  if (len > SIZEOF_LONG ||
+      (len == SIZEOF_LONG && SG_BVECTOR_ELEMENT(bv, 0) > 0x1F)) {
+    /* bignum
+       the bignum's elements is reversed order, so if given bytevector is
+       #vu(#x1F #xFF #xFF #xFF #x01) then the elements must be like this
+       e[0] = 0xFFFFFF01
+       e[1] = 0x1F.
+     */
+    int bignum_size = (int)ceil((double)len/SIZEOF_LONG), i, pos;
+    ans = Sg_MakeBignumWithSize(bignum_size, 0);
+    for (i = 0, pos = len-1; i < bignum_size; i++, pos -= SIZEOF_LONG) {
+      /* resolve bytevector with reverse order */
+      unsigned long e = 0;
+      int j;
+      for (j = 0; j < SIZEOF_LONG; j++) {
+	if (pos-j < 0) break;
+	e += SG_BVECTOR_ELEMENT(bv, pos-j) << (j<<3);
+      }
+      SG_BIGNUM(ans)->elements[i] = e;
+    }
+    ans = Sg_NormalizeBignum(SG_BIGNUM(ans));
+  } else {
+    /* the result will be fixnum. */
+    unsigned long lans = 0;
+    for (i = end; start < i; i--) {
+      lans += SG_BVECTOR_ELEMENT(bv, i-1) << ((len-i)<<3);
+    }
+    ans = Sg_MakeIntegerU(lans);
   }
   return ans;
 }

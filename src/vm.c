@@ -399,7 +399,8 @@ void Sg_ReportError(SgObject e)
   SgVM *vm = Sg_VM();
 
   if (SG_VM_RUNTIME_FLAG_IS_SET(vm, SG_ERROR_BEING_REPORTED)) {
-    Sg_Abort("Unhandled error occurred during reporting an error. Process aborted.\n");
+    Sg_Abort("Unhandled error occurred during reporting an error."
+	     " Process aborted.\n");
   }
   SG_VM_RUNTIME_FLAG_SET(vm, SG_ERROR_BEING_REPORTED);
   SG_UNWIND_PROTECT {
@@ -1020,9 +1021,10 @@ static SgObject handler_body(SgObject *args, int argc, void *data)
   SgObject save = vm->exceptionHandler;
   SgObject parent = SG_CAR(SG_OBJ(data));
   SgObject handler = SG_CDR(SG_OBJ(data));
-  SgObject before  = Sg_MakeSubr(install_xhandler, parent, 0, 0, SG_INTERN("install-xhandler(body-before)"));
-  SgObject after   = Sg_MakeSubr(install_xhandler, save, 0, 0, SG_INTERN("install-xhandler(body-after)"));
-  SgObject thunk   = Sg_MakeSubr(handler_runner, Sg_Cons(handler, args[0]), 0, 0, SG_INTERN("handler-body"));
+  SgObject before  = Sg_MakeSubr(install_xhandler, parent, 0, 0, SG_FALSE);
+  SgObject after   = Sg_MakeSubr(install_xhandler, save, 0, 0, SG_FALSE);
+  SgObject thunk   = Sg_MakeSubr(handler_runner, Sg_Cons(handler, args[0]),
+				 0, 0, SG_FALSE);
   return Sg_VMDynamicWind(before, thunk, after);
 }
 
@@ -1032,9 +1034,13 @@ SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk)
   SgObject parent = vm->exceptionHandler;
   SgObject psave  = vm->parentExHandler;
   SgObject csave  = vm->exceptionHandler;
-  SgObject new_current = Sg_MakeSubr(handler_body, Sg_Cons(parent, handler), 1, 0, SG_INTERN("new-current"));
-  SgObject before      = Sg_MakeSubr(install_xhandler, Sg_Cons(parent, new_current), 0, 0, SG_INTERN("install-xhandler(with-before)"));
-  SgObject after       = Sg_MakeSubr(install_xhandler, Sg_Cons(psave, csave), 0, 0, SG_INTERN("install-xhandler(with-after)"));
+  SgObject new_current = Sg_MakeSubr(handler_body, Sg_Cons(parent, handler),
+				     1, 0, SG_FALSE);
+  SgObject before      = Sg_MakeSubr(install_xhandler,
+				     Sg_Cons(parent, new_current),
+				     0, 0, SG_FALSE);
+  SgObject after       = Sg_MakeSubr(install_xhandler, Sg_Cons(psave, csave),
+				     0, 0, SG_FALSE);
   return Sg_VMDynamicWind(before, thunk, after);
 }
 
@@ -1074,6 +1080,7 @@ static SgObject with_error_handler(SgObject handler, SgObject thunk,
   c->winders = vm->dynamicWinders;
   c->cstack = vm->cstack;
   c->cont = vm->cont;
+  c->floating = SG_VM_FLOATING_EP(vm);
   c->errorReporting = SG_VM_RUNTIME_FLAG_IS_SET(vm, SG_ERROR_BEING_REPORTED);
   c->rewindBefore = rewindBefore;
 
@@ -1176,6 +1183,11 @@ static void save_cont(SgVM *vm)
     }
   }
   for (ep = vm->escapePoint; ep; ep = ep->prev) {
+    if (FORWARDED_CONT_P(ep->cont)) {
+      ep->cont = FORWARDED_CONT(ep->cont);
+    } 
+  }
+  for (ep = SG_VM_FLOATING_EP(vm); ep; ep = ep->floating) {
     if (FORWARDED_CONT_P(ep->cont)) {
       ep->cont = FORWARDED_CONT(ep->cont);
     } 
@@ -1537,7 +1549,8 @@ SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
 					       Sg_MakeIrritantsCondition(SG_LIST1(exception)))));
       }
       vm->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
-      Sg_Error(UC("error in raise: returned from non-continuable exception\n\nirritants:\n%A"), exception);
+      Sg_Error(UC("error in raise: returned from non-continuable exception\n\n"
+		  "irritants:\n%A"), exception);
     }
   }
   Sg_VMDefaultExceptionHandler(exception);
@@ -1570,6 +1583,8 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
       }
     }
     vm->escapePoint = c->prev;
+    SG_VM_FLOATING_EP_SET(vm, c);
+
     SG_UNWIND_PROTECT {
       result = Sg_Apply1(c->ehandler, e);
       if (!c->rewindBefore) {
@@ -1583,11 +1598,13 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
       }
     }
     SG_WHEN_ERROR {
+      SG_VM_FLOATING_EP_SET(vm, c->floating);
       SG_NEXT_HANDLER;
     }
     SG_END_PROTECT;
     vm->ac = result;
     vm->cont = c->cont;
+    SG_VM_FLOATING_EP_SET(vm, c->floating);
     if (c->errorReporting) {
       SG_VM_RUNTIME_FLAG_SET(vm, SG_ERROR_BEING_REPORTED);
     }

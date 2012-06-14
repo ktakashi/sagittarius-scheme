@@ -17,6 +17,14 @@
 (test-equal "bytevector->integer"
 	    #x12345678
 	    (bytevector->integer #vu8(#x12 #x34 #x56 #x78)))
+;; make result bignum
+(test-equal "bytevector->integer"
+	    #x1234567890
+	    (bytevector->integer #vu8(#x12 #x34 #x56 #x78 #x90)))
+(test-equal "bytevector->integer"
+	    #x1234567890abcdef1234567890abcdef
+	    (bytevector->integer #vu8(#x12 #x34 #x56 #x78 #x90 #xab #xcd #xef
+				      #x12 #x34 #x56 #x78 #x90 #xab #xcd #xef)))
 
 (test-equal "integer->bytevector"
 	    #vu8(#x12 #x34 #x56 #x78)
