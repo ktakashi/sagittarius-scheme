@@ -38,16 +38,14 @@
 /* from mosh */
 static const wchar_t* utf32ToUtf16(SgString *path)
 {
-  int size = SG_STRING_SIZE(path), i;
+  int size = SG_STRING_SIZE(path);
   SgPort *out = Sg_MakeByteArrayOutputPort(sizeof(wchar_t) * (size + 1));
   SgCodec *codec = Sg_MakeUtf16Codec(UTF_16LE);
   SgTranscoder *tcoder = Sg_MakeTranscoder(codec, LF, SG_REPLACE_ERROR);
-  const SgChar *s = SG_STRING_VALUE(path);
+  SgPort *tp = Sg_MakeTranscodedOutputPort(out, tcoder);
 
-  for (i = 0; i < size; i++) {
-    tcoder->putChar(tcoder, out, s[i]);
-  }
-  tcoder->putChar(tcoder, out, '\0');
+  Sg_TranscoderWrite(tcoder, tp, SG_STRING_VALUE(path), SG_STRING_SIZE(path));
+  Sg_TranscoderPutc(tcoder, tp, '\0');
   return (const wchar_t*)Sg_GetByteArrayFromBinaryPort(out);
 }
 

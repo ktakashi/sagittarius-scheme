@@ -111,9 +111,9 @@ IF(USE_BOEHM_GC)
       # download boehm gc
       # we need to use CMake conformed one, so the latest 7.2alpha6
       IF (MSVC OR WATCOM)
-	SET(USED_GC_VERSION "gc-7.2alpha6")
+	SET(USED_GC_VERSION "gc-7.2")
       ELSE()
-	SET(USED_GC_VERSION "gc-7.1")
+	SET(USED_GC_VERSION "gc-7.2")
       ENDIF()
       FIND_FILE(HAS_BOEHM_GC_TAR
 	NAMES gc.tar.gz
@@ -133,7 +133,7 @@ IF(USE_BOEHM_GC)
 	MESSAGE(FATAL_ERROR "First install Boehm GC. Go to gc directory.")
       ENDIF()
 
-      ADD_SUBDIRECTORY(${USED_GC_VERSION} build/gc)
+      ADD_SUBDIRECTORY(${CMAKE_CURRENT_BINARY_DIR}/${USED_GC_VERSION} build/gc)
       INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/${USED_GC_VERSION}/include)
       SET(HAVE_GC_H 1)
       SET(GC_DEPENDS_TARGET gcmt-dll)
@@ -336,6 +336,7 @@ ADD_CUSTOM_TARGET(uninstall
 ADD_CUSTOM_TARGET(test
   COMMAND ${PROJECT_BINARY_DIR}/build/sash
           -D${PROJECT_BINARY_DIR}/build
+	  -D${PROJECT_BINARY_DIR}/build/modules
 	  run-test.scm
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 

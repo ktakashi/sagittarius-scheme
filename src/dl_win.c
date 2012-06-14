@@ -33,36 +33,17 @@
 #include "sagittarius/codec.h"
 #include "sagittarius/port.h"
 
-/* the same as os/win/file.c 
-   TODO: i don't want to put this here
- */
-static const wchar_t* utf32ToUtf16(const SgChar *s)
-{
-  int size = ustrlen(s), i;
-  SgPort *out = Sg_MakeByteArrayOutputPort(sizeof(wchar_t) * (size + 1));
-  SgCodec *codec = Sg_MakeUtf16Codec(UTF_16LE);
-  SgTranscoder *tcoder = Sg_MakeTranscoder(codec, LF, SG_REPLACE_ERROR);
-  
-  for (i = 0; i < size; i++) {
-    tcoder->putChar(tcoder, out, s[i]);
-  }
-  tcoder->putChar(tcoder, out, '\0');
-  return (const wchar_t*)Sg_GetByteArrayFromBinaryPort(out);
-}
-
+#include "os/win/win_util.c"
 
 static void* dl_open(const SgString *path)
 {
-  const wchar_t *xpath = utf32ToUtf16(SG_STRING_VALUE(path));
+  const wchar_t *xpath = utf32ToUtf16(path);
   void *result;
   /* TODO: seeing Boehm GC's GC_dlopen, it's actually collecting some,
      before stop GC to make some space for loading. maybe we need to do
      the same.
    */
-  /* disable GC */
-  GC_disable();
   result = (void*)LoadLibraryW(xpath);
-  GC_enable();
   return result;
 }
 

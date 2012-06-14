@@ -31,17 +31,17 @@
  */
 #include <windows.h>
 
-static wchar_t* utf32ToUtf16(const SgChar *s)
+static wchar_t* utf32ToUtf16(SgString *path)
 {
-  int size = ustrlen(s), i;
-  SgPort *out = SG_PORT(Sg_MakeByteArrayOutputPort(sizeof(wchar_t) * (size + 1)));
+  int size = SG_STRING_SIZE(path);
+  SgPort *out = SG_PORT(Sg_MakeByteArrayOutputPort(sizeof(wchar_t)*(size + 1)));
   SgCodec *codec = SG_CODEC(Sg_MakeUtf16Codec(UTF_16LE));
-  SgTranscoder *tcoder = SG_TRANSCODER(Sg_MakeTranscoder(codec, LF, SG_REPLACE_ERROR));
-  
-  for (i = 0; i < size; i++) {
-    tcoder->putChar(tcoder, out, s[i]);
-  }
-  tcoder->putChar(tcoder, out, '\0');
+  SgTranscoder *tcoder = SG_TRANSCODER(Sg_MakeTranscoder(codec, LF,
+							 SG_REPLACE_ERROR));
+  SgPort *tp = SG_PORT(Sg_MakeTranscodedOutputPort(out, tcoder));
+
+  Sg_TranscoderWrite(tcoder, tp, SG_STRING_VALUE(path), SG_STRING_SIZE(path));
+  Sg_TranscoderPutc(tcoder, tp, '\0');
   return (wchar_t*)Sg_GetByteArrayFromBinaryPort(out);
 }
 
@@ -97,7 +97,7 @@ SgObject Sg_MakeProcess(SgString *name, SgObject commandLine)
   sysfunc = UC("CreateProcess");
 
   if (CreateProcessW(NULL,
-		     utf32ToUtf16(SG_STRING_VALUE(command)),
+		     utf32ToUtf16(command),
 		     NULL, NULL,
 		     TRUE,
 		     CREATE_SUSPENDED, /* process must be invoked manually */

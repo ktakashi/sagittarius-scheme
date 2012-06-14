@@ -111,7 +111,9 @@ TARGET_LINK_LIBRARIES(sash sagittarius)
 # copy gcmt-dll.dll to build
 IF (MSVC OR WATCOM)
   ADD_CUSTOM_TARGET(copy-gc-dll
-    COMMAND copy .\\build\\gc\\gcmt-dll.dll .\\build
+    COMMAND ${CMAKE_COMMAND} -E copy 
+    	      ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gc/gcmt-dll.dll
+    	      ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gcmt-dll.dll
     DEPENDS ${GC_DEPENDS_TARGET}
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
   ADD_DEPENDENCIES(sash copy-gc-dll)

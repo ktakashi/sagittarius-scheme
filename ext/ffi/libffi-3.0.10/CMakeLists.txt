@@ -8,10 +8,12 @@ project(libffi)
 message(STATUS "Processor name: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 message(STATUS "Host system name: ${CMAKE_HOST_SYSTEM_NAME}")
 
+message(STATUS "Checking endianness")
 include(TestBigEndian)
 include(CheckCSourceCompiles)
 TEST_BIG_ENDIAN(WORDS_BIGENDIAN)
 
+message(STATUS "Checking header files")
 CHECK_INCLUDE_FILE(strings.h HAVE_STRINGS_H)
 CHECK_INCLUDE_FILE(sys/mman.h HAVE_SYS_MMAN_H)
 CHECK_INCLUDE_FILE(sys/stat.h HAVE_SYS_STAT_H)
@@ -20,17 +22,19 @@ CHECK_INCLUDE_FILE(unistd.h HAVE_UNISTD_H)
 CHECK_INCLUDE_FILE(inttypes.h HAVE_INTTYPES_H)
 CHECK_INCLUDE_FILE(memory.h HAVE_MEMORY_H)
 
+message(STATUS "Checking header functions")
 CHECK_FUNCTION_EXISTS(mmap HAVE_MMAP)
 CHECK_FUNCTION_EXISTS(memcpy HAVE_MEMCPY)
 
 CHECK_C_SOURCE_COMPILES("asm (\".cfi_startproc\n\t.cif_endproc\")" HAVE_AS_CFI_PSEUDO_OP)
 
 if (MSVC)
+  message(STATUS "Using MSVS MASM")
   enable_language(ASM_MASM)
   # somehow cmake failed to invoke try_comple.
   set(asm_file_ext ".asm")
-  #set(asm_file_ext ".c")
 else()
+  message(STATUS "Using ASM")
   enable_language(ASM)
   set(asm_file_ext ".s")
 endif()
