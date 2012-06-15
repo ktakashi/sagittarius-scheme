@@ -67,7 +67,8 @@
     ))
 
   (define (base64-decode-string string
-				:key (transcoder (native-transcoder)))
+				:key (transcoder (make-transcoder 
+						  (utf-8-codec) 'none)))
       (or (string? string)
 	  (assertion-violation 'base64-decode-string
 			       (format "string required, but got ~s" string)
@@ -126,7 +127,8 @@
       (d0 (get-u8 in))))    
 
   (define (base64-encode-string string :key
-				(transcoder (native-transcoder))
+				(transcoder (make-transcoder 
+					     (utf-8-codec) 'none))
 				(line-width 76))
     (or (string? string)
 	(assertion-violation 'base64-encode-string

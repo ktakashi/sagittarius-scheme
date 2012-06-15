@@ -229,7 +229,6 @@ struct SgVMRec
   SgObject   error;
 
   /* libraries */
-  SgHashTable *libraries;
   SgLibrary   *currentLibrary;
   /* dynamic winders */
   SgObject    dynamicWinders;
@@ -307,8 +306,6 @@ typedef enum {
 #define SG_VM_IS_SET_FLAG(vm, flag) (((vm)->flags & (flag)))
 
 #define SG_VM_LOG_LEVEL(vm, level)  (((vm)->flags & SG_LOG_LEVEL_MASK) >= level)
-
-#define SG_VM_LIBRARIES(vm)         ((vm)->libraries)
 
 #define PC(vm)             (vm)->pc
 #define AC(vm)             (vm)->ac

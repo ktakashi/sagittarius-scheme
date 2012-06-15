@@ -162,7 +162,6 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->cont = (SgContFrame *)v->sp;
   v->ac = SG_NIL;
   v->cl = NULL;
-  /* v->fpOffset = 0; */
 
   v->attentionRequest = FALSE;
   v->finalizerPending = FALSE;
@@ -187,7 +186,6 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   /* from proto */
   /* if proto was NULL, this will be initialized Sg__InitVM */
   v->currentLoadPath = SG_FALSE; /* should this be inherited from proto? */
-  v->libraries = proto ? proto->libraries : SG_UNDEF;
   if (proto) {
     SgObject nl = 
       Sg_MakeChildLibrary(v, Sg_MakeSymbol(SG_MAKE_STRING("child"), FALSE));
@@ -2110,7 +2108,6 @@ void Sg__InitVM()
 #endif
   Sg_SetCurrentThread(&rootVM->thread);
   rootVM->threadState = SG_VM_RUNNABLE;
-  rootVM->libraries = Sg_MakeHashTableSimple(SG_HASH_EQ, 64);
   rootVM->currentLibrary = Sg_FindLibrary(SG_INTERN("user"), TRUE);
 
   /* load path */

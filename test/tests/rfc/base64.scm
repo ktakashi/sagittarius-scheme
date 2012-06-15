@@ -18,13 +18,7 @@
 
 (test-equal "base64 encode long"
 	    *encoded-long-string* 
-	    (base64-encode-string *long-string*
-				  :transcoder
-				  (cond-expand
-				   (sagittarius.os.windows
-				    (make-transcoder (utf-8-codec) 'lf))
-				   (else
-				    (native-transcoder)))))
+	    (base64-encode-string *long-string*))
 (test-equal "base64 decode long"
 	    *long-string* (base64-decode-string *encoded-long-string*))
 

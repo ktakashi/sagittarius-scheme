@@ -133,8 +133,34 @@ static SgSymbol* convert_name_to_symbol(SgObject name)
   return SG_UNDEF;		/* dummy */
 }
 
-static SgInternalMutex mutex;
-static SgInternalMutex cacheLock;
+/* 
+   All libraries are stored here.
+ */
+static struct
+{
+  SgHashTable *libraries;
+  SgInternalMutex mutex;
+} libraries = { SG_OBJ(SG_UNDEF), };
+
+#define ALL_LIBRARIES      libraries.libraries
+#define MUTEX              libraries.mutex
+#define LOCK_LIBRARIES()   Sg_LockMutex(&MUTEX)
+#define UNLOCK_LIBRARIES() Sg_UnlockMutex(&MUTEX)
+
+
+static void add_library(SgLibrary *lib)
+{
+  LOCK_LIBRARIES();
+  Sg_HashTableSet(ALL_LIBRARIES, lib->name, lib, SG_HASH_NO_OVERWRITE);
+  UNLOCK_LIBRARIES();
+}
+
+static void remove_library(SgLibrary *lib)
+{
+  LOCK_LIBRARIES();
+  Sg_HashTableDelete(ALL_LIBRARIES, SG_LIBRARY_NAME(lib));
+  UNLOCK_LIBRARIES();
+}
 
 SgObject Sg_MakeLibrary(SgObject name)
 {
@@ -146,9 +172,7 @@ SgObject Sg_MakeLibrary(SgObject name)
   z->name = convert_name_to_symbol(SG_CAR(id_version));
   z->version = SG_CDR(id_version);
 
-  Sg_LockMutex(&mutex);
-  Sg_HashTableSet(SG_VM_LIBRARIES(vm), z->name, z, SG_HASH_NO_OVERWRITE);
-  Sg_UnlockMutex(&mutex);
+  add_library(z);
 
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
     Sg_Printf(vm->logPort, UC(";; library %S has been created\n"), name);
@@ -168,18 +192,13 @@ SgObject Sg_MakeChildLibrary(SgVM *vm, SgObject name)
   SgLibrary *z = make_library();
   z->name = name;
   z->version = SG_FALSE;
-  Sg_LockMutex(&mutex);
-  Sg_HashTableSet(SG_VM_LIBRARIES(vm), z->name, z, SG_HASH_NO_OVERWRITE);
-  Sg_UnlockMutex(&mutex);
+  add_library(z);
   return z;
 }
 
 void Sg_RemoveLibrary(SgLibrary *lib)
 {
-  SgVM *vm = Sg_VM();
-  Sg_LockMutex(&mutex);
-  Sg_HashTableDelete(SG_VM_LIBRARIES(vm), SG_LIBRARY_NAME(lib));
-  Sg_UnlockMutex(&mutex);
+  remove_library(lib);
 }
 
 static SgString* encode_string(SgString *s, int keywordP)
@@ -277,7 +296,6 @@ static SgObject search_library(SgObject name, int onlyPath)
   SgString *path = library_name_to_path(name);
   SgObject ext, libname;
   SgVM *vm = Sg_VM();
-  SgHashTable *libraries;
   /* initialize extentions */
   if (extentions == NULL) {
     /* we don't have to care about multithread here. */
@@ -302,7 +320,6 @@ static SgObject search_library(SgObject name, int onlyPath)
     }
   }
  goal:
-  libraries = SG_VM_LIBRARIES(vm);
   libname = convert_name_to_symbol(name);
   /* this must creates a new library */
   if (Sg_FileExistP(path)) {
@@ -310,10 +327,10 @@ static SgObject search_library(SgObject name, int onlyPath)
     SgObject lib;
     /* once library is created, then it must not be re-created.
        so we need to get lock for reading cache. */
-    Sg_LockMutex(&cacheLock);
-    lib = Sg_HashTableRef(libraries, libname, SG_FALSE);
+    LOCK_LIBRARIES();
+    lib = Sg_HashTableRef(ALL_LIBRARIES, libname, SG_FALSE);
     if (!SG_FALSEP(lib)) {
-      Sg_UnlockMutex(&cacheLock);
+      UNLOCK_LIBRARIES();
       return lib;
     }
     state = Sg_ReadCache(path);
@@ -335,12 +352,12 @@ static SgObject search_library(SgObject name, int onlyPath)
       /* restore state */
       vm->state = save;
     }
-    Sg_UnlockMutex(&cacheLock);
+    UNLOCK_LIBRARIES();
   } else {
     /* first creation or no file. */
     return SG_FALSE;
   }
-  return Sg_HashTableRef(libraries, libname, SG_FALSE);
+  return Sg_HashTableRef(ALL_LIBRARIES, libname, SG_FALSE);
 }
 
 /* for cache */
@@ -353,8 +370,6 @@ SgObject Sg_SearchLibraryPath(SgObject name)
 
 SgObject Sg_FindLibrary(SgObject name, int createp)
 {
-  SgVM *vm = Sg_VM();
-  SgHashTable *libraries = SG_VM_LIBRARIES(vm);
   SgObject lib;
   SgObject id_version;
 
@@ -363,8 +378,8 @@ SgObject Sg_FindLibrary(SgObject name, int createp)
     return name;
   }
   id_version = library_name_to_id_version(name);
-  lib = Sg_HashTableRef(libraries, convert_name_to_symbol(SG_CAR(id_version)),
-			SG_FALSE);
+  lib = Sg_HashTableRef(ALL_LIBRARIES,
+			convert_name_to_symbol(SG_CAR(id_version)), SG_FALSE);
   /* TODO check version number */
   if (SG_FALSEP(lib)) {
     if (createp) {
@@ -749,8 +764,8 @@ void Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value_or_gloc)
 
 void Sg__InitLibrary()
 {
-  Sg_InitMutex(&mutex, TRUE);
-  Sg_InitMutex(&cacheLock, TRUE);
+  Sg_InitMutex(&MUTEX, TRUE);
+  ALL_LIBRARIES = Sg_MakeHashTableSimple(SG_HASH_EQ, 1024);
 }
 
 /*

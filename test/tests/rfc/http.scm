@@ -96,9 +96,7 @@
 		      (unless (string=? method "HEAD")
 			(write `(("method" ,method)
 				 ("request-uri" ,request-uri)
-				 ("request-body" ,(if (eof-object? body)
-						      ""
-						      (utf8->string body)))
+				 ("request-body" ,(utf8->string body))
 				 ,@headers)
 			       in/out))
 		      (socket-close client)
@@ -109,8 +107,6 @@
 (define server-thread
   (make-thread (lambda ()
 		 (let1 socket (make-server-socket *http-port*)
-		   (print "ready")
-		   (flush-output-port (current-output-port))
 		   (http-server socket)))))
 (thread-start! server-thread)
 

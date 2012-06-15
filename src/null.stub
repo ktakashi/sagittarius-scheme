@@ -2184,14 +2184,16 @@
       (check-binary-port get-bytevector-n p))
     (check-input-port get-bytevector-n p)
     (check-non-negative-fixnum get-bytevector-n count)
-    (let ((buf (Sg_MakeByteVector count 0))
-	  (res::int64_t (Sg_Readb p (SG_BVECTOR_ELEMENTS buf) count)))
-      (cond ((== res 0)
-	     (result SG_EOF))
-	    (else
-	     (unless (== count res)
-	       (set! (SG_BVECTOR_SIZE buf) res))
-	     (result buf)))))
+    (if (== count 0)
+	(result (Sg_MakeByteVector 0 0))
+	(let ((buf (Sg_MakeByteVector count 0))
+	      (res::int64_t (Sg_Readb p (SG_BVECTOR_ELEMENTS buf) count)))
+	  (cond ((== res 0)
+		 (result SG_EOF))
+		(else
+		 (unless (== count res)
+		   (set! (SG_BVECTOR_SIZE buf) res))
+		 (result buf))))))
 
   (define-c-proc get-bytevector-n!
     (p::<port> bv::<bytevector> start::<fixnum> count::<fixnum>

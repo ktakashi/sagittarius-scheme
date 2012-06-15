@@ -30,6 +30,7 @@
  *  $Id: $
  */
 #include <string.h>
+#include <math.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/bytevector.h"
 #include "sagittarius/bignum.h"
