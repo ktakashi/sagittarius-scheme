@@ -6,7 +6,7 @@
 	(srfi :64 testing))
 
 
-(define csv-file (string-append (current-directory) "/test/data.csv"))
+(define csv-file (string-append (current-directory) "/test/data/data.csv"))
 (define expected-result "\"header\",\"value\"\r\n\"r1\",\"r2\",\"r3\"\r\n\"r4\",\"r5\",\"r6\",\r\n\"a,\"\",a\",\"b\",\"c\"\r\n")
 
 (test-begin "(run-text-csv-tests)")

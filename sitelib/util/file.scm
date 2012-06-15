@@ -121,7 +121,8 @@
 	  (loop (gen))
 	  (values (open-file-output-port file) file))))
 
-  (define (find-files target :key (pattern #f) (all #t) (sort string<=?))
+  (define (find-files target :key (pattern #f) (all #t) (sort string<=?)
+		      (recursive #t))
     (define (rec dir)
       (let loop ((contents (read-directory dir))
 		 (r '()))
@@ -136,8 +137,10 @@
 			    (loop (cdr contents) (cons path r)))
 			   (else
 			    (loop (cdr contents) r))))
-		    ((file-directory? path) 
-		     (loop (cdr contents) (append r (rec path))))
+		    ((file-directory? path)
+		     (if recursive
+			 (loop (cdr contents) (append r (rec path)))
+			 (loop (cdr contents) r)))
 		    (else
 		     (loop (cdr contents)
 			   (if (or (not pattern) 

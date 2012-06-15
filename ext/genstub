@@ -20,6 +20,5 @@
 			(when (< stub-mtime out-mtime)
 			  (print "generated file is older than stub file. " c)
 			  (set! exit? #t))))
-		    (print c)
 		    (unless exit? (cgen-genstub rf :c-file c))))
 	      files)))

@@ -8,12 +8,21 @@
 
 ;; r7rs tests also use dynamic modules
 (cond-expand
-       (sagittarius.os.windows
-	(add-dynamic-load-path "./build/modules"))
-       (else
-	(add-dynamic-load-path "./build")))
+ (sagittarius.os.windows
+  (add-dynamic-load-path "./build/modules"))
+ (else
+  (add-dynamic-load-path "./build")))
 
-(let ((args (command-line)))
+(define (main args)
+  (define (load-test-resource resource)
+    (if (file-exists? resource)
+	(call-with-input-file resource
+	  (lambda (p) 
+	    (do ((line (get-line p) (get-line p)))
+		((eof-object? line) #t)
+	      (add-load-path line))))
+	#f))
+  
   (let-values (((test) (args-fold (cdr args)
 				  '()
 				  (lambda (option name arg . seed)
@@ -27,7 +36,8 @@
       ;; for R6RS test suites
       (print "testing R6RS test suite")
       (flush-output-port (current-output-port))
-      (add-load-path "./test/r6rs-test-suite")
+      (or (load-test-resource ".sagittarius-r6rstestrc")
+	  (add-load-path "./test/r6rs-test-suite"))
       (load "./test/r6rs-test-suite/tests/r6rs/run.sps")
       (flush-output-port (current-output-port)))
     (define (r7rs-test)
@@ -37,10 +47,9 @@
       (setenv "R7RS_TEST" "OK")
       (print "testing R7RS tests")
       (flush-output-port (current-output-port))
-      (add-load-path "./test/r7rs-tests")
-      ;; for srfi 19
-      ;; where?
-      (add-load-path "./ext/crypto")
+      (or (load-test-resource ".sagittarius-r7rstestrc")
+	  (begin (add-load-path "./test/r7rs-tests")
+		 (add-load-path "./ext/crypto")))
       (load "./test/r7rs-tests/tests/r7rs/run.scm")
       (flush-output-port (current-output-port)))
 
@@ -48,11 +57,6 @@
       ;; for sitelib
       (print "testing sitelib")
       (flush-output-port (current-output-port))
-      (add-load-path "./test")
-      ;; now we are using multithreading test
-      (add-load-path "./ext/threads")
-      (add-load-path "./ext/crypto")
-      (add-load-path "./ext/socket")
       (load "./test/tests.scm")
       (flush-output-port (current-output-port)))
     (define (ext-test)

@@ -44,16 +44,20 @@
 	    '(#t #t #t #t #t #t #t #t #t)
 	    (map (lambda (level)
 		   (compare-file-bytevector
-		    (format "./zlib/compressed-~a.bin" level)
-		    (do-deflate "./zlib/data.txt" level)))
+		    (format (build-path (current-directory)
+					"zlib/data/compressed-~a.bin") level)
+		    (do-deflate (build-path (current-directory)
+					    "zlib/data/data.txt") level)))
 		 '(1 2 3 4 5 6 7 8 9)))
 (test-equal "inflate"
 	    '(#t #t #t #t #t #t #t #t #t)
 	    (map (lambda (level)
 		   (compare-file-bytevector
-		    "./zlib/data.txt"
+		    (build-path (current-directory) "zlib/data/data.txt")
 		    (do-inflate
-		     (format "./zlib/compressed-~a.bin" level))))
+		     (format (build-path (current-directory)
+					 "zlib/data/compressed-~a.bin")
+			     level))))
 		 '(1 2 3 4 5 6 7 8 9)))
 
 (test-equal "inflate dictionary"

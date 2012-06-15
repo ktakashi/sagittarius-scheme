@@ -18,6 +18,16 @@ ENDIF()
 INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/addstub.cmake
   DESTINATION "${SAGITTARIUS_CURRENT_SHARE}/cmake")
 
+# testing preparetion
+IF (NOT EXISTS ${PROJECT_BINARY_DIR}/ext)
+  FILE(COPY ${PROJECT_SOURCE_DIR}/ext/all-tests.scm
+    DESTINATION ${PROJECT_BINARY_DIR}/ext/)
+ENDIF()
+
+# make dummy resource file
+SET(EXT_TEST_RESOURCE_FILE "${PROJECT_BINARY_DIR}/ext/.sagittarius-exttestrc")
+FILE(WRITE ${EXT_TEST_RESOURCE_FILE} "${CMAKE_CURRENT_SOURCE_DIR}\n")
+
 ADD_SUBDIRECTORY(zlib zlib)
 ADD_SUBDIRECTORY(threads threads)
 ADD_SUBDIRECTORY(time time)

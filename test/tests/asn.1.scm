@@ -8,9 +8,9 @@
 (test-begin "ASN.1 test")
 
 (define *private-key* (string-append (current-directory)
-				     "/test/private-key.der"))
+				     "/test/data/private-key.der"))
 (define *public-key*  (string-append (current-directory)
-				     "/test/public-key.der"))
+				     "/test/data/public-key.der"))
 
 (define *private-key-data* (call-with-input-file *private-key*
 			     (lambda (p) (get-bytevector-all p))

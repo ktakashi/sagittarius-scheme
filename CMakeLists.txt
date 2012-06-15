@@ -337,12 +337,29 @@ CONFIGURE_FILE(
 ADD_CUSTOM_TARGET(uninstall
     COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 
+# copy test data to build directory
+IF (NOT EXISTS ${PROJECT_BINARY_DIR}/test/data)
+  FILE(COPY ${PROJECT_SOURCE_DIR}/test/data
+    DESTINATION ${PROJECT_BINARY_DIR}/test/)
+ENDIF()
+
+# create test config file
+FILE(WRITE "${PROJECT_BINARY_DIR}/.sagittarius-r6rstestrc"
+  "${PROJECT_SOURCE_DIR}/test/r6rs-test-suite")
+FILE(WRITE "${PROJECT_BINARY_DIR}/.sagittarius-r7rstestrc"
+  "${PROJECT_SOURCE_DIR}/test/r7rs-tests\n${PROJECT_SOURCE_DIR}/ext/crypto\n${PROJECT_SOURCE_DIR}/ext/time")
+FILE(WRITE "${PROJECT_BINARY_DIR}/.sagittarius-sitetestrc"
+  "${PROJECT_SOURCE_DIR}/test/tests\n${PROJECT_BINARY_DIR}/test/data/\n${PROJECT_SOURCE_DIR}/ext/socket\n${PROJECT_SOURCE_DIR}/ext/threads")
+
 ADD_CUSTOM_TARGET(test
   COMMAND ${PROJECT_BINARY_DIR}/build/sash
           -D${PROJECT_BINARY_DIR}/build
 	  -D${PROJECT_BINARY_DIR}/build/modules
-	  run-test.scm
-  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+	  -L${PROJECT_SOURCE_DIR}
+	  -L${PROJECT_SOURCE_DIR}/lib
+	  -L${PROJECT_SOURCE_DIR}/sitelib
+	  ${PROJECT_SOURCE_DIR}/run-test.scm
+  WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 
 # make doc
 ADD_CUSTOM_TARGET(create-doc-dir

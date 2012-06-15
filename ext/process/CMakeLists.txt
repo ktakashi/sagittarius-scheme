@@ -18,7 +18,7 @@ ADD_EXECUTABLE(test-proc test-proc.c)
 SET_TARGET_PROPERTIES(test-proc PROPERTIES SUFFIX ".bin")
 ADD_CUSTOM_TARGET(copy-test-proc
     COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_BINARY_DIR}/build/test-proc.bin
-            ${PROJECT_SOURCE_DIR}/ext/)
+            ${PROJECT_BINARY_DIR}/ext/)
 ADD_DEPENDENCIES(copy-test-proc test-proc)
 
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
@@ -35,3 +35,6 @@ INSTALL(TARGETS sagittarius--process
   DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
 INSTALL(FILES sagittarius/process.scm
   DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH}/sagittarius)
+
+# for test
+FILE(APPEND ${EXT_TEST_RESOURCE_FILE} "${CMAKE_CURRENT_SOURCE_DIR}\n")

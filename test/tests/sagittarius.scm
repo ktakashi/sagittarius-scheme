@@ -149,7 +149,7 @@
 ;; sjis
 (let ((tr (make-transcoder (sjis-codec) 'lf))
       (file  (string-append (current-directory)
-			    "/test/sjis.txt")))
+			    "/test/data/sjis.txt")))
   ;; read
   (test-equal "read from sjis file" "あいうえお"
 	      (call-with-input-file file
@@ -166,7 +166,7 @@
 ;; euc-jp
 (let ((tr (make-transcoder (euc-jp-codec) 'lf))
       (file  (string-append (current-directory)
-			    "/test/euc-jp.txt")))
+			    "/test/data/euc-jp.txt")))
   ;; read
   (test-equal "read from euc-jp file" "あいうえお"
 	      (call-with-input-file file
