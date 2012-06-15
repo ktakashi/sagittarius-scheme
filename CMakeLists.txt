@@ -362,8 +362,11 @@ ADD_CUSTOM_TARGET(test
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 
 # make doc
-ADD_CUSTOM_TARGET(create-doc-dir
-  COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/doc)
+IF (NOT EXISTS ${PROJECT_BINARY_DIR}/doc)
+  FILE(COPY ${PROJECT_SOURCE_DIR}/doc/lib
+    DESTINATION ${PROJECT_BINARY_DIR}/doc)
+ENDIF()
+
 ADD_CUSTOM_TARGET(doc
   COMMAND ${PROJECT_BINARY_DIR}/build/sash
   -L${PROJECT_SOURCE_DIR}/lib -L${PROJECT_SOURCE_DIR}/sitelib
@@ -371,7 +374,6 @@ ADD_CUSTOM_TARGET(doc
   gendoc --output=${PROJECT_BINARY_DIR}/doc/sagittarius-ref.html
   --style=lib/style.css --javascript=lib/tools.js sagittarius-ref.scrbl
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/doc)
-ADD_DEPENDENCIES(doc create-doc-dir)
 
 # for Cygwin rebase problem
 IF (CYGWIN)
