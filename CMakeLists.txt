@@ -271,6 +271,10 @@ CONFIGURE_FILE(cmake/sagittarius-config.in
   ${PROJECT_BINARY_DIR}/sagittarius-config)
 CONFIGURE_FILE(cmake/sagittarius-package.in 
   ${PROJECT_BINARY_DIR}/sagittarius-package)
+IF (MSVC)
+  CONFIGURE_FILE(win/innosetup.iss
+    ${PROJECT_BINARY_DIR}/win/innosetup.iss)
+ENDIF()
 
 INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/lib
   DESTINATION ${SAGITTARIUS_CURRENT_SHARE})
@@ -341,13 +345,16 @@ ADD_CUSTOM_TARGET(test
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
 # make doc
+ADD_CUSTOM_TARGET(create-doc-dir
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/doc)
 ADD_CUSTOM_TARGET(doc
   COMMAND ${PROJECT_BINARY_DIR}/build/sash
   -L${PROJECT_SOURCE_DIR}/lib -L${PROJECT_SOURCE_DIR}/sitelib
   -L${PROJECT_SOURCE_DIR}/ext/time -D${PROJECT_BINARY_DIR}/build 
-  gendoc --output=sagittarius-ref.html
+  gendoc --output=${PROJECT_BINARY_DIR}/doc/sagittarius-ref.html
   --style=lib/style.css --javascript=lib/tools.js sagittarius-ref.scrbl
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/doc)
+ADD_DEPENDENCIES(doc create-doc-dir)
 
 # for Cygwin rebase problem
 IF (CYGWIN)
