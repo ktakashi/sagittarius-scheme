@@ -3,11 +3,12 @@
 # Build file for threads
 
 ADD_LIBRARY(sagittarius--threads MODULE
-  threads.c threads_stub.c mutex.c)
+  threads.c ${CMAKE_CURRENT_BINARY_DIR}/threads_stub.c mutex.c)
 
 IF (MSVC OR CYGWIN)
   # ugly solution
-  SET_SOURCE_FILES_PROPERTIES(threads.c threads_stub.c mutex.c 
+  SET_SOURCE_FILES_PROPERTIES(threads.c 
+    ${CMAKE_CURRENT_BINARY_DIR}/threads_stub.c mutex.c 
     PROPERTIES LANGUAGE CXX)
 ENDIF()
 
@@ -15,8 +16,10 @@ ENDIF()
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 ADD_STUBS(sagittarius--threads
   COMMAND ${GENSTUB}
-  FILES ${CMAKE_CURRENT_SOURCE_DIR}/threads_stub.stub)
+  FILES threads_stub.stub
+  OUTTREE)
 
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 SET_TARGET_PROPERTIES(sagittarius--threads PROPERTIES PREFIX "")
 TARGET_LINK_LIBRARIES(sagittarius--threads sagittarius)
 

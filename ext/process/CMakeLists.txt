@@ -3,14 +3,16 @@
 # Build file for process
 
 ADD_LIBRARY(sagittarius--process MODULE
-  process.c process_stub.c)
+  sagittarius-process.c ${CMAKE_CURRENT_BINARY_DIR}/process_stub.c)
 
 IF (MSVC OR CYGWIN)
   # ugly solution
-  SET_SOURCE_FILES_PROPERTIES(process.c process_stub.c
+  SET_SOURCE_FILES_PROPERTIES(sagittarius-process.c
+    ${CMAKE_CURRENT_BINARY_DIR}/process_stub.c
     PROPERTIES LANGUAGE CXX)
 ENDIF()
 
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 # for test
 ADD_EXECUTABLE(test-proc test-proc.c)
 SET_TARGET_PROPERTIES(test-proc PROPERTIES SUFFIX ".bin")
@@ -22,7 +24,8 @@ ADD_DEPENDENCIES(copy-test-proc test-proc)
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 ADD_STUBS(sagittarius--process
   COMMAND ${GENSTUB}
-  FILES ${CMAKE_CURRENT_SOURCE_DIR}/process_stub.stub)
+  FILES process_stub.stub
+  OUTTREE)
 
 SET_TARGET_PROPERTIES(sagittarius--process PROPERTIES PREFIX "")
 TARGET_LINK_LIBRARIES(sagittarius--process sagittarius)

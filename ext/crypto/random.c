@@ -32,7 +32,7 @@
 #include <sagittarius.h>
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/extend.h>
-#include "math.h"
+#include "sagittarius-math.h"
 
 static SgObject prng_allocate(SgClass *klass, SgObject initargs);
 

@@ -75,7 +75,8 @@
 	(values (string-trim-right path path-set) #f #f)
 	(let* ((delim-pos (string-index-right path
 					      (cond-expand
-					       (sagittarius.os.windows #\\)
+					       (sagittarius.os.windows 
+						*path-set*)
 					       (else #\/))))
 	       (dir (and delim-pos (substring path 0 delim-pos)))
 	       (base (substring path (or (and delim-pos

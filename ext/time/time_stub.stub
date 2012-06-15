@@ -5,7 +5,7 @@
  (.include <sagittarius.h>)
  (.define "LIBSAGITTARIUS_EXT_BODY")
  (.include <sagittarius/extend.h>
-	   "time.h"))
+	   <sagittarius-time.h>))
 
 (define-cise-stmt assertion-violation
   ((_ who msg)

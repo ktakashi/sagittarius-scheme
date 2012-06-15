@@ -3,7 +3,7 @@
  (.include <sagittarius.h>)
  (.define "LIBSAGITTARIUS_EXT_BODY")
  (.include <sagittarius/extend.h>
-	   "zlib.h"))
+	   <sagittarius-zlib.h>))
 
 (define-type <z-stream> "SgZStream*" "z-stream" "SG_ZSTREAM_P" "SG_ZSTREAM")
 

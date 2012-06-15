@@ -4,7 +4,7 @@
  (.include <sagittarius.h>)
  (.define "LIBSAGITTARIUS_EXT_BODY")
  (.include <sagittarius/extend.h>
-	   "time.h"))
+	   <sagittarius-time.h>))
 
 (define-c-proc make-date (nanosecond::<fixnum>
 			  second::<fixnum>

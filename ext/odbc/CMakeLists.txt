@@ -26,11 +26,11 @@ IF (HAVE_SQL_H)
   ENDIF()
 
   ADD_LIBRARY(sagittarius--odbc MODULE
-    odbc.c odbc_stub.c)
+    odbc.c ${CMAKE_CURRENT_BINARY_DIR}/odbc_stub.c)
 
   IF (MSVC OR CYGWIN)
     # ugly solution
-    SET_SOURCE_FILES_PROPERTIES(odbc.c odbc_stub.c
+    SET_SOURCE_FILES_PROPERTIES(odbc.c ${CMAKE_CURRENT_BINARY_DIR}/odbc_stub.c
       PROPERTIES LANGUAGE CXX)
   ENDIF()
 
@@ -38,8 +38,9 @@ IF (HAVE_SQL_H)
   INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
   ADD_STUBS(sagittarius--odbc
     COMMAND ${GENSTUB}
-    FILES ${CMAKE_CURRENT_SOURCE_DIR}/odbc_stub.stub)
+    FILES odbc_stub.stub OUTTREE)
 
+  INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
   SET_TARGET_PROPERTIES(sagittarius--odbc PROPERTIES PREFIX "")
   TARGET_LINK_LIBRARIES(sagittarius--odbc sagittarius)
 

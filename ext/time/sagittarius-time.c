@@ -33,7 +33,7 @@
 #include <sagittarius.h>
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/extend.h>
-#include "time.h"
+#include "sagittarius-time.h"
 
 static void time_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {

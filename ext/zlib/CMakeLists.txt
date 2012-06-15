@@ -3,18 +3,21 @@
 # Build file for zlib
 
 ADD_LIBRARY(sagittarius--zlib MODULE
-  zlib.c zlib_stub.c)
+  sagittarius-zlib.c ${CMAKE_CURRENT_BINARY_DIR}/zlib_stub.c)
 
 IF (MSVC OR CYGWIN)
   # ugly solution
-  SET_SOURCE_FILES_PROPERTIES(zlib.c zlib_stub.c PROPERTIES LANGUAGE CXX)
+  SET_SOURCE_FILES_PROPERTIES(sagittarius-zlib.c 
+    ${CMAKE_CURRENT_BINARY_DIR}/zlib_stub.c
+    PROPERTIES LANGUAGE CXX)
 ENDIF()
 
-
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 ADD_STUBS(sagittarius--zlib
   COMMAND ${GENSTUB}
-  FILES ${CMAKE_CURRENT_SOURCE_DIR}/zlib_stub.stub)
+  FILES zlib_stub.stub
+  OUTTREE)
 
 #check if zlib is available
 INCLUDE(${CMAKE_ROOT}/Modules/FindZLIB.cmake)

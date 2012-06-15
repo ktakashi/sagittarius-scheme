@@ -70,7 +70,7 @@
    (.include <sagittarius.h>)
    (.define "LIBSAGITTARIUS_EXT_BODY")
    (.include <sagittarius/extend.h>
-	     "ffi.h"
+	     <sagittarius-ffi.h>
 	     <string.h>))
 
   (define-type <pointer> "SgPointer*")

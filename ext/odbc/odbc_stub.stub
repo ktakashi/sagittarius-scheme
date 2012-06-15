@@ -4,7 +4,7 @@
  (.include <sagittarius.h>)
  (.define "LIBSAGITTARIUS_EXT_BODY")
  (.include <sagittarius/extend.h>
-	   "odbc.h")
+	   <odbc.h>)
  )
 
 (define-type <odbc-ctx> "SgOdbcCtx*")

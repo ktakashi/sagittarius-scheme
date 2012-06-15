@@ -32,7 +32,7 @@
 #include <sagittarius.h>
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
-#include "zlib.h"
+#include "sagittarius-zlib.h"
 
 static void zstream_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {

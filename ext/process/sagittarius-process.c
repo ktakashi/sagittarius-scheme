@@ -1,6 +1,6 @@
-/* -*- C -*- */
+/* -*- mode: c; coding: utf-8; -*- */
 /*
- * math.c
+ * process.h
  *
  *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
  *
@@ -32,21 +32,43 @@
 #include <sagittarius.h>
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
-#include "math.h"
+#include "sagittarius-process.h"
 
-extern void Sg__InitHash(SgLibrary *lib);
-extern void Sg__InitPrng(SgLibrary *lib);
-extern void Sg__Init_math_stub(SgLibrary *lib);
-
-SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__math()
+static void process_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
-  SgLibrary *lib;
-  SG_INIT_EXTENSION(sagittarius__math);
-
-  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius math)"), FALSE));
-  Sg__Init_math_stub(lib);
-
-  Sg__InitHash(lib);
-  Sg__InitPrng(lib);
+  Sg_Printf(port, UC("#<process %S>"), SG_PROCESS(self)->name);
 }
 
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_ProcessClass, process_printer);
+
+static SgProcess* make_process(SgString *name, SgObject args)
+{
+  SgProcess *p = SG_NEW(SgProcess);
+  SG_SET_CLASS(p, SG_CLASS_PROCESS);
+  p->name = name;
+  p->args = args;
+  p->handle = 0;
+  p->in = SG_UNDEF;
+  p->out = SG_UNDEF;
+  p->err = SG_UNDEF;
+  return p;
+}
+
+#if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
+# include "win.c"
+#else
+# include "posix.c"
+#endif
+
+extern void Sg__Init_process_stub(SgLibrary *lib);
+
+SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__process()
+{
+  SgLibrary *lib;
+  SG_INIT_EXTENSION(sagittarius__process);
+  init_process();
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius process)"), FALSE));
+  Sg__Init_process_stub(lib);
+  Sg_InitStaticClassWithMeta(SG_CLASS_PROCESS, UC("<process>"), lib, NULL,
+			     SG_FALSE, NULL, 0);
+}

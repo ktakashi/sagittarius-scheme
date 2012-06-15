@@ -34,7 +34,7 @@
 #include <sagittarius.h>
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/extend.h>
-#include "ffi.h"
+#include "sagittarius-ffi.h"
 
 /* fuck C++!!!! */
 #define typename typname

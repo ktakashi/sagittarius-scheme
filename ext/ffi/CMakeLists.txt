@@ -19,18 +19,22 @@ IF (NO_LIB_FFI)
   ADD_LIBRARY(sagittarius--ffi MODULE ffi_dummy.c)
 ELSE()
   ADD_DEFINITIONS(-DHAVE_FFI_H)
-  ADD_LIBRARY(sagittarius--ffi MODULE ffi.c ffi_stub.c)
+  ADD_LIBRARY(sagittarius--ffi MODULE sagittarius-ffi.c 
+    ${CMAKE_CURRENT_BINARY_DIR}/ffi_stub.c)
 
   IF (MSVC OR CYGWIN)
     # ugly solution
-    SET_SOURCE_FILES_PROPERTIES(ffi.c ffi_stub.c
+    SET_SOURCE_FILES_PROPERTIES(sagittarius-ffi.c
+      ${CMAKE_CURRENT_BINARY_DIR}/ffi_stub.c
       PROPERTIES LANGUAGE CXX)
   ENDIF()
 
+  INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
   INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
   ADD_STUBS(sagittarius--ffi
     COMMAND ${GENSTUB}
-    FILES ${CMAKE_CURRENT_SOURCE_DIR}/ffi_stub.stub)
+    FILES ffi_stub.stub
+    OUTTREE)
 
   SET_TARGET_PROPERTIES(sagittarius--ffi PROPERTIES PREFIX "")
   TARGET_LINK_LIBRARIES(sagittarius--ffi sagittarius)
