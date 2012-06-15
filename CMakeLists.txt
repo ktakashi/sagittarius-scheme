@@ -272,7 +272,7 @@ CONFIGURE_FILE(cmake/sagittarius-config.in
 CONFIGURE_FILE(cmake/sagittarius-package.in 
   ${PROJECT_BINARY_DIR}/sagittarius-package)
 IF (MSVC)
-  CONFIGURE_FILE(win/innosetup.iss
+  CONFIGURE_FILE(win/innosetup.iss.in
     ${PROJECT_BINARY_DIR}/win/innosetup.iss)
 ENDIF()
 
