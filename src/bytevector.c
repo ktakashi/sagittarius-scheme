@@ -862,13 +862,33 @@ SgObject Sg_ByteVectorToInteger(SgByteVector *bv, int start, int end)
 
 SgObject Sg_IntegerToByteVector(SgObject num)
 {
-  static const SgObject MASK = SG_MAKE_INT(0xFF);
   int bitlen = Sg_BitSize(num), i;
   int len = (bitlen>>3) + ((bitlen & 7) == 0 ? 0 : 1);
   SgByteVector *bv = make_bytevector(len);
-  for (i = len - 1; 0 <= i; i--) {
-    SG_BVECTOR_ELEMENT(bv, i) = (uint8_t)SG_INT_VALUE(Sg_LogAnd(num, MASK));
-    num = Sg_Ash(num, -8);
+  if (SG_BIGNUMP(num)) {
+    /* the structure of bignum is commented above. this case we simply put
+       the value from the bottom.
+     */
+    int pos;
+    size_t bignum_size = SG_BIGNUM(num)->size;
+    for (i = 0, pos = len-1; i < bignum_size; i++, pos -= SIZEOF_LONG) {
+      unsigned long v = SG_BIGNUM(num)->elements[i];
+      int j;
+      for (j = 0; j < SIZEOF_LONG; j++) {
+	SG_BVECTOR_ELEMENT(bv, pos-j) = (uint8_t)(v&0xFF);
+	v >>= 8;
+      }
+    }    
+  } else if (SG_INTP(num)){
+    long v = SG_INT_VALUE(num);
+    for (i = len - 1; 0 <= i; i--) {
+      SG_BVECTOR_ELEMENT(bv, i) = (uint8_t)(v&0xFF);
+      v >>= 8;
+    }
+  } else {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("integer->bytevector"),
+				    SG_MAKE_STRING("exact integer"),
+				    num, num);
   }
   return bv;
 }

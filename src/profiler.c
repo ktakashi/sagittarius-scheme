@@ -88,12 +88,17 @@ static void sampler_sample(int sig)
     return;
   }
   i = vm->profiler->currentSample++;
-  if (*vm->pc == RET) {
-    vm->profiler->samples[i].func = vm->ac;
-    vm->profiler->samples[i].pc = NULL;
+  if (vm->cl) {
+    if (vm->pc && INSN(*vm->pc) == RET && SG_SUBRP(vm->ac)) {
+      vm->profiler->samples[i].func = vm->ac;
+      vm->profiler->samples[i].pc = NULL;
+    } else {
+      vm->profiler->samples[i].func = vm->cl;
+      vm->profiler->samples[i].pc = vm->pc;
+    }
   } else {
-    vm->profiler->samples[i].func = vm->cl;
-    vm->profiler->samples[i].pc = vm->pc;
+    vm->profiler->samples[i].func = SG_FALSE;
+    vm->profiler->samples[i].pc = NULL;
   }
   vm->profiler->totalSamples++;
 }
