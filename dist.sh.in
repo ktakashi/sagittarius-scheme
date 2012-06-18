@@ -1,0 +1,37 @@
+#!/bin/sh
+
+version=`@PROJECT_BINARY_DIR@/build/sash -v | perl -e 'while (<>) {if ($_ =~ /version (\d+?\.\d+?\.\d+?)/) {print $1;}}'`
+export DIST_NAME=sagittarius-$version
+
+# just in case
+if [ -e ${DIST_NAME} ]; 
+then
+    rm -rf ${DIST_NAME}
+fi
+
+if [ -e src/sagittarius/config.h ]; then
+    # this should not be in tar file.
+    rm -f src/sagittarius/config.h
+fi
+
+# make sure ext/*/*_stub.c must be removed
+rm -f ext/*/*_stub.c
+
+# copy to tmp directory
+mkdir ${DIST_NAME}
+
+for f in `ls @PROJECT_SOURCE_DIR@`
+do
+    case $f in
+	${DIST_NAME}) ;;
+	.*) ;;
+	*) cp -r "@PROJECT_SOURCE_DIR@/$f" ${DIST_NAME} ;;
+    esac
+done
+
+tar -czvf ${DIST_NAME}.tar.gz ${DIST_NAME}
+
+# clean up
+rm -rf ${DIST_NAME}
+
+echo done!

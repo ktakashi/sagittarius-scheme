@@ -375,6 +375,13 @@ ADD_CUSTOM_TARGET(doc
   --style=lib/style.css --javascript=lib/tools.js sagittarius-ref.scrbl
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/doc)
 
+IF (NOT WIN32)
+  CONFIGURE_FILE(
+    "${CMAKE_CURRENT_SOURCE_DIR}/dist.sh.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/dist.sh"
+    IMMEDIATE @ONLY)  
+ENDIF()
+
 # for Cygwin rebase problem
 IF (CYGWIN)
   CONFIGURE_FILE(
