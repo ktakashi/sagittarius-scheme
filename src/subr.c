@@ -54,7 +54,8 @@ static SgSubr* make_subr(int req, int opt, SgObject info)
   return s;
 }
 
-SgObject Sg_MakeSubr(SgSubrProc proc, void *data, int required, int optional, SgObject info)
+SgObject Sg_MakeSubr(SgSubrProc proc, void *data, int required, int optional,
+		     SgObject info)
 {
   SgSubr *s = make_subr(required, optional, info);
   s->func = proc;

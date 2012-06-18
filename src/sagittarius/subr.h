@@ -53,8 +53,11 @@ struct SgProcedureRec
   SG_INSTANCE_HEADER;
   unsigned int required : 16;
   unsigned int optional : 8;
-  SgProcedureType type;
+  unsigned int type     : 3;
+  unsigned int locked   : 1;
+  unsigned int reserved : 4;	/* padding, for future extension. */
   SgObject     name;
+  SgObject     setter;		/* not supported yet. */
   SgObject     inliner;		/* #f, or instruction */
 };
 
@@ -75,7 +78,7 @@ struct SgProcedureRec
   SG_PROCEDURE_INLINER(obj) = SG_FALSE			\
 
 #define SG__PROCEDURE_INITIALIZER(klass, req, opt, type, name, inliner)	\
-  { {(klass)}, (req), (opt), (type), (name), (inliner) }
+  { {(klass)}, (req), (opt), (type), FALSE, 0, (name), SG_FALSE, (inliner) }
 
 /* This is just container for procedure */
 struct SgSubrRec

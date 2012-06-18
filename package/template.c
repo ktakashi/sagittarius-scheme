@@ -13,6 +13,6 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_$flat-name$()
   lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("$library-name$"),
 				  FALSE));
   /* Call stub initialiser, the stub library will be automatically created. */
-  Sg__Init_$flat-name$lib();
+  Sg__Init_$flat-name$lib(lib);
   /* Do your initialisation here. */
 }

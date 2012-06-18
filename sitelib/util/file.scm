@@ -123,6 +123,12 @@
 
   (define (find-files target :key (pattern #f) (all #t) (sort string<=?)
 		      (recursive #t))
+    (define rx-pattern (cond ((string? pattern) (regex pattern))
+			     ((pattern? pattern) pattern)
+			     (else #f)))
+    (define (check-pattern content)
+      (or (not pattern)
+	  (rx-pattern content)))
     (define (rec dir)
       (let loop ((contents (read-directory dir))
 		 (r '()))
@@ -134,7 +140,10 @@
 		     (cond ((file-directory? path) ;; . .. must be ignored
 			    (loop (cdr contents) r))
 			   (all
-			    (loop (cdr contents) (cons path r)))
+			    (loop (cdr contents)
+				  (if (check-pattern content)
+				      (cons path r)
+				      r)))
 			   (else
 			    (loop (cdr contents) r))))
 		    ((file-directory? path)
@@ -143,8 +152,7 @@
 			 (loop (cdr contents) r)))
 		    (else
 		     (loop (cdr contents)
-			   (if (or (not pattern) 
-				   (looking-at (regex pattern) content))
+			   (if (check-pattern content)
 			       (cons path r)
 			       r))))))))
     (if (file-directory? target)

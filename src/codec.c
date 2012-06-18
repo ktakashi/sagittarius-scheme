@@ -561,7 +561,7 @@ static SgObject readc_proc(SgObject *args, int argc, void *data)
   /* transcoder must handle the first character */
   for (i = 0; i < count; i++) {
     SgObject c = Sg_Apply4(SG_CODEC_CUSTOM(codec)->getc, port, mode, SG_FALSE,
-			   SG_CODEC_CUSTOM(codec)->data);
+			   sdata);
     if (SG_CHARP(c)) {
       Sg_PutcUnsafe(out, SG_CHAR_VALUE(c));
     } else if (SG_EOFP(c)) {
@@ -591,7 +591,7 @@ static SgObject writec_proc(SgObject *args, int argc, void *data)
   for (i = 0; i < SG_STRING_SIZE(str); i++) {
     Sg_Apply4(SG_CODEC_CUSTOM(codec)->putc, port,
 	      SG_MAKE_CHAR(SG_STRING_VALUE_AT(str, i)), mode,
-	      SG_CODEC_CUSTOM(codec)->data);
+	      sdata);
   }
   return SG_MAKE_INT(i);
 }
