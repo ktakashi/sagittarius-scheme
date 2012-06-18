@@ -164,7 +164,7 @@ ADD_LIBRARY(prngs STATIC
   src/prngs/sprng.c
   src/prngs/yarrow.c)
 
-SET(DUMMY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/libtomcrypt.c)
+SET(DUMMY_FILE ${CMAKE_CURRENT_BINARY_DIR}/src/libtomcrypt.c)
 ADD_LIBRARY(libtomcrypt STATIC
   ${DUMMY_FILE})
 SET_SOURCE_FILES_PROPERTIES(${DUMMY_FILE}
