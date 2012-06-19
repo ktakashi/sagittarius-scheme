@@ -38,6 +38,10 @@
 	    ;; for srfi-13
 	    %maybe-substring
 
+	    ;; for srfi-17
+	    setter
+	    has-setter?
+
 	    ;; filesystem
 	    file-size-in-bytes
 	    file-regular?
@@ -340,6 +344,14 @@
 
   (define-c-proc interned-symbol? (s) ::<boolean>
     (result (SG_INTERNED_SYMBOL s)))
+
+  ;; SRFI-17
+  (define-c-proc setter (proc)
+    (setter (proc::<procedure> setter::<procedure>) ::<void>
+	    (Sg_SetterSet proc setter FALSE))
+    Sg_Setter)
+
+  (define-c-proc has-setter? (proc) ::<boolean> Sg_HasSetter)
 
   ;; filesystem
   (define-c-proc file-size-in-bytes (path::<string>) ::<top>
@@ -912,7 +924,8 @@
 					"weak-vector" o))
     (result (-> (SG_WEAK_VECTOR o) size)))
 
-  (define-c-proc weak-vector-ref (wvec k::<fixnum> :optional fallback) ::<top>
+  (define-c-proc weak-vector-ref (wvec k::<fixnum> :optional fallback)
+    (setter weak-vector-set!)
     (unless (SG_WEAK_VECTORP wvec)
       (wrong-type-of-argument-violation 'weak-vector-ref
 					"weak-vector" wvec))
@@ -942,7 +955,9 @@
   (define-c-proc weak-hashtable? (o) ::<boolean>
     (result (SG_WEAK_HASHTABLE_P o)))
 
-  (define-c-proc weak-hashtable-ref (wh::<weak-hashtable> key fallback)
+  (define-c-proc weak-hashtable-ref (wh::<weak-hashtable> key :optional
+							  (fallback #f))
+    (setter weak-hashtable-set!)
     (result (Sg_WeakHashTableRef wh key fallback)))
 
   (define-c-proc weak-hashtable-set! (wh::<weak-hashtable> key value) ::<void>

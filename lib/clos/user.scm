@@ -168,6 +168,15 @@
 	    'define-class
 	    "malformed define-class" (unwrap-syntax x))))))
 
+
+  ;; never be symbol
+  (define (%make-setter-name name)
+    (string->symbol (format "setter of ~a" (syntax->datum name))))
+  (define (%check-setter-name generic)
+    (syntax-case generic (setter)
+      ((setter name) #`(#,(%make-setter-name #'name) name))
+      (n #'(n #f))))
+
   (define-syntax define-method
     (lambda (x)
       (define (analyse args)
@@ -200,16 +209,22 @@
 				 `(call-next-method ,@reqargs)))
 	       (real-body    `(lambda ,real-args ,@(rewrite body)))
 	       (gf           (gensym)))
-	  ;; TODO if generic does not exists, make it
-	  #`(let ((#,gf (%ensure-generic-function
-			 '#,generic (vm-current-library))))
-	      (add-method #,gf
-			  (make <method>
-			    :specializers  (list #,@specializers)
-			    :qualifier     #,qualifier
-			    :generic       #,generic
-			    :lambda-list  '#,lambda-list
-			    :procedure     #,real-body)))))
+
+	  (with-syntax (((true-name getter-name) (%check-setter-name generic)))
+	    #`(let ((#,gf (%ensure-generic-function
+			   'true-name (vm-current-library))))
+		(add-method #,gf
+			    (make <method>
+			      :specializers  (list #,@specializers)
+			      :qualifier     #,qualifier
+			      :generic       true-name
+			      :lambda-list  '#,lambda-list
+			      :procedure     #,real-body))
+		#,@(if #'getter-name
+		       `((unless (has-setter? ,#'getter-name)
+			     (set! (setter ,#'getter-name) ,gf)))
+		       '())
+		#,gf))))
       (syntax-case x ()
 	((_ ?qualifier ?generic ?args . ?body)
 	 (keyword? #'?qualifier)
@@ -222,8 +237,16 @@
 	 #'(define-method :primary ?generic ?args . ?body)))))
 
   (define-syntax define-generic
-    (syntax-rules ()
-      ((_ name)
-       (define name (make <generic> :definition-name 'name)))))
+    (lambda (x)
+      (define (generate-true-name k name)
+	(datum->syntax k (%make-setter-name name)))
+      (syntax-case x (setter)
+	((k (setter name))
+	 (with-syntax ((true-name (generate-true-name #'k #'name)))
+	   #'(begin
+	       (define true-name (make <generic> :definition-name 'true-name))
+	       (set! (setter name) true-name))))
+	((_ name)
+	 #'(define name (make <generic> :definition-name 'name))))))
 
 )

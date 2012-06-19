@@ -216,7 +216,10 @@
     (filter (cut is-a? <> class) 
 	    (cgen-unit-toplevel-nodes (cgen-current-unit))))
 
-  (define-class <procstub> (<stub>)
+  (define-class <setter-mixin> ()
+    ((setter :init-value #f)))
+
+  (define-class <procstub> (<setter-mixin> <stub>)
     ((args            	:init-value () :init-keyword :args)
      (keyword-args    	:init-value () :init-keyword :keyword-args)
      (num-reqargs     	:init-value 0  :init-keyword :num-reqargs)
@@ -400,6 +403,7 @@
 	(() #f)
 	(((? string? s) . r) (push-stmt! cproc s) (loop r))
 	((('inline opcode) . r) (slot-set! cproc 'inline-insn opcode) (loop r))
+	((('setter . spec) . r) (process-setter cproc spec) (loop r))
 	(((? symbol? s)) ;; 'call' convention
 	 (let* ((args (map (cut slot-ref <> 'name) (slot-ref cproc 'args)))
 		(form (if (eq? (slot-ref cproc 'return-type) '<void>)
@@ -410,6 +414,32 @@
 			     (slot-ref cproc 'return-type))))
 	   (process-body-inner cproc rettype form)))
 	(_ (process-body-inner cproc (slot-ref cproc 'return-type) body)))))
+
+  (define-method process-setter ((cproc <c-proc>) decl)
+    (cond
+     ((symbol? (car decl)) (slot-set! cproc 'setter (car decl)))
+     ((< (length decl) 2)
+      (error 'process-setter "bad form of anonymous setter" `(setter ,decl)))
+     (else
+      (let-values (((args keyargs nreqs nopts rest? other-keys?)
+		    (process-c-proc-args (slot-ref cproc'proc-name) (car decl)))
+		   ((body rettype) (extract-rettype (cdr decl))))
+	(let ((setter (make <c-proc>
+			:scheme-name `(setter ,(slot-ref cproc 'scheme-name))
+			:c-name (format "~a_SETTER" (slot-ref cproc 'c-name))
+			:proc-name (make-literal (format "~a" `(setter ,(slot-ref cproc 'scheme-name))))
+			:args args :return-type rettype
+			:keyword-args keyargs
+			:num-reqargs nreqs
+			:num-optargs nopts
+			:have-rest-arg? rest?
+			:allow-other-keys? other-keys?)))
+	  (slot-set! cproc 'setter (cons setter (c-stub-name setter)))
+	  (for-each (lambda (arg) (arg-proc arg cproc)) args)
+	  (unless (null? keyargs)
+	    (for-each (lambda (arg) (arg-proc arg cproc)) keyargs))
+	  (process-body setter body)
+	  (cgen-add! setter))))))
 
   (define-method process-body-inner ((cproc <procstub>) rettype body)
     (define (expand-stmt stmt)
@@ -503,7 +533,26 @@
       (f "  SG_PROCEDURE_NAME(&~a) = ~a;~%"
 	 (c-stub-name cproc)
 	 (cgen-c-name (slot-ref cproc'proc-name))))
-    #;(call-next-method))
+    (call-next-method))
+
+  (define-method cgen-emit-init ((cproc <setter-mixin>))
+    (define (emit setter setter-name)
+      (when setter
+	(f "  SG_PROCEDURE_NAME(&~a) = ~a;~%" setter-name 
+	   (cgen-c-name (slot-ref setter 'proc-name))))
+      (f "  Sg_SetterSet(SG_PROCEDURE(&~a), SG_PROCEDURE(&~a), TRUE);~%"
+	 (c-stub-name cproc) setter-name))
+    (match (slot-ref cproc 'setter)
+      ((n . (? string? x)) (emit n x))
+      ((? symbol? x)
+       (or (and-let* ((setter (find (lambda (z) (eq? (slot-ref z 'scheme-name)
+						     x))
+				    (get-stubs <stub>))))
+	     (emit setter (c-stub-name setter)))
+	   (error 'cgen-emit-init
+		  "unknown setter name is used in the definition"
+		  x (slot-ref cproc 'scheme-name))))
+      (_ #f)))
 
   (define-method emit-arg-decl ((arg <arg>))
     (p "  SgObject " (slot-ref arg'scm-name) ";")

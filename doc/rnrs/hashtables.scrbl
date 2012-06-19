@@ -52,10 +52,14 @@ of the hashtable is set to approximately @var{k} elements.
 @desc{[R6RS] Returns the number of keys contained in @var{hashtable} as an exact
 integer object.}
 
-@define[Function]{@name{hashtable-ref} @args{hashtable key default}}
-@desc{[R6RS] Returns the value in @var{hashtable} associated with @var{key}. If
+@define[Function]{@name{hashtable-ref}
+ @args{hashtable key :optional (default #f)}}
+@desc{[R6RS+] Returns the value in @var{hashtable} associated with @var{key}. If
 @var{hashtable} does not contain an association for @var{key}, @var{default} is
 returned.
+
+Since Sagittarius version 0.3.4, this procedure's @var{default} argument is
+optional to implement SRFI-17 efficiently.
 }
 
 @define[Function]{@name{hashtable-set!} @args{hashtable key obj}}

@@ -31,9 +31,13 @@
  */
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/subr.h"
+#include "sagittarius/error.h"
 #include "sagittarius/symbol.h"
+#include "sagittarius/pair.h"
 #include "sagittarius/port.h"
+#include "sagittarius/generic.h"
 #include "sagittarius/writer.h"
+#include "sagittarius/vm.h"
 
 static void proc_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
@@ -76,4 +80,42 @@ SgObject Sg_NullProc()
     theNullProc = Sg_MakeSubr(null_proc, NULL, 0, 1, SG_INTERN("nullproc"));
   }
   return SG_OBJ(theNullProc);
+}
+
+/* for SRFI-17 */
+SgObject Sg_SetterSet(SgProcedure *proc, SgProcedure *setter, int lock)
+{
+  if (proc->locked) {
+    Sg_Error(UC("can't change the locked setter of procedure %S"), proc);
+  }
+  proc->setter = SG_OBJ(setter);
+  proc->locked = lock;
+  return SG_OBJ(proc);
+}
+
+static SgObject object_setter(SgObject *args, int argc, void *data)
+{
+  ASSERT(argc == 1);
+  return Sg_VMApply(SG_OBJ(&Sg_GenericObjectSetter),
+		    Sg_Cons(SG_OBJ(data), args[0]));
+}
+
+SgObject Sg_Setter(SgObject proc)
+{
+  if (SG_PROCEDUREP(proc)) {
+    return SG_PROCEDURE_SETTER(proc);
+  } else {
+    return Sg_MakeSubr(object_setter, (void*)proc, 0, 1,
+		       SG_MAKE_STRING("object-setter"));
+  }
+}
+
+int Sg_HasSetter(SgObject proc)
+{
+  if (SG_PROCEDUREP(proc)) {
+    return !SG_FALSEP(SG_PROCEDURE_SETTER(proc));
+  } else {
+    /* setter of object-apply is used */
+    return TRUE;
+  }
 }

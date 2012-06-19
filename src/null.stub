@@ -887,16 +887,25 @@
     (result (Sg_Cons o1 o2)))
 
   (define-c-proc car (o) ::<top> (inline CAR)
+    (setter set-car!)
     (unless (SG_PAIRP o)
       (wrong-type-of-argument-violation 'car "pair" o))
     (result (SG_CAR o)))
 
   (define-c-proc cdr (o) ::<top> (inline CDR)
+    (setter set-cdr!)
     (unless (SG_PAIRP o)
       (wrong-type-of-argument-violation 'cdr "pair" o))
     (result (SG_CDR o)))
 
+  "#define CXR_SETTER(PRE, pre, tail)   \
+    SgObject cell = Sg_C##tail##r(obj); \
+    if (!SG_PAIRP(cell)) \
+     Sg_Error(UC(\"can't set c\" #pre #tail \"r of %S\"), obj); \
+    SG_SET_C##PRE##R(cell, value);"
+
   (define-c-proc caar (o) ::<top> (inline CAAR)
+    (setter (obj value) ::<void> (CXR_SETTER A a a))
     (unless (SG_PAIRP o)
       (wrong-type-of-argument-violation 'caar "pair" o))
     (unless (SG_PAIRP (SG_CAR o))
@@ -904,6 +913,7 @@
     (result (SG_CAAR o)))
 
   (define-c-proc cadr (o) ::<top> (inline CADR)
+    (setter (obj value) ::<void> (CXR_SETTER A a d))
     (unless (SG_PAIRP o)
       (wrong-type-of-argument-violation 'cadr "pair" o))
     (unless (SG_PAIRP (SG_CDR o))
@@ -911,6 +921,7 @@
     (result (SG_CADR o)))
 
   (define-c-proc cdar (o) ::<top> (inline CDAR)
+    (setter (obj value) ::<void> (CXR_SETTER D d a))
     (unless (SG_PAIRP o)
       (wrong-type-of-argument-violation 'cdar "pair" o))
     (unless (SG_PAIRP (SG_CAR o))
@@ -918,6 +929,7 @@
     (result (SG_CDAR o)))
 
   (define-c-proc cddr (o) ::<top> (inline CDDR)
+    (setter (obj value) ::<void> (CXR_SETTER D d d))
     (unless (SG_PAIRP o)
       (wrong-type-of-argument-violation 'cddr "pair" o))
     (unless (SG_PAIRP (SG_CDR o))
@@ -939,10 +951,12 @@
   (define-c-proc reverse (lst) ::<top>
     (result (Sg_Reverse lst)))
 
-  (define-c-proc list-tail (lst k::<fixnum> :optional fallback) ::<top>
+  (define-c-proc list-tail (lst k::<fixnum> :optional fallback)
     (result (Sg_ListTail lst k fallback)))
 
-  (define-c-proc list-ref (lst k::<fixnum> :optional fallback) ::<top>
+  (define-c-proc list-ref (lst k::<fixnum> :optional fallback)
+    (setter (lst i::<fixnum> v) ::<void> 
+	    (SG_SET_CAR (Sg_ListTail lst i SG_UNBOUND) v))
     (result (Sg_ListRef lst k fallback)))
   ;; list miscs
 
@@ -1034,7 +1048,8 @@
   (define-c-proc string-length (s::<string>) ::<fixnum>
     (result (-> s size)))
 
-  (define-c-proc string-ref (s::<string> k::<fixnum> :optional fallback) ::<top>
+  (define-c-proc string-ref (s::<string> k::<fixnum> :optional fallback)
+    (setter string-set!)
     (cond ((and (>= k 0)
 		(< k (SG_STRING_SIZE s)))
 	   (result (SG_MAKE_CHAR (SG_STRING_VALUE_AT s k))))
@@ -1121,11 +1136,13 @@
   (define-c-proc vector-length (vec::<vector>) ::<fixnum> (inline VEC_LEN)
     (result (SG_VECTOR_SIZE vec)))
 
-  (define-c-proc vector-ref (vec::<vector> i::<fixnum> :optional fallback) ::<top>
+  (define-c-proc vector-ref (vec::<vector> i::<fixnum> :optional fallback)
+    (setter vector-set!)
     (cond ((or (< i 0)
 	       (>= i (SG_VECTOR_SIZE vec)))
 	   (when (SG_UNBOUNDP fallback)
-	     (assertion-violation 'vector-ref "index out of range" (SG_MAKE_INT i)))
+	     (assertion-violation 'vector-ref "index out of range" 
+				  (SG_MAKE_INT i)))
 	   (result fallback))
 	  (else (result (SG_VECTOR_ELEMENT vec i)))))
      
@@ -1331,6 +1348,7 @@
 			     ,bv))))
 
   (define-c-proc bytevector-u8-ref (bv::<bytevector> index::<fixnum>) ::<fixnum>
+    (setter bytevector-u8-set!)
     (bv-check-index bytevector-u8-ref bv index)
     (result (Sg_ByteVectorU8Ref bv index)))
 
@@ -1345,6 +1363,7 @@
     (Sg_ByteVectorU8Set bv index value))
 
   (define-c-proc bytevector-s8-ref (bv::<bytevector> index::<fixnum>) ::<fixnum>
+    (setter bytevector-s8-set!)
     (bv-check-index bytevector-s8-ref bv index)
     (result (Sg_ByteVectorS8Ref bv index)))
 
@@ -1374,6 +1393,7 @@
   ;; u16
   (define-c-proc bytevector-u16-native-ref
     (bv::<bytevector> index::<fixnum>) ::<fixnum>
+    (setter bytevector-u16-native-set!)
     (bv-check-index bytevector-u16-native-ref bv index 1)
     (bv-check-align bytevector-u16-native-ref index 2)
     (result (Sg_ByteVectorU16NativeRef bv index)))
@@ -1386,6 +1406,7 @@
     (Sg_ByteVectorU16NativeSet bv index value))
 
   (define-c-proc bytevector-u16-ref (bv::<bytevector> index::<fixnum> endian::<symbol>) ::<fixnum>
+    ;;(setter bytevector-u16-set!)
     (bv-check-index bytevector-u16-ref bv index 1)
     (cond ((SG_EQ endian 'big)
 	   (result (Sg_ByteVectorU16BigRef bv index)))
@@ -1409,6 +1430,7 @@
   ;; s16
   (define-c-proc bytevector-s16-native-ref
     (bv::<bytevector> index::<fixnum>) ::<fixnum>
+    (setter bytevector-s16-native-set!)
     (bv-check-index bytevector-s16-native-ref bv index 1)
     (bv-check-align bytevector-s16-native-ref index 2)
     (result (Sg_ByteVectorS16NativeRef bv index)))
@@ -1422,6 +1444,7 @@
 
   (define-c-proc bytevector-s16-ref
     (bv::<bytevector> index::<fixnum> endian::<symbol>) ::<fixnum>
+    ;;(setter bytevector-s16-set!)
     (bv-check-index bytevector-s16-ref bv index 1)
     (cond ((SG_EQ endian 'big)
 	   (result (Sg_ByteVectorS16BigRef bv index)))
@@ -1443,7 +1466,8 @@
 	   (assertion-violation 'bytevector-s16-set! "unsupported endianness" endian))))
   ;; 2.6 operations on 32-bit integers
   ;; u32
-  (define-c-proc bytevector-u32-native-ref (bv::<bytevector> index::<fixnum>) ::<top>
+  (define-c-proc bytevector-u32-native-ref (bv::<bytevector> index::<fixnum>)
+    (setter bytevector-u32-native-set!)
     (bv-check-index bytevector-u32-native-ref bv index 3)
     (bv-check-align bytevector-u32-native-ref index 4)
     (result (Sg_MakeIntegerFromU32 (Sg_ByteVectorU32NativeRef bv index))))
@@ -1462,7 +1486,8 @@
 	     (wrong-type-of-argument-violation 'bytevector-u32-native-set! "exact integer" v)))
       (Sg_ByteVectorU32NativeSet bv index value)))
 
-  (define-c-proc bytevector-u32-ref (bv::<bytevector> index::<fixnum> endian::<symbol>) ::<top>
+  (define-c-proc bytevector-u32-ref (bv::<bytevector> index::<fixnum> endian::<symbol>)
+    ;;(setter bytevector-u32-set!)
     (bv-check-index bytevector-u32-ref bv index 3)
     (cond ((SG_EQ endian 'big)
 	   (result (Sg_MakeIntegerFromU32 (Sg_ByteVectorU32BigRef bv index))))
@@ -1491,7 +1516,8 @@
 	    (else
 	     (assertion-violation 'bytevector-u32-set! "unsupported endianness" endian)))))
   ;; s32
-  (define-c-proc bytevector-s32-native-ref (bv::<bytevector> index::<fixnum>) ::<top>
+  (define-c-proc bytevector-s32-native-ref (bv::<bytevector> index::<fixnum>)
+    (setter bytevector-s32-native-set!)
     (bv-check-index bytevector-s32-native-ref bv index 3)
     (bv-check-align bytevector-s32-native-ref index 4)
     (result (Sg_MakeIntegerFromS32 (Sg_ByteVectorS32NativeRef bv index))))
@@ -1510,7 +1536,8 @@
 	     (wrong-type-of-argument-violation 'bytevector-s32-native-set! "exact integer" v)))
       (Sg_ByteVectorS32NativeSet bv index value)))
 
-  (define-c-proc bytevector-s32-ref (bv::<bytevector> index::<fixnum> endian::<symbol>) ::<top>
+  (define-c-proc bytevector-s32-ref (bv::<bytevector> index::<fixnum> endian::<symbol>)
+    ;;(setter bytevector-s32-set!)
     (bv-check-index bytevector-s32-ref bv index 3)
     (cond ((SG_EQ endian 'big)
 	   (result (Sg_MakeIntegerFromS32 (Sg_ByteVectorS32BigRef bv index))))
@@ -1539,7 +1566,8 @@
 	     (assertion-violation 'bytevector-s32-set! "unsupported endianness" endian)))))
   ;; 2.7 operations on 64-bit integers
   ;; u64
-  (define-c-proc bytevector-u64-native-ref (bv::<bytevector> index::<fixnum>) ::<top>
+  (define-c-proc bytevector-u64-native-ref (bv::<bytevector> index::<fixnum>)
+    (setter bytevector-u64-native-set!)
     (bv-check-index bytevector-u64-native-ref bv index 7)
     (bv-check-align bytevector-u64-native-ref index 8)
     (result (Sg_MakeIntegerFromU64 (Sg_ByteVectorU64NativeRef bv index))))
@@ -1558,7 +1586,8 @@
 	     (wrong-type-of-argument-violation 'bytevector-u64-native-set! "exact integer" v)))
       (Sg_ByteVectorU64NativeSet bv index value)))
 
-  (define-c-proc bytevector-u64-ref (bv::<bytevector> index::<fixnum> endian::<symbol>) ::<top>
+  (define-c-proc bytevector-u64-ref (bv::<bytevector> index::<fixnum> endian::<symbol>)
+    ;;(setter bytevector-u64-set!)
     (bv-check-index bytevector-u64-ref bv index 7)
     (cond ((SG_EQ endian 'big)
 	   (result (Sg_MakeIntegerFromU64 (Sg_ByteVectorU64BigRef bv index))))
@@ -1586,7 +1615,8 @@
 	    (else
 	     (assertion-violation 'bytevector-u64-set! "unsupported endianness" endian)))))
   ;; s64
-  (define-c-proc bytevector-s64-native-ref (bv::<bytevector> index::<fixnum>) ::<top>
+  (define-c-proc bytevector-s64-native-ref (bv::<bytevector> index::<fixnum>)
+    (setter bytevector-s64-native-set!)
     (bv-check-index bytevector-s64-native-ref bv index 7)
     (bv-check-align bytevector-s64-native-ref index 8)
     (result (Sg_MakeIntegerFromS64 (Sg_ByteVectorS64NativeRef bv index))))
@@ -1605,7 +1635,8 @@
 	     (wrong-type-of-argument-violation 'bytevector-s64-native-set! "exact integer" v)))
       (Sg_ByteVectorS64NativeSet bv index value)))
 
-  (define-c-proc bytevector-s64-ref (bv::<bytevector> index::<fixnum> endian::<symbol>) ::<top>
+  (define-c-proc bytevector-s64-ref (bv::<bytevector> index::<fixnum> endian::<symbol>)
+    ;;(setter bytevector-s64-set!)
     (bv-check-index bytevector-s64-ref bv index 7)
     (cond ((SG_EQ endian 'big)
 	   (result (Sg_MakeIntegerFromS64 (Sg_ByteVectorS64BigRef bv index))))
@@ -1634,12 +1665,14 @@
 	     (assertion-violation 'bytevector-s64-set! "unsupported endianness" endian)))))
   ;; 2.8 operations on ieee-754 representations
   ;; ieee-single
-  (define-c-proc bytevector-ieee-single-native-ref (bv::<bytevector> index::<fixnum>) ::<top>
+  (define-c-proc bytevector-ieee-single-native-ref (bv::<bytevector> index::<fixnum>)
+    (setter bytevector-ieee-single-native-set!)
     (bv-check-index bytevector-ieee-single-native-ref bv index 3)
     (bv-check-align bytevector-ieee-single-native-ref index 4)
     (result (Sg_MakeFlonum (Sg_ByteVectorIEEESingleNativeRef bv index))))
 
-  (define-c-proc bytevector-ieee-single-ref (bv::<bytevector> index::<fixnum> endian::<symbol>) ::<top>
+  (define-c-proc bytevector-ieee-single-ref (bv::<bytevector> index::<fixnum> endian::<symbol>)
+    ;;(setter bytevector-ieee-single-set!)
     (bv-check-index bytevector-ieee-single-ref bv index 3)
     (cond ((SG_EQ endian 'big)
 	   (result (Sg_MakeFlonum (Sg_ByteVectorIEEESingleBigRef bv index))))
@@ -1668,12 +1701,14 @@
 	    (else
 	     (assertion-violation 'bytevector-ieee-single-set! "unsupported endianness" endian)))))
   ;; ieee-double
-  (define-c-proc bytevector-ieee-double-native-ref (bv::<bytevector> index::<fixnum>) ::<top>
+  (define-c-proc bytevector-ieee-double-native-ref (bv::<bytevector> index::<fixnum>)
+    (setter bytevector-ieee-double-native-set!)
     (bv-check-index bytevector-ieee-double-native-ref bv index 7)
     (bv-check-align bytevector-ieee-double-native-ref index 8)
     (result (Sg_MakeFlonum (Sg_ByteVectorIEEEDoubleNativeRef bv index))))
 
-  (define-c-proc bytevector-ieee-double-ref (bv::<bytevector> index::<fixnum> endian::<symbol>) ::<top>
+  (define-c-proc bytevector-ieee-double-ref (bv::<bytevector> index::<fixnum> endian::<symbol>)
+    ;;(setter bytevector-ieee-double-set!)
     (bv-check-index bytevector-ieee-double-ref bv index 7)
     (cond ((SG_EQ endian 'big)
 	   (result (Sg_MakeFlonum (Sg_ByteVectorIEEEDoubleBigRef bv index))))
@@ -3564,7 +3599,8 @@
   (define-c-proc hashtable-size (ht::<hashtable>) ::<fixnum>
     (result (-> (SG_HASHTABLE_CORE ht) entryCount)))
 
-  (define-c-proc hashtable-ref (ht::<hashtable> key fallback) ::<top>
+  (define-c-proc hashtable-ref (ht::<hashtable> key :optional (fallback #f))
+    (setter hashtable-set!)
     (result (Sg_HashTableRef ht key fallback)))
 
   (define-cise-stmt check-mutable-hashtable

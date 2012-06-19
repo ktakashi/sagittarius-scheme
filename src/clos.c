@@ -1613,6 +1613,7 @@ SG_DEFINE_GENERIC(Sg_GenericComputeApplicableMethodsGeneric,
 		  Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericObjectEqualP, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericObjectApply, Sg_InvalidApply, NULL);
+SG_DEFINE_GENERIC(Sg_GenericObjectSetter, Sg_InvalidApply, NULL);
 
 static SgObject allocate_impl(SgObject *args, int argc, void *data)
 {
@@ -1994,6 +1995,11 @@ void Sg__InitClos()
 	"compute-applicable-methods");
   GINIT(&Sg_GenericObjectEqualP, "object-equal?");
   GINIT(&Sg_GenericObjectApply, "object-apply");
+  GINIT(&Sg_GenericObjectSetter, "setter of object-apply");
+
+  Sg_SetterSet(SG_PROCEDURE(&Sg_GenericObjectApply),
+	       SG_PROCEDURE(&Sg_GenericObjectSetter),
+	       TRUE);
 
   /* methods */
   Sg_InitBuiltinMethod(&class_allocate_rec);

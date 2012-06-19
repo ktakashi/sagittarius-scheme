@@ -69,13 +69,16 @@ struct SgProcedureRec
 #define SG_PROCEDURE_TYPE(obj)     SG_PROCEDURE(obj)->type
 #define SG_PROCEDURE_NAME(obj)     SG_PROCEDURE(obj)->name
 #define SG_PROCEDURE_INLINER(obj)  SG_PROCEDURE(obj)->inliner
+#define SG_PROCEDURE_SETTER(obj)   SG_PROCEDURE(obj)->setter
 
 #define SG_PROCEDURE_INIT(obj, req, opt, typ, name)	\
   SG_PROCEDURE_REQUIRED(obj) = (req),			\
   SG_PROCEDURE_OPTIONAL(obj) = (opt),			\
   SG_PROCEDURE_TYPE(obj) = (typ),			\
   SG_PROCEDURE_NAME(obj) = (name),			\
-  SG_PROCEDURE_INLINER(obj) = SG_FALSE			\
+  SG_PROCEDURE(obj)->locked = FALSE,			\
+  SG_PROCEDURE_INLINER(obj) = SG_FALSE,			\
+  SG_PROCEDURE_SETTER(obj) = SG_FALSE
 
 #define SG__PROCEDURE_INITIALIZER(klass, req, opt, type, name, inliner)	\
   { {(klass)}, (req), (opt), (type), FALSE, 0, (name), SG_FALSE, (inliner) }
@@ -116,8 +119,13 @@ struct SgSubrRec
 
 SG_CDECL_BEGIN
 
-SG_EXTERN SgObject Sg_MakeSubr(SgSubrProc proc, void *data, int required, int optional, SgObject info);
+SG_EXTERN SgObject Sg_MakeSubr(SgSubrProc proc, void *data, int required,
+			       int optional, SgObject info);
 SG_EXTERN SgObject Sg_NullProc();
+SG_EXTERN SgObject Sg_SetterSet(SgProcedure *proc, SgProcedure *setter,
+				int lock);
+SG_EXTERN SgObject Sg_Setter(SgObject proc);
+SG_EXTERN int      Sg_HasSetter(SgObject proc);
 
 SG_CDECL_END
 

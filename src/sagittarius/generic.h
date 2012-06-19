@@ -152,6 +152,7 @@ SG_EXTERN SgGeneric Sg_GenericComputeApplicableMethodsGeneric;
 
 SG_EXTERN SgGeneric Sg_GenericObjectEqualP;
 SG_EXTERN SgGeneric Sg_GenericObjectApply;
+SG_EXTERN SgGeneric Sg_GenericObjectSetter;
 
 SG_CDECL_END
 

@@ -995,6 +995,8 @@
 (define error. (global-id 'error))
 (define null?. (global-id 'null?))
 (define unless. (global-id 'unless))
+;; For SRFI-17
+(define setter.  (global-id 'setter))
 
 ;; load expander here for macro...
 (cond-expand
@@ -2081,8 +2083,35 @@
     (- (syntax-error "malformed case" form))))
 
 ;; set!
+(define (procedure->symbol s)
+  (let ((name (procedure-name s)))
+    (cond ((string? name) (string->symbol name))
+	  ((symbol? name) name)
+	  ((identifier? name) (id-name name)) ; just in case
+	  (else #f))))
 (define-pass1-syntax (set! form p1env) :null
-  (smatch form		   
+  (smatch form
+    ((- (op . args) expr)		; SRFI-17
+     ;; we can simply convert this form like
+     ;; ((setter op) args expr), however it's not efficient for some
+     ;; cases. (might be most of cases), such as (set! (car (list a b)) c).
+     ;; In that case it is better to convert it (set-car! (list a b) c).
+     ;; So we first check if the 'op' has setter then convert it.
+     ;; TODO: benchmark. I have no idea if this is fast enough to do.
+     ($call form (or (and-let* ((g (find-binding (p1env-library p1env)
+						 (variable-name op) #f))
+				(p (gloc-ref g))
+				(s (setter p))
+				( (procedure? s) )
+				(n (procedure->symbol s))
+				(b (find-binding (p1env-library p1env) n #f)))
+		       ($gref (ensure-identifier (gloc-name b) p1env)))
+		     ($call #f ($gref setter.)
+			    (list (pass1 op p1env)) #f))
+	    (let ((p1env (p1env-sans-name p1env)))
+	      (append (imap (lambda (a) (pass1 a p1env)) args)
+		      (list (pass1 expr p1env)))))
+     )
     ((- name expr)
      (unless (variable? name)
        (syntax-error "malformed set!" form))
