@@ -281,7 +281,7 @@
 
   (define (get-problem-report headers body)
     (let ((from-headers (get-problem-report-from-headers headers)))
-      from-headers))
+      (or from-headers '())))
 
   ;; Access the protected resource at URI using ACCESS-TOKEN.
   ;; If the token contains OAuth Session information it will be checked for
