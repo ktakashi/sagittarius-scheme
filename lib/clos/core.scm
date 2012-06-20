@@ -44,7 +44,7 @@
 
 	    ;; builtin generic
 	    write-object allocate-instance compute-applicable-methods
-	    object-equal? object-apply
+	    object-equal? object-apply |setter of object-apply|
 	    ;; helper
 	    initialize-direct-slots is-a?
 	    ;; helper generics

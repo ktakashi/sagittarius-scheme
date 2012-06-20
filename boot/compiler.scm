@@ -2095,7 +2095,8 @@
      ;; In that case it is better to convert it (set-car! (list a b) c).
      ;; So we first check if the 'op' has setter then convert it.
      ;; TODO: benchmark. I have no idea if this is fast enough to do.
-     ($call form (or (and-let* ((g (find-binding (p1env-library p1env)
+     ($call form (or (and-let* (( (variable? op) ) ;; for object-apply
+				(g (find-binding (p1env-library p1env)
 						 (variable-name op) #f))
 				(p (gloc-ref g))
 				(s (setter p))

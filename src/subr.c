@@ -95,9 +95,9 @@ SgObject Sg_SetterSet(SgProcedure *proc, SgProcedure *setter, int lock)
 
 static SgObject object_setter(SgObject *args, int argc, void *data)
 {
-  ASSERT(argc == 1);
   return Sg_VMApply(SG_OBJ(&Sg_GenericObjectSetter),
-		    Sg_Cons(SG_OBJ(data), args[0]));
+		    Sg_Cons(SG_OBJ(data), 
+			    Sg_ArrayToList(args, argc)));
 }
 
 SgObject Sg_Setter(SgObject proc)
