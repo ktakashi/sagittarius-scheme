@@ -34,6 +34,7 @@
 	    ->string ->integer ->number)
     (import (rnrs)
 	    (rnrs mutable-pairs)
+	    (rnrs mutable-strings)
 	    (sagittarius)
 	    (clos user))
   ;; we don't support fallback for slot ref, since we don't have slot-bound?
