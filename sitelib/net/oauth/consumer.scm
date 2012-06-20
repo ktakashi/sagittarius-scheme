@@ -267,21 +267,21 @@
 	access-token))
 
   (define (get-problem-report-from-headers headers)
-    (and-let* ((auth-header (rfc5322-header-ref headers "www-authenticate"))
-	       (len (string-length auth-header))
-	       ( (>= len 5) )
-	       (type (substring auth-header 0 5))
-	       ( (string=? type "OAuth") )
-	       ( (> len 5))
-	       (parameters (map (lambda (token)
-				  (string-split token "="))
-				(string-split (substring auth-header 6 len)
-					      #/\s/))))
-      parameters))
+    (or (and-let* ((auth-header (rfc5322-header-ref headers "www-authenticate"))
+		   (len (string-length auth-header))
+		   ( (>= len 5) )
+		   (type (substring auth-header 0 5))
+		   ( (string=? type "OAuth") )
+		   ( (> len 5)))
+	  (map (lambda (token)
+		 (string-split token "="))
+	       (string-split (substring auth-header 6 len)
+			     #/\s/)))
+	'()))
 
   (define (get-problem-report headers body)
     (let ((from-headers (get-problem-report-from-headers headers)))
-      (or from-headers '())))
+      from-headers))
 
   ;; Access the protected resource at URI using ACCESS-TOKEN.
   ;; If the token contains OAuth Session information it will be checked for

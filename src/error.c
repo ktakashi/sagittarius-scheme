@@ -66,9 +66,7 @@ void Sg_Error(const SgChar* fmt, ...)
   va_start(ap, fmt);
   Sg_Vprintf(err, fmt, ap, TRUE);
   va_end(ap);
-  /* TODO I think we need an error type to catch */
-  errObj = Sg_GetStringFromStringPort(err);
-  /* should continuable be true? */
+  errObj = Sg_MakeError(Sg_GetStringFromStringPort(err));
   Sg_VMThrowException(Sg_VM(), errObj, FALSE);
 }
 
@@ -90,7 +88,9 @@ void Sg_ReadError(const SgChar* fmt, ...)
 
 void Sg_SyntaxError(SgObject form, SgObject irritants)
 {
-  Sg_Error(UC("syntax-error: %S, irritants %S"), form, irritants);
+  SgObject errObj;
+  errObj = Sg_MakeSyntaxError(form, irritants);
+  Sg_VMThrowException(Sg_VM(), errObj, FALSE);
 }
 
 void Sg_IOError(SgIOErrorType type, SgObject who, SgObject msg, 

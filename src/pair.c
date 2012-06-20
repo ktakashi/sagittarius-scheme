@@ -154,24 +154,36 @@ SgObject* Sg_ListToArray(SgObject list, int nullTermP)
 #define CXR(cname, sname, body)			\
 SgObject cname (SgObject obj)			\
 {						\
+  static SgObject PROC_NAME = SG_FALSE;		\
   SgObject obj2 = obj;				\
+  if (SG_FALSEP(PROC_NAME)) {			\
+    PROC_NAME = SG_INTERN(sname);		\
+  }						\
   body						\
   return obj2;					\
 }
 
-#define A								\
-  if (!SG_PAIRP(obj2)) Sg_Error(UC("pair required but got: %S"), obj);	\
+#define A							\
+  if (!SG_PAIRP(obj2)) {					\
+    Sg_WrongTypeOfArgumentViolation(PROC_NAME,			\
+				    SG_INTERN("pair"),		\
+				    obj2, obj);			\
+  }								\
   obj2 = SG_CAR(obj2);
 
-#define D								\
-  if (!SG_PAIRP(obj2)) Sg_Error(UC("pair required but got: %S"), obj);	\
+#define D							\
+  if (!SG_PAIRP(obj2)) {					\
+    Sg_WrongTypeOfArgumentViolation(PROC_NAME,			\
+				    SG_INTERN("pair"),		\
+				    obj2, obj);			\
+  }								\
   obj2 = SG_CDR(obj2);
 
 CXR(Sg_Car, "car", A)
 CXR(Sg_Cdr, "cdr", D)
 CXR(Sg_Caar, "caar", A A)
-CXR(Sg_Cadr, "cadr", A D)
-CXR(Sg_Cdar, "cdar", D A)
+CXR(Sg_Cadr, "cadr", D A)
+CXR(Sg_Cdar, "cdar", A D)
 CXR(Sg_Cddr, "cddr", D D)
 /* Maybe add cadr etc.*/
 

@@ -904,7 +904,7 @@
      Sg_Error(UC(\"can't set c\" #pre #tail \"r of %S\"), obj); \
     SG_SET_C##PRE##R(cell, value);"
 
-  (define-c-proc caar (o) ::<top> (inline CAAR)
+  (define-c-proc caar (o) (inline CAAR)
     (setter (obj value) ::<void> (CXR_SETTER A a a))
     (unless (SG_PAIRP o)
       (wrong-type-of-argument-violation 'caar "pair" o))
@@ -912,7 +912,7 @@
       (wrong-type-of-argument-violation 'caar "pair" o))
     (result (SG_CAAR o)))
 
-  (define-c-proc cadr (o) ::<top> (inline CADR)
+  (define-c-proc cadr (o) (inline CADR)
     (setter (obj value) ::<void> (CXR_SETTER A a d))
     (unless (SG_PAIRP o)
       (wrong-type-of-argument-violation 'cadr "pair" o))
@@ -920,7 +920,7 @@
       (wrong-type-of-argument-violation 'cadr "pair" o))
     (result (SG_CADR o)))
 
-  (define-c-proc cdar (o) ::<top> (inline CDAR)
+  (define-c-proc cdar (o) (inline CDAR)
     (setter (obj value) ::<void> (CXR_SETTER D d a))
     (unless (SG_PAIRP o)
       (wrong-type-of-argument-violation 'cdar "pair" o))
@@ -928,7 +928,7 @@
       (wrong-type-of-argument-violation 'cdar "pair" o))
     (result (SG_CDAR o)))
 
-  (define-c-proc cddr (o) ::<top> (inline CDDR)
+  (define-c-proc cddr (o) (inline CDDR)
     (setter (obj value) ::<void> (CXR_SETTER D d d))
     (unless (SG_PAIRP o)
       (wrong-type-of-argument-violation 'cddr "pair" o))
@@ -936,36 +936,103 @@
       (wrong-type-of-argument-violation 'cddr "pair" o))
     (result (SG_CDDR o)))
 
-  (define-c-proc list? (arg0::<top>) ::<boolean>
-    (result (SG_PROPER_LISTP arg0)))
+  ;; moved from (core base)
+  "#define CXXR_SETTER(PRE, pre, tail)   \
+    SgObject cell = Sg_C##pre##r(Sg_C##tail##r(obj)); \
+    if (!SG_PAIRP(cell)) \
+     Sg_Error(UC(\"can't set c\" #pre #tail \"r of %S\"), obj); \
+    SG_SET_C##PRE##R(cell, value);"  
 
-  (define-c-proc list (:rest rest) ::<top> (inline LIST)
-    (result rest))
+  (define-c-proc caaar 	(o) 
+    (setter (obj value) ::<void> (CXXR_SETTER A a a))
+    (result (Sg_Car  (Sg_Caar o))))
+  (define-c-proc caadr 	(o) 
+    (setter (obj value) ::<void> (CXXR_SETTER A a d))
+    (result (Sg_Car  (Sg_Cadr o))))
+  (define-c-proc cadar 	(o) 
+    (setter (obj value) ::<void> (CXXR_SETTER A d a))
+    (result (Sg_Car  (Sg_Cdar o))))
+  (define-c-proc caddr 	(o) 
+    (setter (obj value) ::<void> (CXXR_SETTER A d d))
+    (result (Sg_Car  (Sg_Cddr o))))
+  (define-c-proc cdaar 	(o) 
+    (setter (obj value) ::<void> (CXXR_SETTER D a a))
+    (result (Sg_Cdr  (Sg_Caar o))))
+  (define-c-proc cdadr 	(o) 
+    (setter (obj value) ::<void> (CXXR_SETTER D a d))
+    (result (Sg_Cdr  (Sg_Cadr o))))
+  (define-c-proc cddar 	(o) 
+    (setter (obj value) ::<void> (CXXR_SETTER D d a))
+    (result (Sg_Cdr  (Sg_Cdar o))))
+  (define-c-proc cdddr 	(o) 
+    (setter (obj value) ::<void> (CXXR_SETTER D d d))
+    (result (Sg_Cdr  (Sg_Cddr o))))
+  (define-c-proc caaaar (o) 
+    (setter (obj value) ::<void> (CXXR_SETTER A a aa))
+    (result (Sg_Caar (Sg_Caar o))))
+  (define-c-proc caaadr (o) 
+    (setter (obj value) ::<void> (CXXR_SETTER A a ad))
+    (result (Sg_Caar (Sg_Cadr o))))
+  (define-c-proc caadar (o) 
+    (setter (obj value) ::<void> (CXXR_SETTER A a da))
+    (result (Sg_Caar (Sg_Cdar o))))
+  (define-c-proc caaddr (o) 
+    (setter (obj value) ::<void> (CXXR_SETTER A a dd))
+    (result (Sg_Caar (Sg_Cddr o))))
+  (define-c-proc cadaar (o) 
+    (setter (obj value) ::<void> (CXXR_SETTER A d aa))
+    (result (Sg_Cadr (Sg_Caar o))))
+  (define-c-proc cadadr (o) 
+    (setter (obj value) ::<void> (CXXR_SETTER A d ad))
+    (result (Sg_Cadr (Sg_Cadr o))))
+  (define-c-proc caddar (o) 
+    (setter (obj value) ::<void> (CXXR_SETTER A d da))
+    (result (Sg_Cadr (Sg_Cdar o))))
+  (define-c-proc cadddr (o) 
+    (setter (obj value) ::<void> (CXXR_SETTER A d dd))
+    (result (Sg_Cadr (Sg_Cddr o))))
+  (define-c-proc cdaaar (o) 
+    (setter (obj value) ::<void> (CXXR_SETTER D a aa))
+    (result (Sg_Cdar (Sg_Caar o))))
+  (define-c-proc cdaadr (o) 
+    (setter (obj value) ::<void> (CXXR_SETTER D a ad))
+    (result (Sg_Cdar (Sg_Cadr o))))
+  (define-c-proc cdadar (o) 
+    (setter (obj value) ::<void> (CXXR_SETTER D a da))
+    (result (Sg_Cdar (Sg_Cdar o))))
+  (define-c-proc cdaddr (o) 
+    (setter (obj value) ::<void> (CXXR_SETTER D a dd))
+    (result (Sg_Cdar (Sg_Cddr o))))
+  (define-c-proc cddaar (o) 
+    (setter (obj value) ::<void> (CXXR_SETTER D d aa))
+    (result (Sg_Cddr (Sg_Caar o))))
+  (define-c-proc cddadr (o) 
+    (setter (obj value) ::<void> (CXXR_SETTER D d ad))
+    (result (Sg_Cddr (Sg_Cadr o))))
+  (define-c-proc cdddar (o) 
+    (setter (obj value) ::<void> (CXXR_SETTER D d da))
+    (result (Sg_Cddr (Sg_Cdar o))))
+  (define-c-proc cddddr (o) 
+    (setter (obj value) ::<void> (CXXR_SETTER D d dd))
+    (result (Sg_Cddr (Sg_Cddr o))))
 
-  (define-c-proc length (lst) ::<fixnum>
-    (result (Sg_Length lst)))
 
-  (define-c-proc append (:rest lst) ::<top> (inline APPEND)
-    (result (Sg_Append lst)))
+  (define-c-proc list? (arg0::<top>) ::<boolean> SG_PROPER_LISTP)
+  (define-c-proc list (:rest rest) (inline LIST) (result rest))
+  (define-c-proc length (lst) ::<fixnum> Sg_Length)
+  (define-c-proc append (:rest lst) (inline APPEND) Sg_Append)
+  (define-c-proc reverse (lst) Sg_Reverse)
 
-  (define-c-proc reverse (lst) ::<top>
-    (result (Sg_Reverse lst)))
-
-  (define-c-proc list-tail (lst k::<fixnum> :optional fallback)
-    (result (Sg_ListTail lst k fallback)))
-
+  (define-c-proc list-tail (lst k::<fixnum> :optional fallback) Sg_ListTail)
   (define-c-proc list-ref (lst k::<fixnum> :optional fallback)
     (setter (lst i::<fixnum> v) ::<void> 
 	    (SG_SET_CAR (Sg_ListTail lst i SG_UNBOUND) v))
-    (result (Sg_ListRef lst k fallback)))
+    Sg_ListRef)
   ;; list miscs
-
-  (define-c-proc last-pair (lst) ::<top>
-    (result (Sg_LastPair lst)))
+  (define-c-proc last-pair (lst) Sg_LastPair)
 
   ;; 11.10 symbols
-  (define-c-proc symbol->string (z::<symbol>) ::<top>
-    (result (-> z name)))
+  (define-c-proc symbol->string (z::<symbol>) (result (-> z name)))
 
   (define-cise-stmt check-symbol
     ((_ name s)

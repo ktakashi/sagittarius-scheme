@@ -1173,8 +1173,7 @@
 				 (expand (cdr expr) 1)))
 		     (((? unquote? -) e1) e1)
 		     (((? unquote? -) . -)
-		      (syntax-error 'quasiquote
-				    "unquote appear in bad context" form expr))
+		      (syntax-error "unquote appear in bad context" form expr))
 		     (((? quasiquote? -) . -)
 		      (syntax-error 
 		       'quasiquote
@@ -1787,15 +1786,13 @@
   (smatch form
     ((_ arg specs . body)
      (pass1/let-keywords form arg specs body let. p1env))
-    (_ (syntax-error 'let-keywords
-		     "malformed let-keywords" form))))
+    (_ (syntax-error "malformed let-keywords" form))))
 
 (define-pass1-syntax (let-keywords* form p1env) :sagittarius
   (smatch form
     ((_ arg specs . body)
      (pass1/let-keywords form arg specs body let*. p1env))
-    (_ (syntax-error 'let-keywords
-		     "malformed let-keywords" form))))
+    (_ (syntax-error "malformed let-keywords" form))))
 
 (define-pass1-syntax (let form p1env) :null
   (smatch form
