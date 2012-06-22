@@ -15,10 +15,13 @@
 	    ensure-stmt-ctx
 	    expr-env
 	    env-decl-add!
-
+	    
 	    default-return-type
 	    ensure-toplevel-ctx
-	    canonicalize-vardecl)
+	    canonicalize-vardecl
+
+	    cise-context
+	    )
     (import (except (rnrs) define)
 	    (clos user)
 	    (sagittarius)
@@ -190,20 +193,22 @@
        (define-cise-expr "clauses" op env () clauses))))
 
   ;; render
-  (define (cise-render form :optional (ctx 'stmt) (port (current-output-port)))
+  (define (cise-render form :key (ctx 'stmt) (port (current-output-port)))
     (let* ((env (case ctx
 		  ((toplevel) (make-env 'toplevel '()))
 		  ((stmt #f)  (null-env))
 		  ((expr #t)  (expr-env (null-env)))
 		  (else (error 'cise-render "invalid context" ctx))))
 	   (stree (render-rec form env)))
-      (render-finalize (if (or (eq? ctx 'expr) (eq? ctx 'toplevel))
+      (render-finalize `(,@(render-env-decls env) ,stree)
+		       #;
+		       (if (or (eq? ctx 'expr) (eq? ctx 'toplevel))
 			   `(,@(render-env-decls env) ,stree)
 			   `("{" ,@(render-env-decls env) ,stree "}"))
 		       port)))
 
   (define (cise-render-to-string form :optional (ctx #f))
-    (call-with-output-string (cut cise-render form ctx <>)))
+    (call-with-output-string (cut cise-render form :ctx ctx :port <>)))
 
   ;; To handle boolean
   (define-generic render-boolean)
@@ -499,6 +504,12 @@
        `("\n#define " ,(format "~a" var) "\n" |#reset-line|))
       ((_ var val)
        `("\n#define " ,(format "~a ~a" var val) "\n" |#reset-line|))))
+
+  (define-cise-macro (.undef form env)
+    (ensure-stmt-or-toplevel-ctx form env)
+    (match form
+      ((_ var)
+       `("\n#undef " ,(format "~a" var) "\n" |#reset-line|))))
 
   (define-cise-macro (.if form env)
     (ensure-stmt-or-toplevel-ctx form env)

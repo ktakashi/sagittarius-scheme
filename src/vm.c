@@ -1105,6 +1105,30 @@ static SgWord boundaryFrameMark = NOP;
 
 #define REFER_LOCAL(vm, n)   *(FP(vm) + n)
 #define INDEX_CLOSURE(vm, n)  SG_CLOSURE(CL(vm))->frees[n]
+#define REFER_GLOBAL(vm, ret)						\
+  do {									\
+    SgObject var = FETCH_OPERAND(PC(vm));				\
+    if (SG_GLOCP(var)) {						\
+      ret = SG_GLOC_GET(SG_GLOC(var));					\
+    } else if (SG_IDENTIFIERP(var)) {					\
+      SgObject value = Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var),	\
+				      SG_IDENTIFIER_NAME(var),		\
+				      SG_UNBOUND);			\
+      if (SG_GLOCP(value)) {						\
+	ret = SG_GLOC_GET(SG_GLOC(value));				\
+	*(PC(vm)-1) = SG_WORD(value);					\
+      } else if (SG_UNBOUNDP(value)) {					\
+	Sg_AssertionViolation(SG_MAKE_STRING("vm"),			\
+			      Sg_Sprintf(UC("unbound variable %S"),	\
+					 SG_IDENTIFIER_NAME(var)),	\
+			      SG_IDENTIFIER_NAME(var));			\
+      } else {								\
+	ASSERT(FALSE);							\
+      }									\
+    } else {								\
+      ASSERT(FALSE)							\
+	}								\
+  } while (0)
 
 
 #define FORWARDED_CONT_P(c) ((c)&&((c)->size == -1))
@@ -1303,14 +1327,8 @@ static SgObject throw_continuation_calculate_handlers(SgContinuation *c,
 static SgObject throw_continuation(SgObject *argframes, int argc, void *data)
 {
   SgContinuation *c = (SgContinuation*)data;
-  SgObject args = SG_NIL, t = SG_NIL;
   SgObject handlers_to_call;
   SgVM *vm = Sg_VM();
-  int i;
-
-  for (i = 0; i < argc; i++) {
-    SG_APPEND1(args, t, argframes[i]);
-  }
 
   if (c->cstack && vm->cstack != c->cstack) {
     SgCStack *cs;
@@ -1320,13 +1338,13 @@ static SgObject throw_continuation(SgObject *argframes, int argc, void *data)
     if (cs != NULL) {
       vm->escapeReason = SG_VM_ESCAPE_CONT;
       vm->escapeData[0] = c;
-      vm->escapeData[1] = args;
+      vm->escapeData[1] = argframes[0];
       longjmp(vm->cstack->jbuf, 1);
     }
   }
 
   handlers_to_call = throw_continuation_calculate_handlers(c, vm);
-  return throw_continuation_body(handlers_to_call, c, args);
+  return throw_continuation_body(handlers_to_call, c, argframes[0]);
 }
 
 SgObject Sg_VMCallCC(SgObject proc)

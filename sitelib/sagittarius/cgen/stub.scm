@@ -148,7 +148,7 @@
       (if (string? c)
 	  (cgen-decl c)
 	  (cgen-decl (call-with-output-string
-		       (cut cise-render c 'toplevel <>))))))
+		       (cut cise-render c :ctx 'toplevel :port <>))))))
 
   (define (name->type name)
     (or (cgen-type-from-name name)
@@ -479,14 +479,15 @@
     (for-each emit-arg-decl (slot-ref cproc 'keyword-args))
     (unless (null? (slot-ref cproc 'keyword-args))
       (let ((req-count (calculate-required (slot-ref cproc 'args))))
-	(f "  SgObject SG_OPTARGS = Sg_ArrayToList(SG_FP+~d, SG_ARGC-~d);~%"
-	   req-count req-count)))
+	(p "  SgObject SG_OPTARGS = SG_ARGREF(SG_ARGC-1);")))
     (p "  SG_ENTER_SUBR(\"" (slot-ref cproc 'scheme-name) "\");")
     ;; argument count check
     (cond ((and (> (slot-ref cproc 'num-optargs) 0)
+		;;(null? (slot-ref cproc 'keyword-args))
 		(not (slot-ref cproc 'have-rest-args?)))
-	   (p "  if (SG_ARGC > " (+ (slot-ref cproc 'num-reqargs) 
-				    (slot-ref cproc 'num-optargs)) "||")
+	   (p "  if ((SG_ARGC > " (+ (slot-ref cproc 'num-reqargs) 
+				    (slot-ref cproc 'num-optargs)) " &&")
+	   (p "      !SG_NULLP(SG_ARGREF(SG_ARGC-1))) ||")
 	   (p "      SG_ARGC < " (slot-ref cproc'num-reqargs) ")")
 	   (p "    Sg_WrongNumberOfArgumentsBetweenViolation(")
 	   (f "     SG_INTERN(\"~a\"), ~d, ~d, SG_ARGC, SG_NIL);~%"
@@ -595,20 +596,18 @@
     (emit-arg-unbox-rec arg))
 
   (define-method emit-arg-unbox ((arg <optional-arg>))
-    (p "  if (SG_ARGC >= " (slot-ref arg'count) "+1) {")
+    (p "  if (SG_ARGC > " (slot-ref arg'count) "+1) {")
     (p "    "(slot-ref arg'scm-name) " = SG_ARGREF(" (slot-ref arg'count) ");")
     ;; if proc has keyword arguments, then it must have SG_OPTARGS.
     (unless (null? (slot-ref (slot-ref arg 'proc) 'keyword-args))
-      (p "    SG_OPTARGS = SG_CDR(SG_OPTARGS);"))
+      (p "    SG_OPTARGS = (!SG_NULLP(SG_OPTARGS))?SG_CDR(SG_OPTARGS):SG_NIL;"))
     (p "  } else {")
     (p "    "(slot-ref arg'scm-name) " = " (get-arg-default arg) ";")
     (p "  }")
     (emit-arg-unbox-rec arg))
 
   (define-method emit-arg-unbox ((arg <rest-arg>))
-    (p "  " (slot-ref arg'scm-name)
-       (format " = Sg_ArrayToList(SG_FP+~d, SG_ARGC-~d);"
-	       (slot-ref arg'count) (slot-ref arg'count)))
+    (p "  " (slot-ref arg'scm-name) " = SG_ARGREF(SG_ARGC-1);")
     (emit-arg-unbox-rec arg))
 
   (define (emit-keyword-args-unbox cproc)

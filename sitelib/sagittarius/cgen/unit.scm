@@ -109,7 +109,7 @@
      (cpp-conditions :init-keyword :cpp-condition)))
 
   (define-generic cgen-emit-static-data)
-  (define-method initialize ((node <cgen-node>) intargs)
+  (define-method initialize ((node <cgen-node>) initargs)
     (call-next-method) ;; call object initialize
     (slot-set! node 'cpp-conditions (cgen-cpp-conditions)))
 

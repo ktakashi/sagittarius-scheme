@@ -2,6 +2,8 @@
 (import (rnrs)
 	(sagittarius io)
 	(sagittarius vm)
+	(sagittarius regex)
+	(sagittarius object)
 	(sagittarius control)
 	(sagittarius cgen cise)
 	(sagittarius cgen unit)
@@ -10,6 +12,7 @@
 	(shorten)
 	(pp)
 	(srfi :2 and-let*)
+	(srfi :13 strings)
 	(srfi :26 cut)
 	(srfi :39 parameters)
 	(util file)
@@ -29,6 +32,9 @@
     :init-prologue ""
     :init-epilogue ""))
 
+(define (find-insn name insns)
+  (find (^i (eq? name (~ i'name))) insns))
+
 (define-class <vm-insn-info> ()
   ((name :init-keyword :name)
    (code :init-keyword :code)
@@ -39,6 +45,9 @@
    (label? :init-keyword :label?)
    (return? :init-keyword :return?)
    (combined :init-keyword :combined)
+   (push-variant :init-value #f)
+   (base-variant :init-value #f)
+   (ret-variant :init-value #f)
    ))
 
 (define (expand-toplevels file)
@@ -50,7 +59,7 @@
 	    (else (error 'expand-toplevels
 			 "invalid form in vm instruction definition" form))))
 	'()
-	(file->sexp-list file)))
+	(file->list (cut read/ss <> :source-info? #t) file)))
 
 (define (parse-define-inst insn-num definsn)
   (define (parse-keywords form)
@@ -62,7 +71,7 @@
 	((:label . rest) (loop (cdr form) return? #t combined))
 	((:return . rest) (loop (cdr form) #t label? combined))
 	((:combined . rest)
-	 (values return? label? rest #f))
+	 (values return? label? (car rest) #f))
 	(_ (values return? label? combined form)))))
 
   (match definsn
@@ -77,47 +86,90 @@
 
 (define (populate-insn-info definsns)
   (let1 insns (map-with-index parse-define-inst definsns)
-    ;; do we need to do something here?
+    (dolist (insn insns)
+      (and-let* ((comb (~ insn'combined)))
+	(define (wire suffix slot)
+	  (let* ((basename (string->symbol
+			    (cond
+			     ((matches (regex (format "(.*)(-|_)~a" suffix))
+				       (->string (~ insn'name)))
+			      => (^m (m 0))))))
+		 (baseinsn (find (^i (eq? (~ i'name) basename)) insns)))
+	    (set! (~ baseinsn slot) insn)
+	    (set! (~ insn 'base-variant) baseinsn)))
+	(case (car (last-pair comb))
+	  ((PUSH) (wire "PUSH" 'push-variant))
+	  ((RET) (wire "RET" 'ret-variant))))
+      )
     insns))
 
+;; used by instruction.scm
+(define result-type (make-parameter 'reg))
 (define insn-alist (make-parameter '()))
-(define (case-label insn)
-    (cgen-body (format "CASE(~a) {" (slot-ref insn'name))))
-
-(define (do-combined insn comb)
-  (for-each (^c (cond 
-		 ((assq c (insn-alist))
-		  => (^i (render1 (cdr i))))
-		 (else
-		  (error 'construct-vm-body
-			 "combined insn appeared before its parent definition"
-			 c)))) (car comb)))
-(define (cise->string cise)
-  (call-with-output-string
-    (^p (for-each (^c (cise-render c 'stmt p)) cise))))
-(define (render cise)
-  (or (null? cise)
-      (cgen-body (cise->string cise))
-      #t))
-(define (render1 insn)
-  (or (and-let* ((cise (slot-ref insn'body)))     (render cise))
-      (and-let* ((comb (slot-ref insn'combined))) (do-combined insn comb))
-      (error 'construct-vm-body
-	     "Unknown insn" (slot-ref insn'name))))
-
 
 (define (construct-vm-body insns)
-  (parameterize ((insn-alist (map (lambda (i)
-				    (cons (slot-ref i 'name) i)) insns)))
+  (define (case-label insn)
+    (cgen-body (format "\nlabel_~a:\nCASE(~a) " 
+		       (cgen-safe-name-friendly (->string (~ insn'name)))
+		       (cgen-safe-name-friendly (->string (~ insn'name))))))
+  (define (base-cise base)
+    (and-let* ((base-insn (find-insn base insns)))
+      (~ base-insn 'body)))
+  (define (symbol-join syms)
+    (string->symbol (string-join (map ->string syms) "_")))
+  (define (simple-join comb)
+    (for-each (^c (cond 
+		   ((assq c (insn-alist))
+		    => (^i (render1 (cdr i))))
+		   (else
+		    (error 'construct-vm-body
+			   "combined insn appeared before its parent definition"
+			   c))))
+	      comb))
+  (define (do-combined insn comb)
+    (match comb
+      ((base 'PUSH)
+       (and-let* ((cise (base-cise base)))
+	 (parameterize ((result-type 'push)) (render cise))))
+      ((base 'RET)
+       (and-let* ((cise (base-cise base)))
+	 (parameterize ((result-type 'ret)) (render cise))))
+      ((base (and (or 'CALL 'TAIL_CALL) next))
+       (and-let* ((cise (base-cise base)))
+	 (parameterize ((result-type 'call)) (render cise))
+	 (render `(($goto-insn ,next)))))
+      (('PUSH . next)
+       (render `((PUSH (SP vm) (AC vm))))
+       (render `(($goto-insn ,(symbol-join next)))))
+      (((and (or 'LREF 'FREF 'GREF) ref) . next)
+       (and-let* ((cise (base-cise ref)))
+	 (parameterize ((result-type 'comb)) (render cise)))
+       (render `(($goto-insn ,(symbol-join next)))))
+      (_ #f)))
+  (define (do-combined-rec orig comb)
+    (or (and-let* ((insn (find-insn (symbol-join comb) insns))) (render1 insn))
+	(do-combined orig comb)
+	(error 'do-combined-rec
+	       "Unknown combined insn" (~ orig'name))))
+  (define (cise->string cise)
+    (call-with-output-string
+      (^p (for-each (^c (cise-render c :port p)) cise))))
+  (define (render cise)
+    (cgen-body (format "{~a}" (cise->string cise)))
+    #t)
+  (define (render1 insn)
+    (or (and-let* ((cise (slot-ref insn'body)))     (render cise))
+	(and-let* ((comb (slot-ref insn'combined))) (do-combined insn comb))
+	(error 'construct-vm-body
+	       "Unknown insn" (slot-ref insn'name))))
+
+  (parameterize ((insn-alist (map (^i (cons (~ i 'name) i)) insns)))
     (dolist (insn insns)
       (case-label insn)
-      (render1 insn)
-      (if (slot-ref insn 'return?)
-	  (cgen-body "  return AC(vm);\n}")
-	  (cgen-body "  NEXT;\n}")))
+      (render1 insn))
     ))
 
-(define *insn-file* "../boot/instructions.scm")
+(define *insn-file* "instructions.scm")
 (define *header-prefix* "
 #ifndef SAGITTARIUS_INSTRUCATIONS_H
 #define SAGITTARIUS_INSTRUCATIONS_H
@@ -160,36 +212,36 @@ SG_CDECL_END
 #endif
 ")
 
+(define (main args)
+  (parameterize ((cgen-current-unit *unit*))
+    (let1 insns (populate-insn-info (reverse (expand-toplevels *insn-file*)))
+      ;; Generate insn names and DEFINSN macros
+      ;; for header
+      (cgen-extern *header-prefix*)
+      (cgen-body "#ifdef DEFINSN")
+      (cgen-extern "typedef enum {")
+      (dolist (insn insns)
+	(cgen-extern (format "  ~a = 0x~2,'0x,"
+			     (slot-ref insn'name) (slot-ref insn'code)))
+	(cgen-body (format "DEFINSN(~a, ~a, ~a, ~a, ~a)"
+			   (~ insn 'name)
+			   (~ insn 'vals)
+			   (~ insn 'argc)
+			   (if (~ insn 'src?) 'TRUE 'FALSE)
+			   (if (~ insn 'label?) 'TRUE 'FALSE))))
+      (cgen-extern "} Instruction;")
+      (cgen-extern (format 
+		    "#define INSTRUCTION_COUNT ~a /** number of instructions */"
+		    (length insns)))
+      (cgen-body "#endif /* DEFINSN */")
+      ;; emit body
+      (cgen-body "#ifdef VM_LOOP")
+      (construct-vm-body insns)
+      (cgen-body "#endif /* VM_LOOP */")
 
-(parameterize ((cgen-current-unit *unit*))
-  (let1 insns (populate-insn-info (reverse (expand-toplevels *insn-file*)))
-    ;; Generate insn names and DEFINSN macros
-    ;; for header
-    (cgen-extern *header-prefix*)
-    (cgen-body "#ifdef DEFINSN")
-    (cgen-extern "typedef enum {")
-    (dolist (insn insns)
-      (cgen-extern (format "  ~a = 0x~2,'0x,"
-			   (slot-ref insn'name) (slot-ref insn'code)))
-      (cgen-body (format "DEFINSN(~a, ~a, ~a, ~a, ~a)"
-			 (slot-ref insn 'name)
-			 (slot-ref insn 'vals)
-			 (slot-ref insn 'argc)
-			 (if (slot-ref insn 'src?) 'TRUE 'FALSE)
-			 (if (slot-ref insn 'label?) 'TRUE 'FALSE))))
-    (cgen-extern "} Instruction;")
-    (cgen-extern (format 
-		  "#define INSTRUCTION_COUNT ~a /** number of instructions */"
-		  (length insns)))
-    (cgen-body "#endif /* DEFINSN */")
-    ;; emit body
-    (cgen-body "#ifdef VM_LOOP")
-    (construct-vm-body insns)
-    (cgen-body "#endif /* VM_LOOP */")
-
-    ;; for header
-    (cgen-extern *header-suffix*)
-    (cgen-emit-h (cgen-current-unit))
-    (cgen-emit-c (cgen-current-unit))
-    ))
-0
+      ;; for header
+      (cgen-extern *header-suffix*)
+      (cgen-emit-h (cgen-current-unit))
+      (cgen-emit-c (cgen-current-unit))
+      ))
+  0)

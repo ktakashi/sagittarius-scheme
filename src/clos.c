@@ -507,9 +507,9 @@ int Sg_ApplicableP(SgObject c, SgObject arg)
 #define PREALLOC_SIZE 32
 
 static SgObject compute_applicable_methods(SgGeneric *gf, SgObject *argv,
-					   int argc)
+					   int argc, int applyargs)
 {
-  SgObject methods = SG_GENERIC_METHODS(gf), mp;
+  SgObject methods = SG_GENERIC_METHODS(gf), mp, ap;
   SgObject h = SG_NIL, t = SG_NIL;
   SgClass *typev_s[PREALLOC_SIZE], **typev = typev_s;
   int i, nsel;
@@ -519,9 +519,17 @@ static SgObject compute_applicable_methods(SgGeneric *gf, SgObject *argv,
   if (nsel > PREALLOC_SIZE) {
     typev = SG_NEW_ATOMIC2(SgClass**, sizeof(SgClass*)*nsel);
   }
+  if (applyargs) argc--;
   for (i = 0; i < argc && nsel >= 0; i++, nsel--) {
     typev[i] = Sg_ClassOf(argv[i]);
   }
+  if (applyargs && nsel) {
+    SG_FOR_EACH(ap, argv[argc]) {
+      if (--nsel >= 0) typev[i++] = Sg_ClassOf(SG_CAR(ap));
+      argc++;
+    }
+  }
+
   SG_FOR_EACH(mp, methods) {
     SgMethod *m = SG_METHOD(SG_CAR(mp));
     SgClass **tp, **sp;
@@ -605,11 +613,12 @@ static SgObject* sort_method_by_qualifier(SgObject methods, SgObject *result)
   return result;
 }
 
-static SgObject sort_primary_methods(SgObject methods, SgObject *argv, int argc)
+static SgObject sort_primary_methods(SgObject methods, SgObject *argv, int argc,
+				     int applyargs)
 {
   SgObject array_s[PREALLOC_SIZE], *array = array_s;
   SgClass *targv_s[PREALLOC_SIZE], **targv = targv_s;
-  int count = 0, len, step, i, j;
+  int count = 0, len, step, i, j, tsize = argc;
   SgObject mp;
   /* for safety */
   if (SG_NULLP(methods)) return methods;
@@ -617,7 +626,14 @@ static SgObject sort_primary_methods(SgObject methods, SgObject *argv, int argc)
   len = Sg_Length(methods);
   /* TODO maybe we should use alloca */
   if (len >= PREALLOC_SIZE)  array = SG_NEW_ARRAY(SgObject, len);
-  if (argc >= PREALLOC_SIZE) targv = SG_NEW_ARRAY(SgClass*, argc);
+  /* if this is apply call we need to expand the arguments */
+  if (applyargs) {
+    int n = Sg_Length(argv[argc-1]);
+    if (n < 0) Sg_Error(UC("bad argument list: %S"), argv[argc-1]);
+    tsize += n-1;
+    argc--;
+  }
+  if (tsize >= PREALLOC_SIZE) targv = SG_NEW_ARRAY(SgClass*, tsize);
 
   SG_FOR_EACH(mp, methods) {
     if (!Sg_TypeP(SG_CAR(mp), SG_CLASS_METHOD)) {
@@ -626,6 +642,12 @@ static SgObject sort_primary_methods(SgObject methods, SgObject *argv, int argc)
     array[count++] = SG_CAR(mp);
   }
   for (i=0; i <argc; i++) targv[i] = Sg_ClassOf(argv[i]);
+  if (applyargs) {
+    SgObject ap;
+    SG_FOR_EACH(ap, argv[argc]) {
+      targv[i++] = Sg_ClassOf(SG_CAR(ap));
+    }
+  }
 
   for (step = len/2; step > 0; step /=2) {
     for (i = step; i<len; i++) {
@@ -633,7 +655,7 @@ static SgObject sort_primary_methods(SgObject methods, SgObject *argv, int argc)
 	/* TODO, use generic method */
 	if (method_more_specific(SG_METHOD(array[j]),
 				 SG_METHOD(array[j+step]),
-				 targv, argc)) {
+				 targv, tsize)) {
 	  break;
 	} else {
 	  SgObject tmp = array[j+step];
@@ -701,7 +723,7 @@ static SgObject procedure_invoker(SgObject *args, int argc, void *data)
 
 static SgObject compute_around_methods(SgObject around, SgObject before,
 				       SgObject primary, SgObject after,
-				       SgObject *argv, int argc)
+				       SgObject *argv, int argc, int applyargs)
 {
   SgObject m, rest;
   SgObject proc, name = SG_UNDEF;
@@ -710,15 +732,15 @@ static SgObject compute_around_methods(SgObject around, SgObject before,
   void **dvec;
   int req = -1, opt = -1;
   /* lazyness */
-  primary = sort_primary_methods(primary, argv, argc);
+  primary = sort_primary_methods(primary, argv, argc, applyargs);
   /* if there is no primary method, then it must be an error */
   if (SG_NULLP(primary)) {
     return SG_NIL;
   }
 
-  around  = sort_primary_methods(around, argv, argc);
-  before  = sort_primary_methods(before, argv, argc);
-  after   = sort_primary_methods(after, argv, argc);
+  around  = sort_primary_methods(around, argv, argc, applyargs);
+  before  = sort_primary_methods(before, argv, argc, applyargs);
+  after   = sort_primary_methods(after, argv, argc, applyargs);
 
   /* on tiny clos for R6RS, after is called in reverse order */
   after = Sg_ReverseX(after);
@@ -780,7 +802,8 @@ static SgObject compute_around_methods(SgObject around, SgObject before,
   }
 }
 
-static SgObject sort_method(SgObject methods, SgObject *argv, int argc)
+static SgObject sort_method(SgObject methods, SgObject *argv, int argc,
+			    int applyargs)
 {
   SgObject qualified_methods[QUALIFIER_COUNT];
   SgObject primary, before, after, around;
@@ -791,18 +814,20 @@ static SgObject sort_method(SgObject methods, SgObject *argv, int argc)
   around  = qualified_methods[AROUND_INDEX];
 
   if (SG_NULLP(around) && SG_NULLP(before) && SG_NULLP(around)) {
-    return sort_primary_methods(primary, argv, argc);
+    return sort_primary_methods(primary, argv, argc, applyargs);
   } else {
     /* dummy */
-    return compute_around_methods(around, before, primary, after, argv, argc);
+    return compute_around_methods(around, before, primary, after, argv, argc,
+				  applyargs);
   }
 }
 
-SgObject Sg_ComputeMethods(SgGeneric *gf, SgObject *argv, int argc)
+SgObject Sg_ComputeMethods(SgGeneric *gf, SgObject *argv, int argc,
+			   int applyargs)
 {
-  SgObject applicable = compute_applicable_methods(gf, argv, argc);
+  SgObject applicable = compute_applicable_methods(gf, argv, argc, applyargs);
   if (SG_NULLP(applicable)) return applicable;
-  return sort_method(applicable, argv, argc);
+  return sort_method(applicable, argv, argc, applyargs);
 }
 
 static SgSlotAccessor* lookup_slot_info(SgClass *klass, SgObject name,
@@ -1751,7 +1776,7 @@ static SgObject method_initialize_impl(SgObject *argv, int argc, void *data)
   SG_FOR_EACH(lp, llist) req++;
   if (!SG_NULLP(lp)) opt++;
 
-  if (SG_PROCEDURE_REQUIRED(body) != req + opt + 1) {
+  if (SG_PROCEDURE_REQUIRED(body)+SG_PROCEDURE_OPTIONAL(body) != req+opt+1) {
     Sg_Error(UC("body doesn't match with lambda list: %S"), body);
   }
   if (speclen != req) {
@@ -1872,9 +1897,11 @@ static SgObject compute_applicable_methods_impl(SgObject *args, int argc,
 						void *data)
 {
   SgGeneric *gf = SG_GENERIC(args[0]);
-  SgObject *argv = Sg_ListToArray(args[1], FALSE);
+  SgObject argv = args[1];
   int size = Sg_Length(args[1]);
-  return compute_applicable_methods(gf, argv, size);
+  if (size < 0) Sg_Error(UC("bad argument list: %S"), argv);
+
+  return compute_applicable_methods(gf, &argv, 1, TRUE);
 }
 
 SG_DEFINE_SUBR(compute_applicable_methods_subr, 2, 0,

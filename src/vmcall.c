@@ -31,87 +31,108 @@
  */
 /* This file is included at vm.c */
 
-
+#undef ADJUST_ARGUMENT_FRAME
+#if !defined(APPLY_CALL)
 #define ADJUST_ARGUMENT_FRAME(proc, argc)				\
   do {									\
     int required = SG_PROCEDURE_REQUIRED(proc);				\
     int optargs =  SG_PROCEDURE_OPTIONAL(proc);				\
     if (optargs) {							\
-      int extra = argc - required;					\
-      if (-1 == extra) {						\
-	/* Apply call */						\
-	SgObject *sp;							\
-	if (SP(vm) - vm->stack >= 1) {					\
-	  sp = unshift_args(SP(vm), 1);					\
-	  INDEX_SET(sp, 0, SG_NIL);					\
-	} else {							\
-	  sp = SP(vm);							\
-	  PUSH(sp, SG_NIL);						\
-	}								\
-	SP(vm) = sp;							\
-	FP(vm) = sp - required;						\
-      } else if (extra >= 0) {						\
-	SgObject *sp;							\
-	INDEX_SET(SP(vm), extra, stack_to_pair_args(SP(vm), extra+1));	\
-	sp = SP(vm) - extra;						\
-	SP(vm) = sp;							\
-	FP(vm) = sp - required;						\
-      } else {								\
+      SgObject p = SG_NIL, a;						\
+      if (argc < required) {						\
 	Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),	\
-					   required-1, argc, SG_UNDEF); \
+					   required, argc, SG_UNDEF);	\
       }									\
-    } else if (required == argc) {					\
-      FP(vm) = SP(vm) - argc;						\
-    } else {								\
-      SgObject args = SG_NIL;						\
-      int i;								\
-      for (i = 0; i < argc; i++) {					\
-	args = Sg_Cons(INDEX(SP(vm), i), args);				\
+      /* fold rest args */						\
+      while (argc > required+optargs-1) {				\
+	a = POP(SP(vm));						\
+	p = Sg_Cons(a, p);						\
+	argc--;								\
       }									\
-      Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),	\
-					 required, argc, args);		\
-    }									\
-  } while (0)
-
-#define CALL_METHOD()							\
-  do {									\
-    ASSERT(SG_METHODP(AC(vm)));						\
-    ASSERT(!SG_FALSEP(nm));						\
-    if (SG_SUBRP(SG_METHOD_PROCEDURE(AC(vm)))) {			\
-      /* C-defined method */						\
-      SgObject subr = SG_METHOD_PROCEDURE(AC(vm));			\
-      CL(vm) = subr;							\
-      PC(vm) = SG_SUBR_RETURN_CODE(subr);				\
-      SG_SUBR_RETURN_CODE(subr)[0] = SG_WORD(RET);			\
-      FP(vm) = SP(vm) - argc;						\
-      SG_PROF_COUNT_CALL(vm, subr);					\
-      AC(vm) = SG_SUBR_FUNC(subr)(FP(vm), argc, SG_SUBR_DATA(subr));	\
-    } else {								\
-      /* closure */							\
-      SgClosure *cls = SG_CLOSURE(SG_METHOD_PROCEDURE(AC(vm)));		\
-      ASSERT(SG_CODE_BUILDERP(cls->code));				\
-      /* shift one for call-next-method */				\
-      SP(vm) = shift_one_args(SP(vm), argc);				\
-      INDEX_SET(SP(vm), argc, nm);					\
+      PUSH(SP(vm), p);							\
       argc++;								\
-      CHECK_STACK(SG_CODE_BUILDER(cls->code)->maxStack, vm);		\
-      ADJUST_ARGUMENT_FRAME(cls, argc);					\
-      CL(vm) = cls;							\
-      PC(vm) = SG_CODE_BUILDER(cls->code)->code;			\
-      SG_PROF_COUNT_CALL(vm, cls);					\
+    } else {								\
+      if (argc != required) {						\
+	Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),	\
+					   required, argc, SG_UNDEF);	\
+      }									\
     }									\
-  } while (0)
-
-#define CALL_FALLBACK()							\
-  do {									\
-    PC(vm) = PC_TO_RETURN;						\
     FP(vm) = SP(vm) - argc;						\
-    SG_PROF_COUNT_CALL(vm, AC(vm));					\
-    AC(vm) = SG_GENERIC(AC(vm))->fallback(FP(vm), argc, SG_GENERIC(AC(vm))); \
   } while (0)
+#else  /* APPLY_CALL */
+#define ADJUST_ARGUMENT_FRAME(proc, argc)				\
+  do {									\
+    int required = SG_PROCEDURE_REQUIRED(proc);				\
+    int optargs =  SG_PROCEDURE_OPTIONAL(proc);				\
+    int rargc = Sg_Length(INDEX(SP(vm), 0)), c;				\
+    SgObject p, a;							\
+    if (optargs) {							\
+      if ((rargc+argc-1) < required) {					\
+      	Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),	\
+					   rargc+argc-1, argc, SG_UNDEF); \
+      }									\
+      p = POP(SP(vm)); /* tail of arglist */				\
+      if (argc > required+optargs) {					\
+	argc--;								\
+	/* fold rest args */						\
+	p = Sg_CopyList(p);						\
+	for (c = argc+1; c > required+optargs; c--) {			\
+	  a = POP(SP(vm));						\
+	  argc--;							\
+	  p = Sg_Cons(a, p);						\
+	}								\
+	PUSH(SP(vm), p);						\
+	argc++;								\
+      } else {								\
+	argc--;								\
+	/* unfold rest arg */						\
+	CHECK_STACK(required + optargs - argc +1, vm);			\
+	for (c = argc+1; SG_PAIRP(p) && c < required+optargs; c++) {	\
+	  PUSH(SP(vm), SG_CAR(p));					\
+	  argc++;							\
+	  p = SG_CDR(p);						\
+	}								\
+	p = Sg_CopyList(p);						\
+	PUSH(SP(vm), p);						\
+	argc++;								\
+      }									\
+    } else {								\
+      /* not optargs */							\
+      if ((rargc+argc-1) != required) {					\
+	Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),	\
+					   required, rargc, SG_UNDEF);	\
+      }									\
+      p = POP(SP(vm));							\
+      argc--;								\
+      if (rargc > 0) {							\
+	CHECK_STACK(rargc, vm);						\
+	do {								\
+	  PUSH(SP(vm), SG_CAR(p));					\
+	  argc++;							\
+	  p = SG_CDR(p);						\
+	} while (--rargc > 0);						\
+      }									\
+    }									\
+    FP(vm) = SP(vm) - argc;						\
+  } while (0)
+#endif	/* APPLY_CALL */
+
+#undef GENERIC_ENTRY
+#undef APP
+#undef DO_METHOD_CALL
+#if !defined(APPLY_CALL)
+#define GENERIC_ENTRY  generic_entry
+#define DO_METHOD_CALL do_method_call
+#define APP FALSE
+#else
+#define GENERIC_ENTRY  generic_entry_app
+#define DO_METHOD_CALL do_method_call_app
+#define APP TRUE
+#endif
 
 {
-  int argc;
+  int argc, proctype;
+  int volatile app_p = APP;
   SgObject nm = SG_FALSE;	/* next method */
   INSN_VAL1(argc, c);
 
@@ -127,70 +148,141 @@
     *(SP(vm)-argc) = AC(vm);
     SP(vm)++; argc++;
     AC(vm) = SG_OBJ(&Sg_GenericObjectApply);
-    /* Sg_AssertionViolation(SG_INTERN("apply"), */
-    /* 			  SG_MAKE_STRING("invalid application"), */
-    /* 			  AC(vm)); */
+    proctype = SG_PROC_GENERIC;
+    goto GENERIC_ENTRY;
   }
 
-  if (SG_SUBRP(AC(vm))) {
+  proctype = SG_PROCEDURE_TYPE(AC(vm));
+  if (proctype == SG_PROC_SUBR) {
     CL(vm) = AC(vm);
     PC(vm) = SG_SUBR_RETURN_CODE(AC(vm));
+    /* 
+       Since 0.3.4, we changed APPLY instruction behaviour not to expand
+       the arguments so that it won't break the memory when it's given
+       more than max stack size of arguments.
+    */
+    ADJUST_ARGUMENT_FRAME(AC(vm), argc);
     SG_SUBR_RETURN_CODE(AC(vm))[0] = SG_WORD(RET);
-    FP(vm) = SP(vm) - argc;
     SG_PROF_COUNT_CALL(vm, AC(vm));
     AC(vm) = SG_SUBR_FUNC(AC(vm))(FP(vm), argc, SG_SUBR_DATA(AC(vm)));
-  } else if (SG_CLOSUREP(AC(vm))) {
-    SgClosure *cl = SG_CLOSURE(AC(vm));
+    NEXT;
+  }
+
+  if (proctype == SG_PROC_CLOSURE) {
+    SgClosure * volatile cl = SG_CLOSURE(AC(vm));
     SgCodeBuilder *cb = SG_CODE_BUILDER(cl->code);
     CHECK_STACK(cb->maxStack, vm);
     ADJUST_ARGUMENT_FRAME(cl, argc);
     CL(vm) = AC(vm);
     PC(vm) = cb->code;
     SG_PROF_COUNT_CALL(vm, CL(vm));
-  } else if (SG_PROCEDURE_TYPE(AC(vm)) == SG_PROC_GENERIC) {
+    NEXT;
+  }
+
+  if (proctype == SG_PROC_GENERIC) {
     SgObject mm;
     if (!SG_GENERICP(AC(vm))) {
       /* Scheme defined MOP */
       /* TODO */
       Sg_Panic("unknown procedure type.");
     }
-
-    mm = Sg_ComputeMethods(AC(vm), SP(vm)-argc, argc);
+  GENERIC_ENTRY:
+    mm = Sg_ComputeMethods(AC(vm), SP(vm)-argc, argc, APP);
     if (!SG_NULLP(mm)) {
       /* methods are sorted by compute-methods.
 	 create call-next-methods */
+#if defined(APPLY_CALL)
+      if (argc-1 < SG_GENERIC_MAX_REQARGS(AC(vm))) {
+	SgObject args = POP(SP(vm));
+	CHECK_STACK(SG_GENERIC_MAX_REQARGS(AC(vm)) - argc, vm);
+	while (argc <= SG_GENERIC_MAX_REQARGS(AC(vm)) && SG_PAIRP(args)) {
+	  PUSH(SP(vm), SG_CAR(args));
+	  args = SG_CDR(args);
+	  argc++;
+	}
+	PUSH(SP(vm), args);
+      }
+#endif
       nm = Sg_MakeNextMethod(SG_GENERIC(AC(vm)), SG_CDR(mm), SP(vm) - argc, 
 			     argc, TRUE);
       AC(vm) = SG_CAR(mm);
-      CALL_METHOD();
-    } else {
-      /* no applicable methods */
-      CALL_FALLBACK();
+      proctype = SG_PROC_METHOD;
     }
-  } else if (SG_PROCEDURE_TYPE(AC(vm)) == SG_PROC_NEXT_METHOD) {
-      SgNextMethod *n = SG_NEXT_METHOD(AC(vm));
-      int use_saved_args = (argc == 0);
-      if (use_saved_args) {
-	CHECK_STACK(n->argc+1, vm);
-	memcpy(SP(vm), n->argv, sizeof(SgObject)*n->argc);
-	SP(vm) += n->argc;
-	argc = n->argc;
-      }
-      if (SG_NULLP(n->methods)) {
-	/* no applicable methods */
-	AC(vm) = SG_OBJ(n->generic);
-	CALL_FALLBACK();
-      } else {
-	nm = Sg_MakeNextMethod(n->generic, SG_CDR(n->methods),
-			       SP(vm)-argc, argc, TRUE);
-	AC(vm) = SG_CAR(n->methods);
-	CALL_METHOD();
-      }
+  } else if (proctype == SG_PROC_NEXT_METHOD) {
+    SgNextMethod *n = SG_NEXT_METHOD(AC(vm));
+    int use_saved_args = FALSE;
+#if !defined(APPLY_CALL)
+    use_saved_args = (argc == 0);
+#else
+    use_saved_args = (argc == 1 && SG_NULLP(INDEX(SP(vm), 0)));
+#endif
+    if (use_saved_args) {
+      CHECK_STACK(n->argc+1, vm);
+      memcpy(SP(vm), n->argv, sizeof(SgObject)*n->argc);
+      SP(vm) += n->argc;
+      argc = n->argc;
+    }
+    if (SG_NULLP(n->methods)) {
+      /* no applicable methods */
+      AC(vm) = SG_OBJ(n->generic);
+      proctype = SG_PROC_GENERIC;
+    } else {
+      nm = Sg_MakeNextMethod(n->generic, SG_CDR(n->methods),
+			     SP(vm)-argc, argc, TRUE);
+      AC(vm) = SG_CAR(n->methods);
+      proctype = SG_PROC_METHOD;
+    }
+    if (use_saved_args) {
+      goto DO_METHOD_CALL;
+    }
   } else {
-    Sg_AssertionViolation(SG_INTERN("apply"),
-			  SG_MAKE_STRING("invalid application"),
-			  AC(vm));
+    Sg_Panic("something's wrong");
   }
+ DO_METHOD_CALL:
+  if (proctype == SG_PROC_GENERIC) {
+    /* we have no applicable methods */
+#if defined(APPLY_CALL)
+    SgObject args = POP(SP(vm));
+    argc--;
+    while (SG_PAIRP(args)) {
+      PUSH(SP(vm), SG_CAR(args));
+      args = SG_CDR(args);
+      argc++;
+    }
+#endif
+    PC(vm) = PC_TO_RETURN;
+    FP(vm) = SP(vm) - argc;
+    SG_PROF_COUNT_CALL(vm, AC(vm));
+    AC(vm) = SG_GENERIC(AC(vm))->fallback(FP(vm), argc, SG_GENERIC(AC(vm)));
+    NEXT;
+  }
+
+  ASSERT(proctype = SG_PROC_METHOD);
+  ASSERT(!SG_FALSEP(nm));
+  if (SG_SUBRP(SG_METHOD_PROCEDURE(AC(vm)))) {
+    /* C-defined method */
+    SgObject subr = SG_METHOD_PROCEDURE(AC(vm));
+    ADJUST_ARGUMENT_FRAME(AC(vm), argc);
+    CL(vm) = subr;
+    PC(vm) = SG_SUBR_RETURN_CODE(subr);
+    SG_SUBR_RETURN_CODE(subr)[0] = SG_WORD(RET);
+    SG_PROF_COUNT_CALL(vm, subr);
+    AC(vm) = SG_SUBR_FUNC(subr)(FP(vm), argc, SG_SUBR_DATA(subr));
+  } else {
+    /* closure */
+    SgClosure *cls = SG_CLOSURE(SG_METHOD_PROCEDURE(AC(vm)));
+    ASSERT(SG_CODE_BUILDERP(cls->code));
+    /* shift one for call-next-method */
+    SP(vm) = shift_one_args(SP(vm), argc);
+    INDEX_SET(SP(vm), argc, nm);
+    argc++;
+    CHECK_STACK(SG_CODE_BUILDER(cls->code)->maxStack, vm);
+    ADJUST_ARGUMENT_FRAME(cls, argc);
+    CL(vm) = cls;
+    PC(vm) = SG_CODE_BUILDER(cls->code)->code;
+    SG_PROF_COUNT_CALL(vm, cls);
+  }
+  NEXT;
 }
 
 /*

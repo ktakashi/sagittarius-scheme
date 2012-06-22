@@ -4724,7 +4724,7 @@
 	;; closure to trunk cb.
 	(cb-emit-closure! cb CLOSURE lambda-cb
 			  ($lambda-name iform)
-			  nargs 
+			  ($lambda-args iform)
 			  (> ($lambda-option iform) 0)
 			  frlen
 			  (+ body-size frsiz nargs (pass3/frame-size))

@@ -3,31 +3,23 @@
 (import (sagittarius cgen stub)
 	(sagittarius regex)
 	(util file)
+	(getopt)
 	(shorten))
 
-(define (gen files)
-  (print "generating files:" files)
+(define (gen files force?)
+  (print (if force? "force " "") "generating files:" files)
   (for-each (^(f) (let* ((b (path-sans-extension f))
 		       (c (format "~a.c" b))
 		       (exit? #f))
-		  (when (file-exists? c)
+		  (when (and (not force?) (file-exists? c))
 		    (let ((stub-mtime (file-stat-mtime f))
 			  (out-mtime  (file-stat-mtime c)))
 		      (when (< stub-mtime out-mtime)
 			(print "generated file is older than stub file. " c)
 			(set! exit? #t))))
-		  (unless exit?
-		    (cgen-genstub f))))
+		  (unless exit? (cgen-genstub f))))
 	    files))
-(gen
- (filter values
-	 (map (^(f) (if (looking-at #/\.stub$/ f) f #f))
-	      (read-directory "."))))
-#;(gen "proclib.stub"
-     "null.stub"
-     "vmlib.stub"
-     "vmdebug.stub"
-     "extlib.stub"
-     "closlib.stub"
-     ;; CiSE needs regex.
-     "regex_stub.stub")
+(define (main args)
+  (with-args args
+      ((force? (#\f "force") #f #f))
+    (gen (find-files "." :pattern #/\.stub$/ :recursive #f) force?)))

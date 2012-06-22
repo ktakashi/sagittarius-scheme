@@ -24,57 +24,65 @@
       (Sg_WrongTypeOfArgumentViolation (SG_INTERN ,who)
 				       (SG_MAKE_STRING ,msg) ,got ,irritants))))
 
-(define-inst NOP (0 0 #f) )
+(define-cise-stmt $goto-insn
+  ((_ insn)
+   `(,(format "goto label_~a;" insn))))
 
-(define-inst HALT (0 0 #f) :return)
+(define-cise-stmt $result
+  ((_ expr)
+   `(begin
+      ,@(case (result-type)
+	  ((reg) `((set! (AC vm) ,expr) NEXT))
+	  ((push) `((PUSH (SP vm) ,expr) NEXT))
+	  ((call comb) `((set! (AC vm) ,expr)))
+	  ((ret) `((set! (AC vm) ,expr)
+		   (RET_INSN)
+		   NEXT))))))
+;; coercion
+(define-cise-stmt $result:b
+  ((_ expr) `($result (SG_MAKE_BOOL ,expr))))
+(define-cise-stmt $result:i
+  ((_ expr) (let ((r (gensym "cise__")))
+	      `(let ((,r :: long ,expr)) ($result (SG_MAKE_INT ,r))))))
 
-(define-inst UNDEF (0 0 #f)
-  (set! (AC vm) SG_UNDEF))
+(define-inst NOP (0 0 #f) NEXT)
 
+;; this should not happen but just in case
+(define-inst HALT (0 0 #f) (return (AC vm)))
+
+(define-inst UNDEF (0 0 #f) ($result SG_UNDEF))
 (define-inst CONST (0 1 #f)
-  (set! (AC vm) (FETCH_OPERAND (PC vm))))
+  (let ((val (FETCH_OPERAND (PC vm))))
+    ($result val)))
 
 (define-inst CONSTI (1 0 #f)
   (INSN_VAL1 val1 c)
-  (set! (AC vm) (SG_MAKE_INT val1)))
+  ($result:i val1))
 
 (define-inst LREF (1 0 #t)
   (INSN_VAL1 val1 c)
-  (set! (AC vm) (REFER_LOCAL vm val1)))
+  ($result (REFER_LOCAL vm val1)))
 
 (define-inst LSET (1 0 #t)
   (INSN_VAL1 val1 c)
   (set! (-> (SG_BOX (REFER_LOCAL vm val1)) value) (AC vm)
-	(AC vm) SG_UNDEF))
+	(AC vm) SG_UNDEF)
+  NEXT)
 
 (define-inst FREF (1 0 #t)
   (INSN_VAL1 val1 c)
-  (set! (AC vm) (INDEX_CLOSURE vm val1)))
+  ($result (INDEX_CLOSURE vm val1)))
 
 (define-inst FSET (1 0 #t)
   (INSN_VAL1 val1 c)
   (set! (-> (SG_BOX (INDEX_CLOSURE vm val1)) value) (AC vm)
-	(AC vm) SG_UNDEF))
+	(AC vm) SG_UNDEF)
+  NEXT)
 
 (define-inst GREF (0 1 #t)
-  (let ((var (FETCH_OPERAND (PC vm))))
-    (cond ((SG_GLOCP var)
-	   (set! (AC vm) (SG_GLOC_GET (SG_GLOC var))))
-	  ((SG_IDENTIFIERP var)
-	   (let ((value (Sg_FindBinding (SG_IDENTIFIER_LIBRARY var)
-					(SG_IDENTIFIER_NAME var)
-					SG_UNBOUND)))
-	     (cond ((SG_GLOCP value)
-		    (set! (AC vm) (SG_GLOC_GET (SG_GLOC value))
-			  (pointer (- (PC vm) 1)) (SG_WORD value)))
-		   ((SG_UNBOUNDP value)
-		    (Sg_AssertionViolation 
-		     (SG_MAKE_STRING "vm")
-		     (Sg_Sprintf (UC "unbound variable %S")
-				 (SG_IDENTIFIER_NAME var))
-		     (SG_IDENTIFIER_NAME var)))
-		   (else (ASSERT FALSE)))))
-	  (else (ASSERT FALSE)))))
+  (let ((v SG_FALSE))
+    (REFER_GLOBAL vm v)
+    ($result v)))
 
 (define-inst GSET (0 1 #t)
   (let ((var (FETCH_OPERAND (PC vm))))
@@ -86,7 +94,7 @@
 					 SG_UNBOUND)))
 	     (if (SG_UNBOUNDP oldval)
 		 (Sg_AssertionViolation 
-		     (SG_MAKE_STRING "set")
+		     (SG_MAKE_STRING "set!")
 		     (Sg_Sprintf (UC "unbound variable %S")
 				 (SG_IDENTIFIER_NAME var))
 		     (SG_IDENTIFIER_NAME var))
@@ -96,24 +104,28 @@
 					  0)))
 		   (set! (pointer (- (PC vm) 1)) (SG_WORD g))))))
 	  (else (ASSERT FALSE))))
-  (set! (AC vm) SG_UNDEF))
+  (set! (AC vm) SG_UNDEF)
+  NEXT)
 
 (define-inst PUSH (0 0 #f)
-  (PUSH (SP vm) (AC vm)))
+  (PUSH (SP vm) (AC vm))
+  NEXT)
 
 (define-inst BOX (1 0 #f)
   (INSN_VAL1 val1 c)
-  (INDEX_SET (SP vm) val1 (make_box (INDEX (SP vm) val1))))
+  (INDEX_SET (SP vm) val1 (make_box (INDEX (SP vm) val1)))
+  NEXT)
 
 (define-inst UNBOX (0 0 #f)
   (ASSERT (SG_BOXP (AC vm)))
-  (set! (AC vm) (-> (SG_BOX (AC vm)) value)))
+  (set! (AC vm) (-> (SG_BOX (AC vm)) value))
+  NEXT)
 
 (define-cise-stmt call-two-args-proc
   ((_ obj proc)
-   `(begin
-      (set! (AC vm) (,proc ,obj (AC vm)))
-      (post-- (SP vm)))))
+   `(let ((v ,obj))
+      (post-- (SP vm))
+      ($result (,proc v (AC vm))))))
 
 (define-inst ADD (0 0 #t)
   (let ((obj (INDEX (SP vm) 0)))
@@ -122,14 +134,14 @@
 	     (post-- (SP vm))
 	     (if (and (<= SG_INT_MIN n)
 		      (>= SG_INT_MAX n))
-		 (set! (AC vm) (SG_MAKE_INT n))
-		 (set! (AC vm) (Sg_MakeBignumFromSI n)))))
+		 ($result (SG_MAKE_INT n))
+		 ($result (Sg_MakeBignumFromSI n)))))
 	  (else
 	   (call-two-args-proc obj Sg_Add)))))
 
 (define-cise-stmt call-one-arg-with-insn-value
   ((_ proc code)
-   `(set! (AC vm) (,proc (SG_MAKE_INT val1) (AC vm)))))
+   `($result (,proc (SG_MAKE_INT val1) (AC vm)))))
 
 (define-inst ADDI (1 0 #t)
   (INSN_VAL1 val1 c)
@@ -137,10 +149,11 @@
 	 (let ((n::long (+ val1 (SG_INT_VALUE (AC vm)))))
 	   (if (and (<= SG_INT_MIN n)
 		    (>= SG_INT_MAX n))
-	       (set! (AC vm) (SG_MAKE_INT n))
-	       (set! (AC vm) (Sg_MakeBignumFromSI n)))))
+	       ($result (SG_MAKE_INT n))
+	       ($result (Sg_MakeBignumFromSI n)))))
 	(else
-	 (call-one-arg-with-insn-value Sg_Add c))))
+	 (call-one-arg-with-insn-value Sg_Add c)))
+  )
 
 (define-inst SUB (0 0 #t)
   (let ((obj (INDEX (SP vm) 0)))
@@ -149,8 +162,8 @@
 	     (post-- (SP vm))
 	     (if (and (<= SG_INT_MIN n)
 		      (>= SG_INT_MAX n))
-		 (set! (AC vm) (SG_MAKE_INT n))
-		 (set! (AC vm) (Sg_MakeBignumFromSI n)))))
+		 ($result (SG_MAKE_INT n))
+		 ($result (Sg_MakeBignumFromSI n)))))
 	  (else
 	   (call-two-args-proc obj Sg_Sub)))))
 
@@ -160,8 +173,8 @@
 	 (let ((n::long (- val1 (SG_INT_VALUE (AC vm)))))
 	   (if (and (<= SG_INT_MIN n)
 		    (>= SG_INT_MAX n))
-	       (set! (AC vm) (SG_MAKE_INT n))
-	       (set! (AC vm) (Sg_MakeBignumFromSI n)))))
+	       ($result (SG_MAKE_INT n))
+	       ($result (Sg_MakeBignumFromSI n)))))
 	(else
 	 (call-one-arg-with-insn-value Sg_Sub c))))
 
@@ -194,10 +207,9 @@
 
 (define-cise-stmt call-one-arg
   ((_ proc)
-   `(set! (AC vm) (,proc (AC vm)))))
+   `($result (,proc (AC vm)))))
 
-(define-inst NEG (0 0 #t)
-  (call-one-arg Sg_Negate))
+(define-inst NEG (0 0 #t) (call-one-arg Sg_Negate))
 
 (define-inst TEST (0 1 #t) :label
   (cond ((SG_FALSEP (AC vm))
@@ -205,16 +217,19 @@
 	   (ASSERT (SG_INTP n))
 	   (set! (PC vm) (+ (PC vm) (SG_INT_VALUE n)))))
 	(else
-	 (post++ (PC vm)))))
+	 (post++ (PC vm))))
+  NEXT)
 
 (define-inst JUMP (0 1 #t) :label
   (let ((n (PEEK_OPERAND (PC vm))))
     (ASSERT (SG_INTP n))
-    (set! (PC vm) (+ (PC vm) (SG_INT_VALUE n)))))
+    (set! (PC vm) (+ (PC vm) (SG_INT_VALUE n))))
+  NEXT)
 
 (define-inst SHIFTJ (2 0 #f)
   (INSN_VAL2 val1 val2 c)
-  (set! (SP vm) (shift_args (+ (FP vm) val2) val1 (SP vm))))
+  (set! (SP vm) (shift_args (+ (FP vm) val2) val1 (SP vm)))
+  NEXT)
 
 (define-cise-expr branch-number-test-helper
   ((_ n)
@@ -235,7 +250,8 @@
 	  (if (,func s (AC vm))
 	      (branch-number-test-helper)
 	      (branch-number-test-helper n)))
-      (post-- (SP vm)))))
+      (post-- (SP vm))
+      NEXT)))
 
 (define-inst BNNUME (0 1 #t) :label
   (branch-number-test == Sg_NumEq))
@@ -262,7 +278,8 @@
 	  (begin
 	    (+= (PC vm) (SG_INT_VALUE n))
 	    (set! (AC vm) SG_FALSE)))
-      (post-- (SP vm)))))
+      (post-- (SP vm))
+      NEXT)))
 
 (define-inst BNEQ (0 1 #t) :label
   (branch-test2 SG_EQ))
@@ -279,24 +296,22 @@
 	    (post++ (PC vm)))
 	  (begin
 	    (+= (PC vm) (SG_INT_VALUE n))
-	    (set! (AC vm) SG_FALSE))))))
+	    (set! (AC vm) SG_FALSE)))
+      NEXT)))
 
 (define-inst BNNULL (0 1 #t) :label
   (branch-test1 SG_NULLP))
 
 (define-inst NOT (0 0 #f)
-  (if (SG_FALSEP (AC vm))
-      (set! (AC vm) SG_TRUE)
-      (set! (AC vm) SG_FALSE)))
+  ($result:b (SG_FALSEP (AC vm))))
 
 (define-cise-stmt builtin-number-compare
   ((_ op func)
    `(let ((s (INDEX (SP vm) 0)))
+      (post-- (SP vm))
       (if (and (SG_INTP (AC vm)) (SG_INTP s))
-	  (set! (AC vm) (SG_MAKE_BOOL (,op (cast intptr_t s)
-					   (cast intptr_t (AC vm)))))
-	  (set! (AC vm) (SG_MAKE_BOOL (,func s (AC vm)))))
-      (post-- (SP vm)))))
+	  ($result:b  (,op (cast intptr_t s) (cast intptr_t (AC vm))))
+	  ($result:b (,func s (AC vm)))))))
 
 (define-inst NUM_EQ (0 0 #t)
   (builtin-number-compare == Sg_NumEq))
@@ -357,7 +372,8 @@
 			 (SG_APPEND1 h t (SG_VALUES_ELEMENT (AC vm) i)))
 			(else
 			 (PUSH (SP vm) h)
-			 (break)))))))))
+			 (break))))))))
+  NEXT)
 
 (define-inst CLOSURE (0 1 #f)
   (let ((cb (FETCH_OPERAND (PC vm))))
@@ -365,8 +381,8 @@
 	(wrong-type-of-argument-violation "closure"
 					  "code-builder"
 					  cb))
-    (set! (AC vm) (Sg_MakeClosure cb (- (SP vm) (SG_CODE_BUILDER_FREEC cb)))
-	  (SP vm) (- (SP vm) (SG_CODE_BUILDER_FREEC cb)))))
+    (set! (SP vm) (- (SP vm) (SG_CODE_BUILDER_FREEC cb)))
+    ($result (Sg_MakeClosure cb (SP vm)))))
 
 ;; apply stack frame
 ;; sp >|      |
@@ -393,26 +409,30 @@
       (assertion-violation "apply" "improper list not allowed" (AC vm)))
     (shift_args fp nargc (SP vm))
     (cond ((== rargc 0)
-	   (set! (SP vm) (- (SP vm) 1))
+	   (post-- (SP vm))
 	   (when val2
 	     (set! (SP vm) (shift_args (FP vm) nargc (SP vm))))
-	   (set! (arrayref (ref (pointer vm) callCode) 0) 
-		 (MERGE_INSN_VALUE1 CALL nargc)
-		 (PC vm) (-> vm callCode)))
+	   (set! (AC vm) proc)
+	   ;; c is definec in vm.c and contains current INSN
+	   ;; we need to decieve the as if this call is CALL
+	   (set! c (MERGE_INSN_VALUE1 CALL nargc))
+	   ($goto-insn CALL))
 	  (else
-	   (INDEX_SET (SP vm) 0 (SG_CAR (AC vm)))
-	   (dolist (v (SG_CDR (AC vm)))
-	     (PUSH (SP vm) v))
+	   (INDEX_SET (SP vm) 0 (AC vm))
 	   (when val2
-	     (set! (SP vm) (shift_args (FP vm) (+ nargc rargc) (SP vm))))
-	   (set! (arrayref (ref (pointer vm) callCode) 0)
-		 (MERGE_INSN_VALUE1 CALL (+ nargc rargc))
-		 (PC vm) (-> vm callCode))))
-    (set! (AC vm) proc)))
+	     (set! (SP vm) (shift_args (FP vm) (+ nargc 1) (SP vm))))
+	   (set! c (MERGE_INSN_VALUE1 CALL (+ nargc 1)))
+	   (set! (AC vm) proc)
+	   (goto tail_apply_entry)))))
 
 (define-inst CALL (1 0 #t)
-  (.include "vmcall.c"))
-
+  (label call_entry)
+  (.undef APPLY_CALL)
+  (.include "vmcall.c")
+  (label tail_apply_entry)
+  (.define APPLY_CALL)
+  (.include "vmcall.c")
+  )
 
 (define-cise-stmt local-call-process
   ((_ c)
@@ -433,7 +453,8 @@
 
 (define-inst LOCAL_CALL (1 0 #t)
   (CHECK_STACK (SG_CLOSURE_MAX_STACK (AC vm)) vm)
-  (local-call-process c))
+  (local-call-process c)
+  NEXT)
 
 (define-cise-stmt tail-call-process
   ((_ code)
@@ -443,29 +464,34 @@
 
 (define-inst TAIL_CALL (1 0 #t)
   (tail-call-process c)
-  (.include "vmcall.c"))
+  ($goto-insn CALL))
 
 (define-inst LOCAL_TAIL_CALL (1 0 #t)
   (CHECK_STACK (SG_CLOSURE_MAX_STACK (AC vm)) vm)
   (tail-call-process c)
-  (local-call-process c))
+  (local-call-process c)
+  NEXT)
 
 (define-inst RET (0 0 #f)
-  (RET_INSN))
+  (RET_INSN)
+  NEXT)
 
 (define-inst FRAME (0 1 #f) :label
   (let ((n (FETCH_OPERAND (PC vm))))
     (ASSERT (SG_INTP n))
-    (PUSH_CONT vm (+ (PC vm) (- (SG_INT_VALUE n) 1)))))
+    (PUSH_CONT vm (+ (PC vm) (- (SG_INT_VALUE n) 1))))
+  NEXT)
 
 
 (define-inst ENTER (1 0 #f)
   (INSN_VAL1 val1 c)
-  (set! (FP vm) (- (SP vm) val1)))
+  (set! (FP vm) (- (SP vm) val1))
+  NEXT)
 
 (define-inst LEAVE (1 0 #f)
   (INSN_VAL1 val1 c)
-  (set! (SP vm) (- (SP vm) val1)))
+  (set! (SP vm) (- (SP vm) val1))
+  NEXT)
 
 (define-inst DEFINE (1 1 #t)
   (INSN_VAL1 val1 c)
@@ -475,14 +501,16 @@
 		    (SG_IDENTIFIER_NAME var)
 		    (AC vm)
 		    val1)
-    (set! (AC vm) SG_UNDEF)))
+    (set! (AC vm) SG_UNDEF))
+  NEXT)
 
 ;; This instruction is just mark for compiled cache.
 ;; So it doesn't do any thing.
 (define-inst LIBRARY (0 1 #f)
   ;; discards library and move to next.
   (let ((lib (Sg_FindLibrary (FETCH_OPERAND (PC vm)) FALSE)))
-    (set! (-> vm currentLibrary) (cast SgLibrary* lib))))
+    (set! (-> vm currentLibrary) (cast SgLibrary* lib)))
+  NEXT)
 
 (define-inst CAR (0 0 #t)
   (if (not (SG_PAIRP (AC vm)))
@@ -506,7 +534,7 @@
       (dotimes (i n)
 	(set! ret (Sg_Cons (INDEX (SP vm) i) ret)))
       (set! (SP vm) (- (SP vm) n)))
-    (set! (AC vm) ret)))
+    ($result ret)))
 
 (define-inst APPEND (1 0 #t)
   (INSN_VAL1 val1 c)
@@ -521,12 +549,12 @@
 					      "list" obj))
 	  (set! ret (Sg_Append2 obj ret))))
       (set! (SP vm) (- (SP vm) nargs)))
-    (set! (AC vm) ret)))
+    ($result ret)))
 
 (define-inst VALUES (1 0 #t)
   (INSN_VAL1 val1 c)
   (if (== val1 0)
-      (set! (AC vm) (Sg_MakeValues 0))
+      ($result (Sg_MakeValues 0))
       (let ((v (AC vm)))
 	(when (> val1 1)
 	  (set! v (Sg_MakeValues val1))
@@ -536,13 +564,13 @@
 	      (set! (SG_VALUES_ELEMENT v (- n i 1))
 		    (INDEX (SP vm) i)))
 	    (set! (SP vm) (- (SP vm) n))))
-	(set! (AC vm) v))))
+	($result v))))
 
 (define-cise-stmt call-two-args-compare
   ((_ obj proc)
-   `(begin
-      (set! (AC vm) (SG_MAKE_BOOL (,proc ,obj (AC vm))))
-      (post-- (SP vm)))))
+   `(let ((v ,obj))
+      (post-- (SP vm))
+      ($result:b (,proc v (AC vm))))))
 
 (define-inst EQ (0 0 #t)
   (call-two-args-compare (INDEX (SP vm) 0) SG_EQ))
@@ -551,13 +579,13 @@
   (call-two-args-compare (INDEX (SP vm) 0) Sg_EqvP))
 
 (define-inst NULLP (0 0 #t)
-  (set! (AC vm) (SG_MAKE_BOOL (SG_NULLP (AC vm)))))
+  ($result (SG_MAKE_BOOL (SG_NULLP (AC vm)))))
 
 (define-inst PAIRP (0 0 #t)
-  (set! (AC vm) (SG_MAKE_BOOL (SG_PAIRP (AC vm)))))
+  ($result (SG_MAKE_BOOL (SG_PAIRP (AC vm)))))
 
 (define-inst SYMBOLP (0 0 #t)
-  (set! (AC vm) (SG_MAKE_BOOL (SG_SYMBOLP (AC vm)))))
+  ($result (SG_MAKE_BOOL (SG_SYMBOLP (AC vm)))))
 
 (define-inst VECTOR (1 0 #t)
   (let ((v SG_UNDEF))
@@ -571,16 +599,16 @@
 	       (set! (SG_VECTOR_ELEMENT v (- n i 1))
 		     (INDEX (SP vm) i)))
 	  (set! (SP vm) (- (SP vm) n))))
-    (set! (AC vm) v)))
+    ($result v)))
 
 (define-inst VECTORP (0 0 #t)
-  (set! (AC vm) (SG_MAKE_BOOL (SG_VECTORP (AC vm)))))
+  ($result (SG_MAKE_BOOL (SG_VECTORP (AC vm)))))
 
 (define-inst VEC_LEN (0 0 #t)
   (if (not (SG_VECTORP (AC vm)))
       (wrong-type-of-argument-violation "vector-length"
 					"vector" (AC vm)))
-  (set! (AC vm) (SG_MAKE_INT (SG_VECTOR_SIZE (AC vm)))))
+  ($result:i (SG_VECTOR_SIZE (AC vm))))
 
 (define-inst VEC_REF (0 0 #t)
   (let ((obj (INDEX (SP vm) 0)))
@@ -592,8 +620,9 @@
 		  (assertion-violation "vector-ref" "index out of range"
 				       (SG_LIST2 obj (AC vm)))
 		  (begin
-		    (set! (AC vm) (SG_VECTOR_ELEMENT obj index))
-		    (post-- (SP vm)))))
+		    (post-- (SP vm))
+		    ($result (SG_VECTOR_ELEMENT obj index))
+		    )))
 	    (wrong-type-of-argument-violation "vector-ref" "fixnum" (AC vm)))
 	(wrong-type-of-argument-violation "vector-ref" "vector" obj))))
 
@@ -611,9 +640,10 @@
 			  (< i 0))
 		      (assertion-violation "vector-set!" "index out of range"
 					   (SG_LIST2 obj index))
-		      (set! (SG_VECTOR_ELEMENT obj i) (AC vm)
-			    (AC vm) SG_UNDEF
-			    (SP vm) (- (SP vm) 2))))
+		      (begin
+			(set! (SG_VECTOR_ELEMENT obj i) (AC vm)
+			      (SP vm) (- (SP vm) 2))
+			($result SG_UNDEF))))
 		(wrong-type-of-argument-violation "vector-set!"
 						  "fixnum" index)))
 	(wrong-type-of-argument-violation "vector-set!" "vector" obj))))
@@ -622,21 +652,25 @@
 ;; CONST_PUSH, LREF_PUSH and FREF_PUSH are treated specially for heavy head call
 (define-inst LREF_PUSH (1 0 #t)
   (INSN_VAL1 val1 c)
-  (PUSH (SP vm) (REFER_LOCAL vm val1)))
+  (PUSH (SP vm) (REFER_LOCAL vm val1))
+  NEXT)
 
 (define-inst FREF_PUSH (1 0 #t)
   (INSN_VAL1 val1 c)
-  (PUSH (SP vm) (INDEX_CLOSURE vm val1)))
+  (PUSH (SP vm) (INDEX_CLOSURE vm val1))
+  NEXT)
 
 (define-inst GREF_PUSH (0 1 #t) :combined
   (GREF PUSH))
 
 (define-inst CONST_PUSH (0 1 #f)
-  (PUSH (SP vm) (FETCH_OPERAND (PC vm))))
+  (PUSH (SP vm) (FETCH_OPERAND (PC vm)))
+  NEXT)
 
 (define-inst CONSTI_PUSH (1 0 #f)
   (INSN_VAL1 val1 c)
-  (PUSH (SP vm) (SG_MAKE_INT val1)))
+  (PUSH (SP vm) (SG_MAKE_INT val1))
+  NEXT)
 
 (define-inst GREF_CALL (1 1 #t) :combined
   (GREF CALL))
@@ -653,7 +687,7 @@
 	    (begin
 	      (SG_SET_CAR obj (AC vm))
 	      (post-- (SP vm))
-	      (set! (AC vm) SG_UNDEF)))
+	      ($result SG_UNDEF)))
 	(wrong-type-of-argument-violation "set-car!" "pair" obj))))
 
 
@@ -666,20 +700,23 @@
 	    (begin
 	      (SG_SET_CDR obj (AC vm))
 	      (post-- (SP vm))
-	      (set! (AC vm) SG_UNDEF)))
+	      ($result SG_UNDEF)))
 	(wrong-type-of-argument-violation "set-cdr!" "pair" obj))))
 
-(define-inst CAAR (0 0 #t) :combined
-  (CAR CAR))
+(define-cise-stmt $cxxr
+  ((_ name a b)
+   `(let ((obj (AC vm)))
+      (unless (SG_PAIRP obj)
+	(wrong-type-of-argument-violation ,name "pair" obj))
+      (let ((obj2 (,b obj)))
+	(unless (SG_PAIRP obj2)
+	  (wrong-type-of-argument-violation ,name "pair" obj2 obj))
+	($result (,a obj2))))))
 
-(define-inst CADR (0 0 #t) :combined
-  (CDR CAR))
-
-(define-inst CDAR (0 0 #t) :combined
-  (CAR CDR))
-
-(define-inst CDDR (0 0 #t) :combined
-  (CDR CDR))
+(define-inst CAAR (0 0 #t) ($cxxr "caar" SG_CAR SG_CAR))
+(define-inst CADR (0 0 #t) ($cxxr "cadr" SG_CAR SG_CDR))
+(define-inst CDAR (0 0 #t) ($cxxr "cdar" SG_CDR SG_CAR))
+(define-inst CDDR (0 0 #t) ($cxxr "cddr" SG_CDR SG_CDR))
 
 (define-inst CAR_PUSH (0 0 #t) :combined
   (CAR PUSH))

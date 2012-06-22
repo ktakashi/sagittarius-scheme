@@ -223,7 +223,7 @@
 	(format out "    SG_STATIC_CODE_BUILDER(&sg__wc.w[~a], NULL, ~s, ~s, ~s, ~s, ~s), /* ~s */~%"
 		offset
 		(code-builder-argc cb)
-		(if (code-builder-optional? cb) 'TRUE 'FALSE)
+		(if (code-builder-optional? cb) 1 0)
 		(code-builder-freec cb)
 		(code-builder-maxstack cb)
 		(array-length (code-builder-code cb))

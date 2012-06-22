@@ -6,6 +6,9 @@ if [ x"$SCM" == x"" ]; then
     export SCM=sash
 fi
 
+# force flag for genstub
+force=""
+
 do_compile()
 {
     echo Generating c file from compiler.scm
@@ -41,7 +44,7 @@ do_stub()
     echo Generating library from stub
     cd src
     #Ypsilon --sitelib=../sitelib ./genstub
-    sash -L../sitelib ./genstub
+    sash -L../sitelib ./genstub $force
     cd ../
 }
 
@@ -59,12 +62,13 @@ do_insn()
 show_usage()
 {
     echo "usage: $0 compiler|library|stub|all"
-    echo "    compiler: generate compiler.c"
-    echo "    library:  generate compiled libraries"
-    echo "    builtin:  generate compiled builtin libraries"
-    echo "    stub:     generate stub files"
-    echo "    insn:     generate insn"
-    echo "    all:      generate do everything above"
+    echo "    compiler:   generate compiler.c"
+    echo "    library:    generate compiled libraries"
+    echo "    builtin:    generate compiled builtin libraries"
+    echo "    stub:       generate stub files"
+    echo "    stub_force: generate stub files (re-create all)"
+    echo "    insn:       generate insn"
+    echo "    all:        generate do everything above"
     echo "  These can be combined and if you did not specify this script"
     echo "  runs every thing"
 }
@@ -86,6 +90,11 @@ then
 		do_builtin
 		;;
 	    stub)
+		force=""
+		do_stub
+		;;
+	    stub_force)
+		force="-f"
 		do_stub
 		;;
 	    insn)

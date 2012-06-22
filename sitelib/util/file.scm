@@ -124,7 +124,7 @@
   (define (find-files target :key (pattern #f) (all #t) (sort string<=?)
 		      (recursive #t))
     (define rx-pattern (cond ((string? pattern) (regex pattern))
-			     ((pattern? pattern) pattern)
+			     ((regex-pattern? pattern) pattern)
 			     (else #f)))
     (define (check-pattern content)
       (or (not pattern)

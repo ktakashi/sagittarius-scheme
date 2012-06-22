@@ -419,18 +419,20 @@ SgObject Sg_Assoc(SgObject obj, SgObject alist)
 */
 
 /* from Ypsilon */
-static SgObject do_transpose(int shortest_len, int argc, SgObject args[])
+static SgObject do_transpose(int shortest_len, SgObject args[])
 {
   SgObject ans = SG_NIL, tail = SG_NIL;
-  int i, n;
+  int i, n, argc = Sg_Length(args[1]);
+  SgObject *rest = Sg_ListToArray(args[1], FALSE);
+
   for (i = 0; i < shortest_len; i++) {
     SgObject elt = SG_NIL, elt_tail = SG_NIL;
     
     SG_APPEND1(elt, elt_tail, SG_CAR(args[0]));
     args[0] = SG_CDR(args[0]);
-    for (n = 1; n < argc; n++) {
-      SG_APPEND1(elt, elt_tail, SG_CAR(args[n]));
-      args[n] = SG_CDR(args[n]);
+    for (n = 0; n < argc; n++) {
+      SG_APPEND1(elt, elt_tail, SG_CAR(rest[n]));
+      rest[n] = SG_CDR(rest[n]);
     }
     SG_APPEND1(ans, tail, elt);
   }
@@ -443,22 +445,26 @@ static SgObject list_transpose_s(SgObject *args, int argc, void *data)
     Sg_WrongNumberOfArgumentsAtLeastViolation(SG_INTERN("list-transpose*"),
 					      1, argc, SG_NIL);
   }
+  /* since 0.3.4, optional arguments are packet to list.
+     so argc is always 2.
+   */
   if (SG_LISTP(args[0])) {
-    int each_len = Sg_Length(args[0]), i;
-    for (i = 1; i < argc; i++) {
-      if (SG_LISTP(args[i])) {
-	int len = Sg_Length(args[i]);
+    int each_len = Sg_Length(args[0]);
+    SgObject cp;
+    SG_FOR_EACH(cp, args[1]) {
+      if (SG_LISTP(SG_CAR(cp))) {
+	int len = Sg_Length(SG_CAR(cp));
 	if (len < each_len) each_len = len;
 	continue;
       }
       return SG_FALSE;
     }
-    return do_transpose(each_len, argc, args);
+    return do_transpose(each_len, args);
   }
   return SG_FALSE;
 }
 
-static SG_DEFINE_SUBR(list_transpose_s_stub, 1, 0, list_transpose_s,
+static SG_DEFINE_SUBR(list_transpose_s_stub, 1, 1, list_transpose_s,
 		      SG_FALSE, NULL);
 
 static SgObject list_transpose_p(SgObject *args, int argc, void *data)
@@ -468,20 +474,22 @@ static SgObject list_transpose_p(SgObject *args, int argc, void *data)
 					      1, argc, SG_NIL);
   }
   if (SG_LISTP(args[0])) {
-    int each_len = Sg_Length(args[0]), i;
-    for (i = 1; i < argc; i++) {
-      if (SG_LISTP(args[i])) {
-	int len = Sg_Length(args[i]);
+    int each_len = Sg_Length(args[0]);
+    SgObject cp;
+    SG_FOR_EACH(cp, args[1]) {
+      if (SG_LISTP(SG_CAR(cp))) {
+	int len = Sg_Length(SG_CAR(cp));
 	if (len != each_len) return SG_FALSE;
 	continue;
       }
+      return SG_FALSE;
     }
-    return do_transpose(each_len, argc, args);
+    return do_transpose(each_len, args);
   }
   return SG_FALSE;
 }
 
-static SG_DEFINE_SUBR(list_transpose_p_stub, 1, 0, list_transpose_p,
+static SG_DEFINE_SUBR(list_transpose_p_stub, 1, 1, list_transpose_p,
 		      SG_FALSE, NULL);
 
 

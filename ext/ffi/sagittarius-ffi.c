@@ -1066,7 +1066,8 @@ static void callback_invoker(ffi_cif *cif, void *result, void **args, void *user
 static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
 {
   SgObject lastError;
-  int retType, i;
+  SgObject *funcargs;
+  int retType, i, size;
   SgObject signatures;
   SgFuncInfo *func;
   intptr_t ret;
@@ -1097,18 +1098,21 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
 
   signatures = func->signatures;
   /* check if the argument count is correct */
-  if (argc - 2 != func->argc) {
-    Sg_Error(UC("argument count is not correct. required %d, but got %d"), func->argc, argc-2);
+  size = Sg_Length(args[argc-1]);
+  if (size != func->argc) {
+    Sg_Error(UC("argument count is not correct. required %d, but got %d"),
+	     func->argc, size);
     return SG_UNDEF;
   }
 
   ffi_values = SG_NEW_ARRAY(void*, func->argc);
   params = SG_NEW_ARRAY(ffi_storage, func->argc);
 
+  funcargs = Sg_ListToArray(args[argc-1], FALSE);
   for (i = 0; i < func->argc; i++) {
     if (!push_ffi_type_value(func,
 			     SG_STRING_VALUE_AT(signatures, i),
-			     args[i + 2], params + i,
+			     funcargs[i], params + i,
 			     &lastError)) {
       Sg_Error(UC("argument error on index %d: %S"), i, lastError);
       return SG_UNDEF;
@@ -1204,7 +1208,7 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
   }
 }
 
-static SG_DEFINE_SUBR(internal_ffi_call_stub, 3, 1, internal_ffi_call, SG_FALSE, NULL);
+static SG_DEFINE_SUBR(internal_ffi_call_stub, 2, 1, internal_ffi_call, SG_FALSE, NULL);
 
 
 static void attached_method_invoker(ffi_cif *cif, void *result, void **args, void *userdata)
