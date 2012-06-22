@@ -46,7 +46,8 @@
 	   (_let    (rename 'let))    (_assq  (rename 'assq))
 	   (_cdr    (rename 'cdr))    (_quote (rename 'quote))
 	   (_cond   (rename 'cond))   (_=>    (rename '=>))
-	   (_else   (rename 'else))   (_cons  (rename 'cons)))
+	   (_else   (rename 'else))   (_cons  (rename 'cons))
+	   (_reverse! (rename 'reverse!)))
        (define (construct-options options)
 	 (let loop ((options options)
 		    (acc '()))
@@ -72,7 +73,7 @@
 		    (cons `(,name (,_cond ((,_assq (,_quote ,name) ,args)
 					   ,_=> ,_cdr)
 					  (,_else ,default))) acc)))
-	     (_ (reverse! (cons (list rest rest) acc)))))
+	     (_ (reverse! (cons (list rest `(,_reverse! ,rest)) acc)))))
 	 )
        (match form
 	 ((_ args opts . body)
