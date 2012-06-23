@@ -1651,13 +1651,16 @@ static void compile_rep_seq(compile_ctx_t *ctx, SgObject seq,
 			    int count, int lastp)
 {
   SgObject h = SG_NIL, t = SG_NIL;
-  int seqp = (SG_PAIRP(seq) && SG_EQ(SG_CAR(seq), SYM_SEQUENCE));
+  /* I don't remenber why I needed to check this, but this causes an error with
+     #/(?:aa?){n}/ pattern.
+   */
+  /* int seqp = (SG_PAIRP(seq) && SG_EQ(SG_CAR(seq), SYM_SEQUENCE)); */
   if (count <= 0) return;
   while (count-- > 0) {
-    /* ugh.. ugly.. */
-    if (seqp) {
-      SG_APPEND(h, t, Sg_CopyList(seq));
-    } else if (SG_PAIRP(seq)) {
+    /* if (seqp) { */
+    /*   SG_APPEND(h, t, Sg_CopyList(seq)); */
+    /* } else */ 
+    if (SG_PAIRP(seq)) {
       SG_APPEND1(h, t, Sg_CopyList(seq));
     } else {
       SG_APPEND1(h, t, seq);
@@ -2375,10 +2378,10 @@ static int thread_iterator_end_p(threadq_iterator_t *i)
   return (*i->current == -1 || i->current >= i->order+i->size);
 }
 
-static int thread_iterator_begin_p(threadq_iterator_t *i)
-{
-  return i->order == i->current;
-}
+/* static int thread_iterator_begin_p(threadq_iterator_t *i) */
+/* { */
+/*   return i->order == i->current; */
+/* } */
 
 #define ALLOCATE_THREADQ(n) alloc_thread_lists(n)
 /* TODO use alloca */
@@ -2392,7 +2395,7 @@ static int thread_iterator_begin_p(threadq_iterator_t *i)
 #define THREADQ_CLEAR(tq)   thread_list_clear(tq)
 #define THREADQ_T           thread_list_t
 #define THREADQ_ITERATOR_T  threadq_iterator_t
-#define THREADQ_BEGIN_P(i)  thread_iterator_begin_p(i)
+/* #define THREADQ_BEGIN_P(i)  thread_iterator_begin_p(i) */
 #define THREADQ_FOR_EACH(i, tq)						\
   for (thread_iterator_begin(tq, &(i)); !thread_iterator_end_p(&(i));	\
        thread_iterator_next(tq, &(i)))
@@ -3248,7 +3251,6 @@ static void append_replacement(SgMatcher *m, SgPort *p, SgObject replacement)
 static void append_tail(SgMatcher *m, SgPort *p)
 {
   /* append the rest */
-  int i;
   Sg_WritesUnsafe(p, SG_STRING_VALUE(m->text)+m->lastAppendPosition,
 		  SG_STRING_SIZE(m->text) - m->lastAppendPosition);
 }
