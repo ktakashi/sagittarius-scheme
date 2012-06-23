@@ -44,7 +44,7 @@
     append-map append-map! map! pair-for-each filter-map map-in-order
     filter! partition! remove!
     find-tail
-    any exists
+    any every
     list-index
     take-while drop-while take-while!
     span break span! break!
