@@ -1,3 +1,8 @@
+2012-06-24  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/vmcall.c (closure call): modified to set unspecified value as
+	default return value. (Issue 18)
+
 2012-06-19  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/net/oauth/consumer.scm (get-problem-report): fixed returning
