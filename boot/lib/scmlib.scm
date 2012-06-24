@@ -53,7 +53,7 @@
 
 ;; from chibi scheme
 (define (map-onto proc ls init)
-  (let lp ((ls ls) (res init))
+  (let lp ((ls (reverse ls)) (res init))
     (if (null? ls) res (lp (cdr ls) (cons (proc (car ls)) res)))))
 
 (define (fold kons knil ls . lists)

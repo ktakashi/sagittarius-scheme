@@ -489,7 +489,7 @@
 (define (length+ x)         ; Returns #f if X is circular.
   (let ((n (length x)))
     ;; on Sagittarius, -2 as return valu of length is circular-list
-    (if (== n -2) #f n)))
+    (if (= n -2) #f n)))
 	
 
 (define (zip list1 . more-lists) (apply map list list1 more-lists))
@@ -1339,7 +1339,7 @@
 (define delete-duplicates
   (case-lambda
     [(lis)
-     (delete-duplicates equal?)]
+     (delete-duplicates lis equal?)]
     [(lis elt=)
      (check-arg procedure? elt= delete-duplicates)
      (let recur ((lis lis))

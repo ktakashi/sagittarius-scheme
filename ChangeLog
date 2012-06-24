@@ -1,5 +1,7 @@
 2012-06-24  Takashi Kato  <ktakashi@ymail.com>
 
+	* sitelib/srfi/%3a1/lists.scm (delete-duplicates): fixed infinite loop.
+
 	* src/vmcall.c (closure call): modified to set unspecified value as
 	default return value. (Issue 18)
 
