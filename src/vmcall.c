@@ -175,6 +175,7 @@
     ADJUST_ARGUMENT_FRAME(cl, argc);
     CL(vm) = AC(vm);
     PC(vm) = cb->code;
+    AC(vm) = SG_UNDEF;		/* make default return value #<unspecified> */
     SG_PROF_COUNT_CALL(vm, CL(vm));
     NEXT;
   }
