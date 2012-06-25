@@ -1067,21 +1067,21 @@
 
 
 (define (string-trim s . criterion+start+end)
-  (let-optionals* criterion+start+end ((criterion char-set:whitespace) rest)
+  (let-optionals* criterion+start+end ((criterion char-set:whitespace) . rest)
     (let-string-start+end (start end) string-trim s rest
       (cond ((string-skip s criterion start end) =>
 	     (lambda (i) (%substring/shared s i end)))
 	    (else "")))))
 
 (define (string-trim-right s . criterion+start+end)
-  (let-optionals* criterion+start+end ((criterion char-set:whitespace) rest)
+  (let-optionals* criterion+start+end ((criterion char-set:whitespace) . rest)
     (let-string-start+end (start end) string-trim-right s rest
       (cond ((string-skip-right s criterion start end) =>
-	     (lambda (i) (%substring/shared s 0 (+ 1 i))))
+	     (lambda (i) (%substring/shared s start (+ 1 i))))
 	    (else "")))))
 
 (define (string-trim-both s . criterion+start+end)
-  (let-optionals* criterion+start+end ((criterion char-set:whitespace) rest)
+  (let-optionals* criterion+start+end ((criterion char-set:whitespace) . rest)
     (let-string-start+end (start end) string-trim-both s rest
       (cond ((string-skip s criterion start end) =>
 	     (lambda (i)
@@ -1090,7 +1090,7 @@
 
 
 (define (string-pad-right s n . char+start+end)
-  (let-optionals* char+start+end ((char #\space (char? char)) rest)
+  (let-optionals* char+start+end ((char #\space (char? char)) . rest)
     (let-string-start+end (start end) string-pad-right s rest
       (check-arg (lambda (n) (and (integer? n) (exact? n) (<= 0 n)))
 		 n string-pad-right)
@@ -1102,7 +1102,7 @@
 	      ans))))))
 
 (define (string-pad s n . char+start+end)
-  (let-optionals* char+start+end ((char #\space (char? char)) rest)
+  (let-optionals* char+start+end ((char #\space (char? char)) . rest)
     (let-string-start+end (start end) string-pad s rest
       (check-arg (lambda (n) (and (integer? n) (exact? n) (<= 0 n)))
 		 n string-pad)
@@ -1603,6 +1603,7 @@
 (define (string-append/shared . strings) (string-concatenate/shared strings))
 
 (define (string-concatenate/shared strings)
+  (check-arg list? strings string-concatenate/shared)
   (let lp ((strings strings) (nchars 0) (first #f))
     (cond ((pair? strings)			; Scan the args, add up total
 	   (let* ((string  (car strings))	; length, remember 1st 
@@ -1633,6 +1634,7 @@
 ;;; Here it is written out. I avoid using REDUCE to add up string lengths
 ;;; to avoid non-R5RS dependencies.
 (define (string-concatenate strings)
+  (check-arg list? strings string-concatenate)
   (let* ((total (do ((strings strings (cdr strings))
 		     (i 0 (+ i (string-length (car strings)))))
 		    ((not (pair? strings)) i)))
@@ -1736,7 +1738,8 @@
 
 (define (string-tokenize s . token-chars+start+end)
   (let-optionals* token-chars+start+end
-                  ((token-chars char-set:graphic (char-set? token-chars)) rest)
+                  ((token-chars char-set:graphic (char-set? token-chars))
+		   . rest)
     (let-string-start+end (start end) string-tokenize s rest
       (let lp ((i end) (ans '()))
 	(cond ((and (< start i) (string-index-right s token-chars start i)) =>
