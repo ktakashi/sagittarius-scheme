@@ -4249,7 +4249,6 @@
   (lambda (sets new-sets)
     (if (null? new-sets)
 	sets
-	;;(hashtable-set-true! (eq-hashtable-copy sets) new-sets)
 	(lset-union eq? sets new-sets))))
 
 (define pass3/rec

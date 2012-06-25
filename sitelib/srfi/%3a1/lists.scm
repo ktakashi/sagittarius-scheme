@@ -816,10 +816,17 @@
     (cond
       [(pair? ls)
        (let ([a (car ls)])
-         (if (pair? a)
-             (f (cdr ls) (cons (car a) a*) (cons (cdr a) d*))
-             (values '() '())))]
-      [else (values (reverse a*) (reverse d*))])))
+         (cond ((pair? a)
+		(f (cdr ls) (cons (car a) a*) (cons (cdr a) d*)))
+	       ((null? a) (values '() '()))
+	       (else (assertion-violation '%cars+cdrs 
+					  "improper lists are not allowed"
+					  lists))))]
+      [(null? ls)
+       (values (reverse a*) (reverse d*))]
+      [else 
+       (assertion-violation '%cars+cdrs "improper lists are not allowed"
+			    lists)])))
 
 ;  (call-with-current-continuation
 ;    (lambda (abort)
@@ -865,16 +872,18 @@
 
       ;; N-ary case
       (let lp ((list1 list1) (lists lists) (i 0))
-    (if (null-list? list1) i
-        (receive (as ds) (%cars+cdrs lists)
-          (if (null? as) i
-          (lp (cdr list1) ds
-              (if (apply pred (car list1) as) (+ i 1) i))))))
+	(if (null-list? list1)
+	    i
+	    (receive (as ds) (%cars+cdrs lists)
+	      (if (null? as) i
+		  (lp (cdr list1) ds
+		      (if (apply pred (car list1) as) (+ i 1) i))))))
 
       ;; Fast path
       (let lp ((lis list1) (i 0))
-    (if (null-list? lis) i
-        (lp (cdr lis) (if (pred (car lis)) (+ i 1) i))))))
+	(if (null-list? lis)
+	    i
+	    (lp (cdr lis) (if (pred (car lis)) (+ i 1) i))))))
 
 
 ;;; fold/unfold
@@ -1233,6 +1242,8 @@
 
 (define (partition! pred lis)
   (check-arg procedure? pred partition!)
+  (when (negative? (length lis))
+    (assertion-violation 'partition! "proper list required" lis))
   (if (null-list? lis) (values lis lis)
 
       ;; This pair of loops zips down contiguous in & out runs of the

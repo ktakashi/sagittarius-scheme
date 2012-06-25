@@ -46,24 +46,19 @@
 
 ;; print
 (define (print . args)
-  (for-each (lambda (arg)
-	      (display arg))
-	    args)
+  (for-each display args)
   (newline))
 
-;; from chibi scheme
-(define (map-onto proc ls init)
-  (let lp ((ls (reverse ls)) (res init))
-    (if (null? ls) res (lp (cdr ls) (cons (proc (car ls)) res)))))
-
-(define (fold kons knil ls . lists)
-  (if (null? lists)
-      (let lp ((ls ls) (acc knil))
-        (if (pair? ls) (lp (cdr ls) (kons (car ls) acc)) acc))
-      (let lp ((lists (cons ls lists)) (acc knil))
-        (if (for-all pair? lists)
-            (lp (map cdr lists) (apply kons (map-onto car lists (list acc))))
-            acc))))
+(define (fold proc seed lst1 . lst2)
+  (if (null? lst2)
+      (let loop ((lis lst1) (knil seed))
+	(if (null-list? lis)
+	    knil
+	    (loop (cdr lis) (proc (car lis) knil))))
+      (let loop ((lis (apply list-transpose* lst1 lst2)) (knil seed))
+	(if (null-list? lis)
+	    knil 
+	    (loop (cdr lis) (apply proc (append (car lis) (list knil))))))))
 
 ;; from Ypsilon
 (define wrong-type-argument-message
@@ -217,15 +212,17 @@
 
 (define (lset-union = . lists)
   (or (procedure? =)
-      (assertion-violation 'lset-union (wrong-type-argument-message "procedure" = 1)))
+      (assertion-violation 'lset-union
+			   (wrong-type-argument-message "procedure" = 1)))
   (reduce (lambda (lis ans)     ; Compute ANS + LIS.
 	    (cond ((null? lis) ans) ; Don't copy any lists
 		  ((null? ans) lis)     ; if we don't have to.
 		  ((eq? lis ans) ans)
 		  (else
-		   (fold (lambda (elt ans) (if (exists (lambda (x) (= x elt)) ans)
-					       ans
-					       (cons elt ans)))
+		   (fold (lambda (elt ans)
+			   (if (exists (lambda (x) (= x elt)) ans)
+			       ans
+			       (cons elt ans)))
 			 ans lis))))
 	  '() lists))
 

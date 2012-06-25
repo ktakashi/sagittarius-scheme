@@ -452,21 +452,13 @@
   (test-error "pred arg count 3" 
 	      (count (lambda (x y z) x) '(1 2 3) '(1 2 3)))
 
-  (test-error "improper first 1" 
-	      (count or2 1 '(1 2 3)))
-  (test-error "improper first 2" 
-	      (count or2 '(1 . 2) '(1 2 3)))
-  (test-error "improper first 3" 
-	      (count or2 '(1 2 . 3) '(1 2 3)))
+  (test-error "improper first 1" (count or2 1 '(1 2 3)))
+  (test-error "improper first 2" (count or2 '(1 . 2) '(1 2 3)))
+  (test-error "improper first 3" (count or2 '(1 2 . 3) '(1 2 3)))
 
-  ;; NOTE: the reference implementation has bug that it does not detect
-  ;; improper list of rest arguments.
-  (test-equal "improper second 1" 0
-	      (count or2 '(1 2 3) 1))
-  (test-equal "improper second 2" 1
-	      (count or2 '(1 2 3) '(1 . 2)))
-  (test-equal "improper second 3" 2
-	      (count or2 '(1 2 3) '(1 2 . 3)))
+  (test-error "improper second 1" (count or2 '(1 2 3) 1))
+  (test-error "improper second 2" (count or2 '(1 2 3) '(1 . 2)))
+  (test-error "improper second 3" (count or2 '(1 2 3) '(1 2 . 3)))
 
   (test-assert (= 0 (count or2 '(#f) '(#f))))
   (test-assert (= 1 (count or2 '(#t) '(#f))))
@@ -503,28 +495,17 @@
   (test-error "pred arg count 4" 
 	      (count (lambda (w x y z) x) '(1 2 3) '(1 2 3) '(1 2 3)))
 
-  (test-error "improper first 1" 
-	      (count or3 1 '(1 2 3) '(1 2 3)))
-  (test-error "improper first 2" 
-	      (count or3 '(1 . 2) '(1 2 3) '(1 2 3)))
-  (test-error "improper first 3" 
-	      (count or3 '(1 2 . 3) '(1 2 3) '(1 2 3)))
+  (test-error "improper first 1" (count or3 1 '(1 2 3) '(1 2 3)))
+  (test-error "improper first 2" (count or3 '(1 . 2) '(1 2 3) '(1 2 3)))
+  (test-error "improper first 3" (count or3 '(1 2 . 3) '(1 2 3) '(1 2 3)))
 
-  ;; NOTE: the reference implementation has bug that it does not detect
-  ;; improper list of rest arguments.
-  (test-equal "improper second 1" 0
-	      (count or3 '(1 2 3) 1 '(1 2 3)))
-  (test-equal "improper second 2" 1
-	      (count or3 '(1 2 3) '(1 . 2) '(1 2 3)))
-  (test-equal "improper second 3" 2
-	      (count or3 '(1 2 3) '(1 2 . 3) '(1 2 3)))
-
-  (test-equal "improper third 1" 0
-	      (count or3 '(1 2 3) '(1 2 3) 1))
-  (test-equal "improper third 2" 1
-	      (count or3 '(1 2 3) '(1 2 3) '(1 . 2)))
-  (test-equal "improper third 3" 2
-	      (count or3 '(1 2 3) '(1 2 3) '(1 2 . 3)))
+  (test-error "improper second 1" (count or3 '(1 2 3) 1 '(1 2 3)))
+  (test-error "improper second 2" (count or3 '(1 2 3) '(1 . 2) '(1 2 3)))
+  (test-error "improper second 3" (count or3 '(1 2 3) '(1 2 . 3) '(1 2 3)))
+  
+  (test-error "improper third 1" (count or3 '(1 2 3) '(1 2 3) 1))
+  (test-error "improper third 2" (count or3 '(1 2 3) '(1 2 3) '(1 . 2)))
+  (test-error "improper third 3" (count or3 '(1 2 3) '(1 2 3) '(1 2 . 3)))
 
   (test-assert (= 0 (count or3 '(#f) '(#f) '(#f))))
   (test-assert (= 1 (count or3 '(#t) '(#f) '(#f))))
@@ -805,78 +786,57 @@
 ;;
 ;; drop-right!
 ;;
+(test-error "() -1" (drop-right! '() -1))
+(test-assert (equal? '() (drop-right! '() 0)))
+(test-error "() 1" (drop-right! '() 1))
 
-(begin
+(test-error "(1) -1" (drop-right! (list 1) -1))
+(test-assert (equal? '(1) (drop-right! (list 1) 0)))
+(test-assert (equal? '() (drop-right! (list 1) 1)))
+(test-error "(1) 2" (drop-right! (list 1) 2))
 
-  (test-error "() -1" 
-    (drop-right! '() -1))
-  (test-assert (equal? '() (drop-right! '() 0)))
-  (test-error "() 1" 
-    (drop-right! '() 1))
+(test-error "(4 5) -1" (drop-right! (list 4 5) -1))
+(test-assert (equal? '(4 5) (drop-right! (list 4 5) 0)))
+(test-assert (equal? '(4) (drop-right! (list 4 5) 1)))
+(test-assert (equal? '() (drop-right! (list 4 5) 2)))
+(test-error "(4 5) 3" (drop-right! (list 4 5) 3))
 
-  (test-error "(1) -1" 
-    (drop-right! (list 1) -1))
-  (test-assert (equal? '(1) (drop-right! (list 1) 0)))
-  (test-assert (equal? '() (drop-right! (list 1) 1)))
-  (test-error "(1) 2" 
-    (drop-right! (list 1) 2))
-
-  (test-error "(4 5) -1" 
-    (drop-right! (list 4 5) -1))
-  (test-assert (equal? '(4 5) (drop-right! (list 4 5) 0)))
-  (test-assert (equal? '(4) (drop-right! (list 4 5) 1)))
-  (test-assert (equal? '() (drop-right! (list 4 5) 2)))
-  (test-error "(4 5) 3" 
-    (drop-right! (list 4 5) 3))
-
-  (test-error "(4 5 6) -1" 
-    (drop-right! (list 4 5 6) -1))
-  (test-assert (equal? '(4 5 6) (drop-right! (list 4 5 6) 0)))
-  (test-assert (equal? '(4 5) (drop-right! (list 4 5 6) 1)))
-  (test-assert (equal? '(4) (drop-right! (list 4 5 6) 2)))
-  (test-assert (equal? '() (drop-right! (list 4 5 6) 3)))
-  (test-error "(4 5 6) 4" 
-    (drop-right! (list 4 5 6) 4)))
+(test-error "(4 5 6) -1" (drop-right! (list 4 5 6) -1))
+(test-assert (equal? '(4 5 6) (drop-right! (list 4 5 6) 0)))
+(test-assert (equal? '(4 5) (drop-right! (list 4 5 6) 1)))
+(test-assert (equal? '(4) (drop-right! (list 4 5 6) 2)))
+(test-assert (equal? '() (drop-right! (list 4 5 6) 3)))
+(test-error "(4 5 6) 4" (drop-right! (list 4 5 6) 4))
 
 ;;
 ;; drop-while
 ;;
+(test-assert (equal? '()      (drop-while odd? '())))
+(test-assert (equal? '()      (drop-while odd? '(1))))
+(test-assert (equal? '()      (drop-while odd? '(1 3))))
+(test-assert (equal? '()      (drop-while odd? '(1 3 5))))
 
-(begin
-  
-  (test-assert (equal? '()      (drop-while odd? '())))
-  (test-assert (equal? '()      (drop-while odd? '(1))))
-  (test-assert (equal? '()      (drop-while odd? '(1 3))))
-  (test-assert (equal? '()      (drop-while odd? '(1 3 5))))
+(test-assert (equal? '(2)     (drop-while odd? '(2))))
+(test-assert (equal? '(2)     (drop-while odd? '(1 2))))
+(test-assert (equal? '(4)     (drop-while odd? '(1 3 4))))
 
-  (test-assert (equal? '(2)     (drop-while odd? '(2))))
-  (test-assert (equal? '(2)     (drop-while odd? '(1 2))))
-  (test-assert (equal? '(4)     (drop-while odd? '(1 3 4))))
-
-  (test-assert (equal? '(2 1)   (drop-while odd? '(2 1))))
-  (test-assert (equal? '(4 3)   (drop-while odd? '(1 4 3))))
-  (test-assert (equal? '(4 1 3) (drop-while odd? '(4 1 3)))))
+(test-assert (equal? '(2 1)   (drop-while odd? '(2 1))))
+(test-assert (equal? '(4 3)   (drop-while odd? '(1 4 3))))
+(test-assert (equal? '(4 1 3) (drop-while odd? '(4 1 3))))
 
 ;;
 ;; eighth
 ;;
-
-(begin
-  (test-error "() -1" 
-    (eighth '(a b c d e f g)))
-  (test-assert (eq? 'h (eighth '(a b c d e f g h))))
-  (test-assert (eq? 'h (eighth '(a b c d e f g h i)))))
+(test-error "() -1" (eighth '(a b c d e f g)))
+(test-assert (eq? 'h (eighth '(a b c d e f g h))))
+(test-assert (eq? 'h (eighth '(a b c d e f g h i))))
 
 ;;
 ;; fifth
 ;;
-
-(begin
-  (test-error "() -1" 
-	      (fifth '(a b c d)))
-  (test-assert (eq? 'e (fifth '(a b c d e))))
-  (test-assert (eq? 'e (fifth '(a b c d e f)))))
-
+(test-error "() -1" (fifth '(a b c d)))
+(test-assert (eq? 'e (fifth '(a b c d e))))
+(test-assert (eq? 'e (fifth '(a b c d e f))))
 
 ;;
 ;; filter-map
@@ -893,12 +853,11 @@
 (test-assert "(#f 2 3)" (equal? '(2 3) (filter-map noop '(#f 2 3))))
 (test-assert "(1 #f 3)" (equal? '(1 3) (filter-map noop '(1 #f 3))))
 (test-assert "(1 2 #f)" (equal? '(1 2) (filter-map noop '(1 2 #f))))
-;; yes the improper list problem
 
-;;(test-error "'x '(1 2 3)" (filter-map noop 'x '(1 2 3)))
-;;(test-error "'(1 2 3) 'x" (filter-map noop '(1 2 3) 'x))
-;;(test-error "'(1 . x) '(1 2 3)" (filter-map noop '(1 . x) '(1 2 3)))
-;;(test-error "'(1 2 3) '(1 . x)" (filter-map noop '(1 2 3) '(1 . x)))
+(test-error "'x '(1 2 3)" (filter-map noop 'x '(1 2 3)))
+(test-error "'(1 2 3) 'x" (filter-map noop '(1 2 3) 'x))
+(test-error "'(1 . x) '(1 2 3)" (filter-map noop '(1 . x) '(1 2 3)))
+(test-error "'(1 2 3) '(1 . x)" (filter-map noop '(1 2 3) '(1 . x)))
 
 (test-assert "(1 2 3) (4 5 6)" 
 	     (equal? '(5 7 9) (filter-map + '(1 2 3) '(4 5 6))))
@@ -911,7 +870,7 @@
 (test-assert "(1 2 3) ()"
 	     (equal? '() (filter-map noop '(1 2 3) '())))
 
-#|
+
 (test-error "'x '(1 2 3) '(1 2 3)" 
 	    (filter-map noop 'x '(1 2 3) '(1 2 3)))
 (test-error "'(1 2 3) 'x '(1 2 3)" 
@@ -924,7 +883,7 @@
 	    (filter-map noop '(1 2 3) '(1 . x) '(1 2 3)))
 (test-error "'(1 2 3) '(1 2 3) '(1 . x)" 
 	    (filter-map noop '(1 2 3) '(1 2 3) '(1 . x)))
-|#
+
 
 (test-assert "(1 2 3) (4 5 6) (7 8 9)"
 	     (equal? '(12 15 18) (filter-map + '(1 2 3) '(4 5 6) '(7 8 9))))
@@ -948,35 +907,27 @@
 ;;
 ;; find
 ;;
-(test-assert (eqv? #f (find odd? '())))
-(test-assert (eqv? #f (find odd? '(0))))
-(test-assert (eqv? #f (find odd? '(0 2))))
-(test-assert (eqv? 1 (find odd? '(1))))
-(test-assert (eqv? 1 (find odd? '(0 1))))
-(test-assert (eqv? 1 (find odd? '(0 1 2))))
-(test-assert (eqv? 1 (find odd? '(2 0 1))))
-(test-assert (eqv? 1 (find (lambda (x) (= 1 x)) '(2 0 1))))
+(test-assert "find" (eqv? #f (find odd? '())))
+(test-assert "find" (eqv? #f (find odd? '(0))))
+(test-assert "find" (eqv? #f (find odd? '(0 2))))
+(test-assert "find" (eqv? 1 (find odd? '(1))))
+(test-assert "find" (eqv? 1 (find odd? '(0 1))))
+(test-assert "find" (eqv? 1 (find odd? '(0 1 2))))
+(test-assert "find" (eqv? 1 (find odd? '(2 0 1))))
+(test-assert "find" (eqv? 1 (find (lambda (x) (= 1 x)) '(2 0 1))))
 
 ;;
 ;; find-tail
 ;;
-(test-assert (let ((lst '()))
-	       (eq? #f (find-tail odd? lst))))
-(test-assert (let ((lst '(0)))
-	       (eq? #f (find-tail odd? lst))))
-(test-assert (let ((lst '(0 2)))
-	       (eq? #f (find-tail odd? lst))))
-(test-assert (let ((lst '(1)))
-	       (eq? lst (find-tail odd? lst))))
-(test-assert (let ((lst '(1 2)))
-	       (eq? lst (find-tail odd? lst))))
-(test-assert (let ((lst '(2 1)))
-	       (eq? (cdr lst) (find-tail odd? lst))))
-(test-assert (let ((lst '(2 1 0)))
-	       (eq? (cdr lst) (find-tail odd? lst))))
-(test-assert (let ((lst '(2 0 1)))
-	       (eq? (cddr lst) (find-tail odd? lst))))
-(test-assert (let ((lst '(2 0 1)))
+(test-assert "find-tail" (let ((lst '())) (eq? #f (find-tail odd? lst))))
+(test-assert "find-tail" (let ((lst '(0))) (eq? #f (find-tail odd? lst))))
+(test-assert "find-tail" (let ((lst '(0 2))) (eq? #f (find-tail odd? lst))))
+(test-assert "find-tail" (let ((lst '(1))) (eq? lst (find-tail odd? lst))))
+(test-assert "find-tail" (let ((lst '(1 2))) (eq? lst (find-tail odd? lst))))
+(test-assert "find-tail" (let ((lst '(2 1))) (eq? (cdr lst) (find-tail odd? lst))))
+(test-assert "find-tail" (let ((lst '(2 1 0))) (eq? (cdr lst) (find-tail odd? lst))))
+(test-assert "find-tail" (let ((lst '(2 0 1))) (eq? (cddr lst) (find-tail odd? lst))))
+(test-assert "find-tail" (let ((lst '(2 0 1)))
 	       (eq? (cddr lst) (find-tail (lambda (x) (= 1 x)) lst))))
 
 ;;
@@ -1003,10 +954,9 @@
 (test-error "proc arg count 3" 
 	    (fold (lambda (x y z) x) 123 '(1 2 3)))
 
-;; improper list
-;;(test-error "improper 1" (fold + 123 1))
-;;(test-error "improper 2" (fold + 123 '(1 . 2)))
-;;(test-error "improper 3" (fold + 123 '(1 2 . 3)))
+(test-error "improper 1" (fold + 123 1))
+(test-error "improper 2" (fold + 123 '(1 . 2)))
+(test-error "improper 3" (fold + 123 '(1 2 . 3)))
 
 (test-assert (= 3 (fold + 1 '(2))))
 (test-assert (= 6 (fold + 1 '(2 3))))
@@ -1027,12 +977,12 @@
 (test-error "proc arg count 4" 
 	    (fold (lambda (x y z prev) x) 1 '(1 2 3) '(1 2 3)))
 
-;;(test-error "improper first 1" (fold + 1 1 '(1 2 3)))
-;;(test-error "improper first 2" (fold + 1 '(1 . 2) '(1 2 3)))
-;;(test-error "improper first 3" (fold + 1 '(1 2 . 3) '(1 2 3)))
-;;(test-error "improper second 1" (fold + 1 '(1 2 3) 1))
-;;(test-error "improper second 2" (fold + 1 '(1 2 3) '(1 . 2)))
-;;(test-error "improper second 3" (fold + 1 '(1 2 3) '(1 2 . 3)))
+(test-error "improper first 1" (fold + 1 1 '(1 2 3)))
+(test-error "improper first 2" (fold + 1 '(1 . 2) '(1 2 3)))
+(test-error "improper first 3" (fold + 1 '(1 2 . 3) '(1 2 3)))
+(test-error "improper second 1" (fold + 1 '(1 2 3) 1))
+(test-error "improper second 2" (fold + 1 '(1 2 3) '(1 . 2)))
+(test-error "improper second 3" (fold + 1 '(1 2 3) '(1 2 . 3)))
 
 (test-assert (= 6 (fold + 1 '(2) '(3))))
 (test-assert (= 15 (fold + 1 '(2 3) '(4 5))))
@@ -1064,17 +1014,17 @@
 (test-error "proc arg count 5" 
 	    (fold (lambda (w x y z prev) x) 1 '(1 2 3) '(1 2 3) '(1 2 3)))
 
-;;(test-error "improper first 1" (fold + 1 1 '(1 2 3) '(1 2 3)))
-;;(test-error "improper first 2" (fold + 1 '(1 . 2) '(1 2 3) '(1 2 3)))
-;;(test-error "improper first 3" (fold + 1 '(1 2 . 3) '(1 2 3) '(1 2 3)))
+(test-error "improper first 1" (fold + 1 1 '(1 2 3) '(1 2 3)))
+(test-error "improper first 2" (fold + 1 '(1 . 2) '(1 2 3) '(1 2 3)))
+(test-error "improper first 3" (fold + 1 '(1 2 . 3) '(1 2 3) '(1 2 3)))
 
-;;(test-error "improper second 1" (fold + 1 '(1 2 3) 1 '(1 2 3)))
-;;(test-error "improper second 2" (fold + 1 '(1 2 3) '(1 . 2) '(1 2 3)))
-;;(test-error "improper second 3" (fold + 1 '(1 2 3) '(1 2 . 3) '(1 2 3)))
+(test-error "improper second 1" (fold + 1 '(1 2 3) 1 '(1 2 3)))
+(test-error "improper second 2" (fold + 1 '(1 2 3) '(1 . 2) '(1 2 3)))
+(test-error "improper second 3" (fold + 1 '(1 2 3) '(1 2 . 3) '(1 2 3)))
 
-;;(test-error "improper third 1" (fold + 1 '(1 2 3) '(1 2 3) 1))
-;;(test-error "improper third 2" (fold + 1 '(1 2 3) '(1 2 3) '(1 . 2)))
-;;(test-error "improper third 3" (fold + 1 '(1 2 3) '(1 2 3) '(1 2 . 3)))
+(test-error "improper third 1" (fold + 1 '(1 2 3) '(1 2 3) 1))
+(test-error "improper third 2" (fold + 1 '(1 2 3) '(1 2 3) '(1 . 2)))
+(test-error "improper third 3" (fold + 1 '(1 2 3) '(1 2 3) '(1 2 . 3)))
 
 (test-assert (= 10 (fold + 1 '(2) '(3) '(4))))
 (test-assert (= 28 (fold + 1 '(2 5) '(3 6) '(4 7))))
@@ -1244,7 +1194,6 @@
 (test-assert (eqv? 1 (list-index symbol? '(1 x 2))))
 (test-assert (eqv? 2 (list-index symbol? '(1 2 x))))
 
-
 (let ()
   (define (sym1 x y)
     (symbol? x))
@@ -1266,13 +1215,13 @@
   (test-error "pred arg count 3" 
 	      (list-index (lambda (x y z) x) '(1 2 3) '(1 2 3)))
 
-  ;;(test-error "improper first 1" (list-index sym2 1 '(1 2 3)))
-  ;;(test-error "improper first 2" (list-index sym2 '(1 . 2) '(1 2 3)))
-  ;;(test-error "improper first 3" (list-index sym2 '(1 2 . 3) '(1 2 3)))
+  (test-error "improper first 1" (list-index sym2 1 '(1 2 3)))
+  (test-error "improper first 2" (list-index sym2 '(1 . 2) '(1 2 3)))
+  (test-error "improper first 3" (list-index sym2 '(1 2 . 3) '(1 2 3)))
 
-  ;;(test-error "improper second 1" (list-index sym2 '(1 2 3) 1))
-  ;;(test-error "improper second 2" (list-index sym2 '(1 2 3) '(1 . 2)))
-  ;;(test-error "improper second 3" (list-index sym2 '(1 2 3) '(1 2 . 3)))
+  (test-error "improper second 1" (list-index sym2 '(1 2 3) 1))
+  (test-error "improper second 2" (list-index sym2 '(1 2 3) '(1 . 2)))
+  (test-error "improper second 3" (list-index sym2 '(1 2 3) '(1 2 . 3)))
 
   (test-assert (eqv? #f (list-index sym2 '(1) '(2))))
   (test-assert (eqv? 0  (list-index sym2 '(1) '(x))))
@@ -1317,17 +1266,17 @@
   (test-error "pred arg count 4" 
 	      (list-index (lambda (w x y z) x) '(1 2 3) '(1 2 3) '(1 2 3)))
 
-  ;;(test-error "improper first 1" (list-index sym3 1 '(1 2 3) '(1 2 3)))
-  ;;(test-error "improper first 2" (list-index sym3 '(1 . 2) '(1 2 3) '(1 2 3)))
-  ;;(test-error "improper first 3" (list-index sym3 '(1 2 . 3) '(1 2 3) '(1 2 3)))
+  (test-error "improper first 1" (list-index sym3 1 '(1 2 3) '(1 2 3)))
+  (test-error "improper first 2" (list-index sym3 '(1 . 2) '(1 2 3) '(1 2 3)))
+  (test-error "improper first 3" (list-index sym3 '(1 2 . 3) '(1 2 3) '(1 2 3)))
 
-  ;;(test-error "improper second 1" (list-index sym3 '(1 2 3) 1 '(1 2 3)))
-  ;;(test-error "improper second 2" (list-index sym3 '(1 2 3) '(1 . 2) '(1 2 3)))
-  ;;(test-error "improper second 3" (list-index sym3 '(1 2 3) '(1 2 . 3) '(1 2 3)))
+  (test-error "improper second 1" (list-index sym3 '(1 2 3) 1 '(1 2 3)))
+  (test-error "improper second 2" (list-index sym3 '(1 2 3) '(1 . 2) '(1 2 3)))
+  (test-error "improper second 3" (list-index sym3 '(1 2 3) '(1 2 . 3) '(1 2 3)))
 
-  ;;(test-error "improper third 1" (list-index sym3 '(1 2 3) '(1 2 3) 1))
-  ;;(test-error "improper third 2" (list-index sym3 '(1 2 3) '(1 2 3) '(1 . 2)))
-  ;;(test-error "improper third 3" (list-index sym3 '(1 2 3) '(1 2 3) '(1 2 . 3)))
+  (test-error "improper third 1" (list-index sym3 '(1 2 3) '(1 2 3) 1))
+  (test-error "improper third 2" (list-index sym3 '(1 2 3) '(1 2 3) '(1 . 2)))
+  (test-error "improper third 3" (list-index sym3 '(1 2 3) '(1 2 3) '(1 2 . 3)))
 
   (test-assert (eqv? #f (list-index sym3 '(#f) '(#f) '(#f))))
   (test-assert (eqv? 0  (list-index sym3 '(#f) '(#f) '(x))))
@@ -1731,7 +1680,7 @@
 	       (lambda (even odd)
 		 (and (= (length odd) 10000)
 		      (= (length even) 0)))))
-;;(test-error "with improper list" (partition! symbol? (cons* 'a 'b 'c)))
+(test-error "with improper list" (partition! symbol? (cons* 'a 'b 'c)))
 
 ;;
 ;; reduce
@@ -1832,7 +1781,7 @@
 				    (3 4)
 				    (4 5)))
 		    (equal? ret   2))))
-  
+
 ;;
 ;; remove
 ;;
@@ -1902,36 +1851,28 @@
       (lambda got
 	(equal? lst got))))
 
-  (test-error "() -1" 
-    (split-at '() -1))
+  (test-error "() -1" (split-at '() -1))
   (test-assert (equal-values? '(() ())
 			  (lambda () (split-at '() 0))))
-  (test-error "() 1" 
-    (split-at '() 1))
+  (test-error "() 1" (split-at '() 1))
 
-  (test-error "(1) -1" 
-    (split-at '(1) -1))
+  (test-error "(1) -1" (split-at '(1) -1))
   (test-assert (equal-values? '(() (1)) (lambda () (split-at '(1) 0))))
   (test-assert (equal-values? '((1) ()) (lambda () (split-at '(1) 1))))
-  (test-error "(1) 2" 
-    (split-at '(1) 2))
+  (test-error "(1) 2" (split-at '(1) 2))
 
-  (test-error "(4 5) -1" 
-    (split-at '(4 5) -1))
+  (test-error "(4 5) -1" (split-at '(4 5) -1))
   (test-assert (equal-values? '(() (4 5)) (lambda () (split-at '(4 5) 0))))
   (test-assert (equal-values? '((4) (5)) (lambda () (split-at '(4 5) 1))))
   (test-assert (equal-values? '((4 5) ()) (lambda () (split-at '(4 5) 2))))
-  (test-error "(4 5) 3" 
-    (split-at '(4 5) 3))
+  (test-error "(4 5) 3" (split-at '(4 5) 3))
 
-  (test-error "(4 5 6) -1" 
-    (split-at '(4 5 6) -1))
+  (test-error "(4 5 6) -1" (split-at '(4 5 6) -1))
   (test-assert (equal-values? '(() (4 5 6)) (lambda () (split-at '(4 5 6) 0))))
   (test-assert (equal-values? '((4) (5 6)) (lambda () (split-at '(4 5 6) 1))))
   (test-assert (equal-values? '((4 5) (6)) (lambda () (split-at '(4 5 6) 2))))
   (test-assert (equal-values? '((4 5 6) ()) (lambda () (split-at '(4 5 6) 3))))
-  (test-error "(4 5 6) 4" 
-    (split-at '(4 5 6) 4)))
+  (test-error "(4 5 6) 4" (split-at '(4 5 6) 4)))
 
 ;;
 ;; split-at!
@@ -1944,36 +1885,28 @@
       (lambda got
 	(equal? lst got))))
 
-  (test-error "() -1" 
-    (split-at! '() -1))
+  (test-error "() -1" (split-at! '() -1))
   (test-assert (equal-values? '(() ())
 			  (lambda () (split-at! '() 0))))
-  (test-error "() 1" 
-    (split-at! '() 1))
+  (test-error "() 1" (split-at! '() 1))
 
-  (test-error "(1) -1" 
-    (split-at! (list 1) -1))
+  (test-error "(1) -1" (split-at! (list 1) -1))
   (test-assert (equal-values? '(() (1)) (lambda () (split-at! (list 1) 0))))
   (test-assert (equal-values? '((1) ()) (lambda () (split-at! (list 1) 1))))
-  (test-error "(1) 2" 
-    (split-at! (list 1) 2))
+  (test-error "(1) 2" (split-at! (list 1) 2))
 
-  (test-error "(4 5) -1" 
-    (split-at! (list 4 5) -1))
+  (test-error "(4 5) -1" (split-at! (list 4 5) -1))
   (test-assert (equal-values? '(() (4 5)) (lambda () (split-at! (list 4 5) 0))))
   (test-assert (equal-values? '((4) (5))  (lambda () (split-at! (list 4 5) 1))))
   (test-assert (equal-values? '((4 5) ()) (lambda () (split-at! (list 4 5) 2))))
-  (test-error "(4 5) 3" 
-    (split-at! (list 4 5) 3))
+  (test-error "(4 5) 3" (split-at! (list 4 5) 3))
 
-  (test-error "(4 5 6) -1" 
-    (split-at! (list 4 5 6) -1))
+  (test-error "(4 5 6) -1" (split-at! (list 4 5 6) -1))
   (test-assert (equal-values? '(() (4 5 6)) (lambda () (split-at! (list 4 5 6) 0))))
   (test-assert (equal-values? '((4) (5 6))  (lambda () (split-at! (list 4 5 6) 1))))
   (test-assert (equal-values? '((4 5) (6))  (lambda () (split-at! (list 4 5 6) 2))))
   (test-assert (equal-values? '((4 5 6) ()) (lambda () (split-at! (list 4 5 6) 3))))
-  (test-error "(4 5 6) 4" 
-    (split-at! (list 4 5 6) 4)))
+  (test-error "(4 5 6) 4" (split-at! (list 4 5 6) 4)))
 
 ;;
 ;; span
