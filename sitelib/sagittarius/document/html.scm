@@ -104,7 +104,7 @@
       (names-for-index (acons name (cons tag (current-section))
 			      (names-for-index)))
       `(a (@ (name ,tag))
-	  (span (@ (class "name"))
+	  (span (@ (class "name") (name ,name))
 		,@(map scribble->sxml-inner body)))))
   
   ;; over write
@@ -412,7 +412,7 @@
   (define (scribble-sxml->html sexp :key (output (current-output-port))
 			                 (style #f)
 					 (javascript #f))
-    (let* ((doc   (cdar ((sxpath '(scribble)) sexp)))
+    (let* ((doc  (cdar ((sxpath '(scribble)) sexp)))
 	   (title ((sxpath '(scribble title)) sexp))
 	   (html-metas 
 	    `(html

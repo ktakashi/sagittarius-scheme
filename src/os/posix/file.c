@@ -503,6 +503,14 @@ SgObject Sg_AbsolutePath(SgString *path)
   }
   return SG_FALSE;
 }
+
+SgObject Sg_InstalledDirectory()
+{
+  /* On POSIX environment, I don't think there are somebody interested in this
+     path. So just return #f */
+  return SG_FALSE;
+}
+
 /*
   end of file
   Local Variables:

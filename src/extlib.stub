@@ -457,6 +457,12 @@
   (define-c-proc current-load-path () ::<top>
     (result (-> (Sg_VM) currentLoadPath)))
 
+  (define-c-proc sagittarius-installed-directory () Sg_InstalledDirectory)
+
+  ;; readonly current library access
+  ;; it's nice to have this
+  (define-c-proc current-library () (result (-> (Sg_VM) currentLibrary)))
+
   ;; string
   (define-c-proc string-scan (s1::<string> s2 :optional (mode 'index)) ::<top>
     (let ((rmode::int 0))

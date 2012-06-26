@@ -375,6 +375,11 @@ ADD_CUSTOM_TARGET(doc
   --style=lib/style.css --javascript=lib/tools.js sagittarius-ref.scrbl
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/doc)
 
+INSTALL(FILES ${PROJECT_BINARY_DIR}/doc/sagittarius-ref.html
+  DESTINATION ${SAGITTARIUS_CURRENT_SHARE}/doc)
+INSTALL(DIRECTORY ${PROJECT_BINARY_DIR}/doc/lib
+  DESTINATION ${SAGITTARIUS_CURRENT_SHARE}/doc)
+
 # for Cygwin rebase problem
 IF (CYGWIN)
   CONFIGURE_FILE(

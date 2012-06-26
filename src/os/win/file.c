@@ -643,6 +643,18 @@ static void initialize_path()
   win_dynlib_path = SG_STRING(SG_MAKE_STRING(SAGITTARIUS_DYNLIB_PATH));
 }
 
+SgObject Sg_InstalledDirectory()
+{
+  wchar_t tmp[MAX_PATH];
+  if (GetModuleFileNameW(NULL, tmp, MAX_PATH)) {
+    if (PathRemoveFileSpecW(tmp)) {
+      PathAddBackslashW(tmp);
+      return utf16ToUtf32(tmp);
+    }
+  }
+  return SG_FALSE;
+}
+
 SgObject Sg_GetDefaultLoadPath()
 {
   if (win_lib_path == NULL ||

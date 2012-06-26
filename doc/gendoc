@@ -9,10 +9,10 @@
        (style  	   (#\s "style") #t #f)
        (javascript (#\j "javascript") #t #f)
        . files)
-    (unless (file-exists? (car files))
+    (unless (file-exists? (cadr files))
       (usage)
       (exit -1))
-    (scribble-file->html (car files)
+    (scribble-file->html (cadr files)
 			 :output output
 			 :style style
 			 :javascript javascript)))
