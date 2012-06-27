@@ -2176,122 +2176,116 @@
      (lambda (f r c)
        '#f)))))
 
-(define pass1/import
-  (lambda (form tolib)
-    (define parse-spec
-      (lambda (spec)
-	(let loop ((spec spec))
-	  (smatch spec
-	    ;; library
-	    (((? (lambda (x) (eq? 'library (variable-name x))) -) ref)
-	     (values ref '() '() '() #f #f))
-	    ;; only
-	    (((? (lambda (x) (eq? 'only (variable-name x))) -) set ids ___)
-	     (receive (ref only except renames prefix trans?)
-		 (parse-spec set)
-	       (values ref (if (null? only)
-			       ids
-			       (lset-intersection eq? only ids))
-		       except renames prefix trans?)))
-	    ;; except
-	    (((? (lambda (x) (eq? 'except (variable-name x))) -) set ids ___)
-	     (receive (ref only except renames prefix trans?)
-		 (parse-spec set)
-	       (values ref only (append except ids) renames prefix trans?)))
-	    ;; prefix
-	    (((? (lambda (x) (eq? 'prefix (variable-name x))) -) set id)
-	     (receive (ref only except renames prefix trans?)
-		 (parse-spec set)
-	       (define construct-rename
-		 (lambda (prefix prev)
-		   ;; we need to think about how it nested
-		   ;;  case 1 (prefix (rename (only (rnrs) car) (car kar)) p:)
-		   ;;  case 2 (prefix (only (rename (rnrs) (car kar)) kar) p:)
-		   ;;  case 3 (prefix (only (prefix (rnrs) p1:) p1:car) p2:)
-		   (cond ((pair? renames)
-			  ;; import was called like this
-			  ;; (prefix (rename (rnrs) (car r-car)) p:)
-			  ;; or like this
-			  ;; (prefix (rename (only (rnrs) car) (car kcar)) p:)
-			  ;; or like this
-			  ;; (prefix (only (rename (rnrs) (car kcar)) kcar) p:)
-			  (map (lambda (rename)
-				 (list (car rename)
-				       (string->symbol
-					(format "~a~a" prefix (cadr rename)))))
-			       renames))
-			 ((pair? only)
-			  ;; import was called like this
-			  ;; (prefix (only (rnrs) car) p:)
-			  ;; create new rename
-			  (map (lambda (name)
-				 (list name (string->symbol
-					     (format "~a~a" prefix name))))
-			       only)))))
+(define (pass1/import form tolib)
+  (define (parse-spec spec)
+    (let loop ((spec spec))
+      (smatch spec
+	;; library
+	(((? (lambda (x) (eq? 'library (variable-name x))) -) ref)
+	 (values ref '() '() '() #f #f))
+	;; only
+	(((? (lambda (x) (eq? 'only (variable-name x))) -) set ids ___)
+	 (receive (ref only except renames prefix trans?)
+	     (parse-spec set)
+	   (values ref (if (null? only)
+			   ids
+			   (lset-intersection eq? only ids))
+		   except renames prefix trans?)))
+	;; except
+	(((? (lambda (x) (eq? 'except (variable-name x))) -) set ids ___)
+	 (receive (ref only except renames prefix trans?)
+	     (parse-spec set)
+	   (values ref only (append except ids) renames prefix trans?)))
+	;; prefix
+	(((? (lambda (x) (eq? 'prefix (variable-name x))) -) set id)
+	 (receive (ref only except renames prefix trans?)
+	     (parse-spec set)
+	   (define (construct-rename prefix prev)
+	     ;; we need to think about how it nested
+	     ;;  case 1 (prefix (rename (only (rnrs) car) (car kar)) p:)
+	     ;;  case 2 (prefix (only (rename (rnrs) (car kar)) kar) p:)
+	     ;;  case 3 (prefix (only (prefix (rnrs) p1:) p1:car) p2:)
+	     (cond ((pair? renames)
+		    ;; import was called like this
+		    ;; (prefix (rename (rnrs) (car r-car)) p:)
+		    ;; or like this
+		    ;; (prefix (rename (only (rnrs) car) (car kcar)) p:)
+		    ;; or like this
+		    ;; (prefix (only (rename (rnrs) (car kcar)) kcar) p:)
+		    (map (lambda (rename)
+			   (list (car rename)
+				 (string->symbol
+				  (format "~a~a" prefix (cadr rename)))))
+			 renames))
+		   ((pair? only)
+		    ;; import was called like this
+		    ;; (prefix (only (rnrs) car) p:)
+		    ;; create new rename
+		    (map (lambda (name)
+			   (list name (string->symbol
+				       (format "~a~a" prefix name))))
+			 only))))
 
-	       (if (and (null? only)
-			(null? renames))
-		   ;; simple prefix case
-		   (values ref only except renames 
-			   (if prefix
-			       (string->symbol (format "~a~a" id prefix))
-			       id)
-			   trans?)
-		   (let ((new-rename (construct-rename id prefix)))
-		     (values ref only except
-			     (append renames new-rename) prefix trans?)))))
-	    ;; rename
-	    (((? (lambda (x) 
-		   (eq? 'rename (variable-name x))) -) set rename-sets ___)
-	     (receive (ref only except renames prefix trans?)
-		 (parse-spec set)
-	       (values ref only except
-		       (append renames rename-sets) prefix trans?)))
-	    (((? (lambda (x) (eq? 'for (variable-name x))) -) set . etc) ;; for
-	     (receive (ref only except renames prefix trans?)
-		 (parse-spec set)
-	       (values ref only except renames prefix
-		       (check-expand-phase etc))))
-	    (other
-	     ;; assume this is just a name
-	     (values other '() '() '() #f #f))))))
+	   (if (and (null? only)
+		    (null? renames))
+	       ;; simple prefix case
+	       (values ref only except renames 
+		       (if prefix
+			   (string->symbol (format "~a~a" id prefix))
+			   id)
+		       trans?)
+	       (let ((new-rename (construct-rename id prefix)))
+		 (values ref only except
+			 (append renames new-rename) prefix trans?)))))
+	;; rename
+	(((? (lambda (x) 
+	       (eq? 'rename (variable-name x))) -) set rename-sets ___)
+	 (receive (ref only except renames prefix trans?)
+	     (parse-spec set)
+	   (values ref only except
+		   (append renames rename-sets) prefix trans?)))
+	(((? (lambda (x) (eq? 'for (variable-name x))) -) set . etc) ;; for
+	 (receive (ref only except renames prefix trans?)
+	     (parse-spec set)
+	   (values ref only except renames prefix
+		   (check-expand-phase etc))))
+	(other
+	 ;; assume this is just a name
+	 (values other '() '() '() #f #f)))))
 
-    (define process-spec
-      (lambda (spec)
-	(cond ((symbol? spec)
-	       ;; SHORTCUT if it's symbol, just import is without any
-	       ;; information
-	       ;; TODO this might not be a good error message
-	       (guard (e (#t (raise (cons* 'import-error
-					   (cond ((message-condition? e)
-						  (condition-message e))
-						 ((string? e) e)
-						 (else #f))
-					   spec))))
-		 (import-library tolib
-				 (ensure-library spec 'import #f)
-				 '() '() '() #f #f)))
-	      ((list? spec)
-	       ;; now we need to check above specs
-	       (receive (ref only except renames prefix trans?)
-		   (parse-spec spec)
-		 (guard (e (#t (raise (cons* 'import-error
-					     (cond ((message-condition? e)
-						    (condition-message e))
-						   ((string? e) e)
-						   (else #f))
-					     spec))))		   
-		   (import-library tolib
-				   (ensure-library ref 'import #f)
-				   only except renames prefix trans?))))
-	      (else
-	       (syntax-error "malformed import spec" spec)))))
-    (smatch form
-      ((- import-specs ___)
-       (for-each (lambda (spec)
-		   (process-spec spec))
-		 import-specs)
-       ($undef)))))
+  (define (process-spec spec)
+    (cond ((symbol? spec)
+	   ;; SHORTCUT if it's symbol, just import is without any
+	   ;; information
+	   ;; TODO this might not be a good error message
+	   (guard (e (else
+		      (let ((info (source-info form)))
+			(raise (condition (make-import-error
+					   (format-source-info info)
+					   form spec)
+					  e)))))
+	     (import-library tolib
+			     (ensure-library spec 'import #f)
+			     '() '() '() #f #f)))
+	  ((list? spec)
+	   ;; now we need to check above specs
+	   (receive (ref only except renames prefix trans?)
+	       (parse-spec spec)
+	     (guard (e (else
+			(let ((info (source-info form)))
+			  (raise (condition (make-import-error 
+					     (format-source-info info) 
+					     form spec)
+					    e)))))
+	       (import-library tolib
+			       (ensure-library ref 'import #f)
+			       only except renames prefix trans?))))
+	  (else
+	   (syntax-error "malformed import spec" spec))))
+  (smatch form
+    ((- import-specs ___)
+     (for-each process-spec import-specs)
+     ($undef))))
 
 ;; added export information in env and library
 ;; inside of export spec is like this:
@@ -5184,46 +5178,35 @@
       (-
        (scheme-error 'acons "wrong number of arguments" form)))))
 
-(define integer-fits-insn-arg?
-  (lambda (obj)
-    (and (integer? obj)
-	 (exact? obj)
-	 (<= #x-7ffff obj #x7ffff))))
+(define (integer-fits-insn-arg? obj)
+  (and (integer? obj)
+       (exact? obj)
+       (<= #x-7ffff obj #x7ffff)))
 
-(define compile
-  (lambda (program env)
-    (let ((env (cond ((vector? env) env);; must be p1env
-		     ((library? env) (make-bottom-p1env env))
-		     (else (make-bottom-p1env)))))
-      (define (raise-error e info program)
-	(if info
-	    (raise (format "Compile Error:~%~a~%~s:~d~,,,,40:s"
-			   e (car info) (cdr info) program))
-	    (raise (format "Compile Error:~%~a" e))))
-      (define (raise-import-error msg&lib info)
-	(if info
-	    (raise (format "Import Error: ~a~%library:~a~%~s:~d~,,,,40:s"
-			   (car msg&lib) (cdr msg&lib)
-			   (car info) (cdr info) program))
-	    (raise (format "Import Error: ~a~%library:~a" 
-			   (car msg&lib) (cdr msg&lib)))))
-      (guard (e (#t
-		 ;; TODO after introduced CLOS I might want to use
-		 ;; some dispath
-		 (let ((info (source-info program)))
-		   (cond
-		    ((and (pair? e) (eq? (car e) 'import-error))
-		     (raise-import-error (cdr e) info))
-		    ((condition? e)
-		     (raise-error (describe-condition e) info program))
-		    (else
-		     (raise-error e info program))))))
-	(let ((p1 (pass1 (pass0 program env) env)))
-	  (pass3 (pass2 p1 (p1env-library env))
-		 (make-code-builder)
-		 (make-renv)
-		 'tail
-		 RET))))))
+(define (format-source-info info)
+  (if info
+      (format "~s:~d" (car info) (cdr info))
+      #f))
+
+(define (compile program env)
+  (let ((env (cond ((vector? env) env);; must be p1env
+		   ((library? env) (make-bottom-p1env env))
+		   (else (make-bottom-p1env)))))
+    (define (raise-error e info program)
+      (raise (condition (make-compile-error
+			 (format-source-info info)
+			 (format "~,,,,40:s" program))
+			e)))
+    (guard (e (else (cond ((import-error? e) (raise e))
+			  (else 
+			   (let ((info (source-info program)))
+			     (raise-error e info program))))))
+      (let ((p1 (pass1 (pass0 program env) env)))
+	(pass3 (pass2 p1 (p1env-library env))
+	       (make-code-builder)
+	       (make-renv)
+	       'tail
+	       RET)))))
 
 (cond-expand
  (gauche
@@ -5231,26 +5214,22 @@
  (else))
 
 ;; for debug
-(define compile-p1
-  (lambda (program)
-    (let ((env (make-bottom-p1env)))
-      (pp-iform (pass1 (pass0 program env) env)))))
+(define (compile-p1 program)
+  (let ((env (make-bottom-p1env)))
+    (pp-iform (pass1 (pass0 program env) env))))
 
-(define compile-p2
-  (lambda (program)
-    (let ((env (make-bottom-p1env)))
-      (pp-iform (pass2 (pass1 (pass0 program env) env) (p1env-library env))))))
+(define (compile-p2 program)
+  (let ((env (make-bottom-p1env)))
+    (pp-iform (pass2 (pass1 (pass0 program env) env) (p1env-library env)))))
 
-(define compile-p3
-  (lambda (program)
-    (let ((env (make-bottom-p1env)))
-      (let* ((p1 (pass1 (pass0 program env) env))
-	     (p3 (pass3 (pass2 p1 (p1env-library env))
-			(make-code-builder)
-			(make-renv)
-			'tail
-			RET)))
-	(vm-dump-code p3)))))
+(define (compile-p3 program)
+  (let ((env (make-bottom-p1env)))
+    (let* ((p1 (pass1 (pass0 program env) env))
+	   (p3 (pass3 (pass2 p1 (p1env-library env))
+		      (make-code-builder)
+		      (make-renv)
+		      'tail
+		      RET)))
+      (vm-dump-code p3))))
 
-(define init-compiler
-  (lambda () #f))
+(define (init-compiler) #f)

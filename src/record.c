@@ -390,8 +390,9 @@ static int flat_field_offset(SgObject rtd, int k)
 SgObject Sg_RecordAccessor(SgObject rtd, int k)
 {
   int index = flat_field_offset(rtd, k);
-  SgObject subr = Sg_MakeSubr(make_accessor_rec, Sg_Cons(rtd, SG_MAKE_INT(index)), 1, 0,
-			      Sg_MakeString(UC("record-accessor"), SG_LITERAL_STRING));
+  SgObject subr = Sg_MakeSubr(make_accessor_rec,
+			      Sg_Cons(rtd, SG_MAKE_INT(index)), 1, 0,
+			      SG_MAKE_STRING("record-accessor"));
   return SG_OBJ(subr);
 }
 
