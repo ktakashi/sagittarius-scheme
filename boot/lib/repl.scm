@@ -14,6 +14,12 @@
 	    (core errors)
 	    (sagittarius))
 
+  (define-constant +resource-file+
+    (let ((home (or (getenv "HOME") ;; this is the strongest
+		    (getenv "USERPROFILE") ;; for windows
+		    )))
+      (build-path home ".sashrc")))
+
   (define (default-exception-printer c . out)
     (report-error c))
 
@@ -77,6 +83,15 @@
 		   '(rnrs)))
 
     (let ((plugged (getenv "EMACS")))
+      ;; load resource file
+      (when (file-exists? +resource-file+)
+	(call-with-port
+	 (open-file-input-port +resource-file+ #f 'block (native-transcoder))
+	 (lambda (p)
+	   (let loop ((form (read/ss p)))
+	     (unless (eof-object? form)
+	       ((current-evaluator) form interactive-environment)
+	       (loop (read/ss p)))))))
       (let loop ()
 	(call-with-current-continuation
 	 (lambda (continue)
@@ -90,7 +105,7 @@
 	       (flush-output-port (current-output-port))
 	       (let ((form (read/ss (current-input-port))))
 		 (and (eof-object? form) (exit 0))
-		 (and plugged #;(format #t "~%")(flush-output-port (current-output-port)))
+		 (and plugged (flush-output-port (current-output-port)))
 		 (receive ans ((current-evaluator) form interactive-environment)
 		   (apply (current-printer) ans)
 		   (flush-output-port (current-output-port))))))))

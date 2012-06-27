@@ -1,3 +1,10 @@
+2012-06-27  Takashi Kato  <ktakashi@ymail.com>
+
+	* sitelib/sagittarius/interactive/support.scm: added interactive support
+	library.
+
+	* boot/lib/repl.scm: added initialise file loading.
+
 2012-06-24  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/srfi/%3a1/lists.scm (delete-duplicates): fixed infinite loop.
