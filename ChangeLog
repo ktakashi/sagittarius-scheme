@@ -1,5 +1,8 @@
 2012-06-27  Takashi Kato  <ktakashi@ymail.com>
 
+	* src/bytevector.c (Sg_ByteVectorToInteger): Fixed start and end 
+	argument treatment. (it was almost ignored before).
+
 	* sitelib/sagittarius/interactive/support.scm: added interactive support
 	library.
 

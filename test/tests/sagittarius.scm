@@ -26,6 +26,14 @@
 	    (bytevector->integer #vu8(#x12 #x34 #x56 #x78 #x90 #xab #xcd #xef
 				      #x12 #x34 #x56 #x78 #x90 #xab #xcd #xef)))
 
+
+;; with start and end
+(test-equal "bytevector->integer (start end)"
+	    #x0203
+	    (bytevector->integer #vu8(1 2 3 4) 1 3))
+(test-equal "bytevector->integer (bignum start end)"
+	    #x02030405060708090a
+	    (bytevector->integer #vu8(1 2 3 4 5 6 7 8 9 #xa #xb) 1 10))
 (test-equal "integer->bytevector"
 	    #vu8(#x12 #x34 #x56 #x78)
 	    (integer->bytevector #x12345678))
