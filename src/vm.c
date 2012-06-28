@@ -1138,15 +1138,16 @@ static SgWord boundaryFrameMark = NOP;
 static SgContFrame* save_a_cont(SgContFrame *c)
 {
   SgObject *s, *d;
-  SgContFrame *csave;
   int i;
-  const size_t size = sizeof(SgContFrame) + c->size * sizeof(SgObject);
-  csave = SG_NEW2(SgContFrame *, size);
+  const size_t argsize = (c->size > 0) ? (c->size * sizeof(SgObject)) : 0;
+  const size_t size = sizeof(SgContFrame) + argsize;
+  SgContFrame *csave = SG_NEW2(SgContFrame *, size);
   csave->env = NULL;
+
   /* copy cont frame */
   if (c->fp != C_CONT_MARK) {
     *csave = *c;		/* copy the frame */
-    if (c->size) {
+    if (c->size > 0) {
       /* copy the args */
       s = (SgObject*)c - c->size;
       d = (SgObject*)csave + CONT_FRAME_SIZE;
@@ -1178,7 +1179,6 @@ static void save_cont(SgVM *vm)
   SgContFrame *c = CONT(vm), *prev = NULL, *tmp;
   SgCStack *cstk;
   SgContinuation *ep;
-  /* struct offset_saver saver = {NULL, 0, NULL}; */
 
   if (!IN_STACK_P((SgObject*)c, vm)) return;
 
@@ -1212,6 +1212,7 @@ static void save_cont(SgVM *vm)
       ep->cont = FORWARDED_CONT(ep->cont);
     } 
   }
+
 }
 
 static void expand_stack(SgVM *vm)
@@ -1924,8 +1925,8 @@ static void print_frames(SgVM *vm)
   /* SgString *fmt   = SG_MAKE_STRING("+    o=~38,,,,39a +~%"); */
   SgString *clfmt = SG_MAKE_STRING("+   cl=~38,,,,39s +~%");
 
-  Sg_Printf(vm->logPort, UC(";; stack: 0x%x\n"), stack);
-  Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+ < sp(0x%x)\n"), sp, sp);
+  Sg_Printf(vm->logPort, UC(";; stack: 0x%x, cont: 0x%x\n"), stack, cont);
+  Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+ < sp\n"), sp);
   /* first we dump from top until cont frame. */
   while ((stack < current && current <= sp)) {
     if (current == (SgObject*)cont + CONT_FRAME_SIZE) {
@@ -1960,9 +1961,9 @@ static void print_frames(SgVM *vm)
       Sg_Printf(vm->logPort, UC(";; 0x%x + prev=%#38x +\n"),
 		(uintptr_t)cont + offsetof(SgContFrame, prev), cont->prev);
       if (cont == CONT(vm)) {
-	Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+ < cont(0x%x)\n"), cont, cont);
+	Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+ < cont\n"), cont);
       } else if (cont->prev) {
-	Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+ < prev(0x%x)\n"), cont, cont);
+	Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+ < prev\n"), cont);
       }
       if (cont->fp == C_CONT_MARK) c_func = TRUE;
       else c_func = FALSE;

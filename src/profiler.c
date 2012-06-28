@@ -79,6 +79,7 @@ static void sampler_sample(int sig)
   int i;
   
   vm = Sg_VM();
+  if (!vm) return;		/* how could this happen? */
   if (vm->profiler == NULL) return;
   if (vm->profiler->state != SG_PROFILER_RUNNING) return;
 
