@@ -166,7 +166,6 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 
   v->sourceInfos = Sg_MakeWeakHashTableSimple(SG_HASH_EQ, SG_WEAK_KEY,
 					      4000, SG_FALSE);
-  v->toplevelVariables = SG_NIL;
   v->commandLineArgs = SG_NIL;
 
   /* from proto */
@@ -400,14 +399,6 @@ void Sg_ReportError(SgObject e)
   }
   SG_END_PROTECT;
   SG_VM_RUNTIME_FLAG_CLEAR(vm, SG_ERROR_BEING_REPORTED);
-}
-
-void Sg_VMSetToplevelVariable(SgSymbol *name, SgObject value)
-{
-  SgVM *vm = Sg_VM();
-  SgGloc *g = Sg_MakeGloc(name, vm->currentLibrary);
-  SG_GLOC_SET(g, value);
-  vm->toplevelVariables = Sg_Acons(name, g, vm->toplevelVariables);
 }
 
 void Sg_VMProcessTime(unsigned long *sec, unsigned long *usec)

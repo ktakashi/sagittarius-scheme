@@ -186,11 +186,6 @@ struct SgVMRec
   SgObject loadPath;
   SgObject dynamicLoadPath;
   SgObject currentLoadPath;
-  /*
-    toplevel variables.
-    alist of variable name and gloc.
-   */
-  SgObject toplevelVariables;
   /* 
      command line args.
      this is a list of args
@@ -418,9 +413,6 @@ SG_EXTERN SgObject Sg_VMFinalizerRun(SgVM *vm);
 
 /* debuging */
 SG_EXTERN void     Sg_VMPrintFrame();
-
-/* toplevel variable*/
-SG_EXTERN void     Sg_VMSetToplevelVariable(SgSymbol *name, SgObject value);
 
 /* process time */
 SG_EXTERN void     Sg_VMProcessTime(unsigned long *sec, unsigned long *usec);
