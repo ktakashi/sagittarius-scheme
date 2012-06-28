@@ -64,30 +64,32 @@
   do {									\
     int required = SG_PROCEDURE_REQUIRED(proc);				\
     int optargs =  SG_PROCEDURE_OPTIONAL(proc);				\
-    int rargc = Sg_Length(INDEX(SP(vm), 0)), c;				\
+    int rargc = Sg_Length(INDEX(SP(vm), 0));				\
     SgObject p, a;							\
     if (optargs) {							\
+      int __i, req_opt, oargc;						\
       if ((rargc+argc-1) < required) {					\
       	Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),	\
 					   rargc+argc-1, argc, SG_UNDEF); \
       }									\
+      req_opt = required+optargs;					\
       p = POP(SP(vm)); /* tail of arglist */				\
-      if (argc > required+optargs) {					\
-	argc--;								\
+      oargc = argc--;							\
+      if (oargc > req_opt) {						\
 	/* fold rest args */						\
 	p = Sg_CopyList(p);						\
-	for (c = argc+1; c > required+optargs; c--) {			\
+	for (__i = oargc; __i > req_opt; __i--) {			\
 	  a = POP(SP(vm));						\
 	  argc--;							\
 	  p = Sg_Cons(a, p);						\
 	}								\
 	PUSH(SP(vm), p);						\
 	argc++;								\
+	/* argc -= oargc - __i -1; */					\
       } else {								\
-	argc--;								\
 	/* unfold rest arg */						\
-	CHECK_STACK(required + optargs - argc +1, vm);			\
-	for (c = argc+1; SG_PAIRP(p) && c < required+optargs; c++) {	\
+	CHECK_STACK(req_opt - oargc, vm);				\
+	for (__i = oargc; SG_PAIRP(p) && __i < req_opt; __i++) {	\
 	  PUSH(SP(vm), SG_CAR(p));					\
 	  argc++;							\
 	  p = SG_CDR(p);						\
@@ -95,6 +97,7 @@
 	p = Sg_CopyList(p);						\
 	PUSH(SP(vm), p);						\
 	argc++;								\
+	/* argc += __i - oargc +1; */					\
       }									\
     } else {								\
       /* not optargs */							\
@@ -106,6 +109,7 @@
       argc--;								\
       if (rargc > 0) {							\
 	CHECK_STACK(rargc, vm);						\
+	/* argc +=rargc; */						\
 	do {								\
 	  PUSH(SP(vm), SG_CAR(p));					\
 	  argc++;							\
@@ -132,7 +136,6 @@
 
 {
   int argc, proctype;
-  int volatile app_p = APP;
   SgObject nm = SG_FALSE;	/* next method */
   INSN_VAL1(argc, c);
 
@@ -169,7 +172,7 @@
   }
 
   if (proctype == SG_PROC_CLOSURE) {
-    SgClosure * volatile cl = SG_CLOSURE(AC(vm));
+    SgClosure * cl = SG_CLOSURE(AC(vm));
     SgCodeBuilder *cb = SG_CODE_BUILDER(cl->code);
     CHECK_STACK(cb->maxStack, vm);
     ADJUST_ARGUMENT_FRAME(cl, argc);

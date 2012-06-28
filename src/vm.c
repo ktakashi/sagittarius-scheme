@@ -1117,17 +1117,15 @@ static SgWord boundaryFrameMark = NOP;
       if (SG_GLOCP(value)) {						\
 	ret = SG_GLOC_GET(SG_GLOC(value));				\
 	*(PC(vm)-1) = SG_WORD(value);					\
-      } else if (SG_UNBOUNDP(value)) {					\
+      } else {								\
 	Sg_AssertionViolation(SG_MAKE_STRING("vm"),			\
 			      Sg_Sprintf(UC("unbound variable %S"),	\
 					 SG_IDENTIFIER_NAME(var)),	\
 			      SG_IDENTIFIER_NAME(var));			\
-      } else {								\
-	ASSERT(FALSE);							\
       }									\
     } else {								\
-      ASSERT(FALSE)							\
-	}								\
+      Sg_Panic("[internal] GREF: gloc or identifier required.");	\
+    }									\
   } while (0)
 
 
@@ -1363,8 +1361,7 @@ SgObject Sg_VMCallCC(SgObject proc)
 
 
   contproc = Sg_MakeSubr(throw_continuation, cont, 0, 1,
-			 Sg_MakeString(UC("continucation"),
-				       SG_LITERAL_STRING));
+			 SG_MAKE_STRING("continucation"));
   return Sg_VMApply1(proc, contproc);
 }
 
@@ -1806,26 +1803,6 @@ void Sg_VMExecute(SgObject toplevel)
   evaluate_safe(theVM->closureForEvaluate, SG_CODE_BUILDER(toplevel)->code);
 }
 
-static inline SgObject stack_to_pair_args(SgObject *sp, int nargs)
-{
-  SgObject args = SG_NIL;
-  int i;
-  for (i = 0; i < nargs; i++) {
-    args = Sg_Cons(INDEX(sp, i), args);
-  }
-  return args;
-}
-
-/* shift-arg-to-top */
-static inline SgObject* unshift_args(SgObject *sp, int diff)
-{
-  int i;
-  for (i = 0; i < diff; i++) {
-    INDEX_SET(sp + diff - i, 0, INDEX(sp, i));
-  }
-  return sp + diff;
-}
-
 static inline SgObject* shift_args(SgObject *fp, int m, SgObject *sp)
 {
   int i;
@@ -2107,22 +2084,17 @@ SgObject run_loop()
 }
 
 void Sg__InitVM()
-{  
+{
+  /* this env is p1env and it must be 4 elements vector for now. */
   SgObject initialEnv = Sg_MakeVector(4, SG_UNDEF);
-  /* TODO multi thread and etc */
 #if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
-  rootVM = theVM = Sg_NewVM(NULL, Sg_MakeString(UC("root"), SG_LITERAL_STRING));
+  rootVM = theVM = Sg_NewVM(NULL, SG_MAKE_STRING("root"));
 #else
   if (pthread_key_create(&the_vm_key, NULL) != 0) {
     Sg_Panic("pthread_key_create failed.");
   }
-  rootVM = Sg_NewVM(NULL, Sg_MakeString(UC("root"), SG_LITERAL_STRING));
+  rootVM = Sg_NewVM(NULL, SG_MAKE_STRING("root"));
   Sg_SetCurrentVM(rootVM);
-  /*
-  if (pthread_setspecific(the_vm_key, rootVM) != 0) {
-    Sg_Panic("pthread_setspecific failed.");
-  }
-  */
 #endif
   Sg_SetCurrentThread(&rootVM->thread);
   rootVM->threadState = SG_VM_RUNNABLE;
@@ -2138,8 +2110,8 @@ void Sg__InitVM()
   rootVM->usageEnv = initialEnv;
   rootVM->macroEnv = initialEnv;
 
-  SG_PROCEDURE_NAME(&default_exception_handler_rec) = Sg_MakeString(UC("default-exception-handler"),
-								    SG_LITERAL_STRING);
+  SG_PROCEDURE_NAME(&default_exception_handler_rec) =
+    SG_MAKE_STRING("default-exception-handler");
   Sg_InitMutex(&global_lock, TRUE);
 
 #if PROF_INSN

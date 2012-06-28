@@ -92,18 +92,18 @@
 	   (let ((oldval (Sg_FindBinding (SG_IDENTIFIER_LIBRARY var)
 					 (SG_IDENTIFIER_NAME var)
 					 SG_UNBOUND)))
-	     (if (SG_UNBOUNDP oldval)
-		 (Sg_AssertionViolation 
-		     (SG_MAKE_STRING "set!")
-		     (Sg_Sprintf (UC "unbound variable %S")
-				 (SG_IDENTIFIER_NAME var))
-		     (SG_IDENTIFIER_NAME var))
-		 (let ((g (Sg_MakeBinding (SG_IDENTIFIER_LIBRARY var)
-					  (SG_IDENTIFIER_NAME var)
-					  (AC vm)
-					  0)))
-		   (set! (pointer (- (PC vm) 1)) (SG_WORD g))))))
-	  (else (ASSERT FALSE))))
+	     (when (SG_UNBOUNDP oldval)
+	       (Sg_AssertionViolation 
+		(SG_MAKE_STRING "set!")
+		(Sg_Sprintf (UC "unbound variable %S")
+			    (SG_IDENTIFIER_NAME var))
+		(SG_IDENTIFIER_NAME var)))
+	     (let ((g (Sg_MakeBinding (SG_IDENTIFIER_LIBRARY var)
+				      (SG_IDENTIFIER_NAME var)
+				      (AC vm)
+				      0)))
+	       (set! (pointer (- (PC vm) 1)) (SG_WORD g)))))
+	  (else (Sg_Panic "[internal] GSET: gloc or identifier required"))))
   (set! (AC vm) SG_UNDEF)
   NEXT)
 
@@ -117,7 +117,6 @@
   NEXT)
 
 (define-inst UNBOX (0 0 #f)
-  (ASSERT (SG_BOXP (AC vm)))
   (set! (AC vm) (-> (SG_BOX (AC vm)) value))
   NEXT)
 
@@ -152,8 +151,7 @@
 	       ($result (SG_MAKE_INT n))
 	       ($result (Sg_MakeBignumFromSI n)))))
 	(else
-	 (call-one-arg-with-insn-value Sg_Add c)))
-  )
+	 (call-one-arg-with-insn-value Sg_Add c))))
 
 (define-inst SUB (0 0 #t)
   (let ((obj (INDEX (SP vm) 0)))
@@ -214,15 +212,13 @@
 (define-inst TEST (0 1 #t) :label
   (cond ((SG_FALSEP (AC vm))
 	 (let ((n (PEEK_OPERAND (PC vm))))
-	   (ASSERT (SG_INTP n))
-	   (set! (PC vm) (+ (PC vm) (SG_INT_VALUE n)))))
+	   (+= (PC vm) (SG_INT_VALUE n))))
 	(else
 	 (post++ (PC vm))))
   NEXT)
 
 (define-inst JUMP (0 1 #t) :label
   (let ((n (PEEK_OPERAND (PC vm))))
-    (ASSERT (SG_INTP n))
     (set! (PC vm) (+ (PC vm) (SG_INT_VALUE n))))
   NEXT)
 
@@ -334,15 +330,14 @@
     (if (SG_VALUESP (AC vm))
 	(set! numValues (SG_VALUES_SIZE (AC vm)))
 	(set! numValues 1))
-    (if (< numValues val1)
-	(assertion-violation "receive"
-			     "recieved fewer values than expected"
-			     (AC vm)))
-    (if (and (== val2 0)
-	     (> numValues val1))
-	(assertion-violation "receive"
-			     "recieved more values than expected"
-			     (AC vm)))
+    (when (< numValues val1)
+      (assertion-violation "receive"
+			   "recieved fewer values than expected"
+			   (AC vm)))
+    (when (and (== val2 0) (> numValues val1))
+      (assertion-violation "receive"
+			   "recieved more values than expected"
+			   (AC vm)))
     (cond ((== val2 0)
 	   ;; (receive (a b c) ...)
 	   (cond ((== val1 1)
@@ -362,9 +357,7 @@
 	     (PUSH (SP vm) h)))
 	  (else
 	   ;; (receive (a b . c) ...)
-	   (let ((h '())
-		 (t '())
-		 (i::int 0))
+	   (let ((h '()) (t '()) (i::int 0))
 	     (for (() () (post++ i))
 		  (cond ((< i val1)
 			 (PUSH (SP vm) (SG_VALUES_ELEMENT (AC vm) i)))
@@ -377,10 +370,9 @@
 
 (define-inst CLOSURE (0 1 #f)
   (let ((cb (FETCH_OPERAND (PC vm))))
-    (if (not (SG_CODE_BUILDERP cb))
-	(wrong-type-of-argument-violation "closure"
-					  "code-builder"
-					  cb))
+    ;; If this happend this must be panic.
+    ;; (when (SG_CODE_BUILDERP cb)
+    ;;   (wrong-type-of-argument-violation "closure" "code-builder" cb))
     (set! (SP vm) (- (SP vm) (SG_CODE_BUILDER_FREEC cb)))
     ($result (Sg_MakeClosure cb (SP vm)))))
 
@@ -438,18 +430,13 @@
   ((_ c)
    `(begin
       (INSN_VAL1 val1 ,c)
-      (cond ((SG_CLOSUREP (AC vm))
-	     (when (and (SG_VM_LOG_LEVEL vm SG_DEBUG_LEVEL)
-			(== (-> vm state) RUNNING))
-	       (Sg_Printf (-> vm logPort) (UC ";; calling %S\n") (AC vm))
-	       (when (and (SG_VM_LOG_LEVEL vm SG_TRACE_LEVEL)
-			  (== (-> vm state) RUNNING))
-		 (print_frames vm)))
-	     (let ((cb::SgCodeBuilder* (-> (SG_CLOSURE (AC vm)) code)))
-	       (set! (CL vm) (AC vm)
-		     (PC vm) (-> cb code)
-		     (FP vm) (- (SP vm) val1))))
-	    (else (ASSERT FALSE))))))
+      (when (and (SG_VM_LOG_LEVEL vm SG_TRACE_LEVEL)
+		 (== (-> vm state) RUNNING))
+	(Sg_Printf (-> vm logPort) (UC ";; calling %S\n") (AC vm)))
+      (let ((cb::SgCodeBuilder* (-> (SG_CLOSURE (AC vm)) code)))
+	(set! (CL vm) (AC vm)
+	      (PC vm) (-> cb code)
+	      (FP vm) (- (SP vm) val1))))))
 
 (define-inst LOCAL_CALL (1 0 #t)
   (CHECK_STACK (SG_CLOSURE_MAX_STACK (AC vm)) vm)
@@ -478,7 +465,6 @@
 
 (define-inst FRAME (0 1 #f) :label
   (let ((n (FETCH_OPERAND (PC vm))))
-    (ASSERT (SG_INTP n))
     (PUSH_CONT vm (+ (PC vm) (- (SG_INT_VALUE n) 1))))
   NEXT)
 
@@ -496,7 +482,6 @@
 (define-inst DEFINE (1 1 #t)
   (INSN_VAL1 val1 c)
   (let ((var (FETCH_OPERAND (PC vm))))
-    (ASSERT (SG_IDENTIFIERP var))
     (Sg_MakeBinding (SG_IDENTIFIER_LIBRARY var)
 		    (SG_IDENTIFIER_NAME var)
 		    (AC vm)
@@ -513,13 +498,13 @@
   NEXT)
 
 (define-inst CAR (0 0 #t)
-  (if (not (SG_PAIRP (AC vm)))
-      (wrong-type-of-argument-violation "car" "pair" (AC vm)))
+  (unless (SG_PAIRP (AC vm))
+    (wrong-type-of-argument-violation "car" "pair" (AC vm)))
   (call-one-arg SG_CAR))
 
 (define-inst CDR (0 0 #t)
-  (if (not (SG_PAIRP (AC vm)))
-      (wrong-type-of-argument-violation "cdr" "pair" (AC vm)))
+  (unless (SG_PAIRP (AC vm))
+    (wrong-type-of-argument-violation "cdr" "pair" (AC vm)))
   (call-one-arg SG_CDR))
 
 (define-inst CONS (0 0 #t)
@@ -605,48 +590,42 @@
   ($result (SG_MAKE_BOOL (SG_VECTORP (AC vm)))))
 
 (define-inst VEC_LEN (0 0 #t)
-  (if (not (SG_VECTORP (AC vm)))
-      (wrong-type-of-argument-violation "vector-length"
-					"vector" (AC vm)))
+  (unless (SG_VECTORP (AC vm))
+    (wrong-type-of-argument-violation "vector-length"
+				      "vector" (AC vm)))
   ($result:i (SG_VECTOR_SIZE (AC vm))))
 
 (define-inst VEC_REF (0 0 #t)
   (let ((obj (INDEX (SP vm) 0)))
-    (if (SG_VECTORP obj)
-	(if (SG_INTP (AC vm))
-	    (let ((index::int (SG_INT_VALUE (AC vm))))
-	      (if (or (>= index (SG_VECTOR_SIZE obj))
-		      (< index 0))
-		  (assertion-violation "vector-ref" "index out of range"
-				       (SG_LIST2 obj (AC vm)))
-		  (begin
-		    (post-- (SP vm))
-		    ($result (SG_VECTOR_ELEMENT obj index))
-		    )))
-	    (wrong-type-of-argument-violation "vector-ref" "fixnum" (AC vm)))
-	(wrong-type-of-argument-violation "vector-ref" "vector" obj))))
+    (unless (SG_VECTORP obj)
+      (wrong-type-of-argument-violation "vector-ref" "vector" obj))
+    (unless (SG_INTP (AC vm))
+      (wrong-type-of-argument-violation "vector-ref" "fixnum" (AC vm)))
+    (let ((index::int (SG_INT_VALUE (AC vm))))
+      (when (or (>= index (SG_VECTOR_SIZE obj)) (< index 0))
+	(assertion-violation "vector-ref" "index out of range" 
+			     (SG_LIST2 obj (AC vm))))
+      (post-- (SP vm))
+      ($result (SG_VECTOR_ELEMENT obj index)))))
 
 (define-inst VEC_SET (0 0 #t)
   (let ((obj (INDEX (SP vm) 1))
 	(index (INDEX (SP vm) 0)))
-    (if (SG_VECTORP obj)
-	(if (SG_LITERAL_VECTORP obj)
-	    (assertion-violation "vector-set!"
-				 "attempt to modify immutable vector"
-				 (SG_LIST1 obj))
-	    (if (SG_INTP index)
-		(let ((i::int (SG_INT_VALUE index)))
-		  (if (or (>= i (SG_VECTOR_SIZE obj))
-			  (< i 0))
-		      (assertion-violation "vector-set!" "index out of range"
-					   (SG_LIST2 obj index))
-		      (begin
-			(set! (SG_VECTOR_ELEMENT obj i) (AC vm)
-			      (SP vm) (- (SP vm) 2))
-			($result SG_UNDEF))))
-		(wrong-type-of-argument-violation "vector-set!"
-						  "fixnum" index)))
-	(wrong-type-of-argument-violation "vector-set!" "vector" obj))))
+    (unless (SG_VECTORP obj)
+      (wrong-type-of-argument-violation "vector-set!" "vector" obj))
+    (when (SG_LITERAL_VECTORP obj)
+      (assertion-violation "vector-set!"
+			   "attempt to modify immutable vector"
+			   (SG_LIST1 obj)))
+    (unless (SG_INTP index)
+      (wrong-type-of-argument-violation "vector-set!" "fixnum" index))
+    (let ((i::int (SG_INT_VALUE index)))
+      (when (or (>= i (SG_VECTOR_SIZE obj)) (< i 0))
+	(assertion-violation "vector-set!" "index out of range" 
+			     (SG_LIST2 obj index)))
+      (set! (SG_VECTOR_ELEMENT obj i) (AC vm)
+	    (SP vm) (- (SP vm) 2))
+      ($result SG_UNDEF))))
 
 ;; combined instructions
 ;; CONST_PUSH, LREF_PUSH and FREF_PUSH are treated specially for heavy head call
@@ -680,28 +659,24 @@
 
 (define-inst SET_CAR (0 0 #t)
   (let ((obj (INDEX (SP vm) 0)))
-    (if (SG_PAIRP obj)
-	(if (Sg_ConstantLiteralP obj)
-	    (assertion-violation "set-car!" "attempt to modify constant literal"
-				 obj)
-	    (begin
-	      (SG_SET_CAR obj (AC vm))
-	      (post-- (SP vm))
-	      ($result SG_UNDEF)))
-	(wrong-type-of-argument-violation "set-car!" "pair" obj))))
+    (unless (SG_PAIRP obj)
+      (wrong-type-of-argument-violation "set-car!" "pair" obj))
+    (when (Sg_ConstantLiteralP obj)
+      (assertion-violation "set-car!" "attempt to modify constant literal" obj))
+    (SG_SET_CAR obj (AC vm))
+    (post-- (SP vm))
+    ($result SG_UNDEF)))
 
 
 (define-inst SET_CDR (0 0 #t)
   (let ((obj (INDEX (SP vm) 0)))
-    (if (SG_PAIRP obj)
-	(if (Sg_ConstantLiteralP obj)
-	    (assertion-violation "set-cdr!" "attempt to modify constant literal"
-				 obj)
-	    (begin
-	      (SG_SET_CDR obj (AC vm))
-	      (post-- (SP vm))
-	      ($result SG_UNDEF)))
-	(wrong-type-of-argument-violation "set-cdr!" "pair" obj))))
+    (unless (SG_PAIRP obj)
+      (wrong-type-of-argument-violation "set-cdr!" "pair" obj))
+    (when (Sg_ConstantLiteralP obj)
+      (assertion-violation "set-cdr!" "attempt to modify constant literal" obj))
+    (SG_SET_CDR obj (AC vm))
+    (post-- (SP vm))
+    ($result SG_UNDEF)))
 
 (define-cise-stmt $cxxr
   ((_ name a b)
