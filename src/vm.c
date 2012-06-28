@@ -784,7 +784,7 @@ SgObject Sg_Apply(SgObject proc, SgObject args)
 {
   SgVM *vm = Sg_VM();
   SgObject program;
-  SgWord applyCode[7];
+  SgWord applyCode[8];
   applyCode[0] = SG_WORD(FRAME);
   applyCode[1] = SG_WORD(SG_MAKE_INT(6));
   applyCode[2] = SG_WORD(CONST_PUSH);
@@ -1636,7 +1636,7 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
 		      default_exception_handler_body,
 		      SG_FALSE, NULL);
 
-#define TAIL_POS(vm)  (PC(vm) == RET)
+#define TAIL_POS(vm)  (*PC(vm) == RET)
 #define CALL_CCONT(p, v, d) p(v, d)
 
 #define POP_CONT()							\
