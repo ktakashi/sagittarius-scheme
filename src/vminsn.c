@@ -200,7 +200,7 @@ CASE(TEST)
 
 label_JUMP:
 CASE(JUMP) 
-{{SgObject n=PEEK_OPERAND(PC(vm));PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}NEXT;}
+{{SgObject n=PEEK_OPERAND(PC(vm));(PC(vm))+=(SG_INT_VALUE(n));}NEXT;}
 
 label_SHIFTJ:
 CASE(SHIFTJ) 
@@ -208,23 +208,23 @@ CASE(SHIFTJ)
 
 label_BNNUME:
 CASE(BNNUME) 
-{{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){if ((((intptr_t )(s)))==(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}} else {if (Sg_NumEq(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}}(SP(vm))--;NEXT;}}
+{{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){if ((((intptr_t )(s)))==(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(n));}}} else {if (Sg_NumEq(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(n));}}}(SP(vm))--;NEXT;}}
 
 label_BNLT:
 CASE(BNLT) 
-{{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){if ((((intptr_t )(s)))<(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}} else {if (Sg_NumLt(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}}(SP(vm))--;NEXT;}}
+{{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){if ((((intptr_t )(s)))<(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(n));}}} else {if (Sg_NumLt(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(n));}}}(SP(vm))--;NEXT;}}
 
 label_BNLE:
 CASE(BNLE) 
-{{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){if ((((intptr_t )(s)))<=(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}} else {if (Sg_NumLe(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}}(SP(vm))--;NEXT;}}
+{{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){if ((((intptr_t )(s)))<=(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(n));}}} else {if (Sg_NumLe(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(n));}}}(SP(vm))--;NEXT;}}
 
 label_BNGT:
 CASE(BNGT) 
-{{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){if ((((intptr_t )(s)))>(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}} else {if (Sg_NumGt(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}}(SP(vm))--;NEXT;}}
+{{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){if ((((intptr_t )(s)))>(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(n));}}} else {if (Sg_NumGt(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(n));}}}(SP(vm))--;NEXT;}}
 
 label_BNGE:
 CASE(BNGE) 
-{{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){if ((((intptr_t )(s)))>=(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}} else {if (Sg_NumGe(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {AC(vm)=(SG_FALSE),PC(vm)=((PC(vm))+(SG_INT_VALUE(n)));}}(SP(vm))--;NEXT;}}
+{{SgObject n=PEEK_OPERAND(PC(vm));SgObject s=INDEX(SP(vm),0);if ((SG_INTP(AC(vm)))&&(SG_INTP(s))){if ((((intptr_t )(s)))>=(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(n));}}} else {if (Sg_NumGe(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(n));}}}(SP(vm))--;NEXT;}}
 
 label_BNEQ:
 CASE(BNEQ) 
@@ -268,7 +268,7 @@ CASE(RECEIVE)
 
 label_CLOSURE:
 CASE(CLOSURE) 
-{{SgObject cb=FETCH_OPERAND(PC(vm));SP(vm)=((SP(vm))-(SG_CODE_BUILDER_FREEC(cb)));{AC(vm)=(Sg_MakeClosure(cb,SP(vm)));NEXT;}}}
+{{SgObject cb=FETCH_OPERAND(PC(vm));(SP(vm))-=(SG_CODE_BUILDER_FREEC(cb));{AC(vm)=(Sg_MakeClosure(cb,SP(vm)));NEXT;}}}
 
 label_APPLY:
 CASE(APPLY) 
@@ -312,7 +312,7 @@ CASE(ENTER)
 
 label_LEAVE:
 CASE(LEAVE) 
-{INSN_VAL1(val1,c);SP(vm)=((SP(vm))-(val1));NEXT;}
+{INSN_VAL1(val1,c);(SP(vm))-=(val1);NEXT;}
 
 label_DEFINE:
 CASE(DEFINE) 
@@ -336,15 +336,15 @@ CASE(CONS)
 
 label_LIST:
 CASE(LIST) 
-{INSN_VAL1(val1,c);{int n=(val1)-(1);SgObject ret=SG_NIL;if ((val1)>(0)){{ret=(Sg_Cons(AC(vm),ret));{int i=0;int cise__24=n;for (;(i)<(cise__24);(i)++){ret=(Sg_Cons(INDEX(SP(vm),i),ret));}}SP(vm)=((SP(vm))-(n));}}{AC(vm)=(ret);NEXT;}}}
+{INSN_VAL1(val1,c);{int n=(val1)-(1);SgObject ret=SG_NIL;if ((val1)>(0)){{ret=(Sg_Cons(AC(vm),ret));{int i=0;int cise__24=n;for (;(i)<(cise__24);(i)++){ret=(Sg_Cons(INDEX(SP(vm),i),ret));}}(SP(vm))-=(n);}}{AC(vm)=(ret);NEXT;}}}
 
 label_APPEND:
 CASE(APPEND) 
-{INSN_VAL1(val1,c);{int nargs=(val1)-(1);SgObject ret=SG_NIL;if ((nargs)>(0)){{ret=(AC(vm));{int i=0;int cise__25=nargs;for (;(i)<(cise__25);(i)++){{SgObject obj=INDEX(SP(vm),i);if ((Sg_Length(obj))<(0)){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("append"),SG_MAKE_STRING("list"),obj,SG_NIL);}}}ret=(Sg_Append2(obj,ret));}}}SP(vm)=((SP(vm))-(nargs));}}{AC(vm)=(ret);NEXT;}}}
+{INSN_VAL1(val1,c);{int nargs=(val1)-(1);SgObject ret=SG_NIL;if ((nargs)>(0)){{ret=(AC(vm));{int i=0;int cise__25=nargs;for (;(i)<(cise__25);(i)++){{SgObject obj=INDEX(SP(vm),i);if ((Sg_Length(obj))<(0)){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("append"),SG_MAKE_STRING("list"),obj,SG_NIL);}}}ret=(Sg_Append2(obj,ret));}}}(SP(vm))-=(nargs);}}{AC(vm)=(ret);NEXT;}}}
 
 label_VALUES:
 CASE(VALUES) 
-{INSN_VAL1(val1,c);if ((val1)==(0)){{AC(vm)=(Sg_MakeValues(0));NEXT;}} else {{SgObject v=AC(vm);if ((val1)>(1)){{v=(Sg_MakeValues(val1));{int n=(val1)-(1);SG_VALUES_ELEMENT(v,n)=(AC(vm));{int i=0;int cise__26=n;for (;(i)<(cise__26);(i)++){SG_VALUES_ELEMENT(v,((n)-(i))-(1))=(INDEX(SP(vm),i));}}SP(vm)=((SP(vm))-(n));}}}{AC(vm)=(v);NEXT;}}}}
+{INSN_VAL1(val1,c);if ((val1)==(0)){{AC(vm)=(Sg_MakeValues(0));NEXT;}} else {{SgObject v=AC(vm);if ((val1)>(1)){{v=(Sg_MakeValues(val1));{int n=(val1)-(1);SG_VALUES_ELEMENT(v,n)=(AC(vm));{int i=0;int cise__26=n;for (;(i)<(cise__26);(i)++){SG_VALUES_ELEMENT(v,((n)-(i))-(1))=(INDEX(SP(vm),i));}}(SP(vm))-=(n);}}}{AC(vm)=(v);NEXT;}}}}
 
 label_EQ:
 CASE(EQ) 
@@ -368,7 +368,7 @@ CASE(SYMBOLP)
 
 label_VECTOR:
 CASE(VECTOR) 
-{{SgObject v=SG_UNDEF;INSN_VAL1(val1,c);v=(Sg_MakeVector(val1,SG_UNDEF));if ((val1)>(0)){{int i=0;int n=(val1)-(1);SG_VECTOR_ELEMENT(v,n)=(AC(vm));for (i=(0);(i)<(n);(i)++){SG_VECTOR_ELEMENT(v,((n)-(i))-(1))=(INDEX(SP(vm),i));}SP(vm)=((SP(vm))-(n));}}{AC(vm)=(v);NEXT;}}}
+{{SgObject v=SG_UNDEF;INSN_VAL1(val1,c);v=(Sg_MakeVector(val1,SG_UNDEF));if ((val1)>(0)){{int i=0;int n=(val1)-(1);SG_VECTOR_ELEMENT(v,n)=(AC(vm));for (i=(0);(i)<(n);(i)++){SG_VECTOR_ELEMENT(v,((n)-(i))-(1))=(INDEX(SP(vm),i));}(SP(vm))-=(n);}}{AC(vm)=(v);NEXT;}}}
 
 label_VECTORP:
 CASE(VECTORP) 
@@ -384,7 +384,7 @@ CASE(VEC_REF)
 
 label_VEC_SET:
 CASE(VEC_SET) 
-{{SgObject obj=INDEX(SP(vm),1);SgObject index=INDEX(SP(vm),0);if ((!(SG_VECTORP(obj)))){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-set!"),SG_MAKE_STRING("vector"),obj,SG_NIL);}}}if (SG_LITERAL_VECTORP(obj)){{{Sg_AssertionViolation(SG_INTERN("vector-set!"),SG_MAKE_STRING("attempt to modify immutable vector"),SG_LIST1(obj));}}}if ((!(SG_INTP(index)))){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-set!"),SG_MAKE_STRING("fixnum"),index,SG_NIL);}}}{int i=SG_INT_VALUE(index);if (((i)>=(SG_VECTOR_SIZE(obj)))||((i)<(0))){{{Sg_AssertionViolation(SG_INTERN("vector-set!"),SG_MAKE_STRING("index out of range"),SG_LIST2(obj,index));}}}SG_VECTOR_ELEMENT(obj,i)=(AC(vm)),SP(vm)=((SP(vm))-(2));{AC(vm)=(SG_UNDEF);NEXT;}}}}
+{{SgObject obj=INDEX(SP(vm),1);SgObject index=INDEX(SP(vm),0);if ((!(SG_VECTORP(obj)))){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-set!"),SG_MAKE_STRING("vector"),obj,SG_NIL);}}}if (SG_LITERAL_VECTORP(obj)){{{Sg_AssertionViolation(SG_INTERN("vector-set!"),SG_MAKE_STRING("attempt to modify immutable vector"),SG_LIST1(obj));}}}if ((!(SG_INTP(index)))){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-set!"),SG_MAKE_STRING("fixnum"),index,SG_NIL);}}}{int i=SG_INT_VALUE(index);if (((i)>=(SG_VECTOR_SIZE(obj)))||((i)<(0))){{{Sg_AssertionViolation(SG_INTERN("vector-set!"),SG_MAKE_STRING("index out of range"),SG_LIST2(obj,index));}}}SG_VECTOR_ELEMENT(obj,i)=(AC(vm));(SP(vm))-=(2);{AC(vm)=(SG_UNDEF);NEXT;}}}}
 
 label_LREF_PUSH:
 CASE(LREF_PUSH) 

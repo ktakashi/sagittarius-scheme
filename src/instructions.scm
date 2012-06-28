@@ -219,7 +219,7 @@
 
 (define-inst JUMP (0 1 #t) :label
   (let ((n (PEEK_OPERAND (PC vm))))
-    (set! (PC vm) (+ (PC vm) (SG_INT_VALUE n))))
+    (+= (PC vm) (SG_INT_VALUE n)))
   NEXT)
 
 (define-inst SHIFTJ (2 0 #f)
@@ -229,8 +229,9 @@
 
 (define-cise-expr branch-number-test-helper
   ((_ n)
-   `(set! (AC vm) SG_FALSE
-	  (PC vm) (+ (PC vm) (SG_INT_VALUE ,n))))
+   `(begin
+      (set! (AC vm) SG_FALSE)
+      (+= (PC vm) (SG_INT_VALUE ,n))))
   ((_)
    `(begin
       (set! (AC vm) SG_TRUE)
@@ -373,7 +374,7 @@
     ;; If this happend this must be panic.
     ;; (when (SG_CODE_BUILDERP cb)
     ;;   (wrong-type-of-argument-violation "closure" "code-builder" cb))
-    (set! (SP vm) (- (SP vm) (SG_CODE_BUILDER_FREEC cb)))
+    (-= (SP vm) (SG_CODE_BUILDER_FREEC cb))
     ($result (Sg_MakeClosure cb (SP vm)))))
 
 ;; apply stack frame
@@ -476,7 +477,7 @@
 
 (define-inst LEAVE (1 0 #f)
   (INSN_VAL1 val1 c)
-  (set! (SP vm) (- (SP vm) val1))
+  (-= (SP vm) val1)
   NEXT)
 
 (define-inst DEFINE (1 1 #t)
@@ -518,7 +519,7 @@
       (set! ret (Sg_Cons (AC vm) ret))
       (dotimes (i n)
 	(set! ret (Sg_Cons (INDEX (SP vm) i) ret)))
-      (set! (SP vm) (- (SP vm) n)))
+      (-= (SP vm) n))
     ($result ret)))
 
 (define-inst APPEND (1 0 #t)
@@ -530,10 +531,9 @@
       (dotimes (i nargs)
 	(let ((obj (INDEX (SP vm) i)))
 	  (when (< (Sg_Length obj) 0)
-	    (wrong-type-of-argument-violation "append"
-					      "list" obj))
+	    (wrong-type-of-argument-violation "append" "list" obj))
 	  (set! ret (Sg_Append2 obj ret))))
-      (set! (SP vm) (- (SP vm) nargs)))
+      (-= (SP vm) nargs))
     ($result ret)))
 
 (define-inst VALUES (1 0 #t)
@@ -546,9 +546,8 @@
 	  (let ((n::int (- val1 1)))
 	    (set! (SG_VALUES_ELEMENT v n) (AC vm))
 	    (dotimes (i n)
-	      (set! (SG_VALUES_ELEMENT v (- n i 1))
-		    (INDEX (SP vm) i)))
-	    (set! (SP vm) (- (SP vm) n))))
+	      (set! (SG_VALUES_ELEMENT v (- n i 1)) (INDEX (SP vm) i)))
+	    (-= (SP vm) n)))
 	($result v))))
 
 (define-cise-stmt call-two-args-compare
@@ -583,7 +582,7 @@
 	  (for ((set! i 0) (< i n) (post++ i))
 	       (set! (SG_VECTOR_ELEMENT v (- n i 1))
 		     (INDEX (SP vm) i)))
-	  (set! (SP vm) (- (SP vm) n))))
+	  (-= (SP vm) n)))
     ($result v)))
 
 (define-inst VECTORP (0 0 #t)
@@ -623,8 +622,8 @@
       (when (or (>= i (SG_VECTOR_SIZE obj)) (< i 0))
 	(assertion-violation "vector-set!" "index out of range" 
 			     (SG_LIST2 obj index)))
-      (set! (SG_VECTOR_ELEMENT obj i) (AC vm)
-	    (SP vm) (- (SP vm) 2))
+      (set! (SG_VECTOR_ELEMENT obj i) (AC vm))
+      (-= (SP vm) 2)
       ($result SG_UNDEF))))
 
 ;; combined instructions

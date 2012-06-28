@@ -89,21 +89,20 @@ struct SgSubrRec
   SgProcedure  common;
   SgSubrProc  *func;
   void        *data;
-  SgWord       returnCode[1];
 };
 
-#define SG_SUBR(obj)      	 ((SgSubr*)(obj))
-#define SG_SUBRP(obj)     	 (SG_PROCEDUREP(obj) && SG_PROCEDURE(obj)->type == SG_PROC_SUBR)
-#define SG_SUBR_FUNC(obj) 	 (SG_SUBR(obj)->func)
-#define SG_SUBR_DATA(obj) 	 (SG_SUBR(obj)->data)
-#define SG_SUBR_RETURN_CODE(obj) (SG_SUBR(obj)->returnCode)
+#define SG_SUBR(obj)  ((SgSubr*)(obj))
+#define SG_SUBRP(obj)							\
+  (SG_PROCEDUREP(obj) && SG_PROCEDURE_TYPE(obj) == SG_PROC_SUBR)
+#define SG_SUBR_FUNC(obj) (SG_SUBR(obj)->func)
+#define SG_SUBR_DATA(obj) (SG_SUBR(obj)->data)
 
 #define SG__DEFINE_SUBR_INT(cvar, req, opt, func, inliner, data)	\
   SgSubr cvar = {							\
     SG__PROCEDURE_INITIALIZER(SG_CLASS_STATIC_TAG(Sg_ProcedureClass),	\
 			      req, opt, SG_PROC_SUBR,			\
 			      SG_FALSE, inliner),			\
-    (func), (data), {FALSE}						\
+    (func), (data)							\
   }
 
 #define SG_DEFINE_SUBR(cvar, req, opt, func, inliner, data)	\

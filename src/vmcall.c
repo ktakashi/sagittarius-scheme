@@ -158,16 +158,16 @@
   proctype = SG_PROCEDURE_TYPE(AC(vm));
   if (proctype == SG_PROC_SUBR) {
     CL(vm) = AC(vm);
-    PC(vm) = SG_SUBR_RETURN_CODE(AC(vm));
+    PC(vm) = PC_TO_RETURN;
     /* 
        Since 0.3.4, we changed APPLY instruction behaviour not to expand
        the arguments so that it won't break the memory when it's given
        more than max stack size of arguments.
     */
     ADJUST_ARGUMENT_FRAME(AC(vm), argc);
-    SG_SUBR_RETURN_CODE(AC(vm))[0] = SG_WORD(RET);
     SG_PROF_COUNT_CALL(vm, AC(vm));
     AC(vm) = SG_SUBR_FUNC(AC(vm))(FP(vm), argc, SG_SUBR_DATA(AC(vm)));
+    if (TAIL_POS(vm)) RET_INSN();
     NEXT;
   }
 
@@ -258,6 +258,7 @@
     FP(vm) = SP(vm) - argc;
     SG_PROF_COUNT_CALL(vm, AC(vm));
     AC(vm) = SG_GENERIC(AC(vm))->fallback(FP(vm), argc, SG_GENERIC(AC(vm)));
+    if (TAIL_POS(vm)) RET_INSN();
     NEXT;
   }
 
@@ -268,10 +269,10 @@
     SgObject subr = SG_METHOD_PROCEDURE(AC(vm));
     ADJUST_ARGUMENT_FRAME(AC(vm), argc);
     CL(vm) = subr;
-    PC(vm) = SG_SUBR_RETURN_CODE(subr);
-    SG_SUBR_RETURN_CODE(subr)[0] = SG_WORD(RET);
+    PC(vm) = PC_TO_RETURN;
     SG_PROF_COUNT_CALL(vm, subr);
     AC(vm) = SG_SUBR_FUNC(subr)(FP(vm), argc, SG_SUBR_DATA(subr));
+    if (TAIL_POS(vm)) RET_INSN();
   } else {
     /* closure */
     SgClosure *cls = SG_CLOSURE(SG_METHOD_PROCEDURE(AC(vm)));

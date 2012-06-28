@@ -132,23 +132,9 @@ SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_VMClass, vm_print);
 SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 {
   SgVM *v = SG_NEW(SgVM);
-  SgWord *callCode = SG_NEW_ARRAY(SgWord, 2);
-  SgWord *applyCode = SG_NEW_ARRAY(SgWord,  7);
   unsigned long sec, usec;
   SgCodeBuilder *closureForEvaluateCode = Sg_MakeCodeBuilder(-1);
   SG_SET_CLASS(v, SG_CLASS_VM);
-
-  applyCode[0] = SG_WORD(FRAME);
-  applyCode[1] = SG_WORD(SG_MAKE_INT(6));
-  applyCode[2] = SG_WORD(CONST_PUSH);
-  applyCode[3] = SG_WORD(SG_UNDEF);
-  applyCode[4] = SG_WORD(CONST);
-  applyCode[5] = SG_WORD(SG_UNDEF);
-  applyCode[6] = SG_WORD(MERGE_INSN_VALUE1(APPLY, 2));
-  applyCode[7] = SG_WORD(RET);
-
-  v->applyCode = applyCode;
-  v->callCode = callCode;
  
   closureForEvaluateCode->src = SG_NIL;
   closureForEvaluateCode->name = SG_INTERN("*toplevel*");
@@ -807,12 +793,18 @@ SgObject Sg_Apply(SgObject proc, SgObject args)
 {
   SgVM *vm = Sg_VM();
   SgObject program;
-
-  vm->applyCode[3] = SG_WORD(proc);
-  vm->applyCode[5] = SG_WORD(args);
+  SgWord applyCode[7];
+  applyCode[0] = SG_WORD(FRAME);
+  applyCode[1] = SG_WORD(SG_MAKE_INT(6));
+  applyCode[2] = SG_WORD(CONST_PUSH);
+  applyCode[3] = SG_WORD(proc);
+  applyCode[4] = SG_WORD(CONST);
+  applyCode[5] = SG_WORD(args);
+  applyCode[6] = SG_WORD(MERGE_INSN_VALUE1(APPLY, 2));
+  applyCode[7] = SG_WORD(RET);
 
   program = (CL(vm)) ? CL(vm) : vm->closureForEvaluate;
-  return evaluate_safe(program, vm->applyCode);
+  return evaluate_safe(program, applyCode);
 }
 
 /*
@@ -1653,6 +1645,7 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
 		      default_exception_handler_body,
 		      SG_FALSE, NULL);
 
+#define TAIL_POS(vm)  (PC(vm) == RET)
 #define CALL_CCONT(p, v, d) p(v, d)
 
 #define POP_CONT()							\
@@ -2046,9 +2039,6 @@ SgObject run_loop()
 {
   SgVM *vm = Sg_VM();
   
-  vm->callCode[0] = SG_WORD(CALL);
-  vm->callCode[1] = SG_WORD(RET);
-
 #ifdef __GNUC__
   static void *dispatch_table[INSTRUCTION_COUNT] = {
 #define DEFINSN(insn, vals, argc, src, label) && SG_CPP_CAT(LABEL_, insn),

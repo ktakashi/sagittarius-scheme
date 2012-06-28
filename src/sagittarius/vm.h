@@ -214,10 +214,6 @@ struct SgVMRec
   /* closure */
   SgObject   closureForEvaluate; /* closure for evaluate */
 
-  /* apply closure code */
-  SgWord    *applyCode;
-  SgWord    *callCode;
-
   /* return point */
   SgCStack  *cstack;
   SgContinuation *escapePoint;

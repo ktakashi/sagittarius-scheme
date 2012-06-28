@@ -64,7 +64,6 @@ SgObject Sg_MakeSubr(SgSubrProc proc, void *data, int required, int optional,
   SgSubr *s = make_subr(required, optional, info);
   s->func = proc;
   s->data = data;
-  s->returnCode[0] = FALSE;
   return SG_OBJ(s);
 }
 
