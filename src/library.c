@@ -291,17 +291,21 @@ static SgObject extentions = NULL;
    this takes only library name part. we don't manage version
    on file system.
  */
+#define list6(a, b, c, d, e, f) Sg_Cons(a, SG_LIST5(b,c,d,e,f))
 static SgObject search_library(SgObject name, int onlyPath)
 {
   SgString *path = library_name_to_path(name);
   SgObject ext, libname;
   SgVM *vm = Sg_VM();
-  /* initialize extentions */
+  /* initialize extensions */
   if (extentions == NULL) {
     /* we don't have to care about multithread here. */
-    extentions = SG_LIST3(Sg_MakeString(UC(".scm"), SG_LITERAL_STRING),
-			  Sg_MakeString(UC(".ss"), SG_LITERAL_STRING),
-			  Sg_MakeString(UC(".sls"), SG_LITERAL_STRING));
+    extentions = list6(SG_MAKE_STRING(".sagittarius.scm"),
+		       SG_MAKE_STRING(".sagittarius.ss"),
+		       SG_MAKE_STRING(".sagittarius.sls"),
+		       SG_MAKE_STRING(".scm"),
+		       SG_MAKE_STRING(".ss"),
+		       SG_MAKE_STRING(".sls"));
   }
   SG_FOR_EACH(ext, extentions) {
     SgObject p = Sg_StringAppend2(path, SG_STRING(SG_CAR(ext)));
