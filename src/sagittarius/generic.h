@@ -144,12 +144,11 @@ SG_EXTERN SgGeneric Sg_GenericComputeSlots;
 SG_EXTERN SgGeneric Sg_GenericAddMethod;
 SG_EXTERN SgGeneric Sg_GenericRemoveMethod;
 
-SG_EXTERN SgGeneric Sg_GenericComputeApplicableMethodsGeneric;
+SG_EXTERN SgGeneric Sg_GenericComputeApplicableMethods;
 /* The generic invocation protocol */
-/* SG_EXTERN SgGeneric Sg_GenericComputeApplyGeneric; */
-/* SG_EXTERN SgGeneric Sg_GenericComputeMethods; */
-/* SG_EXTERN SgGeneric Sg_GenericComputeMethodMoreSpecificP; */
-/* SG_EXTERN SgGeneric Sg_GenericComputeApplyMethods; */
+SG_EXTERN SgGeneric Sg_GenericComputeApplyGeneric;
+SG_EXTERN SgGeneric Sg_GenericComputeMethodMoreSpecificP;
+SG_EXTERN SgGeneric Sg_GenericComputeApplyMethods;
 
 SG_EXTERN SgGeneric Sg_GenericObjectEqualP;
 SG_EXTERN SgGeneric Sg_GenericObjectApply;

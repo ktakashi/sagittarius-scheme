@@ -186,9 +186,34 @@
   if (proctype == SG_PROC_GENERIC) {
     SgObject mm;
     if (!SG_GENERICP(AC(vm))) {
-      /* Scheme defined MOP */
-      /* TODO */
-      Sg_Panic("unknown procedure type.");
+      /* Scheme defined MOP. we modify the stack frame so that it is converted
+         to an application of pure generic function apply-generic. */
+      SgObject args, arg;
+      int i;
+#if !defined(APPLY_CALL)
+      if (argc < 2) CHECK_STACK(2, vm);
+      args = SG_NIL;
+      for (i = 0; i < argc; i++) {
+	arg = POP(SP(vm));
+	args = Sg_Cons(arg, args);
+      }
+      argc = 2;
+      PUSH(SP(vm), AC(vm));
+      PUSH(SP(vm), args);
+#else	/* APPLY_CALL */
+      if (argc < 3) CHECK_STACK(3, vm);
+      args = POP(SP(vm));
+      argc--;
+      for (i = 0; i < argc; i++) {
+	arg = POP(SP(vm));
+	args = Sg_Cons(arg, args);
+      }
+      argc = 2;
+      PUSH(SP(vm), AC(vm));
+      PUSH(SP(vm), args);
+      PUSH(SP(vm), SG_NIL);
+#endif	/* APPLY_CALL */
+      AC(vm) = SG_OBJ(&Sg_GenericComputeApplyGeneric);
     }
   GENERIC_ENTRY:
     mm = Sg_ComputeMethods(AC(vm), SP(vm)-argc, argc, APP);

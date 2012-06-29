@@ -241,12 +241,19 @@
       (define (generate-true-name k name)
 	(datum->syntax k (%make-setter-name name)))
       (syntax-case x (setter)
-	((k (setter name))
-	 (with-syntax ((true-name (generate-true-name #'k #'name)))
-	   #'(begin
-	       (define true-name (make <generic> :definition-name 'true-name))
-	       (set! (setter name) true-name))))
-	((_ name)
-	 #'(define name (make <generic> :definition-name 'name))))))
+	((k (setter name) . options)
+	 (let ((class (get-keyword :class (syntax->datum #'options)
+				   '<generic>)))
+	   (with-syntax ((true-name (generate-true-name #'k #'name))
+			 (class-name (datum->syntax #'k class)))
+	     #'(begin
+		 (define true-name (make class-name 
+				     :definition-name 'true-name))
+		 (set! (setter name) true-name)))))
+	((k name . options)
+	 (let ((class (get-keyword :class (syntax->datum #'options)
+				   '<generic>)))
+	   (with-syntax ((class-name (datum->syntax #'k class)))
+	     #'(define name (make class-name :definition-name 'name))))))))
 
 )

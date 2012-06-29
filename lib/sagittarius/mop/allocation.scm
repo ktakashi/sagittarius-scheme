@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8 -*-
 ;;;
-;;; validator.scm -  metaclass to support :validate
+;;; allocation.scm: metaclass to support :allocation
 ;;;  
 ;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -28,35 +28,35 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-(library (sagittarius mop validator)
-    (export <validator-meta> <validator-mixin>)
+(library (sagittarius mop allocation)
+    (export <allocation-meta> <allocation-mixin>)
     (import (rnrs)
 	    (clos user)
-	    (clos core)
-	    (sagittarius control))
+	    (clos core))
 
-  (define-class <validator-meta> (<class>) ())
-  (define-method compute-getters-and-setters ((class <validator-meta>) slots)
+  (define-class <allocation-meta> (<class>) ())
+  (define-method compute-getters-and-setters ((class <allocation-meta>) slots)
     (let ((r (call-next-method)))
-      (for-each (lambda (acc slot)
-		  (let ((pre  (slot-definition-option slot :validator #f))
-			(post (slot-definition-option slot :observer #f)))
-		    (when (or pre post)
-		      (let1 setter
-			  (cond ((and pre post)
-				 (lambda (o v)
-				   (slot-set-using-accessor! o acc (pre o v))
-				   (post o (slot-ref-using-accessor o acc))))
-				(pre
-				 (lambda (o v)
-				   (slot-set-using-accessor! o acc (pre o v))))
-				(else
-				 (lambda (o v)
-				   (slot-set-using-accessor! o acc v)
-				   (post o (slot-ref-using-accessor o acc)))))
-			(slot-set! acc 'setter setter)))))
+      (for-each
+       (lambda (acc slot)
+	 (cond ((slot-definition-option slot :allocation :instance)
+		=> (lambda (type)
+		     (case type
+		       ((:instance))
+		       ((:class)
+			(let* ((init-value (slot-definition-option
+					    slot :init-value #f))
+			       (init-thunk (slot-definition-option 
+					    slot :init-thunk #f))
+			       (def (if init-thunk (init-thunk) init-value)))
+			  (slot-set! acc 'setter (lambda (o v) (set! def v)))
+			  (slot-set! acc 'getter (lambda (o) def))))
+		       (else
+			(assertion-violation '<allocation-meta>
+					     "unknown :allocation type"
+					     type)))))))
 		r slots)
       r))
 
-  (define-class <validator-mixin> () () :metaclass <validator-meta>)
-)
+  (define-class <allocation-mixin> () () :metaclass <allocation-meta>)
+  )

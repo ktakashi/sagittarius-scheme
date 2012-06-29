@@ -5,6 +5,8 @@
 	    slot-set-using-accessor!
 	    class-of
 	    is-a?
+
+	    %make-next-method
 	    )
     (import :none)
 
@@ -47,4 +49,21 @@
 	    (set! val (Sg_MakeBaseGeneric (SG_OBJ name) NULL NULL))))
       (Sg_InsertBinding lib name val)
       (result val)))
-)
+
+  (define-c-proc %make-next-method (gf methods::<list> args::<list>)
+    (let ((argv::SgObject*) (argc::int))
+      (unless (Sg_TypeP gf SG_CLASS_GENERIC)
+	(Sg_WrongTypeOfArgumentViolation
+	 '%make-next-method
+	 'generic gf (SG_LIST3 gf methods args)))
+      (dolist (mp methods)
+	(unless (Sg_TypeP mp SG_CLASS_METHOD)
+	  (Sg_WrongTypeOfArgumentViolation '%make-next-method
+					   'method mp
+					   (SG_LIST3 gf methods args))))
+      (set! argc (Sg_Length args))
+      (set! argv (Sg_ListToArray args FALSE))
+      (result (Sg_MakeNextMethod (SG_GENERIC gf) methods argv argc
+				 FALSE))))
+
+  )

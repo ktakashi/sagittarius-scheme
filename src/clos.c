@@ -1348,6 +1348,16 @@ static void method_procedure_set(SgMethod *method, SgObject proc)
   set_method_properties(method, proc);
 }
 
+static SgObject method_required(SgMethod *method)
+{
+  return SG_MAKE_INT(method->common.required);
+}
+
+static SgObject method_optional(SgMethod *method)
+{
+  return SG_MAKE_BOOL(method->common.optional);
+}
+
 /* next method */
 static void next_method_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
@@ -1428,12 +1438,11 @@ static SgSlotAccessor generic_slots[] = {
 };
 
 static SgSlotAccessor method_slots[] = {
-  SG_CLASS_SLOT_SPEC("specializers",   0, method_specializers,
-		     method_specializers_set),
-  SG_CLASS_SLOT_SPEC("procedure",      1, method_procedure,
-		     method_procedure_set),
-  SG_CLASS_SLOT_SPEC("name",      2, method_name,
-		     method_name_set),
+  SG_CLASS_SLOT_SPEC("specializers", 0, method_specializers, method_specializers_set),
+  SG_CLASS_SLOT_SPEC("procedure", 1, method_procedure, method_procedure_set),
+  SG_CLASS_SLOT_SPEC("name", 2, method_name, method_name_set),
+  SG_CLASS_SLOT_SPEC("required", 3, method_required, NULL),
+  SG_CLASS_SLOT_SPEC("optional", 4, method_optional, NULL),
   { { NULL } }
 };
 
@@ -1634,11 +1643,15 @@ SG_DEFINE_GENERIC(Sg_GenericComputeSlots, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericComputeGetterAndSetter, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericAddMethod, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericRemoveMethod, Sg_NoNextMethod, NULL);
-SG_DEFINE_GENERIC(Sg_GenericComputeApplicableMethodsGeneric,
-		  Sg_NoNextMethod, NULL);
+SG_DEFINE_GENERIC(Sg_GenericComputeApplicableMethods, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericObjectEqualP, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericObjectApply, Sg_InvalidApply, NULL);
 SG_DEFINE_GENERIC(Sg_GenericObjectSetter, Sg_InvalidApply, NULL);
+/* generic invocation */
+SG_DEFINE_GENERIC(Sg_GenericComputeApplyGeneric, Sg_NoNextMethod, NULL);
+SG_DEFINE_GENERIC(Sg_GenericComputeMethodMoreSpecificP, Sg_NoNextMethod, NULL);
+SG_DEFINE_GENERIC(Sg_GenericComputeApplyMethods, Sg_NoNextMethod, NULL);
+
 
 static SgObject allocate_impl(SgObject *args, int argc, void *data)
 {
@@ -1912,7 +1925,7 @@ static SgClass *compute_applicable_methods_SPEC[] = {
 };
 
 static SG_DEFINE_METHOD(compute_applicable_methods_rec,
-			&Sg_GenericComputeApplicableMethodsGeneric,
+			&Sg_GenericComputeApplicableMethods,
 			2, 0,
 			compute_applicable_methods_SPEC,
 			&compute_applicable_methods_subr);
@@ -2018,11 +2031,13 @@ void Sg__InitClos()
   GINIT(&Sg_GenericComputeGetterAndSetter, "compute-getters-and-setters");
   GINIT(&Sg_GenericAddMethod, "add-method");
   GINIT(&Sg_GenericRemoveMethod, "remove-method");
-  GINIT(&Sg_GenericComputeApplicableMethodsGeneric,
-	"compute-applicable-methods");
+  GINIT(&Sg_GenericComputeApplicableMethods, "compute-applicable-methods");
   GINIT(&Sg_GenericObjectEqualP, "object-equal?");
   GINIT(&Sg_GenericObjectApply, "object-apply");
   GINIT(&Sg_GenericObjectSetter, "setter of object-apply");
+  GINIT(&Sg_GenericComputeApplyGeneric, "compute-apply-generic");
+  GINIT(&Sg_GenericComputeMethodMoreSpecificP, "compute-method-more-specific?");
+  GINIT(&Sg_GenericComputeApplyMethods, "compute-apply-methods");
 
   Sg_SetterSet(SG_PROCEDURE(&Sg_GenericObjectApply),
 	       SG_PROCEDURE(&Sg_GenericObjectSetter),

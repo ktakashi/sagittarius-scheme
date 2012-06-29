@@ -12,6 +12,8 @@
 	    ;; <methods>
 	    method-specializers
 	    method-procedure
+	    method-required
+	    method-optional
 	    ;; slots
 	    slot-definition-name
 	    slot-definition-options
@@ -44,6 +46,7 @@
 
 	    ;; builtin generic
 	    write-object allocate-instance compute-applicable-methods
+	    compute-apply-generic compute-method-more-specific?
 	    object-equal? object-apply |setter of object-apply|
 	    ;; helper
 	    initialize-direct-slots is-a?
@@ -170,6 +173,8 @@
   (define method-specializers
     (make <generic> :definition-name 'method-specializers))
   (define method-procedure (make <generic> :definition-name 'method-procedure))
+  (define method-required (make <generic> :definition-name 'method-required))
+  (define method-optional (make <generic> :definition-name 'method-optional))
   (add-method method-specializers
 	      (make <method>
 		:specializers (list <method>)
@@ -184,6 +189,20 @@
 		:generic method-procedure
 		:procedure (lambda (call-next-method m)
 			     (slot-ref m 'procedure))))
+  (add-method method-required
+	      (make <method>
+		:specializers (list <method>)
+		:lambda-list '(method)
+		:generic method-required
+		:procedure (lambda (call-next-method m)
+			     (slot-ref m 'optional))))
+  (add-method method-optional
+	      (make <method>
+		:specializers (list <method>)
+		:lambda-list '(method)
+		:generic method-optional
+		:procedure (lambda (call-next-method m)
+			     (slot-ref m 'optional))))
 
   ;; low level slot APIs
   (define (slot-definition-name slot) (car slot))
@@ -201,4 +220,34 @@
 		:generic write-object
 		:procedure (lambda (call-next-method c p)
 			     (format p "#<class ~a>" (slot-ref c 'name)))))
+
+  ;; generic invocation
+  (add-method compute-apply-generic
+	      (make <method>
+		:specializers (list <generic> <list>)
+		:lambda-list '(g l)
+		:generic compute-apply-generic
+		:procedure 
+		(lambda (call-next-method gf args)
+		  (let ((methods (compute-applicable-methods gf args)))
+		    (compute-apply-methods gf methods args)))))
+
+  (add-method compute-apply-methods
+	      (make <method>
+		:specializers (list <generic> <top> <top>)
+		:lambda-list '(g l a)
+		:generic compute-apply-methods
+		:procedure
+		(lambda (call-next-method gf methods args)
+		  (compute-apply-methods gf methods %make-next-method args))))
+
+  (add-method compute-apply-methods
+	      (make <method>
+		:specializers (list <generic> <top> <top> <top>)
+		:lambda-list '(g l m a)
+		:generic compute-apply-methods
+		:procedure
+		(lambda (call-next-method gf methods build-next args)
+		  (apply (build-next gf methods args) args))))
+  
 )
