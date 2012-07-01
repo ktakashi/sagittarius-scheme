@@ -207,8 +207,8 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 				  : Sg_MakeNativeTranscoder());
   v->logPort = proto ? proto->logPort : v->currentErrorPort;
   /* macro env */
-  v->usageEnv = SG_FALSE;
-  v->macroEnv = SG_FALSE;
+  v->usageEnv = proto ? proto->usageEnv : SG_FALSE;
+  v->macroEnv = proto ? proto->macroEnv : SG_FALSE;
   v->transEnv = SG_NIL;
 
   /* thread, mutex, etc */
@@ -2082,15 +2082,15 @@ void Sg__InitVM()
   rootVM->threadState = SG_VM_RUNNABLE;
   rootVM->currentLibrary = Sg_FindLibrary(SG_INTERN("user"), TRUE);
 
-  /* load path */
-  rootVM->loadPath = Sg_GetDefaultLoadPath();
-  rootVM->dynamicLoadPath = Sg_GetDefaultDynamicLoadPath();
-
   /* env */
   SG_VECTOR_ELEMENT(initialEnv, 0) = rootVM->currentLibrary;
   SG_VECTOR_ELEMENT(initialEnv, 1) = SG_NIL;
   rootVM->usageEnv = initialEnv;
   rootVM->macroEnv = initialEnv;
+
+  /* load path */
+  rootVM->loadPath = Sg_GetDefaultLoadPath();
+  rootVM->dynamicLoadPath = Sg_GetDefaultDynamicLoadPath();
 
   SG_PROCEDURE_NAME(&default_exception_handler_rec) =
     SG_MAKE_STRING("default-exception-handler");

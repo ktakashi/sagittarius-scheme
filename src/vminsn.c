@@ -120,7 +120,7 @@ CASE(CONST)
 
 label_CONSTI:
 CASE(CONSTI) 
-{INSN_VAL1(val1,c);{long cise__21=val1;{AC(vm)=(SG_MAKE_INT(cise__21));NEXT;}}}
+{INSN_VAL1(val1,c);{long cise__413=val1;{AC(vm)=(SG_MAKE_INT(cise__413));NEXT;}}}
 
 label_LREF:
 CASE(LREF) 
@@ -264,7 +264,7 @@ CASE(NUM_GE)
 
 label_RECEIVE:
 CASE(RECEIVE) 
-{INSN_VAL2(val1,val2,c);{int numValues=0;if (SG_VALUESP(AC(vm))){numValues=(SG_VALUES_SIZE(AC(vm)));} else {numValues=(1);}if ((numValues)<(val1)){{{Sg_AssertionViolation(SG_INTERN("receive"),SG_MAKE_STRING("recieved fewer values than expected"),AC(vm));}}}if (((val2)==(0))&&((numValues)>(val1))){{{Sg_AssertionViolation(SG_INTERN("receive"),SG_MAKE_STRING("recieved more values than expected"),AC(vm));}}}if ((val2)==(0)){if ((val1)==(1)){PUSH(SP(vm),AC(vm));}else if((val1)>(0)){{int i=0;int cise__23=val1;for (;(i)<(cise__23);(i)++){PUSH(SP(vm),SG_VALUES_ELEMENT(AC(vm),i));}}}}else if((val1)==(0)){{SgObject h=SG_NIL;SgObject t=SG_NIL;if ((numValues)==(1)){SG_APPEND1(h,t,AC(vm));} else {{int i=0;int cise__22=numValues;for (;(i)<(cise__22);(i)++){SG_APPEND1(h,t,SG_VALUES_ELEMENT(AC(vm),i));}}}PUSH(SP(vm),h);}} else {{SgObject h=SG_NIL;SgObject t=SG_NIL;int i=0;for (;;(i)++){if ((i)<(val1)){PUSH(SP(vm),SG_VALUES_ELEMENT(AC(vm),i));}else if((i)<(SG_VALUES_SIZE(AC(vm)))){SG_APPEND1(h,t,SG_VALUES_ELEMENT(AC(vm),i));} else {PUSH(SP(vm),h);break;}}}}}NEXT;}
+{INSN_VAL2(val1,val2,c);{int numValues=0;if (SG_VALUESP(AC(vm))){numValues=(SG_VALUES_SIZE(AC(vm)));} else {numValues=(1);}if ((numValues)<(val1)){{{Sg_AssertionViolation(SG_INTERN("receive"),SG_MAKE_STRING("recieved fewer values than expected"),AC(vm));}}}if (((val2)==(0))&&((numValues)>(val1))){{{Sg_AssertionViolation(SG_INTERN("receive"),SG_MAKE_STRING("recieved more values than expected"),AC(vm));}}}if ((val2)==(0)){if ((val1)==(1)){PUSH(SP(vm),AC(vm));}else if((val1)>(0)){{int i=0;int cise__415=val1;for (;(i)<(cise__415);(i)++){PUSH(SP(vm),SG_VALUES_ELEMENT(AC(vm),i));}}}}else if((val1)==(0)){{SgObject h=SG_NIL;SgObject t=SG_NIL;if ((numValues)==(1)){SG_APPEND1(h,t,AC(vm));} else {{int i=0;int cise__414=numValues;for (;(i)<(cise__414);(i)++){SG_APPEND1(h,t,SG_VALUES_ELEMENT(AC(vm),i));}}}PUSH(SP(vm),h);}} else {{SgObject h=SG_NIL;SgObject t=SG_NIL;int i=0;for (;;(i)++){if ((i)<(val1)){PUSH(SP(vm),SG_VALUES_ELEMENT(AC(vm),i));}else if((i)<(SG_VALUES_SIZE(AC(vm)))){SG_APPEND1(h,t,SG_VALUES_ELEMENT(AC(vm),i));} else {PUSH(SP(vm),h);break;}}}}}NEXT;}
 
 label_CLOSURE:
 CASE(CLOSURE) 
@@ -316,7 +316,7 @@ CASE(LEAVE)
 
 label_DEFINE:
 CASE(DEFINE) 
-{INSN_VAL1(val1,c);{SgObject var=FETCH_OPERAND(PC(vm));Sg_MakeBinding(SG_IDENTIFIER_LIBRARY(var),SG_IDENTIFIER_NAME(var),AC(vm),val1);AC(vm)=(SG_UNDEF);}NEXT;}
+{INSN_VAL1(val1,c);{SgObject var=FETCH_OPERAND(PC(vm));ASSERT(SG_IDENTIFIERP(var));Sg_MakeBinding(SG_IDENTIFIER_LIBRARY(var),SG_IDENTIFIER_NAME(var),AC(vm),val1);AC(vm)=(SG_UNDEF);}NEXT;}
 
 label_LIBRARY:
 CASE(LIBRARY) 
@@ -336,15 +336,15 @@ CASE(CONS)
 
 label_LIST:
 CASE(LIST) 
-{INSN_VAL1(val1,c);{int n=(val1)-(1);SgObject ret=SG_NIL;if ((val1)>(0)){{ret=(Sg_Cons(AC(vm),ret));{int i=0;int cise__24=n;for (;(i)<(cise__24);(i)++){ret=(Sg_Cons(INDEX(SP(vm),i),ret));}}(SP(vm))-=(n);}}{AC(vm)=(ret);NEXT;}}}
+{INSN_VAL1(val1,c);{int n=(val1)-(1);SgObject ret=SG_NIL;if ((val1)>(0)){{ret=(Sg_Cons(AC(vm),ret));{int i=0;int cise__416=n;for (;(i)<(cise__416);(i)++){ret=(Sg_Cons(INDEX(SP(vm),i),ret));}}(SP(vm))-=(n);}}{AC(vm)=(ret);NEXT;}}}
 
 label_APPEND:
 CASE(APPEND) 
-{INSN_VAL1(val1,c);{int nargs=(val1)-(1);SgObject ret=SG_NIL;if ((nargs)>(0)){{ret=(AC(vm));{int i=0;int cise__25=nargs;for (;(i)<(cise__25);(i)++){{SgObject obj=INDEX(SP(vm),i);if ((Sg_Length(obj))<(0)){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("append"),SG_MAKE_STRING("list"),obj,SG_NIL);}}}ret=(Sg_Append2(obj,ret));}}}(SP(vm))-=(nargs);}}{AC(vm)=(ret);NEXT;}}}
+{INSN_VAL1(val1,c);{int nargs=(val1)-(1);SgObject ret=SG_NIL;if ((nargs)>(0)){{ret=(AC(vm));{int i=0;int cise__417=nargs;for (;(i)<(cise__417);(i)++){{SgObject obj=INDEX(SP(vm),i);if ((Sg_Length(obj))<(0)){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("append"),SG_MAKE_STRING("list"),obj,SG_NIL);}}}ret=(Sg_Append2(obj,ret));}}}(SP(vm))-=(nargs);}}{AC(vm)=(ret);NEXT;}}}
 
 label_VALUES:
 CASE(VALUES) 
-{INSN_VAL1(val1,c);if ((val1)==(0)){{AC(vm)=(Sg_MakeValues(0));NEXT;}} else {{SgObject v=AC(vm);if ((val1)>(1)){{v=(Sg_MakeValues(val1));{int n=(val1)-(1);SG_VALUES_ELEMENT(v,n)=(AC(vm));{int i=0;int cise__26=n;for (;(i)<(cise__26);(i)++){SG_VALUES_ELEMENT(v,((n)-(i))-(1))=(INDEX(SP(vm),i));}}(SP(vm))-=(n);}}}{AC(vm)=(v);NEXT;}}}}
+{INSN_VAL1(val1,c);if ((val1)==(0)){{AC(vm)=(Sg_MakeValues(0));NEXT;}} else {{SgObject v=AC(vm);if ((val1)>(1)){{v=(Sg_MakeValues(val1));{int n=(val1)-(1);SG_VALUES_ELEMENT(v,n)=(AC(vm));{int i=0;int cise__418=n;for (;(i)<(cise__418);(i)++){SG_VALUES_ELEMENT(v,((n)-(i))-(1))=(INDEX(SP(vm),i));}}(SP(vm))-=(n);}}}{AC(vm)=(v);NEXT;}}}}
 
 label_EQ:
 CASE(EQ) 
@@ -376,7 +376,7 @@ CASE(VECTORP)
 
 label_VEC_LEN:
 CASE(VEC_LEN) 
-{if ((!(SG_VECTORP(AC(vm))))){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-length"),SG_MAKE_STRING("vector"),AC(vm),SG_NIL);}}}{long cise__27=SG_VECTOR_SIZE(AC(vm));{AC(vm)=(SG_MAKE_INT(cise__27));NEXT;}}}
+{if ((!(SG_VECTORP(AC(vm))))){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-length"),SG_MAKE_STRING("vector"),AC(vm),SG_NIL);}}}{long cise__419=SG_VECTOR_SIZE(AC(vm));{AC(vm)=(SG_MAKE_INT(cise__419));NEXT;}}}
 
 label_VEC_REF:
 CASE(VEC_REF) 

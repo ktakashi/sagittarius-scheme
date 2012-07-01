@@ -1510,6 +1510,9 @@ int Sg_ReadCache(SgString *id)
     }
     /* obj must be cb */
     ASSERT(SG_CODE_BUILDERP(obj));
+    if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
+      Sg_VMDumpCode(obj);
+    }
     Sg_VMExecute(obj);
   }
   /* for no content library */

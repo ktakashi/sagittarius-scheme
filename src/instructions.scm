@@ -483,6 +483,7 @@
 (define-inst DEFINE (1 1 #t)
   (INSN_VAL1 val1 c)
   (let ((var (FETCH_OPERAND (PC vm))))
+    (ASSERT (SG_IDENTIFIERP var))
     (Sg_MakeBinding (SG_IDENTIFIER_LIBRARY var)
 		    (SG_IDENTIFIER_NAME var)
 		    (AC vm)

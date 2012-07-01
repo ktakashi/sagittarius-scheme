@@ -3873,6 +3873,8 @@
      (if (or (memq lvar bound) (memq lvar free)) free (cons lvar free)))))
 
 (define (pass4 iform library)
+  ;; we need to use the one in iform it there is.
+  (set! library (pass2/lookup-library iform library))
   (if (vm-nolambda-lifting?)
       iform
       (let ((dic (make-label-dic '())))
