@@ -607,7 +607,7 @@
 
 ;; this needs to be in C++. I don't want to double manage these values.
 ;;(define (pass3/let-frame-size) 2)
-(define (pass3/frame-size) *frame-size*)
+(define (vm-frame-size) *frame-size*)
 
 ;; also need to be c++
 ;; code builder
@@ -696,6 +696,8 @@
   (vector -1 EMPTY 0 0 undef))
 
 (define (init-packet packet insn type arg0 arg1 o)
+  (when (or (null? arg0) (null? arg1))
+    (raise 'error))
   (vector-set! packet 0 insn)
   (vector-set! packet 1 type)
   (vector-set! packet 2 arg0)
@@ -703,107 +705,57 @@
   (vector-set! packet 4 o)
   packet)
 
-(define (packet-insn packet)
-  (vector-ref packet 0))
-(define (packet-insn-set! packet insn)
-  (vector-set! packet 0 insn))
-(define (packet-type packet)
-  (vector-ref packet 1))
-(define (packet-type-set! packet type)
-  (vector-set! packet 1 type))
-(define (packet-arg0 packet)
-  (vector-ref packet 2))
-(define (packet-arg0-set! packet o)
-  (vector-set! packet 2 o))
-(define (packet-arg1 packet)
-  (vector-ref packet 3))
-(define (packet-arg1-set! packet o)
-  (vector-set! packet 3 o))
-(define (packet-obj packet)
-  (vector-ref packet 4))
-(define (packet-obj-set! packet o)
-  (vector-set! packet 4 o))
+(define (packet-insn packet) (vector-ref packet 0))
+(define (packet-insn-set! packet insn) (vector-set! packet 0 insn))
+(define (packet-type packet) (vector-ref packet 1))
+(define (packet-type-set! packet type) (vector-set! packet 1 type))
+(define (packet-arg0 packet) (vector-ref packet 2))
+(define (packet-arg0-set! packet o) (vector-set! packet 2 o))
+(define (packet-arg1 packet) (vector-ref packet 3))
+(define (packet-arg1-set! packet o) (vector-set! packet 3 o))
+(define (packet-obj packet) (vector-ref packet 4))
+(define (packet-obj-set! packet o) (vector-set! packet 4 o))
 
-(define make-code-builder 
-  (lambda ()
-    (vector '.code-builder (make-array) #f 0 #f 0 0 '() (make-code-packet) '() '())))
-(define code-builder-code
-  (lambda (cb)
-    (vector-ref cb 1)))
-(define code-builder-code-set!
-  (lambda (cb o)
-    (array-data-set! (vector-ref cb 1) o)
-    (array-length-set! (vector-ref cb 1) (vector-length o))))
-(define code-builder-name
-  (lambda (cb)
-    (vector-ref cb 2)))
-(define code-builder-name-set!
-  (lambda (cb argc)
-    (vector-set! cb 2 argc)))
-(define code-builder-argc
-  (lambda (cb)
-    (vector-ref cb 3)))
-(define code-builder-argc-set!
-  (lambda (cb argc)
-    (vector-set! cb 3 argc)))
-(define code-builder-optional?
-  (lambda (cb)
-    (vector-ref cb 4)))
-(define code-builder-optional-set!
-  (lambda (cb o)
-    (vector-set! cb 4 o)))
-(define code-builder-freec
-  (lambda (cb)
-    (vector-ref cb 5)))
-(define code-builder-freec-set!
-  (lambda (cb o)
-    (vector-set! cb 5 o)))
-(define code-builder-maxstack
-  (lambda (cb)
-    (vector-ref cb 6)))
-(define code-builder-maxstack-set!
-  (lambda (cb o)
-    (vector-set! cb 6 o)))
-(define code-builder-src
-  (lambda (cb)
-    (vector-ref cb 7)))
-(define code-builder-src-set!
-  (lambda (cb o)
-    (vector-set! cb 7 o)))
-(define code-builder-add-src
-  (lambda (cb src)
-    (let ((index (array-length (code-builder-code cb)))
-	  (old-src (code-builder-src cb)))
-      (code-builder-src-set! cb (append old-src (list (cons index src)))))))
-(define code-builder-packet
-  (lambda (cb)
-    (vector-ref cb 8)))
-(define code-builder-packet-set!
-  (lambda (cb o)
-    (vector-set! cb 8 o)))
-(define code-builder-label-defs
-  (lambda (cb)
-    (vector-ref cb 9)))
-(define code-builder-label-defs-set!
-  (lambda (cb l)
-    (vector-set! cb 9 l)))
-(define code-builder-label-refs
-  (lambda (cb)
-    (vector-ref cb 10)))
-(define code-builder-label-refs-set!
-  (lambda (cb l)
-    (vector-set! cb 10 l)))
+(define (make-code-builder)
+  (vector '.code-builder (make-array) #f 0 #f 0 0 '()
+          (make-code-packet) '() '()))
+(define (code-builder-code cb)
+  (vector-ref cb 1))
+(define (code-builder-code-set! cb o)
+  (array-data-set! (vector-ref cb 1) o)
+  (array-length-set! (vector-ref cb 1) (vector-length o)))
+(define (code-builder-name cb) (vector-ref cb 2))
+(define (code-builder-name-set! cb argc) (vector-set! cb 2 argc))
+(define (code-builder-argc cb) (vector-ref cb 3))
+(define (code-builder-argc-set! cb argc) (vector-set! cb 3 argc))
+(define (code-builder-optional? cb) (vector-ref cb 4))
+(define (code-builder-optional-set! cb o) (vector-set! cb 4 o))
+(define (code-builder-freec cb) (vector-ref cb 5))
+(define (code-builder-freec-set! cb o) (vector-set! cb 5 o))
+(define (code-builder-maxstack cb) (vector-ref cb 6))
+(define (code-builder-maxstack-set! cb o) (vector-set! cb 6 o))
+(define (code-builder-src cb) (vector-ref cb 7))
+(define (code-builder-src-set! cb o) (vector-set! cb 7 o))
+(define (code-builder-add-src cb src)
+  (let ((index (array-length (code-builder-code cb)))
+        (old-src (code-builder-src cb)))
+    (code-builder-src-set! cb (append old-src (list (cons index src))))))
+(define (code-builder-packet cb) (vector-ref cb 8))
+(define (code-builder-packet-set! cb o) (vector-set! cb 8 o))
+(define (code-builder-label-defs cb) (vector-ref cb 9))
+(define (code-builder-label-defs-set! cb l) (vector-set! cb 9 l))
+(define (code-builder-label-refs cb) (vector-ref cb 10))
+(define (code-builder-label-refs-set! cb l) (vector-set! cb 10 l))
 
-(define code-builder?
-  (lambda (cb)
-    (and (vector? cb)
-	 (eq? (vector-ref cb 0) '.code-builder))))
+(define (code-builder? cb)
+  (and (vector? cb)
+       (eq? (vector-ref cb 0) '.code-builder)))
 
-(define label?
-  (lambda (l)
-    (and (vector? l)
-	 (> (vector-length l) 0)
-	 (eqv? (vector-ref l 0) 11 #;$LABEL))))
+(define (label? l)
+  (and (vector? l)
+       (> (vector-length l) 0)
+       (eqv? (vector-ref l 0) 11 #;$LABEL
+             )))
 
 (define (cb-flush cb)
   (if (= (packet-type (code-builder-packet cb)) EMPTY)
@@ -818,14 +770,16 @@
 		 (array-push! (code-builder-code cb) insn)
 		 (if (label? obj)
 		     (begin
-		       (code-builder-label-refs-set! cb 
-						     (acons obj
-							    (array-length (code-builder-code cb))
-							    (code-builder-label-refs cb)))
+		       (code-builder-label-refs-set!
+                        cb 
+                        (acons obj
+                               (array-length (code-builder-code cb))
+                               (code-builder-label-refs cb)))
 		       (array-push! (code-builder-code cb) 0)) ; dummy
 		     (array-push! (code-builder-code cb) obj)))))
 	(code-builder-packet-set! cb (make-code-packet))
-	#;(packet-type-set! (code-builder-packet cb) EMPTY))))
+	#;(packet-type-set! (code-builder-packet cb) EMPTY)
+        )))
 	     
 
 (define (cb-put cb packet)

@@ -132,7 +132,6 @@
 (let ((files (find-files (or config path) :pattern ".scm")))
     (do ((files (run-tests files) (run-tests files)))
 	((null? files))))
-
 #|
 (import (rnrs) (util file) (core errors) (scheme load))
 (cond-expand

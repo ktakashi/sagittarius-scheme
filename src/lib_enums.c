@@ -14,7 +14,7 @@
 #define UNSIDENT(x, lib) WORD(Sg_MakeIdentifier(UISYMBOL(x), SG_NIL, (lib)))
 static struct sg__wcRec {
   SgCodeBuilder cb[23];
-  SgWord        w[889];
+  SgWord        w[892];
 } sg__wc = {
   { /* code builder */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[258], NULL, 1, 0, 0, 15, 37), /* make-enumeration-type */
@@ -32,13 +32,13 @@ static struct sg__wcRec {
     SG_STATIC_CODE_BUILDER(&sg__wc.w[540], NULL, 1, 0, 1, 9, 5), /* #f */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[545], NULL, 1, 0, 1, 9, 5), /* #f */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[550], NULL, 2, 0, 0, 12, 13), /* enum-set=? */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[563], NULL, 2, 0, 0, 27, 76), /* enum-set-union */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[639], NULL, 2, 0, 0, 27, 77), /* enum-set-intersection */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[716], NULL, 2, 0, 0, 27, 77), /* enum-set-difference */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[793], NULL, 1, 0, 0, 16, 36), /* enum-set-complement */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[829], NULL, 1, 0, 1, 9, 8), /* #f */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[837], NULL, 2, 0, 0, 19, 47), /* enum-set-projection */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[884], NULL, 1, 0, 1, 9, 5), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[563], NULL, 2, 0, 0, 27, 77), /* enum-set-union */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[640], NULL, 2, 0, 0, 27, 78), /* enum-set-intersection */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[718], NULL, 2, 0, 0, 27, 78), /* enum-set-difference */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[796], NULL, 1, 0, 0, 16, 36), /* enum-set-complement */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[832], NULL, 1, 0, 1, 9, 8), /* #f */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[840], NULL, 2, 0, 0, 19, 47), /* enum-set-projection */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[887], NULL, 1, 0, 1, 9, 5), /* #f */
   },
   { /* compiled code */
   /*     0 */        0x00000034           /* 0      (LIBRARY) */,
@@ -604,332 +604,335 @@ static struct sg__wcRec {
   /*   560 */        0x0000024B           /* 10     (GREF_TAIL_CALL) */,
   /*   561 */        WORD(SG_UNDEF)  /* identifier#enum-set-subset? */,
   /*   562 */        0x0000002F           /* 12     (RET) */,
-  /*   563 */        0x00000030           /* 0      (FRAME) */,
-  /*   564 */        WORD(SG_MAKE_INT(4)),
-  /*   565 */        0x00000045           /* 2      (LREF_PUSH) */,
-  /*   566 */        0x0000014A           /* 3      (GREF_CALL) */,
-  /*   567 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   568 */        0x0000000B           /* 5      (PUSH) */,
-  /*   569 */        0x00000030           /* 6      (FRAME) */,
-  /*   570 */        WORD(SG_MAKE_INT(4)),
-  /*   571 */        0x00000145           /* 8      (LREF_PUSH) */,
-  /*   572 */        0x0000014A           /* 9      (GREF_CALL) */,
-  /*   573 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   574 */        0x0000001F           /* 11     (BNEQ) */,
-  /*   575 */        WORD(SG_MAKE_INT(57)),
-  /*   576 */        0x00000030           /* 13     (FRAME) */,
-  /*   577 */        WORD(SG_MAKE_INT(4)),
-  /*   578 */        0x00000045           /* 15     (LREF_PUSH) */,
-  /*   579 */        0x0000014A           /* 16     (GREF_CALL) */,
-  /*   580 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   581 */        0x0000000B           /* 18     (PUSH) */,
-  /*   582 */        0x00000030           /* 19     (FRAME) */,
-  /*   583 */        WORD(SG_MAKE_INT(4)),
-  /*   584 */        0x00000045           /* 21     (LREF_PUSH) */,
-  /*   585 */        0x0000014A           /* 22     (GREF_CALL) */,
-  /*   586 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   587 */        0x0000000B           /* 24     (PUSH) */,
-  /*   588 */        0x00000030           /* 25     (FRAME) */,
-  /*   589 */        WORD(SG_MAKE_INT(4)),
-  /*   590 */        0x00000145           /* 27     (LREF_PUSH) */,
-  /*   591 */        0x0000014A           /* 28     (GREF_CALL) */,
-  /*   592 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   593 */        0x0000000B           /* 30     (PUSH) */,
-  /*   594 */        0x00000531           /* 31     (ENTER) */,
-  /*   595 */        0x00000345           /* 32     (LREF_PUSH) */,
-  /*   596 */        0x00000445           /* 33     (LREF_PUSH) */,
-  /*   597 */        0x00000731           /* 34     (ENTER) */,
-  /*   598 */        0x00000605           /* 35     (LREF) */,
-  /*   599 */        0x00000021           /* 36     (BNNULL) */,
-  /*   600 */        WORD(SG_MAKE_INT(4)),
-  /*   601 */        0x00000505           /* 38     (LREF) */,
-  /*   602 */        0x00000018           /* 39     (JUMP) */,
-  /*   603 */        WORD(SG_MAKE_INT(23)),
-  /*   604 */        0x00000030           /* 41     (FRAME) */,
-  /*   605 */        WORD(SG_MAKE_INT(5)),
-  /*   606 */        0x0000065B           /* 43     (LREF_CAR_PUSH) */,
-  /*   607 */        0x00000545           /* 44     (LREF_PUSH) */,
-  /*   608 */        0x0000024A           /* 45     (GREF_CALL) */,
-  /*   609 */        WORD(SG_UNDEF)  /* identifier#memq */,
-  /*   610 */        0x00000017           /* 47     (TEST) */,
-  /*   611 */        WORD(SG_MAKE_INT(8)),
-  /*   612 */        0x00000545           /* 49     (LREF_PUSH) */,
-  /*   613 */        0x0000065C           /* 50     (LREF_CDR_PUSH) */,
-  /*   614 */        0x00500219           /* 51     (SHIFTJ) */,
-  /*   615 */        0x00000018           /* 52     (JUMP) */,
-  /*   616 */        WORD(SG_MAKE_INT(-18)),
-  /*   617 */        0x00000018           /* 54     (JUMP) */,
-  /*   618 */        WORD(SG_MAKE_INT(8)),
-  /*   619 */        0x0000065B           /* 56     (LREF_CAR_PUSH) */,
-  /*   620 */        0x00000505           /* 57     (LREF) */,
-  /*   621 */        0x00000054           /* 58     (CONS_PUSH) */,
-  /*   622 */        0x0000065C           /* 59     (LREF_CDR_PUSH) */,
-  /*   623 */        0x00500219           /* 60     (SHIFTJ) */,
-  /*   624 */        0x00000018           /* 61     (JUMP) */,
-  /*   625 */        WORD(SG_MAKE_INT(-27)),
-  /*   626 */        0x00000232           /* 63     (LEAVE) */,
+  /*   563 */        0x00000002           /* 0      (UNDEF) */,
+  /*   564 */        0x00000030           /* 1      (FRAME) */,
+  /*   565 */        WORD(SG_MAKE_INT(4)),
+  /*   566 */        0x00000045           /* 3      (LREF_PUSH) */,
+  /*   567 */        0x0000014A           /* 4      (GREF_CALL) */,
+  /*   568 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   569 */        0x0000000B           /* 6      (PUSH) */,
+  /*   570 */        0x00000030           /* 7      (FRAME) */,
+  /*   571 */        WORD(SG_MAKE_INT(4)),
+  /*   572 */        0x00000145           /* 9      (LREF_PUSH) */,
+  /*   573 */        0x0000014A           /* 10     (GREF_CALL) */,
+  /*   574 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   575 */        0x0000001F           /* 12     (BNEQ) */,
+  /*   576 */        WORD(SG_MAKE_INT(57)),
+  /*   577 */        0x00000030           /* 14     (FRAME) */,
+  /*   578 */        WORD(SG_MAKE_INT(4)),
+  /*   579 */        0x00000045           /* 16     (LREF_PUSH) */,
+  /*   580 */        0x0000014A           /* 17     (GREF_CALL) */,
+  /*   581 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   582 */        0x0000000B           /* 19     (PUSH) */,
+  /*   583 */        0x00000030           /* 20     (FRAME) */,
+  /*   584 */        WORD(SG_MAKE_INT(4)),
+  /*   585 */        0x00000045           /* 22     (LREF_PUSH) */,
+  /*   586 */        0x0000014A           /* 23     (GREF_CALL) */,
+  /*   587 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   588 */        0x0000000B           /* 25     (PUSH) */,
+  /*   589 */        0x00000030           /* 26     (FRAME) */,
+  /*   590 */        WORD(SG_MAKE_INT(4)),
+  /*   591 */        0x00000145           /* 28     (LREF_PUSH) */,
+  /*   592 */        0x0000014A           /* 29     (GREF_CALL) */,
+  /*   593 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   594 */        0x0000000B           /* 31     (PUSH) */,
+  /*   595 */        0x00000531           /* 32     (ENTER) */,
+  /*   596 */        0x00000345           /* 33     (LREF_PUSH) */,
+  /*   597 */        0x00000445           /* 34     (LREF_PUSH) */,
+  /*   598 */        0x00000731           /* 35     (ENTER) */,
+  /*   599 */        0x00000605           /* 36     (LREF) */,
+  /*   600 */        0x00000021           /* 37     (BNNULL) */,
+  /*   601 */        WORD(SG_MAKE_INT(4)),
+  /*   602 */        0x00000505           /* 39     (LREF) */,
+  /*   603 */        0x00000018           /* 40     (JUMP) */,
+  /*   604 */        WORD(SG_MAKE_INT(23)),
+  /*   605 */        0x00000030           /* 42     (FRAME) */,
+  /*   606 */        WORD(SG_MAKE_INT(5)),
+  /*   607 */        0x0000065B           /* 44     (LREF_CAR_PUSH) */,
+  /*   608 */        0x00000545           /* 45     (LREF_PUSH) */,
+  /*   609 */        0x0000024A           /* 46     (GREF_CALL) */,
+  /*   610 */        WORD(SG_UNDEF)  /* identifier#memq */,
+  /*   611 */        0x00000017           /* 48     (TEST) */,
+  /*   612 */        WORD(SG_MAKE_INT(8)),
+  /*   613 */        0x00000545           /* 50     (LREF_PUSH) */,
+  /*   614 */        0x0000065C           /* 51     (LREF_CDR_PUSH) */,
+  /*   615 */        0x00500219           /* 52     (SHIFTJ) */,
+  /*   616 */        0x00000018           /* 53     (JUMP) */,
+  /*   617 */        WORD(SG_MAKE_INT(-18)),
+  /*   618 */        0x00000018           /* 55     (JUMP) */,
+  /*   619 */        WORD(SG_MAKE_INT(8)),
+  /*   620 */        0x0000065B           /* 57     (LREF_CAR_PUSH) */,
+  /*   621 */        0x00000505           /* 58     (LREF) */,
+  /*   622 */        0x00000054           /* 59     (CONS_PUSH) */,
+  /*   623 */        0x0000065C           /* 60     (LREF_CDR_PUSH) */,
+  /*   624 */        0x00500219           /* 61     (SHIFTJ) */,
+  /*   625 */        0x00000018           /* 62     (JUMP) */,
+  /*   626 */        WORD(SG_MAKE_INT(-27)),
   /*   627 */        0x00000232           /* 64     (LEAVE) */,
-  /*   628 */        0x0000000B           /* 65     (PUSH) */,
-  /*   629 */        0x0000024B           /* 66     (GREF_TAIL_CALL) */,
-  /*   630 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
-  /*   631 */        0x0000002F           /* 68     (RET) */,
-  /*   632 */        0x00000048           /* 69     (CONST_PUSH) */,
-  /*   633 */        WORD(SG_UNDEF), /* enum-set-union */
-  /*   634 */        0x00000048           /* 71     (CONST_PUSH) */,
-  /*   635 */        WORD(SG_UNDEF), /* "enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type." */
-  /*   636 */        0x0000024B           /* 73     (GREF_TAIL_CALL) */,
-  /*   637 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
-  /*   638 */        0x0000002F           /* 75     (RET) */,
-  /*   639 */        0x00000030           /* 0      (FRAME) */,
-  /*   640 */        WORD(SG_MAKE_INT(4)),
-  /*   641 */        0x00000045           /* 2      (LREF_PUSH) */,
-  /*   642 */        0x0000014A           /* 3      (GREF_CALL) */,
-  /*   643 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   644 */        0x0000000B           /* 5      (PUSH) */,
-  /*   645 */        0x00000030           /* 6      (FRAME) */,
-  /*   646 */        WORD(SG_MAKE_INT(4)),
-  /*   647 */        0x00000145           /* 8      (LREF_PUSH) */,
-  /*   648 */        0x0000014A           /* 9      (GREF_CALL) */,
-  /*   649 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   650 */        0x0000001F           /* 11     (BNEQ) */,
-  /*   651 */        WORD(SG_MAKE_INT(58)),
-  /*   652 */        0x00000030           /* 13     (FRAME) */,
-  /*   653 */        WORD(SG_MAKE_INT(4)),
-  /*   654 */        0x00000045           /* 15     (LREF_PUSH) */,
-  /*   655 */        0x0000014A           /* 16     (GREF_CALL) */,
-  /*   656 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   657 */        0x0000000B           /* 18     (PUSH) */,
-  /*   658 */        0x00000030           /* 19     (FRAME) */,
-  /*   659 */        WORD(SG_MAKE_INT(4)),
-  /*   660 */        0x00000045           /* 21     (LREF_PUSH) */,
-  /*   661 */        0x0000014A           /* 22     (GREF_CALL) */,
-  /*   662 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   663 */        0x0000000B           /* 24     (PUSH) */,
-  /*   664 */        0x00000030           /* 25     (FRAME) */,
-  /*   665 */        WORD(SG_MAKE_INT(4)),
-  /*   666 */        0x00000145           /* 27     (LREF_PUSH) */,
-  /*   667 */        0x0000014A           /* 28     (GREF_CALL) */,
-  /*   668 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   669 */        0x0000000B           /* 30     (PUSH) */,
-  /*   670 */        0x00000531           /* 31     (ENTER) */,
-  /*   671 */        0x00000048           /* 32     (CONST_PUSH) */,
-  /*   672 */        WORD(SG_NIL),
-  /*   673 */        0x00000345           /* 34     (LREF_PUSH) */,
-  /*   674 */        0x00000731           /* 35     (ENTER) */,
-  /*   675 */        0x00000605           /* 36     (LREF) */,
-  /*   676 */        0x00000021           /* 37     (BNNULL) */,
-  /*   677 */        WORD(SG_MAKE_INT(4)),
-  /*   678 */        0x00000505           /* 39     (LREF) */,
-  /*   679 */        0x00000018           /* 40     (JUMP) */,
-  /*   680 */        WORD(SG_MAKE_INT(23)),
-  /*   681 */        0x00000030           /* 42     (FRAME) */,
-  /*   682 */        WORD(SG_MAKE_INT(5)),
-  /*   683 */        0x0000065B           /* 44     (LREF_CAR_PUSH) */,
-  /*   684 */        0x00000445           /* 45     (LREF_PUSH) */,
-  /*   685 */        0x0000024A           /* 46     (GREF_CALL) */,
-  /*   686 */        WORD(SG_UNDEF)  /* identifier#memq */,
-  /*   687 */        0x00000017           /* 48     (TEST) */,
-  /*   688 */        WORD(SG_MAKE_INT(10)),
-  /*   689 */        0x0000065B           /* 50     (LREF_CAR_PUSH) */,
-  /*   690 */        0x00000505           /* 51     (LREF) */,
-  /*   691 */        0x00000054           /* 52     (CONS_PUSH) */,
-  /*   692 */        0x0000065C           /* 53     (LREF_CDR_PUSH) */,
-  /*   693 */        0x00500219           /* 54     (SHIFTJ) */,
-  /*   694 */        0x00000018           /* 55     (JUMP) */,
-  /*   695 */        WORD(SG_MAKE_INT(-20)),
-  /*   696 */        0x00000018           /* 57     (JUMP) */,
-  /*   697 */        WORD(SG_MAKE_INT(6)),
-  /*   698 */        0x00000545           /* 59     (LREF_PUSH) */,
-  /*   699 */        0x0000065C           /* 60     (LREF_CDR_PUSH) */,
-  /*   700 */        0x00500219           /* 61     (SHIFTJ) */,
-  /*   701 */        0x00000018           /* 62     (JUMP) */,
-  /*   702 */        WORD(SG_MAKE_INT(-27)),
-  /*   703 */        0x00000232           /* 64     (LEAVE) */,
-  /*   704 */        0x00000232           /* 65     (LEAVE) */,
-  /*   705 */        0x0000000B           /* 66     (PUSH) */,
-  /*   706 */        0x0000024B           /* 67     (GREF_TAIL_CALL) */,
-  /*   707 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
-  /*   708 */        0x0000002F           /* 69     (RET) */,
-  /*   709 */        0x00000048           /* 70     (CONST_PUSH) */,
-  /*   710 */        WORD(SG_UNDEF), /* enum-set-intersection */
-  /*   711 */        0x00000048           /* 72     (CONST_PUSH) */,
-  /*   712 */        WORD(SG_UNDEF), /* "enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type." */
-  /*   713 */        0x0000024B           /* 74     (GREF_TAIL_CALL) */,
-  /*   714 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
-  /*   715 */        0x0000002F           /* 76     (RET) */,
-  /*   716 */        0x00000030           /* 0      (FRAME) */,
-  /*   717 */        WORD(SG_MAKE_INT(4)),
-  /*   718 */        0x00000045           /* 2      (LREF_PUSH) */,
-  /*   719 */        0x0000014A           /* 3      (GREF_CALL) */,
-  /*   720 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   721 */        0x0000000B           /* 5      (PUSH) */,
-  /*   722 */        0x00000030           /* 6      (FRAME) */,
-  /*   723 */        WORD(SG_MAKE_INT(4)),
-  /*   724 */        0x00000145           /* 8      (LREF_PUSH) */,
-  /*   725 */        0x0000014A           /* 9      (GREF_CALL) */,
-  /*   726 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   727 */        0x0000001F           /* 11     (BNEQ) */,
-  /*   728 */        WORD(SG_MAKE_INT(58)),
-  /*   729 */        0x00000030           /* 13     (FRAME) */,
-  /*   730 */        WORD(SG_MAKE_INT(4)),
-  /*   731 */        0x00000045           /* 15     (LREF_PUSH) */,
-  /*   732 */        0x0000014A           /* 16     (GREF_CALL) */,
-  /*   733 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   734 */        0x0000000B           /* 18     (PUSH) */,
-  /*   735 */        0x00000030           /* 19     (FRAME) */,
-  /*   736 */        WORD(SG_MAKE_INT(4)),
-  /*   737 */        0x00000045           /* 21     (LREF_PUSH) */,
-  /*   738 */        0x0000014A           /* 22     (GREF_CALL) */,
-  /*   739 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   740 */        0x0000000B           /* 24     (PUSH) */,
-  /*   741 */        0x00000030           /* 25     (FRAME) */,
-  /*   742 */        WORD(SG_MAKE_INT(4)),
-  /*   743 */        0x00000145           /* 27     (LREF_PUSH) */,
-  /*   744 */        0x0000014A           /* 28     (GREF_CALL) */,
-  /*   745 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   746 */        0x0000000B           /* 30     (PUSH) */,
-  /*   747 */        0x00000531           /* 31     (ENTER) */,
-  /*   748 */        0x00000048           /* 32     (CONST_PUSH) */,
-  /*   749 */        WORD(SG_NIL),
-  /*   750 */        0x00000345           /* 34     (LREF_PUSH) */,
-  /*   751 */        0x00000731           /* 35     (ENTER) */,
-  /*   752 */        0x00000605           /* 36     (LREF) */,
-  /*   753 */        0x00000021           /* 37     (BNNULL) */,
-  /*   754 */        WORD(SG_MAKE_INT(4)),
-  /*   755 */        0x00000505           /* 39     (LREF) */,
-  /*   756 */        0x00000018           /* 40     (JUMP) */,
-  /*   757 */        WORD(SG_MAKE_INT(23)),
-  /*   758 */        0x00000030           /* 42     (FRAME) */,
-  /*   759 */        WORD(SG_MAKE_INT(5)),
-  /*   760 */        0x0000065B           /* 44     (LREF_CAR_PUSH) */,
-  /*   761 */        0x00000445           /* 45     (LREF_PUSH) */,
-  /*   762 */        0x0000024A           /* 46     (GREF_CALL) */,
-  /*   763 */        WORD(SG_UNDEF)  /* identifier#memq */,
-  /*   764 */        0x00000017           /* 48     (TEST) */,
-  /*   765 */        WORD(SG_MAKE_INT(8)),
-  /*   766 */        0x00000545           /* 50     (LREF_PUSH) */,
-  /*   767 */        0x0000065C           /* 51     (LREF_CDR_PUSH) */,
-  /*   768 */        0x00500219           /* 52     (SHIFTJ) */,
-  /*   769 */        0x00000018           /* 53     (JUMP) */,
-  /*   770 */        WORD(SG_MAKE_INT(-18)),
-  /*   771 */        0x00000018           /* 55     (JUMP) */,
-  /*   772 */        WORD(SG_MAKE_INT(8)),
-  /*   773 */        0x0000065B           /* 57     (LREF_CAR_PUSH) */,
-  /*   774 */        0x00000505           /* 58     (LREF) */,
-  /*   775 */        0x00000054           /* 59     (CONS_PUSH) */,
-  /*   776 */        0x0000065C           /* 60     (LREF_CDR_PUSH) */,
-  /*   777 */        0x00500219           /* 61     (SHIFTJ) */,
-  /*   778 */        0x00000018           /* 62     (JUMP) */,
-  /*   779 */        WORD(SG_MAKE_INT(-27)),
-  /*   780 */        0x00000232           /* 64     (LEAVE) */,
-  /*   781 */        0x00000232           /* 65     (LEAVE) */,
-  /*   782 */        0x0000000B           /* 66     (PUSH) */,
-  /*   783 */        0x0000024B           /* 67     (GREF_TAIL_CALL) */,
-  /*   784 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
-  /*   785 */        0x0000002F           /* 69     (RET) */,
-  /*   786 */        0x00000048           /* 70     (CONST_PUSH) */,
-  /*   787 */        WORD(SG_UNDEF), /* enum-set-difference */
-  /*   788 */        0x00000048           /* 72     (CONST_PUSH) */,
-  /*   789 */        WORD(SG_UNDEF), /* "enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type." */
-  /*   790 */        0x0000024B           /* 74     (GREF_TAIL_CALL) */,
-  /*   791 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
-  /*   792 */        0x0000002F           /* 76     (RET) */,
-  /*   793 */        0x00000030           /* 0      (FRAME) */,
-  /*   794 */        WORD(SG_MAKE_INT(4)),
-  /*   795 */        0x00000045           /* 2      (LREF_PUSH) */,
-  /*   796 */        0x0000014A           /* 3      (GREF_CALL) */,
-  /*   797 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   798 */        0x0000000B           /* 5      (PUSH) */,
-  /*   799 */        0x00000231           /* 6      (ENTER) */,
-  /*   800 */        0x00000030           /* 7      (FRAME) */,
-  /*   801 */        WORD(SG_MAKE_INT(4)),
-  /*   802 */        0x00000045           /* 9      (LREF_PUSH) */,
-  /*   803 */        0x0000014A           /* 10     (GREF_CALL) */,
-  /*   804 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   805 */        0x0000000B           /* 12     (PUSH) */,
-  /*   806 */        0x00000030           /* 13     (FRAME) */,
-  /*   807 */        WORD(SG_MAKE_INT(18)),
-  /*   808 */        0x00000145           /* 15     (LREF_PUSH) */,
-  /*   809 */        0x00000029           /* 16     (CLOSURE) */,
-  /*   810 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   811 */        0x0000000B           /* 18     (PUSH) */,
-  /*   812 */        0x00000030           /* 19     (FRAME) */,
-  /*   813 */        WORD(SG_MAKE_INT(9)),
-  /*   814 */        0x00000030           /* 21     (FRAME) */,
-  /*   815 */        WORD(SG_MAKE_INT(4)),
-  /*   816 */        0x00000045           /* 23     (LREF_PUSH) */,
-  /*   817 */        0x0000014A           /* 24     (GREF_CALL) */,
-  /*   818 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   819 */        0x0000000B           /* 26     (PUSH) */,
-  /*   820 */        0x0000014A           /* 27     (GREF_CALL) */,
-  /*   821 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
-  /*   822 */        0x0000000B           /* 29     (PUSH) */,
-  /*   823 */        0x0000024A           /* 30     (GREF_CALL) */,
-  /*   824 */        WORD(SG_UNDEF)  /* identifier#filter */,
-  /*   825 */        0x0000000B           /* 32     (PUSH) */,
-  /*   826 */        0x0000024B           /* 33     (GREF_TAIL_CALL) */,
-  /*   827 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
-  /*   828 */        0x0000002F           /* 35     (RET) */,
-  /*   829 */        0x00000030           /* 0      (FRAME) */,
-  /*   830 */        WORD(SG_MAKE_INT(5)),
-  /*   831 */        0x00000045           /* 2      (LREF_PUSH) */,
-  /*   832 */        0x00000046           /* 3      (FREF_PUSH) */,
-  /*   833 */        0x0000024A           /* 4      (GREF_CALL) */,
-  /*   834 */        WORD(SG_UNDEF)  /* identifier#memq */,
-  /*   835 */        0x00000022           /* 6      (NOT) */,
-  /*   836 */        0x0000002F           /* 7      (RET) */,
-  /*   837 */        0x00000030           /* 0      (FRAME) */,
-  /*   838 */        WORD(SG_MAKE_INT(5)),
-  /*   839 */        0x00000045           /* 2      (LREF_PUSH) */,
-  /*   840 */        0x00000145           /* 3      (LREF_PUSH) */,
-  /*   841 */        0x0000024A           /* 4      (GREF_CALL) */,
-  /*   842 */        WORD(SG_UNDEF)  /* identifier#enum-set-subset? */,
-  /*   843 */        0x00000017           /* 6      (TEST) */,
-  /*   844 */        WORD(SG_MAKE_INT(3)),
-  /*   845 */        0x00000005           /* 8      (LREF) */,
-  /*   846 */        0x0000002F           /* 9      (RET) */,
-  /*   847 */        0x00000030           /* 10     (FRAME) */,
-  /*   848 */        WORD(SG_MAKE_INT(9)),
-  /*   849 */        0x00000030           /* 12     (FRAME) */,
-  /*   850 */        WORD(SG_MAKE_INT(4)),
-  /*   851 */        0x00000145           /* 14     (LREF_PUSH) */,
-  /*   852 */        0x0000014A           /* 15     (GREF_CALL) */,
-  /*   853 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   854 */        0x0000000B           /* 17     (PUSH) */,
-  /*   855 */        0x0000014A           /* 18     (GREF_CALL) */,
-  /*   856 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
-  /*   857 */        0x0000000B           /* 20     (PUSH) */,
-  /*   858 */        0x00000030           /* 21     (FRAME) */,
-  /*   859 */        WORD(SG_MAKE_INT(4)),
-  /*   860 */        0x00000045           /* 23     (LREF_PUSH) */,
-  /*   861 */        0x0000014A           /* 24     (GREF_CALL) */,
-  /*   862 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
-  /*   863 */        0x0000000B           /* 26     (PUSH) */,
-  /*   864 */        0x00000431           /* 27     (ENTER) */,
-  /*   865 */        0x00000030           /* 28     (FRAME) */,
-  /*   866 */        WORD(SG_MAKE_INT(4)),
-  /*   867 */        0x00000145           /* 30     (LREF_PUSH) */,
-  /*   868 */        0x0000014A           /* 31     (GREF_CALL) */,
-  /*   869 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
-  /*   870 */        0x0000000B           /* 33     (PUSH) */,
-  /*   871 */        0x00000030           /* 34     (FRAME) */,
-  /*   872 */        WORD(SG_MAKE_INT(8)),
-  /*   873 */        0x00000245           /* 36     (LREF_PUSH) */,
-  /*   874 */        0x00000029           /* 37     (CLOSURE) */,
-  /*   875 */        WORD(SG_UNDEF)  /* <code-builder> */,
-  /*   876 */        0x0000000B           /* 39     (PUSH) */,
-  /*   877 */        0x00000345           /* 40     (LREF_PUSH) */,
-  /*   878 */        0x0000024A           /* 41     (GREF_CALL) */,
-  /*   879 */        WORD(SG_UNDEF)  /* identifier#filter */,
-  /*   880 */        0x0000000B           /* 43     (PUSH) */,
-  /*   881 */        0x0000024B           /* 44     (GREF_TAIL_CALL) */,
-  /*   882 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
-  /*   883 */        0x0000002F           /* 46     (RET) */,
-  /*   884 */        0x00000045           /* 0      (LREF_PUSH) */,
-  /*   885 */        0x00000046           /* 1      (FREF_PUSH) */,
-  /*   886 */        0x0000024B           /* 2      (GREF_TAIL_CALL) */,
-  /*   887 */        WORD(SG_UNDEF)  /* identifier#memq */,
-  /*   888 */        0x0000002F           /* 4      (RET) */,
+  /*   628 */        0x00000232           /* 65     (LEAVE) */,
+  /*   629 */        0x0000000B           /* 66     (PUSH) */,
+  /*   630 */        0x0000024B           /* 67     (GREF_TAIL_CALL) */,
+  /*   631 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
+  /*   632 */        0x0000002F           /* 69     (RET) */,
+  /*   633 */        0x00000048           /* 70     (CONST_PUSH) */,
+  /*   634 */        WORD(SG_UNDEF), /* enum-set-union */
+  /*   635 */        0x00000048           /* 72     (CONST_PUSH) */,
+  /*   636 */        WORD(SG_UNDEF), /* "enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type." */
+  /*   637 */        0x0000024B           /* 74     (GREF_TAIL_CALL) */,
+  /*   638 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
+  /*   639 */        0x0000002F           /* 76     (RET) */,
+  /*   640 */        0x00000002           /* 0      (UNDEF) */,
+  /*   641 */        0x00000030           /* 1      (FRAME) */,
+  /*   642 */        WORD(SG_MAKE_INT(4)),
+  /*   643 */        0x00000045           /* 3      (LREF_PUSH) */,
+  /*   644 */        0x0000014A           /* 4      (GREF_CALL) */,
+  /*   645 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   646 */        0x0000000B           /* 6      (PUSH) */,
+  /*   647 */        0x00000030           /* 7      (FRAME) */,
+  /*   648 */        WORD(SG_MAKE_INT(4)),
+  /*   649 */        0x00000145           /* 9      (LREF_PUSH) */,
+  /*   650 */        0x0000014A           /* 10     (GREF_CALL) */,
+  /*   651 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   652 */        0x0000001F           /* 12     (BNEQ) */,
+  /*   653 */        WORD(SG_MAKE_INT(58)),
+  /*   654 */        0x00000030           /* 14     (FRAME) */,
+  /*   655 */        WORD(SG_MAKE_INT(4)),
+  /*   656 */        0x00000045           /* 16     (LREF_PUSH) */,
+  /*   657 */        0x0000014A           /* 17     (GREF_CALL) */,
+  /*   658 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   659 */        0x0000000B           /* 19     (PUSH) */,
+  /*   660 */        0x00000030           /* 20     (FRAME) */,
+  /*   661 */        WORD(SG_MAKE_INT(4)),
+  /*   662 */        0x00000045           /* 22     (LREF_PUSH) */,
+  /*   663 */        0x0000014A           /* 23     (GREF_CALL) */,
+  /*   664 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   665 */        0x0000000B           /* 25     (PUSH) */,
+  /*   666 */        0x00000030           /* 26     (FRAME) */,
+  /*   667 */        WORD(SG_MAKE_INT(4)),
+  /*   668 */        0x00000145           /* 28     (LREF_PUSH) */,
+  /*   669 */        0x0000014A           /* 29     (GREF_CALL) */,
+  /*   670 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   671 */        0x0000000B           /* 31     (PUSH) */,
+  /*   672 */        0x00000531           /* 32     (ENTER) */,
+  /*   673 */        0x00000048           /* 33     (CONST_PUSH) */,
+  /*   674 */        WORD(SG_NIL),
+  /*   675 */        0x00000345           /* 35     (LREF_PUSH) */,
+  /*   676 */        0x00000731           /* 36     (ENTER) */,
+  /*   677 */        0x00000605           /* 37     (LREF) */,
+  /*   678 */        0x00000021           /* 38     (BNNULL) */,
+  /*   679 */        WORD(SG_MAKE_INT(4)),
+  /*   680 */        0x00000505           /* 40     (LREF) */,
+  /*   681 */        0x00000018           /* 41     (JUMP) */,
+  /*   682 */        WORD(SG_MAKE_INT(23)),
+  /*   683 */        0x00000030           /* 43     (FRAME) */,
+  /*   684 */        WORD(SG_MAKE_INT(5)),
+  /*   685 */        0x0000065B           /* 45     (LREF_CAR_PUSH) */,
+  /*   686 */        0x00000445           /* 46     (LREF_PUSH) */,
+  /*   687 */        0x0000024A           /* 47     (GREF_CALL) */,
+  /*   688 */        WORD(SG_UNDEF)  /* identifier#memq */,
+  /*   689 */        0x00000017           /* 49     (TEST) */,
+  /*   690 */        WORD(SG_MAKE_INT(10)),
+  /*   691 */        0x0000065B           /* 51     (LREF_CAR_PUSH) */,
+  /*   692 */        0x00000505           /* 52     (LREF) */,
+  /*   693 */        0x00000054           /* 53     (CONS_PUSH) */,
+  /*   694 */        0x0000065C           /* 54     (LREF_CDR_PUSH) */,
+  /*   695 */        0x00500219           /* 55     (SHIFTJ) */,
+  /*   696 */        0x00000018           /* 56     (JUMP) */,
+  /*   697 */        WORD(SG_MAKE_INT(-20)),
+  /*   698 */        0x00000018           /* 58     (JUMP) */,
+  /*   699 */        WORD(SG_MAKE_INT(6)),
+  /*   700 */        0x00000545           /* 60     (LREF_PUSH) */,
+  /*   701 */        0x0000065C           /* 61     (LREF_CDR_PUSH) */,
+  /*   702 */        0x00500219           /* 62     (SHIFTJ) */,
+  /*   703 */        0x00000018           /* 63     (JUMP) */,
+  /*   704 */        WORD(SG_MAKE_INT(-27)),
+  /*   705 */        0x00000232           /* 65     (LEAVE) */,
+  /*   706 */        0x00000232           /* 66     (LEAVE) */,
+  /*   707 */        0x0000000B           /* 67     (PUSH) */,
+  /*   708 */        0x0000024B           /* 68     (GREF_TAIL_CALL) */,
+  /*   709 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
+  /*   710 */        0x0000002F           /* 70     (RET) */,
+  /*   711 */        0x00000048           /* 71     (CONST_PUSH) */,
+  /*   712 */        WORD(SG_UNDEF), /* enum-set-intersection */
+  /*   713 */        0x00000048           /* 73     (CONST_PUSH) */,
+  /*   714 */        WORD(SG_UNDEF), /* "enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type." */
+  /*   715 */        0x0000024B           /* 75     (GREF_TAIL_CALL) */,
+  /*   716 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
+  /*   717 */        0x0000002F           /* 77     (RET) */,
+  /*   718 */        0x00000002           /* 0      (UNDEF) */,
+  /*   719 */        0x00000030           /* 1      (FRAME) */,
+  /*   720 */        WORD(SG_MAKE_INT(4)),
+  /*   721 */        0x00000045           /* 3      (LREF_PUSH) */,
+  /*   722 */        0x0000014A           /* 4      (GREF_CALL) */,
+  /*   723 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   724 */        0x0000000B           /* 6      (PUSH) */,
+  /*   725 */        0x00000030           /* 7      (FRAME) */,
+  /*   726 */        WORD(SG_MAKE_INT(4)),
+  /*   727 */        0x00000145           /* 9      (LREF_PUSH) */,
+  /*   728 */        0x0000014A           /* 10     (GREF_CALL) */,
+  /*   729 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   730 */        0x0000001F           /* 12     (BNEQ) */,
+  /*   731 */        WORD(SG_MAKE_INT(58)),
+  /*   732 */        0x00000030           /* 14     (FRAME) */,
+  /*   733 */        WORD(SG_MAKE_INT(4)),
+  /*   734 */        0x00000045           /* 16     (LREF_PUSH) */,
+  /*   735 */        0x0000014A           /* 17     (GREF_CALL) */,
+  /*   736 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   737 */        0x0000000B           /* 19     (PUSH) */,
+  /*   738 */        0x00000030           /* 20     (FRAME) */,
+  /*   739 */        WORD(SG_MAKE_INT(4)),
+  /*   740 */        0x00000045           /* 22     (LREF_PUSH) */,
+  /*   741 */        0x0000014A           /* 23     (GREF_CALL) */,
+  /*   742 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   743 */        0x0000000B           /* 25     (PUSH) */,
+  /*   744 */        0x00000030           /* 26     (FRAME) */,
+  /*   745 */        WORD(SG_MAKE_INT(4)),
+  /*   746 */        0x00000145           /* 28     (LREF_PUSH) */,
+  /*   747 */        0x0000014A           /* 29     (GREF_CALL) */,
+  /*   748 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   749 */        0x0000000B           /* 31     (PUSH) */,
+  /*   750 */        0x00000531           /* 32     (ENTER) */,
+  /*   751 */        0x00000048           /* 33     (CONST_PUSH) */,
+  /*   752 */        WORD(SG_NIL),
+  /*   753 */        0x00000345           /* 35     (LREF_PUSH) */,
+  /*   754 */        0x00000731           /* 36     (ENTER) */,
+  /*   755 */        0x00000605           /* 37     (LREF) */,
+  /*   756 */        0x00000021           /* 38     (BNNULL) */,
+  /*   757 */        WORD(SG_MAKE_INT(4)),
+  /*   758 */        0x00000505           /* 40     (LREF) */,
+  /*   759 */        0x00000018           /* 41     (JUMP) */,
+  /*   760 */        WORD(SG_MAKE_INT(23)),
+  /*   761 */        0x00000030           /* 43     (FRAME) */,
+  /*   762 */        WORD(SG_MAKE_INT(5)),
+  /*   763 */        0x0000065B           /* 45     (LREF_CAR_PUSH) */,
+  /*   764 */        0x00000445           /* 46     (LREF_PUSH) */,
+  /*   765 */        0x0000024A           /* 47     (GREF_CALL) */,
+  /*   766 */        WORD(SG_UNDEF)  /* identifier#memq */,
+  /*   767 */        0x00000017           /* 49     (TEST) */,
+  /*   768 */        WORD(SG_MAKE_INT(8)),
+  /*   769 */        0x00000545           /* 51     (LREF_PUSH) */,
+  /*   770 */        0x0000065C           /* 52     (LREF_CDR_PUSH) */,
+  /*   771 */        0x00500219           /* 53     (SHIFTJ) */,
+  /*   772 */        0x00000018           /* 54     (JUMP) */,
+  /*   773 */        WORD(SG_MAKE_INT(-18)),
+  /*   774 */        0x00000018           /* 56     (JUMP) */,
+  /*   775 */        WORD(SG_MAKE_INT(8)),
+  /*   776 */        0x0000065B           /* 58     (LREF_CAR_PUSH) */,
+  /*   777 */        0x00000505           /* 59     (LREF) */,
+  /*   778 */        0x00000054           /* 60     (CONS_PUSH) */,
+  /*   779 */        0x0000065C           /* 61     (LREF_CDR_PUSH) */,
+  /*   780 */        0x00500219           /* 62     (SHIFTJ) */,
+  /*   781 */        0x00000018           /* 63     (JUMP) */,
+  /*   782 */        WORD(SG_MAKE_INT(-27)),
+  /*   783 */        0x00000232           /* 65     (LEAVE) */,
+  /*   784 */        0x00000232           /* 66     (LEAVE) */,
+  /*   785 */        0x0000000B           /* 67     (PUSH) */,
+  /*   786 */        0x0000024B           /* 68     (GREF_TAIL_CALL) */,
+  /*   787 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
+  /*   788 */        0x0000002F           /* 70     (RET) */,
+  /*   789 */        0x00000048           /* 71     (CONST_PUSH) */,
+  /*   790 */        WORD(SG_UNDEF), /* enum-set-difference */
+  /*   791 */        0x00000048           /* 73     (CONST_PUSH) */,
+  /*   792 */        WORD(SG_UNDEF), /* "enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type." */
+  /*   793 */        0x0000024B           /* 75     (GREF_TAIL_CALL) */,
+  /*   794 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
+  /*   795 */        0x0000002F           /* 77     (RET) */,
+  /*   796 */        0x00000030           /* 0      (FRAME) */,
+  /*   797 */        WORD(SG_MAKE_INT(4)),
+  /*   798 */        0x00000045           /* 2      (LREF_PUSH) */,
+  /*   799 */        0x0000014A           /* 3      (GREF_CALL) */,
+  /*   800 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   801 */        0x0000000B           /* 5      (PUSH) */,
+  /*   802 */        0x00000231           /* 6      (ENTER) */,
+  /*   803 */        0x00000030           /* 7      (FRAME) */,
+  /*   804 */        WORD(SG_MAKE_INT(4)),
+  /*   805 */        0x00000045           /* 9      (LREF_PUSH) */,
+  /*   806 */        0x0000014A           /* 10     (GREF_CALL) */,
+  /*   807 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   808 */        0x0000000B           /* 12     (PUSH) */,
+  /*   809 */        0x00000030           /* 13     (FRAME) */,
+  /*   810 */        WORD(SG_MAKE_INT(18)),
+  /*   811 */        0x00000145           /* 15     (LREF_PUSH) */,
+  /*   812 */        0x00000029           /* 16     (CLOSURE) */,
+  /*   813 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   814 */        0x0000000B           /* 18     (PUSH) */,
+  /*   815 */        0x00000030           /* 19     (FRAME) */,
+  /*   816 */        WORD(SG_MAKE_INT(9)),
+  /*   817 */        0x00000030           /* 21     (FRAME) */,
+  /*   818 */        WORD(SG_MAKE_INT(4)),
+  /*   819 */        0x00000045           /* 23     (LREF_PUSH) */,
+  /*   820 */        0x0000014A           /* 24     (GREF_CALL) */,
+  /*   821 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   822 */        0x0000000B           /* 26     (PUSH) */,
+  /*   823 */        0x0000014A           /* 27     (GREF_CALL) */,
+  /*   824 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
+  /*   825 */        0x0000000B           /* 29     (PUSH) */,
+  /*   826 */        0x0000024A           /* 30     (GREF_CALL) */,
+  /*   827 */        WORD(SG_UNDEF)  /* identifier#filter */,
+  /*   828 */        0x0000000B           /* 32     (PUSH) */,
+  /*   829 */        0x0000024B           /* 33     (GREF_TAIL_CALL) */,
+  /*   830 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
+  /*   831 */        0x0000002F           /* 35     (RET) */,
+  /*   832 */        0x00000030           /* 0      (FRAME) */,
+  /*   833 */        WORD(SG_MAKE_INT(5)),
+  /*   834 */        0x00000045           /* 2      (LREF_PUSH) */,
+  /*   835 */        0x00000046           /* 3      (FREF_PUSH) */,
+  /*   836 */        0x0000024A           /* 4      (GREF_CALL) */,
+  /*   837 */        WORD(SG_UNDEF)  /* identifier#memq */,
+  /*   838 */        0x00000022           /* 6      (NOT) */,
+  /*   839 */        0x0000002F           /* 7      (RET) */,
+  /*   840 */        0x00000030           /* 0      (FRAME) */,
+  /*   841 */        WORD(SG_MAKE_INT(5)),
+  /*   842 */        0x00000045           /* 2      (LREF_PUSH) */,
+  /*   843 */        0x00000145           /* 3      (LREF_PUSH) */,
+  /*   844 */        0x0000024A           /* 4      (GREF_CALL) */,
+  /*   845 */        WORD(SG_UNDEF)  /* identifier#enum-set-subset? */,
+  /*   846 */        0x00000017           /* 6      (TEST) */,
+  /*   847 */        WORD(SG_MAKE_INT(3)),
+  /*   848 */        0x00000005           /* 8      (LREF) */,
+  /*   849 */        0x0000002F           /* 9      (RET) */,
+  /*   850 */        0x00000030           /* 10     (FRAME) */,
+  /*   851 */        WORD(SG_MAKE_INT(9)),
+  /*   852 */        0x00000030           /* 12     (FRAME) */,
+  /*   853 */        WORD(SG_MAKE_INT(4)),
+  /*   854 */        0x00000145           /* 14     (LREF_PUSH) */,
+  /*   855 */        0x0000014A           /* 15     (GREF_CALL) */,
+  /*   856 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   857 */        0x0000000B           /* 17     (PUSH) */,
+  /*   858 */        0x0000014A           /* 18     (GREF_CALL) */,
+  /*   859 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
+  /*   860 */        0x0000000B           /* 20     (PUSH) */,
+  /*   861 */        0x00000030           /* 21     (FRAME) */,
+  /*   862 */        WORD(SG_MAKE_INT(4)),
+  /*   863 */        0x00000045           /* 23     (LREF_PUSH) */,
+  /*   864 */        0x0000014A           /* 24     (GREF_CALL) */,
+  /*   865 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
+  /*   866 */        0x0000000B           /* 26     (PUSH) */,
+  /*   867 */        0x00000431           /* 27     (ENTER) */,
+  /*   868 */        0x00000030           /* 28     (FRAME) */,
+  /*   869 */        WORD(SG_MAKE_INT(4)),
+  /*   870 */        0x00000145           /* 30     (LREF_PUSH) */,
+  /*   871 */        0x0000014A           /* 31     (GREF_CALL) */,
+  /*   872 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
+  /*   873 */        0x0000000B           /* 33     (PUSH) */,
+  /*   874 */        0x00000030           /* 34     (FRAME) */,
+  /*   875 */        WORD(SG_MAKE_INT(8)),
+  /*   876 */        0x00000245           /* 36     (LREF_PUSH) */,
+  /*   877 */        0x00000029           /* 37     (CLOSURE) */,
+  /*   878 */        WORD(SG_UNDEF)  /* <code-builder> */,
+  /*   879 */        0x0000000B           /* 39     (PUSH) */,
+  /*   880 */        0x00000345           /* 40     (LREF_PUSH) */,
+  /*   881 */        0x0000024A           /* 41     (GREF_CALL) */,
+  /*   882 */        WORD(SG_UNDEF)  /* identifier#filter */,
+  /*   883 */        0x0000000B           /* 43     (PUSH) */,
+  /*   884 */        0x0000024B           /* 44     (GREF_TAIL_CALL) */,
+  /*   885 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
+  /*   886 */        0x0000002F           /* 46     (RET) */,
+  /*   887 */        0x00000045           /* 0      (LREF_PUSH) */,
+  /*   888 */        0x00000046           /* 1      (FREF_PUSH) */,
+  /*   889 */        0x0000024B           /* 2      (GREF_TAIL_CALL) */,
+  /*   890 */        WORD(SG_UNDEF)  /* identifier#memq */,
+  /*   891 */        0x0000002F           /* 4      (RET) */,
   }
 };
 
@@ -938,108 +941,108 @@ void Sg__Init_core_enums()
 {
   SgLibrary *lib = Sg_FindLibrary(SYMBOL("(core enums)"), TRUE);
   SgLibrary *save = Sg_VM()->currentLibrary;
-  sg__wc.w[233] = WORD(&sg__wc.cb[14]);
-  sg__wc.cb[14].name = SYMBOL("enum-set=?");
-  sg__wc.w[225] = WORD(&sg__wc.cb[10]);
-  sg__wc.cb[10].name = SYMBOL("enum-set-member?");
-  sg__wc.w[407] = STRINGW("the symbol list must all belong to the universe.");
-  sg__wc.w[635] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
-  sg__wc.w[712] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
-  sg__wc.w[789] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
+  sg__wc.w[331] = STRINGW("argument 1 must be a list of symbols");
   sg__wc.w[17] = WORD(Sg_Cons(SYMBOL("immutable"), Sg_Cons(SYMBOL("indexer"), SG_NIL)));
-  sg__wc.w[245] = WORD(&sg__wc.cb[17]);
-  sg__wc.cb[17].name = SYMBOL("enum-set-difference");
+  sg__wc.w[205] = WORD(&sg__wc.cb[2]);
+  sg__wc.cb[2].name = SYMBOL("make-enumeration");
+  sg__wc.w[217] = WORD(&sg__wc.cb[5]);
+  sg__wc.cb[5].name = SYMBOL("enum-set-constructor");
+  sg__wc.w[15] = WORD(Sg_Cons(SYMBOL("immutable"), Sg_Cons(SYMBOL("universe"), SG_NIL)));
+  sg__wc.w[229] = WORD(&sg__wc.cb[11]);
+  sg__wc.cb[11].name = SYMBOL("enum-set-subset?");
+  sg__wc.w[509] = WORD(&sg__wc.cb[12]);
+  sg__wc.cb[12].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[237] = WORD(&sg__wc.cb[15]);
+  sg__wc.cb[15].name = SYMBOL("enum-set-union");
+  sg__wc.w[443] = WORD(&sg__wc.cb[9]);
+  sg__wc.cb[9].name = SYMBOL("loop");
+  sg__wc.w[407] = STRINGW("the symbol list must all belong to the universe.");
+  sg__wc.w[1] = SYMBOLW("(core enums)");
+  sg__wc.w[209] = WORD(&sg__wc.cb[3]);
+  sg__wc.cb[3].name = SYMBOL("enum-set-universe");
+  sg__wc.w[369] = WORD(&sg__wc.cb[6]);
+  sg__wc.cb[6].name = SYMBOL("enum-set-constructor");
+  sg__wc.w[116] = WORD(Sg_Cons(SYMBOL("immutable"), Sg_Cons(SYMBOL("members"), SG_NIL)));
+  sg__wc.w[387] = WORD(&sg__wc.cb[7]);
+  sg__wc.cb[7].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[529] = WORD(&sg__wc.cb[13]);
+  sg__wc.cb[13].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[114] = WORD(Sg_Cons(SYMBOL("immutable"), Sg_Cons(SYMBOL("type"), SG_NIL)));
+  sg__wc.w[249] = WORD(&sg__wc.cb[18]);
+  sg__wc.cb[18].name = SYMBOL("enum-set-complement");
+  sg__wc.w[813] = WORD(&sg__wc.cb[19]);
+  sg__wc.cb[19].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[201] = WORD(&sg__wc.cb[0]);
+  sg__wc.cb[0].name = SYMBOL("make-enumeration-type");
+  sg__wc.w[636] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
+  sg__wc.w[714] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
+  sg__wc.w[792] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
+  sg__wc.w[878] = WORD(&sg__wc.cb[21]);
+  sg__wc.cb[21].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[253] = WORD(&sg__wc.cb[20]);
+  sg__wc.cb[20].name = SYMBOL("enum-set-projection");
   sg__wc.w[290] = WORD(&sg__wc.cb[1]);
   sg__wc.cb[1].name = SG_MAKE_BOOL(FALSE);
   sg__wc.w[213] = WORD(&sg__wc.cb[4]);
   sg__wc.cb[4].name = SYMBOL("enum-set-indexer");
   sg__wc.w[221] = WORD(&sg__wc.cb[8]);
   sg__wc.cb[8].name = SYMBOL("enum-set->list");
-  sg__wc.w[15] = WORD(Sg_Cons(SYMBOL("immutable"), Sg_Cons(SYMBOL("universe"), SG_NIL)));
-  sg__wc.w[116] = WORD(Sg_Cons(SYMBOL("immutable"), Sg_Cons(SYMBOL("members"), SG_NIL)));
-  sg__wc.w[201] = WORD(&sg__wc.cb[0]);
-  sg__wc.cb[0].name = SYMBOL("make-enumeration-type");
-  sg__wc.w[237] = WORD(&sg__wc.cb[15]);
-  sg__wc.cb[15].name = SYMBOL("enum-set-union");
-  sg__wc.w[114] = WORD(Sg_Cons(SYMBOL("immutable"), Sg_Cons(SYMBOL("type"), SG_NIL)));
-  sg__wc.w[229] = WORD(&sg__wc.cb[11]);
-  sg__wc.cb[11].name = SYMBOL("enum-set-subset?");
-  sg__wc.w[509] = WORD(&sg__wc.cb[12]);
-  sg__wc.cb[12].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1] = SYMBOLW("(core enums)");
-  sg__wc.w[249] = WORD(&sg__wc.cb[18]);
-  sg__wc.cb[18].name = SYMBOL("enum-set-complement");
-  sg__wc.w[810] = WORD(&sg__wc.cb[19]);
-  sg__wc.cb[19].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[205] = WORD(&sg__wc.cb[2]);
-  sg__wc.cb[2].name = SYMBOL("make-enumeration");
-  sg__wc.w[217] = WORD(&sg__wc.cb[5]);
-  sg__wc.cb[5].name = SYMBOL("enum-set-constructor");
-  sg__wc.w[443] = WORD(&sg__wc.cb[9]);
-  sg__wc.cb[9].name = SYMBOL("loop");
-  sg__wc.w[529] = WORD(&sg__wc.cb[13]);
-  sg__wc.cb[13].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[253] = WORD(&sg__wc.cb[20]);
-  sg__wc.cb[20].name = SYMBOL("enum-set-projection");
-  sg__wc.w[875] = WORD(&sg__wc.cb[21]);
-  sg__wc.cb[21].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[331] = STRINGW("argument 1 must be a list of symbols");
+  sg__wc.w[225] = WORD(&sg__wc.cb[10]);
+  sg__wc.cb[10].name = SYMBOL("enum-set-member?");
+  sg__wc.w[233] = WORD(&sg__wc.cb[14]);
+  sg__wc.cb[14].name = SYMBOL("enum-set=?");
   sg__wc.w[241] = WORD(&sg__wc.cb[16]);
   sg__wc.cb[16].name = SYMBOL("enum-set-intersection");
-  sg__wc.w[209] = WORD(&sg__wc.cb[3]);
-  sg__wc.cb[3].name = SYMBOL("enum-set-universe");
-  sg__wc.w[369] = WORD(&sg__wc.cb[6]);
-  sg__wc.cb[6].name = SYMBOL("enum-set-constructor");
-  sg__wc.w[387] = WORD(&sg__wc.cb[7]);
-  sg__wc.cb[7].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[278] = IDENT("hashtable-set!", lib);
-  sg__wc.w[261] = IDENT("make-eq-hashtable", lib);
-  sg__wc.w[72] = IDENT("enum-type?", lib);
+  sg__wc.w[245] = WORD(&sg__wc.cb[17]);
+  sg__wc.cb[17].name = SYMBOL("enum-set-difference");
   sg__wc.w[251] = IDENT("enum-set-complement", lib);
-  sg__wc.w[239] = IDENT("enum-set-union", lib);
-  sg__wc.w[215] = IDENT("enum-set-indexer", lib);
-  sg__wc.w[235] = IDENT("enum-set=?", lib);
-  sg__wc.w[219] = IDENT("enum-set-constructor", lib);
-  sg__wc.w[243] = IDENT("enum-set-intersection", lib);
-  sg__wc.w[300] = IDENT("hashtable-ref", lib);
-  sg__wc.w[153] = sg__wc.w[54] = IDENT("record-type-rcd", lib);
-  sg__wc.w[171] = IDENT("enum-set?", lib);
-  sg__wc.w[391] = sg__wc.w[315] = sg__wc.w[538] = sg__wc.w[523] = IDENT("for-all", lib);
-  sg__wc.w[59] = sg__wc.w[293] = IDENT("make-enum-type", lib);
-  sg__wc.w[879] = sg__wc.w[824] = IDENT("filter", lib);
-  sg__wc.w[42] = sg__wc.w[141] = IDENT("make-record-type", lib);
-  sg__wc.w[312] = IDENT("symbol?", lib);
-  sg__wc.w[169] = sg__wc.w[70] = IDENT("record-predicate", lib);
-  sg__wc.w[207] = IDENT("make-enumeration", lib);
-  sg__wc.w[227] = sg__wc.w[548] = IDENT("enum-set-member?", lib);
-  sg__wc.w[255] = IDENT("enum-set-projection", lib);
-  sg__wc.w[306] = IDENT("list?", lib);
-  sg__wc.w[21] = sg__wc.w[120] = IDENT("make-record-type-descriptor", lib);
-  sg__wc.w[499] = sg__wc.w[517] = sg__wc.w[211] = IDENT("enum-set-universe", lib);
-  sg__wc.w[151] = sg__wc.w[145] = sg__wc.w[191] = sg__wc.w[177] = sg__wc.w[164] = IDENT("<enum-set>", lib);
-  sg__wc.w[333] = sg__wc.w[411] = sg__wc.w[637] = sg__wc.w[714] = sg__wc.w[791] = IDENT("assertion-violation", lib);
-  sg__wc.w[203] = sg__wc.w[322] = IDENT("make-enumeration-type", lib);
-  sg__wc.w[156] = sg__wc.w[57] = IDENT("record-constructor", lib);
-  sg__wc.w[100] = sg__wc.w[365] = IDENT("enum-type-indexer", lib);
-  sg__wc.w[80] = sg__wc.w[67] = sg__wc.w[166] = sg__wc.w[193] = sg__wc.w[179] = sg__wc.w[94] = IDENT("record-type-rtd", lib);
-  sg__wc.w[247] = IDENT("enum-set-difference", lib);
-  sg__wc.w[502] = sg__wc.w[520] = sg__wc.w[223] = IDENT("enum-set->list", lib);
-  sg__wc.w[707] = sg__wc.w[882] = sg__wc.w[784] = sg__wc.w[630] = sg__wc.w[326] = sg__wc.w[827] = sg__wc.w[402] = sg__wc.w[356] = sg__wc.w[158] = IDENT("make-enum-set", lib);
-  sg__wc.w[535] = sg__wc.w[199] = sg__wc.w[586] = sg__wc.w[739] = sg__wc.w[662] = sg__wc.w[592] = sg__wc.w[797] = sg__wc.w[484] = sg__wc.w[668] = sg__wc.w[745] = sg__wc.w[862] = sg__wc.w[433] = IDENT("enum-set-members", lib);
-  sg__wc.w[887] = sg__wc.w[686] = sg__wc.w[416] = sg__wc.w[763] = sg__wc.w[609] = sg__wc.w[543] = sg__wc.w[487] = sg__wc.w[834] = sg__wc.w[460] = IDENT("memq", lib);
-  sg__wc.w[821] = sg__wc.w[427] = sg__wc.w[353] = sg__wc.w[856] = sg__wc.w[380] = sg__wc.w[86] = IDENT("enum-type-universe", lib);
-  sg__wc.w[183] = sg__wc.w[98] = sg__wc.w[84] = sg__wc.w[197] = IDENT("record-accessor", lib);
-  sg__wc.w[567] = sg__wc.w[804] = sg__wc.w[573] = sg__wc.w[424] = sg__wc.w[350] = sg__wc.w[726] = sg__wc.w[580] = sg__wc.w[643] = sg__wc.w[342] = sg__wc.w[362] = sg__wc.w[818] = sg__wc.w[398] = sg__wc.w[656] = sg__wc.w[869] = sg__wc.w[733] = sg__wc.w[853] = sg__wc.w[377] = sg__wc.w[720] = sg__wc.w[185] = sg__wc.w[649] = IDENT("enum-set-type", lib);
-  sg__wc.w[92] = sg__wc.w[78] = sg__wc.w[65] = sg__wc.w[52] = sg__wc.w[46] = IDENT("<enum-type>", lib);
   sg__wc.w[32] = sg__wc.w[131] = IDENT("make-record-constructor-descriptor", lib);
-  sg__wc.w[231] = sg__wc.w[561] = sg__wc.w[842] = sg__wc.w[555] = IDENT("enum-set-subset?", lib);
+  sg__wc.w[278] = IDENT("hashtable-set!", lib);
+  sg__wc.w[171] = IDENT("enum-set?", lib);
+  sg__wc.w[261] = IDENT("make-eq-hashtable", lib);
+  sg__wc.w[21] = sg__wc.w[120] = IDENT("make-record-type-descriptor", lib);
+  sg__wc.w[72] = IDENT("enum-type?", lib);
+  sg__wc.w[255] = IDENT("enum-set-projection", lib);
+  sg__wc.w[215] = IDENT("enum-set-indexer", lib);
+  sg__wc.w[219] = IDENT("enum-set-constructor", lib);
+  sg__wc.w[315] = sg__wc.w[538] = sg__wc.w[523] = sg__wc.w[391] = IDENT("for-all", lib);
+  sg__wc.w[169] = sg__wc.w[70] = IDENT("record-predicate", lib);
+  sg__wc.w[312] = IDENT("symbol?", lib);
+  sg__wc.w[153] = sg__wc.w[54] = IDENT("record-type-rcd", lib);
+  sg__wc.w[203] = sg__wc.w[322] = IDENT("make-enumeration-type", lib);
+  sg__wc.w[239] = IDENT("enum-set-union", lib);
+  sg__wc.w[243] = IDENT("enum-set-intersection", lib);
+  sg__wc.w[231] = sg__wc.w[555] = sg__wc.w[561] = sg__wc.w[845] = IDENT("enum-set-subset?", lib);
+  sg__wc.w[100] = sg__wc.w[365] = IDENT("enum-type-indexer", lib);
+  sg__wc.w[92] = sg__wc.w[52] = sg__wc.w[46] = sg__wc.w[78] = sg__wc.w[65] = IDENT("<enum-type>", lib);
+  sg__wc.w[882] = sg__wc.w[827] = IDENT("filter", lib);
+  sg__wc.w[247] = IDENT("enum-set-difference", lib);
+  sg__wc.w[59] = sg__wc.w[293] = IDENT("make-enum-type", lib);
+  sg__wc.w[460] = sg__wc.w[688] = sg__wc.w[890] = sg__wc.w[837] = sg__wc.w[610] = sg__wc.w[416] = sg__wc.w[487] = sg__wc.w[766] = sg__wc.w[543] = IDENT("memq", lib);
+  sg__wc.w[235] = IDENT("enum-set=?", lib);
+  sg__wc.w[300] = IDENT("hashtable-ref", lib);
+  sg__wc.w[42] = sg__wc.w[141] = IDENT("make-record-type", lib);
+  sg__wc.w[151] = sg__wc.w[145] = sg__wc.w[191] = sg__wc.w[164] = sg__wc.w[177] = IDENT("<enum-set>", lib);
+  sg__wc.w[664] = sg__wc.w[587] = sg__wc.w[742] = sg__wc.w[535] = sg__wc.w[670] = sg__wc.w[433] = sg__wc.w[865] = sg__wc.w[800] = sg__wc.w[199] = sg__wc.w[593] = sg__wc.w[748] = sg__wc.w[484] = IDENT("enum-set-members", lib);
+  sg__wc.w[517] = sg__wc.w[499] = sg__wc.w[211] = IDENT("enum-set-universe", lib);
+  sg__wc.w[207] = IDENT("make-enumeration", lib);
+  sg__wc.w[84] = sg__wc.w[197] = sg__wc.w[183] = sg__wc.w[98] = IDENT("record-accessor", lib);
+  sg__wc.w[57] = sg__wc.w[156] = IDENT("record-constructor", lib);
+  sg__wc.w[306] = IDENT("list?", lib);
+  sg__wc.w[502] = sg__wc.w[520] = sg__wc.w[223] = IDENT("enum-set->list", lib);
+  sg__wc.w[645] = sg__wc.w[651] = sg__wc.w[856] = sg__wc.w[424] = sg__wc.w[568] = sg__wc.w[574] = sg__wc.w[185] = sg__wc.w[736] = sg__wc.w[821] = sg__wc.w[362] = sg__wc.w[581] = sg__wc.w[872] = sg__wc.w[729] = sg__wc.w[342] = sg__wc.w[398] = sg__wc.w[807] = sg__wc.w[377] = sg__wc.w[723] = sg__wc.w[350] = sg__wc.w[658] = IDENT("enum-set-type", lib);
+  sg__wc.w[859] = sg__wc.w[380] = sg__wc.w[824] = sg__wc.w[86] = sg__wc.w[353] = sg__wc.w[427] = IDENT("enum-type-universe", lib);
+  sg__wc.w[548] = sg__wc.w[227] = IDENT("enum-set-member?", lib);
+  sg__wc.w[638] = sg__wc.w[716] = sg__wc.w[794] = sg__wc.w[411] = sg__wc.w[333] = IDENT("assertion-violation", lib);
+  sg__wc.w[830] = sg__wc.w[709] = sg__wc.w[631] = sg__wc.w[158] = sg__wc.w[402] = sg__wc.w[787] = sg__wc.w[326] = sg__wc.w[885] = sg__wc.w[356] = IDENT("make-enum-set", lib);
+  sg__wc.w[67] = sg__wc.w[179] = sg__wc.w[94] = sg__wc.w[193] = sg__wc.w[166] = sg__wc.w[80] = IDENT("record-type-rtd", lib);
+  sg__wc.w[634] = SYMBOLW("enum-set-union");
   sg__wc.w[405] = SYMBOLW("enum-set-constructor");
   sg__wc.w[38] = sg__wc.w[5] = SYMBOLW("<enum-type>");
+  sg__wc.w[712] = SYMBOLW("enum-set-intersection");
   sg__wc.w[137] = sg__wc.w[104] = SYMBOLW("<enum-set>");
   sg__wc.w[329] = SYMBOLW("make-enumeration");
-  sg__wc.w[710] = SYMBOLW("enum-set-intersection");
-  sg__wc.w[633] = SYMBOLW("enum-set-union");
-  sg__wc.w[787] = SYMBOLW("enum-set-difference");
+  sg__wc.w[790] = SYMBOLW("enum-set-difference");
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(sagittarius)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(core base)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("null")));

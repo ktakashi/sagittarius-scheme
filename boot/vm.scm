@@ -34,6 +34,7 @@
     (errorf "syntax-error: ~s, irritants ~s" form irritants))
   (define (assertion-violation who msg . irr)
     (errorf "~%who: ~a~%message: ~a~%irritants: ~a" who msg irr))
+  (define (import-error? c) #t)
   )
  (else 
   (define (errorf fmt . args)
@@ -1249,8 +1250,7 @@
   (if (null? opt)
       (let ((c (compile s '()))
 	    (cl (%closure)))
-	(when *show-code*
-	  (vm-dump-code c))
+	(when *show-code* (vm-dump-code c))
 	(VM (array-data (code-builder-code c)) 0 '() cl *frame-size* (push-frame 0 '() boundaryFrameMark dummyCode 0)))
       (let ((o (string->symbol (car opt))))
 	#;(format #t "~,,,,50s~%" s)
@@ -1264,6 +1264,12 @@
 	  ((p3)
 	   (print "pass3 test")
 	   (compile-p3 s) 'done)
+	  ((p4)
+	   (print "pass4 test")
+	   (compile-p4 s) 'done)
+	  ((p5)
+	   (print "pass5 test")
+	   (compile-p5 s) 'done)
 	  ((d)
 	   (set! *debug* #t)
 	   (let ((c (compile s '()))
@@ -1684,7 +1690,7 @@
 (define *syntmp-lib* "../lib/core/syntax/template.scm")
 (define *synrule-lib* "../lib/core/syntax-rules.scm")
 
-(define *builtin-libraries* 
+(define *builtin-libraries*
   `((,*ext-lib* (sagittarius) (null) #f #f)
     (,*base-lib* (core base) (null (sagittarius)) #f #t)
     (,*core-lib* #f () #f #f)
@@ -1742,6 +1748,7 @@
 		       (sagittarius vm instruction)) #f #f)
 
     (,*enum-lib* #f () #f #t)
+
     ))
 
 (cond-expand

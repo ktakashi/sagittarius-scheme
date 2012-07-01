@@ -105,7 +105,7 @@
    (define-macro (case/unquote obj . clauses)
      (let1 tmp (gensym)
        (define (expand-clause clause)
-	 (smatch clause
+	 (match clause
 	   (((item) . body)
 	    `((eqv? ,tmp ,item) ,@body))
 	   (((item ___) . body)

@@ -13,16 +13,23 @@
  (else
   (add-dynamic-load-path "./build")))
 
-(define (main args)
-  (define (load-test-resource resource)
-    (if (file-exists? resource)
-	(call-with-input-file resource
-	  (lambda (p) 
-	    (do ((line (get-line p) (get-line p)))
-		((eof-object? line) #t)
-	      (add-load-path line))))
-	#f))
-  
+;; load test resource
+(define (load-test-resource resource)
+  (if (file-exists? resource)
+      (call-with-input-file resource
+        (lambda (p) 
+          (do ((line (get-line p) (get-line p)))
+              ((eof-object? line) #t)
+            (add-load-path line))))
+      #f))
+(or (load-test-resource ".sagittarius-r6rstestrc")
+    (add-load-path "./test/r6rs-test-suite"))
+
+(or (load-test-resource ".sagittarius-r7rstestrc")
+    (begin (add-load-path "./test/r7rs-tests")
+           (add-load-path "./ext/crypto")))
+
+(define (main args)  
   (let-values (((test) (args-fold (cdr args)
 				  '()
 				  (lambda (option name arg . seed)
@@ -36,8 +43,6 @@
       ;; for R6RS test suites
       (print "testing R6RS test suite")
       (flush-output-port (current-output-port))
-      (or (load-test-resource ".sagittarius-r6rstestrc")
-	  (add-load-path "./test/r6rs-test-suite"))
       (load "./test/r6rs-test-suite/tests/r6rs/run.sps")
       (flush-output-port (current-output-port)))
     (define (r7rs-test)
@@ -46,10 +51,7 @@
       ;; R7RS now depends alot of extension libraries...
       (setenv "R7RS_TEST" "OK")
       (print "testing R7RS tests")
-      (flush-output-port (current-output-port))
-      (or (load-test-resource ".sagittarius-r7rstestrc")
-	  (begin (add-load-path "./test/r7rs-tests")
-		 (add-load-path "./ext/crypto")))
+      (flush-output-port (current-output-port))      
       (load "./test/r7rs-tests/tests/r7rs/run.scm")
       (flush-output-port (current-output-port)))
 

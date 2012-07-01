@@ -44,7 +44,7 @@
 	    import-library
 	    vm-r6rs-mode? %map-cons
 	    p1env-lookup p1env-toplevel? p1env-pvar-lookup
-	    pass3/let-frame-size pass3/frame-size
+	    vm-frame-size
 	    print-stack-frames
 	    get-stack-trace-object
 	    set-toplevel-variable!
@@ -380,11 +380,8 @@
 				       (SG_LIBRARY lib))))
 	  (result name))))
 
-  (define-c-proc pass3/frame-size () ::<fixnum>
+  (define-c-proc vm-frame-size () ::<fixnum>
     (result SG_FRAME_SIZE))
-
-  (define-c-proc pass3/let-frame-size () ::<fixnum>
-    (result SG_LET_FRAME_SIZE))
 
   (define-c-proc print-stack-frames () ::<void>
     (Sg_VMPrintFrame))
