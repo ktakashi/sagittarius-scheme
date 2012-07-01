@@ -73,7 +73,7 @@
       (lambda ()
 	(format #t "(library (sagittarius compiler)~%")
 	(format #t "         (export compile compile-p1 compile-p2 compile-p3~%")
-	(format #t "                 compile-p4 compile-p5)~%")
+	(format #t "                 compile-p4 compile-p5~%")
 	(format #t "                 ensure-library-name)~%")
 	(format #t "         (import null (core base) ~%")
 	(format #t "                      (for (core syntax-rules) expand)~%")
@@ -100,11 +100,6 @@
 	      (else (pretty-print (extract-quasiquote-vector obj)) (newline)))
 	    (loop (read)))))))
     0))
-
-(cond-expand
- (sagittarius
-  (main (command-line)))
- (gauche 0))
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix

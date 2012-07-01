@@ -2501,13 +2501,10 @@
 	  (vm-current-library save)))))
 
 (define-pass1-syntax (library form p1env) :sagittarius
-  (define check
-    (lambda (tag clause name)
-      (or (eq? (car clause) tag)
-	  (syntax-error
-		 (format "malformed ~s clause in library ~s"
-			 tag name)
-		 clause))))
+  (define (check tag clause name)
+    (or (eq? (car clause) tag)
+	(syntax-error (format "malformed ~s clause in library ~s" tag name)
+		      clause)))
   (check-toplevel form p1env)
   (smatch form
     ((- name export
@@ -2790,8 +2787,7 @@
 ;; pass1/body-macro-expand-rec also needs these
 (define (let-syntax-parser exprs p1env old-ids)
   (let* ((ids   (rewrite-vars (imap car exprs)))
-	 (names (imap cdr ids))
-	 
+	 (names (imap cdr ids))	 
 	 (trans (map (lambda (n x)
 		       (pass1/eval-macro-rhs 'let-syntax
 			     (variable-name n)
@@ -2820,13 +2816,9 @@
 ;; Resolve all internal defines and macros so far we collect.
 (define (pass1/body-macro-expand-rec mac exprs intdefs intmacros p1env)
   (let* ((intdefs. (reverse intdefs))
-	 (vars (map car intdefs.))
+	 (vars (imap car intdefs.))
 	 ;; filter if p1env already has id
-	 (lvars (map (lambda (var)
-		       (let ((r (p1env-lookup p1env var LEXICAL)))
-			 (if (lvar? r)
-			     r
-			     (make-lvar var)))) vars))
+	 (lvars (imap make-lvar+ vars))
 	 (newenv (p1env-extend p1env (%map-cons vars lvars) LEXICAL)))
     (cond ((and (null? intdefs)
 		(null? intmacros))
@@ -2840,7 +2832,7 @@
 	   ($let #f 'rec lvars
 		 (map (lambda (lv def)
 			(pass1/body-init lv def newenv))
-		      lvars (map cdr intdefs.))
+		      lvars (imap cdr intdefs.))
 		 (pass1/body-rec
 		  (acons ($history (call-macro-expander mac (caar exprs) newenv)
 				   (caar exprs))
@@ -2873,13 +2865,9 @@
 
 (define (pass1/body-finish intdefs intmacros exprs p1env)
   (let* ((intdefs. (reverse intdefs))
-	 (vars (map car intdefs.))
+	 (vars (imap car intdefs.))
 	 ;; filter if p1env already has id
-	 (lvars (map (lambda (var)
-		       (let ((r (p1env-lookup p1env var LEXICAL)))
-			 (if (lvar? r)
-			     r
-			     (make-lvar var)))) vars))
+	 (lvars (imap make-lvar+ vars))
 	 (newenv (p1env-extend p1env (%map-cons vars lvars) LEXICAL)))
     (cond ((and (null? intdefs)
 		(null? intmacros))
@@ -2888,7 +2876,7 @@
 	   ($let #f 'rec lvars
 		 (map (lambda (lv def)
 			(pass1/body-init lv def newenv))
-		      lvars (map cdr intdefs.))
+		      lvars (imap cdr intdefs.))
 		 (pass1/body-rest exprs newenv)))
 	  (else
 	   ;; only r6rs mode
@@ -4069,31 +4057,29 @@
 (define *pass4/lambda-lifting-table* (generate-dispatch-table pass4-scan))
 
 (define (pass4/lift lambda-nodes library)
-  (let ((top-name #f)
-	(results '()))
-    (let loop ((lms lambda-nodes))
-      (cond ((null? lms))
+  (let ((top-name #f))
+    (let loop ((lms lambda-nodes) (results '()))
+      (cond ((null? lms) results)
 	    (($lambda-lifted-var (car lms))
 	     (let ((n ($lambda-name (car lms))))
 	       (set! top-name (if (identifier? n) (id-name n) n)))
 	     ($lambda-lifted-var-set! (car lms) #f)
-	     (loop (cdr lms)))
+	     (loop (cdr lms) results))
 	    (else
 	     (let* ((lm (car lms))
 		    (fvs ($lambda-free-lvars lm)))
-	       (when (or (null? fvs)
-			 (and (null? (cdr fvs))
-			      (zero? (lvar-set-count (car fvs)))
-			      (eq? (lvar-initval (car fvs)) lm)))
-		 (let ((gvar (make-identifier (gensym "#:")
-					      '() library)))
-		   ($lambda-name-set! lm (list top-name
-					       (or ($lambda-name lm)
-						   (id-name gvar))))
-		   ($lambda-lifted-var-set! lm gvar)
-		   (set! results (cons lm results))))
-	       (loop (cdr lms))))))
-    results))
+	       (if (or (null? fvs)
+		       (and (null? (cdr fvs))
+			    (zero? (lvar-set-count (car fvs)))
+			    (eq? (lvar-initval (car fvs)) lm)))
+		   (let ((gvar (make-identifier (gensym "#:")
+						'() library)))
+		     ($lambda-name-set! lm (list top-name
+						 (or ($lambda-name lm)
+						     (id-name gvar))))
+		     ($lambda-lifted-var-set! lm gvar)
+		     (loop (cdr lms) (cons lm results)))
+		   (loop (cdr lms) results))))))))
 
 (define (pass4/subst iform labels)
   ((vector-ref *pass4/subst-table* (iform-tag iform)) iform labels))
