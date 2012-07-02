@@ -69,11 +69,12 @@
     assoc cons* filter find fold-right for-each map member partition remove)
 
   (import 
-   (only (rnrs) define-syntax lambda syntax-case and identifier? syntax define syntax-rules ...
-    cons let if not pair? car cdr unless integer? >= quote procedure? do - < case-lambda number?
-    <= + * eq? null? or cond else apply list cadr caddr cadddr cddddr values zero? begin let-values
-    let* append call-with-current-continuation reverse => letrec equal? memq _ length symbol? string?
-    assertion-violation caar when memv list-ref
+   (only (rnrs) define-syntax lambda syntax-case and identifier? syntax define
+    syntax-rules ... cons let if not pair? car cdr unless integer? >= quote
+    procedure? do - < case-lambda number? <= + * eq? null? or cond else apply
+    list cadr caddr cadddr cddddr values zero? begin let-values let* append
+    call-with-current-continuation reverse => letrec equal? memq _ length
+    symbol? string? assertion-violation caar when memv list-ref
     ;; on Sagittarius these are the same as R6RS
     filter partition cons* fold-right map for-each
     caaaar caaadr caaar caadar caaddr
@@ -82,10 +83,12 @@
     cddadr cddar cdddar cddddr cdddr cddr cdr assv assq)
    (rename (rnrs) (for-all every) (exists any))
    (only (rnrs mutable-pairs) set-cdr! set-car!)
-   (only (sagittarius) receive circular-list? dotted-list? reverse! acons append!)
+   (only (sagittarius) receive circular-list? dotted-list? reverse! acons
+    append!)
    (only (sagittarius control) check-arg)
    (only (core) last-pair)
-   (only (core base) split-at null-list? delete lset-intersection take drop fold lset-difference assoc member find find-tail lset-union reduce)
+   (only (core base) split-at null-list? delete lset-intersection take drop fold
+    lset-difference assoc member find find-tail lset-union reduce)
     )
 
 ;;;
@@ -903,23 +906,54 @@
              (cons (f seed) ans))))]))
 
 
+;;(define (unfold p f g seed . maybe-tail-gen)
+;;  (check-arg procedure? p unfold)
+;;  (check-arg procedure? f unfold)
+;;  (check-arg procedure? g unfold)
+;;  (if (pair? maybe-tail-gen) ;;; so much for :optional (aghuloum)
+;;
+;;      (let ((tail-gen (car maybe-tail-gen)))
+;;	(if (pair? (cdr maybe-tail-gen))
+;;	    (apply error 'unfold "Too many arguments" p f g seed maybe-tail-gen)
+;;
+;;	    (let recur ((seed seed))
+;;	      (if (p seed)
+;;		  (tail-gen seed)
+;;		  (cons (f seed) (recur (g seed)))))))
+;;
+;;      (let recur ((seed seed))
+;;	(if (p seed)
+;;	    '()
+;;	    (cons (f seed) (recur (g seed)))))))
+
+;; originally from guile modified by Takashi Kato
 (define (unfold p f g seed . maybe-tail-gen)
+  (define (reverse+tail tail-gen lst seed)
+    (let rtlp ((lst    lst)
+	     (result (tail-gen seed)))
+      (if (null? lst)
+          result
+          (rtlp (cdr lst)
+                (cons (car lst) result)))))
+  (define (default-tail-gen x) '())
+
   (check-arg procedure? p unfold)
   (check-arg procedure? f unfold)
   (check-arg procedure? g unfold)
-  (if (pair? maybe-tail-gen) ;;; so much for :optional (aghuloum)
-
+  (if (pair? maybe-tail-gen)
       (let ((tail-gen (car maybe-tail-gen)))
-    (if (pair? (cdr maybe-tail-gen))
-        (apply error 'unfold "Too many arguments" p f g seed maybe-tail-gen)
-
-        (let recur ((seed seed))
-          (if (p seed) (tail-gen seed)
-          (cons (f seed) (recur (g seed)))))))
-
-      (let recur ((seed seed))
-    (if (p seed) '()
-        (cons (f seed) (recur (g seed)))))))
+	(if (pair? (cdr maybe-tail-gen))
+	    (apply error 'unfold "Too many arguments" p f g seed maybe-tail-gen)
+	    (let lp ((seed   seed)
+		       (result '()))
+	      (if (p seed)
+		  (reverse+tail tail-gen result seed)
+		  (lp (g seed)
+			(cons (f seed) result))))))
+      (let lp ((seed seed) (result '()))
+	(if (p seed)
+	    (reverse+tail default-tail-gen result seed)
+	    (lp (g seed) (cons (f seed) result))))))
 
 
 ;;(define (fold kons knil lis1 . lists)

@@ -1,6 +1,14 @@
+2012-07-02  Takashi Kato  <ktakashi@ymail.com>
+
+	* sitelib/srfi/%3a1/lists.scm (unfold): modified unfold tail-recursive
+	so that it does not consume too much stack.
+
+	* boot/lib/scmlib.scm (fold-right): modified fold-right tail-recursive
+	so that it does not consume too much stack.
+
 2012-06-27  Takashi Kato  <ktakashi@ymail.com>
 
-	* src/bytevector.c (Sg_ByteVectorToInteger): Fixed start and end 
+	* src/bytevector.c (Sg_ByteVectorToInteger): Fixed start and end
 	argument treatment. (it was almost ignored before).
 
 	* sitelib/sagittarius/interactive/support.scm: added interactive support

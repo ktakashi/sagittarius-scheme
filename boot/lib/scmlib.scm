@@ -7,14 +7,13 @@
 (define (hashtable->alist ht)
   (hashtable-map cons ht))
 
-(define unique-id-list?
-  (lambda (lst)
-    (and (list? lst)
-         (not (let loop ((lst lst))
-                (and (pair? lst)
-                     (or (not (variable? (car lst)))
-                         (id-memq (car lst) (cdr lst))
-                         (loop (cdr lst)))))))))
+(define (unique-id-list? lst)
+  (and (list? lst)
+       (not (let loop ((lst lst))
+              (and (pair? lst)
+                   (or (not (variable? (car lst)))
+                       (id-memq (car lst) (cdr lst))
+                       (loop (cdr lst))))))))
 
 #;(define (any pred ls)
   (if (pair? ls) (if (pred (car ls)) (car ls) (any pred (cdr ls))) #f))
@@ -37,12 +36,11 @@
 	    (identifier=? use-env a mac-env b)))
       (f expr rename compare))))
 
-(define safe-length
-  (lambda (lst)
-    (let loop ((lst lst) (n 0))
-      (if (pair? lst)
-          (loop (cdr lst) (+ n 1))
-          (or (and (null? lst) n) -1)))))
+(define (safe-length lst)
+  (let loop ((lst lst) (n 0))
+    (if (pair? lst)
+        (loop (cdr lst) (+ n 1))
+        (or (and (null? lst) n) -1))))
 
 ;; print
 (define (print . args)
@@ -61,11 +59,10 @@
 	    (loop (cdr lis) (apply proc (append (car lis) (list knil))))))))
 
 ;; from Ypsilon
-(define wrong-type-argument-message
-  (lambda (expect got . nth)
-    (if (null? nth)
-        (format "expected ~a, but got ~a" expect got)
-        (format "expected ~a, but got ~a, as argument ~a" expect got (car nth)))))
+(define (wrong-type-argument-message expect got . nth)
+  (if (null? nth)
+      (format "expected ~a, but got ~a" expect got)
+      (format "expected ~a, but got ~a, as argument ~a" expect got (car nth))))
 
 
 (define (vector-map proc vec1 . vec2)
@@ -81,78 +78,73 @@
   (apply for-each proc (string->list str1)
 	 (map string->list str2)))
 
-;;;;
-;; record
+;;;; record
 ;; NB: this functions is because of my lazyness.
 ;;     it's kinda hard to implement in C. so we just lookup this in C.
-(define record-printer
-  (lambda (inst . port)
-    (let ((p (if (null? port)
-		 (current-output-port)
-		 (car port)))
-	  (rtd (tuple-ref inst 0)))
-      (format p "#<record ~s ~a~a ~a>"
-	      (record-type-name rtd)
-	      (if (record-type-opaque? rtd) "opaque " "")
-	      (if (record-type-sealed? rtd) "sealed " "")
-	      (let ((len (tuple-size inst)))
-		(let loop ((i 1)
-			   (r '()))
-		  (if (= i len)
-		      (reverse! r)
-		      (loop (+ i 1) (cons (tuple-ref inst i) r)))))))))
+(define (record-printer inst . port)
+  (let ((p (if (null? port)
+               (current-output-port)
+               (car port)))
+        (rtd (tuple-ref inst 0)))
+    (format p "#<record ~s ~a~a ~a>"
+            (record-type-name rtd)
+            (if (record-type-opaque? rtd) "opaque " "")
+            (if (record-type-sealed? rtd) "sealed " "")
+            (let ((len (tuple-size inst)))
+              (let loop ((i 1)
+                         (r '()))
+                (if (= i len)
+                    (reverse! r)
+                    (loop (+ i 1) (cons (tuple-ref inst i) r))))))))
 
 
 ;; from Ypsilon
-(define make-nested-conser
-  (lambda (desc rtd argc)
-    ((rcd-protocol desc)
-     ((let loop ((desc desc))
-	(cond ((rcd-parent desc)
-	       => (lambda (parent)
-		    (lambda extra-field-values
-		      (lambda protocol-args
-			(lambda this-field-values
-			  (apply ((rcd-protocol parent)
-				  (apply (loop parent)
-					 (append this-field-values extra-field-values)))
-				 protocol-args))))))
-	      (else
-	       (lambda extra-field-values
-		 (lambda this-field-values
-		   (let ((field-values (append this-field-values extra-field-values)))
-		     (if (= (length field-values) argc)
-			 (let ((tuple (make-tuple (+ (length field-values) 1) record-printer))
-			       (all-valeus (append (list rtd) field-values)))
-			   (tuple-list-set! tuple all-valeus)
-			   tuple)
-			 (assertion-violation "record constructor" "wrong number of arguments" field-values))))))))))))
+(define (make-nested-conser desc rtd argc)
+  ((rcd-protocol desc)
+   ((let loop ((desc desc))
+      (cond ((rcd-parent desc)
+             => (lambda (parent)
+                  (lambda extra-field-values
+                    (lambda protocol-args
+                      (lambda this-field-values
+                        (apply ((rcd-protocol parent)
+                                (apply (loop parent)
+                                       (append this-field-values extra-field-values)))
+                               protocol-args))))))
+            (else
+             (lambda extra-field-values
+               (lambda this-field-values
+                 (let ((field-values (append this-field-values extra-field-values)))
+                   (if (= (length field-values) argc)
+                       (let ((tuple (make-tuple (+ (length field-values) 1) record-printer))
+                             (all-valeus (append (list rtd) field-values)))
+                         (tuple-list-set! tuple all-valeus)
+                         tuple)
+                       (assertion-violation "record constructor" "wrong number of arguments" field-values)))))))))))
 
-(define make-simple-conser
-  (lambda (desc rtd argc)
-    ((rcd-protocol desc)
-     (lambda field-values
-       (if (= (length field-values) argc)
-	   (let ((tuple (make-tuple (+ (length field-values) 1) record-printer))
-		 (all-valeus (append (list rtd) field-values)))
-	     (tuple-list-set! tuple all-valeus)
-	     tuple)
-	   (assertion-violation "record constructor" "wrong number of arguments" field-values))))))
+(define (make-simple-conser desc rtd argc)
+  ((rcd-protocol desc)
+   (lambda field-values
+     (if (= (length field-values) argc)
+         (let ((tuple (make-tuple (+ (length field-values) 1) record-printer))
+               (all-valeus (append (list rtd) field-values)))
+           (tuple-list-set! tuple all-valeus)
+           tuple)
+         (assertion-violation "record constructor" "wrong number of arguments" field-values)))))
 
-(define default-protocol
-  (lambda (rtd)
-    (let ((parent (record-type-parent rtd)))
-      (if parent
-          (let ((parent-field-count (rtd-total-field-count parent)))
-            (lambda (p)
-              (lambda field-values
-                (receive (parent-field-values this-field-values) (split-at field-values parent-field-count)
-                  (apply (apply p parent-field-values) this-field-values)))))
+(define (default-protocol rtd)
+  (let ((parent (record-type-parent rtd)))
+    (if parent
+        (let ((parent-field-count (rtd-total-field-count parent)))
           (lambda (p)
             (lambda field-values
-              (apply p field-values)))))))
+              (receive (parent-field-values this-field-values) (split-at field-values parent-field-count)
+                (apply (apply p parent-field-values) this-field-values)))))
+        (lambda (p)
+          (lambda field-values
+            (apply p field-values))))))
 
-;;;;;
+;;;;
 ;; from Ypsilon
 
 ;; from srfi-1 start
@@ -161,17 +153,16 @@
 	((null? l) #t)
 	(else (assertion-violation 'null-list? "argument out of domain" l))))
 
-(define split-at
-  (lambda (x k)
-    (or (integer? k)
-	(assertion-violation 'split-at
-			     (wrong-type-argument-message "integer" k 2)))
-    (let recur ((lis x) (k k))
-      (if (zero? k)
-	  (values '() lis)
-	  (receive (prefix suffix)
-	      (recur (cdr lis) (- k 1))
-	    (values (cons (car lis) prefix) suffix))))))
+(define (split-at x k)
+  (or (integer? k)
+      (assertion-violation 'split-at
+                           (wrong-type-argument-message "integer" k 2)))
+  (let recur ((lis x) (k k))
+    (if (zero? k)
+        (values '() lis)
+        (receive (prefix suffix)
+            (recur (cdr lis) (- k 1))
+          (values (cons (car lis) prefix) suffix)))))
 
 (define (find pred list)
   (cond ((find-tail pred list) => car)
@@ -321,125 +312,117 @@
 ;;    ((_ little) 'little)
 ;;    ((_ native) (native-endianness))))
 
-(define bytevector-uint-ref
-  (lambda (bv index endien size)
-    (cond ((eq? endien 'big)
-	   (let ((end (+ index size)))
-	     (let loop ((i index) (acc 0))
-	       (if (>= i end)
-		   acc
-		   (loop (+ i 1) (+ (* 256 acc) (bytevector-u8-ref bv i)))))))
-	  ((eq? endien 'little)
-	   (let loop ((i (+ index size -1)) (acc 0))
-	     (if (< i index)
-		 acc
-		 (loop (- i 1) (+ (* 256 acc) (bytevector-u8-ref bv i))))))
-	  (else
-	   (assertion-violation 'bytevector-uint-ref
-				(format "expected endianness, but got ~r, as argument 3" endien)
-				(list bv index endien size))))))
+(define (bytevector-uint-ref bv index endien size)
+  (cond ((eq? endien 'big)
+         (let ((end (+ index size)))
+           (let loop ((i index) (acc 0))
+             (if (>= i end)
+                 acc
+                 (loop (+ i 1) (+ (* 256 acc) (bytevector-u8-ref bv i)))))))
+        ((eq? endien 'little)
+         (let loop ((i (+ index size -1)) (acc 0))
+           (if (< i index)
+               acc
+               (loop (- i 1) (+ (* 256 acc) (bytevector-u8-ref bv i))))))
+        (else
+         (assertion-violation 'bytevector-uint-ref
+                              (format "expected endianness, but got ~r, as argument 3" endien)
+                              (list bv index endien size)))))
 
-(define bytevector-sint-ref
-  (lambda (bv index endien size)
-    (cond ((eq? endien 'big)
-	   (if (> (bytevector-u8-ref bv index) 127)
-	       (- (bytevector-uint-ref bv index endien size) (expt 256 size))
-	       (bytevector-uint-ref bv index endien size)))
-	  ((eq? endien 'little)
-	   (if (> (bytevector-u8-ref bv (+ index size -1)) 127)
-	       (- (bytevector-uint-ref bv index endien size) (expt 256 size))
-	       (bytevector-uint-ref bv index endien size)))
-	  (else
-	   (assertion-violation 'bytevector-uint-ref
-				(format "expected endianness, but got ~r, as argument 3" endien)
-				(list bv index endien size))))))
+(define (bytevector-sint-ref bv index endien size)
+  (cond ((eq? endien 'big)
+         (if (> (bytevector-u8-ref bv index) 127)
+             (- (bytevector-uint-ref bv index endien size) (expt 256 size))
+             (bytevector-uint-ref bv index endien size)))
+        ((eq? endien 'little)
+         (if (> (bytevector-u8-ref bv (+ index size -1)) 127)
+             (- (bytevector-uint-ref bv index endien size) (expt 256 size))
+             (bytevector-uint-ref bv index endien size)))
+        (else
+         (assertion-violation 'bytevector-uint-ref
+                              (format "expected endianness, but got ~r, as argument 3" endien)
+                              (list bv index endien size)))))
 
-(define bytevector-uint-set!
-  (lambda (bv index val endien size)
-    (cond ((= val 0)
-	   (let ((end (+ index size)))
-	     (let loop ((i index))
-	       (cond ((>= i end) (undefined))
-		     (else
-		      (bytevector-u8-set! bv i 0)
-		      (loop (+ i 1)))))))
-	  ((< 0 val (expt 256 size))
-	   (cond ((eq? endien 'big)
-		  (let ((start (- (+ index size) 1)))
-		    (let loop ((i start) (acc val))
-		      (cond ((< i index) (undefined))
-			    (else
-			     ;; mod256 -> bitwise-and
-			     (bytevector-u8-set! bv i (bitwise-and acc 255))
-			     ;; div256 -> bitwise-arithmetic-shift
-			     (loop (- i 1) (bitwise-arithmetic-shift acc -8)))))))
-		 ((eq? endien 'little)
-		  (let ((end (+ index size)))
-		    (let loop ((i index) (acc val))
-		      (cond ((>= i end) (undefined))
-			    (else
-			     ;; mod256 -> bitwise-and
-			     (bytevector-u8-set! bv i (bitwise-and acc 255))
-			     ;; div256 -> bitwise-arithmetic-shift
-			     (loop (+ i 1) (bitwise-arithmetic-shift acc -8)))))))))
-	  (else
-	   (assertion-violation 'bytevector-uint-set!
-				(format "value out of range, ~s as argument 3" val)
-				(list bv index val endien size))))
-    (undefined)))
+(define (bytevector-uint-set! bv index val endien size)
+  (cond ((= val 0)
+         (let ((end (+ index size)))
+           (let loop ((i index))
+             (cond ((>= i end) (undefined))
+                   (else
+                    (bytevector-u8-set! bv i 0)
+                    (loop (+ i 1)))))))
+        ((< 0 val (expt 256 size))
+         (cond ((eq? endien 'big)
+                (let ((start (- (+ index size) 1)))
+                  (let loop ((i start) (acc val))
+                    (cond ((< i index) (undefined))
+                          (else
+                           ;; mod256 -> bitwise-and
+                           (bytevector-u8-set! bv i (bitwise-and acc 255))
+                           ;; div256 -> bitwise-arithmetic-shift
+                           (loop (- i 1) (bitwise-arithmetic-shift acc -8)))))))
+               ((eq? endien 'little)
+                (let ((end (+ index size)))
+                  (let loop ((i index) (acc val))
+                    (cond ((>= i end) (undefined))
+                          (else
+                           ;; mod256 -> bitwise-and
+                           (bytevector-u8-set! bv i (bitwise-and acc 255))
+                           ;; div256 -> bitwise-arithmetic-shift
+                           (loop (+ i 1) (bitwise-arithmetic-shift acc -8)))))))))
+        (else
+         (assertion-violation 'bytevector-uint-set!
+                              (format "value out of range, ~s as argument 3" val)
+                              (list bv index val endien size))))
+  (undefined))
 
-(define bytevector-sint-set!
-  (lambda (bv index val endien size)
-    (let* ((p-bound (expt 2 (- (* size 8) 1)))
-	   (n-bound (- (+ p-bound 1))))
-      (if (< n-bound val p-bound)
-	  (if (> val 0)
-	      (bytevector-uint-set! bv index val endien size)
-	      (bytevector-uint-set! bv index (+ val (expt 256 size)) endien size))
-	  (assertion-violation 'bytevector-sint-set!
-			       (format "value out of range, ~s as argument 3" val)
-			       (list bv index val endien size))))
-    (undefined)))
+(define (bytevector-sint-set! bv index val endien size)
+  (let* ((p-bound (expt 2 (- (* size 8) 1)))
+         (n-bound (- (+ p-bound 1))))
+    (if (< n-bound val p-bound)
+        (if (> val 0)
+            (bytevector-uint-set! bv index val endien size)
+            (bytevector-uint-set! bv index (+ val (expt 256 size)) endien size))
+        (assertion-violation 'bytevector-sint-set!
+                             (format "value out of range, ~s as argument 3" val)
+                             (list bv index val endien size))))
+  (undefined))
 
-(define bytevector->uint-list
-  (lambda (bv endien size)
-    (let loop ((i (- (bytevector-length bv) size)) (acc '()))
-      (if (> i -1)
-	  (loop (- i size) (cons (bytevector-uint-ref bv i endien size) acc))
-	  (if (= i (- size))
-	      acc
-	      (assertion-violation 'bytevector->uint-list
-				   (format "expected appropriate element size as argument 3, but got ~r" size)
-				   (list bv endien size)))))))
+(define (bytevector->uint-list bv endien size)
+  (let loop ((i (- (bytevector-length bv) size)) (acc '()))
+    (if (> i -1)
+        (loop (- i size) (cons (bytevector-uint-ref bv i endien size) acc))
+        (if (= i (- size))
+            acc
+            (assertion-violation 'bytevector->uint-list
+                                 (format "expected appropriate element size as argument 3, but got ~r" size)
+                                 (list bv endien size))))))
 
-(define bytevector->sint-list
-  (lambda (bv endien size)
-    (let loop ((i (- (bytevector-length bv) size)) (acc '()))
-      (if (> i -1)
-	  (loop (- i size) (cons (bytevector-sint-ref bv i endien size) acc))
-	  (if (= i (- size))
-	      acc
-	      (assertion-violation 'bytevector->sint-list
-				   (format "expected appropriate element size as argument 3, but got ~r" size)
-				   (list bv endien size)))))))
+(define (bytevector->sint-list bv endien size)
+  (let loop ((i (- (bytevector-length bv) size)) (acc '()))
+    (if (> i -1)
+        (loop (- i size) (cons (bytevector-sint-ref bv i endien size) acc))
+        (if (= i (- size))
+            acc
+            (assertion-violation 'bytevector->sint-list
+                                 (format "expected appropriate element size as argument 3, but got ~r" size)
+                                 (list bv endien size))))))
 
-(define uint-list->bytevector
-  (lambda (lst endien size)
-    (let ((bv (make-bytevector (* size (length lst)))))
-      (let loop ((i 0) (lst lst))
-	(cond ((null? lst) bv)
-	      (else
-	       (bytevector-uint-set! bv i (car lst) endien size)
-	       (loop (+ i size) (cdr lst))))))))
+(define (uint-list->bytevector lst endien size)
+  (let ((bv (make-bytevector (* size (length lst)))))
+    (let loop ((i 0) (lst lst))
+      (cond ((null? lst) bv)
+            (else
+             (bytevector-uint-set! bv i (car lst) endien size)
+             (loop (+ i size) (cdr lst)))))))
 
-(define sint-list->bytevector
-  (lambda (lst endien size)
-    (let ((bv (make-bytevector (* size (length lst)))))
-      (let loop ((i 0) (lst lst))
-	(cond ((null? lst) bv)
-	      (else
-	       (bytevector-sint-set! bv i (car lst) endien size)
-	       (loop (+ i size) (cdr lst))))))))
+(define (sint-list->bytevector lst endien size)
+  (let ((bv (make-bytevector (* size (length lst)))))
+    (let loop ((i 0) (lst lst))
+      (cond ((null? lst) bv)
+            (else
+             (bytevector-sint-set! bv i (car lst) endien size)
+             (loop (+ i size) (cdr lst)))))))
 
 ;; 3 list utilities
 ;; from Ypsilon
@@ -457,132 +440,118 @@
 ;;	  (else
 ;;	   (assertion-violation 'find (format "expected chain of pairs, but got ~s, as argument 2" lst) (list pred lst))))))
 
-(define for-all
-  (lambda (pred lst1 . lst2)
-    (define for-all-n
-      (lambda (pred list-of-lists)
-	(let ((argc (length list-of-lists)))
-	  (define collect-cdr
-	    (lambda (lst)
-	      (let loop ((lst lst))
-		(cond ((null? lst) '())
-		      ((null? (cdar lst)) (loop (cdr lst)))
-		      (else (cons (cdar lst) (loop (cdr lst))))))))
-	  (define collect-car
-	    (lambda (lst)
-	      (let loop ((lst lst))
-		(cond ((null? lst) '())
-		      ((pair? (car lst))
-		       (cons (caar lst) (loop (cdr lst))))
-		      (else
-		       (assertion-violation 'for-all (format "traversal reached to non-pair element ~s" (car lst)) list-of-lists))))))
+(define (for-all pred lst1 . lst2)
+  (define (for-all-n pred list-of-lists)
+    (let ((argc (length list-of-lists)))
+      (define (collect-cdr lst)
+        (let loop ((lst lst))
+          (cond ((null? lst) '())
+                ((null? (cdar lst)) (loop (cdr lst)))
+                (else (cons (cdar lst) (loop (cdr lst)))))))
+      (define (collect-car lst)
+        (let loop ((lst lst))
+          (cond ((null? lst) '())
+                ((pair? (car lst))
+                 (cons (caar lst) (loop (cdr lst))))
+                (else
+                 (assertion-violation 'for-all (format "traversal reached to non-pair element ~s" (car lst)) list-of-lists)))))
 
-	  (let loop ((head (collect-car list-of-lists)) (rest (collect-cdr list-of-lists)))
-	    (or (= (length head) argc)
-		(assertion-violation 'for-all "expected same length chains of pairs" list-of-lists))
-	    (if (null? rest)
-		(apply pred head)
-		(and (apply pred head)
-		     (loop (collect-car rest) (collect-cdr rest))))))))
+      (let loop ((head (collect-car list-of-lists)) (rest (collect-cdr list-of-lists)))
+        (or (= (length head) argc)
+            (assertion-violation 'for-all "expected same length chains of pairs" list-of-lists))
+        (if (null? rest)
+            (apply pred head)
+            (and (apply pred head)
+                 (loop (collect-car rest) (collect-cdr rest)))))))
 
-    (define for-all-n-quick
-      (lambda (pred lst)
-	(or (null? lst)
-	    (let loop ((head (car lst)) (rest (cdr lst)))
-	      (if (null? rest)
-		  (apply pred head)
-		  (and (apply pred head)
-		       (loop (car rest) (cdr rest))))))))
+  (define (for-all-n-quick pred lst)
+    (or (null? lst)
+        (let loop ((head (car lst)) (rest (cdr lst)))
+          (if (null? rest)
+              (apply pred head)
+              (and (apply pred head)
+                   (loop (car rest) (cdr rest)))))))
 
-    (define for-all-1
-      (lambda (pred lst)
-	(cond ((null? lst) #t)
-	      ((pair? lst)
-	       (let loop ((head (car lst)) (rest (cdr lst)))
-		 (cond ((null? rest) (pred head))
-		       ((pair? rest)
-			(and (pred head)
-			     (loop (car rest) (cdr rest))))
-		       (else
-			(and (pred head)
-			     (assertion-violation 'for-all (format "traversal reached to non-pair element ~s" rest) (list pred lst)))))))
-	      (else
-	       (assertion-violation 'for-all (format "expected chain of pairs, but got ~a, as argument 2" lst) (list pred lst))))))
+  (define (for-all-1 pred lst)
+    (cond ((null? lst) #t)
+          ((pair? lst)
+           (let loop ((head (car lst)) (rest (cdr lst)))
+             (cond ((null? rest) (pred head))
+                   ((pair? rest)
+                    (and (pred head)
+                         (loop (car rest) (cdr rest))))
+                   (else
+                    (and (pred head)
+                         (assertion-violation 'for-all (format "traversal reached to non-pair element ~s" rest) (list pred lst)))))))
+          (else
+           (assertion-violation 'for-all (format "expected chain of pairs, but got ~a, as argument 2" lst) (list pred lst)))))
 
-    (cond ((null? lst2)
-	   (for-all-1 pred lst1))
-	  ((apply list-transpose+ lst1 lst2)
-	   => (lambda (lst) (for-all-n-quick pred lst)))
-	  (else
-	   (for-all-n pred (cons lst1 lst2))))))
+  (cond ((null? lst2)
+         (for-all-1 pred lst1))
+        ((apply list-transpose+ lst1 lst2)
+         => (lambda (lst) (for-all-n-quick pred lst)))
+        (else
+         (for-all-n pred (cons lst1 lst2)))))
 
-(define exists
-  (lambda (pred lst1 . lst2)
-    (define exists-1
-      (lambda (pred lst)
-	(cond ((null? lst) #f)
-	      ((pair? lst)
-	       (let loop ((head (car lst)) (rest (cdr lst)))
-		 (cond ((null? rest) (pred head))
-		       ((pred head))
-		       ((pair? rest) (loop (car rest) (cdr rest)))
-		       (else
-			(assertion-violation 'exists (format "traversal reached to non-pair element ~s" rest) (list pred lst))))))
-	      (else
-	       (assertion-violation 'exists (format "expected chain of pairs, but got ~a, as argument 2" lst) (list pred lst))))))
-    (define exists-n-quick
-      (lambda (pred lst)
-	(and (pair? lst)
-	     (let loop ((head (car lst)) (rest (cdr lst)))
-	       (if (null? rest)
-		   (apply pred head)
-		   (or (apply pred head)
-		       (loop (car rest) (cdr rest))))))))
-    (define exists-n
-      (lambda (pred list-of-lists)
-	(let ((argc (length list-of-lists)))
-	  (define collect-cdr
-	    (lambda (lst)
-	      (let loop ((lst lst))
-		(cond ((null? lst) '())
-		      ((null? (cdar lst)) (loop (cdr lst)))
-		      (else (cons (cdar lst) (loop (cdr lst))))))))
-	  (define collect-car
-	    (lambda (lst)
-	      (let loop ((lst lst))
-		(cond ((null? lst) '())
-		      ((pair? (car lst))
-		       (cons (caar lst) (loop (cdr lst))))
-		      (else
-		       (assertion-violation 'exists (format "traversal reached to non-pair element ~s" (car lst)) list-of-lists))))))
+(define (exists pred lst1 . lst2)
+  (define (exists-1 pred lst)
+    (cond ((null? lst) #f)
+          ((pair? lst)
+           (let loop ((head (car lst)) (rest (cdr lst)))
+             (cond ((null? rest) (pred head))
+                   ((pred head))
+                   ((pair? rest) (loop (car rest) (cdr rest)))
+                   (else
+                    (assertion-violation 'exists (format "traversal reached to non-pair element ~s" rest) (list pred lst))))))
+          (else
+           (assertion-violation 'exists (format "expected chain of pairs, but got ~a, as argument 2" lst) (list pred lst)))))
+  (define (exists-n-quick pred lst)
+    (and (pair? lst)
+         (let loop ((head (car lst)) (rest (cdr lst)))
+           (if (null? rest)
+               (apply pred head)
+               (or (apply pred head)
+                   (loop (car rest) (cdr rest)))))))
+  (define (exists-n pred list-of-lists)
+    (let ((argc (length list-of-lists)))
+      (define (collect-cdr lst)
+        (let loop ((lst lst))
+          (cond ((null? lst) '())
+                ((null? (cdar lst)) (loop (cdr lst)))
+                (else (cons (cdar lst) (loop (cdr lst)))))))
+      (define (collect-car lst)
+        (let loop ((lst lst))
+          (cond ((null? lst) '())
+                ((pair? (car lst))
+                 (cons (caar lst) (loop (cdr lst))))
+                (else
+                 (assertion-violation 'exists (format "traversal reached to non-pair element ~s" (car lst)) list-of-lists)))))
 
-	  (let loop ((head (collect-car list-of-lists)) (rest (collect-cdr list-of-lists)))
-	    (or (= (length head) argc)
-		(assertion-violation 'exists "expected same length chains of pairs" list-of-lists))
-	    (if (null? rest)
-		(apply pred head)
-		(or (apply pred head)
-		    (loop (collect-car rest) (collect-cdr rest))))))))
-    (cond ((null? lst2)
-	   (exists-1 pred lst1))
-	  ((apply list-transpose+ lst1 lst2)
-	   => (lambda (lst) (exists-n-quick pred lst)))
-	  (else
-	   (exists-n pred (cons lst1 lst2))))))
+      (let loop ((head (collect-car list-of-lists)) (rest (collect-cdr list-of-lists)))
+        (or (= (length head) argc)
+            (assertion-violation 'exists "expected same length chains of pairs" list-of-lists))
+        (if (null? rest)
+            (apply pred head)
+            (or (apply pred head)
+                (loop (collect-car rest) (collect-cdr rest)))))))
+  (cond ((null? lst2)
+         (exists-1 pred lst1))
+        ((apply list-transpose+ lst1 lst2)
+         => (lambda (lst) (exists-n-quick pred lst)))
+        (else
+         (exists-n pred (cons lst1 lst2)))))
 
-(define filter
-  (lambda (pred lst)
-    (let loop ((lst lst))
-      (cond ((null? lst) '())
-	    ((pred (car lst)) (cons (car lst) (loop (cdr lst))))
-	    (else (loop (cdr lst)))))))
+(define (filter pred lst)
+  (let loop ((lst lst))
+    (cond ((null? lst) '())
+          ((pred (car lst)) (cons (car lst) (loop (cdr lst))))
+          (else (loop (cdr lst))))))
 
-(define partition
-  (lambda (pred lst)
-    (let loop ((lst lst) (acc1 '()) (acc2 '()))
-      (cond ((null? lst) (values (reverse acc1) (reverse acc2)))
-	    ((pred (car lst)) (loop (cdr lst) (cons (car lst) acc1) acc2))
-	    (else (loop (cdr lst) acc1 (cons (car lst) acc2)))))))
+(define (partition pred lst)
+  (let loop ((lst lst) (acc1 '()) (acc2 '()))
+    (cond ((null? lst) (values (reverse acc1) (reverse acc2)))
+          ((pred (car lst)) (loop (cdr lst) (cons (car lst) acc1) acc2))
+          (else (loop (cdr lst) acc1 (cons (car lst) acc2))))))
 
 (define (map proc lst1 . lst2)
   (if (null? lst2)
@@ -631,226 +600,223 @@
 	    knil 
 	    (loop (cdr lis) (apply proc knil (car lis)))))))
 
+;; tail recursive version
 (define (fold-right proc seed lst1 . lst2)
   (if (null? lst2)
-      (let loop ((lis lst1))
+      (let loop ((lis (reverse lst1))
+		 (result seed))
 	(if (null-list? lis)
-	    seed 
-	    (proc (car lis) (loop (cdr lis)))))
-      (let loop ((lis (apply list-transpose* lst1 lst2)) (knil seed))
+	    result
+	    (loop (cdr lis)
+		  (proc (car lis) result))))
+      (let loop ((lis (reverse! (apply list-transpose* lst1 lst2))) (knil seed))
 	(if (null-list? lis)
-	    knil 
-	    (apply proc (append! (car lis) (list (loop (cdr lis) knil))))))))
+	    knil
+	    (loop (cdr lis)
+		  (apply proc (append! (car lis) (list knil))))))))
 
-(define remp
-  (lambda (pred lst)
-    (let loop ((lst lst))
-      (cond ((null? lst) '())
-	    ((pred (car lst))
-	     (loop (cdr lst)))
-	    (else
-	     (cons (car lst)
-		   (loop (cdr lst))))))))
+;;(define (fold-right proc seed lst1 . lst2)
+;;  (if (null? lst2)
+;;      (let loop ((lis lst1))
+;;	(if (null-list? lis)
+;;	    seed 
+;;	    (proc (car lis) (loop (cdr lis)))))
+;;      (let loop ((lis (apply list-transpose* lst1 lst2)) (knil seed))
+;;	(if (null-list? lis)
+;;	    knil 
+;;	    (apply proc (append! (car lis) (list (loop (cdr lis) knil))))))))
 
-(define remove
-  (lambda (obj lst)
-    (let loop ((lst lst))
-      (cond ((null? lst) '())
-	    ((equal? (car lst) obj)
-	     (loop (cdr lst)))
-	    (else
-	     (cons (car lst)
-		   (loop (cdr lst))))))))
+(define (remp pred lst)
+  (let loop ((lst lst))
+    (cond ((null? lst) '())
+          ((pred (car lst))
+           (loop (cdr lst)))
+          (else
+           (cons (car lst)
+                 (loop (cdr lst)))))))
 
-(define remv
-  (lambda (obj lst)
-    (let loop ((lst lst))
-      (cond ((null? lst) '())
-	    ((eqv? (car lst) obj)
-	     (loop (cdr lst)))
-	    (else
-	     (cons (car lst)
-		   (loop (cdr lst))))))))
+(define (remove obj lst)
+  (let loop ((lst lst))
+    (cond ((null? lst) '())
+          ((equal? (car lst) obj)
+           (loop (cdr lst)))
+          (else
+           (cons (car lst)
+                 (loop (cdr lst)))))))
 
-(define remq
-  (lambda (obj lst)
-    (let loop ((lst lst))
-      (cond ((null? lst) '())
-	    ((eq? (car lst) obj)
-	     (loop (cdr lst)))
-	    (else
-	     (cons (car lst)
-		   (loop (cdr lst))))))))
+(define (remv obj lst)
+  (let loop ((lst lst))
+    (cond ((null? lst) '())
+          ((eqv? (car lst) obj)
+           (loop (cdr lst)))
+          (else
+           (cons (car lst)
+                 (loop (cdr lst)))))))
 
-(define memp
-  (lambda (proc lst)
-    (cond
-     ((null? lst) #f)
-     ((proc (car lst)) lst)
-     (else
-      (memp proc (cdr lst))))))
+(define (remq obj lst)
+  (let loop ((lst lst))
+    (cond ((null? lst) '())
+          ((eq? (car lst) obj)
+           (loop (cdr lst)))
+          (else
+           (cons (car lst)
+                 (loop (cdr lst)))))))
 
-(define assp
-  (lambda (proc lst)
-    (cond
-     ((null? lst) #f)
-     ((proc (caar lst)) (car lst))
-     (else
-      (assp proc (cdr lst))))))
+(define (memp proc lst)
+  (cond
+   ((null? lst) #f)
+   ((proc (car lst)) lst)
+   (else
+    (memp proc (cdr lst)))))
+
+(define (assp proc lst)
+  (cond
+   ((null? lst) #f)
+   ((proc (caar lst)) (car lst))
+   (else
+    (assp proc (cdr lst)))))
 
 ;;;;
 ;; 4 Sorting
 ;; from Ypsilon
-(define list-sort
-  (lambda (proc lst)
+(define (list-sort proc lst)
 
-    (define merge
-      (lambda (lst1 lst2)
-        (cond
-         ((null? lst1) lst2)
-         ((null? lst2) lst1)
-         (else
-          (if (proc (car lst2) (car lst1))
-              (cons (car lst2) (merge lst1 (cdr lst2)))
-              (cons (car lst1) (merge (cdr lst1) lst2)))))))
+  (define (merge lst1 lst2)
+    (cond
+     ((null? lst1) lst2)
+     ((null? lst2) lst1)
+     (else
+      (if (proc (car lst2) (car lst1))
+          (cons (car lst2) (merge lst1 (cdr lst2)))
+          (cons (car lst1) (merge (cdr lst1) lst2))))))
 
-    (define sort
-      (lambda (lst n)
-        (cond ((= n 1)
-               (list (car lst)))
-              ((= n 2)
-               (if (proc (cadr lst) (car lst))
-                   (list (cadr lst) (car lst))
-                   (list (car lst) (cadr lst))))
-              (else
-               (let ((n/2 (div n 2)))
-                 (merge (sort lst n/2)
-                        (sort (list-tail lst n/2) (- n n/2))))))))
-
-    (define divide
-      (lambda (lst)
-        (let loop ((acc 1) (lst lst))
-          (cond ((null? (cdr lst)) (values acc '()))
-                (else
-                 (if (proc (car lst) (cadr lst))
-                     (loop (+ acc 1) (cdr lst))
-                     (values acc (cdr lst))))))))
-
-    (cond ((null? lst) '())
+  (define (sort lst n)
+    (cond ((= n 1)
+           (list (car lst)))
+          ((= n 2)
+           (if (proc (cadr lst) (car lst))
+               (list (cadr lst) (car lst))
+               (list (car lst) (cadr lst))))
           (else
-           (let ((len (length lst)))
-             (receive (n rest) (divide lst)
-               (cond ((null? rest) lst)
-                     (else
-                      (merge (list-head lst n)
-                             (sort rest (- len n)))))))))))
+           (let ((n/2 (div n 2)))
+             (merge (sort lst n/2)
+                    (sort (list-tail lst n/2) (- n n/2)))))))
 
-(define vector-sort
-  (lambda (proc vect)
-    (let ((lst (vector->list vect)))
-      (let ((lst2 (list-sort proc lst)))
-	(cond ((eq? lst lst2) vect)
-	      (else
-	       (list->vector lst2)))))))
+  (define (divide lst)
+    (let loop ((acc 1) (lst lst))
+      (cond ((null? (cdr lst)) (values acc '()))
+            (else
+             (if (proc (car lst) (cadr lst))
+                 (loop (+ acc 1) (cdr lst))
+                 (values acc (cdr lst)))))))
 
-(define vector-sort!
-  (lambda (proc vect)
-    (let* ((n (vector-length vect)) (work (make-vector (+ (div n 2) 1))))
+  (cond ((null? lst) '())
+        (else
+         (let ((len (length lst)))
+           (receive (n rest) (divide lst)
+             (cond ((null? rest) lst)
+                   (else
+                    (merge (list-head lst n)
+                           (sort rest (- len n))))))))))
 
-      (define simple-sort!
-	(lambda (first last)
-	  (let loop1 ((i first))
-	    (cond ((< i last)
-		   (let ((m (vector-ref vect i)) (k i))
-		     (let loop2 ((j (+ i 1)))
-		       (cond ((<= j last)
-			      (if (proc (vector-ref vect j) m)
-				  (begin
-				    (set! m (vector-ref vect j))
-				    (set! k j)))
-			      (loop2 (+ j 1)))
-			     (else
-			      (vector-set! vect k (vector-ref vect i))
-			      (vector-set! vect i m)
-			      (loop1 (+ i 1)))))))))))
+(define (vector-sort proc vect)
+  (let ((lst (vector->list vect)))
+    (let ((lst2 (list-sort proc lst)))
+      (cond ((eq? lst lst2) vect)
+            (else
+             (list->vector lst2))))))
 
-      (define sort!
-	(lambda (first last)
-	  (cond ((> (- last first) 10)
-		 (let ((middle (div (+ first last) 2)))
-		   (sort! first middle)
-		   (sort! (+ middle 1) last)
-		   (let loop ((i first) (p2size 0))
-		     (cond ((> i middle)
-			    (let loop ((p1 (+ middle 1)) (p2 0) (p3 first))
-			      (cond ((and (<= p1 last) (< p2 p2size))
-				     (cond ((proc (vector-ref work p2) (vector-ref vect p1))
-					    (vector-set! vect p3 (vector-ref work p2))
-					    (loop p1 (+ p2 1) (+ p3 1)))
-					   (else
-					    (vector-set! vect p3 (vector-ref vect p1))
-					    (loop (+ p1 1) p2 (+ p3 1)))))
-				    (else
-				     (let loop ((s2 p2)(d3 p3))
-				       (cond ((< s2 p2size)
-					      (vector-set! vect d3 (vector-ref work s2))
-					      (loop (+ s2 1) (+ d3 1)))))))))
-			   (else
-			    (vector-set! work p2size (vector-ref vect i))
-			    (loop (+ i 1) (+ p2size 1)))))))
-		(else
-		 (simple-sort! first last)))))
+(define (vector-sort! proc vect)
+  (let* ((n (vector-length vect)) (work (make-vector (+ (div n 2) 1))))
 
-      (sort! 0 (- n 1)))))
+    (define (simple-sort! first last)
+      (let loop1 ((i first))
+        (cond ((< i last)
+               (let ((m (vector-ref vect i)) (k i))
+                 (let loop2 ((j (+ i 1)))
+                   (cond ((<= j last)
+                          (if (proc (vector-ref vect j) m)
+                              (begin
+                                (set! m (vector-ref vect j))
+                                (set! k j)))
+                          (loop2 (+ j 1)))
+                         (else
+                          (vector-set! vect k (vector-ref vect i))
+                          (vector-set! vect i m)
+                          (loop1 (+ i 1))))))))))
+
+    (define (sort! first last)
+      (cond ((> (- last first) 10)
+             (let ((middle (div (+ first last) 2)))
+               (sort! first middle)
+               (sort! (+ middle 1) last)
+               (let loop ((i first) (p2size 0))
+                 (cond ((> i middle)
+                        (let loop ((p1 (+ middle 1)) (p2 0) (p3 first))
+                          (cond ((and (<= p1 last) (< p2 p2size))
+                                 (cond ((proc (vector-ref work p2) (vector-ref vect p1))
+                                        (vector-set! vect p3 (vector-ref work p2))
+                                        (loop p1 (+ p2 1) (+ p3 1)))
+                                       (else
+                                        (vector-set! vect p3 (vector-ref vect p1))
+                                        (loop (+ p1 1) p2 (+ p3 1)))))
+                                (else
+                                 (let loop ((s2 p2)(d3 p3))
+                                   (cond ((< s2 p2size)
+                                          (vector-set! vect d3 (vector-ref work s2))
+                                          (loop (+ s2 1) (+ d3 1)))))))))
+                       (else
+                        (vector-set! work p2size (vector-ref vect i))
+                        (loop (+ i 1) (+ p2size 1)))))))
+            (else
+             (simple-sort! first last))))
+
+    (sort! 0 (- n 1))))
 
 ;;;;
 ;; 8 I/O
 ;; 8.2.6 input port and output port
 ;; from Ypsilon
-(define call-with-port
-  (lambda (port proc)
-    (receive args (proc port)
-      (close-port port)
-      (apply values args))))
+(define (call-with-port port proc)
+  (receive args (proc port)
+    (close-port port)
+    (apply values args)))
 
 
 ;; 8.2.10 output port
-(define open-bytevector-output-port 
-  (lambda maybe-transcoder
-    (when (> (length maybe-transcoder) 1)
-      (assertion-violation 'open-bytevector-output-port
-			   (format 
-			    "wrong number of argument: expected between 0 and 1, but got ~a"
-			    (length maybe-transcoder))
-			   maybe-transcoder))
-    (let ((transcoder (if (null? maybe-transcoder)
-			  #f
-			  (car maybe-transcoder))))
-      (let* ((port (open-output-bytevector transcoder))
-	     (proc (lambda () (get-output-bytevector port))))
-	(values port proc)))))
-
-(define open-string-output-port
-  (lambda ()
-    (let* ((port (open-output-string))
-	   (proc (lambda () (get-output-string port))))
+(define (open-bytevector-output-port . maybe-transcoder)
+  (when (> (length maybe-transcoder) 1)
+      (assertion-violation
+       'open-bytevector-output-port
+       (format 
+        "wrong number of argument: expected between 0 and 1, but got ~a"
+        (length maybe-transcoder))
+       maybe-transcoder))
+  (let ((transcoder (if (null? maybe-transcoder)
+                        #f
+                        (car maybe-transcoder))))
+    (let* ((port (open-output-bytevector transcoder))
+           (proc (lambda () (get-output-bytevector port))))
       (values port proc))))
 
-(define call-with-bytevector-output-port
-  (lambda (proc . maybe-transcoder)
-    (receive (port extractor) (apply open-bytevector-output-port maybe-transcoder)
-      (dynamic-wind
-	  (lambda () #f)
-	  (lambda () (proc port) (extractor))
-	  (lambda () (close-port port))))))
+(define (open-string-output-port)
+  (let* ((port (open-output-string))
+         (proc (lambda () (get-output-string port))))
+    (values port proc)))
 
-(define call-with-string-output-port
-  (lambda (proc)
-    (receive (port extractor) (open-string-output-port)
-      (dynamic-wind
-	  (lambda () #f)
-	  (lambda () (proc port) (extractor))
-	  (lambda () (close-port port))))))
+(define (call-with-bytevector-output-port proc . maybe-transcoder)
+  (receive (port extractor) (apply open-bytevector-output-port maybe-transcoder)
+    (dynamic-wind
+      (lambda () #f)
+      (lambda () (proc port) (extractor))
+      (lambda () (close-port port)))))
+
+(define (call-with-string-output-port proc)
+  (receive (port extractor) (open-string-output-port)
+    (dynamic-wind
+      (lambda () #f)
+      (lambda () (proc port) (extractor))
+      (lambda () (close-port port)))))
 
 ;;;;;
 ;; 13 hashtable
@@ -858,8 +824,9 @@
 (define (hashtable-update! ht key proc default)
   (or (and (hashtable? ht)
 	   (hashtable-mutable? ht))
-      (assertion-violation 'hashtable-update!
-			   (wrong-type-argument-message "mutable hashtable" ht 1)))
+      (assertion-violation
+       'hashtable-update!
+       (wrong-type-argument-message "mutable hashtable" ht 1)))
   (hashtable-set! ht key (proc (hashtable-ref ht key default))))
 
 (define (hashtable-entries ht)
@@ -894,27 +861,24 @@
 ;; parameter
 ;; From Ypsilon
 
-(define make-parameter
-  (lambda (init . maybe-filter)
-    (let ((parameter (if (null? maybe-filter)
-                         (parameter-proc-0 (gensym))
-                         (parameter-proc-1 (gensym) (car maybe-filter)))))
-      (begin (parameter init) parameter))))
+(define (make-parameter init . maybe-filter)
+  (let ((parameter (if (null? maybe-filter)
+                       (parameter-proc-0 (gensym))
+                       (parameter-proc-1 (gensym) (car maybe-filter)))))
+    (begin (parameter init) parameter)))
 
-(define parameter-proc-0
-  (lambda (key)
-    (lambda value
-      (if (null? value)
-          (hashtable-ref  (current-dynamic-environment) key #f)
-          (hashtable-set! (current-dynamic-environment) key (car value))))))
+(define (parameter-proc-0 key)
+  (lambda value
+    (if (null? value)
+        (hashtable-ref  (current-dynamic-environment) key #f)
+        (hashtable-set! (current-dynamic-environment) key (car value)))))
 
-(define parameter-proc-1
-  (lambda (key proc)
-    (lambda value
-      (if (null? value)
-          (hashtable-ref  (current-dynamic-environment) key #f)
-          (hashtable-set! (current-dynamic-environment)
-			  key (proc (car value)))))))
+(define (parameter-proc-1 key proc)
+  (lambda value
+    (if (null? value)
+        (hashtable-ref  (current-dynamic-environment) key #f)
+        (hashtable-set! (current-dynamic-environment)
+                        key (proc (car value))))))
 
 ;;;; end of file
 ;; Local Variables:
