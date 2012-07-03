@@ -843,7 +843,7 @@ SgObject Sg_ByteVectorToInteger(SgByteVector *bv, int start, int end)
       int j;
       for (j = 0; j < SIZEOF_LONG; j++) {
 	if (pos-j < start) break;
-	e += SG_BVECTOR_ELEMENT(bv, pos-j) << (j<<3);
+	e += (unsigned long)SG_BVECTOR_ELEMENT(bv, pos-j) << (j<<3);
       }
       SG_BIGNUM(ans)->elements[i] = e;
     }
@@ -852,7 +852,7 @@ SgObject Sg_ByteVectorToInteger(SgByteVector *bv, int start, int end)
     /* the result will be fixnum. */
     unsigned long lans = 0;
     for (i = end; start < i; i--) {
-      lans += SG_BVECTOR_ELEMENT(bv, i-1) << ((end-i)<<3);
+      lans += (unsigned long)SG_BVECTOR_ELEMENT(bv, i-1) << ((end-i)<<3);
     }
     ans = Sg_MakeIntegerU(lans);
   }
@@ -874,6 +874,7 @@ SgObject Sg_IntegerToByteVector(SgObject num)
       unsigned long v = SG_BIGNUM(num)->elements[i];
       int j;
       for (j = 0; j < SIZEOF_LONG; j++) {
+	if (pos-j < start) break;
 	SG_BVECTOR_ELEMENT(bv, pos-j) = (uint8_t)(v&0xFF);
 	v >>= 8;
       }
