@@ -65,6 +65,14 @@
 
 static SgString *CACHE_DIR = NULL;
 static int TAG_LENGTH = 0;
+/*
+  We do not put pointer itself (it's impossible) and we don't need
+  8 bytes (64 bit) of word size. All the word emit process are just
+  using length or immediate tag. We just need to treat immediate value
+  specially.
+*/
+static const int EMIT_SIZE = 4;
+/* for immediate values, (actually only for fixnum on 64 bit) */
 static const int WORD_SIZE = sizeof(SgWord);
 
 /* #define CACHE_DEBUG 1 */
@@ -195,11 +203,11 @@ static int cachable_p(SgObject obj)
     Sg_PutbUnsafe(out, (v) & 0xFF);		\
   } while (0)
 
-static void put_word(SgPort *out, SgWord w, int tag)
+static void put_word_rec(SgPort *out, SgWord w, int tag, int size)
 {
   int i;
   Sg_PutbUnsafe(out, tag);
-  for (i = 0; i < WORD_SIZE; i++) {
+  for (i = 0; i < size; i++) {
     /* write order:
        value-> 0xaabbccdd
        write-> dd cc bb aa
@@ -209,9 +217,14 @@ static void put_word(SgPort *out, SgWord w, int tag)
   }
 }
 
+static void put_word(SgPort *out, SgWord w, int tag)
+{
+  put_word_rec(out, w, tag, EMIT_SIZE);
+}
+
 static void emit_immediate(SgPort *out, SgObject o)
 {
-  put_word(out, SG_WORD(o), IMMEDIATE_TAG);
+  put_word_rec(out, SG_WORD(o), IMMEDIATE_TAG, WORD_SIZE);
 }
 
 /*
@@ -842,7 +855,7 @@ static int read_4byte(SgPort *in)
   return ((a << 24) | (b << 16) | (c << 8) | d);
 }
 
-static SgWord read_word(SgPort *in, int tag_type)
+static SgWord read_word_rec(SgPort *in, int tag_type, int size)
 {
   int i;
   SgWord ret = 0;
@@ -852,11 +865,16 @@ static SgWord read_word(SgPort *in, int tag_type)
 	     tag_type, tag);
   }
   /* dd cc bb aa -> aa bb cc dd */
-  for (i = 0; i < WORD_SIZE; i++) {
+  for (i = 0; i < size; i++) {
     intptr_t b = Sg_GetbUnsafe(in);
     ret |= (b << (i * 8));
   }
   return ret;
+}
+
+static SgWord read_word(SgPort *in, int tag_type)
+{
+  return read_word_rec(in, tag_type, EMIT_SIZE);
 }
 
 static SgObject link_cb(SgObject cb, read_ctx *ctx)
@@ -975,7 +993,7 @@ static SgObject read_keyword(SgPort *in)
 
 static SgObject read_immediate(SgPort *in)
 {
-  return SG_OBJ(read_word(in, IMMEDIATE_TAG));
+  return SG_OBJ(read_word_rec(in, IMMEDIATE_TAG, WORD_SIZE));
 }
 
 static SgObject read_number(SgPort *in)

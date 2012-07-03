@@ -1546,14 +1546,6 @@
     (bv-check-align bytevector-u32-native-ref index 4)
     (result (Sg_MakeIntegerFromU32 (Sg_ByteVectorU32NativeRef bv index))))
 
-  ;; hmm, i couldn't find any better way...
-  (decl-code
-   ;; make it 64 bit
-   (.define "MAX_U32_VALUE" "0xFFFFFFFFULL")
-   (.define "MAX_S32_VALUE" "0x7FFFFFFFL")
-   (.define "MIN_S32_VALUE" "-0x80000000LL"))
-
-
   (define-c-proc bytevector-u32-native-set!
     (bv::<bytevector> index::<fixnum> v::<number>) ::<void>
     (bv-check-literal bytevector-u32-native-set! bv)
@@ -1561,7 +1553,7 @@
     (let ((value::uint32_t 0))
       (cond ((SG_INTP v)
 	     (bv-check-value bytevector-u32-native-set! (SG_INT_VALUE v)
-			     0 MAX_U32_VALUE)
+			     0 UINT32_MAX)
 	     (set! value (cast uint32_t (SG_INT_VALUE v))))
 	    ((SG_BIGNUMP v)
 	     (set! value (Sg_BignumToU32 v SG_CLAMP_NONE NULL)))
@@ -1591,7 +1583,7 @@
       (cond ((SG_INTP v)
 	     ;; for 64 bit environment fixnum can be more than 32 bits
 	     (bv-check-value bytevector-u32-set! (SG_INT_VALUE v)
-			     0 MAX_U32_VALUE)
+			     0 UINT32_MAX)
 	     (set! value (cast uint32_t (SG_INT_VALUE v))))
 	    ((SG_BIGNUMP v)
 	     (set! value (Sg_BignumToU32 v SG_CLAMP_NONE NULL)))
@@ -1619,7 +1611,7 @@
     (let ((value::int32_t 0))
       (cond ((SG_INTP v)
 	     (bv-check-value bytevector-s32-native-set! (SG_INT_VALUE v)
-			     MIN_S32_VALUE #x7FFFFFFF)
+			     INT32_MIN INT32_MAX)
 	     (set! value (cast int32_t (SG_INT_VALUE v))))
 	    ((SG_BIGNUMP v)
 	     (set! value (Sg_BignumToS32 v SG_CLAMP_NONE NULL)))
@@ -1648,7 +1640,7 @@
     (let ((value::int32_t 0))
       (cond ((SG_INTP v)
 	     (bv-check-value bytevector-s32-set! (SG_INT_VALUE v)
-			     MIN_S32_VALUE #x7FFFFFFF)
+			     INT32_MIN INT32_MAX)
 	     (set! value (cast int32_t (SG_INT_VALUE v))))
 	    ((SG_BIGNUMP v)
 	     (set! value (Sg_BignumToS32 v SG_CLAMP_NONE NULL)))
