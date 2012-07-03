@@ -208,4 +208,15 @@
    ;; actually, this is the only problem
    (test-equal "sedond lookahead char" #\b (lookahead-char in))))
 
+;; issue 19
+(test-assert "bytevector set! (minus values)"
+	     (bytevector-s32-native-set! (make-bytevector 4) 0 -1))
+(test-assert "bytevector set! (minus values)"
+	     (bytevector-s32-set! (make-bytevector 4) 0 -1 'little))
+(test-assert "bytevector set! (minus values)"
+	     (bytevector-s64-native-set! (make-bytevector 8) 0 -1))
+(test-assert "bytevector set! (minus values)"
+	     (bytevector-s64-set! (make-bytevector 8) 0 -1 'little))
+
+
 (test-end)
