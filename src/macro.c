@@ -31,6 +31,7 @@
  */
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/macro.h"
+#include "sagittarius/clos.h"
 #include "sagittarius/identifier.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/port.h"
@@ -264,6 +265,46 @@ SgObject Sg_MacroExpand(SgObject expr, SgObject p1env, int onceP)
 SgObject Sg_UnwrapSyntax(SgObject form)
 {
   return unwrap_rec(form, SG_NIL);
+}
+
+static SgObject macro_name(SgMacro *m)
+{
+  return m->name;
+}
+
+static SgObject macro_trans(SgMacro *m)
+{
+  return m->transformer;
+}
+
+/* be careful */
+static SgObject macro_data(SgMacro *m)
+{
+  return m->data;
+}
+static SgObject macro_env(SgMacro *m)
+{
+  return m->env;
+}
+
+static SgObject macro_library(SgMacro *m)
+{
+  return m->maybeLibrary;
+}
+
+static SgSlotAccessor macro_slots[] = {
+  SG_CLASS_SLOT_SPEC("name", 0, macro_name, NULL),
+  SG_CLASS_SLOT_SPEC("transformer", 1, macro_trans, NULL),
+  SG_CLASS_SLOT_SPEC("data", 2, macro_data, NULL),
+  SG_CLASS_SLOT_SPEC("env", 3, macro_env, NULL),
+  SG_CLASS_SLOT_SPEC("library", 4, macro_library, NULL),
+  { { NULL } }
+};
+
+void Sg__InitMacro()
+{
+  SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
+  Sg_InitStaticClass(SG_CLASS_MACRO, UC("<macro>"), lib, macro_slots, 0);
 }
 
 /*

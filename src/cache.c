@@ -65,6 +65,7 @@
 
 static SgString *CACHE_DIR = NULL;
 static int TAG_LENGTH = 0;
+static const int WORD_SIZE = sizeof(SgWord);
 
 /* #define CACHE_DEBUG 1 */
 #ifdef CACHE_DEBUG
@@ -196,7 +197,6 @@ static int cachable_p(SgObject obj)
 
 static void put_word(SgPort *out, SgWord w, int tag)
 {
-  static const int WORD_SIZE = sizeof(SgObject);
   int i;
   Sg_PutbUnsafe(out, tag);
   for (i = 0; i < WORD_SIZE; i++) {
@@ -844,7 +844,6 @@ static int read_4byte(SgPort *in)
 
 static SgWord read_word(SgPort *in, int tag_type)
 {
-  static const int WORD_SIZE = sizeof(SgWord);
   int i;
   SgWord ret = 0;
   int tag = Sg_GetbUnsafe(in);
@@ -854,7 +853,7 @@ static SgWord read_word(SgPort *in, int tag_type)
   }
   /* dd cc bb aa -> aa bb cc dd */
   for (i = 0; i < WORD_SIZE; i++) {
-    int b = Sg_GetbUnsafe(in);
+    intptr_t b = Sg_GetbUnsafe(in);
     ret |= (b << (i * 8));
   }
   return ret;

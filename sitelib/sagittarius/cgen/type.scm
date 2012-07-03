@@ -66,7 +66,7 @@
   (for-each
    (cut apply make-cgen-type <>)
    '(;; numeric
-     (<fixnum>  "int" "fixnum" "SG_INTP" "SG_INT_VALUE" "SG_MAKE_INT")
+     (<fixnum>  "long" "fixnum" "SG_INTP" "SG_INT_VALUE" "SG_MAKE_INT")
      (<integer> "SgObject" "exact integer" "Sg_IntegerP" "")
      (<number> "SgObject" "number" "SG_NUMBERP" "")
      ;; immediates

@@ -466,11 +466,6 @@
       (_ (error 'define-c-proc "invalid cproc return type" rettype))))
 
   ;; emit
-  (define (calculate-required args)
-    (let loop ((args args) (n 0))
-      (cond ((null? args) n)
-	    ((is-a? (car args) <required-arg>) (loop (cdr args) (+ n 1)))
-	    (else (loop (cdr args) n)))))
   (define-method cgen-emit-body ((cproc <c-proc>))
     (p "static SgObject " (slot-ref cproc 'c-name)
        "(SgObject *SG_FP, int SG_ARGC, void *data_)")
@@ -478,8 +473,7 @@
     (for-each emit-arg-decl (slot-ref cproc 'args))
     (for-each emit-arg-decl (slot-ref cproc 'keyword-args))
     (unless (null? (slot-ref cproc 'keyword-args))
-      (let ((req-count (calculate-required (slot-ref cproc 'args))))
-	(p "  SgObject SG_OPTARGS = SG_ARGREF(SG_ARGC-1);")))
+      (p "  int SG_KEYARGC = SG_ARGC-1-" (length (slot-ref cproc'args)) ";"))
     (p "  SG_ENTER_SUBR(\"" (slot-ref cproc 'scheme-name) "\");")
     ;; argument count check
     (cond ((and (> (slot-ref cproc 'num-optargs) 0)
@@ -598,9 +592,6 @@
   (define-method emit-arg-unbox ((arg <optional-arg>))
     (p "  if (SG_ARGC > " (slot-ref arg'count) "+1) {")
     (p "    "(slot-ref arg'scm-name) " = SG_ARGREF(" (slot-ref arg'count) ");")
-    ;; if proc has keyword arguments, then it must have SG_OPTARGS.
-    (unless (null? (slot-ref (slot-ref arg 'proc) 'keyword-args))
-      (p "    SG_OPTARGS = (!SG_NULLP(SG_OPTARGS))?SG_CDR(SG_OPTARGS):SG_NIL;"))
     (p "  } else {")
     (p "    "(slot-ref arg'scm-name) " = " (get-arg-default arg) ";")
     (p "  }")
@@ -613,28 +604,35 @@
   (define (emit-keyword-args-unbox cproc)
     (let ((args (slot-ref cproc 'keyword-args))
 	  (other-keys? (slot-ref cproc 'allow-other-keys?)))
-      (p "  if (Sg_Length(SG_OPTARGS) % 2)")
+      (p "  if (SG_KEYARGC > 0 && SG_KEYARGC % 2)")
       (f "    Sg_AssertionViolation(~a, \
-               SG_MAKE_STRING(\"keyword list not even\"), SG_OPTARGS);~%"
-	 (cgen-c-name (slot-ref cproc 'proc-name)))
-      (p "  while (!SG_NULLP(SG_OPTARGS)) {")
+               SG_MAKE_STRING(\"keyword list not even\"), \
+                 Sg_ArrayToList(SG_FP+~a, SG_ARGC-1-~a));~%"
+	 (cgen-c-name (slot-ref cproc 'proc-name))
+	 (length (slot-ref cproc'args)) (length (slot-ref cproc'args)))
+      (p "  { int SG_KEYINDEX;")
+      (p "      for (SG_KEYINDEX=0; SG_KEYINDEX<SG_KEYARGC; SG_KEYINDEX+=2) {")
       (pair-for-each 
        (lambda (args)
 	 (let ((arg (car args))
 	       (tail? (null? (cdr args))))
-	   (f "    if (SG_EQ(SG_CAR(SG_OPTARGS), ~a)) {~%"
+	   (f "      if (SG_EQ(SG_ARGREF(~a+SG_KEYINDEX), ~a)) {~%"
+	      (length (slot-ref cproc'args))
 	      (cgen-c-name (slot-ref arg 'keyword)))
-	   (f "      ~a = SG_CADR(SG_OPTARGS);~%" (slot-ref arg 'scm-name))
+	   (f "        ~a = SG_ARGREF(~a+SG_KEYINDEX+1);~%"
+	      (slot-ref arg 'scm-name) (length (slot-ref cproc'args)))
 	   (if tail?
-	       (p "    }")
-	       (p "    } else "))))
+	       (p "      }")
+	       (p "      } else "))))
        args)
       (unless other-keys?
-	(f "    else Sg_AssertionViolation(~a, \
-                     SG_MAKE_STRING(\"unknown keyword\"), SG_CAR (SG_OPTARGS));"
-	   (cgen-c-name (slot-ref cproc 'proc-name)))
+	(f "      else Sg_AssertionViolation(~a, \
+                         SG_MAKE_STRING(\"unknown keyword\"), \
+                         SG_ARGREF(~a+SG_KEYINDEX));"
+	   (cgen-c-name (slot-ref cproc 'proc-name))
+	   (length (slot-ref cproc'args)))
 	(p))
-      (p "    SG_OPTARGS = SG_CDDR(SG_OPTARGS);")
+      (p "    }")
       (p "  }")
       (for-each emit-arg-unbox-rec args)))
 
