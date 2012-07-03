@@ -874,7 +874,7 @@ SgObject Sg_IntegerToByteVector(SgObject num)
       unsigned long v = SG_BIGNUM(num)->elements[i];
       int j;
       for (j = 0; j < SIZEOF_LONG; j++) {
-	if (pos-j < start) break;
+	if (pos-j < 0) break;
 	SG_BVECTOR_ELEMENT(bv, pos-j) = (uint8_t)(v&0xFF);
 	v >>= 8;
       }
