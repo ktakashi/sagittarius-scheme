@@ -1269,16 +1269,15 @@
     (result (Sg_VMCallCC proc)))
 
   (define-c-proc values (:rest rest) ::<top> (inline VALUES)
-    (let ((len::int (Sg_Length rest)))
-      (cond ((== len 0) (result (Sg_MakeValues 0)))
-	    ((== len 1) (result (SG_CAR rest)))
-	    (else
-	     (let ((v (Sg_MakeValues len))
-		   (i::int 0))
-	       (dolist (e rest)
-		 (set! (SG_VALUES_ELEMENT v i) e)
-		 (post++ i))
-	       (result v))))))
+    (cond ((SG_NULLP rest) (result (Sg_MakeValues 0)))
+	  ((SG_NULLP (SG_CDR rest)) (result (SG_CAR rest)))
+	  (else
+	   (let ((v (Sg_MakeValues (Sg_Length rest)))
+		 (i::int 0))
+	     (dolist (e rest)
+	       (set! (SG_VALUES_ELEMENT v i) e)
+	       (post++ i))
+	     (result v)))))
 
   (define-c-proc dynamic-wind (before thunk after) ::<top>
     (result (Sg_VMDynamicWind before thunk after)))
@@ -2852,8 +2851,8 @@
      `(begin
 	(unless (,compare ,first ,second)
 	  (return #f))
-	(let ((prev::int ,second)
-	      (target::int 0))
+	(let ((prev::long ,second)
+	      (target::long 0))
 	  (dolist (v ,rest)
 	    (check-fixnum ,name v)
 	    (set! target (SG_INT_VALUE v))
@@ -2893,7 +2892,7 @@
     (result (== (logand fx 1) 0)))
 
   (define-c-proc fxmax (fx::<fixnum> :rest rest) ::<fixnum>
-    (let ((r::int fx))
+    (let ((r::long fx))
       (dolist (v rest)
 	(check-fixnum fxmac v)
 	(if (> (SG_INT_VALUE v) r)
@@ -2901,7 +2900,7 @@
       (result r)))
 
   (define-c-proc fxmin (fx::<fixnum> :rest rest) ::<fixnum>
-    (let ((r::int fx))
+    (let ((r::long fx))
       (dolist (v rest)
 	(check-fixnum fxmac v)
 	(if (< (SG_INT_VALUE v) r)
@@ -2914,7 +2913,7 @@
 	   (<= ,fx SG_INT_MAX))))
   
   (define-c-proc fx+ (fx1::<fixnum> fx2::<fixnum>) ::<fixnum>
-    (let ((ret::int (+ fx1 fx2)))
+    (let ((ret::long (+ fx1 fx2)))
       (if (fixnum-fits? ret)
 	  (result ret)
 	  (implementation-restriction-violation
@@ -2943,8 +2942,8 @@
 	    (result (- 0 fx1)))
 	(begin
 	  (check-fixnum fx- o)
-	  (let ((fx2::int (SG_INT_VALUE o))
-		(ret::int (- fx1 fx2)))
+	  (let ((fx2::long (SG_INT_VALUE o))
+		(ret::long (- fx1 fx2)))
 	    (if (fixnum-fits? ret)
 		(result ret)
 		(implementation-restriction-violation
@@ -2974,7 +2973,7 @@
     (if (== fx2 0)
 	(assertion-violation 'fxdiv
 			     "dividing by zero"))
-    (let ((ret::int 0))
+    (let ((ret::long 0))
       (fixnum-div ret fx1 fx2)
       (if (fixnum-fits? ret)
 	  (result ret)
@@ -2988,7 +2987,7 @@
     (if (== fx2 0)
 	(assertion-violation 'fxmod
 			     "dividing by zero"))
-    (let ((ret::int 0))
+    (let ((ret::long 0))
       (fixnum-mod ret fx1 fx2)
       (if (fixnum-fits? ret)
 	  (result ret)
@@ -3002,8 +3001,8 @@
     ((_ ret x y)
      (let ((d (gensym))
 	   (m (gensym)))
-       `(let ((,(string->symbol (format "~a::int" d)) 0)
-	      (,(string->symbol (format "~a::int" m)) 0))
+       `(let ((,(string->symbol (format "~a::long" d)) 0)
+	      (,(string->symbol (format "~a::long" m)) 0))
 	  (fixnum-div ,d ,x ,y)
 	  (fixnum-mod ,m ,x ,y)
 	  (cond ((<= ,m (/ (abs ,y) 2))
@@ -3016,7 +3015,7 @@
   (define-cise-stmt fixnum-mod0
     ((_ ret x y)
      (let ((tmp (gensym)))
-       `(let ((,(string->symbol (format "~a::int" tmp)) 0))
+       `(let ((,(string->symbol (format "~a::long" tmp)) 0))
 	  (fixnum-div0 ,tmp ,x ,y)
 	  (set! ,ret (- ,x (* ,y ,tmp)))))))
     
@@ -3024,7 +3023,7 @@
     (if (== fx2 0)
 	(assertion-violation 'fxdiv0
 			     "dividing by zero"))
-    (let ((ret::int 0))
+    (let ((ret::long 0))
       (fixnum-div0 ret fx1 fx2)
       (if (fixnum-fits? ret)
 	  (result ret)
@@ -3038,7 +3037,7 @@
     (if (== fx2 0)
 	(assertion-violation 'fxmod0
 			     "dividing by zero"))
-    (let ((ret::int 0))
+    (let ((ret::long 0))
       (fixnum-mod0 ret fx1 fx2)
       (if (fixnum-fits? ret)
 	  (result ret)
@@ -3065,17 +3064,17 @@
 	 ")|(~" ,(render-rec a env) "&" ,(render-rec c env) "))"))))
 
   (define-c-proc fxand (:rest rest) ::<fixnum>
-    (let ((ret::int -1))
+    (let ((ret::long -1))
       (fxlogop logand ret "&" rest)
       (result ret)))
 
   (define-c-proc fxior (:rest rest) ::<fixnum>
-    (let ((ret::int 0))
+    (let ((ret::long 0))
       (fxlogop fxior ret "|" rest)
       (result ret)))
 
   (define-c-proc fxxor (:rest rest) ::<fixnum>
-    (let ((ret::int 0))
+    (let ((ret::long 0))
       (fxlogop fxxor ret "^" rest)
       (result ret)))
 
@@ -3103,7 +3102,7 @@
   (define-c-proc fxcopy-bit (fx1::<fixnum> fx2::<fixnum> fx3::<fixnum>) ::<fixnum>
     (check-fixnum-range fxcopy-bit fx2 0 SG_INT_SIZE <= <=)
     (check-fixnum-range fxcopy-bit fx3 0 1 <= <=)
-    (let ((mask::int (ashl 1 fx2)))
+    (let ((mask::long (ashl 1 fx2)))
       (result (fxlogif mask (ashl fx3 fx2) fx1))))
 
   (define-c-proc fxbit-field (fx1::<fixnum> fx2::<fixnum> fx3::<fixnum>) ::<fixnum>
@@ -3115,7 +3114,7 @@
 			   (SG_LIST3 (SG_MAKE_INT fx1)
 				     (SG_MAKE_INT fx2)
 				     (SG_MAKE_INT fx3))))
-    (let ((mask::int (lognot (ashl -1 fx3))))
+    (let ((mask::long (lognot (ashl -1 fx3))))
       (result (ashr (logand fx1 mask) fx2))))
 
   (define-c-proc fxcopy-bit-field (fx1::<fixnum> fx2::<fixnum> fx3::<fixnum> fx4::<fixnum>) ::<fixnum>
@@ -3126,16 +3125,16 @@
 			   "out of range"
 			   (SG_LIST4 (SG_MAKE_INT fx1) (SG_MAKE_INT fx2)
 				     (SG_MAKE_INT fx3) (SG_MAKE_INT fx4))))
-    (let ((mask1::int (ashl -1 fx2))
-	  (mask2::int (lognot (ashl -1 fx3)))
-	  (mask::int (logand mask1 mask2)))
+    (let ((mask1::long (ashl -1 fx2))
+	  (mask2::long (lognot (ashl -1 fx3)))
+	  (mask::long (logand mask1 mask2)))
       (result (fxlogif mask (ashl fx4 fx2) fx1))))
 
   (define-c-proc fxarithmetic-shift (fx1::<fixnum> fx2::<fixnum>) ::<fixnum>
     (when (> (abs fx2) SG_INT_SIZE)
       (assertion-violation 'fxarithmetic-shift "out of range"
 			   (SG_LIST2 (SG_MAKE_INT fx1) (SG_MAKE_INT fx2))))
-    (let ((ret::int 0))
+    (let ((ret::long 0))
       (if (>= fx2 0)
 	  (set! ret (ashl fx1 fx2))
 	  (set! ret (ashr fx1 (negate fx2))))
@@ -3147,7 +3146,7 @@
 
   (define-c-proc fxarithmetic-shift-left (fx1::<fixnum> fx2::<fixnum>) ::<fixnum>
     (check-fixnum-range fxbit-field fx2 0 SG_INT_SIZE <= <=)
-    (let ((ret::int (ashl fx1 fx2)))
+    (let ((ret::long (ashl fx1 fx2)))
       (if (fixnum-fits? ret)
 	  (result ret)
 	  (implementation-restriction-violation 'fxarithmetic-shift-left
@@ -3156,7 +3155,7 @@
 
   (define-c-proc fxarithmetic-shift-right (fx1::<fixnum> fx2::<fixnum>) ::<fixnum>
     (check-fixnum-range fxbit-field fx2 0 SG_INT_SIZE <= <=)
-    (let ((ret::int (ashr fx1 fx2)))
+    (let ((ret::long (ashr fx1 fx2)))
       (if (fixnum-fits? ret)
 	  (result ret)
 	  (implementation-restriction-violation 'fxarithmetic-shift-left
@@ -3164,7 +3163,7 @@
 						(SG_LIST2 (SG_MAKE_INT fx1) (SG_MAKE_INT fx2))))))
 
   (decl-code 
-   (.typedef "unsigned int" "uint"))
+   (.typedef "unsigned long" "ulong"))
 
   (define-c-proc fxreverse-bit-field (fx1::<fixnum> fx2::<fixnum> fx3::<fixnum>) ::<fixnum>
     (check-fixnum-range fxbit-field fx2 0 SG_INT_SIZE <= <=)
@@ -3172,12 +3171,12 @@
     (when (> fx2 fx3)
       (assertion-violation 'fxreverse-bit-field "out of range"
 			   (SG_LIST3 (SG_MAKE_INT fx1) (SG_MAKE_INT fx2) (SG_MAKE_INT fx3))))
-    (let ((bits::uint  fx1)
-	  (start::int fx2)
-	  (end::int   (- fx3 1)))
+    (let ((bits::ulong  fx1)
+	  (start::long fx2)
+	  (end::long   (- fx3 1)))
       (while (< start end)
-	(let ((sbit::int (logand (ashr bits start) 1))
-	      (ebit::int (logand (ashr bits end) 1)))
+	(let ((sbit::long (logand (ashr bits start) 1))
+	      (ebit::long (logand (ashr bits end) 1)))
 	  (set! bits (logand bits (- (cast uint -1) (ashl 1 end))))
 	  (set! bits (logior bits (ashl sbit end)))
 	  (set! bits (logand bits (- (cast uint -1) (ashl 1 start))))
@@ -3342,28 +3341,26 @@
 	  (set! ,ret (,op ,ret (flonum-value v)))))))
 
   (define-c-proc fl+ (:rest rest) ::<top>
-    (if (SG_NULLP rest)
-	(result (Sg_MakeFlonum 0.0))
-	(let ((len::int (Sg_Length rest)))
-	  (cond ((== len 1)
-		 (check-flonum fl+ (SG_CAR rest))
-		 (result (SG_CAR rest)))
-		(else
-		 (let ((ret::double 0.0))
-		   (flonum-op fl+ + ret (SG_CAR rest) (SG_CDR rest))
-		   (result (Sg_MakeFlonum ret))))))))
+    (cond ((SG_NULLP rest)
+	   (result (Sg_MakeFlonum 0.0)))
+	  ((SG_NULLP (SG_CDR rest))
+	   (check-flonum fl+ (SG_CAR rest))
+	   (result (SG_CAR rest)))
+	  (else
+	   (let ((ret::double 0.0))
+	     (flonum-op fl+ + ret (SG_CAR rest) (SG_CDR rest))
+	     (result (Sg_MakeFlonum ret))))))
 
   (define-c-proc fl* (:rest rest) ::<top>
-    (if (SG_NULLP rest)
-	(result (Sg_MakeFlonum 1.0))
-	(let ((len::int (Sg_Length rest)))
-	  (cond ((== len 1)
-		 (check-flonum fl* (SG_CAR rest))
-		 (result (SG_CAR rest)))
-		(else
-		 (let ((ret::double 1.0))
-		   (flonum-op fl* * ret (SG_CAR rest) (SG_CDR rest))
-		   (result (Sg_MakeFlonum ret))))))))
+    (cond ((SG_NULLP rest)
+	   (result (Sg_MakeFlonum 1.0)))
+	  ((SG_NULLP (SG_CDR rest))
+	   (check-flonum fl* (SG_CAR rest))
+	   (result (SG_CAR rest)))
+	  (else
+	   (let ((ret::double 1.0))
+	     (flonum-op fl* * ret (SG_CAR rest) (SG_CDR rest))
+	     (result (Sg_MakeFlonum ret))))))
 
   (define-c-proc fl- (fl::<number> :rest rest) ::<top>
     (check-flonum fl- fl)
@@ -3609,8 +3606,8 @@
 
   (define-c-proc bitwise-copy-bit-field (ei1::<number> ei2::<fixnum> ei3::<fixnum> ei4::<number>) ::<top>
     (let ((to ei1)
-	  (start::int ei2)
-	  (end::int ei3)
+	  (start::long ei2)
+	  (end::long ei3)
 	  (from ei4)
 	  (mask1 (Sg_Ash (SG_MAKE_INT -1) start))
 	  (mask2 (Sg_LogNot (Sg_Ash (SG_MAKE_INT -1) end)))
