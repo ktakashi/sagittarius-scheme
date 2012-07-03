@@ -162,7 +162,7 @@ SgObject Sg_MakeBignumFromS64(int64_t value)
   if (value) {
 #if SIZEOF_LONG >= 8
     SgBignum *ans = make_bignum(1);
-    if (value) {
+    if (value > 0) {
       SG_BIGNUM_SET_SIGN(ans, 1);
       ans->elements[0] = value;
     } else {

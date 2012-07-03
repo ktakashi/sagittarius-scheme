@@ -236,30 +236,13 @@ static int64_t decode_double(double n, int *exp, int *sign)
   return mant_bits;
 }
 
-static SgObject bn_demote(SgBignum *b)
-{
-  ASSERT(SG_BIGNUM_GET_SIGN(b) != 0);
-  if (SG_BIGNUM_GET_COUNT(b) == 0) return SG_MAKE_INT(0);
-  if (SG_BIGNUM_GET_COUNT(b) == 1) {
-    unsigned long n = b->elements[0];
-    int sign = SG_BIGNUM_GET_SIGN(b);
-    if (!(sign < 0 && n < abs(SG_INT_MIN)) /* not smaller than fixnum_min */
-	&& (n <= SG_INT_MAX)) {
-      return SG_MAKE_INT(n);
-    }
-  }
-  return b;
-}
-
 static SgObject integer_init_n_alloc(int64_t m, int shift_left)
 {
   ASSERT(m >= 0);
   if (m == 0) return SG_MAKE_INT(0);
   else {
     SgObject b = Sg_MakeBignumFromS64(m);
-    b = Sg_BignumShiftLeft(SG_BIGNUM(b), shift_left);
-    SG_BIGNUM_SET_SIGN(b, 1);
-    return bn_demote(SG_BIGNUM(b));
+    return Sg_BignumShiftLeft(SG_BIGNUM(b), shift_left);
   }
 }
 
