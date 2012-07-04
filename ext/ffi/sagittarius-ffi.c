@@ -476,6 +476,7 @@ typedef union
   double f64;
 } ffi_storage;
 
+static int prep_method_handler(SgCallback *callback);
 
 static int push_ffi_type_value(SgFuncInfo *info,
 			       SgChar signature,
@@ -715,10 +716,7 @@ static int push_ffi_type_value(SgFuncInfo *info,
       return FALSE;
     case FFI_SIGNATURE_CALLBACK:
       /* prepare closure here */
-      /* TODO legal? */
-      if (ffi_prep_closure_loc(SG_CALLBACK(obj)->closure, &info->cif,
-			       callback_invoker, obj,
-			       SG_CALLBACK(obj)->code) != FFI_OK) {
+      if (!prep_method_handler(SG_CALLBACK(obj))) {
 	*lastError = Sg_Sprintf(UC("failed to prepare the callback."));
 	return FALSE;
       }
