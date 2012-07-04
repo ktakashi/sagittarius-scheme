@@ -328,7 +328,8 @@ static SgObject parse_member_name(SgSymbol *name)
   return ret;
 }
 
-static size_t calculate_alignment(SgObject names, SgCStruct *st, int *foundP, int *type)
+static size_t calculate_alignment(SgObject names, SgCStruct *st,
+				  int *foundP, int *type)
 {
   size_t align = 0;
   SgObject name = SG_CAR(names);
@@ -877,7 +878,7 @@ static int convert_scheme_to_c_value(SgObject v, int type, void **result)
 
 static SgObject get_callback_arguments(SgCallback *callback, void **args)
 {
-  SgObject h = SG_NIL, t = SG_NIL, ret;
+  SgObject h = SG_NIL, t = SG_NIL;
   int i;
   
   for (i = 0; i < SG_STRING_SIZE(callback->signatures); i++) {
@@ -963,7 +964,8 @@ static SgObject get_callback_arguments(SgCallback *callback, void **args)
   return h;
 }
 
-static void set_callback_result(SgCallback *callback, SgObject ret, ffi_cif *cif, void *result)
+static void set_callback_result(SgCallback *callback, SgObject ret,
+				ffi_cif *cif, void *result)
 {
   switch (callback->returnType) {    
   case FFI_RETURN_TYPE_BOOL:
@@ -1072,7 +1074,6 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
   SgFuncInfo *func;
   intptr_t ret;
   ffi_storage *params;
-  ffi_cif cif;
   void **ffi_values;
 
 #ifdef FFI_NOT_SUPPORTED
@@ -1162,7 +1163,7 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
   case FFI_RETURN_TYPE_STRING:
     ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
     if (ret == 0) {
-      return make_pointer(NULL);
+      return make_pointer((uintptr_t)NULL);
     } else {
       return Sg_MakeStringC((char *)ret);
     }
@@ -1202,16 +1203,19 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
     return make_pointer(ret);
   default:
     Sg_AssertionViolation(SG_INTERN("c-function"),
-			  Sg_MakeString(UC("invalid return type"), SG_LITERAL_STRING),
+			  SG_MAKE_STRING("invalid return type"),
 			  SG_LIST1(args[0]));
     return SG_UNDEF;
   }
 }
 
-static SG_DEFINE_SUBR(internal_ffi_call_stub, 2, 1, internal_ffi_call, SG_FALSE, NULL);
+static SG_DEFINE_SUBR(internal_ffi_call_stub, 2, 1, internal_ffi_call,
+		      SG_FALSE, NULL);
 
-
-static void attached_method_invoker(ffi_cif *cif, void *result, void **args, void *userdata)
+/* not used */
+#if 0
+static void attached_method_invoker(ffi_cif *cif, void *result,
+				    void **args, void *userdata)
 {
   SgCallback *callback = SG_CALLBACK(userdata);
 #if 0
@@ -1223,8 +1227,10 @@ static void attached_method_invoker(ffi_cif *cif, void *result, void **args, voi
   ret = Sg_Apply(callback->proc, argv);
   set_callback_result(callback, ret, cif, result);
 }
+#endif
 
-static void set_ffi_callback_parameter_types(SgObject signatures, ffi_type **types)
+static void set_ffi_callback_parameter_types(SgObject signatures,
+					     ffi_type **types)
 {
   int i;
   for (i = 0; i < SG_STRING_SIZE(signatures); i++) {
@@ -1284,14 +1290,39 @@ static int prep_method_handler(SgCallback *callback)
   return status == FFI_OK;
 }
 
-
 /* utility */
+#define DEFINE_POINTER_SET(ft, t)				\
+  static void pointer_set_##ft(SgPointer *p, int offset,	\
+			      int type, SgObject v)		\
+  {								\
+    t result[256];						\
+    convert_scheme_to_c_value(v, type, (void**)result);		\
+    POINTER_SET(t, p, offset, *(t *)result);			\
+  }
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_SHORT   , short);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_INT     , int);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_INTPTR  , intptr_t);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_USHORT  , unsigned short);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_UINT    , unsigned int);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_UINTPTR , uintptr_t);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_FLOAT   , float);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_DOUBLE  , double);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_SIZE_T  , size_t);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_INT8_T  , int8_t);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_UINT8_T , uint8_t);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_INT16_T , int16_t);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_UINT16_T, uint16_t);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_INT32_T , int32_t);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_UINT32_T, uint32_t);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_INT64_T , int64_t);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_UINT64_T, uint64_t);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_STRING  , intptr_t);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_POINTER , void*);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_STRUCT  , void*);
+
 void Sg_PointerSet(SgPointer *p, int offset, int type, SgObject v)
 {
-  char result[256];		/* enough? */
-  convert_scheme_to_c_value(v, type, (void**)result);
-
-#define case_type(ft, t) case ft: POINTER_SET(t, p, offset, *(t *)result); break
+#define case_type(ft, t) case ft: pointer_set_##ft(p, offset, type, v); break;
   switch (type) {
     case_type(FFI_RETURN_TYPE_SHORT   , short);
     case_type(FFI_RETURN_TYPE_INT     , int);
@@ -1336,7 +1367,7 @@ SgObject Sg_CMalloc(size_t size)
 void Sg_CFree(SgPointer *p)
 {
   free((void*)p->pointer);
-  p->pointer = NULL;
+  p->pointer = (uintptr_t)NULL;
 }
 
 extern void Sg__Init_sagittarius_ffi_impl();

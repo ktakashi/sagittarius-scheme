@@ -297,7 +297,7 @@
 		      `(,(caddr def) -1 struct . ,(cadr def)))
 		     ((eq? 'callback (car def))
 		      ;; speciall case
-		      `(,(cadr def), #x16 . callback))
+		      `(,(cadr def) #x16 . callback))
 		     ((and (eq? 'array (cadr def))
 			   (= (length def) 4)
 			   (assq (car def) c-function-return-type-alist))

@@ -16,13 +16,26 @@
   (define array (u8-list->bytevector '(6 6 1 4 2 9 3 7)))
 
   ;; for now, we do not support annonymous struct
-  (define-c-struct inner
-    (int value2)
-    (char* str))
-  
-  (define-c-struct data-to-store
-    (int value1)
-    (struct inner inner))
+  (cond-expand
+   (x86_64
+    ;; on X86_64 environment, struct alignment was bit different
+    ;; than I expected.
+    (define-c-struct inner
+      (long value2)
+      (char* str))
+    
+    (define-c-struct data-to-store
+      (long value1)
+      (struct inner inner)))
+   (else
+
+    (define-c-struct inner
+      (int value2)
+      (char* str))
+    
+    (define-c-struct data-to-store
+      (int value1)
+      (struct inner inner))))
 
   ;; for test convenience
   (define pointer-ref-c-uint8_t   pointer-ref-c-uint8)
