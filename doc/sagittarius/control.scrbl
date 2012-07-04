@@ -158,15 +158,24 @@ respectively.
 
 }
 
-@define[Macro]{@name{with-library} @args{library variable}}
+@define[Macro]{@name{with-library} @args{library exprs @dots{}}}
 @desc{@var{library} must be a library name. ex. (srfi :1 lists)
 
-@var{variable} must be a symbol.
+@var{exprs} must be expressions.
 
-Retrieve a value which is bounded with @var{variable} in the @var{library}.
+Evaluate given expressions one by one in the specified library and returns the
+last result of the expressions.
 
 This should not be used casually however you want to use some procedures or
 variables which are not exported, such as a procedure written in C but not
 exported or non exported record accessor. For thoese purpose, this might be a
 quick solution.
+}
+
+@define[Macro]{@name{unwind-protect} @args{body cleanups ...}}
+@desc{Execute @var{body} then execute @var{cleanups} and returns the result(s)
+of @var{body}.
+
+It is not guaranteed to invoke the @var{cleanups} only once if a continuation is
+captured in @var{body} and call it.
 }

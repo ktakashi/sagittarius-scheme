@@ -125,12 +125,20 @@
             (list pred val))))))
 
   (define-syntax with-library
-    (syntax-rules ()
-      ((_ lib var)
-       (let ((g (find-binding 'lib 'var #f)))
-	 (or (and g (gloc-ref g))
+    (lambda (x)
+      (syntax-case x ()
+	((k lib expr ...)
+	 (let ((real-lib (find-library #'lib #f)))
+	   (unless real-lib
 	     (assertion-violation 'with-library
-				  "unbound variable" 'var))))))
+				  "no such library" #'lib))
+	   (let loop ((e #'(expr ...)))
+	     (if (null? (cdr e))
+		 (let ((r (eval (syntax->datum (car e)) real-lib)))
+		   (datum->syntax #'k r))
+		 (begin
+		   (eval (car e) real-lib)
+		   (loop (cdr e))))))))))
 
   (define-syntax unwind-protect
     (lambda (x)
