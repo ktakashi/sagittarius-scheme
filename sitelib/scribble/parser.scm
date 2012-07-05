@@ -157,8 +157,10 @@
 
 (define (scribble-read in)
   (let ((res (scrib-read in)))
-    (cond ((eq? res scribble-dot) (error 'scribble-read "invalid . in source"))
-          ((eq? res scribble-close) (error 'scribble-read "too many )'s" (port-info in)))
+    (cond ((eq? res scribble-dot)
+	   (error 'scribble-read "invalid . in source" (port-info in)))
+          ((eq? res scribble-close)
+	   (error 'scribble-read "too many )'s" (port-info in)))
           (else res))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

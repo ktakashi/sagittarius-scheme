@@ -54,14 +54,9 @@
   (define (process-1 item)
     (with-exception-handler
      (lambda (e)
-       (let ((msg (if (message-condition? e)
-		      (condition-message e)
-		      "no message")))
-	 (display msg (current-error-port))
-	 (newline (current-error-port))
-	 (if (warning? e)
-	     msg
-	     #f)))
+       (display (describe-condition e) (current-error-port))
+       (newline (current-error-port))
+       (if (warning? e) msg #f))
      (lambda ()
        (if (pair? item)
 	   (cond ((scribble-lookup-macro (car item))

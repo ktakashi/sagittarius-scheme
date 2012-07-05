@@ -13,5 +13,6 @@ or documents.
 @include-section["ported/match.scrbl"]
 @include-section["ported/text/parse.scrbl"]
 @include-section["ported/text/sxml/ssax.scrbl"]
+@include-section["ported/text/sxml/sxpath.scrbl"]
 @include-section["ported/packrat.scrbl"]
 @include-section["ported/json.scrbl"]

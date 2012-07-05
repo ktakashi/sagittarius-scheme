@@ -3,8 +3,9 @@
 @subsection[:tag "ported.text.sxml.ssax"]{(text sxml ssax) - Functional XML parser}
 
 @define[Library]{@name{(text sxml ssax)}}
-@desc{@code{(text sxml *)} libraries are the adaptation of Oleg Kiselyov's SXML
-framework SSAX, which is based on S-expression representation of XML structure.
+@desc{@code{(text sxml *)} libraries are the adaptation of Oleg Kiselyov's
+SXML framework SSAX, which is based on S-expression representation of XML
+structure.
 
 SSAX is a parser part of SXML framework.
 

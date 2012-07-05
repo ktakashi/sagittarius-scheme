@@ -43,7 +43,7 @@ what are the non conformed points.
  @secref["lib.sagittarius.reader.predefined"]{Predefined reader macros}.
 }
 @dl-item["Macro expansion"]{
- On R6RS requires explicit macro expansion phase, however in Sagittarius we do
+ On R6RS requires explicit macro expansion phase, however Sagittarius does
  not have it. A macro is expanded when programs are compiled.}
 @dl-item["Unbound symbol"]{
  If you write unbound symbol in your code, however Sagittarius won't raise
@@ -55,10 +55,7 @@ what are the non conformed points.
  Sagittarius does not require toplevel expression which is specified in R6RS.}
 @dl-item["Miscellaneous"]{
  Redefinition of exported values are allowed. The value which imported at the
- last will be used.
-
- Almost everything is first class object. The syntax keyword @code{export} is
- not.}
+ last will be used.}
 }
 
 @subsection{Notations}
@@ -81,6 +78,9 @@ will appear in this manual.
 @dl-item["Library"]{A library}
 @dl-item["Condition Type"]{A condition type}
 @dl-item["Reader Macro"]{A reader macro}
+@dl-item["Class"]{A CLOS class}
+@dl-item["Generic"]{A generic function}
+@dl-item["Method"]{A method}
 ]
 
 For functions, syntaxes, or macros, the the entry may be followed by one or more
@@ -161,6 +161,20 @@ any command-line option processing and error handling.
 	      (cdr args)))
   0)
 }
+@subsection{Working on REPL}
+
+If @code{sash} does not get any script file to process, then it will go in to
+REPL (read-eval-print-loop). For developers' convenience, REPL imports some
+libraries by default such as @code{(rnrs)}.
+
+If @code{.sashrc} file is located in the directory indicated @code{HOME} or
+@code{USERPROFILE} environment variable, then REPL reads it before evaluating
+user input. So developer can pre-load some more libraries, instead of typing
+each time.
+
+NOTE: @code{.sashrc} is only for REPL, it is developers duty to load all
+libraries on script file.
+
 
 @include-section["r6rs.scrbl"]
 @include-section["r7rs.scrbl"]
@@ -169,7 +183,6 @@ any command-line option processing and error handling.
 @include-section["utils.scrbl"]
 @include-section["ported.scrbl"]
 @include-section["srfi.scrbl"]
-
 @section[:appendix "A" :tag "index"]{Index}
 
 @index-table[:id "index-table"]

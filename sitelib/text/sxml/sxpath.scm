@@ -8,7 +8,7 @@
 #!nobacktrace
 (library (text sxml sxpath)
     (export sxpath nodeset? as-nodeset sxml:element? ntype-names??
-	    ntype?? ntype-namespace-id?? sxml:invert node-eq? node-equal?
+	    ntype?? ntype-namespace-id?? sxml:complement node-eq? node-equal?
 	    node-pos sxml:filter take-until take-after map-union
 	    node-parent
 	    node-reverse node-trace select-kids node-self node-join
