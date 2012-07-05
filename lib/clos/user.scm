@@ -52,6 +52,8 @@
   ;;  slot-option    ::= {:accessor   function-name}
   ;;                   | {:init-value   expr}
   ;;                   | {:init-keyword keyword}
+  ;;                   | {:reader function-name}
+  ;;                   | {:writer function-name}
   ;;  function-name  ::= symbol
   ;; slot-option's options names are taken from Gauche. I think it's clearer
   ;; than CL's initform etc.
@@ -86,26 +88,40 @@
   (define-syntax define-class
     (lambda (x)
       (define (collect-accessor slot-defs)
-	(let loop ((defs (unwrap-syntax slot-defs)) (r '()))
+	(define (check defs target)
+	  (unless (or (not target)
+		      (and (pair? (cdr target)) (identifier? (cadr target))))
+	    (syntax-violation 'define-class
+			      "malformed slot specifier"
+			      (unwrap-syntax x)
+			      (unwrap-syntax (car defs)))))
+	(let loop ((defs (unwrap-syntax slot-defs))
+		   (ra '()) (rr '()) (rw '()))
 	  (syntax-case defs ()
-	    (() r)
+	    (() (values ra rr rw))
 	    (((name . acc) . rest)
 	     (identifier? #'name)
-	     (let ((s (memq :accessor #'acc)))
-	       (cond (s
-		      (unless (and (pair? (cdr s))
-				   (identifier? (cadr s)))
-			(syntax-violation 'define-class
-					  "malformed slot specifier"
-					  (unwrap-syntax x)
-					  (unwrap-syntax (car defs))))
-		      (loop (cdr defs)
-			    (acons (identifier->symbol #'name)
-				   (identifier->symbol (cadr s)) r)))
-		     (else (loop (cdr defs) r)))))
+	     (let ((sa (memq :accessor #'acc))
+		   (sr (memq :reader #'acc))
+		   (sw (memq :writer #'acc)))
+	       (check defs sa) (check defs sr) (check defs sw)
+	       ;; I'm not sure how we should treat if everything is defined.
+	       (loop (cdr defs)
+		     (if sa
+			 (acons (syntax->datum #'name)
+				(syntax->datum (cadr sa)) ra)
+			 ra)
+		     (if sr
+			 (acons (syntax->datum #'name)
+				(syntax->datum (cadr sr)) rr)
+			 rr)
+		     (if sw
+			 (acons (syntax->datum #'name)
+				(syntax->datum (cadr sw)) rw)
+			 rw))))
 	    (((name) . rest)
 	     (identifier? #'name)
-	     (loop (cdr defs) r))
+	     (loop (cdr defs) ra rr rw))
 	    (_ (syntax-violation 'define-class
 				 "malformed slot specifier"
 				 (unwrap-syntax x)
@@ -113,10 +129,10 @@
       (define (build name supers slot-defs options)
 	;; we creates generic accessor and the rest will be
 	;; for generic make
-	(let* ((accessors (collect-accessor slot-defs))
-	       (metaclass (or (get-keyword :metaclass options #f)
-			      #`(%get-default-metaclass 
-				 (list #,@supers)))))
+	(let-values (((accessors readers writers) (collect-accessor slot-defs))
+		     ((metaclass) (or (get-keyword :metaclass options #f)
+				    #`(%get-default-metaclass 
+				       (list #,@supers)))))
 	  (define (process-slot-definition sdef)
 	    (if (pair? sdef)
 		(let loop ((opts (cdr sdef)) (r '()))
@@ -129,9 +145,8 @@
 			   ((:init-form)
 			    (loop (cddr opts)
 				  `((lambda () ,(cadr opts)) :init-thunk ,@r)))
-			   ((:accessor)
-			    (loop (cddr opts) 
-				  `(',(cadr opts) ,(car opts) ,@r)))
+			   ((:accessor :reader :writer)
+			    (loop (cddr opts) `(',(cadr opts) ,(car opts) ,@r)))
 			   (else 
 			    (loop (cddr opts)
 				  (cons* (cadr opts) (car opts) r)))))))
@@ -156,8 +171,27 @@
 				    (slot-ref #,tmp (quote #,slot-name)))
 				  ;; getter
 				  (define-method #,accessor ((#,tmp #,name) obj)
-				    (slot-set! #,tmp (quote #,slot-name) obj)))))
-			  accessors)))))
+				    (slot-set! #,tmp (quote #,slot-name)
+					       obj)))))
+			  accessors))
+	      #,@(if (null? readers)
+		     #`((undefined))
+		     (map (lambda (slot)
+			    (let ((slot-name (car slot))
+				  (reader (cdr slot))
+				  (tmp (gensym)))
+			      #`(define (#,reader #,tmp)
+				  (slot-ref #,tmp (quote #,slot-name)))))
+			  readers))
+	      #,@(if (null? writers)
+		     #`((undefined))
+		     (map (lambda (slot)
+			    (let ((slot-name (car slot))
+				  (writer (cdr slot))
+				  (tmp (gensym)))
+			      #`(define (#,writer #,tmp obj)
+				  (slot-set! #,tmp (quote #,slot-name) obj))))
+			  writers)))))
       (syntax-case x ()
 	((_ ?name () ?slot-defs . ?options)
 	 #'(define-class ?name (<object>) ?slot-defs . ?options))

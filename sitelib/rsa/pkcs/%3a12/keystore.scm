@@ -31,7 +31,10 @@
 ;; only the part I want, for now
 
 (library (rsa pkcs :12 keystore)
-    (export load-keystore)
+    (export load-keystore
+	    ;; read only accessors
+	    keystore-keys keystore-key-certificates
+	    keystore-certificates)
     (import (rnrs)
 	    (clos user)
 	    (rsa pkcs :12 cipher)
@@ -233,10 +236,13 @@
 
   (define-class <pkcs12-keystore> ()
     ((key-algorithm)
-     (keys      :init-form (make-hashtable string-ci-hash string-ci=?))
-     (key-certs :init-form (make-string-hashtable))
+     (keys      :init-form (make-hashtable string-ci-hash string-ci=?)
+		:reader keystore-keys)
+     (key-certs :init-form (make-string-hashtable)
+		:reader keystore-key-certificates)
      (cert-algorithm)
-     (certs     :init-form (make-string-hashtable))
+     (certs     :init-form (make-string-hashtable)
+		:reader keystore-certificates)
      (chain-certs)
      (local-ids :init-form (make-string-hashtable))))
 

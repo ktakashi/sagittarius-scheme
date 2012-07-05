@@ -2,7 +2,7 @@
 ;;;
 ;;; uri.scm - parse and construct URIs 
 ;;;  
-;;;   Copyright (c) 2000-2011  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2009-2011  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -238,7 +238,7 @@
     ;; decoder is mere codec.
     (let ((decoder (lookup-decoder encoding)))
       (if decoder
-	  (let ((bv (string->bytevector string (make-transcoder decoder))))
+	  (let ((bv (string->utf8 string)))
 	    (bytevector->string
 	     (call-with-bytevector-output-port
 	      (lambda (out)
@@ -281,11 +281,10 @@
     (let ((decoder (lookup-decoder encoding)))
       (if decoder
 	  (let ((bv (string->bytevector string (make-transcoder decoder))))
-	    (bytevector->string
+	    (utf8->string
 	     (call-with-bytevector-output-port
 	      (lambda (out)
-		(apply uri-encode (open-bytevector-input-port bv) out args)))
-	     (make-transcoder decoder)))
+		(apply uri-encode (open-bytevector-input-port bv) out args)))))
 	  string)))
 )
 

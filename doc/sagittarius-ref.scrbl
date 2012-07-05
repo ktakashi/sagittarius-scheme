@@ -1,7 +1,7 @@
 @; -*- mode:scribble; coding: utf-8 -*-
 @title{Sagittarius Users' Reference}
 
-This document is a manual for Sagittarius, a Mostly R6RS Scheme implementation.
+This document is a manual for Sagittarius, an R6RS Scheme implementation.
 This is for version @eval{(sagittarius-version)}.
 
 @table-of-contents[:id "table-of-contents"]

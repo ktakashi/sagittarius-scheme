@@ -28,15 +28,47 @@ This section does not describe CLOS itself.
 @var{specifiers} ::= @code{:init-keyword} @var{keyword} 
 		 | @code{:init-value} @var{value}
                  | @code{:init-form} @var{form}
+                 | @code{:reader} @var{reader-function}
+                 | @code{:writer} @var{writer-function}
 }
 
 Defines a new class.
+
+Slot specifiers:
+@dl-list[]{
+  @dl-item[@code{:init-keyword}]{
+    This keyword specifies initialisation keyword argument used by the
+    @code{make} procedure. Following code describes how to use:
+    @snipet{(make <a-class> :slot-a 'slot-a-value)}
+    @code{<a-class>} has a slot which slot definition contains the keyword
+    @code{:init-keyword} with the keyword @var{:slot-a}. The code initialises
+    an instance of the slot with given value @var{slot-a-value}.
+  }
+  @dl-item[@code{:init-value}]{
+    This keyword specifies an initial value of target slot.
+  }
+  @dl-item[@code{:init-form}]{
+    Similar with @code{:init-keyword} but this keyword takes expression which
+    will be evaluated at initialiation time.
+  }
+  @dl-item[@code{:reader}]{
+    This keyword creates a procedure takes 1 argument an instance of the class
+    to access the slot, so users can read the slot without using @code{slot-ref}
+    procedure.
+  }
+  @dl-item[@code{:writer}]{
+    This keyword creates a procedure takes 2 argument an instance of the class
+    and object to set the slot value with given object, so users can set the
+    slot without using @code{slot-set!} procedure.
+  }
+}
 
 @var{opttions} can specify the metaclass of this class with keyword 
 @code{:metaclass}. 
 
 NOTE: Current implementation does not support @code{:allocation} keyword like
-CL. It might be implemented in future.
+by default. If you need it, see 
+@secref["sagittarius.mop.allocation"]{(sagittarius mop allocation)}.
 }
 
 @define[Macro]{@name{define-generic} @args{name}}

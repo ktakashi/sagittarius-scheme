@@ -449,4 +449,5 @@ specified by @var{start} and @var{end} falls outside of the original vector, the
 @include-section["sagittarius/record.scrbl"]
 @include-section["sagittarius/reader.scrbl"]
 @include-section["sagittarius/process.scrbl"]
+@include-section["sagittarius/object.scrbl"]
 @include-section["sagittarius/mop.scrbl"]

@@ -9,7 +9,7 @@ Then we decided to take the APIs and its behaviour from Tiny CLOS. The following
 libraries are implemented with the APIs and can be examples for Sagittarius'
 MOP.
 
-@subsubsection{(sagittarius mop allocation)}
+@subsubsection[:tag "sagittarius.mop.allocation"]{(sagittarius mop allocation)}
 
 @define[Library]{@name{(sagittarius mop allocation)}}
 @desc{Supporting @code{:allocation} option for @code{define-class}.}
@@ -72,4 +72,28 @@ the value if it's correct or not.
 
 @code{:observer} is for after set the value to the slot so that user can check
 which value is set to the slot.
+}
+
+@subsubsection{(sagittarius mop eql)}
+
+@define[Library]{@name{(sagittarius mop eql)}}
+@desc{Supporting eql specializer methods.
+
+The following code describes how to use;
+@codeblock[=> 3628800]{
+(import (clos user) (sagittarius mop eql))
+(define-generic eql-fact :class <eql-specializable-generic>)
+(define-method eql-fact ((n (eql 0))) 1)
+(define-method eql-fact ((n <integer>)) (* n (eql-fact (- n 1))))
+(eql-fact 10)
+}
+
+Note: The eql specializer is really slow approximately 200 time slower than
+usual procedure call.
+}
+
+@define[Class]{@name{<eql-specializable-generic>}}
+@desc{Subclass of @code{<generic>}.
+
+To use eql specializer, generic functions must have this class as a metaclass.
 }

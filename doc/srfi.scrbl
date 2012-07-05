@@ -29,6 +29,8 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     @td{(srfi :13 strings)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-14/srfi-14.html"]{SRFI-14}}
     @td{(srfi :14 char-set)}}
+@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-17/srfi-17.html"]{SRFI-17}}
+    @td{(srfi :17 generalized-set!)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-18/srfi-18.html"]{SRFI-18}}
     @td{(srfi :18 multithreading)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-19/srfi-19.html"]{SRFI-19}}
