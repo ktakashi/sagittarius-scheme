@@ -89,7 +89,9 @@ ENDIF()
 # CMake does not pretend to be 32 bit archtecture.
 # We need to modify it manually
 IF (SAGITTARIUS_PROCESSOR STREQUAL "x86_64")
-  SET(SAGITTARIUS_PROCESSOR "i686")
+  IF (SIZEOF_VOIDP EQUAL 4)
+    SET(SAGITTARIUS_PROCESSOR "i686")
+  ENDIF()
 ENDIF()
 
 # On Windows, if CMake works properly, the value must be this.

@@ -19,11 +19,15 @@ If you are lazy enough to download the archive file of GC, CMake will download
 it for you. Make sure you need to go to the GC directory and type following
 command;
 
-    % ./configure --enable-threads=pthreads --enable-parallel-mark
+    % ./configure --enable-threads=pthreads --enable-parallel-mark --enable-large-config
     % make
     % make install
 
-NOTE: On CYGWIN, cmake does not find `gc.h` by default (at least on my
+Note: I beleive most of UNIX like environment already have Boehm GC runtime
+in its software management system such as `apt-get`. I recommend to use it as
+long as I don't include it in Sagittarius.
+
+Note: On Cygwin, cmake does not find `gc.h` by default (at least on my
 environment), you might need to give `--prefix=/usr` option to configure script.
 
 ## Build on UNIX like environment
@@ -32,8 +36,11 @@ command.
 
     % cmake .
 
+Note: You can also build out-of-tree using CMake default behaviour and the build
+process won't contaminate the source directory at all.
+
 If you did not install Boehm GC yet, you need to install it before doing next
-step. Go to `gc-7.1` directory and type commands above and re-run `cmake`
+step. Go to `gc-7.2` directory and type commands above and re-run `cmake`
 command. Make sure you delete CMakeCache.txt to re-run `cmake` command.
 
     % make
@@ -42,9 +49,20 @@ command. Make sure you delete CMakeCache.txt to re-run `cmake` command.
     % make install
 
 The commend `make doc` creates document in the directory `doc/`. It is a HTML
-file and 'make install' does not install it on your environment. 
+file.
 
 You might need to run `ldconfig` to run Sagittarius properly.
+
+Note: Since 0.3.4, we also support 64 bit environment. For some reason, FFI test
+might not be able to find the test runtime module and report 4 tests failed.
+
+Note: For some reason, you might want to build 32 bit runtime on 64 bit
+environment. The following command can be used for this purpose;
+
+    % cmake . -DCMAKE_CXX_COMPILER=${your 32 bit C++ compiler} -DCMAKE_C_COMPILER={your 32 bit C compiler}
+
+Make sure you have all required runtime with 32 bit.
+
 
 ## Build on Windows (non Cygwin environment)
 On Windows, you need to create an installer and Sagittarius is using innosetup
@@ -56,30 +74,12 @@ cmake-gui, it will be much easier. Run `Visual Studio Command Prompt` and go to
 the directory which Sagittarius source codes are expanded.
 
 Note: I usually use `cmake-gui` to configure NMakefile, so following commands
-might not work properly.
+might not work properly. Make sure your configuration enables threads option.
+(parallel mark can be optional).
 
     % cmake .
 
-Before generating MakeFile, you might need to add the following line to
-`gc-7.2/CMakeLists.txt` around line number 200.
-
-    ADD_DEFINITIONS("-DGC_WIN32_THREADS")
-
-This is because Sagittarius is using threads but some how current alpha archive
-does not set this macro. 
-
-And if you don't have zlib on your developping environment, you also need to add
-the following line to `ext/zlib/zlib-{current-zlib-version}/CMakeLists.txt`.
-
-    INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
-
-The place does not matter as long as `cmake` can recognise it. My suggestion is
-after line number 75 (if cmake downloads version 1.2.6) where it adds other
-include directory.
-
-
-If you are using command line `cmake`, make sure you  delete CMakeCache.txt and
-re-run `cmake`. If you are using `cmake-gui`, then just press `Generate` button.
+The rest commands are almost the same as UNIX like environment.
 
     % nmake
     % nmake test
@@ -88,6 +88,10 @@ re-run `cmake`. If you are using `cmake-gui`, then just press `Generate` button.
 After these commands, you need to go to `win/` directory and double click the
 file `innosetup.iss`. Go to [Build] - [Compile], then it will create the
 installer. For more detail, please see Inno Setup's document.
+
+Note: You can also build on 64 bit however FFI does not work properly yet.
+(Test case causes SEGV). So if you don't have any specific reason, I would
+strongly recommend to build on 32 bit.
 
 # How to develop it?
 We provide `autogen.sh` for developper and it generates boot code, VM
