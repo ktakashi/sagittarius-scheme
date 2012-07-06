@@ -90,6 +90,8 @@
      (<library> "SgLibrary*" "library" "SG_LIBRARYP" "SG_LIBRARY")
      (<record-type> "SgRecordType*" "record-type" "SG_RECORD_TYPEP"
 		    "SG_RECORD_TYPE")
+     (<rtd> "SgRTD*" "record-type-descriptor" "SG_RTDP" "SG_RTD")
+     (<rcd> "SgRCD*" "record-constructor-descriptor" "SG_RCDP" "SG_RCD")
      (<char-set> "SgCharSet*" "char-set" "SG_CHAR_SET_P" "SG_CHAR_SET")
      (<codec> "SgCodec*" "codec" "SG_CODECP" "SG_CODEC")
      (<transcoder> "SgTranscoder*" "transcoder" "SG_TRANSCODERP"

@@ -64,8 +64,8 @@ static inline int nlz64(uint64_t x)
   return n - x;
 }
 
-static inline int nlz(intptr_t x) {
-  if (sizeof(intptr_t) == sizeof(uint32_t)) return nlz32((uint32_t)x);
+static inline int nlz(long x) {
+  if (sizeof(long) == sizeof(uint32_t)) return nlz32((uint32_t)x);
   return nlz64((uint64_t)x);
 }
 
@@ -96,9 +96,9 @@ static inline int nbits64(uint64_t x)
   return x >> 56;
 }
 
-static inline int nbits(intptr_t x)
+static inline int nbits(long x)
 {
-  if (sizeof(intptr_t) == sizeof(uint32_t)) return nbits32((uint32_t)x);
+  if (sizeof(long) == sizeof(uint32_t)) return nbits32((uint32_t)x);
   return nbits64((uint64_t)x);
 }
 

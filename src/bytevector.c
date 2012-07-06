@@ -150,12 +150,13 @@ SgObject Sg_NativeEndianness()
 #endif
 }
 
-static inline int is_valid_value(intptr_t value, size_t bitCount, int signP)
+static inline int is_valid_value(long value, size_t bitCount, int signP)
 {
   /* TODO 64 bit... */
-  uintptr_t unsigned_max = (1 << bitCount) - 1;        /* cf) bitCount = 8, max = 256 */
-  intptr_t signed_max = (1 << (bitCount - 1)) - 1;    /* cf) bitCount = 8, max = 127 */
-  intptr_t min = -(1 << (bitCount - 1));               /* cf) bitCount = 8, max = -128 */
+  /* cf) bitCount = 8, max = 256 */
+  unsigned long unsigned_max = (1 << bitCount) - 1;
+  long signed_max = (1 << (bitCount - 1)) - 1; /* cf) bitCount = 8, max = 127 */
+  intptr_t min = -(1 << (bitCount - 1)); /* cf) bitCount = 8, max = -128 */
   if ((size_t)nbits(value) > bitCount) {
     return FALSE;
   }
@@ -164,7 +165,7 @@ static inline int is_valid_value(intptr_t value, size_t bitCount, int signP)
     return min <= value && value <= signed_max;
   } else {
     /* unsigned min is always 0 */
-    return 0 <= value && (uintptr_t)value <= unsigned_max;
+    return 0 <= value && (unsigned long)value <= unsigned_max;
   }
 }
 

@@ -129,11 +129,13 @@ SgObject Sg_GetenvAlist()
   return ret;
 }
 
+
 SgObject Sg_GetTemporaryDirectory()
 {
   static const wchar_t NAME[] = L"Sagittarius";
-  wchar_t value[MAX_PATH];
+  wchar_t value[MAX_PATH], buf[50] = {0};
   int length;
+  size_t ret;
 #define find_env(e)					\
   do {							\
     length = get_env(UC(e), value, MAX_PATH);		\
@@ -145,17 +147,29 @@ SgObject Sg_GetTemporaryDirectory()
   find_env("TMP");
   return SG_FALSE;
 
+#define create(v)				\
+  if (PathFileExistsW(v)) {			\
+    /* something is exists */			\
+    if (!PathIsDirectoryW(v)) return SG_FALSE;	\
+  } else {					\
+    /* create */				\
+    CreateDirectoryW(v, NULL);			\
+  }
+
  next:
   /* temporary directory path is too long */
   if (length > MAX_PATH) return SG_FALSE;
   PathAppendW(value, NAME);
-  if (PathFileExistsW(value)) {
-    /* something is exists */
-    if (!PathIsDirectoryW(value)) return SG_FALSE;
-  } else {
-    /* create */
-    CreateDirectoryW(value, NULL);
-  }
+  create(value);
+
+  mbstowcs_s(&ret, buf, 50, SAGITTARIUS_VERSION, 50);
+  PathAppendW(value, buf);
+  create(value);
+
+  mbstowcs_s(&ret, buf, 50, SAGITTARIUS_TRIPLE, 50);
+  PathAppendW(value, buf);
+  create(value);
+
   return utf16ToUtf32(value);
 }
 

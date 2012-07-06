@@ -140,12 +140,6 @@ static double pow10n(double x, int n)
 
 }
 
-static SgObject intptr_to_integer(intptr_t value)
-{
-  if ((value <= SG_INT_MAX) && (value >= SG_INT_MIN)) return SG_MAKE_INT(value);
-  return Sg_MakeBignumFromSI(value);
-}
-
 static SgObject int64_to_integer(int64_t value)
 {
   if ((value <= SG_INT_MAX) && (value >= SG_INT_MIN)) return SG_MAKE_INT(value);
@@ -370,7 +364,7 @@ static SgObject read_uint(const SgChar **strp, int *lenp,
 
   if (!SG_FALSEP(initval)) {
     if (SG_INTP(initval)) {
-      if ((uintptr_t)SG_INT_VALUE(initval) > limit) {
+      if ((unsigned long)SG_INT_VALUE(initval) > limit) {
 	value_big = Sg_MakeBignumWithSize(4, SG_INT_VALUE(initval));
       } else {
 	value_int = SG_INT_VALUE(initval);
@@ -896,7 +890,7 @@ uint64_t Sg_GetIntegerU64Clamp(SgObject obj, int clamp, int *oor)
   uint64_t r = 0;
   if (clamp == SG_CLAMP_NONE && oor != NULL) *oor = FALSE;
   if (SG_INTP(obj)) {
-    intptr_t v = SG_INT_VALUE(obj);
+    long v = SG_INT_VALUE(obj);
     if (v < 0) {
       if (!(clamp & SG_CLAMP_LO)) goto err;
       return 0;
@@ -1401,8 +1395,8 @@ int Sg_IntegerValuedP(SgObject n)
 SgObject Sg_Negate(SgObject obj)
 {
   if (SG_INTP(obj)) {
-    intptr_t n = SG_INT_VALUE(obj);
-    if (n == SG_INT_MIN) return intptr_to_integer(-n);
+    long n = SG_INT_VALUE(obj);
+    if (n == SG_INT_MIN) return Sg_MakeInteger(-n);
     return SG_MAKE_INT(-n);
   }
   if (SG_FLONUMP(obj)) {
@@ -1626,7 +1620,7 @@ int Sg_IntegerLength(SgObject n)
 SgObject Sg_Ash(SgObject x, int count)
 {
   if (SG_INTP(x)) {
-    intptr_t ix = SG_INT_VALUE(x);
+    long ix = SG_INT_VALUE(x);
     if (count <= -(SIZEOF_LONG * 8)) {
       ix = (ix < 0) ? -1 : 0;
       return Sg_MakeInteger(ix);
@@ -1728,7 +1722,7 @@ int Sg_BitCount(SgObject x)
 {
   if (!SG_EXACT_INTP(x)) Sg_Error(UC("exact integer required, but got %S"), x);
   if (SG_INTP(x)) {
-    intptr_t n = SG_INT_VALUE(x);
+    long n = SG_INT_VALUE(x);
     if (n > 0) {
       return nbits(n);
     } else {
@@ -1743,7 +1737,7 @@ int Sg_BitSize(SgObject x)
 {
   if (!SG_EXACT_INTP(x)) Sg_Error(UC("exact integer required, but got %S"), x);
   if (SG_INTP(x)) {
-    intptr_t n = SG_INT_VALUE(x), n2;
+    long n = SG_INT_VALUE(x), n2;
     if (n == 0) return 0;
     n2 = (n < 0) ? ~n : n;
     return WORD_BITS - nlz(n2);
@@ -1757,7 +1751,7 @@ int Sg_FirstBitSet(SgObject x)
 {
   if (!SG_EXACT_INTP(x)) Sg_Error(UC("exact integer required, but got %S"), x);
   if (SG_INTP(x)) {
-    intptr_t n = SG_INT_VALUE(x);
+    long n = SG_INT_VALUE(x);
     int bit;
     if (n == 0) return -1;
     bit = 0;
@@ -1772,7 +1766,7 @@ SgObject Sg_Add(SgObject x, SgObject y)
 {
   if (SG_INTP(x)) {
     if (SG_INTP(y)) {
-      intptr_t r = SG_INT_VALUE(x) + SG_INT_VALUE(y);
+      long r = SG_INT_VALUE(x) + SG_INT_VALUE(y);
       return Sg_MakeInteger(r);
     }
     if (SG_BIGNUMP(y)) {
@@ -1874,7 +1868,7 @@ SgObject Sg_Sub(SgObject x, SgObject y)
 {
   if (SG_INTP(x)) {
     if (SG_INTP(y)) {
-      intptr_t r = SG_INT_VALUE(x) - SG_INT_VALUE(y);
+      long r = SG_INT_VALUE(x) - SG_INT_VALUE(y);
       return Sg_MakeInteger(r);
     }
     if (SG_BIGNUMP(y)) {
@@ -1975,9 +1969,9 @@ SgObject Sg_Mul(SgObject x, SgObject y)
 {
   if (SG_INTP(x)) {
     if (SG_INTP(y)) {
-      intptr_t v0 = SG_INT_VALUE(x);
-      intptr_t v1 = SG_INT_VALUE(y);
-      intptr_t k = v0 * v1;
+      long v0 = SG_INT_VALUE(x);
+      long v1 = SG_INT_VALUE(y);
+      long k = v0 * v1;
       if ((v1 != 0 && k / v1 != v0) || !(k >= SG_INT_MIN && k <= SG_INT_MAX)) {
 	SgObject big = Sg_MakeBignumFromSI(v0);
 	return Sg_BignumMulSI(SG_BIGNUM(big), v1);
@@ -2367,7 +2361,7 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
   if (SG_INTP(x)) {
   fixnum_again:
     if (SG_INTP(y)) {
-      intptr_t r;
+      long r;
       if (SG_INT_VALUE(y) == 0) goto div_by_zero;
       r = SG_INT_VALUE(x) % SG_INT_VALUE(y);
       if (!remp && r) {
@@ -2396,7 +2390,7 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
   if (SG_BIGNUMP(x)) {
   bignum_again:
     if (SG_INTP(y)) {
-      intptr_t iy = SG_INT_VALUE(y);
+      long iy = SG_INT_VALUE(y);
       long rem;
       Sg_BignumDivSI(SG_BIGNUM(x), iy, &rem);
       if (!remp
@@ -2722,7 +2716,7 @@ int Sg_NumCmp(SgObject x, SgObject y)
 
   if (SG_INTP(x)) {
     if (SG_INTP(y)) {
-      intptr_t r = SG_INT_VALUE(x) - SG_INT_VALUE(y);
+      long r = SG_INT_VALUE(x) - SG_INT_VALUE(y);
       if (r < 0) return -1;
       if (r > 0) return 1;
       return 0;
@@ -2850,7 +2844,7 @@ int Sg_NumLe(SgObject x, SgObject y)
 SgObject Sg_Abs(SgObject obj)
 {
   if (SG_INTP(obj)) {
-    intptr_t v = SG_INT_VALUE(obj);
+    long v = SG_INT_VALUE(obj);
     if (v < 0) {
       obj = Sg_MakeInteger(-v);
     }
@@ -2881,7 +2875,7 @@ SgObject Sg_Abs(SgObject obj)
 SgObject Sg_Sqrt(SgObject obj)
 {
   if (SG_INTP(obj)) {
-    intptr_t value = SG_INT_VALUE(obj);
+    long value = SG_INT_VALUE(obj);
     if (value == 0) return SG_MAKE_INT(0);
     if (value > 0) {
       double root = sqrt((double)value);
@@ -2996,7 +2990,7 @@ SgObject Sg_ExactIntegerSqrt(SgObject k)
 
 int Sg_Sign(SgObject obj)
 {
-  intptr_t r = 0;
+  long r = 0;
   if (SG_INTP(obj)) {
     r = SG_INT_VALUE(obj);
     if (r > 0) r = 1;
@@ -3158,7 +3152,7 @@ SgObject Sg_Log(SgObject obj)
   double real;
   double imag;
   if (SG_INTP(obj)) {
-    intptr_t value = SG_INT_VALUE(obj);
+    long value = SG_INT_VALUE(obj);
     if (value > 0) {
       if (value == 1) return SG_MAKE_INT(0);
       return Sg_MakeFlonum(log((double)value));
@@ -3232,9 +3226,9 @@ SgObject Sg_IntegerDiv(SgObject x, SgObject y)
   
   if (SG_INTP(x)) {
     if (SG_INTP(y)) {
-      intptr_t xx = SG_INT_VALUE(x);
-      intptr_t yy = SG_INT_VALUE(y);
-      intptr_t div;
+      long xx = SG_INT_VALUE(x);
+      long yy = SG_INT_VALUE(y);
+      long div;
       if (xx == 0) {
 	div = 0;
       } else if (xx > 0) {
@@ -3428,7 +3422,7 @@ SgObject Sg_Round(SgObject num, int mode)
 static inline int numcmp3(SgObject x, SgObject d, SgObject y)
 {
   if (SG_INTP(x) && SG_INTP(d) && SG_INTP(y)) {
-    intptr_t xd = SG_INT_VALUE(x) + SG_INT_VALUE(d);
+    long xd = SG_INT_VALUE(x) + SG_INT_VALUE(d);
     if (xd < SG_INT_VALUE(y)) return -1;
     if (xd > SG_INT_VALUE(y)) return 1;
     else return 0;

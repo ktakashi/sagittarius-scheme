@@ -1,3 +1,11 @@
+2012-07-06  Takashi Kato  <ktakashi@ymail.com>
+
+	* src/cache.c (Sg_ReadCache): modified not to abort when something
+	wrong cache tag found.
+
+	* src/os/posix/system.c (Sg_GetTemporaryDirectory): modified to cache
+	directory structure. now .sagittarius/${version}/${triple}
+
 2012-07-02  Takashi Kato  <ktakashi@ymail.com>
 
 	* sitelib/srfi/%3a1/lists.scm (unfold): modified unfold tail-recursive

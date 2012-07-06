@@ -174,6 +174,8 @@ SgObject Sg_GetTemporaryDirectory()
   static const char *NAME = "/.sagittarius";
   static const char *ENVS[] = {"SAGITTARIUS_CACHE_DIR", "HOME"};
   const char *home;
+  const size_t version_len = strlen(SAGITTARIUS_VERSION);
+  const size_t triple_len = strlen(SAGITTARIUS_TRIPLE);
   int len, i;
   char *real;
   struct stat st;
@@ -189,26 +191,38 @@ SgObject Sg_GetTemporaryDirectory()
   home = "/tmp";
   
  entry:
-  len = strlen(home) + 13;	/* 13 is the length of /.sagittarius */
+  /* 13 is the length of /.sagittarius */
+  len = strlen(home) + 13 + version_len + triple_len + 2;
   real = SG_NEW_ATOMIC2(char *, len + 1);
   /* We know the length, so don't worry */
   strcpy(real, home);
   strcat(real, NAME);
-  if (access(real, F_OK) == 0) {
-    struct stat st;
-    if (stat(real, &st) == 0) {
-      if (S_ISDIR(st.st_mode)) {
-	return Sg_MakeStringC(real);
-      } else {
-	return SG_FALSE;
-      }
-    } else {
-      return SG_FALSE;
-    }
-  } else {
-    /* create */
-    if (mkdir(real, S_IRWXU | S_IRWXG | S_IRWXO) != 0) return SG_FALSE;
+
+#define check(v, finish)						\
+  if (access(real, F_OK) == 0) {					\
+    struct stat st;							\
+    if (stat(v, &st) == 0) {						\
+      if (S_ISDIR(st.st_mode)) {					\
+	if (finish) {							\
+	  return Sg_MakeStringC(real);					\
+	}								\
+      } else {								\
+	return SG_FALSE;						\
+      }									\
+    } else {								\
+      return SG_FALSE;							\
+    }									\
+  } else {								\
+    if (mkdir(v, S_IRWXU | S_IRWXG | S_IRWXO) != 0) return SG_FALSE;	\
   }
+  check(real, FALSE);
+  strcat(real, "/");
+  strcat(real, SAGITTARIUS_VERSION);
+  check(real, FALSE);
+  strcat(real, "/");
+  strcat(real, SAGITTARIUS_TRIPLE);
+  check(real, TRUE);
+
   return Sg_MakeStringC(real);
 }
 

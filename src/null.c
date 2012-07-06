@@ -33,11 +33,9 @@ typedef unsigned long ulong;
 #include <float.h>
 
 static struct sg__rcRec {
-  SgObject d15[779];
+  SgObject d15[777];
 } sg__rc = {
   {  /* SgObject d15 */
-    SG_UNBOUND,
-    SG_UNBOUND,
     SG_UNBOUND,
     SG_UNBOUND,
     SG_UNBOUND,
@@ -13649,9 +13647,9 @@ SG_LIST3(SG_MAKE_INT(fx1),SG_MAKE_INT(fx2),SG_MAKE_INT(fx3)));}}}
 while ((start)<(end)){
 {long sbit=((bits)>>(start))&(1);long ebit=
 ((bits)>>(end))&(1);
-bits=((bits)&((((uint )(-1)))-((1)<<(end))));
+bits=((bits)&((((ulong )(-1)))-((1)<<(end))));
 bits=((bits)|((sbit)<<(end)));
-bits=((bits)&((((uint )(-1)))-((1)<<(start))));
+bits=((bits)&((((ulong )(-1)))-((1)<<(start))));
 bits=((bits)|((ebit)<<(start)));
 (start)++;
 (end)--;}}
@@ -14222,15 +14220,12 @@ static SgObject null_flmax(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-
-#line 3371 "./null.stub"
-if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[630],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
-
-#line 3372 "./null.stub"
-if (isnan((SG_FLONUM(fl))->value)){
-return (fl);}
 SgObject cise__65;
-#line 3374 "./null.stub"
+#line 3371 "./null.stub"
+{
+if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[630],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
+if (isnan((SG_FLONUM(fl))->value)){
+return (fl);} else {
 {double max=(SG_FLONUM(fl))->value;
 SG_FOR_EACH(cise__65,rest) {{SgObject v=SG_CAR(cise__65);
 if ((!(SG_FLONUMP(v)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[630],SG_MAKE_STRING("flonum"),SG_LIST1(v),SG_NIL);}}}
@@ -14238,7 +14233,7 @@ if (isnan((SG_FLONUM(v))->value)){
 return (v);}
 if (((SG_FLONUM(v))->value)>(max)){
 max=((SG_FLONUM(v))->value);}}}
-SG_RESULT=(Sg_MakeFlonum(max));}
+SG_RESULT=(Sg_MakeFlonum(max));}}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -14265,15 +14260,12 @@ static SgObject null_flmin(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-
-#line 3384 "./null.stub"
-if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[632],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
-
-#line 3385 "./null.stub"
-if (isnan((SG_FLONUM(fl))->value)){
-return (fl);}
 SgObject cise__66;
-#line 3387 "./null.stub"
+#line 3385 "./null.stub"
+{
+if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[632],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
+if (isnan((SG_FLONUM(fl))->value)){
+return (fl);} else {
 {double min=(SG_FLONUM(fl))->value;
 SG_FOR_EACH(cise__66,rest) {{SgObject v=SG_CAR(cise__66);
 if ((!(SG_FLONUMP(v)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[632],SG_MAKE_STRING("flonum"),SG_LIST1(v),SG_NIL);}}}
@@ -14281,7 +14273,7 @@ if (isnan((SG_FLONUM(v))->value)){
 return (v);}
 if (((SG_FLONUM(v))->value)<(min)){
 min=((SG_FLONUM(v))->value);}}}
-SG_RESULT=(Sg_MakeFlonum(min));}
+SG_RESULT=(Sg_MakeFlonum(min));}}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -14302,13 +14294,13 @@ static SgObject null_fl_2b(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 SgObject cise__67;
-#line 3405 "./null.stub"
+#line 3407 "./null.stub"
 if (SG_NULLP(rest)){
 SG_RESULT=(Sg_MakeFlonum(0.0));}else if(
 SG_NULLP(SG_CDR(rest))){
 if ((!(SG_FLONUMP(SG_CAR(rest))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[634],SG_MAKE_STRING("flonum"),SG_LIST1(SG_CAR(rest)),SG_NIL);}}}
 SG_RESULT=(SG_CAR(rest));} else {
-#line 3411 "./null.stub"
+#line 3413 "./null.stub"
 {double ret=0.0;
 {ret=((SG_FLONUM(SG_CAR(rest)))->value);SG_FOR_EACH(cise__67,SG_CDR(rest)) {{SgObject v=SG_CAR(cise__67);if ((!(SG_FLONUMP(v)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[634],SG_MAKE_STRING("flonum"),SG_LIST1(v),SG_NIL);}}}ret=((ret)+((SG_FLONUM(v))->value));}}}
 SG_RESULT=(Sg_MakeFlonum(ret));}}
@@ -14332,13 +14324,13 @@ static SgObject null_fl_2a(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 SgObject cise__68;
-#line 3416 "./null.stub"
+#line 3418 "./null.stub"
 if (SG_NULLP(rest)){
 SG_RESULT=(Sg_MakeFlonum(1.0));}else if(
 SG_NULLP(SG_CDR(rest))){
 if ((!(SG_FLONUMP(SG_CAR(rest))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[636],SG_MAKE_STRING("flonum"),SG_LIST1(SG_CAR(rest)),SG_NIL);}}}
 SG_RESULT=(SG_CAR(rest));} else {
-#line 3422 "./null.stub"
+#line 3424 "./null.stub"
 {double ret=1.0;
 {ret=((SG_FLONUM(SG_CAR(rest)))->value);SG_FOR_EACH(cise__68,SG_CDR(rest)) {{SgObject v=SG_CAR(cise__68);if ((!(SG_FLONUMP(v)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[636],SG_MAKE_STRING("flonum"),SG_LIST1(v),SG_NIL);}}}ret=((ret)*((SG_FLONUM(v))->value));}}}
 SG_RESULT=(Sg_MakeFlonum(ret));}}
@@ -14368,17 +14360,16 @@ static SgObject null_fl_(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-
-#line 3427 "./null.stub"
-if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[638],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
 SgObject cise__69;
-#line 3428 "./null.stub"
+#line 3429 "./null.stub"
+{
+if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[638],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
 if (SG_NULLP(rest)){
 SG_RESULT=(Sg_MakeFlonum((-1)*((SG_FLONUM(fl))->value)));} else {
-#line 3431 "./null.stub"
+#line 3434 "./null.stub"
 {double ret=1.0;
 {ret=((SG_FLONUM(fl))->value);SG_FOR_EACH(cise__69,rest) {{SgObject v=SG_CAR(cise__69);if ((!(SG_FLONUMP(v)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[638],SG_MAKE_STRING("flonum"),SG_LIST1(v),SG_NIL);}}}ret=((ret)-((SG_FLONUM(v))->value));}}}
-SG_RESULT=(Sg_MakeFlonum(ret));}}
+SG_RESULT=(Sg_MakeFlonum(ret));}}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -14405,19 +14396,18 @@ static SgObject null_fl_2f(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-
-#line 3436 "./null.stub"
-if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[640],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
 SgObject cise__70;
-#line 3437 "./null.stub"
+#line 3439 "./null.stub"
+{
+if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[640],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
 if (SG_NULLP(rest)){
 if (((SG_FLONUM(fl))->value)==(0.0)){
 {Sg_AssertionViolation(sg__rc.d15[640],SG_MAKE_STRING("undefined for 0"),SG_LIST1(fl));}} else {
 SG_RESULT=(Sg_Div(Sg_MakeFlonum(1.0),fl));}} else {
-#line 3442 "./null.stub"
+#line 3446 "./null.stub"
 {double ret=1.0;
 {ret=((SG_FLONUM(fl))->value);SG_FOR_EACH(cise__70,rest) {{SgObject v=SG_CAR(cise__70);if ((!(SG_FLONUMP(v)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[640],SG_MAKE_STRING("flonum"),SG_LIST1(v),SG_NIL);}}}ret=((ret)/((SG_FLONUM(v))->value));}}}
-SG_RESULT=(Sg_MakeFlonum(ret));}}
+SG_RESULT=(Sg_MakeFlonum(ret));}}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -14448,16 +14438,16 @@ static SgObject null_fldiv(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3460 "./null.stub"
+#line 3464 "./null.stub"
 if ((!(SG_FLONUMP(fl1)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[642],SG_MAKE_STRING("flonum"),SG_LIST1(fl1),SG_NIL);}}}
 
-#line 3461 "./null.stub"
+#line 3465 "./null.stub"
 if ((!(SG_FLONUMP(fl2)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[642],SG_MAKE_STRING("flonum"),SG_LIST1(fl2),SG_NIL);}}}
 
-#line 3462 "./null.stub"
+#line 3466 "./null.stub"
 {double d1=(SG_FLONUM(fl1))->value;double d2=
 (SG_FLONUM(fl2))->value;double ret=0.0;
-#line 3465 "./null.stub"
+#line 3469 "./null.stub"
 if ((d2)>(0.0)){ret=(floor((d1)/(d2)));} else {ret=((-(floor((d1)/((-(d2)))))));}
 SG_RESULT=(Sg_MakeFlonum(ret));}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
@@ -14490,16 +14480,16 @@ static SgObject null_flmod(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3469 "./null.stub"
+#line 3473 "./null.stub"
 if ((!(SG_FLONUMP(fl1)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[644],SG_MAKE_STRING("flonum"),SG_LIST1(fl1),SG_NIL);}}}
 
-#line 3470 "./null.stub"
+#line 3474 "./null.stub"
 if ((!(SG_FLONUMP(fl2)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[644],SG_MAKE_STRING("flonum"),SG_LIST1(fl2),SG_NIL);}}}
 
-#line 3471 "./null.stub"
+#line 3475 "./null.stub"
 {double d1=(SG_FLONUM(fl1))->value;double d2=
 (SG_FLONUM(fl2))->value;double ret=0.0;
-#line 3474 "./null.stub"
+#line 3478 "./null.stub"
 {double G71=0.0;if ((d2)>(0.0)){G71=(floor((d1)/(d2)));} else {G71=((-(floor((d1)/((-(d2)))))));}ret=((d1)-((d2)*(G71)));}
 SG_RESULT=(Sg_MakeFlonum(ret));}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
@@ -14532,16 +14522,16 @@ static SgObject null_fldiv0(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3499 "./null.stub"
+#line 3503 "./null.stub"
 if ((!(SG_FLONUMP(fl1)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[646],SG_MAKE_STRING("flonum"),SG_LIST1(fl1),SG_NIL);}}}
 
-#line 3500 "./null.stub"
+#line 3504 "./null.stub"
 if ((!(SG_FLONUMP(fl2)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[646],SG_MAKE_STRING("flonum"),SG_LIST1(fl2),SG_NIL);}}}
 
-#line 3501 "./null.stub"
+#line 3505 "./null.stub"
 {double d1=(SG_FLONUM(fl1))->value;double d2=
 (SG_FLONUM(fl2))->value;double ret=0.0;
-#line 3504 "./null.stub"
+#line 3508 "./null.stub"
 {double G72=0.0;double G73=0.0;if ((d2)>(0.0)){G72=(floor((d1)/(d2)));} else {G72=((-(floor((d1)/((-(d2)))))));}{double G74=0.0;if ((d2)>(0.0)){G74=(floor((d1)/(d2)));} else {G74=((-(floor((d1)/((-(d2)))))));}G73=((d1)-((d2)*(G74)));}if ((G73)<((fabs(d2))/(2.0))){ret=(G72);}else if((d2)>(0.0)){ret=((G72)+(1.0));} else {ret=((G72)-(1.0));}}
 SG_RESULT=(Sg_MakeFlonum(ret));}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
@@ -14574,16 +14564,16 @@ static SgObject null_flmod0(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3508 "./null.stub"
+#line 3512 "./null.stub"
 if ((!(SG_FLONUMP(fl1)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[648],SG_MAKE_STRING("flonum"),SG_LIST1(fl1),SG_NIL);}}}
 
-#line 3509 "./null.stub"
+#line 3513 "./null.stub"
 if ((!(SG_FLONUMP(fl2)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[648],SG_MAKE_STRING("flonum"),SG_LIST1(fl2),SG_NIL);}}}
 
-#line 3510 "./null.stub"
+#line 3514 "./null.stub"
 {double d1=(SG_FLONUM(fl1))->value;double d2=
 (SG_FLONUM(fl2))->value;double ret=0.0;
-#line 3513 "./null.stub"
+#line 3517 "./null.stub"
 {double G75=0.0;{double G76=0.0;double G77=0.0;if ((d2)>(0.0)){G76=(floor((d1)/(d2)));} else {G76=((-(floor((d1)/((-(d2)))))));}{double G78=0.0;if ((d2)>(0.0)){G78=(floor((d1)/(d2)));} else {G78=((-(floor((d1)/((-(d2)))))));}G77=((d1)-((d2)*(G78)));}if ((G77)<((fabs(d2))/(2.0))){G75=(G76);}else if((d2)>(0.0)){G75=((G76)+(1.0));} else {G75=((G76)-(1.0));}}ret=((d1)-((d2)*(G75)));}
 SG_RESULT=(Sg_MakeFlonum(ret));}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
@@ -14609,10 +14599,10 @@ static SgObject null_flnumerator(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3517 "./null.stub"
+#line 3521 "./null.stub"
 if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[650],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
 
-#line 3518 "./null.stub"
+#line 3522 "./null.stub"
 SG_RESULT=(Sg_Numerator(fl));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -14637,10 +14627,10 @@ static SgObject null_fldenominator(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3521 "./null.stub"
+#line 3525 "./null.stub"
 if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[652],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
 
-#line 3522 "./null.stub"
+#line 3526 "./null.stub"
 SG_RESULT=(Sg_Denominator(fl));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -14665,10 +14655,10 @@ static SgObject null_flfloor(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3525 "./null.stub"
+#line 3529 "./null.stub"
 if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[654],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
 
-#line 3526 "./null.stub"
+#line 3530 "./null.stub"
 SG_RESULT=(Sg_Round(fl,SG_ROUND_FLOOR));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -14693,10 +14683,10 @@ static SgObject null_flceiling(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3529 "./null.stub"
+#line 3533 "./null.stub"
 if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[657],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
 
-#line 3530 "./null.stub"
+#line 3534 "./null.stub"
 SG_RESULT=(Sg_Round(fl,SG_ROUND_CEIL));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -14721,10 +14711,10 @@ static SgObject null_fltruncate(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3533 "./null.stub"
+#line 3537 "./null.stub"
 if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[659],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
 
-#line 3534 "./null.stub"
+#line 3538 "./null.stub"
 SG_RESULT=(Sg_Round(fl,SG_ROUND_TRUNC));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -14749,10 +14739,10 @@ static SgObject null_flround(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3537 "./null.stub"
+#line 3541 "./null.stub"
 if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[661],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
 
-#line 3538 "./null.stub"
+#line 3542 "./null.stub"
 SG_RESULT=(Sg_Round(fl,SG_ROUND_ROUND));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -14777,10 +14767,10 @@ static SgObject null_flexp(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3541 "./null.stub"
+#line 3545 "./null.stub"
 if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[663],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
 
-#line 3542 "./null.stub"
+#line 3546 "./null.stub"
 SG_RESULT=(Sg_MakeFlonum(exp((SG_FLONUM(fl))->value)));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -14812,13 +14802,13 @@ static SgObject null_flexpt(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3545 "./null.stub"
+#line 3549 "./null.stub"
 if ((!(SG_FLONUMP(fl1)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[665],SG_MAKE_STRING("flonum"),SG_LIST1(fl1),SG_NIL);}}}
 
-#line 3546 "./null.stub"
+#line 3550 "./null.stub"
 if ((!(SG_FLONUMP(fl2)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[665],SG_MAKE_STRING("flonum"),SG_LIST1(fl2),SG_NIL);}}}
 
-#line 3547 "./null.stub"
+#line 3551 "./null.stub"
 SG_RESULT=(Sg_MakeFlonum(pow((SG_FLONUM(fl1))->value,(SG_FLONUM(fl2))->value)));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -14827,17 +14817,17 @@ SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 static SG_DEFINE_SUBR(null_flexpt__STUB, 2, 0,null_flexpt, SG_FALSE, NULL);
 
 static double log_impl(double d){{
-#line 3551 "./null.stub"
+#line 3555 "./null.stub"
 
 #if defined(__WATCOMC__)
 
-#line 3552 "./null.stub"
+#line 3556 "./null.stub"
 if ((d)==(-(INFINITY))){
 return (NAN);} else {
 return (log(d));}
 #else /* !defined(__WATCOMC__) */
 
-#line 3555 "./null.stub"
+#line 3559 "./null.stub"
 return (log(d));
 #endif /* defined(__WATCOMC__) */
 }}
@@ -14868,10 +14858,10 @@ static SgObject null_fllog(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3558 "./null.stub"
+#line 3562 "./null.stub"
 if ((!(SG_FLONUMP(fl1)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[667],SG_MAKE_STRING("flonum"),SG_LIST1(fl1),SG_NIL);}}}
 
-#line 3559 "./null.stub"
+#line 3563 "./null.stub"
 if (SG_UNBOUNDP(fl2)){
 SG_RESULT=(Sg_MakeFlonum(log_impl((SG_FLONUM(fl1))->value)));} else {
 {
@@ -14901,10 +14891,10 @@ static SgObject null_flsin(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3567 "./null.stub"
+#line 3571 "./null.stub"
 if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[669],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
 
-#line 3568 "./null.stub"
+#line 3572 "./null.stub"
 SG_RESULT=(Sg_MakeFlonum(sin((SG_FLONUM(fl))->value)));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -14929,10 +14919,10 @@ static SgObject null_flcos(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3571 "./null.stub"
+#line 3575 "./null.stub"
 if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[671],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
 
-#line 3572 "./null.stub"
+#line 3576 "./null.stub"
 SG_RESULT=(Sg_MakeFlonum(cos((SG_FLONUM(fl))->value)));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -14957,10 +14947,10 @@ static SgObject null_fltan(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3575 "./null.stub"
+#line 3579 "./null.stub"
 if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[673],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
 
-#line 3576 "./null.stub"
+#line 3580 "./null.stub"
 SG_RESULT=(Sg_MakeFlonum(tan((SG_FLONUM(fl))->value)));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -14985,10 +14975,10 @@ static SgObject null_flasin(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3579 "./null.stub"
+#line 3583 "./null.stub"
 if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[675],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
 
-#line 3580 "./null.stub"
+#line 3584 "./null.stub"
 SG_RESULT=(Sg_MakeFlonum(asin((SG_FLONUM(fl))->value)));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -15013,10 +15003,10 @@ static SgObject null_flacos(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3583 "./null.stub"
+#line 3587 "./null.stub"
 if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[677],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
 
-#line 3584 "./null.stub"
+#line 3588 "./null.stub"
 SG_RESULT=(Sg_MakeFlonum(acos((SG_FLONUM(fl))->value)));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -15051,10 +15041,10 @@ static SgObject null_flatan(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3587 "./null.stub"
+#line 3591 "./null.stub"
 if ((!(SG_FLONUMP(fl1)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[679],SG_MAKE_STRING("flonum"),SG_LIST1(fl1),SG_NIL);}}}
 
-#line 3588 "./null.stub"
+#line 3592 "./null.stub"
 if (SG_UNBOUNDP(fl2)){
 SG_RESULT=(Sg_MakeFlonum(atan((SG_FLONUM(fl1))->value)));} else {
 {
@@ -15084,10 +15074,10 @@ static SgObject null_flabs(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3596 "./null.stub"
+#line 3600 "./null.stub"
 if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[681],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
 
-#line 3597 "./null.stub"
+#line 3601 "./null.stub"
 SG_RESULT=(Sg_MakeFlonum(fabs((SG_FLONUM(fl))->value)));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -15112,10 +15102,10 @@ static SgObject null_flsqrt(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3600 "./null.stub"
+#line 3604 "./null.stub"
 if ((!(SG_FLONUMP(fl)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[683],SG_MAKE_STRING("flonum"),SG_LIST1(fl),SG_NIL);}}}
 
-#line 3601 "./null.stub"
+#line 3605 "./null.stub"
 {double v=(SG_FLONUM(fl))->value;
 if ((v)<(0.0)){
 SG_RESULT=(Sg_MakeComplex(Sg_MakeFlonum(0.0),
@@ -15144,7 +15134,7 @@ static SgObject null_fixnum_TOflonum(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3608 "./null.stub"
+#line 3612 "./null.stub"
 SG_RESULT=(Sg_MakeFlonum(fx));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -15169,11 +15159,11 @@ static SgObject null_bitwise_not(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3612 "./null.stub"
+#line 3616 "./null.stub"
 if ((!(Sg_ExactP(ei)))){{
 {Sg_WrongTypeOfArgumentViolation(sg__rc.d15[686],SG_MAKE_STRING("exact integer required"),ei,SG_NIL);}}}
 
-#line 3614 "./null.stub"
+#line 3618 "./null.stub"
 SG_RESULT=(Sg_LogNot(ei));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -15199,7 +15189,7 @@ static SgObject null_bitwise_and(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 SgObject cise__79;
-#line 3623 "./null.stub"
+#line 3627 "./null.stub"
 if (SG_NULLP(rest)){
 SG_RESULT=(ei);} else {
 {SgObject r=Sg_LogAnd(ei,SG_CAR(rest));SG_FOR_EACH(cise__79,SG_CDR(rest)) {{SgObject v=SG_CAR(cise__79);r=(Sg_LogAnd(r,v));}}SG_RESULT=(r);}}
@@ -15227,7 +15217,7 @@ static SgObject null_bitwise_ior(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 SgObject cise__80;
-#line 3628 "./null.stub"
+#line 3632 "./null.stub"
 if (SG_NULLP(rest)){
 SG_RESULT=(ei);} else {
 {SgObject r=Sg_LogIor(ei,SG_CAR(rest));SG_FOR_EACH(cise__80,SG_CDR(rest)) {{SgObject v=SG_CAR(cise__80);r=(Sg_LogIor(r,v));}}SG_RESULT=(r);}}
@@ -15255,7 +15245,7 @@ static SgObject null_bitwise_xor(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 SgObject cise__81;
-#line 3633 "./null.stub"
+#line 3637 "./null.stub"
 if (SG_NULLP(rest)){
 SG_RESULT=(ei);} else {
 {SgObject r=Sg_LogXor(ei,SG_CAR(rest));SG_FOR_EACH(cise__81,SG_CDR(rest)) {{SgObject v=SG_CAR(cise__81);r=(Sg_LogXor(r,v));}}SG_RESULT=(r);}}
@@ -15296,7 +15286,7 @@ static SgObject null_bitwise_if(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3643 "./null.stub"
+#line 3647 "./null.stub"
 SG_RESULT=(Sg_LogIor(Sg_LogAnd(ei1,ei2),Sg_LogAnd(Sg_LogNot(ei1),ei3)));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -15321,7 +15311,7 @@ static SgObject null_bitwise_bit_count(SgObject *SG_FP, int SG_ARGC, void *data_
 {
 long SG_RESULT = (long)NULL;
 
-#line 3646 "./null.stub"
+#line 3650 "./null.stub"
 SG_RESULT=(Sg_BitCount(ei));
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }
@@ -15346,7 +15336,7 @@ static SgObject null_bitwise_length(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 long SG_RESULT = (long)NULL;
 
-#line 3649 "./null.stub"
+#line 3653 "./null.stub"
 SG_RESULT=(Sg_BitSize(ei));
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }
@@ -15371,7 +15361,7 @@ static SgObject null_bitwise_first_bit_set(SgObject *SG_FP, int SG_ARGC, void *d
 {
 long SG_RESULT = (long)NULL;
 
-#line 3652 "./null.stub"
+#line 3656 "./null.stub"
 SG_RESULT=(Sg_FirstBitSet(ei));
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }
@@ -15403,7 +15393,7 @@ static SgObject null_bitwise_bit_setP(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 int SG_RESULT = (int)NULL;
 
-#line 3655 "./null.stub"
+#line 3659 "./null.stub"
 SG_RESULT=((!(Sg_ZeroP(Sg_LogAnd(Sg_Ash(SG_MAKE_INT(1),ei2),ei1)))));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -15442,7 +15432,7 @@ static SgObject null_bitwise_copy_bit(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3658 "./null.stub"
+#line 3662 "./null.stub"
 {SgObject mask=Sg_Ash(SG_MAKE_INT(1),ei2);
 SG_RESULT=(Sg_LogIor(Sg_LogAnd(mask,Sg_Ash(ei3,ei2)),Sg_LogAnd(Sg_LogNot(mask),ei1)));}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
@@ -15482,12 +15472,12 @@ static SgObject null_bitwise_bit_field(SgObject *SG_FP, int SG_ARGC, void *data_
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3662 "./null.stub"
+#line 3666 "./null.stub"
 if ((ei2)>(ei3)){{
 {Sg_AssertionViolation(sg__rc.d15[697],SG_MAKE_STRING("2nd parameter must be less than or equal to 3rd parameter"),
 SG_LIST3(ei1,SG_MAKE_INT(ei2),SG_MAKE_INT(ei3)));}}}
 
-#line 3665 "./null.stub"
+#line 3669 "./null.stub"
 {SgObject mask=Sg_LogNot(Sg_Ash(SG_MAKE_INT(-1),ei3));
 SG_RESULT=(Sg_Ash(Sg_LogAnd(ei1,mask),(0)-(ei2)));}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
@@ -15534,9 +15524,9 @@ static SgObject null_bitwise_copy_bit_field(SgObject *SG_FP, int SG_ARGC, void *
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3669 "./null.stub"
-{SgObject to=ei1;long start=ei2;long end=ei3;SgObject from=ei4;SgObject mask1=
 #line 3673 "./null.stub"
+{SgObject to=ei1;long start=ei2;long end=ei3;SgObject from=ei4;SgObject mask1=
+#line 3677 "./null.stub"
 Sg_Ash(SG_MAKE_INT(-1),start);SgObject mask2=
 Sg_LogNot(Sg_Ash(SG_MAKE_INT(-1),end));SgObject mask=
 Sg_LogAnd(mask1,mask2);
@@ -15571,7 +15561,7 @@ static SgObject null_bitwise_arithmetic_shift(SgObject *SG_FP, int SG_ARGC, void
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3679 "./null.stub"
+#line 3683 "./null.stub"
 SG_RESULT=(Sg_Ash(ei1,ei2));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -15603,7 +15593,7 @@ static SgObject null_bitwise_arithmetic_shift_left(SgObject *SG_FP, int SG_ARGC,
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3682 "./null.stub"
+#line 3686 "./null.stub"
 SG_RESULT=(Sg_Ash(ei1,ei2));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -15635,7 +15625,7 @@ static SgObject null_bitwise_arithmetic_shift_right(SgObject *SG_FP, int SG_ARGC
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3685 "./null.stub"
+#line 3689 "./null.stub"
 SG_RESULT=(Sg_Ash(ei1,(0)-(ei2)));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -15657,7 +15647,7 @@ static SgObject null_identifierP(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 int SG_RESULT = (int)NULL;
 
-#line 3690 "./null.stub"
+#line 3694 "./null.stub"
 SG_RESULT=((SG_IDENTIFIERP(id))||(
 SG_USER_DEFINED_SYNTXP(id)));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
@@ -15690,7 +15680,7 @@ static SgObject null_free_identifier_3dP(SgObject *SG_FP, int SG_ARGC, void *dat
 {
 int SG_RESULT = (int)NULL;
 
-#line 3695 "./null.stub"
+#line 3699 "./null.stub"
 SG_RESULT=((SG_EQ(SG_IDENTIFIER_NAME(id1),
 SG_IDENTIFIER_NAME(id2)))&&(
 SG_EQ(SG_IDENTIFIER_ENVS(id1),
@@ -15725,7 +15715,7 @@ static SgObject null_bound_identifier_3dP(SgObject *SG_FP, int SG_ARGC, void *da
 {
 int SG_RESULT = (int)NULL;
 
-#line 3701 "./null.stub"
+#line 3705 "./null.stub"
 {SgVM* vm=Sg_VM();
 if (SG_EQ((vm)->usageEnv,(vm)->macroEnv)){
 SG_RESULT=((SG_EQ(SG_IDENTIFIER_NAME(id1),
@@ -15762,7 +15752,7 @@ static SgObject null_make_eq_hashtable(SgObject *SG_FP, int SG_ARGC, void *data_
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3712 "./null.stub"
+#line 3716 "./null.stub"
 SG_RESULT=(Sg_MakeHashTableSimple(SG_HASH_EQ,k));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -15793,7 +15783,7 @@ static SgObject null_make_eqv_hashtable(SgObject *SG_FP, int SG_ARGC, void *data
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3715 "./null.stub"
+#line 3719 "./null.stub"
 SG_RESULT=(Sg_MakeHashTableSimple(SG_HASH_EQV,k));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -15838,7 +15828,7 @@ static SgObject null_make_hashtable(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3718 "./null.stub"
+#line 3722 "./null.stub"
 SG_RESULT=(Sg_MakeHashTableForScheme(hasher,equiv,k));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -15860,7 +15850,7 @@ static SgObject null_hashtableP(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 int SG_RESULT = (int)NULL;
 
-#line 3722 "./null.stub"
+#line 3726 "./null.stub"
 SG_RESULT=(SG_HASHTABLE_P(o));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -15885,7 +15875,7 @@ static SgObject null_hashtable_size(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 long SG_RESULT = (long)NULL;
 
-#line 3725 "./null.stub"
+#line 3729 "./null.stub"
 SG_RESULT=((SG_HASHTABLE_CORE(ht))->entryCount);
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }
@@ -15924,7 +15914,7 @@ static SgObject null_hashtable_ref(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3729 "./null.stub"
+#line 3733 "./null.stub"
 SG_RESULT=(Sg_HashTableRef(ht,key,fallback));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -15955,10 +15945,10 @@ static SgObject null_hashtable_setX(SgObject *SG_FP, int SG_ARGC, void *data_)
   value = (value_scm);
   {
 
-#line 3737 "./null.stub"
+#line 3741 "./null.stub"
 if (SG_IMMUTABLE_HASHTABLE_P(ht)){{{Sg_AssertionViolation(sg__rc.d15[712],SG_MAKE_STRING("attemp to modify an immutable hashtable"),ht);}}}
 
-#line 3738 "./null.stub"
+#line 3742 "./null.stub"
 Sg_HashTableSet(ht,key,value,0);
 SG_RETURN(SG_UNDEF);
   }
@@ -15984,10 +15974,10 @@ static SgObject null_hashtable_deleteX(SgObject *SG_FP, int SG_ARGC, void *data_
   key = (key_scm);
   {
 
-#line 3741 "./null.stub"
+#line 3745 "./null.stub"
 if (SG_IMMUTABLE_HASHTABLE_P(ht)){{{Sg_AssertionViolation(sg__rc.d15[712],SG_MAKE_STRING("attemp to modify an immutable hashtable"),ht);}}}
 
-#line 3742 "./null.stub"
+#line 3746 "./null.stub"
 Sg_HashTableDelete(ht,key);
 SG_RETURN(SG_UNDEF);
   }
@@ -16015,7 +16005,7 @@ static SgObject null_hashtable_containsP(SgObject *SG_FP, int SG_ARGC, void *dat
 {
 int SG_RESULT = (int)NULL;
 
-#line 3745 "./null.stub"
+#line 3749 "./null.stub"
 {SgObject r=Sg_HashTableRef(ht,key,SG_UNBOUND);
 SG_RESULT=((!(SG_UNBOUNDP(r))));}
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
@@ -16054,7 +16044,7 @@ static SgObject null_hashtable_copy(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3749 "./null.stub"
+#line 3753 "./null.stub"
 SG_RESULT=(Sg_HashTableCopy(ht,mutableP));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16090,10 +16080,10 @@ static SgObject null_hashtable_clearX(SgObject *SG_FP, int SG_ARGC, void *data_)
   k = SG_INT_VALUE(k_scm);
   {
 
-#line 3752 "./null.stub"
+#line 3756 "./null.stub"
 if (SG_IMMUTABLE_HASHTABLE_P(ht)){{{Sg_AssertionViolation(sg__rc.d15[717],SG_MAKE_STRING("attemp to modify an immutable hashtable"),ht);}}}
 
-#line 3753 "./null.stub"
+#line 3757 "./null.stub"
 Sg_HashCoreClear(SG_HASHTABLE_CORE(ht),k);
 SG_RETURN(SG_UNDEF);
   }
@@ -16117,7 +16107,7 @@ static SgObject null_hashtable_keys(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3756 "./null.stub"
+#line 3760 "./null.stub"
 SG_RESULT=(Sg_ListToVector(Sg_HashTableKeys(ht),0,-1));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16142,7 +16132,7 @@ static SgObject null_hashtable_mutableP(SgObject *SG_FP, int SG_ARGC, void *data
 {
 int SG_RESULT = (int)NULL;
 
-#line 3760 "./null.stub"
+#line 3764 "./null.stub"
 SG_RESULT=((!(SG_IMMUTABLE_HASHTABLE_P(ht))));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -16164,7 +16154,7 @@ static SgObject null_equal_hash(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 long SG_RESULT = (long)NULL;
 
-#line 3764 "./null.stub"
+#line 3768 "./null.stub"
 SG_RESULT=(Sg_EqualHash(o));
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }
@@ -16199,7 +16189,7 @@ static SgObject null_string_hash(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 long SG_RESULT = (long)NULL;
 
-#line 3768 "./null.stub"
+#line 3772 "./null.stub"
 {uint32_t modulo=0;
 if (SG_UNBOUNDP(bound)){modulo=(SG_INT_MAX);}else if(
 SG_INTP(bound)){modulo=(SG_INT_VALUE(bound));}else if(
@@ -16207,7 +16197,7 @@ SG_BIGNUMP(bound)){
 modulo=(Sg_BignumToUI(SG_BIGNUM(bound),SG_CLAMP_BOTH,NULL));}
 if ((modulo)==(0)){{
 {Sg_AssertionViolation(sg__rc.d15[722],SG_MAKE_STRING("argument out of domain"),bound);}}}
-#line 3777 "./null.stub"
+#line 3781 "./null.stub"
 SG_RESULT=(Sg_StringHash(o,modulo));}
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }
@@ -16242,7 +16232,7 @@ static SgObject null_string_ci_hash(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 long SG_RESULT = (long)NULL;
 
-#line 3780 "./null.stub"
+#line 3784 "./null.stub"
 {uint32_t modulo=0;
 if (SG_UNBOUNDP(bound)){modulo=(SG_INT_MAX);}else if(
 SG_INTP(bound)){modulo=(SG_INT_VALUE(bound));}else if(
@@ -16250,7 +16240,7 @@ SG_BIGNUMP(bound)){
 modulo=(Sg_BignumToUI(SG_BIGNUM(bound),SG_CLAMP_BOTH,NULL));}
 if ((modulo)==(0)){{
 {Sg_AssertionViolation(sg__rc.d15[722],SG_MAKE_STRING("argument out of domain"),bound);}}}
-#line 3789 "./null.stub"
+#line 3793 "./null.stub"
 SG_RESULT=(Sg_StringHash(Sg_StringFoldCase(o),modulo));}
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }
@@ -16275,7 +16265,7 @@ static SgObject null_symbol_hash(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 long SG_RESULT = (long)NULL;
 
-#line 3792 "./null.stub"
+#line 3796 "./null.stub"
 SG_RESULT=(Sg_EqHash(o));
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }
@@ -16301,7 +16291,7 @@ static SgObject null_eval(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3797 "./null.stub"
+#line 3801 "./null.stub"
 SG_RESULT=(Sg_VMEval(sexp,env));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16327,7 +16317,7 @@ static SgObject null_environment(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3800 "./null.stub"
+#line 3804 "./null.stub"
 SG_RESULT=(Sg_Environment(Sg_MakeEvalLibrary(),Sg_Cons(spec,more)));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16351,14 +16341,14 @@ static SgObject null_set_carX(SgObject *SG_FP, int SG_ARGC, void *data_)
   v = (v_scm);
   {
 
-#line 3808 "./null.stub"
+#line 3812 "./null.stub"
 if ((!(SG_PAIRP(o)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[728],SG_MAKE_STRING("pair"),o,SG_NIL);}}}
 
-#line 3809 "./null.stub"
+#line 3813 "./null.stub"
 if (Sg_ConstantLiteralP(o)){{
 {Sg_AssertionViolation(sg__rc.d15[729],SG_MAKE_STRING("attempt to modify constant literal"),o);}}}
 
-#line 3811 "./null.stub"
+#line 3815 "./null.stub"
 SG_SET_CAR(o,v);
 SG_RETURN(SG_UNDEF);
   }
@@ -16381,14 +16371,14 @@ static SgObject null_set_cdrX(SgObject *SG_FP, int SG_ARGC, void *data_)
   v = (v_scm);
   {
 
-#line 3814 "./null.stub"
+#line 3818 "./null.stub"
 if ((!(SG_PAIRP(o)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[732],SG_MAKE_STRING("pair"),o,SG_NIL);}}}
 
-#line 3815 "./null.stub"
+#line 3819 "./null.stub"
 if (Sg_ConstantLiteralP(o)){{
 {Sg_AssertionViolation(sg__rc.d15[733],SG_MAKE_STRING("attempt to modify constant literal"),o);}}}
 
-#line 3817 "./null.stub"
+#line 3821 "./null.stub"
 SG_SET_CDR(o,v);
 SG_RETURN(SG_UNDEF);
   }
@@ -16424,24 +16414,24 @@ static SgObject null_string_setX(SgObject *SG_FP, int SG_ARGC, void *data_)
   c = SG_CHAR_VALUE(c_scm);
   {
 
-#line 3821 "./null.stub"
+#line 3825 "./null.stub"
 if ((k)<(0)){{
 {Sg_WrongTypeOfArgumentViolation(sg__rc.d15[736],SG_MAKE_STRING("non negative exact integer"),
-#line 3824 "./null.stub"
+#line 3828 "./null.stub"
 SG_MAKE_INT(k),
 SG_LIST3(s,SG_MAKE_INT(k),
 SG_MAKE_CHAR(c)));}}}
 
-#line 3827 "./null.stub"
+#line 3831 "./null.stub"
 if ((k)>(SG_STRING_SIZE(s))){{
 {Sg_AssertionViolation(sg__rc.d15[736],SG_MAKE_STRING("index out of bounds"),
 SG_LIST3(s,SG_MAKE_INT(k),SG_MAKE_CHAR(c)));}}}
 
-#line 3830 "./null.stub"
+#line 3834 "./null.stub"
 if (SG_LITERAL_STRINGP(s)){{
 {Sg_AssertionViolation(sg__rc.d15[736],SG_MAKE_STRING("attempted to modify an immutable string"),s);}}}
 
-#line 3834 "./null.stub"
+#line 3838 "./null.stub"
 SG_STRING_VALUE_AT(s,k)=(c);
 SG_RETURN(SG_UNDEF);
   }
@@ -16494,11 +16484,11 @@ static SgObject null_string_fillX(SgObject *SG_FP, int SG_ARGC, void *data_)
   end = SG_INT_VALUE(end_scm);
   {
 
-#line 3840 "./null.stub"
+#line 3844 "./null.stub"
 if (SG_LITERAL_STRINGP(s)){{
 {Sg_AssertionViolation(sg__rc.d15[736],SG_MAKE_STRING("attempted to modify an immutable string"),s);}}}
 
-#line 3844 "./null.stub"
+#line 3848 "./null.stub"
 Sg_StringFill(s,c,start,end);
 SG_RETURN(SG_UNDEF);
   }
@@ -16519,7 +16509,7 @@ static SgObject null_condition(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3848 "./null.stub"
+#line 3852 "./null.stub"
 SG_RESULT=(Sg_Condition(components));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16541,7 +16531,7 @@ static SgObject null_simple_conditions(SgObject *SG_FP, int SG_ARGC, void *data_
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3851 "./null.stub"
+#line 3855 "./null.stub"
 SG_RESULT=(Sg_SimpleConditions(obj));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16563,7 +16553,7 @@ static SgObject null_compound_condition_component(SgObject *SG_FP, int SG_ARGC, 
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3854 "./null.stub"
+#line 3858 "./null.stub"
 SG_RESULT=(Sg_CompoundConditionComponent(obj));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16585,7 +16575,7 @@ static SgObject null_compound_conditionP(SgObject *SG_FP, int SG_ARGC, void *dat
 {
 int SG_RESULT = (int)NULL;
 
-#line 3857 "./null.stub"
+#line 3861 "./null.stub"
 SG_RESULT=(Sg_CompoundConditionP(obj));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -16607,7 +16597,7 @@ static SgObject null_simple_conditionP(SgObject *SG_FP, int SG_ARGC, void *data_
 {
 int SG_RESULT = (int)NULL;
 
-#line 3860 "./null.stub"
+#line 3864 "./null.stub"
 SG_RESULT=(Sg_SimpleConditionP(obj));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -16629,7 +16619,7 @@ static SgObject null_conditionP(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 int SG_RESULT = (int)NULL;
 
-#line 3863 "./null.stub"
+#line 3867 "./null.stub"
 SG_RESULT=(Sg_ConditionP(obj));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -16651,7 +16641,7 @@ static SgObject null_condition_predicate(SgObject *SG_FP, int SG_ARGC, void *dat
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3866 "./null.stub"
+#line 3870 "./null.stub"
 SG_RESULT=(Sg_ConditionPredicate(rtd));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16677,7 +16667,7 @@ static SgObject null_condition_accessor(SgObject *SG_FP, int SG_ARGC, void *data
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3869 "./null.stub"
+#line 3873 "./null.stub"
 SG_RESULT=(Sg_ConditionAccessor(rtd,proc));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16731,7 +16721,7 @@ static SgObject null_make_record_type_descriptor(SgObject *SG_FP, int SG_ARGC, v
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3874 "./null.stub"
+#line 3878 "./null.stub"
 SG_RESULT=(Sg_MakeRecordTypeDescriptor(name,parent,uid,sealedP,opaqueP,fields));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16742,7 +16732,7 @@ static SG_DEFINE_SUBR(null_make_record_type_descriptor__STUB, 6, 0,null_make_rec
 static SgObject null_make_record_constructor_descriptor(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject rtd_scm;
-  SgObject rtd;
+  SgRTD* rtd;
   SgObject parent_scm;
   SgObject parent;
   SgObject protocol_scm;
@@ -16752,7 +16742,10 @@ static SgObject null_make_record_constructor_descriptor(SgObject *SG_FP, int SG_
     Sg_WrongNumberOfArgumentsViolation(
      SG_INTERN("make-record-constructor-descriptor"), 3, SG_ARGC, SG_NIL);
   rtd_scm = SG_ARGREF(0);
-  rtd = (rtd_scm);
+  if (!SG_RTDP(rtd_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[747], SG_MAKE_STRING("record-type-descriptor"), rtd_scm, SG_NIL);
+  rtd = SG_RTD(rtd_scm);
   parent_scm = SG_ARGREF(1);
   parent = (parent_scm);
   protocol_scm = SG_ARGREF(2);
@@ -16761,7 +16754,7 @@ static SgObject null_make_record_constructor_descriptor(SgObject *SG_FP, int SG_
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3877 "./null.stub"
+#line 3881 "./null.stub"
 SG_RESULT=(Sg_MakeRecordConstructorDescriptor(rtd,parent,protocol));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16783,7 +16776,7 @@ static SgObject null_recordP(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 int SG_RESULT = (int)NULL;
 
-#line 3880 "./null.stub"
+#line 3884 "./null.stub"
 SG_RESULT=(Sg_RecordP(o));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -16805,7 +16798,7 @@ static SgObject null_record_rtd(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3883 "./null.stub"
+#line 3887 "./null.stub"
 SG_RESULT=(Sg_RecordRtd(o));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16827,7 +16820,7 @@ static SgObject null_record_type_descriptorP(SgObject *SG_FP, int SG_ARGC, void 
 {
 int SG_RESULT = (int)NULL;
 
-#line 3886 "./null.stub"
+#line 3890 "./null.stub"
 SG_RESULT=(Sg_RecordTypeDescriptorP(o));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -16849,7 +16842,7 @@ static SgObject null_record_constructor_descriptorP(SgObject *SG_FP, int SG_ARGC
 {
 int SG_RESULT = (int)NULL;
 
-#line 3889 "./null.stub"
+#line 3893 "./null.stub"
 SG_RESULT=(Sg_RecordConstructorDescriptorP(o));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -16860,18 +16853,21 @@ static SG_DEFINE_SUBR(null_record_constructor_descriptorP__STUB, 1, 0,null_recor
 static SgObject null_record_constructor(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject rcd_scm;
-  SgObject rcd;
+  SgRCD* rcd;
   SG_ENTER_SUBR("record-constructor");
   if (SG_ARGC != 1)
     Sg_WrongNumberOfArgumentsViolation(
      SG_INTERN("record-constructor"), 1, SG_ARGC, SG_NIL);
   rcd_scm = SG_ARGREF(0);
-  rcd = (rcd_scm);
+  if (!SG_RCDP(rcd_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[752], SG_MAKE_STRING("record-constructor-descriptor"), rcd_scm, SG_NIL);
+  rcd = SG_RCD(rcd_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3892 "./null.stub"
+#line 3896 "./null.stub"
 SG_RESULT=(Sg_RecordConstructor(rcd));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16882,7 +16878,7 @@ static SG_DEFINE_SUBR(null_record_constructor__STUB, 1, 0,null_record_constructo
 static SgObject null_record_accessor(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject rtd_scm;
-  SgObject rtd;
+  SgRTD* rtd;
   SgObject k_scm;
   long k;
   SG_ENTER_SUBR("record-accessor");
@@ -16890,7 +16886,10 @@ static SgObject null_record_accessor(SgObject *SG_FP, int SG_ARGC, void *data_)
     Sg_WrongNumberOfArgumentsViolation(
      SG_INTERN("record-accessor"), 2, SG_ARGC, SG_NIL);
   rtd_scm = SG_ARGREF(0);
-  rtd = (rtd_scm);
+  if (!SG_RTDP(rtd_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[753], SG_MAKE_STRING("record-type-descriptor"), rtd_scm, SG_NIL);
+  rtd = SG_RTD(rtd_scm);
   k_scm = SG_ARGREF(1);
   if (!SG_INTP(k_scm))
     Sg_WrongTypeOfArgumentViolation(
@@ -16900,16 +16899,12 @@ static SgObject null_record_accessor(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3895 "./null.stub"
-if ((!(Sg_RecordTypeDescriptorP(rtd)))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[754],SG_MAKE_STRING("record-type-descriptor"),rtd,SG_LIST2(rtd,SG_MAKE_INT(k)));}}}
-
-#line 3897 "./null.stub"
+#line 3899 "./null.stub"
 if ((!(((-1)<(k))&&(
 (k)<(Sg_Length(Sg_RtdFields(rtd))))))){{
 {Sg_AssertionViolation(sg__rc.d15[754],SG_MAKE_STRING("field index out of range"),SG_NIL);}}}
 
-#line 3900 "./null.stub"
+#line 3902 "./null.stub"
 SG_RESULT=(Sg_RecordAccessor(rtd,k));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16920,20 +16915,19 @@ static SG_DEFINE_SUBR(null_record_accessor__STUB, 2, 0,null_record_accessor, SG_
 static SgObject null_record_predicate(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject rtd_scm;
-  SgObject rtd;
+  SgRTD* rtd;
   SG_ENTER_SUBR("record-predicate");
   if (SG_ARGC != 1)
     Sg_WrongNumberOfArgumentsViolation(
      SG_INTERN("record-predicate"), 1, SG_ARGC, SG_NIL);
   rtd_scm = SG_ARGREF(0);
-  rtd = (rtd_scm);
+  if (!SG_RTDP(rtd_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[755], SG_MAKE_STRING("record-type-descriptor"), rtd_scm, SG_NIL);
+  rtd = SG_RTD(rtd_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-
-#line 3903 "./null.stub"
-if ((!(Sg_RecordTypeDescriptorP(rtd)))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[756],SG_MAKE_STRING("record-type-descriptor"),rtd,SG_NIL);}}}
 
 #line 3905 "./null.stub"
 SG_RESULT=(Sg_RecordPredicate(rtd));
@@ -16946,7 +16940,7 @@ static SG_DEFINE_SUBR(null_record_predicate__STUB, 1, 0,null_record_predicate, S
 static SgObject null_record_mutator(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject rtd_scm;
-  SgObject rtd;
+  SgRTD* rtd;
   SgObject k_scm;
   long k;
   SG_ENTER_SUBR("record-mutator");
@@ -16954,28 +16948,29 @@ static SgObject null_record_mutator(SgObject *SG_FP, int SG_ARGC, void *data_)
     Sg_WrongNumberOfArgumentsViolation(
      SG_INTERN("record-mutator"), 2, SG_ARGC, SG_NIL);
   rtd_scm = SG_ARGREF(0);
-  rtd = (rtd_scm);
+  if (!SG_RTDP(rtd_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[756], SG_MAKE_STRING("record-type-descriptor"), rtd_scm, SG_NIL);
+  rtd = SG_RTD(rtd_scm);
   k_scm = SG_ARGREF(1);
   if (!SG_INTP(k_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d15[757], SG_MAKE_STRING("fixnum"), k_scm, SG_NIL);
+       sg__rc.d15[756], SG_MAKE_STRING("fixnum"), k_scm, SG_NIL);
   k = SG_INT_VALUE(k_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
 #line 3908 "./null.stub"
-if ((!(Sg_RecordTypeDescriptorP(rtd)))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[758],SG_MAKE_STRING("record-type-descriptor"),rtd,SG_LIST2(rtd,SG_MAKE_INT(k)));}}}
-
-#line 3910 "./null.stub"
 if ((!(((-1)<(k))&&(
 (k)<(Sg_Length(Sg_RtdFields(rtd))))))){{
-{Sg_AssertionViolation(sg__rc.d15[758],SG_MAKE_STRING("field index out of range"),SG_LIST2(rtd,SG_MAKE_INT(k)));}}}
+{Sg_AssertionViolation(sg__rc.d15[757],SG_MAKE_STRING("field index out of range"),
+SG_LIST2(rtd,SG_MAKE_INT(k)));}}}
 
-#line 3913 "./null.stub"
+#line 3912 "./null.stub"
 if (SG_FALSEP(SG_CAR(Sg_ListRef(Sg_RtdFields(rtd),k,SG_UNBOUND)))){{
-{Sg_AssertionViolation(sg__rc.d15[758],SG_MAKE_STRING("specified field is immutable"),SG_LIST2(rtd,SG_MAKE_INT(k)));}}}
+{Sg_AssertionViolation(sg__rc.d15[757],SG_MAKE_STRING("specified field is immutable"),
+SG_LIST2(rtd,SG_MAKE_INT(k)));}}}
 
 #line 3915 "./null.stub"
 SG_RESULT=(Sg_RecordMutator(rtd,k));
@@ -16988,22 +16983,21 @@ static SG_DEFINE_SUBR(null_record_mutator__STUB, 2, 0,null_record_mutator, SG_FA
 static SgObject null_record_type_name(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject rtd_scm;
-  SgObject rtd;
+  SgRTD* rtd;
   SG_ENTER_SUBR("record-type-name");
   if (SG_ARGC != 1)
     Sg_WrongNumberOfArgumentsViolation(
      SG_INTERN("record-type-name"), 1, SG_ARGC, SG_NIL);
   rtd_scm = SG_ARGREF(0);
-  rtd = (rtd_scm);
+  if (!SG_RTDP(rtd_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[758], SG_MAKE_STRING("record-type-descriptor"), rtd_scm, SG_NIL);
+  rtd = SG_RTD(rtd_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
 #line 3918 "./null.stub"
-if ((!(Sg_RecordTypeDescriptorP(rtd)))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[760],SG_MAKE_STRING("record-type-descriptor"),rtd,SG_NIL);}}}
-
-#line 3920 "./null.stub"
 SG_RESULT=(Sg_RtdName(rtd));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -17014,22 +17008,21 @@ static SG_DEFINE_SUBR(null_record_type_name__STUB, 1, 0,null_record_type_name, S
 static SgObject null_record_type_parent(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject rtd_scm;
-  SgObject rtd;
+  SgRTD* rtd;
   SG_ENTER_SUBR("record-type-parent");
   if (SG_ARGC != 1)
     Sg_WrongNumberOfArgumentsViolation(
      SG_INTERN("record-type-parent"), 1, SG_ARGC, SG_NIL);
   rtd_scm = SG_ARGREF(0);
-  rtd = (rtd_scm);
+  if (!SG_RTDP(rtd_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[759], SG_MAKE_STRING("record-type-descriptor"), rtd_scm, SG_NIL);
+  rtd = SG_RTD(rtd_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3923 "./null.stub"
-if ((!(Sg_RecordTypeDescriptorP(rtd)))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[760],SG_MAKE_STRING("record-type-descriptor"),rtd,SG_NIL);}}}
-
-#line 3925 "./null.stub"
+#line 3921 "./null.stub"
 SG_RESULT=(Sg_RtdParent(rtd));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -17040,22 +17033,21 @@ static SG_DEFINE_SUBR(null_record_type_parent__STUB, 1, 0,null_record_type_paren
 static SgObject null_record_type_uid(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject rtd_scm;
-  SgObject rtd;
+  SgRTD* rtd;
   SG_ENTER_SUBR("record-type-uid");
   if (SG_ARGC != 1)
     Sg_WrongNumberOfArgumentsViolation(
      SG_INTERN("record-type-uid"), 1, SG_ARGC, SG_NIL);
   rtd_scm = SG_ARGREF(0);
-  rtd = (rtd_scm);
+  if (!SG_RTDP(rtd_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[760], SG_MAKE_STRING("record-type-descriptor"), rtd_scm, SG_NIL);
+  rtd = SG_RTD(rtd_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3928 "./null.stub"
-if ((!(Sg_RecordTypeDescriptorP(rtd)))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[760],SG_MAKE_STRING("record-type-descriptor"),rtd,SG_NIL);}}}
-
-#line 3930 "./null.stub"
+#line 3924 "./null.stub"
 SG_RESULT=(Sg_RtdUid(rtd));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -17066,22 +17058,21 @@ static SG_DEFINE_SUBR(null_record_type_uid__STUB, 1, 0,null_record_type_uid, SG_
 static SgObject null_record_type_generativeP(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject rtd_scm;
-  SgObject rtd;
+  SgRTD* rtd;
   SG_ENTER_SUBR("record-type-generative?");
   if (SG_ARGC != 1)
     Sg_WrongNumberOfArgumentsViolation(
      SG_INTERN("record-type-generative?"), 1, SG_ARGC, SG_NIL);
   rtd_scm = SG_ARGREF(0);
-  rtd = (rtd_scm);
+  if (!SG_RTDP(rtd_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[761], SG_MAKE_STRING("record-type-descriptor"), rtd_scm, SG_NIL);
+  rtd = SG_RTD(rtd_scm);
   {
 {
 int SG_RESULT = (int)NULL;
 
-#line 3933 "./null.stub"
-if ((!(Sg_RecordTypeDescriptorP(rtd)))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[760],SG_MAKE_STRING("record-type-descriptor"),rtd,SG_NIL);}}}
-
-#line 3935 "./null.stub"
+#line 3927 "./null.stub"
 SG_RESULT=(SG_FALSEP(Sg_RtdUid(rtd)));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -17092,22 +17083,21 @@ static SG_DEFINE_SUBR(null_record_type_generativeP__STUB, 1, 0,null_record_type_
 static SgObject null_record_type_opaqueP(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject rtd_scm;
-  SgObject rtd;
+  SgRTD* rtd;
   SG_ENTER_SUBR("record-type-opaque?");
   if (SG_ARGC != 1)
     Sg_WrongNumberOfArgumentsViolation(
      SG_INTERN("record-type-opaque?"), 1, SG_ARGC, SG_NIL);
   rtd_scm = SG_ARGREF(0);
-  rtd = (rtd_scm);
+  if (!SG_RTDP(rtd_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[762], SG_MAKE_STRING("record-type-descriptor"), rtd_scm, SG_NIL);
+  rtd = SG_RTD(rtd_scm);
   {
 {
 int SG_RESULT = (int)NULL;
 
-#line 3938 "./null.stub"
-if ((!(Sg_RecordTypeDescriptorP(rtd)))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[760],SG_MAKE_STRING("record-type-descriptor"),rtd,SG_NIL);}}}
-
-#line 3940 "./null.stub"
+#line 3930 "./null.stub"
 SG_RESULT=(Sg_RtdOpaqueP(rtd));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -17118,22 +17108,21 @@ static SG_DEFINE_SUBR(null_record_type_opaqueP__STUB, 1, 0,null_record_type_opaq
 static SgObject null_record_type_sealedP(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject rtd_scm;
-  SgObject rtd;
+  SgRTD* rtd;
   SG_ENTER_SUBR("record-type-sealed?");
   if (SG_ARGC != 1)
     Sg_WrongNumberOfArgumentsViolation(
      SG_INTERN("record-type-sealed?"), 1, SG_ARGC, SG_NIL);
   rtd_scm = SG_ARGREF(0);
-  rtd = (rtd_scm);
+  if (!SG_RTDP(rtd_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[763], SG_MAKE_STRING("record-type-descriptor"), rtd_scm, SG_NIL);
+  rtd = SG_RTD(rtd_scm);
   {
 {
 int SG_RESULT = (int)NULL;
 
-#line 3943 "./null.stub"
-if ((!(Sg_RecordTypeDescriptorP(rtd)))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[760],SG_MAKE_STRING("record-type-descriptor"),rtd,SG_NIL);}}}
-
-#line 3945 "./null.stub"
+#line 3933 "./null.stub"
 SG_RESULT=(Sg_RtdSealedP(rtd));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -17144,22 +17133,21 @@ static SG_DEFINE_SUBR(null_record_type_sealedP__STUB, 1, 0,null_record_type_seal
 static SgObject null_rtd_fields(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject rtd_scm;
-  SgObject rtd;
+  SgRTD* rtd;
   SG_ENTER_SUBR("rtd-fields");
   if (SG_ARGC != 1)
     Sg_WrongNumberOfArgumentsViolation(
      SG_INTERN("rtd-fields"), 1, SG_ARGC, SG_NIL);
   rtd_scm = SG_ARGREF(0);
-  rtd = (rtd_scm);
+  if (!SG_RTDP(rtd_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[764], SG_MAKE_STRING("record-type-descriptor"), rtd_scm, SG_NIL);
+  rtd = SG_RTD(rtd_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3948 "./null.stub"
-if ((!(Sg_RecordTypeDescriptorP(rtd)))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[760],SG_MAKE_STRING("record-type-descriptor"),rtd,SG_NIL);}}}
-
-#line 3950 "./null.stub"
+#line 3936 "./null.stub"
 SG_RESULT=(Sg_RtdFields(rtd));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -17170,24 +17158,23 @@ static SG_DEFINE_SUBR(null_rtd_fields__STUB, 1, 0,null_rtd_fields, SG_FALSE, NUL
 static SgObject null_record_type_field_names(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject rtd_scm;
-  SgObject rtd;
+  SgRTD* rtd;
   SG_ENTER_SUBR("record-type-field-names");
   if (SG_ARGC != 1)
     Sg_WrongNumberOfArgumentsViolation(
      SG_INTERN("record-type-field-names"), 1, SG_ARGC, SG_NIL);
   rtd_scm = SG_ARGREF(0);
-  rtd = (rtd_scm);
+  if (!SG_RTDP(rtd_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[765], SG_MAKE_STRING("record-type-descriptor"), rtd_scm, SG_NIL);
+  rtd = SG_RTD(rtd_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-
-#line 3953 "./null.stub"
-if ((!(Sg_RecordTypeDescriptorP(rtd)))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[760],SG_MAKE_STRING("record-type-descriptor"),rtd,SG_NIL);}}}
 SgObject cise__82;
-#line 3955 "./null.stub"
+#line 3939 "./null.stub"
 {SgObject fields=Sg_RtdFields(rtd);SgObject h=SG_NIL;SgObject t=SG_NIL;
-#line 3958 "./null.stub"
+#line 3942 "./null.stub"
 SG_FOR_EACH(cise__82,fields) {{SgObject field=SG_CAR(cise__82);
 ASSERT(SG_PAIRP(field));
 SG_APPEND1(h,t,SG_CDR(field));}}
@@ -17201,7 +17188,7 @@ static SG_DEFINE_SUBR(null_record_type_field_names__STUB, 1, 0,null_record_type_
 static SgObject null_record_field_mutableP(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject rtd_scm;
-  SgObject rtd;
+  SgRTD* rtd;
   SgObject k_scm;
   long k;
   SG_ENTER_SUBR("record-field-mutable?");
@@ -17209,21 +17196,20 @@ static SgObject null_record_field_mutableP(SgObject *SG_FP, int SG_ARGC, void *d
     Sg_WrongNumberOfArgumentsViolation(
      SG_INTERN("record-field-mutable?"), 2, SG_ARGC, SG_NIL);
   rtd_scm = SG_ARGREF(0);
-  rtd = (rtd_scm);
+  if (!SG_RTDP(rtd_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[766], SG_MAKE_STRING("record-type-descriptor"), rtd_scm, SG_NIL);
+  rtd = SG_RTD(rtd_scm);
   k_scm = SG_ARGREF(1);
   if (!SG_INTP(k_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d15[768], SG_MAKE_STRING("fixnum"), k_scm, SG_NIL);
+       sg__rc.d15[766], SG_MAKE_STRING("fixnum"), k_scm, SG_NIL);
   k = SG_INT_VALUE(k_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3964 "./null.stub"
-if ((!(Sg_RecordTypeDescriptorP(rtd)))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[760],SG_MAKE_STRING("record-type-descriptor"),rtd,SG_NIL);}}}
-
-#line 3966 "./null.stub"
+#line 3948 "./null.stub"
 SG_RESULT=(SG_CAR(Sg_ListRef(Sg_RtdFields(rtd),k,SG_UNBOUND)));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -17234,22 +17220,21 @@ static SG_DEFINE_SUBR(null_record_field_mutableP__STUB, 2, 0,null_record_field_m
 static SgObject null_rtd_inherited_field_count(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject rtd_scm;
-  SgObject rtd;
+  SgRTD* rtd;
   SG_ENTER_SUBR("rtd-inherited-field-count");
   if (SG_ARGC != 1)
     Sg_WrongNumberOfArgumentsViolation(
      SG_INTERN("rtd-inherited-field-count"), 1, SG_ARGC, SG_NIL);
   rtd_scm = SG_ARGREF(0);
-  rtd = (rtd_scm);
+  if (!SG_RTDP(rtd_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[767], SG_MAKE_STRING("record-type-descriptor"), rtd_scm, SG_NIL);
+  rtd = SG_RTD(rtd_scm);
   {
 {
 long SG_RESULT = (long)NULL;
 
-#line 3969 "./null.stub"
-if ((!(Sg_RecordTypeDescriptorP(rtd)))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[760],SG_MAKE_STRING("record-type-descriptor"),rtd,SG_NIL);}}}
-
-#line 3971 "./null.stub"
+#line 3951 "./null.stub"
 SG_RESULT=(Sg_RtdInheritedFieldCount(rtd));
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }
@@ -17260,22 +17245,21 @@ static SG_DEFINE_SUBR(null_rtd_inherited_field_count__STUB, 1, 0,null_rtd_inheri
 static SgObject null_rtd_total_field_count(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject rtd_scm;
-  SgObject rtd;
+  SgRTD* rtd;
   SG_ENTER_SUBR("rtd-total-field-count");
   if (SG_ARGC != 1)
     Sg_WrongNumberOfArgumentsViolation(
      SG_INTERN("rtd-total-field-count"), 1, SG_ARGC, SG_NIL);
   rtd_scm = SG_ARGREF(0);
-  rtd = (rtd_scm);
+  if (!SG_RTDP(rtd_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[768], SG_MAKE_STRING("record-type-descriptor"), rtd_scm, SG_NIL);
+  rtd = SG_RTD(rtd_scm);
   {
 {
 long SG_RESULT = (long)NULL;
 
-#line 3974 "./null.stub"
-if ((!(Sg_RecordTypeDescriptorP(rtd)))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[760],SG_MAKE_STRING("record-type-descriptor"),rtd,SG_NIL);}}}
-
-#line 3976 "./null.stub"
+#line 3954 "./null.stub"
 SG_RESULT=(Sg_RtdTotalFieldCount(rtd));
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }
@@ -17286,30 +17270,28 @@ static SG_DEFINE_SUBR(null_rtd_total_field_count__STUB, 1, 0,null_rtd_total_fiel
 static SgObject null_rtd_ancestorP(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject parent_scm;
-  SgObject parent;
+  SgRTD* parent;
   SgObject rtd_scm;
-  SgObject rtd;
+  SgRTD* rtd;
   SG_ENTER_SUBR("rtd-ancestor?");
   if (SG_ARGC != 2)
     Sg_WrongNumberOfArgumentsViolation(
      SG_INTERN("rtd-ancestor?"), 2, SG_ARGC, SG_NIL);
   parent_scm = SG_ARGREF(0);
-  parent = (parent_scm);
+  if (!SG_RTDP(parent_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[769], SG_MAKE_STRING("record-type-descriptor"), parent_scm, SG_NIL);
+  parent = SG_RTD(parent_scm);
   rtd_scm = SG_ARGREF(1);
-  rtd = (rtd_scm);
+  if (!SG_RTDP(rtd_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[769], SG_MAKE_STRING("record-type-descriptor"), rtd_scm, SG_NIL);
+  rtd = SG_RTD(rtd_scm);
   {
 {
 int SG_RESULT = (int)NULL;
 
-#line 3979 "./null.stub"
-if ((!(Sg_RecordTypeDescriptorP(rtd)))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[760],SG_MAKE_STRING("record-type-descriptor"),rtd,SG_LIST2(parent,rtd));}}}
-
-#line 3981 "./null.stub"
-if ((!(Sg_RecordTypeDescriptorP(parent)))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[760],SG_MAKE_STRING("record-type-descriptor"),parent,SG_LIST2(parent,rtd));}}}
-
-#line 3983 "./null.stub"
+#line 3957 "./null.stub"
 SG_RESULT=(Sg_RtdAncestorP(parent,rtd));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -17320,18 +17302,21 @@ static SG_DEFINE_SUBR(null_rtd_ancestorP__STUB, 2, 0,null_rtd_ancestorP, SG_FALS
 static SgObject null_rcd_protocol(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject rcd_scm;
-  SgObject rcd;
+  SgRCD* rcd;
   SG_ENTER_SUBR("rcd-protocol");
   if (SG_ARGC != 1)
     Sg_WrongNumberOfArgumentsViolation(
      SG_INTERN("rcd-protocol"), 1, SG_ARGC, SG_NIL);
   rcd_scm = SG_ARGREF(0);
-  rcd = (rcd_scm);
+  if (!SG_RCDP(rcd_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[770], SG_MAKE_STRING("record-constructor-descriptor"), rcd_scm, SG_NIL);
+  rcd = SG_RCD(rcd_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3986 "./null.stub"
+#line 3960 "./null.stub"
 SG_RESULT=(Sg_RcdProtocol(rcd));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -17342,18 +17327,21 @@ static SG_DEFINE_SUBR(null_rcd_protocol__STUB, 1, 0,null_rcd_protocol, SG_FALSE,
 static SgObject null_rcd_parent(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject rcd_scm;
-  SgObject rcd;
+  SgRCD* rcd;
   SG_ENTER_SUBR("rcd-parent");
   if (SG_ARGC != 1)
     Sg_WrongNumberOfArgumentsViolation(
      SG_INTERN("rcd-parent"), 1, SG_ARGC, SG_NIL);
   rcd_scm = SG_ARGREF(0);
-  rcd = (rcd_scm);
+  if (!SG_RCDP(rcd_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[771], SG_MAKE_STRING("record-constructor-descriptor"), rcd_scm, SG_NIL);
+  rcd = SG_RCD(rcd_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3989 "./null.stub"
+#line 3963 "./null.stub"
 SG_RESULT=(Sg_RcdParent(rcd));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -17374,7 +17362,7 @@ static SgObject null_make_tuple(SgObject *SG_FP, int SG_ARGC, void *data_)
   size_scm = SG_ARGREF(0);
   if (!SG_INTP(size_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d15[774], SG_MAKE_STRING("fixnum"), size_scm, SG_NIL);
+       sg__rc.d15[772], SG_MAKE_STRING("fixnum"), size_scm, SG_NIL);
   size = SG_INT_VALUE(size_scm);
   printer_scm = SG_ARGREF(1);
   printer = (printer_scm);
@@ -17382,7 +17370,7 @@ static SgObject null_make_tuple(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3993 "./null.stub"
+#line 3967 "./null.stub"
 SG_RESULT=(Sg_MakeTuple(size,SG_UNDEF,printer));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -17406,7 +17394,7 @@ static SgObject null_tuple_list_setX(SgObject *SG_FP, int SG_ARGC, void *data_)
   lst = (lst_scm);
   {
 
-#line 3996 "./null.stub"
+#line 3970 "./null.stub"
 Sg_TupleListSet(tuple,lst);
 SG_RETURN(SG_UNDEF);
   }
@@ -17428,13 +17416,13 @@ static SgObject null_tuple_ref(SgObject *SG_FP, int SG_ARGC, void *data_)
   i_scm = SG_ARGREF(1);
   if (!SG_INTP(i_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d15[776], SG_MAKE_STRING("fixnum"), i_scm, SG_NIL);
+       sg__rc.d15[774], SG_MAKE_STRING("fixnum"), i_scm, SG_NIL);
   i = SG_INT_VALUE(i_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3999 "./null.stub"
+#line 3973 "./null.stub"
 SG_RESULT=(Sg_TupleRef(tuple,i,SG_FALSE));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -17459,13 +17447,13 @@ static SgObject null_tuple_setX(SgObject *SG_FP, int SG_ARGC, void *data_)
   i_scm = SG_ARGREF(1);
   if (!SG_INTP(i_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d15[777], SG_MAKE_STRING("fixnum"), i_scm, SG_NIL);
+       sg__rc.d15[775], SG_MAKE_STRING("fixnum"), i_scm, SG_NIL);
   i = SG_INT_VALUE(i_scm);
   value_scm = SG_ARGREF(2);
   value = (value_scm);
   {
 
-#line 4002 "./null.stub"
+#line 3976 "./null.stub"
 Sg_TupleSet(tuple,i,value);
 SG_RETURN(SG_UNDEF);
   }
@@ -17486,7 +17474,7 @@ static SgObject null_tuple_size(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 long SG_RESULT = (long)NULL;
 
-#line 4005 "./null.stub"
+#line 3979 "./null.stub"
 SG_RESULT=(Sg_TupleSize(tuple));
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }
@@ -19258,69 +19246,67 @@ void Sg__Initnull() {
   Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[753]), &null_record_accessor__STUB);
   SG_PROCEDURE_NAME(&null_record_accessor__STUB) = sg__rc.d15[753];
   sg__rc.d15[755] = SG_MAKE_STRING("record-predicate");
-  sg__rc.d15[756] = Sg_Intern(sg__rc.d15[755]); /* record-predicate */
   Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[755]), &null_record_predicate__STUB);
   SG_PROCEDURE_NAME(&null_record_predicate__STUB) = sg__rc.d15[755];
-  sg__rc.d15[757] = SG_MAKE_STRING("record-mutator");
-  sg__rc.d15[758] = Sg_Intern(sg__rc.d15[757]); /* record-mutator */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[757]), &null_record_mutator__STUB);
-  SG_PROCEDURE_NAME(&null_record_mutator__STUB) = sg__rc.d15[757];
-  sg__rc.d15[759] = SG_MAKE_STRING("record-type-name");
-  sg__rc.d15[760] = Sg_Intern(sg__rc.d15[759]); /* record-type-name */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[759]), &null_record_type_name__STUB);
-  SG_PROCEDURE_NAME(&null_record_type_name__STUB) = sg__rc.d15[759];
-  sg__rc.d15[761] = SG_MAKE_STRING("record-type-parent");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[761]), &null_record_type_parent__STUB);
-  SG_PROCEDURE_NAME(&null_record_type_parent__STUB) = sg__rc.d15[761];
-  sg__rc.d15[762] = SG_MAKE_STRING("record-type-uid");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[762]), &null_record_type_uid__STUB);
-  SG_PROCEDURE_NAME(&null_record_type_uid__STUB) = sg__rc.d15[762];
-  sg__rc.d15[763] = SG_MAKE_STRING("record-type-generative?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[763]), &null_record_type_generativeP__STUB);
-  SG_PROCEDURE_NAME(&null_record_type_generativeP__STUB) = sg__rc.d15[763];
-  sg__rc.d15[764] = SG_MAKE_STRING("record-type-opaque?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[764]), &null_record_type_opaqueP__STUB);
-  SG_PROCEDURE_NAME(&null_record_type_opaqueP__STUB) = sg__rc.d15[764];
-  sg__rc.d15[765] = SG_MAKE_STRING("record-type-sealed?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[765]), &null_record_type_sealedP__STUB);
-  SG_PROCEDURE_NAME(&null_record_type_sealedP__STUB) = sg__rc.d15[765];
-  sg__rc.d15[766] = SG_MAKE_STRING("rtd-fields");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[766]), &null_rtd_fields__STUB);
-  SG_PROCEDURE_NAME(&null_rtd_fields__STUB) = sg__rc.d15[766];
-  sg__rc.d15[767] = SG_MAKE_STRING("record-type-field-names");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[767]), &null_record_type_field_names__STUB);
-  SG_PROCEDURE_NAME(&null_record_type_field_names__STUB) = sg__rc.d15[767];
-  sg__rc.d15[768] = SG_MAKE_STRING("record-field-mutable?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[768]), &null_record_field_mutableP__STUB);
-  SG_PROCEDURE_NAME(&null_record_field_mutableP__STUB) = sg__rc.d15[768];
-  sg__rc.d15[769] = SG_MAKE_STRING("rtd-inherited-field-count");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[769]), &null_rtd_inherited_field_count__STUB);
-  SG_PROCEDURE_NAME(&null_rtd_inherited_field_count__STUB) = sg__rc.d15[769];
-  sg__rc.d15[770] = SG_MAKE_STRING("rtd-total-field-count");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[770]), &null_rtd_total_field_count__STUB);
-  SG_PROCEDURE_NAME(&null_rtd_total_field_count__STUB) = sg__rc.d15[770];
-  sg__rc.d15[771] = SG_MAKE_STRING("rtd-ancestor?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[771]), &null_rtd_ancestorP__STUB);
-  SG_PROCEDURE_NAME(&null_rtd_ancestorP__STUB) = sg__rc.d15[771];
-  sg__rc.d15[772] = SG_MAKE_STRING("rcd-protocol");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[772]), &null_rcd_protocol__STUB);
-  SG_PROCEDURE_NAME(&null_rcd_protocol__STUB) = sg__rc.d15[772];
-  sg__rc.d15[773] = SG_MAKE_STRING("rcd-parent");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[773]), &null_rcd_parent__STUB);
-  SG_PROCEDURE_NAME(&null_rcd_parent__STUB) = sg__rc.d15[773];
-  sg__rc.d15[774] = SG_MAKE_STRING("make-tuple");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[774]), &null_make_tuple__STUB);
-  SG_PROCEDURE_NAME(&null_make_tuple__STUB) = sg__rc.d15[774];
-  sg__rc.d15[775] = SG_MAKE_STRING("tuple-list-set!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[775]), &null_tuple_list_setX__STUB);
-  SG_PROCEDURE_NAME(&null_tuple_list_setX__STUB) = sg__rc.d15[775];
-  sg__rc.d15[776] = SG_MAKE_STRING("tuple-ref");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[776]), &null_tuple_ref__STUB);
-  SG_PROCEDURE_NAME(&null_tuple_ref__STUB) = sg__rc.d15[776];
-  sg__rc.d15[777] = SG_MAKE_STRING("tuple-set!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[777]), &null_tuple_setX__STUB);
-  SG_PROCEDURE_NAME(&null_tuple_setX__STUB) = sg__rc.d15[777];
-  sg__rc.d15[778] = SG_MAKE_STRING("tuple-size");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[778]), &null_tuple_size__STUB);
-  SG_PROCEDURE_NAME(&null_tuple_size__STUB) = sg__rc.d15[778];
+  sg__rc.d15[756] = SG_MAKE_STRING("record-mutator");
+  sg__rc.d15[757] = Sg_Intern(sg__rc.d15[756]); /* record-mutator */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[756]), &null_record_mutator__STUB);
+  SG_PROCEDURE_NAME(&null_record_mutator__STUB) = sg__rc.d15[756];
+  sg__rc.d15[758] = SG_MAKE_STRING("record-type-name");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[758]), &null_record_type_name__STUB);
+  SG_PROCEDURE_NAME(&null_record_type_name__STUB) = sg__rc.d15[758];
+  sg__rc.d15[759] = SG_MAKE_STRING("record-type-parent");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[759]), &null_record_type_parent__STUB);
+  SG_PROCEDURE_NAME(&null_record_type_parent__STUB) = sg__rc.d15[759];
+  sg__rc.d15[760] = SG_MAKE_STRING("record-type-uid");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[760]), &null_record_type_uid__STUB);
+  SG_PROCEDURE_NAME(&null_record_type_uid__STUB) = sg__rc.d15[760];
+  sg__rc.d15[761] = SG_MAKE_STRING("record-type-generative?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[761]), &null_record_type_generativeP__STUB);
+  SG_PROCEDURE_NAME(&null_record_type_generativeP__STUB) = sg__rc.d15[761];
+  sg__rc.d15[762] = SG_MAKE_STRING("record-type-opaque?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[762]), &null_record_type_opaqueP__STUB);
+  SG_PROCEDURE_NAME(&null_record_type_opaqueP__STUB) = sg__rc.d15[762];
+  sg__rc.d15[763] = SG_MAKE_STRING("record-type-sealed?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[763]), &null_record_type_sealedP__STUB);
+  SG_PROCEDURE_NAME(&null_record_type_sealedP__STUB) = sg__rc.d15[763];
+  sg__rc.d15[764] = SG_MAKE_STRING("rtd-fields");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[764]), &null_rtd_fields__STUB);
+  SG_PROCEDURE_NAME(&null_rtd_fields__STUB) = sg__rc.d15[764];
+  sg__rc.d15[765] = SG_MAKE_STRING("record-type-field-names");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[765]), &null_record_type_field_names__STUB);
+  SG_PROCEDURE_NAME(&null_record_type_field_names__STUB) = sg__rc.d15[765];
+  sg__rc.d15[766] = SG_MAKE_STRING("record-field-mutable?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[766]), &null_record_field_mutableP__STUB);
+  SG_PROCEDURE_NAME(&null_record_field_mutableP__STUB) = sg__rc.d15[766];
+  sg__rc.d15[767] = SG_MAKE_STRING("rtd-inherited-field-count");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[767]), &null_rtd_inherited_field_count__STUB);
+  SG_PROCEDURE_NAME(&null_rtd_inherited_field_count__STUB) = sg__rc.d15[767];
+  sg__rc.d15[768] = SG_MAKE_STRING("rtd-total-field-count");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[768]), &null_rtd_total_field_count__STUB);
+  SG_PROCEDURE_NAME(&null_rtd_total_field_count__STUB) = sg__rc.d15[768];
+  sg__rc.d15[769] = SG_MAKE_STRING("rtd-ancestor?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[769]), &null_rtd_ancestorP__STUB);
+  SG_PROCEDURE_NAME(&null_rtd_ancestorP__STUB) = sg__rc.d15[769];
+  sg__rc.d15[770] = SG_MAKE_STRING("rcd-protocol");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[770]), &null_rcd_protocol__STUB);
+  SG_PROCEDURE_NAME(&null_rcd_protocol__STUB) = sg__rc.d15[770];
+  sg__rc.d15[771] = SG_MAKE_STRING("rcd-parent");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[771]), &null_rcd_parent__STUB);
+  SG_PROCEDURE_NAME(&null_rcd_parent__STUB) = sg__rc.d15[771];
+  sg__rc.d15[772] = SG_MAKE_STRING("make-tuple");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[772]), &null_make_tuple__STUB);
+  SG_PROCEDURE_NAME(&null_make_tuple__STUB) = sg__rc.d15[772];
+  sg__rc.d15[773] = SG_MAKE_STRING("tuple-list-set!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[773]), &null_tuple_list_setX__STUB);
+  SG_PROCEDURE_NAME(&null_tuple_list_setX__STUB) = sg__rc.d15[773];
+  sg__rc.d15[774] = SG_MAKE_STRING("tuple-ref");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[774]), &null_tuple_ref__STUB);
+  SG_PROCEDURE_NAME(&null_tuple_ref__STUB) = sg__rc.d15[774];
+  sg__rc.d15[775] = SG_MAKE_STRING("tuple-set!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[775]), &null_tuple_setX__STUB);
+  SG_PROCEDURE_NAME(&null_tuple_setX__STUB) = sg__rc.d15[775];
+  sg__rc.d15[776] = SG_MAKE_STRING("tuple-size");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[776]), &null_tuple_size__STUB);
+  SG_PROCEDURE_NAME(&null_tuple_size__STUB) = sg__rc.d15[776];
 }

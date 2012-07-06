@@ -28,7 +28,6 @@
       (long value1)
       (struct inner inner)))
    (else
-
     (define-c-struct inner
       (int value2)
       (char* str))

@@ -343,9 +343,9 @@
 	  (result name))))
 
   (define-c-proc p1env-toplevel? (p1env) ::<boolean>
-    (result TRUE)
     (dolist (fp (SG_VECTOR_ELEMENT p1env 1))
-      (if (== (SG_CAR fp) (SG_MAKE_INT 0)) (result FALSE))))
+      (if (== (SG_CAR fp) (SG_MAKE_INT 0)) (return SG_FALSE)))
+    (result TRUE))
 
   ;; TODO it's almost the same process as p1env-lookup
   ;; lookup pvar from p1env.

@@ -3238,9 +3238,9 @@
       (while (< start end)
 	(let ((sbit::long (logand (ashr bits start) 1))
 	      (ebit::long (logand (ashr bits end) 1)))
-	  (set! bits (logand bits (- (cast uint -1) (ashl 1 end))))
+	  (set! bits (logand bits (- (cast ulong -1) (ashl 1 end))))
 	  (set! bits (logior bits (ashl sbit end)))
-	  (set! bits (logand bits (- (cast uint -1) (ashl 1 start))))
+	  (set! bits (logand bits (- (cast ulong -1) (ashl 1 start))))
 	  (set! bits (logior bits (ashl ebit start)))
 	  (post++ start)
 	  (post-- end)))
@@ -3368,30 +3368,32 @@
     (result (isnan (flonum-value fl))))
 
   (define-c-proc flmax (fl::<number> :rest rest) ::<top>
-    (check-flonum flmax fl)
-    (if (isnan (flonum-value fl))
-	(return fl))
-    (let ((max::double (flonum-value fl)))
-      (dolist (v rest)
-	(check-flonum flmax v)
-	(if (isnan (flonum-value v))
-	    (return v))
-	(if (> (flonum-value v) max)
-	    (set! max (flonum-value v))))
-      (result (Sg_MakeFlonum max))))
+    (begin
+      (check-flonum flmax fl)
+      (if (isnan (flonum-value fl))
+	  (return fl)
+	  (let ((max::double (flonum-value fl)))
+	    (dolist (v rest)
+	      (check-flonum flmax v)
+	      (if (isnan (flonum-value v))
+		  (return v))
+	      (if (> (flonum-value v) max)
+		  (set! max (flonum-value v))))
+	    (result (Sg_MakeFlonum max))))))
 
   (define-c-proc flmin (fl::<number> :rest rest) ::<top>
-    (check-flonum flmin fl)
-    (if (isnan (flonum-value fl))
-	(return fl))
-    (let ((min::double (flonum-value fl)))
-      (dolist (v rest)
-	(check-flonum flmin v)
-	(if (isnan (flonum-value v))
-	    (return v))
-	(if (< (flonum-value v) min)
-	    (set! min (flonum-value v))))
-      (result (Sg_MakeFlonum min))))
+    (begin
+      (check-flonum flmin fl)
+      (if (isnan (flonum-value fl))
+	  (return fl)
+	  (let ((min::double (flonum-value fl)))
+	    (dolist (v rest)
+	      (check-flonum flmin v)
+	      (if (isnan (flonum-value v))
+		  (return v))
+	      (if (< (flonum-value v) min)
+		  (set! min (flonum-value v))))
+	    (result (Sg_MakeFlonum min))))))
 
   (define-cise-stmt flonum-op
     ((_ name op ret first rest)
@@ -3424,24 +3426,26 @@
 	     (result (Sg_MakeFlonum ret))))))
 
   (define-c-proc fl- (fl::<number> :rest rest) ::<top>
-    (check-flonum fl- fl)
-    (cond ((SG_NULLP rest)
-	   (result (Sg_MakeFlonum (* -1 (flonum-value fl)))))
-	  (else
-	   (let ((ret::double 1.0))
-	     (flonum-op fl- - ret fl rest)
-	     (result (Sg_MakeFlonum ret))))))
+    (begin
+      (check-flonum fl- fl)
+      (cond ((SG_NULLP rest)
+	     (result (Sg_MakeFlonum (* -1 (flonum-value fl)))))
+	    (else
+	     (let ((ret::double 1.0))
+	       (flonum-op fl- - ret fl rest)
+	       (result (Sg_MakeFlonum ret)))))))
 
   (define-c-proc fl/ (fl::<number> :rest rest) ::<top>
-    (check-flonum fl/ fl)
-    (cond ((SG_NULLP rest)
-	   (if (== (flonum-value fl) 0.0)
-	       (assertion-violation 'fl/ "undefined for 0" (SG_LIST1 fl))
-	       (result (Sg_Div (Sg_MakeFlonum 1.0) fl))))
-	  (else
-	   (let ((ret::double 1.0))
-	     (flonum-op fl/ / ret fl rest)
-	     (result (Sg_MakeFlonum ret))))))
+    (begin
+      (check-flonum fl/ fl)
+      (cond ((SG_NULLP rest)
+	     (if (== (flonum-value fl) 0.0)
+		 (assertion-violation 'fl/ "undefined for 0" (SG_LIST1 fl))
+		 (result (Sg_Div (Sg_MakeFlonum 1.0) fl))))
+	    (else
+	     (let ((ret::double 1.0))
+	       (flonum-op fl/ / ret fl rest)
+	       (result (Sg_MakeFlonum ret)))))))
 
   (define-cise-stmt flonum-div
     ((_ ret d1 d2)
@@ -3870,10 +3874,10 @@
 
   ;; record
   (define-c-proc make-record-type-descriptor
-    (name::<symbol> parent uid sealedP::<boolean> opaqueP::<boolean> fields::<vector>) ::<top>
+    (name::<symbol> parent uid sealedP::<boolean> opaqueP::<boolean> fields::<vector>)
     (result (Sg_MakeRecordTypeDescriptor name parent uid sealedP opaqueP fields)))
 
-  (define-c-proc make-record-constructor-descriptor (rtd parent protocol) ::<top>
+  (define-c-proc make-record-constructor-descriptor (rtd::<rtd> parent protocol)
     (result (Sg_MakeRecordConstructorDescriptor rtd parent protocol)))
 
   (define-c-proc record? (o) ::<boolean>
@@ -3888,70 +3892,50 @@
   (define-c-proc record-constructor-descriptor? (o) ::<boolean>
     (result (Sg_RecordConstructorDescriptorP o)))
 
-  (define-c-proc record-constructor (rcd) ::<top>
+  (define-c-proc record-constructor (rcd::<rcd>) ::<top>
     (result (Sg_RecordConstructor rcd)))
 
-  (define-c-proc record-accessor (rtd k::<fixnum>) ::<top>
-    (unless (Sg_RecordTypeDescriptorP rtd)
-      (wrong-type-of-argument-violation 'record-accessor "record-type-descriptor" rtd (SG_LIST2 rtd (SG_MAKE_INT k))))
+  (define-c-proc record-accessor (rtd::<rtd> k::<fixnum>) ::<top>
     (unless (and (< -1 k)
 		 (< k (Sg_Length (Sg_RtdFields rtd))))
       (assertion-violation 'record-accessor "field index out of range"))
     (result (Sg_RecordAccessor rtd k)))
 
-  (define-c-proc record-predicate (rtd) ::<top>
-    (unless (Sg_RecordTypeDescriptorP rtd)
-      (wrong-type-of-argument-violation 'record-predicate "record-type-descriptor" rtd))
+  (define-c-proc record-predicate (rtd::<rtd>) ::<top>
     (result (Sg_RecordPredicate rtd)))
 
-  (define-c-proc record-mutator (rtd k::<fixnum>) ::<top>
-    (unless (Sg_RecordTypeDescriptorP rtd)
-      (wrong-type-of-argument-violation 'record-mutator "record-type-descriptor" rtd (SG_LIST2 rtd (SG_MAKE_INT k))))
+  (define-c-proc record-mutator (rtd::<rtd> k::<fixnum>)
     (unless (and (< -1 k)
 		 (< k (Sg_Length (Sg_RtdFields rtd))))
-      (assertion-violation 'record-mutator "field index out of range" (SG_LIST2 rtd (SG_MAKE_INT k))))
+      (assertion-violation 'record-mutator "field index out of range"
+			   (SG_LIST2 rtd (SG_MAKE_INT k))))
     (when (SG_FALSEP (SG_CAR (Sg_ListRef (Sg_RtdFields rtd) k SG_UNBOUND)))
-      (assertion-violation 'record-mutator "specified field is immutable" (SG_LIST2 rtd (SG_MAKE_INT k))))
+      (assertion-violation 'record-mutator "specified field is immutable"
+			   (SG_LIST2 rtd (SG_MAKE_INT k))))
     (result (Sg_RecordMutator rtd k)))
 
-  (define-c-proc record-type-name (rtd) ::<top>
-    (unless (Sg_RecordTypeDescriptorP rtd)
-      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
+  (define-c-proc record-type-name (rtd::<rtd>)
     (result (Sg_RtdName rtd)))
 
-  (define-c-proc record-type-parent (rtd) ::<top>
-    (unless (Sg_RecordTypeDescriptorP rtd)
-      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
+  (define-c-proc record-type-parent (rtd::<rtd>)
     (result (Sg_RtdParent rtd)))
 
-  (define-c-proc record-type-uid (rtd) ::<top>
-    (unless (Sg_RecordTypeDescriptorP rtd)
-      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
+  (define-c-proc record-type-uid (rtd::<rtd>)
     (result (Sg_RtdUid rtd)))
 
-  (define-c-proc record-type-generative? (rtd) ::<boolean>
-    (unless (Sg_RecordTypeDescriptorP rtd)
-      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
+  (define-c-proc record-type-generative? (rtd::<rtd>) ::<boolean>
     (result (SG_FALSEP (Sg_RtdUid rtd))))
 
-  (define-c-proc record-type-opaque? (rtd) ::<boolean>
-    (unless (Sg_RecordTypeDescriptorP rtd)
-      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
+  (define-c-proc record-type-opaque? (rtd::<rtd>) ::<boolean>
     (result (Sg_RtdOpaqueP rtd)))
 
-  (define-c-proc record-type-sealed? (rtd) ::<boolean>
-    (unless (Sg_RecordTypeDescriptorP rtd)
-	(wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
+  (define-c-proc record-type-sealed? (rtd::<rtd>) ::<boolean>
     (result (Sg_RtdSealedP rtd)))
   ;; for convenience, it returns list
-  (define-c-proc rtd-fields (rtd) ::<top>
-    (unless (Sg_RecordTypeDescriptorP rtd)
-      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
+  (define-c-proc rtd-fields (rtd::<rtd>)
     (result (Sg_RtdFields rtd)))
 
-  (define-c-proc record-type-field-names (rtd) ::<top>
-    (unless (Sg_RecordTypeDescriptorP rtd)
-      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
+  (define-c-proc record-type-field-names (rtd::<rtd>)
     (let ((fields (Sg_RtdFields rtd))
 	  (h '())
 	  (t '()))
@@ -3960,32 +3944,22 @@
 	(SG_APPEND1 h t (SG_CDR field)))
       (result (Sg_ListToVector h 0 -1))))
 
-  (define-c-proc record-field-mutable? (rtd k::<fixnum>) ::<top>
-    (unless (Sg_RecordTypeDescriptorP rtd)
-      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
+  (define-c-proc record-field-mutable? (rtd::<rtd> k::<fixnum>)
     (result (SG_CAR (Sg_ListRef (Sg_RtdFields rtd) k SG_UNBOUND))))
 
-  (define-c-proc rtd-inherited-field-count (rtd) ::<fixnum>
-    (unless (Sg_RecordTypeDescriptorP rtd)
-      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
+  (define-c-proc rtd-inherited-field-count (rtd::<rtd>) ::<fixnum>
     (result (Sg_RtdInheritedFieldCount rtd)))
 
-  (define-c-proc rtd-total-field-count (rtd) ::<fixnum>
-    (unless (Sg_RecordTypeDescriptorP rtd)
-      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd))
+  (define-c-proc rtd-total-field-count (rtd::<rtd>) ::<fixnum>
     (result (Sg_RtdTotalFieldCount rtd)))
 
-  (define-c-proc rtd-ancestor? (parent rtd) ::<boolean>
-    (unless (Sg_RecordTypeDescriptorP rtd)
-      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" rtd (SG_LIST2 parent rtd)))
-    (unless (Sg_RecordTypeDescriptorP parent)
-      (wrong-type-of-argument-violation 'record-type-name "record-type-descriptor" parent (SG_LIST2 parent rtd)))
+  (define-c-proc rtd-ancestor? (parent::<rtd> rtd::<rtd>) ::<boolean>
     (result (Sg_RtdAncestorP parent rtd)))
 
-  (define-c-proc rcd-protocol (rcd) ::<top>
+  (define-c-proc rcd-protocol (rcd::<rcd>) ::<top>
     (result (Sg_RcdProtocol rcd)))
 
-  (define-c-proc rcd-parent (rcd) ::<top>
+  (define-c-proc rcd-parent (rcd::<rcd>) ::<top>
     (result (Sg_RcdParent rcd)))
 
   ;; tuple of record helper

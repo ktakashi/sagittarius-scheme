@@ -360,7 +360,7 @@ static SgObject try_known_name_data(SgObject stmt, int index, int length, const 
 int Sg_ColumnSize(SgObject stmt, int index)
 {
   SQLRETURN ret;
-  SQLINTEGER len;
+  SQLLEN len;
   ASSERT(SG_ODBC_STMT_P(stmt));
   ret = SQLColAttribute(SG_ODBC_CTX(stmt)->handle, (SQLUSMALLINT)index, 
 			SQL_DESC_LENGTH, NULL, 0, NULL, &len);
@@ -371,10 +371,10 @@ int Sg_ColumnSize(SgObject stmt, int index)
 SgObject Sg_GetData(SgObject stmt, int index)
 {
   SQLRETURN ret;
-  SQLINTEGER sqlType, len;
+  SQLLEN sqlType, len;
   ASSERT(SG_ODBC_STMT_P(stmt));
   ret = SQLColAttribute(SG_ODBC_CTX(stmt)->handle, (SQLUSMALLINT)index,
-			SQL_DESC_TYPE, NULL, 0, NULL, (SQLPOINTER) &sqlType);
+			SQL_DESC_TYPE, NULL, 0, NULL, &sqlType);
   CHECK_ERROR(get-data, stmt, ret);
   ret = SQLColAttribute(SG_ODBC_CTX(stmt)->handle, (SQLUSMALLINT)index, 
 			SQL_DESC_OCTET_LENGTH, NULL, 0, NULL, &len);

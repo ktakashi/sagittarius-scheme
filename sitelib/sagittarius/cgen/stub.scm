@@ -414,7 +414,7 @@
 			     (slot-ref cproc 'return-type))))
 	   (process-body-inner cproc rettype form)))
 	(_ (process-body-inner cproc (slot-ref cproc 'return-type) body)))))
-
+  
   (define-method process-setter ((cproc <c-proc>) decl)
     (cond
      ((symbol? (car decl)) (slot-set! cproc 'setter (car decl)))

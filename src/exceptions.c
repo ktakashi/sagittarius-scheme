@@ -172,7 +172,7 @@ static SgObject condition_predicate_rec(SgObject *args, int argc, void *data)
 SgObject Sg_ConditionPredicate(SgObject rtd)
 {
   SgObject subr = Sg_MakeSubr(condition_predicate_rec, rtd, 1, 0,
-			      Sg_MakeString(UC("condition-predicate"), SG_LITERAL_STRING));
+			      SG_MAKE_STRING("condition-predicate"));
   return subr;
 }
 

@@ -907,38 +907,34 @@ static SgObject link_cb(SgObject cb, read_ctx *ctx)
 static SgObject read_toplevel(SgPort *in, int boundary, read_ctx *ctx)
 {
   int b;
-  if (setjmp(ctx->escape) == 0) {
-    while ((b = Sg_PeekbUnsafe(in)) != EOF) {
-      if (b == -1) 
-	return SG_FALSE; /* invalid cache. */
+  while ((b = Sg_PeekbUnsafe(in)) != EOF) {
+    if (b == -1) 
+      return SG_FALSE; /* invalid cache. */
 
-      switch (b) {
-      case LIBRARY_TAG:
-	return read_library(in, ctx);
-      case CODE_BUILDER_TAG: {
-	/* the very first one is toplevel */
-	SgObject cb = read_code(in, ctx);
-	/* here we need to read the rest closures */
-	while ((b = Sg_PeekbUnsafe(in)) != boundary) {
-	  if (b == EOF) return SG_FALSE; /* invalid cache */
-	  /* we just need to store the rest to ctx.seen */
-	  /* read_code(in, &ctx); */
-	  read_object(in, ctx);
-	}
-	return link_cb(cb, ctx);
+    switch (b) {
+    case LIBRARY_TAG:
+      return read_library(in, ctx);
+    case CODE_BUILDER_TAG: {
+      /* the very first one is toplevel */
+      SgObject cb = read_code(in, ctx);
+      /* here we need to read the rest closures */
+      while ((b = Sg_PeekbUnsafe(in)) != boundary) {
+	if (b == EOF) return SG_FALSE; /* invalid cache */
+	/* we just need to store the rest to ctx.seen */
+	/* read_code(in, &ctx); */
+	read_object(in, ctx);
       }
-      case MACRO_SECTION_TAG:
-	return read_macro_section(in, ctx);
-      default:
-	/* broken cache */
-	Sg_Warn(UC("cache was broken. %d"), b);
-	return SG_FALSE;
-      }
+      return link_cb(cb, ctx);
     }
-    return SG_EOF;
-  } else {
-    return SG_FALSE;
+    case MACRO_SECTION_TAG:
+      return read_macro_section(in, ctx);
+    default:
+      /* broken cache */
+      Sg_Warn(UC("cache was broken. %d"), b);
+      return SG_FALSE;
+    }
   }
+  return SG_EOF;
 }
 
 static SgString* read_string(SgPort *in, int length)
@@ -1296,10 +1292,9 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
   case USER_DEFINED_OBJECT_TAG:
     return read_user_defined_object(in, ctx);
   default:
-    Sg_Printf(Sg_StandardErrorPort(),
-	      UC("unknown tag appeared. tag: %d, file: %A, pos: %d\n"),
-	      tag, ctx->file, Sg_PortPosition(in));
-    Sg_Abort("failed to read cache.");
+    Sg_Warn(UC("unknown tag appeared. tag: %d, file: %A, pos: %d\n"),
+	    tag, ctx->file, Sg_PortPosition(in));
+    longjmp(ctx->escape, 1);
     return SG_FALSE;
   }
 }
@@ -1507,30 +1502,36 @@ int Sg_ReadCache(SgString *id)
     return INVALID_CACHE;
   }
 
-  while ((obj = read_toplevel(in, MACRO_SECTION_TAG, &ctx)) != SG_EOF) {
-    /* toplevel cache never be #f */
-    if (SG_FALSEP(obj)) {
-      SG_PORT_UNLOCK(in);
-      Sg_ClosePort(in);
-      vm->currentLibrary = save;
-      return RE_CACHE_NEEDED;
+  if (setjmp(ctx.escape) == 0) {
+    while ((obj = read_toplevel(in, MACRO_SECTION_TAG, &ctx)) != SG_EOF) {
+      /* toplevel cache never be #f */
+      if (SG_FALSEP(obj)) {
+	SG_PORT_UNLOCK(in);
+	Sg_ClosePort(in);
+	vm->currentLibrary = save;
+	return RE_CACHE_NEEDED;
+      }
+      if (SG_LIBRARYP(obj)) {
+	save = vm->currentLibrary;
+	vm->currentLibrary = SG_LIBRARY(obj);
+	continue;
+      }
+      /* must be macro section. restore library*/
+      if (SG_UNDEFP(obj)) {
+	vm->currentLibrary = save;
+	continue;
+      }
+      /* obj must be cb */
+      ASSERT(SG_CODE_BUILDERP(obj));
+      if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
+	Sg_VMDumpCode(obj);
+      }
+      Sg_VMExecute(obj);
     }
-    if (SG_LIBRARYP(obj)) {
-      save = vm->currentLibrary;
-      vm->currentLibrary = SG_LIBRARY(obj);
-      continue;
-    }
-    /* must be macro section. restore library*/
-    if (SG_UNDEFP(obj)) {
-      vm->currentLibrary = save;
-      continue;
-    }
-    /* obj must be cb */
-    ASSERT(SG_CODE_BUILDERP(obj));
-    if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
-      Sg_VMDumpCode(obj);
-    }
-    Sg_VMExecute(obj);
+  } else {
+    /* something wrong, well this happens so often in Windows somehow... */
+    /* so return as invalid cache */
+    return INVALID_CACHE;
   }
   /* for no content library */
   vm->currentLibrary = save;

@@ -593,7 +593,7 @@ int Sg_BignumBitSize(SgBignum *b)
   ASSERT(last >= 0);
   ASSERT(b->elements[last]);
   bitsize = WORD_BITS * last;
-  return bitsize + WORD_BITS - nlz((intptr_t)b->elements[last]);
+  return bitsize + WORD_BITS - nlz((long)b->elements[last]);
 }
 
 int Sg_BignumFirstBitSet(SgBignum *b)

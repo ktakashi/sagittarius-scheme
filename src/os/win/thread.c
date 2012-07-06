@@ -231,12 +231,12 @@ void Sg_ExitThread(SgInternalThread *thread, void *ret)
 
 static void cancel_self(DWORD unused)
 {
-  DWORD exceptionInformation[3];
-  exceptionInformation[0] = (DWORD)(2);
-  exceptionInformation[1] = (DWORD)(0);
-  exceptionInformation[2] = (DWORD)(0);
+  ULONG exceptionInformation[3];
+  exceptionInformation[0] = (ULONG)(2);
+  exceptionInformation[1] = (ULONG)(0);
+  exceptionInformation[2] = (ULONG)(0);
 
-  RaiseException (-1, 0, 3, exceptionInformation);
+  RaiseException (-1, 0, 3, (CONST ULONG_PTR *)exceptionInformation);
 }
 
 void Sg_TerminateThread(SgInternalThread *thread)

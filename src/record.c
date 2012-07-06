@@ -164,15 +164,17 @@ SgObject Sg_MakeRecordTypeDescriptor(SgSymbol *name, SgObject parent, SgObject u
     if (RTD_P(parent)) {
       if (RTD_SEALEDP(parent)) {
 	Sg_AssertionViolation(SG_INTERN("make-record-type-descriptor"),
-					Sg_MakeString(UC("attempt to extend a sealed record-type"), SG_LITERAL_STRING),
-					parent);
+			      SG_MAKE_STRING("attempt to extend a sealed record-type"),
+			      parent);
 	return SG_UNDEF;	/* dummy */
       }
     } else {
       Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-record-type-descriptor"),
-				      Sg_MakeString(UC("record-type-descriptor or #f"), SG_LITERAL_STRING),
+				      SG_MAKE_STRING("record-type-descriptor or #f"),
 				      parent,
-				      L6(name, parent, uid, SG_MAKE_BOOL(sealedP), SG_MAKE_BOOL(opaqueP), fields));
+				      L6(name, parent, uid,
+					 SG_MAKE_BOOL(sealedP),
+					 SG_MAKE_BOOL(opaqueP), fields));
       return SG_UNDEF;	/* dummy */
     }
   }
@@ -194,7 +196,7 @@ SgObject Sg_MakeRecordTypeDescriptor(SgSymbol *name, SgObject parent, SgObject u
     } else {
     err:
       Sg_AssertionViolation(SG_INTERN("make-record-type-descriptor"),
-			    Sg_MakeString(UC("malformed field specifiers"), SG_LITERAL_STRING),
+			    SG_MAKE_STRING("malformed field specifiers"),
 			    fields);
       return SG_UNDEF;	/* dummy */
     }
@@ -212,9 +214,9 @@ SgObject Sg_MakeRecordTypeDescriptor(SgSymbol *name, SgObject parent, SgObject u
 	return current;
       } else {
 	Sg_AssertionViolation(SG_INTERN("make-record-type-descriptor"),
-			      Sg_MakeString(UC("mismatched subsequent call for nongenerative record-type"),
-					    SG_LITERAL_STRING),
-			      L6(name, parent, uid, SG_MAKE_BOOL(sealedP), SG_MAKE_BOOL(opaqueP), fields));
+			      SG_MAKE_STRING("mismatched subsequent call for nongenerative record-type"),
+			      L6(name, parent, uid, SG_MAKE_BOOL(sealedP),
+				 SG_MAKE_BOOL(opaqueP), fields));
 	return SG_UNDEF;	/* dummy */
       }
     } else {
@@ -237,37 +239,37 @@ SgObject Sg_MakeRecordConstructorDescriptor(SgObject rtd, SgObject parent, SgObj
   SgObject protocolImpl, parentImpl;
   if (!RTD_P(rtd)) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-record-constructor-descriptor"),
-				    Sg_MakeString(UC("record-type-descriptor required"), SG_LITERAL_STRING),
+				    SG_MAKE_STRING("record-type-descriptor"),
 				    rtd,
 				    SG_LIST3(rtd, parent, protocol));
   }
   if (!SG_FALSEP(parent) && !RCD_P(parent)) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-record-constructor-descriptor"),
-				    Sg_MakeString(UC("record-constructor-descriptor or #f"), SG_LITERAL_STRING),
+				    SG_MAKE_STRING("record-constructor-descriptor or #f"),
 				    parent,
 				    SG_LIST3(rtd, parent, protocol));
   }
   if (!SG_FALSEP(protocol) && !SG_PROCEDUREP(protocol)) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("make-record-constructor-descriptor"),
-				    Sg_MakeString(UC("procedure or #f"), SG_LITERAL_STRING),
+				    SG_MAKE_STRING("procedure or #f"),
 				    protocol,
 				    SG_LIST3(rtd, parent, protocol));
   }
   if (!SG_FALSEP(parent) && SG_FALSEP(RTD_PARENT(rtd))) {
     Sg_AssertionViolation(SG_INTERN("make-record-constructor-descriptor"),
-			  Sg_MakeString(UC("mismatch between rtd and parent constructor descriptor"), SG_LITERAL_STRING),
+			  SG_MAKE_STRING("mismatch between rtd and parent constructor descriptor"),
 			  SG_LIST3(rtd, parent, protocol));
   }
   if (!SG_FALSEP(parent) && !SG_FALSEP(RTD_PARENT(rtd)) &&
       !SG_EQ(RCD_RTD(parent), RTD_PARENT(rtd))) {
     Sg_AssertionViolation(SG_INTERN("make-record-constructor-descriptor"),
-			  Sg_MakeString(UC("mismatch between rtd and parent constructor descriptor"), SG_LITERAL_STRING),
+			  SG_MAKE_STRING("mismatch between rtd and parent constructor descriptor"),
 			  SG_LIST3(rtd, parent, protocol));
   }
   if ((!SG_FALSEP(protocol) && !SG_FALSEP(RTD_PARENT(rtd))) &&
       SG_FALSEP(parent)) {
     Sg_AssertionViolation(SG_INTERN("make-record-constructor-descriptor"),
-			  Sg_MakeString(UC("expected #f for protocol since no parent constructor descriptor is provided"), SG_LITERAL_STRING),
+			  SG_MAKE_STRING("expected #f for protocol since no parent constructor descriptor is provided"),
 			  SG_LIST3(rtd, parent, protocol));
   }
   if (!SG_FALSEP(parent) && RCD_CUSTOMP(parent) &&
@@ -298,7 +300,7 @@ SgObject Sg_RecordConstructor(SgObject rcd)
   int len;
   if (!RCD_P(rcd)) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("record-constructor"),
-				    Sg_MakeString(UC("record-constructor-descriptor"), SG_LITERAL_STRING),
+				    SG_MAKE_STRING("record-constructor-descriptor"),
 				    rcd, SG_NIL);
   }
   rtd = RCD_RTD(rcd);
