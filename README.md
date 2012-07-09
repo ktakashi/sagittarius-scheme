@@ -89,10 +89,6 @@ After these commands, you need to go to `win/` directory and double click the
 file `innosetup.iss`. Go to [Build] - [Compile], then it will create the
 installer. For more detail, please see Inno Setup's document.
 
-Note: You can also build on 64 bit however FFI does not work properly yet.
-(Test case causes SEGV). So if you don't have any specific reason, I would
-strongly recommend to build on 32 bit.
-
 # How to develop it?
 We provide `autogen.sh` for developper and it generates boot code, VM
 instrustions and generated code from stub file. For more detail, see the file.
