@@ -68,7 +68,7 @@ typedef struct FD_tag
 
 static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
 {
-  DWORD readSize;
+  DWORD readSize = 0;
   int isOK;
   SgFile *file = SG_FILE(self);
   /* check console */
@@ -80,7 +80,7 @@ static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
       *buf = (uint8_t)(SG_FD(self)->prevChar);
       SG_FD(self)->prevChar = -1;
     } else {
-      wchar_t wc;
+      wchar_t wc = 0;
       isOK = ReadConsoleW(SG_FD(self)->desc, &wc, 1, &readSize, NULL);
       if (isOK) {
 	readSize = 1;
@@ -108,7 +108,7 @@ static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
 
 static int64_t win_write(SgObject self, uint8_t *buf, int64_t size)
 {
-  DWORD writeSize;
+  DWORD writeSize = 0;
   int isOK;
   SgFile *file = SG_FILE(self);
   /* check console */
@@ -147,7 +147,7 @@ static int64_t win_write(SgObject self, uint8_t *buf, int64_t size)
 
 static int64_t win_seek(SgObject self, int64_t offset, Whence whence)
 {
-  LARGE_INTEGER largePos, resultPos;
+  LARGE_INTEGER largePos, resultPos = {0};
   DWORD posMode;
   BOOL isOK;
   largePos.QuadPart = offset;
@@ -529,7 +529,7 @@ SgObject Sg_FileSize(SgString *path)
 			  FILE_SHARE_READ | FILE_SHARE_WRITE,
 			  NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
   if (fd != INVALID_HANDLE_VALUE) {
-    LARGE_INTEGER bsize;
+    LARGE_INTEGER bsize = {0};
     if (GetFileSizeEx(fd, &bsize)) {
       CloseHandle(fd);
       return Sg_MakeIntegerFromS64(bsize.QuadPart);
