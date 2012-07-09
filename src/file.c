@@ -40,7 +40,7 @@
 
 static void file_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
-  /* never reach */
+  Sg_Printf(port, UC("#<file %s>"), SG_FILE(obj)->name);
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_FileClass, file_print);

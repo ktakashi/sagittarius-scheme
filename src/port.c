@@ -315,7 +315,12 @@ static int file_open(SgObject self)
 static int file_close(SgObject self)
 {
   if (!SG_PORT(self)->closed) {
-    if (SG_PORT_FILE(self)->canClose(SG_PORT_FILE(self))) {
+    if (
+#ifdef _MSC_VER
+	/* again I have no idea, but this happens... */
+	SG_BINARY_PORT(self)->src.file &&
+#endif
+	SG_PORT_FILE(self)->canClose(SG_PORT_FILE(self))) {
       SG_PORT(self)->closed = TRUE;
       if (SG_PORT(self)->direction == SG_OUTPUT_PORT ||
 	  SG_PORT(self)->direction == SG_IN_OUT_PORT) {
@@ -323,9 +328,12 @@ static int file_close(SgObject self)
 	SG_PORT(self)->flush(self);
 	unregister_buffered_port(SG_PORT(self));
       }
-      SG_PORT_FILE(self)->close(SG_PORT_FILE(self));
-      SG_BINARY_PORT(self)->buffer = NULL; /* GC friendliness */
-      Sg_UnregisterFinalizer(self);
+      /* well, I don't think we need to check, but just in case */
+      if (SG_PORT_FILE(self)->close(SG_PORT_FILE(self))) {
+	SG_BINARY_PORT(self)->buffer = NULL; /* GC friendliness */
+	SG_BINARY_PORT(self)->src.file = NULL;
+	Sg_UnregisterFinalizer(self);
+      }
     }
   }
   return SG_PORT(self)->closed;
@@ -786,12 +794,13 @@ static int64_t byte_array_read_u8(SgObject self, uint8_t *buf, int64_t size)
   int bsize = SG_BVECTOR_SIZE(bvec);
   int bindex = bp->src.buffer.index;
   size_t rest = bsize - bindex;
-  int i, read_size = (rest >= (size_t)size) ? (size_t)size : rest;
+  size_t read_size = (rest >= (size_t)size) ? (size_t)size : rest;
+  int i; 
 
   for (i = 0; i < read_size; i++) {
     buf[i] = Sg_ByteVectorU8Ref(bvec, bindex + i);
   }
-  SG_BINARY_PORT(self)->src.buffer.index += read_size;
+  SG_BINARY_PORT(self)->src.buffer.index += (int)read_size;
   SG_BINARY_PORT(self)->position += read_size;
   return read_size;
 }
@@ -1386,10 +1395,10 @@ static int64_t custom_binary_read_all(SgObject self, uint8_t **buf)
   uint8_t rbuf[1024];
 
   for (;;) {
-    int size = custom_binary_read(self, rbuf, 1024);
+    int64_t size = custom_binary_read(self, rbuf, 1024);
     if (size == 0) break;
     read_size += size;
-    Sg_WritebUnsafe(accum, rbuf, 0, size);
+    Sg_WritebUnsafe(accum, rbuf, 0, (int)size);
   }
   *buf = Sg_GetByteArrayFromBinaryPort(accum);
   return read_size;
@@ -2333,7 +2342,7 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset)
       break;
     case SG_BYTE_ARRAY_BINARY_PORT_TYPE:
       if (SG_INPORTP(port)) {
-	SG_BINARY_PORT(port)->src.buffer.index = (size_t)offset;
+	SG_BINARY_PORT(port)->src.buffer.index = (int)offset;
       } else {
 	int64_t i;
 	byte_buffer *c = SG_BINARY_PORT(port)->src.obuf.start;
@@ -2367,7 +2376,7 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset)
       break;
     case SG_STRING_TEXTUAL_PORT_TYPE:
       if (SG_INPORTP(port)) {
-	SG_TEXTUAL_PORT(port)->src.buffer.index = (size_t)offset;
+	SG_TEXTUAL_PORT(port)->src.buffer.index = (int)offset;
       } else {
 	int64_t i;
 	char_buffer *c = SG_TEXTUAL_PORT(port)->src.ostr.start;

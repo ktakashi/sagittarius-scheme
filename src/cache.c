@@ -64,7 +64,7 @@
 #define VALIDATE_TAG  "Sagittarius version "SAGITTARIUS_VERSION
 
 static SgString *CACHE_DIR = NULL;
-static int TAG_LENGTH = 0;
+static size_t TAG_LENGTH = 0;
 /*
   We do not put pointer itself (it's impossible) and we don't need
   8 bytes (64 bit) of word size. All the word emit process are just
@@ -824,7 +824,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   file = Sg_OpenFile(cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
   out = Sg_MakeFileBinaryOutputPort(file, SG_BUFMODE_BLOCK);
   /* put validate tag */
-  Sg_WritebUnsafe(out, (uint8_t *)VALIDATE_TAG, 0, TAG_LENGTH);
+  Sg_WritebUnsafe(out, (uint8_t *)VALIDATE_TAG, 0, (int)TAG_LENGTH);
   Sg_ClosePort(out);
   return TRUE;
 }
@@ -872,9 +872,9 @@ static SgWord read_word_rec(SgPort *in, int tag_type, int size)
   return ret;
 }
 
-static SgWord read_word(SgPort *in, int tag_type)
+static int read_word(SgPort *in, int tag_type)
 {
-  return read_word_rec(in, tag_type, EMIT_SIZE);
+  return (int)read_word_rec(in, tag_type, EMIT_SIZE);
 }
 
 static SgObject link_cb(SgObject cb, read_ctx *ctx)
@@ -907,9 +907,21 @@ static SgObject link_cb(SgObject cb, read_ctx *ctx)
 static SgObject read_toplevel(SgPort *in, int boundary, read_ctx *ctx)
 {
   int b;
+#ifdef _MSC_VER
+  /* I have no idea why this happens on Windows, I'm suspecting GC's bug */
+  if (!SG_BINARY_PORT(in)->src.file) {
+    if (SG_VM_LOG_LEVEL(Sg_VM(), SG_WARN_LEVEL)) {
+      Sg_Warn(UC("invalid binary port appeared."));
+    }
+    longjmp(ctx->escape, 1);
+  }
+#endif
   while ((b = Sg_PeekbUnsafe(in)) != EOF) {
-    if (b == -1) 
+    if (b == -1) {
+      Sg_Warn(UC("invalid cache. %d\n"), b);
+      longjmp(ctx->escape, 1);
       return SG_FALSE; /* invalid cache. */
+    }
 
     switch (b) {
     case LIBRARY_TAG:
@@ -919,7 +931,11 @@ static SgObject read_toplevel(SgPort *in, int boundary, read_ctx *ctx)
       SgObject cb = read_code(in, ctx);
       /* here we need to read the rest closures */
       while ((b = Sg_PeekbUnsafe(in)) != boundary) {
-	if (b == EOF) return SG_FALSE; /* invalid cache */
+	if (b == EOF) {
+	  Sg_Warn(UC("Unexpected EOF\n"));
+	  longjmp(ctx->escape, 1);
+	  return SG_FALSE; /* invalid cache */
+	}
 	/* we just need to store the rest to ctx.seen */
 	/* read_code(in, &ctx); */
 	read_object(in, ctx);
@@ -931,6 +947,7 @@ static SgObject read_toplevel(SgPort *in, int boundary, read_ctx *ctx)
     default:
       /* broken cache */
       Sg_Warn(UC("cache was broken. %d"), b);
+      longjmp(ctx->escape, 1);
       return SG_FALSE;
     }
   }
@@ -1013,7 +1030,7 @@ static SgObject read_identifier(SgPort *in, read_ctx *ctx)
   name = read_string(in, length);
   /* read library name */
   lib = read_object_rec(in, ctx);
-  if (SG_FALSEP(lib)) return SG_FALSE;
+  if (SG_FALSEP(lib)) longjmp(ctx->escape, 1);
   lib = Sg_FindLibrary(lib, FALSE);
   envs = read_object_rec(in, ctx);
 
@@ -1128,7 +1145,7 @@ static SgObject read_closure(SgPort *in, read_ctx *ctx)
 {
   int tag = Sg_GetbUnsafe(in);
   SgObject cb;
-  if (tag != CLOSURE_TAG) return SG_FALSE;
+  if (tag != CLOSURE_TAG) longjmp(ctx->escape, 1);
   cb = read_code(in, ctx);
   /* Sg_HashTableSet(ctx->seen, SG_MAKE_INT(num), cb, 0); */
   /* Do we need free variables? */
@@ -1140,7 +1157,7 @@ static SgObject read_user_defined_object(SgPort *in, read_ctx *ctx)
   int tag = Sg_GetbUnsafe(in);
   SgObject name, library, klass;
   SgGloc *target;
-  if (tag != USER_DEFINED_OBJECT_TAG) return SG_FALSE;
+  if (tag != USER_DEFINED_OBJECT_TAG) longjmp(ctx->escape, 1);
   name = read_object_rec(in, ctx);
   /* TODO: 
      The library we look up here might not have the class.
@@ -1325,9 +1342,9 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
   SgObject later = SG_NIL;
 
   tag = Sg_GetbUnsafe(in);
-  if (tag != LIBRARY_TAG) return SG_FALSE;
+  if (tag != LIBRARY_TAG) longjmp(ctx->escape, 1);
   name = read_symbol(in, TRUE);
-  if (SG_FALSEP(name)) return SG_FALSE;
+  if (SG_FALSEP(name)) longjmp(ctx->escape, 1);
   /* if vm is reading a cache, which means library is not loaded yet.
      so we need to create it.
    */
@@ -1335,6 +1352,10 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
   for (i = 0; i < length; i++) {
     from = read_object(in, ctx);
     import = read_object(in, ctx);
+    if (SG_FALSEP(from) || SG_FALSEP(import)) {
+      Sg_Warn(UC("broken cache\n"));
+      longjmp(ctx->escape, 1);
+    }
     later = Sg_Acons(from, import, later);
   }
   /* read export */
@@ -1342,7 +1363,7 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
   expot = read_object(in, ctx);
 
   tag = Sg_GetbUnsafe(in);
-  if (tag != BOUNDARY_TAG) return SG_FALSE;
+  if (tag != BOUNDARY_TAG) longjmp(ctx->escape, 1);
 
   lib = Sg_MakeLibrary(name);
   lib->exported = expot;
@@ -1415,7 +1436,7 @@ static SgObject read_macro_section(SgPort *in, read_ctx *ctx)
   lib = read_object(in, ctx);
   lib = Sg_FindLibrary(lib, FALSE);
   /* never happen. i guess */
-  if (SG_FALSEP(lib)) return SG_FALSE;
+  if (SG_FALSEP(lib)) longjmp(ctx->escape, 1);
   
   for (i = 0; i < len; i++) {
     SgObject macro = read_macro(in, ctx);
@@ -1423,9 +1444,9 @@ static SgObject read_macro_section(SgPort *in, read_ctx *ctx)
     Sg_InsertBinding(SG_LIBRARY(lib), SG_MACRO(macro)->name, macro);
   }
   tag = Sg_GetbUnsafe(in);
-  if (tag != MACRO_SECTION_END_TAG) return SG_FALSE;
+  if (tag != MACRO_SECTION_END_TAG) longjmp(ctx->escape, 1);
   tag = Sg_GetbUnsafe(in);
-  if (tag != BOUNDARY_TAG) return SG_FALSE;
+  if (tag != BOUNDARY_TAG) longjmp(ctx->escape, 1);
   return SG_UNDEF;
 }
 
@@ -1455,8 +1476,7 @@ int Sg_ReadCache(SgString *id)
     Sg_Printf(vm->logPort, UC(";; reading cache of %S\n"), id);
   }
   /* check timestamp */
-  timestamp = Sg_StringAppend2(cache_path, Sg_MakeString(UC(".timestamp"),
-							 SG_LITERAL_STRING));
+  timestamp = Sg_StringAppend2(cache_path, SG_MAKE_STRING(".timestamp"));
   if (!Sg_FileExistP(timestamp)) {
     return RE_CACHE_NEEDED;
   }
@@ -1469,7 +1489,7 @@ int Sg_ReadCache(SgString *id)
   }
 
   file = Sg_OpenFile(timestamp, SG_READ);
-  in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_BLOCK);
+  in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_NONE);
   size = Sg_ReadbUnsafe(in, (uint8_t *)tagbuf, 50);
   tagbuf[size] = 0;
   if (strcmp(tagbuf, VALIDATE_TAG) != 0) {
@@ -1481,11 +1501,14 @@ int Sg_ReadCache(SgString *id)
 
   file = Sg_OpenFile(cache_path, SG_READ);
   /* buffer mode none can be a little bit better performance to read all. */
+/* #ifdef _MSC_VER */
+/*   in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_BLOCK); */
+/* #else */
   in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_NONE);
   size = Sg_ReadbAll(in, (uint8_t **)&alldata);
   Sg_ClosePort(in);
   in = Sg_MakeByteArrayInputPort((const uint8_t *)alldata, size);
-
+/* #endif */
   seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 128);
   shared = Sg_MakeHashTableSimple(SG_HASH_EQ, 256);
 
@@ -1531,6 +1554,7 @@ int Sg_ReadCache(SgString *id)
   } else {
     /* something wrong, well this happens so often in Windows somehow... */
     /* so return as invalid cache */
+    vm->currentLibrary = save;
     return INVALID_CACHE;
   }
   /* for no content library */

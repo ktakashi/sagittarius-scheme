@@ -36,7 +36,8 @@
 #include "sagittarius/vm.h"
 #include "sagittarius/builtin-symbols.h"
 
-static void finalizable();
+static void finalizable(void);
+
 static void* oom_handler(size_t bytes)
 {
   Sg_Panic("out of memory (%lu). aborting...", bytes);
@@ -377,7 +378,12 @@ void Sg_Panic(const char* msg, ...)
 void Sg_Abort(const char* msg)
 {
   int size = (int)strlen(msg);
+#ifndef _MSC_VER
   write(2, msg, size);
+#else
+  DWORD n;
+  WriteConsole(GetStdHandle(STD_ERROR_HANDLE), msg, size, &n, NULL);
+#endif
   _exit(EXIT_CODE(1));
 }
 

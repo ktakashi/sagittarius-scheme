@@ -55,7 +55,7 @@ static SgString* utf16ToUtf32(wchar_t *s)
 {
   const SgChar offset = (0xd800 << 10UL) + 0xdc00 - 0x10000;
   size_t i = 0, n = wcslen(s);
-  SgObject out = Sg_MakeStringOutputPort(n);
+  SgObject out = Sg_MakeStringOutputPort((int)n);
   while (i < n) {
     SgChar c0 = s[i++];
     if (isLead(c0)) {
@@ -75,7 +75,7 @@ static SgString* utf16ToUtf32(wchar_t *s)
 static SgString* utf16ToUtf32WithRegion(wchar_t *s, wchar_t *e)
 {
   const SgChar offset = (0xd800 << 10UL) + 0xdc00 - 0x10000;
-  SgObject out = Sg_MakeStringOutputPort((e - s) * 2);
+  SgObject out = Sg_MakeStringOutputPort((int)((e - s) * 2));
   while (s < e) {
     SgChar c0 = *s++;
     if (isLead(c0)) {

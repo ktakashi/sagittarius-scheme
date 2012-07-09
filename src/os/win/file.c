@@ -70,7 +70,6 @@ static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
 {
   DWORD readSize = 0;
   int isOK;
-  SgFile *file = SG_FILE(self);
   /* check console */
   if (Sg_IsUTF16Console(self)) {
     ASSERT(size == 1);
@@ -89,7 +88,7 @@ static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
       }
     }
   } else {
-    isOK = ReadFile(SG_FD(file)->desc, buf, size, &readSize, NULL);
+    isOK = ReadFile(SG_FD(self)->desc, buf, (DWORD)size, &readSize, NULL);
     if (!isOK) {
       DWORD err = GetLastError();
       switch (err) {
@@ -98,7 +97,7 @@ static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
       }
     }
   }
-  setLastError(file);
+  setLastError(SG_FILE(self));
   if (isOK) {
     return readSize;
   } else {
@@ -117,25 +116,27 @@ static int64_t win_write(SgObject self, uint8_t *buf, int64_t size)
     unsigned int destSize = 0;
     uint8_t *dest = NULL;
     if ((destSize = WideCharToMultiByte(GetConsoleOutputCP(), 0,
-					(const wchar_t *)buf, size / 2, 
+					(const wchar_t *)buf, 
+					(DWORD)(size / 2), 
 					(LPSTR)NULL, 0, NULL, NULL)) == 0) {
       Sg_IOWriteError(SG_INTERN("write"), Sg_GetLastErrorMessage(), SG_UNDEF);
     }
     dest = SG_NEW_ATOMIC2(uint8_t *, destSize + 1);
     if (WideCharToMultiByte(GetConsoleOutputCP(), 0, (const wchar_t *)buf,
-			    size / 2, (LPSTR)dest, destSize, NULL, NULL) == 0) {
+			    (DWORD)(size / 2),
+			    (LPSTR)dest, destSize, NULL, NULL) == 0) {
       Sg_IOWriteError(SG_INTERN("write"), Sg_GetLastErrorMessage(), SG_UNDEF);
     }
     isOK = WriteFile(SG_FD(file)->desc, dest, destSize, &writeSize, NULL);
     if (writeSize != destSize) {
       Sg_IOWriteError(SG_INTERN("write"), Sg_GetLastErrorMessage(), SG_UNDEF);
     }
-    writeSize = size;
+    writeSize = (DWORD)size;
 #else
     isOK = WriteFile(SG_FD(file)->desc, buf, size, &writeSize, NULL);
 #endif
   } else {
-    isOK = WriteFile(SG_FD(file)->desc, buf, size, &writeSize, NULL);
+    isOK = WriteFile(SG_FD(file)->desc, buf, (DWORD)size, &writeSize, NULL);
   }
   setLastError(file);
   if (isOK) {
@@ -395,8 +396,8 @@ int Sg_FileSymbolicLinkP(SgString *path)
 
 static int end_with(const SgString *target, const char * key)
 {
-  int size = SG_STRING_SIZE(target);
-  int keysize = strlen(key);
+  size_t size = SG_STRING_SIZE(target);
+  size_t keysize = strlen(key);
   SgChar *value = SG_STRING_VALUE(target);
   SgChar *p;
   p = value + size - keysize;
