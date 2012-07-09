@@ -107,8 +107,6 @@
 	      (bytevector-copy! H 0 EM m-len h-len)
 	      EM))))))
 
-  (define (print . args) (for-each write args) (newline))
-
   ;; section 9.1.2
   (define (pkcs1-emsa-pss-verify m em em-bits
 				 :key (algo :hash (hash-algorithm SHA-1))

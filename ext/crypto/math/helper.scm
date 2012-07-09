@@ -44,12 +44,8 @@
   (define-syntax align-size
     (syntax-rules (bit)
       ((_ (bit n))
-       (let ((bitlen n))
-	 (+ (bitwise-arithmetic-shift-right bitlen 3)
-	    (if (zero? (bitwise-and bitlen 7)) 0 1))))
+       (div (+ n 7) 8))
       ((_ n)
        (let ((bitlen (bitwise-length n)))
-	 (+ (bitwise-arithmetic-shift-right bitlen 3)
-	    (if (zero? (bitwise-and bitlen 7)) 0 1))))))
-
- )
+	 (div (+ bitlen 7) 8)))))
+)
