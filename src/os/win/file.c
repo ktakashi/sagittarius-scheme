@@ -257,7 +257,7 @@ static int win_can_close(SgObject self)
 
 static int64_t win_size(SgObject self)
 {
-  LARGE_INTEGER size;
+  LARGE_INTEGER size = {0};
   int isOK = GetFileSizeEx(SG_FD(self)->desc, &size);
   setLastError(self);
   if (isOK) {

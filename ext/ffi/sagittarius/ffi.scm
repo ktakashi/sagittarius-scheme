@@ -83,6 +83,8 @@
 	    pointer-ref-c-long
 	    pointer-ref-c-unsigned-long-long
 	    pointer-ref-c-long-long
+	    pointer-ref-c-intptr
+	    pointer-ref-c-uintptr
 	    pointer-ref-c-float
 	    pointer-ref-c-double
 	    pointer-ref-c-pointer
@@ -105,6 +107,8 @@
 	    pointer-set-c-long!
 	    pointer-set-c-unsigned-long-long!
 	    pointer-set-c-long-long!
+	    pointer-set-c-intptr!
+	    pointer-set-c-uintptr!
 	    pointer-set-c-float!
 	    pointer-set-c-double!
 	    ;; alignment
@@ -138,6 +142,7 @@
 	    int8_t int16_t int32_t uint8_t uint16_t uint32_t size_t
 	    int64_t uint64_t long-long unsigned-long-long
 	    bool void* char* float double callback struct
+	    intptr_t uintptr_t
 
 	    ;; utility
 	    null-pointer
@@ -147,14 +152,16 @@
 	    ;; clos
 	    <pointer> <function-info> <callback> <c-struct>)
 
-    (define void               'void)
-    (define char               'char)
-    (define short		     'short)
+    (define void             'void)
+    (define char             'char)
+    (define short	     'short)
     (define int		     'int)
-    (define long		     'long)
-    (define unsigned-short     'unsigned-short)
-    (define unsigned-int	     'unsigned-int)
-    (define unsigned-long	     'unsigned-long)
+    (define long	     'long)
+    (define intptr_t	     'intptr_t)
+    (define uintptr_t	     'uintptr_t)
+    (define unsigned-short   'unsigned-short)
+    (define unsigned-int     'unsigned-int)
+    (define unsigned-long    'unsigned-long)
     (define int8_t	     'int8_t)
     (define int16_t	     'int16_t)
     (define int32_t	     'int32_t)
@@ -166,13 +173,13 @@
     (define uint64_t	     'uint64_t)
     (define long-long	     'long-long)
     (define unsigned-long-long 'unsigned-long-long)
-    (define bool		     'bool)
-    (define void*		     'void*)
-    (define char*		     'char*)
-    (define float		     'float)
+    (define bool	     'bool)
+    (define void*	     'void*)
+    (define char*	     'char*)
+    (define float	     'float)
     (define double	     'double)
-    (define callback           'callback)
-    (define struct             'struct)
+    (define callback         'callback)
+    (define struct           'struct)
 
     (define null-pointer (integer->pointer 0))
     (define (null-pointer? p)
@@ -339,30 +346,32 @@
 						      '(rest ...)))))))))
 
     (define c-function-return-type-alist
-      '((void               . #x00)    ; FFI_RETURN_TYPE_VOID
-	(bool               . #x01)    ; FFI_RETURN_TYPE_BOOL
-	(char               . #x0c)    ; FFI_RETURN_TYPE_INT8_T
-	(short              . #x02)    ; FFI_RETURN_TYPE_SHORT
-	(int                . #x03)    ; FFI_RETURN_TYPE_INT
-	(long               . #x04)    ; FFI_RETURN_TYPE_INTPTR
-	(long-long          . #x12)    ; FFI_RETURN_TYPE_INT64_T
-	(unsigned-short     . #x05)    ; FFI_RETURN_TYPE_USHORT
-	(unsigned-int       . #x06)    ; FFI_RETURN_TYPE_UINT
-	(unsigned-long      . #x07)    ; FFI_RETURN_TYPE_UINTPTR
-	(unsigned-long-long . #x13)    ; FFI_RETURN_TYPE_UINT64_T
-	(float              . #x08)    ; FFI_RETURN_TYPE_FLOAT
-	(double             . #x09)    ; FFI_RETURN_TYPE_DOUBLE
-	(void*              . #x14)    ; FFI_RETURN_TYPE_POINTER
-	(char*              . #x0a)    ; FFI_RETURN_TYPE_STRING
-	(size_t             . #x0b)    ; FFI_RETURN_TYPE_SIZE_T
-	(int8_t             . #x0c)    ; FFI_RETURN_TYPE_INT8_T
-	(uint8_t            . #x0d)    ; FFI_RETURN_TYPE_UINT8_T
-	(int16_t            . #x0e)    ; FFI_RETURN_TYPE_INT16_T
-	(uint16_t           . #x0f)    ; FFI_RETURN_TYPE_UINT16_T
-	(int32_t            . #x10)    ; FFI_RETURN_TYPE_INT32_T
-	(uint32_t           . #x11)    ; FFI_RETURN_TYPE_UINT32_T
-	(int64_t            . #x12)    ; FFI_RETURN_TYPE_INT64_T
-	(uint64_t           . #x13)))  ; FFI_RETURN_TYPE_UINT64_T
+      `((void               . ,FFI_RETURN_TYPE_VOID    )
+	(bool               . ,FFI_RETURN_TYPE_BOOL    )
+	(char               . ,FFI_RETURN_TYPE_INT8_T  )
+	(short              . ,FFI_RETURN_TYPE_SHORT   )
+	(int                . ,FFI_RETURN_TYPE_INT     )
+	(long               . ,FFI_RETURN_TYPE_LONG    )
+	(long-long          . ,FFI_RETURN_TYPE_INT64_T )
+	(intptr_t           . ,FFI_RETURN_TYPE_INTPTR  )
+	(unsigned-short     . ,FFI_RETURN_TYPE_USHORT  )
+	(unsigned-int       . ,FFI_RETURN_TYPE_UINT    )
+	(unsigned-long      . ,FFI_RETURN_TYPE_ULONG   )
+	(unsigned-long-long . ,FFI_RETURN_TYPE_UINT64_T)
+	(uintptr_t          . ,FFI_RETURN_TYPE_UINTPTR )
+	(float              . ,FFI_RETURN_TYPE_FLOAT   )
+	(double             . ,FFI_RETURN_TYPE_DOUBLE  )
+	(void*              . ,FFI_RETURN_TYPE_POINTER )
+	(char*              . ,FFI_RETURN_TYPE_STRING  )
+	(size_t             . ,FFI_RETURN_TYPE_SIZE_T  )
+	(int8_t             . ,FFI_RETURN_TYPE_INT8_T  )
+	(uint8_t            . ,FFI_RETURN_TYPE_UINT8_T )
+	(int16_t            . ,FFI_RETURN_TYPE_INT16_T )
+	(uint16_t           . ,FFI_RETURN_TYPE_UINT16_T)
+	(int32_t            . ,FFI_RETURN_TYPE_INT32_T )
+	(uint32_t           . ,FFI_RETURN_TYPE_UINT32_T)
+	(int64_t            . ,FFI_RETURN_TYPE_INT64_T )
+	(uint64_t           . ,FFI_RETURN_TYPE_UINT64_T)))
 
     (define callback-argument-type-class
       `((bool               . #\l)
@@ -371,11 +380,13 @@
 	(int                . ,(if (= size-of-int 4) #\w #\q))
 	(long               . ,(if (= size-of-long 4) #\w #\q))
 	(long-long          . #\q)
+	(intptr_t           . ,(if (= size-of-intptr_t 4) #\w #\q))
 	(unsigned-char      . #\B)
 	(unsigned-short     . #\H)
 	(unsigned-int       . ,(if (= size-of-int 4) #\W #\Q))
 	(unsigned-long      . ,(if (= size-of-long 4) #\W #\Q))
 	(unsigned-long-long . #\Q)
+	(uintptr_t          . ,(if (= size-of-uintptr_t 4) #\w #\q))
 	(int8_t             . #\b)
 	(int16_t            . #\h)
 	(int32_t            . #\w)

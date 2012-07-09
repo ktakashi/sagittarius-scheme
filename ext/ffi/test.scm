@@ -21,11 +21,11 @@
     ;; on X86_64 environment, struct alignment was bit different
     ;; than I expected.
     (define-c-struct inner
-      (long value2)
+      (intptr_t value2)
       (char* str))
     
     (define-c-struct data-to-store
-      (long value1)
+      (intptr_t value1)
       (struct inner inner)))
    (else
     (define-c-struct inner

@@ -205,7 +205,7 @@ SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_CStructClass, cstruct_printer);
 static ffi_type* lookup_ffi_return_type(int rettype);
 static int convert_scheme_to_c_value(SgObject v, int type, void **result);
 
-static SgCStruct* make_cstruct(int size)
+static SgCStruct* make_cstruct(size_t size)
 {
   SgCStruct *st = SG_NEW2(SgCStruct *,
 			  sizeof(SgCStruct) + sizeof(struct_layout_t)*(size - 1));
@@ -225,7 +225,8 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts)
   SgCStruct *st;
   SgObject cp;
   SgVM *vm = Sg_VM();
-  int size, index = 0;
+  int index = 0;
+  size_t size;
   if (!SG_LISTP(layouts)) {
     Sg_Error(UC("list required but got %S"), layouts);
   }
@@ -246,6 +247,9 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts)
     SgObject typename;
     int type;
     ffi_type *ffi;
+    if (!SG_INTP(SG_CADR(layout))) {
+      Sg_Printf(SG_PORT(Sg_StandardErrorPort()), UC("%S\n"), SG_CADR(layout));
+    }
     ASSERT(SG_INTP(SG_CADR(layout)));
 
     st->layouts[index].name = SG_CAR(layout);
@@ -333,7 +337,8 @@ static size_t calculate_alignment(SgObject names, SgCStruct *st,
 {
   size_t align = 0;
   SgObject name = SG_CAR(names);
-  int i = 0, size = st->fieldCount;
+  int i = 0;
+  size_t size = st->fieldCount;
   struct_layout_t *layouts = st->layouts;
 
   /* names are list of property name for struct.
@@ -388,8 +393,15 @@ static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
   case FFI_RETURN_TYPE_SHORT   :
     return SG_MAKE_INT(POINTER_REF(short, p, align));
   case FFI_RETURN_TYPE_INT     :
+    return Sg_MakeInteger(POINTER_REF(int, p, align));
+  case FFI_RETURN_TYPE_LONG    :
+    return Sg_MakeInteger(POINTER_REF(long, p, align));
   case FFI_RETURN_TYPE_INTPTR  :
+#if SIZEOF_VOIDP == 4
     return Sg_MakeInteger(POINTER_REF(intptr_t, p, align));
+#else
+    return Sg_MakeIntegerFromS64(POINTER_REF(intptr_t, p, align));
+#endif
   case FFI_RETURN_TYPE_INT8_T  :
     return SG_MAKE_INT(POINTER_REF(int8_t, p, align));
   case FFI_RETURN_TYPE_INT16_T :
@@ -399,9 +411,16 @@ static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
   case FFI_RETURN_TYPE_USHORT  :
     return SG_MAKE_INT(POINTER_REF(unsigned short, p, align));
   case FFI_RETURN_TYPE_UINT    :
-  case FFI_RETURN_TYPE_UINTPTR :
+    return Sg_MakeIntegerU(POINTER_REF(unsigned int, p, align));
   case FFI_RETURN_TYPE_SIZE_T  :
+  case FFI_RETURN_TYPE_ULONG   :
+    return Sg_MakeIntegerU(POINTER_REF(unsigned long, p, align));
+  case FFI_RETURN_TYPE_UINTPTR :
+#if SIZEOF_VOIDP == 4
     return Sg_MakeIntegerU(POINTER_REF(uintptr_t, p, align));
+#else
+    return Sg_MakeIntegerFromU64(POINTER_REF(uintptr_t, p, align));
+#endif
   case FFI_RETURN_TYPE_UINT8_T :
     return SG_MAKE_INT(POINTER_REF(uint8_t, p, align));
   case FFI_RETURN_TYPE_UINT16_T:
@@ -414,7 +433,7 @@ static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
     return Sg_MakeFlonum(POINTER_REF(double, p, align));
   case FFI_RETURN_TYPE_STRING  : {
     char *s = POINTER_REF(char*, p, align);
-    return Sg_Utf8sToUtf32s(s, strlen(s));
+    return Sg_Utf8sToUtf32s(s, (int)strlen(s));
   }
   case FFI_RETURN_TYPE_INT64_T :
     return Sg_MakeIntegerFromS64(POINTER_REF(int64_t, p, align));
@@ -455,7 +474,7 @@ void Sg_CStructSet(SgPointer *p, SgCStruct *st, SgSymbol *name, SgObject value)
     Sg_Error(UC("c-struct %A does not have a member named %A"), st->name, name);
     return;		/* dummy */
   }
-  Sg_PointerSet(p, align, type, value);
+  Sg_PointerSet(p, (int)align, type, value);
 }
 
 /* from ruby-ffi module */
@@ -743,10 +762,13 @@ static ffi_type* lookup_ffi_return_type(int rettype)
   case FFI_RETURN_TYPE_BOOL    : return &ffi_type_sint;
   case FFI_RETURN_TYPE_SHORT   : return &ffi_type_sshort;
   case FFI_RETURN_TYPE_INT     : return &ffi_type_sint;
-  case FFI_RETURN_TYPE_INTPTR  : return &ffi_type_slong;
+  case FFI_RETURN_TYPE_LONG    : return &ffi_type_slong;
   case FFI_RETURN_TYPE_USHORT  : return &ffi_type_ushort;
   case FFI_RETURN_TYPE_UINT    : return &ffi_type_uint;
-  case FFI_RETURN_TYPE_UINTPTR : return &ffi_type_ulong;
+  case FFI_RETURN_TYPE_ULONG   : return &ffi_type_ulong;
+    /* intptr_t and uintptr_t must be the same as pointer */
+  case FFI_RETURN_TYPE_INTPTR  : return &ffi_type_pointer;
+  case FFI_RETURN_TYPE_UINTPTR : return &ffi_type_pointer;
   case FFI_RETURN_TYPE_FLOAT   : return &ffi_type_float;
   case FFI_RETURN_TYPE_DOUBLE  : return &ffi_type_double;
   case FFI_RETURN_TYPE_STRING  : return &ffi_type_pointer;
@@ -775,6 +797,7 @@ static int convert_scheme_to_c_value(SgObject v, int type, void **result)
     return TRUE;
   case FFI_RETURN_TYPE_SHORT   :
   case FFI_RETURN_TYPE_INT     :
+  case FFI_RETURN_TYPE_LONG    :
   case FFI_RETURN_TYPE_INT8_T  :
   case FFI_RETURN_TYPE_INT16_T :
   case FFI_RETURN_TYPE_INT32_T :
@@ -787,6 +810,7 @@ static int convert_scheme_to_c_value(SgObject v, int type, void **result)
     break;
   case FFI_RETURN_TYPE_USHORT  :
   case FFI_RETURN_TYPE_UINT    :
+  case FFI_RETURN_TYPE_ULONG   :
   case FFI_RETURN_TYPE_SIZE_T  :
   case FFI_RETURN_TYPE_UINT8_T :
   case FFI_RETURN_TYPE_UINT16_T: 
@@ -984,6 +1008,13 @@ static void set_callback_result(SgCallback *callback, SgObject ret,
     if (!SG_NUMBERP(ret)) goto ret0;
     *((ffi_sarg *) result) = SG_INT_VALUE(ret);
     break;
+    /* long needs special treatment */
+  case FFI_RETURN_TYPE_LONG:
+#if SIZEOF_LONG == 4
+    /* fall though */
+#else
+    goto int64_entry;
+#endif
   case FFI_RETURN_TYPE_INT32_T:
     cif->flags = FFI_TYPE_INT;
     if (!SG_NUMBERP(ret)) goto ret0;
@@ -1003,6 +1034,13 @@ static void set_callback_result(SgCallback *callback, SgObject ret,
     if (!SG_NUMBERP(ret)) goto ret0;
     *((ffi_arg *) result) = SG_INT_VALUE(ret);
     break;
+    /* long needs special treatment */
+  case FFI_RETURN_TYPE_ULONG:
+#if SIZEOF_LONG == 4
+    /* fall though */
+#else
+    goto uint64_entry;
+#endif
   case FFI_RETURN_TYPE_UINT32_T:
     cif->flags = FFI_TYPE_INT;
     if (!SG_NUMBERP(ret)) goto ret0;
@@ -1018,11 +1056,13 @@ static void set_callback_result(SgCallback *callback, SgObject ret,
     if (!SG_NUMBERP(ret)) goto ret0;
     *((double *) result) = Sg_GetDouble(ret);
     break;
+  int64_entry:
   case FFI_RETURN_TYPE_INT64_T:
     cif->flags = FFI_TYPE_SINT64;
     if (!SG_NUMBERP(ret)) goto ret0;
     *((int64_t *) result) = Sg_GetIntegerS64Clamp(ret, SG_CLAMP_NONE, NULL);
     break;
+  uint64_entry:
   case FFI_RETURN_TYPE_UINT64_T:
     cif->flags = FFI_TYPE_UINT64;
     if (!SG_NUMBERP(ret)) goto ret0;
@@ -1136,18 +1176,32 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
   case FFI_RETURN_TYPE_INT:
     ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
     return Sg_MakeInteger((int)ret);
+  case FFI_RETURN_TYPE_LONG:
+    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
+    return Sg_MakeInteger((long)ret);
   case FFI_RETURN_TYPE_INTPTR:
     ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
+#if SIZEOF_VOIDP == 4
     return Sg_MakeInteger((intptr_t)ret);
+#else
+    return Sg_MakeIntegerFromS64((intptr_t)ret);
+#endif
   case FFI_RETURN_TYPE_USHORT:
     ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
     return SG_MAKE_INT((unsigned short)ret);
   case FFI_RETURN_TYPE_UINT:
     ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
     return Sg_MakeIntegerU((unsigned int)ret);
+  case FFI_RETURN_TYPE_ULONG:
+    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
+    return Sg_MakeIntegerU((unsigned long)ret);
   case FFI_RETURN_TYPE_UINTPTR:
     ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
+#if SIZEOF_VOIDP == 4
     return Sg_MakeIntegerU((uintptr_t)ret);
+#else
+    return Sg_MakeIntegerFromU64((uintptr_t)ret);
+#endif
   case FFI_RETURN_TYPE_FLOAT: {
     float fret;
     ffi_call(&func->cif, FFI_FN(func->code), &fret, ffi_values);
@@ -1167,7 +1221,7 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
     }
   case FFI_RETURN_TYPE_SIZE_T:
     ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-    return Sg_MakeIntegerU((size_t)ret);
+    return Sg_MakeIntegerU((unsigned long)ret);
   case FFI_RETURN_TYPE_INT8_T:
     ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
     return SG_MAKE_INT((int8_t)ret);
@@ -1299,9 +1353,11 @@ static int prep_method_handler(SgCallback *callback)
   }
 DEFINE_POINTER_SET(FFI_RETURN_TYPE_SHORT   , short);
 DEFINE_POINTER_SET(FFI_RETURN_TYPE_INT     , int);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_LONG    , long);
 DEFINE_POINTER_SET(FFI_RETURN_TYPE_INTPTR  , intptr_t);
 DEFINE_POINTER_SET(FFI_RETURN_TYPE_USHORT  , unsigned short);
 DEFINE_POINTER_SET(FFI_RETURN_TYPE_UINT    , unsigned int);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_ULONG   , unsigned long);
 DEFINE_POINTER_SET(FFI_RETURN_TYPE_UINTPTR , uintptr_t);
 DEFINE_POINTER_SET(FFI_RETURN_TYPE_FLOAT   , float);
 DEFINE_POINTER_SET(FFI_RETURN_TYPE_DOUBLE  , double);
@@ -1324,9 +1380,11 @@ void Sg_PointerSet(SgPointer *p, int offset, int type, SgObject v)
   switch (type) {
     case_type(FFI_RETURN_TYPE_SHORT   , short);
     case_type(FFI_RETURN_TYPE_INT     , int);
+    case_type(FFI_RETURN_TYPE_LONG    , long);
     case_type(FFI_RETURN_TYPE_INTPTR  , intptr_t);
     case_type(FFI_RETURN_TYPE_USHORT  , unsigned short);
     case_type(FFI_RETURN_TYPE_UINT    , unsigned int);
+    case_type(FFI_RETURN_TYPE_ULONG   , unsigned long);
     case_type(FFI_RETURN_TYPE_UINTPTR , uintptr_t);
     case_type(FFI_RETURN_TYPE_FLOAT   , float);
     case_type(FFI_RETURN_TYPE_DOUBLE  , double);
@@ -1399,7 +1457,8 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__ffi()
   Sg_InitStaticClassWithMeta(SG_CLASS_CSTRUCT, UC("<c-struct>"),
 			     lib, NULL, SG_FALSE, NULL, 0);
 
-#define CONST_VALUE(name, v) Sg_InsertBinding(lib, SG_INTERN(#name), SG_MAKE_INT(v))
+#define CONST_VALUE(name, v)					\
+  Sg_MakeBinding(lib, SG_INTERN(#name), SG_MAKE_INT(v), TRUE)
 #define SIZE_VALUE(name) CONST_VALUE(size-of-name, sizeof(name))
   /* bool is not C type */
   CONST_VALUE(size-of-bool, sizeof(char));
@@ -1460,6 +1519,33 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__ffi()
   ALIGN_OF(intptr_t);
   ALIGN_OF(uintptr_t);
 
+#define CONST_VALUE1(v) CONST_VALUE(v, v)
+
+  CONST_VALUE1(FFI_RETURN_TYPE_VOID);
+  CONST_VALUE1(FFI_RETURN_TYPE_BOOL);
+  CONST_VALUE1(FFI_RETURN_TYPE_SHORT);
+  CONST_VALUE1(FFI_RETURN_TYPE_INT);
+  CONST_VALUE1(FFI_RETURN_TYPE_LONG);
+  CONST_VALUE1(FFI_RETURN_TYPE_INTPTR);
+  CONST_VALUE1(FFI_RETURN_TYPE_USHORT);
+  CONST_VALUE1(FFI_RETURN_TYPE_UINT);
+  CONST_VALUE1(FFI_RETURN_TYPE_ULONG);
+  CONST_VALUE1(FFI_RETURN_TYPE_UINTPTR);
+  CONST_VALUE1(FFI_RETURN_TYPE_FLOAT);
+  CONST_VALUE1(FFI_RETURN_TYPE_DOUBLE);
+  CONST_VALUE1(FFI_RETURN_TYPE_STRING);
+  CONST_VALUE1(FFI_RETURN_TYPE_SIZE_T);
+  CONST_VALUE1(FFI_RETURN_TYPE_INT8_T);
+  CONST_VALUE1(FFI_RETURN_TYPE_UINT8_T);
+  CONST_VALUE1(FFI_RETURN_TYPE_INT16_T);
+  CONST_VALUE1(FFI_RETURN_TYPE_UINT16_T);
+  CONST_VALUE1(FFI_RETURN_TYPE_INT32_T);
+  CONST_VALUE1(FFI_RETURN_TYPE_UINT32_T);
+  CONST_VALUE1(FFI_RETURN_TYPE_INT64_T);
+  CONST_VALUE1(FFI_RETURN_TYPE_UINT64_T);
+  CONST_VALUE1(FFI_RETURN_TYPE_POINTER);
+  CONST_VALUE1(FFI_RETURN_TYPE_STRUCT);
+  CONST_VALUE1(FFI_RETURN_TYPE_CALLBACK);
 
 #undef CONST_VALUE
 #undef SIZE_VALUE
