@@ -135,6 +135,7 @@ typedef struct
   SgVector    *p1env;
   SgHashTable *seen;
   int          lexicalP;
+  SgObject     templ;
 } wrap_ctx;
 
 static SgObject wrap_rec(SgObject form, wrap_ctx *ctx)
@@ -166,6 +167,7 @@ static SgObject wrap_rec(SgObject form, wrap_ctx *ctx)
 	    id = Sg_MakeIdentifier(SG_IDENTIFIER_NAME(form),
 				   SG_IDENTIFIER_ENVS(form),
 				   SG_IDENTIFIER_LIBRARY(form));
+	    SG_IDENTIFIER_TEMPLATE(id) = ctx->templ;
 	  } else {
 	    /* keep pattern variable */
 	    id = form;
@@ -174,6 +176,7 @@ static SgObject wrap_rec(SgObject form, wrap_ctx *ctx)
 	  id = Sg_MakeIdentifier(form,
 				 SG_VECTOR_ELEMENT(p1env, 1),
 				 SG_VECTOR_ELEMENT(p1env, 0));
+	  SG_IDENTIFIER_TEMPLATE(id) = ctx->templ;
 	}
       } else if (!SG_FALSEP(env)) {
 	if (SG_IDENTIFIERP(form)) {
@@ -189,6 +192,7 @@ static SgObject wrap_rec(SgObject form, wrap_ctx *ctx)
 	  }
 	} else {
 	  id = Sg_MakeIdentifier(form, env, SG_VECTOR_ELEMENT(p1env, 0));
+	  SG_IDENTIFIER_TEMPLATE(id) = ctx->templ;
 	}
       } else {
 	/* if it's partial wrap and symbol is not lexical bounded,
@@ -209,7 +213,7 @@ static SgObject wrap_rec(SgObject form, wrap_ctx *ctx)
 
 /* wrap form to identifier */
 SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env, SgObject seen,
-		       int lexicalP)
+		       int lexicalP, SgObject templ)
 {
   wrap_ctx ctx;
   if (!seen) {
@@ -219,6 +223,7 @@ SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env, SgObject seen,
   ctx.seen = seen;
   ctx.p1env = p1env;
   ctx.lexicalP = lexicalP;
+  ctx.templ = templ;
   return wrap_rec(form, &ctx);
 }
 

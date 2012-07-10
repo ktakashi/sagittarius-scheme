@@ -314,11 +314,11 @@
 
   (define-c-proc wrap-syntax (form p1env::<vector>
 				   :optional seen::<hashtable>
-				             (partialP::<boolean> #f))
-    ::<top>
-    (when (SG_UNBOUNDP seen)
-      (set! seen NULL))
-    (result (Sg_WrapSyntax form p1env seen partialP)))
+				             (partialP::<boolean> #f)
+					     templ::<identifier>)
+    (when (SG_UNBOUNDP seen) (set! seen NULL))
+    (when (SG_UNBOUNDP templ) (set! templ NULL))
+    (result (Sg_WrapSyntax form p1env seen partialP templ)))
 
   (define-c-proc current-dynamic-environment (:optional other::<hashtable>)
     ::<top>

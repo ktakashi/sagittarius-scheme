@@ -212,6 +212,12 @@
 ;; vars: ((old-id . new-id) ...)
 ;;   created rewrite-vars
 (define (rewrite-expr oexpr vars)
+  (define (id=?? a b)
+    (or (eq? a b)
+	(and (identifier? a)
+	     (identifier? b)
+	     (syntax-object=? a b))))
+
   (let loop ((expr oexpr))
       (cond ((null? expr) '())
 	    ((pair? expr)
@@ -223,7 +229,7 @@
 			    (eq? d (cdr expr)))
 		       expr
 		       ($src (cons a d) expr)))))
-	    ((assq expr vars) => cdr)
+	    ((assoc expr vars id=??) => cdr)
 	    (else expr))))
 
 ;; Maximum size of $LAMBDA node I allow to duplicate and inline.

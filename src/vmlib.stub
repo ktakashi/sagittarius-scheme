@@ -120,7 +120,7 @@
     (result FALSE))
 
   ;; syntax
-  (define-c-proc make-syntax (name::<symbol> proc :optional (userDefined::<boolean> FALSE)) ::<top>
+  (define-c-proc make-syntax (name::<symbol> proc :optional (userDefined::<boolean> FALSE))
     (result (Sg_MakeSyntax name proc userDefined)))
 
   (define-c-proc syntax-name (arg0::<syntax>) ::<top>
@@ -139,7 +139,7 @@
   (define-c-proc macro? (obj) ::<boolean>
     (result (SG_MACROP obj)))
 
-  (define-c-proc make-macro (name transformer data p1env :optional (maybe_library #f)) ::<top>
+  (define-c-proc make-macro (name transformer data p1env :optional (maybe_library #f))
     (result (Sg_MakeMacro name transformer data p1env maybe_library)))
 
   (define-c-proc make-macro-transformer (name proc p1env library) ::<top>
@@ -186,9 +186,6 @@
   (define-c-proc library-parents (lib::<library>) ::<top>
     (result (-> lib parents)))
 
-  #;(define-c-proc %set-library (arg0::<library>) ::<void>
-    (Sg_SetLibrary arg0))
-
   (define-c-proc find-library (arg0 createp::<boolean>) ::<top>
     (result (Sg_FindLibrary arg0 createp)))
 
@@ -204,7 +201,7 @@
   (define-c-proc find-binding (arg0 arg1::<symbol> callback) ::<top>
     (result (Sg_FindBinding arg0 arg1 callback)))
 
-  (define-c-proc import-library (to from only except rename prefix transp) ::<void>
+  (define-c-proc import-library (to from only except rename prefix transp)
     (Sg_ImportLibraryFullSpec to from only except rename prefix))
 
   (define-c-proc vm-current-library (:optional name::<library>) ::<top>
@@ -295,7 +292,7 @@
   (define-c-proc code-builder-label-defs (cb::<code-builder>) ::<top>
     (result (-> cb labelDefs)))
 
-  (define-c-proc code-builder-finish-builder (cb::<code-builder> last::<fixnum>) ::<top>
+  (define-c-proc code-builder-finish-builder (cb::<code-builder> last::<fixnum>)
     (result (Sg_CodeBuilderFinishBuilder cb last)))
 
   ;; misc
@@ -346,6 +343,23 @@
     (dolist (fp (SG_VECTOR_ELEMENT p1env 1))
       (if (== (SG_CAR fp) (SG_MAKE_INT 0)) (return SG_FALSE)))
     (result TRUE))
+
+  ;; identifier is also syntax object, so it might contain some
+  ;; other syntax info. this procedure checks it.
+  (define-c-proc syntax-object=? (id1::<identifier> id2::<identifier>)
+    ::<boolean>
+    (result (and (SG_EQ (SG_IDENTIFIER_NAME id1) (SG_IDENTIFIER_NAME id2))
+		 (SG_IDENTIFIER_TEMPLATE id1)
+		 (SG_IDENTIFIER_TEMPLATE id2)
+		 (or (SG_EQ (SG_IDENTIFIER_TEMPLATE id1)
+			    (SG_IDENTIFIER_TEMPLATE id2))
+		     (and (SG_IDENTIFIER_PARENT (SG_IDENTIFIER_TEMPLATE id1))
+			  (SG_IDENTIFIER_PARENT (SG_IDENTIFIER_TEMPLATE id2))
+			  (SG_EQ (SG_IDENTIFIER_PARENT
+				  (SG_IDENTIFIER_TEMPLATE id1))
+				 (SG_IDENTIFIER_PARENT
+				  (SG_IDENTIFIER_TEMPLATE id2))))))))
+
 
   ;; TODO it's almost the same process as p1env-lookup
   ;; lookup pvar from p1env.
