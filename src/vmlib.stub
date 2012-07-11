@@ -105,8 +105,12 @@
   (define-c-proc id-library (id::<identifier>) ::<top>
     (result (SG_IDENTIFIER_LIBRARY id)))
 
-  (define-c-proc copy-identifier (id::<identifier>) ::<top>
-    (result (Sg_CopyIdentifier id)))
+  (define-c-proc copy-identifier (id::<identifier> 
+				  :optional (tmpl-var::<boolean> #f))
+    (let ((r (Sg_CopyIdentifier id)))
+      (when tmpl-var
+	(set! (SG_IDENTIFIER_ENVS r) (SG_LIST1 #t)))
+      (result r)))
 
   (define-c-proc id-has-parent? (id::<identifier>)
     ::<boolean>

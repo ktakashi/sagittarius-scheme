@@ -868,22 +868,10 @@
 		  #f
 		  (p1env-current-proc p1env))
       p1env))
-(define (p1env-swap-library p1env library)
-  (make-p1env library
-	      (p1env-frames p1env)
-	      (p1env-exp-name p1env)
-	      (p1env-current-proc p1env)))
 
 (define (p1env-swap-frame p1env frame)
   (make-p1env (p1env-library p1env)
 	      frame
-	      (p1env-exp-name p1env)
-	      (p1env-current-proc p1env)))
-
-;; create new p1env which has difference of given frame and p1env-frame
-(define (p1env-difference p1env frame)
-  (make-p1env (p1env-library p1env)
-	      (lset-difference equal? (p1env-frames p1env) frame)
 	      (p1env-exp-name p1env)
 	      (p1env-current-proc p1env)))
 
@@ -953,13 +941,6 @@
       iargs
       (receive (reqs opts) (split-at iargs reqargs)
 	(append! reqs (list ($list #f opts))))))
-
-(define (pass1/find-symbol-in-lvars symbol lvars)
-  (cond
-   ((null? lvars) #f)
-   ((eq? symbol (lvar-name (car lvars))) (car lvars))
-   (else
-    (pass1/find-symbol-in-lvars symbol (cdr lvars)))))
 
 ;; Make global identifier.
 (define (global-id id) (make-identifier id '() '(sagittarius compiler)))
@@ -3775,7 +3756,7 @@
 		  (receive (l0 l1)
 		      (pass3/label-or-dup else-form)
 		    (pass2/update-if iform ($if-test test-form)
-				     (if ($it l0) ($const-f) l0)
+				     (if ($it? l0) ($const-f) l0)
 				     (pass3/rec ($if #f test-else then-form l1)
 						labels))))
 		 (else #f))))
