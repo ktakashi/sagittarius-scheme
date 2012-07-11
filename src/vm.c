@@ -1157,7 +1157,7 @@ static SgContFrame* save_a_cont(SgContFrame *c)
   pass1: save cont frame to heap
   pass2: update cstack etc.
  */
-static void save_cont(SgVM *vm)
+static void save_cont_rec(SgVM *vm, int partialP)
 {
   SgContFrame *c = CONT(vm), *prev = NULL, *tmp;
   SgCStack *cstk;
@@ -1166,7 +1166,9 @@ static void save_cont(SgVM *vm)
   if (!IN_STACK_P((SgObject*)c, vm)) return;
 
   do {
-    SgContFrame *csave = save_a_cont(c);
+    SgContFrame *csave;
+    if (partialP && BOUNDARY_FRAME_MARK_P(c)) goto update;
+    csave = save_a_cont(c);
     /* make the orig frame forwarded */
     if (prev) prev->prev = csave;
 
@@ -1177,6 +1179,7 @@ static void save_cont(SgVM *vm)
     c = tmp;
   } while (IN_STACK_P((SgObject*)c, vm));
 
+ update:
   if (FORWARDED_CONT_P(vm->cont)) {
     vm->cont = FORWARDED_CONT(vm->cont);
   }
@@ -1196,6 +1199,16 @@ static void save_cont(SgVM *vm)
     } 
   }
 
+}
+
+static void save_cont(SgVM *vm)
+{
+  save_cont_rec(vm, FALSE);
+}
+
+static void save_partial_cont(SgVM *vm)
+{
+  save_cont_rec(vm, TRUE);
 }
 
 static void expand_stack(SgVM *vm)
@@ -1360,11 +1373,9 @@ SgObject Sg_VMCallPC(SgObject proc)
   SgVM *vm = Sg_VM();
 
   /*
-    save the continuation. we only need to save th portion above the
-    latest boundary frame, but for now, we save everything to make things
-    easier.
+    save the continuation.
    */
-  save_cont(vm);
+  save_partial_cont(vm);
   for (c = vm->cont, cp = NULL;
        c && !BOUNDARY_FRAME_MARK_P(c);
        cp = c, c = c->prev)

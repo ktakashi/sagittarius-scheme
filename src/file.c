@@ -37,6 +37,7 @@
 #include "sagittarius/string.h"
 #include "sagittarius/library.h"
 #include "sagittarius/system.h"
+#include "sagittarius/writer.h"
 
 static void file_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {

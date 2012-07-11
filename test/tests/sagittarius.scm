@@ -218,5 +218,11 @@
 (test-assert "bytevector set! (minus values)"
 	     (bytevector-s64-set! (make-bytevector 8) 0 -1 'little))
 
+;;-----------------------------------------------------------------------
+;; Al Petrofsky's finding
+;; http://groups.google.com/groups?dq=&hl=ja&selm=87g00y4b6l.fsf%40radish.petrofsky.org
+
+(test-equal "Al's call/cc test" 1 (call/cc (lambda (c) (0 (c 1)))))
+
 
 (test-end)
