@@ -30,7 +30,7 @@
              (lambda (c)
                (syntax-case c (parent protocol parent-rtd sealed opaque nongenerative fields)
                  ((parent e1)
-                  (identifier? #'e1)
+		  (identifier? #'e1)
                   (stash-set! 'parent #'e1))
                  ((protocol e1)
                   (stash-set! 'protocol #'e1))

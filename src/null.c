@@ -15646,16 +15646,60 @@ static SgObject null_identifierP(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 int SG_RESULT = (int)NULL;
-
-#line 3694 "./null.stub"
-SG_RESULT=((SG_IDENTIFIERP(id))||(
-SG_USER_DEFINED_SYNTXP(id)));
+SG_RESULT=(SG_IDENTIFIERP(id));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
   }
 }
 static SG_DEFINE_SUBR(null_identifierP__STUB, 1, 0,null_identifierP, SG_FALSE, NULL);
 
+extern SgObject p1env_lookup_rec(SgVector *, SgObject, SgObject, int);
+static int is_markP(SgObject env){{
+#line 3699 "./null.stub"
+return (((!(SG_NULLP(env))))&&(
+(!(SG_PAIRP(SG_CAR(env))))));}}
+static int id_env_compare(SgIdentifier* id1,SgIdentifier* id2){{
+#line 3703 "./null.stub"
+if (SG_EQ(id1,id2)){{return (TRUE);}}
+if (SG_EQ(SG_IDENTIFIER_NAME(id1),SG_IDENTIFIER_NAME(id2))){
+if ((((!(SG_IDENTIFIER_PARENT(id1))))&&(
+(!(SG_IDENTIFIER_PARENT(id2)))))&&(
+SG_EQ(SG_IDENTIFIER_ENVS(id1),SG_IDENTIFIER_ENVS(id2)))){
+#line 3709 "./null.stub"
+return (TRUE);}else if(
+#line 3715 "./null.stub"
+is_markP(SG_IDENTIFIER_ENVS(id1))){
+return (TRUE);}else if(
+is_markP(SG_IDENTIFIER_ENVS(id2))){
+return (TRUE);}else if(
+#line 3720 "./null.stub"
+((!(SG_NULLP(SG_IDENTIFIER_ENVS(id1)))))||(
+(!(SG_NULLP(SG_IDENTIFIER_ENVS(id2)))))){
+return (SG_EQ(SG_IDENTIFIER_ENVS(id1),
+SG_IDENTIFIER_ENVS(id2)));} else {
+#line 3725 "./null.stub"
+{SgVM* vm=Sg_VM();SgObject v1=
+#line 3727 "./null.stub"
+p1env_lookup_rec((vm)->usageEnv,id1,
+#line 3729 "./null.stub"
+SG_MAKE_INT(0),TRUE);SgObject v2=
+p1env_lookup_rec((vm)->usageEnv,id2,
+#line 3732 "./null.stub"
+SG_MAKE_INT(0),TRUE);
+if ((SG_EQ(v1,id1))&&(SG_EQ(v2,id2))){
+#line 3736 "./null.stub"
+{SgObject g1=Sg_FindBinding(SG_IDENTIFIER_LIBRARY(id1),
+SG_IDENTIFIER_NAME(id1),SG_FALSE);SgObject g2=
+Sg_FindBinding(SG_IDENTIFIER_LIBRARY(id2),
+SG_IDENTIFIER_NAME(id2),SG_FALSE);
+if (((SG_FALSEP(g1))||(SG_FALSEP(g2)))&&(
+(!(SG_EQ(SG_IDENTIFIER_LIBRARY(id1),
+SG_IDENTIFIER_LIBRARY(id2)))))){
+#line 3745 "./null.stub"
+return (FALSE);} else {
+return (SG_EQ(g1,g2));}}} else {
+return (SG_EQ(v1,v2));}}}} else {
+return (FALSE);}}}
 static SgObject null_free_identifier_3dP(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject id1_scm;
@@ -15680,11 +15724,8 @@ static SgObject null_free_identifier_3dP(SgObject *SG_FP, int SG_ARGC, void *dat
 {
 int SG_RESULT = (int)NULL;
 
-#line 3699 "./null.stub"
-SG_RESULT=((SG_EQ(SG_IDENTIFIER_NAME(id1),
-SG_IDENTIFIER_NAME(id2)))&&(
-SG_EQ(SG_IDENTIFIER_ENVS(id1),
-SG_IDENTIFIER_ENVS(id2))));
+#line 3754 "./null.stub"
+SG_RESULT=(id_env_compare(id1,id2));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
   }
@@ -15715,13 +15756,10 @@ static SgObject null_bound_identifier_3dP(SgObject *SG_FP, int SG_ARGC, void *da
 {
 int SG_RESULT = (int)NULL;
 
-#line 3705 "./null.stub"
+#line 3761 "./null.stub"
 {SgVM* vm=Sg_VM();
 if (SG_EQ((vm)->usageEnv,(vm)->macroEnv)){
-SG_RESULT=((SG_EQ(SG_IDENTIFIER_NAME(id1),
-SG_IDENTIFIER_NAME(id2)))&&(
-SG_EQ(SG_IDENTIFIER_ENVS(id1),
-SG_IDENTIFIER_ENVS(id2))));} else {
+SG_RESULT=(id_env_compare(id1,id2));} else {
 SG_RESULT=(SG_EQ(id1,id2));}}
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -15752,7 +15790,7 @@ static SgObject null_make_eq_hashtable(SgObject *SG_FP, int SG_ARGC, void *data_
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3716 "./null.stub"
+#line 3769 "./null.stub"
 SG_RESULT=(Sg_MakeHashTableSimple(SG_HASH_EQ,k));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -15783,7 +15821,7 @@ static SgObject null_make_eqv_hashtable(SgObject *SG_FP, int SG_ARGC, void *data
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3719 "./null.stub"
+#line 3772 "./null.stub"
 SG_RESULT=(Sg_MakeHashTableSimple(SG_HASH_EQV,k));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -15828,7 +15866,7 @@ static SgObject null_make_hashtable(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3722 "./null.stub"
+#line 3775 "./null.stub"
 SG_RESULT=(Sg_MakeHashTableForScheme(hasher,equiv,k));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -15850,7 +15888,7 @@ static SgObject null_hashtableP(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 int SG_RESULT = (int)NULL;
 
-#line 3726 "./null.stub"
+#line 3779 "./null.stub"
 SG_RESULT=(SG_HASHTABLE_P(o));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -15875,7 +15913,7 @@ static SgObject null_hashtable_size(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 long SG_RESULT = (long)NULL;
 
-#line 3729 "./null.stub"
+#line 3782 "./null.stub"
 SG_RESULT=((SG_HASHTABLE_CORE(ht))->entryCount);
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }
@@ -15914,7 +15952,7 @@ static SgObject null_hashtable_ref(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3733 "./null.stub"
+#line 3786 "./null.stub"
 SG_RESULT=(Sg_HashTableRef(ht,key,fallback));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -15945,10 +15983,10 @@ static SgObject null_hashtable_setX(SgObject *SG_FP, int SG_ARGC, void *data_)
   value = (value_scm);
   {
 
-#line 3741 "./null.stub"
+#line 3794 "./null.stub"
 if (SG_IMMUTABLE_HASHTABLE_P(ht)){{{Sg_AssertionViolation(sg__rc.d15[712],SG_MAKE_STRING("attemp to modify an immutable hashtable"),ht);}}}
 
-#line 3742 "./null.stub"
+#line 3795 "./null.stub"
 Sg_HashTableSet(ht,key,value,0);
 SG_RETURN(SG_UNDEF);
   }
@@ -15974,10 +16012,10 @@ static SgObject null_hashtable_deleteX(SgObject *SG_FP, int SG_ARGC, void *data_
   key = (key_scm);
   {
 
-#line 3745 "./null.stub"
+#line 3798 "./null.stub"
 if (SG_IMMUTABLE_HASHTABLE_P(ht)){{{Sg_AssertionViolation(sg__rc.d15[712],SG_MAKE_STRING("attemp to modify an immutable hashtable"),ht);}}}
 
-#line 3746 "./null.stub"
+#line 3799 "./null.stub"
 Sg_HashTableDelete(ht,key);
 SG_RETURN(SG_UNDEF);
   }
@@ -16005,7 +16043,7 @@ static SgObject null_hashtable_containsP(SgObject *SG_FP, int SG_ARGC, void *dat
 {
 int SG_RESULT = (int)NULL;
 
-#line 3749 "./null.stub"
+#line 3802 "./null.stub"
 {SgObject r=Sg_HashTableRef(ht,key,SG_UNBOUND);
 SG_RESULT=((!(SG_UNBOUNDP(r))));}
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
@@ -16044,7 +16082,7 @@ static SgObject null_hashtable_copy(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3753 "./null.stub"
+#line 3806 "./null.stub"
 SG_RESULT=(Sg_HashTableCopy(ht,mutableP));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16080,10 +16118,10 @@ static SgObject null_hashtable_clearX(SgObject *SG_FP, int SG_ARGC, void *data_)
   k = SG_INT_VALUE(k_scm);
   {
 
-#line 3756 "./null.stub"
+#line 3809 "./null.stub"
 if (SG_IMMUTABLE_HASHTABLE_P(ht)){{{Sg_AssertionViolation(sg__rc.d15[717],SG_MAKE_STRING("attemp to modify an immutable hashtable"),ht);}}}
 
-#line 3757 "./null.stub"
+#line 3810 "./null.stub"
 Sg_HashCoreClear(SG_HASHTABLE_CORE(ht),k);
 SG_RETURN(SG_UNDEF);
   }
@@ -16107,7 +16145,7 @@ static SgObject null_hashtable_keys(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3760 "./null.stub"
+#line 3813 "./null.stub"
 SG_RESULT=(Sg_ListToVector(Sg_HashTableKeys(ht),0,-1));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16132,7 +16170,7 @@ static SgObject null_hashtable_mutableP(SgObject *SG_FP, int SG_ARGC, void *data
 {
 int SG_RESULT = (int)NULL;
 
-#line 3764 "./null.stub"
+#line 3817 "./null.stub"
 SG_RESULT=((!(SG_IMMUTABLE_HASHTABLE_P(ht))));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -16154,7 +16192,7 @@ static SgObject null_equal_hash(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 long SG_RESULT = (long)NULL;
 
-#line 3768 "./null.stub"
+#line 3821 "./null.stub"
 SG_RESULT=(Sg_EqualHash(o));
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }
@@ -16189,7 +16227,7 @@ static SgObject null_string_hash(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 long SG_RESULT = (long)NULL;
 
-#line 3772 "./null.stub"
+#line 3825 "./null.stub"
 {uint32_t modulo=0;
 if (SG_UNBOUNDP(bound)){modulo=(SG_INT_MAX);}else if(
 SG_INTP(bound)){modulo=(SG_INT_VALUE(bound));}else if(
@@ -16197,7 +16235,7 @@ SG_BIGNUMP(bound)){
 modulo=(Sg_BignumToUI(SG_BIGNUM(bound),SG_CLAMP_BOTH,NULL));}
 if ((modulo)==(0)){{
 {Sg_AssertionViolation(sg__rc.d15[722],SG_MAKE_STRING("argument out of domain"),bound);}}}
-#line 3781 "./null.stub"
+#line 3834 "./null.stub"
 SG_RESULT=(Sg_StringHash(o,modulo));}
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }
@@ -16232,7 +16270,7 @@ static SgObject null_string_ci_hash(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 long SG_RESULT = (long)NULL;
 
-#line 3784 "./null.stub"
+#line 3837 "./null.stub"
 {uint32_t modulo=0;
 if (SG_UNBOUNDP(bound)){modulo=(SG_INT_MAX);}else if(
 SG_INTP(bound)){modulo=(SG_INT_VALUE(bound));}else if(
@@ -16240,7 +16278,7 @@ SG_BIGNUMP(bound)){
 modulo=(Sg_BignumToUI(SG_BIGNUM(bound),SG_CLAMP_BOTH,NULL));}
 if ((modulo)==(0)){{
 {Sg_AssertionViolation(sg__rc.d15[722],SG_MAKE_STRING("argument out of domain"),bound);}}}
-#line 3793 "./null.stub"
+#line 3846 "./null.stub"
 SG_RESULT=(Sg_StringHash(Sg_StringFoldCase(o),modulo));}
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }
@@ -16265,7 +16303,7 @@ static SgObject null_symbol_hash(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 long SG_RESULT = (long)NULL;
 
-#line 3796 "./null.stub"
+#line 3849 "./null.stub"
 SG_RESULT=(Sg_EqHash(o));
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }
@@ -16291,7 +16329,7 @@ static SgObject null_eval(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3801 "./null.stub"
+#line 3854 "./null.stub"
 SG_RESULT=(Sg_VMEval(sexp,env));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16317,7 +16355,7 @@ static SgObject null_environment(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3804 "./null.stub"
+#line 3857 "./null.stub"
 SG_RESULT=(Sg_Environment(Sg_MakeEvalLibrary(),Sg_Cons(spec,more)));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16341,14 +16379,14 @@ static SgObject null_set_carX(SgObject *SG_FP, int SG_ARGC, void *data_)
   v = (v_scm);
   {
 
-#line 3812 "./null.stub"
+#line 3865 "./null.stub"
 if ((!(SG_PAIRP(o)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[728],SG_MAKE_STRING("pair"),o,SG_NIL);}}}
 
-#line 3813 "./null.stub"
+#line 3866 "./null.stub"
 if (Sg_ConstantLiteralP(o)){{
 {Sg_AssertionViolation(sg__rc.d15[729],SG_MAKE_STRING("attempt to modify constant literal"),o);}}}
 
-#line 3815 "./null.stub"
+#line 3868 "./null.stub"
 SG_SET_CAR(o,v);
 SG_RETURN(SG_UNDEF);
   }
@@ -16371,14 +16409,14 @@ static SgObject null_set_cdrX(SgObject *SG_FP, int SG_ARGC, void *data_)
   v = (v_scm);
   {
 
-#line 3818 "./null.stub"
+#line 3871 "./null.stub"
 if ((!(SG_PAIRP(o)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d15[732],SG_MAKE_STRING("pair"),o,SG_NIL);}}}
 
-#line 3819 "./null.stub"
+#line 3872 "./null.stub"
 if (Sg_ConstantLiteralP(o)){{
 {Sg_AssertionViolation(sg__rc.d15[733],SG_MAKE_STRING("attempt to modify constant literal"),o);}}}
 
-#line 3821 "./null.stub"
+#line 3874 "./null.stub"
 SG_SET_CDR(o,v);
 SG_RETURN(SG_UNDEF);
   }
@@ -16414,24 +16452,24 @@ static SgObject null_string_setX(SgObject *SG_FP, int SG_ARGC, void *data_)
   c = SG_CHAR_VALUE(c_scm);
   {
 
-#line 3825 "./null.stub"
+#line 3878 "./null.stub"
 if ((k)<(0)){{
 {Sg_WrongTypeOfArgumentViolation(sg__rc.d15[736],SG_MAKE_STRING("non negative exact integer"),
-#line 3828 "./null.stub"
+#line 3881 "./null.stub"
 SG_MAKE_INT(k),
 SG_LIST3(s,SG_MAKE_INT(k),
 SG_MAKE_CHAR(c)));}}}
 
-#line 3831 "./null.stub"
+#line 3884 "./null.stub"
 if ((k)>(SG_STRING_SIZE(s))){{
 {Sg_AssertionViolation(sg__rc.d15[736],SG_MAKE_STRING("index out of bounds"),
 SG_LIST3(s,SG_MAKE_INT(k),SG_MAKE_CHAR(c)));}}}
 
-#line 3834 "./null.stub"
+#line 3887 "./null.stub"
 if (SG_LITERAL_STRINGP(s)){{
 {Sg_AssertionViolation(sg__rc.d15[736],SG_MAKE_STRING("attempted to modify an immutable string"),s);}}}
 
-#line 3838 "./null.stub"
+#line 3891 "./null.stub"
 SG_STRING_VALUE_AT(s,k)=(c);
 SG_RETURN(SG_UNDEF);
   }
@@ -16484,11 +16522,11 @@ static SgObject null_string_fillX(SgObject *SG_FP, int SG_ARGC, void *data_)
   end = SG_INT_VALUE(end_scm);
   {
 
-#line 3844 "./null.stub"
+#line 3897 "./null.stub"
 if (SG_LITERAL_STRINGP(s)){{
 {Sg_AssertionViolation(sg__rc.d15[736],SG_MAKE_STRING("attempted to modify an immutable string"),s);}}}
 
-#line 3848 "./null.stub"
+#line 3901 "./null.stub"
 Sg_StringFill(s,c,start,end);
 SG_RETURN(SG_UNDEF);
   }
@@ -16509,7 +16547,7 @@ static SgObject null_condition(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3852 "./null.stub"
+#line 3905 "./null.stub"
 SG_RESULT=(Sg_Condition(components));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16531,7 +16569,7 @@ static SgObject null_simple_conditions(SgObject *SG_FP, int SG_ARGC, void *data_
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3855 "./null.stub"
+#line 3908 "./null.stub"
 SG_RESULT=(Sg_SimpleConditions(obj));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16553,7 +16591,7 @@ static SgObject null_compound_condition_component(SgObject *SG_FP, int SG_ARGC, 
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3858 "./null.stub"
+#line 3911 "./null.stub"
 SG_RESULT=(Sg_CompoundConditionComponent(obj));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16575,7 +16613,7 @@ static SgObject null_compound_conditionP(SgObject *SG_FP, int SG_ARGC, void *dat
 {
 int SG_RESULT = (int)NULL;
 
-#line 3861 "./null.stub"
+#line 3914 "./null.stub"
 SG_RESULT=(Sg_CompoundConditionP(obj));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -16597,7 +16635,7 @@ static SgObject null_simple_conditionP(SgObject *SG_FP, int SG_ARGC, void *data_
 {
 int SG_RESULT = (int)NULL;
 
-#line 3864 "./null.stub"
+#line 3917 "./null.stub"
 SG_RESULT=(Sg_SimpleConditionP(obj));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -16619,7 +16657,7 @@ static SgObject null_conditionP(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 int SG_RESULT = (int)NULL;
 
-#line 3867 "./null.stub"
+#line 3920 "./null.stub"
 SG_RESULT=(Sg_ConditionP(obj));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -16641,7 +16679,7 @@ static SgObject null_condition_predicate(SgObject *SG_FP, int SG_ARGC, void *dat
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3870 "./null.stub"
+#line 3923 "./null.stub"
 SG_RESULT=(Sg_ConditionPredicate(rtd));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16667,7 +16705,7 @@ static SgObject null_condition_accessor(SgObject *SG_FP, int SG_ARGC, void *data
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3873 "./null.stub"
+#line 3926 "./null.stub"
 SG_RESULT=(Sg_ConditionAccessor(rtd,proc));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16721,7 +16759,7 @@ static SgObject null_make_record_type_descriptor(SgObject *SG_FP, int SG_ARGC, v
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3878 "./null.stub"
+#line 3931 "./null.stub"
 SG_RESULT=(Sg_MakeRecordTypeDescriptor(name,parent,uid,sealedP,opaqueP,fields));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16754,7 +16792,7 @@ static SgObject null_make_record_constructor_descriptor(SgObject *SG_FP, int SG_
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3881 "./null.stub"
+#line 3934 "./null.stub"
 SG_RESULT=(Sg_MakeRecordConstructorDescriptor(rtd,parent,protocol));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16776,7 +16814,7 @@ static SgObject null_recordP(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 int SG_RESULT = (int)NULL;
 
-#line 3884 "./null.stub"
+#line 3937 "./null.stub"
 SG_RESULT=(Sg_RecordP(o));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -16798,7 +16836,7 @@ static SgObject null_record_rtd(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3887 "./null.stub"
+#line 3940 "./null.stub"
 SG_RESULT=(Sg_RecordRtd(o));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16820,7 +16858,7 @@ static SgObject null_record_type_descriptorP(SgObject *SG_FP, int SG_ARGC, void 
 {
 int SG_RESULT = (int)NULL;
 
-#line 3890 "./null.stub"
+#line 3943 "./null.stub"
 SG_RESULT=(Sg_RecordTypeDescriptorP(o));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -16842,7 +16880,7 @@ static SgObject null_record_constructor_descriptorP(SgObject *SG_FP, int SG_ARGC
 {
 int SG_RESULT = (int)NULL;
 
-#line 3893 "./null.stub"
+#line 3946 "./null.stub"
 SG_RESULT=(Sg_RecordConstructorDescriptorP(o));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -16867,7 +16905,7 @@ static SgObject null_record_constructor(SgObject *SG_FP, int SG_ARGC, void *data
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3896 "./null.stub"
+#line 3949 "./null.stub"
 SG_RESULT=(Sg_RecordConstructor(rcd));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16899,12 +16937,12 @@ static SgObject null_record_accessor(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3899 "./null.stub"
+#line 3952 "./null.stub"
 if ((!(((-1)<(k))&&(
 (k)<(Sg_Length(Sg_RtdFields(rtd))))))){{
 {Sg_AssertionViolation(sg__rc.d15[754],SG_MAKE_STRING("field index out of range"),SG_NIL);}}}
 
-#line 3902 "./null.stub"
+#line 3955 "./null.stub"
 SG_RESULT=(Sg_RecordAccessor(rtd,k));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16929,7 +16967,7 @@ static SgObject null_record_predicate(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3905 "./null.stub"
+#line 3958 "./null.stub"
 SG_RESULT=(Sg_RecordPredicate(rtd));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16961,18 +16999,18 @@ static SgObject null_record_mutator(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3908 "./null.stub"
+#line 3961 "./null.stub"
 if ((!(((-1)<(k))&&(
 (k)<(Sg_Length(Sg_RtdFields(rtd))))))){{
 {Sg_AssertionViolation(sg__rc.d15[757],SG_MAKE_STRING("field index out of range"),
 SG_LIST2(rtd,SG_MAKE_INT(k)));}}}
 
-#line 3912 "./null.stub"
+#line 3965 "./null.stub"
 if (SG_FALSEP(SG_CAR(Sg_ListRef(Sg_RtdFields(rtd),k,SG_UNBOUND)))){{
 {Sg_AssertionViolation(sg__rc.d15[757],SG_MAKE_STRING("specified field is immutable"),
 SG_LIST2(rtd,SG_MAKE_INT(k)));}}}
 
-#line 3915 "./null.stub"
+#line 3968 "./null.stub"
 SG_RESULT=(Sg_RecordMutator(rtd,k));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -16997,7 +17035,7 @@ static SgObject null_record_type_name(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3918 "./null.stub"
+#line 3971 "./null.stub"
 SG_RESULT=(Sg_RtdName(rtd));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -17022,7 +17060,7 @@ static SgObject null_record_type_parent(SgObject *SG_FP, int SG_ARGC, void *data
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3921 "./null.stub"
+#line 3974 "./null.stub"
 SG_RESULT=(Sg_RtdParent(rtd));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -17047,7 +17085,7 @@ static SgObject null_record_type_uid(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3924 "./null.stub"
+#line 3977 "./null.stub"
 SG_RESULT=(Sg_RtdUid(rtd));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -17072,7 +17110,7 @@ static SgObject null_record_type_generativeP(SgObject *SG_FP, int SG_ARGC, void 
 {
 int SG_RESULT = (int)NULL;
 
-#line 3927 "./null.stub"
+#line 3980 "./null.stub"
 SG_RESULT=(SG_FALSEP(Sg_RtdUid(rtd)));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -17097,7 +17135,7 @@ static SgObject null_record_type_opaqueP(SgObject *SG_FP, int SG_ARGC, void *dat
 {
 int SG_RESULT = (int)NULL;
 
-#line 3930 "./null.stub"
+#line 3983 "./null.stub"
 SG_RESULT=(Sg_RtdOpaqueP(rtd));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -17122,7 +17160,7 @@ static SgObject null_record_type_sealedP(SgObject *SG_FP, int SG_ARGC, void *dat
 {
 int SG_RESULT = (int)NULL;
 
-#line 3933 "./null.stub"
+#line 3986 "./null.stub"
 SG_RESULT=(Sg_RtdSealedP(rtd));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -17147,7 +17185,7 @@ static SgObject null_rtd_fields(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3936 "./null.stub"
+#line 3989 "./null.stub"
 SG_RESULT=(Sg_RtdFields(rtd));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -17172,9 +17210,9 @@ static SgObject null_record_type_field_names(SgObject *SG_FP, int SG_ARGC, void 
 {
 SgObject SG_RESULT = (SgObject)NULL;
 SgObject cise__82;
-#line 3939 "./null.stub"
+#line 3992 "./null.stub"
 {SgObject fields=Sg_RtdFields(rtd);SgObject h=SG_NIL;SgObject t=SG_NIL;
-#line 3942 "./null.stub"
+#line 3995 "./null.stub"
 SG_FOR_EACH(cise__82,fields) {{SgObject field=SG_CAR(cise__82);
 ASSERT(SG_PAIRP(field));
 SG_APPEND1(h,t,SG_CDR(field));}}
@@ -17209,7 +17247,7 @@ static SgObject null_record_field_mutableP(SgObject *SG_FP, int SG_ARGC, void *d
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3948 "./null.stub"
+#line 4001 "./null.stub"
 SG_RESULT=(SG_CAR(Sg_ListRef(Sg_RtdFields(rtd),k,SG_UNBOUND)));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -17234,7 +17272,7 @@ static SgObject null_rtd_inherited_field_count(SgObject *SG_FP, int SG_ARGC, voi
 {
 long SG_RESULT = (long)NULL;
 
-#line 3951 "./null.stub"
+#line 4004 "./null.stub"
 SG_RESULT=(Sg_RtdInheritedFieldCount(rtd));
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }
@@ -17259,7 +17297,7 @@ static SgObject null_rtd_total_field_count(SgObject *SG_FP, int SG_ARGC, void *d
 {
 long SG_RESULT = (long)NULL;
 
-#line 3954 "./null.stub"
+#line 4007 "./null.stub"
 SG_RESULT=(Sg_RtdTotalFieldCount(rtd));
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }
@@ -17291,7 +17329,7 @@ static SgObject null_rtd_ancestorP(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 int SG_RESULT = (int)NULL;
 
-#line 3957 "./null.stub"
+#line 4010 "./null.stub"
 SG_RESULT=(Sg_RtdAncestorP(parent,rtd));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -17316,7 +17354,7 @@ static SgObject null_rcd_protocol(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3960 "./null.stub"
+#line 4013 "./null.stub"
 SG_RESULT=(Sg_RcdProtocol(rcd));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -17341,7 +17379,7 @@ static SgObject null_rcd_parent(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3963 "./null.stub"
+#line 4016 "./null.stub"
 SG_RESULT=(Sg_RcdParent(rcd));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -17370,7 +17408,7 @@ static SgObject null_make_tuple(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3967 "./null.stub"
+#line 4020 "./null.stub"
 SG_RESULT=(Sg_MakeTuple(size,SG_UNDEF,printer));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -17394,7 +17432,7 @@ static SgObject null_tuple_list_setX(SgObject *SG_FP, int SG_ARGC, void *data_)
   lst = (lst_scm);
   {
 
-#line 3970 "./null.stub"
+#line 4023 "./null.stub"
 Sg_TupleListSet(tuple,lst);
 SG_RETURN(SG_UNDEF);
   }
@@ -17422,7 +17460,7 @@ static SgObject null_tuple_ref(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 3973 "./null.stub"
+#line 4026 "./null.stub"
 SG_RESULT=(Sg_TupleRef(tuple,i,SG_FALSE));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -17453,7 +17491,7 @@ static SgObject null_tuple_setX(SgObject *SG_FP, int SG_ARGC, void *data_)
   value = (value_scm);
   {
 
-#line 3976 "./null.stub"
+#line 4029 "./null.stub"
 Sg_TupleSet(tuple,i,value);
 SG_RETURN(SG_UNDEF);
   }
@@ -17474,7 +17512,7 @@ static SgObject null_tuple_size(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 long SG_RESULT = (long)NULL;
 
-#line 3979 "./null.stub"
+#line 4032 "./null.stub"
 SG_RESULT=(Sg_TupleSize(tuple));
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }

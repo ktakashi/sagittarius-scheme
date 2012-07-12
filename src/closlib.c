@@ -12,9 +12,9 @@
 #include <sagittarius/generic.h>
 
 static struct sg__rcRec {
-  SgObject d15[13];
+  SgObject d912[13];
 } sg__rc = {
-  {  /* SgObject d15 */
+  {  /* SgObject d912 */
     SG_UNBOUND,
     SG_UNBOUND,
     SG_UNBOUND,
@@ -45,7 +45,7 @@ static SgObject closlib_slot_ref(SgObject *SG_FP, int SG_ARGC, void *data_)
   name_scm = SG_ARGREF(1);
   if (!SG_SYMBOLP(name_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d15[0], SG_MAKE_STRING("symbol"), name_scm, SG_NIL);
+       sg__rc.d912[0], SG_MAKE_STRING("symbol"), name_scm, SG_NIL);
   name = SG_SYMBOL(name_scm);
   {
 {
@@ -76,7 +76,7 @@ static SgObject closlib_slot_setX(SgObject *SG_FP, int SG_ARGC, void *data_)
   name_scm = SG_ARGREF(1);
   if (!SG_SYMBOLP(name_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d15[1], SG_MAKE_STRING("symbol"), name_scm, SG_NIL);
+       sg__rc.d912[1], SG_MAKE_STRING("symbol"), name_scm, SG_NIL);
   name = SG_SYMBOL(name_scm);
   v_scm = SG_ARGREF(2);
   v = (v_scm);
@@ -104,7 +104,7 @@ static SgObject closlib_slot_ref_using_accessor(SgObject *SG_FP, int SG_ARGC, vo
   sa_scm = SG_ARGREF(1);
   if (!SG_SLOT_ACCESSORP(sa_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d15[2], SG_MAKE_STRING("slot-accessor"), sa_scm, SG_NIL);
+       sg__rc.d912[2], SG_MAKE_STRING("slot-accessor"), sa_scm, SG_NIL);
   sa = SG_SLOT_ACCESSOR(sa_scm);
   {
 {
@@ -135,7 +135,7 @@ static SgObject closlib_slot_set_using_accessorX(SgObject *SG_FP, int SG_ARGC, v
   sa_scm = SG_ARGREF(1);
   if (!SG_SLOT_ACCESSORP(sa_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d15[3], SG_MAKE_STRING("slot-accessor"), sa_scm, SG_NIL);
+       sg__rc.d912[3], SG_MAKE_STRING("slot-accessor"), sa_scm, SG_NIL);
   sa = SG_SLOT_ACCESSOR(sa_scm);
   v_scm = SG_ARGREF(2);
   v = (v_scm);
@@ -212,20 +212,20 @@ static SgObject closlib__25ensure_generic_function(SgObject *SG_FP, int SG_ARGC,
   name_scm = SG_ARGREF(0);
   if (!SG_SYMBOLP(name_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d15[6], SG_MAKE_STRING("symbol"), name_scm, SG_NIL);
+       sg__rc.d912[6], SG_MAKE_STRING("symbol"), name_scm, SG_NIL);
   name = SG_SYMBOL(name_scm);
   lib_scm = SG_ARGREF(1);
   if (!SG_LIBRARYP(lib_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d15[6], SG_MAKE_STRING("library"), lib_scm, SG_NIL);
+       sg__rc.d912[6], SG_MAKE_STRING("library"), lib_scm, SG_NIL);
   lib = SG_LIBRARY(lib_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 42 "./closlib.stub"
+#line 41 "./closlib.stub"
 {SgGloc* g=Sg_FindBinding(lib,name,SG_FALSE);SgObject val=SG_FALSE;
-#line 44 "./closlib.stub"
+#line 43 "./closlib.stub"
 if (SG_GLOCP(g)){{
 val=(SG_GLOC_GET(g));}}
 if ((!(Sg_TypeP(val,SG_CLASS_GENERIC)))){{
@@ -257,27 +257,27 @@ static SgObject closlib__25make_next_method(SgObject *SG_FP, int SG_ARGC, void *
   methods_scm = SG_ARGREF(1);
   if (!SG_LISTP(methods_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d15[7], SG_MAKE_STRING("list"), methods_scm, SG_NIL);
+       sg__rc.d912[7], SG_MAKE_STRING("list"), methods_scm, SG_NIL);
   methods = (methods_scm);
   args_scm = SG_ARGREF(2);
   if (!SG_LISTP(args_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d15[7], SG_MAKE_STRING("list"), args_scm, SG_NIL);
+       sg__rc.d912[7], SG_MAKE_STRING("list"), args_scm, SG_NIL);
   args = (args_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-SgObject cise__16;
-#line 54 "./closlib.stub"
+SgObject cise__913;
+#line 53 "./closlib.stub"
 {SgObject* argv;int argc;
 if ((!(Sg_TypeP(gf,SG_CLASS_GENERIC)))){{
-Sg_WrongTypeOfArgumentViolation(sg__rc.d15[8],sg__rc.d15[9],gf,
-#line 58 "./closlib.stub"
+Sg_WrongTypeOfArgumentViolation(sg__rc.d912[8],sg__rc.d912[9],gf,
+#line 57 "./closlib.stub"
 SG_LIST3(gf,methods,args));}}
-SG_FOR_EACH(cise__16,methods) {{SgObject mp=SG_CAR(cise__16);
+SG_FOR_EACH(cise__913,methods) {{SgObject mp=SG_CAR(cise__913);
 if ((!(Sg_TypeP(mp,SG_CLASS_METHOD)))){{
-Sg_WrongTypeOfArgumentViolation(sg__rc.d15[8],sg__rc.d15[11],mp,
-#line 63 "./closlib.stub"
+Sg_WrongTypeOfArgumentViolation(sg__rc.d912[8],sg__rc.d912[11],mp,
+#line 62 "./closlib.stub"
 SG_LIST3(gf,methods,args));}}}}
 argc=(Sg_Length(args));
 argv=(Sg_ListToArray(args,FALSE));
@@ -290,35 +290,35 @@ static SG_DEFINE_SUBR(closlib__25make_next_method__STUB, 3, 0,closlib__25make_ne
 
 void Sg__Init_sagittarius_clos () {
   SgLibrary *lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE));
-  sg__rc.d15[0] = SG_MAKE_STRING("slot-ref");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[0]), &closlib_slot_ref__STUB);
-  SG_PROCEDURE_NAME(&closlib_slot_ref__STUB) = sg__rc.d15[0];
-  SG_PROCEDURE_NAME(&closlib_slot_setX__STUB) = sg__rc.d15[1];
+  sg__rc.d912[0] = SG_MAKE_STRING("slot-ref");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d912[0]), &closlib_slot_ref__STUB);
+  SG_PROCEDURE_NAME(&closlib_slot_ref__STUB) = sg__rc.d912[0];
+  SG_PROCEDURE_NAME(&closlib_slot_setX__STUB) = sg__rc.d912[1];
   Sg_SetterSet(SG_PROCEDURE(&closlib_slot_ref__STUB), SG_PROCEDURE(&closlib_slot_setX__STUB), TRUE);
-  sg__rc.d15[1] = SG_MAKE_STRING("slot-set!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[1]), &closlib_slot_setX__STUB);
-  SG_PROCEDURE_NAME(&closlib_slot_setX__STUB) = sg__rc.d15[1];
-  sg__rc.d15[2] = SG_MAKE_STRING("slot-ref-using-accessor");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[2]), &closlib_slot_ref_using_accessor__STUB);
-  SG_PROCEDURE_NAME(&closlib_slot_ref_using_accessor__STUB) = sg__rc.d15[2];
-  sg__rc.d15[3] = SG_MAKE_STRING("slot-set-using-accessor!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[3]), &closlib_slot_set_using_accessorX__STUB);
-  SG_PROCEDURE_NAME(&closlib_slot_set_using_accessorX__STUB) = sg__rc.d15[3];
-  sg__rc.d15[4] = SG_MAKE_STRING("class-of");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[4]), &closlib_class_of__STUB);
-  SG_PROCEDURE_NAME(&closlib_class_of__STUB) = sg__rc.d15[4];
-  sg__rc.d15[5] = SG_MAKE_STRING("is-a?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[5]), &closlib_is_aP__STUB);
-  SG_PROCEDURE_NAME(&closlib_is_aP__STUB) = sg__rc.d15[5];
-  sg__rc.d15[6] = SG_MAKE_STRING("%ensure-generic-function");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[6]), &closlib__25ensure_generic_function__STUB);
-  SG_PROCEDURE_NAME(&closlib__25ensure_generic_function__STUB) = sg__rc.d15[6];
-  sg__rc.d15[7] = SG_MAKE_STRING("%make-next-method");
-  sg__rc.d15[8] = Sg_Intern(sg__rc.d15[7]); /* %make-next-method */
-  sg__rc.d15[10] = SG_MAKE_STRING("generic");
-  sg__rc.d15[9] = Sg_Intern(sg__rc.d15[10]); /* generic */
-  sg__rc.d15[12] = SG_MAKE_STRING("method");
-  sg__rc.d15[11] = Sg_Intern(sg__rc.d15[12]); /* method */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[7]), &closlib__25make_next_method__STUB);
-  SG_PROCEDURE_NAME(&closlib__25make_next_method__STUB) = sg__rc.d15[7];
+  sg__rc.d912[1] = SG_MAKE_STRING("slot-set!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d912[1]), &closlib_slot_setX__STUB);
+  SG_PROCEDURE_NAME(&closlib_slot_setX__STUB) = sg__rc.d912[1];
+  sg__rc.d912[2] = SG_MAKE_STRING("slot-ref-using-accessor");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d912[2]), &closlib_slot_ref_using_accessor__STUB);
+  SG_PROCEDURE_NAME(&closlib_slot_ref_using_accessor__STUB) = sg__rc.d912[2];
+  sg__rc.d912[3] = SG_MAKE_STRING("slot-set-using-accessor!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d912[3]), &closlib_slot_set_using_accessorX__STUB);
+  SG_PROCEDURE_NAME(&closlib_slot_set_using_accessorX__STUB) = sg__rc.d912[3];
+  sg__rc.d912[4] = SG_MAKE_STRING("class-of");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d912[4]), &closlib_class_of__STUB);
+  SG_PROCEDURE_NAME(&closlib_class_of__STUB) = sg__rc.d912[4];
+  sg__rc.d912[5] = SG_MAKE_STRING("is-a?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d912[5]), &closlib_is_aP__STUB);
+  SG_PROCEDURE_NAME(&closlib_is_aP__STUB) = sg__rc.d912[5];
+  sg__rc.d912[6] = SG_MAKE_STRING("%ensure-generic-function");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d912[6]), &closlib__25ensure_generic_function__STUB);
+  SG_PROCEDURE_NAME(&closlib__25ensure_generic_function__STUB) = sg__rc.d912[6];
+  sg__rc.d912[7] = SG_MAKE_STRING("%make-next-method");
+  sg__rc.d912[8] = Sg_Intern(sg__rc.d912[7]); /* %make-next-method */
+  sg__rc.d912[10] = SG_MAKE_STRING("generic");
+  sg__rc.d912[9] = Sg_Intern(sg__rc.d912[10]); /* generic */
+  sg__rc.d912[12] = SG_MAKE_STRING("method");
+  sg__rc.d912[11] = Sg_Intern(sg__rc.d912[12]); /* method */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d912[7]), &closlib__25make_next_method__STUB);
+  SG_PROCEDURE_NAME(&closlib__25make_next_method__STUB) = sg__rc.d912[7];
 }

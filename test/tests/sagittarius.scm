@@ -224,5 +224,38 @@
 
 (test-equal "Al's call/cc test" 1 (call/cc (lambda (c) (0 (c 1)))))
 
+;; syntax-case stuff
+(define-syntax aif
+  (lambda (x)
+    (syntax-case x ()
+      ((aif expr then else)
+       (with-syntax ((it (datum->syntax #'aif 'it)))
+	 #'(let ((it expr))
+	     (if it then else)))))))
+(test-equal "aif"
+	    1
+	    (aif (assq 'a '((a . 1) (b . -2)))
+		 (cdr it)
+		 it))
+(test-equal "aif (with local it)"
+	    1
+	    (let ((it #f))
+	      (aif (assq 'a '((a . 1) (b . -2)))
+		   (cdr it)
+		   it)))
+
+;; pattern variable resolution
+(define-syntax patvar-inner
+  (syntax-rules ()
+    ((_ r e) 
+     (if (= r 1) e #f))))
+(define-syntax patvar
+  (syntax-rules ()
+    ((_ expr)
+     (let ((r 1))
+       (patvar-inner r expr)))))
+
+(test-equal "pattern variable resolution" 2 
+	    (let ((r 2)) (patvar r)))
 
 (test-end)

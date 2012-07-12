@@ -38,7 +38,6 @@
     (return (Sg_VMApply (SG_OBJ (-> gf data)) (Sg_ArrayToList args nargs))))
 
   (define-c-proc %ensure-generic-function (name::<symbol> lib::<library>)
-    ::<top>
     (let ((g::SgGloc* (Sg_FindBinding lib name #f))
 	  (val #f))
       (when (SG_GLOCP g)

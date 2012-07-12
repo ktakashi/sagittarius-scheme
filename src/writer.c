@@ -59,7 +59,8 @@
 #define WRITE_CIRCULAR 0x20
 
 /* for convenient */
-static void format_write(SgObject obj, SgPort *port, SgWriteContext *ctx, int sharedp);
+static void format_write(SgObject obj, SgPort *port, SgWriteContext *ctx,
+			 int sharedp);
 static void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx);
 static void write_ss(SgObject obj, SgPort *port, SgWriteContext *ctx);
 static void write_object(SgObject obj, SgPort *port, SgWriteContext *ctx);
@@ -258,8 +259,9 @@ static void format_sexp(SgPort *out, SgObject arg,
 }
 
 /* ~d, ~b, ~o and ~x */
-static void format_integer(SgPort *out, SgObject arg, SgObject *params, int nparams,
-			   int radix, int delimited, int alwayssign, int use_upper)
+static void format_integer(SgPort *out, SgObject arg, SgObject *params,
+			   int nparams, int radix, int delimited,
+			   int alwayssign, int use_upper)
 {
   int mincol = 0, commainterval = 3;
   SgChar padchar = ' ', commachar = ',';
@@ -698,6 +700,14 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
 	Sg_PutcUnsafe(port, ',');
       } else if (SG_CAR(obj) == SG_SYMBOL_UNQUOTE_SPLICING) {
 	Sg_PutuzUnsafe(port, UC(",@"));
+      } else if (SG_CAR(obj) == SG_SYMBOL_SYNTAX) {
+	Sg_PutuzUnsafe(port, UC("#'"));
+      } else if (SG_CAR(obj) == SG_SYMBOL_QUASISYNTAX) {
+	Sg_PutuzUnsafe(port, UC("#`"));
+      } else if (SG_CAR(obj) == SG_SYMBOL_UNSYNTAX) {
+	Sg_PutuzUnsafe(port, UC("#,"));
+      } else if (SG_CAR(obj) == SG_SYMBOL_UNSYNTAX_SPLICING) {
+	Sg_PutuzUnsafe(port, UC("#,@"));
       } else {
 	special = FALSE;
       }

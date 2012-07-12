@@ -205,7 +205,7 @@ static SgObject vmlib_copy_identifier(SgObject *SG_FP, int SG_ARGC, void *data_)
   SgObject id_scm;
   SgIdentifier* id;
   SgObject tmpl_var_scm;
-  int tmpl_var;
+  SgObject tmpl_var;
   SG_ENTER_SUBR("copy-identifier");
   if ((SG_ARGC > 2 &&
       !SG_NULLP(SG_ARGREF(SG_ARGC-1))) ||
@@ -222,18 +222,15 @@ static SgObject vmlib_copy_identifier(SgObject *SG_FP, int SG_ARGC, void *data_)
   } else {
     tmpl_var_scm = SG_FALSE;
   }
-  if (!SG_FALSEP(tmpl_var_scm) && !SG_BOOLP(tmpl_var_scm))
-    Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d15[4], SG_MAKE_STRING("boolean"), tmpl_var_scm, SG_NIL);
-  tmpl_var = SG_BOOL_VALUE(tmpl_var_scm);
+  tmpl_var = (tmpl_var_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
 #line 110 "./vmlib.stub"
 {SgObject r=Sg_CopyIdentifier(id);
-if (tmpl_var){{
-SG_IDENTIFIER_ENVS(r)=(SG_LIST1(SG_TRUE));}}
+if ((!(SG_FALSEP(tmpl_var)))){{
+SG_IDENTIFIER_ENVS(r)=(tmpl_var);}}
 SG_RESULT=(r);}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -1773,6 +1770,28 @@ SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
 static SG_DEFINE_SUBR(vmlib__25map_cons__STUB, 2, 0,vmlib__25map_cons, SG_FALSE, NULL);
 
+ SgObject p1env_lookup_rec(SgVector* p1env,SgObject name,SgObject lookup_as,int topP){SgObject fp;SgObject cise__16;{
+#line 318 "./vmlib.stub"
+{int name_identp=SG_IDENTIFIERP(name);SgObject frames=
+SG_VECTOR_ELEMENT(p1env,1);
+entry :; 
+SG_FOR_EACH(fp,frames){
+if ((name_identp)&&(
+(SG_IDENTIFIER_ENVS(name))==(fp))){{
+#line 325 "./vmlib.stub"
+name=(SG_OBJ(SG_IDENTIFIER_NAME(name)));}}
+if ((SG_CAAR(fp))>(lookup_as)){{
+continue;}}
+SG_FOR_EACH(cise__16,SG_CDAR(fp)) {{SgObject vp=SG_CAR(cise__16);
+if (SG_EQ(name,SG_CAR(vp))){{
+return (SG_CDR(vp));}}}}}
+#line 335 "./vmlib.stub"
+if (((((!(topP)))&&(
+SG_IDENTIFIERP(name)))&&(SG_IDENTIFIER_PARENT(name)))&&(
+(!(SG_NULLP(frames))))){{
+name=(SG_IDENTIFIER_PARENT(name));
+goto entry;}}
+return (name);}}}
 static SgObject vmlib_p1env_lookup(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject p1env_scm;
@@ -1797,31 +1816,13 @@ static SgObject vmlib_p1env_lookup(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-SgObject fp;SgObject cise__16;
-#line 318 "./vmlib.stub"
-{int name_identp=SG_IDENTIFIERP(name);SgObject frames=
-SG_VECTOR_ELEMENT(p1env,1);
-entry :; 
-SG_FOR_EACH(fp,frames){
-if ((name_identp)&&(
-(SG_IDENTIFIER_ENVS(name))==(fp))){{
-#line 325 "./vmlib.stub"
-name=(SG_OBJ(SG_IDENTIFIER_NAME(name)));}}
-if ((SG_CAAR(fp))>(lookup_as)){{
-continue;}}
-SG_FOR_EACH(cise__16,SG_CDAR(fp)) {{SgObject vp=SG_CAR(cise__16);
-if (SG_EQ(name,SG_CAR(vp))){{
-return (SG_CDR(vp));}}}}}
-#line 335 "./vmlib.stub"
-if (((SG_IDENTIFIERP(name))&&(SG_IDENTIFIER_PARENT(name)))&&(
-(!(SG_NULLP(frames))))){{
-name=(SG_IDENTIFIER_PARENT(name));
-#line 340 "./vmlib.stub"
-goto entry;}}
-if (SG_SYMBOLP(name)){
+
+#line 343 "./vmlib.stub"
+{SgObject r=p1env_lookup_rec(p1env,name,lookup_as,FALSE);
+if (SG_SYMBOLP(r)){
 {SgObject lib=SG_VECTOR_ELEMENT(p1env,0);
-SG_RESULT=(Sg_MakeIdentifier(SG_SYMBOL(name),SG_NIL,SG_LIBRARY(lib)));}} else {
-SG_RESULT=(name);}}
+SG_RESULT=(Sg_MakeIdentifier(SG_SYMBOL(r),SG_NIL,SG_LIBRARY(lib)));}} else {
+SG_RESULT=(r);}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -1842,11 +1843,11 @@ static SgObject vmlib_p1env_toplevelP(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 int SG_RESULT = (int)NULL;
 SgObject cise__17;
-#line 347 "./vmlib.stub"
+#line 350 "./vmlib.stub"
 SG_FOR_EACH(cise__17,SG_VECTOR_ELEMENT(p1env,1)) {{SgObject fp=SG_CAR(cise__17);
 if ((SG_CAR(fp))==(SG_MAKE_INT(0))){return (SG_FALSE);}}}
 
-#line 349 "./vmlib.stub"
+#line 352 "./vmlib.stub"
 SG_RESULT=(TRUE);
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -1878,7 +1879,7 @@ static SgObject vmlib_syntax_object_3dP(SgObject *SG_FP, int SG_ARGC, void *data
 {
 int SG_RESULT = (int)NULL;
 
-#line 355 "./vmlib.stub"
+#line 358 "./vmlib.stub"
 SG_RESULT=((((SG_EQ(SG_IDENTIFIER_NAME(id1),SG_IDENTIFIER_NAME(id2)))&&(
 SG_IDENTIFIER_TEMPLATE(id1)))&&(
 SG_IDENTIFIER_TEMPLATE(id2)))&&(
@@ -1917,10 +1918,10 @@ static SgObject vmlib_p1env_pvar_lookup(SgObject *SG_FP, int SG_ARGC, void *data
 {
 SgObject SG_RESULT = (SgObject)NULL;
 SgObject fp;SgObject cise__18;
-#line 373 "./vmlib.stub"
+#line 375 "./vmlib.stub"
 {int name_identp=SG_IDENTIFIERP(name);SgObject frames=
 SG_VECTOR_ELEMENT(p1env,1);SgObject dummy_env=
-#line 376 "./vmlib.stub"
+#line 378 "./vmlib.stub"
 Sg_MakeVector(2,SG_UNDEF);
 if (name_identp){{
 SG_VECTOR_ELEMENT(dummy_env,0)=(SG_IDENTIFIER_LIBRARY(name));
@@ -1930,7 +1931,7 @@ if ((!((SG_CAAR(fp))==(SG_MAKE_INT(2))))){{
 continue;}}
 SG_FOR_EACH(cise__18,SG_CDAR(fp)) {{SgObject vp=SG_CAR(cise__18);
 if (((((name_identp)&&(
-#line 386 "./vmlib.stub"
+#line 388 "./vmlib.stub"
 SG_NULLP(SG_IDENTIFIER_ENVS(name))))&&(
 SG_EQ(SG_IDENTIFIER_NAME(name),SG_CAR(vp))))||(
 (name_identp)&&(
@@ -1938,11 +1939,11 @@ Sg_IdentifierEqP(p1env,name,dummy_env,
 SG_CAR(vp)))))||(
 SG_EQ(name,SG_CAR(vp)))){{
 return (SG_CDR(vp));}}}}}
-#line 394 "./vmlib.stub"
+#line 396 "./vmlib.stub"
 if (SG_SYMBOLP(name)){
 {SgObject lib=SG_VECTOR_ELEMENT(p1env,0);
 SG_RESULT=(Sg_MakeIdentifier(SG_SYMBOL(name),SG_NIL,
-#line 398 "./vmlib.stub"
+#line 400 "./vmlib.stub"
 SG_LIBRARY(lib)));}} else {
 SG_RESULT=(name);}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
@@ -1961,7 +1962,7 @@ static SgObject vmlib_vm_frame_size(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 long SG_RESULT = (long)NULL;
 
-#line 402 "./vmlib.stub"
+#line 404 "./vmlib.stub"
 SG_RESULT=(SG_FRAME_SIZE);
 SG_RETURN(SG_MAKE_INT(SG_RESULT));
 }
@@ -1977,7 +1978,7 @@ static SgObject vmlib_print_stack_frames(SgObject *SG_FP, int SG_ARGC, void *dat
      SG_INTERN("print-stack-frames"), 0, SG_ARGC, SG_NIL);
   {
 
-#line 405 "./vmlib.stub"
+#line 407 "./vmlib.stub"
 Sg_VMPrintFrame();
 SG_RETURN(SG_UNDEF);
   }
@@ -1994,7 +1995,7 @@ static SgObject vmlib_get_stack_trace_object(SgObject *SG_FP, int SG_ARGC, void 
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 408 "./vmlib.stub"
+#line 410 "./vmlib.stub"
 SG_RESULT=(Sg_GetStackTrace());
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -2012,7 +2013,7 @@ static SgObject vmlib_vm_noinline_localsP(SgObject *SG_FP, int SG_ARGC, void *da
 {
 int SG_RESULT = (int)NULL;
 
-#line 412 "./vmlib.stub"
+#line 414 "./vmlib.stub"
 SG_RESULT=(SG_VM_IS_SET_FLAG(Sg_VM(),SG_NO_INLINE_LOCAL));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -2030,7 +2031,7 @@ static SgObject vmlib_vm_nolambda_liftingP(SgObject *SG_FP, int SG_ARGC, void *d
 {
 int SG_RESULT = (int)NULL;
 
-#line 415 "./vmlib.stub"
+#line 417 "./vmlib.stub"
 SG_RESULT=(SG_VM_IS_SET_FLAG(Sg_VM(),SG_NO_LAMBDA_LIFT));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -2048,7 +2049,7 @@ static SgObject vmlib_vm_nolibrary_inliningP(SgObject *SG_FP, int SG_ARGC, void 
 {
 int SG_RESULT = (int)NULL;
 
-#line 418 "./vmlib.stub"
+#line 420 "./vmlib.stub"
 SG_RESULT=(SG_VM_IS_SET_FLAG(Sg_VM(),SG_NO_LIBRARY_INLINING));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -2066,7 +2067,7 @@ static SgObject vmlib_vm_noconstant_inliningP(SgObject *SG_FP, int SG_ARGC, void
 {
 int SG_RESULT = (int)NULL;
 
-#line 421 "./vmlib.stub"
+#line 423 "./vmlib.stub"
 SG_RESULT=(SG_VM_IS_SET_FLAG(Sg_VM(),SG_NO_CONST_INLINING));
 SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
@@ -2104,7 +2105,7 @@ static SgObject vmlib__25call_2fpc(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
-#line 427 "./vmlib.stub"
+#line 429 "./vmlib.stub"
 SG_RESULT=(Sg_VMCallPC(p));
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }

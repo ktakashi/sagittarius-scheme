@@ -213,7 +213,7 @@
     (or (identifier=? (current-usage-env) a
                       (current-macro-env) b)
         (and (identifier? a) (identifier? b)
-             (free-identifier=? a b))
+	     (free-identifier=? a b))
         (and-let* ((v (find-binding (vm-current-library) 
 				    (identifier->symbol b) #f)))
 	  (eq? (identifier->symbol a) (gloc-name v)))))
@@ -510,12 +510,18 @@
   (define mac-env (current-macro-env))
   
   (define (lookup-pattern-variable p1env vars id)
-    (define (id=? frame id1 id2)
+    (define (mark-in-same-macro? env)
+      (define (is-mark?) (and (not (null? env)) (symbol? (car env))))
+      (if (is-mark?)
+	  (eq? (vector-ref mac-env 2) (car env))
+	  #t))
+    (define (id=? frame id1 id2 check-env?)
       (or (and-let* ( ( (identifier? id1) )
 		      ( (identifier? id2) ))
-	    (if (or (id-has-parent? id1)
-		    (id-has-parent? id2))
-		(id-has-same-parent? id1 id2)
+	    (if check-env?
+		(and (free-identifier=? id1 id2)
+		     (mark-in-same-macro? (id-envs id1))
+		     (mark-in-same-macro? (id-envs id2)))
 		(free-identifier=? id1 id2)))
 	  (identifier=? use-env id1 frame id2)))
 
@@ -525,8 +531,7 @@
 		  (= (caar frames) PATTERN))
 	     (let loop2 ((frame (cdar frames)))
 	       (cond ((null? frame) (loop (cdr frames)))
-		     ((and (id=? p1env id (caar frame))
-                           ;;(identifier=? use-env id frame (caar frame))
+		     ((and (id=? p1env id (caar frame) #f)
 			   (assq (caar frame) vars))
 		       => (lambda (slot)
 			    (let ((a (car slot))
@@ -534,7 +539,7 @@
 			      ;; pattern variable must not be list
 			      ;; so if it's a list, move to next
 			      (if (and (variable? r)
-				       (id=? frame a r))
+				       (id=? frame a r #t))
 				  r
 				  (loop2 (cdr frame))))))
 		     (else (loop2 (cdr frame))))))
@@ -571,8 +576,7 @@
 		    (let ((a (loop (car lst))) (d (loop (cdr lst))))
 		      (cond ((and (eq? (car lst) a) (eq? (cdr lst) d)) lst)
 			    (else (cons a d)))))
-		   ((and (identifier? lst)
-			 (null? (id-envs lst)))
+		   ((identifier? lst)
 		    (cond ((lookup-pattern-variable p1env vars lst))
 			  (else lst)))
 		   (else lst)))
@@ -596,11 +600,10 @@
       '()
       (let ((form (transcribe-template template ranks vars)))
 	(cond ((null? form) '())
-	      ((eq? use-env mac-env)
-	       (wrap-id form))
 	      ((identifier? form) form)
 	      ((symbol? form) 
 	       (wrap-syntax form use-env seen))
+	      ((eq? use-env mac-env) (wrap-id form))
 	      (else
 	       (partial-identifier form))))))
 
@@ -651,6 +654,8 @@
 
 (define (transcribe-template in-form ranks vars)
   (define use-env (current-usage-env))
+  ;; put macro name as a mark
+  (define current-mark (list (vector-ref (current-macro-env) 2)))
   ;; regenerate pattern variable
   (define (rewrite-template t seen vars)
     (cond ((null? t) t)
@@ -669,7 +674,10 @@
 			  ( (null? (id-envs id)) )
 			  )
 		 (cond ((hashtable-ref seen t #f))
-		       (else (let ((new-id (copy-identifier t)))
+		       ;; mark as template variable so that pattern variable
+		       ;; lookup won't make misjudge.
+		       ;; note: id-envs returns (#t)
+		       (else (let ((new-id (copy-identifier t current-mark)))
 			       (hashtable-set! seen t new-id)
 			       new-id))))
 	       t))))

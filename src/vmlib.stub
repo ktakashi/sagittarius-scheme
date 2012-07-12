@@ -106,10 +106,10 @@
     (result (SG_IDENTIFIER_LIBRARY id)))
 
   (define-c-proc copy-identifier (id::<identifier> 
-				  :optional (tmpl-var::<boolean> #f))
+				  :optional (tmpl-var #f))
     (let ((r (Sg_CopyIdentifier id)))
-      (when tmpl-var
-	(set! (SG_IDENTIFIER_ENVS r) (SG_LIST1 #t)))
+      (unless (SG_FALSEP tmpl-var)
+	(set! (SG_IDENTIFIER_ENVS r) tmpl-var))
       (result r)))
 
   (define-c-proc id-has-parent? (id::<identifier>)
@@ -314,7 +314,7 @@
 
   ;; for better performance.
   ;; NB: we skip some test, because we assume the frame is well-formed.
-  (define-c-proc p1env-lookup (p1env::<vector> name lookup_as) ::<top>
+  (define-cfn p1env-lookup-rec (p1env::SgVector* name lookup_as top?::int)
     (let ((name_identp::int (SG_IDENTIFIERP name))
 	  (frames (SG_VECTOR_ELEMENT p1env 1)))
       (label entry)
@@ -332,16 +332,19 @@
       ;; which means either global variable or lexical variable but
       ;; copied identifier.
       ;; if the latter case, then we need to check parent as well.
-      (when (and (SG_IDENTIFIERP name) (SG_IDENTIFIER_PARENT name)
+      (when (and (not top?)
+		 (SG_IDENTIFIERP name) (SG_IDENTIFIER_PARENT name)
 		 (not (SG_NULLP frames)))
 	(set! name (SG_IDENTIFIER_PARENT name))
-	;; we need to lookup parent means environment must also be one up
-	;;(set! frames (SG_CDR frames))
 	(goto entry))
-      (if (SG_SYMBOLP name)
+      (return name)))
+
+  (define-c-proc p1env-lookup (p1env::<vector> name lookup_as)
+    (let ((r (p1env-lookup-rec p1env name lookup_as FALSE)))
+      (if (SG_SYMBOLP r)
 	  (let ((lib (SG_VECTOR_ELEMENT p1env 0)))
-	    (result (Sg_MakeIdentifier (SG_SYMBOL name) '() (SG_LIBRARY lib))))
-	  (result name))))
+	    (result (Sg_MakeIdentifier (SG_SYMBOL r) '() (SG_LIBRARY lib))))
+	  (result r))))
 
   (define-c-proc p1env-toplevel? (p1env) ::<boolean>
     (dolist (fp (SG_VECTOR_ELEMENT p1env 1))
@@ -363,7 +366,6 @@
 				  (SG_IDENTIFIER_TEMPLATE id1))
 				 (SG_IDENTIFIER_PARENT
 				  (SG_IDENTIFIER_TEMPLATE id2))))))))
-
 
   ;; TODO it's almost the same process as p1env-lookup
   ;; lookup pvar from p1env.

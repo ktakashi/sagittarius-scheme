@@ -3679,35 +3679,85 @@
 	  (mask (Sg_LogAnd mask1 mask2)))
       (result (logif mask (Sg_Ash from start) to))))
 
-  (define-c-proc bitwise-arithmetic-shift (ei1::<number> ei2::<fixnum>) ::<top>
+  (define-c-proc bitwise-arithmetic-shift (ei1::<number> ei2::<fixnum>)
     (result (Sg_Ash ei1 ei2)))
 
-  (define-c-proc bitwise-arithmetic-shift-left (ei1::<number> ei2::<fixnum>) ::<top>
+  (define-c-proc bitwise-arithmetic-shift-left (ei1::<number> ei2::<fixnum>)
     (result (Sg_Ash ei1 ei2)))
 
-  (define-c-proc bitwise-arithmetic-shift-right (ei1::<number> ei2::<fixnum>) ::<top>
+  (define-c-proc bitwise-arithmetic-shift-right (ei1::<number> ei2::<fixnum>)
     (result (Sg_Ash ei1 (- 0 ei2))))
 
   ;; 12 syntax-case
   ;; 12.5 identifier predicates
-  (define-c-proc identifier? (id) ::<boolean>
-    (result (or (SG_IDENTIFIERP id)
-		(SG_USER_DEFINED_SYNTXP id))))
+  (define-c-proc identifier? (id) ::<boolean> SG_IDENTIFIERP)
 
+  ;; p1env-lookup-rec is defined in vmlib.stub
+  "extern SgObject p1env_lookup_rec(SgVector *, SgObject, SgObject, int);"
+  ;; mark is '($macro-name)
+  (define-cfn is-mark? (env) ::int :static
+    (return (and (not (SG_NULLP env)) (not (SG_PAIRP (SG_CAR env))))))
+  (define-cfn id-env-compare (id1::SgIdentifier* id2::SgIdentifier*)
+    ::int :static
+    (when (SG_EQ id1 id2) (return TRUE)) ;; obvious case.
+    (if (SG_EQ (SG_IDENTIFIER_NAME id1) (SG_IDENTIFIER_NAME id2))
+	(cond ((and (not (SG_IDENTIFIER_PARENT id1))
+		    (not (SG_IDENTIFIER_PARENT id2))
+		    (SG_EQ (SG_IDENTIFIER_ENVS id1) (SG_IDENTIFIER_ENVS id2)))
+	       ;; fast path
+	       (return TRUE))
+	      ;; template variable case
+	      ;; if it's processed in the same macro expansion phase
+	      ;; the mark should be the same value.
+	      ;; it must be the illegal, so we don't consider it.
+	      ;; and other case, only the name must be
+	      ((is-mark? (SG_IDENTIFIER_ENVS id1)) (return TRUE))
+	      ((is-mark? (SG_IDENTIFIER_ENVS id2)) (return TRUE))
+	      ;; this needs to be after mark check.
+	      ((or (not (SG_NULLP (SG_IDENTIFIER_ENVS id1)))
+		   (not (SG_NULLP (SG_IDENTIFIER_ENVS id2))))
+	       (return (SG_EQ (SG_IDENTIFIER_ENVS id1) 
+			      (SG_IDENTIFIER_ENVS id2))))
+	      (else
+	       (let* ((vm::SgVM* (Sg_VM))
+		      ;; checks only top most variables.
+		      (v1 (p1env-lookup-rec (-> vm usageEnv)
+					    id1
+					    (SG_MAKE_INT 0) TRUE))
+		      (v2 (p1env-lookup-rec (-> vm usageEnv)
+					    id2
+					    (SG_MAKE_INT 0) TRUE)))
+		 (if (and (SG_EQ v1 id1) (SG_EQ v2 id2))
+		     ;; not locally bounded, so if the name are the same
+		     ;; it might be globally equal
+		     (let ((g1 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id1)
+					       (SG_IDENTIFIER_NAME id1) #f))
+			   (g2 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id2)
+					       (SG_IDENTIFIER_NAME id2) #f)))
+		       (if (and (or (SG_FALSEP g1) (SG_FALSEP g2))
+				(not (SG_EQ (SG_IDENTIFIER_LIBRARY id1)
+					    (SG_IDENTIFIER_LIBRARY id2))))
+			   ;; if libraries are not equal and #f returned
+			   ;; it's not the same identifier
+			   (return FALSE)
+			   (return (SG_EQ g1 g2))))
+		     (return (SG_EQ v1 v2))))))
+	(return FALSE)))
+
+  ;; free-identifier=? compares if the given 2 identifier indicates the
+  ;; same object.
   (define-c-proc free-identifier=? (id1::<identifier> id2::<identifier>)
     ::<boolean>
-    (result (and (SG_EQ (SG_IDENTIFIER_NAME id1)
-			(SG_IDENTIFIER_NAME id2))
-		 (SG_EQ (SG_IDENTIFIER_ENVS id1)
-			(SG_IDENTIFIER_ENVS id2)))))
-  ;; TODO dummy
-  (define-c-proc bound-identifier=? (id1::<identifier> id2::<identifier>) ::<boolean>
+    (result (id-env-compare id1 id2)))
+
+  ;; TODO
+  ;; bound-identifier=? must compare if it's the same syntax object or not
+  ;; otherwise it won't work properly.
+  (define-c-proc bound-identifier=? (id1::<identifier> id2::<identifier>)
+    ::<boolean>
     (let ((vm::SgVM* (Sg_VM)))
       (if (SG_EQ (-> vm usageEnv) (-> vm macroEnv))
-	  (result (and (SG_EQ (SG_IDENTIFIER_NAME id1)
-			      (SG_IDENTIFIER_NAME id2))
-		       (SG_EQ (SG_IDENTIFIER_ENVS id1)
-			      (SG_IDENTIFIER_ENVS id2))))
+	  (result (id-env-compare id1 id2))
 	  (result (SG_EQ id1 id2)))))
 
   ;; 13 Hashtables

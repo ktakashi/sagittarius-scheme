@@ -47,7 +47,7 @@ static void id_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   Sg_Write(id->name, port, ctx->mode);
   Sg_Putc(port, '#');
   Sg_Write(id->library->name, port, 0);
-#if 0
+#if 1
   if (SG_WRITE_MODE(ctx) == SG_WRITE_WRITE ||
       SG_WRITE_MODE(ctx) == SG_WRITE_SHARED) {
     char buf[50];
@@ -95,7 +95,12 @@ SgObject Sg_CopyIdentifier(SgIdentifier *id)
   SgIdentifier *z = make_identifier();
   z->name = id->name;
   z->library = id->library;
-  z->envs = SG_NIL; /* id->envs; */
+  /* mark is '(symbol) */
+  if (!SG_NULLP(id->envs) && !SG_PAIRP(SG_CAR(id->envs))) {
+    z->envs = id->envs;
+  } else {
+    z->envs = SG_NIL;
+  }
   z->parent = id;
   return SG_OBJ(z);
 }
