@@ -47,7 +47,7 @@ static void id_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   Sg_Write(id->name, port, ctx->mode);
   Sg_Putc(port, '#');
   Sg_Write(id->library->name, port, 0);
-#if 1
+#if 0
   if (SG_WRITE_MODE(ctx) == SG_WRITE_WRITE ||
       SG_WRITE_MODE(ctx) == SG_WRITE_SHARED) {
     char buf[50];
