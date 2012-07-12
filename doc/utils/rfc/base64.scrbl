@@ -16,8 +16,8 @@ should put linefeed. If this is less than 1 or #f, encoder does not put
 linefeed.
 }
 
-@define[Function]{@name{base64-encode-string string}
- @args{:key (line-width 76) (transcoder (native-transcoder))}}
+@define[Function]{@name{base64-encode-string}
+ @args{string :key (line-width 76) (transcoder (native-transcoder))}}
 @desc{Convenient procedure for string.
 
 Encodes given @var{string} to Base 64 encoded string.
