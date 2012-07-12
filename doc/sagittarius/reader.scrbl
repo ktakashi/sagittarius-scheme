@@ -92,7 +92,7 @@ Note: the @var{name} is only for error message. It does not affect anything.
 @define[Function]{@name{get-macro-character} @args{char}}
 @desc{Returns 2 values if @var{char} is macro character; one is associated
 procedure other one is boolean if the @var{char} is terminated character or not.
-Otherwise returns #f.
+Otherwise returns 2 #f.
 }
 
 @define[Function]{@name{set-macro-character}

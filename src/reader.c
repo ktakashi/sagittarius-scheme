@@ -1739,10 +1739,10 @@ SgObject Sg_GetMacroCharacter(SgChar c, readtable_t *table)
     SgObject term;
     if (r->type == CT_NON_TERM_MACRO) term = SG_TRUE;
     else if (r->type == CT_TERM_MACRO) term = SG_FALSE;
-    else return SG_FALSE;
+    else return Sg_Values2(SG_FALSE, SG_FALSE);
     return Sg_Values2(SG_UNBOUNDP(r->sfunc) ? SG_UNBOUND : r->sfunc, term);
   }
-  return SG_FALSE;
+  return Sg_Values2(SG_FALSE, SG_FALSE);
 }
 
 #define macro_function_item(name) { (name), SG_OBJ(&(SCHEME_OBJ(name))) }
