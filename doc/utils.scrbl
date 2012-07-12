@@ -3,6 +3,7 @@
 @section[:tag "utils"]{Utility libraries}
 
 @include-section["utils/asn.1.scrbl"]
+@include-section["utils/bytevector.scrbl"]
 @include-section["utils/crypto.scrbl"]
 @include-section["utils/math.scrbl"]
 @include-section["utils/net/oauth.scrbl"]
