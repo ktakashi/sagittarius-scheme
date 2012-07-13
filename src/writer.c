@@ -624,7 +624,15 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
   SgHashTable *ht = ctx->table;
 
   if (ctx->flags & WRITE_LIMITED) {
-    if (SG_TEXTUAL_PORT(port)->src.buffer.index >= ctx->limit) return;
+    /*
+      if the flag has WRITE_LIMITED, then output port must be
+      string output port
+    */
+    char_buffer *start = SG_TEXTUAL_PORT(port)->src.ostr.start;
+    char_buffer *current = SG_TEXTUAL_PORT(port)->src.ostr.current;
+    size_t count = 0;
+    for (; start != current; start = start->next) count++;
+    if (count >= ctx->limit) return;
   }
 
   if (!obj) {
