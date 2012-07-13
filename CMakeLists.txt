@@ -297,6 +297,12 @@ CONFIGURE_FILE(cmake/sagittarius-config.in
 CONFIGURE_FILE(cmake/sagittarius-package.in 
   ${PROJECT_BINARY_DIR}/sagittarius-package)
 IF (MSVC)
+  # make 32 bit and 64 bit different application
+  IF (SIZEOF_VOIDP EQUAL 4)
+    SET(SAGITTARIUS_APP_ID "{8413617A-84F7-45B0-8CA1-5B9C46DA2217}")
+  ELSE()
+    SET(SAGITTARIUS_APP_ID "{FEBF8AAA-EB3A-43EF-B289-A7BF3B74260A}")
+  ENDIF()
   CONFIGURE_FILE(win/innosetup.iss.in
     ${PROJECT_BINARY_DIR}/win/innosetup.iss)
 ENDIF()

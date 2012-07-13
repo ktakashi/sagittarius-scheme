@@ -1179,7 +1179,11 @@ static SgObject read_user_defined_object(SgPort *in, read_ctx *ctx)
     if (SG_PROCEDUREP(SG_CLASS(klass)->creader)) {
       obj = Sg_Apply2(SG_CLASS(klass)->creader, in, ctx);
     } else {
-      obj = SG_CLASS(klass)->cacheReader(in, (void *)ctx);
+      if (SG_CLASS(klass)->cacheReader) {
+	obj = SG_CLASS(klass)->cacheReader(in, (void *)ctx);
+      } else {
+	obj = SG_FALSE;
+      }
     }
     /* sanity check */
     if (!SG_XTYPEP(obj, klass)) {

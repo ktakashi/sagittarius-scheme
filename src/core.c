@@ -426,6 +426,8 @@ static void init_cond_features()
   Sg_AddCondFeature(UC("little-endian"));
 #endif
   Sg_AddCondFeature(UC("sagittarius-"SAGITTARIUS_VERSION));
+  /* maybe it's useful */
+  Sg_AddCondFeature(UC(SAGITTARIUS_TRIPLE));
 }
 
 /* somehow Visual Studio 2010 requires this to create dll.*/

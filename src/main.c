@@ -224,8 +224,8 @@ static void show_usage()
 
 static void version()
 {
-  printf("Sagittarius scheme shell, version %s\n",
-	 SAGITTARIUS_VERSION);
+  printf("Sagittarius scheme shell, version %s (%s)\n",
+	 SAGITTARIUS_VERSION, SAGITTARIUS_TRIPLE);
   exit(0);
 }
 
