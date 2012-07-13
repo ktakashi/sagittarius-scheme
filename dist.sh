@@ -1,40 +1,38 @@
 #!/bin/sh
 
-version=`./build/sash -v | perl -e 'while (<>) {if ($_ =~ /version (\d+?\.\d+?\.\d+?)/) {print $1;}}'`
-export DIST_NAME=sagittarius-$version
+if [ $# -ne 1 ]; then
+    echo Usage: $0 src-dir
+    exit -1
+fi
 
-# just in case
-if [ -e ${DIST_NAME} ]; 
-then
+SRC_DIR=$1
+
+# check current directory
+PWD=`pwd`
+if [ ${PWD} = ${SRC_DIR} ]; then
+    echo $0 must be run with out-of-tree build
+    exit -2
+fi
+
+if [ -e ./build/sash ]; then
+    version=`./build/sash -v | perl -e 'while (<>) {if ($_ =~ /version (\d+?\.\d+?\.\d+?)/) {print $1;}}'`
+else
+    echo ERROR: sash does not exist.
+    exit -3
+fi
+
+DIST_NAME=sagittarius-${version}
+
+# remove tar file if exists
+if [ -e ${DIST_NAME} ]; then
     rm -rf ${DIST_NAME}
 fi
 
-if [ -e src/sagittarius/config.h ]; then
-    # this should not be in tar file.
-    rm -f src/sagittarius/config.h
-fi
-
-# make sure ext/*/*_stub.c must be removed
-rm -f ext/*/*_stub.c
-
 # copy to tmp directory
 mkdir ${DIST_NAME}
-cp -r boot/ ${DIST_NAME}
-cp -r src/ ${DIST_NAME}
-cp -r lib/ ${DIST_NAME}
-cp -r sitelib/ ${DIST_NAME}
-cp -r cmake/ ${DIST_NAME}
-cp -r script/ ${DIST_NAME}
-cp -r test/ ${DIST_NAME}
-cp -r unicode/ ${DIST_NAME}
-cp -r doc/ ${DIST_NAME}
-cp -r ext/ ${DIST_NAME}
-cp -r run-test.scm ${DIST_NAME}
-cp -r autogen.sh ${DIST_NAME}
-cp -r cmake_uninstall.cmake.in ${DIST_NAME}
-cp -r CMakeLists.txt ${DIST_NAME}
-cp -r README.md ${DIST_NAME}
-cp -r Copyright ${DIST_NAME}
+# use rsync to exclude .hg stuff
+# hopefully this command exists any where...
+rsync -r --exclude='.hg*' ${SRC_DIR}/* ${DIST_NAME}
 
 tar -czvf ${DIST_NAME}.tar.gz ${DIST_NAME}
 
