@@ -262,7 +262,7 @@ static void cleanup_main(void *data)
   if (stat) {
     fprintf(stderr, "\n;; Statistics (*: main thread only):\n");
     fprintf(stderr, ";;  GC: %zubytes heap, %zubytes allocated, %ld gc occurred\n",
-	    GC_get_heap_size(), GC_get_total_bytes(), GC_gc_no);
+	    GC_get_heap_size(), GC_get_total_bytes(), GC_get_gc_no());
   }
 }
 

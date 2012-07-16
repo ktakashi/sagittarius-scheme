@@ -174,6 +174,34 @@ ENDIF()
 MARK_AS_ADVANCED(SAGITTARIUS_VERSION SAGITTARIUS_BUGREPORT
   SAGITTARIUS_NAME SAGITTARIUS_SHARE_LIB_PATH SAGITTARIUS_LIB_PATH)
 
+# TODO check if it's ok
+#SET(CMAKE_C_FLAGS "-W -Wall -O0 -g3 -gdwarf-2")
+IF (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+  SET(CMAKE_C_FLAGS "-Wall -O3 ${CMAKE_C_FLAGS}")
+  SET(CMAKE_CXX_FLAGS "-Wall -O3 ${CMAKE_CXX_FLAGS}")
+ELSEIF(MSVC)
+  # /MT to avoid C-runtime
+  # the rest is the same as CMake default
+  FOREACH(flag_var
+      CMAKE_CXX_FLAGS CMAKE_  CXX_FLAGS_DEBUG
+      CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_MINSIZEREL
+      CMAKE_CXX_FLAGS_RELWITHDEBINFO
+      CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
+      CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO)
+    IF(${flag_var} MATCHES "/MD")
+      STRING(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+    ENDIF(${flag_var} MATCHES "/MD")
+    IF(${flag_var} MATCHES "/MDd")
+      STRING(REGEX REPLACE "/MDd" "/MTd" ${flag_var} "${${flag_var}}")
+    ENDIF(${flag_var} MATCHES "/MDd")
+  ENDFOREACH(flag_var)
+  ADD_DEFINITIONS("-D_CRT_SECURE_NO_WARNINGS")
+ELSEIF(WATCOM)
+  # watcom's default alignment is 4, so we need to specify it.
+  SET(CMAKE_C_FLAGS "-ox ${CMAKE_C_FLAGS}")
+  SET(CMAKE_CXX_FLAGS "-ox -xs ${CMAKE_CXX_FLAGS}")
+ENDIF()
+
 IF(USE_BOEHM_GC)
   #SET(GC_DEPENDS_TARGET false)
   CHECK_INCLUDE_FILE(gc.h HAVE_GC_H)
@@ -205,9 +233,23 @@ IF(USE_BOEHM_GC)
       IF (NOT MSVC AND NOT WATCOM)
 	MESSAGE(FATAL_ERROR "First install Boehm GC. Go to gc directory.")
       ENDIF()
-      ADD_DEFINITIONS("-DLARGE_CONFIG")
-      ADD_SUBDIRECTORY(${CMAKE_CURRENT_BINARY_DIR}/${USED_GC_VERSION} build/gc)
-      INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/${USED_GC_VERSION}/include)
+      ADD_DEFINITIONS("-DLARGE_CONFIG -DGC_DLL")
+      # since we are using explicit GC_DLL macro, Boehm GC's unit test can not
+      # be built because of the dependency problem. so we need to recreate the
+      # CMakeLists.txt without ADD_SUBDIRECTORY.
+      # NOTE: Be aware when GC fixed this problem or changed CMakeLists.txt.
+      SET(GC_DIR ${CMAKE_CURRENT_BINARY_DIR}/${USED_GC_VERSION})
+      IF (NOT EXSITS ${GC_DIR}/CMakeLists.txt.in)
+	FILE(RENAME ${GC_DIR}/CMakeLists.txt ${GC_DIR}/CMakeLists.txt.in)
+      ENDIF()
+      FILE(REMOVE ${GC_DIR}/CMakeLists.txt)
+      FILE(READ ${GC_DIR}/CMakeLists.txt.in GC_BUILD_LINES)
+      STRING(REGEX REPLACE "ADD_SUBDIRECTORY(.+)" ""
+	GC_BUILD_LINES "${GC_BUILD_LINES}")
+      FILE(APPEND ${GC_DIR}/CMakeLists.txt "${GC_BUILD_LINES}")
+
+      ADD_SUBDIRECTORY(${GC_DIR} build/gc)
+      INCLUDE_DIRECTORIES(${GC_DIR}/include)
       SET(HAVE_GC_H 1)
       SET(GC_DEPENDS_TARGET gcmt-dll)
     ENDIF(NOT HAVE_GC_GC_H)
@@ -251,17 +293,6 @@ SET(SHLIB_SO_SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}")
 CONFIGURE_FILE(cmake/config-cmake.h.in 
   ${PROJECT_BINARY_DIR}/sagittarius/config.h)
 ADD_DEFINITIONS(-DHAVE_CONFIG_H)
-
-# TODO check if it's ok
-#SET(CMAKE_C_FLAGS "-W -Wall -O0 -g3 -gdwarf-2")
-IF (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-  SET(CMAKE_C_FLAGS "-Wall -O3 ${CMAKE_C_FLAGS}")
-  SET(CMAKE_CXX_FLAGS "-Wall -O3 ${CMAKE_CXX_FLAGS}")
-elseif(WATCOM)
-  # watcom's default alignment is 4, so we need to specify it.
-  SET(CMAKE_C_FLAGS "-ox ${CMAKE_C_FLAGS}")
-  SET(CMAKE_CXX_FLAGS "-ox -xs ${CMAKE_CXX_FLAGS}")
-endif()
 
 IF(MSVC OR WATCOM)
   ADD_DEFINITIONS(-DWIN32_LEAN_AND_MEAN)
