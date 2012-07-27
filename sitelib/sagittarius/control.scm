@@ -15,7 +15,14 @@
 	    dolist
 	    check-arg
 	    with-library
-	    unwind-protect)
+	    unwind-protect
+	    ;; for convenient
+	    ^a ^b ^c ^d ^e ^f ^g ^h ^i ^j ^k ^l ^m ^n
+	    ^o ^p ^q ^r ^s ^t ^u ^v ^w ^x ^y ^z ^_ ^
+	    ^a* ^b* ^c* ^d* ^e* ^f* ^g* ^h* ^i* ^j* ^k*
+	    ^l* ^m* ^n* ^o* ^p* ^q* ^r* ^s* ^t* ^u* ^v* ^w*
+	    ^x* ^y* ^z* ^_*
+	    )
     (import (core)
 	    (rename (only (core) define) (define define-with-key))
 	    (core base)
@@ -23,6 +30,7 @@
 	    (core syntax)
 	    (core misc)
 	    (match)
+	    (shorten)
 	    (srfi :26 cut)
 	    (sagittarius)
 	    (sagittarius vm))

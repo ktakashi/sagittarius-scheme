@@ -32,7 +32,8 @@
 #!nobacktrace
 (library (shorten helper)
     (export constructor)
-    (import (rnrs))
+    (import (core)
+	    (core syntax))
 
   (define (constructor args mark)
     (define (ctr arg)
@@ -76,12 +77,14 @@
 	    ^l* ^m* ^n* ^o* ^p* ^q* ^r* ^s* ^t* ^u* ^v* ^w*
 	    ^x* ^y* ^z* ^_*
 	    )
-    (import (rnrs) (shorten helper))
+    (import (core)
+	    (shorten helper))
 
   (define-syntax ^
-    (syntax-rules ()
-      ((_ args ...)
-       (lambda args ...))))
+    (lambda (x)
+      (syntax-case x ()
+	((_ args ...)
+	 #'(lambda args ...)))))
 
   (define-syntax define-^
     (lambda (x)
