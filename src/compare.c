@@ -56,7 +56,7 @@ static int eqv_internal(SgObject x, SgObject y, int from_equal_p)
     if (SG_NUMBERP(y)) {
       if (SG_FLONUMP(x)) {
 	if (SG_FLONUMP(y)) {
-	  return (SG_FLONUM(x)->value == SG_FLONUM(y)->value);
+	  return (SG_FLONUM_VALUE(x) == SG_FLONUM_VALUE(y));
 	} else {
 	  return FALSE;
 	}

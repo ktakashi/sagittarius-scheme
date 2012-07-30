@@ -3268,7 +3268,7 @@
 					  (SG_LIST1 ,v)))))
   (define-cise-expr flonum-value
     ((_ fl)
-     `(-> (SG_FLONUM ,fl) value)))
+     `(SG_FLONUM_VALUE ,fl)))
   ;; Again Watcom, I love it!!!
   (define-cise-expr nan-return
     ((_ d)

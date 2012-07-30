@@ -915,6 +915,9 @@ SgClass* Sg_ClassOf(SgObject obj)
     if (SG_INTP(obj)) return SG_CLASS_INTEGER;
     if (SG_EOFP(obj)) return SG_CLASS_EOF_OBJECT;
     if (SG_UNDEFP(obj)) return SG_CLASS_UNDEFINED_OBJECT;
+#ifdef USE_IMMEDIATE_FLONUM
+    if (SG_IFLONUMP(obj)) return SG_CLASS_REAL;
+#endif
     else return SG_CLASS_UNKNOWN;
   }
   if (SG_FLONUMP(obj)) return SG_CLASS_REAL;

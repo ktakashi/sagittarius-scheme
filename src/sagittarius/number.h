@@ -48,6 +48,8 @@ SG_CLASS_DECL(Sg_IntegerClass);
 #define SG_CLASS_RATIONAL    (&Sg_RationalClass)
 #define SG_CLASS_INTEGER     (&Sg_IntegerClass)
 
+SG_CDECL_BEGIN
+
 struct SgBignumRec
 {
   SG_HEADER;
@@ -98,8 +100,26 @@ struct SgFlonumRec
   double value;
 };
 
-#define SG_FLONUMP(obj)   SG_XTYPEP(obj, SG_CLASS_REAL)
-#define SG_FLONUM(obj)    ((SgFlonum*)(obj))
+#ifdef USE_IMMEDIATE_FLONUM
+typedef union SgIFlonumRec
+{
+#if SIZEOF_VOID == 8
+  double   f;
+#else
+  float    f;
+#endif
+  intptr_t i;
+} SgIFlonum;
+#define SG_FLONUMP(obj)      (SG_IFLONUMP(obj) || SG_XTYPEP(obj, SG_CLASS_REAL))
+#define SG_FLONUM(obj)    	/* don't use */
+#define SG_FLONUM_VALUE(obj) Sg_FlonumValue(obj)
+
+SG_EXTERN double Sg_FlonumValue(SgObject obj);
+#else
+#define SG_FLONUMP(obj)      SG_XTYPEP(obj, SG_CLASS_REAL)
+#define SG_FLONUM(obj)       ((SgFlonum*)(obj))
+#define SG_FLONUM_VALUE(obj) (SG_FLONUM(obj)->value)
+#endif	/* USE_IMMEDIATE_FLONUM */
 
 /* number type check */
 #define SG_EXACT_INTP(obj) ((SG_INTP(obj)) || (SG_BIGNUMP(obj)))
@@ -118,8 +138,6 @@ enum ScmClampMode {
 #define isinf(x) (!_finite(x) && !_isnan(x))
 #define isnan(x) _isnan(x)
 #endif
-
-SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeInteger(long x);
 SG_EXTERN SgObject Sg_MakeIntegerU(unsigned long x);

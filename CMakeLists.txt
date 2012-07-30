@@ -66,6 +66,7 @@ CHECK_FUNCTION_EXISTS(gettimeofday HAVE_GETTIMEOFDAY)
 
 # use boehm gc
 OPTION(USE_BOEHM_GC "use boehm gc" ON)
+OPTION(USE_IMMEDIATE_FLONUM "use immediate flonum" ON)
 OPTION(DEBUG_VERSION "debug version" ON)
 OPTION(SAGITTARIUS_PROFILE "profiler" ON)
 

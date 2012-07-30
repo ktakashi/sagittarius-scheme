@@ -666,7 +666,14 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
 	else if (ch == 0x7f) Sg_PutuzUnsafe(port, UC("delete"));
 	else                 Sg_PutcUnsafe(port, ch);
       }
-    } else {
+
+    } 
+#ifdef USE_IMMEDIATE_FLONUM
+    else if (SG_IFLONUMP(obj)) {
+      write_general(obj, port, ctx);
+    }
+#endif	/* USE_IMMEDIATE_FLONUM */
+    else {
       Sg_Panic("write: got a bogus object: %08x", SG_WORD(obj));
     }
     return;

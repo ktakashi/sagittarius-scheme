@@ -11,6 +11,7 @@
 #cmakedefine SAGITTARIUS_TRIPLE "@SAGITTARIUS_TRIPLE@"
 
 #cmakedefine USE_BOEHM_GC
+#cmakedefine USE_IMMEDIATE_FLONUM
 
 #cmakedefine HAVE_GC_H
 #cmakedefine HAVE_GC_GC_H

@@ -779,7 +779,7 @@ long Sg_GetIntegerClamp(SgObject obj, int clamp, int *oor)
     return Sg_BignumToSI(SG_BIGNUM(obj), clamp, oor);
   }
   else if (SG_FLONUMP(obj)) {
-    v = SG_FLONUM(obj)->value;
+    v = SG_FLONUM_VALUE(obj);
     goto flonum;
   }
   else if (SG_RATIONALP(obj)) {
@@ -819,7 +819,7 @@ unsigned long Sg_GetUIntegerClamp(SgObject obj, int clamp, int *oor)
     return Sg_BignumToUI(SG_BIGNUM(obj), clamp, oor);
   }
   else if (SG_FLONUMP(obj)) {
-    v = SG_FLONUM(obj)->value;
+    v = SG_FLONUM_VALUE(obj);
     goto flonum;
   }
   else if (SG_RATIONALP(obj)) {
@@ -869,7 +869,7 @@ int64_t  Sg_GetIntegerS64Clamp(SgObject obj, int clamp, int *oor)
     double v;
     SG_SET_INT64_MAX(maxval);
     SG_SET_INT64_MIN(minval);
-    v = SG_FLONUM(obj)->value;
+    v = SG_FLONUM_VALUE(obj);
     if (v > (double)maxval) {
       if (!(clamp & SG_CLAMP_HI)) goto err;
       return maxval;
@@ -906,7 +906,7 @@ uint64_t Sg_GetIntegerU64Clamp(SgObject obj, int clamp, int *oor)
     /* fall through */
   }
   if (SG_FLONUMP(obj)) {
-    double v = SG_FLONUM(obj)->value;
+    double v = SG_FLONUM_VALUE(obj);
     int64_t maxval;
     if (v < 0) {
       if (!(clamp & SG_CLAMP_LO)) goto err;
@@ -1060,35 +1060,34 @@ SgObject Sg_RationalMulDiv(SgObject x, SgObject y, int divide)
 
 static SgFlonum* make_flonum(double d)
 {
-  SgFlonum *f = SG_NEW_ATOMIC(SgFlonum);
+  /* check if flonum can be immediate */
+  SgFlonum *f;
+#ifdef USE_IMMEDIATE_FLONUM
+  SgIFlonum ifl;
+# if SIZEOF_VOID == 8
+  ifl.f = d;
+  if ((ifl.i & SG_IFLONUM_MASK) == 0) {
+    ifl.i += SG_IFLONUM_TAG;
+    return SG_OBJ(ifl.i);
+  }
+# else
+  if (FLT_MIN <= d && d <= FLT_MAX) {
+    ifl.f = (float)d;
+    if ((ifl.i & SG_IFLONUM_MASK) == 0) {
+      ifl.i += SG_IFLONUM_TAG;
+      return SG_OBJ(ifl.i);
+    }
+  }
+# endif	 /* SIZEOF_VOID == 8 */
+#endif	/* USE_IMMEDIATE_FLONUM */
+  f = SG_NEW_ATOMIC(SgFlonum);
   SG_SET_CLASS(f, SG_CLASS_REAL);
   f->value = d;
   return SG_OBJ(f);
 }
 
-/* well this is flonum cache. */
-#if USE_CONST_FLONUM
-#define DEFAULT_FLONUM_CACHE_COUNT 1000
-
-static SgFlonum CONST_FLONUM[DEFAULT_FLONUM_CACHE_COUNT];
-
-static SgFlonum * search_flonum_from_cache(double d)
-{
-  if (d > 0.0) {
-    double intpart;
-    double fract = modf(d, &intpart);
-    if (fract == 0.0 && d < (double)DEFAULT_FLONUM_CACHE_COUNT) {
-      return &(CONST_FLONUM[(int)d]);
-    }
-  }
-  return make_flonum(d);
-}
-
-#endif
-
 SgObject Sg_MakeFlonum(double d)
 {
-#if USE_CONST_FLONUM
   if (d == 0.0) {
     union { double f64; int64_t i64; } datum;
     datum.f64 = d;
@@ -1099,10 +1098,14 @@ SgObject Sg_MakeFlonum(double d)
     }
   }
   if (isnan(d)) return SG_NAN;
-  return search_flonum_from_cache(d);
-#else
   return make_flonum(d);
-#endif
+}
+
+double Sg_FlonumValue(SgObject obj)
+{
+  return (SG_IFLONUMP(obj)
+	  ? ((double)(((union SgIFlonumRec)((intptr_t)obj&~SG_IFLONUM_MASK)).f))
+	  : ((SgFlonum*)(obj))->value);
 }
 
 static inline SgObject make_complex(SgObject real, SgObject imag)
@@ -1138,7 +1141,7 @@ SgObject Sg_MakeComplexPolar(SgObject magnitude, SgObject angle)
 
 double Sg_GetDouble(SgObject obj)
 {
-  if (SG_FLONUMP(obj)) return SG_FLONUM(obj)->value;
+  if (SG_FLONUMP(obj)) return SG_FLONUM_VALUE(obj);
   else if (SG_INTP(obj)) return (double)SG_INT_VALUE(obj);
   else if (SG_BIGNUMP(obj)) return Sg_BignumToDouble(SG_BIGNUM(obj));
   else if (SG_RATIONAL(obj)) return Sg_RationalToDouble(obj);
@@ -1196,7 +1199,7 @@ SgObject Sg_Numerator(SgObject x)
   int inexact;
   SgObject obj;
   if (!SG_NUMBERP(x)) Sg_Error(UC("number required, but got %S"), x);
-  if (SG_FLONUMP(x) && SG_FLONUM(x)->value == 0.0) return x;
+  if (SG_FLONUMP(x) && SG_FLONUM_VALUE(x) == 0.0) return x;
   inexact = SG_FLONUMP(x);
   obj = Sg_Exact(x);
   if (SG_RATIONALP(obj)) {
@@ -1263,7 +1266,7 @@ SgObject Sg_StringToNumber(SgString *str, int radix, int strict)
 int Sg_ZeroP(SgObject obj)
 {
   if (SG_INTP(obj)) return obj == SG_MAKE_INT(0);
-  if (SG_FLONUMP(obj)) return SG_FLONUM(obj)->value == 0.0;
+  if (SG_FLONUMP(obj)) return SG_FLONUM_VALUE(obj) == 0.0;
   if (SG_BIGNUMP(obj)) {
     ASSERT(SG_BIGNUM_GET_SIGN(obj) != 0);
     return FALSE;
@@ -1285,7 +1288,7 @@ int Sg_IntegerP(SgObject obj)
   if (SG_INTP(obj) || SG_BIGNUMP(obj)) return TRUE;
   if (SG_RATIONALP(obj)) return FALSE; /* normalized ratnum never be integer */
   if (SG_FLONUMP(obj)) {
-    double d = SG_FLONUM(obj)->value;
+    double d = SG_FLONUM_VALUE(obj);
     double f, i;
     if (Sg_InfiniteP(obj)) return FALSE;
     if ((f = modf(d, &i)) == 0.0) return TRUE;
@@ -1304,7 +1307,7 @@ int Sg_OddP(SgObject obj)
     return (SG_BIGNUM(obj)->elements[0] & 1);
   }
   if (SG_FLONUMP(obj) && Sg_IntegerP(obj)) {
-    return (fmod(SG_FLONUM(obj)->value, 2.0) != 0.0);
+    return (fmod(SG_FLONUM_VALUE(obj), 2.0) != 0.0);
   }
   Sg_Error(UC("integer required, but got %S"), obj);
   return FALSE;			/* dummy */
@@ -1318,7 +1321,7 @@ int Sg_FiniteP(SgObject obj)
 int Sg_InfiniteP(SgObject obj)
 {
   if (SG_FLONUMP(obj)) {
-    double v = SG_FLONUM(obj)->value;
+    double v = SG_FLONUM_VALUE(obj);
     return isinf(v);
   } else if (SG_COMPLEXP(obj)) {
     SgObject r = SG_COMPLEX(obj)->real;
@@ -1333,7 +1336,7 @@ int Sg_InfiniteP(SgObject obj)
 int Sg_NanP(SgObject obj)
 {
   if (SG_FLONUMP(obj)) {
-    double v = SG_FLONUM(obj)->value;
+    double v = SG_FLONUM_VALUE(obj);
     return isnan(v);
   } else if (SG_COMPLEXP(obj)) {
     SgObject r = SG_COMPLEX(obj)->real;
@@ -1400,7 +1403,7 @@ SgObject Sg_Negate(SgObject obj)
     return SG_MAKE_INT(-n);
   }
   if (SG_FLONUMP(obj)) {
-    return Sg_MakeFlonum(-SG_FLONUM(obj)->value);
+    return Sg_MakeFlonum(-SG_FLONUM_VALUE(obj));
   }
   if (SG_BIGNUMP(obj)) {
     SgBignum *b = Sg_BignumCopy(obj);
@@ -1423,7 +1426,7 @@ int Sg_NegativeP(SgObject obj)
 {
   if (SG_INTP(obj)) return SG_INT_VALUE(obj) < 0;
   if (SG_BIGNUMP(obj)) return SG_BIGNUM_GET_SIGN(obj) < 0;
-  if (SG_FLONUMP(obj)) return SG_FLONUM(obj)->value < 0.0;
+  if (SG_FLONUMP(obj)) return SG_FLONUM_VALUE(obj) < 0.0;
   if (SG_RATIONALP(obj)) return Sg_NegativeP(SG_RATIONAL(obj)->numerator);
   if (SG_COMPLEXP(obj)) return Sg_NegativeP(SG_COMPLEX(obj)->real);
   Sg_Error(UC("number required, but got %S"), obj);
@@ -1437,10 +1440,10 @@ int Sg_PositiveP(SgObject obj)
   if (SG_FLONUMP(obj)) {
 #if __WATCOMC__
     /* on Watcom, +nan.0 is bigger than 0 */
-    if (isnan(SG_FLONUM(obj)->value)) return FALSE;
-    else return SG_FLONUM(obj)->value > 0.0;
+    if (isnan(SG_FLONUM_VALUE(obj))) return FALSE;
+    else return SG_FLONUM_VALUE(obj) > 0.0;
 #else
-    return SG_FLONUM(obj)->value > 0.0;
+    return SG_FLONUM_VALUE(obj) > 0.0;
 #endif
   }
   if (SG_RATIONALP(obj)) return Sg_PositiveP(SG_RATIONAL(obj)->numerator);
@@ -1452,7 +1455,7 @@ int Sg_PositiveP(SgObject obj)
 SgObject Sg_Exact(SgObject obj)
 {
   if (SG_FLONUMP(obj)) {
-    double d = SG_FLONUM(obj)->value;
+    double d = SG_FLONUM_VALUE(obj);
     double f, i;
 #ifdef __WATCOMC__
     /* Yes, on Watcom if +inf.0 or +nan.0 is passed to modf,
@@ -1560,7 +1563,7 @@ SgObject Sg_Inverse(SgObject obj)
     if (obj == SG_MAKE_INT(-1)) return obj;
     return Sg_MakeRational(SG_MAKE_INT(-1), Sg_Negate(obj));
   }
-  if (SG_FLONUMP(obj)) return Sg_MakeFlonum(1.0 / SG_FLONUM(obj)->value);
+  if (SG_FLONUMP(obj)) return Sg_MakeFlonum(1.0 / SG_FLONUM_VALUE(obj));
   if (SG_BIGNUMP(obj)) {
     if (SG_BIGNUM_GET_SIGN(obj) == 0) Sg_Error(UC("inverse required not 0 number."));
     if (SG_BIGNUM_GET_SIGN(obj) > 0) {
@@ -1778,7 +1781,7 @@ SgObject Sg_Add(SgObject x, SgObject y)
       return Sg_RationalAdd(SG_RATIONAL(y), x);
     }
     if (SG_FLONUMP(y)) {
-      return Sg_MakeFlonum((double)SG_INT_VALUE(x) + SG_FLONUM(y)->value);
+      return Sg_MakeFlonum((double)SG_INT_VALUE(x) + SG_FLONUM_VALUE(y));
     }
     if (SG_COMPLEXP(y)) {
       if (x == SG_MAKE_INT(0)) return y;
@@ -1789,16 +1792,16 @@ SgObject Sg_Add(SgObject x, SgObject y)
     if (SG_INTP(y)) {
       double z;
       if (y == SG_MAKE_INT(0)) return x;
-      z = SG_FLONUM(x)->value + (double)SG_INT_VALUE(y);
+      z = SG_FLONUM_VALUE(x) + (double)SG_INT_VALUE(y);
       return Sg_MakeFlonum(z);
     }
     if (SG_BIGNUMP(y) || SG_RATIONALP(y)) {
-      return Sg_MakeFlonum(SG_FLONUM(x)->value + Sg_GetDouble(y));
+      return Sg_MakeFlonum(SG_FLONUM_VALUE(x) + Sg_GetDouble(y));
     }
     if (SG_FLONUMP(y)) {
-      if (SG_FLONUM(x)->value == 0.0) return y;
-      if (SG_FLONUM(y)->value == 0.0) return x;
-      return Sg_MakeFlonum(SG_FLONUM(x)->value + SG_FLONUM(y)->value);
+      if (SG_FLONUM_VALUE(x) == 0.0) return y;
+      if (SG_FLONUM_VALUE(y) == 0.0) return x;
+      return Sg_MakeFlonum(SG_FLONUM_VALUE(x) + SG_FLONUM_VALUE(y));
     }
     if (SG_COMPLEXP(y)) {
       return Sg_MakeComplex(Sg_Add(SG_COMPLEX(y)->real, x), SG_COMPLEX(y)->imag);
@@ -1816,7 +1819,7 @@ SgObject Sg_Add(SgObject x, SgObject y)
       return Sg_RationalAdd(x, y);
     }
     if (SG_FLONUMP(y)) {
-      return Sg_MakeFlonum(Sg_BignumToDouble(x) + SG_FLONUM(y)->value);
+      return Sg_MakeFlonum(Sg_BignumToDouble(x) + SG_FLONUM_VALUE(y));
     }
     if (SG_COMPLEXP(y)) {
       return Sg_MakeComplex(Sg_Add(SG_COMPLEX(y)->real, x), SG_COMPLEX(y)->imag);
@@ -1831,7 +1834,7 @@ SgObject Sg_Add(SgObject x, SgObject y)
       return Sg_RationalAdd(x, y);
     }
     if (SG_FLONUMP(y)) {
-      return Sg_MakeFlonum(Sg_GetDouble(x) + SG_FLONUM(y)->value);
+      return Sg_MakeFlonum(Sg_GetDouble(x) + SG_FLONUM_VALUE(y));
     }
     if (SG_COMPLEXP(y)) {
       return Sg_MakeComplex(Sg_Add(SG_COMPLEX(y)->real, x), SG_COMPLEX(y)->imag);
@@ -1880,7 +1883,7 @@ SgObject Sg_Sub(SgObject x, SgObject y)
       return Sg_RationalSub(x, y);
     }
     if (SG_FLONUMP(y)) {
-      return Sg_MakeFlonum((double)SG_INT_VALUE(x) - SG_FLONUM(y)->value);
+      return Sg_MakeFlonum((double)SG_INT_VALUE(x) - SG_FLONUM_VALUE(y));
     }
     if (SG_COMPLEXP(y)) {
       if (x == SG_MAKE_INT(0)) return y;
@@ -1891,15 +1894,15 @@ SgObject Sg_Sub(SgObject x, SgObject y)
     if (SG_INTP(y)) {
       double z;
       if (y == SG_MAKE_INT(0)) return x;
-      z = SG_FLONUM(x)->value - (double)SG_INT_VALUE(y);
+      z = SG_FLONUM_VALUE(x) - (double)SG_INT_VALUE(y);
       return Sg_MakeFlonum(z);
     }
     if (SG_BIGNUMP(y) || SG_RATIONALP(y)) {
-      return Sg_MakeFlonum(SG_FLONUM(x)->value - Sg_GetDouble(y));
+      return Sg_MakeFlonum(SG_FLONUM_VALUE(x) - Sg_GetDouble(y));
     }
     if (SG_FLONUMP(y)) {
-      if (SG_FLONUM(y)->value == 0.0) return x;
-      return Sg_MakeFlonum(SG_FLONUM(x)->value - SG_FLONUM(y)->value);
+      if (SG_FLONUM_VALUE(y) == 0.0) return x;
+      return Sg_MakeFlonum(SG_FLONUM_VALUE(x) - SG_FLONUM_VALUE(y));
     }
     if (SG_COMPLEXP(y)) {
       return Sg_MakeComplex(Sg_Sub(x, SG_COMPLEX(y)->real), SG_COMPLEX(y)->imag);
@@ -1917,7 +1920,7 @@ SgObject Sg_Sub(SgObject x, SgObject y)
       return Sg_RationalSub(x, y);
     }
     if (SG_FLONUMP(y)) {
-      return Sg_MakeFlonum(Sg_BignumToDouble(x) - SG_FLONUM(y)->value);
+      return Sg_MakeFlonum(Sg_BignumToDouble(x) - SG_FLONUM_VALUE(y));
     }
     if (SG_COMPLEXP(y)) {
       return Sg_MakeComplex(Sg_Sub(x, SG_COMPLEX(y)->real), SG_COMPLEX(y)->imag);
@@ -1932,7 +1935,7 @@ SgObject Sg_Sub(SgObject x, SgObject y)
       return Sg_RationalSub(x, y);
     }
     if (SG_FLONUMP(y)) {
-      return Sg_MakeFlonum(Sg_GetDouble(x) - SG_FLONUM(y)->value);
+      return Sg_MakeFlonum(Sg_GetDouble(x) - SG_FLONUM_VALUE(y));
     }
     if (SG_COMPLEXP(y)) {
       return Sg_MakeComplex(Sg_Sub(x, SG_COMPLEX(y)->real), SG_COMPLEX(y)->imag);
@@ -1991,7 +1994,7 @@ SgObject Sg_Mul(SgObject x, SgObject y)
     if (SG_FLONUMP(y)) {
       if (x == SG_MAKE_INT(0)) return x;
       if (x == SG_MAKE_INT(1)) return y;
-      return Sg_MakeFlonum((double)SG_INT_VALUE(x) * SG_FLONUM(y)->value);
+      return Sg_MakeFlonum((double)SG_INT_VALUE(x) * SG_FLONUM_VALUE(y));
     }
     if (SG_COMPLEXP(y)) {
       if (x == SG_MAKE_INT(0)) return x;
@@ -2005,15 +2008,15 @@ SgObject Sg_Mul(SgObject x, SgObject y)
       double z;
       if (x == SG_MAKE_INT(0)) return x;
       if (x == SG_MAKE_INT(1)) return y;
-      z = SG_FLONUM(x)->value * (double)SG_INT_VALUE(y);
+      z = SG_FLONUM_VALUE(x) * (double)SG_INT_VALUE(y);
       return Sg_MakeFlonum(z);
     }
     if (SG_BIGNUMP(y) || SG_RATIONALP(y)) {
-      return Sg_MakeFlonum(SG_FLONUM(x)->value * Sg_GetDouble(y));
+      return Sg_MakeFlonum(SG_FLONUM_VALUE(x) * Sg_GetDouble(y));
     }
     if (SG_FLONUMP(y)) {
-      if (SG_FLONUM(y)->value == 1.0) return x;
-      return Sg_MakeFlonum(SG_FLONUM(x)->value * SG_FLONUM(y)->value);
+      if (SG_FLONUM_VALUE(y) == 1.0) return x;
+      return Sg_MakeFlonum(SG_FLONUM_VALUE(x) * SG_FLONUM_VALUE(y));
     }
     if (SG_COMPLEXP(y)) {
       return Sg_MakeComplex(Sg_Mul(x, SG_COMPLEX(y)->real),
@@ -2032,7 +2035,7 @@ SgObject Sg_Mul(SgObject x, SgObject y)
       return Sg_RationalMul(x, y);
     }
     if (SG_FLONUMP(y)) {
-      return Sg_MakeFlonum(Sg_BignumToDouble(x) * SG_FLONUM(y)->value);
+      return Sg_MakeFlonum(Sg_BignumToDouble(x) * SG_FLONUM_VALUE(y));
     }
     if (SG_COMPLEXP(y)) {
       return Sg_MakeComplex(Sg_Mul(x, SG_COMPLEX(y)->real),
@@ -2049,7 +2052,7 @@ SgObject Sg_Mul(SgObject x, SgObject y)
       return Sg_RationalMul(x, y);
     }
     if (SG_FLONUMP(y)) {
-      return Sg_MakeFlonum(Sg_GetDouble(x) * SG_FLONUM(y)->value);
+      return Sg_MakeFlonum(Sg_GetDouble(x) * SG_FLONUM_VALUE(y));
     }
     if (SG_COMPLEXP(y)) {
       return Sg_MakeComplex(Sg_Mul(x, SG_COMPLEX(y)->real),
@@ -2102,8 +2105,8 @@ SgObject Sg_Div(SgObject x, SgObject y)
 			     SG_RATIONAL(y)->numerator);
     }
     if (SG_FLONUMP(y)) {
-      if (SG_FLONUM(y)->value == 0.0) goto a_normal;
-      return Sg_MakeFlonum((double)SG_INT_VALUE(x) / SG_FLONUM(y)->value);
+      if (SG_FLONUM_VALUE(y) == 0.0) goto a_normal;
+      return Sg_MakeFlonum((double)SG_INT_VALUE(x) / SG_FLONUM_VALUE(y));
     }
     if (SG_COMPLEXP(y)) {
       SgObject r2;
@@ -2118,14 +2121,14 @@ SgObject Sg_Div(SgObject x, SgObject y)
     if (SG_INTP(y)) {
       if (y == SG_MAKE_INT(0)) goto a_normal;
       if (y == SG_MAKE_INT(1)) return x;
-      return Sg_MakeFlonum(SG_FLONUM(x)->value / SG_INT_VALUE(y));
+      return Sg_MakeFlonum(SG_FLONUM_VALUE(x) / SG_INT_VALUE(y));
     }
     if (SG_BIGNUMP(y) || SG_RATIONALP(y)) {
-      return Sg_MakeFlonum(SG_FLONUM(x)->value / Sg_GetDouble(y));
+      return Sg_MakeFlonum(SG_FLONUM_VALUE(x) / Sg_GetDouble(y));
     }
     if (SG_FLONUMP(y)) {
-      if (SG_FLONUM(y)->value == 0.0) goto a_normal;
-      return Sg_MakeFlonum(SG_FLONUM(x)->value / SG_FLONUM(y)->value);
+      if (SG_FLONUM_VALUE(y) == 0.0) goto a_normal;
+      return Sg_MakeFlonum(SG_FLONUM_VALUE(x) / SG_FLONUM_VALUE(y));
     }
     if (SG_COMPLEXP(y)) {
       SgObject r2;
@@ -2150,8 +2153,8 @@ SgObject Sg_Div(SgObject x, SgObject y)
 			     SG_RATIONAL(y)->numerator);
     }
     if (SG_FLONUMP(y)) {
-      if (SG_FLONUM(y)->value == 0.0) goto a_normal;
-      return Sg_MakeFlonum(Sg_GetDouble(x) / SG_FLONUM(y)->value);
+      if (SG_FLONUM_VALUE(y) == 0.0) goto a_normal;
+      return Sg_MakeFlonum(Sg_GetDouble(x) / SG_FLONUM_VALUE(y));
     }
     if (SG_COMPLEXP(y)) {
       SgObject r2;
@@ -2177,7 +2180,7 @@ SgObject Sg_Div(SgObject x, SgObject y)
       return Sg_RationalDiv(x, y);
     }
     if (SG_FLONUMP(y)) {
-      return Sg_MakeFlonum(Sg_GetDouble(x) / SG_FLONUM(y)->value);
+      return Sg_MakeFlonum(Sg_GetDouble(x) / SG_FLONUM_VALUE(y));
     }
     if (SG_COMPLEXP(y)) {
       SgObject r2;
@@ -2265,7 +2268,7 @@ SgObject Sg_Quotient(SgObject x, SgObject y, SgObject *rem)
     }
     if (SG_FLONUMP(y)) {
       rx = (double)SG_INT_VALUE(x);
-      ry = SG_FLONUM(y)->value;
+      ry = SG_FLONUM_VALUE(y);
       if (ry != floor(ry)) goto bad_argy;
       goto do_flonum;
     }
@@ -2289,7 +2292,7 @@ SgObject Sg_Quotient(SgObject x, SgObject y, SgObject *rem)
     }
     if (SG_FLONUMP(y)) {
       rx = Sg_BignumToDouble(SG_BIGNUM(x));
-      ry = SG_FLONUM(y)->value;
+      ry = SG_FLONUM_VALUE(y);
       if (ry != floor(ry)) goto bad_argy;
       goto do_flonum;
     }
@@ -2302,7 +2305,7 @@ SgObject Sg_Quotient(SgObject x, SgObject y, SgObject *rem)
     do_complex(x, start_again);
   }
   if (SG_FLONUMP(x)) {
-    rx = SG_FLONUM(x)->value;
+    rx = SG_FLONUM_VALUE(x);
     if (rx != floor(rx)) goto bad_arg;
   flonum_again:
     if (SG_INTP(y)) {
@@ -2310,7 +2313,7 @@ SgObject Sg_Quotient(SgObject x, SgObject y, SgObject *rem)
     } else if (SG_BIGNUMP(y)) {
       ry = Sg_BignumToDouble(SG_BIGNUM(y));
     } else if (SG_FLONUMP(y)) {
-      ry = SG_FLONUM(y)->value;
+      ry = SG_FLONUM_VALUE(y);
       if (ry != floor(ry)) goto bad_argy;
     } else if (SG_COMPLEXP(y)) {
       do_complex(y, flonum_again);
@@ -2378,7 +2381,7 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
     }
     if (SG_FLONUMP(y)) {
       rx = (double)SG_INT_VALUE(x);
-      ry = SG_FLONUM(y)->value;
+      ry = SG_FLONUM_VALUE(y);
       if (ry != floor(ry)) goto bad_argy;
       goto do_flonum;
     }
@@ -2408,7 +2411,7 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
     }
     if (SG_FLONUMP(y)) {
       rx = Sg_BignumToDouble(SG_BIGNUM(x));
-      ry = SG_FLONUM(y)->value;
+      ry = SG_FLONUM_VALUE(y);
       if (ry != floor(ry)) goto bad_argy;
       goto do_flonum;
     }
@@ -2419,7 +2422,7 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
   }
   if (SG_FLONUMP(x)) {
     double rem;
-    rx = SG_FLONUM(y)->value;
+    rx = SG_FLONUM_VALUE(y);
   flonum_again:
     if (rx != floor(rx)) goto bad_arg;
     if (SG_INTP(y)) {
@@ -2427,7 +2430,7 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
     } else if (SG_BIGNUMP(y)) {
       ry = Sg_BignumToDouble(y);
     } else if (SG_FLONUMP(y)) {
-      ry = SG_FLONUM(y)->value;
+      ry = SG_FLONUM_VALUE(y);
     } else if (SG_COMPLEXP(y)) {
       do_complex(y, flonum_again);
     } else {
@@ -2461,7 +2464,7 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
 
 static SgObject expt_body(SgObject x, SgObject y)
 {
-  if (SG_FLONUMP(x) && SG_FLONUM(x)->value == 0.0) {
+  if (SG_FLONUMP(x) && SG_FLONUM_VALUE(x) == 0.0) {
     if (SG_COMPLEXP(y)) {
       if (Sg_PositiveP(SG_COMPLEX(y)->real)) return Sg_MakeFlonum(0.0);
     } else {
@@ -2471,7 +2474,8 @@ static SgObject expt_body(SgObject x, SgObject y)
   if (Sg_ExactP(y)) {
     if (SG_INTP(y)) {
       if (SG_INT_VALUE(y) == 0) return SG_MAKE_INT(1);
-      if (SG_FLONUMP(x)) return Sg_MakeFlonum(pow(SG_FLONUM(x)->value, (double)SG_INT_VALUE(y)));
+      if (SG_FLONUMP(x)) return Sg_MakeFlonum(pow(SG_FLONUM_VALUE(x),
+						  (double)SG_INT_VALUE(y)));
       return oprtr_expt(x, SG_INT_VALUE(y));
     }
     if (SG_BIGNUMP(y)) {
@@ -2497,7 +2501,7 @@ static SgObject expt_body(SgObject x, SgObject y)
   } else {
     if (SG_FLONUMP(y)) {
       if (SG_REALP(x) && !Sg_NegativeP(x)) {
-	double n = SG_FLONUM(y)->value;
+	double n = SG_FLONUM_VALUE(y);
 	return Sg_MakeFlonum(pow(Sg_GetDouble(x), n));
       }
       return Sg_Exp(Sg_Mul(y, Sg_Log(x)));
@@ -2684,8 +2688,8 @@ SgObject Sg_Atan2(SgObject x, SgObject y)
 
 static inline int either_nan_p(SgObject arg0, SgObject arg1)
 {
-  if (SG_FLONUMP(arg0) && isnan(SG_FLONUM(arg0)->value)) return TRUE;
-  if (SG_FLONUMP(arg1) && isnan(SG_FLONUM(arg1)->value)) return TRUE;
+  if (SG_FLONUMP(arg0) && isnan(SG_FLONUM_VALUE(arg0))) return TRUE;
+  if (SG_FLONUMP(arg1) && isnan(SG_FLONUM_VALUE(arg1))) return TRUE;
   return FALSE;
 }
 
@@ -2722,7 +2726,7 @@ int Sg_NumCmp(SgObject x, SgObject y)
       return 0;
     }
     if (SG_FLONUMP(y)) {
-      double r = SG_INT_VALUE(x) - SG_FLONUM(y)->value;
+      double r = SG_INT_VALUE(x) - SG_FLONUM_VALUE(y);
       nan_return(r);
       if (r < 0) return -1;
       if (r > 0) return 1;
@@ -2750,21 +2754,21 @@ int Sg_NumCmp(SgObject x, SgObject y)
   }
   else if (SG_FLONUMP(x)) {
     if (SG_INTP(y)) {
-      double r = SG_FLONUM(x)->value - SG_INT_VALUE(y);
+      double r = SG_FLONUM_VALUE(x) - SG_INT_VALUE(y);
       nan_return(r);
       if (r < 0) return -1;
       if (r > 0) return 1;
       return 0;
     }
     if (SG_FLONUMP(y)) {
-      double  r = SG_FLONUM(x)->value - SG_FLONUM(y)->value;
+      double  r = SG_FLONUM_VALUE(x) - SG_FLONUM_VALUE(y);
       nan_return(r);
       if (r < 0) return -1;
       if (r > 0) return 1;
       return 0;
     }
     if (SG_BIGNUMP(y) || SG_RATIONALP(y)) {
-      double r = SG_FLONUM(x)->value - Sg_GetDouble(y);
+      double r = SG_FLONUM_VALUE(x) - Sg_GetDouble(y);
       nan_return(r);
       if (r < 0) return -1;
       if (r > 0) return 1;
@@ -2854,7 +2858,7 @@ SgObject Sg_Abs(SgObject obj)
       SG_BIGNUM_SET_SIGN(obj, 1);
     }
   } else if (SG_FLONUMP(obj)) {
-    double v = SG_FLONUM(obj)->value;
+    double v = SG_FLONUM_VALUE(obj);
     if (v < 0) return Sg_MakeFlonum(-v);
   } else if (SG_RATIONALP(obj)) {
     if (Sg_Sign(SG_RATIONAL(obj)->numerator) < 0) {
@@ -2911,7 +2915,7 @@ SgObject Sg_Sqrt(SgObject obj)
     return Sg_Div(nume, deno);
   }
   if (SG_FLONUMP(obj)) {
-    double s = SG_FLONUM(obj)->value;
+    double s = SG_FLONUM_VALUE(obj);
     if (s < 0.0) return Sg_MakeComplex(Sg_MakeFlonum(0.0), Sg_MakeFlonum(sqrt(-s)));
     return Sg_MakeFlonum(sqrt(s));
   }
@@ -2998,7 +3002,7 @@ int Sg_Sign(SgObject obj)
   } else if (SG_BIGNUMP(obj)) {
     r = SG_BIGNUM_GET_SIGN(obj);
   } else if (SG_FLONUMP(obj)) {
-    double v = SG_FLONUM(obj)->value;
+    double v = SG_FLONUM_VALUE(obj);
     if (v != 0.0) {
       r = v > 0.0 ? 1 : -1;
     }
@@ -3402,7 +3406,7 @@ SgObject Sg_Round(SgObject num, int mode)
   }
   if (SG_FLONUMP(num)) {
     double r = 0.0, v;
-    v = SG_FLONUM(num)->value;
+    v = SG_FLONUM_VALUE(num);
     switch (mode) {
     case SG_ROUND_FLOOR: r = floor(v); break;
     case SG_ROUND_CEIL: r = ceil(v); break;
@@ -3625,7 +3629,7 @@ SgObject Sg_NumberToString(SgObject obj, int radix, int use_upper)
   } else if (SG_BIGNUMP(obj)) {
     r = Sg_BignumToString(SG_BIGNUM(obj), radix, use_upper);
   } else if (SG_FLONUMP(obj)) {
-    double_print(buf, FLT_BUF, SG_FLONUM(obj)->value, FALSE);
+    double_print(buf, FLT_BUF, SG_FLONUM_VALUE(obj), FALSE);
     r = Sg_MakeStringC(buf);
   } else if (SG_RATIONALP(obj)) {
     SgObject nume, deno;
@@ -3679,29 +3683,13 @@ void Sg__InitNumber()
   }
 
   SG_2_52   = Sg_MakeBignumFromS64(iexpt_2n52);
-
-#if USE_CONST_FLONUM
-  /* initialize const flonums */
-#define INIT_CONST_FL(n, v) (n) = make_flonum(v);
-    
-
+  
+#define INIT_CONST_FL(o, d) o=make_flonum(d)
   INIT_CONST_FL(SG_NAN, NAN);
   INIT_CONST_FL(SG_POSITIVE_INFINITY, INFINITY);
   INIT_CONST_FL(SG_NEGATIVE_INFINITY, -INFINITY);
   INIT_CONST_FL(SG_FL_POSITIVE_ZERO, 0.0);
   INIT_CONST_FL(SG_FL_NEGATIVE_ZERO, -0.0);
-  {
-    int i;
-    for (i = 0; i < DEFAULT_FLONUM_CACHE_COUNT; i++) {
-      SG_SET_CLASS(&CONST_FLONUM[i], SG_CLASS_REAL);
-      CONST_FLONUM[i].value = (double)i/1.0;
-    }
-  }
-#else
-  SG_POSITIVE_INFINITY = Sg_MakeFlonum(INFINITY);
-  SG_NEGATIVE_INFINITY = Sg_MakeFlonum(-INFINITY);
-  SG_NAN = Sg_MakeFlonum(NAN);
-#endif
 }
   
 /*

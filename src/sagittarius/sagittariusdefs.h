@@ -229,7 +229,8 @@ SG_CDECL_END
   immediate:
   nnnn nnnn  nnnn nnnn  nnnn nnnn  nnnn nn01 : fixnum
   cccc cccc  cccc cccc  cccc cccc  0000 0011 : char
-  ---- ----  ---- ----  ---- ----  0000 1011 : #f, #t, '(), eof-object, undefined, unbound
+  ---- ----  ---- ----  ---- ----  0001 0011 : #f, #t, '(), eof-object, undefined, unbound
+  ---- ----  ---- ----  ---- ----  ---- 1011 : immediate flonum
 
   object header:
   ---- ----  ---- ----  ---- ----  ---- --10 : heap object
@@ -326,12 +327,12 @@ typedef enum  {
 #define SG_HTAG(obj)   (SG_TAG3(SG_HDR(obj)->tag))
 
 /* Immediate objects*/
-#define SG_IMMEDIATEP(obj) (SG_TAG8(obj) == 0x0b)
+#define SG_IMMEDIATEP(obj) (SG_TAG8(obj) == 0x13)
 #define SG_ITAG(obj)       (SG_WORD(obj)>>8)
 
 #define SG_MAKEBITS(v, shift)   ((intptr_t)(v)<<shift)
 
-#define SG__MAKE_ITAG(num) (((num)<<8) + 0x0b)
+#define SG__MAKE_ITAG(num) (((num)<<8) + 0x13)
 #define SG_FALSE           SG_OBJ(SG__MAKE_ITAG(0)) /* #f */
 #define SG_TRUE            SG_OBJ(SG__MAKE_ITAG(1)) /* #t */
 #define SG_NIL             SG_OBJ(SG__MAKE_ITAG(2)) /* '() */
@@ -368,6 +369,12 @@ typedef enum  {
 #define SG_MAKE_CHAR(obj)  SG_OBJ(((unsigned long)(obj) << 8) + 0x03)
 /* SgChar is typedef of int32_t, so max value is 24 bits  */
 #define SG_CHAR_MAX        (0xffffff)
+
+#ifdef USE_IMMEDIATE_FLONUM
+#define SG_IFLONUM_TAG     0x0b
+#define SG_IFLONUM_MASK    0x0F
+#define SG_IFLONUMP(obj)   (SG_TAG4(obj) == SG_IFLONUM_TAG)
+#endif	/* USE_IMMEDIATE_FLONUM */
 
 /* CLOS */
 #define SG_HOBJP(obj)  (SG_HPTRP(obj)&&(SG_HTAG(obj)==0x7))

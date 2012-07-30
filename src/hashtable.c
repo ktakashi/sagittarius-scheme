@@ -109,7 +109,7 @@ uint32_t Sg_EqvHash(SgObject obj)
       }
       SMALL_INT_HASH(hashval, u);
     } else if (SG_FLONUMP(obj)) {
-      hashval = (unsigned long)(SG_FLONUM(obj)->value * 2654435761UL);
+      hashval = (unsigned long)(SG_FLONUM_VALUE(obj) * 2654435761UL);
     } else if (SG_RATIONALP(obj)) {
       unsigned long h1 = Sg_EqvHash(SG_RATIONAL(obj)->numerator);
       unsigned long h2 = Sg_EqvHash(SG_RATIONAL(obj)->denominator);
