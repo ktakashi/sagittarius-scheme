@@ -262,7 +262,13 @@ static void cleanup_main(void *data)
   if (stat) {
     fprintf(stderr, "\n;; Statistics (*: main thread only):\n");
     fprintf(stderr, ";;  GC: %zubytes heap, %zubytes allocated, %ld gc occurred\n",
-	    GC_get_heap_size(), GC_get_total_bytes(), GC_get_gc_no());
+	    GC_get_heap_size(), GC_get_total_bytes(),
+#if GC_VERSION_MAJOR >= 7 && GC_VERSION_MINOR >= 2
+	    GC_get_gc_no()
+#else
+	    GC_gc_no
+#endif
+	    );
   }
 }
 

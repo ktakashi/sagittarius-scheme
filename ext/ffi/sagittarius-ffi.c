@@ -544,11 +544,19 @@ static int push_ffi_type_value(SgFuncInfo *info,
       *lastError = Sg_Sprintf(UC("'int' required but got %A"), obj);
       return FALSE;
     case FFI_SIGNATURE_FLOAT: {
-      storage->f32 = SG_FLONUM_VALUE(obj);;
+#if defined(__cplusplus) && defined(USE_IMMEDIATE_FLONUM)
+      storage->f32 = Sg_FlonumValue(obj);
+#else
+      storage->f32 = SG_FLONUM_VALUE(obj);
+#endif
       return TRUE;
     }
     case FFI_SIGNATURE_DOUBLE:
+#if defined(__cplusplus) && defined(USE_IMMEDIATE_FLONUM)
+      storage->f64 = Sg_FlonumValue(obj);
+#else
       storage->f64 = SG_FLONUM_VALUE(obj);
+#endif
       return TRUE;
     case FFI_SIGNATURE_UINT64:
     case FFI_SIGNATURE_INT64:

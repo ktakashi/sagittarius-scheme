@@ -92,9 +92,15 @@ void Sg_Init()
   SgObject nullsym, coreBase;
 #ifdef USE_BOEHM_GC
   GC_INIT();
+#if GC_VERSION_MAJOR >= 7 && GC_VERSION_MINOR >= 2
   GC_set_oom_fn(oom_handler);
   GC_set_finalize_on_demand(TRUE);
   GC_set_finalizer_notifier(finalizable);
+#else
+  GC_oom_fn = oom_handler;
+  GC_finalize_on_demand = TRUE;
+  GC_finalizer_notifier = finalizable;
+#endif
 #else
   /* do nothing for now*/
 #endif
