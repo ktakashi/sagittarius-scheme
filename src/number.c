@@ -1079,8 +1079,9 @@ static SgFlonum* make_flonum(double d)
     if ((ifl.i & SG_IFLONUM_MASK) == 0 &&
 	/* I don't know how much we can allow
 	   I think 2^13 to 2^15. let's make it 2^15
+	   0x7F(127) == 0
 	 */
-	e <= 0xE) {
+	(e == 0x7F || e <= 0xE)) {
       ifl.i += SG_IFLONUM_TAG;
       return SG_OBJ(ifl.i);
     }
