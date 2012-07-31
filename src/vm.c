@@ -657,7 +657,6 @@ void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
   }
   CONT(vm) = cc;
   FP(vm) = SP(vm) = s;
-  /* vm->fpOffset = CALC_OFFSET(vm, 0); */
 }
 
 /* #define USE_LIGHT_WEIGHT_APPLY 1 */
@@ -667,14 +666,11 @@ void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
     SgContFrame *newcont = (SgContFrame*)SP(vm);	\
     newcont->prev = CONT(vm);				\
     newcont->fp = FP(vm);				\
-    /* newcont->fp = (SgObject*)newcont - FP(vm); */	\
-    /* newcont->fp = vm->fpOffset; */			\
     newcont->size = (int)(SP(vm) - FP(vm));		\
     newcont->pc = next_pc;				\
     newcont->cl = CL(vm);				\
     CONT(vm) = newcont;					\
     SP(vm) += CONT_FRAME_SIZE;				\
-    /* FP(vm) = SP(vm);	*/				\
   } while (0)
 
 
@@ -1648,11 +1644,9 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
 		      SG_FALSE, NULL);
 
 #define TAIL_POS(vm)  (*PC(vm) == RET)
-#define CALL_CCONT(p, v, d) p(v, d)
 
 #define POP_CONT()							\
   do {									\
-    /* if (CONT(vm)->fp == NULL) { */					\
     if (CONT(vm)->fp == C_CONT_MARK) {					\
       void *data__[SG_CCONT_DATA_SIZE];					\
       SgObject v__ = AC(vm);						\
@@ -1671,16 +1665,14 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
       PC(vm) = PC_TO_RETURN;						\
       CL(vm) = CONT(vm)->cl;						\
       CONT(vm) = CONT(vm)->prev;					\
-      /* (vm)->fpOffset = CALC_OFFSET(vm, 0); */			\
-      AC(vm) = CALL_CCONT(after__, v__, data__);			\
+      AC(vm) = after__(v__, data__);					\
     } else if (IN_STACK_P((SgObject*)CONT(vm), vm)) {			\
       SgContFrame *cont__ = CONT(vm);					\
-      /* FP(vm) = (SgObject*)cont__ - cont__->fp; */			\
-      FP(vm) = cont__->fp;						\
-      SP(vm) = FP(vm) + cont__->size;					\
       PC(vm) = cont__->pc;						\
       CL(vm) = cont__->cl;						\
       CONT(vm) = cont__->prev;						\
+      FP(vm) = cont__->fp;						\
+      SP(vm) = FP(vm) + cont__->size;					\
     } else {								\
       int size__ = CONT(vm)->size;					\
       FP(vm) = SP(vm) = vm->stack;					\

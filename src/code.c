@@ -73,7 +73,8 @@
 static SgCodePacket empty_packet = EMPTY_PACKET;
 
 /* TODO define label object or symbol. */
-#define is_label(o) (SG_VECTORP(o) && Sg_VectorRef((o), 0, SG_FALSE) == SG_MAKE_INT(11))
+#define is_label(o)							\
+  (SG_VECTORP(o) && Sg_VectorRef((o), 0, SG_FALSE) == SG_MAKE_INT(11))
 
 static void push(SgCodeBuilder *cb, SgWord word)
 {
@@ -94,7 +95,7 @@ static void push(SgCodeBuilder *cb, SgWord word)
 
 static void flush(SgCodeBuilder *cb)
 {
-  int insn = MERGE_INSN_VALUE2(cb->packet.insn, cb->packet.arg0, cb->packet.arg1);
+  int insn = MERGE_INSN_VALUE2(cb->packet.insn,cb->packet.arg0,cb->packet.arg1);
   switch (cb->packet.type) {
   case EMPTY:
     return;
@@ -270,18 +271,6 @@ static void combineInsnArg1(SgCodeBuilder *cb, SgCodePacket *packet)
     }
     goto flush;
   }
-#if 0
-  case JUMP:
-    switch (cb->packet.insn) {
-    case SHIFTJ:
-      cb->packet.insn = SHIFTJ_JUMP;
-      cb->packet.obj = packet->obj;
-      break;
-    default:
-      goto flush;
-    }
-    break;
-#endif
   default:
   flush:
     flush(cb);

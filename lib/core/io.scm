@@ -1,4 +1,5 @@
 ;; -*- scheme -*-
+#!core
 (library (core io helper)
     (export make-file-options)
     (import (core)

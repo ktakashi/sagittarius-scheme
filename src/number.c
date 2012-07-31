@@ -1060,30 +1060,38 @@ SgObject Sg_RationalMulDiv(SgObject x, SgObject y, int divide)
 
 static SgFlonum* make_flonum(double d)
 {
-  /* check if flonum can be immediate */
   SgFlonum *f;
 #ifdef USE_IMMEDIATE_FLONUM
   SgIFlonum ifl;
+  /* check if flonum can be immediate */
 # if SIZEOF_VOIDP == 8
   ifl.f = d;
   if ((ifl.i & SG_IFLONUM_MASK) == 0) {
-    ifl.i += SG_IFLONUM_TAG;
+    ifl.i |= SG_IFLONUM_TAG;
     return SG_OBJ(ifl.i);
   }
 # else
   if (FLT_MIN <= d && d <= FLT_MAX) {
     ifl.f = (float)d;
-    /* To keep calculation better */
-    int e = ifl.i >> 23;
-    e &= 0x7F;			/* drop sign bit */
-    if ((ifl.i & SG_IFLONUM_MASK) == 0 &&
-	/* I don't know how much we can allow
-	   I think 2^13 to 2^15. let's make it 2^15
-	   0x7F(127) == 0
-	 */
-	(e == 0x7F || e <= 0xE)) {
-      ifl.i += SG_IFLONUM_TAG;
-      return SG_OBJ(ifl.i);
+    /* for MSVC we need to make scope... */
+    {
+      /* To keep calculation better
+	 TODO:
+	  this actually does not allow to make most of flonums immediate
+	  value except the numbers which have its fraction multiple of 5.
+	  So, this makes only gambit benchmarks sumfp and fibfp a bit faster.
+       */
+      int e = ifl.i >> 23;
+      e &= 0x7F;			/* drop sign bit */
+      if ((ifl.i & SG_IFLONUM_MASK) == 0 &&
+	  /* I don't know how much we can allow
+	     I think 2^13 to 2^15. let's make it 2^15
+	     0x7F(127) == 0
+	  */
+	  (e == 0x7F || e <= 0xE)) {
+	ifl.i |= SG_IFLONUM_TAG;
+	return SG_OBJ(ifl.i);
+      }
     }
   }
 # endif	 /* SIZEOF_VOIDP == 8 */

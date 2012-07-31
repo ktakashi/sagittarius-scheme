@@ -123,14 +123,12 @@
 (define-cise-stmt call-two-args-proc
   ((_ obj proc)
    `(let ((v ,obj))
-      (post-- (SP vm))
       ($result (,proc v (AC vm))))))
 
 (define-inst ADD (0 0 #t)
-  (let ((obj (INDEX (SP vm) 0)))
+  (let ((obj (POP (SP vm))))
     (cond ((and (SG_INTP (AC vm)) (SG_INTP obj))
 	   (let ((n::long (+ (SG_INT_VALUE obj) (SG_INT_VALUE (AC vm)))))
-	     (post-- (SP vm))
 	     (if (and (<= SG_INT_MIN n)
 		      (>= SG_INT_MAX n))
 		 ($result (SG_MAKE_INT n))
@@ -154,10 +152,9 @@
 	 (call-one-arg-with-insn-value Sg_Add c))))
 
 (define-inst SUB (0 0 #t)
-  (let ((obj (INDEX (SP vm) 0)))
+  (let ((obj (POP (SP vm))))
     (cond ((and (SG_INTP (AC vm)) (SG_INTP obj))
 	   (let ((n::long (- (SG_INT_VALUE obj) (SG_INT_VALUE (AC vm)))))
-	     (post-- (SP vm))
 	     (if (and (<= SG_INT_MIN n)
 		      (>= SG_INT_MAX n))
 		 ($result (SG_MAKE_INT n))
@@ -177,7 +174,7 @@
 	 (call-one-arg-with-insn-value Sg_Sub c))))
 
 (define-inst MUL (0 0 #t)
-  (call-two-args-proc (INDEX (SP vm) 0) Sg_Mul))
+  (call-two-args-proc (POP (SP vm)) Sg_Mul))
 
 (define-inst MULI (1 0 #t)
   (INSN_VAL1 val1 c)
@@ -190,7 +187,7 @@
 ;; uncatchable exception. If I can find a nice way to handle compile time
 ;; exception, this might be fixed.
 (define-inst DIV (0 0 #t)
-  (let* ((obj (INDEX (SP vm) 0))
+  (let* ((obj (POP (SP vm)))
 	 (exact::int (and (Sg_ExactP obj) (Sg_ExactP (AC vm)))))
     (if (and exact
 	     (SG_VM_IS_SET_FLAG vm SG_R6RS_MODE)
@@ -239,7 +236,7 @@
 (define-cise-stmt branch-number-test
   ((_ op func)
    `(let ((n (PEEK_OPERAND (PC vm)))
-	  (s (INDEX (SP vm) 0)))
+	  (s (POP (SP vm))))
       (if (and (SG_INTP (AC vm)) (SG_INTP s))
 	  (if (,op (cast intptr_t s) (cast intptr_t (AC vm)))
 	      (branch-number-test-helper)
@@ -247,7 +244,6 @@
 	  (if (,func s (AC vm))
 	      (branch-number-test-helper)
 	      (branch-number-test-helper n)))
-      (post-- (SP vm))
       NEXT)))
 
 (define-inst BNNUME (0 1 #t) :label
@@ -268,14 +264,13 @@
 (define-cise-stmt branch-test2
   ((_ proc)
    `(let ((n (PEEK_OPERAND (PC vm))))
-      (if (,proc (INDEX (SP vm) 0) (AC vm))
+      (if (,proc (POP (SP vm)) (AC vm))
 	  (begin
 	    (set! (AC vm) SG_TRUE)
 	    (post++ (PC vm)))
 	  (begin
 	    (+= (PC vm) (SG_INT_VALUE n))
 	    (set! (AC vm) SG_FALSE)))
-      (post-- (SP vm))
       NEXT)))
 
 (define-inst BNEQ (0 1 #t) :label
@@ -292,8 +287,8 @@
 	    (set! (AC vm) SG_TRUE)
 	    (post++ (PC vm)))
 	  (begin
-	    (+= (PC vm) (SG_INT_VALUE n))
-	    (set! (AC vm) SG_FALSE)))
+	    (set! (AC vm) SG_FALSE)
+	    (+= (PC vm) (SG_INT_VALUE n))))
       NEXT)))
 
 (define-inst BNNULL (0 1 #t) :label
@@ -304,8 +299,7 @@
 
 (define-cise-stmt builtin-number-compare
   ((_ op func)
-   `(let ((s (INDEX (SP vm) 0)))
-      (post-- (SP vm))
+   `(let ((s (POP (SP vm))))
       (if (and (SG_INTP (AC vm)) (SG_INTP s))
 	  ($result:b  (,op (cast intptr_t s) (cast intptr_t (AC vm))))
 	  ($result:b (,func s (AC vm)))))))
@@ -510,7 +504,7 @@
   (call-one-arg SG_CDR))
 
 (define-inst CONS (0 0 #t)
-  (call-two-args-proc (INDEX (SP vm) 0) Sg_Cons))
+  (call-two-args-proc (POP (SP vm)) Sg_Cons))
 
 (define-inst LIST (1 0 #t)
   (INSN_VAL1 val1 c)
@@ -554,14 +548,13 @@
 (define-cise-stmt call-two-args-compare
   ((_ obj proc)
    `(let ((v ,obj))
-      (post-- (SP vm))
       ($result:b (,proc v (AC vm))))))
 
 (define-inst EQ (0 0 #t)
-  (call-two-args-compare (INDEX (SP vm) 0) SG_EQ))
+  (call-two-args-compare (POP (SP vm)) SG_EQ))
 
 (define-inst EQV (0 0 #t)
-  (call-two-args-compare (INDEX (SP vm) 0) Sg_EqvP))
+  (call-two-args-compare (POP (SP vm)) Sg_EqvP))
 
 (define-inst NULLP (0 0 #t)
   ($result (SG_MAKE_BOOL (SG_NULLP (AC vm)))))
@@ -596,7 +589,7 @@
   ($result:i (SG_VECTOR_SIZE (AC vm))))
 
 (define-inst VEC_REF (0 0 #t)
-  (let ((obj (INDEX (SP vm) 0)))
+  (let ((obj (POP (SP vm))))
     (unless (SG_VECTORP obj)
       (wrong-type-of-argument-violation "vector-ref" "vector" obj))
     (unless (SG_INTP (AC vm))
@@ -605,12 +598,11 @@
       (when (or (>= index (SG_VECTOR_SIZE obj)) (< index 0))
 	(assertion-violation "vector-ref" "index out of range" 
 			     (SG_LIST2 obj (AC vm))))
-      (post-- (SP vm))
       ($result (SG_VECTOR_ELEMENT obj index)))))
 
 (define-inst VEC_SET (0 0 #t)
-  (let ((obj (INDEX (SP vm) 1))
-	(index (INDEX (SP vm) 0)))
+  (let ((index (POP (SP vm)))
+	(obj (POP (SP vm))))
     (unless (SG_VECTORP obj)
       (wrong-type-of-argument-violation "vector-set!" "vector" obj))
     (when (SG_LITERAL_VECTORP obj)
@@ -624,7 +616,6 @@
 	(assertion-violation "vector-set!" "index out of range" 
 			     (SG_LIST2 obj index)))
       (set! (SG_VECTOR_ELEMENT obj i) (AC vm))
-      (-= (SP vm) 2)
       ($result SG_UNDEF))))
 
 ;; combined instructions
@@ -658,24 +649,22 @@
   (GREF TAIL_CALL))
 
 (define-inst SET_CAR (0 0 #t)
-  (let ((obj (INDEX (SP vm) 0)))
+  (let ((obj (POP (SP vm))))
     (unless (SG_PAIRP obj)
       (wrong-type-of-argument-violation "set-car!" "pair" obj))
     (when (Sg_ConstantLiteralP obj)
       (assertion-violation "set-car!" "attempt to modify constant literal" obj))
     (SG_SET_CAR obj (AC vm))
-    (post-- (SP vm))
     ($result SG_UNDEF)))
 
 
 (define-inst SET_CDR (0 0 #t)
-  (let ((obj (INDEX (SP vm) 0)))
+  (let ((obj (POP (SP vm))))
     (unless (SG_PAIRP obj)
       (wrong-type-of-argument-violation "set-cdr!" "pair" obj))
     (when (Sg_ConstantLiteralP obj)
       (assertion-violation "set-cdr!" "attempt to modify constant literal" obj))
     (SG_SET_CDR obj (AC vm))
-    (post-- (SP vm))
     ($result SG_UNDEF)))
 
 (define-cise-stmt $cxxr
