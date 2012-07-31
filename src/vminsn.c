@@ -171,7 +171,7 @@ label_GREF:
 CASE(GREF) 
 {
 #line 83 "instructions.scm"
-{SgObject v=SG_FALSE;
+{SgObject v;
 REFER_GLOBAL(vm,v);
 {AC(vm)=(v);NEXT;}}}
 
@@ -807,7 +807,7 @@ label_GREF_PUSH:
 CASE(GREF_PUSH) 
 {
 #line 83 "instructions.scm"
-{SgObject v=SG_FALSE;
+{SgObject v;
 REFER_GLOBAL(vm,v);
 {PUSH(SP(vm),v);NEXT;}}}
 
@@ -829,7 +829,7 @@ label_GREF_CALL:
 CASE(GREF_CALL) 
 {
 #line 83 "instructions.scm"
-{SgObject v=SG_FALSE;
+{SgObject v;
 REFER_GLOBAL(vm,v);
 {AC(vm)=(v);}}}
 {goto label_CALL;}
@@ -838,7 +838,7 @@ label_GREF_TAIL_CALL:
 CASE(GREF_TAIL_CALL) 
 {
 #line 83 "instructions.scm"
-{SgObject v=SG_FALSE;
+{SgObject v;
 REFER_GLOBAL(vm,v);
 {AC(vm)=(v);}}}
 {goto label_TAIL_CALL;}
@@ -955,7 +955,7 @@ label_GREF_CAR:
 CASE(GREF_CAR) 
 {
 #line 83 "instructions.scm"
-{SgObject v=SG_FALSE;
+{SgObject v;
 REFER_GLOBAL(vm,v);
 {AC(vm)=(v);}}}
 {goto label_CAR;}
@@ -964,7 +964,7 @@ label_GREF_CDR:
 CASE(GREF_CDR) 
 {
 #line 83 "instructions.scm"
-{SgObject v=SG_FALSE;
+{SgObject v;
 REFER_GLOBAL(vm,v);
 {AC(vm)=(v);}}}
 {goto label_CDR;}
@@ -1009,7 +1009,7 @@ label_GREF_CAR_PUSH:
 CASE(GREF_CAR_PUSH) 
 {
 #line 83 "instructions.scm"
-{SgObject v=SG_FALSE;
+{SgObject v;
 REFER_GLOBAL(vm,v);
 {AC(vm)=(v);}}}
 {goto label_CAR_PUSH;}
@@ -1018,7 +1018,7 @@ label_GREF_CDR_PUSH:
 CASE(GREF_CDR_PUSH) 
 {
 #line 83 "instructions.scm"
-{SgObject v=SG_FALSE;
+{SgObject v;
 REFER_GLOBAL(vm,v);
 {AC(vm)=(v);}}}
 {goto label_CDR_PUSH;}

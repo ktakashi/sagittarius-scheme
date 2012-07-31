@@ -80,7 +80,7 @@
   NEXT)
 
 (define-inst GREF (0 1 #t)
-  (let ((v SG_FALSE))
+  (let ((v ))
     (REFER_GLOBAL vm v)
     ($result v)))
 

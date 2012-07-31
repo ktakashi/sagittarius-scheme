@@ -624,12 +624,10 @@ static void expand_stack(SgVM *vm);
 
 #define MOSTLY_FALSE(expr) expr
 
-/* TODO check stack expantion */
 #define CHECK_STACK(size, vm)					\
   do {								\
     if (MOSTLY_FALSE(SP(vm) >= (vm)->stackEnd - (size))) {	\
       expand_stack(vm);						\
-      /* Sg_Panic("stack overflow"); */				\
     }								\
   } while (0)
 
@@ -649,7 +647,6 @@ void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
   cc->prev = CONT(vm);
   cc->size = datasize;
   cc->pc = (SgWord*)after;
-  /* cc->fp = NULL; */
   cc->fp = C_CONT_MARK;
   cc->cl = CL(vm);
   for (i = 0; i < datasize; i++) {
@@ -1086,12 +1083,12 @@ static SgWord boundaryFrameMark = NOP;
 #define INDEX_CLOSURE(vm, n)  SG_CLOSURE(CL(vm))->frees[n]
 #define REFER_GLOBAL(vm, ret)						\
   do {									\
-    SgObject var = FETCH_OPERAND(PC(vm));				\
-    if (SG_GLOCP(var)) {						\
-      ret = SG_GLOC_GET(SG_GLOC(var));					\
-    } else if (SG_IDENTIFIERP(var)) {					\
-      SgObject value = Sg_FindBinding(SG_IDENTIFIER_LIBRARY(var),	\
-				      SG_IDENTIFIER_NAME(var),		\
+    ret = FETCH_OPERAND(PC(vm));					\
+    if (SG_GLOCP(ret)) {						\
+      ret = SG_GLOC_GET(SG_GLOC(ret));					\
+    } else if (SG_IDENTIFIERP(ret)) {					\
+      SgObject value = Sg_FindBinding(SG_IDENTIFIER_LIBRARY(ret),	\
+				      SG_IDENTIFIER_NAME(ret),		\
 				      SG_UNBOUND);			\
       if (SG_GLOCP(value)) {						\
 	ret = SG_GLOC_GET(SG_GLOC(value));				\
@@ -1099,8 +1096,8 @@ static SgWord boundaryFrameMark = NOP;
       } else {								\
 	Sg_AssertionViolation(SG_MAKE_STRING("vm"),			\
 			      Sg_Sprintf(UC("unbound variable %S"),	\
-					 SG_IDENTIFIER_NAME(var)),	\
-			      SG_IDENTIFIER_NAME(var));			\
+					 SG_IDENTIFIER_NAME(ret)),	\
+			      SG_IDENTIFIER_NAME(ret));			\
       }									\
     } else {								\
       Sg_Panic("[internal] GREF: gloc or identifier required.");	\
