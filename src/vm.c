@@ -662,10 +662,10 @@ void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
   do {							\
     SgContFrame *newcont = (SgContFrame*)SP(vm);	\
     newcont->prev = CONT(vm);				\
-    newcont->fp = FP(vm);				\
     newcont->size = (int)(SP(vm) - FP(vm));		\
     newcont->pc = next_pc;				\
     newcont->cl = CL(vm);				\
+    newcont->fp = FP(vm);				\
     CONT(vm) = newcont;					\
     SP(vm) += CONT_FRAME_SIZE;				\
   } while (0)
@@ -1086,7 +1086,7 @@ static SgWord boundaryFrameMark = NOP;
     ret = FETCH_OPERAND(PC(vm));					\
     if (SG_GLOCP(ret)) {						\
       ret = SG_GLOC_GET(SG_GLOC(ret));					\
-    } else if (SG_IDENTIFIERP(ret)) {					\
+    } else {								\
       SgObject value = Sg_FindBinding(SG_IDENTIFIER_LIBRARY(ret),	\
 				      SG_IDENTIFIER_NAME(ret),		\
 				      SG_UNBOUND);			\
@@ -1099,8 +1099,6 @@ static SgWord boundaryFrameMark = NOP;
 					 SG_IDENTIFIER_NAME(ret)),	\
 			      SG_IDENTIFIER_NAME(ret));			\
       }									\
-    } else {								\
-      Sg_Panic("[internal] GREF: gloc or identifier required.");	\
     }									\
   } while (0)
 
@@ -1665,9 +1663,9 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
       AC(vm) = after__(v__, data__);					\
     } else if (IN_STACK_P((SgObject*)CONT(vm), vm)) {			\
       SgContFrame *cont__ = CONT(vm);					\
+      CONT(vm) = cont__->prev;						\
       PC(vm) = cont__->pc;						\
       CL(vm) = cont__->cl;						\
-      CONT(vm) = cont__->prev;						\
       FP(vm) = cont__->fp;						\
       SP(vm) = FP(vm) + cont__->size;					\
     } else {								\

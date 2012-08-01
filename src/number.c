@@ -1000,13 +1000,25 @@ SgObject Sg_ReduceRational(SgObject rational)
   }
 }
 
+#define set_nume_deno(r, n, d)			\
+  do {						\
+    if (SG_RATIONALP(r)) {			\
+      (n) = SG_RATIONAL(r)->numerator;		\
+      (d) = SG_RATIONAL(r)->denominator;	\
+    } else {					\
+      (n) = (r);				\
+      (d) = SG_MAKE_INT(1);			\
+    }						\
+  } while (0)
+
+
 SgObject Sg_RationalAddSub(SgObject x, SgObject y, int subtract)
 {
-  SgObject nx = SG_RATIONALP(x) ? SG_RATIONAL(x)->numerator   : x;
-  SgObject dx = SG_RATIONALP(x) ? SG_RATIONAL(x)->denominator : SG_MAKE_INT(1);
-  SgObject ny = SG_RATIONALP(y) ? SG_RATIONAL(y)->numerator   : y;
-  SgObject dy = SG_RATIONALP(y) ? SG_RATIONAL(y)->denominator : SG_MAKE_INT(1);
+  SgObject nx, dx, ny, dy;
   SgObject gcd, fx, fy, nr, dr;
+
+  set_nume_deno(x, nx, dx);
+  set_nume_deno(y, ny, dy);
 
   if (Sg_NumEq(dx, dy)) {
     dr = dx;
@@ -1040,10 +1052,11 @@ SgObject Sg_RationalAddSub(SgObject x, SgObject y, int subtract)
 
 SgObject Sg_RationalMulDiv(SgObject x, SgObject y, int divide)
 {
-  SgObject nx = SG_RATIONALP(x) ? SG_RATIONAL(x)->numerator   : x;
-  SgObject dx = SG_RATIONALP(x) ? SG_RATIONAL(x)->denominator : SG_MAKE_INT(1);
-  SgObject ny = SG_RATIONALP(y) ? SG_RATIONAL(y)->numerator   : y;
-  SgObject dy = SG_RATIONALP(y) ? SG_RATIONAL(y)->denominator : SG_MAKE_INT(1);
+  SgObject nx, dx, ny, dy;
+
+  set_nume_deno(x, nx, dx);
+  set_nume_deno(y, ny, dy);
+
   if (divide) {
     /* swap */
     SgObject t = ny; ny = dy; dy = t;
@@ -1181,8 +1194,8 @@ SgObject Sg_DecodeFlonum(double d, int *exp, int *sign)
 double Sg_RationalToDouble(SgRational *obj)
 {
   const int BITSIZE_TH = 96;
-  double nume = Sg_GetDouble(obj->numerator); /* what if numerator is rational? */
-  double deno = Sg_GetDouble(obj->denominator); /* what if denominator is rational? */
+  double nume = Sg_GetDouble(obj->numerator);
+  double deno = Sg_GetDouble(obj->denominator);
   if (isinf(nume) || isinf(deno)) {
     if (isinf(nume) && isinf(deno)) {
       int nume_bitsize = Sg_BignumBitSize(obj->numerator);

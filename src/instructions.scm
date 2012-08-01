@@ -56,8 +56,8 @@
     ($result val)))
 
 (define-inst CONSTI (1 0 #f)
-  (INSN_VAL1 val1 c)
-  ($result:i val1))
+  ;;(INSN_VAL1 val1 c)
+  ($result:i (INSN_VALUE1 c)))
 
 (define-inst LREF (1 0 #t)
   (INSN_VAL1 val1 c)
@@ -86,24 +86,22 @@
 
 (define-inst GSET (0 1 #t)
   (let ((var (FETCH_OPERAND (PC vm))))
-    (cond ((SG_GLOCP var)
-	   (SG_GLOC_SET (SG_GLOC var) (AC vm)))
-	  ((SG_IDENTIFIERP var)
-	   (let ((oldval (Sg_FindBinding (SG_IDENTIFIER_LIBRARY var)
-					 (SG_IDENTIFIER_NAME var)
-					 SG_UNBOUND)))
-	     (when (SG_UNBOUNDP oldval)
-	       (Sg_AssertionViolation 
-		(SG_MAKE_STRING "set!")
-		(Sg_Sprintf (UC "unbound variable %S")
-			    (SG_IDENTIFIER_NAME var))
-		(SG_IDENTIFIER_NAME var)))
-	     (let ((g (Sg_MakeBinding (SG_IDENTIFIER_LIBRARY var)
+    (if (SG_GLOCP var)
+	(SG_GLOC_SET (SG_GLOC var) (AC vm))
+	(let ((oldval (Sg_FindBinding (SG_IDENTIFIER_LIBRARY var)
 				      (SG_IDENTIFIER_NAME var)
-				      (AC vm)
-				      0)))
-	       (set! (pointer (- (PC vm) 1)) (SG_WORD g)))))
-	  (else (Sg_Panic "[internal] GSET: gloc or identifier required"))))
+				      SG_UNBOUND)))
+	  (when (SG_UNBOUNDP oldval)
+	    (Sg_AssertionViolation 
+	     (SG_MAKE_STRING "set!")
+	     (Sg_Sprintf (UC "unbound variable %S")
+			 (SG_IDENTIFIER_NAME var))
+	     (SG_IDENTIFIER_NAME var)))
+	  (let ((g (Sg_MakeBinding (SG_IDENTIFIER_LIBRARY var)
+				   (SG_IDENTIFIER_NAME var)
+				   (AC vm)
+				   0)))
+	    (set! (pointer (- (PC vm) 1)) (SG_WORD g))))))
   (set! (AC vm) SG_UNDEF)
   NEXT)
 
@@ -129,10 +127,13 @@
   (let ((obj (POP (SP vm))))
     (cond ((and (SG_INTP (AC vm)) (SG_INTP obj))
 	   (let ((n::long (+ (SG_INT_VALUE obj) (SG_INT_VALUE (AC vm)))))
-	     (if (and (<= SG_INT_MIN n)
-		      (>= SG_INT_MAX n))
+	     (if (and (<= SG_INT_MIN n) (>= SG_INT_MAX n))
 		 ($result (SG_MAKE_INT n))
 		 ($result (Sg_MakeBignumFromSI n)))))
+	  #;
+	  ((and (SG_FLONUMP (AC vm)) (SG_FLONUMP obj))
+	   ($result (Sg_MakeFlonum (+ (SG_FLONUM_VALUE obj)
+				      (SG_FLONUM_VALUE (AC vm))))))
 	  (else
 	   (call-two-args-proc obj Sg_Add)))))
 
@@ -144,8 +145,7 @@
   (INSN_VAL1 val1 c)
   (cond ((SG_INTP (AC vm))
 	 (let ((n::long (+ val1 (SG_INT_VALUE (AC vm)))))
-	   (if (and (<= SG_INT_MIN n)
-		    (>= SG_INT_MAX n))
+	   (if (and (<= SG_INT_MIN n) (>= SG_INT_MAX n))
 	       ($result (SG_MAKE_INT n))
 	       ($result (Sg_MakeBignumFromSI n)))))
 	(else
@@ -155,10 +155,13 @@
   (let ((obj (POP (SP vm))))
     (cond ((and (SG_INTP (AC vm)) (SG_INTP obj))
 	   (let ((n::long (- (SG_INT_VALUE obj) (SG_INT_VALUE (AC vm)))))
-	     (if (and (<= SG_INT_MIN n)
-		      (>= SG_INT_MAX n))
+	     (if (and (<= SG_INT_MIN n) (>= SG_INT_MAX n))
 		 ($result (SG_MAKE_INT n))
 		 ($result (Sg_MakeBignumFromSI n)))))
+	  #;
+	  ((and (SG_FLONUMP (AC vm)) (SG_FLONUMP obj))
+	   ($result (Sg_MakeFlonum (- (SG_FLONUM_VALUE obj)
+				      (SG_FLONUM_VALUE (AC vm))))))
 	  (else
 	   (call-two-args-proc obj Sg_Sub)))))
 
@@ -166,8 +169,7 @@
   (INSN_VAL1 val1 c)
   (cond ((SG_INTP (AC vm))
 	 (let ((n::long (- val1 (SG_INT_VALUE (AC vm)))))
-	   (if (and (<= SG_INT_MIN n)
-		    (>= SG_INT_MAX n))
+	   (if (and (<= SG_INT_MIN n) (>= SG_INT_MAX n))
 	       ($result (SG_MAKE_INT n))
 	       ($result (Sg_MakeBignumFromSI n)))))
 	(else
@@ -237,7 +239,7 @@
   ((_ op func)
    `(let ((n (PEEK_OPERAND (PC vm)))
 	  (s (POP (SP vm))))
-      (if (and (SG_INTP (AC vm)) (SG_INTP s))
+      (if (logand (SG_INTP (AC vm)) (SG_INTP s))
 	  (if (,op (cast intptr_t s) (cast intptr_t (AC vm)))
 	      (branch-number-test-helper)
 	      (branch-number-test-helper n))
@@ -424,14 +426,14 @@
 (define-cise-stmt local-call-process
   ((_ c)
    `(begin
-      (INSN_VAL1 val1 ,c)
+      ;;(INSN_VAL1 val1 ,c)
       (when (and (SG_VM_LOG_LEVEL vm SG_TRACE_LEVEL)
 		 (== (-> vm state) RUNNING))
 	(Sg_Printf (-> vm logPort) (UC ";; calling %S\n") (AC vm)))
       (let ((cb::SgCodeBuilder* (-> (SG_CLOSURE (AC vm)) code)))
 	(set! (CL vm) (AC vm)
 	      (PC vm) (-> cb code)
-	      (FP vm) (- (SP vm) val1))))))
+	      (FP vm) (- (SP vm) (INSN_VALUE1 ,c)))))))
 
 (define-inst LOCAL_CALL (1 0 #t)
   (CHECK_STACK (SG_CLOSURE_MAX_STACK (AC vm)) vm)
@@ -441,8 +443,8 @@
 (define-cise-stmt tail-call-process
   ((_ code)
    `(begin
-      (INSN_VAL1 val1 ,code)
-      (set! (SP vm) (shift_args (FP vm) val1 (SP vm))))))
+      ;;(INSN_VAL1 val1 ,code)
+      (set! (SP vm) (shift_args (FP vm) (INSN_VALUE1 ,code) (SP vm))))))
 
 (define-inst TAIL_CALL (1 0 #t)
   (tail-call-process c)
@@ -465,23 +467,23 @@
 
 
 (define-inst ENTER (1 0 #f)
-  (INSN_VAL1 val1 c)
-  (set! (FP vm) (- (SP vm) val1))
+  ;;(INSN_VAL1 val1 c)
+  (set! (FP vm) (- (SP vm) (INSN_VALUE1 c)))
   NEXT)
 
 (define-inst LEAVE (1 0 #f)
-  (INSN_VAL1 val1 c)
-  (-= (SP vm) val1)
+  ;;(INSN_VAL1 val1 c)
+  (-= (SP vm) (INSN_VALUE1 c))
   NEXT)
 
 (define-inst DEFINE (1 1 #t)
-  (INSN_VAL1 val1 c)
+  ;;(INSN_VAL1 val1 c)
   (let ((var (FETCH_OPERAND (PC vm))))
     (ASSERT (SG_IDENTIFIERP var))
     (Sg_MakeBinding (SG_IDENTIFIER_LIBRARY var)
 		    (SG_IDENTIFIER_NAME var)
 		    (AC vm)
-		    val1)
+		    (INSN_VALUE1 c))
     (set! (AC vm) SG_UNDEF))
   NEXT)
 
@@ -518,8 +520,8 @@
     ($result ret)))
 
 (define-inst APPEND (1 0 #t)
-  (INSN_VAL1 val1 c)
-  (let ((nargs::int (- val1 1))
+  ;;(INSN_VAL1 val1 c)
+  (let ((nargs::int (- (INSN_VALUE1 c) 1))
 	(ret '()))
     (when (> nargs 0)
       (set! ret (AC vm))
@@ -557,13 +559,13 @@
   (call-two-args-compare (POP (SP vm)) Sg_EqvP))
 
 (define-inst NULLP (0 0 #t)
-  ($result (SG_MAKE_BOOL (SG_NULLP (AC vm)))))
+  ($result:b (SG_NULLP (AC vm))))
 
 (define-inst PAIRP (0 0 #t)
-  ($result (SG_MAKE_BOOL (SG_PAIRP (AC vm)))))
+  ($result:b (SG_PAIRP (AC vm))))
 
 (define-inst SYMBOLP (0 0 #t)
-  ($result (SG_MAKE_BOOL (SG_SYMBOLP (AC vm)))))
+  ($result:b (SG_SYMBOLP (AC vm))))
 
 (define-inst VECTOR (1 0 #t)
   (let ((v SG_UNDEF))
@@ -638,8 +640,7 @@
   NEXT)
 
 (define-inst CONSTI_PUSH (1 0 #f)
-  (INSN_VAL1 val1 c)
-  (PUSH (SP vm) (SG_MAKE_INT val1))
+  (PUSH (SP vm) (SG_MAKE_INT (INSN_VALUE1 c)))
   NEXT)
 
 (define-inst GREF_CALL (1 1 #t) :combined
