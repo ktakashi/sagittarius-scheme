@@ -166,7 +166,14 @@
   (parameterize ((insn-alist (map (^i (cons (~ i 'name) i)) insns)))
     (dolist (insn insns)
       (case-label insn)
-      (render1 insn))
+      (cgen-body (string-append "{"
+				(call-with-string-output-port
+				 (lambda (p)
+				   (let ((count (~ insn 'vals)))
+				     (dotimes (i count)
+				       (format p "~%int val~a;" (+ i 1))))))))
+      (render1 insn)
+      (cgen-body "}"))
     ))
 
 (define *insn-file* "instructions.scm")

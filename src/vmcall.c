@@ -138,11 +138,12 @@
   int argc, proctype;
   SgObject nm = SG_FALSE;	/* next method */
   INSN_VAL1(argc, c);
-
-  if (SG_VM_LOG_LEVEL(vm, SG_TRACE_LEVEL) && vm->state == RUNNING) {
+#ifdef SHOW_CALL_TRACE
+  if (MOSTLY_FALSE(SG_VM_LOG_LEVEL(vm,SG_TRACE_LEVEL)&&vm->state == RUNNING)) {
     Sg_Printf(vm->logPort, UC(";; calling %S\n"), AC(vm));
   }
-  if (!SG_PROCEDUREP(AC(vm))) {
+#endif
+  if (MOSTLY_FALSE(!SG_PROCEDUREP(AC(vm)))) {
     int i;
     CHECK_STACK(1, vm);
     for (i = 0; i < argc; i++) {

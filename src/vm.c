@@ -287,6 +287,7 @@ void Sg_SetCurrentReadTable(readtable_t *newtable)
  */
 #define CLEAN_STACK 1
 /* #define PROF_INSN 1 */
+/* #define SHOW_CALL_TRACE 1 */
 /*
   clear stack.
   for now, it's only used after compile.
@@ -622,7 +623,13 @@ SgObject Sg_Environment(SgObject lib, SgObject spec)
 static void print_frames(SgVM *vm);
 static void expand_stack(SgVM *vm);
 
+/* it does not improve performance */
+/* #ifdef __GNUC__ */
+#if 0
+#define MOSTLY_FALSE(expr) __builtin_expect(!!(expr), FALSE)
+#else
 #define MOSTLY_FALSE(expr) expr
+#endif
 
 #define CHECK_STACK(size, vm)					\
   do {								\
@@ -1543,8 +1550,7 @@ SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
 	return Sg_Apply1(vm->parentExHandler, 
 			 Sg_Condition(SG_LIST4(Sg_MakeNonContinuableViolation(),
 					       Sg_MakeWhoCondition(SG_INTERN("raise")),
-					       Sg_MakeMessageCondition(Sg_MakeString(UC("returned from non-continuable exception"),
-										     SG_LITERAL_STRING)),
+					       Sg_MakeMessageCondition(SG_MAKE_STRING("returned from non-continuable exception")),
 					       Sg_MakeIrritantsCondition(SG_LIST1(exception)))));
       }
       vm->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
@@ -2034,11 +2040,10 @@ SgObject run_loop()
 #include "vminsn.c"
 #undef DEFINSN
   };
-#endif	/* __GNUMC__ */
+#endif	/* __GNUC__ */
 
   for (;;) {
     SgWord c;
-    int val1 = 0, val2 = 0;
 
     DISPATCH;
     if (vm->attentionRequest) goto process_queue;

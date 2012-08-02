@@ -38,6 +38,15 @@
 	  ((ret) `((set! (AC vm) ,expr)
 		   (RET_INSN)
 		   NEXT))))))
+
+(define-cise-stmt $result:n
+  ((_ expr)
+   (let ((r (gensym "cise__")))
+     `(let ((,r :: long ,expr))
+	(if (and (<= SG_INT_MIN ,r) (>= SG_INT_MAX ,r))
+	    ($result (SG_MAKE_INT ,r))
+	    ($result (Sg_MakeBignumFromSI ,r)))))))
+
 ;; coercion
 (define-cise-stmt $result:b
   ((_ expr) `($result (SG_MAKE_BOOL ,expr))))
@@ -126,10 +135,7 @@
 (define-inst ADD (0 0 #t)
   (let ((obj (POP (SP vm))))
     (cond ((and (SG_INTP (AC vm)) (SG_INTP obj))
-	   (let ((n::long (+ (SG_INT_VALUE obj) (SG_INT_VALUE (AC vm)))))
-	     (if (and (<= SG_INT_MIN n) (>= SG_INT_MAX n))
-		 ($result (SG_MAKE_INT n))
-		 ($result (Sg_MakeBignumFromSI n)))))
+	   ($result:n (+ (SG_INT_VALUE obj) (SG_INT_VALUE (AC vm)))))
 	  #;
 	  ((and (SG_FLONUMP (AC vm)) (SG_FLONUMP obj))
 	   ($result (Sg_MakeFlonum (+ (SG_FLONUM_VALUE obj)
@@ -144,20 +150,14 @@
 (define-inst ADDI (1 0 #t)
   (INSN_VAL1 val1 c)
   (cond ((SG_INTP (AC vm))
-	 (let ((n::long (+ val1 (SG_INT_VALUE (AC vm)))))
-	   (if (and (<= SG_INT_MIN n) (>= SG_INT_MAX n))
-	       ($result (SG_MAKE_INT n))
-	       ($result (Sg_MakeBignumFromSI n)))))
+	 ($result:n (+ val1 (SG_INT_VALUE (AC vm)))))
 	(else
 	 (call-one-arg-with-insn-value Sg_Add c))))
 
 (define-inst SUB (0 0 #t)
   (let ((obj (POP (SP vm))))
     (cond ((and (SG_INTP (AC vm)) (SG_INTP obj))
-	   (let ((n::long (- (SG_INT_VALUE obj) (SG_INT_VALUE (AC vm)))))
-	     (if (and (<= SG_INT_MIN n) (>= SG_INT_MAX n))
-		 ($result (SG_MAKE_INT n))
-		 ($result (Sg_MakeBignumFromSI n)))))
+	   ($result:n (- (SG_INT_VALUE obj) (SG_INT_VALUE (AC vm)))))
 	  #;
 	  ((and (SG_FLONUMP (AC vm)) (SG_FLONUMP obj))
 	   ($result (Sg_MakeFlonum (- (SG_FLONUM_VALUE obj)
@@ -168,10 +168,7 @@
 (define-inst SUBI (1 0 #t)
   (INSN_VAL1 val1 c)
   (cond ((SG_INTP (AC vm))
-	 (let ((n::long (- val1 (SG_INT_VALUE (AC vm)))))
-	   (if (and (<= SG_INT_MIN n) (>= SG_INT_MAX n))
-	       ($result (SG_MAKE_INT n))
-	       ($result (Sg_MakeBignumFromSI n)))))
+	 ($result:n (- val1 (SG_INT_VALUE (AC vm)))))
 	(else
 	 (call-one-arg-with-insn-value Sg_Sub c))))
 
@@ -426,14 +423,15 @@
 (define-cise-stmt local-call-process
   ((_ c)
    `(begin
-      ;;(INSN_VAL1 val1 ,c)
-      (when (and (SG_VM_LOG_LEVEL vm SG_TRACE_LEVEL)
-		 (== (-> vm state) RUNNING))
-	(Sg_Printf (-> vm logPort) (UC ";; calling %S\n") (AC vm)))
+      (INSN_VAL1 val1 ,c)
+      (.if "defined(SHOW_CALL_TRACE)"
+	      (when (and (SG_VM_LOG_LEVEL vm SG_TRACE_LEVEL)
+			 (== (-> vm state) RUNNING))
+		(Sg_Printf (-> vm logPort) (UC ";; calling %S\n") (AC vm))))
       (let ((cb::SgCodeBuilder* (-> (SG_CLOSURE (AC vm)) code)))
 	(set! (CL vm) (AC vm)
 	      (PC vm) (-> cb code)
-	      (FP vm) (- (SP vm) (INSN_VALUE1 ,c)))))))
+	      (FP vm) (- (SP vm) val1))))))
 
 (define-inst LOCAL_CALL (1 0 #t)
   (CHECK_STACK (SG_CLOSURE_MAX_STACK (AC vm)) vm)
@@ -443,8 +441,8 @@
 (define-cise-stmt tail-call-process
   ((_ code)
    `(begin
-      ;;(INSN_VAL1 val1 ,code)
-      (set! (SP vm) (shift_args (FP vm) (INSN_VALUE1 ,code) (SP vm))))))
+      (INSN_VAL1 val1 ,code)
+      (set! (SP vm) (shift_args (FP vm) val1 (SP vm))))))
 
 (define-inst TAIL_CALL (1 0 #t)
   (tail-call-process c)
@@ -467,23 +465,23 @@
 
 
 (define-inst ENTER (1 0 #f)
-  ;;(INSN_VAL1 val1 c)
-  (set! (FP vm) (- (SP vm) (INSN_VALUE1 c)))
+  (INSN_VAL1 val1 c)
+  (set! (FP vm) (- (SP vm) val1))
   NEXT)
 
 (define-inst LEAVE (1 0 #f)
-  ;;(INSN_VAL1 val1 c)
-  (-= (SP vm) (INSN_VALUE1 c))
+  (INSN_VAL1 val1 c)
+  (-= (SP vm) val1)
   NEXT)
 
 (define-inst DEFINE (1 1 #t)
-  ;;(INSN_VAL1 val1 c)
+  (INSN_VAL1 val1 c)
   (let ((var (FETCH_OPERAND (PC vm))))
     (ASSERT (SG_IDENTIFIERP var))
     (Sg_MakeBinding (SG_IDENTIFIER_LIBRARY var)
 		    (SG_IDENTIFIER_NAME var)
 		    (AC vm)
-		    (INSN_VALUE1 c))
+		    val1)
     (set! (AC vm) SG_UNDEF))
   NEXT)
 
@@ -520,8 +518,8 @@
     ($result ret)))
 
 (define-inst APPEND (1 0 #t)
-  ;;(INSN_VAL1 val1 c)
-  (let ((nargs::int (- (INSN_VALUE1 c) 1))
+  (INSN_VAL1 val1 c)
+  (let ((nargs::int (- val1 1))
 	(ret '()))
     (when (> nargs 0)
       (set! ret (AC vm))
@@ -621,27 +619,20 @@
       ($result SG_UNDEF))))
 
 ;; combined instructions
-;; CONST_PUSH, LREF_PUSH and FREF_PUSH are treated specially for heavy head call
-(define-inst LREF_PUSH (1 0 #t)
-  (INSN_VAL1 val1 c)
-  (PUSH (SP vm) (REFER_LOCAL vm val1))
-  NEXT)
+(define-inst LREF_PUSH (1 0 #t) :combined
+  (LREF PUSH))
 
-(define-inst FREF_PUSH (1 0 #t)
-  (INSN_VAL1 val1 c)
-  (PUSH (SP vm) (INDEX_CLOSURE vm val1))
-  NEXT)
+(define-inst FREF_PUSH (1 0 #t) :combined
+  (FREF PUSH))
 
 (define-inst GREF_PUSH (0 1 #t) :combined
   (GREF PUSH))
 
-(define-inst CONST_PUSH (0 1 #f)
-  (PUSH (SP vm) (FETCH_OPERAND (PC vm)))
-  NEXT)
+(define-inst CONST_PUSH (0 1 #f) :combined
+  (CONST PUSH))
 
-(define-inst CONSTI_PUSH (1 0 #f)
-  (PUSH (SP vm) (SG_MAKE_INT (INSN_VALUE1 c)))
-  NEXT)
+(define-inst CONSTI_PUSH (1 0 #f) :combined
+  (CONSTI PUSH))
 
 (define-inst GREF_CALL (1 1 #t) :combined
   (GREF CALL))
