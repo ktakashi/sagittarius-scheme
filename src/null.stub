@@ -2885,8 +2885,8 @@
 	(Sg_Exit EXIT_SUCCESS)
 	(cond ((SG_INTP obj)
 	       (Sg_Exit (SG_INT_VALUE obj)))
-	      ((SG_FALSEP obj)
-	       (Sg_Exit EXIT_FAILURE))
+	      ((SG_TRUEP obj)
+	       (Sg_Exit EXIT_SUCCESS))
 	      (else
 	       (Sg_Exit EXIT_FAILURE)))))
 

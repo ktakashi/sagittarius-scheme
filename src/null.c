@@ -12406,8 +12406,8 @@ if (SG_UNBOUNDP(obj)){
 Sg_Exit(EXIT_SUCCESS);} else {
 if (SG_INTP(obj)){
 Sg_Exit(SG_INT_VALUE(obj));}else if(
-SG_FALSEP(obj)){
-Sg_Exit(EXIT_FAILURE);} else {
+SG_TRUEP(obj)){
+Sg_Exit(EXIT_SUCCESS);} else {
 #line 2891 "./null.stub"
 Sg_Exit(EXIT_FAILURE);}}
 SG_RETURN(SG_UNDEF);
