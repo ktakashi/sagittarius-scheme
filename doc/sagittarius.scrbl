@@ -431,11 +431,24 @@ reverse order. The cells of list may be reused to construct the returned list.
 @subsubsection{Vector operations}
 
 @define[Function]{@name{vector-copy} @args{vector :optional start end fill}}
-@desc{Copies a vector @var{vector}. Optional @var{start} and @var{end} arguments
-can be used to limit the range of @var{vector} to be copied. If the range
-specified by @var{start} and @var{end} falls outside of the original vector, the
-@var{fill} value is used to fill the result vector.
+@desc{[SRFI-43] Copies a vector @var{vector}. Optional @var{start} and @var{end}
+arguments can be used to limit the range of @var{vector} to be copied. If the
+range specified by @var{start} and @var{end} falls outside of the original
+vector, the @var{fill} value is used to fill the result vector.
 }
+
+@define[Function]{@name{vector-append} @args{vector @dots{}}}
+@desc{[SRFI-43] Returns a newly allocated vector that contains all elements in
+order from the subsequent locations in @var{vector @dots{}}.
+}
+
+@define[Function]{@name{vector-concatenate} @args{list-of-vectors}}
+@desc{[SRFI-43] Appends each vectors in @var{list-of-vectors}. This is
+equivalent to:
+
+@snipet{(apply vector-append @var{list-of-vectors})}
+}
+
 
 @subsubsection{Debugging aid}
 
