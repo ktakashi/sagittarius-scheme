@@ -38,6 +38,7 @@
 #include "sagittarius/number.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/bytevector.h"
+#include "sagittarius/record.h"
 #include "sagittarius/string.h"
 #include "sagittarius/vector.h"
 #include "sagittarius/hashtable.h"
@@ -90,6 +91,29 @@ static int eqv_internal(SgObject x, SgObject y, int from_equal_p)
     }
   }
   if (!SG_HPTRP(x)) return SG_EQ(x, y);
+  /* simple R7RS */
+  if (SG_TUPLEP(x)) {
+    if (SG_TUPLEP(y)) {
+      int xs = Sg_TupleSize(x);
+      int ys = Sg_TupleSize(y);
+      if (xs == ys) {
+	int i;
+	for (i = 0; i < xs; i++) {
+	  SgObject xe = Sg_TupleRef(x, i, SG_UNBOUND);
+	  SgObject ye = Sg_TupleRef(y, i, SG_UNBOUND);
+	  if (SG_UNBOUNDP(xe) || SG_UNBOUNDP(ye)) return FALSE;
+	  else if (eqv_internal(xe, ye, from_equal_p)) continue;
+	  else return FALSE;
+	}
+	return TRUE;
+      } else {
+	return FALSE;
+      }
+    } else {
+      return FALSE;
+    }
+  }
+
   if (from_equal_p) {
     cx = Sg_ClassOf(x);
     cy = Sg_ClassOf(y);
@@ -182,14 +206,12 @@ static SgObject pre_p(SgObject x, SgObject y, SgObject k)
     if (!SG_PAIRP(y)) {
       return SG_FALSE;
     }
-    if (!SG_INTP(k)) {
-      Sg_Error(UC("[internal error] fixnum required, but got %S"), k);
-    }
     ASSERT(SG_INTP(k));
     if (SG_INT_VALUE(k) <= 0) {
       return k;
     } else {
-      SgObject k2 = pre_p(SG_CAR(x), SG_CAR(y), SG_MAKE_INT(SG_INT_VALUE(k) - 1));
+      SgObject k2 = pre_p(SG_CAR(x), SG_CAR(y),
+			  SG_MAKE_INT(SG_INT_VALUE(k) - 1));
       if (SG_FALSEP(k2)) {
 	return SG_FALSE;
       }
@@ -244,6 +266,37 @@ static SgObject pre_p(SgObject x, SgObject y, SgObject k)
       return SG_FALSE;
     }
   }
+
+  /* R7RS */
+  if (SG_TUPLEP(x)) {
+    if (!SG_TUPLEP(y)) {
+      return SG_FALSE;
+    } else {
+      int sizex = Sg_TupleSize(x);
+      int sizey = Sg_TupleSize(y);
+      if (sizex != sizey) {
+	return SG_FALSE;
+      } else {
+	int i;
+	for (i = 0;; i++) {
+	  if (i == sizex || SG_INT_VALUE(k) <= 0) {
+	    return k;
+	  } else {
+	    SgObject xe = Sg_TupleRef(x, i, SG_UNBOUND);
+	    SgObject ye = Sg_TupleRef(y, i, SG_UNBOUND);
+	    SgObject k2;
+	    if (SG_UNBOUNDP(xe) || SG_UNBOUNDP(ye)) return SG_FALSE;
+	    k2 = pre_p(xe, ye, SG_MAKE_INT(SG_INT_VALUE(k) - 1));
+	    if (SG_FALSEP(k2)) {
+	      return SG_FALSE;
+	    }
+	    k = k2;
+	  }
+	}
+      }
+    }
+  }
+
   if (eqv_internal(x, y, TRUE)) {
     return k;
   } else {
@@ -251,9 +304,11 @@ static SgObject pre_p(SgObject x, SgObject y, SgObject k)
   }
 }
 
-static SgObject eP(SgHashTable **pht, SgObject x, SgObject y, SgObject k, struct equal_context *ctx);
+static SgObject eP(SgHashTable **pht, SgObject x, SgObject y,
+		   SgObject k, struct equal_context *ctx);		   
 
-static SgObject fast_p(SgHashTable **pht, SgObject x, SgObject y, SgObject k, struct equal_context *ctx)
+static SgObject fast_p(SgHashTable **pht, SgObject x, SgObject y,
+		       SgObject k, struct equal_context *ctx)
 {
   if (x == y) return k;
   if (SG_PAIRP(x)) {
@@ -313,6 +368,34 @@ static SgObject fast_p(SgHashTable **pht, SgObject x, SgObject y, SgObject k, st
       return SG_FALSE;
     }
   }
+  /* R7RS */
+  if (SG_TUPLEP(x)) {
+    if (!SG_TUPLEP(y)) {
+      return SG_FALSE;
+    } else {
+      int sizex = Sg_TupleSize(x);
+      int sizey = Sg_TupleSize(y);
+      if (sizex != sizey) {
+	return SG_FALSE;
+      } else {
+	int i;
+	for (i = 0;; i++) {
+	  if (i == sizex || SG_INT_VALUE(k) <= 0) {
+	    return k;
+	  } else {
+	    SgObject xe = Sg_TupleRef(x, i, SG_UNBOUND);
+	    SgObject ye = Sg_TupleRef(y, i, SG_UNBOUND);
+	    if (SG_UNBOUNDP(xe) || SG_UNBOUNDP(ye)) return SG_FALSE;
+	    k = eP(pht, xe, ye, k, ctx);
+	    if (SG_FALSEP(k)) {
+	      return SG_FALSE;
+	    }
+	  }
+	}
+      }
+    }
+  }
+
   if (eqv_internal(x, y, TRUE)) {
     return k;
   } else {
@@ -341,7 +424,8 @@ static SgObject find(SgObject b)
   }
 }
 
-static SgObject union_find(SgHashTable *ht, SgObject x, SgObject y, struct equal_context *ctx)
+static SgObject union_find(SgHashTable *ht, SgObject x, SgObject y,
+			   struct equal_context *ctx)
 {
   SgObject bx = Sg_HashTableRef(ht, x, SG_FALSE);
   SgObject by = Sg_HashTableRef(ht, y, SG_FALSE);
@@ -383,7 +467,8 @@ static SgObject union_find(SgHashTable *ht, SgObject x, SgObject y, struct equal
   }
 }
 
-static SgObject call_union_find(SgHashTable **pht, SgObject x, SgObject y, struct equal_context *ctx)
+static SgObject call_union_find(SgHashTable **pht, SgObject x,
+				SgObject y, struct equal_context *ctx)
 {
   if (*pht == NULL) {
     *pht = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
@@ -391,7 +476,8 @@ static SgObject call_union_find(SgHashTable **pht, SgObject x, SgObject y, struc
   return union_find(*pht, x, y, ctx);
 }
 
-static SgObject slow_p(SgHashTable **pht, SgObject x, SgObject y, SgObject k, struct equal_context *ctx)
+static SgObject slow_p(SgHashTable **pht, SgObject x, SgObject y,
+		       SgObject k, struct equal_context *ctx)
 {
   if (x == y) return k;
   if (SG_PAIRP(x)) {
@@ -455,6 +541,35 @@ static SgObject slow_p(SgHashTable **pht, SgObject x, SgObject y, SgObject k, st
       return k;
     } else {
       return SG_FALSE;
+    }
+  }
+  /* R7RS */
+  if (SG_TUPLEP(x)) {
+    int n, i;
+    if (!SG_TUPLEP(y)) {
+      return SG_FALSE;
+    }
+    n = Sg_TupleSize(x);
+    if (n != Sg_TupleSize(y)) {
+      return SG_FALSE;
+    }
+    if (!SG_FALSEP(call_union_find(pht, x, y, ctx))) {
+      return SG_MAKE_INT(0);
+    }
+    ASSERT(SG_INTP(k));
+    k = SG_MAKE_INT(SG_INT_VALUE(k) - 1);
+    for (i = 0;; i++) {
+      if (i == n) {
+	return k;
+      } else {
+	SgObject xe = Sg_TupleRef(x, i, SG_UNBOUND);
+	SgObject ye = Sg_TupleRef(y, i, SG_UNBOUND);
+	if (SG_UNBOUNDP(xe) || SG_UNBOUNDP(ye)) return SG_FALSE;
+	k = eP(pht, xe, ye, k, ctx);
+	if (SG_FALSEP(k)) {
+	  return SG_FALSE;
+	}
+      }
     }
   }
 

@@ -213,14 +213,32 @@ returned by @code{make-transcoder}, they return the @var{codec}, @var{eol-style}
 and @var{handling-mode} arguments, respectively.
 }
 
-@define[Function]{@name{bytevector->string} @args{bytevector transcoder}}
-@desc{[R6RS] Returns the string that results from transcoding the @var{bytevector}
-according to the input direction of the transcoder.
+@define[Function]{@name{bytevector->string}
+ @args{bytevector transcoder :optional start end}}
+@desc{[R6RS+] Returns the string that results from transcoding the
+@var{bytevector} according to the input direction of the transcoder.
+
+If the optional argument @var{start} is given, the procedure converts given
+string from @var{start} index (inclusive).
+
+If the optional argument @var{end} is given, the procedure converts given
+string to @var{end} index (exclusive).
+
+These optional arguments must be fixnum if it's given.
 }
 
-@define[Function]{@name{string->bytevector} @args{string transcoder}}
-@desc{[R6RS] Returns the bytevector that results from transcoding the @var{string}
-according to the output direction of the transcoder.
+@define[Function]{@name{string->bytevector}
+ @args{string transcoder :optional start end}}
+@desc{[R6RS] Returns the bytevector that results from transcoding the
+@var{string} according to the output direction of the transcoder.
+
+If the optional argument @var{start} is given, the procedure converts given
+string from @var{start} index (inclusive).
+
+If the optional argument @var{end} is given, the procedure converts given
+string to @var{end} index (exclusive).
+
+These optional arguments must be fixnum if it's given.
 }
 
 @sub*section{End-of-file object}

@@ -270,4 +270,13 @@
   (test-equal "string->utf8 (with start and end)"
 	      #vu8(#x32 #x33 #x34) (string->utf8 s 1 4)))
 
+;;; equal? for record
+(let ()
+  (define-record-type (pare kons pare?)
+    (fields (mutable x kar set-kar!)
+	    (immutable y kdr)))
+  (define a (kons (vector 1 2 3) '(a b c)))
+  (define b (kons (vector 1 2 3) '(a b c)))
+  (test-assert "equal? (record)" (equal? a b)))
+
 (test-end)

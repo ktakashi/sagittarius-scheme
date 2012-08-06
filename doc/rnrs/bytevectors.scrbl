@@ -332,9 +332,18 @@ invalid or incomplete character encoding is encountered, then the replacement
 character U+FFFD is appended to the string being generated, an appropriate number
 of bytes are ignored, and decoding continues with the following bytes.
 
-@define[Function]{@name{string->utf8} @args{string}}
-@desc{[R6RS] Returns a newly allocated (unless empty) bytevector that contains
-the UTF-8 encoding of the given @var{string}.}
+@define[Function]{@name{string->utf8} @args{string :optional start end}
+@desc{[R6RS+] [R7RS] Returns a newly allocated (unless empty) bytevector that
+contains the UTF-8 encoding of the given @var{string}.
+
+If the optional argument @var{start} is given, the procedure converts given
+string from @var{start} index (inclusive).
+
+If the optional argument @var{end} is given, the procedure converts given
+string to @var{end} index (exclusive).
+
+These optional arguments must be fixnum if it's given.
+}
 
 @define[Function]{@name{string->utf16} @args{string :optional endianness}}
 @desc{[R6RS] If @var{endianness} is specified, it must be the symbol @code{big}
@@ -354,9 +363,17 @@ is not specified or is @code{big}, then UTF-32BE is used. If @var{endianness} is
 @code{little}, then UTF-32LE is used.
 }
 
-@define[Function]{@name{utf8->string} @args{bytevector}}
+@define[Function]{@name{utf8->string} @args{bytevector} :optional start end}
 @desc{[R6RS] Returns a newly allocated (unless empty) string whose character
 sequence is encoded by the given @var{bytevector}.
+
+If the optional argument @var{start} is given, the procedure converts given
+string from @var{start} index (inclusive).
+
+If the optional argument @var{end} is given, the procedure converts given
+string to @var{end} index (exclusive).
+
+These optional arguments must be fixnum if it's given.
 }
 
 @define[Function]{@name{utf16->string} @args{bytevector endianness :optional endianness-mandatory?}}
