@@ -570,10 +570,10 @@ DECLARE_SIMPLE_CASE(compose, FALSE);
 
 DECLARE_BOOL_CASE(compatibility);
 
-#define DECLARE_OTHER_CASE_PRED(name)					\
+#define DECLARE_OTHER_CASE_PRED(name, lo, hi)				\
   static int SG_CPP_CAT(name, _property_p) (SgChar ch)			\
   {									\
-    if (0x345 <= ch && ch <= 0x10A0F) {					\
+    if ((lo) <= ch && ch <= (hi)) {					\
       const int size = array_sizeof(SG_CPP_CAT(s_, name));		\
       int i;								\
       for (i = 0; i < size; i++) {					\
@@ -585,9 +585,10 @@ DECLARE_BOOL_CASE(compatibility);
     }									\
     return FALSE;							\
   }
-DECLARE_OTHER_CASE_PRED(other_alphabetic);
-DECLARE_OTHER_CASE_PRED(other_lowercase);
-DECLARE_OTHER_CASE_PRED(other_uppercase);
+DECLARE_OTHER_CASE_PRED(other_alphabetic, 0x345, 0x10A0F);
+/* since unicode 6.1.0, 0xAA is categorised in Lo */
+DECLARE_OTHER_CASE_PRED(other_lowercase, 0xAA, 0x24E9);
+DECLARE_OTHER_CASE_PRED(other_uppercase, 0x2160, 0x24CF);
 #if 0
 static int other_alphabetic_property_p(SgChar ch)
 {
@@ -696,7 +697,7 @@ int Sg_CharLowerCaseP(SgChar ch)
     switch (Sg_CharGeneralCategory(ch)) {
     case Ll:
       return TRUE;
-    case Lm: case Mn: case Nl: case So:
+    case Lm: case Mn: case Nl: case So: case Lo:
       return other_lowercase_property_p(ch);
     default:
       return FALSE;

@@ -1,5 +1,4 @@
-YPSILON_HOME="D:/Program Files/Ypsilon"
-PROG=Ypsilon --sitelib=$(YPSILON_HOME)/sitelib
+PROG=sash
 
 all: ucd-1 ucd-2 ucd-code lexeme-code
 

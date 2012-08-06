@@ -47,9 +47,9 @@
   ;; hashtable
   ;; since 0.3.4, hashtable-ref's fallback is optional
   (define-method ref ((ht <hashtable>) key)
-    (hashtable-ref obj key))
+    (hashtable-ref ht key))
   (define-method (setter ref) ((ht <hashtable>) key value)
-    (hashtable-set! obj key value))
+    (hashtable-set! ht key value))
 
   ;; sequences
   (define-method ref ((obj <list>) (index <integer>))
