@@ -1866,15 +1866,17 @@
   ;; 2.9 operations on strings
   ;; converter
   ;; utf8 <-> string
-  (define-c-proc utf8->string (bv::<bytevector>)
+  (define-c-proc utf8->string (bv::<bytevector> :optional (start::<fixnum> 0)
+						(end::<fixnum> -1))
     (let ((transcoder (Sg_MakeTranscoder (Sg_MakeUtf8Codec)
 					 E_NONE SG_REPLACE_ERROR)))
-      (result (Sg_ByteVectorToString bv transcoder 0 -1))))
+      (result (Sg_ByteVectorToString bv transcoder start end))))
 
-  (define-c-proc string->utf8 (s::<string>)
+  (define-c-proc string->utf8 (s::<string> :optional (start::<fixnum> 0)
+					   (end::<fixnum> -1))
     (let ((transcoder (Sg_MakeTranscoder (Sg_MakeUtf8Codec)
 					 E_NONE SG_REPLACE_ERROR)))
-      (result (Sg_StringToByteVector s transcoder 0 -1))))
+      (result (Sg_StringToByteVector s transcoder start end))))
 
   ;; utf16 <-> string
   (define-c-proc utf16->string (bv::<bytevector> endian::<symbol>
@@ -1904,8 +1906,7 @@
 	(set! transcoder (Sg_MakeTranscoder codec E_NONE
 					    SG_REPLACE_ERROR))
 	;; TODO guard
-	(result (Sg_ByteVectorToString bv transcoder skipSize
-				       (- (SG_BVECTOR_SIZE bv) skipSize))))))
+	(result (Sg_ByteVectorToString bv transcoder skipSize -1)))))
 
   (define-c-proc string->utf16 (s::<string> :optional endian::<symbol>)
     (let ((endianness::Endianness UTF_16BE))
@@ -1967,8 +1968,7 @@
 	(set! codec (Sg_MakeUtf32Codec endianness))
 	(set! transcoder (Sg_MakeTranscoder codec E_NONE SG_REPLACE_ERROR))
 	;; TODO guard
-	(result (Sg_ByteVectorToString bv transcoder skipSize 
-				       (- (SG_BVECTOR_SIZE bv) skipSize))))))
+	(result (Sg_ByteVectorToString bv transcoder skipSize -1)))))
   
   ;; 3 List utilities
   (define-c-proc memq (arg0 arg1) ::<top>
@@ -2128,11 +2128,15 @@
 				  "transcoder had unknown error-handling-mode. this must be a bug, please report it"
 				  '())))))
 
-  (define-c-proc bytevector->string (b::<bytevector> t::<transcoder>) ::<top>
-    (result (Sg_ByteVectorToString b t 0 -1)))
+  (define-c-proc bytevector->string
+    (b::<bytevector> t::<transcoder>
+		     :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    (result (Sg_ByteVectorToString b t start end)))
 
-  (define-c-proc string->bytevector (s::<string> t::<transcoder>) ::<top>
-    (result (Sg_StringToByteVector s t 0 -1)))
+  (define-c-proc string->bytevector
+    (s::<string> t::<transcoder>
+		 :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    (result (Sg_StringToByteVector s t start end)))
 
   ;; 8.2.5 end-of-file object
   (define-c-proc eof-object () ::<top>

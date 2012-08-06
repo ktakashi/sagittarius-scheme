@@ -258,4 +258,16 @@
 (test-equal "pattern variable resolution" 2 
 	    (let ((r 2)) (patvar r)))
 
+
+;; optional argument for utf8->string, string->utf8 (R7RS)
+(let ((bv #vu8(#x31 #x32 #x33 #x34 #x35 #x36)))
+  (test-equal "utf8->string (with start)" "23456" (utf8->string bv 1))
+  (test-equal "utf8->string (with start and end)" "234" (utf8->string bv 1 4)))
+
+(let ((s "123456"))
+  (test-equal "string->utf8 (with start)"
+	      #vu8(#x32 #x33 #x34 #x35 #x36) (string->utf8 s 1))
+  (test-equal "string->utf8 (with start and end)"
+	      #vu8(#x32 #x33 #x34) (string->utf8 s 1 4)))
+
 (test-end)

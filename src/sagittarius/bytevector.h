@@ -67,7 +67,8 @@ SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeByteVector(size_t size, int fill);
 
-SG_EXTERN SgObject Sg_MakeByteVectorFromU8Array(const uint8_t *buf, size_t size);
+SG_EXTERN SgObject Sg_MakeByteVectorFromU8Array(const uint8_t *buf,
+						size_t size);
 
 SG_EXTERN SgObject Sg_NativeEndianness();
 SG_EXTERN int      Sg_ByteVectorEqP(SgByteVector *bv1, SgByteVector *bv2);
@@ -78,69 +79,108 @@ SG_EXTERN void     Sg_ByteVectorCopyX(SgByteVector *src, int srcStart,
 SG_EXTERN void     Sg_ByteVectorFill(SgByteVector *bv, int value);
 
 /* converter */
-SG_EXTERN SgObject Sg_ListToByteVector(SgObject lst, size_t bitCount, int signP);
-SG_EXTERN SgObject Sg_ByteVectorToList(SgByteVector *bv, size_t bitCount, int signP);
-SG_EXTERN SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder, size_t start, int size);
-SG_EXTERN SgObject Sg_StringToByteVector(SgString *s, SgTranscoder *transcoder, size_t start, int size);
-
+SG_EXTERN SgObject Sg_ListToByteVector(SgObject lst, size_t bitCount,
+				       int signP);
+SG_EXTERN SgObject Sg_ByteVectorToList(SgByteVector *bv, size_t bitCount,
+				       int signP);
+SG_EXTERN SgObject Sg_ByteVectorToString(SgByteVector *bv,
+					 SgTranscoder *transcoder,
+					 int start, int end);
+SG_EXTERN SgObject Sg_StringToByteVector(SgString *s,
+					 SgTranscoder *transcoder,
+					 int start, int end);
 /* u/s8 accessor */
 SG_EXTERN uint8_t  Sg_ByteVectorU8Ref(SgByteVector *bv, size_t index);
-SG_EXTERN void     Sg_ByteVectorU8Set(SgByteVector *bv, size_t index, uint8_t value);
+SG_EXTERN void     Sg_ByteVectorU8Set(SgByteVector *bv, size_t index,
+				      uint8_t value);
 SG_EXTERN int8_t   Sg_ByteVectorS8Ref(SgByteVector *bv, size_t index);
-SG_EXTERN void     Sg_ByteVectorS8Set(SgByteVector *bv, size_t index, int8_t value);
+SG_EXTERN void     Sg_ByteVectorS8Set(SgByteVector *bv, size_t index,
+				      int8_t value);
 /* u/s16 accessor */
 SG_EXTERN uint16_t Sg_ByteVectorU16NativeRef(SgByteVector *bv, size_t index);
 SG_EXTERN uint16_t Sg_ByteVectorU16LittleRef(SgByteVector *bv, size_t index);
 SG_EXTERN uint16_t Sg_ByteVectorU16BigRef(SgByteVector *bv, size_t index);
-SG_EXTERN void     Sg_ByteVectorU16NativeSet(SgByteVector *bv, size_t index, uint16_t value);
-SG_EXTERN void     Sg_ByteVectorU16LittleSet(SgByteVector *bv, size_t index, uint16_t value);
-SG_EXTERN void     Sg_ByteVectorU16BigSet(SgByteVector *bv, size_t index, uint16_t value);
+SG_EXTERN void     Sg_ByteVectorU16NativeSet(SgByteVector *bv, size_t index,
+					     uint16_t value);
+SG_EXTERN void     Sg_ByteVectorU16LittleSet(SgByteVector *bv, size_t index,
+					     uint16_t value);
+SG_EXTERN void     Sg_ByteVectorU16BigSet(SgByteVector *bv, size_t index,
+					  uint16_t value);
 SG_EXTERN int16_t  Sg_ByteVectorS16NativeRef(SgByteVector *bv, size_t index);
 SG_EXTERN int16_t  Sg_ByteVectorS16LittleRef(SgByteVector *bv, size_t index);
 SG_EXTERN int16_t  Sg_ByteVectorS16BigRef(SgByteVector *bv, size_t index);
-SG_EXTERN void     Sg_ByteVectorS16NativeSet(SgByteVector *bv, size_t index, int16_t value);
-SG_EXTERN void     Sg_ByteVectorS16LittleSet(SgByteVector *bv, size_t index, int16_t value);
-SG_EXTERN void     Sg_ByteVectorS16BigSet(SgByteVector *bv, size_t index, int16_t value);
+SG_EXTERN void     Sg_ByteVectorS16NativeSet(SgByteVector *bv, size_t index,
+					     int16_t value);
+SG_EXTERN void     Sg_ByteVectorS16LittleSet(SgByteVector *bv, size_t index,
+					     int16_t value);
+SG_EXTERN void     Sg_ByteVectorS16BigSet(SgByteVector *bv, size_t index,
+					  int16_t value);
 /* u/s32 accessor */
 SG_EXTERN uint32_t Sg_ByteVectorU32NativeRef(SgByteVector *bv, size_t index);
 SG_EXTERN uint32_t Sg_ByteVectorU32LittleRef(SgByteVector *bv, size_t index);
 SG_EXTERN uint32_t Sg_ByteVectorU32BigRef(SgByteVector *bv, size_t index);
-SG_EXTERN void     Sg_ByteVectorU32NativeSet(SgByteVector *bv, size_t index, uint32_t value);
-SG_EXTERN void     Sg_ByteVectorU32LittleSet(SgByteVector *bv, size_t index, uint32_t value);
-SG_EXTERN void     Sg_ByteVectorU32BigSet(SgByteVector *bv, size_t index, uint32_t value);
+SG_EXTERN void     Sg_ByteVectorU32NativeSet(SgByteVector *bv, size_t index,
+					     uint32_t value);
+SG_EXTERN void     Sg_ByteVectorU32LittleSet(SgByteVector *bv, size_t index,
+					     uint32_t value);
+SG_EXTERN void     Sg_ByteVectorU32BigSet(SgByteVector *bv, size_t index,
+					  uint32_t value);
 SG_EXTERN int32_t  Sg_ByteVectorS32NativeRef(SgByteVector *bv, size_t index);
 SG_EXTERN int32_t  Sg_ByteVectorS32LittleRef(SgByteVector *bv, size_t index);
 SG_EXTERN int32_t  Sg_ByteVectorS32BigRef(SgByteVector *bv, size_t index);
-SG_EXTERN void     Sg_ByteVectorS32NativeSet(SgByteVector *bv, size_t index, int32_t value);
-SG_EXTERN void     Sg_ByteVectorS32LittleSet(SgByteVector *bv, size_t index, int32_t value);
-SG_EXTERN void     Sg_ByteVectorS32BigSet(SgByteVector *bv, size_t index, int32_t value);
+SG_EXTERN void     Sg_ByteVectorS32NativeSet(SgByteVector *bv, size_t index,
+					     int32_t value);
+SG_EXTERN void     Sg_ByteVectorS32LittleSet(SgByteVector *bv, size_t index,
+					     int32_t value);
+SG_EXTERN void     Sg_ByteVectorS32BigSet(SgByteVector *bv, size_t index,
+					  int32_t value);
 /* u/s64 accessor */
 SG_EXTERN uint64_t Sg_ByteVectorU64NativeRef(SgByteVector *bv, size_t index);
 SG_EXTERN uint64_t Sg_ByteVectorU64LittleRef(SgByteVector *bv, size_t index);
 SG_EXTERN uint64_t Sg_ByteVectorU64BigRef(SgByteVector *bv, size_t index);
-SG_EXTERN void     Sg_ByteVectorU64NativeSet(SgByteVector *bv, size_t index, uint64_t value);
-SG_EXTERN void     Sg_ByteVectorU64LittleSet(SgByteVector *bv, size_t index, uint64_t value);
-SG_EXTERN void     Sg_ByteVectorU64BigSet(SgByteVector *bv, size_t index, uint64_t value);
+SG_EXTERN void     Sg_ByteVectorU64NativeSet(SgByteVector *bv, size_t index,
+					     uint64_t value);
+SG_EXTERN void     Sg_ByteVectorU64LittleSet(SgByteVector *bv, size_t index,
+					     uint64_t value);
+SG_EXTERN void     Sg_ByteVectorU64BigSet(SgByteVector *bv, size_t index,
+					  uint64_t value);
 SG_EXTERN int64_t  Sg_ByteVectorS64NativeRef(SgByteVector *bv, size_t index);
 SG_EXTERN int64_t  Sg_ByteVectorS64LittleRef(SgByteVector *bv, size_t index);
 SG_EXTERN int64_t  Sg_ByteVectorS64BigRef(SgByteVector *bv, size_t index);
-SG_EXTERN void     Sg_ByteVectorS64NativeSet(SgByteVector *bv, size_t index, int64_t value);
-SG_EXTERN void     Sg_ByteVectorS64LittleSet(SgByteVector *bv, size_t index, int64_t value);
-SG_EXTERN void     Sg_ByteVectorS64BigSet(SgByteVector *bv, size_t index, int64_t value);
+SG_EXTERN void     Sg_ByteVectorS64NativeSet(SgByteVector *bv, size_t index,
+					     int64_t value);
+SG_EXTERN void     Sg_ByteVectorS64LittleSet(SgByteVector *bv, size_t index,
+					     int64_t value);
+SG_EXTERN void     Sg_ByteVectorS64BigSet(SgByteVector *bv, size_t index,
+					  int64_t value);
 /* float accessor */
-SG_EXTERN float    Sg_ByteVectorIEEESingleNativeRef(SgByteVector *bv, size_t index);
-SG_EXTERN float    Sg_ByteVectorIEEESingleLittleRef(SgByteVector *bv, size_t index);
-SG_EXTERN float    Sg_ByteVectorIEEESingleBigRef(SgByteVector *bv, size_t index);
-SG_EXTERN void     Sg_ByteVectorIEEESingleNativeSet(SgByteVector *bv, size_t index, float value);
-SG_EXTERN void     Sg_ByteVectorIEEESingleLittleSet(SgByteVector *bv, size_t index, float value);
-SG_EXTERN void     Sg_ByteVectorIEEESingleBigSet(SgByteVector *bv, size_t index, float value);
+SG_EXTERN float    Sg_ByteVectorIEEESingleNativeRef(SgByteVector *bv,
+						    size_t index);
+SG_EXTERN float    Sg_ByteVectorIEEESingleLittleRef(SgByteVector *bv,
+						    size_t index);
+SG_EXTERN float    Sg_ByteVectorIEEESingleBigRef(SgByteVector *bv,
+						 size_t index);
+SG_EXTERN void     Sg_ByteVectorIEEESingleNativeSet(SgByteVector *bv,
+						    size_t index, float value);
+SG_EXTERN void     Sg_ByteVectorIEEESingleLittleSet(SgByteVector *bv,
+						    size_t index, float value);
+SG_EXTERN void     Sg_ByteVectorIEEESingleBigSet(SgByteVector *bv,
+						 size_t index, float value);
 /* double accessor */
-SG_EXTERN double    Sg_ByteVectorIEEEDoubleNativeRef(SgByteVector *bv, size_t index);
-SG_EXTERN double    Sg_ByteVectorIEEEDoubleLittleRef(SgByteVector *bv, size_t index);
-SG_EXTERN double    Sg_ByteVectorIEEEDoubleBigRef(SgByteVector *bv, size_t index);
-SG_EXTERN void      Sg_ByteVectorIEEEDoubleNativeSet(SgByteVector *bv, size_t index, double value);
-SG_EXTERN void      Sg_ByteVectorIEEEDoubleLittleSet(SgByteVector *bv, size_t index, double value);
-SG_EXTERN void      Sg_ByteVectorIEEEDoubleBigSet(SgByteVector *bv, size_t index, double value);
+SG_EXTERN double    Sg_ByteVectorIEEEDoubleNativeRef(SgByteVector *bv,
+						     size_t index);
+SG_EXTERN double    Sg_ByteVectorIEEEDoubleLittleRef(SgByteVector *bv,
+						     size_t index);
+SG_EXTERN double    Sg_ByteVectorIEEEDoubleBigRef(SgByteVector *bv,
+						  size_t index);
+SG_EXTERN void      Sg_ByteVectorIEEEDoubleNativeSet(SgByteVector *bv,
+						     size_t index,
+						     double value);
+SG_EXTERN void      Sg_ByteVectorIEEEDoubleLittleSet(SgByteVector *bv,
+						     size_t index,
+						     double value);
+SG_EXTERN void      Sg_ByteVectorIEEEDoubleBigSet(SgByteVector *bv,
+						  size_t index, double value);
 
 /* utility */
 SG_EXTERN SgObject Sg_ByteVectorToInteger(SgByteVector *bv, int start, int end);
