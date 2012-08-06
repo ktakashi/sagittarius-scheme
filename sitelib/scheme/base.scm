@@ -4,7 +4,6 @@
   (export
    * + - ... / < <= = => > >= abs and append apply assoc assq assv begin
    binary-port? boolean? bytevector-copy bytevector-copy!
-   bytevector-copy-partial
    bytevector-copy-partial! bytevector-length bytevector-u8-ref
    bytevector-u8-set!
    bytevector? caaaar caaadr caaar caadar caaddr caadr caar cadaar cadadr
@@ -38,7 +37,7 @@
    unquote-splicing utf8->string values vector vector->list
    vector->string vector-copy vector-fill! vector-for-each vector-length
    vector-map vector-ref vector-set! vector? when with-exception-handler
-   write-bytevector write-char write-partial-bytevector write-u8 zero?)
+   write-bytevector write-char write-u8 zero?)
   (import (except (rnrs) syntax-rules error define-record-type)
 	  (rnrs mutable-pairs)
 	  (rnrs mutable-strings)
@@ -100,67 +99,55 @@
      ((k fill) (srfi:make-list k fill))
      ((k) (srfi:make-list k (undefined)))))
 
-  ;; FIXME: these byte operations are really dangerous
   (define peek-u8
     (case-lambda
      (() (peek-u8 (current-input-port)))
-     ;; use reckless flag
-     ((port) (lookahead-u8 port #t))))
+     ((port) (lookahead-u8 port))))
 
   (define read-u8
     (case-lambda
      (() (read-u8 (current-input-port)))
-     ;; use reckless flag
-     ((port) (get-u8 port #t))))
+     ((port) (get-u8 port))))
 
   (define read-bytevector
     (case-lambda
      ((len) (read-bytevector len (current-input-port)))
-     ;; use reckless flag
-     ((len port) (get-bytevector-n port len #t))))
+     ((len port) (get-bytevector-n port len))))
 
   (define read-bytevector!
     (case-lambda
      ((bv start end) (read-bytevector! bv start end (current-input-port)))
-     ;; use reckless flag
-     ((bv start end port) (get-bytevector-n! port bv start end #t))))
+     ((bv start end port) (get-bytevector-n! port bv start end))))
 
   (define write-u8
     (case-lambda
      ((u8) (write-u8 u8 (current-output-port)))
-     ;; use reckless flag
-     ((u8 port) (put-u8 port u8 #t))))
+     ((u8 port) (put-u8 port u8))))
 
   (define write-bytevector
     (case-lambda
      ((bv) (write-bytevector bv (current-output-port)))
-     ;; use reckless flag
-     ((bv port) (put-bytevector port bv #t))))
-
-  (define write-partial-bytevector
-    (case-lambda
-     ((bv start end) (write-partial-bytevector bv start end
-					       (current-output-port)))
-     ;; use reckless flag
-     ((bv start end port) (put-bytevector port bv start (- end start) #t))))
+     ((bv port) (put-bytevector port bv))
+     ((bv port start) put-bytevector port bv start)
+     ((bv port start end) put-bytevector port bv start end)))
 
   (define read-line
     (case-lambda
      (() (read-line (current-input-port)))
      ((port) (get-line port))))
 
-  (define (string->vector s)
-    (let* ((len (string-length s))
+  (define (string->vector s :optional (start 0) (end (string-length s)))
+    (let* ((len (- end start))
 	   (v   (make-vector len)))
-      (do ((i 0 (+ i 1)))
-	  ((= i len) v)
+      (do ((i start (+ i 1)))
+	  ((= i end) v)
 	(vector-set! v i (string-ref s i)))))
 
-  (define (vector->string v)
-    (let* ((len (vector-length v))
+  (define (vector->string v :optional (start 0) (end (vector-length v)))
+    (let* ((len (- end start))
 	   (s   (make-string len)))
-      (do ((i 0 (+ i 1)))
-	  ((= i len) s)
+      (do ((i start (+ i 1)))
+	  ((= i end) s)
 	(let ((e (vector-ref v i)))
 	  (unless (char? e)
 	    (assertion-violation 'vector->string
