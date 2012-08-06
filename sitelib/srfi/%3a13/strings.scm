@@ -1631,21 +1631,24 @@
 ; Alas, Scheme 48's APPLY blows up if you have many, many arguments.
 ;(define (string-concatenate strings) (apply string-append strings))
 
+;;;;
+;; Now this is implemented in C 
+;;;;
 ;;; Here it is written out. I avoid using REDUCE to add up string lengths
 ;;; to avoid non-R5RS dependencies.
-(define (string-concatenate strings)
-  (check-arg list? strings string-concatenate)
-  (let* ((total (do ((strings strings (cdr strings))
-		     (i 0 (+ i (string-length (car strings)))))
-		    ((not (pair? strings)) i)))
-	 (ans (make-string total)))
-    (let lp ((i 0) (strings strings))
-      (if (pair? strings)
-	  (let* ((s (car strings))
-		 (slen (string-length s)))
-	    (%string-copy! ans i s 0 slen)
-	    (lp (+ i slen) (cdr strings)))))
-    ans))
+;; (define (string-concatenate strings)
+;;   (check-arg list? strings string-concatenate)
+;;   (let* ((total (do ((strings strings (cdr strings))
+;; 		     (i 0 (+ i (string-length (car strings)))))
+;; 		    ((not (pair? strings)) i)))
+;; 	 (ans (make-string total)))
+;;     (let lp ((i 0) (strings strings))
+;;       (if (pair? strings)
+;; 	  (let* ((s (car strings))
+;; 		 (slen (string-length s)))
+;; 	    (%string-copy! ans i s 0 slen)
+;; 	    (lp (+ i slen) (cdr strings)))))
+;;     ans))
 	  
 
 ;;; Defined by R5RS, so commented out here.

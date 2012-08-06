@@ -297,5 +297,26 @@
 (test-equal "vector-append (2)" '#(1 2 3 4 5 6)
 	    (vector-concatenate '(#(1 2 3) #(4 5 6))))
 
+;; bytevector-append
+(let ((a #vu8(1 2 3))
+      (b #vu8(4 5 6)))
+  (test-equal "bytevector-append (0)" #vu8() (bytevector-append))
+  (test-equal "bytevector-append (1)" #vu8(1 2 3) (bytevector-append a))
+  ;; newly created check
+  (test-assert "bytevector-append (eq?)" (not (eq? a (bytevector-append a))))
+  (test-equal "bytevector-append (2)" #vu8(1 2 3 4 5 6)
+	      (bytevector-append a b)))
+
+;; bytevector-concatenate
+(test-equal "bytevector-append (0)" #vu8() (bytevector-concatenate '()))
+(test-equal "bytevector-append (1)" #vu8(1 2 3)
+	    (bytevector-concatenate '(#vu8(1 2 3))))
+;; newly created check
+(let ((a '(#vu8(1 2 3))))
+  (test-assert "bytevector-append (eq?)" 
+	       (not (eq? a (bytevector-concatenate a)))))
+(test-equal "bytevector-append (2)" #vu8(1 2 3 4 5 6)
+	    (bytevector-concatenate '(#vu8(1 2 3) #vu8(4 5 6))))
+
 
 (test-end)

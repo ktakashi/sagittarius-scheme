@@ -896,3 +896,27 @@ SgObject Sg_IntegerToByteVector(SgObject num)
   }
   return bv;
 }
+
+SgObject Sg_ByteVectorConcatenate(SgObject bvList)
+{
+  SgObject r, cp;
+  int size = 0, i;
+  SG_FOR_EACH(cp, bvList) {
+    if (!SG_BVECTORP(SG_CAR(cp))) {
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("bytevector-concatenate"),
+				      SG_INTERN("bytevector"), 
+				      SG_CAR(cp), bvList);
+    }
+    size += SG_BVECTOR_SIZE(SG_CAR(cp));
+  }
+  r = make_bytevector(size);
+  if (size == 0) return r;
+  i = 0;
+  SG_FOR_EACH(cp, bvList) {
+    int j;
+    for (j = 0; j < SG_BVECTOR_SIZE(SG_CAR(cp)); j++, i++) {
+      SG_BVECTOR_ELEMENT(r, i) = SG_BVECTOR_ELEMENT(SG_CAR(cp), j);
+    }
+  }
+  return r;
+}

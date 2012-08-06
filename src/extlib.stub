@@ -2,171 +2,7 @@
 ;; for Ypsilon
 #!compatible
 (library (sagittarius) ;; redefine but no problem
-    (export identifier?
-	    identifier=?
-	    id-name
-	    id-memq
-	    identifier->symbol
-
-	    ;; closure
-	    closure? make-toplevel-closure
-
-	    ;; list
-	    circular-list? dotted-list?
-	    reverse! acons append!
-
-	    ;; vector
-	    vector-copy
-
-	    ;; misc
-	    current-exception-handler
-	    parent-exception-handler
-	    variable? arity
-	    unbound undefined undefined?
-	    add-load-path load
-	    gensym unwrap-syntax wrap-syntax
-	    current-dynamic-environment
-	    add-dynamic-load-path
-	    load-dynamic-library
-	    sagittarius-version
-	    report-error
-	    describe-condition
-
-	    interned-symbol?
-	    ;; string
-	    string-scan
-	    ;; for srfi-13
-	    %maybe-substring
-
-	    ;; for srfi-17
-	    setter
-	    has-setter?
-
-	    ;; filesystem
-	    file-size-in-bytes
-	    file-regular?
-	    file-directory?
-	    file-symbolic-link?
-	    file-readable?
-	    file-writable?
-	    file-executable?
-	    file-stat-ctime
-	    file-stat-mtime
-	    create-symbolic-link
-	    create-hard-link
-	    rename-file
-	    change-file-mode
-	    delete-directory
-	    create-directory
-	    read-directory
-	    current-directory
-	    set-current-directory
-	    ;; path utility
-	    build-path
-	    absolute-path?
-	    absolute-path
-	    current-load-path
-
-	    ;; hashtable
-	    hashtable-keys-list hashtable-values-list
-	    hashtable-values
-	    hashtable-type hashtable-compare hashtable-hasher
-	    eqv-hash
-	    ;; extra hashtable
-	    make-equal-hashtable make-string-hashtable
-
-	    ;; error
-	    ;; from Gauche
-	    with-error-handler
-
-	    ;; io
-	    port-closed? format write/ss read/ss
-	    format/ss
-	    make-codec port-info
-	    read-with-case
-	    open-output-bytevector
-	    get-output-bytevector
-	    open-output-string
-	    get-output-string
-
-	    ;; profiler
-	    profiler-start profiler-stop profiler-reset
-	    profiler-raw-result
-	    disasm
-
-	    ;; keyword
-	    make-keyword
-	    keyword?
-	    keyword->symbol
-	    keyword->string
-	    get-keyword
-
-	    ;; cache
-	    clean-cache cachable?
-	    scan-cache-object write-object-cache read-cache-object
-
-	    ;; env
-	    getenv
-	    setenv
-	    getenv-alist
-
-	    ;; bytevector
-	    bytevector->integer
-	    integer->bytevector
-	    ;; env
-	    current-usage-env
-	    current-macro-env
-	    ;; time
-	    time-usage
-	    ;; cond-expand
-	    cond-features
-	    ;; record
-	    make-record-type
-	    record-type?
-	    record-type-rtd
-	    record-type-rcd
-	    ;; charset
-	    char-set? char-set char-set-copy
-	    char-set-contains?
-	    ;; internal use
-	    %char-set-equal?
-	    %char-set<=?
-	    %char-set-add-chars!
-	    %char-set-add-range!
-	    %char-set-add!
-	    %char-set-complement!
-	    %char-set-ranges
-
-	    ;; reader macro
-	    get-macro-character
-	    set-macro-character
-	    get-dispatch-macro-character
-	    set-dispatch-macro-character
-	    %insert-macro-character
-	    %insert-dispatch-macro-character
-	    read-delimited-list
-	    delimited-char?
-
-	    constant-literal?
-	    digit-value
-	    ;; weak pointers
-	    make-weak-vector
-	    weak-vector-length
-	    weak-vector-ref
-	    weak-vector-set!
-
-	    make-weak-eq-hashtable
-	    weak-hashtable-ref
-	    weak-hashtable-set!
-	    weak-hashtable-delete!
-	    weak-hashtable-keys-list
-	    weak-hashtable-values-list
-	    weak-hashtable-copy
-
-	    ;; misc
-	    microsecond
-	    immediate?
-	    )
+    (export :all)
     (import :null)
 
   (decl-code
@@ -487,6 +323,7 @@
 					       "string or char"
 					       s2
 					       (SG_LIST3 s1 s2 mode))))))
+  (define-c-proc string-concatenate (strings::<list>) Sg_StringAppend)
 
   (define-c-proc %maybe-substring (s::<string> :optional (start::<fixnum> 0) (end::<fixnum> -1)) ::<top>
     (result (Sg_MaybeSubstring s start end)))
@@ -780,6 +617,10 @@
 
   (define-c-proc integer->bytevector (n::<integer>) ::<top>
     (result (Sg_IntegerToByteVector n)))
+
+  (define-c-proc bytevector-append (:rest bv-list) Sg_ByteVectorConcatenate)
+  (define-c-proc bytevector-concatenate (bv-list::<list>)
+    Sg_ByteVectorConcatenate)
 
   (define-c-proc current-usage-env () ::<top>
     (result (-> (Sg_VM) usageEnv)))
