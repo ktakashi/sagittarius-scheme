@@ -33,6 +33,7 @@
 #include "sagittarius/vector.h"
 #include "sagittarius/collection.h"
 #include "sagittarius/error.h"
+#include "sagittarius/symbol.h"
 #include "sagittarius/compare.h"
 #include "sagittarius/pair.h"
 
@@ -148,6 +149,30 @@ SgObject Sg_VectorCopy(SgVector *vec, int start, int end, SgObject fill)
     }
   }
   return SG_OBJ(v);
+}
+
+SgObject Sg_VectorConcatenate(SgObject vecList)
+{
+  SgObject r, cp;
+  int size = 0, i;
+  SG_FOR_EACH(cp, vecList) {
+    if (!SG_VECTORP(SG_CAR(cp))) {
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-concatenate"),
+				      SG_INTERN("vector"), 
+				      SG_CAR(cp), vecList);
+    }
+    size += SG_VECTOR_SIZE(SG_CAR(cp));
+  }
+  r = make_vector(size);
+  if (size == 0) return r;
+  i = 0;
+  SG_FOR_EACH(cp, vecList) {
+    int j;
+    for (j = 0; j < SG_VECTOR_SIZE(SG_CAR(cp)); j++, i++) {
+      SG_VECTOR_ELEMENT(r, i) = SG_VECTOR_ELEMENT(SG_CAR(cp), j);
+    }
+  }
+  return r;
 }
 
 /*

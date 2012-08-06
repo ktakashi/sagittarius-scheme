@@ -279,4 +279,23 @@
   (define b (kons (vector 1 2 3) '(a b c)))
   (test-assert "equal? (record)" (equal? a b)))
 
+;; vector-append
+(let ((a '#(1 2 3))
+      (b '#(4 5 6)))
+  (test-equal "vector-append (0)" '#() (vector-append))
+  (test-equal "vector-append (1)" '#(1 2 3) (vector-append a))
+  ;; newly created check
+  (test-assert "vector-append (eq?)" (not (eq? a (vector-append a))))
+  (test-equal "vector-append (2)" '#(1 2 3 4 5 6) (vector-append a b)))
+
+;; vector-concatenate
+(test-equal "vector-append (0)" '#() (vector-concatenate '()))
+(test-equal "vector-append (1)" '#(1 2 3) (vector-concatenate '(#(1 2 3))))
+;; newly created check
+(let ((a '(#(1 2 3))))
+  (test-assert "vector-append (eq?)" (not (eq? a (vector-concatenate a)))))
+(test-equal "vector-append (2)" '#(1 2 3 4 5 6)
+	    (vector-concatenate '(#(1 2 3) #(4 5 6))))
+
+
 (test-end)

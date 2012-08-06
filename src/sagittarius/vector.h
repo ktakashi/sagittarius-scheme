@@ -62,11 +62,15 @@ SG_CDECL_BEGIN
 SG_EXTERN SgObject Sg_MakeVector(int size, SgObject fill);
 SG_EXTERN SgObject Sg_VectorRef(SgVector *vec, int i, SgObject fallback);
 SG_EXTERN SgObject Sg_VectorSet(SgVector *vec, int i, SgObject obj);
-SG_EXTERN SgObject Sg_VectorFill(SgVector *vec, SgObject fill, int start, int end);
+SG_EXTERN SgObject Sg_VectorFill(SgVector *vec, SgObject fill,
+				 int start, int end);
 
 SG_EXTERN SgObject Sg_ListToVector(SgObject l, int start, int end);
 SG_EXTERN SgObject Sg_VectorToList(SgVector *v, int start, int end);
-SG_EXTERN SgObject Sg_VectorCopy(SgVector *vec, int start, int end, SgObject fill);
+SG_EXTERN SgObject Sg_VectorCopy(SgVector *vec, int start, int end,
+				 SgObject fill);
+
+SG_EXTERN SgObject Sg_VectorConcatenate(SgObject vecList);
 
 SG_CDECL_END
 

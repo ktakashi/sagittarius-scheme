@@ -260,6 +260,9 @@
 						    fill) ::<top>
     (result (Sg_VectorCopy vec start end fill)))
 
+  (define-c-proc vector-concatenate (vec-list::<list>) Sg_VectorConcatenate)
+  (define-c-proc vector-append (:rest vec-list) Sg_VectorConcatenate)
+  
   (define-c-proc current-exception-handler (:optional handle) ::<top>
     (if (SG_UNBOUNDP handle)
 	(result (-> (Sg_VM) exceptionHandler))
