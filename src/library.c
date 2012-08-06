@@ -92,6 +92,12 @@ static SgObject library_name_to_id_version(SgObject name)
 	  SG_APPEND1(h, t, o);
 	} else if (SG_IDENTIFIERP(o)) {
 	  SG_APPEND1(h, t, SG_IDENTIFIER_NAME(o));
+	} else if (SG_EXACT_INTP(o)) {
+	  /* R7RS allow unsigned exact integer as a library name */
+	  if (Sg_Sign(o) < 0) {
+	    Sg_Error(UC("malformed library name %S"), name);
+	  }
+	  SG_APPEND1(h, t, o);
 	} else if (SG_PAIRP(o) && SG_NULLP(SG_CDR(cp))) {
 	  SgObject num;
 	  if (SG_PROPER_LISTP(o)) {
@@ -275,8 +281,15 @@ static SgString* library_name_to_path(SgObject name)
        */
       SgObject o = encode_string(SG_KEYWORD(SG_CAR(item))->name, TRUE);
       SG_APPEND1(h, t, o);
+    } else if (SG_EXACT_INTP(SG_CAR(item))) {
+      SgObject o;
+      if (Sg_Sign(SG_CAR(item)) < 0) goto error;
+      o = Sg_NumberToString(SG_CAR(item), 10, FALSE);
+      SG_APPEND1(h, t, o);
     } else {
-      Sg_Error(UC("library name can contain only symbols or keywords,"
+    error:
+      Sg_Error(UC("library name can contain only symbols, keywords or"
+		  " unsigned exact integers"
 		  " but got %S"), SG_CAR(item));
     }
     if (!SG_NULLP(SG_CDR(item))) {

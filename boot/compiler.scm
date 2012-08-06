@@ -782,8 +782,8 @@
   (cond ((symbol? arg) arg)
 	((identifier? arg) (id-name arg))
 	((lvar? arg) (lvar-name arg))
-	(else (scheme-error 
-	       'variable-name "variable required but got:" arg))))
+	#;(else (scheme-error 'variable-name "variable required but got:" arg))
+        (else arg)))
 
 ;; I don't think I need this for now, but maybe later.
 (define (id->bound-gloc id)
