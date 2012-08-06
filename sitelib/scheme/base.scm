@@ -128,8 +128,8 @@
     (case-lambda
      ((bv) (write-bytevector bv (current-output-port)))
      ((bv port) (put-bytevector port bv))
-     ((bv port start) put-bytevector port bv start)
-     ((bv port start end) put-bytevector port bv start end)))
+     ((bv port start) (put-bytevector port bv start))
+     ((bv port start end) (put-bytevector port bv start end))))
 
   (define read-line
     (case-lambda
