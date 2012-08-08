@@ -243,11 +243,8 @@
     (define ash bitwise-arithmetic-shift)
     (let ((result (bytevector->uuid (bytevector-copy hash 0 16))))
       (set! (ref result 'time-hi-and-version)
-	    (logior #;(case ver
-	     ((3) #x3000)
-	     ((5) #x5000))
-	     (ash ver 12)
-	     (logand #x0FFF (uuid-time-high result))))
+	    (logior (ash ver 12)
+		    (logand #x0FFF (uuid-time-high result))))
       (set! (ref result 'clock-seq-and-reserved)
 	    (logior #x80 (logand #x3F (u8-ref hash 8))))
       result))
