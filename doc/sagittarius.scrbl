@@ -414,6 +414,19 @@ smaller than given @var{ei} bytes, then the rest of left bytes will be dropped.
 @snipet[=> "#vu8(#x34 #x56 #x78)"]{(integer->bytevector #x12345678 3)}
 }
 
+@define[Function]{@name{bytevector-append} @args{bvs @dots{}}}
+@desc{Returns a newly allocated bytevector that contains all elements in
+order from the subsequent locations in @var{bvs @dots{}}.
+}
+
+@define[Function]{@name{bytevector-concatenate} @args{list-of-bytevectors}}
+@desc{Appends each bytevectors in @var{list-of-bytevectors}. This is
+equivalent to:
+
+@snipet{(apply bytevector-append @var{list-of-bytevectors})}
+}
+
+
 @subsubsection{List operations}
 
 @define[Function]{@name{circular-list?} @args{list}}
@@ -459,6 +472,50 @@ equivalent to:
 @snipet{(apply vector-append @var{list-of-vectors})}
 }
 
+@subsubsection{String operations}
+
+@define[Function]{@name{string-scan} @args{string item :optional return}}
+@desc{Scan @var{item} (either a string or a character) in @var{string}.
+
+The @var{return} argument specified what value should be returned when
+@var{item} is found in @var{string}. It must be one of the following symbols;
+
+@dl-list{
+@dl-item[@code{index}]{
+	Returns the index in @var{string} if @var{item} is found, or @code{#f}.
+	This is the default behaviour.
+}
+@dl-item[@code{before}]{
+	Returns a substring of @var{string} before @var{item}, or @code{#f} if
+	@var{item} is not found.
+}
+@dl-item[@code{after}]{
+	Returns a substring of @var{string} after @var{item}, or @code{#f} if
+	@var{item} is not found.
+}
+@dl-item[@code{before*}]{
+	Returns a substring of @var{string} before @var{item}, and the substring
+	after it. If @var{item} is not found then return @code{(values #f #f)}.
+}
+@dl-item[@code{after*}]{
+	Returns a substring of @var{string} up to the end of @var{item}, and the
+	rest. after it. If @var{item} is not found then return 
+	@code{(values #f #f)}.
+}
+@dl-item[@code{both}]{
+	Returns a substring of @var{string} before @var{item} and after
+	 @var{item}. If @var{item} is not found, return @code{(values #f #f)}.
+}
+}
+}
+
+
+@define[Function]{@name{string-concatenate} @args{list-of-strings}}
+@desc{[SRFI-13] Appends each strings in @var{list-of-strings}. This is
+equivalent to:
+
+@snipet{(apply string-append @var{list-of-strings})}
+}
 
 @subsubsection{Debugging aid}
 
