@@ -18,7 +18,7 @@
     ((_) #t)))
 
 
-(test-begin "(run-srfi-14-tests)")
+(test-begin "SRFI-14 tests")
 (test
  (not (char-set? 5))
 

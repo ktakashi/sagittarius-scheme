@@ -4,8 +4,9 @@
 	(except (rnrs) string?) ;; to avoid confliction
 	(srfi :64 testing))
 
+(define (check-srfi-13-error e) e)
 
-(test-begin "(run-srfi-13-tests)")
+(test-begin "SRFI-13 tests")
 
 (test-assert 'string? (string? "abc"))
 (test-assert "not string" (not (string? 'abc)))
@@ -35,9 +36,11 @@
   (not (string-any #\a "aaa" 1 1)))
 (test-error
   "string-any bad char_pred integer"
+  check-srfi-13-error
   (string-any 123 "abcde"))
 (test-error
   "string-any bad char_pred string"
+  check-srfi-13-error
   (string-any "zzz" "abcde"))
 (test-assert
   "string-any char no match"
@@ -251,12 +254,15 @@
 
 (test-error
   "string-concatenate inum"
+  check-srfi-13-error
   (string-concatenate 123))
 (test-error
   "string-concatenate symbol"
+  check-srfi-13-error
   (string-concatenate 'x))
 (test-error
   "string-concatenate improper 1"
+  check-srfi-13-error
   (string-concatenate '("a" . "b")))
 (test-assert
   "string-concatenate"
@@ -286,12 +292,15 @@
          (lambda (pos) #f))))
 (test-error
   "string-concatenate/shared inum"
+  check-srfi-13-error
   (string-concatenate/shared 123))
 (test-error
   "string-concatenate/shared symbol"
+  check-srfi-13-error
   (string-concatenate/shared 'x))
 (test-error
   "string-concatenate/shared improper 1"
+  check-srfi-13-error
   (string-concatenate/shared '("a" . "b")))
 (test-assert
   "string-concatenate/shared"
@@ -311,9 +320,11 @@
   (string-every #\a "bbb" 1 1))
 (test-error
   "string-every bad char_pred integer"
+  check-srfi-13-error
   (string-every 123 "abcde"))
 (test-error
   "string-every bad char_pred string"
+  check-srfi-13-error
   (string-every "zzz" "abcde"))
 (test-assert
   "string-every char empty string"
@@ -416,9 +427,11 @@
   (string-every char-upper-case? "aBCDe" 1 4))
 (test-error
   "string-tabulate bad proc integer"
+  check-srfi-13-error
   (string-tabulate 123 10))
 (test-error
   "string-tabulate bad proc string"
+  check-srfi-13-error
   (string-tabulate "zzz" 10))
 (test-assert
   "string-tabulate static fill-char"
@@ -511,6 +524,7 @@
     (string-join '("Āā" "Ăă") "::" 'infix)))
 (test-error
   "string-join empty list, strict infix"
+  check-srfi-13-error
   (string-join '() "|delim|" 'strict-infix))
 (test-assert
   "string-join empty, strict infix"
@@ -729,9 +743,11 @@
     (string-pad-right (number->string 532) 4 #\!)))
 (test-error
   "string-trim bad char_pred integer"
+  check-srfi-13-error
   (string-trim "abcde" 123))
 (test-error
   "string-trim bad char_pred string"
+  check-srfi-13-error
   (string-trim "abcde" "zzz"))
 (test-assert
   "string-trim empty string"
@@ -771,9 +787,11 @@
     (string-trim " 	foo " char-set:whitespace 1 3)))
 (test-error
   "string-trim-right bad char_pred integer"
+  check-srfi-13-error
   (string-trim-right "abcde" 123))
 (test-error
   "string-trim-right bad char_pred string"
+  check-srfi-13-error
   (string-trim-right "abcde" "zzz"))
 (test-assert
   "string-trim-right empty string"
@@ -820,9 +838,11 @@
       3)))
 (test-error
   "string-trim-both bad char_pred integer"
+  check-srfi-13-error
   (string-trim-both "abcde" 123))
 (test-error
   "string-trim-both bad char_pred string"
+  check-srfi-13-error
   (string-trim-both "abcde" "zzz"))
 (test-assert
   "string-trim-both empty string"
@@ -971,9 +991,11 @@
   (not (string-suffix-ci? "fOo" "foo bar")))
 (test-error
   "string-index bad char_pred integer"
+  check-srfi-13-error
   (string-index "abcde" 123))
 (test-error
   "string-index bad char_pred string"
+  check-srfi-13-error
   (string-index "abcde" "zzz"))
 (test-assert
   "string-index empty string - char"
@@ -1067,9 +1089,11 @@
     #t))
 (test-error
   "string-index-right bad char_pred integer"
+  check-srfi-13-error
   (string-index-right "abcde" 123))
 (test-error
   "string-index-right bad char_pred string"
+  check-srfi-13-error
   (string-index-right "abcde" "zzz"))
 (test-assert
   "string-index-right empty string - char"
@@ -1179,9 +1203,11 @@
          5)))
 (test-error
   "string-skip bad char_pred integer"
+  check-srfi-13-error
   (string-skip "abcde" 123))
 (test-error
   "string-skip bad char_pred string"
+  check-srfi-13-error
   (string-skip "abcde" "zzz"))
 (test-assert
   "string-skip empty string - char"
@@ -1269,9 +1295,11 @@
      (string-skip "frobnicate" char-numeric? 2 5)))
 (test-error
   "string-skip-right bad char_pred integer"
+  check-srfi-13-error
   (string-skip-right "abcde" 123))
 (test-error
   "string-skip-right bad char_pred string"
+  check-srfi-13-error
   (string-skip-right "abcde" "zzz"))
 (test-assert
   "string-skip-right empty string - char"
@@ -1380,9 +1408,11 @@
        5)))
 (test-error
   "string-count bad char_pred integer"
+  check-srfi-13-error
   (string-count "abcde" 123))
 (test-error
   "string-count bad char_pred string"
+  check-srfi-13-error
   (string-count "abcde" "zzz"))
 (test-assert
   "string-count char"
@@ -1579,6 +1609,7 @@
       9)))
 (test-error
   "string-filter bad char_pred integer"
+  check-srfi-13-error
   (string-filter 123 "abcde"))
 (test-assert
   "string-filter empty string, char"
@@ -1763,6 +1794,7 @@
     (string-filter char-set:letter "...x...")))
 (test-error
   "string-delete bad char_pred integer"
+  check-srfi-13-error
   (string-delete 123 "abcde"))
 (test-assert
   "string-delete empty string, char"
@@ -1909,9 +1941,11 @@
     (string-delete char-set:punctuation "...x...")))
 (test-error
   "string-map bad proc integer"
+  check-srfi-13-error
   (string-map 123 "abcde"))
 (test-error
   "string-map bad proc string"
+  check-srfi-13-error
   (string-map "zzz" "abcde"))
 (test-assert
   "string-map constant"
@@ -1929,9 +1963,11 @@
   (string=? "FOO" (string-map char-upcase "foo")))
 (test-error
   "string-map! bad proc integer"
+  check-srfi-13-error
   (string-map 123 "abcde"))
 (test-error
   "string-map! bad proc string"
+  check-srfi-13-error
   (string-map "zzz" "abcde"))
 (test-assert
   "string-map! constant"
@@ -1950,9 +1986,11 @@
     (string=? str "FOO")))
 (test-error
   "string-for-each bad proc integer"
+  check-srfi-13-error
   (string-for-each 123 "abcde"))
 (test-error
   "string-for-each bad proc string"
+  check-srfi-13-error
   (string-for-each "zzz" "abcde"))
 (test-assert
   "string-for-each copy"
@@ -1967,9 +2005,11 @@
     (string=? foo bar)))
 (test-error
   "string-for-each-index bad proc integer"
+  check-srfi-13-error
   (string-for-each-index 123 "abcde"))
 (test-error
   "string-for-each-index bad proc string"
+  check-srfi-13-error
   (string-for-each-index "zzz" "abcde"))
 (test-assert
   "string-for-each-index index"

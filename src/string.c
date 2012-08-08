@@ -327,10 +327,14 @@ SgObject Sg_StringAppend(SgObject args)
     }
     len += SG_STRING(SG_CAR(cp))->size;
   }
+  if (!SG_NULLP(cp)) {
+    Sg_Error(UC("improper list is not allowed"), args);
+  }
   r = make_string(len);
   /* append */
   SG_FOR_EACH(cp, args) {
-    COPY_STRING(r, SG_STRING(SG_CAR(cp))->value, SG_STRING(SG_CAR(cp))->size, off);
+    COPY_STRING(r, SG_STRING(SG_CAR(cp))->value,
+		SG_STRING(SG_CAR(cp))->size, off);
     off += SG_STRING(SG_CAR(cp))->size;
   }
   r->value[len] = 0;
