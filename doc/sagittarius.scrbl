@@ -400,9 +400,19 @@ argument @var{start} is given, conversion starts with index @var{start}. If
 optional argument @var{end} is given, convertion ends by index @var{end}.
 }
 
-@define[Function]{@name{integer->bytevector} @args{ei}}
+@define[Function]{@name{integer->bytevector} @args{ei :optional size}}
 @desc{@var{Ei} must be exact integer. Converts exact integer @var{ei} to a
-bytevector.}
+bytevector.
+
+If optional argument @var{size} is given, then the procedure returns @var{size}
+size bytevector.
+
+NOTE: The conversion is processed from right most byte so if the @var{size} is
+smaller than given @var{ei} bytes, then the rest of left bytes will be dropped.
+
+@snipet[=> #vu8(#x00 #x12 #x34 #x56 #x78)]{(integer->bytevector #x12345678 5)}
+@snipet[=> #vu8(#x34 #x56 #x78)]{(integer->bytevector #x12345678 3)}
+}
 
 @subsubsection{List operations}
 

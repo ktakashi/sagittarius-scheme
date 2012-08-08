@@ -96,7 +96,9 @@
   (define-method ->integer ((obj <top>))    (->integer (->number obj)))
   
   (define-method ->number ((obj <number>)) obj)
-  (define-method ->number ((obj <string>)) (string->number obj))
+  (define-method ->number ((obj <string>) (radix <integer>))
+    (string->number obj radix))
+  (define-method ->number ((obj <string>)) (string->number obj 10))
   (define-method ->number ((obj <char>))   (char->integer obj))
   (define-method ->number ((obj <top>))    0)
 )

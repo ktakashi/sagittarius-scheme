@@ -37,6 +37,13 @@
 (test-equal "integer->bytevector"
 	    #vu8(#x12 #x34 #x56 #x78)
 	    (integer->bytevector #x12345678))
+(test-equal "integer->bytevector (with optional)"
+	    #vu8(#x00 #x12 #x34 #x56 #x78)
+	    (integer->bytevector #x12345678 5))
+(test-equal "integer->bytevector (with optional)"
+	    #vu8(#x34 #x56 #x78)
+	    (integer->bytevector #x12345678 3))
+
 
 (test-assert "load test"
 	     (begin

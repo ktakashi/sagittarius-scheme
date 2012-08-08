@@ -607,16 +607,15 @@
 					       value)))
       (Sg_Setenv (SG_STRING_VALUE key) v)))
   
-  (define-c-proc getenv-alist () ::<top>
-    (result (Sg_GetenvAlist)))
+  (define-c-proc getenv-alist () Sg_GetenvAlist)
 
   ;; bytevector
   (define-c-proc bytevector->integer
-    (bv::<bytevector> :optional (start::<fixnum> 0) (end::<fixnum> -1)) ::<top>
+    (bv::<bytevector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
     (result (Sg_ByteVectorToInteger bv start end)))
 
-  (define-c-proc integer->bytevector (n::<integer>) ::<top>
-    (result (Sg_IntegerToByteVector n)))
+  (define-c-proc integer->bytevector (n::<integer> :optional (size::<fixnum> -1))
+    (result (Sg_IntegerToByteVector n size)))
 
   (define-c-proc bytevector-append (:rest bv-list) Sg_ByteVectorConcatenate)
   (define-c-proc bytevector-concatenate (bv-list::<list>)

@@ -863,11 +863,17 @@ SgObject Sg_ByteVectorToInteger(SgByteVector *bv, int start, int end)
   return ans;
 }
 
-SgObject Sg_IntegerToByteVector(SgObject num)
+SgObject Sg_IntegerToByteVector(SgObject num, int size)
 {
   int bitlen = Sg_BitSize(num), i;
   int len = (bitlen>>3) + ((bitlen & 7) == 0 ? 0 : 1);
-  SgByteVector *bv = make_bytevector(len);
+  SgByteVector *bv;
+  /* accept zero */
+  if (size >= 0) {
+    len = size;
+  }
+  bv = make_bytevector(len);
+
   if (SG_BIGNUMP(num)) {
     /* the structure of bignum is commented above. this case we simply put
        the value from the bottom.
