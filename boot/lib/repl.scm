@@ -2,12 +2,14 @@
 (library (sagittarius interactive)
     (export read-eval-print-loop
 	    current-printer
+	    current-reader
 	    current-exception-printer
 	    current-evaluator
 	    current-prompter
 	    default-exception-printer
 	    default-evaluator
 	    default-printer
+	    default-reader
 	    default-prompter)
     (import null
 	    (core base)
@@ -24,27 +26,29 @@
     (report-error c))
 
   (define current-exception-printer
-    (make-parameter default-exception-printer
-		    (lambda (x)
-		      (cond ((not x) values)
-			    ((procedure? x) x)
-			    (else
-			     (assertion-violation
-			      'current-exception-printer
-			      (format "expected procedure or #f, but got ~s" x)))))))
+    (make-parameter
+     default-exception-printer
+     (lambda (x)
+       (cond ((not x) values)
+	     ((procedure? x) x)
+	     (else
+	      (assertion-violation
+	       'current-exception-printer
+	       (format "expected procedure or #f, but got ~s" x)))))))
 
   (define (default-evaluator form env)
     (eval form env))
 
   (define current-evaluator
-    (make-parameter default-evaluator
-		    (lambda (x)
-		      (cond ((not x) values)
-			    ((procedure? x) x)
-			    (else
-			     (assertion-violation
-			      'current-evaluator
-			      (format "expected procedure or #f, but got ~s" x)))))))
+    (make-parameter 
+     default-evaluator
+     (lambda (x)
+       (cond ((not x) values)
+	     ((procedure? x) x)
+	     (else
+	      (assertion-violation
+	       'current-evaluator
+	       (format "expected procedure or #f, but got ~s" x)))))))
 
   (define (default-printer . args)
     (for-each (lambda (arg)
@@ -52,27 +56,43 @@
 	      args))
 
   (define current-printer
-    (make-parameter default-printer
-		    (lambda (x)
-		      (cond ((not x) values)
-			    ((procedure? x) x)
-			    (else
-			     (assertion-violation
-			      'current-printer
-			      (format "expected procedure or #f, but got ~s" x)))))))
+    (make-parameter
+     default-printer
+     (lambda (x)
+       (cond ((not x) values)
+	     ((procedure? x) x)
+	     (else
+	      (assertion-violation
+	       'current-printer
+	       (format "expected procedure or #f, but got ~s" x)))))))
+
+  (define (default-reader in)
+    (read/ss in))
+
+  (define current-reader
+    (make-parameter 
+     default-reader
+     (lambda (x)
+       (cond ((not x) values)
+	     ((procedure? x) x)
+	     (else
+	      (assertion-violation
+	       'current-reader
+	       (format "expected procedure or #f, but got ~s" x)))))))
 
   (define (default-prompter)
     (display "sash> "))
 
   (define current-prompter
-    (make-parameter default-prompter
-		    (lambda (x)
-		      (cond ((not x) values)
-			    ((procedure? x) x)
-			    (else
-			     (assertion-violation
-			      'current-prompter
-			      (format "expected procedure or #f, but got ~s" x)))))))
+    (make-parameter 
+     default-prompter
+     (lambda (x)
+       (cond ((not x) values)
+	     ((procedure? x) x)
+	     (else
+	      (assertion-violation
+	       'current-prompter
+	       (format "expected procedure or #f, but got ~s" x)))))))
 
   (define (read-eval-print-loop)
     ;; initialize env
@@ -103,7 +123,7 @@
 	     (lambda ()
 	       ((current-prompter))
 	       (flush-output-port (current-output-port))
-	       (let ((form (read/ss (current-input-port))))
+	       (let ((form ((current-reader) (current-input-port))))
 		 (and (eof-object? form) (exit 0))
 		 (and plugged (flush-output-port (current-output-port)))
 		 (receive ans ((current-evaluator) form interactive-environment)

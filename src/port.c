@@ -2434,8 +2434,16 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset)
 
 int Sg_LineNo(SgPort *port)
 {
-  ASSERT(SG_TEXTUAL_PORTP(port));
-  return SG_TEXTUAL_PORT(port)->getLineNo(port);
+  if (SG_TEXTUAL_PORTP(port))
+    return SG_TEXTUAL_PORT(port)->getLineNo(port);
+  else if (SG_CUSTOM_PORTP(port)) {
+    switch (SG_CUSTOM_PORT(port)->type) {
+    case SG_TEXTUAL_CUSTOM_PORT_TYPE:
+      return SG_CUSTOM_TEXTUAL_PORT(port)->getLineNo(port);
+    default:
+      return -1;
+    }
+  } else return -1;
 }
 
 SgObject Sg_FileName(SgPort *port)

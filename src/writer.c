@@ -846,7 +846,8 @@ void format_write(SgObject obj, SgPort *port, SgWriteContext *ctx, int sharedp)
   }
 }
 
-static void vprintf_proc(SgPort *port, const SgChar *fmt, SgObject args, int sharedp)
+static void vprintf_proc(SgPort *port, const SgChar *fmt, 
+			 SgObject args, int sharedp)
 {
   const SgChar *fmtp = fmt;
   SgObject value;
@@ -888,6 +889,52 @@ static void vprintf_proc(SgPort *port, const SgChar *fmt, SgObject args, int sha
 	  ASSERT(Sg_ExactP(value));
 	  put_tmp_to_buf(c, Sg_GetInteger(value));
 	  Sg_PutzUnsafe(port, buf);
+	  break;
+	}
+      case 'U':
+	{
+	  SgChar ucs4;
+	  SgWriteContext wctx;
+	  wctx.mode = SG_WRITE_WRITE;
+	  wctx.table = NULL;
+	  wctx.flags = 0;
+	  wctx.sharedId = 0;
+
+	  get_value();
+	  ASSERT(SG_CHARP(value));
+	  ucs4 = SG_CHAR_VALUE(value);
+	  if (ucs4 < 128) {
+	    /* put char in '~' or \tab or U+10 */
+	    switch (ucs4) {
+	    case   0: Sg_PutuzUnsafe(port, UC("nul(U+0000)"));         break;
+	    case   7: Sg_PutuzUnsafe(port, UC("alarm(U+0007)"));       break;
+	    case   8: Sg_PutuzUnsafe(port, UC("backspace(U+0008)"));   break;
+	    case   9: Sg_PutuzUnsafe(port, UC("tab(U+0009)"));         break;
+	    case  10: Sg_PutuzUnsafe(port, UC("linefeed(U+000A)"));    break;
+	    case  11: Sg_PutuzUnsafe(port, UC("vtab(U+000B)"));        break;
+	    case  12: Sg_PutuzUnsafe(port, UC("page(U+000C)"));        break;
+	    case  13: Sg_PutuzUnsafe(port, UC("return(U+000D)"));      break;
+	    case  27: Sg_PutuzUnsafe(port, UC("esc(U+001B)"));         break;
+	    case  32: Sg_PutuzUnsafe(port, UC("space(U+0020)"));       break;
+	    case 127: Sg_PutuzUnsafe(port, UC("delete(U+007F)"));      break;
+	    default:
+	      if (ucs4 < 32) {
+		snprintf(buf, sizeof(buf), "U+%04X", ucs4);
+		Sg_PutzUnsafe(port, buf);
+	      } else {
+		Sg_PutcUnsafe(port, '\'');
+		format_write(value, port, &wctx, sharedp);
+		Sg_PutcUnsafe(port, '\'');
+	      }
+	      break;
+	    }
+	  } else {
+	    Sg_PutcUnsafe(port, '\'');
+	    format_write(value, port, &wctx, sharedp);
+	    Sg_PutcUnsafe(port, '\'');
+	    snprintf(buf, sizeof(buf), "(U+%04X)", ucs4);
+	    Sg_PutzUnsafe(port, buf);
+	  }
 	  break;
 	}
       case 'o': case 'u': case 'x': case 'X':
@@ -1053,6 +1100,12 @@ void Sg_Vprintf(SgPort *port, const SgChar *fmt, va_list sp, int sharedp)
 	  SG_APPEND1(h, t, Sg_MakeInteger(value));
 	  break;
 	}
+      case 'U':
+	{
+	  SgChar value = va_arg(sp, SgChar);
+	  SG_APPEND1(h, t, SG_MAKE_CHAR(value));
+	  break;
+	}
       case 'o': case 'u': case 'x': case 'X':
 	{
 	  unsigned long value = va_arg(sp, unsigned long);
@@ -1069,8 +1122,11 @@ void Sg_Vprintf(SgPort *port, const SgChar *fmt, va_list sp, int sharedp)
 	{
 	  SgChar *value = va_arg(sp, SgChar*);
 	  /* for safety */
-	  if (value != NULL) SG_APPEND1(h, t, Sg_MakeString(value, SG_LITERAL_STRING));
-	  else SG_APPEND1(h, t, Sg_MakeString(UC("(null)"), SG_LITERAL_STRING));
+	  if (value != NULL) {
+	    SG_APPEND1(h, t, Sg_MakeString(value, SG_LITERAL_STRING));
+	  } else {
+	    SG_APPEND1(h, t, SG_MAKE_STRING("(null)"));
+	  }
 	  break;
 	}
       case '%':

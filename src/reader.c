@@ -408,7 +408,7 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
 	}
       }
       lexical_error(port, ctx,
-		    UC("invalid character %c during reading identifier"),
+		    UC("invalid character %U during reading identifier"),
 		    initial);
     } else {
       i = helper(port, ctx, buf, i, initial, table);
@@ -452,7 +452,7 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
 	}
       }
       lexical_error(port, ctx,
-		    UC("invalid character %c during reading identifier"), c);
+		    UC("invalid character %U during reading identifier"), c);
     }
     i = helper(port, ctx, buf, i, c, table);
   }
@@ -482,7 +482,7 @@ static int read_r6rs_symbol_helper(SgPort *port, SgReadContext *ctx,
     }
   }
   lexical_error(port, ctx,
-		UC("invalid character %c while reading identifier"), c);
+		UC("invalid character %U while reading identifier"), c);
   return -1;			/* dummy */
 }
 
@@ -500,7 +500,7 @@ static int read_compat_symbol_helper(SgPort *port, SgReadContext *ctx,
     return i;
   }
   lexical_error(port, ctx,
-		UC("invalid character %c while reading identifier"), c);
+		UC("invalid character %U while reading identifier"), c);
   return -1;			/* dummy */
 }
 
@@ -1369,7 +1369,7 @@ SgObject read_expr4(SgPort *port, int flags, SgChar delim, SgReadContext *ctx)
       }
       case CT_ILLEGAL:
 	lexical_error(port, ctx,
-		      UC("invalid character %c during reading identifier"), c);
+		      UC("invalid character %U during reading identifier"), c);
 	break;
       default:
 	goto read_sym_or_num;
