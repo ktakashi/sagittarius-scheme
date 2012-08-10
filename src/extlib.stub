@@ -835,4 +835,6 @@
 
   (define-c-proc immediate? (o) ::<boolean>
     (result (not (SG_PTRP o))))
+
+  (define-c-proc get-mac-address (:optional (pos::<fixnum> 0)) Sg_GetMacAddress)
 )

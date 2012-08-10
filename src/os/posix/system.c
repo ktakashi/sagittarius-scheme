@@ -1,6 +1,6 @@
 /* -*- C -*- */
 /*
- * systam.c
+ * system.c
  *
  *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
  *
@@ -40,6 +40,11 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <fcntl.h>
+/* for mac address */
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <netinet/in.h>
 #ifdef HAVE_SCHED_H
 # include <sched.h>
 #endif
@@ -52,6 +57,7 @@
 #include <sagittarius/error.h>
 #include <sagittarius/values.h>
 #include <sagittarius/number.h>
+#include <sagittarius/bytevector.h>
 
 extern char** environ;
 
@@ -239,4 +245,41 @@ SgObject Sg_TimeUsage()
   SG_VALUES_ELEMENT(values, 1) = Sg_MakeFlonum((double)ru.ru_utime.tv_sec + ru.ru_utime.tv_usec / 1000000.0);
   SG_VALUES_ELEMENT(values, 2) = Sg_MakeFlonum((double)ru.ru_stime.tv_sec + ru.ru_stime.tv_usec / 1000000.0);
   return values;
+}
+
+SgObject Sg_GetMacAddress(int pos)
+{
+  /* how many should we allocate? */
+#define MAX_IFS 16
+  static SgObject empty_mac = NULL;
+  struct ifreq *ifr;
+  struct ifreq ifreq;
+  struct ifconf ifc;
+  struct ifreq ifs[MAX_IFS];
+  int fd;
+  size_t size;
+  if (empty_mac == NULL) {
+    empty_mac = Sg_MakeByteVector(6, 0);
+  }
+  fd = socket(AF_INET, SOCK_DGRAM, 0);
+  ifc.ifc_len = sizeof(ifs);
+  ifc.ifc_req = ifs;
+  if (ioctl(fd, SIOCGIFCONF, &ifc) < 0) {
+    /* failed, return empty MAC address */
+    return empty_mac;
+  }
+  size = (ifc.ifc_len / sizeof(struct ifreq));
+  if (pos < 0) pos = 0;
+  else if (pos > size) pos = size-1;
+  ifr = &ifs[pos];
+
+  if (ifr->ifr_addr.sa_family == AF_INET) {
+    strncpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
+    if (ioctl(fd, SIOCGIFHWADDR, &ifreq) < 0) {
+      return empty_mac;
+    }
+    return Sg_MakeByteVectorFromU8Array((uint8_t *)ifreq.ifr_hwaddr.sa_data, 6);
+  }
+  /* something wrong but return empty MAC address */
+  return empty_mac;
 }

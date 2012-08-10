@@ -48,17 +48,23 @@
 	    bytevector->uuid
 	    uuid->string
 	    string->uuid
+	    ;; parameters
+	    *uuid-random-state*
+	    *uuids-per-tick*
 	    )
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius object)
 	    (clos user)
 	    (math)
+	    (math mt-random)
 	    (srfi :39 parameters))
 
   ;; Holds the amount of ticks per count. The ticks per count determine
   ;; the number of possible version 1 uuids created for one time interval.
   (define *uuids-per-tick* (make-parameter 1024))
+  (define *uuid-random-state* 
+    (make-parameter (pseudo-random MT :seed (microsecond))))
 
   ;; Represents an uuid
   (define-class <uuid> ()
@@ -171,18 +177,21 @@
 		  n
 		  (bitwise-arithmetic-shift-right n shift))))
       (bitwise-and sn mask)))
-  (define (make-v1-uuid clock-seq node)
-    (let ((timestamp (get-current-time)))
-      (make <uuid>
-	:time-low (mask timestamp 0 #xFFFFFFFF)
-	:time-mid (mask timestamp 32 #xFFFF)
-	:time-high (bitwise-ior (mask timestamp 48 #x0FFF) #x1000)
-	:clock-seq-var (bitwise-ior (bitwise-arithmetic-shift-right 
-				     (bitwise-and clock-seq #x3F00)
-				     8)
-				    #x80)
-	:clock-seq-low (bitwise-and clock-seq #xFF)
-	:node node)))
+  (define make-v1-uuid
+    (let ((node (bytevector->integer (get-mac-address) 6))
+	  (clock-seq (random (*uuid-random-state*) 10000)))
+      (lambda ()
+	(let ((timestamp (get-current-time)))
+	  (make <uuid>
+	    :time-low (mask timestamp 0 #xFFFFFFFF)
+	    :time-mid (mask timestamp 32 #xFFFF)
+	    :time-high (bitwise-ior (mask timestamp 48 #x0FFF) #x1000)
+	    :clock-seq-var (bitwise-ior (bitwise-arithmetic-shift-right 
+					 (bitwise-and clock-seq #x3F00)
+					 8)
+					#x80)
+	    :clock-seq-low (bitwise-and clock-seq #xFF)
+	    :node node)))))
 
   ;; Generates a version3 (name based MD5) uuid.
   (define (make-v3-uuid namespace name)
@@ -191,7 +200,7 @@
      3))
   ;; Generates a version4 (random) uuid.
   ;; make this default random...
-  (define (make-v4-uuid :optional (seed (secure-random RC4)))
+  (define (make-v4-uuid :optional (seed (*uuid-random-state*)))
     (make <uuid>
       :time-low (random seed #xffffffff)
       :time-mid (random seed #xffff)

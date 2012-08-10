@@ -1,6 +1,6 @@
 /* -*- C -*- */
 /*
- * systam.c
+ * system.c
  *
  *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
  *
@@ -35,6 +35,7 @@
 #include <io.h>
 #if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 #pragma comment(lib, "shlwapi.lib")
+#pragma comment(lib, "iphlpapi.lib")
 #endif
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/file.h"
@@ -43,6 +44,7 @@
 #include "sagittarius/error.h"
 #include "sagittarius/values.h"
 #include "sagittarius/number.h"
+#include "sagittarius/bytevector.h"
 
 #include "win_util.c"
 
@@ -195,4 +197,24 @@ SgObject Sg_TimeUsage()
     return values;
   }
   return SG_FALSE;
+}
+
+SgObject Sg_GetMacAddress(int pos)
+{
+#define MAX_IFS 16
+  static SgObject empty_mac = NULL;
+  IP_ADAPTER_INFO adapterInfo[MAX_IFS];
+  DWORD buflen = sizeof(adapterInfo);
+  DWORD status = GetAdaptersInfo(adapterInfo, &buflen);
+  size_t size;
+  if (empty_mac == NULL) {
+    empty_mac = Sg_MakeByteVector(6, 0);
+  }
+  if (status == ERROR_SUCCESS) {
+    return empty_mac;
+  }
+  size = buflen / sizeof(IP_ADAPTER_INFO);
+  if (pos < 0) pos = 0;
+  else if (pos > size) pos = size-1;
+  return Sg_MakeByteVectorFromU8Array(adapterInfo[pos].Address, 6);
 }

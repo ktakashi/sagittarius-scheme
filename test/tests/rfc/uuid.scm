@@ -7,7 +7,7 @@
 
 ;; uuid?
 (test-assert "uuid?" (uuid? (make-null-uuid)))
-(test-assert "uuid?" (uuid? (make-v1-uuid 0 0)))
+(test-assert "uuid?" (uuid? (make-v1-uuid)))
 (test-assert "uuid?" (uuid? (make-v3-uuid +namespace-dns+ "name")))
 (test-assert "uuid?" (uuid? (make-v4-uuid)))
 (test-assert "uuid?" (uuid? (make-v5-uuid +namespace-dns+ "name")))
@@ -20,11 +20,9 @@
 (test-assert "uuid=?" (uuid=? (make-v5-uuid +namespace-dns+ "name")
 			      (make-v5-uuid +namespace-dns+ "name")))
 (test-assert "uuid=?(v1)"
-	     (not (uuid=? (make-v1-uuid 0 0)
-			  (make-v1-uuid 0 0))))
+	     (not (uuid=? (make-v1-uuid) (make-v1-uuid))))
 (test-assert "uuid=?(v4)"
-	     (not (uuid=? (make-v4-uuid)
-			  (make-v4-uuid))))
+	     (not (uuid=? (make-v4-uuid) (make-v4-uuid))))
 
 ;; v3 and v5 always return the same UUID if the given arguments are the same
 (let* ((v3-uuid-string  "C6437EF1-5B86-3A4E-A071-C2D4AD414E65")

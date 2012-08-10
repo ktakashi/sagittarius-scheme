@@ -16,9 +16,10 @@
 typedef unsigned long ulong;
 
 static struct sg__rcRec {
-  SgObject d15[198];
+  SgObject d15[199];
 } sg__rc = {
   {  /* SgObject d15 */
+    SG_UNBOUND,
     SG_UNBOUND,
     SG_UNBOUND,
     SG_UNBOUND,
@@ -4645,6 +4646,35 @@ SG_RETURN(SG_MAKE_BOOL(SG_RESULT));
 }
 static SG_DEFINE_SUBR(extlib_immediateP__STUB, 1, 0,extlib_immediateP, SG_FALSE, NULL);
 
+static SgObject extlib_get_mac_address(SgObject *SG_FP, int SG_ARGC, void *data_)
+{
+  SgObject pos_scm;
+  long pos;
+  SG_ENTER_SUBR("get-mac-address");
+  if ((SG_ARGC > 1 &&
+      !SG_NULLP(SG_ARGREF(SG_ARGC-1))) ||
+      SG_ARGC < 0)
+    Sg_WrongNumberOfArgumentsBetweenViolation(
+     SG_INTERN("get-mac-address"), 0, 1, SG_ARGC, SG_NIL);
+  if (SG_ARGC > 0+1) {
+    pos_scm = SG_ARGREF(0);
+  } else {
+    pos_scm = SG_MAKE_INT(0);
+  }
+  if (!SG_INTP(pos_scm) && !SG_INTP(pos_scm))
+    Sg_WrongTypeOfArgumentViolation(
+       sg__rc.d15[198], SG_MAKE_STRING("fixnum"), pos_scm, SG_NIL);
+  pos = SG_INT_VALUE(pos_scm);
+  {
+{
+SgObject SG_RESULT = (SgObject)NULL;
+SG_RESULT=(Sg_GetMacAddress(pos));
+SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
+}
+  }
+}
+static SG_DEFINE_SUBR(extlib_get_mac_address__STUB, 0, 2,extlib_get_mac_address, SG_FALSE, NULL);
+
 void Sg__Init_sagittarius () {
   SgLibrary *lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius)"), TRUE));
   sg__rc.d15[0] = SG_MAKE_STRING("identifier=?");
@@ -5151,4 +5181,7 @@ void Sg__Init_sagittarius () {
   sg__rc.d15[197] = SG_MAKE_STRING("immediate?");
   Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[197]), &extlib_immediateP__STUB);
   SG_PROCEDURE_NAME(&extlib_immediateP__STUB) = sg__rc.d15[197];
+  sg__rc.d15[198] = SG_MAKE_STRING("get-mac-address");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d15[198]), &extlib_get_mac_address__STUB);
+  SG_PROCEDURE_NAME(&extlib_get_mac_address__STUB) = sg__rc.d15[198];
 }

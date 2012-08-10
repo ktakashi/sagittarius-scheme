@@ -56,6 +56,10 @@ SG_EXTERN SgObject      Sg_Getenv(const SgChar *env);
 SG_EXTERN void          Sg_Setenv(const SgChar *env, const SgChar *value);
 SG_EXTERN SgObject      Sg_GetenvAlist();
 SG_EXTERN SgObject      Sg_GetTemporaryDirectory();
+/* returns a bytevector 
+   TODO should this be in socket extra library?
+ */
+SG_EXTERN SgObject      Sg_GetMacAddress(int pos);
 
 SG_CDECL_END
 
