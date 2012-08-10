@@ -212,7 +212,7 @@ SgObject Sg_GetMacAddress(int pos)
   if (empty_mac == NULL) {
     empty_mac = Sg_MakeByteVector(6, 0);
   }
-  if (status == ERROR_SUCCESS) {
+  if (status != ERROR_SUCCESS) {
     return empty_mac;
   }
   size = buflen / sizeof(IP_ADAPTER_INFO);
