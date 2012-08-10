@@ -31,22 +31,34 @@ The returning object will be represented like this UUID;
 
 @define[Function]{@name{make-v1-uuid}}
 @define[Function]{@name{make-v3-uuid} @args{namespace name}}
-@define[Function]{@name{make-v4-uuid}}
+@define[Function]{@name{make-v4-uuid @args{:optional prng}}}
 @define[Function]{@name{make-v5-uuid} @args{namespace name}}
 @desc{Creates version 1, 3, 4 and 5 UUIDs respectively.
 
 For version 3 and 5, procedures need to take 2 arguments, @var{namespace}
 and @var{name}. @var{namespace} must be a UUID object, and @var{name} must be a
 string.
+
+For version 4, it can take an optional argument @var{prng} which specifies
+pseudo random generator. The default value is @code{(*uuid-random-state*)}.
 }
 
-@subsubsection{Predefined namespaces}
+@subsubsection{Predefined namespaces and parameters}
 
 @define[Constant]{@name{+namespace-dns+}}
 @define[Constant]{@name{+namespace-url+}}
 @define[Constant]{@name{+namespace-oid+}}
 @define[Constant]{@name{+namespace-x500+}}
 @desc{Constant predefined namespace of UUIDs.}
+
+@define[Variable]{@name{*uuid-random-state*}}
+@desc{Pseudo random generator used by version 4 UUID.}
+
+@define[Variable]{@name{*uuids-per-tick*}}
+@desc{The number of allowed UUIDs in the same time. Used by version 1 UUID.
+
+The default value is 1000.
+}
 
 @subsubsection{Converters}
 
