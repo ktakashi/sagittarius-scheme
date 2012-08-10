@@ -48,6 +48,7 @@
 	    bytevector->uuid
 	    uuid->string
 	    string->uuid
+	    uuid->urn-format
 	    ;; parameters
 	    *uuid-random-state*
 	    *uuids-per-tick*
@@ -244,6 +245,9 @@
       :clock-seq-var (bytevector-u8-ref bv 8)
       :clock-seq-low (bytevector-u8-ref bv 9)
       :node (bytevector->integer bv 10 16)))
+
+  (define (uuid->urn-format uuid)
+    (string-append "urn:uuid:" (uuid->string uuid)))
 
   (define (format-v3or5-uuid hash ver)
     (define logior bitwise-ior)

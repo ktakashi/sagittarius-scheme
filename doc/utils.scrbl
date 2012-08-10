@@ -15,5 +15,6 @@
 @include-section["utils/rfc/hmac.scrbl"]
 @include-section["utils/rfc/tls.scrbl"]
 @include-section["utils/rfc/uri.scrbl"]
+@include-section["utils/rfc/uuid.scrbl"]
 @include-section["utils/rfc/x.509.scrbl"]
 @include-section["utils/text/csv.scrbl"]
