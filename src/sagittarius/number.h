@@ -104,18 +104,22 @@ struct SgFlonumRec
 typedef union SgIFlonumRec
 {
 #if SIZEOF_VOIDP == 8
-  double   f;
+  double    f;
 #else
-  float    f;
+  float     f;
 #endif
-  intptr_t i;
+  uintptr_t i;
 } SgIFlonum;
 #define SG_FLONUMP(obj)      (SG_IFLONUMP(obj) || SG_XTYPEP(obj, SG_CLASS_REAL))
 #define SG_FLONUM(obj)    	/* don't use */
+#ifdef __GNUC__
 #define SG_FLONUM_VALUE(obj)						\
   (SG_IFLONUMP(obj)							\
-   ? ((double)(((union SgIFlonumRec)((intptr_t)obj&~SG_IFLONUM_MASK)).f)) \
-   : ((SgFlonum*)(obj))->value)						\
+   ? ((double)(((SgIFlonum)((uintptr_t)obj&~SG_IFLONUM_MASK)).f))	\
+   : ((SgFlonum*)(obj))->value)
+#else
+#define SG_FLONUM_VALUE(obj) Sg_FlonumValue(obj)
+#endif
 
 SG_EXTERN double Sg_FlonumValue(SgObject obj);
 #else

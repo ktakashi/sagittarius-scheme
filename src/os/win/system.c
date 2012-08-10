@@ -33,6 +33,8 @@
 #include <shlwapi.h>
 #include <wchar.h>
 #include <io.h>
+#include <iphlpapi.h>
+#include <winsock2.h>
 #if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 #pragma comment(lib, "shlwapi.lib")
 #pragma comment(lib, "iphlpapi.lib")

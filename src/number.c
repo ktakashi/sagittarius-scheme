@@ -1130,10 +1130,22 @@ SgObject Sg_MakeFlonum(double d)
   return make_flonum(d);
 }
 
+#ifdef USE_IMMEDIATE_FLONUM
 double Sg_FlonumValue(SgObject obj)
 {
+  /* MSVC does not allow me to cast */
+#ifndef __GNUC__
+  if (SG_IFLONUMP(obj)) {
+    void *p = (void *)((uintptr_t)obj&~SG_IFLONUM_MASK);
+    return (double)((SgIFlonum *)&p)->f;
+  } else {
+    return ((SgFlonum *)(obj))->value;
+  }
+#else
   return SG_FLONUM_VALUE(obj);
+#endif
 }
+#endif /* USE_IMMEDIATE_FLONUM */
 
 static inline SgObject make_complex(SgObject real, SgObject imag)
 {
