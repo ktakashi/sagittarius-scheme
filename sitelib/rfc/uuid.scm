@@ -179,7 +179,7 @@
 		  (bitwise-arithmetic-shift-right n shift))))
       (bitwise-and sn mask)))
   (define make-v1-uuid
-    (let ((node (bytevector->integer (get-mac-address) 6))
+    (let ((node (bytevector->integer (get-mac-address)))
 	  (clock-seq (random (*uuid-random-state*) 10000)))
       (lambda ()
 	(let ((timestamp (get-current-time)))
