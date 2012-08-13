@@ -14,7 +14,7 @@
 (receive (header content) (parse-pem-file test-file-1)
   (test-assert "PEM-1 header" (not (null? header)))
   (test-equal "PEM-1 header count" 6 (length header))
-  (test-assert "PEM-1 content" (string? content)))
+  (test-assert "PEM-1 content" (bytevector? content)))
 
 (receive (header content) (parse-pem-file test-file-2 :asn1 #t)
   (test-assert "PEM-2 header" (null? header))

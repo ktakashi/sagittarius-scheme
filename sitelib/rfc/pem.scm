@@ -96,8 +96,7 @@
 	      ((#/-----BEGIN (.+?)-----/ line)
 	       => (^m 
 		   (receive (params content) (read-content in (m 1))
-		     (let1 base64 (apply base64-decode-string content
-					 (if asn1 '(:transcoder #f) '()))
+		     (let1 base64 (base64-decode-string content :transcoder #f)
 		       (values params
 			       (if asn1
 				   (read-asn.1-object 
