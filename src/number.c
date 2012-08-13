@@ -3482,8 +3482,12 @@ static inline int numcmp3(SgObject x, SgObject d, SgObject y)
 
 static void double_print(char *buf, int buflen, double val, int plus_sign)
 {
+  SgObject f;
+  int exp, sign;
+  f = Sg_DecodeFlonum(val, &exp, &sign);
   if (val == 0.0) {
     if (plus_sign) strcpy(buf, "+0.0");
+    else if (sign < 0) strcpy(buf, "-0.0");
     else strcpy(buf, "0.0");
     return;
   } else if (isinf(val)) {
@@ -3494,16 +3498,16 @@ static void double_print(char *buf, int buflen, double val, int plus_sign)
     strcpy(buf, "+nan.0");
     return;
   }
-  if (val < 0.0) *buf++ = '-', buflen--;
+  if (sign < 0) *buf++ = '-', buflen--;
   else if (plus_sign) *buf++ = '+', buflen--;
+
   {
-    SgObject f, r, s, mp, mm, q;
-    int exp, sign, est, tc1, tc2, tc3, digs, point, round;
+    SgObject r, s, mp, mm, q;
+    int est, tc1, tc2, tc3, digs, point, round;
     int mp2 = FALSE, fixup = FALSE;
-    
-    if (val < 0) val = -val;
+    if (sign < 0) val = -val;
     /* initialize r, s, m+ and m- */
-    f = Sg_DecodeFlonum(val, &exp, &sign);
+    
     round = !Sg_OddP(f);
     if (exp >= 0) {
       SgObject be = Sg_Ash(SG_MAKE_INT(1), exp);
