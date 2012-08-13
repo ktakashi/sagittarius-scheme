@@ -271,11 +271,12 @@
 	(raise-decrypt-error 'rsa-verify "invalid signature" 'RSA))
       (let* ((EM (rsa-mod-expt S key))
 	     (len (bitwise-length modulus))
-	     (k (align-size (bit len))))
+	     (k (align-size (bit len)))
+	     (em-len (bytevector-length EM)))
 	;; padding 0, if the length is not the same as modulus
-	(unless (= (bytevector-length EM) k)
+	(unless (= em-len k)
 	  (let ((new (make-bytevector k 0)))
-	    (bytevector-copy! EM 0 new 1 (bytevector-length EM))
+	    (bytevector-copy! EM 0 new (- k em-len) em-len)
 	    (set! EM new)))
 	(apply verify M EM (- len 1) opt))))
       

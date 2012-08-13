@@ -70,8 +70,7 @@
 				      (mgf mgf-1)
 				      (salt-length #f)
 				      (prng (secure-random RC4)))
-    (unless salt-length
-      (set! salt-length (hash-size algo)))
+    (unless salt-length (set! salt-length (hash-size algo)))
     (let ((hash-len (hash-size algo))
 	  (em-len (align-size (bit em-bits))))
       ;; how can we get max hash input length?
@@ -79,8 +78,7 @@
       ;; (raise-decode-error 'pkcs1-emsa-pss-encode
       ;; "message too long"))
       (when (< em-len (+ hash-len salt-length 2))
-	(raise-encode-error 'pkcs1-emsa-pss-encode
-			    "encode error"))
+	(raise-encode-error 'pkcs1-emsa-pss-encode "encode error"))
       (let* ((m-hash (hash algo m))
 	     (salt (read-random-bytes prng salt-length))
 	     (m-dash (make-bytevector (+ 8 hash-len salt-length) 0)))
@@ -112,15 +110,13 @@
 				 :key (algo :hash (hash-algorithm SHA-1))
 				      (mgf mgf-1)
 				      (salt-length #f))
-    (unless salt-length
-      (set! salt-length (hash-size algo)))
+    (unless salt-length (set! salt-length (hash-size algo)))
     (let ((hash-len (hash-size algo))
 	  (em-len   (align-size (bit em-bits))))
       (when (or (< em-len (+ hash-len salt-length 2))
 		(not (= #xbc 
 			(bytevector-u8-ref em (- (bytevector-length em) 1)))))
-	(raise-decode-error 'pkcs1-emsa-pss-verify
-			    "inconsistent"))
+	(raise-decode-error 'pkcs1-emsa-pss-verify "inconsistent" 1))
       (let* ((m-hash (hash algo m))	; step 2
 	     (mask-len (- em-len hash-len 1))
 	     (masked-db (make-bytevector mask-len 0))
@@ -135,7 +131,7 @@
 	    ((= i limit) #t)
 	  (unless (zero? (bytevector-u8-ref masked-db i))
 	    (raise-decode-error 'pkcs1-emsa-pss-verify
-			    "inconsistent")))
+			    "inconsistent" 2)))
 	(let* ((db-mask (mgf H mask-len algo))
 	       (DB (bytevector-xor masked-db db-mask))
 	       (limit2 (- em-len hash-len salt-length 2)))
@@ -146,12 +142,10 @@
 	  (do ((i 0 (+ i 1)))
 	      ((= i limit2) #t)
 	    (unless (zero? (bytevector-u8-ref DB i))
-	      (raise-decode-error 'pkcs1-emsa-pss-verify
-			    "inconsistent")))
+	      (raise-decode-error 'pkcs1-emsa-pss-verify "inconsistent" 3)))
 	  ;; check if position emLen - hLen - sLen - 1 have 0x01
 	  (unless (= #x01 (bytevector-u8-ref DB limit2))
-	    (raise-decode-error 'pkcs1-emsa-pss-verify
-				"inconsistent"))
+	    (raise-decode-error 'pkcs1-emsa-pss-verify "inconsistent" 4))
 	  (let ((salt (make-bytevector salt-length 0)))
 	    (bytevector-copy! DB (- (bytevector-length DB) salt-length)
 			      salt 0 salt-length)
@@ -162,7 +156,7 @@
 		(if (bytevector=? H h-dash)
 		    #t
 		    (raise-decode-error 'pkcs1-emsa-pss-verify
-				"inconsistent")))))))))
+					"inconsistent" 5)))))))))
 
   ;; section 9.2
   (define (pkcs1-emsa-v1.5-encode m em-bits
