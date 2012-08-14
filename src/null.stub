@@ -3433,7 +3433,7 @@
     (begin
       (check-flonum fl- fl)
       (cond ((SG_NULLP rest)
-	     (result (Sg_MakeFlonum (* -1 (flonum-value fl)))))
+	     (result (Sg_MakeFlonum (- (flonum-value fl)))))
 	    (else
 	     (let ((ret::double 1.0))
 	       (flonum-op fl- - ret fl rest)

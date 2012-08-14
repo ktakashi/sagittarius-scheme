@@ -57,7 +57,21 @@ static int eqv_internal(SgObject x, SgObject y, int from_equal_p)
     if (SG_NUMBERP(y)) {
       if (SG_FLONUMP(x)) {
 	if (SG_FLONUMP(y)) {
-	  return (SG_FLONUM_VALUE(x) == SG_FLONUM_VALUE(y));
+	  /* R6RS 11.5 6th item */
+	  double dx = SG_FLONUM_VALUE(x);
+	  double dy = SG_FLONUM_VALUE(y);
+	  if (dx == 0.0 && dy == 0.0) {
+	    /* get sign */
+	    union { double f64; uint64_t u64; } d1, d2;
+	    int signx, signy;
+	    d1.f64 = dx;
+	    d2.f64 = dy;
+	    signx = d1.u64 >> 63;
+	    signy = d2.u64 >> 63;
+	    return signx == signy;
+	  } else {
+	    return dx == dy;
+	  }
 	} else {
 	  return FALSE;
 	}
