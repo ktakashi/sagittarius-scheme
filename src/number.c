@@ -3488,7 +3488,7 @@ static void double_print(char *buf, int buflen, double val, int plus_sign)
     else strcpy(buf, "0.0");
     return;
   } else if (isinf(val)) {
-    if (val < 0.0) strcpy(buf, "-inf.0");
+    if (sign < 0) strcpy(buf, "-inf.0");
     else strcpy(buf, "+inf.0");
     return;
   } else if (isnan(val)) {
