@@ -678,6 +678,79 @@
 
 ;;;;
 ;; 4 Sorting
+;; From SBCL
+(define (list-sort proc lst)
+  (define (merge-list! proc head lst1 lst2 tail)
+    (let loop ()
+      (cond ((proc (car lst2) (car lst1))
+	     ;; we can't use macro so duplicate it!
+	     (set-cdr! tail lst2)
+	     (set! tail lst2)
+	     (let ((rest (cdr lst2)))
+	       (cond ((null? rest)
+		      (set-cdr! lst2 lst1)
+		      (cdr head))
+		     (else
+		      (set! lst2 rest)
+		      (loop)))))
+	    (else
+	     (set-cdr! tail lst1)
+	     (set! tail lst1)
+	     (let ((rest (cdr lst1)))
+	       (cond ((null? rest)
+		      (set-cdr! lst1 lst2)
+		      (cdr head))
+		     (else
+		      (set! lst1 rest)
+		      (loop))))))))
+  (define (fast-merge-list! proc try? head lst1 tail1 lst2 tail2 rest)
+    (if try?
+	(cond ((not (proc (car lst2) (car tail1)))
+	       (set-cdr! tail1 lst2)
+	       (values lst1 tail2 rest))
+	      ((proc (car tail2) (car lst1))
+	       (set-cdr! tail2 lst1)
+	       (values lst2 tail1 rest))
+	      (else 
+	       (values (merge-list! proc head lst1 lst2 head)
+		       (if (null? (cdr tail1))
+			   tail1
+			   tail2)
+		       rest)))
+	(values (merge-list! proc head lst1 lst2 head)
+		(if (null? (cdr tail1))
+		    tail1
+		    tail2)
+		rest)))
+  (define (do-sort lst size head)
+    (define (recur lst size)
+      (cond  ((= size 1)
+	      (let ((h (list (car lst))))
+		(values h h (cdr lst))))
+	     (else
+	      (let ((half (div size 2)))
+		(receive (lst1 tail1 rest) (recur lst half)
+		  (receive (lst2 tail2 rest) (recur rest (- size half))
+		    (fast-merge-list! proc (>= size 8) head
+				      lst1 tail1
+				      lst2 tail2
+				      rest)))))))
+    (receive (lst tail size) (recur lst size)
+      lst))
+  (define (divide lst)
+    (let loop ((acc 1) (lst lst))
+      (cond ((null? (cdr lst)) (values acc '()))
+            (else
+	     (if (proc (car lst) (cadr lst))
+		 (loop (+ acc 1) (cdr lst))
+		 (values acc (cdr lst)))))))
+  (receive (n lst2) (divide lst)
+    (if (null? lst2)
+	lst
+	(let* ((head (cons '() '()))
+	       (r (do-sort lst2 (length lst2) head)))
+	  (merge-list! proc head (list-head lst n) r head)))))
+#|
 ;; from Ypsilon
 (define (list-sort proc lst)
 
@@ -686,17 +759,19 @@
      ((null? lst1) lst2)
      ((null? lst2) lst1)
      (else
-      (if (proc (car lst2) (car lst1))
-          (cons (car lst2) (merge lst1 (cdr lst2)))
-          (cons (car lst1) (merge (cdr lst1) lst2))))))
+      (let ((a1 (car lst1)) (a2 (car lst2)))
+	(if (proc a2 a1)
+	    (cons a2 (merge lst1 (cdr lst2)))
+	    (cons a1 (merge (cdr lst1) lst2)))))))
 
   (define (sort lst n)
     (cond ((= n 1)
            (list (car lst)))
           ((= n 2)
-           (if (proc (cadr lst) (car lst))
-               (list (cadr lst) (car lst))
-               (list (car lst) (cadr lst))))
+	   (let ((ad (cadr lst)) (a (car lst)))
+	     (if (proc ad a)
+		 (list ad a)
+		 (list a ad))))
           (else
            (let ((n/2 (div n 2)))
              (merge (sort lst n/2)
@@ -706,9 +781,9 @@
     (let loop ((acc 1) (lst lst))
       (cond ((null? (cdr lst)) (values acc '()))
             (else
-             (if (proc (car lst) (cadr lst))
-                 (loop (+ acc 1) (cdr lst))
-                 (values acc (cdr lst)))))))
+	     (if (proc (car lst) (cadr lst))
+		 (loop (+ acc 1) (cdr lst))
+		 (values acc (cdr lst)))))))
 
   (cond ((null? lst) '())
         (else
@@ -718,6 +793,7 @@
                    (else
                     (merge (list-head lst n)
                            (sort rest (- len n))))))))))
+|#
 
 (define (vector-sort proc vect)
   (let ((lst (vector->list vect)))
