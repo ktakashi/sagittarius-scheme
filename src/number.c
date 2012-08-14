@@ -1840,9 +1840,7 @@ SgObject Sg_Add(SgObject x, SgObject y)
       return Sg_MakeFlonum(SG_FLONUM_VALUE(x) + Sg_GetDouble(y));
     }
     else if (SG_FLONUMP(y)) {
-      if (SG_FLONUM_VALUE(x) == 0.0) return y;
-      else if (SG_FLONUM_VALUE(y) == 0.0) return x;
-      else return Sg_MakeFlonum(SG_FLONUM_VALUE(x) + SG_FLONUM_VALUE(y));
+      return Sg_MakeFlonum(SG_FLONUM_VALUE(x) + SG_FLONUM_VALUE(y));
     }
     else if (SG_COMPLEXP(y)) {
       return Sg_MakeComplex(Sg_Add(SG_COMPLEX(y)->real, x),
@@ -1946,8 +1944,7 @@ SgObject Sg_Sub(SgObject x, SgObject y)
       return Sg_MakeFlonum(SG_FLONUM_VALUE(x) - Sg_GetDouble(y));
     }
     else if (SG_FLONUMP(y)) {
-      if (SG_FLONUM_VALUE(y) == 0.0) return x;
-      else return Sg_MakeFlonum(SG_FLONUM_VALUE(x) - SG_FLONUM_VALUE(y));
+      return Sg_MakeFlonum(SG_FLONUM_VALUE(x) - SG_FLONUM_VALUE(y));
     }
     else if (SG_COMPLEXP(y)) {
       return Sg_MakeComplex(Sg_Sub(x, SG_COMPLEX(y)->real), SG_COMPLEX(y)->imag);
