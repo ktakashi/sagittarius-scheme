@@ -325,5 +325,7 @@
 (test-equal "bytevector-append (2)" #vu8(1 2 3 4 5 6)
 	    (bytevector-concatenate '(#vu8(1 2 3) #vu8(4 5 6))))
 
-
+;; eqv?
+;; R6RS 11.5 6th item
+(test-assert "eqv? 0.0 -0.0" (not (eqv? 0.0 -0.0)))
 (test-end)
