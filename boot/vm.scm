@@ -1683,12 +1683,12 @@
 (define *enum-lib* "lib/enums.scm")
 ;; sagittarius core libraries
 (define *core-lib* "../lib/core.scm")
-(define *struct-lib* "../lib/core/struct.scm")
+(define *struct-lib* "lib/core/struct.scm")
 (define *misc-lib* "../lib/core/misc.scm")
-(define *synhelp-lib* "../lib/core/syntax/helper.scm")
-(define *synpat-lib* "../lib/core/syntax/pattern.scm")
-(define *syntmp-lib* "../lib/core/syntax/template.scm")
-(define *synrule-lib* "../lib/core/syntax-rules.scm")
+(define *synhelp-lib* "lib/core/syntax/helper.scm")
+(define *synpat-lib* "lib/core/syntax/pattern.scm")
+(define *syntmp-lib* "lib/core/syntax/template.scm")
+(define *synrule-lib* "lib/core/syntax-rules.scm")
 
 (define *builtin-libraries*
   `((,*ext-lib* (sagittarius) (null) #f #f)

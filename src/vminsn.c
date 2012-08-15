@@ -139,7 +139,7 @@ CASE(CONSTI)
 int val1;
 {
 #line 69 "instructions.scm"
-{long cise__21=INSN_VALUE1(c);{AC(vm)=(SG_MAKE_INT(cise__21));NEXT;}}}
+{long cise__153=INSN_VALUE1(c);{AC(vm)=(SG_MAKE_INT(cise__153));NEXT;}}}
 }
 
 label_LREF:
@@ -258,7 +258,7 @@ CASE(ADD)
 #line 136 "instructions.scm"
 {SgObject obj=POP(SP(vm));
 if ((SG_INTP(AC(vm)))&&(SG_INTP(obj))){
-{long cise__22=(SG_INT_VALUE(obj))+(SG_INT_VALUE(AC(vm)));if (((SG_INT_MIN)<=(cise__22))&&((SG_INT_MAX)>=(cise__22))){{AC(vm)=(SG_MAKE_INT(cise__22));NEXT;}} else {{AC(vm)=(Sg_MakeBignumFromSI(cise__22));NEXT;}}}} else {
+{long cise__154=(SG_INT_VALUE(obj))+(SG_INT_VALUE(AC(vm)));if (((SG_INT_MIN)<=(cise__154))&&((SG_INT_MAX)>=(cise__154))){{AC(vm)=(SG_MAKE_INT(cise__154));NEXT;}} else {{AC(vm)=(Sg_MakeBignumFromSI(cise__154));NEXT;}}}} else {
 #line 144 "instructions.scm"
 {SgObject v=obj;{AC(vm)=(Sg_Add(v,AC(vm)));NEXT;}}}}}
 }
@@ -272,7 +272,7 @@ int val1;
 INSN_VAL1(val1,c);
 #line 152 "instructions.scm"
 if (SG_INTP(AC(vm))){
-{long cise__23=(val1)+(SG_INT_VALUE(AC(vm)));if (((SG_INT_MIN)<=(cise__23))&&((SG_INT_MAX)>=(cise__23))){{AC(vm)=(SG_MAKE_INT(cise__23));NEXT;}} else {{AC(vm)=(Sg_MakeBignumFromSI(cise__23));NEXT;}}}} else {
+{long cise__155=(val1)+(SG_INT_VALUE(AC(vm)));if (((SG_INT_MIN)<=(cise__155))&&((SG_INT_MAX)>=(cise__155))){{AC(vm)=(SG_MAKE_INT(cise__155));NEXT;}} else {{AC(vm)=(Sg_MakeBignumFromSI(cise__155));NEXT;}}}} else {
 #line 155 "instructions.scm"
 {AC(vm)=(Sg_Add(SG_MAKE_INT(val1),AC(vm)));NEXT;}}}
 }
@@ -284,7 +284,7 @@ CASE(SUB)
 #line 158 "instructions.scm"
 {SgObject obj=POP(SP(vm));
 if ((SG_INTP(AC(vm)))&&(SG_INTP(obj))){
-{long cise__24=(SG_INT_VALUE(obj))-(SG_INT_VALUE(AC(vm)));if (((SG_INT_MIN)<=(cise__24))&&((SG_INT_MAX)>=(cise__24))){{AC(vm)=(SG_MAKE_INT(cise__24));NEXT;}} else {{AC(vm)=(Sg_MakeBignumFromSI(cise__24));NEXT;}}}} else {
+{long cise__156=(SG_INT_VALUE(obj))-(SG_INT_VALUE(AC(vm)));if (((SG_INT_MIN)<=(cise__156))&&((SG_INT_MAX)>=(cise__156))){{AC(vm)=(SG_MAKE_INT(cise__156));NEXT;}} else {{AC(vm)=(Sg_MakeBignumFromSI(cise__156));NEXT;}}}} else {
 #line 166 "instructions.scm"
 {SgObject v=obj;{AC(vm)=(Sg_Sub(v,AC(vm)));NEXT;}}}}}
 }
@@ -298,7 +298,7 @@ int val1;
 INSN_VAL1(val1,c);
 #line 170 "instructions.scm"
 if (SG_INTP(AC(vm))){
-{long cise__25=(val1)-(SG_INT_VALUE(AC(vm)));if (((SG_INT_MIN)<=(cise__25))&&((SG_INT_MAX)>=(cise__25))){{AC(vm)=(SG_MAKE_INT(cise__25));NEXT;}} else {{AC(vm)=(Sg_MakeBignumFromSI(cise__25));NEXT;}}}} else {
+{long cise__157=(val1)-(SG_INT_VALUE(AC(vm)));if (((SG_INT_MIN)<=(cise__157))&&((SG_INT_MAX)>=(cise__157))){{AC(vm)=(SG_MAKE_INT(cise__157));NEXT;}} else {{AC(vm)=(Sg_MakeBignumFromSI(cise__157));NEXT;}}}} else {
 #line 173 "instructions.scm"
 {AC(vm)=(Sg_Sub(SG_MAKE_INT(val1),AC(vm)));NEXT;}}}
 }
@@ -528,7 +528,7 @@ if ((val1)==(1)){
 #line 339 "instructions.scm"
 PUSH(SP(vm),AC(vm));}else if(
 (val1)>(0)){
-{int i=0;int cise__27=val1;for (;(i)<(cise__27);(i)++){
+{int i=0;int cise__159=val1;for (;(i)<(cise__159);(i)++){
 PUSH(SP(vm),SG_VALUES_ELEMENT(AC(vm),i));}}}}else if(
 (val1)==(0)){
 #line 345 "instructions.scm"
@@ -536,7 +536,7 @@ PUSH(SP(vm),SG_VALUES_ELEMENT(AC(vm),i));}}}}else if(
 #line 347 "instructions.scm"
 if ((numValues)==(1)){
 SG_APPEND1(h,t,AC(vm));} else {
-{int i=0;int cise__26=numValues;for (;(i)<(cise__26);(i)++){
+{int i=0;int cise__158=numValues;for (;(i)<(cise__158);(i)++){
 SG_APPEND1(h,t,SG_VALUES_ELEMENT(AC(vm),i));}}}
 PUSH(SP(vm),h);}} else {
 #line 354 "instructions.scm"
@@ -772,7 +772,7 @@ INSN_VAL1(val1,c);
 #line 513 "instructions.scm"
 if ((val1)>(0)){{
 ret=(Sg_Cons(AC(vm),ret));
-{int i=0;int cise__28=n;for (;(i)<(cise__28);(i)++){
+{int i=0;int cise__160=n;for (;(i)<(cise__160);(i)++){
 ret=(Sg_Cons(INDEX(SP(vm),i),ret));}}
 (SP(vm))-=(n);}}
 {AC(vm)=(ret);NEXT;}}}
@@ -790,7 +790,7 @@ INSN_VAL1(val1,c);
 #line 524 "instructions.scm"
 if ((nargs)>(0)){{
 ret=(AC(vm));
-{int i=0;int cise__29=nargs;for (;(i)<(cise__29);(i)++){
+{int i=0;int cise__161=nargs;for (;(i)<(cise__161);(i)++){
 {SgObject obj=INDEX(SP(vm),i);
 if ((Sg_Length(obj))<(0)){{
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("append"),SG_MAKE_STRING("list"),obj,SG_NIL);}}}
@@ -814,7 +814,7 @@ if ((val1)>(1)){{
 v=(Sg_MakeValues(val1));
 {int n=(val1)-(1);
 SG_VALUES_ELEMENT(v,n)=(AC(vm));
-{int i=0;int cise__30=n;for (;(i)<(cise__30);(i)++){
+{int i=0;int cise__162=n;for (;(i)<(cise__162);(i)++){
 SG_VALUES_ELEMENT(v,((n)-(i))-(1))=(INDEX(SP(vm),i));}}
 (SP(vm))-=(n);}}}
 {AC(vm)=(v);NEXT;}}}}
@@ -897,7 +897,7 @@ if ((!(SG_VECTORP(AC(vm))))){{
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-length"),SG_MAKE_STRING("vector"),
 AC(vm),SG_NIL);}}}
 #line 589 "instructions.scm"
-{long cise__31=SG_VECTOR_SIZE(AC(vm));{AC(vm)=(SG_MAKE_INT(cise__31));NEXT;}}}
+{long cise__163=SG_VECTOR_SIZE(AC(vm));{AC(vm)=(SG_MAKE_INT(cise__163));NEXT;}}}
 }
 
 label_VEC_REF:
@@ -987,7 +987,7 @@ CASE(CONSTI_PUSH)
 int val1;
 {
 #line 69 "instructions.scm"
-{long cise__32=INSN_VALUE1(c);{PUSH(SP(vm),SG_MAKE_INT(cise__32));NEXT;}}}
+{long cise__164=INSN_VALUE1(c);{PUSH(SP(vm),SG_MAKE_INT(cise__164));NEXT;}}}
 }
 
 label_GREF_CALL:

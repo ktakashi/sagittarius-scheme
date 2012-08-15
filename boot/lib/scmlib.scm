@@ -678,7 +678,7 @@
 
 ;;;;
 ;; 4 Sorting
-;; From SBCL
+;; The algorithm is from SBCL
 (define (list-sort proc lst)
   (define (merge-list! proc head lst1 lst2 tail)
     (let loop ()
@@ -724,17 +724,24 @@
 		rest)))
   (define (do-sort lst size head)
     (define (recur lst size)
-      (cond  ((= size 1)
-	      (let ((h (list (car lst))))
-		(values h h (cdr lst))))
-	     (else
-	      (let ((half (div size 2)))
-		(receive (lst1 tail1 rest) (recur lst half)
-		  (receive (lst2 tail2 rest) (recur rest (- size half))
-		    (fast-merge-list! proc (>= size 8) head
-				      lst1 tail1
-				      lst2 tail2
-				      rest)))))))
+      (cond ((= size 1)
+	     (let ((h (list (car lst))))
+	       (values h h (cdr lst))))
+	    ((= size 2)
+	     (let* ((a (car lst))
+		    (ad (cadr lst))
+		    (h (if (proc ad a)
+			   (list ad a)
+			   (list a ad))))
+	       (values h (cdr h) (cddr lst))))
+	    (else
+	     (let ((half (div size 2)))
+	       (receive (lst1 tail1 rest) (recur lst half)
+		 (receive (lst2 tail2 rest) (recur rest (- size half))
+		   (fast-merge-list! proc (>= size 8) head
+				     lst1 tail1
+				     lst2 tail2
+				     rest)))))))
     (receive (lst tail size) (recur lst size)
       lst))
   (define (divide lst)

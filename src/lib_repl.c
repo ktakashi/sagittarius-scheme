@@ -17,7 +17,7 @@ static struct sg__wcRec {
   SgWord        w[521];
 } sg__wc = {
   { /* code builder */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[115], NULL, 1, 0, 0, 8, 8), /* (default-printer #:|#:9787|) */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[115], NULL, 1, 0, 0, 8, 8), /* (default-printer #:|#:9835|) */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[123], NULL, 1, 1, 0, 9, 4), /* default-exception-printer */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[127], NULL, 1, 0, 0, 12, 28), /* #f */
     SG_STATIC_CODE_BUILDER(&sg__wc.w[155], NULL, 2, 0, 0, 10, 5), /* default-evaluator */
@@ -38,7 +38,7 @@ static struct sg__wcRec {
   /*     0 */        0x00000029           /* 0      (CLOSURE) */,
   /*     1 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*     2 */        0x00000033           /* 2      (DEFINE) */,
-  /*     3 */        WORD(SG_UNDEF)  /* identifier#|#:9787| */,
+  /*     3 */        WORD(SG_UNDEF)  /* identifier#|#:9835| */,
   /*     4 */        0x00000034           /* 4      (LIBRARY) */,
   /*     5 */        WORD(SG_UNDEF)  /* <library (sagittarius interactive)> */,
   /*     6 */        0x00000030           /* 6      (FRAME) */,
@@ -224,7 +224,7 @@ static struct sg__wcRec {
   /*   186 */        WORD(SG_UNDEF)  /* identifier#values */,
   /*   187 */        0x0000002F           /* 27     (RET) */,
   /*   188 */        0x00000047           /* 0      (GREF_PUSH) */,
-  /*   189 */        WORD(SG_UNDEF)  /* identifier#|#:9787| */,
+  /*   189 */        WORD(SG_UNDEF)  /* identifier#|#:9835| */,
   /*   190 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*   191 */        0x0000024B           /* 3      (GREF_TAIL_CALL) */,
   /*   192 */        WORD(SG_UNDEF)  /* identifier#for-each */,
@@ -564,99 +564,99 @@ void Sg__Init_sagittarius_interactive()
 {
   SgLibrary *lib = Sg_FindLibrary(SYMBOL("(sagittarius interactive)"), TRUE);
   SgLibrary *save = Sg_VM()->currentLibrary;
-  sg__wc.w[43] = WORD(&sg__wc.cb[2]);
-  sg__wc.cb[2].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[58] = WORD(&sg__wc.cb[4]);
-  sg__wc.cb[4].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[103] = WORD(&sg__wc.cb[10]);
-  sg__wc.cb[10].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[28] = STRINGW(".sashrc");
-  sg__wc.w[35] = WORD(&sg__wc.cb[1]);
-  sg__wc.cb[1].name = SYMBOL("default-exception-printer");
-  sg__wc.w[255] = STRINGW("sash> ");
-  sg__wc.w[95] = WORD(&sg__wc.cb[9]);
-  sg__wc.cb[9].name = SYMBOL("default-prompter");
-  sg__wc.w[405] = WORD(&sg__wc.cb[15]);
-  sg__wc.cb[15].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1] = WORD(&sg__wc.cb[0]);
-  sg__wc.cb[0].name = SYMBOL("(default-printer #:9787)");
-  sg__wc.w[88] = WORD(&sg__wc.cb[8]);
-  sg__wc.cb[8].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[50] = WORD(&sg__wc.cb[3]);
+  sg__wc.cb[3].name = SYMBOL("default-evaluator");
   sg__wc.w[400] = WORD(&sg__wc.cb[14]);
   sg__wc.cb[14].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[9] = STRINGW("HOME");
+  sg__wc.w[298] = WORD(Sg_Cons(SYMBOL("sagittarius"), SG_NIL));
+  sg__wc.w[43] = WORD(&sg__wc.cb[2]);
+  sg__wc.cb[2].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[88] = WORD(&sg__wc.cb[8]);
+  sg__wc.cb[8].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[353] = WORD(&sg__wc.cb[13]);
+  sg__wc.cb[13].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[255] = STRINGW("sash> ");
+  sg__wc.w[35] = WORD(&sg__wc.cb[1]);
+  sg__wc.cb[1].name = SYMBOL("default-exception-printer");
+  sg__wc.w[80] = WORD(&sg__wc.cb[7]);
+  sg__wc.cb[7].name = SYMBOL("default-reader");
+  sg__wc.w[340] = WORD(&sg__wc.cb[12]);
+  sg__wc.cb[12].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[300] = WORD(Sg_Cons(SYMBOL("rnrs"), SG_NIL));
   sg__wc.w[19] = STRINGW("USERPROFILE");
   sg__wc.w[144] = STRINGW("expected procedure or #f, but got ~s");
   sg__wc.w[177] = STRINGW("expected procedure or #f, but got ~s");
   sg__wc.w[211] = STRINGW("expected procedure or #f, but got ~s");
   sg__wc.w[243] = STRINGW("expected procedure or #f, but got ~s");
   sg__wc.w[276] = STRINGW("expected procedure or #f, but got ~s");
-  sg__wc.w[300] = WORD(Sg_Cons(SYMBOL("rnrs"), SG_NIL));
-  sg__wc.w[296] = WORD(Sg_Cons(SYMBOL("core"), Sg_Cons(SYMBOL("base"), SG_NIL)));
-  sg__wc.w[80] = WORD(&sg__wc.cb[7]);
-  sg__wc.cb[7].name = SYMBOL("default-reader");
-  sg__wc.w[353] = WORD(&sg__wc.cb[13]);
-  sg__wc.cb[13].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[5] = SYMBOLW("(sagittarius interactive)");
-  sg__wc.w[307] = STRINGW("EMACS");
+  sg__wc.w[1] = WORD(&sg__wc.cb[0]);
+  sg__wc.cb[0].name = SYMBOL("(default-printer #:9835)");
   sg__wc.w[73] = WORD(&sg__wc.cb[6]);
   sg__wc.cb[6].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[340] = WORD(&sg__wc.cb[12]);
-  sg__wc.cb[12].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[298] = WORD(Sg_Cons(SYMBOL("sagittarius"), SG_NIL));
-  sg__wc.w[50] = WORD(&sg__wc.cb[3]);
-  sg__wc.cb[3].name = SYMBOL("default-evaluator");
-  sg__wc.w[65] = WORD(&sg__wc.cb[5]);
-  sg__wc.cb[5].name = SYMBOL("default-printer");
   sg__wc.w[110] = WORD(&sg__wc.cb[11]);
   sg__wc.cb[11].name = SYMBOL("read-eval-print-loop");
-  sg__wc.w[82] = sg__wc.w[86] = IDENT("default-reader", lib);
-  sg__wc.w[509] = sg__wc.w[78] = IDENT("current-printer", lib);
-  sg__wc.w[257] = IDENT("display", lib);
-  sg__wc.w[192] = IDENT("for-each", lib);
-  sg__wc.w[458] = IDENT("current-input-port", lib);
-  sg__wc.w[67] = sg__wc.w[71] = IDENT("default-printer", lib);
-  sg__wc.w[125] = IDENT("report-error", lib);
-  sg__wc.w[302] = IDENT("environment", lib);
-  sg__wc.w[408] = IDENT("with-error-handler", lib);
-  sg__wc.w[343] = IDENT("call-with-port", lib);
-  sg__wc.w[519] = sg__wc.w[490] = sg__wc.w[452] = sg__wc.w[418] = IDENT("flush-output-port", lib);
-  sg__wc.w[478] = IDENT("exit", lib);
+  sg__wc.w[9] = STRINGW("HOME");
+  sg__wc.w[307] = STRINGW("EMACS");
+  sg__wc.w[65] = WORD(&sg__wc.cb[5]);
+  sg__wc.cb[5].name = SYMBOL("default-printer");
+  sg__wc.w[103] = WORD(&sg__wc.cb[10]);
+  sg__wc.cb[10].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[28] = STRINGW(".sashrc");
+  sg__wc.w[58] = WORD(&sg__wc.cb[4]);
+  sg__wc.cb[4].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[95] = WORD(&sg__wc.cb[9]);
+  sg__wc.cb[9].name = SYMBOL("default-prompter");
+  sg__wc.w[405] = WORD(&sg__wc.cb[15]);
+  sg__wc.cb[15].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[296] = WORD(Sg_Cons(SYMBOL("core"), Sg_Cons(SYMBOL("base"), SG_NIL)));
+  sg__wc.w[5] = SYMBOLW("(sagittarius interactive)");
   sg__wc.w[333] = IDENT("native-transcoder", lib);
-  sg__wc.w[285] = sg__wc.w[153] = sg__wc.w[252] = sg__wc.w[220] = sg__wc.w[186] = IDENT("values", lib);
-  sg__wc.w[315] = sg__wc.w[325] = sg__wc.w[33] = IDENT("+resource-file+", lib);
-  sg__wc.w[309] = sg__wc.w[11] = sg__wc.w[21] = IDENT("getenv", lib);
-  sg__wc.w[158] = IDENT("eval", lib);
-  sg__wc.w[365] = sg__wc.w[224] = sg__wc.w[392] = IDENT("read/ss", lib);
-  sg__wc.w[266] = sg__wc.w[134] = sg__wc.w[233] = sg__wc.w[201] = sg__wc.w[167] = IDENT("procedure?", lib);
-  sg__wc.w[112] = IDENT("read-eval-print-loop", lib);
-  sg__wc.w[189] = sg__wc.w[3] = UNSIDENT("#:9787", lib);
-  sg__wc.w[317] = IDENT("file-exists?", lib);
-  sg__wc.w[56] = sg__wc.w[52] = IDENT("default-evaluator", lib);
-  sg__wc.w[442] = sg__wc.w[108] = IDENT("current-prompter", lib);
-  sg__wc.w[30] = IDENT("build-path", lib);
-  sg__wc.w[106] = sg__wc.w[46] = sg__wc.w[91] = sg__wc.w[76] = sg__wc.w[61] = IDENT("make-parameter", lib);
-  sg__wc.w[356] = IDENT("call-with-current-continuation", lib);
-  sg__wc.w[431] = IDENT("serious-condition?", lib);
-  sg__wc.w[119] = IDENT("write/ss", lib);
+  sg__wc.w[108] = sg__wc.w[442] = IDENT("current-prompter", lib);
+  sg__wc.w[302] = IDENT("environment", lib);
   sg__wc.w[97] = sg__wc.w[101] = IDENT("default-prompter", lib);
+  sg__wc.w[30] = IDENT("build-path", lib);
+  sg__wc.w[158] = IDENT("eval", lib);
+  sg__wc.w[192] = IDENT("for-each", lib);
+  sg__wc.w[478] = IDENT("exit", lib);
+  sg__wc.w[189] = sg__wc.w[3] = UNSIDENT("#:9835", lib);
+  sg__wc.w[343] = IDENT("call-with-port", lib);
   sg__wc.w[425] = sg__wc.w[48] = IDENT("current-exception-printer", lib);
-  sg__wc.w[471] = sg__wc.w[372] = IDENT("eof-object?", lib);
+  sg__wc.w[257] = IDENT("display", lib);
   sg__wc.w[336] = IDENT("open-file-input-port", lib);
-  sg__wc.w[147] = sg__wc.w[246] = sg__wc.w[214] = sg__wc.w[180] = sg__wc.w[279] = IDENT("format", lib);
-  sg__wc.w[121] = IDENT("newline", lib);
-  sg__wc.w[463] = sg__wc.w[93] = IDENT("current-reader", lib);
   sg__wc.w[37] = sg__wc.w[41] = IDENT("default-exception-printer", lib);
-  sg__wc.w[63] = sg__wc.w[500] = sg__wc.w[386] = IDENT("current-evaluator", lib);
-  sg__wc.w[217] = sg__wc.w[183] = sg__wc.w[282] = sg__wc.w[150] = sg__wc.w[249] = IDENT("assertion-violation", lib);
-  sg__wc.w[516] = sg__wc.w[487] = sg__wc.w[449] = sg__wc.w[415] = IDENT("current-output-port", lib);
+  sg__wc.w[282] = sg__wc.w[249] = sg__wc.w[183] = sg__wc.w[150] = sg__wc.w[217] = IDENT("assertion-violation", lib);
+  sg__wc.w[431] = IDENT("serious-condition?", lib);
+  sg__wc.w[67] = sg__wc.w[71] = IDENT("default-printer", lib);
+  sg__wc.w[279] = sg__wc.w[246] = sg__wc.w[180] = sg__wc.w[147] = sg__wc.w[214] = IDENT("format", lib);
+  sg__wc.w[119] = IDENT("write/ss", lib);
+  sg__wc.w[449] = sg__wc.w[516] = sg__wc.w[415] = sg__wc.w[487] = IDENT("current-output-port", lib);
+  sg__wc.w[121] = IDENT("newline", lib);
+  sg__wc.w[317] = IDENT("file-exists?", lib);
+  sg__wc.w[365] = sg__wc.w[224] = sg__wc.w[392] = IDENT("read/ss", lib);
+  sg__wc.w[125] = IDENT("report-error", lib);
+  sg__wc.w[93] = sg__wc.w[463] = IDENT("current-reader", lib);
+  sg__wc.w[519] = sg__wc.w[418] = sg__wc.w[490] = sg__wc.w[452] = IDENT("flush-output-port", lib);
+  sg__wc.w[285] = sg__wc.w[252] = sg__wc.w[186] = sg__wc.w[153] = sg__wc.w[220] = IDENT("values", lib);
+  sg__wc.w[82] = sg__wc.w[86] = IDENT("default-reader", lib);
+  sg__wc.w[386] = sg__wc.w[500] = sg__wc.w[63] = IDENT("current-evaluator", lib);
+  sg__wc.w[458] = IDENT("current-input-port", lib);
+  sg__wc.w[266] = sg__wc.w[233] = sg__wc.w[167] = sg__wc.w[134] = sg__wc.w[201] = IDENT("procedure?", lib);
+  sg__wc.w[52] = sg__wc.w[56] = IDENT("default-evaluator", lib);
+  sg__wc.w[112] = IDENT("read-eval-print-loop", lib);
+  sg__wc.w[309] = sg__wc.w[11] = sg__wc.w[21] = IDENT("getenv", lib);
+  sg__wc.w[471] = sg__wc.w[372] = IDENT("eof-object?", lib);
+  sg__wc.w[91] = sg__wc.w[61] = sg__wc.w[106] = sg__wc.w[46] = sg__wc.w[76] = IDENT("make-parameter", lib);
+  sg__wc.w[78] = sg__wc.w[509] = IDENT("current-printer", lib);
+  sg__wc.w[315] = sg__wc.w[33] = sg__wc.w[325] = IDENT("+resource-file+", lib);
+  sg__wc.w[356] = IDENT("call-with-current-continuation", lib);
+  sg__wc.w[408] = IDENT("with-error-handler", lib);
   sg__wc.w[294] = SYMBOLW("null");
   sg__wc.w[329] = SYMBOLW("block");
-  sg__wc.w[207] = SYMBOLW("current-printer");
   sg__wc.w[140] = SYMBOLW("current-exception-printer");
   sg__wc.w[173] = SYMBOLW("current-evaluator");
-  sg__wc.w[239] = SYMBOLW("current-reader");
   sg__wc.w[272] = SYMBOLW("current-prompter");
+  sg__wc.w[207] = SYMBOLW("current-printer");
+  sg__wc.w[239] = SYMBOLW("current-reader");
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(sagittarius)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(core errors)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(core base)")));

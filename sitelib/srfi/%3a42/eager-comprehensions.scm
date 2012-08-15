@@ -43,8 +43,6 @@
     dispatch-union srfi-42-generator-proc)
   (import (rnrs)
 	  (rnrs r5rs)
-	  ;; since syntax-case is not perfectly working, R6RS syntax-rules
-	  ;; also contains bugs. so until it's fixed we use (core syntax-rules)
 	  (sagittarius)
 	  (match)
 	  (srfi :39 parameters)
