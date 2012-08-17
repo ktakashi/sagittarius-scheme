@@ -162,12 +162,17 @@ If @var{replacement} is a string, the procedure replace @var{text} with given
 string. @var{Replacement} can refer the match result with `@code{$@var{n}}`.
 @var{n} must be group number of given @var{regex}.
 
-If @var{replacement} is a procedure, it will receive two arguments, the first
-one is current matcher and the second one string output port. User may write
-string to the given port and will be the replacement string.
+If @var{replacement} is a procedure, then it must accept either one or two
+arguments. This is for backward compatibility.
 
-Note: The given matcher object is low level. So to access captured group you
-need to use @code{regex-group} procedure.
+The first argument is always current matcher.
+
+If the procedure only accepts one argument, then it must return a string which
+will be used for replacement value.
+
+If the procedure accepts two arguments, then the second one is string output
+port. User may write string to the given port and will be the replacement
+string.
 
 The @code{regex-replace-first} procedure replaces the first match.
 
