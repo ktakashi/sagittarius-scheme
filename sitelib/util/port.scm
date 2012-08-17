@@ -36,6 +36,8 @@
 	    port->string-list
 	    port-fold
 	    port-fold-right
+	    port-for-each
+	    port-map
 	    copy-binary-port
 	    )
     (import (rnrs)
@@ -49,7 +51,7 @@
 	  (loop (reader port) (cons s r)))))
 
   (define (port->string port)
-    (port->list get-string-all port))
+    (car (port->list get-string-all port)))
 
   (define (port->sexp-list port)
     (port->list read/ss port))
@@ -69,6 +71,19 @@
       (if (eof-object? item)
 	  knil
 	  (fn item (loop (reader))))))
+
+  (define (port-for-each fn reader)
+    (let loop ((item (reader)))
+      (unless (eof-object? item)
+	(fn item)
+	(loop (reader)))))
+
+  (define (port-map fn reader)
+    (let loop ((item (reader)) (r '()))
+      (if (eof-object? item)
+	  (reverse! r)
+	  (let ((x (fn item)))
+	    (loop (reader) (cons x r))))))
 
   (define (copy-binary-port dst src :key (size -1))
     (if (and size (integer? size) (positive? size))
