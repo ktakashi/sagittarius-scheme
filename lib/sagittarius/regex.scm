@@ -121,13 +121,17 @@
 		    group))))
   
   ;; for convenience, we wrap
-  (define (regex-replace-all reg text replacement)
-    (let ((matcher (regex-matcher reg text)))
-      (impl:regex-replace-all matcher replacement)))
+  (define-method regex-replace-all ((reg <pattern>) text replacement)
+    (impl:regex-replace-all (regex-matcher reg text) replacement))
 
-  (define (regex-replace-first reg text replacement)
-    (let ((matcher (regex-matcher reg text)))
-      (impl:regex-replace-first matcher replacement)))
+  (define-method regex-replace-all ((m <matcher>) replacement)
+    (impl:regex-replace-all m replacement))
+
+  (define-method regex-replace-first ((reg <pattern>) text replacement)
+    (impl:regex-replace-first (regex-matcher reg text) replacement))
+
+  (define-method regex-replace-first ((m <matcher>) replacement)
+    (impl:regex-replace-first m replacement))
 
   (define (string-split text str/pattern)
     (let* ((p (cond ((regex-pattern? str/pattern) str/pattern)
