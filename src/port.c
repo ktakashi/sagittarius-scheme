@@ -2150,7 +2150,7 @@ void Sg_UngetcUnsafe(SgPort *port, SgChar ch)
   } else {
     Sg_Error(UC("textual port required, but got %S"), port);
   }
-  ASSERT(SG_TEXTUAL_PORTP(port));
+  return;
 }
 
 int Sg_PeekbUnsafe(SgPort *port)
