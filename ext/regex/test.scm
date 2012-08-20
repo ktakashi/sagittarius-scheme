@@ -214,6 +214,19 @@
 	    (let ((p (regex "fxxking")))
 	      (regex-replace-all p "hello fxxking fxxking world" "beautiful")))
 
+;; since 0.3.5 regex-replace-* are generic function and it accepts raw matcher
+(test-equal "replace-first"
+	    "hello beautiful world"
+	    (let* ((p (regex "fxxking"))
+		   (m (p "hello fxxking world")))
+	      (regex-replace-first m "beautiful")))
+
+(test-equal "replace-all"
+	    "hello beautiful beautiful world"
+	    (let* ((p (regex "fxxking"))
+		   (m (p "hello fxxking fxxking world")))
+	      (regex-replace-all m "beautiful")))
+
 
 
 (test-equal "standard pattern case sensitive"
@@ -1053,6 +1066,10 @@
 	    (regex-replace-first #/def/ "abcdefghi"
 				 (lambda (m)
 				   (string-append "**" (m 0) "**"))))
+
+(test-error "replace-first with procedure (new) return non string"
+	    (lambda (e) e)
+	    (regex-replace-first #/def/ "abcdefghi" (lambda (m) #f)))
 (test-equal "replace-first with procedure (old)"
 	    "abc**def**ghi"
 	    (regex-replace-first #/def/ "abcdefghi"
@@ -1066,6 +1083,10 @@
 	    (regex-replace-all #/def/ "abcdefghidef"
 				 (lambda (m)
 				   (string-append "**" (m 0) "**"))))
+(test-error "replace-all with procedure (new) return non string"
+	    (lambda (e) e)
+	    (regex-replace-all #/def/ "abcdefghidef" (lambda (m) #f)))
+
 (test-equal "replace-all with procedure (old)"
 	    "abc**def**ghi**def**"
 	    (regex-replace-all #/def/ "abcdefghidef"

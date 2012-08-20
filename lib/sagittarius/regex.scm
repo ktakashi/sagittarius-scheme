@@ -78,9 +78,7 @@
 	    ;; enable #/regex/
 	    :export-reader-macro
 	    )
-    (import (rename (sagittarius regex impl) 
-		    (regex-replace-first impl:regex-replace-first)
-		    (regex-replace-all impl:regex-replace-all))
+    (import (sagittarius regex impl)
 	    (core)
 	    (core base)
 	    (core errors)
@@ -122,16 +120,10 @@
   
   ;; for convenience, we wrap
   (define-method regex-replace-all ((reg <pattern>) text replacement)
-    (impl:regex-replace-all (regex-matcher reg text) replacement))
-
-  (define-method regex-replace-all ((m <matcher>) replacement)
-    (impl:regex-replace-all m replacement))
+    (regex-replace-all (regex-matcher reg text) replacement))
 
   (define-method regex-replace-first ((reg <pattern>) text replacement)
-    (impl:regex-replace-first (regex-matcher reg text) replacement))
-
-  (define-method regex-replace-first ((m <matcher>) replacement)
-    (impl:regex-replace-first m replacement))
+    (regex-replace-first (regex-matcher reg text) replacement))
 
   (define (string-split text str/pattern)
     (let* ((p (cond ((regex-pattern? str/pattern) str/pattern)
