@@ -30,6 +30,8 @@ OutputBaseFilename=setup_sagittarius_{#MyAppVersion}
 Compression=lzma
 SolidCompression=yes
 ChangesAssociations=yes
+@SAGITTARIUS_INSTALLER_MODE@
+@SAGITTARIUS_INSTALLER_ARCH@
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

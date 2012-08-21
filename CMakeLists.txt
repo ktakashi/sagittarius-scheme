@@ -240,14 +240,16 @@ IF(USE_BOEHM_GC)
       # CMakeLists.txt without ADD_SUBDIRECTORY.
       # NOTE: Be aware when GC fixed this problem or changed CMakeLists.txt.
       SET(GC_DIR ${CMAKE_CURRENT_BINARY_DIR}/${USED_GC_VERSION})
-      IF (NOT EXSITS ${GC_DIR}/CMakeLists.txt.in)
+      MESSAGE(STATUS "Rebuilding ${GC_DIR}/CMakeLists.txt")
+      IF (NOT EXISTS ${GC_DIR}/CMakeLists.txt.in)
 	FILE(RENAME ${GC_DIR}/CMakeLists.txt ${GC_DIR}/CMakeLists.txt.in)
       ENDIF()
       FILE(REMOVE ${GC_DIR}/CMakeLists.txt)
       FILE(READ ${GC_DIR}/CMakeLists.txt.in GC_BUILD_LINES)
       STRING(REGEX REPLACE "ADD_SUBDIRECTORY(.+)" ""
 	GC_BUILD_LINES "${GC_BUILD_LINES}")
-      FILE(APPEND ${GC_DIR}/CMakeLists.txt "${GC_BUILD_LINES}")
+      FILE(APPEND ${GC_DIR}/CMakeLists.txt.tmp "${GC_BUILD_LINES}")
+      FILE(RENAME ${GC_DIR}/CMakeLists.txt.tmp ${GC_DIR}/CMakeLists.txt)
 
       ADD_SUBDIRECTORY(${GC_DIR} build/gc)
       INCLUDE_DIRECTORIES(${GC_DIR}/include)
@@ -331,8 +333,12 @@ CONFIGURE_FILE(cmake/sagittarius-package.in
 IF (MSVC)
   # make 32 bit and 64 bit different application
   IF (SIZEOF_VOIDP EQUAL 4)
+    SET(SAGITTARIUS_INSTALLER_MODE "")
+    SET(SAGITTARIUS_INSTALLER_ARCH "ArchitecturesAllowed=x86")
     SET(SAGITTARIUS_APP_ID "{8413617A-84F7-45B0-8CA1-5B9C46DA2217}")
   ELSE()
+    SET(SAGITTARIUS_INSTALLER_MODE "ArchitecturesInstallIn64BitMode=x64")
+    SET(SAGITTARIUS_INSTALLER_ARCH "ArchitecturesAllowed=x64")
     SET(SAGITTARIUS_APP_ID "{FEBF8AAA-EB3A-43EF-B289-A7BF3B74260A}")
   ENDIF()
   CONFIGURE_FILE(win/innosetup.iss.in
