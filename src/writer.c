@@ -270,6 +270,8 @@ static void format_integer(SgPort *out, SgObject arg, SgObject *params,
     SgWriteContext ictx;
     ictx.mode = SG_WRITE_DISPLAY;
     ictx.flags = 0;
+    ictx.table = NULL;
+    ictx.sharedId = 0;
     format_write(arg, out, &ictx, FALSE);
     return;
   }
