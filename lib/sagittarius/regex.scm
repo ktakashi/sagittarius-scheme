@@ -78,10 +78,10 @@
 	    ;; enable #/regex/
 	    :export-reader-macro
 	    )
-    (import (sagittarius regex impl)
-	    (core)
-	    (core base)
-	    (core errors)
+    (import (rename (sagittarius regex impl)
+		    (regex-replace-first impl:regex-replace-first)
+		    (regex-replace-all   impl:regex-replace-all))
+	    (rnrs)
 	    (sagittarius)
 	    (clos user))
 
@@ -118,12 +118,20 @@
 		    (format "'after or 'before required but got ~a" group)
 		    group))))
   
-  ;; for convenience, we wrap
-  (define-method regex-replace-all ((reg <pattern>) text replacement)
-    (regex-replace-all (regex-matcher reg text) replacement))
+  ;; we can use case-lambda
+  (define regex-replace-all
+    (case-lambda
+     ((pattern text replacement)
+      (regex-replace-all (regex-matcher pattern text) replacement))
+     ((matcher replacement)
+      (impl:regex-replace-all matcher replacement))))
 
-  (define-method regex-replace-first ((reg <pattern>) text replacement)
-    (regex-replace-first (regex-matcher reg text) replacement))
+  (define regex-replace-first
+    (case-lambda
+     ((pattern text replacement)
+      (regex-replace-first (regex-matcher pattern text) replacement))
+     ((matcher replacement)
+      (impl:regex-replace-first matcher replacement))))
 
   (define (string-split text str/pattern)
     (let* ((p (cond ((regex-pattern? str/pattern) str/pattern)

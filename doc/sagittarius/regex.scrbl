@@ -147,9 +147,19 @@ The @code{looking-at} procedure attempts to match the input string against the
 pattern of @var{regex}.
 }
 
-@define[Function]{@name{regex-replace-first} @args{regex text replacement}}
-@define[Function]{@name{regex-replace-all} @args{regex text replacement}}
-@desc{@var{Regex} must be pattern object.
+@define[Function]{@name{regex-replace-first} @args{pattern text replacement}}
+@define[Function]{@name{regex-replace-first} @args{matcher replacement}}
+@define[Function]{@name{regex-replace-all} @args{pattern text replacement}}
+@define[Function]{@name{regex-replace-all} @args{matcher replacement}}
+@desc{@var{Pattern} must be pattern object.
+
+The first form of these procedures are for convenience. It is implemented like
+this;
+
+@codeblock{
+(define (regex-replace-all pattern text replacement)
+  (regex-replace-all (regex-matcher pattern text) replacement))
+}
 
 @var{Text} must be string.
 
@@ -160,7 +170,7 @@ Replaces part of @var{text} where @var{regex} matches with @var{replacement}.
 
 If @var{replacement} is a string, the procedure replace @var{text} with given
 string. @var{Replacement} can refer the match result with `@code{$@var{n}}`.
-@var{n} must be group number of given @var{regex}.
+@var{n} must be group number of given @var{pattern} or @var{matcher}.
 
 If @var{replacement} is a procedure, then it must accept either one or two
 arguments. This is for backward compatibility.
@@ -176,8 +186,7 @@ string.
 
 The @code{regex-replace-first} procedure replaces the first match.
 
-The @code{regex-replace-all} procedure replaces all strings which matches
-@var{regex}.
+The @code{regex-replace-all} procedure replaces the all matches.
 }
 
 @define[Function]{@name{string-split} @args{text pattern}}
