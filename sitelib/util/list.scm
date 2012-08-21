@@ -36,11 +36,12 @@
 	    slices
 	    split-at*
 	    take*
+	    drop*
 	    cond-list)
     (import (rnrs)
 	    (core base)
 	    (sagittarius)
-	    (srfi :1))
+	    (srfi :1 lists))
   (define (intersperse item lis)
     (define (rec l r)
       (if (null? l)
@@ -59,7 +60,7 @@
 		((null? xs) (undefined))
 		(else
 		 (assertion-violation 
-		  'for-each 
+		  'for-each-with-index
 		  (wrong-type-argument-message "proper list" lst1 2)
 		  (list proc lst1 lst2)))))
 	(let loop ((index 0) (xs (apply list-transpose* lst1 lst2)))
@@ -69,7 +70,7 @@
 		((null? xs) (undefined))
 		(else
 		 (assertion-violation 
-		  'for-each
+		  'for-each-with-index
 		  (wrong-type-argument-message "proper list" lst1 2)
 		  (list proc lst1 lst2)))))))
 
@@ -81,7 +82,7 @@
 		((null? xs) (reverse! r))
 		(else
 		 (assertion-violation 
-		  'map 
+		  'map-with-index
 		  (wrong-type-argument-message "proper list" lst1 2)
 		  (list proc lst1 lst2)))))
 	(let loop ((index 0) (xs (apply list-transpose* lst1 lst2)) (r '()))
@@ -91,14 +92,14 @@
 		((null? xs) (reverse! r))
 		(else
 		 (assertion-violation 
-		  'map 
+		  'map-with-index
 		  (wrong-type-argument-message "proper list" lst1 2)
 		  (list proc lst1 lst2)))))))
 
   ;; from Gauche
   (define (slices lis k . args)
-    (unless (and (integer? k) (positive? k))
-      (assertion-violation 'slices "index must be positive integer" k))
+    (when (or (not (integer? k)) (negative? k))
+      (assertion-violation 'drop* "index must be non-negative integer" k))
     (let loop ((lis lis)
 	       (r '()))
       (if (null? lis)
@@ -107,8 +108,8 @@
 	    (loop t (cons h r))))))
 
   (define (split-at* lis k :optional (fill? #f) (padding #f))
-    (unless (and (integer? k) (positive? k))
-      (assertion-violation 'split-at "index must be positive integer" k))
+    (when (or (not (integer? k)) (negative? k))
+      (assertion-violation 'split-at* "index must be non-negative integer" k))
     (let loop ((i 0)
 	       (lis lis)
 	       (r '()))
@@ -123,6 +124,15 @@
   (define (take* lis k . args)
     (receive (h t) (apply split-at* lis k args) h))
 
+  (define (drop* lis k)
+    (when (or (not (integer? k)) (negative? k))
+      (assertion-violation 'drop* "index must be non-negative integer" k))
+    (let loop ((i 0)
+	       (lis lis))
+      (cond ((= i k) lis)
+	    ((null? lis) '())
+	    (else (loop (+ i 1) (cdr lis))))))
+  
   (define-syntax cond-list
     (syntax-rules (=> @)
       ((_) '())

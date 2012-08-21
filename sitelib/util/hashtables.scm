@@ -49,9 +49,9 @@
 	  (else
 	   (make-hashtable hasher compare))))
 
-  (define-with-key (alist->hashtable alist
-				     :key (compare eq?)
-				          (hasher symbol-hash))
+  (define (alist->hashtable alist
+			    :key (compare eq?)
+			    (hasher symbol-hash))
     (let ((ht (create-hashtable compare hasher)))
       (for-each (lambda (k/v)
 		  (hashtable-set! ht (car k/v) (cdr k/v))) alist)

@@ -1,12 +1,12 @@
 ;; -*- scheme -*-
 (library (sagittarius io)
-    (export call-with-port
-	    call-with-input-string
+    (export call-with-input-string
 	    call-with-output-string
 	    with-input-from-string
 	    with-input-from-port
 	    with-output-to-string
-	    with-output-to-port)
+	    with-output-to-port
+	    with-error-to-port)
     (import (core)
 	    (core base)
 	    (sagittarius)
@@ -22,8 +22,7 @@
       (get-output-string port)))
 
   (define (with-input-from-string str thunk)
-    (parameterize ((current-input-port (open-input-string str)))
-      (thunk)))
+    (with-input-from-port (open-input-string str) thunk))
 
   (define (with-input-from-port port thunk)
     (parameterize ((current-input-port port))
@@ -31,11 +30,14 @@
 
   (define (with-output-to-string thunk)
     (let ((port (open-output-string)))
-      (parameterize ((current-output-port port)) (thunk))
+      (with-output-to-port port thunk)
       (get-output-string port)))
 
   (define (with-output-to-port port thunk)
     (parameterize ((current-output-port port))
       (thunk)))
 
+  (define (with-error-to-port port thunk)
+    (parameterize ((current-error-port port))
+      (thunk)))
 )

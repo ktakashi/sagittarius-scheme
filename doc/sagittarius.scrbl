@@ -523,11 +523,12 @@ equivalent to:
 @desc{Disassembles the compiled body of @var{closure} and print it.
 }
 
+@include-section["sagittarius/control.scrbl"]
+@include-section["sagittarius/io.scrbl"]
+@include-section["sagittarius/mop.scrbl"]
+@include-section["sagittarius/object.scrbl"]
+@include-section["sagittarius/process.scrbl"]
+@include-section["sagittarius/reader.scrbl"]
+@include-section["sagittarius/record.scrbl"]
 @include-section["sagittarius/regex.scrbl"]
 @include-section["sagittarius/socket.scrbl"]
-@include-section["sagittarius/control.scrbl"]
-@include-section["sagittarius/record.scrbl"]
-@include-section["sagittarius/reader.scrbl"]
-@include-section["sagittarius/process.scrbl"]
-@include-section["sagittarius/object.scrbl"]
-@include-section["sagittarius/mop.scrbl"]
