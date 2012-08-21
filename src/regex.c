@@ -2353,7 +2353,7 @@ static threadq_iterator_t* thread_iterator_search(thread_list_t *tq,
 						  threadq_iterator_t *i)
 {
   i->value = NULL;
-  if (tq->n == 0 || i->current-i->order >= tq->n) return i;
+  if (tq->n == 0 || i->current - i->order >= tq->n) return i;
   i->value = tq->threads[*i->current];
   return i;
 }
@@ -2384,9 +2384,6 @@ static int thread_iterator_end_p(threadq_iterator_t *i)
 /* } */
 
 #define ALLOCATE_THREADQ(n) alloc_thread_lists(n)
-/* TODO use alloca */
-#define ALLOC_TEMPORARY_THREADQ(dst, n)		\
-  (dst) = ALLOCATE_THREADQ(n)
 #define THREADQ_CAPACITY(tq) ((tq)->size)
 #define THREADQ_SIZE(tq)    ((tq)->n)
 #define THREADQ_REF(tq, i)  ((tq)->threads[i])
@@ -2469,13 +2466,13 @@ static void copy_capture(match_ctx_t *ctx, const SgChar **dst,
 
 static match_ctx_t* init_match_ctx(match_ctx_t *ctx, SgMatcher *m, int size);
 
-static add_state_t add_state(int id, int j, const SgChar *cap_j)
+static void add_state(add_state_t *a, int id, int j, const SgChar *cap_j)
 {
-  add_state_t a;
-  a.id = id;
-  a.j  = j;
-  a.cap_j = cap_j;
-  return a;
+  /* add_state_t a; */
+  a->id = id;
+  a->j  = j;
+  a->cap_j = cap_j;
+  /* return a; */
 }
 
 static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
@@ -2486,7 +2483,8 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
   if (id0 < 0) return;
 
   stk = ctx->astack;
-  stk[nstk++] = add_state(id0, -1, NULL);
+  add_state(&stk[nstk], id0, -1, NULL);
+  nstk++;
 
   while (nstk > 0) {
     const add_state_t *a = &stk[--nstk];
@@ -2514,26 +2512,32 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
       break;
     case RX_FAIL: break;
     case RX_JMP:
-      stk[nstk++] = add_state(ip->arg.pos.x - ctx->start, -1, NULL);
+      add_state(&stk[nstk], ip->arg.pos.x - ctx->start, -1, NULL);
+      nstk++;
       break;
     case RX_SPLIT:
       /* explore alternatives */
-      stk[nstk++] = add_state(ip->arg.pos.y - ctx->start, -1, NULL);
-      stk[nstk++] = add_state(ip->arg.pos.x - ctx->start, -1, NULL);
+      add_state(&stk[nstk], ip->arg.pos.y - ctx->start, -1, NULL);
+      nstk++;
+      add_state(&stk[nstk], ip->arg.pos.x - ctx->start, -1, NULL);
+      nstk++;
       break;
     case RX_SAVE:
       if ((j = ip->arg.n) < ctx->ncapture) {
 	/* push a dummy whose only job is to restore capture[j] */
-	stk[nstk++] = add_state(-1, j, capture[j]);
+	add_state(&stk[nstk], -1, j, capture[j]);
+	nstk++;
 	capture[j] = p;
       }
-      stk[nstk++] = add_state(id+1, -1, NULL);
+      add_state(&stk[nstk], id+1, -1, NULL);
+      nstk++;
       break;
     case RX_EMPTY:
       /* printf("\nflags: %x %x, %x %d\n", ip->arg.flags, flags, ~flags, */
       /* 	     (ip->arg.flags & ~flags)); */
       if (ip->arg.flags & ~flags) break;
-      stk[nstk++] = add_state(id+1, -1, NULL);
+      add_state(&stk[nstk], id+1, -1, NULL);
+      nstk++;
       break;
 
     /* These need to be treated in step. so just add a thread to the queue.*/
