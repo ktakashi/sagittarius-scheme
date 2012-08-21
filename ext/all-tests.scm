@@ -9,7 +9,8 @@
  (else
   (add-dynamic-load-path "../build")))
 
-(import (rnrs) (util file) (core errors) (srfi :39 parameters))
+(import (rnrs) (util file) (core errors) (srfi :39 parameters)
+	(srfi :64 testing))
 
 (define-constant resource-file ".sagittarius-exttestrc")
 (define search-path #f)

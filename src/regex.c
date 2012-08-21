@@ -1560,6 +1560,7 @@ enum {
   /* condition */
   RX_BRANCH,
   RX_BRANCHA,
+  RX_INST_COUNT
 };
 
 
@@ -2309,10 +2310,10 @@ static thread_list_t* alloc_thread_lists(int n)
 
 static void thread_list_clear(thread_list_t *tq)
 {
-  int i;
   if (tq->n > 0) {
-    for (i = 0; i < tq->size; i++) {
-      tq->threads[i] = NULL;
+    int i;
+    for (i = 0; i < tq->n; i++) {
+      tq->threads[tq->order[i]] = NULL;
       tq->order[i] = -1;
     }
     tq->n = 0;
@@ -2375,7 +2376,7 @@ static threadq_iterator_t* thread_iterator_next(thread_list_t *tq,
 
 static int thread_iterator_end_p(threadq_iterator_t *i)
 {
-  return (*i->current == -1 || i->current >= i->order+i->size);
+  return i->value == NULL;
 }
 
 /* static int thread_iterator_begin_p(threadq_iterator_t *i) */
@@ -2468,18 +2469,59 @@ static match_ctx_t* init_match_ctx(match_ctx_t *ctx, SgMatcher *m, int size);
 
 static void add_state(add_state_t *a, int id, int j, const SgChar *cap_j)
 {
-  /* add_state_t a; */
   a->id = id;
   a->j  = j;
   a->cap_j = cap_j;
-  /* return a; */
 }
+
+/* does not make any improvement */
+/* #ifdef __GNUC__ */
+#if 0
+#define DISPATCH_TABLE					\
+  static void *dispatch_table[RX_INST_COUNT] = {	\
+    && SG_CPP_CAT(LABEL_, RX_ANY    ),			\
+    && SG_CPP_CAT(LABEL_, RX_CHAR   ),			\
+    && SG_CPP_CAT(LABEL_, RX_SET    ),			\
+    && SG_CPP_CAT(LABEL_, RX_NSET   ),			\
+    && SG_CPP_CAT(LABEL_, RX_STR    ),			\
+    && SG_CPP_CAT(LABEL_, RX_SPLIT  ),			\
+    && SG_CPP_CAT(LABEL_, RX_JMP    ),			\
+    && SG_CPP_CAT(LABEL_, RX_SAVE   ),			\
+    && SG_CPP_CAT(LABEL_, RX_EMPTY  ),			\
+    && SG_CPP_CAT(LABEL_, RX_FAIL   ),			\
+    && SG_CPP_CAT(LABEL_, RX_MATCH  ),			\
+    && SG_CPP_CAT(LABEL_, RX_BREF   ),			\
+    && SG_CPP_CAT(LABEL_, RX_AHEAD  ),			\
+    && SG_CPP_CAT(LABEL_, RX_BEHIND ),			\
+    && SG_CPP_CAT(LABEL_, RX_NAHEAD ),			\
+    && SG_CPP_CAT(LABEL_, RX_NBEHIND),			\
+    && SG_CPP_CAT(LABEL_, RX_ONCE   ),			\
+    && SG_CPP_CAT(LABEL_, RX_RESTORE),			\
+    && SG_CPP_CAT(LABEL_, RX_BRANCH ),			\
+    && SG_CPP_CAT(LABEL_, RX_BRANCHA),			\
+  }
+#define SWITCH(val) goto *dispatch_table[val];
+#define CASE(insn)  SG_CPP_CAT(LABEL_, insn) :
+#define END	    end:
+#define BREAK	    goto end;
+#define DEFAULT     LABEL_DEFAULT :
+#else
+#define DISPATCH_TABLE 		/* dummy */
+#define SWITCH(val)        switch (val)
+#define CASE(insn)         case insn :
+#define BREAK              break;
+#define END			/* empty */
+#define DEFAULT            default:
+#endif
+
 
 static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
 			   const SgChar *p, const SgChar **capture)
 {
   int nstk = 0;
   add_state_t *stk;
+  DISPATCH_TABLE;
+
   if (id0 < 0) return;
 
   stk = ctx->astack;
@@ -2505,66 +2547,69 @@ static void add_to_threadq(match_ctx_t *ctx, THREADQ_T *q, int id0, int flags,
     THREADQ_SET(q, id, filler);
     tp = &THREADQ_REF(q, id);
     ip = &ctx->inst[id];
-    switch (INST_OPCODE(ip)) {
-    default:
-      Sg_Error(UC("[internal] Unhandled opcode in add_to_threadq: %d"),
-	       INST_OPCODE(ip));
-      break;
-    case RX_FAIL: break;
-    case RX_JMP:
-      add_state(&stk[nstk], ip->arg.pos.x - ctx->start, -1, NULL);
-      nstk++;
-      break;
-    case RX_SPLIT:
-      /* explore alternatives */
-      add_state(&stk[nstk], ip->arg.pos.y - ctx->start, -1, NULL);
-      nstk++;
-      add_state(&stk[nstk], ip->arg.pos.x - ctx->start, -1, NULL);
-      nstk++;
-      break;
-    case RX_SAVE:
-      if ((j = ip->arg.n) < ctx->ncapture) {
-	/* push a dummy whose only job is to restore capture[j] */
-	add_state(&stk[nstk], -1, j, capture[j]);
+    SWITCH (INST_OPCODE(ip)) {
+      CASE(RX_FAIL) BREAK;
+      CASE(RX_JMP) {
+	add_state(&stk[nstk], ip->arg.pos.x - ctx->start, -1, NULL);
 	nstk++;
-	capture[j] = p;
+	BREAK;
       }
-      add_state(&stk[nstk], id+1, -1, NULL);
-      nstk++;
-      break;
-    case RX_EMPTY:
-      /* printf("\nflags: %x %x, %x %d\n", ip->arg.flags, flags, ~flags, */
-      /* 	     (ip->arg.flags & ~flags)); */
-      if (ip->arg.flags & ~flags) break;
-      add_state(&stk[nstk], id+1, -1, NULL);
-      nstk++;
-      break;
-
-    /* These need to be treated in step. so just add a thread to the queue.*/
-    case RX_NAHEAD:
-    case RX_NBEHIND:
-    case RX_BEHIND:
-    case RX_AHEAD:
-    case RX_RESTORE:
-    case RX_ONCE:
-    case RX_BREF:
-      Sg_Error(UC("[internal] Unexpected opcode in add_to_threadq: %d"),
-	       INST_OPCODE(ip));
-      break;
-    case RX_ANY:
-    case RX_CHAR:
-    case RX_SET:
-    case RX_NSET:
-    case RX_STR:
-    case RX_MATCH:
-      /* save state */
-      t = alloc_thread(ctx);
-      t->id = id;
-      copy_capture(ctx, t->capture, capture);
-      *tp = t;
-      break;
+      CASE(RX_SPLIT) {
+	/* explore alternatives */
+	add_state(&stk[nstk], ip->arg.pos.y - ctx->start, -1, NULL);
+	nstk++;
+	add_state(&stk[nstk], ip->arg.pos.x - ctx->start, -1, NULL);
+	nstk++;
+	BREAK;
+      }
+      CASE(RX_SAVE) {
+	if ((j = ip->arg.n) < ctx->ncapture) {
+	  /* push a dummy whose only job is to restore capture[j] */
+	  add_state(&stk[nstk], -1, j, capture[j]);
+	  nstk++;
+	  capture[j] = p;
+	}
+	add_state(&stk[nstk], id+1, -1, NULL);
+	nstk++;
+	BREAK;
+      }
+      CASE(RX_EMPTY) {
+	/* printf("\nflags: %x %x, %x %d\n", ip->arg.flags, flags, ~flags, */
+	/* 	     (ip->arg.flags & ~flags)); */
+	if (ip->arg.flags & ~flags) BREAK;
+	add_state(&stk[nstk], id+1, -1, NULL);
+	nstk++;
+	BREAK;
+      }
+      CASE(RX_ANY);
+      CASE(RX_CHAR);
+      CASE(RX_SET);
+      CASE(RX_NSET);
+      CASE(RX_STR);
+      CASE(RX_MATCH) {
+	/* save state */
+	t = alloc_thread(ctx);
+	t->id = id;
+	copy_capture(ctx, t->capture, capture);
+	*tp = t;
+	BREAK;
+      }
+      CASE(RX_NAHEAD);
+      CASE(RX_NBEHIND);
+      CASE(RX_BEHIND);
+      CASE(RX_AHEAD);
+      CASE(RX_RESTORE);
+      CASE(RX_ONCE);
+      CASE(RX_BREF);
+      CASE(RX_BRANCHA);
+      CASE(RX_BRANCH);
+      DEFAULT {
+	Sg_Error(UC("[internal] Unexpected opcode in add_to_threadq: %d"),
+		 INST_OPCODE(ip));
+	BREAK;
+      }
     }
-    
+    END;    
   }
 }
 
@@ -2649,6 +2694,7 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
 		      SgChar c, int flags, const SgChar *p)
 {
   THREADQ_ITERATOR_T i;
+  DISPATCH_TABLE;
   THREADQ_CLEAR(nextq);
 
   debug_printf("(%c).", (c < 0) ? '\0' : c);
@@ -2657,26 +2703,22 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
     thread_t *t = i.value;
     int id;
     inst_t *ip;
-    if (t == filler || t == NULL) continue;
+    if (t == filler) continue;
     id = t->id;
     ip = &ctx->inst[id];
     debug_printf(" %d", id);
-    switch (INST_OPCODE(ip)) {
-    default:
-      Sg_Error(UC("[internal] Unhandled opcode in step: id=%d opcode=%d"),
-	       id, INST_OPCODE(ip));
-      break;
-    case RX_ANY:
-    case RX_CHAR:
-    case RX_SET:
-    case RX_NSET:
-      if (inst_matches(ctx, ip, c)) {
-	debug_printf("->%d", id+1);
-	add_to_threadq(ctx, nextq, id + 1, flags, p+1, t->capture);
+    SWITCH (INST_OPCODE(ip)) {
+      CASE(RX_ANY);
+      CASE(RX_CHAR);
+      CASE(RX_SET);
+      CASE(RX_NSET) {
+	if (inst_matches(ctx, ip, c)) {
+	  debug_printf("->%d", id+1);
+	  add_to_threadq(ctx, nextq, id + 1, flags, p+1, t->capture);
+	}
+	BREAK;
       }
-      break;
-    case RX_MATCH:
-      {
+      CASE(RX_MATCH) {
 	const SgChar *old = t->capture[1];
 
 	t->capture[1] = p;
@@ -2691,7 +2733,28 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
 	debug_printf(" matched%c", '\n');
 	return -1;
       }
+      CASE(RX_STR    );
+      CASE(RX_SPLIT  );
+      CASE(RX_JMP    );
+      CASE(RX_SAVE   );
+      CASE(RX_EMPTY  );
+      CASE(RX_FAIL   );
+      CASE(RX_BREF   );
+      CASE(RX_AHEAD  );
+      CASE(RX_BEHIND );
+      CASE(RX_NAHEAD );
+      CASE(RX_NBEHIND);
+      CASE(RX_ONCE   );
+      CASE(RX_RESTORE);
+      CASE(RX_BRANCH );
+      CASE(RX_BRANCHA);
+      DEFAULT {
+	Sg_Error(UC("[internal] Unhandled opcode in step: id=%d opcode=%d"),
+		 id, INST_OPCODE(ip));
+	BREAK;
+      }
     }
+    END;
     free_thread(ctx, t);
   }
   debug_printf(" %c", '\n');
@@ -2753,8 +2816,8 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
     tmp = nextq;
     nextq = runq;
     runq = tmp;
-    /* we don't need runq anymore, so clear */
-    THREADQ_CLEAR(nextq);
+
+#if 0
     if (id >= 0) {
       p = ep;
       for (;;) {
@@ -2778,6 +2841,7 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
       }
       break;
     }
+#endif
     if (p > ep) break;
 
     /* start a new thread if there have not been any matches. */
