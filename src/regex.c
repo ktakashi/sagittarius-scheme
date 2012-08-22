@@ -2285,6 +2285,8 @@ typedef struct thread_rec_t
   const SgChar **capture;
 } thread_t;
 
+static thread_t *filler = (thread_t*)-1;
+
 /* We might want to switch to sparse array,
    so make it as abstract as possible */
 typedef struct
@@ -2292,19 +2294,15 @@ typedef struct
   int size;			/* thread size */
   int n;			/* used size */
   int *order;			/* keep inserted order here */
-  thread_t *threads[1];		/* threads */
+  thread_t *values[1];		/* threads */
 } thread_list_t;
 
 static thread_list_t* alloc_thread_lists(int n)
 {
-  thread_list_t *tq = SG_NEW2(thread_list_t*,
-			      sizeof(thread_list_t) + (n-1)*sizeof(thread_t*));
-  int i;
-  tq->size = n;
+  thread_list_t *tq = 
+    SG_NEW2(thread_list_t*, sizeof(thread_list_t)+(n-1)*sizeof(thread_t*));
+  tq->size = (unsigned int)n;
   tq->order = SG_NEW_ATOMIC2(int *, sizeof(int) * n);
-  for (i = 0; i < n; i++) {
-    tq->order[i] = -1;
-  } 
   return tq;
 }
 
@@ -2313,93 +2311,33 @@ static void thread_list_clear(thread_list_t *tq)
   if (tq->n > 0) {
     int i;
     for (i = 0; i < tq->n; i++) {
-      tq->threads[tq->order[i]] = NULL;
-      tq->order[i] = -1;
+      tq->values[tq->order[i]] = NULL;
     }
     tq->n = 0;
   }
 }
 
-static int thread_list_has_index(thread_list_t *tq, int index)
+static thread_t* thread_list_set_new(thread_list_t *tq, int i, thread_t *t)
 {
-  if (index < 0 || index > tq->size) return FALSE;
-  return tq->threads[index] != NULL;
-}
-
-static thread_t* thread_list_set_new(thread_list_t *tq, int index, thread_t *t)
-{
-  if (index >= tq->size) {
-    /* TODO throw error */
-    ASSERT(FALSE);
-    return NULL;
-  }
-  ASSERT(!thread_list_has_index(tq, index));
-  tq->threads[index] = t;
-  tq->order[tq->n++] = index;
+  tq->values[i] = t;
+  tq->order[tq->n++] = i; 
   return t;
 }
-
-typedef struct
-{
-  int       size;
-  int      *order;
-  int      *current;
-  thread_t *value;
-} threadq_iterator_t;
-
-static thread_t *filler = (thread_t*)-1;
-
-/* auxiliary function */
-static threadq_iterator_t* thread_iterator_search(thread_list_t *tq,
-						  threadq_iterator_t *i)
-{
-  i->value = NULL;
-  if (tq->n == 0 || i->current - i->order >= tq->n) return i;
-  i->value = tq->threads[*i->current];
-  return i;
-}
-
-static threadq_iterator_t* thread_iterator_begin(thread_list_t *tq,
-						 threadq_iterator_t *i)
-{
-  i->current = i->order = tq->order;
-  i->size = tq->n;
-  return thread_iterator_search(tq, i);
-}
-
-static threadq_iterator_t* thread_iterator_next(thread_list_t *tq,
-						threadq_iterator_t *i)
-{
-  i->current++;
-  return thread_iterator_search(tq, i);
-}
-
-static int thread_iterator_end_p(threadq_iterator_t *i)
-{
-  return i->value == NULL;
-}
-
-/* static int thread_iterator_begin_p(threadq_iterator_t *i) */
-/* { */
-/*   return i->order == i->current; */
-/* } */
 
 #define ALLOCATE_THREADQ(n) alloc_thread_lists(n)
 #define THREADQ_CAPACITY(tq) ((tq)->size)
 #define THREADQ_SIZE(tq)    ((tq)->n)
-#define THREADQ_REF(tq, i)  ((tq)->threads[i])
+#define THREADQ_REF(tq, i)  ((tq)->values[i])
 #define THREADQ_SET(tq, i, v)  thread_list_set_new((tq), (i), (v))
-#define THREADQ_HAS_INDEX(tq, i)   thread_list_has_index(tq, i)
+#define THREADQ_HAS_INDEX(tq, i) ((tq)->values[i] != NULL)
 #define THREADQ_CLEAR(tq)   thread_list_clear(tq)
 #define THREADQ_T           thread_list_t
-#define THREADQ_ITERATOR_T  threadq_iterator_t
-/* #define THREADQ_BEGIN_P(i)  thread_iterator_begin_p(i) */
-#define THREADQ_FOR_EACH(i, tq)						\
-  for (thread_iterator_begin(tq, &(i)); !thread_iterator_end_p(&(i));	\
-       thread_iterator_next(tq, &(i)))
-#define THREADQ_FOR_EACH_FROM_CURRENT(i, tq)				\
-  for (; !thread_iterator_end_p(&(i));					\
-       thread_iterator_next(tq, &(i)))
+
+/* iterator is now mere int */
+#define THREADQ_ITERATOR_T  int
+#define THREADQ_ITERATOR_REF(i, tq) ((tq)->values[(tq)->order[i]])
+#define THREADQ_FOR_EACH(i, tq)	for ((i) = 0; (i) < (tq)->n; (i)++)
+#define THREADQ_FOR_EACH_FROM_CURRENT(i, tq) for (; (i) < (tq)->n; (i)++)
 
 /* match */
 typedef struct
@@ -2700,7 +2638,7 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
   debug_printf("(%c).", (c < 0) ? '\0' : c);
 
   THREADQ_FOR_EACH(i, runq) {
-    thread_t *t = i.value;
+    thread_t *t = THREADQ_ITERATOR_REF(i, runq);
     int id;
     inst_t *ip;
     if (t == filler) continue;
@@ -2724,14 +2662,18 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
 	t->capture[1] = p;
 	copy_capture(ctx, (const SgChar **)ctx->match, t->capture);
 	t->capture[0] = old;
+	/*
+	  Cut off the threads that can only find matches worse than the one
+	  we just found: don't runt the rest of the current threadq.
+	 */
 	THREADQ_FOR_EACH_FROM_CURRENT(i, runq) {
-	  free_thread(ctx, i.value);
+	  free_thread(ctx, THREADQ_ITERATOR_REF(i, runq));
 	}
 
 	THREADQ_CLEAR(runq);
 	ctx->matched = TRUE;
 	debug_printf(" matched%c", '\n');
-	return -1;
+	return 0;
       }
       CASE(RX_STR    );
       CASE(RX_SPLIT  );
@@ -2759,7 +2701,7 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
   }
   debug_printf(" %c", '\n');
   THREADQ_CLEAR(runq);
-  return -1;
+  return 0;
 }
 
 #define iswordchar(c) (c <= 0xFF && (isalnum(c) || (c) == '_'))
@@ -2785,7 +2727,7 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
 
   /* check word boundary */
   for (p = bp; ;p++) {
-    int flag = 0, isword = FALSE, id;
+    int flag = 0, isword = FALSE;
 
     /* ^ and \A */
     if (p == otext)
@@ -2810,38 +2752,12 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
     else
       flag |= EmptyNonWordBoundary;
 
-    id = match_step(ctx, runq, nextq, c, flag, p-1);
+    match_step(ctx, runq, nextq, c, flag, p-1);
 
     /* swap */
     tmp = nextq;
     nextq = runq;
     runq = tmp;
-
-#if 0
-    if (id >= 0) {
-      p = ep;
-      for (;;) {
-	inst_t *ip = &ctx->inst[id];
-	debug_printf(" finishing: %d\n", INST_OPCODE(ip));
-	switch (ip->opcode) {
-	default:
-	  Sg_Error(UC("[internal ]Unexpected opcode in short circuit: %d"),
-		   INST_OPCODE(ip));
-	  break;
-	case RX_SAVE:
-	  ctx->match[ip->arg.n] = p;
-	  id = ip - ctx->start + 1;
-	  continue;
-	case RX_MATCH:
-	  ctx->match[1] = p;
-	  ctx->matched = TRUE;
-	  break;
-	}
-	break;
-      }
-      break;
-    }
-#endif
     if (p > ep) break;
 
     /* start a new thread if there have not been any matches. */
@@ -2861,7 +2777,7 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
     ctx->lastp = p;
   }
   THREADQ_FOR_EACH(i, runq) {
-    free_thread(ctx, i.value);
+    free_thread(ctx, THREADQ_ITERATOR_REF(i, runq));
   }
   return finish_match(ctx, anchor);
 }
