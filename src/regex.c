@@ -2632,6 +2632,52 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
 
 static int finish_match(match_ctx_t *ctx, int anchor);
 
+/* additional squeezing.
+   adding threadq is heavy process so we just avoid it as much as possible.
+ */
+static inst_t * search_first_atom(inst_t *inst)
+{
+  while (INST_OPCODE(inst) == RX_SAVE) inst++;
+  return inst;
+}
+
+static int can_check(inst_t *inst)
+{
+  switch (INST_OPCODE(inst)) {
+  case RX_CHAR:
+  case RX_SET:
+  case RX_ANY:
+  case RX_NSET:
+    return TRUE;
+  }
+  return FALSE;
+}
+
+static const SgChar * precheck(const SgChar *p, const SgChar *ep, inst_t *inst)
+{
+  int checkp = FALSE;
+  inst_t *inst2 = NULL;
+  inst = search_first_atom(inst);
+
+  if (INST_OPCODE(inst) == RX_SPLIT) {
+    inst2 = inst->arg.pos.y;
+    inst = inst->arg.pos.x;
+    checkp = can_check(inst);
+    checkp &= can_check(inst2);
+  } else {
+    checkp = can_check(inst);
+  }
+
+  if (checkp) {
+    while (p != ep) {
+      if (inst_matches(NULL, inst, *p)) break;
+      if (inst2 && inst_matches(NULL, inst2, *p)) break;
+      p++;
+    }
+  }
+  return p;
+}
+
 static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
 {
   THREADQ_T *runq = ctx->q0, *nextq = ctx->q1, *tmp;
@@ -2650,7 +2696,7 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
   ctx->inst = inst;
 
   /* check word boundary */
-  for (p = bp; ;p++) {
+  for (p = precheck(bp, ep, inst); ;p++) {
     int flag = 0, isword = FALSE;
 
     /* ^ and \A */
@@ -2686,6 +2732,11 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
 
     /* start a new thread if there have not been any matches. */
     if (!ctx->matched && (anchor == UNANCHORED || p == bp)) {
+      /* if the next queue is empty, means we can check forward the same as
+	 starting point. */
+      if (THREADQ_SIZE(runq) == 0) {
+	p = precheck(p, ep, inst);
+      }
       ctx->match[0] = p;
       /* TODO is start always 0? */
       add_to_threadq(ctx, runq, 0, flag, p, (const SgChar**)ctx->match);
@@ -2699,6 +2750,7 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
     wasword = isword;
     ctx->lastp = p;
   }
+
   THREADQ_FOR_EACH(i, runq) {
     free_thread(ctx, THREADQ_ITERATOR_REF(i, runq));
   }
