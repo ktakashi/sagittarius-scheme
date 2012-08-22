@@ -72,13 +72,14 @@ typedef union {		 /* arguments for opcode */
 
 struct inst_rec_t
 {
-  unsigned int  opcode;		/* opcode: max 255 */
-  inst_arg_t    arg;
+  unsigned char  opcode;	/* opcode: max 255 */
+  unsigned char  flags;
+  inst_arg_t     arg;
 };
 
-#define INST_OPCODE(i)        ((i)->opcode&0xFF)
-#define INST_FLAG(i)          ((i)->opcode>>8)
-#define INST_FLAG_SET(i, v)   ((i)->opcode=(i)->opcode|((v)<<8))
+#define INST_OPCODE(i)        ((i)->opcode)
+#define INST_FLAG(i)          ((i)->flags)
+#define INST_FLAG_SET(i, v)   ((i)->flags|=(v))
 
 typedef struct
 {
