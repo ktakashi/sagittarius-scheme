@@ -37,7 +37,11 @@
 #  include <alloca.h>
 # else
 #  ifdef _AIX
-#pragma alloca
+#    pragma alloca
+#  elif defined(_MSC_VER)
+/* _alloca is in <malloc.h> */
+#    include <malloc.h>
+#    define alloca _alloca
 #  else
 #   ifndef alloca /* predefined by HP cc +Olibcalls */
 char *alloca ();
@@ -148,7 +152,7 @@ SgObject Sg_MakeBignumFromU64(uint64_t value)
       ans->elements[1] = value >> WORD_BITS;
     } else {
       ans = make_bignum(1);
-      ans->elements[0] = value;
+      ans->elements[0] = (unsigned long)value;
     }
     SG_BIGNUM_SET_SIGN(ans, 1);
     return ans;
@@ -185,7 +189,7 @@ SgObject Sg_MakeBignumFromS64(int64_t value)
       ans->elements[1] = value >> WORD_BITS;
     } else {
       ans = make_bignum(1);
-      ans->elements[0] = value;
+      ans->elements[0] = (long)value;
     }
     SG_BIGNUM_SET_SIGN(ans, sign);
     return ans;

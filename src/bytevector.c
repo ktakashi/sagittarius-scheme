@@ -46,7 +46,7 @@
 static void bvector_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
   SgByteVector *b = SG_BVECTOR(obj);
-  int i, size = b->size;
+  size_t i, size = b->size;
   uint8_t *u8 = b->elements;
   char buf[32];
   Sg_Putuz(port, UC("#vu8("));
@@ -66,7 +66,7 @@ SG_DEFINE_BUILTIN_CLASS(Sg_ByteVectorClass, bvector_print, NULL, NULL, NULL,
 			SG_CLASS_SEQUENCE_CPL);
 
 
-SgByteVector* make_bytevector(size_t size)
+SgByteVector* make_bytevector(int size)
 {
   SgByteVector *z = SG_NEW_ATOMIC2(SgByteVector *, 
 			    sizeof(SgByteVector) + sizeof(uint8_t)*(size - 1));
@@ -76,7 +76,7 @@ SgByteVector* make_bytevector(size_t size)
   return z;
 }
 
-SgObject Sg_MakeByteVector(size_t size, int fill)
+SgObject Sg_MakeByteVector(int size, int fill)
 {
   SgByteVector *b;
   size_t i;
@@ -91,7 +91,7 @@ SgObject Sg_MakeByteVector(size_t size, int fill)
   return SG_OBJ(b);
 }
 
-SgObject Sg_MakeByteVectorFromU8Array(const uint8_t *buf, size_t size)
+SgObject Sg_MakeByteVectorFromU8Array(const uint8_t *buf, int size)
 {
   SgByteVector *z;
   z = make_bytevector(size);
@@ -171,7 +171,7 @@ static inline int is_valid_value(long value, size_t bitCount, int signP)
 
 /* FIXME not so nice implemantation */
 static inline int bytevector_set(SgByteVector *bv, int index, intptr_t value,
-				  size_t bitCount, int signP)
+				 int bitCount, int signP)
 {
   /* im too lazy to repeat this */
 #define SIGN_SWITCH(prefix, suffix)					\
@@ -203,11 +203,11 @@ static inline int bytevector_set(SgByteVector *bv, int index, intptr_t value,
 #undef SIGN_SWITCH
 }
 
-SgObject Sg_ListToByteVector(SgObject lst, size_t bitCount, int signP)
+SgObject Sg_ListToByteVector(SgObject lst, int bitCount, int signP)
 {
   SgByteVector *bv;
   SgObject cp;
-  size_t len = 0, i;
+  int len = 0, i;
   if (!SG_PROPER_LISTP(lst)) {
     Sg_Error(UC("proper list required, but got %S"), lst);
   }
@@ -231,7 +231,8 @@ SgObject Sg_ListToByteVector(SgObject lst, size_t bitCount, int signP)
   return SG_OBJ(bv);
 }
 
-static inline SgObject bytevector_ref(SgByteVector *bv, int index, size_t bitCount, int signP)
+static inline SgObject bytevector_ref(SgByteVector *bv, int index,
+				      int bitCount, int signP)
 {
   /* im too lazy to repeat this */
 #define Sg_MakeIntegerS    Sg_MakeInteger
@@ -250,17 +251,17 @@ static inline SgObject bytevector_ref(SgByteVector *bv, int index, size_t bitCou
   SgObject ret = SG_UNDEF;
   switch (bitCount) {
   case 8: {
-    uintptr_t value;
+    unsigned long value;
     SIGN_SWITCH(8, Ref, Sg_MakeInteger);
     break;
   }
   case 16: {
-    uintptr_t value;
+    unsigned long value;
     SIGN_SWITCH(16, NativeRef, Sg_MakeInteger);
     break;
   }
   case 32: {
-    uintptr_t value;
+    unsigned long value;
     SIGN_SWITCH(32, NativeRef, Sg_MakeInteger);
     break;
   }
@@ -277,10 +278,10 @@ static inline SgObject bytevector_ref(SgByteVector *bv, int index, size_t bitCou
 #undef Sg_MakeBignum64U
 }
 
-SgObject Sg_ByteVectorToList(SgByteVector *bv, size_t bitCount, int signP)
+SgObject Sg_ByteVectorToList(SgByteVector *bv, int bitCount, int signP)
 {
   SgObject ret = SG_NIL;
-  size_t i, len = SG_BVECTOR_SIZE(bv);
+  int i, len = SG_BVECTOR_SIZE(bv);
   for (i = 0; i < len;) {
     SgObject ref = bytevector_ref(bv, i, bitCount, signP);
     ret = Sg_Cons(ref, ret);
@@ -327,7 +328,7 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder,
     if (len < read_size) break;
     Sg_WritesUnsafe(accum, buf, len);
     total_size += len;
-    rest = size - total_size;
+    rest = (int)(size - total_size);
     len = 0;
     if (rest <= 0) break;
     if (rest < read_size) read_size = rest;

@@ -64,10 +64,12 @@
 /* 
    f000 0000 0000 0000 0000 0000 iiii iiii
    i = insn
+   For cache, insn must be 32 bits so we can't use whole length of SgWord
+   for 64 bit environment.
  */
 #define SG_INT_FITS_INSN_VALUE(n)				\
-  (((n) <= (1 << (((sizeof(SgWord) << 3) - INSN_VALUE1_SHIFT) -1))) &&	\
-   ((n) >= ~(1 << (((sizeof(SgWord) << 3) - INSN_VALUE1_SHIFT) -1))))
+  (((n) <= (1 << ((31 - INSN_VALUE1_SHIFT)))) &&	\
+   ((n) >= ~(1 << ((31 - INSN_VALUE1_SHIFT)))))
 
 
 static SgCodePacket empty_packet = EMPTY_PACKET;
@@ -95,7 +97,9 @@ static void push(SgCodeBuilder *cb, SgWord word)
 
 static void flush(SgCodeBuilder *cb)
 {
-  int insn = MERGE_INSN_VALUE2(cb->packet.insn,cb->packet.arg0,cb->packet.arg1);
+  SgWord insn = MERGE_INSN_VALUE2(cb->packet.insn,
+				  cb->packet.arg0,
+				  cb->packet.arg1);
   switch (cb->packet.type) {
   case EMPTY:
     return;

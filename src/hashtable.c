@@ -101,7 +101,7 @@ uint32_t Sg_EqvHash(SgObject obj)
     if (SG_INTP(obj)) {
       SMALL_INT_HASH(hashval, SG_INT_VALUE(obj));
     } else if (SG_BIGNUMP(obj)) {
-      unsigned int i;
+      int i;
       unsigned long u = 0;
       int size = SG_BIGNUM_GET_COUNT(obj);
       for (i = 0; i < size; i++) {

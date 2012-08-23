@@ -158,6 +158,12 @@ static SgString* make_string(int size)
 static SgInternalMutex smutex;
 static SgHashTable *stable;
 
+#ifdef _MSC_VER
+/* _alloca is in <malloc.h> */
+#include <malloc.h>
+#define alloca _alloca
+#endif
+
 #ifdef HAVE_ALLOCA
 #define ALLOC_TEMP_STRING(var, size)					\
     (var) = SG_STRING(alloca(STRING_ALLOC_SIZE(size)));			\
@@ -169,7 +175,7 @@ static SgHashTable *stable;
 
 
 
-SgObject Sg_MakeStringEx(const SgChar *value, SgStringType flag, size_t length)
+SgObject Sg_MakeStringEx(const SgChar *value, SgStringType flag, int length)
 {
   SgObject r;
   SgString *z;
@@ -206,7 +212,7 @@ SgObject Sg_MakeStringEx(const SgChar *value, SgStringType flag, size_t length)
 
 SgObject Sg_MakeString(const SgChar *value, SgStringType flag)
 {
-  size_t len = ustrlen(value);
+  int len = (int)ustrlen(value);
   return Sg_MakeStringEx(value, flag, len);
 }
 
@@ -215,7 +221,7 @@ SgObject Sg_MakeStringC(const char *value)
 {
 #if 1
   SgString *z;
-  z = make_string(strlen(value));
+  z = make_string((int)strlen(value));
   COPY_STRING(z, value, z->size, 0);
   z->value[z->size] = 0;
   return SG_OBJ(z);
@@ -232,10 +238,10 @@ SgObject Sg_MakeStringC(const char *value)
 #endif
 }
 
-SgObject Sg_ReserveString(size_t size, SgChar fill)
+SgObject Sg_ReserveString(int size, SgChar fill)
 {
   SgString *z = make_string(size);
-  size_t i;
+  int i;
   for (i = 0; i < size; i++) {
     z->value[i] = fill;
   }
@@ -549,7 +555,7 @@ SgObject Sg_MaybeSubstring(SgString *s, int start, int end)
 static uint32_t string_hash(const SgHashCore *ht, intptr_t key)
 {
   SgChar *p = (SgChar*)key;
-  int size = ustrlen(p);
+  int size = (int)ustrlen(p);
   uint32_t hashval;
   STRING_HASH(hashval, p, size);
   return hashval;

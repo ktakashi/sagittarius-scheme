@@ -432,7 +432,7 @@ SgObject Sg_Utf8sToUtf32s(const char *s, int len)
   int64_t r = Sg_ConvertUtf8BufferToUcs4(Sg_MakeUtf8Codec(), (uint8_t*)s, len,
 					 SG_STRING_VALUE(ss), len, NULL,
 					 SG_IGNORE_ERROR, FALSE);
-  SG_STRING_SIZE(ss) = r;
+  SG_STRING_SIZE(ss) = (int)r;
   return ss;
 }
 
@@ -444,7 +444,7 @@ SgObject Sg_Utf16sToUtf32s(const char *s, int len)
 					  (uint8_t*)s, len,
 					  SG_STRING_VALUE(ss), len/2, NULL,
 					  SG_IGNORE_ERROR, FALSE);
-  SG_STRING_SIZE(ss) = r;
+  SG_STRING_SIZE(ss) = (int)r;
   return ss;
 }
 
@@ -543,7 +543,7 @@ size_t ustrlen(const SgChar *value)
     int i;							\
     for (i = 0; i < size; i++) {				\
       if (SG_CPP_CAT(s_, name)[i].in == ch) {			\
-	return SG_CPP_CAT(s_, name)[i].out;			\
+	return (SgChar)(SG_CPP_CAT(s_, name)[i].out);		\
       }								\
     }								\
     return how? ch: 0;						\
@@ -1116,7 +1116,7 @@ static int32_t pair_wise_composition(uint32_t first, uint32_t second)
       return first + tindex;
     } else {
       int64_t val = (first * 0x10000) + second;
-      int32_t r = compose(val);
+      int32_t r = compose((SgChar)val);
       return r ? r : -1;
     }
   }
@@ -1182,7 +1182,7 @@ void Sg__InitUnicode()
   size_t i;
   const size_t size_1 = array_sizeof(s_general_category_1);
   const size_t size_2 = array_sizeof(s_general_category_2);
-  general_category = Sg_MakeHashTableSimple(SG_HASH_EQV, size_1 + size_2);
+  general_category = Sg_MakeHashTableSimple(SG_HASH_EQV, (int)(size_1+size_2));
   for (i = 0; i < size_1; i++) {
     Sg_HashTableSet(general_category,
 		    SG_MAKE_CHAR(s_general_category_1[i].in),

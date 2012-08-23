@@ -37,6 +37,7 @@ CHECK_TYPE_SIZE(int SIZEOF_INT)
 CHECK_TYPE_SIZE(short SIZEOF_SHORT)
 CHECK_TYPE_SIZE(long SIZEOF_LONG)
 CHECK_TYPE_SIZE(int64_t SIZEOF___INT64)
+CHECK_TYPE_SIZE(size_t SIZEOF_SIZE_T)
 #CHECK_TYPE_SIZE(off_t SIZEOF_OFF_T)
 CHECK_TYPE_SIZE(void* SIZEOF_VOIDP)
 CHECK_TYPE_SIZE(float SIZEOF_FLOAT)
@@ -52,6 +53,15 @@ IF (HAVE_ALLOCA_H)
 int main()
 {
   alloca(1);
+  return 0;
+}
+" HAVE_ALLOCA)
+ELSEIF (MSVC)
+  CHECK_C_SOURCE_RUNS("
+#include <malloc.h>
+int main()
+{
+  _alloca(1);
   return 0;
 }
 " HAVE_ALLOCA)

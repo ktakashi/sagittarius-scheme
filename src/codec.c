@@ -76,7 +76,7 @@ static int put_utf8_char(SgObject self, SgPort *port, SgChar c,
 			 ErrorHandlingMode mode)
 {
   uint8_t buf[4];
-  int64_t size = Sg_ConvertUcs4ToUtf8(c, buf, mode);
+  int size = Sg_ConvertUcs4ToUtf8(c, buf, mode);
   put_binary_array(port, buf, size);
 }
 
@@ -118,7 +118,8 @@ static int64_t write_utf8(SgObject self, SgPort* port, SgChar *str,
 {
   /* we at lease need 'size' size buffer. */
   uint8_t tmp[TMP_BUF_SIZE];
-  int64_t i, converted_size = 0;
+  int converted_size = 0;
+  int64_t i;
 
   /* we can not know the real size until we convert. */
   for (i = 0; i < count; i++) {
@@ -156,7 +157,7 @@ static int put_utf16_char(SgObject self, SgPort *port, SgChar c,
 {
   uint8_t buf[4];
   int littlep = SG_CODEC(self)->impl.builtin.littlep;
-  int64_t size = Sg_ConvertUcs4ToUtf16(c, buf, mode, littlep);
+  int size = Sg_ConvertUcs4ToUtf16(c, buf, mode, littlep);
   put_binary_array(port, buf, size);
 }
 
@@ -174,8 +175,8 @@ static int64_t write_utf16(SgObject self, SgPort* port, SgChar *str,
 {
   /* we at lease need 'size' size buffer. */
   uint8_t tmp[TMP_BUF_SIZE];
-  int64_t i, converted_size = 0;
-  int littlep = SG_CODEC(self)->impl.builtin.littlep;
+  int converted_size = 0, littlep = SG_CODEC(self)->impl.builtin.littlep;
+  int64_t i;
   /* we can not know the real size until we convert. */
   for (i = 0; i < count; i++) {
     SgChar c = str[i];
@@ -346,7 +347,8 @@ static int64_t write_utf32(SgObject self, SgPort* port, SgChar *s,
 			   int64_t count, ErrorHandlingMode mode)
 {
   uint8_t tmp[TMP_BUF_SIZE];
-  int64_t i, converted = 0;
+  int converted = 0;
+  int64_t i;
   for (i = 0; i < count; i++) {
     char_to_utf8_array(self, s[i], tmp + converted);
     converted += 4;
@@ -476,7 +478,8 @@ static int64_t write_latin1(SgObject self, SgPort* port, SgChar *s,
 {
   /* actually, we can just dump it, but for checking... */
   uint8_t tmp[TMP_BUF_SIZE];
-  int64_t i, converted = 0;
+  int converted = 0;
+  int64_t i;
   for (i = 0; i < count; i++) {
     converted += convert_latin1(port, s[i], tmp + converted, mode);
     if (converted >= TMP_BUF_SIZE) {

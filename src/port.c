@@ -852,8 +852,7 @@ SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size)
   z->flush = NULL;
   z->close = byte_array_close;
   /* initialize binary input port */
-  b->src.buffer.bvec = SG_BVECTOR(Sg_MakeByteVectorFromU8Array(src,
-							       (size_t)size));
+  b->src.buffer.bvec = SG_BVECTOR(Sg_MakeByteVectorFromU8Array(src, (int)size));
   b->src.buffer.index = 0;
   b->open = byte_array_open;
   b->getU8 = byte_array_get_u8;
@@ -932,9 +931,9 @@ SgObject Sg_MakeByteArrayOutputPort(int size)
   This function always return new allocated byte array.
  */
 
-static size_t get_byte_buffer_count(byte_buffer *start, byte_buffer *current)
+static int get_byte_buffer_count(byte_buffer *start, byte_buffer *current)
 {
-  size_t count = 0;
+  int count = 0;
   /* we need to skip the first buffer to count */
   for (; start != current; start = start->next, count++);
   return count;
@@ -1354,7 +1353,7 @@ static int64_t custom_binary_read(SgObject self, uint8_t *buf, int64_t size)
   SgObject bv, result;
   int start = 0;
   int64_t read = 0;
-  bv = Sg_MakeByteVector(size, 0);
+  bv = Sg_MakeByteVector((int)size, 0);
   if (SG_CUSTOM_HAS_U8_AHEAD(self)) {
     Sg_ByteVectorU8Set(bv, 0, SG_CUSTOM_U8_AHEAD(self));
     SG_CUSTOM_U8_AHEAD(self) = EOF;
@@ -1429,7 +1428,7 @@ static int64_t custom_binary_put_u8_array(SgObject self, uint8_t *v,
 {
   static const SgObject start = SG_MAKE_INT(0);
   SgObject bv, result, count;
-  bv = Sg_MakeByteVectorFromU8Array(v, (size_t)size);
+  bv = Sg_MakeByteVectorFromU8Array(v, (int)size);
 
   count = Sg_MakeIntegerFromS64(size);
   result = Sg_Apply3(SG_CUSTOM_PORT(self)->write, bv, start, count);
@@ -1594,7 +1593,7 @@ static int64_t custom_textual_get_string(SgObject self, SgChar *buf,
   /* unget buffer was enough */
   if (!size) return offset;
 
-  s = Sg_ReserveString(size, 0);
+  s = Sg_ReserveString((int)size, 0);
   for (start = 0; size; ) {
     int r;
     result = Sg_Apply3(SG_CUSTOM_PORT(self)->read, s, 
@@ -1721,8 +1720,8 @@ SgObject Sg_GetByteVectorFromBinaryPort(SgPort *port)
       return SG_OBJ(bp->src.buffer.bvec);
     } else {
       /* recreate */
-      size_t size = get_byte_buffer_count(bp->src.obuf.start,
-					  bp->src.obuf.current);
+      int size = get_byte_buffer_count(bp->src.obuf.start,
+				       bp->src.obuf.current);
       SgByteVector *ret = Sg_MakeByteVector(size, 0);
       return byte_buffer_to_bytevector(ret, bp->src.obuf.start);
     }
@@ -1730,9 +1729,9 @@ SgObject Sg_GetByteVectorFromBinaryPort(SgPort *port)
   return SG_UNDEF;		/* dummy */
 }
 
-static size_t get_char_buffer_count(char_buffer *start, char_buffer *current)
+static int get_char_buffer_count(char_buffer *start, char_buffer *current)
 {
-  size_t count = 0;
+  int count = 0;
   /* we need to skip the first buffer to count */
   for (; start != current; start = start->next, count++);
   return count;
@@ -1757,8 +1756,8 @@ SgObject Sg_GetStringFromStringPort(SgPort *port)
     /* TODO should this return from current index? */
     return tp->src.buffer.str;
   } else {
-    size_t size = get_char_buffer_count(tp->src.ostr.start,
-					tp->src.ostr.current);
+    int size = get_char_buffer_count(tp->src.ostr.start,
+				     tp->src.ostr.current);
     SgString *ret = Sg_ReserveString(size, ' ');
     return char_buffer_to_string(ret, tp->src.ostr.start);
   }
@@ -1891,7 +1890,7 @@ int64_t Sg_ReadbAll(SgPort *port, uint8_t **buf)
   return ret;
 }
 
-void Sg_Writeb(SgPort *port, uint8_t *b, int start, int count)
+void Sg_Writeb(SgPort *port, uint8_t *b, int64_t start, int64_t count)
 {
   SG_PORT_LOCK(port);
   Sg_WritebUnsafe(port, b, start, count);
@@ -1951,14 +1950,14 @@ void Sg_Puts(SgPort *port, SgString *str)
   SG_PORT_UNLOCK(port);
 }
 
-void Sg_Writes(SgPort *port, SgChar *s, int count)
+void Sg_Writes(SgPort *port, SgChar *s, int64_t count)
 {
   SG_PORT_LOCK(port);
   Sg_WritesUnsafe(port, s, count);
   SG_PORT_UNLOCK(port);
 }
 
-void Sg_WritesUnsafe(SgPort *port, SgChar *s, int count)
+void Sg_WritesUnsafe(SgPort *port, SgChar *s, int64_t count)
 {
   if (SG_TEXTUAL_PORTP(port)) {
     SG_TEXTUAL_PORT(port)->putString(port, s, count);
@@ -1970,7 +1969,7 @@ void Sg_WritesUnsafe(SgPort *port, SgChar *s, int count)
   }
 }
 
-int64_t Sg_Reads(SgPort *port, SgChar *s, int count)
+int64_t Sg_Reads(SgPort *port, SgChar *s, int64_t count)
 {
   int64_t size;
   SG_PORT_LOCK(port);
@@ -1978,7 +1977,7 @@ int64_t Sg_Reads(SgPort *port, SgChar *s, int count)
   SG_PORT_UNLOCK(port);
   return size;
 }
-int64_t Sg_ReadsUnsafe(SgPort *port, SgChar *s, int count)
+int64_t Sg_ReadsUnsafe(SgPort *port, SgChar *s, int64_t count)
 {
   if (SG_TEXTUAL_PORTP(port)) {
     return SG_TEXTUAL_PORT(port)->getString(port, s, count);
@@ -2009,7 +2008,7 @@ void Sg_PutbUnsafe(SgPort *port, uint8_t b)
   }
 }
 
-void Sg_WritebUnsafe(SgPort *port, uint8_t *b, int start, int count)
+void Sg_WritebUnsafe(SgPort *port, uint8_t *b, int64_t start, int64_t count)
 {
   reckless:
   if (SG_BINARY_PORTP(port)) {

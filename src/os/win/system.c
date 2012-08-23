@@ -217,6 +217,6 @@ SgObject Sg_GetMacAddress(int pos)
   }
   size = buflen / sizeof(IP_ADAPTER_INFO);
   if (pos < 0) pos = 0;
-  else if (pos > size) pos = size-1;
+  else if (pos > size) pos = (int)(size-1);
   return Sg_MakeByteVectorFromU8Array(adapterInfo[pos].Address, 6);
 }

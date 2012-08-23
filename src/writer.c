@@ -298,7 +298,7 @@ static void format_integer(SgPort *out, SgObject arg, SgObject *params,
     }
     colcnt = num_digits % commainterval;
     if (colcnt != 0) {
-      for (i = 0; i < colcnt; i++) {
+      for (i = 0; (unsigned int)i < colcnt; i++) {
 	Sg_Putc(strout, *(ptr + i));
       }
     }
@@ -1136,7 +1136,7 @@ void Sg_Vprintf(SgPort *port, const SgChar *fmt, va_list sp, int sharedp)
       case 'p':
 	{
 	  void *value = va_arg(sp, void *);
-	  SG_APPEND1(h, t, Sg_MakeIntegerU((uintptr_t)value));
+	  SG_APPEND1(h, t, Sg_MakeIntegerU((unsigned long)value));
 	  break;
 	}
       case 'S': case 'A': case 'L':

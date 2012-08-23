@@ -61,7 +61,7 @@ static inline int nlz64(uint64_t x)
   t = x >>  4; if (t) { n -=  4 ; x = t; }
   t = x >>  2; if (t) { n -=  2 ; x = t; }
   t = x >>  1; if (t) { return n - 2; }
-  return n - x;
+  return n - (int)x;
 }
 
 static inline int nlz(long x) {

@@ -2402,10 +2402,11 @@ static void copy_capture(match_ctx_t *ctx, const SgChar **dst,
 
 static match_ctx_t* init_match_ctx(match_ctx_t *ctx, SgMatcher *m, int size);
 
-static void add_state(add_state_t *a, int id, int j, const SgChar *cap_j)
+static void add_state(add_state_t *a, intptr_t id, intptr_t j,
+		      const SgChar *cap_j)
 {
-  a->id = id;
-  a->j  = j;
+  a->id = (int)id;
+  a->j  = (int)j;
   a->cap_j = cap_j;
 }
 
@@ -2901,7 +2902,7 @@ static int match_step1(match_ctx_t *ctx, inst_t *inst, int flags,
       flags = saved;
       if (INST_OPCODE(inst) == RX_ONCE) {
 	ctx->wasword = isword;
-	count = ctx->lastp - (bp+i);
+	count = (int)(ctx->lastp - (bp+i));
       }
       else count = 0;
       if (FLAG_SET(flags, LOOK_BEHIND)) count = -count;
@@ -2969,7 +2970,7 @@ static int finish_match(match_ctx_t *ctx, int anchor)
       ctx->matched = FALSE;
       return FALSE;
     }
-    ctx->m->first = ctx->match[0] - SG_STRING_VALUE(ctx->m->text);
+    ctx->m->first = (int)(ctx->match[0] - SG_STRING_VALUE(ctx->m->text));
   }
   return ctx->matched;
 }
@@ -2990,7 +2991,7 @@ static int matcher_match(SgMatcher *m, int from, int anchor)
     ret = matcher_match0(m->match_ctx, from, anchor, m->pattern->prog->root);
   /* sync lastp */
   if (!ret) m->first  = -1;
-  m->last = m->match_ctx->lastp - SG_STRING_VALUE(m->text);
+  m->last = (int)(m->match_ctx->lastp - SG_STRING_VALUE(m->text));
   return ret;
 }
 

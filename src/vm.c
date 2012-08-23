@@ -1473,7 +1473,7 @@ SgObject Sg_GetStackTrace()
 	  SgCodeBuilder *cb = SG_CODE_BUILDER(SG_CLOSURE(cl)->code);
 	  InsnInfo *info;
 	  SgObject src = SG_FALSE;
-	  int index = -1, i;
+	  intptr_t index = -1, i;
 	  if (SG_FALSEP(name)) {
 	    /* try codebuilder name */
 	    name = Sg_CodeBuilderFullName(cb);
@@ -2030,6 +2030,11 @@ static void show_inst_count(void *data)
 # define DEFAULT            default:
 #endif
 
+#ifdef _MSC_VER
+# pragma warning( push )
+# pragma warning( disable : 4102 4101)
+#endif
+
 SgObject run_loop()
 {
   SgVM *vm = Sg_VM();
@@ -2067,6 +2072,9 @@ SgObject run_loop()
   }
   return SG_UNDEF;		/* dummy */
 }
+#ifdef _MSC_VER
+# pragma warning( pop )
+#endif
 
 void Sg__InitVM()
 {

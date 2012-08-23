@@ -43,7 +43,7 @@ typedef enum  {
 
 typedef struct SgCodePacketRec
 {
-  int        insn;
+  SgWord     insn;
   PacketType type;
   int        arg0;		/* vm instruction value1 */
   int        arg1;		/* vm instruction value2 */

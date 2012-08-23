@@ -76,9 +76,9 @@ SG_CDECL_BEGIN
 SG_EXTERN SgObject Sg_MakeStringC(const char *value);
 SG_EXTERN SgObject Sg_MakeString(const SgChar *value, SgStringType flag);
 SG_EXTERN SgObject Sg_MakeStringEx(const SgChar *value, SgStringType flag,
-				   size_t length);
+				   int length);
 
-SG_EXTERN SgObject Sg_ReserveString(size_t size, SgChar fill);
+SG_EXTERN SgObject Sg_ReserveString(int size, SgChar fill);
 /* this is for get-string-n related not for c use */
 SG_EXTERN SgObject Sg_MakeEmptyString();
 

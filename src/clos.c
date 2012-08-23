@@ -231,7 +231,7 @@ SgObject Sg_AddMethod(SgGeneric *generic, SgMethod *method)
   method->generic = generic;
   /* pre-allcate cons pair to avoid triggering GC */
   pair = Sg_Cons(SG_OBJ(method), SG_GENERIC_METHODS(generic));
-  if (SG_PROCEDURE_REQUIRED(method) > reqs) {
+  if (SG_PROCEDURE_REQUIRED(method) > (unsigned int)reqs) {
     reqs = SG_PROCEDURE_REQUIRED(method);
   }
   Sg_LockMutex(&generic->mutex);
@@ -243,10 +243,11 @@ SgObject Sg_AddMethod(SgGeneric *generic, SgMethod *method)
 	SG_EQ(SG_METHOD_QUALIFIER(method), SG_METHOD_QUALIFIER(mm))) {
       SgClass **sp1 = SG_METHOD_SPECIALIZERS(method);
       SgClass **sp2 = SG_METHOD_SPECIALIZERS(mm);
-      for (i = 0; i < SG_PROCEDURE_REQUIRED(method); i++) {
+      int required = SG_PROCEDURE_REQUIRED(method);
+      for (i = 0; i < required; i++) {
 	if (sp1[i] != sp2[i]) break;
       }
-      if (i == SG_PROCEDURE_REQUIRED(method)) {
+      if (i == required) {
 	SG_SET_CAR(mp, SG_OBJ(method));
 	replaced = TRUE;
 	break;
@@ -284,7 +285,7 @@ SgObject Sg_RemoveMethod(SgGeneric *gf, SgMethod *m)
   }
   SG_FOR_EACH(mp, SG_GENERIC_METHODS(gf)) {
     /* sync # of required selector */
-    if (SG_PROCEDURE_REQUIRED(SG_CAR(mp)) > SG_GENERIC_MAX_REQARGS(gf)) {
+    if (SG_PROCEDURE_REQUIRED(SG_CAR(mp)) > (unsigned int)SG_GENERIC_MAX_REQARGS(gf)) {
       SG_GENERIC_MAX_REQARGS(gf) = SG_PROCEDURE_REQUIRED(SG_CAR(mp));
     }
   }
@@ -534,10 +535,11 @@ static SgObject compute_applicable_methods(SgGeneric *gf, SgObject *argv,
     SgMethod *m = SG_METHOD(SG_CAR(mp));
     SgClass **tp, **sp;
     int n;
-    if (argc < SG_PROCEDURE_REQUIRED(m)) continue;
-    if (!SG_PROCEDURE_OPTIONAL(m) && argc > SG_PROCEDURE_REQUIRED(m)) continue;
+    if ((unsigned int)argc < SG_PROCEDURE_REQUIRED(m)) continue;
+    if (!SG_PROCEDURE_OPTIONAL(m) &&
+	(unsigned int)argc > SG_PROCEDURE_REQUIRED(m)) continue;
     for (tp = typev, sp = SG_METHOD_SPECIALIZERS(m), n = 0;
-	 n < SG_PROCEDURE_REQUIRED(m);
+	 (unsigned int)n < SG_PROCEDURE_REQUIRED(m);
 	 tp++, sp++, n++) {
       if (!Sg_SubtypeP(*tp, *sp)) break;
     }

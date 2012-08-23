@@ -321,7 +321,8 @@ SG_EXTERN int      Sg_Getb(SgPort *port);
 SG_EXTERN int      Sg_Peekb(SgPort *port);
 SG_EXTERN int64_t  Sg_Readb(SgPort *port, uint8_t *buf, int64_t size);
 SG_EXTERN int64_t  Sg_ReadbAll(SgPort *port, uint8_t **buf);
-SG_EXTERN void     Sg_Writeb(SgPort *port, uint8_t *b, int start, int count);
+SG_EXTERN void     Sg_Writeb(SgPort *port, uint8_t *b,
+			     int64_t start, int64_t count);
 SG_EXTERN void     Sg_Putb(SgPort *port, uint8_t b);
 SG_EXTERN SgChar   Sg_Getc(SgPort *port);
 SG_EXTERN SgChar   Sg_Peekc(SgPort *port);
@@ -331,13 +332,13 @@ SG_EXTERN void     Sg_Putuz(SgPort *port, const SgChar *str);
 SG_EXTERN void     Sg_Puts(SgPort *port, SgString *str);
 
 SG_EXTERN void     Sg_PutbUnsafe(SgPort *port, uint8_t b);
-SG_EXTERN void     Sg_WritebUnsafe(SgPort *port, uint8_t *b, int start,
-				   int count);
+SG_EXTERN void     Sg_WritebUnsafe(SgPort *port, uint8_t *b, int64_t start,
+				   int64_t count);
 /* for textual port */
-SG_EXTERN void     Sg_Writes(SgPort *port, SgChar *s, int count);
-SG_EXTERN void     Sg_WritesUnsafe(SgPort *port, SgChar *s, int count);
-SG_EXTERN int64_t  Sg_Reads(SgPort *port, SgChar *s, int count);
-SG_EXTERN int64_t  Sg_ReadsUnsafe(SgPort *port, SgChar *s, int count);
+SG_EXTERN void     Sg_Writes(SgPort *port, SgChar *s, int64_t count);
+SG_EXTERN void     Sg_WritesUnsafe(SgPort *port, SgChar *s, int64_t count);
+SG_EXTERN int64_t  Sg_Reads(SgPort *port, SgChar *s, int64_t count);
+SG_EXTERN int64_t  Sg_ReadsUnsafe(SgPort *port, SgChar *s, int64_t count);
 
 SG_EXTERN void     Sg_PutcUnsafe(SgPort *port, SgChar ch);
 SG_EXTERN void     Sg_PutzUnsafe(SgPort *port, const char *str);

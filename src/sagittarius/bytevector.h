@@ -40,8 +40,8 @@ SG_CLASS_DECL(Sg_ByteVectorClass);
 struct SgByteVectorRec
 {
   SG_HEADER;
-  int     literalp: 1;
-  int size             : (SIZEOF_INT*CHAR_BIT-1);
+  int literalp : 1;
+  int size     : (SIZEOF_INT*CHAR_BIT-1);
   uint8_t elements[1];
 };
 
@@ -65,10 +65,10 @@ struct SgByteVectorRec
 
 SG_CDECL_BEGIN
 
-SG_EXTERN SgObject Sg_MakeByteVector(size_t size, int fill);
+SG_EXTERN SgObject Sg_MakeByteVector(int size, int fill);
 
 SG_EXTERN SgObject Sg_MakeByteVectorFromU8Array(const uint8_t *buf,
-						size_t size);
+						int size);
 
 SG_EXTERN SgObject Sg_NativeEndianness();
 SG_EXTERN int      Sg_ByteVectorEqP(SgByteVector *bv1, SgByteVector *bv2);
@@ -79,9 +79,8 @@ SG_EXTERN void     Sg_ByteVectorCopyX(SgByteVector *src, int srcStart,
 SG_EXTERN void     Sg_ByteVectorFill(SgByteVector *bv, int value);
 
 /* converter */
-SG_EXTERN SgObject Sg_ListToByteVector(SgObject lst, size_t bitCount,
-				       int signP);
-SG_EXTERN SgObject Sg_ByteVectorToList(SgByteVector *bv, size_t bitCount,
+SG_EXTERN SgObject Sg_ListToByteVector(SgObject lst, int bitCount, int signP);
+SG_EXTERN SgObject Sg_ByteVectorToList(SgByteVector *bv, int bitCount,
 				       int signP);
 SG_EXTERN SgObject Sg_ByteVectorToString(SgByteVector *bv,
 					 SgTranscoder *transcoder,
