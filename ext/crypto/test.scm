@@ -254,4 +254,20 @@
 		    (em (sign rsa-sign-cipher valid-rsa-message :encode pkcs1-emsa-v1.5-encode)))
 	       (verify rsa-verify-cipher valid-rsa-message em :verify pkcs1-emsa-v1.5-verify)))
 
+;; Issue 21
+(test-assert "SOBER-128 prng"
+	     (let ((prng (pseudo-random SOBER-128
+					:seed #vu8(1 2 3 4 5 6 7 8))))
+	       (pseudo-random? prng)))
+
+(test-error "SOBER-128 prng (no seed)"
+	    error?
+	    (pseudo-random SOBER-128))
+
+(test-error "SOBER-128 prng (invalid seed size)"
+	    error?
+	    (pseudo-random SOBER-128 :seed #vu8(1 2 3)))
+
+
+
 (test-end)

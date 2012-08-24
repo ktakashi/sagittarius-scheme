@@ -92,9 +92,6 @@ SgObject Sg_MakePseudoRandom(SgString *name, SgObject seed)
   err = prng_descriptor[wprng].start(&prng->prng);
   if (err != CRYPT_OK) goto err;
 
-  err = prng_descriptor[wprng].ready(&prng->prng);
-  if (err != CRYPT_OK) goto err;
-
   if (!SG_FALSEP(seed)) {
     if (SG_BVECTORP(seed)) {
       err = prng_descriptor[wprng]
@@ -103,6 +100,9 @@ SgObject Sg_MakePseudoRandom(SgString *name, SgObject seed)
       if (err != CRYPT_OK) goto err;
     } else { goto err; }
   }
+
+  err = prng_descriptor[wprng].ready(&prng->prng);
+  if (err != CRYPT_OK) goto err;
 
   Sg_RegisterFinalizer(prng, finalize_prng, NULL);
   return SG_OBJ(prng);
