@@ -1,5 +1,10 @@
 ;; -*- scheme -*-
 (decl-code
+ (.if "defined(_WIN32)"
+      (.include <windows.h>)
+      (.include <sys/types.h>
+		<unistd.h>))
+
  (.include <sagittarius.h>)
  (.define "LIBSAGITTARIUS_EXT_BODY")
  (.include <sagittarius/extend.h>
@@ -30,3 +35,8 @@
 
 (define-c-proc process-wait (p::<process>) ::<fixnum>
   (result (Sg_ProcessWait p)))
+
+(define-c-proc getpid () ::<fixnum>
+  (.if "defined(_WIN32)"
+       (result (GetCurrentProcessId()))
+       (result (getpid))))
