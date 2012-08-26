@@ -41,6 +41,8 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     @td{(srfi :26 cut)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-27/srfi-27.html"]{SRFI-27}}
     @td{(srfi :27 random-bits)}}
+@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-31/srfi-31.html"]{SRFI-31}}
+    @td{(srfi :31 rec)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-37/srfi-27.html"]{SRFI-37}}
     @td{(srfi :37 args-fold)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-38/srfi-38.html"]{SRFI-38}}
@@ -55,6 +57,8 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     @td{(srfi :45 lazy)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-64/srfi-64.html"]{SRFI-64}}
     @td{(srfi :64 testing)}}
+@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-86/srfi-86.html"]{SRFI-86}}
+    @td{(srfi :86 mu-and-nu)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-98/srfi-98.html"]{SRFI-98}}
     @td{(srfi :98 os-environment-variables)}}
 }
