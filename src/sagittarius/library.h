@@ -46,7 +46,6 @@ struct SgLibraryRec
   SgObject     imported;	/* imported symbols */
   SgObject     exported;	/* exported symbold */
   SgObject     version;		/* library version */
-  SgObject     generics;	/* user defined class */
   SgHashTable *table;		/* library inside */
   SgInternalMutex lock;
   SgObject     parents;		/* imported variables.
@@ -81,7 +80,6 @@ SG_EXTERN void     Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
 					    SgObject only, SgObject except,
 					    SgObject renames, SgObject prefix);
 SG_EXTERN void     Sg_LibraryExportedSet(SgObject lib, SgObject exportSpec);
-SG_EXTERN void     Sg_AddGenerics(SgObject lib, SgObject name, SgObject generics);
 SG_EXTERN SgObject Sg_SearchLibrary(SgObject lib);
 SG_EXTERN SgGloc*  Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
 				  SgObject value, int flags);

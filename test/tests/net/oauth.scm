@@ -104,14 +104,13 @@
 		     (parameters-alist (query-string->alist test-parameters)))
 		(signature-base-string :parameters parameters-alist :uri uri))))
 
-
 (test-assert "check-version (valid)"
 	     (parameterize ((*get-parameters* '(("oauth_version" "1.0"))))
 	       (check-version)))
 
 (test-error "check-version (invalid)" &bad-request
 	    (parameterize ((*get-parameters* '(("oauth_version" "foo"))))
-	       (check-version)))
+	      (check-version)))
 
 (test-error "check-signature (invalid-method)" &bad-request
 	    (with-signed-request 
@@ -151,6 +150,12 @@
 	      (is-a? (validate-request-token-request :allow-oob-callback? #f)
 		     <request-token>)))
 ;; phase 2
+(let ((request-token (make-request-token)))
+  (parameterize ((*protocol-version* :1.0a))
+    (request-token-authorized-set! request-token #t)
+    (with-signed-request 
+     (:token request-token)
+     (is-a?  (validate-access-token-request) <access-token>))))
 (test-assert "validate-access-token-request (valid-request-token)"
 	     (let ((request-token (make-request-token)))
 	       (parameterize ((*protocol-version* :1.0a))

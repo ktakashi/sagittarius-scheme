@@ -70,7 +70,6 @@ static SgLibrary* make_library()
   z->table = Sg_MakeHashTableSimple(SG_HASH_EQ, 1024);
   z->imported = SG_NIL;
   z->exported = SG_FALSE;
-  z->generics = SG_NIL;
   z->version = SG_NIL;
   z->parents = SG_NIL;
   Sg_InitMutex(&z->lock, FALSE);
@@ -515,22 +514,20 @@ static SgObject rename_key(SgObject key, SgObject prefix,
   return SG_UNBOUND;
 }
 
-static void import_variable(SgLibrary *lib, SgLibrary *fromlib, SgObject key,
+static void import_variable(SgObject slot, SgLibrary *fromlib, SgObject key,
 			    SgObject value, SgObject imports, SgObject except,
 			    SgObject prefix, SgObject export)
 {
   SgObject name = rename_key(key, prefix, imports, except);
   if (!SG_UNBOUNDP(name)) {
-    SgObject slot = Sg_Assq(fromlib, lib->parents);
-    ASSERT(!SG_FALSEP(slot));
     SG_SET_CDR(slot, Sg_Cons(Sg_Cons(name, (SG_FALSEP(export) ? key : export)),
 			     SG_CDR(slot)));
   }
 }
 
-static void import_parents(SgLibrary *lib, SgLibrary *fromlib,
-			   SgObject imports, SgObject except, SgObject prefix,
-			   int allP)
+static SgObject import_parents(SgLibrary *lib, SgLibrary *fromlib,
+			       SgObject imports, SgObject except,
+			       SgObject prefix, int allP)
 {
   SgObject parents = fromlib->parents;
   SgObject exportSpec = SG_LIBRARY_EXPORTED(fromlib);
@@ -571,7 +568,8 @@ static void import_parents(SgLibrary *lib, SgLibrary *fromlib,
     }
   }
   /* we just need to simply append */
-  lib->parents = Sg_Append2X(lib->parents, exported);
+  /* lib->parents = Sg_Append2X(lib->parents, exported); */
+  return exported;
 }
 
 static void import_reader_macro(SgLibrary *to, SgLibrary *from)
@@ -582,19 +580,41 @@ static void import_reader_macro(SgLibrary *to, SgLibrary *from)
   }
 }
 
+/*
+  To keep imported library be resolved by imported order, we need to do some
+  ugly trick. The goal for the trick is importing libraries parents order
+  like this;
+
+  ;; importing
+  ;; foo has parent library (foo parent) and (foo) is exporting its variable.
+  (import (buzz))
+  (import (foo) (bar))
+  
+  library parents must be like this;
+  ((#<(bar)> . ((imported)))
+   (#<(foo)> . ((imported)))
+   (#<(foo parent)> . ((imported)))
+   (#<(buzz)> . ((imported))))
+
+  The purpos for this is, if (buzz) contains the same exported variable as
+  (foo parent) does, then (foo parent)'s one must be used. R6RS actually
+  prohibits this behaviour, however it's inconvenient for me. So we allow to
+  overwrite exported variables and resolve it as it's imported.
+ */
 void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
 			      SgObject only, SgObject except,
 			      SgObject renames, SgObject prefix)
 {
   SgLibrary *tolib, *fromlib;
-  SgObject exportSpec, keys, key, imports;
+  SgObject exportSpec, keys, key, imports, parents, slot;
   SgVM *vm = Sg_VM();
   int allP = FALSE;
 
   ENSURE_LIBRARY(to, tolib);
   ENSURE_LIBRARY(from, fromlib);
   Sg_LockMutex(&tolib->lock);
-  tolib->parents = Sg_Acons(fromlib, SG_NIL, tolib->parents);
+  /* tolib->parents = Sg_Acons(fromlib, SG_NIL, tolib->parents); */
+  slot = Sg_Cons(fromlib, SG_NIL);
   exportSpec = SG_LIBRARY_EXPORTED(fromlib);
 
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
@@ -617,10 +637,10 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
 	  Sg_Error(UC("target import library does not contain %S"),
 		   SG_CAR(key));
 	}
-	import_variable(tolib, fromlib, SG_CAR(key), v, SG_NIL, SG_NIL,
+	import_variable(slot, fromlib, SG_CAR(key), v, SG_NIL, SG_NIL,
 			SG_FALSE, SG_FALSE);
       }
-      import_parents(tolib, fromlib, SG_NIL, SG_NIL, SG_FALSE, TRUE);
+      parents = import_parents(tolib, fromlib, SG_NIL, SG_NIL, SG_FALSE, TRUE);
       SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, 
 					    SG_LIST4(SG_NIL, SG_NIL,
 						     SG_NIL, SG_FALSE),
@@ -635,11 +655,6 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
   SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, 
 					SG_LIST4(only, except, renames, prefix),
 					SG_LIBRARY_IMPORTED(tolib));
-  if (SG_NULLP(tolib->generics)) {
-    tolib->generics = fromlib->generics;
-  } else {
-    tolib->generics = Sg_Append2(tolib->generics, fromlib->generics);
-  }
 
   keys = Sg_HashTableKeys(SG_LIBRARY_TABLE(fromlib));
   SG_FOR_EACH(key, keys) {
@@ -652,12 +667,12 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
     /* TODO no overwrite? */
     if (SG_FALSEP(exportSpec)) {
       /* this must be C library. */
-      import_variable(tolib, fromlib, SG_CAR(key), v, imports, except, prefix,
+      import_variable(slot, fromlib, SG_CAR(key), v, imports, except, prefix,
 		      SG_FALSE);
     } else if (!SG_FALSEP(Sg_Memq(SG_CAR(key), SG_CAR(exportSpec))) ||
 	       allP) {
       /* key was in non-rename export spec or :all key word */
-      import_variable(tolib, fromlib, SG_CAR(key), v, imports, except, prefix,
+      import_variable(slot, fromlib, SG_CAR(key), v, imports, except, prefix,
 		      SG_FALSE);
     } else {
       /* renamed export */
@@ -665,13 +680,14 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
       if (SG_FALSEP(spec)) {
 	/* ignore */
       } else {
-	import_variable(tolib, fromlib, SG_CADR(spec), v, imports, except,
+	import_variable(slot, fromlib, SG_CADR(spec), v, imports, except,
 			prefix, SG_CAR(spec));
       }
     }
   }
-  import_parents(tolib, fromlib, imports, except, prefix, allP);
+  parents = import_parents(tolib, fromlib, imports, except, prefix, allP);
  out:
+  tolib->parents = Sg_Append2X(Sg_Cons(slot, parents), tolib->parents);
   if (SG_FALSEP(exportSpec) ||
       !SG_FALSEP(Sg_Memq(SG_KEYWORD_EXPORT_READER_MACRO, SG_CAR(exportSpec)))) {
     import_reader_macro(tolib, fromlib);
@@ -685,13 +701,6 @@ void Sg_LibraryExportedSet(SgObject lib, SgObject exportSpec)
   SgLibrary *l;
   ENSURE_LIBRARY(lib, l);
   SG_LIBRARY_EXPORTED(l) = exportSpec;
-}
-
-void Sg_AddGenerics(SgObject lib, SgObject name, SgObject generics)
-{
-  SgLibrary *l;
-  ENSURE_LIBRARY(lib, l);
-  l->generics = Sg_Acons(name, generics, l->generics);
 }
 
 SgGloc* Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,

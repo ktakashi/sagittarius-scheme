@@ -55,7 +55,7 @@
   ;; Note: REMOVE-DUPLICATES-P has no effect right now.
   (define (normalized-parameters :key (remove-duplicates? #f))
     (define (remove-car name lis)
-      (remove  (lambda (a) (equal? name (car a))) lis))
+      (remp  (lambda (a) (equal? name (car a))) lis))
     (or (weak-hashtable-ref (*parameters-cache*) (request) #f)
 	(let ((parameters (append (remove-car "realm" (auth-parameters))
 				  (post-parameters)
@@ -87,6 +87,6 @@
     (string-prefix? "oauth_" parameter))
 
   (define (remove-oauth-parameters parameters)
-    (remove (lambda (p) (oauth-parameter? (car p))) parameters))
+    (remp (lambda (p) (oauth-parameter? (car p))) parameters))
 
   )
