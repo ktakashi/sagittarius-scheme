@@ -41,6 +41,8 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     @td{(srfi :26 cut)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-27/srfi-27.html"]{SRFI-27}}
     @td{(srfi :27 random-bits)}}
+@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-29/srfi-29.html"]{SRFI-29}}
+    @td{(srfi :27 localization)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-31/srfi-31.html"]{SRFI-31}}
     @td{(srfi :31 rec)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-37/srfi-27.html"]{SRFI-37}}
