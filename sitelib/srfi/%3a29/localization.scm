@@ -1,6 +1,6 @@
 ;;; -*- mode: scheme; coding: utf-8; -*-
 ;;;
-;;; srfi-29 - implementation of SRFI-28
+;;; localization.scm - implementation of SRFI-29
 ;;;  
 ;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -41,6 +41,8 @@
 	    (only (util hashtables) alist->hashtable)
 	    (srfi :29 format)
 	    (srfi :39 parameters))
+
+;; from Gauche
 
 ;; bundle specifiers are (package ... [country] lang)
 (define *bundles* (make-equal-hashtable))

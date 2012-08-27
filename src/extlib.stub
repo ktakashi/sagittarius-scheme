@@ -99,6 +99,14 @@
   (define-c-proc vector-concatenate (vec-list::<list>) Sg_VectorConcatenate)
   (define-c-proc vector-append (:rest vec-list) Sg_VectorConcatenate)
   
+  (define-c-proc vector-reverse!
+    (vec::<vector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    Sg_VectorReverseX)
+
+  (define-c-proc vector-reverse
+    (vec::<vector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    (result (Sg_VectorReverseX (Sg_VectorCopy vec 0 -1 SG_UNBOUND) start end)))
+
   (define-c-proc current-exception-handler (:optional handle) ::<top>
     (if (SG_UNBOUNDP handle)
 	(result (-> (Sg_VM) exceptionHandler))

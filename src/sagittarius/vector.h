@@ -71,6 +71,7 @@ SG_EXTERN SgObject Sg_VectorCopy(SgVector *vec, int start, int end,
 				 SgObject fill);
 
 SG_EXTERN SgObject Sg_VectorConcatenate(SgObject vecList);
+SG_EXTERN SgObject Sg_VectorReverseX(SgObject vec, int start, int end);
 
 SG_CDECL_END
 
