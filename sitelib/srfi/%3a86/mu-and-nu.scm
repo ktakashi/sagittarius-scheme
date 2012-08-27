@@ -30,7 +30,7 @@
 
 (library (srfi :86 mu-and-nu)
     (export mu nu alet alet*)
-    (import (rnrs))
+    (import (rnrs) (srfi :8 receive))
 ;;; From SRFI-86 reference implementation
 
 ;;; mu & nu
@@ -78,14 +78,11 @@
      (%alet "dot" (p ...) (nv ... (a tn)) (values t ... tn) (b c ...)
 	    (bn ...) bd ...))
     ((%alet "dot" (p ...) (nv ...) (values t ...) (() c) (bn ...) bd ...)
-     (call-with-values (lambda () c)
-       (lambda (t ...) (%alet (p ...) (nv ...) (bn ...) bd ...))))
+     (receive (t ...) c (%alet (p ...) (nv ...) (bn ...) bd ...)))
     ((%alet "dot" (p ...) (nv ...) (values t ...) (() c ...) (bn ...) bd ...)
      ((lambda (t ...) (%alet (p ...) (nv ...) (bn ...) bd ...)) c ...))
     ((%alet "dot" (p ...) (nv ...) (values t ...) (b c) (bn ...) bd ...)
-     (call-with-values (lambda () c)
-       (lambda (t ... . tn)
-	 (%alet (p ...) (nv ... (b tn)) (bn ...) bd ...))))
+     (receive (t ... . tn) c (%alet (p ...) (nv ... (b tn)) (bn ...) bd ...)))
     ((%alet "dot" (p ...) (nv ...) (values t ...) (b c ...) (bn ...) bd ...)
      ((lambda (t ... . tn)
 	(%alet (p ...) (nv ... (b tn)) (bn ...) bd ...)) c ...))
@@ -211,8 +208,7 @@
      (%alet "not" (p ...) (nv ... (a tn)) (values t ... tn) (b c ...)
 	    (bn ...) bd ...))
     ((%alet "not" (p ...) (nv ...) (values t ...) (z) (bn ...) bd ...)
-     (call-with-values (lambda () z)
-       (lambda (t ...) (%alet (p ...) (nv ...) (bn ...) bd ...))))
+     (receive (t ...) z (%alet (p ...) (nv ...) (bn ...) bd ...)))
 
     ((%alet (p ...) (nv ...) ((a b c ...) bn ...) bd ...)
      (%alet "not" (p ...) (nv ... (a t)) (t) (b c ...) (bn ...) bd ...))
@@ -1162,5 +1158,4 @@
 	 (let () bd ...)
 	 (error "alet*: too many arguments" z)))
     ((%alet-key* z (o ...) () e (kk ...) bd ...)
-     (let ((e z)) bd ...))))
-)
+     (let ((e z)) bd ...)))))
