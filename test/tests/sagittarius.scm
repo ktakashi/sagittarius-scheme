@@ -328,4 +328,9 @@
 ;; eqv?
 ;; R6RS 11.5 6th item
 (test-assert "eqv? 0.0 -0.0" (not (eqv? 0.0 -0.0)))
+
+;; SRFI 61 cond
+(test-equal "SRFI-61 cond"
+	    3
+	    (cond ((+ 1 2) number? => (lambda (x) x))))
 (test-end)

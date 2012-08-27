@@ -1942,6 +1942,7 @@
   (syntax-error "invalid expression" form))
 
 (define-pass1-syntax (cond form p1env) :null
+  (define (=>? x) (global-eq? x '=> p1env))
   (define (process-clauses cls)
     (smatch cls
       (() ($undef))
@@ -1951,7 +1952,7 @@
 	 (syntax-error "'else' clause followed by more clauses"  form))
        ($seq (imap (lambda (expr) (pass1 expr p1env)) exprs)))
       ;; (test => proc)
-      (((test (? (lambda (x) (global-eq? x '=> p1env)) -) proc) . rest)
+      (((test (? =>? -) proc) . rest)
        (let ((test (pass1 test p1env))
 	     (tmp (make-lvar 'tmp)))
 	 (lvar-initval-set! tmp test)
@@ -1964,7 +1965,19 @@
 			   (pass1 proc (p1env-sans-name p1env))
 			   (list ($lref tmp)))
 		    (process-clauses rest)))))
-					; (test)
+      ;; (geneartor guard => proc) -- SRFI-61
+      (((geneartor guard (? =>?  -) proc) . rest)
+       (let ((tmp (make-lvar 'tmp)))
+	 ($receive (car cls) 0 1 (list tmp)
+		   (pass1 geneartor p1env)
+		   ($if (car cls)
+			($asm #f `(,APPLY 2) ;; test
+			      (list (pass1 guard (p1env-sans-name p1env))
+				    ($lref tmp)))
+			($asm #f `(,APPLY 2) ;; then
+			      (list (pass1 proc (p1env-sans-name p1env))
+				    ($lref tmp)))
+			(process-clauses rest)))))
       (((test) . rest)
        ($if (car cls)
 	    (pass1 test (p1env-sans-name p1env))
