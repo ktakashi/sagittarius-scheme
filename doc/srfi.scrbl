@@ -35,6 +35,8 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     @td{(srfi :18 multithreading)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-19/srfi-19.html"]{SRFI-19}}
     @td{(srfi :19 time)}}
+@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-22/srfi-22.html"]{SRFI-22}}
+    @td{This SRFI does not provide any library.}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-23/srfi-23.html"]{SRFI-23}}
     @td{(srfi :23 error)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-26/srfi-26.html"]{SRFI-26}}
@@ -55,8 +57,12 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     @td{(srfi :41 streams)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-42/srfi-42.html"]{SRFI-42}}
     @td{(srfi :42 eager-comprehensions)}}
+@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-43/srfi-43.html"]{SRFI-43}}
+    @td{(srfi :43 vectors)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-45/srfi-45.html"]{SRFI-45}}
     @td{(srfi :45 lazy)}}
+@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-61/srfi-61.html"]{SRFI-61}}
+    @td{This SRFI is supported by builtin @code{cond}}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-64/srfi-64.html"]{SRFI-64}}
     @td{(srfi :64 testing)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-86/srfi-86.html"]{SRFI-86}}
