@@ -1458,7 +1458,7 @@ SgObject Sg_ReadDelimitedList(SgObject port, SgChar delim, int sharedP)
   SgObject obj;
   SgReadContext ctx = {0};
   ASSERT(SG_PORTP(port));
-  ASSERT(SG_TEXTUAL_PORTP(port));
+
   /* make read context for shared object */
   if (sharedP) {
     ctx.graph = Sg_MakeHashTableSimple(SG_HASH_EQ, 1);

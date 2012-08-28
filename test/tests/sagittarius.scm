@@ -333,4 +333,16 @@
 (test-equal "SRFI-61 cond"
 	    3
 	    (cond ((+ 1 2) number? => (lambda (x) x))))
+
+;; Issue 22
+(test-equal "read-delimited-list from custom texutal port"
+	    '(1)
+	    (let ()
+	      (define (make-custom-input-port in)
+		(define (read! s start count)
+		  (get-string-n! in s start count))
+		(define (close) (close-input-port in))
+		(make-custom-textual-input-port "test" read! #f #f close))
+	      (read-delimited-list 
+	       #\) (make-custom-input-port (open-string-input-port "1)")))))
 (test-end)
