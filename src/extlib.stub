@@ -203,7 +203,7 @@
 
   ;; filesystem
   (define-c-proc copy-file
-    (srd::<string> dst::<string> :optional (overwrite? #f)) ::<boolean>
+    (srd::<string> dst::<string> :optional (overwrite?::<boolean> #f)) ::<boolean>
     Sg_CopyFile)
 
   (define-c-proc file-size-in-bytes (path::<string>)
