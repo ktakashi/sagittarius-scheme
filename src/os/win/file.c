@@ -734,6 +734,13 @@ SgObject Sg_AbsolutePath(SgString *path)
   }
   return SG_FALSE;
 }
+
+int Sg_CopyAccessControl(SgString *src, SgString *dst)
+{
+  /* for now dummy */
+  return TRUE;
+}
+
 /*
   end of file
   Local Variables:

@@ -613,6 +613,19 @@ SgObject Sg_InstalledDirectory()
   return SG_FALSE;
 }
 
+int Sg_CopyAccessControl(SgString *src, SgString *dst)
+{
+  struct stat st;
+  const char *source = Sg_Utf32sToUtf8s(src), *dest = Sg_Utf32sToUtf8s(dst);
+  if (stat(source, &st) == 0) {
+    chmod(dest, st.st_mode);
+    chown(dest, st.st_uid, st.st_gid);
+  }
+  /* TODO should this be error? */
+  return FALSE;
+}
+
+
 /*
   end of file
   Local Variables:

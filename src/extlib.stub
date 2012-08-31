@@ -311,6 +311,9 @@
 
   (define-c-proc sagittarius-installed-directory () Sg_InstalledDirectory)
 
+  (define-c-proc copy-access-control (src::<string> dst::<string>) ::<boolean>
+    Sg_CopyAccessControl)
+
   ;; readonly current library access
   ;; it's nice to have this
   (define-c-proc current-library () (result (-> (Sg_VM) currentLibrary)))

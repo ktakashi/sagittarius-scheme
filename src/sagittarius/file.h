@@ -115,6 +115,9 @@ SG_EXTERN SgObject Sg_AbsolutePath(SgString *path);
 
 SG_EXTERN SgObject Sg_InstalledDirectory();
 
+/* ACL */
+SG_EXTERN int      Sg_CopyAccessControl(SgString *src, SgString *dst);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_FILE_HPP_ */
