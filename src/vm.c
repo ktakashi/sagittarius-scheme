@@ -1383,7 +1383,7 @@ SgObject Sg_VMCallPC(SgObject proc)
 
   cont = SG_NEW(SgContinuation);
   cont->winders = vm->dynamicWinders;
-  cont->cont = vm->cont;
+  cont->cont = (cp? vm->cont : NULL);
   cont->prev = NULL;
   cont->ehandler = SG_FALSE;
   cont->cstack = NULL;		/* so that the partial continuation can be

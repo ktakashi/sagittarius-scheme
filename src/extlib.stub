@@ -202,7 +202,11 @@
   (define-c-proc has-setter? (proc) ::<boolean> Sg_HasSetter)
 
   ;; filesystem
-  (define-c-proc file-size-in-bytes (path::<string>) ::<top>
+  (define-c-proc copy-file
+    (srd::<string> dst::<string> :optional (overwrite? #f)) ::<boolean>
+    Sg_CopyFile)
+
+  (define-c-proc file-size-in-bytes (path::<string>)
     (let ((size (Sg_FileSize path)))
       (if (SG_UNDEFP size)
 	  (Sg_AssertionViolation 'file-size-in-bytes

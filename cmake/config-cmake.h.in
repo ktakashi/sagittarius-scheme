@@ -29,6 +29,7 @@
 #cmakedefine HAVE_DLFCN_H
 #cmakedefine HAVE_SCHED_H
 #cmakedefine HAVE_IO_H
+#cmakedefine HAVE_SYS_MMAN_H
 
 #cmakedefine HAVE_ALLOCA
 #cmakedefine HAVE_SCHED_YIELD
@@ -36,6 +37,7 @@
 #cmakedefine HAVE_SELECT
 #cmakedefine HAVE_CLOCK_GETTIME
 #cmakedefine HAVE_GETTIMEOFDAY
+#cmakedefine HAVE_MMAP
 
 #cmakedefine SHLIB_SO_SUFFIX "@SHLIB_SO_SUFFIX@"
 

@@ -87,6 +87,7 @@ SG_EXTERN SgObject Sg_FindFile(SgString *name, SgObject loadPaths,
 
 SG_EXTERN int      Sg_FileExistP(SgString *path);
 SG_EXTERN int      Sg_DeleteFile(SgString *path);
+SG_EXTERN int      Sg_CopyFile(SgString *src, SgString *dst, int overwriteP);
 /* file stat */
 SG_EXTERN int      Sg_FileWritableP(SgString *path);
 SG_EXTERN int      Sg_FileReadableP(SgString *path);

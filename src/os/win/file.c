@@ -362,6 +362,11 @@ int Sg_DeleteFile(SgString *path)
   return DeleteFileW(utf32ToUtf16(path)) ? 0 : -1;
 }
 
+int Sg_CopyFile(SgString *src, SgString *dst, int overwriteP)
+{
+  return CopyFileW(utf32ToUtf16(src), utf32ToUtf16(dst), !overwriteP);
+}
+
 /* Originally from Mosh start */
 int Sg_FileWritableP(SgString *path)
 {
