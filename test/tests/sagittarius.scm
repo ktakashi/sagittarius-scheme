@@ -135,6 +135,9 @@
   
   (export test1 buzz first)
   (export test (rename cdr test3) (rename car test2))
+
+  (define variable 1)
+  (export variable)
   )
 (import (test))
 (test-equal "multi export syntax" car first)
@@ -142,6 +145,7 @@
 (test-equal "multi export syntax" buzz 'fuga)
 (test-equal "multi export syntax" test1 'oops)
 (test-equal "multi export syntax" test '*test*)
+(test-error "immutable varialbe" assertion-violation? (set! varialbe 2))
 
 ;; issue 16
 (define (make-test-binary-port out)

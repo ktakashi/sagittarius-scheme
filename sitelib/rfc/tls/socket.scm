@@ -50,7 +50,7 @@
 	    (rfc x.509)
 	    (rfc hmac)
 	    (util bytevector)
-	    (math)
+	    (except (math) lookup-hash)
 	    (crypto)
 	    (clos user)
 	    (srfi :19 time))

@@ -87,7 +87,7 @@
      test-on-bad-count-simple test-on-bad-end-name-simple
      test-on-final-simple test-on-test-end-simple)
     (import
-     (rnrs)
+     (except (rnrs) error)
      (prefix (only (rnrs eval) eval) rnrs:)
      (only (rnrs eval) environment)
      (rnrs mutable-pairs)

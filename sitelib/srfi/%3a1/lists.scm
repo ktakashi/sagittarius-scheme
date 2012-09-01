@@ -69,19 +69,22 @@
     assoc cons* filter find fold-right for-each map member partition remove)
 
   (import 
-   (only (rnrs) define-syntax lambda syntax-case and identifier? syntax define
-    syntax-rules ... cons let if not pair? car cdr unless integer? >= quote
-    procedure? do - < case-lambda number? <= + * eq? null? or cond else apply
-    list cadr caddr cadddr cddddr values zero? begin let-values let* append
-    call-with-current-continuation reverse => letrec equal? memq _ length
-    symbol? string? assertion-violation caar when memv list-ref
-    ;; on Sagittarius these are the same as R6RS
-    filter partition cons* fold-right map for-each
-    caaaar caaadr caaar caadar caaddr
-    caadr caar cadaar cadadr cadar caddar cadddr caddr cadr
-    car cdaaar cdaadr cdaar cdadar cdaddr cdadr cdar cddaar
-    cddadr cddar cdddar cddddr cdddr cddr cdr assv assq)
-   (rename (rnrs) (for-all every) (exists any))
+   (only (rename (rnrs) (for-all every) (exists any))
+	 define-syntax lambda syntax-case and identifier? syntax define
+	 syntax-rules ... cons let if not pair? car cdr unless integer? >=
+	 quote = procedure? do - < case-lambda number? <= + * eq? null? or
+	 cond else apply list cadr caddr cadddr cddddr values zero? begin
+	 let-values let* append call-with-current-continuation reverse =>
+	 letrec equal? memq _ length symbol? string? assertion-violation
+	 caar when memv list-ref negative?
+	 ;; on Sagittarius these are the same as R6RS
+	 filter partition cons* fold-right map for-each
+	 caaaar caaadr caaar caadar caaddr
+	 caadr caar cadaar cadadr cadar caddar cadddr caddr cadr
+	 car cdaaar cdaadr cdaar cdadar cdaddr cdadr cdar cddaar
+	 cddadr cddar cdddar cddddr cdddr cddr cdr assv assq
+	 every any)
+   
    (only (rnrs mutable-pairs) set-cdr! set-car!)
    (only (sagittarius) receive circular-list? dotted-list? reverse! acons
     append!)

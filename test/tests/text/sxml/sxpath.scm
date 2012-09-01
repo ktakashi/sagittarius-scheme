@@ -1,13 +1,52 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
 #!nobacktrace
 
+(library (test sxpath helper)
+    (export display newline write assert *log-port*)
+    (import (rename (except (rnrs) assert)
+		    (display r6rs:display)
+		    (newline r6rs:newline)
+		    (write r6rs:write))
+	    (only (sagittarius) format)
+	    (srfi :64 testing))
+(define *log-port*
+  (open-file-output-port "ssax-test-result.log" 
+			 (file-options no-fail) 'block (native-transcoder)))
+(define (display o) (r6rs:display o *log-port*))
+(define (newline)   (r6rs:newline *log-port*))
+(define (write o)   (r6rs:write o *log-port*))
+
+;; it'll be closed when testing finished. bit awkward.
+
+(define-syntax assert
+  (syntax-rules (equal_? equal?)
+    ((_ (equal? result expected) rest ...)
+     (assert (equal_? result expected) rest ...))
+    ((_ (equal_? result expected) rest ...)
+     (begin
+       ;; equal_? is for case sensitive. which means we can use equal?
+       (test-equal (format "~,,,,50s" expected)
+		   expected result)
+       (assert rest ...)))
+    ((_ (failed? expr) rest ...)
+     (begin
+       (test-error (format "~,,,,50s" 'expr) (lambda (e) e) expr)
+       (assert rest ...)))
+    ((_ exp rest ...)
+     (begin
+       (test-assert (format "~a" 'exp) exp)
+       (assert rest ...)))
+    ((_ exp)
+     (begin
+       (test-assert (format "~a" 'exp) exp)
+       (assert)))
+    ((_) #t)))
+)
+
 (import (except (rnrs) display newline write)
-	(rename (only (rnrs) display newline write)
-		(display r6rs:display)
-		(newline r6rs:newline)
-		(write r6rs:write))
 	(text sxml sxpath)
 	(except (text sxml helper) cout cerr)
+	(test sxpath helper)
 	(text parse)
 	(core misc)
 	(sagittarius)
@@ -22,13 +61,6 @@
   (intersperse item lst))
 
 ;; it'll be closed when testing finished. bit awkward.
-(define *log-port*
-  (open-file-output-port "sxpath-test-result.log" (file-options no-fail) 'block (native-transcoder)))
-
-(define (display o) (r6rs:display o *log-port*))
-(define (newline)   (r6rs:newline *log-port*))
-(define (write o)   (r6rs:write o *log-port*))
-
 (define (cout . args)
   (for-each (lambda (x)
 	      (if (procedure? x) (x) (display x)))

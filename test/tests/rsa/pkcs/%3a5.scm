@@ -1,6 +1,25 @@
+(library (test pkcs-5 helper)
+    (export test)
+    (import (rnrs)
+	    (crypto)
+	    (rsa pkcs :5)
+	    (srfi :64 testing))
+(define (test expected algorithm password salt count)
+  (let* ((param (make-pbe-parameter (string->utf8 salt) count))
+	 (key (generate-secret-key algorithm password))
+	 (pbe-cipher (cipher algorithm key :parameter param))
+	 (ciphertext (encrypt pbe-cipher 
+			      (string->utf8 "This is an example.")))
+	 (decrypted (decrypt pbe-cipher expected)))
+    (test-equal algorithm expected ciphertext)
+    (test-equal algorithm (string->utf8 "This is an example.")
+		decrypted)))
+)
+
 (import (rnrs)
 	(sagittarius)
 	(rsa pkcs :5)
+	(test pkcs-5 helper)
 	(crypto)
 	(srfi :64 testing))
 
@@ -51,16 +70,7 @@
 		 4096 16)
 
 ;; encryption tests
-(define (test expected algorithm password salt count)
-  (let* ((param (make-pbe-parameter (string->utf8 salt) count))
-	 (key (generate-secret-key algorithm password))
-	 (pbe-cipher (cipher algorithm key :parameter param))
-	 (ciphertext (encrypt pbe-cipher 
-			      (string->utf8 "This is an example.")))
-	 (decrypted (decrypt pbe-cipher expected)))
-    (test-equal algorithm expected ciphertext)
-    (test-equal algorithm (string->utf8 "This is an example.")
-		decrypted)))
+
 
 ;; The test data were created by Java JCE with bouncy castle provider.
 ;; algorithm PBEWithMD5AndDES, password "password", salt "", count 1024

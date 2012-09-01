@@ -66,7 +66,8 @@
      check-substring-spec
      substring-spec-ok?
      make-kmp-restart-vector kmp-step string-kmp-partial-search)
-    (import (rnrs)
+    (import (rename (except (rnrs) string-for-each)
+		    (string-ci-hash string-hash-ci))
 	    (rnrs r5rs)
 	    (rnrs mutable-strings)
 	    (sagittarius)
@@ -939,35 +940,6 @@
 			    values))))
 
 
-;;; Hash
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Compute (c + 37 c + 37^2 c + ...) modulo BOUND, with sleaze thrown in
-;;; to keep the intermediate values small. (We do the calculation with just
-;;; enough bits to represent BOUND, masking off high bits at each step in
-;;; calculation. If this screws up any important properties of the hash
-;;; function I'd like to hear about it. -Olin)
-;;;
-;;; If you keep BOUND small enough, the intermediate calculations will 
-;;; always be fixnums. How small is dependent on the underlying Scheme system; 
-;;; we use a default BOUND of 2^22 = 4194304, which should hack it in
-;;; Schemes that give you at least 29 signed bits for fixnums. The core 
-;;; calculation that you don't want to overflow is, worst case,
-;;;     (+ 65535 (* 37 (- bound 1)))
-;;; where 65535 is the max character code. Choose the default BOUND to be the
-;;; biggest power of two that won't cause this expression to fixnum overflow, 
-;;; and everything will be copacetic.
-
-(define-optional (string-hash s (optional (bound 4194304)
-					  (start 0)
-					  (end -1)))
-  (check-arg string? s string-hash)
-  (string-hash (%maybe-substring s start end) bound))
-
-(define-optional (string-hash-ci s (optional (bound 4194304)
-					     (start 0)
-					     (end -1)))
-  (check-arg string? s string-hash-ci)
-  (string-hash-ci (%maybe-substring s start end) bound))
 
 ;;; Case hacking
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -981,17 +953,9 @@
 ;;;   Capitalize every contiguous alpha sequence: capitalise
 ;;;   first char, lowercase rest.
 
-(define (string-upcase  s . maybe-start+end)
-  (let-string-start+end (start end) string-upcase s maybe-start+end
-    (%string-map char-upcase s start end)))
-
 (define (string-upcase! s . maybe-start+end)
   (let-string-start+end (start end) string-upcase! s maybe-start+end
     (%string-map! char-upcase s start end)))
-
-(define (string-downcase  s . maybe-start+end)
-  (let-string-start+end (start end) string-downcase s maybe-start+end
-    (%string-map char-downcase s start end)))
 
 (define (string-downcase! s . maybe-start+end)
   (let-string-start+end (start end) string-downcase! s maybe-start+end
@@ -1012,12 +976,6 @@
 (define (string-titlecase! s . maybe-start+end)
   (let-string-start+end (start end) string-titlecase! s maybe-start+end
     (%string-titlecase! s start end)))
-
-(define (string-titlecase s . maybe-start+end)
-  (let-string-start+end (start end) string-titlecase! s maybe-start+end
-    (let ((ans (substring s start end)))
-      (%string-titlecase! ans 0 (- end start))
-      ans)))
 
 
 ;;; Cutting & pasting strings

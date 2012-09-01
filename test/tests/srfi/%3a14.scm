@@ -1,12 +1,8 @@
 ;; -*- scheme -*-
 
-(import (rnrs)
-	(sagittarius)
-	(srfi :64 testing)
-	(srfi :14))
-
-(define (vowel? c) (member c '(#\a #\e #\i #\o #\u)))
-
+(library (test srfi-14 helper)
+    (export test)
+    (import (rnrs) (srfi :64 testing) (sagittarius))
 (define-syntax test
   (syntax-rules ()
     ((_ form1 form ...)
@@ -16,6 +12,15 @@
     ((_ form)
      (test-assert (format "~s" 'form) form))
     ((_) #t)))
+)
+
+(import (rnrs)
+	(sagittarius)
+	(test srfi-14 helper)
+	(srfi :64 testing)
+	(srfi :14))
+
+(define (vowel? c) (member c '(#\a #\e #\i #\o #\u)))
 
 
 (test-begin "SRFI-14 tests")

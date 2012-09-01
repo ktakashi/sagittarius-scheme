@@ -1324,18 +1324,23 @@
     (result (Sg_CharTitleCaseP c)))
 
   ;; 1.2 strings
-  (define-c-proc string-upcase (s::<string>) ::<top>
-    (result (Sg_StringUpCase s)))
+  ;; for SRFI-13
+  (define-c-proc string-upcase
+    (s::<string> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    (result (Sg_StringUpCase (Sg_MaybeSubstring s start end))))
 
-  (define-c-proc string-downcase (s::<string>) ::<top>
-    (result (Sg_StringDownCase s)))
+  (define-c-proc string-downcase
+    (s::<string> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    (result (Sg_StringDownCase (Sg_MaybeSubstring s start end))))
 
-  (define-c-proc string-titlecase (s::<string>) ::<top>
-    (result (Sg_StringTitleCase s)))
+  (define-c-proc string-titlecase
+    (s::<string> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    (result (Sg_StringTitleCase (Sg_MaybeSubstring s start end))))
 
-  (define-c-proc string-foldcase (s::<string>) ::<top>
-    (result (Sg_StringFoldCase s)))
-
+  (define-c-proc string-foldcase
+    (s::<string> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    (result (Sg_StringFoldCase (Sg_MaybeSubstring s start end))))
+  ;; TODO Should we also add start end to these?
   (define-c-proc string-normalize-nfd (s::<string>) ::<top>
     (result (Sg_StringNormalizeNfd s)))
 
@@ -3822,7 +3827,9 @@
     (result (Sg_EqualHash o)))
 
   ;; for srfi-13 we need to take bound as an argument
-  (define-c-proc string-hash (o::<string> :optional bound) ::<fixnum>
+  (define-c-proc string-hash
+    (o::<string> :optional bound (start::<fixnum> 0) (end::<fixnum> -1))
+    ::<fixnum>
     (let ((modulo::uint32_t 0))
       (cond ((SG_UNBOUNDP bound) (set! modulo SG_INT_MAX))
 	    ((SG_INTP bound) (set! modulo (SG_INT_VALUE bound)))
@@ -3832,9 +3839,11 @@
 	(assertion-violation 'string-hash
 			     "argument out of domain"
 			     bound))
-      (result (Sg_StringHash o modulo))))
+      (result (Sg_StringHash (Sg_MaybeSubstring o start end) modulo))))
 
-  (define-c-proc string-ci-hash (o::<string> :optional bound) ::<fixnum>
+  (define-c-proc string-ci-hash
+    (o::<string> :optional bound (start::<fixnum> 0) (end::<fixnum> -1))
+    ::<fixnum>
     (let ((modulo::uint32_t 0))
       (cond ((SG_UNBOUNDP bound) (set! modulo SG_INT_MAX))
 	    ((SG_INTP bound) (set! modulo (SG_INT_VALUE bound)))
@@ -3844,7 +3853,8 @@
 	(assertion-violation 'string-hash
 			     "argument out of domain"
 			     bound))
-      (result (Sg_StringHash (Sg_StringFoldCase o) modulo))))
+      (result (Sg_StringHash (Sg_StringFoldCase (Sg_MaybeSubstring o start end))
+			     modulo))))
 
   (define-c-proc symbol-hash (o::<symbol>) ::<fixnum>
     (result (Sg_EqHash o)))

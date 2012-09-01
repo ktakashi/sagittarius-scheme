@@ -117,7 +117,7 @@
 	    (rename (generic-write der-generic-write))
 	    der-list->string
 	    )
-    (import (rnrs)
+    (import (except (rnrs) bytevector->string)
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius control)

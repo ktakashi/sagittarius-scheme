@@ -41,7 +41,7 @@
     srfi-42-dispatched srfi-42-do srfi-42-let srfi-42-parallel srfi-42-while srfi-42-until
     srfi-42--dispatch-ref srfi-42--dispatch-set! make-initial-:-dispatch 
     dispatch-union srfi-42-generator-proc)
-  (import (rnrs)
+  (import (except (rnrs) error)
 	  (rnrs r5rs)
 	  (sagittarius)
 	  (match)

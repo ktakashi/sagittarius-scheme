@@ -1,11 +1,9 @@
 ;; -*- scheme -*-
 (library (core misc)
     (export unique-id-list?
-	    define-macro
-	    define-optional)
+	    define-macro)
     (import (core)
-	    (sagittarius)
-	    (core base))
+	    (sagittarius))
 
   (define (unique-id-list? lst)
     (and (list? lst)

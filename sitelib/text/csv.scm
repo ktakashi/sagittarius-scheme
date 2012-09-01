@@ -48,7 +48,7 @@
 	    (rnrs mutable-pairs)
 	    (packrat)
 	    (sagittarius control)
-	    (srfi :1 lists)
+	    (except (srfi :1 lists) any)
 	    (srfi :14 char-set)
 	    (srfi :26 cut)
 	    (clos user))

@@ -69,23 +69,31 @@ Sc, Sm, Sk, So, Zs, Zp, Zl, Cc, Cf, Cs, Co, or Cn.
 
 @subsubsection{Strings}
 
-@define[Function]{@name{string-upcase} @args{string}}
-@define[Function]{@name{string-downcase} @args{string}}
-@define[Function]{@name{string-titlecase} @args{string}}
-@define[Function]{@name{string-foldcase} @args{string}}
-@desc{[R6RS] These procedures take a string argument and return a string result.
-They are defined in terms of Unicode's locale-independent case mappings from
-Unicode scalar-value sequences to scalar-value sequences. In particular, the
-length of the result string can be different from the length of the input string.
-When the specified result is equal in the sense of @code{string=?} to the argument,
-these procedures may return the argument instead of a newly allocated string.
+@define[Function]{@name{string-upcase} @args{string start end}}
+@define[Function]{@name{string-downcase} @args{string start end}}
+@define[Function]{@name{string-titlecase} @args{string start end}}
+@define[Function]{@name{string-foldcase} @args{string start end}}
+@desc{[R6RS+][SRFI-13] These procedures take a string argument and return a
+string result. They are defined in terms of Unicode's locale-independent case
+mappings from Unicode scalar-value sequences to scalar-value sequences. In
+particular, the length of the result string can be different from the length of 
+the input string. When the specified result is equal in the sense of
+@code{string=?} to the argument, these procedures may return the argument
+instead of a newly allocated string.
 
 The @code{string-upcase} procedure converts a string to upper case;
-@code{string-downcase} converts a string to lower case. The @code{string-foldcase}
-procedure converts the string to its case-folded counterpart, using the full
-case-folding mapping, but without the special mappings for Turkic languages.
+@code{string-downcase} converts a string to lower case.
+
+The @code{string-foldcase} procedure converts the string to its case-folded
+counterpart, using the full case-folding mapping, but without the special
+mappings for Turkic languages.
+
 The @code{string-titlecase} procedure converts the first cased character of each
 word via @code{char-titlecase}, and downcases all other cased characters.
+
+If the optional argument @var{start} and @var{end} are given, these must be
+exact integer and the procedures will first substring the given string with 
+range @var{start} and @var{end} then convert it.
 }
 
 @define[Function]{@name{string-ci=?} @args{string1 string2 string3 @dots{}}}

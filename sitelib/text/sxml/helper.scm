@@ -15,7 +15,7 @@
 	    string-rindex
 	    substring?
 	    )
-    (import (rnrs)
+    (import (except (rnrs) assert)
 	    (only (srfi :13 strings) string-contains string-index-right)
 	    (only (sagittarius) format)
 	    (only (sagittarius control) begin0))

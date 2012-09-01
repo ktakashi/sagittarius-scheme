@@ -29,7 +29,7 @@
 	     (name (caddr form))
 	     (value (cadddr form)))
 	 (let* ((lib   (find-library lib #f))
-		 (gloc (find-binding lib name #f)))
+		(gloc (find-binding lib name #f)))
 	    (if gloc
 		(let ((bind (gloc-ref gloc)))
 		  (or (procedure? bind)
@@ -42,19 +42,21 @@
 					   "replacement value is not procedure"
 					   value
 					   form))
-		  (let* ((org (string->symbol (format ".~s-org" name)))
+		  (let* ((org (gensym (symbol->string name)))
 			 (formal (cadr value))
 			 (body   (cddr value)))
 		    (let-values (((req rest) (parse-formal formal)))
 		      ;;(format #t "~a~%" (append '(list) args))
 		      `(begin
 			 (define ,org ,bind)
-			 (define ,name 
-			   (lambda ,formal
-			     (define (proceed)
-			       (apply ,org ,@req ,rest))
-			     ,@body))
-			 (gloc-set! ,gloc ,name)))))
+			 (,(rename '%insert-binding)
+			  ,lib
+			  ',name
+			  (lambda ,formal
+			    (define (proceed)
+			      (apply ,org ,@req ,rest))
+			    ,@body))
+			 #;(gloc-set! ,gloc ,name)))))
 	       (assertion-violation 'point-cut
 				    "unbound variable"
 				    name)))))))

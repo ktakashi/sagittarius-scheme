@@ -1157,6 +1157,21 @@
     (- (syntax-error "malformed quasiquote" form))))
 
 
+(define (check-direct-variable name p1env form)
+  (cond-expand
+   (sagittarius.scheme.vm
+    (let* ((lib (p1env-library p1env))
+	   (gloc (find-binding lib (if (identifier? name) (id-name name) name)
+			       #f)))
+      (when (and gloc (not (eq? (gloc-library gloc) lib)))
+	(syntax-error "attempt to modify immutable variable"
+		      (unwrap-syntax form)
+		      (unwrap-syntax name)))))
+   (else
+    ;; boot code generator can not use above, because ext.scm is redefining
+    ;; most of the identifier related procedures.
+    #t)))
+
 (define (pass1/define form oform flags library p1env)
   (check-toplevel oform p1env)
   (smatch form
@@ -1167,6 +1182,7 @@
 		   oform flags library p1env))
     ((- name expr)
      (unless (variable? name) (syntax-error "malformed define" oform))
+     (check-direct-variable name p1env oform)
      (let ((p1env (p1env-add-name p1env (variable-name name))))
        ($define oform
 		flags
@@ -1174,6 +1190,7 @@
 		(pass1 (caddr form) (p1env-add-name p1env name)))))
     ((- name)
      (unless (variable? name) (syntax-error "malformed define" oform))
+     (check-direct-variable name p1env oform)
      ($define oform
 	      flags
 	      (make-identifier (unwrap-syntax name) '() library)
@@ -1242,6 +1259,7 @@
   (check-toplevel form p1env)
   (smatch form
     ((- name expr)
+     (check-direct-variable name p1env form)
      (let ((transformer (pass1/eval-macro-rhs 
 			 'define-syntax
 			 (variable-name name)
@@ -2067,13 +2085,13 @@
 		      (list (pass1 expr p1env)))))
      )
     ((- name expr)
-     (unless (variable? name)
-       (syntax-error "malformed set!" form))
+     (unless (variable? name) (syntax-error "malformed set!" form))
      ;; r6rs required this form macro (set! <keyword> <value>)
      (let ((var (pass1/lookup-head name p1env)))
        (if (lvar? var)
 	   ($lset var (pass1 expr p1env))
 	   (let ((gloc (find-binding (p1env-library p1env) (id-name var) #f)))
+	     (check-direct-variable name p1env form)
 	     (if gloc
 		  (let ((gval (gloc-ref gloc)))
 		    (cond ((macro? gval)

@@ -1,14 +1,66 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
 #!nobacktrace
 
+(library (test ssax helper)
+    (export display newline write assert *log-port* run-test)
+    (import (rename (except (rnrs) assert)
+		    (display r6rs:display)
+		    (newline r6rs:newline)
+		    (write r6rs:write))
+	    (core misc)
+	    (only (sagittarius) format)
+	    (srfi :64 testing))
+(define *log-port*
+  (open-file-output-port "ssax-test-result.log" 
+			 (file-options no-fail) 'block (native-transcoder)))
+(define (display o) (r6rs:display o *log-port*))
+(define (newline)   (r6rs:newline *log-port*))
+(define (write o)   (r6rs:write o *log-port*))
+
+;; it'll be closed when testing finished. bit awkward.
+
+(define-syntax assert
+  (syntax-rules (equal_? equal?)
+    ((_ (equal? result expected) rest ...)
+     (assert (equal_? result expected) rest ...))
+    ((_ (equal_? result expected) rest ...)
+     (begin
+       ;; equal_? is for case sensitive. which means we can use equal?
+       (test-equal (format "~,,,,50s" expected)
+		   expected result)
+       (assert rest ...)))
+    ((_ (failed? expr) rest ...)
+     (begin
+       (test-error (format "~,,,,50s" 'expr) (lambda (e) e) expr)
+       (assert rest ...)))
+    ((_ exp rest ...)
+     (begin
+       (test-assert (format "~a" 'exp) exp)
+       (assert rest ...)))
+    ((_ exp)
+     (begin
+       (test-assert (format "~a" 'exp) exp)
+       (assert)))
+    ((_) #t)))
+(define-macro run-test
+  (lambda body
+    (define (re-write body)
+      (cond
+       ((vector? body)
+	(list->vector (re-write (vector->list body))))
+       ((not (pair? body)) body)
+       ((and (eq? 'quote (car body)) (pair? (cdr body))
+	     (string? (cadr body)))
+	(string->symbol (cadr body)))
+       (else (cons (re-write (car body)) (re-write (cdr body))))))
+    (cons 'begin (re-write body))))
+)
+
 (import (except (rnrs) display newline write)
-	(rename (only (rnrs) display newline write)
-		(display r6rs:display)
-		(newline r6rs:newline)
-		(write r6rs:write))
 	;; test case redefine ssax:warn
-	(except (text sxml ssax) ssax:warn)
-	(except (text sxml helper) cout cerr)
+	(except (text sxml ssax) ssax:warn parser-error)
+	(except (text sxml helper) cout cerr ssax:warn parser-error)
+	(test ssax helper)
 	(text parse)
 	(sagittarius)
 	(sagittarius io)
@@ -22,15 +74,6 @@
 
 (define (list-intersperse lst item)
   (intersperse item lst))
-
-;; it'll be closed when testing finished. bit awkward.
-(define *log-port*
-  (open-file-output-port "ssax-test-result.log" 
-			 (file-options no-fail) 'block (native-transcoder)))
-
-(define (display o) (r6rs:display o *log-port*))
-(define (newline)   (r6rs:newline *log-port*))
-(define (write o)   (r6rs:write o *log-port*))
 
 (define (cout . args)
   (for-each (lambda (x)
@@ -58,42 +101,6 @@
 (test-begin "ssax test")
 
 ;; added for Sagittarius
-(define-syntax assert
-  (syntax-rules (equal_? equal?)
-    ((_ (equal? result expected) rest ...)
-     (assert (equal_? result expected) rest ...))
-    ((_ (equal_? result expected) rest ...)
-     (begin
-       ;; equal_? is for case sensitive. which means we can use equal?
-       (test-equal (format "~,,,,50s" expected)
-		   expected result)
-       (assert rest ...)))
-    ((_ (failed? expr) rest ...)
-     (begin
-       (test-error (format "~,,,,50s" 'expr) expr)
-       (assert rest ...)))
-    ((_ exp rest ...)
-     (begin
-       (test-assert (format "~a" 'exp) exp)
-       (assert rest ...)))
-    ((_ exp)
-     (begin
-       (test-assert (format "~a" 'exp) exp)
-       (assert)))
-    ((_) #t)))
-
-(define-macro run-test
-  (lambda body
-    (define (re-write body)
-      (cond
-       ((vector? body)
-	(list->vector (re-write (vector->list body))))
-       ((not (pair? body)) body)
-       ((and (eq? 'quote (car body)) (pair? (cdr body))
-	     (string? (cadr body)))
-	(string->symbol (cadr body)))
-       (else (cons (re-write (car body)) (re-write (cdr body))))))
-    (cons 'begin (re-write body))))
 
 
 ; Here's the previous version of run-test, implemented as a low-level

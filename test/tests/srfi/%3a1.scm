@@ -1092,8 +1092,8 @@
 ;;
 ;; length+
 ;;
-(test-error "too few args" (length+))
-(test-error "too many args" (length+ 123 456))
+(test-error "too few args" (lambda (e) e) (length+))
+(test-error "too many args" (lambda (e) e) (length+ 123 456))
 (test-assert "length+ '()" (= 0 (length+ '())))
 (test-assert "length+ '(x)" (= 1 (length+ '(x))))
 (test-assert "length+ '(x y)" (= 2 (length+ '(x y))))

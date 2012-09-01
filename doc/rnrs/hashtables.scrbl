@@ -123,10 +123,18 @@ respectively.
 @subsubsection{Hash functions}
 
 @define[Function]{@name{equal-hash} @args{obj}}
-@define[Function]{@name{string-hash} @args{string}}
-@define[Function]{@name{string-ci-hash} @args{string}}
 @define[Function]{@name{symbol-hash} @args{symbol}}
 @desc{[R6RS] Returns hash value of given argument. Each procedures return
-the hash values suitable for @code{equal?}, @code{string=?}, @code{string-ci=?}
-and symbols.
+the hash values suitable for @code{equal?} and symbols.
+}
+@define[Function]{@name{string-hash} @args{string :optional bound start end}}
+@define[Function]{@name{string-ci-hash} @args{string :optional bound start end}}
+@desc{[R6RS+][SRFI-13] Returns hash value of given argument. Each procedures
+ return the hash values suitable for @code{string=?} and @code{string-ci=?}.
+
+If the optional argument @var{start} and @var{end} is given, then the given
+string will be substringed with @var{start} and @var{end}.
+
+If the optional argument @var{bound} is given, it must be exact integer and hash
+function will also use the given value.
 }

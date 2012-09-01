@@ -20,6 +20,8 @@
       (number? g)
       ;; vector can not be const for boot code.
       #;(vector? g)))
+;; on boot code we don't have set! or redefine ... I assume
+(define (gloc-library g) #f)
 
 (define (cachable? o)
   (or (string? o) (number? o) (symbol? o)))
