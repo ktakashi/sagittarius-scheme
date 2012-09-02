@@ -1161,7 +1161,7 @@
 (define (check-direct-variable name p1env form)
   (cond-expand
    (sagittarius.scheme.vm
-    (unless (vm-core-mode?)
+    (when (vm-no-overwrite?)
       (let* ((lib (p1env-library p1env))
 	     (gloc (find-binding lib (if (identifier? name) (id-name name) name)
 				 #f)))

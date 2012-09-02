@@ -832,6 +832,10 @@ SgObject read_hash_unquote(SgPort *port, SgChar c,
   return SG_LIST2(SG_SYMBOL_UNSYNTAX, read_expr(port, ctx));  
 }
 
+/*
+  TODO: some SRFIs (as far as I know only 105) requires speciall sh-bang
+  it's better to have hook or something.
+ */
 SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 			SgReadContext *ctx)
 {
@@ -852,21 +856,29 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
       SgString *tag = SG_SYMBOL(desc)->name;
       if (ustrcmp(tag->value, "r6rs") == 0) {
 	SG_VM_SET_FLAG(Sg_VM(), SG_R6RS_MODE);
+	SG_VM_SET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
 	Sg_SetCurrentReadTable(Sg_CopyReadTable(&r6rs_read_table));
 	return NULL;
       }
-      if (ustrcmp(tag->value, "compatible") == 0 ||
-	  /* for now it's the same as compatible */
-	  ustrcmp(tag->value, "r7rs") == 0) {
+      if (ustrcmp(tag->value, "r7rs") == 0) {
+	SG_VM_SET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
 	SG_VM_SET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
+	Sg_SetCurrentReadTable(Sg_CopyReadTable(&compat_read_table));
+	return NULL;
+      }
+      if (ustrcmp(tag->value, "compatible") == 0) {
+	SG_VM_SET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
+	SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
+	SG_VM_UNSET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
 	Sg_SetCurrentReadTable(Sg_CopyReadTable(&compat_read_table));
 	return NULL;
       }
       if (ustrcmp(tag->value, "core") == 0) {
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
+	SG_VM_UNSET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
 	Sg_SetCurrentReadTable(Sg_CopyReadTable(&compat_read_table));
 	return NULL;
       }

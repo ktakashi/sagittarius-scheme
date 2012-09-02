@@ -261,8 +261,8 @@ struct SgVMRec
 
 /*
   flag 32bit
-  log level optimization   reader   misc(not defined yet)
-  00000000   00000000     00000000 00000000
+  log level optimization reader/mode   misc(cache)
+  00000000   00000000     00000000    00000000
  */
 typedef enum {
   /* cache mode */
@@ -271,6 +271,7 @@ typedef enum {
   /* reader mode */
   SG_R6RS_MODE        = 0x00000100, /* 00000001 */
   SG_COMPATIBLE_MODE  = 0x00000200, /* 00000010 */
+  SG_NO_OVERWRITE     = 0x00000400, /* 00000100 */
 
   /* optimization */
   SG_NO_INLINE_ASM    = 0x00010000,
