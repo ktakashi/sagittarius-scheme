@@ -1,4 +1,5 @@
 ;; lib/vm.scm
+#!core
 ;; dummy
 (define *toplevel-variable* '())
 (define *expand-phase* 0)

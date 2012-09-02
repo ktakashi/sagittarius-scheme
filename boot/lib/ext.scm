@@ -1,4 +1,5 @@
 ;; need to move to C++
+#!core
 (cond-expand
  (sagittarius.scheme.vm
   (define (constant-literal? o) #f)

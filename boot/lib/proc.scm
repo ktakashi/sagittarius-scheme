@@ -1,4 +1,5 @@
 ;; -*- Scheme -*-
+#!core
 ;; procedure
 ;; procedure might be inline assembler such as CAR, CDR etc.
 ;; this structure must have both procedure definition and 

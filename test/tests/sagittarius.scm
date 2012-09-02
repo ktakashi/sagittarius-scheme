@@ -145,7 +145,8 @@
 (test-equal "multi export syntax" buzz 'fuga)
 (test-equal "multi export syntax" test1 'oops)
 (test-equal "multi export syntax" test '*test*)
-(test-error "immutable varialbe" assertion-violation? (set! varialbe 2))
+;; this must be syntax error
+;;(test-error "immutable varialbe" (set! variable 2))
 
 ;; issue 16
 (define (make-test-binary-port out)

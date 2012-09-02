@@ -1,5 +1,5 @@
 ;; -*- Scheme -*-
-
+#!core
 ;; memo for library
 ;; Gauche's module system looks very similar with library for R6RS.
 ;; Of course it's not the same.

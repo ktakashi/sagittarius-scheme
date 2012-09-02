@@ -1,4 +1,5 @@
 ;; -*- mode:scheme; coding:utf-8; -*-
+#!core
 ;;
 ;; This compiler has 4 stages.
 ;; pass0 - for future use.
@@ -1160,13 +1161,14 @@
 (define (check-direct-variable name p1env form)
   (cond-expand
    (sagittarius.scheme.vm
-    (let* ((lib (p1env-library p1env))
-	   (gloc (find-binding lib (if (identifier? name) (id-name name) name)
-			       #f)))
-      (when (and gloc (not (eq? (gloc-library gloc) lib)))
-	(syntax-error "attempt to modify immutable variable"
-		      (unwrap-syntax form)
-		      (unwrap-syntax name)))))
+    (unless (vm-core-mode?)
+      (let* ((lib (p1env-library p1env))
+	     (gloc (find-binding lib (if (identifier? name) (id-name name) name)
+				 #f)))
+	(when (and gloc (not (eq? (gloc-library gloc) lib)))
+	  (syntax-error "attempt to modify immutable variable"
+			(unwrap-syntax form)
+			(unwrap-syntax name))))))
    (else
     ;; boot code generator can not use above, because ext.scm is redefining
     ;; most of the identifier related procedures.

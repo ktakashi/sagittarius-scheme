@@ -157,12 +157,10 @@
   (or (integer? k)
       (assertion-violation 'split-at
                            (wrong-type-argument-message "integer" k 2)))
-  (let recur ((lis x) (k k))
-    (if (zero? k)
-        (values '() lis)
-        (receive (prefix suffix)
-            (recur (cdr lis) (- k 1))
-          (values (cons (car lis) prefix) suffix)))))
+  (let recur ((lis x) (k k) (r '()))
+    (cond ((zero? k) (values (reverse! r) lis))
+	  ((null? lis) (error 'split-at "given list it too short"))
+	  (else (recur (cdr lis) (- k 1) (cons (car lis) r))))))
 
 (define (find pred list)
   (cond ((find-tail pred list) => car)

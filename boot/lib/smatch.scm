@@ -1,4 +1,5 @@
 ;; -*- Scheme -*-
+#!core
 ;; simple match from Andre van Tonder
 (define-syntax smatch
   (syntax-rules ()

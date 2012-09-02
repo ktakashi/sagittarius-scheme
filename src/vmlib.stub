@@ -302,6 +302,8 @@
   ;; misc
   (define-c-proc vm-r6rs-mode? () ::<boolean>
     (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_R6RS_MODE)))
+  (define-c-proc vm-core-mode? () ::<boolean>
+    (result (== (logand (ashr (-> (Sg_VM) flags) 8) #xFF) 0)))
 
   ;; (%map-cons l1 l2) = (map cons l1 l2)
   (define-c-proc %map-cons (l1 l2) ::<top>
