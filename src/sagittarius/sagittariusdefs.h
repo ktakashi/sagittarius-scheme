@@ -100,11 +100,7 @@
 #endif
 
 /* we need to include config.h here */
-#ifdef HAVE_CONFIG_H
 #include <sagittarius/config.h>
-#else
-#error "config.h is required"
-#endif
 
 /* detect endianness(from boost/detail/endian.hpp) */
 #if defined (__GLIBC__)

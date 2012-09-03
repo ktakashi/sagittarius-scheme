@@ -47,6 +47,12 @@
 	    ($result (SG_MAKE_INT ,r))
 	    ($result (Sg_MakeBignumFromSI ,r)))))))
 
+(define-cise-stmt $result:f
+  ((_ expr)
+   (let ((r (gensym "cise__")))
+     `(let ((,r :: double ,expr))
+	($result (Sg_MakeFlonum ,r))))))
+
 ;; coercion
 (define-cise-stmt $result:b
   ((_ expr) `($result (SG_MAKE_BOOL ,expr))))
@@ -136,7 +142,6 @@
   (let ((obj (POP (SP vm))))
     (cond ((and (SG_INTP (AC vm)) (SG_INTP obj))
 	   ($result:n (+ (SG_INT_VALUE obj) (SG_INT_VALUE (AC vm)))))
-	  #;
 	  ((and (SG_FLONUMP (AC vm)) (SG_FLONUMP obj))
 	   ($result (Sg_MakeFlonum (+ (SG_FLONUM_VALUE obj)
 				      (SG_FLONUM_VALUE (AC vm))))))
@@ -151,6 +156,8 @@
   (INSN_VAL1 val1 c)
   (cond ((SG_INTP (AC vm))
 	 ($result:n (+ val1 (SG_INT_VALUE (AC vm)))))
+	((SG_FLONUMP (AC vm))
+	 ($result:f (+ (cast double val1) (SG_FLONUM_VALUE (AC vm)))))
 	(else
 	 (call-one-arg-with-insn-value Sg_Add c))))
 
@@ -158,10 +165,8 @@
   (let ((obj (POP (SP vm))))
     (cond ((and (SG_INTP (AC vm)) (SG_INTP obj))
 	   ($result:n (- (SG_INT_VALUE obj) (SG_INT_VALUE (AC vm)))))
-	  #;
 	  ((and (SG_FLONUMP (AC vm)) (SG_FLONUMP obj))
-	   ($result (Sg_MakeFlonum (- (SG_FLONUM_VALUE obj)
-				      (SG_FLONUM_VALUE (AC vm))))))
+	   ($result:f (- (SG_FLONUM_VALUE obj) (SG_FLONUM_VALUE (AC vm)))))
 	  (else
 	   (call-two-args-proc obj Sg_Sub)))))
 
@@ -169,6 +174,8 @@
   (INSN_VAL1 val1 c)
   (cond ((SG_INTP (AC vm))
 	 ($result:n (- val1 (SG_INT_VALUE (AC vm)))))
+	((SG_FLONUMP (AC vm))
+	 ($result:f (- (cast double val1) (SG_FLONUM_VALUE (AC vm)))))
 	(else
 	 (call-one-arg-with-insn-value Sg_Sub c))))
 
@@ -224,25 +231,30 @@
   NEXT)
 
 (define-cise-expr branch-number-test-helper
-  ((_ n)
-   `(begin
-      (set! (AC vm) SG_FALSE)
-      (+= (PC vm) (SG_INT_VALUE ,n))))
+  ((_ p)
+   (let ((n (gensym "cise__")))
+     `(let ((,n ,p))
+	(set! (AC vm) SG_FALSE)
+	(+= (PC vm) (SG_INT_VALUE ,n)))))
   ((_)
    `(begin
       (set! (AC vm) SG_TRUE)
       (post++ (PC vm)))))
 (define-cise-stmt branch-number-test
   ((_ op func)
-   `(let ((n (PEEK_OPERAND (PC vm)))
-	  (s (POP (SP vm))))
-      (if (logand (SG_INTP (AC vm)) (SG_INTP s))
-	  (if (,op (cast intptr_t s) (cast intptr_t (AC vm)))
-	      (branch-number-test-helper)
-	      (branch-number-test-helper n))
-	  (if (,func s (AC vm))
-	      (branch-number-test-helper)
-	      (branch-number-test-helper n)))
+   `(let ((s (POP (SP vm))))
+      (cond ((logand (SG_INTP (AC vm)) (SG_INTP s))
+	     (if (,op (cast intptr_t s) (cast intptr_t (AC vm)))
+		 (branch-number-test-helper)
+		 (branch-number-test-helper (PEEK_OPERAND (PC vm)))))
+	    ((logand (SG_FLONUMP (AC vm)) (SG_FLONUMP s))
+	     (if (,op (SG_FLONUM_VALUE s) (SG_FLONUM_VALUE (AC vm)))
+		 (branch-number-test-helper)
+		 (branch-number-test-helper (PEEK_OPERAND (PC vm)))))
+	    (else
+	     (if (,func s (AC vm))
+		 (branch-number-test-helper)
+		 (branch-number-test-helper (PEEK_OPERAND (PC vm))))))
       NEXT)))
 
 (define-inst BNNUME (0 1 #t) :label
@@ -300,7 +312,7 @@
   ((_ op func)
    `(let ((s (POP (SP vm))))
       (if (and (SG_INTP (AC vm)) (SG_INTP s))
-	  ($result:b  (,op (cast intptr_t s) (cast intptr_t (AC vm))))
+	  ($result:b (,op (cast intptr_t s) (cast intptr_t (AC vm))))
 	  ($result:b (,func s (AC vm)))))))
 
 (define-inst NUM_EQ (0 0 #t)
@@ -463,10 +475,11 @@
     (PUSH_CONT vm (+ (PC vm) (- (SG_INT_VALUE n) 1))))
   NEXT)
 
-
+;; TODO remove this instruction from compiler.
+;; this was only for sanity and now it doesn't do anything.
 (define-inst ENTER (1 0 #f)
-  (INSN_VAL1 val1 c)
-  (set! (FP vm) (- (SP vm) val1))
+  ;;(INSN_VAL1 val1 c)
+  ;;(set! (FP vm) (- (SP vm) val1))
   NEXT)
 
 (define-inst LEAVE (1 0 #f)

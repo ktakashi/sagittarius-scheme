@@ -1125,9 +1125,8 @@ SgObject Sg_MakeFlonum(double d)
     } else {
       return SG_FL_POSITIVE_ZERO;
     }
-  }
-  if (isnan(d)) return SG_NAN;
-  return make_flonum(d);
+  } else if (isnan(d)) return SG_NAN;
+  else return make_flonum(d);
 }
 
 #ifdef USE_IMMEDIATE_FLONUM
