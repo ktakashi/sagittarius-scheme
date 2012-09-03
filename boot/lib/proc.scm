@@ -65,23 +65,19 @@
 
 (declare-procedure + objs (:inline ADD) :null
   +)
-(declare-procedure +. objs (:inline ADDI) :null
-  +.)
+;;(declare-procedure +. objs (:inline ADDI) :null +.)
 
 (declare-procedure - (obj1 . rest) (:inline SUB) :null
   -)
-(declare-procedure -. (obj1 . rest) (:inline SUBI) :null
-  -.)
+;;(declare-procedure -. (obj1 . rest) (:inline SUBI) :null -.)
 
 (declare-procedure * objs (:inline MUL) :null
   *)
-(declare-procedure *. objs (:inline MULI) :null
-  *.)
+;;(declare-procedure *. objs (:inline MULI) :null *.)
 
 (declare-procedure / (obj1 . rest) (:inline DIV) :null
   /)
-(declare-procedure /. (obj1 . rest) (:inline DIVI) :null
-  /.)
+;;(declare-procedure /. (obj1 . rest) (:inline DIVI) :null /.)
 
 (declare-procedure list objs (:inline LIST) :null
   (lambda a a))

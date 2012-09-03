@@ -5143,17 +5143,17 @@
   (include "lib/builtin-inliner.scm")))
 ;; ADD
 (define-builtin-inliner-+ + ADD $const)
-(define-builtin-inliner-+ +. ADDI ensure-inexact-const)
+;;(define-builtin-inliner-+ +. ADDI ensure-inexact-const)
 ;; SUB
 (define-builtin-inliner-- - SUB $const)
-(define-builtin-inliner-- -. SUBI ensure-inexact-const)
+;;(define-builtin-inliner-- -. SUBI ensure-inexact-const)
 ;; MUL and DIV should not have MULI or DIVI for now.
 ;; MUL
 (define-builtin-inliner-* * MUL $const)
-(define-builtin-inliner-* *. MUL ensure-inexact-const)
+;;(define-builtin-inliner-* *. MUL ensure-inexact-const)
 ;; DIB
 (define-builtin-inliner-/ / DIV $const)
-(define-builtin-inliner-/ /. DIV ensure-inexact-const)
+;;(define-builtin-inliner-/ /. DIV ensure-inexact-const)
 
 ;; compare
 (define-builtin-inliner = :null (gen-inliner-arg2 NUM_EQ))
