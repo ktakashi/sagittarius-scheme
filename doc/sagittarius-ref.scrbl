@@ -39,7 +39,7 @@ what are the non conformed points.
 @dl-list[]{
 @dl-item["Reader"]{
  Basically reader has 2 modes. One is R6RS mode and other one is compatible
- mode. Although, user can modify reader with reader macro. For detail, see
+ mode. Although, user can modify reader with reader macro. For more details, see
  @secref["lib.sagittarius.reader.predefined"]{Predefined reader macros}.
 }
 @dl-item["Macro expansion"]{

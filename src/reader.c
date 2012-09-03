@@ -882,6 +882,10 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	Sg_SetCurrentReadTable(Sg_CopyReadTable(&compat_read_table));
 	return NULL;
       }
+      if (ustrcmp(tag->value, "no-overwrite") == 0) {
+	SG_VM_SET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
+	return NULL;
+      }
       if (ustrcmp(tag->value, "fold-case") == 0) {
 	table->insensitiveP = TRUE;
 	return NULL;
@@ -2058,7 +2062,8 @@ void Sg__InitReader()
   SET_READER_NAME(read_hash_less,       "#<-reader");
   SET_READER_NAME(read_hash_colon,      "#:-reader");
 
-  Sg_SetCurrentReadTable(&compat_read_table);
+  /* the static read table must be used as a template */
+  Sg_SetCurrentReadTable(Sg_CopyReadTable(&compat_read_table));
 }
 
 /*

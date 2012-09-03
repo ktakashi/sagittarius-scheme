@@ -174,8 +174,11 @@ The following table explains predefined reader macros.
 @tr{@td{#\!}
  @td{Reads next expression and set flags described below.
   @dl-list{
-    @dl-item["#!r6rs"]{Switches to r6rs mode}
+    @dl-item["#!r6rs"]{Switches to R6RS mode}
+    @dl-item["#!r7rs"]{Switches to R7RS mode}
     @dl-item["#!compatible"]{Switches to compatible mode}
+    @dl-item["#!no-overwrite"]{Sets no-overwrite flag that does not allow user
+    to overwrite exported variables.}
     @dl-item["#!nocache"]{Sets disable cache flag on the current loading file}
     @dl-item["#!deprecated"]{Display warning message of deprecated library.}
   }}}
@@ -204,4 +207,34 @@ The following table explains predefined reader macros.
 Note: if expressions contains symbol, which is illegal library name, at the end
 #<-reader can not detect the '>' because '>' can be symbol. So the error message
 might be a strange one.}}
+}
+
+@sub*section{#! - Switching mode}
+
+Sagittarius has multiple reader and VM modes and users can switch these modes
+with @code{#!}. Following describes details of those modes;
+
+@dl-list{
+  @dl-item["R6RS mode"]{Symbols are read according to R6RS specification and VM
+  sets the @code{no-overwrite} flag. With this mode, keywords are read as
+  symbols; for example, @code{:key} is just a symbol and users can not use
+  extended @code{lambda} syntax.
+  }
+  @dl-item["R7RS mode"]{The mode for new specification of Scheme. This mode is
+  less strict than R6RS mode described above. The reader can read keyword and VM
+  sets the @code{no-overwrite} flag.
+  }
+  @dl-item["Compatible mode"]{This mode is least strict mode. In other words, it
+  does not have any restrictions such as described above.
+  }
+}
+
+NOTE: If you import reader macro with @code{#< (@dots{}) >} form and let reader
+read above hash-bang, the read table will be reset. So following code will raise
+a read error;
+
+@codeblock{
+#< (sagittarius regex) >
+#!r6rs
+#/regular expression/ ;; <- &lexical
 }
