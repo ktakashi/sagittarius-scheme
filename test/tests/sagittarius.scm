@@ -350,4 +350,16 @@
 		(make-custom-textual-input-port "test" read! #f #f close))
 	      (read-delimited-list 
 	       #\) (make-custom-input-port (open-string-input-port "1)")))))
+
+;; list->string has optional arguments start and end
+(test-equal "list->string with start"
+	    "bcdef" (list->string '(#\a #\b #\c #\d #\e #\f) 1))
+(test-equal "list->string with start and end"
+	    "bc" (list->string '(#\a #\b #\c #\d #\e #\f) 1 3))
+;; list->string only checks given range is char or not
+(test-equal "list->string with start"
+	    "bcdef" (list->string '(hoge #\b #\c #\d #\e #\f) 1))
+(test-equal "list->string with start and end"
+	    "bc" (list->string '(hoge #\b #\c hoge hoge hoge) 1 3))
+
 (test-end)

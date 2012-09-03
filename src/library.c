@@ -244,7 +244,7 @@ static SgString* encode_string(SgString *s, int keywordP)
       SG_APPEND1(h, t, c);
     }
   }
-  return Sg_ListToString(h);
+  return Sg_ListToString(h, 0, -1);
 }
 
 /*

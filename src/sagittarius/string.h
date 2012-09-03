@@ -83,7 +83,7 @@ SG_EXTERN SgObject Sg_ReserveString(int size, SgChar fill);
 SG_EXTERN SgObject Sg_MakeEmptyString();
 
 SG_EXTERN SgObject Sg_StringToList(SgString *s, int start, int end);
-SG_EXTERN SgObject Sg_ListToString(SgObject obj);
+SG_EXTERN SgObject Sg_ListToString(SgObject obj, int start, int end);
 
 /* compare */
 SG_EXTERN int 	   Sg_StringEqual(SgString *s1, SgString *s2);

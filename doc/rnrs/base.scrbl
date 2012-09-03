@@ -1031,18 +1031,24 @@ index @var{end} (exclusive).
 concatenation of the given @var{strings}.
 }
 
-@define[Function]{@name{string->list} @args{string}}
-@define[Function]{@name{list->string} @args{list}}
-@desc{[R6RS] @var{List} must be a list of characters.
+@define[Function]{@name{string->list} @args{string} :optional start end}
+@define[Function]{@name{list->string} @args{list} :optional start end}
+@desc{[R6RS+] @var{List} must be a list of characters.
 
-The @code{string->list} procedure returns a newly allocated list of the characters
-that make up the given @var{string}.
+The @code{string->list} procedure returns a newly allocated list of the
+characters that make up the given @var{string}.
 
-The @code{list->string} procedure returns a newly allocated string formed from the
-characters in @var{list}.
+The @code{list->string} procedure returns a newly allocated string formed from
+the characters in @var{list}.
 
-The @code{string->list} and @code{list->string} procedures are inverses so far as
-@code{equal?} is concerned.
+The @code{string->list} and @code{list->string} procedures are inverses so far
+as @code{equal?} is concerned.
+
+If optional argument @var{start} and @var{end} are given, it restrict the
+conversion range. It convert from @var{start} (inclusive) to @var{end}
+(exclusive).
+
+If only @var{start} is given, then the @var{end} is the length of given string.
 }
 
 @define[Function]{@name{string-for-each} @args{proc string1 string2 @dots{}}}

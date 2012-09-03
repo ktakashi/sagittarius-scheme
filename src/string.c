@@ -166,11 +166,19 @@ static SgHashTable *stable;
 
 #ifdef HAVE_ALLOCA
 #define ALLOC_TEMP_STRING(var, size)					\
+  do {									\
     (var) = SG_STRING(alloca(STRING_ALLOC_SIZE(size)));			\
     SG_SET_CLASS(var, SG_CLASS_STRING);					\
-    SG_STRING_SIZE(var) = size;
+    SG_STRING_SIZE(var) = size;						\
+  } while (0)
+#define ALLOC_TEMP_BUFFER(var, size)					\
+  do {									\
+    (var) = (SgChar *)alloca(sizeof(SgChar)*((size)+1));		\
+  } while (0)
 #else
 #define ALLOC_TEMP_STRING(var, size) (var) = make_string(size);
+#define ALLOC_TEMP_BUFFER(var, size)				\
+  (var) = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar)*((size)+1));
 #endif
 
 
@@ -219,23 +227,11 @@ SgObject Sg_MakeString(const SgChar *value, SgStringType flag)
 /* This method assumes given value as ASCII for now */
 SgObject Sg_MakeStringC(const char *value)
 {
-#if 1
   SgString *z;
   z = make_string((int)strlen(value));
   COPY_STRING(z, value, z->size, 0);
   z->value[z->size] = 0;
   return SG_OBJ(z);
-#else
-  int size = strlen(value), i;
-  SgChar *z, *t;
-  z = t = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar) * (size + 1));
-  
-  for (i = 0; i < size; i++) {
-    *t++ = *value++;
-  }
-  *t = 0;
-  return Sg_MakeString(z, SG_LITERAL_STRING);
-#endif
 }
 
 SgObject Sg_ReserveString(int size, SgChar fill)
@@ -359,21 +355,28 @@ SgObject Sg_StringToList(SgString *s, int start, int end)
   return h;
 }
 
-SgObject Sg_ListToString(SgObject chars)
+SgObject Sg_ListToString(SgObject chars, int start, int end)
 {
   SgObject cp;
-  int len = 0;
+  int len = 0, i;
   SgChar ch;
   SgChar *buf, *bufp;
 
+  i = start;
+  chars = Sg_ListTail(chars, start, SG_UNBOUND);
   SG_FOR_EACH(cp, chars) {
+    if (end > 0 && i == end) break;
     if (!SG_CHARP(SG_CAR(cp))) {
       Sg_Error(UC("character required, but got %S"), SG_CAR(cp));
     }
     len++;
+    i++;
   }
-  bufp = buf = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar) * (len + 1));
+  ALLOC_TEMP_BUFFER(buf, len);
+  bufp = buf;
+  i = start;
   SG_FOR_EACH(cp, chars) {
+    if (end > 0 && i == end) break;
     ch = SG_CHAR_VALUE(SG_CAR(cp));
     *bufp++ = ch;
   }
@@ -551,33 +554,9 @@ SgObject Sg_MaybeSubstring(SgString *s, int start, int end)
     }								\
   } while (0)
 
-#if 0
-static uint32_t string_hash(const SgHashCore *ht, intptr_t key)
-{
-  SgChar *p = (SgChar*)key;
-  int size = (int)ustrlen(p);
-  uint32_t hashval;
-  STRING_HASH(hashval, p, size);
-  return hashval;
-}
-
-static int string_compare(const SgHashCore *ht, intptr_t key, intptr_t entryKey)
-{
-  if (!SG_PTRP(entryKey)) return FALSE;
-  else {
-    const uint32_t *s1, *s2;
-    for (s1 = (const uint32_t *)key, s2 = (const uint32_t *)entryKey;
-	 *s1 == *s2 && *s1 != 0;
-	 s1++, s2++);
-    return *s1 - *s2 == 0;
-  }
-}
-#endif
-
 void Sg__InitString()
 {
   Sg_InitMutex(&smutex, FALSE);
-  /* stable = Sg_MakeHashTable(string_hash, string_compare, 4096); */
   stable = Sg_MakeHashTableSimple(SG_HASH_STRING, 4096);
 }
 

@@ -1338,7 +1338,7 @@ SgObject Sg_BignumToString(SgBignum *b, int radix, int use_upper)
     for (; q->elements[size - 1] == 0 && size > 0; size--);
   }
   if (SG_BIGNUM_GET_SIGN(q) < 0) SG_APPEND1(h, t, SG_MAKE_CHAR('-'));
-  return Sg_ListToString(Sg_ReverseX(h));
+  return Sg_ListToString(Sg_ReverseX(h), 0, -1);
 }
 
 /* we need this... */

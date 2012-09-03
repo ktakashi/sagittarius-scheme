@@ -1077,8 +1077,8 @@
   (define-c-proc make-string (k::<fixnum> :optional (c::<char> #\space)) ::<top>
     (result (Sg_ReserveString k c)))
 
-  (define-c-proc string (:rest rest) ::<top>
-    (result (Sg_ListToString rest)))
+  (define-c-proc string (:rest rest)
+    (result (Sg_ListToString rest 0 -1)))
 
   (define-c-proc string-length (s::<string>) ::<fixnum>
     (result (-> s size)))
@@ -1143,24 +1143,24 @@
 			   (SG_LIST3 s (SG_MAKE_INT start) (SG_MAKE_INT end))))
     (result (Sg_Substring s start end)))
 
-  (define-c-proc string-append (:rest rest) ::<top>
-    (result (Sg_StringAppend rest)))
+  (define-c-proc string-append (:rest rest) Sg_StringAppend)
 
   ;; we take start+end as optional arguments for srfi-13
-  (define-c-proc string->list (s::<string> :optional (start::<fixnum> 0) (end::<fixnum> -1)) ::<top>
+  (define-c-proc string->list
+    (s::<string> :optional (start::<fixnum> 0) (end::<fixnum> -1))
     (result (Sg_StringToList s start end)))
 
-  (define-c-proc list->string (o) ::<top>
-    (unless (SG_LISTP o)
-      (wrong-type-of-argument-violation 'list->string "list" o))
-    (result (Sg_ListToString o)))
+  (define-c-proc list->string 
+    (o::<list> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    Sg_ListToString)
 
   ;; we take start+end as optional arguments for srfi-13
-  (define-c-proc string-copy (s::<string> :optional (start::<fixnum> 0) (end::<fixnum> -1)) ::<top>
-    (result (Sg_Substring s start end)))
+  (define-c-proc string-copy
+    (s::<string> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    Sg_Substring)
 
   ;; 11.13 vectors
-  (define-c-proc make-vector (size::<fixnum> :optional fill) ::<top>
+  (define-c-proc make-vector (size::<fixnum> :optional fill)
     (when (SG_UNBOUNDP fill)
       (set! fill  SG_UNDEF))
     (result (Sg_MakeVector size fill)))

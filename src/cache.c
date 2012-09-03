@@ -121,7 +121,7 @@ static SgString* id_to_filename(SgString *id)
   return Sg_StringAppend(SG_LIST4(CACHE_DIR,
 				  Sg_MakeString(Sg_NativeFileSeparator(),
 						SG_LITERAL_STRING),
-				  Sg_ListToString(h),
+				  Sg_ListToString(h, 0, -1),
 				  Sg_MakeString(UC(".cache"),
 						SG_LITERAL_STRING)));
 }
