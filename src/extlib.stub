@@ -125,6 +125,43 @@
   (define-c-proc variable? (o) ::<boolean>
     (result (or (SG_SYMBOLP o)
 		(SG_IDENTIFIERP o))))
+  ;; inexact computation
+  (define-cise-stmt check-number
+    ((_ name v)
+     `(unless (SG_NUMBERP ,v)
+	(wrong-type-of-argument-violation ',name "number" ,v))))
+  ;; if we add IADD or something, these might have meaning to exists.
+  (define-c-proc +. (:rest rest)
+    (let ((a (Sg_MakeFlonum 0.0)))
+      (dolist (x rest)
+	(check-number +. x)
+	(set! a (Sg_Add a (Sg_Inexact x))))
+      (result a)))
+
+  (define-c-proc *. (:rest rest)
+    (let ((a (Sg_MakeFlonum 1.0)))
+      (dolist (x rest)
+	(check-number *. x)
+	(set! a (Sg_Mul a (Sg_Inexact x))))
+      (result a)))
+
+  (define-c-proc -. (arg1::<number> :rest rest)
+    (if (SG_NULLP rest)
+	(result (Sg_Negate (Sg_Inexact arg1)))
+	(let ((a arg1))
+	  (dolist (x rest)
+	    (check-number -. x)
+	    (set! a (Sg_Sub a (Sg_Inexact x))))
+	  (result a))))
+
+  (define-c-proc /. (arg1::<number> :rest rest)
+    (if (SG_NULLP rest)
+	(result (Sg_Inverse (Sg_Inexact arg1)))
+	(let ((a arg1))
+	  (dolist (x rest)
+	    (check-number / x)
+	    (set! a (Sg_Div a (Sg_Inexact x))))
+	  (result a))))
 
   ;; arity returns pair of required and optional arguments count.
   ;; returned pair is structured like this : (<required> . <optional>)

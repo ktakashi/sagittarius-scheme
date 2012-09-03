@@ -580,9 +580,7 @@
   (define-cise-stmt check-number
     ((_ name v)
      `(unless (SG_NUMBERP ,v)
-	(wrong-type-of-argument-violation ',name
-					  "number"
-					   ,v))))
+	(wrong-type-of-argument-violation ',name "number" ,v))))
 
   (define-c-proc + (:rest rest) ::<top>
     (cond ((not (SG_PAIRP rest)) (result (SG_MAKE_INT 0)))
@@ -596,13 +594,6 @@
 	       (set! r (Sg_Add r v)))
 	     (result r)))))
 
-  (define-c-proc +. (:rest rest) ::<top>
-    (let ((a (Sg_MakeFlonum 0.0)))
-      (dolist (x rest)
-	(check-number +. x)
-	(set! a (Sg_Add a (Sg_Inexact x))))
-      (result a)))
-
   (define-c-proc * (:rest rest) ::<top>
     (cond ((not (SG_PAIRP rest)) (result (SG_MAKE_INT 1)))
 	  ((not (SG_NUMBERP (SG_CAR rest)))
@@ -615,13 +606,6 @@
 	       (set! r (Sg_Mul r v)))
 	     (result r)))))
 
-  (define-c-proc *. (:rest rest) ::<top>
-    (let ((a (Sg_MakeFlonum 1.0)))
-      (dolist (x rest)
-	(check-number *. x)
-	(set! a (Sg_Mul a (Sg_Inexact x))))
-      (result a)))
-
   (define-c-proc - (arg1::<number> :rest rest) ::<top>
     (if (SG_NULLP rest)
 	(result (Sg_Negate arg1))
@@ -630,13 +614,6 @@
 	    (check-number - v)
 	    (set! arg1 (Sg_Sub arg1 v)))
 	  (result arg1))))
-  (define-c-proc -. (arg1::<number> :rest rest) ::<top>
-    (cond ((SG_NULLP rest) (result (Sg_Negate (Sg_Inexact arg1))))
-	  (else 
-	   (dolist (x rest)
-	     (check-number -. x)
-	     (set! arg1 (Sg_Sub arg1 (Sg_Inexact x))))
-	   (result arg1))))
 
   (define-c-proc / (arg1::<number> :rest rest) ::<top>
     (if (SG_NULLP rest)
@@ -655,15 +632,6 @@
 				     "undefined for 0"
 				     (Sg_Cons arg1 rest)))
 	    (set! arg1 (Sg_Div arg1 v)))
-	  (result arg1))))
-
-  (define-c-proc /. (arg1::<number> :rest rest) ::<top>
-    (if (SG_NULLP rest)
-	(result (Sg_Inverse (Sg_Inexact arg1)))
-	(begin
-	  (dolist (x rest)
-	    (check-number / x)
-	    (set! arg1 (Sg_Div arg1 (Sg_Inexact x))))
 	  (result arg1))))
 
   ;; base arithmetic

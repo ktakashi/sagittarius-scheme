@@ -1186,9 +1186,9 @@ double Sg_GetDouble(SgObject obj)
   else if (SG_COMPLEXP(obj)) {
     SgComplex *c = SG_COMPLEX(obj);
     if (Sg_ZeroP(c->imag)) return Sg_GetDouble(c->real);
+    else return 0.0;
   }
   else return 0.0; 		/* should this be error? */
-  return 0.0;			/* dummy  */
 }
 
 SgObject Sg_DecodeFlonum(double d, int *exp, int *sign)
