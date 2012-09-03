@@ -353,21 +353,29 @@ SgObject Sg_ListToString(SgObject chars, int start, int end)
   int len = 0, i;
   SgChar *buf;
 
+  if (start < 0 || (end >= 0 && start > end)) {
+    Sg_Error(UC("argument out of range (start %d, end %d)"), start, end);
+  }
+
   i = start;
   chars = Sg_ListTail(chars, start, SG_UNBOUND);
   SG_FOR_EACH(cp, chars) {
-    if (end > 0 && i == end) break;
+    if (end >= 0 && i == end) break;
     if (!SG_CHARP(SG_CAR(cp))) {
       Sg_Error(UC("character required, but got %S"), SG_CAR(cp));
     }
     len++;
     i++;
   }
+  if (len < (end - start)) {
+    Sg_Error(UC("list is too short %S"), chars);
+  }
+
   r = make_string(len);
   buf = SG_STRING_VALUE(r);
   i = start;
   SG_FOR_EACH(cp, chars) {
-    if (end > 0 && i == end) break;
+    if (end >= 0 && i == end) break;
     *buf++ = SG_CHAR_VALUE(SG_CAR(cp));
     i++;
   }

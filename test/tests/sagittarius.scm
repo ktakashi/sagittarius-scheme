@@ -356,10 +356,20 @@
 	    "bcdef" (list->string '(#\a #\b #\c #\d #\e #\f) 1))
 (test-equal "list->string with start and end"
 	    "bc" (list->string '(#\a #\b #\c #\d #\e #\f) 1 3))
+(test-equal "list->string no length" "" (list->string '(#\a) 0 0))
 ;; list->string only checks given range is char or not
 (test-equal "list->string with start (check)"
 	    "bcdef" (list->string '(hoge #\b #\c #\d #\e #\f) 1))
 (test-equal "list->string with start and end (check)"
 	    "bc" (list->string '(hoge #\b #\c hoge hoge hoge) 1 3))
+;; error case
+(test-error "list->string range error" (lambda (e) e)
+	    (list->string '(#\a) -1))
+(test-error "list->string range error" (lambda (e) e)
+	    (list->string '(#\a) 2 1))
+(test-error "list->string range error" (lambda (e) e)
+	    (list->string '(#\a) 0 2))
+
+
 
 (test-end)
