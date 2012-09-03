@@ -171,17 +171,9 @@ static SgHashTable *stable;
     SG_SET_CLASS(var, SG_CLASS_STRING);					\
     SG_STRING_SIZE(var) = size;						\
   } while (0)
-#define ALLOC_TEMP_BUFFER(var, size)					\
-  do {									\
-    (var) = (SgChar *)alloca(sizeof(SgChar)*((size)+1));		\
-  } while (0)
 #else
 #define ALLOC_TEMP_STRING(var, size) (var) = make_string(size);
-#define ALLOC_TEMP_BUFFER(var, size)				\
-  (var) = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar)*((size)+1));
 #endif
-
-
 
 SgObject Sg_MakeStringEx(const SgChar *value, SgStringType flag, int length)
 {
@@ -357,10 +349,9 @@ SgObject Sg_StringToList(SgString *s, int start, int end)
 
 SgObject Sg_ListToString(SgObject chars, int start, int end)
 {
-  SgObject cp;
+  SgObject cp, r;
   int len = 0, i;
-  SgChar ch;
-  SgChar *buf, *bufp;
+  SgChar *buf;
 
   i = start;
   chars = Sg_ListTail(chars, start, SG_UNBOUND);
@@ -372,16 +363,16 @@ SgObject Sg_ListToString(SgObject chars, int start, int end)
     len++;
     i++;
   }
-  ALLOC_TEMP_BUFFER(buf, len);
-  bufp = buf;
+  r = make_string(len);
+  buf = SG_STRING_VALUE(r);
   i = start;
   SG_FOR_EACH(cp, chars) {
     if (end > 0 && i == end) break;
-    ch = SG_CHAR_VALUE(SG_CAR(cp));
-    *bufp++ = ch;
+    *buf++ = SG_CHAR_VALUE(SG_CAR(cp));
+    i++;
   }
-  *bufp = 0;
-  return Sg_MakeStringEx(buf, SG_HEAP_STRING, len);
+  *buf = 0;
+  return r;
 }
 
 SgObject Sg_CopyString(SgString *a)
