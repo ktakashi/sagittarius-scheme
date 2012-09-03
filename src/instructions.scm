@@ -593,7 +593,7 @@
     ($result v)))
 
 (define-inst VECTORP (0 0 #t)
-  ($result (SG_MAKE_BOOL (SG_VECTORP (AC vm)))))
+  ($result:b (SG_VECTORP (AC vm))))
 
 (define-inst VEC_LEN (0 0 #t)
   (unless (SG_VECTORP (AC vm))
