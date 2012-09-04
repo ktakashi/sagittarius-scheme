@@ -416,3 +416,30 @@ int Sg_WeakHashIterNext(SgWeakHashIter *iter,
   }
 }
 
+/* for GC friendliness */
+int Sg_WeakHashTableShrink(SgWeakHashTable *table)
+{
+  SgHashIter iter;
+  SgHashEntry *e = NULL;
+  int count = 0;
+  Sg_HashIterInit(SG_WEAK_HASHTABLE_CORE(table), &iter);
+  while ((e = Sg_HashIterNext(&iter)) != NULL) {
+    if (table->weakness & SG_WEAK_KEY) {
+      SgWeakBox *box = (SgWeakBox *)e->key;
+      if (Sg_WeakBoxEmptyP(box)) {
+	Sg_WeakHashTableDelete(table, e->key);
+	count++;
+	continue;
+      }
+    }
+    if (table->weakness & SG_WEAK_VALUE) {
+      SgWeakBox *box = (SgWeakBox *)e->value;
+      if (Sg_WeakBoxEmptyP(box)) {
+	Sg_WeakHashTableDelete(table, e->key);
+	count++;
+	continue;
+      }
+    }
+  }
+  return count;
+}

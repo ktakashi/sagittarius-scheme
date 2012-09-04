@@ -30,6 +30,7 @@
 #cmakedefine HAVE_SCHED_H
 #cmakedefine HAVE_IO_H
 #cmakedefine HAVE_SYS_MMAN_H
+#cmakedefine HAVE_UNISTD_H
 
 #cmakedefine HAVE_ALLOCA
 #cmakedefine HAVE_SCHED_YIELD

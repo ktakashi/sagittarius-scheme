@@ -1845,6 +1845,7 @@ static void process_queued_requests(SgVM *vm)
     }
     SG_INTERNAL_MUTEX_SAFE_LOCK_END();
   }
+  Sg_WeakHashTableShrink(vm->sourceInfos);
 }
 
 #define RET_INSN()						\

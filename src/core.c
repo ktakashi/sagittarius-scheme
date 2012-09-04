@@ -30,6 +30,10 @@
  *  $Id: $
  */
 #include <string.h>
+#include <sagittarius/config.h>
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius.h"
 #include "sagittarius/core.h"

@@ -2,7 +2,7 @@
 /*
  * weak.h
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2012  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -115,7 +115,7 @@ SG_EXTERN void     Sg_WeakHashIterInit(SgWeakHashIter *iter,
 				       SgWeakHashTable *table);
 SG_EXTERN int      Sg_WeakHashIterNext(SgWeakHashIter *iter,
 				       SgObject *key, SgObject *value);
-
+SG_EXTERN int      Sg_WeakHashTableShrink(SgWeakHashTable *table);
 
 SG_CDECL_END
 
