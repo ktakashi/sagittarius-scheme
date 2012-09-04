@@ -428,9 +428,7 @@ static void finish_builder_rec(SgCodeBuilder *cb)
       for (j = 1; j <= info->argc; j++) {
 	SgObject arg = SG_OBJ(code[i + j]);
 	ret[i + j] = SG_WORD(arg);
-	if (SG_IMMEDIATEP(arg)) {
-	  /* nothing */
-	} else if (SG_CODE_BUILDERP(arg)) {
+	if (SG_CODE_BUILDERP(arg)) {
 	  finish_builder_rec(SG_CODE_BUILDER(arg));
 	}
       }
