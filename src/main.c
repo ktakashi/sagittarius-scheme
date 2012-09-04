@@ -336,6 +336,8 @@ int main(int argc, char **argv)
 	SG_VM_SET_FLAG(vm, SG_NO_INLINE_ASM);
 	SG_VM_SET_FLAG(vm, SG_NO_INLINE_LOCAL);
 	SG_VM_SET_FLAG(vm, SG_NO_LAMBDA_LIFT);
+      } else if (strcmp("no-backtrace", optarg) == 0) {
+	SG_VM_SET_FLAG(vm, SG_NO_DEBUG_INFO);
       } else {
 	Sg_Warn(UC("unknown optimize option %A"), Sg_MakeStringC(optarg));
       }

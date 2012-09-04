@@ -1488,7 +1488,7 @@ SgObject Sg_GetStackTrace()
 	    index = (pc - i) - cb->code;
 	  }
 	  if (index > 0) {
-	    if (SG_LISTP(cb->src)) {
+	    if (SG_PAIRP(cb->src)) {
 	      src = Sg_Assv(SG_MAKE_INT(index), cb->src);
 	    }
 	  }

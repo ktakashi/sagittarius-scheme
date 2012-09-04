@@ -352,26 +352,28 @@ void Sg_CodeBuilderEmit(SgCodeBuilder *cb, SgWord insn, PacketType type,
 
 void Sg_CodeBuilderAddSrc(SgCodeBuilder *cb, int insn, SgObject src)
 {
-  /*
-    we construct the source info into code-builder:
-    ((index1 . src1) (index2 . src2) ...) ; alist
-   */
-  int index = cb->size;
-  if (SG_FALSEP(cb->src)) {
-    /* first time
-       ((index . src))
-     */
-    cb->src = SG_LIST1(Sg_Cons(SG_MAKE_INT(index), src));
-  } else {
-    /* other
-       ((index . src) !here)
-     */
-    SgObject tail = Sg_Assq(SG_MAKE_INT(index), cb->src);
-    if (!SG_FALSEP(tail)) {
-      SG_SET_CDR(tail, src);
+  if (!SG_FALSEP(src)) {
+    /*
+      we construct the source info into code-builder:
+      ((index1 . src1) (index2 . src2) ...) ; alist
+    */
+    int index = cb->size;
+    if (SG_FALSEP(cb->src)) {
+      /* first time
+	 ((index . src))
+      */
+      cb->src = SG_LIST1(Sg_Cons(SG_MAKE_INT(index), src));
     } else {
-      tail = Sg_LastPair(cb->src);
-      SG_SET_CDR(tail, SG_LIST1(Sg_Cons(SG_MAKE_INT(index), src)));
+      /* other
+	 ((index . src) !here)
+      */
+      SgObject tail = Sg_Assq(SG_MAKE_INT(index), cb->src);
+      if (!SG_FALSEP(tail)) {
+	SG_SET_CDR(tail, src);
+      } else {
+	tail = Sg_LastPair(cb->src);
+	SG_SET_CDR(tail, SG_LIST1(Sg_Cons(SG_MAKE_INT(index), src)));
+      }
     }
   }
 }
@@ -438,6 +440,9 @@ static void finish_builder_rec(SgCodeBuilder *cb)
   cb->code = ret;
   cb->size = size;
   code = NULL;			/* gc friendliness */
+  cb->labelDefs = SG_NIL;	/* ditto */
+  cb->labelRefs = SG_NIL;	/* ditto */
+  cb->packet = empty_packet;
 }
 
 SgObject Sg_CodeBuilderFinishBuilder(SgCodeBuilder *cb, int last)
