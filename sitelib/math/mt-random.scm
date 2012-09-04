@@ -120,7 +120,7 @@
   ;; generates a random number on [0, 2^64-1]-interval
   ;; I actually don't know how to treat this. for now, generate full number
   ;; and convert to bytevector.
-  (define (mt-read-random prng bytes)
+  (define (mt-read-random! prng buf bytes)
     (define (reset prng)
       (let ((mt (slot-ref prng 'state))
 	    (mti (slot-ref prng 'mti))
@@ -157,7 +157,7 @@
 	    (mt-set! mt (- NN 1) v))
 	  (slot-set! prng 'mti 0))))
 
-    (define (read-random bv count)	
+    (define (read-random! bv count)	
       (let ((len (bytevector-length bv)))
 	(let loop ((i 0) (offset 0))
 	  (unless (= i count)
@@ -187,10 +187,9 @@
 		      (bytevector-copy! src 0 bv off (- len off)))
 		  (loop (+ i 1) (+ offset 8)))))))))
     ;; check size the reading process read 8 byte in once.
-    (let ((count (ceiling (/ bytes 8)))
-	  (bv (make-bytevector bytes)))
-      (read-random bv count)
-      bv))
+    (let ((count (ceiling (/ bytes 8))))
+      (read-random! buf count)
+      buf))
 
   ;; MT random is not secure random, so we do not implement <secure-random>
   (define-class <mersenne-twister> (<user-prng>)
@@ -203,7 +202,7 @@
     (call-next-method)
     (let ((seed (get-keyword :seed initargs #f)))
       (slot-set! o 'set-seed! mt-set-seed)
-      (slot-set! o 'read-random mt-read-random)
+      (slot-set! o 'read-random! mt-read-random!)
       (when seed
 	(mt-set-seed o seed))))
 

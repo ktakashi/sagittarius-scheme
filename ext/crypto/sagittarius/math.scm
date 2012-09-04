@@ -4,6 +4,7 @@
 	    pseudo-random?
 	    secure-random?
 	    read-random-bytes
+	    read-random-bytes!
 	    make-pseudo-random
 	    make-secure-random
 	    %random-seed-set!

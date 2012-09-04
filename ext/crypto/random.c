@@ -164,11 +164,14 @@ SgObject Sg_ReadSysRandom(int bits)
   return buf;
 }
 
-SgObject Sg_ReadRandomBytes(SgObject prng, int size)
+SgObject Sg_ReadRandomBytesX(SgObject prng, SgObject buf, int size)
 {
-  SgObject buf;
+  if (SG_BVECTOR_SIZE(buf) < size) {
+    Sg_AssertionViolation(SG_INTERN("read-random-bytes!"),
+			  SG_MAKE_STRING("given bytevector is too short"),
+			  SG_LIST2(buf, SG_MAKE_INT(size)));
+  }
   if (SG_BUILTIN_PRNG_P(prng)) {
-    buf = Sg_MakeByteVector(size, 0);
     if (prng_descriptor[SG_BUILTIN_PRNG(prng)->wprng]
 	.read(SG_BVECTOR_ELEMENTS(buf), size,
 	      &SG_BUILTIN_PRNG(prng)->prng) != (unsigned long)size) {
@@ -176,14 +179,15 @@ SgObject Sg_ReadRandomBytes(SgObject prng, int size)
       return SG_UNDEF;
     }
   } else {
-    buf = Sg_Apply2(SG_USER_PRNG(prng)->readRandom, prng, Sg_MakeInteger(size));
-    /* sanity check */
-    if (SG_BVECTOR_SIZE(buf) != size) {
-      Sg_Error(UC("read-random procedure returned invalid size %d (%S)"),
-	       size, prng);
-    }
+    Sg_Apply3(SG_USER_PRNG(prng)->readRandom, prng, buf, Sg_MakeInteger(size));
   }
   return buf;
+}
+
+SgObject Sg_ReadRandomBytes(SgObject prng, int size)
+{
+  SgObject buf = Sg_MakeByteVector(size, 0);
+  return Sg_ReadRandomBytesX(prng, buf, size);
 }
 
 /* FIXME this registration code is the same as the one in hash.c.
@@ -268,7 +272,7 @@ static void up_read_set(SgUserPrng *prng, SgObject value)
 
 static SgSlotAccessor user_prng_slots[] = {
   SG_CLASS_SLOT_SPEC("set-seed!",   0, up_seed, up_seed_set),
-  SG_CLASS_SLOT_SPEC("read-random", 1, up_read, up_read_set),
+  SG_CLASS_SLOT_SPEC("read-random!", 1, up_read, up_read_set),
   { { NULL } }
 };
 /* actually for SRFI-27 */

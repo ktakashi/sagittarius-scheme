@@ -46,6 +46,14 @@
 				     (SG_MAKE_INT size) '()))
   (result (Sg_ReadRandomBytes prng size)))
 
+(define-c-proc read-random-bytes!
+  (prng::<prng> bv::<bytevector> size::<fixnum>) 
+  (when (<= size 0)
+    (Sg_WrongTypeOfArgumentViolation 'read-random-bytes
+				     (SG_MAKE_STRING "positive integer")
+				     (SG_MAKE_INT size) '()))
+  (result (Sg_ReadRandomBytesX prng bv size)))
+
 (define-c-proc register-prng (name clazz) ::<boolean>
   (result (Sg_RegisterPrng name clazz)))
 
