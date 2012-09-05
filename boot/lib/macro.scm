@@ -568,6 +568,19 @@
 	     (list->vector (loop (vector->list lst))))
 	    (else lst))))
 
+   ;; Issue 25.
+   ;; if the binding found in macro env, then it must be wrap with
+   ;; macro env.
+   (define (wrap-symbol sym seen)
+     (if (and (identifier? template)
+	      (not (identifier? (p1env-lookup p1env template PATTERN))))
+	 (wrap-syntax sym use-env seen)
+	 (let* ((lib (vector-ref mac-env 0))
+		(g (find-binding lib sym #f)))
+	   (if (and g (eq? (gloc-library g) lib))
+	       (wrap-syntax sym mac-env seen)
+	       (wrap-syntax sym use-env seen)))))
+
   (define (partial-identifier lst)
     (define renamed-ids (make-eq-hashtable))
     (let loop ((lst lst))
@@ -588,7 +601,7 @@
 		   ;; we need to replace it.
 		   ;; still we need this. Sucks!!
 		   ((lookup-pattern-variable p1env vars lst))
-		   (else (wrap-syntax lst use-env renamed-ids))))
+		   (else (wrap-symbol lst renamed-ids))))
 	    ((identifier? lst) lst)
 	    ((vector? lst)
 	     (list->vector (loop (vector->list lst))))
@@ -602,7 +615,7 @@
 	(cond ((null? form) '())
 	      ((identifier? form) form)
 	      ((symbol? form) 
-	       (wrap-syntax form use-env seen))
+	       (wrap-symbol form seen))
 	      ((eq? use-env mac-env) (wrap-id form))
 	      (else
 	       (partial-identifier form))))))
@@ -610,8 +623,6 @@
 (define (rank-of name ranks)
   (let ((slot (exists (lambda (slot)
 			(if (free-identifier=? name (car slot))
-			    ;;(and (eq? (id-envs name) (id-envs (car slot)))
-			    ;;     (eq? (id-name name) (id-name (car slot))))
 			    slot
 			    #f))
 		      ranks)))
@@ -781,7 +792,8 @@
       (assertion-violation 
        'datum->syntax 
        (format "expected identifier, but got ~s" template-id)))
-  (let ((env (if (null? (id-envs template-id))
+  (let ((env (if (eq? (vector-ref (current-usage-env) 0)
+		      (id-library template-id))
 		 (current-usage-env)
 		 (current-macro-env))))
     (wrap-syntax datum env (make-eq-hashtable) #f template-id)))

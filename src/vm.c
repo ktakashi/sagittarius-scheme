@@ -97,6 +97,7 @@ static SgObject run_loop();
 static void vm_finalize(SgObject obj, void *data)
 {
   SgVM *vm = SG_VM(obj);
+  Sg_RemoveLibrary(vm->currentLibrary);
   Sg_DestroyMutex(&vm->vmlock);
   Sg_DestroyCond(&vm->cond);
 }
