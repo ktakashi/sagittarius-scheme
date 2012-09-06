@@ -291,7 +291,7 @@
 	(set! *current-library* (car name)))))
 
 ;; just stub
-(define (import-library to from only except rename prefix trans?)
+(define (import-library to from resolved-spec trans?)
   (if trans?
       (library-transient-set! from #t)
       (library-transient-set! from #f))

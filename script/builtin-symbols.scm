@@ -53,6 +53,8 @@
   (body   file-out))
   
 (define (main args)
+  (when (file-exists? c-file) (delete-file c-file))
+  (when (file-exists? c-header) (delete-file c-header))
   (let ((c-file-out (open-output-file c-file))
 	(c-header-out (open-output-file c-header)))
     (generate c-file-out c-header-out)
@@ -98,6 +100,7 @@
     (only              	  SG_SYMBOL_ONLY)
     (rename            	  SG_SYMBOL_RENAME)
     (prefix            	  SG_SYMBOL_PREFIX)
+    (except            	  SG_SYMBOL_EXCEPT)
     (expand            	  SG_SYMBOL_EXPAND)
     (run               	  SG_SYMBOL_RUN)
     (define-syntax     	  SG_SYMBOL_DEFINE_SYNTAX)

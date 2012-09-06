@@ -184,14 +184,12 @@
 		(Sg_Cons (Sg_Append2X exports (SG_CAR arg1))
 			 (Sg_Append2X renames (SG_CDR arg1)))))))
 
-  (define-c-proc library-table (lib::<library>) ::<top>
-    (result (SG_LIBRARY_TABLE lib)))
+  (define-c-proc library-table (lib::<library>) SG_LIBRARY_TABLE)
 
-  (define-c-proc library-parents (lib::<library>) ::<top>
+  (define-c-proc library-parents (lib::<library>)
     (result (-> lib parents)))
 
-  (define-c-proc find-library (arg0 createp::<boolean>) ::<top>
-    (result (Sg_FindLibrary arg0 createp)))
+  (define-c-proc find-library (arg0 createp::<boolean>) Sg_FindLibrary)
 
   (define-c-proc %insert-binding (libname name value) ::<void>
     (unless (or (SG_SYMBOLP name)
@@ -202,13 +200,12 @@
     (let ((lib::SgObject (Sg_FindLibrary libname TRUE)))
       (Sg_InsertBinding lib name value)))
 
-  (define-c-proc find-binding (arg0 arg1::<symbol> callback) ::<top>
-    (result (Sg_FindBinding arg0 arg1 callback)))
+  (define-c-proc find-binding (arg0 arg1::<symbol> callback) Sg_FindBinding)
 
-  (define-c-proc import-library (to from only except rename prefix transp)
-    (Sg_ImportLibraryFullSpec to from only except rename prefix))
+  (define-c-proc import-library (to from spec transp)
+    (Sg_ImportLibraryFullSpec to from spec))
 
-  (define-c-proc vm-current-library (:optional name::<library>) ::<top>
+  (define-c-proc vm-current-library (:optional name::<library>)
     (let ((vm::SgVM* (Sg_VM)))
       (if (SG_UNBOUNDP name)
 	  (result (-> vm currentLibrary))
@@ -218,8 +215,7 @@
 	    (result SG_UNDEF)))))
 
   ;; gloc
-  (define-c-proc gloc-ref (g::<gloc>) ::<top>
-    (result (SG_GLOC_GET g)))
+  (define-c-proc gloc-ref (g::<gloc>) SG_GLOC_GET)
 
   (define-c-proc gloc-set! (g::<gloc> value) ::<void>
     (SG_GLOC_SET g value))

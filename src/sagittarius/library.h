@@ -77,19 +77,19 @@ SG_EXTERN SgObject Sg_MakeChildLibrary(SgVM *vm, SgObject name);
 SG_EXTERN void     Sg_RemoveLibrary(SgLibrary *lib);
 SG_EXTERN SgObject Sg_FindLibrary(SgObject name, int createp);
 SG_EXTERN void     Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
-					    SgObject only, SgObject except,
-					    SgObject renames, SgObject prefix);
+					    SgObject spec);
 SG_EXTERN void     Sg_LibraryExportedSet(SgObject lib, SgObject exportSpec);
 SG_EXTERN SgObject Sg_SearchLibrary(SgObject lib);
 SG_EXTERN SgGloc*  Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
 				  SgObject value, int flags);
 
 SG_EXTERN SgObject Sg_SearchLibraryPath(SgObject name);
-SG_EXTERN SgGloc*  Sg_FindBinding(SgObject library, SgObject name, SgObject callback);
-SG_EXTERN void     Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value);
+SG_EXTERN SgGloc*  Sg_FindBinding(SgObject library, SgObject name,
+				  SgObject callback);
+SG_EXTERN void     Sg_InsertBinding(SgLibrary *library, SgObject name,
+				    SgObject value);
 
-#define Sg_ImportLibrary(t, f)						\
-  Sg_ImportLibraryFullSpec((t), (f), SG_NIL, SG_NIL, SG_NIL, SG_FALSE)
+#define Sg_ImportLibrary(t, f)  Sg_ImportLibraryFullSpec((t), (f), SG_NIL)
 
 SG_CDECL_END
 

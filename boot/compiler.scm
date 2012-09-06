@@ -2119,7 +2119,7 @@
 ;;  only null library which is created in C). If it's symbol, then we can just
 ;;  import it. If it's a list, we need to parse and analyse it. Basically we
 ;;  only need to care about certain keywords, such as only, rename, except and
-;;  prefix as long as Sagittarius is not explicit phasing we can ignore run
+;;  prefix as long as Sagittarius is not explicit phasing we can ignore for
 ;;  keyword.
 ;;  These are the spec for import.
 ;;  <library reference>
@@ -2151,110 +2151,67 @@
      (lambda (f r c)
        '#f)))))
 
+;;
+;; Parsing import spec
+;;  Before we are parsing import spec to 4 parts only, rename, prefix and except
+;;  however it assumed 'rename' keyword restrict import variables and since it
+;;  fixed then we had a bug with prefix. So I've decided the resolution will be
+;;  done in the import procedure.
+;;
+;; The strategy
+;;  Import spec has order and its actually important. So we need to keep it but
+;;  it is better to re-organise it not to let import procedure walk through the
+;;  spec and recursively do something.
+;;  So we make alist in this procedure.
+;;   ex)
+;;    (import (rename (only (rnrs) car cdr) (car rnrs:car) (cdr (rnrs:cdr))))
+;;     -> ((only car cdr) (rename (car rnrs:car) (cdr rnrs:cdr)))
+;;  
 (define (pass1/import form tolib)
-  (define (parse-spec spec)
-    (let loop ((spec spec))
-      (smatch spec
-	;; library
-	(((? (lambda (x) (eq? 'library (variable-name x))) -) ref)
-	 (values ref '() '() '() #f #f))
-	;; only
-	(((? (lambda (x) (eq? 'only (variable-name x))) -) set ids ___)
-	 (receive (ref only except renames prefix trans?)
-	     (parse-spec set)
-	   (values ref (if (null? only)
-			   ids
-			   (lset-intersection eq? only ids))
-		   except renames prefix trans?)))
-	;; except
-	(((? (lambda (x) (eq? 'except (variable-name x))) -) set ids ___)
-	 (receive (ref only except renames prefix trans?)
-	     (parse-spec set)
-	   (values ref only (append except ids) renames prefix trans?)))
-	;; prefix
-	(((? (lambda (x) (eq? 'prefix (variable-name x))) -) set id)
-	 (receive (ref only except renames prefix trans?)
-	     (parse-spec set)
-	   (define (construct-rename prefix prev)
-	     ;; we need to think about how it nested
-	     ;;  case 1 (prefix (rename (only (rnrs) car) (car kar)) p:)
-	     ;;  case 2 (prefix (only (rename (rnrs) (car kar)) kar) p:)
-	     ;;  case 3 (prefix (only (prefix (rnrs) p1:) p1:car) p2:)
-	     (cond ((pair? renames)
-		    ;; import was called like this
-		    ;; (prefix (rename (rnrs) (car r-car)) p:)
-		    ;; or like this
-		    ;; (prefix (rename (only (rnrs) car) (car kcar)) p:)
-		    ;; or like this
-		    ;; (prefix (only (rename (rnrs) (car kcar)) kcar) p:)
-		    (imap (lambda (rename)
-			    (list (car rename)
-				  (string->symbol
-				   (format "~a~a" prefix (cadr rename)))))
-			  renames))
-		   ((pair? only)
-		    ;; import was called like this
-		    ;; (prefix (only (rnrs) car) p:)
-		    ;; create new rename
-		    (imap (lambda (name)
-			    (list name (string->symbol
-					(format "~a~a" prefix name))))
-			  only))))
-
-	   (if (and (null? only)
-		    (null? renames))
-	       ;; simple prefix case
-	       (values ref only except renames 
-		       (if prefix
-			   (string->symbol (format "~a~a" id prefix))
-			   id)
-		       trans?)
-	       (let ((new-rename (construct-rename id prefix)))
-		 (values ref only except
-			 (append renames new-rename) prefix trans?)))))
-	;; rename
-	(((? (lambda (x) 
-	       (eq? 'rename (variable-name x))) -) set rename-sets ___)
-	 (receive (ref only except renames prefix trans?)
-	     (parse-spec set)
-	   (values ref only except
-		   (append renames rename-sets) prefix trans?)))
-	(((? (lambda (x) (eq? 'for (variable-name x))) -) set . etc) ;; for
-	 (receive (ref only except renames prefix trans?)
-	     (parse-spec set)
-	   (values ref only except renames prefix
-		   (check-expand-phase etc))))
-	(other
-	 ;; assume this is just a name
-	 (values other '() '() '() #f #f)))))
+  (define (parse-spec spec) 
+    (smatch spec
+      ;; library
+      (((? (lambda (x) (eq? 'library (variable-name x))) -) ref)
+       (values ref '() #f))
+      ;; rename
+      (((? (lambda (x) (eq? 'rename (variable-name x))) -) set renames ___)
+       (receive (ref resolved trans?) (parse-spec set)
+	 (values ref `(,@resolved (rename ,@renames)) trans?)))
+      ;; only
+      (((? (lambda (x) (eq? 'only (variable-name x))) -) set ids ___)
+       (receive (ref resolved trans?) (parse-spec set)
+	 (values ref `(,@resolved (only ,@ids)) trans?)))
+      ;; except
+      (((? (lambda (x) (eq? 'except (variable-name x))) -) set ids ___)
+       (receive (ref resolved trans?) (parse-spec set)
+	 (values ref `(,@resolved (except ,@ids)) trans?)))
+      ;; prefix
+      (((? (lambda (x) (eq? 'prefix (variable-name x))) -) set prefix)
+       (receive (ref resolved trans?) (parse-spec set)
+	 (values ref `(,@resolved (prefix . ,prefix)) trans?)))
+      ;; for
+      ;; basically, this will be ignored
+      (((? (lambda (x) (eq? 'for (variable-name x))) -) set phase ___)
+       (receive (ref resolved trans?) (parse-spec set)
+	 (values ref '() (check-expand-phase phase))))
+      (- (values spec '() #f))))
 
   (define (process-spec spec)
+    (define (do-import to-lib from-lib resolved-spec trans?)
+      (guard (e (else (let ((info (source-info form)))
+			(raise (condition (make-import-error
+					   (format-source-info info) 
+					   form spec) e)))))
+	(import-library to-lib from-lib resolved-spec trans?)))
     (cond ((symbol? spec)
 	   ;; SHORTCUT if it's symbol, just import is without any
 	   ;; information
-	   ;; TODO this might not be a good error message
-	   (guard (e (else
-		      (let ((info (source-info form)))
-			(raise (condition (make-import-error
-					   (format-source-info info)
-					   form spec)
-					  e)))))
-	     (import-library tolib
-			     (ensure-library spec 'import #f)
-			     '() '() '() #f #f)))
+	   (do-import tolib (ensure-library spec 'import #f) '() #f))
 	  ((list? spec)
-	   ;; now we need to check above specs
-	   (receive (ref only except renames prefix trans?)
-	       (parse-spec spec)
-	     (guard (e (else
-			(let ((info (source-info form)))
-			  (raise (condition (make-import-error 
-					     (format-source-info info) 
-					     form spec)
-					    e)))))
-	       (import-library tolib
-			       (ensure-library ref 'import #f)
-			       only except renames prefix trans?))))
+	   ;; now we need to check specs
+	   (receive (ref resolved-spec trans?) (parse-spec spec)
+	     (do-import tolib (ensure-library ref 'import #f)
+			resolved-spec trans?)))
 	  (else
 	   (syntax-error "malformed import spec" spec))))
   (smatch form

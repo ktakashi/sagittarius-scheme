@@ -1378,13 +1378,10 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
     from = SG_CAAR(key);
     import = SG_CDAR(key);
     ASSERT(!SG_FALSEP(import));
-    ASSERT(SG_PAIRP(import));
-    /* import must be (only rename except prefix)
-       see library.c
+    /* 
+       import can be '() or resolved import spec.
      */
-    Sg_ImportLibraryFullSpec(lib, Sg_FindLibrary(from, FALSE), SG_CAR(import),
-			     SG_CADR(import), SG_CAR(SG_CDDR(import)),
-			     SG_CADR(SG_CDDR(import)));
+    Sg_ImportLibraryFullSpec(lib, Sg_FindLibrary(from, FALSE), import);
   }
   return lib;
 }

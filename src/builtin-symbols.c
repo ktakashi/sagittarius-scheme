@@ -57,6 +57,7 @@ SgSymbol Sg_BuiltinSymbols[] = {
   ENTRY(),
   ENTRY(),
   ENTRY(),
+  ENTRY(),
 #undef ENTRY
 };
 static void init_builtin_symbols()
@@ -103,21 +104,22 @@ static void init_builtin_symbols()
   INTERN("only", 35);
   INTERN("rename", 36);
   INTERN("prefix", 37);
-  INTERN("expand", 38);
-  INTERN("run", 39);
-  INTERN("define-syntax", 40);
-  INTERN("let-syntax", 41);
-  INTERN("letrec-syntax", 42);
-  INTERN("syntax-rules", 43);
-  INTERN("er-macro-transformer", 44);
-  INTERN("...", 45);
-  INTERN("%macroexpand-1", 46);
-  INTERN("%macroexpand", 47);
-  INTERN("file-options", 48);
-  INTERN("record-type-descriptor", 49);
-  INTERN("record-constructor-descriptor", 50);
-  INTERN("replace", 51);
-  INTERN("ignore", 52);
-  INTERN("raise", 53);
+  INTERN("except", 38);
+  INTERN("expand", 39);
+  INTERN("run", 40);
+  INTERN("define-syntax", 41);
+  INTERN("let-syntax", 42);
+  INTERN("letrec-syntax", 43);
+  INTERN("syntax-rules", 44);
+  INTERN("er-macro-transformer", 45);
+  INTERN("...", 46);
+  INTERN("%macroexpand-1", 47);
+  INTERN("%macroexpand", 48);
+  INTERN("file-options", 49);
+  INTERN("record-type-descriptor", 50);
+  INTERN("record-constructor-descriptor", 51);
+  INTERN("replace", 52);
+  INTERN("ignore", 53);
+  INTERN("raise", 54);
 #undef INTERN
 }
