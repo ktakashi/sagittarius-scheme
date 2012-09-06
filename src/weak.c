@@ -296,6 +296,7 @@ static void key_finalizer(SgObject z, void *data)
      rehash operation.
    */
   SG_WEAK_HASHTABLE_CORE(data)->entryCount--;
+  Sg_WeakHashTableDelete(SG_WEAK_HASHTABLE(data), z);
 }
 
 SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
