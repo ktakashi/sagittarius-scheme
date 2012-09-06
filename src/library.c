@@ -577,12 +577,12 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from, SgObject spec)
   }
   {
     /* means something is defined, we add all information here */
-    SgObject keys, cp, h = SG_NIL, t = SG_NIL;
-    SgObject exports = (allP) ? SG_FALSE : exportSpec;
-
-    keys = Sg_HashTableKeys(SG_LIBRARY_TABLE(fromlib));
-    SG_FOR_EACH(cp, keys) {
-      SgObject key = SG_CAR(cp);
+    SgObject h = SG_NIL, t = SG_NIL, exports = (allP) ? SG_FALSE : exportSpec;
+    SgHashIter itr;
+    SgHashEntry *e;
+    Sg_HashIterInit(SG_HASHTABLE_CORE(SG_LIBRARY_TABLE(fromlib)), &itr);
+    while((e = Sg_HashIterNext(&itr)) != NULL) {
+      SgObject key = SG_HASH_ENTRY_KEY(e);
       SG_APPEND(h, t, resolve_variable(key, key, spec, exports));
     }
     SG_SET_CDR(slot, h);
