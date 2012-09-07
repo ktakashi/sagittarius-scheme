@@ -93,8 +93,12 @@ static SgBignum* make_bignum(int size)
   if (size > (int)BIGNUM_MAX_DIGITS) Sg_Error(UC("too large bignum"));
   b = SG_NEW_ATOMIC2(SgBignum*, BIGNUM_SIZE(size));
   SG_SET_CLASS(b, SG_CLASS_INTEGER);
-  SG_BIGNUM_SET_COUNT(b, size);
-  SG_BIGNUM_SET_SIGN(b, 1);
+  if (size == 0) {
+    SG_BIGNUM_SET_ZERO(b);
+  } else {
+    SG_BIGNUM_SET_COUNT(b, size);
+    SG_BIGNUM_SET_SIGN(b, 1);
+  }
   return bignum_clear(b);
 }
 
@@ -112,7 +116,8 @@ static SgBignum* make_bignum(int size)
 SgObject Sg_MakeBignumFromSI(long value)
 {
   SgBignum *b;
-  if (value == LONG_MIN) {
+  if (value == 0) return make_bignum(0);
+  else if (value == LONG_MIN) {
     b = make_bignum(1);
     SG_BIGNUM_SET_SIGN(b, -1);
     b->elements[0] = (unsigned long)LONG_MAX + 1;
@@ -130,7 +135,9 @@ SgObject Sg_MakeBignumFromSI(long value)
 
 SgObject Sg_MakeBignumFromUI(unsigned long value)
 {
-  SgBignum *b = make_bignum(1);
+  SgBignum *b;
+  if (value == 0) return make_bignum(0);
+  b = make_bignum(1);
   SG_BIGNUM_SET_SIGN(b, 1);
   b->elements[0] = value;
   return SG_OBJ(b);
@@ -234,7 +241,7 @@ SgObject Sg_BignumCopy(SgBignum *b)
   return SG_OBJ(c);  
 }
 
-SgObject Sg_NormalizeBignum(SgBignum *bn)
+static SgObject bignum_normalize_rec(SgBignum *bn, int convertp)
 {
   int size = SG_BIGNUM_GET_COUNT(bn);
   int i;
@@ -242,24 +249,44 @@ SgObject Sg_NormalizeBignum(SgBignum *bn)
     if (bn->elements[i] == 0) size--;
     else break;
   }
-  if (i == 0) {
-    int sign = SG_BIGNUM_GET_SIGN(bn);
-    SG_BIGNUM_SET_ZERO(bn);
-    SG_BIGNUM_SET_SIGN(bn, sign);
-    if (SG_BIGNUM_GET_SIGN(bn) == 0) {
-      return SG_MAKE_INT(0);
-    }
-    if (SG_BIGNUM_GET_SIGN(bn) > 0
-	&& bn->elements[0] <= (unsigned long)SG_INT_MAX) {
-      return SG_MAKE_INT(bn->elements[0]);
-    }
-    if (SG_BIGNUM_GET_SIGN(bn) < 0
-	&& bn->elements[0] <= (unsigned long)-SG_INT_MIN) {
-      return SG_MAKE_INT(-((signed long)bn->elements[0]));
+  /* if given bignum was 0, i can be -1 */
+  if (i <= 0) {
+    if (convertp) {
+      int sign = SG_BIGNUM_GET_SIGN(bn);
+      SG_BIGNUM_SET_ZERO(bn);
+      SG_BIGNUM_SET_SIGN(bn, sign);
+      if (SG_BIGNUM_GET_SIGN(bn) == 0) {
+	return SG_MAKE_INT(0);
+      }
+      if (SG_BIGNUM_GET_SIGN(bn) > 0
+	  && bn->elements[0] <= (unsigned long)SG_INT_MAX) {
+	return SG_MAKE_INT(bn->elements[0]);
+      }
+      if (SG_BIGNUM_GET_SIGN(bn) < 0
+	  && bn->elements[0] <= (unsigned long)-SG_INT_MIN) {
+	return SG_MAKE_INT(-((signed long)bn->elements[0]));
+      }
+    } else {
+      /* make 0 bignum */
+      if (size == 1 && bn->elements[0] == 0) {
+	SG_BIGNUM_SET_ZERO(bn);
+	return bn;
+      }
     }
   }
+
   SG_BIGNUM_SET_COUNT(bn, size);
   return SG_OBJ(bn);
+}
+
+static SgBignum* bignum_normalize(SgBignum *bn)
+{
+  return SG_BIGNUM(bignum_normalize_rec(bn, FALSE));
+}
+
+SgObject Sg_NormalizeBignum(SgBignum *bn)
+{
+  return bignum_normalize_rec(bn, TRUE);
 }
 
 
@@ -572,7 +599,9 @@ int Sg_BignumBitCount(SgBignum *b)
   unsigned long *bits;
   SgBignum *z;
   int size;
-  if (SG_BIGNUM_GET_SIGN(b) > 0) {
+  if (SG_BIGNUM_GET_SIGN(b) == 0) {
+    return 0;
+  } else if (SG_BIGNUM_GET_SIGN(b) > 0) {
     z = b;
     goto calc_bit_count;
   }
@@ -594,6 +623,7 @@ int Sg_BignumBitSize(SgBignum *b)
 {
   int last = SG_BIGNUM_GET_COUNT(b) - 1;
   int bitsize;
+  if (SG_BIGNUM_GET_SIGN(b) == 0) return 0;
   ASSERT(last >= 0);
   ASSERT(b->elements[last]);
   bitsize = WORD_BITS * last;
@@ -604,7 +634,8 @@ int Sg_BignumFirstBitSet(SgBignum *b)
 {
   int bit = 0, i, size;
   SgBignum *z;
-  if (SG_BIGNUM_GET_SIGN(b) > 0) {
+  if (SG_BIGNUM_GET_SIGN(b) == 0) return 0;
+  else if (SG_BIGNUM_GET_SIGN(b) > 0) {
     z = b;
     goto calc_bit_set;
   }
@@ -1465,6 +1496,517 @@ SgObject Sg_BignumGcd(SgBignum *bx, SgBignum *by)
   }
   return bx;
 }
+
+static SgBignum *ONE = NULL, *ZERO = NULL;
+
+static void init_const_bignums()
+{
+  /* These doesn't have to be thread safe. I guess*/
+  if (!ONE) {
+    ONE = Sg_MakeBignumFromSI(1);
+  }
+  if (!ZERO) {
+    ZERO = Sg_MakeBignumFromSI(0);
+  }
+}
+
+/* TODO this is slow */
+static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
+{
+  SgBignum *u1, *u3, *v1, *v3, *q;
+  int sign = 1;
+  if (SG_BIGNUM_GET_SIGN(m) != 1) {
+    Sg_Error(UC("modulus not positive %S"), m);
+  }
+  init_const_bignums();
+  u1 = ONE;
+  u3 = x;
+  v1 = ZERO;
+  v3 = m;
+  ALLOC_TEMP_BIGNUM(q, SG_BIGNUM_GET_COUNT(m));
+  while (Sg_BignumCmp(v3, ZERO) != 0) {
+    SgBignum *t3, *w, *t1;
+    t3 = bignum_normalize(bignum_gdiv(u3, v3, q));
+    bignum_normalize(q);
+    w = bignum_normalize(bignum_mul(q, v1));
+    t1 = bignum_normalize(bignum_add(u1, w));
+    u1 = v1; v1 = t1; u3 = v3; v3 = t3;
+    sign = -sign;
+  }
+  if (sign < 0) {
+    return bignum_normalize(bignum_sub(m, u1));
+  } else {
+    return bignum_normalize(u1);
+  }
+}
+
+
+static ulong exp_mod_threadh_table[] = {7, 25, 81, 241, 673, 1793, LONG_MAX};
+
+typedef unsigned long ulong;
+static long inverse_mod_long(ulong val)
+{
+  long t = val;
+  t *= 2 - val*t;
+  t *= 2 - val*t;
+  t *= 2 - val*t;
+  t *= 2 - val*t;
+#if SIZEOF_LONG == 8
+  t *= 2 - val*t;
+  t *= 2 - val*t;
+  t *= 2 - val*t;
+  t *= 2 - val*t;
+#endif
+  return t;
+}
+
+#if SIZEOF_LONG == 8
+typedef int128_t dlong;
+#else
+typedef int64_t dlong;
+#endif
+
+#define LONG_MASK SG_ULONG_MAX
+
+static int ulong_array_cmp_to_len(ulong *arg1, ulong *arg2, int len)
+{
+  int i;
+  for (i = 0; i < len; i++) {
+    ulong b1 = arg1[i];
+    ulong b2 = arg2[i];
+    if (b1 < b2) return -1;
+    if (b1 > b2) return 1;
+  }
+  return 0;
+}
+
+static ulong sub_n(ulong *a, int alen, ulong *b, int len)
+{
+  dlong sum = 0;
+  while (--len >= 0) {
+    sum = a[len] - b[len] + (sum>>WORD_BITS);
+    a[len] = (ulong)sum;
+  }
+  return (ulong)(sum >> WORD_BITS);
+}
+
+static ulong mul_add(ulong *out, int outlen, ulong *in,
+		     int offset, int len, long k)
+{
+  ulong klong = k & LONG_MASK;
+  ulong carry = 0;
+  int i;
+  offset = outlen - offset -1;
+  for (i = len; i >= 0; i--) {
+    dlong product = in[i]*klong + out[offset] + carry;
+    out[offset--] = (ulong)product;
+    carry = product >> WORD_BITS;
+  }
+  return carry;
+}
+
+static int add_one(ulong *a, int alen, int offset, int mlen, ulong carry)
+{
+  dlong t;
+  offset = alen - 1 - mlen - offset;
+  t = a[offset] + carry;
+  a[offset] = (ulong)t;
+  if ((t >> WORD_BITS) == 0) return 0;
+  while (--mlen >= 0) {
+    if (--offset < 0) {		/* carry out of number */
+      return 1;
+    } else {
+      a[offset]++;
+      if (a[offset] != 0) return 0;
+    }
+  }
+  return 1;
+}
+
+static void primitive_left_shift(ulong *a, int len, ulong n)
+{
+  int i, m;
+  ulong c, n2;
+  if (len == 0 || n == 0) return;
+  n2 = WORD_BITS - n;
+  for (i = 0, c = a[i], m=i+len-1; i < m; i++) {
+    int b = c;
+    c = a[i+1];
+    a[i] = (b << n) | (c >> n2);
+  }
+  a[len-1] <<= n;
+}
+
+static ulong* square_to_len(ulong *x, int len, ulong *z)
+{
+  int zlen = len<<1;
+  ulong last_low_word = 0, i, j, offset;
+  for (i = 0, j = 0; j < len; j++) {
+    dlong piece = (x[j] & LONG_MASK);
+    dlong product = piece * piece;
+    z[i++] = (last_low_word << (WORD_BITS-1)) | (ulong)(product>>(WORD_BITS+1));
+    z[i++] = (ulong)(product >> 1);
+    last_low_word = (ulong)product;
+  }
+  /* ass in off diagonal sums */
+  for (i = len, offset = 1; i > 0; i--, offset += 2) {
+    ulong t = x[i-1];
+    t = mul_add(z, zlen, x, offset, i-1, t);
+    add_one(z, zlen, offset-1, i, t);
+  }
+  primitive_left_shift(z, zlen, 1);
+  z[zlen-1] |= x[len-1] & 1;
+  return z;
+}
+
+static ulong* mont_reduce(ulong *n, int nlen, SgBignum *mod, int mlen, long inv)
+{
+  int c = 0;
+  int len = mlen;
+  int offset = 0;
+  do {
+    ulong nEnd = n[nlen-1-offset];
+    ulong carry = mul_add(n, nlen, mod->elements, offset, mlen, inv * nEnd);
+    c += add_one(n, nlen, offset, mlen, carry);
+    offset++;
+  } while (--len > 0);
+  while (c > 0) {
+    c += sub_n(n, nlen, mod->elements, mlen);
+  }
+  while (ulong_array_cmp_to_len(n, mod->elements, mlen) >= 0) {
+    sub_n(n, nlen, mod->elements, mlen);
+  }
+  return n;
+}
+
+static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z)
+{
+  int xstart = xlen -1;
+  int ystart = ylen -1;
+  ulong carry = 0;
+  int i, j, k;
+  for (j = ystart, k = ystart + 1 + xstart; j >= 0; j--, k--) {
+    dlong product = y[j] * x[xstart] + carry;
+    z[k] = (ulong)product;
+    carry = product >> WORD_BITS;
+  }
+  z[xstart] = carry;
+  for (i = xstart - 1; i >= 0; i--) {
+    carry = 0;
+    for (j = ystart, k = ystart + 1 + i; j >= 0; j--, k--) {
+      dlong product = y[j] * x[i] + z[k] + carry;
+      z[k] = (ulong)product;
+      carry = product >> WORD_BITS;
+    }
+    z[i] = (ulong)carry;
+  }
+  return z;
+}
+
+static SgBignum * strip_leading_zeros(SgBignum *b)
+{
+  int size = SG_BIGNUM_GET_COUNT(b);
+  if (b->elements[0] == 0) {
+    /* remove leading 0s */
+    int keep;
+    for (keep = 0; keep < size && b->elements[keep] == 0; keep++);
+    memmove(b->elements, b->elements + keep, sizeof(ulong) * (size - keep));
+    SG_BIGNUM_SET_COUNT(b, size - keep);
+  }
+  return b;
+} 
+
+static SgObject odd_mod_expt(SgBignum *x, SgBignum *exp, SgBignum *mod)
+{
+  int modlen, wbits, ebits, tblmask;
+  if (Sg_BignumCmp(exp, ONE)) return x;
+  if (SG_BIGNUM_GET_SIGN(x) == 0) return ZERO;
+
+#ifdef HAVE_ALLOCA
+#define ALLOC_TEMP_BUFFER(v, type, size)		\
+  (v) = (type *)alloca(sizeof(type) * size)
+#else
+#define ALLOC_TEMP_BUFFER(v, type, size)		\
+  (v) = SG_NEW_ATOMIC2(type *, sizeof(type) * size);
+#endif
+  
+  modlen = SG_BIGNUM_GET_COUNT(mod);
+  wbits = 0;
+  ebits = Sg_BignumBitSize(exp);
+  if ((ebits != 17) || exp->elements[0] != 65537) {
+    while (ebits > exp_mod_threadh_table[wbits]) {
+      wbits++;
+    }
+  }
+  tblmask = 1 << wbits;
+  {
+    SgBignum *base, *b2, *tr;
+    ulong **table, *b, *t, *a;
+    long inv;
+    int i, bsize, shift;
+    ALLOC_TEMP_BUFFER(table, ulong*, tblmask);
+    for (i = 0; i < tblmask; i++) {
+      /* is this valid? */
+      ALLOC_TEMP_BUFFER(table[i], ulong, tblmask);
+    }
+    /* compute the modular inverse */
+    inv = -inverse_mod_long(mod->elements[modlen -1]);
+    shift = (modlen<<5);
+    bsize = SG_BIGNUM_GET_COUNT(x) + (shift + WORD_BITS - 1)/WORD_BITS;
+    ALLOC_TEMP_BIGNUM(base, bsize);
+    bignum_lshift(base, x, shift);
+    bignum_normalize(base);
+
+    /* a2 = base; */
+    a = base->elements;
+    b2 = Sg_BignumCopy(mod);
+    tr = bignum_gdiv(base, b2, NULL);
+    bignum_normalize(tr);
+    /* table elements always have at least modlen size */
+    if (SG_BIGNUM_GET_COUNT(tr) < modlen) {
+      int offset = modlen - SG_BIGNUM_GET_COUNT(tr);
+      ulong *t2;
+      ALLOC_TEMP_BUFFER(t2, ulong, modlen);
+      for (i = 0; i < SG_BIGNUM_GET_COUNT(tr); i++) {
+	t2[i+offset] = table[0][i];
+      }
+      table[0] = t2;
+    } else {
+      table[0] = tr->elements;
+    }
+    /* set b to the square of the base */
+    ALLOC_TEMP_BUFFER(b, ulong, (modlen<<1));
+    square_to_len(table[0], modlen, b);
+    mont_reduce(b, modlen<<1, mod, modlen, inv);
+    /* set t to high half of b */
+    ALLOC_TEMP_BUFFER(t, ulong, modlen);
+    for (i = 0; i < modlen; i++) {
+      t[i] = b[i];
+    }
+    /* Fill int the table with odd powers of the base */
+    for (i = 1; i < tblmask; i++) {
+      ulong *prod;
+      ALLOC_TEMP_BUFFER(prod, ulong, (modlen+modlen));
+      multiply_to_len(t, modlen, table[i-1], modlen, prod);
+      table[i] = mont_reduce(prod, modlen+modlen, mod, modlen, inv);
+    }
+    /* hmm, let me make a new scope... */
+    {
+      int bitpos = 1 << ((ebits-1) & (WORD_BITS-1));
+      int buf = 0;
+      int elen = SG_BIGNUM_GET_COUNT(exp);
+      int eindex = 0;
+      int multpos, isone = TRUE; 
+      ulong *mult, *t2;
+      SgBignum *r;
+      for (i = 0; i <= wbits; i++) {
+	buf = (buf << 1) | (((exp->elements[eindex] & bitpos) != 0)? 1 : 0);
+	bitpos >>=1;
+	if (bitpos == 0) {
+	  eindex++;
+	  bitpos = 1 << (WORD_BITS-1);
+	  elen--;
+	}
+      }
+      /* The first iteration, which is hoisted out of the main loop */
+      ebits--;
+      multpos = ebits - wbits;
+      while ((buf & 1) == 0) {
+	buf >>= 1;
+	multpos++;
+      }
+      mult = table[buf >> 1];
+      buf = 0;
+      if (multpos == ebits) isone = FALSE;
+      /* the main loop */
+      for (;;) {
+	ebits--;
+	buf <<= 1;
+	if (elen != 0) {
+	  buf |= ((exp->elements[eindex] & bitpos) != 0) ? 1 : 0;
+	  bitpos >>= 1;
+	  if (bitpos == 0) {
+	    eindex++;
+	    bitpos = 1 << (WORD_BITS-1);
+	    elen--;
+	  }
+	}
+	/* examine the window for pending multiplies */
+	if ((buf & tblmask) != 0) {
+	  multpos = ebits - wbits;
+	  while ((buf & 1) == 0) {
+	    buf >>= 1;
+	    multpos++;
+	  }
+	  mult = table[buf >> 1];
+	  buf = 0;
+	}
+	/* perform multiply */
+	if (ebits == multpos) {
+	  if (isone) {
+	    memcpy(b, mult, tblmask * sizeof(ulong));
+	    isone = FALSE;
+	  } else {
+	    t = b;
+	    multiply_to_len(t, modlen, mult, modlen, a);
+	    mont_reduce(a, modlen, mod, modlen, inv);
+	    t = a; a = b; b = t;
+	  }
+	}
+	/* check if done */
+	if (ebits == 0) break;
+	/* square the input */
+	if (!isone) {
+	  t = b;
+	  square_to_len(t, modlen, a);
+	  mont_reduce(a, modlen, mod, modlen, inv);
+	  t = a; a = b; b = t;
+	}
+      }
+      /* convert result out of montgomery form and return */
+      ALLOC_TEMP_BUFFER(t2, ulong, (2*modlen));
+      for (i = 0; i < modlen; i++) {
+	t2[i+modlen] = b[i];
+      }
+      mont_reduce(t2, 2*modlen, mod, modlen, inv);
+      r = make_bignum(modlen);
+      for (i = 0; i < modlen; i++) {
+	r->elements[i] = t2[i];
+      }
+      return strip_leading_zeros(r);
+    }
+  }
+}
+/* mod(2^p */
+static SgBignum * bignum_mod2(SgBignum *x, int p)
+{
+  int numInts, excessBits, i, xsize;
+  SgBignum *r;
+  if (Sg_BignumBitSize(x) <= p) return x;
+  numInts = (p + (WORD_BITS-1)) >> 5;
+  r = make_bignum(numInts);
+  xsize = SG_BIGNUM_GET_COUNT(x);
+  for (i = 0; i < numInts; i++) {
+    r->elements[i] = x->elements[i + (xsize - numInts)];
+  }
+  excessBits = (numInts << 5) - p;
+  r->elements[0] &= (1UL << (WORD_BITS - excessBits)) - 1;
+
+  return strip_leading_zeros(r);
+}
+
+
+static int bignum_test_bit(SgBignum *b, int p)
+{
+  int i, max = (p / WORD_BITS) + 1;
+  for (i = 0; i < max && i < SG_BIGNUM_GET_COUNT(b) ; i++, p -= WORD_BITS) {
+    if (p <= WORD_BITS) {
+      return (b->elements[i] & (1L << p)) != 0;
+    } 
+  }
+  return FALSE;
+}
+
+static SgBignum * bignum_mod_expt2(SgBignum *x, SgBignum *e, int p)
+{
+  SgBignum *base = bignum_mod2(x, p), *result = Sg_MakeBignumFromSI(1);
+  SgBignum *bp = Sg_MakeBignumFromSI(p);
+  int exp_offset = 0, limit = Sg_BignumBitSize(e);
+  if (x->elements[0] & 1) {
+    limit = ((p-1) < limit) ? (p-1) : limit;
+  }
+  while (exp_offset < limit) {
+    if (bignum_test_bit(e, exp_offset)) {
+      result = bignum_mul(result, base);
+      result = bignum_gdiv(result, bp, NULL);
+      bignum_normalize(result);
+    }
+    exp_offset++;
+    if (exp_offset < limit) {
+      base = bignum_mul(base, base);
+      base = bignum_gdiv(base, bp, NULL);
+      bignum_normalize(base);
+    }
+  }
+  return result;
+}
+
+static SgObject bignum_mod_expt(SgBignum *bx, SgBignum *be, SgBignum *bm)
+{
+  int invertp = SG_BIGNUM_GET_SIGN(be) < 0;
+  SgBignum *base, *result;
+  if (invertp) {
+    /* keep it bignum */
+    SgBignum *b = Sg_BignumCopy(be);
+    SG_BIGNUM_SET_SIGN(b, -SG_BIGNUM_GET_SIGN(be));
+    be = b;
+  }
+  base = (SG_BIGNUM_GET_SIGN(bx) < 0 || Sg_BignumCmp(bx, bm) >= 0)
+    ? bignum_gdiv(bx, bm, NULL) : bx;
+  bignum_normalize(base);
+  if (bm->elements[0] & 1) {	/* odd modulus */
+    result = odd_mod_expt(base, be, bm);
+  } else {
+    /* even modulus. Tear it into an "odd part" (m1) and power of two (m2), 
+       exponentiate mod m1, manually exponentiate mod m2, and use Chinese
+       Remainder Theorem to combine results.
+     */
+    int p = Sg_BignumFirstBitSet(bm);
+    int lsize = 1 + (p + WORD_BITS - 1) / WORD_BITS;
+    int rsize = SG_BIGNUM_GET_COUNT(bm) + (-p)/WORD_BITS;
+    SgBignum *m1,  *m2 = make_bignum(lsize), *base2, *a1, *a2, *y1, *y2;
+    if (rsize < 1) {
+      if (SG_BIGNUM_GET_SIGN(bm) < 0) {
+	m1 = Sg_MakeBignumFromSI(-1);
+      } else {
+	m1 = ZERO;
+      }
+    } else {
+      /* m must be positive */
+      m1 = make_bignum(rsize);
+      bignum_rshift(m1, bm, p);
+      bignum_normalize(m1);
+    }
+    bignum_lshift(m2, ONE, p);
+    bignum_normalize(m2);
+    base2 = (SG_BIGNUM_GET_SIGN(bx) || Sg_BignumCmp(bx, m1) >= 0)
+      ? bignum_gdiv(bx, m1, NULL) : bx;
+    bignum_normalize(base2);
+    a1 = (Sg_BignumCmp(m1, ONE)) ? ZERO : odd_mod_expt(base2, be, m1);
+    a2 = bignum_mod_expt2(base, be, p);
+    y1 = bignum_mod_inverse(m2, m1);
+    y2 = bignum_mod_inverse(m1, m2);
+    /* TODO this is not so memory efficient */
+    {
+      SgBignum *t1, *t2;
+      t1 = bignum_normalize(bignum_mul(a1, m2));
+      t1 = bignum_normalize(bignum_mul(t1, y1));
+      t2 = bignum_normalize(bignum_mul(a2, m1));
+      t2 = bignum_normalize(bignum_mul(t2, y2));
+      result = bignum_gdiv(bignum_normalize(bignum_add(t1, t2)),
+			   bm, NULL);
+    }
+    bignum_normalize(result);
+  }
+  return (invertp) ? bignum_mod_inverse(result, bm) : result;
+}
+
+SgObject Sg_BignumModExpt(SgBignum *bx, SgBignum *be, SgBignum *bm)
+{
+  init_const_bignums();
+
+  if (SG_BIGNUM_GET_SIGN(be) == 0) {
+    return (Sg_BignumCmp(bm, ONE) == 0) ? SG_MAKE_INT(0) : SG_MAKE_INT(1);
+  }
+  if (Sg_NumEq(bx, SG_MAKE_INT(1))) {
+    return (Sg_BignumCmp(bm, ONE) == 0) ? SG_MAKE_INT(0) : SG_MAKE_INT(1);
+  }
+  if (Sg_NumEq(bx, SG_MAKE_INT(0))) {
+    return (Sg_BignumCmp(bm, ONE) == 0) ? SG_MAKE_INT(0) : SG_MAKE_INT(1);
+  }
+  return Sg_NormalizeBignum(bignum_mod_expt(bx, be, bm));
+}
+
 
 /*
   end of file

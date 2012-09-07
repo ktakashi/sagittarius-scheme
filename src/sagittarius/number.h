@@ -239,11 +239,15 @@ SG_EXTERN SgObject Sg_Gcd(SgObject x, SgObject y);
 SG_EXTERN SgObject Sg_Magnitude(SgObject obj);
 SG_EXTERN SgObject Sg_Angle(SgObject obj);
 SG_EXTERN SgObject Sg_Log(SgObject obj);
-SG_EXTERN void     Sg_MinMax(SgObject arg0, SgObject args, SgObject *min, SgObject *max);
+SG_EXTERN void     Sg_MinMax(SgObject arg0, SgObject args,
+			     SgObject *min, SgObject *max);
 SG_EXTERN SgObject Sg_IntegerDiv(SgObject x, SgObject y);
 SG_EXTERN SgObject Sg_IntegerDiv0(SgObject x, SgObject y);
 SG_EXTERN SgObject Sg_IntegerMod(SgObject x, SgObject y);
 SG_EXTERN SgObject Sg_IntegerMod0(SgObject x, SgObject y);
+
+/* misc */
+SG_EXTERN SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m);
 
 enum SgRoundMode {
   SG_ROUND_FLOOR,

@@ -3378,6 +3378,48 @@ SgObject Sg_IntegerMod0(SgObject x, SgObject y)
   return SG_UNDEF;		/* dummy */
 }
 
+/* for better performance */
+SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
+{
+  if (!SG_EXACT_INTP(x) || !SG_EXACT_INTP(e) || !SG_EXACT_INTP(m)) {
+    Sg_Error(UC("exact integer required but got %S %S %S"), x, e, m);
+  }
+  if (Sg_Sign(m) <= 0) {
+    Sg_Error(UC("modulus must be positive %S"), m);
+  }
+  /* TODO handle more efficiently */
+  if (SG_INTP(x)) {
+    if (SG_INTP(e)) {
+      if (SG_INTP(m)) {
+	/* can be done in C */
+	int y = 1, n = SG_INT_VALUE(e), d = SG_INT_VALUE(m);
+	int xx = SG_INT_VALUE(x);
+	while (n > 0) {
+	  if (n % 2) {
+	    y = (y * xx) % d;
+	  }
+	  n >>= 1;
+	  if (n > 0) {
+	    xx = (xx * xx) % d;
+	  }
+	}
+	return SG_MAKE_INT(y);
+      }
+    }
+    x = Sg_MakeBignumFromSI(SG_INT_VALUE(x));
+    if (SG_INTP(m)) {
+      m = Sg_MakeBignumFromSI(SG_INT_VALUE(m));
+    }
+  } else if (SG_INTP(e)) {
+    /* is this actually faster than using bignum? */
+    return Sg_IntegerMod(Sg_Expt(x, e), m);
+  } else if (SG_INTP(m)) {
+    /* both x and e are bignum */
+    m = Sg_MakeBignumFromSI(SG_INT_VALUE(m));
+  }
+  ASSERT(SG_BIGNUMP(x) && SG_BIGNUMP(e) && SG_BIGNUMP(m));
+  return Sg_BignumModExpt(SG_BIGNUM(x), SG_BIGNUM(e), SG_BIGNUM(m));
+}
 
 static inline double roundeven(double v)
 {
