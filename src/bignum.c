@@ -796,6 +796,9 @@ SgObject Sg_BignumLogAnd(SgBignum *x, SgBignum *y)
   int zsize, minsize = min(xsize, ysize);
   SgBignum *xx, *yy, *z;
 
+  /* handle obvious case first */
+  if (xsign == 0 || ysize == 0) return SG_MAKE_INT(0);
+
   if (xsign > 0) {
     if (ysign > 0) {
       z = bignum_and(make_bignum(minsize), x, y, minsize, 0, 0);
