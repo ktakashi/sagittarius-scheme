@@ -3379,6 +3379,34 @@ SgObject Sg_IntegerMod0(SgObject x, SgObject y)
 }
 
 /* for better performance */
+SgObject Sg_ModInverse(SgObject x, SgObject m)
+{
+  SgObject u1, u3, v1, v3;
+  int sign = 1;
+  if (Sg_Sign(m) != 1) {
+    Sg_Error(UC("modulus not positive %S"), m);
+  }
+  u1 = SG_MAKE_INT(1);
+  u3 = x;
+  v1 = SG_MAKE_INT(0);
+  v3 = m;
+
+  while (!SG_EQ(v3, SG_MAKE_INT(0))) {
+    SgObject t3, w, t1, q;
+    t3 = Sg_IntegerMod(u3, v3);
+    q = Sg_IntegerDiv(u3, v3);
+    w = Sg_Mul(q, v1);
+    t1 = Sg_Add(u1, w);
+    u1 = v1; v1 = t1; u3 = v3; v3 = t3;
+    sign = -sign;
+  }
+  if (sign < 0) {
+    return Sg_Sub(m, u1);
+  } else {
+    return u1;
+  }
+}
+
 SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
 {
   if (!SG_EXACT_INTP(x) || !SG_EXACT_INTP(e) || !SG_EXACT_INTP(m)) {
@@ -3392,8 +3420,11 @@ SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
     if (SG_INTP(e)) {
       if (SG_INTP(m)) {
 	/* can be done in C */
-	int y = 1, n = SG_INT_VALUE(e), d = SG_INT_VALUE(m);
-	int xx = SG_INT_VALUE(x);
+#if LONG_MAX > 1UL << 32
+	return Sg_IntegerMod(Sg_Expt(x, e), m);
+#else
+	int64_t y = 1, n = SG_INT_VALUE(e), d = SG_INT_VALUE(m);
+	int64_t xx = SG_INT_VALUE(x);
 	while (n > 0) {
 	  if (n % 2) {
 	    y = (y * xx) % d;
@@ -3403,7 +3434,8 @@ SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
 	    xx = (xx * xx) % d;
 	  }
 	}
-	return SG_MAKE_INT(y);
+	return Sg_MakeIntegerFromS64(y);
+#endif
       }
     }
     x = Sg_MakeBignumFromSI(SG_INT_VALUE(x));
@@ -3411,8 +3443,27 @@ SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
       m = Sg_MakeBignumFromSI(SG_INT_VALUE(m));
     }
   } else if (SG_INTP(e)) {
-    /* is this actually faster than using bignum? */
-    return Sg_IntegerMod(Sg_Expt(x, e), m);
+    long n = SG_INT_VALUE(e);
+    int invertp = FALSE;
+    SgObject y = SG_MAKE_INT(1);
+    if (n < 0) {
+      invertp = TRUE;
+      n = -n;
+    }
+    while (n > 0) {
+      if (n % 2) {
+	y = Sg_IntegerMod(Sg_Mul(y, x), m);
+      }
+      n >>= 1;
+      if (n > 0) {
+	x = Sg_IntegerMod(Sg_Mul(x, x), m);
+      }
+    }
+    if (invertp) {
+      return Sg_ModInverse(y, m);
+    } else {
+      return y;
+    }
   } else if (SG_INTP(m)) {
     /* both x and e are bignum */
     m = Sg_MakeBignumFromSI(SG_INT_VALUE(m));

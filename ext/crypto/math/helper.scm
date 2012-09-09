@@ -32,7 +32,7 @@
   ;; This is actually the same as (mod (expt x n) d). However,  if we use
   ;; builtin 'expt' for this calculation, it raises an error when x or d is
   ;; bignum. So here we define the better way to compute.
-  (define (mod-expt x n d)
+  #;(define (mod-expt x n d)
     (do ((y 1) (n n))
 	((<= n 0) y)
       (if (odd? n)
