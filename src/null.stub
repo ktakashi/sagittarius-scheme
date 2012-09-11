@@ -3639,14 +3639,15 @@
     (let ((mask (Sg_Ash (SG_MAKE_INT 1) ei2)))
       (result (logif mask (Sg_Ash ei3 ei2) ei1))))
 
-  (define-c-proc bitwise-bit-field (ei1::<number> ei2::<fixnum> ei3::<fixnum>) ::<top>
+  (define-c-proc bitwise-bit-field (ei1::<number> ei2::<fixnum> ei3::<fixnum>)
     (when (> ei2 ei3)
       (assertion-violation 'bitwise-bit-field "2nd parameter must be less than or equal to 3rd parameter"
 			   (SG_LIST3 ei1 (SG_MAKE_INT ei2) (SG_MAKE_INT ei3))))
     (let ((mask (Sg_LogNot (Sg_Ash (SG_MAKE_INT -1) ei3))))
       (result (Sg_Ash (Sg_LogAnd ei1 mask) (- 0 ei2)))))
 
-  (define-c-proc bitwise-copy-bit-field (ei1::<number> ei2::<fixnum> ei3::<fixnum> ei4::<number>) ::<top>
+  (define-c-proc bitwise-copy-bit-field 
+    (ei1::<number> ei2::<fixnum> ei3::<fixnum> ei4::<number>)
     (let ((to ei1)
 	  (start::long ei2)
 	  (end::long ei3)

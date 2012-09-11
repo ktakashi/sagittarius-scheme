@@ -164,6 +164,7 @@
 	  (result a))))
 
   ;; for performance
+  (define-c-proc mod-inverse (x::<integer> y::<integer>) Sg_ModInverse)
   (define-c-proc mod-expt (x::<integer> y::<integer> z::<integer>) Sg_ModExpt)
 
   ;; arity returns pair of required and optional arguments count.

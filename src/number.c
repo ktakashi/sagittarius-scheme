@@ -1714,13 +1714,21 @@ SgObject Sg_LogAnd(SgObject x, SgObject y)
   if (SG_INTP(x)) {
     if (SG_INTP(y)) {
       return SG_MAKE_INT(SG_INT_VALUE(x) & SG_INT_VALUE(y));
-    } else if (SG_INT_VALUE(x) >= 0 && SG_BIGNUM_GET_SIGN(y) >= 0) {
-      return Sg_MakeInteger(SG_INT_VALUE(x) & SG_BIGNUM(y)->elements[0]);
+    } else if (SG_INT_VALUE(x) >= 0) {
+      if (SG_BIGNUM_GET_SIGN(y) > 0) {
+	return Sg_MakeInteger(SG_INT_VALUE(x) & SG_BIGNUM(y)->elements[0]);
+      } else if (SG_BIGNUM_GET_SIGN(y) == 0) {
+	return SG_MAKE_INT(0);
+      }
     }
     x = Sg_MakeBignumFromSI(SG_INT_VALUE(x));
   } else if (SG_INTP(y)) {
-    if (SG_INT_VALUE(y) >= 0 && SG_BIGNUM_GET_SIGN(x) >= 0) {
-      return Sg_MakeInteger(SG_INT_VALUE(y) & SG_BIGNUM(x)->elements[0]);
+    if (SG_INT_VALUE(y) >= 0) {
+      if (SG_BIGNUM_GET_SIGN(x) > 0) {
+	return Sg_MakeInteger(SG_INT_VALUE(y) & SG_BIGNUM(x)->elements[0]);
+      } else if (SG_BIGNUM_GET_SIGN(x) == 0) {
+	return SG_MAKE_INT(0);
+      }
     }
     y = Sg_MakeBignumFromSI(SG_INT_VALUE(y));
   }
@@ -3386,6 +3394,11 @@ SgObject Sg_ModInverse(SgObject x, SgObject m)
   if (Sg_Sign(m) != 1) {
     Sg_Error(UC("modulus not positive %S"), m);
   }
+#if 0
+  if (SG_BIGNUMP(x) && SG_BIGNUMP(m)) {
+    return Sg_BignumModInverse(x, m);
+  }
+#endif
   u1 = SG_MAKE_INT(1);
   u3 = x;
   v1 = SG_MAKE_INT(0);
@@ -3792,6 +3805,7 @@ SgObject Sg_NumberToString(SgObject obj, int radix, int use_upper)
 
 SgObject Sg__ConstObjes[SG_NUM_CONST_OBJS] = {SG_FALSE};
 
+extern void Sg__InitBignum();
 void Sg__InitNumber()
 {
 /* VC does not have these macros. SUCKS!! */
@@ -3825,6 +3839,8 @@ void Sg__InitNumber()
   INIT_CONST_FL(SG_NEGATIVE_INFINITY, -INFINITY);
   INIT_CONST_FL(SG_FL_POSITIVE_ZERO, 0.0);
   INIT_CONST_FL(SG_FL_NEGATIVE_ZERO, -0.0);
+
+  Sg__InitBignum();
 }
   
 /*

@@ -8,6 +8,8 @@
 	    mod-expt)
     (import (rnrs) (sagittarius))
 
+#|
+  ;; now it's defined in C.
   (define (mod-inverse u v)
     (let ((u1 1)
 	  (u3 u)
@@ -32,7 +34,7 @@
   ;; This is actually the same as (mod (expt x n) d). However,  if we use
   ;; builtin 'expt' for this calculation, it raises an error when x or d is
   ;; bignum. So here we define the better way to compute.
-  #;(define (mod-expt x n d)
+  (define (mod-expt x n d)
     (do ((y 1) (n n))
 	((<= n 0) y)
       (if (odd? n)
@@ -41,6 +43,7 @@
       (if (positive? n)
 	  (set! x (mod (* x x) d))))
     )
+|#
   (define-syntax align-size
     (syntax-rules (bit)
       ((_ (bit n))

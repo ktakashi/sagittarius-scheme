@@ -370,6 +370,9 @@
 (test-error "list->string range error" (lambda (e) e)
 	    (list->string '(#\a) 0 2))
 
+;; mod-inverse
 
+
+;; mod-expt
 
 (test-end)

@@ -248,6 +248,7 @@ SG_EXTERN SgObject Sg_IntegerMod0(SgObject x, SgObject y);
 
 /* misc */
 SG_EXTERN SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m);
+SG_EXTERN SgObject Sg_ModInverse(SgObject x, SgObject m);
 
 enum SgRoundMode {
   SG_ROUND_FLOOR,
