@@ -3422,6 +3422,9 @@ SgObject Sg_ModInverse(SgObject x, SgObject m)
 
 SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
 {
+  long n;
+  int invertp = FALSE;
+  SgObject y;
   if (!SG_EXACT_INTP(x) || !SG_EXACT_INTP(e) || !SG_EXACT_INTP(m)) {
     Sg_Error(UC("exact integer required but got %S %S %S"), x, e, m);
   }
@@ -3434,20 +3437,29 @@ SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
       if (SG_INTP(m)) {
 	/* can be done in C */
 #if LONG_MAX > 1UL << 32
-	return Sg_IntegerMod(Sg_Expt(x, e), m);
+	goto small_entry;
 #else
-	int64_t y = 1, n = SG_INT_VALUE(e), d = SG_INT_VALUE(m);
+	int64_t yy = 1, n = SG_INT_VALUE(e), d = SG_INT_VALUE(m);
 	int64_t xx = SG_INT_VALUE(x);
+	if (n < 0) {
+	  n = -n;
+	  invertp = TRUE;
+	}
 	while (n > 0) {
 	  if (n % 2) {
-	    y = (y * xx) % d;
+	    yy = (yy * xx) % d;
 	  }
 	  n >>= 1;
 	  if (n > 0) {
 	    xx = (xx * xx) % d;
 	  }
 	}
-	return Sg_MakeIntegerFromS64(y);
+	y = Sg_MakeIntegerFromS64(yy);
+	if (invertp) {
+	  return Sg_ModInverse(y, m);
+	} else {
+	  return y;
+	}
 #endif
       }
     }
@@ -3456,9 +3468,9 @@ SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
       m = Sg_MakeBignumFromSI(SG_INT_VALUE(m));
     }
   } else if (SG_INTP(e)) {
-    long n = SG_INT_VALUE(e);
-    int invertp = FALSE;
-    SgObject y = SG_MAKE_INT(1);
+  small_entry:
+    n = SG_INT_VALUE(e);
+    y = SG_MAKE_INT(1);
     if (n < 0) {
       invertp = TRUE;
       n = -n;

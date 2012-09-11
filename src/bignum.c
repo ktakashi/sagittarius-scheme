@@ -797,7 +797,7 @@ SgObject Sg_BignumLogAnd(SgBignum *x, SgBignum *y)
   SgBignum *xx, *yy, *z;
 
   /* handle obvious case first */
-  if (xsign == 0 || ysize == 0) return SG_MAKE_INT(0);
+  if (xsign == 0 || ysign == 0) return SG_MAKE_INT(0);
 
   if (xsign > 0) {
     if (ysign > 0) {
@@ -1310,13 +1310,13 @@ SgObject Sg_BignumSqrt(SgBignum *bn)
   if (bn->elements[0] == workpad->elements[0] * workpad->elements[0]) {
     SgBignum *s2 = Sg_BignumMul(workpad, workpad);
     if (Sg_BignumCmp(bn, s2) == 0) {
-      if (SG_BIGNUM_GET_SIGN(bn) == 1) return Sg_BignumToInteger(workpad);
+      if (SG_BIGNUM_GET_SIGN(bn) > 0) return Sg_BignumToInteger(workpad);
       return Sg_MakeComplex(SG_MAKE_INT(0), Sg_BignumToInteger(workpad));
     }
   }
   s = Sg_BignumToDouble(bn);
   s = sqrt(s < 0.0 ? -s : s);
-  if (SG_BIGNUM_GET_SIGN(bn) == 1) return Sg_MakeFlonum(s);
+  if (SG_BIGNUM_GET_SIGN(bn) > 0) return Sg_MakeFlonum(s);
   return Sg_MakeComplex(Sg_MakeFlonum(0.0), Sg_MakeFlonum(s));
 }
 
@@ -1727,7 +1727,7 @@ static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
 {
   SgBignum *u1, *u3, *v1, *v3, *q;
   int sign = 1;
-  if (SG_BIGNUM_GET_SIGN(m) != 1) {
+  if (SG_BIGNUM_GET_SIGN(m) > 0) {
     Sg_Error(UC("modulus not positive %S"), m);
   }
   u1 = Sg_MakeBignumFromSI(1);
