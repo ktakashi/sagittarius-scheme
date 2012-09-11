@@ -1105,7 +1105,7 @@ static SgWord boundaryFrameMark = NOP;
 	Sg_AssertionViolation(SG_MAKE_STRING("vm"),			\
 			      Sg_Sprintf(UC("unbound variable %S"),	\
 					 SG_IDENTIFIER_NAME(ret)),	\
-			      SG_IDENTIFIER_NAME(ret));			\
+			      (ret));					\
       }									\
     }									\
   } while (0)

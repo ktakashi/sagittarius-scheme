@@ -70,7 +70,8 @@ static void macro_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_MacroClass, macro_print);
 
-SgObject Sg_MakeMacro(SgObject name, SgObject transformer, void *data, SgObject env, SgObject maybeLibrary)
+SgObject Sg_MakeMacro(SgObject name, SgObject transformer, 
+		      void *data, SgObject env, SgObject maybeLibrary)
 {
   SgMacro *z = SG_NEW(SgMacro);
   SG_SET_CLASS(z, SG_CLASS_MACRO);
@@ -148,6 +149,7 @@ static SgObject macro_tranform(SgObject *args, int argc, void *data_)
   vm->usageEnv = p1env;
   vm->macroEnv = mac_env;
   if (SG_MACROP(data)) {
+    /* variable transformer */
     result = Sg_Apply4(SG_MACRO(data)->transformer,
 		       data, form, mac_env, SG_MACRO(data)->data);
   } else {

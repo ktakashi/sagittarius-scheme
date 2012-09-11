@@ -2093,17 +2093,21 @@
        (if (lvar? var)
 	   ($lset var (pass1 expr p1env))
 	   (let ((gloc (find-binding (p1env-library p1env) (id-name var) #f)))
-	     (check-direct-variable name p1env form)
-	     (if gloc
-		  (let ((gval (gloc-ref gloc)))
-		    (cond ((macro? gval)
-			   (pass1 ($history
-				   (call-macro-expander gval form p1env)
-				   form) p1env))
-			  (else
-			   ($gset (ensure-identifier var p1env)
-				  (pass1 expr p1env)))))
-		  ($gset (ensure-identifier var p1env) (pass1 expr p1env)))))))
+	     ;; we don't check immutable variable here for identifier macros.
+	     (cond (gloc
+		    (let ((gval (gloc-ref gloc)))
+		      (cond ((macro? gval)
+			     (pass1 ($history
+				     (call-macro-expander gval form p1env)
+				     form) p1env))
+			    (else
+			     (check-direct-variable name p1env form)
+			     ($gset (ensure-identifier var p1env)
+				    (pass1 expr p1env))))))
+		   (else
+		    (check-direct-variable name p1env form)
+		    ($gset (ensure-identifier var p1env) 
+			   (pass1 expr p1env))))))))
     (- (syntax-error "malformed set!" form))))
 
 ;; begin
