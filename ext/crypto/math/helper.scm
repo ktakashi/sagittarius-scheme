@@ -8,6 +8,8 @@
 	    mod-expt)
     (import (rnrs) (sagittarius))
 
+#|
+  ;; now it's defined in C.
   (define (mod-inverse u v)
     (let ((u1 1)
 	  (u3 u)
@@ -41,6 +43,7 @@
       (if (positive? n)
 	  (set! x (mod (* x x) d))))
     )
+|#
   (define-syntax align-size
     (syntax-rules (bit)
       ((_ (bit n))

@@ -1714,13 +1714,21 @@ SgObject Sg_LogAnd(SgObject x, SgObject y)
   if (SG_INTP(x)) {
     if (SG_INTP(y)) {
       return SG_MAKE_INT(SG_INT_VALUE(x) & SG_INT_VALUE(y));
-    } else if (SG_INT_VALUE(x) >= 0 && SG_BIGNUM_GET_SIGN(y) >= 0) {
-      return Sg_MakeInteger(SG_INT_VALUE(x) & SG_BIGNUM(y)->elements[0]);
+    } else if (SG_INT_VALUE(x) >= 0) {
+      if (SG_BIGNUM_GET_SIGN(y) > 0) {
+	return Sg_MakeInteger(SG_INT_VALUE(x) & SG_BIGNUM(y)->elements[0]);
+      } else if (SG_BIGNUM_GET_SIGN(y) == 0) {
+	return SG_MAKE_INT(0);
+      }
     }
     x = Sg_MakeBignumFromSI(SG_INT_VALUE(x));
   } else if (SG_INTP(y)) {
-    if (SG_INT_VALUE(y) >= 0 && SG_BIGNUM_GET_SIGN(x) >= 0) {
-      return Sg_MakeInteger(SG_INT_VALUE(y) & SG_BIGNUM(x)->elements[0]);
+    if (SG_INT_VALUE(y) >= 0) {
+      if (SG_BIGNUM_GET_SIGN(x) > 0) {
+	return Sg_MakeInteger(SG_INT_VALUE(y) & SG_BIGNUM(x)->elements[0]);
+      } else if (SG_BIGNUM_GET_SIGN(x) == 0) {
+	return SG_MAKE_INT(0);
+      }
     }
     y = Sg_MakeBignumFromSI(SG_INT_VALUE(y));
   }
@@ -3378,6 +3386,116 @@ SgObject Sg_IntegerMod0(SgObject x, SgObject y)
   return SG_UNDEF;		/* dummy */
 }
 
+/* for better performance */
+SgObject Sg_ModInverse(SgObject x, SgObject m)
+{
+  SgObject u1, u3, v1, v3;
+  int sign = 1;
+  if (Sg_Sign(m) != 1) {
+    Sg_Error(UC("modulus not positive %S"), m);
+  }
+#if 0
+  if (SG_BIGNUMP(x) && SG_BIGNUMP(m)) {
+    return Sg_BignumModInverse(x, m);
+  }
+#endif
+  u1 = SG_MAKE_INT(1);
+  u3 = x;
+  v1 = SG_MAKE_INT(0);
+  v3 = m;
+
+  while (!SG_EQ(v3, SG_MAKE_INT(0))) {
+    SgObject t3, w, t1, q;
+    t3 = Sg_IntegerMod(u3, v3);
+    q = Sg_IntegerDiv(u3, v3);
+    w = Sg_Mul(q, v1);
+    t1 = Sg_Add(u1, w);
+    u1 = v1; v1 = t1; u3 = v3; v3 = t3;
+    sign = -sign;
+  }
+  if (sign < 0) {
+    return Sg_Sub(m, u1);
+  } else {
+    return u1;
+  }
+}
+
+SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
+{
+  long n;
+  int invertp = FALSE;
+  SgObject y;
+  if (!SG_EXACT_INTP(x) || !SG_EXACT_INTP(e) || !SG_EXACT_INTP(m)) {
+    Sg_Error(UC("exact integer required but got %S %S %S"), x, e, m);
+  }
+  if (Sg_Sign(m) <= 0) {
+    Sg_Error(UC("modulus must be positive %S"), m);
+  }
+  /* TODO handle more efficiently */
+  if (SG_INTP(x)) {
+    if (SG_INTP(e)) {
+      if (SG_INTP(m)) {
+	/* can be done in C */
+#if LONG_MAX > 1UL << 32
+	goto small_entry;
+#else
+	int64_t yy = 1, n = SG_INT_VALUE(e), d = SG_INT_VALUE(m);
+	int64_t xx = SG_INT_VALUE(x);
+	if (n < 0) {
+	  n = -n;
+	  invertp = TRUE;
+	}
+	while (n > 0) {
+	  if (n % 2) {
+	    yy = (yy * xx) % d;
+	  }
+	  n >>= 1;
+	  if (n > 0) {
+	    xx = (xx * xx) % d;
+	  }
+	}
+	y = Sg_MakeIntegerFromS64(yy);
+	if (invertp) {
+	  return Sg_ModInverse(y, m);
+	} else {
+	  return y;
+	}
+#endif
+      }
+    }
+    x = Sg_MakeBignumFromSI(SG_INT_VALUE(x));
+    if (SG_INTP(m)) {
+      m = Sg_MakeBignumFromSI(SG_INT_VALUE(m));
+    }
+  } else if (SG_INTP(e)) {
+  small_entry:
+    n = SG_INT_VALUE(e);
+    y = SG_MAKE_INT(1);
+    if (n < 0) {
+      invertp = TRUE;
+      n = -n;
+    }
+    while (n > 0) {
+      if (n % 2) {
+	y = Sg_IntegerMod(Sg_Mul(y, x), m);
+      }
+      n >>= 1;
+      if (n > 0) {
+	x = Sg_IntegerMod(Sg_Mul(x, x), m);
+      }
+    }
+    if (invertp) {
+      return Sg_ModInverse(y, m);
+    } else {
+      return y;
+    }
+  } else if (SG_INTP(m)) {
+    /* both x and e are bignum */
+    m = Sg_MakeBignumFromSI(SG_INT_VALUE(m));
+  }
+  ASSERT(SG_BIGNUMP(x) && SG_BIGNUMP(e) && SG_BIGNUMP(m));
+  return Sg_BignumModExpt(SG_BIGNUM(x), SG_BIGNUM(e), SG_BIGNUM(m));
+}
 
 static inline double roundeven(double v)
 {
@@ -3699,6 +3817,7 @@ SgObject Sg_NumberToString(SgObject obj, int radix, int use_upper)
 
 SgObject Sg__ConstObjes[SG_NUM_CONST_OBJS] = {SG_FALSE};
 
+extern void Sg__InitBignum();
 void Sg__InitNumber()
 {
 /* VC does not have these macros. SUCKS!! */
@@ -3732,6 +3851,8 @@ void Sg__InitNumber()
   INIT_CONST_FL(SG_NEGATIVE_INFINITY, -INFINITY);
   INIT_CONST_FL(SG_FL_POSITIVE_ZERO, 0.0);
   INIT_CONST_FL(SG_FL_NEGATIVE_ZERO, -0.0);
+
+  Sg__InitBignum();
 }
   
 /*
