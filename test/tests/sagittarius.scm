@@ -375,7 +375,7 @@
   (export bar)
   (import (rnrs))
 
-  (define (problem) (display 'ok) (newline))
+  (define (problem) 'ok)
 
   (define-syntax bar
     (lambda (x)
@@ -423,5 +423,37 @@
 (test-equal "3 ^  5 mod 10" 3 (mod-expt 3  5 10))
 (test-equal "3 ^ -5 mod 10" 7 (mod-expt 3 -5 10))
 (test-equal "3 ^ -3 mod 10" 3 (mod-expt 3 -3 10))
+
+;; macro problems
+(library (settable-variable)
+  (export define-settable)
+  (import (rnrs))
+  
+  (define-syntax define-settable
+    (syntax-rules ()
+      ((_ var val)
+       (begin
+         (define dummy val)
+         (define (set-dummy! x) (set! dummy x))
+         (define-syntax var
+           (make-variable-transformer
+            (lambda(x)
+              (syntax-case x (set!)
+                ((set! _ a) #'(set-dummy! a))
+                (_ #'dummy)))))))))
+  )
+(library (macro problem test)
+  (export var1 var2)
+  (import (rnrs) (settable-variable))
+  
+  (define-settable var1 #f)
+  (define-settable var2 #f)
+  )
+(import (macro problem test))
+
+(test-assert "set! var1" (set! var1 1))
+(test-assert "set! var2" (set! var2 2))
+(test-equal "var1" 1 var1)
+(test-equal "var2" 2 var2)
 
 (test-end)

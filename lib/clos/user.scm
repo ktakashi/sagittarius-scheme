@@ -36,7 +36,10 @@
 
 	    define-class
 	    define-method
-	    define-generic)
+	    define-generic
+
+	    call-next-method
+	    )
     (import (rnrs) 
 	    (sagittarius)
 	    (clos core)

@@ -165,7 +165,6 @@
 (define-constant SYNTAX 1)
 ;;(define-constant PATTERN 2)
 ;; library defined variable need this for macro
-(define-constant IN-LIBRARY 3)
 
 ;;;;;;;;;;;
 ;; pass 0 
@@ -296,18 +295,6 @@
   (and (zero? (lvar-set-count lvar))
        (vector? (lvar-initval lvar))
        (lvar-initval lvar)))
-
-;; Library global variable (gvar)
-;;  Purpose: for macro expansion
-;;  Renaming template variable identifier lookup macro library and if it can
-;;  not find any variable defined then it will rename it. However in library 
-;;  defined variables are not inserted yet and macro expansion phase needs it.
-;;  So I introduced this stupid kludge to be able to lookup.
-(define-simple-struct gvar 'gvar #f
-  id
-  )
-(define (gvar? obj) (and (vector? obj) (eq? (vector-ref obj 0) 'gvar)))
-(define (make-gvar name lib) (vector 'gvar (make-identifier name '() lib)))
 
 ;; $undef
 ;;   undefinition
@@ -1020,7 +1007,7 @@
 ;; for expantion timing, quote must be first
 ;; quote and quasiquote
 (define (pass1/quote obj syntax?)
-  ($const (if syntax? obj (unwrap-syntax obj))))
+  ($const (if syntax? obj (unwrap-syntax-with-reverse obj))))
 
 (define-pass1-syntax (quote form p1env) :null
   (smatch form
@@ -1196,21 +1183,25 @@
 		      ,($src `(,lambda. ,args ,@body)
 			     oform))
 		   oform flags library p1env))
-    ((- name expr)
+    ((- name . expr)
      (unless (variable? name) (syntax-error "malformed define" oform))
      (check-direct-variable name p1env oform)
-     (let ((p1env (p1env-add-name p1env (variable-name name))))
+     (let* ((vname (variable-name name)) 
+	    (p1env (p1env-add-name p1env vname)))
+       (library-defined-add! library vname)
        ($define oform
 		flags
 		(make-identifier (unwrap-syntax name) '() library)
-		(pass1 (caddr form) (p1env-add-name p1env name)))))
-    ((- name)
-     (unless (variable? name) (syntax-error "malformed define" oform))
-     (check-direct-variable name p1env oform)
-     ($define oform
-	      flags
-	      (make-identifier (unwrap-syntax name) '() library)
-	      ($undef)))
+		(if (null? expr)
+		    ($undef)
+		    (pass1 (caddr form) (p1env-add-name p1env name))))))
+;;    ((- name)
+;;     (unless (variable? name) (syntax-error "malformed define" oform))
+;;     (check-direct-variable name p1env oform)
+;;     ($define oform
+;;	      flags
+;;	      (make-identifier (unwrap-syntax name) '() library)
+;;	      ($undef)))
     (- (syntax-error "malformed define" oform))))
 
 (define-pass1-syntax (define form p1env) :null
@@ -1283,6 +1274,7 @@
   (smatch form
     ((- name expr)
      (check-direct-variable name p1env form)
+     (library-defined-add! (p1env-library p1env) name)
      (let ((transformer (pass1/eval-macro-rhs 
 			 'define-syntax
 			 (variable-name name)
@@ -2499,46 +2491,12 @@
   (pass1/import form (p1env-library p1env)))
 
 (define (pass1/library form lib p1env)
-  (define (collect-gvar forms lib)
-    (let loop ((forms forms) (r '()))
-      ;; we only need to care these 'begin, 'define and 'define-syntax
-      ;; begin does not create any scope so inside of it 'define is just
-      ;; an usual 'define
-      (if (null? forms)
-	  r
-	  (let ((form (car forms)))
-	    (cond ((null? form) (loop (cdr forms) r))
-		  ;; toplevel library does not have any identifier
-		  ;; right?
-		  ((eq? (car form) 'begin)
-		   (loop (cdr forms)
-			 (append (loop (cdr form) '()) r)))
-		  ((eq? (car form) 'define-syntax)
-		   (when (null? (cdr form))
-		     (syntax-error 'define-syntax
-				   "malformed define-syntax" form))
-		   (loop (cdr forms)
-			 (acons (cadr form) (make-gvar (cadr form) lib) r)))
-		  ((eq? (car form) 'define)
-		   (when (null? (cdr form))
-		     (syntax-error 'define "malformed define" form))
-		   (let ((name? (cadr form)))
-		     (if (pair? name?)
-			 (loop (cdr forms)
-			       (acons (car name?) (make-gvar (car name?) lib)
-				      r))
-			 (loop (cdr forms)
-			       (acons name? (make-gvar name? lib) r)))))
-		  (else (loop (cdr forms) r)))))))
-  
-  (let ((save (vm-current-library)) ;; save current library
-	(gvars (collect-gvar form lib)))
+  (let ((save (vm-current-library))) ;; save current library
     (dynamic-wind
 	(lambda ()
 	  (vm-current-library lib))
 	(lambda ()
-	  (let* ((p1env (p1env-extend p1env gvars IN-LIBRARY))
-		 (iforms (imap (lambda (x) (pass1 x p1env)) form)))
+	  (let ((iforms (imap (lambda (x) (pass1 x p1env)) form)))
 	    ($seq (append
 		   (list ($library lib)) ; put library here
 		   (pass1/collect-inlinable! iforms lib)

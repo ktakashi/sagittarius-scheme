@@ -2,69 +2,7 @@
 ;; for Ypsilon
 #!compatible
 (library (sagittarius vm)
-    (export insn-name
-	    ;; identifier
-	    make-identifier id-name-set!
-	    id-envs id-envs-set! id-library
-	    id-library-set!
-	    copy-identifier
-	    identifier-binding-eqv?
-	    
-	    ;; syntax
-	    make-syntax syntax? syntax-name syntax-proc
-	    builtin-syntax? user-defined-syntax?
-	    call-syntax-handler
-
-	    ;; macro
-	    make-macro macro-name macro-transformer
-	    macro-data macro-library macro?
-	    make-macro-transformer %internal-macro-expand
-	    call-macro-expander
-
-	    ;; library
-	    make-library library? library-name library-imported
-	    library-imported-set! library-exported library-exported-set!
-	    library-table #;%set-library %insert-binding find-library
-	    find-binding vm-current-library
-	    library-parents
-
-	    ;; gloc
-	    gloc-ref gloc-set! gloc-bound? gloc-const?
-	    ;; for apropos
-	    gloc-library
-	    ;; for macro
-	    gloc-name
-
-	    ;; code-builder
-	    make-code-builder cb-emit0! cb-emit1! cb-emit2! cb-emit0i!
-	    cb-emit1i! cb-emit2i! cb-emit0o! cb-emit0oi! cb-emit1oi!
-	    cb-label-set! cb-emit-closure! code-builder-finish-builder
-
-	    ;; misc
-	    import-library
-	    vm-r6rs-mode? %map-cons
-	    p1env-lookup p1env-toplevel? p1env-pvar-lookup
-	    vm-frame-size
-	    print-stack-frames
-	    get-stack-trace-object
-	    set-toplevel-variable!
-	    get-toplevel-variables
-	    ;; optimize
-	    vm-noinline-locals?
-	    vm-nolambda-lifting?
-	    vm-nolibrary-inlining?
-
-	    ;; for macro
-	    rename-id
-	    renamed-id?
-
-	    ;; call/pc
-	    %apply0
-	    %call/pc
-
-	    ;; should this be here?
-	    gc
-	    )
+    (export :all)
     (import :none)
   (decl-code
    (.define "LIBSAGITTARIUS_BODY")
@@ -146,34 +84,31 @@
   (define-c-proc make-macro (name transformer data p1env :optional (maybe_library #f))
     (result (Sg_MakeMacro name transformer data p1env maybe_library)))
 
-  (define-c-proc make-macro-transformer (name proc p1env library) ::<top>
+  (define-c-proc make-macro-transformer (name proc p1env library)
     (result (Sg_MakeMacroTransformer name proc p1env library)))
 
-  (define-c-proc call-macro-expander (macro::<macro> expr p1env) ::<top>
+  (define-c-proc call-macro-expander (macro::<macro> expr p1env)
     (result (Sg_VMApply4 (-> macro transformer)
 			 macro expr p1env (-> macro data))))
 
-  (define-c-proc %internal-macro-expand (expr p1env onceP::<boolean>) ::<top>
-    (result (Sg_MacroExpand expr p1env onceP)))
+  (define-c-proc %internal-macro-expand (expr p1env onceP::<boolean>)
+    Sg_MacroExpand)
+
+  (define-c-proc reversible-gensym (sym::<symbol>) Sg_ReversibleGensym)
 
   ;; library
-  (define-c-proc make-library (name) ::<top>
-    (result (Sg_MakeLibrary name)))
+  (define-c-proc make-library (name) Sg_MakeLibrary)
 
-  (define-c-proc library? (arg0) ::<boolean>
-    (result (SG_LIBRARYP arg0)))
+  (define-c-proc library? (arg0) ::<boolean> SG_LIBRARYP)
 
-  (define-c-proc library-name (arg0::<library>) ::<top>
-    (result (SG_LIBRARY_NAME arg0)))
+  (define-c-proc library-name (arg0::<library>) SG_LIBRARY_NAME)
 
-  (define-c-proc library-imported (arg0::<library>) ::<top>
-    (result (SG_LIBRARY_IMPORTED arg0)))
+  (define-c-proc library-imported (arg0::<library>) SG_LIBRARY_IMPORTED)
 
   (define-c-proc library-imported-set! (arg0::<library> arg1) ::<void>
     (set! (SG_LIBRARY_IMPORTED arg0) arg1))
 
-  (define-c-proc library-exported (arg0::<library>) ::<top>
-    (result (SG_LIBRARY_EXPORTED arg0)))
+  (define-c-proc library-exported (arg0::<library>) SG_LIBRARY_EXPORTED)
 
   (define-c-proc library-exported-set! (arg0::<library> arg1) ::<void>
     (if (SG_FALSEP (SG_LIBRARY_EXPORTED arg0)) ;; not set yet
@@ -183,6 +118,16 @@
 	  (set! (SG_LIBRARY_EXPORTED arg0)
 		(Sg_Cons (Sg_Append2X exports (SG_CAR arg1))
 			 (Sg_Append2X renames (SG_CDR arg1)))))))
+
+  (define-c-proc library-defined (lib::<library>) SG_LIBRARY_DEFINEED)
+
+  (define-c-proc library-defined-add! (lib::<library> v) ::<void>
+    (unless (or (SG_SYMBOLP v) (SG_IDENTIFIERP v))
+      (wrong-type-of-argument-violation 'library-defined-add!
+					"symbol or identifier" v))
+    (when (SG_IDENTIFIERP v) (set! v (SG_IDENTIFIER_NAME v)))
+    (let ((def (SG_LIBRARY_DEFINEED lib)))
+      (set! (SG_LIBRARY_DEFINEED lib) (Sg_Cons v def))))
 
   (define-c-proc library-table (lib::<library>) SG_LIBRARY_TABLE)
 

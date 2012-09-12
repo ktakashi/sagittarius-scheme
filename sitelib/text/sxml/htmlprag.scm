@@ -52,12 +52,14 @@
 ;;; other license options and consulting, contact the author.
 ;;; @end legal
 
-(define-syntax %htmlprag:testeez
-  (syntax-rules () ((_ x ...)
-                    ;; (testeez x ...)
-                    ;;(error "Tests disabled.")
-		    (error 'test "Tests disabled.")
-                    )))
+
+;; (define-syntax %htmlprag:testeez
+;;   (syntax-rules () ((_ x ...)
+;;                     ;; (testeez x ...)
+;;                     ;;(error "Tests disabled.")
+;; 		    (error 'test "Tests disabled.")
+;;                     )))
+
 
 ;;; @section Introduction
 
@@ -152,9 +154,8 @@
 
 (define-syntax %htmlprag:error
   (syntax-rules ()
-    ((_ p m o) ;;(error (string-append p " : " m) o))
-     ((_ p m o) (error p m o))))
-  )
+    ;;((_ p m o) (error (string-append p " : " m) o))
+    ((_ p m o) (error p m o))))
 
 (define (%htmlprag:down s)
   (list->string (map char-downcase (string->list s))))

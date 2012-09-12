@@ -100,7 +100,7 @@
 ;; it's a bit awkward solution.
 (import (rfc http))
 
-(define-constant max-promise 10)
+(define-constant max-promise 1)
 
 (define (debug . args)
   (for-each (lambda (arg) (display arg (current-error-port))) args)

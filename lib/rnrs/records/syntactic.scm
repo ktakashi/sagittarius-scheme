@@ -3,10 +3,7 @@
 (library (rnrs records syntactic (6))
     (export define-record-type
 	    record-type-descriptor
-	    record-constructor-descriptor
-	    ;; FIXME! sagittarius libs needs them...
-	    fields mutable immutable parent protocol sealed
-	    opaque nongenerative parent-rtd)
+	    record-constructor-descriptor)
     (import (core record))
 ) ; [end]
 ;; end of file

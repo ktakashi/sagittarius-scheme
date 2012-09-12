@@ -71,6 +71,7 @@ static SgLibrary* make_library()
   z->table = Sg_MakeHashTableSimple(SG_HASH_EQ, 1024);
   z->imported = SG_NIL;
   z->exported = SG_FALSE;
+  z->defined = SG_NIL;
   z->version = SG_NIL;
   z->parents = SG_NIL;
   Sg_InitMutex(&z->lock, FALSE);

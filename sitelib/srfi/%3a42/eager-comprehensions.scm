@@ -426,7 +426,7 @@
           #t
           ((+ i 1)) ))
     ((_ cc var (index i) arg1 arg2 arg ...)
-     (srfi-42-string cc var (index i) (string-append arg1 arg2 arg ...)) )
+     (srfi-42-string cc var (index i) (string-append arg1 arg2 arg ...)))
     ((_ cc var arg1 arg ...)
      (srfi-42-string cc var (index i) arg1 arg ...) )))
 

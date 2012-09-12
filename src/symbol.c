@@ -105,15 +105,14 @@ SgObject Sg_Gensym(SgString *prefix)
 {
   SgObject name;
   SgSymbol *sym;
-  char numbuf[50];
-  SgChar buf[50];
+  char numbuf[50] = {0};
+  SgChar buf[50] = {0};
   int nc, i;
 
   static intptr_t gensym_count = 0;
 
   if (prefix == NULL) prefix = default_prefix;
-  nc = snprintf(numbuf, 49, "%"PRIdPTR, gensym_count++);
-  numbuf[49] = '\0';
+  nc = snprintf(numbuf, sizeof(numbuf), "`%"PRIdPTR, gensym_count++);
   /* TODO it's really inconvenient */
   for (i = 0; i < 50; i++) {
     buf[i] = (SgChar)numbuf[i];
@@ -121,6 +120,13 @@ SgObject Sg_Gensym(SgString *prefix)
   name = Sg_StringAppendC(prefix, buf, nc);
   sym = make_symbol(name, FALSE);
   return SG_OBJ(sym);
+}
+
+SgObject Sg_ReversibleGensym(SgSymbol *prefix)
+{
+  SgObject sym = Sg_Gensym(prefix->name);
+  SG_SYMBOL(sym)->flags |= SG_SYMBOL_REVERSIBLE;
+  return sym;
 }
 
 #include "builtin-symbols.c"

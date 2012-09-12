@@ -202,6 +202,8 @@
 ;; - exported      : exported symbols from whis library
 ;; - binding table : binding table.
 ;; - transient     : #t not import after converted to c
+;; - defined       : temporary storage for macro expansion
+;;                   this contains all defined variables in this library.
 
 ;; libraries
 ;; this might be like this
@@ -211,8 +213,8 @@
 ;; but on scheme VM it's just hashtable to be simple.
 (define *libraries* (make-hashtable equal-hash equal?))
 (define (make-library library)
-  (let ((lib (vector '.library library '() #f (make-eq-hashtable) #f)))
-    (hashtable-set! #;(vm-libraries) *libraries* library lib)
+  (let ((lib (vector '.library library '() #f (make-eq-hashtable) #f '())))
+    (hashtable-set! *libraries* library lib)
     lib))
 
 (define (library? lib)
@@ -235,6 +237,12 @@
   (vector-ref lib 5))
 (define (library-transient-set! lib val)
   (vector-set! lib 5 val))
+(define (library-defined lib)
+  (vector-ref lib 6))
+(define (library-defined-add! lib val)
+  (let ((r (cons (if (identifier? val) (id-name val) val)
+		 (vector-ref lib 6))))
+    (vector-set! lib 6 r)))
 
 (define (%set-library lib)
   (or (library? lib)
@@ -411,56 +419,57 @@
 	(else
 	 (error 'call-syntax-handler "bug?"))))
 
-(define unwrap-syntax
-  (lambda (form . only-global?)
-    (define rec
-      (lambda (form history)
-	(cond ((or (fixnum? form)
-		   (char? form)
-		   (boolean? form)) form)
-	      ((memq form history) form)
-	      ((pair? form)
-	       (let* ((newh (cons form history))
-		      (ca   (rec (car form) newh))
-		      (cd   (rec (cdr form) newh)))
-		 (if (and (eq? ca (car form))
-			  (eq? cd (cdr form)))
-		     form
-		     (cons ca cd))))
-	      ((identifier? form)
-	       (id-name form))
-	      ((and (vector? form)
-		    (> (vector-length form) 1)
-		    (eq? (vector-ref form 0) '.closure))
-	       'closure)
-	      ((library? form)
-	       (library-name form))
-	      ((vector? form)
-	       (let ((len (vector-length form))
-		     (newh (cons form history)))
-		 (let loop ((i 0))
-		   (cond ((= i len) form)
-			 (else
-			  (let* ((pe (vector-ref form i))
-				 (e (rec pe newh)))
-			    (cond ((eq? e pe)
-				   (loop (+ i 1)))
-				  (else
-				   (let ((v (make-vector len #f)))
-				     (let vcopy ((j 0))
-				       (unless (= j i)
-					 (vector-set! v j (vector-ref form j))
-					 (vcopy (+ j 1))))
-				     (vector-set! v i e)
-				     (let vcopy ((j i))
-				       (unless (= j len)
-					 (vector-set! v j (vector-ref form j))
-					 (vcopy (+ j 1))))
-				     v)))))))))
-	      (else form))))
-    (if (null? only-global?)
-	(rec form '())
-	form)))				; for scheme VM we don't do any thing
+(define (unwrap-syntax form . only-global?)
+  (define rec
+    (lambda (form history)
+      (cond ((or (fixnum? form)
+		 (char? form)
+		 (boolean? form)) form)
+	    ((memq form history) form)
+	    ((pair? form)
+	     (let* ((newh (cons form history))
+		    (ca   (rec (car form) newh))
+		    (cd   (rec (cdr form) newh)))
+	       (if (and (eq? ca (car form))
+			(eq? cd (cdr form)))
+		   form
+		   (cons ca cd))))
+	    ((identifier? form)
+	     (id-name form))
+	    ((and (vector? form)
+		  (> (vector-length form) 1)
+		  (eq? (vector-ref form 0) '.closure))
+	     'closure)
+	    ((library? form)
+	     (library-name form))
+	    ((vector? form)
+	     (let ((len (vector-length form))
+		   (newh (cons form history)))
+	       (let loop ((i 0))
+		 (cond ((= i len) form)
+		       (else
+			(let* ((pe (vector-ref form i))
+			       (e (rec pe newh)))
+			  (cond ((eq? e pe)
+				 (loop (+ i 1)))
+				(else
+				 (let ((v (make-vector len #f)))
+				   (let vcopy ((j 0))
+				     (unless (= j i)
+				       (vector-set! v j (vector-ref form j))
+				       (vcopy (+ j 1))))
+				   (vector-set! v i e)
+				   (let vcopy ((j i))
+				     (unless (= j len)
+				       (vector-set! v j (vector-ref form j))
+				       (vcopy (+ j 1))))
+				   v)))))))))
+	    (else form))))
+  (if (null? only-global?)
+      (rec form '())
+      form))				; for scheme VM we don't do any thing
+
+(define (unwrap-syntax-with-reverse form) (unwrap-syntax form))
 
 (define wrap-syntax
   (lambda (form p1env . opts)

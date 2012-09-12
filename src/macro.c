@@ -83,7 +83,38 @@ SgObject Sg_MakeMacro(SgObject name, SgObject transformer,
   return SG_OBJ(z);
 }
 
-static SgObject unwrap_rec(SgObject form, SgObject history)
+static SgObject unrename_symbol(SgObject name, int reversep)
+{
+  /* bit more check */
+  if (reversep &&
+      SG_UNINTERNED_SYMBOL(name) &&
+      SG_SYMBOL(name)->flags & SG_SYMBOL_REVERSIBLE) {
+    /* finds ` which is mark of separator */
+    SgString *s = SG_SYMBOL(name)->name;
+      
+    SgChar *buf = SG_STRING_VALUE(s), tmp[256];
+    int len, size = SG_STRING_SIZE(s), i;
+    for (len = 0; len < size; len++, buf++) {
+      if (*buf == '`') break;
+    }
+    ASSERT(len != size);	/* something wrong */
+    if (len >= 256) {
+      buf = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar) * (len+1));
+    } else {
+      buf = tmp;
+    }
+    /* copy */
+    for (i = 0; i < len; i++) buf[i] = SG_STRING_VALUE_AT(s, i);
+    buf[i] = 0;
+    /* the copied string must be literal for symbol */
+    s = SG_STRING(Sg_MakeStringEx(buf, SG_LITERAL_STRING, len));
+    return Sg_Intern(s);
+  } else {
+    return name;
+  }
+}
+
+static SgObject unwrap_rec(SgObject form, SgObject history, int reversep)
 {
   SgObject newh;
   if (!SG_PTRP(form)) return form;
@@ -94,8 +125,8 @@ static SgObject unwrap_rec(SgObject form, SgObject history)
   if (SG_PAIRP(form)) {
     SgObject ca, cd;
     newh = Sg_Cons(form, history);
-    ca = unwrap_rec(SG_CAR(form), newh);
-    cd = unwrap_rec(SG_CDR(form), newh);
+    ca = unwrap_rec(SG_CAR(form), newh, reversep);
+    cd = unwrap_rec(SG_CDR(form), newh, reversep);
     if (ca == SG_CAR(form) && cd == SG_CDR(form)) {
       return form;
     } else {
@@ -103,14 +134,17 @@ static SgObject unwrap_rec(SgObject form, SgObject history)
     }
   }
   if (SG_IDENTIFIERP(form)) {
-    return SG_OBJ(SG_IDENTIFIER_NAME(form));
+    return unrename_symbol(SG_IDENTIFIER_NAME(form), reversep);
+  }
+  if (SG_SYMBOLP(form)) {
+    return unrename_symbol(form, reversep);
   }
   if (SG_VECTORP(form)) {
     int i, j, len = SG_VECTOR_SIZE(form);
     SgObject elt, *pelt = SG_VECTOR_ELEMENTS(form);
     newh = Sg_Cons(form, history);
     for (i = 0; i < len; i++, pelt++) {
-      elt = unwrap_rec(*pelt, newh);
+      elt = unwrap_rec(*pelt, newh, reversep);
       if (elt != *pelt) {
 	SgObject newvec = Sg_MakeVector(len, SG_FALSE);
 	pelt = SG_VECTOR_ELEMENTS(form);
@@ -119,7 +153,7 @@ static SgObject unwrap_rec(SgObject form, SgObject history)
 	}
 	SG_VECTOR_ELEMENT(newvec, i) = elt;
 	for (; j < len; j++, pelt++) {
-	  SG_VECTOR_ELEMENT(newvec, j) = unwrap_rec(*pelt, newh);
+	  SG_VECTOR_ELEMENT(newvec, j) = unwrap_rec(*pelt, newh, reversep);
 	}
 	return newvec;
       }
@@ -266,7 +300,12 @@ SgObject Sg_MacroExpand(SgObject expr, SgObject p1env, int onceP)
 /* convert all identifier to symbol */
 SgObject Sg_UnwrapSyntax(SgObject form)
 {
-  return unwrap_rec(form, SG_NIL);
+  return unwrap_rec(form, SG_NIL, FALSE);
+}
+
+SgObject Sg_UnwrapSyntaxWithReverse(SgObject form)
+{
+  return unwrap_rec(form, SG_NIL, TRUE);
 }
 
 static SgObject macro_name(SgMacro *m)
