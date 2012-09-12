@@ -457,4 +457,18 @@
 (test-equal "var1" 1 var1)
 (test-equal "var2" 2 var2)
 
+;; macro renaming
+(define-syntax renaming-test
+  (syntax-rules ()
+    ((_ var val)
+     (begin
+       (define dummy val)
+       (define (var) dummy)))))
+ 
+(renaming-test a 'a)
+(renaming-test b 'b)
+(test-equal "rename a" 'a (a))
+(test-equal "rename b" 'b (b))
+(test-error "unbound dummy" assertion-violation? dummy)
+
 (test-end)
