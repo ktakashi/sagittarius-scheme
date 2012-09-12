@@ -164,6 +164,7 @@
 (define-constant LEXICAL 0)
 (define-constant SYNTAX 1)
 ;;(define-constant PATTERN 2)
+;; library defined variable need this for macro
 
 ;;;;;;;;;;;
 ;; pass 0 
@@ -1006,7 +1007,7 @@
 ;; for expantion timing, quote must be first
 ;; quote and quasiquote
 (define (pass1/quote obj syntax?)
-  ($const (if syntax? obj (unwrap-syntax obj))))
+  ($const (if syntax? obj (unwrap-syntax-with-reverse obj))))
 
 (define-pass1-syntax (quote form p1env) :null
   (smatch form
@@ -1182,21 +1183,25 @@
 		      ,($src `(,lambda. ,args ,@body)
 			     oform))
 		   oform flags library p1env))
-    ((- name expr)
+    ((- name . expr)
      (unless (variable? name) (syntax-error "malformed define" oform))
      (check-direct-variable name p1env oform)
-     (let ((p1env (p1env-add-name p1env (variable-name name))))
+     (let* ((vname (variable-name name)) 
+	    (p1env (p1env-add-name p1env vname)))
+       (library-defined-add! library vname)
        ($define oform
 		flags
 		(make-identifier (unwrap-syntax name) '() library)
-		(pass1 (caddr form) (p1env-add-name p1env name)))))
-    ((- name)
-     (unless (variable? name) (syntax-error "malformed define" oform))
-     (check-direct-variable name p1env oform)
-     ($define oform
-	      flags
-	      (make-identifier (unwrap-syntax name) '() library)
-	      ($undef)))
+		(if (null? expr)
+		    ($undef)
+		    (pass1 (caddr form) (p1env-add-name p1env name))))))
+;;    ((- name)
+;;     (unless (variable? name) (syntax-error "malformed define" oform))
+;;     (check-direct-variable name p1env oform)
+;;     ($define oform
+;;	      flags
+;;	      (make-identifier (unwrap-syntax name) '() library)
+;;	      ($undef)))
     (- (syntax-error "malformed define" oform))))
 
 (define-pass1-syntax (define form p1env) :null
@@ -1252,6 +1257,13 @@
 			    p1env) p1env))
     (- (syntax-error "malformed syntax: expected exactly one datum" form))))
 
+;; needs to be exported
+(define-pass1-syntax (_ form p1env) :null
+  (syntax-error "invalid expression" form))
+
+(define-pass1-syntax (... form p1env) :null
+  (syntax-error "invalid expression" form))
+
 ;;
 ;; define-syntax.
 ;;  defined syntax must return lambda which take one argument, and returns
@@ -1262,6 +1274,7 @@
   (smatch form
     ((- name expr)
      (check-direct-variable name p1env form)
+     (library-defined-add! (p1env-library p1env) name)
      (let ((transformer (pass1/eval-macro-rhs 
 			 'define-syntax
 			 (variable-name name)
@@ -3005,16 +3018,17 @@
 	    ((macro? r)
 	     (pass1 ($history (call-macro-expander r form p1env) form) p1env))
 	    ((identifier? r)
-	     (let* ((lib (id-library r))
-		    (gloc (find-binding lib (id-name r) #f)))
+	     (let* ((id  r)
+		    (lib (id-library id))
+		    (gloc (find-binding lib (id-name id) #f)))
 	       (if gloc
 		   (let ((gval (gloc-ref gloc)))
 		     (cond ((macro? gval)
 			    (pass1
 			     ($history (call-macro-expander gval form p1env)
 				       form) p1env))
-			   (else ($gref r))))
-		   ($gref r))))
+			   (else ($gref id))))
+		   ($gref id))))
 	    (else (error 'pass1 "[internal] p1env-lookup returned weird obj:" 
 			 r)))))
    (else

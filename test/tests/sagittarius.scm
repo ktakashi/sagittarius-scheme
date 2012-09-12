@@ -370,6 +370,24 @@
 (test-error "list->string range error" (lambda (e) e)
 	    (list->string '(#\a) 0 2))
 
+;; Issue 25
+(library (issue :25)
+  (export bar)
+  (import (rnrs))
+
+  (define (problem) 'ok)
+
+  (define-syntax bar
+    (lambda (x)
+      (define (dummy)
+	`(,(datum->syntax #'bar 'problem)))
+      (syntax-case x ()
+	((k) (dummy)))))
+
+  )
+(import (issue :25))
+(test-equal "issue 25" 'ok (bar))
+
 ;; mod-inverse
 (let ((ps
        '("c6c93915786185fa7ee88f1983cc8d238cd6c5f7a36416c8be317c3df475277784ae1b87b263b88a84d5bacaf63798474ffe490fa412cb437abe5908efbe41b1"
@@ -405,5 +423,37 @@
 (test-equal "3 ^  5 mod 10" 3 (mod-expt 3  5 10))
 (test-equal "3 ^ -5 mod 10" 7 (mod-expt 3 -5 10))
 (test-equal "3 ^ -3 mod 10" 3 (mod-expt 3 -3 10))
+
+;; macro problems
+(library (settable-variable)
+  (export define-settable)
+  (import (rnrs))
+  
+  (define-syntax define-settable
+    (syntax-rules ()
+      ((_ var val)
+       (begin
+         (define dummy val)
+         (define (set-dummy! x) (set! dummy x))
+         (define-syntax var
+           (make-variable-transformer
+            (lambda(x)
+              (syntax-case x (set!)
+                ((set! _ a) #'(set-dummy! a))
+                (_ #'dummy)))))))))
+  )
+(library (macro problem test)
+  (export var1 var2)
+  (import (rnrs) (settable-variable))
+  
+  (define-settable var1 #f)
+  (define-settable var2 #f)
+  )
+(import (macro problem test))
+
+(test-assert "set! var1" (set! var1 1))
+(test-assert "set! var2" (set! var2 2))
+(test-equal "var1" 1 var1)
+(test-equal "var2" 2 var2)
 
 (test-end)

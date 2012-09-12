@@ -1,7 +1,9 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
 
+;; same variables 
 (define-constant LEXICAL 0)		; the same as compiler.scm
 (define-constant PATTERN 2)		; not LEXICAL nor SYNTAX
+;;(define-constant IN-LIBRARY 3)
 
 (define .vars (make-identifier '.vars '() '(core syntax-case)))
 
@@ -139,11 +141,26 @@
 ;; syntax-case compiler
 (define (compile-syntax-case exp-name expr literals clauses library env mac-env)
   ;; literal must be unwrapped, otherwise it will be too unique
-  (let ((lites (unwrap-syntax literals)))
+  (let ((lites (unwrap-syntax-with-reverse literals)))
     (define (parse-pattern pattern)
       (check-pattern pattern lites)
       (values pattern 
 	      (extend-env (collect-vars-ranks pattern lites 0 '()) env)))
+
+     (define (literal-seen lst seen)
+       (define mark (list 'literal))      
+       (let ((ids (collect-unique-ids lst)))
+	 (let loop ((ids ids))
+	   (unless (null? ids)
+	     (and-let* ((o (memq (car ids) literals))
+			(id (car o))
+			(unrenamed (unwrap-syntax-with-reverse id))
+			(temp-id (make-identifier unrenamed '() library))
+			(id (copy-identifier temp-id mark)))
+	       ;; store unrenamed id to seen for check-pattern
+	       (hashtable-set! seen (car ids)id))
+	     (loop (cdr ids))))
+	 seen))
 
     (or (and (list? lites) (for-all symbol? lites))
 	(syntax-violation 'syntax-case "invalid literals" expr lites))
@@ -154,6 +171,25 @@
     (and (memq '... lites)
 	 (syntax-violation 'syntax-case "... in literals" expr lites))
 
+    ;; literal must be binded
+    ;; FIXME this is a really ugly kludge 
+    (let loop ((lites lites))
+       (unless (null? lites)
+	 (let ((lite (car lites)))
+	   (or (find-binding library lite #f)
+	       (%insert-binding 
+		library lite
+		(make-macro-transformer
+		 lite
+		 (lambda ()
+		   (lambda arg
+		     (syntax-error "misplaced syntactic keyword" arg)))
+		 ;; FIXME 
+		 ;; p1env is just dummy and we can't use mac-env for this.
+		 (vector library '() #f #f)
+		 library))))
+	 (loop (cdr lites))))
+    
     (values .match-syntax-case
 	    lites
 	    (p1env-lookup mac-env .vars LEXICAL)
@@ -165,7 +201,8 @@
 			;; use syntax-quote so that wrapped syntax won't loose
 			;; the syntax information.
 			(receive (pattern env)
-			    (parse-pattern (wrap-syntax p mac-env seen))
+			    (parse-pattern (wrap-syntax p mac-env
+							(literal-seen p seen)))
 			  (cons `(,.list (,syntax-quote. ,pattern)
 					 #f
 					 (lambda (,.vars)
@@ -173,7 +210,8 @@
 				env)))
 		       ((p fender expr)
 			(receive (pattern env)
-			    (parse-pattern (wrap-syntax p mac-env seen))
+			    (parse-pattern (wrap-syntax p mac-env
+							(literal-seen p seen)))
 			  (cons `(,.list (,syntax-quote. ,pattern)
 					 (lambda (,.vars)
 					   ,(wrap-syntax fender mac-env seen))
@@ -310,8 +348,20 @@
   (define (match form pat)
     (and (match-pattern? form pat literals)
 	 (bind-pattern form pat literals '())))
+  (define (rewrite expr lites)     
+    (let loop ((expr expr))
+      (cond ((null? expr) expr)
+	    ((pair? expr) (cons (loop (car expr)) (loop (cdr expr))))
+	    ((vector? expr) (list->vector (loop (vector->list expr))))
+	    ((and-let* (( (variable? expr) )
+			(v (unwrap-syntax-with-reverse expr)))
+	       (memq v lites)) => car)
+	    (else expr))))
   ;; we need to local variable unique so that it won't be global.
-  (let ((form (wrap-syntax expr (current-usage-env) (make-eq-hashtable) #t)))
+  (let* ((lites (unwrap-syntax-with-reverse (collect-unique-ids expr)))
+	 (form (wrap-syntax (rewrite expr 
+				      (lset-intersection eq? lites literals))
+			    (current-usage-env) (make-eq-hashtable) #t)))
     (let loop ((lst lst))
       (if (null? lst)
 	  (syntax-violation (and (pair? form) (car form)) "invalid syntax"
@@ -665,8 +715,32 @@
 
 (define (transcribe-template in-form ranks vars)
   (define use-env (current-usage-env))
+  (define mac-env (current-macro-env))
   ;; put macro name as a mark
   (define current-mark (list (vector-ref (current-macro-env) 2)))
+  ;; TODO this can be done efficiently
+  (define (no-rename-needed? id) 
+    (let ((lib (id-library id))
+	  (name (id-name id)))
+      (or (eq? use-env mac-env)		; toplevel (should be)
+	  (not (null? (id-envs id)))	; obvious case
+	  (find-binding lib name #f)
+	  ;; these things are not defined yet.
+	  (memq name (library-defined lib))
+	  ;; local binded variables must not be renamed either.
+	  (and-let* ((var (p1env-lookup mac-env name LEXICAL))
+		     ;; do we need to check the library as well?
+		     )
+	    (not (identifier? var))))))
+	  
+  (define (rename-or-copy-id id current-mark)
+    (let ((t (if (no-rename-needed? id)
+		 id
+		 (make-identifier (reversible-gensym (id-name id))
+				  (id-envs id)
+				  (vector-ref use-env 0)))))
+      (copy-identifier t current-mark)))
+
   ;; regenerate pattern variable
   (define (rewrite-template t seen vars)
     (cond ((null? t) t)
@@ -688,7 +762,7 @@
 		       ;; mark as template variable so that pattern variable
 		       ;; lookup won't make misjudge.
 		       ;; note: id-envs returns (#t)
-		       (else (let ((new-id (copy-identifier t current-mark)))
+		       (else (let ((new-id (rename-or-copy-id t current-mark)))
 			       (hashtable-set! seen t new-id)
 			       new-id))))
 	       t))))

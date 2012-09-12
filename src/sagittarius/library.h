@@ -44,8 +44,10 @@ struct SgLibraryRec
   SG_HEADER;
   SgObject     name;		/* library name */
   SgObject     imported;	/* imported symbols */
-  SgObject     exported;	/* exported symbold */
-  SgObject     version;		/* library version */
+  SgObject     exported;	/* exported symbols */
+  SgObject     version;		/* library version (not really used) */
+  SgObject     defined;		/* temporary storage to keep what defined
+				   in this library. */
   SgHashTable *table;		/* library inside */
   SgInternalMutex lock;
   SgObject     parents;		/* imported variables.
@@ -66,6 +68,7 @@ struct SgLibraryRec
 #define SG_LIBRARY_NAME(obj)     SG_LIBRARY(obj)->name
 #define SG_LIBRARY_IMPORTED(obj) SG_LIBRARY(obj)->imported
 #define SG_LIBRARY_EXPORTED(obj) SG_LIBRARY(obj)->exported
+#define SG_LIBRARY_DEFINEED(obj) SG_LIBRARY(obj)->defined
 #define SG_LIBRARY_TABLE(obj)    SG_LIBRARY(obj)->table
 #define SG_LIBRARY_READTABLE(obj)    SG_LIBRARY(obj)->readtable
 

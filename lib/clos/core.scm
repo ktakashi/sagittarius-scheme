@@ -53,10 +53,18 @@
 	    ;; helper generics
 	    compute-cpl
 	    compute-slots
-	    compute-getters-and-setters)
+	    compute-getters-and-setters
+
+	    ;; ugly solution for macro expansion
+	    call-next-method
+	    )
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius clos))
+
+  (define (call-next-method . args)
+    (error 'call-next-method "this must not be called on toplevel"))
+
   (define (initialize-direct-slots obj cls init-args)
     (let loop ((slots (slot-ref cls 'direct-slots)))
       (unless (null? slots)

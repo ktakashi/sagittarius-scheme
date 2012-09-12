@@ -77,7 +77,11 @@
           ((vector? obj)      (wr-lst (vector->list obj) (out "#" col)))
           ((boolean? obj)     (out (if obj "#t" "#f") col))
           ((number? obj)      (out (number->string obj) col))
-          ((symbol? obj)      (out (symbol->string obj) col))
+          ((symbol? obj)
+	   ;; for sagittarius
+	   (if (interned-symbol? obj)
+	       (out (symbol->string obj) col)
+	       (out (string-append "#:" (symbol->string obj)) col)))
 	  ((identifier? obj)  (out (format "~s" obj) col))
 	  ;; for Sagittarius
           ;;((procedure? obj)   (out "#<procedure>" col))
