@@ -248,20 +248,21 @@
 	       (gf           (gensym)))
 
 	  (with-syntax (((true-name getter-name) (%check-setter-name generic)))
-	    #`(let ((#,gf (%ensure-generic-function
-			   'true-name (vm-current-library))))
-		(add-method #,gf
-			    (make <method>
-			      :specializers  (list #,@specializers)
-			      :qualifier     #,qualifier
-			      :generic       true-name
-			      :lambda-list  '#,lambda-list
-			      :procedure     #,real-body))
-		#,@(if #'getter-name
-		       `((unless (has-setter? ,#'getter-name)
+	    #`(begin
+		(let ((#,gf (%ensure-generic-function
+			     'true-name (vm-current-library))))
+		  (add-method #,gf
+			      (make <method>
+				:specializers  (list #,@specializers)
+				:qualifier     #,qualifier
+				:generic       true-name
+				:lambda-list  '#,lambda-list
+				:procedure     #,real-body))
+		  #,@(if #'getter-name
+			 `((unless (has-setter? ,#'getter-name)
 			     (set! (setter ,#'getter-name) ,gf)))
-		       '())
-		#,gf))))
+			 '())
+		  #,gf)))))
       (syntax-case x ()
 	((_ ?qualifier ?generic ?args . ?body)
 	 (keyword? #'?qualifier)

@@ -132,18 +132,22 @@
 	(cgen-unit-toplevel-nodes unit (append (cgen-unit-toplevel-nodes unit)
 					       (list node))))))
 
+  (define-generic cgen-cname)
   (define-method cgen-c-name ((node <cgen-literal>))
     (and-let* ((n (slot-ref node 'c-name)))
       (if (string? n) n (n))))
+  (define-generic cgen-cexpr)
   (define-method cgen-cexpr ((node <cgen-literal>))
     (cgen-c-name node))
   (define-generic cgen-cpred)
 
+  (define-generic cgen-make-literal) 
   (define-method cgen-make-literal (value) 
     (or ;;(infer-literal-handler value)
 	(error 'cgen-make-literal
 	       "cannot make a static C data for Scheme value" value)))
 
+  (define-generic cgen-literal-static?)
   (define-method cgen-literal-static? (self) #t)
 
   (define-method cgen-emit-xtrn ((node <cgen-literal>))

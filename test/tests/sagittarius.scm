@@ -435,12 +435,13 @@
        (begin
          (define dummy val)
          (define (set-dummy! x) (set! dummy x))
+         (define (dummy-ref) dummy)
          (define-syntax var
            (make-variable-transformer
             (lambda(x)
               (syntax-case x (set!)
                 ((set! _ a) #'(set-dummy! a))
-                (_ #'dummy)))))))))
+                (_ #'(dummy-ref))))))))))
   )
 (library (macro problem test)
   (export var1 var2)
