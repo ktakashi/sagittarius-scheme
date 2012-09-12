@@ -106,6 +106,9 @@
      record-type-descriptor
      record-constructor-descriptor
      define-record-type-helper0
+     ;; FIXME! sagittarius libs needs them...
+     fields mutable immutable parent protocol sealed
+     opaque nongenerative parent-rtd
 
      #;(rnrs records procedural (6))
      make-record-type-descriptor

@@ -164,6 +164,8 @@
 (define-constant LEXICAL 0)
 (define-constant SYNTAX 1)
 ;;(define-constant PATTERN 2)
+;; library defined variable need this for macro
+(define-constant IN-LIBRARY 3)
 
 ;;;;;;;;;;;
 ;; pass 0 
@@ -294,6 +296,18 @@
   (and (zero? (lvar-set-count lvar))
        (vector? (lvar-initval lvar))
        (lvar-initval lvar)))
+
+;; Library global variable (gvar)
+;;  Purpose: for macro expansion
+;;  Renaming template variable identifier lookup macro library and if it can
+;;  not find any variable defined then it will rename it. However in library 
+;;  defined variables are not inserted yet and macro expansion phase needs it.
+;;  So I introduced this stupid kludge to be able to lookup.
+(define-simple-struct gvar 'gvar #f
+  id
+  )
+(define (gvar? obj) (and (vector? obj) (eq? (vector-ref obj 0) 'gvar)))
+(define (make-gvar name lib) (vector 'gvar (make-identifier name '() lib)))
 
 ;; $undef
 ;;   undefinition
@@ -1251,6 +1265,13 @@
 			    (p1env-frames p1env)
 			    p1env) p1env))
     (- (syntax-error "malformed syntax: expected exactly one datum" form))))
+
+;; needs to be exported
+(define-pass1-syntax (_ form p1env) :null
+  (syntax-error "invalid expression" form))
+
+(define-pass1-syntax (... form p1env) :null
+  (syntax-error "invalid expression" form))
 
 ;;
 ;; define-syntax.
@@ -2478,12 +2499,46 @@
   (pass1/import form (p1env-library p1env)))
 
 (define (pass1/library form lib p1env)
-  (let ((save (vm-current-library))) ;; save current library
+  (define (collect-gvar forms lib)
+    (let loop ((forms forms) (r '()))
+      ;; we only need to care these 'begin, 'define and 'define-syntax
+      ;; begin does not create any scope so inside of it 'define is just
+      ;; an usual 'define
+      (if (null? forms)
+	  r
+	  (let ((form (car forms)))
+	    (cond ((null? form) (loop (cdr forms) r))
+		  ;; toplevel library does not have any identifier
+		  ;; right?
+		  ((eq? (car form) 'begin)
+		   (loop (cdr forms)
+			 (append (loop (cdr form) '()) r)))
+		  ((eq? (car form) 'define-syntax)
+		   (when (null? (cdr form))
+		     (syntax-error 'define-syntax
+				   "malformed define-syntax" form))
+		   (loop (cdr forms)
+			 (acons (cadr form) (make-gvar (cadr form) lib) r)))
+		  ((eq? (car form) 'define)
+		   (when (null? (cdr form))
+		     (syntax-error 'define "malformed define" form))
+		   (let ((name? (cadr form)))
+		     (if (pair? name?)
+			 (loop (cdr forms)
+			       (acons (car name?) (make-gvar (car name?) lib)
+				      r))
+			 (loop (cdr forms)
+			       (acons name? (make-gvar name? lib) r)))))
+		  (else (loop (cdr forms) r)))))))
+  
+  (let ((save (vm-current-library)) ;; save current library
+	(gvars (collect-gvar form lib)))
     (dynamic-wind
 	(lambda ()
 	  (vm-current-library lib))
 	(lambda ()
-	  (let ((iforms (imap (lambda (x) (pass1 x p1env)) form)))
+	  (let* ((p1env (p1env-extend p1env gvars IN-LIBRARY))
+		 (iforms (imap (lambda (x) (pass1 x p1env)) form)))
 	    ($seq (append
 		   (list ($library lib)) ; put library here
 		   (pass1/collect-inlinable! iforms lib)
@@ -3005,16 +3060,17 @@
 	    ((macro? r)
 	     (pass1 ($history (call-macro-expander r form p1env) form) p1env))
 	    ((identifier? r)
-	     (let* ((lib (id-library r))
-		    (gloc (find-binding lib (id-name r) #f)))
+	     (let* ((id  r)
+		    (lib (id-library id))
+		    (gloc (find-binding lib (id-name id) #f)))
 	       (if gloc
 		   (let ((gval (gloc-ref gloc)))
 		     (cond ((macro? gval)
 			    (pass1
 			     ($history (call-macro-expander gval form p1env)
 				       form) p1env))
-			   (else ($gref r))))
-		   ($gref r))))
+			   (else ($gref id))))
+		   ($gref id))))
 	    (else (error 'pass1 "[internal] p1env-lookup returned weird obj:" 
 			 r)))))
    (else

@@ -1,7 +1,9 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
 
+;; same variables 
 (define-constant LEXICAL 0)		; the same as compiler.scm
 (define-constant PATTERN 2)		; not LEXICAL nor SYNTAX
+(define-constant IN-LIBRARY 3)
 
 (define .vars (make-identifier '.vars '() '(core syntax-case)))
 
@@ -665,8 +667,27 @@
 
 (define (transcribe-template in-form ranks vars)
   (define use-env (current-usage-env))
+  (define mac-env (current-macro-env))
   ;; put macro name as a mark
   (define current-mark (list (vector-ref (current-macro-env) 2)))
+  ;; TODO this can be done efficiently
+  (define (no-need-rename? id) 
+    (or (find-binding (id-library id) (id-name id) #f)
+	(and-let* ((gvar (p1env-lookup mac-env (id-name id) IN-LIBRARY))
+		   ( (vector? gvar) )
+		   ( (eq? (vector-ref gvar 0) 'gvar) )
+		   ;; do we need to check the library as well?
+		   )
+	  gvar)))
+	  
+  (define (rename-or-copy-id id current-mark)
+    (let ((t (if (no-need-rename? id)
+		 id
+		 (make-identifier (gensym (symbol->string (id-name id)))
+				  (id-envs id)
+				  (vector-ref use-env 0)))))
+      (copy-identifier t current-mark)))
+
   ;; regenerate pattern variable
   (define (rewrite-template t seen vars)
     (cond ((null? t) t)
@@ -688,7 +709,7 @@
 		       ;; mark as template variable so that pattern variable
 		       ;; lookup won't make misjudge.
 		       ;; note: id-envs returns (#t)
-		       (else (let ((new-id (copy-identifier t current-mark)))
+		       (else (let ((new-id (rename-or-copy-id t current-mark)))
 			       (hashtable-set! seen t new-id)
 			       new-id))))
 	       t))))
