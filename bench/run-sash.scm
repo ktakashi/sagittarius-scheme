@@ -5,6 +5,14 @@
 
 (add-load-path "./gambit-benchmarks")
 
+(define format.6f
+  (lambda (x)
+    (let* ((str (number->string (/ (round (* x 1000000.0)) 1000000.0)))
+           (pad (- 8 (string-length str))))
+      (if (<= pad 0)
+          str
+          (string-append str (make-string pad #\0))))))
+
 ;; from Ypsilon start
 (define-syntax time
   (syntax-rules ()
@@ -53,15 +61,6 @@
       (if (<= pad 0)
           str
           (string-append str (make-string pad #\space))))))
-    
-(define format.6f
-  (lambda (x)
-    (let* ((str (number->string (/ (round (* x 1000000.0)) 1000000.0)))
-           (pad (- 8 (string-length str))))
-      (if (<= pad 0)
-          str
-          (string-append str (make-string pad #\0))))))
-
 
 (define (run-bench name count ok? run)
   (let loop ((i 0) (result (list 'undefined)))
