@@ -316,8 +316,8 @@ number.
 @define[Library]{@name{(math helper)}}
 @desc{This library exports procedures for misc arithmetic operations.}
 
-@define[Function]{@name{mod-inverse} @args{m k}}
-@desc{Calculates @code{2^@var{k} mod @var{m}}}
+@define[Function]{@name{mod-inverse} @args{x m}}
+@desc{Re exporting @code{mod-inverse} defined in @code{(sagittarius)} library.}
 
-@define[Function]{@name{mod-expt} @args{x n d}}
-@desc{Calculates @code{@var{x}^@var{n} mod @var{d}}}
+@define[Function]{@name{mod-expt} @args{x e m}}
+@desc{Re exporting @code{mod-expt} defined in @code{(sagittarius)} library.}

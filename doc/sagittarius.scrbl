@@ -97,6 +97,27 @@ Moreover, if you do not use @var{rename}, it always makes it non-hygine.
 
 }
 
+@subsubsection{Arithmetic operations}
+
+@define[Function]{@name{+.} @args{z @dots{}}}
+@define[Function]{@name{*.} @args{z @dots{}}}
+@define[Function]{@name{-.} @args{z @dots{}}}
+@define[Function]{@name{-.} @args{z1 z2 @dots{}}}
+@define[Function]{@name{/.} @args{z @dots{}}}
+@define[Function]{@name{/.} @args{z1 z2 @dots{}}}
+@desc{The same as @code{+}, @code{*}, @code{-} and @code{/}. The difference is
+these procedures converts given arguments inexact number.}
+
+@define[Function]{@name{mod-inverse} @args{x m}}
+@desc{@var{x} and @var{m} must be exact integer.
+
+Returns @code{@var{x} ^ -1 mod @var{m}}}
+
+@define[Function]{@name{mod-expt} @args{x e m}}
+@desc{@var{x}, @var{e} and @var{m} must be exact integer.
+
+Returns @code{@var{x} ^ @var{e} mod @var{m}}}
+
 @subsubsection{File system operations}
 
 @define[Function]{@name{file-size-in-bytes} @args{filename}}

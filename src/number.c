@@ -3391,6 +3391,9 @@ SgObject Sg_ModInverse(SgObject x, SgObject m)
 {
   SgObject u1, u3, v1, v3;
   int sign = 1;
+  if (!SG_EXACT_INTP(x) || !SG_EXACT_INTP(m)) {
+    Sg_Error(UC("exact integer required but got %S %S"), x, m);
+  }
   if (Sg_Sign(m) != 1) {
     Sg_Error(UC("modulus not positive %S"), m);
   }
