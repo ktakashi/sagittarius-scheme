@@ -424,6 +424,12 @@
 (test-equal "3 ^ -5 mod 10" 7 (mod-expt 3 -5 10))
 (test-equal "3 ^ -3 mod 10" 3 (mod-expt 3 -3 10))
 
+(test-equal "bignums(1)"
+	    144823644014482364401448236440
+	    (mod-expt 123456789012345678901234567890
+		      987654321098765432109876543210987654
+		      147258369014725836901472583690))
+
 ;; macro problems
 (library (settable-variable)
   (export define-settable)

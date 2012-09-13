@@ -894,24 +894,38 @@ static SgBignum* bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by)
   int i, c;
   unsigned long x, y;
 
-  for (i = 0, c = 0; i < rsize; i++, xsize--, ysize--) {
-    if (xsize <= 0) {
-      if (ysize <= 0) {
-	UADD(br->elements[i], c, 0, 0);
+  /* handle 0 first */
+  if (xsize == 0) {
+    if (ysize == 0) return Sg_MakeBignumFromSI(0);
+    for (i = 0; i < ysize; i++) {
+      br->elements[i] = by->elements[i];
+    }
+    SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(by));
+  } else if (ysize == 0) {
+    for (i = 0; i < xsize; i++) {
+      br->elements[i] = bx->elements[i];
+    }
+    SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
+  } else {
+    for (i = 0, c = 0; i < rsize; i++, xsize--, ysize--) {
+      if (xsize <= 0) {
+	if (ysize <= 0) {
+	  UADD(br->elements[i], c, 0, 0);
+	  continue;
+	}
+	y = by->elements[i];
+	UADD(br->elements[i], c, 0, y);
 	continue;
       }
-      y = by->elements[i];
-      UADD(br->elements[i], c, 0, y);
-      continue;
-    }
-    if (ysize <= 0) {
+      if (ysize <= 0) {
+	x = bx->elements[i];
+	UADD(br->elements[i], c, x, 0);
+	continue;
+      }
       x = bx->elements[i];
-      UADD(br->elements[i], c, x, 0);
-      continue;
+      y = by->elements[i];
+      UADD(br->elements[i], c, x, y);
     }
-    x = bx->elements[i];
-    y = by->elements[i];
-    UADD(br->elements[i], c, x, y);
   }
   return br;
 }
@@ -921,27 +935,41 @@ static SgBignum* bignum_sub_int(SgBignum *br, SgBignum *bx, SgBignum *by)
   int rsize = SG_BIGNUM_GET_COUNT(br);
   int xsize = SG_BIGNUM_GET_COUNT(bx);
   int ysize = SG_BIGNUM_GET_COUNT(by);
-  int i, c;
+  int i, c = 0;
   unsigned long x, y;
 
-  for (i = 0, c = 0; i < rsize; i++, xsize--, ysize--) {
-    if (xsize <= 0) {
-      if (ysize <= 0) {
-	USUB(br->elements[i], c, 0, 0);
+  /* handle 0 first */
+  if (xsize == 0) {
+    if (ysize == 0) return Sg_MakeBignumFromSI(0);
+    for (i = 0; i < ysize; i++) {
+      br->elements[i] = by->elements[i];
+    }
+    SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(by));
+  } else if (ysize == 0) {
+    for (i = 0; i < xsize; i++) {
+      br->elements[i] = bx->elements[i];
+    }
+    SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
+  } else {
+    for (i = 0, c = 0; i < rsize; i++, xsize--, ysize--) {
+      if (xsize <= 0) {
+	if (ysize <= 0) {
+	  USUB(br->elements[i], c, 0, 0);
+	  continue;
+	}
+	y = by->elements[i];
+	USUB(br->elements[i], c, 0, y);
 	continue;
       }
-      y = by->elements[i];
-      USUB(br->elements[i], c, 0, y);
-      continue;
-    }
-    if (ysize <= 0) {
+      if (ysize <= 0) {
+	x = bx->elements[i];
+	USUB(br->elements[i], c, x, 0);
+	continue;
+      }
       x = bx->elements[i];
-      USUB(br->elements[i], c, x, 0);
-      continue;
+      y = by->elements[i];
+      USUB(br->elements[i], c, x, y);
     }
-    x = bx->elements[i];
-    y = by->elements[i];
-    USUB(br->elements[i], c, x, y);
   }
   if (c != 0) {
     bignum_2scmpl(br);
@@ -1492,7 +1520,11 @@ SgObject Sg_BignumGcd(SgBignum *bx, SgBignum *by)
 /* from here, the code base on Java's BigInteger */
 typedef unsigned long ulong;
 #if SIZEOF_LONG == 8
-typedef uint128_t dlong;
+#ifdef __GNUC__
+typedef unsigned int dlong __attribute__((__mode__(TI)));
+#else
+# error "sizeof(long) == 8 but not GCC (not supported yet)"
+#endif
 #define SHIFT_MAGIC 6
 #else
 typedef uint64_t dlong;
@@ -1705,7 +1737,7 @@ static SgBignum * even_mod_inverse(SgBignum *x, SgBignum *m)
 static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
 {
   SgBignum *modVal = x;
-  if (SG_BIGNUM_GET_SIGN(m) != 1) {
+  if (SG_BIGNUM_GET_SIGN(m) < 0) {
     Sg_Error(UC("modulus not positive %S"), m);
   }
   if (BIGNUM_ONEP(m)) return Sg_MakeBignumFromSI(0);
@@ -1726,16 +1758,16 @@ static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
 static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
 {
   SgBignum *u1, *u3, *v1, *v3, *q;
-  int sign = 1;
-  if (SG_BIGNUM_GET_SIGN(m) > 0) {
+  int sign = 1, size = SG_BIGNUM_GET_COUNT(m);
+  if (SG_BIGNUM_GET_SIGN(m) < 0) {
     Sg_Error(UC("modulus not positive %S"), m);
   }
   u1 = Sg_MakeBignumFromSI(1);
   u3 = x;
   v1 = Sg_MakeBignumFromSI(0);
   v3 = m;
-  ALLOC_TEMP_BIGNUM(q, SG_BIGNUM_GET_COUNT(m));
-  while (BIGNUM_ZEROP(v3)) {
+  ALLOC_TEMP_BIGNUM(q, size);
+  while (!BIGNUM_ZEROP(v3)) {
     SgBignum *t3, *w, *t1;
     t3 = bignum_normalize(bignum_mod(u3, v3, q));
     bignum_normalize(q);
@@ -1743,6 +1775,9 @@ static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
     t1 = bignum_normalize(bignum_add(u1, w));
     u1 = v1; v1 = t1; u3 = v3; v3 = t3;
     sign = -sign;
+    /* reset buffer */
+    SG_BIGNUM_SET_COUNT(q, size);
+    SG_BIGNUM_SET_SIGN(q, 1);
   }
   if (sign < 0) {
     return bignum_normalize(bignum_sub(m, u1));

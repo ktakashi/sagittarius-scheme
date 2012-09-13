@@ -3394,11 +3394,9 @@ SgObject Sg_ModInverse(SgObject x, SgObject m)
   if (Sg_Sign(m) != 1) {
     Sg_Error(UC("modulus not positive %S"), m);
   }
-#if 0
   if (SG_BIGNUMP(x) && SG_BIGNUMP(m)) {
     return Sg_BignumModInverse(x, m);
   }
-#endif
   u1 = SG_MAKE_INT(1);
   u3 = x;
   v1 = SG_MAKE_INT(0);
