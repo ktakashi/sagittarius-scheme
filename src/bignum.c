@@ -1844,8 +1844,7 @@ static int add_one(ulong *num, int len, ulong carry)
 
 static ulong primitive_left_shift(ulong *a, int len, ulong n)
 {
-  ulong x, carry;
-  carry = 0;
+  ulong x, carry = 0;
   while (len--) {
     x = *a;
     *a = (x<<n) | carry;
@@ -1857,7 +1856,7 @@ static ulong primitive_left_shift(ulong *a, int len, ulong n)
 
 static ulong primitive_right_shift(ulong *a, int len, ulong n)
 {
-  ulong x, carry;
+  ulong x, carry = 0;
   a += len;
   while (len--) {
     a--;
@@ -2116,12 +2115,11 @@ static SgObject odd_mod_expt(SgBignum *x, SgBignum *exp, SgBignum *mod)
 /* mod(2^p */
 static SgBignum * bignum_mod2(SgBignum *x, int p)
 {
-  int numInts, excessBits, i, xsize;
+  int numInts, excessBits, i;
   SgBignum *r;
   if (Sg_BignumBitSize(x) <= p) return x;
   numInts = (p + (WORD_BITS-1)) >> SHIFT_MAGIC;
   r = make_bignum(numInts);
-  xsize = SG_BIGNUM_GET_COUNT(x);
   for (i = 0; i < numInts; i++) {
     r->elements[i] = x->elements[i];
   }
