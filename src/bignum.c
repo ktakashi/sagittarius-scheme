@@ -896,7 +896,10 @@ static SgBignum* bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by)
 
   /* handle 0 first */
   if (xsize == 0) {
-    if (ysize == 0) return Sg_MakeBignumFromSI(0);
+    if (ysize == 0) {
+      SG_BIGNUM_SET_ZERO(br);
+      return br;
+    }
     for (i = 0; i < ysize; i++) {
       br->elements[i] = by->elements[i];
     }
@@ -940,7 +943,10 @@ static SgBignum* bignum_sub_int(SgBignum *br, SgBignum *bx, SgBignum *by)
 
   /* handle 0 first */
   if (xsize == 0) {
-    if (ysize == 0) return Sg_MakeBignumFromSI(0);
+    if (ysize == 0) {
+      SG_BIGNUM_SET_ZERO(br);
+      return br;
+    }
     for (i = 0; i < ysize; i++) {
       br->elements[i] = by->elements[i];
     }
