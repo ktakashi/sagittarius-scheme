@@ -188,37 +188,41 @@
   (define (rsa-keysize keysize) *rsa-max-keysize*)
 
   ;; util
-  (define (rsa-mod-expt bv key)
-    (call-with-bytevector-output-port
-     (lambda (port)
-       (let ((chunk (bytevector->integer bv)))
-	 (cond ((rsa-public-key? key)
-		(put-bytevector port (integer->bytevector
-				      (mod-expt chunk
-						(slot-ref key 'exponent)
-						(slot-ref key 'modulus)))))
-	       ((rsa-private-crt-key? key)
-		;; use CRT
-		(let ((p  (slot-ref key 'p))
-		      (q  (slot-ref key 'q))
-		      (dp (slot-ref key 'dP))
-		      (dq (slot-ref key 'dQ))
-		      (qp (slot-ref key 'qP)))
-		  ;; b = chunk
-		  (let* ((a (mod-expt chunk dp p)) ; b ^ dP mod p
-			 (b (mod-expt chunk dq q)) ; b ^ dQ mod q
-			 (c (mod (* (- a b) qp) p)) ; (a - b) * qp (mod p)
-			 (d (+ b (* q c))))	   ; b + q * c
-		    (put-bytevector port (integer->bytevector d)))))
-	       ((rsa-private-key? key)
-		(let* ((modulus (slot-ref key 'modulus))
-		       (private-exponent (slot-ref key 'private-exponent))
-		       (a (mod-expt chunk private-exponent modulus)))
-		  (put-bytevector port (integer->bytevector a))))
-	       (else
-		(assertion-violation 'rsa-mod-expt
-				     "invalid parameter"
-				     chunk key)))))))
+  (define (rsa-mod-expt bv key . opt)
+    (let ((sign? (if (null? opt) #f (car opt)))
+	  (chunk (bytevector->integer bv)))
+      (cond ((rsa-public-key? key)
+	     (let ((r (mod-expt chunk
+				(slot-ref key 'exponent)
+				(slot-ref key 'modulus))))
+	       (if sign?
+		   (integer->bytevector r (bytevector-length bv))
+		   (integer->bytevector r))))
+	    ((rsa-private-crt-key? key)
+	     ;; use CRT
+	     (let ((p  (slot-ref key 'p))
+		   (q  (slot-ref key 'q))
+		   (dp (slot-ref key 'dP))
+		   (dq (slot-ref key 'dQ))
+		   (qp (slot-ref key 'qP)))
+	       ;; b = chunk
+	       (let* ((a (mod-expt chunk dp p)) ; b ^ dP mod p
+		      (b (mod-expt chunk dq q)) ; b ^ dQ mod q
+		      (c (mod (* (- a b) qp) p)) ; (a - b) * qp (mod p)
+		      (d (+ b (* q c))))	   ; b + q * c
+		 (if sign?
+		     (integer->bytevector d (bytevector-length bv))
+		     (integer->bytevector d)))))
+	    ((rsa-private-key? key)
+	     (let* ((modulus (slot-ref key 'modulus))
+		    (private-exponent (slot-ref key 'private-exponent))
+		    (a (mod-expt chunk private-exponent modulus)))
+	       (if sign?
+		   (integer->bytevector a (bytevector-length bv))
+		   (integer->bytevector a))))
+	    (else
+	     (assertion-violation 'rsa-mod-expt
+				  "invalid parameter" chunk key)))))
 
   ;; encrypt/decrypt
   ;; This procedure must be called from C and bv may be padded there.
@@ -258,7 +262,7 @@
     (let* ((modulus (slot-ref key 'modulus))
 	   (len (bitwise-length modulus))
 	   (data (apply encode bv (- len 1) opt)))
-      (rsa-mod-expt data key)))
+      (rsa-mod-expt data key #t)))
 
   (define (rsa-verify M S key :key (verify pkcs1-emsa-pss-verify)
 			      :allow-other-keys opt)
