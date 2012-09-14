@@ -411,6 +411,7 @@ void Sg_AddCondFeature(const SgChar *feature)
   cond_features.list = Sg_Cons(Sg_Intern(Sg_MakeString(feature,
 						       SG_LITERAL_STRING)),
 			       cond_features.list);
+  Sg_AddConstantLiteral(cond_features.list);
   Sg_UnlockMutex(&cond_features.mutex);
 }
 

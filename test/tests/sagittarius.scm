@@ -477,4 +477,23 @@
 (test-equal "rename b" 'b (b))
 (test-error "unbound dummy" assertion-violation? dummy)
 
+;; Issue 26
+(test-assert "cond-features" (constant-literal? (cond-features)))
+
+;; Issue 27
+;; macro will re-construct constant literal non constant,
+;; so we need to keep it as binded variables.
+(let ((a '(a b c))
+      (b '(c d)))
+  (test-error "append! with literal" assertion-violation? 
+	      (append! a '(c d)))
+  (test-error "append! with literal" 
+	      assertion-violation?
+	      (let ((a (list 'a 'b 'c)))
+		(append! a b)
+		(set-cdr! (last-pair a) 'f)))
+
+  (test-error "reverse! with literal" assertion-violation? 
+	      (reverse! a)))
+
 (test-end)

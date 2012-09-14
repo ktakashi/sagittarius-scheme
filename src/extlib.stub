@@ -72,7 +72,11 @@
   (define-c-proc circular-list? (lst) ::<boolean>
     (result (SG_CIRCULAR_LISTP lst)))
 
-  (define-c-proc reverse! (lis) ::<top>
+  (define-c-proc reverse! (lis)
+    (when (Sg_ConstantLiteralP lis)
+      (assertion-violation 'reverse!
+			   "attempt to modify constant literal"
+			   lis))
     (result (Sg_ReverseX lis)))
 
   (define-c-proc acons (a b alist) ::<top>
@@ -83,10 +87,15 @@
       (dopairs (cp lst)
 	(when (and (not (SG_PAIRP (SG_CAR cp)))
 		   (SG_NULLP (SG_CDR cp)))
-	  (if (SG_NULLP h)
-	      (set! h (SG_CAR cp))
-	      (SG_SET_CDR t (SG_CAR cp)))
+	  (cond ((SG_NULLP h)
+		 (set! h (SG_CAR cp)))
+		(else
+		 (SG_SET_CDR t (SG_CAR cp))))
 	  (break))
+	(when (and (SG_NULLP h) (Sg_ConstantLiteralP (SG_CAR cp)))
+	  (assertion-violation 'append!
+			       "attempt to modify constant literal"
+			       (SG_CAR cp)))
 	(SG_APPEND h t (SG_CAR cp)))
       (result h)))
 
