@@ -75,8 +75,9 @@ Note: the @var{name} is only for error message. It does not affect anything.
 @define[Macro]{@name{define-dispatch-macro}
  @args{name char proc subchar non-term?}}
 @desc{@var{Name} must be self evaluated expression.
-@var{Proc} must accept two arguments, the first one is a port, the second one is
-a character which is defined as reader macro character.
+@var{Proc} must accept three arguments, the first one is a port, the second one 
+is a character which is defined as reader macro character and the third one is
+a macro parameter.
 
 @code{define-dispatch-macro} creates macro dispatch macro character @var{char}
 if there is not dispatch macro yet, and associates @var{subchar} and @var{proc}
