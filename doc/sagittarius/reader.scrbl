@@ -239,3 +239,22 @@ a read error;
 #!r6rs
 #/regular expression/ ;; <- &lexical
 }
+
+@subsubsection{Replacing reader}
+
+Since 0.3.7, users can replace default reader. It uses the same form as reader
+macros. Users just need to define own reader if you want to.
+
+@define[Macro]{@name{define-reader} @args{name expr}}
+@define[Macro]{@name{define-reader} @args{(name port) expr @dots{}}}
+@desc{This macro defines replaceable reader.
+
+The forms are similar with @code{define}. However if you use the first form
+then @var{expr} must be @code{lambda} and it accept one argument.
+
+The defined reader will be used on read time, so it needs to return valid
+expression as a return value of the reader.
+
+NOTE: Only one reader can be defined in one library. If you define more than
+once the later one will be used.
+}
