@@ -952,11 +952,22 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	SgObject lib = Sg_FindLibrary(name, FALSE);
 	/* should we raise error or not? */
 	if (SG_FALSEP(lib)) {
-	  lexical_error(port, ctx,
-			UC("no library named %S"), name);
+	  lexical_error(port, ctx, UC("no library named %S"), name);
 	}
 	if (!SG_FALSEP(SG_LIBRARY_READER(lib))) {
 	  Sg_SetCurrentReader(SG_LIBRARY_READER(lib));
+	}
+      }
+      /* for portability with other implementation */
+      if (ustrncmp(tag->value, "read-macro=", 11) == 0) {
+	SgObject name = construct_lib_name(Sg_Substring(tag, 11, -1));
+	SgObject lib = Sg_FindLibrary(name, FALSE);
+	/* should we raise error or not? */
+	if (SG_FALSEP(lib)) {
+	  lexical_error(port, ctx, UC("no library named %S"), name);
+	}
+	if (SG_LIBRARY_READTABLE(lib)) {
+	  add_read_table(SG_LIBRARY_READTABLE(lib), Sg_CurrentReadTable());
 	}
       }
     }
