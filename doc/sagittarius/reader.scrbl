@@ -75,8 +75,9 @@ Note: the @var{name} is only for error message. It does not affect anything.
 @define[Macro]{@name{define-dispatch-macro}
  @args{name char proc subchar non-term?}}
 @desc{@var{Name} must be self evaluated expression.
-@var{Proc} must accept two arguments, the first one is a port, the second one is
-a character which is defined as reader macro character.
+@var{Proc} must accept three arguments, the first one is a port, the second one 
+is a character which is defined as reader macro character and the third one is
+a macro parameter.
 
 @code{define-dispatch-macro} creates macro dispatch macro character @var{char}
 if there is not dispatch macro yet, and associates @var{subchar} and @var{proc}
@@ -181,6 +182,15 @@ The following table explains predefined reader macros.
     to overwrite exported variables.}
     @dl-item["#!nocache"]{Sets disable cache flag on the current loading file}
     @dl-item["#!deprecated"]{Display warning message of deprecated library.}
+    @dl-item["#!reader=name"]{
+	Replace reader with library @var{name}. The @var{name} must be converted
+	with the naming convention described below. For more details, see
+	@secref["sagittarius.name.convention"]{Naming convention}}
+    @dl-item["#!read-macro=name"]{
+	The same as @code{#< @var{name} >} but this is more for compatibility.
+	@var{name} must be converted with the naming convention described below.
+	For more details, see	
+	@secref["sagittarius.name.convention"]{Naming convention}}
   }}}
 @tr{@td{#\v}
  @td{Checks if the next 2 characters are @code{u} and @code{8} and reads
@@ -238,3 +248,47 @@ a read error;
 #!r6rs
 #/regular expression/ ;; <- &lexical
 }
+
+@subsubsection{Replacing reader}
+
+Since 0.3.7, users can replace default reader. Following example describes how
+to replace reader.
+
+@codeblock{
+#!reader=srfi/:49
+define
+  fac n
+  if (zero? n) 1
+    * n
+      fac (- n 1)
+
+(print (fac 10))
+}
+
+@code{#!reader=} specifies which reader will be used. For this example, it will
+use the one defined in @code{(srfi :49)} library. For compatibility of the other
+Scheme implementation, we chose not to use the library name itself but a bit
+converted name.
+
+@sub*section[:tag "sagittarius.name.convention"]{Naming convention}
+
+The naming convention is really easy. For example, replacing with
+@code{(srfi :49)}, first remove all parentheses or brackets then replace spaces
+to @code{/}.
+
+@define[Macro]{@name{define-reader} @args{name expr}}
+@define[Macro]{@name{define-reader} @args{(name port) expr @dots{}}}
+@desc{This macro defines replaceable reader.
+
+The forms are similar with @code{define}. However if you use the first form
+then @var{expr} must be @code{lambda} and it accept one argument.
+
+The defined reader will be used on read time, so it needs to return valid
+expression as a return value of the reader.
+
+NOTE: Only one reader can be defined in one library. If you define more than
+once the later one will be used.
+}
+
+NOTE: If you want to export user defined reader to other library, you need to
+put @code{:export-reader} keyword to the library export clause.

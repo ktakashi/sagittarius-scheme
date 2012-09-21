@@ -17,4 +17,5 @@ SG_EXTERN SgSymbol Sg_BuiltinKeywords[];
 #define SG_KEYWORD_INIT_THUNK SG_OBJ(&Sg_BuiltinKeywords[12])
 #define SG_KEYWORD_ALL SG_OBJ(&Sg_BuiltinKeywords[13])
 #define SG_KEYWORD_EXPORT_READER_MACRO SG_OBJ(&Sg_BuiltinKeywords[14])
+#define SG_KEYWORD_EXPORT_READER SG_OBJ(&Sg_BuiltinKeywords[15])
 #endif /* BUILTIN_KEYWORD_H__ */

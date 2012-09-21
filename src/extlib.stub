@@ -110,7 +110,10 @@
   
   (define-c-proc vector-reverse!
     (vec::<vector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
-    Sg_VectorReverseX)
+    (when (Sg_ConstantLiteralP vec)
+      (assertion-violation 'vector-reverse!
+			   "attempt to modify constant literal" vec))
+    (result (Sg_VectorReverseX vec start end)))
 
   (define-c-proc vector-reverse
     (vec::<vector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
@@ -814,6 +817,11 @@
     (Sg_MakeDispatchMacroCharacter c non_termP
 				   (SG_LIBRARY_READTABLE lib))
     (Sg_SetDispatchMacroCharacter c subc proc (SG_LIBRARY_READTABLE lib)))
+
+  (define-c-proc %library-reader-set! (lib::<library> proc::<procedure>)
+    ::<void>
+    ;; TODO should we forbid overwrite?
+    (set! (SG_LIBRARY_READER lib) proc))
 
   (define-c-proc read-delimited-list 
     (c::<char> :optional

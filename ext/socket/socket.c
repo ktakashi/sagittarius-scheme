@@ -347,11 +347,7 @@ static SgPort* make_port(enum SgPortDirection d, enum SgPortType t,
 			 enum SgBufferMode m)
 {
   SgPort *z = SG_NEW(SgPort);
-  SG_SET_CLASS(z, SG_CLASS_PORT);
-  z->direction = d;
-  z->type = t;
-  z->bufferMode = m;
-  Sg_InitMutex(&z->lock, TRUE);
+  SG_INIT_PORT(z, d, t, m);
   return z;
 }
 

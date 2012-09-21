@@ -11,13 +11,14 @@
 	    read-delimited-list
 	    delimited-char?
 
+	    define-reader
+
 	    ;; for error
 	    raise-i/o-read-error
 	    )
     (import (rnrs)
 	    (core errors)
-	    (sagittarius)
-	    (sagittarius vm))
+	    (sagittarius))
 
   (define-syntax define-reader-macro
     (syntax-rules ()
@@ -34,7 +35,7 @@
 	 (unless (procedure? name)
 	   (assertion-violation 'k
 				(format "procedure requireb but got ~s" name)))
-	 (%insert-macro-character c name (vm-current-library) non-term?)))))
+	 (%insert-macro-character c name (current-library) non-term?)))))
 
   (define-syntax define-dispatch-macro
     (syntax-rules ()
@@ -53,6 +54,15 @@
 	 (unless (procedure? name)
 	   (assertion-violation 'k
 				(format "procedure requireb but got ~s" name)))
-	 (%insert-dispatch-macro-character c sc name (vm-current-library)
+	 (%insert-dispatch-macro-character c sc name (current-library)
 					   non-term?)))))
+
+  (define-syntax define-reader
+    (syntax-rules ()
+      ((_ (name port) expr ...)
+       (define-reader name (lambda (port) expr ...)))
+      ((_ name proc)
+       (begin
+	 (%library-reader-set! (current-library) proc)
+	 (define name proc)))))
 )

@@ -832,6 +832,22 @@ SgObject read_hash_unquote(SgPort *port, SgChar c,
   return SG_LIST2(SG_SYMBOL_UNSYNTAX, read_expr(port, ctx));  
 }
 
+static SgObject construct_lib_name(SgObject s)
+{
+  SgObject h = SG_NIL, t = SG_NIL;
+  int i, prev;
+  for (i = 0, prev = 0; i < SG_STRING_SIZE(s); i++) {
+    if (SG_STRING_VALUE_AT(s, i) == '/') {
+      SG_APPEND1(h, t, Sg_Intern(Sg_Substring(s, prev, i)));
+      prev = i + 1;
+    }
+  }
+  if (i != prev) {
+    SG_APPEND1(h, t, Sg_Intern(Sg_Substring(s, prev, i)));
+  }
+  return h;
+}
+
 /*
   TODO: some SRFIs (as far as I know only 105) requires speciall sh-bang
   it's better to have hook or something.
@@ -930,6 +946,29 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	SgVM *vm = Sg_VM();
 	SG_VM_SET_FLAG(vm, SG_NO_DEBUG_INFO);
 	return NULL;
+      }
+      if (ustrncmp(tag->value, "reader=", 7) == 0) {
+	SgObject name = construct_lib_name(Sg_Substring(tag, 7, -1));
+	SgObject lib = Sg_FindLibrary(name, FALSE);
+	/* should we raise error or not? */
+	if (SG_FALSEP(lib)) {
+	  lexical_error(port, ctx, UC("no library named %S"), name);
+	}
+	if (!SG_FALSEP(SG_LIBRARY_READER(lib))) {
+	  Sg_SetCurrentReader(SG_LIBRARY_READER(lib));
+	}
+      }
+      /* for portability with other implementation */
+      if (ustrncmp(tag->value, "read-macro=", 11) == 0) {
+	SgObject name = construct_lib_name(Sg_Substring(tag, 11, -1));
+	SgObject lib = Sg_FindLibrary(name, FALSE);
+	/* should we raise error or not? */
+	if (SG_FALSEP(lib)) {
+	  lexical_error(port, ctx, UC("no library named %S"), name);
+	}
+	if (SG_LIBRARY_READTABLE(lib)) {
+	  add_read_table(SG_LIBRARY_READTABLE(lib), Sg_CurrentReadTable());
+	}
       }
     }
     return NULL;
@@ -1275,8 +1314,7 @@ SgObject read_hash_less(SgPort *port, SgChar c, dispmacro_param *param,
       }
       if (SG_LIBRARY_READTABLE(lib)) {
 	add_read_table(SG_LIBRARY_READTABLE(lib), Sg_CurrentReadTable());
-      }
-      
+      }      
     } else {
       lexical_error(port, ctx,
 		    UC("library name required but got %S"), name);

@@ -60,6 +60,7 @@ struct SgLibraryRec
 				   transient.
 				 */
   readtable_t *readtable;
+  SgObject     reader;		/* custom reader */
 };
 
 #define SG_LIBRARY(obj)  ((SgLibrary*)(obj))
@@ -71,6 +72,7 @@ struct SgLibraryRec
 #define SG_LIBRARY_DEFINEED(obj) SG_LIBRARY(obj)->defined
 #define SG_LIBRARY_TABLE(obj)    SG_LIBRARY(obj)->table
 #define SG_LIBRARY_READTABLE(obj)    SG_LIBRARY(obj)->readtable
+#define SG_LIBRARY_READER(obj)   SG_LIBRARY(obj)->reader
 
 SG_CDECL_BEGIN
 

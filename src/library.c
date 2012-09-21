@@ -74,6 +74,7 @@ static SgLibrary* make_library()
   z->defined = SG_NIL;
   z->version = SG_NIL;
   z->parents = SG_NIL;
+  z->reader = SG_FALSE;
   Sg_InitMutex(&z->lock, FALSE);
   return z;
 }
@@ -591,9 +592,17 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from, SgObject spec)
   parents = import_parents(fromlib, spec, allP);
 
   tolib->parents = Sg_Append2X(Sg_Cons(slot, parents), tolib->parents);
-  if (SG_FALSEP(exportSpec) ||
-      !SG_FALSEP(Sg_Memq(SG_KEYWORD_EXPORT_READER_MACRO, SG_CAR(exportSpec)))) {
+  if (!SG_FALSEP(exportSpec)) {
+    if (!SG_FALSEP(Sg_Memq(SG_KEYWORD_EXPORT_READER_MACRO,
+			   SG_CAR(exportSpec)))) {
+      import_reader_macro(tolib, fromlib);
+    }
+    if (!SG_FALSEP(Sg_Memq(SG_KEYWORD_EXPORT_READER, SG_CAR(exportSpec)))) {
+      SG_LIBRARY_READER(tolib) = SG_LIBRARY_READER(fromlib);
+    }
+  } else {
     import_reader_macro(tolib, fromlib);
+    SG_LIBRARY_READER(tolib) = SG_LIBRARY_READER(fromlib);
   }
 
   Sg_UnlockMutex(&tolib->lock);
