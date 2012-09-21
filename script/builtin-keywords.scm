@@ -84,6 +84,7 @@
     ;; for export
     (:all             SG_KEYWORD_ALL)
     (:export-reader-macro SG_KEYWORD_EXPORT_READER_MACRO)
+    (:export-reader   SG_KEYWORD_EXPORT_READER)
     ))
 
 ;;;; end of file

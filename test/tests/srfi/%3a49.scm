@@ -1,5 +1,5 @@
 ;; how should we test this?
-#< (srfi :49) >
+#!reader=srfi/:49
 (import (rnrs) (srfi :49) (srfi :64))
 
 (test-begin "SRFI-49 tests")

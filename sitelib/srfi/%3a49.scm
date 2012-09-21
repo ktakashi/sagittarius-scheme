@@ -32,8 +32,7 @@
     (export group 
 	    srfi-49-read
 	    srfi-49-load
-	    ;; to allow to use with #< ... > form
-	    :export-reader-macro
+	    :export-reader
 	    )
     (import (rnrs)
 	    (rnrs eval)

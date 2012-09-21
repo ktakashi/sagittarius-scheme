@@ -18,6 +18,7 @@ SgSymbol Sg_BuiltinKeywords[] = {
   ENTRY(),
   ENTRY(),
   ENTRY(),
+  ENTRY(),
 #undef ENTRY
 };
 static void init_builtin_keywords()
@@ -41,5 +42,6 @@ static void init_builtin_keywords()
   INTERN("init-thunk", 12);
   INTERN("all", 13);
   INTERN("export-reader-macro", 14);
+  INTERN("export-reader", 15);
 #undef INTERN
 }

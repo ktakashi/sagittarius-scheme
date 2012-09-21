@@ -242,8 +242,28 @@ a read error;
 
 @subsubsection{Replacing reader}
 
-Since 0.3.7, users can replace default reader. It uses the same form as reader
-macros. Users just need to define own reader if you want to.
+Since 0.3.7, users can replace default reader. Following example describes how
+to replace reader.
+
+@codeblock{
+#!reader=srfi/:49
+define
+  fac n
+  if (zero? n) 1
+    * n
+      fac (- n 1)
+
+(print (fac 10))
+}
+
+@code{#!reader=} specifies which reader will be used. For this example, it will
+use the one defined in @code{(srfi :49)} library. For compatibility of the other
+Scheme implementation, we chose not to use the library name itself but a bit
+converted name.
+
+The naming convention is really easy. For example, replacing with
+@code{(srfi :49)}, first remove all parentheses or brackets then replace spaces
+to @code{/}.
 
 @define[Macro]{@name{define-reader} @args{name expr}}
 @define[Macro]{@name{define-reader} @args{(name port) expr @dots{}}}
@@ -258,3 +278,6 @@ expression as a return value of the reader.
 NOTE: Only one reader can be defined in one library. If you define more than
 once the later one will be used.
 }
+
+NOTE: If you want to export user defined reader to other library, you need to
+put @code{:export-reader} keyword to the library export clause.
