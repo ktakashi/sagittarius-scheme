@@ -1276,6 +1276,9 @@ SgObject read_hash_less(SgPort *port, SgChar c, dispmacro_param *param,
       if (SG_LIBRARY_READTABLE(lib)) {
 	add_read_table(SG_LIBRARY_READTABLE(lib), Sg_CurrentReadTable());
       }
+      if (!SG_FALSEP(SG_LIBRARY_READER(lib))) {
+	Sg_SetCurrentReader(SG_LIBRARY_READER(lib));
+      }
       
     } else {
       lexical_error(port, ctx,

@@ -59,6 +59,7 @@ static SgObject load_after(SgObject *args, int argc, void *data)
   vm->flags = port->vmFlags;
   /* restore readtable template */
   Sg_SetCurrentReadTable(port->readtable);
+  vm->currentReader = port->reader;
   Sg_ClosePort(port);
   return SG_UNDEF;
 }
@@ -66,7 +67,12 @@ static SgObject load_after(SgObject *args, int argc, void *data)
 static SgObject load_cc(SgObject result, void **data)
 {
   SgPort *port = SG_PORT(data[0]);
-  SgObject expr = Sg_Read(port, TRUE);
+  SgObject expr, reader = Sg_CurrentReader();
+  if (SG_FALSEP(reader)) {
+    expr = Sg_Read(port, TRUE);
+  } else {
+    expr = Sg_Apply1(reader, port);
+  }
   if (!SG_EOFP(expr)) {
     Sg_VMPushCC(load_cc, data, 1);
     return Sg_VMEval(expr, SG_FALSE);
@@ -93,6 +99,8 @@ SgObject Sg_VMLoadFromPort(SgPort *port)
   port->vmFlags = vm->flags;
   /* save readtable template */
   port->readtable = Sg_CurrentReadTable();
+  /* save current reader */
+  port->reader = vm->currentReader;
   Sg_SetCurrentReadTable(Sg_CopyReadTable(port->readtable));
   return Sg_VMDynamicWindC(NULL, load_body, load_after, port);
 }

@@ -188,6 +188,8 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->flags = proto? proto->flags : 0;
   /* the very first one will be set later. */
   v->currentReadTable = proto? proto->currentReadTable : NULL;
+  v->currentReader = proto? proto->currentReader : SG_FALSE;
+
   v->currentInputPort = proto 
     ? proto->currentInputPort
     : Sg_MakeTranscodedInputPort(Sg_StandardInputPort(),
@@ -279,6 +281,14 @@ readtable_t* Sg_CurrentReadTable()
 void Sg_SetCurrentReadTable(readtable_t *newtable)
 {
   Sg_VM()->currentReadTable = newtable;
+}
+SgObject Sg_CurrentReader()
+{
+  return Sg_VM()->currentReader;
+}
+void Sg_SetCurrentReader(SgObject reader)
+{
+  Sg_VM()->currentReader = reader;
 }
 
 /* some flags */

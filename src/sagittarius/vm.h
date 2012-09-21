@@ -257,6 +257,7 @@ struct SgVMRec
   SgObject cache;
   /* read macro */
   readtable_t *currentReadTable;
+  SgObject     currentReader;
 };
 
 /*
@@ -421,6 +422,9 @@ SG_EXTERN void     Sg_VMProcessTime(unsigned long *sec, unsigned long *usec);
 /* read macro */
 SG_EXTERN readtable_t* Sg_CurrentReadTable();
 SG_EXTERN void     Sg_SetCurrentReadTable(readtable_t *newtable);
+/* reader */
+SG_EXTERN SgObject Sg_CurrentReader();
+SG_EXTERN void     Sg_SetCurrentReader(SgObject reader);
 
 /* root? */
 SG_EXTERN int      Sg_MainThreadP();

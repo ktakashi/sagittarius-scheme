@@ -815,6 +815,11 @@
 				   (SG_LIBRARY_READTABLE lib))
     (Sg_SetDispatchMacroCharacter c subc proc (SG_LIBRARY_READTABLE lib)))
 
+  (define-c-proc %library-reader-set! (lib::<library> proc::<procedure>)
+    ::<void>
+    ;; TODO should we forbid overwrite?
+    (set! (SG_LIBRARY_READER lib) proc))
+
   (define-c-proc read-delimited-list 
     (c::<char> :optional
 	       (p::<port> (Sg_CurrentInputPort))

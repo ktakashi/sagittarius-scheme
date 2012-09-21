@@ -74,6 +74,7 @@ static SgLibrary* make_library()
   z->defined = SG_NIL;
   z->version = SG_NIL;
   z->parents = SG_NIL;
+  z->reader = SG_FALSE;
   Sg_InitMutex(&z->lock, FALSE);
   return z;
 }
