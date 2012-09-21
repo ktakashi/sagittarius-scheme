@@ -496,4 +496,9 @@
   (test-error "reverse! with literal" assertion-violation? 
 	      (reverse! a)))
 
+;; Issue 28
+(let ((a #(1 2 3))
+      (b #(1 2 3)))
+  (test-error "vector-reverse!" assertion-violation? (vector-reverse! a)))
+
 (test-end)

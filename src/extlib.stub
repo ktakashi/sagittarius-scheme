@@ -110,7 +110,10 @@
   
   (define-c-proc vector-reverse!
     (vec::<vector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
-    Sg_VectorReverseX)
+    (when (Sg_ConstantLiteralP vec)
+      (assertion-violation 'vector-reverse!
+			   "attempt to modify constant literal" vec))
+    (result (Sg_VectorReverseX vec start end)))
 
   (define-c-proc vector-reverse
     (vec::<vector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
