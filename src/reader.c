@@ -957,6 +957,10 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	if (!SG_FALSEP(SG_LIBRARY_READER(lib))) {
 	  Sg_SetCurrentReader(SG_LIBRARY_READER(lib));
 	}
+	/* to let replaced reader read next expression, otherwise current
+	   reader keep reading the next one.
+	 */
+	return SG_UNDEF;
       }
       /* for portability with other implementation */
       if (ustrncmp(tag->value, "read-macro=", 11) == 0) {
@@ -969,6 +973,7 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	if (SG_LIBRARY_READTABLE(lib)) {
 	  add_read_table(SG_LIBRARY_READTABLE(lib), Sg_CurrentReadTable());
 	}
+	return NULL;
       }
     }
     return NULL;
