@@ -185,18 +185,18 @@ SgObject Sg_TimeUsage()
   FILETIME kernel_time;
   FILETIME user_time;
   GetSystemTimeAsFileTime(&real_time);
-  if (GetProcessTimes(GetCurrentProcess(), &creation_time, &exit_time, &kernel_time, &user_time)) {
-    SgObject values = Sg_MakeValues(3);
-    SG_VALUES_ELEMENT(values, 0) = Sg_MakeFlonum(((double)real_time.dwLowDateTime
-						  + (double)real_time.dwHighDateTime
-						  * (double)UINT32_MAX) / 10000000.0);
-    SG_VALUES_ELEMENT(values, 1) = Sg_MakeFlonum(((double)user_time.dwLowDateTime
-						  + (double)user_time.dwHighDateTime
-						  * (double)UINT32_MAX) / 10000000.0);
-    SG_VALUES_ELEMENT(values, 2) = Sg_MakeFlonum(((double)kernel_time.dwLowDateTime
-						  + (double)kernel_time.dwHighDateTime
-						  * (double)UINT32_MAX) / 10000000.0);
-    return values;
+  if (GetProcessTimes(GetCurrentProcess(), &creation_time,
+		      &exit_time, &kernel_time, &user_time)) {
+    return Sg_Values3(Sg_MakeFlonum(((double)real_time.dwLowDateTime
+				     + (double)real_time.dwHighDateTime
+				     * (double)UINT32_MAX) / 10000000.0);
+		      Sg_MakeFlonum(((double)user_time.dwLowDateTime
+				     + (double)user_time.dwHighDateTime
+				     * (double)UINT32_MAX) / 10000000.0);
+		      Sg_MakeFlonum(((double)kernel_time.dwLowDateTime
+				     + (double)kernel_time.dwHighDateTime
+				     * (double)UINT32_MAX) / 10000000.0));
+
   }
   return SG_FALSE;
 }

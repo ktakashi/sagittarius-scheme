@@ -134,12 +134,8 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 {
   SgVM *v = SG_NEW(SgVM);
   unsigned long sec, usec;
-  SgCodeBuilder *closureForEvaluateCode = Sg_MakeCodeBuilder(-1);
+  int i;
   SG_SET_CLASS(v, SG_CLASS_VM);
- 
-  closureForEvaluateCode->src = SG_NIL;
-  closureForEvaluateCode->name = SG_INTERN("*toplevel*");
-  v->closureForEvaluate = Sg_MakeClosure(closureForEvaluateCode, NULL);
 
   v->name = name;
   v->threadState = SG_VM_NEW;
@@ -149,6 +145,8 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->cont = (SgContFrame *)v->sp;
   v->ac = SG_NIL;
   v->cl = NULL;
+  for (i = 0; i < DEFAULT_VALUES_SIZE; i++) v->values[i] = SG_UNDEF;
+  v->valuesCount = 1;
 
   v->attentionRequest = FALSE;
   v->finalizerPending = FALSE;
@@ -290,6 +288,66 @@ void Sg_SetCurrentReader(SgObject reader)
 {
   Sg_VM()->currentReader = reader;
 }
+
+/* values  */
+SgObject Sg_Values(SgObject args)
+{
+  return Sg_VMValues(theVM, args);
+}
+
+SgObject Sg_VMValues(SgVM *vm, SgObject args)
+{
+  SgObject cp;
+  int nvals;
+  if (!SG_PAIRP(args)) {
+    vm->valuesCount = 0;
+    return SG_UNDEF;
+  }
+  nvals = 1;
+  SG_FOR_EACH(cp, SG_CDR(args)) {
+    if (nvals < DEFAULT_VALUES_SIZE+1) {
+      SG_VALUES_SET(vm, nvals-1, SG_CAR(cp));
+    } else {
+      if (!vm->extra_values) {
+	int len = Sg_Length(cp); /* get rest... */
+	SG_ALLOC_VALUES_BUFFER(vm, len);
+      }
+      SG_VALUES_SET(vm, nvals-1, SG_CAR(cp));
+    }
+    nvals++;
+  }
+  vm->valuesCount = nvals;
+  vm->ac = SG_CAR(args);
+  return vm->ac;
+}
+
+SgObject Sg_Values2(SgObject v1, SgObject v2)
+{
+  return Sg_VMValues2(theVM, v1, v2);
+}
+
+SgObject Sg_VMValues2(SgVM *vm, SgObject v1, SgObject v2)
+{
+  vm->valuesCount = 2;
+  vm->values[0] = v2;
+  vm->ac = v1;
+  return v1;
+}
+
+SgObject Sg_Values3(SgObject v1, SgObject v2, SgObject v3)
+{
+  return Sg_VMValues3(theVM, v1, v2, v3);
+}
+
+SgObject Sg_VMValues3(SgVM *vm, SgObject v1, SgObject v2, SgObject v3)
+{
+  vm->valuesCount = 3;
+  vm->values[0] = v2;
+  vm->values[1] = v3;
+  vm->ac = v1;
+  return v1;
+}
+
 
 /* some flags */
 /* bench mark said, it does not make that much difference.
@@ -548,7 +606,7 @@ SgObject Sg_Compile(SgObject o, SgObject e)
  */
 SgObject Sg_Eval(SgObject sexp, SgObject env)
 {
-  SgObject v = SG_NIL;
+  SgObject v = SG_NIL, c;
   SgVM *vm = theVM;
   SgObject r = SG_UNDEF, save = vm->currentLibrary;
 
@@ -566,8 +624,8 @@ SgObject Sg_Eval(SgObject sexp, SgObject env)
   if (!SG_FALSEP(env)) {
     vm->currentLibrary = env;
   }
-  SG_CLOSURE(vm->closureForEvaluate)->code = v;
-  r = evaluate_safe(vm->closureForEvaluate, SG_CODE_BUILDER(v)->code);
+  c = Sg_MakeClosure(v, NULL);
+  r = evaluate_safe(c, SG_CODE_BUILDER(v)->code);
   vm->currentLibrary = save;
   return r;
 }
@@ -596,6 +654,7 @@ SgObject Sg_VMEval(SgObject sexp, SgObject env)
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
     Sg_VMDumpCode(v);
   }
+  vm->valuesCount = 1;
   if (!SG_FALSEP(env)) {
     SgObject body = Sg_MakeClosure(v, NULL);
     SgObject before = Sg_MakeSubr(eval_restore_env, env, 0, 0, SG_FALSE);
@@ -704,6 +763,13 @@ static SgWord apply_calls[][5] = {
   { MERGE_INSN_VALUE1(TAIL_CALL, 4), RET }
 };
 
+/* dummy closure */
+static SgClosure internal_toplevel_closure =
+  { SG__PROCEDURE_INITIALIZER(SG_CLASS_STATIC_TAG(Sg_ProcedureClass),
+			      0, 0, SG_PROC_CLOSURE, SG_FALSE, SG_FALSE),
+    SG_FALSE,};
+
+
 SgObject Sg_Apply0(SgObject proc)
 {
 #if USE_LIGHT_WEIGHT_APPLY
@@ -807,7 +873,7 @@ SgObject Sg_Apply(SgObject proc, SgObject args)
   applyCode[6] = SG_WORD(MERGE_INSN_VALUE1(APPLY, 2));
   applyCode[7] = SG_WORD(RET);
 
-  program = (CL(vm)) ? CL(vm) : vm->closureForEvaluate;
+  program = (CL(vm)) ? CL(vm) : SG_OBJ(&internal_toplevel_closure);
   return evaluate_safe(program, applyCode);
 }
 
@@ -938,18 +1004,37 @@ static SgObject dynamic_wind_body_cc(SgObject result, void **data)
 {
   SgObject after = SG_OBJ(data[0]);
   SgObject prev = SG_OBJ(data[1]);
-  void *d[1];
+  void *d[3];
   SgVM *vm = Sg_VM();
   
   vm->dynamicWinders = prev;
   d[0] = (void*)result;
-  Sg_VMPushCC(dynamic_wind_after_cc, d, 1);
+  d[1] = (void*)(intptr_t)vm->valuesCount;
+  if (vm->valuesCount > 1) {
+    SgObject *array = SG_NEW_ARRAY(SgObject, vm->valuesCount - 1);
+    int i;
+    for (i = 0; i < vm->valuesCount-1; i++) {
+      array[i] = SG_VALUES_REF(vm, i);
+    }
+    d[2] = array;
+  }
+  Sg_VMPushCC(dynamic_wind_after_cc, d, 3);
   return Sg_VMApply0(after);
 }
 
 static SgObject dynamic_wind_after_cc(SgObject result, void **data)
 {
   SgObject ac = SG_OBJ(data[0]);
+  int nvals = (int)(intptr_t)(data[1]);
+  SgVM *vm = theVM;
+  vm->valuesCount = nvals;
+  if (nvals > 1) {
+    int i;
+    SgObject *array = (SgObject*)data[2];
+    for (i = 0; i < nvals-1; i++) {
+      SG_VALUES_SET(vm, i, array[i]);
+    }
+  }
   return ac;
 }
 
@@ -1275,6 +1360,10 @@ static SgObject throw_continuation_body(SgObject handlers,
    */
   if (c->cstack == NULL) save_cont(vm);
 
+  vm->cont = c->cont;
+  vm->pc = return_code;
+  vm->dynamicWinders = c->winders;
+
   argc = Sg_Length(args);
   
   /* store arguments of the continuation to ac */
@@ -1282,21 +1371,20 @@ static SgObject throw_continuation_body(SgObject handlers,
     /* does this happen? */
     vm->ac = SG_UNDEF;
   } else if (argc > 1) {
-    SgValues *v = Sg_MakeValues(argc);
-    int i = 0;
-    SgObject cp;
-    SG_FOR_EACH(cp, args) {
-      v->elements[i++] = SG_CAR(cp);
+    int i, extcount = 0;
+    SgObject ap;
+    /* when argc == DEFAULT_VALUES_SIZE+1, it must be in pre-allocated buffer */
+    if (argc > DEFAULT_VALUES_SIZE+1) {
+      SG_ALLOC_VALUES_BUFFER(vm, argc - DEFAULT_VALUES_SIZE -1);
     }
-    vm->ac = v;
+    vm->ac = SG_CAR(args);
+    for (i = 0, ap = SG_CDR(args); SG_PAIRP(ap); i++, ap = SG_CDR(ap)) {
+      SG_VALUES_SET(vm, i, SG_CAR(ap));
+    }
+    vm->valuesCount = argc;
   } else {
     vm->ac = SG_CAR(args);
   }
-
-  vm->cont = c->cont;
-  vm->pc = return_code;
-  vm->dynamicWinders = c->winders;
-
   return vm->ac;
 }
 static SgObject throw_continuation_cc(SgObject result, void **data)
@@ -1588,8 +1676,9 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
   SgObject hp;
   
   if (c) {
-    SgObject result = SG_FALSE;
+    SgObject result = SG_FALSE, rvals[DEFAULT_VALUES_SIZE], *exvals;
     SgObject target, current;
+    int valscount = 0, i, ext_count = 0;
     /* never reaches for now. */
     if (c->rewindBefore) {
       target = c->winders;
@@ -1605,6 +1694,11 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
 
     SG_UNWIND_PROTECT {
       result = Sg_Apply1(c->ehandler, e);
+      if ((valscount = vm->valuesCount) > 1) {
+	for (i = 0; i < valscount - 1; i++) {
+	  rvals[i] = SG_VALUES_REF(vm, i);
+	}
+      }
       if (!c->rewindBefore) {
 	target = c->winders;
 	current = vm->dynamicWinders;
@@ -1620,6 +1714,13 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
       SG_NEXT_HANDLER;
     }
     SG_END_PROTECT;
+
+    /* install the continuation */
+    if (valscount > DEFAULT_VALUES_SIZE+1) {
+      SG_ALLOC_VALUES_BUFFER(vm, ext_count);
+    }
+    for (i = 0; i < valscount-1; i++) SG_VALUES_SET(vm, i, rvals[i]);
+
     vm->ac = result;
     vm->cont = c->cont;
     SG_VM_FLOATING_EP_SET(vm, c->floating);
@@ -1802,7 +1903,8 @@ void Sg_VMExecute(SgObject toplevel)
 {
   ASSERT(SG_CODE_BUILDERP(toplevel));
   /* NB: compiled libraries don't need any frame. */
-  evaluate_safe(theVM->closureForEvaluate, SG_CODE_BUILDER(toplevel)->code);
+  evaluate_safe(SG_OBJ(&internal_toplevel_closure),
+		SG_CODE_BUILDER(toplevel)->code);
 }
 
 static inline SgObject* shift_args(SgObject *fp, int m, SgObject *sp)
@@ -1829,18 +1931,35 @@ static inline SgObject* shift_one_args(SgObject *sp, int m)
 
 static SgObject process_queued_requests_cc(SgObject result, void **data)
 {
+  int i;
+  SgObject cp;
   SgVM *vm = Sg_VM();
   vm->ac = data[0];
+  vm->valuesCount = (int)(intptr_t)data[1];
+  if (vm->valuesCount > 1) {
+    for (i=0,cp=SG_OBJ(data[2]); i<vm->valuesCount-1; i++, cp=SG_CDR(cp)) {
+      SG_VALUES_SET(vm, i, SG_CAR(cp));
+    }
+  }
   return vm->ac;
 }
 
 static void process_queued_requests(SgVM *vm)
 {
-  void *data[1];
+  void *data[3];
   /* preserve the current continuation */
   data[0] = (void*)vm->ac;
+  data[1] = (void*)(intptr_t)vm->valuesCount;
+  if (vm->valuesCount > 1) {
+    int i;
+    SgObject h = SG_NIL, t = SG_NIL;
+    for (i = 0; i < vm->valuesCount-1; i++) {
+      SG_APPEND1(h, t, SG_VALUES_REF(vm, i));
+    }
+    data[2] = h;
+  }
 
-  Sg_VMPushCC(process_queued_requests_cc, data, 1);
+  Sg_VMPushCC(process_queued_requests_cc, data, 3);
   
   vm->attentionRequest = FALSE;
 
@@ -2042,6 +2161,12 @@ static void show_inst_count(void *data)
 # define DISPATCH           dispatch:
 # define DEFAULT            default:
 #endif
+
+#define NEXT1					\
+  do {						\
+    vm->valuesCount = 1;			\
+    NEXT;					\
+  } while (0)
 
 #ifdef _MSC_VER
 # pragma warning( push )

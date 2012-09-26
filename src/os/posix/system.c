@@ -240,11 +240,12 @@ SgObject Sg_TimeUsage()
   SgObject values;
   gettimeofday(&tv, NULL);
   getrusage(RUSAGE_SELF, &ru);
-  values = Sg_MakeValues(3);
-  SG_VALUES_ELEMENT(values, 0) = Sg_MakeFlonum((double)tv.tv_sec + tv.tv_usec / 1000000.0);
-  SG_VALUES_ELEMENT(values, 1) = Sg_MakeFlonum((double)ru.ru_utime.tv_sec + ru.ru_utime.tv_usec / 1000000.0);
-  SG_VALUES_ELEMENT(values, 2) = Sg_MakeFlonum((double)ru.ru_stime.tv_sec + ru.ru_stime.tv_usec / 1000000.0);
-  return values;
+
+  return Sg_Values3(Sg_MakeFlonum((double)tv.tv_sec + tv.tv_usec / 1000000.0),
+		    Sg_MakeFlonum((double)ru.ru_utime.tv_sec +
+				    ru.ru_utime.tv_usec / 1000000.0),
+		    Sg_MakeFlonum((double)ru.ru_stime.tv_sec +
+				    ru.ru_stime.tv_usec / 1000000.0));
 }
 
 SgObject Sg_GetMacAddress(int pos)

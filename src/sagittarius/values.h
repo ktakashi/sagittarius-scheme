@@ -34,27 +34,11 @@
 
 #include "sagittariusdefs.h"
 
-SG_CLASS_DECL(Sg_ValuesClass);
-#define SG_CLASS_VALUES (&Sg_ValuesClass)
-
-struct SgValuesRec
-{
-  SG_HEADER;
-  int      size;
-  SgObject elements[1];
-};
-
-#define SG_VALUES(obj)  ((SgValues*)(obj))
-#define SG_VALUESP(obj) SG_XTYPEP(obj, SG_CLASS_VALUES)
-
-#define SG_VALUES_SIZE(obj)       (SG_VALUES(obj)->size)
-#define SG_VALUES_ELEMENTS(obj)   (SG_VALUES(obj)->elements)
-#define SG_VALUES_ELEMENT(obj, i) (SG_VALUES(obj)->elements[i])
-
 SG_CDECL_BEGIN
 
-SG_EXTERN SgObject Sg_MakeValues(int argc);
+SG_EXTERN SgObject Sg_Values(SgObject args);
 SG_EXTERN SgObject Sg_Values2(SgObject v1, SgObject v2);
+SG_EXTERN SgObject Sg_Values3(SgObject v1, SgObject v2, SgObject v3);
 
 SG_CDECL_END
 

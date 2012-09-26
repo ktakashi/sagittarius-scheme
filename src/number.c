@@ -3003,18 +3003,14 @@ static inline SgObject exact_integer_sqrt(SgObject k)
 SgObject Sg_ExactIntegerSqrt(SgObject k)
 {
   double d;
-  SgObject ans;
 
   if (!SG_EXACT_INTP(k)) Sg_Error(UC("exact integer required, but got %S"), k);
 
   d = Sg_GetDouble(k);
-  ans = Sg_MakeValues(2);
   if (d < iexpt_2n53) {
     double t = floor(sqrt(d));
     SgObject s = Sg_Exact(Sg_MakeFlonum(t));
-    SG_VALUES_ELEMENT(ans, 0) = s;
-    SG_VALUES_ELEMENT(ans, 1) = Sg_Sub(k, Sg_Mul(s, s));
-    return ans;
+    return Sg_Values2(s, Sg_Sub(k, Sg_Mul(s, s)));
   } else {
     SgObject s = exact_integer_sqrt(k);
     SgObject s2 = Sg_Mul(s, s);
@@ -3026,9 +3022,7 @@ SgObject Sg_ExactIntegerSqrt(SgObject k)
 	SgObject s2p = Sg_Add(Sg_Add(s2, Sg_Mul(SG_MAKE_INT(2), s)),
 			      SG_MAKE_INT(1));
 	if (Sg_NumCmp(k, s2p) < 0) {
-	  SG_VALUES_ELEMENT(ans, 0) = s;
-	  SG_VALUES_ELEMENT(ans, 1) = Sg_Sub(k, s2);
-	  return ans;
+	  return Sg_Values2(s, Sg_Sub(k, s2));
 	} else {
 	  s = Sg_Quotient(Sg_Add(s2, k), Sg_Mul(SG_MAKE_INT(2), s), NULL);
 	  continue;

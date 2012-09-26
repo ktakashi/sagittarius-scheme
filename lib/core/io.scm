@@ -79,7 +79,9 @@
 	  (save (current-input-port)))
       (dynamic-wind
 	  (lambda () (current-input-port port))
-	  (lambda () (let ((ans (thunk))) (close-input-port port) ans))
+	  (lambda () (receive ans (thunk)
+		       (close-input-port port)
+		       (apply values ans)))
 	  (lambda () (current-input-port save)))))
 
   (define (with-output-to-file filename thunk . opt)
@@ -87,7 +89,9 @@
 	  (save (current-output-port)))
       (dynamic-wind
 	  (lambda () (current-output-port port))
-	  (lambda () (let ((ans (thunk))) (close-output-port port) ans))
+	  (lambda () (receive ans (thunk) 
+		       (close-output-port port)
+		       (apply values ans)))
 	  (lambda () (current-output-port save)))))
 
 )

@@ -34,7 +34,9 @@ SET(SAGITTARIUS_LIB_SOURCE
   string.c         
   symbol.c
   vector.c         number.c
-  values.c         file.c
+  # values is now not first class object
+  # values.c
+  file.c
   bytevector.c     subr.c
   hashtable.c      reader.c
   # we won't use privious generic anymore.
