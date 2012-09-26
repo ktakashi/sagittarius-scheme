@@ -298,20 +298,25 @@ SgObject Sg_Values(SgObject args)
 SgObject Sg_VMValues(SgVM *vm, SgObject args)
 {
   SgObject cp;
-  int nvals;
+  int nvals, len = -1, init = FALSE;
   if (!SG_PAIRP(args)) {
     vm->valuesCount = 0;
     return SG_UNDEF;
   }
   nvals = 1;
-  vm->extra_values = NULL;	/* reset buffer */
+
   SG_FOR_EACH(cp, SG_CDR(args)) {
     if (nvals < DEFAULT_VALUES_SIZE+1) {
       SG_VALUES_SET(vm, nvals-1, SG_CAR(cp));
     } else {
-      if (!vm->extra_values) {
-	int len = Sg_Length(cp); /* get rest... */
-	SG_ALLOC_VALUES_BUFFER(vm, len);
+      if (len < 0) {
+	len = Sg_Length(cp); /* get rest... */
+      }
+      if (!init) {
+	if (!vm->extra_values || vm->extra_values->buffer_size < len) {
+	  SG_ALLOC_VALUES_BUFFER(vm, len);
+	}
+	init = TRUE;
       }
       SG_VALUES_SET(vm, nvals-1, SG_CAR(cp));
     }

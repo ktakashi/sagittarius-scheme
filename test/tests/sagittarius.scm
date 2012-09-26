@@ -506,5 +506,8 @@
 (test-equal "values (over pre allocated)"
 	    (iota 1000 1)
 	    (receive x (apply values (iota 1000 1)) x))
+(test-equal "values (over pre allocated)"
+	    (iota 2000 1)
+	    (receive x (apply values (iota 2000 1)) x))
 
 (test-end)
