@@ -304,6 +304,7 @@ SgObject Sg_VMValues(SgVM *vm, SgObject args)
     return SG_UNDEF;
   }
   nvals = 1;
+  vm->extra_values = NULL;	/* reset buffer */
   SG_FOR_EACH(cp, SG_CDR(args)) {
     if (nvals < DEFAULT_VALUES_SIZE+1) {
       SG_VALUES_SET(vm, nvals-1, SG_CAR(cp));
@@ -1940,6 +1941,9 @@ static SgObject process_queued_requests_cc(SgObject result, void **data)
     for (i=0,cp=SG_OBJ(data[2]); i<vm->valuesCount-1; i++, cp=SG_CDR(cp)) {
       SG_VALUES_SET(vm, i, SG_CAR(cp));
     }
+  }
+  if (vm->valuesCount < DEFAULT_VALUES_SIZE) {
+    vm->extra_values = NULL;
   }
   return vm->ac;
 }
