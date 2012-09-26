@@ -138,6 +138,7 @@
   int argc, proctype;
   SgObject nm = SG_FALSE;	/* next method */
   INSN_VAL1(argc, c);
+  vm->valuesCount = 1;		/* default */
 #ifdef SHOW_CALL_TRACE
   if (MOSTLY_FALSE(SG_VM_LOG_LEVEL(vm,SG_TRACE_LEVEL)&&vm->state == RUNNING)) {
     Sg_Printf(vm->logPort, UC(";; calling %S\n"), AC(vm));
