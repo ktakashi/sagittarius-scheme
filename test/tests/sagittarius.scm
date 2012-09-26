@@ -5,6 +5,7 @@
 	(rnrs mutable-pairs)
 	(sagittarius)
 	(sagittarius vm)
+	(srfi :1)
 	(srfi :64 testing))
 
 (define-syntax define-lambda
@@ -500,5 +501,13 @@
 (let ((a #(1 2 3))
       (b #(1 2 3)))
   (test-error "vector-reverse!" assertion-violation? (vector-reverse! a)))
+
+;; since 0.3.7 values are not first class object
+(test-equal "values (over pre allocated)"
+	    (iota 1000 1)
+	    (receive x (apply values (iota 1000 1)) x))
+(test-equal "values (over pre allocated)"
+	    (iota 2000 1)
+	    (receive x (apply values (iota 2000 1)) x))
 
 (test-end)

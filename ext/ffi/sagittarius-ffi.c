@@ -316,13 +316,13 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts)
  */
 static SgObject parse_member_name_rec(SgString *v, SgObject ret)
 {
-  SgObject values = Sg_StringScanChar(v, '.', SG_STRING_SCAN_BOTH);
-  if (SG_FALSEP(SG_VALUES_ELEMENT(values, 0))) {
+  SgObject index = Sg_StringScanChar(v, '.', SG_STRING_SCAN_INDEX);
+  if (SG_FALSEP(index)) {
     return Sg_Cons(Sg_Intern(v), ret);
   } else {
-    return Sg_Cons(Sg_Intern(SG_VALUES_ELEMENT(values, 0)),
-		   parse_member_name_rec(SG_STRING(SG_VALUES_ELEMENT(values, 1)),
-					 ret));
+    SgString *rest = SG_STRING(Sg_Substring(v, 1+SG_INT_VALUE(index), -1));
+    return Sg_Cons(Sg_Intern(Sg_Substring(v, 0, SG_INT_VALUE(index))),
+		   parse_member_name_rec(rest, ret));
   }
 }
 

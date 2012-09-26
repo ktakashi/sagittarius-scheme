@@ -1230,25 +1230,13 @@
 	     (result (Sg_VMApply proc head))))))
 
   ;; call/cc
-  (define-c-proc call/cc (proc::<procedure>) ::<top>
-    (result (Sg_VMCallCC proc)))
+  (define-c-proc call/cc (proc::<procedure>) Sg_VMCallCC)
   
-  (define-c-proc call-with-current-continuation (proc::<procedure>) ::<top>
-    (result (Sg_VMCallCC proc)))
+  (define-c-proc call-with-current-continuation (proc::<procedure>) Sg_VMCallCC)
 
-  (define-c-proc values (:rest rest) ::<top> (inline VALUES)
-    (cond ((SG_NULLP rest) (result (Sg_MakeValues 0)))
-	  ((SG_NULLP (SG_CDR rest)) (result (SG_CAR rest)))
-	  (else
-	   (let ((v (Sg_MakeValues (Sg_Length rest)))
-		 (i::int 0))
-	     (dolist (e rest)
-	       (set! (SG_VALUES_ELEMENT v i) e)
-	       (post++ i))
-	     (result v)))))
+  (define-c-proc values (:rest rest) (inline VALUES) Sg_Values)
 
-  (define-c-proc dynamic-wind (before thunk after) ::<top>
-    (result (Sg_VMDynamicWind before thunk after)))
+  (define-c-proc dynamic-wind (before thunk after) Sg_VMDynamicWind)
 
   ;; standard libraries
   ;; 1 Unicode
