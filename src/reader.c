@@ -1689,6 +1689,7 @@ int Sg_DelimitedCharP(SgChar c)
     SgReadContext ctx = {0};						\
     SgPort *p;								\
     SgChar c;								\
+    SgObject r;								\
     if (argc != 2) {							\
       Sg_WrongNumberOfArgumentsAtLeastViolation(SG_INTERN(NAME),	\
 						2, argc, SG_NIL);	\
@@ -1705,17 +1706,18 @@ int Sg_DelimitedCharP(SgChar c)
     }									\
     p = SG_PORT(args[0]);						\
     c = SG_CHAR_VALUE(args[1]);						\
-    return (FN)(p, c, &ctx);						\
+    r = (FN)(p, c, &ctx);						\
+    if (r) return r;							\
+    else return SG_UNDEF;						\
   }									\
-  SG_DEFINE_SUBR(SCHEME_OBJ(FN), 2, 0,					\
-		 STUB_NAME(FN), SG_FALSE, NULL)
+  SG_DEFINE_SUBR(SCHEME_OBJ(FN), 2, 0, STUB_NAME(FN), SG_FALSE, NULL)
 
 #define DEFINE_DISPMACRO_STUB(FN, NAME)				\
   static SgObject STUB_NAME(FN)					\
   (SgObject *args, int argc, void *data_)			\
   {								\
     SgReadContext ctx = {0};					\
-    SgObject param_scm;						\
+    SgObject param_scm, r;					\
     SgPort *p;							\
     SgChar c;							\
     dispmacro_param param;					\
@@ -1748,10 +1750,11 @@ int Sg_DelimitedCharP(SgChar c)
 				      param_scm, SG_NIL);	\
       return SG_UNDEF;						\
     }								\
-    return (FN)(p, c, &param, &ctx);				\
+    r = (FN)(p, c, &param, &ctx);				\
+    if (r) return r;						\
+    else return SG_UNDEF;					\
   }								\
-  SG_DEFINE_SUBR(SCHEME_OBJ(FN), 3, 0,				\
-		 STUB_NAME(FN), SG_FALSE, NULL)
+  SG_DEFINE_SUBR(SCHEME_OBJ(FN), 3, 0, STUB_NAME(FN), SG_FALSE, NULL)
 
 DEFINE_MACRO_STUB(read_vertical_bar,   "|-reader");
 DEFINE_MACRO_STUB(read_double_quote,   "\"-reader");
