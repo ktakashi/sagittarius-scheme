@@ -111,8 +111,17 @@ This procedure just calls given @var{kdf} with given arguments and returns
 derived key bytevector.
 }
 
-@define[Generic]{@name{derive-key&iv}}
-@desc{The PKCS#5 encryption and decryption procedures require to derive both
+@define[Generic]{@name{derive-key&iv}
+ @args{marker (key <pbe-secret-key>) (parameter <pbe-parameter>)}}
+@desc{@var{marker} is user defined cipher type. @var{key} must be subclass of
+@code{<pbe-secret-key>}. @var{parameter} must be subclss of
+@code{<pbe-parameter>}.
+
+This method is called in the @code{initialize} method of
+@code{<pbe-cipher-spi>} and must return 2 values; the first one is derived key
+as bytevector and second one is initial vector as bytevector.
+
+The PKCS#5 encryption and decryption procedures require to derive both
 key and initial vector from given password and parameter (salt and iteration
 count). This method is used in PBE cipher to derive key and initial vector.
 

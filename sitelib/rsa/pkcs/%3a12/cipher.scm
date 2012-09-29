@@ -143,8 +143,8 @@
 		(bytevector-copy! A 0 d-key (* i u) (- n (* i u)))
 		(bytevector-copy! A 0 d-key (* i u) u))))
 	d-key))
-    (cons (generate-derived-key *key-material* (slot-ref key 'length))
-	  (generate-derived-key *iv-material* (slot-ref key 'iv-size))))
+    (values (generate-derived-key *key-material* (slot-ref key 'length))
+	    (generate-derived-key *iv-material* (slot-ref key 'iv-size))))
 
   (register-spi pbe-with-sha-and3-keytripledes-cbc <pbe-cipher-spi>)
   (register-spi pbe-with-sha-and-40bit-rc2-cbc <pbe-cipher-spi>)

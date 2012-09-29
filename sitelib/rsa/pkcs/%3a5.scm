@@ -72,8 +72,7 @@
 	out))
     ;; (- (expt 2 32) 1) -> #xffffffff
     (when (> dk-len (* #xffffffff (hash-size prf)))
-      (assertion-violation 'pbkdf-2
-			   "derived key too long"))
+      (assertion-violation 'pbkdf-2 "derived key too long"))
     (let* ((h-len (hash-size prf))
 	   (l (ceiling (/ dk-len h-len)))
 	   (r (* (- dk-len (- l 1) h-len)))
@@ -95,8 +94,7 @@
 
   (define (pbkdf-1 P S c dk-len :key (algo :hash (hash-algorithm SHA-1)))
     (when (> dk-len (hash-size algo))
-      (assertion-violation 'pbkdf-1
-			   "derived key too long"))
+      (assertion-violation 'pbkdf-1 "derived key too long"))
     (let* ((buf   (make-bytevector (hash-size algo)))
 	   (out   (make-bytevector dk-len)))
       (hash-init! algo)
@@ -110,8 +108,7 @@
 
   (define (derive-key P S c dk-len :key (kdf pbkdf-2) :allow-other-keys rest)
     (unless (and (bytevector? P) (bytevector? S))
-      (assertion-violation 'derive-key
-			   "bytevector required" P S))
+      (assertion-violation 'derive-key "bytevector required" P S))
     (unless (and (integer? c) (positive? c))
       (assertion-violation 'derive-key
 			   "positive integer required for iteration count") c)
@@ -209,7 +206,7 @@
 	      (iv (make-bytevector iv-len)))
 	  (bytevector-copy! dk 0 k 0 key-len)
 	  (bytevector-copy! dk key-len iv 0 iv-len)
-	  (cons k iv)))
+	  (values k iv)))
       (let* ((key-len (slot-ref key 'length))
 	     (iv-len (slot-ref key 'iv-size))
 	     (derived-key (apply derive-key
@@ -239,8 +236,7 @@
     (let ((key (car initargs))
 	  (rest (cdr initargs)))
       (unless (is-a? key <pbe-secret-key>)
-	(assertion-violation 'initialize
-			     "<pbe-secret-key> required" key))
+	(assertion-violation 'initialize "<pbe-secret-key> required" key))
       (let-keywords* rest
 	  ((parameter #f))
 	(unless parameter
@@ -249,26 +245,26 @@
 	   "required keyword argument :parameter is missing"))
 	(unless (is-a? parameter <pbe-parameter>)
 	  (assertion-violation 'initialize
-			       "parameter must be instance ob <pbe-parameter>"
+			       "parameter must be instance of <pbe-parameter>"
 			       parameter))
-	(let* ((key&iv (derive-key&iv (slot-ref key 'type) key parameter))
-	       (derived-secret-key (generate-secret-key (slot-ref key 'scheme)
-							(car key&iv)))
-	       (real-cipher 
-		(cipher (slot-ref key 'scheme) derived-secret-key
-			:mode MODE_CBC
-			:iv (cdr key&iv))))
-	  (slot-set! spi 'name (format "pbe-~a" (slot-ref key 'scheme)))
-	  (slot-set! spi 'key derived-secret-key)
-	  (slot-set! spi 'encrypt (lambda (pt key)
-				    (encrypt real-cipher pt)))
-	  (slot-set! spi 'decrypt (lambda (ct key)
-				    (decrypt real-cipher ct)))
-	  (slot-set! spi 'padder #f)
-	  (slot-set! spi 'signer #f)
-	  (slot-set! spi 'verifier #f)
-	  (slot-set! spi 'keysize (slot-ref key 'length))))))
-
+	(receive (dkey iv) (derive-key&iv (slot-ref key 'type) key parameter)
+	  (let* ((derived-secret-key (generate-secret-key (slot-ref key 'scheme)
+							  dkey))
+		 (real-cipher 
+		  (cipher (slot-ref key 'scheme) derived-secret-key
+			  :mode MODE_CBC
+			  :iv iv)))
+	    (slot-set! spi 'name (format "pbe-~a" (slot-ref key 'scheme)))
+	    (slot-set! spi 'key derived-secret-key)
+	    (slot-set! spi 'encrypt (lambda (pt key)
+				      (encrypt real-cipher pt)))
+	    (slot-set! spi 'decrypt (lambda (ct key)
+				      (decrypt real-cipher ct)))
+	    (slot-set! spi 'padder #f)
+	    (slot-set! spi 'signer #f)
+	    (slot-set! spi 'verifier #f)
+	    (slot-set! spi 'keysize (slot-ref key 'length)))))))
+  
   ;; DES
   ;;(register-spi pbe-with-md2-and-des <pbe-cipher-spi>)
   (register-spi pbe-with-md5-and-des <pbe-cipher-spi>)
