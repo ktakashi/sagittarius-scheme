@@ -85,12 +85,15 @@
 
   ;; From R6RS ->... is standard identifier, so we can simply use this.
   (define-method ->string ((obj <string>)) obj)
+  (define-method ->string ((obj <number>) (radix <integer>))
+    (number->string obj radix))
   (define-method ->string ((obj <number>)) (number->string obj))
   (define-method ->string ((obj <symbol>)) (symbol->string obj))
   (define-method ->string ((obj <char>))   (string obj))
   (define-method ->string ((obj <top>))
     (call-with-string-output-port (lambda (o) (display obj o))))
 
+  (define-method ->integer ((obj <bytevector>)) (bytevector->integer obj))
   (define-method ->integer ((obj <integer>)) obj)
   (define-method ->integer ((obj <real>))   (round (exact obj)))
   (define-method ->integer ((obj <number>)) 0) ; complex numbers to 0
