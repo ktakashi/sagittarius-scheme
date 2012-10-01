@@ -123,7 +123,7 @@ The rest of the keyword arguments are the same as @code{find-files}.
 }
 
 @define[Function]{@name{path-map}
- @args{path proc :key (file-only #f) (absolute-path #t) (all #t)
+ @args{path proc :key (physical #t) (file-only #f) (absolute-path #t) (all #t)
   (recursive #t)}}
 @desc{@var{path} must be a string indicating existing file path. @var{proc}
 must be a procedure accepts 2 arguments, a path string and a symbol. The given
