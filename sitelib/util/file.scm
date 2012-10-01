@@ -125,7 +125,7 @@
 	    (windows (build-path (getenv "windir") "Temp"))
 	    (else "/tmp"))))) ;; assume else is posix
   (define temporary-directory (make-parameter %tmp))
-  (define (make-temporary-file prefix)
+  (define (make-temporary-file :optional (prefix "tmp"))
     (define (gen) 
       (string-append prefix (number->string (microsecond) 32)))
     (let loop ((file (gen)))
@@ -248,7 +248,7 @@
 	(cond ((file-exists? p)
 	       (unless (file-directory? p)
 		 (error 'create-directory*
-			"non-directory is found while creating a directory"
+			"non-directory is found during creating a directory"
 			base path)))
 	      (dir
 	       (rec dir)

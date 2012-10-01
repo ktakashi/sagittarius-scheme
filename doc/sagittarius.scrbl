@@ -167,6 +167,16 @@ If @var{new-filename} exists, it overwrite the existing file.
 not exist, it returns #f.
 }
 
+@define[Function]{@name{copy-file} @args{src dst :optional overwrite}}
+@desc{@var{src} and @var{dst} must be string and indicating existing file path.
+
+Copies given @var{src} file to @var{dst} and returns #t if it's copied otherwise
+#t.
+
+If optional argument @var{overwrite} is #t then it will over write the file even
+if it exists.
+}
+
 @define[Function]{@name{current-directory} @args{:optional path}}
 @desc{Returns current working directory.
 
