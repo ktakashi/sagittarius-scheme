@@ -134,3 +134,13 @@ returns a list which elements are the result value of @var{proc}.
 
 The keyword arguments are the same as @code{path-for-each}.
 }
+
+@subsubsection{Create and delete utility}
+
+@define[Function]{@name{create-directory*} @args{path}}
+@define[Function]{@name{delete-directory*} @args{path}}
+@desc{Convenient procedures to create or delete directories.
+
+These are the same as UNIX command @code{mkdir -p} and @code{rm -rf},
+respectively.
+}
