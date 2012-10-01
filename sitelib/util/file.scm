@@ -133,8 +133,8 @@
 	  (loop (gen))
 	  (values (open-file-output-port file) file))))
 
-  (define (find-files target :key (pattern #f) (all #t) (sort string<=?)
-		      (recursive #t))
+  (define (find-files target :key (physical #t) (pattern #f) (all #t)
+		      (sort string<=?) (recursive #t))
     (define rx-pattern (cond ((string? pattern) (regex pattern))
 			     ((regex-pattern? pattern) pattern)
 			     (else #f)))
@@ -142,11 +142,13 @@
       (or (not pattern)
 	  (rx-pattern content)))
     (define (check path type)
-      (and (eq? type 'file)
+      (and (not (eq? type 'directory))
 	   (check-pattern (path-filename path))
 	   path))
     (if (file-directory? target)
 	(let ((r (filter values (path-map target check
+					  :file-only #t
+					  :physical physical
 					  :all all :recursive recursive))))
 	  (if sort (list-sort sort r) r))
 	'()))
@@ -179,8 +181,9 @@
 			    (proc (if absolute-path abs-path entry) 'directory)
 			    non-stop?)
 			(loop (cdr entries))))
-		  ((and (not physical) (file-symbolic-link? abs-path))
-		   (and (or (proc (if absolute-path abs-path entry)
+		  ((file-symbolic-link? abs-path)
+		   (and (or (not physical)
+			    (proc (if absolute-path abs-path entry)
 				  'symbolic-link)
 			    non-stop?)
 			(loop (cdr entries))))
@@ -215,15 +218,18 @@
 		     ;; first do it recursively
 		     (let ((rp (if recursive
 				   (rec abs-path (read-directory abs-path))
-				   '()))
-			   (pr (proc (if absolute-path abs-path entry)
-				     'directory)))
-		       (loop (cdr entries) (append! (cons pr r) rp))))
-		    ((and (not physical) (file-symbolic-link? abs-path))
-		     (display 'here) (newline)
-		     (let ((rp (proc (if absolute-path abs-path entry)
-				     'symbolic-link)))
-		       (loop (cdr entries) (cons rp r))))
+				   '())))
+		       (if file-only
+			   (loop (cdr entries) (append! r rp))
+			   (let ((pr (proc (if absolute-path abs-path entry)
+					   'directory)))
+			     (loop (cdr entries) (append! (cons pr r) rp))))))
+		    ((file-symbolic-link? abs-path)
+		     (if physical
+			 (loop (cdr entries) r)
+			 (let ((rp (proc (if absolute-path abs-path entry)
+					 'symbolic-link)))
+			   (loop (cdr entries) (cons rp r)))))
 		    (else
 		     (let ((rp (proc (if absolute-path abs-path entry)
 				     'file)))

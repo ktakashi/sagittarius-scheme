@@ -84,6 +84,8 @@ either string or regular expression pattern object.}
 @dl-item["all"]{When this keyword argument is #t, then returns all files
 including hidden files which file name starting with @code{.}. If this is #f,
 the procedure excludes hidden files.}
+@dl-item["physical"]{If this is #t, then the @var{proc} is only given either
+@code{directory} or @code{file}. No symbolic likes are given.}
 @dl-item["sort"]{This specifies how to sort the result list. If the value is #f,
 then the result order is unspecified.}
 @dl-item["recursive"]{If this keyword argument is #t then the procedure finds
@@ -110,8 +112,6 @@ with following meaning;
 
 The keyword arguments:
 @dl-list{
-@dl-item["physical"]{If this is #t, then the @var{proc} is only given either
-@code{directory} or @code{file}. No symbolic likes are given.}
 @dl-item["file-only"]{If this is #t, then the @var{proc} is only given a file.
 Otherwise all file types.}p
 @dl-item["absolute-path"]{If this is #t, then the @var{proc} is given absolute
