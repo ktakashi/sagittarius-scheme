@@ -749,12 +749,14 @@
 	     (if (proc (car lst) (cadr lst))
 		 (loop (+ acc 1) (cdr lst))
 		 (values acc (cdr lst)))))))
-  (receive (n lst2) (divide lst)
-    (if (null? lst2)
-	lst
-	(let* ((head (cons '() '()))
-	       (r (do-sort lst2 (length lst2) head)))
-	  (merge-list! proc head (list-head lst n) r head)))))
+  (if (null? lst)
+      lst
+      (receive (n lst2) (divide lst)
+	(if (null? lst2)
+	    lst
+	    (let* ((head (cons '() '()))
+		   (r (do-sort lst2 (length lst2) head)))
+	      (merge-list! proc head (list-head lst n) r head))))))
 #|
 ;; from Ypsilon
 (define (list-sort proc lst)
