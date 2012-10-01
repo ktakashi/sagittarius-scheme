@@ -311,7 +311,7 @@
 
   (define-c-proc create-symbolic-link (oldpath::<string> newpath::<string>) ::<void>
     (unless (Sg_CreateSymbolicLink oldpath newpath)
-      (Sg_AssertionViolation 'file-stat-atime
+      (Sg_AssertionViolation 'create-symbolic-link
 			     (Sg_GetLastErrorMessage)
 			     (SG_LIST2 oldpath newpath))))
 

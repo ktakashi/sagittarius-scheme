@@ -92,8 +92,8 @@ files recursively, otherwise only the first @var{target} directory.}
 }
 
 @define[Function]{@name{path-for-each}
- @args{path proc :key (file-only #t) (absolute-path #t) (stop-on-file #f)
- (all #t) (recursive #t)}}
+ @args{path proc :key (physical #t) (file-only #f) (absolute-path #t)
+ (stop-on-file #f) (all #t) (recursive #t)}}
 @desc{@var{path} must be a string indicating existing file path. @var{proc}
 must be a procedure accepts 2 arguments, a path string and a symbol. The given
 symbol can be @code{directory}, @code{symbolic-link} or @code{file}.
@@ -110,8 +110,10 @@ with following meaning;
 
 The keyword arguments:
 @dl-list{
+@dl-item["physical"]{If this is #t, then the @var{proc} is only given either
+@code{directory} or @code{file}. No symbolic likes are given.}
 @dl-item["file-only"]{If this is #t, then the @var{proc} is only given a file.
-Otherwise all file types.}
+Otherwise all file types.}p
 @dl-item["absolute-path"]{If this is #t, then the @var{proc} is given absolute
 path. Otherwise only the filename.}
 @dl-item["stop-on-false"]{If this is #t, then when @var{proc} returns #f the
@@ -121,7 +123,7 @@ The rest of the keyword arguments are the same as @code{find-files}.
 }
 
 @define[Function]{@name{path-map}
- @args{path proc :key (file-only #t) (absolute-path #t) (all #t)
+ @args{path proc :key (file-only #f) (absolute-path #t) (all #t)
   (recursive #t)}}
 @desc{@var{path} must be a string indicating existing file path. @var{proc}
 must be a procedure accepts 2 arguments, a path string and a symbol. The given

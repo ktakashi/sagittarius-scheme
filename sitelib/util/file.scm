@@ -154,7 +154,7 @@
   ;; POSIX's nftw (sort of)
   ;; always depth
   ;; when proc returns #f, then it will stop
-  (define (path-for-each path proc :key (physical #t) (file-only #t)
+  (define (path-for-each path proc :key (physical #t) (file-only #f)
 			 (absolute-path #t) (stop-on-false #f)
 			 (all #t) (recursive #t))
     (define non-stop? (not stop-on-false))
@@ -175,10 +175,11 @@
 		   (and (or (and (when recursive
 				   (rec abs-path (read-directory abs-path))))
 			    non-stop?)
-			(or (proc (if absolute-path abs-path entry) 'directory)
+			(or file-only
+			    (proc (if absolute-path abs-path entry) 'directory)
 			    non-stop?)
 			(loop (cdr entries))))
-		  ((and (not file-only) (file-symbolic-link? abs-path))
+		  ((and (not physical) (file-symbolic-link? abs-path))
 		   (and (or (proc (if absolute-path abs-path entry)
 				  'symbolic-link)
 			    non-stop?)
@@ -195,7 +196,7 @@
 	    (else
 	     (proc path 'file)))))
 
-  (define (path-map path proc :key (physical #t) (file-only #t)
+  (define (path-map path proc :key (physical #t) (file-only #f)
 		    (absolute-path #t) (all #t) (recursive #t))
     (define (rec path entries)
       (let loop ((entries entries) (r '()))
@@ -218,7 +219,8 @@
 			   (pr (proc (if absolute-path abs-path entry)
 				     'directory)))
 		       (loop (cdr entries) (append! (cons pr r) rp))))
-		    ((and (not file-only) (file-symbolic-link? abs-path))
+		    ((and (not physical) (file-symbolic-link? abs-path))
+		     (display 'here) (newline)
 		     (let ((rp (proc (if absolute-path abs-path entry)
 				     'symbolic-link)))
 		       (loop (cdr entries) (cons rp r))))

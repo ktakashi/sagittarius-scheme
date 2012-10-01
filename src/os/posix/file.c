@@ -411,7 +411,7 @@ int Sg_FileRegularP(SgString *path)
 int Sg_FileSymbolicLinkP(SgString *path)
 {
   struct stat st;
-  if (stat(Sg_Utf32sToUtf8s(path), &st) == 0) {
+  if (lstat(Sg_Utf32sToUtf8s(path), &st) == 0) {
     return S_ISLNK(st.st_mode);
   }
   return FALSE;
