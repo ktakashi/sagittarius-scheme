@@ -8,7 +8,8 @@
 
 ;; creates test directory
 (define top-test-dir "test-util-file")
-(define test-directory (build-path top-test-dir "file/test"))
+(define test-directory (build-path top-test-dir
+				   (build-path "file" "test")))
 (create-directory* test-directory)
 ;; creates test files
 (dotimes (i 10)
@@ -89,10 +90,6 @@
 					     :physical #f)))
   )
 
-;; FIXME on windows somehow delete-directory doesn't work...
-(cond-expand
- (windows #t)
- (else
-  (delete-directory* top-test-dir)))
+(test-assert "delete-directory*" (delete-directory* top-test-dir))
 
 (test-end)

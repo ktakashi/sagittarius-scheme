@@ -429,7 +429,12 @@ int Sg_DirectoryP(SgString *path)
 
 int Sg_DeleteFileOrDirectory(SgString *path)
 {
-  return DeleteFileW(utf32ToUtf16(path));
+  wchar_t *wpath = utf32ToUtf16(path);
+  if (PathIsDirectoryW(wpath)) {
+    return RemoveDirectoryW(wpath);
+  } else {
+    return DeleteFileW(wpath);
+  }
 }
 
 int Sg_FileRename(SgString *oldpath, SgString *newpath)
