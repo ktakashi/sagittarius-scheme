@@ -775,112 +775,74 @@ static SgClosure internal_toplevel_closure =
 			      0, 0, SG_PROC_CLOSURE, SG_FALSE, SG_FALSE),
     SG_FALSE,};
 
+static SgObject apply_rec(SgVM *vm, SgObject proc, SgObject rest, int nargs)
+{
+  SgObject program;
+  SgWord code[3];
+  code[0] = SG_WORD(MERGE_INSN_VALUE1(APPLY_VALUES, nargs));
+  code[1] = SG_WORD(rest);
+  code[2] = SG_WORD(RET);
+
+  AC(vm) = proc;
+  program = (CL(vm)) ? CL(vm) : SG_OBJ(&internal_toplevel_closure);
+  return evaluate_safe(program, code);  
+}
+
 
 SgObject Sg_Apply0(SgObject proc)
 {
-#if USE_LIGHT_WEIGHT_APPLY
-  SgVM *vm = Sg_VM();
-  PUSH_CONT(vm, apply_calls[0]);
-  return evaluate_safe(proc, apply_calls[0]);
-#else
-  return Sg_Apply(proc, SG_NIL);
-#endif
+  return apply_rec(theVM, proc, SG_NIL, 0);
 }
 
 SgObject Sg_Apply1(SgObject proc, SgObject arg)
 {
-#if USE_LIGHT_WEIGHT_APPLY
-  SgVM *vm = Sg_VM();
-  PUSH_CONT(vm, apply_calls[1]);
-  PUSH(SP(vm), arg);
-  return evaluate_safe(proc, apply_calls[1]);
-#else
-  SgPair f;
-  f.car = arg;
-  f.cdr = SG_NIL;
-  return Sg_Apply(proc, &f);
-#endif
+  SgVM *vm = theVM;
+  vm->values[0] = arg;
+  return apply_rec(theVM, proc, SG_NIL, 1);
 }
 
 SgObject Sg_Apply2(SgObject proc, SgObject arg0, SgObject arg1)
 {
-#if USE_LIGHT_WEIGHT_APPLY
-  SgVM *vm = Sg_VM();
-  PUSH_CONT(vm, apply_calls[2]);
-  PUSH(SP(vm), arg0);
-  PUSH(SP(vm), arg1);
-  return evaluate_safe(proc, apply_calls[2]);
-#else
-  SgPair f, s;
-  f.car = arg0;
-  f.cdr = &s;
-  s.car = arg1;
-  s.cdr = SG_NIL;
-  return Sg_Apply(proc, &f);
-#endif
+  SgVM *vm = theVM;
+  vm->values[0] = arg0;
+  vm->values[1] = arg1;
+  return apply_rec(theVM, proc, SG_NIL, 2);
 }
 
 SgObject Sg_Apply3(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2)
 {
-#if USE_LIGHT_WEIGHT_APPLY
-  SgVM *vm = Sg_VM();
-  PUSH_CONT(vm, apply_calls[3]);
-  PUSH(SP(vm), arg0);
-  PUSH(SP(vm), arg1);
-  PUSH(SP(vm), arg2);
-  return evaluate_safe(proc, apply_calls[3]);
-#else
-  SgPair f, s, t;
-  f.car = arg0;
-  f.cdr = &s;
-  s.car = arg1;
-  s.cdr = &t;
-  t.car = arg2;
-  t.cdr = SG_NIL;
-  return Sg_Apply(proc, &f);
-#endif
+  SgVM *vm = theVM;
+  vm->values[0] = arg0;
+  vm->values[1] = arg1;
+  vm->values[2] = arg2;
+  return apply_rec(theVM, proc, SG_NIL, 3);
 }
 
-SgObject Sg_Apply4(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2, SgObject arg3)
+SgObject Sg_Apply4(SgObject proc, SgObject arg0, SgObject arg1,
+		   SgObject arg2, SgObject arg3)
 {
-#if USE_LIGHT_WEIGHT_APPLY
-  SgVM *vm = Sg_VM();
-  PUSH_CONT(vm, apply_calls[4]);
-  PUSH(SP(vm), arg0);
-  PUSH(SP(vm), arg1);
-  PUSH(SP(vm), arg2);
-  PUSH(SP(vm), arg3);
-  return evaluate_safe(proc, apply_calls[4]);
-#else
-  SgPair f, s, t, fo;
-  f.car = arg0;
-  f.cdr = &s;
-  s.car = arg1;
-  s.cdr = &t;
-  t.car = arg2;
-  t.cdr = &fo;
-  fo.car = arg3;
-  fo.cdr = SG_NIL;
-  return Sg_Apply(proc, &f);
-#endif
+  SgVM *vm = theVM;
+  vm->values[0] = arg0;
+  vm->values[1] = arg1;
+  vm->values[2] = arg2;
+  vm->values[3] = arg3;
+  return apply_rec(theVM, proc, SG_NIL, 4);
 }
 
 SgObject Sg_Apply(SgObject proc, SgObject args)
 {
-  SgVM *vm = Sg_VM();
-  SgObject program;
-  SgWord applyCode[8];
-  applyCode[0] = SG_WORD(FRAME);
-  applyCode[1] = SG_WORD(SG_MAKE_INT(6));
-  applyCode[2] = SG_WORD(CONST_PUSH);
-  applyCode[3] = SG_WORD(proc);
-  applyCode[4] = SG_WORD(CONST);
-  applyCode[5] = SG_WORD(args);
-  applyCode[6] = SG_WORD(MERGE_INSN_VALUE1(APPLY, 2));
-  applyCode[7] = SG_WORD(RET);
+  SgVM *vm = theVM;
+  int nargs = Sg_Length(args), i;
+  if (nargs < 0) {
+    Sg_Error(UC("improper list not allowed: %S"), args);
+  }
 
-  program = (CL(vm)) ? CL(vm) : SG_OBJ(&internal_toplevel_closure);
-  return evaluate_safe(program, applyCode);
+  for (i = 0; i < nargs; i++) {
+    if (i == DEFAULT_VALUES_SIZE) break;
+    vm->values[i] = SG_CAR(args);
+    args = SG_CDR(args);
+  }
+  return apply_rec(vm, proc, args, nargs);
 }
 
 /*
@@ -1377,7 +1339,7 @@ static SgObject throw_continuation_body(SgObject handlers,
     /* does this happen? */
     vm->ac = SG_UNDEF;
   } else if (argc > 1) {
-    int i, extcount = 0;
+    int i;
     SgObject ap;
     /* when argc == DEFAULT_VALUES_SIZE+1, it must be in pre-allocated buffer */
     if (argc > DEFAULT_VALUES_SIZE+1) {
@@ -1682,7 +1644,7 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
   SgObject hp;
   
   if (c) {
-    SgObject result = SG_FALSE, rvals[DEFAULT_VALUES_SIZE], *exvals;
+    SgObject result = SG_FALSE, dvals[DEFAULT_VALUES_SIZE], *rvals;
     SgObject target, current;
     int valscount = 0, i, ext_count = 0;
     /* never reaches for now. */
@@ -1698,9 +1660,13 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
     vm->escapePoint = c->prev;
     SG_VM_FLOATING_EP_SET(vm, c);
 
+    rvals = dvals;
     SG_UNWIND_PROTECT {
       result = Sg_Apply1(c->ehandler, e);
       if ((valscount = vm->valuesCount) > 1) {
+	if (valscount > DEFAULT_VALUES_SIZE+1) {
+	  rvals = SG_NEW_ARRAY(SgObject, valscount -1);
+	}
 	for (i = 0; i < valscount - 1; i++) {
 	  rvals[i] = SG_VALUES_REF(vm, i);
 	}

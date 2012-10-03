@@ -114,8 +114,9 @@ typedef enum {
   GREF_CAR_PUSH = 0x5f,
   GREF_CDR_PUSH = 0x60,
   CONST_RET = 0x61,
+  APPLY_VALUES = 0x62,
 } Instruction;
-#define INSTRUCTION_COUNT 98 /** number of instructions */
+#define INSTRUCTION_COUNT 99 /** number of instructions */
 typedef struct InsnInfoRec InsnInfo;
 struct InsnInfoRec
 {

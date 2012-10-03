@@ -724,6 +724,22 @@
 (define-inst CONST_RET (0 1 #f) :combined
   (CONST RET))
 
+;; for Sg_Apply(n) related
+;; try to use pre-allocated values buffer. if the given argument is more than
+;; max then it must be stored in the rest.
+(define-inst APPLY_VALUES (1 1 #f)
+  (let ((rest (FETCH_OPERAND (PC vm)))
+	(i::int))
+    (INSN_VAL1 val1 c)
+    (CHECK_STACK val1 vm)
+    (for ((set! i 0) (< i val1) (post++ i))
+	 (when (== i DEFAULT_VALUES_SIZE) (break))
+	 (PUSH (SP vm) (aref (-> vm values) i)))
+    (dolist (v rest)
+      (PUSH (SP vm) v))
+    ($goto-insn TAIL_CALL)))
+
+
 ;;;; end of file
 ;; Local Variables:
 ;; coding: utf-8-unix

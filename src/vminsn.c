@@ -99,6 +99,7 @@ DEFINSN(FREF_CDR_PUSH, 1, 0, TRUE, FALSE)
 DEFINSN(GREF_CAR_PUSH, 0, 1, TRUE, FALSE)
 DEFINSN(GREF_CDR_PUSH, 0, 1, TRUE, FALSE)
 DEFINSN(CONST_RET, 0, 1, FALSE, FALSE)
+DEFINSN(APPLY_VALUES, 1, 1, FALSE, FALSE)
 #endif /* DEFINSN */
 #ifdef VM_LOOP
 
@@ -185,7 +186,7 @@ int val1;
 INSN_VAL1(val1,c);
 #line 93 "instructions.scm"
 (SG_BOX(INDEX_CLOSURE(vm,val1)))->value=(AC(vm)),
-AC(vm)=(SG_UNDEF);NEXT1;}
+AC(vm)=(SG_UNDEF);NEXT;}
 }
 
 label_GREF:
@@ -1244,6 +1245,24 @@ CASE(CONST_RET)
 #line 70 "instructions.scm"
 {SgObject val=FETCH_OPERAND(PC(vm));
 {AC(vm)=(val);RET_INSN();NEXT;}}}
+}
+
+label_APPLY_VALUES:
+CASE(APPLY_VALUES) 
+{
+int val1;
+{SgObject cise__105;
+#line 731 "instructions.scm"
+{SgObject rest=FETCH_OPERAND(PC(vm));int i;
+#line 733 "instructions.scm"
+INSN_VAL1(val1,c);
+CHECK_STACK(val1,vm);
+for (i=(0);(i)<(val1);(i)++){
+if ((i)==(DEFAULT_VALUES_SIZE)){{break;}}
+PUSH(SP(vm),((vm)->values)[i]);}
+SG_FOR_EACH(cise__105,rest) {{SgObject v=SG_CAR(cise__105);
+PUSH(SP(vm),v);}}
+goto label_TAIL_CALL;}}
 }
 #endif /* VM_LOOP */
 
