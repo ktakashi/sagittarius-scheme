@@ -138,15 +138,19 @@
 	((k lib expr ...)
 	 (let ((real-lib (find-library #'lib #f)))
 	   (unless real-lib
-	     (assertion-violation 'with-library
-				  "no such library" #'lib))
+	     (assertion-violation 'with-library "no such library" #'lib))
 	   (let loop ((e #'(expr ...)))
 	     (if (null? (cdr e))
-		 (let ((r (eval (syntax->datum (car e)) real-lib)))
-		   (datum->syntax #'k r))
-		 (begin
-		   (eval (car e) real-lib)
-		   (loop (cdr e))))))))))
+	       (if (identifier? (car e))
+		   ;; most likely (with-library (lib) var)
+		   ;; and it must return identifier bounded in the given
+		   ;; library otherwise breaks cache.
+		   (make-identifier (syntax->datum (car e)) '() real-lib)
+		   (let ((r (eval (syntax->datum (car e)) real-lib)))
+		     (datum->syntax #'k r)))
+	       (begin
+		 (eval (car e) real-lib)
+		 (loop (cdr e))))))))))
 
   (define-syntax unwind-protect
     (lambda (x)

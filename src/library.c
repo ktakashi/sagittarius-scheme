@@ -302,6 +302,7 @@ static SgString* library_name_to_path(SgObject name)
 }
 
 static SgObject extentions = NULL;
+static SgObject userlib = NULL;
 /*
    this takes only library name part. we don't manage version
    on file system.
@@ -355,10 +356,18 @@ static SgObject search_library(SgObject name, int onlyPath)
     state = Sg_ReadCache(path);
     if (state != CACHE_READ) {
       int save = vm->state;
+      SgObject saveLib = vm->currentLibrary;
+      if (userlib == NULL) {
+	userlib = Sg_FindLibrary(SG_INTERN("user"), FALSE);
+      }
       vm->state = IMPORTING;
       /* creates new cache */
       vm->cache = Sg_Cons(SG_NIL, vm->cache);
+      /* if find-library called inside of library and the library does not
+         import (sagittarius) it can not compile.*/
+      vm->currentLibrary = userlib;
       Sg_Load(path);		/* check again, or flag? */
+      vm->currentLibrary = saveLib;
       /* if Sg_ReadCache returns INVALID_CACHE, then we don't have to write it.
 	 it's gonna be invalid anyway.
        */
