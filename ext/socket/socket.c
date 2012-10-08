@@ -632,6 +632,29 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
 #else
   ARCH_CFALSE(AI_ADDRCONFIG);
 #endif
+  /* IPPROTO_xxx for ai_protocol, i don't list up every thing but
+     tcp and udp*/
+#ifdef IPPROTO_IP
+  ARCH_CCONST(IPPROTO_IP);
+#else
+  ARCH_CFALSE(IPPROTO_IP);
+#endif
+#ifdef IPPROTO_TCP
+  ARCH_CCONST(IPPROTO_TCP);
+#else
+  ARCH_CFALSE(IPPROTO_TCP);
+#endif
+#ifdef IPPROTO_UDP
+  ARCH_CCONST(IPPROTO_UDP);
+#else
+  ARCH_CFALSE(IPPROTO_UDP);
+#endif
+#ifdef IPPROTO_RAW
+  ARCH_CCONST(IPPROTO_RAW);
+#else
+  ARCH_CFALSE(IPPROTO_RAW);
+#endif
+
 #ifdef SHUT_RD
   ARCH_CCONST(SHUT_RD);
 #else
