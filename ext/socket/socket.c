@@ -35,7 +35,7 @@
 /* we assume _WIN32 is only VC */
 #if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 #define EINTR  WSAEINTR
-#define EAGAIN WSAEAGAIN
+#define EAGAIN WSATRY_AGAIN
 #define EWOULDBLOCK WSAEWOULDBLOCK
 #endif
 
