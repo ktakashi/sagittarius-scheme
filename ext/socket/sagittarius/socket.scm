@@ -42,6 +42,8 @@
 	    socket-shutdown
 	    socket-close
 	    socket-fd
+	    socket-nonblocking!
+	    socket-blocking!
 	    AF_UNSPEC
 	    AF_INET
 	    AF_INET6

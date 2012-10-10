@@ -46,6 +46,7 @@
 # include <netdb.h>
 # include <unistd.h>
 # include <errno.h>
+# include <fcntl.h>
 #endif
 #include <sagittarius.h>
 
@@ -54,10 +55,14 @@ typedef enum {
   SG_SOCKET_SERVER,
 } SgSocketType;
 
+#ifndef _WIN32
+typedef int SOCKET;
+#endif
+
 typedef struct SgSocketRec
 {
   SG_HEADER;
-  int socket;			/* fd */
+  SOCKET socket;		/* fd */
   int lastError;
   SgSocketType type;
   SgString *address;		/* for print */
@@ -89,6 +94,9 @@ SG_EXTERN SgSocket* Sg_SocketAccept(SgSocket *socket);
 SG_EXTERN void      Sg_SocketShutdown(SgSocket *socket, int how);
 SG_EXTERN void      Sg_SocketClose(SgSocket *socket);
 SG_EXTERN int       Sg_SocketOpenP(SgSocket *socket);
+
+SG_EXTERN int       Sg_SocketNonblocking(SgSocket *socket);
+SG_EXTERN int       Sg_SocketBlocking(SgSocket *socket);
 
 SG_EXTERN SgObject  Sg_MakeSocketPort(SgSocket *socket);
 SG_EXTERN void      Sg_ShutdownPort(SgPort *port);

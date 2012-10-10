@@ -34,7 +34,9 @@
 #include <signal.h>
 /* we assume _WIN32 is only VC */
 #if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
-#define EINTR WSAEINTR
+#define EINTR  WSAEINTR
+#define EAGAIN WSAEAGAIN
+#define EWOULDBLOCK WSAEWOULDBLOCK
 #endif
 
 #include <sagittarius.h>
@@ -70,7 +72,7 @@ static void socket_finalizer(SgObject self, void *data)
   Sg_SocketClose(SG_SOCKET(self));
 }
 
-static SgSocket* make_socket(int fd, SgSocketType type, SgString *address)
+static SgSocket* make_socket(SOCKET fd, SgSocketType type, SgString *address)
 {
   SgSocket *s = SG_NEW(SgSocket);
   SG_SET_CLASS(s, SG_CLASS_SOCKET);
@@ -133,7 +135,7 @@ SgSocket* Sg_CreateClientSocket(SgString *node,
     }
 
     for (p = result; p != NULL; p = p->ai_next) {
-      const int fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+      const SOCKET fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
       if (-1 == fd) {
 	lastError = last_error;
 	continue;
@@ -183,13 +185,13 @@ SgSocket* Sg_CreateServerSocket(SgString *service,
 
     if (ret != 0) {
       Sg_IOError((SgIOErrorType)-1, SG_INTERN("create-server-socket"), 
-		 Sg_GetLastErrorMessageWithErrorCode(last_error),
+		 Sg_GetLastErrorMessageWithErrorCode(ret),
 		 SG_FALSE, SG_NIL);
       return NULL;
     }
 
     for (p = result; p != NULL; p = p->ai_next) {
-      const int fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+      const SOCKET fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
       const int TRADITIONAL_BACKLOG = 5;
       int optValue = 1;
       SgString *addressString;
@@ -254,6 +256,9 @@ int Sg_SocketReceive(SgSocket *socket, uint8_t *data, int size, int flags)
     if (ret == -1) {
       if (errno == EINTR) {
 	continue;
+      } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+	/* most probably non-blocking socket */
+	return ret;
       } else {
 	Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-recv"), 
 		   Sg_GetLastErrorMessageWithErrorCode(last_error),
@@ -295,7 +300,7 @@ SgSocket* Sg_SocketAccept(SgSocket *socket)
 {
   struct sockaddr_storage addr;
   socklen_t addrlen = sizeof(addr);
-  int fd = -1;
+  SOCKET fd = -1;
   ASSERT(socket->socket != -1);
 
   for (;;) {
@@ -341,6 +346,50 @@ void Sg_SocketClose(SgSocket *socket)
 int Sg_SocketOpenP(SgSocket *socket)
 {
   return socket->socket != -1;
+}
+
+int Sg_SocketNonblocking(SgSocket *socket)
+{
+#if _WIN32
+  unsigned long val = 1;
+  if (ioctlsocket(socket->socket, FIONBIO, &val) != 0) {
+    goto err;
+  }
+#else
+  int flags = fcntl(socket->socket, F_GETFL, 0);
+  flags &= ~O_SYNC;
+  if (fcntl(socket->socket, F_SETFL, flags | O_NONBLOCK) != 0) {
+    goto err;
+  }
+#endif
+  return TRUE;
+ err:
+  Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-nonblocking!"), 
+	     Sg_GetLastErrorMessageWithErrorCode(last_error),
+	     SG_FALSE, socket);
+  return FALSE;			/* dummy */
+}
+int Sg_SocketBlocking(SgSocket *socket)
+{
+#if _WIN32
+  unsigned long val = 0;
+  int err;
+  if ((err = ioctlsocket(socket->socket, FIONBIO, &val)) != 0) {
+    goto err;
+  }
+#else
+  int flags = fcntl(socket->socket, F_GETFL, 0);
+  flags &= ~O_NONBLOCK;
+  if (fcntl(socket->socket, F_SETFL, flags | O_SYNC) != 0) {
+    goto err;
+  }
+#endif
+  return TRUE;
+ err:
+  Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-blocking!"), 
+	     Sg_GetLastErrorMessageWithErrorCode(last_error),
+	     SG_FALSE, socket);
+  return FALSE;			/* dummy */  
 }
 
 static SgPort* make_port(enum SgPortDirection d, enum SgPortType t,
