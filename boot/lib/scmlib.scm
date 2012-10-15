@@ -889,17 +889,11 @@
 
 (define (call-with-bytevector-output-port proc . maybe-transcoder)
   (receive (port extractor) (apply open-bytevector-output-port maybe-transcoder)
-    (dynamic-wind
-      (lambda () #f)
-      (lambda () (proc port) (extractor))
-      (lambda () (close-port port)))))
+    (proc port) (extractor)))
 
 (define (call-with-string-output-port proc)
   (receive (port extractor) (open-string-output-port)
-    (dynamic-wind
-      (lambda () #f)
-      (lambda () (proc port) (extractor))
-      (lambda () (close-port port)))))
+    (proc port) (extractor)))
 
 ;;;;;
 ;; 13 hashtable
