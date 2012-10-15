@@ -133,11 +133,28 @@ with @var{port}.
 }
 
 @define[Function]{@name{socket-accept} @args{socket}}
-@define[Function]{@name{socket-recv} @args{socket ei ei}}
-@define[Function]{@name{socket-send} @args{socket bytevector ei}}
-@desc{@var{Socket} must be a socket object. These procedures are thin wrapper of
-@code{accept(2)}, @code{recv(2)} and @code{send(2)}, respectively. For more detail,
-see these manuals.
+@desc{@var{Socket} must be a socket object created by @code{make-server-socket}.
+
+Wait for an incoming connection request and returns a fresh connected client
+socket.
+
+This procedures is a thin wrapper of POSIX's @code{accept(2)}.
+}
+@define[Function]{@name{socket-recv} @args{socket size :optional (flags 0)}}
+@desc{@var{Socket} must be a socket object.
+
+Receives a binary data block from given socket. If zero length bytevector is
+returned, it means the peer connection is closed.
+
+This procedures is a thin wrapper of POSIX's @code{recv(2)}.
+}
+@define[Function]{@name{socket-send}
+ @args{socket bytevector :optional (flags 0)}}
+@desc{@var{Socket} must be a socket object.
+
+Sends a binary data block to given socket and returns the sent data size.
+
+This procedures is a thin wrapper of POSIX's @code{send(2)}.
 }
 
 @define[Function]{@name{socket-shutdown} @args{socket how}}

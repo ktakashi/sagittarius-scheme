@@ -74,13 +74,14 @@
   (result (Sg_SocketAccept (SG_SOCKET o))))
 
 (define-c-proc socket-send
-  (o::<socket> bv::<bytevector> flags::<fixnum>) ::<fixnum>
+  (o::<socket> bv::<bytevector> :optional (flags::<fixnum> 0)) ::<fixnum>
   (result (Sg_SocketSend (SG_SOCKET o)
 			 (SG_BVECTOR_ELEMENTS bv)
 			 (SG_BVECTOR_SIZE bv)
 			 flags)))
 
-(define-c-proc socket-recv (o::<socket> len::<fixnum> flags::<fixnum>) 
+(define-c-proc socket-recv (o::<socket> len::<fixnum>
+					:optional (flags::<fixnum> 0)) 
   (let ((data (Sg_MakeByteVector len 0))
 	(res::int (Sg_SocketReceive (SG_SOCKET o)
 				    (SG_BVECTOR_ELEMENTS data) len flags)))
