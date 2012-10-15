@@ -7,7 +7,10 @@ The following examples explain it.
 
 Using reader macro
 @codeblock{
-#<(sagittarius regex)>       ;; this imports only reader macros
+;;#<(sagittarius regex)>       ;; this imports only reader macros
+                               ;; This form is only for backward compatibility
+;; portable way for other R6RS implementation's reader.
+#!read-macro=sagittarius/regex
 (import (sagittarius regex)) ;; usual import for procedures
 #/regex/i                    ;; (sagittarius regex) defines #/regex/ form
                              ;; reader macro in it. it converts it
@@ -244,7 +247,7 @@ read above hash-bang, the read table will be reset. So following code will raise
 a read error;
 
 @codeblock{
-#< (sagittarius regex) >
+#!read-macro=sagittarius/regex
 #!r6rs
 #/regular expression/ ;; <- &lexical
 }
