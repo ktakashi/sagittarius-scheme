@@ -16,7 +16,7 @@ This library defines these conditions.
 @define["Condition Type"]{@name{&invalid-pem-format}}
 @desc{This condition indicates, given PEM file contains invalid format.}
 
-@sub*section{Operations}
+@subsubsection{Operations}
 
 @define[Function]{@name{parse-pem} @args{in :key (multiple #f) (ans1 #f)}}
 @desc{@var{in} must be textual input port.
