@@ -38,6 +38,10 @@
 (test-begin "(run-socket-test)")
 ;; start echo server
 (thread-start! server-thread)
+
+(test-error "ai-passive" assertion-violation?
+	    (make-client-socket #f "5000" 0 0 AI_PASSIVE))
+
 (let ((client-socket (make-client-socket "localhost" "5000")))
   (test-assert "socket?"(socket? client-socket))
   (test-equal "raw socket-send"

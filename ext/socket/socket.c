@@ -119,7 +119,11 @@ SgSocket* Sg_CreateClientSocket(SgString *node,
     hints.ai_addr = NULL;
     hints.ai_next = NULL;
 
-    ASSERT(!((ai_flags & AI_PASSIVE) && node == NULL));
+    if ((ai_flags & AI_PASSIVE) && node == NULL) {
+      Sg_AssertionViolation(SG_INTERN("create-client-socket"),
+			    SG_MAKE_STRING("AI_PASSIVE can not be passed on client socket"),
+			    SG_NIL);
+    }
     do {
       const char * cnode = (node != NULL) ? Sg_Utf32sToUtf8s(node) : NULL;
       const char * csrv  = (service != NULL) ? Sg_Utf32sToUtf8s(service) : NULL;
