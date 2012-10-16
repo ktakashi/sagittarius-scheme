@@ -47,6 +47,7 @@
 	    path-for-each path-map
 	    delete-directory*
 	    create-directory*
+	    copy-directory
 	    build-path*
 	    )
     (import (rnrs)
@@ -271,6 +272,23 @@
 	       (unless (equal? base ".") (create-directory p))))))
     ;; some platform complains the last "/"
     (rec (string-trim-right path *path-set*)))
+
+  ;; xcopy ... sort of
+  (define (copy-directory base-path dst
+			  :key (excludes '())
+			  :allow-other-keys opt)
+    (apply path-for-each
+	   base-path
+	   (lambda (opath type)
+	     (and-let* (( (not (member opath excludes string-contains)) )
+			(path (string-copy opath 
+					   (+ (string-length base-path) 1))))
+	       (if (eq? type 'directory)
+		   (create-directory* (build-path dst path))
+		   (let-values (((dir base ext) (decompose-path path)))
+		     (create-directory* (build-path dst dir))
+		     (copy-file opath (build-path dst path) #t)))))
+	   opt))
 
   (define (build-path* . paths)
     (let ((len (length paths)))

@@ -142,7 +142,7 @@ Compose given list to platform specific path. This procedure doesn't put path
 separator at the end of composed string.
 }
 
-@subsubsection{Create and delete utility}
+@subsubsection{Directory operations}
 
 @define[Function]{@name{create-directory*} @args{path}}
 @define[Function]{@name{delete-directory*} @args{path}}
@@ -150,4 +150,16 @@ separator at the end of composed string.
 
 These are the same as UNIX command @code{mkdir -p} and @code{rm -rf},
 respectively.
+}
+
+@define[Function]{@name{copy-directory}
+ @args{src dst :key (excludes '()) options @dots{}}}
+@desc{@var{src} and @var{dst} must be string and @var{src} must indicates an
+existing path.
+
+Copies @var{src} directory to @var{dst}. Keyword argument @var{excludes} must be
+a list of string and the procedure won't copy files which contain the
+@var{excludes} string(s).
+
+The @var{options} is passed to @code{path-for-each}.
 }
