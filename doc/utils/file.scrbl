@@ -135,7 +135,7 @@ returns a list which elements are the result value of @var{proc}.
 The keyword arguments are the same as @code{path-for-each}.
 }
 
-@define[Function]{@name{build-path*} @args{paths @dots}}
+@define[Function]{@name{build-path*} @args{paths @dots{}}}
 @desc{@var{paths} must be list of strings.
 
 Compose given list to platform specific path. This procedure doesn't put path
