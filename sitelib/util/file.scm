@@ -47,11 +47,13 @@
 	    path-for-each path-map
 	    delete-directory*
 	    create-directory*
+	    build-path*
 	    )
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius regex)
 	    (srfi :0)
+	    (srfi :1)
 	    (srfi :13 strings)
 	    (srfi :14 char-set)
 	    (srfi :38)
@@ -269,4 +271,16 @@
 	       (unless (equal? base ".") (create-directory p))))))
     ;; some platform complains the last "/"
     (rec (string-trim-right path *path-set*)))
+
+  (define (build-path* . paths)
+    (let ((len (length paths)))
+      (case len
+	;; treat trivial cases
+	((0) "")			; should this case raise an error?
+	((1) (car paths))
+	((2) (build-path (car paths) (cadr paths)))
+	(else
+	 (receive (f l) (split-at paths (- len 1))
+	   (let ((r (fold-right build-path "" f)))
+	     (build-path r (car l))))))))
 )

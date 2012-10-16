@@ -187,6 +187,13 @@ current working directory to @var{path} and returns unspecified value.
 @define[Function]{@name{set-current-directory} @args{path}}
 @desc{Sets current working directory to @var{path}.}
 
+@define[Function]{@name{build-path} @args{path1 path2}}
+@desc{@var{path1} and @var{path2} must be string.
+
+Concatenate given parameter with platform dependent path separator.
+}
+
+
 @subsubsection{Hashtables}
 
 @define[Function]{@name{make-equal-hashtable} @args{:optional k}}

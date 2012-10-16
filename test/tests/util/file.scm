@@ -92,4 +92,16 @@
 
 (test-assert "delete-directory*" (delete-directory* top-test-dir))
 
+;; build-path*
+(test-equal "build-path*" 
+	    (cond-expand
+	     (windows "a\\b\\c\\d")
+	     (else "a/b/c/d"))
+	    (build-path* "a" "b" "c" "d"))
+;; trivials
+(test-equal "build-path*(0)" "" (build-path*))
+(test-equal "build-path*(1)" "a" (build-path* "a"))
+(test-equal "build-path*(2)" (cond-expand (windows "a\\b") (else "a/b"))
+	    (build-path* "a" "b"))
+
 (test-end)
