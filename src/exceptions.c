@@ -65,12 +65,12 @@ static SgObject condition_printer_rec(SgObject *args, int argc, void *data)
     Sg_WrongNumberOfArgumentsBetweenViolation(SG_INTERN("condition-printer"),
 					      1, 2, argc, SG_NIL);
   }
-  if (argc == 2) {
+  if (argc >= 2) {
     if (!SG_PORTP(args[1])) {
       Sg_WrongTypeOfArgumentViolation(SG_INTERN("condition-printer"),
 				      SG_MAKE_STRING("port"), args[1], SG_NIL);
     }
-    p = SG_PORT(SG_CAR(args[1]));
+    p = SG_PORT(args[1]);
   } else {
     p = SG_PORT(Sg_CurrentOutputPort());
   }

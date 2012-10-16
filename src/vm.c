@@ -1615,7 +1615,7 @@ SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
       return vm->ac;
     } else {
       Sg_Apply1(vm->exceptionHandler, exception);
-      if (vm->parentExHandler && !SG_FALSEP(vm->parentExHandler)) {
+      if (!SG_FALSEP(vm->parentExHandler)) {
 	Sg_Apply1(vm->parentExHandler, 
 		  Sg_Condition(SG_LIST4(Sg_MakeNonContinuableViolation(),
 					Sg_MakeWhoCondition(SG_INTERN("raise")),
