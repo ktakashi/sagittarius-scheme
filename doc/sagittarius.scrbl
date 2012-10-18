@@ -388,9 +388,8 @@ custom codecs.
 @subsubsection{Keywords}
 
 Sagittarius has keyword objects which starts with @code{':'}. It has almost the
-same feature as symbol, however it can not be bounded with any values. It can be
-used when variable is bounded by @code{define-with-key} (see
-@secref["lib.sagittarius.control"]{@code{(sagittarius control)}}library).
+same feature as symbol, however it can not be bounded with any values. The 
+keyword objects are self quoting so users don't have to put @code{'} explicitly.
 
 @define[Function]{@name{make-keyword} @args{symbol}}
 @desc{Creates a new keyword from @var{symbol}.}
@@ -398,6 +397,31 @@ used when variable is bounded by @code{define-with-key} (see
 @define[Function]{@name{keyword?} @args{obj}}
 @desc{Returns #t if @var{obj} is keyword, otherwise #f.
 }
+
+@define[Function]{@name{keyword->symbol} @args{keyword}}
+@desc{Returns a symbol representation of given keyword @var{keyword}.}
+
+@define[Function]{@name{keyword->string} @args{keyword}}
+@desc{Returns a string representation of given keyword @var{keyword}.}
+
+@define[Function]{@name{get-keyword} @args{keyword list :optional fallback}}
+@desc{Returns the element after given @var{keyword} from given @var{list}.
+
+The elements count of the @var{list} should be even number, otherwise the
+procedure might raise @code{&error} when @var{keyword} is not found in
+@var{list}.
+
+If @var{fallback} is given and the procedure could not find the @var{keyword}
+from the @var{list}, the @var{fallback} will be return. Otherwise it raises
+@code{&error}.
+
+@snipet[=> d]{(get-keyword :key '(a b c :key d))}
+@snipet[=> &error]{(get-keyword :key '(a b c d e))}
+@snipet[=> &error]{(get-keyword :key '(a b c d e) 'fallback)}
+@snipet[=> fallback]{(get-keyword :key '(a b c d e f) 'fallback)}
+
+}
+
 
 @subsubsection{Weak Pointer}
 A weak pointer is a reference to an object that doesn’t prevent the object from
@@ -508,6 +532,16 @@ order from the subsequent locations in @var{vector @dots{}}.
 equivalent to:
 
 @snipet{(apply vector-append @var{list-of-vectors})}
+}
+
+@define[Function]{@name{vector-reverse} @args{vector :optional start end}}
+@define[Function]{@name{vector-reverse!} @args{vector :optional start end}}
+@desc{[SRFI-43] Reverse the given @var{vector}'s elements.
+
+The second form reverses the given @var{vector} destructively.
+
+Optional arguments @var{start} and @var{end} must be non negative integer
+if it's given. And it restricts the range of the target elements.
 }
 
 @subsubsection{String operations}

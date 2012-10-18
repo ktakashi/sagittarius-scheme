@@ -45,10 +45,14 @@ static wchar_t* utf32ToUtf16(SgString *path)
   return (wchar_t*)Sg_GetByteArrayFromBinaryPort(out);
 }
 
+#if 0
 static void pipe_finalize(SgObject obj, void *data)
 {
-  CloseHandle((HANDLE)data);
+  SgFile *file = SG_FILE(obj);
+  file->close(file);
+  /* CloseHandle((HANDLE)data); */
 }
+#endif
 
 static SgString *string_append(SgObject args)
 {
@@ -119,11 +123,12 @@ SgObject Sg_MakeProcess(SgString *name, SgObject commandLine)
   in->name = UC("process-stdin");
   out->name = UC("process-stdout");
   err->name = UC("process-stderr");
-
+  /* port closes the handle, so we don't need these */
+  /*
   Sg_RegisterFinalizer(SG_OBJ(in), pipe_finalize, (void*)pipe0[1]);
   Sg_RegisterFinalizer(SG_OBJ(out), pipe_finalize, (void*)pipe1[0]);
   Sg_RegisterFinalizer(SG_OBJ(err), pipe_finalize, (void*)pipe2[0]);
-
+  */
   p->in = Sg_MakeFileBinaryOutputPort(in, SG_BUFMODE_NONE);
   p->out = Sg_MakeFileBinaryInputPort(out, SG_BUFMODE_NONE);
   p->err = Sg_MakeFileBinaryInputPort(err, SG_BUFMODE_NONE);

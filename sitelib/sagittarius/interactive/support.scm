@@ -28,7 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-#< (sagittarius regex) >
+#!read-macro=sagittarius/regex
 (library (sagittarius interactive support)
     (export document)
     (import (rnrs)
@@ -69,9 +69,14 @@
   ;; it's better to define this macro so that we can write it like
   ;; (document define).
   (define-syntax document
-    (syntax-rules ()
-      ((_ name)
-       (%document (->string 'name)))))
+    (lambda (x)
+      (syntax-case x ()
+	((_ name)
+	 (identifier? #'name)
+	 #'(%document (->string 'name)))
+	((_ other ...)
+	 #'(assertion-violation 'document "symbol required" 
+				'(other ...))))))
 
   ;; parse document file to sxml and look it up
   (define (%document oname :optional (port (current-output-port)))
