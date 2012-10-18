@@ -181,8 +181,8 @@ int Sg_AddPortCleanup(SgPort *port)
   return TRUE;
 }
 
-static SgPort* make_port(enum SgPortDirection d, enum SgPortType t,
-			 enum SgBufferMode m)
+static SgPort* make_port_rec(enum SgPortDirection d, enum SgPortType t,
+			     enum SgBufferMode m, int registerP)
 {
   SgPort *z = SG_NEW(SgPort);
   SG_INIT_PORT(z, d, t, m);
@@ -192,13 +192,17 @@ static SgPort* make_port(enum SgPortDirection d, enum SgPortType t,
   switch (t) {
   case SG_BINARY_PORT_TYPE:
   case SG_CUSTOM_PORT_TYPE:
-    Sg_RegisterFinalizer(SG_OBJ(z), port_finalize, NULL);
+    if (registerP) {
+      Sg_RegisterFinalizer(SG_OBJ(z), port_finalize, NULL);
+    }
     break;
   default:
     break;
   }
   return z;
 }
+
+#define make_port(d, t, m) make_port_rec(d, t, m, TRUE)
 
 static SgBinaryPort* make_binary_port(enum SgBinaryPortType t)
 {
@@ -324,12 +328,10 @@ static int file_close(SgObject self)
 	SG_PORT(self)->flush(self);
 	unregister_buffered_port(SG_PORT(self));
       }
-      /* well, I don't think we need to check, but just in case */
-      if (SG_PORT_FILE(self)->close(SG_PORT_FILE(self))) {
-	SG_BINARY_PORT(self)->buffer = NULL; /* GC friendliness */
-	SG_BINARY_PORT(self)->src.file = NULL;
-	Sg_UnregisterFinalizer(self);
-      }
+      SG_PORT_FILE(self)->close(SG_PORT_FILE(self));
+      SG_BINARY_PORT(self)->buffer = NULL; /* GC friendliness */
+      SG_BINARY_PORT(self)->src.file = NULL;
+      Sg_UnregisterFinalizer(self);
     }
   }
   return SG_PORT(self)->closed;
@@ -753,8 +755,6 @@ SgObject Sg_MakeFileBinaryInputOutputPort(SgFile *file, int bufferMode)
  */
 static int byte_array_close(SgObject self)
 {
-  if (!SG_PORT(self)->closed)
-    Sg_UnregisterFinalizer(self);
   SG_PORT(self)->closed = TRUE;
   return TRUE;
 }
@@ -817,7 +817,8 @@ static int64_t byte_array_read_u8_all(SgObject self, uint8_t **buf)
 SgObject Sg_MakeByteVectorInputPort(SgByteVector *bv, int offset)
 {
   /* TODO is buffer mode correct? */
-  SgPort *z = make_port(SG_INPUT_PORT, SG_BINARY_PORT_TYPE, SG_BUFMODE_NONE);
+  SgPort *z = make_port_rec(SG_INPUT_PORT, SG_BINARY_PORT_TYPE,
+			    SG_BUFMODE_NONE, FALSE);
   SgBinaryPort *b = make_binary_port(SG_BYTE_ARRAY_BINARY_PORT_TYPE);
 
   z->closed = FALSE;
@@ -841,7 +842,8 @@ SgObject Sg_MakeByteVectorInputPort(SgByteVector *bv, int offset)
 SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size)
 {
   /* TODO is buffer mode correct? */
-  SgPort *z = make_port(SG_INPUT_PORT, SG_BINARY_PORT_TYPE, SG_BUFMODE_NONE);
+  SgPort *z = make_port_rec(SG_INPUT_PORT, SG_BINARY_PORT_TYPE,
+			    SG_BUFMODE_NONE, FALSE);
   SgBinaryPort *b = make_binary_port(SG_BYTE_ARRAY_BINARY_PORT_TYPE);
 
   z->closed = FALSE;
@@ -867,8 +869,6 @@ SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size)
 
 static int obyte_array_close(SgObject self)
 {
-  if (!SG_PORT(self)->closed)
-    Sg_UnregisterFinalizer(self);
   SG_PORT(self)->closed = TRUE;
   /* gc friendliness */
   SG_BINARY_PORT(self)->src.obuf.start = NULL;
@@ -903,7 +903,8 @@ static void flush_byte_array(SgObject self)
 
 SgObject Sg_MakeByteArrayOutputPort(int size)
 {
-  SgPort *z = make_port(SG_OUTPUT_PORT, SG_BINARY_PORT_TYPE, SG_BUFMODE_NONE);
+  SgPort *z = make_port_rec(SG_OUTPUT_PORT, SG_BINARY_PORT_TYPE,
+			    SG_BUFMODE_NONE, FALSE);
   SgBinaryPort *b = make_binary_port(SG_BYTE_ARRAY_BINARY_PORT_TYPE);
 
   z->closed = FALSE;
