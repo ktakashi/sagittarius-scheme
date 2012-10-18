@@ -462,9 +462,10 @@ int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
 					       "CreateSymbolicLinkW");
     if (win32CreateSymbolicLink) {
       const wchar_t* newPathW = utf32ToUtf16(newpath);
+      const wchar_t* oldPathW = utf32ToUtf16(oldpath);
       /* SYMBOLIC_LINK_FLAG_DIRECTORY == 1 */
-      DWORD flag = PathIsDirectoryW(newPathW) ? 1 : 0;
-      if (win32CreateSymbolicLink(newPathW, utf32ToUtf16(oldpath), flag)) {
+      DWORD flag = PathIsDirectoryW(oldPathW) ? 1 : 0;
+      if (win32CreateSymbolicLink(newPathW, oldPathW, flag)) {
 	return TRUE;
       }
     }
