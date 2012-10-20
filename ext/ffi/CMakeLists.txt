@@ -3,14 +3,20 @@
 # Build file for regex
 
 CHECK_INCLUDE_FILE(ffi.h HAVE_FFI_H)
-
 IF (HAVE_FFI_H)
+  SET(LIB_FFI_FOUND TRUE)
+  SET(LIB_FFI_LIBRARIES ffi)
+ELSE()
+  FIND_PACKAGE(LibFFI)
+ENDIF()
+
+IF (LIB_FFI_FOUND)
   MESSAGE(STATUS "Sagittarius uses platform libffi")
 ELSEIF(WATCOM)
   MESSAGE(WARNING "Sagittarius does not support FFI on WATCOM")
   SET(NO_LIB_FFI TRUE)
 ELSE()
-  MESSAGE(STATUS "Sagittarius uses bandled libffi")
+  MESSAGE(STATUS "Sagittarius uses bundled libffi")
   ADD_SUBDIRECTORY(libffi-3.0.10 libffi)
   INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/libffi-3.0.10/include)
   INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/libffi)
@@ -40,8 +46,8 @@ ELSE()
 
   SET_TARGET_PROPERTIES(sagittarius--ffi PROPERTIES PREFIX "")
   TARGET_LINK_LIBRARIES(sagittarius--ffi sagittarius)
-  IF (HAVE_FFI_H)
-    TARGET_LINK_LIBRARIES(sagittarius--ffi ffi)
+  IF (LIB_FFI_FOUND)
+    TARGET_LINK_LIBRARIES(sagittarius--ffi ${LIB_FFI_LIBRARIES})
   ELSE()
     TARGET_LINK_LIBRARIES(sagittarius--ffi libffi)
   ENDIF()

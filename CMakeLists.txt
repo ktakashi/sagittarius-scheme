@@ -222,62 +222,63 @@ ELSEIF(WATCOM)
   SET(CMAKE_CXX_FLAGS "-ox -xs ${CMAKE_CXX_FLAGS}")
 ENDIF()
 
+# set module path here
+SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
 IF(USE_BOEHM_GC)
   #SET(GC_DEPENDS_TARGET false)
-  CHECK_INCLUDE_FILE(gc.h HAVE_GC_H)
+  FIND_PACKAGE(GC REQUIRED)
   SET(LINK_BOEHM_GC true)
-  IF(NOT HAVE_GC_H)
-    CHECK_INCLUDE_FILE(gc/gc.h HAVE_GC_GC_H)
-    IF(NOT HAVE_GC_GC_H)
-      # download boehm gc
-      # we need to use CMake conformed one, so the latest 7.2alpha6
-      IF (MSVC OR WATCOM)
-	SET(USED_GC_VERSION "gc-7.2")
-      ELSE()
-	SET(USED_GC_VERSION "gc-7.2")
-      ENDIF()
-      FIND_FILE(HAS_BOEHM_GC_TAR
-	NAMES gc.tar.gz
-	PATHS ${CMAKE_CURRENT_BINARY_DIR})
-      MESSAGE(STATUS "Checked Boehm GC archive file: ${HAS_BOEHM_GC_TAR}")
-      IF (NOT EXISTS ${HAS_BOEHM_GC_TAR})
-	FILE(
-	  DOWNLOAD "http://www.hpl.hp.com/personal/Hans_Boehm/gc/gc_source/${USED_GC_VERSION}.tar.gz"
-	           "${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz"
-	  SHOW_PROGRESS)
-	EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xzf
-	  ${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz
-	  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-	MESSAGE(STATUS "unpacked gc.tar.gz")
-      ENDIF()
-      IF (NOT MSVC AND NOT WATCOM)
-	MESSAGE(FATAL_ERROR "First install Boehm GC. Go to gc directory.")
-      ENDIF()
-      ADD_DEFINITIONS("-DLARGE_CONFIG -DGC_DLL")
-      # since we are using explicit GC_DLL macro, Boehm GC's unit test can not
-      # be built because of the dependency problem. so we need to recreate the
-      # CMakeLists.txt without ADD_SUBDIRECTORY.
-      # NOTE: Be aware when GC fixed this problem or changed CMakeLists.txt.
-      SET(GC_DIR ${CMAKE_CURRENT_BINARY_DIR}/${USED_GC_VERSION})
-      MESSAGE(STATUS "Rebuilding ${GC_DIR}/CMakeLists.txt")
-      IF (NOT EXISTS ${GC_DIR}/CMakeLists.txt.in)
-	FILE(RENAME ${GC_DIR}/CMakeLists.txt ${GC_DIR}/CMakeLists.txt.in)
-      ENDIF()
-      FILE(REMOVE ${GC_DIR}/CMakeLists.txt)
-      FILE(READ ${GC_DIR}/CMakeLists.txt.in GC_BUILD_LINES)
-      STRING(REGEX REPLACE "ADD_SUBDIRECTORY(.+)" ""
-	GC_BUILD_LINES "${GC_BUILD_LINES}")
-      FILE(APPEND ${GC_DIR}/CMakeLists.txt.tmp "${GC_BUILD_LINES}")
-      FILE(RENAME ${GC_DIR}/CMakeLists.txt.tmp ${GC_DIR}/CMakeLists.txt)
 
-      ADD_SUBDIRECTORY(${GC_DIR} build/gc)
-      INCLUDE_DIRECTORIES(${GC_DIR}/include)
-      SET(HAVE_GC_H 1)
-      SET(GC_DEPENDS_TARGET gcmt-dll)
-    ENDIF(NOT HAVE_GC_GC_H)
-  ELSE(NOT HAVE_GC_H)
-#    ADD_DEFINITIONS(-DUSE_BOEHM_GC)
-  ENDIF(NOT HAVE_GC_H)
+  IF(BOEHM_GC_FOUND)
+    INCLUDE_DIRECTORIES(${BOEHM_GC_INCLUDE_DIR})
+  ELSE()
+    # download boehm gc
+    # we need to use CMake conformed one, so the latest 7.2alpha6
+    IF (MSVC OR WATCOM)
+      SET(USED_GC_VERSION "gc-7.2")
+    ELSE()
+      SET(USED_GC_VERSION "gc-7.2")
+    ENDIF()
+    FIND_FILE(HAS_BOEHM_GC_TAR
+      NAMES gc.tar.gz
+      PATHS ${CMAKE_CURRENT_BINARY_DIR})
+    MESSAGE(STATUS "Checked Boehm GC archive file: ${HAS_BOEHM_GC_TAR}")
+    IF (NOT EXISTS ${HAS_BOEHM_GC_TAR})
+      FILE(
+	DOWNLOAD "http://www.hpl.hp.com/personal/Hans_Boehm/gc/gc_source/${USED_GC_VERSION}.tar.gz"
+	"${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz"
+	SHOW_PROGRESS)
+      EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xzf
+	${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz
+	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+      MESSAGE(STATUS "unpacked gc.tar.gz")
+    ENDIF()
+    IF (NOT MSVC AND NOT WATCOM)
+      MESSAGE(FATAL_ERROR "First install Boehm GC. Go to gc directory.")
+    ENDIF()
+    ADD_DEFINITIONS("-DLARGE_CONFIG -DGC_DLL")
+    # since we are using explicit GC_DLL macro, Boehm GC's unit test can not
+    # be built because of the dependency problem. so we need to recreate the
+    # CMakeLists.txt without ADD_SUBDIRECTORY.
+    # NOTE: Be aware when GC fixed this problem or changed CMakeLists.txt.
+    SET(GC_DIR ${CMAKE_CURRENT_BINARY_DIR}/${USED_GC_VERSION})
+    MESSAGE(STATUS "Rebuilding ${GC_DIR}/CMakeLists.txt")
+    IF (NOT EXISTS ${GC_DIR}/CMakeLists.txt.in)
+      FILE(RENAME ${GC_DIR}/CMakeLists.txt ${GC_DIR}/CMakeLists.txt.in)
+    ENDIF()
+    FILE(REMOVE ${GC_DIR}/CMakeLists.txt)
+    FILE(READ ${GC_DIR}/CMakeLists.txt.in GC_BUILD_LINES)
+    STRING(REGEX REPLACE "ADD_SUBDIRECTORY(.+)" ""
+      GC_BUILD_LINES "${GC_BUILD_LINES}")
+    FILE(APPEND ${GC_DIR}/CMakeLists.txt.tmp "${GC_BUILD_LINES}")
+    FILE(RENAME ${GC_DIR}/CMakeLists.txt.tmp ${GC_DIR}/CMakeLists.txt)
+
+    ADD_SUBDIRECTORY(${GC_DIR} build/gc)
+    INCLUDE_DIRECTORIES(${GC_DIR}/include)
+    SET(HAVE_GC_H 1)
+    SET(GC_DEPENDS_TARGET gcmt-dll)
+  ENDIF(BOEHM_GC_FOUND) 
 ENDIF(USE_BOEHM_GC)
 
 IF(SAGITTARIUS_PROFILE)
