@@ -1493,8 +1493,7 @@ SgObject Sg_AddLoadPath(SgString *path)
 {
   SgVM *vm = Sg_VM();
   if (SG_STRING_SIZE(path) != 0) {
-    vm->loadPath = Sg_Append2X(SG_LIST1(replace_file_separator(path)),
-			       vm->loadPath);
+    vm->loadPath = Sg_Cons(replace_file_separator(path), vm->loadPath);
   }
   return vm->loadPath;
 }
@@ -1503,8 +1502,8 @@ SgObject Sg_AddDynamicLoadPath(SgString *path)
 {
   SgVM *vm = Sg_VM();
   if (SG_STRING_SIZE(path) != 0) {
-    vm->dynamicLoadPath = Sg_Append2X(SG_LIST1(replace_file_separator(path)),
-				      vm->dynamicLoadPath);
+    vm->dynamicLoadPath = Sg_Cons(replace_file_separator(path),
+				  vm->dynamicLoadPath);
   }
   return vm->dynamicLoadPath;
 }

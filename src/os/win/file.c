@@ -669,23 +669,39 @@ SgObject Sg_InstalledDirectory()
 
 SgObject Sg_GetDefaultLoadPath()
 {
+  SgObject env = Sg_Getenv(UC("SAGITTARIUS_LOADPATH"));
+  SgObject h = SG_NIL, t = SG_NIL;
+  if (!SG_FALSEP(env) && SG_STRING_SIZE(env) != 0) {
+    SG_APPEND(h, t, Sg_StringSplitChar(SG_STRING(env), ';'));
+  }
+
   if (win_lib_path == NULL ||
       win_sitelib_path == NULL ||
       win_dynlib_path == NULL) {
     initialize_path();
   }
-  return SG_LIST2(win_sitelib_path, win_lib_path);
+  SG_APPEND1(h, t, win_sitelib_path);
+  SG_APPEND1(h, t, win_lib_path);
+  return h;
 }
 
 SgObject Sg_GetDefaultDynamicLoadPath()
 {
+  SgObject env = Sg_Getenv(UC("SAGITTARIUS_DYN_LOADPATH"));
+  SgObject h = SG_NIL, t = SG_NIL;
+
+  if (!SG_FALSEP(env) && SG_STRING_SIZE(env) != 0) {
+    SG_APPEND(h, t, Sg_StringSplitChar(SG_STRING(env), ';'));
+  }
+
   /* this must be initialized when vm is being created. */
   if (win_lib_path == NULL ||
       win_sitelib_path == NULL ||
       win_dynlib_path == NULL) {
     initialize_path();
   }
-  return SG_LIST1(win_dynlib_path);
+  SG_APPEND1(h, t, win_dynlib_path);
+  return h;
 }
 
 SgObject Sg_DirectoryName(SgString *path)

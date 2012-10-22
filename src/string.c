@@ -508,6 +508,22 @@ SgObject Sg_StringScanChar(SgString *s1, SgChar ch, int retmode)
   return string_scan(s1, buf, 1, retmode);
 }
 
+SgObject Sg_StringSplitChar(SgString *s1, SgChar ch)
+{
+  /* we can't use values since this might be used before initialisation */
+  SgObject pos = Sg_StringScanChar(s1, ch, SG_STRING_SCAN_INDEX);
+  SgObject h = SG_NIL, t = SG_NIL, s = s1;
+
+  while (!SG_FALSEP(pos)) {
+    int p = SG_INT_VALUE(pos);
+    SG_APPEND1(h, t, Sg_Substring(s, 0, p));
+    s = Sg_Substring(s, p+1, SG_STRING_SIZE(s));
+    pos = Sg_StringScanChar(s, ch, SG_STRING_SCAN_INDEX);
+  }
+  SG_APPEND1(h, t, s);
+  return h;
+}
+
 SgObject Sg_Substring(SgString *x, int start, int end)
 {
   int len = x->size;

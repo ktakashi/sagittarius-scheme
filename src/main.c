@@ -218,6 +218,18 @@ static void show_usage()
 	  "     time        Sort by time\n"
 	  "     count       Sort by count\n"
 #endif
+	  "\n"
+	  "environment variables:\n"
+	  "  SAGITTARIUS_LOADPATH\n"
+	  "    Adds library load path by using environment variable, with ':'\n"
+	  "    (use ';' for Windows) separated paths.\n"
+	  "  SAGITTARIUS_DYN_LOADPATH\n"
+	  "    Adds module load path by using environment variable, with ':'\n"
+	  "    (use ';' for Windows) separated paths.\n"
+	  "\n"
+	  "bug report:\n"
+	  "  http://code.google.com/p/sagittarius-scheme/issues\n"
+	  "  ktakashi@ymail.com"
 	  );
   exit(1);
 }

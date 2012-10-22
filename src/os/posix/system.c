@@ -80,15 +80,31 @@ SgObject Sg_GetLastErrorMessage()
 
 SgObject Sg_GetDefaultLoadPath()
 {
-  return SG_LIST3(SG_MAKE_STRING(SAGITTARIUS_SITE_LIB_PATH),
-		  SG_MAKE_STRING(SAGITTARIUS_SHARE_SITE_LIB_PATH),
-		  SG_MAKE_STRING(SAGITTARIUS_SHARE_LIB_PATH));
+  SgObject env = Sg_Getenv(UC("SAGITTARIUS_LOADPATH"));
+  SgObject h = SG_NIL, t = SG_NIL;
+  if (!SG_FALSEP(env) && SG_STRING_SIZE(env) != 0) {
+    SG_APPEND(h, t, Sg_StringSplitChar(SG_STRING(env), ':'));
+  }
+
+  SG_APPEND1(h, t, SG_MAKE_STRING(SAGITTARIUS_SITE_LIB_PATH));
+  SG_APPEND1(h, t, SG_MAKE_STRING(SAGITTARIUS_SHARE_SITE_LIB_PATH));
+  SG_APPEND1(h, t, SG_MAKE_STRING(SAGITTARIUS_SHARE_LIB_PATH));
+
+  return h;
 }
 
 SgObject Sg_GetDefaultDynamicLoadPath()
 {
-  return SG_LIST2(SG_MAKE_STRING(SAGITTARIUS_DYNLIB_PATH),
-		  SG_MAKE_STRING(SAGITTARIUS_SITE_DYNLIB_PATH));
+  SgObject env = Sg_Getenv(UC("SAGITTARIUS_DYN_LOADPATH"));
+  SgObject h = SG_NIL, t = SG_NIL;
+
+  if (!SG_FALSEP(env) && SG_STRING_SIZE(env) != 0) {
+    SG_APPEND(h, t, Sg_StringSplitChar(SG_STRING(env), ':'));
+  }
+
+  SG_APPEND1(h, t, SG_MAKE_STRING(SAGITTARIUS_DYNLIB_PATH));
+  SG_APPEND1(h, t, SG_MAKE_STRING(SAGITTARIUS_SITE_DYNLIB_PATH));
+  return h;
 }
 
 int Sg_GetTimeOfDay(unsigned long *sec, unsigned long *usec)
@@ -237,7 +253,7 @@ SgObject Sg_TimeUsage()
 {
   struct timeval tv;
   struct rusage ru;
-  SgObject values;
+
   gettimeofday(&tv, NULL);
   getrusage(RUSAGE_SELF, &ru);
 

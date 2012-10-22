@@ -99,6 +99,9 @@ SG_EXTERN SgChar   Sg_StringRef(SgString *s, int k);
 /* search */
 SG_EXTERN SgObject Sg_StringScan(SgString *s1, SgString *s2, int retmode);
 SG_EXTERN SgObject Sg_StringScanChar(SgString *s1, SgChar ch, int retmode);
+/* split */
+SG_EXTERN SgObject Sg_StringSplitChar(SgString *s1, SgChar ch);
+
 /* modify */
 SG_EXTERN SgObject Sg_Substring(SgString *x, int start, int end);
 SG_EXTERN void     Sg_StringSet(SgString *s, int k, SgChar c);
