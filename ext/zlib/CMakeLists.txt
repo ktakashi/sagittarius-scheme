@@ -20,9 +20,12 @@ ADD_STUBS(sagittarius--zlib
   OUTTREE)
 
 #check if zlib is available
-INCLUDE(${CMAKE_ROOT}/Modules/FindZLIB.cmake)
+#INCLUDE(${CMAKE_ROOT}/Modules/FindZLIB.cmake)
+FIND_PACKAGE(ZLIB)
 
-IF (NOT ${ZLIB_FOUND})
+IF (ZLIB_FOUND)
+  INCLUDE_DIRECTORIES(${ZLIB_INCLUDE_DIRS})
+ELSEIF()
 #  IF (MSVC)
 #    # use DLL which is provied by zlib.net
 #  ELSE()

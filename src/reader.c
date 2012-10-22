@@ -1636,6 +1636,9 @@ int Sg_ConstantLiteralP(SgObject o)
   if (SG_PAIRP(o)) {
     /* simple check */
     return SG_PAIR(o)->constp;
+  } else if (SG_VECTORP(o)) {
+    /* again simple check */
+    return SG_VECTOR(o)->literalp;
   }
   e = Sg_HashTableRef(obtable, o, SG_UNBOUND);
   if (SG_UNBOUNDP(e)) return FALSE;

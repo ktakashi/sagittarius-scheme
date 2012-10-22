@@ -308,6 +308,7 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
   ctx.sharedObjects = sharedObjects;
   ctx.uid = 0;
   ctx.index = index;
+  ctx.macroPhaseP = FALSE;
   if (setjmp(ctx.escape) == 0) {
     /* pass1 collect closure and library */
     SgObject first = Sg_Acons(cb, SG_MAKE_INT(ctx.index++), SG_NIL);
@@ -349,6 +350,7 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
   if (lib != NULL) {
     /* write macro */
     if (setjmp(ctx.escape) == 0) {
+      ctx.macroPhaseP = TRUE;
       write_macro_cache(out, lib, closures, &ctx);
     } else {
       /* macro has something weird objects */
@@ -655,7 +657,13 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
     /* gloc does not have any envs. */
     emit_immediate(out, SG_NIL);
   } else if (SG_MACROP(o)) {
-    write_macro(out, o, cbs, ctx);
+    if (ctx->macroPhaseP) {
+      /* this must be local macro, global macros are emitted in
+         write_macro_cache. So just put UNBOUND */
+      emit_immediate(out, SG_UNBOUND);
+    } else {
+      write_macro(out, o, cbs, ctx);
+    }
   } else {
     SgClass *klass = Sg_ClassOf(o);
     if (SG_PROCEDUREP(klass->cwriter)) {
@@ -1203,12 +1211,7 @@ static SgSharedRef* make_shared_ref(int mark)
 
 static SgObject get_shared(SgObject index, read_ctx *ctx)
 {
-  SgObject obj = Sg_HashTableRef(ctx->sharedObjects, index, SG_UNBOUND);
-  if (SG_UNBOUNDP(obj)) {
-    Sg_Printf(Sg_StandardErrorPort(), UC("unbound index: %A\n"), index);
-  }
-  ASSERT(!SG_UNBOUNDP(obj));
-  return obj;
+  return Sg_HashTableRef(ctx->sharedObjects, index, SG_UNBOUND);
 }
 
 static void read_cache_link(SgObject obj, SgHashTable *seen, read_ctx *ctx)

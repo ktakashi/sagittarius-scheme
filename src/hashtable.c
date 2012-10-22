@@ -124,7 +124,7 @@ uint32_t Sg_EqvHash(SgObject obj)
   }
   return hashval & HASHMASK;
 }
-
+#if 0
 #define MAX_EQUAL_HASH_DEPTH 100
 static uint32_t equal_hash_rec(SgObject obj, int depth, SgHashTable *seen)
 {
@@ -197,6 +197,104 @@ uint32_t Sg_EqualHash(SgObject obj)
   SgHashTable *ht = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
   return equal_hash_rec(obj, 0, ht);
 }
+#endif
+
+static uint32_t pair_hash(SgObject o, int level);
+static uint32_t vector_hash(SgObject o, int level);
+
+static uint32_t level_hash(SgObject o, int level)
+{
+  if (SG_PAIRP(o)) return pair_hash(o, level);
+  else if (SG_VECTORP(o)) return vector_hash(o, level);
+  else return Sg_EqualHash(o);
+}
+
+static uint32_t pair_hash(SgObject o, int level)
+{
+  if (level == 0) return 0x08d;
+  else return COMBINE(level_hash(SG_CAR(o), level-1),
+		      level_hash(SG_CDR(o), level-1));
+}
+
+static SgObject compact_vector(SgObject vec, int len, int short_len)
+{
+  int selections = short_len - 5;
+  int interval = (len-5)/(short_len-5);
+  int fsp = 3 + interval/2, i, index;
+  SgObject r = Sg_MakeVector(short_len, SG_FALSE);
+  /* set 5 elements first */
+  SG_VECTOR_ELEMENT(r,	0) = SG_VECTOR_ELEMENT(vec, 0);
+  SG_VECTOR_ELEMENT(r,	1) = SG_VECTOR_ELEMENT(vec, 1);
+  SG_VECTOR_ELEMENT(r,	2) = SG_VECTOR_ELEMENT(vec, 2);
+  for (i = 3, index = fsp; i < selections+3; i++, index+=interval) {
+    SG_VECTOR_ELEMENT(r, i) = SG_VECTOR_ELEMENT(vec, index);
+  }
+  SG_VECTOR_ELEMENT(r, i++) = SG_VECTOR_ELEMENT(vec, (len-2));
+  SG_VECTOR_ELEMENT(r, i)   = SG_VECTOR_ELEMENT(vec, (len-1));
+  return r;
+}
+
+static uint32_t smoosh_vector(SgObject vec, int len, int level)
+{
+  int remain;
+  uint32_t result = 0xd80f;
+  for (remain = len; remain > 0; remain--) {
+    result = COMBINE(result, level_hash(SG_VECTOR_ELEMENT(vec, remain-1),
+					level-1));
+  }
+  return result;
+}
+static uint32_t vector_hash(SgObject obj, int level)
+{
+  if (level == 0) return 0xd80e;
+  else {
+    int breakn = 13, len = SG_VECTOR_SIZE(obj);
+    uint32_t hashval, h;
+    SMALL_INT_HASH(hashval, len);
+    if (len <= breakn) {
+      h = smoosh_vector(obj, len, level);
+    } else {
+      obj = compact_vector(obj, len, breakn);
+      h = smoosh_vector(obj, breakn, level);
+    }
+    return COMBINE(hashval, h);
+  }
+}
+
+uint32_t Sg_EqualHash(SgObject obj)
+{
+  static const int MAX_NESTING_LEVEL = 4;
+  uint32_t hashval;
+  if (!SG_PTRP(obj)) {
+    SMALL_INT_HASH(hashval, (unsigned long)SG_WORD(obj));
+    return hashval;
+  } else if (SG_NUMBERP(obj)) {
+    return Sg_EqvHash(obj);
+  } else if (SG_STRINGP(obj)) {
+    return Sg_StringHash(SG_STRING(obj), 0);
+  } else if (SG_PAIRP(obj)) {
+    return pair_hash(obj, MAX_NESTING_LEVEL); 
+  } else if (SG_VECTORP(obj)) {
+    return vector_hash(obj, MAX_NESTING_LEVEL); 
+  } else if (SG_SYMBOLP(obj)) {
+    return Sg_StringHash(SG_SYMBOL(obj)->name, 0);
+  } else if (SG_KEYWORDP(obj)) {
+    return Sg_StringHash(SG_KEYWORD_NAME(obj), 0);
+  } else if (SG_BVECTORP(obj)) {
+    /* TODO is this ok? */
+    unsigned long h = 0, h2;
+    int i, size = SG_BVECTOR_SIZE(obj);
+    for (i = 0; i < size; i++) {
+      SMALL_INT_HASH(h2, SG_BVECTOR_ELEMENT(obj, i));
+      h = COMBINE(h, h2);
+    }
+    return h;
+  } else {
+    ADDRESS_HASH(hashval, obj);
+    return hashval;
+  }
+}
+
 
 uint32_t Sg_StringHash(SgString *str, uint32_t bound)
 {
