@@ -1,0 +1,41 @@
+This file is for those who want s to hask the cutting-edge Sagittarius
+sources from the Mercurial repository. If you just want to compile
+from the distribution, you don't need to read any further.
+
+# How to check out from the repository
+
+This section is for those who are not fimiliar with Mercurial commands.
+As a preconditions, Mercurial is installed on your environment.
+
+## Basic commands for Mercurial
+
+### Clone
+
+    % hg clone https://code.google.com/p/sagittarius-scheme sagittarius
+
+The last `sagittarius` is destination directory name.
+
+### Update
+
+Following command switches between branches.
+
+    % hg update ${branch name}
+
+If you don't specify any branch name, then current branch will be used.
+
+Note: `default` branch is git's `master`.
+
+### Commit
+
+    % hg commit -m 'comment' -u ${user name}
+
+# Provided developer tool
+
+We provide `autogen.sh` for developer and it generates boot code, VM
+instructions and generated code from stub file.  For more details, see
+the file.
+
+Note:
+If Sagittarius itself is so unstable to generate boot code, you can also
+use [Gauche](http://practical-scheme.net/gauche/index.html) for it.
+
