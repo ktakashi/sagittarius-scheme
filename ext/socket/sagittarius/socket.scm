@@ -151,7 +151,7 @@
 	       (if (socket-connect! socket info)
 		   socket
 		   (retry info)))
-	      (info (retry infor))
+	      (info (retry info))
 	      (else
 	       (raise-i/o-error 'make-client-socket
 				(if socket
