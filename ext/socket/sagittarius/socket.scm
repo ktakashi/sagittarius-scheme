@@ -36,6 +36,14 @@
 	    socket?
 	    make-socket
 	    socket-port
+	    
+	    socket-setsockopt!
+	    socket-getsockopt
+	    socket-connect!
+	    socket-bind!
+	    socket-listen!
+	    socket-error-message
+
 	    socket-accept
 	    socket-send
 	    socket-recv
@@ -44,51 +52,135 @@
 	    socket-fd
 	    socket-nonblocking!
 	    socket-blocking!
-	    AF_UNSPEC
-	    AF_INET
-	    AF_INET6
-	    SOCK_STREAM
-	    SOCK_DGRAM
-	    SOCK_RAW
-	    SOCK_RDM
-	    SOCK_SEQPACKET
-	    AI_PASSIVE
-	    AI_CANONNAME
-	    AI_NUMERICHOST
-	    AI_V4MAPPED
-	    AI_ALL
-	    AI_ADDRCONFIG
-	    SHUT_RD
-	    SHUT_WR
-	    SHUT_RDWR
-	    MSG_OOB
-	    MSG_PEEK
-	    MSG_DONTROUTE
-	    MSG_CTRUNC
-	    MSG_PROBE
-	    MSG_TRUNC
-	    MSG_DONTWAIT
-	    MSG_EOR
-	    MSG_WAITALL
-	    MSG_FIN
-	    MSG_SYN
-	    MSG_CONFIRM
-	    MSG_RST
-	    MSG_ERRQUEUE
-	    MSG_NOSIGNAL
-	    MSG_MORE
-	    MSG_EOF
+	    ;; addrinfo
+	    make-addrinfo
+
+	    AF_UNSPEC AF_INET AF_INET6
+
+	    SOCK_STREAM SOCK_DGRAM SOCK_RAW SOCK_RDM SOCK_SEQPACKET
+
+	    AI_PASSIVE AI_CANONNAME AI_NUMERICHOST
+	    AI_V4MAPPED AI_ALL AI_ADDRCONFIG
+
+	    IPPROTO_IP IPPROTO_TCP IPPROTO_UDP IPPROTO_RAW IPPROTO_IPV6
+	    IPPROTO_ICMP IPPROTO_ICMPV6
+
+	    SHUT_RD SHUT_WR SHUT_RDWR
+
+	    MSG_OOB MSG_PEEK MSG_DONTROUTE MSG_CTRUNC
+	    MSG_PROBE MSG_TRUNC MSG_DONTWAIT MSG_EOR
+	    MSG_WAITALL MSG_FIN MSG_SYN MSG_CONFIRM
+	    MSG_RST MSG_ERRQUEUE MSG_NOSIGNAL
+	    MSG_MORE MSG_EOF
+
+	    ;;  socket options
+	    SOL_SOCKET
+	    SO_ACCEPTCONN SO_BINDTODEVICE SO_BROADCAST
+	    SO_DEBUG SO_DONTROUTE SO_ERROR
+	    SO_KEEPALIVE SO_LINGER SO_OOBINLINE
+	    SO_PASSCRED SO_PEERCRED SO_PRIORITY
+	    SO_RCVBUF SO_RCVLOWAT SO_RCVTIMEO
+	    SO_REUSEADDR SO_REUSEPORT SO_SNDBUF
+	    SO_SNDLOWAT SO_SNDTIMEO SO_TIMESTAMP
+	    SO_TYPE
+
+	    SOL_TCP
+	    TCP_NODELAY TCP_MAXSEG TCP_CORK
+
+	    SOL_IP
+	    IP_OPTIONS IP_PKTINFO IP_RECVTOS
+	    IP_RECVTTL IP_RECVOPTS IP_TOS
+	    IP_TTL IP_HDRINCL IP_RECVERR
+	    IP_MTU_DISCOVER IP_MTU IP_ROUTER_ALERT
+	    IP_MULTICAST_TTL IP_MULTICAST_LOOP
+	    IP_ADD_MEMBERSHIP IP_DROP_MEMBERSHIP
+	    IP_MULTICAST_IF
+
+	    ;; addrinfo
+	    addrinfo? make-addrinfo make-hint-addrinfo get-addrinfo
+	    next-addrinfo
+
 	    ;; clos
 	    <socket>
+	    <addrinfo>
 	    )
     (import (core)
+	    (core errors)
+	    (clos user)
 	    (sagittarius)
-	    #;(sagittarius socket impl)
 	    )
   (load-dynamic-library "sagittarius--socket")
-  (define call-with-socket
-    (lambda (socket proc)
-      (receive args (proc socket)
-	(socket-close socket)
-	(apply values args))))
+  (define (call-with-socket socket proc)
+    (receive args (proc socket)
+      (socket-close socket)
+      (apply values args)))
+
+  (define (make-hint-addrinfo :key family socktype flags protocol)
+    (let ((info (make-addrinfo)))
+      (unless (undefined? family) (slot-set! info 'family family))
+      (unless (undefined? socktype) (slot-set! info 'socktype socktype))
+      (unless (undefined? flags) (slot-set! info 'flags flags))
+      (unless (undefined? protocol) (slot-set! info 'protocol protocol))
+      info))
+
+  (define (next-addrinfo info) (slot-ref info 'next))
+
+  (define (make-client-socket node service
+			      :optional (ai-family AF_INET)
+					(ai-socktype SOCK_STREAM)
+					(ai-flags (+ AI_V4MAPPED AI_ADDRCONFIG))
+					(ai-protocol 0))
+    (let* ((hints (make-hint-addrinfo :family ai-family
+				      :socktype ai-socktype
+				      :flags ai-flags
+				      :protocol ai-protocol))
+	   (info (get-addrinfo node service hints)))
+      (let loop ((socket (make-socket info)) (info info))
+	(define (retry info)
+	  (let ((next (slot-ref info 'next)))
+	    (unless next
+	      (assertion-violation 'make-client-socket "no next addrinfo"))
+	    (loop (make-socket next) next)))
+	(cond ((and socket info)
+	       (if (socket-connect! socket info)
+		   socket
+		   (retry info)))
+	      (info (retry infor))
+	      (else
+	       (raise-i/o-error 'make-client-socket
+				(if socket
+				    (socket-error-message socket)
+				    "creating a socket failed")
+				node service))))))
+
+  (define (make-server-socket service 
+			      :optional (ai-family AF_INET)
+					(ai-socktype SOCK_STREAM)
+					(ai-protocol 0))
+    (let* ((hints (make-hint-addrinfo :family ai-family
+				      :socktype ai-socktype
+				      :flags AI_PASSIVE
+				      :protocol ai-protocol))
+	   (info (get-addrinfo #f service hints)))
+      (let loop ((socket (make-socket info)) (info info))
+	(define (retry info)
+	  (let ((next (slot-ref info 'next)))
+	    (unless next
+	      (assertion-violation 'make-client-socket "no next addrinfo"))
+	    (loop (make-socket next) next)))
+	(cond ((and socket info)
+	       (or (and (socket-setsockopt! socket SOL_SOCKET SO_REUSEADDR 1)
+			(socket-bind! socket info)
+			(if (= ai-socktype SOCK_STREAM)
+			    (socket-listen! socket SOMAXCONN)
+			    #t)
+			socket)
+		   (retry info)))
+	      (info (retry info))
+	      (else
+	       (raise-i/o-error 'make-client-socket
+				(if socket
+				    (socket-error-message socket)
+				    "creating a socket failed")
+				service))))))
 )

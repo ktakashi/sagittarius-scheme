@@ -16,62 +16,38 @@
 				       '()))))
 
 (define-type <socket> "SgSocket*")
+(define-type <addrinfo> "SgAddrinfo*")
 
-(define-c-proc make-client-socket 
-  (node service :optional
-	(ai_family::<fixnum> (SG_MAKE_INT AF_INET))
-	(ai_socktype::<fixnum> (SG_MAKE_INT SOCK_STREAM))
-	(ai_flags::<fixnum> (SG_MAKE_INT (+ AI_V4MAPPED AI_ADDRCONFIG)))
-	(ai_protocol::<fixnum> 0))
-  
+(define-c-proc addrinfo? (o) ::<boolean>  SG_ADDRINFOP)
+(define-c-proc make-addrinfo ()  Sg_MakeAddrinfo)
+(define-c-proc get-addrinfo (node service hints::<addrinfo>)
   (check-string-or-false make-client-socket node)
   (check-string-or-false make-client-socket service)
-  (when (SG_FALSEP node)
-    (set! node NULL))
-  (when (SG_FALSEP service)
-    (set! service NULL))
-  (let ((sock (Sg_CreateClientSocket (SG_STRING node)
-				     (SG_STRING service)
-				     ai_family
-				     ai_socktype
-				     ai_flags
-				     ai_protocol)))
-    (if (Sg_SocketOpenP (SG_SOCKET sock))
-	(result sock)
-	(Sg_IOError (cast SgIOErrorType -1) 'make-client-socket
-		    (Sg_GetLastErrorMessageWithErrorCode
-		     (-> (SG_SOCKET sock) lastError))
-		    #f (SG_LIST2 node service)))))
+  (result (Sg_GetAddrinfo node service hints)))
 
-(define-c-proc make-server-socket 
-  (service :optional
-	   (ai_family::<fixnum> (SG_MAKE_INT AF_INET))
-	   (ai_socktype::<fixnum> (SG_MAKE_INT SOCK_STREAM))
-	   (ai_protocol::<fixnum> 0))
-  (check-string-or-false make-server-socket service)
-  (when (SG_FALSEP service)
-    (set! service NULL))
-  (let ((sock (Sg_CreateServerSocket (SG_STRING service)
-				     ai_family ai_socktype ai_protocol)))
-    (if (Sg_SocketOpenP (SG_SOCKET sock))
-	(result sock)
-	(Sg_IOError (cast SgIOErrorType -1)
-		    'make-server-socket
-		    (Sg_GetLastErrorMessageWithErrorCode 
-		     (-> (SG_SOCKET sock) lastError))
-		    #f service))))
+(define-c-proc make-socket (info::<addrinfo>) Sg_CreateSocket)
+(define-c-proc socket-setsockopt!
+  (socket::<socket> level::<fixnum> name::<fixnum> value) Sg_SocketSetopt)
+(define-c-proc socket-getsockopt
+  (socket::<socket> level::<fixnum> name::<fixnum> size::<fixnum>)
+  Sg_SocketGetopt)
 
-(define-c-proc socket? (o) ::<boolean>
-  (result (SG_SOCKETP o)))
+(define-c-proc socket-connect! (socket::<socket> info::<addrinfo>)
+  Sg_SocketConnect)
+(define-c-proc socket-bind! (socket::<socket> info::<addrinfo>) Sg_SocketBind)
+(define-c-proc socket-listen! (socket::<socket> backlog::<fixnum>)
+  Sg_SocketListen)
 
-(define-c-proc socket-port (o::<socket>) 
-  (result (Sg_MakeSocketPort (SG_SOCKET o))))
+;;; error message
+(define-c-proc socket-error-message (socket::<socket>) Sg_SocketErrorMessage)
 
-(define-c-proc shutdown-output-port (o::<port>) ::<void>
-  (Sg_ShutdownPort o))
+(define-c-proc socket? (o) ::<boolean> SG_SOCKETP)
 
-(define-c-proc socket-accept (o::<socket>) 
-  (result (Sg_SocketAccept (SG_SOCKET o))))
+(define-c-proc socket-port (o::<socket>) Sg_MakeSocketPort)
+
+(define-c-proc shutdown-output-port (o::<port>) ::<void> Sg_ShutdownPort)
+
+(define-c-proc socket-accept (o::<socket>) Sg_SocketAccept)
 
 (define-c-proc socket-send
   (o::<socket> bv::<bytevector> :optional (flags::<fixnum> 0)) ::<fixnum>

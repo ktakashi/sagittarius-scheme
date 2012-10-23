@@ -48,12 +48,21 @@ static void socket_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgSocket *socket = SG_SOCKET(self);
   const SgChar *type = (socket->type == SG_SOCKET_CLIENT)
-    ? UC("client") : UC("server");
-  Sg_Printf(port, UC("#<socket %s %S>"), type, socket->address);
+    ? UC("client") : (socket->type == SG_SOCKET_SERVER)
+    ? UC("server") : UC("unknown");
+  SgObject address = (socket->address != NULL) ? socket->address: SG_FALSE;
+  Sg_Printf(port, UC("#<socket %s %S>"), type, address);
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SocketClass, socket_printer);
 
+static void addrinfo_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
+{
+  /* SgAddrinfo *addrinfo = SG_ADDRINFO(self); */
+  Sg_Printf(port, UC("#<addrinfo>"));
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_AddrinfoClass, addrinfo_printer);
 
 #ifdef _WIN32
 #define last_error WSAGetLastError()
@@ -72,15 +81,23 @@ static void socket_finalizer(SgObject self, void *data)
   Sg_SocketClose(SG_SOCKET(self));
 }
 
-static SgSocket* make_socket(SOCKET fd, SgSocketType type, SgString *address)
+static SgSocket* make_socket_inner(SOCKET fd)
 {
   SgSocket *s = SG_NEW(SgSocket);
   SG_SET_CLASS(s, SG_CLASS_SOCKET);
   s->socket = fd;
+  Sg_RegisterFinalizer(s, socket_finalizer, NULL);
+  s->type = SG_SOCKET_UNKNOWN;
+  s->address = NULL;
+  return s;
+}
+
+static SgSocket* make_socket(SOCKET fd, SgSocketType type, SgString *address)
+{
+  SgSocket *s = make_socket_inner(fd);
   s->type = type;
   s->address = address;
   s->lastError = 0;
-  Sg_RegisterFinalizer(s, socket_finalizer, NULL);
   return s;
 }
 
@@ -101,160 +118,216 @@ static SgString* get_address_string(const struct sockaddr *addr,
   return SG_STRING(Sg_MakeStringC(name));
 }
 
-SgSocket* Sg_CreateClientSocket(SgString *node,
-				SgString *service,
-				int ai_family,
-				int ai_socktype,
-				int ai_flags,
-				int ai_protocol)
+static SgAddrinfo* make_addrinfo()
 {
-    struct addrinfo hints, *result, *p;
-    int ret, lastError = 0;
-    memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = ai_family;
-    hints.ai_socktype = ai_socktype;
-    hints.ai_flags = ai_flags;
-    hints.ai_protocol = ai_protocol;
-    hints.ai_canonname = NULL;
-    hints.ai_addr = NULL;
-    hints.ai_next = NULL;
+  SgAddrinfo *info = SG_NEW(SgAddrinfo);
+  SG_SET_CLASS(info, SG_CLASS_ADDRINFO);
+  return info;
+}
 
-    if ((ai_flags & AI_PASSIVE) && node == NULL) {
-      Sg_AssertionViolation(SG_INTERN("create-client-socket"),
-			    SG_MAKE_STRING("AI_PASSIVE can not be passed on client socket"),
-			    SG_NIL);
-    }
-    do {
-      const char * cnode = (node != NULL) ? Sg_Utf32sToUtf8s(node) : NULL;
-      const char * csrv  = (service != NULL) ? Sg_Utf32sToUtf8s(service) : NULL;
-      ret = getaddrinfo(cnode, csrv, &hints, &result);
-    } while (EAI_AGAIN == ret);
+/* accessors for addressinfo */
+static SgObject ai_flags(SgAddrinfo *ai)
+{
+  return SG_MAKE_INT(ai->ai->ai_flags);
+}
+static void ai_flags_set(SgAddrinfo *ai, SgObject flags)
+{
+  if (!SG_INTP(flags)) Sg_Error(UC("fixnum required but got %S"), flags);
+  ai->ai->ai_flags = SG_INT_VALUE(flags);
+}
 
+static SgObject ai_family(SgAddrinfo *ai)
+{
+  return SG_MAKE_INT(ai->ai->ai_family);
+}
+static void ai_family_set(SgAddrinfo *ai, SgObject family)
+{
+  if (!SG_INTP(family)) Sg_Error(UC("fixnum required but got %S"), family);
+  ai->ai->ai_family = SG_INT_VALUE(family);
+}
 
-    if (ret != 0) {
-      Sg_IOError((SgIOErrorType)-1, SG_INTERN("create-client-socket"), 
-		 Sg_GetLastErrorMessageWithErrorCode(ret),
-		 SG_FALSE, SG_LIST2(SG_OBJ(node), SG_OBJ(service)));
-      return NULL;
-    }
+static SgObject ai_socktype(SgAddrinfo *ai)
+{
+  return SG_MAKE_INT(ai->ai->ai_socktype);
+}
+static void ai_socktype_set(SgAddrinfo *ai, SgObject socktype)
+{
+  if (!SG_INTP(socktype)) Sg_Error(UC("fixnum required but got %S"), socktype);
+  ai->ai->ai_socktype = SG_INT_VALUE(socktype);
+}
 
-    for (p = result; p != NULL; p = p->ai_next) {
-      const SOCKET fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-      if (-1 == fd) {
-	lastError = last_error;
-	continue;
-      }
-      if (connect(fd, p->ai_addr, p->ai_addrlen) != -1) {
-	SgString *addressString = get_address_string(p->ai_addr, p->ai_addrlen);
-	freeaddrinfo(result);
-	return make_socket(fd, SG_SOCKET_CLIENT, addressString);
-      } else {
-	lastError = last_error;
-#ifdef _WIN32
-	shutdown(fd, SD_SEND);
-	closesocket(fd);
-#else
-	close(fd);
-#endif
-      }
-    }
-    freeaddrinfo(result);
-    Sg_IOError((SgIOErrorType)-1, SG_INTERN("create-client-socket"), 
-	       Sg_GetLastErrorMessageWithErrorCode(last_error),
+static SgObject ai_protocol(SgAddrinfo *ai)
+{
+  return SG_MAKE_INT(ai->ai->ai_protocol);
+}
+static void ai_protocol_set(SgAddrinfo *ai, SgObject protocol)
+{
+  if (!SG_INTP(protocol)) Sg_Error(UC("fixnum required but got %S"), protocol);
+  ai->ai->ai_protocol = SG_INT_VALUE(protocol);
+}
+
+static SgObject ai_next(SgAddrinfo *ai)
+{
+  if (ai->ai->ai_next) {
+    SgAddrinfo *info = make_addrinfo();
+    info->ai = ai->ai->ai_next;
+    return info;
+  }
+  return SG_FALSE;
+}
+
+static SgSlotAccessor ai_slots[] = {
+  SG_CLASS_SLOT_SPEC("flags",    0, ai_flags, ai_flags_set),
+  SG_CLASS_SLOT_SPEC("family", 1, ai_family, ai_family_set),
+  SG_CLASS_SLOT_SPEC("socktype", 2, ai_socktype, ai_socktype_set),
+  SG_CLASS_SLOT_SPEC("protocol", 3, ai_protocol, ai_protocol_set),
+  SG_CLASS_SLOT_SPEC("next", 4, ai_next, NULL),
+  { { NULL } }
+};
+
+static void addrinfo_finalizer(SgObject self, void *data)
+{
+  freeaddrinfo(SG_ADDRINFO(self)->ai);
+}
+
+SgAddrinfo* Sg_MakeAddrinfo()
+{
+  SgAddrinfo *info = make_addrinfo();
+  info->ai = SG_NEW(struct addrinfo);
+  memset(info->ai, 0, sizeof(struct addrinfo));
+  return info;
+}
+
+SgAddrinfo* Sg_GetAddrinfo(SgObject node, SgObject service, SgAddrinfo *hints)
+{
+  const char * cnode = (!SG_FALSEP(node)) ?
+    Sg_Utf32sToUtf8s(SG_STRING(node)) : NULL;
+  const char * csrv  = (!SG_FALSEP(service)) ?
+    Sg_Utf32sToUtf8s(SG_STRING(service)) : NULL;
+  int ret;
+  SgAddrinfo *result = make_addrinfo();
+  do {
+    ret = getaddrinfo(cnode, csrv, hints->ai, &(result->ai));
+  } while (EAI_AGAIN == ret);
+
+  if (ret != 0) {
+    Sg_IOError((SgIOErrorType)-1, SG_INTERN("get-addrinfo"), 
+	       Sg_GetLastErrorMessageWithErrorCode(ret),
 	       SG_FALSE, SG_LIST2(SG_OBJ(node), SG_OBJ(service)));
     return NULL;
+  }
+
+  Sg_RegisterFinalizer(result, addrinfo_finalizer, NULL);
+  return result;
 }
 
-SgSocket* Sg_CreateServerSocket(SgString *service,
-				int ai_family,
-				int ai_socktype,
-				int ai_protocol)
+SgObject Sg_CreateSocket(SgAddrinfo *info)
 {
-    struct addrinfo hints, *result, *p;
-    int ret, lastError = 0;
-    memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = ai_family;
-    hints.ai_socktype = ai_socktype;
-    hints.ai_flags = AI_PASSIVE;
-    hints.ai_protocol = ai_protocol;
-    hints.ai_canonname = NULL;
-    hints.ai_addr = NULL;
-    hints.ai_next = NULL;
-
-    do {
-      const char * csrv  = (service != NULL) ? Sg_Utf32sToUtf8s(service) : NULL;
-      ret = getaddrinfo(NULL, csrv, &hints, &result);
-    } while (EAI_AGAIN == ret);
-
-
-    if (ret != 0) {
-      Sg_IOError((SgIOErrorType)-1, SG_INTERN("create-server-socket"), 
-		 Sg_GetLastErrorMessageWithErrorCode(ret),
-		 SG_FALSE, SG_NIL);
-      return NULL;
-    }
-
-    for (p = result; p != NULL; p = p->ai_next) {
-      const SOCKET fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-      const int TRADITIONAL_BACKLOG = 5;
-      int optValue = 1;
-      SgString *addressString;
-      if (-1 == fd) {
-	lastError = last_error;
-	continue;
-      }
-      if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char*)&optValue,
-		    sizeof(optValue)) == -1) {
-#ifdef _WIN32
-	shutdown(fd, SD_SEND);
-	closesocket(fd);
-#else
-	close(fd);
-#endif
-	lastError = last_error;
-	continue;
-      }
-
-      if (bind(fd, p->ai_addr, p->ai_addrlen) == -1) {
-#ifdef _WIN32
-	shutdown(fd, SD_SEND);
-	closesocket(fd);
-#else
-	close(fd);
-#endif
-	lastError = last_error;
-	continue;
-      }
-
-      if (p->ai_socktype == SOCK_STREAM) {
-	if (listen(fd, TRADITIONAL_BACKLOG) == -1) {
-#ifdef _WIN32
-	  shutdown(fd, SD_SEND);
-	  closesocket(fd);
-#else
-	  close(fd);
-#endif
-	lastError = last_error;	  
-	continue;
-	}
-      }
-
-      addressString = get_address_string(p->ai_addr, p->ai_addrlen);
-      freeaddrinfo(result);
-      return make_socket(fd, SG_SOCKET_SERVER, addressString);
-    }
-    freeaddrinfo(result);
-    Sg_IOError((SgIOErrorType)-1, SG_INTERN("create-server-socket"), 
-	       Sg_GetLastErrorMessageWithErrorCode(last_error),
-	       SG_FALSE, SG_NIL);
-    return NULL;
+  struct addrinfo *p = info->ai;
+  const SOCKET fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+  if (-1 == fd) {
+    return SG_FALSE;
+  }
+  return make_socket_inner(fd);
 }
 
+SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo)
+{
+  struct addrinfo *p = addrinfo->ai;
+  if (connect(socket->socket, p->ai_addr, p->ai_addrlen) != -1) {
+    socket->type = SG_SOCKET_CLIENT;
+    socket->address = get_address_string(p->ai_addr, p->ai_addrlen);
+    return socket;
+  }
+  socket->lastError = last_error;
+  return SG_FALSE;
+}
+
+SgObject Sg_SocketBind(SgSocket *socket, SgAddrinfo* addrinfo)
+{
+  struct addrinfo *p = addrinfo->ai;
+  if (bind(socket->socket, p->ai_addr, p->ai_addrlen) == -1) {
+    socket->lastError = last_error;
+    return SG_FALSE;
+  }
+  socket->type = SG_SOCKET_SERVER;
+  socket->address = get_address_string(p->ai_addr, p->ai_addrlen);
+  return socket;
+}
+
+SgObject Sg_SocketListen(SgSocket *socket, int backlog)
+{
+  if (listen(socket->socket, backlog) == -1) {
+    socket->lastError = last_error;
+    return SG_FALSE;
+  }
+  return socket;
+}
+
+#define CLOSE_SOCKET(who, socket)			\
+  do {							\
+    if (!Sg_SocketOpenP(socket))			\
+      Sg_IOError((SgIOErrorType)-1, SG_INTERN(who),	\
+		 SG_MAKE_STRING("socket is closed"),	\
+		 SG_FALSE, SG_NIL);			\
+  } while (0)
+
+
+SgObject Sg_SocketSetopt(SgSocket *socket, int level, int name, SgObject value)
+{
+  int r = 0;
+  CLOSE_SOCKET("socket-setsockopt!",socket);
+  if (SG_BVECTORP(value)) {
+    r = setsockopt(socket->socket, level, name,
+		   (const char *)SG_BVECTOR_ELEMENTS(value), 
+		   SG_BVECTOR_SIZE(value));
+  } else if (SG_INTP(value) || SG_BIGNUMP(value)) {
+    int v = Sg_GetInteger(value);
+    r = setsockopt(socket->socket, level, name, (void *)&v, sizeof(int));
+  } else {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("socket-setsockopt!"),
+				    SG_MAKE_STRING("bytevector or integer"),
+				    value, SG_NIL);
+  }
+  if (r < 0) {
+    socket->lastError = last_error;
+    return SG_FALSE;
+  }
+  return SG_TRUE;
+}
+SgObject Sg_SocketGetopt(SgSocket *socket, int level, int name, int rsize)
+{
+  int r = 0;
+  socklen_t rrsize = rsize;
+  CLOSE_SOCKET("socket-getsockopt", socket);
+  if (rsize > 0) {
+    SgObject bvec = Sg_MakeByteVector(rrsize, 0);
+    r = getsockopt(socket->socket, level, name, 
+		   SG_BVECTOR_ELEMENTS(bvec), &rrsize);
+    if (r < 0) {
+      Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-getsockopt"), 
+		 Sg_GetLastErrorMessageWithErrorCode(last_error),
+		 SG_FALSE, SG_NIL);
+    }
+    SG_BVECTOR_SIZE(bvec) = rrsize;
+    return SG_OBJ(bvec);
+  } else {
+    int val;
+    rrsize = sizeof(int);
+    r = getsockopt(socket->socket, level, name, (void *)&val, &rrsize);
+    if (r < 0) {
+      Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-getsockopt"), 
+		 Sg_GetLastErrorMessageWithErrorCode(last_error),
+		 SG_FALSE, SG_NIL);
+    }
+    return Sg_MakeInteger(val);
+  }
+}
 
 int Sg_SocketReceive(SgSocket *socket, uint8_t *data, int size, int flags)
 {
   /* int count = 0, osize = size; */
-  ASSERT(Sg_SocketOpenP(socket));
+  CLOSE_SOCKET("socket-recv", socket);
   for (;;) {
     const int ret = recv(socket->socket, (char*)data, size, flags);
     if (ret == -1) {
@@ -279,7 +352,7 @@ int Sg_SocketSend(SgSocket *socket, uint8_t *data, int size, int flags)
   int rest = size;
   int sizeSent = 0;
 
-  ASSERT(Sg_SocketOpenP(socket));
+  CLOSE_SOCKET("socket-send", socket);
   while (rest > 0) {
     const int ret = send(socket->socket, (char*)data, size, flags);
     if (ret == -1) {
@@ -305,7 +378,8 @@ SgSocket* Sg_SocketAccept(SgSocket *socket)
   struct sockaddr_storage addr;
   socklen_t addrlen = sizeof(addr);
   SOCKET fd = -1;
-  ASSERT(socket->socket != -1);
+
+  CLOSE_SOCKET("socket-accept", socket);
 
   for (;;) {
     fd = accept(socket->socket, (struct sockaddr *)&addr, &addrlen);
@@ -394,6 +468,11 @@ int Sg_SocketBlocking(SgSocket *socket)
 	     Sg_GetLastErrorMessageWithErrorCode(last_error),
 	     SG_FALSE, socket);
   return FALSE;			/* dummy */  
+}
+
+SgObject Sg_SocketErrorMessage(SgSocket *socket)
+{
+  return Sg_GetLastErrorMessageWithErrorCode(socket->lastError);
 }
 
 static SgPort* make_port(enum SgPortDirection d, enum SgPortType t,
@@ -610,6 +689,8 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
   /* Sg_AddCondFeature(UC("sagittarius.socket")); */
   Sg_InitStaticClassWithMeta(SG_CLASS_SOCKET, UC("<socket>"), lib, NULL,
 			     SG_FALSE, NULL, 0);
+  Sg_InitStaticClassWithMeta(SG_CLASS_ADDRINFO, UC("<addrinfo>"), lib, NULL,
+			     SG_FALSE, ai_slots, 0);
   /* from Ypsilon */
 #define ARCH_CCONST(name)					\
   Sg_MakeBinding(lib, SG_SYMBOL(SG_INTERN(#name)), SG_MAKE_INT(name), TRUE)
@@ -706,6 +787,21 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
   ARCH_CCONST(IPPROTO_RAW);
 #else
   ARCH_CFALSE(IPPROTO_RAW);
+#endif
+#ifdef IPPROTO_IPV6
+  ARCH_CCONST(IPPROTO_IPV6);
+#else
+  ARCH_CFALSE(IPPROTO_IPV6);
+#endif
+#ifdef IPPROTO_ICMP
+  ARCH_CCONST(IPPROTO_ICMP);
+#else
+  ARCH_CFALSE(IPPROTO_ICMP);
+#endif
+#ifdef IPPROTO_ICMPV6
+  ARCH_CCONST(IPPROTO_ICMPV6);
+#else
+  ARCH_CFALSE(IPPROTO_ICMPV6);
 #endif
 
 #ifdef SHUT_RD
@@ -808,6 +904,238 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
 #else
   ARCH_CFALSE(MSG_EOF);
 #endif
+
+#ifdef SOL_SOCKET
+  ARCH_CCONST(SOL_SOCKET);
+#else
+  ARCH_CFALSE(SOL_SOCKET);
+#endif
+#ifdef SO_ACCEPTCONN
+  ARCH_CCONST(SO_ACCEPTCONN);
+#else
+  ARCH_CFALSE(SO_ACCEPTCONN);
+#endif
+#ifdef SO_BINDTODEVICE
+  ARCH_CCONST(SO_BINDTODEVICE);
+#else
+  ARCH_CFALSE(SO_BINDTODEVICE);
+#endif
+#ifdef SO_BROADCAST
+  ARCH_CCONST(SO_BROADCAST);
+#else
+  ARCH_CFALSE(SO_BROADCAST);
+#endif
+#ifdef SO_DEBUG
+  ARCH_CCONST(SO_DEBUG);
+#else
+  ARCH_CFALSE(SO_DEBUG);
+#endif
+#ifdef SO_DONTROUTE
+  ARCH_CCONST(SO_DONTROUTE);
+#else
+  ARCH_CFALSE(SO_DONTROUTE);
+#endif
+#ifdef SO_ERROR
+  ARCH_CCONST(SO_ERROR);
+#else
+  ARCH_CFALSE(SO_ERROR);
+#endif
+#ifdef SO_KEEPALIVE
+  ARCH_CCONST(SO_KEEPALIVE);
+#else
+  ARCH_CFALSE(SO_KEEPALIVE);
+#endif
+#ifdef SO_LINGER
+  ARCH_CCONST(SO_LINGER);
+#else
+  ARCH_CFALSE(SO_LINGER);
+#endif
+#ifdef SO_OOBINLINE
+  ARCH_CCONST(SO_OOBINLINE);
+#else
+  ARCH_CFALSE(SO_OOBINLINE);
+#endif
+#ifdef SO_PASSCRED
+  ARCH_CCONST(SO_PASSCRED);
+#else
+  ARCH_CFALSE(SO_PASSCRED);
+#endif
+#ifdef SO_PEERCRED
+  ARCH_CCONST(SO_PEERCRED);
+#else
+  ARCH_CFALSE(SO_PEERCRED);
+#endif
+#ifdef SO_PRIORITY
+  ARCH_CCONST(SO_PRIORITY);
+#else
+  ARCH_CFALSE(SO_PRIORITY);
+#endif
+#ifdef SO_RCVBUF
+  ARCH_CCONST(SO_RCVBUF);
+#else
+  ARCH_CFALSE(SO_RCVBUF);
+#endif
+#ifdef SO_RCVLOWAT
+  ARCH_CCONST(SO_RCVLOWAT);
+#else
+  ARCH_CFALSE(SO_RCVLOWAT);
+#endif
+#ifdef SO_RCVTIMEO
+  ARCH_CCONST(SO_RCVTIMEO);
+#else
+  ARCH_CFALSE(SO_RCVTIMEO);
+#endif
+#ifdef SO_REUSEADDR
+  ARCH_CCONST(SO_REUSEADDR);
+#else
+  ARCH_CFALSE(SO_REUSEADDR);
+#endif
+#ifdef SO_REUSEPORT
+  ARCH_CCONST(SO_REUSEPORT);
+#else
+  ARCH_CFALSE(SO_REUSEPORT);
+#endif
+#ifdef SO_SNDBUF
+  ARCH_CCONST(SO_SNDBUF);
+#else
+  ARCH_CFALSE(SO_SNDBUF);
+#endif
+#ifdef SO_SNDLOWAT
+  ARCH_CCONST(SO_SNDLOWAT);
+#else
+  ARCH_CFALSE(SO_SNDLOWAT);
+#endif
+#ifdef SO_SNDTIMEO
+  ARCH_CCONST(SO_SNDTIMEO);
+#else
+  ARCH_CFALSE(SO_SNDTIMEO);
+#endif
+#ifdef SO_TIMESTAMP
+  ARCH_CCONST(SO_TIMESTAMP);
+#else
+  ARCH_CFALSE(SO_TIMESTAMP);
+#endif
+#ifdef SO_TYPE
+  ARCH_CCONST(SO_TYPE);
+#else
+  ARCH_CFALSE(SO_TYPE);
+#endif
+#ifdef SOL_TCP
+  ARCH_CCONST(SOL_TCP);
+#else
+  ARCH_CFALSE(SOL_TCP);
+#endif
+#ifdef TCP_NODELAY
+  ARCH_CCONST(TCP_NODELAY);
+#else
+  ARCH_CFALSE(TCP_NODELAY);
+#endif
+#ifdef TCP_MAXSEG
+  ARCH_CCONST(TCP_MAXSEG);
+#else
+  ARCH_CFALSE(TCP_MAXSEG);
+#endif
+#ifdef TCP_CORK
+  ARCH_CCONST(TCP_CORK);
+#else
+  ARCH_CFALSE(TCP_CORK);
+#endif
+#ifdef SOL_IP
+  ARCH_CCONST(SOL_IP);
+#else
+  ARCH_CFALSE(SOL_IP);
+#endif
+#ifdef IP_OPTIONS
+  ARCH_CCONST(IP_OPTIONS);
+#else
+  ARCH_CFALSE(IP_OPTIONS);
+#endif
+#ifdef IP_PKTINFO
+  ARCH_CCONST(IP_PKTINFO);
+#else
+  ARCH_CFALSE(IP_PKTINFO);
+#endif
+#ifdef IP_RECVTOS
+  ARCH_CCONST(IP_RECVTOS);
+#else
+  ARCH_CFALSE(IP_RECVTOS);
+#endif
+#ifdef IP_RECVTTL
+  ARCH_CCONST(IP_RECVTTL);
+#else
+  ARCH_CFALSE(IP_RECVTTL);
+#endif
+#ifdef IP_RECVOPTS
+  ARCH_CCONST(IP_RECVOPTS);
+#else
+  ARCH_CFALSE(IP_RECVOPTS);
+#endif
+#ifdef IP_TOS
+  ARCH_CCONST(IP_TOS);
+#else
+  ARCH_CFALSE(IP_TOS);
+#endif
+#ifdef IP_TTL
+  ARCH_CCONST(IP_TTL);
+#else
+  ARCH_CFALSE(IP_TTL);
+#endif
+#ifdef IP_HDRINCL
+  ARCH_CCONST(IP_HDRINCL);
+#else
+  ARCH_CFALSE(IP_HDRINCL);
+#endif
+#ifdef IP_RECVERR
+  ARCH_CCONST(IP_RECVERR);
+#else
+  ARCH_CFALSE(IP_RECVERR);
+#endif
+#ifdef IP_MTU_DISCOVER
+  ARCH_CCONST(IP_MTU_DISCOVER);
+#else
+  ARCH_CFALSE(IP_MTU_DISCOVER);
+#endif
+#ifdef IP_MTU
+  ARCH_CCONST(IP_MTU);
+#else
+  ARCH_CFALSE(IP_MTU);
+#endif
+#ifdef IP_ROUTER_ALERT
+  ARCH_CCONST(IP_ROUTER_ALERT);
+#else
+  ARCH_CFALSE(IP_ROUTER_ALERT);
+#endif
+#ifdef IP_MULTICAST_TTL
+  ARCH_CCONST(IP_MULTICAST_TTL);
+#else
+  ARCH_CFALSE(IP_MULTICAST_TTL);
+#endif
+#ifdef IP_MULTICAST_LOOP
+  ARCH_CCONST(IP_MULTICAST_LOOP);
+#else
+  ARCH_CFALSE(IP_MULTICAST_LOOP);
+#endif
+#ifdef IP_ADD_MEMBERSHIP
+  ARCH_CCONST(IP_ADD_MEMBERSHIP);
+#else
+  ARCH_CFALSE(IP_ADD_MEMBERSHIP);
+#endif
+#ifdef IP_DROP_MEMBERSHIP
+  ARCH_CCONST(IP_DROP_MEMBERSHIP);
+#else
+  ARCH_CFALSE(IP_DROP_MEMBERSHIP);
+#endif
+#ifdef IP_MULTICAST_IF
+  ARCH_CCONST(IP_MULTICAST_IF);
+#else
+  ARCH_CFALSE(IP_MULTICAST_IF);
+#endif
+
+#ifndef SOMAXCONN
+#define SOMAXCONN 5
+#endif
+  ARCH_CCONST(SOMAXCONN);
+
 #undef ARCH_CCONST
 #undef ARCH_CFALSE
 

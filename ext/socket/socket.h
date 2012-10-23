@@ -51,6 +51,7 @@
 #include <sagittarius.h>
 
 typedef enum {
+  SG_SOCKET_UNKNOWN,
   SG_SOCKET_CLIENT,
   SG_SOCKET_SERVER,
 } SgSocketType;
@@ -69,22 +70,37 @@ typedef struct SgSocketRec
 } SgSocket;
 
 SG_CLASS_DECL(Sg_SocketClass);
-#define SG_CLASS_SOCKET   (&Sg_SocketClass)
-#define SG_SOCKET(obj)   ((SgSocket*)obj)
+#define SG_CLASS_SOCKET (&Sg_SocketClass)
+#define SG_SOCKET(obj)  ((SgSocket*)obj)
 #define SG_SOCKETP(obj) SG_XTYPEP(obj, SG_CLASS_SOCKET)
+
+typedef struct SgAddrinfoRec
+{
+  SG_HEADER;
+  struct addrinfo *ai;
+} SgAddrinfo;
+
+SG_CLASS_DECL(Sg_AddrinfoClass);
+#define SG_CLASS_ADDRINFO (&Sg_AddrinfoClass)
+#define SG_ADDRINFO(obj)  ((SgAddrinfo*)obj)
+#define SG_ADDRINFOP(obj) SG_XTYPEP(obj, SG_CLASS_ADDRINFO)
 
 SG_CDECL_BEGIN
 
-SG_EXTERN SgSocket* Sg_CreateClientSocket(SgString *node,
-					  SgString *service,
-					  int ai_family,
-					  int ai_socktype,
-					  int ai_flags,
-					  int ai_protocol);
-SG_EXTERN SgSocket* Sg_CreateServerSocket(SgString *service,
-					  int ai_family,
-					  int ai_socktype,
-					  int ai_protocol);
+SG_EXTERN SgAddrinfo* Sg_MakeAddrinfo();
+SG_EXTERN SgAddrinfo* Sg_GetAddrinfo(SgObject node, SgObject service,
+				     SgAddrinfo *hints);
+
+SG_EXTERN SgObject  Sg_CreateSocket(SgAddrinfo *info);
+
+SG_EXTERN SgObject  Sg_SocketSetopt(SgSocket *socket, int level,
+				    int opname, SgObject value);
+SG_EXTERN SgObject  Sg_SocketGetopt(SgSocket *socket, int level,
+				    int opname, int rsize);
+
+SG_EXTERN SgObject  Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo);
+SG_EXTERN SgObject  Sg_SocketBind(SgSocket *socket, SgAddrinfo* addrinfo);
+SG_EXTERN SgObject  Sg_SocketListen(SgSocket *socket, int backlog);
 
 SG_EXTERN int       Sg_SocketReceive(SgSocket *socket, uint8_t *data,
 				     int size, int flags);
@@ -94,6 +110,9 @@ SG_EXTERN SgSocket* Sg_SocketAccept(SgSocket *socket);
 SG_EXTERN void      Sg_SocketShutdown(SgSocket *socket, int how);
 SG_EXTERN void      Sg_SocketClose(SgSocket *socket);
 SG_EXTERN int       Sg_SocketOpenP(SgSocket *socket);
+
+/* misc */
+SG_EXTERN SgObject  Sg_SocketErrorMessage(SgSocket *socket);
 
 SG_EXTERN int       Sg_SocketNonblocking(SgSocket *socket);
 SG_EXTERN int       Sg_SocketBlocking(SgSocket *socket);
