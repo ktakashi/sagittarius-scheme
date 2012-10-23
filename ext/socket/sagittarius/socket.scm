@@ -50,6 +50,12 @@
 	    socket-shutdown
 	    socket-close
 	    socket-fd
+
+	    ;; select
+	    socket-select
+	    socket-read-select
+	    socket-write-select
+	    socket-error-select
 	    socket-nonblocking!
 	    socket-blocking!
 	    ;; addrinfo
@@ -183,4 +189,13 @@
 				    (socket-error-message socket)
 				    "creating a socket failed")
 				service))))))
+  ;; for convenience
+  (define (socket-read-select timeout . rest)
+    (receive (r w e) (socket-select rest '() '() timeout) r))
+
+  (define (socket-write-select timeout . rest)
+    (receive (r w e) (socket-select '() rest '() timeout) w))
+
+  (define (socket-error-select timeout . rest)
+    (receive (r w e) (socket-select '() '() rest timeout) e))
 )

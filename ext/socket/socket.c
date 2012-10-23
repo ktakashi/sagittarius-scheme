@@ -421,6 +421,104 @@ void Sg_SocketClose(SgSocket *socket)
 
 }
 
+static int collect_max_fd(int max, SgObject sockets, fd_set *fds)
+{
+  SgObject cp;
+  FD_ZERO(fds);
+  SG_FOR_EACH(cp, sockets) {
+    SOCKET fd;
+    if (!SG_SOCKETP(SG_CAR(cp))) {
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("socket-select"),
+				      SG_MAKE_STRING("socket"),
+				      SG_CAR(cp), sockets);
+    }
+    fd = SG_SOCKET(SG_CAR(cp))->socket;
+    if (max < fd) max = fd;
+    FD_SET(fd, fds);
+  }
+  return max;
+}
+
+static struct timeval *select_timeval(SgObject timeout, struct timeval *tm)
+{
+  if (SG_FALSEP(timeout)) return NULL;
+  if (SG_INTP(timeout)) {
+    int val = SG_INT_VALUE(timeout);
+    if (val < 0) goto badtv;
+    tm->tv_sec = val / 1000000;
+    tm->tv_usec = val % 1000000;
+    return tm;
+  } else if (SG_BIGNUMP(timeout)) {
+    long usec;
+    SgObject sec;
+    if (Sg_Sign(timeout) < 0) goto badtv;
+    sec = Sg_BignumDivSI(SG_BIGNUM(timeout), 1000000, &usec);
+    tm->tv_sec = Sg_GetInteger(sec);
+    tm->tv_usec = usec;
+    return tm;
+  } else if (SG_FLONUMP(timeout)) {
+    long val = Sg_GetInteger(timeout);
+    if (val < 0) goto badtv;
+    tm->tv_sec = val / 1000000;
+    tm->tv_usec = val % 1000000;
+    return tm;
+  } else if (SG_PAIRP(timeout) && SG_PAIRP(SG_CDR(timeout))) {
+    SgObject sec = SG_CAR(timeout);
+    SgObject usec = SG_CADR(timeout);
+    long isec, iusec;
+    if (!Sg_IntegerP(sec) || !Sg_IntegerP(usec)) goto badtv;
+    isec = Sg_GetInteger(sec);
+    iusec = Sg_GetInteger(usec);
+    if (isec < 0 || iusec < 0) goto badtv;
+    tm->tv_sec = isec;
+    tm->tv_usec = iusec;
+    return tm;
+  }
+ badtv:
+  Sg_Error(UC("timeval needs to be a real number (in microseconds) or a list"
+	      " of two integers (seconds and microseconds), but got %S"),
+	   timeout);
+  return NULL;                /* dummy */
+}
+
+static SgObject collect_fds(SgObject sockets, fd_set *fds)
+{
+  SgObject h = SG_NIL, t = SG_NIL;
+  SG_FOR_EACH(sockets, sockets) {
+    SgSocket *socket = SG_SOCKET(SG_CAR(sockets));
+    if (FD_ISSET(socket->socket, fds)) {
+      SG_APPEND1(h, t, socket);
+    }
+  }
+  return h;
+}
+
+SgObject Sg_SocketSelect(SgObject reads, SgObject writes, SgObject errors,
+			 SgObject timeout)
+{
+  int max = 0, numfds;
+  fd_set readfds, writefds, errorfds;
+  struct timeval tv;
+  SgObject rr, wr, er;
+  max = collect_max_fd(max, reads, &readfds);
+  max = collect_max_fd(max, writes, &writefds);
+  max = collect_max_fd(max, errors, &errorfds);
+
+  numfds = select(max + 1, &readfds, &writefds, &errorfds,
+		  select_timeval(timeout, &tv));
+
+  if (numfds < 0) {
+    Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-select"), 
+	       Sg_GetLastErrorMessageWithErrorCode(last_error),
+	       SG_FALSE, SG_NIL);
+  }
+
+  rr = collect_fds(reads, &readfds);
+  wr = collect_fds(writes, &writefds);
+  er = collect_fds(errors, &errorfds);
+  return Sg_Values3(rr, wr, er);
+}
+
 int Sg_SocketOpenP(SgSocket *socket)
 {
   return socket->socket != -1;

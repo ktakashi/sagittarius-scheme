@@ -120,6 +120,10 @@ SG_EXTERN int       Sg_SocketBlocking(SgSocket *socket);
 SG_EXTERN SgObject  Sg_MakeSocketPort(SgSocket *socket);
 SG_EXTERN void      Sg_ShutdownPort(SgPort *port);
 
+/* select */
+SG_EXTERN SgObject  Sg_SocketSelect(SgObject reads, SgObject writes,
+				    SgObject errors, SgObject timeout);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_SOCKET_HPP_ */

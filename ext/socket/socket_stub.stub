@@ -72,10 +72,9 @@
 	     (result r))))))
 
 (define-c-proc socket-shutdown (o::<socket> how::<fixnum>) ::<void>
-  (Sg_SocketShutdown (SG_SOCKET o) how))
+  Sg_SocketShutdown)
 
-(define-c-proc socket-close  (o::<socket>) ::<void>
-  (Sg_SocketClose (SG_SOCKET o)))
+(define-c-proc socket-close  (o::<socket>) ::<void> Sg_SocketClose)
 
 (define-c-proc socket-fd (o::<socket>) ::<fixnum>
   (result (-> o socket)))
@@ -84,3 +83,5 @@
   Sg_SocketNonblocking)
 (define-c-proc socket-blocking! (o::<socket>) ::<boolean>
   Sg_SocketBlocking)
+
+(define-c-proc socket-select (reads writes errors timeval) Sg_SocketSelect)
