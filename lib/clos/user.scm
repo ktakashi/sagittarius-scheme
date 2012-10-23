@@ -218,10 +218,11 @@
     (lambda (x)
       (define (analyse args)
 	(let loop ((ss args) (rs '()))
-	  (cond ((null? ss)        (values (reverse! rs) #f))
-		((not (pair? ss))  (values (reverse! rs) ss))
+	  (cond ((null? ss)          (values (reverse! rs) #f #f))
+		((not (pair? ss))    (values (reverse! rs) ss #f))
+		((keyword? (car ss)) (values (reverse! rs) (gensym) ss))
 		(else (loop (cdr ss) (cons (car ss) rs))))))
-      (define (build qualifier generic qargs opt body)
+      (define (build qualifier generic qargs rest opts body)
 	;; ugly kludge
 	(define (rewrite body)
 	  (let loop ((body body))
@@ -240,12 +241,15 @@
 				    (if (pair? s) (cadr s) '<top>)) qargs))
 	       (reqargs      (map (lambda (s) 
 				    (if (pair? s) (car s) s)) qargs))
-	       (lambda-list  (if opt `(,@reqargs . ,opt) reqargs))
-	       (real-args    (if opt
-				 `(call-next-method ,@reqargs . ,opt)
+	       (lambda-list  (if rest `(,@reqargs . ,rest) reqargs))
+	       (real-args    (if rest
+				 `(call-next-method ,@reqargs . ,rest)
 				 `(call-next-method ,@reqargs)))
-	       (real-body    `(lambda ,real-args ,@(rewrite body)))
-	       (gf           (gensym)))
+	       (real-body (if opts
+			      `(lambda ,real-args 
+				 (apply (lambda ,opts ,@(rewrite body)) ,rest))
+			      `(lambda ,real-args ,@(rewrite body))))
+	       (gf        (gensym)))
 
 	  (with-syntax (((true-name getter-name) (%check-setter-name generic)))
 	    #`(begin
@@ -266,8 +270,8 @@
       (syntax-case x ()
 	((_ ?qualifier ?generic ?args . ?body)
 	 (keyword? #'?qualifier)
-	 (let-values (((qargs opt) (analyse #'?args)))
-	   (build #'?qualifier #'?generic qargs opt #'?body)))
+	 (let-values (((qargs rest opt) (analyse #'?args)))
+	   (build #'?qualifier #'?generic qargs rest opt #'?body)))
 	((_ ?generic ?qualifier ?args . ?body)
 	 (keyword? #'?qualifier)
 	 #'(define-method ?qualifier ?generic ?args . ?body))
