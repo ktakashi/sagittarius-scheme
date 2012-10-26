@@ -175,6 +175,54 @@ each time.
 NOTE: @code{.sashrc} is only for REPL, it is developers duty to load all
 libraries on script file.
 
+@subsection{Writing a library}
+
+Sagittarius provides 2 styles to write a library, one is R6RS style and other
+one is R7RS style. Both styles are processed the same and users can use it
+without losing code portability.
+
+Following example is written in R6RS style, for the detail of @code{library}
+syntax please see the R6RS document described in bellow sections.
+@codeblock{
+(library (foo)
+  (export bar)
+  (import (rnrs))
+
+ (define bar 'bar)
+)
+}
+The library named @code{(foo)} must be saved the file named @code{foo.scm},
+@code{foo.ss} or @code{foo.sls} (I use @code{.scm} for all examples) and
+located on the loading path, the value is returned by calling
+@code{add-load-path} with 0 length string.
+
+If you want to write portable code, then you can write implementation specific
+code separately using @code{.sagittarius.scm}, @code{.sagittarius.ss} or
+@code{.sagittarius.sls} extensions.
+
+If you don't want to share a library but only used in specific one, you can
+write both in one file and name the file you want to show. For example;
+@codeblock{
+(library (not showing)
+  ;; exports all internal use procedures
+  (export ...)
+  (import (rnrs))
+;; write procedures
+...
+)
+
+(library (shared)
+  (export shared-procedure ...)
+  (import (rnrs) (not showing))
+;; write shared procedures here
+)
+}
+Above script must be saved the file named @code{shared.scm}. The order of
+libraries are important. Top most dependency must be the first and next is
+second most, so on.
+
+Note: This style can hide some private procedures however if you want to write
+portable codes some implementation do not allow you to write this style.
 
 @include-section["r6rs.scrbl"]
 @include-section["r7rs.scrbl"]
