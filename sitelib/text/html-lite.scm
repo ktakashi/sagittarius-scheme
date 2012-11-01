@@ -178,7 +178,7 @@
 
   ;; Text-level semantics
   (define-html-elements a em strong small s cite q dfn abbr time code
-    var samp kbd sub sup i b u mark ruby rt rp bdi bdo span)
+    var samp kbd sub sup i b u mark ruby rt rp bdi bdo span (:empty wbr))
 
   ;; Edits
   (define-html-elements ins del)
