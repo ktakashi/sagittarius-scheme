@@ -625,24 +625,81 @@ static SgObject glob_helper(SgString *path,
   return h;
 }
 
+static SgObject brace_expand(SgString *str, int flags)
+{
+  const int escape = !(flags & SG_NOESCAPE);
+  int lbrace = 0, rbrace = 0, nest = 0, i;
+  for (i = 0; i < SG_STRING_SIZE(str); i++) {
+    if (SG_STRING_VALUE_AT(str, i) == '{' && nest++ == 0) {
+      lbrace = i;
+    }
+    if (SG_STRING_VALUE_AT(str, i) == '}' && --nest == 0) {
+      rbrace = i;
+    }
+    if (SG_STRING_VALUE_AT(str, i) == '\\' && escape) {
+      if (++i == SG_STRING_SIZE(str)) break;
+    }
+  }
+  if (lbrace && rbrace) {
+    SgObject h = SG_NIL, t = SG_NIL;
+    intptr_t shift;
+    shift = lbrace;
+    i = lbrace;
+    while (i < rbrace) {
+      size_t size = SG_STRING_SIZE(str);
+      const int it = ++i;
+      const SgChar *st = SG_STRING_VALUE(str) + it;
+      SgString *buf = SG_STRING(Sg_ReserveString(size, 0));
+      memcpy(SG_STRING_VALUE(buf), SG_STRING_VALUE(str), lbrace*sizeof(SgChar));
+
+      nest = 0;
+      while (i < rbrace && !(SG_STRING_VALUE_AT(str, i) == ',' && nest == 0)) {
+	if (SG_STRING_VALUE_AT(str, i) == '{') nest++;
+	if (SG_STRING_VALUE_AT(str, i) == '}') nest--;
+	if (SG_STRING_VALUE_AT(str, i) == '\\' && escape) {
+	  if (++i == rbrace) break;
+	}
+	i++;
+      }
+      memcpy(SG_STRING_VALUE(buf) + shift, st, (i - it) * sizeof(SgChar));
+      memcpy(SG_STRING_VALUE(buf) + shift + (i-it),
+	     SG_STRING_VALUE(str) + rbrace + 1, 
+	     (size - (shift + (i-it))) * sizeof(SgChar));
+      SG_STRING_SIZE(buf) = lbrace + (i - it) + size - (shift + (i-it));
+      SG_APPEND1(h, t, buf);
+    }
+    return h;
+  } else {
+    return SG_LIST1(str);
+  }
+}
+
 SgObject Sg_Glob(SgString *path, int flags)
 {
   struct glob_pattern *list;
   const SgChar *root, *start;
   SgString *buf;
+  SgObject paths, h = SG_NIL, t = SG_NIL;
   int skiped = 0;
 
-  start = root = SG_STRING_VALUE(path);
+  paths = brace_expand(path, flags);
+  SG_FOR_EACH(paths, paths) {
+    SgObject r;
+    path = SG_STRING(SG_CAR(paths));
+    start = root = SG_STRING_VALUE(path);
 #if defined(_WIN32)
-  root = skip_prefix(root, &skiped);
+    root = skip_prefix(root, &skiped);
 #endif
 
-  if (root && *root == '/') root++;
-  buf = Sg_Substring(path, 0, root - start);
+    if (root && *root == '/') root++;
+    buf = Sg_Substring(path, 0, root - start);
 
-  list = glob_make_pattern(root, root + SG_STRING_SIZE(path) - skiped, flags);
+    list = glob_make_pattern(root, root + SG_STRING_SIZE(path) - skiped, flags);
 
-  return glob_helper(buf, FALSE, UNKNOWN, UNKNOWN, &list, &list + 1, flags);
+    r = glob_helper(buf, FALSE, UNKNOWN, UNKNOWN, &list, &list + 1, flags);
+    SG_APPEND(h, t, r);
+  }
+  return h;
 }
 
 void Sg__InitFile()
