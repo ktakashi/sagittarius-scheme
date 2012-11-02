@@ -300,7 +300,8 @@ static int64_t blob_read(SgObject self, uint8_t *buf, int64_t size)
   
   while (SQLGetData(stmt, index, (stringP) ? SQL_C_CHAR: SQL_C_BINARY,
 		    buf + read, size, &ind) != SQL_NO_DATA) {
-    if (SQL_NULL_DATA == ind) return 0;
+    if (ind == 0) return read;
+    else if (SQL_NULL_DATA == ind) return 0;
     else if (ind == SQL_NO_TOTAL) return read;
     else {
       read += (ind > size) ? size : ind;
@@ -345,7 +346,15 @@ static int64_t blob_size(SgObject self)
 
 static int blob_is_open(SgObject self)
 {
-  return ((blob_data_t *)SG_FILE(self)->osdependance)->openP;
+  blob_data_t *data = (blob_data_t *)SG_FILE(self)->osdependance;
+  SQLULEN val;
+  if (data->openP) {
+    if (SQLGetStmtAttr(data->stmt, SQL_ATTR_CURSOR_TYPE,
+		       &val, sizeof(SQLULEN), NULL) != SQL_SUCCESS) {
+      data->openP = FALSE;
+    }
+  }
+  return data->openP;
 }
 
 static int blob_open(SgObject self, const SgChar *path, int flags)
