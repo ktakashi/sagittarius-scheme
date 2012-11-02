@@ -363,12 +363,24 @@ int main(int argc, char **argv)
       SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
       break;
 #endif
-    case 'L':
-      Sg_AddLoadPath(SG_STRING(Sg_MakeStringC(optarg)));
+    case 'L': {
+      SgObject paths = Sg_Glob(SG_STRING(Sg_MakeStringC(optarg)), 0);
+      SG_FOR_EACH(paths, paths) {
+	if (Sg_DirectoryP(SG_CAR(paths))) {
+	  Sg_AddLoadPath(SG_CAR(paths));
+	}
+      }
       break;
-    case 'D':
-      Sg_AddDynamicLoadPath(SG_STRING(Sg_MakeStringC(optarg)));
+    }
+    case 'D': {
+      SgObject paths = Sg_Glob(SG_STRING(Sg_MakeStringC(optarg)), 0);
+      SG_FOR_EACH(paths, paths) {
+	if (Sg_DirectoryP(SG_CAR(paths))) {
+	  Sg_AddDynamicLoadPath(SG_CAR(paths));
+	}
+      }
       break;
+    }
     case 'p':
       {
 	SgObject log = Sg_OpenFile(SG_STRING(Sg_MakeStringC(optarg)),

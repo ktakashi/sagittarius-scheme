@@ -359,6 +359,23 @@
   (define-c-proc absolute-path (path::<string>)
     (result (Sg_AbsolutePath path)))
 
+  (define-cfn retrieve-flags (list) ::int :static
+    (let ((flags::int 0))
+      (dolist (flag list)
+	(cond ((SG_EQ flag 'dot-match) (set! flags (logior flags SG_DOTMATCH)))
+	      ((SG_EQ flag 'noescape)  (set! flags (logior flags SG_NOESCAPE)))
+	      ((SG_EQ flag 'case-fold) (set! flags (logior flags SG_CASEFOLD)))
+	      ((SG_EQ flag 'pathname)  (set! flags (logior flags SG_PATHNAME)))
+	      (else
+	       (assertion-violation 'glob
+				    "unknown flag symbol appeared"
+				    (SG_LIST2 flag list)))))
+      (return flags)))
+
+  (define-c-proc glob (path::<string> :rest flags)
+    ;; for now
+    (result (Sg_Glob path (retrieve-flags flags))))
+
   (define-c-proc current-load-path () ::<top>
     (result (-> (Sg_VM) currentLoadPath)))
 

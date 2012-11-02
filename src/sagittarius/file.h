@@ -65,6 +65,13 @@ struct SgFileRec
 #define SG_FILEP(obj) SG_XTYPEP(obj, SG_CLASS_FILE)
 #define SG_FILE(obj)  ((SgFile*)obj)
 
+enum SgGlobFlags {
+  SG_DOTMATCH = 1 << 0,
+  SG_NOESCAPE = 1 << 1,
+  SG_CASEFOLD = 1 << 2,
+  SG_PATHNAME = 1 << 3,
+};
+
 SG_CDECL_BEGIN
 
 /**
@@ -117,6 +124,9 @@ SG_EXTERN SgObject Sg_InstalledDirectory();
 
 /* ACL */
 SG_EXTERN int      Sg_CopyAccessControl(SgString *src, SgString *dst);
+
+/* glob */
+SG_EXTERN SgObject Sg_Glob(SgString *path, int flags);
 
 SG_CDECL_END
 
