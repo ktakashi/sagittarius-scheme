@@ -409,10 +409,14 @@ static void* memcpy64(void *s1, const void *s2, uint64_t n)
 static int64_t file_read_from_buffer(SgObject self, uint8_t *dest,
 				     int64_t req_size)
 {
-  int64_t opos = SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), 0, SG_CURRENT);
+  int64_t opos = 0;
   int64_t read_size = 0;
   int need_unwind = FALSE;
   SgBinaryPort *bp = SG_BINARY_PORT(self);
+
+  if (SG_PORT_FILE(self)->seek) {
+    opos = SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), 0, SG_CURRENT);
+  }
 
   while (read_size < req_size) {
     int64_t buf_diff = bp->bufferSize - bp->bufferIndex;
@@ -435,7 +439,14 @@ static int64_t file_read_from_buffer(SgObject self, uint8_t *dest,
     }
   }
   if (need_unwind && SG_PORT(self)->direction == SG_IN_OUT_PORT) {
-    SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), opos, SG_BEGIN);
+    if (SG_PORT_FILE(self)->seek) {
+      SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), opos, SG_BEGIN);
+    } else {
+      Sg_IOError(-1, SG_INTERN("file read"),
+		 SG_MAKE_STRING("buffered input/output file binary port"
+				" must have seek"),
+		 SG_FALSE, self);
+    }
   }
   return read_size;
 }
@@ -2185,10 +2196,15 @@ SgChar Sg_PeekcUnsafe(SgPort *port)
 int Sg_HasPortPosition(SgPort *port)
 {
   if (SG_BINARY_PORTP(port)) {
-    if (SG_BINARY_PORT(port)->type == SG_CUSTOM_BINARY_PORT_TYPE) {
+    SgBinaryPort *bp = SG_BINARY_PORT(port);
+    switch (bp->type) {
+    case SG_FILE_BINARY_PORT_TYPE:
+      return bp->src.file->tell != NULL;
+    case SG_CUSTOM_BINARY_PORT_TYPE:
       return SG_BINARY_PORT(port)->src.custom.position != NULL;
+    default:
+      return TRUE;
     }
-    else return TRUE;
   } else if (SG_TEXTUAL_PORTP(port)) {
     switch (SG_TEXTUAL_PORT(port)->type) {
     case SG_TRANSCODED_TEXTUAL_PORT_TYPE:
@@ -2210,10 +2226,14 @@ int Sg_HasPortPosition(SgPort *port)
 int Sg_HasSetPortPosition(SgPort *port)
 {
   if (SG_BINARY_PORTP(port)) {
-    if (SG_BINARY_PORT(port)->type == SG_CUSTOM_BINARY_PORT_TYPE) {
+    switch (SG_BINARY_PORT(port)->type) {
+    case SG_FILE_BINARY_PORT_TYPE:
+      return SG_BINARY_PORT(port)->src.file->seek != NULL;
+    case SG_CUSTOM_BINARY_PORT_TYPE:
       return SG_BINARY_PORT(port)->src.custom.setPosition != NULL;
+    default:
+       return TRUE;
     }
-    else return TRUE;
   } else if (SG_TEXTUAL_PORTP(port)) {
     switch (SG_TEXTUAL_PORT(port)->type) {
     case SG_TRANSCODED_TEXTUAL_PORT_TYPE:
@@ -2236,28 +2256,34 @@ int64_t Sg_PortPosition(SgPort *port)
 {
   if (SG_BINARY_PORTP(port)) {
     int64_t pos;
-    switch (SG_BINARY_PORT(port)->type) {
+    SgBinaryPort *bp = SG_BINARY_PORT(port);
+    switch (bp->type) {
     case SG_FILE_BINARY_PORT_TYPE:
       if (SG_BINARY_PORT(port)->buffer) {
 	pos = SG_BINARY_PORT(port)->position;
       } else {
-	pos = SG_BINARY_PORT(port)->src.file->tell(SG_BINARY_PORT(port)->src.file);
+	if (bp->src.file->tell) {
+	  pos = bp->src.file->tell(bp->src.file);
+	} else {
+	  Sg_Error(UC("given file binary port does not support port-position"));
+	  return 0;
+	}
       }
       break;
     case SG_BYTE_ARRAY_BINARY_PORT_TYPE:
       if (SG_INPORTP(port)) {
-	pos = (int64_t)SG_BINARY_PORT(port)->src.buffer.index;
+	pos = (int64_t)bp->src.buffer.index;
       } else {
-	byte_buffer *c = SG_BINARY_PORT(port)->src.obuf.start;
+	byte_buffer *c = bp->src.obuf.start;
 	for (pos = 0; c->next; pos++, c = c->next);
       }
       break;
     case SG_CUSTOM_BINARY_PORT_TYPE: {
-      SgPortPositionFn *fn = SG_BINARY_PORT(port)->src.custom.position;
+      SgPortPositionFn *fn = bp->src.custom.position;
       if (fn) {
 	pos = fn(port);
       } else {
-	Sg_Error(UC("given custom binary port does not support port-position")); 
+	Sg_Error(UC("given custom binary port does not support port-position"));
 	return -1;
       }
       break;
@@ -2281,14 +2307,13 @@ int64_t Sg_PortPosition(SgPort *port)
 	for (pos = 0; c->next; pos++, c = c->next);
       }
       break;
-
-      break;
     case SG_CUSTOM_TEXTUAL_PORT_TYPE: {
       SgPortPositionFn *fn = SG_TEXTUAL_PORT(port)->src.custom.position;
       if (fn) {
 	pos = fn(port);
       } else {
-	Sg_Error(UC("given custom textual port does not support port-position")); 
+	Sg_Error(UC("given custom textual port does not support "
+		    "port-position")); 
 	return -1;
       }
       break;
@@ -2330,25 +2355,30 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset)
 {
   if (SG_OUTPORTP(port) || SG_INOUTPORTP(port)) port->flush(port);
   if (SG_BINARY_PORTP(port)) {
+    SgBinaryPort *bp = SG_BINARY_PORT(port);
     switch (SG_BINARY_PORT(port)->type) {
     case SG_FILE_BINARY_PORT_TYPE:
-      SG_BINARY_PORT(port)->src.file->seek(SG_BINARY_PORT(port)->src.file,
-					   offset, SG_BEGIN);
-      SG_BINARY_PORT(port)->position = offset;
+      if (bp->src.file->seek) {
+	bp->src.file->seek(bp->src.file, offset, SG_BEGIN);
+	bp->position = offset;
+      } else {
+	Sg_Error(UC("given file binary port does not support"
+		    " set-port-position!")); 
+      }
       break;
     case SG_BYTE_ARRAY_BINARY_PORT_TYPE:
       if (SG_INPORTP(port)) {
-	SG_BINARY_PORT(port)->src.buffer.index = (int)offset;
+	bp->src.buffer.index = (int)offset;
       } else {
 	int64_t i;
-	byte_buffer *c = SG_BINARY_PORT(port)->src.obuf.start;
+	byte_buffer *c = bp->src.obuf.start;
 	for (i = 0; i < offset && c->next; i++, c = c->next);
-	SG_BINARY_PORT(port)->src.obuf.current = c;
+	bp->src.obuf.current = c;
       }
-      SG_BINARY_PORT(port)->position = offset;
+      bp->position = offset;
       break;
     case SG_CUSTOM_BINARY_PORT_TYPE: {
-      SgSetPortPositionFn *fn = SG_BINARY_PORT(port)->src.custom.setPosition;
+      SgSetPortPositionFn *fn = bp->src.custom.setPosition;
       if (fn) {
 	fn(port, offset);
       } else {
@@ -2385,7 +2415,8 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset)
       if (fn) {
 	fn(port, offset);
       } else {
-	Sg_Error(UC("given custom textual port does not support set-port-position!")); 
+	Sg_Error(UC("given custom textual port does not support "
+		    "set-port-position!")); 
 	return;
       }
       break;
@@ -2398,7 +2429,8 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset)
   } else if (SG_CUSTOM_PORTP(port)) {
     if (SG_FALSEP(SG_CUSTOM_PORT(port)->setPosition)) {
       Sg_AssertionViolation(SG_INTERN("set-port-position!"),
-			    Sg_Sprintf(UC("expected positionable port, but got %S"), port),
+			    Sg_Sprintf(UC("expected positionable port, "
+					  "but got %S"), port),
 			    port);
       return;
     }

@@ -317,16 +317,6 @@ static int64_t blob_write(SgObject self, uint8_t *buf, int64_t size)
   return 0;			/* dummy */
 }
 
-static int64_t blob_seek(SgObject self, int64_t offset, Whence whence)
-{
-  return 0;
-}
-
-static int64_t blob_tel(SgObject self)
-{
-  return 0;
-}
-
 static int64_t blob_size(SgObject self)
 {
   blob_data_t *data = (blob_data_t *)SG_FILE(self)->osdependance;
@@ -387,8 +377,8 @@ static SgFile * make_blob_file(blob_data_t *data)
   z->name = UC("odbc-blob");
   z->read = blob_read;
   z->write = NULL;
-  z->seek = blob_seek;
-  z->tell = blob_tel;
+  z->seek = NULL;
+  z->tell = NULL;
   z->size = blob_size;
   z->isOpen = blob_is_open;
   z->open = blob_open;
