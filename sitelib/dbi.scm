@@ -28,7 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-#<(sagittarius regex)>
+#!read-macro=sagittarius/regex
 (library (dbi)
     (export &dbi-error make-dbi-error dbi-error?
 	    &dbi-driver-not-exist make-dbi-driver-not-exist
@@ -40,7 +40,7 @@
 	    ;; These are for DBD APIs
 	    <dbi-driver>
 	    <dbi-connection>
-	    <dbi-query>  dbi-query-prepared
+	    <dbi-query>  dbi-query-prepared dbi-query-connection
 	    ;; User level APIs
 	    dbi-connect
 	    dbi-prepare
@@ -107,8 +107,8 @@
   (define-class <dbi-connection> () ())
 
   (define-class <dbi-query> ()
-    ((connection :init-keyword :connection)
-     (prepared   :init-keyword :prepared :accessor dbi-query-prepared)))
+    ((connection :init-keyword :connection :reader dbi-query-connection)
+     (prepared   :init-keyword :prepared :reader dbi-query-prepared)))
 
   ;;--------------------------
   ;; User level APIs

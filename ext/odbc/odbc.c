@@ -43,25 +43,34 @@ static SgObject make_odbc_error()
 
 #define CHECK_ERROR(who, ctx, ret)					\
   do {									\
-    if ((ret) != SQL_SUCCESS) {						\
+    if ((ret) != SQL_SUCCESS && (ret) != SQL_NO_DATA) {			\
       SgObject whoc = Sg_MakeWhoCondition(SG_INTERN(#who));		\
-      SgObject cond = SG_UNDEF, msgc = SG_FALSE;			\
+      SgObject cond = SG_UNDEF, m = SG_FALSE, msgc = SG_FALSE;		\
       char diagState[50] = {0}, msg[256] = {0};				\
       SQLINTEGER nativeState;						\
       SQLSMALLINT len;							\
+      int continuableP = TRUE;						\
       SQLGetDiagRec(SG_ODBC_CTX(ctx)->type, SG_ODBC_CTX(ctx)->handle,	\
 		    1, (SQLCHAR *)diagState, &nativeState,		\
 		    (SQLCHAR *)msg, sizeof(msg), &len);			\
-      msgc = Sg_MakeMessageCondition(Sg_MakeStringC(msg));		\
-      if ((ret) != SQL_SUCCESS_WITH_INFO) {				\
-	SgObject odbcc = make_odbc_error();				\
-	cond = Sg_Condition(SG_LIST3(odbcc, whoc, msgc));		\
-	Sg_Raise(cond, FALSE);						\
-      } else {								\
+      m = Sg_MakeStringC(msg);						\
+      switch (ret) {							\
+      case SQL_SUCCESS_WITH_INFO: {					\
 	SgObject wa_ = Sg_MakeWarning();				\
+	msgc = Sg_MakeMessageCondition(m);				\
 	cond = Sg_Condition(SG_LIST3(wa_, whoc, msgc));			\
-	Sg_Raise(cond, TRUE);						\
+	break;								\
       }									\
+      default: {							\
+	SgObject odbcc = make_odbc_error();				\
+	SgObject irr = Sg_MakeIrritantsCondition(SG_MAKE_INT(ret));	\
+	msgc = Sg_MakeMessageCondition(m);				\
+	cond = Sg_Condition(SG_LIST4(odbcc, whoc, msgc, irr));		\
+	continuableP = FALSE;						\
+	break;								\
+      }									\
+      }									\
+      Sg_Raise(cond, continuableP);					\
     }									\
   } while (0)
 
@@ -113,7 +122,8 @@ SgObject Sg_CreateOdbcCtx(SQLSMALLINT type, SgObject parent)
   return make_odbc_ctx(type, SG_ODBC_CTX(parent));
 }
 
-SgObject Sg_Connect(SgObject env, SgString *server, SgString *user, SgString *auth, int autoCommitP)
+SgObject Sg_Connect(SgObject env, SgString *server, SgString *user,
+		    SgString *auth, int autoCommitP)
 {
   SgObject conn;
   const char *sv, *u, *a;
@@ -138,9 +148,10 @@ SgObject Sg_Connect(SgObject env, SgString *server, SgString *user, SgString *au
 
 int Sg_SetConnectAttr(SgObject hdbc, int name, SgObject value)
 {
-  Sg_ImplementationRestrictionViolation(SG_INTERN("set-connect-attr"),
-					Sg_MakeString(UC("not supported"), SG_LITERAL_STRING),
-					SG_NIL);
+  Sg_ImplementationRestrictionViolation(
+     SG_INTERN("set-connect-attr"),
+     SG_MAKE_STRING("not supported"),
+     SG_NIL);
   return FALSE;
 }
 
@@ -206,26 +217,31 @@ int Sg_BindParameter(SgObject stmt, int index, SgObject value)
   holder = SG_NEW(param_holder);
   if (SG_INTP(value)) {
     holder->param.sl = SG_INT_VALUE(value);
-    ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT, SQL_C_SLONG, SQL_INTEGER,
+    ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT, SQL_C_SLONG,
+			   SQL_INTEGER,
 			   0, 0, &holder->param.sl, 0, NULL);
   } else if (SG_BIGNUMP(value)) {
     holder->param.s64 = Sg_GetIntegerS64Clamp(value, SG_CLAMP_NONE, NULL);
-    ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT, SQL_C_SBIGINT, SQL_BIGINT,
+    ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT, SQL_C_SBIGINT,
+			   SQL_BIGINT,
 			   0, 0, &holder->param.s64, 0, NULL);
   } else if (SG_FLONUMP(value)) {
     holder->param.d = Sg_GetDouble(value);
-    ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT, SQL_C_DOUBLE, SQL_DOUBLE,
+    ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT, SQL_C_DOUBLE,
+			   SQL_DOUBLE,
 			   0, 0, &holder->param.d, 0, NULL);
   } else if (SG_STRINGP(value)) {
     /* For now we only support varchar. */
     holder->param.p  = (void*)Sg_Utf32sToUtf8s(SG_STRING(value));
     /* TODO we need to get column size from somewhere. */
-    ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR,
+    ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT, SQL_C_CHAR,
+			   SQL_VARCHAR,
 			   SG_STRING_SIZE(value), 0, holder->param.p, 0, NULL);
   } else {
-    Sg_ImplementationRestrictionViolation(SG_INTERN("bind-parameter!"),
-					  Sg_MakeString(UC("given value was not supported"), SG_LITERAL_STRING),
-					  value);
+    Sg_ImplementationRestrictionViolation(
+       SG_INTERN("bind-parameter!"),
+       SG_MAKE_STRING("given value was not supported"),
+       value);
     return FALSE;
   }
   CHECK_ERROR(bind-parameter!, stmt, ret);
@@ -240,7 +256,7 @@ int Sg_Execute(SgObject stmt)
   ASSERT(SG_ODBC_STMT_P(stmt));
   ret = SQLExecute(SG_ODBC_CTX(stmt)->handle);
   CHECK_ERROR(execute!, stmt, ret);
-  return TRUE;
+  return (ret == SQL_SUCCESS);
 }
 
 int Sg_ExecuteDirect(SgObject stmt, SgString *text)
@@ -250,7 +266,7 @@ int Sg_ExecuteDirect(SgObject stmt, SgString *text)
   ASSERT(SG_ODBC_STMT_P(stmt));
   ret = SQLExecDirect(SG_ODBC_CTX(stmt)->handle, (SQLCHAR *)s, SQL_NTS);
   CHECK_ERROR(execute-direct!, stmt, ret);
-  return TRUE;
+  return (ret == SQL_SUCCESS);
 }
 
 int Sg_Fetch(SgObject stmt)
@@ -266,7 +282,8 @@ int Sg_Fetch(SgObject stmt)
   }
 }
 
-static SgObject read_var_data_impl(SQLHSTMT stmt, int index, int len, int stringP, int asPortP)
+static SgObject read_var_data_impl(SQLHSTMT stmt, int index,
+				   int len, int stringP, int asPortP)
 {
   uint8_t buf[256] = {0};
   SgObject port = Sg_MakeByteArrayOutputPort(0), bv;
@@ -305,8 +322,10 @@ static void odbc_date_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
     break;
   case SG_SQL_TIMESTAMP:
     Sg_Printf(port, UC("#<odbc-timestamp %d-%d-%d %d:%d:%d.%d>"),
-	      d->data.timestamp.day, d->data.timestamp.month, d->data.timestamp.year,
-	      d->data.timestamp.hour, d->data.timestamp.minute, d->data.timestamp.second,
+	      d->data.timestamp.day, d->data.timestamp.month,
+	      d->data.timestamp.year,
+	      d->data.timestamp.hour, d->data.timestamp.minute,
+	      d->data.timestamp.second,
 	      d->data.timestamp.fraction);
     break;
   }
@@ -343,17 +362,19 @@ static SgObject timestamp_to_obj(SQL_TIMESTAMP_STRUCT *data)
   return SG_OBJ(d);
 }
 
-static SgObject try_known_name_data(SgObject stmt, int index, int length, const char * name)
+static SgObject try_known_name_data(SgObject stmt, int index,
+				    int length, const char * name)
 {
   /* I have no idea why Oracle return sql data type -9 for varchar2. */
   if (strcmp(name, "VARCHAR2") == 0) {
-    return read_var_data_impl(SG_ODBC_CTX(stmt)->handle, index, length, TRUE, FALSE);
+    return read_var_data_impl(SG_ODBC_CTX(stmt)->handle, index,
+			      length, TRUE, FALSE);
   }
 
-  Sg_ImplementationRestrictionViolation(SG_INTERN("get-data"),
-					Sg_MakeString(UC("target column is not supported"),
-						      SG_LITERAL_STRING),
-					Sg_MakeStringC(name));
+  Sg_ImplementationRestrictionViolation(
+     SG_INTERN("get-data"),
+     SG_MAKE_STRING("target column is not supported"),
+     Sg_MakeStringC(name));
   return SG_UNDEF;		/* dummy */
 }
 
@@ -388,7 +409,7 @@ SgObject Sg_GetData(SgObject stmt, int index)
 #define read_var_data(stringP)						\
   read_var_data_impl(SG_ODBC_CTX(stmt)->handle, index, len, (stringP), FALSE)
 
-#define read_var_data_as_port(stringP)						\
+#define read_var_data_as_port(stringP)					\
   read_var_data_impl(SG_ODBC_CTX(stmt)->handle, index, len, (stringP), TRUE)
 
 #define read_time_related(struct__, ctype__, conv__)			\
@@ -418,7 +439,8 @@ SgObject Sg_GetData(SgObject stmt, int index)
     read_time_related(SQL_DATE_STRUCT, SQL_C_TYPE_DATE, date_to_obj);
     break;
   case SQL_TIMESTAMP:
-    read_time_related(SQL_TIMESTAMP_STRUCT, SQL_C_TYPE_TIMESTAMP, timestamp_to_obj);
+    read_time_related(SQL_TIMESTAMP_STRUCT, SQL_C_TYPE_TIMESTAMP,
+		      timestamp_to_obj);
     break;
   case SQL_DECIMAL:		/* should decimal be here? */
   case SQL_SMALLINT: case SQL_INTEGER: {
@@ -456,7 +478,8 @@ SgObject Sg_GetData(SgObject stmt, int index)
        Sucks!!*/
     char buf[50];
     SQLColAttribute(SG_ODBC_CTX(stmt)->handle, (SQLUSMALLINT)index,
-		    SQL_DESC_TYPE_NAME, (SQLPOINTER)buf, sizeof(buf), NULL, NULL);
+		    SQL_DESC_TYPE_NAME, (SQLPOINTER)buf, sizeof(buf),
+		    NULL, NULL);
     return try_known_name_data(stmt, index, len, buf);
   }
   }

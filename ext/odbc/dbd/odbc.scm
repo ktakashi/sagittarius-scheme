@@ -44,7 +44,7 @@
   (define-class <dbi-odbc-connection> (<dbi-connection>)
     ((hbc :init-keyword :hbc :accessor odbc-connection-odbc-hbc)))
 
-  ;; to make method more specifig
+  ;; to make method more specific
   (define-class <dbi-odbc-query> (<dbi-query>)
     ()) ;; no slot
 
@@ -105,7 +105,8 @@
 	     (params args (cdr params)))
 	    ((null? params) #t)
 	  (bind-parameter! stmt i (car params))))
-      (execute! stmt)))
+      (execute! stmt)
+      (row-count stmt)))
 
   (define-method dbi-fetch! ((query <dbi-odbc-query>))
     (let* ((stmt (dbi-query-prepared query))
@@ -134,11 +135,11 @@
 	  (reverse! r))))
 
   (define-method dbi-commit! ((query <dbi-odbc-query>))
-    (let ((c (dbi-query-prepared query)))
+    (let ((c (dbi-query-connection query)))
       (commit! c)))
 
   (define-method dbi-rollback! ((query <dbi-odbc-query>))
-    (let ((c (dbi-query-prepared query)))
+    (let ((c (dbi-query-connection query)))
       (rollback! c)))
 
   (define-method dbi-columns ((query <dbi-odbc-query>))
