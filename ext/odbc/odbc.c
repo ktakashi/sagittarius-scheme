@@ -282,12 +282,135 @@ int Sg_Fetch(SgObject stmt)
   }
 }
 
+typedef struct blob_data_rec
+{
+  SQLHSTMT stmt;
+  int index;
+  char stringP: 1;
+  char openP  : 1;
+} blob_data_t;
+
+static int64_t blob_read(SgObject self, uint8_t *buf, int64_t size)
+{
+  int64_t read  = 0;
+  SQLLEN ind = 0;
+  blob_data_t *data = (blob_data_t *)SG_FILE(self)->osdependance;
+  SQLHSTMT stmt = data->stmt;
+  int index = data->index, stringP = data->stringP;
+  
+  while (SQLGetData(stmt, index, (stringP) ? SQL_C_CHAR: SQL_C_BINARY,
+		    buf + read, size, &ind) != SQL_NO_DATA) {
+    if (SQL_NULL_DATA == ind) return 0;
+    else if (ind == SQL_NO_TOTAL) return read;
+    else {
+      read += (ind > size) ? size : ind;
+      size -= (ind > size) ? size : ind;
+      if (size == 0) break;
+    }
+  }
+  return read;
+}
+
+static int64_t blob_write(SgObject self, uint8_t *buf, int64_t size)
+{
+  return 0;			/* dummy */
+}
+
+static int64_t blob_seek(SgObject self, int64_t offset, Whence whence)
+{
+  return 0;
+}
+
+static int64_t blob_tel(SgObject self)
+{
+  return 0;
+}
+
+static int64_t blob_size(SgObject self)
+{
+  blob_data_t *data = (blob_data_t *)SG_FILE(self)->osdependance;
+  SQLHSTMT stmt = data->stmt;
+  int index = data->index, stringP = data->stringP;
+  SQLLEN ind = 0;
+  uint8_t buf;
+  if (SQLGetData(stmt, index, (stringP) ? SQL_C_CHAR: SQL_C_BINARY,
+		 &buf, 0, &ind) != SQL_NULL_DATA) {
+    /* how to treat this? */
+    if (ind == SQL_NO_TOTAL) return -1;
+    return ind;
+  } else {
+    return 0;
+  }
+}
+
+static int blob_is_open(SgObject self)
+{
+  return ((blob_data_t *)SG_FILE(self)->osdependance)->openP;
+}
+
+static int blob_open(SgObject self, const SgChar *path, int flags)
+{
+  return TRUE;
+}
+
+static int blob_close(SgObject self)
+{
+  ((blob_data_t *)SG_FILE(self)->osdependance)->openP = FALSE;
+  return ((blob_data_t *)SG_FILE(self)->osdependance)->openP;
+}
+
+static int blob_can_close(SgObject self)
+{
+  return FALSE;
+}
+
+static int blob_utf16_console(SgObject self)
+{
+  return FALSE;
+}
+
+static SgFile * make_blob_file(blob_data_t *data)
+{
+  SgFile *z = SG_NEW(SgFile);
+  SG_SET_CLASS(z, SG_CLASS_FILE);
+  /* For now only supports input  */
+  z->osdependance = (void *)data;
+  z->name = UC("odbc-blob");
+  z->read = blob_read;
+  z->write = NULL;
+  z->seek = blob_seek;
+  z->tell = blob_tel;
+  z->size = blob_size;
+  z->isOpen = blob_is_open;
+  z->open = blob_open;
+  z->close = blob_close;
+  z->canClose = blob_can_close;
+  z->isUTF16Console = blob_utf16_console;
+  return z;
+}
+
+static SgObject make_blob_input_port(SQLHSTMT stmt, int index, int stringP)
+{
+  blob_data_t *data;
+  data = SG_NEW(blob_data_t);
+  data->stmt = stmt;
+  data->index = index;
+  data->stringP = stringP;
+  data->openP = TRUE;
+
+  return Sg_MakeFileBinaryInputPort(make_blob_file(data), SG_BUFMODE_BLOCK);
+}
+
 static SgObject read_var_data_impl(SQLHSTMT stmt, int index,
 				   int len, int stringP, int asPortP)
 {
   uint8_t buf[256] = {0};
   SgObject port = Sg_MakeByteArrayOutputPort(0), bv;
   SQLLEN ind = 0;
+
+  if (asPortP) {
+    return make_blob_input_port(stmt, index, stringP);
+  }
   
   while (SQLGetData(stmt, index, (stringP) ? SQL_C_CHAR: SQL_C_BINARY,
 		    buf, sizeof(buf), &ind) != SQL_NO_DATA) {
@@ -296,9 +419,13 @@ static SgObject read_var_data_impl(SQLHSTMT stmt, int index,
 		    (ind>sizeof(buf) || ind==SQL_NO_TOTAL) ? sizeof(buf) : ind);
   }
   bv = Sg_GetByteVectorFromBinaryPort(SG_PORT(port));
+
+#if 0
   if (asPortP) {
-    return Sg_MakeByteVectorInputPort(SG_BVECTOR(bv), 0);	/* for now */
+    return Sg_MakeByteVectorInputPort(SG_BVECTOR(bv), 0);
   }
+#endif
+
   if (stringP) {    
     /* for now. */
     SgObject tran = Sg_MakeNativeTranscoder();
