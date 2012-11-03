@@ -348,25 +348,16 @@ typedef struct blob_data_rec
 
 static int64_t blob_read(SgObject self, uint8_t *buf, int64_t size)
 {
-  int64_t read = 0;
   SQLLEN ind;
   blob_data_t *data = (blob_data_t *)SG_FILE(self)->osdependance;
   SQLHSTMT stmt = data->stmt;
   int index = data->index, stringP = data->stringP;
 
-  while (SQLGetData(stmt, index, (stringP) ? SQL_C_CHAR: SQL_C_BINARY,
-		    buf + read, size, &ind) != SQL_NO_DATA) {
-    if (ind == 0) return read;
-    else if (SQL_NULL_DATA == ind) return 0;
-    else if (ind == SQL_NO_TOTAL) return read;
-    else {
-      if (ind < size) return read + ind;
-      read += (ind > size) ? size : ind;
-      size -= (ind > size) ? size : ind;
-      if (size == 0) break;
-    }
+  if (SQLGetData(stmt, index, (stringP) ? SQL_C_CHAR: SQL_C_BINARY,
+		 buf, size, &ind) != SQL_NO_DATA) {
+    return ind;
   }
-  return read;
+  return 0;
 }
 
 static int64_t blob_size(SgObject self)
