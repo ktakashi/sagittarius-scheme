@@ -237,19 +237,33 @@ int Sg_BindParameter(SgObject stmt, int index, SgObject value)
     ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT, SQL_C_CHAR,
 			   SQL_VARCHAR,
 			   SG_STRING_SIZE(value), 0, holder->param.p, 0, NULL);
+    /* these doesn't work properly on sqlite. */
   } else if (SG_BVECTORP(value)) {
     holder->param.p  = (void*)SG_BVECTOR_ELEMENTS(value);
-    ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT, SQL_C_BINARY,
-			   SQL_BINARY,
+    ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT,
+			   SQL_C_BINARY, SQL_BINARY,
 			   SG_BVECTOR_SIZE(value), 0, holder->param.p, 0, NULL);
   } else if (SG_BINARY_PORTP(value)) {
     /* blob data */
-    holder->param.p  = (void*)value;
-    ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT, SQL_C_BINARY,
-			   SQL_LONGVARBINARY,
-			   SQL_DATA_AT_EXEC, 0, holder->param.p, 0,
-			   NULL);
+    if (Sg_HasPortPosition(SG_PORT(value)) &&
+	Sg_HasSetPortPosition(SG_PORT(value))) {
+      /* FIXME this is ugly. */
+      int64_t current = Sg_PortPosition(SG_PORT(value));
+      int64_t size;
+      while (Sg_Getb(SG_PORT(value)) != EOF);
+      size = Sg_PortPosition(SG_PORT(value)) - current;
+      Sg_SetPortPosition(SG_PORT(value), current);
+
+      holder->param.p  = (void*)value;
+      holder->state  = SQL_DATA_AT_EXEC;
+      ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT,
+			     SQL_BINARY, SQL_LONGVARBINARY,
+			     size, 0, holder->param.p, 0, &holder->state);
+    } else {
+      goto err;
+    }
   } else {
+  err:
     Sg_ImplementationRestrictionViolation(
        SG_INTERN("bind-parameter!"),
        SG_MAKE_STRING("given value was not supported"),
@@ -270,19 +284,21 @@ int Sg_BindParameter(SgObject stmt, int index, SgObject value)
 static SQLRETURN put_more_data(SgObject stmt)
 {
   SQLPOINTER val;
-  SQLRETURN ret;
-  uint8_t buf[1024];
+  SQLRETURN rc;
+  uint8_t *buf;
   int64_t size;
-  ret = SQLParamData(SG_ODBC_CTX(stmt)->handle, &val);
-  if (ret != SQL_NEED_DATA) {
-    /* let signal an error */
-    CHECK_ERROR(execute!, stmt, ret);
-  }
-  /* for now we only handle binary port */
-  if (!SG_BINARY_PORTP(val)) {
-    Sg_Error(UC("invalid parameter %S. bug?"), val);
-  }
-  while ((size = Sg_Readb(SG_PORT(val), buf, 1024)) == 0) {
+
+  while ((rc=SQLParamData(SG_ODBC_CTX(stmt)->handle, &val)) == SQL_NEED_DATA) {
+    if (rc != SQL_NEED_DATA) {
+      /* let signal an error */
+      CHECK_ERROR(execute!, stmt, rc);
+    }
+    /* for now we only handle binary port */
+    if (!SG_BINARY_PORTP(val)) {
+      Sg_Error(UC("invalid parameter %S. bug?"), val);
+    }
+    /* FIXME this can't handle huge data. */
+    size = Sg_ReadbAll(SG_PORT(val), &buf);
     SQLPutData(SG_ODBC_CTX(stmt)->handle, (SQLPOINTER)buf, (SQLLEN)size);
   }
   return SQL_SUCCESS;
@@ -332,18 +348,19 @@ typedef struct blob_data_rec
 
 static int64_t blob_read(SgObject self, uint8_t *buf, int64_t size)
 {
-  int64_t read  = 0;
-  SQLLEN ind = 0;
+  int64_t read = 0;
+  SQLLEN ind;
   blob_data_t *data = (blob_data_t *)SG_FILE(self)->osdependance;
   SQLHSTMT stmt = data->stmt;
   int index = data->index, stringP = data->stringP;
-  
+
   while (SQLGetData(stmt, index, (stringP) ? SQL_C_CHAR: SQL_C_BINARY,
 		    buf + read, size, &ind) != SQL_NO_DATA) {
     if (ind == 0) return read;
     else if (SQL_NULL_DATA == ind) return 0;
     else if (ind == SQL_NO_TOTAL) return read;
     else {
+      if (ind < size) return read + ind;
       read += (ind > size) ? size : ind;
       size -= (ind > size) ? size : ind;
       if (size == 0) break;
@@ -357,12 +374,10 @@ static int64_t blob_size(SgObject self)
   blob_data_t *data = (blob_data_t *)SG_FILE(self)->osdependance;
   SQLHSTMT stmt = data->stmt;
   int index = data->index, stringP = data->stringP;
-  SQLLEN ind = 0;
+  SQLLEN ind;
   uint8_t buf;
   if (SQLGetData(stmt, index, (stringP) ? SQL_C_CHAR: SQL_C_BINARY,
-		 &buf, 0, &ind) != SQL_NULL_DATA) {
-    /* how to treat this? */
-    if (ind == SQL_NO_TOTAL) return -1;
+		 &buf, 0, &ind) != SQL_NO_DATA) {
     return ind;
   } else {
     return 0;
@@ -531,6 +546,11 @@ static SgObject try_known_name_data(SgObject stmt, int index,
     return read_var_data_impl(SG_ODBC_CTX(stmt)->handle, index,
 			      length, TRUE, FALSE);
   }
+  /* on sqlite blob is mapped SQL_BINARY with 0 length */
+  if (strcmp(name, "blob") == 0) {
+    return read_var_data_impl(SG_ODBC_CTX(stmt)->handle, index,
+			      length, FALSE, TRUE);
+  }
 
   Sg_ImplementationRestrictionViolation(
      SG_INTERN("get-data"),
@@ -554,6 +574,7 @@ SgObject Sg_GetData(SgObject stmt, int index)
 {
   SQLRETURN ret;
   SQLLEN sqlType, len;
+  char buf[50];
   ASSERT(SG_ODBC_STMT_P(stmt));
   ret = SQLColAttribute(SG_ODBC_CTX(stmt)->handle, (SQLUSMALLINT)index,
 			SQL_DESC_TYPE, NULL, 0, NULL, &sqlType);
@@ -590,15 +611,14 @@ SgObject Sg_GetData(SgObject stmt, int index)
   }
   case SQL_BINARY:
     if (len) {
+      /* assume fixed bytes binary data */
       SgObject buf = Sg_MakeByteVector(len, 0);
       read_fixed_length_data(SG_BVECTOR_ELEMENTS(buf), SQL_C_BINARY);
       return buf;
     } else {
       /* sqlite somehow returns SQL_BINARY as blob data.
-	 (or only the ODBC driver i used).
-       */
-      /* TODO how to handle this? */
-      return read_var_data_as_port(FALSE);
+	 (or only the ODBC driver i used). */
+      goto try_read;
     }
   case SQL_TIME:
     read_time_related(SQL_TIME_STRUCT, SQL_C_TYPE_TIME, time_to_obj);
@@ -636,20 +656,16 @@ SgObject Sg_GetData(SgObject stmt, int index)
   }
   case SQL_VARCHAR: return read_var_data(TRUE);
   case SQL_VARBINARY: return read_var_data(FALSE);
-  /* FIXME currently it just return as port, if it's really huge,
-     it aborts.
-   */
   case SQL_LONGVARCHAR: return read_var_data_as_port(TRUE);
   case SQL_LONGVARBINARY: return read_var_data_as_port(FALSE);
-  default: {
+  try_read:
+  default: 
     /* some RDBMS(ex: Oracle) return weird type, to handle it we need this.
        Sucks!!*/
-    char buf[50];
     SQLColAttribute(SG_ODBC_CTX(stmt)->handle, (SQLUSMALLINT)index,
 		    SQL_DESC_TYPE_NAME, (SQLPOINTER)buf, sizeof(buf),
 		    NULL, NULL);
     return try_known_name_data(stmt, index, len, buf);
-  }
   }
   return SG_UNDEF;
 }

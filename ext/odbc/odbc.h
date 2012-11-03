@@ -54,6 +54,7 @@ typedef struct param_holder_rec
     double  d;
     int64_t s64;
   } param;
+  SQLINTEGER state;
   struct param_holder_rec *next;
 } param_holder;
 
