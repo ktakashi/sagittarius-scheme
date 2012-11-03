@@ -237,6 +237,18 @@ int Sg_BindParameter(SgObject stmt, int index, SgObject value)
     ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT, SQL_C_CHAR,
 			   SQL_VARCHAR,
 			   SG_STRING_SIZE(value), 0, holder->param.p, 0, NULL);
+  } else if (SG_BVECTORP(value)) {
+    holder->param.p  = (void*)SG_BVECTOR_ELEMENTS(value);
+    ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT, SQL_C_BINARY,
+			   SQL_BINARY,
+			   SG_BVECTOR_SIZE(value), 0, holder->param.p, 0, NULL);
+  } else if (SG_BINARY_PORTP(value)) {
+    /* blob data */
+    holder->param.p  = (void*)value;
+    ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT, SQL_C_BINARY,
+			   SQL_LONGVARBINARY,
+			   SQL_DATA_AT_EXEC, 0, holder->param.p, 0,
+			   NULL);
   } else {
     Sg_ImplementationRestrictionViolation(
        SG_INTERN("bind-parameter!"),
@@ -250,11 +262,38 @@ int Sg_BindParameter(SgObject stmt, int index, SgObject value)
   return TRUE;
 }
 
+#define HANDLE_NEED_DATA(ret, stmt)				\
+  do {								\
+    if ((ret) == SQL_NEED_DATA) (ret) = put_more_data(stmt);	\
+  } while (0)
+
+static SQLRETURN put_more_data(SgObject stmt)
+{
+  SQLPOINTER val;
+  SQLRETURN ret;
+  uint8_t buf[1024];
+  int64_t size;
+  ret = SQLParamData(SG_ODBC_CTX(stmt)->handle, &val);
+  if (ret != SQL_NEED_DATA) {
+    /* let signal an error */
+    CHECK_ERROR(execute!, stmt, ret);
+  }
+  /* for now we only handle binary port */
+  if (!SG_BINARY_PORTP(val)) {
+    Sg_Error(UC("invalid parameter %S. bug?"), val);
+  }
+  while ((size = Sg_Readb(SG_PORT(val), buf, 1024)) == 0) {
+    SQLPutData(SG_ODBC_CTX(stmt)->handle, (SQLPOINTER)buf, (SQLLEN)size);
+  }
+  return SQL_SUCCESS;
+}
+
 int Sg_Execute(SgObject stmt)
 {
   SQLRETURN ret;
   ASSERT(SG_ODBC_STMT_P(stmt));
   ret = SQLExecute(SG_ODBC_CTX(stmt)->handle);
+  HANDLE_NEED_DATA(ret, stmt);
   CHECK_ERROR(execute!, stmt, ret);
   return (ret == SQL_SUCCESS);
 }
@@ -265,6 +304,7 @@ int Sg_ExecuteDirect(SgObject stmt, SgString *text)
   SQLRETURN ret;
   ASSERT(SG_ODBC_STMT_P(stmt));
   ret = SQLExecDirect(SG_ODBC_CTX(stmt)->handle, (SQLCHAR *)s, SQL_NTS);
+  HANDLE_NEED_DATA(ret, stmt);
   CHECK_ERROR(execute-direct!, stmt, ret);
   return (ret == SQL_SUCCESS);
 }
@@ -310,11 +350,6 @@ static int64_t blob_read(SgObject self, uint8_t *buf, int64_t size)
     }
   }
   return read;
-}
-
-static int64_t blob_write(SgObject self, uint8_t *buf, int64_t size)
-{
-  return 0;			/* dummy */
 }
 
 static int64_t blob_size(SgObject self)
@@ -553,11 +588,18 @@ SgObject Sg_GetData(SgObject stmt, int index)
     read_fixed_length_data(buf, SQL_C_CHAR);
     return Sg_Utf8sToUtf32s(buf, len);
   }
-  case SQL_BINARY:{
-    uint8_t *buf = SG_NEW_ATOMIC2(uint8_t *, len);
-    read_fixed_length_data(buf, SQL_C_CHAR);
-    return Sg_MakeByteVectorFromU8Array(buf, len);
-  }
+  case SQL_BINARY:
+    if (len) {
+      SgObject buf = Sg_MakeByteVector(len, 0);
+      read_fixed_length_data(SG_BVECTOR_ELEMENTS(buf), SQL_C_BINARY);
+      return buf;
+    } else {
+      /* sqlite somehow returns SQL_BINARY as blob data.
+	 (or only the ODBC driver i used).
+       */
+      /* TODO how to handle this? */
+      return read_var_data_as_port(FALSE);
+    }
   case SQL_TIME:
     read_time_related(SQL_TIME_STRUCT, SQL_C_TYPE_TIME, time_to_obj);
     break;
