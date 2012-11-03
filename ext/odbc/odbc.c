@@ -352,7 +352,8 @@ static int64_t blob_read(SgObject self, uint8_t *buf, int64_t size)
 		 buf, size, &ind) != SQL_NO_DATA) {
     if (ind == SQL_NULL_DATA) return 0;
     else if (ind == SQL_NO_TOTAL) return 0;
-    else return ind;
+    /* size 0 is checking size so just return ind */
+    else return (size != 0 && size < ind) ? size : ind;
   } else
     return 0;
 }
