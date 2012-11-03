@@ -240,30 +240,20 @@ int Sg_BindParameter(SgObject stmt, int index, SgObject value)
     /* these doesn't work properly on sqlite. */
   } else if (SG_BVECTORP(value)) {
     holder->param.p  = (void*)SG_BVECTOR_ELEMENTS(value);
+    if (SG_BVECTOR_SIZE(value) == 0) holder->state = SQL_NULL_DATA;
+    else holder->state = 0;
     ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT,
 			   SQL_C_BINARY, SQL_BINARY,
-			   SG_BVECTOR_SIZE(value), 0, holder->param.p, 0, NULL);
+			   SG_BVECTOR_SIZE(value), 0, holder->param.p, 0,
+			   &holder->state);
   } else if (SG_BINARY_PORTP(value)) {
     /* blob data */
-    if (Sg_HasPortPosition(SG_PORT(value)) &&
-	Sg_HasSetPortPosition(SG_PORT(value))) {
-      /* FIXME this is ugly. */
-      int64_t current = Sg_PortPosition(SG_PORT(value));
-      int64_t size;
-      while (Sg_Getb(SG_PORT(value)) != EOF);
-      size = Sg_PortPosition(SG_PORT(value)) - current;
-      Sg_SetPortPosition(SG_PORT(value), current);
-
-      holder->param.p  = (void*)value;
-      holder->state  = SQL_DATA_AT_EXEC;
-      ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT,
-			     SQL_BINARY, SQL_LONGVARBINARY,
-			     size, 0, holder->param.p, 0, &holder->state);
-    } else {
-      goto err;
-    }
+    holder->param.p  = (void*)value;
+    holder->state  = SQL_DATA_AT_EXEC;
+    ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT,
+			   SQL_BINARY, SQL_LONGVARBINARY,
+			   0, 0, holder->param.p, 0, &holder->state);
   } else {
-  err:
     Sg_ImplementationRestrictionViolation(
        SG_INTERN("bind-parameter!"),
        SG_MAKE_STRING("given value was not supported"),
@@ -281,11 +271,13 @@ int Sg_BindParameter(SgObject stmt, int index, SgObject value)
     if ((ret) == SQL_NEED_DATA) (ret) = put_more_data(stmt);	\
   } while (0)
 
+#define PUT_BUF_SIZE 1024
+
 static SQLRETURN put_more_data(SgObject stmt)
 {
   SQLPOINTER val;
   SQLRETURN rc;
-  uint8_t *buf;
+  uint8_t buf[PUT_BUF_SIZE];
   int64_t size;
 
   while ((rc=SQLParamData(SG_ODBC_CTX(stmt)->handle, &val)) == SQL_NEED_DATA) {
@@ -297,9 +289,12 @@ static SQLRETURN put_more_data(SgObject stmt)
     if (!SG_BINARY_PORTP(val)) {
       Sg_Error(UC("invalid parameter %S. bug?"), val);
     }
-    /* FIXME this can't handle huge data. */
-    size = Sg_ReadbAll(SG_PORT(val), &buf);
-    SQLPutData(SG_ODBC_CTX(stmt)->handle, (SQLPOINTER)buf, (SQLLEN)size);
+    while ((size = Sg_Readb(SG_PORT(val), buf, PUT_BUF_SIZE)) < PUT_BUF_SIZE) {
+      SQLPutData(SG_ODBC_CTX(stmt)->handle, (SQLPOINTER)buf, (SQLLEN)size);
+    }
+    if (size != 0) {
+      SQLPutData(SG_ODBC_CTX(stmt)->handle, (SQLPOINTER)buf, (SQLLEN)size);
+    }
   }
   return SQL_SUCCESS;
 }
@@ -355,9 +350,11 @@ static int64_t blob_read(SgObject self, uint8_t *buf, int64_t size)
 
   if (SQLGetData(stmt, index, (stringP) ? SQL_C_CHAR: SQL_C_BINARY,
 		 buf, size, &ind) != SQL_NO_DATA) {
-    return ind;
-  }
-  return 0;
+    if (ind == SQL_NULL_DATA) return 0;
+    else if (ind == SQL_NO_TOTAL) return 0;
+    else return ind;
+  } else
+    return 0;
 }
 
 static int64_t blob_size(SgObject self)
