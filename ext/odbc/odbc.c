@@ -362,17 +362,8 @@ static int64_t blob_read(SgObject self, uint8_t *buf, int64_t size)
 
 static int64_t blob_size(SgObject self)
 {
-  blob_data_t *data = (blob_data_t *)SG_FILE(self)->osdependance;
-  SQLHSTMT stmt = data->stmt;
-  int index = data->index, stringP = data->stringP;
-  SQLLEN ind;
   uint8_t buf;
-  if (SQLGetData(stmt, index, (stringP) ? SQL_C_CHAR: SQL_C_BINARY,
-		 &buf, 0, &ind) != SQL_NO_DATA) {
-    return ind;
-  } else {
-    return 0;
-  }
+  return blob_read(self, &buf, 0);
 }
 
 static int blob_is_open(SgObject self)
