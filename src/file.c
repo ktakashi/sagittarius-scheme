@@ -629,18 +629,22 @@ static SgObject brace_expand(SgString *str, int flags)
 {
   const int escape = !(flags & SG_NOESCAPE);
   int lbrace = 0, rbrace = 0, nest = 0, i;
+  int haslb = FALSE, hasrb = FALSE;
   for (i = 0; i < SG_STRING_SIZE(str); i++) {
     if (SG_STRING_VALUE_AT(str, i) == '{' && nest++ == 0) {
       lbrace = i;
+      haslb = TRUE;
     }
     if (SG_STRING_VALUE_AT(str, i) == '}' && --nest == 0) {
       rbrace = i;
+      hasrb = TRUE;
+      break;
     }
     if (SG_STRING_VALUE_AT(str, i) == '\\' && escape) {
       if (++i == SG_STRING_SIZE(str)) break;
     }
   }
-  if (lbrace && rbrace) {
+  if (haslb && hasrb) {
     SgObject h = SG_NIL, t = SG_NIL;
     intptr_t shift;
     shift = lbrace;
@@ -650,7 +654,10 @@ static SgObject brace_expand(SgString *str, int flags)
       const int it = ++i;
       const SgChar *st = SG_STRING_VALUE(str) + it;
       SgString *buf = SG_STRING(Sg_ReserveString(size, 0));
-      memcpy(SG_STRING_VALUE(buf), SG_STRING_VALUE(str), lbrace*sizeof(SgChar));
+      if (lbrace != 0) {
+	memcpy(SG_STRING_VALUE(buf), SG_STRING_VALUE(str),
+	       lbrace*sizeof(SgChar));
+      }
 
       nest = 0;
       while (i < rbrace && !(SG_STRING_VALUE_AT(str, i) == ',' && nest == 0)) {
@@ -665,8 +672,12 @@ static SgObject brace_expand(SgString *str, int flags)
       memcpy(SG_STRING_VALUE(buf) + shift + (i-it),
 	     SG_STRING_VALUE(str) + rbrace + 1, 
 	     (size - (shift + (i-it))) * sizeof(SgChar));
-      SG_STRING_SIZE(buf) = lbrace + (i - it) + size - (shift + (i-it));
-      SG_APPEND1(h, t, buf);
+      SG_STRING_SIZE(buf) = lbrace + (i - it) + size - rbrace;
+      /*
+      Sg_Printf(Sg_StandardErrorPort(), UC("(%d, %d)str: %A, buf: %A\n"), 
+		lbrace, rbrace, str, buf);
+      */
+      SG_APPEND(h, t, brace_expand(buf, flags));
     }
     return h;
   } else {
