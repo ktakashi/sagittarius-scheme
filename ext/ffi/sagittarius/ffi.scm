@@ -64,6 +64,8 @@
 	    size-of-intptr_t
 	    size-of-uintptr_t
 
+	    ;; address
+	    pointer-address
 	    ;; ref
 	    pointer-ref-c-uint8
 	    pointer-ref-c-int8

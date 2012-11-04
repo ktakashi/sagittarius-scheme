@@ -107,6 +107,17 @@
 		(free-c-callback compare)
 		array))
 
+
+  ;; pointer address
+  (test-equal "address passing"
+	      #\a
+	      (let* ((p (allocate-pointer size-of-char))
+		     (ap (pointer-address p))
+		     (setter (c-function ffi-test-lib void address_passing
+					 (void*))))
+		(setter ap)
+		(integer->char (pointer-ref-c-char p 0))))
+
   (test-equal "c-struct"
 	      '(100 200 "message from C")
 	      (let* ((st (allocate-c-struct data-to-store))
@@ -167,6 +178,7 @@
 			  (reverse! r)
 			  (let* ((s (pointer->string p)))
 			    (loop (+ i 1) (cons s r)))))))))
+    
 
   )
  (else

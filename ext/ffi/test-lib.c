@@ -96,6 +96,10 @@ EXPORT void store_data(struct data_to_store *storage)
   storage->inner.str = "message from C";
 }
 
+EXPORT void address_passing(char **s)
+{
+  *s[0] = 'a';
+}
 
 int main(void)
 {
@@ -110,6 +114,14 @@ int main(void)
   while(counter != 8){
     printf("%d ",array[counter]);
     counter++;
+  }
+  puts("\n");
+  {
+    void *p = malloc(sizeof(char));
+    void *ap = &p;
+    address_passing((char **)ap);
+    printf("%c\n", ((char *)p)[0]);
+    free(p);
   }
 
   return 0;

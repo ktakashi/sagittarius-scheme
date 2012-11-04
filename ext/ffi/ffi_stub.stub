@@ -175,6 +175,9 @@
   (define-c-proc pointer-ref-c-pointer (p::<pointer> offset::<fixnum>) 
     (result (Sg_MakePointer (POINTER_REF void_ptr p offset))))
 
+  (define-c-proc pointer-address (p::<pointer>)
+    (result (Sg_MakePointer (& (-> p pointer)))))
+
   ;; to use POINTER_REF macro.
   (decl-code
    ;; to avoid cise's bug...
