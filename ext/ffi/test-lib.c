@@ -98,8 +98,21 @@ EXPORT void store_data(struct data_to_store *storage)
 
 EXPORT void address_passing(char **s)
 {
-  *s[0] = 'a';
+  (*s)[0] = 'a';
 }
+
+EXPORT void address_passing_string(char **s)
+{
+  *s = (char *)malloc(6);
+  strncpy(*s, "hello", 5);
+  (*s)[5] = 0;
+}
+
+EXPORT void address_passing_free(char **s)
+{
+  free(*s);
+}
+
 
 int main(void)
 {

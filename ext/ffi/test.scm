@@ -118,6 +118,20 @@
 		(setter ap)
 		(integer->char (pointer-ref-c-char p 0))))
 
+  (test-equal "address passing allocate"
+	      "hello"
+	      (let* ((p (empty-pointer))
+		     (setter (c-function ffi-test-lib void
+					 address_passing_string
+					 (void*)))
+		     (dctr (c-function ffi-test-lib void
+					 address_passing_free
+					 (void*))))
+		(setter (address p))
+		(let ((r (pointer->string p)))
+		  (dctr (address p))
+		  r)))
+
   (test-equal "c-struct"
 	      '(100 200 "message from C")
 	      (let* ((st (allocate-c-struct data-to-store))

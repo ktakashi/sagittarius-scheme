@@ -66,6 +66,7 @@
 
 	    ;; address
 	    pointer-address
+	    address 			;for convenience
 	    ;; ref
 	    pointer-ref-c-uint8
 	    pointer-ref-c-int8
@@ -149,6 +150,7 @@
 	    ;; utility
 	    null-pointer
 	    null-pointer?
+	    empty-pointer
 	    pointer->string
 	    deref
 	    ;; clos
@@ -188,6 +190,8 @@
       (and (pointer? p)
 	   (= (pointer->integer p) 0)))
 
+    (define (empty-pointer) (integer->pointer 0))
+
     (define (pointer->string pointer
 			     :optional (transcoder (native-transcoder)))
       (let-values (((out getter) (open-bytevector-output-port)))
@@ -215,6 +219,10 @@
 	   (define-c-typedef old rest ...)))
 	((_ old)
 	 #t)))
+
+    (define-syntax address
+      (syntax-rules ()
+	((_ p) (list 'address p))))
 
     (define (pointer->c-function pointer ret-type name arg-types)
       (let* ((stub-ret-type (assoc ret-type c-function-return-type-alist))
@@ -253,7 +261,9 @@
 	       ((float) #\f)
 	       ((double) #\d)
 	       ((callback) #\c)
-	       (else (assertion-violation 'make-sigunatures "invalid argument type" arg-type))))
+	       (else
+		(assertion-violation 'make-sigunatures 
+				     "invalid argument type" arg-type))))
 	   arg-types))
 
     (define-syntax c-function
