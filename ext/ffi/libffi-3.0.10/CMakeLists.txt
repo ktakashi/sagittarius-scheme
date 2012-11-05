@@ -32,7 +32,14 @@ CHECK_FUNCTION_EXISTS(memcpy HAVE_MEMCPY)
 message(STATUS "Checking pointer size")
 CHECK_TYPE_SIZE(void*, SIZEOF_VOIDP)
 
-CHECK_C_SOURCE_COMPILES("asm (\".cfi_startproc\n\t.cif_endproc\")" HAVE_AS_CFI_PSEUDO_OP)
+CHECK_C_SOURCE_COMPILES("int main() { asm (\" .cfi_startproc\\\\n\\\\t.cif_endproc \"); return 0;}" 
+  HAVE_AS_CFI_PSEUDO_OP)
+CHECK_C_SOURCE_COMPILES("int main() { asm (\" .ascii \\\\\"string\\\\\" \"); return 0;}" 
+  HAVE_AS_ASCII_PSEUDO_OP)
+CHECK_C_SOURCE_COMPILES("int main() { asm (\" .string \\\\\"string\\\\\" \"); return 0;}" 
+  HAVE_AS_STRING_PSEUDO_OP)
+CHECK_C_SOURCE_COMPILES("int main() { asm (\" .register %g2, #scrach \"); return 0;}" 
+  HAVE_AS_REGISTER_PSEUDO_OP)
 
 if (MSVC)
   message(STATUS "Using MSVS MASM")
@@ -57,7 +64,7 @@ TRY_COMPILE(libffi_cv_as_x86_pcrel
   ${CMAKE_BINARY_DIR} ${conftest_asm_file}
   CMAKE_FLAGS "-c"
   OUTPUT_VARIABLE output)
-if (${output} MATCHES "warning")
+if (${output} MATCHES "illegal|warning")
   set(libffi_cv_as_x86_pcrel "no")
 endif()
 if (${libffi_cv_as_x86_pcrel} STREQUAL "yes")
