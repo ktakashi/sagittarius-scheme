@@ -107,6 +107,12 @@
   (define-c-proc c-free (p::<pointer>) ::<void>
     (Sg_CFree p))
 
+  ;; finalizer
+  (define-c-proc register-ffi-finalizer (p::<pointer> proc::<procedure>)
+    Sg_RegisterFFIFinalizer)
+  (define-c-proc unregister-ffi-finalizer (p::<pointer>) 
+    Sg_UnregisterFFIFinalizer)
+
   ;; pointer
   (define-c-proc pointer? (o) ::<boolean>
     (result (SG_POINTERP o)))

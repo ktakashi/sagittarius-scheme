@@ -179,6 +179,16 @@ static SgHashTable *ctable;
 
 static void callback_invoker(ffi_cif *cif, void *result, void **args,
 			     void *userdata);
+static void release_callback(SgCallback *callback)
+{
+  Sg_HashTableDelete(ctable, SG_MAKE_INT(callback->uid));
+  ffi_closure_free(callback->closure);
+}
+static void callback_finalize(SgObject callback, void *data)
+{
+  release_callback(SG_CALLBACK(callback));
+}
+
 SgObject Sg_CreateCallback(int rettype, SgString *signatures, SgObject proc)
 {
   SgCallback *c = SG_NEW(SgCallback);
@@ -191,13 +201,14 @@ SgObject Sg_CreateCallback(int rettype, SgString *signatures, SgObject proc)
   c->closure = (ffi_closure*)ffi_closure_alloc(sizeof(ffi_closure), &c->code);
   /* store callback to static area to avoid GC. */
   Sg_HashTableSet(ctable, SG_MAKE_INT(uid), SG_OBJ(c), 0);
+  Sg_RegisterFinalizer(SG_OBJ(c), callback_finalize, NULL);
   return SG_OBJ(c);
 }
 
 void Sg_ReleaseCallback(SgCallback *callback)
 {
-  Sg_HashTableDelete(ctable, SG_MAKE_INT(callback->uid));
-  ffi_closure_free(callback->closure);
+  release_callback(callback);
+  Sg_UnregisterFinalizer(SG_OBJ(callback));
 }
 
 /* cstruct */
@@ -1334,6 +1345,23 @@ void Sg_CFree(SgPointer *p)
 {
   free((void*)p->pointer);
   p->pointer = (uintptr_t)NULL;
+}
+
+static void invoke_finalizer(SgObject obj, void *data)
+{
+  Sg_Apply1(SG_OBJ(data), obj);
+}
+
+SgObject Sg_RegisterFFIFinalizer(SgPointer *pointer, SgObject proc)
+{
+  Sg_RegisterFinalizer(SG_OBJ(pointer), invoke_finalizer, proc);
+  return SG_OBJ(pointer);
+}
+
+SgObject Sg_UnregisterFFIFinalizer(SgPointer *pointer)
+{
+  Sg_UnregisterFinalizer(SG_OBJ(pointer));
+  return SG_OBJ(pointer);
 }
 
 extern void Sg__Init_sagittarius_ffi_impl();

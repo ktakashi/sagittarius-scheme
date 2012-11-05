@@ -176,18 +176,24 @@ FFI_RETURN_TYPE_CALLBACK =  0x0018
 
 
 SgObject Sg_MakePointer(void *p);
-SgObject Sg_CreateCFunction(SgPointer *handle, int rettype, SgObject args, SgObject sret, SgObject sparam);
+SgObject Sg_CreateCFunction(SgPointer *handle, int rettype,
+			    SgObject args, SgObject sret, SgObject sparam);
 SgObject Sg_CreateCallback(int rettype, SgString *signatures, SgObject proc);
 void     Sg_ReleaseCallback(SgCallback *callback);
 SgObject Sg_CreateCStruct(SgObject name, SgObject layouts);
 SgObject Sg_CStructRef(SgPointer *p, SgCStruct *st, SgSymbol *name);
-void     Sg_CStructSet(SgPointer *p, SgCStruct *st, SgSymbol *name, SgObject value);
+void     Sg_CStructSet(SgPointer *p, SgCStruct *st, SgSymbol *name,
+		       SgObject value);
 
 void     Sg_PointerSet(SgPointer *p, int offset, int type, SgObject v);
 
 /* malloc */
 SgObject Sg_CMalloc(size_t size);
 void     Sg_CFree(SgPointer *p);
+
+/* finalize */
+SgObject Sg_RegisterFFIFinalizer(SgPointer *pointer, SgObject proc);
+SgObject Sg_UnregisterFFIFinalizer(SgPointer *pointer);
 
 #endif /* SAGITTARIUS_FFI_H_ */
 /*

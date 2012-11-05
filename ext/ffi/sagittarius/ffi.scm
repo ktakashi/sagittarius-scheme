@@ -23,6 +23,10 @@
 	    ;; malloc
 	    c-malloc
 	    c-free
+	    ;; finalizer
+	    register-ffi-finalizer
+	    unregister-ffi-finalizer
+
 	    ;; pointer
 	    pointer?
 	    integer->pointer
