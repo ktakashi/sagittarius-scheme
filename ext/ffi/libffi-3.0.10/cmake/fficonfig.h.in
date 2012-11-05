@@ -12,7 +12,7 @@
 #cmakedefine C_ALLOCA @C_ALLOCA@
 
 /* Define to the flags needed for the .section .eh_frame directive. */
-#cmakedefine EH_FRAME_FLAGS
+#cmakedefine EH_FRAME_FLAGS "@EH_FRAME_FLAGS@"
 
 /* Define this if you want extra debugging. */
 #cmakedefine FFI_DEBUG
