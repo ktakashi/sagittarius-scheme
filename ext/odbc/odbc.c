@@ -289,7 +289,7 @@ static SQLRETURN put_more_data(SgObject stmt)
     if (!SG_BINARY_PORTP(val)) {
       Sg_Error(UC("invalid parameter %S. bug?"), val);
     }
-    while ((size = Sg_Readb(SG_PORT(val), buf, PUT_BUF_SIZE)) < PUT_BUF_SIZE) {
+    while ((size = Sg_Readb(SG_PORT(val), buf, PUT_BUF_SIZE)) == PUT_BUF_SIZE) {
       SQLPutData(SG_ODBC_CTX(stmt)->handle, (SQLPOINTER)buf, (SQLLEN)size);
     }
     if (size != 0) {
