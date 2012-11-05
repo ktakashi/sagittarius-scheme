@@ -56,10 +56,29 @@ static void socket_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SocketClass, socket_printer);
 
+
+static SgString* get_address_string(const struct sockaddr *addr,
+				    socklen_t addrlen)
+{
+  int ret;
+  char host[NI_MAXHOST];
+  char serv[NI_MAXSERV];
+  char name[NI_MAXSERV + NI_MAXHOST + 1];
+  do {
+    ret = getnameinfo(addr,
+		      addrlen,
+		      host, sizeof(host),
+		      serv, sizeof(serv), NI_NUMERICSERV);
+  } while (EAI_AGAIN == ret);
+  snprintf(name, sizeof(name), "%s:%s", host, serv);
+  return SG_STRING(Sg_MakeStringC(name));
+}
+
 static void addrinfo_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
-  /* SgAddrinfo *addrinfo = SG_ADDRINFO(self); */
-  Sg_Printf(port, UC("#<addrinfo>"));
+  SgAddrinfo *info = SG_ADDRINFO(self);
+  SgObject addr = get_address_string(info->ai->ai_addr, info->ai->ai_addrlen);
+  Sg_Printf(port, UC("#<addrinfo %A>"), addr);
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_AddrinfoClass, addrinfo_printer);
@@ -99,23 +118,6 @@ static SgSocket* make_socket(SOCKET fd, SgSocketType type, SgString *address)
   s->address = address;
   s->lastError = 0;
   return s;
-}
-
-static SgString* get_address_string(const struct sockaddr *addr,
-				    socklen_t addrlen)
-{
-  int ret;
-  char host[NI_MAXHOST];
-  char serv[NI_MAXSERV];
-  char name[NI_MAXSERV + NI_MAXHOST + 1];
-  do {
-    ret = getnameinfo(addr,
-		      addrlen,
-		      host, sizeof(host),
-		      serv, sizeof(serv), NI_NUMERICSERV);
-  } while (EAI_AGAIN == ret);
-  snprintf(name, sizeof(name), "%s:%s", host, serv);
-  return SG_STRING(Sg_MakeStringC(name));
 }
 
 static SgAddrinfo* make_addrinfo()
@@ -234,7 +236,7 @@ SgObject Sg_CreateSocket(SgAddrinfo *info)
 SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo)
 {
   struct addrinfo *p = addrinfo->ai;
-  if (connect(socket->socket, p->ai_addr, p->ai_addrlen) != -1) {
+  if (connect(socket->socket, p->ai_addr, p->ai_addrlen) == 0) {
     socket->type = SG_SOCKET_CLIENT;
     socket->address = get_address_string(p->ai_addr, p->ai_addrlen);
     return socket;
@@ -246,22 +248,22 @@ SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo)
 SgObject Sg_SocketBind(SgSocket *socket, SgAddrinfo* addrinfo)
 {
   struct addrinfo *p = addrinfo->ai;
-  if (bind(socket->socket, p->ai_addr, p->ai_addrlen) == -1) {
-    socket->lastError = last_error;
-    return SG_FALSE;
+  if (bind(socket->socket, p->ai_addr, p->ai_addrlen) == 0) {
+    socket->type = SG_SOCKET_SERVER;
+    socket->address = get_address_string(p->ai_addr, p->ai_addrlen);
+    return socket;
   }
-  socket->type = SG_SOCKET_SERVER;
-  socket->address = get_address_string(p->ai_addr, p->ai_addrlen);
-  return socket;
+  socket->lastError = last_error;
+  return SG_FALSE;
 }
 
 SgObject Sg_SocketListen(SgSocket *socket, int backlog)
 {
-  if (listen(socket->socket, backlog) == -1) {
-    socket->lastError = last_error;
-    return SG_FALSE;
+  if (listen(socket->socket, backlog) == 0) {
+    return socket;
   }
-  return socket;
+  socket->lastError = last_error;
+  return SG_FALSE;
 }
 
 #define CLOSE_SOCKET(who, socket)			\
@@ -289,7 +291,7 @@ SgObject Sg_SocketSetopt(SgSocket *socket, int level, int name, SgObject value)
 				    SG_MAKE_STRING("bytevector or integer"),
 				    value, SG_NIL);
   }
-  if (r < 0) {
+  if (r != 0) {
     socket->lastError = last_error;
     return SG_FALSE;
   }
@@ -357,6 +359,9 @@ int Sg_SocketSend(SgSocket *socket, uint8_t *data, int size, int flags)
     const int ret = send(socket->socket, (char*)data, size, flags);
     if (ret == -1) {
       if (errno == EINTR) {
+	continue;
+      } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+	/* most probably non-blocking socket */
 	continue;
       } else {
 	Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-send"), 

@@ -109,6 +109,9 @@
 		 (let1 socket (make-server-socket *http-port*)
 		   (http-server socket)))))
 (thread-start! server-thread)
+;; since 0.3.8 client/server socket creation are really slow on linux.
+;; needs to be improved.
+(thread-sleep! 5000)
 
 (let ([expected `(("method" "GET")
                   ("request-uri" "/get")

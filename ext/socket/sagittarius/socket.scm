@@ -136,6 +136,9 @@
 					(ai-socktype SOCK_STREAM)
 					(ai-flags (+ AI_V4MAPPED AI_ADDRCONFIG))
 					(ai-protocol 0))
+    (unless (zero? (bitwise-and ai-flags AI_PASSIVE))
+      (assertion-violation 'make-client-socket
+			   "client socket must not have AI_PASSIVE"))
     (let* ((hints (make-hint-addrinfo :family ai-family
 				      :socktype ai-socktype
 				      :flags ai-flags
@@ -145,19 +148,18 @@
 	(define (retry info)
 	  (let ((next (slot-ref info 'next)))
 	    (unless next
-	      (assertion-violation 'make-client-socket "no next addrinfo"))
+	      (assertion-violation 'make-client-socket "no next addrinfo"
+				   node service))
 	    (loop (make-socket next) next)))
-	(cond ((and socket info)
-	       (if (socket-connect! socket info)
-		   socket
-		   (retry info)))
-	      (info (retry info))
-	      (else
-	       (raise-i/o-error 'make-client-socket
+	(or (and-let* (( socket )
+		       ( info ))
+	      (socket-connect! socket info))
+	    (and info (and socket (socket-close socket)) (retry info))
+	    (raise-i/o-error 'make-client-socket
 				(if socket
 				    (socket-error-message socket)
 				    "creating a socket failed")
-				node service))))))
+				node service)))))
 
   (define (make-server-socket service 
 			      :optional (ai-family AF_INET)
@@ -172,23 +174,23 @@
 	(define (retry info)
 	  (let ((next (slot-ref info 'next)))
 	    (unless next
-	      (assertion-violation 'make-client-socket "no next addrinfo"))
+	      (assertion-violation 'make-server-socket 
+				   "no next addrinfo" service))
 	    (loop (make-socket next) next)))
-	(cond ((and socket info)
-	       (or (and (socket-setsockopt! socket SOL_SOCKET SO_REUSEADDR 1)
-			(socket-bind! socket info)
-			(if (= ai-socktype SOCK_STREAM)
-			    (socket-listen! socket SOMAXCONN)
-			    #t)
-			socket)
-		   (retry info)))
-	      (info (retry info))
-	      (else
-	       (raise-i/o-error 'make-client-socket
-				(if socket
-				    (socket-error-message socket)
-				    "creating a socket failed")
-				service))))))
+	(or (and-let* (( socket )
+		       ( info )
+		       ( (socket-setsockopt! socket SOL_SOCKET SO_REUSEADDR 1) )
+		       ( (socket-bind! socket info) )
+		       ( (if (= ai-socktype SOCK_STREAM)
+			     (socket-listen! socket SOMAXCONN)
+			     #t) ))
+	      socket)
+	    (and info (and socket (socket-close socket)) (retry info))
+	    (raise-i/o-error 'make-server-socket
+			     (if socket
+				 (socket-error-message socket)
+				 "creating a socket failed")
+			     service)))))
   ;; for convenience
   (define (socket-read-select timeout . rest)
     (receive (r w e) (socket-select rest '() '() timeout) r))
