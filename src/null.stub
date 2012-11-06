@@ -2141,10 +2141,18 @@
 	   (result #f))))
 
   (define-c-proc textual-port? (p) ::<boolean>
-    (result (and (SG_PORTP p) (SG_TEXTUAL_PORTP p))))
+    (result (and (SG_PORTP p) 
+		 (or (SG_TEXTUAL_PORTP p)
+		     (and (SG_CUSTOM_PORTP p)
+			  (== (-> (SG_CUSTOM_PORT p) type)
+			      SG_TEXTUAL_CUSTOM_PORT_TYPE))))))
 
   (define-c-proc binary-port? (p) ::<boolean>
-    (result (and (SG_PORTP p) (SG_BINARY_PORTP p))))
+    (result (and (SG_PORTP p) 
+		 (or (SG_BINARY_PORTP p)
+		     (and (SG_CUSTOM_PORTP p)
+			  (== (-> (SG_CUSTOM_PORT p) type)
+			      SG_BINARY_CUSTOM_PORT_TYPE))))))
 
   (define-c-proc transcoded-port (p::<port> t::<transcoder>) ::<top>
     (check-binary-port transcoded-port p)
