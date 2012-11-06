@@ -71,24 +71,31 @@
 				     (string->symbol 
 				      (format "size-of-~a" t))))
 		(msg (datum->syntax #'k m)))
-	     #'(test-assert
-		msg
-		(let ((expect (map (lambda (v)
-				     (if exact?
-					 (exact v)
-					 (inexact v)))
-				   '(0 1 2 3 4 5 6 7 8 9))))
-		  (let ((p (allocate-pointer (* size 10))))
-		    (let loop ((i 0))
-		      (unless (= i 10)
-			(set p (* size i) i)
-			(loop (+ i 1))))
-		    (let loop ((i 0)
-			       (r '()))
-		      (if (= i 10)
-			  (equal? expect (reverse! r))
-			  (loop (+ i 1)
-				(cons (ref p (* size i)) r)))))))))))))
+	     #'(begin
+		 (test-error (string-append msg " null-pointer ref")
+			     assertion-violation?
+			     (ref null-pointer 0))
+		 (test-error (string-append msg " null-pointer set")
+			     assertion-violation?
+			     (set null-pointer 0 1))
+		 (test-assert
+		  msg
+		  (let ((expect (map (lambda (v)
+				       (if exact?
+					   (exact v)
+					   (inexact v)))
+				     '(0 1 2 3 4 5 6 7 8 9))))
+		    (let ((p (allocate-pointer (* size 10))))
+		      (let loop ((i 0))
+			(unless (= i 10)
+			  (set p (* size i) i)
+			  (loop (+ i 1))))
+		      (let loop ((i 0)
+				 (r '()))
+			(if (= i 10)
+			    (equal? expect (reverse! r))
+			    (loop (+ i 1)
+				  (cons (ref p (* size i)) r))))))))))))))
 
   (test-equal "simple call"
 	      3
@@ -193,7 +200,10 @@
 			  (let* ((s (pointer->string p)))
 			    (loop (+ i 1) (cons s r)))))))))
     
-
+  (test-error "null-pointer 1" assertion-violation? 
+	      (pointer->string null-pointer))
+  (test-error "null-pointer 2" assertion-violation? 
+	      (deref null-pointer 0))
   )
  (else
   #t))

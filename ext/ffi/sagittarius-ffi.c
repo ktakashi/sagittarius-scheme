@@ -1293,6 +1293,11 @@ DEFINE_POINTER_SET(FFI_RETURN_TYPE_STRUCT  , void*);
 
 void Sg_PointerSet(SgPointer *p, int offset, int type, SgObject v)
 {
+  if (!p->pointer) {
+    Sg_AssertionViolation(SG_INTERN("pointer-set!"),
+			  SG_MAKE_STRING("got null pointer"),
+			  SG_LIST2(p, v));
+  }
 #define case_type(ft, t) case ft: pointer_set_##ft(p, offset, type, v); break;
   switch (type) {
     case_type(FFI_RETURN_TYPE_SHORT   , short);

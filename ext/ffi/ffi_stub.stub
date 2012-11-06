@@ -85,31 +85,45 @@
   Sg_CStructSet)
 
 ;; ref
+(define-cise-stmt check-null-pointer
+  ((_ who p)
+   `(unless (-> ,p pointer)
+      (Sg_AssertionViolation ',who (SG_MAKE_STRING "got null pointer") '()))))
+
 (define-c-proc pointer-ref-c-uint8 (p::<pointer> offset::<fixnum>) ::<fixnum>
+  (check-null-pointer pointer-ref-c-uint8 p)
   (result (POINTER_REF uint8_t p offset)))
 
 (define-c-proc pointer-ref-c-int8 (p::<pointer> offset::<fixnum>) ::<fixnum>
+  (check-null-pointer pointer-ref-c-int8 p)
   (result (POINTER_REF int8_t p offset)))
 
 (define-c-proc pointer-ref-c-uint16 (p::<pointer> offset::<fixnum>) ::<fixnum>
+  (check-null-pointer pointer-ref-c-uint16 p)
   (result (POINTER_REF uint16_t p offset)))
 
 (define-c-proc pointer-ref-c-int16 (p::<pointer> offset::<fixnum>) ::<fixnum>
+  (check-null-pointer pointer-ref-c-int16 p)
   (result (POINTER_REF int16_t p offset)))
 
 (define-c-proc pointer-ref-c-uint32 (p::<pointer> offset::<fixnum>) 
+  (check-null-pointer pointer-ref-c-uint32 p)
   (result (Sg_MakeIntegerU (POINTER_REF uint32_t p offset))))
 
 (define-c-proc pointer-ref-c-int32 (p::<pointer> offset::<fixnum>) 
+  (check-null-pointer pointer-ref-c-int32 p)
   (result (Sg_MakeInteger (POINTER_REF int32_t p offset))))
 
 (define-c-proc pointer-ref-c-uint64 (p::<pointer> offset::<fixnum>) 
+  (check-null-pointer pointer-ref-c-uint64 p)
   (result (Sg_MakeIntegerFromU64 (POINTER_REF uint64_t p offset))))
 
 (define-c-proc pointer-ref-c-int64 (p::<pointer> offset::<fixnum>) 
+  (check-null-pointer pointer-ref-c-int64 p)
   (result (Sg_MakeIntegerFromS64 (POINTER_REF int64_t p offset))))
 
 (define-c-proc pointer-ref-c-pointer (p::<pointer> offset::<fixnum>) 
+  (check-null-pointer pointer-ref-c-pointer p)
   (result (Sg_MakePointer (POINTER_REF void_ptr p offset))))
 
 (define-c-proc pointer-address (p::<pointer>)
@@ -133,35 +147,45 @@
  (.typedef "long long"           "longlong"))
 
 (define-c-proc pointer-ref-c-unsigned-char (p::<pointer> offset::<fixnum>) ::<fixnum>
+  (check-null-pointer pointer-ref-c-unsigned-char p)
   (result (POINTER_REF uchar p offset)))
 
 (define-c-proc pointer-ref-c-char (p::<pointer> offset::<fixnum>) ::<fixnum>
+  (check-null-pointer pointer-ref-c-char p)
   (result (POINTER_REF cchar p offset)))
 
 (define-c-proc pointer-ref-c-unsigned-short (p::<pointer> offset::<fixnum>) ::<fixnum>
+  (check-null-pointer pointer-ref-c-unsigned-short p)
   (result (POINTER_REF ushort p offset)))
 
 (define-c-proc pointer-ref-c-short (p::<pointer> offset::<fixnum>) ::<fixnum>
+  (check-null-pointer pointer-ref-c-short p)
   (result (POINTER_REF cshort p offset)))
 
 (define-c-proc pointer-ref-c-unsigned-int (p::<pointer> offset::<fixnum>) 
+  (check-null-pointer pointer-ref-c-unsigned-int p)
   (result (Sg_MakeIntegerU (POINTER_REF uint p offset))))
 
 (define-c-proc pointer-ref-c-int (p::<pointer> offset::<fixnum>) 
+  (check-null-pointer pointer-ref-c-int p)
   (result (Sg_MakeInteger (POINTER_REF cint p offset))))
 
 (define-c-proc pointer-ref-c-unsigned-long (p::<pointer> offset::<fixnum>) 
+  (check-null-pointer pointer-ref-c-unsigned-long p)
   (result (Sg_MakeIntegerU (POINTER_REF ulong p offset))))
 
 (define-c-proc pointer-ref-c-long (p::<pointer> offset::<fixnum>) 
+  (check-null-pointer pointer-ref-c-long p)
   (result (Sg_MakeInteger (POINTER_REF clong p offset))))
 
 (define-c-proc pointer-ref-c-intptr (p::<pointer> offset::<fixnum>) 
+  (check-null-pointer pointer-ref-c-intptr p)
   (.if "SIZEOF_VOIDP == 4"
        (result (Sg_MakeInteger (POINTER_REF intptr_t p offset)))
        (result (Sg_MakeIntegerFromS64 (POINTER_REF intptr_t p offset)))))
 
 (define-c-proc pointer-ref-c-uintptr (p::<pointer> offset::<fixnum>) 
+  (check-null-pointer pointer-ref-c-uintptr p)
   (.if "SIZEOF_VOIDP == 4"
        (result (Sg_MakeIntegerU (POINTER_REF uintptr_t p offset)))
        (result (Sg_MakeIntegerFromU64 (POINTER_REF uintptr_t p offset)))))
@@ -169,15 +193,19 @@
 ;; correct?
 ;; Do we even need to support long long?
 (define-c-proc pointer-ref-c-unsigned-long-long (p::<pointer> offset::<fixnum>) 
+  (check-null-pointer pointer-ref-c-unsigned-long-long p)
   (result (Sg_MakeIntegerFromU64 (POINTER_REF ulonglong p offset))))
 
 (define-c-proc pointer-ref-c-long-long (p::<pointer> offset::<fixnum>) 
+  (check-null-pointer pointer-ref-c-long-long p)
   (result (Sg_MakeIntegerFromS64 (POINTER_REF longlong p offset))))
 
 (define-c-proc pointer-ref-c-float (p::<pointer> offset::<fixnum>) 
+  (check-null-pointer pointer-ref-c-float p)
   (result (Sg_MakeFlonum (cast double (POINTER_REF cfloat p offset)))))
 
 (define-c-proc pointer-ref-c-double (p::<pointer> offset::<fixnum>) 
+  (check-null-pointer pointer-ref-c-double p)
   (result (Sg_MakeFlonum (POINTER_REF cdouble p offset))))
 
 ;; set!

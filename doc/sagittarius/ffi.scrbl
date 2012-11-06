@@ -154,7 +154,7 @@ describes the conversion;
 @dl-list{
 @dl-item[@code{bool}]{Scheme boolean}
 @dl-item[@code{char*}]{Scheme string (only supports UTF-8)}
-@dl-itemx[5
+@dl-itemx[6
           @code{char}
           @code{short int long long-long}
           @code{unsigned-short unsigned-int unsigned-long unsigned-long-long}
