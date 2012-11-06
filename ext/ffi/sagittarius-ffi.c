@@ -265,9 +265,6 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts)
     SgObject typename;
     int type;
     ffi_type *ffi;
-    if (!SG_INTP(SG_CADR(layout))) {
-      Sg_Printf(SG_PORT(Sg_StandardErrorPort()), UC("%S\n"), SG_CADR(layout));
-    }
     ASSERT(SG_INTP(SG_CADR(layout)));
 
     st->layouts[index].name = SG_CAR(layout);

@@ -136,7 +136,7 @@
 	    char short int long unsigned-short unsigned-int unsigned-long
 	    int8_t int16_t int32_t uint8_t uint16_t uint32_t size_t
 	    int64_t uint64_t long-long unsigned-long-long
-	    bool void* char* float double callback struct
+	    bool void* char* float double callback struct array
 	    intptr_t uintptr_t
 
 	    ;; utility
@@ -156,16 +156,16 @@
 	    (sagittarius vm))
   (load-dynamic-library "sagittarius--ffi")
 
-  (define void             'void)
-  (define char             'char)
-  (define short	     'short)
-  (define int		     'int)
-  (define long	     'long)
+  (define void               'void)
+  (define char               'char)
+  (define short	     	     'short)
+  (define int	     	     'int)
+  (define long	     	     'long)
   (define intptr_t	     'intptr_t)
   (define uintptr_t	     'uintptr_t)
-  (define unsigned-short   'unsigned-short)
-  (define unsigned-int     'unsigned-int)
-  (define unsigned-long    'unsigned-long)
+  (define unsigned-short     'unsigned-short)
+  (define unsigned-int       'unsigned-int)
+  (define unsigned-long      'unsigned-long)
   (define int8_t	     'int8_t)
   (define int16_t	     'int16_t)
   (define int32_t	     'int32_t)
@@ -177,13 +177,14 @@
   (define uint64_t	     'uint64_t)
   (define long-long	     'long-long)
   (define unsigned-long-long 'unsigned-long-long)
-  (define bool	     'bool)
-  (define void*	     'void*)
-  (define char*	     'char*)
-  (define float	     'float)
+  (define bool	     	     'bool)
+  (define void*	     	     'void*)
+  (define char*	     	     'char*)
+  (define float	     	     'float)
   (define double	     'double)
-  (define callback         'callback)
-  (define struct           'struct)
+  (define callback           'callback)
+  (define struct             'struct)
+  (define array              'array)
 
   (define null-pointer (integer->pointer 0))
   (define (null-pointer? p)
@@ -194,14 +195,18 @@
 
   (define (pointer->string pointer
 			   :optional (transcoder (native-transcoder)))
-    (let-values (((out getter) (open-bytevector-output-port)))
-      (do ((i 0 (+ i 1)))
-	  ((zero? (pointer-ref-c-uint8 pointer i))
-	   (bytevector->string (getter) transcoder))
-	(put-u8 out (pointer-ref-c-uint8 pointer i)))))
+    (if (null-pointer? pointer)
+	(assertion-violation 'pointer->string "NULL pointer is given")
+	(let-values (((out getter) (open-bytevector-output-port)))
+	  (do ((i 0 (+ i 1)))
+	      ((zero? (pointer-ref-c-uint8 pointer i))
+	       (bytevector->string (getter) transcoder))
+	    (put-u8 out (pointer-ref-c-uint8 pointer i))))))
 
   (define (deref pointer offset)
-    (pointer-ref-c-pointer pointer (* size-of-void* offset)))
+    (if (null-pointer? pointer)
+	(assertion-violation 'pointer->string "NULL pointer is given")
+	(pointer-ref-c-pointer pointer (* size-of-void* offset))))
 
   (define-syntax define-c-typedef
     (syntax-rules (* s*)      
@@ -316,7 +321,7 @@
 		    `(,(caddr def) -1 struct . ,(cadr def)))
 		   ((eq? 'callback (car def))
 		    ;; speciall case
-		    `(,(cadr def) #x16 . callback))
+		    `(,(cadr def) ,FFI_RETURN_TYPE_CALLBACK . callback))
 		   ((and (eq? 'array (cadr def))
 			 (= (length def) 4)
 			 (assq (car def) c-function-return-type-alist))

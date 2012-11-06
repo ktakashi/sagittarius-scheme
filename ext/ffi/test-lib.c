@@ -27,39 +27,39 @@ EXPORT int add(int x, int y)
   return x + y;
 }
 
-static void quicksort_(uintptr_t base,const size_t num,const size_t size
-    ,void *temp,int (*compare)(const void *,const void *))
+static void quicksort_(uintptr_t base,const size_t num,const size_t size,
+		       void *temp,int (*compare)(const void *,const void *))
 {
-	size_t pivot = 0,first2last = 0,last2first = num-1;
-	while(pivot+1 != num && !compare(base+size*pivot,base+size*(pivot+1))){
-		pivot++;
-	}
-	if(pivot+1 == num){
-		return;
-	}
-	if(0 > compare(base+size*pivot,base+size*(pivot+1))){
-		pivot++;
-	}
-	while(first2last < last2first){
-		while(0 < compare(base+size*pivot,base+size*first2last)
-		    && first2last != num-1){
-			first2last++;
-		}
-		while(0 >= compare(base+size*pivot,base+size*last2first)
-		    && last2first){
-			last2first--;
-		}
-		if(first2last < last2first){
-			if(pivot == first2last || pivot == last2first){
-				pivot = pivot^last2first^first2last;
-			}
-			memcpy(temp,base+size*first2last,size);
-			memcpy(base+size*first2last,base+size*last2first,size);
-			memcpy(base+size*last2first,temp,size);
-		}
-	}
-	quicksort_(base,first2last,size,temp,compare);
-	quicksort_(base+size*first2last,num-first2last,size,temp,compare);
+  size_t pivot = 0,first2last = 0,last2first = num-1;
+  while(pivot+1 != num && !compare(base+size*pivot,base+size*(pivot+1))){
+    pivot++;
+  }
+  if(pivot+1 == num){
+    return;
+  }
+  if(0 > compare(base+size*pivot,base+size*(pivot+1))){
+    pivot++;
+  }
+  while(first2last < last2first){
+    while(0 < compare(base+size*pivot,base+size*first2last)
+	  && first2last != num-1){
+      first2last++;
+    }
+    while(0 >= compare(base+size*pivot,base+size*last2first)
+	  && last2first){
+      last2first--;
+    }
+    if(first2last < last2first){
+      if(pivot == first2last || pivot == last2first){
+	pivot = pivot^last2first^first2last;
+      }
+      memcpy(temp,base+size*first2last,size);
+      memcpy(base+size*first2last,base+size*last2first,size);
+      memcpy(base+size*last2first,temp,size);
+    }
+  }
+  quicksort_(base,first2last,size,temp,compare);
+  quicksort_(base+size*first2last,num-first2last,size,temp,compare);
 }
 
 EXPORT int quicksort(void *base, const size_t num, const size_t size,
