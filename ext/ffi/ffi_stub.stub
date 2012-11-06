@@ -1,320 +1,251 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 #!compatible
-(library (sagittarius ffi impl)
-    (export %ffi-call
-	    open-shared-library
-	    lookup-shared-library
-	    close-shared-library
-	    create-function-info
-
-	    create-c-callback
-	    free-c-callback
-	    ;; malloc
-	    c-malloc
-	    c-free
-	    ;; pointer
-	    integer->pointer
-	    pointer->integer
-	    allocate-pointer
-	    ;; struct
-	    create-c-struct
-	    allocate-c-struct
-	    c-struct-ref
-	    c-struct-set!
-	    ;; ref
-	    pointer-ref-c-uint8
-	    pointer-ref-c-int8
-	    pointer-ref-c-uint16
-	    pointer-ref-c-int16
-	    pointer-ref-c-uint32
-	    pointer-ref-c-int32
-	    pointer-ref-c-uint64
-	    pointer-ref-c-int64
-	    pointer-ref-c-unsigned-char
-	    pointer-ref-c-char
-	    pointer-ref-c-unsigned-short
-	    pointer-ref-c-short
-	    pointer-ref-c-unsigned-int
-	    pointer-ref-c-int
-	    pointer-ref-c-unsigned-long
-	    pointer-ref-c-long
-	    pointer-ref-c-unsigned-long-long
-	    pointer-ref-c-long-long
-	    pointer-ref-c-float
-	    pointer-ref-c-double
-	    ;; set!
-	    pointer-set-c-uint8!
-	    pointer-set-c-int8!
-	    pointer-set-c-uint16!
-	    pointer-set-c-int16!
-	    pointer-set-c-uint32!
-	    pointer-set-c-int32!
-	    pointer-set-c-uint64!
-	    pointer-set-c-int64!
-	    pointer-set-c-unsigned-char!
-	    pointer-set-c-char!
-	    pointer-set-c-unsigned-short!
-	    pointer-set-c-short!
-	    pointer-set-c-unsigned-int!
-	    pointer-set-c-int!
-	    pointer-set-c-unsigned-long!
-	    pointer-set-c-long!
-	    pointer-set-c-unsigned-long-long!
-	    pointer-set-c-long-long!
-	    pointer-set-c-float!
-	    pointer-set-c-double!
-	    )
-    (import :null)
-
-  (decl-code
-   (.include <sagittarius.h>)
-   (.define "LIBSAGITTARIUS_EXT_BODY")
-   (.include <sagittarius/extend.h>
-	     <sagittarius-ffi.h>
-	     <string.h>))
-
-  (define-type <pointer> "SgPointer*")
-  (define-type <callback> "SgCallback*")
-  (define-type <func-info> "SgFuncInfo*")
-  (define-type <cstruct> "SgCStruct*")
-
-  (define-c-proc open-shared-library (file::<string>) 
-    (result (Sg_MakePointer (Sg_OpenSharedObject file))))
-
-  (define-c-proc lookup-shared-library (handle::<pointer> symbol::<string>) 
-    (result (Sg_MakePointer (Sg_LookupSharedObject (cast void* 
-							 (-> handle pointer))
-						   (Sg_Utf32sToUtf8s symbol)))))
-
-  (define-c-proc close-shared-library (handle::<pointer>) ::<void>
-    (Sg_CloseSharedObject (cast void* (-> handle pointer))))
-
-  (define-c-proc create-function-info (handle::<pointer> rettype::<fixnum> sigs::<string> sret sparam)
-    
-    (result (Sg_CreateCFunction handle rettype sigs sret sparam)))
-
-  (define-c-proc create-c-callback
-    (rettype::<fixnum> sigs::<string> proc::<procedure>) 
-    (result (Sg_CreateCallback rettype sigs proc)))
-
-  (define-c-proc free-c-callback (callback::<callback>) ::<void>
-    (Sg_ReleaseCallback callback))
-
-  ;; malloc
-  (define-c-proc c-malloc (size::<fixnum>) 
-    (result (Sg_CMalloc size)))
-
-  (define-c-proc c-free (p::<pointer>) ::<void>
-    (Sg_CFree p))
-
-  ;; finalizer
-  (define-c-proc register-ffi-finalizer (p::<pointer> proc::<procedure>)
-    Sg_RegisterFFIFinalizer)
-  (define-c-proc unregister-ffi-finalizer (p::<pointer>) 
-    Sg_UnregisterFFIFinalizer)
-
-  ;; pointer
-  (define-c-proc pointer? (o) ::<boolean>
-    (result (SG_POINTERP o)))
-
-  (define-c-proc integer->pointer (n::<fixnum>) 
-    (result (Sg_MakePointer (cast void* n))))
-
-  (define-c-proc pointer->integer (p::<pointer>)
-    (.if "SIZEOF_VOIDP == 4"
-	 (result (Sg_MakeIntegerU (-> p pointer)))
-	 (result (Sg_MakeIntegerFromU64 (-> p pointer)))))
-
-  (decl-code
-   (.typedef "char*" "char_ptr")
-   (.typedef "void*" "void_ptr"))
-  (define-c-proc allocate-pointer (size::<fixnum>) 
-    (let ((p::char* (SG_NEW_ATOMIC2 char_ptr size)))
-      (memset p 0 size)
-      (result (Sg_MakePointer p))))
-
-  ;; struct
-  (define-c-proc create-c-struct (name::<symbol> layouts) 
-    (result (Sg_CreateCStruct name layouts)))
-
-  ;; allocates c-struct with GC
-  (define-c-proc allocate-c-struct (st::<cstruct>) 
-    ;; allocates byte
-    (let ((p::char* (SG_NEW2 char_ptr (-> st size))))
-      (memset p 0 (-> st size))
-      (result (Sg_MakePointer p))))
-
-  (define-c-proc size-of-c-struct (st::<cstruct>) ::<fixnum>
-    (result (-> st size)))
-
-  (define-c-proc c-struct-ref (p::<pointer> st::<cstruct> name::<symbol>) 
-    (result (Sg_CStructRef p st name)))
-
-  (define-c-proc c-struct-set! (p::<pointer> st::<cstruct> name::<symbol> v) ::<void>
-    (Sg_CStructSet p st name v))
-
-  ;; ref
-  (define-c-proc pointer-ref-c-uint8 (p::<pointer> offset::<fixnum>) ::<fixnum>
-    (result (POINTER_REF uint8_t p offset)))
-
-  (define-c-proc pointer-ref-c-int8 (p::<pointer> offset::<fixnum>) ::<fixnum>
-    (result (POINTER_REF int8_t p offset)))
-
-  (define-c-proc pointer-ref-c-uint16 (p::<pointer> offset::<fixnum>) ::<fixnum>
-    (result (POINTER_REF uint16_t p offset)))
-
-  (define-c-proc pointer-ref-c-int16 (p::<pointer> offset::<fixnum>) ::<fixnum>
-    (result (POINTER_REF int16_t p offset)))
-
-  (define-c-proc pointer-ref-c-uint32 (p::<pointer> offset::<fixnum>) 
-    (result (Sg_MakeIntegerU (POINTER_REF uint32_t p offset))))
+(decl-code
+ (.include <sagittarius.h>)
+ (.define "LIBSAGITTARIUS_EXT_BODY")
+ (.include <sagittarius/extend.h>
+	   <sagittarius-ffi.h>
+	   <string.h>))
 
-  (define-c-proc pointer-ref-c-int32 (p::<pointer> offset::<fixnum>) 
-    (result (Sg_MakeInteger (POINTER_REF int32_t p offset))))
+(define-type <pointer> "SgPointer*")
+(define-type <callback> "SgCallback*")
+(define-type <func-info> "SgFuncInfo*")
+(define-type <cstruct> "SgCStruct*")
 
-  (define-c-proc pointer-ref-c-uint64 (p::<pointer> offset::<fixnum>) 
-    (result (Sg_MakeIntegerFromU64 (POINTER_REF uint64_t p offset))))
+(define-c-proc open-shared-library (file::<string>) 
+  (result (Sg_MakePointer (Sg_OpenSharedObject file))))
 
-  (define-c-proc pointer-ref-c-int64 (p::<pointer> offset::<fixnum>) 
-    (result (Sg_MakeIntegerFromS64 (POINTER_REF int64_t p offset))))
+(define-c-proc lookup-shared-library (handle::<pointer> symbol::<string>) 
+  (result (Sg_MakePointer (Sg_LookupSharedObject (cast void* 
+						       (-> handle pointer))
+						 (Sg_Utf32sToUtf8s symbol)))))
 
-  (define-c-proc pointer-ref-c-pointer (p::<pointer> offset::<fixnum>) 
-    (result (Sg_MakePointer (POINTER_REF void_ptr p offset))))
+(define-c-proc close-shared-library (handle::<pointer>) ::<void>
+  (Sg_CloseSharedObject (cast void* (-> handle pointer))))
+
+(define-c-proc create-function-info 
+  (handle::<pointer> rettype::<fixnum> sigs::<string> sret sparam)
+  Sg_CreateCFunction)
+
+(define-c-proc create-c-callback
+  (rettype::<fixnum> sigs::<string> proc::<procedure>) 
+  Sg_CreateCallback)
+
+(define-c-proc free-c-callback (callback::<callback>) ::<void>
+  Sg_ReleaseCallback)
+
+;; malloc
+(define-c-proc c-malloc (size::<fixnum>) Sg_CMalloc)
+
+(define-c-proc c-free (p::<pointer>) ::<void> Sg_CFree)
+
+;; finalizer
+(define-c-proc register-ffi-finalizer (p::<pointer> proc::<procedure>)
+  Sg_RegisterFFIFinalizer)
+(define-c-proc unregister-ffi-finalizer (p::<pointer>) 
+  Sg_UnregisterFFIFinalizer)
 
-  (define-c-proc pointer-address (p::<pointer>)
-    (result (Sg_MakePointer (& (-> p pointer)))))
+;; pointer
+(define-c-proc pointer? (o) ::<boolean> SG_POINTERP)
 
-  ;; to use POINTER_REF macro.
-  (decl-code
-   ;; to avoid cise's bug...
-   (.typedef "char"           "cchar")
-   (.typedef "short"          "cshort")
-   (.typedef "int"            "cint")
-   (.typedef "long"           "clong")
-   (.typedef "float"          "cfloat")
-   (.typedef "double"         "cdouble")
+(define-c-proc integer->pointer (n::<fixnum>) 
+  (result (Sg_MakePointer (cast void* n))))
 
-   (.typedef "unsigned char"  "uchar")
-   (.typedef "unsigned short" "ushort")
-   (.typedef "unsigned int"   "uint")
-   (.typedef "unsigned long"  "ulong")
-   (.typedef "unsigned long long"  "ulonglong")
-   (.typedef "long long"           "longlong"))
+(define-c-proc pointer->integer (p::<pointer>)
+  (.if "SIZEOF_VOIDP == 4"
+       (result (Sg_MakeIntegerU (-> p pointer)))
+       (result (Sg_MakeIntegerFromU64 (-> p pointer)))))
 
-  (define-c-proc pointer-ref-c-unsigned-char (p::<pointer> offset::<fixnum>) ::<fixnum>
-    (result (POINTER_REF uchar p offset)))
+(decl-code
+ (.typedef "char*" "char_ptr")
+ (.typedef "void*" "void_ptr"))
+(define-c-proc allocate-pointer (size::<fixnum>) 
+  (let ((p::char* (SG_NEW_ATOMIC2 char_ptr size)))
+    (memset p 0 size)
+    (result (Sg_MakePointer p))))
 
-  (define-c-proc pointer-ref-c-char (p::<pointer> offset::<fixnum>) ::<fixnum>
-    (result (POINTER_REF cchar p offset)))
+;; struct
+(define-c-proc create-c-struct (name::<symbol> layouts) Sg_CreateCStruct)
 
-  (define-c-proc pointer-ref-c-unsigned-short (p::<pointer> offset::<fixnum>) ::<fixnum>
-    (result (POINTER_REF ushort p offset)))
+;; allocates c-struct with GC
+(define-c-proc allocate-c-struct (st::<cstruct>) 
+  ;; allocates byte
+  (let ((p::char* (SG_NEW2 char_ptr (-> st size))))
+    (memset p 0 (-> st size))
+    (result (Sg_MakePointer p))))
+
+(define-c-proc size-of-c-struct (st::<cstruct>) ::<fixnum>
+  (result (-> st size)))
 
-  (define-c-proc pointer-ref-c-short (p::<pointer> offset::<fixnum>) ::<fixnum>
-    (result (POINTER_REF cshort p offset)))
-  
-  (define-c-proc pointer-ref-c-unsigned-int (p::<pointer> offset::<fixnum>) 
-    (result (Sg_MakeIntegerU (POINTER_REF uint p offset))))
+(define-c-proc c-struct-ref (p::<pointer> st::<cstruct> name::<symbol>) 
+  Sg_CStructRef)
 
-  (define-c-proc pointer-ref-c-int (p::<pointer> offset::<fixnum>) 
-    (result (Sg_MakeInteger (POINTER_REF cint p offset))))
+(define-c-proc c-struct-set! 
+  (p::<pointer> st::<cstruct> name::<symbol> v) ::<void>
+  Sg_CStructSet)
 
-  (define-c-proc pointer-ref-c-unsigned-long (p::<pointer> offset::<fixnum>) 
-    (result (Sg_MakeIntegerU (POINTER_REF ulong p offset))))
+;; ref
+(define-c-proc pointer-ref-c-uint8 (p::<pointer> offset::<fixnum>) ::<fixnum>
+  (result (POINTER_REF uint8_t p offset)))
 
-  (define-c-proc pointer-ref-c-long (p::<pointer> offset::<fixnum>) 
-    (result (Sg_MakeInteger (POINTER_REF clong p offset))))
+(define-c-proc pointer-ref-c-int8 (p::<pointer> offset::<fixnum>) ::<fixnum>
+  (result (POINTER_REF int8_t p offset)))
 
-  (define-c-proc pointer-ref-c-intptr (p::<pointer> offset::<fixnum>) 
-    (.if "SIZEOF_VOIDP == 4"
-	 (result (Sg_MakeInteger (POINTER_REF intptr_t p offset)))
-	 (result (Sg_MakeIntegerFromS64 (POINTER_REF intptr_t p offset)))))
+(define-c-proc pointer-ref-c-uint16 (p::<pointer> offset::<fixnum>) ::<fixnum>
+  (result (POINTER_REF uint16_t p offset)))
 
-  (define-c-proc pointer-ref-c-uintptr (p::<pointer> offset::<fixnum>) 
-    (.if "SIZEOF_VOIDP == 4"
-	 (result (Sg_MakeIntegerU (POINTER_REF uintptr_t p offset)))
-	 (result (Sg_MakeIntegerFromU64 (POINTER_REF uintptr_t p offset)))))
+(define-c-proc pointer-ref-c-int16 (p::<pointer> offset::<fixnum>) ::<fixnum>
+  (result (POINTER_REF int16_t p offset)))
 
-  ;; correct?
-  ;; Do we even need to support long long?
-  (define-c-proc pointer-ref-c-unsigned-long-long (p::<pointer> offset::<fixnum>) 
-    (result (Sg_MakeIntegerFromU64 (POINTER_REF ulonglong p offset))))
+(define-c-proc pointer-ref-c-uint32 (p::<pointer> offset::<fixnum>) 
+  (result (Sg_MakeIntegerU (POINTER_REF uint32_t p offset))))
 
-  (define-c-proc pointer-ref-c-long-long (p::<pointer> offset::<fixnum>) 
-    (result (Sg_MakeIntegerFromS64 (POINTER_REF longlong p offset))))
-  
-  (define-c-proc pointer-ref-c-float (p::<pointer> offset::<fixnum>) 
-    (result (Sg_MakeFlonum (cast double (POINTER_REF cfloat p offset)))))
+(define-c-proc pointer-ref-c-int32 (p::<pointer> offset::<fixnum>) 
+  (result (Sg_MakeInteger (POINTER_REF int32_t p offset))))
 
-  (define-c-proc pointer-ref-c-double (p::<pointer> offset::<fixnum>) 
-    (result (Sg_MakeFlonum (POINTER_REF cdouble p offset))))
+(define-c-proc pointer-ref-c-uint64 (p::<pointer> offset::<fixnum>) 
+  (result (Sg_MakeIntegerFromU64 (POINTER_REF uint64_t p offset))))
 
-  ;; set!
-  (define-c-proc pointer-set-c-uint8! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_UINT8_T value))
+(define-c-proc pointer-ref-c-int64 (p::<pointer> offset::<fixnum>) 
+  (result (Sg_MakeIntegerFromS64 (POINTER_REF int64_t p offset))))
 
-  (define-c-proc pointer-set-c-int8! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_INT8_T value))
+(define-c-proc pointer-ref-c-pointer (p::<pointer> offset::<fixnum>) 
+  (result (Sg_MakePointer (POINTER_REF void_ptr p offset))))
 
-  (define-c-proc pointer-set-c-uint16! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_UINT16_T value))
+(define-c-proc pointer-address (p::<pointer>)
+  (result (Sg_MakePointer (& (-> p pointer)))))
 
-  (define-c-proc pointer-set-c-int16! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_INT16_T value))
+;; to use POINTER_REF macro.
+(decl-code
+ ;; to avoid cise's bug...
+ (.typedef "char"           "cchar")
+ (.typedef "short"          "cshort")
+ (.typedef "int"            "cint")
+ (.typedef "long"           "clong")
+ (.typedef "float"          "cfloat")
+ (.typedef "double"         "cdouble")
 
-  (define-c-proc pointer-set-c-uint32! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_UINT32_T value))
+ (.typedef "unsigned char"  "uchar")
+ (.typedef "unsigned short" "ushort")
+ (.typedef "unsigned int"   "uint")
+ (.typedef "unsigned long"  "ulong")
+ (.typedef "unsigned long long"  "ulonglong")
+ (.typedef "long long"           "longlong"))
 
-  (define-c-proc pointer-set-c-int32! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_INT32_T value))
+(define-c-proc pointer-ref-c-unsigned-char (p::<pointer> offset::<fixnum>) ::<fixnum>
+  (result (POINTER_REF uchar p offset)))
 
-  (define-c-proc pointer-set-c-uint64! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_UINT64_T value))
+(define-c-proc pointer-ref-c-char (p::<pointer> offset::<fixnum>) ::<fixnum>
+  (result (POINTER_REF cchar p offset)))
 
-  (define-c-proc pointer-set-c-int64! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_INT64_T value))
+(define-c-proc pointer-ref-c-unsigned-short (p::<pointer> offset::<fixnum>) ::<fixnum>
+  (result (POINTER_REF ushort p offset)))
 
-  (define-c-proc pointer-set-c-unsigned-char! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_UINT8_T value))
+(define-c-proc pointer-ref-c-short (p::<pointer> offset::<fixnum>) ::<fixnum>
+  (result (POINTER_REF cshort p offset)))
 
-  (define-c-proc pointer-set-c-char! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_INT8_T value))
+(define-c-proc pointer-ref-c-unsigned-int (p::<pointer> offset::<fixnum>) 
+  (result (Sg_MakeIntegerU (POINTER_REF uint p offset))))
 
-  (define-c-proc pointer-set-c-unsigned-short! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_USHORT value))
+(define-c-proc pointer-ref-c-int (p::<pointer> offset::<fixnum>) 
+  (result (Sg_MakeInteger (POINTER_REF cint p offset))))
 
-  (define-c-proc pointer-set-c-short! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_SHORT value))
+(define-c-proc pointer-ref-c-unsigned-long (p::<pointer> offset::<fixnum>) 
+  (result (Sg_MakeIntegerU (POINTER_REF ulong p offset))))
 
-  (define-c-proc pointer-set-c-unsigned-int! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_UINT value))
+(define-c-proc pointer-ref-c-long (p::<pointer> offset::<fixnum>) 
+  (result (Sg_MakeInteger (POINTER_REF clong p offset))))
 
-  (define-c-proc pointer-set-c-int! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_INT value))
+(define-c-proc pointer-ref-c-intptr (p::<pointer> offset::<fixnum>) 
+  (.if "SIZEOF_VOIDP == 4"
+       (result (Sg_MakeInteger (POINTER_REF intptr_t p offset)))
+       (result (Sg_MakeIntegerFromS64 (POINTER_REF intptr_t p offset)))))
 
-  (define-c-proc pointer-set-c-unsigned-long! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_ULONG value))
+(define-c-proc pointer-ref-c-uintptr (p::<pointer> offset::<fixnum>) 
+  (.if "SIZEOF_VOIDP == 4"
+       (result (Sg_MakeIntegerU (POINTER_REF uintptr_t p offset)))
+       (result (Sg_MakeIntegerFromU64 (POINTER_REF uintptr_t p offset)))))
 
-  (define-c-proc pointer-set-c-long! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_LONG value))
+;; correct?
+;; Do we even need to support long long?
+(define-c-proc pointer-ref-c-unsigned-long-long (p::<pointer> offset::<fixnum>) 
+  (result (Sg_MakeIntegerFromU64 (POINTER_REF ulonglong p offset))))
 
-  (define-c-proc pointer-set-c-intptr (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_INTPTR value))
+(define-c-proc pointer-ref-c-long-long (p::<pointer> offset::<fixnum>) 
+  (result (Sg_MakeIntegerFromS64 (POINTER_REF longlong p offset))))
 
-  (define-c-proc pointer-set-c-uintptr (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_UINTPTR value))
+(define-c-proc pointer-ref-c-float (p::<pointer> offset::<fixnum>) 
+  (result (Sg_MakeFlonum (cast double (POINTER_REF cfloat p offset)))))
 
-  ;; correct?
-  ;; Do we even need to support long long?
-  (define-c-proc pointer-set-c-unsigned-long-long! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_UINT64_T value))
+(define-c-proc pointer-ref-c-double (p::<pointer> offset::<fixnum>) 
+  (result (Sg_MakeFlonum (POINTER_REF cdouble p offset))))
 
-  (define-c-proc pointer-set-c-long-long! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_INT64_T value))
+;; set!
+(define-c-proc pointer-set-c-uint8! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_UINT8_T value))
 
-  (define-c-proc pointer-set-c-float! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_FLOAT value))
+(define-c-proc pointer-set-c-int8! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_INT8_T value))
 
-  (define-c-proc pointer-set-c-double! (p::<pointer> offset::<fixnum> value) ::<void>
-    (Sg_PointerSet p offset FFI_RETURN_TYPE_DOUBLE value))
-)
+(define-c-proc pointer-set-c-uint16! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_UINT16_T value))
+
+(define-c-proc pointer-set-c-int16! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_INT16_T value))
+
+(define-c-proc pointer-set-c-uint32! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_UINT32_T value))
+
+(define-c-proc pointer-set-c-int32! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_INT32_T value))
+
+(define-c-proc pointer-set-c-uint64! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_UINT64_T value))
+
+(define-c-proc pointer-set-c-int64! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_INT64_T value))
+
+(define-c-proc pointer-set-c-unsigned-char! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_UINT8_T value))
+
+(define-c-proc pointer-set-c-char! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_INT8_T value))
+
+(define-c-proc pointer-set-c-unsigned-short! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_USHORT value))
+
+(define-c-proc pointer-set-c-short! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_SHORT value))
+
+(define-c-proc pointer-set-c-unsigned-int! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_UINT value))
+
+(define-c-proc pointer-set-c-int! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_INT value))
+
+(define-c-proc pointer-set-c-unsigned-long! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_ULONG value))
+
+(define-c-proc pointer-set-c-long! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_LONG value))
+
+(define-c-proc pointer-set-c-intptr (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_INTPTR value))
+
+(define-c-proc pointer-set-c-uintptr (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_UINTPTR value))
+
+;; correct?
+;; Do we even need to support long long?
+(define-c-proc pointer-set-c-unsigned-long-long! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_UINT64_T value))
+
+(define-c-proc pointer-set-c-long-long! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_INT64_T value))
+
+(define-c-proc pointer-set-c-float! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_FLOAT value))
+
+(define-c-proc pointer-set-c-double! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_DOUBLE value))
+

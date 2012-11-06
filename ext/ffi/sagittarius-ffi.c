@@ -355,8 +355,7 @@ static size_t calculate_alignment(SgObject names, SgCStruct *st,
 {
   size_t align = 0;
   SgObject name = SG_CAR(names);
-  int i = 0;
-  size_t size = st->fieldCount;
+  size_t size = st->fieldCount, i;
   struct_layout_t *layouts = st->layouts;
 
   /* names are list of property name for struct.
@@ -1364,7 +1363,7 @@ SgObject Sg_UnregisterFFIFinalizer(SgPointer *pointer)
   return SG_OBJ(pointer);
 }
 
-extern void Sg__Init_sagittarius_ffi_impl();
+extern void Sg__Init_ffi_stub(SgLibrary *lib);
 
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__ffi()
 {
@@ -1379,8 +1378,8 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__ffi()
 
   SG_INIT_EXTENSION(sagittarius__ffi);
   /* init impl library first */
-  Sg__Init_sagittarius_ffi_impl();
-  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius ffi impl)"), FALSE));
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius ffi)"), FALSE));
+  Sg__Init_ffi_stub(lib);
   Sg_InsertBinding(lib, name, &internal_ffi_call_stub);
   impl_lib = lib;
   /* callback storage */
