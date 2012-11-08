@@ -61,7 +61,7 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     @td{(srfi :43 vectors)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-45/srfi-45.html"]{SRFI-45}}
     @td{(srfi :45 lazy)}}
-@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-49/srfi-49.html"]{SRFI-49}}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-49/srfi-49.html"]{SRFI-49}}
     @td{(srfi :49)
 
         The library exports @code{srfi-49-read}, @code{srfi-49-load} procedures.
@@ -74,7 +74,28 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-86/srfi-86.html"]{SRFI-86}}
     @td{(srfi :86 mu-and-nu)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-98/srfi-98.html"]{SRFI-98}}
-    @td{(srfi :98 os-environment-variables)}}
+    @td{(srfi :98 os-environment-variables)}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-105/srfi-105.html"]{SRFI-105}}
+    @td{(srfi :105)
+
+    The library exports @code{curly-infix-read} and @code{neoteric-read}
+    procedures. These procedures read SRFI-105 the infix style code that
+    SRFI-105 specifying. And this also exports reader macros, you can
+    activate it with @code{#!read-macro=srfi/:105} or 
+    @code{#!read-macro=curly-infix}.
+
+    Even though the specification said it MUST support @code{#!curly-infix},
+    however the library just ignore and not activate the reader macros. So
+    you need to explicitly write the one mentioned above. To keep your code
+    portable between implementations that support this SRFI, you need to write
+    both style as following;
+@codeblock{
+;; write both
+#!read-macro=curly-infix
+#!curly-infix
+}
+    The order doesn't matter, Sagittarius just ignores the latter style.
+    }}
 }
 
 Each library can be imported like this:
