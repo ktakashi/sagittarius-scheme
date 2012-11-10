@@ -228,6 +228,9 @@
      ((port) #f)
      (() #f)))
 
+  ;; misc
+  (define (square z) (* z z))
+
   ;; moved from divisions (it's no longer supported)
   ;; From chibi-scheme
 
