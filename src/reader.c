@@ -1271,12 +1271,11 @@ SgObject read_hash_equal(SgPort *port, SgChar c, dispmacro_param *param,
   if (param->present) {
     SgObject obj = read_expr(port, ctx);
     intptr_t mark = param->value;
-    if (SG_EQ(obj, SG_EOF)) {
+    if (SG_EOFP(obj)) {
       lexical_error(port, ctx,
 		    UC("unexpected end-of-file while reading tag #%ld="), mark);
     }
-    if (SG_EQ(Sg_HashTableRef(ctx->graph, SG_MAKE_INT(mark), SG_UNDEF),
-	      SG_UNDEF)) {
+    if (SG_UNDEFP(Sg_HashTableRef(ctx->graph, SG_MAKE_INT(mark), SG_UNDEF))) {
       Sg_HashTableSet(ctx->graph, SG_MAKE_INT(mark), obj, 0);
       return obj;
     }
@@ -1354,11 +1353,11 @@ SgObject dispmacro_reader(SgPort *port, SgChar c, SgReadContext *ctx)
     SgChar c2 = Sg_GetcUnsafe(port);
     if (c2 >= '0' && c2 <= '9') {
       param.present = TRUE;
-      param.value = c - '0';
+      param.value = c2 - '0';
       while (1) {
 	c2 = Sg_GetcUnsafe(port);
 	if (c2 < '0' || c2 > '9') break;
-	param.value = param.value * 10 + c - '0';
+	param.value = param.value * 10 + c2 - '0';
 	if (param.value < 0 || param.value > SG_INT_MAX) {
 	  lexical_error(port, ctx,
 			UC("invalid object tag, value out of range"));
