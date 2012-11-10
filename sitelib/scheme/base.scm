@@ -74,7 +74,8 @@
    u8-ready? unless unquote unquote-splicing utf8->string 
 
    values vector vector->list
-   vector->string vector-append vector-copy vector-fill! vector-for-each 
+   vector->string vector-append vector-copy vector-copy!
+   vector-fill! vector-for-each 
    vector-length
    vector-map vector-ref vector-set! vector? 
 
@@ -113,6 +114,12 @@
     (do ((i start (+ i 1)) (j at (+ j 1)))
 	((= i end))
       (string-set! to j (string-ref from i))))
+
+  (define (vector-copy! to at from
+			:optional (start 0) (end (vector-length from)))
+    (do ((i start (+ i 1)) (j at (+ j 1)))
+	((= i end))
+      (vector-set! to j (vector-ref from i))))
 
   ;; for now error object is r6rs' condition
   (define error-object? condition?)

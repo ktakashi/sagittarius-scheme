@@ -646,6 +646,21 @@
       (test-equal '#(#\A #\B #\C) (string->vector "ABC"))
       (test-equal "123" (vector->string '#(#\1 #\2 #\3)))
 
+      (let ()
+	(define a #(1 8 2 8)) ; a may be immutable
+	(define b (vector-copy a))
+	(vector-set! b 0 3) ; b is mutable
+	(test-equal #(3 8 2 8) b)
+	(let ()
+	  (define c (vector-copy b 1 3))
+	  (test-equal #(8 2) c)))
+
+      (let ()
+	(define a (vector 1 2 3 4 5))
+	(define b (vector 10 20 30 40 50))
+	(test-unspecified (vector-copy! b 1 a 0 2))
+	(test-equal #(10 1 2 40 50) b))
+
       ;; 6.9
       (test-equal "A" (utf8->string #u8(#x41)))
       (test-equal #u8(#xCE #xBB) (string->utf8 "λ"))
