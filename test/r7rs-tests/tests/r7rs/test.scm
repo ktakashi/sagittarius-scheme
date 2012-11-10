@@ -4,7 +4,8 @@
   (import (scheme base)
 	  (scheme write)
 	  (scheme complex)
-	  (scheme inexact))
+	  (scheme inexact)
+	  (scheme cxr))
   (export test test-error test-true test-false
 	  test-approximate  test-unspecified test-values
 	  test-alts

@@ -396,7 +396,7 @@
 
       (test-equal 3 (numerator (/ 6 4)))
       (test-equal 2 (denominator (/ 6 4)))
-      (test-equal 2.0 (denominator (exact->inexact (/ 6 4))))
+      (test-equal 2.0 (denominator (inexact (/ 6 4))))
 
       (test-exactness -5.0 inexact? (floor -4.3))
       (test-exactness -4.0 inexact? (ceiling -4.3))
@@ -409,7 +409,7 @@
       (test-exactness 4 exact? (round 7/2)) ; exact
       (test-exactness 7 exact? (round 7))
 
-      (test-exactness 1/3 exact? (rationalize (inexact->exact .3) 1/10))
+      (test-exactness 1/3 exact? (rationalize (exact .3) 1/10))
       (test-exactness #i1/3 inexact? (rationalize .3 1/10))
 
       (test-values (exact-integer-sqrt 4) 2 0)
@@ -512,8 +512,7 @@
       (test-equal '((e (f)) d (b c) a) (reverse '(a (b c) d (e (f)))))
 
       (test-equal 'c (list-ref '(a b c d) 2))
-      (test-equal 'c (list-ref '(a b c d)
-			       (inexact->exact (round 1.8))))
+      (test-equal 'c (list-ref '(a b c d) (exact (round 1.8))))
 
       (test-equal '(one two three) (let ((ls (list 'one 'two 'five!)))
 				     (list-set! ls 2 'three)

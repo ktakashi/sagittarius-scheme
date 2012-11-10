@@ -2,7 +2,7 @@
 #!compatible
 (library (scheme lazy)
     (export lazy delay force delay-force make-promise)
-    (import (rnrs))
+    (import (rnrs) (rnrs mutable-pairs))
 
   (define (promise done? proc)
     (list (cons done? proc)))
@@ -23,7 +23,7 @@
 	(let ((promise* ((promise-value promise))))
 	  (unless (promise-done? promise)
 	    (promise-update! promise* promise))
-	  (forse promise))))
+	  (force promise))))
 
   (define (make-promise obj) (delay obj))
 

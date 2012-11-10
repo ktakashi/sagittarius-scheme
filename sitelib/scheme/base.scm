@@ -25,7 +25,7 @@
 
    else eof-object? eq? equal? eqv? error error-object-irritants
    error-object-message error-object? even? exact exact-integer-sqrt
-   exact-integer? exact?
+   exact-integer? exact? expt
 
    features ;; new
    floor floor-quotient floor-remainder floor/

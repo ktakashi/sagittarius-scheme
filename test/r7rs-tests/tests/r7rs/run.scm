@@ -15,7 +15,7 @@
 (run-r7rs-base-tests)
 (run-r7rs-case-lambda-tests)
 (run-r7rs-char-tests)
-(run-r7rs-division-tests)
+;;(run-r7rs-division-tests)
 (run-r7rs-eval-tests)
 (run-r7rs-inexact-tests)
 (run-r7rs-lazy-tests)
