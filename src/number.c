@@ -2460,7 +2460,7 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
   }
   else if (SG_FLONUMP(x)) {
     double rem;
-    rx = SG_FLONUM_VALUE(y);
+    rx = SG_FLONUM_VALUE(x);
   flonum_again:
     if (rx != floor(rx)) goto bad_arg;
     if (SG_INTP(y)) {
