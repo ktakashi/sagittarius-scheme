@@ -118,6 +118,14 @@
     (and (message-condition? obj)
 	 (condition-message obj)))
 
+  (define read-error? i/o-read-error?)
+  (define (file-error? c)
+    (or (i/o-file-already-exists-error? c)
+	(i/o-file-does-not-exist-error? c)
+	(i/o-file-is-read-only-error? c)
+	(i/o-file-protection-error? c)
+	(i/o-filename-error? c)))
+
   ;; ports
   (define (input-port-open? p)
     (or (input-port? p)
