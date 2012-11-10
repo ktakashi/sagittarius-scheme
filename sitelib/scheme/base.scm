@@ -63,10 +63,11 @@
    real? remainder reverse round set! set-car!
    set-cdr! square string string->list string->number string->symbol 
    string->utf8
-   string->vector string-append string-copy string-fill! string-for-each
+   string->vector string-append string-copy string-copy!
+   string-fill! string-for-each
    string-length string-map string-ref string-set! string<=? string<? string=?
    string>=? string>? string? substring symbol->string symbol? syntax-error
-   syntax-rules 
+   syntax-rules symbol=?
 
    textual-port? truncate truncate-quotient truncate-remainder truncate/
 
@@ -106,6 +107,12 @@
   (define (bytevector-copy! to at from
 			    :optional (start 0) (end (bytevector-length from)))
     (r6rs:bytevector-copy! from start to at (- start end)))
+
+  (define (string-copy! to at from
+			:optional (start 0) (end (string-length from)))
+    (do ((i start (+ i 1)) (j at (+ j 1)))
+	((= i end))
+      (string-set! to j (string-ref from i))))
 
   ;; for now error object is r6rs' condition
   (define error-object? condition?)
@@ -237,6 +244,13 @@
 	(eq? x y)
 	(and (eq? x y)
 	     (apply boolean=? y (car rest) (cdr rest)))))
+  (define (symbol=? x y . rest)
+    (unless (and (symbol? x) (symbol? y))
+      (assertion-violation 'symbol=? "symbol required" x y))
+    (if (null? rest)
+	(eq? x y)
+	(and (eq? x y)
+	     (apply symbol=? y (car rest) (cdr rest)))))
 
   ;; moved from divisions (it's no longer supported)
   ;; From chibi-scheme

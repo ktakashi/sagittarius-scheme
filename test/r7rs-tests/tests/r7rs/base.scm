@@ -556,6 +556,7 @@
       (test-equal '(one two three) (let ((ls (list 'one 'two 'five!)))
 				     (list-set! ls 2 'three)
 				     ls))
+
       ;; macro rewrites lists
       (let ((x '(0 1 2)))
 	(test-error (list-set! x 1 "oops")))
@@ -582,6 +583,13 @@
       (test-equal '(2 4) (assoc 2.0 '((1 1) (2 4) (3 9)) =))
       (test-equal '(5 7) (assv 5 '((2 3) (5 7) (11 13))))
 
+      (let ()
+	(define a '(1 8 2 8)) ; a may be immutable
+	(define b (list-copy a))
+	(set-car! b 3) ; b is mutable
+	(test-equal '(3 8 2 8) b)
+	(test-equal '(1 8 2 8) a))
+
       ;; 6.5
       (test-true (symbol? 'foo))
       (test-true (symbol? (car '(a b))))
@@ -589,6 +597,10 @@
       (test-true (symbol? 'nil))
       (test-false (symbol? '()))
       (test-false (symbol? #f))
+
+      (test-true (symbol=? 'a 'a 'a))
+      (test-false (symbol=? 'a 'b 'c))
+      (test-error (symbol=? 'a 'a "oops"))
 
       (test-equal "flying-fish" (symbol->string 'flying-fish))
       (test-equal "Martin" (symbol->string 'Martin))
@@ -610,6 +622,13 @@
 	(test-error (string-set! (g) 0 #\?))
 	(test-unspecified (string-set! (f) 0 #\?))
 	(test-error (string-set! (symbol->string 'immutable) 0 #\?)))
+
+      (let ()
+	(define a "12345")
+	(define b (string-copy "abcde"))
+	(string-copy! b 1 a 0 2)
+	(test-equal "a12de" b))
+
 
       ;; 6.8
       (test-equal 8 (vector-ref '#(1 1 2 3 5 8 13 21) 5))
