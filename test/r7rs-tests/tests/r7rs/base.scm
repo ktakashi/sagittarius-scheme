@@ -676,6 +676,147 @@
 			  (c 'talk2)
 			  (reverse path)))))
       ;; 6.11
+
+
+      ;; inexacts
+      (test 4.0 (floor 4.3))
+      (test 5.0 (ceiling 4.3))
+      (test 4.0 (truncate 4.3))
+      (test 4.0 (round 4.3))
+      (test -5.0 (floor -4.3))
+      (test -4.0 (ceiling -4.3))
+      (test -4.0 (truncate -4.3))
+      (test -4.0 (round -4.3))
+      (test 3.0 (floor 3.5)) 
+      (test 4.0 (ceiling 3.5)) 
+      (test 3.0 (truncate 3.5)) 
+      (test 4.0 (round 3.5))
+      (test -4.0 (floor -3.5)) 
+      (test -3.0 (ceiling -3.5)) 
+      (test -3.0 (truncate -3.5)) 
+      (test -4.0 (round -3.5))
+      (test 3 (floor (/ 1300000000000000000000 400000000000000000000)))
+      (test 4 (ceiling (/ 1300000000000000000000 400000000000000000000)))
+      (test 3 (truncate (/ 1300000000000000000000 400000000000000000000)))
+      (test 3 (round (/ 1300000000000000000000 400000000000000000000)))
+      (test -4 (floor (/ -1300000000000000000000 400000000000000000000)))
+      (test -3 (ceiling (/ -1300000000000000000000 400000000000000000000)))
+      (test -3 (truncate (/ -1300000000000000000000 400000000000000000000)))
+      (test -3 (round (/ -1300000000000000000000 400000000000000000000)))
+      (test 650000000000000000000 (floor (/ 1300000000000000000001 2)))
+      (test 650000000000000000001 (ceiling (/ 1300000000000000000001 2)))
+      (test 650000000000000000000 (truncate (/ 1300000000000000000001 2)))
+      (test 650000000000000000000 (round (/ 1300000000000000000001 2)))
+      (test 650000000000000000001 (floor (/ 1300000000000000000003 2)))
+      (test 650000000000000000002 (ceiling (/ 1300000000000000000003 2)))
+      (test 650000000000000000001 (truncate (/ 1300000000000000000003 2)))
+      (test 650000000000000000002 (round (/ 1300000000000000000003 2)))
+      (test -650000000000000000001 (floor (/ -1300000000000000000001 2)))
+      (test -650000000000000000000 (ceiling (/ -1300000000000000000001 2)))
+      (test -650000000000000000000 (truncate (/ -1300000000000000000001 2)))
+      (test -650000000000000000000 (round (/ -1300000000000000000001 2)))
+      (test -650000000000000000002 (floor (/ -1300000000000000000003 2)))
+      (test -650000000000000000001 (ceiling (/ -1300000000000000000003 2)))
+      (test -650000000000000000001 (truncate (/ -1300000000000000000003 2)))
+      (test -650000000000000000002 (round (/ -1300000000000000000003 2)))
+      (test 4 (round 7/2))
+      (test 7 (round 7))
+      (test 0 (floor-quotient 0 4))
+      (test 0 (floor-quotient 0 -4))
+
+      (test 0 (floor-remainder 0 4))
+      (test 0 (floor-remainder 0 -4))
+
+      (test 0 (truncate-quotient 0 4))
+      (test 0 (truncate-quotient 0 -4))
+
+      (test 0 (truncate-remainder 0 4))
+      (test 0 (truncate-remainder 0 -4))
+
+      (test 13 (floor-quotient 13 1))
+      (test -13 (floor-quotient -13 1))
+
+      (test 0 (floor-remainder 13 1))
+      (test 0 (floor-remainder -13 1))
+
+      (test 13 (truncate-quotient 13 1))
+      (test -13 (truncate-quotient -13 1))
+
+      (test 0 (truncate-remainder 13 1))
+      (test 0 (truncate-remainder -13 1))
+
+      ;; Floor rounds towards negative infinity.
+
+      (test 3 (floor-quotient 13 4))
+      (test -4 (floor-quotient -13 4))
+      (test -4 (floor-quotient 13 -4))
+      (test 3 (floor-quotient -13 -4))
+
+      (test 1 (floor-remainder 13 4))
+      (test 3 (floor-remainder -13 4))
+      (test -3 (floor-remainder 13 -4))
+      (test -1 (floor-remainder -13 -4))
+      ;; Truncate rounds towards zero - the magnitudes never change
+      ;; regardless of the signs.
+
+      (test 3 (truncate-quotient 13 4))
+      (test -3 (truncate-quotient -13 4))
+      (test -3 (truncate-quotient 13 -4))
+      (test 3 (truncate-quotient -13 -4))
+
+      (test 1 (truncate-remainder 13 4))
+      (test -1 (truncate-remainder -13 4))
+      (test 1 (truncate-remainder 13 -4))
+      (test -1 (truncate-remainder -13 -4))
+
+      (test 6 (floor-quotient 13 2))
+      (test -7 (floor-quotient -13 2))
+      (test -7 (floor-quotient 13 -2))
+      (test 6 (floor-quotient -13 -2))
+
+      (test 1 (floor-remainder 13 2))
+      (test 1 (floor-remainder -13 2))
+      (test -1 (floor-remainder 13 -2))
+      (test -1 (floor-remainder -13 -2))
+
+      (test 6 (truncate-quotient 13 2))
+      (test -6 (truncate-quotient -13 2))
+      (test -6 (truncate-quotient 13 -2))
+      (test 6 (truncate-quotient -13 -2))
+
+      (test 1 (truncate-remainder 13 2))
+      (test -1 (truncate-remainder -13 2))
+      (test 1 (truncate-remainder 13 -2))
+      (test -1 (truncate-remainder -13 -2))
+
+      (test 3 (floor-quotient 1300000000000000000000 400000000000000000000))
+      (test -4 (floor-quotient -1300000000000000000000 400000000000000000000))
+      (test -4 (floor-quotient 1300000000000000000000 -400000000000000000000))
+      (test 3 (floor-quotient -1300000000000000000000 -400000000000000000000))
+
+      (test 100000000000000000000
+	    (floor-remainder 1300000000000000000000 400000000000000000000))
+      (test 300000000000000000000
+	    (floor-remainder -1300000000000000000000 400000000000000000000))
+      (test -300000000000000000000
+	    (floor-remainder 1300000000000000000000 -400000000000000000000))
+      (test -100000000000000000000
+	    (floor-remainder -1300000000000000000000 -400000000000000000000))
+
+      (test 3 (truncate-quotient 1300000000000000000000 400000000000000000000))
+      (test -3 (truncate-quotient -1300000000000000000000 400000000000000000000))
+      (test -3 (truncate-quotient 1300000000000000000000 -400000000000000000000))
+      (test 3 (truncate-quotient -1300000000000000000000 -400000000000000000000))
+
+      (test 100000000000000000000
+	    (truncate-remainder 1300000000000000000000 400000000000000000000))
+      (test -100000000000000000000
+	    (truncate-remainder -1300000000000000000000 400000000000000000000))
+      (test 100000000000000000000
+	    (truncate-remainder 1300000000000000000000 -400000000000000000000))
+      (test -100000000000000000000
+	    (truncate-remainder -1300000000000000000000 -400000000000000000000))
+
       )
     )
 )

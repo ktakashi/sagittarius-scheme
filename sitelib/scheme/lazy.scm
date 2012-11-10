@@ -1,36 +1,13 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
 #!compatible
 (library (scheme lazy)
-    (export lazy delay force delay-force make-promise)
-    (import (rnrs) (rnrs mutable-pairs))
+    (export delay force delay-force make-promise promise?)
+    (import (rnrs) (core r5rs))
 
-  (define (promise done? proc)
-    (list (cons done? proc)))
-
-  (define-syntax delay-force
-    (syntax-rules ()
-      ((_ expr)
-       (promise #f (lambda () expr)))))
-
-  (define-syntax delay
-    (syntax-rules ()
-      ((_ expr)
-       (delay-force (promise #t (lambda () expr))))))
-
-  (define (force promise)
-    (if (promise-done? promise)
-	(promise-value promise)
-	(let ((promise* ((promise-value promise))))
-	  (unless (promise-done? promise)
-	    (promise-update! promise* promise))
-	  (force promise))))
-
-  (define (make-promise obj) (delay obj))
-
-  (define (promise-done? x) (caar x))
-  (define (promise-value x) (cdar x))
-  (define (promise-update! new old)
-      (set-car! (car old) (promise-done? new))
-      (set-cdr! (car old) (promise-value new))
-      (set-car! new (car old)))
+  (define (promise? obj)
+    (and (pair? obj)
+	 (pair? (car obj))
+	 (null? (cdr obj))
+	 (boolean? (caar obj))
+	 (procedure? (cdar obj))))
 )

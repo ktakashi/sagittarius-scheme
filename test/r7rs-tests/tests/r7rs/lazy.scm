@@ -17,7 +17,7 @@
       (lambda (stream) (cdr (force stream))))
 
     (define (stream-filter p? s)
-      (lazy
+      (delay-force
        (if (null? (force s))
 	   (delay '())
 	   (let ((h (car (force s)))
