@@ -84,7 +84,8 @@
 
    zero?)
   (import (rename (except (rnrs) syntax-rules error define-record-type)
-		  (bytevector-copy! r6rs:bytevector-copy!))
+		  (bytevector-copy! r6rs:bytevector-copy!)
+		  (error r6rs:error))
 	  (rnrs mutable-pairs)
 	  (rnrs mutable-strings)
 	  (rnrs r5rs)
@@ -107,7 +108,7 @@
   (define (bytevector . bytes) (u8-list->bytevector bytes))
   (define (bytevector-copy! to at from
 			    :optional (start 0) (end (bytevector-length from)))
-    (r6rs:bytevector-copy! from start to at (- start end)))
+    (r6rs:bytevector-copy! from start to at (- end start)))
 
   (define (string-copy! to at from
 			:optional (start 0) (end (string-length from)))
@@ -122,6 +123,8 @@
       (vector-set! to j (vector-ref from i))))
 
   ;; for now error object is r6rs' condition
+  (define (error message . irr)
+    (apply r6rs:error 'error message irr))
   (define error-object? condition?)
 
   (define (error-object-irritants obj)

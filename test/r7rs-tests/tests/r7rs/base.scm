@@ -650,18 +650,43 @@
 	(define a #(1 8 2 8)) ; a may be immutable
 	(define b (vector-copy a))
 	(vector-set! b 0 3) ; b is mutable
-	(test-equal #(3 8 2 8) b)
+	(test-equal '#(3 8 2 8) b)
 	(let ()
 	  (define c (vector-copy b 1 3))
-	  (test-equal #(8 2) c)))
+	  (test-equal '#(8 2) c)))
 
       (let ()
 	(define a (vector 1 2 3 4 5))
 	(define b (vector 10 20 30 40 50))
 	(test-unspecified (vector-copy! b 1 a 0 2))
-	(test-equal #(10 1 2 40 50) b))
+	(test-equal '#(10 1 2 40 50) b))
+
+      (let ()
+	(define a (vector 1 2 3 4 5))
+	(test-unspecified (vector-fill! a 'smash 2 4))
+	(test-equal '#(1 2 smash smash 5) a))
 
       ;; 6.9
+      (test-equal #u8(1 3 5 1 3 5) (bytevector 1 3 5 1 3 5))
+      (test-equal #u8() (bytevector))
+      (test-equal 8 (bytevector-u8-ref '#u8(1 1 2 3 5 8 13 21) 5))
+
+      (let ((bv (bytevector 1 2 3 4)))
+	(test-unspecified (bytevector-u8-set! bv 1 3))
+	(test-equal #u8(1 3 3 4) bv))
+
+      (let ()
+	(define a #u8(1 2 3 4 5))
+	(test-equal #u8(3 4) (bytevector-copy a 2 4)))
+
+      (let ()
+	(define a (bytevector 1 2 3 4 5))
+	(define b (bytevector 10 20 30 40 50))
+	(test-unspecified (bytevector-copy! b 1 a 0 2))
+	(test-equal #u8(10 1 2 40 50) b))
+
+      (test-equal #u8(0 1 2 3 4 5) (bytevector-append #u8(0 1 2) #u8(3 4 5)))
+
       (test-equal "A" (utf8->string #u8(#x41)))
       (test-equal #u8(#xCE #xBB) (string->utf8 "λ"))
 
@@ -748,8 +773,7 @@
 		      (if (< (length path) 4)
 			  (c 'talk2)
 			  (reverse path)))))
-      ;; 6.11
-
+      ;; 6.11		  
 
       ;; inexacts
       (test 4.0 (floor 4.3))

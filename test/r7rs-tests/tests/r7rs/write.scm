@@ -43,6 +43,16 @@
 		      (lambda ()
 			(+ (raise-continuable "should be a number")
 			   23))))
+      ;; 6.13
+      (test-equal "piece by piece by piece.\n"
+		  (parameterize
+		      ((current-output-port
+			(open-output-string)))
+		    (display "piece")
+		    (display " by piece ")
+		    (display "by piece.")
+		    (newline)
+		    (get-output-string (current-output-port))))
       )
     )
 )
