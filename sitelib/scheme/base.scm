@@ -15,7 +15,7 @@
    caar cadr
    call-with-current-continuation
    call-with-port call-with-values call/cc car case
-   cddr cdr ceiling
+   cdar cddr cdr ceiling
    char->integer char-ready? char<=? char<? char=? char>=? char>? char?
    close-input-port close-output-port close-port complex? cond cond-expand cons
    current-error-port current-input-port current-output-port
@@ -230,6 +230,13 @@
 
   ;; misc
   (define (square z) (* z z))
+  (define (boolean=? x y . rest)
+    (unless (and (boolean? x) (boolean? y))
+      (assertion-violation 'boolean=? "boolean required" x y))
+    (if (null? rest)
+	(eq? x y)
+	(and (eq? x y)
+	     (apply boolean=? y (car rest) (cdr rest)))))
 
   ;; moved from divisions (it's no longer supported)
   ;; From chibi-scheme

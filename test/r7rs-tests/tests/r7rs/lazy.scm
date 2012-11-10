@@ -46,6 +46,9 @@
 
       (test-equal 6 (force p))
       (test-equal 6 (begin (set! x 10) (force p)))
+
+      ;; extra
+      (test-true (promise? (make-promise 1)))
       )
     ) 
 )

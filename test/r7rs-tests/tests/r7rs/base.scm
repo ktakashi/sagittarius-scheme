@@ -65,6 +65,10 @@
 	     (r obj))))))
 
     (define (run-r7rs-base-tests)
+      ;; 4.1.1
+      (let ()
+	(define x 28)
+	(test-equal 28 x))
       ;; 4.1.2
       (test-equal 'a (quote a))
       (test-equal '#(a b c) (quote #(a b c)))
@@ -91,8 +95,9 @@
       (test-equal 1 (if (> 3 2) (- 3 2) (+ 3 2)))
 
       ;; 4.1.6
-      (let ((x 2))
-	;;(define x 2)
+      (let ()
+	(define x 2)
+	(test-equal 3 (+ x 1))
 	(test-unspecified (set! x 4))
 	(test-equal 5 (+ x 1)))
 
@@ -102,7 +107,7 @@
       (test-equal 'equal (cond ((> 3 3) 'greater)
 			       ((< 3 3) 'less)
 			       (else 'equal)))
-      (test-equal '2 (cond ((assv 'b '((a 1) (b 2))) => cadr)
+      (test-equal 2 (cond ((assv 'b '((a 1) (b 2))) => cadr)
 			   (else #f)))
 
       (test-equal 'composite (case (* 2 3)
@@ -126,6 +131,9 @@
       (test-false (or #f #f #f))
       (test-equal '(b c) (or (memq 'b '(a b c)) (/ 3 0)))
 
+      (test-unspecified (unless (= 1 1.0)
+			  (display "1")
+			  (display "2")))
       ;; 4.2.2
       (test-equal 6 (let ((x 2) (y 3)) (* x y)))
       (test-equal 35 (let ((x 2) (y 3))
@@ -171,13 +179,12 @@
 				 (list a b x y))))
 
       ;; 4.2.3
-      (let ((x 0))
-	;;(define x 0)
+      (let ()
+	(define x 0)
 	(test-equal 6 (and (= x 0)
 			   (begin (set! x 5)
 				  (+ x 1)))))
-      
-
+ 
       ;; 4.2.4
       (test-equal #(0 1 2 3 4) (do ((vec (make-vector 5))
 				    (i 0 (+ i 1)))
@@ -208,6 +215,18 @@
       (test-equal "12" (f 12))
       (test-unspecified (radix 16))
       (test-error (parameterize ((radix 0)) (f 12)))
+
+      ;; 4.2.7
+      (test-equal 42
+		  (guard (condition
+			  ((assq 'a condition) => cdr)
+			  ((assq 'b condition)))
+		    (raise (list (cons 'a 42)))))
+      (test-equal '(b . 23)
+		  (guard (condition
+			  ((assq 'a condition) => cdr)
+			  ((assq 'b condition)))
+		    (raise (list (cons 'b 23)))))
 
       ;; 4.2.8
       (test-equal '(list 3 4) `(list ,(+ 1 2) 4))
@@ -307,9 +326,10 @@
       (test-true (eqv? 100000000 100000000))
       (test-false (eqv? (cons 1 2) (cons 1 2)))
       (test-false (eqv? (lambda () 1) (lambda () 2)))
-      (test-false (eqv? #f '()))
+      (test-false (eqv? #f 'nil))
 
-      (test-true (let ((g (gen-counter))) (eqv? g g)))
+      ;; this in unspecified
+      ;;(test-true (let ((g (gen-counter))) (eqv? g g)))
       (test-false (eqv? (gen-counter) (gen-counter)))
 
       (test-true (let ((g (gen-loser))) (eqv? g g)))
@@ -328,8 +348,8 @@
 		   (eq? x x)))
       (test-true (let ((x '#()))
 		   (eq? x x)))
-      (test-true (let ((p (lambda (x) x)))
-		   (eq? p p)))
+      ;; this is unspecified
+      ;;(test-true (let ((p (lambda (x) x))) (eq? p p)))
 
       (test-true (equal? 'a 'a))
       (test-true (equal? '(a) '(a)))
@@ -337,6 +357,7 @@
       (test-true (equal? "abc" "abc"))
       (test-true (equal? 2 2))
       (test-true (equal? (make-vector 5 'a) (make-vector 5 'a)))
+      (test-true (equal? '#1=(a b . #1#) '#2=(a b a b . #2#)))
       
       ;; 6.2.6
       (test-true (complex? 3+4i))
@@ -378,6 +399,17 @@
 
       (test-equal 7 (abs -7))
 
+      (test-values (floor/ 5 2) 2 1)
+      (test-values (floor/ -5 2) -3 1)
+      (test-values (floor/ 5 -2) -3 -1)
+      (test-values (floor/ -5 -2) 2 -1)
+
+      (test-values (truncate/ 5 2) 2 1)
+      (test-values (truncate/ -5 2) -2 -1)
+      (test-values (truncate/ 5 -2) -2 1)
+      (test-values (truncate/ -5 -2) 2 -1)
+      (test-values (truncate/ -5.0 -2) 2.0 -1.0)
+
       (test-exactness 1 exact? (modulo 13 4))
       (test-exactness 1 exact? (remainder 13 4))
       (test-exactness 3 exact? (modulo -13 4))
@@ -412,6 +444,9 @@
       (test-exactness 1/3 exact? (rationalize (exact .3) 1/10))
       (test-exactness #i1/3 inexact? (rationalize .3 1/10))
 
+      (test-exactness 1764 exact? (square 42))
+      (test-exactness 4.0 inexact? (square 2.0))
+
       (test-values (exact-integer-sqrt 4) 2 0)
       (test-values (exact-integer-sqrt 5) 2 1)
 
@@ -441,6 +476,10 @@
       (test-true (boolean? #f))
       (test-false (boolean? 0))
       (test-false (boolean? '()))
+
+      (test-true (boolean=? #t #t #t))
+      (test-false (boolean=? #t #t #f))
+      (test-error (boolean=? #t 'hoge #f))
 
       ;; 6.4
       (let ()
