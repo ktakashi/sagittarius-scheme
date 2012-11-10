@@ -157,9 +157,9 @@ static SgObject oprtr_norm_complex(SgObject real, SgObject imag)
 {
   ASSERT(!SG_COMPLEXP(real));
   ASSERT(!SG_COMPLEXP(imag));
-  if (SG_INTP(imag) && SG_INT_VALUE(imag) == 0) return real;
+  if (SG_INTP(imag) && SG_EQ(imag, SG_MAKE_INT(0))) return real;
   if (SG_BIGNUMP(imag) && SG_BIGNUM_GET_SIGN(SG_BIGNUM(imag)) == 0) return real;
-  if (SG_FLONUMP(real) + SG_FLONUMP(imag) == 1) {
+  if (SG_FLONUMP(real) || SG_FLONUMP(imag)) {
     return Sg_MakeComplex(Sg_Inexact(real), Sg_Inexact(imag));
   }
   return Sg_MakeComplex(real, imag);
@@ -2933,10 +2933,13 @@ SgObject Sg_Sqrt(SgObject obj)
       if (iroot * iroot == value) return SG_MAKE_INT(iroot);
       return Sg_MakeFlonum(root);
     } else {
-      double root = sqrt((double)-value);
-      long iroot = (long)floor(root);
-      if (iroot * iroot == value) return Sg_MakeComplex(SG_MAKE_INT(0), SG_MAKE_INT(iroot));
-      return  Sg_MakeComplex(Sg_MakeFlonum(0.0), Sg_MakeFlonum(root));
+      long iroot;
+      value = -value;
+      iroot = (long)floor(sqrt((double)value));
+      if (iroot * iroot == value) 
+	return Sg_MakeComplex(SG_MAKE_INT(0), SG_MAKE_INT(iroot));
+      return  Sg_MakeComplex(Sg_MakeFlonum(0.0),
+			     Sg_MakeFlonum(sqrt((double)value)));
     }
   }
   if (SG_BIGNUMP(obj)) {
