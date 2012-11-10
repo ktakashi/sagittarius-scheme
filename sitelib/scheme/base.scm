@@ -27,7 +27,7 @@
    error-object-message error-object? even? exact exact-integer-sqrt
    exact-integer? exact? expt
 
-   features ;; new
+   (rename cond-features features) ;; new
    floor floor-quotient floor-remainder floor/
    flush-output-port for-each
 
