@@ -43,6 +43,19 @@
 		      (lambda ()
 			(+ (raise-continuable "should be a number")
 			   23))))
+      ;; 6.11
+      (test-io-value 'exception "condition: an-error\n"
+		     (call-with-current-continuation
+		      (lambda (k)
+			(with-exception-handler
+			 (lambda (x)
+			   (display "condition: ")
+			   (write x)
+			   (newline)
+			   (k 'exception))
+			 (lambda ()
+			   (+ 1 (raise 'an-error)))))))
+
       ;; 6.13
       (test-equal "piece by piece by piece.\n"
 		  (parameterize

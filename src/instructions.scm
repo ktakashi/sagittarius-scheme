@@ -8,21 +8,24 @@
 (define-cise-stmt assertion-violation
   ((_ who msg)
    `(begin
-      (Sg_AssertionViolation (SG_INTERN ,who) (SG_MAKE_STRING ,msg) '())))
+      (Sg_AssertionViolation (SG_INTERN ,who) (SG_MAKE_STRING ,msg) '())
+      (return SG_UNDEF)))
   ((_ who msg irritants)
    `(begin
       (Sg_AssertionViolation (SG_INTERN ,who) (SG_MAKE_STRING ,msg) ,irritants)
-      )))
+      (return SG_UNDEF))))
 
 (define-cise-stmt wrong-type-of-argument-violation
   ((_ who msg got)
    `(begin
       (Sg_WrongTypeOfArgumentViolation (SG_INTERN ,who)
-				       (SG_MAKE_STRING ,msg) ,got '())))
+				       (SG_MAKE_STRING ,msg) ,got '())
+      (return SG_UNDEF)))
   ((_ who msg got irritants)
    `(begin
       (Sg_WrongTypeOfArgumentViolation (SG_INTERN ,who)
-				       (SG_MAKE_STRING ,msg) ,got ,irritants))))
+				       (SG_MAKE_STRING ,msg) ,got ,irritants)
+      (return SG_UNDEF))))
 
 (define-cise-stmt $goto-insn
   ((_ insn)
