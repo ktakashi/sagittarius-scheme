@@ -10,7 +10,8 @@
 	    default-evaluator
 	    default-printer
 	    default-reader
-	    default-prompter)
+	    default-prompter
+	    interactive-environment)
     (import null
 	    (core base)
 	    (core errors)
@@ -94,14 +95,14 @@
 	       'current-prompter
 	       (format "expected procedure or #f, but got ~s" x)))))))
 
-  (define (read-eval-print-loop)
-    ;; initialize env
-    (define interactive-environment
-      (environment 'null ;; for syntax import.
-		   '(core base)
-		   '(sagittarius)
-		   '(rnrs)))
+  ;; initialise env
+  (define interactive-environment
+    (environment 'null ;; for syntax import.
+		 '(core base)
+		 '(sagittarius)
+		 '(rnrs)))
 
+  (define (read-eval-print-loop)
     (let ((plugged (getenv "EMACS")))
       ;; load resource file
       (when (file-exists? +resource-file+)

@@ -110,7 +110,6 @@ int Sg_WriteCircular(SgObject obj, SgObject port, int mode, int width)
   if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
   }
-  out = Sg_MakeStringOutputPort(0);
   ctx.mode = mode;
   ctx.flags = WRITE_CIRCULAR;
   if (width > 0) {
@@ -128,6 +127,7 @@ int Sg_WriteCircular(SgObject obj, SgObject port, int mode, int width)
     return 0;
   }
 
+  out = Sg_MakeStringOutputPort(0);
   sharedp = SG_WRITE_MODE(&ctx) == SG_WRITE_SHARED;
   format_write(obj, SG_PORT(out), &ctx, sharedp);
   str = SG_STRING(Sg_GetStringFromStringPort(out));
@@ -776,6 +776,56 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
   return;
 }
 
+/* FIXME, merge it */
+static void write_walk_circular(SgObject obj, SgWriteContext *ctx,
+				int cycleonlyp)
+{
+  SgHashTable *ht;
+  SgObject elt;
+
+#define REGISTER(obj)						\
+  do {								\
+    SgObject e = Sg_HashTableRef(ht, (obj), SG_UNBOUND);	\
+    if (SG_INTP(e)) {						\
+      int v = SG_INT_VALUE(e);					\
+      Sg_HashTableSet(ht, (obj), SG_MAKE_INT(v + 1), 0);	\
+      if (v > 0) return;					\
+    } else {							\
+      Sg_HashTableSet(ht, (obj), SG_MAKE_INT(0), 0);		\
+    }								\
+  } while(0)
+
+#define UNREGISTER(obj)						\
+  do {								\
+    if (cycleonlyp) {						\
+      SgObject e = Sg_HashTableRef(ht, (obj), SG_MAKE_INT(0));	\
+      int v = SG_INT_VALUE(e);					\
+      if (v <= 1) {						\
+	Sg_HashTableDelete(ht, (obj));				\
+      }								\
+    }								\
+  } while(0)
+
+  ht = ctx->table;
+  if (SG_PAIRP(obj) || SG_VECTORP(obj)) {
+    REGISTER(obj);
+    if (SG_PAIRP(obj)) {
+      elt = SG_CAR(obj);
+      if (SG_PTRP(elt)) write_walk_circular(elt, ctx, cycleonlyp);
+      write_walk_circular(SG_CDR(obj), ctx, cycleonlyp);
+    } else if (SG_VECTORP(obj) && SG_VECTOR_SIZE(obj) > 0) {
+      int i, len = SG_VECTOR_SIZE(obj);
+      for (i = 0; i < len; i++) {
+	elt = SG_VECTOR_ELEMENT(obj, i);
+	if (SG_PTRP(elt)) write_walk_circular(elt, ctx, cycleonlyp);
+      }
+    }
+    UNREGISTER(obj);
+  }
+#undef REGISTER
+#undef UNREGISTER
+}
+
 static void write_walk(SgObject obj, SgWriteContext *ctx)
 {
   SgHashTable *ht;
@@ -834,7 +884,25 @@ static void write_walk(SgObject obj, SgWriteContext *ctx)
 void write_ss(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
   ctx->table = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
-  write_walk(obj, ctx);
+  if (ctx->flags & WRITE_CIRCULAR) {
+    SgObject seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 64);
+    SgHashTable *save = ctx->table;
+    SgHashIter iter;
+    SgHashEntry *e;
+    ctx->table = SG_HASHTABLE(seen);
+    write_walk_circular(obj, ctx, TRUE);
+    /* extract */
+    ctx->table = save;
+    Sg_HashIterInit(SG_HASHTABLE_CORE(seen), &iter);
+    while ((e = Sg_HashIterNext(&iter)) != NULL) {
+      SgObject v = SG_HASH_ENTRY_VALUE(e);
+      if (SG_INT_VALUE(v) > 1) {
+	Sg_HashTableSet(ctx->table, SG_HASH_ENTRY_KEY(e), SG_TRUE, 0);
+      }
+    }
+  } else {
+    write_walk(obj, ctx);
+  }
 
   write_ss_rec(obj, port, ctx);
 }

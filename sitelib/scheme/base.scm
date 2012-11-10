@@ -2,43 +2,87 @@
 #!compatible
 (library (scheme base)
   (export
-   * + - ... / < <= = => > >= abs and append apply assoc assq assv begin
-   binary-port? boolean? bytevector-copy bytevector-copy!
-   bytevector-copy-partial! bytevector-length bytevector-u8-ref
-   bytevector-u8-set!
-   bytevector? caaaar caaadr caaar caadar caaddr caadr caar cadaar cadadr
-   cadar caddar cadddr caddr cadr call-with-current-continuation
-   call-with-port call-with-values call/cc car case cdaaar cdaadr cdaar cdadar
-   cdaddr cdadr cdar cddaar cddadr cddar cdddar cddddr cdddr cddr cdr ceiling
+   * + - ... / < <= = => > >= 
+   abs and append apply assoc assq assv
+
+   begin
+   binary-port? boolean=? boolean?
+   bytevector bytevector-append
+   bytevector-copy bytevector-copy!
+   bytevector-length bytevector-u8-ref
+   bytevector-u8-set! bytevector? 
+
+   caar cadr
+   call-with-current-continuation
+   call-with-port call-with-values call/cc car case
+   cddr cdr ceiling
    char->integer char-ready? char<=? char<? char=? char>=? char>? char?
    close-input-port close-output-port close-port complex? cond cond-expand cons
-   current-error-port current-input-port current-output-port define
+   current-error-port current-input-port current-output-port
+
+   define
    define-record-type define-syntax define-values denominator do dynamic-wind
+
    else eof-object? eq? equal? eqv? error error-object-irritants
-   error-object-message error-object? even? exact->inexact exact-integer-sqrt
-   exact-integer? exact? expt floor flush-output-port for-each gcd
-   get-output-bytevector get-output-string guard if import inexact->exact
-   inexact? input-port? integer->char integer? lambda lcm length let let*
+   error-object-message error-object? even? exact exact-integer-sqrt
+   exact-integer? exact?
+
+   features ;; new
+   floor floor-quotient floor-remainder floor/
+   flush-output-port for-each
+
+   gcd
+   get-output-bytevector get-output-string guard 
+
+   if import include include-ci inexact
+   inexact? input-port-open? input-port? integer->char integer?
+
+   lambda lcm length let let*
    let*-values let-syntax let-values letrec letrec* letrec-syntax list
    list->string
-   list->vector list-copy list-ref list-set! list-tail list? make-bytevector
+   list->vector list-copy list-ref list-set! list-tail list?
+
+   make-bytevector
    make-list make-parameter make-string make-vector map max member memq memv min
-   modulo negative? newline not null? number->string number? numerator odd?
+   modulo
+
+   negative? newline not null? number->string number? numerator 
+
+   odd?
    open-input-bytevector open-input-string open-output-bytevector
-   open-output-string or output-port? pair? parameterize peek-char peek-u8
-   port-open? port? positive? procedure? quasiquote quote quotient raise
+   open-output-string or output-port-open? output-port? 
+
+   pair? parameterize peek-char peek-u8
+   port? positive? procedure?
+
+   quasiquote quote quotient
+
+   raise
    raise-continuable rational? rationalize read-bytevector read-bytevector!
-   read-char read-line read-u8 real? remainder reverse round set! set-car!
-   set-cdr! string string->list string->number string->symbol string->utf8
+   read-char read-error? read-line read-string read-u8 
+   real? remainder reverse round set! set-car!
+   set-cdr! square string string->list string->number string->symbol 
+   string->utf8
    string->vector string-append string-copy string-fill! string-for-each
    string-length string-map string-ref string-set! string<=? string<? string=?
    string>=? string>? string? substring symbol->string symbol? syntax-error
-   syntax-rules textual-port? truncate u8-ready? unless unquote
-   unquote-splicing utf8->string values vector vector->list
-   vector->string vector-copy vector-fill! vector-for-each vector-length
-   vector-map vector-ref vector-set! vector? when with-exception-handler
-   write-bytevector write-char write-u8 zero?)
-  (import (except (rnrs) syntax-rules error define-record-type)
+   syntax-rules 
+
+   textual-port? truncate truncate-quotient truncate-remainder truncate/
+
+   u8-ready? unless unquote unquote-splicing utf8->string 
+
+   values vector vector->list
+   vector->string vector-append vector-copy vector-fill! vector-for-each 
+   vector-length
+   vector-map vector-ref vector-set! vector? 
+
+   when with-exception-handler
+   write-bytevector write-char write-u8
+
+   zero?)
+  (import (rename (except (rnrs) syntax-rules error define-record-type)
+		  (bytevector-copy! r6rs:bytevector-copy!))
 	  (rnrs mutable-pairs)
 	  (rnrs mutable-strings)
 	  (rnrs r5rs)
@@ -57,7 +101,12 @@
     (syntax-rules ()
       ((_ msg args ...)
        (syntax-violation 'syntax-error msg (quote args ...)))))
-  
+
+  (define (bytevector . bytes) (u8-list->bytevector bytes))
+  (define (bytevector-copy! to at from
+			    :optional (start 0) (end (bytevector-length from)))
+    (r6rs:bytevector-copy! from start to at (- start end)))
+
   ;; for now error object is r6rs' condition
   (define error-object? condition?)
 
@@ -70,17 +119,17 @@
 	 (condition-message obj)))
 
   ;; ports
-  (define (port-open? p)
-    (or (port? p)
-	(assertion-violation 'port-open?
-			     "port required" p))
+  (define (input-port-open? p)
+    (or (input-port? p)
+	(assertion-violation 'input-port-open? "input-port required" p))
+    (not (port-closed? p)))
+
+  (define (output-port-open? p)
+    (or (output-port? p)
+	(assertion-violation 'output-port-open? "output-port required" p))
     (not (port-closed? p)))
 
   (define (open-input-bytevector bv) (open-bytevector-input-port bv))
-
-  (define (bytevector-copy-partial! from start end to at)
-    (bytevector-copy! from start to at (- end start)))
-
 
   (define (exact-integer? i) (and (integer? i) (exact? i)))
 
@@ -170,5 +219,66 @@
     (case-lambda
      ((port) #f)
      (() #f)))
+
+  ;; moved from divisions (it's no longer supported)
+  ;; From chibi-scheme
+
+  ;; The builtin quotient and remainder implement truncation - the
+  ;; fractional part is always discarded.
+
+  (define truncate-quotient quotient)
+  (define truncate-remainder remainder)
+  (define (truncate/ n m)
+    (values (truncate-quotient n m) (truncate-remainder n m)))
+
+  ;; Floor, ceiling and round just compose their corresponding function
+  ;; with division to determine the quotient, and compute the remainder
+  ;; from that.
+
+  (define (floor-quotient n m)
+    (inexact->exact (floor (/ n m))))
+  (define (floor-remainder n m)
+    (- n (* m (floor-quotient n m))))
+  (define (floor/ n m)
+    (values (floor-quotient n m) (floor-remainder n m)))
+
+;; these are removed since draft 7
+;;  (define (ceiling-quotient n m)
+;;    (inexact->exact (ceiling (/ n m))))
+;;  (define (ceiling-remainder n m)
+;;    (- n (* m (ceiling-quotient n m))))
+;;  (define (ceiling/ n m)
+;;    (values (ceiling-quotient n m) (ceiling-remainder n m)))
+;;
+;;  (define (round-quotient n m)
+;;    (inexact->exact (round (/ n m))))
+;;  (define (round-remainder n m)
+;;    (- n (* m (round-quotient n m))))
+;;  (define (round/ n m)
+;;    (values (round-quotient n m) (round-remainder n m)))
+
+  ;; Euclidean is defined as floor if the divisor is negative, and
+  ;; ceiling otherwise.
+
+;;  (define (euclidean-quotient n m)
+;;    (if (> m 0) (floor-quotient n m) (ceiling-quotient n m)))
+;;  (define (euclidean-remainder n m)
+;;    (- n (* m (euclidean-quotient n m))))
+;;  (define (euclidean/ n m)
+;;    (values (euclidean-quotient n m) (euclidean-remainder n m)))
+
+  ;; Centered places the remainder in the half-open interval
+  ;; [-m/2, m/2).
+
+;;  (define (centered-remainder n m)
+;;    (let ((r (euclidean-remainder n m))
+;;	  (m/2 (abs (/ m 2))))
+;;      (cond ((< r (- m/2)) (+ r (abs m)))
+;;	    ((>= r m/2) (- r (abs m)))
+;;	    (else r))))
+;;  (define (centered-quotient n m)
+;;    (quotient (- n (centered-remainder n m)) m))
+;;  (define (centered/ n m)
+;;    (values (centered-quotient n m) (centered-remainder n m)))
 
 )
