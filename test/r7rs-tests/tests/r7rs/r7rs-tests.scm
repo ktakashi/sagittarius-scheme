@@ -5,7 +5,7 @@
         (scheme file) (scheme read) (scheme write)
         (scheme eval) (scheme process-context) (scheme case-lambda)
 	;; -- Sagittarius start
-	(scheme r5rs)
+	(except (scheme r5rs) write read)
 	(tests r7rs test)
 	#;(chibi test)
 	;; -- Sagittarius end
@@ -1645,6 +1645,8 @@
 (test 'Hello (read (open-input-string "|H\\x65;llo|")))
 
 (test 'abc (read (open-input-string "#!fold-case ABC")))
+;; for Sagittarius (read affects current file)
+#!no-fold-case
 (test 'ABC (read (open-input-string "#!fold-case #!no-fold-case ABC")))
 
 (test 'def (read (open-input-string "#; abc def")))

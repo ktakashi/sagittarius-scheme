@@ -373,6 +373,8 @@ static SgChar read_escape(SgPort *port, SgReadContext *ctx)
   case 'r':  return 0x000D;
   case '"':  return 0x0022;
   case '\\': return 0x005C;
+    /* R7RS */
+  case '|':  return 0x007C;
   case EOF: 
     lexical_error(port, ctx, 
 		  UC("unexpected end-of-file while reading escape sequence"));
