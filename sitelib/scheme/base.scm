@@ -83,7 +83,7 @@
    write-bytevector write-char write-u8
 
    zero?)
-  (import (rename (except (rnrs) syntax-rules error define-record-type)
+  (import (rename (except (rnrs) syntax-rules define-record-type)
 		  (bytevector-copy! r6rs:bytevector-copy!)
 		  (error r6rs:error))
 	  (rnrs mutable-pairs)

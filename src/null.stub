@@ -545,29 +545,22 @@
     (result FALSE)
     (numcmp >= Sg_NumCmp))
 
-  (define-c-proc zero? (arg0::<number>) ::<boolean>
-    (result (and (SG_REALP arg0) (== (Sg_Sign arg0) 0))))
+  (define-c-proc zero? (arg0::<number>) ::<boolean> Sg_ZeroP)
 
-  (define-c-proc positive? (x::<number>) ::<boolean>
-    (result (Sg_PositiveP x)))
+  (define-c-proc positive? (x::<number>) ::<boolean> Sg_PositiveP)
 
-  (define-c-proc negative? (x::<number>) ::<boolean>
-    (result (Sg_NegativeP x)))
+  (define-c-proc negative? (x::<number>) ::<boolean> Sg_NegativeP)
 
-  (define-c-proc odd? (x::<number>) ::<boolean>
-    (result (Sg_OddP x)))
+  (define-c-proc odd? (x::<number>) ::<boolean> Sg_OddP)
 
   (define-c-proc even? (x::<number>) ::<boolean>
     (result (not (Sg_OddP x))))
 
-  (define-c-proc finite? (x::<number>) ::<boolean>
-    (result (Sg_FiniteP x)))
+  (define-c-proc finite? (x::<number>) ::<boolean> Sg_FiniteP)
 
-  (define-c-proc infinite? (x::<number>) ::<boolean>
-    (result (Sg_InfiniteP x)))
+  (define-c-proc infinite? (x::<number>) ::<boolean> Sg_InfiniteP)
 
-  (define-c-proc nan? (x::<number>) ::<boolean>
-    (result (Sg_NanP x)))
+  (define-c-proc nan? (x::<number>) ::<boolean> Sg_NanP)
     
   (define-c-proc max (arg0 :rest rest) ::<top>
     (Sg_MinMax arg0 rest NULL (& SG_RESULT)))

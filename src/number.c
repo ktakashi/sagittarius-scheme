@@ -2741,6 +2741,8 @@ static inline int either_nan_p(SgObject arg0, SgObject arg1)
 
 int Sg_NumEq(SgObject x, SgObject y)
 {
+  /* not to break zero?'s compiler builtin inliner, sucks!! */
+  if (SG_INTP(y) && SG_EQ(y, SG_MAKE_INT(0)) && Sg_ZeroP(x)) return TRUE;
   if (SG_COMPLEXP(x)) {
     if (SG_COMPLEXP(y)) {
       return ((Sg_NumCmp(SG_COMPLEX(x)->real, SG_COMPLEX(y)->real) == 0)
