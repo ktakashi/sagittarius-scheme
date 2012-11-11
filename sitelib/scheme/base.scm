@@ -210,6 +210,11 @@
      (() (read-line (current-input-port)))
      ((port) (get-line port))))
 
+  (define read-string
+    (case-lambda
+     ((k) (read-string k (current-input-port)))
+     ((k port) (get-string-n port k))))
+
   (define (string->vector s :optional (start 0) (end (string-length s)))
     (let* ((len (- end start))
 	   (v   (make-vector len)))
