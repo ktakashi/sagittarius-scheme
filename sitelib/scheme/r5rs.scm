@@ -112,5 +112,8 @@
 	    with-output-to-file write
 	    write-char zero?)
     (import (rnrs) (rnrs r5rs) (rnrs mutable-pairs) (rnrs mutable-strings)
-	    (scheme repl)))
+	    (scheme repl)
+	    (only (scheme base) char-ready?)
+	    (only (scheme eval) eval)
+	    (only (scheme load) load)))
 	    

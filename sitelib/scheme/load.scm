@@ -1,7 +1,7 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
 #!compatible
 (library (scheme load)
-    (export (rename r7rs:load load))
+    (export (rename (r7rs:load load)))
     (import (rnrs)
 	    (rnrs eval)
 	    (sagittarius)
