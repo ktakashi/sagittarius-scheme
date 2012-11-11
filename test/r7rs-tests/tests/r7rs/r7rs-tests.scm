@@ -1249,8 +1249,8 @@
 (test "ABC" (utf8->string #u8(#x41 #x42 #x43)))
 (test "ABC" (utf8->string #u8(0 #x41 #x42 #x43) 1))
 (test "ABC" (utf8->string #u8(0 #x41  #x42 #x43 0) 1 4))
-;; invalid test case the result must be "λ\x0;"
-;;(test "λ" (utf8->string #u8(0 #xCE #xBB 0) 1 3))
+;; Sagittarius
+(test-alts (utf8->string #u8(0 #xCE #xBB 0) 1 3) "λ" "λ\x0;")
 (test #u8(#x41 #x42 #x43) (string->utf8 "ABC"))
 (test #u8(#x42 #x43) (string->utf8 "ABC" 1))
 (test #u8(#x42) (string->utf8 "ABC" 1 2))
