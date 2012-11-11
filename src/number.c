@@ -565,7 +565,7 @@ static SgObject read_real(const SgChar **strp, int *lenp,
     else        return e;
   } else if (ctx->exactness == NOEXACT &&
 	     !has_fraction && !has_exponent) {
-    return intpart;
+    return (minusp) ? Sg_Negate(intpart) : intpart;
   } else {
     double realnum = Sg_GetDouble(fraction);
     realnum = pow10n(realnum, exponent - fracdigs);

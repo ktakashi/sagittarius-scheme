@@ -103,7 +103,9 @@
 		 expr)))))
 
     (define-syntax test-values
-      (syntax-rules ()
+      (syntax-rules (values)
+	((_ (values val ...) expr)
+	 (test-values expr val ...))
 	((_ expr val ...)
 	 (run-test 'expr
 		   (catch-exns (lambda () expr))
