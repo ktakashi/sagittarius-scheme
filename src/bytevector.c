@@ -315,12 +315,18 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder,
 
   SG_CHECK_START_END(start, end, size);
 
+  size = end - start;
+  if (size < read_size) read_size = size;
+
+  if (size != SG_BVECTOR_SIZE(bv)) {
+    /* must be smaller, copy it */
+    bv = Sg_ByteVectorCopy(bv, start, end);
+    start = 0;
+  }
+
   bin = Sg_MakeByteVectorInputPort(bv, start);
   tin = Sg_MakeTranscodedInputPort(bin, transcoder);
   accum = Sg_MakeStringOutputPort(end);
-
-  size = end - start;
-  if (size < read_size) read_size = size;
   
   for (;;) {
     int rest;
