@@ -1809,7 +1809,9 @@
  ("+inf.0-inf.0i" (make-rectangular +inf.0 -inf.0) "+Inf.0-Inf.0i")
  ;; Complex numbers (polar notation)
 ;; ("1@2" -0.416146836547142+0.909297426825682i "-0.416146836547142+0.909297426825682i")
-;; Sagittarius returns bit more numbers.
+ ;; Sagittarius returns bit more numbers.
+ ;; This should be tested with test-approximate, but
+ ;; the string literal is really annoying.
  ("1@2" -0.4161468365471424+0.9092974268256817i "-0.4161468365471424+0.9092974268256817i")
  ;; Base prefixes
  ("#x11" 17 "17")
@@ -1854,8 +1856,6 @@
 
 (test-end)
 
-(test-end)
-
 (test-begin "6.14 System interface")
 
 ;; 6.14 System interface
@@ -1886,7 +1886,5 @@
 
 (test #t (file-exists? "."))
 (test #f (file-exists? " no such file "))
-
-(test-end)
 
 (test-end)

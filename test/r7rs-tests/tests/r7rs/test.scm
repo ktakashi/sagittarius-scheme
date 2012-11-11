@@ -178,9 +178,11 @@
     (define (report-test-results)
       (if (null? failures)
 	  (begin
+	    (display "-- ")
 	    (display checked)
 	    (display " tests passed\n"))
 	  (begin
+	    (display "-- ")
 	    (display (length failures))
 	    (display " tests failed:\n\n")
 	    (for-each (lambda (t)
@@ -195,7 +197,9 @@
 	    (display (length failures))
 	    (display " of ")
 	    (display checked)
-	    (display " tests failed.\n"))))
+	    (display " tests failed.\n")))
+      (set! failures '())
+      (set! checked 0))
 
     (define (test-begin msg)
       (display msg)(newline))
