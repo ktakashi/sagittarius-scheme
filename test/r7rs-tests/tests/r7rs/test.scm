@@ -147,6 +147,7 @@
 	  (cond ((null? e) #f)
 		((same-result? got (car e)))
 		(else (loop (cdr e)))))]
+       [(and (number? got) (number? expected)) (= got expected)]
        [else (equal? got expected)]))
 
     (define (run-test expr got expected)

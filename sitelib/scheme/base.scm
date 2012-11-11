@@ -28,6 +28,7 @@
    exact-integer? exact? expt
 
    (rename (cond-features features)) ;; new
+   file-error?
    floor floor-quotient floor-remainder floor/
    flush-output-port for-each
 
@@ -80,7 +81,7 @@
    vector-map vector-ref vector-set! vector? 
 
    when with-exception-handler
-   write-bytevector write-char write-u8
+   write-bytevector write-string write-char write-u8
 
    zero?)
   (import (rename (except (rnrs) syntax-rules define-record-type)
@@ -191,7 +192,7 @@
   (define read-bytevector!
     (case-lambda
      ((bv start end) (read-bytevector! bv start end (current-input-port)))
-     ((bv start end port) (get-bytevector-n! port bv start end))))
+     ((bv start end port) (get-bytevector-n! port bv start (- end start)))))
 
   (define write-u8
     (case-lambda
@@ -203,7 +204,14 @@
      ((bv) (write-bytevector bv (current-output-port)))
      ((bv port) (put-bytevector port bv))
      ((bv port start) (put-bytevector port bv start))
-     ((bv port start end) (put-bytevector port bv start end))))
+     ((bv port start end) (put-bytevector port bv start (- end start)))))
+
+  (define write-string
+    (case-lambda
+     ((s) (write-string s (current-output-port)))
+     ((s port) (put-string port s))
+     ((s port start) (put-string port s start))
+     ((s port start end) (put-string port s start (- end start)))))
 
   (define read-line
     (case-lambda
@@ -220,7 +228,7 @@
 	   (v   (make-vector len)))
       (do ((i start (+ i 1)))
 	  ((= i end) v)
-	(vector-set! v i (string-ref s i)))))
+	(vector-set! v (- i start) (string-ref s i)))))
 
   (define (vector->string v :optional (start 0) (end (vector-length v)))
     (let* ((len (- end start))
@@ -232,7 +240,7 @@
 	    (assertion-violation 'vector->string
 				 "vector contains non character object"
 				 e))
-	  (string-set! s i e)))))
+	  (string-set! s (- i start) e)))))
 
   (define (string-map proc str1 . strs)
     (list->string
@@ -242,13 +250,13 @@
   ;; FIXME: support non blocking IO
   (define char-ready?
     (case-lambda
-     ((port) #f)
-     (() #f)))
+     ((port) #t)
+     (() #t)))
 
   (define u8-ready?
     (case-lambda
-     ((port) #f)
-     (() #f)))
+     ((port) #t)
+     (() #t)))
 
   ;; misc
   (define (square z) (* z z))

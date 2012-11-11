@@ -1220,6 +1220,7 @@ static const struct {
   { "page",       0x000C },
   { "return",     0x000D },
   { "esc",        0x001B },
+  { "escape",     0x001B },
   { "space",      0x0020 },
   { "delete",     0x007F }
 };

@@ -26,4 +26,4 @@
 (test-end)
 
 ;; this test cases are from Chibi Scheme
-(include "r7rs-tests.scm")
+(load "test/r7rs-tests/tests/r7rs/r7rs-tests.scm")

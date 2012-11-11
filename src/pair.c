@@ -464,7 +464,10 @@ static SgObject list_transpose_s(SgObject *args, int argc, void *data)
       if (SG_LISTP(v)) {
 	int len = Sg_Length(v);
 	if (len < 0 && len != SG_LIST_CIRCULAR) goto err;
-	if (len < each_len) each_len = len;
+	if (len >= 0) {
+	  if (len < each_len) each_len = len;
+	  else if (each_len < 0) each_len = len;
+	}
 	continue;
       }
       goto err;
