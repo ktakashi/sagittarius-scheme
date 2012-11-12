@@ -32,7 +32,6 @@
     (export base64-encode base64-encode-string
 	    base64-decode base64-decode-string)
     (import (rnrs) (rnrs r5rs)
-	    (clos user)
 	    (sagittarius)
 	    (sagittarius control))
 
@@ -76,13 +75,12 @@
 	    (bytevector->string bv transcoder)
 	    bv)))
 
-  (define-method base64-decode ((bv <bytevector>))
-    (call-with-port (open-bytevector-input-port bv) base64-decode))
-
-  (define-method base64-decode ((in <port>))
-    (call-with-bytevector-output-port
-     (lambda (out)
-       (base64-decode-impl in out))))
+  (define (base64-decode in)
+    (if (bytevector? in)
+	(call-with-port (open-bytevector-input-port in) base64-decode)
+	(call-with-bytevector-output-port
+	 (lambda (out)
+	   (base64-decode-impl in out)))))
 
   (define (base64-decode-impl in out)
     (let-syntax ((lookup (syntax-rules ()
@@ -132,14 +130,13 @@
      (base64-encode (string->bytevector string transcoder)
 		    :line-width line-width)))
 
-  (define-method base64-encode ((bv <bytevector>) . opt)
-    (call-with-port (open-bytevector-input-port bv)
-      (lambda (in) (apply base64-encode in opt))))
-
-  (define-method base64-encode ((in <port>) :key (line-width 76))
-    (call-with-bytevector-output-port
-     (lambda (out)
-       (base64-encode-impl in out line-width))))
+  (define (base64-encode in :key (line-width 76))
+    (if (bytevector? in)
+	(call-with-port (open-bytevector-input-port in)
+	  (lambda (in) (base64-encode in :line-width line-width)))
+	(call-with-bytevector-output-port
+	 (lambda (out)
+	   (base64-encode-impl in out line-width)))))
 
   (define (base64-encode-impl in out line-width)
     (define max-col (and line-width
