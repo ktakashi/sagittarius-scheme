@@ -700,6 +700,17 @@
   
   (define-c-proc getenv-alist () Sg_GetenvAlist)
 
+  (define-c-proc emergency-exit (:optional obj) ::<void>
+    ;; TODO thread
+    (if (SG_UNBOUNDP obj)
+	(Sg_EmergencyExit EXIT_SUCCESS)
+	(cond ((SG_INTP obj)
+	       (Sg_EmergencyExit (SG_INT_VALUE obj)))
+	      ((SG_TRUEP obj)
+	       (Sg_EmergencyExit EXIT_SUCCESS))
+	      (else
+	       (Sg_EmergencyExit EXIT_FAILURE)))))
+  
   ;; bytevector
   (define-c-proc bytevector->integer
     (bv::<bytevector> :optional (start::<fixnum> 0) (end::<fixnum> -1))

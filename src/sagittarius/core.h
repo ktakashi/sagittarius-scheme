@@ -42,6 +42,7 @@ SG_CDECL_BEGIN
 SG_EXTERN void  Sg_Init();
 
 SG_EXTERN void 	Sg_Exit(int code);
+SG_EXTERN void 	Sg_EmergencyExit(int code);
 SG_EXTERN void 	Sg_Cleanup();
 SG_EXTERN void*	Sg_AddCleanupHandler(void (*proc)(void *data), void *data);
 SG_EXTERN void	Sg_DeleteCleanupHandler(void *handle);

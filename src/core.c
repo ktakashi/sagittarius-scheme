@@ -315,6 +315,11 @@ void Sg_Exit(int code)
   exit(EXIT_CODE(code));
 }
 
+void Sg_EmergencyExit(int code)
+{
+  exit(EXIT_CODE(code));
+}
+
 struct cleanup_handler_rec
 {
   void (*handler)(void *);

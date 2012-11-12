@@ -1,89 +1,76 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
 #!compatible
 (library (scheme base)
-  (export
-   * + - ... / < <= = => > >= 
-   abs and append apply assoc assq assv
+    (export
+     * + - ... / < <= = => > >=
 
-   begin
-   binary-port? boolean=? boolean?
-   bytevector bytevector-append
-   bytevector-copy bytevector-copy!
-   bytevector-length bytevector-u8-ref
-   bytevector-u8-set! bytevector? 
+     abs and append apply assoc assq assv
 
-   caar cadr
-   call-with-current-continuation
-   call-with-port call-with-values call/cc car case
-   cdar cddr cdr ceiling
-   char->integer char-ready? char<=? char<? char=? char>=? char>? char?
-   close-input-port close-output-port close-port complex? cond cond-expand cons
-   current-error-port current-input-port current-output-port
+     begin binary-port? boolean=? boolean? bytevector
+     bytevector-append bytevector-copy bytevector-copy! bytevector-length
+     bytevector-u8-ref bytevector-u8-set! bytevector?
 
-   define
-   define-record-type define-syntax define-values denominator do dynamic-wind
+     caar cadr call-with-current-continuation call-with-port call-with-values
+     call/cc car case cdar cddr cdr ceiling char->integer char-ready? char<=?
+     char<? char=? char>=? char>? char? close-input-port
+     close-output-port close-port complex? cond
+     cond-expand cons current-error-port current-input-port current-output-port
 
-   else eof-object? eq? equal? eqv? error error-object-irritants
-   error-object-message error-object? even? exact exact-integer-sqrt
-   exact-integer? exact? expt
+     define define-record-type define-syntax define-values denominator
+     do dynamic-wind
 
-   (rename (cond-features features)) ;; new
-   file-error?
-   floor floor-quotient floor-remainder floor/
-   flush-output-port for-each
+     else eof-object eof-object? eq? equal? eqv? error error-object-irritants
+     error-object-message error-object? even? exact
+     exact-integer-sqrt exact-integer? exact? expt
 
-   gcd
-   get-output-bytevector get-output-string guard 
+     (rename (cond-features features)) file-error?
+     floor floor-quotient floor-remainder floor/ flush-output-port for-each
 
-   if import include include-ci inexact
-   inexact? input-port-open? input-port? integer->char integer?
+     gcd get-output-bytevector get-output-string guard
 
-   lambda lcm length let let*
-   let*-values let-syntax let-values letrec letrec* letrec-syntax list
-   list->string
-   list->vector list-copy list-ref list-set! list-tail list?
+     if import include include-ci inexact inexact? input-port-open? input-port?
+     integer->char integer?
 
-   make-bytevector
-   make-list make-parameter make-string make-vector map max member memq memv min
-   modulo
+     lambda lcm length let let* let*-values let-syntax let-values
+     letrec letrec* letrec-syntax list list->string list->vector
+     list-copy list-ref list-set! list-tail list?
 
-   negative? newline not null? number->string number? numerator 
+     make-bytevector make-list make-parameter make-string make-vector map max
+     member memq memv min modulo
 
-   odd?
-   open-input-bytevector open-input-string open-output-bytevector
-   open-output-string or output-port-open? output-port? 
+     negative? newline not null? number->string number? numerator
 
-   pair? parameterize peek-char peek-u8
-   port? positive? procedure?
+     odd? open-input-bytevector open-input-string open-output-bytevector
+     open-output-string or output-port-open? output-port?
 
-   quasiquote quote quotient
+     pair? parameterize peek-char peek-u8 port? positive? procedure? quasiquote
+     quote quotient
 
-   raise
-   raise-continuable rational? rationalize read-bytevector read-bytevector!
-   read-char read-error? read-line read-string read-u8 
-   real? remainder reverse round set! set-car!
-   set-cdr! square string string->list string->number string->symbol 
-   string->utf8
-   string->vector string-append string-copy string-copy!
-   string-fill! string-for-each
-   string-length string-map string-ref string-set! string<=? string<? string=?
-   string>=? string>? string? substring symbol->string symbol? syntax-error
-   syntax-rules symbol=?
+     raise raise-continuable rational? rationalize
+     read-bytevector read-bytevector! read-char read-error?
+     read-line read-string read-u8 real? remainder reverse round set!
 
-   textual-port? truncate truncate-quotient truncate-remainder truncate/
+     set-car! set-cdr! square string string->list string->number
+     string->symbol string->utf8 string->vector string-append
+     string-copy string-copy! string-fill! string-for-each
+     string-length string-map string-ref string-set!
+     string<=? string<? string=? string>=? string>? string?
+     substring symbol->string symbol=? symbol? syntax-error syntax-rules
 
-   u8-ready? unless unquote unquote-splicing utf8->string 
+     textual-port? truncate truncate-quotient truncate-remainder
+     truncate/ u8-ready?
 
-   values vector vector->list
-   vector->string vector-append vector-copy vector-copy!
-   vector-fill! vector-for-each 
-   vector-length
-   vector-map vector-ref vector-set! vector? 
+     unless unquote unquote-splicing utf8->string
 
-   when with-exception-handler
-   write-bytevector write-string write-char write-u8
+     values vector vector->list vector->string vector-append vector-copy
+     vector-copy! vector-fill! vector-for-each vector-length
+     vector-map vector-ref vector-set! vector?
 
-   zero?)
+     when with-exception-handler
+     write-bytevector write-char
+     write-string write-u8
+
+     zero?)
   (import (rename (except (rnrs) syntax-rules define-record-type)
 		  (bytevector-copy! r6rs:bytevector-copy!)
 		  (error r6rs:error))
