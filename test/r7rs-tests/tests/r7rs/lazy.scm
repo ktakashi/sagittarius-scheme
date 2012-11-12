@@ -17,7 +17,7 @@
       (lambda (stream) (cdr (force stream))))
 
     (define (stream-filter p? s)
-      (lazy
+      (delay-force
        (if (null? (force s))
 	   (delay '())
 	   (let ((h (car (force s)))
@@ -46,6 +46,9 @@
 
       (test-equal 6 (force p))
       (test-equal 6 (begin (set! x 10) (force p)))
+
+      ;; extra
+      (test-true (promise? (make-promise 1)))
       )
     ) 
 )

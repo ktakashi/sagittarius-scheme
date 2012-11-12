@@ -2533,7 +2533,8 @@
 ;;  (import <import set> ...)
 ;;  (begin <command or denition> ...)
 ;;  (include <filename1> <filename2> ...)
-;;  (include-ci >filename1> <filename2> ...)
+;;  (include-ci <filename1> <filename2> ...)
+;;  (include-library-declarations <filename1> <filename2> ...)
 ;;  (cond-expand <cond-expand clause> ...)
 (define-pass1-syntax (define-library form p1env) :sagittarius
   (define (process-declare body current-lib p1env)
@@ -2542,40 +2543,49 @@
       (let-syntax ((pass1 (syntax-rules ()
 			    ((_ expr p1env)
 			     (pass1 expr p1env)))))
-	(let loop ((clauses body))
+	(let loop ((clauses body) (finish? #t))
 	  (smatch clauses
 	    (() 
-	     ($seq-body-set! seq
-	      (append
-	       (list ($library current-lib))
-	       (pass1/collect-inlinable! ($seq-body seq) current-lib)
-	       (list ($undef))))
+	     (when finish?
+	       ($seq-body-set! seq
+		(append!
+		 (list ($library current-lib))
+		 (pass1/collect-inlinable! ($seq-body seq) current-lib)
+		 (list ($undef)))))
 	     seq)
 	    ((((? symbol? type) body ___) . rest)
 	     (case type
 	       ((import)
-		(pass1/import (car clauses) current-lib) (loop (cdr clauses)))
+		(pass1/import (car clauses) current-lib) 
+		(loop (cdr clauses) finish?))
 	       ((export)
-		(pass1/export (car clauses) current-lib) (loop (cdr clauses)))
+		(pass1/export (car clauses) current-lib)
+		(loop (cdr clauses) finish?))
 	       ((include include-ci)
 		(let ((expr (pass1/include body p1env (eq? type 'include-ci))))	
-		  ($seq-body-set! seq (append ($seq-body seq)
-					      (list (pass1 (car expr) p1env))))
-		  (loop (cdr clauses))))
+		  ($seq-body-set! seq (append! ($seq-body seq)
+					       (list (pass1 (car expr) p1env))))
+		  (loop (cdr clauses) finish?)))
+	       ((include-library-declarations)
+		;; returned expression is ((begin exprs ...) file)
+		;; and exprs ::= (begin expr ...)
+		(let ((exprs (pass1/include body p1env #f)))
+		  (ifor-each (lambda (expr) (loop (cdr expr) #f)) (cdar exprs))
+		  (loop (cdr clauses) finish?)))
 	       ((begin)
 		($seq-body-set! seq 
-		 (append ($seq-body seq)
-			 (imap (lambda (x) (pass1 x p1env)) body)))
-		(loop (cdr clauses)))
+		 (append! ($seq-body seq)
+			  (imap (lambda (x) (pass1 x p1env)) body)))
+		(loop (cdr clauses) finish?))
 	       ((cond-expand)
 		(let ((r (pass1 (car clauses) p1env)))
 		  ;; if only one element in ($seq), it will elliminate it.
 		  (if ($seq? r)
 		      ($seq-body-set! seq
-				      (append ($seq-body seq) ($seq-body r)))
+				      (append! ($seq-body seq) ($seq-body r)))
 		      ($seq-body-set! seq
-				      (append ($seq-body seq) (list r)))))
-		(loop (cdr clauses)))
+				      (append! ($seq-body seq) (list r)))))
+		(loop (cdr clauses) finish?))
 	       (else
 		(syntax-error "define-library: invalid library declaration"
 			      type))))

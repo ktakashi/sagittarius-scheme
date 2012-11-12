@@ -157,9 +157,9 @@ static SgObject oprtr_norm_complex(SgObject real, SgObject imag)
 {
   ASSERT(!SG_COMPLEXP(real));
   ASSERT(!SG_COMPLEXP(imag));
-  if (SG_INTP(imag) && SG_INT_VALUE(imag) == 0) return real;
+  if (SG_INTP(imag) && SG_EQ(imag, SG_MAKE_INT(0))) return real;
   if (SG_BIGNUMP(imag) && SG_BIGNUM_GET_SIGN(SG_BIGNUM(imag)) == 0) return real;
-  if (SG_FLONUMP(real) + SG_FLONUMP(imag) == 1) {
+  if (SG_FLONUMP(real) || SG_FLONUMP(imag)) {
     return Sg_MakeComplex(Sg_Inexact(real), Sg_Inexact(imag));
   }
   return Sg_MakeComplex(real, imag);
@@ -565,7 +565,7 @@ static SgObject read_real(const SgChar **strp, int *lenp,
     else        return e;
   } else if (ctx->exactness == NOEXACT &&
 	     !has_fraction && !has_exponent) {
-    return intpart;
+    return (minusp) ? Sg_Negate(intpart) : intpart;
   } else {
     double realnum = Sg_GetDouble(fraction);
     realnum = pow10n(realnum, exponent - fracdigs);
@@ -711,7 +711,7 @@ static SgObject read_number(const SgChar *str, int len, int radix, int strict)
       SgObject imagpart;
       ctx.exactness = NOEXACT;
       imagpart = read_real(&str, &len, &ctx);
-      if (SG_FALSEP(imagpart) || len != 1 || *str != 'i') {
+      if (SG_FALSEP(imagpart) || len != 1 || (*str != 'i' && *str != 'I')) {
 	return SG_FALSE;
       }
       /* if (Sg_Sign(imagpart) == 0) return realpart; */
@@ -2460,7 +2460,7 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
   }
   else if (SG_FLONUMP(x)) {
     double rem;
-    rx = SG_FLONUM_VALUE(y);
+    rx = SG_FLONUM_VALUE(x);
   flonum_again:
     if (rx != floor(rx)) goto bad_arg;
     if (SG_INTP(y)) {
@@ -2741,6 +2741,8 @@ static inline int either_nan_p(SgObject arg0, SgObject arg1)
 
 int Sg_NumEq(SgObject x, SgObject y)
 {
+  /* not to break zero?'s compiler builtin inliner, sucks!! */
+  if (SG_INTP(y) && SG_EQ(y, SG_MAKE_INT(0)) && Sg_ZeroP(x)) return TRUE;
   if (SG_COMPLEXP(x)) {
     if (SG_COMPLEXP(y)) {
       return ((Sg_NumCmp(SG_COMPLEX(x)->real, SG_COMPLEX(y)->real) == 0)
@@ -2763,8 +2765,9 @@ int Sg_NumCmp(SgObject x, SgObject y)
 #else
 #define nan_return(_r) 		/* dummy */
 #endif
-
+ start_again:
   if (SG_INTP(x)) {
+  int_again:
     if (SG_INTP(y)) {
       long r = SG_INT_VALUE(x) - SG_INT_VALUE(y);
       if (r < 0) return -1;
@@ -2795,10 +2798,16 @@ int Sg_NumCmp(SgObject x, SgObject y)
 	else return Sg_NumCmp(Sg_Mul(x, SG_RATIONAL(y)->denominator),
 			      SG_RATIONAL(y)->numerator);
       }
+    } else if (SG_COMPLEXP(y)) {
+      if (Sg_ZeroP(SG_COMPLEX(y)->imag)) {
+	y = SG_COMPLEX(y)->real;
+	goto int_again;
+      }
     }
     badnum = y;
   }
   else if (SG_FLONUMP(x)) {
+  flo_again:
     if (SG_INTP(y)) {
       double r = SG_FLONUM_VALUE(x) - SG_INT_VALUE(y);
       nan_return(r);
@@ -2819,10 +2828,16 @@ int Sg_NumCmp(SgObject x, SgObject y)
       if (r < 0) return -1;
       else if (r > 0) return 1;
       else return 0;
+    } else if (SG_COMPLEXP(y)) {
+      if (Sg_ZeroP(SG_COMPLEX(y)->imag)) {
+	y = SG_COMPLEX(y)->real;
+	goto flo_again;
+      }
     }
     badnum = y;
   }
   else if (SG_BIGNUMP(x)) {
+  big_again:
     if (SG_INTP(y)) {
       return Sg_BignumCmp(SG_BIGNUM(x),
 			  SG_BIGNUM(Sg_MakeBignumFromSI(SG_INT_VALUE(y))));
@@ -2838,9 +2853,16 @@ int Sg_NumCmp(SgObject x, SgObject y)
       return Sg_NumCmp(Sg_Mul(x, d1),
 		       SG_RATIONAL(y)->numerator);
     }
+    else if (SG_COMPLEXP(y)) {
+      if (Sg_ZeroP(SG_COMPLEX(y)->imag)) {
+	y = SG_COMPLEX(y)->real;
+	goto big_again;
+      }
+    }
     badnum = y;
   }
   else if (SG_RATIONALP(x)) {
+  rat_again:
     if (SG_INTP(y) || SG_BIGNUMP(y) || SG_FLONUMP(y)) {
       return -Sg_NumCmp(y, x);
     }
@@ -2860,10 +2882,22 @@ int Sg_NumCmp(SgObject x, SgObject y)
       }
       return Sg_NumCmp(Sg_Mul(nx, dy),
 		       Sg_Mul(ny, dx));
+    } else if (SG_COMPLEXP(y)) {
+      if (Sg_ZeroP(SG_COMPLEX(y)->imag)) {
+	y = SG_COMPLEX(y)->real;
+	goto rat_again;
+      }
     }
     badnum = y;
   }
-  else badnum = x;
+  else if (SG_COMPLEXP(x)) {
+    if (Sg_ZeroP(SG_COMPLEX(x)->imag)) {
+      x = SG_COMPLEX(x)->real;
+      goto start_again;
+    }
+    badnum = x;
+  }
+  badnum = x;
 
   Sg_Error(UC("real number required, but got %S"), badnum);
   return 0;			/* dummy */
@@ -2933,10 +2967,13 @@ SgObject Sg_Sqrt(SgObject obj)
       if (iroot * iroot == value) return SG_MAKE_INT(iroot);
       return Sg_MakeFlonum(root);
     } else {
-      double root = sqrt((double)-value);
-      long iroot = (long)floor(root);
-      if (iroot * iroot == value) return Sg_MakeComplex(SG_MAKE_INT(0), SG_MAKE_INT(iroot));
-      return  Sg_MakeComplex(Sg_MakeFlonum(0.0), Sg_MakeFlonum(root));
+      long iroot;
+      value = -value;
+      iroot = (long)floor(sqrt((double)value));
+      if (iroot * iroot == value) 
+	return Sg_MakeComplex(SG_MAKE_INT(0), SG_MAKE_INT(iroot));
+      return  Sg_MakeComplex(Sg_MakeFlonum(0.0),
+			     Sg_MakeFlonum(sqrt((double)value)));
     }
   }
   if (SG_BIGNUMP(obj)) {

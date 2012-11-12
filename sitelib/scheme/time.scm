@@ -5,11 +5,11 @@
     (import (rnrs)
 	    (srfi :19))
   ;; from mosh
-  (define scale 1000000000.0)
+  (define scale 1000000000)
 
   (define (jiffies-per-second) scale)
   (define (current-jiffy) (return-sec time-monotonic))
-  (define (current-second) (return-sec time-tai))
+  (define (current-second) (inexact (return-sec time-tai)))
   
   (define (return-sec sym)
     (let ((t (current-time sym)))

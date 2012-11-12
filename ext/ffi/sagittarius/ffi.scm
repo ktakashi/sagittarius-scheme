@@ -279,7 +279,7 @@
 
   (define (make-c-function lib ret-type name arg-types)
     (let ((func (lookup-shared-library lib (symbol->string name))))
-      (unless func
+      (when (null-pointer? func)
 	(assertion-violation 'c-function "c-function not found" name))
       (pointer->c-function func ret-type name arg-types)))
 

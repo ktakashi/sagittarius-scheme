@@ -492,6 +492,12 @@
     (check-output-port write/ss p)
     (Sg_Write o p SG_WRITE_SHARED))
 
+  (define-c-proc write-cyclic 
+    (o :optional (p::<port> (Sg_CurrentOutputPort))) ::<void>
+    (check-port-open write-cyclic p)
+    (check-output-port write-cyclic p)
+    (Sg_WriteCircular o p SG_WRITE_WRITE -1))
+
   (define-c-proc read/ss (:optional (p::<port> (Sg_CurrentInputPort))
 			  :key (source-info?::<boolean> #f))
     (check-port-open read/ss p)

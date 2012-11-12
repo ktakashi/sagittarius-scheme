@@ -510,4 +510,13 @@
 	    (iota 2000 1)
 	    (receive x (apply values (iota 2000 1)) x))
 
+;; issue 51
+(define (nothing))
+(test-assert "binary-port?"
+	     (let ((cbi (make-custom-binary-input-port "id" nothing #f #f #f)))
+	       (binary-port? cbi)))
+(test-assert "textual-port?"
+	     (let ((cti (make-custom-textual-input-port "id" nothing #f #f #f)))
+	       (textual-port? cti)))
+
 (test-end)

@@ -4,7 +4,8 @@
   (import (scheme base)
 	  (scheme write)
 	  (scheme complex)
-	  (scheme inexact))
+	  (scheme inexact)
+	  (scheme cxr))
   (export test test-error test-true test-false
 	  test-approximate  test-unspecified test-values
 	  test-alts
@@ -21,7 +22,7 @@
     (define-record-type approx (make-approx value) approx?
       (value approx-value))
     (define-record-type alts (make-alts values) alts?
-    (values))
+      (values))
 
     (define-syntax test
       (syntax-rules ()
@@ -102,7 +103,9 @@
 		 expr)))))
 
     (define-syntax test-values
-      (syntax-rules ()
+      (syntax-rules (values)
+	((_ (values val ...) expr)
+	 (test-values expr val ...))
 	((_ expr val ...)
 	 (run-test 'expr
 		   (catch-exns (lambda () expr))
@@ -144,6 +147,7 @@
 	  (cond ((null? e) #f)
 		((same-result? got (car e)))
 		(else (loop (cdr e)))))]
+       [(and (number? got) (number? expected)) (= got expected)]
        [else (equal? got expected)]))
 
     (define (run-test expr got expected)
@@ -174,9 +178,11 @@
     (define (report-test-results)
       (if (null? failures)
 	  (begin
+	    (display "-- ")
 	    (display checked)
 	    (display " tests passed\n"))
 	  (begin
+	    (display "-- ")
 	    (display (length failures))
 	    (display " tests failed:\n\n")
 	    (for-each (lambda (t)
@@ -191,7 +197,9 @@
 	    (display (length failures))
 	    (display " of ")
 	    (display checked)
-	    (display " tests failed.\n"))))
+	    (display " tests failed.\n")))
+      (set! failures '())
+      (set! checked 0))
 
     (define (test-begin msg)
       (display msg)(newline))

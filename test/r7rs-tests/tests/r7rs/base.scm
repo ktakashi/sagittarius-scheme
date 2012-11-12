@@ -65,6 +65,10 @@
 	     (r obj))))))
 
     (define (run-r7rs-base-tests)
+      ;; 4.1.1
+      (let ()
+	(define x 28)
+	(test-equal 28 x))
       ;; 4.1.2
       (test-equal 'a (quote a))
       (test-equal '#(a b c) (quote #(a b c)))
@@ -91,8 +95,9 @@
       (test-equal 1 (if (> 3 2) (- 3 2) (+ 3 2)))
 
       ;; 4.1.6
-      (let ((x 2))
-	;;(define x 2)
+      (let ()
+	(define x 2)
+	(test-equal 3 (+ x 1))
 	(test-unspecified (set! x 4))
 	(test-equal 5 (+ x 1)))
 
@@ -102,7 +107,7 @@
       (test-equal 'equal (cond ((> 3 3) 'greater)
 			       ((< 3 3) 'less)
 			       (else 'equal)))
-      (test-equal '2 (cond ((assv 'b '((a 1) (b 2))) => cadr)
+      (test-equal 2 (cond ((assv 'b '((a 1) (b 2))) => cadr)
 			   (else #f)))
 
       (test-equal 'composite (case (* 2 3)
@@ -126,6 +131,9 @@
       (test-false (or #f #f #f))
       (test-equal '(b c) (or (memq 'b '(a b c)) (/ 3 0)))
 
+      (test-unspecified (unless (= 1 1.0)
+			  (display "1")
+			  (display "2")))
       ;; 4.2.2
       (test-equal 6 (let ((x 2) (y 3)) (* x y)))
       (test-equal 35 (let ((x 2) (y 3))
@@ -171,13 +179,12 @@
 				 (list a b x y))))
 
       ;; 4.2.3
-      (let ((x 0))
-	;;(define x 0)
+      (let ()
+	(define x 0)
 	(test-equal 6 (and (= x 0)
 			   (begin (set! x 5)
 				  (+ x 1)))))
-      
-
+ 
       ;; 4.2.4
       (test-equal #(0 1 2 3 4) (do ((vec (make-vector 5))
 				    (i 0 (+ i 1)))
@@ -208,6 +215,18 @@
       (test-equal "12" (f 12))
       (test-unspecified (radix 16))
       (test-error (parameterize ((radix 0)) (f 12)))
+
+      ;; 4.2.7
+      (test-equal 42
+		  (guard (condition
+			  ((assq 'a condition) => cdr)
+			  ((assq 'b condition)))
+		    (raise (list (cons 'a 42)))))
+      (test-equal '(b . 23)
+		  (guard (condition
+			  ((assq 'a condition) => cdr)
+			  ((assq 'b condition)))
+		    (raise (list (cons 'b 23)))))
 
       ;; 4.2.8
       (test-equal '(list 3 4) `(list ,(+ 1 2) 4))
@@ -307,9 +326,10 @@
       (test-true (eqv? 100000000 100000000))
       (test-false (eqv? (cons 1 2) (cons 1 2)))
       (test-false (eqv? (lambda () 1) (lambda () 2)))
-      (test-false (eqv? #f '()))
+      (test-false (eqv? #f 'nil))
 
-      (test-true (let ((g (gen-counter))) (eqv? g g)))
+      ;; this in unspecified
+      ;;(test-true (let ((g (gen-counter))) (eqv? g g)))
       (test-false (eqv? (gen-counter) (gen-counter)))
 
       (test-true (let ((g (gen-loser))) (eqv? g g)))
@@ -328,8 +348,8 @@
 		   (eq? x x)))
       (test-true (let ((x '#()))
 		   (eq? x x)))
-      (test-true (let ((p (lambda (x) x)))
-		   (eq? p p)))
+      ;; this is unspecified
+      ;;(test-true (let ((p (lambda (x) x))) (eq? p p)))
 
       (test-true (equal? 'a 'a))
       (test-true (equal? '(a) '(a)))
@@ -337,6 +357,7 @@
       (test-true (equal? "abc" "abc"))
       (test-true (equal? 2 2))
       (test-true (equal? (make-vector 5 'a) (make-vector 5 'a)))
+      (test-true (equal? '#1=(a b . #1#) '#2=(a b a b . #2#)))
       
       ;; 6.2.6
       (test-true (complex? 3+4i))
@@ -378,6 +399,17 @@
 
       (test-equal 7 (abs -7))
 
+      (test-values (floor/ 5 2) 2 1)
+      (test-values (floor/ -5 2) -3 1)
+      (test-values (floor/ 5 -2) -3 -1)
+      (test-values (floor/ -5 -2) 2 -1)
+
+      (test-values (truncate/ 5 2) 2 1)
+      (test-values (truncate/ -5 2) -2 -1)
+      (test-values (truncate/ 5 -2) -2 1)
+      (test-values (truncate/ -5 -2) 2 -1)
+      (test-values (truncate/ -5.0 -2) 2.0 -1.0)
+
       (test-exactness 1 exact? (modulo 13 4))
       (test-exactness 1 exact? (remainder 13 4))
       (test-exactness 3 exact? (modulo -13 4))
@@ -396,7 +428,7 @@
 
       (test-equal 3 (numerator (/ 6 4)))
       (test-equal 2 (denominator (/ 6 4)))
-      (test-equal 2.0 (denominator (exact->inexact (/ 6 4))))
+      (test-equal 2.0 (denominator (inexact (/ 6 4))))
 
       (test-exactness -5.0 inexact? (floor -4.3))
       (test-exactness -4.0 inexact? (ceiling -4.3))
@@ -409,8 +441,11 @@
       (test-exactness 4 exact? (round 7/2)) ; exact
       (test-exactness 7 exact? (round 7))
 
-      (test-exactness 1/3 exact? (rationalize (inexact->exact .3) 1/10))
+      (test-exactness 1/3 exact? (rationalize (exact .3) 1/10))
       (test-exactness #i1/3 inexact? (rationalize .3 1/10))
+
+      (test-exactness 1764 exact? (square 42))
+      (test-exactness 4.0 inexact? (square 2.0))
 
       (test-values (exact-integer-sqrt 4) 2 0)
       (test-values (exact-integer-sqrt 5) 2 1)
@@ -441,6 +476,10 @@
       (test-true (boolean? #f))
       (test-false (boolean? 0))
       (test-false (boolean? '()))
+
+      (test-true (boolean=? #t #t #t))
+      (test-false (boolean=? #t #t #f))
+      (test-error (boolean=? #t 'hoge #f))
 
       ;; 6.4
       (let ()
@@ -512,12 +551,12 @@
       (test-equal '((e (f)) d (b c) a) (reverse '(a (b c) d (e (f)))))
 
       (test-equal 'c (list-ref '(a b c d) 2))
-      (test-equal 'c (list-ref '(a b c d)
-			       (inexact->exact (round 1.8))))
+      (test-equal 'c (list-ref '(a b c d) (exact (round 1.8))))
 
       (test-equal '(one two three) (let ((ls (list 'one 'two 'five!)))
 				     (list-set! ls 2 'three)
 				     ls))
+
       ;; macro rewrites lists
       (let ((x '(0 1 2)))
 	(test-error (list-set! x 1 "oops")))
@@ -544,6 +583,13 @@
       (test-equal '(2 4) (assoc 2.0 '((1 1) (2 4) (3 9)) =))
       (test-equal '(5 7) (assv 5 '((2 3) (5 7) (11 13))))
 
+      (let ()
+	(define a '(1 8 2 8)) ; a may be immutable
+	(define b (list-copy a))
+	(set-car! b 3) ; b is mutable
+	(test-equal '(3 8 2 8) b)
+	(test-equal '(1 8 2 8) a))
+
       ;; 6.5
       (test-true (symbol? 'foo))
       (test-true (symbol? (car '(a b))))
@@ -551,6 +597,10 @@
       (test-true (symbol? 'nil))
       (test-false (symbol? '()))
       (test-false (symbol? #f))
+
+      (test-true (symbol=? 'a 'a 'a))
+      (test-false (symbol=? 'a 'b 'c))
+      (test-error (symbol=? 'a 'a "oops"))
 
       (test-equal "flying-fish" (symbol->string 'flying-fish))
       (test-equal "Martin" (symbol->string 'Martin))
@@ -573,6 +623,13 @@
 	(test-unspecified (string-set! (f) 0 #\?))
 	(test-error (string-set! (symbol->string 'immutable) 0 #\?)))
 
+      (let ()
+	(define a "12345")
+	(define b (string-copy "abcde"))
+	(string-copy! b 1 a 0 2)
+	(test-equal "a12de" b))
+
+
       ;; 6.8
       (test-equal 8 (vector-ref '#(1 1 2 3 5 8 13 21) 5))
       (test-equal '#(0 ("Sue" "Sue") "Anna")
@@ -589,7 +646,47 @@
       (test-equal '#(#\A #\B #\C) (string->vector "ABC"))
       (test-equal "123" (vector->string '#(#\1 #\2 #\3)))
 
+      (let ()
+	(define a #(1 8 2 8)) ; a may be immutable
+	(define b (vector-copy a))
+	(vector-set! b 0 3) ; b is mutable
+	(test-equal '#(3 8 2 8) b)
+	(let ()
+	  (define c (vector-copy b 1 3))
+	  (test-equal '#(8 2) c)))
+
+      (let ()
+	(define a (vector 1 2 3 4 5))
+	(define b (vector 10 20 30 40 50))
+	(test-unspecified (vector-copy! b 1 a 0 2))
+	(test-equal '#(10 1 2 40 50) b))
+
+      (let ()
+	(define a (vector 1 2 3 4 5))
+	(test-unspecified (vector-fill! a 'smash 2 4))
+	(test-equal '#(1 2 smash smash 5) a))
+
       ;; 6.9
+      (test-equal #u8(1 3 5 1 3 5) (bytevector 1 3 5 1 3 5))
+      (test-equal #u8() (bytevector))
+      (test-equal 8 (bytevector-u8-ref '#u8(1 1 2 3 5 8 13 21) 5))
+
+      (let ((bv (bytevector 1 2 3 4)))
+	(test-unspecified (bytevector-u8-set! bv 1 3))
+	(test-equal #u8(1 3 3 4) bv))
+
+      (let ()
+	(define a #u8(1 2 3 4 5))
+	(test-equal #u8(3 4) (bytevector-copy a 2 4)))
+
+      (let ()
+	(define a (bytevector 1 2 3 4 5))
+	(define b (bytevector 10 20 30 40 50))
+	(test-unspecified (bytevector-copy! b 1 a 0 2))
+	(test-equal #u8(10 1 2 40 50) b))
+
+      (test-equal #u8(0 1 2 3 4 5) (bytevector-append #u8(0 1 2) #u8(3 4 5)))
+
       (test-equal "A" (utf8->string #u8(#x41)))
       (test-equal #u8(#xCE #xBB) (string->utf8 "λ"))
 
@@ -676,7 +773,147 @@
 		      (if (< (length path) 4)
 			  (c 'talk2)
 			  (reverse path)))))
-      ;; 6.11
+      ;; 6.11		  
+
+      ;; inexacts
+      (test 4.0 (floor 4.3))
+      (test 5.0 (ceiling 4.3))
+      (test 4.0 (truncate 4.3))
+      (test 4.0 (round 4.3))
+      (test -5.0 (floor -4.3))
+      (test -4.0 (ceiling -4.3))
+      (test -4.0 (truncate -4.3))
+      (test -4.0 (round -4.3))
+      (test 3.0 (floor 3.5)) 
+      (test 4.0 (ceiling 3.5)) 
+      (test 3.0 (truncate 3.5)) 
+      (test 4.0 (round 3.5))
+      (test -4.0 (floor -3.5)) 
+      (test -3.0 (ceiling -3.5)) 
+      (test -3.0 (truncate -3.5)) 
+      (test -4.0 (round -3.5))
+      (test 3 (floor (/ 1300000000000000000000 400000000000000000000)))
+      (test 4 (ceiling (/ 1300000000000000000000 400000000000000000000)))
+      (test 3 (truncate (/ 1300000000000000000000 400000000000000000000)))
+      (test 3 (round (/ 1300000000000000000000 400000000000000000000)))
+      (test -4 (floor (/ -1300000000000000000000 400000000000000000000)))
+      (test -3 (ceiling (/ -1300000000000000000000 400000000000000000000)))
+      (test -3 (truncate (/ -1300000000000000000000 400000000000000000000)))
+      (test -3 (round (/ -1300000000000000000000 400000000000000000000)))
+      (test 650000000000000000000 (floor (/ 1300000000000000000001 2)))
+      (test 650000000000000000001 (ceiling (/ 1300000000000000000001 2)))
+      (test 650000000000000000000 (truncate (/ 1300000000000000000001 2)))
+      (test 650000000000000000000 (round (/ 1300000000000000000001 2)))
+      (test 650000000000000000001 (floor (/ 1300000000000000000003 2)))
+      (test 650000000000000000002 (ceiling (/ 1300000000000000000003 2)))
+      (test 650000000000000000001 (truncate (/ 1300000000000000000003 2)))
+      (test 650000000000000000002 (round (/ 1300000000000000000003 2)))
+      (test -650000000000000000001 (floor (/ -1300000000000000000001 2)))
+      (test -650000000000000000000 (ceiling (/ -1300000000000000000001 2)))
+      (test -650000000000000000000 (truncate (/ -1300000000000000000001 2)))
+      (test -650000000000000000000 (round (/ -1300000000000000000001 2)))
+      (test -650000000000000000002 (floor (/ -1300000000000000000003 2)))
+      (test -650000000000000000001 (ceiling (/ -1300000000000000000003 2)))
+      (test -650000000000000000001 (truncate (/ -1300000000000000000003 2)))
+      (test -650000000000000000002 (round (/ -1300000000000000000003 2)))
+      (test 4 (round 7/2))
+      (test 7 (round 7))
+      (test 0 (floor-quotient 0 4))
+      (test 0 (floor-quotient 0 -4))
+
+      (test 0 (floor-remainder 0 4))
+      (test 0 (floor-remainder 0 -4))
+
+      (test 0 (truncate-quotient 0 4))
+      (test 0 (truncate-quotient 0 -4))
+
+      (test 0 (truncate-remainder 0 4))
+      (test 0 (truncate-remainder 0 -4))
+
+      (test 13 (floor-quotient 13 1))
+      (test -13 (floor-quotient -13 1))
+
+      (test 0 (floor-remainder 13 1))
+      (test 0 (floor-remainder -13 1))
+
+      (test 13 (truncate-quotient 13 1))
+      (test -13 (truncate-quotient -13 1))
+
+      (test 0 (truncate-remainder 13 1))
+      (test 0 (truncate-remainder -13 1))
+
+      ;; Floor rounds towards negative infinity.
+
+      (test 3 (floor-quotient 13 4))
+      (test -4 (floor-quotient -13 4))
+      (test -4 (floor-quotient 13 -4))
+      (test 3 (floor-quotient -13 -4))
+
+      (test 1 (floor-remainder 13 4))
+      (test 3 (floor-remainder -13 4))
+      (test -3 (floor-remainder 13 -4))
+      (test -1 (floor-remainder -13 -4))
+      ;; Truncate rounds towards zero - the magnitudes never change
+      ;; regardless of the signs.
+
+      (test 3 (truncate-quotient 13 4))
+      (test -3 (truncate-quotient -13 4))
+      (test -3 (truncate-quotient 13 -4))
+      (test 3 (truncate-quotient -13 -4))
+
+      (test 1 (truncate-remainder 13 4))
+      (test -1 (truncate-remainder -13 4))
+      (test 1 (truncate-remainder 13 -4))
+      (test -1 (truncate-remainder -13 -4))
+
+      (test 6 (floor-quotient 13 2))
+      (test -7 (floor-quotient -13 2))
+      (test -7 (floor-quotient 13 -2))
+      (test 6 (floor-quotient -13 -2))
+
+      (test 1 (floor-remainder 13 2))
+      (test 1 (floor-remainder -13 2))
+      (test -1 (floor-remainder 13 -2))
+      (test -1 (floor-remainder -13 -2))
+
+      (test 6 (truncate-quotient 13 2))
+      (test -6 (truncate-quotient -13 2))
+      (test -6 (truncate-quotient 13 -2))
+      (test 6 (truncate-quotient -13 -2))
+
+      (test 1 (truncate-remainder 13 2))
+      (test -1 (truncate-remainder -13 2))
+      (test 1 (truncate-remainder 13 -2))
+      (test -1 (truncate-remainder -13 -2))
+
+      (test 3 (floor-quotient 1300000000000000000000 400000000000000000000))
+      (test -4 (floor-quotient -1300000000000000000000 400000000000000000000))
+      (test -4 (floor-quotient 1300000000000000000000 -400000000000000000000))
+      (test 3 (floor-quotient -1300000000000000000000 -400000000000000000000))
+
+      (test 100000000000000000000
+	    (floor-remainder 1300000000000000000000 400000000000000000000))
+      (test 300000000000000000000
+	    (floor-remainder -1300000000000000000000 400000000000000000000))
+      (test -300000000000000000000
+	    (floor-remainder 1300000000000000000000 -400000000000000000000))
+      (test -100000000000000000000
+	    (floor-remainder -1300000000000000000000 -400000000000000000000))
+
+      (test 3 (truncate-quotient 1300000000000000000000 400000000000000000000))
+      (test -3 (truncate-quotient -1300000000000000000000 400000000000000000000))
+      (test -3 (truncate-quotient 1300000000000000000000 -400000000000000000000))
+      (test 3 (truncate-quotient -1300000000000000000000 -400000000000000000000))
+
+      (test 100000000000000000000
+	    (truncate-remainder 1300000000000000000000 400000000000000000000))
+      (test -100000000000000000000
+	    (truncate-remainder -1300000000000000000000 400000000000000000000))
+      (test 100000000000000000000
+	    (truncate-remainder 1300000000000000000000 -400000000000000000000))
+      (test -100000000000000000000
+	    (truncate-remainder -1300000000000000000000 -400000000000000000000))
+
       )
     )
 )

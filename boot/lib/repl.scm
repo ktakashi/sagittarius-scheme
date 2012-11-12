@@ -10,7 +10,8 @@
 	    default-evaluator
 	    default-printer
 	    default-reader
-	    default-prompter)
+	    default-prompter
+	    interactive-environment)
     (import null
 	    (core base)
 	    (core errors)
@@ -94,14 +95,17 @@
 	       'current-prompter
 	       (format "expected procedure or #f, but got ~s" x)))))))
 
-  (define (read-eval-print-loop)
-    ;; initialize env
-    (define interactive-environment
-      (environment 'null ;; for syntax import.
-		   '(core base)
-		   '(sagittarius)
-		   '(rnrs)))
+  ;; initialise env
+  (define interactive-environment
+    (let ((env #f))
+      (lambda ()
+	(unless env (set! env (environment 'null ;; for syntax import.
+					   '(core base)
+					   '(sagittarius)
+					   '(rnrs))))
+	env)))
 
+  (define (read-eval-print-loop)
     (let ((plugged (getenv "EMACS")))
       ;; load resource file
       (when (file-exists? +resource-file+)
@@ -110,7 +114,7 @@
 	 (lambda (p)
 	   (let loop ((form (read/ss p)))
 	     (unless (eof-object? form)
-	       ((current-evaluator) form interactive-environment)
+	       ((current-evaluator) form (interactive-environment))
 	       (loop (read/ss p)))))))
       (let loop ()
 	(call-with-current-continuation
@@ -126,7 +130,8 @@
 	       (let ((form ((current-reader) (current-input-port))))
 		 (and (eof-object? form) (exit 0))
 		 (and plugged (flush-output-port (current-output-port)))
-		 (receive ans ((current-evaluator) form interactive-environment)
+		 (receive ans ((current-evaluator) form 
+			       (interactive-environment))
 		   (apply (current-printer) ans)
 		   (flush-output-port (current-output-port))))))))
 	(loop))))
