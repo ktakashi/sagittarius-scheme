@@ -29,7 +29,7 @@
 ;;;  
 
 ;; The API's names are from Gauche
-#<(sagittarius regex)>
+#!read-macro=sagittarius/regex
 (library (util file)
     (export file->list
 	    file->string
@@ -49,6 +49,9 @@
 	    create-directory*
 	    copy-directory
 	    build-path*
+
+	    null-device
+	    ;;console-device
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -301,4 +304,15 @@
 	 (receive (f l) (split-at paths (- len 1))
 	   (let ((r (fold-right build-path "" f)))
 	     (build-path r (car l))))))))
+
+  (define (null-device)
+    (cond-expand
+     (windows "NUL")
+     (else "/dev/null")))
+
+;;   (define (console-device)
+;;     (cond-expand
+;;      (windows "CON")
+;;      (else "/dev/tty")))
+
 )

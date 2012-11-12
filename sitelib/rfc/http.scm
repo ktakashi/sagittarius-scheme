@@ -28,7 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-#<(sagittarius regex)>
+#!read-macro=sagittarius/regex
 (library (rfc http)
     (export &http-error
 	    http-error?
@@ -55,6 +55,7 @@
 	    http-string-sender
 	    ;; receiver
 	    http-string-receiver
+	    http-null-receiver
 	    http-oport-receiver
 	    http-file-receiver
 	    http-cond-receiver
@@ -69,7 +70,6 @@
 	    (sagittarius regex)
 	    (sagittarius socket)
 	    (sagittarius control)
-	    (sagittarius partcont)
 	    (clos user)
 	    (srfi :1 lists)
 	    (srfi :2 and-let*)
@@ -320,48 +320,58 @@
 				  line))))
 
   (define (receive-body remote code headers receiver)
-    (let* ((total (and-let* ((p (assoc "content-length" headers)))
-		    (string->number (cadr p))))
-	   (handler (reset (receiver code headers total 
-				     (lambda () (shift k k))))))
+    (let1 total (and-let* ((p (assoc "content-length" headers)))
+		  (string->number (cadr p)))
       (cond ((assoc "transfer-encoding" headers)
 	     => (lambda (p)
-		  (unless (equal? (cadr p) "chunked")
-		    (raise-http-error 'receive-body
-				      "unsupported transfer-encoding"
-				      (cadr p)))
-		  (receive-body-chunked remote handler)))
-	    (total
-	     (when (> total 0) (set! handler (handler remote total)))
-	     (handler remote 0))
-	    (else
-	     ;; length is unknown
-	     (set! handler (handler remote #f))
-	     (handler remote 0)))))
+		  (if (equal? (cadr p) "chunked")
+		      (receive-body-chunked remote code headers total receiver)
+		      (raise-http-error 'receive-body
+					"unsupported transfer-encoding"
+					(cadr p)))))
+	    (else (receive-body-once remote code headers total receiver)))))
 
-  (define (receive-body-chunked remote handler)
-    (guard (e (else (handler remote -1) (raise e)))
-      (let loop ((line (get-line remote)))
-	(when (eof-object? line)
-	  (raise-http-error 'receive-body-chunked
-			    "chunked body ended prematurely"))
-	(cond ((#/^([0-9a-fA-F]+)/ line)
-	       => (lambda (m)
-		    (let* ((digits (m 1))
-			   (chunk-size (string->number digits 16)))
-		      (if (zero? chunk-size)
-			  (do ((line (get-line remote) (get-line remote)))
-			      ((or (eof-object? line) (string-null? line))
-			       (handler remote 0)))
-			  (begin
-			    (set! handler (handler remote chunk-size))
-			    (get-line remote) ; skip the following CRLF
-			    (loop (get-line remote)))))))
-	      (else
-	       ;; something is wrong
-	       (raise-http-error 'receive-body-chunked
-				 "bad line in chunked data"
-				 line))))))
+  (define (receive-body-once remote code headers total receiver)
+    (let1 rest total
+      (define (callback)
+	(if (equal? rest 0)
+	    (values remote 0)
+	    (begin (set! rest 0) (values remote total))))
+      (receiver code headers total callback)))
+
+  (define (receive-body-chunked remote code headers total receiver)
+    (define chunk-size #f)
+    (define condition #f)
+    (define (callback)
+      (if (equal? chunk-size 0)
+	  (values remote 0)
+	  ;; If we get an error during receiving from the server, we need
+	  ;; to return -1 to give the chance to the receiver to clean up
+	  ;; things. After the receiver returns we reraise the condition.
+	  (guard (e (else (set! condition e) (values remote -1)))
+	    ;; If we've already handled some chunks, we need to skip
+	    ;; the tailing CRLF of the previous chunk
+	    (when chunk-size (get-line remote))
+	    (let1 line (get-line remote)
+	      (when (eof-object? line)
+		(raise-http-error 'receive-body-chunked
+				  "chunked body ended prematurely"))
+	      (cond ((#/^([0-9a-fA-F]+)/ line)
+		     => (lambda (m)
+			  (let1 digits (m 1)
+			    (set! chunk-size (string->number digits 16))
+			    (if (zero? chunk-size)
+				(do ((line (get-line remote) (get-line remote)))
+				    ((or (eof-object? line) (string-null? line))
+				     (values remote 0)))
+				(values remote chunk-size)))))
+		    (else
+		     ;; something is wrong
+		     (raise-http-error 'receive-body-chunked
+				       "bad line in chunked data"
+				       line)))))))
+    (begin0 (receiver code headers total callback)
+      (when condition raise condition)))
 
 	
   (define (lookup-encoding hdrs)
@@ -380,12 +390,21 @@
     (lambda (code hdrs total retr)
       (let loop ((sink (open-output-bytevector)))
 	(receive (remote size) (retr)
-	  (cond ((eqv? size 0) 
+	  (cond ((eqv? size 0)
 		 (bytevector->string (get-output-bytevector sink)
 				     (make-transcoder (lookup-encoding hdrs))))
 		((or (not size) (> size 0))
 		 (copy-binary-port sink remote :size size)
 		 (loop sink)))))))
+
+  (define (http-null-receiver)
+    (lambda (code hdrs total retr)
+      (let loop ((sink (open-file-output-port (null-device)
+					      (file-options no-fail))))
+	(receive (remote size) (retr)
+	  (cond ((and size (<= size)) (close-output-port sink))
+		(else (copy-binary-port remote sink :size size)
+		      (loop sink)))))))
 
   ;; sink must be binary-port
   (define (http-oport-receiver sink flusher)
