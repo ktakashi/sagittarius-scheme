@@ -2257,20 +2257,24 @@
 					  ,proc))))
 
   (define-c-proc make-custom-binary-input-port
-    (id::<string> read::<procedure> getter setter close)
+    (id::<string> read::<procedure> getter setter close
+		  :optional (ready #f))
     (check-procedure-or-false make-custom-binary-input-port getter)
     (check-procedure-or-false make-custom-binary-input-port setter)
     (check-procedure-or-false make-custom-binary-input-port close)
+    (check-procedure-or-false make-custom-binary-input-port ready)
     (result (Sg_MakeCustomBinaryPort id SG_INPUT_PORT read SG_FALSE
-				     getter setter close)))
+				     getter setter close ready)))
 
   (define-c-proc make-custom-textual-input-port
-    (id::<string> read::<procedure> getter setter close)
+    (id::<string> read::<procedure> getter setter close
+		  :optional (ready #f))
     (check-procedure-or-false make-custom-textual-input-port getter)
     (check-procedure-or-false make-custom-textual-input-port setter)
     (check-procedure-or-false make-custom-textual-input-port close)
+    (check-procedure-or-false make-custom-textual-input-port ready)
     (result (Sg_MakeCustomTextualPort id SG_INPUT_PORT read SG_FALSE
-				      getter setter close)))
+				      getter setter close ready)))
 
   ;; 8.2.8 binary input
   (decl-code
@@ -2617,23 +2621,24 @@
 	    (result SG_UNDEF)))))
 
   (define-c-proc make-custom-binary-output-port
-    (id::<string> write::<procedure> getter setter close) ::<top>
+    (id::<string> write::<procedure> getter setter close)
     (check-procedure-or-false make-custom-binary-output-port getter)
     (check-procedure-or-false make-custom-binary-output-port setter)
     (check-procedure-or-false make-custom-binary-output-port close)
     (result (Sg_MakeCustomBinaryPort id SG_OUTPUT_PORT SG_FALSE write
-				     getter setter close)))
+				     getter setter close SG_FALSE)))
 
   (define-c-proc make-custom-textual-output-port
-    (id::<string> write::<procedure> getter setter close) ::<top>
+    (id::<string> write::<procedure> getter setter close)
     (check-procedure-or-false make-custom-textual-output-port getter)
     (check-procedure-or-false make-custom-textual-output-port setter)
     (check-procedure-or-false make-custom-textual-output-port close)
     (result (Sg_MakeCustomTextualPort id SG_OUTPUT_PORT SG_FALSE write
-				      getter setter close)))
+				      getter setter close SG_FALSE)))
 
   ;; 8.2.11 binary output
-  (define-c-proc put-u8 (p::<port> octet::<fixnum> :optional (reckless #f)) ::<void>
+  (define-c-proc put-u8 (p::<port> octet::<fixnum> :optional (reckless #f))
+    ::<void>
     (check-port-open put-u8 p)
     (when (SG_FALSEP reckless)
       (check-binary-port put-u8 p))
@@ -2755,20 +2760,24 @@
 		     (result (Sg_MakeTranscodedInputOutputPort out transcoder)))))))))
 
   (define-c-proc make-custom-binary-input/output-port
-    (id::<string> read::<procedure> write::<procedure> getter setter close) ::<top>
+    (id::<string> read::<procedure> write::<procedure> getter setter close
+		  :optional (ready #f))
     (check-procedure-or-false make-custom-binary-input/output-port getter)
     (check-procedure-or-false make-custom-binary-input/output-port setter)
     (check-procedure-or-false make-custom-binary-input/output-port close)
+    (check-procedure-or-false make-custom-binary-input/output-port ready)
     (result (Sg_MakeCustomBinaryPort id SG_IN_OUT_PORT read write
-				     getter setter close)))
+				     getter setter close ready)))
 
   (define-c-proc make-custom-textual-input/output-port
-    (id::<string> read::<procedure> write::<procedure> getter setter close) ::<top>
+    (id::<string> read::<procedure> write::<procedure> getter setter close
+		  :optional (ready #f))
     (check-procedure-or-false make-custom-textual-input/output-port getter)
     (check-procedure-or-false make-custom-textual-input/output-port setter)
     (check-procedure-or-false make-custom-textual-input/output-port close)
+    (check-procedure-or-false make-custom-textual-input/output-port ready)
     (result (Sg_MakeCustomTextualPort id SG_IN_OUT_PORT read write
-				      getter setter close)))
+				      getter setter close ready)))
 
   ;; 8.3 simple i/o
   (define-c-proc close-input-port (p::<port>) ::<void>

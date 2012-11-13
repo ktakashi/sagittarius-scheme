@@ -265,7 +265,8 @@ behaviour of the format directive. Those flags must be placed immediately
 before the directive character.
 
 The following complete list of the supported directives. Either upper case or
-lower case character can be used for the format directive; usually they have no distinction, except noted.
+lower case character can be used for the format directive; usually they have no
+distinction, except noted.
 
 @dl-list[
 @dl-item[@string{~@var{mincol},@var{colinc},@var{minpad},@var{padchar},@var{maxcol}@b{A}}]{
@@ -352,6 +353,21 @@ parameters and flags are the same as the @b{~D} directive.
 ]
 Note: The format procedure's implementation and most of documentation is quoted
 from Gauche.
+}
+
+@define[Function]{@name{port-ready?}
+ @args{:optional (port (current-input-port))}}
+@desc{Returns #t when port data are ready, otherwise #f.
+
+If the given @var{port} implementation does not support this functionality,
+the return value will be always #t. Following example describes when this
+always returns #t;
+@codeblock[=> #t]{
+;; Assume read! is provided.
+(define user-port (make-custom-binary-input-port "my-port" read! #f #f))
+(port-ready user-port)
+}
+
 }
 
 @define[Function]{@name{make-codec} @args{symbol getc putc data}}

@@ -95,14 +95,14 @@ typedef struct SgBinaryPortRec
 
 typedef struct SgTextualPortRec
 {
-  int      (*getLineNo)(SgObject);
-  SgChar   (*getChar)(SgObject);
-  SgChar   (*lookAheadChar)(SgObject);
-  void     (*unGetChar)(SgObject, SgChar);
-  void     (*putChar)(SgObject, SgChar);
-  int64_t  (*getString)(SgObject, SgChar *, int64_t);
-  int64_t  (*putString)(SgObject, SgChar *, int64_t);
-  int      type;
+  int     (*getLineNo)(SgObject);
+  SgChar  (*getChar)(SgObject);
+  SgChar  (*lookAheadChar)(SgObject);
+  void    (*unGetChar)(SgObject, SgChar);
+  void    (*putChar)(SgObject, SgChar);
+  int64_t (*getString)(SgObject, SgChar *, int64_t);
+  int64_t (*putString)(SgObject, SgChar *, int64_t);
+  int     type;
   /* 
      for string port
      it's better to be union
@@ -146,6 +146,7 @@ typedef struct SgCustomPortRec
   SgObject  read;		/* read */
   /* for output port */
   SgObject  write;		/* write */
+  SgObject  ready;		/* u8 or char ready */
 
   /* custom port utility */
   int       type;		/* port type: binary or textual */
@@ -184,6 +185,7 @@ struct SgPortRec
   /* common methods */
   void (*flush)(SgObject);
   int  (*close)(SgObject);
+  int  (*ready)(SgObject);
 
   union {
     SgBinaryPort  *bport;
@@ -306,14 +308,16 @@ SG_EXTERN SgObject Sg_MakeCustomBinaryPort(SgString *id,
 					   SgObject write,
 					   SgObject getPosition,
 					   SgObject setPosition,
-					   SgObject close);
+					   SgObject close,
+					   SgObject ready);
 SG_EXTERN SgObject Sg_MakeCustomTextualPort(SgString *id,
 					    int direction,
 					    SgObject read,
 					    SgObject write,
 					    SgObject getPosition,
 					    SgObject setPosition,
-					    SgObject close);
+					    SgObject close,
+					    SgObject ready);
 
 SG_EXTERN uint8_t* Sg_GetByteArrayFromBinaryPort(SgPort *port);
 SG_EXTERN SgObject Sg_GetByteVectorFromBinaryPort(SgPort *port);
@@ -331,6 +335,7 @@ SG_EXTERN SgObject Sg_StandardErrorPort();
 SG_EXTERN SgObject Sg_PortTranscoder(SgObject port);
 
 /* utility methods */
+SG_EXTERN int      Sg_PortReady(SgPort *port);
 SG_EXTERN int      Sg_UTF16ConsolePortP(SgPort *port);
 SG_EXTERN void     Sg_FlushPort(SgPort *port);
 SG_EXTERN void     Sg_FlushAllPort(int exitting);

@@ -6,10 +6,10 @@
 
 @subsubsection{Encoding procedures}
 
-@define[Function]{@name{base64-encode} @args{bv :key (line-width 76)}}
-@desc{@var{bv} must be a bytevector.
+@define[Function]{@name{base64-encode} @args{in :key (line-width 76)}}
+@desc{@var{in} must be a bytevector or binary input port.
 
-Encodes given bytevector to Base 64 encoded bytevector.
+Encodes given input @var{in} to Base 64 encoded bytevector.
 
 The keyword argument @var{line-width} specifies where the encode procedure
 should put linefeed. If this is less than 1 or #f, encoder does not put
@@ -29,10 +29,10 @@ procedure.
 
 @subsubsection{Decoding procedures}
 
-@define[Function]{@name{base64-decode} @args{bv}}
-@desc{@var{bv} must be a bytevector.
+@define[Function]{@name{base64-decode} @args{in}}
+@desc{@var{in} must be a bytevector or binary input port.
 
-Decode Base 64 encoded bytevector to original bytevector.
+Decode Base 64 encoded input @var{in} to original bytevector.
 }
 
 @define[Function]{@name{base64-decode-string}

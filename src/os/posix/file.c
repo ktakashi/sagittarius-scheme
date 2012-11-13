@@ -32,6 +32,8 @@
 #include <string.h>
 #include <sys/param.h>
 #include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
@@ -168,7 +170,7 @@ static int64_t posix_read(SgObject self, uint8_t *buf, int64_t size)
   if (result < 0) {
     /* TODO this must be &io/error */
     SgObject err = get_last_error_message(self);
-    Sg_Error(UC("io/error: read, %S"), err);
+    Sg_IOReadError(SG_INTERN("file reader"), err, self);
   }
   return result;
 }
@@ -182,9 +184,8 @@ static int64_t posix_write(SgObject self, uint8_t *buf, int64_t size)
   } while (result < 0 && errno == EINTR);
   setLastError(self);
   if (result < 0) {
-    /* TODO this must be &io/error */
     SgObject err = get_last_error_message(self);
-    Sg_Error(UC("io/error: write, %S"), err);
+    Sg_IOWriteError(SG_INTERN("file writer"), err, self);
   }
   return result;
 }
@@ -199,6 +200,30 @@ static int64_t posix_size(SgObject self)
   } else {
     return st.st_size;
   }
+}
+
+static int posix_ready(SgObject self)
+{
+#ifdef HAVE_SELECT
+  struct timeval tm = {0 , 0};
+  fd_set fds;
+  int state;
+  FD_ZERO(&fds);
+  FD_SET(SG_FD(self)->fd, &fds);
+  state = select(SG_FD(self)->fd + 1, &fds, NULL, NULL, &tm);
+  if (state < 0) {
+    SgObject err;
+    if (errno == EINTR) return FALSE;
+    setLastError(self);
+    err = get_last_error_message(self);
+    Sg_IOError(-1, SG_INTERN("file ready"), err, self, self);
+    return FALSE;
+  }
+  return (state != 0);
+#else
+  /* default true */
+  return TRUE;
+#endif  
 }
 
 static SgFile* make_file(int handle)
@@ -217,6 +242,7 @@ static SgFile* make_file(int handle)
   file->open = posix_open;
   file->close = posix_close;
   file->canClose = posix_can_close;
+  file->ready = posix_ready;
   return file;
 }
 

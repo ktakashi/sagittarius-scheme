@@ -393,9 +393,9 @@ static int blob_can_close(SgObject self)
   return FALSE;
 }
 
-static int blob_utf16_console(SgObject self)
+static int blob_ready(SgObject self)
 {
-  return FALSE;
+  return TRUE;
 }
 
 static SgFile * make_blob_file(blob_data_t *data)
@@ -414,7 +414,7 @@ static SgFile * make_blob_file(blob_data_t *data)
   z->open = blob_open;
   z->close = blob_close;
   z->canClose = blob_can_close;
-  z->isUTF16Console = blob_utf16_console;
+  z->ready = blob_ready;
   return z;
 }
 

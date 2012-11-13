@@ -487,7 +487,8 @@
 					  "opened port"
 					  ,p))))
 
-  (define-c-proc write/ss (o :optional (p::<port> (Sg_CurrentOutputPort))) ::<void>
+  (define-c-proc write/ss (o :optional (p::<port> (Sg_CurrentOutputPort)))
+    ::<void>
     (check-port-open write/ss p)
     (check-output-port write/ss p)
     (Sg_Write o p SG_WRITE_SHARED))
@@ -554,10 +555,10 @@
 	     (Sg_Format out p rest TRUE)
 	     (result (Sg_GetStringFromStringPort out))))))
 
-  (define-c-proc make-codec (name::<symbol> g::<procedure> p::<procedure> data) ::<top>
+  (define-c-proc make-codec (name::<symbol> g::<procedure> p::<procedure> data)
     (result (Sg_MakeCustomCodecSimple name g p data)))
 
-  (define-c-proc port-info (p::<port>) ::<top>
+  (define-c-proc port-info (p::<port>)
     (let ((file (Sg_FileName p))
 	  (line #f)
 	  (pos #f))
@@ -569,7 +570,6 @@
 
   (define-c-proc read-with-case (p::<port> insensitiveP::<boolean>
 					 :optional (sharedP #f))
-    ::<top>
     (check-port-open read-with-case p)
     (check-input-port read-with-case p)
     (result (Sg_ReadWithCase p insensitiveP (not (SG_FALSEP sharedP)))))
@@ -605,8 +605,7 @@
 	   (set! (SG_TRANSCODED_PORT_BUFFER p) EOF))))
   
   ;; these functions are for open-string-output-port
-  (define-c-proc open-output-string () ::<top>
-    (result (Sg_MakeStringOutputPort 32)))
+  (define-c-proc open-output-string () (result (Sg_MakeStringOutputPort 32)))
 
   (define-cise-stmt check-textual-port
     ((_ name p)
@@ -615,7 +614,8 @@
 		       (SG_EQ (-> (SG_CUSTOM_PORT ,p) type)
 			      SG_TEXTUAL_CUSTOM_PORT_TYPE)))
 	(wrong-type-of-argument-violation ',name "textual-port" ,p))))
-  (define-c-proc get-output-string (p::<port>) ::<top>
+
+  (define-c-proc get-output-string (p::<port>)
     (check-port-open get-output-string p)
     (check-output-port get-output-string p)
     (check-textual-port get-output-string p)
@@ -630,6 +630,11 @@
     (set! (ref (pointer (SG_TEXTUAL_PORT p)) src ostr current)
 	  (ref (pointer (SG_TEXTUAL_PORT p)) src ostr start))
     )
+
+  ;; we don't check the port type
+  (define-c-proc port-ready? (:optional (p (Sg_CurrentInputPort))) ::<boolean>
+    (check-input-port port-ready? p)
+    (result (Sg_PortReady p)))
 
   ;; profiler
   (define-c-proc profiler-start () ::<void>

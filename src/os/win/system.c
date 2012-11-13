@@ -86,27 +86,40 @@ SgObject Sg_GetLastErrorMessageWithErrorCode(int code)
 
 static int get_env(const SgChar *env, wchar_t *buf, int size)
 {
-  SgString *s = Sg_MakeString(env, SG_LITERAL_STRING);
+  SgString *s = Sg_MakeString(env, SG_HEAP_STRING);
   int envsize = GetEnvironmentVariableW(utf32ToUtf16(s), buf, size);
-  if (envsize == 0 || envsize > size) {
-    return FALSE;
+  if (envsize == 0) return -1;
+  else if (envsize > size) {
+    return envsize;
+  } else {
+    return 0;
   }
-  return TRUE;
 }
 
 SgObject Sg_Getenv(const SgChar *env)
 {
-  wchar_t value[VALUE_SIZE];
-  if (get_env(env, value, VALUE_SIZE) != 0)
-    return utf16ToUtf32(value);
-  else
+  wchar_t value[VALUE_SIZE], *buf;
+  int r, size = VALUE_SIZE, retried = FALSE;
+  buf = value;
+ retry:
+  r = get_env(env, buf, size);
+  if (r == 0) {
+    return utf16ToUtf32(buf);
+  } else if (r > 0) {
+    if (retried) return SG_FALSE; /* something is wrong */
+    buf = SG_NEW_ATOMIC2(wchar_t *, r);
+    size = r;
+    retried = TRUE;
+    goto retry;
+  } else {
     return SG_FALSE;
+  }
 }
 
 void Sg_Setenv(const SgChar *env, const SgChar *value)
 {
-  SgString *s = Sg_MakeString(env, SG_LITERAL_STRING);
-  SgString *v = Sg_MakeString(value, SG_LITERAL_STRING);
+  SgString *s = Sg_MakeString(env, SG_HEAP_STRING);
+  SgString *v = Sg_MakeString(value, SG_HEAP_STRING);
   SetEnvironmentVariableW(utf32ToUtf16(s), 
 			  (value) ? utf32ToUtf16(v) : NULL);
 }
@@ -140,10 +153,10 @@ SgObject Sg_GetTemporaryDirectory()
   wchar_t value[MAX_PATH], buf[50] = {0};
   int length;
   size_t ret;
-#define find_env(e)					\
-  do {							\
-    length = get_env(UC(e), value, MAX_PATH);		\
-    if (PathIsDirectoryW(value)) goto next;		\
+#define find_env(e)						\
+  do {								\
+    length = get_env(UC(e), value, MAX_PATH);			\
+    if (length == 0 && PathIsDirectoryW(value)) goto next;	\
   } while (0)
 
   find_env("SAGITTARIUS_CACHE_DIR");
