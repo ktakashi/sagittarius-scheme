@@ -357,7 +357,18 @@ from Gauche.
 
 @define[Function]{@name{port-ready?}
  @args{:optional (port (current-input-port))}}
-@desc{Returns #t when port data are ready, otherwise #f.}
+@desc{Returns #t when port data are ready, otherwise #f.
+
+If the given @var{port} implementation does not support this functionality,
+the return value will be always #t. Following example describes when this
+always returns #t;
+@codeblock[=> #t]{
+;; Assume read! is provided.
+(define user-port (make-custom-binary-input-port "my-port" read! #f #f))
+(port-ready user-port)
+}
+
+}
 
 @define[Function]{@name{make-codec} @args{symbol getc putc data}}
 @desc{Creates a custom codec. @var{Symbol} is the name of the codec. @var{Getc}
