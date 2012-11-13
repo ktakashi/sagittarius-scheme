@@ -50,8 +50,10 @@ struct SgFileRec
   SG_HEADER;
   void         *osdependance; /* this will be defined in os depends file */
   const SgChar *name;	    /* file name */
-  int64_t (*read)(SgObject self, uint8_t *buf, int64_t size); /* read contents */
-  int64_t (*write)(SgObject self, uint8_t *buf, int64_t size); /* write buffer to file */
+  /* read contents */
+  int64_t (*read)(SgObject self, uint8_t *buf, int64_t size);
+  /* write buffer to file */
+  int64_t (*write)(SgObject self, uint8_t *buf, int64_t size);
   int64_t (*seek)(SgObject self, int64_t offset, Whence whence); /* seek */
   int64_t (*tell)(SgObject self);
   int64_t (*size)(SgObject self);
@@ -59,7 +61,7 @@ struct SgFileRec
   int     (*open)(SgObject self, const SgChar* path, int flags);
   int     (*close)(SgObject self);
   int     (*canClose)(SgObject self); /* for port close */
-  int     (*isUTF16Console)(SgObject self); /*  check if this file object is UTF16 console */
+  int     (*ready)(SgObject self);
 };
 
 #define SG_FILEP(obj) SG_XTYPEP(obj, SG_CLASS_FILE)

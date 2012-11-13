@@ -337,6 +337,15 @@ static int file_close(SgObject self)
   return SG_PORT(self)->closed;
 }
 
+static int file_ready(SgObject self)
+{
+  if (SG_PORT_FILE(self)->ready) {
+    return SG_PORT_FILE(self)->ready(SG_PORT_FILE(self));
+  } else {
+    return TRUE;
+  }
+}
+
 static void file_flush_internal(SgObject self)
 {
   uint8_t *buf = SG_BINARY_PORT(self)->buffer;
@@ -582,6 +591,7 @@ SgObject Sg_MakeFileBinaryInputPort(SgFile *file, int bufferMode)
   z->closed = FALSE;
   z->flush = NULL;
   z->close = file_close;
+  z->ready = file_ready;
   /* set binary input port */
   z->impl.bport = b;
   /* initialize binary input port */
@@ -703,6 +713,7 @@ SgObject Sg_MakeFileBinaryOutputPort(SgFile *file, int bufferMode)
   z->closed = FALSE;
   z->flush = file_flush_internal; /* TODO rename. */
   z->close = file_close;
+  z->ready = file_ready;
 
   b->src.file = file;
   b->open = file_open;
@@ -738,6 +749,8 @@ SgObject Sg_MakeFileBinaryInputOutputPort(SgFile *file, int bufferMode)
   z->closed = FALSE;
   z->flush = file_flush;
   z->close = file_close;
+  z->ready = file_ready;
+
   z->impl.bport = b;
 
   b->src.file = file;
@@ -835,6 +848,7 @@ SgObject Sg_MakeByteVectorInputPort(SgByteVector *bv, int offset)
   z->closed = FALSE;
   z->flush = NULL;
   z->close = byte_array_close;
+  z->ready = NULL;		/* it must be always ready */
   /* initialize binary input port */
   b->src.buffer.bvec = bv;
   b->src.buffer.index = offset;
@@ -860,6 +874,7 @@ SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size)
   z->closed = FALSE;
   z->flush = NULL;
   z->close = byte_array_close;
+  z->ready = NULL;
   /* initialize binary input port */
   b->src.buffer.bvec = SG_BVECTOR(Sg_MakeByteVectorFromU8Array(src, (int)size));
   b->src.buffer.index = 0;
@@ -921,6 +936,7 @@ SgObject Sg_MakeByteArrayOutputPort(int size)
   z->closed = FALSE;
   z->flush = flush_byte_array;
   z->close = obyte_array_close;
+  z->ready = NULL;
   /* initialize binary output port */
   b->src.obuf.start = b->src.obuf.current = SG_NEW(byte_buffer);
   b->open = byte_array_open;
@@ -992,8 +1008,9 @@ static SgChar lookAheadChar(SgObject self)
 }
 
 /* useful macro for transcoded port */
-#define SG_TPORT_TRANSCODER(obj) (SG_TEXTUAL_PORT(obj)->src.transcoded.transcoder)
-#define SG_TPORT_PORT(obj)       (SG_TEXTUAL_PORT(obj)->src.transcoded.port)
+#define SG_TPORT_TRANSCODER(obj)			\
+  (SG_TEXTUAL_PORT(obj)->src.transcoded.transcoder)
+#define SG_TPORT_PORT(obj) (SG_TEXTUAL_PORT(obj)->src.transcoded.port)
 
 static int transGetLineNo(SgObject self)
 {
@@ -1047,6 +1064,19 @@ static int transClose(SgObject self)
   return SG_TPORT_PORT(self)->close(SG_TPORT_PORT(self));
 }
 
+static int trans_ready(SgObject self)
+{
+  /* FIXME the implementation of char-ready is sort of broken.
+     it's because we can't check if those bytes are really correct for
+     unicode characters. */
+  SgPort *bp = SG_TPORT_PORT(self);
+  if (SG_PORT(bp)->ready) {
+    return SG_PORT(bp)->ready(bp);
+  } else {
+    return TRUE;
+  }
+}
+
 SgObject Sg_MakeTranscodedInputPort(SgPort *port, SgTranscoder *transcoder)
 {
   SgPort *z = make_port(SG_INPUT_PORT, SG_TEXTUAL_PORT_TYPE, -1);
@@ -1055,6 +1085,7 @@ SgObject Sg_MakeTranscodedInputPort(SgPort *port, SgTranscoder *transcoder)
   z->closed = FALSE;
   z->flush = NULL;
   z->close = transClose;
+  z->ready = trans_ready;
 
   t->src.transcoded.transcoder = transcoder;
   t->src.transcoded.port = port;
@@ -1096,6 +1127,7 @@ SgObject Sg_MakeTranscodedOutputPort(SgPort *port, SgTranscoder *transcoder)
   z->closed = FALSE;
   z->flush = transFlush;
   z->close = transClose;
+  z->ready = trans_ready;
 
   t->src.transcoded.transcoder = transcoder;
   t->src.transcoded.port = port;
@@ -1112,7 +1144,8 @@ SgObject Sg_MakeTranscodedOutputPort(SgPort *port, SgTranscoder *transcoder)
   return SG_OBJ(z);
 }
 
-SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port, SgTranscoder *transcoder)
+SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port, 
+					  SgTranscoder *transcoder)
 {
   SgPort *z = make_port(SG_IN_OUT_PORT, SG_TEXTUAL_PORT_TYPE, -1);
   SgTextualPort *t = make_textual_port(SG_TRANSCODED_TEXTUAL_PORT_TYPE);
@@ -1120,6 +1153,7 @@ SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port, SgTranscoder *transcoder
   z->closed = FALSE;
   z->flush = transFlush;
   z->close = transClose;
+  z->ready = trans_ready;
 
   t->src.transcoded.transcoder = transcoder;
   t->src.transcoded.port = port;
@@ -1235,6 +1269,7 @@ SgObject Sg_MakeStringOutputPort(int bufferSize)
   z->closed = FALSE;
   z->flush = string_port_flush;
   z->close = string_oport_close;
+  z->ready = NULL;		/* always ready */
 
   t->src.ostr.start = t->src.ostr.current = SG_NEW(char_buffer);
   t->getChar = NULL;
@@ -1256,6 +1291,7 @@ SgObject Sg_MakeStringInputPort(SgString *s, int private)
   z->closed = FALSE;
   z->flush = string_port_flush;
   z->close = string_iport_close;
+  z->ready = NULL;		/* always ready */
 
   t->src.buffer.str = s;
   t->src.buffer.index = 0;
@@ -1466,13 +1502,23 @@ static void custom_flush(SgObject self)
   /* dummy */
 }
 
+static int custom_ready(SgObject self)
+{
+  if (!SG_FALSEP(SG_CUSTOM_PORT(self)->ready)) {
+    SgObject r = Sg_Apply0(SG_CUSTOM_PORT(self)->ready);
+    return !SG_FALSEP(r);
+  }
+  return TRUE;
+}
+
 SgObject Sg_MakeCustomBinaryPort(SgString *id,
 				 int direction,
 				 SgObject read,
 				 SgObject write,
 				 SgObject getPosition,
 				 SgObject setPosition,
-				 SgObject close)
+				 SgObject close,
+				 SgObject ready)
 {
   SgPort *z = make_port(direction, SG_CUSTOM_PORT_TYPE, SG_BUFMODE_NONE);
   SgCustomPort *c = make_custom_port(SG_BINARY_CUSTOM_PORT_TYPE);
@@ -1483,10 +1529,12 @@ SgObject Sg_MakeCustomBinaryPort(SgString *id,
   c->getPosition = getPosition;
   c->setPosition = setPosition;
   c->close = close;
+  c->ready = ready;
   c->buffer = SG_UNDEF;
 
   z->close = custom_close;
   z->flush = custom_flush;
+  z->ready = custom_ready;
   z->impl.cport = c;
 
   SG_CUSTOM_U8_AHEAD(z) = EOF;
@@ -1661,7 +1709,8 @@ SgObject Sg_MakeCustomTextualPort(SgString *id,
 				  SgObject write,
 				  SgObject getPosition,
 				  SgObject setPosition,
-				  SgObject close)
+				  SgObject close,
+				  SgObject ready)
 {
   SgPort *z = make_port(direction, SG_CUSTOM_PORT_TYPE, SG_BUFMODE_NONE);
   SgCustomPort *c = make_custom_port(SG_TEXTUAL_CUSTOM_PORT_TYPE);
@@ -1673,11 +1722,13 @@ SgObject Sg_MakeCustomTextualPort(SgString *id,
   c->getPosition = getPosition;
   c->setPosition = setPosition;
   c->close = close;
+  c->ready = ready;
   c->buffer = NULL;
   c->index = 0;
 
   z->close = custom_close;
   z->flush = custom_flush;
+  z->ready = custom_ready;
   z->impl.cport = c;
 
   switch (direction) {
@@ -2514,6 +2565,14 @@ SgObject Sg_PortTranscoder(SgObject port)
     /* TODO custom port */
     return SG_FALSE;
   }
+}
+
+int Sg_PortReady(SgPort *port)
+{
+  if (SG_PORT(port)->ready) {
+    return SG_PORT(port)->ready(port);
+  }
+  return TRUE;
 }
 
 int Sg_UTF16ConsolePortP(SgPort *port)

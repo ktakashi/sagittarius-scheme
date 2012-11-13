@@ -110,7 +110,7 @@ static const SgChar * skip_prefix(const SgChar *path, int *skipped)
       path++;
       (*skipped)++;
     }
-    if (*(path = next_dirsep(path, skipped)) && path[1] && !dir_sepp(path[1])) {
+    if (*(path = next_dirsep(path, skipped)) && path[1] && !dirsep_p(path[1])) {
       (*skipped)++;
       path = next_dirsep(path + 1, skipped);
     }

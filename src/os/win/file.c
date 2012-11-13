@@ -268,6 +268,44 @@ static int64_t win_size(SgObject self)
   }
 }
 
+static int check_char_type(SgObject self)
+{
+  INPUT_RECORD inRec[32];
+  DWORD numRec;
+  if (PeekConsoleInput(SG_FD(self)->desc, inRec, 
+		       array_sizeof(inRec), &numRec)) {
+    int i;
+    for (i = 0; i < numRec; i++) {
+      if (inRec[i].EventType == KEY_EVENT) return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+static int check_pipe_type(SgObject self)
+{
+  DWORD bytes;
+  if (PeekNamedPipe(SG_FD(self)->desc, NULL, 0, NULL, &bytes, NULL)) {
+    return (bytes != 0);
+  } else {
+    return FALSE;
+  }
+}
+
+static int win_ready(SgObject self)
+{
+  if (SG_FD(self)->desc != INVALID_HANDLE_VALUE) {
+    switch (GetFileType(SG_FD(self)->desc)) {
+    case FILE_TYPE_CHAR: return check_char_type(self);
+    case FILE_TYPE_PIPE: return check_pipe_type(self);
+    }
+    /* should not reach here, but default is default ... */
+    return TRUE;
+  } else {
+    return FALSE;
+  }
+}
+
 static SgFile* make_file(HANDLE hd)
 {
   SgFile *z = SG_NEW(SgFile);
@@ -286,6 +324,7 @@ static SgFile* make_file(HANDLE hd)
   z->open = win_open;
   z->close = win_close;
   z->canClose = win_can_close;
+  z->ready = win_ready;
   return z;
 }
 

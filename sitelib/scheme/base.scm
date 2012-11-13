@@ -234,16 +234,8 @@
      (apply map proc (string->list str1)
 	    (map string->list strs))))
 
-  ;; FIXME: support non blocking IO
-  (define char-ready?
-    (case-lambda
-     ((port) #t)
-     (() #t)))
-
-  (define u8-ready?
-    (case-lambda
-     ((port) #t)
-     (() #t)))
+  (define char-ready? port-ready?)
+  (define u8-ready? port-ready?)
 
   ;; misc
   (define (square z) (* z z))

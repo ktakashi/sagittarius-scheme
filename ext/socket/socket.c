@@ -285,7 +285,7 @@ SgObject Sg_SocketSetopt(SgSocket *socket, int level, int name, SgObject value)
 		   SG_BVECTOR_SIZE(value));
   } else if (SG_INTP(value) || SG_BIGNUMP(value)) {
     int v = Sg_GetInteger(value);
-    r = setsockopt(socket->socket, level, name, (void *)&v, sizeof(int));
+    r = setsockopt(socket->socket, level, name, (const char *)&v, sizeof(int));
   } else {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("socket-setsockopt!"),
 				    SG_MAKE_STRING("bytevector or integer"),
@@ -305,7 +305,7 @@ SgObject Sg_SocketGetopt(SgSocket *socket, int level, int name, int rsize)
   if (rsize > 0) {
     SgObject bvec = Sg_MakeByteVector(rrsize, 0);
     r = getsockopt(socket->socket, level, name, 
-		   SG_BVECTOR_ELEMENTS(bvec), &rrsize);
+		   (char *)SG_BVECTOR_ELEMENTS(bvec), &rrsize);
     if (r < 0) {
       Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-getsockopt"), 
 		 Sg_GetLastErrorMessageWithErrorCode(last_error),
@@ -316,7 +316,7 @@ SgObject Sg_SocketGetopt(SgSocket *socket, int level, int name, int rsize)
   } else {
     int val;
     rrsize = sizeof(int);
-    r = getsockopt(socket->socket, level, name, (void *)&val, &rrsize);
+    r = getsockopt(socket->socket, level, name, (char *)&val, &rrsize);
     if (r < 0) {
       Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-getsockopt"), 
 		 Sg_GetLastErrorMessageWithErrorCode(last_error),
@@ -727,6 +727,25 @@ static int64_t socket_put_u8(SgObject self, uint8_t v)
   return socket_put_u8_array(self, &v, 1);
 }
 
+static int socket_ready(SgObject self)
+{
+  SgObject socket = SG_PORT_SOCKET(self);
+  struct timeval tm = {0, 0};
+  fd_set fds;
+  int state;
+  FD_ZERO(&fds);
+  FD_SET(SG_SOCKET(socket)->socket, &fds);
+  state = select(SG_SOCKET(socket)->socket + 1, &fds, NULL, NULL, &tm);
+  if (state < 0) {
+    if (last_error == EINTR) return FALSE;
+    Sg_IOError((SgIOErrorType)-1, SG_INTERN("port-ready?"), 
+	       Sg_GetLastErrorMessageWithErrorCode(last_error),
+	       SG_FALSE, SG_NIL);
+    return FALSE;
+  }
+  return (state != 0);
+}
+
 SgObject Sg_MakeSocketPort(SgSocket *socket)
 {
   SgPort *z = make_port(SG_IN_OUT_PORT, SG_BINARY_PORT_TYPE, SG_BUFMODE_NONE);
@@ -735,6 +754,7 @@ SgObject Sg_MakeSocketPort(SgSocket *socket)
   z->closed = FALSE;
   z->flush = socket_flush;
   z->close = socket_close;
+  z->ready = socket_ready;
   z->impl.bport = b;
 
   b->open = socket_open;
