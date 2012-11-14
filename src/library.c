@@ -110,7 +110,7 @@ static SgObject library_name_to_id_version(SgObject name)
 	    SG_FOR_EACH(num, o) {
 	      if (!(Sg_IntegerP(SG_CAR(num))
 		    && Sg_ExactP(SG_CAR(num))
-		    && Sg_PositiveP(SG_CAR(num)))) {
+		    && !Sg_NegativeP(SG_CAR(num)))) {
 		Sg_Error(UC("malformed library version %S"), name);
 	      }
 	    }
