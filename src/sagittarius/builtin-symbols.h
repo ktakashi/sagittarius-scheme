@@ -57,4 +57,7 @@ SG_EXTERN SgSymbol Sg_BuiltinSymbols[];
 #define SG_SYMBOL_REPLACE SG_OBJ(&Sg_BuiltinSymbols[52])
 #define SG_SYMBOL_IGNORE SG_OBJ(&Sg_BuiltinSymbols[53])
 #define SG_SYMBOL_RAISE SG_OBJ(&Sg_BuiltinSymbols[54])
+#define SG_SYMBOL_LESS_EQUAL SG_OBJ(&Sg_BuiltinSymbols[55])
+#define SG_SYMBOL_GREATER_EQUAL SG_OBJ(&Sg_BuiltinSymbols[56])
+#define SG_SYMBOL_NOT SG_OBJ(&Sg_BuiltinSymbols[57])
 #endif /* BUILTIN_SYMBOL_H__ */

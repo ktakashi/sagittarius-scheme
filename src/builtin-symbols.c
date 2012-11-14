@@ -58,6 +58,9 @@ SgSymbol Sg_BuiltinSymbols[] = {
   ENTRY(),
   ENTRY(),
   ENTRY(),
+  ENTRY(),
+  ENTRY(),
+  ENTRY(),
 #undef ENTRY
 };
 static void init_builtin_symbols()
@@ -121,5 +124,8 @@ static void init_builtin_symbols()
   INTERN("replace", 52);
   INTERN("ignore", 53);
   INTERN("raise", 54);
+  INTERN(">=", 55);
+  INTERN("<=", 56);
+  INTERN("not", 57);
 #undef INTERN
 }

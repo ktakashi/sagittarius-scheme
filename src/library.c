@@ -82,6 +82,27 @@ static SgLibrary* make_library()
 /* return library id and version pair
    cf ((lib name) . (1 2))
  */
+static void check_version_reference(SgObject name, SgObject o)
+{
+  SG_FOR_EACH(o, o) {
+    SgObject v = SG_CAR(o);
+    if (!(SG_EXACT_INTP(v) && !Sg_NegativeP(v)) && 
+	/* version symbols */
+	!(SG_EQ(v, SG_SYMBOL_LESS_EQUAL) ||
+	  SG_EQ(v, SG_SYMBOL_GREATER_EQUAL) ||
+	  SG_EQ(v, SG_SYMBOL_OR) ||
+	  SG_EQ(v, SG_SYMBOL_AND) ||
+	  SG_EQ(v, SG_SYMBOL_NOT))) {
+      if (SG_PAIRP(v)) {
+	/* check recursively */
+	check_version_reference(name, v);
+      } else {
+	Sg_Error(UC("malformed library version %S"), name);
+      }
+    }
+  }
+}
+
 static SgObject library_name_to_id_version(SgObject name)
 {
   SgObject h = SG_NIL, t = SG_NIL, cp;
@@ -101,19 +122,12 @@ static SgObject library_name_to_id_version(SgObject name)
 	  }
 	  SG_APPEND1(h, t, o);
 	} else if (SG_PAIRP(o) && SG_NULLP(SG_CDR(cp))) {
-	  SgObject num;
 	  if (SG_PROPER_LISTP(o)) {
 	    if (SG_NULLP(SG_CAR(o))) {
 	      /* null version */
 	      return Sg_Cons(h, o);
 	    }
-	    SG_FOR_EACH(num, o) {
-	      if (!(Sg_IntegerP(SG_CAR(num))
-		    && Sg_ExactP(SG_CAR(num))
-		    && !Sg_NegativeP(SG_CAR(num)))) {
-		Sg_Error(UC("malformed library version %S"), name);
-	      }
-	    }
+	    check_version_reference(name, o);
 	  }
 	  return Sg_Cons(h, o);
 	} else {

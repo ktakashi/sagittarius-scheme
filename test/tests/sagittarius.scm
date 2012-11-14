@@ -3,6 +3,7 @@
 
 (import (rnrs)
 	(rnrs mutable-pairs)
+	(rename (rnrs eval) (eval r6rs:eval))
 	(sagittarius)
 	(sagittarius vm)
 	(srfi :1)
@@ -518,5 +519,15 @@
 (test-assert "textual-port?"
 	     (let ((cti (make-custom-textual-input-port "id" nothing #f #f #f)))
 	       (textual-port? cti)))
+
+;; issue 58
+(test-assert "library version 0"
+	     (r6rs:eval '(import (rnrs (0))) (environment '(sagittarius))))
+(test-assert "library version full spec (1)"
+	     (r6rs:eval '(import (rnrs (and 1 1)))
+			(environment '(sagittarius))))
+(test-assert "library version full spec (2)"
+	     (r6rs:eval '(import (rnrs (or (1 (>= 1)) (2))))
+			(environment '(sagittarius))))
 
 (test-end)

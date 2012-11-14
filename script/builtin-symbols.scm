@@ -117,6 +117,9 @@
     (replace              SG_SYMBOL_REPLACE)
     (ignore               SG_SYMBOL_IGNORE)
     (raise                SG_SYMBOL_RAISE)
+    (>=                   SG_SYMBOL_LESS_EQUAL)
+    (<=                   SG_SYMBOL_GREATER_EQUAL)
+    (not                   SG_SYMBOL_NOT)
     ;; add later
     ))
 
