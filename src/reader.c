@@ -171,12 +171,29 @@ static readtable_t r6rs_read_table;
 /* including r7rs #u8() */
 static readtable_t compat_read_table;
 
-static int delimited(SgChar c)
+static readtable_t* default_readtable(int copyP);
+
+#define DEFAULT_TABLEP(port)				\
+  (!SG_PORT_READTABLE(port) ||				\
+   SG_PORT_READTABLE(port) == default_readtable(FALSE))
+
+#define ENSURE_COPIED_TABLE(port)				\
+  do {								\
+    if (DEFAULT_TABLEP(port)) {					\
+      SG_PORT_READTABLE(port) = default_readtable(TRUE);	\
+    }								\
+  } while(0)
+
+static int delimited(SgPort *p, SgChar c)
 {
-  readtable_t *table = Sg_CurrentReadTable();
+  readtable_t *table = SG_PORT_READTABLE(p);
   if (c > 127 && Sg_Ucs4WhiteSpaceP(c)) return TRUE;
   if (c > 127) return FALSE;
   /* return DELIMITER_CHARP(c); */
+  if (!table) {
+    /* use default table */
+    table = default_readtable(FALSE);
+  }
   switch (table->readtable[c].type) {
   case CT_NON_TERM_MACRO:
   case CT_CONSTITUENT:
@@ -186,7 +203,6 @@ static int delimited(SgChar c)
   default: return TRUE;
   }
 }
-
 
 static SgObject read_expr4(SgPort *port, int flags, SgChar delim, 
 			   SgReadContext *ctx);
@@ -302,7 +318,7 @@ static int read_thing(SgPort *port, SgReadContext *ctx, SgChar *buf,
   }
   while (i < size) {
     SgChar c = Sg_PeekcUnsafe(port);
-    if (c == EOF || delimited(c)) {
+    if (c == EOF || delimited(port, c)) {
       buf[i] = 0;
       return i;
     }
@@ -323,7 +339,7 @@ static SgChar read_hex_scalar_value(SgPort *port, SgReadContext *ctx)
     lexical_error(port, ctx,
 		  UC("unexpected end-of-file while reading hex scalar value"));
   }
-  if (delimited(c)) {
+  if (delimited(port, c)) {
     lexical_error(port, ctx,
 		  UC("expected hex digit, but got %c, while reading hex scalar value"), c);
   }
@@ -331,7 +347,7 @@ static SgChar read_hex_scalar_value(SgPort *port, SgReadContext *ctx)
 
   while (TRUE) {
     c = Sg_GetcUnsafe(port);
-    if (c == EOF || delimited(c)) {
+    if (c == EOF || delimited(port, c)) {
       Sg_UngetcUnsafe(port, c);
       return Sg_EnsureUcs4(ucs4);
     }
@@ -393,7 +409,7 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
   SgChar buf[READ_STRING_MAX_SIZE];
   int i = 0;
   SgChar c;
-  readtable_t *table = Sg_CurrentReadTable();
+  readtable_t *table = Sg_PortReadTable(port);
 
   if (initial > 0) {
     if (initial > 127) {
@@ -419,7 +435,7 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
  next:
   while (i < array_sizeof(buf)) {
     c = Sg_PeekcUnsafe(port);
-    if (c == EOF || delimited(c)) {
+    if (c == EOF || delimited(port, c)) {
       SgObject s;
       buf[i] = 0;
       s = Sg_MakeStringEx(buf, SG_LITERAL_STRING, i);
@@ -497,7 +513,7 @@ static int read_compat_symbol_helper(SgPort *port, SgReadContext *ctx,
 				     SgChar *buf, int i, SgChar c,
 				     readtable_t *table)
 {
-  if (!delimited(c)) {
+  if (!delimited(port, c)) {
     buf[i++] = c;
     return i;
   }
@@ -868,7 +884,7 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
     }
     /* NOTREACHED */
   } else {
-    readtable_t *table = Sg_CurrentReadTable();
+    readtable_t *table = Sg_PortReadTable(port);
     SgObject desc = read_symbol_or_number(port, c2, table, ctx);
     if (SG_SYMBOLP(desc)) {
       SgString *tag = SG_SYMBOL(desc)->name;
@@ -876,28 +892,28 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	SG_VM_SET_FLAG(Sg_VM(), SG_R6RS_MODE);
 	SG_VM_SET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
-	Sg_SetCurrentReadTable(Sg_CopyReadTable(&r6rs_read_table));
+	Sg_SetPortReadTable(port, Sg_CopyReadTable(&r6rs_read_table));
 	return NULL;
       }
       if (ustrcmp(tag->value, "r7rs") == 0) {
 	SG_VM_SET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
 	SG_VM_SET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
-	Sg_SetCurrentReadTable(Sg_CopyReadTable(&compat_read_table));
+	Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
 	return NULL;
       }
       if (ustrcmp(tag->value, "compatible") == 0) {
 	SG_VM_SET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
-	Sg_SetCurrentReadTable(Sg_CopyReadTable(&compat_read_table));
+	Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
 	return NULL;
       }
       if (ustrcmp(tag->value, "core") == 0) {
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
-	Sg_SetCurrentReadTable(Sg_CopyReadTable(&compat_read_table));
+	Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
 	return NULL;
       }
       if (ustrcmp(tag->value, "no-overwrite") == 0) {
@@ -905,11 +921,13 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	return NULL;
       }
       if (ustrcmp(tag->value, "fold-case") == 0) {
-	table->insensitiveP = TRUE;
+	ENSURE_COPIED_TABLE(port);
+	SG_PORT_READTABLE(port)->insensitiveP = TRUE;
 	return NULL;
       }
       if (ustrcmp(tag->value, "no-fold-case") == 0) {
-	table->insensitiveP = FALSE;
+	ENSURE_COPIED_TABLE(port);
+	SG_PORT_READTABLE(port)->insensitiveP = FALSE;
 	return NULL;
       }
       if (ustrcmp(tag->value, "nocache") == 0) {
@@ -955,9 +973,10 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	/* should we raise error or not? */
 	if (SG_FALSEP(lib)) {
 	  lexical_error(port, ctx, UC("no library named %S"), name);
+	  return NULL;
 	}
 	if (!SG_FALSEP(SG_LIBRARY_READER(lib))) {
-	  Sg_SetCurrentReader(SG_LIBRARY_READER(lib));
+	  SG_PORT_READER(port) = SG_LIBRARY_READER(lib);
 	}
 	/* to let replaced reader read next expression, otherwise current
 	   reader keep reading the next one.
@@ -974,7 +993,8 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	  return NULL;
 	}
 	if (SG_LIBRARY_READTABLE(lib)) {
-	  add_read_table(SG_LIBRARY_READTABLE(lib), Sg_CurrentReadTable());
+	  ENSURE_COPIED_TABLE(port);
+	  add_read_table(SG_LIBRARY_READTABLE(lib), Sg_PortReadTable(port));
 	}
 	return NULL;
       }
@@ -1058,7 +1078,7 @@ SgObject read_hash_v(SgPort *port, SgChar c, dispmacro_param *param,
   int i;
   for (i = 0; i < 2; i++) {
     buf[i] = Sg_GetcUnsafe(port);
-    if (buf[i] == EOF || delimited(buf[i])) break;
+    if (buf[i] == EOF || delimited(port, buf[i])) break;
   }
   if (i != 2) {
     lexical_error(port, ctx, UC("invalid lexical syntax #v%s%A ..."), buf,
@@ -1095,8 +1115,8 @@ SgObject read_hash_t(SgPort *port, SgChar c, dispmacro_param *param,
 		     SgReadContext *ctx)
 {
   SgChar c2 = Sg_GetcUnsafe(port);
-  readtable_t *table = Sg_CurrentReadTable();
-  if (c2 == EOF || delimited(c2)) {
+  readtable_t *table = Sg_PortReadTable(port);
+  if (c2 == EOF || delimited(port, c2)) {
     Sg_UngetcUnsafe(port, c2);
     return SG_TRUE;
   }
@@ -1117,8 +1137,8 @@ SgObject read_hash_f(SgPort *port, SgChar c, dispmacro_param *param,
 		     SgReadContext *ctx)
 {
   SgChar c2 = Sg_GetcUnsafe(port);
-  readtable_t *table = Sg_CurrentReadTable();
-  if (c2 == EOF || delimited(c2)) {
+  readtable_t *table = Sg_PortReadTable(port);
+  if (c2 == EOF || delimited(port, c2)) {
     Sg_UngetcUnsafe(port, c2);
     return SG_FALSE;
   }
@@ -1234,14 +1254,14 @@ SgObject read_hash_escape(SgPort *port, SgChar c, dispmacro_param *param,
   c = Sg_GetcUnsafe(port);
   if (c == 'x') {
     c = Sg_PeekcUnsafe(port);
-    if (c == EOF || delimited(c)) return SG_MAKE_CHAR('x');
+    if (c == EOF || delimited(port, c)) return SG_MAKE_CHAR('x');
     return SG_MAKE_CHAR(read_hex_scalar_value(port, ctx));
   } else {
     SgChar buf[16];
     int i;
     if (c == '(') {
       c = Sg_PeekcUnsafe(port);
-      if (c == EOF || delimited(c)) return SG_MAKE_CHAR('(');
+      if (c == EOF || delimited(port, c)) return SG_MAKE_CHAR('(');
       read_thing(port, ctx, buf, array_sizeof(buf), -1);
       lexical_error(port, ctx, UC("invalid lexical syntax #\\(%s"), buf);
     }
@@ -1321,7 +1341,8 @@ SgObject read_hash_less(SgPort *port, SgChar c, dispmacro_param *param,
 	return NULL;
       }
       if (SG_LIBRARY_READTABLE(lib)) {
-	add_read_table(SG_LIBRARY_READTABLE(lib), Sg_CurrentReadTable());
+	ENSURE_COPIED_TABLE(port);
+	add_read_table(SG_LIBRARY_READTABLE(lib), Sg_PortReadTable(port));
       }      
     } else {
       lexical_error(port, ctx,
@@ -1348,7 +1369,7 @@ SgObject dispmacro_reader(SgPort *port, SgChar c, SgReadContext *ctx)
     lexical_error(port, ctx, UC("macro char %S is out of range"),
 		  SG_MAKE_CHAR(c));
   }
-  table = Sg_CurrentReadTable();
+  table = Sg_PortReadTable(port);
   disptab = table->readtable[c].disp;
   if (!disptab) {
     lexical_error(port, ctx,
@@ -1394,7 +1415,7 @@ SgObject dispmacro_reader(SgPort *port, SgChar c, SgReadContext *ctx)
 SgObject read_expr4(SgPort *port, int flags, SgChar delim, SgReadContext *ctx)
 {
   SgChar c;
-  readtable_t *table = Sg_CurrentReadTable();
+  readtable_t *table = Sg_PortReadTable(port);
   SgObject item;
   while (1) {
   top:
@@ -1489,9 +1510,19 @@ static void link_graph(SgPort *port, SgReadContext *ctx, SgObject obj)
   }
 }
 
+static void extends_loading_table(SgObject port)
+{
+  SgObject loadingPort = Sg_CurrentLoadingPort();
+  if (!DEFAULT_TABLEP(loadingPort)) {
+    ENSURE_COPIED_TABLE(port);
+    add_read_table(SG_PORT_READTABLE(loadingPort), SG_PORT_READTABLE(port));
+  }
+}
+
 SgObject Sg_ReadWithContext(SgObject port, SgReadContext *ctx)
 {
   SgObject obj;
+  extends_loading_table(port);
 
   ctx->firstLine = Sg_LineNo(port);
   obj = read_expr4(port, ACCEPT_EOF, EOF, ctx);
@@ -1523,6 +1554,7 @@ SgObject Sg_ReadDelimitedList(SgObject port, SgChar delim, int sharedP)
   SgReadContext ctx = {0};
   ASSERT(SG_PORTP(port));
 
+  extends_loading_table(port);
   /* make read context for shared object */
   if (sharedP) {
     ctx.graph = Sg_MakeHashTableSimple(SG_HASH_EQ, 1);
@@ -1541,7 +1573,7 @@ SgObject Sg_ReadWithCase(SgPort *p, int insensitiveP, int shared)
   int oflag;
   SgObject obj;
   
-  table = Sg_CurrentReadTable();
+  table = Sg_PortReadTable(p);
   oflag = table->insensitiveP;
   table->insensitiveP = insensitiveP;
   obj = Sg_Read(p, shared);
@@ -1599,6 +1631,44 @@ void add_read_table(readtable_t *src, readtable_t *dst)
       dr[i] = sr[i];
     }
   }
+}
+
+static readtable_t* default_readtable(int copyP)
+{
+  readtable_t* table;
+  if (SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE)) {
+    table = &r6rs_read_table;
+  } else {
+    table = &compat_read_table;
+  }
+  if (copyP) {
+    return Sg_CopyReadTable(table);
+  } else {
+    return table;
+  }
+}
+
+readtable_t* Sg_DefaultReadTable()
+{
+  return default_readtable(TRUE);
+}
+
+void Sg_SetPortReadTable(SgPort *port, readtable_t *table)
+{
+  SG_PORT_READTABLE(port) = table;
+}
+
+readtable_t* Sg_PortReadTable(SgPort *port)
+{
+  readtable_t* table = SG_PORT_READTABLE(port);
+  if (table) return table;
+  return default_readtable(FALSE);
+}
+
+readtable_t* Sg_EnsureCopiedReadTable(SgPort *port)
+{
+  ENSURE_COPIED_TABLE(port);
+  return SG_PORT_READTABLE(port);
 }
 
 readtable_t* Sg_CopyReadTable(readtable_t *src)
@@ -1668,7 +1738,7 @@ SgObject Sg_AddConstantLiteral(SgObject o)
 
 int Sg_DelimitedCharP(SgChar c)
 {
-  return delimited(c);
+  return delimited(Sg_CurrentLoadingPort(), c);
 }
 
 #define SCHEME_OBJ(NAME) SG_CPP_CAT(NAME, _stub)
@@ -1830,8 +1900,7 @@ void Sg_SetMacroCharacter(SgChar c, SgObject proc, int nontermP,
 			  readtable_t *table)
 {
   ASSERT(table);
-  ASSERT(!isdigit(c));
-  if (c < MAX_READTABLE_CHAR) {
+  if (!isdigit(c) && c < MAX_READTABLE_CHAR) {
     readtab_t *r = &table->readtable[c];
     r->type = nontermP ? CT_NON_TERM_MACRO : CT_TERM_MACRO;
     r->sfunc = proc;
@@ -1900,8 +1969,7 @@ static dispmacro_function get_dispatch_macro_function(SgObject fn)
 int Sg_MakeDispatchMacroCharacter(SgChar c, int nontermP, readtable_t *table)
 {
   ASSERT(table);
-  ASSERT(!isdigit(c));
-  if (c < MAX_READTABLE_CHAR) {
+  if (!isdigit(c) && c < MAX_READTABLE_CHAR) {
     readtab_t *r = &table->readtable[c];
     if (!r->disp) r->disp = alloc_disptab();
     r->type = nontermP ? CT_NON_TERM_MACRO : CT_TERM_MACRO;
@@ -1920,9 +1988,8 @@ void Sg_SetDispatchMacroCharacter(SgChar c, SgChar subc, SgObject proc,
 				  readtable_t *table)
 {
   ASSERT(table);
-  ASSERT(!isdigit(c));
-  ASSERT(!isdigit(subc));
-  if (c < MAX_READTABLE_CHAR && subc < MAX_READTABLE_CHAR) {
+  if (!isdigit(c) && !isdigit(subc) &&
+      c < MAX_READTABLE_CHAR && subc < MAX_READTABLE_CHAR) {
     readtab_t *r = &table->readtable[c];
     if (!r->disp) {
       Sg_AssertionViolation
@@ -2099,9 +2166,6 @@ void Sg__InitReader()
   SET_READER_NAME(read_hash_hash,       "##-reader");
   SET_READER_NAME(read_hash_less,       "#<-reader");
   SET_READER_NAME(read_hash_colon,      "#:-reader");
-
-  /* the static read table must be used as a template */
-  Sg_SetCurrentReadTable(Sg_CopyReadTable(&compat_read_table));
 }
 
 /*

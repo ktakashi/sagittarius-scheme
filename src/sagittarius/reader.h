@@ -61,7 +61,6 @@ typedef struct SgReadContextRec
 } SgReadContext;
 #define SG_STATIC_READ_CONTEXT {NULL, FALSE, 0, 0, 0, 0}
 
-
 #define SG_SHAREDREF_P(obj) SG_XTYPEP(obj, SG_CLASS_SHARED_REF)
 #define SG_SHAREDREF(obj)   ((SgSharedRef*)(obj))
 
@@ -71,7 +70,11 @@ SG_EXTERN SgObject Sg_Read(SgObject port, int readSharedObject);
 SG_EXTERN SgObject Sg_ReadWithContext(SgObject port, SgReadContext *ctx);
 SG_EXTERN SgObject Sg_ReadDelimitedList(SgObject port, SgChar delim,
 					int sharedP);
+SG_EXTERN readtable_t* Sg_DefaultReadTable();
+SG_EXTERN readtable_t* Sg_PortReadTable(SgPort *port);
 SG_EXTERN readtable_t* Sg_CopyReadTable(readtable_t *src);
+SG_EXTERN void     Sg_SetPortReadTable(SgPort *port, readtable_t *table);
+SG_EXTERN readtable_t* Sg_EnsureCopiedReadTable(SgPort *port);
 
 /* for Scheme */
 /* returns 2 values */

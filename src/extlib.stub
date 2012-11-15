@@ -818,26 +818,32 @@
     (result (Sg_CharSetRanges cs)))
 
   (define-c-proc get-macro-character (c::<char>) ::<top>
-    (result (Sg_GetMacroCharacter c (Sg_CurrentReadTable))))
+    (result (Sg_GetMacroCharacter 
+	     c (Sg_PortReadTable (Sg_CurrentLoadingPort)))))
 
   (define-c-proc set-macro-character
     (c::<char> proc::<procedure> :optional (non_termP::<boolean> #f))
     ::<void>
-    (Sg_SetMacroCharacter c proc non_termP (Sg_CurrentReadTable)))
+    (Sg_SetMacroCharacter c proc non_termP 
+			  (Sg_EnsureCopiedReadTable (Sg_CurrentLoadingPort))))
 
   (define-c-proc make-dispatch-macro-character
     (c::<char> :optional (non_termP::<boolean> #f))
     ::<boolean>
-    (result (Sg_MakeDispatchMacroCharacter c non_termP (Sg_CurrentReadTable))))
+    (result (Sg_MakeDispatchMacroCharacter 
+	     c non_termP 
+	     (Sg_EnsureCopiedReadTable (Sg_CurrentLoadingPort)))))
 
   (define-c-proc get-dispatch-macro-character (c::<char> subc::<char>) ::<top>
-    (result (Sg_GetDispatchMacroCharacter c subc
-					  (Sg_CurrentReadTable))))
+    (result (Sg_GetDispatchMacroCharacter 
+	     c subc (Sg_PortReadTable (Sg_CurrentLoadingPort)))))
 
   (define-c-proc set-dispatch-macro-character (c::<char> subc::<char>
 							 proc::<procedure>)
     ::<void>
-    (Sg_SetDispatchMacroCharacter c subc proc (Sg_CurrentReadTable)))
+    (Sg_SetDispatchMacroCharacter 
+     c subc proc
+     (Sg_EnsureCopiedReadTable (Sg_CurrentLoadingPort))))
 
   ;; for (sagittarius reader) library's define-reader-macro related
   (define-c-proc %insert-macro-character

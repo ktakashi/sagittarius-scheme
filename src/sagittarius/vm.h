@@ -284,9 +284,9 @@ struct SgVMRec
      when importing a library, first list will be appended.
    */
   SgObject cache;
-  /* read macro */
-  readtable_t *currentReadTable;
-  SgObject     currentReader;
+
+  /* current loading port */
+  SgObject currentLoadingPort;
 };
 
 /*
@@ -426,6 +426,7 @@ SG_EXTERN SgObject Sg_VMDynamicWindC(SgSubrProc *before, SgSubrProc *body, SgSub
 SG_EXTERN SgObject Sg_CurrentOutputPort();
 SG_EXTERN SgObject Sg_CurrentErrorPort();
 SG_EXTERN SgObject Sg_CurrentInputPort();
+SG_EXTERN SgObject Sg_CurrentLoadingPort();
 
 SG_EXTERN SgObject Sg_VMCurrentLibrary();
 
@@ -447,13 +448,6 @@ SG_EXTERN void     Sg_VMPrintFrame();
 
 /* process time */
 SG_EXTERN void     Sg_VMProcessTime(unsigned long *sec, unsigned long *usec);
-
-/* read macro */
-SG_EXTERN readtable_t* Sg_CurrentReadTable();
-SG_EXTERN void     Sg_SetCurrentReadTable(readtable_t *newtable);
-/* reader */
-SG_EXTERN SgObject Sg_CurrentReader();
-SG_EXTERN void     Sg_SetCurrentReader(SgObject reader);
 
 /* root? */
 SG_EXTERN int      Sg_MainThreadP();

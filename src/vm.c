@@ -184,9 +184,6 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->loadPath = proto ? Sg_CopyList(proto->loadPath): SG_NIL;
   v->dynamicLoadPath = proto ? Sg_CopyList(proto->dynamicLoadPath): SG_NIL;
   v->flags = proto? proto->flags : 0;
-  /* the very first one will be set later. */
-  v->currentReadTable = proto? proto->currentReadTable : NULL;
-  v->currentReader = proto? proto->currentReader : SG_FALSE;
 
   v->currentInputPort = proto 
     ? proto->currentInputPort
@@ -206,6 +203,11 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 				  Sg_IsUTF16Console(Sg_StandardError())
 				  ? Sg_MakeNativeConsoleTranscoder()
 				  : Sg_MakeNativeTranscoder());
+
+  v->currentLoadingPort = proto
+    ? proto->currentLoadingPort
+    : v->currentInputPort;
+
   v->logPort = proto ? proto->logPort : v->currentErrorPort;
   /* macro env */
   v->usageEnv = proto ? proto->usageEnv : SG_FALSE;
@@ -271,23 +273,6 @@ int Sg_MainThreadP()
 }
 
 #define Sg_VM() theVM
-
-readtable_t* Sg_CurrentReadTable()
-{
-  return Sg_VM()->currentReadTable;
-}
-void Sg_SetCurrentReadTable(readtable_t *newtable)
-{
-  Sg_VM()->currentReadTable = newtable;
-}
-SgObject Sg_CurrentReader()
-{
-  return Sg_VM()->currentReader;
-}
-void Sg_SetCurrentReader(SgObject reader)
-{
-  Sg_VM()->currentReader = reader;
-}
 
 /* values  */
 SgObject Sg_Values(SgObject args)
@@ -574,11 +559,16 @@ SgObject Sg_CurrentErrorPort()
   return vm->currentErrorPort;
 }
 
-
 SgObject Sg_CurrentInputPort()
 {
   SgVM *vm = Sg_VM();
   return vm->currentInputPort;
+}
+
+SgObject Sg_CurrentLoadingPort()
+{
+  SgVM *vm = Sg_VM();
+  return vm->currentLoadingPort;
 }
 
 SgObject Sg_VMCurrentLibrary()

@@ -179,6 +179,7 @@ struct SgPortRec
   readtable_t *readtable;
   SgObject     reader;
   SgObject     loadPath;
+  SgObject     previousPort;
 
   SgInternalMutex lock;
 
@@ -241,6 +242,9 @@ enum SgCustomPortType {
 #define SG_OUTPORTP(obj)      (SG_PORTP(obj) && SG_PORT(obj)->direction == SG_OUTPUT_PORT)
 #define SG_INOUTPORTP(obj)    (SG_PORTP(obj) && SG_PORT(obj)->direction == SG_IN_OUT_PORT)
 
+#define SG_PORT_READTABLE(obj) (SG_PORT(obj)->readtable)
+#define SG_PORT_READER(obj)    (SG_PORT(obj)->reader)
+
 #define SG_BINARY_PORTP(obj)					\
   (SG_PORTP(obj) && SG_PORT(obj)->type == SG_BINARY_PORT_TYPE)
 #define SG_BINARY_PORT(obj)   (SG_PORT(obj)->impl.bport)
@@ -276,6 +280,7 @@ enum SgCustomPortType {
     (port)->direction = (d);			\
     (port)->type = (t);				\
     (port)->bufferMode = (m);			\
+    (port)->reader = SG_FALSE;			\
     Sg_InitMutex(&(port)->lock, TRUE);		\
   } while (0)
 
