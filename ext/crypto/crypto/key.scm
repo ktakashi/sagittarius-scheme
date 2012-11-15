@@ -28,12 +28,7 @@
 	    import-public-key
 	    import-private-key
 	    )
-    (import (core)
-	    (sagittarius)
-	    (sagittarius control)
-	    (sagittarius crypto)
+    (import (sagittarius crypto)
 	    (math random)
 	    (crypto key pair)
-	    (crypto key rsa))
-
-)
+	    (crypto key rsa)))

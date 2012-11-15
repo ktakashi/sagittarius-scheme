@@ -367,7 +367,8 @@ NOTE: if the @var{type} is @code{pointer}, then it returns Scheme FFI pointer.
 @define[Function]{@name{pointer-set-c-@var{type}!} @args{pointer offset value}}
 @desc{@var{offset} must be a fixnum.
 
-Sets @var{value} to offset @var{offset} of @var{pointer}.
+Sets @var{value} to offset @var{offset} of @var{pointer}. Supporting @var{type}s
+are the same as @code{pointer-ref-c-@var{type}}
 
 The type conversion is the same as @code{c-function}'s @var{return-type}.
 }

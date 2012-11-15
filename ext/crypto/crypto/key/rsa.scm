@@ -8,8 +8,6 @@
 	    pkcs-v1.5-padding
 	    PKCS-1-EME
 	    PKCS-1-EMSA
-	    ;; cipher
-	    rsa-cipher
 	    ;; encrypt/decrypt
 	    rsa-encrypt
 	    rsa-decrypt

@@ -34,8 +34,6 @@
     (export <token>
 	    token-key token-secret token-user-data token-consumer
 
-	    register-token unregister-token
-
 	    <consumer-token>
 	    make-consumer-token
 	    consumer-token-last-timestamp
@@ -94,7 +92,8 @@
   ;; request tokens
   (define-class <request-token> (<token> <consumer-ref-mixin>)
     (;; Callback URI for this request token, #f means oob
-     (callback-uri :init-keyword :callback-uri :init-value #f)
+     (callback-uri :init-keyword :callback-uri :init-value #f
+		   :reader request-token-callback-uri)
      ;; Might be #f for OAuth 1.0
      (verification-code :init-keyword :verification-code
 			:accessor request-token-verification-code

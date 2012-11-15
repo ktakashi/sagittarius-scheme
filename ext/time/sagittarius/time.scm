@@ -383,12 +383,49 @@
           d)
         (tm:time->date (time-tai->time-utc time) tz-offset time-utc)))
 
+  (define (time-tai->julian-day time)
+    (if (not (eq? (time-type time) time-tai))
+	(tm:time-error 'time-tai->julian-day 'incompatible-time-types  time))
+    (+ (/ (+ (- (time-second time) 
+		(tm:leap-second-delta (time-second time)))
+	     (/ (time-nanosecond time) tm:nano))
+	  tm:sid)
+       tm:tai-epoch-in-jd))
+
+  (define (time-tai->modified-julian-day time)
+    (- (time-tai->julian-day time)
+       (/ 4800001 2)))
+
   (define (time-utc->date time . tz-offset)
     (tm:time->date time tz-offset time-utc))
+
+  (define (time-utc->julian-day time)
+    (if (not (eq? (time-type time) time-utc))
+	(tm:time-error 'time-utc->julian-day 'incompatible-time-types  time))
+    (+ (/ (+ (time-second time) (/ (time-nanosecond time) tm:nano))
+	  tm:sid)
+       tm:tai-epoch-in-jd))
+
+  (define (time-utc->modified-julian-day time)
+    (- (time-utc->julian-day time)
+       (/ 4800001 2)))
 
   ;; again, time-monotonic is the same as time tai
   (define (time-monotonic->date time . tz-offset)
     (tm:time->date time tz-offset time-monotonic))
+
+  (define (time-monotonic->julian-day time)
+    (if (not (eq? (time-type time) time-monotonic))
+	(tm:time-error 'time-monotonic->julian-day 'incompatible-time-types time))
+    (+ (/ (+ (- (time-second time) 
+		(tm:leap-second-delta (time-second time)))
+	     (/ (time-nanosecond time) tm:nano))
+	  tm:sid)
+       tm:tai-epoch-in-jd))
+
+  (define (time-monotonic->modified-julian-day time)
+    (- (time-monotonic->julian-day time)
+       (/ 4800001 2)))
 
   (define (tm:encode-julian-day-number day month year)
     (let* ((a (quotient (- 14 month) 12))

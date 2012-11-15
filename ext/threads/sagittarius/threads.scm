@@ -59,7 +59,7 @@
 	    ;;current-time time? time->seconds seconds->time
 
 	    ;; exceptions
-	    join-time-out-exception? abandoned-mutex-exception?
+	    join-timeout-exception? abandoned-mutex-exception?
 	    terminated-thread-exception? uncaught-exception?
 	    uncaught-exception-reason
 

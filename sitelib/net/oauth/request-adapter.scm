@@ -1,4 +1,4 @@
-;;; -*- Scheme -*-
+;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
 ;;; parameters.scm - OAuth 1.0 library.
 ;;;  
@@ -28,7 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 (library (net oauth request-adapter)
-    (export request-adapter
+    (export <request-adapter>
 	    make-request-adapter
 	    *request-adapter*
 	    init-request-adapter
@@ -100,4 +100,8 @@
     ((request-adapter-post-parameters (*request-adapter*)) request))
   (define (get-parameters :optional (request (request)))
     ((request-adapter-get-parameters (*request-adapter*)) request))
+
+  ;; Return the string RESULT immediately from the request handler.
+  (define (abort-request result)
+    ((request-adapter-abort-request *request-adapter*) result))
 )

@@ -30,6 +30,7 @@
 
 ;; The code is based on the following site:
 ;;  http://d.hatena.ne.jp/leque/20110105/p1
+#!compatible
 (library (sagittarius mop eql)
     (export <eql-specializable-generic> eql)
     (import (rnrs)

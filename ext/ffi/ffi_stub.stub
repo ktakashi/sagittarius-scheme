@@ -257,10 +257,10 @@
 (define-c-proc pointer-set-c-long! (p::<pointer> offset::<fixnum> value) ::<void>
   (Sg_PointerSet p offset FFI_RETURN_TYPE_LONG value))
 
-(define-c-proc pointer-set-c-intptr (p::<pointer> offset::<fixnum> value) ::<void>
+(define-c-proc pointer-set-c-intptr! (p::<pointer> offset::<fixnum> value) ::<void>
   (Sg_PointerSet p offset FFI_RETURN_TYPE_INTPTR value))
 
-(define-c-proc pointer-set-c-uintptr (p::<pointer> offset::<fixnum> value) ::<void>
+(define-c-proc pointer-set-c-uintptr! (p::<pointer> offset::<fixnum> value) ::<void>
   (Sg_PointerSet p offset FFI_RETURN_TYPE_UINTPTR value))
 
 ;; correct?

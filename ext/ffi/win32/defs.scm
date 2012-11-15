@@ -99,7 +99,7 @@
   (define-c-typedef unsigned-long HANDLE_PTR)
   (define-c-typedef ULONG_PTR SIZE_T (* PSIZE_T))
   (define-c-typedef LONG_PTR SSIZE_T (* PSSIZE_T))
-  (define-c-typedef ULONG_PTR DWORD_PTR)
+  (define-c-typedef ULONG_PTR DWORD_PTR (* PDWORD_PTR))
   (define-c-typedef int64_t LONG64 (* PLONG64))
   (define-c-typedef int64_t INT64 (* PINT64))
   (define-c-typedef uint64_t ULONG64 (* PULONG64))

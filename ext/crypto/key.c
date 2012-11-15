@@ -120,7 +120,7 @@ void Sg__InitKey(SgLibrary *lib)
   Sg_InitStaticClass(SG_CLASS_SYMMETRIC_KEY,
 		     UC("<symmetric-key>"), lib, NULL, 0);
   Sg_InitStaticClass(SG_CLASS_BUILTIN_SYMMETRIC_KEY,
-		     UC("<bultin-symmetric-key>"), lib, NULL, 0);
+		     UC("<builtin-symmetric-key>"), lib, NULL, 0);
   Sg_InitStaticClass(SG_CLASS_ASYMMETRIC_KEY, UC("<asymmetric-key>"),
 		     lib, NULL, 0);
 }

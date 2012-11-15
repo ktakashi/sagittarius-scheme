@@ -218,6 +218,18 @@
 		  (oauth-url-encode (cdr p)))) alist)
      :include-leading-ampersand #f))
 
+  ;; Respond to a valid request token request. [6.1.2]
+  (define (request-token-response request-token . additional-parameters)
+    (assert (for-all (lambda (o) (not (oauth-parameter? o)))
+		     additional-parameters))
+    (make-response
+     (append
+      `(("oauth_token" . ,(token-key request-token))
+        ("oauth_token_secret" . ,(token-secret request-token))
+        ("oauth_callback_confirmed" . "true"))
+      additional-parameters)))
+
+
   ;; Check whether REQUEST is a valid request token request.
   ;; Returns the supplied Consumer callback or #f if
   ;; the callback is supposed to be transferred oob. [6.1.1]

@@ -1,6 +1,6 @@
-;; -*- scheme -*-
+;; -*- mode:scheme; coding:utf-8; -*-
 (library (slib alist)
-    (export allist-for-each alist-map
+    (export alist-for-each alist-map
 	    alist-remover alist-associator
 	    alist-inquirer predicate->asso)
     (import (core)

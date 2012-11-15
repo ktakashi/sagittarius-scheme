@@ -13,7 +13,7 @@
 	    encrypt
 	    decrypt
 	    ;; signing
-	    signature
+	    sign
 	    verify
 	    ;; supported algorithms
 	    Blowfish

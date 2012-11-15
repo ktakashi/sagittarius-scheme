@@ -1,4 +1,4 @@
-;;; -*- Scheme -*-
+;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
 ;;; tls.scm - TLS 1.0 - 1.2 protocol library.
 ;;;  
@@ -38,8 +38,9 @@
 	    TLS-RSA-WITH-NULL-MD5
 	    TLS-RSA-WITH-NULL-SHA
 	    TLS-RSA-WITH-NULL-SHA256
-	    TLS-RSA-WITH-RC4-128-MD5
-	    TLS-RSA-WITH-RC4-128-SHA
+	    ;; ws don't support rc4
+	    ;;TLS-RSA-WITH-RC4-128-MD5
+	    ;;TLS-RSA-WITH-RC4-128-SHA
 	    TLS-RSA-WITH-3DES-EDE-CBC-SHA
 	    TLS-RSA-WITH-AES-128-CBC-SHA
 	    TLS-RSA-WITH-AES-256-CBC-SHA

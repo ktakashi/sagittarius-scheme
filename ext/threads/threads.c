@@ -339,6 +339,8 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__threads()
   SG_INIT_EXTENSION(sagittarius__threads);
   lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius threads)"),
 				  FALSE));
+  Sg_InitStaticClassWithMeta(SG_CLASS_VM, UC("<thread>"), lib,
+			     NULL, SG_FALSE, NULL, 0);
   Sg__InitMutex(lib);
   Sg__Init_threads_stub(lib);
   SG_PROCEDURE_NAME(&thread_error_handler_STUB) 

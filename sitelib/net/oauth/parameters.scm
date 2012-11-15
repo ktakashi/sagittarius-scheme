@@ -1,4 +1,4 @@
-;;; -*- Scheme -*-
+;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
 ;;; parameters.scm - OAuth 1.0 library.
 ;;;  

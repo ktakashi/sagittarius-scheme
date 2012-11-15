@@ -69,8 +69,12 @@
 	    terminated-thread-exception?
 	    uncaught-exception?
 	    uncaught-exception-reason)
-    (import (sagittarius threads)
-	    (only (sagittarius) current-exception-handler)
-	    (rename (sagittarius) (with-error-handler with-exception-handler))
-	    (only (sagittarius time) current-time time? time->seconds seconds->time))
+    (import (only (core) raise)
+	    (sagittarius threads)
+	    (only (rename (sagittarius)
+			  (with-error-handler with-exception-handler)) 
+		  current-exception-handler
+		  with-exception-handler)
+	    (only (sagittarius time) 
+		  current-time time? time->seconds seconds->time))
 )
