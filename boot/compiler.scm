@@ -3443,85 +3443,105 @@
 ;;  2. If proc is $LREF which is statically bound to a $LAMBDA,
 ;;     call pass2/head-lref to see if we can safely inline it.
 (define (pass2/$CALL iform penv tail?)
-  (cond 
-   (($call-flag iform) iform) ;; this node has already been visited.
-   (else
-    (let ((proc ($call-proc iform))
-	  (args ($call-args iform)))
-      ;; scan OP first to give an opportunity of variable renaming
-      ($call-proc-set! iform (pass2/rec proc penv #f))
-      (cond
-       ((vm-noinline-locals?)
-	($call-args-set! iform (imap (lambda (arg)
-				       (pass2/rec arg penv #f)) args))
-	iform)
-       (($lambda? proc) ;; ((lambda (...) ...) arg ...)
-	;; ((lambda (var ...) body) arg ...)
-	;; -> (let ((var arg) (... ...)) body)
-	(pass2/rec (expand-inlined-procedure ($*-src iform) proc args)
-		   penv tail?))
-       ((and ($lref? proc)
-	     (pass2/head-lref proc penv tail?))
-	=> (lambda (result)
-	     (cond
-	      ((vector? result)
-	       ;; directory inlineable case.
-	       ($call-proc-set! iform result)
-	       (pass2/rec (expand-inlined-procedure ($*-src iform)
-						    result args)
-			  penv tail?))
-	      (else
-	       ;; I need more info to decide optimizing this node.
-	       ;; for now I mark the call node by the returned flag
-	       ;; and push it to the $LAMBDA node.
-	       (let ((lambda-node (lvar-initval ($lref-lvar proc))))
-		 ($call-flag-set! iform result)
-		 ($lambda-calls-set! lambda-node
-				     (acons iform penv
-					    ($lambda-calls lambda-node)))
-		 ($call-args-set! iform (imap (lambda (arg)
-						(pass2/rec arg penv #f))
-					      args))
-		 iform)))))
-       ;; expand library non exported procedure
-       ;; for now disabled. there were too much stuff to avoid...
-       ((and (has-tag? proc $GREF)
-	     ($gref-inlinable? proc penv)
-	     (assq 'inlinable penv))
-	;; get inlinables
-	=> (lambda (inlinables)
-	     (let* ((name (id-name ($gref-id proc)))
-		    (inliner (assq name inlinables)))
-	       (when (and inliner 
-			  (not (memq 'optimized 
-				     ($define-flags
-				      (cddr inliner)))))
-		 ($define-flags-set!
-		  (cddr inliner)
-		  (append ($define-flags (cddr inliner))
-			  '(optimized)))
-		 (pass2/rec (cadr inliner) penv #t))
-	       (cond ((and inliner
-			   ;; check size here
-			   ;; TODO how to optimize inlined proc
-			   (< (iform-count-size-upto (cadr inliner)
-						     INLINABLE_LAMBDA_SIZE)
-			      INLINABLE_LAMBDA_SIZE))
-		      (pass2/$LET
-		       (expand-inlined-procedure 
-			($gref-id proc) 
-			(iform-copy (cadr inliner) '()) args)
-		       penv tail?))
-		     (else
-		      ($call-args-set! iform (imap (lambda (arg)
-						     (pass2/rec arg penv #f))
-						   args))
-		      iform))))
-	)
-       (else
-	($call-args-set! iform (imap (lambda (arg)
-				       (pass2/rec arg penv #f)) args))
-	iform))))))
+  ;; for (cond ((assq x y) => cdr)) case
+  (define (inlinable-gref? gref)
+    (and-let* (( (has-tag? gref $GREF) )
+	       (gloc (id->bound-gloc ($gref-id gref)))
+	       (proc (gloc-ref gloc))
+	       ( (inline? proc) )
+	       ( (integer? (procedure-inliner proc)) ))
+      proc))
+  (if ($call-flag iform)
+      iform ;; this node has already been visited.
+      (let ((proc ($call-proc iform))
+	    (args ($call-args iform)))
+	;; scan OP first to give an opportunity of variable renaming
+	($call-proc-set! iform (pass2/rec proc penv #f))
+	(cond
+	 ((vm-noinline-locals?)
+	  ($call-args-set! iform (imap (lambda (arg)
+					 (pass2/rec arg penv #f)) args))
+	  iform)
+	 (($lambda? proc) ;; ((lambda (...) ...) arg ...)
+	  ;; ((lambda (var ...) body) arg ...)
+	  ;; -> (let ((var arg) (... ...)) body)
+	  (pass2/rec (expand-inlined-procedure ($*-src iform) proc args)
+		     penv tail?))
+	 ((and ($lref? proc)
+	       (pass2/head-lref proc penv tail?))
+	  => (lambda (result)
+	       (cond
+		((vector? result)
+		 ;; directory inlineable case.
+		 ($call-proc-set! iform result)
+		 (pass2/rec (expand-inlined-procedure 
+			     ($*-src iform) result args) penv tail?))
+		(else
+		 ;; I need more info to decide optimizing this node.
+		 ;; for now I mark the call node by the returned flag
+		 ;; and push it to the $LAMBDA node.
+		 (let ((lambda-node (lvar-initval ($lref-lvar proc))))
+		   ($call-flag-set! iform result)
+		   ($lambda-calls-set! lambda-node
+				       (acons iform penv
+					      ($lambda-calls lambda-node)))
+		   ($call-args-set! iform (imap (lambda (arg)
+						  (pass2/rec arg penv #f))
+						args))
+		   iform)))))
+	 ;; expand library non exported procedure
+	 ;; for now disabled. there were too much stuff to avoid...
+	 ((and (has-tag? proc $GREF)
+	       ($gref-inlinable? proc penv)
+	       (assq 'inlinable penv))
+	  ;; get inlinables
+	  => (lambda (inlinables)
+	       (let* ((name (id-name ($gref-id proc)))
+		      (inliner (assq name inlinables)))
+		 (when (and inliner 
+			    (not (memq 'optimized 
+				       ($define-flags (cddr inliner)))))
+		   ($define-flags-set!
+		    (cddr inliner)
+		    (append ($define-flags (cddr inliner)) '(optimized)))
+		   (pass2/rec (cadr inliner) penv #t))
+		 (cond ((and inliner
+			     ;; check size here
+			     ;; TODO how to optimize inlined proc
+			     (< (iform-count-size-upto (cadr inliner)
+						       INLINABLE_LAMBDA_SIZE)
+				INLINABLE_LAMBDA_SIZE))
+			(pass2/$LET
+			 (expand-inlined-procedure 
+			  ($gref-id proc) 
+			  (iform-copy (cadr inliner) '()) args)
+			 penv tail?))
+		       (else
+			($call-args-set! iform (imap (lambda (arg)
+						       (pass2/rec arg penv #f))
+						     args))
+			iform)))))
+	 ((inlinable-gref? proc)
+	  => (lambda (procedure)
+	       ;; TODO we only inline something can be $ASM
+	       (let* ((inliner (procedure-inliner procedure))
+		      (args    ($call-args iform))
+		      (nargs   (length args))
+		      (opt?    (procedure-optional procedure)))
+		 (unless (argcount-ok? args (procedure-reqargs procedure) opt?)
+		   (error 'pass2/$CALL
+			  (format 
+			   "wrong number of arguments: ~a requires ~a, but got ~a"
+			   (id-name ($gref-id proc))
+			   (procedure-reqargs procedure) nargs)))
+		 ;; $call -> $asm
+		 (vector-set! iform 0 $ASM)
+		 ($asm-insn-set! iform (if opt? `(,inliner ,nargs) `(,inliner)))
+		 iform)))
+	 (else
+	  ($call-args-set! iform (imap (lambda (arg)
+					 (pass2/rec arg penv #f)) args))
+	  iform)))))
 
 ;; Check if IFORM ($LREF node) can be a target of procedure-call
 ;; optimization.
