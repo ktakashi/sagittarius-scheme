@@ -971,6 +971,7 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	/* should we raise error or not? */
 	if (SG_FALSEP(lib)) {
 	  lexical_error(port, ctx, UC("no library named %S"), name);
+	  return NULL;
 	}
 	if (SG_LIBRARY_READTABLE(lib)) {
 	  add_read_table(SG_LIBRARY_READTABLE(lib), Sg_CurrentReadTable());
@@ -1316,8 +1317,8 @@ SgObject read_hash_less(SgPort *port, SgChar c, dispmacro_param *param,
     if (SG_PAIRP(name)) {
       SgObject lib = Sg_FindLibrary(name, FALSE);
       if (SG_FALSEP(lib)) {
-	lexical_error(port, ctx,
-		      UC("no library named %S"), name);
+	lexical_error(port, ctx, UC("no library named %S"), name);
+	return NULL;
       }
       if (SG_LIBRARY_READTABLE(lib)) {
 	add_read_table(SG_LIBRARY_READTABLE(lib), Sg_CurrentReadTable());
@@ -1325,6 +1326,7 @@ SgObject read_hash_less(SgPort *port, SgChar c, dispmacro_param *param,
     } else {
       lexical_error(port, ctx,
 		    UC("library name required but got %S"), name);
+      return NULL;
     }
   }
   return NULL;
@@ -1490,6 +1492,7 @@ static void link_graph(SgPort *port, SgReadContext *ctx, SgObject obj)
 SgObject Sg_ReadWithContext(SgObject port, SgReadContext *ctx)
 {
   SgObject obj;
+
   ctx->firstLine = Sg_LineNo(port);
   obj = read_expr4(port, ACCEPT_EOF, EOF, ctx);
   if (!ctx->escapedp && SG_EQ(obj, SG_SYMBOL_DOT)) {
@@ -1523,7 +1526,7 @@ SgObject Sg_ReadDelimitedList(SgObject port, SgChar delim, int sharedP)
   /* make read context for shared object */
   if (sharedP) {
     ctx.graph = Sg_MakeHashTableSimple(SG_HASH_EQ, 1);
-  }  
+  }
   ctx.graphRef = FALSE;
   ctx.firstLine = Sg_LineNo(port);
   obj = read_list(port, delim, &ctx);
@@ -1532,32 +1535,16 @@ SgObject Sg_ReadDelimitedList(SgObject port, SgChar delim, int sharedP)
   return obj;
 }
 
-static SgInternalMutex read_lock;
-
 SgObject Sg_ReadWithCase(SgPort *p, int insensitiveP, int shared)
 {
-  static SgObject read_stub = SG_UNDEF;
-  static SgObject read_ss_stub = SG_UNDEF;
   readtable_t *table;
   int oflag;
   SgObject obj;
   
-#define init_stub(stub, name, lib)				\
-  if (SG_UNDEFP(stub)) {					\
-    SgObject gloc;						\
-    Sg_LockMutex(&read_lock);					\
-    gloc = Sg_FindBinding(SG_INTERN(lib),			\
-			  SG_INTERN(name), SG_UNBOUND);		\
-    if (SG_UNBOUNDP(gloc)) Sg_Panic(name " was not found");	\
-    (stub) = SG_GLOC_GET(SG_GLOC(gloc));			\
-    Sg_UnlockMutex(&read_lock);					\
-  }
-  init_stub(read_stub, "read", "null");
-  init_stub(read_ss_stub, "read/ss", "(sagittarius)");
   table = Sg_CurrentReadTable();
   oflag = table->insensitiveP;
   table->insensitiveP = insensitiveP;
-  obj = (shared) ? Sg_Apply1(read_ss_stub, p) : Sg_Apply1(read_ss_stub, p);
+  obj = Sg_Read(p, shared);
   table->insensitiveP = oflag;
   return obj;
 }
@@ -2074,7 +2061,7 @@ void Sg__InitReader()
 
   Sg_InitMutex(&obtable_mutax, TRUE);
   obtable = Sg_MakeHashTableSimple(SG_HASH_EQUAL, 4096);
-  Sg_InitMutex(&read_lock, TRUE);
+
 #define SET_READER_NAME(fn, name)			\
   (SG_PROCEDURE_NAME(&(SCHEME_OBJ(fn))) = SG_MAKE_STRING(name))
   SET_READER_NAME(read_vertical_bar,   "|-reader");
