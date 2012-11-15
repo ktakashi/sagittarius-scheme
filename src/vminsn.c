@@ -785,7 +785,7 @@ INSN_VAL1(val1,c);
 #line 529 "instructions.scm"
 {int nargs=(val1)-(1);SgObject ret=SG_NIL;
 #line 531 "instructions.scm"
-if ((nargs)>(0)){{
+if ((val1)>(0)){{
 ret=(AC(vm));
 {int i=0;int cise__102=nargs;for (;(i)<(cise__102);(i)++){
 {SgObject obj=INDEX(SP(vm),i);

@@ -528,7 +528,7 @@
   (INSN_VAL1 val1 c)
   (let ((nargs::int (- val1 1))
 	(ret '()))
-    (when (> nargs 0)
+    (when (> val1 0)
       (set! ret (AC vm))
       (dotimes (i nargs)
 	(let ((obj (INDEX (SP vm) i)))

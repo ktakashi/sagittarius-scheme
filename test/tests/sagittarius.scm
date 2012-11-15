@@ -530,4 +530,8 @@
 	     (r6rs:eval '(import (rnrs (or (1 (>= 1)) (2))))
 			(environment '(sagittarius))))
 
+;; issue 59
+(test-equal "inlined append" '(c d e) (let ((a '(a b c d e)))
+					(cond ((memq 'c a) => append))))
+
 (test-end)
