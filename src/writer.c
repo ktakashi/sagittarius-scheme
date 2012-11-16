@@ -68,6 +68,25 @@ static SgObject write_object_fallback(SgObject *args, int nargs, SgGeneric *gf);
 
 SG_DEFINE_GENERIC(Sg_GenericWriteObject, write_object_fallback, NULL);
 
+/* 
+   Main ans child thread must have different stack size
+   (At least on Cygwin it does)
+   Main  1M
+   Child 64KB
+ */
+#define MAIN_THREAD_STACK_SIZE_LIMIT  0x100000
+#define CHILD_THREAD_STACK_SIZE_LIMIT 0x10000
+
+
+#define SET_STACK_SIZE(ctx)				\
+  do {							\
+    if (Sg_MainThreadP())				\
+      (ctx)->stackSize = MAIN_THREAD_STACK_SIZE_LIMIT;	\
+    else						\
+      (ctx)->stackSize = CHILD_THREAD_STACK_SIZE_LIMIT;	\
+  } while (0)
+    
+
 void Sg_Write(SgObject obj, SgObject p, int mode)
 {
   SgWriteContext ctx;
@@ -90,6 +109,7 @@ void Sg_Write(SgObject obj, SgObject p, int mode)
   ctx.table= NULL;
   ctx.flags = 0;
   ctx.sharedId = 0;
+  SET_STACK_SIZE(&ctx);
 
   SG_PORT_LOCK(port);
   if (SG_WRITE_MODE(&ctx) == SG_WRITE_SHARED) {
@@ -119,6 +139,7 @@ int Sg_WriteCircular(SgObject obj, SgObject port, int mode, int width)
   ctx.ncirc = 0;
   ctx.table = Sg_MakeHashTableSimple(SG_HASH_EQ, 8);
   ctx.sharedId = 0;
+  SET_STACK_SIZE(&ctx);
 
   if (width <= 0) {
     SG_PORT_LOCK(SG_PORT(port));
@@ -158,7 +179,8 @@ int Sg_WriteLimited(SgObject obj, SgObject port, int mode, int width)
   ctx.limit = width;
   ctx.sharedId = 0;
   ctx.table = NULL;
-  
+  SET_STACK_SIZE(&ctx);
+
   sharedp = SG_WRITE_MODE(&ctx) == SG_WRITE_SHARED;
   format_write(obj, SG_PORT(out), &ctx, sharedp);
   str = SG_STRING(Sg_GetStringFromStringPort(out));
@@ -330,10 +352,13 @@ static void format_proc(SgPort *port, SgString *fmt, SgObject args, int sharedp)
   sctx.table = NULL;
   sctx.flags = 0;
   sctx.sharedId = 0;
+  SET_STACK_SIZE(&sctx);
+
   actx.mode = SG_WRITE_DISPLAY;
   actx.table = NULL;
   actx.flags = 0;
   actx.sharedId = 0;
+  SET_STACK_SIZE(&actx);
 
   for (;;) {
     int atflag, colonflag;
@@ -619,12 +644,69 @@ static void write_general(SgObject obj, SgPort *port, SgWriteContext *ctx)
   else          write_object(obj, port, ctx);
 }
 
+static void write_noptr(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  if (SG_IMMEDIATEP(obj)) {
+    switch (SG_ITAG(obj)) {
+      CASE_ITAG(SG_FALSE,   UC("#f"));
+      CASE_ITAG(SG_TRUE,    UC("#t"));
+      CASE_ITAG(SG_NIL,     UC("()"));
+      CASE_ITAG(SG_EOF,     UC("#<eof>"));
+      CASE_ITAG(SG_UNDEF,   UC("#<unspecified>"));
+      CASE_ITAG(SG_UNBOUND, UC("#<unbound variable>"));
+    default:
+      Sg_Panic("write: unknown itag object: %08x", SG_WORD(obj));
+    }
+  } else if (SG_INTP(obj)) {
+    char buf[SPBUFSIZ];
+    snprintf(buf, sizeof(buf), "%ld", SG_INT_VALUE(obj));
+    Sg_PutzUnsafe(port, buf);
+  } else if (SG_CHARP(obj)) {
+    SgChar ch = SG_CHAR_VALUE(obj);
+    if (SG_WRITE_MODE(ctx) == SG_WRITE_DISPLAY) {
+      Sg_PutcUnsafe(port, ch);
+    } else {
+      Sg_PutuzUnsafe(port, UC("#\\"));
+      if (ch <= 0x20)      Sg_PutzUnsafe(port, char_names[ch]);
+      else if (ch == 0x7f) Sg_PutuzUnsafe(port, UC("delete"));
+      else                 Sg_PutcUnsafe(port, ch);
+    }
+
+  } 
+#ifdef USE_IMMEDIATE_FLONUM
+  else if (SG_IFLONUMP(obj)) {
+    write_general(obj, port, ctx);
+  }
+#endif	/* USE_IMMEDIATE_FLONUM */
+  else {
+    Sg_Panic("write: got a bogus object: %08x", SG_WORD(obj));
+  }
+  return;
+}
+
+/* check stack.
+   write context holds stack info.
+
+   FIXME: this assumes stack grows downward;
+*/
+#define CHECK_BOUNDARY(s, p, c)						\
+  do {									\
+    if ((void *)&(s) < (void *)&((c)->mode) - (c)->stackSize) {		\
+      Sg_IOWriteError((SG_WRITE_MODE(c) == SG_WRITE_DISPLAY)		\
+		      ? SG_INTERN("display")				\
+		      : SG_INTERN("write"),				\
+		      SG_MAKE_STRING("stack overflow"), (p));		\
+      return;								\
+    }									\
+  } while(0)
 
 void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
   SgObject e;
   SgHashTable *ht = ctx->table;
-
+  
+  CHECK_BOUNDARY(e, port, ctx);
+  
   if (ctx->flags & WRITE_LIMITED) {
     /*
       if the flag has WRITE_LIMITED, then output port must be
@@ -643,41 +725,7 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
   }
 
   if (!SG_PTRP(obj)) {
-    if (SG_IMMEDIATEP(obj)) {
-      switch (SG_ITAG(obj)) {
-	CASE_ITAG(SG_FALSE,   UC("#f"));
-	CASE_ITAG(SG_TRUE,    UC("#t"));
-	CASE_ITAG(SG_NIL,     UC("()"));
-	CASE_ITAG(SG_EOF,     UC("#<eof>"));
-	CASE_ITAG(SG_UNDEF,   UC("#<unspecified>"));
-	CASE_ITAG(SG_UNBOUND, UC("#<unbound variable>"));
-      default:
-	Sg_Panic("write: unknown itag object: %08x", SG_WORD(obj));
-      }
-    } else if (SG_INTP(obj)) {
-      char buf[SPBUFSIZ];
-      snprintf(buf, sizeof(buf), "%ld", SG_INT_VALUE(obj));
-      Sg_PutzUnsafe(port, buf);
-    } else if (SG_CHARP(obj)) {
-      SgChar ch = SG_CHAR_VALUE(obj);
-      if (SG_WRITE_MODE(ctx) == SG_WRITE_DISPLAY) {
-	Sg_PutcUnsafe(port, ch);
-      } else {
-	Sg_PutuzUnsafe(port, UC("#\\"));
-	if (ch <= 0x20)      Sg_PutzUnsafe(port, char_names[ch]);
-	else if (ch == 0x7f) Sg_PutuzUnsafe(port, UC("delete"));
-	else                 Sg_PutcUnsafe(port, ch);
-      }
-
-    } 
-#ifdef USE_IMMEDIATE_FLONUM
-    else if (SG_IFLONUMP(obj)) {
-      write_general(obj, port, ctx);
-    }
-#endif	/* USE_IMMEDIATE_FLONUM */
-    else {
-      Sg_Panic("write: got a bogus object: %08x", SG_WORD(obj));
-    }
+    write_noptr(obj, port, ctx);
     return;
   }
 
@@ -783,6 +831,7 @@ static void write_walk_circular(SgObject obj, SgWriteContext *ctx,
   SgHashTable *ht;
   SgObject elt;
 
+  CHECK_BOUNDARY(elt, SG_FALSE, ctx);
 #define REGISTER(obj)						\
   do {								\
     SgObject e = Sg_HashTableRef(ht, (obj), SG_UNBOUND);	\
@@ -830,6 +879,8 @@ static void write_walk(SgObject obj, SgWriteContext *ctx)
 {
   SgHashTable *ht;
   SgObject elt;
+
+  CHECK_BOUNDARY(elt, SG_FALSE, ctx);
 
 #define REGISTER(obj)						\
   do {								\
@@ -969,6 +1020,7 @@ static void vprintf_proc(SgPort *port, const SgChar *fmt,
 	  wctx.table = NULL;
 	  wctx.flags = 0;
 	  wctx.sharedId = 0;
+	  SET_STACK_SIZE(&wctx);
 
 	  get_value();
 	  ASSERT(SG_CHARP(value));
@@ -1061,6 +1113,7 @@ static void vprintf_proc(SgPort *port, const SgChar *fmt,
 	  wctx.table = NULL;
 	  wctx.flags = 0;
 	  wctx.sharedId = 0;
+	  SET_STACK_SIZE(&wctx);
 	  if (pound_appeared) {
 	    int  n = Sg_WriteCircular(value, SG_OBJ(port), mode, width);
 	    if (n < 0 && prec > 0) {

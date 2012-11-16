@@ -534,4 +534,15 @@
 (test-equal "inlined append" '(c d e) (let ((a '(a b c d e)))
 					(cond ((memq 'c a) => append))))
 
+;; issue 60
+;; For now we only throw &i/o-write
+;; The behaviour is taken from CLisp and SBCL (stack overflow detection)
+(test-error "deeply nested list stack overflow detection"
+	    i/o-error?
+	    (let loop ((cnt 0) (ls '()))
+	      (if (< cnt 1000000)
+		  (loop (+ cnt 1) (list ls))
+		  (string-length (call-with-string-output-port
+				  (lambda (p) (display ls p)))))))
+
 (test-end)
