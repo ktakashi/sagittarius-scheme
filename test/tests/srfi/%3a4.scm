@@ -1,4 +1,4 @@
-#< (srfi :4) >
+#!read-macro=srfi/:4
 (import (rnrs)
 	(srfi :4)
 	(srfi :64 testing)
@@ -7,7 +7,7 @@
 
 ;; reader test helper
 (define (read-from-string str)
-  (read (open-string-input-port str)))
+  (read (open-string-input-port (string-append "#!read-macro=srfi/:4 " str))))
 
 (define-syntax test-approx
   (syntax-rules ()

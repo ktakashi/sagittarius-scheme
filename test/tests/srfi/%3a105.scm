@@ -10,7 +10,8 @@
   (syntax-rules ()
     ((_ expect expr)
      (test-equal expr expect
-		 (let ((p (open-string-input-port expr)))
+		 (let ((p (open-string-input-port
+			   (string-append "#!read-macro=curly-infix " expr))))
 		   (read p))))))
 
 ;; from SRFI-105 samples
@@ -175,7 +176,8 @@
 
 ;; reset
 ;; we need to use R6RS mode to detect it, otherwise #\{ is just a symbol...
+;; this makes port open process running on R6RS mode.
 #!r6rs
-(test-error "reset" (lambda (e) e) (read (open-string-input-port "{a + b}")))
+(test-error "reset" i/o-read-error? (read (open-string-input-port "{a + b}")))
 
 (test-end)
