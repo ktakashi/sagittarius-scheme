@@ -45,6 +45,12 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <netinet/in.h>
+#if !defined(__linux__) && !defined(__CYGWIN__)
+/* assume BSD or OSX */
+#include <ifaddrs.h>
+#include <net/if_dl.h>
+#include <net/if_types.h>
+#endif
 #ifdef HAVE_SCHED_H
 # include <sched.h>
 #endif
@@ -264,11 +270,15 @@ SgObject Sg_TimeUsage()
 				    ru.ru_stime.tv_usec / 1000000.0));
 }
 
+/* the value will be the same so why not to be located here */
+static SgObject empty_mac = NULL;
+
+#if defined(__linux__) || defined(__CYGWIN__)
+/* how many should we allocate? */
+#define MAX_IFS 16
+
 SgObject Sg_GetMacAddress(int pos)
 {
-  /* how many should we allocate? */
-#define MAX_IFS 16
-  static SgObject empty_mac = NULL;
   struct ifreq *ifr;
   struct ifreq ifreq;
   struct ifconf ifc;
@@ -289,7 +299,7 @@ SgObject Sg_GetMacAddress(int pos)
   if (pos < 0) pos = 0;
   else if (pos > size) pos = size-1;
   ifr = &ifs[pos];
-
+  
   if (ifr->ifr_addr.sa_family == AF_INET) {
     strncpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
     if (ioctl(fd, SIOCGIFHWADDR, &ifreq) < 0) {
@@ -300,3 +310,38 @@ SgObject Sg_GetMacAddress(int pos)
   /* something wrong but return empty MAC address */
   return empty_mac;
 }
+#else
+/* assume BSD or OSX */
+SgObject Sg_GetMacAddress(int pos)
+{
+  struct ifaddrs *ifa_list, *ifa;
+  struct sockaddr_dl *dl;
+  unsigned char *addr;
+  int index;
+  
+  if (empty_mac == NULL) {
+    empty_mac = Sg_MakeByteVector(6, 0);
+  }
+  if (getifaddrs(&ifa_list) < 0) {
+    return empty_mac;
+  }
+  if (pos < 0) pos = 0;
+
+  index = 0;
+  for (ifa = ifa_list; ifa != NULL; ifa = ifa->ifa_next) {
+    dl = (struct sockaddr_dl *)ifa->ifa_addr;
+    if (dl->sdl_family == AF_LINK && dl->sdl_type = IFT_EHTER) {
+      SgObject r;
+      if (index++ != pos) continue;
+      addr = LLADDR(dl);
+      r = Sg_MakeByteVectorFromU8Array(addr, 6);
+      freeifaddrs(ifa_list);
+      return r;
+    } else {
+      freeifaddrs(ifa_list);
+      return empty_mac;
+    }
+  }
+  return empty_mac;
+}
+#endif
