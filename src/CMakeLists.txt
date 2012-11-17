@@ -82,7 +82,11 @@ ADD_LIBRARY(sagittarius SHARED
 
 IF(NOT WIN32)
   TARGET_LINK_LIBRARIES(sagittarius pthread)
-  TARGET_LINK_LIBRARIES(sagittarius dl)
+  IF (${SAGITTARIUS_PLATFORM} MATCHES ".*bsd")
+    TARGET_LINK_LIBRARIES(sagittarius c)
+  ELSE()
+    TARGET_LINK_LIBRARIES(sagittarius dl)
+  ENDIF()
   # linux needs this
   TARGET_LINK_LIBRARIES(sagittarius m)
 ENDIF()

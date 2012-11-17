@@ -330,7 +330,7 @@ SgObject Sg_GetMacAddress(int pos)
   index = 0;
   for (ifa = ifa_list; ifa != NULL; ifa = ifa->ifa_next) {
     dl = (struct sockaddr_dl *)ifa->ifa_addr;
-    if (dl->sdl_family == AF_LINK && dl->sdl_type = IFT_EHTER) {
+    if (dl->sdl_family == AF_LINK && dl->sdl_type == IFT_ETHER) {
       SgObject r;
       if (index++ != pos) continue;
       addr = LLADDR(dl);
