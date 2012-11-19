@@ -562,4 +562,15 @@
 ;; issue 64
 (test-assert "issue 64" (let () (define inner) inner))
 
+;; issue 66
+;; the issue was only valid in R6RS mode
+#!r6rs
+(let ((env (environment '(rnrs))))
+  (test-assert "issue 66 (define)" 
+	       (r6rs:eval
+		'(let-syntax ((def (syntax-rules () ((_) (lambda () #t)))))
+		   (define prob (def))) env))
+  (test-assert "issue 66 (run)" (r6rs:eval '(prob) env)))
+#!compatible
+
 (test-end)

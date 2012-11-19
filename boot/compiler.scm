@@ -1300,7 +1300,9 @@
 	    ;; macro must be lexical. see pass1
 	    (newenv (p1env-extend p1env 
 				  (%map-cons name trans) LEXICAL)))
-       (pass1/body body newenv)))
+       (if (vm-r6rs-mode?)
+	   ($seq (imap (lambda (e) (pass1 e newenv)) body))
+	   (pass1/body body newenv))))
     (else
      (syntax-error "malformed let-syntax" form))))
 
@@ -1322,7 +1324,9 @@
 			  name trans-spec)))
        (ifor-each2 set-cdr!
 		   (cdar (p1env-frames newenv)) trans)
-       (pass1/body body newenv)))
+       (if (vm-r6rs-mode?)
+	   ($seq (imap (lambda (e) (pass1 e newenv)) body))
+	   (pass1/body body newenv))))
     (-
      (syntax-error "malformed letrec-syntax" form))))
 
