@@ -401,27 +401,39 @@ static SgChar read_escape(SgPort *port, SgReadContext *ctx)
 }
 
 typedef int (*read_helper)(SgPort *, SgReadContext *, SgChar *, 
-			   int, SgChar, readtable_t *table);
+			   int, SgChar, SgObject, readtable_t *table);
+/* convenient macro, used both symbol and string reader*/
+#define append_char(buf, p, c, i)		\
+  do {						\
+    if (p) {					\
+      Sg_PutcUnsafe(p, (c));			\
+    } else {					\
+      (buf)[(i)++] = (c);			\
+    }						\
+  } while (0)
+
+#define READ_SYMBOL_MAX_SIZE 256
+
 static SgObject read_symbol_generic(SgPort *port, SgChar initial,
 				    read_helper helper,
 				    SgReadContext *ctx)
 {
-  SgChar buf[READ_STRING_MAX_SIZE];
+  SgChar buf[READ_SYMBOL_MAX_SIZE], c;
   int i = 0;
-  SgChar c;
   readtable_t *table = Sg_PortReadTable(port);
+  SgObject out = NULL;
 
   if (initial > 0) {
     if (initial > 127) {
       Sg_EnsureUcs4(initial);
       if (i == 0) {
 	if (Sg_Ucs4ConstituentP(initial)) {
-	  buf[i++] = initial;
+	  append_char(buf, out, initial, i);
 	  goto next;
 	}
       } else {
 	if (Sg_Ucs4SubsequentP(initial)) {
-	  buf[i++] = initial;
+	  append_char(buf, out, initial, i);
 	  goto next;
 	}
       }
@@ -429,20 +441,24 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
 		    UC("invalid character %U during reading identifier"),
 		    initial);
     } else {
-      i = helper(port, ctx, buf, i, initial, table);
+      i = helper(port, ctx, buf, i, initial, out, table);
     }
   }
  next:
-  while (i < array_sizeof(buf)) {
+  while (out != NULL || i < array_sizeof(buf)) {
     c = Sg_PeekcUnsafe(port);
     if (c == EOF || delimited(port, c)) {
-      SgObject s;
-      buf[i] = 0;
-      s = Sg_MakeStringEx(buf, SG_LITERAL_STRING, i);
-      if (table->insensitiveP) {
-	s = Sg_StringFoldCase(SG_STRING(s));
+      if (out) {
+	return Sg_GetStringFromStringPort(out);
+      } else {
+	SgObject s;
+	buf[i] = 0;
+	s = Sg_MakeStringEx(buf, SG_LITERAL_STRING, i);
+	if (table->insensitiveP) {
+	  s = Sg_StringFoldCase(SG_STRING(s));
+	}
+	return s;
       }
-      return s;
     }
     Sg_GetcUnsafe(port);
     if (c == '\\') {
@@ -450,7 +466,7 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
       c = Sg_GetcUnsafe(port);
       if (c == 'x') {
 	Sg_UngetcUnsafe(port, c);
-	buf[i++] = read_escape(port, ctx);
+	append_char(buf, out, read_escape(port, ctx), i);
 	continue;
       }
       lexical_error(port, ctx, 
@@ -460,42 +476,45 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
       Sg_EnsureUcs4(c);
       if (i == 0) {
 	if (Sg_Ucs4ConstituentP(c)) {
-	  buf[i++] = (c);
+	  append_char(buf, out, c, i);
 	  continue;
 	}
       } else {
 	if (Sg_Ucs4SubsequentP(c)) {
-	  buf[i++] = (c);
+	  append_char(buf, out, c, i);
 	  continue;
 	}
       }
       lexical_error(port, ctx,
 		    UC("invalid character %U during reading identifier"), c);
     }
-    i = helper(port, ctx, buf, i, c, table);
+    i = helper(port, ctx, buf, i, c, out, table);
   }
-  lexical_error(port, ctx,
-		UC("token buffer overflow during reading identifier"));
+  out = Sg_ConvertToStringOutputPort(buf, i);
+  goto next;
+  /* lexical_error(port, ctx, */
+  /* 		UC("token buffer overflow during reading identifier")); */
   return SG_UNDEF;
 #undef check_range
 }
 
 static int read_r6rs_symbol_helper(SgPort *port, SgReadContext *ctx, 
 				   SgChar *buf, int i, SgChar c,
+				   SgObject out,
 				   readtable_t *table)
 {
   if (c > 127) {
-    if (buf != NULL) buf[i++] = c;
+    if (buf != NULL) append_char(buf, out, c, i);
     return i;
   }
   if (i == 0) {
     if (INITIAL_CHARP(c)) {
-      if (buf != NULL) buf[i++] = c;
+      if (buf != NULL) append_char(buf, out, c, i);
       return i;
     }
   } else {
     if (SYMBOL_CHARP(c)) {
-      if (buf != NULL) buf[i++] = c;
+      if (buf != NULL) append_char(buf, out, c, i);
       return i;
     }
   }
@@ -511,10 +530,11 @@ SgObject read_r6rs_symbol(SgPort *port, SgChar initial, SgReadContext *ctx)
 
 static int read_compat_symbol_helper(SgPort *port, SgReadContext *ctx, 
 				     SgChar *buf, int i, SgChar c,
+				     SgObject out,
 				     readtable_t *table)
 {
   if (!delimited(port, c)) {
-    buf[i++] = c;
+    append_char(buf, out, c, i);
     return i;
   }
   lexical_error(port, ctx,
@@ -566,7 +586,7 @@ SgObject read_symbol_or_number(SgPort *port, SgChar c,
     /* People, do not use R6RS mode on Sagittarius, this mode is slow. */
     for (i = 0; i < SG_STRING_SIZE(str); i++) {
       read_r6rs_symbol_helper(port, ctx, NULL, i,
-			      SG_STRING_VALUE_AT(str, i), table);
+			      SG_STRING_VALUE_AT(str, i), NULL, table);
     }
     /* lexical_error(port, ctx, UC("invalid lexical syntax %A"), str); */
   }
@@ -661,6 +681,7 @@ SgObject read_double_quote(SgPort *port, SgChar c, SgReadContext *ctx)
 {
   SgChar buf[READ_STRING_MAX_SIZE];
   int i = 0;
+  SgObject out = NULL;
 
 #define handle_linefeed(c, hndl)				\
   switch (c) {							\
@@ -671,17 +692,22 @@ SgObject read_double_quote(SgPort *port, SgChar c, SgReadContext *ctx)
     hndl;							\
   }
 
-  while (i < array_sizeof(buf)) {
+ next:
+  while (out != NULL || i < array_sizeof(buf)) {
     SgChar c = Sg_GetcUnsafe(port);
     if (c == EOF)
       lexical_error(port, ctx,
 		    UC("unexpected end-of-file while reading string"));
 
-    handle_linefeed(c, { buf[i++] = LF; continue; });
+    handle_linefeed(c, { append_char(buf, out, LF, i); continue; });
 
     if (c == '"') {
-      buf[i] = 0;
-      return Sg_MakeStringEx(buf, SG_LITERAL_STRING, i);
+      if (out) {
+	return Sg_GetStringFromStringPort(out);
+      } else {
+	buf[i] = 0;
+	return Sg_MakeStringEx(buf, SG_LITERAL_STRING, i);
+      }
     }
     if (c == '\\') {
       c = Sg_GetcUnsafe(port);
@@ -714,12 +740,15 @@ SgObject read_double_quote(SgPort *port, SgChar c, SgReadContext *ctx)
 		      );
       Sg_UngetcUnsafe(port, c);
       c = read_escape(port, ctx);
-      buf[i++] = c;
+      append_char(buf, out, c, i);
       continue;
+    } else {
+      append_char(buf, out, c, i);
     }
-    buf[i++] = c;
   }
-  lexical_error(port, ctx, UC("token buffer overflow while reading string"));
+  out = Sg_ConvertToStringOutputPort(buf, i);
+  goto next;
+  /* lexical_error(port, ctx, UC("token buffer overflow while reading string")); */
   return SG_UNDEF; /* dummy */
 }
 

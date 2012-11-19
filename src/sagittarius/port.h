@@ -305,6 +305,8 @@ SG_EXTERN SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port,
 						    SgTranscoder *transcoder);
 SG_EXTERN SgObject Sg_MakeStringOutputPort(int bufferSize);
 SG_EXTERN SgObject Sg_MakeStringInputPort(SgString *in, int privatep);
+/* For convenience and future improvement */
+SG_EXTERN SgObject Sg_ConvertToStringOutputPort(SgChar *buf, int bufferSize);
 
 /* custom ports */
 SG_EXTERN SgObject Sg_MakeCustomBinaryPort(SgString *id,

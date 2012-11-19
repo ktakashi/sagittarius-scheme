@@ -1308,6 +1308,18 @@ SgObject Sg_MakeStringInputPort(SgString *s, int private)
   return SG_OBJ(z); 
 }
 
+/*
+  TODO
+  I need to write optimised char_buffer stuff but for now
+  I just need to write this simple implementation.
+ */
+SgObject Sg_ConvertToStringOutputPort(SgChar *buf, int bufferSize)
+{
+  SgObject o = Sg_MakeStringOutputPort(bufferSize);
+  Sg_WritesUnsafe(SG_PORT(o), buf, bufferSize);
+  return o;
+}
+
 /* custom ports */
 /* convenient macro */
 #define SG_CUSTOM_BINARY_PORT(obj)  (SG_CUSTOM_PORT(obj)->impl.bport)
