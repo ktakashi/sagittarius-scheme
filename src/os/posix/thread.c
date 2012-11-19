@@ -38,6 +38,11 @@
 #include <sagittarius/thread.h>
 #include <sagittarius/core.h>
 
+/* Thank you Debian, we need this stupid kludge */
+#ifndef PTHREAD_MUTEX_RECURSIVE
+#define PTHREAD_MUTEX_RECURSIVE PTHREAD_MUTEX_RECURSIVE_NP
+#endif
+
 void Sg_InitMutex(SgInternalMutex *mutex, int recursive)
 {
   if (recursive) {
