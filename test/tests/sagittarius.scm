@@ -559,4 +559,7 @@
 (test-assert "issue 63" (r6rs:eval '(import (issue-63)) 
 				   (environment '(sagittarius))))
 
+;; issue 64
+(test-assert "issue 64" (let () (define inner) inner))
+
 (test-end)

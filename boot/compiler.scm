@@ -2732,8 +2732,11 @@
 				       ($src `(,name (,lambda. ,formals
 							       ,@body)
 						     . ,src) (caar exprs)))
-				      ((var init)
-				       ($src `(,var ,init . ,src)
+				      ((var . init)
+				       ($src `(,var ,(if (null? init)
+							 (undefined)
+							 (car init))
+						    . ,src)
 					     (caar exprs)))
 				      (- (syntax-error
 					  "malformed internal define"
