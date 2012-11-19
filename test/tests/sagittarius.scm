@@ -545,4 +545,18 @@
 		  (string-length (call-with-string-output-port
 				  (lambda (p) (display ls p)))))))
 
+;; issue 63
+;; for keyword ignored it's library reference
+(library (issue-63 aux)
+    (export problem)
+    (import (rnrs))
+  (define (problem) #t))
+
+(library (issue-63)
+    (export problem)
+    (import (rnrs) (for (prefix (issue-63 aux) aux:) expand run))
+  (define (problem) (aux:problem)))
+(test-assert "issue 63" (r6rs:eval '(import (issue-63)) 
+				   (environment '(sagittarius))))
+
 (test-end)

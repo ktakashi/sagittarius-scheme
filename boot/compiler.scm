@@ -2210,7 +2210,7 @@
       ;; basically, this will be ignored
       (((? (lambda (x) (eq? 'for (variable-name x))) -) set phase ___)
        (receive (ref resolved trans?) (parse-spec set)
-	 (values ref '() (check-expand-phase phase))))
+	 (values ref resolved (check-expand-phase phase))))
       (- (values spec '() #f))))
 
   (define (process-spec spec)
