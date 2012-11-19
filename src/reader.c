@@ -1415,7 +1415,7 @@ SgObject dispmacro_reader(SgPort *port, SgChar c, SgReadContext *ctx)
 SgObject read_expr4(SgPort *port, int flags, SgChar delim, SgReadContext *ctx)
 {
   SgChar c;
-  readtable_t *table = Sg_PortReadTable(port);
+  readtable_t *table;
   SgObject item;
   while (1) {
   top:
@@ -1432,7 +1432,8 @@ SgObject read_expr4(SgPort *port, int flags, SgChar delim, SgReadContext *ctx)
     if (c == delim) return SG_SYMBOL_RPAREN;
 
     parsing_line(ctx, Sg_LineNo(port));
-
+    /* need to be re-get for #!read-macro */
+    table = Sg_PortReadTable(port);
     if (c < 128 && isdigit(c)) {
       return read_symbol_or_number(port, c, table, ctx);
     }
@@ -1510,6 +1511,7 @@ static void link_graph(SgPort *port, SgReadContext *ctx, SgObject obj)
   }
 }
 
+#if 0
 static void extends_loading_table(SgObject port)
 {
   SgObject loadingPort = Sg_CurrentLoadingPort();
@@ -1518,11 +1520,12 @@ static void extends_loading_table(SgObject port)
     add_read_table(SG_PORT_READTABLE(loadingPort), SG_PORT_READTABLE(port));
   }
 }
+#endif
 
 SgObject Sg_ReadWithContext(SgObject port, SgReadContext *ctx)
 {
   SgObject obj;
-  extends_loading_table(port);
+  /* extends_loading_table(port); */
 
   ctx->firstLine = Sg_LineNo(port);
   obj = read_expr4(port, ACCEPT_EOF, EOF, ctx);
@@ -1554,7 +1557,7 @@ SgObject Sg_ReadDelimitedList(SgObject port, SgChar delim, int sharedP)
   SgReadContext ctx = {0};
   ASSERT(SG_PORTP(port));
 
-  extends_loading_table(port);
+  /* extends_loading_table(port); */
   /* make read context for shared object */
   if (sharedP) {
     ctx.graph = Sg_MakeHashTableSimple(SG_HASH_EQ, 1);
