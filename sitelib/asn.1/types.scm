@@ -125,7 +125,7 @@
 	    (asn.1 der tags)
 	    (asn.1 der encode)
 	    (srfi :13 strings)
-	    (srfi :14 char-set)
+	    (srfi :14 char-sets)
 	    (srfi :39 parameters))
   ;; for write-object
   (define *current-indent* (make-parameter #f))

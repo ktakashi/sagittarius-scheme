@@ -11,7 +11,7 @@
 	    (srfi :1 lists)
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
-	    (srfi :14 char-set)
+	    (srfi :14 char-sets)
 	    (sagittarius)
 	    )
 

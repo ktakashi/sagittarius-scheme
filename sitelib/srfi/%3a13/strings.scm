@@ -73,7 +73,7 @@
 	    (sagittarius)
 	    (sagittarius control)
 	    (srfi :8 receive)
-	    (srfi :14 char-set))
+	    (srfi :14 char-sets))
 
   (define (char-cased? c) (char-alphabetic? c))
 

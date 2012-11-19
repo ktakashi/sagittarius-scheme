@@ -64,4 +64,4 @@
           string->char-set!
           ucs-range->char-set
           ucs-range->char-set!)
-  (import (srfi :14 char-set)))
+  (import (srfi :14 char-sets)))

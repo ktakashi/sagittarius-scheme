@@ -31,7 +31,7 @@
 ;; the implementation based on Python's cgi.py
 ;; multipart parsing part is based on Gauche's cgi.scm
 #!compatible
-#< (sagittarius regex) >
+#!read-macro=sagittarius/regex
 (library (www cgi)
     (export cgi-parse
 	    split-query-string
@@ -55,7 +55,7 @@
 	    (text tree)
 	    (srfi :1  lists)
 	    (srfi :13 strings)
-	    (srfi :14 char-set)
+	    (srfi :14 char-sets)
 	    (srfi :26 cut)
 	    (srfi :39 parameters))
 

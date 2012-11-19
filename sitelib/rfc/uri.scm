@@ -33,7 +33,7 @@
 ;; <http://www.ietf.org/rfc/rfc3986.txt>
 
 #!compatible
-#< (sagittarius regex) >
+#!read-macro=sagittarius/regex
 (library (rfc uri)
     (export uri-parse
 	    uri-scheme&specific
@@ -51,7 +51,7 @@
 	    *rfc2396-unreserved-char-set*)
     (import (rnrs)
 	    (srfi :13 strings)
-	    (srfi :14 char-set)
+	    (srfi :14 char-sets)
 	    (shorten)
 	    (sagittarius)
 	    (sagittarius io)

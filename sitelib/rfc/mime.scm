@@ -37,7 +37,7 @@
 
 ;; The api names are from Gauche.
 #!compatible
-#< (sagittarius regex) >
+#!read-macro=sagittarius/regex
 (library (rfc mime)
     (export mime-parse-version
 	    mime-parse-content-type
@@ -74,7 +74,7 @@
 	    (srfi :1 lists)
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
-	    (srfi :14 char-set)
+	    (srfi :14 char-sets)
 	    (srfi :19 time)
 	    (srfi :26 cut)
 	    (srfi :27 random-bits)

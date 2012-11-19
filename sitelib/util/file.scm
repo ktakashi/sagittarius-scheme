@@ -59,7 +59,7 @@
 	    (srfi :0)
 	    (srfi :1)
 	    (srfi :13 strings)
-	    (srfi :14 char-set)
+	    (srfi :14 char-sets)
 	    (srfi :38)
 	    (srfi :39 parameters)
 	    (util port))

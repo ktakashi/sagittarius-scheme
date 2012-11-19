@@ -40,7 +40,7 @@
     (import (rnrs)
 	    (packrat)
 	    (sagittarius)
-	    (srfi :14 char-set)
+	    (srfi :14 char-sets)
 	    (srfi :26 cut)
 	    (srfi :39 parameters))
 
