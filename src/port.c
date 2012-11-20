@@ -1321,9 +1321,6 @@ SgObject Sg_ConvertToStringOutputPort(SgChar *buf, int bufferSize)
 }
 
 /* custom ports */
-/* convenient macro */
-#define SG_CUSTOM_BINARY_PORT(obj)  (SG_CUSTOM_PORT(obj)->impl.bport)
-#define SG_CUSTOM_TEXTUAL_PORT(obj) (SG_CUSTOM_PORT(obj)->impl.tport)
 /* because of non-good implementation of SG_PORT_HAS_U8_AHEAD, we need these
    for custom binary port.
  */

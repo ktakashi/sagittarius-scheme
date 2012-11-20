@@ -6,6 +6,7 @@
 	(rename (rnrs eval) (eval r6rs:eval))
 	(sagittarius)
 	(sagittarius vm)
+	(encoding decoder)
 	(srfi :1)
 	(srfi :64 testing))
 
@@ -572,5 +573,12 @@
 		   (define prob (def))) env))
   (test-assert "issue 66 (run)" (r6rs:eval '(prob) env)))
 #!compatible
+
+;; issue 67
+(let* ((in  (open-bytevector-input-port (string->utf8 "hello")))
+       (tp (transcoded-port in (make-transcoder (lookup-decoder "sjis")))))
+  (test-assert "custom codec(0)" (port-closed? in))
+  (test-equal "custom codec(1)" "hello" (get-string-all tp))
+  (test-assert "custom codec(2)" (port-closed? in)))
 
 (test-end)
