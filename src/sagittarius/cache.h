@@ -33,6 +33,11 @@
 #define SAGITTARIUS_CACHE_H_
 
 #include "sagittariusdefs.h"
+#ifdef HAVE_SETJMP_H
+# include <setjmp.h>
+#else
+# error TODO implement own set jmp
+#endif
 
 /* read cache state */
 enum {

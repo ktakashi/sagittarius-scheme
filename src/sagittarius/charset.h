@@ -29,8 +29,8 @@
  *
  *  $Id: $
  */
-#ifndef SAGITTARIUS_CHARSET_HPP_
-#define SAGITTARIUS_CHARSET_HPP_
+#ifndef SAGITTARIUS_CHARSET_H_
+#define SAGITTARIUS_CHARSET_H_
 
 /* For SRFI14 */
 #include "sagittariusdefs.h"
@@ -97,4 +97,4 @@ SG_EXTERN SgObject Sg_CharSetRanges(SgCharSet *cs);
 
 SG_CDECL_END
 
-#endif /* SAGITTARIUS_CHARSET_HPP_ */
+#endif /* SAGITTARIUS_CHARSET_H_ */
