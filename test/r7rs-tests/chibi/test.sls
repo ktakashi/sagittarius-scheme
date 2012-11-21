@@ -28,4 +28,4 @@
     (begin
       (define (pair-source x) #f)
       (define print-exception write))))
-  (include "test.impl.scm"))
+  (include "test.scm"))

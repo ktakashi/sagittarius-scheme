@@ -330,12 +330,12 @@ static SgObject search_library(SgObject name, int onlyPath)
   /* initialize extensions */
   if (extentions == NULL) {
     /* we don't have to care about multithread here. */
-    extentions = list6(SG_MAKE_STRING(".sagittarius.scm"),
-		       SG_MAKE_STRING(".sagittarius.ss"),
+    extentions = list6(SG_MAKE_STRING(".sagittarius.ss"),
 		       SG_MAKE_STRING(".sagittarius.sls"),
-		       SG_MAKE_STRING(".scm"),
+		       SG_MAKE_STRING(".sagittarius.scm"),
 		       SG_MAKE_STRING(".ss"),
-		       SG_MAKE_STRING(".sls"));
+		       SG_MAKE_STRING(".sls"),
+		       SG_MAKE_STRING(".scm"));
   }
   SG_FOR_EACH(ext, extentions) {
     SgObject p = Sg_StringAppend2(path, SG_STRING(SG_CAR(ext)));
