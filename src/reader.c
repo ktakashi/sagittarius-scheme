@@ -557,8 +557,14 @@ static SgObject read_escaped_symbol(SgPort *port, SgReadContext *ctx)
 SgObject read_symbol_or_number(SgPort *port, SgChar c,
 			       readtable_t *table, SgReadContext *ctx)
 {
-  SgObject str = read_compatible_symbol(port, c, ctx);
-  SgObject num = Sg_StringToNumber(str, 10, TRUE);
+  SgObject str = read_compatible_symbol(port, c, ctx), num, tmp;
+  if (table->symbol_reader == read_r6rs_symbol) {
+    tmp = str;
+  } else {
+    /* R7RS requires capital NaN or InF */
+    tmp = Sg_StringDownCase(str);
+  }
+  num  = Sg_StringToNumber(tmp, 10, TRUE);
   if (!SG_FALSEP(num)) return num; 
   if (SG_STRING_SIZE(str) == 1 && SG_STRING_VALUE_AT(str, 0) == '.')
     return SG_SYMBOL_DOT;
