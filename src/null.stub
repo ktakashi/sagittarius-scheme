@@ -2514,8 +2514,9 @@
     (result (or (SG_OUTPORTP obj)
 		(SG_INOUTPORTP obj))))
 
-  (define-c-proc flush-output-port (p::<port>) ::<void>
-    (Sg_FlushPort p))
+  (define-c-proc flush-output-port 
+    (:optional (p::<port> (Sg_CurrentOutputPort))) ::<void>
+    Sg_FlushPort)
 
   (define-c-proc output-port-buffer-mode (p::<port>) ::<top>
     (cond ((SG_EQ (-> p bufferMode) SG_BUFMODE_NONE)
