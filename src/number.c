@@ -2827,7 +2827,9 @@ int Sg_NumCmp(SgObject x, SgObject y)
       nan_return(r);
       if (r < 0) return -1;
       else if (r > 0) return 1;
-      else return 0;
+      else {
+	return Sg_NumCmp(Sg_Exact(x), y);
+      }
     } else if (SG_COMPLEXP(y)) {
       if (Sg_ZeroP(SG_COMPLEX(y)->imag)) {
 	y = SG_COMPLEX(y)->real;
