@@ -518,15 +518,12 @@
 ;; numbers if any argument is inexact, are not transitive.
 
 ;; Example from Alan Bawden
-;; Sagittarius
-;; I don't think this test case is valid, a and c are not the same but
-;; converting a to flonum has some tolerances.
-;;(let ((a (- (expt 2 1000) 1))
-;;      (b (inexact (expt 2 1000))) ; assuming > single-float-epsilon
-;;      (c (+ (expt 2 1000) 1)))
-;;  (test #t (if (and (= a b) (= b c))
-;;               (= a c)
-;;               #t)))
+(let ((a (- (expt 2 1000) 1))
+      (b (inexact (expt 2 1000))) ; assuming > single-float-epsilon
+      (c (+ (expt 2 1000) 1)))
+  (test #t (if (and (= a b) (= b c))
+               (= a c)
+               #t)))
 
 ;; From CLtL 12.3. Comparisons on Numbers:
 ;;
@@ -1529,7 +1526,7 @@
       (write-string "abc def" out 2 5)
       (get-output-string out)))
 
-;; Invalid test for Sagittarius.
+;; I think this is invalid test
 ;; (test ""
 ;;   (let ((out (open-output-bytevector)))
 ;;     (flush-output-port out)
@@ -1754,13 +1751,12 @@
  ("1l2" 100.0 "100.0" "100.")
  ("1L2" 100.0 "100.0" "100.")
  ;; NaN, Inf
-;; Sagittarius does not accept captal inf or nan
  ("+nan.0" +nan.0 "+nan.0" "+NaN.0")
-;; ("+NAN.0" +nan.0 "+nan.0" "+NaN.0")
+ ("+NAN.0" +nan.0 "+nan.0" "+NaN.0")
  ("+inf.0" +inf.0 "+inf.0" "+Inf.0")
-;; ("+InF.0" +inf.0 "+inf.0" "+Inf.0")
+ ("+InF.0" +inf.0 "+inf.0" "+Inf.0")
  ("-inf.0" -inf.0 "-inf.0" "-Inf.0")
-;; ("-iNF.0" -inf.0 "-inf.0" "-Inf.0")
+ ("-iNF.0" -inf.0 "-inf.0" "-Inf.0")
  ("#i+nan.0" +nan.0 "+nan.0" "+NaN.0")
  ("#i+inf.0" +inf.0 "+inf.0" "+Inf.0")
  ("#i-inf.0" -inf.0 "-inf.0" "-Inf.0")
