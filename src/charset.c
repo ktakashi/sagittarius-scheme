@@ -103,7 +103,7 @@ static SgObject charset_cache_reader(SgPort *port, SgReadCacheCtx *ctx)
 static SgObject charset_cache_scanner(SgObject obj, SgObject cbs,
 				      SgWriteCacheCtx *ctx)
 {
-  /* char-set alwasy creates its range with fresh list so we can't scan */
+  /* char-set always creates its range with fresh list so we can't scan */
   return cbs;
 }
 

@@ -1160,6 +1160,8 @@ static SgObject read_closure(SgPort *in, read_ctx *ctx)
   return cb;
 }
 
+static SgObject clos_lib = SG_UNDEF;
+
 static SgObject read_user_defined_object(SgPort *in, read_ctx *ctx)
 {
   int tag = Sg_GetbUnsafe(in);
@@ -1179,6 +1181,18 @@ static SgObject read_user_defined_object(SgPort *in, read_ctx *ctx)
   library = Sg_VM()->currentLibrary;
   target = Sg_FindBinding(library, name, SG_FALSE);
   if (SG_FALSEP(target)) {
+    /* might be builtin CLOS  */
+    target = Sg_FindBinding(clos_lib, name, SG_FALSE);
+  }
+  if (SG_FALSEP(target)) {
+    SgVM *vm = Sg_VM();
+    /* never happen? */
+    if (SG_VM_LOG_LEVEL(vm, SG_WARN_LEVEL)) {
+      Sg_Printf(vm->logPort,
+		UC(";; user defined object %S is appeared but no binding in \n"
+		   ";; current library %S\n"),
+		name, library);
+    }
     longjmp(ctx->escape, 1);
     return SG_FALSE;		/* dummy */
   } else {
@@ -1601,12 +1615,12 @@ int Sg_CachableP(SgObject o)
 
 void Sg__InitCache()
 {
-  SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
+  clos_lib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
   CACHE_DIR = Sg_GetTemporaryDirectory();
   TAG_LENGTH = strlen(VALIDATE_TAG);
   Sg_InitMutex(&cache_mutex, FALSE);
 
-#define BINIT(cl, nam) Sg_InitStaticClass(cl, UC(nam), lib, NULL, 0)
+#define BINIT(cl, nam) Sg_InitStaticClass(cl, UC(nam), clos_lib, NULL, 0)
   BINIT(SG_CLASS_WRITE_CACHE_CTX, "<write-cache-ctx>");
   BINIT(SG_CLASS_READ_CACHE_CTX, "<read-cache-ctx>");
 }
