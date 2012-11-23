@@ -267,6 +267,23 @@ static void     write_symbol_cache(SgPort *out, SgSymbol *s);
 static void     write_object_cache(SgPort *out, SgObject o, SgObject cbs,
 				   cache_ctx *ctx);
 
+#define ESCAPE(ctx, msg, ...)						\
+  do {									\
+    SgVM *vm = Sg_VM();							\
+    if (SG_VM_LOG_LEVEL(vm, SG_WARN_LEVEL)) {				\
+      Sg_Printf(vm->logPort, UC(";; **CACHE WARNING**\n;; " msg),	\
+		__VA_ARGS__);						\
+    }									\
+    longjmp((ctx)->escape, 1);						\
+  } while (0)
+
+#define CLOSE_TAG_CHECK(ctx, expect, tag)				\
+  do {									\
+    if ((expect) != (tag))						\
+      ESCAPE((ctx), "unexpected closing tag (expected %d, got %d)\n",	\
+	     expect, tag);						\
+  } while (0)
+
 static int write_library(SgPort *out, SgLibrary *lib)
 {
   Sg_PutbUnsafe(out, LIBRARY_TAG);
@@ -318,7 +335,7 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
        we discard all cache.
     */
     if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
-      Sg_Printf(vm->logPort, UC(";; non-cachable object appeared. %S\n"), name);
+      Sg_Printf(vm->logPort, UC("non-cachable object appeared. %S\n"), name);
     }
     Sg_SetPortPosition(out, 0);
     Sg_PutbUnsafe(out, (uint8_t)INVALID_CACHE_TAG);
@@ -329,7 +346,7 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
   /* when writing a cache, the library must be created. */
   if (lib != NULL && !write_dependancy(out, lib, &ctx)) {
     if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
-      Sg_Printf(vm->logPort, UC(";; failed to write library. %S\n"), lib);
+      Sg_Printf(vm->logPort, UC("failed to write library. %S\n"), lib);
     }
     Sg_SetPortPosition(out, 0);
     Sg_PutbUnsafe(out, (uint8_t)INVALID_CACHE_TAG);
@@ -337,7 +354,7 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
   }
 
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
-    Sg_Printf(vm->logPort, UC(";; collected closures: %S\n"), closures);
+    Sg_Printf(vm->logPort, UC("collected closures: %S\n"), closures);
   }
   /* pass2 write cache. */
   write_cache_pass2(out, cb, closures, &ctx);
@@ -385,7 +402,7 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
 {
   SgObject value;
  loop:
-  if (!cachable_p(obj)) longjmp(ctx->escape, 1);
+  if (!cachable_p(obj)) ESCAPE(ctx, "non cacheable object %S\n", obj);
   if (!interesting_p(obj)) return cbs;
 
   value = Sg_HashTableRef(ctx->sharedObjects, obj, SG_UNBOUND);
@@ -471,7 +488,7 @@ static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r,
 	*/
 	break;
       }
-      if (!cachable_p(o)) longjmp(ctx->escape, 1);
+      if (!cachable_p(o)) ESCAPE(ctx, "non cacheable object %S\n", o);
       if (interesting_p(o)) {
 	r = write_cache_scan(o, r, ctx);
       }
@@ -677,14 +694,7 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
       /* now cache write can write */
       klass->cacheWriter(o, out, (void *)ctx);
     } else {
-      SgVM *vm = Sg_VM();
-      /* never happen? */
-      if (SG_VM_LOG_LEVEL(vm, SG_WARN_LEVEL)) {
-	Sg_Printf(vm->logPort,
-		  UC(";; Non-cachable object appeared in writing phase %S\n"),
-		  o);
-      }
-      longjmp(ctx->escape, 1);
+      ESCAPE(ctx, "Non-cachable object appeared in writing phase %S\n", o);
     }
   }
 }
@@ -700,7 +710,11 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs,
   int i, len = cb->size;
   SgWord *code = cb->code;
   SgObject this_slot = Sg_Assq(cb, cbs);
-  ASSERT(!SG_FALSEP(this_slot));
+  
+  if (SG_FALSEP(this_slot)) {
+    ESCAPE(ctx, "Target code builder %S is not collected.\n", cb);
+  }
+
   put_word(out, len, CODE_BUILDER_TAG);
   /* code builder has argc, optional and freec as meta info.
      we need to cache it.
@@ -918,16 +932,12 @@ static SgObject read_toplevel(SgPort *in, int boundary, read_ctx *ctx)
 #ifdef _MSC_VER
   /* I have no idea why this happens on Windows, I'm suspecting GC's bug */
   if (!SG_BINARY_PORT(in)->src.file) {
-    if (SG_VM_LOG_LEVEL(Sg_VM(), SG_WARN_LEVEL)) {
-      Sg_Warn(UC("invalid binary port appeared."));
-    }
-    longjmp(ctx->escape, 1);
+    ESCAPE(ctx, "invalid binary port %S appeared.", port);
   }
 #endif
   while ((b = Sg_PeekbUnsafe(in)) != EOF) {
     if (b == -1) {
-      Sg_Warn(UC("invalid cache. %d\n"), b);
-      longjmp(ctx->escape, 1);
+      ESCAPE(ctx, "invalid cache. %d\n", b);
       return SG_FALSE; /* invalid cache. */
     }
 
@@ -940,8 +950,7 @@ static SgObject read_toplevel(SgPort *in, int boundary, read_ctx *ctx)
       /* here we need to read the rest closures */
       while ((b = Sg_PeekbUnsafe(in)) != boundary) {
 	if (b == EOF) {
-	  Sg_Warn(UC("Unexpected EOF\n"));
-	  longjmp(ctx->escape, 1);
+	  ESCAPE(ctx, "Unexpected EOF in file %A\n", ctx->file);
 	  return SG_FALSE; /* invalid cache */
 	}
 	/* we just need to store the rest to ctx.seen */
@@ -954,8 +963,7 @@ static SgObject read_toplevel(SgPort *in, int boundary, read_ctx *ctx)
       return read_macro_section(in, ctx);
     default:
       /* broken cache */
-      Sg_Warn(UC("cache was broken. %d"), b);
-      longjmp(ctx->escape, 1);
+      ESCAPE(ctx, "Broken cache file %A\n", ctx->file);
       return SG_FALSE;
     }
   }
@@ -1038,7 +1046,8 @@ static SgObject read_identifier(SgPort *in, read_ctx *ctx)
   name = read_string(in, length);
   /* read library name */
   lib = read_object_rec(in, ctx);
-  if (SG_FALSEP(lib)) longjmp(ctx->escape, 1);
+  if (SG_FALSEP(lib)) 
+    ESCAPE(ctx, "identifier %S contains invalid library.\n", name);
   lib = Sg_FindLibrary(lib, FALSE);
   envs = read_object_rec(in, ctx);
 
@@ -1153,7 +1162,7 @@ static SgObject read_closure(SgPort *in, read_ctx *ctx)
 {
   int tag = Sg_GetbUnsafe(in);
   SgObject cb;
-  if (tag != CLOSURE_TAG) longjmp(ctx->escape, 1);
+  CLOSE_TAG_CHECK(ctx, CLOSURE_TAG, tag);
   cb = read_code(in, ctx);
   /* Sg_HashTableSet(ctx->seen, SG_MAKE_INT(num), cb, 0); */
   /* Do we need free variables? */
@@ -1167,7 +1176,7 @@ static SgObject read_user_defined_object(SgPort *in, read_ctx *ctx)
   int tag = Sg_GetbUnsafe(in);
   SgObject name, library, klass;
   SgGloc *target;
-  if (tag != USER_DEFINED_OBJECT_TAG) longjmp(ctx->escape, 1);
+  CLOSE_TAG_CHECK(ctx, USER_DEFINED_OBJECT_TAG, tag);
   name = read_object_rec(in, ctx);
   /* TODO: 
      The library we look up here might not have the class.
@@ -1185,15 +1194,9 @@ static SgObject read_user_defined_object(SgPort *in, read_ctx *ctx)
     target = Sg_FindBinding(clos_lib, name, SG_FALSE);
   }
   if (SG_FALSEP(target)) {
-    SgVM *vm = Sg_VM();
-    /* never happen? */
-    if (SG_VM_LOG_LEVEL(vm, SG_WARN_LEVEL)) {
-      Sg_Printf(vm->logPort,
-		UC(";; user defined object %S is appeared but no binding in \n"
-		   ";; current library %S\n"),
-		name, library);
-    }
-    longjmp(ctx->escape, 1);
+    ESCAPE(ctx,
+	   "user defined object %S is appeared but no binding in library %S\n",
+	   name, library);
     return SG_FALSE;		/* dummy */
   } else {
     SgObject obj;
@@ -1209,7 +1212,8 @@ static SgObject read_user_defined_object(SgPort *in, read_ctx *ctx)
     }
     /* sanity check */
     if (!SG_XTYPEP(obj, klass)) {
-      longjmp(ctx->escape, 1);
+      ESCAPE(ctx, "read object is not type of expected class (%S, %S)\n",
+	     obj, klass);
     }
     return obj;
   }
@@ -1330,9 +1334,8 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
   case USER_DEFINED_OBJECT_TAG:
     return read_user_defined_object(in, ctx);
   default:
-    Sg_Warn(UC("unknown tag appeared. tag: %d, file: %A, pos: %d\n"),
-	    tag, ctx->file, Sg_PortPosition(in));
-    longjmp(ctx->escape, 1);
+    ESCAPE(ctx, "unknown tag appeared. tag: %d, file: %A, pos: %d\n",
+	   tag, ctx->file, Sg_PortPosition(in));
     return SG_FALSE;
   }
 }
@@ -1363,9 +1366,11 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
   SgObject later = SG_NIL;
 
   tag = Sg_GetbUnsafe(in);
-  if (tag != LIBRARY_TAG) longjmp(ctx->escape, 1);
+  CLOSE_TAG_CHECK(ctx, LIBRARY_TAG, tag);
   name = read_symbol(in, TRUE);
-  if (SG_FALSEP(name)) longjmp(ctx->escape, 1);
+  if (SG_FALSEP(name)) 
+    ESCAPE(ctx, "%S contains invalid library name.\n", ctx->file);
+
   /* if vm is reading a cache, which means library is not loaded yet.
      so we need to create it.
    */
@@ -1374,8 +1379,7 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
     from = read_object(in, ctx);
     import = read_object(in, ctx);
     if (SG_FALSEP(from) || SG_FALSEP(import)) {
-      Sg_Warn(UC("broken cache\n"));
-      longjmp(ctx->escape, 1);
+      ESCAPE(ctx, "broken cache (%A)\n", ctx->file);
     }
     later = Sg_Acons(from, import, later);
   }
@@ -1384,7 +1388,7 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
   expot = read_object(in, ctx);
 
   tag = Sg_GetbUnsafe(in);
-  if (tag != BOUNDARY_TAG) longjmp(ctx->escape, 1);
+  CLOSE_TAG_CHECK(ctx, BOUNDARY_TAG, tag);
 
   lib = Sg_MakeLibrary(name);
   lib->exported = expot;
@@ -1454,7 +1458,8 @@ static SgObject read_macro_section(SgPort *in, read_ctx *ctx)
   lib = read_object(in, ctx);
   lib = Sg_FindLibrary(lib, FALSE);
   /* never happen. i guess */
-  if (SG_FALSEP(lib)) longjmp(ctx->escape, 1);
+  if (SG_FALSEP(lib)) 
+    ESCAPE(ctx, "macro section contains invalid library. (%A)\n", ctx->file);
   
   for (i = 0; i < len; i++) {
     SgObject macro = read_macro(in, ctx);
@@ -1462,9 +1467,9 @@ static SgObject read_macro_section(SgPort *in, read_ctx *ctx)
     Sg_InsertBinding(SG_LIBRARY(lib), SG_MACRO(macro)->name, macro);
   }
   tag = Sg_GetbUnsafe(in);
-  if (tag != MACRO_SECTION_END_TAG) longjmp(ctx->escape, 1);
+  CLOSE_TAG_CHECK(ctx, MACRO_SECTION_END_TAG, tag);
   tag = Sg_GetbUnsafe(in);
-  if (tag != BOUNDARY_TAG) longjmp(ctx->escape, 1);
+  CLOSE_TAG_CHECK(ctx, BOUNDARY_TAG, tag);
   return SG_UNDEF;
 }
 
