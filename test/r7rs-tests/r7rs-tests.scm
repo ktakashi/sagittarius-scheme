@@ -1512,11 +1512,10 @@
       (write-string "abc def" out 2 5)
       (get-output-string out)))
 
-;; I believe this is an invalid test
-;;(test ""
-;;  (let ((out (open-output-bytevector)))
-;;    (flush-output-port out)
-;;    (get-output-string out)))
+(test ""
+  (let ((out (open-output-string)))
+    (flush-output-port out)
+    (get-output-string out)))
 
 (test #t (eof-object? (read-u8 (open-input-bytevector #u8()))))
 (test 1 (read-u8 (open-input-bytevector #u8(1 2 3))))
