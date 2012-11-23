@@ -315,29 +315,19 @@ static SgString* library_name_to_path(SgObject name)
   return Sg_StringAppend(h);
 }
 
-static SgObject extentions = NULL;
+static SgObject extensions = NULL;
 static SgObject userlib = NULL;
 /*
    this takes only library name part. we don't manage version
    on file system.
  */
-#define list6(a, b, c, d, e, f) Sg_Cons(a, SG_LIST5(b,c,d,e,f))
 static SgObject search_library(SgObject name, int onlyPath)
 {
   SgString *path = library_name_to_path(name);
-  SgObject ext, libname;
+  SgObject ext, libname, paths = SG_NIL, t = SG_NIL;
   SgVM *vm = Sg_VM();
-  /* initialize extensions */
-  if (extentions == NULL) {
-    /* we don't have to care about multithread here. */
-    extentions = list6(SG_MAKE_STRING(".sagittarius.ss"),
-		       SG_MAKE_STRING(".sagittarius.sls"),
-		       SG_MAKE_STRING(".sagittarius.scm"),
-		       SG_MAKE_STRING(".ss"),
-		       SG_MAKE_STRING(".sls"),
-		       SG_MAKE_STRING(".scm"));
-  }
-  SG_FOR_EACH(ext, extentions) {
+  
+  SG_FOR_EACH(ext, extensions) {
     SgObject p = Sg_StringAppend2(path, SG_STRING(SG_CAR(ext)));
     SgObject dir;
     SG_FOR_EACH(dir, vm->loadPath) {
@@ -347,59 +337,69 @@ static SgObject search_library(SgObject name, int onlyPath)
 						 SG_HEAP_STRING),
 				   p));
       if (Sg_FileExistP(real)) {
-	path = Sg_AbsolutePath(SG_STRING(real));
-	if (onlyPath) return path;
-	goto goal;
+	SG_APPEND1(paths, t, Sg_AbsolutePath(SG_STRING(real)));
       }
     }
   }
- goal:
+  
   libname = convert_name_to_symbol(name);
-  /* this must creates a new library */
-  if (Sg_FileExistP(path)) {
-    int state;
-    SgObject lib;
-    /* once library is created, then it must not be re-created.
-       so we need to get lock for reading cache. */
-    LOCK_LIBRARIES();
-    lib = Sg_HashTableRef(ALL_LIBRARIES, libname, SG_FALSE);
-    if (!SG_FALSEP(lib)) {
+  if (onlyPath) return paths;
+  SG_FOR_EACH(paths, paths) {
+    SgObject r;
+    path = SG_STRING(SG_CAR(paths));
+    /* this must creates a new library */
+    if (Sg_FileExistP(path)) {
+      int state;
+      SgObject lib;
+      /* once library is created, then it must not be re-created.
+	 so we need to get lock for reading cache. */
+      LOCK_LIBRARIES();
+      lib = Sg_HashTableRef(ALL_LIBRARIES, libname, SG_FALSE);
+      if (!SG_FALSEP(lib)) {
+	UNLOCK_LIBRARIES();
+	return lib;
+      }
+      state = Sg_ReadCache(path);
+      if (state != CACHE_READ) {
+	int save = vm->state;
+	SgObject saveLib = vm->currentLibrary;
+	if (userlib == NULL) {
+	  userlib = Sg_FindLibrary(SG_INTERN("user"), FALSE);
+	}
+	vm->state = IMPORTING;
+	/* creates new cache */
+	vm->cache = Sg_Cons(SG_NIL, vm->cache);
+	/* if find-library called inside of library and the library does not
+	   import (sagittarius) it can not compile.*/
+	vm->currentLibrary = userlib;
+	Sg_Load(path);		/* check again, or flag? */
+	vm->currentLibrary = saveLib;
+	/* if Sg_ReadCache returns INVALID_CACHE, then we don't have to write
+	   it. it's gonna be invalid anyway.
+	*/
+	if (state == RE_CACHE_NEEDED) {
+	  /* write cache */
+	  Sg_WriteCache(name, path, Sg_ReverseX(SG_CAR(vm->cache)));
+	}
+	/* we don't need the first cache, so discard it */
+	vm->cache = SG_CDR(vm->cache);
+	/* restore state */
+	vm->state = save;
+      }
       UNLOCK_LIBRARIES();
-      return lib;
+    } else {
+      /* first creation or no file. */
+      return SG_FALSE;
     }
-    state = Sg_ReadCache(path);
-    if (state != CACHE_READ) {
-      int save = vm->state;
-      SgObject saveLib = vm->currentLibrary;
-      if (userlib == NULL) {
-	userlib = Sg_FindLibrary(SG_INTERN("user"), FALSE);
-      }
-      vm->state = IMPORTING;
-      /* creates new cache */
-      vm->cache = Sg_Cons(SG_NIL, vm->cache);
-      /* if find-library called inside of library and the library does not
-         import (sagittarius) it can not compile.*/
-      vm->currentLibrary = userlib;
-      Sg_Load(path);		/* check again, or flag? */
-      vm->currentLibrary = saveLib;
-      /* if Sg_ReadCache returns INVALID_CACHE, then we don't have to write it.
-	 it's gonna be invalid anyway.
-       */
-      if (state == RE_CACHE_NEEDED) {
-	/* write cache */
-	Sg_WriteCache(name, path, Sg_ReverseX(SG_CAR(vm->cache)));
-      }
-      /* we don't need the first cache, so discard it */
-      vm->cache = SG_CDR(vm->cache);
-      /* restore state */
-      vm->state = save;
+    r = Sg_HashTableRef(ALL_LIBRARIES, libname, SG_FALSE);
+    /*
+      in case of the same base name but different extension.
+    */
+    if (!SG_FALSEP(r)) {
+      return r;
     }
-    UNLOCK_LIBRARIES();
-  } else {
-    /* first creation or no file. */
-    return SG_FALSE;
   }
-  return Sg_HashTableRef(ALL_LIBRARIES, libname, SG_FALSE);
+  return SG_FALSE;
 }
 
 /* for cache */
@@ -720,10 +720,18 @@ void Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value_or_gloc)
   }
 }
 
+#define list6(a, b, c, d, e, f) Sg_Cons(a, SG_LIST5(b,c,d,e,f))
 void Sg__InitLibrary()
 {
   Sg_InitMutex(&MUTEX, TRUE);
   ALL_LIBRARIES = Sg_MakeHashTableSimple(SG_HASH_EQ, 1024);
+    
+  extensions = list6(SG_MAKE_STRING(".sagittarius.ss"),
+		     SG_MAKE_STRING(".sagittarius.sls"),
+		     SG_MAKE_STRING(".sagittarius.scm"),
+		     SG_MAKE_STRING(".ss"),
+		     SG_MAKE_STRING(".sls"),
+		     SG_MAKE_STRING(".scm"));
 }
 
 /*

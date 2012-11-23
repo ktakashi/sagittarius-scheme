@@ -1613,10 +1613,13 @@ void Sg_CleanCache(SgObject target)
 
   if (SG_FALSEP(caches)) return;
   if (!SG_FALSEP(target)) {
-    SgObject cache_name = Sg_SearchLibraryPath(target);
-    if (SG_FALSEP(cache_name)) return;
-    cache_name = id_to_filename(cache_name);
-    Sg_DeleteFile(cache_name);
+    SgObject cache_names = Sg_SearchLibraryPath(target);
+    if (SG_NULLP(cache_names)) return;
+    /* deletes all possible files */
+    SG_FOR_EACH(cache_names, cache_names) {
+      SgObject cache_name = id_to_filename(SG_CAR(cache_names));
+      Sg_DeleteFile(cache_name);
+    }
   } else {
     SG_FOR_EACH(cache, caches) {
       if (SG_STRING_SIZE(SG_CAR(cache)) == 1 &&

@@ -1091,11 +1091,17 @@
     (let ((str (make-string 5 #\x))) (string-copy! str 0 "-----") str))
 (test "---xx"
     (let ((str (make-string 5 #\x))) (string-copy! str 0 "-----" 2) str))
-;; I believe this is an invalid test
-;; (test "xx---"
-;;     (let ((str (make-string 5 #\x))) (string-copy! str 2 "-----") str))
+(test "xx---"
+      (let ((str (make-string 5 #\x))) (string-copy! str 2 "-----" 0 3) str))
 (test "xx-xx"
     (let ((str (make-string 5 #\x))) (string-copy! str 2 "-----" 2 3) str))
+
+;; same source and dest
+(test "aabde"
+    (let ((str (string-copy "abcde"))) (string-copy! str 1 str 0 2) str))
+(test "abcab"
+    (let ((str (string-copy "abcde"))) (string-copy! str 3 str 0 2) str))
+
 
 (test-end)
 
@@ -1165,11 +1171,16 @@
     (let ((vec (vector 1 2 3 4 5))) (vector-copy! vec 0 #(a b c d e)) vec))
 (test #(c d e 4 5)
     (let ((vec (vector 1 2 3 4 5))) (vector-copy! vec 0 #(a b c d e) 2) vec))
-;; I believe this is an invalid test
-;; (test #(1 2 a b c)
-;;     (let ((vec (vector 1 2 3 4 5))) (vector-copy! vec 2 #(a b c d e)) vec))
+(test #(1 2 a b c)
+    (let ((vec (vector 1 2 3 4 5))) (vector-copy! vec 2 #(a b c d e) 0 3) vec))
 (test #(1 2 c 4 5)
     (let ((vec (vector 1 2 3 4 5))) (vector-copy! vec 2 #(a b c d e) 2 3) vec))
+
+;; same source and dest
+(test #(1 1 2 4 5)
+    (let ((vec (vector 1 2 3 4 5))) (vector-copy! vec 1 vec 0 2) vec))
+(test #(1 2 3 1 2)
+    (let ((vec (vector 1 2 3 4 5))) (vector-copy! vec 3 vec 0 2) vec))
 
 (test-end)
 
@@ -1212,15 +1223,25 @@
     (let ((bv (bytevector 1 2 3 4 5)))
       (bytevector-copy! bv 0 #u8(6 7 8 9 10) 2)
       bv))
-;; I believe this is an invalid test
-;; (test #u8(1 2 6 7 8)
-;;     (let ((bv (bytevector 1 2 3 4 5)))
-;;       (bytevector-copy! bv 2 #u8(6 7 8 9 10))
-;;       bv))
+(test #u8(1 2 6 7 8)
+    (let ((bv (bytevector 1 2 3 4 5)))
+      (bytevector-copy! bv 2 #u8(6 7 8 9 10) 0 3)
+      bv))
 (test #u8(1 2 8 4 5)
     (let ((bv (bytevector 1 2 3 4 5)))
       (bytevector-copy! bv 2 #u8(6 7 8 9 10) 2 3)
       bv))
+
+;; same source and dest
+(test #u8(1 1 2 4 5)
+    (let ((bv (bytevector 1 2 3 4 5)))
+      (bytevector-copy! bv 1 bv 0 2)
+      bv))
+(test #u8(1 2 3 1 2)
+    (let ((bv (bytevector 1 2 3 4 5)))
+      (bytevector-copy! bv 3 bv 0 2)
+      bv))
+
 
 (test #u8() (bytevector-append #u8()))
 (test #u8() (bytevector-append #u8() #u8()))

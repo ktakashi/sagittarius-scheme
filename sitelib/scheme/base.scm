@@ -72,7 +72,6 @@
 
      zero?)
   (import (rename (except (rnrs) syntax-rules define-record-type)
-		  (bytevector-copy! r6rs:bytevector-copy!)
 		  (error r6rs:error))
 	  (rnrs mutable-pairs)
 	  (rnrs mutable-strings)
@@ -94,21 +93,27 @@
        (syntax-violation 'syntax-error msg (quote args ...)))))
 
   (define (bytevector . bytes) (u8-list->bytevector bytes))
-  (define (bytevector-copy! to at from
-			    :optional (start 0) (end (bytevector-length from)))
-    (r6rs:bytevector-copy! from start to at (- end start)))
 
-  (define (string-copy! to at from
-			:optional (start 0) (end (string-length from)))
-    (do ((i start (+ i 1)) (j at (+ j 1)))
-	((= i end))
-      (string-set! to j (string-ref from i))))
+  (define-syntax define-copy!
+    (syntax-rules (body)
+      ((_ name length set! ref)
+       (define name
+	 (case-lambda
+	  ((to at from) (name to at from 0))
+	  ((to at from start) (name to at from start (length from)))
+	  ((to at from start end)
+	   (if (<= at start)
+	       (do ((i start (+ i 1)) (j at (+ j 1)))
+		   ((= i end))
+		 (set! to j (ref from i)))
+	       (do ((i (+ at (- end start 1)) (- i 1)) (j (- end 1) (- j 1)))
+		   ((< j start))
+		 (set! to i (ref from j))))))))))
 
-  (define (vector-copy! to at from
-			:optional (start 0) (end (vector-length from)))
-    (do ((i start (+ i 1)) (j at (+ j 1)))
-	((= i end))
-      (vector-set! to j (vector-ref from i))))
+  (define-copy! bytevector-copy! bytevector-length
+    bytevector-u8-set! bytevector-u8-ref)
+  (define-copy! string-copy! string-length string-set! string-ref)
+  (define-copy! vector-copy! vector-length vector-set! vector-ref)
 
   ;; for now error object is r6rs' condition
   (define (error message . irr)
