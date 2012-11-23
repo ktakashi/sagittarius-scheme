@@ -1442,7 +1442,7 @@ static SgObject read_code(SgPort *in, read_ctx *ctx)
     code[i] = SG_WORD(o);
   }
   tag = Sg_GetbUnsafe(in);
-  ASSERT(tag == CODE_BUILDER_END_TAG);
+  CLOSE_TAG_CHECK(ctx, CODE_BUILDER_END_TAG, tag);
   cb = Sg_MakeCodeBuilderFromCache(name, code, len, argc, optional, 
 				   freec, maxStack);
   /* store seen */
@@ -1484,9 +1484,11 @@ int Sg_ReadCache(SgString *id)
   SgHashTable *shared;
   SgLibrary *save = vm->currentLibrary;
   read_ctx ctx;
-  char tagbuf[50], *alldata;
+  char tagbuf[50];
   int b;
   int64_t size;
+  char *alldata;
+  /* SgObject alldata; */
 
   if (SG_VM_IS_SET_FLAG(vm, SG_DISABLE_CACHE)) {
     return INVALID_CACHE;
@@ -1523,15 +1525,18 @@ int Sg_ReadCache(SgString *id)
   /* end check timestamp */
 
   file = Sg_OpenFile(cache_path, SG_READ);
+  /* to save some memory, use raw file operations */
+  /* size = SG_FILE(file)->size(file); */
+  /* alldata = Sg_MakeByteVector((int)size, 0); */
+  /* SG_FILE(file)->read(file, SG_BVECTOR_ELEMENTS(alldata), size); */
+  /* in = Sg_MakeByteVectorInputPort(alldata, 0); */
+
   /* buffer mode none can be a little bit better performance to read all. */
-/* #ifdef _MSC_VER */
-/*   in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_BLOCK); */
-/* #else */
   in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_NONE);
   size = Sg_ReadbAll(in, (uint8_t **)&alldata);
   Sg_ClosePort(in);
   in = Sg_MakeByteArrayInputPort((const uint8_t *)alldata, size);
-/* #endif */
+
   seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 128);
   shared = Sg_MakeHashTableSimple(SG_HASH_EQ, 256);
 
