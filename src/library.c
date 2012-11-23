@@ -29,6 +29,29 @@
  *
  *  $Id: $
  */
+#include <sagittarius/config.h>
+#ifndef __GNUC__
+# ifdef HAVE_ALLOCA_H
+#  include <alloca.h>
+# else
+#  ifdef _AIX
+#pragma alloca
+#  else
+#   ifndef alloca /* predefined by HP cc +Olibcalls */
+char *alloca ();
+#   endif
+#  endif
+# endif
+#else
+# ifdef HAVE_ALLOCA_H
+#  include <alloca.h>
+# endif
+# ifdef HAVE_MALLOC_H
+/* MinGW helds alloca() in "malloc.h" instead of "alloca.h" */
+#  include <malloc.h>
+# endif
+#endif
+
 #include <ctype.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/library.h"
@@ -50,6 +73,7 @@
 #include "sagittarius/thread.h"
 #include "sagittarius/cache.h"
 #include "sagittarius/reader.h"
+#include "sagittarius/unicode.h"
 #include "sagittarius/identifier.h"
 #include "sagittarius/builtin-keywords.h"
 #include "sagittarius/builtin-symbols.h"
@@ -190,7 +214,7 @@ SgObject Sg_MakeLibrary(SgObject name)
   SgVM *vm = Sg_VM();
   /* TODO if it's from Sg_FindLibrary, this is processed twice. */
   SgObject id_version = library_name_to_id_version(name);
-
+  
   z->name = convert_name_to_symbol(SG_CAR(id_version));
   z->version = SG_CDR(id_version);
 
@@ -223,45 +247,64 @@ void Sg_RemoveLibrary(SgLibrary *lib)
   remove_library(lib);
 }
 
+static int need_encode(SgChar ch, SgChar *h, SgChar *l)
+{
+  if (!isalnum(ch) &&
+      (ch == '/'  ||
+       ch == '\\' ||
+       ch == ':'  ||
+       ch == '*'  ||
+       ch == '?'  ||
+       ch == '"'  ||
+       ch == '<'  ||
+       ch == '>'  ||
+       ch == '|')){
+    int high = (ch >> 4) & 0xF;
+    int low  = ch & 0xF;
+    if (h) {
+      *h = (high < 0xa) ? high + '0' : high + 0x57;
+    }
+    if (l) {
+      *l = (low < 0xa) ? low + '0' : low + 0x57;
+    }
+    return TRUE;
+  } else if (ch >= 128) {
+    Sg_Error(UC("multi byte characters are not supported"
+		" for library name. %A"), SG_MAKE_CHAR(ch));
+    return FALSE;		/* dummy */
+  } else {
+    return FALSE;
+  }
+}
 static SgString* encode_string(SgString *s, int keywordP)
 {
-  SgObject sl = Sg_StringToList(s, 0, -1);
-  SgObject cp;
-  SgObject perc = SG_MAKE_CHAR('%');
-  SgObject h = SG_NIL, t = SG_NIL;
-  if (keywordP) {
-    SG_APPEND1(h, t, perc);
-    SG_APPEND1(h, t, SG_MAKE_CHAR('3'));
-    SG_APPEND1(h, t, SG_MAKE_CHAR('a'));
-  }
-
-  SG_FOR_EACH(cp, sl) {
-    SgObject c = SG_CAR(cp);
-    SgChar ch = SG_CHAR_VALUE(c);
-    /* /\:*?"<>| */
-    if (!isalnum(ch) &&
-	(ch == '/'  ||
-	 ch == '\\' ||
-	 ch == ':'  ||
-	 ch == '*'  ||
-	 ch == '?'  ||
-	 ch == '"'  ||
-	 ch == '<'  ||
-	 ch == '>'  ||
-	 ch == '|')){
-      int high = (ch >> 4) & 0xF;
-      int low  = ch & 0xF;
-      SG_APPEND1(h, t, perc);
-      SG_APPEND1(h, t, SG_MAKE_CHAR((high < 0xa) ? high + '0' : high + 0x57));
-      SG_APPEND1(h, t, SG_MAKE_CHAR((low < 0xa) ? low + '0' : low + 0x57));
-    } else if (ch >= 128) {
-      Sg_Error(UC("multi byte characters are not supported"
-		  " for library name. %A"), c);
-    } else {
-      SG_APPEND1(h, t, c);
+  SgString *r;
+  int size = SG_STRING_SIZE(s), i, offset;
+  SgChar high, low;
+  if (keywordP) size += 3;	/* extra %3a */
+  /* calculate size */
+  for (i = 0; i < SG_STRING_SIZE(s); i++) {
+    if (need_encode(SG_STRING_VALUE_AT(s, i), NULL, NULL)) {
+      size += 2;
     }
   }
-  return Sg_ListToString(h, 0, -1);
+  r = Sg_ReserveString(size, 0);
+  offset = 0;
+  if (keywordP) {
+    SG_STRING_VALUE_AT(r, offset++) = '%';
+    SG_STRING_VALUE_AT(r, offset++) = '3';
+    SG_STRING_VALUE_AT(r, offset++) = 'a';
+  }
+  for (i = 0; i < SG_STRING_SIZE(s); i++) {
+    if (need_encode(SG_STRING_VALUE_AT(s, i), &high, &low)) {
+      SG_STRING_VALUE_AT(r, offset++) = '%';
+      SG_STRING_VALUE_AT(r, offset++) = high;
+      SG_STRING_VALUE_AT(r, offset++) = low;
+    } else {
+      SG_STRING_VALUE_AT(r, offset++) = SG_STRING_VALUE_AT(s, i);
+    }
+  }
+  return r;
 }
 
 /*
@@ -271,7 +314,8 @@ static SgString* encode_string(SgString *s, int keywordP)
  */
 static SgString* library_name_to_path(SgObject name)
 {
-  const SgChar *separator = Sg_NativeFileSeparator();
+  const SgObject separator = Sg_MakeString(Sg_NativeFileSeparator(),
+					   SG_LITERAL_STRING);
   SgObject item;
   /* i'm not sure which is better memory. 
      - create a list and string.
@@ -309,7 +353,7 @@ static SgString* library_name_to_path(SgObject name)
 		  " but got %S"), SG_CAR(item));
     }
     if (!SG_NULLP(SG_CDR(item))) {
-      SG_APPEND1(h, t, Sg_MakeString(separator, SG_HEAP_STRING));
+      SG_APPEND1(h, t, separator);
     }
   }
   return Sg_StringAppend(h);
@@ -321,36 +365,130 @@ static SgObject userlib = NULL;
    this takes only library name part. we don't manage version
    on file system.
  */
-static SgObject search_library(SgObject name, int onlyPath)
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 1024
+#endif
+
+/* FIXME the same as in string.c */
+#ifdef _MSC_VER
+/* _alloca is in <malloc.h> */
+#include <malloc.h>
+#define alloca _alloca
+#endif
+
+#define STRING_ALLOC_SIZE(size)			\
+  (sizeof(SgString)+sizeof(SgChar)*size)
+
+#ifdef HAVE_ALLOCA
+#define ALLOC_TEMP_STRING(var, size)					\
+  do {									\
+    (var) = SG_STRING(alloca(STRING_ALLOC_SIZE(size)));			\
+    SG_SET_CLASS(var, SG_CLASS_STRING);					\
+    SG_STRING_SIZE(var) = (size);					\
+  } while (0)
+#else
+#define ALLOC_TEMP_STRING(var, size) (var) = Sg_ReserveString(size, 0);
+#endif
+
+#define copy_string(dst, src, offset)					\
+  do {									\
+    int __i;								\
+    for (__i = 0; __i < SG_STRING_SIZE(src); __i++) {			\
+      SG_STRING_VALUE_AT(dst, __i+(offset))=SG_STRING_VALUE_AT(src, __i); \
+    }									\
+    (offset) += SG_STRING_SIZE(src);					\
+  } while(0)
+
+#define copy_uz(dst, src, offset, len)				\
+  do {								\
+    int __i;							\
+    for (__i = 0; __i < (len); __i++) {				\
+      SG_STRING_VALUE_AT(dst, __i+(offset))=(src)[__i];		\
+    }								\
+    (offset) += (len);						\
+  } while(0)
+
+static SgObject get_possible_paths(SgVM *vm, SgObject name)
 {
-  SgString *path = library_name_to_path(name);
-  SgObject ext, libname, paths = SG_NIL, t = SG_NIL;
-  SgVM *vm = Sg_VM();
+  /* length of '.sagittarius' */
+#define SPECIFIC_SIZE 12
+  static const char *specific = ".sagittarius";
+
+  SgString *path;
+  SgObject ext, paths = SG_NIL, t = SG_NIL;
+  SgString *buf;
+  const SgChar *sep = Sg_NativeFileSeparator();
+  size_t sep_size = ustrlen(sep);
+
+  path = library_name_to_path(name);
+  ALLOC_TEMP_STRING(buf, MAXPATHLEN);
+/* to save some memory */
+#define check_length(len) if (MAXPATHLEN < offset+(len)) break;
   
   SG_FOR_EACH(ext, extensions) {
-    SgObject p = Sg_StringAppend2(path, SG_STRING(SG_CAR(ext)));
     SgObject dir;
+    int offset = 0, save, first = TRUE;
     SG_FOR_EACH(dir, vm->loadPath) {
-      SgObject real
-	= Sg_StringAppend(SG_LIST3(SG_CAR(dir),
-				   Sg_MakeString(Sg_NativeFileSeparator(),
-						 SG_HEAP_STRING),
-				   p));
-      if (Sg_FileExistP(real)) {
-	SG_APPEND1(paths, t, Sg_AbsolutePath(SG_STRING(real)));
+      /* first specific otherwise it won't handle specific file properly */
+      check_length(SG_STRING_SIZE(SG_CAR(dir)));
+      copy_string(buf, SG_CAR(dir), offset);
+      check_length(sep_size);
+      copy_uz(buf, sep, offset, sep_size);
+      check_length(SG_STRING_SIZE(path));
+      copy_string(buf, path, offset);
+
+      save = offset;
+      check_length(SPECIFIC_SIZE);
+      copy_uz(buf, specific, offset, SPECIFIC_SIZE);
+    second:
+      check_length(SG_STRING_SIZE(SG_CAR(ext)));
+      copy_string(buf, SG_CAR(ext), offset);
+      SG_STRING_VALUE_AT(buf, offset) = 0;
+      SG_STRING_SIZE(buf) = offset;
+      if (Sg_FileExistP(buf)) {
+	SG_APPEND1(paths, t, Sg_AbsolutePath(buf));
       }
+      if (first) {
+	first = FALSE;
+	offset = save;
+	goto second;
+      }
+      /* reset */
+      offset = save = 0;
+      first = TRUE;
     }
   }
-  
-  libname = convert_name_to_symbol(name);
+#undef check_length
+  return paths;
+}
+
+static SgObject search_library(SgObject name, int onlyPath)
+{
+  SgObject libname, lib, paths;
+  SgVM *vm = Sg_VM();
+
+  /* pre-check if the library is already compiled, then we don't
+     want to search real path */
+  if (!onlyPath) {
+    libname = convert_name_to_symbol(name);
+    LOCK_LIBRARIES();
+    lib = Sg_HashTableRef(ALL_LIBRARIES, libname, SG_FALSE);
+    if (!SG_FALSEP(lib)) {
+      UNLOCK_LIBRARIES();
+      return lib;
+    }
+    UNLOCK_LIBRARIES();
+  }
+  paths = get_possible_paths(vm, name);
   if (onlyPath) return paths;
+
+  libname = convert_name_to_symbol(name);  
   SG_FOR_EACH(paths, paths) {
     SgObject r;
-    path = SG_STRING(SG_CAR(paths));
+    SgObject path = SG_STRING(SG_CAR(paths));
     /* this must creates a new library */
     if (Sg_FileExistP(path)) {
       int state;
-      SgObject lib;
       /* once library is created, then it must not be re-created.
 	 so we need to get lock for reading cache. */
       LOCK_LIBRARIES();
@@ -720,18 +858,16 @@ void Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value_or_gloc)
   }
 }
 
-#define list6(a, b, c, d, e, f) Sg_Cons(a, SG_LIST5(b,c,d,e,f))
+/* #define list6(a, b, c, d, e, f) Sg_Cons(a, SG_LIST5(b,c,d,e,f)) */
 void Sg__InitLibrary()
 {
   Sg_InitMutex(&MUTEX, TRUE);
   ALL_LIBRARIES = Sg_MakeHashTableSimple(SG_HASH_EQ, 1024);
-    
-  extensions = list6(SG_MAKE_STRING(".sagittarius.ss"),
-		     SG_MAKE_STRING(".sagittarius.sls"),
-		     SG_MAKE_STRING(".sagittarius.scm"),
-		     SG_MAKE_STRING(".ss"),
-		     SG_MAKE_STRING(".sls"),
-		     SG_MAKE_STRING(".scm"));
+  
+  extensions = SG_LIST3(SG_MAKE_STRING(".ss"),
+			SG_MAKE_STRING(".sls"),
+			SG_MAKE_STRING(".scm"));
+
 }
 
 /*

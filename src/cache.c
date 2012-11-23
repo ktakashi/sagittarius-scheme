@@ -1500,8 +1500,8 @@ int Sg_ReadCache(SgString *id)
   char tagbuf[50];
   int b;
   int64_t size;
-  char *alldata;
-  /* SgObject alldata; */
+  /* char *alldata; */
+  SgObject alldata;
 
   if (SG_VM_IS_SET_FLAG(vm, SG_DISABLE_CACHE)) {
     return INVALID_CACHE;
@@ -1539,16 +1539,16 @@ int Sg_ReadCache(SgString *id)
 
   file = Sg_OpenFile(cache_path, SG_READ);
   /* to save some memory, use raw file operations */
-  /* size = SG_FILE(file)->size(file); */
-  /* alldata = Sg_MakeByteVector((int)size, 0); */
-  /* SG_FILE(file)->read(file, SG_BVECTOR_ELEMENTS(alldata), size); */
-  /* in = Sg_MakeByteVectorInputPort(alldata, 0); */
+  size = SG_FILE(file)->size(file);
+  alldata = Sg_MakeByteVector((int)size, 0);
+  SG_FILE(file)->read(file, SG_BVECTOR_ELEMENTS(alldata), size);
+  in = Sg_MakeByteVectorInputPort(alldata, 0);
 
   /* buffer mode none can be a little bit better performance to read all. */
-  in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_NONE);
-  size = Sg_ReadbAll(in, (uint8_t **)&alldata);
-  Sg_ClosePort(in);
-  in = Sg_MakeByteArrayInputPort((const uint8_t *)alldata, size);
+  /* in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_NONE); */
+  /* size = Sg_ReadbAll(in, (uint8_t **)&alldata); */
+  /* Sg_ClosePort(in); */
+  /* in = Sg_MakeByteArrayInputPort((const uint8_t *)alldata, size); */
 
   seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 128);
   shared = Sg_MakeHashTableSimple(SG_HASH_EQ, 256);

@@ -646,6 +646,7 @@ int Sg_CopyAccessControl(SgString *src, SgString *dst)
   if (stat(source, &st) == 0) {
     chmod(dest, st.st_mode);
     chown(dest, st.st_uid, st.st_gid);
+    return TRUE;
   }
   /* TODO should this be error? */
   return FALSE;
