@@ -125,6 +125,9 @@ static void check_version_reference(SgObject name, SgObject o)
       }
     }
   }
+  if (!SG_NULLP(o)) {
+    Sg_Error(UC("malformed library version %S"), name);
+  }
 }
 
 static SgObject library_name_to_id_version(SgObject name)
@@ -145,14 +148,8 @@ static SgObject library_name_to_id_version(SgObject name)
 	    Sg_Error(UC("malformed library name %S"), name);
 	  }
 	  SG_APPEND1(h, t, o);
-	} else if (SG_PAIRP(o) && SG_NULLP(SG_CDR(cp))) {
-	  if (SG_PROPER_LISTP(o)) {
-	    if (SG_NULLP(SG_CAR(o))) {
-	      /* null version */
-	      return Sg_Cons(h, o);
-	    }
-	    check_version_reference(name, o);
-	  }
+	} else if (SG_LISTP(o) && SG_NULLP(SG_CDR(cp))) {
+	  check_version_reference(name, o);
 	  return Sg_Cons(h, o);
 	} else {
 	  Sg_Error(UC("malformed library name %S"), name);
