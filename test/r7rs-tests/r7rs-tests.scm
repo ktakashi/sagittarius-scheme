@@ -4,7 +4,7 @@
         (scheme inexact) (scheme complex) (scheme time)
         (scheme file) (scheme read) (scheme write)
         (scheme eval) (scheme process-context) (scheme case-lambda)
-	(except (scheme r5rs) write display read)
+	(scheme r5rs)
         (chibi test))
 
 ;; R7RS test suite.  Covers all procedures and syntax in the small
