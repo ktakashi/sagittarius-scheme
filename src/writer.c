@@ -691,7 +691,7 @@ static void write_noptr(SgObject obj, SgPort *port, SgWriteContext *ctx)
 */
 #define CHECK_BOUNDARY(s, p, c)						\
   do {									\
-    if ((void *)&(s) < (void *)&((c)->mode) - (c)->stackSize) {		\
+    if ((char *)&(s) < (char *)&((c)->mode) - (c)->stackSize) {		\
       Sg_IOWriteError((SG_WRITE_MODE(c) == SG_WRITE_DISPLAY)		\
 		      ? SG_INTERN("display")				\
 		      : SG_INTERN("write"),				\
