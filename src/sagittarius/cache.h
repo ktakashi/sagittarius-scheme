@@ -61,6 +61,7 @@ struct cache_ctx_rec
   jmp_buf      escape;
   int          index;		/* code builder index */
   int          macroPhaseP;	/* avoid to emit local macros */
+  SgObject     closures;	/* for calling writer external */
 };
 typedef struct cache_ctx_rec SgWriteCacheCtx;
 

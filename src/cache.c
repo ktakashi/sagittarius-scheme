@@ -326,6 +326,7 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
   ctx.uid = 0;
   ctx.index = index;
   ctx.macroPhaseP = FALSE;
+  ctx.closures = SG_NIL;
   if (setjmp(ctx.escape) == 0) {
     /* pass1 collect closure and library */
     SgObject first = Sg_Acons(cb, SG_MAKE_INT(ctx.index++), SG_NIL);
@@ -495,6 +496,8 @@ static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r,
     }
     i += 1 + info->argc;
   }
+  /* save collected closures here */
+  ctx->closures = r;
   return r;
 }
 
@@ -657,6 +660,11 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
 		       cbs, ctx);
     write_object_cache(out, SG_IDENTIFIER_ENVS(o), cbs, ctx);
   } else if (SG_CLOSUREP(o)) {
+    /* we can't cache closure with free variables */
+    if (SG_CODE_BUILDER(SG_CLOSURE(o)->code)->freec != 0) {
+      ESCAPE(ctx, "closure %S contains free variables.\n", o);
+    }
+    Sg_PutbUnsafe(out, CLOSURE_TAG);
     write_cache_pass2(out, SG_CLOSURE(o)->code, cbs, ctx);
   } else if (SG_LIBRARYP(o)) {
     /* at this point, this library has already been written.
@@ -701,7 +709,7 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
 
 void Sg_WriteObjectCache(SgObject o, SgPort *out, SgWriteCacheCtx *ctx)
 {
-  write_object_cache(out, o, SG_NIL, (cache_ctx *)ctx);
+  write_object_cache(out, o, ctx->closures, (cache_ctx *)ctx);
 }
 
 static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs,
@@ -1355,7 +1363,12 @@ static SgObject read_object(SgPort *in, read_ctx *ctx)
 
 SgObject Sg_ReadCacheObject(SgPort *p, SgReadCacheCtx *ctx)
 {
-  return read_object_rec(p, (read_ctx *)ctx);
+  SgObject o = read_object_rec(p, (read_ctx *)ctx);
+  if (SG_CODE_BUILDERP(o)) {
+    /* most likely closure */
+    o = Sg_MakeClosure(o, NULL);
+  }
+  return o;
 }
 
 static SgObject read_library(SgPort *in, read_ctx *ctx)
