@@ -1643,7 +1643,6 @@ void Sg_CleanCache(SgObject target)
 {
   SgObject caches = Sg_ReadDirectory(CACHE_DIR);
   SgObject cache, path;
-  SgString *sep = Sg_MakeString(Sg_NativeFileSeparator(), SG_LITERAL_STRING);
 
   if (SG_FALSEP(caches)) return;
   if (!SG_FALSEP(target)) {
@@ -1662,7 +1661,7 @@ void Sg_CleanCache(SgObject target)
 	  SG_STRING_VALUE_AT(SG_CAR(cache), 0) == '.' &&
 	  SG_STRING_VALUE_AT(SG_CAR(cache), 1) == '.') continue;
       
-      path = Sg_StringAppend(SG_LIST3(CACHE_DIR, sep, SG_CAR(cache)));
+      path = Sg_StringAppend(SG_LIST3(CACHE_DIR, SEPARATOR, SG_CAR(cache)));
       Sg_DeleteFile(path);
     }
   }
