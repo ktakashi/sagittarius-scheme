@@ -194,7 +194,8 @@ static struct
 static void add_library(SgLibrary *lib)
 {
   LOCK_LIBRARIES();
-  Sg_HashTableSet(ALL_LIBRARIES, lib->name, lib, SG_HASH_NO_OVERWRITE);
+  Sg_HashTableSet(ALL_LIBRARIES, SG_LIBRARY_NAME(lib), lib, 
+		  SG_HASH_NO_OVERWRITE);
   UNLOCK_LIBRARIES();
 }
 
@@ -202,6 +203,7 @@ static void remove_library(SgLibrary *lib)
 {
   LOCK_LIBRARIES();
   Sg_HashTableDelete(ALL_LIBRARIES, SG_LIBRARY_NAME(lib));
+  SG_LIBRARY_TABLE(lib) = NULL;	/* gc friendliness */
   UNLOCK_LIBRARIES();
 }
 

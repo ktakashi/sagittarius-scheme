@@ -96,34 +96,68 @@ static void read_ctx_print(SgObject o, SgPort *p, SgWriteContext *ctx)
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_WriteCacheCtxClass, write_ctx_print);
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_ReadCacheCtxClass, read_ctx_print);
 
+static SgObject SEPARATOR = SG_UNDEF;
+static SgObject CACHE_EXT = SG_UNDEF;
+
 /* assume id is path. however just in case, we encode invalid path characters */
+static int need_encode(SgChar ch, SgChar *h, SgChar *l)
+{
+  if (!isalnum(ch)){
+    int high = (ch >> 4) & 0xF;
+    int low  = ch & 0xF;
+    if (h) {
+      *h = (high < 0xa) ? high + '0' : high + 0x57;
+    }
+    if (l) {
+      *l = (low < 0xa) ? low + '0' : low + 0x57;
+    }
+    return TRUE;
+  } else {
+    return FALSE;
+  }
+}
+
+#define COPY_STRING(ret, src, offset)			\
+  do {							\
+    int __i;						\
+    for (__i = 0; __i < SG_STRING_SIZE(src); __i++) {	\
+      SG_STRING_VALUE_AT(ret,__i+(offset)) =		\
+	SG_STRING_VALUE_AT(src,__i);			\
+    }							\
+    (offset) += SG_STRING_SIZE(src);			\
+  } while (0)
+
 static SgString* id_to_filename(SgString *id)
 {
-  SgObject sl = Sg_StringToList(id, 0, -1);
-  SgObject cp, h = SG_NIL, t = SG_NIL;
-  static const SgObject perc = SG_MAKE_CHAR('%');
+  SgString *r;
+  int size = SG_STRING_SIZE(id), i, offset = 0;
+  
+  size += SG_STRING_SIZE(CACHE_DIR);
+  size += SG_STRING_SIZE(SEPARATOR);
+  size += SG_STRING_SIZE(CACHE_EXT);
 
-  SG_FOR_EACH(cp, sl) {
-    SgObject c = SG_CAR(cp);
-    SgChar ch = SG_CHAR_VALUE(c);
-    if (ch == '/' || ch == '.' || ch == '\\' || isspace(ch)) {
-      SG_APPEND1(h, t, SG_MAKE_CHAR('_'));
-    } else if (!isalnum(ch)){
-      int high = (ch >> 4) & 0xF;
-      int low  = ch & 0xF;
-      SG_APPEND1(h, t, perc);
-      SG_APPEND1(h, t, SG_MAKE_CHAR((high < 0xa) ? high + '0' : high + 0x57));
-      SG_APPEND1(h, t, SG_MAKE_CHAR((low < 0xa) ? low + '0' : low + 0x57));
-    } else {
-      SG_APPEND1(h, t, c);
+  for (i = 0; i < SG_STRING_SIZE(id); i++) {
+    if (need_encode(SG_STRING_VALUE_AT(id, i), NULL, NULL)) {
+      size += 2;
     }
   }
-  return Sg_StringAppend(SG_LIST4(CACHE_DIR,
-				  Sg_MakeString(Sg_NativeFileSeparator(),
-						SG_LITERAL_STRING),
-				  Sg_ListToString(h, 0, -1),
-				  Sg_MakeString(UC(".cache"),
-						SG_LITERAL_STRING)));
+  r = Sg_ReserveString(size, 0);
+  COPY_STRING(r, CACHE_DIR, offset);
+  COPY_STRING(r, SEPARATOR, offset);
+  for (i = 0; i < SG_STRING_SIZE(id); i++) {
+    SgChar h, l, ch = SG_STRING_VALUE_AT(id, i);
+    if (ch == '/' || ch == '.' || ch == '\\' || isspace(ch)) {
+      SG_STRING_VALUE_AT(r, offset++) = '_';
+    } else if (need_encode(ch, &h, &l)) {
+      SG_STRING_VALUE_AT(r, offset++) = '%';
+      SG_STRING_VALUE_AT(r, offset++) = h;
+      SG_STRING_VALUE_AT(r, offset++) = l;
+    } else {
+      SG_STRING_VALUE_AT(r, offset++) = ch;
+    }
+  }
+  COPY_STRING(r, CACHE_EXT, offset);
+  return r;
 }
 
 /*
@@ -1649,4 +1683,7 @@ void Sg__InitCache()
 #define BINIT(cl, nam) Sg_InitStaticClass(cl, UC(nam), clos_lib, NULL, 0)
   BINIT(SG_CLASS_WRITE_CACHE_CTX, "<write-cache-ctx>");
   BINIT(SG_CLASS_READ_CACHE_CTX, "<read-cache-ctx>");
+
+  SEPARATOR = Sg_MakeString(Sg_NativeFileSeparator(), SG_LITERAL_STRING);
+  CACHE_EXT = SG_MAKE_STRING(".cache");
 }
