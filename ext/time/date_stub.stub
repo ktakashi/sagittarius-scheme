@@ -6,7 +6,7 @@
  (.include <sagittarius/extend.h>
 	   <sagittarius-time.h>))
 
-(define-c-proc make-date (nanosecond::<fixnum>
+(define-c-proc make-date (nanosecond::<integer>
 			  second::<fixnum>
 			  minute::<fixnum>
 			  hour::<fixnum>
@@ -15,7 +15,8 @@
 			  year::<fixnum>
 			  zone_offset::<integer>)
   
-  (result (Sg_MakeDate nanosecond second minute hour day month year
+  (result (Sg_MakeDate (Sg_GetIntegerS64Clamp nanosecond SG_CLAMP_NONE NULL)
+		       second minute hour day month year
 		       (Sg_GetIntegerS64Clamp zone_offset SG_CLAMP_NONE NULL))))
 (define-type <date> "SgDate*")
 
