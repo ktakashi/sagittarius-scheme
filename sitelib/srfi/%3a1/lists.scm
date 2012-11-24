@@ -829,7 +829,7 @@
 					  "improper lists are not allowed"
 					  lists))))]
       [(null? ls)
-       (values (reverse a*) (reverse d*))]
+       (values (reverse! a*) (reverse! d*))]
       [else 
        (assertion-violation '%cars+cdrs "improper lists are not allowed"
 			    lists)])))
