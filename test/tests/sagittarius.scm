@@ -581,4 +581,21 @@
   (test-equal "custom codec(1)" "hello" (get-string-all tp))
   (test-assert "custom codec(2)" (port-closed? in)))
 
+(let ()
+  (define (error-codec)
+    (define (getc port mode check-bom? data)
+      (get-u8 port)
+      (error 'error-codec "always error"))
+    
+    (define (putc port c mode data)
+      (error 'error-codec "always error"))
+    (make-codec 'error-codec getc putc #f))
+  (test-assert 
+   "error closing"
+   (let* ((bin (open-bytevector-input-port #vu8(1 2 3 4)))
+	  (tin (transcoded-port bin (make-transcoder (error-codec)))))
+     (guard (e ((error? e) (port-closed? bin))
+	       (else #f))
+       (get-char tin)))))
+
 (test-end)
