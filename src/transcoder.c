@@ -155,15 +155,20 @@ static SgChar get_char_internal(SgObject self, SgPort *port)
     return SG_CODEC_BUILTIN(tran->codec)->getc(tran->codec, src_port,
 					       tran->mode, (mark == 0));
   } else {
-    SgObject c;
+    SgObject c = SG_UNDEF;
     int prev = TRUE;
     /* inside of custom codec, it needs to read bytes so port must be opened. */
     SAVE_CLOSED(src_port, prev);
-
-    c = Sg_Apply4(SG_CODEC_CUSTOM(tran->codec)->getc,
-	      src_port, get_mode(tran->mode), 
-	      SG_MAKE_BOOL(mark == 0),
-	      SG_CODEC_CUSTOM(tran->codec)->data);
+    /* port must be re-closed no matter what happened */
+    SG_UNWIND_PROTECT {
+      c = Sg_Apply4(SG_CODEC_CUSTOM(tran->codec)->getc,
+		    src_port, get_mode(tran->mode), 
+		    SG_MAKE_BOOL(mark == 0),
+		    SG_CODEC_CUSTOM(tran->codec)->data);
+    } SG_WHEN_ERROR {
+      RESTORE_CLOSED(src_port, prev);
+      SG_NEXT_HANDLER;
+    } SG_END_PROTECT;
     /* restore */
     RESTORE_CLOSED(src_port, prev);
     if (SG_CHARP(c)) {
@@ -292,13 +297,18 @@ int64_t Sg_TranscoderRead(SgObject self, SgPort *port,
     diff = resolve_eol(port, trans, buf+read, buf+read, r);
     read += r - diff;
   } else {
-    SgObject r;
+    SgObject r = SG_UNDEF;
     int prev = TRUE;
     SAVE_CLOSED(src_port, prev);
-    r = Sg_Apply4(SG_CODEC_CUSTOM(trans->codec)->readc,
-		  src_port, SG_MAKE_INT(size-read),
-		  get_mode(trans->mode),
-		  SG_CODEC_CUSTOM(trans->codec)->data);
+    SG_UNWIND_PROTECT {
+      r = Sg_Apply4(SG_CODEC_CUSTOM(trans->codec)->readc,
+		    src_port, SG_MAKE_INT(size-read),
+		    get_mode(trans->mode),
+		    SG_CODEC_CUSTOM(trans->codec)->data);
+    } SG_WHEN_ERROR {
+      RESTORE_CLOSED(src_port, prev);
+      SG_NEXT_HANDLER;
+    } SG_END_PROTECT;
     RESTORE_CLOSED(src_port, prev);
     if (!SG_STRINGP(r)) {
       Sg_Error(UC("codec returned invalid object %S"), r);
@@ -324,8 +334,13 @@ int64_t Sg_TranscoderRead(SgObject self, SgPort *port,
     } else {								\
       int __prev = TRUE;						\
       SAVE_CLOSED(p, __prev);						\
-      Sg_Apply4(SG_CODEC_CUSTOM(codec)->putc, (p), SG_MAKE_CHAR(c),	\
-		get_mode(mode),	SG_CODEC_CUSTOM(codec)->data);		\
+      SG_UNWIND_PROTECT {						\
+	Sg_Apply4(SG_CODEC_CUSTOM(codec)->putc, (p), SG_MAKE_CHAR(c),	\
+		  get_mode(mode),	SG_CODEC_CUSTOM(codec)->data);	\
+      } SG_WHEN_ERROR {							\
+	RESTORE_CLOSED(p, __prev);					\
+	SG_NEXT_HANDLER;						\
+      }	SG_END_PROTECT;							\
       RESTORE_CLOSED(p, __prev);					\
     }									\
   } while (0)
@@ -370,14 +385,19 @@ void Sg_TranscoderPutc(SgObject self, SgPort *tport, SgChar c)
     if ((codec)->type == SG_BUILTIN_CODEC) {				\
       return SG_CODEC_BUILTIN(codec)->writec(codec, (p), (s), (c), mode); \
     } else {								\
-      SgObject i;							\
+      SgObject i = SG_MAKE_INT(0);					\
       int __prev = TRUE;						\
       if (!(new_s)) {							\
 	(new_s) = Sg_MakeString(s, SG_LITERAL_STRING);			\
       }									\
       SAVE_CLOSED(p, __prev);						\
-      i = Sg_Apply4(SG_CODEC_CUSTOM(codec)->writec, (p), (new_s),	\
-		    get_mode(mode), SG_CODEC_CUSTOM(codec)->data);	\
+      SG_UNWIND_PROTECT {						\
+	i = Sg_Apply4(SG_CODEC_CUSTOM(codec)->writec, (p), (new_s),	\
+		      get_mode(mode), SG_CODEC_CUSTOM(codec)->data);	\
+      } SG_WHEN_ERROR {							\
+	RESTORE_CLOSED(p, __prev);					\
+	SG_NEXT_HANDLER;						\
+      } SG_END_PROTECT;							\
       RESTORE_CLOSED(p, __prev);					\
       return Sg_GetIntegerS64Clamp(i, SG_CLAMP_NONE, NULL);		\
     }									\
