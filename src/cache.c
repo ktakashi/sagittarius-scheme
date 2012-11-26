@@ -1637,6 +1637,7 @@ int Sg_ReadCache(SgString *id)
   vm->currentLibrary = save;
   SG_PORT_UNLOCK(in);
   Sg_ClosePort(in);
+  alldata = NULL;		/* gc friendliness */
   return CACHE_READ;
 }
 
