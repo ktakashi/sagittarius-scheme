@@ -1246,7 +1246,7 @@ void Sg_Vprintf(SgPort *port, const SgChar *fmt, va_list sp, int sharedp)
 	  SgChar *value = va_arg(sp, SgChar*);
 	  /* for safety */
 	  if (value != NULL) {
-	    SG_APPEND1(h, t, Sg_MakeString(value, SG_LITERAL_STRING));
+	    SG_APPEND1(h, t, Sg_MakeString(value, SG_HEAP_STRING));
 	  } else {
 	    SG_APPEND1(h, t, SG_MAKE_STRING("(null)"));
 	  }

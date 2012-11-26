@@ -272,26 +272,36 @@
 	 ((- op insn const)
 	  `(define-builtin-inliner ,op :null
 	     (lambda (form cenv)
+	       (define (exact-zero? n) (and (exact? n) (zero? n)))
 	       (let inline ((args (cdr form)))
 		 (smatch args
 		   (()
-		    (syntax-error "procedure requires at least one argument" form))
+		    (syntax-error "procedure requires at least one argument"
+				  form))
 		   ((x)
 		    (receive (num tree) (check-numeric-constant x cenv)
-		      (if (number? num)
+		      ;; avoid to compile time error (for test cases)
+		      ;; we check if num is exact zero or not and if so
+		      ;; let vm raise an error.
+		      (if (and (number? num) (not (exact-zero? num)))
 			  ($const (,op num))
-			  ($call form ($gref (ensure-identifier ',op cenv)) `(,tree)))))
+			  ($call form ($gref (ensure-identifier ',op cenv))
+				 `(,tree)))))
 		   ((x y . more)
 		    (receive (xval xtree) (check-numeric-constant x cenv)
 		      (receive (yval ytree) (check-numeric-constant y cenv)
-			;; R6RS requires 0/0 &assertion, to avoid compile time
-			;; exception, we check if it's r6rs mode or not.
-			(if (and xval yval (not (vm-r6rs-mode?)))
+			;; for now we only check with lazy assumption that
+			;; is if any of divisor is exact 0, then let vm
+			;; calculate with DIV instruction.
+			;; TODO check if the all given values are exact or
+			;; not.
+			(if (and xval yval (not (exact-zero? yval)))
 			    (if (null? more)
 				($const (,op xval yval))
 				(inline (cons (,op xval yval) more)))
 			    (fold (lambda (arg asm)
-				    ($asm form (list ,insn) (list asm (pass1 arg cenv))))
+				    ($asm form (list ,insn) 
+					  (list asm (pass1 arg cenv))))
 				  ($asm form (list ,insn)
 					(list (or xtree (,const xval))
 					      (or ytree (,const yval))))

@@ -3614,7 +3614,7 @@
 	    ((ADD)     (pass2/const-numop2 + args))
 	    ((SUB)     (pass2/const-numop2 - args))
 	    ((MUL)     (pass2/const-numop2 * args))
-	    ((DIV)     (pass2/const-numop2 / args (vm-r6rs-mode?)))
+	    ((DIV)     (pass2/const-numop2 / args #t))
 	    ((NEG)     (pass2/const-numop1 - args))
 	    ;; list and vector might be for new instance
 	    ;;((LIST)    (pass2/const-xargs list args))
@@ -3647,7 +3647,8 @@
 	(y ($const-value (cadr args))))
     (and (number? x) (number? y)
 	 (or (null? check-zero?)
-	     (not (zero? y)))
+	     (inexact? x)
+	     (not (and (exact? y) (zero? y))))
 	 ($const (proc x y)))))
 
 (define (pass2/const-vecref args)

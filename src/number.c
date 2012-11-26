@@ -331,10 +331,11 @@ static double algorithmR(SgObject f, const int e, const double z0)
   }
 }
 
-static SgObject number_read_error(const char *msg, struct numread_packet *context)
+static SgObject number_read_error(const SgChar *msg, 
+				  struct numread_packet *context)
 {
   if (context->strict) {
-    Sg_Error(UC("bad number format %s: %A"), msg,
+    Sg_Error(UC("bad number format (%s): %A"), msg,
 	     Sg_MakeString(context->buffer, SG_HEAP_STRING));
   }
   return SG_FALSE;
@@ -475,8 +476,9 @@ static SgObject read_real(const SgChar **strp, int *lenp,
       if (SG_FALSEP(denom)) return SG_FALSE;
       if (SG_MAKE_INT(0) == denom) {
 	if (lensave > *lenp) {
-	  if (IS_EXACT(ctx)) {
-	    return number_read_error("(exact infinity/nan is not supported.)", ctx);
+	  if (!IS_INEXACT(ctx)) {
+	    return number_read_error(UC("exact infinity/nan is not supported."),
+				     ctx);
 	  }
 	  if (!SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE)) {
 	    if (SG_MAKE_INT(0) == intpart) return SG_NAN;
@@ -503,7 +505,7 @@ static SgObject read_real(const SgChar **strp, int *lenp,
   if (**strp == '.') {
     int lensave;
     if (ctx->radix != 10) {
-      return number_read_error("(only 10-based fraction is supported)", ctx);
+      return number_read_error(UC("only 10-based fraction is supported"), ctx);
     }
     (*strp)++; (*lenp)--;
     lensave = *lenp;
@@ -943,11 +945,17 @@ SgObject Sg_MakeRational(SgObject numerator, SgObject denominator)
 {
   SgRational *z;
   if(!Sg_ExactP(numerator)) {
-    Sg_Error(UC("numerator must be an exact integer, but got %S"), numerator);
+    Sg_Error(UC("numerator must be an exact integer, but got %S"),
+	     numerator);
   }
   if(!Sg_ExactP(denominator)) {
-    Sg_Error(UC("denominator must be an exact integer, but got %S"), denominator);
+    Sg_Error(UC("denominator must be an exact integer, but got %S"),
+	     denominator);
   }
+  if (denominator == SG_MAKE_INT(0)) {
+    Sg_Error(UC("undefined for 0"));
+  }
+
   if (denominator == SG_MAKE_INT(1)) return numerator;
   if (numerator == SG_MAKE_INT(0)) return SG_MAKE_INT(0);
 
@@ -2127,7 +2135,7 @@ SgObject Sg_Div(SgObject x, SgObject y)
   SgObject real, imag;
   if (SG_INTP(x)) {
     if (SG_INTP(y)) {
-      if (y == SG_MAKE_INT(0)) goto a_normal;
+      if (y == SG_MAKE_INT(0)) goto div_by_zero;
       else if (x == SG_MAKE_INT(0)) return x;
       else if (y == SG_MAKE_INT(1)) return x;
       else return Sg_MakeRational(x, y);
@@ -2177,7 +2185,7 @@ SgObject Sg_Div(SgObject x, SgObject y)
   }
   else if (SG_BIGNUMP(x)) {
     if (SG_INTP(y)) {
-      if (y == SG_MAKE_INT(0)) goto a_normal;
+      if (y == SG_MAKE_INT(0)) goto div_by_zero;
       else if (y == SG_MAKE_INT(1)) return x;
       else return Sg_MakeRational(x, y);
     }
@@ -2203,7 +2211,7 @@ SgObject Sg_Div(SgObject x, SgObject y)
   }
   else if (SG_RATIONALP(x)) {
     if (SG_INTP(y)) {
-      if (y == SG_MAKE_INT(0)) goto a_normal;
+      if (y == SG_MAKE_INT(0)) goto div_by_zero;
       else if (y == SG_MAKE_INT(1)) return x;
       else return Sg_MakeRational(SG_RATIONAL(x)->numerator,
 				  Sg_Mul(SG_RATIONAL(x)->denominator, y));
@@ -2231,16 +2239,13 @@ SgObject Sg_Div(SgObject x, SgObject y)
     real = SG_COMPLEX(x)->real;
     imag = SG_COMPLEX(x)->imag;
     if (SG_INTP(y)) {
-      return Sg_MakeComplex(Sg_Div(real, y),
-			    Sg_Div(imag, y));
+      return Sg_MakeComplex(Sg_Div(real, y), Sg_Div(imag, y));
     }
     else if (SG_BIGNUMP(y) || SG_RATIONALP(y)) {
-      return Sg_MakeComplex(Sg_Div(real, y),
-			    Sg_Div(imag, y));
+      return Sg_MakeComplex(Sg_Div(real, y), Sg_Div(imag, y));
     }
     else if (SG_FLONUMP(y)) {
-      return Sg_MakeComplex(Sg_Div(real, y),
-			    Sg_Div(imag, y));
+      return Sg_MakeComplex(Sg_Div(real, y), Sg_Div(imag, y));
     }
     else if (SG_COMPLEXP(y)) {
       SgObject real2 = SG_COMPLEX(y)->real;
@@ -2265,6 +2270,10 @@ SgObject Sg_Div(SgObject x, SgObject y)
     if (s < 0)  return SG_NEGATIVE_INFINITY;
     else        return SG_POSITIVE_INFINITY;
   }
+ div_by_zero:
+  Sg_AssertionViolation(SG_INTERN("/"), SG_MAKE_STRING("undefined for 0"),
+			SG_LIST2(x, y));
+  return SG_UNDEF;
 }
 
 SgObject Sg_Quotient(SgObject x, SgObject y, SgObject *rem)
