@@ -102,13 +102,13 @@ static SgObject CACHE_EXT = SG_UNDEF;
 /* assume id is path. however just in case, we encode invalid path characters */
 static int need_encode(SgChar ch, SgChar *h, SgChar *l)
 {
-  if (!isalnum(ch)){
-    int high = (ch >> 4) & 0xF;
-    int low  = ch & 0xF;
-    if (h) {
+  if (ch == '/' || ch == '.' || ch == '\\' || isspace(ch)) {
+    return FALSE;
+  } else if (!isalnum(ch)){
+    if (h && l) {
+      int high = (ch >> 4) & 0xF;
+      int low  = ch & 0xF;
       *h = (high < 0xa) ? high + '0' : high + 0x57;
-    }
-    if (l) {
       *l = (low < 0xa) ? low + '0' : low + 0x57;
     }
     return TRUE;
@@ -854,6 +854,7 @@ static void write_macro_cache(SgPort *out, SgLibrary *lib, SgObject cbs,
 }
 
 static SgInternalMutex cache_mutex;
+static SgObject TIMESTAMP_EXT = SG_UNDEF;
 
 int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 {
@@ -884,7 +885,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 
   Sg_ClosePort(out);
   timestamp = Sg_FileModifyTime(cache_path);
-  cache_path = Sg_StringAppend2(cache_path, SG_MAKE_STRING(".timestamp"));
+  cache_path = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
   file = Sg_OpenFile(cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
   out = Sg_MakeFileBinaryOutputPort(file, SG_BUFMODE_BLOCK);
   /* put validate tag */
@@ -1548,7 +1549,7 @@ int Sg_ReadCache(SgString *id)
     Sg_Printf(vm->logPort, UC(";; reading cache of %S\n"), id);
   }
   /* check timestamp */
-  timestamp = Sg_StringAppend2(cache_path, SG_MAKE_STRING(".timestamp"));
+  timestamp = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
   if (!Sg_FileExistP(timestamp)) {
     return RE_CACHE_NEEDED;
   }
@@ -1685,4 +1686,5 @@ void Sg__InitCache()
 
   SEPARATOR = Sg_MakeString(Sg_NativeFileSeparator(), SG_LITERAL_STRING);
   CACHE_EXT = SG_MAKE_STRING(".cache");
+  TIMESTAMP_EXT = SG_MAKE_STRING(".timestamp");
 }
