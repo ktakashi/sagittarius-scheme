@@ -1,7 +1,7 @@
 ;; -*- mode: scheme; coding: utf-8-unix; -*-
 (import (rnrs)
 	(srfi :13 strings)
-	(srfi :14 char-set)
+	(srfi :14 char-sets)
 	(sagittarius io)
 	(sagittarius))
 

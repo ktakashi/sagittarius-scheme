@@ -2,7 +2,7 @@
 ;;;
 ;;; parse.scm - utilities to parse input
 ;;;  
-;;;   Copyright (c) 2000-2011  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2009-2011  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -46,7 +46,7 @@
 	    (core errors)
 	    (sagittarius)
 	    (srfi :13 strings)
-	    (srfi :14 char-set)
+	    (srfi :14 char-sets)
 	    (srfi :6 basic-string-ports)
 	    (srfi :26 cut))
 

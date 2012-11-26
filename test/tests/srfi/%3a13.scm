@@ -1,6 +1,6 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
 (import (srfi :13 strings)
-	(srfi :14 char-set)
+	(srfi :14 char-sets)
 	(except (rnrs) string?) ;; to avoid confliction
 	(srfi :64 testing))
 

@@ -198,11 +198,8 @@
 (define-inst DIV (0 0 #t)
   (let* ((obj (POP (SP vm)))
 	 (exact::int (and (Sg_ExactP obj) (Sg_ExactP (AC vm)))))
-    (if (and exact
-	     (SG_VM_IS_SET_FLAG vm SG_R6RS_MODE)
-	     (Sg_ZeroP (AC vm)))
-	(assertion-violation "/" "undefined for 0"
-			     (SG_LIST2 obj (AC vm)))
+    (if (and exact (Sg_ZeroP (AC vm)))
+	(assertion-violation "/" "undefined for 0" (SG_LIST2 obj (AC vm)))
 	(call-two-args-proc obj Sg_Div))))
 
 (define-inst DIVI (1 0 #t)

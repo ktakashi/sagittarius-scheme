@@ -245,14 +245,15 @@ int Sg_BindParameter(SgObject stmt, int index, SgObject value)
     ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT,
 			   SQL_C_BINARY, SQL_BINARY,
 			   SG_BVECTOR_SIZE(value), 0, holder->param.p, 0,
-			   &holder->state);
+			   (SQLLEN *)&holder->state);
   } else if (SG_BINARY_PORTP(value)) {
     /* blob data */
     holder->param.p  = (void*)value;
     holder->state  = SQL_DATA_AT_EXEC;
     ret = SQLBindParameter(hstmt, index, SQL_PARAM_INPUT,
 			   SQL_BINARY, SQL_LONGVARBINARY,
-			   0, 0, holder->param.p, 0, &holder->state);
+			   0, 0, holder->param.p, 0,
+			   (SQLLEN *)&holder->state);
   } else {
     Sg_ImplementationRestrictionViolation(
        SG_INTERN("bind-parameter!"),

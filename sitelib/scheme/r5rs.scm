@@ -111,8 +111,13 @@
 	    vector? with-input-from-file
 	    with-output-to-file write
 	    write-char zero?)
-    (import (rnrs) (rnrs r5rs) (rnrs mutable-pairs) (rnrs mutable-strings)
+    (import (except (rnrs) write read)
+	    (rnrs r5rs) 
+	    (rnrs mutable-pairs) 
+	    (rnrs mutable-strings)
 	    (scheme repl)
+	    (scheme write)
+	    (scheme read)
 	    (only (scheme base) char-ready?)
 	    (only (scheme eval) eval)
 	    (only (scheme load) load)))

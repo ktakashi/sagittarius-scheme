@@ -1,6 +1,6 @@
-;;; -*- coding:utf-8; -*-
+;;; -*- mode:scheme; coding: utf-8; -*-
 ;;;
-;;; char-set.scm - SRFI-14 character set library.
+;;; SRFI-25 - Multi dimensional array
 ;;;  
 ;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -28,10 +28,6 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; the library name contains a typo, so don't use it!
-#!compatible
-#!nocache
-#!deprecated
-(library (srfi :14 char-set)
+(library (srfi :25)
     (export :all)
-    (import (srfi :14 char-sets)))
+    (import (srfi :25 multi-dimensional-arrays)))

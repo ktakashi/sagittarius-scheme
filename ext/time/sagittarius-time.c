@@ -149,20 +149,20 @@ SgObject Sg_CurrentTime(SgObject type)
   unsigned long sec, usec;
   Sg_GetTimeOfDay(&sec, &usec);
   if (SG_EQ(type, time_utc)) {
-    return Sg_MakeTime(time_utc, sec, usec * 10);
+    return Sg_MakeTime(time_utc, sec, usec * 1000);
   } else if (SG_EQ(type, time_tai)) {
     return Sg_MakeTime(time_tai, sec + leap_second_delta(sec),
-		       usec * 10);
+		       usec * 1000);
   } else if (SG_EQ(type, time_monotonic)) {
     return Sg_MakeTime(time_monotonic, sec + leap_second_delta(sec),
-		       usec * 10);
+		       usec * 1000);
   } else if (SG_EQ(type, time_process)) {
     unsigned long vsec, vusec;
     Sg_VMProcessTime(&vsec, &vusec);
-    return Sg_MakeTime(type, sec - vsec, (usec - vusec) * 10);
+    return Sg_MakeTime(type, sec - vsec, (usec - vusec) * 1000);
   } else if (SG_EQ(type, time_thread)) {
     SgVM *vm = Sg_VM();
-    return Sg_MakeTime(type, sec - vm->uptimeSec, (usec - vm->uptimeUsec) * 10);
+    return Sg_MakeTime(type, sec - vm->uptimeSec, (usec - vm->uptimeUsec)*1000);
   } else {
     Sg_Error(UC("TIME-ERROR type current-time: invalid-clock-type %S"), type);
     return SG_UNDEF;		/* dummy */

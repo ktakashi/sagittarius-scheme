@@ -42,7 +42,7 @@ struct SgWriteContextRec
   int limit;                  /* internal */
   int ncirc;                  /* internal */
   SgHashTable *table;         /* internal */
-  SgObject obj;               /* internal */
+  int stackSize;	      /* internal */
 };
 
 /* Print mode flags */

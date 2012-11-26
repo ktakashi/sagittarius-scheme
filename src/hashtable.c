@@ -44,6 +44,7 @@
 #include "sagittarius/vector.h"
 #include "sagittarius/vm.h"
 #include "sagittarius/writer.h"
+#include "sagittarius/cache.h"
 
 
 typedef struct EntryRec
@@ -734,7 +735,107 @@ static void hash_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   SG_PORT_UNLOCK(port);
 }
 
-SG_DEFINE_BUILTIN_CLASS(Sg_HashTableClass, hash_print, NULL, NULL, NULL,
+/*
+  caching hashtable is best effort. so if we can't it'll give up.
+  the case we can't cache it:
+     + General hashtable with subr
+     + Entry contains something we can't cache
+
+  cache structure
+    + type (byte)
+    + immutable? (byte)
+    + size (int) enough?
+      + if type == general
+        + hasher
+	+ compare
+    + key value, so on
+*/
+static SgObject hash_cache_reader(SgPort *port, SgReadCacheCtx *ctx)
+{
+  SgHashTable *ht;
+  int type, immutablep, entryCount, i;
+  SgObject count;
+  type = Sg_GetbUnsafe(port);
+  immutablep = Sg_GetbUnsafe(port);
+  count = Sg_ReadCacheObject(port, ctx);
+  ASSERT(SG_INTP(count));
+  entryCount = SG_INT_VALUE(count);
+  switch (type) {
+  case SG_HASH_GENERAL: {
+    SgObject hasher = Sg_ReadCacheObject(port, ctx);
+    SgObject compare = Sg_ReadCacheObject(port, ctx);
+    ht = SG_HASHTABLE(Sg_MakeHashTableForScheme(hasher, compare, entryCount));
+    break;
+  }
+  default:
+    ht = SG_HASHTABLE(Sg_MakeHashTableSimple(type, entryCount));
+    break;
+  }
+  for (i = 0; i < entryCount; i++) {
+    SgObject key = Sg_ReadCacheObject(port, ctx);
+    SgObject value = Sg_ReadCacheObject(port, ctx);
+    Sg_HashTableSet(ht, key, value, 0);
+  }
+  ht->immutablep = immutablep;
+  return SG_OBJ(ht);
+}
+
+static SgObject hash_cache_scanner(SgObject obj, SgObject cbs,
+				   SgWriteCacheCtx *ctx)
+{
+  SgHashTable *ht = SG_HASHTABLE(obj);
+  SgHashIter iter;
+  SgHashEntry *e;
+  switch (ht->type) {
+  default: break;
+    /* we are only interested in general type */
+  case SG_HASH_GENERAL:
+    /* if one of these 2 is subr, then the cache will be failed. */
+    cbs = Sg_WriteCacheScanRec(SG_HASHTABLE_CORE(ht)->generalHasher, cbs, ctx);
+    cbs = Sg_WriteCacheScanRec(SG_HASHTABLE_CORE(ht)->generalCompare, cbs, ctx);
+    break;
+  }
+  Sg_HashIterInit(SG_HASHTABLE_CORE(ht), &iter);
+  while ((e = Sg_HashIterNext(&iter)) != NULL) {
+    cbs = Sg_WriteCacheScanRec(SG_HASH_ENTRY_KEY(e), cbs, ctx);
+    cbs = Sg_WriteCacheScanRec(SG_HASH_ENTRY_VALUE(e), cbs, ctx);
+  }
+  return cbs;
+}
+
+static void hash_cache_writer(SgObject obj, SgPort *port,
+			      SgWriteCacheCtx *ctx)
+{
+  SgHashTable *ht = SG_HASHTABLE(obj);
+  SgHashIter iter;
+  SgHashEntry *e;
+  SgObject count = SG_MAKE_INT(SG_HASHTABLE_CORE(ht)->entryCount);
+  Sg_PutbUnsafe(port, (int)ht->type);
+  Sg_PutbUnsafe(port, (int)ht->immutablep);
+  /* should we write 4 byte instead of object? */
+  Sg_WriteObjectCache(count, port, ctx);
+  switch (ht->type) {
+  default: break;
+    /* we are only interested in general type */
+  case SG_HASH_GENERAL:
+    /* if one of these 2 is subr, then the cache will be failed. */
+    Sg_WriteObjectCache(SG_HASHTABLE_CORE(ht)->generalHasher, port, ctx);
+    Sg_WriteObjectCache(SG_HASHTABLE_CORE(ht)->generalCompare, port, ctx);
+    break;
+  }
+  Sg_HashIterInit(SG_HASHTABLE_CORE(ht), &iter);
+  while ((e = Sg_HashIterNext(&iter)) != NULL) {
+    Sg_WriteObjectCache(SG_HASH_ENTRY_KEY(e), port, ctx);
+    Sg_WriteObjectCache(SG_HASH_ENTRY_VALUE(e), port, ctx);
+  }
+}
+
+#define DEFINE_CLASS_WITH_CACHE SG_DEFINE_BUILTIN_CLASS_WITH_CACHE
+
+DEFINE_CLASS_WITH_CACHE(Sg_HashTableClass, 
+			hash_cache_reader, hash_cache_scanner,
+			hash_cache_writer,
+			hash_print, NULL, NULL, NULL,
 			SG_CLASS_DICTIONARY_CPL);
 
 

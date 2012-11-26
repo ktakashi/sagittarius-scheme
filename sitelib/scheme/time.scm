@@ -4,7 +4,7 @@
     (export current-jiffy current-second jiffies-per-second)
     (import (rnrs)
 	    (srfi :19))
-  ;; from mosh
+
   (define scale 1000000000)
 
   (define (jiffies-per-second) scale)
@@ -13,7 +13,7 @@
   
   (define (return-sec sym)
     (let ((t (current-time sym)))
-      (+ (* scale (time-nanosecond t))
+      (+ (/ (time-nanosecond t) scale)
 	 (time-second t))))
 
 )

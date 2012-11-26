@@ -33,6 +33,11 @@
 #define SAGITTARIUS_CACHE_H_
 
 #include "sagittariusdefs.h"
+#ifdef HAVE_SETJMP_H
+# include <setjmp.h>
+#else
+# error TODO implement own set jmp
+#endif
 
 /* read cache state */
 enum {
@@ -56,6 +61,7 @@ struct cache_ctx_rec
   jmp_buf      escape;
   int          index;		/* code builder index */
   int          macroPhaseP;	/* avoid to emit local macros */
+  SgObject     closures;	/* for calling writer external */
 };
 typedef struct cache_ctx_rec SgWriteCacheCtx;
 

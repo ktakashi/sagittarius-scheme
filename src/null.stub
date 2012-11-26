@@ -2343,7 +2343,7 @@
 	  (result (SG_MAKE_INT res)))))
 
   ;; TODO this allocates memory twice.
-  (define-c-proc get-bytevector-some (p::<port> :optional (reckless #f)) ::<top>
+  (define-c-proc get-bytevector-some (p::<port> :optional (reckless #f))
     (check-port-open get-bytevector-some p)
     (when (SG_FALSEP reckless)
       (check-binary-port get-bytevector-n p))
@@ -2357,7 +2357,7 @@
 	       (set! (SG_BVECTOR_SIZE buf) res))
 	     (result buf)))))
 
-  (define-c-proc get-bytevector-all (p::<port> :optional (reckless #f)) ::<top>
+  (define-c-proc get-bytevector-all (p::<port> :optional (reckless #f))
     (check-port-open get-bytevector-all p)
     (when (SG_FALSEP reckless)
       (check-binary-port get-bytevector-n p))
@@ -2368,7 +2368,9 @@
 	  (res::int64_t (Sg_ReadbAll p (& buf))))
       (if (== res 0)
 	  (result SG_EOF)
-	  (result (Sg_MakeByteVectorFromU8Array buf res)))))
+	  (let ((r (Sg_MakeByteVectorFromU8Array buf res)))
+	    (set! buf NULL)		; gc friendliness 
+	    (result r)))))
 
   ;; 8.2.9 textual port
   (define-cise-stmt check-textual-port
@@ -2514,8 +2516,9 @@
     (result (or (SG_OUTPORTP obj)
 		(SG_INOUTPORTP obj))))
 
-  (define-c-proc flush-output-port (p::<port>) ::<void>
-    (Sg_FlushPort p))
+  (define-c-proc flush-output-port 
+    (:optional (p::<port> (Sg_CurrentOutputPort))) ::<void>
+    Sg_FlushPort)
 
   (define-c-proc output-port-buffer-mode (p::<port>) ::<top>
     (cond ((SG_EQ (-> p bufferMode) SG_BUFMODE_NONE)

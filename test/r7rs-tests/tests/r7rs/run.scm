@@ -24,6 +24,3 @@
 (run-r7rs-process-context-tests)
 (run-r7rs-write-tests)
 (test-end)
-
-;; this test cases are from Chibi Scheme
-(load "test/r7rs-tests/tests/r7rs/r7rs-tests.scm")

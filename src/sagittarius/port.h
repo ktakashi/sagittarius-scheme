@@ -271,6 +271,10 @@ enum SgCustomPortType {
   (SG_PORTP(obj) && SG_PORT(obj)->type == SG_CUSTOM_PORT_TYPE)
 #define SG_CUSTOM_PORT(obj)   (SG_PORT(obj)->impl.cport)
 
+/* convenient macro */
+#define SG_CUSTOM_BINARY_PORT(obj)  (SG_CUSTOM_PORT(obj)->impl.bport)
+#define SG_CUSTOM_TEXTUAL_PORT(obj) (SG_CUSTOM_PORT(obj)->impl.tport)
+
 #define SG_PORT_LOCK(port)	Sg_LockMutex(&port->lock)
 #define SG_PORT_UNLOCK(port)	Sg_UnlockMutex(&port->lock)
 
@@ -305,6 +309,8 @@ SG_EXTERN SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port,
 						    SgTranscoder *transcoder);
 SG_EXTERN SgObject Sg_MakeStringOutputPort(int bufferSize);
 SG_EXTERN SgObject Sg_MakeStringInputPort(SgString *in, int privatep);
+/* For convenience and future improvement */
+SG_EXTERN SgObject Sg_ConvertToStringOutputPort(SgChar *buf, int bufferSize);
 
 /* custom ports */
 SG_EXTERN SgObject Sg_MakeCustomBinaryPort(SgString *id,

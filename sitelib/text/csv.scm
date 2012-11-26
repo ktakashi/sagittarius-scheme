@@ -49,7 +49,7 @@
 	    (packrat)
 	    (sagittarius control)
 	    (except (srfi :1 lists) any)
-	    (srfi :14 char-set)
+	    (srfi :14 char-sets)
 	    (srfi :26 cut)
 	    (clos user))
 

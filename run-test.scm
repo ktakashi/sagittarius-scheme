@@ -51,8 +51,10 @@
       ;; R7RS now depends alot of extension libraries...
       (setenv "R7RS_TEST" "OK")
       (print "testing R7RS tests")
-      (flush-output-port (current-output-port))      
+      (flush-output-port (current-output-port))
       (load "./test/r7rs-tests/tests/r7rs/run.scm")
+      (flush-output-port (current-output-port))
+      (load "./test/r7rs-tests/r7rs-tests.scm")
       (flush-output-port (current-output-port)))
 
     (define (sitelib-test)

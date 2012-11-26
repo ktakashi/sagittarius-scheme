@@ -104,14 +104,19 @@
 	    (else
 	     (error 'http-server "malformed request line:" request-line))))))
 
+(define server-up? #f)
 (define server-thread
   (make-thread (lambda ()
 		 (let1 socket (make-server-socket *http-port*)
+		   (set! server-up? #t)
 		   (http-server socket)))))
 (thread-start! server-thread)
 ;; since 0.3.8 client/server socket creation are really slow on linux.
 ;; needs to be improved.
-(thread-sleep! 5000)
+(let loop ()
+  (unless server-up?
+    (thread-sleep! 1000)
+    (loop)))
 
 (let ([expected `(("method" "GET")
                   ("request-uri" "/get")

@@ -4,12 +4,8 @@
         (scheme inexact) (scheme complex) (scheme time)
         (scheme file) (scheme read) (scheme write)
         (scheme eval) (scheme process-context) (scheme case-lambda)
-	;; -- Sagittarius start
-	(except (scheme r5rs) write read)
-	(tests r7rs test)
-	#;(chibi test)
-	;; -- Sagittarius end
-	)
+	(scheme r5rs)
+        (chibi test))
 
 ;; R7RS test suite.  Covers all procedures and syntax in the small
 ;; language except `delete-file'.  Currently assumes full-unicode
@@ -518,15 +514,12 @@
 ;; numbers if any argument is inexact, are not transitive.
 
 ;; Example from Alan Bawden
-;; Sagittarius
-;; I don't think this test case is valid, a and c are not the same but
-;; converting a to flonum has some tolerances.
-;;(let ((a (- (expt 2 1000) 1))
-;;      (b (inexact (expt 2 1000))) ; assuming > single-float-epsilon
-;;      (c (+ (expt 2 1000) 1)))
-;;  (test #t (if (and (= a b) (= b c))
-;;               (= a c)
-;;               #t)))
+(let ((a (- (expt 2 1000) 1))
+      (b (inexact (expt 2 1000))) ; assuming > single-float-epsilon
+      (c (+ (expt 2 1000) 1)))
+  (test #t (if (and (= a b) (= b c))
+               (= a c)
+               #t)))
 
 ;; From CLtL 12.3. Comparisons on Numbers:
 ;;
@@ -656,8 +649,7 @@
 (test #i1/3 (rationalize .3 1/10))
 
 (test 1.0 (exp 0))
-;; Sagittarius flonum can not be always the same
-(test-approximate 20.0855369231877 (exp 3))
+(test 20.0855369231877 (exp 3))
 
 (test 0.0 (log 1))
 (test 1.0 (log (exp 1)))
@@ -670,34 +662,30 @@
 (test 1.0 (cos 0))
 (test -1.0 (cos 3.14159265358979))
 (test 0.0 (tan 0))
-;; Sagittarius flonum can not be always the same
-(test-approximate 1.5574077246549 (tan 1))
+(test 1.5574077246549 (tan 1))
 
 (test 0.0 (asin 0))
-;; Sagittarius flonum can not be always the same
-(test-approximate 1.5707963267949 (asin 1))
+(test 1.5707963267949 (asin 1))
 (test 0.0 (acos 1))
-(test-approximate 3.14159265358979 (acos -1))
+(test 3.14159265358979 (acos -1))
 
 (test 0.0 (atan 0.0 1.0))
 (test -0.0 (atan -0.0 1.0))
-;; Sagittarius flonum can not be always the same
-(test-approximate 0.785398163397448 (atan 1.0 1.0))
-(test-approximate 1.5707963267949 (atan 1.0 0.0))
-(test-approximate 2.35619449019234 (atan 1.0 -1.0))
-(test-approximate 3.14159265358979 (atan 0.0 -1.0))
-(test-approximate -3.14159265358979 (atan -0.0 -1.0)) ;
-(test-approximate -2.35619449019234 (atan -1.0 -1.0))
-(test-approximate -1.5707963267949 (atan -1.0 0.0))
-(test-approximate -0.785398163397448 (atan -1.0 1.0))
+(test 0.785398163397448 (atan 1.0 1.0))
+(test 1.5707963267949 (atan 1.0 0.0))
+(test 2.35619449019234 (atan 1.0 -1.0))
+(test 3.14159265358979 (atan 0.0 -1.0))
+(test -3.14159265358979 (atan -0.0 -1.0)) ;
+(test -2.35619449019234 (atan -1.0 -1.0))
+(test -1.5707963267949 (atan -1.0 0.0))
+(test -0.785398163397448 (atan -1.0 1.0))
 ;; (test undefined (atan 0.0 0.0))
 
 (test 1764 (square 42))
 (test 4.0 (square 2))
 
 (test 3 (sqrt 9))
-;; Sagittarius flonum can not be always the same
-(test-approximate 1.4142135623731 (sqrt 2))
+(test 1.4142135623731 (sqrt 2))
 (test +i (sqrt -1))
 
 (test '(2 0) (call-with-values (lambda () (exact-integer-sqrt 4)) list))
@@ -711,17 +699,15 @@
 
 (test 1+2i (make-rectangular 1 2))
 
-;; Sagittarius, flonum can not be always the same
-(test-approximate 0.54030230586814+0.841470984807897i (make-polar 1 1))
+(test 0.54030230586814+0.841470984807897i (make-polar 1 1))
 
 (test 1 (real-part 1+2i))
 
 (test 2 (imag-part 1+2i))
 
-;; Sagittarius, flonum can not be always the same
-(test-approximate 2.23606797749979 (magnitude 1+2i))
+(test 2.23606797749979 (magnitude 1+2i))
 
-(test-approximate 1.10714871779409 (angle 1+2i))
+(test 1.10714871779409 (angle 1+2i))
 
 (test 1.0 (inexact 1))
 (test #t (inexact? (inexact 1)))
@@ -1105,12 +1091,17 @@
     (let ((str (make-string 5 #\x))) (string-copy! str 0 "-----") str))
 (test "---xx"
     (let ((str (make-string 5 #\x))) (string-copy! str 0 "-----" 2) str))
-;; Invalid test
-;; R7RS doesn't specify when start and end is omitted.
-;;(test "xx---"
-;;    (let ((str (make-string 5 #\x))) (string-copy! str 2 "-----") str))
+(test "xx---"
+      (let ((str (make-string 5 #\x))) (string-copy! str 2 "-----" 0 3) str))
 (test "xx-xx"
     (let ((str (make-string 5 #\x))) (string-copy! str 2 "-----" 2 3) str))
+
+;; same source and dest
+(test "aabde"
+    (let ((str (string-copy "abcde"))) (string-copy! str 1 str 0 2) str))
+(test "abcab"
+    (let ((str (string-copy "abcde"))) (string-copy! str 3 str 0 2) str))
+
 
 (test-end)
 
@@ -1180,12 +1171,16 @@
     (let ((vec (vector 1 2 3 4 5))) (vector-copy! vec 0 #(a b c d e)) vec))
 (test #(c d e 4 5)
     (let ((vec (vector 1 2 3 4 5))) (vector-copy! vec 0 #(a b c d e) 2) vec))
-;; Invalid test case
-;; R7RS doesn't specify when start and end is omitted.
-;;(test #(1 2 a b c)
-;;    (let ((vec (vector 1 2 3 4 5))) (vector-copy! vec 2 #(a b c d e)) vec))
+(test #(1 2 a b c)
+    (let ((vec (vector 1 2 3 4 5))) (vector-copy! vec 2 #(a b c d e) 0 3) vec))
 (test #(1 2 c 4 5)
     (let ((vec (vector 1 2 3 4 5))) (vector-copy! vec 2 #(a b c d e) 2 3) vec))
+
+;; same source and dest
+(test #(1 1 2 4 5)
+    (let ((vec (vector 1 2 3 4 5))) (vector-copy! vec 1 vec 0 2) vec))
+(test #(1 2 3 1 2)
+    (let ((vec (vector 1 2 3 4 5))) (vector-copy! vec 3 vec 0 2) vec))
 
 (test-end)
 
@@ -1228,16 +1223,25 @@
     (let ((bv (bytevector 1 2 3 4 5)))
       (bytevector-copy! bv 0 #u8(6 7 8 9 10) 2)
       bv))
-;; invalid test case, this should raise an error but
-;; R7RS doesn't specifiy anything when start and end is omitted
-;;(test #u8(1 2 6 7 8)
-;;    (let ((bv (bytevector 1 2 3 4 5)))
-;;      (bytevector-copy! bv 2 #u8(6 7 8 9 10))
-;;      bv))
+(test #u8(1 2 6 7 8)
+    (let ((bv (bytevector 1 2 3 4 5)))
+      (bytevector-copy! bv 2 #u8(6 7 8 9 10) 0 3)
+      bv))
 (test #u8(1 2 8 4 5)
     (let ((bv (bytevector 1 2 3 4 5)))
       (bytevector-copy! bv 2 #u8(6 7 8 9 10) 2 3)
       bv))
+
+;; same source and dest
+(test #u8(1 1 2 4 5)
+    (let ((bv (bytevector 1 2 3 4 5)))
+      (bytevector-copy! bv 1 bv 0 2)
+      bv))
+(test #u8(1 2 3 1 2)
+    (let ((bv (bytevector 1 2 3 4 5)))
+      (bytevector-copy! bv 3 bv 0 2)
+      bv))
+
 
 (test #u8() (bytevector-append #u8()))
 (test #u8() (bytevector-append #u8() #u8()))
@@ -1529,11 +1533,10 @@
       (write-string "abc def" out 2 5)
       (get-output-string out)))
 
-;; Invalid test for Sagittarius.
-;; (test ""
-;;   (let ((out (open-output-bytevector)))
-;;     (flush-output-port out)
-;;     (get-output-string out)))
+(test ""
+  (let ((out (open-output-string)))
+    (flush-output-port out)
+    (get-output-string out)))
 
 (test #t (eof-object? (read-u8 (open-input-bytevector #u8()))))
 (test 1 (read-u8 (open-input-bytevector #u8(1 2 3))))
@@ -1754,13 +1757,12 @@
  ("1l2" 100.0 "100.0" "100.")
  ("1L2" 100.0 "100.0" "100.")
  ;; NaN, Inf
-;; Sagittarius does not accept captal inf or nan
  ("+nan.0" +nan.0 "+nan.0" "+NaN.0")
-;; ("+NAN.0" +nan.0 "+nan.0" "+NaN.0")
+ ("+NAN.0" +nan.0 "+nan.0" "+NaN.0")
  ("+inf.0" +inf.0 "+inf.0" "+Inf.0")
-;; ("+InF.0" +inf.0 "+inf.0" "+Inf.0")
+ ("+InF.0" +inf.0 "+inf.0" "+Inf.0")
  ("-inf.0" -inf.0 "-inf.0" "-Inf.0")
-;; ("-iNF.0" -inf.0 "-inf.0" "-Inf.0")
+ ("-iNF.0" -inf.0 "-inf.0" "-Inf.0")
  ("#i+nan.0" +nan.0 "+nan.0" "+NaN.0")
  ("#i+inf.0" +inf.0 "+inf.0" "+Inf.0")
  ("#i-inf.0" -inf.0 "-inf.0" "-Inf.0")
@@ -1805,11 +1807,12 @@
  ("-inf.0-inf.0i" (make-rectangular -inf.0 -inf.0) "-Inf.0-Inf.0i")
  ("+inf.0-inf.0i" (make-rectangular +inf.0 -inf.0) "+Inf.0-Inf.0i")
  ;; Complex numbers (polar notation)
-;; ("1@2" -0.416146836547142+0.909297426825682i "-0.416146836547142+0.909297426825682i")
- ;; Sagittarius returns bit more numbers.
- ;; This should be tested with test-approximate, but
- ;; the string literal is really annoying.
- ("1@2" -0.4161468365471424+0.9092974268256817i "-0.4161468365471424+0.9092974268256817i")
+ ("1@2" -0.416146836547142+0.909297426825682i 
+	"-0.416146836547142+0.909297426825682i"
+	;; -- Sagittarius returns bit more numbers
+	;;    (Ypsilon, mosh, Gauche and Chez returned the same value)
+	;; I don't think this is a good test case
+	"-0.4161468365471424+0.9092974268256817i")
  ;; Base prefixes
  ("#x11" 17 "17")
  ("#X11" 17 "17")
@@ -1853,6 +1856,8 @@
 
 (test-end)
 
+(test-end)
+
 (test-begin "6.14 System interface")
 
 ;; 6.14 System interface
@@ -1883,5 +1888,7 @@
 
 (test #t (file-exists? "."))
 (test #f (file-exists? " no such file "))
+
+(test-end)
 
 (test-end)

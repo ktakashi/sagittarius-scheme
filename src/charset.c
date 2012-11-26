@@ -39,6 +39,7 @@
 #include "sagittarius/symbol.h"
 #include "sagittarius/treemap.h"
 #include "sagittarius/writer.h"
+#include "sagittarius/cache.h"
 
 static int compare(SgTreeMap *tm, intptr_t a, intptr_t b)
 {
@@ -88,7 +89,37 @@ static int charset_compare(SgObject x, SgObject y, int equalp)
   }
 }
 
-SG_DEFINE_BUILTIN_CLASS(Sg_CharSetClass,
+static SgObject charset_cache_reader(SgPort *port, SgReadCacheCtx *ctx)
+{
+  SgObject ranges = Sg_ReadCacheObject(port, ctx);
+  SgCharSet *cs = SG_CHAR_SET(Sg_MakeEmptyCharSet());
+  SG_FOR_EACH(ranges, ranges) {
+    SgObject r = SG_CAR(ranges);
+    Sg_CharSetAddRange(cs, SG_INT_VALUE(SG_CAR(r)), SG_INT_VALUE(SG_CDR(r)));
+  }
+  return SG_OBJ(cs);
+}
+
+static SgObject charset_cache_scanner(SgObject obj, SgObject cbs,
+				      SgWriteCacheCtx *ctx)
+{
+  /* char-set always creates its range with fresh list so we can't scan */
+  return cbs;
+}
+
+static void charset_cache_writer(SgObject obj, SgPort *port,
+				 SgWriteCacheCtx *ctx)
+{
+  SgCharSet *cs = SG_CHAR_SET(obj);
+  SgObject range = Sg_CharSetRanges(cs);
+  Sg_WriteObjectCache(range, port, ctx);
+}
+
+#define DEFINE_CLASS_WITH_CACHE SG_DEFINE_BUILTIN_CLASS_WITH_CACHE
+
+DEFINE_CLASS_WITH_CACHE(Sg_CharSetClass,
+			charset_cache_reader, charset_cache_scanner, 
+			charset_cache_writer,
 			charset_print, charset_compare, NULL, NULL,
 			SG_CLASS_DEFAULT_CPL);
 

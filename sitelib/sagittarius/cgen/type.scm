@@ -1,6 +1,6 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 #!compatible
-#<(sagittarius regex)>
+#!read-macro=sagittarius/regex
 (library (sagittarius cgen type)
     (export <cgen-type> cgen-type-from-name make-cgen-type
 	    cgen-box-expr cgen-unbox-expr cgen-pred-expr
@@ -12,7 +12,7 @@
 	    (rename (sagittarius control) (define-with-key define))
 	    (srfi :2 and-let*)
 	    (except (srfi :13 strings) string-upcase)
-	    (srfi :14 char-set)
+	    (srfi :14 char-sets)
 	    (srfi :26 cut)
 	    (clos user))
 

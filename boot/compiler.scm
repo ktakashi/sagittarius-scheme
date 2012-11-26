@@ -1300,7 +1300,9 @@
 	    ;; macro must be lexical. see pass1
 	    (newenv (p1env-extend p1env 
 				  (%map-cons name trans) LEXICAL)))
-       (pass1/body body newenv)))
+       (if (vm-r6rs-mode?)
+	   ($seq (imap (lambda (e) (pass1 e newenv)) body))
+	   (pass1/body body newenv))))
     (else
      (syntax-error "malformed let-syntax" form))))
 
@@ -1322,7 +1324,9 @@
 			  name trans-spec)))
        (ifor-each2 set-cdr!
 		   (cdar (p1env-frames newenv)) trans)
-       (pass1/body body newenv)))
+       (if (vm-r6rs-mode?)
+	   ($seq (imap (lambda (e) (pass1 e newenv)) body))
+	   (pass1/body body newenv))))
     (-
      (syntax-error "malformed letrec-syntax" form))))
 
@@ -2210,7 +2214,7 @@
       ;; basically, this will be ignored
       (((? (lambda (x) (eq? 'for (variable-name x))) -) set phase ___)
        (receive (ref resolved trans?) (parse-spec set)
-	 (values ref '() (check-expand-phase phase))))
+	 (values ref resolved (check-expand-phase phase))))
       (- (values spec '() #f))))
 
   (define (process-spec spec)
@@ -2732,8 +2736,11 @@
 				       ($src `(,name (,lambda. ,formals
 							       ,@body)
 						     . ,src) (caar exprs)))
-				      ((var init)
-				       ($src `(,var ,init . ,src)
+				      ((var . init)
+				       ($src `(,var ,(if (null? init)
+							 (undefined)
+							 (car init))
+						    . ,src)
 					     (caar exprs)))
 				      (- (syntax-error
 					  "malformed internal define"
@@ -3607,7 +3614,7 @@
 	    ((ADD)     (pass2/const-numop2 + args))
 	    ((SUB)     (pass2/const-numop2 - args))
 	    ((MUL)     (pass2/const-numop2 * args))
-	    ((DIV)     (pass2/const-numop2 / args (vm-r6rs-mode?)))
+	    ((DIV)     (pass2/const-numop2 / args #t))
 	    ((NEG)     (pass2/const-numop1 - args))
 	    ;; list and vector might be for new instance
 	    ;;((LIST)    (pass2/const-xargs list args))
@@ -3640,7 +3647,8 @@
 	(y ($const-value (cadr args))))
     (and (number? x) (number? y)
 	 (or (null? check-zero?)
-	     (not (zero? y)))
+	     (inexact? x)
+	     (not (and (exact? y) (zero? y))))
 	 ($const (proc x y)))))
 
 (define (pass2/const-vecref args)

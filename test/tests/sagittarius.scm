@@ -6,6 +6,7 @@
 	(rename (rnrs eval) (eval r6rs:eval))
 	(sagittarius)
 	(sagittarius vm)
+	(encoding decoder)
 	(srfi :1)
 	(srfi :64 testing))
 
@@ -533,5 +534,68 @@
 ;; issue 59
 (test-equal "inlined append" '(c d e) (let ((a '(a b c d e)))
 					(cond ((memq 'c a) => append))))
+
+;; issue 60
+;; For now we only throw &i/o-write
+;; The behaviour is taken from CLisp and SBCL (stack overflow detection)
+(test-error "deeply nested list stack overflow detection"
+	    i/o-error?
+	    (let loop ((cnt 0) (ls '()))
+	      (if (< cnt 1000000)
+		  (loop (+ cnt 1) (list ls))
+		  (string-length (call-with-string-output-port
+				  (lambda (p) (display ls p)))))))
+
+;; issue 63
+;; for keyword ignored it's library reference
+(library (issue-63 aux)
+    (export problem)
+    (import (rnrs))
+  (define (problem) #t))
+
+(library (issue-63)
+    (export problem)
+    (import (rnrs) (for (prefix (issue-63 aux) aux:) expand run))
+  (define (problem) (aux:problem)))
+(test-assert "issue 63" (r6rs:eval '(import (issue-63)) 
+				   (environment '(sagittarius))))
+
+;; issue 64
+(test-assert "issue 64" (let () (define inner) inner))
+
+;; issue 66
+;; the issue was only valid in R6RS mode
+#!r6rs
+(let ((env (environment '(rnrs))))
+  (test-assert "issue 66 (define)" 
+	       (r6rs:eval
+		'(let-syntax ((def (syntax-rules () ((_) (lambda () #t)))))
+		   (define prob (def))) env))
+  (test-assert "issue 66 (run)" (r6rs:eval '(prob) env)))
+#!compatible
+
+;; issue 67
+(let* ((in  (open-bytevector-input-port (string->utf8 "hello")))
+       (tp (transcoded-port in (make-transcoder (lookup-decoder "sjis")))))
+  (test-assert "custom codec(0)" (port-closed? in))
+  (test-equal "custom codec(1)" "hello" (get-string-all tp))
+  (test-assert "custom codec(2)" (port-closed? in)))
+
+(let ()
+  (define (error-codec)
+    (define (getc port mode check-bom? data)
+      (get-u8 port)
+      (error 'error-codec "always error"))
+    
+    (define (putc port c mode data)
+      (error 'error-codec "always error"))
+    (make-codec 'error-codec getc putc #f))
+  (test-assert 
+   "error closing"
+   (let* ((bin (open-bytevector-input-port #vu8(1 2 3 4)))
+	  (tin (transcoded-port bin (make-transcoder (error-codec)))))
+     (guard (e ((error? e) (port-closed? bin))
+	       (else #f))
+       (get-char tin)))))
 
 (test-end)

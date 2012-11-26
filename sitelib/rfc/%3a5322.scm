@@ -32,7 +32,7 @@
 ;; RFC5322 URI Generic Syntax
 ;; <http://www.ietf.org/rfc/rfc5322.txt>
 
-#< (sagittarius regex) >
+#!read-macro=sagittarius/regex
 (library (rfc :5322)
     (export &rfc5322-parse-error rfc5322-parse-error?
 	    rfc5322-read-headers
@@ -62,7 +62,7 @@
 	    (srfi :1 lists)
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
-	    (srfi :14 char-set)
+	    (srfi :14 char-sets)
 	    (srfi :19 time)
 	    (srfi :26 cut))
 

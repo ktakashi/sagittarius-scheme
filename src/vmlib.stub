@@ -291,9 +291,20 @@
 	    (result (Sg_MakeIdentifier (SG_SYMBOL r) '() (SG_LIBRARY lib))))
 	  (result r))))
 
+  ;; check all env frames are macro
+  (define-cfn check-env-frame (frames) ::int :static
+    (dolist (frame frames)
+      (unless (and (SG_PAIRP frame) (SG_MACROP (SG_CDR frame)))
+	(return TRUE)))
+    (return FALSE))
+
   (define-c-proc p1env-toplevel? (p1env) ::<boolean>
     (dolist (fp (SG_VECTOR_ELEMENT p1env 1))
-      (if (== (SG_CAR fp) (SG_MAKE_INT 0)) (return SG_FALSE)))
+      (let ((r6rs?::int (SG_VM_IS_SET_FLAG (Sg_VM) SG_R6RS_MODE)))
+	(when (and (== (SG_CAR fp) (SG_MAKE_INT 0))
+		   ;; this might cause some problem...
+		   (or (not r6rs?) (check-env-frame (SG_CDR fp))))
+	  (return SG_FALSE))))
     (result TRUE))
 
   ;; identifier is also syntax object, so it might contain some
