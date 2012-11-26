@@ -40,6 +40,9 @@
 #cmakedefine HAVE_GETTIMEOFDAY
 #cmakedefine HAVE_MMAP
 
+#cmakedefine HAVE_MUTEX_RECURSIVE
+#cmakedefine HAVE_MUTEX_RECURSIVE_NP
+
 #cmakedefine SHLIB_SO_SUFFIX "@SHLIB_SO_SUFFIX@"
 
 #cmakedefine SIZEOF_INT @SIZEOF_INT@

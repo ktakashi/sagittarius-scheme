@@ -5,6 +5,7 @@ INCLUDE(${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckFunctionExists.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckTypeSize.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckCSourceRuns.cmake)
+INCLUDE(${CMAKE_ROOT}/Modules/CheckCSourceCompiles.cmake)
 
 if (WATCOM)
   message(STATUS "*CAUTION* open watcom is experimental")
@@ -57,6 +58,16 @@ int main()
   return 0;
 }
 " HAVE_ALLOCA)
+ELSEIF (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
+  # FreeBSD has alloca in stdlib
+  CHECK_C_SOURCE_RUNS("
+#include <stdlib.h>
+int main()
+{
+  alloca(1);
+  return 0;
+}
+" HAVE_ALLOCA)
 ELSEIF (MSVC)
   CHECK_C_SOURCE_RUNS("
 #include <malloc.h>
@@ -66,6 +77,20 @@ int main()
   return 0;
 }
 " HAVE_ALLOCA)
+ENDIF()
+
+IF(NOT WIN32)
+  # _NP suffix problem
+  CHECK_C_SOURCE_COMPILES(
+"#include <pthread.h>
+int main() { return PTHREAD_MUTEX_RECURSIVE; }
+" HAVE_MUTEX_RECURSIVE)
+
+  CHECK_C_SOURCE_COMPILES(
+"#include <pthread.h>
+int main() { return PTHREAD_MUTEX_RECURSIVE_NP; }
+" HAVE_MUTEX_RECURSIVE_NP)
+
 ENDIF()
 
 #CHECK_FUNCTION_EXISTS(alloca HAVE_ALLOCA)
