@@ -885,7 +885,9 @@
 (define (make-variable-transformer proc)
   (make-macro 'variable-transformer
 	      (lambda (m expr p1env data)
-		(proc (wrap-syntax expr p1env)))
+		;; Issue 68. this must use current usage env not
+		;; macro env when this macro is created.
+		(proc (wrap-syntax expr (current-usage-env))))
 	      '()
-	      (current-usage-env)))
+	      (current-macro-env)))
 
