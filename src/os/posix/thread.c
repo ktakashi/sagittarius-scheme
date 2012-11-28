@@ -39,7 +39,7 @@
 #include <sagittarius/core.h>
 
 /* Thank you Debian, we need this stupid kludge */
-#ifndef PTHREAD_MUTEX_RECURSIVE
+#ifndef HAVE_MUTEX_RECURSIVE
 #define PTHREAD_MUTEX_RECURSIVE PTHREAD_MUTEX_RECURSIVE_NP
 #endif
 
