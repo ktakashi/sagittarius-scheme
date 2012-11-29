@@ -703,7 +703,7 @@
        (if (>= j len)
          (let ((id (reverse id-ls)) ...) (sk ... i))
          (let ((w (vector-ref v j)))
-           (match-one w p ((vector-ref v j) (vetor-set! v j))
+           (match-one w p ((vector-ref v j) (vector-set! v j))
                       (match-drop-ids (loop (+ j 1) (cons id id-ls) ...))
                       fk i)))))))
 
