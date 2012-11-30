@@ -598,4 +598,17 @@
 	       (else #f))
        (get-char tin)))))
 
+;; issue 68
+(let ()
+  (define-syntax foo
+    (lambda (x)
+      (syntax-case x ()
+	((_)
+	 (with-syntax ((set (let ((type #'bytevector-u8-set!))
+			      #`(#,type bv 0 1))))
+	   #'(let ((bv (make-bytevector 1)))
+	       set
+	       bv))))))
+  (test-equal "issue 68" #vu8(1) (foo)))
+
 (test-end)

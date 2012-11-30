@@ -385,4 +385,23 @@
     (result (Sg_VMCallPC p)))
 
   (define-c-proc %apply0 (p) Sg_Apply0)
+
+  (define-c-proc lookup-transformer-env (o::<identifier>)
+    (let* ((vm::SgVM* (Sg_VM))
+	   (r (Sg_Assq (SG_IDENTIFIER_NAME o) (-> vm transEnv))))
+      (if (SG_FALSEP r)
+	  (result r)
+	  (if (SG_EQ (SG_IDENTIFIER_LIBRARY o) (SG_CADR r))
+	      (result (SG_CDDR r))
+	      (result SG_FALSE)))))
+
+  (define-c-proc add-to-transformer-env! (o::<identifier> n)
+    (let ((vm::SgVM* (Sg_VM)))
+      (set! (-> vm transEnv) (Sg_Acons (SG_IDENTIFIER_NAME o)
+				       (Sg_Cons (SG_IDENTIFIER_LIBRARY o)
+						n)
+				       (-> vm transEnv)))
+      (result n)))
+
+  (define-c-proc current-transformer-env () (result (-> (Sg_VM) transEnv)))
 )

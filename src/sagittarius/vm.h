@@ -210,8 +210,9 @@ struct SgVMRec
   /* macro expansion */
   SgObject usageEnv;
   SgObject macroEnv;
-  /* to store macro expansion history alist */
   SgObject transEnv;
+  /* to store macro expansion history alist */
+  SgObject history;
   /* 
      load path
    */

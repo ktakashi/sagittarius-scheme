@@ -151,16 +151,16 @@
        (define mark (list 'literal))      
        (let ((ids (collect-unique-ids lst)))
 	 (let loop ((ids ids))
-	   (unless (null? ids)
-	     (and-let* ((o (memq (car ids) literals))
-			(id (car o))
-			(unrenamed (unwrap-syntax-with-reverse id))
-			(temp-id (make-identifier unrenamed '() library))
-			(id (copy-identifier temp-id mark)))
-	       ;; store unrenamed id to seen for check-pattern
-	       (hashtable-set! seen (car ids)id))
-	     (loop (cdr ids))))
-	 seen))
+	   (cond ((null? ids) seen)
+		 (else
+		  (and-let* ((o (memq (car ids) literals))
+			     (id (car o))
+			     (unrenamed (unwrap-syntax-with-reverse id))
+			     (temp-id (make-identifier unrenamed '() library))
+			     (id (copy-identifier temp-id mark)))
+		    ;; store unrenamed id to seen for check-pattern
+		    (hashtable-set! seen (car ids)id))
+		  (loop (cdr ids)))))))
 
     (or (and (list? lites) (for-all symbol? lites))
 	(syntax-violation 'syntax-case "invalid literals" expr lites))
@@ -599,14 +599,12 @@
     (let loop ((lst lst))
       (cond ((pair? lst)
              (or (null? (car lst)) (loop (car lst)) (loop (cdr lst))))
-            ((identifier? lst))
             ((vector? lst)
              (let loop2 ((i (- (vector-length lst) 1)))
                (and (>= i 0)
                     (or (loop (vector-ref lst i))
                         (loop2 (- i 1))))))
-            (else
-             (identifier? lst)))))
+            (else (identifier? lst)))))
 
   (define (wrap-id lst)
     (let loop ((lst lst))
@@ -728,46 +726,46 @@
 	  ;; these things are not defined yet.
 	  (memq name (library-defined lib))
 	  ;; local binded variables must not be renamed either.
-	  (and-let* ((var (p1env-lookup mac-env name LEXICAL))
+	  (and-let* ((var (p1env-lookup mac-env id LEXICAL))
 		     ;; do we need to check the library as well?
 		     )
 	    (not (identifier? var))))))
-	  
+  
+  ;; bit ugly solution to resolve different compile unit of (syntax)
   (define (rename-or-copy-id id current-mark)
-    (let ((t (if (no-rename-needed? id)
-		 id
-		 (make-identifier (reversible-gensym (id-name id))
-				  (id-envs id)
-				  (vector-ref use-env 0)))))
+    (let ((t (cond ((no-rename-needed? id) id)
+		   (else
+		    (make-identifier (reversible-gensym (id-name id))
+				     (id-envs id)
+				     (vector-ref use-env 0))))))
       (copy-identifier t current-mark)))
 
   ;; regenerate pattern variable
-  (define (rewrite-template t seen vars)
+  (define (rewrite-template t vars)
     (cond ((null? t) t)
 	  ((pair? t)
-	   (cons (rewrite-template (car t) seen vars)
-		 (rewrite-template (cdr t) seen vars)))
+	   (cons (rewrite-template (car t) vars)
+		 (rewrite-template (cdr t) vars)))
 	  ((vector? t)
-	   (list->vector (rewrite-template (vector->list t) seen vars)))
+	   (list->vector (rewrite-template (vector->list t) vars)))
 	  ;; could be a pattern variable, so keep it
 	  ((and (variable? t) (assq t vars)) => car)
 	  (else
 	   ;; rename template variable
 	   (or (and-let* (( (identifier? t) )
-			  (id (p1env-lookup use-env t 0))
+			  (id (lookup-lexical-name t use-env))
 			  ( (identifier? id) )
 			  ( (null? (id-envs id)) )
 			  )
-		 (cond ((hashtable-ref seen t #f))
+		 (cond ((lookup-transformer-env id))
 		       ;; mark as template variable so that pattern variable
 		       ;; lookup won't make misjudge.
 		       ;; note: id-envs returns (#t)
-		       (else (let ((new-id (rename-or-copy-id t current-mark)))
-			       (hashtable-set! seen t new-id)
-			       new-id))))
+		       (else 
+			(add-to-transformer-env!
+			 t (rename-or-copy-id t current-mark)))))
 	       t))))
-  (let* ((seen (make-eq-hashtable))
-	 (tmpl (rewrite-template in-form seen vars)))
+  (let ((tmpl (rewrite-template in-form vars)))
 
     (define (expand-var tmpl vars)
       (cond ((assq tmpl vars)

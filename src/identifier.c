@@ -39,6 +39,7 @@
 #include "sagittarius/writer.h"
 #include "sagittarius/port.h"
 #include "sagittarius/reader.h"
+#include "sagittarius/vm.h"
 
 static void id_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
@@ -54,7 +55,7 @@ static void id_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
     snprintf(buf, sizeof(buf), "(%p %p %p)", (id->parent), id, id->template_id);
     Sg_Putz(port, buf);
   }
-  Sg_Write(id->envs, port, SG_WRITE_SHARED);
+  /* Sg_Write(id->envs, port, SG_WRITE_SHARED); */
 #endif
   Sg_Putc(port, '>');
 }

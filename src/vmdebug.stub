@@ -32,11 +32,11 @@
 
   ;; expansion-history is only debug purpose
   (define-c-proc lookup-expansion-history (o)
-    (result (Sg_Assq o (-> (Sg_VM) transEnv))))
+    (result (Sg_Assq o (-> (Sg_VM) history))))
 
   (define-c-proc save-expansion-history! (n o)
     (let ((vm::SgVM* (Sg_VM)))
-      (set! (-> vm transEnv) (Sg_Acons n o (-> vm transEnv))))
+      (set! (-> vm history) (Sg_Acons n o (-> vm history))))
     (result n))
   
 )

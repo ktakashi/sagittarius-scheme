@@ -212,7 +212,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   /* macro env */
   v->usageEnv = proto ? proto->usageEnv : SG_FALSE;
   v->macroEnv = proto ? proto->macroEnv : SG_FALSE;
-  v->transEnv = SG_NIL;
+  v->transEnv = v->history = SG_NIL;
 
   /* thread, mutex, etc */
   SG_INTERNAL_THREAD_INIT(&v->thread);
@@ -591,9 +591,9 @@ SgObject Sg_Compile(SgObject o, SgObject e)
     compiler = SG_GLOC_GET(g);
     Sg_UnlockMutex(&global_lock);
   }
-  Sg_VM()->transEnv = SG_NIL;
+  Sg_VM()->history = Sg_VM()->transEnv = SG_NIL;
   r = Sg_Apply2(compiler, o, e);
-  Sg_VM()->transEnv = SG_NIL;
+  Sg_VM()->history = Sg_VM()->transEnv = SG_NIL;
   return r;
 }
 

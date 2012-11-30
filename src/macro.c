@@ -182,6 +182,7 @@ static SgObject macro_tranform(SgObject *args, int argc, void *data_)
 
   vm->usageEnv = p1env;
   vm->macroEnv = mac_env;
+  vm->transEnv = SG_NIL;
   if (SG_MACROP(data)) {
     /* variable transformer */
     result = Sg_Apply4(SG_MACRO(data)->transformer,
