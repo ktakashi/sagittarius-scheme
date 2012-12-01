@@ -53,13 +53,12 @@ static void syntax_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SyntaxClass, syntax_print);
 
-SgObject Sg_MakeSyntax(SgSymbol *name, SgObject proc, int userDefined)
+SgObject Sg_MakeSyntax(SgSymbol *name, SgObject proc)
 {
   SgSyntax *z = SG_NEW(SgSyntax);
   SG_SET_CLASS(z, SG_CLASS_SYNTAX);
   z->name = name;
   z->proc = proc;
-  z->userDefined = userDefined;
   return SG_OBJ(z);
 }
 

@@ -690,8 +690,7 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
     */
     write_string_cache(out, SG_SYMBOL(SG_IDENTIFIER(o)->name)->name,
 		       IDENTIFIER_TAG);
-    write_object_cache(out, SG_LIBRARY(SG_IDENTIFIER_LIBRARY(o))->name,
-		       cbs, ctx);
+    write_object_cache(out, SG_IDENTIFIER_LIBRARY(o), cbs, ctx);
     write_object_cache(out, SG_IDENTIFIER_ENVS(o), cbs, ctx);
   } else if (SG_CLOSUREP(o)) {
     /* we can't cache closure with free variables */

@@ -47,7 +47,11 @@ static void id_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   Sg_Putuz(port, UC("#<identifier "));
   Sg_Write(id->name, port, ctx->mode);
   Sg_Putc(port, '#');
-  Sg_Write(id->library->name, port, 0);
+  if (SG_LIBRARYP(id->library)) {
+    Sg_Write(id->library->name, port, 0);
+  } else {
+    Sg_Write(SG_INTERN(":toplevel"), port, 0);
+  }
 #if 0
   if (SG_WRITE_MODE(ctx) == SG_WRITE_WRITE ||
       SG_WRITE_MODE(ctx) == SG_WRITE_SHARED) {

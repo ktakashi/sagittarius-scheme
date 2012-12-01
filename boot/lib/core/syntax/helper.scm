@@ -64,7 +64,6 @@
     (let loop ((lst p) (n 0))
       (if (pair? lst) (loop (cdr lst) (+ n 1)) n)))
 
-
   (define-struct <sid>
     (make-sid name expression depth control)
     sid?

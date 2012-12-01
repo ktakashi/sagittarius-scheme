@@ -815,6 +815,7 @@ SgGloc* Sg_FindBinding(SgObject library, SgObject name, SgObject callback)
   SgObject ret;
   ASSERT(SG_SYMBOLP(name));
   if (SG_LIBRARYP(library)) lib = SG_LIBRARY(library);
+  else if (SG_FALSEP(library)) lib = Sg_VMCurrentLibrary();
   else lib = Sg_FindLibrary(library, FALSE);
   if (SG_FALSEP(lib)) return callback;
 

@@ -31,9 +31,9 @@
       (result (Sg_MakeStringC (-> info name)))))
 
   ;; identifier
-  (define-c-proc make-identifier (name::<symbol> envs maybe-library) ::<top>
+  (define-c-proc make-identifier (name::<symbol> envs maybe-library)
     ;; well, not so good actually
-    (unless (SG_LIBRARYP maybe-library)
+    (unless (or (SG_FALSEP maybe-library) (SG_LIBRARYP maybe-library))
       (set! maybe-library (Sg_FindLibrary maybe-library FALSE)))
     (result (Sg_MakeIdentifier name envs maybe-library)))
 
@@ -62,30 +62,26 @@
     (result FALSE))
 
   ;; syntax
-  (define-c-proc make-syntax (name::<symbol> proc :optional (userDefined::<boolean> FALSE))
-    (result (Sg_MakeSyntax name proc userDefined)))
+  (define-c-proc make-syntax (name::<symbol> proc) Sg_MakeSyntax)
 
-  (define-c-proc syntax-name (arg0::<syntax>) ::<top>
-    (result (SG_SYNTAX_NAME arg0)))
+  (define-c-proc syntax-name (arg0::<syntax>) SG_SYNTAX_NAME)
 
-  (define-c-proc syntax-proc (arg0::<syntax>) ::<top>
-    (result (SG_SYNTAX_PROC arg0)))
+  (define-c-proc syntax-proc (arg0::<syntax>) SG_SYNTAX_PROC)
 
-  (define-c-proc syntax? (arg0) ::<boolean>
-    (result (SG_SYNTAXP arg0)))
+  (define-c-proc syntax? (arg0) ::<boolean> SG_SYNTAXP)
 
   (define-c-proc call-syntax-handler (s::<syntax> expr p1env) ::<top>
     (result (Sg_VMApply2 (SG_SYNTAX_PROC s) expr p1env)))
 
   ;; macro
-  (define-c-proc macro? (obj) ::<boolean>
-    (result (SG_MACROP obj)))
+  (define-c-proc macro? (obj) ::<boolean> SG_MACROP)
 
-  (define-c-proc make-macro (name transformer data p1env :optional (maybe_library #f))
-    (result (Sg_MakeMacro name transformer data p1env maybe_library)))
+  (define-c-proc make-macro 
+    (name transformer data p1env :optional (maybe_library #f))
+    Sg_MakeMacro)
 
   (define-c-proc make-macro-transformer (name proc p1env library)
-    (result (Sg_MakeMacroTransformer name proc p1env library)))
+    Sg_MakeMacroTransformer)
 
   (define-c-proc call-macro-expander (macro::<macro> expr p1env)
     (result (Sg_VMApply4 (-> macro transformer)
@@ -119,7 +115,11 @@
 		(Sg_Cons (Sg_Append2X exports (SG_CAR arg1))
 			 (Sg_Append2X renames (SG_CDR arg1)))))))
 
-  (define-c-proc library-defined (lib::<library>) SG_LIBRARY_DEFINEED)
+  (define-c-proc library-defined (lib) 
+    (cond ((SG_LIBRARYP lib) (result (SG_LIBRARY_DEFINEED lib)))
+	  ((SG_FALSEP lib) (result SG_NIL))
+	  (else (wrong-type-of-argument-violation 'library-defined 
+						  "library or #f" lib))))
 
   (define-c-proc library-defined-add! (lib::<library> v) ::<void>
     (unless (or (SG_SYMBOLP v) (SG_IDENTIFIERP v))
@@ -176,6 +176,12 @@
 
   (define-c-proc gloc-name (g::<gloc>) ::<top>
     (result (-> g name)))
+
+  ;; closure
+  (define-c-proc make-toplevel-closure (cb::<code-builder>)
+    ;; topleve closure should not have any free variables
+    (result (Sg_MakeClosure cb NULL)))
+
 
   ;; code-builder
   (define-c-proc make-code-builder () ::<top>

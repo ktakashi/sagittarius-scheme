@@ -117,9 +117,7 @@
 	    (if (null? envs)
 		'()
 		(get-binding-frame name envs))
-	    (if (library? library)
-		library
-		(vm-current-library))
+	    (find-library library #f)		
 	    ;; for bound-id->symbol
 	    (gensym)
 	    #f
@@ -250,11 +248,13 @@
   (hashtable-set! #;(vm-libraries) *libraries* (library-name lib) lib))
 ;; TODO version number...
 (define (find-library name create?)
-  (let ((l (hashtable-ref #;(vm-libraries) *libraries* name #f)))
-    (or l
-	(if create?
-	    (make-library name)
-	    l))))
+  (if (library? name)
+      name
+      (let ((l (hashtable-ref #;(vm-libraries) *libraries* name #f)))
+	(or l
+	    (if create?
+		(make-library name)
+		l)))))
 
 (define (%insert-binding library name value)
   (define (add-export lib name)
@@ -267,6 +267,8 @@
 	((hashtable-ref #;(vm-libraries) *libraries* library #f) ;; maybe just a name?
 	 => (lambda (v)
 	      (hashtable-set! (library-table v) name value)))
+	((not library)
+	 (%insert-binding (vm-current-library) name value))
 	(else
 	 (let ((lib (make-library library)))
 	   (hashtable-set! (library-table lib) name value)))))
@@ -287,6 +289,8 @@
 		    (cond ((assq name *toplevel-variable*)
 			   => cdr)
 			  (else callback))))))
+	((not lib) 
+	 (find-binding (vm-current-library) name callback))
 	(else callback)))
 
 ;(define *compiler-library* '(sagittarius compiler))
@@ -540,10 +544,7 @@
 (define (macro? m)
   (and (vector? m) (eq? (vector-ref m 0) 'type:macro)))
 (define (call-macro-expander macro expr p1env)
-  (set! *expand-phase* (+ *expand-phase* 1))
-  (let ((r ((macro-transformer macro) macro expr p1env (macro-data macro))))
-    (set! *expand-phase* (- *expand-phase* 1))
-    r))
+  ((macro-transformer macro) macro expr p1env (macro-data macro)))
 (define (unbound) (if #f #f))
 
 (define (make-toplevel-closure cb)
@@ -1026,7 +1027,6 @@
 	      (if (code-builder? (vector-ref code i))
 		  (rec (vector-ref code i)))
 	      (loop (+ i 1)))))))
-
   (unless (= last NOP)
     (cb-emit0! cb last))
   (cb-flush cb)
