@@ -197,28 +197,30 @@
 ;; pass 0 
 ;; the implementation is kind of ugly, we need to handle
 ;; quasiquote here otherwise the expansion will be wrong
-(define (pass0 form env) 
-  (define (rewrite form seen in-quasi?)
-    (cond ((pair? form)
-	   (cond ((and (not in-quasi?) (constant-literal? form)) form)
-		 (else
+(define (pass0 form env)
+  (define (rewrite form env)
+    (define seen (make-eq-hashtable))
+    (let loop ((form form) (in-quasi? #f))
+      (cond ((pair? form)
+	     (if (and (not in-quasi?) (constant-literal? form))
+		  form
 		  (let ((in-quasi? (or in-quasi? (eq? (car form) 'quasiquote))))
-		    ($src (cons (rewrite (car form) seen in-quasi?)
-				(rewrite (cdr form) seen in-quasi?))
-			  form)))))
-	  ;; for scheme vm
-	  ((identifier? form) form)
-	  ((vector? form)
-	   (if (and (not in-quasi?) (constant-literal? form))
-	       form
-	       (list->vector (rewrite (vector->list form) seen in-quasi?))))
-	  ((hashtable-ref seen form #f))
-	  ((symbol? form)
-	   (let ((id (make-identifier form '() #f)))
-	     (hashtable-set! seen form id)
-	     id))
-	  (else form)))
-  (rewrite form (make-eq-hashtable) #f))
+		    ($src (cons (loop (car form) in-quasi?)
+				(loop (cdr form) in-quasi?))
+			  form))))
+	    ;; for scheme vm
+	    ((identifier? form) form)
+	    ((vector? form)
+	     (if (and (not in-quasi?) (constant-literal? form))
+		 form
+		 (list->vector (rewrite (vector->list form) in-quasi?))))
+	    ((hashtable-ref seen form #f))
+	    ((symbol? form)
+	     (let ((id (make-identifier form '() #f)))
+	       (hashtable-set! seen form id)
+	       id))
+	    (else form))))
+  (rewrite form env))
 
 ;;;;
 ;; pass1: translation stage.
@@ -1288,8 +1290,7 @@
 			     x (p1env-add-name p1env (variable-name n))))
 			  name trans-spec))
 	    ;; macro must be lexical. see pass1
-	    (newenv (p1env-extend p1env 
-				  ($map-cons-dup name trans) LEXICAL)))
+	    (newenv (p1env-extend p1env ($map-cons-dup name trans) LEXICAL)))
        (if (vm-r6rs-mode?)
 	   ($seq (imap (lambda (e) (pass1 e newenv)) body))
 	   (pass1/body body newenv))))
@@ -1307,8 +1308,7 @@
 			     (variable-name n)
 			     x (p1env-add-name newenv (variable-name n))))
 			  name trans-spec)))
-       (ifor-each2 set-cdr!
-		   (cdar (p1env-frames newenv)) (append trans trans))
+       (ifor-each2 set-cdr! (cdar (p1env-frames newenv)) (append trans trans))
        (if (vm-r6rs-mode?)
 	   ($seq (imap (lambda (e) (pass1 e newenv)) body))
 	   (pass1/body body newenv))))

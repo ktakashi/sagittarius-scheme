@@ -142,10 +142,68 @@
 (define (compile-syntax-case exp-name expr literals clauses library env mac-env)
   ;; literal must be unwrapped, otherwise it will be too unique
   (let ((lites (unwrap-syntax-with-reverse literals)))
+    (define (rewrite expr patvars all?)
+      (define seen (make-eq-hashtable))
+      (define (seen-or-gen id env)
+	(cond ((hashtable-ref seen id #f))
+	      (else
+	       (let ((new-id (make-identifier (id-name id)
+					      env
+					      (vector-ref mac-env 0))))
+		 (hashtable-set! seen id new-id)
+		 new-id))))
+      (let loop ((expr expr))
+	(cond ((pair? expr)
+	       (let ((a (loop (car expr)))
+		     (d (loop (cdr expr))))
+		 (if (and (eq? a (car expr)) (eq? d (cdr expr)))
+		     expr
+		     (cons a d))))
+	      ((vector? expr)
+	       (list->vector (loop (vector->list expr))))
+	      ((assq expr patvars) => cdr)
+	      ;; handle local variables
+	      ((and-let* (( (variable? expr) )
+			  (env (p1env-lookup-frame mac-env expr LEXICAL))
+			  ( (not (null? env)) ))
+		 env) => (lambda (env) (seen-or-gen expr env)))
+	      ;; local check pattern variable as well
+	      ((and (identifier? expr) all?
+		    (not (number? (p1env-lookup mac-env expr PATTERN))))
+	       (seen-or-gen expr (vector-ref mac-env 1)))
+	      (else expr))))
+    #;(define (rewrite expr patvars all?)
+      (define seen (make-eq-hashtable))
+      (let loop ((expr expr))
+	(cond ((pair? expr)
+	       (let ((a (loop (car expr)))
+		     (d (loop (cdr expr))))
+		 (if (and (eq? a (car expr)) (eq? d (cdr expr)))
+		     expr
+		     (cons a d))))
+	      ((vector? expr)
+	       (list->vector (loop (vector->list expr))))
+	      ((assq expr patvars) => cdr)
+	      ((and (identifier? expr) all?
+		    (identifier? (p1env-lookup mac-env expr LEXICAL))
+		    (not (number? (p1env-lookup mac-env expr PATTERN))))
+	       (cond ((hashtable-ref seen expr #f))
+		     (else
+		      (let ((id (make-identifier (id-name expr) '() 
+						 (vector-ref mac-env 0))))
+			(hashtable-set! seen expr id)
+			id))))
+	      (else expr))))
     (define (parse-pattern pattern)
+      (define (gen-patvar p)
+	(cons (car p)
+	      (make-identifier (identifier->symbol (car p)) '()
+			       (vector-ref mac-env 0))))
       (check-pattern pattern lites)
-      (values pattern 
-	      (extend-env (collect-vars-ranks pattern lites 0 '()) env)))
+      (let* ((ranks (collect-vars-ranks pattern lites 0 '()))
+	     (pvars (map gen-patvar ranks)))
+	(values (rewrite pattern pvars #t) 
+		(extend-env (rewrite ranks pvars #t) env) pvars)))
 
     (or (and (list? lites) (for-all symbol? lites))
 	(syntax-violation 'syntax-case "invalid literals" expr lites))
@@ -178,20 +236,22 @@
 	    lites
 	    (p1env-lookup mac-env .vars LEXICAL)
 	    (map (lambda (clause)
-		   (let ((seen (make-eq-hashtable)))
-		     (smatch clause
-		       ((p expr)
-			(receive (pattern env) (parse-pattern p)
-			  (cons `(,.list (,syntax-quote. ,pattern)
-					 #f
-					 (lambda (,.vars) ,expr))
-				env)))
-		       ((p fender expr)
-			(receive (pattern env) (parse-pattern p)
-			  (cons `(,.list (,syntax-quote. ,pattern)
-					 (lambda (,.vars) ,fender)
-					 (lambda (,.vars) ,expr))
-				env))))))
+		   (smatch clause
+		     ((p expr)
+		      (receive (pattern env patvars) (parse-pattern p)
+			(cons `(,.list (,syntax-quote. ,pattern)
+				       #f
+				       (lambda (,.vars)
+					 ,(rewrite expr patvars #t)))
+			      env)))
+		     ((p fender expr)
+		      (receive (pattern env patvars) (parse-pattern p)
+			(cons `(,.list (,syntax-quote. ,pattern)
+				       (lambda (,.vars)
+					 ,(rewrite fender patvars #t))
+				       (lambda (,.vars)
+					 ,(rewrite expr patvars #t)))
+			      env)))))
 		 clauses))))
 
 (cond-expand
@@ -324,8 +384,7 @@
 	 (bind-pattern form pat literals '())))
   (define (rewrite expr lites)     
     (let loop ((expr expr))
-      (cond ((null? expr) expr)
-	    ((pair? expr) (cons (loop (car expr)) (loop (cdr expr))))
+      (cond ((pair? expr) (cons (loop (car expr)) (loop (cdr expr))))
 	    ((vector? expr) (list->vector (loop (vector->list expr))))
 	    ((and-let* (( (variable? expr) )
 			(v (unwrap-syntax-with-reverse expr)))
@@ -333,9 +392,7 @@
 	    (else expr))))
   ;; we need to local variable unique so that it won't be global.
   (let* ((lites (unwrap-syntax-with-reverse (collect-unique-ids expr)))
-	 (form (wrap-syntax (rewrite expr 
-				      (lset-intersection eq? lites literals))
-			    (current-usage-env) (make-eq-hashtable) #t)))
+	 (form (rewrite expr (lset-intersection eq? lites literals))))
     (let loop ((lst lst))
       (if (null? lst)
 	  (syntax-violation (and (pair? form) (car form)) "invalid syntax"
@@ -841,7 +898,7 @@
   (or (list? obj)
       (assertion-violation 'generate-temporaries
                            (format "expected list, but got ~s" obj)))
-  (map (lambda (n) (wrap-syntax (gensym) (current-usage-env))) obj))
+  (map (lambda (n) (make-identifier (gensym) '() (vm-current-library))) obj))
 
 (define (make-variable-transformer proc)
   (make-macro 'variable-transformer
