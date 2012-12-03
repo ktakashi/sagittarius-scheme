@@ -19,7 +19,6 @@
 	    (core base)
 	    (core errors)
 	    (core syntax-case)
-	    ;;(core syntax-rules)
 	    (sagittarius))
 
   (define-syntax unsyntax

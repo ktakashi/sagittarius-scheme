@@ -147,21 +147,6 @@
       (values pattern 
 	      (extend-env (collect-vars-ranks pattern lites 0 '()) env)))
 
-     (define (literal-seen lst seen)
-       (define mark (list 'literal))      
-       (let ((ids (collect-unique-ids lst)))
-	 (let loop ((ids ids))
-	   (cond ((null? ids) seen)
-		 (else
-		  (and-let* ((o (memq (car ids) literals))
-			     (id (car o))
-			     (unrenamed (unwrap-syntax-with-reverse id))
-			     (temp-id (make-identifier unrenamed '() library))
-			     (id (copy-identifier temp-id mark)))
-		    ;; store unrenamed id to seen for check-pattern
-		    (hashtable-set! seen (car ids)id))
-		  (loop (cdr ids)))))))
-
     (or (and (list? lites) (for-all symbol? lites))
 	(syntax-violation 'syntax-case "invalid literals" expr lites))
     (or (unique-id-list? lites)
@@ -174,21 +159,20 @@
     ;; literal must be binded
     ;; FIXME this is a really ugly kludge 
     (let loop ((lites lites))
-       (unless (null? lites)
-	 (let ((lite (car lites)))
-	   (or (find-binding library lite #f)
-	       (%insert-binding 
-		library lite
-		(make-macro-transformer
-		 lite
-		 (lambda ()
-		   (lambda arg
-		     (syntax-error "misplaced syntactic keyword" arg)))
-		 ;; FIXME 
-		 ;; p1env is just dummy and we can't use mac-env for this.
-		 (vector library '() #f #f)
-		 library))))
-	 (loop (cdr lites))))
+      (unless (null? lites)
+	(let ((lite (car lites)))
+	  (or (find-binding library lite #f)
+	      (memq lite (library-defined library))
+	      (%insert-binding 
+	       library lite
+	       (make-macro-transformer
+		lite
+		(lambda ()
+		  (lambda arg
+		    (syntax-error "misplaced syntactic keyword" arg)))
+		mac-env
+		library))))
+	(loop (cdr lites))))
     
     (values .match-syntax-case
 	    lites
@@ -197,26 +181,16 @@
 		   (let ((seen (make-eq-hashtable)))
 		     (smatch clause
 		       ((p expr)
-			;; we want pattern variables unique, so wrap it
-			;; use syntax-quote so that wrapped syntax won't loose
-			;; the syntax information.
-			(receive (pattern env)
-			    (parse-pattern (wrap-syntax p mac-env
-							(literal-seen p seen)))
+			(receive (pattern env) (parse-pattern p)
 			  (cons `(,.list (,syntax-quote. ,pattern)
 					 #f
-					 (lambda (,.vars)
-					   ,(wrap-syntax expr mac-env seen)))
+					 (lambda (,.vars) ,expr))
 				env)))
 		       ((p fender expr)
-			(receive (pattern env)
-			    (parse-pattern (wrap-syntax p mac-env
-							(literal-seen p seen)))
+			(receive (pattern env) (parse-pattern p)
 			  (cons `(,.list (,syntax-quote. ,pattern)
-					 (lambda (,.vars)
-					   ,(wrap-syntax fender mac-env seen))
-					 (lambda (,.vars)
-					   ,(wrap-syntax expr mac-env seen)))
+					 (lambda (,.vars) ,fender)
+					 (lambda (,.vars) ,expr))
 				env))))))
 		 clauses))))
 
@@ -510,21 +484,7 @@
       (vector-set! env 3 #f)
       (if (variable? template)
 	  (let ((lex-id (lookup-lexical-name tmpl mac-env)))
-	    (if (eq? template lex-id)
-		(if (null? ranks)
-		    `(,.expand-syntax ,patvar
-				      (,syntax-quote. ,template)
-				      ()
-				      (,syntax-quote. ,template)
-				      ()
-				      (,syntax-quote. ,env))
-		    `(,.expand-syntax ,patvar
-				      (,syntax-quote. ,template)
-				      (,syntax-quote. ,(list (cons template 0)))
-				      (,syntax-quote. ,template)
-				      ()
-				      (,syntax-quote. ,env)))
-		(if (null? ranks)
+	    (if (null? ranks)
 		    `(,.expand-syntax ,patvar
 				      (,syntax-quote. ,template)
 				      ()
@@ -536,7 +496,7 @@
 				      (,syntax-quote. ,(list (cons template 0)))
 				      (,syntax-quote. ,lex-id)
 				      ()
-				      (,syntax-quote. ,env)))))
+				      (,syntax-quote. ,env))))
 	  (let ((lex-check-list 
 		 (filter values
 			 (map (lambda (id)
@@ -734,6 +694,9 @@
   ;; bit ugly solution to resolve different compile unit of (syntax)
   (define (rename-or-copy-id id current-mark)
     (let ((t (cond ((no-rename-needed? id) id)
+		   ((and (toplevel-id? id)
+			 (find-binding (vector-ref mac-env 0) (id-name id) #f))
+		    (make-identifier (id-name id) '() (vector-ref mac-env 0)))
 		   (else
 		    (make-identifier (reversible-gensym (id-name id))
 				     (id-envs id)

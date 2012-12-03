@@ -36,6 +36,10 @@
 	     (if (er-bind-id? expr env)
 		 expr
 		 (id-name expr)))
+	    ;; for scheme vm
+	    ((identifier? expr) expr)
+	    ((vector? expr)
+	     (list->vector (strip-toplevel-id (vector->list expr) env)))
 	    (else expr)))
     (let* ((dict (make-eq-hashtable))
 	   (use-env (current-usage-env))

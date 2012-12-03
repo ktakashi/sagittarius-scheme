@@ -462,7 +462,9 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
       cbs = write_cache_pass1(SG_CLOSURE(obj)->code, cbs, NULL, ctx);
     } else if (SG_IDENTIFIERP(obj)) {
       cbs = write_cache_scan(SG_IDENTIFIER_ENVS(obj), cbs, ctx);
-      cbs = write_cache_scan(SG_IDENTIFIER_LIBRARY(obj)->name, cbs, ctx);
+      cbs = write_cache_scan(SG_IDENTIFIER_LIBRARY(obj), cbs, ctx);
+    } else if (SG_LIBRARYP(obj)) {
+      cbs = write_cache_scan(SG_LIBRARY_NAME(obj), cbs, ctx);
     } else if (SG_MACROP(obj)) {
       /* local macro in transformersEnv */
       cbs = write_cache_scan(SG_MACRO(obj)->name, cbs, ctx);

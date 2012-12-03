@@ -206,6 +206,12 @@
 		    ($src (cons (rewrite (car form) seen in-quasi?)
 				(rewrite (cdr form) seen in-quasi?))
 			  form)))))
+	  ;; for scheme vm
+	  ((identifier? form) form)
+	  ((vector? form)
+	   (if (and (not in-quasi?) (constant-literal? form))
+	       form
+	       (list->vector (rewrite (vector->list form) seen in-quasi?))))
 	  ((hashtable-ref seen form #f))
 	  ((symbol? form)
 	   (let ((id (make-identifier form '() #f)))

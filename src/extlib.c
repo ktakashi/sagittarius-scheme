@@ -16,9 +16,9 @@
 typedef unsigned long ulong;
 
 static struct sg__rcRec {
-  SgObject d1636[234];
+  SgObject d1682[234];
 } sg__rc = {
-  {  /* SgObject d1636 */
+  {  /* SgObject d1682 */
     SG_UNBOUND,
     SG_UNBOUND,
     SG_UNBOUND,
@@ -298,7 +298,7 @@ static SgObject extlib_id_name(SgObject *SG_FP, int SG_ARGC, void *data_)
   id_scm = SG_ARGREF(0);
   if (!SG_IDENTIFIERP(id_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[1], SG_MAKE_STRING("identifier"), id_scm, SG_NIL);
+       sg__rc.d1682[1], SG_MAKE_STRING("identifier"), id_scm, SG_NIL);
   id = SG_IDENTIFIER(id_scm);
   {
 {
@@ -327,7 +327,7 @@ SgObject SG_RESULT = (SgObject)NULL;
 #line 38 "./extlib.stub"
 if ((!((SG_SYMBOLP(id))||(
 SG_IDENTIFIERP(id))))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[3],SG_MAKE_STRING("symbol or identifier"),id,SG_NIL);}}}
+{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[3],SG_MAKE_STRING("symbol or identifier"),id,SG_NIL);}}}
 
 #line 43 "./extlib.stub"
 if (SG_SYMBOLP(id)){
@@ -378,7 +378,7 @@ static SgObject extlib_toplevel_idP(SgObject *SG_FP, int SG_ARGC, void *data_)
   id_scm = SG_ARGREF(0);
   if (!SG_IDENTIFIERP(id_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[5], SG_MAKE_STRING("identifier"), id_scm, SG_NIL);
+       sg__rc.d1682[5], SG_MAKE_STRING("identifier"), id_scm, SG_NIL);
   id = SG_IDENTIFIER(id_scm);
   {
 {
@@ -472,7 +472,7 @@ SgObject SG_RESULT = (SgObject)NULL;
 
 #line 66 "./extlib.stub"
 if (Sg_ConstantLiteralP(lis)){{
-{Sg_AssertionViolation(sg__rc.d1636[10],SG_MAKE_STRING("attempt to modify constant literal"),lis);}}}
+{Sg_AssertionViolation(sg__rc.d1682[10],SG_MAKE_STRING("attempt to modify constant literal"),lis);}}}
 
 #line 70 "./extlib.stub"
 SG_RESULT=(Sg_ReverseX(lis));
@@ -537,7 +537,7 @@ h=(SG_CAR(cp));} else {
 SG_SET_CDR(t,SG_CAR(cp));}
 break;}}
 if ((SG_NULLP(h))&&(Sg_ConstantLiteralP(SG_CAR(cp)))){{
-{Sg_AssertionViolation(sg__rc.d1636[13],SG_MAKE_STRING("attempt to modify constant literal"),
+{Sg_AssertionViolation(sg__rc.d1682[13],SG_MAKE_STRING("attempt to modify constant literal"),
 #line 88 "./extlib.stub"
 SG_CAR(cp));}}}
 SG_APPEND(h,t,SG_CAR(cp));}
@@ -567,7 +567,7 @@ static SgObject extlib_vector_copy(SgObject *SG_FP, int SG_ARGC, void *data_)
   vec_scm = SG_ARGREF(0);
   if (!SG_VECTORP(vec_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[14], SG_MAKE_STRING("vector"), vec_scm, SG_NIL);
+       sg__rc.d1682[14], SG_MAKE_STRING("vector"), vec_scm, SG_NIL);
   vec = SG_VECTOR(vec_scm);
   if (SG_ARGC > 1+1) {
     start_scm = SG_ARGREF(1);
@@ -576,7 +576,7 @@ static SgObject extlib_vector_copy(SgObject *SG_FP, int SG_ARGC, void *data_)
   }
   if (!SG_INTP(start_scm) && !SG_INTP(start_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[14], SG_MAKE_STRING("fixnum"), start_scm, SG_NIL);
+       sg__rc.d1682[14], SG_MAKE_STRING("fixnum"), start_scm, SG_NIL);
   start = SG_INT_VALUE(start_scm);
   if (SG_ARGC > 2+1) {
     end_scm = SG_ARGREF(2);
@@ -585,7 +585,7 @@ static SgObject extlib_vector_copy(SgObject *SG_FP, int SG_ARGC, void *data_)
   }
   if (!SG_INTP(end_scm) && !SG_INTP(end_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[14], SG_MAKE_STRING("fixnum"), end_scm, SG_NIL);
+       sg__rc.d1682[14], SG_MAKE_STRING("fixnum"), end_scm, SG_NIL);
   end = SG_INT_VALUE(end_scm);
   if (SG_ARGC > 3+1) {
     fill_scm = SG_ARGREF(3);
@@ -616,7 +616,7 @@ static SgObject extlib_vector_concatenate(SgObject *SG_FP, int SG_ARGC, void *da
   vec_list_scm = SG_ARGREF(0);
   if (!SG_LISTP(vec_list_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[15], SG_MAKE_STRING("list"), vec_list_scm, SG_NIL);
+       sg__rc.d1682[15], SG_MAKE_STRING("list"), vec_list_scm, SG_NIL);
   vec_list = (vec_list_scm);
   {
 {
@@ -665,7 +665,7 @@ static SgObject extlib_vector_reverseX(SgObject *SG_FP, int SG_ARGC, void *data_
   vec_scm = SG_ARGREF(0);
   if (!SG_VECTORP(vec_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[17], SG_MAKE_STRING("vector"), vec_scm, SG_NIL);
+       sg__rc.d1682[17], SG_MAKE_STRING("vector"), vec_scm, SG_NIL);
   vec = SG_VECTOR(vec_scm);
   if (SG_ARGC > 1+1) {
     start_scm = SG_ARGREF(1);
@@ -674,7 +674,7 @@ static SgObject extlib_vector_reverseX(SgObject *SG_FP, int SG_ARGC, void *data_
   }
   if (!SG_INTP(start_scm) && !SG_INTP(start_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[17], SG_MAKE_STRING("fixnum"), start_scm, SG_NIL);
+       sg__rc.d1682[17], SG_MAKE_STRING("fixnum"), start_scm, SG_NIL);
   start = SG_INT_VALUE(start_scm);
   if (SG_ARGC > 2+1) {
     end_scm = SG_ARGREF(2);
@@ -683,7 +683,7 @@ static SgObject extlib_vector_reverseX(SgObject *SG_FP, int SG_ARGC, void *data_
   }
   if (!SG_INTP(end_scm) && !SG_INTP(end_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[17], SG_MAKE_STRING("fixnum"), end_scm, SG_NIL);
+       sg__rc.d1682[17], SG_MAKE_STRING("fixnum"), end_scm, SG_NIL);
   end = SG_INT_VALUE(end_scm);
   {
 {
@@ -691,7 +691,7 @@ SgObject SG_RESULT = (SgObject)NULL;
 
 #line 103 "./extlib.stub"
 if (Sg_ConstantLiteralP(vec)){{
-{Sg_AssertionViolation(sg__rc.d1636[18],SG_MAKE_STRING("attempt to modify constant literal"),vec);}}}
+{Sg_AssertionViolation(sg__rc.d1682[18],SG_MAKE_STRING("attempt to modify constant literal"),vec);}}}
 
 #line 106 "./extlib.stub"
 SG_RESULT=(Sg_VectorReverseX(vec,start,end));
@@ -718,7 +718,7 @@ static SgObject extlib_vector_reverse(SgObject *SG_FP, int SG_ARGC, void *data_)
   vec_scm = SG_ARGREF(0);
   if (!SG_VECTORP(vec_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[19], SG_MAKE_STRING("vector"), vec_scm, SG_NIL);
+       sg__rc.d1682[19], SG_MAKE_STRING("vector"), vec_scm, SG_NIL);
   vec = SG_VECTOR(vec_scm);
   if (SG_ARGC > 1+1) {
     start_scm = SG_ARGREF(1);
@@ -727,7 +727,7 @@ static SgObject extlib_vector_reverse(SgObject *SG_FP, int SG_ARGC, void *data_)
   }
   if (!SG_INTP(start_scm) && !SG_INTP(start_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[19], SG_MAKE_STRING("fixnum"), start_scm, SG_NIL);
+       sg__rc.d1682[19], SG_MAKE_STRING("fixnum"), start_scm, SG_NIL);
   start = SG_INT_VALUE(start_scm);
   if (SG_ARGC > 2+1) {
     end_scm = SG_ARGREF(2);
@@ -736,7 +736,7 @@ static SgObject extlib_vector_reverse(SgObject *SG_FP, int SG_ARGC, void *data_)
   }
   if (!SG_INTP(end_scm) && !SG_INTP(end_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[19], SG_MAKE_STRING("fixnum"), end_scm, SG_NIL);
+       sg__rc.d1682[19], SG_MAKE_STRING("fixnum"), end_scm, SG_NIL);
   end = SG_INT_VALUE(end_scm);
   {
 {
@@ -850,11 +850,11 @@ static SgObject extlib__2b_2e(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-SgObject cise__1639;
+SgObject cise__1685;
 #line 137 "./extlib.stub"
 {SgObject a=Sg_MakeFlonum(0.0);
-SG_FOR_EACH(cise__1639,rest) {{SgObject x=SG_CAR(cise__1639);
-if ((!(SG_NUMBERP(x)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[24],SG_MAKE_STRING("number"),x,SG_NIL);}}}
+SG_FOR_EACH(cise__1685,rest) {{SgObject x=SG_CAR(cise__1685);
+if ((!(SG_NUMBERP(x)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[24],SG_MAKE_STRING("number"),x,SG_NIL);}}}
 a=(Sg_Add(a,Sg_Inexact(x)));}}
 SG_RESULT=(a);}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
@@ -876,11 +876,11 @@ static SgObject extlib__2a_2e(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-SgObject cise__1640;
+SgObject cise__1686;
 #line 144 "./extlib.stub"
 {SgObject a=Sg_MakeFlonum(1.0);
-SG_FOR_EACH(cise__1640,rest) {{SgObject x=SG_CAR(cise__1640);
-if ((!(SG_NUMBERP(x)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[26],SG_MAKE_STRING("number"),x,SG_NIL);}}}
+SG_FOR_EACH(cise__1686,rest) {{SgObject x=SG_CAR(cise__1686);
+if ((!(SG_NUMBERP(x)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[26],SG_MAKE_STRING("number"),x,SG_NIL);}}}
 a=(Sg_Mul(a,Sg_Inexact(x)));}}
 SG_RESULT=(a);}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
@@ -902,20 +902,20 @@ static SgObject extlib___2e(SgObject *SG_FP, int SG_ARGC, void *data_)
   arg1_scm = SG_ARGREF(0);
   if (!SG_NUMBERP(arg1_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[27], SG_MAKE_STRING("number"), arg1_scm, SG_NIL);
+       sg__rc.d1682[27], SG_MAKE_STRING("number"), arg1_scm, SG_NIL);
   arg1 = (arg1_scm);
   rest_scm = SG_ARGREF(SG_ARGC-1);
   rest = (rest_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-SgObject cise__1641;
+SgObject cise__1687;
 #line 151 "./extlib.stub"
 if (SG_NULLP(rest)){
 SG_RESULT=(Sg_Negate(Sg_Inexact(arg1)));} else {
 {SgObject a=arg1;
-SG_FOR_EACH(cise__1641,rest) {{SgObject x=SG_CAR(cise__1641);
-if ((!(SG_NUMBERP(x)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[28],SG_MAKE_STRING("number"),x,SG_NIL);}}}
+SG_FOR_EACH(cise__1687,rest) {{SgObject x=SG_CAR(cise__1687);
+if ((!(SG_NUMBERP(x)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[28],SG_MAKE_STRING("number"),x,SG_NIL);}}}
 a=(Sg_Sub(a,Sg_Inexact(x)));}}
 SG_RESULT=(a);}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
@@ -937,20 +937,20 @@ static SgObject extlib__2f_2e(SgObject *SG_FP, int SG_ARGC, void *data_)
   arg1_scm = SG_ARGREF(0);
   if (!SG_NUMBERP(arg1_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[29], SG_MAKE_STRING("number"), arg1_scm, SG_NIL);
+       sg__rc.d1682[29], SG_MAKE_STRING("number"), arg1_scm, SG_NIL);
   arg1 = (arg1_scm);
   rest_scm = SG_ARGREF(SG_ARGC-1);
   rest = (rest_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-SgObject cise__1642;
+SgObject cise__1688;
 #line 160 "./extlib.stub"
 if (SG_NULLP(rest)){
 SG_RESULT=(Sg_Inverse(Sg_Inexact(arg1)));} else {
 {SgObject a=arg1;
-SG_FOR_EACH(cise__1642,rest) {{SgObject x=SG_CAR(cise__1642);
-if ((!(SG_NUMBERP(x)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[30],SG_MAKE_STRING("number"),x,SG_NIL);}}}
+SG_FOR_EACH(cise__1688,rest) {{SgObject x=SG_CAR(cise__1688);
+if ((!(SG_NUMBERP(x)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[30],SG_MAKE_STRING("number"),x,SG_NIL);}}}
 a=(Sg_Div(a,Sg_Inexact(x)));}}
 SG_RESULT=(a);}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
@@ -972,12 +972,12 @@ static SgObject extlib_mod_inverse(SgObject *SG_FP, int SG_ARGC, void *data_)
   x_scm = SG_ARGREF(0);
   if (!Sg_IntegerP(x_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[32], SG_MAKE_STRING("exact integer"), x_scm, SG_NIL);
+       sg__rc.d1682[32], SG_MAKE_STRING("exact integer"), x_scm, SG_NIL);
   x = (x_scm);
   y_scm = SG_ARGREF(1);
   if (!Sg_IntegerP(y_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[32], SG_MAKE_STRING("exact integer"), y_scm, SG_NIL);
+       sg__rc.d1682[32], SG_MAKE_STRING("exact integer"), y_scm, SG_NIL);
   y = (y_scm);
   {
 {
@@ -1004,17 +1004,17 @@ static SgObject extlib_mod_expt(SgObject *SG_FP, int SG_ARGC, void *data_)
   x_scm = SG_ARGREF(0);
   if (!Sg_IntegerP(x_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[33], SG_MAKE_STRING("exact integer"), x_scm, SG_NIL);
+       sg__rc.d1682[33], SG_MAKE_STRING("exact integer"), x_scm, SG_NIL);
   x = (x_scm);
   y_scm = SG_ARGREF(1);
   if (!Sg_IntegerP(y_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[33], SG_MAKE_STRING("exact integer"), y_scm, SG_NIL);
+       sg__rc.d1682[33], SG_MAKE_STRING("exact integer"), y_scm, SG_NIL);
   y = (y_scm);
   z_scm = SG_ARGREF(2);
   if (!Sg_IntegerP(z_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[33], SG_MAKE_STRING("exact integer"), z_scm, SG_NIL);
+       sg__rc.d1682[33], SG_MAKE_STRING("exact integer"), z_scm, SG_NIL);
   z = (z_scm);
   {
 {
@@ -1037,7 +1037,7 @@ static SgObject extlib_arity(SgObject *SG_FP, int SG_ARGC, void *data_)
   p_scm = SG_ARGREF(0);
   if (!SG_PROCEDUREP(p_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[34], SG_MAKE_STRING("procedure"), p_scm, SG_NIL);
+       sg__rc.d1682[34], SG_MAKE_STRING("procedure"), p_scm, SG_NIL);
   p = SG_PROCEDURE(p_scm);
   {
 {
@@ -1124,7 +1124,7 @@ static SgObject extlib_add_load_path(SgObject *SG_FP, int SG_ARGC, void *data_)
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[38], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[38], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 {
@@ -1149,7 +1149,7 @@ static SgObject extlib_load(SgObject *SG_FP, int SG_ARGC, void *data_)
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[39], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[39], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 {
@@ -1180,7 +1180,7 @@ static SgObject extlib_gensym(SgObject *SG_FP, int SG_ARGC, void *data_)
   }
   if (!SG_UNBOUNDP(prefix_scm) && !SG_STRINGP(prefix_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[40], SG_MAKE_STRING("string"), prefix_scm, SG_NIL);
+       sg__rc.d1682[40], SG_MAKE_STRING("string"), prefix_scm, SG_NIL);
   prefix = SG_STRING(prefix_scm);
   {
 {
@@ -1261,7 +1261,7 @@ static SgObject extlib_wrap_syntax(SgObject *SG_FP, int SG_ARGC, void *data_)
   p1env_scm = SG_ARGREF(1);
   if (!SG_VECTORP(p1env_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[43], SG_MAKE_STRING("vector"), p1env_scm, SG_NIL);
+       sg__rc.d1682[43], SG_MAKE_STRING("vector"), p1env_scm, SG_NIL);
   p1env = SG_VECTOR(p1env_scm);
   if (SG_ARGC > 2+1) {
     seen_scm = SG_ARGREF(2);
@@ -1270,7 +1270,7 @@ static SgObject extlib_wrap_syntax(SgObject *SG_FP, int SG_ARGC, void *data_)
   }
   if (!SG_UNBOUNDP(seen_scm) && !SG_HASHTABLE_P(seen_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[43], SG_MAKE_STRING("hashtable"), seen_scm, SG_NIL);
+       sg__rc.d1682[43], SG_MAKE_STRING("hashtable"), seen_scm, SG_NIL);
   seen = SG_HASHTABLE(seen_scm);
   if (SG_ARGC > 3+1) {
     partialP_scm = SG_ARGREF(3);
@@ -1279,7 +1279,7 @@ static SgObject extlib_wrap_syntax(SgObject *SG_FP, int SG_ARGC, void *data_)
   }
   if (!SG_FALSEP(partialP_scm) && !SG_BOOLP(partialP_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[43], SG_MAKE_STRING("boolean"), partialP_scm, SG_NIL);
+       sg__rc.d1682[43], SG_MAKE_STRING("boolean"), partialP_scm, SG_NIL);
   partialP = SG_BOOL_VALUE(partialP_scm);
   if (SG_ARGC > 4+1) {
     templ_scm = SG_ARGREF(4);
@@ -1288,7 +1288,7 @@ static SgObject extlib_wrap_syntax(SgObject *SG_FP, int SG_ARGC, void *data_)
   }
   if (!SG_UNBOUNDP(templ_scm) && !SG_IDENTIFIERP(templ_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[43], SG_MAKE_STRING("identifier"), templ_scm, SG_NIL);
+       sg__rc.d1682[43], SG_MAKE_STRING("identifier"), templ_scm, SG_NIL);
   templ = SG_IDENTIFIER(templ_scm);
   {
 {
@@ -1325,7 +1325,7 @@ static SgObject extlib_current_dynamic_environment(SgObject *SG_FP, int SG_ARGC,
   }
   if (!SG_UNBOUNDP(other_scm) && !SG_HASHTABLE_P(other_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[44], SG_MAKE_STRING("hashtable"), other_scm, SG_NIL);
+       sg__rc.d1682[44], SG_MAKE_STRING("hashtable"), other_scm, SG_NIL);
   other = SG_HASHTABLE(other_scm);
   {
 {
@@ -1354,7 +1354,7 @@ static SgObject extlib_add_dynamic_load_path(SgObject *SG_FP, int SG_ARGC, void 
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[45], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[45], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 {
@@ -1383,7 +1383,7 @@ static SgObject extlib_load_dynamic_library(SgObject *SG_FP, int SG_ARGC, void *
   name_scm = SG_ARGREF(0);
   if (!SG_STRINGP(name_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[46], SG_MAKE_STRING("string"), name_scm, SG_NIL);
+       sg__rc.d1682[46], SG_MAKE_STRING("string"), name_scm, SG_NIL);
   name = SG_STRING(name_scm);
   if (SG_ARGC > 1+1) {
     init_scm = SG_ARGREF(1);
@@ -1495,12 +1495,12 @@ static SgObject extlib_setter_SETTER(SgObject *SG_FP, int SG_ARGC, void *data_)
   proc_scm = SG_ARGREF(0);
   if (!SG_PROCEDUREP(proc_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[51], SG_MAKE_STRING("procedure"), proc_scm, SG_NIL);
+       sg__rc.d1682[51], SG_MAKE_STRING("procedure"), proc_scm, SG_NIL);
   proc = SG_PROCEDURE(proc_scm);
   setter_scm = SG_ARGREF(1);
   if (!SG_PROCEDUREP(setter_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[51], SG_MAKE_STRING("procedure"), setter_scm, SG_NIL);
+       sg__rc.d1682[51], SG_MAKE_STRING("procedure"), setter_scm, SG_NIL);
   setter = SG_PROCEDURE(setter_scm);
   {
 
@@ -1568,12 +1568,12 @@ static SgObject extlib_copy_file(SgObject *SG_FP, int SG_ARGC, void *data_)
   srd_scm = SG_ARGREF(0);
   if (!SG_STRINGP(srd_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[54], SG_MAKE_STRING("string"), srd_scm, SG_NIL);
+       sg__rc.d1682[54], SG_MAKE_STRING("string"), srd_scm, SG_NIL);
   srd = SG_STRING(srd_scm);
   dst_scm = SG_ARGREF(1);
   if (!SG_STRINGP(dst_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[54], SG_MAKE_STRING("string"), dst_scm, SG_NIL);
+       sg__rc.d1682[54], SG_MAKE_STRING("string"), dst_scm, SG_NIL);
   dst = SG_STRING(dst_scm);
   if (SG_ARGC > 2+1) {
     overwriteP_scm = SG_ARGREF(2);
@@ -1582,7 +1582,7 @@ static SgObject extlib_copy_file(SgObject *SG_FP, int SG_ARGC, void *data_)
   }
   if (!SG_FALSEP(overwriteP_scm) && !SG_BOOLP(overwriteP_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[54], SG_MAKE_STRING("boolean"), overwriteP_scm, SG_NIL);
+       sg__rc.d1682[54], SG_MAKE_STRING("boolean"), overwriteP_scm, SG_NIL);
   overwriteP = SG_BOOL_VALUE(overwriteP_scm);
   {
 {
@@ -1605,7 +1605,7 @@ static SgObject extlib_file_size_in_bytes(SgObject *SG_FP, int SG_ARGC, void *da
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[55], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[55], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 {
@@ -1614,7 +1614,7 @@ SgObject SG_RESULT = (SgObject)NULL;
 #line 253 "./extlib.stub"
 {SgObject size=Sg_FileSize(path);
 if (SG_UNDEFP(size)){
-Sg_AssertionViolation(sg__rc.d1636[56],
+Sg_AssertionViolation(sg__rc.d1682[56],
 Sg_GetLastErrorMessage(),path);}
 #line 258 "./extlib.stub"
 SG_RESULT=(size);}
@@ -1635,7 +1635,7 @@ static SgObject extlib_file_regularP(SgObject *SG_FP, int SG_ARGC, void *data_)
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[57], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[57], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 {
@@ -1660,7 +1660,7 @@ static SgObject extlib_file_directoryP(SgObject *SG_FP, int SG_ARGC, void *data_
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[58], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[58], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 {
@@ -1685,7 +1685,7 @@ static SgObject extlib_file_symbolic_linkP(SgObject *SG_FP, int SG_ARGC, void *d
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[59], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[59], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 {
@@ -1710,7 +1710,7 @@ static SgObject extlib_file_readableP(SgObject *SG_FP, int SG_ARGC, void *data_)
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[60], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[60], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 {
@@ -1735,7 +1735,7 @@ static SgObject extlib_file_writableP(SgObject *SG_FP, int SG_ARGC, void *data_)
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[61], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[61], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 {
@@ -1760,7 +1760,7 @@ static SgObject extlib_file_executableP(SgObject *SG_FP, int SG_ARGC, void *data
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[62], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[62], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 {
@@ -1785,7 +1785,7 @@ static SgObject extlib_file_stat_ctime(SgObject *SG_FP, int SG_ARGC, void *data_
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[63], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[63], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 {
@@ -1794,7 +1794,7 @@ SgObject SG_RESULT = (SgObject)NULL;
 #line 279 "./extlib.stub"
 {SgObject tm=Sg_FileChangeTime(path);
 if (SG_UNDEFP(tm)){
-Sg_AssertionViolation(sg__rc.d1636[64],
+Sg_AssertionViolation(sg__rc.d1682[64],
 Sg_GetLastErrorMessage(),path);}
 #line 284 "./extlib.stub"
 SG_RESULT=(tm);}
@@ -1815,7 +1815,7 @@ static SgObject extlib_file_stat_mtime(SgObject *SG_FP, int SG_ARGC, void *data_
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[65], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[65], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 {
@@ -1824,7 +1824,7 @@ SgObject SG_RESULT = (SgObject)NULL;
 #line 287 "./extlib.stub"
 {SgObject tm=Sg_FileModifyTime(path);
 if (SG_UNDEFP(tm)){
-Sg_AssertionViolation(sg__rc.d1636[66],
+Sg_AssertionViolation(sg__rc.d1682[66],
 Sg_GetLastErrorMessage(),path);}
 #line 292 "./extlib.stub"
 SG_RESULT=(tm);}
@@ -1845,7 +1845,7 @@ static SgObject extlib_file_stat_atime(SgObject *SG_FP, int SG_ARGC, void *data_
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[67], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[67], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 {
@@ -1854,7 +1854,7 @@ SgObject SG_RESULT = (SgObject)NULL;
 #line 295 "./extlib.stub"
 {SgObject tm=Sg_FileAccessTime(path);
 if (SG_UNDEFP(tm)){
-Sg_AssertionViolation(sg__rc.d1636[68],
+Sg_AssertionViolation(sg__rc.d1682[68],
 Sg_GetLastErrorMessage(),path);}
 #line 300 "./extlib.stub"
 SG_RESULT=(tm);}
@@ -1877,18 +1877,18 @@ static SgObject extlib_create_symbolic_link(SgObject *SG_FP, int SG_ARGC, void *
   oldpath_scm = SG_ARGREF(0);
   if (!SG_STRINGP(oldpath_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[69], SG_MAKE_STRING("string"), oldpath_scm, SG_NIL);
+       sg__rc.d1682[69], SG_MAKE_STRING("string"), oldpath_scm, SG_NIL);
   oldpath = SG_STRING(oldpath_scm);
   newpath_scm = SG_ARGREF(1);
   if (!SG_STRINGP(newpath_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[69], SG_MAKE_STRING("string"), newpath_scm, SG_NIL);
+       sg__rc.d1682[69], SG_MAKE_STRING("string"), newpath_scm, SG_NIL);
   newpath = SG_STRING(newpath_scm);
   {
 
 #line 303 "./extlib.stub"
 if ((!(Sg_CreateSymbolicLink(oldpath,newpath)))){{
-Sg_AssertionViolation(sg__rc.d1636[70],
+Sg_AssertionViolation(sg__rc.d1682[70],
 Sg_GetLastErrorMessage(),
 SG_LIST2(oldpath,newpath));}}
 SG_RETURN(SG_UNDEF);
@@ -1909,18 +1909,18 @@ static SgObject extlib_rename_file(SgObject *SG_FP, int SG_ARGC, void *data_)
   oldpath_scm = SG_ARGREF(0);
   if (!SG_STRINGP(oldpath_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[71], SG_MAKE_STRING("string"), oldpath_scm, SG_NIL);
+       sg__rc.d1682[71], SG_MAKE_STRING("string"), oldpath_scm, SG_NIL);
   oldpath = SG_STRING(oldpath_scm);
   newpath_scm = SG_ARGREF(1);
   if (!SG_STRINGP(newpath_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[71], SG_MAKE_STRING("string"), newpath_scm, SG_NIL);
+       sg__rc.d1682[71], SG_MAKE_STRING("string"), newpath_scm, SG_NIL);
   newpath = SG_STRING(newpath_scm);
   {
 
 #line 309 "./extlib.stub"
 if ((!(Sg_FileRename(oldpath,newpath)))){{
-Sg_AssertionViolation(sg__rc.d1636[72],
+Sg_AssertionViolation(sg__rc.d1682[72],
 Sg_GetLastErrorMessage(),
 SG_LIST2(oldpath,newpath));}}
 SG_RETURN(SG_UNDEF);
@@ -1941,12 +1941,12 @@ static SgObject extlib_change_file_mode(SgObject *SG_FP, int SG_ARGC, void *data
   file_scm = SG_ARGREF(0);
   if (!SG_STRINGP(file_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[73], SG_MAKE_STRING("string"), file_scm, SG_NIL);
+       sg__rc.d1682[73], SG_MAKE_STRING("string"), file_scm, SG_NIL);
   file = SG_STRING(file_scm);
   mode_scm = SG_ARGREF(1);
   if (!SG_INTP(mode_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[73], SG_MAKE_STRING("fixnum"), mode_scm, SG_NIL);
+       sg__rc.d1682[73], SG_MAKE_STRING("fixnum"), mode_scm, SG_NIL);
   mode = SG_INT_VALUE(mode_scm);
   {
 
@@ -1968,13 +1968,13 @@ static SgObject extlib_delete_directory(SgObject *SG_FP, int SG_ARGC, void *data
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[74], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[74], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 
 #line 318 "./extlib.stub"
 if ((!(Sg_DeleteFileOrDirectory(path)))){{
-Sg_AssertionViolation(sg__rc.d1636[75],
+Sg_AssertionViolation(sg__rc.d1682[75],
 Sg_GetLastErrorMessage(),path);}}
 SG_RETURN(SG_UNDEF);
   }
@@ -1992,13 +1992,13 @@ static SgObject extlib_create_directory(SgObject *SG_FP, int SG_ARGC, void *data
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[76], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[76], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 
 #line 324 "./extlib.stub"
 if ((!(Sg_CreateDirectory(path)))){{
-Sg_AssertionViolation(sg__rc.d1636[77],
+Sg_AssertionViolation(sg__rc.d1682[77],
 Sg_GetLastErrorMessage(),path);}}
 SG_RETURN(SG_UNDEF);
   }
@@ -2016,7 +2016,7 @@ static SgObject extlib_read_directory(SgObject *SG_FP, int SG_ARGC, void *data_)
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[78], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[78], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 {
@@ -2047,7 +2047,7 @@ static SgObject extlib_current_directory(SgObject *SG_FP, int SG_ARGC, void *dat
   }
   if (!SG_UNBOUNDP(path_scm) && !SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[79], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[79], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 {
@@ -2076,7 +2076,7 @@ static SgObject extlib_set_current_directory(SgObject *SG_FP, int SG_ARGC, void 
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[80], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[80], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 
@@ -2100,12 +2100,12 @@ static SgObject extlib_build_path(SgObject *SG_FP, int SG_ARGC, void *data_)
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[81], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[81], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   file_scm = SG_ARGREF(1);
   if (!SG_STRINGP(file_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[81], SG_MAKE_STRING("string"), file_scm, SG_NIL);
+       sg__rc.d1682[81], SG_MAKE_STRING("string"), file_scm, SG_NIL);
   file = SG_STRING(file_scm);
   {
 {
@@ -2130,7 +2130,7 @@ static SgObject extlib_absolute_pathP(SgObject *SG_FP, int SG_ARGC, void *data_)
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[82], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[82], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 {
@@ -2155,7 +2155,7 @@ static SgObject extlib_absolute_path(SgObject *SG_FP, int SG_ARGC, void *data_)
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[83], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[83], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 {
@@ -2169,16 +2169,16 @@ SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
 static SG_DEFINE_SUBR(extlib_absolute_path__STUB, 1, 0,extlib_absolute_path, SG_FALSE, NULL);
 
-static int retrieve_flags(SgObject list){SgObject cise__1643;{
+static int retrieve_flags(SgObject list){SgObject cise__1689;{
 #line 353 "./extlib.stub"
 {int flags=0;
-SG_FOR_EACH(cise__1643,list) {{SgObject flag=SG_CAR(cise__1643);
-if (SG_EQ(flag,sg__rc.d1636[92])){flags=((flags)|(SG_DOTMATCH));}else if(
-SG_EQ(flag,sg__rc.d1636[90])){flags=((flags)|(SG_NOESCAPE));}else if(
-SG_EQ(flag,sg__rc.d1636[88])){flags=((flags)|(SG_CASEFOLD));}else if(
-SG_EQ(flag,sg__rc.d1636[86])){flags=((flags)|(SG_PATHNAME));} else {
+SG_FOR_EACH(cise__1689,list) {{SgObject flag=SG_CAR(cise__1689);
+if (SG_EQ(flag,sg__rc.d1682[92])){flags=((flags)|(SG_DOTMATCH));}else if(
+SG_EQ(flag,sg__rc.d1682[90])){flags=((flags)|(SG_NOESCAPE));}else if(
+SG_EQ(flag,sg__rc.d1682[88])){flags=((flags)|(SG_CASEFOLD));}else if(
+SG_EQ(flag,sg__rc.d1682[86])){flags=((flags)|(SG_PATHNAME));} else {
 #line 360 "./extlib.stub"
-{Sg_AssertionViolation(sg__rc.d1636[84],SG_MAKE_STRING("unknown flag symbol appeared"),
+{Sg_AssertionViolation(sg__rc.d1682[84],SG_MAKE_STRING("unknown flag symbol appeared"),
 #line 362 "./extlib.stub"
 SG_LIST2(flag,list));}}}}
 return (flags);}}}
@@ -2195,7 +2195,7 @@ static SgObject extlib_glob(SgObject *SG_FP, int SG_ARGC, void *data_)
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[85], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[85], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   flags_scm = SG_ARGREF(SG_ARGC-1);
   flags = (flags_scm);
@@ -2258,12 +2258,12 @@ static SgObject extlib_copy_access_control(SgObject *SG_FP, int SG_ARGC, void *d
   src_scm = SG_ARGREF(0);
   if (!SG_STRINGP(src_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[96], SG_MAKE_STRING("string"), src_scm, SG_NIL);
+       sg__rc.d1682[96], SG_MAKE_STRING("string"), src_scm, SG_NIL);
   src = SG_STRING(src_scm);
   dst_scm = SG_ARGREF(1);
   if (!SG_STRINGP(dst_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[96], SG_MAKE_STRING("string"), dst_scm, SG_NIL);
+       sg__rc.d1682[96], SG_MAKE_STRING("string"), dst_scm, SG_NIL);
   dst = SG_STRING(dst_scm);
   {
 {
@@ -2310,14 +2310,14 @@ static SgObject extlib_string_scan(SgObject *SG_FP, int SG_ARGC, void *data_)
   s1_scm = SG_ARGREF(0);
   if (!SG_STRINGP(s1_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[98], SG_MAKE_STRING("string"), s1_scm, SG_NIL);
+       sg__rc.d1682[98], SG_MAKE_STRING("string"), s1_scm, SG_NIL);
   s1 = SG_STRING(s1_scm);
   s2_scm = SG_ARGREF(1);
   s2 = (s2_scm);
   if (SG_ARGC > 2+1) {
     mode_scm = SG_ARGREF(2);
   } else {
-    mode_scm = sg__rc.d1636[110];
+    mode_scm = sg__rc.d1682[110];
   }
   mode = (mode_scm);
   {
@@ -2326,19 +2326,19 @@ SgObject SG_RESULT = (SgObject)NULL;
 
 #line 383 "./extlib.stub"
 {int rmode=0;
-if (SG_EQ(mode,sg__rc.d1636[110])){rmode=(SG_STRING_SCAN_INDEX);}else if(
-SG_EQ(mode,sg__rc.d1636[108])){rmode=(SG_STRING_SCAN_BEFORE);}else if(
-SG_EQ(mode,sg__rc.d1636[106])){rmode=(SG_STRING_SCAN_AFTER);}else if(
-SG_EQ(mode,sg__rc.d1636[104])){rmode=(SG_STRING_SCAN_BEFORE2);}else if(
-SG_EQ(mode,sg__rc.d1636[102])){rmode=(SG_STRING_SCAN_AFTER2);}else if(
-SG_EQ(mode,sg__rc.d1636[100])){rmode=(SG_STRING_SCAN_BOTH);} else {
+if (SG_EQ(mode,sg__rc.d1682[110])){rmode=(SG_STRING_SCAN_INDEX);}else if(
+SG_EQ(mode,sg__rc.d1682[108])){rmode=(SG_STRING_SCAN_BEFORE);}else if(
+SG_EQ(mode,sg__rc.d1682[106])){rmode=(SG_STRING_SCAN_AFTER);}else if(
+SG_EQ(mode,sg__rc.d1682[104])){rmode=(SG_STRING_SCAN_BEFORE2);}else if(
+SG_EQ(mode,sg__rc.d1682[102])){rmode=(SG_STRING_SCAN_AFTER2);}else if(
+SG_EQ(mode,sg__rc.d1682[100])){rmode=(SG_STRING_SCAN_BOTH);} else {
 #line 391 "./extlib.stub"
-{Sg_AssertionViolation(sg__rc.d1636[99],SG_MAKE_STRING("bad value in mode argument. it must be one of 'index, 'before, 'after, 'before*, 'after* or 'both"),mode);}}
+{Sg_AssertionViolation(sg__rc.d1682[99],SG_MAKE_STRING("bad value in mode argument. it must be one of 'index, 'before, 'after, 'before*, 'after* or 'both"),mode);}}
 #line 394 "./extlib.stub"
 if (SG_STRINGP(s2)){SG_RESULT=(Sg_StringScan(s1,SG_STRING(s2),rmode));}else if(
 SG_CHARP(s2)){SG_RESULT=(Sg_StringScanChar(s1,SG_CHAR_VALUE(s2),rmode));} else {
 #line 397 "./extlib.stub"
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[99],SG_MAKE_STRING("string or char"),s2,
+{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[99],SG_MAKE_STRING("string or char"),s2,
 #line 400 "./extlib.stub"
 SG_LIST3(s1,s2,mode));}}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
@@ -2358,7 +2358,7 @@ static SgObject extlib_string_concatenate(SgObject *SG_FP, int SG_ARGC, void *da
   strings_scm = SG_ARGREF(0);
   if (!SG_LISTP(strings_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[112], SG_MAKE_STRING("list"), strings_scm, SG_NIL);
+       sg__rc.d1682[112], SG_MAKE_STRING("list"), strings_scm, SG_NIL);
   strings = (strings_scm);
   {
 {
@@ -2387,7 +2387,7 @@ static SgObject extlib__25maybe_substring(SgObject *SG_FP, int SG_ARGC, void *da
   s_scm = SG_ARGREF(0);
   if (!SG_STRINGP(s_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[113], SG_MAKE_STRING("string"), s_scm, SG_NIL);
+       sg__rc.d1682[113], SG_MAKE_STRING("string"), s_scm, SG_NIL);
   s = SG_STRING(s_scm);
   if (SG_ARGC > 1+1) {
     start_scm = SG_ARGREF(1);
@@ -2396,7 +2396,7 @@ static SgObject extlib__25maybe_substring(SgObject *SG_FP, int SG_ARGC, void *da
   }
   if (!SG_INTP(start_scm) && !SG_INTP(start_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[113], SG_MAKE_STRING("fixnum"), start_scm, SG_NIL);
+       sg__rc.d1682[113], SG_MAKE_STRING("fixnum"), start_scm, SG_NIL);
   start = SG_INT_VALUE(start_scm);
   if (SG_ARGC > 2+1) {
     end_scm = SG_ARGREF(2);
@@ -2405,7 +2405,7 @@ static SgObject extlib__25maybe_substring(SgObject *SG_FP, int SG_ARGC, void *da
   }
   if (!SG_INTP(end_scm) && !SG_INTP(end_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[113], SG_MAKE_STRING("fixnum"), end_scm, SG_NIL);
+       sg__rc.d1682[113], SG_MAKE_STRING("fixnum"), end_scm, SG_NIL);
   end = SG_INT_VALUE(end_scm);
   {
 {
@@ -2436,7 +2436,7 @@ static SgObject extlib_make_equal_hashtable(SgObject *SG_FP, int SG_ARGC, void *
   }
   if (!SG_INTP(k_scm) && !SG_INTP(k_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[114], SG_MAKE_STRING("fixnum"), k_scm, SG_NIL);
+       sg__rc.d1682[114], SG_MAKE_STRING("fixnum"), k_scm, SG_NIL);
   k = SG_INT_VALUE(k_scm);
   {
 {
@@ -2467,7 +2467,7 @@ static SgObject extlib_make_string_hashtable(SgObject *SG_FP, int SG_ARGC, void 
   }
   if (!SG_INTP(k_scm) && !SG_INTP(k_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[115], SG_MAKE_STRING("fixnum"), k_scm, SG_NIL);
+       sg__rc.d1682[115], SG_MAKE_STRING("fixnum"), k_scm, SG_NIL);
   k = SG_INT_VALUE(k_scm);
   {
 {
@@ -2492,7 +2492,7 @@ static SgObject extlib_hashtable_keys_list(SgObject *SG_FP, int SG_ARGC, void *d
   ht_scm = SG_ARGREF(0);
   if (!SG_HASHTABLE_P(ht_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[116], SG_MAKE_STRING("hashtable"), ht_scm, SG_NIL);
+       sg__rc.d1682[116], SG_MAKE_STRING("hashtable"), ht_scm, SG_NIL);
   ht = SG_HASHTABLE(ht_scm);
   {
 {
@@ -2517,7 +2517,7 @@ static SgObject extlib_hashtable_values_list(SgObject *SG_FP, int SG_ARGC, void 
   ht_scm = SG_ARGREF(0);
   if (!SG_HASHTABLE_P(ht_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[117], SG_MAKE_STRING("hashtable"), ht_scm, SG_NIL);
+       sg__rc.d1682[117], SG_MAKE_STRING("hashtable"), ht_scm, SG_NIL);
   ht = SG_HASHTABLE(ht_scm);
   {
 {
@@ -2542,7 +2542,7 @@ static SgObject extlib_hashtable_type(SgObject *SG_FP, int SG_ARGC, void *data_)
   ht_scm = SG_ARGREF(0);
   if (!SG_HASHTABLE_P(ht_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[118], SG_MAKE_STRING("hashtable"), ht_scm, SG_NIL);
+       sg__rc.d1682[118], SG_MAKE_STRING("hashtable"), ht_scm, SG_NIL);
   ht = SG_HASHTABLE(ht_scm);
   {
 {
@@ -2550,17 +2550,17 @@ SgObject SG_RESULT = (SgObject)NULL;
 
 #line 420 "./extlib.stub"
 if (((ht)->type)==(SG_HASH_EQ)){
-SG_RESULT=(sg__rc.d1636[128]);}else if(
+SG_RESULT=(sg__rc.d1682[128]);}else if(
 ((ht)->type)==(SG_HASH_EQV)){
-SG_RESULT=(sg__rc.d1636[126]);}else if(
+SG_RESULT=(sg__rc.d1682[126]);}else if(
 ((ht)->type)==(SG_HASH_EQUAL)){
-SG_RESULT=(sg__rc.d1636[124]);}else if(
+SG_RESULT=(sg__rc.d1682[124]);}else if(
 ((ht)->type)==(SG_HASH_STRING)){
-SG_RESULT=(sg__rc.d1636[122]);}else if(
+SG_RESULT=(sg__rc.d1682[122]);}else if(
 ((ht)->type)==(SG_HASH_GENERAL)){
-SG_RESULT=(sg__rc.d1636[120]);} else {
+SG_RESULT=(sg__rc.d1682[120]);} else {
 #line 431 "./extlib.stub"
-{Sg_AssertionViolation(sg__rc.d1636[119],SG_MAKE_STRING("invalid hashtable type"),ht);}}
+{Sg_AssertionViolation(sg__rc.d1682[119],SG_MAKE_STRING("invalid hashtable type"),ht);}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -2578,7 +2578,7 @@ static SgObject extlib_hashtable_compare(SgObject *SG_FP, int SG_ARGC, void *dat
   ht_scm = SG_ARGREF(0);
   if (!SG_HASHTABLE_P(ht_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[130], SG_MAKE_STRING("hashtable"), ht_scm, SG_NIL);
+       sg__rc.d1682[130], SG_MAKE_STRING("hashtable"), ht_scm, SG_NIL);
   ht = SG_HASHTABLE(ht_scm);
   {
 {
@@ -2603,7 +2603,7 @@ static SgObject extlib_hashtable_hasher(SgObject *SG_FP, int SG_ARGC, void *data
   ht_scm = SG_ARGREF(0);
   if (!SG_HASHTABLE_P(ht_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[131], SG_MAKE_STRING("hashtable"), ht_scm, SG_NIL);
+       sg__rc.d1682[131], SG_MAKE_STRING("hashtable"), ht_scm, SG_NIL);
   ht = SG_HASHTABLE(ht_scm);
   {
 {
@@ -2628,7 +2628,7 @@ static SgObject extlib_hashtable_values(SgObject *SG_FP, int SG_ARGC, void *data
   ht_scm = SG_ARGREF(0);
   if (!SG_HASHTABLE_P(ht_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[132], SG_MAKE_STRING("hashtable"), ht_scm, SG_NIL);
+       sg__rc.d1682[132], SG_MAKE_STRING("hashtable"), ht_scm, SG_NIL);
   ht = SG_HASHTABLE(ht_scm);
   {
 {
@@ -2681,12 +2681,12 @@ static SgObject extlib_with_error_handler(SgObject *SG_FP, int SG_ARGC, void *da
   handler_scm = SG_ARGREF(0);
   if (!SG_PROCEDUREP(handler_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[134], SG_MAKE_STRING("procedure"), handler_scm, SG_NIL);
+       sg__rc.d1682[134], SG_MAKE_STRING("procedure"), handler_scm, SG_NIL);
   handler = SG_PROCEDURE(handler_scm);
   thunk_scm = SG_ARGREF(1);
   if (!SG_PROCEDUREP(thunk_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[134], SG_MAKE_STRING("procedure"), thunk_scm, SG_NIL);
+       sg__rc.d1682[134], SG_MAKE_STRING("procedure"), thunk_scm, SG_NIL);
   thunk = SG_PROCEDURE(thunk_scm);
   if (SG_ARGC > 2+1) {
     rewindBefore_scm = SG_ARGREF(2);
@@ -2695,7 +2695,7 @@ static SgObject extlib_with_error_handler(SgObject *SG_FP, int SG_ARGC, void *da
   }
   if (!SG_FALSEP(rewindBefore_scm) && !SG_BOOLP(rewindBefore_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[134], SG_MAKE_STRING("boolean"), rewindBefore_scm, SG_NIL);
+       sg__rc.d1682[134], SG_MAKE_STRING("boolean"), rewindBefore_scm, SG_NIL);
   rewindBefore = SG_BOOL_VALUE(rewindBefore_scm);
   {
 {
@@ -2720,7 +2720,7 @@ static SgObject extlib_port_closedP(SgObject *SG_FP, int SG_ARGC, void *data_)
   p_scm = SG_ARGREF(0);
   if (!SG_PORTP(p_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[135], SG_MAKE_STRING("port"), p_scm, SG_NIL);
+       sg__rc.d1682[135], SG_MAKE_STRING("port"), p_scm, SG_NIL);
   p = SG_PORT(p_scm);
   {
 {
@@ -2757,15 +2757,15 @@ Sg_CurrentOutputPort();
   }
   if (!SG_PORTP(p_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[136], SG_MAKE_STRING("port"), p_scm, SG_NIL);
+       sg__rc.d1682[136], SG_MAKE_STRING("port"), p_scm, SG_NIL);
   p = SG_PORT(p_scm);
   {
 
 #line 482 "./extlib.stub"
-if (Sg_PortClosedP(p)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[137],SG_MAKE_STRING("opened port"),p,SG_NIL);}}}
+if (Sg_PortClosedP(p)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[137],SG_MAKE_STRING("opened port"),p,SG_NIL);}}}
 
 #line 483 "./extlib.stub"
-if ((!((SG_OUTPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[137],SG_MAKE_STRING("output port"),p,SG_NIL);}}}
+if ((!((SG_OUTPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[137],SG_MAKE_STRING("output port"),p,SG_NIL);}}}
 
 #line 484 "./extlib.stub"
 Sg_Write(o,p,SG_WRITE_SHARED);
@@ -2797,15 +2797,15 @@ Sg_CurrentOutputPort();
   }
   if (!SG_PORTP(p_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[138], SG_MAKE_STRING("port"), p_scm, SG_NIL);
+       sg__rc.d1682[138], SG_MAKE_STRING("port"), p_scm, SG_NIL);
   p = SG_PORT(p_scm);
   {
 
 #line 488 "./extlib.stub"
-if (Sg_PortClosedP(p)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[139],SG_MAKE_STRING("opened port"),p,SG_NIL);}}}
+if (Sg_PortClosedP(p)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[139],SG_MAKE_STRING("opened port"),p,SG_NIL);}}}
 
 #line 489 "./extlib.stub"
-if ((!((SG_OUTPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[139],SG_MAKE_STRING("output port"),p,SG_NIL);}}}
+if ((!((SG_OUTPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[139],SG_MAKE_STRING("output port"),p,SG_NIL);}}}
 
 #line 490 "./extlib.stub"
 Sg_WriteCircular(o,p,SG_WRITE_WRITE,-1);
@@ -2836,31 +2836,31 @@ Sg_CurrentInputPort();
   }
   if (!SG_PORTP(p_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[142], SG_MAKE_STRING("port"), p_scm, SG_NIL);
+       sg__rc.d1682[142], SG_MAKE_STRING("port"), p_scm, SG_NIL);
   p = SG_PORT(p_scm);
   if (SG_KEYARGC > 0 && SG_KEYARGC % 2)
-    Sg_AssertionViolation(sg__rc.d1636[142], SG_MAKE_STRING("keyword list not even"), Sg_ArrayToList(SG_FP+1, SG_ARGC-1-1));
+    Sg_AssertionViolation(sg__rc.d1682[142], SG_MAKE_STRING("keyword list not even"), Sg_ArrayToList(SG_FP+1, SG_ARGC-1-1));
   { int SG_KEYINDEX;
       for (SG_KEYINDEX=0; SG_KEYINDEX<SG_KEYARGC; SG_KEYINDEX+=2) {
-      if (SG_EQ(SG_ARGREF(1+SG_KEYINDEX), sg__rc.d1636[140])) {
+      if (SG_EQ(SG_ARGREF(1+SG_KEYINDEX), sg__rc.d1682[140])) {
         source_infoP_scm = SG_ARGREF(1+SG_KEYINDEX+1);
       }
-      else Sg_AssertionViolation(sg__rc.d1636[142], SG_MAKE_STRING("unknown keyword"), SG_ARGREF(1+SG_KEYINDEX));
+      else Sg_AssertionViolation(sg__rc.d1682[142], SG_MAKE_STRING("unknown keyword"), SG_ARGREF(1+SG_KEYINDEX));
     }
   }
   if (!SG_FALSEP(source_infoP_scm) && !SG_BOOLP(source_infoP_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[142], SG_MAKE_STRING("boolean"), source_infoP_scm, SG_NIL);
+       sg__rc.d1682[142], SG_MAKE_STRING("boolean"), source_infoP_scm, SG_NIL);
   source_infoP = SG_BOOL_VALUE(source_infoP_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
 #line 494 "./extlib.stub"
-if (Sg_PortClosedP(p)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[143],SG_MAKE_STRING("opened port"),p,SG_NIL);}}}
+if (Sg_PortClosedP(p)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[143],SG_MAKE_STRING("opened port"),p,SG_NIL);}}}
 
 #line 495 "./extlib.stub"
-if ((!((SG_INPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[143],SG_MAKE_STRING("input port"),p,SG_NIL);}}}
+if ((!((SG_INPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[143],SG_MAKE_STRING("input port"),p,SG_NIL);}}}
 
 #line 496 "./extlib.stub"
 {SgReadContext ctx=SG_STATIC_READ_CONTEXT;
@@ -2894,8 +2894,8 @@ SgObject SG_RESULT = (SgObject)NULL;
 
 #line 503 "./extlib.stub"
 if (SG_PORTP(p)){
-if (Sg_PortClosedP(p)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[145],SG_MAKE_STRING("opened port"),p,SG_NIL);}}}
-if ((!((SG_OUTPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[145],SG_MAKE_STRING("output port"),p,SG_NIL);}}}
+if (Sg_PortClosedP(p)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[145],SG_MAKE_STRING("opened port"),p,SG_NIL);}}}
+if ((!((SG_OUTPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[145],SG_MAKE_STRING("output port"),p,SG_NIL);}}}
 {SgString* fmt=SG_CAR(rest);SgObject objs=
 SG_CDR(rest);
 Sg_Format(p,fmt,objs,FALSE);
@@ -2940,8 +2940,8 @@ SgObject SG_RESULT = (SgObject)NULL;
 
 #line 526 "./extlib.stub"
 if (SG_PORTP(p)){
-if (Sg_PortClosedP(p)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[145],SG_MAKE_STRING("opened port"),p,SG_NIL);}}}
-if ((!((SG_OUTPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[145],SG_MAKE_STRING("output port"),p,SG_NIL);}}}
+if (Sg_PortClosedP(p)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[145],SG_MAKE_STRING("opened port"),p,SG_NIL);}}}
+if ((!((SG_OUTPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[145],SG_MAKE_STRING("output port"),p,SG_NIL);}}}
 {SgString* fmt=SG_CAR(rest);SgObject objs=
 SG_CDR(rest);
 Sg_Format(p,fmt,objs,TRUE);
@@ -2983,17 +2983,17 @@ static SgObject extlib_make_codec(SgObject *SG_FP, int SG_ARGC, void *data_)
   name_scm = SG_ARGREF(0);
   if (!SG_SYMBOLP(name_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[147], SG_MAKE_STRING("symbol"), name_scm, SG_NIL);
+       sg__rc.d1682[147], SG_MAKE_STRING("symbol"), name_scm, SG_NIL);
   name = SG_SYMBOL(name_scm);
   g_scm = SG_ARGREF(1);
   if (!SG_PROCEDUREP(g_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[147], SG_MAKE_STRING("procedure"), g_scm, SG_NIL);
+       sg__rc.d1682[147], SG_MAKE_STRING("procedure"), g_scm, SG_NIL);
   g = SG_PROCEDURE(g_scm);
   p_scm = SG_ARGREF(2);
   if (!SG_PROCEDUREP(p_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[147], SG_MAKE_STRING("procedure"), p_scm, SG_NIL);
+       sg__rc.d1682[147], SG_MAKE_STRING("procedure"), p_scm, SG_NIL);
   p = SG_PROCEDURE(p_scm);
   data_scm = SG_ARGREF(3);
   data = (data_scm);
@@ -3020,7 +3020,7 @@ static SgObject extlib_port_info(SgObject *SG_FP, int SG_ARGC, void *data_)
   p_scm = SG_ARGREF(0);
   if (!SG_PORTP(p_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[148], SG_MAKE_STRING("port"), p_scm, SG_NIL);
+       sg__rc.d1682[148], SG_MAKE_STRING("port"), p_scm, SG_NIL);
   p = SG_PORT(p_scm);
   {
 {
@@ -3057,12 +3057,12 @@ static SgObject extlib_read_with_case(SgObject *SG_FP, int SG_ARGC, void *data_)
   p_scm = SG_ARGREF(0);
   if (!SG_PORTP(p_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[149], SG_MAKE_STRING("port"), p_scm, SG_NIL);
+       sg__rc.d1682[149], SG_MAKE_STRING("port"), p_scm, SG_NIL);
   p = SG_PORT(p_scm);
   insensitiveP_scm = SG_ARGREF(1);
   if (!SG_BOOLP(insensitiveP_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[149], SG_MAKE_STRING("boolean"), insensitiveP_scm, SG_NIL);
+       sg__rc.d1682[149], SG_MAKE_STRING("boolean"), insensitiveP_scm, SG_NIL);
   insensitiveP = SG_BOOL_VALUE(insensitiveP_scm);
   if (SG_ARGC > 2+1) {
     sharedP_scm = SG_ARGREF(2);
@@ -3075,10 +3075,10 @@ static SgObject extlib_read_with_case(SgObject *SG_FP, int SG_ARGC, void *data_)
 SgObject SG_RESULT = (SgObject)NULL;
 
 #line 563 "./extlib.stub"
-if (Sg_PortClosedP(p)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[150],SG_MAKE_STRING("opened port"),p,SG_NIL);}}}
+if (Sg_PortClosedP(p)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[150],SG_MAKE_STRING("opened port"),p,SG_NIL);}}}
 
 #line 564 "./extlib.stub"
-if ((!((SG_INPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[150],SG_MAKE_STRING("input port"),p,SG_NIL);}}}
+if ((!((SG_INPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[150],SG_MAKE_STRING("input port"),p,SG_NIL);}}}
 
 #line 565 "./extlib.stub"
 SG_RESULT=(Sg_ReadWithCase(p,insensitiveP,(!(SG_FALSEP(sharedP)))));
@@ -3105,7 +3105,7 @@ static SgObject extlib_open_output_bytevector(SgObject *SG_FP, int SG_ARGC, void
   }
   if (!SG_FALSEP(t_scm) && !SG_TRANSCODERP(t_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[151], SG_MAKE_STRING("transcoder"), t_scm, SG_NIL);
+       sg__rc.d1682[151], SG_MAKE_STRING("transcoder"), t_scm, SG_NIL);
   t = SG_TRANSCODER(t_scm);
   {
 {
@@ -3133,23 +3133,23 @@ static SgObject extlib_get_output_bytevector(SgObject *SG_FP, int SG_ARGC, void 
   p_scm = SG_ARGREF(0);
   if (!SG_PORTP(p_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[152], SG_MAKE_STRING("port"), p_scm, SG_NIL);
+       sg__rc.d1682[152], SG_MAKE_STRING("port"), p_scm, SG_NIL);
   p = SG_PORT(p_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
 #line 574 "./extlib.stub"
-if (Sg_PortClosedP(p)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[153],SG_MAKE_STRING("opened port"),p,SG_NIL);}}}
+if (Sg_PortClosedP(p)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[153],SG_MAKE_STRING("opened port"),p,SG_NIL);}}}
 
 #line 575 "./extlib.stub"
-if ((!((SG_OUTPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[153],SG_MAKE_STRING("output port"),p,SG_NIL);}}}
+if ((!((SG_OUTPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[153],SG_MAKE_STRING("output port"),p,SG_NIL);}}}
 
 #line 578 "./extlib.stub"
 if (SG_BINARY_PORTP(p)){
 if ((!(((SG_BINARY_PORT(p))->type)==(SG_BYTE_ARRAY_BINARY_PORT_TYPE)))){{
 #line 581 "./extlib.stub"
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[153],SG_MAKE_STRING("bytevector-output-port"),p,SG_NIL);}}}
+{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[153],SG_MAKE_STRING("bytevector-output-port"),p,SG_NIL);}}}
 #line 584 "./extlib.stub"
 SG_RESULT=(Sg_GetByteVectorFromBinaryPort(p));
 Sg_SetPortPosition(p,0);
@@ -3198,25 +3198,25 @@ static SgObject extlib_get_output_string(SgObject *SG_FP, int SG_ARGC, void *dat
   p_scm = SG_ARGREF(0);
   if (!SG_PORTP(p_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[155], SG_MAKE_STRING("port"), p_scm, SG_NIL);
+       sg__rc.d1682[155], SG_MAKE_STRING("port"), p_scm, SG_NIL);
   p = SG_PORT(p_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
 
 #line 609 "./extlib.stub"
-if (Sg_PortClosedP(p)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[156],SG_MAKE_STRING("opened port"),p,SG_NIL);}}}
+if (Sg_PortClosedP(p)){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[156],SG_MAKE_STRING("opened port"),p,SG_NIL);}}}
 
 #line 610 "./extlib.stub"
-if ((!((SG_OUTPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[156],SG_MAKE_STRING("output port"),p,SG_NIL);}}}
+if ((!((SG_OUTPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[156],SG_MAKE_STRING("output port"),p,SG_NIL);}}}
 
 #line 611 "./extlib.stub"
-if ((!((SG_TEXTUAL_PORTP(p))||((SG_CUSTOM_PORTP(p))&&(SG_EQ((SG_CUSTOM_PORT(p))->type,SG_TEXTUAL_CUSTOM_PORT_TYPE)))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[156],SG_MAKE_STRING("textual-port"),p,SG_NIL);}}}
+if ((!((SG_TEXTUAL_PORTP(p))||((SG_CUSTOM_PORTP(p))&&(SG_EQ((SG_CUSTOM_PORT(p))->type,SG_TEXTUAL_CUSTOM_PORT_TYPE)))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[156],SG_MAKE_STRING("textual-port"),p,SG_NIL);}}}
 
 #line 612 "./extlib.stub"
 if ((!(SG_EQ((SG_TEXTUAL_PORT(p))->type,SG_STRING_TEXTUAL_PORT_TYPE)))){{
 #line 614 "./extlib.stub"
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[156],SG_MAKE_STRING("string port"),p,SG_NIL);}}}
+{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[156],SG_MAKE_STRING("string port"),p,SG_NIL);}}}
 
 #line 615 "./extlib.stub"
 SG_RESULT=(Sg_GetStringFromStringPort(p));
@@ -3260,7 +3260,7 @@ Sg_CurrentInputPort();
 int SG_RESULT = (int)NULL;
 
 #line 626 "./extlib.stub"
-if ((!((SG_INPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[158],SG_MAKE_STRING("input port"),p,SG_NIL);}}}
+if ((!((SG_INPORTP(p))||(SG_INOUTPORTP(p))))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[158],SG_MAKE_STRING("input port"),p,SG_NIL);}}}
 
 #line 627 "./extlib.stub"
 SG_RESULT=(Sg_PortReady(p));
@@ -3347,7 +3347,7 @@ static SgObject extlib_disasm(SgObject *SG_FP, int SG_ARGC, void *data_)
   c_scm = SG_ARGREF(0);
   if (!SG_PROCEDUREP(c_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[163], SG_MAKE_STRING("procedure"), c_scm, SG_NIL);
+       sg__rc.d1682[163], SG_MAKE_STRING("procedure"), c_scm, SG_NIL);
   c = SG_PROCEDURE(c_scm);
   {
 {
@@ -3377,7 +3377,7 @@ static SgObject extlib_make_keyword(SgObject *SG_FP, int SG_ARGC, void *data_)
   key_scm = SG_ARGREF(0);
   if (!SG_SYMBOLP(key_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[164], SG_MAKE_STRING("symbol"), key_scm, SG_NIL);
+       sg__rc.d1682[164], SG_MAKE_STRING("symbol"), key_scm, SG_NIL);
   key = SG_SYMBOL(key_scm);
   {
 {
@@ -3424,7 +3424,7 @@ static SgObject extlib_keyword_TOsymbol(SgObject *SG_FP, int SG_ARGC, void *data
   key_scm = SG_ARGREF(0);
   if (!SG_KEYWORDP(key_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[166], SG_MAKE_STRING("keyword"), key_scm, SG_NIL);
+       sg__rc.d1682[166], SG_MAKE_STRING("keyword"), key_scm, SG_NIL);
   key = SG_KEYWORD(key_scm);
   {
 {
@@ -3449,7 +3449,7 @@ static SgObject extlib_keyword_TOstring(SgObject *SG_FP, int SG_ARGC, void *data
   key_scm = SG_ARGREF(0);
   if (!SG_KEYWORDP(key_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[167], SG_MAKE_STRING("keyword"), key_scm, SG_NIL);
+       sg__rc.d1682[167], SG_MAKE_STRING("keyword"), key_scm, SG_NIL);
   key = SG_KEYWORD(key_scm);
   {
 {
@@ -3480,7 +3480,7 @@ static SgObject extlib_get_keyword(SgObject *SG_FP, int SG_ARGC, void *data_)
   key_scm = SG_ARGREF(0);
   if (!SG_KEYWORDP(key_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[168], SG_MAKE_STRING("keyword"), key_scm, SG_NIL);
+       sg__rc.d1682[168], SG_MAKE_STRING("keyword"), key_scm, SG_NIL);
   key = SG_KEYWORD(key_scm);
   lst_scm = SG_ARGREF(1);
   lst = (lst_scm);
@@ -3568,7 +3568,7 @@ static SgObject extlib_scan_cache_object(SgObject *SG_FP, int SG_ARGC, void *dat
   ctx_scm = SG_ARGREF(2);
   if (!SG_WRITE_CACHE_CTX_P(ctx_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[171], SG_MAKE_STRING("<write-cache-ctx>"), ctx_scm, SG_NIL);
+       sg__rc.d1682[171], SG_MAKE_STRING("<write-cache-ctx>"), ctx_scm, SG_NIL);
   ctx = SG_WRITE_CACHE_CTX(ctx_scm);
   {
 {
@@ -3599,12 +3599,12 @@ static SgObject extlib_write_object_cache(SgObject *SG_FP, int SG_ARGC, void *da
   out_scm = SG_ARGREF(1);
   if (!SG_PORTP(out_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[172], SG_MAKE_STRING("port"), out_scm, SG_NIL);
+       sg__rc.d1682[172], SG_MAKE_STRING("port"), out_scm, SG_NIL);
   out = SG_PORT(out_scm);
   ctx_scm = SG_ARGREF(2);
   if (!SG_WRITE_CACHE_CTX_P(ctx_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[172], SG_MAKE_STRING("<write-cache-ctx>"), ctx_scm, SG_NIL);
+       sg__rc.d1682[172], SG_MAKE_STRING("<write-cache-ctx>"), ctx_scm, SG_NIL);
   ctx = SG_WRITE_CACHE_CTX(ctx_scm);
   {
 
@@ -3628,12 +3628,12 @@ static SgObject extlib_read_cache_object(SgObject *SG_FP, int SG_ARGC, void *dat
   in_scm = SG_ARGREF(0);
   if (!SG_PORTP(in_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[173], SG_MAKE_STRING("port"), in_scm, SG_NIL);
+       sg__rc.d1682[173], SG_MAKE_STRING("port"), in_scm, SG_NIL);
   in = SG_PORT(in_scm);
   ctx_scm = SG_ARGREF(1);
   if (!SG_READ_CACHE_CTX_P(ctx_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[173], SG_MAKE_STRING("<read-cache-ctx>"), ctx_scm, SG_NIL);
+       sg__rc.d1682[173], SG_MAKE_STRING("<read-cache-ctx>"), ctx_scm, SG_NIL);
   ctx = SG_READ_CACHE_CTX(ctx_scm);
   {
 {
@@ -3658,7 +3658,7 @@ static SgObject extlib_getenv(SgObject *SG_FP, int SG_ARGC, void *data_)
   path_scm = SG_ARGREF(0);
   if (!SG_STRINGP(path_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[174], SG_MAKE_STRING("string"), path_scm, SG_NIL);
+       sg__rc.d1682[174], SG_MAKE_STRING("string"), path_scm, SG_NIL);
   path = SG_STRING(path_scm);
   {
 {
@@ -3685,7 +3685,7 @@ static SgObject extlib_setenv(SgObject *SG_FP, int SG_ARGC, void *data_)
   key_scm = SG_ARGREF(0);
   if (!SG_STRINGP(key_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[175], SG_MAKE_STRING("string"), key_scm, SG_NIL);
+       sg__rc.d1682[175], SG_MAKE_STRING("string"), key_scm, SG_NIL);
   key = SG_STRING(key_scm);
   value_scm = SG_ARGREF(1);
   value = (value_scm);
@@ -3697,7 +3697,7 @@ if (SG_STRINGP(value)){
 v=(SG_STRING_VALUE(value));}else if(
 SG_FALSEP(value)){} else {
 #line 691 "./extlib.stub"
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[176],SG_MAKE_STRING("string or #f"),value,SG_NIL);}}
+{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[176],SG_MAKE_STRING("string or #f"),value,SG_NIL);}}
 #line 694 "./extlib.stub"
 Sg_Setenv(SG_STRING_VALUE(key),v);}
 SG_RETURN(SG_UNDEF);
@@ -3770,7 +3770,7 @@ static SgObject extlib_bytevector_TOinteger(SgObject *SG_FP, int SG_ARGC, void *
   bv_scm = SG_ARGREF(0);
   if (!SG_BVECTORP(bv_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[179], SG_MAKE_STRING("bytevector"), bv_scm, SG_NIL);
+       sg__rc.d1682[179], SG_MAKE_STRING("bytevector"), bv_scm, SG_NIL);
   bv = SG_BVECTOR(bv_scm);
   if (SG_ARGC > 1+1) {
     start_scm = SG_ARGREF(1);
@@ -3779,7 +3779,7 @@ static SgObject extlib_bytevector_TOinteger(SgObject *SG_FP, int SG_ARGC, void *
   }
   if (!SG_INTP(start_scm) && !SG_INTP(start_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[179], SG_MAKE_STRING("fixnum"), start_scm, SG_NIL);
+       sg__rc.d1682[179], SG_MAKE_STRING("fixnum"), start_scm, SG_NIL);
   start = SG_INT_VALUE(start_scm);
   if (SG_ARGC > 2+1) {
     end_scm = SG_ARGREF(2);
@@ -3788,7 +3788,7 @@ static SgObject extlib_bytevector_TOinteger(SgObject *SG_FP, int SG_ARGC, void *
   }
   if (!SG_INTP(end_scm) && !SG_INTP(end_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[179], SG_MAKE_STRING("fixnum"), end_scm, SG_NIL);
+       sg__rc.d1682[179], SG_MAKE_STRING("fixnum"), end_scm, SG_NIL);
   end = SG_INT_VALUE(end_scm);
   {
 {
@@ -3817,7 +3817,7 @@ static SgObject extlib_integer_TObytevector(SgObject *SG_FP, int SG_ARGC, void *
   n_scm = SG_ARGREF(0);
   if (!Sg_IntegerP(n_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[180], SG_MAKE_STRING("exact integer"), n_scm, SG_NIL);
+       sg__rc.d1682[180], SG_MAKE_STRING("exact integer"), n_scm, SG_NIL);
   n = (n_scm);
   if (SG_ARGC > 1+1) {
     size_scm = SG_ARGREF(1);
@@ -3826,7 +3826,7 @@ static SgObject extlib_integer_TObytevector(SgObject *SG_FP, int SG_ARGC, void *
   }
   if (!SG_INTP(size_scm) && !SG_INTP(size_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[180], SG_MAKE_STRING("fixnum"), size_scm, SG_NIL);
+       sg__rc.d1682[180], SG_MAKE_STRING("fixnum"), size_scm, SG_NIL);
   size = SG_INT_VALUE(size_scm);
   {
 {
@@ -3871,7 +3871,7 @@ static SgObject extlib_bytevector_concatenate(SgObject *SG_FP, int SG_ARGC, void
   bv_list_scm = SG_ARGREF(0);
   if (!SG_LISTP(bv_list_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[182], SG_MAKE_STRING("list"), bv_list_scm, SG_NIL);
+       sg__rc.d1682[182], SG_MAKE_STRING("list"), bv_list_scm, SG_NIL);
   bv_list = (bv_list_scm);
   {
 {
@@ -3970,7 +3970,7 @@ static SgObject extlib_make_record_type(SgObject *SG_FP, int SG_ARGC, void *data
   name_scm = SG_ARGREF(0);
   if (!SG_SYMBOLP(name_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[187], SG_MAKE_STRING("symbol"), name_scm, SG_NIL);
+       sg__rc.d1682[187], SG_MAKE_STRING("symbol"), name_scm, SG_NIL);
   name = SG_SYMBOL(name_scm);
   rtd_scm = SG_ARGREF(1);
   rtd = (rtd_scm);
@@ -4021,7 +4021,7 @@ static SgObject extlib_record_type_rtd(SgObject *SG_FP, int SG_ARGC, void *data_
   rt_scm = SG_ARGREF(0);
   if (!SG_RECORD_TYPEP(rt_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[189], SG_MAKE_STRING("record-type"), rt_scm, SG_NIL);
+       sg__rc.d1682[189], SG_MAKE_STRING("record-type"), rt_scm, SG_NIL);
   rt = SG_RECORD_TYPE(rt_scm);
   {
 {
@@ -4046,7 +4046,7 @@ static SgObject extlib_record_type_rcd(SgObject *SG_FP, int SG_ARGC, void *data_
   rt_scm = SG_ARGREF(0);
   if (!SG_RECORD_TYPEP(rt_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[190], SG_MAKE_STRING("record-type"), rt_scm, SG_NIL);
+       sg__rc.d1682[190], SG_MAKE_STRING("record-type"), rt_scm, SG_NIL);
   rt = SG_RECORD_TYPE(rt_scm);
   {
 {
@@ -4095,10 +4095,10 @@ static SgObject extlib_char_set(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-SgObject cise__1654;
+SgObject cise__1700;
 #line 760 "./extlib.stub"
 {SgCharSet* cs=SG_CHAR_SET(Sg_MakeEmptyCharSet());
-SG_FOR_EACH(cise__1654,chars) {{SgObject ch=SG_CAR(cise__1654);if ((!(SG_CHARP(ch)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[193],SG_MAKE_STRING("character"),ch,SG_NIL);}}}Sg_CharSetAddRange(cs,SG_CHAR_VALUE(ch),SG_CHAR_VALUE(ch));}}
+SG_FOR_EACH(cise__1700,chars) {{SgObject ch=SG_CAR(cise__1700);if ((!(SG_CHARP(ch)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[193],SG_MAKE_STRING("character"),ch,SG_NIL);}}}Sg_CharSetAddRange(cs,SG_CHAR_VALUE(ch),SG_CHAR_VALUE(ch));}}
 SG_RESULT=(cs);}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
@@ -4117,7 +4117,7 @@ static SgObject extlib_char_set_copy(SgObject *SG_FP, int SG_ARGC, void *data_)
   cs_scm = SG_ARGREF(0);
   if (!SG_CHAR_SET_P(cs_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[195], SG_MAKE_STRING("char-set"), cs_scm, SG_NIL);
+       sg__rc.d1682[195], SG_MAKE_STRING("char-set"), cs_scm, SG_NIL);
   cs = SG_CHAR_SET(cs_scm);
   {
 {
@@ -4144,12 +4144,12 @@ static SgObject extlib_char_set_containsP(SgObject *SG_FP, int SG_ARGC, void *da
   cs_scm = SG_ARGREF(0);
   if (!SG_CHAR_SET_P(cs_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[196], SG_MAKE_STRING("char-set"), cs_scm, SG_NIL);
+       sg__rc.d1682[196], SG_MAKE_STRING("char-set"), cs_scm, SG_NIL);
   cs = SG_CHAR_SET(cs_scm);
   ch_scm = SG_ARGREF(1);
   if (!SG_CHARP(ch_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[196], SG_MAKE_STRING("character"), ch_scm, SG_NIL);
+       sg__rc.d1682[196], SG_MAKE_STRING("character"), ch_scm, SG_NIL);
   ch = SG_CHAR_VALUE(ch_scm);
   {
 {
@@ -4176,12 +4176,12 @@ static SgObject extlib__25char_set_equalP(SgObject *SG_FP, int SG_ARGC, void *da
   x_scm = SG_ARGREF(0);
   if (!SG_CHAR_SET_P(x_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[197], SG_MAKE_STRING("char-set"), x_scm, SG_NIL);
+       sg__rc.d1682[197], SG_MAKE_STRING("char-set"), x_scm, SG_NIL);
   x = SG_CHAR_SET(x_scm);
   y_scm = SG_ARGREF(1);
   if (!SG_CHAR_SET_P(y_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[197], SG_MAKE_STRING("char-set"), y_scm, SG_NIL);
+       sg__rc.d1682[197], SG_MAKE_STRING("char-set"), y_scm, SG_NIL);
   y = SG_CHAR_SET(y_scm);
   {
 {
@@ -4208,12 +4208,12 @@ static SgObject extlib__25char_set_LT_3dP(SgObject *SG_FP, int SG_ARGC, void *da
   x_scm = SG_ARGREF(0);
   if (!SG_CHAR_SET_P(x_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[198], SG_MAKE_STRING("char-set"), x_scm, SG_NIL);
+       sg__rc.d1682[198], SG_MAKE_STRING("char-set"), x_scm, SG_NIL);
   x = SG_CHAR_SET(x_scm);
   y_scm = SG_ARGREF(1);
   if (!SG_CHAR_SET_P(y_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[198], SG_MAKE_STRING("char-set"), y_scm, SG_NIL);
+       sg__rc.d1682[198], SG_MAKE_STRING("char-set"), y_scm, SG_NIL);
   y = SG_CHAR_SET(y_scm);
   {
 {
@@ -4240,16 +4240,16 @@ static SgObject extlib__25char_set_add_charsX(SgObject *SG_FP, int SG_ARGC, void
   cs_scm = SG_ARGREF(0);
   if (!SG_CHAR_SET_P(cs_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[199], SG_MAKE_STRING("char-set"), cs_scm, SG_NIL);
+       sg__rc.d1682[199], SG_MAKE_STRING("char-set"), cs_scm, SG_NIL);
   cs = SG_CHAR_SET(cs_scm);
   chars_scm = SG_ARGREF(1);
   chars = (chars_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-SgObject cise__1655;
+SgObject cise__1701;
 #line 777 "./extlib.stub"
-SG_FOR_EACH(cise__1655,chars) {{SgObject ch=SG_CAR(cise__1655);if ((!(SG_CHARP(ch)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[193],SG_MAKE_STRING("character"),ch,SG_NIL);}}}Sg_CharSetAddRange(cs,SG_CHAR_VALUE(ch),SG_CHAR_VALUE(ch));}}
+SG_FOR_EACH(cise__1701,chars) {{SgObject ch=SG_CAR(cise__1701);if ((!(SG_CHARP(ch)))){{{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[193],SG_MAKE_STRING("character"),ch,SG_NIL);}}}Sg_CharSetAddRange(cs,SG_CHAR_VALUE(ch),SG_CHAR_VALUE(ch));}}
 
 #line 777 "./extlib.stub"
 SG_RESULT=(cs);
@@ -4274,7 +4274,7 @@ static SgObject extlib__25char_set_add_rangeX(SgObject *SG_FP, int SG_ARGC, void
   cs_scm = SG_ARGREF(0);
   if (!SG_CHAR_SET_P(cs_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[200], SG_MAKE_STRING("char-set"), cs_scm, SG_NIL);
+       sg__rc.d1682[200], SG_MAKE_STRING("char-set"), cs_scm, SG_NIL);
   cs = SG_CHAR_SET(cs_scm);
   from_scm = SG_ARGREF(1);
   from = (from_scm);
@@ -4289,18 +4289,18 @@ SgObject SG_RESULT = (SgObject)NULL;
 if (SG_INTP(from)){f=(SG_INT_VALUE(from));}else if(
 SG_CHARP(from)){f=(SG_CHAR_VALUE(from));}
 if ((f)<(0)){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[201],SG_MAKE_STRING("character or positive exact integer"),from,SG_NIL);}}}
+{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[201],SG_MAKE_STRING("character or positive exact integer"),from,SG_NIL);}}}
 #line 787 "./extlib.stub"
 if ((f)>(SG_CHAR_MAX)){{
-{Sg_AssertionViolation(sg__rc.d1636[201],SG_MAKE_STRING("'from' argument out of range"),from);}}}
+{Sg_AssertionViolation(sg__rc.d1682[201],SG_MAKE_STRING("'from' argument out of range"),from);}}}
 #line 790 "./extlib.stub"
 if (SG_INTP(to)){t=(SG_INT_VALUE(to));}else if(
 SG_CHARP(to)){t=(SG_CHAR_VALUE(to));}
 if ((t)<(0)){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[201],SG_MAKE_STRING("character or positive exact integer"),to,SG_NIL);}}}
+{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[201],SG_MAKE_STRING("character or positive exact integer"),to,SG_NIL);}}}
 #line 796 "./extlib.stub"
 if ((t)>(SG_CHAR_MAX)){{
-{Sg_AssertionViolation(sg__rc.d1636[201],SG_MAKE_STRING("'to' argument out of range"),to);}}}
+{Sg_AssertionViolation(sg__rc.d1682[201],SG_MAKE_STRING("'to' argument out of range"),to);}}}
 #line 799 "./extlib.stub"
 SG_RESULT=(Sg_CharSetAddRange(cs,SG_CHAR(f),SG_CHAR(t)));}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
@@ -4322,12 +4322,12 @@ static SgObject extlib__25char_set_addX(SgObject *SG_FP, int SG_ARGC, void *data
   dst_scm = SG_ARGREF(0);
   if (!SG_CHAR_SET_P(dst_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[202], SG_MAKE_STRING("char-set"), dst_scm, SG_NIL);
+       sg__rc.d1682[202], SG_MAKE_STRING("char-set"), dst_scm, SG_NIL);
   dst = SG_CHAR_SET(dst_scm);
   src_scm = SG_ARGREF(1);
   if (!SG_CHAR_SET_P(src_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[202], SG_MAKE_STRING("char-set"), src_scm, SG_NIL);
+       sg__rc.d1682[202], SG_MAKE_STRING("char-set"), src_scm, SG_NIL);
   src = SG_CHAR_SET(src_scm);
   {
 {
@@ -4352,7 +4352,7 @@ static SgObject extlib__25char_set_complementX(SgObject *SG_FP, int SG_ARGC, voi
   cs_scm = SG_ARGREF(0);
   if (!SG_CHAR_SET_P(cs_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[203], SG_MAKE_STRING("char-set"), cs_scm, SG_NIL);
+       sg__rc.d1682[203], SG_MAKE_STRING("char-set"), cs_scm, SG_NIL);
   cs = SG_CHAR_SET(cs_scm);
   {
 {
@@ -4377,7 +4377,7 @@ static SgObject extlib__25char_set_ranges(SgObject *SG_FP, int SG_ARGC, void *da
   cs_scm = SG_ARGREF(0);
   if (!SG_CHAR_SET_P(cs_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[204], SG_MAKE_STRING("char-set"), cs_scm, SG_NIL);
+       sg__rc.d1682[204], SG_MAKE_STRING("char-set"), cs_scm, SG_NIL);
   cs = SG_CHAR_SET(cs_scm);
   {
 {
@@ -4402,7 +4402,7 @@ static SgObject extlib_get_macro_character(SgObject *SG_FP, int SG_ARGC, void *d
   c_scm = SG_ARGREF(0);
   if (!SG_CHARP(c_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[205], SG_MAKE_STRING("character"), c_scm, SG_NIL);
+       sg__rc.d1682[205], SG_MAKE_STRING("character"), c_scm, SG_NIL);
   c = SG_CHAR_VALUE(c_scm);
   {
 {
@@ -4434,12 +4434,12 @@ static SgObject extlib_set_macro_character(SgObject *SG_FP, int SG_ARGC, void *d
   c_scm = SG_ARGREF(0);
   if (!SG_CHARP(c_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[206], SG_MAKE_STRING("character"), c_scm, SG_NIL);
+       sg__rc.d1682[206], SG_MAKE_STRING("character"), c_scm, SG_NIL);
   c = SG_CHAR_VALUE(c_scm);
   proc_scm = SG_ARGREF(1);
   if (!SG_PROCEDUREP(proc_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[206], SG_MAKE_STRING("procedure"), proc_scm, SG_NIL);
+       sg__rc.d1682[206], SG_MAKE_STRING("procedure"), proc_scm, SG_NIL);
   proc = SG_PROCEDURE(proc_scm);
   if (SG_ARGC > 2+1) {
     non_termP_scm = SG_ARGREF(2);
@@ -4448,7 +4448,7 @@ static SgObject extlib_set_macro_character(SgObject *SG_FP, int SG_ARGC, void *d
   }
   if (!SG_FALSEP(non_termP_scm) && !SG_BOOLP(non_termP_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[206], SG_MAKE_STRING("boolean"), non_termP_scm, SG_NIL);
+       sg__rc.d1682[206], SG_MAKE_STRING("boolean"), non_termP_scm, SG_NIL);
   non_termP = SG_BOOL_VALUE(non_termP_scm);
   {
 
@@ -4475,7 +4475,7 @@ static SgObject extlib_make_dispatch_macro_character(SgObject *SG_FP, int SG_ARG
   c_scm = SG_ARGREF(0);
   if (!SG_CHARP(c_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[207], SG_MAKE_STRING("character"), c_scm, SG_NIL);
+       sg__rc.d1682[207], SG_MAKE_STRING("character"), c_scm, SG_NIL);
   c = SG_CHAR_VALUE(c_scm);
   if (SG_ARGC > 1+1) {
     non_termP_scm = SG_ARGREF(1);
@@ -4484,7 +4484,7 @@ static SgObject extlib_make_dispatch_macro_character(SgObject *SG_FP, int SG_ARG
   }
   if (!SG_FALSEP(non_termP_scm) && !SG_BOOLP(non_termP_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[207], SG_MAKE_STRING("boolean"), non_termP_scm, SG_NIL);
+       sg__rc.d1682[207], SG_MAKE_STRING("boolean"), non_termP_scm, SG_NIL);
   non_termP = SG_BOOL_VALUE(non_termP_scm);
   {
 {
@@ -4513,12 +4513,12 @@ static SgObject extlib_get_dispatch_macro_character(SgObject *SG_FP, int SG_ARGC
   c_scm = SG_ARGREF(0);
   if (!SG_CHARP(c_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[208], SG_MAKE_STRING("character"), c_scm, SG_NIL);
+       sg__rc.d1682[208], SG_MAKE_STRING("character"), c_scm, SG_NIL);
   c = SG_CHAR_VALUE(c_scm);
   subc_scm = SG_ARGREF(1);
   if (!SG_CHARP(subc_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[208], SG_MAKE_STRING("character"), subc_scm, SG_NIL);
+       sg__rc.d1682[208], SG_MAKE_STRING("character"), subc_scm, SG_NIL);
   subc = SG_CHAR_VALUE(subc_scm);
   {
 {
@@ -4548,17 +4548,17 @@ static SgObject extlib_set_dispatch_macro_character(SgObject *SG_FP, int SG_ARGC
   c_scm = SG_ARGREF(0);
   if (!SG_CHARP(c_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[209], SG_MAKE_STRING("character"), c_scm, SG_NIL);
+       sg__rc.d1682[209], SG_MAKE_STRING("character"), c_scm, SG_NIL);
   c = SG_CHAR_VALUE(c_scm);
   subc_scm = SG_ARGREF(1);
   if (!SG_CHARP(subc_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[209], SG_MAKE_STRING("character"), subc_scm, SG_NIL);
+       sg__rc.d1682[209], SG_MAKE_STRING("character"), subc_scm, SG_NIL);
   subc = SG_CHAR_VALUE(subc_scm);
   proc_scm = SG_ARGREF(2);
   if (!SG_PROCEDUREP(proc_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[209], SG_MAKE_STRING("procedure"), proc_scm, SG_NIL);
+       sg__rc.d1682[209], SG_MAKE_STRING("procedure"), proc_scm, SG_NIL);
   proc = SG_PROCEDURE(proc_scm);
   {
 
@@ -4590,17 +4590,17 @@ static SgObject extlib__25insert_macro_character(SgObject *SG_FP, int SG_ARGC, v
   c_scm = SG_ARGREF(0);
   if (!SG_CHARP(c_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[210], SG_MAKE_STRING("character"), c_scm, SG_NIL);
+       sg__rc.d1682[210], SG_MAKE_STRING("character"), c_scm, SG_NIL);
   c = SG_CHAR_VALUE(c_scm);
   proc_scm = SG_ARGREF(1);
   if (!SG_PROCEDUREP(proc_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[210], SG_MAKE_STRING("procedure"), proc_scm, SG_NIL);
+       sg__rc.d1682[210], SG_MAKE_STRING("procedure"), proc_scm, SG_NIL);
   proc = SG_PROCEDURE(proc_scm);
   lib_scm = SG_ARGREF(2);
   if (!SG_LIBRARYP(lib_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[210], SG_MAKE_STRING("library"), lib_scm, SG_NIL);
+       sg__rc.d1682[210], SG_MAKE_STRING("library"), lib_scm, SG_NIL);
   lib = SG_LIBRARY(lib_scm);
   if (SG_ARGC > 3+1) {
     non_termP_scm = SG_ARGREF(3);
@@ -4609,7 +4609,7 @@ static SgObject extlib__25insert_macro_character(SgObject *SG_FP, int SG_ARGC, v
   }
   if (!SG_FALSEP(non_termP_scm) && !SG_BOOLP(non_termP_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[210], SG_MAKE_STRING("boolean"), non_termP_scm, SG_NIL);
+       sg__rc.d1682[210], SG_MAKE_STRING("boolean"), non_termP_scm, SG_NIL);
   non_termP = SG_BOOL_VALUE(non_termP_scm);
   {
 
@@ -4645,22 +4645,22 @@ static SgObject extlib__25insert_dispatch_macro_character(SgObject *SG_FP, int S
   c_scm = SG_ARGREF(0);
   if (!SG_CHARP(c_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[211], SG_MAKE_STRING("character"), c_scm, SG_NIL);
+       sg__rc.d1682[211], SG_MAKE_STRING("character"), c_scm, SG_NIL);
   c = SG_CHAR_VALUE(c_scm);
   subc_scm = SG_ARGREF(1);
   if (!SG_CHARP(subc_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[211], SG_MAKE_STRING("character"), subc_scm, SG_NIL);
+       sg__rc.d1682[211], SG_MAKE_STRING("character"), subc_scm, SG_NIL);
   subc = SG_CHAR_VALUE(subc_scm);
   proc_scm = SG_ARGREF(2);
   if (!SG_PROCEDUREP(proc_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[211], SG_MAKE_STRING("procedure"), proc_scm, SG_NIL);
+       sg__rc.d1682[211], SG_MAKE_STRING("procedure"), proc_scm, SG_NIL);
   proc = SG_PROCEDURE(proc_scm);
   lib_scm = SG_ARGREF(3);
   if (!SG_LIBRARYP(lib_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[211], SG_MAKE_STRING("library"), lib_scm, SG_NIL);
+       sg__rc.d1682[211], SG_MAKE_STRING("library"), lib_scm, SG_NIL);
   lib = SG_LIBRARY(lib_scm);
   if (SG_ARGC > 4+1) {
     non_termP_scm = SG_ARGREF(4);
@@ -4669,7 +4669,7 @@ static SgObject extlib__25insert_dispatch_macro_character(SgObject *SG_FP, int S
   }
   if (!SG_FALSEP(non_termP_scm) && !SG_BOOLP(non_termP_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[211], SG_MAKE_STRING("boolean"), non_termP_scm, SG_NIL);
+       sg__rc.d1682[211], SG_MAKE_STRING("boolean"), non_termP_scm, SG_NIL);
   non_termP = SG_BOOL_VALUE(non_termP_scm);
   {
 
@@ -4700,12 +4700,12 @@ static SgObject extlib__25library_reader_setX(SgObject *SG_FP, int SG_ARGC, void
   lib_scm = SG_ARGREF(0);
   if (!SG_LIBRARYP(lib_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[212], SG_MAKE_STRING("library"), lib_scm, SG_NIL);
+       sg__rc.d1682[212], SG_MAKE_STRING("library"), lib_scm, SG_NIL);
   lib = SG_LIBRARY(lib_scm);
   proc_scm = SG_ARGREF(1);
   if (!SG_PROCEDUREP(proc_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[212], SG_MAKE_STRING("procedure"), proc_scm, SG_NIL);
+       sg__rc.d1682[212], SG_MAKE_STRING("procedure"), proc_scm, SG_NIL);
   proc = SG_PROCEDURE(proc_scm);
   {
 
@@ -4733,7 +4733,7 @@ static SgObject extlib_read_delimited_list(SgObject *SG_FP, int SG_ARGC, void *d
   c_scm = SG_ARGREF(0);
   if (!SG_CHARP(c_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[213], SG_MAKE_STRING("character"), c_scm, SG_NIL);
+       sg__rc.d1682[213], SG_MAKE_STRING("character"), c_scm, SG_NIL);
   c = SG_CHAR_VALUE(c_scm);
   if (SG_ARGC > 1+1) {
     p_scm = SG_ARGREF(1);
@@ -4744,7 +4744,7 @@ Sg_CurrentInputPort();
   }
   if (!SG_PORTP(p_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[213], SG_MAKE_STRING("port"), p_scm, SG_NIL);
+       sg__rc.d1682[213], SG_MAKE_STRING("port"), p_scm, SG_NIL);
   p = SG_PORT(p_scm);
   if (SG_ARGC > 2+1) {
     shareP_scm = SG_ARGREF(2);
@@ -4753,7 +4753,7 @@ Sg_CurrentInputPort();
   }
   if (!SG_TRUEP(shareP_scm) && !SG_BOOLP(shareP_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[213], SG_MAKE_STRING("boolean"), shareP_scm, SG_NIL);
+       sg__rc.d1682[213], SG_MAKE_STRING("boolean"), shareP_scm, SG_NIL);
   shareP = SG_BOOL_VALUE(shareP_scm);
   {
 {
@@ -4778,7 +4778,7 @@ static SgObject extlib_delimited_charP(SgObject *SG_FP, int SG_ARGC, void *data_
   c_scm = SG_ARGREF(0);
   if (!SG_CHARP(c_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[214], SG_MAKE_STRING("character"), c_scm, SG_NIL);
+       sg__rc.d1682[214], SG_MAKE_STRING("character"), c_scm, SG_NIL);
   c = SG_CHAR_VALUE(c_scm);
   {
 {
@@ -4825,7 +4825,7 @@ static SgObject extlib_digit_value(SgObject *SG_FP, int SG_ARGC, void *data_)
   c_scm = SG_ARGREF(0);
   if (!SG_CHARP(c_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[216], SG_MAKE_STRING("character"), c_scm, SG_NIL);
+       sg__rc.d1682[216], SG_MAKE_STRING("character"), c_scm, SG_NIL);
   c = SG_CHAR_VALUE(c_scm);
   {
 {
@@ -4850,7 +4850,7 @@ static SgObject extlib_make_weak_vector(SgObject *SG_FP, int SG_ARGC, void *data
   size_scm = SG_ARGREF(0);
   if (!SG_INTP(size_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[217], SG_MAKE_STRING("fixnum"), size_scm, SG_NIL);
+       sg__rc.d1682[217], SG_MAKE_STRING("fixnum"), size_scm, SG_NIL);
   size = SG_INT_VALUE(size_scm);
   {
 {
@@ -4880,7 +4880,7 @@ long SG_RESULT = (long)NULL;
 
 #line 880 "./extlib.stub"
 if ((!(SG_WEAK_VECTORP(o)))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[219],SG_MAKE_STRING("weak-vector"),o,SG_NIL);}}}
+{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[219],SG_MAKE_STRING("weak-vector"),o,SG_NIL);}}}
 
 #line 883 "./extlib.stub"
 SG_RESULT=((SG_WEAK_VECTOR(o))->size);
@@ -4909,7 +4909,7 @@ static SgObject extlib_weak_vector_ref(SgObject *SG_FP, int SG_ARGC, void *data_
   k_scm = SG_ARGREF(1);
   if (!SG_INTP(k_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[220], SG_MAKE_STRING("fixnum"), k_scm, SG_NIL);
+       sg__rc.d1682[220], SG_MAKE_STRING("fixnum"), k_scm, SG_NIL);
   k = SG_INT_VALUE(k_scm);
   if (SG_ARGC > 2+1) {
     fallback_scm = SG_ARGREF(2);
@@ -4923,12 +4923,12 @@ SgObject SG_RESULT = (SgObject)NULL;
 
 #line 887 "./extlib.stub"
 if ((!(SG_WEAK_VECTORP(wvec)))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[221],SG_MAKE_STRING("weak-vector"),wvec,SG_NIL);}}}
+{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[221],SG_MAKE_STRING("weak-vector"),wvec,SG_NIL);}}}
 
 #line 890 "./extlib.stub"
 if (((k)<(0))||((k)>=((SG_WEAK_VECTOR(wvec))->size))){
 if (SG_UNBOUNDP(fallback)){
-{Sg_AssertionViolation(sg__rc.d1636[221],SG_MAKE_STRING("index out of range"),
+{Sg_AssertionViolation(sg__rc.d1682[221],SG_MAKE_STRING("index out of range"),
 #line 894 "./extlib.stub"
 SG_LIST2(wvec,SG_MAKE_INT(k)));}} else {
 SG_RESULT=(fallback);}} else {
@@ -4957,7 +4957,7 @@ static SgObject extlib_weak_vector_setX(SgObject *SG_FP, int SG_ARGC, void *data
   k_scm = SG_ARGREF(1);
   if (!SG_INTP(k_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[222], SG_MAKE_STRING("fixnum"), k_scm, SG_NIL);
+       sg__rc.d1682[222], SG_MAKE_STRING("fixnum"), k_scm, SG_NIL);
   k = SG_INT_VALUE(k_scm);
   value_scm = SG_ARGREF(2);
   value = (value_scm);
@@ -4965,11 +4965,11 @@ static SgObject extlib_weak_vector_setX(SgObject *SG_FP, int SG_ARGC, void *data
 
 #line 900 "./extlib.stub"
 if ((!(SG_WEAK_VECTORP(wvec)))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[221],SG_MAKE_STRING("weak-vector"),wvec,SG_NIL);}}}
+{Sg_WrongTypeOfArgumentViolation(sg__rc.d1682[221],SG_MAKE_STRING("weak-vector"),wvec,SG_NIL);}}}
 
 #line 903 "./extlib.stub"
 if (((k)<(0))||((k)>=((SG_WEAK_VECTOR(wvec))->size))){{
-{Sg_AssertionViolation(sg__rc.d1636[221],SG_MAKE_STRING("index out of range"),
+{Sg_AssertionViolation(sg__rc.d1682[221],SG_MAKE_STRING("index out of range"),
 #line 906 "./extlib.stub"
 SG_LIST2(wvec,SG_MAKE_INT(k)));}}}
 
@@ -4997,7 +4997,7 @@ static SgObject extlib_make_weak_eq_hashtable(SgObject *SG_FP, int SG_ARGC, void
   }
   if (!SG_INTP(k_scm) && !SG_INTP(k_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[223], SG_MAKE_STRING("fixnum"), k_scm, SG_NIL);
+       sg__rc.d1682[223], SG_MAKE_STRING("fixnum"), k_scm, SG_NIL);
   k = SG_INT_VALUE(k_scm);
   {
 {
@@ -5050,7 +5050,7 @@ static SgObject extlib_weak_hashtable_ref(SgObject *SG_FP, int SG_ARGC, void *da
   wh_scm = SG_ARGREF(0);
   if (!SG_WEAK_HASHTABLE_P(wh_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[225], SG_MAKE_STRING("weak hashtable"), wh_scm, SG_NIL);
+       sg__rc.d1682[225], SG_MAKE_STRING("weak hashtable"), wh_scm, SG_NIL);
   wh = SG_WEAK_HASHTABLE(wh_scm);
   key_scm = SG_ARGREF(1);
   key = (key_scm);
@@ -5087,7 +5087,7 @@ static SgObject extlib_weak_hashtable_setX(SgObject *SG_FP, int SG_ARGC, void *d
   wh_scm = SG_ARGREF(0);
   if (!SG_WEAK_HASHTABLE_P(wh_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[226], SG_MAKE_STRING("weak hashtable"), wh_scm, SG_NIL);
+       sg__rc.d1682[226], SG_MAKE_STRING("weak hashtable"), wh_scm, SG_NIL);
   wh = SG_WEAK_HASHTABLE(wh_scm);
   key_scm = SG_ARGREF(1);
   key = (key_scm);
@@ -5115,7 +5115,7 @@ static SgObject extlib_weak_hashtable_deleteX(SgObject *SG_FP, int SG_ARGC, void
   wh_scm = SG_ARGREF(0);
   if (!SG_WEAK_HASHTABLE_P(wh_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[227], SG_MAKE_STRING("weak hashtable"), wh_scm, SG_NIL);
+       sg__rc.d1682[227], SG_MAKE_STRING("weak hashtable"), wh_scm, SG_NIL);
   wh = SG_WEAK_HASHTABLE(wh_scm);
   key_scm = SG_ARGREF(1);
   key = (key_scm);
@@ -5139,7 +5139,7 @@ static SgObject extlib_weak_hashtable_keys_list(SgObject *SG_FP, int SG_ARGC, vo
   wh_scm = SG_ARGREF(0);
   if (!SG_WEAK_HASHTABLE_P(wh_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[228], SG_MAKE_STRING("weak hashtable"), wh_scm, SG_NIL);
+       sg__rc.d1682[228], SG_MAKE_STRING("weak hashtable"), wh_scm, SG_NIL);
   wh = SG_WEAK_HASHTABLE(wh_scm);
   {
 {
@@ -5164,7 +5164,7 @@ static SgObject extlib_weak_hashtable_values_list(SgObject *SG_FP, int SG_ARGC, 
   wh_scm = SG_ARGREF(0);
   if (!SG_WEAK_HASHTABLE_P(wh_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[229], SG_MAKE_STRING("weak hashtable"), wh_scm, SG_NIL);
+       sg__rc.d1682[229], SG_MAKE_STRING("weak hashtable"), wh_scm, SG_NIL);
   wh = SG_WEAK_HASHTABLE(wh_scm);
   {
 {
@@ -5189,7 +5189,7 @@ static SgObject extlib_weak_hashtable_copy(SgObject *SG_FP, int SG_ARGC, void *d
   wh_scm = SG_ARGREF(0);
   if (!SG_WEAK_HASHTABLE_P(wh_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[230], SG_MAKE_STRING("weak hashtable"), wh_scm, SG_NIL);
+       sg__rc.d1682[230], SG_MAKE_STRING("weak hashtable"), wh_scm, SG_NIL);
   wh = SG_WEAK_HASHTABLE(wh_scm);
   {
 {
@@ -5263,7 +5263,7 @@ static SgObject extlib_get_mac_address(SgObject *SG_FP, int SG_ARGC, void *data_
   }
   if (!SG_INTP(pos_scm) && !SG_INTP(pos_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[233], SG_MAKE_STRING("fixnum"), pos_scm, SG_NIL);
+       sg__rc.d1682[233], SG_MAKE_STRING("fixnum"), pos_scm, SG_NIL);
   pos = SG_INT_VALUE(pos_scm);
   {
 {
@@ -5277,578 +5277,578 @@ static SG_DEFINE_SUBR(extlib_get_mac_address__STUB, 0, 2,extlib_get_mac_address,
 
 void Sg__Init_sagittarius () {
   SgLibrary *lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius)"), TRUE));
-  sg__rc.d1636[0] = SG_MAKE_STRING("identifier=?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[0]), &extlib_identifier_3dP__STUB);
-  SG_PROCEDURE_NAME(&extlib_identifier_3dP__STUB) = sg__rc.d1636[0];
-  sg__rc.d1636[1] = SG_MAKE_STRING("id-name");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[1]), &extlib_id_name__STUB);
-  SG_PROCEDURE_NAME(&extlib_id_name__STUB) = sg__rc.d1636[1];
-  sg__rc.d1636[2] = SG_MAKE_STRING("identifier->symbol");
-  sg__rc.d1636[3] = Sg_Intern(sg__rc.d1636[2]); /* identifier->symbol */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[2]), &extlib_identifier_TOsymbol__STUB);
-  SG_PROCEDURE_NAME(&extlib_identifier_TOsymbol__STUB) = sg__rc.d1636[2];
-  sg__rc.d1636[4] = SG_MAKE_STRING("id-memq");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[4]), &extlib_id_memq__STUB);
-  SG_PROCEDURE_NAME(&extlib_id_memq__STUB) = sg__rc.d1636[4];
-  sg__rc.d1636[5] = SG_MAKE_STRING("toplevel-id?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[5]), &extlib_toplevel_idP__STUB);
-  SG_PROCEDURE_NAME(&extlib_toplevel_idP__STUB) = sg__rc.d1636[5];
-  sg__rc.d1636[6] = SG_MAKE_STRING("closure?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[6]), &extlib_closureP__STUB);
-  SG_PROCEDURE_NAME(&extlib_closureP__STUB) = sg__rc.d1636[6];
-  sg__rc.d1636[7] = SG_MAKE_STRING("dotted-list?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[7]), &extlib_dotted_listP__STUB);
-  SG_PROCEDURE_NAME(&extlib_dotted_listP__STUB) = sg__rc.d1636[7];
-  sg__rc.d1636[8] = SG_MAKE_STRING("circular-list?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[8]), &extlib_circular_listP__STUB);
-  SG_PROCEDURE_NAME(&extlib_circular_listP__STUB) = sg__rc.d1636[8];
-  sg__rc.d1636[9] = SG_MAKE_STRING("reverse!");
-  sg__rc.d1636[10] = Sg_Intern(sg__rc.d1636[9]); /* reverse! */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[9]), &extlib_reverseX__STUB);
-  SG_PROCEDURE_NAME(&extlib_reverseX__STUB) = sg__rc.d1636[9];
-  sg__rc.d1636[11] = SG_MAKE_STRING("acons");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[11]), &extlib_acons__STUB);
-  SG_PROCEDURE_NAME(&extlib_acons__STUB) = sg__rc.d1636[11];
-  sg__rc.d1636[12] = SG_MAKE_STRING("append!");
-  sg__rc.d1636[13] = Sg_Intern(sg__rc.d1636[12]); /* append! */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[12]), &extlib_appendX__STUB);
-  SG_PROCEDURE_NAME(&extlib_appendX__STUB) = sg__rc.d1636[12];
-  sg__rc.d1636[14] = SG_MAKE_STRING("vector-copy");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[14]), &extlib_vector_copy__STUB);
-  SG_PROCEDURE_NAME(&extlib_vector_copy__STUB) = sg__rc.d1636[14];
-  sg__rc.d1636[15] = SG_MAKE_STRING("vector-concatenate");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[15]), &extlib_vector_concatenate__STUB);
-  SG_PROCEDURE_NAME(&extlib_vector_concatenate__STUB) = sg__rc.d1636[15];
-  sg__rc.d1636[16] = SG_MAKE_STRING("vector-append");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[16]), &extlib_vector_append__STUB);
-  SG_PROCEDURE_NAME(&extlib_vector_append__STUB) = sg__rc.d1636[16];
-  sg__rc.d1636[17] = SG_MAKE_STRING("vector-reverse!");
-  sg__rc.d1636[18] = Sg_Intern(sg__rc.d1636[17]); /* vector-reverse! */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[17]), &extlib_vector_reverseX__STUB);
-  SG_PROCEDURE_NAME(&extlib_vector_reverseX__STUB) = sg__rc.d1636[17];
-  sg__rc.d1636[19] = SG_MAKE_STRING("vector-reverse");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[19]), &extlib_vector_reverse__STUB);
-  SG_PROCEDURE_NAME(&extlib_vector_reverse__STUB) = sg__rc.d1636[19];
-  sg__rc.d1636[20] = SG_MAKE_STRING("current-exception-handler");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[20]), &extlib_current_exception_handler__STUB);
-  SG_PROCEDURE_NAME(&extlib_current_exception_handler__STUB) = sg__rc.d1636[20];
-  sg__rc.d1636[21] = SG_MAKE_STRING("parent-exception-handler");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[21]), &extlib_parent_exception_handler__STUB);
-  SG_PROCEDURE_NAME(&extlib_parent_exception_handler__STUB) = sg__rc.d1636[21];
-  sg__rc.d1636[22] = SG_MAKE_STRING("variable?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[22]), &extlib_variableP__STUB);
-  SG_PROCEDURE_NAME(&extlib_variableP__STUB) = sg__rc.d1636[22];
-  sg__rc.d1636[23] = SG_MAKE_STRING("+.");
-  sg__rc.d1636[24] = Sg_Intern(sg__rc.d1636[23]); /* +. */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[23]), &extlib__2b_2e__STUB);
-  SG_PROCEDURE_NAME(&extlib__2b_2e__STUB) = sg__rc.d1636[23];
-  sg__rc.d1636[25] = SG_MAKE_STRING("*.");
-  sg__rc.d1636[26] = Sg_Intern(sg__rc.d1636[25]); /* *. */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[25]), &extlib__2a_2e__STUB);
-  SG_PROCEDURE_NAME(&extlib__2a_2e__STUB) = sg__rc.d1636[25];
-  sg__rc.d1636[27] = SG_MAKE_STRING("-.");
-  sg__rc.d1636[28] = Sg_Intern(sg__rc.d1636[27]); /* -. */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[27]), &extlib___2e__STUB);
-  SG_PROCEDURE_NAME(&extlib___2e__STUB) = sg__rc.d1636[27];
-  sg__rc.d1636[29] = SG_MAKE_STRING("/.");
-  sg__rc.d1636[31] = SG_MAKE_STRING("/");
-  sg__rc.d1636[30] = Sg_Intern(sg__rc.d1636[31]); /* / */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[29]), &extlib__2f_2e__STUB);
-  SG_PROCEDURE_NAME(&extlib__2f_2e__STUB) = sg__rc.d1636[29];
-  sg__rc.d1636[32] = SG_MAKE_STRING("mod-inverse");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[32]), &extlib_mod_inverse__STUB);
-  SG_PROCEDURE_NAME(&extlib_mod_inverse__STUB) = sg__rc.d1636[32];
-  sg__rc.d1636[33] = SG_MAKE_STRING("mod-expt");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[33]), &extlib_mod_expt__STUB);
-  SG_PROCEDURE_NAME(&extlib_mod_expt__STUB) = sg__rc.d1636[33];
-  sg__rc.d1636[34] = SG_MAKE_STRING("arity");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[34]), &extlib_arity__STUB);
-  SG_PROCEDURE_NAME(&extlib_arity__STUB) = sg__rc.d1636[34];
-  sg__rc.d1636[35] = SG_MAKE_STRING("unbound");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[35]), &extlib_unbound__STUB);
-  SG_PROCEDURE_NAME(&extlib_unbound__STUB) = sg__rc.d1636[35];
-  sg__rc.d1636[36] = SG_MAKE_STRING("undefined");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[36]), &extlib_undefined__STUB);
-  SG_PROCEDURE_NAME(&extlib_undefined__STUB) = sg__rc.d1636[36];
-  sg__rc.d1636[37] = SG_MAKE_STRING("undefined?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[37]), &extlib_undefinedP__STUB);
-  SG_PROCEDURE_NAME(&extlib_undefinedP__STUB) = sg__rc.d1636[37];
-  sg__rc.d1636[38] = SG_MAKE_STRING("add-load-path");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[38]), &extlib_add_load_path__STUB);
-  SG_PROCEDURE_NAME(&extlib_add_load_path__STUB) = sg__rc.d1636[38];
-  sg__rc.d1636[39] = SG_MAKE_STRING("load");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[39]), &extlib_load__STUB);
-  SG_PROCEDURE_NAME(&extlib_load__STUB) = sg__rc.d1636[39];
-  sg__rc.d1636[40] = SG_MAKE_STRING("gensym");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[40]), &extlib_gensym__STUB);
-  SG_PROCEDURE_NAME(&extlib_gensym__STUB) = sg__rc.d1636[40];
-  sg__rc.d1636[41] = SG_MAKE_STRING("unwrap-syntax");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[41]), &extlib_unwrap_syntax__STUB);
-  SG_PROCEDURE_NAME(&extlib_unwrap_syntax__STUB) = sg__rc.d1636[41];
-  sg__rc.d1636[42] = SG_MAKE_STRING("unwrap-syntax-with-reverse");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[42]), &extlib_unwrap_syntax_with_reverse__STUB);
-  SG_PROCEDURE_NAME(&extlib_unwrap_syntax_with_reverse__STUB) = sg__rc.d1636[42];
-  sg__rc.d1636[43] = SG_MAKE_STRING("wrap-syntax");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[43]), &extlib_wrap_syntax__STUB);
-  SG_PROCEDURE_NAME(&extlib_wrap_syntax__STUB) = sg__rc.d1636[43];
-  sg__rc.d1636[44] = SG_MAKE_STRING("current-dynamic-environment");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[44]), &extlib_current_dynamic_environment__STUB);
-  SG_PROCEDURE_NAME(&extlib_current_dynamic_environment__STUB) = sg__rc.d1636[44];
-  sg__rc.d1636[45] = SG_MAKE_STRING("add-dynamic-load-path");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[45]), &extlib_add_dynamic_load_path__STUB);
-  SG_PROCEDURE_NAME(&extlib_add_dynamic_load_path__STUB) = sg__rc.d1636[45];
-  sg__rc.d1636[46] = SG_MAKE_STRING("load-dynamic-library");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[46]), &extlib_load_dynamic_library__STUB);
-  SG_PROCEDURE_NAME(&extlib_load_dynamic_library__STUB) = sg__rc.d1636[46];
-  sg__rc.d1636[47] = SG_MAKE_STRING("sagittarius-version");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[47]), &extlib_sagittarius_version__STUB);
-  SG_PROCEDURE_NAME(&extlib_sagittarius_version__STUB) = sg__rc.d1636[47];
-  sg__rc.d1636[48] = SG_MAKE_STRING("report-error");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[48]), &extlib_report_error__STUB);
-  SG_PROCEDURE_NAME(&extlib_report_error__STUB) = sg__rc.d1636[48];
-  sg__rc.d1636[49] = SG_MAKE_STRING("describe-condition");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[49]), &extlib_describe_condition__STUB);
-  SG_PROCEDURE_NAME(&extlib_describe_condition__STUB) = sg__rc.d1636[49];
-  sg__rc.d1636[50] = SG_MAKE_STRING("interned-symbol?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[50]), &extlib_interned_symbolP__STUB);
-  SG_PROCEDURE_NAME(&extlib_interned_symbolP__STUB) = sg__rc.d1636[50];
-  sg__rc.d1636[51] = SG_MAKE_STRING("setter");
-  sg__rc.d1636[52] = SG_MAKE_STRING("(setter setter)");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[51]), &extlib_setter__STUB);
-  SG_PROCEDURE_NAME(&extlib_setter__STUB) = sg__rc.d1636[51];
-  SG_PROCEDURE_NAME(&extlib_setter_SETTER__STUB) = sg__rc.d1636[52];
+  sg__rc.d1682[0] = SG_MAKE_STRING("identifier=?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[0]), &extlib_identifier_3dP__STUB);
+  SG_PROCEDURE_NAME(&extlib_identifier_3dP__STUB) = sg__rc.d1682[0];
+  sg__rc.d1682[1] = SG_MAKE_STRING("id-name");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[1]), &extlib_id_name__STUB);
+  SG_PROCEDURE_NAME(&extlib_id_name__STUB) = sg__rc.d1682[1];
+  sg__rc.d1682[2] = SG_MAKE_STRING("identifier->symbol");
+  sg__rc.d1682[3] = Sg_Intern(sg__rc.d1682[2]); /* identifier->symbol */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[2]), &extlib_identifier_TOsymbol__STUB);
+  SG_PROCEDURE_NAME(&extlib_identifier_TOsymbol__STUB) = sg__rc.d1682[2];
+  sg__rc.d1682[4] = SG_MAKE_STRING("id-memq");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[4]), &extlib_id_memq__STUB);
+  SG_PROCEDURE_NAME(&extlib_id_memq__STUB) = sg__rc.d1682[4];
+  sg__rc.d1682[5] = SG_MAKE_STRING("toplevel-id?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[5]), &extlib_toplevel_idP__STUB);
+  SG_PROCEDURE_NAME(&extlib_toplevel_idP__STUB) = sg__rc.d1682[5];
+  sg__rc.d1682[6] = SG_MAKE_STRING("closure?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[6]), &extlib_closureP__STUB);
+  SG_PROCEDURE_NAME(&extlib_closureP__STUB) = sg__rc.d1682[6];
+  sg__rc.d1682[7] = SG_MAKE_STRING("dotted-list?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[7]), &extlib_dotted_listP__STUB);
+  SG_PROCEDURE_NAME(&extlib_dotted_listP__STUB) = sg__rc.d1682[7];
+  sg__rc.d1682[8] = SG_MAKE_STRING("circular-list?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[8]), &extlib_circular_listP__STUB);
+  SG_PROCEDURE_NAME(&extlib_circular_listP__STUB) = sg__rc.d1682[8];
+  sg__rc.d1682[9] = SG_MAKE_STRING("reverse!");
+  sg__rc.d1682[10] = Sg_Intern(sg__rc.d1682[9]); /* reverse! */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[9]), &extlib_reverseX__STUB);
+  SG_PROCEDURE_NAME(&extlib_reverseX__STUB) = sg__rc.d1682[9];
+  sg__rc.d1682[11] = SG_MAKE_STRING("acons");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[11]), &extlib_acons__STUB);
+  SG_PROCEDURE_NAME(&extlib_acons__STUB) = sg__rc.d1682[11];
+  sg__rc.d1682[12] = SG_MAKE_STRING("append!");
+  sg__rc.d1682[13] = Sg_Intern(sg__rc.d1682[12]); /* append! */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[12]), &extlib_appendX__STUB);
+  SG_PROCEDURE_NAME(&extlib_appendX__STUB) = sg__rc.d1682[12];
+  sg__rc.d1682[14] = SG_MAKE_STRING("vector-copy");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[14]), &extlib_vector_copy__STUB);
+  SG_PROCEDURE_NAME(&extlib_vector_copy__STUB) = sg__rc.d1682[14];
+  sg__rc.d1682[15] = SG_MAKE_STRING("vector-concatenate");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[15]), &extlib_vector_concatenate__STUB);
+  SG_PROCEDURE_NAME(&extlib_vector_concatenate__STUB) = sg__rc.d1682[15];
+  sg__rc.d1682[16] = SG_MAKE_STRING("vector-append");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[16]), &extlib_vector_append__STUB);
+  SG_PROCEDURE_NAME(&extlib_vector_append__STUB) = sg__rc.d1682[16];
+  sg__rc.d1682[17] = SG_MAKE_STRING("vector-reverse!");
+  sg__rc.d1682[18] = Sg_Intern(sg__rc.d1682[17]); /* vector-reverse! */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[17]), &extlib_vector_reverseX__STUB);
+  SG_PROCEDURE_NAME(&extlib_vector_reverseX__STUB) = sg__rc.d1682[17];
+  sg__rc.d1682[19] = SG_MAKE_STRING("vector-reverse");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[19]), &extlib_vector_reverse__STUB);
+  SG_PROCEDURE_NAME(&extlib_vector_reverse__STUB) = sg__rc.d1682[19];
+  sg__rc.d1682[20] = SG_MAKE_STRING("current-exception-handler");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[20]), &extlib_current_exception_handler__STUB);
+  SG_PROCEDURE_NAME(&extlib_current_exception_handler__STUB) = sg__rc.d1682[20];
+  sg__rc.d1682[21] = SG_MAKE_STRING("parent-exception-handler");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[21]), &extlib_parent_exception_handler__STUB);
+  SG_PROCEDURE_NAME(&extlib_parent_exception_handler__STUB) = sg__rc.d1682[21];
+  sg__rc.d1682[22] = SG_MAKE_STRING("variable?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[22]), &extlib_variableP__STUB);
+  SG_PROCEDURE_NAME(&extlib_variableP__STUB) = sg__rc.d1682[22];
+  sg__rc.d1682[23] = SG_MAKE_STRING("+.");
+  sg__rc.d1682[24] = Sg_Intern(sg__rc.d1682[23]); /* +. */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[23]), &extlib__2b_2e__STUB);
+  SG_PROCEDURE_NAME(&extlib__2b_2e__STUB) = sg__rc.d1682[23];
+  sg__rc.d1682[25] = SG_MAKE_STRING("*.");
+  sg__rc.d1682[26] = Sg_Intern(sg__rc.d1682[25]); /* *. */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[25]), &extlib__2a_2e__STUB);
+  SG_PROCEDURE_NAME(&extlib__2a_2e__STUB) = sg__rc.d1682[25];
+  sg__rc.d1682[27] = SG_MAKE_STRING("-.");
+  sg__rc.d1682[28] = Sg_Intern(sg__rc.d1682[27]); /* -. */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[27]), &extlib___2e__STUB);
+  SG_PROCEDURE_NAME(&extlib___2e__STUB) = sg__rc.d1682[27];
+  sg__rc.d1682[29] = SG_MAKE_STRING("/.");
+  sg__rc.d1682[31] = SG_MAKE_STRING("/");
+  sg__rc.d1682[30] = Sg_Intern(sg__rc.d1682[31]); /* / */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[29]), &extlib__2f_2e__STUB);
+  SG_PROCEDURE_NAME(&extlib__2f_2e__STUB) = sg__rc.d1682[29];
+  sg__rc.d1682[32] = SG_MAKE_STRING("mod-inverse");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[32]), &extlib_mod_inverse__STUB);
+  SG_PROCEDURE_NAME(&extlib_mod_inverse__STUB) = sg__rc.d1682[32];
+  sg__rc.d1682[33] = SG_MAKE_STRING("mod-expt");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[33]), &extlib_mod_expt__STUB);
+  SG_PROCEDURE_NAME(&extlib_mod_expt__STUB) = sg__rc.d1682[33];
+  sg__rc.d1682[34] = SG_MAKE_STRING("arity");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[34]), &extlib_arity__STUB);
+  SG_PROCEDURE_NAME(&extlib_arity__STUB) = sg__rc.d1682[34];
+  sg__rc.d1682[35] = SG_MAKE_STRING("unbound");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[35]), &extlib_unbound__STUB);
+  SG_PROCEDURE_NAME(&extlib_unbound__STUB) = sg__rc.d1682[35];
+  sg__rc.d1682[36] = SG_MAKE_STRING("undefined");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[36]), &extlib_undefined__STUB);
+  SG_PROCEDURE_NAME(&extlib_undefined__STUB) = sg__rc.d1682[36];
+  sg__rc.d1682[37] = SG_MAKE_STRING("undefined?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[37]), &extlib_undefinedP__STUB);
+  SG_PROCEDURE_NAME(&extlib_undefinedP__STUB) = sg__rc.d1682[37];
+  sg__rc.d1682[38] = SG_MAKE_STRING("add-load-path");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[38]), &extlib_add_load_path__STUB);
+  SG_PROCEDURE_NAME(&extlib_add_load_path__STUB) = sg__rc.d1682[38];
+  sg__rc.d1682[39] = SG_MAKE_STRING("load");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[39]), &extlib_load__STUB);
+  SG_PROCEDURE_NAME(&extlib_load__STUB) = sg__rc.d1682[39];
+  sg__rc.d1682[40] = SG_MAKE_STRING("gensym");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[40]), &extlib_gensym__STUB);
+  SG_PROCEDURE_NAME(&extlib_gensym__STUB) = sg__rc.d1682[40];
+  sg__rc.d1682[41] = SG_MAKE_STRING("unwrap-syntax");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[41]), &extlib_unwrap_syntax__STUB);
+  SG_PROCEDURE_NAME(&extlib_unwrap_syntax__STUB) = sg__rc.d1682[41];
+  sg__rc.d1682[42] = SG_MAKE_STRING("unwrap-syntax-with-reverse");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[42]), &extlib_unwrap_syntax_with_reverse__STUB);
+  SG_PROCEDURE_NAME(&extlib_unwrap_syntax_with_reverse__STUB) = sg__rc.d1682[42];
+  sg__rc.d1682[43] = SG_MAKE_STRING("wrap-syntax");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[43]), &extlib_wrap_syntax__STUB);
+  SG_PROCEDURE_NAME(&extlib_wrap_syntax__STUB) = sg__rc.d1682[43];
+  sg__rc.d1682[44] = SG_MAKE_STRING("current-dynamic-environment");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[44]), &extlib_current_dynamic_environment__STUB);
+  SG_PROCEDURE_NAME(&extlib_current_dynamic_environment__STUB) = sg__rc.d1682[44];
+  sg__rc.d1682[45] = SG_MAKE_STRING("add-dynamic-load-path");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[45]), &extlib_add_dynamic_load_path__STUB);
+  SG_PROCEDURE_NAME(&extlib_add_dynamic_load_path__STUB) = sg__rc.d1682[45];
+  sg__rc.d1682[46] = SG_MAKE_STRING("load-dynamic-library");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[46]), &extlib_load_dynamic_library__STUB);
+  SG_PROCEDURE_NAME(&extlib_load_dynamic_library__STUB) = sg__rc.d1682[46];
+  sg__rc.d1682[47] = SG_MAKE_STRING("sagittarius-version");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[47]), &extlib_sagittarius_version__STUB);
+  SG_PROCEDURE_NAME(&extlib_sagittarius_version__STUB) = sg__rc.d1682[47];
+  sg__rc.d1682[48] = SG_MAKE_STRING("report-error");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[48]), &extlib_report_error__STUB);
+  SG_PROCEDURE_NAME(&extlib_report_error__STUB) = sg__rc.d1682[48];
+  sg__rc.d1682[49] = SG_MAKE_STRING("describe-condition");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[49]), &extlib_describe_condition__STUB);
+  SG_PROCEDURE_NAME(&extlib_describe_condition__STUB) = sg__rc.d1682[49];
+  sg__rc.d1682[50] = SG_MAKE_STRING("interned-symbol?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[50]), &extlib_interned_symbolP__STUB);
+  SG_PROCEDURE_NAME(&extlib_interned_symbolP__STUB) = sg__rc.d1682[50];
+  sg__rc.d1682[51] = SG_MAKE_STRING("setter");
+  sg__rc.d1682[52] = SG_MAKE_STRING("(setter setter)");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[51]), &extlib_setter__STUB);
+  SG_PROCEDURE_NAME(&extlib_setter__STUB) = sg__rc.d1682[51];
+  SG_PROCEDURE_NAME(&extlib_setter_SETTER__STUB) = sg__rc.d1682[52];
   Sg_SetterSet(SG_PROCEDURE(&extlib_setter__STUB), SG_PROCEDURE(&extlib_setter_SETTER__STUB), TRUE);
-  sg__rc.d1636[53] = SG_MAKE_STRING("has-setter?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[53]), &extlib_has_setterP__STUB);
-  SG_PROCEDURE_NAME(&extlib_has_setterP__STUB) = sg__rc.d1636[53];
-  sg__rc.d1636[54] = SG_MAKE_STRING("copy-file");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[54]), &extlib_copy_file__STUB);
-  SG_PROCEDURE_NAME(&extlib_copy_file__STUB) = sg__rc.d1636[54];
-  sg__rc.d1636[55] = SG_MAKE_STRING("file-size-in-bytes");
-  sg__rc.d1636[56] = Sg_Intern(sg__rc.d1636[55]); /* file-size-in-bytes */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[55]), &extlib_file_size_in_bytes__STUB);
-  SG_PROCEDURE_NAME(&extlib_file_size_in_bytes__STUB) = sg__rc.d1636[55];
-  sg__rc.d1636[57] = SG_MAKE_STRING("file-regular?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[57]), &extlib_file_regularP__STUB);
-  SG_PROCEDURE_NAME(&extlib_file_regularP__STUB) = sg__rc.d1636[57];
-  sg__rc.d1636[58] = SG_MAKE_STRING("file-directory?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[58]), &extlib_file_directoryP__STUB);
-  SG_PROCEDURE_NAME(&extlib_file_directoryP__STUB) = sg__rc.d1636[58];
-  sg__rc.d1636[59] = SG_MAKE_STRING("file-symbolic-link?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[59]), &extlib_file_symbolic_linkP__STUB);
-  SG_PROCEDURE_NAME(&extlib_file_symbolic_linkP__STUB) = sg__rc.d1636[59];
-  sg__rc.d1636[60] = SG_MAKE_STRING("file-readable?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[60]), &extlib_file_readableP__STUB);
-  SG_PROCEDURE_NAME(&extlib_file_readableP__STUB) = sg__rc.d1636[60];
-  sg__rc.d1636[61] = SG_MAKE_STRING("file-writable?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[61]), &extlib_file_writableP__STUB);
-  SG_PROCEDURE_NAME(&extlib_file_writableP__STUB) = sg__rc.d1636[61];
-  sg__rc.d1636[62] = SG_MAKE_STRING("file-executable?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[62]), &extlib_file_executableP__STUB);
-  SG_PROCEDURE_NAME(&extlib_file_executableP__STUB) = sg__rc.d1636[62];
-  sg__rc.d1636[63] = SG_MAKE_STRING("file-stat-ctime");
-  sg__rc.d1636[64] = Sg_Intern(sg__rc.d1636[63]); /* file-stat-ctime */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[63]), &extlib_file_stat_ctime__STUB);
-  SG_PROCEDURE_NAME(&extlib_file_stat_ctime__STUB) = sg__rc.d1636[63];
-  sg__rc.d1636[65] = SG_MAKE_STRING("file-stat-mtime");
-  sg__rc.d1636[66] = Sg_Intern(sg__rc.d1636[65]); /* file-stat-mtime */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[65]), &extlib_file_stat_mtime__STUB);
-  SG_PROCEDURE_NAME(&extlib_file_stat_mtime__STUB) = sg__rc.d1636[65];
-  sg__rc.d1636[67] = SG_MAKE_STRING("file-stat-atime");
-  sg__rc.d1636[68] = Sg_Intern(sg__rc.d1636[67]); /* file-stat-atime */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[67]), &extlib_file_stat_atime__STUB);
-  SG_PROCEDURE_NAME(&extlib_file_stat_atime__STUB) = sg__rc.d1636[67];
-  sg__rc.d1636[69] = SG_MAKE_STRING("create-symbolic-link");
-  sg__rc.d1636[70] = Sg_Intern(sg__rc.d1636[69]); /* create-symbolic-link */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[69]), &extlib_create_symbolic_link__STUB);
-  SG_PROCEDURE_NAME(&extlib_create_symbolic_link__STUB) = sg__rc.d1636[69];
-  sg__rc.d1636[71] = SG_MAKE_STRING("rename-file");
-  sg__rc.d1636[72] = Sg_Intern(sg__rc.d1636[71]); /* rename-file */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[71]), &extlib_rename_file__STUB);
-  SG_PROCEDURE_NAME(&extlib_rename_file__STUB) = sg__rc.d1636[71];
-  sg__rc.d1636[73] = SG_MAKE_STRING("change-file-mode");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[73]), &extlib_change_file_mode__STUB);
-  SG_PROCEDURE_NAME(&extlib_change_file_mode__STUB) = sg__rc.d1636[73];
-  sg__rc.d1636[74] = SG_MAKE_STRING("delete-directory");
-  sg__rc.d1636[75] = Sg_Intern(sg__rc.d1636[74]); /* delete-directory */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[74]), &extlib_delete_directory__STUB);
-  SG_PROCEDURE_NAME(&extlib_delete_directory__STUB) = sg__rc.d1636[74];
-  sg__rc.d1636[76] = SG_MAKE_STRING("create-directory");
-  sg__rc.d1636[77] = Sg_Intern(sg__rc.d1636[76]); /* create-directory */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[76]), &extlib_create_directory__STUB);
-  SG_PROCEDURE_NAME(&extlib_create_directory__STUB) = sg__rc.d1636[76];
-  sg__rc.d1636[78] = SG_MAKE_STRING("read-directory");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[78]), &extlib_read_directory__STUB);
-  SG_PROCEDURE_NAME(&extlib_read_directory__STUB) = sg__rc.d1636[78];
-  sg__rc.d1636[79] = SG_MAKE_STRING("current-directory");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[79]), &extlib_current_directory__STUB);
-  SG_PROCEDURE_NAME(&extlib_current_directory__STUB) = sg__rc.d1636[79];
-  sg__rc.d1636[80] = SG_MAKE_STRING("set-current-directory");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[80]), &extlib_set_current_directory__STUB);
-  SG_PROCEDURE_NAME(&extlib_set_current_directory__STUB) = sg__rc.d1636[80];
-  sg__rc.d1636[81] = SG_MAKE_STRING("build-path");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[81]), &extlib_build_path__STUB);
-  SG_PROCEDURE_NAME(&extlib_build_path__STUB) = sg__rc.d1636[81];
-  sg__rc.d1636[82] = SG_MAKE_STRING("absolute-path?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[82]), &extlib_absolute_pathP__STUB);
-  SG_PROCEDURE_NAME(&extlib_absolute_pathP__STUB) = sg__rc.d1636[82];
-  sg__rc.d1636[83] = SG_MAKE_STRING("absolute-path");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[83]), &extlib_absolute_path__STUB);
-  SG_PROCEDURE_NAME(&extlib_absolute_path__STUB) = sg__rc.d1636[83];
-  sg__rc.d1636[85] = SG_MAKE_STRING("glob");
-  sg__rc.d1636[84] = Sg_Intern(sg__rc.d1636[85]); /* glob */
-  sg__rc.d1636[87] = SG_MAKE_STRING("pathname");
-  sg__rc.d1636[86] = Sg_Intern(sg__rc.d1636[87]); /* pathname */
-  sg__rc.d1636[89] = SG_MAKE_STRING("case-fold");
-  sg__rc.d1636[88] = Sg_Intern(sg__rc.d1636[89]); /* case-fold */
-  sg__rc.d1636[91] = SG_MAKE_STRING("noescape");
-  sg__rc.d1636[90] = Sg_Intern(sg__rc.d1636[91]); /* noescape */
-  sg__rc.d1636[93] = SG_MAKE_STRING("dot-match");
-  sg__rc.d1636[92] = Sg_Intern(sg__rc.d1636[93]); /* dot-match */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[85]), &extlib_glob__STUB);
-  SG_PROCEDURE_NAME(&extlib_glob__STUB) = sg__rc.d1636[85];
-  sg__rc.d1636[94] = SG_MAKE_STRING("current-load-path");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[94]), &extlib_current_load_path__STUB);
-  SG_PROCEDURE_NAME(&extlib_current_load_path__STUB) = sg__rc.d1636[94];
-  sg__rc.d1636[95] = SG_MAKE_STRING("sagittarius-installed-directory");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[95]), &extlib_sagittarius_installed_directory__STUB);
-  SG_PROCEDURE_NAME(&extlib_sagittarius_installed_directory__STUB) = sg__rc.d1636[95];
-  sg__rc.d1636[96] = SG_MAKE_STRING("copy-access-control");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[96]), &extlib_copy_access_control__STUB);
-  SG_PROCEDURE_NAME(&extlib_copy_access_control__STUB) = sg__rc.d1636[96];
-  sg__rc.d1636[97] = SG_MAKE_STRING("current-library");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[97]), &extlib_current_library__STUB);
-  SG_PROCEDURE_NAME(&extlib_current_library__STUB) = sg__rc.d1636[97];
-  sg__rc.d1636[98] = SG_MAKE_STRING("string-scan");
-  sg__rc.d1636[99] = Sg_Intern(sg__rc.d1636[98]); /* string-scan */
-  sg__rc.d1636[101] = SG_MAKE_STRING("both");
-  sg__rc.d1636[100] = Sg_Intern(sg__rc.d1636[101]); /* both */
-  sg__rc.d1636[103] = SG_MAKE_STRING("after*");
-  sg__rc.d1636[102] = Sg_Intern(sg__rc.d1636[103]); /* after* */
-  sg__rc.d1636[105] = SG_MAKE_STRING("before*");
-  sg__rc.d1636[104] = Sg_Intern(sg__rc.d1636[105]); /* before* */
-  sg__rc.d1636[107] = SG_MAKE_STRING("after");
-  sg__rc.d1636[106] = Sg_Intern(sg__rc.d1636[107]); /* after */
-  sg__rc.d1636[109] = SG_MAKE_STRING("before");
-  sg__rc.d1636[108] = Sg_Intern(sg__rc.d1636[109]); /* before */
-  sg__rc.d1636[111] = SG_MAKE_STRING("index");
-  sg__rc.d1636[110] = Sg_Intern(sg__rc.d1636[111]); /* index */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[98]), &extlib_string_scan__STUB);
-  SG_PROCEDURE_NAME(&extlib_string_scan__STUB) = sg__rc.d1636[98];
-  sg__rc.d1636[112] = SG_MAKE_STRING("string-concatenate");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[112]), &extlib_string_concatenate__STUB);
-  SG_PROCEDURE_NAME(&extlib_string_concatenate__STUB) = sg__rc.d1636[112];
-  sg__rc.d1636[113] = SG_MAKE_STRING("%maybe-substring");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[113]), &extlib__25maybe_substring__STUB);
-  SG_PROCEDURE_NAME(&extlib__25maybe_substring__STUB) = sg__rc.d1636[113];
-  sg__rc.d1636[114] = SG_MAKE_STRING("make-equal-hashtable");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[114]), &extlib_make_equal_hashtable__STUB);
-  SG_PROCEDURE_NAME(&extlib_make_equal_hashtable__STUB) = sg__rc.d1636[114];
-  sg__rc.d1636[115] = SG_MAKE_STRING("make-string-hashtable");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[115]), &extlib_make_string_hashtable__STUB);
-  SG_PROCEDURE_NAME(&extlib_make_string_hashtable__STUB) = sg__rc.d1636[115];
-  sg__rc.d1636[116] = SG_MAKE_STRING("hashtable-keys-list");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[116]), &extlib_hashtable_keys_list__STUB);
-  SG_PROCEDURE_NAME(&extlib_hashtable_keys_list__STUB) = sg__rc.d1636[116];
-  sg__rc.d1636[117] = SG_MAKE_STRING("hashtable-values-list");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[117]), &extlib_hashtable_values_list__STUB);
-  SG_PROCEDURE_NAME(&extlib_hashtable_values_list__STUB) = sg__rc.d1636[117];
-  sg__rc.d1636[118] = SG_MAKE_STRING("hashtable-type");
-  sg__rc.d1636[119] = Sg_Intern(sg__rc.d1636[118]); /* hashtable-type */
-  sg__rc.d1636[121] = SG_MAKE_STRING("general");
-  sg__rc.d1636[120] = Sg_Intern(sg__rc.d1636[121]); /* general */
-  sg__rc.d1636[123] = SG_MAKE_STRING("string");
-  sg__rc.d1636[122] = Sg_Intern(sg__rc.d1636[123]); /* string */
-  sg__rc.d1636[125] = SG_MAKE_STRING("equal");
-  sg__rc.d1636[124] = Sg_Intern(sg__rc.d1636[125]); /* equal */
-  sg__rc.d1636[127] = SG_MAKE_STRING("eqv");
-  sg__rc.d1636[126] = Sg_Intern(sg__rc.d1636[127]); /* eqv */
-  sg__rc.d1636[129] = SG_MAKE_STRING("eq");
-  sg__rc.d1636[128] = Sg_Intern(sg__rc.d1636[129]); /* eq */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[118]), &extlib_hashtable_type__STUB);
-  SG_PROCEDURE_NAME(&extlib_hashtable_type__STUB) = sg__rc.d1636[118];
-  sg__rc.d1636[130] = SG_MAKE_STRING("hashtable-compare");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[130]), &extlib_hashtable_compare__STUB);
-  SG_PROCEDURE_NAME(&extlib_hashtable_compare__STUB) = sg__rc.d1636[130];
-  sg__rc.d1636[131] = SG_MAKE_STRING("hashtable-hasher");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[131]), &extlib_hashtable_hasher__STUB);
-  SG_PROCEDURE_NAME(&extlib_hashtable_hasher__STUB) = sg__rc.d1636[131];
-  sg__rc.d1636[132] = SG_MAKE_STRING("hashtable-values");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[132]), &extlib_hashtable_values__STUB);
-  SG_PROCEDURE_NAME(&extlib_hashtable_values__STUB) = sg__rc.d1636[132];
-  sg__rc.d1636[133] = SG_MAKE_STRING("eqv-hash");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[133]), &extlib_eqv_hash__STUB);
-  SG_PROCEDURE_NAME(&extlib_eqv_hash__STUB) = sg__rc.d1636[133];
-  sg__rc.d1636[134] = SG_MAKE_STRING("with-error-handler");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[134]), &extlib_with_error_handler__STUB);
-  SG_PROCEDURE_NAME(&extlib_with_error_handler__STUB) = sg__rc.d1636[134];
-  sg__rc.d1636[135] = SG_MAKE_STRING("port-closed?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[135]), &extlib_port_closedP__STUB);
-  SG_PROCEDURE_NAME(&extlib_port_closedP__STUB) = sg__rc.d1636[135];
-  sg__rc.d1636[136] = SG_MAKE_STRING("write/ss");
-  sg__rc.d1636[137] = Sg_Intern(sg__rc.d1636[136]); /* write/ss */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[136]), &extlib_write_2fss__STUB);
-  SG_PROCEDURE_NAME(&extlib_write_2fss__STUB) = sg__rc.d1636[136];
-  sg__rc.d1636[138] = SG_MAKE_STRING("write-cyclic");
-  sg__rc.d1636[139] = Sg_Intern(sg__rc.d1636[138]); /* write-cyclic */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[138]), &extlib_write_cyclic__STUB);
-  SG_PROCEDURE_NAME(&extlib_write_cyclic__STUB) = sg__rc.d1636[138];
-  sg__rc.d1636[141] = SG_MAKE_STRING("source-info?");
-  sg__rc.d1636[140] = Sg_MakeKeyword(SG_STRING(sg__rc.d1636[141])); /* source-info? */
-  sg__rc.d1636[142] = SG_MAKE_STRING("read/ss");
-  sg__rc.d1636[143] = Sg_Intern(sg__rc.d1636[142]); /* read/ss */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[142]), &extlib_read_2fss__STUB);
-  SG_PROCEDURE_NAME(&extlib_read_2fss__STUB) = sg__rc.d1636[142];
-  sg__rc.d1636[144] = SG_MAKE_STRING("format");
-  sg__rc.d1636[145] = Sg_Intern(sg__rc.d1636[144]); /* format */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[144]), &extlib_format__STUB);
-  SG_PROCEDURE_NAME(&extlib_format__STUB) = sg__rc.d1636[144];
-  sg__rc.d1636[146] = SG_MAKE_STRING("format/ss");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[146]), &extlib_format_2fss__STUB);
-  SG_PROCEDURE_NAME(&extlib_format_2fss__STUB) = sg__rc.d1636[146];
-  sg__rc.d1636[147] = SG_MAKE_STRING("make-codec");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[147]), &extlib_make_codec__STUB);
-  SG_PROCEDURE_NAME(&extlib_make_codec__STUB) = sg__rc.d1636[147];
-  sg__rc.d1636[148] = SG_MAKE_STRING("port-info");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[148]), &extlib_port_info__STUB);
-  SG_PROCEDURE_NAME(&extlib_port_info__STUB) = sg__rc.d1636[148];
-  sg__rc.d1636[149] = SG_MAKE_STRING("read-with-case");
-  sg__rc.d1636[150] = Sg_Intern(sg__rc.d1636[149]); /* read-with-case */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[149]), &extlib_read_with_case__STUB);
-  SG_PROCEDURE_NAME(&extlib_read_with_case__STUB) = sg__rc.d1636[149];
-  sg__rc.d1636[151] = SG_MAKE_STRING("open-output-bytevector");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[151]), &extlib_open_output_bytevector__STUB);
-  SG_PROCEDURE_NAME(&extlib_open_output_bytevector__STUB) = sg__rc.d1636[151];
-  sg__rc.d1636[152] = SG_MAKE_STRING("get-output-bytevector");
-  sg__rc.d1636[153] = Sg_Intern(sg__rc.d1636[152]); /* get-output-bytevector */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[152]), &extlib_get_output_bytevector__STUB);
-  SG_PROCEDURE_NAME(&extlib_get_output_bytevector__STUB) = sg__rc.d1636[152];
-  sg__rc.d1636[154] = SG_MAKE_STRING("open-output-string");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[154]), &extlib_open_output_string__STUB);
-  SG_PROCEDURE_NAME(&extlib_open_output_string__STUB) = sg__rc.d1636[154];
-  sg__rc.d1636[155] = SG_MAKE_STRING("get-output-string");
-  sg__rc.d1636[156] = Sg_Intern(sg__rc.d1636[155]); /* get-output-string */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[155]), &extlib_get_output_string__STUB);
-  SG_PROCEDURE_NAME(&extlib_get_output_string__STUB) = sg__rc.d1636[155];
-  sg__rc.d1636[157] = SG_MAKE_STRING("port-ready?");
-  sg__rc.d1636[158] = Sg_Intern(sg__rc.d1636[157]); /* port-ready? */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[157]), &extlib_port_readyP__STUB);
-  SG_PROCEDURE_NAME(&extlib_port_readyP__STUB) = sg__rc.d1636[157];
-  sg__rc.d1636[159] = SG_MAKE_STRING("profiler-start");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[159]), &extlib_profiler_start__STUB);
-  SG_PROCEDURE_NAME(&extlib_profiler_start__STUB) = sg__rc.d1636[159];
-  sg__rc.d1636[160] = SG_MAKE_STRING("profiler-stop");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[160]), &extlib_profiler_stop__STUB);
-  SG_PROCEDURE_NAME(&extlib_profiler_stop__STUB) = sg__rc.d1636[160];
-  sg__rc.d1636[161] = SG_MAKE_STRING("profiler-reset");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[161]), &extlib_profiler_reset__STUB);
-  SG_PROCEDURE_NAME(&extlib_profiler_reset__STUB) = sg__rc.d1636[161];
-  sg__rc.d1636[162] = SG_MAKE_STRING("profiler-raw-result");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[162]), &extlib_profiler_raw_result__STUB);
-  SG_PROCEDURE_NAME(&extlib_profiler_raw_result__STUB) = sg__rc.d1636[162];
-  sg__rc.d1636[163] = SG_MAKE_STRING("disasm");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[163]), &extlib_disasm__STUB);
-  SG_PROCEDURE_NAME(&extlib_disasm__STUB) = sg__rc.d1636[163];
-  sg__rc.d1636[164] = SG_MAKE_STRING("make-keyword");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[164]), &extlib_make_keyword__STUB);
-  SG_PROCEDURE_NAME(&extlib_make_keyword__STUB) = sg__rc.d1636[164];
-  sg__rc.d1636[165] = SG_MAKE_STRING("keyword?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[165]), &extlib_keywordP__STUB);
-  SG_PROCEDURE_NAME(&extlib_keywordP__STUB) = sg__rc.d1636[165];
-  sg__rc.d1636[166] = SG_MAKE_STRING("keyword->symbol");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[166]), &extlib_keyword_TOsymbol__STUB);
-  SG_PROCEDURE_NAME(&extlib_keyword_TOsymbol__STUB) = sg__rc.d1636[166];
-  sg__rc.d1636[167] = SG_MAKE_STRING("keyword->string");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[167]), &extlib_keyword_TOstring__STUB);
-  SG_PROCEDURE_NAME(&extlib_keyword_TOstring__STUB) = sg__rc.d1636[167];
-  sg__rc.d1636[168] = SG_MAKE_STRING("get-keyword");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[168]), &extlib_get_keyword__STUB);
-  SG_PROCEDURE_NAME(&extlib_get_keyword__STUB) = sg__rc.d1636[168];
-  sg__rc.d1636[169] = SG_MAKE_STRING("clean-cache");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[169]), &extlib_clean_cache__STUB);
-  SG_PROCEDURE_NAME(&extlib_clean_cache__STUB) = sg__rc.d1636[169];
-  sg__rc.d1636[170] = SG_MAKE_STRING("cachable?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[170]), &extlib_cachableP__STUB);
-  SG_PROCEDURE_NAME(&extlib_cachableP__STUB) = sg__rc.d1636[170];
-  sg__rc.d1636[171] = SG_MAKE_STRING("scan-cache-object");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[171]), &extlib_scan_cache_object__STUB);
-  SG_PROCEDURE_NAME(&extlib_scan_cache_object__STUB) = sg__rc.d1636[171];
-  sg__rc.d1636[172] = SG_MAKE_STRING("write-object-cache");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[172]), &extlib_write_object_cache__STUB);
-  SG_PROCEDURE_NAME(&extlib_write_object_cache__STUB) = sg__rc.d1636[172];
-  sg__rc.d1636[173] = SG_MAKE_STRING("read-cache-object");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[173]), &extlib_read_cache_object__STUB);
-  SG_PROCEDURE_NAME(&extlib_read_cache_object__STUB) = sg__rc.d1636[173];
-  sg__rc.d1636[174] = SG_MAKE_STRING("getenv");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[174]), &extlib_getenv__STUB);
-  SG_PROCEDURE_NAME(&extlib_getenv__STUB) = sg__rc.d1636[174];
-  sg__rc.d1636[175] = SG_MAKE_STRING("setenv");
-  sg__rc.d1636[176] = Sg_Intern(sg__rc.d1636[175]); /* setenv */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[175]), &extlib_setenv__STUB);
-  SG_PROCEDURE_NAME(&extlib_setenv__STUB) = sg__rc.d1636[175];
-  sg__rc.d1636[177] = SG_MAKE_STRING("getenv-alist");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[177]), &extlib_getenv_alist__STUB);
-  SG_PROCEDURE_NAME(&extlib_getenv_alist__STUB) = sg__rc.d1636[177];
-  sg__rc.d1636[178] = SG_MAKE_STRING("emergency-exit");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[178]), &extlib_emergency_exit__STUB);
-  SG_PROCEDURE_NAME(&extlib_emergency_exit__STUB) = sg__rc.d1636[178];
-  sg__rc.d1636[179] = SG_MAKE_STRING("bytevector->integer");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[179]), &extlib_bytevector_TOinteger__STUB);
-  SG_PROCEDURE_NAME(&extlib_bytevector_TOinteger__STUB) = sg__rc.d1636[179];
-  sg__rc.d1636[180] = SG_MAKE_STRING("integer->bytevector");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[180]), &extlib_integer_TObytevector__STUB);
-  SG_PROCEDURE_NAME(&extlib_integer_TObytevector__STUB) = sg__rc.d1636[180];
-  sg__rc.d1636[181] = SG_MAKE_STRING("bytevector-append");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[181]), &extlib_bytevector_append__STUB);
-  SG_PROCEDURE_NAME(&extlib_bytevector_append__STUB) = sg__rc.d1636[181];
-  sg__rc.d1636[182] = SG_MAKE_STRING("bytevector-concatenate");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[182]), &extlib_bytevector_concatenate__STUB);
-  SG_PROCEDURE_NAME(&extlib_bytevector_concatenate__STUB) = sg__rc.d1636[182];
-  sg__rc.d1636[183] = SG_MAKE_STRING("current-usage-env");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[183]), &extlib_current_usage_env__STUB);
-  SG_PROCEDURE_NAME(&extlib_current_usage_env__STUB) = sg__rc.d1636[183];
-  sg__rc.d1636[184] = SG_MAKE_STRING("current-macro-env");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[184]), &extlib_current_macro_env__STUB);
-  SG_PROCEDURE_NAME(&extlib_current_macro_env__STUB) = sg__rc.d1636[184];
-  sg__rc.d1636[185] = SG_MAKE_STRING("time-usage");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[185]), &extlib_time_usage__STUB);
-  SG_PROCEDURE_NAME(&extlib_time_usage__STUB) = sg__rc.d1636[185];
-  sg__rc.d1636[186] = SG_MAKE_STRING("cond-features");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[186]), &extlib_cond_features__STUB);
-  SG_PROCEDURE_NAME(&extlib_cond_features__STUB) = sg__rc.d1636[186];
-  sg__rc.d1636[187] = SG_MAKE_STRING("make-record-type");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[187]), &extlib_make_record_type__STUB);
-  SG_PROCEDURE_NAME(&extlib_make_record_type__STUB) = sg__rc.d1636[187];
-  sg__rc.d1636[188] = SG_MAKE_STRING("record-type?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[188]), &extlib_record_typeP__STUB);
-  SG_PROCEDURE_NAME(&extlib_record_typeP__STUB) = sg__rc.d1636[188];
-  sg__rc.d1636[189] = SG_MAKE_STRING("record-type-rtd");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[189]), &extlib_record_type_rtd__STUB);
-  SG_PROCEDURE_NAME(&extlib_record_type_rtd__STUB) = sg__rc.d1636[189];
-  sg__rc.d1636[190] = SG_MAKE_STRING("record-type-rcd");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[190]), &extlib_record_type_rcd__STUB);
-  SG_PROCEDURE_NAME(&extlib_record_type_rcd__STUB) = sg__rc.d1636[190];
-  sg__rc.d1636[191] = SG_MAKE_STRING("char-set?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[191]), &extlib_char_setP__STUB);
-  SG_PROCEDURE_NAME(&extlib_char_setP__STUB) = sg__rc.d1636[191];
-  sg__rc.d1636[192] = SG_MAKE_STRING("char-set");
-  sg__rc.d1636[194] = SG_MAKE_STRING("name");
-  sg__rc.d1636[193] = Sg_Intern(sg__rc.d1636[194]); /* name */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[192]), &extlib_char_set__STUB);
-  SG_PROCEDURE_NAME(&extlib_char_set__STUB) = sg__rc.d1636[192];
-  sg__rc.d1636[195] = SG_MAKE_STRING("char-set-copy");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[195]), &extlib_char_set_copy__STUB);
-  SG_PROCEDURE_NAME(&extlib_char_set_copy__STUB) = sg__rc.d1636[195];
-  sg__rc.d1636[196] = SG_MAKE_STRING("char-set-contains?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[196]), &extlib_char_set_containsP__STUB);
-  SG_PROCEDURE_NAME(&extlib_char_set_containsP__STUB) = sg__rc.d1636[196];
-  sg__rc.d1636[197] = SG_MAKE_STRING("%char-set-equal?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[197]), &extlib__25char_set_equalP__STUB);
-  SG_PROCEDURE_NAME(&extlib__25char_set_equalP__STUB) = sg__rc.d1636[197];
-  sg__rc.d1636[198] = SG_MAKE_STRING("%char-set<=?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[198]), &extlib__25char_set_LT_3dP__STUB);
-  SG_PROCEDURE_NAME(&extlib__25char_set_LT_3dP__STUB) = sg__rc.d1636[198];
-  sg__rc.d1636[199] = SG_MAKE_STRING("%char-set-add-chars!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[199]), &extlib__25char_set_add_charsX__STUB);
-  SG_PROCEDURE_NAME(&extlib__25char_set_add_charsX__STUB) = sg__rc.d1636[199];
-  sg__rc.d1636[200] = SG_MAKE_STRING("%char-set-add-range!");
-  sg__rc.d1636[201] = Sg_Intern(sg__rc.d1636[200]); /* %char-set-add-range! */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[200]), &extlib__25char_set_add_rangeX__STUB);
-  SG_PROCEDURE_NAME(&extlib__25char_set_add_rangeX__STUB) = sg__rc.d1636[200];
-  sg__rc.d1636[202] = SG_MAKE_STRING("%char-set-add!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[202]), &extlib__25char_set_addX__STUB);
-  SG_PROCEDURE_NAME(&extlib__25char_set_addX__STUB) = sg__rc.d1636[202];
-  sg__rc.d1636[203] = SG_MAKE_STRING("%char-set-complement!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[203]), &extlib__25char_set_complementX__STUB);
-  SG_PROCEDURE_NAME(&extlib__25char_set_complementX__STUB) = sg__rc.d1636[203];
-  sg__rc.d1636[204] = SG_MAKE_STRING("%char-set-ranges");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[204]), &extlib__25char_set_ranges__STUB);
-  SG_PROCEDURE_NAME(&extlib__25char_set_ranges__STUB) = sg__rc.d1636[204];
-  sg__rc.d1636[205] = SG_MAKE_STRING("get-macro-character");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[205]), &extlib_get_macro_character__STUB);
-  SG_PROCEDURE_NAME(&extlib_get_macro_character__STUB) = sg__rc.d1636[205];
-  sg__rc.d1636[206] = SG_MAKE_STRING("set-macro-character");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[206]), &extlib_set_macro_character__STUB);
-  SG_PROCEDURE_NAME(&extlib_set_macro_character__STUB) = sg__rc.d1636[206];
-  sg__rc.d1636[207] = SG_MAKE_STRING("make-dispatch-macro-character");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[207]), &extlib_make_dispatch_macro_character__STUB);
-  SG_PROCEDURE_NAME(&extlib_make_dispatch_macro_character__STUB) = sg__rc.d1636[207];
-  sg__rc.d1636[208] = SG_MAKE_STRING("get-dispatch-macro-character");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[208]), &extlib_get_dispatch_macro_character__STUB);
-  SG_PROCEDURE_NAME(&extlib_get_dispatch_macro_character__STUB) = sg__rc.d1636[208];
-  sg__rc.d1636[209] = SG_MAKE_STRING("set-dispatch-macro-character");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[209]), &extlib_set_dispatch_macro_character__STUB);
-  SG_PROCEDURE_NAME(&extlib_set_dispatch_macro_character__STUB) = sg__rc.d1636[209];
-  sg__rc.d1636[210] = SG_MAKE_STRING("%insert-macro-character");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[210]), &extlib__25insert_macro_character__STUB);
-  SG_PROCEDURE_NAME(&extlib__25insert_macro_character__STUB) = sg__rc.d1636[210];
-  sg__rc.d1636[211] = SG_MAKE_STRING("%insert-dispatch-macro-character");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[211]), &extlib__25insert_dispatch_macro_character__STUB);
-  SG_PROCEDURE_NAME(&extlib__25insert_dispatch_macro_character__STUB) = sg__rc.d1636[211];
-  sg__rc.d1636[212] = SG_MAKE_STRING("%library-reader-set!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[212]), &extlib__25library_reader_setX__STUB);
-  SG_PROCEDURE_NAME(&extlib__25library_reader_setX__STUB) = sg__rc.d1636[212];
-  sg__rc.d1636[213] = SG_MAKE_STRING("read-delimited-list");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[213]), &extlib_read_delimited_list__STUB);
-  SG_PROCEDURE_NAME(&extlib_read_delimited_list__STUB) = sg__rc.d1636[213];
-  sg__rc.d1636[214] = SG_MAKE_STRING("delimited-char?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[214]), &extlib_delimited_charP__STUB);
-  SG_PROCEDURE_NAME(&extlib_delimited_charP__STUB) = sg__rc.d1636[214];
-  sg__rc.d1636[215] = SG_MAKE_STRING("constant-literal?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[215]), &extlib_constant_literalP__STUB);
-  SG_PROCEDURE_NAME(&extlib_constant_literalP__STUB) = sg__rc.d1636[215];
-  sg__rc.d1636[216] = SG_MAKE_STRING("digit-value");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[216]), &extlib_digit_value__STUB);
-  SG_PROCEDURE_NAME(&extlib_digit_value__STUB) = sg__rc.d1636[216];
-  sg__rc.d1636[217] = SG_MAKE_STRING("make-weak-vector");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[217]), &extlib_make_weak_vector__STUB);
-  SG_PROCEDURE_NAME(&extlib_make_weak_vector__STUB) = sg__rc.d1636[217];
-  sg__rc.d1636[218] = SG_MAKE_STRING("weak-vector-length");
-  sg__rc.d1636[219] = Sg_Intern(sg__rc.d1636[218]); /* weak-vector-length */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[218]), &extlib_weak_vector_length__STUB);
-  SG_PROCEDURE_NAME(&extlib_weak_vector_length__STUB) = sg__rc.d1636[218];
-  sg__rc.d1636[220] = SG_MAKE_STRING("weak-vector-ref");
-  sg__rc.d1636[221] = Sg_Intern(sg__rc.d1636[220]); /* weak-vector-ref */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[220]), &extlib_weak_vector_ref__STUB);
-  SG_PROCEDURE_NAME(&extlib_weak_vector_ref__STUB) = sg__rc.d1636[220];
-  SG_PROCEDURE_NAME(&extlib_weak_vector_setX__STUB) = sg__rc.d1636[222];
+  sg__rc.d1682[53] = SG_MAKE_STRING("has-setter?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[53]), &extlib_has_setterP__STUB);
+  SG_PROCEDURE_NAME(&extlib_has_setterP__STUB) = sg__rc.d1682[53];
+  sg__rc.d1682[54] = SG_MAKE_STRING("copy-file");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[54]), &extlib_copy_file__STUB);
+  SG_PROCEDURE_NAME(&extlib_copy_file__STUB) = sg__rc.d1682[54];
+  sg__rc.d1682[55] = SG_MAKE_STRING("file-size-in-bytes");
+  sg__rc.d1682[56] = Sg_Intern(sg__rc.d1682[55]); /* file-size-in-bytes */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[55]), &extlib_file_size_in_bytes__STUB);
+  SG_PROCEDURE_NAME(&extlib_file_size_in_bytes__STUB) = sg__rc.d1682[55];
+  sg__rc.d1682[57] = SG_MAKE_STRING("file-regular?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[57]), &extlib_file_regularP__STUB);
+  SG_PROCEDURE_NAME(&extlib_file_regularP__STUB) = sg__rc.d1682[57];
+  sg__rc.d1682[58] = SG_MAKE_STRING("file-directory?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[58]), &extlib_file_directoryP__STUB);
+  SG_PROCEDURE_NAME(&extlib_file_directoryP__STUB) = sg__rc.d1682[58];
+  sg__rc.d1682[59] = SG_MAKE_STRING("file-symbolic-link?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[59]), &extlib_file_symbolic_linkP__STUB);
+  SG_PROCEDURE_NAME(&extlib_file_symbolic_linkP__STUB) = sg__rc.d1682[59];
+  sg__rc.d1682[60] = SG_MAKE_STRING("file-readable?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[60]), &extlib_file_readableP__STUB);
+  SG_PROCEDURE_NAME(&extlib_file_readableP__STUB) = sg__rc.d1682[60];
+  sg__rc.d1682[61] = SG_MAKE_STRING("file-writable?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[61]), &extlib_file_writableP__STUB);
+  SG_PROCEDURE_NAME(&extlib_file_writableP__STUB) = sg__rc.d1682[61];
+  sg__rc.d1682[62] = SG_MAKE_STRING("file-executable?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[62]), &extlib_file_executableP__STUB);
+  SG_PROCEDURE_NAME(&extlib_file_executableP__STUB) = sg__rc.d1682[62];
+  sg__rc.d1682[63] = SG_MAKE_STRING("file-stat-ctime");
+  sg__rc.d1682[64] = Sg_Intern(sg__rc.d1682[63]); /* file-stat-ctime */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[63]), &extlib_file_stat_ctime__STUB);
+  SG_PROCEDURE_NAME(&extlib_file_stat_ctime__STUB) = sg__rc.d1682[63];
+  sg__rc.d1682[65] = SG_MAKE_STRING("file-stat-mtime");
+  sg__rc.d1682[66] = Sg_Intern(sg__rc.d1682[65]); /* file-stat-mtime */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[65]), &extlib_file_stat_mtime__STUB);
+  SG_PROCEDURE_NAME(&extlib_file_stat_mtime__STUB) = sg__rc.d1682[65];
+  sg__rc.d1682[67] = SG_MAKE_STRING("file-stat-atime");
+  sg__rc.d1682[68] = Sg_Intern(sg__rc.d1682[67]); /* file-stat-atime */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[67]), &extlib_file_stat_atime__STUB);
+  SG_PROCEDURE_NAME(&extlib_file_stat_atime__STUB) = sg__rc.d1682[67];
+  sg__rc.d1682[69] = SG_MAKE_STRING("create-symbolic-link");
+  sg__rc.d1682[70] = Sg_Intern(sg__rc.d1682[69]); /* create-symbolic-link */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[69]), &extlib_create_symbolic_link__STUB);
+  SG_PROCEDURE_NAME(&extlib_create_symbolic_link__STUB) = sg__rc.d1682[69];
+  sg__rc.d1682[71] = SG_MAKE_STRING("rename-file");
+  sg__rc.d1682[72] = Sg_Intern(sg__rc.d1682[71]); /* rename-file */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[71]), &extlib_rename_file__STUB);
+  SG_PROCEDURE_NAME(&extlib_rename_file__STUB) = sg__rc.d1682[71];
+  sg__rc.d1682[73] = SG_MAKE_STRING("change-file-mode");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[73]), &extlib_change_file_mode__STUB);
+  SG_PROCEDURE_NAME(&extlib_change_file_mode__STUB) = sg__rc.d1682[73];
+  sg__rc.d1682[74] = SG_MAKE_STRING("delete-directory");
+  sg__rc.d1682[75] = Sg_Intern(sg__rc.d1682[74]); /* delete-directory */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[74]), &extlib_delete_directory__STUB);
+  SG_PROCEDURE_NAME(&extlib_delete_directory__STUB) = sg__rc.d1682[74];
+  sg__rc.d1682[76] = SG_MAKE_STRING("create-directory");
+  sg__rc.d1682[77] = Sg_Intern(sg__rc.d1682[76]); /* create-directory */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[76]), &extlib_create_directory__STUB);
+  SG_PROCEDURE_NAME(&extlib_create_directory__STUB) = sg__rc.d1682[76];
+  sg__rc.d1682[78] = SG_MAKE_STRING("read-directory");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[78]), &extlib_read_directory__STUB);
+  SG_PROCEDURE_NAME(&extlib_read_directory__STUB) = sg__rc.d1682[78];
+  sg__rc.d1682[79] = SG_MAKE_STRING("current-directory");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[79]), &extlib_current_directory__STUB);
+  SG_PROCEDURE_NAME(&extlib_current_directory__STUB) = sg__rc.d1682[79];
+  sg__rc.d1682[80] = SG_MAKE_STRING("set-current-directory");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[80]), &extlib_set_current_directory__STUB);
+  SG_PROCEDURE_NAME(&extlib_set_current_directory__STUB) = sg__rc.d1682[80];
+  sg__rc.d1682[81] = SG_MAKE_STRING("build-path");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[81]), &extlib_build_path__STUB);
+  SG_PROCEDURE_NAME(&extlib_build_path__STUB) = sg__rc.d1682[81];
+  sg__rc.d1682[82] = SG_MAKE_STRING("absolute-path?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[82]), &extlib_absolute_pathP__STUB);
+  SG_PROCEDURE_NAME(&extlib_absolute_pathP__STUB) = sg__rc.d1682[82];
+  sg__rc.d1682[83] = SG_MAKE_STRING("absolute-path");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[83]), &extlib_absolute_path__STUB);
+  SG_PROCEDURE_NAME(&extlib_absolute_path__STUB) = sg__rc.d1682[83];
+  sg__rc.d1682[85] = SG_MAKE_STRING("glob");
+  sg__rc.d1682[84] = Sg_Intern(sg__rc.d1682[85]); /* glob */
+  sg__rc.d1682[87] = SG_MAKE_STRING("pathname");
+  sg__rc.d1682[86] = Sg_Intern(sg__rc.d1682[87]); /* pathname */
+  sg__rc.d1682[89] = SG_MAKE_STRING("case-fold");
+  sg__rc.d1682[88] = Sg_Intern(sg__rc.d1682[89]); /* case-fold */
+  sg__rc.d1682[91] = SG_MAKE_STRING("noescape");
+  sg__rc.d1682[90] = Sg_Intern(sg__rc.d1682[91]); /* noescape */
+  sg__rc.d1682[93] = SG_MAKE_STRING("dot-match");
+  sg__rc.d1682[92] = Sg_Intern(sg__rc.d1682[93]); /* dot-match */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[85]), &extlib_glob__STUB);
+  SG_PROCEDURE_NAME(&extlib_glob__STUB) = sg__rc.d1682[85];
+  sg__rc.d1682[94] = SG_MAKE_STRING("current-load-path");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[94]), &extlib_current_load_path__STUB);
+  SG_PROCEDURE_NAME(&extlib_current_load_path__STUB) = sg__rc.d1682[94];
+  sg__rc.d1682[95] = SG_MAKE_STRING("sagittarius-installed-directory");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[95]), &extlib_sagittarius_installed_directory__STUB);
+  SG_PROCEDURE_NAME(&extlib_sagittarius_installed_directory__STUB) = sg__rc.d1682[95];
+  sg__rc.d1682[96] = SG_MAKE_STRING("copy-access-control");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[96]), &extlib_copy_access_control__STUB);
+  SG_PROCEDURE_NAME(&extlib_copy_access_control__STUB) = sg__rc.d1682[96];
+  sg__rc.d1682[97] = SG_MAKE_STRING("current-library");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[97]), &extlib_current_library__STUB);
+  SG_PROCEDURE_NAME(&extlib_current_library__STUB) = sg__rc.d1682[97];
+  sg__rc.d1682[98] = SG_MAKE_STRING("string-scan");
+  sg__rc.d1682[99] = Sg_Intern(sg__rc.d1682[98]); /* string-scan */
+  sg__rc.d1682[101] = SG_MAKE_STRING("both");
+  sg__rc.d1682[100] = Sg_Intern(sg__rc.d1682[101]); /* both */
+  sg__rc.d1682[103] = SG_MAKE_STRING("after*");
+  sg__rc.d1682[102] = Sg_Intern(sg__rc.d1682[103]); /* after* */
+  sg__rc.d1682[105] = SG_MAKE_STRING("before*");
+  sg__rc.d1682[104] = Sg_Intern(sg__rc.d1682[105]); /* before* */
+  sg__rc.d1682[107] = SG_MAKE_STRING("after");
+  sg__rc.d1682[106] = Sg_Intern(sg__rc.d1682[107]); /* after */
+  sg__rc.d1682[109] = SG_MAKE_STRING("before");
+  sg__rc.d1682[108] = Sg_Intern(sg__rc.d1682[109]); /* before */
+  sg__rc.d1682[111] = SG_MAKE_STRING("index");
+  sg__rc.d1682[110] = Sg_Intern(sg__rc.d1682[111]); /* index */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[98]), &extlib_string_scan__STUB);
+  SG_PROCEDURE_NAME(&extlib_string_scan__STUB) = sg__rc.d1682[98];
+  sg__rc.d1682[112] = SG_MAKE_STRING("string-concatenate");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[112]), &extlib_string_concatenate__STUB);
+  SG_PROCEDURE_NAME(&extlib_string_concatenate__STUB) = sg__rc.d1682[112];
+  sg__rc.d1682[113] = SG_MAKE_STRING("%maybe-substring");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[113]), &extlib__25maybe_substring__STUB);
+  SG_PROCEDURE_NAME(&extlib__25maybe_substring__STUB) = sg__rc.d1682[113];
+  sg__rc.d1682[114] = SG_MAKE_STRING("make-equal-hashtable");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[114]), &extlib_make_equal_hashtable__STUB);
+  SG_PROCEDURE_NAME(&extlib_make_equal_hashtable__STUB) = sg__rc.d1682[114];
+  sg__rc.d1682[115] = SG_MAKE_STRING("make-string-hashtable");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[115]), &extlib_make_string_hashtable__STUB);
+  SG_PROCEDURE_NAME(&extlib_make_string_hashtable__STUB) = sg__rc.d1682[115];
+  sg__rc.d1682[116] = SG_MAKE_STRING("hashtable-keys-list");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[116]), &extlib_hashtable_keys_list__STUB);
+  SG_PROCEDURE_NAME(&extlib_hashtable_keys_list__STUB) = sg__rc.d1682[116];
+  sg__rc.d1682[117] = SG_MAKE_STRING("hashtable-values-list");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[117]), &extlib_hashtable_values_list__STUB);
+  SG_PROCEDURE_NAME(&extlib_hashtable_values_list__STUB) = sg__rc.d1682[117];
+  sg__rc.d1682[118] = SG_MAKE_STRING("hashtable-type");
+  sg__rc.d1682[119] = Sg_Intern(sg__rc.d1682[118]); /* hashtable-type */
+  sg__rc.d1682[121] = SG_MAKE_STRING("general");
+  sg__rc.d1682[120] = Sg_Intern(sg__rc.d1682[121]); /* general */
+  sg__rc.d1682[123] = SG_MAKE_STRING("string");
+  sg__rc.d1682[122] = Sg_Intern(sg__rc.d1682[123]); /* string */
+  sg__rc.d1682[125] = SG_MAKE_STRING("equal");
+  sg__rc.d1682[124] = Sg_Intern(sg__rc.d1682[125]); /* equal */
+  sg__rc.d1682[127] = SG_MAKE_STRING("eqv");
+  sg__rc.d1682[126] = Sg_Intern(sg__rc.d1682[127]); /* eqv */
+  sg__rc.d1682[129] = SG_MAKE_STRING("eq");
+  sg__rc.d1682[128] = Sg_Intern(sg__rc.d1682[129]); /* eq */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[118]), &extlib_hashtable_type__STUB);
+  SG_PROCEDURE_NAME(&extlib_hashtable_type__STUB) = sg__rc.d1682[118];
+  sg__rc.d1682[130] = SG_MAKE_STRING("hashtable-compare");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[130]), &extlib_hashtable_compare__STUB);
+  SG_PROCEDURE_NAME(&extlib_hashtable_compare__STUB) = sg__rc.d1682[130];
+  sg__rc.d1682[131] = SG_MAKE_STRING("hashtable-hasher");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[131]), &extlib_hashtable_hasher__STUB);
+  SG_PROCEDURE_NAME(&extlib_hashtable_hasher__STUB) = sg__rc.d1682[131];
+  sg__rc.d1682[132] = SG_MAKE_STRING("hashtable-values");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[132]), &extlib_hashtable_values__STUB);
+  SG_PROCEDURE_NAME(&extlib_hashtable_values__STUB) = sg__rc.d1682[132];
+  sg__rc.d1682[133] = SG_MAKE_STRING("eqv-hash");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[133]), &extlib_eqv_hash__STUB);
+  SG_PROCEDURE_NAME(&extlib_eqv_hash__STUB) = sg__rc.d1682[133];
+  sg__rc.d1682[134] = SG_MAKE_STRING("with-error-handler");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[134]), &extlib_with_error_handler__STUB);
+  SG_PROCEDURE_NAME(&extlib_with_error_handler__STUB) = sg__rc.d1682[134];
+  sg__rc.d1682[135] = SG_MAKE_STRING("port-closed?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[135]), &extlib_port_closedP__STUB);
+  SG_PROCEDURE_NAME(&extlib_port_closedP__STUB) = sg__rc.d1682[135];
+  sg__rc.d1682[136] = SG_MAKE_STRING("write/ss");
+  sg__rc.d1682[137] = Sg_Intern(sg__rc.d1682[136]); /* write/ss */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[136]), &extlib_write_2fss__STUB);
+  SG_PROCEDURE_NAME(&extlib_write_2fss__STUB) = sg__rc.d1682[136];
+  sg__rc.d1682[138] = SG_MAKE_STRING("write-cyclic");
+  sg__rc.d1682[139] = Sg_Intern(sg__rc.d1682[138]); /* write-cyclic */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[138]), &extlib_write_cyclic__STUB);
+  SG_PROCEDURE_NAME(&extlib_write_cyclic__STUB) = sg__rc.d1682[138];
+  sg__rc.d1682[141] = SG_MAKE_STRING("source-info?");
+  sg__rc.d1682[140] = Sg_MakeKeyword(SG_STRING(sg__rc.d1682[141])); /* source-info? */
+  sg__rc.d1682[142] = SG_MAKE_STRING("read/ss");
+  sg__rc.d1682[143] = Sg_Intern(sg__rc.d1682[142]); /* read/ss */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[142]), &extlib_read_2fss__STUB);
+  SG_PROCEDURE_NAME(&extlib_read_2fss__STUB) = sg__rc.d1682[142];
+  sg__rc.d1682[144] = SG_MAKE_STRING("format");
+  sg__rc.d1682[145] = Sg_Intern(sg__rc.d1682[144]); /* format */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[144]), &extlib_format__STUB);
+  SG_PROCEDURE_NAME(&extlib_format__STUB) = sg__rc.d1682[144];
+  sg__rc.d1682[146] = SG_MAKE_STRING("format/ss");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[146]), &extlib_format_2fss__STUB);
+  SG_PROCEDURE_NAME(&extlib_format_2fss__STUB) = sg__rc.d1682[146];
+  sg__rc.d1682[147] = SG_MAKE_STRING("make-codec");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[147]), &extlib_make_codec__STUB);
+  SG_PROCEDURE_NAME(&extlib_make_codec__STUB) = sg__rc.d1682[147];
+  sg__rc.d1682[148] = SG_MAKE_STRING("port-info");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[148]), &extlib_port_info__STUB);
+  SG_PROCEDURE_NAME(&extlib_port_info__STUB) = sg__rc.d1682[148];
+  sg__rc.d1682[149] = SG_MAKE_STRING("read-with-case");
+  sg__rc.d1682[150] = Sg_Intern(sg__rc.d1682[149]); /* read-with-case */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[149]), &extlib_read_with_case__STUB);
+  SG_PROCEDURE_NAME(&extlib_read_with_case__STUB) = sg__rc.d1682[149];
+  sg__rc.d1682[151] = SG_MAKE_STRING("open-output-bytevector");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[151]), &extlib_open_output_bytevector__STUB);
+  SG_PROCEDURE_NAME(&extlib_open_output_bytevector__STUB) = sg__rc.d1682[151];
+  sg__rc.d1682[152] = SG_MAKE_STRING("get-output-bytevector");
+  sg__rc.d1682[153] = Sg_Intern(sg__rc.d1682[152]); /* get-output-bytevector */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[152]), &extlib_get_output_bytevector__STUB);
+  SG_PROCEDURE_NAME(&extlib_get_output_bytevector__STUB) = sg__rc.d1682[152];
+  sg__rc.d1682[154] = SG_MAKE_STRING("open-output-string");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[154]), &extlib_open_output_string__STUB);
+  SG_PROCEDURE_NAME(&extlib_open_output_string__STUB) = sg__rc.d1682[154];
+  sg__rc.d1682[155] = SG_MAKE_STRING("get-output-string");
+  sg__rc.d1682[156] = Sg_Intern(sg__rc.d1682[155]); /* get-output-string */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[155]), &extlib_get_output_string__STUB);
+  SG_PROCEDURE_NAME(&extlib_get_output_string__STUB) = sg__rc.d1682[155];
+  sg__rc.d1682[157] = SG_MAKE_STRING("port-ready?");
+  sg__rc.d1682[158] = Sg_Intern(sg__rc.d1682[157]); /* port-ready? */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[157]), &extlib_port_readyP__STUB);
+  SG_PROCEDURE_NAME(&extlib_port_readyP__STUB) = sg__rc.d1682[157];
+  sg__rc.d1682[159] = SG_MAKE_STRING("profiler-start");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[159]), &extlib_profiler_start__STUB);
+  SG_PROCEDURE_NAME(&extlib_profiler_start__STUB) = sg__rc.d1682[159];
+  sg__rc.d1682[160] = SG_MAKE_STRING("profiler-stop");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[160]), &extlib_profiler_stop__STUB);
+  SG_PROCEDURE_NAME(&extlib_profiler_stop__STUB) = sg__rc.d1682[160];
+  sg__rc.d1682[161] = SG_MAKE_STRING("profiler-reset");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[161]), &extlib_profiler_reset__STUB);
+  SG_PROCEDURE_NAME(&extlib_profiler_reset__STUB) = sg__rc.d1682[161];
+  sg__rc.d1682[162] = SG_MAKE_STRING("profiler-raw-result");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[162]), &extlib_profiler_raw_result__STUB);
+  SG_PROCEDURE_NAME(&extlib_profiler_raw_result__STUB) = sg__rc.d1682[162];
+  sg__rc.d1682[163] = SG_MAKE_STRING("disasm");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[163]), &extlib_disasm__STUB);
+  SG_PROCEDURE_NAME(&extlib_disasm__STUB) = sg__rc.d1682[163];
+  sg__rc.d1682[164] = SG_MAKE_STRING("make-keyword");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[164]), &extlib_make_keyword__STUB);
+  SG_PROCEDURE_NAME(&extlib_make_keyword__STUB) = sg__rc.d1682[164];
+  sg__rc.d1682[165] = SG_MAKE_STRING("keyword?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[165]), &extlib_keywordP__STUB);
+  SG_PROCEDURE_NAME(&extlib_keywordP__STUB) = sg__rc.d1682[165];
+  sg__rc.d1682[166] = SG_MAKE_STRING("keyword->symbol");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[166]), &extlib_keyword_TOsymbol__STUB);
+  SG_PROCEDURE_NAME(&extlib_keyword_TOsymbol__STUB) = sg__rc.d1682[166];
+  sg__rc.d1682[167] = SG_MAKE_STRING("keyword->string");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[167]), &extlib_keyword_TOstring__STUB);
+  SG_PROCEDURE_NAME(&extlib_keyword_TOstring__STUB) = sg__rc.d1682[167];
+  sg__rc.d1682[168] = SG_MAKE_STRING("get-keyword");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[168]), &extlib_get_keyword__STUB);
+  SG_PROCEDURE_NAME(&extlib_get_keyword__STUB) = sg__rc.d1682[168];
+  sg__rc.d1682[169] = SG_MAKE_STRING("clean-cache");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[169]), &extlib_clean_cache__STUB);
+  SG_PROCEDURE_NAME(&extlib_clean_cache__STUB) = sg__rc.d1682[169];
+  sg__rc.d1682[170] = SG_MAKE_STRING("cachable?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[170]), &extlib_cachableP__STUB);
+  SG_PROCEDURE_NAME(&extlib_cachableP__STUB) = sg__rc.d1682[170];
+  sg__rc.d1682[171] = SG_MAKE_STRING("scan-cache-object");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[171]), &extlib_scan_cache_object__STUB);
+  SG_PROCEDURE_NAME(&extlib_scan_cache_object__STUB) = sg__rc.d1682[171];
+  sg__rc.d1682[172] = SG_MAKE_STRING("write-object-cache");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[172]), &extlib_write_object_cache__STUB);
+  SG_PROCEDURE_NAME(&extlib_write_object_cache__STUB) = sg__rc.d1682[172];
+  sg__rc.d1682[173] = SG_MAKE_STRING("read-cache-object");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[173]), &extlib_read_cache_object__STUB);
+  SG_PROCEDURE_NAME(&extlib_read_cache_object__STUB) = sg__rc.d1682[173];
+  sg__rc.d1682[174] = SG_MAKE_STRING("getenv");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[174]), &extlib_getenv__STUB);
+  SG_PROCEDURE_NAME(&extlib_getenv__STUB) = sg__rc.d1682[174];
+  sg__rc.d1682[175] = SG_MAKE_STRING("setenv");
+  sg__rc.d1682[176] = Sg_Intern(sg__rc.d1682[175]); /* setenv */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[175]), &extlib_setenv__STUB);
+  SG_PROCEDURE_NAME(&extlib_setenv__STUB) = sg__rc.d1682[175];
+  sg__rc.d1682[177] = SG_MAKE_STRING("getenv-alist");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[177]), &extlib_getenv_alist__STUB);
+  SG_PROCEDURE_NAME(&extlib_getenv_alist__STUB) = sg__rc.d1682[177];
+  sg__rc.d1682[178] = SG_MAKE_STRING("emergency-exit");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[178]), &extlib_emergency_exit__STUB);
+  SG_PROCEDURE_NAME(&extlib_emergency_exit__STUB) = sg__rc.d1682[178];
+  sg__rc.d1682[179] = SG_MAKE_STRING("bytevector->integer");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[179]), &extlib_bytevector_TOinteger__STUB);
+  SG_PROCEDURE_NAME(&extlib_bytevector_TOinteger__STUB) = sg__rc.d1682[179];
+  sg__rc.d1682[180] = SG_MAKE_STRING("integer->bytevector");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[180]), &extlib_integer_TObytevector__STUB);
+  SG_PROCEDURE_NAME(&extlib_integer_TObytevector__STUB) = sg__rc.d1682[180];
+  sg__rc.d1682[181] = SG_MAKE_STRING("bytevector-append");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[181]), &extlib_bytevector_append__STUB);
+  SG_PROCEDURE_NAME(&extlib_bytevector_append__STUB) = sg__rc.d1682[181];
+  sg__rc.d1682[182] = SG_MAKE_STRING("bytevector-concatenate");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[182]), &extlib_bytevector_concatenate__STUB);
+  SG_PROCEDURE_NAME(&extlib_bytevector_concatenate__STUB) = sg__rc.d1682[182];
+  sg__rc.d1682[183] = SG_MAKE_STRING("current-usage-env");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[183]), &extlib_current_usage_env__STUB);
+  SG_PROCEDURE_NAME(&extlib_current_usage_env__STUB) = sg__rc.d1682[183];
+  sg__rc.d1682[184] = SG_MAKE_STRING("current-macro-env");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[184]), &extlib_current_macro_env__STUB);
+  SG_PROCEDURE_NAME(&extlib_current_macro_env__STUB) = sg__rc.d1682[184];
+  sg__rc.d1682[185] = SG_MAKE_STRING("time-usage");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[185]), &extlib_time_usage__STUB);
+  SG_PROCEDURE_NAME(&extlib_time_usage__STUB) = sg__rc.d1682[185];
+  sg__rc.d1682[186] = SG_MAKE_STRING("cond-features");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[186]), &extlib_cond_features__STUB);
+  SG_PROCEDURE_NAME(&extlib_cond_features__STUB) = sg__rc.d1682[186];
+  sg__rc.d1682[187] = SG_MAKE_STRING("make-record-type");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[187]), &extlib_make_record_type__STUB);
+  SG_PROCEDURE_NAME(&extlib_make_record_type__STUB) = sg__rc.d1682[187];
+  sg__rc.d1682[188] = SG_MAKE_STRING("record-type?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[188]), &extlib_record_typeP__STUB);
+  SG_PROCEDURE_NAME(&extlib_record_typeP__STUB) = sg__rc.d1682[188];
+  sg__rc.d1682[189] = SG_MAKE_STRING("record-type-rtd");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[189]), &extlib_record_type_rtd__STUB);
+  SG_PROCEDURE_NAME(&extlib_record_type_rtd__STUB) = sg__rc.d1682[189];
+  sg__rc.d1682[190] = SG_MAKE_STRING("record-type-rcd");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[190]), &extlib_record_type_rcd__STUB);
+  SG_PROCEDURE_NAME(&extlib_record_type_rcd__STUB) = sg__rc.d1682[190];
+  sg__rc.d1682[191] = SG_MAKE_STRING("char-set?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[191]), &extlib_char_setP__STUB);
+  SG_PROCEDURE_NAME(&extlib_char_setP__STUB) = sg__rc.d1682[191];
+  sg__rc.d1682[192] = SG_MAKE_STRING("char-set");
+  sg__rc.d1682[194] = SG_MAKE_STRING("name");
+  sg__rc.d1682[193] = Sg_Intern(sg__rc.d1682[194]); /* name */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[192]), &extlib_char_set__STUB);
+  SG_PROCEDURE_NAME(&extlib_char_set__STUB) = sg__rc.d1682[192];
+  sg__rc.d1682[195] = SG_MAKE_STRING("char-set-copy");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[195]), &extlib_char_set_copy__STUB);
+  SG_PROCEDURE_NAME(&extlib_char_set_copy__STUB) = sg__rc.d1682[195];
+  sg__rc.d1682[196] = SG_MAKE_STRING("char-set-contains?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[196]), &extlib_char_set_containsP__STUB);
+  SG_PROCEDURE_NAME(&extlib_char_set_containsP__STUB) = sg__rc.d1682[196];
+  sg__rc.d1682[197] = SG_MAKE_STRING("%char-set-equal?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[197]), &extlib__25char_set_equalP__STUB);
+  SG_PROCEDURE_NAME(&extlib__25char_set_equalP__STUB) = sg__rc.d1682[197];
+  sg__rc.d1682[198] = SG_MAKE_STRING("%char-set<=?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[198]), &extlib__25char_set_LT_3dP__STUB);
+  SG_PROCEDURE_NAME(&extlib__25char_set_LT_3dP__STUB) = sg__rc.d1682[198];
+  sg__rc.d1682[199] = SG_MAKE_STRING("%char-set-add-chars!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[199]), &extlib__25char_set_add_charsX__STUB);
+  SG_PROCEDURE_NAME(&extlib__25char_set_add_charsX__STUB) = sg__rc.d1682[199];
+  sg__rc.d1682[200] = SG_MAKE_STRING("%char-set-add-range!");
+  sg__rc.d1682[201] = Sg_Intern(sg__rc.d1682[200]); /* %char-set-add-range! */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[200]), &extlib__25char_set_add_rangeX__STUB);
+  SG_PROCEDURE_NAME(&extlib__25char_set_add_rangeX__STUB) = sg__rc.d1682[200];
+  sg__rc.d1682[202] = SG_MAKE_STRING("%char-set-add!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[202]), &extlib__25char_set_addX__STUB);
+  SG_PROCEDURE_NAME(&extlib__25char_set_addX__STUB) = sg__rc.d1682[202];
+  sg__rc.d1682[203] = SG_MAKE_STRING("%char-set-complement!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[203]), &extlib__25char_set_complementX__STUB);
+  SG_PROCEDURE_NAME(&extlib__25char_set_complementX__STUB) = sg__rc.d1682[203];
+  sg__rc.d1682[204] = SG_MAKE_STRING("%char-set-ranges");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[204]), &extlib__25char_set_ranges__STUB);
+  SG_PROCEDURE_NAME(&extlib__25char_set_ranges__STUB) = sg__rc.d1682[204];
+  sg__rc.d1682[205] = SG_MAKE_STRING("get-macro-character");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[205]), &extlib_get_macro_character__STUB);
+  SG_PROCEDURE_NAME(&extlib_get_macro_character__STUB) = sg__rc.d1682[205];
+  sg__rc.d1682[206] = SG_MAKE_STRING("set-macro-character");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[206]), &extlib_set_macro_character__STUB);
+  SG_PROCEDURE_NAME(&extlib_set_macro_character__STUB) = sg__rc.d1682[206];
+  sg__rc.d1682[207] = SG_MAKE_STRING("make-dispatch-macro-character");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[207]), &extlib_make_dispatch_macro_character__STUB);
+  SG_PROCEDURE_NAME(&extlib_make_dispatch_macro_character__STUB) = sg__rc.d1682[207];
+  sg__rc.d1682[208] = SG_MAKE_STRING("get-dispatch-macro-character");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[208]), &extlib_get_dispatch_macro_character__STUB);
+  SG_PROCEDURE_NAME(&extlib_get_dispatch_macro_character__STUB) = sg__rc.d1682[208];
+  sg__rc.d1682[209] = SG_MAKE_STRING("set-dispatch-macro-character");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[209]), &extlib_set_dispatch_macro_character__STUB);
+  SG_PROCEDURE_NAME(&extlib_set_dispatch_macro_character__STUB) = sg__rc.d1682[209];
+  sg__rc.d1682[210] = SG_MAKE_STRING("%insert-macro-character");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[210]), &extlib__25insert_macro_character__STUB);
+  SG_PROCEDURE_NAME(&extlib__25insert_macro_character__STUB) = sg__rc.d1682[210];
+  sg__rc.d1682[211] = SG_MAKE_STRING("%insert-dispatch-macro-character");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[211]), &extlib__25insert_dispatch_macro_character__STUB);
+  SG_PROCEDURE_NAME(&extlib__25insert_dispatch_macro_character__STUB) = sg__rc.d1682[211];
+  sg__rc.d1682[212] = SG_MAKE_STRING("%library-reader-set!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[212]), &extlib__25library_reader_setX__STUB);
+  SG_PROCEDURE_NAME(&extlib__25library_reader_setX__STUB) = sg__rc.d1682[212];
+  sg__rc.d1682[213] = SG_MAKE_STRING("read-delimited-list");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[213]), &extlib_read_delimited_list__STUB);
+  SG_PROCEDURE_NAME(&extlib_read_delimited_list__STUB) = sg__rc.d1682[213];
+  sg__rc.d1682[214] = SG_MAKE_STRING("delimited-char?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[214]), &extlib_delimited_charP__STUB);
+  SG_PROCEDURE_NAME(&extlib_delimited_charP__STUB) = sg__rc.d1682[214];
+  sg__rc.d1682[215] = SG_MAKE_STRING("constant-literal?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[215]), &extlib_constant_literalP__STUB);
+  SG_PROCEDURE_NAME(&extlib_constant_literalP__STUB) = sg__rc.d1682[215];
+  sg__rc.d1682[216] = SG_MAKE_STRING("digit-value");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[216]), &extlib_digit_value__STUB);
+  SG_PROCEDURE_NAME(&extlib_digit_value__STUB) = sg__rc.d1682[216];
+  sg__rc.d1682[217] = SG_MAKE_STRING("make-weak-vector");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[217]), &extlib_make_weak_vector__STUB);
+  SG_PROCEDURE_NAME(&extlib_make_weak_vector__STUB) = sg__rc.d1682[217];
+  sg__rc.d1682[218] = SG_MAKE_STRING("weak-vector-length");
+  sg__rc.d1682[219] = Sg_Intern(sg__rc.d1682[218]); /* weak-vector-length */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[218]), &extlib_weak_vector_length__STUB);
+  SG_PROCEDURE_NAME(&extlib_weak_vector_length__STUB) = sg__rc.d1682[218];
+  sg__rc.d1682[220] = SG_MAKE_STRING("weak-vector-ref");
+  sg__rc.d1682[221] = Sg_Intern(sg__rc.d1682[220]); /* weak-vector-ref */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[220]), &extlib_weak_vector_ref__STUB);
+  SG_PROCEDURE_NAME(&extlib_weak_vector_ref__STUB) = sg__rc.d1682[220];
+  SG_PROCEDURE_NAME(&extlib_weak_vector_setX__STUB) = sg__rc.d1682[222];
   Sg_SetterSet(SG_PROCEDURE(&extlib_weak_vector_ref__STUB), SG_PROCEDURE(&extlib_weak_vector_setX__STUB), TRUE);
-  sg__rc.d1636[222] = SG_MAKE_STRING("weak-vector-set!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[222]), &extlib_weak_vector_setX__STUB);
-  SG_PROCEDURE_NAME(&extlib_weak_vector_setX__STUB) = sg__rc.d1636[222];
-  sg__rc.d1636[223] = SG_MAKE_STRING("make-weak-eq-hashtable");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[223]), &extlib_make_weak_eq_hashtable__STUB);
-  SG_PROCEDURE_NAME(&extlib_make_weak_eq_hashtable__STUB) = sg__rc.d1636[223];
-  sg__rc.d1636[224] = SG_MAKE_STRING("weak-hashtable?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[224]), &extlib_weak_hashtableP__STUB);
-  SG_PROCEDURE_NAME(&extlib_weak_hashtableP__STUB) = sg__rc.d1636[224];
-  sg__rc.d1636[225] = SG_MAKE_STRING("weak-hashtable-ref");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[225]), &extlib_weak_hashtable_ref__STUB);
-  SG_PROCEDURE_NAME(&extlib_weak_hashtable_ref__STUB) = sg__rc.d1636[225];
-  SG_PROCEDURE_NAME(&extlib_weak_hashtable_setX__STUB) = sg__rc.d1636[226];
+  sg__rc.d1682[222] = SG_MAKE_STRING("weak-vector-set!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[222]), &extlib_weak_vector_setX__STUB);
+  SG_PROCEDURE_NAME(&extlib_weak_vector_setX__STUB) = sg__rc.d1682[222];
+  sg__rc.d1682[223] = SG_MAKE_STRING("make-weak-eq-hashtable");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[223]), &extlib_make_weak_eq_hashtable__STUB);
+  SG_PROCEDURE_NAME(&extlib_make_weak_eq_hashtable__STUB) = sg__rc.d1682[223];
+  sg__rc.d1682[224] = SG_MAKE_STRING("weak-hashtable?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[224]), &extlib_weak_hashtableP__STUB);
+  SG_PROCEDURE_NAME(&extlib_weak_hashtableP__STUB) = sg__rc.d1682[224];
+  sg__rc.d1682[225] = SG_MAKE_STRING("weak-hashtable-ref");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[225]), &extlib_weak_hashtable_ref__STUB);
+  SG_PROCEDURE_NAME(&extlib_weak_hashtable_ref__STUB) = sg__rc.d1682[225];
+  SG_PROCEDURE_NAME(&extlib_weak_hashtable_setX__STUB) = sg__rc.d1682[226];
   Sg_SetterSet(SG_PROCEDURE(&extlib_weak_hashtable_ref__STUB), SG_PROCEDURE(&extlib_weak_hashtable_setX__STUB), TRUE);
-  sg__rc.d1636[226] = SG_MAKE_STRING("weak-hashtable-set!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[226]), &extlib_weak_hashtable_setX__STUB);
-  SG_PROCEDURE_NAME(&extlib_weak_hashtable_setX__STUB) = sg__rc.d1636[226];
-  sg__rc.d1636[227] = SG_MAKE_STRING("weak-hashtable-delete!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[227]), &extlib_weak_hashtable_deleteX__STUB);
-  SG_PROCEDURE_NAME(&extlib_weak_hashtable_deleteX__STUB) = sg__rc.d1636[227];
-  sg__rc.d1636[228] = SG_MAKE_STRING("weak-hashtable-keys-list");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[228]), &extlib_weak_hashtable_keys_list__STUB);
-  SG_PROCEDURE_NAME(&extlib_weak_hashtable_keys_list__STUB) = sg__rc.d1636[228];
-  sg__rc.d1636[229] = SG_MAKE_STRING("weak-hashtable-values-list");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[229]), &extlib_weak_hashtable_values_list__STUB);
-  SG_PROCEDURE_NAME(&extlib_weak_hashtable_values_list__STUB) = sg__rc.d1636[229];
-  sg__rc.d1636[230] = SG_MAKE_STRING("weak-hashtable-copy");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[230]), &extlib_weak_hashtable_copy__STUB);
-  SG_PROCEDURE_NAME(&extlib_weak_hashtable_copy__STUB) = sg__rc.d1636[230];
-  sg__rc.d1636[231] = SG_MAKE_STRING("microsecond");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[231]), &extlib_microsecond__STUB);
-  SG_PROCEDURE_NAME(&extlib_microsecond__STUB) = sg__rc.d1636[231];
-  sg__rc.d1636[232] = SG_MAKE_STRING("immediate?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[232]), &extlib_immediateP__STUB);
-  SG_PROCEDURE_NAME(&extlib_immediateP__STUB) = sg__rc.d1636[232];
-  sg__rc.d1636[233] = SG_MAKE_STRING("get-mac-address");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[233]), &extlib_get_mac_address__STUB);
-  SG_PROCEDURE_NAME(&extlib_get_mac_address__STUB) = sg__rc.d1636[233];
+  sg__rc.d1682[226] = SG_MAKE_STRING("weak-hashtable-set!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[226]), &extlib_weak_hashtable_setX__STUB);
+  SG_PROCEDURE_NAME(&extlib_weak_hashtable_setX__STUB) = sg__rc.d1682[226];
+  sg__rc.d1682[227] = SG_MAKE_STRING("weak-hashtable-delete!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[227]), &extlib_weak_hashtable_deleteX__STUB);
+  SG_PROCEDURE_NAME(&extlib_weak_hashtable_deleteX__STUB) = sg__rc.d1682[227];
+  sg__rc.d1682[228] = SG_MAKE_STRING("weak-hashtable-keys-list");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[228]), &extlib_weak_hashtable_keys_list__STUB);
+  SG_PROCEDURE_NAME(&extlib_weak_hashtable_keys_list__STUB) = sg__rc.d1682[228];
+  sg__rc.d1682[229] = SG_MAKE_STRING("weak-hashtable-values-list");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[229]), &extlib_weak_hashtable_values_list__STUB);
+  SG_PROCEDURE_NAME(&extlib_weak_hashtable_values_list__STUB) = sg__rc.d1682[229];
+  sg__rc.d1682[230] = SG_MAKE_STRING("weak-hashtable-copy");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[230]), &extlib_weak_hashtable_copy__STUB);
+  SG_PROCEDURE_NAME(&extlib_weak_hashtable_copy__STUB) = sg__rc.d1682[230];
+  sg__rc.d1682[231] = SG_MAKE_STRING("microsecond");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[231]), &extlib_microsecond__STUB);
+  SG_PROCEDURE_NAME(&extlib_microsecond__STUB) = sg__rc.d1682[231];
+  sg__rc.d1682[232] = SG_MAKE_STRING("immediate?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[232]), &extlib_immediateP__STUB);
+  SG_PROCEDURE_NAME(&extlib_immediateP__STUB) = sg__rc.d1682[232];
+  sg__rc.d1682[233] = SG_MAKE_STRING("get-mac-address");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1682[233]), &extlib_get_mac_address__STUB);
+  SG_PROCEDURE_NAME(&extlib_get_mac_address__STUB) = sg__rc.d1682[233];
 }

@@ -117,7 +117,7 @@
 
   (define-c-proc library-defined (lib) 
     (cond ((SG_LIBRARYP lib) (result (SG_LIBRARY_DEFINEED lib)))
-	  ((SG_FALSEP lib) (result SG_NIL))
+	  ((SG_FALSEP lib) (result (SG_LIBRARY_DEFINEED (Sg_VMCurrentLibrary))))
 	  (else (wrong-type-of-argument-violation 'library-defined 
 						  "library or #f" lib))))
 

@@ -1252,7 +1252,8 @@ SgObject read_hash_open_paren(SgPort *port, SgChar c, dispmacro_param *param,
 			      SgReadContext *ctx)
 {
   SgObject v = Sg_ListToVector(read_list(port, ')', ctx), 0, -1);
-  v = Sg_AddConstantLiteral(v);
+  /* self quote vector is not constant literal now */
+  /* v = Sg_AddConstantLiteral(v); */
   return v;
 }
 
