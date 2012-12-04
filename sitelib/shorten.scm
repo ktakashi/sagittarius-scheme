@@ -55,7 +55,7 @@
 	   (with-syntax ((formals (if (zero? (string-length mark))
 				      (list #'name)
 				      #'name)))
-	     #`(define-syntax arg-name
+	     #'(define-syntax arg-name
 		 (lambda (x)
 		   (syntax-case x ()
 		     ((k body (... ...))

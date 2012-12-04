@@ -147,9 +147,12 @@
       (define (seen-or-gen id env)
 	(cond ((hashtable-ref seen id #f))
 	      (else
-	       (let ((new-id (make-identifier (id-name id)
-					      env
-					      (vector-ref mac-env 0))))
+	       ;; we need to use the original library if the given id has
+	       ;; to keep macro hygienic.
+	       ;; this could happen on macro generating macro.
+	       (let ((new-id (make-identifier
+			      (id-name id) env (or (id-library id)
+						   (vector-ref mac-env 0)))))
 		 (hashtable-set! seen id new-id)
 		 new-id))))
       (let loop ((expr expr))
@@ -172,28 +175,7 @@
 		    (not (number? (p1env-lookup mac-env expr PATTERN))))
 	       (seen-or-gen expr (vector-ref mac-env 1)))
 	      (else expr))))
-    #;(define (rewrite expr patvars all?)
-      (define seen (make-eq-hashtable))
-      (let loop ((expr expr))
-	(cond ((pair? expr)
-	       (let ((a (loop (car expr)))
-		     (d (loop (cdr expr))))
-		 (if (and (eq? a (car expr)) (eq? d (cdr expr)))
-		     expr
-		     (cons a d))))
-	      ((vector? expr)
-	       (list->vector (loop (vector->list expr))))
-	      ((assq expr patvars) => cdr)
-	      ((and (identifier? expr) all?
-		    (identifier? (p1env-lookup mac-env expr LEXICAL))
-		    (not (number? (p1env-lookup mac-env expr PATTERN))))
-	       (cond ((hashtable-ref seen expr #f))
-		     (else
-		      (let ((id (make-identifier (id-name expr) '() 
-						 (vector-ref mac-env 0))))
-			(hashtable-set! seen expr id)
-			id))))
-	      (else expr))))
+
     (define (parse-pattern pattern)
       (define (gen-patvar p)
 	(cons (car p)
@@ -575,40 +557,26 @@
   (define seen (make-eq-hashtable))
   (define use-env (current-usage-env))
   (define mac-env (current-macro-env))
-  
-  (define (lookup-pattern-variable p1env vars id)
-    (define (mark-in-same-macro? env)
-      (define (is-mark?) (and (not (null? env)) (symbol? (car env))))
-      (if (is-mark?)
-	  (eq? (vector-ref mac-env 2) (car env))
-	  #t))
-    (define (id=? frame id1 id2 check-env?)
-      (or (and-let* ( ( (identifier? id1) )
-		      ( (identifier? id2) ))
-	    (if check-env?
-		(and (free-identifier=? id1 id2)
-		     (mark-in-same-macro? (id-envs id1))
-		     (mark-in-same-macro? (id-envs id2)))
-		(free-identifier=? id1 id2)))
-	  (identifier=? use-env id1 frame id2)))
 
+  (define (lookup-pattern-variable p1env vars id)
+    (define (id=? id1 id2)
+      (if (and (identifier? id1) (identifier? id2))
+	  (free-identifier=? id1 id2)
+	  #f))
     (let loop ((frames (vector-ref p1env 1)))
       (cond ((null? frames) #f)
 	    ((and (pair? frames)
 		  (= (caar frames) PATTERN))
 	     (let loop2 ((frame (cdar frames)))
 	       (cond ((null? frame) (loop (cdr frames)))
-		     ((and (id=? p1env id (caar frame) #f)
-			   (assq (caar frame) vars))
-		       => (lambda (slot)
-			    (let ((a (car slot))
-				  (r (cadr slot)))
-			      ;; pattern variable must not be list
-			      ;; so if it's a list, move to next
-			      (if (and (variable? r)
-				       (id=? frame a r #t))
-				  r
-				  (loop2 (cdr frame))))))
+		     ((and (id=? id (caar frame)) (assq (caar frame) vars))
+		      => (lambda (slot)
+			   (let ((a (car slot)) (r (cadr slot)))
+			     ;; pattern variable must not be list
+			     ;; so if it's a list, move to next
+			     (if (and (variable? r) (id=? a r))
+				 r
+				 (loop2 (cdr frame))))))
 		     (else (loop2 (cdr frame))))))
 	    (else (loop (cdr frames))))))
 

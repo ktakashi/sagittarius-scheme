@@ -1016,9 +1016,9 @@
 
 ;; based on Ypsilon by Yoshikatu Fujita
 (define-pass1-syntax (unquote form p1env) :null
-  (syntax-error "invalid expression" form))
+  (syntax-error "invalid expression" (unwrap-syntax form) (car form)))
 (define-pass1-syntax (unquote-splicing form p1env) :null
-  (syntax-error "invalid expression" form))
+  (syntax-error "invalid expression" (unwrap-syntax form) (car form)))
 
 (define .list  	(global-id 'list))
 (define .cons 	(global-id 'cons))
@@ -1255,10 +1255,10 @@
 
 ;; needs to be exported
 (define-pass1-syntax (_ form p1env) :null
-  (syntax-error "invalid expression" form))
+  (syntax-error "invalid expression" (unwrap-syntax form) (car form)))
 
 (define-pass1-syntax (... form p1env) :null
-  (syntax-error "invalid expression" form))
+  (syntax-error "invalid expression" (unwrap-syntax form) (car form)))
 
 ;;
 ;; define-syntax.
@@ -1316,8 +1316,8 @@
      (syntax-error "malformed letrec-syntax" form))))
 
 ;; 'rename' procedure - we just return a resolved identifier
-(define (er-bind-id? id p1env)
-  (not (identifier? (p1env-lookup p1env id LEXICAL))))
+(define (er-bind-id? id env)
+  (not (identifier? (p1env-lookup env id LEXICAL))))
 (define (er-rename symid p1env dict)
   (unless (variable? symid)
     (scheme-error 
@@ -1327,10 +1327,10 @@
       (or (hashtable-ref dict symid #f)
 	  (let ((var (p1env-lookup p1env symid SYNTAX)))
 	    (let ((id (if (identifier? var)
-			     var
-			     (make-identifier symid
-					      (p1env-frames p1env)
-					      (p1env-library p1env)))))
+			  var
+			  (make-identifier symid
+					   (p1env-frames p1env)
+					   (p1env-library p1env)))))
 	      (hashtable-set! dict symid id)
 	      id)))
       ;; should we copy?
@@ -1919,10 +1919,10 @@
 
 ;; for global-eq?
 (define-pass1-syntax (else form p1env) :null
-  (syntax-error "invalid expression" form))
+  (syntax-error "invalid expression" (unwrap-syntax form) (car form)))
 
 (define-pass1-syntax (=> form p1env) :null
-  (syntax-error "invalid expression" form))
+  (syntax-error "invalid expression" (unwrap-syntax form) (car form)))
 
 (define-pass1-syntax (cond form p1env) :null
   (define (=>? x) (global-eq? x '=> p1env))

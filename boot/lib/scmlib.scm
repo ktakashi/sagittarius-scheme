@@ -25,22 +25,26 @@
 (define (er-macro-transformer f)
   (lambda (expr)
     (define (strip-toplevel-id expr env)
-      (cond ((pair? expr)
-	     (let ((a (strip-toplevel-id (car expr) env))
-		   (d (strip-toplevel-id (cdr expr) env)))
-	       (if (and (eq? (car expr) a)
-			(eq? (cdr expr) d))
+      (let loop ((expr expr))
+	(cond ((pair? expr)
+	       (if (constant-literal? expr)
 		   expr
-		   (cons a d))))
-	    ((and (identifier? expr) (toplevel-id? expr))
-	     (if (er-bind-id? expr env)
-		 expr
-		 (id-name expr)))
-	    ;; for scheme vm
-	    ((identifier? expr) expr)
-	    ((vector? expr)
-	     (list->vector (strip-toplevel-id (vector->list expr) env)))
-	    (else expr)))
+		   (let ((a (loop (car expr)))
+			 (d (loop (cdr expr))))
+		     (if (and (eq? (car expr) a) (eq? (cdr expr) d))
+			 expr
+			 (cons a d)))))
+	      ((and (identifier? expr) (toplevel-id? expr))
+	       (if (er-bind-id? expr env)
+		   expr
+		   (id-name expr)))
+	      ;; for scheme vm
+	      ((identifier? expr) expr)
+	      ((vector? expr)
+	       (if (constant-literal? expr)
+		   expr
+		   (list->vector (loop (vector->list expr)))))
+	      (else expr))))
     (let* ((dict (make-eq-hashtable))
 	   (use-env (current-usage-env))
 	   (mac-env (current-macro-env))

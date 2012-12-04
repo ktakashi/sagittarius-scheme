@@ -1090,9 +1090,9 @@ static SgObject read_identifier(SgPort *in, read_ctx *ctx)
   name = read_string(in, length);
   /* read library name */
   lib = read_object_rec(in, ctx);
-  if (SG_FALSEP(lib)) 
-    ESCAPE(ctx, "identifier %S contains invalid library.\n", name);
-  lib = Sg_FindLibrary(lib, FALSE);
+  if (!SG_FALSEP(lib)) {
+    lib = Sg_FindLibrary(lib, FALSE);
+  }
   envs = read_object_rec(in, ctx);
 
   /* we need to resolve shread object later */
