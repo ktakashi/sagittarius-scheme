@@ -723,7 +723,7 @@
 	  (name (id-name id)))
       (or (eq? use-env mac-env)		; toplevel (should be)
 	  (not (null? (id-envs id)))	; obvious case
-	  (find-binding lib name #f)
+	  ;;(find-binding lib name #f)
 	  ;; these things are not defined yet.
 	  (memq name (library-defined lib))
 	  ;; don't rename pattern variables
@@ -733,15 +733,11 @@
   
   ;; bit ugly solution to resolve different compile unit of (syntax)
   (define (rename-or-copy-id id)
-    (let ((t (cond ((no-rename-needed? id) id)
-		   ((and (toplevel-id? id)
-			 (find-binding (vector-ref mac-env 0) (id-name id) #f))
-		    (make-identifier (id-name id) '() (vector-ref mac-env 0)))
-		   (else
-		    (make-identifier (reversible-gensym (id-name id))
-				     (id-envs id)
-				     (vector-ref use-env 0))))))
-      (copy-identifier t)))
+    (cond ((find-binding (id-library id) (id-name id) #f)
+	   (make-identifier id (vector-ref mac-env 1) (id-library id)))
+	  ((no-rename-needed? id) id)
+	  (else
+	   (make-identifier (id-name id) (id-envs id) (vector-ref use-env 0)))))
 
   ;; regenerate pattern variable
   (define (rewrite-template t vars)
@@ -864,15 +860,25 @@
 
 ;; datum->syntax
 (define (datum->syntax template-id datum)
+  (define (rewrite expr frame library)
+    (let loop ((expr expr))
+      (cond ((pair? expr)
+	     (let ((a (loop (car expr)))
+		   (d (loop (cdr expr))))
+	       (if (and (eq? a (car expr)) (eq? d (cdr expr)))
+		   expr
+		   (cons a d))))
+	    ((vector? expr)
+	     (list->vector (loop (vector->list expr))))
+	    ((symbol? expr)
+	     (let* ((dummy (make-identifier expr '() library)))
+	       (make-identifier dummy frame library)))
+	    (else expr))))
   (or (identifier? template-id)
       (assertion-violation 
        'datum->syntax 
        (format "expected identifier, but got ~s" template-id)))
-  (let ((env (if (eq? (vector-ref (current-usage-env) 0)
-		      (id-library template-id))
-		 (current-usage-env)
-		 (current-macro-env))))
-    (wrap-syntax datum env (make-eq-hashtable) #f template-id)))
+  (rewrite datum (id-envs template-id) (id-library template-id)))
 
 ;; syntax->datum
 (define (syntax->datum syntax)
