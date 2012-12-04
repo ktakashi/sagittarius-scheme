@@ -86,12 +86,15 @@ static SgIdentifier* make_identifier()
   return id;
 }
 
-SgObject Sg_MakeIdentifier(SgSymbol *symbol, SgObject envs, SgLibrary *library)
+SgObject Sg_MakeIdentifier(SgObject id_or_sm, SgObject envs, SgLibrary *library)
 {
   SgIdentifier *id = make_identifier();
-  id->name = symbol;
+  id->name = (SG_IDENTIFIERP(id_or_sm))
+    ? SG_IDENTIFIER_NAME(id_or_sm) : id_or_sm;
   id->library = library;
-  id->envs = (envs == SG_NIL)? SG_NIL : get_binding_frame(SG_OBJ(symbol), envs);
+  id->envs = (envs == SG_NIL)
+    ? SG_NIL : SG_IDENTIFIERP(id_or_sm)
+    ? envs   : get_binding_frame(SG_OBJ(id_or_sm), envs);
   return SG_OBJ(id);
 }
 

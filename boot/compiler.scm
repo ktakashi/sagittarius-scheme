@@ -148,8 +148,7 @@
 (define-syntax $map-cons-dup
   (syntax-rules ()
     ((_ vars lvars)
-     (append! (%map-cons (unwrap-syntax vars) lvars)
-	      (%map-cons vars lvars)))))
+     (%map-cons vars lvars))))
 
 (define (uniq lst)
   (let loop ((lst lst) (ret '()))
@@ -197,31 +196,33 @@
 ;; pass 0 
 ;; the implementation is kind of ugly, we need to handle
 ;; quasiquote here otherwise the expansion will be wrong
-(define (pass0 form env)
-  (define (rewrite form env)
-    (define seen (make-eq-hashtable))
-    (let loop ((form form) (in-quasi? #f))
-      (cond ((pair? form)
-	     (if (and (not in-quasi?) (constant-literal? form))
-		  form
-		  (let ((in-quasi? (or in-quasi? (eq? (car form) 'quasiquote))))
-		    ($src (cons (loop (car form) in-quasi?)
-				(loop (cdr form) in-quasi?))
-			  form))))
-	    ;; for scheme vm
-	    ((identifier? form) form)
-	    ((vector? form)
-	     (if (and (not in-quasi?) (constant-literal? form))
-		 form
-		 (list->vector (loop (vector->list form) in-quasi?))))
-	    ((hashtable-ref seen form #f))
-	    ((symbol? form)
-	     (let ((id (make-identifier form '() #f)))
-	       (hashtable-set! seen form id)
-	       id))
-	    (else form))))
-  (rewrite form env))
 
+;; (define (pass0 form env)
+;;   (define (rewrite form env)
+;;     (define seen (make-eq-hashtable))
+;;     (let loop ((form form) (in-quasi? #f))
+;;       (cond ((pair? form)
+;; 	     (if (and (not in-quasi?) (constant-literal? form))
+;; 		  form
+;; 		  (let ((in-quasi? (or in-quasi? (eq? (car form) 'quasiquote))))
+;; 		    ($src (cons (loop (car form) in-quasi?)
+;; 				(loop (cdr form) in-quasi?))
+;; 			  form))))
+;; 	    ;; for scheme vm
+;; 	    ((identifier? form) form)
+;; 	    ((vector? form)
+;; 	     (if (and (not in-quasi?) (constant-literal? form))
+;; 		 form
+;; 		 (list->vector (loop (vector->list form) in-quasi?))))
+;; 	    ((hashtable-ref seen form #f))
+;; 	    ((symbol? form)
+;; 	     (let ((id (make-identifier form '() #f)))
+;; 	       (hashtable-set! seen form id)
+;; 	       id))
+;; 	    (else form))))
+;;   (rewrite form env))
+
+(define (pass0 form env) form)
 ;;;;
 ;; pass1: translation stage.
 ;; this stage translates s-expression to IForm which is from Gauche.
@@ -5112,7 +5113,7 @@
     (define (raise-error e info program)
       (raise (condition (make-compile-error
 			 (format-source-info info)
-			 (format "~,,,,40:s" program))
+			 (format "~,,,,40:s" (unwrap-syntax program)))
 			e)))
     (guard (e (else (cond ((import-error? e) (raise e))
 			  (else 

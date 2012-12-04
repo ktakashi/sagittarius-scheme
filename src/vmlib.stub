@@ -31,9 +31,11 @@
       (result (Sg_MakeStringC (-> info name)))))
 
   ;; identifier
-  (define-c-proc make-identifier (name::<symbol> envs maybe-library)
-    ;; well, not so good actually
-    (unless (or (SG_FALSEP maybe-library) (SG_LIBRARYP maybe-library))
+  (define-c-proc make-identifier (name envs maybe-library)
+    (unless (or (SG_SYMBOLP name) (SG_IDENTIFIERP name))
+      (wrong-type-of-argument-violation 'make-identifier 
+					"symbol or identifier" name))
+    (unless (SG_LIBRARYP maybe-library)
       (set! maybe-library (Sg_FindLibrary maybe-library FALSE)))
     (result (Sg_MakeIdentifier name envs maybe-library)))
 
@@ -269,17 +271,21 @@
     (p1env::SgVector* name lookup_as top?::int frame?::int)
     :static
     (let ((name_identp::int (SG_IDENTIFIERP name))
+	  (same-env?::int FALSE)
 	  (frames (SG_VECTOR_ELEMENT p1env 1)))
       (label entry)
       (dopairs (fp frames)
 	(when (and name_identp
 		   (== (SG_IDENTIFIER_ENVS name) fp))
+	  (set! same-env? TRUE)
 	  ;; strip identifier if we're in the same env
 	  (set! name (SG_OBJ (SG_IDENTIFIER_NAME name))))
 	(when (> (SG_CAAR fp) lookup_as)
 	  (continue))
 	(dolist (vp (SG_CDAR fp))
-	  (when (SG_EQ name (SG_CAR vp))
+	  (when (or (SG_EQ name (SG_CAR vp))
+		    (and same-env? (SG_IDENTIFIERP (SG_CAR vp))
+			 (SG_EQ name (SG_IDENTIFIER_NAME (SG_CAR vp)))))
 	    (if frame?
 		(return fp)
 		(return (SG_CDR vp))))))

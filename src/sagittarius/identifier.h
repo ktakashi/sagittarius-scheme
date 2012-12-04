@@ -60,7 +60,7 @@ struct SgIdentifierRec
 
 SG_CDECL_BEGIN
 
-SG_EXTERN SgObject Sg_MakeIdentifier(SgSymbol *symbol, SgObject envs,
+SG_EXTERN SgObject Sg_MakeIdentifier(SgObject id_or_sym, SgObject envs,
 				     SgLibrary *library);
 SG_EXTERN SgObject Sg_CopyIdentifier(SgIdentifier *id);
 SG_EXTERN SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env,

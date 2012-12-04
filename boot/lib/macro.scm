@@ -150,9 +150,10 @@
 	       ;; we need to use the original library if the given id has
 	       ;; to keep macro hygienic.
 	       ;; this could happen on macro generating macro.
-	       (let ((new-id (make-identifier
-			      (id-name id) env (or (id-library id)
-						   (vector-ref mac-env 0)))))
+	       (let ((new-id (or (and (identifier? id)
+				      (make-identifier id env (id-library id)))
+				 (make-identifier id env
+						  (vector-ref mac-env 0)))))
 		 (hashtable-set! seen id new-id)
 		 new-id))))
       (let loop ((expr expr))
@@ -171,9 +172,13 @@
 			  ( (not (null? env)) ))
 		 env) => (lambda (env) (seen-or-gen expr env)))
 	      ;; local check pattern variable as well
-	      ((and (identifier? expr) all?
+	      ((and (variable? expr)
+		    all?
 		    (not (number? (p1env-lookup mac-env expr PATTERN))))
-	       (seen-or-gen expr (vector-ref mac-env 1)))
+	       (let ((env (p1env-lookup-frame mac-env expr LEXICAL)))
+		 (seen-or-gen expr (if (and (null? env) (identifier? expr))
+				       (id-envs expr)
+				       env))))
 	      (else expr))))
 
     (define (parse-pattern pattern)
@@ -654,11 +659,19 @@
 	       (partial-identifier form))))))
 
 (define (rank-of name ranks)
-  (let ((slot (exists (lambda (slot)
-			(if (free-identifier=? name (car slot))
-			    slot
-			    #f))
-		      ranks)))
+  (define (id=? slot)
+    ;; if the target is an identifier, simple check with free-identifier=?
+    (or (and (identifier? name)
+	     (free-identifier=? name (car slot))
+	     slot)
+	;; if the target is a symbol, we need to lookup the current
+	;; lexical binding and compare it.
+	(and (eq? (id-name (car slot)) name)
+	     (eq? (p1env-lookup-frame (current-usage-env) name LEXICAL)
+		  (id-envs (car slot)))
+	     slot)))
+	
+  (let ((slot (exists id=? ranks)))
     (if slot (cdr slot) -1)))
 
 (define (collect-ellipsis-vars tmpl ranks depth vars)
