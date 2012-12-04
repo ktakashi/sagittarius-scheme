@@ -213,7 +213,7 @@
 	    ((vector? form)
 	     (if (and (not in-quasi?) (constant-literal? form))
 		 form
-		 (list->vector (rewrite (vector->list form) in-quasi?))))
+		 (list->vector (loop (vector->list form) in-quasi?))))
 	    ((hashtable-ref seen form #f))
 	    ((symbol? form)
 	     (let ((id (make-identifier form '() #f)))
@@ -678,8 +678,8 @@
     (indent ind))
   (define (id->string id)
     (if (id-library id)
-	(format "~a#~s" (id-name id) (library-name (id-library id)))
-	(format "#:~a" (id-name id))))
+	(format "~s#~s" (id-name id) (library-name (id-library id)))
+	(format "~s" (id-name id))))
   (define (lvar->string lvar)
     (format "~a[~a.~a]"
 	    (if (identifier? (lvar-name lvar))
@@ -2778,73 +2778,42 @@
 
 ;; Almost the same process as pass1/body-finish but we still need to
 ;; continue.
-;; Resolve all internal defines and macros so far we collect.
-(define (pass1/body-macro-expand-rec mac exprs intdefs intmacros p1env)
-  (let* ((intdefs. (reverse intdefs))
-	 (vars (imap car intdefs.))
-	 ;; filter if p1env already has id
-	 (lvars (imap make-lvar+ vars))
-	 (newenv (p1env-extend p1env ($map-cons-dup vars lvars) LEXICAL)))
-    (cond ((and (null? intdefs)
-		(null? intmacros))
+(define (pass1/body-inner-rec mac exprs intdefs intmacros p1env)
+  (define (finish exprs p1env intdefs intmacros rec?)
+    (cond (mac
 	   (pass1/body-rec
 	    (acons ($history (call-macro-expander mac (caar exprs) p1env)
 			     (caar exprs))
 		   (cdar exprs) ; src
 		   (cdr exprs)) ; rest
 	    intdefs intmacros p1env))
-	  ((null? intmacros)
-	   ($let #f 'rec lvars
-		 (imap2 (lambda (lv def)
-			  (pass1/body-init lv def newenv))
-			lvars (imap cdr intdefs.))
-		 (pass1/body-rec
-		  (acons ($history (call-macro-expander mac (caar exprs) newenv)
-				   (caar exprs))
-			 (cdar exprs) ; src
-			 (cdr exprs)) ; rest
-		  '() '() newenv)))
+	  (rec?
+	   (pass1/body-rec exprs intdefs '() p1env))
 	  (else
-	   ;; intmacro list is like this
-	   ;; ((<type> . ((name expr) ...)) ...)
-	   ;; <type> : def, rec or let.
-	   ;;          def = define-syntax,
-	   ;;          rec = letrec-syntax
-	   (let ((macenv
-		  (let loop ((exprs intmacros) (env newenv))
-		    (if (null? exprs)
-			env
-			(let ((new-env
-			       (case (caar exprs)
-				 ((def rec)
-				  (letrec-syntax-parser (cdar exprs) env))
-				 ((let)
-				  (let-syntax-parser (cdar exprs) env)))))
-			  (loop (cdr exprs) new-env))))))
-	     (pass1/body-rec
-	      (acons ($history (call-macro-expander mac (caar exprs) macenv)
-			       (caar exprs))
-		     (cdar exprs) ; src
-		     (cdr exprs)) ; rest
-		  '() '() macenv))))))
+	   (pass1/body-rest exprs p1env))))
 
-(define (pass1/body-finish intdefs intmacros exprs p1env)
   (let* ((intdefs. (reverse intdefs))
 	 (vars (imap car intdefs.))
-	 ;; filter if p1env already has id
-	 (lvars (imap make-lvar+ vars))
-	 (newenv (p1env-extend p1env ($map-cons-dup vars lvars) LEXICAL)))
-    (cond ((and (null? intdefs)
-		(null? intmacros))
-	   (pass1/body-rest exprs p1env))
+	 ;; internal macro can make duplicated lvars but it should not
+	 ;; happen so first we need to check if there is already lvar
+	 ;; or not, and if not we can make it.
+	 (lvars (imap (lambda (var)
+			(let ((v (p1env-lookup p1env var LEXICAL)))
+			  (if (lvar? v)
+			      v
+			      (make-lvar v)))) vars))
+	 (newenv (if (null? lvars)
+		     p1env
+		     (p1env-extend p1env ($map-cons-dup vars lvars) LEXICAL))))
+    (cond ((and (null? intdefs) (null? intmacros))
+	   (finish exprs p1env '() '() #f))
 	  ((null? intmacros)
 	   ($let #f 'rec lvars
 		 (imap2 (lambda (lv def)
 			  (pass1/body-init lv def newenv))
 			lvars (imap cdr intdefs.))
-		 (pass1/body-rest exprs newenv)))
+		 (finish exprs newenv '() '() #f)))
 	  (else
-	   ;; only r6rs mode
 	   ;; intmacro list is like this
 	   ;; ((<type> . ((name expr) ...)) ...)
 	   ;; <type> : def, rec or let.
@@ -2861,7 +2830,14 @@
 				 ((let)
 				  (let-syntax-parser (cdar exprs) env)))))
 			  (loop (cdr exprs) new-env))))))
-	     (pass1/body-rec exprs intdefs '() macenv))))))
+	     (finish exprs macenv intdefs '() #t))))))
+
+;; Resolve all internal defines and macros so far we collect.
+(define (pass1/body-macro-expand-rec mac exprs intdefs intmacros p1env)
+  (pass1/body-inner-rec mac exprs intdefs intmacros p1env))
+
+(define (pass1/body-finish intdefs intmacros exprs p1env)
+  (pass1/body-inner-rec #f exprs intdefs intmacros p1env))
 
 
 (define (pass1/body-init lvar init&src newenv)
@@ -2900,14 +2876,6 @@
        (p1env-lookup p1env head SYNTAX)))
 
 ;; Pass1: translate program to IForm.
-;; This stage assumes the given program already expanded to core form
-;; which hash only 'begin', 'quote', 'define', 'set!', 'lambda', 'let',
-;; 'letrec', 'if', 'or' and 'and'. And this must not have any syntax
-;; sugar sentence such as
-;; (define (x a b) ...)
-;; this must be 
-;; (define x (lambda (a b) ...))
-;;  before this stage.
 (define (pass1 form p1env)
   (define (pass1/global-call id)
     (set! id (ensure-identifier id p1env))

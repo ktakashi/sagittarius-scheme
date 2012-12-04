@@ -12,9 +12,9 @@
 #include <sagittarius/instruction.h>
 
 static struct sg__rcRec {
-  SgObject d1636[80];
+  SgObject d193[80];
 } sg__rc = {
-  {  /* SgObject d1636 */
+  {  /* SgObject d193 */
     SG_UNBOUND,
     SG_UNBOUND,
     SG_UNBOUND,
@@ -108,7 +108,7 @@ static SgObject vmlib_insn_name(SgObject *SG_FP, int SG_ARGC, void *data_)
   insn_scm = SG_ARGREF(0);
   if (!SG_INTP(insn_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[0], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
+       sg__rc.d193[0], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
   insn = SG_INT_VALUE(insn_scm);
   {
 {
@@ -138,7 +138,7 @@ static SgObject vmlib_make_identifier(SgObject *SG_FP, int SG_ARGC, void *data_)
   name_scm = SG_ARGREF(0);
   if (!SG_SYMBOLP(name_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[1], SG_MAKE_STRING("symbol"), name_scm, SG_NIL);
+       sg__rc.d193[1], SG_MAKE_STRING("symbol"), name_scm, SG_NIL);
   name = SG_SYMBOL(name_scm);
   envs_scm = SG_ARGREF(1);
   envs = (envs_scm);
@@ -171,7 +171,7 @@ static SgObject vmlib_id_envs(SgObject *SG_FP, int SG_ARGC, void *data_)
   id_scm = SG_ARGREF(0);
   if (!SG_IDENTIFIERP(id_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[2], SG_MAKE_STRING("identifier"), id_scm, SG_NIL);
+       sg__rc.d193[2], SG_MAKE_STRING("identifier"), id_scm, SG_NIL);
   id = SG_IDENTIFIER(id_scm);
   {
 {
@@ -196,7 +196,7 @@ static SgObject vmlib_id_library(SgObject *SG_FP, int SG_ARGC, void *data_)
   id_scm = SG_ARGREF(0);
   if (!SG_IDENTIFIERP(id_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[3], SG_MAKE_STRING("identifier"), id_scm, SG_NIL);
+       sg__rc.d193[3], SG_MAKE_STRING("identifier"), id_scm, SG_NIL);
   id = SG_IDENTIFIER(id_scm);
   {
 {
@@ -225,7 +225,7 @@ static SgObject vmlib_copy_identifier(SgObject *SG_FP, int SG_ARGC, void *data_)
   id_scm = SG_ARGREF(0);
   if (!SG_IDENTIFIERP(id_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[4], SG_MAKE_STRING("identifier"), id_scm, SG_NIL);
+       sg__rc.d193[4], SG_MAKE_STRING("identifier"), id_scm, SG_NIL);
   id = SG_IDENTIFIER(id_scm);
   if (SG_ARGC > 1+1) {
     tmpl_var_scm = SG_ARGREF(1);
@@ -259,7 +259,7 @@ static SgObject vmlib_id_has_parentP(SgObject *SG_FP, int SG_ARGC, void *data_)
   id_scm = SG_ARGREF(0);
   if (!SG_IDENTIFIERP(id_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[5], SG_MAKE_STRING("identifier"), id_scm, SG_NIL);
+       sg__rc.d193[5], SG_MAKE_STRING("identifier"), id_scm, SG_NIL);
   id = SG_IDENTIFIER(id_scm);
   {
 {
@@ -286,12 +286,12 @@ static SgObject vmlib_id_has_same_parentP(SgObject *SG_FP, int SG_ARGC, void *da
   id1_scm = SG_ARGREF(0);
   if (!SG_IDENTIFIERP(id1_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[6], SG_MAKE_STRING("identifier"), id1_scm, SG_NIL);
+       sg__rc.d193[6], SG_MAKE_STRING("identifier"), id1_scm, SG_NIL);
   id1 = SG_IDENTIFIER(id1_scm);
   id2_scm = SG_ARGREF(1);
   if (!SG_IDENTIFIERP(id2_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[6], SG_MAKE_STRING("identifier"), id2_scm, SG_NIL);
+       sg__rc.d193[6], SG_MAKE_STRING("identifier"), id2_scm, SG_NIL);
   id2 = SG_IDENTIFIER(id2_scm);
   {
 {
@@ -323,7 +323,7 @@ static SgObject vmlib_make_syntax(SgObject *SG_FP, int SG_ARGC, void *data_)
   name_scm = SG_ARGREF(0);
   if (!SG_SYMBOLP(name_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[7], SG_MAKE_STRING("symbol"), name_scm, SG_NIL);
+       sg__rc.d193[7], SG_MAKE_STRING("symbol"), name_scm, SG_NIL);
   name = SG_SYMBOL(name_scm);
   proc_scm = SG_ARGREF(1);
   proc = (proc_scm);
@@ -348,7 +348,7 @@ static SgObject vmlib_syntax_name(SgObject *SG_FP, int SG_ARGC, void *data_)
   arg0_scm = SG_ARGREF(0);
   if (!SG_SYNTAXP(arg0_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[8], SG_MAKE_STRING("syntax"), arg0_scm, SG_NIL);
+       sg__rc.d193[8], SG_MAKE_STRING("syntax"), arg0_scm, SG_NIL);
   arg0 = SG_SYNTAX(arg0_scm);
   {
 {
@@ -371,7 +371,7 @@ static SgObject vmlib_syntax_proc(SgObject *SG_FP, int SG_ARGC, void *data_)
   arg0_scm = SG_ARGREF(0);
   if (!SG_SYNTAXP(arg0_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[9], SG_MAKE_STRING("syntax"), arg0_scm, SG_NIL);
+       sg__rc.d193[9], SG_MAKE_STRING("syntax"), arg0_scm, SG_NIL);
   arg0 = SG_SYNTAX(arg0_scm);
   {
 {
@@ -418,7 +418,7 @@ static SgObject vmlib_call_syntax_handler(SgObject *SG_FP, int SG_ARGC, void *da
   s_scm = SG_ARGREF(0);
   if (!SG_SYNTAXP(s_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[11], SG_MAKE_STRING("syntax"), s_scm, SG_NIL);
+       sg__rc.d193[11], SG_MAKE_STRING("syntax"), s_scm, SG_NIL);
   s = SG_SYNTAX(s_scm);
   expr_scm = SG_ARGREF(1);
   expr = (expr_scm);
@@ -545,7 +545,7 @@ static SgObject vmlib_call_macro_expander(SgObject *SG_FP, int SG_ARGC, void *da
   macro_scm = SG_ARGREF(0);
   if (!SG_MACROP(macro_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[15], SG_MAKE_STRING("macro"), macro_scm, SG_NIL);
+       sg__rc.d193[15], SG_MAKE_STRING("macro"), macro_scm, SG_NIL);
   macro = SG_MACRO(macro_scm);
   expr_scm = SG_ARGREF(1);
   expr = (expr_scm);
@@ -583,7 +583,7 @@ static SgObject vmlib__25internal_macro_expand(SgObject *SG_FP, int SG_ARGC, voi
   onceP_scm = SG_ARGREF(2);
   if (!SG_BOOLP(onceP_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[16], SG_MAKE_STRING("boolean"), onceP_scm, SG_NIL);
+       sg__rc.d193[16], SG_MAKE_STRING("boolean"), onceP_scm, SG_NIL);
   onceP = SG_BOOL_VALUE(onceP_scm);
   {
 {
@@ -606,7 +606,7 @@ static SgObject vmlib_reversible_gensym(SgObject *SG_FP, int SG_ARGC, void *data
   sym_scm = SG_ARGREF(0);
   if (!SG_SYMBOLP(sym_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[17], SG_MAKE_STRING("symbol"), sym_scm, SG_NIL);
+       sg__rc.d193[17], SG_MAKE_STRING("symbol"), sym_scm, SG_NIL);
   sym = SG_SYMBOL(sym_scm);
   {
 {
@@ -669,7 +669,7 @@ static SgObject vmlib_library_name(SgObject *SG_FP, int SG_ARGC, void *data_)
   arg0_scm = SG_ARGREF(0);
   if (!SG_LIBRARYP(arg0_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[20], SG_MAKE_STRING("library"), arg0_scm, SG_NIL);
+       sg__rc.d193[20], SG_MAKE_STRING("library"), arg0_scm, SG_NIL);
   arg0 = SG_LIBRARY(arg0_scm);
   {
 {
@@ -692,7 +692,7 @@ static SgObject vmlib_library_imported(SgObject *SG_FP, int SG_ARGC, void *data_
   arg0_scm = SG_ARGREF(0);
   if (!SG_LIBRARYP(arg0_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[21], SG_MAKE_STRING("library"), arg0_scm, SG_NIL);
+       sg__rc.d193[21], SG_MAKE_STRING("library"), arg0_scm, SG_NIL);
   arg0 = SG_LIBRARY(arg0_scm);
   {
 {
@@ -717,7 +717,7 @@ static SgObject vmlib_library_imported_setX(SgObject *SG_FP, int SG_ARGC, void *
   arg0_scm = SG_ARGREF(0);
   if (!SG_LIBRARYP(arg0_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[22], SG_MAKE_STRING("library"), arg0_scm, SG_NIL);
+       sg__rc.d193[22], SG_MAKE_STRING("library"), arg0_scm, SG_NIL);
   arg0 = SG_LIBRARY(arg0_scm);
   arg1_scm = SG_ARGREF(1);
   arg1 = (arg1_scm);
@@ -741,7 +741,7 @@ static SgObject vmlib_library_exported(SgObject *SG_FP, int SG_ARGC, void *data_
   arg0_scm = SG_ARGREF(0);
   if (!SG_LIBRARYP(arg0_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[23], SG_MAKE_STRING("library"), arg0_scm, SG_NIL);
+       sg__rc.d193[23], SG_MAKE_STRING("library"), arg0_scm, SG_NIL);
   arg0 = SG_LIBRARY(arg0_scm);
   {
 {
@@ -766,7 +766,7 @@ static SgObject vmlib_library_exported_setX(SgObject *SG_FP, int SG_ARGC, void *
   arg0_scm = SG_ARGREF(0);
   if (!SG_LIBRARYP(arg0_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[24], SG_MAKE_STRING("library"), arg0_scm, SG_NIL);
+       sg__rc.d193[24], SG_MAKE_STRING("library"), arg0_scm, SG_NIL);
   arg0 = SG_LIBRARY(arg0_scm);
   arg1_scm = SG_ARGREF(1);
   arg1 = (arg1_scm);
@@ -802,7 +802,7 @@ SgObject SG_RESULT = (SgObject)NULL;
 #line 119 "./vmlib.stub"
 if (SG_LIBRARYP(lib)){SG_RESULT=(SG_LIBRARY_DEFINEED(lib));}else if(
 SG_FALSEP(lib)){SG_RESULT=(SG_LIBRARY_DEFINEED(Sg_VMCurrentLibrary()));} else {
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[26],SG_MAKE_STRING("library or #f"),lib,SG_NIL);}}
+{Sg_WrongTypeOfArgumentViolation(sg__rc.d193[26],SG_MAKE_STRING("library or #f"),lib,SG_NIL);}}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -822,7 +822,7 @@ static SgObject vmlib_library_defined_addX(SgObject *SG_FP, int SG_ARGC, void *d
   lib_scm = SG_ARGREF(0);
   if (!SG_LIBRARYP(lib_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[27], SG_MAKE_STRING("library"), lib_scm, SG_NIL);
+       sg__rc.d193[27], SG_MAKE_STRING("library"), lib_scm, SG_NIL);
   lib = SG_LIBRARY(lib_scm);
   v_scm = SG_ARGREF(1);
   v = (v_scm);
@@ -830,7 +830,7 @@ static SgObject vmlib_library_defined_addX(SgObject *SG_FP, int SG_ARGC, void *d
 
 #line 125 "./vmlib.stub"
 if ((!((SG_SYMBOLP(v))||(SG_IDENTIFIERP(v))))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[28],SG_MAKE_STRING("symbol or identifier"),v,SG_NIL);}}}
+{Sg_WrongTypeOfArgumentViolation(sg__rc.d193[28],SG_MAKE_STRING("symbol or identifier"),v,SG_NIL);}}}
 
 #line 128 "./vmlib.stub"
 if (SG_IDENTIFIERP(v)){{v=(SG_IDENTIFIER_NAME(v));}}
@@ -854,7 +854,7 @@ static SgObject vmlib_library_table(SgObject *SG_FP, int SG_ARGC, void *data_)
   lib_scm = SG_ARGREF(0);
   if (!SG_LIBRARYP(lib_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[29], SG_MAKE_STRING("library"), lib_scm, SG_NIL);
+       sg__rc.d193[29], SG_MAKE_STRING("library"), lib_scm, SG_NIL);
   lib = SG_LIBRARY(lib_scm);
   {
 {
@@ -877,7 +877,7 @@ static SgObject vmlib_library_parents(SgObject *SG_FP, int SG_ARGC, void *data_)
   lib_scm = SG_ARGREF(0);
   if (!SG_LIBRARYP(lib_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[30], SG_MAKE_STRING("library"), lib_scm, SG_NIL);
+       sg__rc.d193[30], SG_MAKE_STRING("library"), lib_scm, SG_NIL);
   lib = SG_LIBRARY(lib_scm);
   {
 {
@@ -906,7 +906,7 @@ static SgObject vmlib_find_library(SgObject *SG_FP, int SG_ARGC, void *data_)
   createp_scm = SG_ARGREF(1);
   if (!SG_BOOLP(createp_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[31], SG_MAKE_STRING("boolean"), createp_scm, SG_NIL);
+       sg__rc.d193[31], SG_MAKE_STRING("boolean"), createp_scm, SG_NIL);
   createp = SG_BOOL_VALUE(createp_scm);
   {
 {
@@ -941,7 +941,7 @@ static SgObject vmlib__25insert_binding(SgObject *SG_FP, int SG_ARGC, void *data
 #line 140 "./vmlib.stub"
 if ((!((SG_SYMBOLP(name))||(
 SG_IDENTIFIERP(name))))){{
-{Sg_WrongTypeOfArgumentViolation(sg__rc.d1636[33],SG_MAKE_STRING("symbol or identifier"),name,SG_NIL);}}}
+{Sg_WrongTypeOfArgumentViolation(sg__rc.d193[33],SG_MAKE_STRING("symbol or identifier"),name,SG_NIL);}}}
 
 #line 145 "./vmlib.stub"
 {SgObject lib=Sg_FindLibrary(libname,TRUE);
@@ -968,7 +968,7 @@ static SgObject vmlib_find_binding(SgObject *SG_FP, int SG_ARGC, void *data_)
   arg1_scm = SG_ARGREF(1);
   if (!SG_SYMBOLP(arg1_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[34], SG_MAKE_STRING("symbol"), arg1_scm, SG_NIL);
+       sg__rc.d193[34], SG_MAKE_STRING("symbol"), arg1_scm, SG_NIL);
   arg1 = SG_SYMBOL(arg1_scm);
   callback_scm = SG_ARGREF(2);
   callback = (callback_scm);
@@ -1033,7 +1033,7 @@ static SgObject vmlib_vm_current_library(SgObject *SG_FP, int SG_ARGC, void *dat
   }
   if (!SG_UNBOUNDP(name_scm) && !SG_LIBRARYP(name_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[36], SG_MAKE_STRING("library"), name_scm, SG_NIL);
+       sg__rc.d193[36], SG_MAKE_STRING("library"), name_scm, SG_NIL);
   name = SG_LIBRARY(name_scm);
   {
 {
@@ -1064,7 +1064,7 @@ static SgObject vmlib_gloc_ref(SgObject *SG_FP, int SG_ARGC, void *data_)
   g_scm = SG_ARGREF(0);
   if (!SG_GLOCP(g_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[37], SG_MAKE_STRING("gloc"), g_scm, SG_NIL);
+       sg__rc.d193[37], SG_MAKE_STRING("gloc"), g_scm, SG_NIL);
   g = SG_GLOC(g_scm);
   {
 {
@@ -1089,7 +1089,7 @@ static SgObject vmlib_gloc_setX(SgObject *SG_FP, int SG_ARGC, void *data_)
   g_scm = SG_ARGREF(0);
   if (!SG_GLOCP(g_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[38], SG_MAKE_STRING("gloc"), g_scm, SG_NIL);
+       sg__rc.d193[38], SG_MAKE_STRING("gloc"), g_scm, SG_NIL);
   g = SG_GLOC(g_scm);
   value_scm = SG_ARGREF(1);
   value = (value_scm);
@@ -1113,7 +1113,7 @@ static SgObject vmlib_gloc_boundP(SgObject *SG_FP, int SG_ARGC, void *data_)
   g_scm = SG_ARGREF(0);
   if (!SG_GLOCP(g_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[39], SG_MAKE_STRING("gloc"), g_scm, SG_NIL);
+       sg__rc.d193[39], SG_MAKE_STRING("gloc"), g_scm, SG_NIL);
   g = SG_GLOC(g_scm);
   {
 {
@@ -1138,7 +1138,7 @@ static SgObject vmlib_gloc_constP(SgObject *SG_FP, int SG_ARGC, void *data_)
   g_scm = SG_ARGREF(0);
   if (!SG_GLOCP(g_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[40], SG_MAKE_STRING("gloc"), g_scm, SG_NIL);
+       sg__rc.d193[40], SG_MAKE_STRING("gloc"), g_scm, SG_NIL);
   g = SG_GLOC(g_scm);
   {
 {
@@ -1163,7 +1163,7 @@ static SgObject vmlib_gloc_library(SgObject *SG_FP, int SG_ARGC, void *data_)
   g_scm = SG_ARGREF(0);
   if (!SG_GLOCP(g_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[41], SG_MAKE_STRING("gloc"), g_scm, SG_NIL);
+       sg__rc.d193[41], SG_MAKE_STRING("gloc"), g_scm, SG_NIL);
   g = SG_GLOC(g_scm);
   {
 {
@@ -1188,7 +1188,7 @@ static SgObject vmlib_gloc_name(SgObject *SG_FP, int SG_ARGC, void *data_)
   g_scm = SG_ARGREF(0);
   if (!SG_GLOCP(g_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[42], SG_MAKE_STRING("gloc"), g_scm, SG_NIL);
+       sg__rc.d193[42], SG_MAKE_STRING("gloc"), g_scm, SG_NIL);
   g = SG_GLOC(g_scm);
   {
 {
@@ -1213,7 +1213,7 @@ static SgObject vmlib_make_toplevel_closure(SgObject *SG_FP, int SG_ARGC, void *
   cb_scm = SG_ARGREF(0);
   if (!SG_CODE_BUILDERP(cb_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[43], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
+       sg__rc.d193[43], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
   cb = SG_CODE_BUILDER(cb_scm);
   {
 {
@@ -1258,12 +1258,12 @@ static SgObject vmlib_cb_emit0X(SgObject *SG_FP, int SG_ARGC, void *data_)
   cb_scm = SG_ARGREF(0);
   if (!SG_CODE_BUILDERP(cb_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[45], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
+       sg__rc.d193[45], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
   cb = SG_CODE_BUILDER(cb_scm);
   insn_scm = SG_ARGREF(1);
   if (!SG_INTP(insn_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[45], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
+       sg__rc.d193[45], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
   insn = SG_INT_VALUE(insn_scm);
   {
 
@@ -1289,17 +1289,17 @@ static SgObject vmlib_cb_emit1X(SgObject *SG_FP, int SG_ARGC, void *data_)
   cb_scm = SG_ARGREF(0);
   if (!SG_CODE_BUILDERP(cb_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[46], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
+       sg__rc.d193[46], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
   cb = SG_CODE_BUILDER(cb_scm);
   insn_scm = SG_ARGREF(1);
   if (!SG_INTP(insn_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[46], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
+       sg__rc.d193[46], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
   insn = SG_INT_VALUE(insn_scm);
   arg0_scm = SG_ARGREF(2);
   if (!SG_INTP(arg0_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[46], SG_MAKE_STRING("fixnum"), arg0_scm, SG_NIL);
+       sg__rc.d193[46], SG_MAKE_STRING("fixnum"), arg0_scm, SG_NIL);
   arg0 = SG_INT_VALUE(arg0_scm);
   {
 
@@ -1327,22 +1327,22 @@ static SgObject vmlib_cb_emit2X(SgObject *SG_FP, int SG_ARGC, void *data_)
   cb_scm = SG_ARGREF(0);
   if (!SG_CODE_BUILDERP(cb_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[47], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
+       sg__rc.d193[47], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
   cb = SG_CODE_BUILDER(cb_scm);
   insn_scm = SG_ARGREF(1);
   if (!SG_INTP(insn_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[47], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
+       sg__rc.d193[47], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
   insn = SG_INT_VALUE(insn_scm);
   arg0_scm = SG_ARGREF(2);
   if (!SG_INTP(arg0_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[47], SG_MAKE_STRING("fixnum"), arg0_scm, SG_NIL);
+       sg__rc.d193[47], SG_MAKE_STRING("fixnum"), arg0_scm, SG_NIL);
   arg0 = SG_INT_VALUE(arg0_scm);
   arg1_scm = SG_ARGREF(3);
   if (!SG_INTP(arg1_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[47], SG_MAKE_STRING("fixnum"), arg1_scm, SG_NIL);
+       sg__rc.d193[47], SG_MAKE_STRING("fixnum"), arg1_scm, SG_NIL);
   arg1 = SG_INT_VALUE(arg1_scm);
   {
 
@@ -1368,12 +1368,12 @@ static SgObject vmlib_cb_emit0iX(SgObject *SG_FP, int SG_ARGC, void *data_)
   cb_scm = SG_ARGREF(0);
   if (!SG_CODE_BUILDERP(cb_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[48], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
+       sg__rc.d193[48], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
   cb = SG_CODE_BUILDER(cb_scm);
   insn_scm = SG_ARGREF(1);
   if (!SG_INTP(insn_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[48], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
+       sg__rc.d193[48], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
   insn = SG_INT_VALUE(insn_scm);
   src_scm = SG_ARGREF(2);
   src = (src_scm);
@@ -1406,17 +1406,17 @@ static SgObject vmlib_cb_emit1iX(SgObject *SG_FP, int SG_ARGC, void *data_)
   cb_scm = SG_ARGREF(0);
   if (!SG_CODE_BUILDERP(cb_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[49], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
+       sg__rc.d193[49], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
   cb = SG_CODE_BUILDER(cb_scm);
   insn_scm = SG_ARGREF(1);
   if (!SG_INTP(insn_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[49], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
+       sg__rc.d193[49], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
   insn = SG_INT_VALUE(insn_scm);
   arg0_scm = SG_ARGREF(2);
   if (!SG_INTP(arg0_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[49], SG_MAKE_STRING("fixnum"), arg0_scm, SG_NIL);
+       sg__rc.d193[49], SG_MAKE_STRING("fixnum"), arg0_scm, SG_NIL);
   arg0 = SG_INT_VALUE(arg0_scm);
   src_scm = SG_ARGREF(3);
   src = (src_scm);
@@ -1451,22 +1451,22 @@ static SgObject vmlib_cb_emit2iX(SgObject *SG_FP, int SG_ARGC, void *data_)
   cb_scm = SG_ARGREF(0);
   if (!SG_CODE_BUILDERP(cb_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[50], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
+       sg__rc.d193[50], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
   cb = SG_CODE_BUILDER(cb_scm);
   insn_scm = SG_ARGREF(1);
   if (!SG_INTP(insn_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[50], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
+       sg__rc.d193[50], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
   insn = SG_INT_VALUE(insn_scm);
   arg0_scm = SG_ARGREF(2);
   if (!SG_INTP(arg0_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[50], SG_MAKE_STRING("fixnum"), arg0_scm, SG_NIL);
+       sg__rc.d193[50], SG_MAKE_STRING("fixnum"), arg0_scm, SG_NIL);
   arg0 = SG_INT_VALUE(arg0_scm);
   arg1_scm = SG_ARGREF(3);
   if (!SG_INTP(arg1_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[50], SG_MAKE_STRING("fixnum"), arg1_scm, SG_NIL);
+       sg__rc.d193[50], SG_MAKE_STRING("fixnum"), arg1_scm, SG_NIL);
   arg1 = SG_INT_VALUE(arg1_scm);
   src_scm = SG_ARGREF(4);
   src = (src_scm);
@@ -1497,12 +1497,12 @@ static SgObject vmlib_cb_emit0oX(SgObject *SG_FP, int SG_ARGC, void *data_)
   cb_scm = SG_ARGREF(0);
   if (!SG_CODE_BUILDERP(cb_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[51], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
+       sg__rc.d193[51], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
   cb = SG_CODE_BUILDER(cb_scm);
   insn_scm = SG_ARGREF(1);
   if (!SG_INTP(insn_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[51], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
+       sg__rc.d193[51], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
   insn = SG_INT_VALUE(insn_scm);
   obj_scm = SG_ARGREF(2);
   obj = (obj_scm);
@@ -1532,12 +1532,12 @@ static SgObject vmlib_cb_emit0oiX(SgObject *SG_FP, int SG_ARGC, void *data_)
   cb_scm = SG_ARGREF(0);
   if (!SG_CODE_BUILDERP(cb_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[52], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
+       sg__rc.d193[52], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
   cb = SG_CODE_BUILDER(cb_scm);
   insn_scm = SG_ARGREF(1);
   if (!SG_INTP(insn_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[52], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
+       sg__rc.d193[52], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
   insn = SG_INT_VALUE(insn_scm);
   obj_scm = SG_ARGREF(2);
   obj = (obj_scm);
@@ -1574,17 +1574,17 @@ static SgObject vmlib_cb_emit1oiX(SgObject *SG_FP, int SG_ARGC, void *data_)
   cb_scm = SG_ARGREF(0);
   if (!SG_CODE_BUILDERP(cb_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[53], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
+       sg__rc.d193[53], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
   cb = SG_CODE_BUILDER(cb_scm);
   insn_scm = SG_ARGREF(1);
   if (!SG_INTP(insn_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[53], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
+       sg__rc.d193[53], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
   insn = SG_INT_VALUE(insn_scm);
   arg0_scm = SG_ARGREF(2);
   if (!SG_INTP(arg0_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[53], SG_MAKE_STRING("fixnum"), arg0_scm, SG_NIL);
+       sg__rc.d193[53], SG_MAKE_STRING("fixnum"), arg0_scm, SG_NIL);
   arg0 = SG_INT_VALUE(arg0_scm);
   obj_scm = SG_ARGREF(3);
   obj = (obj_scm);
@@ -1615,7 +1615,7 @@ static SgObject vmlib_cb_label_setX(SgObject *SG_FP, int SG_ARGC, void *data_)
   cb_scm = SG_ARGREF(0);
   if (!SG_CODE_BUILDERP(cb_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[54], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
+       sg__rc.d193[54], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
   cb = SG_CODE_BUILDER(cb_scm);
   label_scm = SG_ARGREF(1);
   label = (label_scm);
@@ -1655,39 +1655,39 @@ static SgObject vmlib_cb_emit_closureX(SgObject *SG_FP, int SG_ARGC, void *data_
   cb_scm = SG_ARGREF(0);
   if (!SG_CODE_BUILDERP(cb_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[55], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
+       sg__rc.d193[55], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
   cb = SG_CODE_BUILDER(cb_scm);
   insn_scm = SG_ARGREF(1);
   if (!SG_INTP(insn_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[55], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
+       sg__rc.d193[55], SG_MAKE_STRING("fixnum"), insn_scm, SG_NIL);
   insn = SG_INT_VALUE(insn_scm);
   lambda_cb_scm = SG_ARGREF(2);
   if (!SG_CODE_BUILDERP(lambda_cb_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[55], SG_MAKE_STRING("code-builder"), lambda_cb_scm, SG_NIL);
+       sg__rc.d193[55], SG_MAKE_STRING("code-builder"), lambda_cb_scm, SG_NIL);
   lambda_cb = SG_CODE_BUILDER(lambda_cb_scm);
   name_scm = SG_ARGREF(3);
   name = (name_scm);
   req_argc_scm = SG_ARGREF(4);
   if (!SG_INTP(req_argc_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[55], SG_MAKE_STRING("fixnum"), req_argc_scm, SG_NIL);
+       sg__rc.d193[55], SG_MAKE_STRING("fixnum"), req_argc_scm, SG_NIL);
   req_argc = SG_INT_VALUE(req_argc_scm);
   opt_scm = SG_ARGREF(5);
   if (!SG_BOOLP(opt_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[55], SG_MAKE_STRING("boolean"), opt_scm, SG_NIL);
+       sg__rc.d193[55], SG_MAKE_STRING("boolean"), opt_scm, SG_NIL);
   opt = SG_BOOL_VALUE(opt_scm);
   freec_scm = SG_ARGREF(6);
   if (!SG_INTP(freec_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[55], SG_MAKE_STRING("fixnum"), freec_scm, SG_NIL);
+       sg__rc.d193[55], SG_MAKE_STRING("fixnum"), freec_scm, SG_NIL);
   freec = SG_INT_VALUE(freec_scm);
   max_stack_scm = SG_ARGREF(7);
   if (!SG_INTP(max_stack_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[55], SG_MAKE_STRING("fixnum"), max_stack_scm, SG_NIL);
+       sg__rc.d193[55], SG_MAKE_STRING("fixnum"), max_stack_scm, SG_NIL);
   max_stack = SG_INT_VALUE(max_stack_scm);
   src_scm = SG_ARGREF(8);
   src = (src_scm);
@@ -1732,7 +1732,7 @@ static SgObject vmlib_code_builder_label_defs(SgObject *SG_FP, int SG_ARGC, void
   cb_scm = SG_ARGREF(0);
   if (!SG_CODE_BUILDERP(cb_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[56], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
+       sg__rc.d193[56], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
   cb = SG_CODE_BUILDER(cb_scm);
   {
 {
@@ -1759,12 +1759,12 @@ static SgObject vmlib_code_builder_finish_builder(SgObject *SG_FP, int SG_ARGC, 
   cb_scm = SG_ARGREF(0);
   if (!SG_CODE_BUILDERP(cb_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[57], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
+       sg__rc.d193[57], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
   cb = SG_CODE_BUILDER(cb_scm);
   last_scm = SG_ARGREF(1);
   if (!SG_INTP(last_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[57], SG_MAKE_STRING("fixnum"), last_scm, SG_NIL);
+       sg__rc.d193[57], SG_MAKE_STRING("fixnum"), last_scm, SG_NIL);
   last = SG_INT_VALUE(last_scm);
   {
 {
@@ -1863,7 +1863,7 @@ SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
 static SG_DEFINE_SUBR(vmlib__25map_cons__STUB, 2, 0,vmlib__25map_cons, SG_FALSE, NULL);
 
-static SgObject p1env_lookup_inner(SgVector* p1env,SgObject name,SgObject lookup_as,int topP,int frameP){SgObject fp;SgObject cise__1637;{
+static SgObject p1env_lookup_inner(SgVector* p1env,SgObject name,SgObject lookup_as,int topP,int frameP){SgObject fp;SgObject cise__194;{
 #line 271 "./vmlib.stub"
 {int name_identp=SG_IDENTIFIERP(name);SgObject frames=
 SG_VECTOR_ELEMENT(p1env,1);
@@ -1875,7 +1875,7 @@ if ((name_identp)&&(
 name=(SG_OBJ(SG_IDENTIFIER_NAME(name)));}}
 if ((SG_CAAR(fp))>(lookup_as)){{
 continue;}}
-SG_FOR_EACH(cise__1637,SG_CDAR(fp)) {{SgObject vp=SG_CAR(cise__1637);
+SG_FOR_EACH(cise__194,SG_CDAR(fp)) {{SgObject vp=SG_CAR(cise__194);
 if (SG_EQ(name,SG_CAR(vp))){{
 if (frameP){
 return (fp);} else {
@@ -1905,7 +1905,7 @@ static SgObject vmlib_p1env_lookup(SgObject *SG_FP, int SG_ARGC, void *data_)
   p1env_scm = SG_ARGREF(0);
   if (!SG_VECTORP(p1env_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[62], SG_MAKE_STRING("vector"), p1env_scm, SG_NIL);
+       sg__rc.d193[62], SG_MAKE_STRING("vector"), p1env_scm, SG_NIL);
   p1env = SG_VECTOR(p1env_scm);
   name_scm = SG_ARGREF(1);
   name = (name_scm);
@@ -1942,7 +1942,7 @@ static SgObject vmlib_p1env_lookup_frame(SgObject *SG_FP, int SG_ARGC, void *dat
   p1env_scm = SG_ARGREF(0);
   if (!SG_VECTORP(p1env_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[63], SG_MAKE_STRING("vector"), p1env_scm, SG_NIL);
+       sg__rc.d193[63], SG_MAKE_STRING("vector"), p1env_scm, SG_NIL);
   p1env = SG_VECTOR(p1env_scm);
   name_scm = SG_ARGREF(1);
   name = (name_scm);
@@ -1963,9 +1963,9 @@ SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
 static SG_DEFINE_SUBR(vmlib_p1env_lookup_frame__STUB, 3, 0,vmlib_p1env_lookup_frame, SG_FALSE, NULL);
 
-static int check_env_frame(SgObject frames){SgObject cise__1638;{
+static int check_env_frame(SgObject frames){SgObject cise__195;{
 #line 315 "./vmlib.stub"
-SG_FOR_EACH(cise__1638,frames) {{SgObject frame=SG_CAR(cise__1638);
+SG_FOR_EACH(cise__195,frames) {{SgObject frame=SG_CAR(cise__195);
 if ((!((SG_PAIRP(frame))&&(SG_MACROP(SG_CDR(frame)))))){{
 return (TRUE);}}}}
 return (FALSE);}}
@@ -1982,9 +1982,9 @@ static SgObject vmlib_p1env_toplevelP(SgObject *SG_FP, int SG_ARGC, void *data_)
   {
 {
 int SG_RESULT = (int)NULL;
-SgObject cise__1639;
+SgObject cise__196;
 #line 321 "./vmlib.stub"
-SG_FOR_EACH(cise__1639,SG_VECTOR_ELEMENT(p1env,1)) {{SgObject fp=SG_CAR(cise__1639);
+SG_FOR_EACH(cise__196,SG_VECTOR_ELEMENT(p1env,1)) {{SgObject fp=SG_CAR(cise__196);
 {int r6rsP=SG_VM_IS_SET_FLAG(Sg_VM(),SG_R6RS_MODE);
 if (((SG_CAR(fp))==(SG_MAKE_INT(0)))&&(
 #line 325 "./vmlib.stub"
@@ -2012,12 +2012,12 @@ static SgObject vmlib_syntax_object_3dP(SgObject *SG_FP, int SG_ARGC, void *data
   id1_scm = SG_ARGREF(0);
   if (!SG_IDENTIFIERP(id1_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[65], SG_MAKE_STRING("identifier"), id1_scm, SG_NIL);
+       sg__rc.d193[65], SG_MAKE_STRING("identifier"), id1_scm, SG_NIL);
   id1 = SG_IDENTIFIER(id1_scm);
   id2_scm = SG_ARGREF(1);
   if (!SG_IDENTIFIERP(id2_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[65], SG_MAKE_STRING("identifier"), id2_scm, SG_NIL);
+       sg__rc.d193[65], SG_MAKE_STRING("identifier"), id2_scm, SG_NIL);
   id2 = SG_IDENTIFIER(id2_scm);
   {
 {
@@ -2054,14 +2054,14 @@ static SgObject vmlib_p1env_pvar_lookup(SgObject *SG_FP, int SG_ARGC, void *data
   p1env_scm = SG_ARGREF(0);
   if (!SG_VECTORP(p1env_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[66], SG_MAKE_STRING("vector"), p1env_scm, SG_NIL);
+       sg__rc.d193[66], SG_MAKE_STRING("vector"), p1env_scm, SG_NIL);
   p1env = SG_VECTOR(p1env_scm);
   name_scm = SG_ARGREF(1);
   name = (name_scm);
   {
 {
 SgObject SG_RESULT = (SgObject)NULL;
-SgObject fp;SgObject cise__1640;
+SgObject fp;SgObject cise__197;
 #line 350 "./vmlib.stub"
 {int name_identp=SG_IDENTIFIERP(name);SgObject frames=
 SG_VECTOR_ELEMENT(p1env,1);SgObject dummy_env=
@@ -2073,7 +2073,7 @@ SG_VECTOR_ELEMENT(dummy_env,1)=(SG_IDENTIFIER_ENVS(name));}}
 SG_FOR_EACH(fp,frames){
 if ((!((SG_CAAR(fp))==(SG_MAKE_INT(2))))){{
 continue;}}
-SG_FOR_EACH(cise__1640,SG_CDAR(fp)) {{SgObject vp=SG_CAR(cise__1640);
+SG_FOR_EACH(cise__197,SG_CDAR(fp)) {{SgObject vp=SG_CAR(cise__197);
 if (((((name_identp)&&(
 #line 363 "./vmlib.stub"
 SG_NULLP(SG_IDENTIFIER_ENVS(name))))&&(
@@ -2243,7 +2243,7 @@ static SgObject vmlib__25call_2fpc(SgObject *SG_FP, int SG_ARGC, void *data_)
   p_scm = SG_ARGREF(0);
   if (!SG_PROCEDUREP(p_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[75], SG_MAKE_STRING("procedure"), p_scm, SG_NIL);
+       sg__rc.d193[75], SG_MAKE_STRING("procedure"), p_scm, SG_NIL);
   p = SG_PROCEDURE(p_scm);
   {
 {
@@ -2288,7 +2288,7 @@ static SgObject vmlib_lookup_transformer_env(SgObject *SG_FP, int SG_ARGC, void 
   o_scm = SG_ARGREF(0);
   if (!SG_IDENTIFIERP(o_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[77], SG_MAKE_STRING("identifier"), o_scm, SG_NIL);
+       sg__rc.d193[77], SG_MAKE_STRING("identifier"), o_scm, SG_NIL);
   o = SG_IDENTIFIER(o_scm);
   {
 {
@@ -2321,7 +2321,7 @@ static SgObject vmlib_add_to_transformer_envX(SgObject *SG_FP, int SG_ARGC, void
   o_scm = SG_ARGREF(0);
   if (!SG_IDENTIFIERP(o_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d1636[78], SG_MAKE_STRING("identifier"), o_scm, SG_NIL);
+       sg__rc.d193[78], SG_MAKE_STRING("identifier"), o_scm, SG_NIL);
   o = SG_IDENTIFIER(o_scm);
   n_scm = SG_ARGREF(1);
   n = (n_scm);
@@ -2362,238 +2362,238 @@ static SG_DEFINE_SUBR(vmlib_current_transformer_env__STUB, 0, 0,vmlib_current_tr
 
 void Sg__Init_sagittarius_vm () {
   SgLibrary *lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius vm)"), TRUE));
-  sg__rc.d1636[0] = SG_MAKE_STRING("insn-name");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[0]), &vmlib_insn_name__STUB);
-  SG_PROCEDURE_NAME(&vmlib_insn_name__STUB) = sg__rc.d1636[0];
-  sg__rc.d1636[1] = SG_MAKE_STRING("make-identifier");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[1]), &vmlib_make_identifier__STUB);
-  SG_PROCEDURE_NAME(&vmlib_make_identifier__STUB) = sg__rc.d1636[1];
-  sg__rc.d1636[2] = SG_MAKE_STRING("id-envs");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[2]), &vmlib_id_envs__STUB);
-  SG_PROCEDURE_NAME(&vmlib_id_envs__STUB) = sg__rc.d1636[2];
-  sg__rc.d1636[3] = SG_MAKE_STRING("id-library");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[3]), &vmlib_id_library__STUB);
-  SG_PROCEDURE_NAME(&vmlib_id_library__STUB) = sg__rc.d1636[3];
-  sg__rc.d1636[4] = SG_MAKE_STRING("copy-identifier");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[4]), &vmlib_copy_identifier__STUB);
-  SG_PROCEDURE_NAME(&vmlib_copy_identifier__STUB) = sg__rc.d1636[4];
-  sg__rc.d1636[5] = SG_MAKE_STRING("id-has-parent?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[5]), &vmlib_id_has_parentP__STUB);
-  SG_PROCEDURE_NAME(&vmlib_id_has_parentP__STUB) = sg__rc.d1636[5];
-  sg__rc.d1636[6] = SG_MAKE_STRING("id-has-same-parent?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[6]), &vmlib_id_has_same_parentP__STUB);
-  SG_PROCEDURE_NAME(&vmlib_id_has_same_parentP__STUB) = sg__rc.d1636[6];
-  sg__rc.d1636[7] = SG_MAKE_STRING("make-syntax");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[7]), &vmlib_make_syntax__STUB);
-  SG_PROCEDURE_NAME(&vmlib_make_syntax__STUB) = sg__rc.d1636[7];
-  sg__rc.d1636[8] = SG_MAKE_STRING("syntax-name");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[8]), &vmlib_syntax_name__STUB);
-  SG_PROCEDURE_NAME(&vmlib_syntax_name__STUB) = sg__rc.d1636[8];
-  sg__rc.d1636[9] = SG_MAKE_STRING("syntax-proc");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[9]), &vmlib_syntax_proc__STUB);
-  SG_PROCEDURE_NAME(&vmlib_syntax_proc__STUB) = sg__rc.d1636[9];
-  sg__rc.d1636[10] = SG_MAKE_STRING("syntax?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[10]), &vmlib_syntaxP__STUB);
-  SG_PROCEDURE_NAME(&vmlib_syntaxP__STUB) = sg__rc.d1636[10];
-  sg__rc.d1636[11] = SG_MAKE_STRING("call-syntax-handler");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[11]), &vmlib_call_syntax_handler__STUB);
-  SG_PROCEDURE_NAME(&vmlib_call_syntax_handler__STUB) = sg__rc.d1636[11];
-  sg__rc.d1636[12] = SG_MAKE_STRING("macro?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[12]), &vmlib_macroP__STUB);
-  SG_PROCEDURE_NAME(&vmlib_macroP__STUB) = sg__rc.d1636[12];
-  sg__rc.d1636[13] = SG_MAKE_STRING("make-macro");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[13]), &vmlib_make_macro__STUB);
-  SG_PROCEDURE_NAME(&vmlib_make_macro__STUB) = sg__rc.d1636[13];
-  sg__rc.d1636[14] = SG_MAKE_STRING("make-macro-transformer");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[14]), &vmlib_make_macro_transformer__STUB);
-  SG_PROCEDURE_NAME(&vmlib_make_macro_transformer__STUB) = sg__rc.d1636[14];
-  sg__rc.d1636[15] = SG_MAKE_STRING("call-macro-expander");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[15]), &vmlib_call_macro_expander__STUB);
-  SG_PROCEDURE_NAME(&vmlib_call_macro_expander__STUB) = sg__rc.d1636[15];
-  sg__rc.d1636[16] = SG_MAKE_STRING("%internal-macro-expand");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[16]), &vmlib__25internal_macro_expand__STUB);
-  SG_PROCEDURE_NAME(&vmlib__25internal_macro_expand__STUB) = sg__rc.d1636[16];
-  sg__rc.d1636[17] = SG_MAKE_STRING("reversible-gensym");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[17]), &vmlib_reversible_gensym__STUB);
-  SG_PROCEDURE_NAME(&vmlib_reversible_gensym__STUB) = sg__rc.d1636[17];
-  sg__rc.d1636[18] = SG_MAKE_STRING("make-library");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[18]), &vmlib_make_library__STUB);
-  SG_PROCEDURE_NAME(&vmlib_make_library__STUB) = sg__rc.d1636[18];
-  sg__rc.d1636[19] = SG_MAKE_STRING("library?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[19]), &vmlib_libraryP__STUB);
-  SG_PROCEDURE_NAME(&vmlib_libraryP__STUB) = sg__rc.d1636[19];
-  sg__rc.d1636[20] = SG_MAKE_STRING("library-name");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[20]), &vmlib_library_name__STUB);
-  SG_PROCEDURE_NAME(&vmlib_library_name__STUB) = sg__rc.d1636[20];
-  sg__rc.d1636[21] = SG_MAKE_STRING("library-imported");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[21]), &vmlib_library_imported__STUB);
-  SG_PROCEDURE_NAME(&vmlib_library_imported__STUB) = sg__rc.d1636[21];
-  sg__rc.d1636[22] = SG_MAKE_STRING("library-imported-set!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[22]), &vmlib_library_imported_setX__STUB);
-  SG_PROCEDURE_NAME(&vmlib_library_imported_setX__STUB) = sg__rc.d1636[22];
-  sg__rc.d1636[23] = SG_MAKE_STRING("library-exported");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[23]), &vmlib_library_exported__STUB);
-  SG_PROCEDURE_NAME(&vmlib_library_exported__STUB) = sg__rc.d1636[23];
-  sg__rc.d1636[24] = SG_MAKE_STRING("library-exported-set!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[24]), &vmlib_library_exported_setX__STUB);
-  SG_PROCEDURE_NAME(&vmlib_library_exported_setX__STUB) = sg__rc.d1636[24];
-  sg__rc.d1636[25] = SG_MAKE_STRING("library-defined");
-  sg__rc.d1636[26] = Sg_Intern(sg__rc.d1636[25]); /* library-defined */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[25]), &vmlib_library_defined__STUB);
-  SG_PROCEDURE_NAME(&vmlib_library_defined__STUB) = sg__rc.d1636[25];
-  sg__rc.d1636[27] = SG_MAKE_STRING("library-defined-add!");
-  sg__rc.d1636[28] = Sg_Intern(sg__rc.d1636[27]); /* library-defined-add! */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[27]), &vmlib_library_defined_addX__STUB);
-  SG_PROCEDURE_NAME(&vmlib_library_defined_addX__STUB) = sg__rc.d1636[27];
-  sg__rc.d1636[29] = SG_MAKE_STRING("library-table");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[29]), &vmlib_library_table__STUB);
-  SG_PROCEDURE_NAME(&vmlib_library_table__STUB) = sg__rc.d1636[29];
-  sg__rc.d1636[30] = SG_MAKE_STRING("library-parents");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[30]), &vmlib_library_parents__STUB);
-  SG_PROCEDURE_NAME(&vmlib_library_parents__STUB) = sg__rc.d1636[30];
-  sg__rc.d1636[31] = SG_MAKE_STRING("find-library");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[31]), &vmlib_find_library__STUB);
-  SG_PROCEDURE_NAME(&vmlib_find_library__STUB) = sg__rc.d1636[31];
-  sg__rc.d1636[32] = SG_MAKE_STRING("%insert-binding");
-  sg__rc.d1636[33] = Sg_Intern(sg__rc.d1636[32]); /* %insert-binding */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[32]), &vmlib__25insert_binding__STUB);
-  SG_PROCEDURE_NAME(&vmlib__25insert_binding__STUB) = sg__rc.d1636[32];
-  sg__rc.d1636[34] = SG_MAKE_STRING("find-binding");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[34]), &vmlib_find_binding__STUB);
-  SG_PROCEDURE_NAME(&vmlib_find_binding__STUB) = sg__rc.d1636[34];
-  sg__rc.d1636[35] = SG_MAKE_STRING("import-library");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[35]), &vmlib_import_library__STUB);
-  SG_PROCEDURE_NAME(&vmlib_import_library__STUB) = sg__rc.d1636[35];
-  sg__rc.d1636[36] = SG_MAKE_STRING("vm-current-library");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[36]), &vmlib_vm_current_library__STUB);
-  SG_PROCEDURE_NAME(&vmlib_vm_current_library__STUB) = sg__rc.d1636[36];
-  sg__rc.d1636[37] = SG_MAKE_STRING("gloc-ref");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[37]), &vmlib_gloc_ref__STUB);
-  SG_PROCEDURE_NAME(&vmlib_gloc_ref__STUB) = sg__rc.d1636[37];
-  sg__rc.d1636[38] = SG_MAKE_STRING("gloc-set!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[38]), &vmlib_gloc_setX__STUB);
-  SG_PROCEDURE_NAME(&vmlib_gloc_setX__STUB) = sg__rc.d1636[38];
-  sg__rc.d1636[39] = SG_MAKE_STRING("gloc-bound?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[39]), &vmlib_gloc_boundP__STUB);
-  SG_PROCEDURE_NAME(&vmlib_gloc_boundP__STUB) = sg__rc.d1636[39];
-  sg__rc.d1636[40] = SG_MAKE_STRING("gloc-const?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[40]), &vmlib_gloc_constP__STUB);
-  SG_PROCEDURE_NAME(&vmlib_gloc_constP__STUB) = sg__rc.d1636[40];
-  sg__rc.d1636[41] = SG_MAKE_STRING("gloc-library");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[41]), &vmlib_gloc_library__STUB);
-  SG_PROCEDURE_NAME(&vmlib_gloc_library__STUB) = sg__rc.d1636[41];
-  sg__rc.d1636[42] = SG_MAKE_STRING("gloc-name");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[42]), &vmlib_gloc_name__STUB);
-  SG_PROCEDURE_NAME(&vmlib_gloc_name__STUB) = sg__rc.d1636[42];
-  sg__rc.d1636[43] = SG_MAKE_STRING("make-toplevel-closure");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[43]), &vmlib_make_toplevel_closure__STUB);
-  SG_PROCEDURE_NAME(&vmlib_make_toplevel_closure__STUB) = sg__rc.d1636[43];
-  sg__rc.d1636[44] = SG_MAKE_STRING("make-code-builder");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[44]), &vmlib_make_code_builder__STUB);
-  SG_PROCEDURE_NAME(&vmlib_make_code_builder__STUB) = sg__rc.d1636[44];
-  sg__rc.d1636[45] = SG_MAKE_STRING("cb-emit0!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[45]), &vmlib_cb_emit0X__STUB);
-  SG_PROCEDURE_NAME(&vmlib_cb_emit0X__STUB) = sg__rc.d1636[45];
-  sg__rc.d1636[46] = SG_MAKE_STRING("cb-emit1!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[46]), &vmlib_cb_emit1X__STUB);
-  SG_PROCEDURE_NAME(&vmlib_cb_emit1X__STUB) = sg__rc.d1636[46];
-  sg__rc.d1636[47] = SG_MAKE_STRING("cb-emit2!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[47]), &vmlib_cb_emit2X__STUB);
-  SG_PROCEDURE_NAME(&vmlib_cb_emit2X__STUB) = sg__rc.d1636[47];
-  sg__rc.d1636[48] = SG_MAKE_STRING("cb-emit0i!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[48]), &vmlib_cb_emit0iX__STUB);
-  SG_PROCEDURE_NAME(&vmlib_cb_emit0iX__STUB) = sg__rc.d1636[48];
-  sg__rc.d1636[49] = SG_MAKE_STRING("cb-emit1i!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[49]), &vmlib_cb_emit1iX__STUB);
-  SG_PROCEDURE_NAME(&vmlib_cb_emit1iX__STUB) = sg__rc.d1636[49];
-  sg__rc.d1636[50] = SG_MAKE_STRING("cb-emit2i!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[50]), &vmlib_cb_emit2iX__STUB);
-  SG_PROCEDURE_NAME(&vmlib_cb_emit2iX__STUB) = sg__rc.d1636[50];
-  sg__rc.d1636[51] = SG_MAKE_STRING("cb-emit0o!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[51]), &vmlib_cb_emit0oX__STUB);
-  SG_PROCEDURE_NAME(&vmlib_cb_emit0oX__STUB) = sg__rc.d1636[51];
-  sg__rc.d1636[52] = SG_MAKE_STRING("cb-emit0oi!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[52]), &vmlib_cb_emit0oiX__STUB);
-  SG_PROCEDURE_NAME(&vmlib_cb_emit0oiX__STUB) = sg__rc.d1636[52];
-  sg__rc.d1636[53] = SG_MAKE_STRING("cb-emit1oi!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[53]), &vmlib_cb_emit1oiX__STUB);
-  SG_PROCEDURE_NAME(&vmlib_cb_emit1oiX__STUB) = sg__rc.d1636[53];
-  sg__rc.d1636[54] = SG_MAKE_STRING("cb-label-set!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[54]), &vmlib_cb_label_setX__STUB);
-  SG_PROCEDURE_NAME(&vmlib_cb_label_setX__STUB) = sg__rc.d1636[54];
-  sg__rc.d1636[55] = SG_MAKE_STRING("cb-emit-closure!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[55]), &vmlib_cb_emit_closureX__STUB);
-  SG_PROCEDURE_NAME(&vmlib_cb_emit_closureX__STUB) = sg__rc.d1636[55];
-  sg__rc.d1636[56] = SG_MAKE_STRING("code-builder-label-defs");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[56]), &vmlib_code_builder_label_defs__STUB);
-  SG_PROCEDURE_NAME(&vmlib_code_builder_label_defs__STUB) = sg__rc.d1636[56];
-  sg__rc.d1636[57] = SG_MAKE_STRING("code-builder-finish-builder");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[57]), &vmlib_code_builder_finish_builder__STUB);
-  SG_PROCEDURE_NAME(&vmlib_code_builder_finish_builder__STUB) = sg__rc.d1636[57];
-  sg__rc.d1636[58] = SG_MAKE_STRING("vm-r6rs-mode?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[58]), &vmlib_vm_r6rs_modeP__STUB);
-  SG_PROCEDURE_NAME(&vmlib_vm_r6rs_modeP__STUB) = sg__rc.d1636[58];
-  sg__rc.d1636[59] = SG_MAKE_STRING("vm-core-mode?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[59]), &vmlib_vm_core_modeP__STUB);
-  SG_PROCEDURE_NAME(&vmlib_vm_core_modeP__STUB) = sg__rc.d1636[59];
-  sg__rc.d1636[60] = SG_MAKE_STRING("vm-no-overwrite?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[60]), &vmlib_vm_no_overwriteP__STUB);
-  SG_PROCEDURE_NAME(&vmlib_vm_no_overwriteP__STUB) = sg__rc.d1636[60];
-  sg__rc.d1636[61] = SG_MAKE_STRING("%map-cons");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[61]), &vmlib__25map_cons__STUB);
-  SG_PROCEDURE_NAME(&vmlib__25map_cons__STUB) = sg__rc.d1636[61];
-  sg__rc.d1636[62] = SG_MAKE_STRING("p1env-lookup");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[62]), &vmlib_p1env_lookup__STUB);
-  SG_PROCEDURE_NAME(&vmlib_p1env_lookup__STUB) = sg__rc.d1636[62];
-  sg__rc.d1636[63] = SG_MAKE_STRING("p1env-lookup-frame");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[63]), &vmlib_p1env_lookup_frame__STUB);
-  SG_PROCEDURE_NAME(&vmlib_p1env_lookup_frame__STUB) = sg__rc.d1636[63];
-  sg__rc.d1636[64] = SG_MAKE_STRING("p1env-toplevel?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[64]), &vmlib_p1env_toplevelP__STUB);
-  SG_PROCEDURE_NAME(&vmlib_p1env_toplevelP__STUB) = sg__rc.d1636[64];
-  sg__rc.d1636[65] = SG_MAKE_STRING("syntax-object=?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[65]), &vmlib_syntax_object_3dP__STUB);
-  SG_PROCEDURE_NAME(&vmlib_syntax_object_3dP__STUB) = sg__rc.d1636[65];
-  sg__rc.d1636[66] = SG_MAKE_STRING("p1env-pvar-lookup");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[66]), &vmlib_p1env_pvar_lookup__STUB);
-  SG_PROCEDURE_NAME(&vmlib_p1env_pvar_lookup__STUB) = sg__rc.d1636[66];
-  sg__rc.d1636[67] = SG_MAKE_STRING("vm-frame-size");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[67]), &vmlib_vm_frame_size__STUB);
-  SG_PROCEDURE_NAME(&vmlib_vm_frame_size__STUB) = sg__rc.d1636[67];
-  sg__rc.d1636[68] = SG_MAKE_STRING("print-stack-frames");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[68]), &vmlib_print_stack_frames__STUB);
-  SG_PROCEDURE_NAME(&vmlib_print_stack_frames__STUB) = sg__rc.d1636[68];
-  sg__rc.d1636[69] = SG_MAKE_STRING("get-stack-trace-object");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[69]), &vmlib_get_stack_trace_object__STUB);
-  SG_PROCEDURE_NAME(&vmlib_get_stack_trace_object__STUB) = sg__rc.d1636[69];
-  sg__rc.d1636[70] = SG_MAKE_STRING("vm-noinline-locals?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[70]), &vmlib_vm_noinline_localsP__STUB);
-  SG_PROCEDURE_NAME(&vmlib_vm_noinline_localsP__STUB) = sg__rc.d1636[70];
-  sg__rc.d1636[71] = SG_MAKE_STRING("vm-nolambda-lifting?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[71]), &vmlib_vm_nolambda_liftingP__STUB);
-  SG_PROCEDURE_NAME(&vmlib_vm_nolambda_liftingP__STUB) = sg__rc.d1636[71];
-  sg__rc.d1636[72] = SG_MAKE_STRING("vm-nolibrary-inlining?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[72]), &vmlib_vm_nolibrary_inliningP__STUB);
-  SG_PROCEDURE_NAME(&vmlib_vm_nolibrary_inliningP__STUB) = sg__rc.d1636[72];
-  sg__rc.d1636[73] = SG_MAKE_STRING("vm-noconstant-inlining?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[73]), &vmlib_vm_noconstant_inliningP__STUB);
-  SG_PROCEDURE_NAME(&vmlib_vm_noconstant_inliningP__STUB) = sg__rc.d1636[73];
-  sg__rc.d1636[74] = SG_MAKE_STRING("gc");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[74]), &vmlib_gc__STUB);
-  SG_PROCEDURE_NAME(&vmlib_gc__STUB) = sg__rc.d1636[74];
-  sg__rc.d1636[75] = SG_MAKE_STRING("%call/pc");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[75]), &vmlib__25call_2fpc__STUB);
-  SG_PROCEDURE_NAME(&vmlib__25call_2fpc__STUB) = sg__rc.d1636[75];
-  sg__rc.d1636[76] = SG_MAKE_STRING("%apply0");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[76]), &vmlib__25apply0__STUB);
-  SG_PROCEDURE_NAME(&vmlib__25apply0__STUB) = sg__rc.d1636[76];
-  sg__rc.d1636[77] = SG_MAKE_STRING("lookup-transformer-env");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[77]), &vmlib_lookup_transformer_env__STUB);
-  SG_PROCEDURE_NAME(&vmlib_lookup_transformer_env__STUB) = sg__rc.d1636[77];
-  sg__rc.d1636[78] = SG_MAKE_STRING("add-to-transformer-env!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[78]), &vmlib_add_to_transformer_envX__STUB);
-  SG_PROCEDURE_NAME(&vmlib_add_to_transformer_envX__STUB) = sg__rc.d1636[78];
-  sg__rc.d1636[79] = SG_MAKE_STRING("current-transformer-env");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1636[79]), &vmlib_current_transformer_env__STUB);
-  SG_PROCEDURE_NAME(&vmlib_current_transformer_env__STUB) = sg__rc.d1636[79];
+  sg__rc.d193[0] = SG_MAKE_STRING("insn-name");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[0]), &vmlib_insn_name__STUB);
+  SG_PROCEDURE_NAME(&vmlib_insn_name__STUB) = sg__rc.d193[0];
+  sg__rc.d193[1] = SG_MAKE_STRING("make-identifier");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[1]), &vmlib_make_identifier__STUB);
+  SG_PROCEDURE_NAME(&vmlib_make_identifier__STUB) = sg__rc.d193[1];
+  sg__rc.d193[2] = SG_MAKE_STRING("id-envs");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[2]), &vmlib_id_envs__STUB);
+  SG_PROCEDURE_NAME(&vmlib_id_envs__STUB) = sg__rc.d193[2];
+  sg__rc.d193[3] = SG_MAKE_STRING("id-library");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[3]), &vmlib_id_library__STUB);
+  SG_PROCEDURE_NAME(&vmlib_id_library__STUB) = sg__rc.d193[3];
+  sg__rc.d193[4] = SG_MAKE_STRING("copy-identifier");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[4]), &vmlib_copy_identifier__STUB);
+  SG_PROCEDURE_NAME(&vmlib_copy_identifier__STUB) = sg__rc.d193[4];
+  sg__rc.d193[5] = SG_MAKE_STRING("id-has-parent?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[5]), &vmlib_id_has_parentP__STUB);
+  SG_PROCEDURE_NAME(&vmlib_id_has_parentP__STUB) = sg__rc.d193[5];
+  sg__rc.d193[6] = SG_MAKE_STRING("id-has-same-parent?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[6]), &vmlib_id_has_same_parentP__STUB);
+  SG_PROCEDURE_NAME(&vmlib_id_has_same_parentP__STUB) = sg__rc.d193[6];
+  sg__rc.d193[7] = SG_MAKE_STRING("make-syntax");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[7]), &vmlib_make_syntax__STUB);
+  SG_PROCEDURE_NAME(&vmlib_make_syntax__STUB) = sg__rc.d193[7];
+  sg__rc.d193[8] = SG_MAKE_STRING("syntax-name");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[8]), &vmlib_syntax_name__STUB);
+  SG_PROCEDURE_NAME(&vmlib_syntax_name__STUB) = sg__rc.d193[8];
+  sg__rc.d193[9] = SG_MAKE_STRING("syntax-proc");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[9]), &vmlib_syntax_proc__STUB);
+  SG_PROCEDURE_NAME(&vmlib_syntax_proc__STUB) = sg__rc.d193[9];
+  sg__rc.d193[10] = SG_MAKE_STRING("syntax?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[10]), &vmlib_syntaxP__STUB);
+  SG_PROCEDURE_NAME(&vmlib_syntaxP__STUB) = sg__rc.d193[10];
+  sg__rc.d193[11] = SG_MAKE_STRING("call-syntax-handler");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[11]), &vmlib_call_syntax_handler__STUB);
+  SG_PROCEDURE_NAME(&vmlib_call_syntax_handler__STUB) = sg__rc.d193[11];
+  sg__rc.d193[12] = SG_MAKE_STRING("macro?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[12]), &vmlib_macroP__STUB);
+  SG_PROCEDURE_NAME(&vmlib_macroP__STUB) = sg__rc.d193[12];
+  sg__rc.d193[13] = SG_MAKE_STRING("make-macro");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[13]), &vmlib_make_macro__STUB);
+  SG_PROCEDURE_NAME(&vmlib_make_macro__STUB) = sg__rc.d193[13];
+  sg__rc.d193[14] = SG_MAKE_STRING("make-macro-transformer");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[14]), &vmlib_make_macro_transformer__STUB);
+  SG_PROCEDURE_NAME(&vmlib_make_macro_transformer__STUB) = sg__rc.d193[14];
+  sg__rc.d193[15] = SG_MAKE_STRING("call-macro-expander");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[15]), &vmlib_call_macro_expander__STUB);
+  SG_PROCEDURE_NAME(&vmlib_call_macro_expander__STUB) = sg__rc.d193[15];
+  sg__rc.d193[16] = SG_MAKE_STRING("%internal-macro-expand");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[16]), &vmlib__25internal_macro_expand__STUB);
+  SG_PROCEDURE_NAME(&vmlib__25internal_macro_expand__STUB) = sg__rc.d193[16];
+  sg__rc.d193[17] = SG_MAKE_STRING("reversible-gensym");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[17]), &vmlib_reversible_gensym__STUB);
+  SG_PROCEDURE_NAME(&vmlib_reversible_gensym__STUB) = sg__rc.d193[17];
+  sg__rc.d193[18] = SG_MAKE_STRING("make-library");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[18]), &vmlib_make_library__STUB);
+  SG_PROCEDURE_NAME(&vmlib_make_library__STUB) = sg__rc.d193[18];
+  sg__rc.d193[19] = SG_MAKE_STRING("library?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[19]), &vmlib_libraryP__STUB);
+  SG_PROCEDURE_NAME(&vmlib_libraryP__STUB) = sg__rc.d193[19];
+  sg__rc.d193[20] = SG_MAKE_STRING("library-name");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[20]), &vmlib_library_name__STUB);
+  SG_PROCEDURE_NAME(&vmlib_library_name__STUB) = sg__rc.d193[20];
+  sg__rc.d193[21] = SG_MAKE_STRING("library-imported");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[21]), &vmlib_library_imported__STUB);
+  SG_PROCEDURE_NAME(&vmlib_library_imported__STUB) = sg__rc.d193[21];
+  sg__rc.d193[22] = SG_MAKE_STRING("library-imported-set!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[22]), &vmlib_library_imported_setX__STUB);
+  SG_PROCEDURE_NAME(&vmlib_library_imported_setX__STUB) = sg__rc.d193[22];
+  sg__rc.d193[23] = SG_MAKE_STRING("library-exported");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[23]), &vmlib_library_exported__STUB);
+  SG_PROCEDURE_NAME(&vmlib_library_exported__STUB) = sg__rc.d193[23];
+  sg__rc.d193[24] = SG_MAKE_STRING("library-exported-set!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[24]), &vmlib_library_exported_setX__STUB);
+  SG_PROCEDURE_NAME(&vmlib_library_exported_setX__STUB) = sg__rc.d193[24];
+  sg__rc.d193[25] = SG_MAKE_STRING("library-defined");
+  sg__rc.d193[26] = Sg_Intern(sg__rc.d193[25]); /* library-defined */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[25]), &vmlib_library_defined__STUB);
+  SG_PROCEDURE_NAME(&vmlib_library_defined__STUB) = sg__rc.d193[25];
+  sg__rc.d193[27] = SG_MAKE_STRING("library-defined-add!");
+  sg__rc.d193[28] = Sg_Intern(sg__rc.d193[27]); /* library-defined-add! */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[27]), &vmlib_library_defined_addX__STUB);
+  SG_PROCEDURE_NAME(&vmlib_library_defined_addX__STUB) = sg__rc.d193[27];
+  sg__rc.d193[29] = SG_MAKE_STRING("library-table");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[29]), &vmlib_library_table__STUB);
+  SG_PROCEDURE_NAME(&vmlib_library_table__STUB) = sg__rc.d193[29];
+  sg__rc.d193[30] = SG_MAKE_STRING("library-parents");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[30]), &vmlib_library_parents__STUB);
+  SG_PROCEDURE_NAME(&vmlib_library_parents__STUB) = sg__rc.d193[30];
+  sg__rc.d193[31] = SG_MAKE_STRING("find-library");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[31]), &vmlib_find_library__STUB);
+  SG_PROCEDURE_NAME(&vmlib_find_library__STUB) = sg__rc.d193[31];
+  sg__rc.d193[32] = SG_MAKE_STRING("%insert-binding");
+  sg__rc.d193[33] = Sg_Intern(sg__rc.d193[32]); /* %insert-binding */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[32]), &vmlib__25insert_binding__STUB);
+  SG_PROCEDURE_NAME(&vmlib__25insert_binding__STUB) = sg__rc.d193[32];
+  sg__rc.d193[34] = SG_MAKE_STRING("find-binding");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[34]), &vmlib_find_binding__STUB);
+  SG_PROCEDURE_NAME(&vmlib_find_binding__STUB) = sg__rc.d193[34];
+  sg__rc.d193[35] = SG_MAKE_STRING("import-library");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[35]), &vmlib_import_library__STUB);
+  SG_PROCEDURE_NAME(&vmlib_import_library__STUB) = sg__rc.d193[35];
+  sg__rc.d193[36] = SG_MAKE_STRING("vm-current-library");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[36]), &vmlib_vm_current_library__STUB);
+  SG_PROCEDURE_NAME(&vmlib_vm_current_library__STUB) = sg__rc.d193[36];
+  sg__rc.d193[37] = SG_MAKE_STRING("gloc-ref");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[37]), &vmlib_gloc_ref__STUB);
+  SG_PROCEDURE_NAME(&vmlib_gloc_ref__STUB) = sg__rc.d193[37];
+  sg__rc.d193[38] = SG_MAKE_STRING("gloc-set!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[38]), &vmlib_gloc_setX__STUB);
+  SG_PROCEDURE_NAME(&vmlib_gloc_setX__STUB) = sg__rc.d193[38];
+  sg__rc.d193[39] = SG_MAKE_STRING("gloc-bound?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[39]), &vmlib_gloc_boundP__STUB);
+  SG_PROCEDURE_NAME(&vmlib_gloc_boundP__STUB) = sg__rc.d193[39];
+  sg__rc.d193[40] = SG_MAKE_STRING("gloc-const?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[40]), &vmlib_gloc_constP__STUB);
+  SG_PROCEDURE_NAME(&vmlib_gloc_constP__STUB) = sg__rc.d193[40];
+  sg__rc.d193[41] = SG_MAKE_STRING("gloc-library");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[41]), &vmlib_gloc_library__STUB);
+  SG_PROCEDURE_NAME(&vmlib_gloc_library__STUB) = sg__rc.d193[41];
+  sg__rc.d193[42] = SG_MAKE_STRING("gloc-name");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[42]), &vmlib_gloc_name__STUB);
+  SG_PROCEDURE_NAME(&vmlib_gloc_name__STUB) = sg__rc.d193[42];
+  sg__rc.d193[43] = SG_MAKE_STRING("make-toplevel-closure");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[43]), &vmlib_make_toplevel_closure__STUB);
+  SG_PROCEDURE_NAME(&vmlib_make_toplevel_closure__STUB) = sg__rc.d193[43];
+  sg__rc.d193[44] = SG_MAKE_STRING("make-code-builder");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[44]), &vmlib_make_code_builder__STUB);
+  SG_PROCEDURE_NAME(&vmlib_make_code_builder__STUB) = sg__rc.d193[44];
+  sg__rc.d193[45] = SG_MAKE_STRING("cb-emit0!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[45]), &vmlib_cb_emit0X__STUB);
+  SG_PROCEDURE_NAME(&vmlib_cb_emit0X__STUB) = sg__rc.d193[45];
+  sg__rc.d193[46] = SG_MAKE_STRING("cb-emit1!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[46]), &vmlib_cb_emit1X__STUB);
+  SG_PROCEDURE_NAME(&vmlib_cb_emit1X__STUB) = sg__rc.d193[46];
+  sg__rc.d193[47] = SG_MAKE_STRING("cb-emit2!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[47]), &vmlib_cb_emit2X__STUB);
+  SG_PROCEDURE_NAME(&vmlib_cb_emit2X__STUB) = sg__rc.d193[47];
+  sg__rc.d193[48] = SG_MAKE_STRING("cb-emit0i!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[48]), &vmlib_cb_emit0iX__STUB);
+  SG_PROCEDURE_NAME(&vmlib_cb_emit0iX__STUB) = sg__rc.d193[48];
+  sg__rc.d193[49] = SG_MAKE_STRING("cb-emit1i!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[49]), &vmlib_cb_emit1iX__STUB);
+  SG_PROCEDURE_NAME(&vmlib_cb_emit1iX__STUB) = sg__rc.d193[49];
+  sg__rc.d193[50] = SG_MAKE_STRING("cb-emit2i!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[50]), &vmlib_cb_emit2iX__STUB);
+  SG_PROCEDURE_NAME(&vmlib_cb_emit2iX__STUB) = sg__rc.d193[50];
+  sg__rc.d193[51] = SG_MAKE_STRING("cb-emit0o!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[51]), &vmlib_cb_emit0oX__STUB);
+  SG_PROCEDURE_NAME(&vmlib_cb_emit0oX__STUB) = sg__rc.d193[51];
+  sg__rc.d193[52] = SG_MAKE_STRING("cb-emit0oi!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[52]), &vmlib_cb_emit0oiX__STUB);
+  SG_PROCEDURE_NAME(&vmlib_cb_emit0oiX__STUB) = sg__rc.d193[52];
+  sg__rc.d193[53] = SG_MAKE_STRING("cb-emit1oi!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[53]), &vmlib_cb_emit1oiX__STUB);
+  SG_PROCEDURE_NAME(&vmlib_cb_emit1oiX__STUB) = sg__rc.d193[53];
+  sg__rc.d193[54] = SG_MAKE_STRING("cb-label-set!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[54]), &vmlib_cb_label_setX__STUB);
+  SG_PROCEDURE_NAME(&vmlib_cb_label_setX__STUB) = sg__rc.d193[54];
+  sg__rc.d193[55] = SG_MAKE_STRING("cb-emit-closure!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[55]), &vmlib_cb_emit_closureX__STUB);
+  SG_PROCEDURE_NAME(&vmlib_cb_emit_closureX__STUB) = sg__rc.d193[55];
+  sg__rc.d193[56] = SG_MAKE_STRING("code-builder-label-defs");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[56]), &vmlib_code_builder_label_defs__STUB);
+  SG_PROCEDURE_NAME(&vmlib_code_builder_label_defs__STUB) = sg__rc.d193[56];
+  sg__rc.d193[57] = SG_MAKE_STRING("code-builder-finish-builder");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[57]), &vmlib_code_builder_finish_builder__STUB);
+  SG_PROCEDURE_NAME(&vmlib_code_builder_finish_builder__STUB) = sg__rc.d193[57];
+  sg__rc.d193[58] = SG_MAKE_STRING("vm-r6rs-mode?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[58]), &vmlib_vm_r6rs_modeP__STUB);
+  SG_PROCEDURE_NAME(&vmlib_vm_r6rs_modeP__STUB) = sg__rc.d193[58];
+  sg__rc.d193[59] = SG_MAKE_STRING("vm-core-mode?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[59]), &vmlib_vm_core_modeP__STUB);
+  SG_PROCEDURE_NAME(&vmlib_vm_core_modeP__STUB) = sg__rc.d193[59];
+  sg__rc.d193[60] = SG_MAKE_STRING("vm-no-overwrite?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[60]), &vmlib_vm_no_overwriteP__STUB);
+  SG_PROCEDURE_NAME(&vmlib_vm_no_overwriteP__STUB) = sg__rc.d193[60];
+  sg__rc.d193[61] = SG_MAKE_STRING("%map-cons");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[61]), &vmlib__25map_cons__STUB);
+  SG_PROCEDURE_NAME(&vmlib__25map_cons__STUB) = sg__rc.d193[61];
+  sg__rc.d193[62] = SG_MAKE_STRING("p1env-lookup");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[62]), &vmlib_p1env_lookup__STUB);
+  SG_PROCEDURE_NAME(&vmlib_p1env_lookup__STUB) = sg__rc.d193[62];
+  sg__rc.d193[63] = SG_MAKE_STRING("p1env-lookup-frame");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[63]), &vmlib_p1env_lookup_frame__STUB);
+  SG_PROCEDURE_NAME(&vmlib_p1env_lookup_frame__STUB) = sg__rc.d193[63];
+  sg__rc.d193[64] = SG_MAKE_STRING("p1env-toplevel?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[64]), &vmlib_p1env_toplevelP__STUB);
+  SG_PROCEDURE_NAME(&vmlib_p1env_toplevelP__STUB) = sg__rc.d193[64];
+  sg__rc.d193[65] = SG_MAKE_STRING("syntax-object=?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[65]), &vmlib_syntax_object_3dP__STUB);
+  SG_PROCEDURE_NAME(&vmlib_syntax_object_3dP__STUB) = sg__rc.d193[65];
+  sg__rc.d193[66] = SG_MAKE_STRING("p1env-pvar-lookup");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[66]), &vmlib_p1env_pvar_lookup__STUB);
+  SG_PROCEDURE_NAME(&vmlib_p1env_pvar_lookup__STUB) = sg__rc.d193[66];
+  sg__rc.d193[67] = SG_MAKE_STRING("vm-frame-size");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[67]), &vmlib_vm_frame_size__STUB);
+  SG_PROCEDURE_NAME(&vmlib_vm_frame_size__STUB) = sg__rc.d193[67];
+  sg__rc.d193[68] = SG_MAKE_STRING("print-stack-frames");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[68]), &vmlib_print_stack_frames__STUB);
+  SG_PROCEDURE_NAME(&vmlib_print_stack_frames__STUB) = sg__rc.d193[68];
+  sg__rc.d193[69] = SG_MAKE_STRING("get-stack-trace-object");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[69]), &vmlib_get_stack_trace_object__STUB);
+  SG_PROCEDURE_NAME(&vmlib_get_stack_trace_object__STUB) = sg__rc.d193[69];
+  sg__rc.d193[70] = SG_MAKE_STRING("vm-noinline-locals?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[70]), &vmlib_vm_noinline_localsP__STUB);
+  SG_PROCEDURE_NAME(&vmlib_vm_noinline_localsP__STUB) = sg__rc.d193[70];
+  sg__rc.d193[71] = SG_MAKE_STRING("vm-nolambda-lifting?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[71]), &vmlib_vm_nolambda_liftingP__STUB);
+  SG_PROCEDURE_NAME(&vmlib_vm_nolambda_liftingP__STUB) = sg__rc.d193[71];
+  sg__rc.d193[72] = SG_MAKE_STRING("vm-nolibrary-inlining?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[72]), &vmlib_vm_nolibrary_inliningP__STUB);
+  SG_PROCEDURE_NAME(&vmlib_vm_nolibrary_inliningP__STUB) = sg__rc.d193[72];
+  sg__rc.d193[73] = SG_MAKE_STRING("vm-noconstant-inlining?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[73]), &vmlib_vm_noconstant_inliningP__STUB);
+  SG_PROCEDURE_NAME(&vmlib_vm_noconstant_inliningP__STUB) = sg__rc.d193[73];
+  sg__rc.d193[74] = SG_MAKE_STRING("gc");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[74]), &vmlib_gc__STUB);
+  SG_PROCEDURE_NAME(&vmlib_gc__STUB) = sg__rc.d193[74];
+  sg__rc.d193[75] = SG_MAKE_STRING("%call/pc");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[75]), &vmlib__25call_2fpc__STUB);
+  SG_PROCEDURE_NAME(&vmlib__25call_2fpc__STUB) = sg__rc.d193[75];
+  sg__rc.d193[76] = SG_MAKE_STRING("%apply0");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[76]), &vmlib__25apply0__STUB);
+  SG_PROCEDURE_NAME(&vmlib__25apply0__STUB) = sg__rc.d193[76];
+  sg__rc.d193[77] = SG_MAKE_STRING("lookup-transformer-env");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[77]), &vmlib_lookup_transformer_env__STUB);
+  SG_PROCEDURE_NAME(&vmlib_lookup_transformer_env__STUB) = sg__rc.d193[77];
+  sg__rc.d193[78] = SG_MAKE_STRING("add-to-transformer-env!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[78]), &vmlib_add_to_transformer_envX__STUB);
+  SG_PROCEDURE_NAME(&vmlib_add_to_transformer_envX__STUB) = sg__rc.d193[78];
+  sg__rc.d193[79] = SG_MAKE_STRING("current-transformer-env");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d193[79]), &vmlib_current_transformer_env__STUB);
+  SG_PROCEDURE_NAME(&vmlib_current_transformer_env__STUB) = sg__rc.d193[79];
 }

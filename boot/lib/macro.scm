@@ -731,9 +731,6 @@
 (define (transcribe-template in-form ranks vars)
   (define use-env (current-usage-env))
   (define mac-env (current-macro-env))
-  ;; put macro name as a mark
-  (define current-mark (list (vector-ref (current-macro-env) 2)))
-  ;; TODO this can be done efficiently
   (define (no-rename-needed? id) 
     (let ((lib (id-library id))
 	  (name (id-name id)))
@@ -742,14 +739,13 @@
 	  (find-binding lib name #f)
 	  ;; these things are not defined yet.
 	  (memq name (library-defined lib))
+	  ;; don't rename pattern variables
+	  (not (number? (p1env-lookup mac-env id PATTERN)))
 	  ;; local binded variables must not be renamed either.
-	  (and-let* ((var (p1env-lookup mac-env id LEXICAL))
-		     ;; do we need to check the library as well?
-		     )
-	    (not (identifier? var))))))
+	  (not (identifier? (p1env-lookup mac-env id LEXICAL))))))
   
   ;; bit ugly solution to resolve different compile unit of (syntax)
-  (define (rename-or-copy-id id current-mark)
+  (define (rename-or-copy-id id)
     (let ((t (cond ((no-rename-needed? id) id)
 		   ((and (toplevel-id? id)
 			 (find-binding (vector-ref mac-env 0) (id-name id) #f))
@@ -758,7 +754,7 @@
 		    (make-identifier (reversible-gensym (id-name id))
 				     (id-envs id)
 				     (vector-ref use-env 0))))))
-      (copy-identifier t current-mark)))
+      (copy-identifier t)))
 
   ;; regenerate pattern variable
   (define (rewrite-template t vars)
@@ -783,8 +779,9 @@
 		       ;; note: id-envs returns (#t)
 		       (else 
 			(add-to-transformer-env!
-			 t (rename-or-copy-id t current-mark)))))
+			 t (rename-or-copy-id t)))))
 	       t))))
+
   (let ((tmpl (rewrite-template in-form vars)))
 
     (define (expand-var tmpl vars)

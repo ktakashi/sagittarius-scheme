@@ -3693,10 +3693,6 @@
 	      ((is-mark? (SG_IDENTIFIER_ENVS id1)) (return TRUE))
 	      ((is-mark? (SG_IDENTIFIER_ENVS id2)) (return TRUE))
 	      ;; this needs to be after mark check.
-	      ((or (not (SG_NULLP (SG_IDENTIFIER_ENVS id1)))
-		   (not (SG_NULLP (SG_IDENTIFIER_ENVS id2))))
-	       (return (SG_EQ (SG_IDENTIFIER_ENVS id1) 
-			      (SG_IDENTIFIER_ENVS id2))))
 	      (else
 	       (let* ((vm::SgVM* (Sg_VM))
 		      ;; checks only top most variables.
