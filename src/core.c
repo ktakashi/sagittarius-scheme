@@ -201,10 +201,6 @@ void Sg_Init()
     Sg_InsertBinding(core_base_lib,
 		     SG_INTERN("er-rename"),
 		     Sg_FindBinding(compsym, SG_INTERN("er-rename"), SG_FALSE));
-    Sg_InsertBinding(core_base_lib,
-		     SG_INTERN("er-bind-id?"),
-		     Sg_FindBinding(compsym, SG_INTERN("er-bind-id?"),
-				    SG_FALSE));
     Sg_InsertBinding(sagittarius_lib,
 		     SG_SYMBOL_ER_MACRO_TRANSFORMER,
 		     Sg_FindBinding(core_base_lib, 

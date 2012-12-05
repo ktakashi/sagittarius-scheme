@@ -994,10 +994,9 @@
 
 ;; get symbol or id, and returns identiier.
 (define (ensure-identifier sym-or-id p1env)
-  (if (and (identifier? sym-or-id) (id-library sym-or-id))
+  (if (identifier? sym-or-id)
       sym-or-id
-      (make-identifier (identifier->symbol sym-or-id) '() 
-		       (p1env-library p1env))))
+      (make-identifier sym-or-id '() (p1env-library p1env))))
 
 ;; for expantion timing, quote must be first
 ;; quote and quasiquote
@@ -1317,8 +1316,6 @@
      (syntax-error "malformed letrec-syntax" form))))
 
 ;; 'rename' procedure - we just return a resolved identifier
-(define (er-bind-id? id env)
-  (not (identifier? (p1env-lookup env id LEXICAL))))
 (define (er-rename symid p1env dict)
   (unless (variable? symid)
     (scheme-error 
@@ -1342,8 +1339,7 @@
  (gauche #f)
  (sagittarius
   (let ((lib (ensure-library-name :null)))
-    (%insert-binding lib 'er-rename er-rename)
-    (%insert-binding lib 'er-bind-id? er-bind-id?))))
+    (%insert-binding lib 'er-rename er-rename))))
 
 (define-pass1-syntax (%macroexpand form p1env) :sagittarius
   (smatch form
@@ -1756,7 +1752,8 @@
 (define-pass1-syntax (let form p1env) :null
   (smatch form
     ((- () body ___)
-     (pass1/body body p1env))
+     ;; to make env lookup work properly, we need to extend it
+     (pass1/body body (p1env-extend p1env '() LEXICAL)))
     ((- ((var expr) ___) body ___)
      (let* ((lvars (imap make-lvar+ var))
 	    (newenv (p1env-extend p1env ($map-cons-dup var lvars) LEXICAL)))
@@ -1795,7 +1792,7 @@
 		(p1env p1env)
 		(src form))
        (if (null? vars)
-	   (pass1/body body p1env)
+	   (pass1/body body (p1env-extend p1env '() LEXICAL))
 	   (let* ((lv (make-lvar (car vars)))
 		  (newenv (p1env-extend p1env `((,(car vars) . ,lv)) LEXICAL))
 		  ;; can not refer itself in its init
@@ -1814,7 +1811,7 @@
   (smatch form
     ((- () body ___)
      ;; see let
-     (pass1/body body p1env))
+     (pass1/body body (p1env-extend p1env '() LEXICAL)))
     ((- ((var expr) ___) body ___)
      (let* ((lvars (imap make-lvar+ var))
 	    (newenv (p1env-extend p1env ($map-cons-dup var lvars) LEXICAL)))

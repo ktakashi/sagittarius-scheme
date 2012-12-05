@@ -266,6 +266,14 @@
       (result h)))
 
   ;; for better performance.
+  ;; check if the given identifier shares the same environment
+  (define-cfn p1env-lookup-aux (frame id) ::int :static
+    (let ((env (SG_IDENTIFIER_ENVS id)))
+      (unless (SG_EQ (SG_IDENTIFIER_LIBRARY id) (Sg_VMCurrentLibrary))
+	(return FALSE))
+      (dopairs (fp frame)
+	(when (SG_EQ env fp) (return TRUE)))
+      (return FALSE)))
   ;; NB: we skip some test, because we assume the frame is well-formed.
   (define-cfn p1env-lookup-inner 
     (p1env::SgVector* name lookup_as top?::int frame?::int)
@@ -284,8 +292,11 @@
 	  (continue))
 	(dolist (vp (SG_CDAR fp))
 	  (when (or (SG_EQ name (SG_CAR vp))
-		    (and same-env? (SG_IDENTIFIERP (SG_CAR vp))
-			 (SG_EQ name (SG_IDENTIFIER_NAME (SG_CAR vp)))))
+		    (and (SG_IDENTIFIERP (SG_CAR vp))
+			 (SG_EQ name (SG_IDENTIFIER_NAME (SG_CAR vp)))
+			 (or same-env?
+			     (and (not name_identp)
+				  (p1env-lookup-aux fp (SG_CAR vp))))))
 	    (if frame?
 		(return fp)
 		(return (SG_CDR vp))))))

@@ -612,18 +612,29 @@
 	     (list->vector (loop (vector->list lst))))
 	    (else lst))))
 
-   ;; Issue 25.
-   ;; if the binding found in macro env, then it must be wrap with
-   ;; macro env.
-   (define (wrap-symbol sym seen)
-     (if (and (identifier? template)
-	      (not (identifier? (p1env-lookup p1env template PATTERN))))
-	 (wrap-syntax sym use-env seen)
-	 (let* ((lib (vector-ref mac-env 0))
-		(g (find-binding lib sym #f)))
-	   (if (and g (eq? (gloc-library g) lib))
-	       (wrap-syntax sym mac-env seen)
-	       (wrap-syntax sym use-env seen)))))
+  ;; Issue 25.
+  ;; if the binding found in macro env, then it must be wrap with
+  ;; macro env.
+  (define (wrap-symbol sym seen)
+    (if (and (identifier? template)
+ 	     (not (identifier? (p1env-lookup p1env template PATTERN))))
+ 	(wrap-syntax sym use-env seen)
+ 	(let* ((lib (vector-ref mac-env 0))
+ 	       (g (find-binding lib sym #f)))
+ 	  (if (and g (eq? (gloc-library g) lib))
+ 	      (wrap-syntax sym mac-env seen)
+ 	      (wrap-syntax sym use-env seen)))))
+;;   (define (wrap-symbol sym seen)
+;;     (define (finish new)
+;;       (hashtable-set! seen sym new)
+;;       new)
+;;     (if (and (identifier? template)
+;; 	     (not (identifier? (p1env-lookup p1env template PATTERN))))
+;; 	(finish (make-identifier sym (vector-ref use-env 1)
+;; 				 (vector-ref use-env 0)))
+;; 	(let* ((lib (vector-ref use-env 0))
+;; 	       (t (make-identifier sym '() lib)))
+;; 	  (finish (make-identifier t (vector-ref use-env 1) lib)))))
 
   (define (partial-identifier lst)
     (define renamed-ids (make-eq-hashtable))
