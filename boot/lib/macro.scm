@@ -565,15 +565,12 @@
 
   (define (lookup-pattern-variable p1env vars id)
     (define (id=? id1 id2)
-      (define (id=sym? s id)
-	(and (eq? (id-name id) s)
-	     (eq? (id-envs id)
-		  (p1env-lookup-frame p1env s PATTERN))))
-      (cond ((and (identifier? id1) (identifier? id2))
-	     (free-identifier=? id1 id2))
-	    ((symbol? id1) (id=sym? id1 id2))
-	    ((symbol? id2) (id=sym? id2 id1))
-	    (else #f)))
+      (define (ensure id)
+	(if (identifier? id)
+	    id
+	    (make-identifier id (vector-ref p1env 1) (vector-ref p1env 0))))
+      (free-identifier=? (ensure id1) (ensure id2)))
+
     (let loop ((frames (vector-ref p1env 1)))
       (cond ((null? frames) #f)
 	    ((and (pair? frames)
@@ -612,29 +609,28 @@
 	     (list->vector (loop (vector->list lst))))
 	    (else lst))))
 
-  ;; Issue 25.
-  ;; if the binding found in macro env, then it must be wrap with
-  ;; macro env.
+  ;; wrap the given symbol with current usage env frame.
   (define (wrap-symbol sym seen)
-    (if (and (identifier? template)
- 	     (not (identifier? (p1env-lookup p1env template PATTERN))))
- 	(wrap-syntax sym use-env seen)
- 	(let* ((lib (vector-ref mac-env 0))
- 	       (g (find-binding lib sym #f)))
- 	  (if (and g (eq? (gloc-library g) lib))
- 	      (wrap-syntax sym mac-env seen)
- 	      (wrap-syntax sym use-env seen)))))
-;;   (define (wrap-symbol sym seen)
-;;     (define (finish new)
-;;       (hashtable-set! seen sym new)
-;;       new)
-;;     (if (and (identifier? template)
-;; 	     (not (identifier? (p1env-lookup p1env template PATTERN))))
-;; 	(finish (make-identifier sym (vector-ref use-env 1)
-;; 				 (vector-ref use-env 0)))
-;; 	(let* ((lib (vector-ref use-env 0))
-;; 	       (t (make-identifier sym '() lib)))
-;; 	  (finish (make-identifier t (vector-ref use-env 1) lib)))))
+    (define (finish new)
+      (hashtable-set! seen sym new)
+      new)
+    (let* ((mac-lib (vector-ref mac-env 0))
+	   (g (find-binding mac-lib sym #f)))
+      ;; Issue 25.
+      ;; if the binding found in macro env, then it must be wrap with
+      ;; macro env.
+      ;; FIXME: it seems working but I smell something wrong with
+      ;;        this solution. The point of the issue was inside
+      ;;        of the macro it refers to the macro itself but the
+      ;;        expansion did not occure until it really called.
+      ;;        that causes library difference even though it's in
+      ;;        the macro defined library.
+      (if (and g (eq? (gloc-library g) mac-lib))
+	  (let ((t (make-identifier sym '() mac-lib)))
+	    (finish (make-identifier t (vector-ref mac-env 1) mac-lib)))
+	  (let* ((lib (vector-ref use-env 0))
+		 (t (make-identifier sym '() lib)))
+	    (finish (make-identifier t (vector-ref use-env 1) lib))))))
 
   (define (partial-identifier lst)
     (define renamed-ids (make-eq-hashtable))

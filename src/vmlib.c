@@ -1873,17 +1873,17 @@ return (FALSE);}}
 SG_FOR_EACH(fp,frame){
 if (SG_EQ(env,fp)){{return (TRUE);}}}
 return (FALSE);}}}
-static SgObject p1env_lookup_inner(SgVector* p1env,SgObject name,SgObject lookup_as,int topP,int frameP){SgObject fp;SgObject cise__21;{
-#line 281 "./vmlib.stub"
+static SgObject p1env_lookup_inner(SgVector* p1env,SgObject name,SgObject lookup_as,int frameP){SgObject fp;SgObject cise__21;{
+#line 280 "./vmlib.stub"
 {int name_identp=SG_IDENTIFIERP(name);int same_envP=FALSE;SgObject frames=
-#line 283 "./vmlib.stub"
+#line 282 "./vmlib.stub"
 SG_VECTOR_ELEMENT(p1env,1);
-entry :; 
+#line 284 "./vmlib.stub"
 SG_FOR_EACH(fp,frames){
 if ((name_identp)&&(
 (SG_IDENTIFIER_ENVS(name))==(fp))){{
 same_envP=(TRUE);
-#line 290 "./vmlib.stub"
+#line 289 "./vmlib.stub"
 name=(SG_OBJ(SG_IDENTIFIER_NAME(name)));}}
 if ((SG_CAAR(fp))>(lookup_as)){{
 continue;}}
@@ -1897,16 +1897,11 @@ p1env_lookup_aux(fp,SG_CAR(vp))))))){{
 if (frameP){
 return (fp);} else {
 return (SG_CDR(vp));}}}}}}
-#line 307 "./vmlib.stub"
-if (((((!(topP)))&&(
-SG_IDENTIFIERP(name)))&&(SG_IDENTIFIER_PARENT(name)))&&(
-(!(SG_NULLP(frames))))){{
-name=(SG_IDENTIFIER_PARENT(name));
-goto entry;}}
+#line 312 "./vmlib.stub"
 return (name);}}}
- SgObject p1env_lookup_rec(SgVector* p1env,SgObject name,SgObject lookup_as,int topP){{
+ SgObject p1env_lookup_rec(SgVector* p1env,SgObject name,SgObject lookup_as){{
 #line 315 "./vmlib.stub"
-return (p1env_lookup_inner(p1env,name,lookup_as,topP,FALSE));}}
+return (p1env_lookup_inner(p1env,name,lookup_as,FALSE));}}
 static SgObject vmlib_p1env_lookup(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SgObject p1env_scm;
@@ -1933,7 +1928,7 @@ static SgObject vmlib_p1env_lookup(SgObject *SG_FP, int SG_ARGC, void *data_)
 SgObject SG_RESULT = (SgObject)NULL;
 
 #line 318 "./vmlib.stub"
-{SgObject r=p1env_lookup_rec(p1env,name,lookup_as,FALSE);
+{SgObject r=p1env_lookup_rec(p1env,name,lookup_as);
 if (SG_SYMBOLP(r)){
 {SgObject lib=SG_VECTOR_ELEMENT(p1env,0);
 SG_RESULT=(Sg_MakeIdentifier(SG_SYMBOL(r),SG_NIL,SG_LIBRARY(lib)));}} else {
@@ -1970,7 +1965,7 @@ static SgObject vmlib_p1env_lookup_frame(SgObject *SG_FP, int SG_ARGC, void *dat
 SgObject SG_RESULT = (SgObject)NULL;
 
 #line 325 "./vmlib.stub"
-{SgObject r=p1env_lookup_inner(p1env,name,lookup_as,FALSE,TRUE);
+{SgObject r=p1env_lookup_inner(p1env,name,lookup_as,TRUE);
 if ((SG_SYMBOLP(r))||(SG_IDENTIFIERP(r))){
 SG_RESULT=(SG_NIL);} else {
 SG_RESULT=(r);}}
