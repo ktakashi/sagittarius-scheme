@@ -74,12 +74,14 @@
   (define (check-misplaced-ellipsis pat lites)
     (let loop ((lst pat))
       (cond ((ellipsis? lst)
-             (syntax-violation "syntax pattern" "improper use of ellipsis" pat))
+             (syntax-violation "syntax pattern" "improper use of ellipsis"
+			       (unwrap-syntax pat)))
             ((ellipsis-pair? lst)
              (and (variable? (car lst))
                   (id-memq (car lst) lites)
                   (syntax-violation "syntax pattern"
-				    "ellipsis following literal" pat lst))
+				    "ellipsis following literal"
+				    (unwrap-syntax pat) (unwrap-syntax lst)))
              (let loop2 ((lst (cddr lst)))
                (and (pair? lst)
                     (if (ellipsis? (car lst))
@@ -152,8 +154,7 @@
 	       ;; this could happen on macro generating macro.
 	       (let ((new-id (or (and (identifier? id)
 				      (make-identifier id env (id-library id)))
-				 (make-identifier id env
-						  (vector-ref mac-env 0)))))
+				 (make-identifier id env library))))
 		 (hashtable-set! seen id new-id)
 		 new-id))))
       (let loop ((expr expr))
@@ -180,12 +181,11 @@
 				       (id-envs expr)
 				       env))))
 	      (else expr))))
-
+    (define pattern-mark (list exp-name))
     (define (parse-pattern pattern)
       (define (gen-patvar p)
 	(cons (car p)
-	      (make-identifier (identifier->symbol (car p)) '()
-			       (vector-ref mac-env 0))))
+	      (make-pattern-identifier (car p) pattern-mark library)))
       (check-pattern pattern lites)
       (let* ((ranks (collect-vars-ranks pattern lites 0 '()))
 	     (pvars (map gen-patvar ranks)))
@@ -564,12 +564,19 @@
   (define mac-env (current-macro-env))
 
   (define (lookup-pattern-variable p1env vars id)
-    (define (id=? id1 id2)
+    (define (id=? id1 id2 no-check?)
       (define (ensure id)
 	(if (identifier? id)
 	    id
 	    (make-identifier id (vector-ref p1env 1) (vector-ref p1env 0))))
-      (free-identifier=? (ensure id1) (ensure id2)))
+      (or (and (or (pattern-variable? id1) (pattern-variable? id2))
+	       (eq? (identifier->symbol id1) (identifier->symbol id2))
+	       ;; the second type one of the ids (id2) is pattern variable
+	       ;; and it must be compared with free-identifier=?
+	       (or no-check?
+		   (free-identifier=? (ensure id1) (ensure id2))))
+	  (let ((id1 (ensure id1)) (id2 (ensure id2)))
+	    (free-identifier=? (ensure id1) (ensure id2)))))
 
     (let loop ((frames (vector-ref p1env 1)))
       (cond ((null? frames) #f)
@@ -577,12 +584,12 @@
 		  (= (caar frames) PATTERN))
 	     (let loop2 ((frame (cdar frames)))
 	       (cond ((null? frame) (loop (cdr frames)))
-		     ((and (id=? id (caar frame)) (assq (caar frame) vars))
+		     ((and (id=? id (caar frame) #t) (assq (caar frame) vars))
 		      => (lambda (slot)
 			   (let ((a (car slot)) (r (cadr slot)))
 			     ;; pattern variable must not be list
 			     ;; so if it's a list, move to next
-			     (if (and (variable? r) (id=? a r))
+			     (if (and (variable? r) (id=? a r #f))
 				 r
 				 (loop2 (cdr frame))))))
 		     (else (loop2 (cdr frame))))))
@@ -610,10 +617,8 @@
 	    (else lst))))
 
   ;; wrap the given symbol with current usage env frame.
-  (define (wrap-symbol sym seen)
-    (define (finish new)
-      (hashtable-set! seen sym new)
-      new)
+  (define (wrap-symbol sym)
+    (define (finish new) (add-to-transformer-env! sym new))
     (let* ((mac-lib (vector-ref mac-env 0))
 	   (g (find-binding mac-lib sym #f)))
       ;; Issue 25.
@@ -633,7 +638,6 @@
 	    (finish (make-identifier t (vector-ref use-env 1) lib))))))
 
   (define (partial-identifier lst)
-    (define renamed-ids (make-eq-hashtable))
     (let loop ((lst lst))
       (cond ((contain-identifier? lst)
 	     (cond ((pair? lst)
@@ -646,13 +650,12 @@
 		   (else lst)))
 	    ((null? lst) '())
 	    ((symbol? lst)
-	     (cond ((hashtable-ref renamed-ids lst #f))
+	     (cond ((lookup-transformer-env lst))
 		   ((hashtable-ref seen lst #f))
 		   ;; If transcribed expression contains pattern variable,
 		   ;; we need to replace it.
-		   ;; still we need this. Sucks!!
 		   ((lookup-pattern-variable p1env vars lst))
-		   (else (wrap-symbol lst renamed-ids))))
+		   (else (wrap-symbol lst))))
 	    ((identifier? lst) lst)
 	    ((vector? lst)
 	     (list->vector (loop (vector->list lst))))
@@ -666,7 +669,8 @@
 	(cond ((null? form) '())
 	      ((identifier? form) form)
 	      ((symbol? form) 
-	       (wrap-symbol form seen))
+	       (cond ((lookup-transformer-env form))
+		     (else (wrap-symbol form))))
 	      ((eq? use-env mac-env) (wrap-id form))
 	      (else
 	       (partial-identifier form))))))

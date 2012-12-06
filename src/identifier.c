@@ -52,11 +52,11 @@ static void id_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   } else {
     Sg_Write(SG_INTERN(":toplevel"), port, 0);
   }
-#if 0
+#if 1
   if (SG_WRITE_MODE(ctx) == SG_WRITE_WRITE ||
       SG_WRITE_MODE(ctx) == SG_WRITE_SHARED) {
     char buf[50];
-    snprintf(buf, sizeof(buf), "(%p %p %p)", (id->parent), id, id->template_id);
+    snprintf(buf, sizeof(buf), "(%p)", id);
     Sg_Putz(port, buf);
   }
   /* Sg_Write(id->envs, port, SG_WRITE_SHARED); */

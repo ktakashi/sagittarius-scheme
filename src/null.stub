@@ -3675,36 +3675,34 @@
   "extern SgObject p1env_lookup_rec(SgVector *, SgObject, SgObject);"
   (define-cfn variable? (o) ::int :static
     (return (or (SG_IDENTIFIERP o) (SG_SYMBOLP o))))
+
   (define-cfn id-env-compare (id1::SgIdentifier* id2::SgIdentifier*)
     ::int :static
     (when (SG_EQ id1 id2) (return TRUE)) ;; obvious case.
     (if (SG_EQ (SG_IDENTIFIER_NAME id1) (SG_IDENTIFIER_NAME id2))
-	(if (SG_EQ (SG_IDENTIFIER_ENVS id1) (SG_IDENTIFIER_ENVS id2))
-	    ;; fase path (if env is '() means global)
-	    (return TRUE)
-	    (let* ((vm::SgVM* (Sg_VM))
-		   (v1 (p1env-lookup-rec (-> vm usageEnv)
-					 id1 (SG_MAKE_INT 0)))
-		   (v2 (p1env-lookup-rec (-> vm usageEnv)
-					 id2 (SG_MAKE_INT 0))))
-	      ;; if local variable is found then it must be lvar
-	      ;; recent change made lookup might return symbol if the
-	      ;; identifier contains ((0)) env.
-	      (if (and (variable? v1) (variable? v2))
-		  ;; not locally bounded, so if the name are the same
-		  ;; it might be globally equal
-		  (let ((g1 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id1)
-					    (SG_IDENTIFIER_NAME id1) #f))
-			(g2 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id2)
-					    (SG_IDENTIFIER_NAME id2) #f)))
-		    (if (and (or (SG_FALSEP g1) (SG_FALSEP g2))
-			     (not (SG_EQ (SG_IDENTIFIER_LIBRARY id1)
-					 (SG_IDENTIFIER_LIBRARY id2))))
-			;; if libraries are not equal and #f returned
-			;; it's not the same identifier
-			(return FALSE)
-			(return (SG_EQ g1 g2))))
-		  (return (SG_EQ v1 v2)))))
+	(let* ((vm::SgVM* (Sg_VM))
+	       (v1 (p1env-lookup-rec (-> vm usageEnv)
+				     id1 (SG_MAKE_INT 0)))
+	       (v2 (p1env-lookup-rec (-> vm usageEnv)
+				     id2 (SG_MAKE_INT 0))))
+	  ;; if local variable is found then it must be lvar
+	  ;; recent change made lookup might return symbol if the
+	  ;; identifier contains ((0)) env.
+	  (if (and (variable? v1) (variable? v2))
+	      ;; not locally bounded, so if the name are the same
+	      ;; it might be globally equal
+	      (let ((g1 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id1)
+					(SG_IDENTIFIER_NAME id1) #f))
+		    (g2 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id2)
+					(SG_IDENTIFIER_NAME id2) #f)))
+		(if (and (or (SG_FALSEP g1) (SG_FALSEP g2))
+			 (not (SG_EQ (SG_IDENTIFIER_LIBRARY id1)
+				     (SG_IDENTIFIER_LIBRARY id2))))
+		    ;; if libraries are not equal and #f returned
+		    ;; it's not the same identifier
+		    (return FALSE)
+		    (return (SG_EQ g1 g2))))
+	      (return (SG_EQ v1 v2))))
 	(return FALSE)))
 
   ;; free-identifier=? compares if the given 2 identifier indicates the

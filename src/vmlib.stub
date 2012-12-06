@@ -39,6 +39,21 @@
       (set! maybe-library (Sg_FindLibrary maybe-library FALSE)))
     (result (Sg_MakeIdentifier name envs maybe-library)))
 
+  (define-c-proc make-pattern-identifier (name envs maybe-library)
+    (unless (or (SG_SYMBOLP name) (SG_IDENTIFIERP name))
+      (wrong-type-of-argument-violation 'make-identifier 
+					"symbol or identifier" name))
+    (unless (SG_LIBRARYP maybe-library)
+      (set! maybe-library (Sg_FindLibrary maybe-library FALSE)))
+    (let ((id (Sg_MakeIdentifier name SG_NIL maybe-library)))
+      (set! (SG_IDENTIFIER_ENVS id) envs)
+      (result id)))
+
+  (define-c-proc pattern-variable? (o) ::<boolean>
+    (result (and (SG_IDENTIFIERP o)
+		 (not (SG_NULLP (SG_IDENTIFIER_ENVS o)))
+		 (SG_SYMBOLP (SG_CAR (SG_IDENTIFIER_ENVS o))))))
+
   (define-c-proc id-envs (id::<identifier>) ::<top>
     (result (SG_IDENTIFIER_ENVS id)))
 
@@ -422,21 +437,38 @@
 
   (define-c-proc %apply0 (p) Sg_Apply0)
 
-  (define-c-proc lookup-transformer-env (o::<identifier>)
-    (let* ((vm::SgVM* (Sg_VM))
-	   (r (Sg_Assq (SG_IDENTIFIER_NAME o) (-> vm transEnv))))
-      (if (SG_FALSEP r)
-	  (result r)
-	  (if (SG_EQ (SG_IDENTIFIER_LIBRARY o) (SG_CADR r))
-	      (result (SG_CDDR r))
-	      (result SG_FALSE)))))
+  ;; the env needs to be used both transcribe and wrap-symbol
+  ;; so that the same symboll will be renamed to the same identifier
+  ;; in the same macro.
+  (define-c-proc lookup-transformer-env (o)
+    (unless (or (SG_SYMBOLP o) (SG_IDENTIFIERP o))
+      (wrong-type-of-argument-violation 'add-to-transformer-env!
+					"identifier or symbol" o))
+    (let* ((vm::SgVM* (Sg_VM)))
+      (cond ((SG_IDENTIFIERP o)
+	     (let ((r (Sg_Assq (SG_IDENTIFIER_NAME o) (-> vm transEnv))))
+	       (if (SG_FALSEP r)
+		   (result r)
+		   (if (SG_EQ (SG_IDENTIFIER_LIBRARY o) (SG_CADR r))
+		       (result (SG_CDDR r))
+		       (result SG_FALSE)))))
+	    (else
+	     (let ((r (Sg_Assq o (-> vm transEnv))))
+	       (cond ((SG_FALSEP r) (result r))
+		     ((SG_PAIRP (SG_CDR r)) (result #f))
+		     (else (result (SG_CDR r)))))))))
 
-  (define-c-proc add-to-transformer-env! (o::<identifier> n)
+  (define-c-proc add-to-transformer-env! (o n)
+    (unless (or (SG_SYMBOLP o) (SG_IDENTIFIERP o))
+      (wrong-type-of-argument-violation 'add-to-transformer-env!
+					"identifier or symbol" o))
     (let ((vm::SgVM* (Sg_VM)))
-      (set! (-> vm transEnv) (Sg_Acons (SG_IDENTIFIER_NAME o)
-				       (Sg_Cons (SG_IDENTIFIER_LIBRARY o)
-						n)
-				       (-> vm transEnv)))
+      (if (SG_IDENTIFIERP o)
+	  (set! (-> vm transEnv) (Sg_Acons (SG_IDENTIFIER_NAME o)
+					   (Sg_Cons (SG_IDENTIFIER_LIBRARY o)
+						    n)
+					   (-> vm transEnv)))
+	  (set! (-> vm transEnv) (Sg_Acons o n (-> vm transEnv))))
       (result n)))
 
   (define-c-proc current-transformer-env () (result (-> (Sg_VM) transEnv)))
