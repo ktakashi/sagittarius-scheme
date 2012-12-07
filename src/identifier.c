@@ -240,19 +240,6 @@ SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env, SgObject seen,
   return wrap_rec(form, &ctx);
 }
 
-/* if id has a parent, then equal identifier just need to check,
-   both ids have the same parent. */
-static int follow_parent(SgIdentifier *id1, SgIdentifier *id2)
-{
-  /* do it awkward way for now */
-  for (; id1; id1 = id1->parent) {
-    for (; id2; id2 = id2->parent) {
-      if (SG_EQ(id1, id2)) return TRUE;
-    }
-  }
-  return FALSE;
-}
-
 /* originally from chibi scheme */
 int Sg_IdentifierEqP(SgObject e1, SgObject id1, SgObject e2, SgObject id2)
 {
@@ -261,11 +248,6 @@ int Sg_IdentifierEqP(SgObject e1, SgObject id1, SgObject e2, SgObject id2)
   int both = 0;
   /* short cut */
   if (SG_EQ(id1, id2)) return TRUE;
-
-  if (SG_IDENTIFIERP(id1) && SG_IDENTIFIERP(id2) &&
-      (SG_IDENTIFIER_PARENT(id1) || SG_IDENTIFIER_PARENT(id2))) {
-    return follow_parent(SG_IDENTIFIER(id1), SG_IDENTIFIER(id2));
-  }
 
   /* strip p1env to frames*/
   e1 = (SG_VECTORP(e1))

@@ -9,7 +9,7 @@
 	    match-let
 	    match-let*
 	    match-letrec)
-    (import (core) (core base)
+    (import (core) (core base) (core errors)
 	    ;;(except (rnrs) syntax-rules)
 	    ;;(rnrs mutable-pairs)
 	    (sagittarius record)

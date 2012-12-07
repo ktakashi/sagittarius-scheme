@@ -108,15 +108,6 @@
     (make-f raise-continuable (make-warning) 'ssax))
 
 
-  (define (make-errorer who)
-    (lambda (msg . more)
-      (error who
-             (call-with-string-output-port
-	      (lambda (sop)
-		(for-each (lambda (x) (display x sop))
-			  (cons msg more)))))))
-
-
   ;; make-char-quotator QUOT-RULES
   ;;
   ;; Given QUOT-RULES, an assoc list of (char . string) pairs, return

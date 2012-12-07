@@ -461,8 +461,13 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
       cbs = Sg_Acons(SG_CLOSURE(obj)->code, SG_MAKE_INT(ctx->index), cbs);
       cbs = write_cache_pass1(SG_CLOSURE(obj)->code, cbs, NULL, ctx);
     } else if (SG_IDENTIFIERP(obj)) {
-      cbs = write_cache_scan(SG_IDENTIFIER_ENVS(obj), cbs, ctx);
-      cbs = write_cache_scan(SG_IDENTIFIER_LIBRARY(obj), cbs, ctx);
+      if (ctx->macroPhaseP) {
+	cbs = write_cache_scan(SG_IDENTIFIER_ENVS(obj), cbs, ctx);
+      }
+      if (SG_LIBRARYP(SG_IDENTIFIER_LIBRARY(obj))) {
+	cbs = write_cache_scan(SG_LIBRARY_NAME(SG_IDENTIFIER_LIBRARY(obj)),
+			       cbs, ctx);
+      }
     } else if (SG_LIBRARYP(obj)) {
       cbs = write_cache_scan(SG_LIBRARY_NAME(obj), cbs, ctx);
     } else if (SG_MACROP(obj)) {
@@ -692,8 +697,18 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
     */
     write_string_cache(out, SG_SYMBOL(SG_IDENTIFIER(o)->name)->name,
 		       IDENTIFIER_TAG);
-    write_object_cache(out, SG_IDENTIFIER_LIBRARY(o), cbs, ctx);
-    write_object_cache(out, SG_IDENTIFIER_ENVS(o), cbs, ctx);
+    if (SG_LIBRARYP(SG_IDENTIFIER_LIBRARY(o))) {
+      write_object_cache(out, SG_LIBRARY_NAME(SG_IDENTIFIER_LIBRARY(o)),
+			 cbs, ctx);
+    } else {
+      /* should never happen, but it can happen now. */
+       write_object_cache(out, SG_IDENTIFIER_LIBRARY(o), cbs, ctx);
+    }
+    if (ctx->macroPhaseP) {
+      write_object_cache(out, SG_IDENTIFIER_ENVS(o), cbs, ctx);
+    } else {
+      write_object_cache(out, SG_NIL, cbs, ctx);
+    }
   } else if (SG_CLOSUREP(o)) {
     /* we can't cache closure with free variables */
     if (SG_CODE_BUILDER(SG_CLOSURE(o)->code)->freec != 0) {

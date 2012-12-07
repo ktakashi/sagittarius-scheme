@@ -65,7 +65,10 @@
              (if (id-memq lst lites)
                  pool
                  (if (memq lst pool)
-                     (syntax-violation "syntax pattern" "duplicate pattern variables" pat lst)
+                     (syntax-violation "syntax pattern"
+				       "duplicate pattern variables"
+				       (unwrap-syntax pat)
+				       (unwrap-syntax lst))
                      (cons lst pool))))
             ((vector? lst)
              (loop (vector->list lst) pool))
@@ -143,7 +146,11 @@
 ;; syntax-case compiler
 (define (compile-syntax-case exp-name expr literals clauses library env mac-env)
   ;; literal must be unwrapped, otherwise it will be too unique
-  (let ((lites (unwrap-syntax-with-reverse literals)))
+  (let ((lites (append! (unwrap-syntax-with-reverse literals)
+			(filter (lambda (l)
+				  (and (identifier? l)
+				       (not (interned-symbol? l))
+				       l)) literals))))
     (define (rewrite expr patvars all?)
       (define seen (make-eq-hashtable))
       (define (seen-or-gen id env)
@@ -154,6 +161,14 @@
 	       ;; this could happen on macro generating macro.
 	       (let ((new-id (or (and (identifier? id)
 				      (make-identifier id env (id-library id)))
+				 ;; this doesn't work because of the 
+				 ;; with-syntax, it can introduce a new
+				 ;; pattern variable but we can't detect
+				 ;; in compile time. so let syntax expansion
+				 ;; rename.
+				 ;; (and (or (memq id (library-defined library))
+				 ;; 	   (find-binding library id #f))
+				 ;;       (make-identifier id env library))
 				 (make-identifier id env library))))
 		 (hashtable-set! seen id new-id)
 		 new-id))))
@@ -738,7 +753,8 @@
 	  ;; these things are not defined yet.
 	  (memq name (library-defined lib))
 	  ;; don't rename pattern variables
-	  (not (number? (p1env-lookup mac-env id PATTERN)))
+	  ;; now pattern variable contains non null env
+	  ;;(not (number? (p1env-lookup mac-env id PATTERN)))
 	  ;; local binded variables must not be renamed either.
 	  (not (identifier? (p1env-lookup mac-env id LEXICAL))))))
   
@@ -748,7 +764,12 @@
 	   (make-identifier id (vector-ref mac-env 1) (id-library id)))
 	  ((no-rename-needed? id) id)
 	  (else
-	   (make-identifier (id-name id) (id-envs id) (vector-ref use-env 0)))))
+	   ;; to make template variable unique we need to use ugly
+	   ;; reversible-gensym otherwise (define dummy) stuff doesn't
+	   ;; work.
+	   ;;(make-identifier (id-name id) (id-envs id) (vector-ref use-env 0))
+	   (make-identifier (reversible-gensym (id-name id)) '()
+			    (vector-ref use-env 0)))))
 
   ;; regenerate pattern variable
   (define (rewrite-template t vars)

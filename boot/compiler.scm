@@ -1191,7 +1191,7 @@
 		(make-identifier (unwrap-syntax name) '() library)
 		(if (null? expr)
 		    ($undef)
-		    (pass1 (caddr form) (p1env-add-name p1env name))))))
+		    (pass1 (caddr form) (p1env-add-name p1env vname))))))
     (- (syntax-error "malformed define" oform))))
 
 (define-pass1-syntax (define form p1env) :null
@@ -1572,7 +1572,8 @@
       ((((? variable? var) init) . more)
        (let* ((lvar (make-lvar var))
 	      (newenv (p1env-extend p1env `((,var . ,lvar)) LEXICAL))
-	      (itree (pass1 init (p1env-add-name p1env var))))
+	      (itree (pass1 init (p1env-add-name p1env 
+						 (variable-name var)))))
 	 (lvar-initval-set! lvar itree)
 	 ($let form 'let
 	       (list lvar)
@@ -1796,7 +1797,9 @@
 	   (let* ((lv (make-lvar (car vars)))
 		  (newenv (p1env-extend p1env `((,(car vars) . ,lv)) LEXICAL))
 		  ;; can not refer itself in its init
-		  (iexpr (pass1 (car inits) (p1env-add-name p1env (car vars)))))
+		  (iexpr (pass1 (car inits)
+				(p1env-add-name p1env 
+						(variable-name (car vars))))))
 	     (lvar-initval-set! lv iexpr)
 	     ($let src 'let (list lv) (list iexpr)
 		   (loop (cdr vars) (cdr inits) newenv #f))))))

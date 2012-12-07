@@ -13,7 +13,8 @@
 	(lambda (in)
 	  (let loop ((e (read/ss in)))
 	    (unless (eof-object? e)
-	      (eval e env))))))
+	      (eval e env)
+	      (loop (read/ss in)))))))
      ((file) (load file))))
 
 )
