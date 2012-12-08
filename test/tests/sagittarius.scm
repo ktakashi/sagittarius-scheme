@@ -657,4 +657,19 @@
 			   (let ((bar 'bar))
 			     #`(hoge . #,bar))))
 
+(let ()
+  (define-syntax expand-it
+    (lambda (x)
+      (define (gen-return var) (with-syntax ((a var)) #'a))
+      (syntax-case x ()
+	((_ (v init) expr ...)
+	 (with-syntax ((r (gen-return #'v)))
+	   #'(let ((v init))
+	       (when (= v r)
+		 expr ...)))))))
+  
+  (test-equal "the same input form in differenct syntax"
+	      'ok (expand-it (v 1) 'ok))
+)
+
 (test-end)

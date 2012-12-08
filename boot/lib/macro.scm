@@ -574,7 +574,6 @@
 			      (,syntax-quote. ,env)))))))
 
 (define (expand-syntax vars template ranks id-lexname lexname-check-list p1env)
-  (define seen (make-eq-hashtable))
   (define use-env (current-usage-env))
   (define mac-env (current-macro-env))
 
@@ -663,13 +662,20 @@
 		      (cond ((and (eq? (car lst) a) (eq? (cdr lst) d)) lst)
 			    (else (cons a d)))))
 		   ((identifier? lst)
-		    (cond ((lookup-pattern-variable p1env vars lst))
+		    (cond ((lookup-pattern-variable p1env vars lst)
+			   => (lambda (pv)
+				;; if the returned variable is already
+				;; in transformer env, then we need to
+				;; return the same value otherwise the
+				;; input form variable won't be the same
+				;; input per macro expansion.
+				(cond ((lookup-transformer-env pv))
+				      (else pv))))
 			  (else lst)))
 		   (else lst)))
 	    ((null? lst) '())
 	    ((symbol? lst)
 	     (cond ((lookup-transformer-env lst))
-		   ((hashtable-ref seen lst #f))
 		   ;; If transcribed expression contains pattern variable,
 		   ;; we need to replace it.
 		   ((lookup-pattern-variable p1env vars lst))

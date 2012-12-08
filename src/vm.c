@@ -1513,7 +1513,7 @@ SgObject Sg_GetStackTrace()
     /* before running */
     return SG_NIL;
   }
-  /* if (vm->state == COMPILING || vm->state == IMPORTING) return SG_NIL; */
+  if (vm->state == COMPILING || vm->state == IMPORTING) return SG_NIL;
   /* get current posision's src */
 
   for (i = 0;;) {
