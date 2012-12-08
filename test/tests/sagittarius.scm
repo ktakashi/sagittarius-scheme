@@ -638,7 +638,7 @@
 )
 ;; issue 46
 (let ()
-  (define (test)
+  (define (issue-46)
     (define-syntax define-inline
       (syntax-rules ()
 	((_ (?name ?arg ...) ?form0 ?form ...)
@@ -649,6 +649,6 @@
     (let ((a 1))
       (define-inline (ret-a) a)
       (ret-a)))
-  (test-equal "issue 46" 1 (test)))
+  (test-equal "issue 46" 1 (issue-46)))
 
 (test-end)

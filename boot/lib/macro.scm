@@ -631,7 +631,10 @@
   (define (wrap-symbol sym)
     (define (finish new) (add-to-transformer-env! sym new))
     (let* ((mac-lib (vector-ref mac-env 0))
-	   (g (find-binding mac-lib sym #f)))
+	   (g (find-binding mac-lib sym #f))
+	   ;; if the symbol is binded locally it must not be
+	   ;; wrapped with macro environment.
+	   (lv (p1env-lookup use-env sym LEXICAL)))
       ;; Issue 25.
       ;; if the binding found in macro env, then it must be wrap with
       ;; macro env.
@@ -641,7 +644,7 @@
       ;;        expansion did not occure until it really called.
       ;;        that causes library difference even though it's in
       ;;        the macro defined library.
-      (if (and g (eq? (gloc-library g) mac-lib))
+      (if (and (identifier? lv) g (eq? (gloc-library g) mac-lib))
 	  (let ((t (make-identifier sym '() mac-lib)))
 	    (finish (make-identifier t (vector-ref mac-env 1) mac-lib)))
 	  (let* ((lib (vector-ref use-env 0))
