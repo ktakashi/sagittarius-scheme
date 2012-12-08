@@ -82,7 +82,7 @@ static SgIdentifier* make_identifier()
 {
   SgIdentifier *id = SG_NEW(SgIdentifier);
   SG_SET_CLASS(id, SG_CLASS_IDENTIFIER);
-  id->parent = NULL;		/* for sanity */
+  id->pending = FALSE;		/* for sanity */
   return id;
 }
 
@@ -109,7 +109,6 @@ SgObject Sg_CopyIdentifier(SgIdentifier *id)
   } else {
     z->envs = SG_NIL;
   }
-  z->parent = id;
   return SG_OBJ(z);
 }
 
@@ -120,7 +119,6 @@ static SgObject p1env_lookup(SgObject form, SgVector *p1env, int lookup_as)
   SgObject fp, vp, vtmp;
   int identp = SG_IDENTIFIERP(form);
 
- entry:
   SG_FOR_EACH(fp, frames) {
     if (identp && SG_EQ(SG_IDENTIFIER_ENVS(form), fp))
       form = SG_IDENTIFIER_NAME(form);
@@ -132,12 +130,6 @@ static SgObject p1env_lookup(SgObject form, SgVector *p1env, int lookup_as)
 	return fp;
       }
     }
-  }
-  /* try the parent. */
-  if (SG_IDENTIFIERP(form) && SG_IDENTIFIER_PARENT(form) &&
-      !SG_NULLP(frames)) {
-    form = SG_IDENTIFIER_PARENT(form);
-    goto entry;
   }
 
   return SG_FALSE;
@@ -180,7 +172,6 @@ static SgObject wrap_rec(SgObject form, wrap_ctx *ctx)
 	    id = Sg_MakeIdentifier(SG_IDENTIFIER_NAME(form),
 				   SG_IDENTIFIER_ENVS(form),
 				   SG_IDENTIFIER_LIBRARY(form));
-	    SG_IDENTIFIER_TEMPLATE(id) = ctx->templ;
 	  } else {
 	    /* keep pattern variable */
 	    id = form;
@@ -189,7 +180,6 @@ static SgObject wrap_rec(SgObject form, wrap_ctx *ctx)
 	  id = Sg_MakeIdentifier(form,
 				 SG_VECTOR_ELEMENT(p1env, 1),
 				 SG_VECTOR_ELEMENT(p1env, 0));
-	  SG_IDENTIFIER_TEMPLATE(id) = ctx->templ;
 	}
       } else if (!SG_FALSEP(env)) {
 	if (SG_IDENTIFIERP(form)) {
@@ -205,7 +195,6 @@ static SgObject wrap_rec(SgObject form, wrap_ctx *ctx)
 	  }
 	} else {
 	  id = Sg_MakeIdentifier(form, env, SG_VECTOR_ELEMENT(p1env, 0));
-	  SG_IDENTIFIER_TEMPLATE(id) = ctx->templ;
 	}
       } else {
 	/* if it's partial wrap and symbol is not lexical bounded,

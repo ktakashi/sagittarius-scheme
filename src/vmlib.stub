@@ -39,6 +39,18 @@
       (set! maybe-library (Sg_FindLibrary maybe-library FALSE)))
     (result (Sg_MakeIdentifier name envs maybe-library)))
 
+  (define-c-proc make-pending-identifier (name::<symbol> envs maybe-library)
+    (unless (SG_LIBRARYP maybe-library)
+      (set! maybe-library (Sg_FindLibrary maybe-library FALSE)))
+    (let ((r (Sg_MakeIdentifier name envs maybe-library)))
+      (set! (SG_IDENTIFIER_PENDING r) TRUE)
+      (result r)))
+  (define-c-proc rename-pending-identifier! (id::<identifier>)
+    (when (SG_IDENTIFIER_PENDING id)
+      (set! (SG_IDENTIFIER_NAME id) 
+	    (Sg_Gensym (-> (SG_SYMBOL (SG_IDENTIFIER_NAME id)) name))))
+    (result id))
+
   (define-c-proc make-pattern-identifier (name envs maybe-library)
     (unless (or (SG_SYMBOLP name) (SG_IDENTIFIERP name))
       (wrong-type-of-argument-violation 'make-identifier 
@@ -59,24 +71,6 @@
 
   (define-c-proc id-library (id::<identifier>) ::<top>
     (result (SG_IDENTIFIER_LIBRARY id)))
-
-  (define-c-proc copy-identifier (id::<identifier> 
-				  :optional (tmpl-var #f))
-    (let ((r (Sg_CopyIdentifier id)))
-      (unless (SG_FALSEP tmpl-var)
-	(set! (SG_IDENTIFIER_ENVS r) tmpl-var))
-      (result r)))
-
-  (define-c-proc id-has-parent? (id::<identifier>)
-    ::<boolean>
-    (result (cast int (SG_IDENTIFIER_PARENT id))))
-
-  (define-c-proc id-has-same-parent? (id1::<identifier> id2::<identifier>)
-    ::<boolean>
-    (for (() id1 (set! id1 (SG_IDENTIFIER_PARENT id1)))
-	 (for (() id2 (set! id2 (SG_IDENTIFIER_PARENT id2)))
-	      (if (SG_EQ id1 id2) (return #t))))
-    (result FALSE))
 
   ;; syntax
   (define-c-proc make-syntax (name::<symbol> proc) Sg_MakeSyntax)
@@ -314,16 +308,6 @@
 	    (if frame?
 		(return fp)
 		(return (SG_CDR vp))))))
-      ;; if the target reaches here and still an identifier,
-      ;; which means either global variable or lexical variable but
-      ;; copied identifier.
-      ;; if the latter case, then we need to check parent as well.
-;; no longer copy-identifier is used
-;;      (when (and (not top?)
-;;		 (SG_IDENTIFIERP name) (SG_IDENTIFIER_PARENT name)
-;;		 (not (SG_NULLP frames)))
-;;	(set! name (SG_IDENTIFIER_PARENT name))
-;;	(goto entry))
       (return name)))
 
   (define-cfn p1env-lookup-rec (p1env::SgVector* name lookup-as)
@@ -357,22 +341,6 @@
 		   (or (not r6rs?) (check-env-frame (SG_CDR fp))))
 	  (return SG_FALSE))))
     (result TRUE))
-
-  ;; identifier is also syntax object, so it might contain some
-  ;; other syntax info. this procedure checks it.
-  (define-c-proc syntax-object=? (id1::<identifier> id2::<identifier>)
-    ::<boolean>
-    (result (and (SG_EQ (SG_IDENTIFIER_NAME id1) (SG_IDENTIFIER_NAME id2))
-		 (SG_IDENTIFIER_TEMPLATE id1)
-		 (SG_IDENTIFIER_TEMPLATE id2)
-		 (or (SG_EQ (SG_IDENTIFIER_TEMPLATE id1)
-			    (SG_IDENTIFIER_TEMPLATE id2))
-		     (and (SG_IDENTIFIER_PARENT (SG_IDENTIFIER_TEMPLATE id1))
-			  (SG_IDENTIFIER_PARENT (SG_IDENTIFIER_TEMPLATE id2))
-			  (SG_EQ (SG_IDENTIFIER_PARENT
-				  (SG_IDENTIFIER_TEMPLATE id1))
-				 (SG_IDENTIFIER_PARENT
-				  (SG_IDENTIFIER_TEMPLATE id2))))))))
 
   ;; TODO it's almost the same process as p1env-lookup
   ;; lookup pvar from p1env.

@@ -146,11 +146,7 @@
 ;; syntax-case compiler
 (define (compile-syntax-case exp-name expr literals clauses library env mac-env)
   ;; literal must be unwrapped, otherwise it will be too unique
-  (let ((lites (append! (unwrap-syntax-with-reverse literals)
-			(filter (lambda (l)
-				  (and (identifier? l)
-				       (not (interned-symbol? l))
-				       l)) literals))))
+  (let ((lites (unwrap-syntax literals)))
     (define (rewrite expr patvars all?)
       (define seen (make-eq-hashtable))
       (define (seen-or-gen id env)
@@ -389,11 +385,11 @@
       (cond ((pair? expr) (cons (loop (car expr)) (loop (cdr expr))))
 	    ((vector? expr) (list->vector (loop (vector->list expr))))
 	    ((and-let* (( (variable? expr) )
-			(v (unwrap-syntax-with-reverse expr)))
+			(v (unwrap-syntax expr)))
 	       (memq v lites)) => car)
 	    (else expr))))
   ;; we need to local variable unique so that it won't be global.
-  (let* ((lites (unwrap-syntax-with-reverse (collect-unique-ids expr)))
+  (let* ((lites (unwrap-syntax (collect-unique-ids expr)))
 	 (form (rewrite expr (lset-intersection eq? lites literals))))
     (let loop ((lst lst))
       (if (null? lst)
@@ -768,8 +764,8 @@
 	   ;; reversible-gensym otherwise (define dummy) stuff doesn't
 	   ;; work.
 	   ;;(make-identifier (id-name id) (id-envs id) (vector-ref use-env 0))
-	   (make-identifier (reversible-gensym (id-name id)) '()
-			    (vector-ref use-env 0)))))
+	   (make-pending-identifier (id-name id) '()
+				    (vector-ref use-env 0)))))
 
   ;; regenerate pattern variable
   (define (rewrite-template t vars)
@@ -781,12 +777,14 @@
 	   (list->vector (rewrite-template (vector->list t) vars)))
 	  ;; could be a pattern variable, so keep it
 	  ((and (variable? t) (assq t vars)) => car)
+	  ;;((pattern-variable? t) t)
 	  (else
 	   ;; rename template variable
 	   (or (and-let* (( (identifier? t) )
 			  (id (lookup-lexical-name t use-env))
-			  ( (identifier? id) )
-			  ( (null? (id-envs id)) )
+			  ;;( (identifier? id) )
+			  ;;( (null? (id-envs id)) )
+			  ( (eq? id t) )
 			  )
 		 (cond ((lookup-transformer-env id))
 		       ;; mark as template variable so that pattern variable
@@ -925,9 +923,23 @@
 (define (make-variable-transformer proc)
   (make-macro 'variable-transformer
 	      (lambda (m expr p1env data)
+		(define (rewrite expr env)
+		  (let loop ((expr expr))
+		    (cond ((pair? expr)
+			   (let ((a (loop (car expr)))
+				 (d (loop (cdr expr))))
+			     (if (and (eq? a (car expr)) (eq? d (cdr expr)))
+				 expr
+				 (cons a d))))
+			  ((vector? expr)
+			   (list->vector (loop (vector->list expr))))
+			  ((variable? expr)
+			   (make-identifier expr (vector-ref env 1)
+					    (vector-ref env 0)))
+			  (else expr))))
 		;; Issue 68. this must use current usage env not
 		;; macro env when this macro is created.
-		(proc (wrap-syntax expr (current-usage-env))))
+		(proc (rewrite expr (current-usage-env))))
 	      '()
 	      (current-macro-env)))
 

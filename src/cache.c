@@ -1116,6 +1116,7 @@ static SgObject read_identifier(SgPort *in, read_ctx *ctx)
   id->name = Sg_Intern(name);
   id->library = lib;
   id->envs = envs;
+  id->pending = FALSE;
   return id;
 }
 

@@ -1183,6 +1183,8 @@
     ((- name . expr)
      (unless (variable? name) (syntax-error "malformed define" oform))
      (check-direct-variable name p1env oform)
+     ;; this renames all the same identifier
+     (when (identifier? name) (rename-pending-identifier! name))
      (let* ((vname (variable-name name)) 
 	    (p1env (p1env-add-name p1env vname)))
        (library-defined-add! library vname)
@@ -1276,6 +1278,8 @@
 			 (variable-name name)
 			 expr
 			 (p1env-add-name p1env (variable-name name)))))
+       ;; this renames all the same identifier
+       (when (identifier? name) (rename-pending-identifier! name))
        (%insert-binding (p1env-library p1env) (variable-name name) transformer)
        ($undef)))
     (- (syntax-error "malformed define-syntax" form))))

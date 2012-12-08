@@ -123,6 +123,8 @@
 	    #f
 	    #f)))
 
+(define (rename-pending-identifier! id) id)
+
 (define (rename-id id)
   (if (identifier? id)
       (let ((new-id (make-identifier (id-name id) (id-envs id) (id-library id))))
