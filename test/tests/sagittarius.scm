@@ -651,4 +651,10 @@
       (ret-a)))
   (test-equal "issue 46" 1 (issue-46)))
 
+;; issue 69
+(test-equal "issue 69" 
+	    '(hoge . bar) (unwrap-syntax
+			   (let ((bar 'bar))
+			     #`(hoge . #,bar))))
+
 (test-end)
