@@ -756,7 +756,11 @@
   
   ;; bit ugly solution to resolve different compile unit of (syntax)
   (define (rename-or-copy-id id)
-    (cond ((find-binding (id-library id) (id-name id) #f)
+    (cond ((or (find-binding (id-library id) (id-name id) #f)
+	       ;; macro identifier need to have it's syntax information
+	       ;; to bent scope
+	       ;; FIXME smells like a bug
+	       (macro? (p1env-lookup mac-env id LEXICAL)))
 	   (make-identifier id (vector-ref mac-env 1) (id-library id)))
 	  ((no-rename-needed? id) id)
 	  (else

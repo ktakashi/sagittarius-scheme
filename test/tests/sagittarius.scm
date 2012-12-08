@@ -611,4 +611,44 @@
 	       bv))))))
   (test-equal "issue 68" #vu8(1) (foo)))
 
+;; issue 1
+(let ()
+  (define-syntax let/scope
+    (lambda(x)
+      (syntax-case x ()
+	((k scope-name body ...)
+	 #'(let-syntax
+	       ((scope-name
+		 (lambda(x)
+		   (syntax-case x ()
+		     ((_ b (... ...))
+		      #`(begin
+			  #,@(datum->syntax #'k
+				(syntax->datum #'(b (... ...))))))))))
+	     body ...)))))
+
+  (let ((x 1))
+    (let/scope d1
+      (let ((x 2))
+	(let/scope d2
+	  (let ((x 3))
+	    (test-equal "issue 1 (bending scope)"
+			'(1 2 3)
+			(list (d1 x) (d2 x) x)))))))
+)
+;; issue 46
+(let ()
+  (define (test)
+    (define-syntax define-inline
+      (syntax-rules ()
+	((_ (?name ?arg ...) ?form0 ?form ...)
+	 (define-syntax ?name
+	   (syntax-rules ()
+	     ((_ ?arg ...)
+	      (begin ?form0 ?form ...)))))))
+    (let ((a 1))
+      (define-inline (ret-a) a)
+      (ret-a)))
+  (test-equal "issue 46" 1 (test)))
+
 (test-end)
