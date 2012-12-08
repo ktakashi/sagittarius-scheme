@@ -226,7 +226,11 @@
 		(lambda ()
 		  (lambda arg
 		    (syntax-error "misplaced syntactic keyword" arg)))
-		mac-env
+		;; literal doesn't have to have any environment
+		;; this is just a mark, so  to keep things easy,
+		;; we create fresh env
+		(vector library '() lite #f)
+		;;mac-env
 		library))))
 	(loop (cdr lites))))
     

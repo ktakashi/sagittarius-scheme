@@ -840,30 +840,36 @@ static void write_macro_cache(SgPort *out, SgLibrary *lib, SgObject cbs,
   /* write macro */
   put_word(out, Sg_Length(macros), MACRO_SECTION_TAG);
   write_symbol_cache(out, SG_LIBRARY_NAME(lib));
+  /* collect all closures first */
   SG_FOR_EACH(cp, macros) {
-    SgObject macro = SG_CAR(cp), closures = SG_NIL;
+    SgObject closures = SG_NIL;
+    SgMacro *macro = SG_MACRO(SG_CAR(cp));
+
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("scanning macro %S\n"), macro); */
     /*
       Macro can be considered as one toplevel compiled code, which means we do
       not have to care about closures outside of given macro.
      */
     /* do the same trik as identifier for macro env*/
-    SG_VECTOR_ELEMENT(SG_MACRO(macro)->env, 3) = SG_FALSE;
+    SG_VECTOR_ELEMENT(macro->env, 3) = SG_FALSE;
 
     /* for usual macros */
-    if (SG_CLOSUREP(SG_MACRO(macro)->data)) {
-      closures = Sg_Acons(SG_CLOSURE(SG_MACRO(macro)->data)->code,
+    if (SG_CLOSUREP(macro->data)) {
+      closures = Sg_Acons(SG_CLOSURE(macro->data)->code,
 			  SG_MAKE_INT(ctx->index++), closures);
       /* we don't need to check library here */
-      closures = write_cache_pass1(SG_CLOSURE(SG_MACRO(macro)->data)->code,
+      closures = write_cache_pass1(SG_CLOSURE(macro->data)->code,
 				   closures, NULL, ctx); 
     }
     /* for make-variable-transformer */
-    if (SG_CLOSUREP(SG_MACRO(macro)->transformer)) {
-      closures = Sg_Acons(SG_CLOSURE(SG_MACRO(macro)->transformer)->code,
+    if (SG_CLOSUREP(macro->transformer)) {
+      closures = Sg_Acons(SG_CLOSURE(macro->transformer)->code,
 			  SG_MAKE_INT(ctx->index++), closures);
       /* we don't need to check library here */
-      closures = write_cache_pass1(SG_CLOSURE(SG_MACRO(macro)->transformer)->code, closures, NULL, ctx); 
+      closures = write_cache_pass1(SG_CLOSURE(macro->transformer)->code,
+				   closures, NULL, ctx); 
     }
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("writing macro %S\n"), macro); */
     write_macro(out, macro, closures, ctx);
   }
   Sg_PutbUnsafe(out, MACRO_SECTION_END_TAG);
