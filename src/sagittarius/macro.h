@@ -77,7 +77,6 @@ SG_EXTERN SgObject Sg_MakeMacro(SgObject name, SgObject transformer, void *data,
 SG_EXTERN SgObject Sg_MakeMacroTransformer(SgObject name, SgObject proc, SgObject env, SgObject library);
 
 SG_EXTERN SgObject Sg_UnwrapSyntax(SgObject form);
-SG_EXTERN SgObject Sg_UnwrapSyntaxWithReverse(SgObject form);
 SG_EXTERN SgObject Sg_MacroExpand(SgObject form, SgObject p1env, int onceP);
 
 SG_CDECL_END

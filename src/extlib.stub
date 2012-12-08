@@ -201,15 +201,6 @@
     (result (Sg_Gensym prefix)))
 
   (define-c-proc unwrap-syntax (form) Sg_UnwrapSyntax)
-  (define-c-proc unwrap-syntax-with-reverse (form) Sg_UnwrapSyntaxWithReverse)
-
-  (define-c-proc wrap-syntax (form p1env::<vector>
-				   :optional seen::<hashtable>
-				             (partialP::<boolean> #f)
-					     templ::<identifier>)
-    (when (SG_UNBOUNDP seen) (set! seen NULL))
-    (when (SG_UNBOUNDP templ) (set! templ NULL))
-    (result (Sg_WrapSyntax form p1env seen partialP templ)))
 
   (define-c-proc current-dynamic-environment (:optional other::<hashtable>)
     ::<top>

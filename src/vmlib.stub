@@ -101,8 +101,6 @@
   (define-c-proc %internal-macro-expand (expr p1env onceP::<boolean>)
     Sg_MacroExpand)
 
-  (define-c-proc reversible-gensym (sym::<symbol>) Sg_ReversibleGensym)
-
   ;; library
   (define-c-proc make-library (name) Sg_MakeLibrary)
 

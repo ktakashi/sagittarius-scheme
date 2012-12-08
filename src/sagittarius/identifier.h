@@ -58,9 +58,6 @@ SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeIdentifier(SgObject id_or_sym, SgObject envs,
 				     SgLibrary *library);
-SG_EXTERN SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env,
-				 SgObject seen, int lexicalP,
-				 SgObject templ);
 SG_EXTERN int      Sg_IdentifierEqP(SgObject use_env, SgObject x,
 				    SgObject mac_env, SgObject y);
 

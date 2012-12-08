@@ -1001,7 +1001,7 @@
 ;; for expantion timing, quote must be first
 ;; quote and quasiquote
 (define (pass1/quote obj syntax?)
-  ($const (if syntax? obj (unwrap-syntax-with-reverse obj))))
+  ($const (if syntax? obj (unwrap-syntax obj))))
 
 (define-pass1-syntax (quote form p1env) :null
   (smatch form
