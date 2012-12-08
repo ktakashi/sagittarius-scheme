@@ -542,38 +542,21 @@
       ;; this makes compiled cache size much smaller.
       (vector-set! env 3 #f)
       (if (variable? template)
-	  (let ((lex-id (lookup-lexical-name tmpl mac-env)))
-	    (if (null? ranks)
-		    `(,.expand-syntax ,patvar
-				      (,syntax-quote. ,template)
-				      ()
-				      (,syntax-quote. ,lex-id)
-				      ()
-				      (,syntax-quote. ,env))
-		    `(,.expand-syntax ,patvar
-				      (,syntax-quote. ,template)
-				      (,syntax-quote. ,(list (cons template 0)))
-				      (,syntax-quote. ,lex-id)
-				      ()
-				      (,syntax-quote. ,env))))
-	  (let ((lex-check-list 
-		 (filter values
-			 (map (lambda (id)
-				(let ((lexname (lookup-lexical-name id
-								    mac-env)))
-				  ;; TODO correct?
-				  (and (identifier? lexname)
-				       (not (null? (id-envs lexname)))
-				       (cond ((eq? id lexname) #f)
-					     (else (cons id lexname))))))
-			      (collect-rename-ids template ranks)))))
-	    `(,.expand-syntax ,patvar (,syntax-quote. ,template)
-			      (,syntax-quote. ,ranks)
-			      #f 
-			      (,syntax-quote. ,lex-check-list)
-			      (,syntax-quote. ,env)))))))
+	  (if (null? ranks)
+	      `(,.expand-syntax ,patvar
+				(,syntax-quote. ,template)
+				()
+				(,syntax-quote. ,env))
+	      `(,.expand-syntax ,patvar
+				(,syntax-quote. ,template)
+				(,syntax-quote. ,(list (cons template 0)))
+				(,syntax-quote. ,env)))
+	  `(,.expand-syntax ,patvar 
+			    (,syntax-quote. ,template)
+			    (,syntax-quote. ,ranks)
+			    (,syntax-quote. ,env))))))
 
-(define (expand-syntax vars template ranks id-lexname lexname-check-list p1env)
+(define (expand-syntax vars template ranks p1env)
   (define use-env (current-usage-env))
   (define mac-env (current-macro-env))
 
