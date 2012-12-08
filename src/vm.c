@@ -591,9 +591,9 @@ SgObject Sg_Compile(SgObject o, SgObject e)
     compiler = SG_GLOC_GET(g);
     Sg_UnlockMutex(&global_lock);
   }
-  Sg_VM()->history = Sg_VM()->transEnv = SG_NIL;
+  Sg_VM()->history = SG_NIL;
   r = Sg_Apply2(compiler, o, e);
-  Sg_VM()->history = Sg_VM()->transEnv = SG_NIL;
+  Sg_VM()->history = SG_NIL;
   return r;
 }
 
@@ -634,7 +634,7 @@ static SgObject eval_restore_env(SgObject *args, int argc, void *data)
 
 SgObject Sg_VMEval(SgObject sexp, SgObject env)
 {
-  SgObject v = SG_NIL;
+  SgObject v = SG_NIL, body, before, after;
   SgVM *vm = theVM;
 
   if (vm->state != IMPORTING) vm->state = COMPILING;
@@ -642,7 +642,9 @@ SgObject Sg_VMEval(SgObject sexp, SgObject env)
   /* after compile we don't need temporary defined */
   SG_LIBRARY_DEFINEED(vm->currentLibrary) = SG_NIL;
   /* store cache */
-  if (vm->state == IMPORTING) SG_SET_CAR(vm->cache, Sg_Cons(v, SG_CAR(vm->cache)));
+  if (vm->state == IMPORTING) {
+    SG_SET_CAR(vm->cache, Sg_Cons(v, SG_CAR(vm->cache)));
+  }
   if (vm->state != IMPORTING) vm->state = RUNNING;
   CLEAR_STACK(vm);
 
@@ -651,18 +653,15 @@ SgObject Sg_VMEval(SgObject sexp, SgObject env)
     Sg_VMDumpCode(v);
   }
   vm->valuesCount = 1;
+
+  body = Sg_MakeClosure(v, NULL);
   if (!SG_FALSEP(env)) {
-    SgObject body = Sg_MakeClosure(v, NULL);
-    SgObject before = Sg_MakeSubr(eval_restore_env, env, 0, 0, SG_FALSE);
-    SgObject after = Sg_MakeSubr(eval_restore_env, vm->currentLibrary, 0, 0, SG_FALSE);
-    return Sg_VMDynamicWind(before, body, after);
+    before = Sg_MakeSubr(eval_restore_env, env, 0, 0, SG_FALSE);
   } else {
-    /* Since we have LIBRARY instruction, we always need to restore current library */
-    SgObject body = Sg_MakeClosure(v, NULL);
-    SgObject before = Sg_NullProc();
-    SgObject after = Sg_MakeSubr(eval_restore_env, vm->currentLibrary, 0, 0, SG_FALSE);
-    return Sg_VMDynamicWind(before, body, after);
+    before = Sg_NullProc();
   }
+  after = Sg_MakeSubr(eval_restore_env, vm->currentLibrary, 0, 0, SG_FALSE);
+  return Sg_VMDynamicWind(before, body, after);
 }
 
 static SgObject pass1_import = SG_UNDEF;

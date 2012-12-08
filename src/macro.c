@@ -160,6 +160,7 @@ static SgObject macro_tranform(SgObject *args, int argc, void *data_)
   }
   vm->usageEnv = ue_save;
   vm->macroEnv = me_save;
+  vm->transEnv = SG_NIL;	/* gc friendliness */
   return result;
 }
 
