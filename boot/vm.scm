@@ -51,6 +51,7 @@
 	  (core misc)   ;; for define-macro
 	  (sagittarius vm debug) ;; for source-info
 	  (core errors) ;; describe-condition
+	  (rename (sagittarius object) (->string x->string))
 	  (pp))
   (add-load-path ".")
   (load "insn.scm")
@@ -322,38 +323,60 @@
 ;; f = frame pointer
 ;; s = stack pointer
 (define (VM x pc a c f s)
-  (let-syntax ((next (syntax-rules ()
-		       ((_)
-			(vector-ref x pc))
-		       ((_ n)
-			(vector-ref x (+ pc n)))))
-	       (skip (syntax-rules ()
-		       ((_)
-			(begin
-			  (set! pc (+ pc 1))
-			  pc))
-		       ((_ n)
-			(begin
-			  (set! pc (+ pc n))
-			  pc))))
-	       (fetch (syntax-rules ()
-			((_)
-			 (begin
-			   (set! pc (+ pc 1))
-			   (vector-ref x pc)))))
-	       (return (syntax-rules ()
-			 ((_ a)
-			  (let ((s f))
-			    (VM (index s 0) ;; code
-				(index s 1) ;; pc
-				a
-				(index s 2) ;; closure
-				(index s 3) ;; fp
-				(- s *frame-size*)))))))
+  (letrec-syntax ((next (syntax-rules ()
+			  ((_)
+			   (vector-ref x pc))
+			  ((_ n)
+			   (vector-ref x (+ pc n)))))
+		  (skip (syntax-rules ()
+			  ((_)
+			   (begin
+			     (set! pc (+ pc 1))
+			     pc))
+			  ((_ n)
+			   (begin
+			     (set! pc (+ pc n))
+			     pc))))
+		  (fetch (syntax-rules ()
+			   ((_)
+			    (begin
+			      (set! pc (+ pc 1))
+			      (vector-ref x pc)))))
+		  (return (syntax-rules ()
+			    ((_ a)
+			     (let ((s f))
+			       (VM (index s 0) ;; code
+				   (index s 1) ;; pc
+				   a
+				   (index s 2) ;; closure
+				   (index s 3) ;; fp
+				   (- s *frame-size*))))))
+
+		  (gref (syntax-rules ()
+			  ((_ value body)
+			   (let ((var (fetch)))
+			     (or (identifier? var)
+				 (errorf "runtime error: GREF instruction \
+                                       requires identifier for ist argument \
+                                       but got: ~s~%~s"
+					 var (stack-trace c)))
+			     (let* ((lib (id-library var))
+				    (value (find-binding lib (id-name var) #f)))
+			       (or value
+				   (errorf "unbound variable ~s, \
+                                            library ~s~% ~s"
+					   (id-name var)
+					   (cond ((and lib (library? lib))
+						  (library-name lib))
+						 ((not lib) '#:toplevel)
+						 (else lib) )
+					   (stack-trace c)))
+			       body))))))
     (define (apply-body cl argc s)
       (cond ((procedure? cl)
 	     (let ((p (stack->pair-args s argc)))
-	       (VM `#(,RET ,HALT) 0 (apply (procedure-body cl) p) c (- s argc) s)))
+	       (VM `#(,RET ,HALT) 0 (apply (procedure-body cl) p)
+		   c (- s argc) s)))
 	    ((closure? cl)
 	     (let ((required-length (closure-argc cl)))
 	       (cond ((closure-option? cl)
@@ -450,7 +473,8 @@
       ((NOP) 
        (VM x (skip) a c f s))
       ((LIBRARY) 
-       (VM x (skip 2) a c f s))
+       (vm-current-library (fetch))
+       (VM x (skip) a c f s))
       ((UNDEF) 
        (VM x (skip) 'undef c f s))
       ((FRAME)
@@ -504,20 +528,7 @@
        (let ((n (insn-value1 insn)))
 	 (VM x (skip) (index-closure c n) c f s)))
       ((GREF)
-       (let ((var (fetch)))
-	 (or (identifier? var)
-	     (errorf "runtime error: GREF instruction requires identifier for ist argument but got: ~s~%~s"
-		     var (stack-trace c)))
-		    
-	 (let ((value ;(namespace-ref (id-name var)))
-		(find-binding (id-library var) (id-name var) #f)))
-	   (or value
-	       (errorf "unbound variable ~s, library ~s~% ~s" (id-name var)
-		       (if (library? (id-library var))
-			   (library-name (id-library var))
-			   (id-library var)) 
-		       (stack-trace c)))
-	   (VM x (skip) value c f s))))
+       (gref value (VM x (skip) value c f s)))
       ((LREF_PUSH)
        (let ((n (insn-value1 insn)))
 	 (let ((a. (refer-local n)))
@@ -559,80 +570,15 @@
 	 (let ((a (index-closure c n)))
 	 (VM x (skip) (cdr a) c f (push (cdr a) s)))))
       ((GREF_PUSH)
-       (let ((var (fetch)))
-	 (or (identifier? var)
-	     (errorf "runtime error: GREF instruction requires identifier for its argument but got: ~s~%~s"
-		     var (stack-trace c)))
-		    
-	 (let ((value ;(namespace-ref (id-name var)))
-		(find-binding (id-library var) (id-name var) #f)))
-	   (or value
-	       (errorf "unbound variable ~s, library ~s~% ~s" (id-name var)
-				  (if (library? (id-library var))
-				      (library-name (id-library var))
-				      (id-library var))
-				  (stack-trace c)))
-	   (VM x (skip) value c f (push value s)))))
+       (gref value (VM x (skip) value c f (push value s))))
       ((GREF_CAR)
-       (let ((var (fetch)))
-	 (or (identifier? var)
-	     (errorf "runtime error: GREF instruction requires identifier for its argument but got: ~s~%~s"
-		     var (stack-trace c)))
-		    
-	 (let ((value ;(namespace-ref (id-name var)))
-		(find-binding (id-library var) (id-name var) #f)))
-	   (or value
-	       (errorf "unbound variable ~s, library ~s~% ~s" (id-name var)
-		       (if (library? (id-library var))
-			   (library-name (id-library var))
-			   (id-library var))
-		       (stack-trace c)))
-	   (VM x (skip) (car value) c f s))))
+       (gref value (VM x (skip) (car value) c f s)))
       ((GREF_CDR)
-       (let ((var (fetch)))
-	 (or (identifier? var)
-	     (errorf "runtime error: GREF instruction requires identifier for its argument but got: ~s~%~s"
-		     var (stack-trace c)))
-		    
-	 (let ((value ;(namespace-ref (id-name var)))
-		(find-binding (id-library var) (id-name var) #f)))
-	   (or value
-	       (errorf "unbound variable ~s, library ~s~% ~s" (id-name var)
-		       (if (library? (id-library var))
-			   (library-name (id-library var))
-			   (id-library var))
-		       (stack-trace c)))
-	   (VM x (skip) (cdr value) c f s))))
+       (gref value (VM x (skip) (cdr value) c f s)))
       ((GREF_CAR_PUSH)
-       (let ((var (fetch)))
-	 (or (identifier? var)
-	     (errorf "runtime error: GREF instruction requires identifier for its argument but got: ~s~%~s"
-		     var (stack-trace c)))
-	 
-	 (let ((value ;(namespace-ref (id-name var)))
-		(find-binding (id-library var) (id-name var) #f)))
-	   (or value
-	       (errorf "unbound variable ~s, library ~s~% ~s" (id-name var)
-		       (if (library? (id-library var))
-			   (library-name (id-library var))
-			   (id-library var))
-		       (stack-trace c)))
-	   (VM x (skip) (car value) c f (push (car value) s)))))
+       (gref value (VM x (skip) (car value) c f (push (car value) s))))
       ((GREF_CDR_PUSH)
-       (let ((var (fetch)))
-	 (or (identifier? var)
-	     (errorf "runtime error: GREF instruction requires identifier for its argument but got: ~s~%~s"
-		     var (stack-trace c)))
-	 
-	 (let ((value ;(namespace-ref (id-name var)))
-		(find-binding (id-library var) (id-name var) #f)))
-	   (or value
-	       (errorf "unbound variable ~s, library ~s~% ~s" (id-name var)
-		       (if (library? (id-library var))
-			   (library-name (id-library var))
-			   (id-library var))
-		       (stack-trace c)))
-	   (VM x (skip) (cdr value) c f (push (cdr value) s)))))
+       (gref value (VM x (skip) (cdr value) c f (push (cdr value) s))))
       ((LSET)
        (let ((n (insn-value1 insn)))
 	 (set-box! (refer-local n) a)
@@ -779,37 +725,11 @@
        (let ((argc (insn-value1 insn)))
 	 (apply-body a argc (shift-args f argc s))))
       ((GREF_CALL)
-       (let ((var (fetch))
-	     (argc (insn-value1 insn)))
-	 (or (identifier? var)
-	     (errorf "runtime error: GREF instruction requires identifier for ist argument but got: ~s~%~s"
-		     var (stack-trace c)))
-	 
-	 (let ((value ;(namespace-ref (id-name var)))
-		(find-binding (id-library var) (id-name var) #f)))
-	   (or value
-	       (errorf "unbound variable ~s, library ~s~% ~s" (id-name var)
-		       (if (library? (id-library var))
-			   (library-name (id-library var))
-			   (id-library var))
-		       (stack-trace c)))
-	   (apply-body value argc s))))
+       (let ((argc (insn-value1 insn)))
+	 (gref value (apply-body value argc s))))
       ((GREF_TAIL_CALL)
-       (let ((var (fetch))
-	     (argc (insn-value1 insn)))
-	 (or (identifier? var)
-	     (errorf "runtime error: GREF instruction requires identifier for ist argument but got: ~s~%~s"
-		     var (stack-trace c)))
-	 
-	 (let ((value ;(namespace-ref (id-name var)))
-		(find-binding (id-library var) (id-name var) #f)))
-	   (or value
-	       (errorf "unbound variable ~s, library ~s~% ~s" (id-name var)
-		       (if (library? (id-library var))
-			   (library-name (id-library var))
-			   (id-library var))
-		       (stack-trace c)))
-	   (apply-body value argc (shift-args f argc s)))))
+       (let ((argc (insn-value1 insn)))
+	 (gref value (apply-body value argc (shift-args f argc s)))))
       ((LOCAL_CALL)
        (let ((argc (insn-value1 insn)))
 	 ;; TODO stack expand
@@ -1034,9 +954,11 @@
 	 (format "#<closure-s ~a>" (shorten-object (closure-src o))))
 	((identifier? o)
 	 (format "#<identifier ~s#~s(~s)>" (id-name o)
-		 (if (library? (id-library o))
-		     (library-name (id-library o))
-		     (id-library o))
+		 (let ((lib (id-library o)))
+		   (cond ((and lib (library? (id-library o)))
+			  (library-name (id-library o)))
+			 ((not lib) '#:toplevel)
+			 (else lib)))
 		 (vector-ref o 4)))
 	((library? o)
 	 (format "#<library ~s>" (library-name o)))
@@ -1129,39 +1051,41 @@
 (define (vm-dump-code cb . inner)
 
   (define (shorten-object o)
-  (cond ((closure? o)
-	 (format "#<closure ~a>" (shorten-object (closure-src o))))
-	((identifier? o)
-	 (format "#<identifier ~s#~s>" (id-name o)
-		 (if (library? (id-library o))
-		     (library-name (id-library o))
-		     (id-library o))))
-	((library? o)
-	 (format "#<library ~s>" (library-name o)))
-	((pair? o)
-	 (if (and (pair? (car o))
-		  (not (zero? (length o))))
-	     (let loop ((r '())
-			(o o))
-	       (if (null? o)
-		   (reverse r)
-		   (loop (cons (shorten-object (car o)) r)
-			 (cdr o))))
-	     (let ((s (x->string o)))
-	       (if (> (string-length s) 30)
-		   (substring s 0 30)
-		   s))))
-	((box? o)
-	 (format "#<box ~a>"
-		 (shorten-object (unbox o))))
-	((procedure? o)
-	 (format "#<subr ~s>" (procedure-name o)))
-	((macro? o)
-	 (format "#<macro ~s>" (macro-name o)))
-	((vector? o)
-	 (format "#<code? ~a>" (shorten-object (vector-ref o 0))))
-	(else
-	 o)))
+    (cond ((closure? o)
+	   (format "#<closure ~a>" (shorten-object (closure-src o))))
+	  ((identifier? o)
+	   (format "#<identifier ~s#~s>" (id-name o)
+		   (let ((lib (id-library o)))
+		     (cond ((and lib (library? lib))
+			    (library-name lib))
+			   ((not lib) '#:toplevel)
+			   (else lib)))))
+	  ((library? o)
+	   (format "#<library ~s>" (library-name o)))
+	  ((pair? o)
+	   (if (and (pair? (car o))
+		    (not (zero? (length o))))
+	       (let loop ((r '())
+			  (o o))
+		 (if (null? o)
+		     (reverse r)
+		     (loop (cons (shorten-object (car o)) r)
+			   (cdr o))))
+	       (let ((s (x->string o)))
+		 (if (> (string-length s) 30)
+		     (substring s 0 30)
+		     s))))
+	  ((box? o)
+	   (format "#<box ~a>"
+		   (shorten-object (unbox o))))
+	  ((procedure? o)
+	   (format "#<subr ~s>" (procedure-name o)))
+	  ((macro? o)
+	   (format "#<macro ~s>" (macro-name o)))
+	  ((vector? o)
+	   (format "#<code? ~a>" (shorten-object (vector-ref o 0))))
+	  (else
+	   o)))
   (define label?
     (lambda (l)
       (and (vector? l)
@@ -1631,15 +1555,18 @@
       form)))
 
 (define (load-file file opt lib imports exports show?)
+  (define (do-execute form opt)
+    (parameterize ((vm-current-library (vm-current-library)))
+      (execute form opt)))
   (if lib
       (let ((form (construct-library file lib imports exports)))
-	(let ((r (execute form opt)))
+	(let ((r (do-execute form opt)))
 	  (when show? (print r))))
       (with-input-from-file file
 	(lambda ()
 	  (let loop ((s (read)) (ret '()))
 	    (unless (eof-object? s)
-	      (let ((r (execute s opt)))
+	      (let ((r (do-execute s opt)))
 		(when show? (print r))
 		(loop (read) ret))))))))
 
@@ -1705,7 +1632,7 @@
     ;; in these libraries there are no syntax-rules, so we can import here
     (,*exc-lib* #f () #f #t)
     (,*arith-lib* #f () #f #t)
-    
+
     ;;
     (,*struct-lib* #f () #f #f)
     (,*misc-lib* #f () #f #f)
@@ -1741,6 +1668,7 @@
     (,*proc-lib* (sagittarius compiler procedure) 
 		 (null (core base) (sagittarius)
 		       (core syntax-rules)
+		       (core misc)
 		       ;;(core syntax-case)
 		       (sagittarius compiler match)
 		       (sagittarius compiler util)

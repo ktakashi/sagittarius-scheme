@@ -100,7 +100,7 @@
 ;; it's a bit awkward solution.
 (import (rfc http))
 
-(define-constant max-promise 1)
+(define-constant max-promise 5)
 
 (define (debug . args)
   (for-each (lambda (arg) (display arg (current-error-port))) args)
@@ -132,6 +132,7 @@
 (let ((files (find-files (or config path) :pattern ".scm")))
   (do ((files (run-tests files) (run-tests files)))
       ((null? files))))
+
 #|
 (import (rnrs) (util file) (core errors) (scheme load))
 (cond-expand
@@ -140,10 +141,10 @@
  (else
   (define-constant path "test/tests")))
 
-(let* ((files (find-files path :pattern ".scm" :all #f))
+(let* ((files (find-files path :pattern ".scm"))
        (thunks (map (lambda (file)
-		      (lambda () (load file (environment '(rnrs)
-							 '(sagittarius)))))
+		      (lambda ()
+			(load file (environment '(rnrs) '(sagittarius)))))
 		    files)))
   (for-each (lambda (file thunk)
 	      (print file)
@@ -152,5 +153,4 @@
 		(thunk))
 	      (print))
 	    files thunks))
-
 |#

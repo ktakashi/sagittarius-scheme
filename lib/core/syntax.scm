@@ -19,7 +19,6 @@
 	    (core base)
 	    (core errors)
 	    (core syntax-case)
-	    ;;(core syntax-rules)
 	    (sagittarius))
 
   (define-syntax unsyntax
@@ -57,117 +56,68 @@
     (syntax-rules ()
       ((_ x) (syntax->datum (syntax x)))))
 
-  ;; quasisyntax from
-
-  ;;; Portable implementation of syntax-case
-  ;;; Extracted from Chez Scheme Version 7.3 (Feb 26, 2007)
-  ;;; Authors: R. Kent Dybvig, Oscar Waddell, Bob Hieb, Carl Bruggeman
-  ;;; Copyright (c) 1992-2002 Cadence Research Systems
-  ;;; Permission to copy this software, in whole or in part, to use this
-  ;;; software for any lawful purpose, and to redistribute this software
-  ;;; is granted subject to the restriction that all copies made of this
-  ;;; software must include this copyright notice in full.  This software
-  ;;; is provided AS IS, with NO WARRANTY, EITHER EXPRESS OR IMPLIED,
-  ;;; INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY
-  ;;; OR FITNESS FOR ANY PARTICULAR PURPOSE.  IN NO EVENT SHALL THE
-  ;;; AUTHORS BE LIABLE FOR CONSEQUENTIAL OR INCIDENTAL DAMAGES OF ANY
-  ;;; NATURE WHATSOEVER.
-
+  ;; From Andre van Tonder's expander
   (define-syntax quasisyntax
-    (lambda (x)
-      (define (qs q n b* k)
-        (syntax-case q (quasisyntax unsyntax unsyntax-splicing)
-          ((quasisyntax . d)
-           (qs #'d (+ n 1) b*
-               (lambda (b* dnew)
-                 (k b*
-                    (if (eq? dnew #'d)
-                        q
-                        (with-syntax ((d dnew)) #'(quasisyntax . d)))))))
-          ((unsyntax . d)
-	   (not (= n 0))
-           (qs #'d (- n 1) b*
-               (lambda (b* dnew)
-                 (k b*
-                    (if (eq? dnew #'d)
-                        q
-                        (with-syntax ((d dnew)) #'(unsyntax . d)))))))
-          ((unsyntax-splicing . d)
-           (not (= n 0))
-           (qs #'d (- n 1) b*
-               (lambda (b* dnew)
-                 (k b*
-                    (if (eq? dnew #'d)
-                        q
-                        (with-syntax ((d dnew)) #'(unsyntax-splicing . d)))))))
-          ((unsyntax q)
-	   (not (= n 0))
-           (with-syntax (((t) (generate-temporaries #'(q))))
-             (k (cons #'(t q) b*) #'t)))
-          (((unsyntax q ...) . d)
-	   (= n 0)
-           (qs #'d n b*
-               (lambda (b* dnew)
-                 (with-syntax (((t ...) (generate-temporaries #'(q ...))))
-                   (k (append #'((t q) ...) b*)
-                      (with-syntax ((d dnew)) #'(t ... . d)))))))
-          (((unsyntax-splicing q ...) . d)
-           (= n 0)
-           (qs #'d n b*
-               (lambda (b* dnew)
-                 (with-syntax (((t ...) (generate-temporaries #'(q ...))))
-                   (k (append #'(((t (... ...)) q) ...) b*)
-                      (with-syntax ((((m ...) ...) #'((t (... ...)) ...)))
-                        (with-syntax ((d dnew)) #'(m ... ... . d))))))))
-          ((a . d)
-           (qs #'a n b*
-               (lambda (b* anew)
-                 (qs #'d n b*
-                     (lambda (b* dnew)
-                       (k b*
-                          (if (and (eq? anew #'a) (eq? dnew #'d))
-                              q
-                              (with-syntax ((a anew) (d dnew)) #'(a . d)))))))))
-          (#(x ...)
-            (vqs #'(x ...) n b*
-                 (lambda (b* xnew*)
-                   (k b*
-                      (if (let same? ((x* #'(x ...)) (xnew* xnew*))
-                            (if (null? x*)
-                                (null? xnew*)
-                                (and (not (null? xnew*))
-                                     (eq? (car x*) (car xnew*))
-                                     (same? (cdr x*) (cdr xnew*)))))
-                          q
-                          (with-syntax (((x ...) xnew*)) #'#(x ...)))))))
-          (_ (k b* q))))
-      (define (vqs x* n b* k)
-        (if (null? x*)
-            (k b* '())
-            (vqs (cdr x*) n b*
-                 (lambda (b* xnew*)
-                   (syntax-case (car x*) (unsyntax unsyntax-splicing)
-                     ((unsyntax q ...)
-                      (= n 0)
-                      (with-syntax (((t ...) (generate-temporaries #'(q ...))))
-                        (k (append #'((t q) ...) b*)
-                           (append #'(t ...) xnew*))))
-                     ((unsyntax-splicing q ...)
-                      (= n 0)
-                      (with-syntax (((t ...) (generate-temporaries #'(q ...))))
-                        (k (append #'(((t (... ...)) q) ...) b*)
-                           (with-syntax ((((m ...) ...) #'((t (... ...)) ...)))
-                             (append #'(m ... ...) xnew*)))))
-                     (_ (qs (car x*) n b*
-                            (lambda (b* xnew)
-                              (k b* (cons xnew xnew*))))))))))
-      (syntax-case x ()
-        ((_ x)
-         (qs #'x 0 '()
-             (lambda (b* xnew)
-               (if (eq? xnew #'x)
-                   #'(syntax x)
-                   (with-syntax (((b ...) b*) (x xnew))
-                     #'(with-syntax (b ...) (syntax x))))))))))
+    (lambda (e)
+      
+      ;; Expand returns a list of the form
+      ;;    [template[t/e, ...] (replacement ...)]
+      ;; Here template[t/e ...] denotes the original template
+      ;; with unquoted expressions e replaced by fresh
+      ;; variables t, followed by the appropriate ellipses
+      ;; if e is also spliced.
+      ;; The second part of the return value is the list of
+      ;; replacements, each of the form (t e) if e is just
+      ;; unquoted, or ((t ...) e) if e is also spliced.
+      ;; This will be the list of bindings of the resulting
+      ;; with-syntax expression.
+      
+      (define (expand x level)
+        (syntax-case x (quasisyntax unsyntax unsyntax-splicing)
+          ((quasisyntax e)
+           (with-syntax (((k _)     x) ;; original identifier must be copied
+                         ((e* reps) (expand (syntax e) (+ level 1))))
+             (syntax ((k e*) reps))))                                  
+          ((unsyntax e)
+           (= level 0)
+           (with-syntax (((t) (generate-temporaries '(t))))
+             (syntax (t ((t e))))))
+          (((unsyntax e ...) . r)
+           (= level 0)
+           (with-syntax (((r* (rep ...)) (expand (syntax r) 0))
+                         ((t ...)     (generate-temporaries (syntax (e ...)))))
+             (syntax ((t ... . r*)
+                      ((t e) ... rep ...)))))
+          (((unsyntax-splicing e ...) . r)
+           (= level 0)
+           (with-syntax (((r* (rep ...)) (expand (syntax r) 0))
+                         ((t ...)     (generate-temporaries (syntax (e ...)))))
+             (with-syntax ((((t ...) ...) (syntax ((t (... ...)) ...))))
+               (syntax ((t ... ... . r*)
+                        (((t ...) e) ... rep ...))))))
+          ((k . r)
+           (and (> level 0)
+                (identifier? (syntax k))
+                (or (free-identifier=? (syntax k) (syntax unsyntax))
+                    (free-identifier=? (syntax k) (syntax unsyntax-splicing))))
+           (with-syntax (((r* reps) (expand (syntax r) (- level 1))))
+             (syntax ((k . r*) reps))))
+          ((h . t)
+           (with-syntax (((h* (rep1 ...)) (expand (syntax h) level))
+                         ((t* (rep2 ...)) (expand (syntax t) level)))
+             (syntax ((h* . t*)
+                      (rep1 ... rep2 ...)))))
+          (#(e ...)
+           (with-syntax ((((e* ...) reps)
+                          (expand (vector->list (syntax #(e ...))) level)))
+             (syntax (#(e* ...) reps))))
+          (other
+           (syntax (other ())))))
+      
+      (syntax-case e ()
+        ((_ template)
+         (with-syntax (((template* replacements) (expand (syntax template) 0)))
+           (syntax
+            (with-syntax replacements (syntax template*))))))))
 
   )

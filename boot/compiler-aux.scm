@@ -118,7 +118,7 @@
 	  (cond ,@(map expand-clause clauses)))))
    )
  ;; for sagittarius
-  (sagittarius
+ (sagittarius
    (define-syntax define-simple-struct
      (er-macro-transformer
       (lambda (form rename compare)
@@ -196,10 +196,10 @@
 			    (cdr vals)
 			    (cons `(define-constant ,(car vals) ,i) r)
 			    (cons (cons (car vals) i) tags))))))))
-	#;(let ((name (cadr form))
+	(let ((name (cadr form))
 	      (vals (cddr form)))
 	  `(begin ,@(make-enum name vals)))
-	(let ()
+	#;(let ()
 	  (smatch form
 	    ((_ name . vals)
 	     `(begin

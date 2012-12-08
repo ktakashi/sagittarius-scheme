@@ -46,7 +46,6 @@ struct SgSyntaxRec
   SG_HEADER;
   SgSymbol *name;
   SgObject  proc;
-  int       userDefined;
 };
 
 #define SG_SYNTAX(obj)      ((SgSyntax*)(obj))
@@ -72,13 +71,12 @@ struct SgMacroRec
 
 SG_CDECL_BEGIN
 
-SG_EXTERN SgObject Sg_MakeSyntax(SgSymbol *name, SgObject proc, int userDefined);
+SG_EXTERN SgObject Sg_MakeSyntax(SgSymbol *name, SgObject proc);
 SG_EXTERN SgObject Sg_MakeMacro(SgObject name, SgObject transformer, void *data, SgObject env, SgObject maybeLibrary);
 
 SG_EXTERN SgObject Sg_MakeMacroTransformer(SgObject name, SgObject proc, SgObject env, SgObject library);
 
 SG_EXTERN SgObject Sg_UnwrapSyntax(SgObject form);
-SG_EXTERN SgObject Sg_UnwrapSyntaxWithReverse(SgObject form);
 SG_EXTERN SgObject Sg_MacroExpand(SgObject form, SgObject p1env, int onceP);
 
 SG_CDECL_END

@@ -179,14 +179,19 @@
 			   (proc (if absolute-path abs-path entry) 'file)
 			   (loop (cdr entries)))))
 		  ((file-directory? abs-path)
-		   ;; first do it recursively
-		   (and (or (and (when recursive
-				   (rec abs-path (read-directory abs-path))))
-			    non-stop?)
-			(or file-only
-			    (proc (if absolute-path abs-path entry) 'directory)
-			    non-stop?)
-			(loop (cdr entries))))
+		   ;; ignore '.' and '..' otherwise it will be
+		   (if (member entry '("." "..") string=?)
+		       (loop (cdr entries))
+		       ;; first do it recursively
+		       (and (or (and (when recursive
+				       (rec abs-path 
+					    (read-directory abs-path))))
+				non-stop?)
+			    (or file-only
+				(proc (if absolute-path abs-path entry)
+				      'directory)
+				non-stop?)
+			    (loop (cdr entries)))))
 		  ((file-symbolic-link? abs-path)
 		   (and (or (not physical)
 			    (proc (if absolute-path abs-path entry)
@@ -221,15 +226,20 @@
 					 'file)))
 			   (loop (cdr entries) (cons rp r)))))
 		    ((file-directory? abs-path)
-		     ;; first do it recursively
-		     (let ((rp (if recursive
-				   (rec abs-path (read-directory abs-path))
-				   '())))
-		       (if file-only
-			   (loop (cdr entries) (append! r rp))
-			   (let ((pr (proc (if absolute-path abs-path entry)
-					   'directory)))
-			     (loop (cdr entries) (append! (cons pr r) rp))))))
+		     ;; ignore '.' and '..' otherwise it will be
+		     ;; infinite recursive
+		     (if (member entry '("." "..") string=?)
+			 (loop (cdr entries) r)
+			 ;; first do it recursively
+			 (let ((rp (if recursive
+				       (rec abs-path (read-directory abs-path))
+				       '())))
+			   (if file-only
+			       (loop (cdr entries) (append! r rp))
+			       (let ((pr (proc (if absolute-path abs-path entry)
+					       'directory)))
+				 (loop (cdr entries)
+				       (append! (cons pr r) rp)))))))
 		    ((file-symbolic-link? abs-path)
 		     (if physical
 			 (loop (cdr entries) r)

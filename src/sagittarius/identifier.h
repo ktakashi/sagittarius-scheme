@@ -44,10 +44,7 @@ struct SgIdentifierRec
   SgSymbol  *name;
   SgObject   envs;
   SgLibrary *library;
-  SgObject   parent;
-  /* FIXME: currently identifier and syntax object are the same
-     however it causes a lot of confusion.*/
-  SgObject   template_id;
+  int        pending;
 };
 
 #define SG_IDENTIFIER(obj)   ((SgIdentifier*)(obj))
@@ -55,17 +52,12 @@ struct SgIdentifierRec
 #define SG_IDENTIFIER_NAME(obj)     (SG_IDENTIFIER(obj)->name)
 #define SG_IDENTIFIER_ENVS(obj)     (SG_IDENTIFIER(obj)->envs)
 #define SG_IDENTIFIER_LIBRARY(obj)  (SG_IDENTIFIER(obj)->library)
-#define SG_IDENTIFIER_PARENT(obj)   (SG_IDENTIFIER(obj)->parent)
-#define SG_IDENTIFIER_TEMPLATE(obj)   (SG_IDENTIFIER(obj)->template_id)
+#define SG_IDENTIFIER_PENDING(obj)  (SG_IDENTIFIER(obj)->pending)
 
 SG_CDECL_BEGIN
 
-SG_EXTERN SgObject Sg_MakeIdentifier(SgSymbol *symbol, SgObject envs,
+SG_EXTERN SgObject Sg_MakeIdentifier(SgObject id_or_sym, SgObject envs,
 				     SgLibrary *library);
-SG_EXTERN SgObject Sg_CopyIdentifier(SgIdentifier *id);
-SG_EXTERN SgObject Sg_WrapSyntax(SgObject form, SgVector *p1env,
-				 SgObject seen, int lexicalP,
-				 SgObject templ);
 SG_EXTERN int      Sg_IdentifierEqP(SgObject use_env, SgObject x,
 				    SgObject mac_env, SgObject y);
 

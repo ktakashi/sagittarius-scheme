@@ -10,9 +10,9 @@
 #include <sagittarius.h>
 
 static struct sg__rcRec {
-  SgObject d48[5];
+  SgObject d1702[5];
 } sg__rc = {
-  {  /* SgObject d48 */
+  {  /* SgObject d1702 */
     SG_UNBOUND,
     SG_UNBOUND,
     SG_UNBOUND,
@@ -31,7 +31,7 @@ static SgObject vmdebug_vm_dump_code(SgObject *SG_FP, int SG_ARGC, void *data_)
   cb_scm = SG_ARGREF(0);
   if (!SG_CODE_BUILDERP(cb_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d48[0], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
+       sg__rc.d1702[0], SG_MAKE_STRING("code-builder"), cb_scm, SG_NIL);
   cb = SG_CODE_BUILDER(cb_scm);
   {
 {
@@ -159,19 +159,19 @@ static SG_DEFINE_SUBR(vmdebug_save_expansion_historyX__STUB, 2, 0,vmdebug_save_e
 
 void Sg__Init_sagittarius_vm_debug () {
   SgLibrary *lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius vm debug)"), TRUE));
-  sg__rc.d48[0] = SG_MAKE_STRING("vm-dump-code");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d48[0]), &vmdebug_vm_dump_code__STUB);
-  SG_PROCEDURE_NAME(&vmdebug_vm_dump_code__STUB) = sg__rc.d48[0];
-  sg__rc.d48[1] = SG_MAKE_STRING("source-info");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d48[1]), &vmdebug_source_info__STUB);
-  SG_PROCEDURE_NAME(&vmdebug_source_info__STUB) = sg__rc.d48[1];
-  sg__rc.d48[2] = SG_MAKE_STRING("source-info-set!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d48[2]), &vmdebug_source_info_setX__STUB);
-  SG_PROCEDURE_NAME(&vmdebug_source_info_setX__STUB) = sg__rc.d48[2];
-  sg__rc.d48[3] = SG_MAKE_STRING("lookup-expansion-history");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d48[3]), &vmdebug_lookup_expansion_history__STUB);
-  SG_PROCEDURE_NAME(&vmdebug_lookup_expansion_history__STUB) = sg__rc.d48[3];
-  sg__rc.d48[4] = SG_MAKE_STRING("save-expansion-history!");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d48[4]), &vmdebug_save_expansion_historyX__STUB);
-  SG_PROCEDURE_NAME(&vmdebug_save_expansion_historyX__STUB) = sg__rc.d48[4];
+  sg__rc.d1702[0] = SG_MAKE_STRING("vm-dump-code");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1702[0]), &vmdebug_vm_dump_code__STUB);
+  SG_PROCEDURE_NAME(&vmdebug_vm_dump_code__STUB) = sg__rc.d1702[0];
+  sg__rc.d1702[1] = SG_MAKE_STRING("source-info");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1702[1]), &vmdebug_source_info__STUB);
+  SG_PROCEDURE_NAME(&vmdebug_source_info__STUB) = sg__rc.d1702[1];
+  sg__rc.d1702[2] = SG_MAKE_STRING("source-info-set!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1702[2]), &vmdebug_source_info_setX__STUB);
+  SG_PROCEDURE_NAME(&vmdebug_source_info_setX__STUB) = sg__rc.d1702[2];
+  sg__rc.d1702[3] = SG_MAKE_STRING("lookup-expansion-history");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1702[3]), &vmdebug_lookup_expansion_history__STUB);
+  SG_PROCEDURE_NAME(&vmdebug_lookup_expansion_history__STUB) = sg__rc.d1702[3];
+  sg__rc.d1702[4] = SG_MAKE_STRING("save-expansion-history!");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d1702[4]), &vmdebug_save_expansion_historyX__STUB);
+  SG_PROCEDURE_NAME(&vmdebug_save_expansion_historyX__STUB) = sg__rc.d1702[4];
 }

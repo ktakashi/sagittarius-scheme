@@ -41,27 +41,13 @@
 (define (find-procedure name lib)
   (find-binding lib name #f))
 
-(cond-expand
- (gauche
-  (define-macro (declare-procedure name args type library proc)
-    (let ((lib (ensure-library-name library)))
-      (receive (reqargs opt?) (parse-args args)
-	(let ((inline (parse-type type)))
-	  (let ((proc `(make-procedure ',name ,inline ,reqargs ,opt? ,proc)))
-	    `(%insert-binding ',lib ',name
-			      ,proc)))))))
- (sagittarius
-  (define-syntax declare-procedure
-    (er-macro-transformer
-     (lambda (form rename compare)
-       (smatch form
-	 ((- name args type library proc)
-	  (let ((lib (ensure-library-name library)))
-	    (receive (reqargs opt?) (parse-args args)
-	      (let ((inline (parse-type type)))
-		(let ((proc `(make-procedure ',name ,inline ,reqargs ,opt? ,proc)))
-		  `(%insert-binding ',lib ',name
-				    ,proc))))))))))))
+(define-macro (declare-procedure name args type library proc)
+  (let ((lib (ensure-library-name library)))
+    (receive (reqargs opt?) (parse-args args)
+      (let ((inline (parse-type type)))
+	(let ((proc `(make-procedure ',name ,inline ,reqargs ,opt? ,proc)))
+	  `(%insert-binding ',lib ',name
+			    ,proc))))))
 
 (declare-procedure + objs (:inline ADD) :null
   +)

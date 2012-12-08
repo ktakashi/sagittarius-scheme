@@ -93,7 +93,7 @@ extern void Sg__Init_core_enums();
 extern void Sg__Init_sagittarius_interactive();
 void Sg_Init()
 {
-  SgObject nullsym, coreBase;
+  SgObject nullsym, coreBase, compsym, sgsym;
 #ifdef USE_BOEHM_GC
   GC_INIT();
 #if GC_VERSION_MAJOR >= 7 && GC_VERSION_MINOR >= 2
@@ -134,13 +134,14 @@ void Sg_Init()
   
   nullsym = SG_INTERN("null");
   coreBase = SG_INTERN("(core base)");
-
+  compsym = SG_INTERN("(sagittarius compiler)");
+  sgsym = SG_INTERN("(sagittarius)");
   /* (sagittarius) library is not provided by file. so create it here */
-  Sg_FindLibrary(SG_INTERN("(sagittarius)"), TRUE);
+  Sg_FindLibrary(sgsym, TRUE);
   /* for (core syntax-case) we need compler library to create global id.
      so create it here
    */
-  Sg_FindLibrary(SG_INTERN("(sagittarius compiler)"), TRUE);
+  Sg_FindLibrary(compsym, TRUE);
 
   Sg__InitInstruction();
   Sg__Initnull();
@@ -181,12 +182,11 @@ void Sg_Init()
 
   /* TODO should this be here? */
   Sg_ImportLibrary(Sg_VM()->currentLibrary, nullsym);
-  Sg_ImportLibrary(Sg_VM()->currentLibrary, SG_OBJ(SG_INTERN("(sagittarius)")));
+  Sg_ImportLibrary(Sg_VM()->currentLibrary, sgsym);
 
   /* we need to put basic syntaxes to compiler. */
-  Sg_ImportLibrary(SG_OBJ(SG_INTERN("(sagittarius compiler)")), nullsym);
-  Sg_ImportLibrary(SG_OBJ(SG_INTERN("(sagittarius compiler)")),
-		   SG_OBJ(SG_INTERN("(sagittarius)")));
+  Sg_ImportLibrary(compsym, nullsym);
+  Sg_ImportLibrary(compsym, sgsym);
 
   /* 
      we need extra treatment for er-rename. it's defined after the 
@@ -197,13 +197,15 @@ void Sg_Init()
    */
   {
     SgLibrary *core_base_lib = SG_LIBRARY(Sg_FindLibrary(coreBase, FALSE));
-    SgLibrary *sagittarius_lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius)"), FALSE));
+    SgLibrary *sagittarius_lib = SG_LIBRARY(Sg_FindLibrary(sgsym, FALSE));
     Sg_InsertBinding(core_base_lib,
 		     SG_INTERN("er-rename"),
-		     Sg_FindBinding(nullsym, SG_INTERN("er-rename"), SG_FALSE));
+		     Sg_FindBinding(compsym, SG_INTERN("er-rename"), SG_FALSE));
     Sg_InsertBinding(sagittarius_lib,
 		     SG_SYMBOL_ER_MACRO_TRANSFORMER,
-		     Sg_FindBinding(core_base_lib, SG_SYMBOL_ER_MACRO_TRANSFORMER, SG_UNBOUND));
+		     Sg_FindBinding(core_base_lib, 
+				    SG_SYMBOL_ER_MACRO_TRANSFORMER,
+				    SG_UNBOUND));
   }
   init_cond_features();
 }

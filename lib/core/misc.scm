@@ -3,6 +3,7 @@
     (export unique-id-list?
 	    define-macro)
     (import (core)
+	    (only (core base) er-macro-transformer)
 	    (sagittarius))
 
   (define (unique-id-list? lst)

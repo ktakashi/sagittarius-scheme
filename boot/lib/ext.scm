@@ -27,6 +27,8 @@
   (vector-ref id 1))
 (define (id-envs id)
   (vector-ref id 2))
+(define (toplevel-id? id)
+  (not (vector-ref id 3)))
 
 (define (syntax-object=? a b) #f)
 

@@ -1150,7 +1150,9 @@ static SgWord boundaryFrameMark = NOP;
     if (SG_GLOCP(ret)) {						\
       ret = SG_GLOC_GET(SG_GLOC(ret));					\
     } else {								\
-      SgObject value = Sg_FindBinding(SG_IDENTIFIER_LIBRARY(ret),	\
+      SgObject lib = SG_IDENTIFIER_LIBRARY(ret);			\
+      SgObject value = Sg_FindBinding(SG_FALSEP(lib)			\
+				      ? vm->currentLibrary : lib,	\
 				      SG_IDENTIFIER_NAME(ret),		\
 				      SG_UNBOUND);			\
       if (SG_GLOCP(value)) {						\
@@ -1511,7 +1513,7 @@ SgObject Sg_GetStackTrace()
     /* before running */
     return SG_NIL;
   }
-  if (vm->state == COMPILING || vm->state == IMPORTING) return SG_NIL;
+  /* if (vm->state == COMPILING || vm->state == IMPORTING) return SG_NIL; */
   /* get current posision's src */
 
   for (i = 0;;) {

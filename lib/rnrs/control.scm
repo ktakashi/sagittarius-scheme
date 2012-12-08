@@ -7,9 +7,7 @@
   ;; implementation from srfi-16
   (define-syntax case-lambda
     (syntax-rules ()
-      ((case-lambda
-	(?a1 ?e1 ...)
-	?clause1 ...)
+      ((case-lambda (?a1 ?e1 ...) ?clause1 ...)
        (lambda args
 	 (let ((l (length args)))
 	   (case-lambda "CLAUSE" args l

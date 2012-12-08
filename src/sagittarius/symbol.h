@@ -53,7 +53,6 @@ enum SymbolWriteFlags {
 
 enum {
   SG_SYMBOL_INTERNED   = 1L<<0,
-  SG_SYMBOL_REVERSIBLE = 1L<<1,
 };
 
 /* 16 bit */
@@ -73,7 +72,6 @@ SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeSymbol(SgString *name, int interned);
 SG_EXTERN SgObject Sg_Gensym(SgString *prefix);
-SG_EXTERN SgObject Sg_ReversibleGensym(SgSymbol *prefix);
 
 #define Sg_Intern(name) SG_SYMBOL(Sg_MakeSymbol(SG_STRING(name), TRUE))
 #define SG_INTERN(cstr) Sg_Intern(SG_STRING(Sg_MakeString(UC(cstr), SG_LITERAL_STRING)))

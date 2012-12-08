@@ -4,14 +4,17 @@
     (export (rename (r7rs:load load)))
     (import (rnrs)
 	    (rnrs eval)
-	    (sagittarius)
-	    (util file))
+	    (sagittarius))
 
   (define r7rs:load
     (case-lambda
      ((file env)
-      (let ((source (file->sexp-list file)))
-	(for-each (lambda (e) (eval e env)) source)))
+      (call-with-input-file file
+	(lambda (in)
+	  (let loop ((e (read/ss in)))
+	    (unless (eof-object? e)
+	      (eval e env)
+	      (loop (read/ss in)))))))
      ((file) (load file))))
 
 )

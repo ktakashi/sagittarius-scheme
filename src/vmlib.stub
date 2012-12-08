@@ -31,11 +31,40 @@
       (result (Sg_MakeStringC (-> info name)))))
 
   ;; identifier
-  (define-c-proc make-identifier (name::<symbol> envs maybe-library) ::<top>
-    ;; well, not so good actually
+  (define-c-proc make-identifier (name envs maybe-library)
+    (unless (or (SG_SYMBOLP name) (SG_IDENTIFIERP name))
+      (wrong-type-of-argument-violation 'make-identifier 
+					"symbol or identifier" name))
     (unless (SG_LIBRARYP maybe-library)
       (set! maybe-library (Sg_FindLibrary maybe-library FALSE)))
     (result (Sg_MakeIdentifier name envs maybe-library)))
+
+  (define-c-proc make-pending-identifier (name::<symbol> envs maybe-library)
+    (unless (SG_LIBRARYP maybe-library)
+      (set! maybe-library (Sg_FindLibrary maybe-library FALSE)))
+    (let ((r (Sg_MakeIdentifier name envs maybe-library)))
+      (set! (SG_IDENTIFIER_PENDING r) TRUE)
+      (result r)))
+  (define-c-proc rename-pending-identifier! (id::<identifier>)
+    (when (SG_IDENTIFIER_PENDING id)
+      (set! (SG_IDENTIFIER_NAME id) 
+	    (Sg_Gensym (-> (SG_SYMBOL (SG_IDENTIFIER_NAME id)) name))))
+    (result id))
+
+  (define-c-proc make-pattern-identifier (name envs maybe-library)
+    (unless (or (SG_SYMBOLP name) (SG_IDENTIFIERP name))
+      (wrong-type-of-argument-violation 'make-identifier 
+					"symbol or identifier" name))
+    (unless (SG_LIBRARYP maybe-library)
+      (set! maybe-library (Sg_FindLibrary maybe-library FALSE)))
+    (let ((id (Sg_MakeIdentifier name SG_NIL maybe-library)))
+      (set! (SG_IDENTIFIER_ENVS id) envs)
+      (result id)))
+
+  (define-c-proc pattern-variable? (o) ::<boolean>
+    (result (and (SG_IDENTIFIERP o)
+		 (not (SG_NULLP (SG_IDENTIFIER_ENVS o)))
+		 (SG_SYMBOLP (SG_CAR (SG_IDENTIFIER_ENVS o))))))
 
   (define-c-proc id-envs (id::<identifier>) ::<top>
     (result (SG_IDENTIFIER_ENVS id)))
@@ -43,49 +72,27 @@
   (define-c-proc id-library (id::<identifier>) ::<top>
     (result (SG_IDENTIFIER_LIBRARY id)))
 
-  (define-c-proc copy-identifier (id::<identifier> 
-				  :optional (tmpl-var #f))
-    (let ((r (Sg_CopyIdentifier id)))
-      (unless (SG_FALSEP tmpl-var)
-	(set! (SG_IDENTIFIER_ENVS r) tmpl-var))
-      (result r)))
-
-  (define-c-proc id-has-parent? (id::<identifier>)
-    ::<boolean>
-    (result (cast int (SG_IDENTIFIER_PARENT id))))
-
-  (define-c-proc id-has-same-parent? (id1::<identifier> id2::<identifier>)
-    ::<boolean>
-    (for (() id1 (set! id1 (SG_IDENTIFIER_PARENT id1)))
-	 (for (() id2 (set! id2 (SG_IDENTIFIER_PARENT id2)))
-	      (if (SG_EQ id1 id2) (return #t))))
-    (result FALSE))
-
   ;; syntax
-  (define-c-proc make-syntax (name::<symbol> proc :optional (userDefined::<boolean> FALSE))
-    (result (Sg_MakeSyntax name proc userDefined)))
+  (define-c-proc make-syntax (name::<symbol> proc) Sg_MakeSyntax)
 
-  (define-c-proc syntax-name (arg0::<syntax>) ::<top>
-    (result (SG_SYNTAX_NAME arg0)))
+  (define-c-proc syntax-name (arg0::<syntax>) SG_SYNTAX_NAME)
 
-  (define-c-proc syntax-proc (arg0::<syntax>) ::<top>
-    (result (SG_SYNTAX_PROC arg0)))
+  (define-c-proc syntax-proc (arg0::<syntax>) SG_SYNTAX_PROC)
 
-  (define-c-proc syntax? (arg0) ::<boolean>
-    (result (SG_SYNTAXP arg0)))
+  (define-c-proc syntax? (arg0) ::<boolean> SG_SYNTAXP)
 
   (define-c-proc call-syntax-handler (s::<syntax> expr p1env) ::<top>
     (result (Sg_VMApply2 (SG_SYNTAX_PROC s) expr p1env)))
 
   ;; macro
-  (define-c-proc macro? (obj) ::<boolean>
-    (result (SG_MACROP obj)))
+  (define-c-proc macro? (obj) ::<boolean> SG_MACROP)
 
-  (define-c-proc make-macro (name transformer data p1env :optional (maybe_library #f))
-    (result (Sg_MakeMacro name transformer data p1env maybe_library)))
+  (define-c-proc make-macro 
+    (name transformer data p1env :optional (maybe_library #f))
+    Sg_MakeMacro)
 
   (define-c-proc make-macro-transformer (name proc p1env library)
-    (result (Sg_MakeMacroTransformer name proc p1env library)))
+    Sg_MakeMacroTransformer)
 
   (define-c-proc call-macro-expander (macro::<macro> expr p1env)
     (result (Sg_VMApply4 (-> macro transformer)
@@ -93,8 +100,6 @@
 
   (define-c-proc %internal-macro-expand (expr p1env onceP::<boolean>)
     Sg_MacroExpand)
-
-  (define-c-proc reversible-gensym (sym::<symbol>) Sg_ReversibleGensym)
 
   ;; library
   (define-c-proc make-library (name) Sg_MakeLibrary)
@@ -119,7 +124,11 @@
 		(Sg_Cons (Sg_Append2X exports (SG_CAR arg1))
 			 (Sg_Append2X renames (SG_CDR arg1)))))))
 
-  (define-c-proc library-defined (lib::<library>) SG_LIBRARY_DEFINEED)
+  (define-c-proc library-defined (lib) 
+    (cond ((SG_LIBRARYP lib) (result (SG_LIBRARY_DEFINEED lib)))
+	  ((SG_FALSEP lib) (result (SG_LIBRARY_DEFINEED (Sg_VMCurrentLibrary))))
+	  (else (wrong-type-of-argument-violation 'library-defined 
+						  "library or #f" lib))))
 
   (define-c-proc library-defined-add! (lib::<library> v) ::<void>
     (unless (or (SG_SYMBOLP v) (SG_IDENTIFIERP v))
@@ -176,6 +185,12 @@
 
   (define-c-proc gloc-name (g::<gloc>) ::<top>
     (result (-> g name)))
+
+  ;; closure
+  (define-c-proc make-toplevel-closure (cb::<code-builder>)
+    ;; topleve closure should not have any free variables
+    (result (Sg_MakeClosure cb NULL)))
+
 
   ;; code-builder
   (define-c-proc make-code-builder () ::<top>
@@ -249,7 +264,7 @@
     (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_OVERWRITE)))
 
   ;; (%map-cons l1 l2) = (map cons l1 l2)
-  (define-c-proc %map-cons (l1 l2) ::<top>
+  (define-c-proc %map-cons (l1 l2)
     (let ((h SG_NIL) (t SG_NIL))
       (while (and (SG_PAIRP l1) (SG_PAIRP l2))
 	(SG_APPEND1 h t (Sg_Cons (SG_CAR l1) (SG_CAR l2)))
@@ -258,37 +273,55 @@
       (result h)))
 
   ;; for better performance.
+  ;; check if the given identifier shares the same environment
+  (define-cfn p1env-lookup-aux (frame id) ::int :static
+    (let ((env (SG_IDENTIFIER_ENVS id)))
+      (unless (SG_EQ (SG_IDENTIFIER_LIBRARY id) (Sg_VMCurrentLibrary))
+	(return FALSE))
+      (dopairs (fp frame)
+	(when (SG_EQ env fp) (return TRUE)))
+      (return FALSE)))
   ;; NB: we skip some test, because we assume the frame is well-formed.
-  (define-cfn p1env-lookup-rec (p1env::SgVector* name lookup_as top?::int)
+  (define-cfn p1env-lookup-inner (p1env::SgVector* name lookup_as frame?::int)
+    :static
     (let ((name_identp::int (SG_IDENTIFIERP name))
+	  (same-env?::int FALSE)
 	  (frames (SG_VECTOR_ELEMENT p1env 1)))
-      (label entry)
+;;      (label entry)
       (dopairs (fp frames)
 	(when (and name_identp
 		   (== (SG_IDENTIFIER_ENVS name) fp))
+	  (set! same-env? TRUE)
 	  ;; strip identifier if we're in the same env
 	  (set! name (SG_OBJ (SG_IDENTIFIER_NAME name))))
 	(when (> (SG_CAAR fp) lookup_as)
 	  (continue))
 	(dolist (vp (SG_CDAR fp))
-	  (when (SG_EQ name (SG_CAR vp))
-	    (return (SG_CDR vp)))))
-      ;; if the target reaches here and still an identifier,
-      ;; which means either global variable or lexical variable but
-      ;; copied identifier.
-      ;; if the latter case, then we need to check parent as well.
-      (when (and (not top?)
-		 (SG_IDENTIFIERP name) (SG_IDENTIFIER_PARENT name)
-		 (not (SG_NULLP frames)))
-	(set! name (SG_IDENTIFIER_PARENT name))
-	(goto entry))
+	  (when (or (SG_EQ name (SG_CAR vp))
+		    (and (SG_IDENTIFIERP (SG_CAR vp))
+			 (SG_EQ name (SG_IDENTIFIER_NAME (SG_CAR vp)))
+			 (or same-env?
+			     (and (not name_identp)
+				  (p1env-lookup-aux fp (SG_CAR vp))))))
+	    (if frame?
+		(return fp)
+		(return (SG_CDR vp))))))
       (return name)))
 
+  (define-cfn p1env-lookup-rec (p1env::SgVector* name lookup-as)
+    (return (p1env-lookup-inner p1env name lookup-as FALSE)))
+
   (define-c-proc p1env-lookup (p1env::<vector> name lookup_as)
-    (let ((r (p1env-lookup-rec p1env name lookup_as FALSE)))
+    (let ((r (p1env-lookup-rec p1env name lookup_as)))
       (if (SG_SYMBOLP r)
 	  (let ((lib (SG_VECTOR_ELEMENT p1env 0)))
 	    (result (Sg_MakeIdentifier (SG_SYMBOL r) '() (SG_LIBRARY lib))))
+	  (result r))))
+
+  (define-c-proc p1env-lookup-frame (p1env::<vector> name lookup-as)
+    (let ((r (p1env-lookup-inner p1env name lookup-as TRUE)))
+      (if (or (SG_SYMBOLP r) (SG_IDENTIFIERP r))
+	  (result SG_NIL)
 	  (result r))))
 
   ;; check all env frames are macro
@@ -306,22 +339,6 @@
 		   (or (not r6rs?) (check-env-frame (SG_CDR fp))))
 	  (return SG_FALSE))))
     (result TRUE))
-
-  ;; identifier is also syntax object, so it might contain some
-  ;; other syntax info. this procedure checks it.
-  (define-c-proc syntax-object=? (id1::<identifier> id2::<identifier>)
-    ::<boolean>
-    (result (and (SG_EQ (SG_IDENTIFIER_NAME id1) (SG_IDENTIFIER_NAME id2))
-		 (SG_IDENTIFIER_TEMPLATE id1)
-		 (SG_IDENTIFIER_TEMPLATE id2)
-		 (or (SG_EQ (SG_IDENTIFIER_TEMPLATE id1)
-			    (SG_IDENTIFIER_TEMPLATE id2))
-		     (and (SG_IDENTIFIER_PARENT (SG_IDENTIFIER_TEMPLATE id1))
-			  (SG_IDENTIFIER_PARENT (SG_IDENTIFIER_TEMPLATE id2))
-			  (SG_EQ (SG_IDENTIFIER_PARENT
-				  (SG_IDENTIFIER_TEMPLATE id1))
-				 (SG_IDENTIFIER_PARENT
-				  (SG_IDENTIFIER_TEMPLATE id2))))))))
 
   ;; TODO it's almost the same process as p1env-lookup
   ;; lookup pvar from p1env.
@@ -386,21 +403,38 @@
 
   (define-c-proc %apply0 (p) Sg_Apply0)
 
-  (define-c-proc lookup-transformer-env (o::<identifier>)
-    (let* ((vm::SgVM* (Sg_VM))
-	   (r (Sg_Assq (SG_IDENTIFIER_NAME o) (-> vm transEnv))))
-      (if (SG_FALSEP r)
-	  (result r)
-	  (if (SG_EQ (SG_IDENTIFIER_LIBRARY o) (SG_CADR r))
-	      (result (SG_CDDR r))
-	      (result SG_FALSE)))))
+  ;; the env needs to be used both transcribe and wrap-symbol
+  ;; so that the same symboll will be renamed to the same identifier
+  ;; in the same macro.
+  (define-c-proc lookup-transformer-env (o)
+    (unless (or (SG_SYMBOLP o) (SG_IDENTIFIERP o))
+      (wrong-type-of-argument-violation 'add-to-transformer-env!
+					"identifier or symbol" o))
+    (let* ((vm::SgVM* (Sg_VM)))
+      (cond ((SG_IDENTIFIERP o)
+	     (let ((r (Sg_Assq (SG_IDENTIFIER_NAME o) (-> vm transEnv))))
+	       (if (SG_FALSEP r)
+		   (result r)
+		   (if (SG_EQ (SG_IDENTIFIER_LIBRARY o) (SG_CADR r))
+		       (result (SG_CDDR r))
+		       (result SG_FALSE)))))
+	    (else
+	     (let ((r (Sg_Assq o (-> vm transEnv))))
+	       (cond ((SG_FALSEP r) (result r))
+		     ((SG_PAIRP (SG_CDR r)) (result #f))
+		     (else (result (SG_CDR r)))))))))
 
-  (define-c-proc add-to-transformer-env! (o::<identifier> n)
+  (define-c-proc add-to-transformer-env! (o n)
+    (unless (or (SG_SYMBOLP o) (SG_IDENTIFIERP o))
+      (wrong-type-of-argument-violation 'add-to-transformer-env!
+					"identifier or symbol" o))
     (let ((vm::SgVM* (Sg_VM)))
-      (set! (-> vm transEnv) (Sg_Acons (SG_IDENTIFIER_NAME o)
-				       (Sg_Cons (SG_IDENTIFIER_LIBRARY o)
-						n)
-				       (-> vm transEnv)))
+      (if (SG_IDENTIFIERP o)
+	  (set! (-> vm transEnv) (Sg_Acons (SG_IDENTIFIER_NAME o)
+					   (Sg_Cons (SG_IDENTIFIER_LIBRARY o)
+						    n)
+					   (-> vm transEnv)))
+	  (set! (-> vm transEnv) (Sg_Acons o n (-> vm transEnv))))
       (result n)))
 
   (define-c-proc current-transformer-env () (result (-> (Sg_VM) transEnv)))

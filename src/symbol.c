@@ -132,13 +132,6 @@ SgObject Sg_Gensym(SgString *prefix)
   return gensym_rec(prefix, FALSE);
 }
 
-SgObject Sg_ReversibleGensym(SgSymbol *prefix)
-{
-  SgObject sym = gensym_rec(prefix->name, TRUE);
-  SG_SYMBOL(sym)->flags |= SG_SYMBOL_REVERSIBLE;
-  return sym;
-}
-
 #include "builtin-symbols.c"
 
 void Sg__InitSymbol()

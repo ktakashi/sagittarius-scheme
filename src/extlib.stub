@@ -30,19 +30,11 @@
 
   ;; for library dependency
   (define-c-proc identifier=? (use_env x mac_env y) ::<boolean>
-    (result (Sg_IdentifierEqP use_env x mac_env y)))
+    Sg_IdentifierEqP)
 
-  (define-c-proc id-name (id) ::<top>
-    (cond ((SG_IDENTIFIERP id)
-	   (result (SG_IDENTIFIER_NAME id)))
-	  ((SG_USER_DEFINED_SYNTXP id)
-	   (result (SG_SYNTAX_NAME id)))
-	  (else
-	   (wrong-type-of-argument-violation 'id-name
-					     "identifier"
-					     id))))
+  (define-c-proc id-name (id::<identifier>) SG_IDENTIFIER_NAME)
 
-  (define-c-proc identifier->symbol (id) ::<top>
+  (define-c-proc identifier->symbol (id)
     (unless (or (SG_SYMBOLP id)
 		(SG_IDENTIFIERP id))
       (wrong-type-of-argument-violation 'identifier->symbol
@@ -52,18 +44,16 @@
 	(result id)
 	(result (SG_IDENTIFIER_NAME id))))
 
-  (define-c-proc id-memq (id lst) ::<top>
+  (define-c-proc id-memq (id lst)
     (if (SG_IDENTIFIERP id)
 	(result (Sg_Memq (SG_IDENTIFIER_NAME id) lst))
 	(result (Sg_Memq id lst))))
 
-  ;; closure?
-  (define-c-proc closure? (cl) ::<boolean>
-    (result (SG_CLOSUREP cl)))
+  (define-c-proc toplevel-id? (id::<identifier>) ::<boolean>
+    (result (SG_FALSEP (SG_IDENTIFIER_LIBRARY id))))
 
-  (define-c-proc make-toplevel-closure (cb::<code-builder>) ::<top>
-    ;; topleve closure should not have any free variables
-    (result (Sg_MakeClosure cb NULL)))
+  ;; closure?
+  (define-c-proc closure? (cl) ::<boolean> SG_CLOSUREP)
 
   ;; list
   (define-c-proc dotted-list? (lst) ::<boolean>
@@ -211,15 +201,6 @@
     (result (Sg_Gensym prefix)))
 
   (define-c-proc unwrap-syntax (form) Sg_UnwrapSyntax)
-  (define-c-proc unwrap-syntax-with-reverse (form) Sg_UnwrapSyntaxWithReverse)
-
-  (define-c-proc wrap-syntax (form p1env::<vector>
-				   :optional seen::<hashtable>
-				             (partialP::<boolean> #f)
-					     templ::<identifier>)
-    (when (SG_UNBOUNDP seen) (set! seen NULL))
-    (when (SG_UNBOUNDP templ) (set! templ NULL))
-    (result (Sg_WrapSyntax form p1env seen partialP templ)))
 
   (define-c-proc current-dynamic-environment (:optional other::<hashtable>)
     ::<top>
