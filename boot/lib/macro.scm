@@ -603,16 +603,6 @@
                         (loop2 (- i 1))))))
             (else (identifier? lst)))))
 
-  (define (wrap-id lst)
-    (let loop ((lst lst))
-      (cond ((pair? lst)
-	     (let ((a (loop (car lst))) (d (loop (cdr lst))))
-	       (cond ((and (eq? (car lst) a) (eq? (cdr lst) d)) lst)
-		     (else (cons a d)))))
-	    ((vector? lst)
-	     (list->vector (loop (vector->list lst))))
-	    (else lst))))
-
   ;; wrap the given symbol with current usage env frame.
   (define (wrap-symbol sym)
     (define (finish new) (add-to-transformer-env! sym new))
@@ -673,12 +663,12 @@
   (if (null? template)
       '()
       (let ((form (transcribe-template template ranks vars)))
-	(cond ((null? form) '())
+	(cond ((eq? use-env mac-env) form) ; we don't wrap toplevel form
+	      ((null? form) '())
 	      ((identifier? form) form)
 	      ((symbol? form) 
 	       (cond ((lookup-transformer-env form))
 		     (else (wrap-symbol form))))
-	      ((eq? use-env mac-env) (wrap-id form))
 	      (else
 	       (partial-identifier form))))))
 
