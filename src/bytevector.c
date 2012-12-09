@@ -572,7 +572,7 @@ void Sg_ByteVectorU64NativeSet(SgByteVector *bv, size_t index, uint64_t value)
 
 void Sg_ByteVectorU64LittleSet(SgByteVector *bv, size_t index, uint64_t value)
 {
-  SG_BVECTOR_ELEMENT(bv, index + 7) = (uint8_t)(value >> 54);
+  SG_BVECTOR_ELEMENT(bv, index + 7) = (uint8_t)(value >> 56);
   SG_BVECTOR_ELEMENT(bv, index + 6) = (uint8_t)(value >> 48);
   SG_BVECTOR_ELEMENT(bv, index + 5) = (uint8_t)(value >> 40);
   SG_BVECTOR_ELEMENT(bv, index + 4) = (uint8_t)(value >> 32);
@@ -584,7 +584,7 @@ void Sg_ByteVectorU64LittleSet(SgByteVector *bv, size_t index, uint64_t value)
 
 void Sg_ByteVectorU64BigSet(SgByteVector *bv, size_t index, uint64_t value)
 {
-  SG_BVECTOR_ELEMENT(bv, index + 0) = (uint8_t)(value >> 54);
+  SG_BVECTOR_ELEMENT(bv, index + 0) = (uint8_t)(value >> 56);
   SG_BVECTOR_ELEMENT(bv, index + 1) = (uint8_t)(value >> 48);
   SG_BVECTOR_ELEMENT(bv, index + 2) = (uint8_t)(value >> 40);
   SG_BVECTOR_ELEMENT(bv, index + 3) = (uint8_t)(value >> 32);
@@ -630,7 +630,7 @@ void Sg_ByteVectorS64NativeSet(SgByteVector *bv, size_t index, int64_t value)
 
 void Sg_ByteVectorS64LittleSet(SgByteVector *bv, size_t index, int64_t value)
 {
-  SG_BVECTOR_ELEMENT(bv, index + 7) = (uint8_t)(value >> 54);
+  SG_BVECTOR_ELEMENT(bv, index + 7) = (uint8_t)(value >> 56);
   SG_BVECTOR_ELEMENT(bv, index + 6) = (uint8_t)(value >> 48);
   SG_BVECTOR_ELEMENT(bv, index + 5) = (uint8_t)(value >> 40);
   SG_BVECTOR_ELEMENT(bv, index + 4) = (uint8_t)(value >> 32);
@@ -642,7 +642,7 @@ void Sg_ByteVectorS64LittleSet(SgByteVector *bv, size_t index, int64_t value)
 
 void Sg_ByteVectorS64BigSet(SgByteVector *bv, size_t index, int64_t value)
 {
-  SG_BVECTOR_ELEMENT(bv, index + 0) = (uint8_t)(value >> 54);
+  SG_BVECTOR_ELEMENT(bv, index + 0) = (uint8_t)(value >> 56);
   SG_BVECTOR_ELEMENT(bv, index + 1) = (uint8_t)(value >> 48);
   SG_BVECTOR_ELEMENT(bv, index + 2) = (uint8_t)(value >> 40);
   SG_BVECTOR_ELEMENT(bv, index + 3) = (uint8_t)(value >> 32);

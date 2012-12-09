@@ -672,4 +672,10 @@
 	      'ok (expand-it (v 1) 'ok))
 )
 
+;; issue 71
+(let ((iv #x3000000000000000)
+      (bv (make-bytevector 8)))
+  (bytevector-u64-set! bv 0 iv (endianness big))
+  (test-equal "issue 71" iv (bytevector->integer bv)))
+
 (test-end)
