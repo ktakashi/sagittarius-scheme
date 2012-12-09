@@ -914,6 +914,13 @@
       (test -100000000000000000000
 	    (truncate-remainder -1300000000000000000000 -400000000000000000000))
 
+      ;; extra
+      ;; something chibi's r7rs test case doesn't have
+      (test #u8(6 7 8 9 10)
+	    (let ((bv (bytevector 1 2 3 4 5)))
+	      (read-bytevector! bv (open-input-bytevector #u8(6 7 8 9 10)))
+	      bv))
+
       )
     )
 )

@@ -183,8 +183,10 @@
 
   (define read-bytevector!
     (case-lambda
-     ((bv start end) (read-bytevector! bv start end (current-input-port)))
-     ((bv start end port) (get-bytevector-n! port bv start (- end start)))))
+     ((bv) (read-bytevector! bv (current-input-port)))
+     ((bv port) (read-bytevector! bv port 0))
+     ((bv port start) (read-bytevector! bv port start (bytevector-length bv)))
+     ((bv port start end) (get-bytevector-n! port bv start (- end start)))))
 
   (define write-u8
     (case-lambda

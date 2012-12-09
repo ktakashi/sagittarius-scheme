@@ -4,7 +4,7 @@
         (scheme inexact) (scheme complex) (scheme time)
         (scheme file) (scheme read) (scheme write)
         (scheme eval) (scheme process-context) (scheme case-lambda)
-	(scheme r5rs)
+        (scheme r5rs)
         (chibi test))
 
 ;; R7RS test suite.  Covers all procedures and syntax in the small
@@ -1092,7 +1092,7 @@
 (test "---xx"
     (let ((str (make-string 5 #\x))) (string-copy! str 0 "-----" 2) str))
 (test "xx---"
-      (let ((str (make-string 5 #\x))) (string-copy! str 2 "-----" 0 3) str))
+    (let ((str (make-string 5 #\x))) (string-copy! str 2 "-----" 0 3) str))
 (test "xx-xx"
     (let ((str (make-string 5 #\x))) (string-copy! str 2 "-----" 2 3) str))
 
@@ -1101,7 +1101,6 @@
     (let ((str (string-copy "abcde"))) (string-copy! str 1 str 0 2) str))
 (test "abcab"
     (let ((str (string-copy "abcde"))) (string-copy! str 3 str 0 2) str))
-
 
 (test-end)
 
@@ -1241,7 +1240,6 @@
     (let ((bv (bytevector 1 2 3 4 5)))
       (bytevector-copy! bv 3 bv 0 2)
       bv))
-
 
 (test #u8() (bytevector-append #u8()))
 (test #u8() (bytevector-append #u8() #u8()))
@@ -1550,17 +1548,17 @@
 
 (test #u8(6 7 8 9 10)
   (let ((bv (bytevector 1 2 3 4 5)))
-    (read-bytevector! bv 0 5 (open-input-bytevector #u8(6 7 8 9 10)))
+    (read-bytevector! bv (open-input-bytevector #u8(6 7 8 9 10)) 0 5)
     bv))
 
 (test #u8(6 7 8 4 5)
   (let ((bv (bytevector 1 2 3 4 5)))
-    (read-bytevector! bv 0 3 (open-input-bytevector #u8(6 7 8 9 10)))
+    (read-bytevector! bv (open-input-bytevector #u8(6 7 8 9 10)) 0 3)
     bv))
 
 (test #u8(1 2 3 6 5)
   (let ((bv (bytevector 1 2 3 4 5)))
-    (read-bytevector! bv 3 4 (open-input-bytevector #u8(6 7 8 9 10)))
+    (read-bytevector! bv (open-input-bytevector #u8(6 7 8 9 10)) 3 4)
     bv))
 
 (test #u8(1 2 3)
@@ -1807,12 +1805,8 @@
  ("-inf.0-inf.0i" (make-rectangular -inf.0 -inf.0) "-Inf.0-Inf.0i")
  ("+inf.0-inf.0i" (make-rectangular +inf.0 -inf.0) "+Inf.0-Inf.0i")
  ;; Complex numbers (polar notation)
- ("1@2" -0.416146836547142+0.909297426825682i 
-	"-0.416146836547142+0.909297426825682i"
-	;; -- Sagittarius returns bit more numbers
-	;;    (Ypsilon, mosh, Gauche and Chez returned the same value)
-	;; I don't think this is a good test case
-	"-0.4161468365471424+0.9092974268256817i")
+ ;; Need to account for imprecision in write output.
+ ;; ("1@2" -0.416146836547142+0.909297426825682i "-0.416146836547142+0.909297426825682i")
  ;; Base prefixes
  ("#x11" 17 "17")
  ("#X11" 17 "17")
@@ -1888,6 +1882,10 @@
 
 (test #t (file-exists? "."))
 (test #f (file-exists? " no such file "))
+
+(test #t (file-error?
+          (guard (exn (else exn))
+            (delete-file " no such file "))))
 
 (test-end)
 
