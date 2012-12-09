@@ -190,13 +190,13 @@ static SgObject condition_accessor_rec(SgObject *args, int argc, void *data)
 
   if (Sg_SimpleConditionP(obj)) {
     if (!Sg_RtdAncestorP(rtd, Sg_RecordRtd(obj))) goto err;
-    return Sg_Apply1(proc, obj);
+    return Sg_VMApply1(proc, obj);
   } else if (Sg_CompoundConditionP(obj)) {
     SgObject comp = Sg_CompoundConditionComponent(obj);
     SgObject cp;
     SG_FOR_EACH(cp, comp) {
       if (Sg_RtdAncestorP(rtd, Sg_RecordRtd(SG_CAR(cp)))) {
-	return Sg_Apply1(proc, SG_CAR(cp));
+	return Sg_VMApply1(proc, SG_CAR(cp));
       }
     }
     /* fall through */
@@ -213,7 +213,7 @@ SgObject Sg_ConditionAccessor(SgObject rtd, SgObject proc)
 {
   SgObject subr = Sg_MakeSubr(condition_accessor_rec, Sg_Cons(rtd, proc),
 			      1, 0,
-			      Sg_MakeString(UC("condition-accessor"), SG_LITERAL_STRING));
+			      SG_MAKE_STRING("condition-accessor"));
   return subr;
 }
 
