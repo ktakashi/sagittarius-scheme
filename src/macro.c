@@ -131,40 +131,53 @@ static SgObject unwrap_rec(SgObject form, SgObject history)
   return form;
 }
 
-static SgObject macro_tranform(SgObject *args, int argc, void *data_)
+static SgObject macro_restore_env_cc(SgObject result, void **data)
+{
+  SgVM *vm = Sg_VM();
+  vm->usageEnv = SG_OBJ(data[0]);
+  vm->macroEnv = SG_OBJ(data[1]);
+  vm->transEnv = SG_NIL;	/* gc friendliness */
+  return result;
+}
+
+static SgObject macro_transform_cc(SgObject result, void **data)
 {
   SgVM *vm = Sg_VM();
   SgObject macro, form, p1env, mac_env;
-  SgObject ue_save = vm->usageEnv;
-  SgObject me_save = vm->macroEnv;
-  SgObject data;
-  SgObject result;
-  macro = args[0];
-  ASSERT(SG_MACROP(macro));
-  form = args[1];
-  p1env = args[2];
+  void *next_data[2];
 
-  data = Sg_Apply0(args[3]);
-  /* data = args[3]; */
+  macro = data[0];
+  form = data[1];
+  p1env = data[2];
+
+  next_data[0] = vm->usageEnv;
+  next_data[1] = vm->macroEnv;
+
   mac_env = SG_MACRO(macro)->env;
 
   vm->usageEnv = p1env;
   vm->macroEnv = mac_env;
   vm->transEnv = SG_NIL;
-  if (SG_MACROP(data)) {
+
+  Sg_VMPushCC(macro_restore_env_cc, next_data, 2);
+  if (SG_MACROP(result)) {
     /* variable transformer */
-    result = Sg_Apply4(SG_MACRO(data)->transformer,
-		       data, form, mac_env, SG_MACRO(data)->data);
+    return Sg_VMApply4(SG_MACRO(result)->transformer,
+		       result, form, mac_env, SG_MACRO(result)->data);
   } else {
-    result = Sg_Apply1(data, form);
+    return Sg_VMApply1(result, form);
   }
-  vm->usageEnv = ue_save;
-  vm->macroEnv = me_save;
-  vm->transEnv = SG_NIL;	/* gc friendliness */
-  return result;
 }
 
-static SG_DEFINE_SUBR(macro_tranform_Stub, 4, 0, macro_tranform, SG_FALSE, NULL);
+
+static SgObject macro_tranform(SgObject *args, int argc, void *data_)
+{
+  Sg_VMPushCC(macro_transform_cc, args, 3);
+  return Sg_VMApply0(args[3]);
+}
+
+static SG_DEFINE_SUBR(macro_tranform_Stub, 4, 0, macro_tranform, 
+		      SG_FALSE, NULL);
 
 SgObject Sg_MakeMacroTransformer(SgObject name, SgObject proc,
 				 SgObject env, SgObject library)
