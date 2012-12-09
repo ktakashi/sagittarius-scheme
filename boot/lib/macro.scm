@@ -933,7 +933,7 @@
 				 (cons a d))))
 			  ((vector? expr)
 			   (list->vector (loop (vector->list expr))))
-			  ((variable? expr)
+			  ((symbol? expr)
 			   (make-identifier expr (vector-ref env 1)
 					    (vector-ref env 0)))
 			  (else expr))))

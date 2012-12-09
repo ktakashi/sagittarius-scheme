@@ -1353,13 +1353,13 @@
     ((_ name bv index)
      `(unless (> (SG_BVECTOR_SIZE ,bv) ,index)
 	(assertion-violation ',name "index out of range"
-			     (SG_MAKE_INT ,index))))
+			     (SG_LIST2 ,bv (SG_MAKE_INT ,index)))))
     ((_ name bv index offset)
      `(let ((len::int (SG_BVECTOR_SIZE ,bv)))
 	(unless (and (> len ,offset)
 		     (< ,index (- len ,offset)))
-	  (assertion-violation ',name "index out of range" 
-			       (SG_MAKE_INT ,index))))))
+	  (assertion-violation ',name "index out of range"
+			       (SG_LIST2 ,bv (SG_MAKE_INT ,index)))))))
 
   (define-cise-stmt bv-check-literal
     ((_ name bv)
