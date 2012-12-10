@@ -533,6 +533,9 @@
 	      #f
 	      (car maybe-library))))
 
+(define (variable-transformer? o)
+  (and (macro? o) (null? (macro-data o))))
+
 (define (macro-name m)
   (vector-ref m 1))
 (define (macro-transformer m)

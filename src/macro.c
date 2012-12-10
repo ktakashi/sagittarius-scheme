@@ -32,6 +32,7 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/macro.h"
 #include "sagittarius/clos.h"
+#include "sagittarius/closure.h"
 #include "sagittarius/identifier.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/port.h"
@@ -79,6 +80,7 @@ SgObject Sg_MakeMacro(SgObject name, SgObject transformer,
   z->data = data;
   z->env = env;
   z->maybeLibrary = maybeLibrary;
+  z->extracted = SG_FALSE;
   return SG_OBJ(z);
 }
 
@@ -140,6 +142,8 @@ static SgObject macro_restore_env_cc(SgObject result, void **data)
   return result;
 }
 
+#define MACRO_NEED_EXTRACT(o) SG_FALSEP(SG_MACRO(o)->extracted)
+
 static SgObject macro_transform_cc(SgObject result, void **data)
 {
   SgVM *vm = Sg_VM();
@@ -169,11 +173,21 @@ static SgObject macro_transform_cc(SgObject result, void **data)
   }
 }
 
+static SgObject macro_extract3_cc(SgObject result, void **data)
+{
+  SG_MACRO(data[0])->extracted = result;
+  Sg_VMPushCC(macro_transform_cc, data, 3);
+  return result;
+}
 
 static SgObject macro_tranform(SgObject *args, int argc, void *data_)
 {
-  Sg_VMPushCC(macro_transform_cc, args, 3);
-  return Sg_VMApply0(args[3]);
+  if (MACRO_NEED_EXTRACT(args[0])) {
+    Sg_VMPushCC(macro_extract3_cc, args, 3);
+    return Sg_VMApply0(args[3]);
+  } else {
+    return macro_transform_cc(SG_MACRO(args[0])->extracted, args);
+  }
 }
 
 static SG_DEFINE_SUBR(macro_tranform_Stub, 4, 0, macro_tranform, 
@@ -183,9 +197,32 @@ SgObject Sg_MakeMacroTransformer(SgObject name, SgObject proc,
 				 SgObject env, SgObject library)
 {
   if (SG_FALSEP(SG_PROCEDURE_NAME(&macro_tranform_Stub))) {
-    SG_PROCEDURE_NAME(&macro_tranform_Stub) = SG_MAKE_STRING("macro-transform");
+    SG_PROCEDURE_NAME(&macro_tranform_Stub) = 
+      SG_MAKE_STRING("macro-transform");
   }
   return Sg_MakeMacro(name, &macro_tranform_Stub, proc, env, library);
+}
+
+static SgObject macro_extract1_cc(SgObject result, void **data)
+{
+  SG_MACRO(data[0])->extracted = result;
+  return Sg_VMVariableTransformerP(data[0]);
+}
+
+SgObject Sg_VMVariableTransformerP(SgObject o)
+{
+  if (SG_MACROP(o)) {
+    if (MACRO_NEED_EXTRACT(o)) {
+      void *data[1];
+      data[0] = o;
+      Sg_VMPushCC(macro_extract1_cc, data, 1);
+      return Sg_VMApply0(SG_MACRO(o)->data);
+    } else {
+      return SG_MAKE_BOOL(SG_MACROP(SG_MACRO(o)->extracted));
+    }
+  } else {
+    return SG_FALSE;
+  }
 }
 
 static SgObject macro_expand_cc(SgObject result, void **data)

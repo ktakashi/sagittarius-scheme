@@ -94,6 +94,8 @@
   (define-c-proc make-macro-transformer (name proc p1env library)
     Sg_MakeMacroTransformer)
 
+  (define-c-proc variable-transformer? (o) Sg_VMVariableTransformerP)
+
   (define-c-proc call-macro-expander (macro::<macro> expr p1env)
     (result (Sg_VMApply4 (-> macro transformer)
 			 macro expr p1env (-> macro data))))

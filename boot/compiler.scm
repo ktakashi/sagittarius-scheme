@@ -2058,23 +2058,29 @@
      (unless (variable? name) (syntax-error "malformed set!" form))
      ;; r6rs required this form macro (set! <keyword> <value>)
      (let ((var (pass1/lookup-head name p1env)))
-       (if (lvar? var)
-	   ($lset var (pass1 expr p1env))
-	   (let ((gloc (find-binding (p1env-library p1env) (id-name var) #f)))
-	     ;; we don't check immutable variable here for identifier macros.
-	     (cond (gloc
+       (define (do-macro m name form p1env)
+	 (if (variable-transformer? m)
+	     (pass1 ($history (call-macro-expander m form p1env) form) p1env)
+	     (syntax-error "misplaced syntactic keyword as variable"
+			   form name)))
+       (cond ((lvar? var)
+	      ($lset var (pass1 expr p1env)))
+	     ((macro? var) (do-macro var name form p1env))
+	     (else
+	      (or (and-let* ((gloc (find-binding (p1env-library p1env)
+						 (id-name var) #f))
+			     (gval (gloc-ref gloc)))
+		    ;; we don't check immutable variable here for
+		    ;; identifier macros.
 		    (let ((gval (gloc-ref gloc)))
-		      (cond ((macro? gval)
-			     (pass1 ($history
-				     (call-macro-expander gval form p1env)
-				     form) p1env))
+		      (cond ((macro? gval) (do-macro gval name form p1env))
 			    (else
 			     (check-direct-variable name p1env form)
 			     ($gset (ensure-identifier var p1env)
 				    (pass1 expr p1env))))))
-		   (else
+		  (begin
 		    (check-direct-variable name p1env form)
-		    ($gset (ensure-identifier var p1env) 
+		    ($gset (ensure-identifier var p1env)
 			   (pass1 expr p1env))))))))
     (- (syntax-error "malformed set!" form))))
 
