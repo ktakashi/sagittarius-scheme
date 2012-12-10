@@ -678,4 +678,26 @@
   (bytevector-u64-set! bv 0 iv (endianness big))
   (test-equal "issue 71" iv (bytevector->integer bv)))
 
+;; issue 72
+(let ()
+  (define p2 (cons 4 5))
+  (define-syntax p2.car
+    (make-variable-transformer
+     (lambda (x)
+       (syntax-case x (set!)
+	 [(set! _ e) #'(set! p2 (cons e (cdr p2)))]
+	 [(_ . rest) #'((car p2) . rest)]
+	 [_  #'(car p2)]))))
+  (set! p2.car 15)
+  (test-equal "local variable transformer" 15 p2.car)
+)
+
+;; issue 73
+(let ()
+  (define (read! . args) 0)
+  (define cbin (make-custom-binary-input-port "cbin" read! #f #f #f))
+  (define ctin (make-custom-textual-input-port "ctin" read! #f #f #f))
+  (test-assert "custom binary port-eof?" (port-eof? cbin))
+  (test-assert "custom textual port-eof?" (port-eof? ctin)))
+
 (test-end)

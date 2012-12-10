@@ -2200,16 +2200,16 @@
 	   (let ((ch::SgChar (Sg_Peekc p)))
 	     (result (== ch EOF))))
 	  (else
-	   ;; TODO custom port
-	   (assertion-violation 'port-eof
-				"custom port is not supported yet"
-				p))))
+	   (if (== (-> (SG_CUSTOM_PORT p) type) SG_BINARY_CUSTOM_PORT_TYPE)
+	       (let ((ch::int (Sg_Peekb p)))
+		 (result (== ch EOF)))
+	       (let ((ch::int (Sg_Peekc p)))
+		 (result (== ch EOF)))))))
 
   (define-c-proc open-file-input-port (file::<string> 
 				       :optional (option #f)
 				                 mode::<symbol>
 				                 (transcoder::<transcoder> #f))
-    ::<top>
     ;; we can ignore option
     (when (SG_UNBOUNDP mode)
       (set! mode 'block))
