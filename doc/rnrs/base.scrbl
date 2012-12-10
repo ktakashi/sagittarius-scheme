@@ -3,8 +3,8 @@
 @subsection[:tag "rnrs.base.6"]{Base Library}
 
 @define[Library]{@name{(rnrs base (6))}}
-@desc{[R6RS] This library exports many of the procedure and syntax bindings that are
-traditionally associated with Scheme.}
+@desc{[R6RS] This library exports many of the procedure and syntax bindings
+that are traditionally associated with Scheme.}
 
 @subsubsection[:tag "rnrs.base.6.variable.definitions"]{Variable definitions}
 

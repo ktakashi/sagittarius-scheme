@@ -2,5 +2,7 @@
 #!compatible
 (library (scheme repl)
     (export interaction-environment)
-    (import (rename (sagittarius interactive)
-		    (interactive-environment interaction-environment))))
+    (import (only (rnrs) define quote)
+	    (only (sagittarius vm) find-library))
+  (define interaction-environment (find-library 'user #t))
+)

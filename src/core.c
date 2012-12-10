@@ -163,7 +163,7 @@ void Sg_Init()
   Sg__InitRecord();
   /* each time when we put something in null, we need to add */
   /* this is even funny... orz */
-  Sg_ImportLibrary(coreBase, nullsym);
+  /* Sg_ImportLibrary(coreBase, nullsym); */
   Sg__InitConsitions();
   Sg_ImportLibrary(coreBase, nullsym);
 
@@ -181,8 +181,8 @@ void Sg_Init()
   Sg__Init_sagittarius_interactive();
 
   /* TODO should this be here? */
-  Sg_ImportLibrary(Sg_VM()->currentLibrary, nullsym);
-  Sg_ImportLibrary(Sg_VM()->currentLibrary, sgsym);
+  Sg_ImportLibrary(Sg_VMCurrentLibrary(), nullsym);
+  Sg_ImportLibrary(Sg_VMCurrentLibrary(), sgsym);
 
   /* we need to put basic syntaxes to compiler. */
   Sg_ImportLibrary(compsym, nullsym);
@@ -192,8 +192,8 @@ void Sg_Init()
      we need extra treatment for er-rename. it's defined after the 
      initialization of compiler, so we need to export it to (core base) which 
      defines er-macro-transformer.
-     er-macro-transformer is defined (core base) but we want to export it with (sagittarius)
-     so insert it to the library here.
+     er-macro-transformer is defined (core base) but we want to export it with
+     (sagittarius) so insert it to the library here.
    */
   {
     SgLibrary *core_base_lib = SG_LIBRARY(Sg_FindLibrary(coreBase, FALSE));

@@ -641,21 +641,25 @@ and @code{&i/o-read} is raised.
 @sub*section{Output ports}
 
 An output port is a sink to which bytes or characters are written. The written
-data may control external devices or may produce files and other objects that may
-subsequently be opened for input.
+data may control external devices or may produce files and other objects that
+may subsequently be opened for input.
 
 @define[Function]{@name{output-port?} @args{obj}}
 @desc{[R6RS] Returns #t if @var{obj} is an output port (or a combined input and
 output port), #f otherwise.}
 
-@define[Function]{@name{flush-output-port} @args{output-port}}
-@desc{[R6RS] Flushes any buffered output from the buffer of @var{output-port} to
-the underlying file, device, or object. The @code{flush-output-port} procedure
-returns unspecified values.
+@define[Function]{@name{flush-output-port} :optional @args{output-port}}
+@desc{[R6RS+][R7RS] Flushes any buffered output from the buffer of
+@var{output-port} to the underlying file, device, or object. The
+@code{flush-output-port} procedure returns unspecified values.
+
+If the optional argument is omitted then @code{(current-output-port)} will be
+used.
 }
 
 @define[Function]{@name{output-port-buffer-mode} @args{output-port}}
-@desc{[R6RS] Returns the symbol that represents the buffer mode of @var{output-port}.}
+@desc{[R6RS] Returns the symbol that represents the buffer mode of
+@var{output-port}.}
 
 @define[Function]{@name{open-file-output-port}
  @args{filename :optional file-options buffer-mode maybe-transcoder}}
