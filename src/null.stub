@@ -3705,7 +3705,13 @@
 		    (return FALSE)
 		    (return (SG_EQ g1 g2))))
 	      (return (SG_EQ v1 v2))))
-	(return FALSE)))
+	(let ((g1 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id1)
+				  (SG_IDENTIFIER_NAME id1) #f))
+	      (g2 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id2)
+				  (SG_IDENTIFIER_NAME id2) #f)))
+	  (if (or (SG_FALSEP g1) (SG_FALSEP g2))
+	      (return FALSE)
+	      (return (SG_EQ g1 g2))))))
 
   ;; free-identifier=? compares if the given 2 identifier indicates the
   ;; same object.
@@ -3718,7 +3724,11 @@
   ;; otherwise it won't work properly.
   (define-c-proc bound-identifier=? (id1::<identifier> id2::<identifier>)
     ::<boolean>
-    (let ((vm::SgVM* (Sg_VM)))
+    (result 
+     (and (SG_EQ (SG_IDENTIFIER_NAME id1) (SG_IDENTIFIER_NAME id2))
+	  (SG_EQ (SG_IDENTIFIER_ENVS id1) (SG_IDENTIFIER_ENVS id2))
+	  (SG_EQ (SG_IDENTIFIER_LIBRARY id1) (SG_IDENTIFIER_LIBRARY id2))))
+    #;(let ((vm::SgVM* (Sg_VM)))
       (if (SG_EQ (-> vm usageEnv) (-> vm macroEnv))
 	  (result (id-env-compare id1 id2))
 	  (result (SG_EQ id1 id2)))))

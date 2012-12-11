@@ -741,5 +741,20 @@
     (test-equal "macro scope (inlined)" 'ok (boo)))
 )
 
+;; issue 76
+(library (free)
+    (export (rename (mod %))
+	    compare=?)
+    (import (rnrs))
+
+  (define-syntax compare=?
+    (syntax-rules ()
+      ((_ a b)
+       (free-identifier=? #'a #'b))))
+
+)
+(import (for (rnrs) (meta -1) run)
+	(for (free) (meta -1) run))
+(test-assert "issue 76" (compare=? % mod))
 
 (test-end)

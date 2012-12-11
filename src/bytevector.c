@@ -137,7 +137,8 @@ void Sg_ByteVectorCopyX(SgByteVector *src, int srcStart,
 	    SG_BVECTOR_ELEMENTS(src) + srcStart,
 	    k);
   } else {
-    Sg_Error(UC("bytevector-copy!: invalid range"));
+    Sg_Error(UC("bytevector-copy!: invalid range (src %d) (dst %d) (size %d)"),
+	     srcStart, dstStart, k);
   }
 }
 

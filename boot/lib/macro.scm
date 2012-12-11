@@ -606,7 +606,14 @@
   ;; wrap the given symbol with current usage env frame.
   (define (wrap-symbol sym)
     (define (finish new) (add-to-transformer-env! sym new))
-    (let* ((mac-lib (vector-ref mac-env 0))
+    ;; To handle this case we need to check with p1env
+    ;; other wise mac-env is still the same as use-env
+    ;; (define-syntax foo
+    ;;   (let ()
+    ;;     (define bar #'bzz)
+    ;;     ...
+    ;;    ))
+    (let* ((mac-lib (vector-ref p1env 0))
 	   (use-lib (vector-ref use-env 0))
 	   (g (find-binding mac-lib sym #f))
 	   ;; if the symbol is binded locally it must not be
@@ -665,12 +672,16 @@
   (if (null? template)
       '()
       (let ((form (transcribe-template template ranks vars)))
-	(cond ((eq? use-env mac-env) form) ; we don't wrap toplevel form
-	      ((null? form) '())
+	(cond ((null? form) '())
 	      ((identifier? form) form)
 	      ((symbol? form) 
 	       (cond ((lookup-transformer-env form))
 		     (else (wrap-symbol form))))
+	      ;; this causes 
+	      ;; (syntax-case '(a b c) () ((a b c) (list #'a #'b #'c)))
+	      ;; results (#<id a> #<id b> #<id c>) but I don't know
+	      ;; how to deal with it...
+	      ((eq? use-env mac-env) form) ; we don't wrap toplevel form
 	      (else
 	       (partial-identifier form))))))
 
