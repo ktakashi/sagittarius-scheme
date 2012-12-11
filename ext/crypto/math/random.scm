@@ -84,7 +84,7 @@
 				      read-size
 				      (ceiling (/ (bitwise-length size) 8)))))
 	   (rnd (bytevector->integer bv)))
-      (if (> rnd size)
+      (if (>= rnd size)
 	  (modulo rnd size)
 	  rnd)))
 )
