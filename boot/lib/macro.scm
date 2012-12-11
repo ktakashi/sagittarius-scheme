@@ -607,6 +607,7 @@
   (define (wrap-symbol sym)
     (define (finish new) (add-to-transformer-env! sym new))
     (let* ((mac-lib (vector-ref mac-env 0))
+	   (use-lib (vector-ref use-env 0))
 	   (g (find-binding mac-lib sym #f))
 	   ;; if the symbol is binded locally it must not be
 	   ;; wrapped with macro environment.
@@ -620,12 +621,13 @@
       ;;        expansion did not occure until it really called.
       ;;        that causes library difference even though it's in
       ;;        the macro defined library.
-      (if (and (identifier? lv) g (eq? (gloc-library g) mac-lib))
+      (if (and (identifier? lv)
+	       (not (eq? mac-lib use-lib))
+	       g (eq? (gloc-library g) mac-lib))
 	  (let ((t (make-identifier sym '() mac-lib)))
 	    (finish (make-identifier t (vector-ref mac-env 1) mac-lib)))
-	  (let* ((lib (vector-ref use-env 0))
-		 (t (make-identifier sym '() lib)))
-	    (finish (make-identifier t (vector-ref use-env 1) lib))))))
+	  (let ((t (make-identifier sym '() use-lib)))
+	    (finish (make-identifier t (vector-ref use-env 1) use-lib))))))
 
   (define (partial-identifier lst)
     (let loop ((lst lst))

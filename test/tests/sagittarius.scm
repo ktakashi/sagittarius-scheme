@@ -722,4 +722,24 @@
 
   (test-equal "issue 74" 'ok (foo a a)))
 
+;; macro scope
+(let ()
+  (define-syntax define-inline
+    (syntax-rules ()
+      ((_ (?name ?args ...) ?form0 ?forms ...)
+       (define-syntax ?name
+	 (syntax-rules ()
+	   ((_ ?args ...)
+	    (begin ?form0 ?forms ...)))))))
+  (define (inlined) 'ng)
+
+  (let ()
+    (define (boo)
+      (define-inline (inlined) 'ok)
+      (define (inner) (inlined))
+      (inner))
+    (test-equal "macro scope (inlined)" 'ok (boo)))
+)
+
+
 (test-end)

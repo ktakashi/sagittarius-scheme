@@ -224,6 +224,33 @@ second most, so on.
 Note: This style can hide some private procedures however if you want to write
 portable codes some implementation do not allow you to write this style.
 
+@subsection{Macro expansion sequence}
+
+Users might need to know how Sagittarius' compilation works to write portable
+code. In R6RS, it specifies macro expansion phase however Sagittarius does not
+have explicit phase for it. The typical problem for this is the following code;
+@codeblock{
+(define-syntax define-inline
+  (syntax-rules ()
+    ((_ (?name ?args @dots{}) ?form0 ?forms @dots{})
+     (define-syntax ?name
+       (syntax-rules ()
+         ((_ ?args @dots{})
+          (begin ?form0 ?forms @dots{})))))))
+(define (macro-problem)
+  (define (inner) (inlined))
+  (define-inline (inlined) 'ok)
+  (inner))
+(macro-problem) ;; &assertion
+}
+The problem with this code is that compiler compiles first comes first, so when
+@code{(inner)} is compiled, compiler sees @code{(inlined)} as a global variable.
+Then when real definition of @code{inlined} is compiled, however the
+@code{inner} is already compiled to call global variable of @code{(inlined)}.
+The simple solution to avoid this is switch the order. It is better to keep
+macros first then internal define.
+
+
 @include-section["r6rs.scrbl"]
 @include-section["r7rs.scrbl"]
 @include-section["clos.scrbl"]
