@@ -49,6 +49,22 @@ int Sg_EqP(SgObject x, SgObject y)
   return SG_EQ(x, y);
 }
 
+static int compare_double(double dx, double dy)
+{
+  if (dx == 0.0 && dy == 0.0) {
+    /* get sign */
+    union { double f64; uint64_t u64; } d1, d2;
+    int signx, signy;
+    d1.f64 = dx;
+    d2.f64 = dy;
+    signx = d1.u64 >> 63;
+    signy = d2.u64 >> 63;
+    return signx == signy;
+  } else {
+    return dx == dy;
+  }  
+}
+
 static int eqv_internal(SgObject x, SgObject y, int from_equal_p)
 {
   SgClass *cx, *cy;
@@ -60,27 +76,30 @@ static int eqv_internal(SgObject x, SgObject y, int from_equal_p)
 	  /* R6RS 11.5 6th item */
 	  double dx = SG_FLONUM_VALUE(x);
 	  double dy = SG_FLONUM_VALUE(y);
-	  if (dx == 0.0 && dy == 0.0) {
-	    /* get sign */
-	    union { double f64; uint64_t u64; } d1, d2;
-	    int signx, signy;
-	    d1.f64 = dx;
-	    d2.f64 = dy;
-	    signx = d1.u64 >> 63;
-	    signy = d2.u64 >> 63;
-	    return signx == signy;
-	  } else {
-	    return dx == dy;
-	  }
+	  return compare_double(dx, dy);
 	} else {
 	  return FALSE;
 	}
       } else if (SG_FLONUMP(y)) {
 	return FALSE;
       }
-      if ((Sg_ExactP(x) && Sg_ExactP(y))
-	  || (Sg_InexactP(x) && Sg_InexactP(y))) {
+      if (Sg_ExactP(x) && Sg_ExactP(y)) {
 	return Sg_NumEq(x, y);
+      } else if (Sg_InexactP(x) && Sg_InexactP(y)) {
+	/* must be both complex numbers but just in case */
+	if (SG_COMPLEXP(x) && SG_COMPLEXP(y)) {
+	  /* both imag and ream must be flonum but just in case */
+	  double xr = Sg_GetDouble(SG_COMPLEX(x)->real);
+	  double xi = Sg_GetDouble(SG_COMPLEX(x)->imag);
+	  double yr = Sg_GetDouble(SG_COMPLEX(y)->real);
+	  double yi = Sg_GetDouble(SG_COMPLEX(y)->imag);
+	  return compare_double(xr, yr) && compare_double(xi, yi);
+	} else {
+	  return FALSE;
+	}
+      } else {
+	/* exact and inexact */
+	return FALSE;
       }
     }
     return FALSE;

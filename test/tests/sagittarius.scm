@@ -757,4 +757,9 @@
 	(for (free) (meta -1) run))
 (test-assert "issue 76" (compare=? % mod))
 
+;; issue 77
+(test-assert "(eqv? 0.0+0.0i 0.0-0.0i)" (not (eqv? 0.0+0.0i 0.0-0.0i)))
+(test-assert "(eqv? 1.0+0.0i 1.0-0.0i)" (not (eqv? 1.0+0.0i 1.0-0.0i)))
+(test-assert "(eqv? 1.0+0i 1.0-0i)" (eqv? 1.0+0i 1.0-0i))
+
 (test-end)
