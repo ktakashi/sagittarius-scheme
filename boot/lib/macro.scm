@@ -893,6 +893,7 @@
 
 ;; datum->syntax
 (define (datum->syntax template-id datum)
+  (define seen (make-eq-hashtable))
   (define (rewrite expr frame library)
     (let loop ((expr expr))
       (cond ((pair? expr)
@@ -904,8 +905,12 @@
 	    ((vector? expr)
 	     (list->vector (loop (vector->list expr))))
 	    ((symbol? expr)
-	     (let* ((dummy (make-identifier expr '() library)))
-	       (make-identifier dummy frame library)))
+	     (cond ((hashtable-ref seen expr))
+		   (else 
+		    (let* ((dummy (make-identifier expr '() library))
+			   (id (make-identifier dummy frame library)))
+		      (hashtable-set! seen expr id)
+		      id))))
 	    (else expr))))
   (or (identifier? template-id)
       (assertion-violation 
