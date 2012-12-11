@@ -700,4 +700,26 @@
   (test-assert "custom binary port-eof?" (port-eof? cbin))
   (test-assert "custom textual port-eof?" (port-eof? ctin)))
 
+;; issue 74
+(let ()
+  (define-syntax foo
+    (lambda (x)
+      (define-syntax m1
+	(syntax-rules ()
+	  ((_ ?x ?x2)
+	   (free-identifier=? ?x ?x2))))
+
+      (define-syntax m2
+	(syntax-rules ()
+	  ((_ ?atom ?atom2)
+	   (if (m1 ?atom ?atom2)
+	       #''ok
+	       #''ng))))
+
+      (define (fuga id1 id2) (m2 id1 id2))
+      (syntax-case x ()
+	((_ bar boo) (fuga #'bar #'boo)))))
+
+  (test-equal "issue 74" 'ok (foo a a)))
+
 (test-end)

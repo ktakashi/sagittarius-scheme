@@ -2673,93 +2673,85 @@
 (define (pass1/body-rec exprs intdefs intmacros p1env)
   (smatch exprs
     ((((op . args) . src) . rest)
-     (or (and (not (assq op intdefs))
-	      (let ((head (pass1/lookup-head op p1env)))
-		(cond 
-		 (head
-		  (unless (list? args)
-		    (syntax-error "proper list required for function application or macro use" (caar exprs)))
-		  (cond ((lvar? head)
-			 (pass1/body-finish intdefs intmacros exprs p1env))
-			((macro? head)
-			 (pass1/body-macro-expand-rec
-			  head exprs intdefs intmacros p1env))
-			;; when (let-syntax ((xif if) (xif ...)) etc.
-			((syntax? head) 
-			 (pass1/body-finish intdefs intmacros exprs p1env))
-			((global-eq? head 'define p1env)
-			 (let ((def (smatch args
-				      (((name . formals) . body)
-				       ($src `(,name (,lambda. ,formals
-							       ,@body)
-						     . ,src) (caar exprs)))
-				      ((var . init)
-				       ($src `(,var ,(if (null? init)
-							 (undefined)
-							 (car init))
-						    . ,src)
-					     (caar exprs)))
-				      (- (syntax-error
-					  "malformed internal define"
-					  (caar exprs))))))
-			   (pass1/body-rec rest (cons def intdefs)
-					   intmacros p1env)))
-			((global-eq? head 'begin p1env)
-			 (pass1/body-rec (append (imap (lambda (x)
-							 (cons x src)) args)
-						 rest)
-					 intdefs intmacros p1env))
-			((global-eq? head 'include p1env)
-			 (pass1/body-rec 
-			  (cons (pass1/include args p1env #f) rest)
-			  intdefs intmacros p1env))
-			((global-eq? head 'include-ci p1env)
-			 (pass1/body-rec 
-			  (cons (pass1/include args p1env #t) rest)
-			  intdefs intmacros p1env))
-			;; 11.2.2 syntax definition (R6RS)
-			;; 5.3 Syntax definition (R7RS)
-			((global-eq? head 'define-syntax p1env)
-			 (let ((def (smatch args
-				      ((name expr)
-				       (list args))
-				      (- (syntax-error
-					  "malformed internal define-syntax"
-					  (caar exprs))))))
-			   (pass1/body-rec rest intdefs
-					   (cons (cons 'def def) intmacros)
-					   p1env)))
-			;; 11.18 binding constructs for syntactic keywords
-			((and (vm-r6rs-mode?)
-			      (or (global-eq? head 'let-syntax p1env)
-				  (global-eq? head 'letrec-syntax p1env)))
-			 (receive (defs body)
-			     (smatch (caar exprs)
-			       ((- ((name trans-spec) ___) body ___)
-				(let ((type (if (global-eq? head
-							    'letrec-syntax
-							    p1env)
-						'rec 'let)))
-				  (values (cons type 
-						(map list name trans-spec))
-					  body))))
-			   (pass1/body-rec 
-			    ($src `(((,begin. ,@body ,@(imap car rest))))
-				  (caar exprs))
-			    intdefs (cons defs intmacros) p1env)))
-			((identifier? head)
-			 (let ((gloc (id->bound-gloc head)))
-			   (or (and-let* (( gloc )
-					  (gval (gloc-ref gloc))
-					  ( (macro? gval) ))
-				 (pass1/body-macro-expand-rec
-				  gval exprs intdefs intmacros p1env))
-			       (pass1/body-finish
-				intdefs intmacros exprs p1env))))
-			(else
-			 (scheme-error
-			  'pass1/body "[internal] pass1/body" op head))))
-		 (else #f))))
+     (or (and-let* (( (not (assq op intdefs)) )
+		    (head (pass1/lookup-head op p1env)))
+	   (unless (list? args)
+	     (syntax-error 
+	      "proper list required for function application or macro use"
+	      (caar exprs)))
+	   (cond ((lvar? head)
+		  (pass1/body-finish intdefs intmacros exprs p1env))
+		 ((macro? head)
+		  (pass1/body-macro-expand-rec
+		   head exprs intdefs intmacros p1env))
+		 ;; when (let-syntax ((xif if) (xif ...)) etc.
+		 ((syntax? head) 
+		  (pass1/body-finish intdefs intmacros exprs p1env))
+		 ((global-eq? head 'define p1env)
+		  (let ((def (smatch args
+			       (((name . formals) . body)
+				($src `(,name (,lambda. ,formals ,@body)
+					      . ,src) (caar exprs)))
+			       ((var . init)
+				($src `(,var ,(if (null? init)
+						  (undefined)
+						  (car init))
+					     . ,src)
+				      (caar exprs)))
+			       (- (syntax-error "malformed internal define"
+						(caar exprs))))))
+		    (pass1/body-rec rest (cons def intdefs) intmacros p1env)))
+		 ((global-eq? head 'begin p1env)
+		  (pass1/body-rec (append (imap (lambda (x) (cons x src)) args)
+					  rest)
+				  intdefs intmacros p1env))
+		 ((global-eq? head 'include p1env)
+		  (pass1/body-rec (cons (pass1/include args p1env #f) rest)
+				  intdefs intmacros p1env))
+		 ((global-eq? head 'include-ci p1env)
+		  (pass1/body-rec (cons (pass1/include args p1env #t) rest)
+				  intdefs intmacros p1env))
+		 ;; 11.2.2 syntax definition (R6RS)
+		 ;; 5.3 Syntax definition (R7RS)
+		 ((global-eq? head 'define-syntax p1env)
+		  (let ((def (smatch args
+			       ((name expr) (list args))
+			       (- (syntax-error 
+				   "malformed internal define-syntax"
+				   (caar exprs))))))
+		    ;; we need to construct the same structure as
+		    ;; letrec-syntax so that macro expander can see what
+		    ;; defined in the same environment.
+		    (let ((intmacros
+			   (cond ((assq 'rec intmacros)
+				  => (lambda (slot)
+				       (append! (cdr slot) def)
+				       intmacros))
+				 (else (acons 'rec def intmacros)))))
+		      (pass1/body-rec rest intdefs intmacros p1env))))
+		 ;; 11.18 binding constructs for syntactic keywords
+		 ((and (vm-r6rs-mode?)
+		       (or (global-eq? head 'let-syntax p1env)
+			   (global-eq? head 'letrec-syntax p1env)))
+		  (receive (defs body)
+		      (smatch (caar exprs)
+			((- ((name trans-spec) ___) body ___)
+			 (let ((type (if (global-eq? head 'letrec-syntax p1env)
+					 'rec 'let)))
+			   (values (cons type (imap2 list name trans-spec))
+				   body))))
+		    (pass1/body-rec 
+		     ($src `(((,begin. ,@body ,@(imap car rest)))) (caar exprs))
+		     intdefs (cons defs intmacros) p1env)))
+		 ((identifier? head)
+		  (or (and-let* ((gloc (id->bound-gloc head))
+				 (gval (gloc-ref gloc))
+				 ( (macro? gval) ))
+			(pass1/body-macro-expand-rec gval exprs
+						     intdefs intmacros p1env))
+		      (pass1/body-finish intdefs intmacros exprs p1env)))
+		 (else
+		  (scheme-error 'pass1/body "[internal] pass1/body" op head))))
 	 (pass1/body-finish intdefs intmacros exprs p1env)))
     (- (pass1/body-finish intdefs intmacros exprs p1env))))
 
@@ -2827,16 +2819,16 @@
 	  (else
 	   ;; intmacro list is like this
 	   ;; ((<type> . ((name expr) ...)) ...)
-	   ;; <type> : def, rec or let.
-	   ;;          def = define-syntax,
-	   ;;          rec = letrec-syntax
+	   ;; <type> : rec or let.
+	   ;;          rec = define-syntax or letrec-syntax
+	   ;;          let = let-syntax
 	   (let ((macenv
 		  (let loop ((exprs intmacros) (env newenv))
 		    (if (null? exprs)
 			env
 			(let ((new-env
 			       (case (caar exprs)
-				 ((def rec)
+				 ((rec)
 				  (letrec-syntax-parser (cdar exprs) env))
 				 ((let)
 				  (let-syntax-parser (cdar exprs) env)))))
