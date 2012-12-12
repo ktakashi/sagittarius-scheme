@@ -44,7 +44,11 @@
       (set! maybe-library (Sg_FindLibrary maybe-library FALSE)))
     (let ((r (Sg_MakeIdentifier name envs maybe-library)))
       (set! (SG_IDENTIFIER_PENDING r) TRUE)
+      (set! (SG_IDENTIFIER_ENVS r) envs)
       (result r)))
+  (define-c-proc pending-identifier? (o) ::<boolean>
+    (result (and (SG_IDENTIFIERP o) (SG_IDENTIFIER_PENDING o))))
+
   (define-c-proc rename-pending-identifier! (id::<identifier>)
     (when (SG_IDENTIFIER_PENDING id)
       (set! (SG_IDENTIFIER_NAME id) 
