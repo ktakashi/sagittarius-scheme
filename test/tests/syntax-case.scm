@@ -67,4 +67,22 @@
 	       (set! ls (cons 'a ls))
 	       (set! n (- n 1)))))
 
+;; some more syntax-case related tests
+(let ()
+  (define-syntax loop2
+    (lambda (x)
+      (syntax-case x ()
+	[(k e ...)
+	 (with-syntax
+	     ([?break (datum->syntax #'k 'break)])
+	   #'(call-with-current-continuation
+	      (lambda (?break)
+		(let f () e ... (f)))))])))
+  (test-equal "loop2" '(a a a)
+	      (let ((n 3) (ls '()))
+		(loop
+		 (if (= n 0) (break ls))
+		 (set! ls (cons 'a ls))
+		 (set! n (- n 1))))))
+
 (test-end)
