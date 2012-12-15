@@ -840,6 +840,18 @@
 	      (acons type frame (p1env-frames p1env))
 	      (p1env-exp-name p1env)
 	      (p1env-current-proc p1env)))
+
+;; for local macros
+(define (p1env-extend! p1env frame type)
+  (let* ((oframe (p1env-frames p1env))
+	 (old    (cdr (car oframe)))
+	 (new-frame (append! frame old)))
+    ;; the first one must be the one we need to add
+    (make-p1env (p1env-library p1env)
+		(cons (cons type new-frame) (cdr oframe))
+		(p1env-exp-name p1env)
+		(p1env-current-proc p1env))))
+
 (define (p1env-extend/name p1env frame type name)
   (make-p1env (p1env-library p1env)
 	      (acons type frame (p1env-frames p1env))
@@ -2763,20 +2775,20 @@
 			   (variable-name n)
 			   x (p1env-add-name p1env (variable-name n))))
 		     names (imap cadr exprs)))
-	 (newenv (p1env-extend p1env ($map-cons-dup names trans) LEXICAL)))
+	 (newenv (p1env-extend! p1env ($map-cons-dup names trans) LEXICAL)))
     newenv))
 
 (define (letrec-syntax-parser exprs p1env)
   (let* ((names (imap car exprs))
 	 (bodys (imap cadr exprs))
-	 (newenv (p1env-extend p1env ($map-cons-dup names bodys) LEXICAL))
+	 (newenv (p1env-extend! p1env ($map-cons-dup names bodys) LEXICAL))
 	 (trans (imap2 (lambda (n x)
 			 (pass1/eval-macro-rhs
 			  'letrec-syntax
 			  (variable-name n)
 			  x (p1env-add-name newenv (variable-name n))))
 		       names bodys)))
-    (ifor-each2 set-cdr! (cdar (p1env-frames newenv)) (append trans trans))
+    (ifor-each2 set-cdr! (cdar (p1env-frames newenv)) trans)
      newenv))
 
 ;; Almost the same process as pass1/body-finish but we still need to
@@ -2797,17 +2809,20 @@
 
   (let* ((intdefs. (reverse intdefs))
 	 (vars (imap car intdefs.))
+	 (frame (car (p1env-frames p1env)))
 	 ;; internal macro can make duplicated lvars but it should not
 	 ;; happen so first we need to check if there is already lvar
 	 ;; or not, and if not we can make it.
-	 (lvars (imap (lambda (var)
-			(let ((v (p1env-lookup p1env var LEXICAL)))
-			  (if (lvar? v)
-			      v
-			      (make-lvar v)))) vars))
-	 (newenv (if (null? lvars)
-		     p1env
-		     (p1env-extend p1env ($map-cons-dup vars lvars) LEXICAL))))
+	 (lvars (imap
+		 (lambda (var)
+		   ;; internal macro is in the same frame, so if the var
+		   ;; is in the same frame as a lvar, we need to return
+		   ;; it
+		   (or (and-let* ((slot (assq var frame))
+				  (lvar? (cdr slot)))
+			 (cdr slot))
+		       (make-lvar var))) vars))
+	 (newenv (p1env-extend p1env ($map-cons-dup vars lvars) LEXICAL)))
     (cond ((and (null? intdefs) (null? intmacros))
 	   (finish exprs p1env '() '() #f))
 	  ((null? intmacros)
@@ -4033,14 +4048,12 @@
 		       (and (null? (cdr fvs))
 			    (zero? (lvar-set-count (car fvs)))
 			    (eq? (lvar-initval (car fvs)) lm)))
-		   (let ((gvar (make-identifier (gensym "#:")
-						'() library)))
-		     ($lambda-name-set! 
-		      lm 
-		      (list top-name
-			    (or (and-let* ((n ($lambda-name lm)))
-				  (identifier->symbol n))
-				(id-name gvar))))
+		   (let ((gvar (make-identifier (gensym) '() library)))
+		     ($lambda-name-set!
+		      lm
+		      (list top-name (or (and-let* ((n ($lambda-name lm)))
+					   (identifier->symbol n))
+					 (id-name gvar))))
 		     ($lambda-lifted-var-set! lm gvar)
 		     (loop (cdr lms) (cons lm results)))
 		   (loop (cdr lms) results))))))))
