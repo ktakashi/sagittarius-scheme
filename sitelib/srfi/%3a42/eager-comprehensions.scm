@@ -38,8 +38,11 @@
     ;; we need to export replaced ones
     srfi-42- srfi-42-list srfi-42-string srfi-42-vector srfi-42-integers
     srfi-42-range srfi-42-real-range srfi-42-char-range srfi-42-port
-    srfi-42-dispatched srfi-42-do srfi-42-let srfi-42-parallel srfi-42-while srfi-42-until
-    srfi-42--dispatch-ref srfi-42--dispatch-set! make-initial-:-dispatch 
+    srfi-42-dispatched srfi-42-do srfi-42-let srfi-42-parallel srfi-42-while
+    srfi-42-until
+    srfi-42--dispatch-ref srfi-42--dispatch-set! make-initial-:-dispatch
+    (rename (srfi-42--dispatch-ref  |:-dispatch-ref|)
+	    (srfi-42--dispatch-set! |:-dispatch-set!|))
     dispatch-union srfi-42-generator-proc)
   (import (except (rnrs) error)
 	  (rnrs r5rs)
