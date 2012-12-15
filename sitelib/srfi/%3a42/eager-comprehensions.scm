@@ -42,7 +42,8 @@
     srfi-42-until
     srfi-42--dispatch-ref srfi-42--dispatch-set! make-initial-:-dispatch
     (rename (srfi-42--dispatch-ref  |:-dispatch-ref|)
-	    (srfi-42--dispatch-set! |:-dispatch-set!|))
+	    (srfi-42--dispatch-set! |:-dispatch-set!|)
+	    (srfi-42-generator-proc |:generator-proc|))
     dispatch-union srfi-42-generator-proc)
   (import (except (rnrs) error)
 	  (rnrs r5rs)
@@ -60,7 +61,7 @@
 (define-syntax %replace-keywords
   (er-macro-transformer
    (lambda (form rename compare)
-     (define (->proper-name x)
+     (define (->proper-name x o)
        (case x
 	 ((:)           (rename 'srfi-42-))
 	 ((:list)       (rename 'srfi-42-list))
@@ -77,7 +78,7 @@
 	 ((:parallel)   (rename 'srfi-42-parallel))
 	 ((:while)      (rename 'srfi-42-while))
 	 ((:until)      (rename 'srfi-42-until))
-	 (else x)))
+	 (else o)))
      (define (maybe-keyword? x)
        (and-let* (( (variable? x) )
 		  (x (symbol->string (identifier->symbol x)))
@@ -88,9 +89,10 @@
      (define (rewrite x)
        (if (pair? x)
 	   (cond ((keyword? (car x))
-		  (cons (->proper-name (car x)) (rewrite (cdr x))))
+		  (cons (->proper-name (car x) (car x)) (rewrite (cdr x))))
 		 ((maybe-keyword? (car x))
-		  => (lambda (k) (cons (->proper-name k) (rewrite (cdr x)))))
+		  => (lambda (k)
+		       (cons (->proper-name k (car x)) (rewrite (cdr x)))))
 		 (else (cons (rewrite (car x)) (rewrite (cdr x)))))
 	   x))
      (match form
