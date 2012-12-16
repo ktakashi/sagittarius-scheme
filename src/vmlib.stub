@@ -162,7 +162,7 @@
 
   (define-c-proc find-binding (arg0 arg1::<symbol> callback) Sg_FindBinding)
 
-  (define-c-proc import-library (to from spec transp)
+  (define-c-proc import-library (to from spec transp) ::<void>
     (Sg_ImportLibraryFullSpec to from spec))
 
   (define-c-proc vm-current-library (:optional name::<library>)
