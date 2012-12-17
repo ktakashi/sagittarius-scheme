@@ -184,7 +184,7 @@ static int getopt_long(int argc, char **argv, const char *optstring,
 static void show_usage()
 {
   fprintf(stderr,
-	  "Usage: sash [-hvicd][-L<path>][-D<path>][-f<flag>][-I<library>]"
+	  "Usage: sash [-hvicdt][-L<path>][-D<path>][-f<flag>][-I<library>]"
 	  "[-E<flags>][-p<file>][--] [file]\n"
 	  "options:\n"
 	  "  -v,--version                   Prints version and exits.\n"
@@ -218,6 +218,9 @@ static void show_usage()
 	  "     time        Sort by time\n"
 	  "     count       Sort by count\n"
 #endif
+	  "  -t, --toplevel-only            Imports only toplevel syntax.\n"
+	  "     This option only imports 'import', 'library' and 'define-library'\n"
+	  "     to interaction environment by default."
 	  "\n"
 	  "environment variables:\n"
 	  "  SAGITTARIUS_LOADPATH\n"
@@ -255,6 +258,7 @@ static int profiler_mode = FALSE;
 static SgObject profiler_option = SG_UNDEF;
 
 static int stat = FALSE;
+static int load_base_library = TRUE;
 
 static void cleanup_main(void *data)
 {
@@ -308,6 +312,7 @@ int main(int argc, char **argv)
     {"logport", optional_argument, 0, 'p'},
     {"stat", 0, 0, 's'},
     {"no-main", 0, 0, 'n'},
+    {"toplevel-only", 0, 0, 't'},
 #ifdef SAGITTARIUS_PROFILE
     {"profile", optional_argument, 0, 'P'},
 #endif
@@ -319,9 +324,10 @@ int main(int argc, char **argv)
   Sg_Init();
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
-  while ((opt = getopt_long(argc, argv, "L:D:f:I:hE:vicdp:P:sn", 
+  while ((opt = getopt_long(argc, argv, "L:D:f:I:hE:vicdp:P:snt", 
 			    long_options, &optionIndex)) != -1) {
     switch (opt) {
+    case 't': load_base_library = FALSE; break;
     case 'E':
       if (strcmp("trace", optarg) == 0) {
 	SG_VM_SET_FLAG(vm, SG_TRACE_LEVEL);
@@ -438,15 +444,27 @@ int main(int argc, char **argv)
   vm->commandLineArgs = argsToList(argc, optind, argv);
   /* set profiler */
   if (profiler_mode) {
-    Sg_ImportLibrary(vm->currentLibrary, SG_OBJ(SG_INTERN("(sagittarius vm profiler)")));
+    Sg_ImportLibrary(vm->currentLibrary, 
+		     SG_INTERN("(sagittarius vm profiler)"));
     Sg_ProfilerStart();
   }
   Sg_AddCleanupHandler(cleanup_main, NULL);
 
+  if (load_base_library) {
+    Sg_ImportLibrary(vm->currentLibrary, SG_INTERN("null"));
+    Sg_ImportLibrary(vm->currentLibrary, SG_INTERN("(core base)"));
+    Sg_ImportLibrary(vm->currentLibrary, SG_INTERN("(sagittarius)"));
+  } else {
+    /* only toplevel syntaxes such as import library and define-library */
+    Sg_ImportLibraryFullSpec(vm->currentLibrary, SG_INTERN("(sagittarius)"),
+			     SG_LIST4(SG_INTERN("only"),
+				      SG_INTERN("import"),
+				      SG_INTERN("library"),
+				      SG_INTERN("define-library")));
+  }
+
   if (optind < argc) {
     SgObject proc;
-    Sg_ImportLibrary(vm->currentLibrary, SG_OBJ(SG_INTERN("(core base)")));
-
     exit_code = Sg_Load(SG_STRING(Sg_MakeStringC(argv[optind])));
     /* to run R6RS bench ... */
     if (!noMainP) {

@@ -38,8 +38,12 @@
     ;; we need to export replaced ones
     srfi-42- srfi-42-list srfi-42-string srfi-42-vector srfi-42-integers
     srfi-42-range srfi-42-real-range srfi-42-char-range srfi-42-port
-    srfi-42-dispatched srfi-42-do srfi-42-let srfi-42-parallel srfi-42-while srfi-42-until
-    srfi-42--dispatch-ref srfi-42--dispatch-set! make-initial-:-dispatch 
+    srfi-42-dispatched srfi-42-do srfi-42-let srfi-42-parallel srfi-42-while
+    srfi-42-until
+    srfi-42--dispatch-ref srfi-42--dispatch-set! make-initial-:-dispatch
+    (rename (srfi-42--dispatch-ref  |:-dispatch-ref|)
+	    (srfi-42--dispatch-set! |:-dispatch-set!|)
+	    (srfi-42-generator-proc |:generator-proc|))
     dispatch-union srfi-42-generator-proc)
   (import (except (rnrs) error)
 	  (rnrs r5rs)
@@ -57,29 +61,39 @@
 (define-syntax %replace-keywords
   (er-macro-transformer
    (lambda (form rename compare)
+     (define (->proper-name x o)
+       (case x
+	 ((:)           (rename 'srfi-42-))
+	 ((:list)       (rename 'srfi-42-list))
+	 ((:string)     (rename 'srfi-42-string))
+	 ((:vector)     (rename 'srfi-42-vector))
+	 ((:integers)   (rename 'srfi-42-integers))
+	 ((:range)      (rename 'srfi-42-range))
+	 ((:real-range) (rename 'srfi-42-real-range))
+	 ((:char-range) (rename 'srfi-42-char-range))
+	 ((:port)       (rename 'srfi-42-port))
+	 ((:dispatched) (rename 'srfi-42-dispatched))
+	 ((:do)         (rename 'srfi-42-do))
+	 ((:let)        (rename 'srfi-42-let))
+	 ((:parallel)   (rename 'srfi-42-parallel))
+	 ((:while)      (rename 'srfi-42-while))
+	 ((:until)      (rename 'srfi-42-until))
+	 (else o)))
+     (define (maybe-keyword? x)
+       (and-let* (( (variable? x) )
+		  (x (symbol->string (identifier->symbol x)))
+		  ( (char=? #\: (string-ref x 0)) )
+		  (x (string->symbol (string-copy x 1))))
+	 (make-keyword x)))
+
      (define (rewrite x)
        (if (pair? x)
-	   (if (keyword? (car x))
-	       (cons
-		(case (car x)
-		  ((:)            (rename 'srfi-42-))
-		  ((:list)        (rename 'srfi-42-list))
-		  ((:string)      (rename 'srfi-42-string))
-		  ((:vector)      (rename 'srfi-42-vector))
-		  ((:integers)    (rename 'srfi-42-integers))
-		  ((:range)       (rename 'srfi-42-range))
-		  ((:real-range)  (rename 'srfi-42-real-range))
-		  ((:char-range)  (rename 'srfi-42-char-range))
-		  ((:port)        (rename 'srfi-42-port))
-		  ((:dispatched)  (rename 'srfi-42-dispatched))
-		  ((:do)          (rename 'srfi-42-do))
-		  ((:let)         (rename 'srfi-42-let))
-		  ((:parallel)    (rename 'srfi-42-parallel))
-		  ((:while)       (rename 'srfi-42-while))
-		  ((:until)       (rename 'srfi-42-until))
-		  (else (car x)))
-		(rewrite (cdr x)))
-	       (cons (rewrite (car x)) (rewrite (cdr x))))
+	   (cond ((keyword? (car x))
+		  (cons (->proper-name (car x) (car x)) (rewrite (cdr x))))
+		 ((maybe-keyword? (car x))
+		  => (lambda (k)
+		       (cons (->proper-name k (car x)) (rewrite (cdr x)))))
+		 (else (cons (rewrite (car x)) (rewrite (cdr x)))))
 	   x))
      (match form
        ((_ syn _ . args)

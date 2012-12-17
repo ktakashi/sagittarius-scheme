@@ -180,10 +180,6 @@ void Sg_Init()
   /* Sg__Init_match_core(); */
   Sg__Init_sagittarius_interactive();
 
-  /* TODO should this be here? */
-  Sg_ImportLibrary(Sg_VMCurrentLibrary(), nullsym);
-  Sg_ImportLibrary(Sg_VMCurrentLibrary(), sgsym);
-
   /* we need to put basic syntaxes to compiler. */
   Sg_ImportLibrary(compsym, nullsym);
   Sg_ImportLibrary(compsym, sgsym);
