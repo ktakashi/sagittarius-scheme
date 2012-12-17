@@ -1530,6 +1530,8 @@
 		 (syntax-error "duplicate formals in let-values" form)
 		 (lp (cdr vars) (cons vars pool)))))))
   (smatch form
+    ;; trivial case
+    ((- () body ___) (pass1/body body (p1env-extend p1env '() LEXICAL)))
     ((- ((vars expr) ___) body ___)
      (unless ref?
        ;; check duplicates
@@ -1576,7 +1578,7 @@
 (define-pass1-syntax (and-let* form p1env) :sagittarius
   (define (process-binds binds body p1env)
     (smatch binds
-      (() (pass1/body body p1env))
+      (() (pass1/body body (p1env-extend p1env '() LEXICAL)))
       (((exp) . more)
        ($if form (pass1 exp (p1env-sans-name p1env))
 	    (process-binds more body p1env)
@@ -1597,11 +1599,11 @@
 	       ($if form ($lref lvar)
 		    (process-binds more body newenv)
 		    ($it)))))
-      (_ (syntax-error "malformed and-let*" form))))
+      (- (syntax-error "malformed and-let*" form))))
   (smatch form
-    ((_ binds . body)
+    ((- binds . body)
      (process-binds binds body p1env))
-    (_ (syntax-error "malformed and-let*" form)))
+    (- (syntax-error "malformed and-let*" form)))
   )
 
 (define-pass1-syntax (let-optionals* form p1env) :sagittarius
@@ -2791,8 +2793,6 @@
     (ifor-each2 set-cdr! (cdar (p1env-frames newenv)) trans)
      newenv))
 
-;; Almost the same process as pass1/body-finish but we still need to
-;; continue.
 (define (pass1/body-inner-rec mac exprs intdefs intmacros p1env)
   (define (finish exprs p1env intdefs intmacros rec?)
     (cond (mac
