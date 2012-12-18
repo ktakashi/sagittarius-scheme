@@ -8,13 +8,25 @@ IF (CYGWIN)
   MESSAGE(STATUS "checking ODBC on CYGWIN")
   CHECK_INCLUDE_FILES("windows.h;sql.h" HAVE_SQL_H)
   CHECK_INCLUDE_FILES("windows.h;sql.h;sqlext.h" HAVE_SQLEXT_H)
+  SET(ODBC_LIBRARIES odbc32)
 ELSEIF(WIN32)
   MESSAGE(STATUS "checking ODBC on Windows")
   CHECK_INCLUDE_FILES("windows.h;sql.h" HAVE_SQL_H)
   CHECK_INCLUDE_FILES("windows.h;sql.h;sqlext.h" HAVE_SQLEXT_H)
+  SET(ODBC_LIBRARIES odbc32)
 ELSE()
   CHECK_INCLUDE_FILES("sql.h" HAVE_SQL_H)
   CHECK_INCLUDE_FILES("sql.h;sqlext.h" HAVE_SQLEXT_H)
+  # assume unix odbc
+  SET(ODBC_LIBRARIES odbc)
+ENDIF()
+
+IF (NOT HAVE_SQL_H)
+  # try find package
+  FIND_PACKAGE(ODBC)
+  IF (ODBC_INCLUDE_DIR)
+    INCLUDE_DIRECTORIES(${ODBC_INCLUDE_DIR})
+  ENDIF()
 ENDIF()
 
 IF (HAVE_SQL_H)
@@ -44,14 +56,7 @@ IF (HAVE_SQL_H)
   SET_TARGET_PROPERTIES(sagittarius--odbc PROPERTIES PREFIX "")
   TARGET_LINK_LIBRARIES(sagittarius--odbc sagittarius)
 
-  IF (CYGWIN)
-    TARGET_LINK_LIBRARIES(sagittarius--odbc odbc32)
-  ELSEIF(WIN32)
-    TARGET_LINK_LIBRARIES(sagittarius--odbc odbc32)
-  ELSE()
-    # TODO
-  ENDIF()
-
+  TARGET_LINK_LIBRARIES(sagittarius--odbc ${ODBC_LIBRARIES})
 
   INSTALL(TARGETS sagittarius--odbc
     DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
