@@ -33,6 +33,7 @@
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius control)
+	    (tlv)
 	    (util port)
 	    (asn.1 types)
 	    (asn.1 der tags)
@@ -138,7 +139,8 @@
 	(assertion-violation 'build-object
 			     "EOF found during reading data"))
       (when (and (not (zero? len)) (< (bytevector-length data) len))
-	(assertion-violation 'build-object "corrupted data"))
+	(assertion-violation 'build-object "corrupted data" 
+			     len (bytevector-length data)))
       (cond ((not (zero? (bitwise-and tag APPLICATION)))
 	     (make-der-application-specific constructed? tag-no data))
 	    ((not (zero? (bitwise-and tag TAGGED)))
@@ -168,73 +170,31 @@
 	    (else
 	     (create-primitive-der-object tag-no data)))))
 
-  (define (read-tag-number in tag)
-    (let ((tag-no (bitwise-and tag #x1f)))
-      (when (= tag-no #x1f)
-	(set! tag-no 0)
-	(let ((b (get-u8 in)))
-	  (when (zero? (bitwise-and b #x7f))
-	    (assertion-violation
-	     'read-tag-number
-	     "corrupted stream - invalud high tag number found" b))
-	  (do ((b b (get-u8 in)))
-	      ((or (eof-object? b) (zero? (bitwise-and b #x80))))
-	    (set! tag-no (bitwise-ior tag-no (bitwise-and b #x7f)))
-	    (set! tag-no (bitwise-arithmetic-shift tag-no 7)))
-	  (when (eof-object? b)
-	    (assertion-violation 'read-tag-number
-				 "EOF found inside tag value"))
-	  (set! tag-no (bitwise-ior tag-no (bitwise-and b #x7f)))))
-      tag-no))
+  ;; pure TLV doesn't have this tag convension this is only for BER format.
+  (define (convert-tag b tag)
+    (let ((b2 (bitwise-and b #x1F)))
+      (if (= b2 #x1F)
+	  tag
+	  b2)))
 
-  (define (read-length in)
-    (let ((len (get-u8 in)))
-      (when (eof-object? len)
-	(assertion-violation 'read-length
-			     "EOF found when length expected"))
-      (cond ((= len #x80) -1)
-	    ((> len 127)
-	     (let ((size (bitwise-and len #x7f))
-		   (rlen  0))
-	       (when (> size 4)
-		 (assertion-violation 'read-length
-				      "DER length more than 4 bytes" size))
-	       (dotimes (i size)
-		 (let ((next (get-u8 in)))
-		   (when (eof-object? next)
-		     (assertion-violation 'read-length
-					  "EOF found reading length"))
-		   (set! rlen (+ (bitwise-arithmetic-shift rlen 8)
-				    next))))
-	       (when (negative? rlen)
-		 (assertion-violation 'read-length
-				      "corrupted stream - negative length found"))
-	       rlen))
-	    (else len))))
+  (define indefinite-handler
+    (case-lambda
+     ((in b) ;; check case
+      (and (zero? b) (zero? (lookahead-u8 in)) (get-u8 in)))
+     ((in b tag) ;; construct case
+      (let1 constructed? (not (zero? (bitwise-and tag CONSTRUCTED)))
+	(do-indefinite-length in b (convert-tag b tag) constructed?)))))
 
-  (define (read-object in :optional (skip? #f))
-    (let ((tag (get-u8 in)))
-      (cond ((eof-object? tag) #f)
-	    ((and (not skip?) (zero? tag))
-	     (assertion-violation 'read-asn.1-object
-				  "unexpected enf-of-contents marker"
-				  (get-bytevector-all in)))
-	    ((and skip? (zero? tag) (zero? (lookahead-u8 in)))
-	     ;; from do-indefinite-length. so read all terminate mark
-	     (get-u8 in)
-	     #f)
-	    (else
-	     (let* ((tag-no (read-tag-number in tag))
-		    (constructed? (not (zero? (bitwise-and tag CONSTRUCTED))))
-		    (len (read-length in)))
-	       (if (negative? len)
-		   (do-indefinite-length in tag tag-no constructed?)
-		   (build-object tag tag-no len in)))))))
+  (define (object-builder in b tag len)
+    (build-object b (convert-tag b tag) len in))
+
+  (define read-object (make-emv-tlv-parser 
+		       :object-builder object-builder
+		       :indefinite-handler indefinite-handler))
 
   (define (read-asn.1-object in)
     (unless (binary-port? in)
       (assertion-violation 'read-asn.1-object
 			   "binary port required" in))
-    (read-object in)
-    )
+    (read-object in))
   )
