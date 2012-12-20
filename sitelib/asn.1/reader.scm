@@ -39,44 +39,6 @@
 	    (asn.1 der tags)
 	    (asn.1 ber types))
 
-  ;; kinda ugly solution
-  (define (read-octet-strings in)
-    (call-with-bytevector-output-port
-     (lambda (out)
-       (do ((tag (lookahead-u8 in) (lookahead-u8 in)))
-	   ((zero? tag) (get-bytevector-n in 2)) ;; read terminate mark
-	 (get-u8 in)
-	 (let ((tag-no (read-tag-number in tag))
-	       (len    (read-length in)))
-	   (put-bytevector out (get-bytevector-n in len)))))))
-
-  (define (do-indefinite-length in tag tag-no constructed?)
-    (unless constructed?
-      (assertion-violation 'do-indefinite-length
-			   "indefinite length primitive encoding encountered"))
-    (cond ((not (zero? (bitwise-and tag APPLICATION)))
-	   (apply make-ber-application-specific tag-no (read-objects in #t)))
-	  ((not (zero? (bitwise-and tag TAGGED)))
-	   (read-tagged-object #t in constructed? tag-no))
-	  ((= tag-no OCTET-STRING)
-	   ;; TODO correct?
-	   (make-ber-constructed-octet-string (read-octet-strings in)))
-	  ((= tag-no SEQUENCE)
-	   (apply make-ber-sequence (read-objects in #t)))
-	  ((= tag-no SET)
-	   (apply make-ber-set (read-objects in #t)))
-	  ((= tag-no EXTERNAL)
-	   ;; TODO this is actually not correct, but for now.
-	   (apply make-der-external (read-objects in)))
-	  ;; TODO there are other tags that may be constructed (e.g. BIT-STRING)
-	  (else
-	   (assertion-violation 'do-indefinite-length
-				"unknown BER object encountered" tag-no))))
-
-  (define (read-objects in :optional (skip? #f))
-    (port-fold-right cons '() (lambda () (let ((r (read-object in skip?)))
-					   (if r r (eof-object))))))
-
   (define (create-der-bit-string bytes)
       ;; well well
       (let ((len (bytevector-length bytes)))
@@ -116,81 +78,55 @@
 	  (make-der-unknown-tag #f tag-no bytes))))
 
   (define (read-tagged-object ber? in constructed? tag)
-    (cond (constructed? 
-	   (let* ((objs (read-objects in ber?))
-		  (len  (length objs))
-		  (make-tagged (if ber?
-				   make-ber-tagged-object 
-				   make-der-tagged-object))
-		  (make-seq (if ber? make-ber-sequence make-der-sequence)))
-	     (cond ((= len 1)
-		    (make-tagged #t tag (car objs)))
-		   (else
-		    (make-tagged #f tag (apply make-seq objs))))))
-	  (else 
-	   (make-der-tagged-object 
-	    #f tag
-	    (make-der-octet-string (get-bytevector-all in))))))
+    (if constructed?
+	(let ((len (length in))
+	      (make-tagged (if ber?
+			       make-ber-tagged-object 
+			       make-der-tagged-object))
+	      (make-seq (if ber? make-ber-sequence make-der-sequence)))
+	  (if (= len 1)
+	      (make-tagged #t tag (car in))
+	      (make-tagged #f tag (apply make-seq in))))
+	(make-der-tagged-object #f tag
+	 (make-der-octet-string 
+	  (get-bytevector-all (open-bytevector-input-port in))))))
 
-  (define (build-object tag tag-no len in)
-    (let ((constructed? (not (zero? (bitwise-and tag CONSTRUCTED))))
-	  (data (get-bytevector-n in len)))
-      (when (and (not (zero? len)) (eof-object? data))
-	(assertion-violation 'build-object
-			     "EOF found during reading data"))
-      (when (and (not (zero? len)) (< (bytevector-length data) len))
-	(assertion-violation 'build-object "corrupted data" 
-			     len (bytevector-length data)))
-      (cond ((not (zero? (bitwise-and tag APPLICATION)))
-	     (make-der-application-specific constructed? tag-no data))
-	    ((not (zero? (bitwise-and tag TAGGED)))
-	     (read-tagged-object #f (open-bytevector-input-port data)
-				 constructed? tag-no))
-	    (constructed?
-	     (cond ((= tag-no OCTET-STRING)
-		    (apply make-ber-constructed-octet-string
-			   (read-objects (open-bytevector-input-port data))))
-		   ((= tag-no SEQUENCE)
-		    (if (zero? len)
-			(make-der-sequence)
-			(apply make-der-sequence
-			       (read-objects
-				(open-bytevector-input-port data)))))
-		   ((= tag-no SET)
-		    (if (zero? len)
-			(make-der-set)
-			(apply make-der-set
-			       (read-objects 
-				(open-bytevector-input-port data)))))
-		   ((= tag-no EXTERNAL)
-		    (apply make-der-external
-			   (read-objects (open-bytevector-input-port data))))
-		   (else
-		    (make-der-unknown-tag #t tag-no data))))
-	    (else
-	     (create-primitive-der-object tag-no data)))))
+  (define (build-object b tag data constructed?)
+    (when (eof-object? data)
+      (assertion-violation 'build-object "EOF found during reading data"))
+    (cond ((not (zero? (bitwise-and b APPLICATION)))
+	   (make-der-application-specific constructed? b data))
+	  ((not (zero? (bitwise-and b TAGGED)))
+	   (read-tagged-object #f data constructed? b))	  
+	  (constructed?
+	   (cond ((= tag OCTET-STRING)
+		  (apply make-ber-constructed-octet-string data))
+		 ((= tag SEQUENCE)
+		  (apply make-der-sequence data))
+		 ((= tag SET)
+		  (apply make-der-set data))
+		 ((= tag EXTERNAL)
+		  (apply make-der-external data))
+		 (else
+		  (let ((ctr (cond ((assv tag *constructors*) => cdr)
+				   (else #f))))
+		    (unless ctr (display tag) (newline))
+		    (if ctr
+			(apply ctr data)
+			(apply make-der-unknown-tag #f tag data))))))
+	  (else
+	   (create-primitive-der-object tag data))))
 
-  ;; pure TLV doesn't have this tag convension this is only for BER format.
   (define (convert-tag b tag)
     (let ((b2 (bitwise-and b #x1F)))
       (if (= b2 #x1F)
 	  tag
 	  b2)))
 
-  (define indefinite-handler
-    (case-lambda
-     ((in b) ;; check case
-      (and (zero? b) (zero? (lookahead-u8 in)) (get-u8 in)))
-     ((in b tag) ;; construct case
-      (let1 constructed? (not (zero? (bitwise-and tag CONSTRUCTED)))
-	(do-indefinite-length in b (convert-tag b tag) constructed?)))))
+  (define (object-builder b tag data constructed?)
+    (build-object b (convert-tag b tag) data constructed?))
 
-  (define (object-builder in b tag len)
-    (build-object b (convert-tag b tag) len in))
-
-  (define read-object (make-emv-tlv-parser 
-		       :object-builder object-builder
-		       :indefinite-handler indefinite-handler))
+  (define read-object (make-emv-tlv-parser :object-builder object-builder))
 
   (define (read-asn.1-object in)
     (unless (binary-port? in)

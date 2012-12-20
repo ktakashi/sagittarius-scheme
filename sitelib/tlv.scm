@@ -30,22 +30,29 @@
 (library (tlv)
     (export make-tlv-parser make-emv-tlv-parser
 	    EMV
-	    tlv-tag tlv-length tlv-data
+	    tlv-builder
+	    tlv-tag tlv-length tlv-data tlv-components
 	    <tlv>)
     (import (rnrs) (clos user)
-	    (only (sagittarius) format define-constant)
-	    (sagittarius control))
+	    (only (sagittarius)
+		  format define-constant reverse! bytevector->integer)
+	    (sagittarius control)
+	    (srfi :26 cut))
 
   ;; default TLV class
   (define-class <tlv> ()
     ((tag    :init-keyword :tag    :reader tlv-tag)
-     (length :init-keyword :length :reader tlv-length)
      ;; bytevector
-     (data   :init-keyword :data   :reader tlv-data)))
+     (data   :init-keyword :data   :reader tlv-data :init-value #f)
+     ;; constructed TLV
+     (components :init-keyword :components :reader tlv-components
+		 :init-value '())))
 
   (define-method write-object ((o <tlv>) p)
-    (format p "#<tlv :tag ~x :length ~a :data ~a>" 
-	    (tlv-tag o) (tlv-length o) (tlv-data o)))
+    (if (tlv-data o)
+	(format p "#<tlv :tag ~x :data ~a>" (tlv-tag o) (tlv-data o))
+	(format p "#<tlv :tag ~x :components ~a>"
+		(tlv-tag o) (tlv-components o))))
 
   (define (make-tlv-unit tag data)
     (make <tlv> :tag tag :length (bytevector-length data) :data data))
@@ -59,25 +66,22 @@
       (else (assertion-violation 'make-tlv-parser
 				 "given format is not supported" format))))
 
-  (define-syntax u8-ref
-    (syntax-rules ()
-      ((_ bv i) (bytevector-u8-ref bv i))))
-
   (define (read-tag in b)
     (if (= (bitwise-and b #x1F) #x1F)
-	(let1 b (get-u8 in)
-	  (when (zero? (bitwise-and b #x7F))
-	    (assertion-violation 
-	     'read-tag "corrupted stream - invalid high tag number found" b))
-	  (do ((b2 b (get-u8 in))
-	       (tag-no 0 (bitwise-arithmetic-shift 
-			  (bitwise-ior tag-no (bitwise-and b2 #x7F))
-			  7)))
-	      ((or (eof-object? b2) (zero? (bitwise-and b2 #x80)))
-	       (when (eof-object? b2)
-		 (assertion-violation 'read-tag
-				      "EOF found inside tag value"))
-	       (bitwise-ior tag-no (bitwise-and b #x7F)))))
+	(bytevector->integer
+	 (call-with-bytevector-output-port
+	  (^o
+	   (put-u8 o b)
+	   (let1 b (get-u8 in)
+	     (when (zero? (bitwise-and b #x7F))
+	       (assertion-violation 
+		'read-tag "corrupted stream - invalid high tag number found" b))
+	     (do ((b b (get-u8 in)))
+		 ((or (eof-object? b) (zero? (bitwise-and b #x80)))
+		  (when (eof-object? b)
+		    (assertion-violation 'read-tag
+					 "EOF found inside tag value")))
+	       (put-u8 o b))))))
 	b))
 
   (define (read-length in)
@@ -85,7 +89,8 @@
       (when (eof-object? len)
 	(assertion-violation 'read-length "EOF found when length expected"))
       (cond ((= len #x80) #f) ;; indefinite length. TODO correct?
-	    ((> len 127)
+	    ((zero? (bitwise-and len #x80)) len)
+	    (else
 	     (let1 size (bitwise-and len #x7F)
 	       (do ((i 0 (+ i 1)) (rlen 0))
 		   ((= i size)
@@ -97,32 +102,53 @@
 		   (when (eof-object? next)
 		     (assertion-violation 'read-length 
 					  "EOF found reading length"))
-		   (set! rlen (+ (bitwise-arithmetic-shift rlen 8) next))))))
-	    (else len))))
+		   (set! rlen (+ (bitwise-arithmetic-shift rlen 8) next)))))))))
   
-  (define (tlv-builder in first tag len)
-    (make-tlv-unit tag (get-bytevector-n in len)))
+  (define (tlv-builder b tag data constructed?)
+    (if constructed?
+	(make <tlv> :tag tag :components data)
+	(make <tlv> :tag tag :data data)))
   
-  (define (make-emv-tlv-parser :key 
-			       (object-builder tlv-builder)
-			       (indefinite-handler #f))
-    (lambda (in :optional (indefinite? #f))
+  (define (make-emv-tlv-parser :key (object-builder tlv-builder))
+    (define (parse-tlv-object-list in in-indefinite?)
+      (let loop ((o (tlv-parser in in-indefinite?)) (r '()))
+	(if o
+	    (loop (tlv-parser in in-indefinite?) (cons o r))
+	    (reverse! r))))
+
+    (define (handle-indefinite b tag in)
+      (object-builder b tag (parse-tlv-object-list in #t) #t))
+
+    ;; separator is null TLV object
+    ;; = tag 0 length 0 data empty
+    (define (tlv-parser in :optional (in-indefinite? #f))
       (let1 b (get-u8 in)
-	(and (not (eof-object? b))
-	     (let1 separator? (and indefinite-handler (indefinite-handler in b))
-	       (cond ((and (not indefinite?) separator?)
-		      (assertion-violation 'tlv-parser
-					   "unexpected end-of-contents marker"
-					   (get-bytevector-all in)))
-		     ;; we only checks 2 bytes for end-of-content marks
-		     (separator? #f)
-		     (else
-		      (let ((tag (read-tag in b))
-			    (len (read-length in)))
-			(if (not len)
-			    (if indefinite-handler
-				(indefinite-handler in b tag)
-				(assertion-violation 
-				 'tlv-parser "indefinite length found"))
-			    (object-builder in b tag len))))))))))
+	(cond ((eof-object? b) #f)
+	      ((and in-indefinite? (zero? b) (zero? (lookahead-u8 in)) 
+		    (get-u8 in))
+	       #f)
+	      (else
+	       (let ((tag (read-tag in b))
+		     (not-constructed? (zero? (bitwise-and #x20 b)))
+		     (len (read-length in)))
+		 (cond (len
+			(let1 data (get-bytevector-n in len)
+			  (when (< (bytevector-length data) len)
+			    (assertion-violation 'tlv-parser
+						 "corrupted data"))
+			  (if not-constructed?
+			      (object-builder b tag data #f)
+			      (object-builder 
+			       b
+			       tag 
+			       (call-with-port 
+				   (open-bytevector-input-port data)
+				 (cut parse-tlv-object-list <> in-indefinite?))
+			       #t))))
+		       (not-constructed?
+			(assertion-violation 'tlv-parser
+					     "indefinite length found" tag))
+		       (else
+			(handle-indefinite b tag in))))))))
+    tlv-parser)
 )
