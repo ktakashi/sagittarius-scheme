@@ -88,17 +88,15 @@
 	    ((zero? (bitwise-and len #x80)) len)
 	    (else
 	     (let1 size (bitwise-and len #x7F)
-	       (do ((i 0 (+ i 1)) (rlen 0))
-		   ((= i size)
-		    (when (negative? rlen)
-		      (assertion-violation
-		       'read-length "corrupted stream - negative length found"))
-		    rlen)
-		 (let1 next (get-u8 in)
-		   (when (eof-object? next)
-		     (assertion-violation 'read-length 
-					  "EOF found reading length"))
-		   (set! rlen (+ (bitwise-arithmetic-shift rlen 8) next)))))))))
+	       (let loop ((i 1) (rlen (get-u8 in)))
+		 (if (= i size)
+		     (begin 
+		       (when (negative? rlen)
+			 (assertion-violation 'read-length
+			  "corrupted stream - negative length found"))
+		       rlen)
+		     (loop (+ i 1) (+ (bitwise-arithmetic-shift rlen 8)
+				      (get-u8 in))))))))))
   
   (define (tlv-builder b tag data constructed?)
     (if constructed?
@@ -130,8 +128,7 @@
 		 (cond (len
 			(let1 data (get-bytevector-n in len)
 			  (when (< (bytevector-length data) len)
-			    (assertion-violation 'tlv-parser
-						 "corrupted data"))
+			    (assertion-violation 'tlv-parser "corrupted data"))
 			  (if not-constructed?
 			      (object-builder b tag data #f)
 			      (object-builder 
