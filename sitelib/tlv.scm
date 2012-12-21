@@ -80,7 +80,8 @@
 		 ((or (eof-object? b) (zero? (bitwise-and b #x80)))
 		  (when (eof-object? b)
 		    (assertion-violation 'read-tag
-					 "EOF found inside tag value")))
+					 "EOF found inside tag value"))
+		  (put-u8 o b))
 	       (put-u8 o b))))))
 	b))
 
