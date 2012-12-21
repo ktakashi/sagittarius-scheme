@@ -68,21 +68,16 @@
 
   (define (read-tag in b)
     (if (= (bitwise-and b #x1F) #x1F)
-	(bytevector->integer
-	 (call-with-bytevector-output-port
-	  (^o
-	   (put-u8 o b)
-	   (let1 b (get-u8 in)
-	     (when (zero? (bitwise-and b #x7F))
-	       (assertion-violation 
-		'read-tag "corrupted stream - invalid high tag number found" b))
-	     (do ((b b (get-u8 in)))
-		 ((or (eof-object? b) (zero? (bitwise-and b #x80)))
-		  (when (eof-object? b)
-		    (assertion-violation 'read-tag
-					 "EOF found inside tag value"))
-		  (put-u8 o b))
-	       (put-u8 o b))))))
+	(let1 b2 (get-u8 in)
+	  (when (zero? (bitwise-and b2 #x7F))
+	    (assertion-violation 
+	     'read-tag "corrupted stream - invalid high tag number found" b2))
+	  (do ((b3 b2 (get-u8 in)) 
+	       (r b (bitwise-ior (bitwise-arithmetic-shift r 8) b3)))
+	      ((or (eof-object? b3) (zero? (bitwise-and b3 #x80)))
+	       (when (eof-object? b)
+		 (assertion-violation 'read-tag "EOF found inside tag value"))
+	       (bitwise-ior (bitwise-arithmetic-shift r 8) b3))))
 	b))
 
   (define (read-length in)
