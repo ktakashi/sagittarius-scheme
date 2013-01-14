@@ -32,7 +32,7 @@
 	    EMV
 	    tlv-builder
 	    tlv-object?
-	    tlv-tag tlv-length tlv-data tlv-components
+	    tlv-tag tlv-data tlv-components
 	    <tlv>
 	    ;; utilities
 	    dump-tlv
