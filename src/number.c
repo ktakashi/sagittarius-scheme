@@ -2440,6 +2440,7 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
   if (SG_BIGNUMP(x)) {
   bignum_again:
     if (SG_INTP(y)) {
+#if 0
       long iy = SG_INT_VALUE(y);
       long rem;
       Sg_BignumDivSI(SG_BIGNUM(x), iy, &rem);
@@ -2450,6 +2451,10 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
 	return SG_MAKE_INT(iy + rem);
       }
       else return SG_MAKE_INT(rem);
+#else
+      if (SG_INT_VALUE(y) == 0) goto div_by_zero;
+      return Sg_BignumModuloSI(SG_BIGNUM(x), SG_INT_VALUE(y), remp);
+#endif
     }
     else if (SG_BIGNUMP(y)) {
       bx = x;

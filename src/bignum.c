@@ -744,7 +744,8 @@ static SgBignum* bignum_rshift(SgBignum *br, SgBignum const *bx, int amount)
       x = (bx->elements[i+1] << (WORD_BITS - nbits))|(bx->elements[i] >> nbits);
       br->elements[i - nwords] = x;
     }
-    ASSERT(SG_BIGNUM_GET_COUNT(br) > i-nwords);
+    /* bn_sqrt pass normalized but enough sized result holder */
+    /* ASSERT(SG_BIGNUM_GET_COUNT(br) > i-nwords); */
     br->elements[i - nwords] = bx->elements[i] >> nbits;
     SG_BIGNUM_SET_COUNT(br, SG_BIGNUM_GET_COUNT(bx) - nwords);
     SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
@@ -1274,6 +1275,16 @@ SgObject Sg_BignumModulo(SgBignum *a, SgBignum *b, int remp)
   return r;
 }
 
+SgObject Sg_BignumModuloSI(SgBignum *a, long b, int remp)
+{
+  SgBignum *bb;
+  ASSERT(b != 0);
+  ALLOC_TEMP_BIGNUM(bb, 1);
+  SG_BIGNUM_SET_SIGN(bb, (b < 0) ? -1 : 1);
+  bb->elements[0] = (b < 0) ? -b : b;
+  return Sg_BignumModulo(a, bb, remp);
+}
+
 SgObject Sg_BignumDivSI(SgBignum *a, long b, long *rem)
 {
   unsigned long dd= (b < 0) ? -b : b;
@@ -1314,18 +1325,18 @@ static void bn_sqrt(SgBignum *bn)
 
   bitsize = Sg_BignumBitSize(bn);
   bignum_rshift(s, tmp, (bitsize - 1) / 2);
-  Sg_NormalizeBignum(s);
+  bignum_normalize(s);
 
   while (TRUE) {
     tmp = Sg_Quotient(bn, s, NULL);
     /* tmp = Sg_BignumAdd(workpad, s); */
     tmp = bignum_add(workpad, s);
     bignum_rshift(workpad, tmp, 1);
-    Sg_NormalizeBignum(workpad);
+    bignum_normalize(workpad);
     if (Sg_BignumCmp(workpad, s) >= 0) {
       bignum_copy(bn, s);
       SG_BIGNUM_SET_SIGN(bn, 1);
-      Sg_NormalizeBignum(bn);
+      bignum_normalize(bn);
       return ;
     }
     count = SG_BIGNUM_GET_COUNT(workpad);
