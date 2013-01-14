@@ -31,14 +31,17 @@
     (export make-tlv-parser make-emv-tlv-parser
 	    EMV
 	    tlv-builder
+	    tlv-object?
 	    tlv-tag tlv-length tlv-data tlv-components
 	    <tlv>
 	    ;; utilities
-	    dump-tlv ;;encode-tlv
+	    dump-tlv
+	    tlv->bytevector write-tlv
 	    )
     (import (rnrs) (clos user)
 	    (only (sagittarius)
-		  format define-constant reverse! bytevector->integer)
+		  format define-constant reverse!
+		  bytevector->integer integer->bytevector)
 	    (sagittarius control)
 	    (srfi :26 cut))
 
@@ -50,6 +53,8 @@
      ;; constructed TLV
      (components :init-keyword :components :reader tlv-components
 		 :init-value '())))
+
+  (define (tlv-object? o) (is-a? o <tlv>))
 
   (define-method write-object ((o <tlv>) p)
     (if (tlv-data o)
@@ -171,19 +176,37 @@
 	    (for-each (cut dump-components <> (+ indent 2)) components))))
     (dump-components tlv 0))
 
-;;  (define (encode-tlv tlv :optional (out #f))
-;;    (define (value-length tlv)
-;;      (let1 components (tlv-components tlv)
-;;	(if (null? components)
-;;	    (bytevector-length (tlv-data tlv))
-;;	    (fold (^(seed tlv) (+ seed (value-length tlv))) 0 components))))
-;;    (define (encode-length len)
-;;      (if (< value #x80)
-;;	  1
-;;	  (implementation-restriction-violation 'encode-tlv 
-;;						"not supported yet")))
-;;    (if out
-;;	(let1 len (value-length tlv)
-;;	  len)))
+  (define (tlv->bytevector tlv)
+    (call-with-bytevector-output-port (cut write-tlv tlv <>)))
+
+  (define (write-tlv tlv :optional (out (current-output-port)))
+    (define (write-tag tag) (put-bytevector out (integer->bytevector tag)))
+    (define (write-length len)
+      (define ashr bitwise-arithmetic-shift-right)
+      (cond ((< len 0))
+	    ((< len #x7F) (put-u8 out len))
+	    (else
+	     ;; NOTE: #xFFFF: length = 3
+	     ;; EMV tlv accepts maximum 4 bytes length but we don't check it
+	     (let1 length-bits (+ (div (bitwise-length len) 8) 1)
+	       (put-u8 out (+ #x80 length-bits))
+	       (do ((i length-bits (- i 1)))
+		   ((< i 0))
+		 (put-u8 out (bitwise-and #xFF (ashr len (* i 8)))))))))
+    (define (write-value bv) (put-bytevector out bv))
+    (define (components-values components)
+      (call-with-bytevector-output-port
+       (lambda (out)
+	 (for-each (cut write-tlv <> out) components))))
+
+    (unless (binary-port? out)
+      (assertion-violation 'write-tlv "binary port required" out))
+    (let1 components (tlv-components tlv)
+      (let1 value (if (null? components)
+		      (tlv-data tlv)
+		      (components-values components))
+	(write-tag (tlv-tag tlv))
+	(write-length (bytevector-length value))
+	(write-value value))))
 	      
 )
