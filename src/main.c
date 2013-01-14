@@ -442,14 +442,7 @@ int main(int argc, char **argv)
     }
   }
   vm->commandLineArgs = argsToList(argc, optind, argv);
-  /* set profiler */
-  if (profiler_mode) {
-    Sg_ImportLibrary(vm->currentLibrary, 
-		     SG_INTERN("(sagittarius vm profiler)"));
-    Sg_ProfilerStart();
-  }
-  Sg_AddCleanupHandler(cleanup_main, NULL);
-
+  /* import all necessary stuff first, otherwise profiler doesn't work. */
   if (load_base_library) {
     Sg_ImportLibrary(vm->currentLibrary, SG_INTERN("null"));
     Sg_ImportLibrary(vm->currentLibrary, SG_INTERN("(core base)"));
@@ -462,6 +455,13 @@ int main(int argc, char **argv)
 				      SG_INTERN("library"),
 				      SG_INTERN("define-library")));
   }
+  /* set profiler */
+  if (profiler_mode) {
+    Sg_ImportLibrary(vm->currentLibrary, 
+		     SG_INTERN("(sagittarius vm profiler)"));
+    Sg_ProfilerStart();
+  }
+  Sg_AddCleanupHandler(cleanup_main, NULL);
 
   if (optind < argc) {
     SgObject proc;
