@@ -32,7 +32,10 @@
 	    EMV
 	    tlv-builder
 	    tlv-tag tlv-length tlv-data tlv-components
-	    <tlv>)
+	    <tlv>
+	    ;; utilities
+	    dump-tlv ;;encode-tlv
+	    )
     (import (rnrs) (clos user)
 	    (only (sagittarius)
 		  format define-constant reverse! bytevector->integer)
@@ -144,4 +147,43 @@
 		       (else
 			(handle-indefinite b tag in))))))))
     tlv-parser)
+
+  (define (dump-tlv tlv :optional (out (current-output-port)))
+    (define (print-indent indent)
+      (dotimes (i indent)
+	(display #\space out)))
+    (define (print-tag tag)
+      (format out "[Tag] ~X" tag))
+
+    (define (dump-data data indent)
+      (newline out)
+      (print-indent (+ indent 2))
+      (display "[Data]" out)
+      (dotimes (i (bytevector-length data))
+	(format out " ~X" (bytevector-u8-ref data i))))
+    (define (dump-components tlv indent)
+      (unless (zero? indent) (newline out))
+      (print-indent indent)
+      (print-tag (tlv-tag tlv))
+      (let1 components (tlv-components tlv)
+	(if (null? components)
+	    (dump-data (tlv-data tlv) indent)
+	    (for-each (cut dump-components <> (+ indent 2)) components))))
+    (dump-components tlv 0))
+
+;;  (define (encode-tlv tlv :optional (out #f))
+;;    (define (value-length tlv)
+;;      (let1 components (tlv-components tlv)
+;;	(if (null? components)
+;;	    (bytevector-length (tlv-data tlv))
+;;	    (fold (^(seed tlv) (+ seed (value-length tlv))) 0 components))))
+;;    (define (encode-length len)
+;;      (if (< value #x80)
+;;	  1
+;;	  (implementation-restriction-violation 'encode-tlv 
+;;						"not supported yet")))
+;;    (if out
+;;	(let1 len (value-length tlv)
+;;	  len)))
+	      
 )
