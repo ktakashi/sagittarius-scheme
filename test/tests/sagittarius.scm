@@ -770,5 +770,8 @@
 
 ;; issue 80
 (test-equal "bignum sqrt" 1377769.8968554218 (sqrt 1898249888681))
+;; issue 82
+(test-equal "bit count (1)" 0 (bitwise-bit-count 0))
+(test-equal "bit count (2)" 0 (fxbit-count 0))
 
 (test-end)

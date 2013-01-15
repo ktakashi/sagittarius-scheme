@@ -1780,7 +1780,7 @@ int Sg_BitCount(SgObject x)
   if (!SG_EXACT_INTP(x)) Sg_Error(UC("exact integer required, but got %S"), x);
   if (SG_INTP(x)) {
     long n = SG_INT_VALUE(x);
-    if (n > 0) {
+    if (n >= 0) {
       return nbits(n);
     } else {
       return ~nbits(~n);
