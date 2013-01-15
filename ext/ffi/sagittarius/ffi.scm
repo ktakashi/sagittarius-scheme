@@ -4,6 +4,7 @@
 	    lookup-shared-library
 	    close-shared-library
 	    c-function
+	    make-c-function ;; issue 83
 	    pointer->c-function
 
 	    c-callback
