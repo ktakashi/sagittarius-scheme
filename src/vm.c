@@ -1192,6 +1192,8 @@ static SgContFrame* save_a_cont(SgContFrame *c)
       for (i = 0; i < c->size; i++) {
 	*d++ = *s++;
       }
+    } else {
+      csave->env = NULL;
     }
   } else {
     /* C continuation */
@@ -1201,6 +1203,7 @@ static SgContFrame* save_a_cont(SgContFrame *c)
       /* C continuation frame contains opaque pointer */
       *d++ = *s++;
     }
+    csave->env = NULL;
   }
   return csave;
 }
