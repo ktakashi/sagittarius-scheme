@@ -75,13 +75,14 @@
 
 static void sampler_sample(int sig)
 {
-  SgVM *vm;
+  SgVM *vm = Sg_VM();
   int i;
   
-  vm = Sg_VM();
   if (!vm) return;		/* how could this happen? */
   if (vm->profiler == NULL) return;
   if (vm->profiler->state != SG_PROFILER_RUNNING) return;
+  /* we don't need compiler profiler at this moment. */
+  if (vm->state != RUNNING) return;
 
   if (vm->profiler->currentSample >= SG_PROF_SAMPLES) {
     Sg_Printf(Sg_CurrentErrorPort(), UC("*STOP* profiler buffer is full."));
@@ -195,7 +196,6 @@ SgObject Sg_ProfilerRawResult()
 void Sg_ProfilerCountBufferFlush(SgVM *vm)
 {
   int i, ncounts;
-  SgObject func;
   sigset_t set;
 
   if (vm->profiler == NULL) return; /* for safety */
@@ -207,17 +207,17 @@ void Sg_ProfilerCountBufferFlush(SgVM *vm)
 
   ncounts = vm->profiler->currentCount;
   for (i = 0; i < ncounts; i++) {
-    SgObject e;
+    SgObject e, func;
     int count;
-
+    
     func = vm->profiler->counts[i].func;
     e = Sg_HashTableSet(vm->profiler->statHash,
-			vm->profiler->counts[i].func,
+			func,
 			SG_FALSE,
 			SG_HASH_NO_OVERWRITE);
     if (SG_FALSEP(e)) {
       e = Sg_HashTableSet(vm->profiler->statHash,
-			  vm->profiler->counts[i].func,
+			  func,
 			  Sg_Cons(SG_MAKE_INT(0), SG_MAKE_INT(0)),
 			  0);
     }

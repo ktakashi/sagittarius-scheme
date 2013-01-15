@@ -1180,7 +1180,6 @@ static SgContFrame* save_a_cont(SgContFrame *c)
   const size_t argsize = (c->size > 0) ? (c->size * sizeof(SgObject)) : 0;
   const size_t size = sizeof(SgContFrame) + argsize;
   SgContFrame *csave = SG_NEW2(SgContFrame *, size);
-  csave->env = NULL;
 
   /* copy cont frame */
   if (c->fp != C_CONT_MARK) {
@@ -1218,42 +1217,40 @@ static void save_cont_rec(SgVM *vm, int partialP)
   SgCStack *cstk;
   SgContinuation *ep;
 
-  if (!IN_STACK_P((SgObject*)c, vm)) return;
+  if (IN_STACK_P((SgObject*)c, vm)) {
+    do {
+      SgContFrame *csave;
+      if (partialP && BOUNDARY_FRAME_MARK_P(c)) break;
+      csave = save_a_cont(c);
+      /* make the orig frame forwarded */
+      if (prev) prev->prev = csave;
 
-  do {
-    SgContFrame *csave;
-    if (partialP && BOUNDARY_FRAME_MARK_P(c)) goto update;
-    csave = save_a_cont(c);
-    /* make the orig frame forwarded */
-    if (prev) prev->prev = csave;
+      prev = csave;
+      tmp = c->prev;
+      c->prev = csave;
+      c->size = -1;
+      c = tmp;
+    } while (IN_STACK_P((SgObject*)c, vm));
 
-    prev = csave;
-    tmp = c->prev;
-    c->prev = csave;
-    c->size = -1;
-    c = tmp;
-  } while (IN_STACK_P((SgObject*)c, vm));
-
- update:
-  if (FORWARDED_CONT_P(vm->cont)) {
-    vm->cont = FORWARDED_CONT(vm->cont);
-  }
-  for (cstk = vm->cstack; cstk; cstk = cstk->prev) {
-    if (FORWARDED_CONT_P(cstk->cont)) {
-      cstk->cont = FORWARDED_CONT(cstk->cont);
+    if (FORWARDED_CONT_P(vm->cont)) {
+      vm->cont = FORWARDED_CONT(vm->cont);
+    }
+    for (cstk = vm->cstack; cstk; cstk = cstk->prev) {
+      if (FORWARDED_CONT_P(cstk->cont)) {
+	cstk->cont = FORWARDED_CONT(cstk->cont);
+      }
+    }
+    for (ep = vm->escapePoint; ep; ep = ep->prev) {
+      if (FORWARDED_CONT_P(ep->cont)) {
+	ep->cont = FORWARDED_CONT(ep->cont);
+      } 
+    }
+    for (ep = SG_VM_FLOATING_EP(vm); ep; ep = ep->floating) {
+      if (FORWARDED_CONT_P(ep->cont)) {
+	ep->cont = FORWARDED_CONT(ep->cont);
+      } 
     }
   }
-  for (ep = vm->escapePoint; ep; ep = ep->prev) {
-    if (FORWARDED_CONT_P(ep->cont)) {
-      ep->cont = FORWARDED_CONT(ep->cont);
-    } 
-  }
-  for (ep = SG_VM_FLOATING_EP(vm); ep; ep = ep->floating) {
-    if (FORWARDED_CONT_P(ep->cont)) {
-      ep->cont = FORWARDED_CONT(ep->cont);
-    } 
-  }
-
 }
 
 static void save_cont(SgVM *vm)
@@ -1296,12 +1293,10 @@ static SgObject throw_continuation_body(SgObject handlers,
 					SgObject args)
 {
   SgVM *vm = Sg_VM();
-  int argc;
   /* (if (not (eq? new (current-dynamic-winders))) perform-dynamic-wind) */
   if (SG_PAIRP(handlers)) {
     SgObject handler, chain;
     void *data[3];
-    ASSERT(SG_PAIRP(SG_CAR(handlers)));
     handler = SG_CAAR(handlers);
     chain = SG_CDAR(handlers);
     data[0] = (void*)SG_CDR(handlers);
@@ -1310,41 +1305,44 @@ static SgObject throw_continuation_body(SgObject handlers,
     Sg_VMPushCC(throw_continuation_cc, data, 3);
     vm->dynamicWinders = chain;
     return Sg_VMApply0(handler);
-  }
-  /* 
-     if the target continuation is a full continuation, we can abandon
-     the current continuation. however, if the target continuation is
-     partial, we must return to the current continuation after executing
-     the partial continuation.
-   */
-  if (c->cstack == NULL) save_cont(vm);
-
-  vm->cont = c->cont;
-  vm->pc = return_code;
-  vm->dynamicWinders = c->winders;
-
-  argc = Sg_Length(args);
-  
-  /* store arguments of the continuation to ac */
-  if (argc < 1) {
-    /* does this happen? */
-    vm->ac = SG_UNDEF;
-  } else if (argc > 1) {
-    int i;
-    SgObject ap;
-    /* when argc == DEFAULT_VALUES_SIZE+1, it must be in pre-allocated buffer */
-    if (argc > DEFAULT_VALUES_SIZE+1) {
-      SG_ALLOC_VALUES_BUFFER(vm, argc - DEFAULT_VALUES_SIZE -1);
-    }
-    vm->ac = SG_CAR(args);
-    for (i = 0, ap = SG_CDR(args); SG_PAIRP(ap); i++, ap = SG_CDR(ap)) {
-      SG_VALUES_SET(vm, i, SG_CAR(ap));
-    }
-    vm->valuesCount = argc;
   } else {
-    vm->ac = SG_CAR(args);
+    /* 
+       if the target continuation is a full continuation, we can abandon
+       the current continuation. however, if the target continuation is
+       partial, we must return to the current continuation after executing
+       the partial continuation.
+    */
+    if (c->cstack == NULL) save_cont(vm);
+
+    vm->cont = c->cont;
+    vm->pc = return_code;
+    vm->dynamicWinders = c->winders;
+
+    /* store arguments of the continuation to ac */
+    if (SG_NULLP(args)) {		/* no value */
+      /* does this happen? */
+      vm->ac = SG_UNDEF;
+      vm->valuesCount = 0;
+    } else if (SG_NULLP(SG_CDR(args))) { /* usual case */
+      vm->ac = SG_CAR(args);
+      vm->valuesCount = 1;
+    } else {			/* multi values */
+      SgObject ap;
+      int argc = Sg_Length(args), i;
+      /* when argc == DEFAULT_VALUES_SIZE+1, it must be in pre-allocated
+	 buffer */
+      if (argc > DEFAULT_VALUES_SIZE+1) {
+	SG_ALLOC_VALUES_BUFFER(vm, argc - DEFAULT_VALUES_SIZE -1);
+      }
+      vm->ac = SG_CAR(args);
+      for (i = 0, ap = SG_CDR(args); SG_PAIRP(ap); i++, ap = SG_CDR(ap)) {
+	SG_VALUES_SET(vm, i, SG_CAR(ap));
+      }
+      vm->valuesCount = argc;
+    }
+  
+    return vm->ac;
   }
-  return vm->ac;
 }
 static SgObject throw_continuation_cc(SgObject result, void **data)
 {
@@ -1354,24 +1352,31 @@ static SgObject throw_continuation_cc(SgObject result, void **data)
   return throw_continuation_body(handlers, c, args);
 }
 
+/* remove and re-order continuation's handlers */
+static SgObject remove_common_winders(SgObject current, SgObject escapes)
+{
+  SgObject r = SG_NIL, p;
+  SG_FOR_EACH(p, escapes) {
+    if (SG_FALSEP(Sg_Memq(SG_CAR(p), current))) {
+      r = Sg_Cons(SG_CAR(p), r);
+    }
+  }
+  return r;
+}
+
 static SgObject throw_continuation_calculate_handlers(SgContinuation *c,
 						      SgVM *vm)
 {
-  SgObject target = Sg_Reverse(c->winders);
   SgObject current = vm->dynamicWinders;
+  SgObject target = remove_common_winders(current, c->winders);
   SgObject h = SG_NIL, t = SG_NIL, p;
 
   SG_FOR_EACH(p, current) {
-    ASSERT(SG_PAIRP(SG_CAR(p)));
-    if (!SG_FALSEP(Sg_Memq(SG_CAR(p), target))) break;
+    if (!SG_FALSEP(Sg_Memq(SG_CAR(p), c->winders))) break;
     SG_APPEND1(h, t, Sg_Cons(SG_CDAR(p), SG_CDR(p)));
   }
   SG_FOR_EACH(p, target) {
-    SgObject chain;
-    ASSERT(SG_PAIRP(SG_CAR(p)));
-    if (!SG_FALSEP(Sg_Memq(SG_CAR(p), current))) continue;
-    chain = Sg_Memq(SG_CAR(p), c->winders);
-    ASSERT(SG_PAIRP(chain));
+    SgObject chain = Sg_Memq(SG_CAR(p), c->winders);
     SG_APPEND1(h, t, Sg_Cons(SG_CAAR(p), SG_CDR(chain)));
   }
   return h;
@@ -1755,7 +1760,7 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
       FP(vm) = SP(vm) = vm->stack;					\
       PC(vm) = CONT(vm)->pc;						\
       CL(vm) = CONT(vm)->cl;						\
-      if (CONT(vm)->env && size__) {					\
+      if (size__) {							\
 	SgObject *s__ = CONT(vm)->env, *d__ = SP(vm);			\
 	SP(vm) += size__;						\
 	while (size__-- > 0) {						\
