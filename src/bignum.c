@@ -744,8 +744,7 @@ static SgBignum* bignum_rshift(SgBignum *br, SgBignum const *bx, int amount)
       x = (bx->elements[i+1] << (WORD_BITS - nbits))|(bx->elements[i] >> nbits);
       br->elements[i - nwords] = x;
     }
-    /* bn_sqrt pass normalized but enough sized result holder */
-    /* ASSERT(SG_BIGNUM_GET_COUNT(br) > i-nwords); */
+    ASSERT(SG_BIGNUM_GET_COUNT(br) > i-nwords);
     br->elements[i - nwords] = bx->elements[i] >> nbits;
     SG_BIGNUM_SET_COUNT(br, SG_BIGNUM_GET_COUNT(bx) - nwords);
     SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
@@ -1328,10 +1327,19 @@ static void bn_sqrt(SgBignum *bn)
   bignum_normalize(s);
 
   while (TRUE) {
-    tmp = Sg_Quotient(bn, s, NULL);
+    memset(workpad->elements, 0, sizeof(long) * workpad_count);
+    SG_BIGNUM_SET_COUNT(workpad, workpad_count);
+    bignum_gdiv(bn, s, workpad);
+    SG_BIGNUM_SET_COUNT(workpad, SG_BIGNUM_GET_COUNT(workpad) + 1);
+    if (SG_BIGNUM_GET_SIGN(workpad) == SG_BIGNUM_GET_SIGN(s)) {
+      bignum_add_int(workpad, workpad, s);
+    } else {
+      bignum_sub_int(workpad, workpad, s);
+    }
+    /* tmp = Sg_Quotient(bn, s, NULL); */
     /* tmp = Sg_BignumAdd(workpad, s); */
-    tmp = bignum_add(workpad, s);
-    bignum_rshift(workpad, tmp, 1);
+    /* tmp = bignum_add(workpad, s); */
+    bignum_rshift(workpad, workpad, 1);
     bignum_normalize(workpad);
     if (Sg_BignumCmp(workpad, s) >= 0) {
       bignum_copy(bn, s);
