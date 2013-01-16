@@ -280,6 +280,15 @@ it reaches 0.
 If NULL pointer is given, it raises @code{&assertion}.
 }
 
+@define[Function]{@name{pointer->bytevector}
+ @args{pointer size}}
+@desc{@var{Size} must be an exact integer.
+
+Converts given @var{pointer} to Scheme bytevector.
+
+If NULL pointer is given, it raises @code{&assertion}.
+}
+
 @define[Function]{@name{deref} @args{pointer offset}}
 @desc{@var{offset} must be a fixnum.
 

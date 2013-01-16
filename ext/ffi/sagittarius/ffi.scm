@@ -145,6 +145,7 @@
 	    null-pointer?
 	    empty-pointer
 	    pointer->string
+	    pointer->bytevector
 	    deref
 	    ;; clos
 	    <pointer> <function-info> <callback> <c-struct>)
@@ -203,6 +204,13 @@
 	      ((zero? (pointer-ref-c-uint8 pointer i))
 	       (bytevector->string (getter) transcoder))
 	    (put-u8 out (pointer-ref-c-uint8 pointer i))))))
+
+  (define (pointer->bytevector p size)
+    (if (null-pointer? pointer)
+	(assertion-violation 'pointer->bytevector "NULL pointer is given")
+	(do ((i 0 (+ i 1)) (bv (make-bytevector size)))
+	    ((= i size) bv)
+	  (bytevector-u8-set! bv i (pointer-ref-c-uint8 p i)))))
 
   (define (deref pointer offset)
     (if (null-pointer? pointer)
