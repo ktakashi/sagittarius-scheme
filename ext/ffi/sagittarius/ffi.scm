@@ -206,7 +206,7 @@
 	    (put-u8 out (pointer-ref-c-uint8 pointer i))))))
 
   (define (pointer->bytevector p size)
-    (if (null-pointer? pointer)
+    (if (null-pointer? p)
 	(assertion-violation 'pointer->bytevector "NULL pointer is given")
 	(do ((i 0 (+ i 1)) (bv (make-bytevector size)))
 	    ((= i size) bv)
