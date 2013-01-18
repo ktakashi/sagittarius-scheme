@@ -2,8 +2,8 @@
 
 @section{R7RS Support}
 
-Since R7RS has already had draft 5, Sagittarius also supports its syntax and
-libraries. There are a lot of possibilites to be changed. So this document may
+Since R7RS has already had draft 8, Sagittarius also supports its syntax and
+libraries. There are a lot of possibilities to be changed. So this document may
 be changed.
 
 @subsection{R7RS library system}
