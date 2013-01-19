@@ -521,8 +521,28 @@
 ;; it contains all lexical variables for fender and expander. 
 ;; see compile-syntax-case.
 (define (compile-syntax exp-name tmpl env mac-env)
-  (let* ((template tmpl)
-	 (ids (collect-unique-ids tmpl))
+  ;; issue 84 and 85. to wrap symbol properly during expansion,
+  ;; we need to wrap all template variables if it's not wrapped.
+  (define (rewrite expr)
+    (define seen (make-eq-hashtable))
+    (define (seen-or-gen id)
+      (cond ((hashtable-ref seen id #f))
+	    (else
+	     (let ((new-id (make-identifier id
+					    (vector-ref mac-env 1)
+					    (vector-ref mac-env 0))))
+	       (hashtable-set! seen id new-id)
+	       new-id))))
+    (let loop ((expr expr))
+      (cond ((pair? expr)
+	     (let ((a (loop (car expr))) (d (loop (cdr expr))))
+	       (if (and (eq? a (car expr)) (eq? d (cdr expr)))
+		   expr
+		   (cons a d))))
+	    ((symbol? expr) (seen-or-gen expr))
+	    (else expr))))
+  (let* ((ids (collect-unique-ids tmpl))
+	 (template (if (exists identifier? ids) tmpl (rewrite tmpl)))
 	 (ranks (filter values
 			(map (lambda (id)
 			       (let ((p (p1env-lookup mac-env id PATTERN)))
@@ -610,35 +630,9 @@
     ;; wrap the given symbol with current usage env frame.
     (define (wrap-symbol sym)
       (define (finish new) (add-to-transformer-env! sym new))
-      ;; To handle this case we need to check with p1env
-      ;; other wise mac-env is still the same as use-env
-      ;; (define-syntax foo
-      ;;  (let ()
-      ;;    (define bar #'bzz)
-      ;;    ...
-      ;;    ))
-      (let* ((mac-lib (vector-ref p1env 0))
-	     (use-lib (vector-ref use-env 0))
-	     (g (find-binding mac-lib sym #f))
-	     ;; if the symbol is binded locally it must not be
-	     ;; wrapped with macro environment.
-	     (lv (p1env-lookup use-env sym LEXICAL)))
-	;; Issue 25.
-	;; if the binding found in macro env, then it must be wrap with
-	;; macro env.
-	;; FIXME: it seems working but I smell something wrong with
-	;;        this solution. The point of the issue was inside
-	;;        of the macro it refers to the macro itself but the
-	;;        expansion did not occure until it really called.
-	;;        that causes library difference even though it's in
-	;;        the macro defined library.
-	(if (and (identifier? lv)
-		 (not (eq? mac-lib use-lib))
-		 g (eq? (gloc-library g) mac-lib))
-	    (let ((t (make-identifier sym '() mac-lib)))
-	      (finish (make-identifier t (vector-ref mac-env 1) mac-lib)))
-	    (let ((t (make-identifier sym '() use-lib)))
-	      (finish (make-identifier t (vector-ref use-env 1) use-lib))))))
+      (let* ((use-lib (vector-ref use-env 0)))
+	(let ((t (make-identifier sym '() use-lib)))
+	  (finish (make-identifier t (vector-ref use-env 1) use-lib)))))
 
     (define (partial-identifier olst)
       (define (check-binding name env library)
