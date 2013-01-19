@@ -1,6 +1,6 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
-(library (issue :10)
-    (export loop-10)
+(library (issue helper)
+    (export loop-10 define-something symbol bar foo)
     (import (rnrs))
   (define-syntax loop-10
     (lambda (x)
@@ -11,9 +11,54 @@
            #'(call-with-current-continuation
               (lambda (break)
                 (let f () e ... (f)))))])))
+
+  (define-syntax define-something
+    (lambda (x)
+      (syntax-case x (lambda)
+	((_ (name . formals) body ...)
+	 #'(define-something name (lambda formals body ...)))
+	((_ name (lambda formals body ...))
+	 #'(define name (lambda formals body ...))))))
+
+  (define (something) (display 'hoge) (newline))
+  (define symbol 'symbol)
+
+
+  (define (problem) 'ok)
+
+  (define-syntax bar
+    (lambda (x)
+      (define (dummy)
+	`(,(datum->syntax #'bar 'problem)))
+      (syntax-case x ()
+	((k) (dummy)))))
+  
+  (define-syntax foo
+    (lambda (x)
+      (define (dummy)
+	`(,(datum->syntax #'brrr 'problem)))
+      (syntax-case x ()
+	((k) (dummy)))))
 )
+
+(library (issue :84)
+    (export doit1 doit2)
+    (import (rnrs) (issue helper))
+
+  (define-syntax doit1
+    (lambda (stx)
+      (define (return)
+    	#'symbol)
+      (return)))
+
+  (define-syntax doit2
+    (lambda (stx)
+      #'symbol))
+  )
+
 (import (rnrs)
-	(issue :10)
+	(issue helper)
+	(issue :84)
 	(srfi :64 testing))
 
 ;; from mosh issue 138
@@ -84,5 +129,17 @@
 		 (if (= n 0) (break ls))
 		 (set! ls (cons 'a ls))
 		 (set! n (- n 1))))))
+
+;; issue 25 and 86
+(test-equal "issue 25" 'ok (bar))
+(test-equal "issue 25" 'ok (foo))
+
+;; issue 84
+(test-equal "doit1" 'symbol (doit1))
+(test-equal "doit2" 'symbol (doit2))
+;; issue 85
+(let ()
+  (define-something (bar) (something))
+  (test-error "Issue 85" (lambda (e) e) (bar)))
 
 (test-end)

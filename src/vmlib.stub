@@ -52,7 +52,11 @@
   (define-c-proc rename-pending-identifier! (id::<identifier>)
     (when (SG_IDENTIFIER_PENDING id)
       (set! (SG_IDENTIFIER_NAME id) 
-	    (Sg_Gensym (-> (SG_SYMBOL (SG_IDENTIFIER_NAME id)) name))))
+	    (Sg_Gensym (-> (SG_SYMBOL (SG_IDENTIFIER_NAME id)) name)))
+      ;; Issue 86
+      ;; now pending identifiers hold macro environment but when it needs to
+      ;; be renamed, it must hold use environment as its context.
+      (set! (SG_IDENTIFIER_LIBRARY id) (Sg_VMCurrentLibrary)))
     (result id))
 
   (define-c-proc make-pattern-identifier (name envs maybe-library)
