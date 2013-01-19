@@ -767,10 +767,15 @@
 	     (make-identifier id (vector-ref mac-env 1) (id-library id)))
 	    ((not (null? (id-envs id)))
 	     ;; simply copy but mark as template variable
-	     (make-pending-identifier (id-name id) (id-envs id) (id-library id)))
+	     (make-pending-identifier (id-name id) (id-envs id) 
+				      (id-library id)))
 	    ((no-rename-needed? id) id)
 	    (else
-	     (make-pending-identifier (id-name id) '() (vector-ref use-env 0)))))
+	     ;; Issue 86
+	     ;; use mac-env instead of use-env so that identifier can hold
+	     ;; proper context.
+	     (make-pending-identifier (id-name id) '() 
+				      (vector-ref mac-env 0)))))
 
     ;; regenerate pattern variable
     (define (rewrite-template t vars)

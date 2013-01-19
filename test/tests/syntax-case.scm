@@ -1,6 +1,6 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 (library (issue helper)
-    (export loop-10 define-something symbol)
+    (export loop-10 define-something symbol bar foo)
     (import (rnrs))
   (define-syntax loop-10
     (lambda (x)
@@ -22,6 +22,23 @@
 
   (define (something) (display 'hoge) (newline))
   (define symbol 'symbol)
+
+
+  (define (problem) 'ok)
+
+  (define-syntax bar
+    (lambda (x)
+      (define (dummy)
+	`(,(datum->syntax #'bar 'problem)))
+      (syntax-case x ()
+	((k) (dummy)))))
+  
+  (define-syntax foo
+    (lambda (x)
+      (define (dummy)
+	`(,(datum->syntax #'brrr 'problem)))
+      (syntax-case x ()
+	((k) (dummy)))))
 )
 
 (library (issue :84)
@@ -112,6 +129,10 @@
 		 (if (= n 0) (break ls))
 		 (set! ls (cons 'a ls))
 		 (set! n (- n 1))))))
+
+;; issue 25 and 86
+(test-equal "issue 25" 'ok (bar))
+(test-equal "issue 25" 'ok (foo))
 
 ;; issue 84
 (test-equal "doit1" 'symbol (doit1))
