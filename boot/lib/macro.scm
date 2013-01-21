@@ -3,7 +3,7 @@
 ;; same variables 
 (define-constant LEXICAL 0)		; the same as compiler.scm
 (define-constant PATTERN 2)		; not LEXICAL nor SYNTAX
-;;(define-constant IN-LIBRARY 3)
+(define-constant BOUNDARY 3)
 
 (define .vars (make-identifier '.vars '() '(core syntax-case)))
 
@@ -236,7 +236,7 @@
     
     (values .match-syntax-case
 	    lites
-	    (p1env-lookup mac-env .vars LEXICAL)
+	    (p1env-lookup mac-env .vars LEXICAL BOUNDARY)
 	    (map (lambda (clause)
 		   (smatch clause
 		     ((p expr)
@@ -551,7 +551,7 @@
 			     ids))))
     ;; later
     (check-template template ranks)
-    (let ((patvar (let ((v (p1env-lookup mac-env .vars LEXICAL)))
+    (let ((patvar (let ((v (p1env-lookup mac-env .vars LEXICAL BOUNDARY)))
 		    ;; if .vars is identifier, then it must be toplevel
 		    ;; so not pattarn variables.
 		    (if (identifier? v)

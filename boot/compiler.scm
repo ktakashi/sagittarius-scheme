@@ -1223,11 +1223,10 @@
 ;; any closure with free variable. so it is better let expander
 ;; retrieve real transformer.
 (define (pass1/eval-macro-rhs who name expr p1env)
-  (let* ((transformer (make-toplevel-closure (compile expr p1env)))
-	 (macro (make-macro-transformer name transformer
-					p1env
-					(p1env-library p1env))))
-    macro))
+  (let ((transformer (make-toplevel-closure 
+		      ;; set boundary of the macro compile
+		      (compile expr (p1env-extend p1env '() BOUNDARY)))))
+    (make-macro-transformer name transformer p1env (p1env-library p1env))))
 
 ;; syntax-case
 ;; I actually don't want to do this but since I didn't have any idea  to 
@@ -4404,8 +4403,7 @@
 	  (let next-free ((free frees)
 			  (n 0))
 	    (cond ((null? free)
-		   ;; never happen, maybe...
-		   (scheme-error 'pass5/symbol-lookup "bug? Unknown lvar:"
+		   (scheme-error 'pass5/symbol-lookup "out of context"
 				 (lvar-name lvar)))
 		  ((eq? (car free) lvar)
 		   (return-free cb n lvar))

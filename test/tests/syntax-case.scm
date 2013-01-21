@@ -142,4 +142,18 @@
   (define-something (bar) (something))
   (test-error "Issue 85" (lambda (e) e) (bar)))
 
+;; issue 87
+(let ()
+  (define-syntax foo
+    (lambda (x)
+      (syntax-case x ()
+	((_)
+	 (let ((ok #''ok))
+	   (define-syntax prob
+	     (syntax-rules ()
+	       ((_) ok)))
+	   (prob))))))
+  (test-equal "issue 87" 'ok (foo))
+  )
+
 (test-end)

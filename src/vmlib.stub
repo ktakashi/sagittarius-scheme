@@ -292,18 +292,20 @@
 	(when (SG_EQ env fp) (return TRUE)))
       (return FALSE)))
   ;; NB: we skip some test, because we assume the frame is well-formed.
-  (define-cfn p1env-lookup-inner (p1env::SgVector* name lookup_as frame?::int)
+  (define-cfn p1env-lookup-inner 
+    (p1env::SgVector* name lookup_as frame?::int boundary::SgObject)
     :static
     (let ((name_identp::int (SG_IDENTIFIERP name))
 	  (same-env?::int FALSE)
 	  (frames (SG_VECTOR_ELEMENT p1env 1)))
-;;      (label entry)
       (dopairs (fp frames)
 	(when (and name_identp
 		   (== (SG_IDENTIFIER_ENVS name) fp))
 	  (set! same-env? TRUE)
 	  ;; strip identifier if we're in the same env
 	  (set! name (SG_OBJ (SG_IDENTIFIER_NAME name))))
+	;; don't go over boundary
+	(when (SG_EQ boundary (SG_CAAR fp)) (return name))
 	(when (> (SG_CAAR fp) lookup_as)
 	  (continue))
 	(dolist (vp (SG_CDAR fp))
@@ -319,17 +321,18 @@
       (return name)))
 
   (define-cfn p1env-lookup-rec (p1env::SgVector* name lookup-as)
-    (return (p1env-lookup-inner p1env name lookup-as FALSE)))
+    (return (p1env-lookup-inner p1env name lookup-as FALSE #f)))
 
-  (define-c-proc p1env-lookup (p1env::<vector> name lookup_as)
-    (let ((r (p1env-lookup-rec p1env name lookup_as)))
+  (define-c-proc p1env-lookup 
+    (p1env::<vector> name lookup_as :optional (boundary #f))
+    (let ((r (p1env-lookup-inner p1env name lookup_as FALSE boundary)))
       (if (SG_SYMBOLP r)
 	  (let ((lib (SG_VECTOR_ELEMENT p1env 0)))
 	    (result (Sg_MakeIdentifier (SG_SYMBOL r) '() (SG_LIBRARY lib))))
 	  (result r))))
 
   (define-c-proc p1env-lookup-frame (p1env::<vector> name lookup-as)
-    (let ((r (p1env-lookup-inner p1env name lookup-as TRUE)))
+    (let ((r (p1env-lookup-inner p1env name lookup-as TRUE #f)))
       (if (or (SG_SYMBOLP r) (SG_IDENTIFIERP r))
 	  (result SG_NIL)
 	  (result r))))
