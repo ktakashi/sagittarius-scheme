@@ -732,13 +732,18 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
     /* gloc does not have any envs. */
     emit_immediate(out, SG_NIL);
   } else if (SG_MACROP(o)) {
+    /* this must be local macro, global macros are emitted in
+       write_macro_cache. So just put UNBOUND */
+    emit_immediate(out, SG_UNBOUND);
+#if 0
     if (ctx->macroPhaseP) {
+      write_macro(out, o, cbs, ctx);
+    } else {
       /* this must be local macro, global macros are emitted in
          write_macro_cache. So just put UNBOUND */
       emit_immediate(out, SG_UNBOUND);
-    } else {
-      write_macro(out, o, cbs, ctx);
     }
+#endif
   } else {
     SgClass *klass = Sg_ClassOf(o);
     if (SG_PROCEDUREP(klass->cwriter)) {
@@ -852,23 +857,7 @@ static void write_macro_cache(SgPort *out, SgLibrary *lib, SgObject cbs,
      */
     /* do the same trik as identifier for macro env*/
     SG_VECTOR_ELEMENT(macro->env, 3) = SG_FALSE;
-
-    /* for usual macros */
-    if (SG_CLOSUREP(macro->data)) {
-      closures = Sg_Acons(SG_CLOSURE(macro->data)->code,
-			  SG_MAKE_INT(ctx->index++), closures);
-      /* we don't need to check library here */
-      closures = write_cache_pass1(SG_CLOSURE(macro->data)->code,
-				   closures, NULL, ctx); 
-    }
-    /* for make-variable-transformer */
-    if (SG_CLOSUREP(macro->transformer)) {
-      closures = Sg_Acons(SG_CLOSURE(macro->transformer)->code,
-			  SG_MAKE_INT(ctx->index++), closures);
-      /* we don't need to check library here */
-      closures = write_cache_pass1(SG_CLOSURE(macro->transformer)->code,
-				   closures, NULL, ctx); 
-    }
+    closures = write_cache_scan(macro, closures, ctx);
     /* Sg_Printf(Sg_StandardErrorPort(), UC("writing macro %S\n"), macro); */
     write_macro(out, macro, closures, ctx);
   }
