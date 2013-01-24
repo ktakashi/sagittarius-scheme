@@ -115,7 +115,10 @@
                              (syntax-violation 'define-record-type
 					       "malformed field spec" x spec))))
 			#'(specs ...))))
-                 (_ (syntax-violation 'define-record-type "malformed record clauses" x (syntax->datum c)))))
+                 (_ (syntax-violation 'define-record-type 
+				      "malformed record clauses"
+				      (syntax->datum x) 
+				      (syntax->datum c)))))
              record-clauses)))
 
         (syntax-case x ()

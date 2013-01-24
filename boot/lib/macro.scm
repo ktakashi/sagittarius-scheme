@@ -261,6 +261,7 @@
            (match-ellipsis-n? (cdr expr) pat (- n 1) lites))))
 
 (define (match-pattern? expr pat lites)
+#;
   (define (compare a b)
     (or (identifier=? (current-usage-env) a
                       (current-macro-env) b)
@@ -269,6 +270,21 @@
         (and-let* ((v (find-binding (vm-current-library) 
 				    (identifier->symbol b) #f)))
 	  (eq? (identifier->symbol a) (gloc-name v)))))
+  (define (compare pat expr)
+    (define (ensure-id id env)
+      (if (identifier? id)
+	  id
+	  (make-identifier id (vector-ref env 1) (vector-ref env 0))))
+    ;; pat is pattern variable so it's always identifier
+    ;; but in case...
+    (let ((p-id (ensure-id pat  (current-macro-env)))
+	  (e-id (ensure-id expr (current-usage-env))))
+      (or (free-identifier=? p-id e-id)
+	  ;; if it's not the same bound, then the name and not bounded
+	  ;; symbol
+	  (and (and (eq? (id-name p-id) (id-name e-id)))
+	       (not (find-binding (id-library p-id) (id-name p-id) #f))
+	       (not (find-binding (id-library e-id) (id-name e-id) #f))))))
   (cond ((bar? pat) #t)
         ((variable? pat)
          (cond ((id-memq pat lites)
@@ -358,35 +374,26 @@
         (else vars)))
 
 
-(define (match-syntax-case patvars literals expr . lst)
+(define (match-syntax-case patvars literals form . lst)
   (define (match form pat)
     (and (match-pattern? form pat literals)
 	 (bind-pattern form pat literals '())))
-  (define (rewrite expr lites)     
-    (let loop ((expr expr))
-      (cond ((pair? expr) (cons (loop (car expr)) (loop (cdr expr))))
-	    ((vector? expr) (list->vector (loop (vector->list expr))))
-	    ((and-let* (( (variable? expr) )
-			(v (unwrap-syntax expr)))
-	       (memq v lites)) => car)
-	    (else expr))))
+
   ;; we need to local variable unique so that it won't be global.
-  (let* ((lites (unwrap-syntax (collect-unique-ids expr)))
-	 (form (rewrite expr (lset-intersection eq? lites literals))))
-    (let loop ((lst lst))
-      (if (null? lst)
-	  (syntax-violation (and (pair? form) (car form)) "invalid syntax"
-			    (unwrap-syntax form))
-	  (let ((clause (car lst)))
-	    (let ((pat (car clause))
-		  (fender (cadr clause))
-		  (expr (caddr clause)))
-	      (let ((vars (match form pat)))
-		(if (and vars
-			 (or (not fender)
-			     (apply-ex fender (list (append vars patvars)))))
-		    (apply-ex expr (list (append vars patvars)))
-		    (loop (cdr lst))))))))))
+  (let loop ((lst lst))
+    (if (null? lst)
+	(syntax-violation (and (pair? form) (car form)) "invalid syntax"
+			  (unwrap-syntax form))
+	(let ((clause (car lst)))
+	  (let ((pat (car clause))
+		(fender (cadr clause))
+		(expr (caddr clause)))
+	    (let ((vars (match form pat)))
+	      (if (and vars
+		       (or (not fender)
+			   (apply-ex fender (list (append vars patvars)))))
+		  (apply-ex expr (list (append vars patvars)))
+		  (loop (cdr lst)))))))))
 
 ;; compile (syntax ...)
 (define .expand-syntax (make-identifier 'expand-syntax '() '(core syntax-case)))
@@ -589,7 +596,9 @@
 			      ((assq (caar frame) vars)
 			       => (lambda (slot)
 				    (let ((r (cadr slot)))
-				      (or (and (variable? r) (id=? id r) r)
+				      ;; pattern variables are always
+				      ;; identifier.
+				      (or (and (identifier? r) (id=? id r) r)
 					  (loop2 (cdr frame))))))
 			      (else (loop2 (cdr frame))))))
 		     (else (loop (cdr frames))))))))

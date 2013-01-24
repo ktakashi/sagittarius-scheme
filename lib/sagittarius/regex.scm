@@ -190,13 +190,13 @@
 
   (define-syntax regex-match-cond
     (lambda (x)
-      (syntax-case x (test else =>)
+      (syntax-case x (?? else =>)
 	((_) #'#f)
 	((_ (else ?form ...))
 	 #'(begin ?form ...))
-	((_ (test ?expr => ?obj) ?clause ...)
+	((_ (?? ?expr => ?obj) ?clause ...)
 	 #'(cond (?expr => ?obj) (else (regex-match-cond ?clause ...))))
-	((_ (test ?expr ?form ...) ?clause ...)
+	((_ (?? ?expr ?form ...) ?clause ...)
 	 #'(if ?expr (begin ?form ...) (regex-match-cond ?clause ...)))
 	((_ (?matchexp ?bind ?form ...) ?clause ...)
 	 #'(regex-match-if ?matchexp ?bind
@@ -208,16 +208,16 @@
 
   (define-syntax regex-match-case
     (lambda (x)
-      (syntax-case x (test else =>)
+      (syntax-case x (?? else =>)
 	((_ #t ?temp ?strp) #'#f)
 	((_ #t ?temp ?strp (else => ?proc))
 	 #'(?proc ?temp))
 	((_ #t ?temp ?strp (else ?form ...))
 	 #'(begin ?form ...))
-	((_ #t ?temp ?strp (test ?proc => ?obj) ?clause ...)
+	((_ #t ?temp ?strp (?? ?proc => ?obj) ?clause ...)
 	 #'(cond ((?proc ?temp) => ?obj)
 		 (else (regex-match-case #t ?temp ?strp ?clause ...))))
-	((_ #t ?temp ?strp (test ?proc ?form ...) ?clause ...)
+	((_ #t ?temp ?strp (?? ?proc ?form ...) ?clause ...)
 	 #'(if (?proc ?temp)
 	       (begin ?form ...)
 	       (regex-match-case #t ?temp ?strp ?clause ...)))

@@ -1121,7 +1121,7 @@
 
 (define (test-parse-date str)
   (regex-match-cond
-    (test (not (string? str)) #f)
+    (?? (not (string? str)) #f)
     ((looking-at #/^(\d\d?)\/(\d\d?)\/(\d\d\d\d)$/ str)
      (#f mm dd yyyy)
      (map string->number (list yyyy mm dd)))
@@ -1142,7 +1142,7 @@
 
 (define (test-parse-date2 str)
   (regex-match-case str
-    (test (lambda (s) (not (string? s))) #f)
+    (?? (lambda (s) (not (string? s))) #f)
     (#/^(\d\d?)\/(\d\d?)\/(\d\d\d\d)$/ (#f mm dd yyyy)
         (map string->number (list yyyy mm dd)))
     (#/^(\d\d\d\d)\/(\d\d?)\/(\d\d?)$/ (#f yyyy mm dd)

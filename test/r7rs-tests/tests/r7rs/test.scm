@@ -22,7 +22,7 @@
     (define-record-type approx (make-approx value) approx?
       (value approx-value))
     (define-record-type alts (make-alts values) alts?
-      (values))
+      (values alts-values))
 
     (define-syntax test
       (syntax-rules ()
