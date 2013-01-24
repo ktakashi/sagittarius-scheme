@@ -25,12 +25,6 @@
     (import (core)
 	    (core base)
 	    (core syntax))
-  (define-syntax big
-    (lambda (x) (syntax-error 'big "misplaced syntactic keyword" x)))
-  (define-syntax little
-    (lambda (x) (syntax-error 'little "misplaced syntactic keyword" x)))
-  (define-syntax native
-    (lambda (x) (syntax-error 'native "misplaced syntactic keyword" x)))
 
   (define-syntax endianness
     (syntax-rules (big little native)

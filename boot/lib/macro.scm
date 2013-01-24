@@ -211,28 +211,6 @@
 	 (syntax-violation 'syntax-case "_ in literals" expr lites))
     (and (memq '... lites)
 	 (syntax-violation 'syntax-case "... in literals" expr lites))
-
-    ;; literal must be binded
-    ;; FIXME this is a really ugly kludge 
-    (let loop ((lites lites))
-      (unless (null? lites)
-	(let ((lite (car lites)))
-	  (or (find-binding library lite #f)
-	      (memq lite (library-defined library))
-	      (%insert-binding 
-	       library lite
-	       (make-macro-transformer
-		lite
-		(lambda ()
-		  (lambda arg
-		    (syntax-error "misplaced syntactic keyword" arg)))
-		;; literal doesn't have to have any environment
-		;; this is just a mark, so  to keep things easy,
-		;; we create fresh env
-		(vector library '() lite #f)
-		;;mac-env
-		library))))
-	(loop (cdr lites))))
     
     (values .match-syntax-case
 	    lites

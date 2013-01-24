@@ -57,6 +57,13 @@
 
         (define parse-record-clauses
           (lambda (first-name record-clauses)
+	    (define method-name
+              (lambda (spec second-name)
+                (datum->syntax 
+		 second-name
+		 (string->symbol (format spec first-name
+					 (syntax->datum second-name))))))
+
             (for-each
              (lambda (c)
                (syntax-case c (parent protocol parent-rtd sealed opaque nongenerative fields)
@@ -82,38 +89,32 @@
                   (stash-set!
                    'fields
                    (map (lambda (spec)
-			  (cond ((pair? spec)
-				 (let ((len (length spec)))
-				   (cond ((and (= 4 len) ;; (mutable name accessor mutator)
-					       (eq? (car spec) 'mutable)
-					       (symbol? (cadr spec))
-					       (symbol? (caddr spec))
-					       (symbol? (cadddr spec)))
-					  `((mutable ,(cadr spec)) ,(caddr spec) ,(cadddr spec)))
-					 ((and (= 3 len)
-					       (eq? (car spec) 'immutable)
-					       (symbol? (cadr spec))
-					       (symbol? (caddr spec)))
-					  `((immutable ,(cadr spec)) ,(caddr spec) #f))
-					 ((and (= 2 len)
-					       (eq? (car spec) 'mutable)
-					       (symbol? (cadr spec)))
-					  `((mutable ,(cadr spec))
-					    ,(string->symbol (format "~a-~a" first-name (cadr spec)))
-					    ,(string->symbol (format "~a-~a-set!" first-name (cadr spec)))))
-					 ((and (= 2 len)
-					       (eq? (car spec) 'immutable)
-					       (symbol? (cadr spec)))
-					  `((mutable ,(cadr spec))
-					    ,(string->symbol (format "~a-~a" first-name (cadr spec))) #f))
-					 (else
-					  (syntax-violation 'define-record-type "malformed field spec" x spec)))))
-				((symbol? spec)
-				 `((immutable ,spec)
-				   ,(string->symbol (format "~a-~a" first-name spec)) #f))
-				(else
-				 (syntax-violation 'define-record-type "malformed field spec" x spec))))
-			(syntax->datum (syntax (specs ...))))))
+			  (syntax-case spec (immutable mutable)
+                            ((immutable name accessor)
+                             (and (identifier? #'name) (identifier? #'accessor))
+                             #'((immutable name) accessor #f))
+                            ((mutable name accessor mutator)
+                             (and (identifier? #'name) (identifier? #'accessor) 
+				  (identifier? #'mutator))
+                             #'((mutable name) accessor mutator))
+                            ((immutable name)
+                             (identifier? #'name)
+                             (with-syntax ((proc (method-name "~a-~a" #'name)))
+                               #'((immutable name) proc #f)))
+                            ((mutable name)
+                             (identifier? #'name)
+                             (with-syntax
+                                 ((proc1 (method-name "~a-~a" #'name))
+                                  (proc2 (method-name "~a-~a-set!" #'name)))
+                               #'((mutable name) proc1 proc2)))
+                            (name
+                             (identifier? #'name)
+                             (with-syntax ((proc (method-name "~a-~a" #'name)))
+                               #'((immutable name) proc #f)))
+                            (_
+                             (syntax-violation 'define-record-type
+					       "malformed field spec" x spec))))
+			#'(specs ...))))
                  (_ (syntax-violation 'define-record-type "malformed record clauses" x (syntax->datum c)))))
              record-clauses)))
 
