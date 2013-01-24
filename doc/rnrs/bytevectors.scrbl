@@ -75,11 +75,17 @@ equal-that is, if they have the same length and equal bytes at all valid
 indices. It returns #f otherwise.
 }
 
-@define[Function]{@name{bytevector-fill!} @args{bytevector fill}}
-@desc{[R6RS] The @var{fill} argument is as in the description of the
+@define[Function]{@name{bytevector-fill!}
+ @args{bytevector fill :optional start end}}
+@desc{[R6RS+] The @var{fill} argument is as in the description of the
 @code{make-bytevector} procedure. The @code{bytevector-fill!} procedure stores
 @var{fill} in every element of @var{bytevector} and returns unspecified values.
 Analogous to @code{vector-fill!}.
+
+If optional arguments @var{start} or @var{end} is given, then the procedure
+restricts the range of filling from @var{start} to @var{end} (exclusive) index
+of @var{bytevector}. When @var{end} is omitted then it uses the length of the
+given bytevector.
 }
 
 @define[Function]{@name{bytevector-copy!} @args{source source-start target target-start k}}

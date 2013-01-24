@@ -292,13 +292,16 @@ SgObject Sg_ByteVectorToList(SgByteVector *bv, int bitCount, int signP)
   return ret;
 }
 
-void Sg_ByteVectorFill(SgByteVector *bv, int value)
+void Sg_ByteVectorFill(SgByteVector *bv, int value, int start, int end)
 {
+  int len;
   if (!(SG_IS_BYTE(value) || SG_IS_OCTET(value))) {
     /* out of range */
     Sg_Error(UC("fill must be between -128 and 255, but got %d"), value);
   }
-  memset(SG_BVECTOR_ELEMENTS(bv), value, SG_BVECTOR_SIZE(bv));
+  len = SG_BVECTOR_SIZE(bv);
+  SG_CHECK_START_END(start, end, len);
+  memset(SG_BVECTOR_ELEMENTS(bv)+start, value, end-start);
 }
 
 SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder,

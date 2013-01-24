@@ -1183,16 +1183,20 @@
 	   (assertion-violation 'vector-ref "index out of range" (SG_MAKE_INT i)))
 	  (else (set! (SG_VECTOR_ELEMENT vec i) obj))))
 
-  (define-c-proc vector->list (vec::<vector> :optional (start::<fixnum> 0) (end::<fixnum> -1)) ::<top>
-    (result (Sg_VectorToList vec start end)))
+  (define-c-proc vector->list 
+    (vec::<vector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    Sg_VectorToList)
   
-  (define-c-proc list->vector (lst :optional (start::<fixnum> 0) (end::<fixnum> -1)) ::<top>
+  (define-c-proc list->vector 
+    (lst :optional (start::<fixnum> 0) (end::<fixnum> -1))
     (unless (SG_LISTP lst)
       (wrong-type-of-argument-violation 'list->vector "propert list" lst))
     (result (Sg_ListToVector lst start end)))
 
-  (define-c-proc vector-fill! (vec::<vector> fill :optional (start::<fixnum> 0) (end::<fixnum> -1)) ::<void>
-    (Sg_VectorFill vec fill start end))
+  (define-c-proc vector-fill! 
+    (vec::<vector> fill :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    ::<void>
+    Sg_VectorFill)
 
   ;; 11.14 errors and violations
   (define-c-proc assertion-violation (who message :rest irritants) ::<void>
@@ -1339,8 +1343,10 @@
   (define-c-proc bytevector-length (bv::<bytevector>) ::<fixnum>
     (result (SG_BVECTOR_SIZE bv)))
 
-  (define-c-proc bytevector-fill! (bv::<bytevector> fill::<fixnum>) ::<void>
-    (Sg_ByteVectorFill bv fill))
+  (define-c-proc bytevector-fill! 
+    (bv::<bytevector> fill::<fixnum>
+		      :optional (start::<fixnum> 0) (end::<fixnum> -1)) ::<void>
+    Sg_ByteVectorFill)
   
   ;; 2.3 operations on bytes and octets
   (define-c-proc u8-list->bytevector (lst) ::<top>

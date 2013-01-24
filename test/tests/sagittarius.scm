@@ -756,4 +756,21 @@
 (test-equal "bit count (1)" 0 (bitwise-bit-count 0))
 (test-equal "bit count (2)" 0 (fxbit-count 0))
 
+;; bytevector-fill!
+(let ((bv (make-bytevector 5 10)))
+  (test-equal "bytevector-fill!"
+	      #vu8(2 2 2 2 2) 
+	      (begin (bytevector-fill! bv 2) bv))
+  (test-equal "bytevector-fill! (0->)"
+	      #vu8(5 5 5 5 5) 
+	      (begin (bytevector-fill! bv 5 0) bv))
+  (test-equal "bytevector-fill! (0->3)"
+	      #vu8(0 0 0 5 5) 
+	      (begin (bytevector-fill! bv 0 0 3) bv))
+  (test-equal "bytevector-fill! (3->4)"
+	      #vu8(0 0 0 2 5) 
+	      (begin (bytevector-fill! bv 2 3 4) bv))
+)
+
+
 (test-end)

@@ -76,7 +76,8 @@ SG_EXTERN SgObject Sg_ByteVectorCopy(SgByteVector *src, int start, int end);
 SG_EXTERN void     Sg_ByteVectorCopyX(SgByteVector *src, int srcStart,
 				      SgByteVector *dst, int dstStart,
 				      int size);
-SG_EXTERN void     Sg_ByteVectorFill(SgByteVector *bv, int value);
+SG_EXTERN void     Sg_ByteVectorFill(SgByteVector *bv, int value,
+				     int start, int end);
 
 /* converter */
 SG_EXTERN SgObject Sg_ListToByteVector(SgObject lst, int bitCount, int signP);
