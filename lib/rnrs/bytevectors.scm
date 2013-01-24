@@ -27,10 +27,15 @@
 	    (core syntax))
 
   (define-syntax endianness
-    (syntax-rules (big little native)
-      ((_ big)    'big)
-      ((_ little) 'little)
-      ((_ native) (native-endianness))))
+    (lambda (x)
+      (syntax-case x ()
+	((_ endian)
+	 (memq (syntax->datum #'endian) '(big little))
+	 #''endian)
+	((_ endian)
+	 (eq? (syntax->datum #'endian) 'native)
+	 #'(native-endianness))
+	((_ x) (syntax-violation 'endianness "invalid endianness" #'x)))))
 ) ; [end]
 ;; end of file
 ;; Local Variables:
