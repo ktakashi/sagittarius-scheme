@@ -771,6 +771,24 @@
 	      #vu8(0 0 0 2 5) 
 	      (begin (bytevector-fill! bv 2 3 4) bv))
 )
+;; enbugged case
+(let ()
+  (define-syntax define-inline
+    (syntax-rules ()
+      ((_ (name arg ... . rest) body ...)
+       (define-syntax name
+	 (syntax-rules ()
+	   ((_ arg ... . rest)
+	    (begin body ...)))))))
 
+  (define (foo v)
+    (define-inline (bar args) args)
+    (if v
+	(syntax-case v ()
+	  (var (bar v)))
+	(bar #t)))
+
+  (test-assert "enbugged" (foo #f))
+  (test-equal "enbugged" '(a b c) (foo '(a b c))))
 
 (test-end)

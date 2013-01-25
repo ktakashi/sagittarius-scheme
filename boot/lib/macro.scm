@@ -165,7 +165,13 @@
 				 ;; (and (or (memq id (library-defined library))
 				 ;; 	   (find-binding library id #f))
 				 ;;       (make-identifier id env library))
-				 (make-identifier id env library))))
+
+				 ;;; 
+				 ;;(let ((t (make-identifier id env library)))
+				 ;;  (make-identifier t env library)
+				 ;; this do the same this as above but
+				 ;; bit more memory efficient
+				 (make-pattern-identifier id env library))))
 		 (hashtable-set! seen id new-id)
 		 new-id))))
       (let loop ((expr expr))
