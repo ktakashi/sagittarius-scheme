@@ -52,6 +52,7 @@
 	    Z_NO_COMPRESSION
 	    Z_BEST_SPEED
 	    Z_BEST_COMPRESSION
+	    Z_DEFAULT_COMPRESSION
 	    ;; strategy flags
 	    Z_FILTERED
 	    Z_HUFFMAN_ONLY
@@ -70,6 +71,10 @@
 	    ;; well usually we raise condition with this message,
 	    ;; so this is actually not needed.
 	    zlib-error-message
+
+	    deflate-bytevector
+	    inflate-bytevector
+	    crc32 adler32
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -89,14 +94,14 @@
 			  (make-message-condition message)
 			  (make-irritants-condition irritants))))))
 
-  (define-with-key (open-deflating-output-port sink
-			     :key (compression-level Z_DEFAULT_COMPRESSION)
-			          (buffer-size 4096)
-			          (window-bits 15)
-				  (memory-level 8)
-				  (strategy Z_DEFAULT_STRATEGY)
-				  (dictionary #f)
-				  (owner? #f))
+  (define (open-deflating-output-port sink
+			   :key (compression-level Z_DEFAULT_COMPRESSION)
+				(buffer-size 4096)
+				(window-bits 15)
+				(memory-level 8)
+				(strategy Z_DEFAULT_STRATEGY)
+				(dictionary #f)
+				(owner? #f))
     (or (and (binary-port? sink)
 	     (output-port? sink))
 	(assertion-violation 'open-deflating-output-port
@@ -190,11 +195,11 @@
 				      #f
 				      close)))
 
-  (define-with-key (open-inflating-input-port source
-					      :key (buffer-size 4096)
-					           (window-bits 15)
-						   (dictionary #f)
-						   (owner? #f))
+  (define (open-inflating-input-port source
+				     :key (buffer-size 4096)
+					  (window-bits 15)
+					  (dictionary #f)
+					  (owner? #f))
     (or (and (binary-port? source)
 	     (input-port? source))
 	(assertion-violation 'open-inflating-input-port
@@ -322,5 +327,17 @@
 				     #f
 				     #f
 				     close)))
+
+  (define (deflate-bytevector bv . args)
+    (call-with-bytevector-output-port
+     (^p (let1 p2 (apply open-deflating-output-port p args)
+	   (put-bytevector p2 bv)
+	   (close-output-port p2)))))
+
+  (define (inflate-bytevector bv . args)
+    (call-with-bytevector-output-port
+     (^p (let1 p2 (apply open-inflating-output-port p args)
+	   (put-bytevector p2 bv)
+	   (close-output-port p2)))))
 	
 )

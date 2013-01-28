@@ -79,3 +79,14 @@
 
 (define-c-proc zlib-version ()
   (result (Sg_ZlibVersion)))
+
+;; utilities
+(define-c-proc crc32 (data::<bytevector> :optional (crc::<integer> 0))
+  (result (Sg_MakeIntegerU (crc32 (Sg_GetUInteger crc)
+				  (SG_BVECTOR_ELEMENTS data)
+				  (SG_BVECTOR_SIZE data)))))
+
+(define-c-proc adler32 (data::<bytevector> :optional (crc::<integer> 1))
+  (result (Sg_MakeIntegerU (adler32 (Sg_GetUInteger crc)
+				    (SG_BVECTOR_ELEMENTS data)
+				    (SG_BVECTOR_SIZE data)))))

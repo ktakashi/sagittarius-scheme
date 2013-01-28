@@ -72,5 +72,14 @@
 	       (get-bytevector-all (open-inflating-input-port
 				    (open-bytevector-input-port bv)
 				    :dictionary (string->utf8 "abc"))))))
+
+
+(test-equal "crc32" 0 (crc32 #vu8()))
+(test-equal "crc32" 2666930069 (crc32 (string->utf8 "foobar")))
+(test-equal "crc32" 4010574376 (crc32 (string->utf8 "abc") 8563))
+
+(test-equal "adler32(1)" 1 (adler32 #vu8()))
+(test-equal "adler32(2)" 145425018 (adler32 (string->utf8 "foobar")))
+(test-equal "adler32(3)" 1721967257 (adler32 (string->utf8 "abc") 8563))
   
 (test-end)
