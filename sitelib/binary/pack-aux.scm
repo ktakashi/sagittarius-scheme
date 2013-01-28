@@ -31,9 +31,12 @@
 (library (binary pack-aux)
     (export lookup-proc lookup-name lookup-converter
 	    add-extension
+	    ->native
 	    format-size roundb add)
     (import (rnrs)
 	    (sagittarius)
+	    ;; to lookup procedure in runtime
+	    (sagittarius vm)
 	    (srfi :1)
 	    (srfi :2)
 	    (srfi :13))
@@ -62,8 +65,27 @@
            ,bytevector-ieee-double-ref  bytevector-ieee-double-ref 8)))
   ;; key = type (char), value = (base-char, converter)
   (define *extensions* (make-eqv-hashtable))
-  (define (add-extension base c conv)
-    (hashtable-set! *extensions* c (cons base (lambda (v) (char->integer v)))))
+  (define (add-extension base c packer unpacker)
+    (hashtable-set! *extensions* c (cons* base packer unpacker)))
+
+  ;; for convenience
+  ;; add -native right before -set! or ref
+  ;; If 
+  (define (->native set as-symbol?)
+    ;; To R6RS compatible use below
+;;    (define (finish sym)
+;;      (if as-symbol?
+;;	  sym
+;;	  (datum->syntax #'->native sym)))
+    (define (finish sym)
+      (if as-symbol?
+	  sym
+	  (gloc-ref (find-binding (current-library) sym #f))))
+    (let* ((s (symbol->string set))
+	   (i (string-index-right s #\-)))
+      (finish
+       (string->symbol
+	(string-append (substring s 0 i) "-native" (string-copy s i))))))
 
   (define (add augend addend)
     (if (integer? augend)
@@ -90,9 +112,11 @@
 	(and-let* ((c (hashtable-ref *extensions* c #f)))
 	  (lookup-size (car c)))))
 
-  (define (lookup-converter c)
+  (define (lookup-converter c packer?)
     (and-let* ((c (hashtable-ref *extensions* c #f)))
-      (cdr c)))
+      (if packer?
+	  (cadr c)
+	  (cddr c))))
 
   (define (lookup-proc c set?)
     (or (and-let* ((b (assv c *base-types*)))
@@ -101,7 +125,7 @@
 	      (values (fourth b) (sixth b) #f)))
 	(and-let* ((c (hashtable-ref *extensions* c #f)))
 	  (let-values (((acc size _) (lookup-proc (car c) set?)))
-	    (values acc size (cdr c))))
+	    (values acc size (if set? (cadr c) (cddr c)))))
 	(values #f #f #f)))
 
   (define (lookup-name c set?)
@@ -111,7 +135,7 @@
 	      (values (fifth b) (sixth b) #f)))
 	(and-let* ((c (hashtable-ref *extensions* c #f)))
 	  (let-values (((acc size _) (lookup-name (car c) set?)))
-	    (values acc size (cdr c))))
+	    (values acc size (if set? (cadr c) (cddr c)))))
 	(values #f #f #f)))
 
   (define (format-size fmt . vals)

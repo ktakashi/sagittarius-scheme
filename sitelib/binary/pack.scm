@@ -29,18 +29,46 @@
 ;;;  
 
 (library (binary pack)
-    (export pack pack! format-size
-	    define-packer)
+    (export pack pack! unpack get-unpack
+	    format-size
+	    define-s8-parcker 
+	    define-u8-parcker 
+	    define-s16-parcker
+	    define-u16-parcker
+	    define-s32-parcker
+	    define-u32-parcker
+	    define-s64-parcker
+	    define-u64-parcker
+	    define-f32-parcker
+	    define-f64-parcker)
     (import (rnrs)
 	    (sagittarius)
 	    (srfi :13)
 	    (prefix (binary pack-aux) aux:))
 
-  ;; FIXME this is not very nice looking
+  ;; internal
   (define-syntax define-packer
-    (syntax-rules (lambda)
-      ((_ base e (lambda (v) body ...))
-       (aux:add-extension base e (lambda (v) body ...)))))
+    (syntax-rules ()
+      ((_ name base)
+       (define-syntax name
+	 (syntax-rules (pack unpack)
+	   ((_ (char v) 
+	       (pack expr1 (... ...)) 
+	       (unpack expr2 (... ...)))
+	    (aux:add-extension base char
+			       (lambda (v) expr1 (... ...))
+			       (lambda (v) expr2 (... ...)))))))))
+
+  (define-packer define-s8-parcker  #\c)
+  (define-packer define-u8-parcker  #\C)
+  (define-packer define-s16-parcker #\s)
+  (define-packer define-u16-parcker #\S)
+  (define-packer define-s32-parcker #\l)
+  (define-packer define-u32-parcker #\L)
+  (define-packer define-s64-parcker #\q)
+  (define-packer define-u64-parcker #\Q)
+  (define-packer define-f32-parcker #\f)
+  (define-packer define-f64-parcker #\d)
 
   (define-syntax format-size
     (lambda (x)
@@ -51,6 +79,176 @@
 	((_ fmt vals ...)
 	 #'(aux:format-size fmt vals ...))
 	(var (identifier? #'var) #'aux:format-size))))
+
+  (define-syntax unpack*
+    (lambda (x)
+      (define (get-refs fmt* offset)
+	(let* ((fmt (syntax->datum fmt*))
+	       (len (string-length fmt)))
+	  (let lp ((i 0)
+		   ;; If the offset is an integer,
+		   ;; then the offsets for all fields
+		   ;; can be computed directly.
+		   ;; Otherwise, code is generated to
+		   ;; compute the offsets.
+		   (o (if (integer? (syntax->datum #'offset))
+			  (syntax->datum #'offset)
+			  #'off))
+		   (rep #f)
+		   (endian #f)
+		   (align #t)
+		   (refs '()))
+	    (cond ((= i len) (reverse! refs))
+		  ((char-whitespace? (string-ref fmt i))
+		   (lp (+ i 1) o rep endian align refs))
+		  (else
+		   (case (string-ref fmt i)
+		     ((#\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9)
+		      => (lambda (c)
+			   (lp (+ i 1) o
+			       (+ (digit-value c) (* (if rep rep 0) 10))
+			       endian align refs)))
+		     ((#\=)
+		      (lp (+ i 1) o #f #f align refs))
+		     ((#\<)
+		      (lp (+ i 1) o #f #'(endianness little) align refs))
+		     ((#\> #\!)
+		      (lp (+ i 1) o #f #'(endianness big) align refs))
+		     ((#\x)
+		      (lp (+ i 1) (aux:add o (or rep 1)) #f endian align refs))
+		     ((#\a)
+		      (lp (+ i 1) o rep endian #t refs))
+		     ((#\u)
+		      (lp (+ i 1) o rep endian #f refs))
+		     (else
+		      => (lambda (c)
+			   (let*-values (((ref n cn) (aux:lookup-name c #f))
+					 ((o)   (if align (aux:roundb o n) o)))
+			     (define (ref-value o)
+			       (define (get-ref)
+				 (cond ((= n 1) #`(#,ref bv #,o))
+				       (endian #`(#,ref bv #,o #,endian))
+				       (else
+					(let ((nref (aux:->native ref #t)))
+					  #`(#,nref bv #,o)))))
+			       (with-syntax ((ref (get-ref)))
+				 (if cn
+				     #`((aux:lookup-converter #,c #f) ref)
+				     #'ref)))
+			     (let ((rep (or rep 1)))
+			       (lp (+ i 1) (aux:add o (* n rep)) #f
+				   endian align
+				   (let lp* ((o o) (rep rep) (refs refs))
+				     (if (zero? rep) refs
+					 (lp* (aux:add o n) (- rep 1)
+					      (with-syntax ((foff o))
+						(cons (ref-value #'foff)
+						      refs))))))))))))))))
+      (syntax-case x ()
+	((_ fmt bv)
+	 #'(unpack* fmt bv 0))
+	((_ fmt bytevector offset)
+	 (with-syntax (((refs ...) (get-refs #'fmt #'offset)))
+	   #'(let ((bv bytevector)
+		   (off offset))
+	       (values refs ...)))))))
+
+  ;; non macro version
+  (define (unpack** fmt bv :optional (offset 0))
+    (define limit (string-length fmt))
+    (let lp ((i 0) (o offset)
+	     (rep #f) (indefinite #f)
+	     (endian #f) (align #t)
+	     (refs '()))
+      (cond ((= i limit) (apply values (reverse! refs)))
+	    ((char-whitespace? (string-ref fmt i))
+	     (lp (+ i 1) o rep indefinite endian align refs))
+	    (else
+	     (case (string-ref fmt i)
+	       ((#\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9)
+		=> (lambda (c)
+		     (when indefinite
+		       (error 'unpack "'*' and digits can't cooporate." fmt))
+		     (lp (+ i 1) o
+			 (+ (digit-value c) (* (if rep rep 0) 10)) #f
+			 endian align refs)))
+	       ((#\*)
+		(when rep
+		  (error 'unpack "'*' and digits can't cooporate." fmt))
+		(lp (+ i 1) o #f #t endian align refs))
+	       ;; endianness
+	       ((#\=) (lp (+ i 1) o #f #f #f align refs))
+	       ((#\<) (lp (+ i 1) o #f #f (endianness little) align refs))
+	       ((#\> #\!) (lp (+ i 1) o #f #f (endianness big) align refs))
+	       ;; padding
+	       ((#\x) 
+		(when indefinite
+		  (error 'unpack
+			 "indefinite padding is not supported" fmt))
+		(lp (+ i 1) (+ o (or rep 1)) #f #f endian align refs))
+	       ;; align
+	       ((#\a) (lp (+ i 1) o rep indefinite endian #t refs))
+	       ((#\u) (lp (+ i 1) o rep indefinite endian #f refs))
+	       (else => 
+		(lambda (c)
+		  (let*-values (((ref n cn) (aux:lookup-proc c #f))
+				((o)      (if align (aux:roundb o n) o)))
+		    (define (ref-value o)
+		      (define (ret v) (if cn (cn v) v))
+		      (ret
+		       (cond ((= n 1) (ref bv o))
+			     (endian (ref bv o endian))
+			     (else
+			      (let* ((name (aux:lookup-name c #f))
+				     (nref (->native name #f)))
+				(nref bv o))))))
+		    (if indefinite
+			(begin
+			  (when (> limit (+ i 1))
+			    (error 'unpack "'*' must be the last position"
+				   fmt))
+			  (do ((limit (bytevector-length bv))
+			       (o o (+ o n))
+			       (refs refs (cons (ref-value o) refs)))
+			      ((>= o limit) (apply values (reverse! refs)))))
+			(let ((rep (or rep 1)))
+			  (lp (+ i 1) (+ o (* n rep)) #f #f
+			      endian align
+			      (let lp* ((o o) (rep rep) (refs refs))
+				(if (zero? rep)
+				    refs
+				    (lp* (+ o n) (- rep 1)
+					 (cons (ref-value o) refs)))))))))))))))
+
+  (define-syntax unpack
+    (lambda (x)
+      (syntax-case x ()
+	((_ fmt bv) #'(unpack fmt bv 0))
+	((_ fmt bv offset)
+	 (and (string? (syntax->datum #'fmt))
+	      ;; unpack* macro can't handle indefinite length
+	      (format-size (syntax->datum #'fmt)))
+	 #'(unpack* fmt bv offset))
+	((_ . rest) #'(unpack** . rest))
+	(var (identifier? #'var) #'unpack** ))))
+
+  (define (get-unpack** port fmt)
+    (let ((size (format-size fmt)))
+      (unless size
+	(error 'get-unpack "format string contains '*'" fmt))
+      (unpack fmt (get-bytevector-n port size))))
+
+  (define-syntax get-unpack
+    (lambda (x)
+      (syntax-case x ()
+	((_ port fmt)
+	 (format-size #'fmt)
+	 #'(unpack fmt (get-bytevector-n port (format-size fmt))))
+	(var (identifier? #'var) #'get-unpack**)
+	;; make sure we have human understandable error message
+	(_
+	 (syntax-violation 'get-unpack
+			   "format string contains '*'" #'fmt)))))
 
   (define-syntax pack!*
     (lambda (x)
@@ -72,15 +270,6 @@
 	      ((eq? start end) '())
 	      (else
 	       (list #`(bytevector-fill! bv 0 #,start #,end)))))
-      ;; add -native right before -set!
-      (define (->nset set)
-	(let* ((s (symbol->string set))
-	       (i (string-index-right s #\-)))
-	  (string->symbol
-	   (string-append
-	    (substring s 0 i)
-	    "-native"
-	    (string-copy s i)))))
       (define (get-setters fmt* offset vals)
 	(let* ((fmt (syntax->datum fmt*))
 	       (len (string-length fmt)))
@@ -152,8 +341,14 @@
 				(syntax-case vals ()
 				  (() '())
 				  ((a . d)
-				   #`(((aux:lookup-converter #,c) a) . d)))
+				   #`(((aux:lookup-converter #,c #t) a) . d)))
 				vals))
+			  (define (set-value foff val1)
+			    (cond ((= n 1) #`(#,set bv #,foff #,val1))
+				  (endian #`(#,set bv #,foff #,val1 #,endian))
+				  (else
+				   (let ((nset (aux:->native set #t)))
+				     #`(#,nset bv #,foff #,val1)))))
 			  (define (definite-rep rep)
 			    (lp (+ i 1) (aux:add startoff (* n rep))
 				#f #f
@@ -176,24 +371,13 @@
 						       (parse-vals vals)))
 					  (lp* (aux:add o* n) (- rep 1)
 					       #'(vals ...)
-					       (cons (cond
-						      ((= n 1)
-						       #`(#,set bv foff val1))
-						      (endian
-						       #`(#,set bv foff val1
-								#,endian))
-						      ((not align)
-						       #`(#,set 
-							  bv foff val1
-							  (endianness native)))
-						      (else
-						       (let ((nset (->nset set)))
-							 #`(#,nset bv foff val1))))
+					       (cons (set-value #'foff #'val1)
 						     setters))))))
 				(drop vals rep #'fmt*)))
 			  (define (indefinite-rep)
 			    (when (> (string-length fmt) (+ i 1))
-			      (error 'pack! "'*' must be the last position" fmt))
+			      (syntax-violation 'pack!
+			       "'*' must be the last position" fmt))
 			    (let lp* ((o* startoff) (vals vals)
 				      (setters (append (zeroers o startoff)
 						       setters)))
@@ -204,23 +388,12 @@
 						 (parse-vals vals)))
 				    (lp* (aux:add o* n)
 					 #'(vals ...)
-					 (cons (cond
-						((= n 1)
-						 #`(#,set bv foff val1))
-						(endian
-						 #`(#,set bv foff val1
-							  #,endian))
-						((not align)
-						 #`(#,set 
-						    bv foff val1
-						    (endianness native)))
-						(else
-						 (let ((nset (->nset set)))
-						   #`(#,nset bv foff val1))))
+					 (cons (set-value #'foff #'val1)
 					       setters))))))
 			  (unless set 
-			    (error 'pack! "Bad character in format string"
-				   fmt c))
+			    (syntax-violation
+			     'pack! "Bad character in format string"
+			     fmt c))
 			  (if indefinite
 			      (indefinite-rep)
 			      (definite-rep (or rep 1))))))))))))
@@ -241,7 +414,7 @@
 	(bytevector-u8-set! bv i 0)))
     (let lp ((i 0) (o offset) 
 	     (rep #f) (indefinite #f)
-	     (endian (native-endianness))
+	     (endian #f)
 	     (align #t)
 	     (vals vals))
       (cond ((= i (string-length fmt))
@@ -266,7 +439,7 @@
 		  (error 'pack! "'*' and digit can't cooporate" fmt))
 		(lp (+ i 1) o #f #t endian align vals))
 	       ;; native endian
-	       ((#\=) (lp (+ i 1) o #f #f (native-endianness) align vals))
+	       ((#\=) (lp (+ i 1) o #f #f #f align vals))
 	       ;; little endian
 	       ((#\<) (lp (+ i 1) o #f #f (endianness little) align vals))
 	       ;; big endian
@@ -286,9 +459,15 @@
 				   ((o*) (if align (aux:roundb o n) o)))
 		       (define (set-value! v o)
 			 (let ((v (if converter (converter v) v)))
-			   (if (= n 1)
-			       (set bv o v)
-			       (set bv o v endian))))
+			   (cond ((= n 1) (set bv o v))
+				 (endian (set bv o v endian))
+				 (else
+				  (let* ((name (aux:lookup-name c #t))
+					 (proc (aux:->native name #f)))
+				    ;; To make R6RS compatible use below
+				    ;;(eval `(,proc ,bv ,o ,v)
+				    ;;      (environment '(rnrs)))
+				    (proc bv o v))))))
 		       (define (definite-rep)
 			 (do ((rep (or rep 1) (- rep 1))
 			      (o o* (+ o n))
