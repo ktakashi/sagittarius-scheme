@@ -31,16 +31,16 @@
 (library (binary pack)
     (export pack pack! unpack get-unpack
 	    format-size
-	    define-s8-parcker 
-	    define-u8-parcker 
-	    define-s16-parcker
-	    define-u16-parcker
-	    define-s32-parcker
-	    define-u32-parcker
-	    define-s64-parcker
-	    define-u64-parcker
-	    define-f32-parcker
-	    define-f64-parcker)
+	    define-s8-packer 
+	    define-u8-packer 
+	    define-s16-packer
+	    define-u16-packer
+	    define-s32-packer
+	    define-u32-packer
+	    define-s64-packer
+	    define-u64-packer
+	    define-f32-packer
+	    define-f64-packer)
     (import (rnrs)
 	    (sagittarius)
 	    (srfi :13)
@@ -59,16 +59,16 @@
 			       (lambda (v) expr1 (... ...))
 			       (lambda (v) expr2 (... ...)))))))))
 
-  (define-packer define-s8-parcker  #\c)
-  (define-packer define-u8-parcker  #\C)
-  (define-packer define-s16-parcker #\s)
-  (define-packer define-u16-parcker #\S)
-  (define-packer define-s32-parcker #\l)
-  (define-packer define-u32-parcker #\L)
-  (define-packer define-s64-parcker #\q)
-  (define-packer define-u64-parcker #\Q)
-  (define-packer define-f32-parcker #\f)
-  (define-packer define-f64-parcker #\d)
+  (define-packer define-s8-packer  #\c)
+  (define-packer define-u8-packer  #\C)
+  (define-packer define-s16-packer #\s)
+  (define-packer define-u16-packer #\S)
+  (define-packer define-s32-packer #\l)
+  (define-packer define-u32-packer #\L)
+  (define-packer define-s64-packer #\q)
+  (define-packer define-u64-packer #\Q)
+  (define-packer define-f32-packer #\f)
+  (define-packer define-f64-packer #\d)
 
   (define-syntax format-size
     (lambda (x)
