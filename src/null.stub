@@ -3831,11 +3831,10 @@
 
   ;; 15 composit library
   ;; 16 eval
-  (define-c-proc eval (sexp env) ::<top>
-    (result (Sg_VMEval sexp env)))
+  (define-c-proc eval (sexp env) Sg_VMEval)
 
-  (define-c-proc environment (spec :rest more) ::<top>
-    (result (Sg_Environment (Sg_MakeEvalLibrary) #;(Sg_VMCurrentLibrary) (Sg_Cons spec more))))
+  (define-c-proc environment (:rest spec) 
+    (result (Sg_Environment (Sg_MakeEvalLibrary) spec)))
 
   ;; 17 mutable pairs
   (define-cise-stmt check-pair
