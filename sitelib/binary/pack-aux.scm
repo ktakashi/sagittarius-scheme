@@ -189,9 +189,9 @@
 				   #f #f align
 				   (if (null? vals)
 				       vals 
-				       (do ((limit (if rep rep 0))
+				       (do ((limit (if rep rep 1))
 					    (i 0 (+ i 1))
 					    (vals vals (cdr vals)))
-					   ((= i limit) vals))))))))))))
+					   ((= i limit) vals)))))))))))
 	))
-)
+))
