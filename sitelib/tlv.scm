@@ -37,13 +37,15 @@
 	    ;; utilities
 	    dump-tlv
 	    tlv->bytevector write-tlv
+	    *tag-dictionary*
 	    )
     (import (rnrs) (clos user)
 	    (only (sagittarius)
-		  format define-constant reverse!
+		  format define-constant reverse! and-let*
 		  bytevector->integer integer->bytevector)
 	    (sagittarius control)
-	    (srfi :26 cut))
+	    (srfi :26 cut)
+	    (srfi :39 parameters))
 
   ;; default TLV class
   (define-class <tlv> ()
@@ -153,12 +155,19 @@
 			(handle-indefinite b tag in))))))))
     tlv-parser)
 
+  ;; alist of tag and name
+  (define *tag-dictionary* (make-parameter #f))
+
   (define (dump-tlv tlv :optional (out (current-output-port)))
+    (define dic (*tag-dictionary*))
     (define (print-indent indent)
       (dotimes (i indent)
 	(display #\space out)))
     (define (print-tag tag)
-      (format out "[Tag] ~X" tag))
+      (format out "[Tag] ~X" tag)
+      (and-let* (( (pair? dic) )
+		 (name (assv tag dic)))
+	(format out ": ~a" (cdr name))))
 
     (define (dump-data data indent)
       (newline out)
