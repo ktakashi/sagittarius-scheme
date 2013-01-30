@@ -165,7 +165,7 @@
       (print-indent (+ indent 2))
       (display "[Data]" out)
       (dotimes (i (bytevector-length data))
-	(format out " ~X" (bytevector-u8-ref data i))))
+	(format out " ~2,'0X" (bytevector-u8-ref data i))))
     (define (dump-components tlv indent)
       (unless (zero? indent) (newline out))
       (print-indent indent)
@@ -174,7 +174,7 @@
 	(if (null? components)
 	    (dump-data (tlv-data tlv) indent)
 	    (for-each (cut dump-components <> (+ indent 2)) components))))
-    (dump-components tlv 0))
+    (dump-components tlv 0) (newline out))
 
   (define (tlv->bytevector tlv)
     (call-with-bytevector-output-port (cut write-tlv tlv <>)))
