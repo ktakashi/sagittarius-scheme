@@ -884,7 +884,7 @@ SgObject Sg_IntegerToByteVector(SgObject num, int size)
     len = size;
   }
   bv = make_bytevector(len);
-
+  memset(SG_BVECTOR_ELEMENTS(bv), 0, len);
   if (SG_BIGNUMP(num)) {
     /* the structure of bignum is commented above. this case we simply put
        the value from the bottom.
@@ -911,6 +911,7 @@ SgObject Sg_IntegerToByteVector(SgObject num, int size)
 				    SG_MAKE_STRING("exact integer"),
 				    num, num);
   }
+
   return bv;
 }
 
