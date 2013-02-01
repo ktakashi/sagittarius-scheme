@@ -27,8 +27,14 @@
 	    export-private-key
 	    import-public-key
 	    import-private-key
+
+	    ;; key components
+	    split-key
+	    combine-key-components
+	    combine-key-components!
 	    )
     (import (sagittarius crypto)
 	    (math random)
 	    (crypto key pair)
-	    (crypto key rsa)))
+	    (crypto key rsa)
+	    (crypto key component)))

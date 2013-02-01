@@ -313,4 +313,19 @@
 (test-equal "blowfish (1)" #x245946885754369A (blowfish-test #x0123456789ABCDEF #x0000000000000000))
 (test-equal "blowfish (1)" #x6B5C5A9C5D9E0A5A (blowfish-test #xFEDCBA9876543210 #xFFFFFFFFFFFFFFFF))
 
+;; key components stuff
+(let ((key (integer->bytevector
+	    #x708986F7C8FEBFD064A15B25B62C6DC710F8AD3264BA7329)))
+  (let-values (((comp1 comp2 comp3) (split-key key))
+	       ((buf) (make-bytevector (bytevector-length key))))
+    (test-equal "combine3(1)" key (combine-key-components comp1 comp2 comp3))
+    (test-equal "combine3(1)" key 
+		(combine-key-components! buf comp1 comp2 comp3)))
+  (let-values (((comp1 comp2) (split-key key 2))
+	       ((buf) (make-bytevector (bytevector-length key))))
+    (test-equal "combine2(1)" key (combine-key-components comp1 comp2))
+    (test-equal "combine2(1)" key 
+		(combine-key-components! buf comp1 comp2))))
+
+
 (test-end)

@@ -34,7 +34,11 @@
 	    bytevector-ior
 	    bytevector-ior!
 	    bytevector-and
-	    bytevector-and!)
+	    bytevector-and!
+	    ;; parity stuff
+	    ->odd-parity
+	    ->odd-parity!
+	    )
     (import (rnrs) (sagittarius control) (shorten))
 (define (process-bytevector! op out . bvs)
   (let ((len (apply min (map bytevector-length bvs))))
@@ -68,5 +72,20 @@
   (let* ((len (apply min (map bytevector-length bvs)))
 	 (out (make-bytevector len 0)))
     (apply bytevector-and! out bvs)))
+
+(define (->odd-parity bv . args)
+  (apply ->odd-parity! (bytevector-copy bv) args))
+
+(define (->odd-parity! bv :optional (start 0) (end (bytevector-length bv)))
+  (define (fixup b)
+    (let ((parity (bitwise-bit-count b)))
+      (if (even? parity)
+	  (if (even? b)
+	      (bitwise-ior b #x01)
+	      (bitwise-and b #xFE))
+	  b)))
+  (do ((i start (+ i 1)))
+      ((= i end) bv)
+    (bytevector-u8-set! bv i (fixup (bytevector-u8-ref bv i)))))
 
 )
