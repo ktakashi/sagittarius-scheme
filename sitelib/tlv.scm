@@ -29,14 +29,18 @@
 ;;;
 (library (tlv)
     (export make-tlv-parser make-emv-tlv-parser
-	    EMV
+	    EMV DGI
+	    
 	    tlv-builder
 	    tlv-object?
 	    tlv-tag tlv-data tlv-components
 	    <tlv>
 	    ;; utilities
 	    dump-tlv
-	    tlv->bytevector write-tlv
+	    tlv->bytevector 
+	    ;; for compatibility
+	    (rename (write-emv-tlv write-tlv))
+	    write-emv-tlv write-dgi-tlv
 	    *tag-dictionary*
 	    )
     (import (rnrs) (clos user)
@@ -44,6 +48,7 @@
 		  format define-constant reverse! and-let*
 		  bytevector->integer integer->bytevector)
 	    (sagittarius control)
+	    (binary pack)
 	    (srfi :26 cut)
 	    (srfi :39 parameters))
 
@@ -67,15 +72,64 @@
   (define (make-tlv-unit tag data)
     (make <tlv> :tag tag :length (bytevector-length data) :data data))
 
-  ;; marker
-  (define-constant EMV 'emv)
+  (define (make-generic-tlv-parser tag-reader length-reader object-builder)
+    (define (parse-tlv-object-list in in-indefinite?)
+      (let loop ((o (tlv-parser in in-indefinite?)) (r '()))
+	(if o
+	    (loop (tlv-parser in in-indefinite?) (cons o r))
+	    (reverse! r))))
 
-  (define (make-tlv-parser format . opts)
-    (case format
-      ((emv) (apply make-emv-tlv-parser opts))
-      (else (assertion-violation 'make-tlv-parser
-				 "given format is not supported" format))))
+    (define (handle-indefinite b tag in)
+      (object-builder b tag (parse-tlv-object-list in #t) #t))
 
+    ;; separator is null TLV object
+    ;; = tag 0 length 0 data empty
+    (define (tlv-parser in :optional (in-indefinite? #f))
+      (let1 b (get-u8 in)
+	(cond ((eof-object? b) #f)
+	      ((and in-indefinite? (zero? b) (zero? (lookahead-u8 in)) 
+		    (get-u8 in))
+	       #f)
+	      (else
+	       (let ((tag (tag-reader in b))
+		     (not-constructed? (zero? (bitwise-and #x20 b)))
+		     (len (length-reader in)))
+		 (cond (len
+			(let1 data (get-bytevector-n in len)
+			  (when (< (bytevector-length data) len)
+			    (assertion-violation 'tlv-parser "corrupted data"))
+			  (if not-constructed?
+			      (object-builder b tag data #f)
+			      (object-builder 
+			       b
+			       tag 
+			       (call-with-port 
+				   (open-bytevector-input-port data)
+				 (cut parse-tlv-object-list <> in-indefinite?))
+			       #t))))
+		       (not-constructed?
+			(assertion-violation 'tlv-parser
+					     "indefinite length found" tag))
+		       (else
+			(handle-indefinite b tag in))))))))
+    tlv-parser)
+
+  ;; DGI style tag and length reader
+  (define (read-dgi-tag in b)
+    ;; it's always 2 bytes
+    (+ (bitwise-arithmetic-shift b 8) (get-u8 in)))
+  (define (read-dgi-length in)
+    ;; length can be 1 or 3 bytes
+    (let1 b (get-u8 in)
+      (if (= b #xFF)
+	  (+ (bitwise-arithmetic-shift b 16)
+	     (bitwise-arithmetic-shift (get-u8 in) 8)
+	     (get-u8 in))
+	  b)))
+  (define (make-dgi-tlv-parser :key (object-builder tlv-builder))
+    (make-generic-tlv-parser read-dgi-tag read-dgi-length object-builder))
+
+  ;; EMV(ASN.1) style TLV tag and length reader.
   (define (read-tag in b)
     (if (= (bitwise-and b #x1F) #x1F)
 	(let1 b2 (get-u8 in)
@@ -114,46 +168,15 @@
 	(make <tlv> :tag tag :data data)))
   
   (define (make-emv-tlv-parser :key (object-builder tlv-builder))
-    (define (parse-tlv-object-list in in-indefinite?)
-      (let loop ((o (tlv-parser in in-indefinite?)) (r '()))
-	(if o
-	    (loop (tlv-parser in in-indefinite?) (cons o r))
-	    (reverse! r))))
+    (make-generic-tlv-parser read-tag read-length object-builder))
 
-    (define (handle-indefinite b tag in)
-      (object-builder b tag (parse-tlv-object-list in #t) #t))
+  ;; marker
+  (define EMV (list read-tag read-length))
+  (define DGI (list read-dgi-tag read-dgi-length))
 
-    ;; separator is null TLV object
-    ;; = tag 0 length 0 data empty
-    (define (tlv-parser in :optional (in-indefinite? #f))
-      (let1 b (get-u8 in)
-	(cond ((eof-object? b) #f)
-	      ((and in-indefinite? (zero? b) (zero? (lookahead-u8 in)) 
-		    (get-u8 in))
-	       #f)
-	      (else
-	       (let ((tag (read-tag in b))
-		     (not-constructed? (zero? (bitwise-and #x20 b)))
-		     (len (read-length in)))
-		 (cond (len
-			(let1 data (get-bytevector-n in len)
-			  (when (< (bytevector-length data) len)
-			    (assertion-violation 'tlv-parser "corrupted data"))
-			  (if not-constructed?
-			      (object-builder b tag data #f)
-			      (object-builder 
-			       b
-			       tag 
-			       (call-with-port 
-				   (open-bytevector-input-port data)
-				 (cut parse-tlv-object-list <> in-indefinite?))
-			       #t))))
-		       (not-constructed?
-			(assertion-violation 'tlv-parser
-					     "indefinite length found" tag))
-		       (else
-			(handle-indefinite b tag in))))))))
-    tlv-parser)
+  ;; for convenience
+  (define (make-tlv-parser format :optional (object-builder tlv-builder))
+    (apply make-generic-tlv-parser `(,@format ,object-builder)))
 
   ;; alist of tag and name
   (define *tag-dictionary* (make-parameter #f))
@@ -207,12 +230,40 @@
 	    (for-each (cut dump-components <> (+ indent 2)) components))))
     (dump-components tlv 0) (newline out))
 
-  (define (tlv->bytevector tlv)
-    (call-with-bytevector-output-port (cut write-tlv tlv <>)))
+  (define (tlv->bytevector tlv :key (writer write-emv-tlv))
+    (call-with-bytevector-output-port (cut writer tlv <>)))
 
-  (define (write-tlv tlv :optional (out (current-output-port)))
-    (define (write-tag tag) (put-bytevector out (integer->bytevector tag)))
-    (define (write-length len)
+  (define (generic-tlv-writer tlv write-tag write-length
+			      :optional (out (current-output-port)))
+    (define (write-value bv) (put-bytevector out bv))
+    (define (components-values components)
+      (call-with-bytevector-output-port
+       (lambda (out)
+	 (for-each (cut generic-tlv-writer <> write-tag write-length out)
+		   components))))
+
+    (unless (binary-port? out)
+      (assertion-violation 'write-tlv "binary port required" out))
+    (let1 components (tlv-components tlv)
+      (let1 value (if (null? components)
+		      (tlv-data tlv)
+		      (components-values components))
+	(write-tag out (tlv-tag tlv))
+	(write-length out (bytevector-length value))
+	(write-value value))))
+
+  (define (write-dgi-tlv tlv . opts)
+    (define (write-tag out tag) (put-bytevector out (pack "!S" tag)))
+    (define (write-length out len) 
+      ;; 1 or 3
+      (if (> len #xFF)
+	  (put-bytevector out (integer->bytevector len 3))
+	  (put-u8 out len)))
+    (apply generic-tlv-writer tlv write-tag write-length opts))
+
+  (define (write-emv-tlv tlv . opts)
+    (define (write-tag out tag) (put-bytevector out (integer->bytevector tag)))
+    (define (write-length out len)
       (define ashr bitwise-arithmetic-shift-right)
       (cond ((< len 0))
 	    ((< len #x7F) (put-u8 out len))
@@ -224,20 +275,6 @@
 	       (do ((i length-bits (- i 1)))
 		   ((< i 0))
 		 (put-u8 out (bitwise-and #xFF (ashr len (* i 8)))))))))
-    (define (write-value bv) (put-bytevector out bv))
-    (define (components-values components)
-      (call-with-bytevector-output-port
-       (lambda (out)
-	 (for-each (cut write-tlv <> out) components))))
-
-    (unless (binary-port? out)
-      (assertion-violation 'write-tlv "binary port required" out))
-    (let1 components (tlv-components tlv)
-      (let1 value (if (null? components)
-		      (tlv-data tlv)
-		      (components-values components))
-	(write-tag (tlv-tag tlv))
-	(write-length (bytevector-length value))
-	(write-value value))))
+    (apply generic-tlv-writer tlv write-tag write-length opts))
 	      
 )
