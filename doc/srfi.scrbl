@@ -58,11 +58,7 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-41/srfi-41.html"]{SRFI-41}}
     @td{(srfi :41 streams)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-42/srfi-42.html"]{SRFI-42}}
-    @td{(srfi :42 eager-comprehensions)
-
-    This library can not be used on R6RS mode. All symbols starting from 
-    @code{:} need to be read as keywords.
-    }}
+    @td{(srfi :42 eager-comprehensions)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-43/srfi-43.html"]{SRFI-43}}
     @td{(srfi :43 vectors)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-45/srfi-45.html"]{SRFI-45}}
@@ -78,12 +74,7 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-64/srfi-64.html"]{SRFI-64}}
     @td{(srfi :64 testing)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-78/srfi-78.html"]{SRFI-78}}
-    @td{(srfi :78 lightweight-testing)
-
-    This library can not be used on R6RS mode, at least @code{check-ec} need to
-    be used in compatible mode otherwise it won't work. The restriction is the
-    same as SRFI-42.
-    }}
+    @td{(srfi :78 lightweight-testing)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-86/srfi-86.html"]{SRFI-86}}
     @td{(srfi :86 mu-and-nu)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-98/srfi-98.html"]{SRFI-98}}
