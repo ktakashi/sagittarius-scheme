@@ -613,7 +613,13 @@ static SgObject rename_exported(SgObject key, SgObject specs)
     } else if (SG_EQ(SG_CAR(spec), SG_SYMBOL_EXCEPT)) {
       if (!SG_FALSEP(Sg_Memq(key, SG_CDR(spec)))) return SG_FALSE;
     } else if (SG_EQ(SG_CAR(spec), SG_SYMBOL_PREFIX)) {
-      key = Sg_Intern(Sg_Sprintf(UC("%S%S"), SG_CDR(spec), key));
+      /* Issue 92 
+	 when spec or key (most definitely both) is symbol
+	 then (symbol->string x) equivalent must be used,
+	 otherwise +name+ will be prefix\|+name+\| and
+	 will get unbound variable error.
+       */
+      key = Sg_Intern(Sg_Sprintf(UC("%A%A"), SG_CDR(spec), key));
     }
   }
   return key;
