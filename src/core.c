@@ -430,7 +430,9 @@ static void init_cond_features()
   /* R7RS appendix B */
   Sg_AddCondFeature(UC("r7rs"));
   Sg_AddCondFeature(UC("ratios"));
+  Sg_AddCondFeature(UC("exact-closed"));
   Sg_AddCondFeature(UC("exact-complex"));
+  Sg_AddCondFeature(UC("ieee-float"));
   Sg_AddCondFeature(UC("full-unicode"));
   Sg_AddCondFeature(UC(SAGITTARIUS_PLATFORM));
   Sg_AddCondFeature(UC(SAGITTARIUS_PROCESSOR));
