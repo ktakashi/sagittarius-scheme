@@ -178,6 +178,10 @@ static SgObject oprtr_expt(SgObject lhs, long n)
   }
   if (lhs == SG_MAKE_INT(0)) return lhs;
   if (lhs == SG_MAKE_INT(1)) return lhs;
+  if (lhs == SG_MAKE_INT(2)) {
+    if (n + 1 <= SG_INT_SIZE) return SG_MAKE_INT(1UL << n);
+    return Sg_Ash(SG_MAKE_INT(1), n);
+  }
   
   if (SG_RATIONALP(lhs)) {
     return Sg_MakeRational(oprtr_expt(SG_RATIONAL(lhs)->numerator, n),
