@@ -791,4 +791,24 @@
   (test-assert "enbugged" (foo #f))
   (test-equal "enbugged" '(a b c) (foo '(a b c))))
 
+;; issue 93
+(let ()
+  (define-syntax prob
+    (make-variable-transformer
+     (lambda (x)
+       (syntax-case x ()
+	 ((_ vals ...)
+	  #'(begin vals ...))))))
+  
+  (define-syntax define-thing
+    (lambda (x)
+      (syntax-case x ()
+	((k)
+	 (with-syntax ((thing (datum->syntax #'k 'thing)))
+	   #'(define (thing r) r))))))
+
+  (let ((a 1))
+    (define-thing)
+    (test-equal "issue 93" 1 (prob (thing a)))))
+
 (test-end)

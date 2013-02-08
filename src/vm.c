@@ -639,8 +639,10 @@ SgObject Sg_VMEval(SgObject sexp, SgObject env)
 
   if (vm->state != IMPORTING) vm->state = COMPILING;
   v = Sg_Compile(sexp, env);
-  /* after compile we don't need temporary defined */
-  SG_LIBRARY_DEFINEED(vm->currentLibrary) = SG_NIL;
+  /* Now we are checking with this defined variable during compilation,
+     and if a macro have eval in it blow resets the defined variables.
+     to avoid it we need to keep it. */
+  /* SG_LIBRARY_DEFINEED(vm->currentLibrary) = SG_NIL; */
   /* store cache */
   if (vm->state == IMPORTING) {
     SG_SET_CAR(vm->cache, Sg_Cons(v, SG_CAR(vm->cache)));

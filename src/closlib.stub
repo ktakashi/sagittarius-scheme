@@ -45,8 +45,8 @@
       (when (not (Sg_TypeP val SG_CLASS_GENERIC))
 	(if (or (SG_SUBRP val) (SG_CLOSUREP val))
 	    (set! val (Sg_MakeBaseGeneric (SG_OBJ name) call-fallback-proc val))
-	    (set! val (Sg_MakeBaseGeneric (SG_OBJ name) NULL NULL)))
-	(Sg_InsertBinding lib name val))
+	    (set! val (Sg_MakeBaseGeneric (SG_OBJ name) NULL NULL))))
+      (Sg_InsertBinding lib name val)
       (result val)))
 
   (define-c-proc %make-next-method (gf methods::<list> args::<list>)

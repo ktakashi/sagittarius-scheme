@@ -6,17 +6,15 @@
 	    cgen-cpred
 	    cgen-literal-static?
 	    define-cgen-literal cgen-literal)
-    (import (except (rnrs) define)
+    (import (rnrs)
 	    (clos user)
 	    (clos core)
 	    (core base) ;; for print
 	    (sagittarius)
 	    (sagittarius vm) ;; for identifier accessor
-	    (rename (sagittarius control) (define-with-key define))
+	    (sagittarius control)
 	    (sagittarius cgen unit)
-	    (shorten)
 	    (util hashtables)
-	    (srfi :2 and-let*)
 	    (srfi :26 cut)
 	    (srfi :42 eager-comprehensions))
 
@@ -261,11 +259,9 @@
   ;; primitive values
   (define-cgen-literal <cgen-scheme-boolean> <boolean>
     ()
-    (make (value)
-      (if value *cgen-scheme-true* *cgen-scheme-false*))
-    (pred (self) (if (slot-ref self'value) "SG_TRUEP" "SG_FALSEP"))
-    (cexpr (self)
-      (if (slot-ref self 'value) "SG_TRUE" "SG_FALSE")))
+    (make (value) (if value *cgen-scheme-true* *cgen-scheme-false*))
+    (pred (self)  (if (slot-ref self 'value) "SG_TRUEP" "SG_FALSEP"))
+    (cexpr (self) (if (slot-ref self 'value) "SG_TRUE" "SG_FALSE")))
 
   (define *cgen-scheme-true*
     (make <cgen-scheme-boolean> :c-name #f :value #t))
@@ -275,8 +271,7 @@
   ;; character.
   (define-cgen-literal <cgen-scheme-char> <char>
     ()
-    (make (value)
-      (make <cgen-scheme-char> :c-name #f :value value))
+    (make (value) (make <cgen-scheme-char> :c-name #f :value value))
     (pred (self) "SG_CHARP")
     (cexpr (self)
       (format "SG_MAKE_CHAR(~a)" (char->integer (slot-ref self'value)))))
@@ -284,8 +279,7 @@
   ;; ()
   (define-cgen-literal <cgen-scheme-null> <null>
     ()
-    (make (value)
-      (make <cgen-scheme-null> :c-name #f :value '()))
+    (make (value) (make <cgen-scheme-null> :c-name #f :value '()))
     (cexpr (self) "SG_NIL"))
 
   ;; fixnum

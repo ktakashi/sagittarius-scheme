@@ -940,7 +940,9 @@
 			  ((vector? expr)
 			   (list->vector (loop (vector->list expr))))
 			  ((symbol? expr)
-			   (make-identifier expr (vector-ref env 1)
+			   ;; issue 93 doing the same as pattern wrapping
+			   ;; so that symbol can see the proper frame
+			   (make-pattern-identifier expr (vector-ref env 1)
 					    (vector-ref env 0)))
 			  (else expr))))
 		;; Issue 68. this must use current usage env not

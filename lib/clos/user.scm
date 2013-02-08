@@ -252,6 +252,21 @@
 	       (gf        (gensym)))
 
 	  (with-syntax (((true-name getter-name) (%check-setter-name generic)))
+	    #;
+	    #`(let ((#,gf (%ensure-generic-function
+			   'true-name (current-library))))
+		(add-method #,gf
+			    (make <method>
+			      :specializers  (list #,@specializers)
+			      :qualifier     #,qualifier
+			      :generic       true-name
+			      :lambda-list  '#,lambda-list
+			      :procedure     #,real-body))
+		#,@(if #'getter-name
+		       `((unless (has-setter? ,#'getter-name)
+			   (set! (setter ,#'getter-name) ,gf)))
+		       '())
+		#,gf)
 	    (let ((def? (find-binding (current-library) 
 				      (syntax->datum #'true-name) #f)))
 	      (%ensure-generic-function (syntax->datum #'true-name)
@@ -262,21 +277,6 @@
 			`((define-generic ,generic)))
 		  
 		  (let ((#,gf true-name))
-		    (add-method #,gf
-				(make <method>
-				  :specializers  (list #,@specializers)
-				  :qualifier     #,qualifier
-				  :generic       true-name
-				  :lambda-list  '#,lambda-list
-				  :procedure     #,real-body))
-		    #,@(if #'getter-name
-			   `((unless (has-setter? ,#'getter-name)
-			       (set! (setter ,#'getter-name) ,gf)))
-			   '())
-		    #,gf)
-		  #;
-		  (let ((#,gf (%ensure-generic-function
-			       'true-name (current-library))))
 		    (add-method #,gf
 				(make <method>
 				  :specializers  (list #,@specializers)
@@ -310,6 +310,9 @@
 				   '<generic>)))
 	   (with-syntax ((true-name (generate-true-name #'k #'name))
 			 (class-name (datum->syntax #'k class)))
+	     ;; to avoid duplicated definition...
+	     (%ensure-generic-function (syntax->datum #'true-name)
+				       (current-library))
 	     #'(begin
 		 (define true-name (make class-name 
 				     :definition-name 'true-name))
@@ -317,6 +320,9 @@
 	((k name . options)
 	 (let ((class (get-keyword :class (syntax->datum #'options)
 				   '<generic>)))
+	   ;; to avoid duplicated definition...
+	   ;; FIXME this smells bugs
+	   (%ensure-generic-function (syntax->datum #'name) (current-library))
 	   (with-syntax ((class-name (datum->syntax #'k class)))
 	     #'(define name (make class-name :definition-name 'name))))))))
 
