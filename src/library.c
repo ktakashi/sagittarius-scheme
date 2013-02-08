@@ -533,7 +533,8 @@ static SgObject search_library(SgObject name, int onlyPath)
       in case of the same base name but different extension.
     */
     if (!SG_FALSEP(r)) {
-      SG_LIBRARY_DEFINEED(vm->currentLibrary) = SG_NIL;
+      if (!SG_FALSEP(SG_LIBRARY_DEFINEED(r)))
+	SG_LIBRARY_DEFINEED(r) = SG_NIL;
       return r;
     }
   }

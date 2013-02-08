@@ -4498,6 +4498,7 @@
   (let ((lib (id-library id))
 	(name (id-name id)))
     (unless (or (find-binding (id-library id) (id-name id) #f)
+		(not (library-defined lib)) ;; #f means topleve library
 		(memq name (library-defined lib)))
       (if (vm-r6rs-mode?)
 	  (undefined-violation name "unbound identifier")

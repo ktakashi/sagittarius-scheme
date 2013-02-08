@@ -174,6 +174,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
     SgObject nl = 
       Sg_MakeChildLibrary(v, Sg_MakeSymbol(SG_MAKE_STRING("child"), FALSE));
     Sg_ImportLibrary(nl, proto->currentLibrary);
+    SG_LIBRARY_DEFINEED(nl) = SG_FALSE;
     v->currentLibrary = nl;
     v->parameters = Sg_HashTableCopy(proto->parameters, TRUE);
   } else {
@@ -2205,7 +2206,9 @@ void Sg__InitVM()
   Sg_SetCurrentThread(&rootVM->thread);
   rootVM->threadState = SG_VM_RUNNABLE;
   rootVM->currentLibrary = Sg_FindLibrary(SG_INTERN("user"), TRUE);
-
+  /* mark as this is toplevel library. */
+  SG_LIBRARY_DEFINEED(rootVM->currentLibrary) = SG_FALSE;
+  
   /* env */
   SG_VECTOR_ELEMENT(initialEnv, 0) = rootVM->currentLibrary;
   SG_VECTOR_ELEMENT(initialEnv, 1) = SG_NIL;

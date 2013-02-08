@@ -146,7 +146,7 @@
 					"symbol or identifier" v))
     (when (SG_IDENTIFIERP v) (set! v (SG_IDENTIFIER_NAME v)))
     (let ((def (SG_LIBRARY_DEFINEED lib)))
-      (when (SG_FALSEP (Sg_Memq v def))
+      (when (and (not (SG_FALSEP def)) (SG_FALSEP (Sg_Memq v def)))
 	(set! (SG_LIBRARY_DEFINEED lib) (Sg_Cons v def)))))
 
   (define-c-proc library-table (lib::<library>) SG_LIBRARY_TABLE)
