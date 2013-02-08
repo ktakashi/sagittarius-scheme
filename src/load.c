@@ -98,6 +98,7 @@ SgObject Sg_VMLoadFromPort(SgPort *port)
   port->vmFlags = vm->flags;
   port->previousPort = vm->currentLoadingPort;
   vm->currentLoadingPort = port;
+  vm->flags = 0;		/* reset all flags */
   return Sg_VMDynamicWindC(NULL, load_body, load_after, port);
 }
 
